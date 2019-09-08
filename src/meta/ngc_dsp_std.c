@@ -6,26 +6,25 @@
 /* If these variables are packed properly in the struct (one after another)
  * then this is actually how they are laid out in the file, albeit big-endian */
 struct dsp_header {
-    uint32_t sample_count;
-    uint32_t nibble_count;
-    uint32_t sample_rate;
-    uint16_t loop_flag;
-    uint16_t format;
-    uint32_t loop_start_offset;
-    uint32_t loop_end_offset;
-    uint32_t ca;
-    int16_t coef[16]; /* really 8x2 */
-    uint16_t gain;
-    uint16_t initial_ps;
-    int16_t initial_hist1;
-    int16_t initial_hist2;
-    uint16_t loop_ps;
-    int16_t loop_hist1;
-    int16_t loop_hist2;
-    int16_t channel_count; /* DSPADPCM.exe ~v2.7 extension */
-    int16_t block_size;
-    /* padding/reserved up to 0x60 */
-    /* DSPADPCM.exe from GC adds some extra data here (uninitialized MSVC memory?) */
+    uint32_t sample_count;      /* 0x00 */
+    uint32_t nibble_count;      /* 0x04 */
+    uint32_t sample_rate;       /* 0x08 */
+    uint16_t loop_flag;         /* 0x0c */
+    uint16_t format;            /* 0x0e */
+    uint32_t loop_start_offset; /* 0x10 */
+    uint32_t loop_end_offset;   /* 0x14 */
+    uint32_t ca;                /* 0x18 */
+    int16_t coef[16];           /* 0x1c (really 8x2) */
+    uint16_t gain;              /* 0x3c */
+    uint16_t initial_ps;        /* 0x3e */
+    int16_t initial_hist1;      /* 0x40 */
+    int16_t initial_hist2;      /* 0x42 */
+    uint16_t loop_ps;           /* 0x44 */
+    int16_t loop_hist1;         /* 0x46 */
+    int16_t loop_hist2;         /* 0x48 */
+    int16_t channel_count;      /* 0x4a (DSPADPCM.exe ~v2.7 extension) */
+    int16_t block_size;         /* 0x4c */
+    /* padding/reserved up to 0x60, DSPADPCM.exe from GC adds garbage here (uninitialized MSVC memory?) */
 };
 
 /* read the above struct; returns nonzero on failure */

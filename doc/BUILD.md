@@ -59,6 +59,7 @@ Requires MSVC (foobar/SDK only links to MSVC C++ DLLs) and these dependencies:
 - FDK-AAC, in *(vgmstream)/dependencies/fdk-aac/*: https://github.com/kode54/fdk-aac
 - QAAC, in *(vgmstream)/dependencies/qaac/*: https://github.com/kode54/qaac
 - WTL (if needed), in *(vgmstream)/dependencies/WTL/*: http://wtl.sourceforge.net/
+- may need to install ATL and MFC libraries (can be installed in Visual Studio Installer)
 
 The following project modifications are required:
 - For *foobar2000_ATL_helpers* add *../../../WTL/Include* to the compilers's *additional includes*

@@ -509,6 +509,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\bmp_konami.c"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\bnk_sony.c"
                     >
                 </File>
@@ -1586,10 +1590,14 @@
                     RelativePath=".\meta\ubi_bao.c"
                     >
                 </File>
-				<File
-					RelativePath=".\meta\ubi_ckd.c"
-					>
-				</File>
+                <File
+                    RelativePath=".\meta\ubi_ckd.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\ubi_hx.c"
+                    >
+                </File>
                 <File
                     RelativePath=".\meta\ubi_lyn.c"
                     >

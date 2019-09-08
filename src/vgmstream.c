@@ -477,6 +477,8 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_nub_idsp,
     init_vgmstream_nub_is14,
     init_vgmstream_xmv_valve,
+    init_vgmstream_ubi_hx,
+    init_vgmstream_bmp_konami,
 
     /* lowest priority metas (should go after all metas, and TXTH should go before raw formats) */
     init_vgmstream_txth,            /* proper parsers should supersede TXTH, once added */
@@ -501,7 +503,7 @@ static VGMSTREAM * init_vgmstream_internal(STREAMFILE *streamFile) {
 
     fcns_size = (sizeof(init_vgmstream_functions)/sizeof(init_vgmstream_functions[0]));
     /* try a series of formats, see which works */
-    for (i =0; i < fcns_size; i++) {
+    for (i = 0; i < fcns_size; i++) {
         /* call init function and see if valid VGMSTREAM was returned */
         VGMSTREAM * vgmstream = (init_vgmstream_functions[i])(streamFile);
         if (!vgmstream)
@@ -1149,6 +1151,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_OTNS_IMA:
         case coding_UBI_IMA:
         case coding_OKI16:
+        case coding_OKI4S:
             return 1;
         case coding_PCM4:
         case coding_PCM4_U:
@@ -1347,6 +1350,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_BLITZ_IMA:
         case coding_PCFX:
         case coding_OKI16:
+        case coding_OKI4S:
             return 0x01;
         case coding_MS_IMA:
         case coding_RAD_IMA:
@@ -2112,6 +2116,13 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
         case coding_OKI16:
             for (ch = 0; ch < vgmstream->channels; ch++) {
                 decode_oki16(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do, ch);
+            }
+            break;
+
+        case coding_OKI4S:
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_oki4s(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
                         vgmstream->channels,vgmstream->samples_into_block,samples_to_do, ch);
             }
             break;

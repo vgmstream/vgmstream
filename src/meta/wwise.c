@@ -202,7 +202,7 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
 
 
     /* Some Wwise files (ex. Oddworld PSV, Bayonetta 2 WiiU, often in BGM.bnk) are truncated mirrors of another file.
-     * They come in RAM banks, probably to play the beginning while the rest of the real stream loads.
+     * They come in RAM banks, prefetch to play the beginning while the rest of the real stream loads.
      * We'll add basic support to avoid complaints of this or that .wem not playing */
     if (ww.data_offset + ww.data_size > ww.file_size) {
         //VGM_LOG("WWISE: truncated data size (prefetch): (real=0x%x > riff=0x%x)\n", ww.data_size, ww.file_size);
@@ -213,8 +213,8 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
             goto fail;
         }
 
-        if (ww.codec == IMA || ww.codec == VORBIS || ww.codec == XMA2)
-            ww.truncated = 1; /* only seen those, probably others exist */
+        if (ww.codec == IMA || ww.codec == VORBIS || ww.codec == XMA2 || ww.codec == OPUSNX)
+            ww.truncated = 1; /* only seen those, probably all exist */
         else
             goto fail;
     }
@@ -578,6 +578,13 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
             }
 
             skip = switch_opus_get_encoder_delay(start_offset, streamFile); /* should be 120 */
+
+            /* OPUS is VBR so this is very approximate percent, meh */
+            if (ww.truncated) {
+                vgmstream->num_samples = (int32_t)(vgmstream->num_samples *
+                        (double)(ww.file_size - start_offset) / (double)ww.data_size);
+                ww.data_size = ww.file_size - start_offset;
+            }
 
             vgmstream->codec_data = init_ffmpeg_switch_opus(streamFile, start_offset,ww.data_size, vgmstream->channels, skip, vgmstream->sample_rate);
             if (!vgmstream->codec_data) goto fail;

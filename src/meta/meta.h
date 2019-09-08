@@ -864,4 +864,8 @@ VGMSTREAM * init_vgmstream_nub_is14(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_xmv_valve(STREAMFILE * streamFile);
 
+VGMSTREAM * init_vgmstream_ubi_hx(STREAMFILE * streamFile);
+
+VGMSTREAM * init_vgmstream_bmp_konami(STREAMFILE * streamFile);
+
 #endif /*_META_H*/

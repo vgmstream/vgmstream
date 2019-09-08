@@ -181,6 +181,7 @@ void decode_circus_adpcm(VGMSTREAMCHANNEL * stream, sample * outbuf, int channel
 /* oki_decoder */
 void decode_pcfx(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int mode);
 void decode_oki16(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel);
+void decode_oki4s(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel);
 size_t oki_bytes_to_samples(size_t bytes, int channels);
 
 /* ptadpcm_decoder */
@@ -193,6 +194,7 @@ void decode_ubi_adpcm(VGMSTREAM * vgmstream, sample_t * outbuf, int32_t samples_
 void reset_ubi_adpcm(ubi_adpcm_codec_data *data);
 void seek_ubi_adpcm(ubi_adpcm_codec_data *data, int32_t num_sample);
 void free_ubi_adpcm(ubi_adpcm_codec_data *data);
+int ubi_adpcm_get_samples(ubi_adpcm_codec_data *data);
 
 /* ea_mt_decoder*/
 ea_mt_codec_data *init_ea_mt(int channels, int type);

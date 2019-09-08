@@ -164,7 +164,8 @@ typedef enum {
     coding_DSA,             /* Ocean DSA 4-bit ADPCM */
     coding_XMD,             /* Konami XMD 4-bit ADPCM */
     coding_PCFX,            /* PC-FX 4-bit ADPCM */
-    coding_OKI16,           /* OKI 4-bit ADPCM with 16-bit output */
+    coding_OKI16,           /* OKI 4-bit ADPCM with 16-bit output and modified expand */
+    coding_OKI4S,           /* OKI 4-bit ADPCM with 16-bit output and cuadruple step */
     coding_PTADPCM,         /* Platinum 4-bit ADPCM */
 
     /* others */
@@ -711,6 +712,8 @@ typedef enum {
     meta_DSP_ITL_i,
     meta_IMA,
     meta_XMV_VALVE,
+    meta_UBI_HX,
+    meta_BMP_KONAMI,
 
 } meta_t;
 

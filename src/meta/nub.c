@@ -15,6 +15,7 @@ VGMSTREAM * init_vgmstream_nub(STREAMFILE *streamFile) {
     const char* fake_ext;
     VGMSTREAM*(*init_vgmstream_function)(STREAMFILE *) = NULL;
     char name[STREAM_NAME_SIZE] = {0};
+    int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
 
 
     /* checks */
@@ -25,6 +26,13 @@ VGMSTREAM * init_vgmstream_nub(STREAMFILE *streamFile) {
     if (read_32bitBE(0x04,streamFile) != 0x00000000) /* null */
         goto fail;
 
+    /* ToV PS4 uses LE */
+    if (guess_endianness32bit(0x08, streamFile)) {
+        read_32bit = read_32bitBE;
+    } else{
+        read_32bit = read_32bitLE;
+    }
+
     /* parse TOC */
     {
         off_t offset, data_start, header_start;
@@ -33,16 +41,16 @@ VGMSTREAM * init_vgmstream_nub(STREAMFILE *streamFile) {
 
         /* - base header */
         /* 0x08: file id/number */
-        total_subsongs = read_32bitBE(0x0c, streamFile); /* .nub with 0 files do exist */
-        data_start = read_32bitBE(0x10, streamFile);
+        total_subsongs = read_32bit(0x0c, streamFile); /* .nub with 0 files do exist */
+        data_start = read_32bit(0x10, streamFile);
         /* 0x14: data end */
-        header_start = read_32bitBE(0x18, streamFile);
+        header_start = read_32bit(0x18, streamFile);
         /* 0x1c: header end */
 
         if (target_subsong == 0) target_subsong = 1;
         if (target_subsong < 0 || target_subsong > total_subsongs || total_subsongs < 1) goto fail;
 
-        offset = read_32bitBE(header_start + (target_subsong-1)*0x04, streamFile);
+        offset = read_32bit(header_start + (target_subsong-1)*0x04, streamFile);
 
         /* .nus have all headers first then all data, but extractors often just paste them together,
          * so we'll combine header+data on the fly to make them playable with existing parsers.
@@ -53,11 +61,11 @@ VGMSTREAM * init_vgmstream_nub(STREAMFILE *streamFile) {
         /* 00: extension (as referenced in companion files with internal filenames, ex. "BGM_MovingDemo1.is14" > "is14") */
         /* 04: config? */
         /* 08: header id/number */
-        codec = (uint32_t)read_32bitBE(offset + 0x0c, streamFile);
+        codec = (uint32_t)read_32bit(offset + 0x0c, streamFile);
         /* 10: null */
-        stream_size    = read_32bitBE(offset + 0x14, streamFile); /* 0x10 aligned */
-        stream_offset  = read_32bitBE(offset + 0x18, streamFile) + data_start;
-        subheader_size = read_32bitBE(offset + 0x1c, streamFile);
+        stream_size    = read_32bit(offset + 0x14, streamFile); /* 0x10 aligned */
+        stream_offset  = read_32bit(offset + 0x18, streamFile) + data_start;
+        subheader_size = read_32bit(offset + 0x1c, streamFile);
         /* rest looks like config/volumes/etc */
 
         subheader_start = 0xBC;
@@ -102,6 +110,8 @@ VGMSTREAM * init_vgmstream_nub(STREAMFILE *streamFile) {
                 goto fail;
         }
 
+        ;VGM_LOG("NUB: subfile offset=%lx + %x\n", stream_offset, stream_size);
+
         temp_streamFile = make_nub_streamfile(streamFile, header_offset, header_size, stream_offset, stream_size, fake_ext);
         if (!temp_streamFile) goto fail;
     }
@@ -117,7 +127,7 @@ VGMSTREAM * init_vgmstream_nub(STREAMFILE *streamFile) {
         snprintf(filename,sizeof(filename), "nuSound2ToneStr%s.bin", basename);
 
         nameFile = open_streamfile_by_filename(streamFile, filename);
-        if (nameFile && read_32bitBE(0x08, nameFile) == total_subsongs) {
+        if (nameFile && read_32bit(0x08, nameFile) == total_subsongs) {
             off_t header_start = 0x40; /* first name is bank name */
             char name1[0x20+1] = {0};
             char name2[0x20+1] = {0};
@@ -441,6 +451,7 @@ VGMSTREAM * init_vgmstream_nub_is14(STREAMFILE *streamFile) {
     STREAMFILE *temp_streamFile = NULL;
     off_t header_offset, stream_offset;
     size_t header_size, stream_size;
+    int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
 
 
     /* checks */
@@ -449,15 +460,21 @@ VGMSTREAM * init_vgmstream_nub_is14(STREAMFILE *streamFile) {
     if (read_32bitBE(0x00,streamFile) != 0x69733134) /* "is14" */
         goto fail;
 
+    if (guess_endianness32bit(0x04, streamFile)) {
+        read_32bit = read_32bitBE;
+    } else{
+        read_32bit = read_32bitLE;
+    }
+
     /* paste header+data together and pass to meta */
     header_offset = 0xBC;
-    header_size = read_32bitBE(0x1c, streamFile);
+    header_size = read_32bit(0x1c, streamFile);
     stream_offset = align_size_to_block(header_offset + header_size, 0x10);
-    stream_size = read_32bitBE(header_offset + header_size - 0x04, streamFile);/* size at 0x14 is padded, use "sdat" size */
-
+    stream_size = read_32bitBE(header_offset + header_size - 0x04, streamFile); /* size at 0x14 is padded, use "sdat" size BE */
+VGM_LOG("%lx, %x, %lx, %x\n", header_offset, header_size, stream_offset, stream_size);
     temp_streamFile = make_nub_streamfile(streamFile, header_offset, header_size, stream_offset, stream_size, "bnsf");
     if (!temp_streamFile) goto fail;
-
+dump_streamfile(temp_streamFile, 0);
     vgmstream = init_vgmstream_bnsf(temp_streamFile);
     if (!vgmstream) goto fail;
 
