@@ -862,4 +862,6 @@ VGMSTREAM * init_vgmstream_nub_xma(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_nub_idsp(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_nub_is14(STREAMFILE * streamFile);
 
+VGMSTREAM * init_vgmstream_xmv_valve(STREAMFILE * streamFile);
+
 #endif /*_META_H*/

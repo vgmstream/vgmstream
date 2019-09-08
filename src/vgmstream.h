@@ -710,6 +710,7 @@ typedef enum {
     meta_PSF,
     meta_DSP_ITL_i,
     meta_IMA,
+    meta_XMV_VALVE,
 
 } meta_t;
 

@@ -1197,6 +1197,7 @@ static const meta_info meta_info_list[] = {
         {meta_PSF,                  "Pivotal PSF header"},
         {meta_DSP_ITL_i,            "Infernal .ITL DSP header"},
         {meta_IMA,                  "Blitz Games .IMA header"},
+        {meta_XMV_VALVE,            "Valve XMV header"},
 
 };
 
