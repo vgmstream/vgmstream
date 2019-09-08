@@ -1586,10 +1586,14 @@
                     RelativePath=".\meta\ubi_bao.c"
                     >
                 </File>
-				<File
-					RelativePath=".\meta\ubi_ckd.c"
-					>
-				</File>
+                <File
+                    RelativePath=".\meta\ubi_ckd.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\ubi_hx.c"
+                    >
+                </File>
                 <File
                     RelativePath=".\meta\ubi_lyn.c"
                     >

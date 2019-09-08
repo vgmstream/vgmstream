@@ -185,6 +185,12 @@ static const char* extension_list[] = {
     "hlwav",
     "hps",
     "hsf",
+    "hx2",
+    "hx3",
+    "hxc",
+    "hxd",
+    "hxg",
+    "hxx",
     "hwas",
 
     "iab",
@@ -1198,6 +1204,7 @@ static const meta_info meta_info_list[] = {
         {meta_DSP_ITL_i,            "Infernal .ITL DSP header"},
         {meta_IMA,                  "Blitz Games .IMA header"},
         {meta_XMV_VALVE,            "Valve XMV header"},
+        {meta_UBI_HX,               "Ubisoft HXx header"},
 
 };
 

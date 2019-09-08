@@ -477,6 +477,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_nub_idsp,
     init_vgmstream_nub_is14,
     init_vgmstream_xmv_valve,
+    init_vgmstream_ubi_hx,
 
     /* lowest priority metas (should go after all metas, and TXTH should go before raw formats) */
     init_vgmstream_txth,            /* proper parsers should supersede TXTH, once added */
@@ -501,7 +502,7 @@ static VGMSTREAM * init_vgmstream_internal(STREAMFILE *streamFile) {
 
     fcns_size = (sizeof(init_vgmstream_functions)/sizeof(init_vgmstream_functions[0]));
     /* try a series of formats, see which works */
-    for (i =0; i < fcns_size; i++) {
+    for (i = 0; i < fcns_size; i++) {
         /* call init function and see if valid VGMSTREAM was returned */
         VGMSTREAM * vgmstream = (init_vgmstream_functions[i])(streamFile);
         if (!vgmstream)
