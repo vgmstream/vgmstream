@@ -330,7 +330,7 @@ char * WINAPI xmplay_GetTags() {
 /* main panel info text (short file info) */
 void WINAPI xmplay_GetInfoText(char* format, char* length) {
     int rate, samples, bps;
-    const char* fmt;
+    char fmt[128];
     int t, tmin, tsec;
 
     if (!format)
@@ -341,7 +341,7 @@ void WINAPI xmplay_GetInfoText(char* format, char* length) {
     rate = vgmstream->sample_rate;
     samples = vgmstream->num_samples;
     bps = get_vgmstream_average_bitrate(vgmstream) / 1000;
-    fmt = get_vgmstream_coding_description(vgmstream->coding_type);
+    get_vgmstream_coding_description(vgmstream, fmt, sizeof(fmt));
 
     t = samples / rate;
     tmin = t / 60;

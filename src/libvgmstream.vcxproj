@@ -60,7 +60,6 @@
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>../ext_includes;$(DependenciesDir)/qaac/mp4v2/include;$(DependenciesDir)/fdk-aac/libSYS/include;$(DependenciesDir)/fdk-aac/libAACdec/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;VGM_USE_VORBIS;VGM_USE_MPEG;VGM_USE_FFMPEG;VGM_USE_G7221;VGM_USE_G719;VGM_USE_MP4V2;VGM_USE_FDKAAC;VGM_USE_ATRAC9;VGM_USE_CELT;USE_ALLOCA;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <PrecompiledHeader>
@@ -216,6 +215,7 @@
     <ClCompile Include="meta\x360_cxs.c" />
     <ClCompile Include="meta\x360_tra.c" />
     <ClCompile Include="formats.c" />
+    <ClCompile Include="meta\xmv_valve.c" />
     <ClCompile Include="mixing.c" />
     <ClCompile Include="plugins.c" />
     <ClCompile Include="meta\ps2_va3.c" />

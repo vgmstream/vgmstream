@@ -1197,40 +1197,111 @@ static const meta_info meta_info_list[] = {
         {meta_PSF,                  "Pivotal PSF header"},
         {meta_DSP_ITL_i,            "Infernal .ITL DSP header"},
         {meta_IMA,                  "Blitz Games .IMA header"},
+        {meta_XMV_VALVE,            "Valve XMV header"},
 
 };
 
-
-const char * get_vgmstream_coding_description(coding_t coding_type) {
+void get_vgmstream_coding_description(VGMSTREAM *vgmstream, char *out, size_t out_size) {
     int i, list_length;
+    const char *description;
 
-    list_length = sizeof(coding_info_list) / sizeof(coding_info);
-    for (i=0; i < list_length; i++) {
-        if (coding_info_list[i].type == coding_type)
-            return coding_info_list[i].description;
+    /* we need to recurse down because of FFmpeg */
+    if (vgmstream->layout_type == layout_layered) {
+        layered_layout_data* layout_data = vgmstream->layout_data;
+        get_vgmstream_coding_description(layout_data->layers[0], out, out_size);
+        return;
+    } else if (vgmstream->layout_type == layout_segmented) {
+        segmented_layout_data* layout_data = vgmstream->layout_data;
+        get_vgmstream_coding_description(layout_data->segments[0], out, out_size);
+        return;
     }
 
-    return NULL;
+    description = "CANNOT DECODE";
+
+    switch (vgmstream->coding_type) {
+#ifdef VGM_USE_FFMPEG
+        case coding_FFmpeg:
+        {
+            ffmpeg_codec_data *data = vgmstream->codec_data;
+
+            if (data) {
+                if (data->codec && data->codec->long_name) {
+                    description = data->codec->long_name;
+                } else if (data->codec && data->codec->name) {
+                    description = data->codec->name;
+                } else {
+                    description = "FFmpeg (unknown codec)";
+                }
+            } else {
+                description = "FFmpeg";
+            }
+            break;
+        }
+#endif
+        default:
+            list_length = sizeof(coding_info_list) / sizeof(coding_info);
+            for (i = 0; i < list_length; i++) {
+                if (coding_info_list[i].type == vgmstream->coding_type)
+                    description = coding_info_list[i].description;
+            }
+            break;
+    }
+
+    strncpy(out, description, out_size);
 }
-const char * get_vgmstream_layout_description(layout_t layout_type) {
+const char * get_vgmstream_layout_name(layout_t layout_type) {
     int i, list_length;
 
     list_length = sizeof(layout_info_list) / sizeof(layout_info);
-    for (i=0; i < list_length; i++) {
+    for (i = 0; i < list_length; i++) {
         if (layout_info_list[i].type == layout_type)
             return layout_info_list[i].description;
     }
 
     return NULL;
 }
-const char * get_vgmstream_meta_description(meta_t meta_type) {
+void get_vgmstream_layout_description(VGMSTREAM *vgmstream, char *out, size_t out_size) {
+    char temp[256];
+    VGMSTREAM* vgmstreamsub = NULL;
+    const char* description;
+
+    description = get_vgmstream_layout_name(vgmstream->layout_type);
+    if (!description) description = "INCONCEIVABLE";
+
+    if (vgmstream->layout_type == layout_layered) {
+        vgmstreamsub = ((layered_layout_data*)vgmstream->layout_data)->layers[0];
+        snprintf(temp, sizeof(temp), "%s (%i layers)", description, ((layered_layout_data*)vgmstream->layout_data)->layer_count);
+    } else if (vgmstream->layout_type == layout_segmented) {
+        snprintf(temp, sizeof(temp), "%s (%i segments)", description, ((segmented_layout_data*)vgmstream->layout_data)->segment_count);
+        vgmstreamsub = ((segmented_layout_data*)vgmstream->layout_data)->segments[0];
+    } else {
+        snprintf(temp, sizeof(temp), "%s", description);
+    }
+    strncpy(out, temp, out_size);
+
+    /* layouts can contain layouts infinitely let's leave it at one level deep (most common) */
+    /* TODO: improve this somehow */
+    if (vgmstreamsub && vgmstreamsub->layout_type == layout_layered) {
+        description = get_vgmstream_layout_name(vgmstreamsub->layout_type);
+        snprintf(temp, sizeof(temp), " + %s (%i layers)", description, ((layered_layout_data*)vgmstreamsub->layout_data)->layer_count);
+        concatn(out_size, out, temp);
+    } else if (vgmstreamsub && vgmstreamsub->layout_type == layout_segmented) {
+        description = get_vgmstream_layout_name(vgmstreamsub->layout_type);
+        snprintf(temp, sizeof(temp), " + %s (%i segments)", description, ((segmented_layout_data*)vgmstream->layout_data)->segment_count);
+        concatn(out_size, out, temp);
+    }
+}
+void get_vgmstream_meta_description(VGMSTREAM *vgmstream, char *out, size_t out_size) {
     int i, list_length;
+    const char *description;
+
+    description = "THEY SHOULD HAVE SENT A POET";
 
     list_length = sizeof(meta_info_list) / sizeof(meta_info);
     for (i=0; i < list_length; i++) {
-        if (meta_info_list[i].type == meta_type)
-            return meta_info_list[i].description;
+        if (meta_info_list[i].type == vgmstream->meta_type)
+            description = meta_info_list[i].description;
     }
 
-    return NULL;
+    strncpy(out, description, out_size);
 }
