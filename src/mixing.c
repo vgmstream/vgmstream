@@ -99,15 +99,15 @@ static int is_active(mixing_data *data, int32_t current_start, int32_t current_e
     int32_t fade_start, fade_end;
 
     for (i = 0; i < data->mixing_count; i++) {
-        mix_command_data mix = data->mixing_chain[i];
+        mix_command_data *mix = &data->mixing_chain[i];
 
-        if (mix.command != MIX_FADE)
+        if (mix->command != MIX_FADE)
             return 1; /* has non-fades = active */
 
         /* check is current range falls within a fade
          * (assuming fades were already optimized on add) */
-        fade_start = mix.time_pre < 0 ? 0 : mix.time_pre;
-        fade_end = mix.time_post < 0 ? INT_MAX : mix.time_post;
+        fade_start = mix->time_pre < 0 ? 0 : mix->time_pre;
+        fade_end = mix->time_post < 0 ? INT_MAX : mix->time_post;
 
         if (current_start < fade_end && current_end > fade_start)
             return 1;

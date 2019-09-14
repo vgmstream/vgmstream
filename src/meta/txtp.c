@@ -476,54 +476,54 @@ static void apply_config(VGMSTREAM *vgmstream, txtp_entry *current) {
         int m, position_samples;
 
         for (m = 0; m < current->mixing_count; m++) {
-            txtp_mix_data mix = current->mixing[m];
+            txtp_mix_data *mix = &current->mixing[m];
 
-            switch(mix.command) {
+            switch(mix->command) {
                 /* base mixes */
-                case MIX_SWAP:       mixing_push_swap(vgmstream, mix.ch_dst, mix.ch_src); break;
-                case MIX_ADD:        mixing_push_add(vgmstream, mix.ch_dst, mix.ch_src, 1.0); break;
-                case MIX_ADD_VOLUME: mixing_push_add(vgmstream, mix.ch_dst, mix.ch_src, mix.vol); break;
-                case MIX_VOLUME:     mixing_push_volume(vgmstream, mix.ch_dst, mix.vol); break;
-                case MIX_LIMIT:      mixing_push_limit(vgmstream, mix.ch_dst, mix.vol); break;
-                case MIX_UPMIX:      mixing_push_upmix(vgmstream, mix.ch_dst); break;
-                case MIX_DOWNMIX:    mixing_push_downmix(vgmstream, mix.ch_dst); break;
-                case MIX_KILLMIX:    mixing_push_killmix(vgmstream, mix.ch_dst); break;
+                case MIX_SWAP:       mixing_push_swap(vgmstream, mix->ch_dst, mix->ch_src); break;
+                case MIX_ADD:        mixing_push_add(vgmstream, mix->ch_dst, mix->ch_src, 1.0); break;
+                case MIX_ADD_VOLUME: mixing_push_add(vgmstream, mix->ch_dst, mix->ch_src, mix->vol); break;
+                case MIX_VOLUME:     mixing_push_volume(vgmstream, mix->ch_dst, mix->vol); break;
+                case MIX_LIMIT:      mixing_push_limit(vgmstream, mix->ch_dst, mix->vol); break;
+                case MIX_UPMIX:      mixing_push_upmix(vgmstream, mix->ch_dst); break;
+                case MIX_DOWNMIX:    mixing_push_downmix(vgmstream, mix->ch_dst); break;
+                case MIX_KILLMIX:    mixing_push_killmix(vgmstream, mix->ch_dst); break;
                 case MIX_FADE:
                     /* Convert from time to samples now that sample rate is final.
                      * Samples and time values may be mixed though, so it's done for every
                      * value (if one is 0 the other will be too, though) */
-                    if (mix.time_pre > 0.0)   mix.sample_pre = mix.time_pre * vgmstream->sample_rate;
-                    if (mix.time_start > 0.0) mix.sample_start = mix.time_start * vgmstream->sample_rate;
-                    if (mix.time_end > 0.0)   mix.sample_end = mix.time_end * vgmstream->sample_rate;
-                    if (mix.time_post > 0.0)  mix.sample_post = mix.time_post * vgmstream->sample_rate;
+                    if (mix->time_pre > 0.0)   mix->sample_pre = mix->time_pre * vgmstream->sample_rate;
+                    if (mix->time_start > 0.0) mix->sample_start = mix->time_start * vgmstream->sample_rate;
+                    if (mix->time_end > 0.0)   mix->sample_end = mix->time_end * vgmstream->sample_rate;
+                    if (mix->time_post > 0.0)  mix->sample_post = mix->time_post * vgmstream->sample_rate;
                     /* convert special meaning too */
-                    if (mix.time_pre < 0.0)   mix.sample_pre = -1;
-                    if (mix.time_post < 0.0)  mix.sample_post = -1;
+                    if (mix->time_pre < 0.0)   mix->sample_pre = -1;
+                    if (mix->time_post < 0.0)  mix->sample_post = -1;
 
-                    if (mix.position_type == TXTP_POSITION_LOOPS && vgmstream->loop_flag) {
+                    if (mix->position_type == TXTP_POSITION_LOOPS && vgmstream->loop_flag) {
                         int loop_pre = vgmstream->loop_start_sample;
                         int loop_samples = (vgmstream->loop_end_sample - vgmstream->loop_start_sample);
-                        VGM_LOG("ls=%i + %i * %f\n", loop_pre, loop_samples, mix.position);
-                        position_samples = loop_pre + loop_samples * mix.position;
 
-                        if (mix.sample_pre >= 0) mix.sample_pre += position_samples;
-                        mix.sample_start += position_samples;
-                        mix.sample_end += position_samples;
-                        if (mix.sample_post >= 0) mix.sample_post += position_samples;
+                        position_samples = loop_pre + loop_samples * mix->position;
+
+                        if (mix->sample_pre >= 0) mix->sample_pre += position_samples;
+                        mix->sample_start += position_samples;
+                        mix->sample_end += position_samples;
+                        if (mix->sample_post >= 0) mix->sample_post += position_samples;
                     }
 
 
-                    mixing_push_fade(vgmstream, mix.ch_dst, mix.vol_start, mix.vol_end, mix.shape,
-                            mix.sample_pre, mix.sample_start, mix.sample_end, mix.sample_post);
+                    mixing_push_fade(vgmstream, mix->ch_dst, mix->vol_start, mix->vol_end, mix->shape,
+                            mix->sample_pre, mix->sample_start, mix->sample_end, mix->sample_post);
                     break;
 
                 /* macro mixes */
-                case MACRO_VOLUME:      mixing_macro_volume(vgmstream, mix.vol, mix.mask); break;
-                case MACRO_TRACK:       mixing_macro_track(vgmstream, mix.mask); break;
-                case MACRO_LAYER:       mixing_macro_layer(vgmstream, mix.max, mix.mask, mix.mode); break;
-                case MACRO_CROSSTRACK:  mixing_macro_crosstrack(vgmstream, mix.max); break;
-                case MACRO_CROSSLAYER:  mixing_macro_crosslayer(vgmstream, mix.max, mix.mode); break;
-                case MACRO_DOWNMIX:     mixing_macro_downmix(vgmstream, mix.max); break;
+                case MACRO_VOLUME:      mixing_macro_volume(vgmstream, mix->vol, mix->mask); break;
+                case MACRO_TRACK:       mixing_macro_track(vgmstream, mix->mask); break;
+                case MACRO_LAYER:       mixing_macro_layer(vgmstream, mix->max, mix->mask, mix->mode); break;
+                case MACRO_CROSSTRACK:  mixing_macro_crosstrack(vgmstream, mix->max); break;
+                case MACRO_CROSSLAYER:  mixing_macro_crosslayer(vgmstream, mix->max, mix->mode); break;
+                case MACRO_DOWNMIX:     mixing_macro_downmix(vgmstream, mix->max); break;
 
                 default:
                     break;
@@ -609,7 +609,6 @@ static int get_position(const char * config, double *value_f, char *value_type) 
     if (temp_c != TXTP_POSITION_LOOPS)
         return 0;
 
-    VGM_LOG("found position: %f, %c\n", temp_f, temp_c);
     *value_f = temp_f;
     *value_type = temp_c;
     return n;
