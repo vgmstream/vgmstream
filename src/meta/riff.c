@@ -149,7 +149,7 @@ static int read_fmt(int big_endian, STREAMFILE * streamFile, off_t current_chunk
                     fmt->interleave = 0x02;
                     break;
                 case 8:
-                    fmt->coding_type = coding_PCM8_U_int;
+                    fmt->coding_type = coding_PCM8_U;
                     fmt->interleave = 0x01;
                     break;
                 default:
@@ -556,7 +556,7 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
             vgmstream->num_samples = pcm_bytes_to_samples(data_size, fmt.channel_count, 16);
             break;
 
-        case coding_PCM8_U_int:
+        case coding_PCM8_U:
             vgmstream->num_samples = pcm_bytes_to_samples(data_size, vgmstream->channels, 8);
             break;
 
@@ -899,7 +899,7 @@ VGMSTREAM * init_vgmstream_rifx(STREAMFILE *streamFile) {
         case coding_PCM16BE:
             vgmstream->num_samples = pcm_bytes_to_samples(data_size, vgmstream->channels, 16);
             break;
-        case coding_PCM8_U_int:
+        case coding_PCM8_U:
             vgmstream->num_samples = pcm_bytes_to_samples(data_size, vgmstream->channels, 8);
             break;
         default:
