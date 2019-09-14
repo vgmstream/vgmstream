@@ -81,6 +81,11 @@ typedef struct {
     int coef_table_set;
     uint8_t coef_table[0x02*16 * 16]; /* reasonable max */
 
+    int hist_set;
+    uint32_t hist_offset;
+    uint32_t hist_spacing;
+    uint32_t hist_big_endian;
+
     int num_samples_data_size;
 
     int target_subsong;
@@ -378,29 +383,41 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
             }
 
             /* get coefs */
-            for (i = 0; i < vgmstream->channels; i++) {
+            {
                 int16_t (*read_16bit)(off_t , STREAMFILE*) = txth.coef_big_endian ? read_16bitBE : read_16bitLE;
                 int16_t (*get_16bit)(uint8_t * p) = txth.coef_big_endian ? get_16bitBE : get_16bitLE;
 
-                /* normal/split coefs */
-                if (txth.coef_mode == 0) { /* normal mode */
-                    for (j = 0; j < 16; j++) {
-                        int16_t coef;
-                        if (txth.coef_table_set)
-                            coef =  get_16bit(txth.coef_table  + i*txth.coef_spacing  + j*2);
-                        else
-                            coef = read_16bit(txth.coef_offset + i*txth.coef_spacing  + j*2, txth.streamHead);
-                        vgmstream->ch[i].adpcm_coef[j] = coef;
+                for (i = 0; i < vgmstream->channels; i++) {
+                    if (txth.coef_mode == 0) { /* normal coefs */
+                        for (j = 0; j < 16; j++) {
+                            int16_t coef;
+                            if (txth.coef_table_set)
+                                coef =  get_16bit(txth.coef_table  + i*txth.coef_spacing  + j*2);
+                            else
+                                coef = read_16bit(txth.coef_offset + i*txth.coef_spacing  + j*2, txth.streamHead);
+                            vgmstream->ch[i].adpcm_coef[j] = coef;
+                        }
+                    }
+                    else { /* split coefs */
+                        goto fail; //IDK what is this
+                        /*
+                        for (j = 0; j < 8; j++) {
+                            vgmstream->ch[i].adpcm_coef[j*2] = read_16bit(genh.coef_offset + i*genh.coef_spacing + j*2, txth.streamHead);
+                            vgmstream->ch[i].adpcm_coef[j*2+1] = read_16bit(genh.coef_split_offset + i*genh.coef_split_spacing + j*2, txth.streamHead);
+                        }
+                        */
                     }
                 }
-                else { /* split coefs */
-                    goto fail; //IDK what is this
-                    /*
-                    for (j = 0; j < 8; j++) {
-                        vgmstream->ch[i].adpcm_coef[j*2] = read_16bit(genh.coef_offset + i*genh.coef_spacing + j*2, txth.streamHead);
-                        vgmstream->ch[i].adpcm_coef[j*2+1] = read_16bit(genh.coef_split_offset + i*genh.coef_split_spacing + j*2, txth.streamHead);
-                    }
-                    */
+            }
+
+            /* get hist */
+            if (txth.hist_set) {
+                int16_t (*read_16bit)(off_t , STREAMFILE*) = txth.hist_big_endian ? read_16bitBE : read_16bitLE;
+
+                for (i = 0; i < vgmstream->channels; i++) {
+                    off_t offset = txth.hist_offset + i*txth.hist_spacing;
+                    vgmstream->ch[i].adpcm_history1_16 = read_16bit(offset + 0x00, txth.streamHead);
+                    vgmstream->ch[i].adpcm_history2_16 = read_16bit(offset + 0x02, txth.streamHead);
                 }
             }
 
@@ -1049,6 +1066,22 @@ static int parse_keyval(STREAMFILE * streamFile_, txth_header * txth, const char
     else if (is_string(key,"coef_table")) {
         if (!parse_coef_table(txth->streamHead,txth,val, txth->coef_table, sizeof(txth->coef_table))) goto fail;
         txth->coef_table_set = 1;
+    }
+
+    /* HIST */
+    else if (is_string(key,"hist_offset")) {
+        if (!parse_num(txth->streamHead,txth,val, &txth->hist_offset)) goto fail;
+        txth->hist_set = 1;
+    }
+    else if (is_string(key,"hist_spacing")) {
+        if (!parse_num(txth->streamHead,txth,val, &txth->hist_spacing)) goto fail;
+    }
+    else if (is_string(key,"hist_endianness")) {
+        if (is_string(val, "BE"))
+            txth->hist_big_endian = 1;
+        else if (is_string(val, "LE"))
+            txth->hist_big_endian = 0;
+        else if (!parse_num(txth->streamHead,txth,val, &txth->hist_big_endian)) goto fail;
     }
 
     /* SUBSONGS */
