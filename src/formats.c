@@ -330,6 +330,7 @@ static const char* extension_list[] = {
     //"opus", //common
     "opusx",
     "otm",
+    "oto", //txth/reserved [Vampire Savior (SAT)]
     "ovb",
 
     "p04", //txth/reserved [Psychic Force 2012 (DC)]
