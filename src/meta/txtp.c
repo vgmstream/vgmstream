@@ -5,10 +5,11 @@
 
 
 #define TXTP_LINE_MAX 1024
-#define TXTP_MIXING_MAX 128
+#define TXTP_MIXING_MAX 512
 #define TXTP_GROUP_MODE_SEGMENTED 'S'
 #define TXTP_GROUP_MODE_LAYERED 'L'
 #define TXTP_GROUP_REPEAT 'R'
+#define TXTP_POSITION_LOOPS 'L'
 
 /* mixing info */
 typedef enum {
@@ -50,6 +51,8 @@ typedef struct {
     double time_start;
     double time_end;
     double time_post;
+    double position;
+    char position_type;
 
     /* macros */
     int max;
@@ -69,8 +72,11 @@ typedef struct {
     int mixing_count;
     txtp_mix_data mixing[TXTP_MIXING_MAX];
 
+    int config_loop_count_set;
     double config_loop_count;
+    int config_fade_time_set;
     double config_fade_time;
+    int config_fade_delay_set;
     double config_fade_delay;
     int config_ignore_loop;
     int config_force_loop;
@@ -420,16 +426,21 @@ fail:
 
 static void apply_config(VGMSTREAM *vgmstream, txtp_entry *current) {
 
-    vgmstream->config_loop_count = current->config_loop_count;
-    vgmstream->config_fade_time = current->config_fade_time;
-    vgmstream->config_fade_delay = current->config_fade_delay;
-    vgmstream->config_ignore_loop = current->config_ignore_loop;
-    vgmstream->config_force_loop = current->config_force_loop;
-    vgmstream->config_ignore_fade = current->config_ignore_fade;
+    if (current->config_loop_count_set)
+        vgmstream->config_loop_count = current->config_loop_count;
+    if (current->config_fade_time_set)
+        vgmstream->config_fade_time = current->config_fade_time;
+    if (current->config_fade_delay_set)
+        vgmstream->config_fade_delay = current->config_fade_delay;
+    if (current->config_ignore_loop)
+        vgmstream->config_ignore_loop = current->config_ignore_loop;
+    if (current->config_force_loop)
+        vgmstream->config_force_loop = current->config_force_loop;
+    if (current->config_ignore_fade)
+        vgmstream->config_ignore_fade = current->config_ignore_fade;
 
-    if (current->sample_rate > 0) {
+    if (current->sample_rate > 0)
         vgmstream->sample_rate = current->sample_rate;
-    }
 
     if (current->loop_install) {
         if (current->loop_start_second > 0 || current->loop_end_second > 0) {
@@ -462,7 +473,7 @@ static void apply_config(VGMSTREAM *vgmstream, txtp_entry *current) {
 
     /* copy mixing list (should be done last as some mixes depend on config) */
     if (current->mixing_count > 0) {
-        int m;
+        int m, position_samples;
 
         for (m = 0; m < current->mixing_count; m++) {
             txtp_mix_data mix = current->mixing[m];
@@ -488,6 +499,19 @@ static void apply_config(VGMSTREAM *vgmstream, txtp_entry *current) {
                     /* convert special meaning too */
                     if (mix.time_pre < 0.0)   mix.sample_pre = -1;
                     if (mix.time_post < 0.0)  mix.sample_post = -1;
+
+                    if (mix.position_type == TXTP_POSITION_LOOPS && vgmstream->loop_flag) {
+                        int loop_pre = vgmstream->loop_start_sample;
+                        int loop_samples = (vgmstream->loop_end_sample - vgmstream->loop_start_sample);
+                        VGM_LOG("ls=%i + %i * %f\n", loop_pre, loop_samples, mix.position);
+                        position_samples = loop_pre + loop_samples * mix.position;
+
+                        if (mix.sample_pre >= 0) mix.sample_pre += position_samples;
+                        mix.sample_start += position_samples;
+                        mix.sample_end += position_samples;
+                        if (mix.sample_post >= 0) mix.sample_post += position_samples;
+                    }
+
 
                     mixing_push_fade(vgmstream, mix.ch_dst, mix.vol_start, mix.vol_end, mix.shape,
                             mix.sample_pre, mix.sample_start, mix.sample_end, mix.sample_post);
@@ -545,14 +569,17 @@ static void clean_filename(char * filename) {
  * - %n: special match (not counted in return value), chars consumed until that point (can appear and be set multiple times)
  */
 
-static int get_double(const char * config, double *value) {
+static int get_double(const char * config, double *value, int *is_set) {
     int n, m;
     double temp;
+
+    if (is_set) *is_set = 0;
 
     m = sscanf(config, " %lf%n", &temp,&n);
     if (m != 1 || temp < 0)
         return 0;
 
+    if (is_set) *is_set = 1;
     *value = temp;
     return n;
 }
@@ -568,6 +595,26 @@ static int get_int(const char * config, int *value) {
     *value = temp;
     return n;
 }
+
+static int get_position(const char * config, double *value_f, char *value_type) {
+    int n,m;
+    double temp_f;
+    char temp_c;
+
+    /* test if format is position: N.n(type) */
+    m = sscanf(config, " %lf%c%n", &temp_f,&temp_c,&n);
+    if (m != 2 || temp_f < 0.0)
+        return 0;
+    /* test accepted chars as it will capture anything */
+    if (temp_c != TXTP_POSITION_LOOPS)
+        return 0;
+
+    VGM_LOG("found position: %f, %c\n", temp_f, temp_c);
+    *value_f = temp_f;
+    *value_type = temp_c;
+    return n;
+}
+
 
 static int get_time(const char * config, double *value_f, int32_t *value_i) {
     int n,m;
@@ -752,6 +799,11 @@ static int get_fade(const char * config, txtp_mix_data *mix, int *out_n) {
         mix->time_pre = -1.0;
         mix->sample_pre = -1;
 
+        n = get_position(config, &mix->position, &mix->position_type);
+        //if (n == 0) goto fail; /* optional */
+        config += n;
+        tn += n;
+
         n = get_time(config, &mix->time_start, &mix->sample_start);
         if (n == 0) goto fail;
         config += n;
@@ -785,8 +837,8 @@ void add_mixing(txtp_entry* cfg, txtp_mix_data* mix, txtp_mix_t command) {
         return;
     }
 
-    /* parsers reads ch1 = first, but for mixing code ch0 = first
-     * (if parser reads ch0 here it'll become -1 with special meaning in code) */
+    /* parser reads ch1 = first, but for mixing code ch0 = first
+     * (if parser reads ch0 here it'll become -1 with meaning of "all channels" in mixing code) */
     mix->ch_dst--;
     mix->ch_src--;
     mix->command = command;
@@ -797,14 +849,19 @@ void add_mixing(txtp_entry* cfg, txtp_mix_data* mix, txtp_mix_t command) {
 
 
 static void add_config(txtp_entry* current, txtp_entry* cfg, const char* filename) {
+
+    /* don't memcopy to allow list additions and ignore values not set,
+     * as current can be "default" config */
+    //*current = *cfg;
+
     if (filename)
         strcpy(current->filename, filename);
 
-    current->subsong = cfg->subsong;
+    if (cfg->subsong)
+        current->subsong = cfg->subsong;
 
-    current->channel_mask = cfg->channel_mask;
-
-    //*current = *cfg; /* don't memcopy to allow list additions */ //todo save list first then memcpy
+    if (cfg->channel_mask)
+        current->channel_mask = cfg->channel_mask;
 
     if (cfg->mixing_count > 0) {
         int i;
@@ -814,20 +871,40 @@ static void add_config(txtp_entry* current, txtp_entry* cfg, const char* filenam
         }
     }
 
-    current->config_loop_count = cfg->config_loop_count;
-    current->config_fade_time = cfg->config_fade_time;
-    current->config_fade_delay = cfg->config_fade_delay;
-    current->config_ignore_loop = cfg->config_ignore_loop;
-    current->config_force_loop = cfg->config_force_loop;
-    current->config_ignore_fade = cfg->config_ignore_fade;
+    if (cfg->config_loop_count_set) {
+        current->config_loop_count_set = cfg->config_loop_count_set;
+        current->config_loop_count = cfg->config_loop_count;
+    }
+    if (cfg->config_fade_time_set) {
+        current->config_fade_time_set = cfg->config_fade_time_set;
+        current->config_fade_time = cfg->config_fade_time;
+    }
+    if (cfg->config_fade_delay_set) {
+        current->config_fade_delay_set = cfg->config_fade_delay_set;
+        current->config_fade_delay = cfg->config_fade_delay;
+    }
+    if (cfg->config_ignore_loop) {
+        current->config_ignore_loop = cfg->config_ignore_loop;
+    }
+    if (cfg->config_force_loop) {
+        current->config_force_loop = cfg->config_force_loop;
+    }
+    if (cfg->config_ignore_fade) {
+        current->config_ignore_fade = cfg->config_ignore_fade;
+    }
 
-    current->sample_rate = cfg->sample_rate;
-    current->loop_install = cfg->loop_install;
-    current->loop_end_max = cfg->loop_end_max;
-    current->loop_start_sample = cfg->loop_start_sample;
-    current->loop_start_second = cfg->loop_start_second;
-    current->loop_end_sample = cfg->loop_end_sample;
-    current->loop_end_second = cfg->loop_end_second;
+    if (cfg->sample_rate > 0) {
+        current->sample_rate = cfg->sample_rate;
+    }
+
+    if (cfg->loop_install) {
+        current->loop_install = cfg->loop_install;
+        current->loop_end_max = cfg->loop_end_max;
+        current->loop_start_sample = cfg->loop_start_sample;
+        current->loop_start_second = cfg->loop_start_second;
+        current->loop_end_sample = cfg->loop_end_sample;
+        current->loop_end_second = cfg->loop_end_second;
+    }
 }
 
 static void parse_config(txtp_entry *cfg, char *config) {
@@ -982,15 +1059,15 @@ static void parse_config(txtp_entry *cfg, char *config) {
             //;VGM_LOG("TXTP:   ignore_fade=%i\n", cfg->config_ignore_fade);
         }
         else if (strcmp(command,"l") == 0) {
-            config += get_double(config, &cfg->config_loop_count);
+            config += get_double(config, &cfg->config_loop_count, &cfg->config_loop_count_set);
             //;VGM_LOG("TXTP:   loop_count=%f\n", cfg->config_loop_count);
         }
         else if (strcmp(command,"f") == 0) {
-            config += get_double(config, &cfg->config_fade_time);
+            config += get_double(config, &cfg->config_fade_time, &cfg->config_fade_time_set);
             //;VGM_LOG("TXTP:   fade_time=%f\n", cfg->config_fade_time);
         }
         else if (strcmp(command,"d") == 0) {
-            config += get_double(config, &cfg->config_fade_delay);
+            config += get_double(config, &cfg->config_fade_delay, &cfg->config_fade_delay_set);
             //;VGM_LOG("TXTP:   fade_delay %f\n", cfg->config_fade_delay);
         }
         else if (strcmp(command,"h") == 0) {
@@ -1018,7 +1095,7 @@ static void parse_config(txtp_entry *cfg, char *config) {
         else if (strcmp(command,"@volume") == 0) {
             txtp_mix_data mix = {0};
 
-            nm = get_double(config, &mix.vol);
+            nm = get_double(config, &mix.vol, NULL);
             config += nm;
 
             if (nm == 0) continue;
