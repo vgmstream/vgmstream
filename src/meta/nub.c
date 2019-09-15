@@ -169,6 +169,7 @@ VGMSTREAM * init_vgmstream_nub(STREAMFILE *streamFile) {
     vgmstream = init_vgmstream_function(temp_streamFile);
     if (!vgmstream) goto fail;
 
+    vgmstream->stream_size = get_streamfile_size(temp_streamFile);
     vgmstream->num_streams = total_subsongs;
     if (name[0] != '\0')
         strcpy(vgmstream->stream_name, name);

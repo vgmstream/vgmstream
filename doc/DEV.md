@@ -74,6 +74,7 @@ Custom STREAMFILEs wrapping base STREAMFILEs may be used for complex I/O cases:
 - data needs decryption (`io_streamfile`)
 - data must be expanded/reduced on the fly for codecs that are not easy to feed chunked data (`io_streamfile`)
 - data is divided in multiple physical files, but must be read as a single (`multifile_streamfile`)
+
 Certain metas combine those streamfiles together with special layouts to support very complex cases, that would require massive changes in vgmstream to support in a cleaner (possible undesirable) way.
 
 
