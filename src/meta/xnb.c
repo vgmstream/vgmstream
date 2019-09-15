@@ -112,7 +112,7 @@ VGMSTREAM * init_vgmstream_xnb(STREAMFILE *streamFile) {
             if (!block_align)
                 block_align = (bps == 8 ? 0x01 : 0x02) * channel_count;
 
-            vgmstream->coding_type = bps == 8 ? coding_PCM8_U_int : coding_PCM16LE;
+            vgmstream->coding_type = bps == 8 ? coding_PCM8_U : coding_PCM16LE;
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = block_align / channel_count;
             vgmstream->num_samples = pcm_bytes_to_samples(data_size, channel_count, bps);

@@ -1049,6 +1049,7 @@ static int find_chunk_internal(STREAMFILE *streamFile, uint32_t chunk_id, off_t 
     while (offset < max_offset) {
         uint32_t chunk_type = read_32bit_type(offset + 0x00,streamFile);
         uint32_t chunk_size = read_32bit_size(offset + 0x04,streamFile);
+        //;VGM_LOG("CHUNK: type=%x, size=%x at %lx\n", chunk_type, chunk_size, offset);
 
         if (chunk_type == chunk_id) {
             if (out_chunk_offset) *out_chunk_offset = offset + 0x08;
@@ -1073,6 +1074,12 @@ int find_chunk_le(STREAMFILE *streamFile, uint32_t chunk_id, off_t start_offset,
 }
 int find_chunk(STREAMFILE *streamFile, uint32_t chunk_id, off_t start_offset, int full_chunk_size, off_t *out_chunk_offset, size_t *out_chunk_size, int big_endian_size, int zero_size_end) {
     return find_chunk_internal(streamFile, chunk_id, start_offset, 0, full_chunk_size, out_chunk_offset, out_chunk_size, 1, big_endian_size, zero_size_end);
+}
+int find_chunk_riff_le(STREAMFILE *streamFile, uint32_t chunk_id, off_t start_offset, size_t max_size, off_t *out_chunk_offset, size_t *out_chunk_size) {
+    return find_chunk_internal(streamFile, chunk_id, start_offset, max_size, 0, out_chunk_offset, out_chunk_size, 1, 0, 0);
+}
+int find_chunk_riff_be(STREAMFILE *streamFile, uint32_t chunk_id, off_t start_offset, size_t max_size, off_t *out_chunk_offset, size_t *out_chunk_size) {
+    return find_chunk_internal(streamFile, chunk_id, start_offset, max_size, 0, out_chunk_offset, out_chunk_size, 1, 1, 0);
 }
 int find_chunk_riff_ve(STREAMFILE *streamFile, uint32_t chunk_id, off_t start_offset, size_t max_size, off_t *out_chunk_offset, size_t *out_chunk_size, int big_endian) {
     return find_chunk_internal(streamFile, chunk_id, start_offset, max_size, 0, out_chunk_offset, out_chunk_size, big_endian, big_endian, 0);

@@ -317,6 +317,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\sqex_sead_streamfile.h"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\txth_streamfile.h"
                     >
                 </File>

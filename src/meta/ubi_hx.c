@@ -47,7 +47,7 @@ VGMSTREAM * init_vgmstream_ubi_hx(STREAMFILE *streamFile) {
 
 
     /* checks */
-    /* .hxd: Rayman Arena (all)
+    /* .hxd: Rayman Arena (all), PK: Out of Shadows (all)
      * .hxc: Rayman 3 (PC), XIII (PC)
      * .hx2: Rayman 3 (PS2), XIII (PS2)
      * .hxg: Rayman 3 (GC), XIII (GC)
@@ -299,7 +299,7 @@ static int parse_header(ubi_hx_header * hx, STREAMFILE *sf, off_t offset, size_t
         offset += 0x08;
 
         if (read_32bit(offset + 0x00, sf) != 0x01) goto fail;
-        /* 0x04: 0? */
+        /* 0x04: some kind of parent id shared by multiple Waves, or 0 */
         offset += 0x08;
 
         hx->stream_mode = read_8bit(offset, sf);
@@ -352,9 +352,11 @@ static int parse_header(ubi_hx_header * hx, STREAMFILE *sf, off_t offset, size_t
             }
         }
 
+
         switch(hx->stream_mode) {
             case 0x01: /* static (smaller external file) */
             case 0x03: /* stream (bigger external file) */
+            case 0x07: /* stream? */
                 resource_size = read_32bit(offset + 0x00, sf);
                 if (resource_size > sizeof(hx->resource_name)+1) goto fail;
                 read_string(hx->resource_name,resource_size+1, offset + 0x04, sf);

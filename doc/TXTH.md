@@ -58,11 +58,12 @@ The above may be combined with math operations (+-*/): `(key) = (number) (op) (o
 ### KEYS
 
 #### CODEC [REQUIRED]
-Sets codec used to encode the data. Accepted codec strings:
+Sets codec used to encode the data. Some codecs need interleave or other config
+as explained below, but often will use default values. Accepted codec strings:
 ```
 # - PSX            PlayStation ADPCM
 #   * For many PS1/PS2/PS3 games
-#   * Interleave is multiple of 0x10, often +0x1000
+#   * Interleave is multiple of 0x10 (default), often +0x1000
 # - PSX_bf         PlayStation ADPCM with bad flags
 #   * Variation with garbage data, for rare PS2 games
 # - XBOX           Xbox IMA ADPCM (mono/stereo)
@@ -70,18 +71,19 @@ Sets codec used to encode the data. Accepted codec strings:
 #   * Special interleave is multiple of 0x24 (mono) or 0x48 (stereo)
 # - DSP|NGC_DSP    Nintendo GameCube ADPCM
 #   * For many GC/Wii/3DS games
-#   * Interleave is multiple of 0x08, often +0x1000
+#   * Interleave is multiple of 0x08 (default), often +0x1000
 #   * Must set decoding coefficients (coef_offset/spacing/etc)
+#   * Should set ADPCM state (hist_offset/spacing/etc)
 # - DTK|NGC_DTK    Nintendo ADP/DTK ADPCM
 #   * For rare GC games
 # - PCM16LE        PCM 16-bit little endian
 #   * For many games (usually on PC)
-#   * Interleave is multiple of 0x2
+#   * Interleave is multiple of 0x2 (default)
 # - PCM16BE        PCM 16-bit big endian
 #   * Variation for certain consoles (GC/Wii/PS3/X360/etc)
 # - PCM8           PCM 8-bit signed
 #   * For some games (usually on PC)
-#   * Interleave is multiple of 0x1
+#   * Interleave is multiple of 0x1 (default)
 # - PCM8_U         PCM 8-bit unsigned
 #   * Variation with modified encoding
 # - PCM8_U_int     PCM 8-bit unsigned (interleave block)
@@ -110,13 +112,14 @@ Sets codec used to encode the data. Accepted codec strings:
 # - ATRAC3         Sony ATRAC3
 #   * For some PS2 and PS3 games
 #   * Interleave (frame size) can be 0x60/0x98/0xC0 * channels [required]
-#   * Should set skip_samples (more than 1024 but varies)
+#   * Should set skip_samples (more than 1024+69 but varies)
 # - ATRAC3PLUS     Sony ATRAC3plus
 #   * For many PSP games and rare PS3 games
 #   * Interleave (frame size) can be: [required]
 #     Mono: 0x0118|0178|0230|02E8
 #     Stereo: 0x0118|0178|0230|02E8|03A8|0460|05D0|0748|0800
-#   * Should set skip_samples (more than 2048 but varies)
+#     6/8 channels: multiple of one of the above
+#   * Should set skip_samples (more than 2048+184 but varies)
 # - XMA1           Microsoft XMA1
 #   * For early X360 games
 # - XMA2           Microsoft XMA2
@@ -291,7 +294,7 @@ skip_samples = (value)
 #### DSP DECODING COEFFICIENTS [REQUIRED for DSP]
 DSP needs a "coefs" list to decode correctly. These are 8*2 16-bit values per channel, starting from `coef_offset`.
 
-Usually each channel uses its own list, so we can set the separation per channel, usually 0x20 (16 values * 2 bytes). So channel N coefs are read at `coef_offset + coef_spacing * N`
+Usually each channel uses its own list, so we may need to set separation per channel, usually 0x20 (16 values * 2 bytes). So channel N coefs are read at `coef_offset + coef_spacing * N`
 
 Those 16-bit coefs can be little or big endian (usually BE), set `coef_endianness` directly or in an offset value where ´0=LE, >0=BE´.
 
@@ -301,6 +304,22 @@ coef_offset = (value)
 coef_spacing = (value)
 coef_endianness = BE|LE|(value)
 coef_table = (string)
+```
+
+#### ADPCM STATE
+Some ADPCM codecs need to set up their initial or "history" state, normally one or two 16-bit PCM samples per channel, starting from `hist_offset`.
+
+Usually each channel uses its own state, so we may need to set separation per channel.
+
+State values can be little or big endian (usually BE for DSP), set `hist_endianness` directly or in an offset value where ´0=LE, >0=BE´.
+
+Normally audio starts with silence or hist samples are set to zero and can be ignored, but it does affect a bit resulting output.
+
+Currently used by DSP.
+```
+hist_offset = (value)
+hist_spacing = (value)
+hist_endianness = BE|LE|(value)
 ```
 
 #### HEADER/BODY SETTINGS

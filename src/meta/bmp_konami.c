@@ -1,7 +1,7 @@
 #include "meta.h"
 
 
-/* BMP - from Jubeat Clan (AC) */
+/* BMP - from Jubeat series (AC) */
 VGMSTREAM * init_vgmstream_bmp_konami(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset;

@@ -11,7 +11,7 @@ VGMSTREAM * init_vgmstream_nub(STREAMFILE *streamFile) {
     off_t name_offset = 0;
     size_t name_size = 0;
     int total_subsongs, target_subsong = streamFile->stream_index;
-    uint32_t codec;
+    uint32_t version, codec;
     const char* fake_ext;
     VGMSTREAM*(*init_vgmstream_function)(STREAMFILE *) = NULL;
     char name[STREAM_NAME_SIZE] = {0};
@@ -21,13 +21,17 @@ VGMSTREAM * init_vgmstream_nub(STREAMFILE *streamFile) {
     /* checks */
     if (!check_extensions(streamFile, "nub"))
         goto fail;
-    if (read_32bitBE(0x00,streamFile) != 0x00020100) /* v2.1? */
+
+    version = read_32bitBE(0x00,streamFile);
+    if (version != 0x00020000 &&  /* v2.0 (rare, ex. Ridge Race 6 (X360)) */
+        version != 0x00020100 &&  /* v2.1 (common) */
+        version != 0x01020100)    /* same but LE? (seen in PSP games, not PS4) */
         goto fail;
     if (read_32bitBE(0x04,streamFile) != 0x00000000) /* null */
         goto fail;
 
-    /* ToV PS4 uses LE */
-    if (guess_endianness32bit(0x08, streamFile)) {
+    /* sometimes LE [Soul Calibur: Broken Destiny (PSP), Tales of Vesperia (PS4) */
+    if (guess_endianness32bit(0x10, streamFile)) {
         read_32bit = read_32bitBE;
     } else{
         read_32bit = read_32bitLE;
@@ -40,12 +44,17 @@ VGMSTREAM * init_vgmstream_nub(STREAMFILE *streamFile) {
         size_t header_size, subheader_size, stream_size;
 
         /* - base header */
-        /* 0x08: file id/number */
+        /* 0x08: file id/number (can be 0 = first) */
         total_subsongs = read_32bit(0x0c, streamFile); /* .nub with 0 files do exist */
-        data_start = read_32bit(0x10, streamFile);
-        /* 0x14: data end */
+        data_start = read_32bit(0x10, streamFile); /* exists even with 0 files */
+        /* 0x14: data end (may have padding) */
         header_start = read_32bit(0x18, streamFile);
         /* 0x1c: header end */
+
+        /* probably means "header end" in v2.0 */
+        if (version == 0x00020000) {
+            data_start = align_size_to_block(data_start, 0x800);
+        }
 
         if (target_subsong == 0) target_subsong = 1;
         if (target_subsong < 0 || target_subsong > total_subsongs || total_subsongs < 1) goto fail;
@@ -54,25 +63,37 @@ VGMSTREAM * init_vgmstream_nub(STREAMFILE *streamFile) {
 
         /* .nus have all headers first then all data, but extractors often just paste them together,
          * so we'll combine header+data on the fly to make them playable with existing parsers.
-         * As formats inside .nub don't exist as external files, they can be extracted in various
-         * ways so we'll try to match (though BNSF can be found as header+data in some bigfiles too). */
+         * Formats inside .nub don't exist as external files, so they could be extracted in various
+         * ways that we'll try to match (though BNSF can be found as header+data in some bigfiles too). */
+
+        header_offset = offset;
+
+        /* - extension (as referenced in companion files with internal filenames, ex. "BGM_MovingDemo1.is14" > "is14") */
+        if (version != 0x00020000)
+            offset += 0x04; /* skip but not in v2.0 */
 
         /* - file header */
-        /* 00: extension (as referenced in companion files with internal filenames, ex. "BGM_MovingDemo1.is14" > "is14") */
-        /* 04: config? */
-        /* 08: header id/number */
-        codec = (uint32_t)read_32bit(offset + 0x0c, streamFile);
-        /* 10: null */
-        stream_size    = read_32bit(offset + 0x14, streamFile); /* 0x10 aligned */
-        stream_offset  = read_32bit(offset + 0x18, streamFile) + data_start;
-        subheader_size = read_32bit(offset + 0x1c, streamFile);
+        /* 0x00: config? */
+        /* 0x04: header id/number */
+        codec = (uint32_t)read_32bit(offset + 0x08, streamFile);
+        /* 0x0c: null */
+        stream_size    = read_32bit(offset + 0x10, streamFile); /* 0x10 aligned */
+        stream_offset  = read_32bit(offset + 0x14, streamFile) + data_start;
+        subheader_size = read_32bit(offset + 0x18, streamFile);
         /* rest looks like config/volumes/etc */
 
-        subheader_start = 0xBC;
-        header_offset = offset;
+        if (version == 0x00020000)
+            subheader_start = 0xAC;
+        else
+            subheader_start = 0xBC;
         header_size = align_size_to_block(subheader_start + subheader_size, 0x10);
 
         switch(codec) {
+            case 0x00: /* (none) (xma1) */
+                fake_ext = "xma";
+                init_vgmstream_function = init_vgmstream_nub_xma;
+                break;
+
             case 0x01: /* "wav\0" */
                 fake_ext = "wav";
                 init_vgmstream_function = init_vgmstream_nub_wav;
@@ -88,8 +109,8 @@ VGMSTREAM * init_vgmstream_nub(STREAMFILE *streamFile) {
                 init_vgmstream_function = init_vgmstream_nub_at3;
                 break;
 
-            case 0x04: /* "xma\0" (old) */
-            case 0x08: /* "xma\0" (new) */
+            case 0x04: /* "xma\0" (xma2 old) */
+            case 0x08: /* "xma\0" (xma2 new) */
                 fake_ext = "xma";
                 init_vgmstream_function = init_vgmstream_nub_xma;
                 break;
@@ -110,7 +131,7 @@ VGMSTREAM * init_vgmstream_nub(STREAMFILE *streamFile) {
                 goto fail;
         }
 
-        ;VGM_LOG("NUB: subfile offset=%lx + %x\n", stream_offset, stream_size);
+        //;VGM_LOG("NUB: subfile header=%lx + %x, offset=%lx + %x\n", header_offset, header_size, stream_offset, stream_size);
 
         temp_streamFile = make_nub_streamfile(streamFile, header_offset, header_size, stream_offset, stream_size, fake_ext);
         if (!temp_streamFile) goto fail;
@@ -148,6 +169,7 @@ VGMSTREAM * init_vgmstream_nub(STREAMFILE *streamFile) {
     vgmstream = init_vgmstream_function(temp_streamFile);
     if (!vgmstream) goto fail;
 
+    vgmstream->stream_size = get_streamfile_size(temp_streamFile);
     vgmstream->num_streams = total_subsongs;
     if (name[0] != '\0')
         strcpy(vgmstream->stream_name, name);
@@ -325,11 +347,12 @@ fail:
     return NULL;
 }
 
-/* .nub xma - from Namco NUB archives [Tekken 6 (X360), Galaga Legions DX (X360)] */
+
+/* .nub xma - from Namco NUB archives [Ridge Racer 6 (X360), Tekken 6 (X360), Galaga Legions DX (X360)] */
 VGMSTREAM * init_vgmstream_nub_xma(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset, chunk_offset;
-    size_t data_size, chunk_size;
+    size_t data_size, chunk_size, header_size;
     int loop_flag, channel_count, sample_rate, nus_codec;
     int num_samples, loop_start_sample, loop_end_sample;
 
@@ -337,25 +360,66 @@ VGMSTREAM * init_vgmstream_nub_xma(STREAMFILE *streamFile) {
     /* checks */
     if (!check_extensions(streamFile,"xma"))
         goto fail;
-    if (read_32bitBE(0x00,streamFile) != 0x786D6100) /* "xma\0" */
-        goto fail;
 
-    /* header with a "XMA2" or "fmt " chunk inside */
-    nus_codec    = read_32bitBE(0x0C,streamFile);
-    data_size    = read_32bitBE(0x14,streamFile);
-    chunk_offset = 0xBC;
-    chunk_size   = read_32bitBE(0x24,streamFile);
-    if (nus_codec == 0x4) { /* "XMA2" */
-        xma2_parse_xma2_chunk(streamFile, chunk_offset, &channel_count,&sample_rate, &loop_flag, &num_samples, &loop_start_sample, &loop_end_sample);
-    } else if (nus_codec == 0x8) { /* "fmt " */
-        channel_count = read_16bitBE(chunk_offset+0x02,streamFile);
-        sample_rate   = read_32bitBE(chunk_offset+0x04,streamFile);
-        xma2_parse_fmt_chunk_extra(streamFile, chunk_offset, &loop_flag, &num_samples, &loop_start_sample, &loop_end_sample, 1);
-    } else {
+    if (read_32bitBE(0x00,streamFile) == 0x786D6100) { /* "xma\0" */
+        /* nub v2.1 */
+        nus_codec    = read_32bitBE(0x0C,streamFile);
+        data_size    = read_32bitBE(0x14,streamFile);
+        header_size  = read_32bitBE(0x1c,streamFile);
+        chunk_offset = 0xBC;
+        chunk_size   = read_32bitBE(0x24,streamFile);
+    }
+    else if (read_32bitBE(0x08,streamFile) == 0 && read_32bitBE(0x0c,streamFile) == 0) {
+        /* nub v2.0 from Ridge Racer 6 */
+        nus_codec    = read_32bitBE(0x08,streamFile);
+        data_size    = read_32bitBE(0x10,streamFile);
+        header_size  = read_32bitBE(0x18,streamFile);
+        chunk_offset = 0xAC;
+        chunk_size   = header_size;
+    }
+    else {
         goto fail;
     }
 
-    start_offset = 0x100;
+    start_offset = align_size_to_block(chunk_offset + header_size, 0x10);
+
+    if (nus_codec == 0x00) { /* XMA1 "fmt " */
+        int loop_start_b, loop_end_b, loop_subframe;
+
+        xma1_parse_fmt_chunk(streamFile, chunk_offset, &channel_count,&sample_rate, &loop_flag, &loop_start_b, &loop_end_b, &loop_subframe, 1);
+
+        {
+            ms_sample_data msd = {0};
+
+            msd.xma_version = 1;
+            msd.channels    = channel_count;
+            msd.data_offset = start_offset;
+            msd.data_size   = data_size;
+            msd.loop_flag   = loop_flag;
+            msd.loop_start_b= loop_start_b;
+            msd.loop_end_b  = loop_end_b;
+            msd.loop_start_subframe = loop_subframe & 0xF; /* lower 4b: subframe where the loop starts, 0..4 */
+            msd.loop_end_subframe   = loop_subframe >> 4; /* upper 4b: subframe where the loop ends, 0..3 */
+            msd.chunk_offset= chunk_offset;
+
+            xma_get_samples(&msd, streamFile);
+
+            num_samples = msd.num_samples;
+            loop_start_sample = msd.loop_start_sample;
+            loop_end_sample = msd.loop_end_sample;
+        }
+    }
+    else if (nus_codec == 0x04) { /* "XMA2" */
+        xma2_parse_xma2_chunk(streamFile, chunk_offset, &channel_count,&sample_rate, &loop_flag, &num_samples, &loop_start_sample, &loop_end_sample);
+    }
+    else if (nus_codec == 0x08) { /* XMA2 "fmt " */
+        channel_count = read_16bitBE(chunk_offset+0x02,streamFile);
+        sample_rate   = read_32bitBE(chunk_offset+0x04,streamFile);
+        xma2_parse_fmt_chunk_extra(streamFile, chunk_offset, &loop_flag, &num_samples, &loop_start_sample, &loop_end_sample, 1);
+    }
+    else {
+        goto fail;
+    }
 
 
     /* build the VGMSTREAM */
@@ -373,9 +437,9 @@ VGMSTREAM * init_vgmstream_nub_xma(STREAMFILE *streamFile) {
         uint8_t buf[0x100];
         size_t bytes;
 
-        if (nus_codec == 0x4) { /* "XMA2" */
+        if (nus_codec == 0x04) {
             bytes = ffmpeg_make_riff_xma2_from_xma2_chunk(buf,0x100, chunk_offset,chunk_size, data_size, streamFile);
-        } else { /* "fmt " */
+        } else {
             bytes = ffmpeg_make_riff_xma_from_fmt_chunk(buf,0x100, chunk_offset,chunk_size, data_size, streamFile, 1);
         }
         vgmstream->codec_data = init_ffmpeg_header_offset(streamFile, buf,bytes, start_offset,data_size);
@@ -450,7 +514,7 @@ VGMSTREAM * init_vgmstream_nub_is14(STREAMFILE *streamFile) {
     VGMSTREAM *vgmstream = NULL;
     STREAMFILE *temp_streamFile = NULL;
     off_t header_offset, stream_offset;
-    size_t header_size, stream_size;
+    size_t header_size, stream_size, sdat_size;
     int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
 
 
@@ -460,21 +524,27 @@ VGMSTREAM * init_vgmstream_nub_is14(STREAMFILE *streamFile) {
     if (read_32bitBE(0x00,streamFile) != 0x69733134) /* "is14" */
         goto fail;
 
-    if (guess_endianness32bit(0x04, streamFile)) {
+    if (guess_endianness32bit(0x1c, streamFile)) {
         read_32bit = read_32bitBE;
     } else{
         read_32bit = read_32bitLE;
     }
 
+
     /* paste header+data together and pass to meta */
     header_offset = 0xBC;
     header_size = read_32bit(0x1c, streamFile);
+
+    /* size at 0x14 is padded, find "sdat" size BE (may move around) */
+    if (!find_chunk_riff_be(streamFile, 0x73646174, 0xbc+0x0c, header_size - 0x0c, NULL, &sdat_size))
+        goto fail;
     stream_offset = align_size_to_block(header_offset + header_size, 0x10);
-    stream_size = read_32bitBE(header_offset + header_size - 0x04, streamFile); /* size at 0x14 is padded, use "sdat" size BE */
-VGM_LOG("%lx, %x, %lx, %x\n", header_offset, header_size, stream_offset, stream_size);
+    stream_size   = sdat_size;
+
+
     temp_streamFile = make_nub_streamfile(streamFile, header_offset, header_size, stream_offset, stream_size, "bnsf");
     if (!temp_streamFile) goto fail;
-dump_streamfile(temp_streamFile, 0);
+
     vgmstream = init_vgmstream_bnsf(temp_streamFile);
     if (!vgmstream) goto fail;
 

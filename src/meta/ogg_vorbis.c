@@ -215,7 +215,6 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
     if (is_ogg) {
         if (read_32bitBE(0x00,streamFile) == 0x2c444430) { /* Psychic Software [Darkwind: War on Wheels (PC)] */
             ovmi.decryption_callback = psychic_ogg_decryption_callback;
-            ovmi.meta_type = meta_OGG_encrypted;
         }
         else if (read_32bitBE(0x00,streamFile) == 0x4C325344) { /* "L2SD" instead of "OggS" [Lineage II Chronicle 4 (PC)] */
             cfg.is_header_swap = 1;
@@ -234,7 +233,7 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
             cfg.is_encrypted = 1;
         }
         else if (read_32bitBE(0x00,streamFile) == 0x4f676753) { /* "OggS" (standard) */
-            ovmi.meta_type = meta_OGG_VORBIS;
+            ;
         }
         else {
             goto fail; /* unknown/not Ogg Vorbis (ex. Wwise) */
@@ -245,7 +244,6 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
         if (read_32bitBE(0x00,streamFile) != 0x4f676753) { /* "OggS" (optionally encrypted) */
             ovmi.decryption_callback = um3_ogg_decryption_callback;
         }
-        ovmi.meta_type = meta_OGG_encrypted;
     }
 
     if (is_kovs) { /* Koei Tecmo PC games */
@@ -371,7 +369,6 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
             goto fail;
         }
         ovmi.decryption_callback = rpgmvo_ogg_decryption_callback;
-        ovmi.meta_type = meta_OGG_encrypted;
 
         start_offset = 0x10;
     }
@@ -437,11 +434,17 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
         }
     }
 
-    if (cfg.is_encrypted) {
-        ovmi.meta_type = meta_OGG_encrypted;
 
+    if (cfg.is_encrypted) {
         temp_streamFile = setup_ogg_vorbis_streamfile(streamFile, cfg);
         if (!temp_streamFile) goto fail;
+    }
+
+    if (ovmi.meta_type == 0) {
+        if (cfg.is_encrypted || ovmi.decryption_callback != NULL)
+            ovmi.meta_type = meta_OGG_encrypted;
+        else
+            ovmi.meta_type = meta_OGG_VORBIS;
     }
 
     vgmstream = init_vgmstream_ogg_vorbis_callbacks(temp_streamFile != NULL ? temp_streamFile : streamFile, NULL, start_offset, &ovmi);

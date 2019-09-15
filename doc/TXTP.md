@@ -305,17 +305,23 @@ Possible operations:
 - `Nu`: upmix (insert) N ('pushing' all following channels forward)
 - `Nd`: downmix (remove) N ('pulling' all following channels backward)
 - `ND`: downmix (remove) N and all following channels
-- `N(type)(time-start)+(time-length)`: defines a fade
+- `N(type)(position)(time-start)+(time-length)`: defines a fade
   * `type` can be `{` = fade-in, `}` = fade-out, `(` = crossfade-in, `)` = crossfade-out
     * crossfades are better tuned to use when changing between tracks
+  * `(position)` pre-adjusts `(time-start)` to start after certain time (optional)
   * using multiple fades in the same channel will cancel previous fades
     * may only cancel when fade is after previous one
-    * `}` then `{` makes sense, but `}` then `}` will make funny volume bumps
+    * `}` then `{` or `{` then `}` makes sense, but `}` then `}` will make funny volume bumps
+    * example: `1{0:10+0:5, 1}0:30+0:5` fades-in at 10 seconds, then fades-out at 30 seconds
 - `N^(volume-start)~(volume-end)=(shape)@(time-pre)~(time-start)+(time-length)~(time-last)`: defines full fade envelope
-  * full definition of the above to allow precise volume changes over time
-    * not necessarily fades, as you could set length 0 for volume "bumps", or make volumes 1.0~0.5
-  * pre/post may be -1 to set "file start" and "file end", cancelled by next fade
+  * full definition of a fade envelope to allow precise volume changes over time
+    * not necessarily fades, as you could set length 0 for volume "bumps" like `1.0~0.5`
   * `(shape)` can be `{` = fade, `(` = crossfade, other values are reserved for internal testing and may change anytime
+  * `(time-start)`+`(time-length)` make `(time-end)`
+  * between `(time-pre)` and `(time-start)` song uses `(volume-start)`
+  * between `(time-start)` and `(time-end)` song gradually changes `(volume-start)` to `(volume-end)` (depending on `(shape)`)
+  * between `(time-end)` and `(time-post)` song uses `(volume-end)`
+  * `time-pre/post` may be -1 to set "file start" and "file end", cancelled by next fade
 
 Considering:
 - `N` and `M` are channels (*current* value after previous operators are applied)
@@ -324,6 +330,8 @@ Considering:
 - may use `x` instead of `*` and `_` instead of `:` (for mini-TXTP)
 - `(volume)` is a `N.N` decimal value where 1.0 is 100% base volume
   - negative volume inverts the waveform (for weird effects)
+- `(position)` can be `N.NL` or `NL` = N.N loops
+  - if loop start is 1000 and loop end 5000, `0.0L` = 1000 samples, `1.0L` = 5000 samples, `2.0L` = 9000 samples, etc
 - `(time)` can be `N:NN(.n)` (minutes:seconds), `N.N` (seconds) or `N` (samples)
   - represents the file's global play time, so it may be set after N loops
   - beware of `10.0` (ten seconds) vs `10` (ten samples)
@@ -449,7 +457,7 @@ TXTP may even reference other TXTP, or files that require TXTH, for extra comple
 bgm bank#s2#c1,2
 ```
 
-You may add spaces as needed (but try to keep it simple and don't go overboard), though commands *must* start with `#(command)` (`#(space)(anything)` is a comment). Commands without corresponding file are ignored too (seen as comments too), while incorrect commands are ignored and skip to next, though the parser may try to make something usable of them (this may be change anytime without warning):
+You may add spaces as needed (but try to keep it simple and don't go overboard), though commands *must* start with `#(command)` (`#(space)(anything)` is a comment). Commands without corresponding file are ignored too (seen as comments), while incorrect commands are ignored and skip to next, though the parser may try to make something usable of them (this may be change anytime without warning):
 ```
 # those are all equivalent
 song#s2#c1,2
@@ -510,17 +518,20 @@ Repeated commands overwrite previous setting, except comma-separated commands th
 ```
 # overwrites, equivalent to #s2
 song#s1#s2
-
+```
+```
 # adds, equivalent to #m1-2,3-4,5-6
 song#m1-2#m3-4
 commands = #m5-6
+# also added to song
+commands = #l 3.0
 ```
 
 The parser is fairly simplistic and lax, and may be erratic with edge cases or behave unexpectedly due to unforeseen use-cases and bugs. As filenames may contain spaces or #, certain name patterns could fool it too. Keep in mind this while making .txtp files.
 
 
 ## MINI-TXTP
-To simplify TXTP creation, if the .txtp doesn't set a name inside its filename is used directly including config. Note that extension must be included (since vgmstream needs a full filename). You can set `commands` inside the .txtp too:
+To simplify TXTP creation, if the .txtp doesn't set a name inside then its filename is used directly, including config. Note that extension must be included (since vgmstream needs a full filename). You can set `commands` inside the .txtp too:
 - *bgm.sxd2#12.txtp*: plays subsong 12
 - *bgm.sxd2#12.txtp*, , inside has `commands = #@volume 0.5`: plays subsong 12 at half volume
 - *bgm.sxd2.txtp*, , inside has `commands =  #12 #@volume 0.5`: plays subsong 12 at half volume
@@ -563,7 +574,7 @@ song#m1+3,2+4,3D
 song#m1+3*0.7,2+4*0.7,3D
 
 # downmix 4ch layers to stereo with equal adjusted volume (common layer mixdown)
-song#m0*0.7,m1*0.7,1+3*0.7,2+4*0.7,3D
+song#m0*0.7,1*0.7,1+3*0.7,2+4*0.7,3D
 
 # downmix stereo to mono (ignored if file is 1ch)
 zelda-cdi.xa#m1d
@@ -591,21 +602,21 @@ song#m1-2,2*0.5
 # fade-in ch3+4 percussion track layer into main track, downmix to stereo
 # (may be split in multiple lines, no difference)
 okami-ryoshima_coast.aix#l2
-commands = #m3(1:10~0:05         # loop happens after ~1:10
-commands = #m4(1:10~0:05         # ch3/4 are percussion tracks
+commands = #m3(1:10+0:05         # loop happens after ~1:10
+commands = #m4(1:10+0:05         # ch3/4 are percussion tracks
 commands = #m1+3*0.707,2+4*0.707 # ch3/4 always mixed but silent until 1:10
 commands = #m3D                  # remove channels after all mixing
 
 # same but fade-out percussion after second loop
 okami-ryoshima_coast.aix#l3
-commands = #m3(1:10~0:05,3)2:20~0:05
-commands = #m4(1:10~0:05,4)2:20~0:05
+commands = #m3(1:10+0:05,3)2:20+0:05
+commands = #m4(1:10+0:05,4)2:20+0:05
 commands = #m1+3*0.707,2+4*0.707,3D
 
 # crossfade exploration and combat sections after loop
 ffxiii-2~eclipse.aix
-commands = #m1)1:50~0:10,m2)1:50~0:10
-commands = #m3(1:50~0:10,m4(1:50~0:10
+commands = #m1)1:50+0:10,2)1:50+0:10
+commands = #m3(1:50+0:10,4(1:50+0:10
 commands = #m1+3,2+4,3D  # won't play at the same time, no volume needed
 
 # ghetto voice removal (invert channel + other channel removes duplicated parts, and vocals are often layered)
