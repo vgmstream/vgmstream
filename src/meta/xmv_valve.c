@@ -1,7 +1,8 @@
 #include "meta.h"
 #include "../coding/coding.h"
 
-/* .360.WAV - from Valve games running on Source Engine [The Orange Box (X360)] */
+/* .360.WAV, .PS3.WAV - from Valve games running on Source Engine */
+/* [The Orange Box (X360), Portal 2 (PS3/X360), Counter-Strike: Global Offensive (PS3/X360)] */
 VGMSTREAM* init_vgmstream_xmv_valve(STREAMFILE* streamFile) {
     VGMSTREAM* vgmstream = NULL;
     int32_t loop_start;
@@ -26,9 +27,12 @@ VGMSTREAM* init_vgmstream_xmv_valve(STREAMFILE* streamFile) {
     data_size = read_32bitBE(0x14, streamFile);
     num_samples = read_32bitBE(0x18, streamFile);
     loop_start = read_32bitBE(0x1c, streamFile);
+
+    /* XMA only */
     loop_block = read_16bitBE(0x20, streamFile);
     loop_start_skip = read_16bitBE(0x22, streamFile);
     loop_end_skip = read_16bitBE(0x24, streamFile);
+
     format = read_8bit(0x28, streamFile);
     freq_mode = read_8bit(0x2a, streamFile);
     channels = read_8bit(0x2b, streamFile);
@@ -50,11 +54,11 @@ VGMSTREAM* init_vgmstream_xmv_valve(STREAMFILE* streamFile) {
     vgmstream->sample_rate = sample_rate;
     vgmstream->num_samples = num_samples;
     vgmstream->loop_start_sample = loop_start;
-    vgmstream->loop_end_sample = num_samples - loop_end_skip;
+    vgmstream->loop_end_sample = num_samples; /* always loops from the end */
 
     switch (format) {
         case 0x00: /* PCM */
-            vgmstream->coding_type = coding_PCM16BE; /* assumed BE */
+            vgmstream->coding_type = coding_PCM16BE;
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = 0x02;
             break;
@@ -76,12 +80,30 @@ VGMSTREAM* init_vgmstream_xmv_valve(STREAMFILE* streamFile) {
             vgmstream->codec_data = ffmpeg_data;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
+            vgmstream->loop_end_sample -= loop_end_skip;
 
             xma_fix_raw_samples(vgmstream, streamFile, start_offset, data_size, 0, 1, 1);
             break;
         }
 #endif
-        case 0x02: /* ADPCM, not actually implemented */
+#ifdef VGM_USE_MPEG
+        case 0x03: { /* MP3 */
+            mpeg_codec_data *mpeg_data;
+            coding_t mpeg_coding;
+
+            mpeg_data = init_mpeg(streamFile, start_offset, &mpeg_coding, channels);
+            if (!mpeg_data) goto fail;
+
+            vgmstream->codec_data = mpeg_data;
+            vgmstream->coding_type = mpeg_coding;
+            vgmstream->layout_type = layout_none;
+
+            /* strangely, number of samples is stored incorrectly for MP3, there's PCM size in this field instead */
+            vgmstream->num_samples = pcm_bytes_to_samples(num_samples, channels, 16);
+            break;
+        }
+#endif
+        case 0x02: /* ADPCM (not actually implemented, was probably supposed to be Microsoft ADPCM) */
         default:
             goto fail;
     }
