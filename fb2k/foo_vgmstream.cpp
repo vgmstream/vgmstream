@@ -73,20 +73,28 @@ input_vgmstream::~input_vgmstream() {
 }
 
 // called first when a new file is opened
-void input_vgmstream::open(service_ptr_t<file> p_filehint,const char * p_path,t_input_open_reason p_reason,abort_callback & p_abort) {
+void input_vgmstream::open(service_ptr_t<file> p_filehint, const char * p_path,t_input_open_reason p_reason,abort_callback & p_abort) {
 
     if (!p_path) { // shouldn't be possible
         throw exception_io_data();
-        return;
+        return; //???
     }
 
     filename = p_path;
 
+    // allow non-existing files in some cases
+    bool infile_virtual = !filesystem::g_exists(p_path, p_abort)
+        && vgmstream_is_virtual_filename(filename) == 1;
 
-    // keep file stats around (timestamp, filesize)
-    if ( p_filehint.is_empty() )
-        input_open_file_helper( p_filehint, filename, p_reason, p_abort );
-    stats = p_filehint->get_stats( p_abort );
+    // don't try to open virtual files as it'll fail
+    // (doesn't seem to have any adverse effect, except maybe no stats)
+    // setup_vgmstream also makes further checks before file is finally opened
+    if (!infile_virtual) {
+        // keep file stats around (timestamp, filesize)
+        if ( p_filehint.is_empty() )
+            input_open_file_helper( p_filehint, filename, p_reason, p_abort );
+        stats = p_filehint->get_stats( p_abort );
+    }
 
     switch(p_reason) {
         case input_open_decode: // prepare to retrieve info and decode
@@ -169,7 +177,7 @@ void input_vgmstream::get_info(t_uint32 p_subsong, file_info & p_info, abort_cal
             strcpy(tagfile_path,tagfile_name);
         }
 
-        STREAMFILE *tagFile = open_foo_streamfile(tagfile_path, &p_abort, &stats);
+        STREAMFILE *tagFile = open_foo_streamfile(tagfile_path, &p_abort, NULL);
         if (tagFile != NULL) {
             VGMSTREAM_TAGS *tags;
             const char *tag_key, *tag_val;

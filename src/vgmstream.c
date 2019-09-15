@@ -2882,3 +2882,20 @@ fail:
     /* open streams will be closed in close_vgmstream(), hopefully called by the meta */
     return 0;
 }
+
+int vgmstream_is_virtual_filename(const char* filename) {
+    int len = strlen(filename);
+    if (len < 6)
+        return 0;
+
+    /* vgmstream can play .txtp files that have size 0 but point to another file with config
+     * based only in the filename (ex. "file.fsb #2.txtp" plays 2nd subsong of file.fsb).
+     *
+     * Also, .m3u playlist can include files that don't exist, and players often allow filenames
+     * pointing to nothing (since could be some protocol/url).
+     *
+     * Plugins can use both quirks to allow "virtual files" (.txtp) in .m3u that don't need
+     * to exist but allow config. Plugins with this function if the filename is virtual,
+     * and their STREAMFILEs should be modified as to ignore null FILEs and report size 0. */
+    return strcmp(&filename[len-5], ".txtp") == 0;
+}

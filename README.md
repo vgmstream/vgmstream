@@ -18,6 +18,8 @@ Help and newest builds can be found here: https://www.hcs64.com/
 
 Latest development is usually here: https://github.com/losnoco/vgmstream/
 
+You can find further info about other details in https://github.com/losnoco/vgmstream/tree/master/doc
+
 ## Needed extra files (for Windows)
 Support for some codecs (Ogg Vorbis, MPEG audio, etc) is done with external
 libraries, so you will need to have certain DLL files.
@@ -306,6 +308,44 @@ If your player isn't picking tags make sure vgmstream is detecting the song
 named and that filenames inside match the song filename. For Winamp you need
 to make sure options > titles > advanced title formatting checkbox is set and
 the format defined.
+
+## Virtual TXTP files
+Some of vgmstream's plugins allow you to use virtual .txtp files, that combined
+with playlists let you make quick song configs.
+
+Normally you can create a physical .txtp file that points to another file with
+config, and .txtp have a "mini-txtp" mode that configures files with only the
+filename.
+
+Instead of manually creating .txtp files you can put non-existing virtual .txtp
+in a `.m3u` playlist:
+```
+# playlist that opens subsongs directly without having to create .txtp
+# notice the full filename, then #(config), then ".txtp" (spaces are optional)
+bank_bgm_full.nub  #s1  .txtp
+bank_bgm_full.nub  #s10 .txtp
+```
+
+Combine with tagging (see above) for extra fun OST-like config.
+```
+# @ALBUM    GOD HAND
+
+# play 1 loop, delay and do a longer fade
+# %TITLE    Too Hot !!
+circus_a_mix_ver2.adx       #l 1.0 #d 5.0 #f 15.0 .txtp
+
+# play 1 loop instead of the default 2 then fade with the song's internal fading
+# %TITLE    Yet... Oh see mind
+boss2_3ningumi_ver6.adx     #l 1.0  #F .txtp
+
+...
+```
+
+You can also use it in CLI for quick access to some txtp-exclusive functions:
+```
+# force change sample rate to 22050
+test.exe btl_koopa1_44k_lp.brstm  #h22050.txtp -o btl_koopa1_44k_lp.wav
+```
 
 
 ## Supported codec types

@@ -26,7 +26,7 @@ static STREAMFILE * open_stdio_streamfile_buffer_by_file(FILE *infile,const char
 static size_t read_stdio(STDIOSTREAMFILE *streamfile,uint8_t * dest, off_t offset, size_t length) {
     size_t length_read_total = 0;
 
-    if (!streamfile || !dest || length <= 0 || offset < 0)
+    if (!streamfile || !streamfile->infile || !dest || length <= 0 || offset < 0)
         return 0;
 
     /* is the part of the requested length in the buffer? */
@@ -110,7 +110,8 @@ static void get_name_stdio(STDIOSTREAMFILE *streamfile,char *buffer,size_t lengt
     buffer[length-1]='\0';
 }
 static void close_stdio(STDIOSTREAMFILE * streamfile) {
-    fclose(streamfile->infile);
+    if (streamfile->infile)
+        fclose(streamfile->infile);
     free(streamfile->buffer);
     free(streamfile);
 }
@@ -124,7 +125,7 @@ static STREAMFILE *open_stdio(STDIOSTREAMFILE *streamFile,const char * const fil
         return NULL;
 #if !defined (__ANDROID__)
     // if same name, duplicate the file pointer we already have open
-    if (!strcmp(streamFile->name,filename)) {
+    if (streamFile->infile && !strcmp(streamFile->name,filename)) {
         if (((newfd = dup(fileno(streamFile->infile))) >= 0) &&
             (newfile = fdopen( newfd, "rb" ))) 
         {
@@ -141,7 +142,7 @@ static STREAMFILE *open_stdio(STDIOSTREAMFILE *streamFile,const char * const fil
     return open_stdio_streamfile_buffer(filename,buffersize);
 }
 
-static STREAMFILE * open_stdio_streamfile_buffer_by_file(FILE *infile,const char * const filename, size_t buffersize) {
+static STREAMFILE * open_stdio_streamfile_buffer_by_file(FILE *infile, const char * const filename, size_t buffersize) {
     uint8_t * buffer = NULL;
     STDIOSTREAMFILE * streamfile = NULL;
 
@@ -166,8 +167,13 @@ static STREAMFILE * open_stdio_streamfile_buffer_by_file(FILE *infile,const char
     streamfile->name[sizeof(streamfile->name)-1] = '\0';
 
     /* cache filesize */
-    fseeko(streamfile->infile,0,SEEK_END);
-    streamfile->filesize = ftello(streamfile->infile);
+    if (infile) {
+        fseeko(streamfile->infile,0,SEEK_END);
+        streamfile->filesize = ftello(streamfile->infile);
+    }
+    else {
+        streamfile->filesize = 0; /* allow virtual, non-existing files */
+    }
 
     /* Typically fseek(o)/ftell(o) may only handle up to ~2.14GB, signed 32b = 0x7FFFFFFF
      * (happens in banks like FSB, though rarely). Can be remedied with the
@@ -190,11 +196,15 @@ static STREAMFILE * open_stdio_streamfile_buffer(const char * const filename, si
     STREAMFILE *streamFile;
 
     infile = fopen(filename,"rb");
-    if (!infile) return NULL;
+    if (!infile) {
+        /* allow non-existing files in some cases */
+        if (!vgmstream_is_virtual_filename(filename))
+            return NULL;
+    }
 
     streamFile = open_stdio_streamfile_buffer_by_file(infile,filename,buffersize);
     if (!streamFile) {
-        fclose(infile);
+        if (infile) fclose(infile);
     }
 
     return streamFile;

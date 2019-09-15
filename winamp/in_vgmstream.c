@@ -210,7 +210,7 @@ static FILE* wa_fdopen(int fd) {
 typedef struct {
     STREAMFILE sf;
     STREAMFILE *stdiosf;
-    FILE *infile_ref; /* pointer to the infile in stdiosf */
+    FILE *infile_ref; /* pointer to the infile in stdiosf (partially handled by stdiosf) */
 } WINAMP_STREAMFILE;
 
 static STREAMFILE *open_winamp_streamfile_by_file(FILE *infile, const char * path);
@@ -244,7 +244,7 @@ static STREAMFILE *wasf_open(WINAMP_STREAMFILE *streamFile, const char *const fi
 
     /* if same name, duplicate the file pointer we already have open */ //unsure if all this is needed
     streamFile->stdiosf->get_name(streamFile->stdiosf, name, PATH_LIMIT);
-    if (!strcmp(name,filename)) {
+    if (streamFile->infile_ref && !strcmp(name,filename)) {
         if (((newfd = dup(fileno(streamFile->infile_ref))) >= 0) &&
             (newfile = wa_fdopen(newfd)))
         {
@@ -275,7 +275,7 @@ static STREAMFILE *open_winamp_streamfile_by_file(FILE *infile, const char * pat
     this_sf = calloc(1,sizeof(WINAMP_STREAMFILE));
     if (!this_sf) goto fail;
 
-    stdiosf = open_stdio_streamfile_by_file(infile,path);
+    stdiosf = open_stdio_streamfile_by_file(infile, path);
     if (!stdiosf) goto fail;
 
     this_sf->sf.read = (void*)wasf_read;
@@ -302,16 +302,21 @@ static STREAMFILE *open_winamp_streamfile_by_ipath(const in_char *wpath) {
     STREAMFILE *streamFile;
     char path[PATH_LIMIT];
 
-    /* open a FILE from a Winamp (possibly UTF-16) path */
-    infile = wa_fopen(wpath);
-    if (!infile) return NULL;
 
     /* convert to UTF-8 if needed for internal use */
     wa_ichar_to_char(path,PATH_LIMIT, wpath);
 
+    /* open a FILE from a Winamp (possibly UTF-16) path */
+    infile = wa_fopen(wpath);
+    if (!infile) {
+        /* allow non-existing files in some cases */
+        if (!vgmstream_is_virtual_filename(path))
+            return NULL;
+    }
+
     streamFile = open_winamp_streamfile_by_file(infile,path);
     if (!streamFile) {
-        fclose(infile);
+        if (infile) fclose(infile);
     }
 
     return streamFile;

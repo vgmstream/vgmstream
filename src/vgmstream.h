@@ -1336,6 +1336,9 @@ void vgmstream_force_loop(VGMSTREAM* vgmstream, int loop_flag, int loop_start_sa
 /* Set number of max loops to do, then play up to stream end (for songs with proper endings) */
 void vgmstream_set_loop_target(VGMSTREAM* vgmstream, int loop_target);
 
+/* Return 1 if vgmstream detects from the filename that said file can be used even if doesn't physically exist */
+int vgmstream_is_virtual_filename(const char* filename);
+
 /* -------------------------------------------------------------------------*/
 /* vgmstream "private" API                                                  */
 /* -------------------------------------------------------------------------*/
