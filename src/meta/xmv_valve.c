@@ -1,8 +1,8 @@
 #include "meta.h"
 #include "../coding/coding.h"
 
-/* .360.WAV - from Valve games running on Source Engine */
-/* [The Orange Box (X360), Portal 2 (PS3/X360), Counter-Strike: Global Offsensive (PS3/X360)] */
+/* .360.WAV, .PS3.WAV - from Valve games running on Source Engine */
+/* [The Orange Box (X360), Portal 2 (PS3/X360), Counter-Strike: Global Offensive (PS3/X360)] */
 VGMSTREAM* init_vgmstream_xmv_valve(STREAMFILE* streamFile) {
     VGMSTREAM* vgmstream = NULL;
     int32_t loop_start;
@@ -27,9 +27,12 @@ VGMSTREAM* init_vgmstream_xmv_valve(STREAMFILE* streamFile) {
     data_size = read_32bitBE(0x14, streamFile);
     num_samples = read_32bitBE(0x18, streamFile);
     loop_start = read_32bitBE(0x1c, streamFile);
+
+    /* XMA only */
     loop_block = read_16bitBE(0x20, streamFile);
     loop_start_skip = read_16bitBE(0x22, streamFile);
     loop_end_skip = read_16bitBE(0x24, streamFile);
+
     format = read_8bit(0x28, streamFile);
     freq_mode = read_8bit(0x2a, streamFile);
     channels = read_8bit(0x2b, streamFile);
@@ -86,13 +89,13 @@ VGMSTREAM* init_vgmstream_xmv_valve(STREAMFILE* streamFile) {
 #ifdef VGM_USE_MPEG
         case 0x03: { /* MP3 */
             mpeg_codec_data *mpeg_data;
-            coding_t coding;
+            coding_t mpeg_coding;
 
-            mpeg_data = init_mpeg(streamFile, start_offset, &coding, channels);
+            mpeg_data = init_mpeg(streamFile, start_offset, &mpeg_coding, channels);
             if (!mpeg_data) goto fail;
 
             vgmstream->codec_data = mpeg_data;
-            vgmstream->coding_type = coding;
+            vgmstream->coding_type = mpeg_coding;
             vgmstream->layout_type = layout_none;
 
             /* strangely, number of samples is stored incorrectly for MP3, there's PCM size in this field instead */
@@ -100,7 +103,7 @@ VGMSTREAM* init_vgmstream_xmv_valve(STREAMFILE* streamFile) {
             break;
         }
 #endif
-        case 0x02: /* ADPCM, not actually implemented */
+        case 0x02: /* ADPCM (not actually implemented, was probably supposed to be Microsoft ADPCM) */
         default:
             goto fail;
     }
