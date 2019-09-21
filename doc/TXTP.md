@@ -224,7 +224,7 @@ music_Home.ps3.scd#C3 4
 ```
 
 
-### Custom play settings
+### Play settings
 **`#l(loops)`**, **`#f(fade)`**, **`#d(fade-delay)`**, **`#i(ignore loop)`**, **`#F(ignore fade)`**, **`#E(end-to-end loop)`**
 
 Those setting should override player's defaults if set (except "loop forever"). They are equivalent to some test.exe options.
@@ -259,8 +259,29 @@ boss2_3ningumi_ver6.adx#l1.5#d1#f5
 ```
 
 
+### Time modifications
+**`#t(time)`**: trims the file so base duration (before applying loops/fades/etc) is `(time)`. If value is negative substracts `(time)` to duration. Loop end is adjusted when necessary, and ignored if value is bigger than possible (use `#l(loops)` config to extend time instead).
+
+Time values can be `M:S(.n)` (minutes and seconds), `S.n` (seconds with dot), `0xN` (samples in hex format) or `N` (samples). Beware of the subtle difference between 10.0 (ten seconds) and 10 (ten samples). 
+
+Some segments have padding/silence at the end for some reason, that don't allow smooth transitions. You can fix it like this:
+```
+intro.fsb #t -1.0    #intro segment has 1 second of silence.
+main.fsb
+```
+
+Similarly other games don't use loop points, but rather repeat/loops the song internally many times:
+```
+intro.vag #t3:20 #i #l1.0 #trim + combine with forced loops for easy fades
+```
+
+Note that if you need to remove very few samples (like 1) to get smooth transitions it may be a bug in vgmstream, consider reporting.
+
+
 ### Force sample rate
-**`#h(sample rate)`**: for a few games that set a sample rate value in the header but actually play with other (applying some of pitch or just forcing it).
+**`#h(sample rate)`**: changes sample rate to selected value (within some limits).
+
+Needed for a few games set a sample rate value in the header but actually play with other (applying some of pitch or just forcing it).
 
 **Super Paper Mario (Wii)**
 ```
