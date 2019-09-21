@@ -11,6 +11,7 @@ struct VGMSTREAM_TAGS {
     char val[VGMSTREAM_TAGS_LINE_MAX];
 
     /* file to find tags for */
+    int targetname_len;
     char targetname[VGMSTREAM_TAGS_LINE_MAX];
     /* path of targetname */
     char targetpath[VGMSTREAM_TAGS_LINE_MAX];
@@ -59,17 +60,21 @@ void vgmstream_tags_close(VGMSTREAM_TAGS *tags) {
     free(tags);
 }
 
-/* Tags are divided in two: "global" @TAGS and "file" %TAGS for target filename. To extract both
- * we find the filename's tag "section": (other_filename) ..(#tag section).. (target_filename).
- * When a new "other_filename" is found that offset is marked as section_start, and when target_filename
- * is found it's marked as section_end. Then we can begin extracting tags within that section, until
- * all tags are exhausted. Global tags are extracted while searching, so they always go first, and
- * also meaning any tags after the section is found are ignored. */
+/* Find next tag and return 1 if found.
+ *
+ * Tags can be "global" @TAGS, "command" $TAGS, and "file" %TAGS for a target filename.
+ * To extract tags we must find either global tags, or the filename's tag "section"
+ * where tags apply: (# @TAGS ) .. (other_filename) ..(# %TAGS section).. (target_filename).
+ * When a new "other_filename" is found that offset is marked as section_start, and when
+ * target_filename is found it's marked as section_end. Then we can begin extracting tags
+ * within that section, until all tags are exhausted. Global tags are extracted as found,
+ * so they always go first, also meaning any tags after file's section are ignored.
+ * Command tags have special meanings and are output after all section tags. */
 int vgmstream_tags_next_tag(VGMSTREAM_TAGS* tags, STREAMFILE* tagfile) {
     off_t file_size = get_streamfile_size(tagfile);
     char currentname[VGMSTREAM_TAGS_LINE_MAX] = {0};
     char line[VGMSTREAM_TAGS_LINE_MAX] = {0};
-    int ok, bytes_read, line_done;
+    int ok, bytes_read, line_done, n1,n2;
 
     if (!tags)
         return 0;
@@ -92,7 +97,7 @@ int vgmstream_tags_next_tag(VGMSTREAM_TAGS* tags, STREAMFILE* tagfile) {
     /* read lines */
     while (tags->offset <= file_size) {
 
-        /* no more tags to extract */
+        /* after section: no more tags to extract */
         if (tags->section_found && tags->offset >= tags->section_end) {
 
             /* write extra tags after all regular tags */
@@ -163,10 +168,32 @@ int vgmstream_tags_next_tag(VGMSTREAM_TAGS* tags, STREAMFILE* tagfile) {
                 continue; /* next line */
             }
 
-            /* find possible filename and section start/end */
-            ok = sscanf(line, " %[^\r\n] ", currentname);
+            /* find possible filename and section start/end
+             * (.m3u seem to allow filenames with whitespaces before, make sure to trim) */
+            ok = sscanf(line, " %n%[^\r\n]%n ", &n1, currentname, &n2);
             if (ok == 1)  {
-                if (strcasecmp(tags->targetname,currentname) == 0) { /* looks ok even for UTF-8 */
+                int currentname_len = n2 - n1;
+                int filename_found = 0;
+
+                /* we want to find file with the same name (case insensitive), OR a virtual .txtp with
+                 * the filename inside (so 'file.adx' gets tags from 'file.adx#i.txtp', reading
+                 * tags even if we don't open !tags.m3u with virtual .txtp directly) */
+
+                /* strcasecmp works ok even for UTF-8 */
+                if (currentname_len >= tags->targetname_len && /* starts with targetname */
+                        strncasecmp(currentname, tags->targetname, tags->targetname_len) == 0) {
+
+                    if (currentname_len == tags->targetname_len) { /* exact match */
+                        filename_found = 1;
+                    }
+                    else if (vgmstream_is_virtual_filename(currentname)) { /* ends with .txth */
+                        char c = currentname[tags->targetname_len];
+                        /* tell apart the unlikely case of having both 'bgm01.ad.txtp' and 'bgm01.adp.txtp' */
+                        filename_found = (c==' ' || c == '.' || c == '#');
+                    }
+                }
+
+                if (filename_found) {
                     /* section ok, start would be set before this (or be 0) */
                     tags->section_end = tags->offset;
                     tags->section_found = 1;
@@ -223,6 +250,7 @@ void vgmstream_tags_reset(VGMSTREAM_TAGS* tags, const char* target_filename) {
         tags->targetpath[0] = '\0';
         strcpy(tags->targetname, target_filename);
     }
+    tags->targetname_len = strlen(tags->targetname);
 }
 
 void vgmstream_mixing_enable(VGMSTREAM* vgmstream, int32_t max_sample_count, int *input_channels, int *output_channels) {
