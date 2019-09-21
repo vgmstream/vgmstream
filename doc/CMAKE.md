@@ -2,7 +2,7 @@
 
 ## Build requirements
 
-**CMake**: Needs v3.5 or later
+**CMake**: Needs v3.6 or later
 - https://cmake.org/download/
 
 **Git**: optional, to generate version numbers:
