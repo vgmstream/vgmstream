@@ -135,10 +135,10 @@ static int read_fmt(int big_endian, STREAMFILE * streamFile, off_t current_chunk
     }
 
     switch (fmt->codec) {
-        case 0x00:  /* Yamaha ADPCM (raw) [Headhunter (DC), Bomber hehhe (DC)] (unofficial) */
+        case 0x00:  /* Yamaha AICA ADPCM (raw) [Headhunter (DC), Bomber hehhe (DC)] (unofficial) */
             if (fmt->bps != 4) goto fail;
             if (fmt->block_size != 0x02*fmt->channel_count) goto fail;
-            fmt->coding_type = coding_YAMAHA_int;
+            fmt->coding_type = coding_AICA_int;
             fmt->interleave = 0x01;
             break;
 
@@ -174,9 +174,11 @@ static int read_fmt(int big_endian, STREAMFILE * streamFile, off_t current_chunk
             fmt->coding_type = coding_MS_IMA;
             break;
 
-        case 0x20:  /* Yamaha ADPCM (raw) [Takuyo/Dynamix/etc DC games] */
+        case 0x20:  /* Yamaha AICA ADPCM (raw) [Takuyo/Dynamix/etc DC games] */
             if (fmt->bps != 4) goto fail;
-            fmt->coding_type = coding_YAMAHA;
+            fmt->coding_type = coding_AICA;
+            /* official RIFF spec has 0x20 as 'Yamaha ADPCM', but data is probably not pure AICA
+             * (maybe with headered frames and would need extra detection?) */
             break;
 
         case 0x69:  /* XBOX IMA ADPCM [Dynasty Warriors 5 (Xbox)] */
@@ -598,8 +600,8 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
                 vgmstream->num_samples = fact_sample_count;
             break;
 
-        case coding_YAMAHA:
-        case coding_YAMAHA_int:
+        case coding_AICA:
+        case coding_AICA_int:
             vgmstream->num_samples = yamaha_bytes_to_samples(data_size, fmt.channel_count);
             break;
 
@@ -675,7 +677,7 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
     switch (fmt.coding_type) {
         case coding_MSADPCM:
         case coding_MS_IMA:
-        case coding_YAMAHA:
+        case coding_AICA:
         case coding_XBOX_IMA:
         case coding_IMA:
 #ifdef VGM_USE_FFMPEG

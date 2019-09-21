@@ -83,12 +83,17 @@ typedef struct {
     int config_ignore_fade;
 
     int sample_rate;
-    int loop_install;
+
+    int loop_install_set;
     int loop_end_max;
     double loop_start_second;
     int32_t loop_start_sample;
     double loop_end_second;
     int32_t loop_end_sample;
+
+    int trim_set;
+    double trim_second;
+    int32_t trim_sample;
 
 } txtp_entry;
 
@@ -442,7 +447,7 @@ static void apply_config(VGMSTREAM *vgmstream, txtp_entry *current) {
     if (current->sample_rate > 0)
         vgmstream->sample_rate = current->sample_rate;
 
-    if (current->loop_install) {
+    if (current->loop_install_set) {
         if (current->loop_start_second > 0 || current->loop_end_second > 0) {
             current->loop_start_sample = current->loop_start_second * vgmstream->sample_rate;
             current->loop_end_sample = current->loop_end_second * vgmstream->sample_rate;
@@ -455,8 +460,26 @@ static void apply_config(VGMSTREAM *vgmstream, txtp_entry *current) {
             current->loop_end_sample  = vgmstream->num_samples;
         }
 
-        vgmstream_force_loop(vgmstream, current->loop_install, current->loop_start_sample, current->loop_end_sample);
+        vgmstream_force_loop(vgmstream, current->loop_install_set, current->loop_start_sample, current->loop_end_sample);
     }
+
+    if (current->trim_set) {
+        if (current->trim_second != 0.0) {
+            current->trim_sample = current->trim_second * vgmstream->sample_rate;
+        }
+
+        if (current->trim_sample < 0) {
+            vgmstream->num_samples += current->trim_sample; /* trim from end (add negative) */
+        }
+        else if (vgmstream->num_samples > current->trim_sample) {
+            vgmstream->num_samples = current->trim_sample; /* trim to value */
+        }
+
+        /* readjust after triming if it went over (could check for more edge cases but eh) */
+        if (vgmstream->loop_end_sample > vgmstream->num_samples)
+            vgmstream->loop_end_sample = vgmstream->num_samples;
+    }
+
 
     /* add macro to mixing list */
     if (current->channel_mask) {
@@ -625,7 +648,7 @@ static int get_time(const char * config, double *value_f, int32_t *value_i) {
     m = sscanf(config, " %i%c%i%n", &temp_i1,&temp_c,&temp_i2,&n);
     if (m == 3 && (temp_c == ':' || temp_c == '_')) {
         m = sscanf(config, " %lf%c%lf%n", &temp_f1,&temp_c,&temp_f2,&n);
-        if (m != 3 || temp_f1 < 0.0 || temp_f1 >= 60.0 || temp_f2 < 0.0 || temp_f2 >= 60.0)
+        if (m != 3 || /*temp_f1 < 0.0 ||*/ temp_f1 >= 60.0 || temp_f2 < 0.0 || temp_f2 >= 60.0)
             return 0;
 
         *value_f = temp_f1 * 60.0 + temp_f2;
@@ -636,7 +659,7 @@ static int get_time(const char * config, double *value_f, int32_t *value_i) {
     m = sscanf(config, " %i.%i%n", &temp_i1,&temp_i2,&n);
     if (m == 2) {
         m = sscanf(config, " %lf%n", &temp_f1,&n);
-        if (m != 1 || temp_f1 < 0.0)
+        if (m != 1 /*|| temp_f1 < 0.0*/)
             return 0;
         *value_f = temp_f1;
         return n;
@@ -896,13 +919,19 @@ static void add_config(txtp_entry* current, txtp_entry* cfg, const char* filenam
         current->sample_rate = cfg->sample_rate;
     }
 
-    if (cfg->loop_install) {
-        current->loop_install = cfg->loop_install;
+    if (cfg->loop_install_set) {
+        current->loop_install_set = cfg->loop_install_set;
         current->loop_end_max = cfg->loop_end_max;
         current->loop_start_sample = cfg->loop_start_sample;
         current->loop_start_second = cfg->loop_start_second;
         current->loop_end_sample = cfg->loop_end_sample;
         current->loop_end_second = cfg->loop_end_second;
+    }
+
+    if (cfg->trim_set) {
+        current->trim_set = cfg->trim_set;
+        current->trim_second = cfg->trim_second;
+        current->trim_sample = cfg->trim_sample;
     }
 }
 
@@ -1084,11 +1113,16 @@ static void parse_config(txtp_entry *cfg, char *config) {
                 }
 
                 config += n;
-                cfg->loop_install = 1;
+                cfg->loop_install_set = 1;
             }
 
             //;VGM_LOG("TXTP:   loop_install %i (max=%i): %i %i / %f %f\n", cfg->loop_install, cfg->loop_end_max,
             //        cfg->loop_start_sample, cfg->loop_end_sample, cfg->loop_start_second, cfg->loop_end_second);
+        }
+        else if (strcmp(command,"t") == 0) {
+            n = get_time(config,  &cfg->trim_second, &cfg->trim_sample);
+            cfg->trim_set = (n > 0);
+            //;VGM_LOG("TXTP: trim %i - %f / %i\n", cfg->trim_set, cfg->trim_second, cfg->trim_sample);
         }
         //todo cleanup
         else if (strcmp(command,"@volume") == 0) {

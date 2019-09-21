@@ -148,8 +148,8 @@ typedef enum {
     coding_MSADPCM_ck,      /* Microsoft ADPCM (Cricket Audio variation) */
     coding_WS,              /* Westwood Studios VBR ADPCM */
 
-    coding_YAMAHA,          /* Yamaha ADPCM (stereo) */
-    coding_YAMAHA_int,      /* Yamaha ADPCM (mono/interleave) */
+    coding_AICA,            /* Yamaha AICA ADPCM (stereo) */
+    coding_AICA_int,        /* Yamaha AICA ADPCM (mono/interleave) */
     coding_ASKA,            /* Aska ADPCM */
     coding_NXAP,            /* NXAP ADPCM */
 

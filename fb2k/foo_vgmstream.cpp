@@ -38,7 +38,7 @@ extern "C" {
             "https://github.com/kode54/vgmstream/\n" \
             "https://sourceforge.net/projects/vgmstream/ (original)"
 
-
+// called every time a file is added to the playlist (to get info) or when playing
 input_vgmstream::input_vgmstream() {
     vgmstream = NULL;
     subsong = 0; // 0 = not set, will be properly changed on first setup_vgmstream
@@ -67,12 +67,13 @@ input_vgmstream::input_vgmstream() {
     load_settings();
 }
 
+// called on stop or when playlist info has been read
 input_vgmstream::~input_vgmstream() {
     close_vgmstream(vgmstream);
     vgmstream = NULL;
 }
 
-// called first when a new file is opened
+// called first when a new file is accepted, before playing it
 void input_vgmstream::open(service_ptr_t<file> p_filehint, const char * p_path,t_input_open_reason p_reason,abort_callback & p_abort) {
 
     if (!p_path) { // shouldn't be possible
@@ -132,10 +133,12 @@ unsigned input_vgmstream::get_subsong_count() {
     return subsong_count;
 }
 
+// called after get_subsong_count to play subsong N (even when count is 1)
 t_uint32 input_vgmstream::get_subsong(unsigned p_index) {
     return p_index + 1; // translates index (0..N < subsong_count) for vgmstream: 1=first
 }
 
+// called before playing to get info
 void input_vgmstream::get_info(t_uint32 p_subsong, file_info & p_info, abort_callback & p_abort) {
     int length_in_ms=0, channels = 0, samplerate = 0;
     int total_samples = -1;
@@ -252,6 +255,7 @@ void input_vgmstream::decode_initialize(t_uint32 p_subsong, unsigned p_flags, ab
     decode_seek( 0, p_abort );
 };
 
+// called when audio buffer needs to be filled
 bool input_vgmstream::decode_run(audio_chunk & p_chunk,abort_callback & p_abort) {
     if (!decoding) return false;
     if (!vgmstream) return false;
@@ -306,6 +310,7 @@ bool input_vgmstream::decode_run(audio_chunk & p_chunk,abort_callback & p_abort)
     }
 }
 
+// called when seeking
 void input_vgmstream::decode_seek(double p_seconds,abort_callback & p_abort) {
     seek_pos_samples = (int) audio_math::time_to_samples(p_seconds, vgmstream->sample_rate);
     int max_buffer_samples = SAMPLE_BUFFER_SIZE;
@@ -377,6 +382,8 @@ void input_vgmstream::retag_set_info(t_uint32 p_subsong, const file_info & p_inf
 void input_vgmstream::retag_commit(abort_callback & p_abort) { /*throw exception_io_data();*/ }
 
 bool input_vgmstream::g_is_our_content_type(const char * p_content_type) {return false;}
+
+// called to check if file can be processed by the plugin
 bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension) {
     const char ** ext_list;
     size_t ext_list_len;
@@ -397,7 +404,7 @@ bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension
     return 0;
 }
 
-
+// internal util to create a VGMSTREAM
 VGMSTREAM * input_vgmstream::init_vgmstream_foo(t_uint32 p_subsong, const char * const filename, abort_callback & p_abort) {
     VGMSTREAM *vgmstream = NULL;
 
@@ -410,6 +417,7 @@ VGMSTREAM * input_vgmstream::init_vgmstream_foo(t_uint32 p_subsong, const char *
     return vgmstream;
 }
 
+// internal util to initialize vgmstream
 void input_vgmstream::setup_vgmstream(abort_callback & p_abort) {
     // close first in case of changing subsongs
     if (vgmstream) {
@@ -447,6 +455,7 @@ void input_vgmstream::setup_vgmstream(abort_callback & p_abort) {
     fade_samples = (int)(config.song_fade_time * vgmstream->sample_rate);
 }
 
+// internal util to get info
 void input_vgmstream::get_subsong_info(t_uint32 p_subsong, pfc::string_base & title, int *length_in_ms, int *total_samples, int *loop_flag, int *loop_start, int *loop_end, int *sample_rate, int *channels, int *bitrate, pfc::string_base & description, abort_callback & p_abort) {
     VGMSTREAM * infostream = NULL;
     bool is_infostream = false;
@@ -601,29 +610,26 @@ void input_vgmstream::apply_config(VGMSTREAM * vgmstream, foobar_song_config *cu
     }
 }
 
-GUID input_vgmstream::g_get_guid()
-{
+GUID input_vgmstream::g_get_guid() {
     static const GUID guid = { 0x9e7263c7, 0x4cdd, 0x482c,{ 0x9a, 0xec, 0x5e, 0x71, 0x28, 0xcb, 0xc3, 0x4 } };
     return guid;
 }
 
-const char * input_vgmstream::g_get_name()
-{
+const char * input_vgmstream::g_get_name() {
     return "vgmstream";
 }
 
-GUID input_vgmstream::g_get_preferences_guid()
-{
+GUID input_vgmstream::g_get_preferences_guid() {
     static const GUID guid = { 0x2b5d0302, 0x165b, 0x409c,{ 0x94, 0x74, 0x2c, 0x8c, 0x2c, 0xd7, 0x6a, 0x25 } };;
     return guid;
 }
 
-bool input_vgmstream::g_is_low_merit()
-{
+// checks priority (foobar 1.4+)
+bool input_vgmstream::g_is_low_merit() {
     return true;
 }
 
-/* foobar plugin defs */
+// foobar plugin defs
 static input_factory_t<input_vgmstream> g_input_vgmstream_factory;
 
 DECLARE_COMPONENT_VERSION(APP_NAME,PLUGIN_VERSION,PLUGIN_DESCRIPTION);

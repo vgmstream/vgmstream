@@ -126,25 +126,25 @@ bool read_data(const char * filename, Tuple & tuple) {
     STREAMFILE *streamfile = open_vfs(filename);
     if (!streamfile) return false;
 
-    VGMSTREAM *vgmstream = init_vgmstream_from_STREAMFILE(streamfile);
-    if (!vgmstream) {
+    VGMSTREAM *infostream = init_vgmstream_from_STREAMFILE(streamfile);
+    if (!infostream) {
         close_streamfile(streamfile);
         return false;
     }
 
     tuple.set_filename(filename); //may leak string???
-    int rate = get_vgmstream_average_bitrate(vgmstream);
-    tuple.set_int(Tuple::Bitrate, rate);
+    int bitrate = get_vgmstream_average_bitrate(infostream);
+    tuple.set_int(Tuple::Bitrate, bitrate);
 
-    int ms = get_vgmstream_play_samples(vgmstream_cfg.loop_count, vgmstream_cfg.fade_length, vgmstream_cfg.fade_delay, vgmstream);
-    ms = ms* 1000LL / vgmstream->sample_rate;
+    int ms = get_vgmstream_play_samples(vgmstream_cfg.loop_count, vgmstream_cfg.fade_length, vgmstream_cfg.fade_delay, infostream);
+    ms = ms* 1000LL / infostream->sample_rate;
     tuple.set_int(Tuple::Length, ms);
 
     tuple.set_str(Tuple::Codec, "vgmstream codec");//doesn't show?
     // here we could call describe_vgmstream() and get substring to add tags and stuff
 
     close_streamfile(streamfile);
-    close_vgmstream(vgmstream);
+    close_vgmstream(infostream);
 
     return true;
 }
@@ -169,7 +169,11 @@ bool VgmstreamPlugin::play(const char *filename, VFSFile &file) {
     debugMessage("start play");
 
     int current_sample_pos = 0;
-    int rate;
+    int bitrate;
+
+    // just in case
+    if (vgmstream)
+        close_vgmstream(vgmstream);
 
     STREAMFILE *streamfile = open_vfs(filename);
     if (!streamfile) {
@@ -194,9 +198,9 @@ bool VgmstreamPlugin::play(const char *filename, VFSFile &file) {
     int stream_samples_amount = get_vgmstream_play_samples(
             vgmstream_cfg.loop_count, vgmstream_cfg.fade_length,
             vgmstream_cfg.fade_delay, vgmstream);
-    rate = get_vgmstream_average_bitrate(vgmstream);
+    bitrate = get_vgmstream_average_bitrate(vgmstream);
 
-    set_stream_bitrate(rate);
+    set_stream_bitrate(bitrate);
     open_audio(FMT_S16_LE, vgmstream->sample_rate, vgmstream->channels);
 
     int fade_samples = vgmstream_cfg.fade_length * vgmstream->sample_rate;

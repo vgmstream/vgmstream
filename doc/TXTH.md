@@ -93,8 +93,8 @@ as explained below, but often will use default values. Accepted codec strings:
 #   * Special interleave is multiple of 0x1, often +0x80
 # - DVI_IMA        IMA ADPCM (DVI order)
 #   * Variation with modified encoding
-# - YAMAHA|AICA    Yamaha ADPCM (mono/stereo)
-#   * For some Dreamcast games, and some arcade games
+# - AICA           Yamaha AICA ADPCM (mono/stereo)
+#   * For some Dreamcast games, and some arcade (Naomi) games
 #   * Special interleave is multiple of 0x1
 # - APPLE_IMA4     Apple Quicktime IMA ADPCM
 #   * For some Mac/iOS games

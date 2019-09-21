@@ -17,7 +17,7 @@ typedef enum {
     DVI_IMA = 7,        /* DVI IMA ADPCM (high nibble first) */
     MPEG = 8,           /* MPEG (MP3) */
     IMA = 9,            /* IMA ADPCM (low nibble first) */
-    YAMAHA = 10,        /* YAMAHA (AICA) ADPCM (Dreamcast games) */
+    AICA = 10,          /* YAMAHA AICA ADPCM (Dreamcast games) */
     MSADPCM = 11,       /* MS ADPCM (Windows games) */
     NGC_DSP = 12,       /* NGC DSP (Nintendo games) */
     PCM8_U_int = 13,    /* 8-bit unsigned PCM (interleaved) */
@@ -200,7 +200,7 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
         case MPEG:       coding = coding_MPEG_layer3; break; /* we later find out exactly which */
 #endif
         case IMA:        coding = coding_IMA; break;
-        case YAMAHA:     coding = coding_YAMAHA; break;
+        case AICA:       coding = coding_AICA; break;
         case MSADPCM:    coding = coding_MSADPCM; break;
         case NGC_DSP:    coding = coding_NGC_DSP; break;
         case PCM8_U_int: coding = coding_PCM8_U_int; break;
@@ -264,7 +264,7 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
         case coding_PSX_badflags:
         case coding_DVI_IMA:
         case coding_IMA:
-        case coding_YAMAHA:
+        case coding_AICA:
         case coding_APPLE_IMA4:
             vgmstream->interleave_block_size = txth.interleave;
             vgmstream->interleave_last_block_size = txth.interleave_last;
@@ -283,8 +283,8 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
                         coding = coding_DVI_IMA_int;
                     if (coding == coding_IMA)
                         coding = coding_IMA_int;
-                    if (coding == coding_YAMAHA)
-                        coding = coding_YAMAHA_int;
+                    if (coding == coding_AICA)
+                        coding = coding_AICA_int;
                 }
 
                 /* to avoid endless loops */
@@ -294,7 +294,7 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
                         coding == coding_IMA_int ||
                         coding == coding_DVI_IMA_int ||
                         coding == coding_SDX2_int ||
-                        coding == coding_YAMAHA_int) ) {
+                        coding == coding_AICA_int) ) {
                     goto fail;
                 }
             } else {
@@ -302,11 +302,11 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
             }
 
             /* to avoid problems with dual stereo files (_L+_R) for codecs with stereo modes */
-            if (coding == coding_YAMAHA && txth.channels == 1)
-                coding = coding_YAMAHA_int;
+            if (coding == coding_AICA && txth.channels == 1)
+                coding = coding_AICA_int;
 
             /* setup adpcm */
-            if (coding == coding_YAMAHA || coding == coding_YAMAHA_int) {
+            if (coding == coding_AICA || coding == coding_AICA_int) {
                 int ch;
                 for (ch = 0; ch < vgmstream->channels; ch++) {
                     vgmstream->ch[ch].adpcm_step_index = 0x7f;
@@ -813,8 +813,7 @@ static int parse_keyval(STREAMFILE * streamFile_, txth_header * txth, const char
         else if (is_string(val,"DVI_IMA"))      txth->codec = DVI_IMA;
         else if (is_string(val,"MPEG"))         txth->codec = MPEG;
         else if (is_string(val,"IMA"))          txth->codec = IMA;
-        else if (is_string(val,"YAMAHA"))       txth->codec = YAMAHA;
-        else if (is_string(val,"AICA"))         txth->codec = YAMAHA;
+        else if (is_string(val,"AICA"))         txth->codec = AICA;
         else if (is_string(val,"MSADPCM"))      txth->codec = MSADPCM;
         else if (is_string(val,"NGC_DSP"))      txth->codec = NGC_DSP;
         else if (is_string(val,"DSP"))          txth->codec = NGC_DSP;
@@ -1302,7 +1301,7 @@ static int is_string_match(const char * text, const char * pattern) {
     int t_pos = 0, p_pos = 0;
     int p_size, t_size;
     uint16_t p_char, t_char;
-    ;VGM_LOG("TXTH: match '%s' vs '%s'\n", text,pattern);
+    //;VGM_LOG("TXTH: match '%s' vs '%s'\n", text,pattern);
 
     /* compares 2 strings (case insensitive, to a point) allowing wildcards
      * ex. for "test": match = "Test*", "*est", "*teSt","T*ES*T"; fail = "tst", "teest"
@@ -1321,7 +1320,7 @@ static int is_string_match(const char * text, const char * pattern) {
 
             while(text[t_pos] != '\0') {
                 t_char = get_string_wchar(text, t_pos, &t_size);
-                ;VGM_LOG("TXTH:  consume %i '%s'\n", t_size, (text+t_pos)  );
+                //;VGM_LOG("TXTH:  consume %i '%s'\n", t_size, (text+t_pos)  );
 
                 if (t_char == p_char)
                     break;
@@ -1704,7 +1703,7 @@ static int get_bytes_to_samples(txth_header * txth, uint32_t bytes) {
         case IMA:
         case DVI_IMA:
             return ima_bytes_to_samples(bytes, txth->channels);
-        case YAMAHA:
+        case AICA:
             return yamaha_bytes_to_samples(bytes, txth->channels);
         case PCFX:
         case OKI16:

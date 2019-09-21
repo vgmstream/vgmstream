@@ -16,7 +16,7 @@ typedef enum {
     DVI_IMA = 7,        /* DVI IMA ADPCM (high nibble first) */
     MPEG = 8,           /* MPEG (MP3) */
     IMA = 9,            /* IMA ADPCM (low nibble first) */
-    YAMAHA = 10,        /* YAMAHA (AICA) ADPCM (Dreamcast games) */
+    AICA = 10,          /* YAMAHA AICA ADPCM (Dreamcast games) */
     MSADPCM = 11,       /* MS ADPCM (Windows games) */
     NGC_DSP = 12,       /* NGC DSP (Nintendo games) */
     PCM8_U_int = 13,    /* 8-bit unsigned PCM (interleaved) */
@@ -102,7 +102,7 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
         case MPEG:       coding = coding_MPEG_layer3; break; /* we later find out exactly which */
 #endif
         case IMA:        coding = coding_IMA; break;
-        case YAMAHA:     coding = coding_YAMAHA; break;
+        case AICA:       coding = coding_AICA; break;
         case MSADPCM:    coding = coding_MSADPCM; break;
         case NGC_DSP:    coding = coding_NGC_DSP; break;
         case PCM8_U_int: coding = coding_PCM8_U_int; break;
@@ -153,7 +153,7 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
         case coding_PSX_badflags:
         case coding_DVI_IMA:
         case coding_IMA:
-        case coding_YAMAHA:
+        case coding_AICA:
         case coding_APPLE_IMA4:
             vgmstream->interleave_block_size = genh.interleave;
             vgmstream->interleave_last_block_size = genh.interleave_last;
@@ -172,8 +172,8 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
                         coding = coding_DVI_IMA_int;
                     if (coding == coding_IMA)
                         coding = coding_IMA_int;
-                    if (coding == coding_YAMAHA)
-                        coding = coding_YAMAHA_int;
+                    if (coding == coding_AICA)
+                        coding = coding_AICA_int;
                 }
 
                 /* to avoid endless loops */
@@ -190,11 +190,11 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
             }
 
             /* to avoid problems with dual stereo files (_L+_R) for codecs with stereo modes */
-            if (coding == coding_YAMAHA && genh.channels == 1)
-                coding = coding_YAMAHA_int;
+            if (coding == coding_AICA && genh.channels == 1)
+                coding = coding_AICA_int;
 
             /* setup adpcm */
-            if (coding == coding_YAMAHA || coding == coding_YAMAHA_int) {
+            if (coding == coding_AICA || coding == coding_AICA_int) {
                 int ch;
                 for (ch = 0; ch < vgmstream->channels; ch++) {
                     vgmstream->ch[ch].adpcm_step_index = 0x7f;

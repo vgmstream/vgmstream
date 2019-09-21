@@ -39,7 +39,7 @@ VGMSTREAM * init_vgmstream_dc_str(STREAMFILE *streamFile) {
     /* fill in the vital statistics */
     switch (samples) {
         case 4:
-            vgmstream->coding_type = coding_YAMAHA_int;
+            vgmstream->coding_type = coding_AICA_int;
             vgmstream->num_samples = read_32bitLE(0x14,streamFile);
         if (loop_flag) {
             vgmstream->loop_start_sample = 0;

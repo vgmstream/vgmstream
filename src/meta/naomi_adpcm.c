@@ -29,7 +29,7 @@ VGMSTREAM * init_vgmstream_naomi_adpcm(STREAMFILE *streamFile) {
     vgmstream->sample_rate = 44100;
     vgmstream->num_samples = yamaha_bytes_to_samples(data_size, channel_count);
 
-    vgmstream->coding_type = coding_YAMAHA_int;
+    vgmstream->coding_type = coding_AICA_int;
     vgmstream->layout_type = layout_interleave;
     vgmstream->interleave_block_size = data_size / channel_count;
     vgmstream->meta_type = meta_NAOMI_ADPCM;
