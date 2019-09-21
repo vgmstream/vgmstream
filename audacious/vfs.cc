@@ -12,7 +12,6 @@ typedef struct _VFSSTREAMFILE {
   VFSFile *vfsFile;
   off_t offset;
   char name[32768];
-  //char realname[32768];
 } VFSSTREAMFILE;
 
 static STREAMFILE *open_vfs_by_VFSFILE(VFSFile *file, const char *path);
@@ -35,7 +34,7 @@ static size_t read_vfs(VFSSTREAMFILE *streamfile, uint8_t *dest, off_t offset,
 
 static void close_vfs(VFSSTREAMFILE *streamfile) {
   debugMessage("close_vfs");
-  free(streamfile->vfsFile);
+  delete streamfile->vfsFile; //fcloses the internal file too
   free(streamfile);
 }
 
