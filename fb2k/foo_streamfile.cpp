@@ -125,8 +125,7 @@ static void get_name_foo(FOO_STREAMFILE *streamfile,char *buffer,size_t length) 
    }
 }
 static void close_foo(FOO_STREAMFILE * streamfile) {
-    if (streamfile->m_file_opened)
-        streamfile->m_file.release();
+    streamfile->m_file.release(); //release alloc'ed ptr
     free(streamfile->name);
     free(streamfile->buffer);
     free(streamfile);
@@ -215,7 +214,7 @@ static STREAMFILE * open_foo_streamfile_buffer(const char * const filename, size
 
     streamFile = open_foo_streamfile_buffer_by_file(infile, infile_exists, filename, buffersize, p_abort);
     if (!streamFile) {
-        //m_file.release(); //todo not needed after g_open_read?
+        //m_file.release(); //refcounted and cleaned after it goes out of scope
     }
 
     return streamFile;
