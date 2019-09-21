@@ -42,7 +42,7 @@ VGMSTREAM * init_vgmstream_dcs_wav(STREAMFILE *streamFile) {
     vgmstream->meta_type = meta_DCS_WAV;
     vgmstream->sample_rate = sample_rate;
     vgmstream->num_samples = yamaha_bytes_to_samples(get_streamfile_size(streamFile), channel_count);
-    vgmstream->coding_type = coding_YAMAHA_int;
+    vgmstream->coding_type = coding_AICA_int;
     vgmstream->layout_type = layout_interleave;
     vgmstream->interleave_block_size = 0x4000;
     

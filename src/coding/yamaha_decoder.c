@@ -80,7 +80,7 @@ static void yamaha_aica_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offs
 
 
 /* Yamaha AICA ADPCM (also used in YMZ280B with high nibble first) */
-void decode_yamaha(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel, int is_stereo) {
+void decode_aica(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel, int is_stereo) {
     int i, sample_count = 0;
     int16_t out_sample;
     int32_t hist1 = stream->adpcm_history1_16;

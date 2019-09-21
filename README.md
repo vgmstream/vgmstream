@@ -371,7 +371,7 @@ are used in few games.
 - Microsoft MS IMA ADPCM (standard, Xbox, NDS, Radical, Wwise, FSB, WV6, etc)
 - Microsoft MS ADPCM (standard, Cricket Audio)
 - Westwood VBR ADPCM
-- Yamaha ADPCM (standard, Aska)
+- Yamaha ADPCM (AICA, Aska)
 - Procyon Studio ADPCM
 - Level-5 0x555 ADPCM
 - lsf ADPCM
@@ -562,7 +562,7 @@ This list is not complete and many other files are supported.
 	- .xmu
 	- .xvas
 	- .xwav
-- Yamaha ADPCM:
+- Yamaha AICA ADPCM:
 	- .adpcm
 	- .dcs+.dcsw
 	- .str
