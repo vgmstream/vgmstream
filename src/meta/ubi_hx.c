@@ -47,7 +47,7 @@ VGMSTREAM * init_vgmstream_ubi_hx(STREAMFILE *streamFile) {
 
 
     /* checks */
-    /* .hxd: Rayman Arena (all), PK: Out of Shadows (all)
+    /* .hxd: Rayman M/Arena (all), PK: Out of Shadows (all)
      * .hxc: Rayman 3 (PC), XIII (PC)
      * .hx2: Rayman 3 (PS2), XIII (PS2)
      * .hxg: Rayman 3 (GC), XIII (GC)
@@ -176,6 +176,7 @@ static int parse_header(ubi_hx_header * hx, STREAMFILE *sf, off_t offset, size_t
     int32_t (*read_32bit)(off_t,STREAMFILE*) = hx->big_endian ? read_32bitBE : read_32bitLE;
     int16_t (*read_16bit)(off_t,STREAMFILE*) = hx->big_endian ? read_16bitBE : read_16bitLE;
     off_t riff_offset, riff_size, chunk_offset, stream_adjust = 0, resource_size;
+    size_t chunk_size;
     int cue_flag = 0;
 
     //todo cleanup/unify common readings
@@ -274,10 +275,18 @@ static int parse_header(ubi_hx_header * hx, STREAMFILE *sf, off_t offset, size_t
 
         /* find "datx" (external) or "data" (internal) also in machine endianness */
         if (hx->is_external) {
-            if (!find_chunk_riff_ve(sf, 0x78746164,riff_offset + 0x0c,riff_size - 0x0c, &chunk_offset,NULL, hx->big_endian))
+            if (find_chunk_riff_ve(sf, 0x78746164,riff_offset + 0x0c,riff_size - 0x0c, &chunk_offset,NULL, hx->big_endian)) {
+                hx->stream_size     = read_32bit(chunk_offset + 0x00, sf);
+                hx->stream_offset   = read_32bit(chunk_offset + 0x04, sf) + stream_adjust;
+            }
+            else if ((flag_type == 0x01 || flag_type == 0x02) && /* Rayman M (not Arena) uses "data" instead */
+                    find_chunk_riff_ve(sf, 0x61746164,riff_offset + 0x0c,riff_size - 0x0c, &chunk_offset,&chunk_size, hx->big_endian)) {
+                hx->stream_size     = chunk_size;
+                hx->stream_offset   = read_32bit(chunk_offset + 0x00, sf) + stream_adjust;
+            }
+            else {
                 goto fail;
-            hx->stream_size     = read_32bit(chunk_offset + 0x00, sf);
-            hx->stream_offset   = read_32bit(chunk_offset + 0x04, sf) + stream_adjust;
+            }
         }
         else {
             if (!find_chunk_riff_ve(sf, 0x61746164,riff_offset + 0x0c,riff_size - 0x0c, &chunk_offset,NULL, hx->big_endian))
