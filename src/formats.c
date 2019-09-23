@@ -483,6 +483,7 @@ static const char* extension_list[] = {
     "va3",
     "vag",
     "vai",
+    "vam", //txth/reserved [Rocket Power: Beach Bandits (PS2)]
     "vas",
     "vawx",
     "vb",
