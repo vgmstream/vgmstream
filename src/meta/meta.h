@@ -643,6 +643,8 @@ VGMSTREAM * init_vgmstream_opus_nus3(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_opus_sps_n1(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_opus_nxa(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_opus_opusx(STREAMFILE * streamFile);
+VGMSTREAM * init_vgmstream_opus_prototype(STREAMFILE * streamFile);
+VGMSTREAM * init_vgmstream_opus_opusnx(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_pc_al2(STREAMFILE * streamFile);
 
@@ -831,8 +833,6 @@ VGMSTREAM * init_vgmstream_9tav(STREAMFILE* streamFile);
 VGMSTREAM * init_vgmstream_fsb5_fev_bank(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_bwav(STREAMFILE * streamFile);
-
-VGMSTREAM * init_vgmstream_opus_prototype(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_awb(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_awb_memory(STREAMFILE * streamFile, STREAMFILE *acbFile);
