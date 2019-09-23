@@ -390,3 +390,24 @@ VGMSTREAM * init_vgmstream_opus_prototype(STREAMFILE *streamFile) {
 fail:
     return NULL;
 }
+
+/* Edelweiss variation [Astebreed (Switch)] */
+VGMSTREAM * init_vgmstream_opus_opusnx(STREAMFILE *streamFile) {
+    off_t offset = 0;
+    int num_samples = 0, loop_start = 0, loop_end = 0;
+
+    /* checks */
+    if (!check_extensions(streamFile, "opus,lopus"))
+        goto fail;
+    if (read_64bitBE(0x00, streamFile) != 0x4F5055534E580000) /* "OPUSNX\0\0" */
+        goto fail;
+
+    offset = 0x10;
+    num_samples = 0; //read_32bitLE(0x08, streamFile); /* samples with encoder delay */
+    if (read_32bitLE(0x0c, streamFile) != 0)
+        goto fail;
+
+    return init_vgmstream_opus(streamFile, meta_OPUS, offset, num_samples, loop_start, loop_end);
+fail:
+    return NULL;
+}

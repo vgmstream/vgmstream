@@ -800,25 +800,51 @@ STREAMFILE * open_streamfile_by_ext(STREAMFILE *streamFile, const char * ext) {
     return streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
 }
 
-STREAMFILE * open_streamfile_by_filename(STREAMFILE *streamFile, const char * name) {
-    char foldername[PATH_LIMIT];
-    char filename[PATH_LIMIT];
-    const char *path;
+STREAMFILE * open_streamfile_by_filename(STREAMFILE *streamFile, const char * filename) {
+    char fullname[PATH_LIMIT];
+    char partname[PATH_LIMIT];
+    char *path, *name;
 
-    streamFile->get_name(streamFile,foldername,sizeof(foldername));
+    streamFile->get_name(streamFile, fullname, sizeof(fullname));
 
-    path = strrchr(foldername,DIR_SEPARATOR);
-    if (path!=NULL) path = path+1;
-
+    //todo normalize separators in a better way, safeops, improve copying
+    path = strrchr(fullname,DIR_SEPARATOR);
     if (path) {
-        strcpy(filename, foldername);
-        filename[path-foldername] = '\0';
-        strcat(filename, name);
-    } else {
-        strcpy(filename, name);
+        path[1] = '\0'; /* remove name after separator */
+
+        strcpy(partname, filename);
+        fix_dir_separators(partname);
+
+        /* normalize relative paths as don't work ok in some plugins */
+        if (partname[0]=='.' && partname[1] == DIR_SEPARATOR) { /* './name' */
+            name = partname + 2; /* ignore './' */
+        }
+        else if (partname[0]=='.' && partname[1]=='.' && partname[2] == DIR_SEPARATOR) { /* '../name' */
+            char *pathprev;
+
+            path[0] = '\0'; /* remove last separator so next call works */
+            pathprev = strrchr(fullname,DIR_SEPARATOR);
+            if (pathprev) {
+                pathprev[1] = '\0'; /* remove prev dir after separator */
+                name = partname + 3; /* ignore '../' */
+            }
+            else { /* let plugin handle? */
+                path[0] = DIR_SEPARATOR;
+                name = partname;
+            }
+            /* could work with more relative paths but whatevs */
+        }
+        else {
+            name = partname;
+        }
+
+        strcat(fullname, name);
+    }
+    else {
+        strcpy(fullname, filename);
     }
 
-    return streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
+    return streamFile->open(streamFile, fullname, STREAMFILE_DEFAULT_BUFFER_SIZE);
 }
 
 STREAMFILE * reopen_streamfile(STREAMFILE *streamFile, size_t buffer_size) {
