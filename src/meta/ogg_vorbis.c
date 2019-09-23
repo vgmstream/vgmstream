@@ -326,8 +326,15 @@ VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile) {
         if (isl_name) {
             STREAMFILE *islFile = NULL;
 
-            //todo could try in ../(file) first since that's how the .isl is stored
             islFile = open_streamfile_by_filename(streamFile, isl_name);
+
+            if (!islFile) {
+                /* try in ../(file) too since that's how the .isl is stored on disc */
+                char isl_path[PATH_LIMIT];
+                snprintf(isl_path, sizeof(isl_path), "../%s", isl_name);
+                islFile = open_streamfile_by_filename(streamFile, isl_path);
+            }
+
             if (islFile) {
                 STREAMFILE *dec_sf = NULL;
 

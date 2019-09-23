@@ -2399,6 +2399,8 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
     /* two configs with same id; use project file as identifier */
     if (sb->version == 0x000A0007 && sb->platform == UBI_PS2) {
         STREAMFILE * streamTest = open_streamfile_by_filename(streamFile, "BIAAUDIO.SP1");
+        if (!streamTest) /* try again for localized subfolders */
+            streamTest = open_streamfile_by_filename(streamFile, "../BIAAUDIO.SP1");
         if (streamTest) {
             is_bia_ps2 = 1;
             close_streamfile(streamTest);

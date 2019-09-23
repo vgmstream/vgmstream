@@ -119,8 +119,9 @@ STREAMFILE * open_streamfile(STREAMFILE *streamFile, const char * pathname);
  * Can be used to get companion headers. */
 STREAMFILE * open_streamfile_by_ext(STREAMFILE *streamFile, const char * ext);
 
-/* Opens a STREAMFILE from a base path + new filename
- * Can be used to get companion files. */
+/* Opens a STREAMFILE from a base path + new filename.
+ * Can be used to get companion files. Relative paths like
+ * './filename', '../filename', 'dir/filename' also work. */
 STREAMFILE * open_streamfile_by_filename(STREAMFILE *streamFile, const char * filename);
 
 /* Reopen a STREAMFILE with a different buffer size, for fine-tuned bigfile parsing.
