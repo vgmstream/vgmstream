@@ -147,23 +147,39 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
                         break;
                     case 0x03:  /* loop info */
                         fsb5.loop_start = read_32bitLE(extraflag_offset+0x04,streamFile);
-                        if (extraflag_size > 0x04) /* probably not needed */
+                        if (extraflag_size > 0x04) { /* probably not needed */
                             fsb5.loop_end = read_32bitLE(extraflag_offset+0x08,streamFile);
+                            fsb5.loop_end += 1; /* correct compared to FMOD's tools */
+                        }
 
-                        /* when start is 0 seems the song repeats with no real looping (ex. Sonic Boom Fire & Ice jingles) */
-                        fsb5.loop_flag = (fsb5.loop_start != 0x00);
+                        /* autodetect unwanted loops */
+                        {
+                            /* like FSB4 jingles/sfx/music do full loops for no reason, but happens a lot less.
+                             * Most songs loop normally now with proper values [ex. Shantae, FFX] */
+                            int full_loop, ajurika_loops;
 
-                        /* ignore wrong loops in some files [Pac-Man CE2 Plus (Switch) pce2p_bgm_ajurika_*.fsb] */
-                        if (fsb5.loop_start == 0x3c && fsb5.loop_end == 0x007F007F &&
-                                fsb5.num_samples > fsb5.loop_end + 100000) { /* arbitrary limit */
-                            fsb5.loop_flag = 0;
+                            /* could use the same checks as FSB4 but simplified (ex. Sonic Boom Fire & Ice jingles) */
+                            full_loop = fsb5.loop_start != 0x00;
+
+                            /* wrong values in some files [Pac-Man CE2 Plus (Switch) pce2p_bgm_ajurika_*.fsb] */
+                            ajurika_loops = fsb5.loop_start == 0x3c && fsb5.loop_end == 0x007F007F &&
+                                    fsb5.num_samples > fsb5.loop_end + 100000; /* arbitrary limit */
+
+                            //;VGM_LOG("FSB5: loop start=%i, loop end=%i, samples=%i\n", fsb5.loop_start, fsb5.loop_end, fsb5.num_samples);
+
+                            fsb5.loop_flag = 1;
+                            if (!full_loop || ajurika_loops) {
+                                VGM_LOG("FSB5: disabled unwanted loop\n");
+                                fsb5.loop_flag = 0;
+                            }
                         }
                         break;
                     case 0x04:  /* free comment, or maybe SFX info */
                         break;
-                  //case 0x05:  /* Unknown (32b) */ //todo multistream marker?
-                  //    /* found in Tearaway Vita, value 0, first stream only */
-                  //    break;
+                    case 0x05:  /* unknown 32b */ //todo multistream marker?
+                        /* found in Tearaway Vita, value 0, first stream only */
+                        VGM_LOG("FSB5: flag %x with value %08x\n", extraflag_type, read_32bitLE(extraflag_offset+0x04,streamFile));
+                        break;
                     case 0x06:  /* XMA seek table */
                         /* no need for it */
                         break;
@@ -186,9 +202,10 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
                          * (xN entries)
                          */
                         break;
-                  //case 0x0d:  /* Unknown (32b) */
-                  //    /* found in some XMA2/Vorbis/FADPCM */
-                  //    break;
+                  case 0x0d:  /* unknown 32b (config? usually 0x3fnnnn00 BE) */
+                      /* found in some XMA2/Vorbis/FADPCM */
+                      VGM_LOG("FSB5: flag %x with value %08x\n", extraflag_type, read_32bitLE(extraflag_offset+0x04,streamFile));
+                      break;
                     default:
                         VGM_LOG("FSB5: unknown extraflag 0x%x at %x + 0x04 (size 0x%x)\n", extraflag_type, (uint32_t)extraflag_offset, extraflag_size);
                         break;

@@ -305,16 +305,16 @@ VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
         /* for MPEG and CELT sometimes full loops are given with around/exact 1 frame less than num_samples,
          * probably to account for encoder/decoder delay (ex. The Witcher 2, Hard Reset, Timeshift) */
         if (fsb.codec == CELT)
-            full_loop = fsb.loop_start == 0 && fsb.loop_end >= fsb.num_samples - 512; /* maybe around 300? */
+            full_loop = fsb.loop_start - 512 <= 0 && fsb.loop_end >= fsb.num_samples - 512; /* aproximate */
         else if (fsb.codec == MPEG)
-            full_loop = fsb.loop_start == 0 && fsb.loop_end >= fsb.num_samples - 1152;
+            full_loop = fsb.loop_start - 1152 <= 0 && fsb.loop_end >= fsb.num_samples - 1152; /* WWF Legends of Wrestlemania uses 2 frames? */
         else
             full_loop = fsb.loop_start == 0 && fsb.loop_end == fsb.num_samples;
 
         /* in seconds (lame but no better way) */
         is_small = fsb.num_samples < 20 * fsb.sample_rate;
 
-        //;VGM_LOG("FSB loop start=%i, loop end=%i, samples=%i, mode=%x\n", fsb.loop_start, fsb.loop_end, fsb.num_samples, fsb.mode);
+        //;VGM_LOG("FSB: loop start=%i, loop end=%i, samples=%i, mode=%x\n", fsb.loop_start, fsb.loop_end, fsb.num_samples, fsb.mode);
         //;VGM_LOG("FSB: enable=%i, full=%i, small=%i\n",enable_loop,full_loop,is_small );
 
         fsb.loop_flag = !(fsb.mode & FSOUND_LOOP_OFF); /* disabled manually */
