@@ -993,12 +993,12 @@ static void apply_config(VGMSTREAM * vgmstream, winamp_song_config *current) {
     }
     if (current->song_ignore_loop) {
         vgmstream_force_loop(vgmstream, 0, 0,0);
-        current->song_fade_time = 0;
     }
 
     /* loop N times, but also play stream end instead of fading out */
     if (current->song_loop_count > 0 && current->song_ignore_fade) {
         vgmstream_set_loop_target(vgmstream, (int)current->song_loop_count);
+        current->song_fade_time = 0; /* force no fade */
     }
 }
 
