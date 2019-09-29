@@ -384,24 +384,12 @@ void input_vgmstream::retag_commit(abort_callback & p_abort) { /*throw exception
 bool input_vgmstream::g_is_our_content_type(const char * p_content_type) {return false;}
 
 // called to check if file can be processed by the plugin
-bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension) {
-    const char ** ext_list;
-    size_t ext_list_len;
-    int i;
+bool input_vgmstream::g_is_our_path(const char * p_path, const char * p_extension) {
+    vgmstream_ctx_valid_cfg cfg = {0};
 
-    ext_list = vgmstream_get_formats(&ext_list_len);
-
-    for (i=0; i < ext_list_len; i++) {
-        if (!stricmp_utf8(p_extension, ext_list[i]))
-            return 1;
-    }
-
-    /* some extensionless files can be handled by vgmstream, try to play */
-    if (strlen(p_extension) <= 0) {
-        return 1;
-    }
-
-    return 0;
+    cfg.is_extension = 1;
+    input_vgmstream::g_load_cfg(&cfg.accept_unknown, &cfg.accept_common);
+    return vgmstream_ctx_is_valid(p_extension, &cfg) > 0 ? true : false;
 }
 
 // internal util to create a VGMSTREAM

@@ -2,6 +2,71 @@
 #include "plugins.h"
 #include "mixing.h"
 
+
+/* ****************************************** */
+/* CONTEXT: simplifies plugin code            */
+/* ****************************************** */
+
+int vgmstream_ctx_is_valid(const char* filename, vgmstream_ctx_valid_cfg *cfg) {
+    const char ** extension_list;
+    size_t extension_list_len;
+    const char *extension;
+    int i;
+
+
+    if (cfg->is_extension) {
+        extension = filename;
+    } else {
+        extension = filename_extension(filename);
+    }
+
+    /* some metas accept extensionless files */
+    if (strlen(extension) <= 0) {
+        return !cfg->reject_extensionless;
+    }
+
+    /* try in default list */
+    if (!cfg->skip_standard) {
+        extension_list = vgmstream_get_formats(&extension_list_len);
+        for (i = 0; i < extension_list_len; i++) {
+            if (strcasecmp(extension, extension_list[i]) == 0) {
+                return 1;
+            }
+        }
+    }
+
+    /* try in common extensions */
+    if (cfg->accept_common) {
+        extension_list = vgmstream_get_common_formats(&extension_list_len);
+        for (i = 0; i < extension_list_len; i++) {
+            if (strcasecmp(extension, extension_list[i]) == 0)
+                return 1;
+        }
+    }
+
+    /* allow anything not in the normal list but not in common extensions */
+    if (cfg->accept_unknown) {
+        int is_common = 0;
+
+        extension_list = vgmstream_get_common_formats(&extension_list_len);
+        for (i = 0; i < extension_list_len; i++) {
+            if (strcasecmp(extension, extension_list[i]) == 0) {
+                is_common = 1;
+                break;
+            }
+        }
+
+        if (!is_common)
+            return 1;
+    }
+
+    return 0;
+}
+
+/* ****************************************** */
+/* TAGS: loads key=val tags from a file       */
+/* ****************************************** */
+
 #define VGMSTREAM_TAGS_LINE_MAX 2048
 
 /* opaque tag state */
@@ -252,6 +317,10 @@ void vgmstream_tags_reset(VGMSTREAM_TAGS* tags, const char* target_filename) {
     }
     tags->targetname_len = strlen(tags->targetname);
 }
+
+/* ****************************************** */
+/* MIXING: modifies vgmstream output          */
+/* ****************************************** */
 
 void vgmstream_mixing_enable(VGMSTREAM* vgmstream, int32_t max_sample_count, int *input_channels, int *output_channels) {
     mixing_setup(vgmstream, max_sample_count);

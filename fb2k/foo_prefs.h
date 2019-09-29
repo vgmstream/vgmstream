@@ -18,14 +18,18 @@
 #define DEFAULT_DOWNMIX_CHANNELS "8"
 #define DEFAULT_TAGFILE_DISABLE false
 #define DEFAULT_OVERRIDE_TITLE false
+#define DEFAULT_EXTS_UNKNOWN_ON false
+#define DEFAULT_EXTS_COMMON_ON false
 
 class vgmstreamPreferences : public CDialogImpl<vgmstreamPreferences>, public preferences_page_instance {
 public:
-	//Constructor - invoked by preferences_page_impl helpers - don't do Create() in here, preferences_page_impl does this for us
+	//Constructor - invoked by preferences_page_impl helpers -
+    //don't do Create() in here, preferences_page_impl does this for us
 	vgmstreamPreferences(preferences_page_callback::ptr callback) : m_callback(callback) {}
 
 	//Note that we don't bother doing anything regarding destruction of our class.
-	//The host ensures that our dialog is destroyed first, then the last reference to our preferences_page_instance object is released, causing our object to be deleted.
+	//The host ensures that our dialog is destroyed first, then the last reference to our
+	//preferences_page_instance object is released, causing our object to be deleted.
 
 
 	//dialog resource ID
@@ -48,6 +52,8 @@ public:
         COMMAND_HANDLER_EX(IDC_DOWNMIX_CHANNELS, EN_CHANGE, OnEditChange)
         COMMAND_HANDLER_EX(IDC_TAGFILE_DISABLE, BN_CLICKED, OnEditChange)
         COMMAND_HANDLER_EX(IDC_OVERRIDE_TITLE, BN_CLICKED, OnEditChange)
+        COMMAND_HANDLER_EX(IDC_EXTS_UNKNOWN_ON, BN_CLICKED, OnEditChange)
+        COMMAND_HANDLER_EX(IDC_EXTS_COMMON_ON, BN_CLICKED, OnEditChange)
 	END_MSG_MAP()
 private:
 	BOOL OnInitDialog(CWindow, LPARAM);
@@ -60,8 +66,7 @@ private:
 
 
 
-class vgmstream_prefs : public preferences_page_impl<vgmstreamPreferences>
-{
+class vgmstream_prefs : public preferences_page_impl<vgmstreamPreferences> {
 
 public:
 	const char * get_name();

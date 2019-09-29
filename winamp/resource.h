@@ -13,3 +13,5 @@
 #define IDC_TAGFILE_DISABLE             1012
 #define IDC_REPLAYGAIN                  1013
 #define IDC_CLIPPROTECT                 1014
+#define IDC_EXTS_UNKNOWN_ON             1015
+#define IDC_EXTS_COMMON_ON              1016
