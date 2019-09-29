@@ -7,7 +7,7 @@ VGMSTREAM* init_vgmstream_xmv_valve(STREAMFILE* streamFile) {
     VGMSTREAM* vgmstream = NULL;
     int32_t loop_start;
     uint32_t start_offset, data_size, sample_rate, num_samples;
-    uint16_t loop_block, loop_start_skip, loop_end_skip;
+    uint16_t /*loop_block, loop_start_skip,*/ loop_end_skip;
     uint8_t format, freq_mode, channels;
     int loop_flag;
 
@@ -29,8 +29,8 @@ VGMSTREAM* init_vgmstream_xmv_valve(STREAMFILE* streamFile) {
     loop_start = read_32bitBE(0x1c, streamFile);
 
     /* XMA only */
-    loop_block = read_16bitBE(0x20, streamFile);
-    loop_start_skip = read_16bitBE(0x22, streamFile);
+  //loop_block = read_16bitBE(0x20, streamFile);
+  //loop_start_skip = read_16bitBE(0x22, streamFile);
     loop_end_skip = read_16bitBE(0x24, streamFile);
 
     format = read_8bit(0x28, streamFile);

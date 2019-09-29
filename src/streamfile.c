@@ -18,15 +18,15 @@ typedef struct {
     size_t buffersize;      /* max buffer size */
     size_t validsize;       /* current buffer size */
     size_t filesize;        /* buffered file size */
-} STDIOSTREAMFILE;
+} STDIO_STREAMFILE;
 
 static STREAMFILE * open_stdio_streamfile_buffer(const char * const filename, size_t buffersize);
 static STREAMFILE * open_stdio_streamfile_buffer_by_file(FILE *infile,const char * const filename, size_t buffersize);
 
-static size_t read_stdio(STDIOSTREAMFILE *streamfile,uint8_t * dest, off_t offset, size_t length) {
+static size_t read_stdio(STDIO_STREAMFILE *streamfile,uint8_t * dest, off_t offset, size_t length) {
     size_t length_read_total = 0;
 
-    if (!streamfile || !streamfile->infile || !dest || length <= 0 || offset < 0)
+    if (!streamfile->infile || !dest || length <= 0 || offset < 0)
         return 0;
 
     /* is the part of the requested length in the buffer? */
@@ -45,6 +45,11 @@ static size_t read_stdio(STDIOSTREAMFILE *streamfile,uint8_t * dest, off_t offse
         dest += length_to_read;
     }
 
+#ifdef VGM_DEBUG_OUTPUT
+    if (offset < streamfile->buffer_offset) {
+        VGM_LOG("STDIO: rebuffer, requested %lx vs %lx (sf %x)\n", offset, streamfile->buffer_offset, (uint32_t)streamfile);
+    }
+#endif
 
     /* read the rest of the requested length */
     while (length > 0) {
@@ -99,24 +104,24 @@ static size_t read_stdio(STDIOSTREAMFILE *streamfile,uint8_t * dest, off_t offse
     streamfile->offset = offset; /* last fread offset */
     return length_read_total;
 }
-static size_t get_size_stdio(STDIOSTREAMFILE * streamfile) {
+static size_t get_size_stdio(STDIO_STREAMFILE * streamfile) {
     return streamfile->filesize;
 }
-static off_t get_offset_stdio(STDIOSTREAMFILE *streamfile) {
+static off_t get_offset_stdio(STDIO_STREAMFILE *streamfile) {
     return streamfile->offset;
 }
-static void get_name_stdio(STDIOSTREAMFILE *streamfile,char *buffer,size_t length) {
+static void get_name_stdio(STDIO_STREAMFILE *streamfile,char *buffer,size_t length) {
     strncpy(buffer,streamfile->name,length);
     buffer[length-1]='\0';
 }
-static void close_stdio(STDIOSTREAMFILE * streamfile) {
+static void close_stdio(STDIO_STREAMFILE * streamfile) {
     if (streamfile->infile)
         fclose(streamfile->infile);
     free(streamfile->buffer);
     free(streamfile);
 }
 
-static STREAMFILE *open_stdio(STDIOSTREAMFILE *streamFile,const char * const filename,size_t buffersize) {
+static STREAMFILE *open_stdio(STDIO_STREAMFILE *streamFile,const char * const filename,size_t buffersize) {
     if (!filename)
         return NULL;
 
@@ -143,12 +148,12 @@ static STREAMFILE *open_stdio(STDIOSTREAMFILE *streamFile,const char * const fil
 
 static STREAMFILE * open_stdio_streamfile_buffer_by_file(FILE *infile, const char * const filename, size_t buffersize) {
     uint8_t * buffer = NULL;
-    STDIOSTREAMFILE * streamfile = NULL;
+    STDIO_STREAMFILE * streamfile = NULL;
 
     buffer = calloc(buffersize,1);
     if (!buffer) goto fail;
 
-    streamfile = calloc(1,sizeof(STDIOSTREAMFILE));
+    streamfile = calloc(1,sizeof(STDIO_STREAMFILE));
     if (!streamfile) goto fail;
 
     streamfile->sf.read = (void*)read_stdio;
@@ -236,7 +241,7 @@ typedef struct {
 static size_t buffer_read(BUFFER_STREAMFILE *streamfile, uint8_t * dest, off_t offset, size_t length) {
     size_t length_read_total = 0;
 
-    if (!streamfile || !dest || length <= 0 || offset < 0)
+    if (!dest || length <= 0 || offset < 0)
         return 0;
 
     /* is the part of the requested length in the buffer? */
@@ -255,6 +260,11 @@ static size_t buffer_read(BUFFER_STREAMFILE *streamfile, uint8_t * dest, off_t o
         dest += length_to_read;
     }
 
+#ifdef VGM_DEBUG_OUTPUT
+    if (offset < streamfile->buffer_offset) {
+        VGM_LOG("BUFFER: rebuffer, requested %lx vs %lx (sf %x)\n", offset, streamfile->buffer_offset, (uint32_t)streamfile);
+    }
+#endif
 
     /* read the rest of the requested length */
     while (length > 0) {

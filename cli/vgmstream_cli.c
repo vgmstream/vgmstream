@@ -435,6 +435,10 @@ int main(int argc, char ** argv) {
             fprintf(stderr,"failed to open %s for output\n",cfg.outfilename);
             goto fail;
         }
+
+        /* no improvement */
+        //setvbuf(outfile, NULL, _IOFBF, SAMPLE_BUFFER_SIZE * sizeof(sample_t) * input_channels);
+        //setvbuf(outfile, NULL, _IONBF, 0);
     }
 
 
@@ -550,7 +554,7 @@ int main(int argc, char ** argv) {
                 fwrite(buf + j*channels + (cfg.only_stereo*2), sizeof(sample_t), 2, outfile);
             }
         } else {
-            fwrite(buf, sizeof(sample_t) * channels, to_get, outfile);
+            fwrite(buf, sizeof(sample_t), to_get * channels, outfile);
         }
     }
 
