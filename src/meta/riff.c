@@ -552,7 +552,33 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
     vgmstream->sample_rate = fmt.sample_rate;
     vgmstream->channel_layout = fmt.channel_layout;
 
-    /* init, samples */
+    /* coding, layout, interleave */
+    vgmstream->coding_type = fmt.coding_type;
+    switch (fmt.coding_type) {
+        case coding_MSADPCM:
+        case coding_MS_IMA:
+        case coding_AICA:
+        case coding_XBOX_IMA:
+        case coding_IMA:
+#ifdef VGM_USE_FFMPEG
+        case coding_FFmpeg:
+#endif
+#ifdef VGM_USE_MAIATRAC3PLUS
+        case coding_AT3plus:
+#endif
+#ifdef VGM_USE_ATRAC9
+        case coding_ATRAC9:
+#endif
+            vgmstream->layout_type = layout_none;
+            vgmstream->interleave_block_size = fmt.block_size;
+            break;
+        default:
+            vgmstream->layout_type = layout_interleave;
+            vgmstream->interleave_block_size = fmt.interleave;
+            break;
+    }
+
+    /* samples, codec init (after setting coding to ensure proper close on failure) */
     switch (fmt.coding_type) {
         case coding_PCM16LE:
             vgmstream->num_samples = pcm_bytes_to_samples(data_size, fmt.channel_count, 16);
@@ -670,32 +696,6 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
 #endif
         default:
             goto fail;
-    }
-
-    /* coding, layout, interleave */
-    vgmstream->coding_type = fmt.coding_type;
-    switch (fmt.coding_type) {
-        case coding_MSADPCM:
-        case coding_MS_IMA:
-        case coding_AICA:
-        case coding_XBOX_IMA:
-        case coding_IMA:
-#ifdef VGM_USE_FFMPEG
-        case coding_FFmpeg:
-#endif
-#ifdef VGM_USE_MAIATRAC3PLUS
-        case coding_AT3plus:
-#endif
-#ifdef VGM_USE_ATRAC9
-        case coding_ATRAC9:
-#endif
-            vgmstream->layout_type = layout_none;
-            vgmstream->interleave_block_size = fmt.block_size;
-            break;
-        default:
-            vgmstream->layout_type = layout_interleave;
-            vgmstream->interleave_block_size = fmt.interleave;
-            break;
     }
 
     /* Dynasty Warriors 5 (Xbox) 6ch interleaves stereo frames, probably not official */

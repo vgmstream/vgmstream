@@ -6,46 +6,57 @@
 
 #include "streamfile.h"
 
+/* ****************************************** */
+/* CONTEXT: simplifies plugin code            */
+/* ****************************************** */
+
+typedef struct {
+    int is_extension;           /* set if filename is already an extension */
+    int skip_standard;          /* set if shouldn't check standard formats */
+    int reject_extensionless;   /* set if player can't play extensionless files */
+    int accept_unknown;         /* set to allow any extension (for txth) */
+    int accept_common;          /* set to allow known-but-common extension (when player has plugin priority) */
+} vgmstream_ctx_valid_cfg;
+
+/* returns if vgmstream can parse file by extension */
+int vgmstream_ctx_is_valid(const char* filename, vgmstream_ctx_valid_cfg *cfg);
 
 #if 0
-/* ****************************************** */
-/* PLAYER: simplifies plugin code             */
-/* ****************************************** */
 
 /* opaque player state */
-typedef struct VGMSTREAM_PLAYER VGMSTREAM_PLAYER;
+typedef struct VGMSTREAM_CTX VGMSTREAM_CTX;
 
 typedef struct {
     //...
-} VGMSTREAM_PLAYER_INFO;
+} VGMSTREAM_CTX_INFO;
 
-VGMSTREAM_PLAYER* vgmstream_player_init(...);
+VGMSTREAM_CTX* vgmstream_ctx_init(...);
 
-VGMSTREAM_PLAYER* vgmstream_player_format_check(...);
-VGMSTREAM_PLAYER* vgmstream_player_set_format_whilelist(...);
-VGMSTREAM_PLAYER* vgmstream_player_set_format_blacklist(...);
+VGMSTREAM_CTX* vgmstream_ctx_format_check(...);
+VGMSTREAM_CTX* vgmstream_ctx_set_format_whilelist(...);
+VGMSTREAM_CTX* vgmstream_ctx_set_format_blacklist(...);
 
-VGMSTREAM_PLAYER* vgmstream_player_set_file(...);
+VGMSTREAM_CTX* vgmstream_ctx_set_file(...);
 
-VGMSTREAM_PLAYER* vgmstream_player_get_config(...);
+VGMSTREAM_CTX* vgmstream_ctx_get_config(...);
 
-VGMSTREAM_PLAYER* vgmstream_player_set_config(...);
+VGMSTREAM_CTX* vgmstream_ctx_set_config(...);
 
-VGMSTREAM_PLAYER* vgmstream_player_get_buffer(...);
+VGMSTREAM_CTX* vgmstream_ctx_get_buffer(...);
 
-VGMSTREAM_PLAYER* vgmstream_player_get_info(...);
+VGMSTREAM_CTX* vgmstream_ctx_get_info(...);
 
-VGMSTREAM_PLAYER* vgmstream_player_describe(...);
+VGMSTREAM_CTX* vgmstream_ctx_describe(...);
 
-VGMSTREAM_PLAYER* vgmstream_player_get_title(...);
+VGMSTREAM_CTX* vgmstream_ctx_get_title(...);
 
-VGMSTREAM_PLAYER* vgmstream_player_get_tagfile(...);
+VGMSTREAM_CTX* vgmstream_ctx_get_tagfile(...);
 
-VGMSTREAM_PLAYER* vgmstream_player_play(...);
+VGMSTREAM_CTX* vgmstream_ctx_play(...);
 
-VGMSTREAM_PLAYER* vgmstream_player_seek(...);
+VGMSTREAM_CTX* vgmstream_ctx_seek(...);
 
-VGMSTREAM_PLAYER* vgmstream_player_close(...);
+VGMSTREAM_CTX* vgmstream_ctx_close(...);
 
 #endif
 

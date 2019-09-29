@@ -69,6 +69,8 @@ typedef struct {
     int disable_subsongs;
     int downmix_channels;
     int tagfile_disable;
+    int exts_unknown_on;
+    int exts_common_on;
     ReplayGainType gain_type;
     ReplayGainType clip_type;
 } winamp_settings;
@@ -384,6 +386,8 @@ static void cfg_char_to_wchar(TCHAR *wdst, size_t wdstsize, const char *src) {
 #define DEFAULT_DISABLE_SUBSONGS  0
 #define DEFAULT_DOWNMIX_CHANNELS  0
 #define DEFAULT_TAGFILE_DISABLE  0
+#define DEFAULT_EXTS_UNKNOWN_ON  0
+#define DEFAULT_EXTS_COMMON_ON  0
 #define DEFAULT_GAIN_TYPE 1
 #define DEFAULT_CLIP_TYPE 2
 
@@ -396,6 +400,8 @@ static void cfg_char_to_wchar(TCHAR *wdst, size_t wdstsize, const char *src) {
 #define INI_ENTRY_DISABLE_SUBSONGS  TEXT("disable_subsongs")
 #define INI_ENTRY_DOWNMIX_CHANNELS  TEXT("downmix_channels")
 #define INI_ENTRY_TAGFILE_DISABLE  TEXT("tagfile_disable")
+#define INI_ENTRY_EXTS_UNKNOWN_ON  TEXT("exts_unknown_on")
+#define INI_ENTRY_EXTS_COMMON_ON  TEXT("exts_common_on")
 #define INI_ENTRY_GAIN_TYPE  TEXT("gain_type")
 #define INI_ENTRY_CLIP_TYPE  TEXT("clip_type")
 
@@ -517,6 +523,8 @@ static void load_config() {
     }
 
     settings.tagfile_disable = GetPrivateProfileInt(CONFIG_APP_NAME,INI_ENTRY_TAGFILE_DISABLE,DEFAULT_TAGFILE_DISABLE,iniFile);
+    settings.exts_unknown_on = GetPrivateProfileInt(CONFIG_APP_NAME,INI_ENTRY_EXTS_UNKNOWN_ON,DEFAULT_EXTS_UNKNOWN_ON,iniFile);
+    settings.exts_common_on  = GetPrivateProfileInt(CONFIG_APP_NAME,INI_ENTRY_EXTS_COMMON_ON,DEFAULT_EXTS_COMMON_ON,iniFile);
 
     settings.gain_type = GetPrivateProfileInt(CONFIG_APP_NAME, INI_ENTRY_GAIN_TYPE, DEFAULT_GAIN_TYPE, iniFile);
     settings.clip_type = GetPrivateProfileInt(CONFIG_APP_NAME, INI_ENTRY_CLIP_TYPE, DEFAULT_CLIP_TYPE, iniFile);
@@ -584,6 +592,10 @@ INT_PTR CALLBACK configDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
 
             if (settings.tagfile_disable)
                 CheckDlgButton(hDlg,IDC_TAGFILE_DISABLE,BST_CHECKED);
+            if (settings.exts_unknown_on)
+                CheckDlgButton(hDlg,IDC_EXTS_UNKNOWN_ON,BST_CHECKED);
+            if (settings.exts_common_on)
+                CheckDlgButton(hDlg,IDC_EXTS_COMMON_ON,BST_CHECKED);
 
             break;
 
@@ -680,6 +692,14 @@ INT_PTR CALLBACK configDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
                         cfg_sprintf(buf, TEXT("%d"),settings.tagfile_disable);
                         WritePrivateProfileString(CONFIG_APP_NAME,INI_ENTRY_TAGFILE_DISABLE,buf,iniFile);
 
+                        settings.exts_unknown_on = (IsDlgButtonChecked(hDlg,IDC_EXTS_UNKNOWN_ON) == BST_CHECKED);
+                        cfg_sprintf(buf, TEXT("%d"),settings.exts_unknown_on);
+                        WritePrivateProfileString(CONFIG_APP_NAME,INI_ENTRY_EXTS_UNKNOWN_ON,buf,iniFile);
+
+                        settings.exts_common_on = (IsDlgButtonChecked(hDlg,IDC_EXTS_COMMON_ON) == BST_CHECKED);
+                        cfg_sprintf(buf, TEXT("%d"),settings.exts_common_on);
+                        WritePrivateProfileString(CONFIG_APP_NAME,INI_ENTRY_EXTS_COMMON_ON,buf,iniFile);
+
                         hReplayGain = GetDlgItem(hDlg, IDC_REPLAYGAIN);
                         settings.gain_type = SendMessage(hReplayGain, CB_GETCURSEL, 0, 0);
                         cfg_sprintf(buf, TEXT("%d"), settings.gain_type);
@@ -725,6 +745,8 @@ INT_PTR CALLBACK configDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPara
                     CheckDlgButton(hDlg,IDC_DISABLE_SUBSONGS,BST_UNCHECKED);
                     SetDlgItemText(hDlg,IDC_DOWNMIX_CHANNELS,DEFAULT_DOWNMIX_CHANNELS);
                     CheckDlgButton(hDlg,IDC_TAGFILE_DISABLE,BST_UNCHECKED);
+                    CheckDlgButton(hDlg,IDC_EXTS_UNKNOWN_ON,BST_UNCHECKED);
+                    CheckDlgButton(hDlg,IDC_EXTS_COMMON_ON,BST_UNCHECKED);
                     break;
 
                 default:
@@ -1079,34 +1101,16 @@ void winamp_Quit() {
 
 /* called before extension checks, to allow detection of mms://, etc */
 int winamp_IsOurFile(const in_char *fn) {
-    const in_char *filename;
-    const in_char *extension;
+    vgmstream_ctx_valid_cfg cfg = {0};
+    char filename_utf8[PATH_LIMIT];
 
-    /* favor strrchr (optimized/aligned) rather than homemade loops */
+    wa_ichar_to_char(filename_utf8, PATH_LIMIT, fn);
 
-    /* find possible separator first to avoid misdetecting folders with dots + extensionless files
-     * (allow both slashes as plugin could pass normalized '/') */
-    filename = wa_strrchr(fn, wa_L('\\'));
-    if (filename != NULL)
-        filename++; /* skip separator */
-    else {
-        filename = wa_strrchr(fn, wa_L('/'));
-        if (filename != NULL)
-            filename++; /* skip separator */
-        else
-            filename = fn; /* pathname has no separators (single filename) */
-    }
-
-    extension = wa_strrchr(filename,'.');
-    if (extension != NULL)
-        extension++; /* skip dot */
-    else
-        return 1; /* extensionless, try to play it */
-
+    cfg.skip_standard = 1; /* validated by Winamp */
+    cfg.accept_unknown = settings.exts_unknown_on;
+    cfg.accept_common = settings.exts_common_on;
     /* returning 0 here means it only accepts the extensions in working_extension_list */
-    /* it's possible to ignore the list and manually accept extensions, like foobar's g_is_our_path */
-
-    return 0;
+    return vgmstream_ctx_is_valid(filename_utf8, &cfg);
 }
 
 

@@ -71,6 +71,7 @@ ffmpeg_codec_data * init_ffmpeg_atrac3_raw(STREAMFILE *sf, off_t offset, size_t 
 
     return ffmpeg_data;
 fail:
+    free_ffmpeg(ffmpeg_data);
     return NULL;
 }
 
@@ -181,9 +182,8 @@ ffmpeg_codec_data * init_ffmpeg_atrac3_riff(STREAMFILE *sf, off_t offset, int* o
 
     return ffmpeg_data;
 fail:
+    free_ffmpeg(ffmpeg_data);
     return NULL;
 }
-
-
 
 #endif

@@ -224,6 +224,7 @@ void free_layout_segmented(segmented_layout_data *data) {
         }
         free(data->segments);
     }
+    free(data->buffer);
     free(data);
 }
 

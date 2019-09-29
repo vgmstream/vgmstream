@@ -52,6 +52,11 @@ BEGIN
     CONTROL         "Disable tagfile",IDC_TAGFILE_DISABLE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,131,87,10
 
     CONTROL         "Override title",IDC_OVERRIDE_TITLE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,147,97,10
+    
+    CONTROL         "Enable unknown exts",IDC_EXTS_UNKNOWN_ON,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,163,87,10
+    
+    CONTROL         "Enable common exts",IDC_EXTS_COMMON_ON,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,179,87,10
+    
 END
 
 

@@ -94,7 +94,7 @@ static const char* extension_list[] = {
     "bik",
     "bika",
     "bik2",
-  //"bin", //common
+    //"bin", //common
     "bk2",
     "bmdx",
     "bms",
@@ -552,7 +552,7 @@ static const char* extension_list[] = {
     "xss",
     "xvag",
     "xvas",
-    "xwav",//fake extension for .wav (renamed, to be removed)
+    "xwav", //fake extension for .wav (renamed, to be removed)
     "xwb",
     "xmd",
     "xopus",
@@ -576,10 +576,34 @@ static const char* extension_list[] = {
     //, NULL //end mark
 };
 
+static const char* common_extension_list[] = {
+    "aac", //common
+    "ac3", //common, FFmpeg/not parsed (AC3)
+    "aif", //common
+    "aiff", //common
+    "bin", //common
+    "flac", //common
+    "gsf", //conflicts with GBA gsf plugins?
+    "mp2", //common
+    "mp3", //common
+    "mp4", //common
+    "mpc", //common
+    "ogg", //common
+    "opus", //common
+    "stm", //common
+    "wav", //common
+};
+
+
 /* List supported formats and return elements in the list, for plugins that need to know. */
 const char ** vgmstream_get_formats(size_t * size) {
     *size = sizeof(extension_list) / sizeof(char*);
     return extension_list;
+}
+
+const char ** vgmstream_get_common_formats(size_t * size) {
+    *size = sizeof(common_extension_list) / sizeof(char*);
+    return common_extension_list;
 }
 
 

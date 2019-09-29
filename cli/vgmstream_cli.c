@@ -380,6 +380,21 @@ int main(int argc, char ** argv) {
     res = validate_config(&cfg);
     if (!res) goto fail;
 
+#if 0
+    /* CLI has no need to check */
+    {
+        int valid;
+        vgmstream_ctx_valid_cfg cfg2 = {0};
+
+        cfg2.skip_standard = 1;
+        cfg2.reject_extensionless = 0;
+        cfg2.accept_unknown = 0;
+        cfg2.accept_common = 1;
+
+        valid = vgmstream_ctx_is_valid(cfg.infilename, &cfg2);
+        if (!valid) goto fail;
+    }
+#endif
 
     /* open streamfile and pass subsong */
     {
@@ -435,6 +450,10 @@ int main(int argc, char ** argv) {
             fprintf(stderr,"failed to open %s for output\n",cfg.outfilename);
             goto fail;
         }
+
+        /* no improvement */
+        //setvbuf(outfile, NULL, _IOFBF, SAMPLE_BUFFER_SIZE * sizeof(sample_t) * input_channels);
+        //setvbuf(outfile, NULL, _IONBF, 0);
     }
 
 
@@ -550,7 +569,7 @@ int main(int argc, char ** argv) {
                 fwrite(buf + j*channels + (cfg.only_stereo*2), sizeof(sample_t), 2, outfile);
             }
         } else {
-            fwrite(buf, sizeof(sample_t) * channels, to_get, outfile);
+            fwrite(buf, sizeof(sample_t), to_get * channels, outfile);
         }
     }
 

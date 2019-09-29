@@ -79,7 +79,8 @@ static inline int round10(int val) {
  * extension in the original filename or the ending null byte if no extension */
 const char * filename_extension(const char * filename);
 
-void swap_samples_le(sample *buf, int count);
+/* swap samples in machine endianness to little endian (useful to write .wav) */
+void swap_samples_le(sample_t *buf, int count);
 
 void concatn(int length, char * dst, const char * src);
 

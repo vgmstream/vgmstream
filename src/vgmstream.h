@@ -1329,6 +1329,9 @@ int get_vgmstream_average_bitrate(VGMSTREAM * vgmstream);
  * The list disables some common formats that may conflict (.wav, .ogg, etc). */
 const char ** vgmstream_get_formats(size_t * size);
 
+/* same, but for common-but-disabled formats in the above list. */
+const char ** vgmstream_get_common_formats(size_t * size);
+
 /* Force enable/disable internal looping. Should be done before playing anything (or after reset),
  * and not all codecs support arbitrary loop values ATM. */
 void vgmstream_force_loop(VGMSTREAM* vgmstream, int loop_flag, int loop_start_sample, int loop_end_sample);

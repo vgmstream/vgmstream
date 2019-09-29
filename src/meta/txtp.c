@@ -756,14 +756,14 @@ static int get_fade(const char * config, txtp_mix_data *mix, int *out_n) {
     char type, separator;
 
     m = sscanf(config, " %d %c%n", &mix->ch_dst, &type, &n);
-    if (n == 0 || m != 2) goto fail;
+    if (m != 2 || n == 0) goto fail;
     config += n;
     tn += n;
 
     if (type == '^') {
         /* full definition */
         m = sscanf(config, " %lf ~ %lf = %c @%n", &mix->vol_start, &mix->vol_end, &mix->shape, &n);
-        if (n == 0 || m != 3) goto fail;
+        if (m != 3 || n == 0) goto fail;
         config += n;
         tn += n;
 
@@ -773,7 +773,7 @@ static int get_fade(const char * config, txtp_mix_data *mix, int *out_n) {
         tn += n;
 
         m = sscanf(config, " %c%n", &separator, &n);
-        if (n == 0 || m != 1 || separator != '~') goto fail;
+        if ( m != 1 || n == 0 || separator != '~') goto fail;
         config += n;
         tn += n;
 
@@ -783,7 +783,7 @@ static int get_fade(const char * config, txtp_mix_data *mix, int *out_n) {
         tn += n;
 
         m = sscanf(config, " %c%n", &separator, &n);
-        if (n == 0 || m != 1 || separator != '+') goto fail;
+        if (m != 1 || n == 0 || separator != '+') goto fail;
         config += n;
         tn += n;
 
@@ -793,7 +793,7 @@ static int get_fade(const char * config, txtp_mix_data *mix, int *out_n) {
         tn += n;
 
         m = sscanf(config, " %c%n", &separator, &n);
-        if (n == 0 || m != 1 || separator != '~') goto fail;
+        if (m != 1 || n == 0 || separator != '~') goto fail;
         config += n;
         tn += n;
 
@@ -832,7 +832,7 @@ static int get_fade(const char * config, txtp_mix_data *mix, int *out_n) {
         tn += n;
 
         m = sscanf(config, " %c%n", &separator, &n);
-        if (n == 0 || m != 1 || separator != '+') goto fail;
+        if (m != 1 || n == 0 || separator != '+') goto fail;
         config += n;
         tn += n;
 
