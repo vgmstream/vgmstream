@@ -256,11 +256,6 @@ static int ffmpeg_read(void *opaque, uint8_t *buf, int read_size) {
     return bytes + max_to_copy;
 }
 
-/* AVIO callback: write stream not needed */
-static int ffmpeg_write(void *opaque, uint8_t *buf, int buf_size) {
-    return -1;
-}
-
 /* AVIO callback: seek stream, handling custom data */
 static int64_t ffmpeg_seek(void *opaque, int64_t offset, int whence) {
     ffmpeg_codec_data *data = (ffmpeg_codec_data *) opaque;
@@ -488,7 +483,7 @@ static int init_ffmpeg_config(ffmpeg_codec_data * data, int target_subsong, int 
     data->buffer = av_malloc(FFMPEG_DEFAULT_IO_BUFFER_SIZE);
     if (!data->buffer) goto fail;
 
-    data->ioCtx = avio_alloc_context(data->buffer, FFMPEG_DEFAULT_IO_BUFFER_SIZE, 0, data, ffmpeg_read, ffmpeg_write, ffmpeg_seek);
+    data->ioCtx = avio_alloc_context(data->buffer, FFMPEG_DEFAULT_IO_BUFFER_SIZE, 0, data, ffmpeg_read, 0, ffmpeg_seek);
     if (!data->ioCtx) goto fail;
 
     data->formatCtx = avformat_alloc_context();
@@ -496,8 +491,10 @@ static int init_ffmpeg_config(ffmpeg_codec_data * data, int target_subsong, int 
 
     data->formatCtx->pb = data->ioCtx;
 
-    //on reset could use AVFormatContext.iformat to reload old format
-    errcode = avformat_open_input(&data->formatCtx, "", NULL, NULL);
+    //data->inputFormatCtx = av_find_input_format("h264"); /* set directly? */
+    /* on reset could use AVFormatContext.iformat to reload old format too */
+
+    errcode = avformat_open_input(&data->formatCtx, NULL /*""*/, NULL, NULL);
     if (errcode < 0) goto fail;
 
     errcode = avformat_find_stream_info(data->formatCtx, NULL);
@@ -554,9 +551,10 @@ static int init_ffmpeg_config(ffmpeg_codec_data * data, int target_subsong, int 
     if (!data->lastDecodedFrame) goto fail;
     av_frame_unref(data->lastDecodedFrame);
 
-    data->lastReadPacket = malloc(sizeof(AVPacket));
+    data->lastReadPacket = av_malloc(sizeof(AVPacket)); /* av_packet_alloc? */
     if (!data->lastReadPacket) goto fail;
     av_new_packet(data->lastReadPacket, 0);
+    //av_packet_unref?
 
     return 0;
 fail:
@@ -823,33 +821,38 @@ static void free_ffmpeg_config(ffmpeg_codec_data *data) {
 
     if (data->lastReadPacket) {
         av_packet_unref(data->lastReadPacket);
-        free(data->lastReadPacket);
+        av_free(data->lastReadPacket);
         data->lastReadPacket = NULL;
     }
     if (data->lastDecodedFrame) {
+        av_frame_unref(data->lastDecodedFrame);
         av_free(data->lastDecodedFrame);
         data->lastDecodedFrame = NULL;
     }
     if (data->codecCtx) {
         avcodec_close(data->codecCtx);
-        avcodec_free_context(&(data->codecCtx));
+        avcodec_free_context(&data->codecCtx);
         data->codecCtx = NULL;
     }
     if (data->formatCtx) {
-        avformat_close_input(&(data->formatCtx));
+        avformat_close_input(&data->formatCtx);
+        //avformat_free_context(data->formatCtx); /* done in close_input */
         data->formatCtx = NULL;
     }
     if (data->ioCtx) {
-        // buffer passed in is occasionally freed and replaced.
-        // the replacement must be freed as well.
+        /* buffer passed in is occasionally freed and replaced.
+        // the replacement must be free'd as well (below) */
         data->buffer = data->ioCtx->buffer;
-        av_free(data->ioCtx);
+        avio_context_free(&data->ioCtx);
+        //av_free(data->ioCtx); /* done in context_free (same thing) */
         data->ioCtx = NULL;
     }
     if (data->buffer) {
         av_free(data->buffer);
         data->buffer = NULL;
     }
+
+    //todo avformat_find_stream_info may cause some Win Handle leaks? related to certain option (not happening in gcc builds)
 }
 
 void free_ffmpeg(ffmpeg_codec_data *data) {

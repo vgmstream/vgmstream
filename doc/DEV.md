@@ -22,10 +22,24 @@ There are no hard coding rules but for consistency one could follow the style us
 
 But other styles may be found, this isn't very important as most files are isolated.
 
-Some of the code may be a bit inefficient or duplicated at places, but it isn't much of a problem if gives clarity. vgmstream's performance is fast enough (as it mainly deals with playing songs in real time) so that favors clarity over optimization. Similarly, some code may segfault or even cause infinite loops on bad data, but it's fixed as encountered rather than worrying too much about improbable cases.
+### Code quality
+There is quite a bit of code that could be improved overall, but given how niche the project is priority is given to adding and improving formats. Some of the code can be inefficient or duplicated at places, but it isn't that much of a problem if gives clarity. vgmstream's performance is fast enough (as it mainly deals with playing songs in real time) so that favors clarity over optimization.
+
+Similarly, parts may segfault or even cause infinite loops on bad data, but it's fixed as encountered rather than worrying too much about improbable cases. There isn't an automated test suite at the moment, so tests are manually done as needed.
+
+For regression testing there is a simple script that compares output of a previous version of vgmstream_cli with current. Some bugs may drastically change output when fixed (for example adjusting loops or decoding) so it could be hard to automate and maintain.
+
+Code is checked for leaks at times using detection tools, but most of vgmstream formats are quite simple and don't need to manage memory. It's mainly useful for files using external decoders or complex segmented/layered layout combos.
+```
+# recommended to compile with debug info, for example:
+make vgmstream_cli EXTRA_CFLAGS="-g" STRIP=echo
+
+# find leaks
+drmemory -- vgmstream_cli -o file.ext
+```
 
 
-## Structure
+## Source structure
 
 ```
 ./                   scripts

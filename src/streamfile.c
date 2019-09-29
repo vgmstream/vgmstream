@@ -117,18 +117,17 @@ static void close_stdio(STDIOSTREAMFILE * streamfile) {
 }
 
 static STREAMFILE *open_stdio(STDIOSTREAMFILE *streamFile,const char * const filename,size_t buffersize) {
-    int newfd;
-    FILE *newfile;
-    STREAMFILE *newstreamFile;
-
     if (!filename)
         return NULL;
+
 #if !defined (__ANDROID__)
     // if same name, duplicate the file pointer we already have open
     if (streamFile->infile && !strcmp(streamFile->name,filename)) {
-        if (((newfd = dup(fileno(streamFile->infile))) >= 0) &&
-            (newfile = fdopen( newfd, "rb" ))) 
-        {
+        int newfd;
+        FILE *newfile;
+        STREAMFILE *newstreamFile;
+
+        if ( ((newfd = dup(fileno(streamFile->infile))) >= 0) && (newfile = fdopen( newfd, "rb")) )  {
             newstreamFile = open_stdio_streamfile_buffer_by_file(newfile,filename,buffersize);
             if (newstreamFile) { 
                 return newstreamFile;
@@ -704,6 +703,7 @@ static STREAMFILE *multifile_open(MULTIFILE_STREAMFILE *streamfile, const char *
         new_sf = open_multifile_streamfile(new_inner_sfs, streamfile->inner_sfs_size);
         if (!new_sf) goto fail;
 
+        free(new_inner_sfs);
         return new_sf;
     }
     else {

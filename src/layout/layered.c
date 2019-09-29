@@ -152,6 +152,7 @@ void free_layout_layered(layered_layout_data *data) {
         }
         free(data->layers);
     }
+    free(data->buffer);
     free(data);
 }
 

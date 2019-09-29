@@ -2498,7 +2498,7 @@ static void try_dual_file_stereo(VGMSTREAM * opened_vgmstream, STREAMFILE *strea
         return;
 
     extension = (char *)filename_extension(new_filename);
-    if (extension - new_filename >= 1 && extension[-1] == '.')
+    if (extension - new_filename >= 1 && extension[-1] == '.') /* [-1] is ok, yeah */
         extension--; /* must include "." */
     extension_len = strlen(extension);
 
@@ -2514,7 +2514,7 @@ static void try_dual_file_stereo(VGMSTREAM * opened_vgmstream, STREAMFILE *strea
 
             //;VGM_LOG("DFS: l=%s, r=%s\n", this_suffix,that_suffix);
 
-            /* is suffix matches paste opposite suffix (+ terminator) to extension pointer, thus to new_filename */
+            /* if suffix matches paste opposite suffix (+ terminator) to extension pointer, thus to new_filename */
             if (this_suffix[0] == '.' && extension_len == this_suffix_len) { /* same extension */
                 //;VGM_LOG("DFS: same ext %s vs %s len %i\n", extension, this_suffix, this_suffix_len);
                 if (memcmp(extension,this_suffix,this_suffix_len) == 0) {
@@ -2522,7 +2522,7 @@ static void try_dual_file_stereo(VGMSTREAM * opened_vgmstream, STREAMFILE *strea
                     memcpy (extension, that_suffix,that_suffix_len+1);
                 }
             }
-            else if (filename_len > this_suffix_len) { /* same suffix (without extension) */
+            else if (filename_len - extension_len > this_suffix_len) { /* same suffix (without extension) */
                 //;VGM_LOG("DFS: same suf %s vs %s len %i\n", extension - this_suffix_len, this_suffix, this_suffix_len);
                 if (memcmp(extension - this_suffix_len, this_suffix,this_suffix_len) == 0) {
                     dfs_pair = j;
@@ -2623,6 +2623,8 @@ static void try_dual_file_stereo(VGMSTREAM * opened_vgmstream, STREAMFILE *strea
         opened_vgmstream->channels = 2;
 
         /* discard the second VGMSTREAM */
+        mixing_close(new_vgmstream);
+        free(new_vgmstream->start_vgmstream);
         free(new_vgmstream);
 
         mixing_update_channel(opened_vgmstream); /* notify of new channel hacked-in */
