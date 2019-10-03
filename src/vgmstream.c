@@ -480,6 +480,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_ubi_hx,
     init_vgmstream_bmp_konami,
     init_vgmstream_opus_opusnx,
+    init_vgmstream_opus_sqex,
 
     /* lowest priority metas (should go after all metas, and TXTH should go before raw formats) */
     init_vgmstream_txth,            /* proper parsers should supersede TXTH, once added */
