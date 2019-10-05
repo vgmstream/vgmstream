@@ -1495,37 +1495,15 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
 
     switch (vgmstream->coding_type) {
         case coding_CRI_ADX:
-            for (ch = 0; ch < vgmstream->channels; ch++) {
-                decode_adx(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
-                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do,
-                        vgmstream->interleave_block_size);
-            }
-
-            break;
         case coding_CRI_ADX_exp:
-            for (ch = 0; ch < vgmstream->channels; ch++) {
-                decode_adx_exp(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
-                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do,
-                        vgmstream->interleave_block_size);
-            }
-
-            break;
         case coding_CRI_ADX_fixed:
-            for (ch = 0; ch < vgmstream->channels; ch++) {
-                decode_adx_fixed(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
-                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do,
-                        vgmstream->interleave_block_size);
-            }
-
-            break;
         case coding_CRI_ADX_enc_8:
         case coding_CRI_ADX_enc_9:
             for (ch = 0; ch < vgmstream->channels; ch++) {
-                decode_adx_enc(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                decode_adx(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
                         vgmstream->channels,vgmstream->samples_into_block,samples_to_do,
-                        vgmstream->interleave_block_size);
+                        vgmstream->interleave_block_size, vgmstream->coding_type);
             }
-
             break;
         case coding_NGC_DSP:
             for (ch = 0; ch < vgmstream->channels; ch++) {
@@ -2417,7 +2395,7 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
     }
 
     /* codecs with configurable frame size */
-    if (vgmstream->layout_type == layout_none && vgmstream->interleave_block_size > 0) {
+    if (vgmstream->interleave_block_size > 0) {
         switch (vgmstream->coding_type) {
             case coding_MSADPCM:
             case coding_MSADPCM_int:
@@ -2812,6 +2790,23 @@ int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t s
     if (vgmstream->coding_type == coding_FFmpeg)
         return 1;
 #endif
+
+    if ((vgmstream->coding_type == coding_PSX_cfg ||
+            vgmstream->coding_type == coding_PSX_pivotal) &&
+            (vgmstream->interleave_block_size == 0 || vgmstream->interleave_block_size > 0x50)) {
+        VGM_LOG("VGMSTREAM: PSX-cfg decoder with wrong frame size %x\n", vgmstream->interleave_block_size);
+        return 0;
+    }
+
+    if ((vgmstream->coding_type == coding_CRI_ADX ||
+            vgmstream->coding_type == coding_CRI_ADX_enc_8 ||
+            vgmstream->coding_type == coding_CRI_ADX_enc_9 ||
+            vgmstream->coding_type == coding_CRI_ADX_exp ||
+            vgmstream->coding_type == coding_CRI_ADX_fixed) &&
+            (vgmstream->interleave_block_size == 0 || vgmstream->interleave_block_size > 0x12)) {
+        VGM_LOG("VGMSTREAM: ADX decoder with wrong frame size %x\n", vgmstream->interleave_block_size);
+        return 0;
+    }
 
     /* if interleave is big enough keep a buffer per channel */
     if (vgmstream->interleave_block_size * vgmstream->channels >= STREAMFILE_DEFAULT_BUFFER_SIZE) {

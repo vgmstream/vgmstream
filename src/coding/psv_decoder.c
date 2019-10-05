@@ -3,7 +3,7 @@
 #include "../util.h"
 
 /* PSVita ADPCM table */
-static const int16_t HEVAG_coefs[128][4] = {
+static const int16_t hevag_coefs[128][4] = {
         {      0,     0,     0,     0 },
         {   7680,     0,     0,     0 },
         {  14720, -6656,     0,     0 },
@@ -141,59 +141,58 @@ static const int16_t HEVAG_coefs[128][4] = {
  *
  * Original research and algorithm by id-daemon / daemon1.
  */
-void decode_hevag(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
-
-    uint8_t predict_nr, shift, flag, byte;
-    int32_t scale = 0;
-
-    int32_t sample;
+void decode_hevag(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
+    uint8_t frame[0x10] = {0};
+    off_t frame_offset;
+    int i, frames_in, sample_count = 0;
+    size_t bytes_per_frame, samples_per_frame;
+    int coef_index, shift_factor, flag;
     int32_t hist1 = stream->adpcm_history1_32;
     int32_t hist2 = stream->adpcm_history2_32;
     int32_t hist3 = stream->adpcm_history3_32;
     int32_t hist4 = stream->adpcm_history4_32;
 
-    int i, sample_count;
 
+    /* external interleave (fixed size), mono */
+    bytes_per_frame = 0x10;
+    samples_per_frame = (bytes_per_frame - 0x02) * 2; /* always 28 */
+    frames_in = first_sample / samples_per_frame;
+    first_sample = first_sample % samples_per_frame;
 
-    int framesin = first_sample / 28;
+    /* parse frame header */
+    frame_offset = stream->offset + bytes_per_frame * frames_in;
+    read_streamfile(frame, frame_offset, bytes_per_frame, stream->streamfile); /* ignore EOF errors */
+    coef_index   = (frame[0] >> 4) & 0xf;
+    shift_factor = (frame[0] >> 0) & 0xf;
+    coef_index  = ((frame[1] >> 0) & 0xf0) | coef_index;
+    flag = (frame[1] >> 0) & 0xf; /* same flags */
 
-    /* 4 byte header: predictor = 3rd and 1st, shift = 2nd, flag = 4th */
-    byte = (uint8_t)read_8bit(stream->offset+framesin*16+0,stream->streamfile);
-    predict_nr   = byte >> 4;
-    shift = byte & 0x0f;
-    byte = (uint8_t)read_8bit(stream->offset+framesin*16+1,stream->streamfile);
-    predict_nr = (byte & 0xF0) | predict_nr;
-    flag = byte & 0x0f; /* no change in flags */
+    VGM_ASSERT_ONCE(coef_index > 127 || shift_factor > 12, "HEVAG: in+correct coefs/shift at %x\n", (uint32_t)frame_offset);
+    if (coef_index > 127)
+        coef_index = 127; /* ? */
+    if (shift_factor > 12)
+        shift_factor = 9; /* ? */
 
-    first_sample = first_sample % 28;
+    /* decode nibbles */
+    for (i = first_sample; i < first_sample + samples_to_do; i++) {
+        int32_t sample = 0, scale = 0;
 
-    if (first_sample & 1) { /* if first sample is odd, read byte first */
-        byte = read_8bit(stream->offset+(framesin*16)+2+first_sample/2,stream->streamfile);
-    }
+        if (flag < 0x07) { /* with flag 0x07 decoded sample must be 0 */
+            uint8_t nibbles = frame[0x02 + i/2];
 
-    for (i = first_sample, sample_count = 0; i < first_sample + samples_to_do; i++, sample_count += channelspacing) {
-        sample = 0;
-
-        if (flag < 7 && predict_nr < 128) {
-
-            if (i & 1) {/* odd/even nibble */
-                scale = byte >> 4;
-            } else {
-                byte = read_8bit(stream->offset+(framesin*16)+2+i/2,stream->streamfile);
-                scale = byte & 0x0f;
-            }
-            if (scale > 7) { /* sign extend */
-                scale = scale - 16;
-            }
-
-            sample = (hist1 * HEVAG_coefs[predict_nr][0] +
-                      hist2 * HEVAG_coefs[predict_nr][1] +
-                      hist3 * HEVAG_coefs[predict_nr][2] +
-                      hist4 * HEVAG_coefs[predict_nr][3] ) / 32;
-            sample = (sample + (scale << (20 - shift)) + 128) >> 8;
+            scale = i&1 ? /* low nibble first */
+                    get_high_nibble_signed(nibbles):
+                    get_low_nibble_signed(nibbles);
+            sample = (hist1 * hevag_coefs[coef_index][0] +
+                      hist2 * hevag_coefs[coef_index][1] +
+                      hist3 * hevag_coefs[coef_index][2] +
+                      hist4 * hevag_coefs[coef_index][3] ) / 32;
+            sample = (sample + (scale << (20 - shift_factor)) + 128) >> 8;
         }
 
-        outbuf[sample_count] = clamp16(sample);
+        outbuf[sample_count] = sample;
+        sample_count += channelspacing;
+
         hist4 = hist3;
         hist3 = hist2;
         hist2 = hist1;

@@ -2,7 +2,7 @@
 
 
 /* PS-ADPCM table, defined as rational numbers (as in the spec) */
-static const double ps_adpcm_coefs_f[5][2] = {
+static const float ps_adpcm_coefs_f[5][2] = {
         { 0.0      ,  0.0      }, //{   0.0        ,   0.0        },
         { 0.9375   ,  0.0      }, //{  60.0 / 64.0 ,   0.0        },
         { 1.796875 , -0.8125   }, //{ 115.0 / 64.0 , -52.0 / 64.0 },
@@ -44,12 +44,14 @@ static const int ps_adpcm_coefs_i[5][2] = {
 
 /* standard PS-ADPCM (float math version) */
 void decode_psx(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int is_badflags) {
+    uint8_t frame[0x10] = {0};
     off_t frame_offset;
     int i, frames_in, sample_count = 0;
     size_t bytes_per_frame, samples_per_frame;
     uint8_t coef_index, shift_factor, flag;
     int32_t hist1 = stream->adpcm_history1_32;
     int32_t hist2 = stream->adpcm_history2_32;
+
 
     /* external interleave (fixed size), mono */
     bytes_per_frame = 0x10;
@@ -58,10 +60,11 @@ void decode_psx(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing
     first_sample = first_sample % samples_per_frame;
 
     /* parse frame header */
-    frame_offset = stream->offset + bytes_per_frame*frames_in;
-    coef_index   = ((uint8_t)read_8bit(frame_offset+0x00,stream->streamfile) >> 4) & 0xf;
-    shift_factor = ((uint8_t)read_8bit(frame_offset+0x00,stream->streamfile) >> 0) & 0xf;
-    flag = (uint8_t)read_8bit(frame_offset+0x01,stream->streamfile); /* only lower nibble needed */
+    frame_offset = stream->offset + bytes_per_frame * frames_in;
+    read_streamfile(frame, frame_offset, bytes_per_frame, stream->streamfile); /* ignore EOF errors */
+    coef_index   = (frame[0] >> 4) & 0xf;
+    shift_factor = (frame[0] >> 0) & 0xf;
+    flag = frame[1]; /* only lower nibble needed */
 
     VGM_ASSERT_ONCE(coef_index > 5 || shift_factor > 12, "PS-ADPCM: incorrect coefs/shift at %x\n", (uint32_t)frame_offset);
     if (coef_index > 5) /* needed by inFamous (PS3) (maybe it's supposed to use more filters?) */
@@ -73,18 +76,19 @@ void decode_psx(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing
         flag = 0;
     VGM_ASSERT_ONCE(flag > 7,"PS-ADPCM: unknown flag at %x\n", (uint32_t)frame_offset); /* meta should use PSX-badflags */
 
+
     /* decode nibbles */
     for (i = first_sample; i < first_sample + samples_to_do; i++) {
         int32_t sample = 0;
 
         if (flag < 0x07) { /* with flag 0x07 decoded sample must be 0 */
-            uint8_t nibbles = (uint8_t)read_8bit(frame_offset+0x02+i/2,stream->streamfile);
+            uint8_t nibbles = frame[0x02 + i/2];
 
             sample = i&1 ? /* low nibble first */
                     (nibbles >> 4) & 0x0f :
                     (nibbles >> 0) & 0x0f;
             sample = (int16_t)((sample << 12) & 0xf000) >> shift_factor; /* 16b sign extend + scale */
-            sample = (int)(sample + ps_adpcm_coefs_f[coef_index][0]*hist1 + ps_adpcm_coefs_f[coef_index][1]*hist2);
+            sample = (int32_t)(sample + ps_adpcm_coefs_f[coef_index][0]*hist1 + ps_adpcm_coefs_f[coef_index][1]*hist2);
             sample = clamp16(sample);
         }
 
@@ -105,12 +109,14 @@ void decode_psx(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing
  *
  * Uses int math to decode, which seems more likely (based on FF XI PC's code in Moogle Toolbox). */
 void decode_psx_configurable(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int frame_size) {
+    uint8_t frame[0x50] = {0};
     off_t frame_offset;
     int i, frames_in, sample_count = 0;
     size_t bytes_per_frame, samples_per_frame;
     uint8_t coef_index, shift_factor;
     int32_t hist1 = stream->adpcm_history1_32;
     int32_t hist2 = stream->adpcm_history2_32;
+
 
     /* external interleave (variable size), mono */
     bytes_per_frame = frame_size;
@@ -119,9 +125,10 @@ void decode_psx_configurable(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int c
     first_sample = first_sample % samples_per_frame;
 
     /* parse frame header */
-    frame_offset = stream->offset + bytes_per_frame*frames_in;
-    coef_index   = ((uint8_t)read_8bit(frame_offset+0x00,stream->streamfile) >> 4) & 0xf;
-    shift_factor = ((uint8_t)read_8bit(frame_offset+0x00,stream->streamfile) >> 0) & 0xf;
+    frame_offset = stream->offset + bytes_per_frame * frames_in;
+    read_streamfile(frame, frame_offset, bytes_per_frame, stream->streamfile); /* ignore EOF errors */
+    coef_index   = (frame[0] >> 4) & 0xf;
+    shift_factor = (frame[0] >> 0) & 0xf;
 
     VGM_ASSERT_ONCE(coef_index > 5 || shift_factor > 12, "PS-ADPCM: incorrect coefs/shift at %x\n", (uint32_t)frame_offset);
     if (coef_index > 5) /* needed by Afrika (PS3) (maybe it's supposed to use more filters?) */
@@ -129,10 +136,11 @@ void decode_psx_configurable(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int c
     if (shift_factor > 12)
         shift_factor = 9; /* supposedly, from Nocash PSX docs */
 
+
     /* decode nibbles */
     for (i = first_sample; i < first_sample + samples_to_do; i++) {
         int32_t sample = 0;
-        uint8_t nibbles = (uint8_t)read_8bit(frame_offset+0x01+i/2,stream->streamfile);
+        uint8_t nibbles = frame[0x01 + i/2];
 
         sample = i&1 ? /* low nibble first */
                 (nibbles >> 4) & 0x0f :
@@ -154,6 +162,7 @@ void decode_psx_configurable(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int c
 
 /* PS-ADPCM from Pivotal games, exactly like psx_cfg but with float math (reverse engineered from the exe) */
 void decode_psx_pivotal(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int frame_size) {
+    uint8_t frame[0x50] = {0};
     off_t frame_offset;
     int i, frames_in, sample_count = 0;
     size_t bytes_per_frame, samples_per_frame;
@@ -162,6 +171,7 @@ void decode_psx_pivotal(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channe
     int32_t hist2 = stream->adpcm_history2_32;
     float scale;
 
+
     /* external interleave (variable size), mono */
     bytes_per_frame = frame_size;
     samples_per_frame = (bytes_per_frame - 0x01) * 2;
@@ -169,21 +179,24 @@ void decode_psx_pivotal(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channe
     first_sample = first_sample % samples_per_frame;
 
     /* parse frame header */
-    frame_offset = stream->offset + bytes_per_frame*frames_in;
-    coef_index   = ((uint8_t)read_8bit(frame_offset+0x00,stream->streamfile) >> 4) & 0xf;
-    shift_factor = ((uint8_t)read_8bit(frame_offset+0x00,stream->streamfile) >> 0) & 0xf;
+    frame_offset = stream->offset + bytes_per_frame * frames_in;
+    read_streamfile(frame, frame_offset, bytes_per_frame, stream->streamfile); /* ignore EOF errors */
+    coef_index   = (frame[0] >> 4) & 0xf;
+    shift_factor = (frame[0] >> 0) & 0xf;
 
-    VGM_ASSERT_ONCE(coef_index > 5 || shift_factor > 12, "PS-ADPCM: incorrect coefs/shift at %x\n", (uint32_t)frame_offset);
+    VGM_ASSERT_ONCE(coef_index > 5 || shift_factor > 12, "PS-ADPCM-piv: incorrect coefs/shift\n");
     if (coef_index > 5) /* just in case */
         coef_index = 5;
     if (shift_factor > 12) /* same */
         shift_factor = 12;
+
     scale = (float)(1.0 / (double)(1 << shift_factor));
+
 
     /* decode nibbles */
     for (i = first_sample; i < first_sample + samples_to_do; i++) {
         int32_t sample = 0;
-        uint8_t nibbles = (uint8_t)read_8bit(frame_offset+0x01+i/2,stream->streamfile);
+        uint8_t nibbles = frame[0x01 + i/2];
 
         sample = !(i&1) ? /* low nibble first */
                 (nibbles >> 0) & 0x0f :
