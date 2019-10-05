@@ -282,6 +282,7 @@ static const char* extension_list[] = {
     "mihb",
     "mnstr",
     "mogg",
+    //"mp+", //common [Moonshine Runners (PC)]
     //"mp2", //common
     //"mp3", //common
     //"mp4", //common
@@ -584,6 +585,7 @@ static const char* common_extension_list[] = {
     "bin", //common
     "flac", //common
     "gsf", //conflicts with GBA gsf plugins?
+    "mp+", //common [Moonshine Runners (PC)]
     "mp2", //common
     "mp3", //common
     "mp4", //common
