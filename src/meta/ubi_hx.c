@@ -91,6 +91,45 @@ static void build_readable_name(char * buf, size_t buf_size, ubi_hx_header * hx)
         snprintf(buf,buf_size, "%s/%i/%08x-%08x/%s", "hx", hx->header_index, hx->cuuid1,hx->cuuid2, grp_name);
 }
 
+#define TXT_LINE_MAX 0x1000
+
+/* get name */
+static int parse_name_bnh(ubi_hx_header * hx, STREAMFILE *sf, uint32_t cuuid1, uint32_t cuuid2) {
+    STREAMFILE *sf_t;
+    off_t txt_offset = 0;
+    char line[TXT_LINE_MAX];
+    char cuuid[40];
+
+    sf_t = open_streamfile_by_ext(sf,"bnh");
+    if (sf_t == NULL) goto fail;
+
+    snprintf(cuuid,sizeof(cuuid), "cuuid( 0x%08x, 0x%08x )", cuuid1, cuuid2);
+
+    /* each .bnh line has a cuuid, a bunch of repeated fields and name (sometimes name is filename or "bad name") */
+    while (txt_offset < get_streamfile_size(sf)) {
+        int line_read, bytes_read;
+
+        bytes_read = get_streamfile_text_line(TXT_LINE_MAX,line, txt_offset,sf_t, &line_read);
+        if (!line_read) break;
+        txt_offset += bytes_read;
+
+        if (strncmp(line,cuuid,31) != 0)
+            continue;
+        if (bytes_read <= 79)
+            goto fail;
+
+        /* cuuid found, copy name (lines are fixed and always starts from the same position) */
+        strcpy(hx->internal_name, &line[79]);
+
+        close_streamfile(sf_t);
+        return 1;
+    }
+
+fail:
+    close_streamfile(sf_t);
+    return 0;
+}
+
 
 /* get referenced name from WavRes, using the index again (abridged) */
 static int parse_name(ubi_hx_header * hx, STREAMFILE *sf) {
@@ -107,12 +146,16 @@ static int parse_name(ubi_hx_header * hx, STREAMFILE *sf) {
         off_t header_offset;
         size_t class_size;
         int j, link_count, language_count, is_found = 0;
+        uint32_t cuuid1, cuuid2;
 
 
         class_size = read_32bit(offset + 0x00, sf);
         if (class_size > sizeof(class_name)+1) goto fail;
         read_string(class_name,class_size+1, offset + 0x04, sf); /* not null-terminated */
         offset += 0x04 + class_size;
+
+        cuuid1 = (uint32_t)read_32bit(offset + 0x00, sf);
+        cuuid2 = (uint32_t)read_32bit(offset + 0x04, sf);
 
         header_offset = read_32bit(offset + 0x08, sf);
         offset += 0x10;
@@ -159,10 +202,18 @@ static int parse_name(ubi_hx_header * hx, STREAMFILE *sf) {
             resclass_size = read_32bit(wavres_offset, sf);
             wavres_offset += 0x04 + resclass_size + 0x08 + 0x04; /* skip class + cuiid + flags */
 
-            internal_size = read_32bit(wavres_offset + 0x00, sf); /* usually 0 in consoles */
+            internal_size = read_32bit(wavres_offset + 0x00, sf);
             if (internal_size > sizeof(hx->internal_name)+1) goto fail;
-            read_string(hx->internal_name,internal_size+1, wavres_offset + 0x04, sf);
-            return 1;
+
+            /* usually 0 in consoles */
+            if (internal_size != 0) {
+                read_string(hx->internal_name,internal_size+1, wavres_offset + 0x04, sf);
+                return 1;
+            }
+            else {
+                parse_name_bnh(hx, sf, cuuid1, cuuid2);
+                return 1; /* ignore error */
+            }
         }
     }
 
@@ -181,7 +232,7 @@ static int parse_header(ubi_hx_header * hx, STREAMFILE *sf, off_t offset, size_t
 
     //todo cleanup/unify common readings
 
-    //;VGM_LOG("UBI HX: header class %s, o=%lx, s=%x\n\n", class_name, header_offset, header_size);
+    //;VGM_LOG("UBI HX: header o=%lx, s=%x\n\n", offset, size);
 
     hx->header_index    = index;
     hx->header_offset   = offset;
@@ -306,6 +357,8 @@ static int parse_header(ubi_hx_header * hx, STREAMFILE *sf, off_t offset, size_t
         hx->stream_offset   = read_32bit(offset + 0x00, sf);
         hx->stream_size     = read_32bit(offset + 0x04, sf);
         offset += 0x08;
+
+        //todo some dummy files have 0 size
 
         if (read_32bit(offset + 0x00, sf) != 0x01) goto fail;
         /* 0x04: some kind of parent id shared by multiple Waves, or 0 */
@@ -454,6 +507,10 @@ static int parse_hx(ubi_hx_header * hx, STREAMFILE *sf, int target_subsong) {
         }
 
         //todo figure out CProgramResData sequences
+        // Format is pretty complex list of values and some offsets in between, then field names
+        // then more values and finally a list of linked IDs Links are the same as in the index,
+        // but doesn't seem to be a straight sequence list. Seems it can be used for other config too.
+
         /* identify all possible names so unknown platforms fail */
         if (strcmp(class_name, "CEventResData") == 0 ||      /* play/stop/etc event */
             strcmp(class_name, "CProgramResData") == 0 ||    /* some kind of map/object-like config to make sequences in some cases? */
