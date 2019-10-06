@@ -1124,11 +1124,14 @@ size_t ms_ima_bytes_to_samples(size_t bytes, int block_align, int channels) {
 }
 
 size_t xbox_ima_bytes_to_samples(size_t bytes, int channels) {
+    int mod;
     int block_align = 0x24 * channels;
     if (channels <= 0) return 0;
+
+    mod = bytes % block_align;
     /* XBOX IMA blocks have a 4 byte header per channel; 2 samples per byte (2 nibbles) */
     return (bytes / block_align) * (block_align - 4 * channels) * 2 / channels
-            + ((bytes % block_align) ? ((bytes % block_align) - 4 * channels) * 2 / channels : 0); /* unlikely (encoder aligns) */
+            + ((mod > 0 && mod > 0x04*channels) ? (mod - 0x04*channels) * 2 / channels : 0); /* unlikely (encoder aligns) */
 }
 
 size_t dat4_ima_bytes_to_samples(size_t bytes, int channels) {

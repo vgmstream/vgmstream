@@ -902,7 +902,7 @@ static void add_extension(int length, char * dst, const char * ext) {
 
     /* copy new extension + double null terminate */
     /* ex: "vgmstream\0vgmstream Audio File (*.VGMSTREAM)\0" */
-    written = sprintf(buf, "%s%c%s Audio File (*.%s)%c", ext,'\0',ext_upp,ext_upp,'\0');
+    written = snprintf(buf,sizeof(buf)-1, "%s%c%s Audio File (*.%s)%c", ext,'\0',ext_upp,ext_upp,'\0');
     for (j = 0; j < written; i++,j++)
         dst[i] = buf[j];
     dst[i] = '\0';
