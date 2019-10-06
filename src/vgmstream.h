@@ -397,7 +397,7 @@ typedef enum {
     meta_DC_STR,            /* SEGA Stream Asset Builder */
     meta_DC_STR_V2,         /* variant of SEGA Stream Asset Builder */
     meta_NGC_BH2PCM,        /* Bio Hazard 2 */
-    meta_SAT_SAP,           /* Bubble Symphony */
+    meta_SAP,
     meta_DC_IDVI,           /* Eldorado Gate */
     meta_KRAW,              /* Geometry Wars - Galaxies */
     meta_PS2_OMU,           /* PS2 Int file with Header */

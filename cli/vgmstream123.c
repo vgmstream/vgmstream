@@ -509,6 +509,7 @@ static int play_compressed_file(const char *filename, struct params *par, const 
 
     if (!mkdtemp(temp_dir)) {
         fprintf(stderr, "%s: error creating temp dir for decompression\n", temp_dir);
+        ret = -1;
         goto fail;
     }
 
@@ -567,8 +568,7 @@ static int play_compressed_file(const char *filename, struct params *par, const 
     remove(temp_file);
     remove(temp_dir);
 
-    fail:
-
+fail:
     free(cmd);
     free(temp_file);
 

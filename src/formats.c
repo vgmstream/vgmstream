@@ -282,6 +282,7 @@ static const char* extension_list[] = {
     "mihb",
     "mnstr",
     "mogg",
+    //"mp+", //common [Moonshine Runners (PC)]
     //"mp2", //common
     //"mp3", //common
     //"mp4", //common
@@ -584,6 +585,7 @@ static const char* common_extension_list[] = {
     "bin", //common
     "flac", //common
     "gsf", //conflicts with GBA gsf plugins?
+    "mp+", //common [Moonshine Runners (PC)]
     "mp2", //common
     "mp3", //common
     "mp4", //common
@@ -942,6 +944,7 @@ static const meta_info meta_info_list[] = {
         {meta_XMU,                  "Outrage XMU header"},
         {meta_XVAS,                 "Konami .XVAS header"},
         {meta_PS2_XA2,              "Acclaim XA2 Header"},
+        {meta_SAP,                  "VING .SAP header"},
         {meta_DC_IDVI,              "Capcom IDVI header"},
         {meta_KRAW,                 "Geometry Wars: Galaxies KRAW header"},
         {meta_NGC_YMF,              "YMF DSP Header"},

@@ -30,7 +30,7 @@ extern int optind, opterr, optopt;
 
 static size_t make_wav_header(uint8_t * buf, size_t buf_size, int32_t sample_count, int32_t sample_rate, int channels, int smpl_chunk, int32_t loop_start, int32_t loop_end);
 
-static void usage(const char * name) {
+static void usage(const char * name, int is_full) {
     fprintf(stderr,"vgmstream CLI decoder " VERSION " " __DATE__ "\n"
             "Usage: %s [-o outfile.wav] [options] infile\n"
             "Options:\n"
@@ -52,10 +52,16 @@ static void usage(const char * name) {
             "    -x: decode and print adxencd command line to encode as ADX\n"
             "    -g: decode and print oggenc command line to encode as OGG\n"
             "    -b: decode and print batch variable commands\n"
-            "    -r: output a second file after resetting (for testing)\n"
-            "    -k N: seeks to N samples before decoding (for testing)\n"
-            "    -t file: print if tags are found in file (for testing)\n"
+            "    -h: print extra commands\n"
             , name);
+    if (is_full) {
+        fprintf(stderr,
+                "    -r: output a second file after resetting (for reset testing)\n"
+                "    -k N: seeks to N samples before decoding (for seek testing)\n"
+                "    -t file: print tags found in file (for tag testing)\n"
+                "    -O: decode but don't write to file (for performance testing)\n"
+                );
+    }
 }
 
 
@@ -63,6 +69,7 @@ typedef struct {
     char * infilename;
     char * outfilename;
     char * tag_filename;
+    int decode_only;
     int ignore_loop;
     int force_loop;
     int really_force_loop;
@@ -101,7 +108,7 @@ static int parse_config(cli_config *cfg, int argc, char ** argv) {
     opterr = 0;
 
     /* read config */
-    while ((opt = getopt(argc, argv, "o:l:f:d:ipPcmxeLEFrgb2:s:t:k:")) != -1) {
+    while ((opt = getopt(argc, argv, "o:l:f:d:ipPcmxeLEFrgb2:s:t:k:hO")) != -1) {
         switch (opt) {
             case 'o':
                 cfg->outfilename = optarg;
@@ -167,18 +174,24 @@ static int parse_config(cli_config *cfg, int argc, char ** argv) {
             case 'k':
                 cfg->seek_samples = atoi(optarg);
                 break;
+            case 'O':
+                cfg->decode_only = 1;
+                break;
+            case 'h':
+                usage(argv[0], 1);
+                goto fail;
             case '?':
                 fprintf(stderr, "Unknown option -%c found\n", optopt);
                 goto fail;
             default:
-                usage(argv[0]);
+                usage(argv[0], 0);
                 goto fail;
         }
     }
 
     /* filename goes last */
     if (optind != argc - 1) {
-        usage(argv[0]);
+        usage(argv[0], 0);
         goto fail;
     }
     cfg->infilename = argv[optind];
@@ -435,7 +448,7 @@ int main(int argc, char ** argv) {
     if (cfg.play_sdtout) {
         outfile = stdout;
     }
-    else if (!cfg.print_metaonly) {
+    else if (!cfg.print_metaonly  && !cfg.decode_only) {
         if (!cfg.outfilename) {
             /* note that outfilename_temp must persist outside this block, hence the external array */
             strcpy(outfilename_temp, cfg.infilename);
@@ -521,7 +534,7 @@ int main(int argc, char ** argv) {
     }
 
     /* slap on a .wav header */
-    {
+    if (!cfg.decode_only) {
         uint8_t wav_buf[0x100];
         int channels_write = (cfg.only_stereo != -1) ? 2 : channels;
         size_t bytes_done;
@@ -563,13 +576,15 @@ int main(int argc, char ** argv) {
 
         apply_fade(buf, vgmstream, to_get, i, len_samples, fade_samples, channels);
 
-        swap_samples_le(buf, channels * to_get); /* write PC endian */
-        if (cfg.only_stereo != -1) {
-            for (j = 0; j < to_get; j++) {
-                fwrite(buf + j*channels + (cfg.only_stereo*2), sizeof(sample_t), 2, outfile);
+        if (!cfg.decode_only) {
+            swap_samples_le(buf, channels * to_get); /* write PC endian */
+            if (cfg.only_stereo != -1) {
+                for (j = 0; j < to_get; j++) {
+                    fwrite(buf + j*channels + (cfg.only_stereo*2), sizeof(sample_t), 2, outfile);
+                }
+            } else {
+                fwrite(buf, sizeof(sample_t), to_get * channels, outfile);
             }
-        } else {
-            fwrite(buf, sizeof(sample_t), to_get * channels, outfile);
         }
     }
 
@@ -577,7 +592,7 @@ int main(int argc, char ** argv) {
     outfile = NULL;
 
 
-    /* try again with (for testing reset_vgmstream, simulates a seek to 0) */
+    /* try again with (for testing reset_vgmstream, simulates a seek to 0 after changing internal state) */
     if (cfg.test_reset) {
         char outfilename_reset[PATH_LIMIT];
         strcpy(outfilename_reset, cfg.outfilename);
@@ -597,7 +612,7 @@ int main(int argc, char ** argv) {
         apply_seek(buf, vgmstream, cfg.seek_samples);
 
         /* slap on a .wav header */
-        {
+        if (!cfg.decode_only) {
             uint8_t wav_buf[0x100];
             int channels_write = (cfg.only_stereo != -1) ? 2 : channels;
             size_t bytes_done;
@@ -619,13 +634,15 @@ int main(int argc, char ** argv) {
 
             apply_fade(buf, vgmstream, to_get, i, len_samples, fade_samples, channels);
 
-            swap_samples_le(buf, channels * to_get); /* write PC endian */
-            if (cfg.only_stereo != -1) {
-                for (j = 0; j < to_get; j++) {
-                    fwrite(buf + j*channels + (cfg.only_stereo*2), sizeof(sample_t), 2, outfile);
+            if (!cfg.decode_only) {
+                swap_samples_le(buf, channels * to_get); /* write PC endian */
+                if (cfg.only_stereo != -1) {
+                    for (j = 0; j < to_get; j++) {
+                        fwrite(buf + j*channels + (cfg.only_stereo*2), sizeof(sample_t), 2, outfile);
+                    }
+                } else {
+                    fwrite(buf, sizeof(sample_t) * channels, to_get, outfile);
                 }
-            } else {
-                fwrite(buf, sizeof(sample_t) * channels, to_get, outfile);
             }
         }
         fclose(outfile);

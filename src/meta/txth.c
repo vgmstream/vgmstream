@@ -552,8 +552,15 @@ static VGMSTREAM *init_subfile(txth_header * txth) {
     STREAMFILE * streamSubfile = NULL;
 
 
-    if (txth->subfile_size == 0)
-        txth->subfile_size = txth->data_size - txth->subfile_offset;
+    if (txth->subfile_size == 0) {
+        if (txth->data_size_set)
+            txth->subfile_size = txth->data_size;
+        else
+            txth->subfile_size = txth->data_size - txth->subfile_offset;
+        if (txth->subfile_size + txth->subfile_offset > get_streamfile_size(txth->streamBody))
+            txth->subfile_size = get_streamfile_size(txth->streamBody) - txth->subfile_offset;
+    }
+
     if (txth->subfile_extension[0] == '\0')
         get_streamfile_ext(txth->streamFile,txth->subfile_extension,sizeof(txth->subfile_extension));
 
@@ -586,7 +593,8 @@ static VGMSTREAM *init_subfile(txth_header * txth) {
         vgmstream_force_loop(vgmstream, 0, 0, 0);
     }
 
-    if (txth->chunk_count && txth->subsong_count) {
+    /* assumes won't point to subfiles with subsongs */
+    if (/*txth->chunk_count &&*/ txth->subsong_count) {
         vgmstream->num_streams = txth->subsong_count;
     }
     //todo: other combos with subsongs + subfile?
@@ -1249,7 +1257,7 @@ static int is_substring(const char * val, const char * cmp, int inline_field) {
     chr = val[len];
 
     /* "val" can end with math for inline fields (like interleave*0x10) */
-    if (inline_field && (chr == '+' || chr == '-' || chr == '*' || chr == '/'))
+    if (inline_field && (chr == '+' || chr == '-' || chr == '*' || chr == '/' || chr == '&'))
         return len;
 
     /* otherwise "val" ends in space or eof (to tell "interleave" and "interleave_last" apart) */
@@ -1525,7 +1533,7 @@ static int parse_num(STREAMFILE * streamFile, txth_header * txth, const char * v
             brackets--;
             n = 1;
         }
-        else if (type == '+' || type == '-' || type == '/' || type == '*') { /* op */
+        else if (type == '+' || type == '-' || type == '/' || type == '*' || type == '&') { /* op */
             op = type;
             n = 1;
         }
@@ -1593,6 +1601,8 @@ static int parse_num(STREAMFILE * streamFile, txth_header * txth, const char * v
             else if ((n = is_string_field(val,"loop_end_sample")))      value = txth->loop_end_sample;
             else if ((n = is_string_field(val,"subsong_count")))        value = txth->subsong_count;
             else if ((n = is_string_field(val,"subsong_offset")))       value = txth->subsong_offset;
+            else if ((n = is_string_field(val,"subfile_offset")))       value = txth->subfile_offset;
+            else if ((n = is_string_field(val,"subfile_size")))       value = txth->subfile_size;
             //todo whatever, improve
             else if ((n = is_string_field(val,"name_value")))           value = txth->name_values[0];
             else if ((n = is_string_field(val,"name_value1")))          value = txth->name_values[0];
@@ -1624,6 +1634,7 @@ static int parse_num(STREAMFILE * streamFile, txth_header * txth, const char * v
                 case '-': value = result - value; break;
                 case '*': value = result * value; break;
                 case '/': if (value == 0) goto fail; value = result / value; break;
+                case '&': value = result & value; break;
                 default: break;
             }
             op = ' '; /* consume */
