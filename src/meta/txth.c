@@ -552,8 +552,15 @@ static VGMSTREAM *init_subfile(txth_header * txth) {
     STREAMFILE * streamSubfile = NULL;
 
 
-    if (txth->subfile_size == 0)
-        txth->subfile_size = txth->data_size - txth->subfile_offset;
+    if (txth->subfile_size == 0) {
+        if (txth->data_size_set)
+            txth->subfile_size = txth->data_size;
+        else
+            txth->subfile_size = txth->data_size - txth->subfile_offset;
+        if (txth->subfile_size + txth->subfile_offset > get_streamfile_size(txth->streamBody))
+            txth->subfile_size = get_streamfile_size(txth->streamBody) - txth->subfile_offset;
+    }
+
     if (txth->subfile_extension[0] == '\0')
         get_streamfile_ext(txth->streamFile,txth->subfile_extension,sizeof(txth->subfile_extension));
 
