@@ -93,11 +93,11 @@ automatically. You need to manually refresh it by selecting songs and doing
 
 ### Audacious plugin
 *Installation*: needs to be manually built. Instructions can be found in the BUILD
-document.
+document in vgmstream's source code.
 
 ### vgmstream123
-*Installation*: needs to be manually built. Instructions can be found in the
-BUILD document in vgmstream's source code.
+*Installation*: needs to be manually built. Instructions can be found in the BUILD
+document in vgmstream's source code.
 
 Usage: `vgmstream123 [options] INFILE ...`
 
@@ -148,15 +148,18 @@ them playable through vgmstream.
 - .wav to .lwav (standard WAV)
 - .wma to .lwma (standard WMA)
 - .(any) to .vgmstream (FFmpeg formats or TXTH)
+
 Command line tools don't have this restriction and will accept the original
 filename.
 
 The main advantage to rename them is that vgmstream may use the file's
 internal loop info, or apply subtle fixes, but is also limited in some ways
-(like standard/player's tagging).
+(like standard/player's tagging). .vgmstream is a catch-all extension that
+may work as a last resort to make a file playable.
 
-.vgmstream is a catch-all extension that may work as a last resort to make
-a file playable.
+Some plugins have options that allow any extension (common or unknown) to be
+played, making renaming is unnecessary (may need to adjust plugin priority in
+player's options).
 
 When extracting from a bigfile, sometimes internal files don't have an actual
 name+extension. Those should be renamed to its proper/common extension, as the
@@ -214,7 +217,7 @@ a companion file:
 The key file can be ".(ext)key" (for the whole folder), or "(name).(ext)key"
 (for a single file). The format is made up to suit vgmstream.
 
-### Artificial/generic headers
+### Artificial files
 In some cases a file only has raw data, while important header info (codec type,
 sample rate, channels, etc) is stored in the .exe or other hard to locate places.
 
@@ -225,17 +228,28 @@ The resulting file must be (name).genh. Contains static header data.
 Programs like VGMToolbox can help to create GENH.
   
 **TXTH**: a text header placed in an external file. The TXTH must be named
-".txth" or ".(ext).txth" (for the whole folder), or "(name.ext).txth" (for a
+`.txth` or `.(ext).txth` (for the whole folder), or `(name.ext).txth` (for a
 single file). Contains dynamic text commands to read data from the original
-file, or static values.
+file, or static values. 
 
-**TXTP**: a text playing configurator. Can contain a list of filenames to
-play as one (ex. "intro.vag" "loop.vag"), list of separate channel files
-to join as a single multichannel file, subsong index (ex. bgm.sxd#10),
-per-file configurations like number of loops, and many other features.
+*TXTH* is recomended over *GENH* as it's far easier to create and has many
+more functions.
+
+
+For files that already play, sometimes they are used by the game in various
+complex and non-standard ways, like playing multiple small songs as a single
+one, or using some channels as a section of the song. For those cases we 
+can use create a *TXTP* file.
+
+**TXTP**: a text player configurator named `(name).txtp`. Text inside can
+contain a list of filenames to play as one (ex. `intro.vag(line)loop.vag`),
+list of separate channel files to join as a single multichannel file,
+subsong index (ex. `bgm.sxd#10`), per-file configurations like number of
+loops, remove unneeded channels, and many other features.
 
 Creation of those files is meant for advanced users, docs can be found in
 vgmstream source.
+
 
 ### Plugin conflicts
 Since vgmstream supports a huge amount of formats it's possibly that some of
@@ -244,8 +258,17 @@ If a file that should isn't playing or looping, first make sure vgmstream is
 really opening it (should show "VGMSTREAM" somewhere in the file info), and
 try to remove a few other plugins. 
 
-foobar's ffmpeg plugin and foo_adpcm are known to cause issues, but in
+foobar's FFmpeg plugin and foo_adpcm are known to cause issues, but in
 recent versions (1.4.x) you can configure plugin priority.
+
+In Audacious, vgmstream is set with slightly higher priority than FFmpeg,
+since it steals many formats that you normally want to loop (like .adx).
+However other plugins may set themselves higher, stealing formats instead.
+If current Audacious version doesn't let to change plugin priority you may
+need to disable some plugins (requires restart) or set priority on compile
+time. Particularly, mpg123 plugin may steal formats that aren't even MP3,
+making impossible for vgmstream to play it properly.
+
 
 ### Channel issues
 Some games layer a huge number of channels, that are disabled or downmixed
@@ -275,17 +298,17 @@ filename1
 filename2
 ```
 Accepted tags depend on the player (foobar: any; winamp: see ATF config),
-typically ALBUM/ARTIST/TITLE/DISC/TRACK/COMPOSER/etc, lower or uppercase,
+typically *ALBUM/ARTIST/TITLE/DISC/TRACK/COMPOSER/etc*, lower or uppercase,
 separated by one or multiple spaces. Repeated tags overwrite previous
-(ex.- may define @COMPOSER for multiple tracks). It only reads up to current
-_filename_ though, so any @TAG below would be ignored.
+(ex.- may define *@COMPOSER* for multiple tracks). It only reads up to current
+*filename* though, so any *@TAG* below would be ignored.
 
 Playlist formatting should follow player's config. ASCII or UTF-8 tags work.
 
-GLOBAL_COMMANDs currently can be:
-- AUTOTRACK: sets %TRACK% tag automatically (1..N as files are encountered
+*GLOBAL_COMMAND*s currently can be:
+- *AUTOTRACK*: sets *%TRACK* tag automatically (1..N as files are encountered
   in the tag file).
-- AUTOALBUM: sets %ALBUM% tag automatically using the containing dir as album.
+- *AUTOALBUM*: sets *%ALBUM* tag automatically using the containing dir as album.
 
 Note that since you can use global tags don't need to put all files inside.
 This would be a perfectly valid *!tags.m3u*:
@@ -306,7 +329,7 @@ enabled in preferences):
 If your player isn't picking tags make sure vgmstream is detecting the song
 (as other plugins can steal its extensions, see above), .m3u is properly
 named and that filenames inside match the song filename. For Winamp you need
-to make sure options > titles > advanced title formatting checkbox is set and
+to make sure *options > titles > advanced title formatting* checkbox is set and
 the format defined.
 
 ## Virtual TXTP files
