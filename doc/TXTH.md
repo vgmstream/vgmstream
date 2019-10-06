@@ -53,7 +53,7 @@ The following can be used in place of `(value)` for `(key) = (value)` commands.
 - `(other)`: other special values for certain keys, described per key
 
 
-The above may be combined with math operations (+-*/): `(key) = (number) (op) (offset) (op) (field) (...)`
+The above may be combined with math operations (+-*/&): `(key) = (number) (op) (offset) (op) (field) (...)`
 
 ### KEYS
 
@@ -240,7 +240,7 @@ Modifies the meaning of sample fields when set *before* them.
 
 Accepted values:
 - `samples`: exact sample (default)
-- `bytes`: automatically converts bytes/offset to samples (applies after */+- modifiers)
+- `bytes`: automatically converts bytes/offset to samples (applies after */+-& modifiers)
 - `blocks`: same as bytes, but value is given in blocks/frames
   * Value is internally converted from blocks to bytes first: `bytes = (value * interleave*channels)`
 
@@ -520,13 +520,13 @@ sample_rate = 0x04      # sample rate is the same for all subsongs
 ```
 
 ### Math
-Sometimes header values are in "sectors" or similar concepts (typical in DVD games), and need to be adjusted to a real value.
+Sometimes header values are in "sectors" or similar concepts (typical in DVD games), and need to be adjusted to a real value using some complex math:
 ```
 sample_type   = bytes
 start_offset  = @0x10 * 0x800    # 0x15 * DVD sector size, for example
 ```
 
-You can also use certain fields' values:
+You can use `+-*/&` operators, and also certain fields' values:
 ```
 num_samples = @0x10 * channels  # byte-to-samples of channel_size
 ```
@@ -824,4 +824,18 @@ BGM012.XAG: 0x108
 PAD.XAG   : 0x150
 JIN002.XAG: 0x168
 JIN003.XAG: 0x180
+```
+
+
+** Grandia (PS1) **
+```
+header_file       = GM1.IDX
+body_file         = GM1.STZ
+
+subsong_count     = 394  #last doesn't have size though
+subsong_offset    = 0x04
+
+subfile_offset    = (@0x00 & 0xFFFFF) * 0x800
+subfile_extension = seb
+subfile_size      = ((@0x04 - @0x00) & 0xFFFFF) * 0x800
 ```
