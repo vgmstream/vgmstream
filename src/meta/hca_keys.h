@@ -294,8 +294,8 @@ static const hcakey_info hcakey_list[] = {
         /* Uta Macross SmaPho De Culture (Android) */
         {396798934275978741},       // 0581B68744C5F5F5
 
-        /* Touhou Cannonball (Android) BGM */
-        {6081391598581785139},      // 5465717035832233
+        /* Touhou Cannonball (Android) */
+        {5465717035832233},         // 00136B0A6A5D13A9
 
         /* Love Live! School idol festival ALL STARS (Android) */
         {6498535309877346413},      // 5A2F6F6F0192806D
