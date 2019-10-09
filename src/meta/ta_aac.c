@@ -139,7 +139,7 @@ VGMSTREAM * init_vgmstream_ta_aac_ps3(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset;
     int loop_flag, channel_count;
-    uint32_t data_size, loop_start, loop_end, codec_id;
+    uint32_t data_size, loop_start, loop_end, codec_id, asc_chunk;
 
     /* check extension, case insensitive */
     /* .aac: expected, .laac/ace: for players to avoid hijacking MP4/AAC */
@@ -149,30 +149,31 @@ VGMSTREAM * init_vgmstream_ta_aac_ps3(STREAMFILE *streamFile) {
     if (read_32bitBE(0x00, streamFile) != 0x41414320)   /* "AAC " */
         goto fail;
 
-    /* Haven't Found a codec flag yet. Let's just use this for now */
-    if (read_32bitBE(0x10000, streamFile) != 0x41534320)   /* "ASC " */
+    /* Find the ASC chunk, That's where the goodies are */
+    asc_chunk = read_32bitBE(0x40, streamFile);
+    if (read_32bitBE(asc_chunk, streamFile) != 0x41534320)   /* "ASC " */
         goto fail;
 
-    if (read_32bitBE(0x10104, streamFile) != 0xFFFFFFFF)
+    if (read_32bitBE(asc_chunk+0x104, streamFile) != 0xFFFFFFFF)
         loop_flag = 1;
     else
         loop_flag = 0;
 
-    channel_count = read_32bitBE(0x100F4, streamFile);
-    codec_id = read_32bitBE(0x100F0, streamFile);
+    channel_count = read_32bitBE(asc_chunk + 0xF4, streamFile);
+    codec_id = read_32bitBE(asc_chunk + 0xF0, streamFile);
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count, loop_flag);
     if (!vgmstream) goto fail;
 
-    /* Useless header, let's play the guessing game */
-    start_offset = 0x10110;
-    vgmstream->sample_rate = read_32bitBE(0x100FC, streamFile);
+    /* ASC header */
+    start_offset = asc_chunk + 0x110;
+    vgmstream->sample_rate = read_32bitBE(asc_chunk + 0xFC, streamFile);
     vgmstream->channels = channel_count;
     vgmstream->meta_type = meta_TA_AAC_PS3;
-    data_size = read_32bitBE(0x100F8, streamFile);
-    loop_start = read_32bitBE(0x10104, streamFile);
-    loop_end = read_32bitBE(0x10108, streamFile);
+    data_size = read_32bitBE(asc_chunk + 0xF8, streamFile);
+    loop_start = read_32bitBE(asc_chunk + 0x104, streamFile);
+    loop_end = read_32bitBE(asc_chunk + 0x108, streamFile);
 
 #ifdef VGM_USE_FFMPEG
     {
