@@ -2,8 +2,6 @@
 
 #ifdef VGM_USE_FFMPEG
 
-/* internal sizes, can be any value */
-#define FFMPEG_DEFAULT_SAMPLE_BUFFER_SIZE 2048
 #define FFMPEG_DEFAULT_IO_BUFFER_SIZE 128 * 1024
 
 
@@ -28,12 +26,14 @@ static void g_init_ffmpeg() {
         g_ffmpeg_initialized = 1;
         av_log_set_flags(AV_LOG_SKIP_REPEATED);
         av_log_set_level(AV_LOG_ERROR);
-        //av_register_all(); /* not needed in newer versions */
+//#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(58, 18, 100)
+//        av_register_all(); /* not needed in newer versions */
+//#endif
         g_ffmpeg_initialized = 2;
     }
 }
 
-static void remap_audio(sample_t *outbuf, int sample_count, int channels, int channel_mappings[]) {
+static void remap_audio(sample_t *outbuf, int sample_count, int channels, int *channel_mappings) {
     int ch_from,ch_to,s;
     sample_t temp;
     for (s = 0; s < sample_count; s++) {
@@ -60,60 +60,6 @@ static void invert_audio(sample_t *outbuf, int sample_count, int channels) {
     }
 }
 
-/* converts codec's samples (can be in any format, ex. Ogg's float32) to PCM16 */
-static void convert_audio_pcm16(sample_t *outbuf, const uint8_t *inbuf, int fullSampleCount, int bitsPerSample, int floatingPoint) {
-    int s;
-    switch (bitsPerSample) {
-        case 8: {
-            for (s = 0; s < fullSampleCount; s++) {
-                *outbuf++ = ((int)(*(inbuf++))-0x80) << 8;
-            }
-            break;
-        }
-        case 16: {
-            int16_t *s16 = (int16_t *)inbuf;
-            for (s = 0; s < fullSampleCount; s++) {
-                *outbuf++ = *(s16++);
-            }
-            break;
-        }
-        case 32: {
-            if (!floatingPoint) {
-                int32_t *s32 = (int32_t *)inbuf;
-                for (s = 0; s < fullSampleCount; s++) {
-                    *outbuf++ = (*(s32++)) >> 16;
-                }
-            }
-            else {
-                float *s32 = (float *)inbuf;
-                for (s = 0; s < fullSampleCount; s++) {
-                    float sample = *s32++;
-                    int s16 = (int)(sample * 32768.0f);
-                    if ((unsigned)(s16 + 0x8000) & 0xFFFF0000) {
-                        s16 = (s16 >> 31) ^ 0x7FFF;
-                    }
-                    *outbuf++ = s16;
-                }
-            }
-            break;
-        }
-        case 64: {
-            if (floatingPoint) {
-                double *s64 = (double *)inbuf;
-                for (s = 0; s < fullSampleCount; s++) {
-                    double sample = *s64++;
-                    int s16 = (int)(sample * 32768.0f);
-                    if ((unsigned)(s16 + 0x8000) & 0xFFFF0000) {
-                        s16 = (s16 >> 31) ^ 0x7FFF;
-                    }
-                    *outbuf++ = s16;
-                }
-            }
-            break;
-        }
-    }
-}
-
 /**
  * Special patching for FFmpeg's buggy seek code.
  *
@@ -134,7 +80,7 @@ static int init_seek(ffmpeg_codec_data * data) {
     int distance = 0; /* always 0 ("duration") */
 
     AVStream * stream = data->formatCtx->streams[data->streamIndex];
-    AVPacket * pkt = data->lastReadPacket;
+    AVPacket * pkt = data->packet;
 
 
     /* read_seek shouldn't need this index, but direct access to FFmpeg's internals is no good */
@@ -239,7 +185,7 @@ static int ffmpeg_read(void *opaque, uint8_t *buf, int read_size) {
         if (max_to_copy > read_size)
             max_to_copy = read_size;
 
-        memcpy(buf, data->header_insert_block + data->logical_offset, max_to_copy);
+        memcpy(buf, data->header_block + data->logical_offset, max_to_copy);
         buf += max_to_copy;
         read_size -= max_to_copy;
         data->logical_offset += max_to_copy;
@@ -323,12 +269,8 @@ ffmpeg_codec_data * init_ffmpeg_header_offset(STREAMFILE *streamFile, uint8_t * 
  * Stream index can be passed if the file has multiple audio streams that FFmpeg can demux (1=first).
  */
 ffmpeg_codec_data * init_ffmpeg_header_offset_subsong(STREAMFILE *streamFile, uint8_t * header, uint64_t header_size, uint64_t start, uint64_t size, int target_subsong) {
-    char filename[PATH_LIMIT];
     ffmpeg_codec_data * data = NULL;
     int errcode;
-
-    AVStream *stream;
-    AVRational tb;
 
 
     /* check values */
@@ -341,7 +283,7 @@ ffmpeg_codec_data * init_ffmpeg_header_offset_subsong(STREAMFILE *streamFile, ui
     }
 
 
-    /* ffmpeg global setup */
+    /* initial FFmpeg setup */
     g_init_ffmpeg();
 
 
@@ -349,15 +291,14 @@ ffmpeg_codec_data * init_ffmpeg_header_offset_subsong(STREAMFILE *streamFile, ui
     data = calloc(1, sizeof(ffmpeg_codec_data));
     if (!data) return NULL;
 
-    streamFile->get_name( streamFile, filename, sizeof(filename) );
-    data->streamfile = streamFile->open(streamFile, filename, STREAMFILE_DEFAULT_BUFFER_SIZE);
+    data->streamfile = reopen_streamfile(streamFile, 0);
     if (!data->streamfile) goto fail;
 
     /* fake header to trick FFmpeg into demuxing/decoding the stream */
     if (header_size > 0) {
         data->header_size = header_size;
-        data->header_insert_block = av_memdup(header, header_size);
-        if (!data->header_insert_block) goto fail;
+        data->header_block = av_memdup(header, header_size);
+        if (!data->header_block) goto fail;
     }
 
     data->start = start;
@@ -371,92 +312,52 @@ ffmpeg_codec_data * init_ffmpeg_header_offset_subsong(STREAMFILE *streamFile, ui
     errcode = init_ffmpeg_config(data, target_subsong, 0);
     if (errcode < 0) goto fail;
 
-    stream = data->formatCtx->streams[data->streamIndex];
+    /* reset non-zero values */
+    data->read_packet = 1;
 
+    /* setup other values */
+    {
+        AVStream *stream = data->formatCtx->streams[data->streamIndex];
+        AVRational tb = {0};
 
-    /* derive info */
-    data->sampleRate = data->codecCtx->sample_rate;
-    data->channels = data->codecCtx->channels;
-    data->bitrate = (int)(data->codecCtx->bit_rate);
-    data->floatingPoint = 0;
-    switch (data->codecCtx->sample_fmt) {
-        case AV_SAMPLE_FMT_U8:
-        case AV_SAMPLE_FMT_U8P:
-            data->bitsPerSample = 8;
-            break;
+        /* derive info */
+        data->sampleRate = data->codecCtx->sample_rate;
+        data->channels = data->codecCtx->channels;
+        data->bitrate = (int)(data->codecCtx->bit_rate);
+#if 0
+        data->blockAlign = data->codecCtx->block_align;
+        data->frameSize = data->codecCtx->frame_size;
+        if(data->frameSize == 0) /* some formats don't set frame_size but can get on request, and vice versa */
+            data->frameSize = av_get_audio_frame_duration(data->codecCtx,0);
+#endif
 
-        case AV_SAMPLE_FMT_S16:
-        case AV_SAMPLE_FMT_S16P:
-            data->bitsPerSample = 16;
-            break;
+        /* try to guess frames/samples (duration isn't always set) */
+        tb.num = 1; tb.den = data->codecCtx->sample_rate;
+        data->totalSamples = av_rescale_q(stream->duration, stream->time_base, tb);
+        if (data->totalSamples < 0)
+            data->totalSamples = 0; /* caller must consider this */
 
-        case AV_SAMPLE_FMT_S32:
-        case AV_SAMPLE_FMT_S32P:
-            data->bitsPerSample = 32;
-            break;
+        /* expose start samples to be skipped (encoder delay, usually added by MDCT-based encoders like AAC/MP3/ATRAC3/XMA/etc)
+         * get after init_seek because some demuxers like AAC only fill skip_samples for the first packet */
+        if (stream->start_skip_samples) /* samples to skip in the first packet */
+            data->skipSamples = stream->start_skip_samples;
+        else if (stream->skip_samples) /* samples to skip in any packet (first in this case), used sometimes instead (ex. AAC) */
+            data->skipSamples = stream->skip_samples;
 
-        case AV_SAMPLE_FMT_FLT:
-        case AV_SAMPLE_FMT_FLTP:
-            data->bitsPerSample = 32;
-            data->floatingPoint = 1;
-            break;
-
-        case AV_SAMPLE_FMT_DBL:
-        case AV_SAMPLE_FMT_DBLP:
-            data->bitsPerSample = 64;
-            data->floatingPoint = 1;
-            break;
-
-        default:
-            goto fail;
+        /* check ways to skip encoder delay/padding, for debugging purposes (some may be old/unused/encoder only/etc) */
+        VGM_ASSERT(data->codecCtx->delay > 0, "FFMPEG: delay %i\n", (int)data->codecCtx->delay);//delay: OPUS
+        //VGM_ASSERT(data->codecCtx->internal->skip_samples > 0, ...); /* for codec use, not accessible */
+        VGM_ASSERT(stream->codecpar->initial_padding > 0, "FFMPEG: initial_padding %i\n", (int)stream->codecpar->initial_padding);//delay: OPUS
+        VGM_ASSERT(stream->codecpar->trailing_padding > 0, "FFMPEG: trailing_padding %i\n", (int)stream->codecpar->trailing_padding);
+        VGM_ASSERT(stream->codecpar->seek_preroll > 0, "FFMPEG: seek_preroll %i\n", (int)stream->codecpar->seek_preroll);//seek delay: OPUS
+        VGM_ASSERT(stream->skip_samples > 0, "FFMPEG: skip_samples %i\n", (int)stream->skip_samples); //delay: MP4
+        VGM_ASSERT(stream->start_skip_samples > 0, "FFMPEG: start_skip_samples %i\n", (int)stream->start_skip_samples); //delay: MP3
+        VGM_ASSERT(stream->first_discard_sample > 0, "FFMPEG: first_discard_sample %i\n", (int)stream->first_discard_sample); //padding: MP3
+        VGM_ASSERT(stream->last_discard_sample > 0, "FFMPEG: last_discard_sample %i\n", (int)stream->last_discard_sample); //padding: MP3
+        /* also negative timestamp for formats like OGG/OPUS */
+        /* not using it: BINK, FLAC, ATRAC3, XMA, MPC, WMA (may use internal skip samples) */
+        //todo: double check Opus behavior
     }
-
-    /* setup decode buffer */
-    data->sampleBufferBlock = FFMPEG_DEFAULT_SAMPLE_BUFFER_SIZE;
-    data->sampleBuffer = av_malloc(data->sampleBufferBlock * (data->bitsPerSample / 8) * data->channels);
-    if (!data->sampleBuffer) goto fail;
-
-
-    /* try to guess frames/samples (duration isn't always set) */
-    tb.num = 1; tb.den = data->codecCtx->sample_rate;
-    data->totalSamples = av_rescale_q(stream->duration, stream->time_base, tb);
-    if (data->totalSamples < 0)
-        data->totalSamples = 0; /* caller must consider this */
-
-    data->blockAlign = data->codecCtx->block_align;
-    data->frameSize = data->codecCtx->frame_size;
-    if(data->frameSize == 0) /* some formats don't set frame_size but can get on request, and vice versa */
-        data->frameSize = av_get_audio_frame_duration(data->codecCtx,0);
-
-
-    /* reset */
-    data->readNextPacket = 1;
-    data->bytesConsumedFromDecodedFrame = INT_MAX;
-    data->endOfStream = 0;
-    data->endOfAudio = 0;
-
-
-    /* expose start samples to be skipped (encoder delay, usually added by MDCT-based encoders like AAC/MP3/ATRAC3/XMA/etc)
-     * get after init_seek because some demuxers like AAC only fill skip_samples for the first packet */
-    if (stream->start_skip_samples) /* samples to skip in the first packet */
-        data->skipSamples = stream->start_skip_samples;
-    else if (stream->skip_samples) /* samples to skip in any packet (first in this case), used sometimes instead (ex. AAC) */
-        data->skipSamples = stream->skip_samples;
-
-
-    /* check ways to skip encoder delay/padding, for debugging purposes (some may be old/unused/encoder only/etc) */
-    VGM_ASSERT(data->codecCtx->delay > 0, "FFMPEG: delay %i\n", (int)data->codecCtx->delay);//delay: OPUS
-    //VGM_ASSERT(data->codecCtx->internal->skip_samples > 0, ...); /* for codec use, not accessible */
-    VGM_ASSERT(stream->codecpar->initial_padding > 0, "FFMPEG: initial_padding %i\n", (int)stream->codecpar->initial_padding);//delay: OPUS
-    VGM_ASSERT(stream->codecpar->trailing_padding > 0, "FFMPEG: trailing_padding %i\n", (int)stream->codecpar->trailing_padding);
-    VGM_ASSERT(stream->codecpar->seek_preroll > 0, "FFMPEG: seek_preroll %i\n", (int)stream->codecpar->seek_preroll);//seek delay: OPUS
-    VGM_ASSERT(stream->skip_samples > 0, "FFMPEG: skip_samples %i\n", (int)stream->skip_samples); //delay: MP4
-    VGM_ASSERT(stream->start_skip_samples > 0, "FFMPEG: start_skip_samples %i\n", (int)stream->start_skip_samples); //delay: MP3
-    VGM_ASSERT(stream->first_discard_sample > 0, "FFMPEG: first_discard_sample %i\n", (int)stream->first_discard_sample); //padding: MP3
-    VGM_ASSERT(stream->last_discard_sample > 0, "FFMPEG: last_discard_sample %i\n", (int)stream->last_discard_sample); //padding: MP3
-    /* also negative timestamp for formats like OGG/OPUS */
-    /* not using it: BINK, FLAC, ATRAC3, XMA, MPC, WMA (may use internal skip samples) */
-    //todo: double check Opus behavior
 
 
     /* setup decent seeking for faulty formats */
@@ -547,14 +448,15 @@ static int init_ffmpeg_config(ffmpeg_codec_data * data, int target_subsong, int 
     if (errcode < 0) goto fail;
 
     /* prepare codec and frame/packet buffers */
-    data->lastDecodedFrame = av_frame_alloc();
-    if (!data->lastDecodedFrame) goto fail;
-    av_frame_unref(data->lastDecodedFrame);
-
-    data->lastReadPacket = av_malloc(sizeof(AVPacket)); /* av_packet_alloc? */
-    if (!data->lastReadPacket) goto fail;
-    av_new_packet(data->lastReadPacket, 0);
+    data->packet = av_malloc(sizeof(AVPacket)); /* av_packet_alloc? */
+    if (!data->packet) goto fail;
+    av_new_packet(data->packet, 0);
     //av_packet_unref?
+
+    data->frame = av_frame_alloc();
+    if (!data->frame) goto fail;
+    av_frame_unref(data->frame);
+
 
     return 0;
 fail:
@@ -563,191 +465,280 @@ fail:
     return -1;
 }
 
+/* decodes a new frame to internal data */
+static int decode_ffmpeg_frame(ffmpeg_codec_data *data) {
+    int errcode;
+    int frame_error = 0;
+
+
+    if (data->bad_init) {
+        goto fail;
+    }
+
+    /* ignore once file is done (but not on EOF as FFmpeg can output samples until end_of_audio) */
+    if (/*data->end_of_stream ||*/ data->end_of_audio) {
+        VGM_LOG("FFMPEG: decode after end of audio\n");
+        goto fail;
+    }
+
+
+    /* read data packets until valid is found */
+    while (data->read_packet && !data->end_of_audio) {
+        if (!data->end_of_stream) {
+            /* reset old packet */
+            av_packet_unref(data->packet);
+
+            /* read encoded data from demuxer into packet */
+            errcode = av_read_frame(data->formatCtx, data->packet);
+            if (errcode < 0) {
+                if (errcode == AVERROR_EOF) {
+                    data->end_of_stream = 1; /* no more data to read (but may "drain" samples) */
+                }
+                else {
+                    VGM_LOG("FFMPEG: av_read_frame errcode=%i\n", errcode);
+                    frame_error = 1; //goto fail;
+                }
+
+                if (data->formatCtx->pb && data->formatCtx->pb->error) {
+                    VGM_LOG("FFMPEG: pb error=%i\n", data->formatCtx->pb->error);
+                    frame_error = 1; //goto fail;
+                }
+            }
+
+            /* ignore non-selected streams */
+            if (data->packet->stream_index != data->streamIndex)
+                continue;
+        }
+
+        /* send encoded data to frame decoder (NULL at EOF to "drain" samples below) */
+        errcode = avcodec_send_packet(data->codecCtx, data->end_of_stream ? NULL : data->packet);
+        if (errcode < 0) {
+            if (errcode != AVERROR(EAGAIN)) {
+                VGM_LOG("FFMPEG: avcodec_send_packet errcode=%i\n", errcode);
+                frame_error = 1; //goto fail;
+            }
+        }
+
+        data->read_packet = 0; /* got data */
+    }
+
+    /* decode frame samples from sent packet or "drain" samples*/
+    if (!frame_error) {
+        /* receive uncompressed sample data from decoded frame */
+        errcode = avcodec_receive_frame(data->codecCtx, data->frame);
+        if (errcode < 0) {
+            if (errcode == AVERROR_EOF) {
+                data->end_of_audio = 1; /* no more audio, file is fully decoded */
+            }
+            else if (errcode == AVERROR(EAGAIN)) {
+                data->read_packet = 1; /* 0 samples, request more encoded data */
+            }
+            else {
+                VGM_LOG("FFMPEG: avcodec_receive_frame errcode=%i\n", errcode);
+                frame_error = 1;//goto fail;
+            }
+        }
+    }
+
+    /* on frame_error simply uses current frame (possibly with nb_samples=0), which mirrors ffmpeg's output
+     * (ex. BlazBlue X360 022_btl_az.xwb) */
+
+
+    data->samples_consumed = 0;
+    data->samples_filled = data->frame->nb_samples;
+    return 1;
+fail:
+    return 0;
+}
+
+
+/* sample copy helpers, using different functions to minimize branches.
+ *
+ * in theory, small optimizations like *outbuf++ vs outbuf[i] or alt clamping
+ * would matter for performance, but in practice aren't very noticeable;
+ * keep it simple for now until more tests are done.
+ *
+ * in normal (interleaved) formats samples are laid out straight
+ *  (ibuf[s*chs+ch], ex. 4ch with 8s: 0 1 2 3 0 1 2 3 0 1 2 3 0 1 2 3)
+ * in "p" (planar) formats samples are in planes per channel
+ *  (ibuf[ch][s], ex. 4ch with 8s: 0 0 0 0 1 1 1 1 2 2 2 2 3 3 3 3)
+ *
+ * alt float clamping:
+ *  clamp_float(f32)
+ *     int s16 = (int)(f32 * 32768.0f);
+ *     if ((unsigned)(s16 + 0x8000) & 0xFFFF0000)
+ *         s16 = (s16 >> 31) ^ 0x7FFF;
+ *
+ * when casting float to int, value is simply truncated:
+ * - 0.0000518798828125 * 32768.0f = 1.7f, (int)1.7 = 1, (int)-1.7 = -1
+ * alts for more accurate rounding could be:
+ * - (int)floor(f32 * 32768.0) //not quite ok negatives
+ * - (int)floor(f32 * 32768.0f + 0.5f) //Xiph Vorbis style
+ * - (int)(f32 < 0 ? f32 - 0.5f : f + 0.5f)
+ * - (((int) (f1 + 32768.5)) - 32768)
+ * - etc
+ * but since +-1 isn't really audible we'll just cast as it's the fastest
+ */
+
+static void samples_silence_s16(sample_t* obuf, int ochs, int samples) {
+    int s, total_samples = samples * ochs;
+    for (s = 0; s < total_samples; s++) {
+        obuf[s] = 0; /* memset'd */
+    }
+}
+
+static void samples_u8_to_s16(sample_t* obuf, uint8_t* ibuf, int ichs, int samples, int skip) {
+    int s, total_samples = samples * ichs;
+    for (s = 0; s < total_samples; s++) {
+        obuf[s] = ((int)ibuf[skip*ichs + s] - 0x80) << 8;
+    }
+}
+static void samples_u8p_to_s16(sample_t* obuf, uint8_t** ibuf, int ichs, int samples, int skip) {
+    int s, ch;
+    for (ch = 0; ch < ichs; ch++) {
+        for (s = 0; s < samples; s++) {
+            obuf[s*ichs + ch] = ((int)ibuf[ch][skip + s] - 0x80) << 8;
+        }
+    }
+}
+static void samples_s16_to_s16(sample_t* obuf, int16_t* ibuf, int ichs, int samples, int skip) {
+    int s, total_samples = samples * ichs;
+    for (s = 0; s < total_samples; s++) {
+        obuf[s] = ibuf[skip*ichs + s]; /* maybe should mempcy */
+    }
+}
+static void samples_s16p_to_s16(sample_t* obuf, int16_t** ibuf, int ichs, int samples, int skip) {
+    int s, ch;
+    for (ch = 0; ch < ichs; ch++) {
+        for (s = 0; s < samples; s++) {
+            obuf[s*ichs + ch] = ibuf[ch][skip + s];
+        }
+    }
+}
+static void samples_s32_to_s16(sample_t* obuf, int32_t* ibuf, int ichs, int samples, int skip) {
+    int s, total_samples = samples * ichs;
+    for (s = 0; s < total_samples; s++) {
+        obuf[s] = ibuf[skip*ichs + s] >> 16;
+    }
+}
+static void samples_s32p_to_s16(sample_t* obuf, int32_t** ibuf, int ichs, int samples, int skip) {
+    int s, ch;
+    for (ch = 0; ch < ichs; ch++) {
+        for (s = 0; s < samples; s++) {
+            obuf[s*ichs + ch] = ibuf[ch][skip + s] >> 16;
+        }
+    }
+}
+static void samples_flt_to_s16(sample_t* obuf, float* ibuf, int ichs, int samples, int skip) {
+    int s, total_samples = samples * ichs;
+    for (s = 0; s < total_samples; s++) {
+        obuf[s] = clamp16(ibuf[skip*ichs + s] * 32768.0f);
+    }
+}
+static void samples_fltp_to_s16(sample_t* obuf, float** ibuf, int ichs, int samples, int skip) {
+    int s, ch;
+    for (ch = 0; ch < ichs; ch++) {
+        for (s = 0; s < samples; s++) {
+            obuf[s*ichs + ch] = clamp16(ibuf[ch][skip + s] * 32768.0f);
+        }
+    }
+}
+static void samples_dbl_to_s16(sample_t* obuf, double* ibuf, int ichs, int samples, int skip) {
+    int s, total_samples = samples * ichs;
+    for (s = 0; s < total_samples; s++) {
+        obuf[s] = clamp16(ibuf[skip*ichs + s] * 32768.0);
+    }
+}
+static void samples_dblp_to_s16(sample_t* obuf, double** inbuf, int ichs, int samples, int skip) {
+    int s, ch;
+    for (ch = 0; ch < ichs; ch++) {
+        for (s = 0; s < samples; s++) {
+            obuf[s*ichs + ch] = clamp16(inbuf[ch][skip + s] * 32768.0);
+        }
+    }
+}
+
+static void copy_samples(ffmpeg_codec_data *data, sample_t *outbuf, int samples_to_do) {
+    int channels = data->codecCtx->channels;
+    int is_planar = av_sample_fmt_is_planar(data->codecCtx->sample_fmt) && (channels > 1);
+    void* ibuf;
+
+    if (is_planar) {
+        ibuf = data->frame->extended_data;
+    }
+    else {
+        ibuf = data->frame->data;
+    }
+
+    switch (data->codecCtx->sample_fmt) {
+        /* unused? */
+        case AV_SAMPLE_FMT_U8:   samples_u8_to_s16(outbuf, ibuf, channels, samples_to_do, data->samples_consumed); break;
+        case AV_SAMPLE_FMT_U8P:  samples_u8p_to_s16(outbuf, ibuf, channels, samples_to_do, data->samples_consumed); break;
+        /* common */
+        case AV_SAMPLE_FMT_S16:  samples_s16_to_s16(outbuf, ibuf, channels, samples_to_do, data->samples_consumed); break;
+        case AV_SAMPLE_FMT_S16P: samples_s16p_to_s16(outbuf, ibuf, channels, samples_to_do, data->samples_consumed); break;
+        /* possibly FLAC and other lossless codecs */
+        case AV_SAMPLE_FMT_S32:  samples_s32_to_s16(outbuf, ibuf, channels, samples_to_do, data->samples_consumed); break;
+        case AV_SAMPLE_FMT_S32P: samples_s32p_to_s16(outbuf, ibuf, channels, samples_to_do, data->samples_consumed); break;
+        /* mainly MDCT-like codecs (Ogg, AAC, etc) */
+        case AV_SAMPLE_FMT_FLT:  samples_flt_to_s16(outbuf, ibuf, channels, samples_to_do, data->samples_consumed); break;
+        case AV_SAMPLE_FMT_FLTP: samples_fltp_to_s16(outbuf, ibuf, channels, samples_to_do, data->samples_consumed); break;
+        /* possibly PCM64 only (not enabled) */
+        case AV_SAMPLE_FMT_DBL:  samples_dbl_to_s16(outbuf, ibuf, channels, samples_to_do, data->samples_consumed); break;
+        case AV_SAMPLE_FMT_DBLP: samples_dblp_to_s16(outbuf, ibuf, channels, samples_to_do, data->samples_consumed); break;
+        default:
+            break;
+    }
+
+    if (data->channel_remap_set)
+        remap_audio(outbuf, samples_to_do, channels, data->channel_remap);
+    if (data->invert_audio_set)
+        invert_audio(outbuf, samples_to_do, channels);
+}
 
 /* decode samples of any kind of FFmpeg format */
 void decode_ffmpeg(VGMSTREAM *vgmstream, sample_t * outbuf, int32_t samples_to_do, int channels) {
     ffmpeg_codec_data *data = vgmstream->codec_data;
-    int samplesReadNow;
-    //todo use either channels / data->channels / codecCtx->channels
-
-    AVFormatContext *formatCtx = data->formatCtx;
-    AVCodecContext *codecCtx = data->codecCtx;
-    AVPacket *packet = data->lastReadPacket;
-    AVFrame *frame = data->lastDecodedFrame;
-
-    int readNextPacket = data->readNextPacket;
-    int endOfStream = data->endOfStream;
-    int endOfAudio = data->endOfAudio;
-    int bytesConsumedFromDecodedFrame = data->bytesConsumedFromDecodedFrame;
-
-    int planar = 0;
-    int bytesPerSample = data->bitsPerSample / 8;
-    int bytesRead, bytesToRead;
 
 
-    if (data->bad_init) {
-        memset(outbuf, 0, samples_to_do * channels * sizeof(sample));
-        return;
-    }
+    while (samples_to_do > 0) {
 
-    /* ignore once file is done (but not at endOfStream as FFmpeg can still output samples until endOfAudio) */
-    if (/*endOfStream ||*/ endOfAudio) {
-        VGM_LOG("FFMPEG: decode after end of audio\n");
-        memset(outbuf, 0, samples_to_do * channels * sizeof(sample));
-        return;
-    }
+        if (data->samples_consumed < data->samples_filled) {
+            /* consume samples */
+            int samples_to_get = (data->samples_filled - data->samples_consumed);
 
-    planar = av_sample_fmt_is_planar(codecCtx->sample_fmt);
-    bytesRead = 0;
-    bytesToRead = samples_to_do * (bytesPerSample * codecCtx->channels);
-
-
-    /* keep reading and decoding packets until the requested number of samples (in bytes for FFmpeg calcs) */
-    while (bytesRead < bytesToRead) {
-        int dataSize, toConsume, errcode;
-
-        /* get sample data size from current frame (dataSize will be < 0 when nb_samples = 0) */
-        dataSize = av_samples_get_buffer_size(NULL, codecCtx->channels, frame->nb_samples, codecCtx->sample_fmt, 1);
-        if (dataSize < 0)
-            dataSize = 0;
-
-        /* read new data packet when requested */
-        while (readNextPacket && !endOfAudio) {
-            if (!endOfStream) {
-                /* reset old packet */
-                av_packet_unref(packet);
-
-                /* get compressed data from demuxer into packet */
-                errcode = av_read_frame(formatCtx, packet);
-                if (errcode < 0) {
-                    if (errcode == AVERROR_EOF) {
-                        endOfStream = 1; /* no more data, but may still output samples */
-                    }
-                    else {
-                        VGM_LOG("FFMPEG: av_read_frame errcode %i\n", errcode);
-                    }
-
-                    if (formatCtx->pb && formatCtx->pb->error) {
-                        break;
-                    }
-                }
-
-                if (packet->stream_index != data->streamIndex)
-                    continue; /* ignore non-selected streams */
-            }
-
-            /* send compressed data to decoder in packet (NULL at EOF to "drain") */
-            errcode = avcodec_send_packet(codecCtx, endOfStream ? NULL : packet);
-            if (errcode < 0) {
-                if (errcode != AVERROR(EAGAIN)) {
-                    VGM_LOG("FFMPEG: avcodec_send_packet errcode %i\n", errcode);
-                    goto end;
-                }
-            }
-
-            readNextPacket = 0; /* got compressed data */
-        }
-
-        /* decode packet into frame's sample data (if we don't have bytes to consume from previous frame) */
-        if (dataSize <= bytesConsumedFromDecodedFrame) {
-            if (endOfAudio) {
-                break;
-            }
-
-            bytesConsumedFromDecodedFrame = 0;
-
-            /* receive uncompressed sample data from decoder in frame */
-            errcode = avcodec_receive_frame(codecCtx, frame);
-            if (errcode < 0) {
-                if (errcode == AVERROR_EOF) {
-                    endOfAudio = 1; /* no more samples, file is fully decoded */
-                    break;
-                }
-                else if (errcode == AVERROR(EAGAIN)) {
-                    readNextPacket = 1; /* request more compressed data */
-                    continue;
-                }
-                else {
-                    VGM_LOG("FFMPEG: avcodec_receive_frame errcode %i\n", errcode);
-                    goto end;
-                }
-            }
-
-            /* get sample data size of current frame */
-            dataSize = av_samples_get_buffer_size(NULL, codecCtx->channels, frame->nb_samples, codecCtx->sample_fmt, 1);
-            if (dataSize < 0)
-                dataSize = 0;
-        }
-
-        toConsume = FFMIN((dataSize - bytesConsumedFromDecodedFrame), (bytesToRead - bytesRead));
-
-
-        /* discard decoded frame if needed (fully or partially) */
-        if (data->samplesToDiscard) {
-            int samplesDataSize = dataSize / (bytesPerSample * channels);
-
-            if (data->samplesToDiscard >= samplesDataSize) {
-                /* discard all of the frame's samples and continue to the next */
-                bytesConsumedFromDecodedFrame = dataSize;
-                data->samplesToDiscard -= samplesDataSize;
-                continue;
+            if (data->samples_discard) {
+                /* discard samples for looping */
+                if (samples_to_get > data->samples_discard)
+                    samples_to_get = data->samples_discard;
+                data->samples_discard -= samples_to_get;
             }
             else {
-                /* discard part of the frame and copy the rest below */
-                int bytesToDiscard = data->samplesToDiscard * (bytesPerSample * channels);
-                int dataSizeLeft = dataSize - bytesToDiscard;
+                /* get max samples and copy */
+                if (samples_to_get > samples_to_do)
+                    samples_to_get = samples_to_do;
 
-                bytesConsumedFromDecodedFrame += bytesToDiscard;
-                data->samplesToDiscard = 0;
-                if (toConsume > dataSizeLeft)
-                    toConsume = dataSizeLeft;
+                copy_samples(data, outbuf, samples_to_get);
+
+                //samples_done += samples_to_get;
+                samples_to_do -= samples_to_get;
+                outbuf += samples_to_get * channels;
             }
-        }
 
-
-        /* copy decoded sample data to buffer */
-        if (!planar || channels == 1) { /* 1 sample per channel, already mixed */
-            memmove(data->sampleBuffer + bytesRead, (frame->data[0] + bytesConsumedFromDecodedFrame), toConsume);
+            /* mark consumed samples */
+            data->samples_consumed += samples_to_get;
         }
-        else { /* N samples per channel, mix to 1 sample per channel */
-            uint8_t * out = (uint8_t *) data->sampleBuffer + bytesRead;
-            int bytesConsumedPerPlane = bytesConsumedFromDecodedFrame / channels;
-            int toConsumePerPlane = toConsume / channels;
-            int s, ch;
-            for (s = 0; s < toConsumePerPlane; s += bytesPerSample) {
-                for (ch = 0; ch < channels; ++ch) {
-                    memcpy(out, frame->extended_data[ch] + bytesConsumedPerPlane + s, bytesPerSample);
-                    out += bytesPerSample;
-                }
-            }
+        else {
+            int ok = decode_ffmpeg_frame(data);
+            if (!ok) goto decode_fail;
         }
-
-        /* consume */
-        bytesConsumedFromDecodedFrame += toConsume;
-        bytesRead += toConsume;
     }
 
+    return;
 
-end:
-    /* convert native sample format into PCM16 outbuf */
-    samplesReadNow = bytesRead / (bytesPerSample * channels);
-    convert_audio_pcm16(outbuf, data->sampleBuffer, samplesReadNow * channels, data->bitsPerSample, data->floatingPoint);
-    if (data->channel_remap_set)
-        remap_audio(outbuf, samplesReadNow, data->channels, data->channel_remap);
-    if (data->invert_audio_set)
-        invert_audio(outbuf, samplesReadNow, data->channels);
-
-    /* clean buffer when requested more samples than possible */
-    if (endOfAudio && samplesReadNow < samples_to_do) {
-        VGM_LOG("FFMPEG: decode after end of audio %i samples\n", (samples_to_do - samplesReadNow));
-        memset(outbuf + (samplesReadNow * channels), 0, (samples_to_do - samplesReadNow) * channels * sizeof(sample));
-    }
-
-    /* copy state back */
-    data->readNextPacket = readNextPacket;
-    data->endOfStream = endOfStream;
-    data->endOfAudio = endOfAudio;
-    data->bytesConsumedFromDecodedFrame = bytesConsumedFromDecodedFrame;
+decode_fail:
+    VGM_LOG("FFMPEG: decode fail, missing %i samples\n", samples_to_do);
+    samples_silence_s16(outbuf, channels, samples_to_do);
 }
 
 
@@ -766,7 +757,7 @@ void seek_ffmpeg_internal(ffmpeg_codec_data *data, int32_t num_sample) {
     if (!data) return;
 
     /* Start from 0 and discard samples until sample (slower but not too noticeable).
-     * Due to various FFmpeg quirks seeking to a sample is erratic in many formats (would need extra steps). */
+     * Due to many FFmpeg quirks seeking to a sample is erratic at best in most formats. */
 
     if (data->force_seek) {
         int errcode;
@@ -787,21 +778,22 @@ void seek_ffmpeg_internal(ffmpeg_codec_data *data, int32_t num_sample) {
         avcodec_flush_buffers(data->codecCtx);
     }
 
-    data->samplesToDiscard = num_sample;
+    data->samples_consumed = 0;
+    data->samples_filled = 0;
+    data->samples_discard = num_sample;
 
-    data->readNextPacket = 1;
-    data->bytesConsumedFromDecodedFrame = INT_MAX;
-    data->endOfStream = 0;
-    data->endOfAudio = 0;
+    data->read_packet = 1;
+    data->end_of_stream = 0;
+    data->end_of_audio = 0;
 
     /* consider skip samples (encoder delay), if manually set (otherwise let FFmpeg handle it) */
-    if (data->skipSamplesSet) {
+    if (data->skip_samples_set) {
         AVStream *stream = data->formatCtx->streams[data->streamIndex];
         /* sometimes (ex. AAC) after seeking to the first packet skip_samples is restored, but we want our value */
         stream->skip_samples = 0;
         stream->start_skip_samples = 0;
 
-        data->samplesToDiscard += data->skipSamples;
+        data->samples_discard += data->skipSamples;
     }
 
     return;
@@ -819,15 +811,15 @@ static void free_ffmpeg_config(ffmpeg_codec_data *data) {
     if (data == NULL)
         return;
 
-    if (data->lastReadPacket) {
-        av_packet_unref(data->lastReadPacket);
-        av_free(data->lastReadPacket);
-        data->lastReadPacket = NULL;
+    if (data->packet) {
+        av_packet_unref(data->packet);
+        av_free(data->packet);
+        data->packet = NULL;
     }
-    if (data->lastDecodedFrame) {
-        av_frame_unref(data->lastDecodedFrame);
-        av_free(data->lastDecodedFrame);
-        data->lastDecodedFrame = NULL;
+    if (data->frame) {
+        av_frame_unref(data->frame);
+        av_free(data->frame);
+        data->frame = NULL;
     }
     if (data->codecCtx) {
         avcodec_close(data->codecCtx);
@@ -841,7 +833,7 @@ static void free_ffmpeg_config(ffmpeg_codec_data *data) {
     }
     if (data->ioCtx) {
         /* buffer passed in is occasionally freed and replaced.
-        // the replacement must be free'd as well (below) */
+         * the replacement must be free'd as well (below) */
         data->buffer = data->ioCtx->buffer;
         avio_context_free(&data->ioCtx);
         //av_free(data->ioCtx); /* done in context_free (same thing) */
@@ -852,7 +844,7 @@ static void free_ffmpeg_config(ffmpeg_codec_data *data) {
         data->buffer = NULL;
     }
 
-    //todo avformat_find_stream_info may cause some Win Handle leaks? related to certain option (not happening in gcc builds)
+    //todo avformat_find_stream_info may cause some Win Handle leaks? related to certain option
 }
 
 void free_ffmpeg(ffmpeg_codec_data *data) {
@@ -861,13 +853,9 @@ void free_ffmpeg(ffmpeg_codec_data *data) {
 
     free_ffmpeg_config(data);
 
-    if (data->sampleBuffer) {
-        av_free(data->sampleBuffer);
-        data->sampleBuffer = NULL;
-    }
-    if (data->header_insert_block) {
-        av_free(data->header_insert_block);
-        data->header_insert_block = NULL;
+    if (data->header_block) {
+        av_free(data->header_block);
+        data->header_block = NULL;
     }
 
     close_streamfile(data->streamfile);
@@ -895,8 +883,8 @@ void ffmpeg_set_skip_samples(ffmpeg_codec_data * data, int skip_samples) {
     stream->skip_samples = 0; /* skip_samples can be used for any packet */
 
     /* set skip samples with our internal discard */
-    data->skipSamplesSet = 1;
-    data->samplesToDiscard = skip_samples;
+    data->skip_samples_set = 1;
+    data->samples_discard = skip_samples;
 
     /* expose (info only) */
     data->skipSamples = skip_samples;

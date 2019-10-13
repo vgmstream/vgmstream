@@ -1176,33 +1176,27 @@ typedef struct {
     uint64_t logical_size;      // computed size FFmpeg sees (including fake header)
     
     uint64_t header_size;       // fake header (parseable by FFmpeg) prepended on reads
-    uint8_t *header_insert_block; // fake header data (ie. RIFF)
+    uint8_t* header_block;      // fake header data (ie. RIFF)
 
     /*** "public" API (read-only) ***/
     // stream info
     int channels;
-    int bitsPerSample;
-    int floatingPoint;
     int sampleRate;
     int bitrate;
     // extra info: 0 if unknown or not fixed
     int64_t totalSamples; // estimated count (may not be accurate for some demuxers)
-    int64_t blockAlign; // coded block of bytes, counting channels (the block can be joint stereo)
-    int64_t frameSize; // decoded samples per block
     int64_t skipSamples; // number of start samples that will be skipped (encoder delay), for looping adjustments
     int streamCount; // number of FFmpeg audio streams
     
     /*** internal state ***/
     // config
     int channel_remap_set;
-    int channel_remap[32]; /* map of channel > new position */
+    int channel_remap[32];      /* map of channel > new position */
     int invert_audio_set;
+    int skip_samples_set;       /* flag to know skip samples were manually added from vgmstream */
+    int force_seek;             /* flags for special seeking in faulty formats */
+    int bad_init;
 
-    // intermediate byte buffer
-    uint8_t *sampleBuffer;
-    // max samples we can held (can be less or more than frameSize)
-    size_t sampleBufferBlock;
-    
     // FFmpeg context used for metadata
     AVCodec *codec;
     
@@ -1212,20 +1206,17 @@ typedef struct {
     int streamIndex;
     AVFormatContext *formatCtx;
     AVCodecContext *codecCtx;
-    AVFrame *lastDecodedFrame;
-    AVPacket *lastReadPacket;
-    int bytesConsumedFromDecodedFrame;
-    int readNextPacket;
-    int endOfStream;
-    int endOfAudio;
-    int skipSamplesSet; // flag to know skip samples were manually added from vgmstream
-    
-    // Seeking is not ideal, so rollback is necessary
-    int samplesToDiscard;
+    AVFrame *frame;             /* last decoded frame */
+    AVPacket *packet;           /* last read data packet */
 
-    // Flags for special seeking in faulty formats
-    int force_seek;
-    int bad_init;
+    int read_packet;
+    int end_of_stream;
+    int end_of_audio;
+
+    /* sample state */
+    int32_t samples_discard;
+    int32_t samples_consumed;
+    int32_t samples_filled;
 
 } ffmpeg_codec_data;
 #endif
