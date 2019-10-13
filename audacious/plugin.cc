@@ -37,6 +37,16 @@ extern "C" {
 audacious_settings settings;
 VGMSTREAM *vgmstream = NULL; //todo make local?
 
+/* Audacious will first send the file to a plugin based on this static extension list. If none
+ * accepts it'll try again all plugins, ordered by priority, until one accepts the file. Problem is,
+ * mpg123 plugin has higher priority and tendency to accept files that aren't even MP3. To fix this
+ * we declare a few conflicting formats so we have a better chance.
+ * The extension affects only this priority and in all cases file must accepted during "is_our_file".
+ */
+const char *const VgmstreamPlugin::exts[] = {
+        "ahx","asf","awc","ckd","fsb","genh","msf","p3d","rak","scd","str","txth","xvag", nullptr
+};
+
 
 const char *const VgmstreamPlugin::defaults[] = {
     "loop_forever",     "FALSE",

@@ -21,7 +21,9 @@
 #define VERSION "(unknown version)"
 #endif
 
-#define SAMPLE_BUFFER_SIZE 0x8000
+/* low values are ok as there is very little performance difference, but higher
+ * may improve write I/O in some systems as this*channels doubles as output buffer */
+#define SAMPLE_BUFFER_SIZE  32768
 
 /* getopt globals (the horror...) */
 extern char * optarg;

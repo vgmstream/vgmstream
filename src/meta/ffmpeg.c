@@ -61,6 +61,12 @@ VGMSTREAM * init_vgmstream_ffmpeg_offset(STREAMFILE *streamFile, uint64_t start,
         num_samples = mpeg_get_samples(streamFile, 0x00, get_streamfile_size(streamFile));
     }
 
+    /* hack for MPC, that seeks/resets incorrectly due to seek table shenanigans */
+    if (read_32bitBE(0x00, streamFile) == 0x4D502B07 || /* "MP+\7" (Musepack V7) */
+        read_32bitBE(0x00, streamFile) == 0x4D50434B) { /* "MPCK" (Musepack V8) */
+        ffmpeg_set_force_seek(data);
+    }
+
     /* default but often inaccurate when calculated using bitrate (wrong for VBR) */
     if (!num_samples) {
         num_samples = data->totalSamples;

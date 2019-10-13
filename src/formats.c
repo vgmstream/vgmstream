@@ -1,4 +1,5 @@
 #include "vgmstream.h"
+#include "coding/coding.h"
 
 
 /* Defines the list of accepted extensions. vgmstream doesn't use it internally so it's here
@@ -1262,22 +1263,10 @@ void get_vgmstream_coding_description(VGMSTREAM *vgmstream, char *out, size_t ou
     switch (vgmstream->coding_type) {
 #ifdef VGM_USE_FFMPEG
         case coding_FFmpeg:
-        {
-            ffmpeg_codec_data *data = vgmstream->codec_data;
-
-            if (data) {
-                if (data->codec && data->codec->long_name) {
-                    description = data->codec->long_name;
-                } else if (data->codec && data->codec->name) {
-                    description = data->codec->name;
-                } else {
-                    description = "FFmpeg (unknown codec)";
-                }
-            } else {
+            description = ffmpeg_get_codec_name(vgmstream->codec_data);
+            if (description == NULL)
                 description = "FFmpeg";
-            }
             break;
-        }
 #endif
         default:
             list_length = sizeof(coding_info_list) / sizeof(coding_info);

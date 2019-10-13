@@ -1159,26 +1159,26 @@ int w_bits(vgm_bitstream * ob, int num_bits, uint32_t value) {
 /* CUSTOM STREAMFILES                           */
 /* ******************************************** */
 
-STREAMFILE* setup_subfile_streamfile(STREAMFILE *streamFile, off_t subfile_offset, size_t subfile_size, const char* extension) {
-    STREAMFILE *temp_streamFile = NULL, *new_streamFile = NULL;
+STREAMFILE* setup_subfile_streamfile(STREAMFILE *sf, off_t subfile_offset, size_t subfile_size, const char* extension) {
+    STREAMFILE *temp_sf = NULL, *new_sf = NULL;
 
-    new_streamFile = open_wrap_streamfile(streamFile);
-    if (!new_streamFile) goto fail;
-    temp_streamFile = new_streamFile;
+    new_sf = open_wrap_streamfile(sf);
+    if (!new_sf) goto fail;
+    temp_sf = new_sf;
 
-    new_streamFile = open_clamp_streamfile(temp_streamFile, subfile_offset,subfile_size);
-    if (!new_streamFile) goto fail;
-    temp_streamFile = new_streamFile;
+    new_sf = open_clamp_streamfile(temp_sf, subfile_offset, subfile_size);
+    if (!new_sf) goto fail;
+    temp_sf = new_sf;
 
     if (extension) {
-        new_streamFile = open_fakename_streamfile(temp_streamFile, NULL,extension);
-        if (!new_streamFile) goto fail;
-        temp_streamFile = new_streamFile;
+        new_sf = open_fakename_streamfile(temp_sf, NULL, extension);
+        if (!new_sf) goto fail;
+        temp_sf = new_sf;
     }
 
-    return temp_streamFile;
+    return temp_sf;
 
 fail:
-    close_streamfile(temp_streamFile);
+    close_streamfile(temp_sf);
     return NULL;
 }

@@ -1095,6 +1095,11 @@ void render_vgmstream(sample_t * buffer, int32_t sample_count, VGMSTREAM * vgmst
 
 /* Get the number of samples of a single frame (smallest self-contained sample group, 1/N channels) */
 int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
+    /* Value returned here is the max (or less) that vgmstream will ask a decoder per
+     * "decode_x" call. Decoders with variable samples per frame or internal discard
+     * may return 0 here and handle arbitrary samples_to_do values internally
+     * (or some internal sample buffer max too). */
+
     switch (vgmstream->coding_type) {
         case coding_CRI_ADX:
         case coding_CRI_ADX_fixed:
@@ -1241,14 +1246,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
 #endif
 #ifdef VGM_USE_FFMPEG
         case coding_FFmpeg:
-            if (vgmstream->codec_data) {
-                ffmpeg_codec_data *data = (ffmpeg_codec_data*)vgmstream->codec_data;
-                return data->sampleBufferBlock; /* must know the full block size for edge loops */
-            }
-            else {
-                return 0;
-            }
-            break;
+            return 0;
 #endif
         case coding_MTAF:
             return 128*2;

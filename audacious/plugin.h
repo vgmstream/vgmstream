@@ -14,7 +14,7 @@
 
 class VgmstreamPlugin : public InputPlugin {
 public:
-    //static const char *const exts[];
+    static const char *const exts[];
     static const char *const defaults[];
     static const char about[];
     static const PreferencesWidget widgets[];
@@ -25,9 +25,9 @@ public:
     };
 
     constexpr VgmstreamPlugin() : InputPlugin (info,
-            InputInfo() //InputInfo(FlagSubtunes) // allow subsongs
-            .with_priority(AUDACIOUS_VGMSTREAM_PRIORITY) // where 0=default(?), 10=lowest
-            //.with_exts(exts)) {} //accepted exts are validated at runtime now
+            InputInfo() //InputInfo(FlagSubtunes)  // allow subsongs
+            .with_priority(AUDACIOUS_VGMSTREAM_PRIORITY)  // where 0=highest, 10=lowest
+            .with_exts(exts)) {}  // priority exts (accepted exts are still validated at runtime)
             ) {}
 
     bool init();
@@ -38,9 +38,6 @@ public:
     bool play(const char *filename, VFSFile &file);
 
 };
-
-// static extension list, not sure of advantages (uses is_our_file)
-//const char *const VgmstreamPlugin::exts[] = { "ext1", "ext2", ...,  NULL }
 
 
 typedef struct {
