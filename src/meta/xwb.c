@@ -643,20 +643,71 @@ fail:
     return 0;
 }
 
+static int get_wbh_name(char* buf, size_t maxsize, int target_subsong, xwb_header* xwb, STREAMFILE* sf) {
+    int selected_stream = target_subsong - 1;
+    int version, name_count;
+    off_t offset, name_number;
+
+    if (read_32bitBE(0x00, sf) != 0x57424844) /* "WBHD" */
+        goto fail;
+    version     = read_32bitLE(0x04, sf);
+    if (version != 1)
+        goto fail;
+    name_count  = read_32bitLE(0x08, sf);
+
+    if (selected_stream > name_count)
+        goto fail;
+
+    /* next table:
+     * - 0x00: wave id? (ordered from 0 to N)
+     * - 0x04: always 0 */
+    offset = 0x10 + 0x08 * name_count;
+
+    name_number = 0;
+    while (offset < get_streamfile_size(sf)) {
+        size_t name_len = read_string(buf, maxsize, offset, sf) + 1;
+
+        if (name_len == 0)
+            goto fail;
+        if (name_number == selected_stream)
+            break;
+
+        name_number++;
+        offset += name_len;
+    }
+
+    return 1;
+fail:
+    return 0;
+}
+
 static void get_name(char * buf, size_t maxsize, int target_subsong, xwb_header * xwb, STREAMFILE *streamXwb) {
-    STREAMFILE *streamXsb = NULL;
+    STREAMFILE *sf_name = NULL;
     int name_found;
 
     /* try to get the stream name in the .xwb, though they are very rarely included */
     name_found = get_xwb_name(buf, maxsize, target_subsong, xwb, streamXwb);
     if (name_found) return;
 
-    /* try again in a companion .xsb file, a comically complex cue format */
-    streamXsb = open_xsb_filename_pair(streamXwb);
-    if (!streamXsb) return; /* not all xwb have xsb though */
+    /* try again in a companion files */
 
-    name_found = get_xsb_name(buf, maxsize, target_subsong, xwb, streamXsb);
-    close_streamfile(streamXsb);
+    if (xwb->version == 1) {
+        /* .wbh, a simple name container */
+        sf_name = open_streamfile_by_ext(streamXwb, "wbh");
+        if (!sf_name) return; /* rarely found [Pac-Man World 2 (Xbox)] */
+
+        name_found = get_wbh_name(buf, maxsize, target_subsong, xwb, sf_name);
+        close_streamfile(sf_name);
+    }
+    else {
+        /* .xsb, a comically complex cue format */
+        sf_name = open_xsb_filename_pair(streamXwb);
+        if (!sf_name) return; /* not all xwb have xsb though */
+
+        name_found = get_xsb_name(buf, maxsize, target_subsong, xwb, sf_name);
+        close_streamfile(sf_name);
+    }
+
 
     if (!name_found) {
         buf[0] = '\0';
