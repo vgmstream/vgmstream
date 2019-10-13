@@ -37,9 +37,12 @@ static const int IK1[4] = {  0,    0,   832,   880 };
  * int coef tables commonly use N = 6 or 8, so K0 0.9375*64 = 60 or 0.9375*256 = 240
  * PS1 XA is apparently upsampled and interpolated to 44100, vgmstream doesn't simulate this.
  *
+ * XA has an 8-bit decoding and "emphasis" modes, that no PS1 game actually uses, but apparently
+ * are supported by the CD hardware and will play if found.
+ *
  * Info (Green Book): https://www.lscdweb.com/data/downloadables/2/8/cdi_may94_r2.pdf
  * BRR info (no$sns): http://problemkaputt.de/fullsnes.htm#snesapudspbrrsamples
- *           (bsnes): https://gitlab.com/higan/higan/blob/master/higan/sfc/dsp/brr.cpp
+ *           (bsnes): https://github.com/byuu/bsnes/blob/master/bsnes/sfc/dsp/SPC_DSP.cpp#L316
  */
 
 void decode_xa(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
