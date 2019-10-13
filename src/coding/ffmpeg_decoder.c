@@ -355,12 +355,8 @@ ffmpeg_codec_data * init_ffmpeg_header_offset_subsong(STREAMFILE *streamFile, ui
     /* setup decent seeking for faulty formats */
     errcode = init_seek(data);
     if (errcode < 0) {
-        VGM_LOG("FFMPEG: can't init_seek, error=%i\n", errcode);
-        /* some formats like Smacker are so buggy that any seeking is impossible (even on video players)
-         * whatever, we'll just kill and reconstruct FFmpeg's config every time */
-        data->force_seek = 1;
-        reset_ffmpeg_internal(data); /* reset state from trying to seek */
-        //stream = data->formatCtx->streams[data->streamIndex];
+        VGM_LOG("FFMPEG: can't init_seek, error=%i (using force_seek)\n", errcode);
+        ffmpeg_set_force_seek(data);
     }
 
     return data;
@@ -911,6 +907,16 @@ const char* ffmpeg_get_codec_name(ffmpeg_codec_data * data) {
     if (data->codec->name)
         return data->codec->name;
     return NULL;
+}
+
+void ffmpeg_set_force_seek(ffmpeg_codec_data * data) {
+    /* some formats like Smacker are so buggy that any seeking is impossible (even on video players),
+     * or MPC with an incorrectly parsed seek table (using as 0 some non-0 seek offset).
+     * whatever, we'll just kill and reconstruct FFmpeg's config every time */
+    ;VGM_LOG("1\n");
+    data->force_seek = 1;
+    reset_ffmpeg_internal(data); /* reset state from trying to seek */
+    //stream = data->formatCtx->streams[data->streamIndex];
 }
 
 #endif
