@@ -305,6 +305,7 @@ void free_ffmpeg(ffmpeg_codec_data *data);
 void ffmpeg_set_skip_samples(ffmpeg_codec_data * data, int skip_samples);
 uint32_t ffmpeg_get_channel_layout(ffmpeg_codec_data * data);
 void ffmpeg_set_channel_remapping(ffmpeg_codec_data * data, int *channels_remap);
+const char* ffmpeg_get_codec_name(ffmpeg_codec_data * data);
 
 
 /* ffmpeg_decoder_utils.c (helper-things) */

@@ -903,4 +903,14 @@ void ffmpeg_set_channel_remapping(ffmpeg_codec_data * data, int *channel_remap) 
     data->channel_remap_set = 1;
 }
 
+const char* ffmpeg_get_codec_name(ffmpeg_codec_data * data) {
+    if (!data || !data->codec)
+        return NULL;
+    if (data->codec->long_name)
+        return data->codec->long_name;
+    if (data->codec->name)
+        return data->codec->name;
+    return NULL;
+}
+
 #endif
