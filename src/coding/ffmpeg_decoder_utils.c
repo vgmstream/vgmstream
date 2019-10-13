@@ -66,7 +66,7 @@ ffmpeg_codec_data * init_ffmpeg_atrac3_raw(STREAMFILE *sf, off_t offset, size_t 
 
     /* invert ATRAC3: waveform is inverted vs official tools (not noticeable but for accuracy) */
     if (is_at3) {
-        ffmpeg_data->invert_audio_set = 1;
+        ffmpeg_data->invert_floats_set = 1;
     }
 
     return ffmpeg_data;
@@ -159,7 +159,7 @@ ffmpeg_codec_data * init_ffmpeg_atrac3_riff(STREAMFILE *sf, off_t offset, int* o
 
     /* invert ATRAC3: waveform is inverted vs official tools (not noticeable but for accuracy) */
     if (is_at3) {
-        ffmpeg_data->invert_audio_set = 1;
+        ffmpeg_data->invert_floats_set = 1;
     }
 
     /* multichannel fix: LFE channel should be reordered on decode (ATRAC3Plus only, only 1/2/6/8ch exist):

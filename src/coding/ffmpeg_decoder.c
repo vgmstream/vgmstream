@@ -52,14 +52,6 @@ static void remap_audio(sample_t *outbuf, int sample_count, int channels, int *c
     }
 }
 
-static void invert_audio(sample_t *outbuf, int sample_count, int channels) {
-    int i;
-
-    for (i = 0; i < sample_count*channels; i++) {
-        outbuf[i] = -outbuf[i];
-    }
-}
-
 /**
  * Special patching for FFmpeg's buggy seek code.
  *
@@ -629,17 +621,19 @@ static void samples_s32p_to_s16(sample_t* obuf, int32_t** ibuf, int ichs, int sa
         }
     }
 }
-static void samples_flt_to_s16(sample_t* obuf, float* ibuf, int ichs, int samples, int skip) {
+static void samples_flt_to_s16(sample_t* obuf, float* ibuf, int ichs, int samples, int skip, int invert) {
     int s, total_samples = samples * ichs;
+    float scale = invert ? -32768.0f : 32768.0f;
     for (s = 0; s < total_samples; s++) {
-        obuf[s] = clamp16(ibuf[skip*ichs + s] * 32768.0f);
+        obuf[s] = clamp16(ibuf[skip*ichs + s] * scale);
     }
 }
-static void samples_fltp_to_s16(sample_t* obuf, float** ibuf, int ichs, int samples, int skip) {
+static void samples_fltp_to_s16(sample_t* obuf, float** ibuf, int ichs, int samples, int skip, int invert) {
     int s, ch;
+    float scale = invert ? -32768.0f : 32768.0f;
     for (ch = 0; ch < ichs; ch++) {
         for (s = 0; s < samples; s++) {
-            obuf[s*ichs + ch] = clamp16(ibuf[ch][skip + s] * 32768.0f);
+            obuf[s*ichs + ch] = clamp16(ibuf[ch][skip + s] * scale);
         }
     }
 }
@@ -681,8 +675,8 @@ static void copy_samples(ffmpeg_codec_data *data, sample_t *outbuf, int samples_
         case AV_SAMPLE_FMT_S32:  samples_s32_to_s16(outbuf, ibuf, channels, samples_to_do, data->samples_consumed); break;
         case AV_SAMPLE_FMT_S32P: samples_s32p_to_s16(outbuf, ibuf, channels, samples_to_do, data->samples_consumed); break;
         /* mainly MDCT-like codecs (Ogg, AAC, etc) */
-        case AV_SAMPLE_FMT_FLT:  samples_flt_to_s16(outbuf, ibuf, channels, samples_to_do, data->samples_consumed); break;
-        case AV_SAMPLE_FMT_FLTP: samples_fltp_to_s16(outbuf, ibuf, channels, samples_to_do, data->samples_consumed); break;
+        case AV_SAMPLE_FMT_FLT:  samples_flt_to_s16(outbuf, ibuf, channels, samples_to_do, data->samples_consumed, data->invert_floats_set); break;
+        case AV_SAMPLE_FMT_FLTP: samples_fltp_to_s16(outbuf, ibuf, channels, samples_to_do, data->samples_consumed, data->invert_floats_set); break;
         /* possibly PCM64 only (not enabled) */
         case AV_SAMPLE_FMT_DBL:  samples_dbl_to_s16(outbuf, ibuf, channels, samples_to_do, data->samples_consumed); break;
         case AV_SAMPLE_FMT_DBLP: samples_dblp_to_s16(outbuf, ibuf, channels, samples_to_do, data->samples_consumed); break;
@@ -692,8 +686,6 @@ static void copy_samples(ffmpeg_codec_data *data, sample_t *outbuf, int samples_
 
     if (data->channel_remap_set)
         remap_audio(outbuf, samples_to_do, channels, data->channel_remap);
-    if (data->invert_audio_set)
-        invert_audio(outbuf, samples_to_do, channels);
 }
 
 /* decode samples of any kind of FFmpeg format */

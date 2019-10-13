@@ -1192,7 +1192,7 @@ typedef struct {
     // config
     int channel_remap_set;
     int channel_remap[32];      /* map of channel > new position */
-    int invert_audio_set;
+    int invert_floats_set;
     int skip_samples_set;       /* flag to know skip samples were manually added from vgmstream */
     int force_seek;             /* flags for special seeking in faulty formats */
     int bad_init;
