@@ -657,7 +657,7 @@ static void copy_samples(ffmpeg_codec_data *data, sample_t *outbuf, int samples_
         ibuf = data->frame->extended_data;
     }
     else {
-        ibuf = data->frame->data;
+        ibuf = data->frame->data[0];
     }
 
     switch (data->codecCtx->sample_fmt) {
