@@ -2628,8 +2628,7 @@ static STREAMFILE * get_vgmstream_average_bitrate_channel_streamfile(VGMSTREAM *
 
 #ifdef VGM_USE_VORBIS
     if (vgmstream->coding_type == coding_OGG_VORBIS) {
-        ogg_vorbis_codec_data *data = vgmstream->codec_data;
-        return data ? data->ov_streamfile.streamfile : NULL;
+        return ogg_vorbis_get_streamfile(vgmstream->codec_data);
     }
 #endif
     if (vgmstream->coding_type == coding_CRI_HCA) {

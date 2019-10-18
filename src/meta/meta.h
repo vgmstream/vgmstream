@@ -128,7 +128,7 @@ typedef struct {
 
 } ogg_vorbis_meta_info_t;
 
-VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, ov_callbacks *callbacks, off_t other_header_bytes, const ogg_vorbis_meta_info_t *ovmi);
+VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, ov_callbacks *callbacks, off_t start, const ogg_vorbis_meta_info_t *ovmi);
 #endif
 
 VGMSTREAM * init_vgmstream_hca(STREAMFILE *streamFile);
