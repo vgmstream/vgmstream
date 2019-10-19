@@ -28,7 +28,6 @@ public:
             InputInfo() //InputInfo(FlagSubtunes)  // allow subsongs
             .with_priority(AUDACIOUS_VGMSTREAM_PRIORITY)  // where 0=highest, 10=lowest
             .with_exts(exts)) {}  // priority exts (accepted exts are still validated at runtime)
-            ) {}
 
     bool init();
     void cleanup();
