@@ -70,24 +70,15 @@ fail:
 
 /* ************************************** */
 
+//todo maybe use reopen sf? since internal buffer is going to be read
 #define ACB_TABLE_BUFFER_SIZE 0x4000
 
-STREAMFILE* setup_acb_streamfile(STREAMFILE *streamFile, size_t buffer_size) {
-    STREAMFILE *temp_streamFile = NULL, *new_streamFile = NULL;
+STREAMFILE* setup_acb_streamfile(STREAMFILE *sf, size_t buffer_size) {
+    STREAMFILE *new_sf = NULL;
 
-    new_streamFile = open_wrap_streamfile(streamFile);
-    if (!new_streamFile) goto fail;
-    temp_streamFile = new_streamFile;
-
-    new_streamFile = open_buffer_streamfile(temp_streamFile, buffer_size);
-    if (!new_streamFile) goto fail;
-    temp_streamFile = new_streamFile;
-
-    return temp_streamFile;
-
-fail:
-    close_streamfile(temp_streamFile);
-    return NULL;
+    new_sf = open_wrap_streamfile(sf);
+    new_sf = open_buffer_streamfile_f(new_sf, buffer_size);
+    return new_sf;
 }
 
 

@@ -110,7 +110,7 @@ static VGMSTREAM *build_layered_vgmstream(STREAMFILE *streamFile, off_t segment_
     VGMSTREAM *vgmstream = NULL;
     layered_layout_data* data = NULL;
     int i;
-    STREAMFILE* temp_streamFile = NULL;
+    STREAMFILE* temp_sf = NULL;
 
 
     /* build layers */
@@ -119,17 +119,17 @@ static VGMSTREAM *build_layered_vgmstream(STREAMFILE *streamFile, off_t segment_
 
     for (i = 0; i < layer_count; i++) {
         /* build the layer STREAMFILE */
-        temp_streamFile = setup_aix_streamfile(streamFile, segment_offset, segment_size, i, "adx");
-        if (!temp_streamFile) goto fail;
+        temp_sf = setup_aix_streamfile(streamFile, segment_offset, segment_size, i, "adx");
+        if (!temp_sf) goto fail;
 
         /* build the sub-VGMSTREAM */
-        data->layers[i] = init_vgmstream_adx(temp_streamFile);
+        data->layers[i] = init_vgmstream_adx(temp_sf);
         if (!data->layers[i]) goto fail;
 
-        data->layers[i]->stream_size = get_streamfile_size(temp_streamFile);
+        data->layers[i]->stream_size = get_streamfile_size(temp_sf);
 
-        close_streamfile(temp_streamFile);
-        temp_streamFile = NULL;
+        close_streamfile(temp_sf);
+        temp_sf = NULL;
     }
 
     if (!setup_layout_layered(data))
@@ -145,7 +145,7 @@ static VGMSTREAM *build_layered_vgmstream(STREAMFILE *streamFile, off_t segment_
 fail:
     if (!vgmstream) free_layout_layered(data);
     close_vgmstream(vgmstream);
-    close_streamfile(temp_streamFile);
+    close_streamfile(temp_sf);
     return NULL;
 }
 
