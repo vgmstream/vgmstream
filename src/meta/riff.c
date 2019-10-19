@@ -283,6 +283,7 @@ fail:
 }
 
 static int is_ue4_msadpcm(VGMSTREAM* vgmstream, STREAMFILE* streamFile, riff_fmt_chunk* fmt, int fact_sample_count, off_t start_offset);
+static size_t get_ue4_msadpcm_interleave(STREAMFILE *sf, riff_fmt_chunk *fmt, off_t start, size_t size);
 
 
 VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
@@ -706,6 +707,16 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
             goto fail;
     }
 
+    /* UE4 uses interleaved mono MSADPCM, try to autodetect without breaking normal MSADPCM */
+    if (fmt.coding_type == coding_MSADPCM && is_ue4_msadpcm(vgmstream, streamFile, &fmt, fact_sample_count, start_offset)) {
+        vgmstream->coding_type = coding_MSADPCM_int;
+        vgmstream->frame_size = fmt.block_size;
+        vgmstream->layout_type = layout_interleave;
+        vgmstream->interleave_block_size = get_ue4_msadpcm_interleave(streamFile, &fmt, start_offset, data_size);
+        if (fmt.size == 0x36)
+            vgmstream->num_samples = read_s32le(fmt.offset+0x08+0x32, streamFile);
+    }
+
     /* Dynasty Warriors 5 (Xbox) 6ch interleaves stereo frames, probably not official */
     if (vgmstream->coding_type == coding_XBOX_IMA && vgmstream->channels > 2) {
         vgmstream->layout_type = layout_interleave;
@@ -753,20 +764,6 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
     if (!vgmstream_open_stream(vgmstream, streamFile, start_offset))
         goto fail;
 
-    /* UE4 uses half-interleave mono MSADPCM, try to autodetect without breaking normal MSADPCM */
-    if (fmt.coding_type == coding_MSADPCM && is_ue4_msadpcm(vgmstream, streamFile, &fmt, fact_sample_count, start_offset)) {
-        int ch;
-        size_t half_interleave = data_size / vgmstream->channels;
-
-        vgmstream->coding_type = coding_MSADPCM_int;
-
-        /* only works with half-interleave as frame_size and interleave are merged ATM */
-        for (ch = 0; ch < vgmstream->channels; ch++) {
-            vgmstream->ch[ch].channel_start_offset =
-                    vgmstream->ch[ch].offset = start_offset + half_interleave*ch;
-        }
-    }
-
     return vgmstream;
 
 fail:
@@ -775,10 +772,10 @@ fail:
 }
 
 /* UE4 MSADPCM is quite normal but has a few minor quirks we can use to detect it */
-static int is_ue4_msadpcm(VGMSTREAM* vgmstream, STREAMFILE* streamFile, riff_fmt_chunk* fmt, int fact_sample_count, off_t start_offset) {
+static int is_ue4_msadpcm(VGMSTREAM* vgmstream, STREAMFILE* streamFile, riff_fmt_chunk* fmt, int fact_sample_count, off_t start) {
 
-    /* stereo only */
-    if (fmt->channel_count != 2)
+    /* multichannel ok */
+    if (fmt->channel_count < 2)
         goto fail;
 
     /* UE4 class is "ADPCM", assume it's the extension too */
@@ -793,13 +790,13 @@ static int is_ue4_msadpcm(VGMSTREAM* vgmstream, STREAMFILE* streamFile, riff_fmt
     if (fmt->block_size != 0x200)
         goto fail;
 
-    /* later UE4 versions use 0x36 (at 0x32 may be fact_samples?) */
+    /* later UE4 versions use 0x36 */
     if (fmt->size != 0x32 && fmt->size != 0x36)
         goto fail;
 
     /* size 0x32 in older UE4 matches standard MSADPCM, so add extra detection */
     if (fmt->size == 0x32) {
-        off_t offset = start_offset;
+        off_t offset = start;
         off_t max_offset = 5 * fmt->block_size; /* try N blocks */
         if (max_offset > get_streamfile_size(streamFile))
             max_offset = get_streamfile_size(streamFile);
@@ -816,6 +813,64 @@ static int is_ue4_msadpcm(VGMSTREAM* vgmstream, STREAMFILE* streamFile, riff_fmt
     return 1;
 fail:
     return 0;
+}
+
+/* for maximum annoyance later UE4 versions (~v4.2x?) interleave single frames instead of
+ * half interleave, but don't have flags to detect so we need some heuristics */
+static size_t get_ue4_msadpcm_interleave(STREAMFILE *sf, riff_fmt_chunk *fmt, off_t start, size_t size) {
+    size_t v1_interleave = size / fmt->channel_count;
+    size_t v2_interleave = fmt->block_size;
+    uint8_t nibbles1[0x08] = {0};
+    uint8_t nibbles2[0x08] = {0};
+
+
+    /* old versions */
+    if (fmt->size == 0x32)
+        return v1_interleave;
+
+    /* 6ch only observed in later versions [Fortnite (PC)], not padded */
+    if (fmt->channel_count > 2)
+        return v2_interleave;
+
+    read_streamfile(nibbles1, start + size - 0x08, sizeof(nibbles2), sf);
+    read_streamfile(nibbles2, start + v1_interleave - 0x08, sizeof(nibbles2), sf);
+
+    /* last frame is almost always padded, so should at half interleave */
+    if (get_u64be(nibbles1) == 0 && get_u64be(nibbles2) == 0)
+        return v1_interleave;
+
+    /* last frame is silent-ish, so should at half interleave (TSA's SML_DarknessLoop_01, TSA_CAD_YAKATA)
+     * this doesn't work too well b/c num_samples at 0x36 uses all data, may need adjustment */
+    {
+
+        int i;
+        int empty_nibbles1 = 1, empty_nibbles2 = 1;
+
+        for (i = 0; i < sizeof(nibbles1); i++) {
+            uint8_t n1 = ((nibbles1[i] >> 0) & 0x0f);
+            uint8_t n2 = ((nibbles1[i] >> 4) & 0x0f);
+            if ((n1 != 0x0 && n1 != 0xf && n1 != 0x1) || (n2 != 0x0 && n2 != 0xf && n2 != 0x1)) {
+                empty_nibbles1 = 0;
+                break;
+            }
+        }
+
+        for (i = 0; i < sizeof(nibbles2); i++) {
+            uint8_t n1 = ((nibbles2[i] >> 0) & 0x0f);
+            uint8_t n2 = ((nibbles2[i] >> 4) & 0x0f);
+            if ((n1 != 0x0 && n1 != 0xf && n1 != 0x1) || (n2 != 0x0 && n2 != 0xf && n2 != 0x1)) {
+                empty_nibbles2 = 0;
+                break;
+            }
+        }
+
+        if (empty_nibbles1 && empty_nibbles2)
+            return v1_interleave;
+    }
+
+    /* other tests? */
+
+    return v2_interleave; /* favor newer games */
 }
 
 VGMSTREAM * init_vgmstream_rifx(STREAMFILE *streamFile) {
