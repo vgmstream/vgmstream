@@ -20,13 +20,13 @@ typedef struct {
     size_t filesize;        /* buffered file size */
 } STDIO_STREAMFILE;
 
-static STREAMFILE * open_stdio_streamfile_buffer(const char * const filename, size_t buffersize);
-static STREAMFILE * open_stdio_streamfile_buffer_by_file(FILE *infile,const char * const filename, size_t buffersize);
+static STREAMFILE* open_stdio_streamfile_buffer(const char * const filename, size_t buffersize);
+static STREAMFILE* open_stdio_streamfile_buffer_by_file(FILE *infile, const char * const filename, size_t buffersize);
 
-static size_t read_stdio(STDIO_STREAMFILE *streamfile,uint8_t * dest, off_t offset, size_t length) {
+static size_t read_stdio(STDIO_STREAMFILE *streamfile, uint8_t *dst, off_t offset, size_t length) {
     size_t length_read_total = 0;
 
-    if (!streamfile->infile || !dest || length <= 0 || offset < 0)
+    if (!streamfile->infile || !dst || length <= 0 || offset < 0)
         return 0;
 
     /* is the part of the requested length in the buffer? */
@@ -38,11 +38,11 @@ static size_t read_stdio(STDIO_STREAMFILE *streamfile,uint8_t * dest, off_t offs
         if (length_to_read > length)
             length_to_read = length;
 
-        memcpy(dest,streamfile->buffer + offset_into_buffer,length_to_read);
+        memcpy(dst, streamfile->buffer + offset_into_buffer, length_to_read);
         length_read_total += length_to_read;
         length -= length_to_read;
         offset += length_to_read;
-        dest += length_to_read;
+        dst += length_to_read;
     }
 
 #ifdef VGM_DEBUG_OUTPUT
@@ -77,7 +77,7 @@ static size_t read_stdio(STDIO_STREAMFILE *streamfile,uint8_t * dest, off_t offs
 
         /* fill the buffer (offset now is beyond buffer_offset) */
         streamfile->buffer_offset = offset;
-        streamfile->validsize = fread(streamfile->buffer,sizeof(uint8_t),streamfile->buffersize,streamfile->infile);
+        streamfile->validsize = fread(streamfile->buffer, sizeof(uint8_t), streamfile->buffersize, streamfile->infile);
 
         /* decide how much must be read this time */
         if (length > streamfile->buffersize)
@@ -87,55 +87,55 @@ static size_t read_stdio(STDIO_STREAMFILE *streamfile,uint8_t * dest, off_t offs
 
         /* give up on partial reads (EOF) */
         if (streamfile->validsize < length_to_read) {
-            memcpy(dest,streamfile->buffer,streamfile->validsize);
+            memcpy(dst, streamfile->buffer, streamfile->validsize);
             offset += streamfile->validsize;
             length_read_total += streamfile->validsize;
             break;
         }
 
         /* use the new buffer */
-        memcpy(dest,streamfile->buffer,length_to_read);
+        memcpy(dst, streamfile->buffer, length_to_read);
         offset += length_to_read;
         length_read_total += length_to_read;
         length -= length_to_read;
-        dest += length_to_read;
+        dst += length_to_read;
     }
 
     streamfile->offset = offset; /* last fread offset */
     return length_read_total;
 }
-static size_t get_size_stdio(STDIO_STREAMFILE * streamfile) {
+static size_t get_size_stdio(STDIO_STREAMFILE *streamfile) {
     return streamfile->filesize;
 }
 static off_t get_offset_stdio(STDIO_STREAMFILE *streamfile) {
     return streamfile->offset;
 }
-static void get_name_stdio(STDIO_STREAMFILE *streamfile,char *buffer,size_t length) {
-    strncpy(buffer,streamfile->name,length);
+static void get_name_stdio(STDIO_STREAMFILE *streamfile, char *buffer, size_t length) {
+    strncpy(buffer, streamfile->name, length);
     buffer[length-1]='\0';
 }
-static void close_stdio(STDIO_STREAMFILE * streamfile) {
+static void close_stdio(STDIO_STREAMFILE *streamfile) {
     if (streamfile->infile)
         fclose(streamfile->infile);
     free(streamfile->buffer);
     free(streamfile);
 }
 
-static STREAMFILE *open_stdio(STDIO_STREAMFILE *streamFile,const char * const filename,size_t buffersize) {
+static STREAMFILE* open_stdio(STDIO_STREAMFILE *streamfile, const char * const filename, size_t buffersize) {
     if (!filename)
         return NULL;
 
 #if !defined (__ANDROID__)
     // if same name, duplicate the file pointer we already have open
-    if (streamFile->infile && !strcmp(streamFile->name,filename)) {
+    if (streamfile->infile && !strcmp(streamfile->name,filename)) {
         int newfd;
         FILE *newfile;
-        STREAMFILE *newstreamFile;
+        STREAMFILE *new_sf;
 
-        if ( ((newfd = dup(fileno(streamFile->infile))) >= 0) && (newfile = fdopen( newfd, "rb")) )  {
-            newstreamFile = open_stdio_streamfile_buffer_by_file(newfile,filename,buffersize);
-            if (newstreamFile) { 
-                return newstreamFile;
+        if ( ((newfd = dup(fileno(streamfile->infile))) >= 0) && (newfile = fdopen(newfd, "rb")) )  {
+            new_sf = open_stdio_streamfile_buffer_by_file(newfile, filename, buffersize);
+            if (new_sf) {
+                return new_sf;
             }
             // failure, close it and try the default path (which will probably fail a second time)
             fclose(newfile);
@@ -143,12 +143,12 @@ static STREAMFILE *open_stdio(STDIO_STREAMFILE *streamFile,const char * const fi
     }
 #endif    
     // a normal open, open a new file
-    return open_stdio_streamfile_buffer(filename,buffersize);
+    return open_stdio_streamfile_buffer(filename, buffersize);
 }
 
-static STREAMFILE * open_stdio_streamfile_buffer_by_file(FILE *infile, const char * const filename, size_t buffersize) {
-    uint8_t * buffer = NULL;
-    STDIO_STREAMFILE * streamfile = NULL;
+static STREAMFILE* open_stdio_streamfile_buffer_by_file(FILE *infile, const char * const filename, size_t buffersize) {
+    uint8_t *buffer = NULL;
+    STDIO_STREAMFILE *streamfile = NULL;
 
     buffer = calloc(buffersize,1);
     if (!buffer) goto fail;
@@ -167,7 +167,7 @@ static STREAMFILE * open_stdio_streamfile_buffer_by_file(FILE *infile, const cha
     streamfile->buffersize = buffersize;
     streamfile->buffer = buffer;
 
-    strncpy(streamfile->name,filename,sizeof(streamfile->name));
+    strncpy(streamfile->name, filename, sizeof(streamfile->name));
     streamfile->name[sizeof(streamfile->name)-1] = '\0';
 
     /* cache filesize */
@@ -195,9 +195,9 @@ fail:
     return NULL;
 }
 
-static STREAMFILE * open_stdio_streamfile_buffer(const char * const filename, size_t buffersize) {
-    FILE * infile;
-    STREAMFILE *streamFile;
+static STREAMFILE* open_stdio_streamfile_buffer(const char * const filename, size_t bufsize) {
+    FILE *infile = NULL;
+    STREAMFILE *streamfile = NULL;
 
     infile = fopen(filename,"rb");
     if (!infile) {
@@ -206,21 +206,20 @@ static STREAMFILE * open_stdio_streamfile_buffer(const char * const filename, si
             return NULL;
     }
 
-    streamFile = open_stdio_streamfile_buffer_by_file(infile,filename,buffersize);
-    if (!streamFile) {
+    streamfile = open_stdio_streamfile_buffer_by_file(infile, filename, bufsize);
+    if (!streamfile) {
         if (infile) fclose(infile);
     }
 
-    return streamFile;
+    return streamfile;
 }
 
-
-STREAMFILE * open_stdio_streamfile(const char * filename) {
-    return open_stdio_streamfile_buffer(filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
+STREAMFILE* open_stdio_streamfile(const char *filename) {
+    return open_stdio_streamfile_buffer(filename, STREAMFILE_DEFAULT_BUFFER_SIZE);
 }
 
-STREAMFILE * open_stdio_streamfile_by_file(FILE * file, const char * filename) {
-    return open_stdio_streamfile_buffer_by_file(file,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
+STREAMFILE* open_stdio_streamfile_by_file(FILE *file, const char *filename) {
+    return open_stdio_streamfile_buffer_by_file(file, filename, STREAMFILE_DEFAULT_BUFFER_SIZE);
 }
 
 /* **************************************************** */
@@ -238,10 +237,10 @@ typedef struct {
 } BUFFER_STREAMFILE;
 
 
-static size_t buffer_read(BUFFER_STREAMFILE *streamfile, uint8_t * dest, off_t offset, size_t length) {
+static size_t buffer_read(BUFFER_STREAMFILE *streamfile, uint8_t *dst, off_t offset, size_t length) {
     size_t length_read_total = 0;
 
-    if (!dest || length <= 0 || offset < 0)
+    if (!dst || length <= 0 || offset < 0)
         return 0;
 
     /* is the part of the requested length in the buffer? */
@@ -253,11 +252,11 @@ static size_t buffer_read(BUFFER_STREAMFILE *streamfile, uint8_t * dest, off_t o
         if (length_to_read > length)
             length_to_read = length;
 
-        memcpy(dest,streamfile->buffer + offset_into_buffer,length_to_read);
+        memcpy(dst, streamfile->buffer + offset_into_buffer, length_to_read);
         length_read_total += length_to_read;
         length -= length_to_read;
         offset += length_to_read;
-        dest += length_to_read;
+        dst += length_to_read;
     }
 
 #ifdef VGM_DEBUG_OUTPUT
@@ -289,27 +288,27 @@ static size_t buffer_read(BUFFER_STREAMFILE *streamfile, uint8_t * dest, off_t o
 
         /* give up on partial reads (EOF) */
         if (streamfile->validsize < length_to_read) {
-            memcpy(dest,streamfile->buffer,streamfile->validsize);
+            memcpy(dst, streamfile->buffer, streamfile->validsize);
             offset += streamfile->validsize;
             length_read_total += streamfile->validsize;
             break;
         }
 
         /* use the new buffer */
-        memcpy(dest,streamfile->buffer,length_to_read);
+        memcpy(dst, streamfile->buffer, length_to_read);
         offset += length_to_read;
         length_read_total += length_to_read;
         length -= length_to_read;
-        dest += length_to_read;
+        dst += length_to_read;
     }
 
     streamfile->offset = offset; /* last fread offset */
     return length_read_total;
 }
-static size_t buffer_get_size(BUFFER_STREAMFILE * streamfile) {
+static size_t buffer_get_size(BUFFER_STREAMFILE *streamfile) {
     return streamfile->filesize; /* cache */
 }
-static size_t buffer_get_offset(BUFFER_STREAMFILE * streamfile) {
+static size_t buffer_get_offset(BUFFER_STREAMFILE *streamfile) {
     return streamfile->offset; /* cache */
 }
 static void buffer_get_name(BUFFER_STREAMFILE *streamfile, char *buffer, size_t length) {
@@ -325,12 +324,12 @@ static void buffer_close(BUFFER_STREAMFILE *streamfile) {
     free(streamfile);
 }
 
-STREAMFILE *open_buffer_streamfile(STREAMFILE *streamfile, size_t buffer_size) {
+STREAMFILE* open_buffer_streamfile(STREAMFILE *streamfile, size_t buffer_size) {
     BUFFER_STREAMFILE *this_sf = NULL;
 
     if (!streamfile) goto fail;
 
-    this_sf = calloc(1,sizeof(BUFFER_STREAMFILE));
+    this_sf = calloc(1, sizeof(BUFFER_STREAMFILE));
     if (!this_sf) goto fail;
 
     this_sf->buffersize = buffer_size;
@@ -360,6 +359,12 @@ fail:
     free(this_sf);
     return NULL;
 }
+STREAMFILE* open_buffer_streamfile_f(STREAMFILE *streamfile, size_t buffer_size) {
+    STREAMFILE *new_sf = open_buffer_streamfile(streamfile, buffer_size);
+    if (!new_sf)
+        close_streamfile(streamfile);
+    return new_sf;
+}
 
 /* **************************************************** */
 
@@ -373,13 +378,13 @@ typedef struct {
     STREAMFILE *inner_sf;
 } WRAP_STREAMFILE;
 
-static size_t wrap_read(WRAP_STREAMFILE *streamfile, uint8_t * dest, off_t offset, size_t length) {
-    return streamfile->inner_sf->read(streamfile->inner_sf, dest, offset, length); /* default */
+static size_t wrap_read(WRAP_STREAMFILE *streamfile, uint8_t *dst, off_t offset, size_t length) {
+    return streamfile->inner_sf->read(streamfile->inner_sf, dst, offset, length); /* default */
 }
-static size_t wrap_get_size(WRAP_STREAMFILE * streamfile) {
+static size_t wrap_get_size(WRAP_STREAMFILE *streamfile) {
     return streamfile->inner_sf->get_size(streamfile->inner_sf); /* default */
 }
-static size_t wrap_get_offset(WRAP_STREAMFILE * streamfile) {
+static size_t wrap_get_offset(WRAP_STREAMFILE *streamfile) {
     return streamfile->inner_sf->get_offset(streamfile->inner_sf); /* default */
 }
 static void wrap_get_name(WRAP_STREAMFILE *streamfile, char *buffer, size_t length) {
@@ -393,8 +398,8 @@ static void wrap_close(WRAP_STREAMFILE *streamfile) {
     free(streamfile);
 }
 
-STREAMFILE *open_wrap_streamfile(STREAMFILE *streamfile) {
-    WRAP_STREAMFILE *this_sf;
+STREAMFILE* open_wrap_streamfile(STREAMFILE *streamfile) {
+    WRAP_STREAMFILE *this_sf = NULL;
 
     if (!streamfile) return NULL;
 
@@ -414,6 +419,12 @@ STREAMFILE *open_wrap_streamfile(STREAMFILE *streamfile) {
 
     return &this_sf->sf;
 }
+STREAMFILE* open_wrap_streamfile_f(STREAMFILE *streamfile) {
+    STREAMFILE *new_sf = open_wrap_streamfile(streamfile);
+    if (!new_sf)
+        close_streamfile(streamfile);
+    return new_sf;
+}
 
 /* **************************************************** */
 
@@ -425,10 +436,10 @@ typedef struct {
     size_t size;
 } CLAMP_STREAMFILE;
 
-static size_t clamp_read(CLAMP_STREAMFILE *streamfile, uint8_t *dest, off_t offset, size_t length) {
+static size_t clamp_read(CLAMP_STREAMFILE *streamfile, uint8_t *dst, off_t offset, size_t length) {
     off_t inner_offset = streamfile->start + offset;
     size_t clamp_length = length > (streamfile->size - offset) ? (streamfile->size - offset) : length;
-    return streamfile->inner_sf->read(streamfile->inner_sf, dest, inner_offset, clamp_length);
+    return streamfile->inner_sf->read(streamfile->inner_sf, dst, inner_offset, clamp_length);
 }
 static size_t clamp_get_size(CLAMP_STREAMFILE *streamfile) {
     return streamfile->size;
@@ -441,7 +452,7 @@ static void clamp_get_name(CLAMP_STREAMFILE *streamfile, char *buffer, size_t le
 }
 static STREAMFILE *clamp_open(CLAMP_STREAMFILE *streamfile, const char * const filename, size_t buffersize) {
     char original_filename[PATH_LIMIT];
-    STREAMFILE *new_inner_sf;
+    STREAMFILE *new_inner_sf = NULL;
 
     new_inner_sf = streamfile->inner_sf->open(streamfile->inner_sf,filename,buffersize);
     streamfile->inner_sf->get_name(streamfile->inner_sf, original_filename, PATH_LIMIT);
@@ -450,7 +461,7 @@ static STREAMFILE *clamp_open(CLAMP_STREAMFILE *streamfile, const char * const f
     if (strcmp(filename, original_filename) == 0) {
         return open_clamp_streamfile(new_inner_sf, streamfile->start, streamfile->size); /* clamp again */
     } else {
-        return new_inner_sf; /**/
+        return new_inner_sf;
     }
 }
 static void clamp_close(CLAMP_STREAMFILE *streamfile) {
@@ -458,10 +469,10 @@ static void clamp_close(CLAMP_STREAMFILE *streamfile) {
     free(streamfile);
 }
 
-STREAMFILE *open_clamp_streamfile(STREAMFILE *streamfile, off_t start, size_t size) {
-    CLAMP_STREAMFILE *this_sf;
+STREAMFILE* open_clamp_streamfile(STREAMFILE *streamfile, off_t start, size_t size) {
+    CLAMP_STREAMFILE *this_sf = NULL;
 
-    if (!streamfile || !size) return NULL;
+    if (!streamfile || size == 0) return NULL;
     if (start + size > get_streamfile_size(streamfile)) return NULL;
 
     this_sf = calloc(1,sizeof(CLAMP_STREAMFILE));
@@ -482,6 +493,12 @@ STREAMFILE *open_clamp_streamfile(STREAMFILE *streamfile, off_t start, size_t si
 
     return &this_sf->sf;
 }
+STREAMFILE* open_clamp_streamfile_f(STREAMFILE *streamfile, off_t start, size_t size) {
+    STREAMFILE *new_sf = open_clamp_streamfile(streamfile, start, size);
+    if (!new_sf)
+        close_streamfile(streamfile);
+    return new_sf;
+}
 
 /* **************************************************** */
 
@@ -497,8 +514,8 @@ typedef struct {
     //size_t (*close_data_callback)(STREAMFILE *, void*); /* called during close, allows to free stuff in data */
 } IO_STREAMFILE;
 
-static size_t io_read(IO_STREAMFILE *streamfile, uint8_t *dest, off_t offset, size_t length) {
-    return streamfile->read_callback(streamfile->inner_sf, dest, offset, length, streamfile->data);
+static size_t io_read(IO_STREAMFILE *streamfile, uint8_t *dst, off_t offset, size_t length) {
+    return streamfile->read_callback(streamfile->inner_sf, dst, offset, length, streamfile->data);
 }
 static size_t io_get_size(IO_STREAMFILE *streamfile) {
     if (streamfile->size_callback)
@@ -512,7 +529,7 @@ static off_t io_get_offset(IO_STREAMFILE *streamfile) {
 static void io_get_name(IO_STREAMFILE *streamfile, char *buffer, size_t length) {
     streamfile->inner_sf->get_name(streamfile->inner_sf, buffer, length); /* default */
 }
-static STREAMFILE *io_open(IO_STREAMFILE *streamfile, const char * const filename, size_t buffersize) {
+static STREAMFILE* io_open(IO_STREAMFILE *streamfile, const char * const filename, size_t buffersize) {
     //todo should have some flag to decide if opening other files with IO
     STREAMFILE *new_inner_sf = streamfile->inner_sf->open(streamfile->inner_sf,filename,buffersize);
     return open_io_streamfile(new_inner_sf, streamfile->data, streamfile->data_size, streamfile->read_callback, streamfile->size_callback);
@@ -523,8 +540,8 @@ static void io_close(IO_STREAMFILE *streamfile) {
     free(streamfile);
 }
 
-STREAMFILE *open_io_streamfile(STREAMFILE *streamfile, void* data, size_t data_size, void* read_callback, void* size_callback) {
-    IO_STREAMFILE *this_sf;
+STREAMFILE* open_io_streamfile(STREAMFILE *streamfile, void *data, size_t data_size, void *read_callback, void *size_callback) {
+    IO_STREAMFILE *this_sf = NULL;
 
     if (!streamfile) return NULL;
     if ((data && !data_size) || (!data && data_size)) return NULL;
@@ -556,6 +573,12 @@ STREAMFILE *open_io_streamfile(STREAMFILE *streamfile, void* data, size_t data_s
 
     return &this_sf->sf;
 }
+STREAMFILE* open_io_streamfile_f(STREAMFILE *streamfile, void *data, size_t data_size, void *read_callback, void *size_callback) {
+    STREAMFILE *new_sf = open_io_streamfile(streamfile, data, data_size, read_callback, size_callback);
+    if (!new_sf)
+        close_streamfile(streamfile);
+    return new_sf;
+}
 
 /* **************************************************** */
 
@@ -566,20 +589,20 @@ typedef struct {
     char fakename[PATH_LIMIT];
 } FAKENAME_STREAMFILE;
 
-static size_t fakename_read(FAKENAME_STREAMFILE *streamfile, uint8_t * dest, off_t offset, size_t length) {
-    return streamfile->inner_sf->read(streamfile->inner_sf, dest, offset, length); /* default */
+static size_t fakename_read(FAKENAME_STREAMFILE *streamfile, uint8_t *dst, off_t offset, size_t length) {
+    return streamfile->inner_sf->read(streamfile->inner_sf, dst, offset, length); /* default */
 }
-static size_t fakename_get_size(FAKENAME_STREAMFILE * streamfile) {
+static size_t fakename_get_size(FAKENAME_STREAMFILE *streamfile) {
     return streamfile->inner_sf->get_size(streamfile->inner_sf); /* default */
 }
-static size_t fakename_get_offset(FAKENAME_STREAMFILE * streamfile) {
+static size_t fakename_get_offset(FAKENAME_STREAMFILE *streamfile) {
     return streamfile->inner_sf->get_offset(streamfile->inner_sf); /* default */
 }
 static void fakename_get_name(FAKENAME_STREAMFILE *streamfile, char *buffer, size_t length) {
     strncpy(buffer,streamfile->fakename,length);
     buffer[length-1]='\0';
 }
-static STREAMFILE *fakename_open(FAKENAME_STREAMFILE *streamfile, const char * const filename, size_t buffersize) {
+static STREAMFILE* fakename_open(FAKENAME_STREAMFILE *streamfile, const char * const filename, size_t buffersize) {
     /* detect re-opening the file */
     if (strcmp(filename, streamfile->fakename) == 0) {
         STREAMFILE *new_inner_sf;
@@ -598,8 +621,8 @@ static void fakename_close(FAKENAME_STREAMFILE *streamfile) {
     free(streamfile);
 }
 
-STREAMFILE *open_fakename_streamfile(STREAMFILE *streamfile, const char * fakename, const char* fakeext) {
-    FAKENAME_STREAMFILE *this_sf;
+STREAMFILE* open_fakename_streamfile(STREAMFILE *streamfile, const char *fakename, const char *fakeext) {
+    FAKENAME_STREAMFILE *this_sf = NULL;
 
     if (!streamfile || (!fakename && !fakeext)) return NULL;
 
@@ -623,6 +646,7 @@ STREAMFILE *open_fakename_streamfile(STREAMFILE *streamfile, const char * fakena
     } else {
         streamfile->get_name(streamfile, this_sf->fakename, PATH_LIMIT);
     }
+
     if (fakeext) {
         char * ext = strrchr(this_sf->fakename,'.');
         if (ext != NULL)
@@ -632,9 +656,14 @@ STREAMFILE *open_fakename_streamfile(STREAMFILE *streamfile, const char * fakena
 
     return &this_sf->sf;
 }
+STREAMFILE* open_fakename_streamfile_f(STREAMFILE *streamfile, const char *fakename, const char *fakeext) {
+    STREAMFILE *new_sf = open_fakename_streamfile(streamfile, fakename, fakeext);
+    if (!new_sf)
+        close_streamfile(streamfile);
+    return new_sf;
+}
 
 /* **************************************************** */
-
 
 typedef struct {
     STREAMFILE sf;
@@ -646,7 +675,7 @@ typedef struct {
     off_t offset;
 } MULTIFILE_STREAMFILE;
 
-static size_t multifile_read(MULTIFILE_STREAMFILE *streamfile, uint8_t * dest, off_t offset, size_t length) {
+static size_t multifile_read(MULTIFILE_STREAMFILE *streamfile, uint8_t *dst, off_t offset, size_t length) {
     int i, segment = 0;
     off_t segment_offset = 0;
     size_t done = 0;
@@ -674,7 +703,7 @@ static size_t multifile_read(MULTIFILE_STREAMFILE *streamfile, uint8_t * dest, o
         if (segment >= streamfile->inner_sfs_size) /* over last segment, not fully done */
             break;
         /* reads over segment size are ok, will return smaller value and continue next segment */
-        done += streamfile->inner_sfs[segment]->read(streamfile->inner_sfs[segment], dest+done, segment_offset, length - done);
+        done += streamfile->inner_sfs[segment]->read(streamfile->inner_sfs[segment], dst + done, segment_offset, length - done);
         segment++;
         segment_offset = 0;
     }
@@ -691,7 +720,7 @@ static size_t multifile_get_offset(MULTIFILE_STREAMFILE * streamfile) {
 static void multifile_get_name(MULTIFILE_STREAMFILE *streamfile, char *buffer, size_t length) {
     streamfile->inner_sfs[0]->get_name(streamfile->inner_sfs[0], buffer, length);
 }
-static STREAMFILE *multifile_open(MULTIFILE_STREAMFILE *streamfile, const char * const filename, size_t buffersize) {
+static STREAMFILE* multifile_open(MULTIFILE_STREAMFILE *streamfile, const char * const filename, size_t buffersize) {
     char original_filename[PATH_LIMIT];
     STREAMFILE *new_sf = NULL;
     STREAMFILE **new_inner_sfs = NULL;
@@ -740,11 +769,12 @@ static void multifile_close(MULTIFILE_STREAMFILE *streamfile) {
     free(streamfile);
 }
 
-STREAMFILE *open_multifile_streamfile(STREAMFILE **streamfiles, size_t streamfiles_size) {
-    MULTIFILE_STREAMFILE *this_sf;
+STREAMFILE* open_multifile_streamfile(STREAMFILE **streamfiles, size_t streamfiles_size) {
+    MULTIFILE_STREAMFILE *this_sf = NULL;
     int i;
 
     if (!streamfiles || !streamfiles_size) return NULL;
+
     for (i = 0; i < streamfiles_size; i++) {
         if (!streamfiles[i]) return NULL;
     }
@@ -783,18 +813,28 @@ fail:
     free(this_sf);
     return NULL;
 }
+STREAMFILE* open_multifile_streamfile_f(STREAMFILE **streamfiles, size_t streamfiles_size) {
+    STREAMFILE *new_sf = open_multifile_streamfile(streamfiles, streamfiles_size);
+    if (!new_sf) {
+        int i;
+        for (i = 0; i < streamfiles_size; i++) {
+            close_streamfile(streamfiles[i]);
+        }
+    }
+    return new_sf;
+}
 
 /* **************************************************** */
 
-STREAMFILE * open_streamfile(STREAMFILE *streamFile, const char * pathname) {
-    return streamFile->open(streamFile,pathname,STREAMFILE_DEFAULT_BUFFER_SIZE);
+STREAMFILE* open_streamfile(STREAMFILE *streamfile, const char *pathname) {
+    return streamfile->open(streamfile, pathname, STREAMFILE_DEFAULT_BUFFER_SIZE);
 }
 
-STREAMFILE * open_streamfile_by_ext(STREAMFILE *streamFile, const char * ext) {
+STREAMFILE* open_streamfile_by_ext(STREAMFILE *streamfile, const char *ext) {
     char filename[PATH_LIMIT];
     int filename_len, fileext_len;
 
-    streamFile->get_name(streamFile,filename,sizeof(filename));
+    streamfile->get_name(streamfile, filename, sizeof(filename));
 
     filename_len = strlen(filename);
     fileext_len = strlen(filename_extension(filename));
@@ -807,15 +847,17 @@ STREAMFILE * open_streamfile_by_ext(STREAMFILE *streamFile, const char * ext) {
         strcpy(filename + filename_len - fileext_len, ext);
     }
 
-    return streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
+    return streamfile->open(streamfile, filename, STREAMFILE_DEFAULT_BUFFER_SIZE);
 }
 
-STREAMFILE * open_streamfile_by_filename(STREAMFILE *streamFile, const char * filename) {
+STREAMFILE* open_streamfile_by_filename(STREAMFILE *streamfile, const char * filename) {
     char fullname[PATH_LIMIT];
     char partname[PATH_LIMIT];
     char *path, *name;
 
-    streamFile->get_name(streamFile, fullname, sizeof(fullname));
+    if (!streamfile || !filename) return NULL;
+
+    streamfile->get_name(streamfile, fullname, sizeof(fullname));
 
     //todo normalize separators in a better way, safeops, improve copying
     path = strrchr(fullname,DIR_SEPARATOR);
@@ -854,16 +896,18 @@ STREAMFILE * open_streamfile_by_filename(STREAMFILE *streamFile, const char * fi
         strcpy(fullname, filename);
     }
 
-    return streamFile->open(streamFile, fullname, STREAMFILE_DEFAULT_BUFFER_SIZE);
+    return streamfile->open(streamfile, fullname, STREAMFILE_DEFAULT_BUFFER_SIZE);
 }
 
-STREAMFILE * reopen_streamfile(STREAMFILE *streamFile, size_t buffer_size) {
+STREAMFILE* reopen_streamfile(STREAMFILE *streamfile, size_t buffer_size) {
     char pathname[PATH_LIMIT];
+
+    if (!streamfile) return NULL;
 
     if (buffer_size == 0)
         buffer_size = STREAMFILE_DEFAULT_BUFFER_SIZE;
-    streamFile->get_name(streamFile,pathname,sizeof(pathname));
-    return streamFile->open(streamFile,pathname,buffer_size);
+    streamfile->get_name(streamfile,pathname,sizeof(pathname));
+    return streamfile->open(streamfile,pathname,buffer_size);
 }
 
 

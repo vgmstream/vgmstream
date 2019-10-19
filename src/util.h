@@ -33,6 +33,22 @@ static inline int64_t get_64bitLE(uint8_t * p) {
     return (uint64_t)(((uint64_t)p[0]) | ((uint64_t)p[1]<<8) | ((uint64_t)p[2]<<16) | ((uint64_t)p[3]<<24) | ((uint64_t)p[4]<<32) | ((uint64_t)p[5]<<40) | ((uint64_t)p[6]<<48) | ((uint64_t)p[7]<<56));
 }
 
+/* alias of the above */
+static inline  int8_t  get_s8   (uint8_t *p) { return ( int8_t)p[0]; }
+static inline uint8_t  get_u8   (uint8_t *p) { return (uint8_t)p[0]; }
+static inline  int16_t get_s16le(uint8_t *p) { return ( int16_t)get_16bitLE(p); }
+static inline uint16_t get_u16le(uint8_t *p) { return (uint16_t)get_16bitLE(p); }
+static inline  int16_t get_s16be(uint8_t *p) { return ( int16_t)get_16bitBE(p); }
+static inline uint16_t get_u16be(uint8_t *p) { return (uint16_t)get_16bitBE(p); }
+static inline  int32_t get_s32le(uint8_t *p) { return ( int32_t)get_32bitLE(p); }
+static inline uint32_t get_u32le(uint8_t *p) { return (uint32_t)get_32bitLE(p); }
+static inline  int32_t get_s32be(uint8_t *p) { return ( int32_t)get_32bitBE(p); }
+static inline uint32_t get_u32be(uint8_t *p) { return (uint32_t)get_32bitBE(p); }
+static inline  int64_t get_s64be(uint8_t *p) { return ( int64_t)get_64bitLE(p); }
+static inline uint64_t get_u64be(uint8_t *p) { return (uint64_t)get_64bitLE(p); }
+static inline  int64_t get_s64le(uint8_t *p) { return ( int64_t)get_64bitBE(p); }
+static inline uint64_t get_u64le(uint8_t *p) { return (uint64_t)get_64bitBE(p); }
+
 void put_8bit(uint8_t * buf, int8_t i);
 
 void put_16bitLE(uint8_t * buf, int16_t i);
