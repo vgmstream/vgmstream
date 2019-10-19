@@ -662,20 +662,20 @@ static void copy_samples(ffmpeg_codec_data *data, sample_t *outbuf, int samples_
 
     switch (data->codecCtx->sample_fmt) {
         /* unused? */
+        case AV_SAMPLE_FMT_U8P:  if (is_planar) { samples_u8p_to_s16(outbuf, ibuf, channels, samples_to_do, data->samples_consumed); break; }
         case AV_SAMPLE_FMT_U8:   samples_u8_to_s16(outbuf, ibuf, channels, samples_to_do, data->samples_consumed); break;
-        case AV_SAMPLE_FMT_U8P:  samples_u8p_to_s16(outbuf, ibuf, channels, samples_to_do, data->samples_consumed); break;
         /* common */
+        case AV_SAMPLE_FMT_S16P: if (is_planar) { samples_s16p_to_s16(outbuf, ibuf, channels, samples_to_do, data->samples_consumed); break; }
         case AV_SAMPLE_FMT_S16:  samples_s16_to_s16(outbuf, ibuf, channels, samples_to_do, data->samples_consumed); break;
-        case AV_SAMPLE_FMT_S16P: samples_s16p_to_s16(outbuf, ibuf, channels, samples_to_do, data->samples_consumed); break;
         /* possibly FLAC and other lossless codecs */
+        case AV_SAMPLE_FMT_S32P: if (is_planar) { samples_s32p_to_s16(outbuf, ibuf, channels, samples_to_do, data->samples_consumed); break; }
         case AV_SAMPLE_FMT_S32:  samples_s32_to_s16(outbuf, ibuf, channels, samples_to_do, data->samples_consumed); break;
-        case AV_SAMPLE_FMT_S32P: samples_s32p_to_s16(outbuf, ibuf, channels, samples_to_do, data->samples_consumed); break;
         /* mainly MDCT-like codecs (Ogg, AAC, etc) */
+        case AV_SAMPLE_FMT_FLTP: if (is_planar) { samples_fltp_to_s16(outbuf, ibuf, channels, samples_to_do, data->samples_consumed, data->invert_floats_set); break; }
         case AV_SAMPLE_FMT_FLT:  samples_flt_to_s16(outbuf, ibuf, channels, samples_to_do, data->samples_consumed, data->invert_floats_set); break;
-        case AV_SAMPLE_FMT_FLTP: samples_fltp_to_s16(outbuf, ibuf, channels, samples_to_do, data->samples_consumed, data->invert_floats_set); break;
         /* possibly PCM64 only (not enabled) */
+        case AV_SAMPLE_FMT_DBLP: if (is_planar) { samples_dblp_to_s16(outbuf, ibuf, channels, samples_to_do, data->samples_consumed); break; }
         case AV_SAMPLE_FMT_DBL:  samples_dbl_to_s16(outbuf, ibuf, channels, samples_to_do, data->samples_consumed); break;
-        case AV_SAMPLE_FMT_DBLP: samples_dblp_to_s16(outbuf, ibuf, channels, samples_to_do, data->samples_consumed); break;
         default:
             break;
     }
