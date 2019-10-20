@@ -225,13 +225,15 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
             vgmstream->interleave_block_size = genh.interleave;
             vgmstream->layout_type = layout_none;
             break;
+
         case coding_MSADPCM:
             if (vgmstream->channels > 2) goto fail;
-            if (!genh.interleave) goto fail; /* creates garbage */
+            if (!genh.interleave) goto fail;
 
-            vgmstream->interleave_block_size = genh.interleave;
+            vgmstream->frame_size = genh.interleave;
             vgmstream->layout_type = layout_none;
             break;
+
         case coding_XBOX_IMA:
             if (genh.codec_mode == 1) { /* mono interleave */
                 coding = coding_XBOX_IMA_int;

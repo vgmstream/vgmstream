@@ -74,11 +74,12 @@ VGMSTREAM * init_vgmstream_smp(STREAMFILE *streamFile) {
 
         case 0x04:
             if (bps != 4) goto fail;
-            /* 0x34: standard MSADPCM coef table */
+            if (!msadpcm_check_coefs(streamFile, 0x36))
+                goto fail;
 
             vgmstream->coding_type = coding_MSADPCM;
             vgmstream->layout_type = layout_none;
-            vgmstream->interleave_block_size = 0x86*channel_count;
+            vgmstream->frame_size = 0x86*channel_count;
             break;
 
         case 0x06:

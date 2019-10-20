@@ -56,7 +56,7 @@ VGMSTREAM * init_vgmstream_cks(STREAMFILE *streamFile) {
             break;
         case 0x02: /* adpcm [Part Time UFO (Android), Mega Man 1-6 (Android)] */
             vgmstream->coding_type = coding_MSADPCM_ck;
-            /* frame_size is always 0x18 */
+            vgmstream->frame_size = block_size / channel_count; /* always 0x18 */
             break;
         default:
             goto fail;

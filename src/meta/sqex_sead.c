@@ -125,11 +125,11 @@ VGMSTREAM * init_vgmstream_sqex_sead(STREAMFILE * streamFile) {
             /* 0x00 (2): null?, 0x02(2): entry size? */
             vgmstream->coding_type = coding_MSADPCM;
             vgmstream->layout_type = layout_none;
-            vgmstream->interleave_block_size = read_16bit(sead.extradata_offset+0x04,streamFile);
+            vgmstream->frame_size = read_16bit(sead.extradata_offset+0x04,streamFile);
 
             /* much like AKBs, there are slightly different loop values here, probably more accurate
              * (if no loop, loop_end doubles as num_samples) */
-            vgmstream->num_samples = msadpcm_bytes_to_samples(sead.stream_size, vgmstream->interleave_block_size, vgmstream->channels);
+            vgmstream->num_samples = msadpcm_bytes_to_samples(sead.stream_size, vgmstream->frame_size, vgmstream->channels);
             vgmstream->loop_start_sample = read_32bit(sead.extradata_offset+0x08, streamFile); //loop_start
             vgmstream->loop_end_sample   = read_32bit(sead.extradata_offset+0x0c, streamFile); //loop_end
             break;

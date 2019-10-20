@@ -9,23 +9,23 @@ VGMSTREAM * init_vgmstream_vxn(STREAMFILE *streamFile) {
     size_t stream_size;
     int total_subsongs, target_subsong = streamFile->stream_index;
 
-    /* check extensions */
+    /* checks */
     if (!check_extensions(streamFile,"vxn"))
         goto fail;
 
-    /* check header/version chunk (RIFF-like format with many custom chunks) */
     if (read_32bitBE(0x00,streamFile) != 0x566F784E) /* "VoxN" */
         goto fail;
     if (read_32bitLE(0x10,streamFile) != get_streamfile_size(streamFile) )
         goto fail;
 
+    /* header is RIFF-like with many custom chunks */
     if (!find_chunk_le(streamFile, 0x41666D74,first_offset,0, &chunk_offset,NULL)) /* "Afmt" */
         goto fail;
     codec = (uint16_t)read_16bitLE(chunk_offset+0x00, streamFile);
     channel_count = (uint16_t)read_16bitLE(chunk_offset+0x02, streamFile);
     sample_rate = read_32bitLE(chunk_offset+0x04, streamFile);
     block_align = (uint16_t)read_16bitLE(chunk_offset+0x08, streamFile);
-    bits = (uint16_t)read_16bitLE(chunk_offset+0x0a, streamFile);
+    bits = read_16bitLE(chunk_offset+0x0a, streamFile);
 
     /* files are divided into segment subsongs, often a leadout and loop in that order
      * (the "Plst" and "Rule" chunks may have order info) */
@@ -67,8 +67,13 @@ VGMSTREAM * init_vgmstream_vxn(STREAMFILE *streamFile) {
             if (bits != 4) goto fail;
 
             vgmstream->coding_type = coding_MSADPCM;
-            vgmstream->interleave_block_size = block_align;
+            vgmstream->frame_size = block_align;
             vgmstream->layout_type = layout_none;
+
+            if (find_chunk_le(streamFile, 0x4D736165,first_offset,0, &chunk_offset,NULL)) { /* "Msae" */
+                if (!msadpcm_check_coefs(streamFile, chunk_offset + 0x02))
+                    goto fail;
+            }
             break;
 
         case 0x0011:    /* MS-IMA (ex. Asphalt 6) */
@@ -80,17 +85,17 @@ VGMSTREAM * init_vgmstream_vxn(STREAMFILE *streamFile) {
             break;
 
 #ifdef VGM_USE_FFMPEG
-        case 0x0800: {  /* Musepack (ex. Asphalt Xtreme) */
-            ffmpeg_codec_data * ffmpeg_data = NULL;
-            if (bits != 0xFFFF) goto fail;
+        case 0x0800:    /* Musepack (ex. Asphalt Xtreme) */
+            if (bits != -1) goto fail;
 
-            ffmpeg_data = init_ffmpeg_offset(streamFile, start_offset,stream_size);
-            if (!ffmpeg_data) goto fail;
-            vgmstream->codec_data = ffmpeg_data;
+            vgmstream->codec_data = init_ffmpeg_offset(streamFile, start_offset,stream_size);
+            if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
+
+            /* unlike standard .mpc, .vxn has no seek table so no need to fix */
+            //ffmpeg_set_force_seek(vgmstream->codec_data);
             break;
-        }
 #endif
 
         default:
@@ -98,7 +103,6 @@ VGMSTREAM * init_vgmstream_vxn(STREAMFILE *streamFile) {
             goto fail;
     }
 
-    /* open the file for reading */
     if ( !vgmstream_open_stream(vgmstream, streamFile, start_offset) )
         goto fail;
     return vgmstream;

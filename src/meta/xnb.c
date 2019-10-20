@@ -79,7 +79,12 @@ VGMSTREAM * init_vgmstream_xnb(STREAMFILE *streamFile) {
             block_align   = read_16bit(current_offset+0x0c, streamFile);
             bps           = read_16bit(current_offset+0x0e, streamFile);
 
-            if (codec == 0x166) {
+            if (codec == 0x0002) {
+                if (!msadpcm_check_coefs(streamFile, current_offset + 0x14))
+                    goto fail;
+            }
+
+            if (codec == 0x0166) {
                 xma2_parse_fmt_chunk_extra(streamFile, current_offset, &loop_flag, &num_samples, &loop_start, &loop_end, big_endian);
                 xma_chunk_offset = current_offset;
             }
@@ -122,7 +127,7 @@ VGMSTREAM * init_vgmstream_xnb(STREAMFILE *streamFile) {
             if (!block_align) goto fail;
             vgmstream->coding_type = coding_MSADPCM;
             vgmstream->layout_type = layout_none;
-            vgmstream->interleave_block_size = block_align;
+            vgmstream->frame_size = block_align;
             vgmstream->num_samples = msadpcm_bytes_to_samples(data_size, block_align, channel_count);
             break;
 

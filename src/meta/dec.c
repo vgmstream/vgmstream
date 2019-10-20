@@ -76,7 +76,7 @@ VGMSTREAM * init_vgmstream_dec(STREAMFILE *streamFile) {
     vgmstream->loop_end_sample = loop_end;
 
     vgmstream->coding_type = coding_MSADPCM;
-    vgmstream->interleave_block_size = 0x800;
+    vgmstream->frame_size = 0x800;
     vgmstream->layout_type = layout_blocked_dec;
 
     if ( !vgmstream_open_stream(vgmstream, streamFile, start_offset) )

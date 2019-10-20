@@ -157,6 +157,8 @@ static int read_fmt(int big_endian, STREAMFILE * streamFile, off_t current_chunk
         case 0x02: /* MSADPCM */
             if (fmt->bps == 4) {
                 fmt->coding_type = coding_MSADPCM;
+                if (!msadpcm_check_coefs(streamFile, fmt->offset + 0x08 + 0x14))
+                    goto fail;
             }
             else if (fmt->bps == 16 && fmt->block_size == 0x02 * fmt->channel_count && fmt->size == 0x14) {
                 fmt->coding_type = coding_IMA; /* MX vs ATV Unleashed (PC) codec hijack */
@@ -546,7 +548,6 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
     /* coding, layout, interleave */
     vgmstream->coding_type = fmt.coding_type;
     switch (fmt.coding_type) {
-        case coding_MSADPCM:
         case coding_MS_IMA:
         case coding_AICA:
         case coding_XBOX_IMA:
@@ -566,6 +567,12 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
             vgmstream->layout_type = layout_none;
             vgmstream->interleave_block_size = fmt.block_size;
             break;
+
+        case coding_MSADPCM:
+            vgmstream->layout_type = layout_none;
+            vgmstream->frame_size = fmt.block_size;
+            break;
+
         default:
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = fmt.interleave;

@@ -45,15 +45,22 @@ VGMSTREAM * init_vgmstream_mzrt(STREAMFILE *streamFile) {
             goto fail;
     }
 
-    /* skip fmt-extra data */
-    if (codec == 0x0002 || codec == 0x0166) {
+    /* skip MSADPCM data */
+    if (codec == 0x0002) {
+        if (!msadpcm_check_coefs(streamFile, start_offset + 0x02 + 0x02))
+            goto fail;
+
+        start_offset += 0x02 + read_16bitLE(start_offset, streamFile);
+    }
+
+    /* skip extra data */
+    if (codec == 0x0166) {
         start_offset += 0x02 + read_16bitLE(start_offset, streamFile);
     }
 
     /* skip unknown table */
     if (codec == 0x0000) {
         start_offset += 0x04 + read_32bitBE(start_offset, streamFile) * 0x04;
-
     }
 
     /* skip unknown table */
@@ -95,7 +102,7 @@ VGMSTREAM * init_vgmstream_mzrt(STREAMFILE *streamFile) {
             if (bps != 4) goto fail;
             vgmstream->coding_type = coding_MSADPCM;
             vgmstream->layout_type = layout_none;
-            vgmstream->interleave_block_size = block_size;
+            vgmstream->frame_size = block_size;
             break;
 
 #ifdef VGM_USE_FFMPEG

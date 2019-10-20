@@ -449,7 +449,7 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
         case MS_ADPCM: /* Persona 4 Ultimax (AC) */
             vgmstream->coding_type = coding_MSADPCM;
             vgmstream->layout_type = layout_none;
-            vgmstream->interleave_block_size = (xwb.block_align + 22) * xwb.channels; /*22=CONVERSION_OFFSET (?)*/
+            vgmstream->frame_size = (xwb.block_align + 22) * xwb.channels; /*22=CONVERSION_OFFSET (?)*/
             break;
 
 #ifdef VGM_USE_FFMPEG

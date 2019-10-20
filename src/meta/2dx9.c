@@ -1,5 +1,5 @@
 #include "meta.h"
-#include "../util.h"
+#include "../coding/coding.h"
 
 /* 2DX9 - from Konami arcade games [beatmaniaIIDX16: EMPRESS (AC), BeatStream (AC), REFLEC BEAT (AC)] */
 VGMSTREAM * init_vgmstream_2dx9(STREAMFILE *streamFile) {
@@ -38,7 +38,9 @@ VGMSTREAM * init_vgmstream_2dx9(STREAMFILE *streamFile) {
     vgmstream->coding_type = coding_MSADPCM;
     vgmstream->layout_type = layout_none;
     vgmstream->frame_size  = read_16bitLE(0x38,streamFile);
-    
+    if (!msadpcm_check_coefs(streamFile, 0x40))
+        goto fail;
+
     if (!vgmstream_open_stream(vgmstream, streamFile, start_offset))
         goto fail;
     return vgmstream;

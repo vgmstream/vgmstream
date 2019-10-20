@@ -337,13 +337,15 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
             vgmstream->interleave_block_size = txth.interleave;
             vgmstream->layout_type = layout_none;
             break;
+
         case coding_MSADPCM:
             if (vgmstream->channels > 2) goto fail;
-            if (!txth.interleave) goto fail; /* creates garbage */
+            if (!txth.interleave) goto fail;
 
-            vgmstream->interleave_block_size = txth.interleave;
+            vgmstream->frame_size = txth.interleave;
             vgmstream->layout_type = layout_none;
             break;
+
         case coding_XBOX_IMA:
             if (txth.codec_mode == 1) { /* mono interleave */
                 coding = coding_XBOX_IMA_int;

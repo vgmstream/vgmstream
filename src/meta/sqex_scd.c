@@ -270,13 +270,15 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
         case 0x0C:      /* MS ADPCM [Final Fantasy XIV (PC) sfx] */
             vgmstream->coding_type = coding_MSADPCM;
             vgmstream->layout_type = layout_none;
-            vgmstream->interleave_block_size = read_16bit(extradata_offset+0x0c,streamFile);
-            /* in extradata_offset is a WAVEFORMATEX (including coefs and all) */
+            vgmstream->frame_size = read_16bit(extradata_offset + 0x0c, streamFile);
+            /* WAVEFORMATEX in extradata_offset */
+            if (!msadpcm_check_coefs(streamFile, extradata_offset + 0x14))
+                goto fail;
 
-            vgmstream->num_samples = msadpcm_bytes_to_samples(stream_size, vgmstream->interleave_block_size, vgmstream->channels);
+            vgmstream->num_samples = msadpcm_bytes_to_samples(stream_size, vgmstream->frame_size, vgmstream->channels);
             if (loop_flag) {
-                vgmstream->loop_start_sample = msadpcm_bytes_to_samples(loop_start, vgmstream->interleave_block_size, vgmstream->channels);
-                vgmstream->loop_end_sample = msadpcm_bytes_to_samples(loop_end, vgmstream->interleave_block_size, vgmstream->channels);
+                vgmstream->loop_start_sample = msadpcm_bytes_to_samples(loop_start, vgmstream->frame_size, vgmstream->channels);
+                vgmstream->loop_end_sample = msadpcm_bytes_to_samples(loop_end, vgmstream->frame_size, vgmstream->channels);
             }
             break;
 
