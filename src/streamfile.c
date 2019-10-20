@@ -910,75 +910,68 @@ STREAMFILE* reopen_streamfile(STREAMFILE *streamfile, size_t buffer_size) {
     return streamfile->open(streamfile,pathname,buffer_size);
 }
 
+/* **************************************************** */
 
-/* Read a line into dst. The source files are lines separated by CRLF (Windows) / LF (Unux) / CR (Mac).
- * The line will be null-terminated and CR/LF removed if found.
- *
- * Returns the number of bytes read (including CR/LF), note that this is not the string length.
- * line_done_ptr is set to 1 if the complete line was read into dst; NULL can be passed to ignore.
- */
-size_t get_streamfile_text_line(int dst_length, char * dst, off_t offset, STREAMFILE * streamfile, int *line_done_ptr) {
+size_t read_line(char *buf, int buf_size, off_t offset, STREAMFILE *sf, int *p_line_ok) {
     int i;
-    off_t file_length = get_streamfile_size(streamfile);
+    off_t file_size = get_streamfile_size(sf);
     int extra_bytes = 0; /* how many bytes over those put in the buffer were read */
 
-    if (line_done_ptr) *line_done_ptr = 0;
+    if (p_line_ok) *p_line_ok = 0;
 
-    for (i = 0; i < dst_length-1 && offset+i < file_length; i++) {
-        char in_char = read_8bit(offset+i,streamfile);
+    for (i = 0; i < buf_size-1 && offset+i < file_size; i++) {
+        char in_char = read_8bit(offset+i, sf);
         /* check for end of line */
-        if (in_char == 0x0d && read_8bit(offset+i+1,streamfile) == 0x0a) { /* CRLF */
+        if (in_char == 0x0d && read_8bit(offset+i+1, sf) == 0x0a) { /* CRLF */
             extra_bytes = 2;
-            if (line_done_ptr) *line_done_ptr = 1;
+            if (p_line_ok) *p_line_ok = 1;
             break;
         }
         else if (in_char == 0x0d || in_char == 0x0a) { /* CR or LF */
             extra_bytes = 1;
-            if (line_done_ptr) *line_done_ptr = 1;
+            if (p_line_ok) *p_line_ok = 1;
             break;
         }
 
-        dst[i] = in_char;
+        buf[i] = in_char;
     }
 
-    dst[i] = '\0';
+    buf[i] = '\0';
 
     /* did we fill the buffer? */
-    if (i == dst_length) {
-        char in_char = read_8bit(offset+i,streamfile);
+    if (i == buf_size) {
+        char in_char = read_8bit(offset+i, sf);
         /* did the bytes we missed just happen to be the end of the line? */
-        if (in_char == 0x0d && read_8bit(offset+i+1,streamfile) == 0x0a) { /* CRLF */
+        if (in_char == 0x0d && read_8bit(offset+i+1, sf) == 0x0a) { /* CRLF */
             extra_bytes = 2;
-            if (line_done_ptr) *line_done_ptr = 1;
+            if (p_line_ok) *p_line_ok = 1;
         }
         else if (in_char == 0x0d || in_char == 0x0a) { /* CR or LF */
             extra_bytes = 1;
-            if (line_done_ptr) *line_done_ptr = 1;
+            if (p_line_ok) *p_line_ok = 1;
         }
     }
 
     /* did we hit the file end? */
-    if (offset+i == file_length) {
+    if (offset+i == file_size) {
         /* then we did in fact finish reading the last line */
-        if (line_done_ptr) *line_done_ptr = 1;
+        if (p_line_ok) *p_line_ok = 1;
     }
 
     return i + extra_bytes;
 }
 
-
-/* reads a c-string (ANSI only), up to maxsize or NULL, returning size. buf is optional (works as get_string_size). */
-size_t read_string(char * buf, size_t maxsize, off_t offset, STREAMFILE *streamFile) {
+size_t read_string(char *buf, size_t buf_size, off_t offset, STREAMFILE *sf) {
     size_t pos;
 
-    for (pos = 0; pos < maxsize; pos++) {
-        char c = read_8bit(offset + pos, streamFile);
+    for (pos = 0; pos < buf_size; pos++) {
+        char c = read_8bit(offset + pos, sf);
         if (buf) buf[pos] = c;
         if (c == '\0')
             return pos;
-        if (pos+1 == maxsize) { /* null at maxsize and don't validate (expected to be garbage) */
+        if (pos+1 == buf_size) { /* null at maxsize and don't validate (expected to be garbage) */
             if (buf) buf[pos] = '\0';
-            return maxsize;
+            return buf_size;
         }
         if (c < 0x20 || (uint8_t)c > 0xA5)
             goto fail;
@@ -990,22 +983,18 @@ fail:
 }
 
 
-/* Opens a file containing decryption keys and copies to buffer.
- * Tries combinations of keynames based on the original filename.
- * returns size of key if found and copied */
-size_t read_key_file(uint8_t * buf, size_t bufsize, STREAMFILE *streamFile) {
+size_t read_key_file(uint8_t *buf, size_t buf_size, STREAMFILE *sf) {
     char keyname[PATH_LIMIT];
     char filename[PATH_LIMIT];
     const char *path, *ext;
     STREAMFILE * streamFileKey = NULL;
     size_t keysize;
 
-    streamFile->get_name(streamFile,filename,sizeof(filename));
+    sf->get_name(sf,filename,sizeof(filename));
 
     if (strlen(filename)+4 > sizeof(keyname)) goto fail;
 
-    /* try to open a keyfile using variations:
-     *  "(name.ext)key" (per song), "(.ext)key" (per folder) */
+    /* try to open a keyfile using variations */
     {
         ext = strrchr(filename,'.');
         if (ext!=NULL) ext = ext+1;
@@ -1016,7 +1005,7 @@ size_t read_key_file(uint8_t * buf, size_t bufsize, STREAMFILE *streamFile) {
         /* "(name.ext)key" */
         strcpy(keyname, filename);
         strcat(keyname, "key");
-        streamFileKey = streamFile->open(streamFile,keyname,STREAMFILE_DEFAULT_BUFFER_SIZE);
+        streamFileKey = sf->open(sf,keyname,STREAMFILE_DEFAULT_BUFFER_SIZE);
         if (streamFileKey) goto found;
 
         /* "(name.ext)KEY" */
@@ -1037,7 +1026,7 @@ size_t read_key_file(uint8_t * buf, size_t bufsize, STREAMFILE *streamFile) {
         }
         if (ext) strcat(keyname, ext);
         strcat(keyname, "key");
-        streamFileKey = streamFile->open(streamFile,keyname,STREAMFILE_DEFAULT_BUFFER_SIZE);
+        streamFileKey = sf->open(sf,keyname,STREAMFILE_DEFAULT_BUFFER_SIZE);
         if (streamFileKey) goto found;
 
         /* "(.ext)KEY" */
@@ -1052,7 +1041,7 @@ size_t read_key_file(uint8_t * buf, size_t bufsize, STREAMFILE *streamFile) {
 
 found:
     keysize = get_streamfile_size(streamFileKey);
-    if (keysize > bufsize) goto fail;
+    if (keysize > buf_size) goto fail;
 
     if (read_streamfile(buf, 0, keysize, streamFileKey) != keysize)
         goto fail;
@@ -1065,7 +1054,6 @@ fail:
     return 0;
 }
 
-/* hack to allow relative paths in various OSs */
 void fix_dir_separators(char * filename) {
     char c;
     int i = 0;
@@ -1076,19 +1064,14 @@ void fix_dir_separators(char * filename) {
     }
 }
 
-
-/**
- * Checks if the stream filename is one of the extensions (comma-separated, ex. "adx" or "adx,aix").
- * Empty is ok to accept files without extension ("", "adx,,aix"). Returns 0 on failure
- */
-int check_extensions(STREAMFILE *streamFile, const char * cmp_exts) {
+int check_extensions(STREAMFILE *sf, const char * cmp_exts) {
     char filename[PATH_LIMIT];
     const char * ext = NULL;
     const char * cmp_ext = NULL;
     const char * ststr_res = NULL;
     size_t ext_len, cmp_len;
 
-    streamFile->get_name(streamFile,filename,sizeof(filename));
+    sf->get_name(sf,filename,sizeof(filename));
     ext = filename_extension(filename);
     ext_len = strlen(ext);
 

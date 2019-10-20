@@ -1434,13 +1434,13 @@ static txtp_header* parse_txtp(STREAMFILE* streamFile) {
 
     /* read and parse lines */
     while (txt_offset < file_size) {
-        char line[TXTP_LINE_MAX] = {0};
+        char line[TXTP_LINE_MAX];
         char key[TXTP_LINE_MAX] = {0}, val[TXTP_LINE_MAX] = {0}; /* at least as big as a line to avoid overflows (I hope) */
         char filename[TXTP_LINE_MAX] = {0};
-        int ok, bytes_read, line_done;
+        int ok, bytes_read, line_ok;
 
-        bytes_read = get_streamfile_text_line(TXTP_LINE_MAX,line, txt_offset,streamFile, &line_done);
-        if (!line_done) goto fail;
+        bytes_read = read_line(line, sizeof(line), txt_offset, streamFile, &line_ok);
+        if (!line_ok) goto fail;
 
         txt_offset += bytes_read;
 

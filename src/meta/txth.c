@@ -772,12 +772,12 @@ static int parse_txth(txth_header * txth) {
 
     /* read lines */
     while (txt_offset < file_size) {
-        char line[TXT_LINE_MAX] = {0};
+        char line[TXT_LINE_MAX];
         char key[TXT_LINE_MAX] = {0}, val[TXT_LINE_MAX] = {0}; /* at least as big as a line to avoid overflows (I hope) */
-        int ok, bytes_read, line_done;
+        int ok, bytes_read, line_ok;
 
-        bytes_read = get_streamfile_text_line(TXT_LINE_MAX,line, txt_offset,txth->streamText, &line_done);
-        if (!line_done) goto fail;
+        bytes_read = read_line(line, sizeof(line), txt_offset, txth->streamText, &line_ok);
+        if (!line_ok) goto fail;
         //;VGM_LOG("TXTH: line=%s\n",line);
 
         txt_offset += bytes_read;
@@ -1441,12 +1441,12 @@ static int parse_name_table(txth_header * txth, char * name_list) {
 
     /* read lines and find target filename, format is (filename): value1, ... valueN */
     while (txt_offset < file_size) {
-        char line[TXT_LINE_MAX] = {0};
+        char line[TXT_LINE_MAX];
         char key[TXT_LINE_MAX] = {0}, val[TXT_LINE_MAX] = {0};
-        int ok, bytes_read, line_done;
+        int ok, bytes_read, line_ok;
 
-        bytes_read = get_streamfile_text_line(TXT_LINE_MAX,line, txt_offset,nameFile, &line_done);
-        if (!line_done) goto fail;
+        bytes_read = read_line(line, sizeof(line), txt_offset, nameFile, &line_ok);
+        if (!line_ok) goto fail;
         //;VGM_LOG("TXTH: line=%s\n",line);
 
         txt_offset += bytes_read;

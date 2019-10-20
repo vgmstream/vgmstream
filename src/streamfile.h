@@ -265,16 +265,27 @@ static inline size_t align_size_to_block(size_t value, size_t block_align) {
 
 /* various STREAMFILE helpers functions */
 
-size_t get_streamfile_text_line(int dst_length, char * dst, off_t offset, STREAMFILE *streamfile, int *line_done_ptr);
+/* Read into dst a line delimited by CRLF (Windows) / LF (Unux) / CR (Mac) / EOF, null-terminated
+ * and without line feeds. Returns bytes read (including CR/LF), *not* the same as string length.
+ * p_line_ok is set to 1 if the complete line was read; pass NULL to ignore. */
+size_t read_line(char *buf, int buf_size, off_t offset, STREAMFILE *sf, int *p_line_ok);
 
-size_t read_string(char * buf, size_t bufsize, off_t offset, STREAMFILE *streamFile);
+/* reads a c-string (ANSI only), up to bufsize or NULL, returning size. buf is optional (works as get_string_size). */
+size_t read_string(char *buf, size_t buf_size, off_t offset, STREAMFILE *sf);
 
-size_t read_key_file(uint8_t * buf, size_t bufsize, STREAMFILE *streamFile);
+/* Opens a file containing decryption keys and copies to buffer.
+ * Tries "(name.ext)key" (per song), "(.ext)key" (per folder) keynames.
+ * returns size of key if found and copied */
+size_t read_key_file(uint8_t *buf, size_t buf_size, STREAMFILE *sf);
 
-void fix_dir_separators(char * filename);
+/* hack to allow relative paths in various OSs */
+void fix_dir_separators(char *filename);
 
+/* Checks if the stream filename is one of the extensions (comma-separated, ex. "adx" or "adx,aix").
+ * Empty is ok to accept files without extension ("", "adx,,aix"). Returns 0 on failure */
 int check_extensions(STREAMFILE *streamFile, const char * cmp_exts);
 
+/* chunk-style file helpers */
 int find_chunk_be(STREAMFILE *streamFile, uint32_t chunk_id, off_t start_offset, int full_chunk_size, off_t *out_chunk_offset, size_t *out_chunk_size);
 int find_chunk_le(STREAMFILE *streamFile, uint32_t chunk_id, off_t start_offset, int full_chunk_size, off_t *out_chunk_offset, size_t *out_chunk_size);
 int find_chunk(STREAMFILE *streamFile, uint32_t chunk_id, off_t start_offset, int full_chunk_size, off_t *out_chunk_offset, size_t *out_chunk_size, int big_endian_size, int zero_size_end);
@@ -284,7 +295,7 @@ int find_chunk_riff_be(STREAMFILE *streamFile, uint32_t chunk_id, off_t start_of
 /* same with chunk ids in variable endianess (so instead of "fmt " has " tmf" */
 int find_chunk_riff_ve(STREAMFILE *streamFile, uint32_t chunk_id, off_t start_offset, size_t max_size, off_t *out_chunk_offset, size_t *out_chunk_size, int big_endian);
 
-
+/* filename helpers */
 void get_streamfile_name(STREAMFILE *streamFile, char * buffer, size_t size);
 void get_streamfile_filename(STREAMFILE *streamFile, char * buffer, size_t size);
 void get_streamfile_basename(STREAMFILE *streamFile, char * buffer, size_t size);

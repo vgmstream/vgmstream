@@ -53,39 +53,39 @@ VGMSTREAM * init_vgmstream_sli_ogg(STREAMFILE *streamFile) {
 
     /* find loop text */
     {
-        char linebuffer[PATH_LIMIT];
+        char line[PATH_LIMIT];
         size_t bytes_read;
         off_t sli_offset;
-        int done;
+        int line_ok;
 
         sli_offset = 0;
         while ((loop_start == -1 || loop_length == -1) && sli_offset < get_streamfile_size(streamFile)) {
             char *endptr, *foundptr;
 
-            bytes_read = get_streamfile_text_line(sizeof(linebuffer),linebuffer,sli_offset,streamFile,&done);
-            if (!done) goto fail;
+            bytes_read = read_line(line, sizeof(line), sli_offset, streamFile, &line_ok);
+            if (!line_ok) goto fail;
 
-            if (memcmp("LoopStart=",linebuffer,10)==0 && linebuffer[10] != '\0') {
-                loop_start = strtol(linebuffer+10,&endptr,10);
+            if (memcmp("LoopStart=",line,10)==0 && line[10] != '\0') {
+                loop_start = strtol(line+10,&endptr,10);
                 if (*endptr != '\0') {
                     loop_start = -1; /* if it didn't parse cleanly */
                 }
             }
-            else if (memcmp("LoopLength=",linebuffer,11)==0 && linebuffer[11] != '\0') {
-                loop_length = strtol(linebuffer+11,&endptr,10);
+            else if (memcmp("LoopLength=",line,11)==0 && line[11] != '\0') {
+                loop_length = strtol(line+11,&endptr,10);
                 if (*endptr != '\0') {
                     loop_length = -1; /* if it didn't parse cleanly */
                 }
             }
 
             /* a completely different format (2.0?), also with .sli extension and can be handled similarly */
-            if ((foundptr = strstr(linebuffer,"To=")) != NULL && isdigit(foundptr[3])) {
+            if ((foundptr = strstr(line,"To=")) != NULL && isdigit(foundptr[3])) {
                 loop_to = strtol(foundptr+3,&endptr,10);
                 if (*endptr != ';') {
                     loop_to = -1;
                 }
             }
-            if ((foundptr = strstr(linebuffer,"From=")) != NULL && isdigit(foundptr[5])) {
+            if ((foundptr = strstr(line,"From=")) != NULL && isdigit(foundptr[5])) {
                 loop_from = strtol(foundptr+5,&endptr,10);
                 if (*endptr != ';') {
                     loop_from = -1;

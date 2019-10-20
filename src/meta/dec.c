@@ -122,10 +122,10 @@ static int get_falcom_looping(STREAMFILE *streamFile, int *out_loop_start, int *
     while (txt_offset < get_streamfile_size(streamText)) {
         char line[TXT_LINE_MAX];
         char name[TXT_LINE_MAX];
-        int ok, line_done, loop, bytes_read;
+        int ok, line_ok, loop, bytes_read;
 
-        bytes_read = get_streamfile_text_line(TXT_LINE_MAX,line, txt_offset,streamText, &line_done);
-        if (!line_done) goto end;
+        bytes_read = read_line(line, TXT_LINE_MAX, txt_offset, streamText, &line_ok);
+        if (!line_ok) goto end;
 
         txt_offset += bytes_read;
 
