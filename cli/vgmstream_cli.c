@@ -283,13 +283,13 @@ static void apply_config(VGMSTREAM * vgmstream, cli_config *cfg) {
 
     /* honor suggested config, if any (defined order matters)
      * note that ignore_fade and play_forever should take priority */
-    if (vgmstream->config_loop_count) {
+    if (vgmstream->config_loop_count > 0.0) {
         cfg->loop_count = vgmstream->config_loop_count;
     }
-    if (vgmstream->config_fade_delay) {
+    if (vgmstream->config_fade_delay > 0.0) {
         cfg->fade_delay = vgmstream->config_fade_delay;
     }
-    if (vgmstream->config_fade_time) {
+    if (vgmstream->config_fade_time > 0.0) {
         cfg->fade_time = vgmstream->config_fade_time;
     }
     if (vgmstream->config_force_loop) {
