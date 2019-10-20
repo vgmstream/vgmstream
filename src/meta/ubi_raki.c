@@ -94,9 +94,12 @@ VGMSTREAM * init_vgmstream_ubi_raki(STREAMFILE *streamFile) {
             /* chunks: "data" */
             vgmstream->coding_type = coding_MSADPCM;
             vgmstream->layout_type = layout_none;
-            vgmstream->interleave_block_size = block_align;
+            vgmstream->frame_size = block_align;
 
-            vgmstream->num_samples = msadpcm_bytes_to_samples(data_size, vgmstream->interleave_block_size, channel_count);
+            vgmstream->num_samples = msadpcm_bytes_to_samples(data_size, vgmstream->frame_size, channel_count);
+
+            if (!msadpcm_check_coefs(streamFile, fmt_offset + 0x14))
+                goto fail;
             break;
 
         case 0x5769692061647063:    /* "Wii adpc" */

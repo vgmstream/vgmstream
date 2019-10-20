@@ -107,10 +107,10 @@ static int parse_name_bnh(ubi_hx_header * hx, STREAMFILE *sf, uint32_t cuuid1, u
 
     /* each .bnh line has a cuuid, a bunch of repeated fields and name (sometimes name is filename or "bad name") */
     while (txt_offset < get_streamfile_size(sf)) {
-        int line_read, bytes_read;
+        int line_ok, bytes_read;
 
-        bytes_read = get_streamfile_text_line(TXT_LINE_MAX,line, txt_offset,sf_t, &line_read);
-        if (!line_read) break;
+        bytes_read = read_line(line, sizeof(line), txt_offset, sf_t, &line_ok);
+        if (!line_ok) break;
         txt_offset += bytes_read;
 
         if (strncmp(line,cuuid,31) != 0)

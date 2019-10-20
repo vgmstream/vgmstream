@@ -138,8 +138,8 @@ void vgmstream_tags_close(VGMSTREAM_TAGS *tags) {
 int vgmstream_tags_next_tag(VGMSTREAM_TAGS* tags, STREAMFILE* tagfile) {
     off_t file_size = get_streamfile_size(tagfile);
     char currentname[VGMSTREAM_TAGS_LINE_MAX] = {0};
-    char line[VGMSTREAM_TAGS_LINE_MAX] = {0};
-    int ok, bytes_read, line_done, n1,n2;
+    char line[VGMSTREAM_TAGS_LINE_MAX];
+    int ok, bytes_read, line_ok, n1,n2;
 
     if (!tags)
         return 0;
@@ -193,8 +193,8 @@ int vgmstream_tags_next_tag(VGMSTREAM_TAGS* tags, STREAMFILE* tagfile) {
             goto fail;
         }
 
-        bytes_read = get_streamfile_text_line(VGMSTREAM_TAGS_LINE_MAX,line, tags->offset,tagfile, &line_done);
-        if (!line_done || bytes_read == 0) goto fail;
+        bytes_read = read_line(line, sizeof(line), tags->offset, tagfile, &line_ok);
+        if (!line_ok || bytes_read == 0) goto fail;
 
         tags->offset += bytes_read;
 

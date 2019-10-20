@@ -309,6 +309,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\riff_ogg_streamfile.h"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\sfh_streamfile.h"
                     >
                 </File>

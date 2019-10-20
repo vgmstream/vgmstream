@@ -25,7 +25,7 @@ sounds/file#12
 
 
 ### Segments mode
-Some games clumsily loop audio by using multiple full file "segments", so you can play separate intro + loop files together as a single track. Channel number must be equal, mixing sample rates is ok (uses first).
+Some games clumsily loop audio by using multiple full file "segments", so you can play separate intro + loop files together as a single track.
  
 **Ratchet & Clank (PS2)**: *bgm01.txtp*
 ```
@@ -57,6 +57,8 @@ loop_start_segment = 2
 loop_end_segment = 3
 loop_mode = keep    # loops in 2nd file's loop_start to 3rd file's loop_end
 ```
+Mixing sample rates is ok (uses first) but channel number must be equal for all files. You can use mixing (explained later) to join segments of different channels though.
+
 
 ### Layers mode
 Some games layer channels or dynamic parts that must play at the same time, for example main melody + vocal track.

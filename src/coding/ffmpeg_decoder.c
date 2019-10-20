@@ -1,3 +1,4 @@
+#include <math.h>
 #include "coding.h"
 
 #ifdef VGM_USE_FFMPEG
@@ -540,6 +541,38 @@ fail:
 }
 
 
+/* When casting float to int value is simply truncated:
+ * - 0.0000518798828125 * 32768.0f = 1.7f, (int)1.7 = 1, (int)-1.7 = -1
+ *   (instead of 1.7 = 2, -1.7 = -2)
+ *
+ * Alts for more accurate rounding could be:
+ * - (int)floor(f32 * 32768.0) //not quite ok negatives
+ * - (int)floor(f32 * 32768.0f + 0.5f) //Xiph Vorbis style
+ * - (int)(f32 < 0 ? f32 - 0.5f : f + 0.5f)
+ * - (((int) (f1 + 32768.5)) - 32768)
+ * - etc
+ * but since +-1 isn't really audible we'll just cast as it's the fastest.
+ *
+ * Regular C float-to-int casting ("int i = (int)f") is somewhat slow due to IEEE
+ * float requirements, but C99 adds some faster-but-less-precise casting functions
+ * we try to use (returning "long", though). They work ok without "fast float math" compiler
+ * flags, but probably should be enabled anyway to ensure no extra IEEE checks are needed.
+ */
+static inline int float_to_int(float val) {
+#if defined(_MSC_VER) && (_MSC_VER < 1900) /* VS2015 */
+    return (int)val;
+#else
+    return lrintf(val);
+#endif
+}
+static inline int double_to_int(double val) {
+#if defined(_MSC_VER) && (_MSC_VER < 1900) /* VS2015 */
+    return (int)val;
+#else
+    return lrint(val); /* returns long tho */
+#endif
+}
+
 /* sample copy helpers, using different functions to minimize branches.
  *
  * in theory, small optimizations like *outbuf++ vs outbuf[i] or alt clamping
@@ -556,16 +589,6 @@ fail:
  *     int s16 = (int)(f32 * 32768.0f);
  *     if ((unsigned)(s16 + 0x8000) & 0xFFFF0000)
  *         s16 = (s16 >> 31) ^ 0x7FFF;
- *
- * when casting float to int, value is simply truncated:
- * - 0.0000518798828125 * 32768.0f = 1.7f, (int)1.7 = 1, (int)-1.7 = -1
- * alts for more accurate rounding could be:
- * - (int)floor(f32 * 32768.0) //not quite ok negatives
- * - (int)floor(f32 * 32768.0f + 0.5f) //Xiph Vorbis style
- * - (int)(f32 < 0 ? f32 - 0.5f : f + 0.5f)
- * - (((int) (f1 + 32768.5)) - 32768)
- * - etc
- * but since +-1 isn't really audible we'll just cast as it's the fastest
  */
 
 static void samples_silence_s16(sample_t* obuf, int ochs, int samples) {
@@ -621,7 +644,7 @@ static void samples_flt_to_s16(sample_t* obuf, float* ibuf, int ichs, int sample
     int s, total_samples = samples * ichs;
     float scale = invert ? -32768.0f : 32768.0f;
     for (s = 0; s < total_samples; s++) {
-        obuf[s] = clamp16(ibuf[skip*ichs + s] * scale);
+        obuf[s] = clamp16(float_to_int(ibuf[skip*ichs + s] * scale));
     }
 }
 static void samples_fltp_to_s16(sample_t* obuf, float** ibuf, int ichs, int samples, int skip, int invert) {
@@ -629,21 +652,21 @@ static void samples_fltp_to_s16(sample_t* obuf, float** ibuf, int ichs, int samp
     float scale = invert ? -32768.0f : 32768.0f;
     for (ch = 0; ch < ichs; ch++) {
         for (s = 0; s < samples; s++) {
-            obuf[s*ichs + ch] = clamp16(ibuf[ch][skip + s] * scale);
+            obuf[s*ichs + ch] = clamp16(float_to_int(ibuf[ch][skip + s] * scale));
         }
     }
 }
 static void samples_dbl_to_s16(sample_t* obuf, double* ibuf, int ichs, int samples, int skip) {
     int s, total_samples = samples * ichs;
     for (s = 0; s < total_samples; s++) {
-        obuf[s] = clamp16(ibuf[skip*ichs + s] * 32768.0);
+        obuf[s] = clamp16(double_to_int(ibuf[skip*ichs + s] * 32768.0));
     }
 }
 static void samples_dblp_to_s16(sample_t* obuf, double** inbuf, int ichs, int samples, int skip) {
     int s, ch;
     for (ch = 0; ch < ichs; ch++) {
         for (s = 0; s < samples; s++) {
-            obuf[s*ichs + ch] = clamp16(inbuf[ch][skip + s] * 32768.0);
+            obuf[s*ichs + ch] = clamp16(double_to_int(inbuf[ch][skip + s] * 32768.0));
         }
     }
 }

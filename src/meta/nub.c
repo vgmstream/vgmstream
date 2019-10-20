@@ -2,12 +2,12 @@
 #include "../coding/coding.h"
 
 
-static STREAMFILE* make_nub_streamfile(STREAMFILE* streamFile, off_t header_offset, size_t header_size, off_t stream_offset, size_t stream_size, const char* fake_ext);
+static STREAMFILE* setup_nub_streamfile(STREAMFILE *sf, off_t header_offset, size_t header_size, off_t stream_offset, size_t stream_size, const char *fake_ext);
 
 /* .nub - Namco's nu Sound v2 audio container */
 VGMSTREAM * init_vgmstream_nub(STREAMFILE *streamFile) {
     VGMSTREAM *vgmstream = NULL;
-    STREAMFILE *temp_streamFile = NULL;
+    STREAMFILE *temp_sf = NULL;
     off_t name_offset = 0;
     size_t name_size = 0;
     int total_subsongs, target_subsong = streamFile->stream_index;
@@ -133,8 +133,8 @@ VGMSTREAM * init_vgmstream_nub(STREAMFILE *streamFile) {
 
         //;VGM_LOG("NUB: subfile header=%lx + %x, offset=%lx + %x\n", header_offset, header_size, stream_offset, stream_size);
 
-        temp_streamFile = make_nub_streamfile(streamFile, header_offset, header_size, stream_offset, stream_size, fake_ext);
-        if (!temp_streamFile) goto fail;
+        temp_sf = setup_nub_streamfile(streamFile, header_offset, header_size, stream_offset, stream_size, fake_ext);
+        if (!temp_sf) goto fail;
     }
 
     /* get names */
@@ -166,66 +166,36 @@ VGMSTREAM * init_vgmstream_nub(STREAMFILE *streamFile) {
     }
 
     /* init the VGMSTREAM */
-    vgmstream = init_vgmstream_function(temp_streamFile);
+    vgmstream = init_vgmstream_function(temp_sf);
     if (!vgmstream) goto fail;
 
-    vgmstream->stream_size = get_streamfile_size(temp_streamFile);
+    vgmstream->stream_size = get_streamfile_size(temp_sf);
     vgmstream->num_streams = total_subsongs;
     if (name[0] != '\0')
         strcpy(vgmstream->stream_name, name);
 
-    close_streamfile(temp_streamFile);
+    close_streamfile(temp_sf);
     return vgmstream;
 
 fail:
-    close_streamfile(temp_streamFile);
+    close_streamfile(temp_sf);
     close_vgmstream(vgmstream);
     return NULL;
 }
 
 /* *********************************************************** */
 
-static STREAMFILE* make_nub_streamfile(STREAMFILE* streamFile, off_t header_offset, size_t header_size, off_t stream_offset, size_t stream_size, const char* fake_ext) {
-    STREAMFILE *temp_streamFile = NULL, *new_streamFile = NULL;
-    STREAMFILE *segment_streamFiles[2] = {0};
-    int i;
+static STREAMFILE* setup_nub_streamfile(STREAMFILE *sf, off_t header_offset, size_t header_size, off_t stream_offset, size_t stream_size, const char *fake_ext) {
+    STREAMFILE *new_sf = NULL;
+    STREAMFILE *multi_sf[2] = {0};
 
-
-    new_streamFile = open_wrap_streamfile(streamFile);
-    if (!new_streamFile) goto fail;
-    segment_streamFiles[0] = new_streamFile;
-
-    new_streamFile = open_wrap_streamfile(streamFile);
-    if (!new_streamFile) goto fail;
-    segment_streamFiles[1] = new_streamFile;
-
-    new_streamFile = open_clamp_streamfile(segment_streamFiles[0], header_offset,header_size);
-    if (!new_streamFile) goto fail;
-    segment_streamFiles[0] = new_streamFile;
-
-    new_streamFile = open_clamp_streamfile(segment_streamFiles[1], stream_offset,stream_size);
-    if (!new_streamFile) goto fail;
-    segment_streamFiles[1] = new_streamFile;
-
-    new_streamFile = open_multifile_streamfile(segment_streamFiles, 2);
-    if (!new_streamFile) goto fail;
-    temp_streamFile = new_streamFile;
-
-    new_streamFile = open_fakename_streamfile(temp_streamFile, NULL, fake_ext);
-    if (!new_streamFile) goto fail;
-    temp_streamFile = new_streamFile;
-
-    return temp_streamFile;
-
-fail:
-    if (!temp_streamFile) {
-        for (i = 0; i < 2; i++) {
-            close_streamfile(segment_streamFiles[i]);
-        }
-    } else {
-        close_streamfile(temp_streamFile); /* closes all segments */
-    }
-    return NULL;
+    multi_sf[0] = open_wrap_streamfile(sf);
+    multi_sf[0] = open_clamp_streamfile_f(multi_sf[0], header_offset, header_size);
+    multi_sf[1] = open_wrap_streamfile(sf);
+    multi_sf[1] = open_clamp_streamfile_f(multi_sf[1], stream_offset, stream_size);
+    new_sf = open_multifile_streamfile_f(multi_sf, 2);
+    new_sf = open_fakename_streamfile_f(new_sf, NULL, fake_ext);
+    return new_sf;
 }
 
 /* *********************************************************** */
@@ -318,7 +288,7 @@ fail:
 /* .nub at3 - from Namco NUB archives [Ridge Racer 7 (PS3), Katamari Forever (PS3)] */
 VGMSTREAM * init_vgmstream_nub_at3(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    STREAMFILE *temp_streamFile = NULL;
+    STREAMFILE *temp_sf = NULL;
     off_t subfile_offset = 0;
     size_t subfile_size = 0;
 
@@ -333,16 +303,16 @@ VGMSTREAM * init_vgmstream_nub_at3(STREAMFILE *streamFile) {
     subfile_offset = 0x100;
     subfile_size   = read_32bitLE(subfile_offset + 0x04, streamFile) + 0x08; /* RIFF size */
 
-    temp_streamFile = setup_subfile_streamfile(streamFile, subfile_offset,subfile_size, NULL);
-    if (!temp_streamFile) goto fail;
+    temp_sf = setup_subfile_streamfile(streamFile, subfile_offset,subfile_size, NULL);
+    if (!temp_sf) goto fail;
 
-    vgmstream = init_vgmstream_riff(temp_streamFile);
+    vgmstream = init_vgmstream_riff(temp_sf);
     if (!vgmstream) goto fail;
 
-    close_streamfile(temp_streamFile);
+    close_streamfile(temp_sf);
     return vgmstream;
 fail:
-    close_streamfile(temp_streamFile);
+    close_streamfile(temp_sf);
     close_vgmstream(vgmstream);
     return NULL;
 }
@@ -512,7 +482,7 @@ fail:
 /* .nub is14 - from Namco NUB archives [Tales of Vesperia (PS3)]  */
 VGMSTREAM * init_vgmstream_nub_is14(STREAMFILE *streamFile) {
     VGMSTREAM *vgmstream = NULL;
-    STREAMFILE *temp_streamFile = NULL;
+    STREAMFILE *temp_sf = NULL;
     off_t header_offset, stream_offset;
     size_t header_size, stream_size, sdat_size;
     int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
@@ -542,16 +512,16 @@ VGMSTREAM * init_vgmstream_nub_is14(STREAMFILE *streamFile) {
     stream_size   = sdat_size;
 
 
-    temp_streamFile = make_nub_streamfile(streamFile, header_offset, header_size, stream_offset, stream_size, "bnsf");
-    if (!temp_streamFile) goto fail;
+    temp_sf = setup_nub_streamfile(streamFile, header_offset, header_size, stream_offset, stream_size, "bnsf");
+    if (!temp_sf) goto fail;
 
-    vgmstream = init_vgmstream_bnsf(temp_streamFile);
+    vgmstream = init_vgmstream_bnsf(temp_sf);
     if (!vgmstream) goto fail;
 
-    close_streamfile(temp_streamFile);
+    close_streamfile(temp_sf);
     return vgmstream;
 fail:
-    close_streamfile(temp_streamFile);
+    close_streamfile(temp_sf);
     close_vgmstream(vgmstream);
     return NULL;
 }

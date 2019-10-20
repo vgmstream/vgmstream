@@ -1215,10 +1215,10 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
             return 128;
 
         case coding_MSADPCM:
-            return (vgmstream->interleave_block_size - 0x07*vgmstream->channels)*2 / vgmstream->channels + 2;
+            return (vgmstream->frame_size - 0x07*vgmstream->channels)*2 / vgmstream->channels + 2;
         case coding_MSADPCM_int:
         case coding_MSADPCM_ck:
-            return (vgmstream->interleave_block_size - 0x07)*2 + 2;
+            return (vgmstream->frame_size - 0x07)*2 + 2;
         case coding_WS: /* only works if output sample size is 8 bit, which always is for WS ADPCM */
             return vgmstream->ws_output_size;
         case coding_AICA:
@@ -1407,7 +1407,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_MSADPCM:
         case coding_MSADPCM_int:
         case coding_MSADPCM_ck:
-            return vgmstream->interleave_block_size;
+            return vgmstream->frame_size;
         case coding_WS:
             return vgmstream->current_block_size;
         case coding_AICA:
@@ -2393,7 +2393,8 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
     }
 
     /* codecs with configurable frame size */
-    if (vgmstream->interleave_block_size > 0) {
+    if (vgmstream->frame_size > 0 || vgmstream->interleave_block_size > 0) {
+        int32_t frame_size = vgmstream->frame_size > 0 ? vgmstream->frame_size : vgmstream->interleave_block_size;
         switch (vgmstream->coding_type) {
             case coding_MSADPCM:
             case coding_MSADPCM_int:
@@ -2403,7 +2404,7 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
             case coding_WWISE_IMA:
             case coding_REF_IMA:
             case coding_PSX_cfg:
-                snprintf(temp,TEMPSIZE, "frame size: %#x bytes\n", (int32_t)vgmstream->interleave_block_size);
+                snprintf(temp,TEMPSIZE, "frame size: %#x bytes\n", frame_size);
                 concatn(length,desc,temp);
                 break;
             default:
@@ -2628,8 +2629,7 @@ static STREAMFILE * get_vgmstream_average_bitrate_channel_streamfile(VGMSTREAM *
 
 #ifdef VGM_USE_VORBIS
     if (vgmstream->coding_type == coding_OGG_VORBIS) {
-        ogg_vorbis_codec_data *data = vgmstream->codec_data;
-        return data ? data->ov_streamfile.streamfile : NULL;
+        return ogg_vorbis_get_streamfile(vgmstream->codec_data);
     }
 #endif
     if (vgmstream->coding_type == coding_CRI_HCA) {
@@ -2793,7 +2793,7 @@ int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t s
             vgmstream->coding_type == coding_PSX_pivotal) &&
             (vgmstream->interleave_block_size == 0 || vgmstream->interleave_block_size > 0x50)) {
         VGM_LOG("VGMSTREAM: PSX-cfg decoder with wrong frame size %x\n", vgmstream->interleave_block_size);
-        return 0;
+        goto fail;
     }
 
     if ((vgmstream->coding_type == coding_CRI_ADX ||
@@ -2803,7 +2803,14 @@ int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t s
             vgmstream->coding_type == coding_CRI_ADX_fixed) &&
             (vgmstream->interleave_block_size == 0 || vgmstream->interleave_block_size > 0x12)) {
         VGM_LOG("VGMSTREAM: ADX decoder with wrong frame size %x\n", vgmstream->interleave_block_size);
-        return 0;
+        goto fail;
+    }
+
+    if ((vgmstream->coding_type == coding_MSADPCM ||
+            vgmstream->coding_type == coding_MSADPCM_ck ||
+            vgmstream->coding_type == coding_MSADPCM_int) &&
+            vgmstream->frame_size == 0) {
+        vgmstream->frame_size = vgmstream->interleave_block_size;
     }
 
     /* if interleave is big enough keep a buffer per channel */

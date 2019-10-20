@@ -128,6 +128,7 @@ void decode_msadpcm_stereo(VGMSTREAM * vgmstream, sample_t * outbuf, int32_t fir
 void decode_msadpcm_mono(VGMSTREAM * vgmstream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel);
 void decode_msadpcm_ck(VGMSTREAM * vgmstream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel);
 long msadpcm_bytes_to_samples(long bytes, int block_size, int channels);
+int msadpcm_check_coefs(STREAMFILE *sf, off_t offset);
 
 /* yamaha_decoder */
 void decode_aica(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel, int is_stereo);
@@ -212,10 +213,17 @@ int test_hca_key(hca_codec_data * data, unsigned long long keycode);
 
 #ifdef VGM_USE_VORBIS
 /* ogg_vorbis_decoder */
-void decode_ogg_vorbis(ogg_vorbis_codec_data * data, sample_t * outbuf, int32_t samples_to_do, int channels);
+ogg_vorbis_codec_data* init_ogg_vorbis(STREAMFILE *sf, off_t start, off_t size, ogg_vorbis_io *io);
+void decode_ogg_vorbis(ogg_vorbis_codec_data *data, sample_t *outbuf, int32_t samples_to_do, int channels);
 void reset_ogg_vorbis(VGMSTREAM *vgmstream);
 void seek_ogg_vorbis(VGMSTREAM *vgmstream, int32_t num_sample);
 void free_ogg_vorbis(ogg_vorbis_codec_data *data);
+
+int ogg_vorbis_get_comment(ogg_vorbis_codec_data *data, const char **comment);
+void ogg_vorbis_get_info(ogg_vorbis_codec_data *data, int *p_channels, int *p_sample_rate);
+void ogg_vorbis_get_samples(ogg_vorbis_codec_data *data, int *p_samples);
+void ogg_vorbis_set_disable_reordering(ogg_vorbis_codec_data *data, int set);
+STREAMFILE* ogg_vorbis_get_streamfile(ogg_vorbis_codec_data *data);
 
 /* vorbis_custom_decoder */
 vorbis_custom_codec_data *init_vorbis_custom(STREAMFILE *streamfile, off_t start_offset, vorbis_custom_t type, vorbis_custom_config * config);

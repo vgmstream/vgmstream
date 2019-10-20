@@ -59,12 +59,12 @@
  * to do file operations, as plugins may need to provide their own callbacks.
  * Reads from arbitrary offsets, meaning internally may need fseek equivalents during reads. */
 typedef struct _STREAMFILE {
-    size_t (*read)(struct _STREAMFILE *,uint8_t * dest, off_t offset, size_t length);
+    size_t (*read)(struct _STREAMFILE *, uint8_t * dst, off_t offset, size_t length);
     size_t (*get_size)(struct _STREAMFILE *);
     off_t (*get_offset)(struct _STREAMFILE *);   //todo: DO NOT USE, NOT RESET PROPERLY (remove?)
     /* for dual-file support */
-    void (*get_name)(struct _STREAMFILE *,char *name,size_t length);
-    struct _STREAMFILE * (*open)(struct _STREAMFILE *,const char * const filename,size_t buffersize);
+    void (*get_name)(struct _STREAMFILE * ,char *name, size_t length);
+    struct _STREAMFILE * (*open)(struct _STREAMFILE *, const char * const filename, size_t buffersize);
     void (*close)(struct _STREAMFILE *);
 
 
@@ -74,59 +74,68 @@ typedef struct _STREAMFILE {
 
 } STREAMFILE;
 
+/* All open_ fuctions should be safe to call with wrong/null parameters.
+ * _f versions are the same but free the passed streamfile on failure and return NULL,
+ * to ease chaining by avoiding realloc-style temp ptr verbosity */
+
 /* Opens a standard STREAMFILE, opening from path.
  * Uses stdio (FILE) for operations, thus plugins may not want to use it. */
-STREAMFILE *open_stdio_streamfile(const char * filename);
+STREAMFILE* open_stdio_streamfile(const char *filename);
 
 /* Opens a standard STREAMFILE from a pre-opened FILE. */
-STREAMFILE *open_stdio_streamfile_by_file(FILE * file, const char * filename);
+STREAMFILE* open_stdio_streamfile_by_file(FILE *file, const char *filename);
 
 /* Opens a STREAMFILE that does buffered IO.
  * Can be used when the underlying IO may be slow (like when using custom IO).
  * Buffer size is optional. */
-STREAMFILE *open_buffer_streamfile(STREAMFILE *streamfile, size_t buffer_size);
+STREAMFILE* open_buffer_streamfile(STREAMFILE *streamfile, size_t buffer_size);
+STREAMFILE* open_buffer_streamfile_f(STREAMFILE *streamfile, size_t buffer_size);
 
 /* Opens a STREAMFILE that doesn't close the underlying streamfile.
  * Calls to open won't wrap the new SF (assumes it needs to be closed).
  * Can be used in metas to test custom IO without closing the external SF. */
-STREAMFILE *open_wrap_streamfile(STREAMFILE *streamfile);
+STREAMFILE* open_wrap_streamfile(STREAMFILE *streamfile);
+STREAMFILE* open_wrap_streamfile_f(STREAMFILE *streamfile);
 
 /* Opens a STREAMFILE that clamps reads to a section of a larger streamfile.
  * Can be used with subfiles inside a bigger file (to fool metas, or to simplify custom IO). */
-STREAMFILE *open_clamp_streamfile(STREAMFILE *streamfile, off_t start, size_t size);
+STREAMFILE* open_clamp_streamfile(STREAMFILE *streamfile, off_t start, size_t size);
+STREAMFILE* open_clamp_streamfile_f(STREAMFILE *streamfile, off_t start, size_t size);
 
 /* Opens a STREAMFILE that uses custom IO for streamfile reads.
  * Can be used to modify data on the fly (ex. decryption), or even transform it from a format to another. */
-STREAMFILE *open_io_streamfile(STREAMFILE *streamfile, void* data, size_t data_size, void* read_callback, void* size_callback);
+STREAMFILE* open_io_streamfile(STREAMFILE *streamfile, void *data, size_t data_size, void *read_callback, void *size_callback);
+STREAMFILE* open_io_streamfile_f(STREAMFILE *streamfile, void *data, size_t data_size, void *read_callback, void *size_callback);
 
 /* Opens a STREAMFILE that reports a fake name, but still re-opens itself properly.
  * Can be used to trick a meta's extension check (to call from another, with a modified SF).
  * When fakename isn't supplied it's read from the streamfile, and the extension swapped with fakeext.
  * If the fakename is an existing file, open won't work on it as it'll reopen the fake-named streamfile. */
-STREAMFILE *open_fakename_streamfile(STREAMFILE *streamfile, const char * fakename, const char * fakeext);
+STREAMFILE* open_fakename_streamfile(STREAMFILE *streamfile, const char * fakename, const char * fakeext);
+STREAMFILE* open_fakename_streamfile_f(STREAMFILE *streamfile, const char * fakename, const char * fakeext);
 
-//todo probably could simply use custom IO
 /* Opens streamfile formed from multiple streamfiles, their data joined during reads.
  * Can be used when data is segmented in multiple separate files.
  * The first streamfile is used to get names, stream index and so on. */
-STREAMFILE *open_multifile_streamfile(STREAMFILE **streamfiles, size_t streamfiles_size);
+STREAMFILE* open_multifile_streamfile(STREAMFILE **streamfiles, size_t streamfiles_size);
+STREAMFILE* open_multifile_streamfile_f(STREAMFILE **streamfiles, size_t streamfiles_size);
 
 /* Opens a STREAMFILE from a (path)+filename.
  * Just a wrapper, to avoid having to access the STREAMFILE's callbacks directly. */
-STREAMFILE * open_streamfile(STREAMFILE *streamFile, const char * pathname);
+STREAMFILE* open_streamfile(STREAMFILE *streamfile, const char * pathname);
 
 /* Opens a STREAMFILE from a base pathname + new extension
  * Can be used to get companion headers. */
-STREAMFILE * open_streamfile_by_ext(STREAMFILE *streamFile, const char * ext);
+STREAMFILE* open_streamfile_by_ext(STREAMFILE *streamfile, const char * ext);
 
 /* Opens a STREAMFILE from a base path + new filename.
  * Can be used to get companion files. Relative paths like
  * './filename', '../filename', 'dir/filename' also work. */
-STREAMFILE * open_streamfile_by_filename(STREAMFILE *streamFile, const char * filename);
+STREAMFILE* open_streamfile_by_filename(STREAMFILE *streamfile, const char * filename);
 
 /* Reopen a STREAMFILE with a different buffer size, for fine-tuned bigfile parsing.
  * Uses default buffer size when buffer_size is 0 */
-STREAMFILE * reopen_streamfile(STREAMFILE *streamFile, size_t buffer_size);
+STREAMFILE * reopen_streamfile(STREAMFILE *streamfile, size_t buffer_size);
 
 
 /* close a file, destroy the STREAMFILE object */
@@ -136,8 +145,8 @@ static inline void close_streamfile(STREAMFILE * streamfile) {
 }
 
 /* read from a file, returns number of bytes read */
-static inline size_t read_streamfile(uint8_t * dest, off_t offset, size_t length, STREAMFILE * streamfile) {
-    return streamfile->read(streamfile,dest,offset,length);
+static inline size_t read_streamfile(uint8_t *dst, off_t offset, size_t length, STREAMFILE *streamfile) {
+    return streamfile->read(streamfile, dst, offset,length);
 }
 
 /* return file size */
@@ -256,16 +265,27 @@ static inline size_t align_size_to_block(size_t value, size_t block_align) {
 
 /* various STREAMFILE helpers functions */
 
-size_t get_streamfile_text_line(int dst_length, char * dst, off_t offset, STREAMFILE * streamfile, int *line_done_ptr);
+/* Read into dst a line delimited by CRLF (Windows) / LF (Unux) / CR (Mac) / EOF, null-terminated
+ * and without line feeds. Returns bytes read (including CR/LF), *not* the same as string length.
+ * p_line_ok is set to 1 if the complete line was read; pass NULL to ignore. */
+size_t read_line(char *buf, int buf_size, off_t offset, STREAMFILE *sf, int *p_line_ok);
 
-size_t read_string(char * buf, size_t bufsize, off_t offset, STREAMFILE *streamFile);
+/* reads a c-string (ANSI only), up to bufsize or NULL, returning size. buf is optional (works as get_string_size). */
+size_t read_string(char *buf, size_t buf_size, off_t offset, STREAMFILE *sf);
 
-size_t read_key_file(uint8_t * buf, size_t bufsize, STREAMFILE *streamFile);
+/* Opens a file containing decryption keys and copies to buffer.
+ * Tries "(name.ext)key" (per song), "(.ext)key" (per folder) keynames.
+ * returns size of key if found and copied */
+size_t read_key_file(uint8_t *buf, size_t buf_size, STREAMFILE *sf);
 
-void fix_dir_separators(char * filename);
+/* hack to allow relative paths in various OSs */
+void fix_dir_separators(char *filename);
 
+/* Checks if the stream filename is one of the extensions (comma-separated, ex. "adx" or "adx,aix").
+ * Empty is ok to accept files without extension ("", "adx,,aix"). Returns 0 on failure */
 int check_extensions(STREAMFILE *streamFile, const char * cmp_exts);
 
+/* chunk-style file helpers */
 int find_chunk_be(STREAMFILE *streamFile, uint32_t chunk_id, off_t start_offset, int full_chunk_size, off_t *out_chunk_offset, size_t *out_chunk_size);
 int find_chunk_le(STREAMFILE *streamFile, uint32_t chunk_id, off_t start_offset, int full_chunk_size, off_t *out_chunk_offset, size_t *out_chunk_size);
 int find_chunk(STREAMFILE *streamFile, uint32_t chunk_id, off_t start_offset, int full_chunk_size, off_t *out_chunk_offset, size_t *out_chunk_size, int big_endian_size, int zero_size_end);
@@ -275,7 +295,7 @@ int find_chunk_riff_be(STREAMFILE *streamFile, uint32_t chunk_id, off_t start_of
 /* same with chunk ids in variable endianess (so instead of "fmt " has " tmf" */
 int find_chunk_riff_ve(STREAMFILE *streamFile, uint32_t chunk_id, off_t start_offset, size_t max_size, off_t *out_chunk_offset, size_t *out_chunk_size, int big_endian);
 
-
+/* filename helpers */
 void get_streamfile_name(STREAMFILE *streamFile, char * buffer, size_t size);
 void get_streamfile_filename(STREAMFILE *streamFile, char * buffer, size_t size);
 void get_streamfile_basename(STREAMFILE *streamFile, char * buffer, size_t size);

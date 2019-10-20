@@ -91,7 +91,7 @@ VGMSTREAM * init_vgmstream_akb(STREAMFILE *streamFile) {
         case 0x02: { /* MSADPCM [Dragon Quest II (iOS) sfx] */
             vgmstream->coding_type = coding_MSADPCM;
             vgmstream->layout_type = layout_none;
-            vgmstream->interleave_block_size = read_16bitLE(extradata_offset + 0x02,streamFile);
+            vgmstream->frame_size = read_16bitLE(extradata_offset + 0x02,streamFile);
 
             /* adjusted samples; bigger or smaller than base samples, akb lib uses these fields instead
              * (base samples may have more than possible and read over file size otherwise, very strange)
@@ -277,7 +277,7 @@ VGMSTREAM * init_vgmstream_akb2(STREAMFILE *streamFile) {
         case 0x02: { /* MSADPCM [The Irregular at Magic High School Lost Zero (Android)] */
             vgmstream->coding_type = coding_MSADPCM;
             vgmstream->layout_type = layout_none;
-            vgmstream->interleave_block_size = read_16bitLE(extradata_offset + 0x02, streamFile);
+            vgmstream->frame_size = read_16bitLE(extradata_offset + 0x02, streamFile);
 
             /* adjusted samples; bigger or smaller than base samples, akb lib uses these fields instead
              * (base samples may have more than possible and read over file size otherwise, very strange)

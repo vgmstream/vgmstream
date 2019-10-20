@@ -188,15 +188,15 @@ static char** parse_mus(STREAMFILE *streamFile, int *out_file_count, int *out_lo
     char** names = NULL;
 
     char filename[NAME_LENGTH];
-    char line_buffer[NAME_LENGTH];
+    char line[NAME_LENGTH];
     char * end_ptr;
     char name_base[NAME_LENGTH];
     char dir_name[NAME_LENGTH];
     char subdir_name[NAME_LENGTH];
 
     int file_count;
-    size_t line_bytes;
-    int whole_line_read = 0;
+    size_t bytes_read;
+    int line_ok = 0;
     off_t mus_offset = 0;
 
     int i;
@@ -204,10 +204,10 @@ static char** parse_mus(STREAMFILE *streamFile, int *out_file_count, int *out_lo
 
 
     /* read file name base */
-    line_bytes = get_streamfile_text_line(sizeof(line_buffer),line_buffer, mus_offset, streamFile, &whole_line_read);
-    if (!whole_line_read) goto fail;
-    mus_offset += line_bytes;
-    memcpy(name_base,line_buffer,sizeof(name_base));
+    bytes_read = read_line(line, sizeof(line), mus_offset, streamFile, &line_ok);
+    if (!line_ok) goto fail;
+    mus_offset += bytes_read;
+    memcpy(name_base,line,sizeof(name_base));
 
     /* uppercase name_base */
     {
@@ -217,11 +217,11 @@ static char** parse_mus(STREAMFILE *streamFile, int *out_file_count, int *out_lo
     }
 
     /* read track entry count */
-    line_bytes = get_streamfile_text_line(sizeof(line_buffer),line_buffer, mus_offset, streamFile, &whole_line_read);
-    if (!whole_line_read) goto fail;
-    if (line_buffer[0] == '\0') goto fail;
-    mus_offset += line_bytes;
-    file_count = strtol(line_buffer,&end_ptr,10);
+    bytes_read = read_line(line, sizeof(line), mus_offset, streamFile, &line_ok);
+    if (!line_ok) goto fail;
+    if (line[0] == '\0') goto fail;
+    mus_offset += bytes_read;
+    file_count = strtol(line,&end_ptr,10);
     /* didn't parse whole line as an integer (optional opening whitespace) */
     if (*end_ptr != '\0') goto fail;
 
@@ -262,13 +262,11 @@ static char** parse_mus(STREAMFILE *streamFile, int *out_file_count, int *out_lo
         for (i = 0; i < file_count; i++)
         {
             int fields_matched;
-            line_bytes =
-                    get_streamfile_text_line(sizeof(line_buffer),line_buffer,
-                        mus_offset, streamFile, &whole_line_read);
-            if (!whole_line_read) goto fail;
-            mus_offset += line_bytes;
+            bytes_read = read_line(line,sizeof(line), mus_offset, streamFile, &line_ok);
+            if (!line_ok) goto fail;
+            mus_offset += bytes_read;
 
-            fields_matched = sscanf(line_buffer,"%s %s %s",name,
+            fields_matched = sscanf(line,"%s %s %s",name,
                     loop_name_base_temp,loop_name_temp);
 
             if (fields_matched < 1) goto fail;

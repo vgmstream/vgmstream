@@ -209,9 +209,9 @@ VGMSTREAM * init_vgmstream_ubi_jade(STREAMFILE *streamFile) {
 
             vgmstream->coding_type = coding_MSADPCM;
             vgmstream->layout_type = layout_none;
-            vgmstream->interleave_block_size = 0x24*channel_count;
+            vgmstream->frame_size = block_size;
 
-            vgmstream->num_samples = msadpcm_bytes_to_samples(data_size, vgmstream->interleave_block_size, channel_count);
+            vgmstream->num_samples = msadpcm_bytes_to_samples(data_size, vgmstream->frame_size, channel_count);
             if (!is_jade_v2) {
                 vgmstream->loop_start_sample = 0;
                 vgmstream->loop_end_sample = vgmstream->num_samples;
@@ -221,7 +221,7 @@ VGMSTREAM * init_vgmstream_ubi_jade(STREAMFILE *streamFile) {
 
         case 0x0001: { /* PS3 */
             VGMSTREAM *temp_vgmstream = NULL;
-            STREAMFILE *temp_streamFile = NULL;
+            STREAMFILE *temp_sf = NULL;
 
             if (fmt_size != 0x10) goto fail;
             if (block_size != 0x02*channel_count) goto fail;
@@ -230,11 +230,11 @@ VGMSTREAM * init_vgmstream_ubi_jade(STREAMFILE *streamFile) {
             if (read_32bitBE(start_offset, streamFile) != 0x4D534643) /* "MSF\43" */
                 goto fail;
 
-            temp_streamFile = setup_subfile_streamfile(streamFile, start_offset, data_size, "msf");
-            if (!temp_streamFile) goto fail;
+            temp_sf = setup_subfile_streamfile(streamFile, start_offset, data_size, "msf");
+            if (!temp_sf) goto fail;
 
-            temp_vgmstream = init_vgmstream_msf(temp_streamFile);
-            close_streamfile(temp_streamFile);
+            temp_vgmstream = init_vgmstream_msf(temp_sf);
+            close_streamfile(temp_sf);
             if (!temp_vgmstream) goto fail;
 
             temp_vgmstream->meta_type = vgmstream->meta_type;

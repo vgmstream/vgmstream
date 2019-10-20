@@ -49,7 +49,7 @@ The following can be used in place of `(value)` for `(key) = (value)` commands.
   * `$1|2|3|4`: value has size of 8/16/24/32 bit (optional, defaults to 4)
   * Example: `@0x10:BE$2` means `get big endian 16b value at 0x10`
 - `(field)`: uses current value of some fields. Accepted strings:
-  - `interleave, interleave_last, channels, sample_rate, start_offset, data_size, num_samples, loop_start_sample,  loop_end_sample, subsong_count, subsong_offset`
+  - `interleave, interleave_last, channels, sample_rate, start_offset, data_size, num_samples, loop_start_sample,  loop_end_sample, subsong_count, subsong_offset, subfile_offset, subfile_size, name_valueX`
 - `(other)`: other special values for certain keys, described per key
 
 

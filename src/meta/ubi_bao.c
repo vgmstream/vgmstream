@@ -379,22 +379,17 @@ static VGMSTREAM * init_vgmstream_ubi_bao_base(ubi_bao_header * bao, STREAMFILE 
             vgmstream->layout_type = layout_none;
             break;
         }
-
+#endif
+#ifdef VGM_USE_VORBIS
         case FMT_OGG: {
-            ffmpeg_codec_data *ffmpeg_data;
-
-            ffmpeg_data = init_ffmpeg_offset(streamData, start_offset, bao->stream_size);
-            if (!ffmpeg_data) goto fail;
-            vgmstream->codec_data = ffmpeg_data;
-            vgmstream->coding_type = coding_FFmpeg;
+            vgmstream->codec_data = init_ogg_vorbis(streamData, start_offset, bao->stream_size, NULL);
+            if (!vgmstream->codec_data) goto fail;
+            vgmstream->coding_type = coding_OGG_VORBIS;
             vgmstream->layout_type = layout_none;
 
-            vgmstream->num_samples = bao->num_samples; /* ffmpeg_data->totalSamples */
-            VGM_ASSERT(bao->num_samples != ffmpeg_data->totalSamples,
-                    "UBI BAO: header samples %i vs ffmpeg %i differ\n", bao->num_samples, (uint32_t)ffmpeg_data->totalSamples);
+            vgmstream->num_samples = bao->num_samples; /* same as Ogg samples */
             break;
         }
-
 #endif
         default:
             goto fail;

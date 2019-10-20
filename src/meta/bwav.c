@@ -5,20 +5,32 @@
 VGMSTREAM * init_vgmstream_bwav(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset;
-    int channel_count, loop_flag;
-    int32_t coef_start_offset, coef_spacing;
+    int channel_count, loop_flag, codec;
+    size_t interleave = 0;
+
 
     /* checks */
     if (!check_extensions(streamFile, "bwav"))
         goto fail;
 
-    /* BWAV header */
     if (read_32bitBE(0x00, streamFile) != 0x42574156) /* "BWAV" */
         goto fail;
 
+    /* 0x04: BOM */
+    /* 0x06: version? */
+    /* 0x08: ??? */
+    /* 0x0c: null? */
     channel_count = read_16bitLE(0x0E, streamFile);
+
+    /* - per channel (size 0x4c) */
+    codec = read_16bitLE(0x10, streamFile);
+    /* see below */
     start_offset = read_32bitLE(0x40, streamFile);
-    loop_flag = read_32bitLE(0x4C, streamFile);
+    loop_flag = read_32bitLE(0x4C, streamFile) != -1;
+    if (channel_count > 1)
+        interleave = read_32bitLE(0x8C, streamFile) - start_offset;
+    //TODO should make sure channels match and offsets make a proper interleave (see bfwav)
+
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count, loop_flag);
@@ -29,14 +41,24 @@ VGMSTREAM * init_vgmstream_bwav(STREAMFILE *streamFile) {
     vgmstream->loop_start_sample = read_32bitLE(0x50, streamFile);
     vgmstream->loop_end_sample = read_32bitLE(0x4C, streamFile);
     vgmstream->meta_type = meta_BWAV;
-    vgmstream->layout_type = (channel_count == 1) ? layout_none : layout_interleave;
-    vgmstream->interleave_block_size = read_32bitLE(0x8C, streamFile) - start_offset;
-    vgmstream->coding_type = coding_NGC_DSP;
-    
-    coef_start_offset = 0x20;
-    coef_spacing = 0x4C;
-    dsp_read_coefs_le(vgmstream, streamFile, coef_start_offset, coef_spacing);
 
+    switch(codec) {
+        case 0x0000:
+            vgmstream->coding_type = coding_PCM16LE;
+            vgmstream->layout_type = layout_interleave;
+            vgmstream->interleave_block_size = interleave;
+            break;
+
+        case 0x0001:
+            vgmstream->coding_type = coding_NGC_DSP;
+            vgmstream->layout_type = layout_interleave;
+            vgmstream->interleave_block_size = interleave;
+            dsp_read_coefs_le(vgmstream, streamFile, 0x20, 0x4C);
+            break;
+
+        default:
+            goto fail;
+    }
 
     if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
         goto fail;

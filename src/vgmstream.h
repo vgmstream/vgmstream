@@ -828,6 +828,7 @@ typedef struct {
     size_t interleave_first_block_size; /* different interleave for first block */
     size_t interleave_first_skip;   /* data skipped before interleave first (needed to skip other channels) */
     size_t interleave_last_block_size; /* smaller interleave for last block */
+    size_t frame_size;              /* for codecs with configurable size */
 
     /* subsong config */
     int num_streams;                /* for multi-stream formats (0=not set/one stream, 1=one stream) */
@@ -897,7 +898,8 @@ typedef struct {
 } VGMSTREAM;
 
 #ifdef VGM_USE_VORBIS
-/* Ogg with Vorbis */
+
+/* standard Ogg Vorbis */
 typedef struct {
     STREAMFILE *streamfile;
     ogg_int64_t start; /* file offset where the Ogg starts */
@@ -910,15 +912,9 @@ typedef struct {
     off_t scd_xor_length;
     uint32_t xor_value;
 
-} ogg_vorbis_streamfile;
+} ogg_vorbis_io;
 
-typedef struct {
-    OggVorbis_File ogg_vorbis_file;
-    int bitstream;
-
-    ogg_vorbis_streamfile ov_streamfile;
-    int disable_reordering; /* Xiph reorder channels on output, except for some devs */
-} ogg_vorbis_codec_data;
+typedef struct ogg_vorbis_codec_data ogg_vorbis_codec_data;
 
 
 /* custom Vorbis modes */

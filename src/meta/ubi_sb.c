@@ -661,14 +661,12 @@ static VGMSTREAM * init_vgmstream_ubi_sb_base(ubi_sb_header *sb, STREAMFILE *str
             xma_fix_raw_samples_ch(vgmstream, streamData, start_offset, sb->stream_size, sb->channels, 0, 0);
             break;
         }
-
+#endif
+#ifdef VGM_USE_VORBIS
         case FMT_OGG: {
-            ffmpeg_codec_data *ffmpeg_data;
-
-            ffmpeg_data = init_ffmpeg_offset(streamData, start_offset, sb->stream_size);
-            if ( !ffmpeg_data ) goto fail;
-            vgmstream->codec_data = ffmpeg_data;
-            vgmstream->coding_type = coding_FFmpeg;
+            vgmstream->codec_data = init_ogg_vorbis(streamData, start_offset, sb->stream_size, NULL);
+            if (!vgmstream->codec_data) goto fail;
+            vgmstream->coding_type = coding_OGG_VORBIS;
             vgmstream->layout_type = layout_none;
             break;
         }
