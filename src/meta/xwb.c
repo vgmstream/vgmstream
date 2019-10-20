@@ -540,11 +540,12 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
             vgmstream->layout_type = layout_none;
             break;
         }
-
+#endif
+#ifdef VGM_USE_VORBIS
         case OGG: { /* Oddworld: Strangers Wrath (iOS/Android) extension */
-            vgmstream->codec_data = init_ffmpeg_offset(streamFile, xwb.stream_offset, xwb.stream_size);
-            if ( !vgmstream->codec_data ) goto fail;
-            vgmstream->coding_type = coding_FFmpeg;
+            vgmstream->codec_data = init_ogg_vorbis(streamFile, xwb.stream_offset, xwb.stream_size, NULL);
+            if (!vgmstream->codec_data) goto fail;
+            vgmstream->coding_type = coding_OGG_VORBIS;
             vgmstream->layout_type = layout_none;
             break;
         }

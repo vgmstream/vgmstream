@@ -97,14 +97,15 @@ VGMSTREAM * init_vgmstream_xwc(STREAMFILE *streamFile) {
             xma_fix_raw_samples(vgmstream, streamFile, start_offset,data_size, 0, 0,0); /* samples are ok, fix delay */
             break;
         }
-
+#endif
+#ifdef VGM_USE_VORBIS
         case 0x564F5242: { /* "VORB" (PC) */
             start_offset = 0x30;
             data_size = data_size - start_offset;
 
-            vgmstream->codec_data = init_ffmpeg_offset(streamFile, start_offset,data_size);
+            vgmstream->codec_data = init_ogg_vorbis(streamFile, start_offset, data_size, NULL);
             if ( !vgmstream->codec_data ) goto fail;
-            vgmstream->coding_type = coding_FFmpeg;
+            vgmstream->coding_type = coding_OGG_VORBIS;
             vgmstream->layout_type = layout_none;
 
             vgmstream->sample_rate = read_32bitLE(start_offset + 0x28, streamFile);
