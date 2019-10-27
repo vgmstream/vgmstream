@@ -335,7 +335,7 @@ static const char* extension_list[] = {
     "oto", //txth/reserved [Vampire Savior (SAT)]
     "ovb",
 
-    "p04", //txth/reserved [Psychic Force 2012 (DC)]
+    "p04", //txth/reserved [Psychic Force 2012 (DC), Skies of Arcadia (DC)]
     "p16", //txth/reserved [Astal (SAT)]
     "p1d", //txth/reserved [Farming Simulator 18 (3DS)]
     "p2a", //txth/reserved [Thunderhawk Operation Phoenix (PS2)]

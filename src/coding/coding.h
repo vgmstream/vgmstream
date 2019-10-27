@@ -403,7 +403,6 @@ typedef struct {
     uint8_t * buf;          /* buffer to read/write*/
     size_t bufsize;         /* max size of the buffer */
     off_t b_off;            /* current offset in bits inside the buffer */
-    off_t info_offset;      /* for logging */
     vgm_bitstream_t mode;   /* read/write modes */
 } vgm_bitstream;
 
