@@ -152,9 +152,9 @@ void decode_xa(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing,
     stream->adpcm_history2_32 = hist2;
 }
 
-size_t xa_bytes_to_samples(size_t bytes, int channels, int is_blocked) {
+size_t xa_bytes_to_samples(size_t bytes, int channels, int is_blocked, int is_form2) {
     if (is_blocked) {
-        return (bytes / 0x930) * (28*8/ channels) * 18;
+        return (bytes / 0x930) * (28*8/ channels) * (is_form2 ? 18 : 16);
     }
     else {
         return (bytes / 0x80) * (28*8 / channels);
