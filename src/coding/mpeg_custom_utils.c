@@ -132,7 +132,7 @@ int mpeg_custom_parse_frame_default(VGMSTREAMCHANNEL *stream, mpeg_codec_data *d
             current_interleave_pre  = current_interleave*num_stream;
             current_interleave_post = current_interleave*(data->streams_size-1) - current_interleave_pre;
 
-            if ( !mpeg_get_frame_info(stream->streamfile, stream->offset, &info) )
+            if (!mpeg_get_frame_info(stream->streamfile, stream->offset + current_interleave_pre, &info))
                 goto fail;
             current_data_size = info.frame_size;
 
