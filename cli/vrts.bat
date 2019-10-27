@@ -28,8 +28,10 @@ REM # -nd: don't delete compared files
 set OP_NODELETE=
 REM # -nc: don't report correct files
 set OP_NOCORRECT=
-REM # -p: performance test (decode with new exe and no comparison done)
-REM # -P: performance test (same but also don't write file)
+REM # -p: performance test new (decode with new exe and no comparison done)
+REM # -P: performance test new (same but also don't write file)
+REM # -po: performance test old (decode with new old and no comparison done)
+REM # -Po: performance test old (same but also don't write file)
 set OP_PERFORMANCE=
 REM # -fc <exe>: file comparer (Windows's FC is slow)
 set OP_CMD_FC=fc /a /b
@@ -46,6 +48,8 @@ if "%~1"=="-nd" set OP_NODELETE=true
 if "%~1"=="-nc" set OP_NOCORRECT=true
 if "%~1"=="-p"  set OP_PERFORMANCE=1
 if "%~1"=="-P"  set OP_PERFORMANCE=2
+if "%~1"=="-po" set OP_PERFORMANCE=3
+if "%~1"=="-Po" set OP_PERFORMANCE=4
 if "%~1"=="-fc" set OP_CMD_FC=%2
 shift
 goto set_options
@@ -201,15 +205,20 @@ REM # ########################################################################
     REM echo VTRS: file %CMD_FILE%
 
     set WAV_NEW=%CMD_FILE%.test.wav
+    if "%OP_PERFORMANCE%" == "1" (
+        set CMD_VGM="%OP_CMD_NEW%" -o "%WAV_NEW%" "%CMD_FILE%"
+    )
     if "%OP_PERFORMANCE%" == "2" (
-        REM # don't actually write file
-        set CMD_VGM_NEW="%OP_CMD_NEW%" -O "%CMD_FILE%"
-    ) else (
-        REM # new temp output
-        set CMD_VGM_NEW="%OP_CMD_NEW%" -o "%WAV_NEW%" "%CMD_FILE%"
+        set CMD_VGM="%OP_CMD_NEW%" -O "%CMD_FILE%"
+    )
+    if "%OP_PERFORMANCE%" == "3" (
+        set CMD_VGM="%OP_CMD_OLD%" -o "%WAV_OLD%" "%CMD_FILE%"
+    )
+    if "%OP_PERFORMANCE%" == "4" (
+        set CMD_VGM="%OP_CMD_OLD%" -O "%CMD_FILE%"
     )
 
-    %CMD_VGM_NEW% 1> nul 2>&1  & REM || goto error
+    %CMD_VGM% 1> nul 2>&1  & REM || goto error
 
     call :echo_color %C_O% "%CMD_FILE%" "done"
 

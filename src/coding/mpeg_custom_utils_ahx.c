@@ -7,42 +7,45 @@ static int ahx_decrypt_type08(uint8_t * buffer, mpeg_custom_config *config);
 
 /* writes data to the buffer and moves offsets, transforming AHX frames as needed */
 int mpeg_custom_parse_frame_ahx(VGMSTREAMCHANNEL *stream, mpeg_codec_data *data, int num_stream) {
-    /* 0xFFF5E0C0 header: frame size 0x414 (160kbps, 22050Hz) but they actually are much shorter */
     mpeg_custom_stream *ms = data->streams[num_stream];
     size_t current_data_size = 0;
     size_t file_size = get_streamfile_size(stream->streamfile);
 
+    /* AHX has a 0xFFF5E0C0 header with frame size 0x414 (160kbps, 22050Hz) but they actually are much shorter */
+
+    /* read supposed frame size first (to minimize reads) */
+    ms->bytes_in_buffer = read_streamfile(ms->buffer, stream->offset, MPEG_AHX_EXPECTED_FRAME_SIZE, stream->streamfile);
+
     /* find actual frame size by looking for the next frame header */
     {
-        uint32_t current_header = (uint32_t)read_32bitBE(stream->offset, stream->streamfile);
-        off_t next_offset = 0x04;
+        uint32_t current_header = get_u32be(ms->buffer);
+        int next_pos = 0x04;
 
-        while (next_offset <= MPEG_AHX_EXPECTED_FRAME_SIZE) {
-            uint32_t next_header = (uint32_t)read_32bitBE(stream->offset + next_offset, stream->streamfile);
+        while (next_pos <= MPEG_AHX_EXPECTED_FRAME_SIZE) {
+            uint32_t next_header = get_u32be(ms->buffer + next_pos);
 
             if (current_header == next_header) {
-                current_data_size = next_offset;
+                current_data_size = next_pos;
                 break;
             }
 
-            /* AHXs end in a 0x0c footer (0x41485845 0x28632943 0x52490000 / "AHXE" "(c)C" "RI\0\0") */
-            if (stream->offset + next_offset + 0x0c >= file_size) {
-                current_data_size = next_offset;
+            /* AHXs end in a 0x0c footer (0x41485845 28632943 52490000 / "AHXE(c)CRI\0\0") */
+            if (stream->offset + next_pos + 0x0c >= file_size) {
+                current_data_size = next_pos;
                 break;
             }
 
-            next_offset++;
+            next_pos++;
         }
     }
-    if (!current_data_size || current_data_size > ms->buffer_size || current_data_size > MPEG_AHX_EXPECTED_FRAME_SIZE) {
+
+    if (current_data_size == 0 || current_data_size > ms->buffer_size || current_data_size > MPEG_AHX_EXPECTED_FRAME_SIZE) {
         VGM_LOG("MPEG AHX: incorrect data_size 0x%x\n", current_data_size);
         goto fail;
     }
 
-
     /* 0-fill up to expected size to keep mpg123 happy */
-    ms->bytes_in_buffer = read_streamfile(ms->buffer,stream->offset,current_data_size,stream->streamfile);
-    memset(ms->buffer + ms->bytes_in_buffer,0, MPEG_AHX_EXPECTED_FRAME_SIZE - ms->bytes_in_buffer);
+    memset(ms->buffer + current_data_size, 0, MPEG_AHX_EXPECTED_FRAME_SIZE - current_data_size);
     ms->bytes_in_buffer = MPEG_AHX_EXPECTED_FRAME_SIZE;
 
 
@@ -59,7 +62,6 @@ int mpeg_custom_parse_frame_ahx(VGMSTREAMCHANNEL *stream, mpeg_codec_data *data,
     stream->offset += current_data_size;
     if (stream->offset + 0x0c >= file_size)
         stream->offset = file_size; /* skip 0x0c footer to reach EOF (shouldn't happen normally) */
-
 
     return 1;
 fail:
@@ -79,7 +81,7 @@ static int ahx_decrypt_type08(uint8_t * buffer, mpeg_custom_config *config) {
 
     /* read 2b from a bitstream offset to decrypt, and use it as an index to get the key.
      * AHX encrypted bitstream starts at 107b (0x0d*8+3), every frame, and seem to always use index 2 */
-    value = (uint32_t)get_32bitBE(buffer + 0x0d);
+    value = get_u32be(buffer + 0x0d);
     index = (value >> (32-3-2)) & 0x03;
     switch(index) {
         case 0: current_key = 0; break;

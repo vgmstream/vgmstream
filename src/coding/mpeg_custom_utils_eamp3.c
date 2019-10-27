@@ -71,10 +71,11 @@ int mpeg_custom_parse_frame_eamp3(VGMSTREAMCHANNEL *stream, mpeg_codec_data *dat
     ok = eamp3_parse_frame(stream, data, &eaf);
     if (!ok) goto fail;
 
+    ms->bytes_in_buffer = read_streamfile(ms->buffer, stream->offset + eaf.pre_size, eaf.mpeg_size, stream->streamfile);
+
     ok = eamp3_write_pcm_block(stream, data, num_stream, &eaf);
     if (!ok) goto fail;
 
-    ms->bytes_in_buffer = read_streamfile(ms->buffer,stream->offset + eaf.pre_size, eaf.mpeg_size, stream->streamfile);
     stream->offset += eaf.frame_size;
 
     if (!eamp3_skip_data(stream, data, num_stream, 0))

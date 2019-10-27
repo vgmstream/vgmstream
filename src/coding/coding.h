@@ -93,7 +93,7 @@ void decode_hevag(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspaci
 
 /* xa_decoder */
 void decode_xa(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel);
-size_t xa_bytes_to_samples(size_t bytes, int channels, int is_blocked);
+size_t xa_bytes_to_samples(size_t bytes, int channels, int is_blocked, int is_form2);
 
 /* ea_xa_decoder */
 void decode_ea_xa(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel);
@@ -403,7 +403,6 @@ typedef struct {
     uint8_t * buf;          /* buffer to read/write*/
     size_t bufsize;         /* max size of the buffer */
     off_t b_off;            /* current offset in bits inside the buffer */
-    off_t info_offset;      /* for logging */
     vgm_bitstream_t mode;   /* read/write modes */
 } vgm_bitstream;
 
