@@ -1,0 +1,12 @@
+* text=auto
+
+*.c text
+*.cc text
+*.cpp text
+*.h text
+
+*.vcproj text eol=crlf
+*.vcxproj text eol=crlf
+*.sln text eol=crlf
+
+*.dll binary
