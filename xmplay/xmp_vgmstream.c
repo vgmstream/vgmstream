@@ -35,6 +35,7 @@ static XMPFUNC_MISC *xmpfmisc;
 static XMPFUNC_FILE *xmpffile;
 
 char working_extension_list[EXTENSION_LIST_SIZE] = {0};
+char filepath[2048];
 
 /* plugin config */
 double fade_seconds = 10.0;
@@ -106,6 +107,8 @@ static STREAMFILE *xmpsf_open(XMPLAY_STREAMFILE *this, const char *const filenam
     newfile = xmpffile->Open(filename);
     if (!newfile) return NULL;
 
+	strcpy(filepath, filename);
+
     return open_xmplay_streamfile_by_xmpfile(newfile, filename, 1); /* internal XMPFILE */
 }
 
@@ -158,22 +161,212 @@ fail:
 
 /* ************************************* */
 
-#if 0
 /* get the tags as an array of "key\0value\0", NULL-terminated */
 static char *get_tags(VGMSTREAM * infostream) {
-    char *tags;
-    size_t tag_number = 20; // ?
+    char* tags;
+	int pos = 0;
 
-    tags = (char*)xmpfmisc->Alloc(tag_number+1);
+	tags = xmpfmisc->Alloc(1024);
+	memset(tags, 0x00, 1024);
 
-    for (...) {
-        ...
-    }
+	if (infostream->stream_name != NULL && strlen(infostream->stream_name) > 0)
+	{
+		memcpy(tags + pos, "title", 5);
+		pos += 6;
+		memcpy(tags + pos, infostream->stream_name, strlen(infostream->stream_name));
+		pos += strlen(infostream->stream_name) + 1;
+	}
+	
+	char* end;
+	char* start = NULL;
+	int j = 2;
+	for (char* i = filepath+strlen(filepath); i > filepath; i--)
+	{
+		if ((*i == '\\') && (j == 1))
+		{
+			start = i + 1;
+			j--;
+			break;
+		}
+		if ((*i == '\\') && (j == 2))
+		{
+			end = i;
+			j--;
+		}
+	}
 
-    tags[tag_number]=0; // terminating NULL
-    return tags; /* assuming XMPlay free()s this, since it Alloc()s it */
+	//run some sanity checks
+
+	int brace_curly = 0, brace_square = 0;
+	char check_ok = 0;
+	for (char* i = filepath; *i != 0; i++)
+	{
+		if (*i == '(')
+			brace_curly++;
+		if (*i == ')')
+			brace_curly--;
+		if (*i == '[')
+			brace_square++;
+		if (*i == ']')
+			brace_square--;
+		if (brace_curly > 1 || brace_curly < -1 || brace_square > 1 || brace_square < -1)
+			break;
+	}
+
+	if (brace_square == 0 && brace_curly == 0)
+		check_ok = 1;
+
+	if (start != NULL && strstr(filepath, "\\VGMPP\\") != NULL && check_ok == 1 && strchr(start, '(') != NULL)
+	{
+		char tagline[1024];
+		memset(tagline, 0x00, sizeof(tagline));
+		strncpy(tagline, start, end - start);
+		
+		char* alttitle_st;
+		char* alttitle_ed;
+		char* album_st;
+		char* album_ed;
+		char* company_st;
+		char* company_ed;
+		char* company2_st;
+		char* company2_ed;
+		char* date_st;
+		char* date_ed;
+		char* platform_st;
+		char* platform_ed;
+
+		if (strchr(tagline, '[') != NULL) //either alternative title or platform usually
+		{
+			alttitle_st = strchr(tagline, '[') + 1;
+			alttitle_ed = strchr(alttitle_st, ']');
+			if (strchr(alttitle_st, '[') != NULL && strchr(alttitle_st, '[') > strchr(alttitle_st, '(')) //both might be present actually
+			{
+				platform_st = strchr(alttitle_st, '[') + 1;
+				platform_ed = strchr(alttitle_ed + 1, ']');
+			}
+			else
+			{
+				platform_st = NULL;
+				platform_ed = NULL;
+			}
+		}
+		else
+		{
+			platform_st = NULL;
+			platform_ed = NULL;
+			alttitle_st = NULL;
+			alttitle_ed = NULL;
+		}
+
+		album_st = tagline;
+
+		if (strchr(tagline, '(') < alttitle_st && alttitle_st != NULL) //square braces after curly braces -- platform
+		{
+			platform_st = alttitle_st;
+			platform_ed = alttitle_ed;
+			alttitle_st = NULL;
+			alttitle_ed = NULL;
+			album_ed = strchr(tagline, '('); //get normal title for now
+		}
+		else if (alttitle_st != NULL)
+			album_ed = strchr(tagline, '[');
+		else
+			album_ed = strchr(tagline, '(');
+
+		date_st = strchr(album_ed, '(') + 1; //first string in curly braces is usualy release date, I have one package with platform name there
+		if (date_st == NULL)
+			date_ed = NULL;
+		if (date_st[0] >= 0x30 && date_st[0] <= 0x39 && date_st[1] >= 0x30 && date_st[1] <= 0x39) //check if it contains 2 digits
+		{
+			date_ed = strchr(date_st, ')');
+		}
+		else //platform?
+		{
+			platform_st = date_st;
+			platform_ed = strchr(date_st, ')');
+			date_st = strchr(platform_ed, '(') + 1;
+			date_ed = strchr(date_st, ')');
+		}
+		
+		company_st = strchr(date_ed, '(') + 1; //company name follows date
+		if (company_st != NULL)
+		{
+			company_ed = strchr(company_st, ')');
+			if (strchr(company_ed, '(') != NULL)
+			{
+				company2_st = strchr(company_ed, '(') + 1;
+				company2_ed = strchr(company2_st, ')');
+			}
+			else
+			{
+				company2_st = NULL;
+				company2_ed = NULL;
+			}
+		}
+		else
+		{
+			company_st = NULL;
+			company_ed = NULL;
+			company2_st = NULL;
+			company2_ed = NULL;
+		}
+
+		if (alttitle_st != NULL) //prefer alternative title, which is usually japanese
+		{
+			memcpy(tags + pos, "album", 5);
+			pos += 6;
+			memcpy(tags + pos, alttitle_st, alttitle_ed - alttitle_st);
+			pos += alttitle_ed - alttitle_st + 1;
+		}
+		else
+		{
+			memcpy(tags + pos, "album", 5);
+			pos += 6;
+			memcpy(tags + pos, album_st, album_ed - album_st);
+			pos += album_ed - album_st + 1;
+		}
+
+		if (date_st != NULL)
+		{
+			memcpy(tags + pos, "date", 4);
+			pos += 5;
+			memcpy(tags + pos, date_st, date_ed - date_st);
+			pos += date_ed - date_st + 1;
+		}
+
+		if (date_st != NULL)
+		{
+			memcpy(tags + pos, "genre", 5);
+			pos += 6;
+			memcpy(tags + pos, platform_st, platform_ed - platform_st);
+			pos += platform_ed - platform_st + 1;
+		}
+
+		if (company_st != NULL)
+		{
+			char combuf[256];
+			memset(combuf, 0x00, sizeof(combuf));
+			char tmp[128];
+			memset(tmp, 0x00, sizeof(tmp));
+			memcpy(tmp, company_st, company_ed - company_st);
+			if (company2_st != NULL)
+			{
+				char tmp2[128];
+				memset(tmp2, 0x00, sizeof(tmp2));
+				memcpy(tmp2, company2_st, company2_ed - company2_st);
+				sprintf(combuf, "\r\n\r\nDeveloper\t%s\r\nPublisher\t%s", tmp, tmp2);
+			}
+			else
+				sprintf(combuf, "\r\n\r\nDeveloper\t%s", tmp);
+
+			memcpy(tags + pos, "comment", 7);
+			pos += 8;
+			memcpy(tags + pos, combuf, strlen(combuf));
+			pos += strlen(combuf) + 1;
+		}
+	}
+	return tags; /* assuming XMPlay free()s this, since it Alloc()s it */
 }
-#endif
 
 /* Adds ext to XMPlay's extension list. */
 static int add_extension(int length, char * dst, const char * ext) {
@@ -324,7 +517,7 @@ void WINAPI xmplay_SetFormat(XMPFORMAT *form) {
 
 /* get tags, return NULL to delay title update (OPTIONAL) */
 char * WINAPI xmplay_GetTags() {
-    return NULL; //get_tags(vgmstream);
+	return get_tags(vgmstream);
 }
 
 /* main panel info text (short file info) */
@@ -342,6 +535,18 @@ void WINAPI xmplay_GetInfoText(char* format, char* length) {
     samples = vgmstream->num_samples;
     bps = get_vgmstream_average_bitrate(vgmstream) / 1000;
     get_vgmstream_coding_description(vgmstream, fmt, sizeof(fmt));
+	if (strcmp(fmt, "FFmpeg") == 0)
+	{
+		char buffer[1024];
+		buffer[0] = '\0';
+		describe_vgmstream(vgmstream, buffer, sizeof(buffer));
+		char* enc_tmp = strstr(buffer, "encoding: ") + 10;
+		char* enc_end = strstr(enc_tmp, "\n");
+		int len = (int)enc_end - (int)enc_tmp;
+
+		memset(fmt, 0x00, sizeof(fmt));
+		strncpy(fmt, enc_tmp, len);
+	}
 
     t = samples / rate;
     tmin = t / 60;
@@ -365,9 +570,9 @@ void WINAPI xmplay_GetGeneralInfo(char* buf) {
     describe_vgmstream(vgmstream,description,sizeof(description));
 
     /* tags are divided with a tab and lines with carriage return so we'll do some guetto fixin' */
+	int tag_done = 0;
+	description[0] -= 32; //Replace small letter with capital for consistency with XMPlay's output
     for (i = 0; i < 1024; i++) {
-        int tag_done = 0;
-
         if (description[i] == '\0')
             break;
 
@@ -379,11 +584,13 @@ void WINAPI xmplay_GetGeneralInfo(char* buf) {
 
         if (description[i] == '\n') {
             description[i] = '\r';
+			if (description[i+1])
+				description[i+1] -= 32; //Replace small letter with capital for consistency with XMPlay's output
             tag_done = 0;
         }
     }
 
-    sprintf(buf,"vgmstream\t\r%s\r", description);
+    sprintf(buf,"%s", description);
 }
 
 /* get the seeking granularity in seconds */
