@@ -217,9 +217,32 @@ VGMSTREAM * init_vgmstream_vag(STREAMFILE *streamFile) {
                 /* Need for Speed: Hot Pursuit 2 (PS2) */
                 start_offset = 0x30;
                 channel_count = read_32bitBE(0x2c, streamFile);
-                interleave = 0x8000;
                 channel_size = channel_size / channel_count;
                 loop_flag = 0;
+
+                /* detect interleave using end markers */
+                interleave = 0;
+
+                if (channel_count > 1) {
+                    off_t offset = file_size;
+                    off_t end_off = 0;
+                    uint8_t flag;
+
+                    while (1) {
+                        offset -= 0x10;
+                        flag = read_8bit(offset + 0x01, streamFile);
+                        if (flag == 0x01) {
+                            if (!end_off) {
+                                end_off = offset;
+                            } else {
+                                interleave = end_off - offset;
+                                break;
+                            }
+                        }
+
+                        if (offset == start_offset) goto fail;
+                    }
+                }
             }
             else {
                 /* standard PS1/PS2/PS3 .vag [Ecco the Dolphin (PS2), Legasista (PS3)] */
