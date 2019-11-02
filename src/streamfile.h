@@ -202,30 +202,81 @@ static inline int8_t read_8bit(off_t offset, STREAMFILE * streamfile) {
 }
 
 /* alias of the above */
-static inline int8_t   read_s8(off_t offset, STREAMFILE * streamfile) { return read_8bit(offset, streamfile); }
-static inline uint8_t  read_u8(off_t offset, STREAMFILE * streamfile) { return (uint8_t)read_8bit(offset, streamfile); }
-static inline int16_t  read_s16le(off_t offset, STREAMFILE * streamfile) { return read_16bitLE(offset, streamfile); }
-static inline uint16_t read_u16le(off_t offset, STREAMFILE * streamfile) { return (uint16_t)read_16bitLE(offset, streamfile); }
-static inline int16_t  read_s16be(off_t offset, STREAMFILE * streamfile) { return read_16bitBE(offset, streamfile); }
-static inline uint16_t read_u16be(off_t offset, STREAMFILE * streamfile) { return (uint16_t)read_16bitBE(offset, streamfile); }
-static inline int32_t  read_s32le(off_t offset, STREAMFILE * streamfile) { return read_32bitLE(offset, streamfile); }
-static inline uint32_t read_u32le(off_t offset, STREAMFILE * streamfile) { return (uint32_t)read_32bitLE(offset, streamfile); }
-static inline int32_t  read_s32be(off_t offset, STREAMFILE * streamfile) { return read_32bitBE(offset, streamfile); }
-static inline uint32_t read_u32be(off_t offset, STREAMFILE * streamfile) { return (uint32_t)read_32bitBE(offset, streamfile); }
-static inline int64_t  read_s64be(off_t offset, STREAMFILE * streamfile) { return read_64bitBE(offset, streamfile); }
-static inline uint64_t read_u64be(off_t offset, STREAMFILE * streamfile) { return (uint64_t)read_64bitBE(offset, streamfile); }
-static inline int64_t  read_s64le(off_t offset, STREAMFILE * streamfile) { return read_64bitLE(offset, streamfile); }
-static inline uint64_t read_u64le(off_t offset, STREAMFILE * streamfile) { return (uint64_t)read_64bitLE(offset, streamfile); }
+static inline int8_t   read_s8   (off_t offset, STREAMFILE *sf) { return           read_8bit(offset, sf); }
+static inline uint8_t  read_u8   (off_t offset, STREAMFILE *sf) { return (uint8_t) read_8bit(offset, sf); }
+static inline int16_t  read_s16le(off_t offset, STREAMFILE *sf) { return           read_16bitLE(offset, sf); }
+static inline uint16_t read_u16le(off_t offset, STREAMFILE *sf) { return (uint16_t)read_16bitLE(offset, sf); }
+static inline int16_t  read_s16be(off_t offset, STREAMFILE *sf) { return           read_16bitBE(offset, sf); }
+static inline uint16_t read_u16be(off_t offset, STREAMFILE *sf) { return (uint16_t)read_16bitBE(offset, sf); }
+static inline int32_t  read_s32le(off_t offset, STREAMFILE *sf) { return           read_32bitLE(offset, sf); }
+static inline uint32_t read_u32le(off_t offset, STREAMFILE *sf) { return (uint32_t)read_32bitLE(offset, sf); }
+static inline int32_t  read_s32be(off_t offset, STREAMFILE *sf) { return           read_32bitBE(offset, sf); }
+static inline uint32_t read_u32be(off_t offset, STREAMFILE *sf) { return (uint32_t)read_32bitBE(offset, sf); }
+static inline int64_t  read_s64be(off_t offset, STREAMFILE *sf) { return           read_64bitBE(offset, sf); }
+static inline uint64_t read_u64be(off_t offset, STREAMFILE *sf) { return (uint64_t)read_64bitBE(offset, sf); }
+static inline int64_t  read_s64le(off_t offset, STREAMFILE *sf) { return           read_64bitLE(offset, sf); }
+static inline uint64_t read_u64le(off_t offset, STREAMFILE *sf) { return (uint64_t)read_64bitLE(offset, sf); }
 
-#if 0  //todo improve + test + simplify code (maybe not inline?)
-static inline float    read_f32be(off_t offset, STREAMFILE * streamfile) {
-    uint32_t sample_int = read_s32be(offset,streamfile);
+/* The recommended int-to-float type punning in C is through union, but pointer casting
+ * works too (though less portable due to aliasing rules?). For C++ memcpy seems
+ * recommended. Both work in GCC and VS2015+ (not sure about older, ifdef as needed). */
+static inline float    read_f32be(off_t offset, STREAMFILE *sf) {
+    union {
+        uint32_t u32;
+        float f32;
+    } temp;
+    temp.u32 = read_u32be(offset, sf);
+    return temp.f32;
+}
+static inline float    read_f32le(off_t offset, STREAMFILE * sf) {
+    union {
+        uint32_t u32;
+        float f32;
+    } temp;
+    temp.u32 = read_u32le(offset, sf);
+    return temp.f32;
+}
+#if 0
+static inline float    read_f32be_p(off_t offset, STREAMFILE *sf) {
+    uint32_t sample_int = read_u32be(offset, sf);
     float* sample_float = (float*)&sample_int;
     return *sample_float;
 }
-static inline float    read_f32le(off_t offset, STREAMFILE * streamfile) {
-    ...
+static inline float    read_f32be_m(off_t offset, STREAMFILE *sf) {
+    uint32_t sample_int = read_u32be(offset, sf);
+    float sample_float;
+    memcpy(&sample_float, &sample_int, sizeof(uint32_t));
+    return sample_float;
 }
+#endif
+#if 0
+/* collection of callbacks for quick access */
+typedef struct sf_reader {
+    int32_t (*read_s32)(off_t,STREAMFILE*); //maybe s32
+    float (*read_f32)(off_t,STREAMFILE*);
+    /* ... */
+} sf_reader;
+
+void init_reader(sf_reader *r, int big_endian);
+/* ... */
+void sf_reader_init(sf_reader *r, int big_endian) {
+    memset(r, 0, sizeof(sf_reader));
+    if (big_endian) {
+        r->read_s32 = read_s32be;
+        r->read_f32 = read_f32be;
+    }
+    else {
+        r->read_s32 = read_s32le;
+        r->read_f32 = read_f32le;
+    }
+}
+/* sf_reader r;
+ * ...
+ * sf_reader_init(&r, big_endian);
+ * val = r.read_s32; //maybe r.s32?
+ */
+#endif
+#if 0  //todo improve + test + simplify code (maybe not inline?)
 static inline int read_s4h(off_t offset, STREAMFILE * streamfile) {
     uint8_t byte = read_u8(offset, streamfile);
     return get_nibble_signed(byte, 1);
@@ -245,6 +296,7 @@ static inline int min_s32(int32_t a, int32_t b) { return a < b ? a : b; }
 //align32, align16, clamp16, etc
 #endif
 
+//TODO: maybe move to streamfile.c
 /* guess byte endianness from a given value, return true if big endian and false if little endian */
 static inline int guess_endianness16bit(off_t offset, STREAMFILE * streamfile) {
     uint8_t buf[0x02];

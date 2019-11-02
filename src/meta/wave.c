@@ -8,10 +8,9 @@ VGMSTREAM * init_vgmstream_wave(STREAMFILE *streamFile) {
     int loop_flag = 0, channel_count, sample_rate, codec;
     int32_t num_samples, loop_start = 0, loop_end = 0;
     size_t interleave;
-
     int big_endian;
     int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
-    //int16_t (*read_16bit)(off_t,STREAMFILE*) = NULL;
+    float (*read_f32)(off_t,STREAMFILE*) = NULL;
 
     /* checks */
     if (!check_extensions(streamFile, "wave"))
@@ -27,10 +26,10 @@ VGMSTREAM * init_vgmstream_wave(STREAMFILE *streamFile) {
     big_endian = read_32bitBE(0x00,streamFile) == 0xE5B7ECFE;
     if (big_endian) {
         read_32bit = read_32bitBE;
-        //read_16bit = read_16bitBE;
+        read_f32 = read_f32be;
     } else {
         read_32bit = read_32bitLE;
-        //read_16bit = read_16bitLE;
+        read_f32 = read_f32le;
     }
 
     channel_count = read_8bit(0x05,streamFile);
@@ -40,15 +39,7 @@ VGMSTREAM * init_vgmstream_wave(STREAMFILE *streamFile) {
     if (read_8bit(0x0c,streamFile) != 0x00) /* ? */
         goto fail;
 
-    /* sample rate in 32b float (WHY?)*/
-    {
-        uint32_t sample_int = (uint32_t)read_32bit(0x0c, streamFile);
-        float* sample_float;
-        sample_float = (float*)&sample_int;
-
-        sample_rate = (int)(*sample_float);
-    }
-
+    sample_rate = (int)read_f32(0x0c, streamFile); /* sample rate in 32b float (WHY?) */
     num_samples = read_32bit(0x10, streamFile);
     loop_start  = read_32bit(0x14, streamFile);
     loop_end    = read_32bit(0x18, streamFile);

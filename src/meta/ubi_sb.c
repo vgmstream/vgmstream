@@ -1369,9 +1369,8 @@ fail:
 }
 
 static int parse_type_silence(ubi_sb_header * sb, off_t offset, STREAMFILE* streamFile) {
+    float (*read_f32)(off_t,STREAMFILE*) = sb->big_endian ? read_f32be : read_f32le;
     int32_t (*read_32bit)(off_t,STREAMFILE*) = sb->big_endian ? read_32bitBE : read_32bitLE;
-    uint32_t duration_int;
-    float* duration_float;
 
     /* silence header */
     sb->type = UBI_SILENCE;
@@ -1381,13 +1380,11 @@ static int parse_type_silence(ubi_sb_header * sb, off_t offset, STREAMFILE* stre
     }
 
     if (sb->cfg.silence_duration_int) {
-        duration_int = (uint32_t)read_32bit(offset + sb->cfg.silence_duration_int, streamFile);
+        uint32_t duration_int = (uint32_t)read_32bit(offset + sb->cfg.silence_duration_int, streamFile);
         sb->duration = (float)duration_int / 65536.0f; /* 65536.0 is common so probably means 1.0 */
     }
     else if (sb->cfg.silence_duration_float) {
-        duration_int = (uint32_t)read_32bit(offset + sb->cfg.silence_duration_float, streamFile);
-        duration_float = (float*)&duration_int;
-        sb->duration = *duration_float;
+        sb->duration = read_f32(offset + sb->cfg.silence_duration_float, streamFile);
     }
 
     return 1;
