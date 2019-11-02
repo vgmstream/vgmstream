@@ -129,15 +129,17 @@ VGMSTREAM * init_vgmstream_rwsd(STREAMFILE *streamFile) {
         {
             if (strcasecmp("rwav",ext))
             {
-                if (strcasecmp("bcwav",ext) && strcasecmp("bms",ext))
-                {
-                    goto fail;
-                }
-                else
-                {
-                    // cwav, similar to little endian rwav
-                    rwav = 1;
+                /* .bcwav: standard
+                 * .bms: ?
+                 * .sfx: Wizdom (3DS)
+                 * .str: Pac-Man and the Ghostly Adventures 2 (3DS)
+                 * .zic: Wizdom (3DS) */
+                if (check_extensions(streamFile, "bcwav,bms,sfx,str,zic")) {
+                    rwav = 1; // cwav, similar to little endian rwav
                     big_endian = 0;
+                }
+                else {
+                    goto fail;
                 }
             }
             else

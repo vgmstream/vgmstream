@@ -567,6 +567,7 @@ static const char* extension_list[] = {
     "ydsp",
     "ymf",
 
+    "zic",
     "zsd",
     "zsm",
     "zss",
