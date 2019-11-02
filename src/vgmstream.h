@@ -352,6 +352,7 @@ typedef enum {
     meta_PS2_VAGi,          /* VAGi Interleaved File */
     meta_PS2_VAGp,          /* VAGp Mono File */
     meta_PS2_pGAV,          /* VAGp with Little Endian Header */
+    meta_PS2_VAGp_AAAP,     /* Acclaim Austin Audio VAG header */
     meta_SEB,
     meta_STR_WAV,           /* Blitz Games STR+WAV files */
     meta_PS2_ILD,           /* ILD File */

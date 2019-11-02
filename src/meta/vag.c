@@ -146,20 +146,6 @@ VGMSTREAM * init_vgmstream_vag(STREAMFILE *streamFile) {
 
                 loop_flag = ps_find_loop_offsets(streamFile, start_offset, channel_size*channel_count, channel_count, interleave, &loop_start_sample, &loop_end_sample);
             }
-            else if (read_32bitBE(0x30,streamFile) == 0x56414770) { /* "VAGp" */
-                /* The Red Star (PS2) */
-                start_offset = 0x60; /* two VAGp headers */
-                channel_count = 2;
-
-                if ((file_size - start_offset) % 0x4000 == 0)
-                    interleave = 0x4000;
-                else if ((file_size - start_offset) % 0x4180 == 0)
-                    interleave = 0x4180;
-                else
-                    goto fail;
-
-                loop_flag = 0; /* loop segments */
-            }
             else if (version == 0x40000000) {
                 /* Killzone (PS2) */
                 start_offset = 0x30;
@@ -217,9 +203,32 @@ VGMSTREAM * init_vgmstream_vag(STREAMFILE *streamFile) {
                 /* Need for Speed: Hot Pursuit 2 (PS2) */
                 start_offset = 0x30;
                 channel_count = read_32bitBE(0x2c, streamFile);
-                interleave = 0x8000;
                 channel_size = channel_size / channel_count;
                 loop_flag = 0;
+
+                /* detect interleave using end markers */
+                interleave = 0;
+
+                if (channel_count > 1) {
+                    off_t offset = file_size;
+                    off_t end_off = 0;
+                    uint8_t flag;
+
+                    while (1) {
+                        offset -= 0x10;
+                        flag = read_8bit(offset + 0x01, streamFile);
+                        if (flag == 0x01) {
+                            if (!end_off) {
+                                end_off = offset;
+                            } else {
+                                interleave = end_off - offset;
+                                break;
+                            }
+                        }
+
+                        if (offset == start_offset) goto fail;
+                    }
+                }
             }
             else {
                 /* standard PS1/PS2/PS3 .vag [Ecco the Dolphin (PS2), Legasista (PS3)] */
@@ -260,6 +269,62 @@ VGMSTREAM * init_vgmstream_vag(STREAMFILE *streamFile) {
     read_string(vgmstream->stream_name,0x10+1, 0x20,streamFile); /* always, can be null */
 
     if ( !vgmstream_open_stream(vgmstream, streamFile, start_offset) )
+        goto fail;
+    return vgmstream;
+
+fail:
+    close_vgmstream(vgmstream);
+    return NULL;
+}
+
+/* AAAp - Acclaim Austin Audio VAG header [The Red Star (PS2)] */
+VGMSTREAM* init_vgmstream_vag_aaap(STREAMFILE* streamFile) {
+    VGMSTREAM* vgmstream = NULL;
+    off_t vag_offset, start_offset;
+    uint32_t channel_size, sample_rate;
+    uint16_t interleave, channels;
+    uint32_t i;
+    int loop_flag;
+
+    /* checks */
+    /* .vag - assumed, we don't know the original filenames */
+    if (!check_extensions(streamFile, "vag"))
+        goto fail;
+
+    if (read_u32be(0x00, streamFile) != 0x41414170) /* "AAAp" */
+        goto fail;
+
+    interleave = read_u16le(0x04, streamFile);
+    channels = read_u16le(0x06, streamFile);
+    vag_offset = 0x08;
+
+    /* file has VAGp header for each channel */
+    for (i = 0; i < channels; i++) {
+        if (read_u32be(vag_offset + i * 0x30, streamFile) != 0x56414770) /* "VAGp" */
+            goto fail;
+    }
+    
+    /* check version */
+    if (read_u32be(vag_offset + 0x04, streamFile) != 0x20)
+        goto fail;
+
+    channel_size = read_u32be(vag_offset + 0x0c, streamFile);
+    sample_rate = read_u32be(vag_offset + 0x10, streamFile);
+    start_offset = vag_offset + channels * 0x30;
+    loop_flag = 0;
+
+    /* build the VGMSTREAM */
+    vgmstream = allocate_vgmstream(channels, loop_flag);
+    if (!vgmstream) goto fail;
+
+    vgmstream->meta_type = meta_PS2_VAGp_AAAP;
+    vgmstream->sample_rate = sample_rate;
+    vgmstream->num_samples = ps_bytes_to_samples(channel_size, 1);
+    vgmstream->coding_type = coding_PSX;
+    vgmstream->layout_type = layout_interleave;
+    vgmstream->interleave_block_size = interleave;
+
+    if (!vgmstream_open_stream(vgmstream, streamFile, start_offset))
         goto fail;
     return vgmstream;
 

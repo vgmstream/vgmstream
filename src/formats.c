@@ -25,7 +25,6 @@ static const char* extension_list[] = {
 
     //"aac", //common
     "aa3", //FFmpeg/not parsed (ATRAC3/ATRAC3PLUS/MP3/LPCM/WMA)
-    "aaap",
     "aax",
     "abk",
     //"ac3", //common, FFmpeg/not parsed (AC3)
@@ -864,6 +863,7 @@ static const meta_info meta_info_list[] = {
         {meta_PS2_VAGi,             "Sony VAGi header"},
         {meta_PS2_VAGp,             "Sony VAGp header"},
         {meta_PS2_pGAV,             "Sony pGAV header"},
+        {meta_PS2_VAGp_AAAP,        "Acclaim Austin AAAp VAG header"},
         {meta_SEB,                  "Game Arts .SEB header"},
         {meta_STR_WAV,              "Blitz Games .STR+WAV header"},
         {meta_PS2_ILD,              "ILD header"},
@@ -1029,7 +1029,7 @@ static const meta_info meta_info_list[] = {
         {meta_DMSG,                 "RIFF/DMSGsegh header"},
         {meta_PONA_3DO,             "Policenauts BGM header"},
         {meta_PONA_PSX,             "Policenauts BGM header"},
-        {meta_NGC_DSP_AAAP,         "Acclaim Austin AAAp header"},
+        {meta_NGC_DSP_AAAP,         "Acclaim Austin AAAp DSP header"},
         {meta_NGC_DSP_KONAMI,       "Konami DSP header"},
         {meta_PS2_STER,             "STER Header"},
         {meta_BNSF,                 "Namco Bandai BNSF header"},
