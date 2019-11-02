@@ -6,10 +6,16 @@
  * to inform plugins that need it. Common extensions are commented out to avoid stealing them
  * and possibly adding an unwanted association to the player. */
 
+/* Common extensions (like .wav or .ogg) should go in the common_extension_list. It should only
+ * contain common formats that vgmstream can also parse, to avoid hijacking them (since their
+ * plugins typically are faster and have desirable features vgmstream won't handle). Extensions of
+ * formats not parsed don't need to go there (for example .stm is a Scream Tracker Module elsewhere,
+ * but our .stm is very different so there is no conflict). */
+
 /* Some extensions require external libraries and could be #ifdef, not worth. */
 
 /* Formats marked as "not parsed" mean they'll go through FFmpeg, the header/extension isn't
- * parsed by vgmstream and typically won't not be fully accurate. May have a .ext.pos pair for fun. */
+ * parsed by vgmstream and typically won't not be fully accurate. */
 
 
 static const char* extension_list[] = {
@@ -174,7 +180,7 @@ static const char* extension_list[] = {
     "gin",
     "gms",
     "gsb",
-    //"gsf", //conflicts with GBA gsf plugins?
+    "gsf",
     "gtd",
     "gwm",
 
@@ -443,7 +449,7 @@ static const char* extension_list[] = {
     "sss",
     "ster",
     "sth",
-    //"stm", //common
+    "stm",
     "stma", //fake extension/header id for .stm
     "str",
     "stream",
@@ -585,7 +591,6 @@ static const char* common_extension_list[] = {
     "aiff", //common
     "bin", //common
     "flac", //common
-    "gsf", //conflicts with GBA gsf plugins?
     "mp+", //common [Moonshine Runners (PC)]
     "mp2", //common
     "mp3", //common
@@ -593,7 +598,6 @@ static const char* common_extension_list[] = {
     "mpc", //common
     "ogg", //common
     "opus", //common
-    "stm", //common
     "wav", //common
 };
 

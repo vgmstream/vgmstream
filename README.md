@@ -161,6 +161,11 @@ Some plugins have options that allow any extension (common or unknown) to be
 played, making renaming is unnecessary (may need to adjust plugin priority in
 player's options).
 
+Also be aware that some plugins can tell the player they handle some extension,
+then not actually play it. This makes the file unplayable as vgmstream doesn't 
+even get the chance to parse that file, so you may need to disable the offending
+plugin or rename the file (for example this may happen with .asf and foobar).
+
 When extracting from a bigfile, sometimes internal files don't have an actual
 name+extension. Those should be renamed to its proper/common extension, as the
 extractor program may guess wrong (like .wav instead of .at3 or .wem). If
