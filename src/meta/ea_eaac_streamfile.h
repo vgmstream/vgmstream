@@ -40,7 +40,7 @@ static size_t eaac_io_read(STREAMFILE *streamfile, uint8_t *dest, off_t offset, 
     /* previous offset: re-start as we can't map logical<>physical offsets
      * (kinda slow as it trashes buffers, but shouldn't happen often) */
     if (offset < data->logical_offset) {
-        //;VGM_LOG("IO restart: offset=%lx + %x, po=%lx, lo=%lx\n", offset, length, data->physical_offset, data->logical_offset);
+        ;VGM_LOG("IO restart: offset=%lx + %x, po=%lx, lo=%lx\n", offset, length, data->physical_offset, data->logical_offset);
         data->physical_offset = data->stream_offset;
         data->logical_offset = 0x00;
         data->data_size = 0;
@@ -260,8 +260,7 @@ static STREAMFILE* setup_eaac_streamfile(STREAMFILE *sf, int version, int codec,
     /* setup subfile */
     new_sf = open_wrap_streamfile(sf);
     new_sf = open_io_streamfile_f(new_sf, &io_data, sizeof(eaac_io_data), eaac_io_read, eaac_io_size);
-    if (codec == 0x03) /* EA-XMA only since logical data is bigger */
-        new_sf = open_buffer_streamfile_f(new_sf, 0);
+    new_sf = open_buffer_streamfile_f(new_sf, 0); /* EA-XMA and multichannel EALayer3 benefit from this */
     return new_sf;
 }
 

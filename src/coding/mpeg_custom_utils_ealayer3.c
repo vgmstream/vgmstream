@@ -789,6 +789,11 @@ fail:
 }
 
 
+//TODO: this causes lots of rebuffering/slowness in multichannel since each stream has to read back
+// (frames are interleaved like s0_g0, s1_g0, s2_g0, s0_g1, s1_g1, s2_g1, ...,
+//  stream0 advances buffers to s0_g1, but stream1 needs to read back to s1_g0, often trashing custom IO)
+// would need to store granule0 after reading but not decoding until next?
+
 /* Skip EA-frames from other streams for .sns/sps multichannel (interleaved 1 EA-frame per stream).
  * Due to EALayer3 being in blocks and other complexities (we can't go past a block) all
  * streams's offsets should start in the first stream's EA-frame.
