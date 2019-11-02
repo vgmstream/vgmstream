@@ -428,8 +428,6 @@ VGMSTREAM * init_vgmstream_pona_psx(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_xbox_hlwav(STREAMFILE* streamFile);
 
-VGMSTREAM * init_vgmstream_stx(STREAMFILE* streamFile);
-
 VGMSTREAM * init_vgmstream_myspd(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_his(STREAMFILE* streamFile);

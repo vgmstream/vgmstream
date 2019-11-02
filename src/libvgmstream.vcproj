@@ -1563,10 +1563,6 @@
                     >
                 </File>
 				<File
-					RelativePath=".\meta\stx.c"
-					>
-				</File>
-				<File
 					RelativePath=".\meta\svs.c"
 					>
 				</File>

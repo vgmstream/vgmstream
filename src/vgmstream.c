@@ -222,7 +222,6 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_pona_3do,
     init_vgmstream_pona_psx,
     init_vgmstream_xbox_hlwav,
-    init_vgmstream_stx,
     init_vgmstream_myspd,
     init_vgmstream_his,
     init_vgmstream_ps2_ast,

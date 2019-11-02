@@ -961,9 +961,6 @@
     <ClCompile Include="meta\strm_abylight.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\stx.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="meta\svs.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>

@@ -320,7 +320,6 @@ typedef enum {
     meta_NDS_SWAV,          /* Asphalt Urban GT 1 & 2 */
     meta_NDS_RRDS,          /* Ridge Racer DS */
     meta_WII_BNS,           /* Wii BNS Banner Sound (similar to RSTM) */
-    meta_STX,               /* Pikmin .stx */
     meta_WIIU_BTSND,        /* Wii U Boot Sound */
 
     meta_ADX_03,            /* CRI ADX "type 03" */
