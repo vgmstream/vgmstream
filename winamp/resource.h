@@ -1,7 +1,7 @@
 #define IDD_CONFIG                      101
 #define IDC_LOOP_COUNT                  1000
-#define IDC_FADE_SECONDS                1001
-#define IDC_FADE_DELAY_SECONDS          1002
+#define IDC_FADE_TIME                   1001
+#define IDC_FADE_DELAY                  1002
 #define IDC_LOOP_NORMALLY               1003
 #define IDC_LOOP_FOREVER                1004
 #define IDC_IGNORE_LOOP                 1005
@@ -11,7 +11,7 @@
 #define IDC_DISABLE_SUBSONGS            1009
 #define IDC_DOWNMIX_CHANNELS            1011
 #define IDC_TAGFILE_DISABLE             1012
-#define IDC_REPLAYGAIN                  1013
-#define IDC_CLIPPROTECT                 1014
+#define IDC_GAIN_TYPE                   1013
+#define IDC_CLIP_TYPE                   1014
 #define IDC_EXTS_UNKNOWN_ON             1015
 #define IDC_EXTS_COMMON_ON              1016
