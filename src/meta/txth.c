@@ -1058,6 +1058,9 @@ static int parse_keyval(STREAMFILE * streamFile_, txth_header * txth, const char
     /* COEFS */
     else if (is_string(key,"coef_offset")) {
         if (!parse_num(txth->streamHead,txth,val, &txth->coef_offset)) goto fail;
+        /* special subsong adjustment */
+        if (txth->subsong_offset)
+            txth->coef_offset = txth->coef_offset + txth->subsong_offset * (txth->target_subsong - 1);
     }
     else if (is_string(key,"coef_spacing")) {
         if (!parse_num(txth->streamHead,txth,val, &txth->coef_spacing)) goto fail;
@@ -1081,6 +1084,9 @@ static int parse_keyval(STREAMFILE * streamFile_, txth_header * txth, const char
     else if (is_string(key,"hist_offset")) {
         if (!parse_num(txth->streamHead,txth,val, &txth->hist_offset)) goto fail;
         txth->hist_set = 1;
+        /* special subsong adjustment */
+        if (txth->subsong_offset)
+            txth->hist_offset = txth->hist_offset + txth->subsong_offset * (txth->target_subsong - 1);
     }
     else if (is_string(key,"hist_spacing")) {
         if (!parse_num(txth->streamHead,txth,val, &txth->hist_spacing)) goto fail;
