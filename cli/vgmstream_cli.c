@@ -500,9 +500,8 @@ int main(int argc, char ** argv) {
     /* prints done */
     if (cfg.print_metaonly) {
         if (!cfg.play_sdtout) {
-            if(outfile != NULL) {
-              fclose(outfile);
-            }
+            if (outfile != NULL)
+                fclose(outfile);
         }
         close_vgmstream(vgmstream);
         return EXIT_SUCCESS;
@@ -590,8 +589,10 @@ int main(int argc, char ** argv) {
         }
     }
 
-    fclose(outfile);
-    outfile = NULL;
+    if (outfile != NULL) {
+        fclose(outfile);
+        outfile = NULL;
+    }
 
 
     /* try again with (for testing reset_vgmstream, simulates a seek to 0 after changing internal state) */
@@ -647,8 +648,11 @@ int main(int argc, char ** argv) {
                 }
             }
         }
-        fclose(outfile);
-        outfile = NULL;
+
+        if (outfile != NULL) {
+            fclose(outfile);
+            outfile = NULL;
+        }
     }
 
     close_vgmstream(vgmstream);

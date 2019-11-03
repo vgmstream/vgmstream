@@ -241,28 +241,28 @@ static void wasf_get_name(WINAMP_STREAMFILE *streamfile, char *buffer, size_t le
 }
 
 static STREAMFILE *wasf_open(WINAMP_STREAMFILE *streamFile, const char *const filename, size_t buffersize) {
-    int newfd;
-    FILE *newfile;
-    STREAMFILE *newstreamFile;
     in_char wpath[PATH_LIMIT];
     char name[PATH_LIMIT];
 
     if (!filename)
         return NULL;
 
-    /* if same name, duplicate the file pointer we already have open */ //unsure if all this is needed
     streamFile->stdiosf->get_name(streamFile->stdiosf, name, PATH_LIMIT);
+    /* if same name, duplicate the file descriptor we already have open */ //unsure if all this is needed
     if (streamFile->infile_ref && !strcmp(name,filename)) {
-        if (((newfd = dup(fileno(streamFile->infile_ref))) >= 0) &&
-            (newfile = wa_fdopen(newfd)))
-        {
-            newstreamFile = open_winamp_streamfile_by_file(newfile,filename);
-            if (newstreamFile) {
-                return newstreamFile;
-            }
-            // failure, close it and try the default path (which will probably fail a second time)
-            fclose(newfile);
+        int new_fd;
+        FILE *new_file;
+
+        if (((new_fd = dup(fileno(streamFile->infile_ref))) >= 0) && (new_file = wa_fdopen(new_fd))) {
+            STREAMFILE *new_sf = open_winamp_streamfile_by_file(new_file, filename);
+            if (new_sf)
+                return new_sf;
+            fclose(new_file);
         }
+        if (new_fd >= 0 && !new_file)
+            close(new_fd); /* fdopen may fail when opening too many files */
+
+        /* on failure just close and try the default path (which will probably fail a second time) */
     }
 
     /* STREAMFILEs carry char/UTF8 names, convert to wchar for Winamp */
