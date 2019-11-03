@@ -2819,7 +2819,8 @@ int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t s
     }
 
     /* if blocked layout (implicit) use multiple streamfiles; using only one leads to
-     * lots of buffer-trashing, with all the jumping around in the block layout */
+     * lots of buffer-trashing, with all the jumping around in the block layout
+     * (this increases total of data read but still seems faster) */
     if (vgmstream->layout_type != layout_none && vgmstream->layout_type != layout_interleave) {
         use_streamfile_per_channel = 1;
     }
@@ -2860,7 +2861,8 @@ int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t s
                 offset = start_offset + vgmstream->interleave_block_size*ch;
             }
 
-            /* open new one if needed */
+            /* open new one if needed, useful to avoid jumping around when each channel data is too apart
+             * (don't use when data is close as it'd make buffers read the full file multiple times) */
             if (use_streamfile_per_channel) {
                 file = open_streamfile(streamFile,filename);
                 if (!file) goto fail;

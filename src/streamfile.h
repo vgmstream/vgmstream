@@ -45,8 +45,6 @@
 #define fseeko fseek
 #endif
 
-#define STREAMFILE_DEFAULT_BUFFER_SIZE 0x8000
-
 #ifndef DIR_SEPARATOR
 #if defined (_WIN32) || defined (WIN32)
 #define DIR_SEPARATOR '\\'
@@ -54,6 +52,14 @@
 #define DIR_SEPARATOR '/'
 #endif
 #endif
+
+/* Streamfiles normally use an internal buffer to increase performance, configurable
+ * but usually of this size. Lower increases the number of freads/system calls (slower).
+ * However some formats need to jump around causing more buffer trashing than usual,
+ * higher may needlessly read data that may be going to be trashed.
+ *
+ * Value can be adjusted freely but 8k is a good enough compromise. */
+#define STREAMFILE_DEFAULT_BUFFER_SIZE 0x8000
 
 /* struct representing a file with callbacks. Code should use STREAMFILEs and not std C functions
  * to do file operations, as plugins may need to provide their own callbacks.
