@@ -306,6 +306,7 @@
     <ClCompile Include="meta\his.c" />
     <ClCompile Include="meta\idsp_ie.c" />
     <ClCompile Include="meta\nub.c" />
+    <ClCompile Include="meta\isb.c" />
     <ClCompile Include="meta\ish_isd.c" />
     <ClCompile Include="meta\ivaud.c" />
     <ClCompile Include="meta\ivb.c" />

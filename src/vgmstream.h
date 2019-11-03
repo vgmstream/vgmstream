@@ -714,6 +714,7 @@ typedef enum {
     meta_XMV_VALVE,
     meta_UBI_HX,
     meta_BMP_KONAMI,
+    meta_ISB,
 
 } meta_t;
 

@@ -868,4 +868,6 @@ VGMSTREAM * init_vgmstream_ubi_hx(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_bmp_konami(STREAMFILE * streamFile);
 
+VGMSTREAM * init_vgmstream_isb(STREAMFILE * streamFile);
+
 #endif /*_META_H*/

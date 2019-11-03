@@ -216,6 +216,7 @@ static const char* extension_list[] = {
     "imc",
     "int",
     "is14",
+    "isb",
     "isd",
     "isws",
     "itl",
@@ -1244,6 +1245,7 @@ static const meta_info meta_info_list[] = {
         {meta_XMV_VALVE,            "Valve XMV header"},
         {meta_UBI_HX,               "Ubisoft HXx header"},
         {meta_BMP_KONAMI,           "Konami BMP header"},
+        {meta_ISB,                  "Creative ISACT header"},
 
 };
 

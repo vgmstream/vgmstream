@@ -736,6 +736,10 @@
 					RelativePath=".\meta\ios_psnd.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\isb.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\ish_isd.c"
 					>

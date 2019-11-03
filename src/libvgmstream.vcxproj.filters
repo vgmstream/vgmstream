@@ -466,6 +466,9 @@
     <ClCompile Include="meta\idsp_ie.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\isb.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\ish_isd.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>

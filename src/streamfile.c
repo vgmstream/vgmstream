@@ -989,6 +989,27 @@ fail:
     if (buf) buf[0] = '\0';
     return 0;
 }
+size_t read_string_utf16le(char *buf, size_t buf_size, off_t offset, STREAMFILE *sf) {
+    size_t pos, offpos;
+
+    for (pos = 0, offpos = 0; pos < buf_size; pos++, offpos += 2) {
+        char c = read_u16le(offset + offpos, sf) & 0xFF; /* lower byte for now */
+        if (buf) buf[pos] = c;
+        if (c == '\0')
+            return pos;
+        if (pos+1 == buf_size) { /* null at maxsize and don't validate (expected to be garbage) */
+            if (buf) buf[pos] = '\0';
+            return buf_size;
+        }
+        if (c < 0x20 || (uint8_t)c > 0xA5)
+            goto fail;
+    }
+
+fail:
+    if (buf) buf[0] = '\0';
+    return 0;
+}
+
 
 
 size_t read_key_file(uint8_t *buf, size_t buf_size, STREAMFILE *sf) {
