@@ -300,6 +300,9 @@ static const hcakey_info hcakey_list[] = {
         /* Love Live! School idol festival ALL STARS (Android) */
         {6498535309877346413},      // 5A2F6F6F0192806D
 
+        /* BLACKSTAR -Theater Starless- (Android) */
+        {121837007188},             // 0000001C5E0D3154
+
         /* Dragalia Lost (Cygames) [iOS/Android] */
         {2967411924141,         subkeys_dgl, sizeof(subkeys_dgl) / sizeof(subkeys_dgl[0]) },    // 000002B2E7889CAD
 
