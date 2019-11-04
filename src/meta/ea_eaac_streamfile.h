@@ -40,7 +40,7 @@ static size_t eaac_io_read(STREAMFILE *streamfile, uint8_t *dest, off_t offset, 
     /* previous offset: re-start as we can't map logical<>physical offsets
      * (kinda slow as it trashes buffers, but shouldn't happen often) */
     if (offset < data->logical_offset) {
-        ;VGM_LOG("IO restart: offset=%lx + %x, po=%lx, lo=%lx\n", offset, length, data->physical_offset, data->logical_offset);
+        ;VGM_LOG("EAAC IO: restart offset=%lx + %x, po=%lx, lo=%lx\n", offset, length, data->physical_offset, data->logical_offset);
         data->physical_offset = data->stream_offset;
         data->logical_offset = 0x00;
         data->data_size = 0;
