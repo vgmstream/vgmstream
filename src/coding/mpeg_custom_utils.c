@@ -92,6 +92,14 @@ int mpeg_custom_setup_init_default(STREAMFILE *streamFile, off_t start_offset, m
             data->skip_samples = data->config.skip_samples; break;
         case MPEG_STANDARD:
             data->skip_samples = data->config.skip_samples; break;
+        case MPEG_EA:
+            /* typical MP2 decoder delay, verified vs sx.exe, also SCHl blocks header takes discard
+             * samples into account (so block_samples+240*2+1 = total frame samples) */
+            if (info.layer == 2) {
+                data->skip_samples = 240*2 + 1;
+            }
+            /* MP3 probably uses 576 + 528+1 but no known games use it */
+            break;
         default:
             break;
     }
