@@ -557,16 +557,17 @@ fail:
  * float requirements, but C99 adds some faster-but-less-precise casting functions
  * we try to use (returning "long", though). They work ok without "fast float math" compiler
  * flags, but probably should be enabled anyway to ensure no extra IEEE checks are needed.
+ * MSVC added this in VS2015 (_MSC_VER 1900) but don't seem correctly optimized and is very slow.
  */
 static inline int float_to_int(float val) {
-#if defined(_MSC_VER) && (_MSC_VER < 1900) /* VS2015 */
+#if defined(_MSC_VER)
     return (int)val;
 #else
     return lrintf(val);
 #endif
 }
 static inline int double_to_int(double val) {
-#if defined(_MSC_VER) && (_MSC_VER < 1900) /* VS2015 */
+#if defined(_MSC_VER)
     return (int)val;
 #else
     return lrint(val); /* returns long tho */
@@ -580,9 +581,9 @@ static inline int double_to_int(double val) {
  * keep it simple for now until more tests are done.
  *
  * in normal (interleaved) formats samples are laid out straight
- *  (ibuf[s*chs+ch], ex. 4ch with 8s: 0 1 2 3 0 1 2 3 0 1 2 3 0 1 2 3)
+ *  (ibuf[s*chs+ch], ex. 4ch with 4s: 0 1 2 3 0 1 2 3 0 1 2 3 0 1 2 3)
  * in "p" (planar) formats samples are in planes per channel
- *  (ibuf[ch][s], ex. 4ch with 8s: 0 0 0 0 1 1 1 1 2 2 2 2 3 3 3 3)
+ *  (ibuf[ch][s], ex. 4ch with 4s: 0 0 0 0 1 1 1 1 2 2 2 2 3 3 3 3)
  *
  * alt float clamping:
  *  clamp_float(f32)
@@ -731,7 +732,6 @@ void decode_ffmpeg(VGMSTREAM *vgmstream, sample_t * outbuf, int32_t samples_to_d
 
                 copy_samples(data, outbuf, samples_to_get);
 
-                //samples_done += samples_to_get;
                 samples_to_do -= samples_to_get;
                 outbuf += samples_to_get * channels;
             }

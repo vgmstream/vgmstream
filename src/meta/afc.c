@@ -1,67 +1,53 @@
 #include "meta.h"
 #include "../util.h"
 
+
+/* .AFC - from Nintendo games [Super Mario Sunshine (GC), The Legend of Zelda: Wind Waker (GC)] */
 VGMSTREAM * init_vgmstream_afc(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
+    off_t start_offset;
+    int loop_flag, channel_count;
 
-    int loop_flag;
-    const int channel_count = 2;    /* .afc seems to be stereo only */
 
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("afc",filename_extension(filename))) goto fail;
-
-    /* don't grab AIFF-C with .afc extension */
-    if ((uint32_t)read_32bitBE(0x0,streamFile)==0x464F524D) /* FORM */
+    /* checks */
+    /* .afc: common
+     * .stx: Pikmin (GC) */
+    if (!check_extensions(streamFile, "afc,stx"))
         goto fail;
 
-    /* we will get a sample rate, that's as close to checking as I think
-     * we can get */
+    if (read_u32be(0x00, streamFile) > get_streamfile_size(streamFile)) /* size without padding */
+        goto fail;
+
+    if (read_u16be(0x0a, streamFile) != 4) /* bps? */
+        goto fail;
+    if (read_u16be(0x0c, streamFile) != 16) /* samples per frame? */
+        goto fail;
+    /* 0x0e: always 0x1E? */
+
+    channel_count = 2;
+    loop_flag = read_s32be(0x10, streamFile);
+    start_offset = 0x20;
+
 
     /* build the VGMSTREAM */
-
-    loop_flag = read_32bitBE(0x10,streamFile);
-
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-    /* fill in the vital statistics */
-    vgmstream->num_samples = read_32bitBE(0x04,streamFile);
-    vgmstream->sample_rate = (uint16_t)read_16bitBE(0x08,streamFile);
-    /* channels and loop flag are set by allocate_vgmstream */
-    vgmstream->loop_start_sample = read_32bitBE(0x14,streamFile);
+    vgmstream->meta_type = meta_AFC;
+    vgmstream->num_samples = read_s32be(0x04, streamFile);
+    vgmstream->sample_rate = read_u16be(0x08, streamFile);
+    vgmstream->loop_start_sample = read_s32be(0x14, streamFile);
     vgmstream->loop_end_sample = vgmstream->num_samples;
 
     vgmstream->coding_type = coding_NGC_AFC;
     vgmstream->layout_type = layout_interleave;
-    vgmstream->meta_type = meta_AFC;
+    vgmstream->interleave_block_size = 0x09;
 
-    /* frame-level interleave (9 bytes) */
-    vgmstream->interleave_block_size = 9;
-
-    /* open the file for reading by each channel */
-    {
-        STREAMFILE *chstreamfile;
-        int i;
-
-        /* both channels use same buffer, as interleave is so small */
-        chstreamfile = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (!chstreamfile) goto fail;
-
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = chstreamfile;
-
-            vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=
-                0x20 + i*vgmstream->interleave_block_size;
-        }
-    }
-
+    if (!vgmstream_open_stream(vgmstream, streamFile, start_offset))
+        goto fail;
     return vgmstream;
 
-    /* clean up anything we may have opened */
 fail:
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_vgmstream(vgmstream);
     return NULL;
 }

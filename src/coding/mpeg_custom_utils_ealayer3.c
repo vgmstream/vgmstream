@@ -112,11 +112,15 @@ int mpeg_custom_setup_init_ealayer3(STREAMFILE *streamfile, off_t start_offset, 
         ok = ealayer3_parse_frame(data, -1, &ib, &eaf);
         if (!ok) goto fail;
     }
-    //;VGM_ASSERT(!eaf.mpeg1, "EAL3: mpeg2 found at 0x%lx\n", start_offset); /* rare [FIFA 08 (PS3) abk] */
+    ;VGM_ASSERT(!eaf.mpeg1, "EAL3: mpeg2 found at 0x%lx\n", start_offset); /* rare [FIFA 08 (PS3) abk] */
 
     *coding_type = coding_MPEG_ealayer3;
     data->channels_per_frame = eaf.channels;
     data->samples_per_frame = eaf.mpeg1 ? 1152 : 576;
+
+    /* handled at frame start */
+    //data->skip_samples = 576 + 529;
+    //data->samples_to_discard = data->skip_samples;
 
     /* encoder delay: EALayer3 handles this while decoding (skips samples as writes PCM blocks) */
 
@@ -131,6 +135,16 @@ int mpeg_custom_parse_frame_ealayer3(VGMSTREAMCHANNEL *stream, mpeg_codec_data *
     int ok, granule_found;
     ealayer3_buffer_t ib_0 = {0}, ib_1 = {0};
     ealayer3_frame_t eaf_0, eaf_1;
+
+
+    /* the first frame samples must be discarded (verified vs sx.exe with a file without PCM blocks),
+     * but we can't set samples_to_discard since PCM blocks would be discarded
+     * SCHl block samples field takes into account this discard (its value already substracts this) */
+    if ((data->type == MPEG_EAL31 || data->type == MPEG_EAL31b) && ms->current_size_count == 0) {
+        /* seems true for MP2/576 frame samples too, though they are rare so it's hard to test */
+        ms->decode_to_discard += 529 + 576; /* standard MP3 decoder delay + 1 granule samples */
+        ms->current_size_count++;
+    }
 
 
     /* read first frame/granule, or PCM-only frame (found alone at the end of SCHl streams) */
@@ -317,7 +331,7 @@ static int ealayer3_parse_frame_v1(ealayer3_buffer_t *ib, ealayer3_frame_t *eaf,
     /* check PCM block */
     if (eaf->v1_pcm_flag == 0xEE) {
         fill_buf(ib, 32);
-        r_bits(is, 16,&eaf->v1_offset_samples); /* samples to discard of the next decoded (not PCM block) samples */
+        r_bits(is, 16,&eaf->v1_offset_samples); /* PCM block offset in the buffer */
         r_bits(is, 16,&eaf->v1_pcm_samples); /* number of PCM samples, can be 0 */
 
         eaf->pre_size += 2+2; /* 16b+16b */
@@ -672,8 +686,7 @@ static void ealayer3_copy_pcm_block(uint8_t* outbuf, off_t pcm_offset, int pcm_n
 }
 
 /* write PCM block directly to sample buffer and setup decode discard (EALayer3 seems to use this as a prefetch of sorts).
- * Meant to be written inmediatedly, as those PCM are parts that can be found after 1 decoded frame.
- * (ex. EA-frame_gr0, PCM-frame_0, EA-frame_gr1, PCM-frame_1 actually writes PCM-frame_0+1, decode of EA-frame_gr0+1 + discard part */
+ * Seems to alter decoded sample buffer to handle encoder delay/padding in a twisted way. */
 static int ealayer3_write_pcm_block(VGMSTREAMCHANNEL *stream, mpeg_codec_data *data, int num_stream, ealayer3_frame_t *eaf) {
     mpeg_custom_stream *ms = data->streams[num_stream];
     int channels_per_frame = ms->channels_per_frame;
@@ -694,38 +707,34 @@ static int ealayer3_write_pcm_block(VGMSTREAMCHANNEL *stream, mpeg_codec_data *d
     if (eaf->v1_pcm_samples || eaf->v1_offset_samples) {
         uint8_t* outbuf = ms->output_buffer + bytes_filled;
         off_t pcm_offset = stream->offset + eaf->pre_size + eaf->common_size;
+        size_t decode_to_discard;
 
         VGM_ASSERT(eaf->v1_offset_samples > 576, "EAL3: big discard %i at 0x%x\n", eaf->v1_offset_samples, (uint32_t)stream->offset);
         VGM_ASSERT(eaf->v1_pcm_samples > 0x100, "EAL3: big samples %i at 0x%x\n", eaf->v1_pcm_samples, (uint32_t)stream->offset);
         VGM_ASSERT(eaf->v1_offset_samples > 0 && eaf->v1_pcm_samples == 0, "EAL3: offset_samples without pcm_samples\n"); /* not seen but could work */
 
-        //;VGM_LOG("EA EAL3 v1: off=%lx, discard=%x, pcm=%i, pcm_o=%lx\n",
-        //        stream->offset, eaf->v1_offset_samples, eaf->v1_pcm_samples, pcm_offset);
+        //;VGM_LOG("EA EAL3 v1: offset=%lx + %x, offset_samples=%x, pcm_samples=%i, spf=%i\n",
+        //        stream->offset, eaf->pre_size + eaf->common_size, eaf->v1_offset_samples, eaf->v1_pcm_samples, data->samples_per_frame);
 
-        /* V1 usually discards + copies samples at the same time
-         * V1b PCM block is in 'planar' format (ex. NFS:U PS3) */
+        /* V1b PCM block is in 'planar' format (ex. NFS:U PS3) */
         ealayer3_copy_pcm_block(outbuf, pcm_offset, eaf->v1_pcm_samples, channels_per_frame, (data->type == MPEG_EAL31), stream->streamfile);
         ms->samples_filled += eaf->v1_pcm_samples;
 
-        /* skip decoded samples as PCM block 'overwrites' them w/ special meanings */
-        {
-            size_t decode_to_discard = eaf->v1_offset_samples;
+        //TODO: we should put samples at offset but most EAL3 use it at first frame, which decodes ok, and rarely
+        //  in the last frame [ex. Celebrity Sports Showdown], which is ~60-80 samples off (could click on segments?)
 
-            if (data->type == MPEG_EAL31) {
-                //todo should also discard v1_pcm_samples, but block layout samples may be exhausted
-                // and won't move (maybe new block if offset = new offset detected)
-                if (decode_to_discard == 576)
-                    decode_to_discard = data->samples_per_frame;//+ eaf->v1_pcm_samples;
-            }
-            else {
-                VGM_ASSERT(decode_to_discard > 0, "EAL3: found offset_samples in V1b\n");
-                /* probably (576 or samples_per_frame - eaf->v1_offset_samples) but V1b seems to always use 0 and ~47 samples */
-                if (decode_to_discard == 0) /* seems ok (ex. comparing NFS:UC PS3 vs PC gets correct waveform this way) */
-                    decode_to_discard = data->samples_per_frame;//+ eaf->v1_pcm_samples; /* musn't discard pcm_number */
-            }
-
-            ms->decode_to_discard += decode_to_discard;
-        }
+        /* v1_offset_samples in V1a controls how the PCM block goes in the sample buffer. Value seems to start
+         * from frame samples end, taking into account that 1st frame discards 576+529 samples.
+         * ex. with 47 samples:
+         * - offset 47 puts block at sample 0 (at 576*2-47 w/o 576+529 discard),
+         * - offset 63 puts block at sample -16 (only 31 samples visible, so 576*2-63 w/o discard),
+         * - offset 0 seems to cause sample buffer overrun (at  576*2-0 = outside single frame buffer?)
+         * In V1b seems to works similarly but offset looks adjusted after initial discard (so offset 0 for first frame)
+         *
+         * This behaviour matters most in looping sfx (ex. Burnout Paradise), or tracks that start
+         * without silence (ex. NFS:UG2), and NFS:UC PS3 (EAL3v1b) vs PC (EAXAS) gets correct waveform this way */
+        decode_to_discard = eaf->v1_pcm_samples;
+        ms->decode_to_discard += decode_to_discard;
     }
 
     if (eaf->v2_extended_flag) {
@@ -788,6 +797,11 @@ fail:
     return 0;
 }
 
+
+//TODO: this causes lots of rebuffering/slowness in multichannel since each stream has to read back
+// (frames are interleaved like s0_g0, s1_g0, s2_g0, s0_g1, s1_g1, s2_g1, ...,
+//  stream0 advances buffers to s0_g1, but stream1 needs to read back to s1_g0, often trashing custom IO)
+// would need to store granule0 after reading but not decoding until next?
 
 /* Skip EA-frames from other streams for .sns/sps multichannel (interleaved 1 EA-frame per stream).
  * Due to EALayer3 being in blocks and other complexities (we can't go past a block) all

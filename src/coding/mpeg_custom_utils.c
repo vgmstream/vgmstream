@@ -92,6 +92,14 @@ int mpeg_custom_setup_init_default(STREAMFILE *streamFile, off_t start_offset, m
             data->skip_samples = data->config.skip_samples; break;
         case MPEG_STANDARD:
             data->skip_samples = data->config.skip_samples; break;
+        case MPEG_EA:
+            /* typical MP2 decoder delay, verified vs sx.exe, also SCHl blocks header takes discard
+             * samples into account (so block_samples+240*2+1 = total frame samples) */
+            if (info.layer == 2) {
+                data->skip_samples = 240*2 + 1;
+            }
+            /* MP3 probably uses 576 + 528+1 but no known games use it */
+            break;
         default:
             break;
     }
@@ -234,7 +242,7 @@ fail:
  * Gets info from a MPEG frame header at offset. Normally you would use mpg123_info but somehow
  * it's wrong at times (maybe because we use an ancient version) so here we do our thing.
  */
-int mpeg_get_frame_info(STREAMFILE *streamfile, off_t offset, mpeg_frame_info * info) {
+static int mpeg_get_frame_info_h(uint32_t header, mpeg_frame_info *info) {
     /* index tables */
     static const int versions[4] = { /* MPEG 2.5 */ 3, /* reserved */ -1,  /* MPEG 2 */ 2, /* MPEG 1 */ 1 };
     static const int layers[4] = { -1,3,2,1 };
@@ -257,13 +265,10 @@ int mpeg_get_frame_info(STREAMFILE *streamfile, off_t offset, mpeg_frame_info * 
             { 384, 1152, 576  }  /* MPEG2.5 */
     };
 
-    uint32_t header;
     int idx, padding;
 
 
     memset(info, 0, sizeof(*info));
-
-    header = read_32bitBE(offset, streamfile);
 
     if ((header >> 21) != 0x7FF) /* 31-21: sync */
         goto fail;
@@ -308,34 +313,36 @@ int mpeg_get_frame_info(STREAMFILE *streamfile, off_t offset, mpeg_frame_info * 
 fail:
     return 0;
 }
+int mpeg_get_frame_info(STREAMFILE *sf, off_t offset, mpeg_frame_info *info) {
+    uint32_t header = read_u32be(offset, sf);
+    return mpeg_get_frame_info_h(header, info);
+}
 
-size_t mpeg_get_samples(STREAMFILE *streamFile, off_t start_offset, size_t bytes) {
+size_t mpeg_get_samples(STREAMFILE *sf, off_t start_offset, size_t bytes) {
     off_t offset = start_offset;
     off_t max_offset = start_offset + bytes;
-    int samples = 0;
+    int frames = 0, samples = 0, encoder_delay = 0, encoder_padding = 0;
     mpeg_frame_info info;
-    size_t prev_size = 0;
-    int cbr_count = 0;
-    int is_vbr = 0;
 
-    if (!streamFile)
+    if (!sf)
         return 0;
 
-    if (max_offset > get_streamfile_size(streamFile))
-        max_offset = get_streamfile_size(streamFile);
+    if (max_offset > get_streamfile_size(sf))
+        max_offset = get_streamfile_size(sf);
 
     /* MPEG may use VBR so must read all frames */
     while (offset < max_offset) {
+        uint32_t header = read_u32be(offset+0x00, sf);
 
         /* skip ID3v2 */
-        if ((read_32bitBE(offset+0x00, streamFile) & 0xFFFFFF00) == 0x49443300) { /* "ID3\0" */
+        if ((header & 0xFFFFFF00) == 0x49443300) { /* "ID3\0" */
             size_t frame_size = 0;
-            uint8_t flags = read_8bit(offset+0x05, streamFile);
+            uint8_t flags = read_u8(offset+0x05, sf);
             /* this is how it's officially read :/ */
-            frame_size += read_8bit(offset+0x06, streamFile) << 21;
-            frame_size += read_8bit(offset+0x07, streamFile) << 14;
-            frame_size += read_8bit(offset+0x08, streamFile) << 7;
-            frame_size += read_8bit(offset+0x09, streamFile) << 0;
+            frame_size += read_u8(offset+0x06, sf) << 21;
+            frame_size += read_u8(offset+0x07, sf) << 14;
+            frame_size += read_u8(offset+0x08, sf) << 7;
+            frame_size += read_u8(offset+0x09, sf) << 0;
             frame_size += 0x0a;
             if (flags & 0x10) /* footer? */
                 frame_size += 0x0a;
@@ -344,28 +351,71 @@ size_t mpeg_get_samples(STREAMFILE *streamFile, off_t start_offset, size_t bytes
             continue;
         }
 
-        /* this may fail with unknown ID3 tags */
-        if (!mpeg_get_frame_info(streamFile, offset, &info))
-            break;
-
-        if (prev_size && prev_size != info.frame_size) {
-            is_vbr = 1;
-        }
-        else if (!is_vbr) {
-            cbr_count++;
+        /* skip ID3v1 */
+        if ((header & 0xFFFFFF00) == 0x54414700) { /* "TAG\0" */
+            ;VGM_LOG("MPEG: ID3v1 at %lx\n", offset);
+            offset += 0x80;
+            continue;
         }
 
-        if (cbr_count >= 10) {
-            /* must be CBR, don't bother counting */
-            samples = (bytes / info.frame_size) * info.frame_samples;
+        /* regular frame */
+        if (!mpeg_get_frame_info_h(header, &info)) {
+            VGM_LOG("MPEG: unknown frame at %lx\n", offset);
             break;
         }
 
+        /* detect Xing header (disguised as a normal frame) */
+        if (frames < 3 && /* should be first after tags */
+                info.frame_size >= 0x24 + 0x78 &&
+                read_u32be(offset + 0x04, sf) == 0 &&
+                (read_u32be(offset + 0x24, sf) == 0x58696E67 ||  /* "Xing" (mainly for VBR) */
+                 read_u32be(offset + 0x24, sf) == 0x496E666F)) { /* "Info" (mainly for CBR) */
+            uint32_t flags = read_u32be(offset + 0x28, sf);
+
+            if (flags & 1) { /* other flags indicate seek table and stuff */
+                uint32_t frame_count = read_u32be(offset + 0x2c, sf);
+                samples = frame_count * info.frame_samples;
+            }
+
+            /* vendor specific */
+            if (info.frame_size > 0x24 + 0x78 + 0x24 &&
+                    read_u32be(offset + 0x9c, sf) == 0x4C414D45) { /* "LAME" */
+                if (info.layer == 3) {
+                    uint32_t delays = read_u32be(offset + 0xb0, sf);
+                    encoder_delay   = ((delays >> 12) & 0xFFF);
+                    encoder_padding =  ((delays >> 0) & 0xFFF);
+
+                    encoder_delay += (528 + 1); /* implicit MDCT decoder delay (seen in LAME source) */
+                    if (encoder_padding > 528 + 1)
+                        encoder_padding -= (528 + 1);
+                }
+                else {
+                    encoder_delay = 240 + 1;
+                }
+
+                /* replay gain and stuff */
+            }
+
+            /* there is also "iTunes" vendor with no apparent extra info, iTunes delays are in "iTunSMPB" ID3 tag */
+
+            ;VGM_LOG("MPEG: found Xing header\n");
+            break; /* we got samples */
+        }
+
+        //TODO: detect "VBRI" header (Fraunhofer encoder)
+        // https://www.codeproject.com/Articles/8295/MPEG-Audio-Frame-Header#VBRIHeader
+
+        /* could detect VBR/CBR but read frames to remove ID3 end tags */
+
+        frames++;
         offset += info.frame_size;
-        prev_size = info.frame_size;
-        samples += info.frame_samples; /* header frames may be 0? */
+        samples += info.frame_samples;
     }
 
+    ;VGM_LOG("MPEG: samples=%i, ed=%i, ep=%i, end=%i\n", samples,encoder_delay,encoder_padding, samples - encoder_delay - encoder_padding);
+
+    //todo return encoder delay
+    samples = samples - encoder_delay - encoder_padding;
     return samples;
 }
 

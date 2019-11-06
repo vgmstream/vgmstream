@@ -469,6 +469,10 @@ VGMSTREAM * init_vgmstream_ea_hdr_dat(STREAMFILE *streamFile) {
     STREAMFILE *datFile = NULL;
     VGMSTREAM *vgmstream;
 
+    /* checks */
+    if (!check_extensions(streamFile, "hdr"))
+        goto fail;
+
     /* main header is machine endian but it's not important here */
     /* 0x00: ID */
     /* 0x02: sub-ID (used for different police voices in NFS games) */
@@ -540,6 +544,10 @@ VGMSTREAM * init_vgmstream_ea_hdr_dat_v2(STREAMFILE *streamFile) {
     STREAMFILE *datFile = NULL;
     VGMSTREAM *vgmstream;
 
+    /* checks */
+    if (!check_extensions(streamFile, "hdr"))
+        goto fail;
+
     /* main header is machine endian but it's not important here */
     /* 0x00: ID */
     /* 0x02: userdata size */
@@ -603,12 +611,13 @@ fail:
 
 
 /* open map/mpf+mus pairs that aren't exact pairs, since EA's games can load any combo */
-static STREAMFILE * open_mapfile_pair(STREAMFILE *streamFile) {
+static STREAMFILE* open_mapfile_pair(STREAMFILE *streamFile) {
     static const char *const mapfile_pairs[][2] = {
         /* standard cases, replace map part with mus part (from the end to preserve prefixes) */
         {"MUS_CTRL.MPF","MUS_STR.MUS"}, /* GoldenEye - Rogue Agent (PS2) */
         {"mus_ctrl.mpf","mus_str.mus"}, /* GoldenEye - Rogue Agent (others) */
         {".mpf","_main.mus"}, /* 007 - Everything or Nothing (GC) */
+        {"AKA_Mus.mpf","Track.mus"}, /* Boogie (PS2) */
         /* hack when when multiple maps point to the same mus, uses name before "+"
          * ex. ZZZTR00A.TRJ+ZTR00PGR.MAP or ZZZTR00A.TRJ+ZTR00R0A.MAP both point to ZZZTR00A.TRJ */
         {"+",""}, /* Need for Speed III (PS1) */

@@ -25,7 +25,7 @@ VGMSTREAM * init_vgmstream_ffmpeg_offset(STREAMFILE *streamFile, uint64_t start,
     //    goto fail;
 
     /* don't try to open headers and other mini files */
-    if (get_streamfile_size(streamFile) <= 0x100)
+    if (get_streamfile_size(streamFile) <= 0x1000)
         goto fail;
 
 

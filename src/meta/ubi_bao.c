@@ -1013,10 +1013,8 @@ fail:
 }
 
 static int parse_type_silence(ubi_bao_header * bao, off_t offset, STREAMFILE* streamFile) {
-    int32_t (*read_32bit)(off_t,STREAMFILE*) = bao->big_endian ? read_32bitBE : read_32bitLE;
+    float (*read_f32)(off_t,STREAMFILE*) = bao->big_endian ? read_f32be : read_f32le;
     off_t h_offset = offset + bao->header_skip;
-    uint32_t duration_int;
-    float* duration_float;
 
     /* silence header */
     bao->type = UBI_SILENCE;
@@ -1025,13 +1023,8 @@ static int parse_type_silence(ubi_bao_header * bao, off_t offset, STREAMFILE* st
         goto fail;
     }
 
-    {
-        duration_int = (uint32_t)read_32bit(h_offset + bao->cfg.silence_duration_float, streamFile);
-        duration_float = (float*)&duration_int;
-        bao->duration = *duration_float;
-    }
-
-    if (bao->duration <= 0) {
+    bao->duration = read_f32(h_offset + bao->cfg.silence_duration_float, streamFile);
+    if (bao->duration <= 0.0f) {
         VGM_LOG("UBI BAO: bad duration %f at %x\n", bao->duration, (uint32_t)offset);
         goto fail;
     }

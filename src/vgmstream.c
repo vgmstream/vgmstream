@@ -222,7 +222,6 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_pona_3do,
     init_vgmstream_pona_psx,
     init_vgmstream_xbox_hlwav,
-    init_vgmstream_stx,
     init_vgmstream_myspd,
     init_vgmstream_his,
     init_vgmstream_ps2_ast,
@@ -482,6 +481,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_bmp_konami,
     init_vgmstream_opus_opusnx,
     init_vgmstream_opus_sqex,
+    init_vgmstream_isb,
 
     /* lowest priority metas (should go after all metas, and TXTH should go before raw formats) */
     init_vgmstream_txth,            /* proper parsers should supersede TXTH, once added */
@@ -2445,13 +2445,13 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
 static void try_dual_file_stereo(VGMSTREAM * opened_vgmstream, STREAMFILE *streamFile, VGMSTREAM*(*init_vgmstream_function)(STREAMFILE *)) {
     /* filename search pairs for dual file stereo */
     static const char * const dfs_pairs[][2] = {
-        {"L","R"},
-        {"l","r"},
-        {"left","right"},
-        {"Left","Right"},
+        {"L","R"}, /* most common in .dsp and .vag */
+        {"l","r"}, /* same */
+        {"left","right"}, /* Freaky Flyers (GC) .adp, Velocity (PSP) .vag, Hyper Fighters (Wii) .dsp */
+        {"Left","Right"}, /* Geometry Wars: Galaxies (Wii) .dsp */
         {".V0",".V1"}, /* Homura (PS2) */
         {".L",".R"}, /* Crash Nitro Racing (PS2), Gradius V (PS2) */
-        {"_0","_1"}, /* fake for Homura/unneeded? */
+        {"_0.dsp","_1.dsp"}, /* Wario World (GC) */
         {".adpcm","_NxEncoderOut_.adpcm"}, /* Kill la Kill: IF (Switch) */ //todo can't match R>L
     };
     char new_filename[PATH_LIMIT];
@@ -2471,7 +2471,7 @@ static void try_dual_file_stereo(VGMSTREAM * opened_vgmstream, STREAMFILE *strea
     //todo other layouts work but some stereo codecs do weird things
     //if (opened_vgmstream->layout != layout_none) return;
 
-    get_streamfile_name(streamFile,new_filename,sizeof(new_filename));
+    get_streamfile_name(streamFile, new_filename, sizeof(new_filename));
     filename_len = strlen(new_filename);
     if (filename_len < 2)
         return;
@@ -2494,15 +2494,15 @@ static void try_dual_file_stereo(VGMSTREAM * opened_vgmstream, STREAMFILE *strea
             //;VGM_LOG("DFS: l=%s, r=%s\n", this_suffix,that_suffix);
 
             /* if suffix matches paste opposite suffix (+ terminator) to extension pointer, thus to new_filename */
-            if (this_suffix[0] == '.' && extension_len == this_suffix_len) { /* same extension */
-                //;VGM_LOG("DFS: same ext %s vs %s len %i\n", extension, this_suffix, this_suffix_len);
-                if (memcmp(extension,this_suffix,this_suffix_len) == 0) {
+            if (filename_len > this_suffix_len && strchr(this_suffix, '.') != NULL) { /* same suffix with extension */
+                //;VGM_LOG("DFS: suf+ext %s vs %s len %i\n", new_filename, this_suffix, this_suffix_len);
+                if (memcmp(new_filename + (filename_len - this_suffix_len), this_suffix, this_suffix_len) == 0) {
                     dfs_pair = j;
-                    memcpy (extension, that_suffix,that_suffix_len+1);
+                    memcpy (new_filename + (filename_len - this_suffix_len), that_suffix,that_suffix_len+1);
                 }
             }
-            else if (filename_len - extension_len > this_suffix_len) { /* same suffix (without extension) */
-                //;VGM_LOG("DFS: same suf %s vs %s len %i\n", extension - this_suffix_len, this_suffix, this_suffix_len);
+            else if (filename_len - extension_len > this_suffix_len) { /* same suffix without extension */
+                //;VGM_LOG("DFS: suf-ext %s vs %s len %i\n", extension - this_suffix_len, this_suffix, this_suffix_len);
                 if (memcmp(extension - this_suffix_len, this_suffix,this_suffix_len) == 0) {
                     dfs_pair = j;
                     memmove(extension + that_suffix_len - this_suffix_len, extension,extension_len+1); /* move old extension to end */
@@ -2518,7 +2518,7 @@ static void try_dual_file_stereo(VGMSTREAM * opened_vgmstream, STREAMFILE *strea
     //;VGM_LOG("DFS: match %i filename=%s\n", dfs_pair, new_filename);
 
     /* try to init other channel (new_filename now has the opposite name) */
-    dual_streamFile = open_streamfile(streamFile,new_filename);
+    dual_streamFile = open_streamfile(streamFile, new_filename);
     if (!dual_streamFile) goto fail;
 
     new_vgmstream = init_vgmstream_function(dual_streamFile); /* use the init that just worked, no other should work */
@@ -2820,7 +2820,8 @@ int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t s
     }
 
     /* if blocked layout (implicit) use multiple streamfiles; using only one leads to
-     * lots of buffer-trashing, with all the jumping around in the block layout */
+     * lots of buffer-trashing, with all the jumping around in the block layout
+     * (this increases total of data read but still seems faster) */
     if (vgmstream->layout_type != layout_none && vgmstream->layout_type != layout_interleave) {
         use_streamfile_per_channel = 1;
     }
@@ -2861,7 +2862,8 @@ int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t s
                 offset = start_offset + vgmstream->interleave_block_size*ch;
             }
 
-            /* open new one if needed */
+            /* open new one if needed, useful to avoid jumping around when each channel data is too apart
+             * (don't use when data is close as it'd make buffers read the full file multiple times) */
             if (use_streamfile_per_channel) {
                 file = open_streamfile(streamFile,filename);
                 if (!file) goto fail;

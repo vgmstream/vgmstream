@@ -112,7 +112,7 @@ VGMSTREAM * init_vgmstream_sgxd(STREAMFILE *streamFile) {
         read_string(vgmstream->stream_name,STREAM_NAME_SIZE, name_offset,streamHeader);
 
     switch (type) {
-#ifdef VGM_USE_FFMPEG
+#ifdef VGM_USE_VORBIS
         case 0x02:      /* Ogg Vorbis [Ni no Kuni: Wrath of the White Witch Remastered (PC)] (codec hijack?) */
             vgmstream->codec_data = init_ogg_vorbis(streamFile, start_offset, stream_size, NULL);
             if (!vgmstream->codec_data) goto fail;

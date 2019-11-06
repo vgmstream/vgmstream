@@ -306,6 +306,7 @@
     <ClCompile Include="meta\his.c" />
     <ClCompile Include="meta\idsp_ie.c" />
     <ClCompile Include="meta\nub.c" />
+    <ClCompile Include="meta\isb.c" />
     <ClCompile Include="meta\ish_isd.c" />
     <ClCompile Include="meta\ivaud.c" />
     <ClCompile Include="meta\ivb.c" />
@@ -476,7 +477,6 @@
     <ClCompile Include="meta\str_snds.c" />
     <ClCompile Include="meta\str_wav.c" />
     <ClCompile Include="meta\strm_abylight.c" />
-    <ClCompile Include="meta\stx.c" />
     <ClCompile Include="meta\svs.c" />
     <ClCompile Include="meta\sxd.c" />
     <ClCompile Include="meta\ta_aac.c" />

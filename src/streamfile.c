@@ -29,6 +29,8 @@ static size_t read_stdio(STDIO_STREAMFILE *streamfile, uint8_t *dst, off_t offse
     if (!streamfile->infile || !dst || length <= 0 || offset < 0)
         return 0;
 
+    //;VGM_LOG("STDIO: read %lx + %x (buf %lx + %x)\n", offset, length, streamfile->buffer_offset, streamfile->validsize);
+
     /* is the part of the requested length in the buffer? */
     if (offset >= streamfile->buffer_offset && offset < streamfile->buffer_offset + streamfile->validsize) {
         size_t length_to_read;
@@ -38,6 +40,8 @@ static size_t read_stdio(STDIO_STREAMFILE *streamfile, uint8_t *dst, off_t offse
         if (length_to_read > length)
             length_to_read = length;
 
+        //;VGM_LOG("STDIO: copy buf %lx + %x (+ %x) (buf %lx + %x)\n", offset, length_to_read, (length - length_to_read), streamfile->buffer_offset, streamfile->validsize);
+
         memcpy(dst, streamfile->buffer + offset_into_buffer, length_to_read);
         length_read_total += length_to_read;
         length -= length_to_read;
@@ -46,8 +50,10 @@ static size_t read_stdio(STDIO_STREAMFILE *streamfile, uint8_t *dst, off_t offse
     }
 
 #ifdef VGM_DEBUG_OUTPUT
-    if (offset < streamfile->buffer_offset) {
+    if (offset < streamfile->buffer_offset && length > 0) {
         VGM_LOG("STDIO: rebuffer, requested %lx vs %lx (sf %x)\n", offset, streamfile->buffer_offset, (uint32_t)streamfile);
+        //streamfile->rebuffer++;
+        //if (rebuffer > N) ...
     }
 #endif
 
@@ -78,6 +84,7 @@ static size_t read_stdio(STDIO_STREAMFILE *streamfile, uint8_t *dst, off_t offse
         /* fill the buffer (offset now is beyond buffer_offset) */
         streamfile->buffer_offset = offset;
         streamfile->validsize = fread(streamfile->buffer, sizeof(uint8_t), streamfile->buffersize, streamfile->infile);
+        //;VGM_LOG("STDIO: read buf %lx + %x\n", streamfile->buffer_offset, streamfile->validsize);
 
         /* decide how much must be read this time */
         if (length > streamfile->buffersize)
@@ -126,20 +133,21 @@ static STREAMFILE* open_stdio(STDIO_STREAMFILE *streamfile, const char * const f
         return NULL;
 
 #if !defined (__ANDROID__)
-    // if same name, duplicate the file pointer we already have open
+    /* if same name, duplicate the file descriptor we already have open */
     if (streamfile->infile && !strcmp(streamfile->name,filename)) {
-        int newfd;
-        FILE *newfile;
-        STREAMFILE *new_sf;
+        int new_fd;
+        FILE *new_file = NULL;
 
-        if ( ((newfd = dup(fileno(streamfile->infile))) >= 0) && (newfile = fdopen(newfd, "rb")) )  {
-            new_sf = open_stdio_streamfile_buffer_by_file(newfile, filename, buffersize);
-            if (new_sf) {
+        if (((new_fd = dup(fileno(streamfile->infile))) >= 0) && (new_file = fdopen(new_fd, "rb")))  {
+            STREAMFILE *new_sf = open_stdio_streamfile_buffer_by_file(new_file, filename, buffersize);
+            if (new_sf)
                 return new_sf;
-            }
-            // failure, close it and try the default path (which will probably fail a second time)
-            fclose(newfile);
+            fclose(new_file);
         }
+        if (new_fd >= 0 && !new_file)
+            close(new_fd); /* fdopen may fail when opening too many files */
+
+        /* on failure just close and try the default path (which will probably fail a second time) */
     }
 #endif    
     // a normal open, open a new file
@@ -981,6 +989,27 @@ fail:
     if (buf) buf[0] = '\0';
     return 0;
 }
+size_t read_string_utf16le(char *buf, size_t buf_size, off_t offset, STREAMFILE *sf) {
+    size_t pos, offpos;
+
+    for (pos = 0, offpos = 0; pos < buf_size; pos++, offpos += 2) {
+        char c = read_u16le(offset + offpos, sf) & 0xFF; /* lower byte for now */
+        if (buf) buf[pos] = c;
+        if (c == '\0')
+            return pos;
+        if (pos+1 == buf_size) { /* null at maxsize and don't validate (expected to be garbage) */
+            if (buf) buf[pos] = '\0';
+            return buf_size;
+        }
+        if (c < 0x20 || (uint8_t)c > 0xA5)
+            goto fail;
+    }
+
+fail:
+    if (buf) buf[0] = '\0';
+    return 0;
+}
+
 
 
 size_t read_key_file(uint8_t *buf, size_t buf_size, STREAMFILE *sf) {
