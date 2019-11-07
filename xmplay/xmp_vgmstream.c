@@ -35,13 +35,14 @@ static XMPFUNC_MISC *xmpfmisc;
 static XMPFUNC_FILE *xmpffile;
 
 char working_extension_list[EXTENSION_LIST_SIZE] = {0};
-char filepath[2048];
+char filepath[MAX_PATH];
 
 /* plugin config */
 double fade_seconds = 10.0;
-double fade_delay_seconds = 10.0;
+double fade_delay_seconds = 0.0;
 double loop_count = 2.0;
 int disable_subsongs = 1;
+bool xmplay_doneloop = 0;
 
 /* plugin state */
 VGMSTREAM * vgmstream = NULL;
@@ -107,7 +108,8 @@ static STREAMFILE *xmpsf_open(XMPLAY_STREAMFILE *this, const char *const filenam
     newfile = xmpffile->Open(filename);
     if (!newfile) return NULL;
 
-	strcpy(filepath, filename);
+    strncpy(filepath, filename, MAX_PATH);
+    filepath[MAX_PATH - 1] = 0x00;
 
     return open_xmplay_streamfile_by_xmpfile(newfile, filename, 1); /* internal XMPFILE */
 }
@@ -470,6 +472,7 @@ DWORD WINAPI xmplay_GetFileInfo(const char *filename, XMPFILE file, float **leng
     if (disable_subsongs || subsong_count == 0)
         subsong_count = 1;
 
+    *tags = get_tags(infostream);
     close_vgmstream(infostream);
 
     return subsong_count;
@@ -603,6 +606,9 @@ double WINAPI xmplay_SetPosition(DWORD pos) {
     double cpos = (double)framesDone / (double)vgmstream->sample_rate;
     double time = pos * xmplay_GetGranularity();
 
+    if (pos == XMPIN_POS_AUTOLOOP || pos == XMPIN_POS_LOOP)
+        xmplay_doneloop = 1;
+
 #if 0
     /* set a subsong */
     if (!disable_subsongs && (pos & XMPIN_POS_SUBSONG)) {
@@ -654,6 +660,7 @@ DWORD WINAPI xmplay_Process(float* buf, DWORD bufsize) {
     UINT32 i, j, todo, done;
 
     BOOL doLoop = xmpfin->GetLooping();
+
     float *sbuf = buf;
     UINT32 samplesTodo;
 
@@ -681,7 +688,7 @@ DWORD WINAPI xmplay_Process(float* buf, DWORD bufsize) {
     sbuf = buf;
 
     /* fade */
-    if (!doLoop && framesDone + done > framesLength) {
+    if ((!doLoop || xmplay_doneloop) && vgmstream->loop_flag && framesDone + done > framesLength) {
         long fadeStart = (framesLength > framesDone) ? framesLength : framesDone;
         long fadeEnd = (framesDone + done) > stream_length_samples ? stream_length_samples : (framesDone + done);
         long fadePos;
