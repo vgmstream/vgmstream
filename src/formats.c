@@ -136,6 +136,7 @@ static const char* extension_list[] = {
     "data",
     "dax",
     "dbm",
+    "dct",
     "dcs",
     "ddsp",
     "de2",
@@ -274,6 +275,7 @@ static const char* extension_list[] = {
     "lwma", //fake extension for .wma, FFmpeg/not parsed
 
     "mab",
+    "mad",
     "map",
     "matx",
     "mc3",
