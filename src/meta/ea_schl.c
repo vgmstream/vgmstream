@@ -173,13 +173,25 @@ VGMSTREAM * init_vgmstream_ea_schl_video(STREAMFILE *streamFile) {
 
 
     /* check extension */
-    /* .vp6: ~late */
-    if (!check_extensions(streamFile,"vp6"))
+    /* .uv: early */
+    /* .dct: early-mid [ex. Need for Speed II SE (PC), FIFA 98 (PC)] */
+    /* .mad: mid */
+    /* .vp6: late */
+    if (check_extensions(streamFile, "vp6")) {
+        /* check initial movie block id */
+        if (read_32bitBE(0x00, streamFile) != 0x4D566864) /* "MVhd" */
+            goto fail;
+    } else if (check_extensions(streamFile, "uv,dct")) {
+        /* starts with audio header block */
+        if (read_32bitBE(0x00, streamFile) != EA_BLOCKID_HEADER) /* "SCHl" */
+            goto fail;
+    } else if (check_extensions(streamFile, "mad")) {
+        /* check initial movie block id */
+        if (read_32bitBE(0x00, streamFile) != 0x4D41446B) /* "MADk" */
+            goto fail;
+    } else {
         goto fail;
-
-    /* check initial movie block id */
-    if (read_32bitBE(0x00,streamFile) != 0x4D566864) /* "MVhd" */
-        goto fail;
+    }
 
     /* use block size to check endianness */
     if (guess_endianness32bit(0x04, streamFile)) {
@@ -208,7 +220,7 @@ VGMSTREAM * init_vgmstream_ea_schl_video(STREAMFILE *streamFile) {
         offset += block_size;
     }
 
-    if (start_offset == 0)
+    if (offset >= get_streamfile_size(streamFile))
         goto fail;
 
     /* find target subsong (one per each SHxx multilang block) */
@@ -1654,7 +1666,7 @@ static void update_ea_stream_size_and_samples(STREAMFILE* streamFile, off_t star
     }
 
     /* manually read totals */
-    block_update(start_offset, vgmstream);
+    vgmstream->next_block_offset = start_offset;
     while (vgmstream->next_block_offset < file_size) {
         block_update_ea_schl(vgmstream->next_block_offset, vgmstream);
         if (vgmstream->current_block_samples < 0)
@@ -1682,7 +1694,7 @@ static void update_ea_stream_size_and_samples(STREAMFILE* streamFile, off_t star
     }
 
     /* reset once we're done */
-    block_update(start_offset, vgmstream);
+    block_update_ea_schl(start_offset, vgmstream);
     
     /* only use calculated samples with multiple subfiles (rarely header samples may be less due to padding) */
     if (standalone && multiple_schl) {
