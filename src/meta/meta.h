@@ -870,4 +870,6 @@ VGMSTREAM * init_vgmstream_bmp_konami(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_isb(STREAMFILE * streamFile);
 
+VGMSTREAM* init_vgmstream_xssb(STREAMFILE *sf);
+
 #endif /*_META_H*/

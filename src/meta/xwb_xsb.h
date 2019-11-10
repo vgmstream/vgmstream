@@ -30,6 +30,9 @@ typedef struct {
     int   cue_names_size;
     off_t cue_names_offset;
 
+    int   index_size;
+    int   entry_size;
+
     /* output */
     int parse_done;
     char name[STREAM_NAME_SIZE];
@@ -38,9 +41,16 @@ typedef struct {
 } xsb_header;
 
 
-static void xsb_check_stream(xsb_header * xsb, int stream_index, int wavebank_index, off_t name_offset, STREAMFILE *sf) {
+static void xsb_check_stream(xsb_header *xsb, int stream_index, int wavebank_index, off_t name_offset, STREAMFILE *sf) {
     if (xsb->parse_done)
         return;
+    //;VGM_LOG("XSB old: found stream=%i vs %i, wavebank=%i vs %i, name_offset=%lx\n", stream_index, xsb->selected_stream, wavebank_index, xsb->selected_wavebank, name_offset);
+
+    if (stream_index < 0 || stream_index > 0xFFF || wavebank_index < 0 || wavebank_index > xsb->wavebanks_count) {
+        VGM_LOG("XSB old: bad stream=%i, wavebank=%i\n", stream_index, wavebank_index);
+        return;
+    }
+
 
     /* multiple names may correspond to a stream (ex. Blue Dragon), so we concat all */
     if (xsb->selected_stream == stream_index &&
@@ -48,7 +58,7 @@ static void xsb_check_stream(xsb_header * xsb, int stream_index, int wavebank_in
         char name[STREAM_NAME_SIZE];
         size_t name_size;
 
-        name_size = read_string(name,sizeof(name), name_offset,sf); /* null-terminated */
+        name_size = read_string(name,sizeof(name), name_offset, sf); /* null-terminated */
 
         if (xsb->name_len) {
             const char *cat = "; ";
@@ -68,95 +78,154 @@ static void xsb_check_stream(xsb_header * xsb, int stream_index, int wavebank_in
     }
 }
 
-/* old XACT1 is a bit different and much of it is unknown but this seems to work.
- * - after header is the simple(?) cues table then complex(?) cues table
- * - simple cues point to complex cues by index
- * - complex cues may have stream/wavebank or point again to a sound(?) with the stream/wavebank
- */
-static int parse_xsb_cues_old(xsb_header * xsb, STREAMFILE *sf) {
+
+static int parse_xsb_old_cue_entry(xsb_header *xsb, STREAMFILE *sf, off_t name_offset, int entry) {
     int32_t  (*read_s32)(off_t,STREAMFILE*) = xsb->big_endian ? read_s32be : read_s32le;
     int16_t  (*read_s16)(off_t,STREAMFILE*) = xsb->big_endian ? read_s16be : read_s16le;
-
     uint8_t flags, subflags;
-    int cue_index, stream_index, wavebank_index = 0;
-    off_t offset, name_offset, cue_offset, sound_offset;
-    int i;
-    size_t simple_entry, complex_entry;
+    uint32_t sound_type, sound_size;
+    int stream_index, wavebank_index;
+    off_t offset, jump_offset, sound_offset, min_sections_offset, max_sections_offset;
+    int i, j, sound_count, table_count;
 
 
-    if (xsb->version <= XSB_XACT1_1_MAX) {
-        simple_entry = 0x10;
-        complex_entry = 0x14;
-    }
-    else if (xsb->version <= XSB_XACT1_2_MAX) {
-        simple_entry = 0x14;
-        complex_entry = 0x14;
-    }
-    else {
-        VGM_LOG("XSB: unknown old format for version %x\n", xsb->version);
+    if (entry < 0 || entry > xsb->complex_cues_count) {
+        VGM_LOG("XSB old: ignored bad cue entry %i\n", entry);
         goto fail;
     }
 
+    min_sections_offset = xsb->sounds_offset + xsb->simple_cues_count*xsb->index_size + xsb->complex_cues_offset*xsb->entry_size;
+    max_sections_offset = get_streamfile_size(sf);
 
-    offset = xsb->sounds_offset;
-    for (i = 0; i < xsb->simple_cues_count; i++) {
+    offset = xsb->sounds_offset + xsb->simple_cues_count*xsb->index_size + entry*xsb->entry_size;
 
-        /* *** simple sound *** */
-        /* 00(2): flags? */
-        cue_index   = read_s16(offset + 0x02,sf);
-        name_offset = read_s32(offset + 0x04,sf);
-        /* 06-14: unknown */
 
-        //;VGM_LOG("XSB old simple at %lx: cue=%i, name_offset=%lx\n", offset, cue_index, name_offset);
-        offset += simple_entry;
+    /*** cue entry ***/
+    /* 0x00: offset or stream/wave */
+    /* others: mostly 1 byte fields, probably config for sfx/complex entries */
+    flags = read_u8(offset + 0x0b, sf);
+    //;VGM_LOG("XSB old entry %i at %lx: flags=%x\n", entry, offset, flags);
 
-        /* when cue_index is -1 @0x08 points to some offset (random sound type?) [ex. ATV 3 Lawless (Xbox)] */
-        if (cue_index < 0 && cue_index > xsb->complex_cues_count) {
-            VGM_LOG("XSB old: ignored cue index %i\n", cue_index);
-            continue;
+    if (flags & 0x10) { /* multi entry (found with lower bits but not with 8) */
+        jump_offset = read_s32(offset + 0x00, sf);
+
+        if (jump_offset < min_sections_offset || jump_offset > max_sections_offset) {
+            VGM_LOG("XSB old entry %i at %lx: bad multi jump offset=%lx\n", entry, offset, jump_offset);
+            goto fail;
         }
 
+        /*** table to streams ***/
+        table_count = read_s8(jump_offset + 0x00, sf);
+        /* 0x01: null? */
+        /* 0x02: always count*2? */
+        //;VGM_LOG("XSB old multi stream table at %lx: count=%x\n", jump_offset, table_count);
 
-        /* *** complex sound *** */
-        cue_offset = xsb->sounds_offset + xsb->simple_cues_count*simple_entry + cue_index*complex_entry;
+        for (j = 0; j < table_count; j++) {
+            stream_index    = read_s16(jump_offset + 0x04 + 0x08*j + 0x00, sf);
+            wavebank_index  = read_s16(jump_offset + 0x04 + 0x08*j + 0x02, sf);
+            /* 0x04: config? */
 
-        /* most fields looks like more flags and optional offsets depending of flags */
-        flags = read_u8(cue_offset + 0x0b,sf);
-
-        if (flags & 8) { /* simple */
-            stream_index    = read_s16(cue_offset + 0x00,sf);
-            wavebank_index  = read_s16(cue_offset + 0x02,sf);
+            xsb_check_stream(xsb, stream_index, wavebank_index, name_offset, sf);
+            if (xsb->parse_done) return 1;
         }
-        //else if (flags & 4) { /* unsure */
-        //    VGM_LOG("XSB old complex at %lx: unknown flags=%x\n", cue_offset, flags);
-        //    continue;
-        //}
-        else { /* complex (flags none/1/2) */
-            sound_offset = read_s32(cue_offset + 0x00,sf);
+    }
+    else if (flags & 0x8) { /* simple entry (also found with lower bits) */
+        stream_index    = read_s16(offset + 0x00, sf);
+        wavebank_index  = read_s16(offset + 0x02, sf);
 
-            /* *** jump entry *** */
-            /* 00(1): flags? */
-            sound_offset = read_s32(sound_offset + 0x01,sf) & 0x00FFFFFF; /* 24b */
-
-            /* *** sound entry *** */
-            subflags = read_u8(sound_offset + 0x00,sf);
-            if (subflags == 0x00) { /* 0x0c entry */
-                stream_index    = read_s16(sound_offset + 0x08,sf);
-                wavebank_index  = read_s16(sound_offset + 0x0a,sf);
-            }
-            else if (subflags == 0x0a) { /* 0x20 entry */
-                stream_index    = read_s16(sound_offset + 0x1c,sf);
-                wavebank_index  = read_s16(sound_offset + 0x1e,sf);
-            }
-            else {
-                VGM_LOG("XSB old sound at %lx: unknown subflags=%x\n", sound_offset, subflags);
-                continue;
-            }
-        }
-
-        //;VGM_LOG("XSB old complex at %lx: flags=%x, stream=%i, wavebank=%i, name_offset=%lx\n", cue_offset, flags, stream_index, wavebank_index, name_offset);
-        xsb_check_stream(xsb, stream_index, wavebank_index, name_offset,sf);
+        xsb_check_stream(xsb, stream_index, wavebank_index, name_offset, sf);
         if (xsb->parse_done) return 1;
+    }
+    else { /* complex entry (lower flags) */
+        jump_offset = read_s32(offset + 0x00, sf);
+
+        if (jump_offset < min_sections_offset || jump_offset > max_sections_offset) {
+            VGM_LOG("XSB old entry %i at %lx: bad complex jump offset=%lx\n", entry, offset, jump_offset);
+            goto fail;
+        }
+
+        /*** sound table ***/
+        sound_count  = read_s8 (jump_offset + 0x00, sf);
+        sound_offset = read_s32(jump_offset + 0x01, sf) & 0x00FFFFFF; /* 24b */
+        //;VGM_LOG("XSB old entry %i sound table at %lx: count=%x\n", entry, jump_offset, sound_count);
+
+        /* read all sounds (seems ordered higher types to lower) */
+        for (i = 0; i < sound_count; i++) {
+            /*** sound entry ***/
+            sound_type = read_u8(sound_offset + 0x00, sf);
+            /* 0x01: rarely set but possible */
+            /* 0x02: null? */
+            sound_size = read_u8(sound_offset + 0x04, sf);
+            //;VGM_LOG("XSB old entry sound %i at %lx: type=%x\n", i, sound_offset, sound_type);
+
+            switch(sound_type) {
+                case 0x12:
+                case 0x11:
+                case 0x10:
+                case 0x07:
+                case 0x05:
+                    /* config? (doesn't seem they contain entries or offsets) */
+                    break;
+#if 0
+                case 0x0a /* used? (0x20 entry)? */
+                    stream_index    = read_s16(sound_offset + 0x1c, sf);
+                    wavebank_index  = read_s16(sound_offset + 0x1e, sf);
+                    break;
+#endif
+
+                case 0x01: /* has more fields, uses subflag 0x04 */
+                case 0x00: /* smaller, uses subflag 0x44 (rare) */
+                    subflags = read_u8(sound_offset + 0x05, sf);
+
+                    if (subflags == 0x00 || subflags == 0x40) {
+                        stream_index    = read_s16(sound_offset + 0x08, sf);
+                        wavebank_index  = read_s16(sound_offset + 0x0a, sf);
+
+                        xsb_check_stream(xsb, stream_index, wavebank_index, name_offset, sf);
+                        if (xsb->parse_done) return 1;
+                    }
+                    else if (subflags == 0x04 || subflags == 0x44) {
+                        jump_offset = read_s32(sound_offset + 0x08, sf);
+
+                        if (jump_offset < min_sections_offset || jump_offset > max_sections_offset) {
+                            VGM_LOG("XSB old entry %i at %lx: bad complex multi jump offset=%lx at %lx\n", entry, offset, jump_offset, sound_offset);
+                            break;
+                        }
+
+                        /*** table to streams ***/
+                        table_count = read_s8(jump_offset + 0x00, sf);
+                        /* 0x01: null? */
+                        /* 0x02: always count*2? */
+                        //;VGM_LOG("XSB old complex stream table at %lx: count=%x\n", jump_offset, table_count);
+
+                        for (j = 0; j < table_count; j++) {
+                            stream_index    = read_s16(jump_offset + 0x04 + 0x08*j + 0x00, sf);
+                            wavebank_index  = read_s16(jump_offset + 0x04 + 0x08*j + 0x02, sf);
+                            /* 0x04: config? */
+
+                            xsb_check_stream(xsb, stream_index, wavebank_index, name_offset, sf);
+                            if (xsb->parse_done) return 1;
+                        }
+                    }
+                    else {
+                        VGM_LOG("XSB old entry %i at %lx: bad complex multi flags at %lx\n", entry, offset, sound_offset);
+                    }
+                    break;
+
+                    stream_index    = read_s16(sound_offset + 0x08, sf);
+                    wavebank_index  = read_s16(sound_offset + 0x0a, sf);
+
+                    xsb_check_stream(xsb, stream_index, wavebank_index, name_offset, sf);
+                    if (xsb->parse_done) return 1;
+                    break;
+
+                default:
+                    VGM_LOG("XSB old entry %i at %lx: unknown sound type=%x at %lx\n", entry, offset, sound_type, sound_offset);
+                    break;
+            }
+
+            sound_offset += 0x04 + 0x04 + sound_size;
+        }
     }
 
     return 1;
@@ -164,7 +233,83 @@ fail:
     return 0;
 }
 
-static int parse_xsb_clip(xsb_header * xsb, off_t offset, off_t name_offset, STREAMFILE *sf) {
+/* old XACT1 is a bit different and much of it is unknown but this seems ok:
+ * - after header is the cue index table then cue entry table
+ * - each cue index points to a cue entry by number
+ * - each cue entry have a stream/wavebank, directly or first pointing to a "sound"
+ * sound entries are more complex with multi-parts and subtables (mainly used for sfx,
+ * ex. ATV 3 Lawless (Xbox), Psychonauts (Xbox) have more complex types.
+ *
+ * Some streams may not be pointed at all as they don't have an apparent name, or have an
+ * entry in the sound table but no reference to it (ex. CommonMusic.xsb or BBFX.xsb in Psychonauts)
+ *
+ * Data is divided like:
+ * - header
+ * - cue indexes
+ * - cue entries
+ * - wavebank names
+ * - cue names
+ * - unknown table
+ * - sounds jump table
+ * - sounds entries
+ * - multi entry jump table
+ * - others
+ */
+static int parse_xsb_old_cues(xsb_header *xsb, STREAMFILE *sf) {
+    int32_t  (*read_s32)(off_t,STREAMFILE*) = xsb->big_endian ? read_s32be : read_s32le;
+    int16_t  (*read_s16)(off_t,STREAMFILE*) = xsb->big_endian ? read_s16be : read_s16le;
+    uint16_t flags;
+    int cue_entry;
+    off_t offset, name_offset, jump_offset;
+    int i, j, table_count;
+
+
+    //;VGM_LOG("XSB old: s.offset=%lx, index count=%i, entry count=%i\n", xsb->sounds_offset, xsb->simple_cues_count, xsb->complex_cues_count);
+
+    offset = xsb->sounds_offset;
+    for (i = 0; i < xsb->simple_cues_count; i++) {
+
+        /*** cue index ***/
+        flags       = read_s16(offset + 0x00, sf); /* 0 is normal, 2 exists and 8 often goes with -1 (random) entry */
+        cue_entry   = read_s16(offset + 0x02, sf);
+        name_offset = read_s32(offset + 0x04, sf);
+        /* 0x08: table offset, or -1 */
+        /* 0x0c: some low value or flag? */
+        /* 0x0e: some index? */
+        /* 0x10: 4 fields? (-1 or 7) */
+        //;VGM_LOG("XSB old index %i at %lx: flags=%x, entry=%i, name_offset=%lx\n", i, offset, flags, cue_entry, name_offset);
+
+        if (cue_entry < 0) {
+            jump_offset = read_s32(offset + 0x08, sf);
+            /* 0x0c/0e: some count? */
+            /* 0x10: offset to some empty-ish table */
+
+            /*** table (random?) to cue entry ***/
+            table_count = read_s8(jump_offset + 0x00, sf);
+            /* 0x01: often 0x60? */
+            /* 0x02: always count*2? */
+            //;VGM_LOG("XSB old entry table at %lx: count=%x\n", jump_offset, table_count);
+
+            for (j = 0; j < table_count; j++) {
+                cue_entry = read_s16(jump_offset + 0x04 + 0x08*j, sf);
+                /* 0x02: null? */
+                /* 0x04/6: related to randomness? */
+                parse_xsb_old_cue_entry(xsb, sf, name_offset, cue_entry);
+                if (xsb->parse_done) return 1;
+            }
+        }
+        else {
+            parse_xsb_old_cue_entry(xsb, sf, name_offset, cue_entry);
+            if (xsb->parse_done) return 1;
+        }
+
+        offset += xsb->index_size;
+    }
+
+    return 1;
+}
+
+static int parse_xsb_clip(xsb_header *xsb, off_t offset, off_t name_offset, STREAMFILE *sf) {
     uint32_t (*read_u32)(off_t,STREAMFILE*) = xsb->big_endian ? read_u32be : read_u32le;
     int16_t  (*read_s16)(off_t,STREAMFILE*) = xsb->big_endian ? read_s16be : read_s16le;
 
@@ -173,13 +318,13 @@ static int parse_xsb_clip(xsb_header * xsb, off_t offset, off_t name_offset, STR
     int i, t, track_count, event_count;
 
 
-    event_count = read_s8(offset + 0x00,sf);
+    event_count = read_s8(offset + 0x00, sf);
 
     //;VGM_LOG("XSB clip at %lx\n", offset);
     offset += 0x01;
 
     for (i = 0; i < event_count; i++) {
-        flags = read_u32(offset + 0x00,sf);
+        flags = read_u32(offset + 0x00, sf);
         /* 04(2): random offset */
 
         //;VGM_LOG("XSB clip event: %x at %lx\n", flags, offset);
@@ -190,8 +335,8 @@ static int parse_xsb_clip(xsb_header * xsb, off_t offset, off_t name_offset, STR
             case 0x01: /* playwave event */
                 /* 00(1): unknown */
                 /* 01(1): flags */
-                stream_index    = read_s16(offset + 0x02,sf);
-                wavebank_index  = read_s8 (offset + 0x04,sf);
+                stream_index    = read_s16(offset + 0x02, sf);
+                wavebank_index  = read_s8 (offset + 0x04, sf);
                 /* 05(1): loop count */
                 /* 06(2): pan angle */
                 /* 08(2): pan arc */
@@ -199,7 +344,7 @@ static int parse_xsb_clip(xsb_header * xsb, off_t offset, off_t name_offset, STR
                 //;VGM_LOG("XSB clip event 1 at %lx: stream=%i, wavebank=%i\n", offset, stream_index, wavebank_index);
                 offset += 0x0a;
 
-                xsb_check_stream(xsb, stream_index, wavebank_index, name_offset,sf);
+                xsb_check_stream(xsb, stream_index, wavebank_index, name_offset, sf);
                 if (xsb->parse_done) return 1;
                 break;
 
@@ -209,7 +354,7 @@ static int parse_xsb_clip(xsb_header * xsb, off_t offset, off_t name_offset, STR
                 /* 02(1): loop count */
                 /* 03(2): pan angle */
                 /* 05(2): pan arc */
-                track_count = read_s16(offset + 0x07,sf);
+                track_count = read_s16(offset + 0x07, sf);
                 /* 09(1): flags? */
                 /* 0a(5): unknown */
 
@@ -217,15 +362,15 @@ static int parse_xsb_clip(xsb_header * xsb, off_t offset, off_t name_offset, STR
                 offset += 0x0F;
 
                 for (t = 0; t < track_count; t++) {
-                    stream_index    = read_s16(offset + 0x00,sf);
-                    wavebank_index  = read_s8 (offset + 0x02,sf);
+                    stream_index    = read_s16(offset + 0x00, sf);
+                    wavebank_index  = read_s8 (offset + 0x02, sf);
                     /* 03(1): min weight */
                     /* 04(1): min weight */
 
                     //;VGM_LOG("XSB clip event 3: track=%i, stream=%i, wavebank=%i\n", t, stream_index, wavebank_index);
                     offset += 0x05;
 
-                    xsb_check_stream(xsb, stream_index, wavebank_index, name_offset,sf);
+                    xsb_check_stream(xsb, stream_index, wavebank_index, name_offset, sf);
                     if (xsb->parse_done) return 1;
                 }
                 break;
@@ -233,8 +378,8 @@ static int parse_xsb_clip(xsb_header * xsb, off_t offset, off_t name_offset, STR
             case 0x04: /* playwave event */
                 /* 00(1): unknown */
                 /* 01(1): flags */
-                stream_index    = read_s16(offset + 0x02,sf);
-                wavebank_index  = read_s8 (offset + 0x04,sf);
+                stream_index    = read_s16(offset + 0x02, sf);
+                wavebank_index  = read_s8 (offset + 0x04, sf);
                 /* 05(1): loop count */
                 /* 06(2): pan angle */
                 /* 08(2): pan arc */
@@ -252,7 +397,7 @@ static int parse_xsb_clip(xsb_header * xsb, off_t offset, off_t name_offset, STR
                 //;VGM_LOG("XSB clip event 4 at %lx: stream=%i, wavebank=%i\n", offset, stream_index, wavebank_index);
                 offset += 0x1c;
 
-                xsb_check_stream(xsb, stream_index, wavebank_index, name_offset,sf);
+                xsb_check_stream(xsb, stream_index, wavebank_index, name_offset, sf);
                 if (xsb->parse_done) return 1;
                 break;
 
@@ -272,7 +417,7 @@ static int parse_xsb_clip(xsb_header * xsb, off_t offset, off_t name_offset, STR
                 /* 16(1): max Q */
                 /* 17(1): unknown */
                 /* 18(1): variation flags */
-                track_count = read_s16(offset + 0x19,sf);
+                track_count = read_s16(offset + 0x19, sf);
                 /* 1a(1): flags 2 */
                 /* 1b(5): unknown 2 */
 
@@ -280,15 +425,15 @@ static int parse_xsb_clip(xsb_header * xsb, off_t offset, off_t name_offset, STR
                 offset += 0x20;
 
                 for (t = 0; t < track_count; t++) {
-                    stream_index    = read_s16(offset + 0x00,sf);
-                    wavebank_index  = read_s8 (offset + 0x02,sf);
+                    stream_index    = read_s16(offset + 0x00, sf);
+                    wavebank_index  = read_s8 (offset + 0x02, sf);
                     /* 03(1): min weight */
                     /* 04(1): min weight */
 
                     //;VGM_LOG("XSB clip event 6: track=%i, stream=%i, wavebank=%i at %lx\n", t, stream_index, wavebank_index, offset);
                     offset += 0x05;
 
-                    xsb_check_stream(xsb, stream_index, wavebank_index, name_offset,sf);
+                    xsb_check_stream(xsb, stream_index, wavebank_index, name_offset, sf);
                     if (xsb->parse_done) return 1;
                 }
                 break;
@@ -318,7 +463,7 @@ fail:
     return 0;
 }
 
-static int parse_xsb_sound(xsb_header * xsb, off_t offset, off_t name_offset, STREAMFILE *sf) {
+static int parse_xsb_sound(xsb_header *xsb, off_t offset, off_t name_offset, STREAMFILE *sf) {
     int32_t  (*read_s32)(off_t,STREAMFILE*) = xsb->big_endian ? read_s32be : read_s32le;
     int16_t  (*read_s16)(off_t,STREAMFILE*) = xsb->big_endian ? read_s16be : read_s16le;
 
@@ -327,7 +472,7 @@ static int parse_xsb_sound(xsb_header * xsb, off_t offset, off_t name_offset, ST
     int i, clip_count = 0;
 
 
-    flags = read_u8 (offset + 0x00,sf);
+    flags = read_u8 (offset + 0x00, sf);
     /* 0x01(2): category */
     /* 0x03(1): decibels */
     /* 0x04(2): pitch */
@@ -338,24 +483,24 @@ static int parse_xsb_sound(xsb_header * xsb, off_t offset, off_t name_offset, ST
     offset += 0x09;
 
     if (flags & 0x01) { /* complex sound */
-        clip_count      = read_u8 (offset + 0x00,sf);
+        clip_count      = read_u8 (offset + 0x00, sf);
 
         //;VGM_LOG("XSB sound: complex with clips=%i\n", clip_count);
         offset += 0x01;
     }
     else {
-        stream_index    = read_s16(offset + 0x00,sf);
-        wavebank_index  =  read_s8(offset + 0x02,sf);
+        stream_index    = read_s16(offset + 0x00, sf);
+        wavebank_index  =  read_s8(offset + 0x02, sf);
 
         //;VGM_LOG("XSB sound: simple with stream=%i, wavebank=%i\n", stream_index, wavebank_index);
         offset += 0x03;
 
-        xsb_check_stream(xsb, stream_index, wavebank_index, name_offset,sf);
+        xsb_check_stream(xsb, stream_index, wavebank_index, name_offset, sf);
         if (xsb->parse_done) return 1;
     }
 
     if (flags & 0x0E) { /* has RPCs */
-        size_t rpc_size = read_s16(offset + 0x00,sf);
+        size_t rpc_size = read_s16(offset + 0x00, sf);
         /* 0x02(2): preset count */
         /* 0x04(4*count): RPC indexes */
         /* (presets per flag 2/4/8 flag) */
@@ -363,7 +508,7 @@ static int parse_xsb_sound(xsb_header * xsb, off_t offset, off_t name_offset, ST
     }
 
     if (flags & 0x10) { /* has DSPs */
-        size_t dsp_size = read_s16(offset + 0x00,sf);
+        size_t dsp_size = read_s16(offset + 0x00, sf);
         /* follows RPC format? */
         offset += dsp_size;
     }
@@ -372,14 +517,14 @@ static int parse_xsb_sound(xsb_header * xsb, off_t offset, off_t name_offset, ST
         off_t clip_offset;
         for (i = 0; i < clip_count; i++) {
             /* 00(1): decibels */
-            clip_offset = read_s32(offset + 0x01,sf);
+            clip_offset = read_s32(offset + 0x01, sf);
             /* 05(2): filter config */
             /* 07(2): filter frequency */
 
             //;VGM_LOG("XSB sound clip %i at %lx\n", i, offset);
             offset += 0x09;
 
-            parse_xsb_clip(xsb, clip_offset, name_offset,sf);
+            parse_xsb_clip(xsb, clip_offset, name_offset, sf);
             if (xsb->parse_done) return 1;
         }
     }
@@ -387,7 +532,7 @@ static int parse_xsb_sound(xsb_header * xsb, off_t offset, off_t name_offset, ST
     return 0;
 }
 
-static int parse_xsb_variation(xsb_header * xsb, off_t offset, off_t name_offset, STREAMFILE *sf) {
+static int parse_xsb_variation(xsb_header *xsb, off_t offset, off_t name_offset, STREAMFILE *sf) {
     int32_t  (*read_s32)(off_t,STREAMFILE*) = xsb->big_endian ? read_s32be : read_s32le;
     uint16_t (*read_u16)(off_t,STREAMFILE*) = xsb->big_endian ? read_u16be : read_u16le;
     int16_t  (*read_s16)(off_t,STREAMFILE*) = xsb->big_endian ? read_s16be : read_s16le;
@@ -397,8 +542,8 @@ static int parse_xsb_variation(xsb_header * xsb, off_t offset, off_t name_offset
     int i, variation_count;
 
 
-    variation_count = read_s16(offset + 0x00,sf);
-    flags           = read_u16(offset + 0x02,sf);
+    variation_count = read_s16(offset + 0x00, sf);
+    flags           = read_u16(offset + 0x02, sf);
 
     //;VGM_LOG("XSB variation at %lx\n", offset);
     offset += 0x04;
@@ -408,32 +553,32 @@ static int parse_xsb_variation(xsb_header * xsb, off_t offset, off_t name_offset
 
         switch ((flags >> 3) & 0x7) {
             case 0: /* wave */
-                stream_index   = read_s16(offset + 0x00,sf);
-                wavebank_index =  read_s8(offset + 0x02,sf);
+                stream_index   = read_s16(offset + 0x00, sf);
+                wavebank_index =  read_s8(offset + 0x02, sf);
                 /* 03(1): weight min */
                 /* 04(1): weight max */
 
                 //;VGM_LOG("XSB variation: type 0 with stream=%i, wavebank=%i\n", stream_index, wavebank_index);
                 offset += 0x05;
 
-                xsb_check_stream(xsb, stream_index, wavebank_index, name_offset,sf);
+                xsb_check_stream(xsb, stream_index, wavebank_index, name_offset, sf);
                 if (xsb->parse_done) return 1;
                 break;
 
             case 1: /* sound */
-                sound_offset = read_s32(offset + 0x00,sf);
+                sound_offset = read_s32(offset + 0x00, sf);
                 /* 04(1): weight min */
                 /* 05(1): weight max */
 
                 //;VGM_LOG("XSB variation: type 1\n");
                 offset += 0x06;
 
-                parse_xsb_sound(xsb, sound_offset, name_offset,sf);
+                parse_xsb_sound(xsb, sound_offset, name_offset, sf);
                 if (xsb->parse_done) return 1;
                 break;
 
             case 3: /* sound */
-                sound_offset = read_s32(offset + 0x00,sf);
+                sound_offset = read_s32(offset + 0x00, sf);
                 /* 04(4): weight min */
                 /* 08(4): weight max */
                 /* 0c(4): flags */
@@ -441,18 +586,18 @@ static int parse_xsb_variation(xsb_header * xsb, off_t offset, off_t name_offset
                 //;VGM_LOG("XSB variation: type 3\n");
                 offset += 0x10;
 
-                parse_xsb_sound(xsb, sound_offset, name_offset,sf);
+                parse_xsb_sound(xsb, sound_offset, name_offset, sf);
                 if (xsb->parse_done) return 1;
                 break;
 
             case 4: /* compact wave */
-                stream_index   = read_s16(offset + 0x00,sf);
-                wavebank_index =  read_s8(offset + 0x02,sf);
+                stream_index   = read_s16(offset + 0x00, sf);
+                wavebank_index =  read_s8(offset + 0x02, sf);
 
                 //;VGM_LOG("XSB variation: type 4 with stream=%i, wavebank=%i\n", stream_index, wavebank_index);
                 offset += 0x03;
 
-                xsb_check_stream(xsb, stream_index, wavebank_index, name_offset,sf);
+                xsb_check_stream(xsb, stream_index, wavebank_index, name_offset, sf);
                 if (xsb->parse_done) return 1;
                 break;
 
@@ -474,7 +619,7 @@ fail:
 }
 
 
-static int parse_xsb_cues_new(xsb_header * xsb, STREAMFILE *sf) {
+static int parse_xsb_cues(xsb_header *xsb, STREAMFILE *sf) {
     int32_t  (*read_s32)(off_t,STREAMFILE*) = xsb->big_endian ? read_s32be : read_s32le;
 
     uint8_t flags;
@@ -486,23 +631,23 @@ static int parse_xsb_cues_new(xsb_header * xsb, STREAMFILE *sf) {
     offset = xsb->simple_cues_offset;
     for (i = 0; i < xsb->simple_cues_count; i++) {
         /* 00(1): flags */
-        sound_offset = read_s32(offset + 0x01,sf);
+        sound_offset = read_s32(offset + 0x01, sf);
 
         //;VGM_LOG("XSB cues: simple %i at %lx\n", i, offset);
         offset += 0x05;
 
-        name_offset = read_s32(names_offset + 0x00,sf);
+        name_offset = read_s32(names_offset + 0x00, sf);
         /* 04(2): unknown (-1) */
         names_offset += 0x06;
 
-        parse_xsb_sound(xsb, sound_offset, name_offset,sf);
+        parse_xsb_sound(xsb, sound_offset, name_offset, sf);
         if (xsb->parse_done) break;
     }
 
     offset = xsb->complex_cues_offset;
     for (i = 0; i < xsb->complex_cues_count; i++) {
-        flags = read_u8(offset + 0x00,sf);
-        sound_offset = read_s32(offset + 0x01,sf);
+        flags = read_u8(offset + 0x00, sf);
+        sound_offset = read_s32(offset + 0x01, sf);
         /* 05(4): unknown (sound) / transition table offset (variation) */
         /* 09(1): instance limit */
         /* 0a(2): fade in sec */
@@ -512,14 +657,14 @@ static int parse_xsb_cues_new(xsb_header * xsb, STREAMFILE *sf) {
         //;VGM_LOG("XSB cues: complex %i at %lx\n", i, offset);
         offset += 0x0f;
 
-        name_offset = read_s32(names_offset + 0x00,sf);
+        name_offset = read_s32(names_offset + 0x00, sf);
         /* 04(2): unknown (-1) */
         names_offset += 0x06;
 
         if (flags & (1<<2))
-            parse_xsb_sound(xsb, sound_offset, name_offset,sf);
+            parse_xsb_sound(xsb, sound_offset, name_offset, sf);
         else
-            parse_xsb_variation(xsb, sound_offset, name_offset,sf);
+            parse_xsb_variation(xsb, sound_offset, name_offset, sf);
         if (xsb->parse_done) break;
     }
 
@@ -547,7 +692,7 @@ static int parse_xsb_cues_new(xsb_header * xsb, STREAMFILE *sf) {
  * - https://github.com/MonoGame/MonoGame/blob/master/MonoGame.Framework/Audio/Xact/
  * - https://github.com/espes/MacTerrariaWrapper/tree/master/xactxtract
  */
-static int parse_xsb(xsb_header * xsb, STREAMFILE *sf, char *xwb_wavebank_name) {
+static int parse_xsb(xsb_header *xsb, STREAMFILE *sf, char *xwb_wavebank_name) {
     int32_t  (*read_s32)(off_t,STREAMFILE*) = NULL;
     int16_t  (*read_s16)(off_t,STREAMFILE*) = NULL;
 
@@ -563,77 +708,84 @@ static int parse_xsb(xsb_header * xsb, STREAMFILE *sf, char *xwb_wavebank_name) 
 
 
     /* parse sound bank header */
-    xsb->version = read_s16(0x04,sf); /* tool version */
+    xsb->version = read_s16(0x04, sf); /* tool version */
     if (xsb->version <= XSB_XACT1_0_MAX) {
         /* 06(2): crc */
-        xsb->wavebanks_offset       = read_s32(0x08,sf);
+        xsb->wavebanks_offset       = read_s32(0x08, sf);
         /* 0c(4): unknown1 offset (entry: 0x04) */
         /* 10(4): unknown2 offset */
         /* 14(2): element count? */
         /* 16(2): empty? */
         /* 18(2): empty? */
-        xsb->complex_cues_count     = read_s16(0x1a,sf);
-        xsb->simple_cues_count      = read_s16(0x1c,sf);
-        xsb->wavebanks_count        = read_s16(0x1e,sf);
+        xsb->complex_cues_count     = read_s16(0x1a, sf);
+        xsb->simple_cues_count      = read_s16(0x1c, sf);
+        xsb->wavebanks_count        = read_s16(0x1e, sf);
         /* 20(10): xsb name */
 
         xsb->sounds_offset          = 0x30;
         xsb->wavebanks_name_size    = 0x10;
+        xsb->index_size             = 0x10;
+        xsb->entry_size             = 0x14;
+
     }
     else if (xsb->version <= XSB_XACT1_1_MAX) {
         /* 06(2): crc */
-        xsb->wavebanks_offset       = read_s32(0x08,sf);
+        xsb->wavebanks_offset       = read_s32(0x08, sf);
         /* 0c(4): unknown1 offset (entry: 0x04) */
         /* 10(4): unknown2 offset */
         /* 14(4): unknown3 offset */
         /* 18(2): empty? */
         /* 1a(2): element count? */
-        xsb->complex_cues_count     = read_s16(0x1c,sf);
-        xsb->simple_cues_count      = read_s16(0x1e,sf);
+        xsb->complex_cues_count     = read_s16(0x1c, sf);
+        xsb->simple_cues_count      = read_s16(0x1e, sf);
         /* 20(2): unknown count? (related to unknown2?) */
-        xsb->wavebanks_count        = read_s16(0x22,sf);
+        xsb->wavebanks_count        = read_s16(0x22, sf);
         /* 24(10): xsb name */
 
         xsb->sounds_offset          = 0x34;
         xsb->wavebanks_name_size    = 0x10;
+        xsb->index_size             = 0x10;
+        xsb->entry_size             = 0x14;
     }
     else if (xsb->version <= XSB_XACT1_2_MAX) {
         /* 06(2): crc */
-        xsb->wavebanks_offset       = read_s32(0x08,sf);
+        xsb->wavebanks_offset       = read_s32(0x08, sf);
         /* 0c(4): unknown1 offset (entry: 0x14) */
         /* 10(4): unknown2 offset (entry: variable) */
         /* 14(4): unknown3 offset */
         /* 18(2): empty? */
         /* 1a(2): element count? */
-        xsb->complex_cues_count     = read_s16(0x1c,sf);
-        xsb->simple_cues_count      = read_s16(0x1e,sf);
+        xsb->complex_cues_count     = read_s16(0x1c, sf);
+        xsb->simple_cues_count      = read_s16(0x1e, sf);
         /* 20(2): unknown count? (related to unknown2?) */
-        xsb->wavebanks_count        = read_s16(0x22,sf);
+        xsb->wavebanks_count        = read_s16(0x22, sf);
         /* 24(4): null? */
         /* 28(10): xsb name */
 
         xsb->sounds_offset          = 0x38;
         xsb->wavebanks_name_size    = 0x10;
+        xsb->index_size             = 0x14;
+        xsb->entry_size             = 0x14;
     }
     else if (xsb->version <= XSB_XACT2_MAX) {
         /* 06(2): crc */
         /* 08(1): platform? (3=X360) */
-        xsb->simple_cues_count      = read_s16(0x09,sf);
-        xsb->complex_cues_count     = read_s16(0x0B,sf);
-        xsb->wavebanks_count        = read_s8 (0x11,sf);
-        xsb->sounds_count           = read_s16(0x12,sf);
+        xsb->simple_cues_count      = read_s16(0x09, sf);
+        xsb->complex_cues_count     = read_s16(0x0B, sf);
+        xsb->wavebanks_count        = read_s8 (0x11, sf);
+        xsb->sounds_count           = read_s16(0x12, sf);
         /* 14(2): unknown */
-        xsb->cue_names_size         = read_s32(0x16,sf);
-        xsb->simple_cues_offset     = read_s32(0x1a,sf);
-        xsb->complex_cues_offset    = read_s32(0x1e,sf);
-        xsb->cue_names_offset       = read_s32(0x22,sf);
+        xsb->cue_names_size         = read_s32(0x16, sf);
+        xsb->simple_cues_offset     = read_s32(0x1a, sf);
+        xsb->complex_cues_offset    = read_s32(0x1e, sf);
+        xsb->cue_names_offset       = read_s32(0x22, sf);
         /* 26(4): unknown */
         /* 2a(4): unknown */
         /* 2e(4): unknown */
-        xsb->wavebanks_offset       = read_s32(0x32,sf);
+        xsb->wavebanks_offset       = read_s32(0x32, sf);
         /* 36(4): cue name hash table offset? */
-        xsb->nameoffsets_offset     = read_s32(0x3a,sf);
-        xsb->sounds_offset          = read_s32(0x3e,sf);
+        xsb->nameoffsets_offset     = read_s32(0x3a, sf);
+        xsb->sounds_offset          = read_s32(0x3e, sf);
         /* 42(4): unknown */
         /* 46(4): unknown */
         /* 4a(64): xsb name */
@@ -646,23 +798,23 @@ static int parse_xsb(xsb_header * xsb, STREAMFILE *sf, char *xwb_wavebank_name) 
         /* 0a(4): last modified low */
         /* 0e(4): last modified high */
         /* 12(1): platform? (1=PC, 3=X360) */
-        xsb->simple_cues_count      = read_s16(0x13,sf);
-        xsb->complex_cues_count     = read_s16(0x15,sf);
+        xsb->simple_cues_count      = read_s16(0x13, sf);
+        xsb->complex_cues_count     = read_s16(0x15, sf);
         /* 17(2): unknown count? */
         /* 19(2): element count? (often simple+complex cues, but may be more) */
-        xsb->wavebanks_count        = read_s8 (0x1b,sf);
-        xsb->sounds_count           = read_s16(0x1c,sf);
-        xsb->cue_names_size         = read_s32(0x1e,sf);
-        xsb->simple_cues_offset     = read_s32(0x22,sf);
-        xsb->complex_cues_offset    = read_s32(0x26,sf);
-        xsb->cue_names_offset       = read_s32(0x2a,sf);
+        xsb->wavebanks_count        = read_s8 (0x1b, sf);
+        xsb->sounds_count           = read_s16(0x1c, sf);
+        xsb->cue_names_size         = read_s32(0x1e, sf);
+        xsb->simple_cues_offset     = read_s32(0x22, sf);
+        xsb->complex_cues_offset    = read_s32(0x26, sf);
+        xsb->cue_names_offset       = read_s32(0x2a, sf);
         /* 0x2E(4): unknown offset */
         /* 0x32(4): variation tables offset */
         /* 0x36(4): unknown offset */
-        xsb->wavebanks_offset       = read_s32(0x3a,sf);
+        xsb->wavebanks_offset       = read_s32(0x3a, sf);
         /* 0x3E(4): cue name hash table offset (16b each) */
-        xsb->nameoffsets_offset     = read_s32(0x42,sf);
-        xsb->sounds_offset          = read_s32(0x46,sf);
+        xsb->nameoffsets_offset     = read_s32(0x42, sf);
+        xsb->sounds_offset          = read_s32(0x46, sf);
         /* 4a(64): xsb name */
 
         xsb->wavebanks_name_size    = 0x40;
@@ -692,7 +844,7 @@ static int parse_xsb(xsb_header * xsb, STREAMFILE *sf, char *xwb_wavebank_name) 
 
         offset = xsb->wavebanks_offset;
         for (i = 0; i < xsb->wavebanks_count; i++) {
-            read_string(xsb_wavebank_name,xsb->wavebanks_name_size, offset,sf);
+            read_string(xsb_wavebank_name,xsb->wavebanks_name_size, offset, sf);
             //;VGM_LOG("XSB wavebanks: bank %i=%s\n", i, wavebank_name);
             if (strcasecmp(xsb_wavebank_name, xwb_wavebank_name)==0) {
                 //;VGM_LOG("XSB banks: current xwb is wavebank %i=%s\n", i, xsb_wavebank_name);
@@ -705,17 +857,17 @@ static int parse_xsb(xsb_header * xsb, STREAMFILE *sf, char *xwb_wavebank_name) 
         //;VGM_LOG("xsb: selected wavebank=%i\n", xsb->selected_wavebank);
         if (xsb->selected_wavebank == -1) {
             VGM_LOG("XSB: current wavebank not found, selecting first\n");
-            xsb->selected_wavebank = 0; //todo goto fail?
+            xsb->selected_wavebank = 0;
         }
     }
 
 
     /* find cue pointing to stream */
     if (xsb->version <= XSB_XACT1_2_MAX) {
-        parse_xsb_cues_old(xsb, sf);
+        parse_xsb_old_cues(xsb, sf);
     }
     else {
-        parse_xsb_cues_new(xsb, sf);
+        parse_xsb_cues(xsb, sf);
     }
 
     return 1;
@@ -739,6 +891,12 @@ static STREAMFILE * open_xsb_filename_pair(STREAMFILE *streamXwb) {
             {"StreamBank_*.xwb","SoundBank_*.xsb"},     /* Ginga Force (X360) */
             {"WaveBank_*.xwb","SoundBank_*.xsb"},       /* Ginga Force (X360) */
             {"*_WB.xwb","*_SB.xsb"},                    /* Ninja Blade (X360) */
+            {"*_WB.xwb","*_SB.xsb"},                    /* Ninja Blade (X360) */
+            {"CA_NightMusic.xwb","CAMusic.xsb"},        /* Psychonauts (Xbox) */
+            {"CAJAMusic.xwb","CAMusic.xsb"},            /* "" */
+            {"STFX.xwb","CommonMusic.xsb"},             /* "" */
+            {"CALI_NightFX.xwb","CAFX.xsb"},            /* "" */
+            /* Psychonauts has a bunch more pairs for sfx too, improve */
             {"*.xwb","*.xsb"},                          /* default */
     };
     int i;

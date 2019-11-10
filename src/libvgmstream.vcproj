@@ -261,6 +261,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\ea_eaac_opus_streamfile.h"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\ea_schl_streamfile.h"
                     >
                 </File>
@@ -1778,10 +1782,14 @@
                     RelativePath=".\meta\xps.c"
                     >
                 </File>
-				<File
-					RelativePath=".\meta\xss.c"
-					>
-				</File>
+                <File
+                    RelativePath=".\meta\xss.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\xssb.c"
+                    >
+                </File>
                 <File
                     RelativePath=".\meta\xvag.c"
                     >

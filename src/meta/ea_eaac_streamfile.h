@@ -1,6 +1,7 @@
 #ifndef _EA_EAAC_STREAMFILE_H_
 #define _EA_EAAC_STREAMFILE_H_
 #include "../streamfile.h"
+#include "ea_eaac_opus_streamfile.h"
 
 #define XMA_FRAME_SIZE 0x800
 
@@ -261,6 +262,8 @@ static STREAMFILE* setup_eaac_streamfile(STREAMFILE *sf, int version, int codec,
     new_sf = open_wrap_streamfile(sf);
     new_sf = open_io_streamfile_f(new_sf, &io_data, sizeof(eaac_io_data), eaac_io_read, eaac_io_size);
     new_sf = open_buffer_streamfile_f(new_sf, 0); /* EA-XMA and multichannel EALayer3 benefit from this */
+    if (codec == 0x0c && stream_count > 1) /* multichannel opus */
+        new_sf = open_io_eaac_opus_streamfile_f(new_sf, stream_number, stream_count);
     return new_sf;
 }
 

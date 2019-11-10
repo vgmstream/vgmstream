@@ -107,6 +107,7 @@
     <ClInclude Include="meta\bar_streamfile.h" />
     <ClInclude Include="meta\bgw_streamfile.h" />
     <ClInclude Include="meta\ea_eaac_streamfile.h" />
+    <ClInclude Include="meta\ea_eaac_opus_streamfile.h" />
     <ClInclude Include="meta\ea_schl_streamfile.h" />
     <ClInclude Include="meta\fsb_interleave_streamfile.h" />
     <ClInclude Include="meta\fsb5_interleave_streamfile.h" />
@@ -523,6 +524,7 @@
     <ClCompile Include="meta\xpcm.c" />
     <ClCompile Include="meta\xps.c" />
     <ClCompile Include="meta\xss.c" />
+    <ClCompile Include="meta\xssb.c" />
     <ClCompile Include="meta\xvag.c" />
     <ClCompile Include="meta\xmd.c" />
     <ClCompile Include="meta\xwb.c" />

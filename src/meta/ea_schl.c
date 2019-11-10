@@ -630,6 +630,15 @@ static STREAMFILE* open_mapfile_pair(STREAMFILE *streamFile) {
         {"mus_ctrl.mpf","mus_str.mus"}, /* GoldenEye - Rogue Agent (others) */
         {".mpf","_main.mus"}, /* 007 - Everything or Nothing (GC) */
         {"AKA_Mus.mpf","Track.mus"}, /* Boogie (PS2) */
+        //TODO: improve pairs (needs better wildcard support)
+        //NSF2:
+        /* ZTRxxROK.MAP > ZTRxx.TRJ */
+        /* ZTRxxTEC.MAP > ZTRxx.TRM */
+        /* ZZSHOW.MAP and ZZSHOW2.MAP > ZZSHOW.MUS */
+        //NSF3:
+        /* ZTRxxROK.MAP > ZZZTRxxA.TRJ */
+        /* ZTRxxTEC.MAP > ZZZTRxxB.TRM */
+        /* other extra files that may need the hack below */
         /* hack when when multiple maps point to the same mus, uses name before "+"
          * ex. ZZZTR00A.TRJ+ZTR00PGR.MAP or ZZZTR00A.TRJ+ZTR00R0A.MAP both point to ZZZTR00A.TRJ */
         {"+",""}, /* Need for Speed III (PS1) */
