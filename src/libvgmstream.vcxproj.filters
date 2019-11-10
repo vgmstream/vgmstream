@@ -1087,6 +1087,9 @@
     <ClCompile Include="meta\xss.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\xssb.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\xvag.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>

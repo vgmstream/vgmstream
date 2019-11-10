@@ -1778,10 +1778,14 @@
                     RelativePath=".\meta\xps.c"
                     >
                 </File>
-				<File
-					RelativePath=".\meta\xss.c"
-					>
-				</File>
+                <File
+                    RelativePath=".\meta\xss.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\xssb.c"
+                    >
+                </File>
                 <File
                     RelativePath=".\meta\xvag.c"
                     >
