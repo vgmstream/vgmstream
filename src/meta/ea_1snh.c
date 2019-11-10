@@ -77,10 +77,12 @@ VGMSTREAM * init_vgmstream_ea_1snh(STREAMFILE *streamFile) {
 
     if (ea.num_samples == 0) {
         /* header does not specify number of samples, need to calculate it manually */
-        /* HACK: need to create vgmstream and then re-open it since we need it for blocked layout */
+        /* HACK: we need vgmstream object to use blocked layout so we're doing this calc after creating it */
         set_ea_1snh_num_samples(vgmstream, streamFile, &ea, 0);
-        close_vgmstream(vgmstream);
-        vgmstream = init_vgmstream_main(streamFile, &ea);
+
+        /* update samples and loop state */
+        vgmstream->num_samples = ea.num_samples;
+        vgmstream_force_loop(vgmstream, ea.loop_flag, ea.loop_start, ea.loop_end);
     }
 
     return vgmstream;
