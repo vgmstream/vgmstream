@@ -261,6 +261,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\ea_eaac_opus_streamfile.h"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\ea_schl_streamfile.h"
                     >
                 </File>
