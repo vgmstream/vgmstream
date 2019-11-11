@@ -82,7 +82,7 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
 
     /* find target stream header and data offset, and read all needed values for later use
      *  (reads one by one as the size of a single stream header is variable) */
-    for (i = 1; i <= fsb5.total_subsongs; i++) {
+    for (i = 0; i < fsb5.total_subsongs; i++) {
         size_t stream_header_size = 0;
         off_t data_offset = 0;
         uint32_t sample_mode1, sample_mode2; /* maybe one uint64? */
@@ -138,77 +138,83 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
                 extraflag_size = (extraflag >> 1) & 0xFFFFFF; /* bits 25..1 (24)*/
                 extraflag_end  = (extraflag & 0x01); /* bit 0 (1) */
 
-                switch(extraflag_type) {
-                    case 0x01:  /* channels */
-                        fsb5.channels = read_8bit(extraflag_offset+0x04,streamFile);
-                        break;
-                    case 0x02:  /* sample rate */
-                        fsb5.sample_rate = read_32bitLE(extraflag_offset+0x04,streamFile);
-                        break;
-                    case 0x03:  /* loop info */
-                        fsb5.loop_start = read_32bitLE(extraflag_offset+0x04,streamFile);
-                        if (extraflag_size > 0x04) { /* probably not needed */
-                            fsb5.loop_end = read_32bitLE(extraflag_offset+0x08,streamFile);
-                            fsb5.loop_end += 1; /* correct compared to FMOD's tools */
-                        }
-
-                        /* autodetect unwanted loops */
-                        {
-                            /* like FSB4 jingles/sfx/music do full loops for no reason, but happens a lot less.
-                             * Most songs loop normally now with proper values [ex. Shantae, FFX] */
-                            int full_loop, ajurika_loops;
-
-                            /* could use the same checks as FSB4 but simplified (ex. Sonic Boom Fire & Ice jingles) */
-                            full_loop = fsb5.loop_start != 0x00;
-
-                            /* wrong values in some files [Pac-Man CE2 Plus (Switch) pce2p_bgm_ajurika_*.fsb] */
-                            ajurika_loops = fsb5.loop_start == 0x3c && fsb5.loop_end == 0x007F007F &&
-                                    fsb5.num_samples > fsb5.loop_end + 100000; /* arbitrary limit */
-
-                            //;VGM_LOG("FSB5: loop start=%i, loop end=%i, samples=%i\n", fsb5.loop_start, fsb5.loop_end, fsb5.num_samples);
-
-                            fsb5.loop_flag = 1;
-                            if (!full_loop || ajurika_loops) {
-                                VGM_LOG("FSB5: disabled unwanted loop\n");
-                                fsb5.loop_flag = 0;
+                /* parse target only, as flags change between subsongs */
+                if (i + 1 == target_subsong) {
+                    switch(extraflag_type) {
+                        case 0x01:  /* channels */
+                            fsb5.channels = read_8bit(extraflag_offset+0x04,streamFile);
+                            break;
+                        case 0x02:  /* sample rate */
+                            fsb5.sample_rate = read_32bitLE(extraflag_offset+0x04,streamFile);
+                            break;
+                        case 0x03:  /* loop info */
+                            fsb5.loop_start = read_32bitLE(extraflag_offset+0x04,streamFile);
+                            if (extraflag_size > 0x04) { /* probably not needed */
+                                fsb5.loop_end = read_32bitLE(extraflag_offset+0x08,streamFile);
+                                fsb5.loop_end += 1; /* correct compared to FMOD's tools */
                             }
-                        }
-                        break;
-                    case 0x04:  /* free comment, or maybe SFX info */
-                        break;
-                    case 0x05:  /* unknown 32b */ //todo multistream marker?
-                        /* found in Tearaway Vita, value 0, first stream only */
-                        VGM_LOG("FSB5: flag %x with value %08x\n", extraflag_type, read_32bitLE(extraflag_offset+0x04,streamFile));
-                        break;
-                    case 0x06:  /* XMA seek table */
-                        /* no need for it */
-                        break;
-                    case 0x07:  /* DSP coefs */
-                        fsb5.extradata_offset = extraflag_offset + 0x04;
-                        break;
-                    case 0x09:  /* ATRAC9 config */
-                        fsb5.extradata_offset = extraflag_offset + 0x04;
-                        fsb5.extradata_size = extraflag_size;
-                        break;
-                    case 0x0a:  /* XWMA config */
-                        fsb5.extradata_offset = extraflag_offset + 0x04;
-                        break;
-                    case 0x0b:  /* Vorbis setup ID and seek table */
-                        fsb5.extradata_offset = extraflag_offset + 0x04;
-                        /* seek table format:
-                         * 0x08: table_size (total_entries = seek_table_size / (4+4)), not counting this value; can be 0
-                         * 0x0C: sample number (only some samples are saved in the table)
-                         * 0x10: offset within data, pointing to a FSB vorbis block (with the 16b block size header)
-                         * (xN entries)
-                         */
-                        break;
-                  case 0x0d:  /* unknown 32b (config? usually 0x3fnnnn00 BE) */
-                      /* found in some XMA2/Vorbis/FADPCM */
-                      VGM_LOG("FSB5: flag %x with value %08x\n", extraflag_type, read_32bitLE(extraflag_offset+0x04,streamFile));
-                      break;
-                    default:
-                        VGM_LOG("FSB5: unknown extraflag 0x%x at %x + 0x04 (size 0x%x)\n", extraflag_type, (uint32_t)extraflag_offset, extraflag_size);
-                        break;
+                            //;VGM_LOG("FSB5: stream %i loop start=%i, loop end=%i, samples=%i\n", i, fsb5.loop_start, fsb5.loop_end, fsb5.num_samples);
+
+                            /* autodetect unwanted loops */
+                            {
+                                /* like FSB4 jingles/sfx/music do full loops for no reason, but happens a lot less.
+                                 * Most songs loop normally now with proper values [ex. Shantae, FFX] */
+                                int full_loop, ajurika_loops, is_small;
+
+                                /* disable some jingles, it's even possible one jingle (StingerA Var1) to not have loops
+                                 * and next one (StingerA Var2) do [Sonic Boom Fire & Ice (3DS)] */
+                                full_loop = fsb5.loop_start == 0 && fsb5.loop_end + 20 >= fsb5.num_samples; /* around ~15 samples less */
+                                /* a few longer Sonic songs shouldn't repeat, may add if other games need it */
+                                is_small = 0; //fsb5.num_samples < 20 * fsb5.sample_rate;
+
+                                /* wrong values in some files [Pac-Man CE2 Plus (Switch) pce2p_bgm_ajurika_*.fsb] */
+                                ajurika_loops = fsb5.loop_start == 0x3c && fsb5.loop_end == 0x007F007F &&
+                                        fsb5.num_samples > fsb5.loop_end + 10000; /* arbitrary test in case some game does have those */
+
+                                fsb5.loop_flag = 1;
+                                if ((full_loop && is_small) || ajurika_loops) {
+                                    VGM_LOG("FSB5: stream %i disabled unwanted loop ls=%i, le=%i, ns=%i\n", i, fsb5.loop_start, fsb5.loop_end, fsb5.num_samples);
+                                    fsb5.loop_flag = 0;
+                                }
+                            }
+                            break;
+                        case 0x04:  /* free comment, or maybe SFX info */
+                            break;
+                        case 0x05:  /* unknown 32b */
+                            /* rare, found in Tearaway (Vita) with value 0 in first stream and
+                             * Shantae and the Seven Sirens (Mobile) with value 0x0003bd72 BE in #44 (Arena Town) */
+                            VGM_LOG("FSB5: stream %i flag %x with value %08x\n", i, extraflag_type, read_32bitLE(extraflag_offset+0x04,streamFile));
+                            break;
+                        case 0x06:  /* XMA seek table */
+                            /* no need for it */
+                            break;
+                        case 0x07:  /* DSP coefs */
+                            fsb5.extradata_offset = extraflag_offset + 0x04;
+                            break;
+                        case 0x09:  /* ATRAC9 config */
+                            fsb5.extradata_offset = extraflag_offset + 0x04;
+                            fsb5.extradata_size = extraflag_size;
+                            break;
+                        case 0x0a:  /* XWMA config */
+                            fsb5.extradata_offset = extraflag_offset + 0x04;
+                            break;
+                        case 0x0b:  /* Vorbis setup ID and seek table */
+                            fsb5.extradata_offset = extraflag_offset + 0x04;
+                            /* seek table format:
+                             * 0x08: table_size (total_entries = seek_table_size / (4+4)), not counting this value; can be 0
+                             * 0x0C: sample number (only some samples are saved in the table)
+                             * 0x10: offset within data, pointing to a FSB vorbis block (with the 16b block size header)
+                             * (xN entries)
+                             */
+                            break;
+                        case 0x0d:  /* unknown 32b (config? usually 0x3fnnnn00 BE and sometimes 0x3dnnnn00 BE) */
+                            /* found in some XMA2/Vorbis/FADPCM */
+                            VGM_LOG("FSB5: stream %i flag %x with value %08x\n", i, extraflag_type, read_32bitLE(extraflag_offset+0x04,streamFile));
+                            break;
+                        default:
+                            VGM_LOG("FSB5: stream %i unknown flag 0x%x at %x + 0x04 (size 0x%x)\n", i, extraflag_type, (uint32_t)extraflag_offset, extraflag_size);
+                            break;
+                    }
                 }
 
                 extraflag_offset += 0x04 + extraflag_size;
@@ -216,12 +222,12 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
             } while (extraflag_end != 0x00);
         }
 
-        /* stream found */
-        if (i == target_subsong) {
+        /* target found */
+        if (i + 1 == target_subsong) {
             fsb5.stream_offset = fsb5.base_header_size + fsb5.sample_header_size + fsb5.name_table_size + data_offset;
 
             /* get stream size from next stream offset or full size if there is only one */
-            if (i == fsb5.total_subsongs) {
+            if (i + 1 == fsb5.total_subsongs) {
                 fsb5.stream_size = fsb5.sample_data_size - data_offset;
             }
             else {
@@ -237,7 +243,7 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
             break;
         }
 
-        /* continue searching */
+        /* continue searching target */
         fsb5.sample_header_offset += stream_header_size;
     }
     /* target stream not found*/
