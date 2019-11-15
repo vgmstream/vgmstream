@@ -1475,19 +1475,18 @@ static layered_layout_data* build_layered_eaaudiocore(STREAMFILE *sf_data, eaac_
                 size_t data_size;
 
                 /* We'll remove EA blocks and pass raw data to FFmpeg Opus decoder */
-                temp_sf = setup_eaac_streamfile(sf_data, eaac->version, eaac->codec, eaac->streamed,0,0, eaac->stream_offset);
+                temp_sf = setup_eaac_streamfile(sf_data, eaac->version, eaac->codec, eaac->streamed,i,layers, eaac->stream_offset);
                 if (!temp_sf) goto fail;
-
-                //TODO: setup opus frame deinterleave (1 frame per 2ch stream, only seen 4ch and 6ch tho)
 
                 skip = ea_opus_get_encoder_delay(0x00, temp_sf);
                 data_size = get_streamfile_size(temp_sf);
 
-                data->layers[i]->codec_data = init_ffmpeg_ea_opus(temp_sf, 0x00,data_size, eaac->channels, skip, eaac->sample_rate);
+                data->layers[i]->codec_data = init_ffmpeg_ea_opus(temp_sf, 0x00,data_size, layer_channels, skip, eaac->sample_rate);
                 if (!data->layers[i]->codec_data) goto fail;
                 data->layers[i]->coding_type = coding_FFmpeg;
                 data->layers[i]->layout_type = layout_none;
 
+                //TODO: 6ch channel layout seems L C R BL BR LFE, not sure about other EAAC
                 break;
             }
 

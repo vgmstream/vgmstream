@@ -715,6 +715,7 @@ typedef enum {
     meta_UBI_HX,
     meta_BMP_KONAMI,
     meta_ISB,
+    meta_XSSB,
 
 } meta_t;
 

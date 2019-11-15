@@ -43,6 +43,7 @@ void block_update_ea_schl(off_t block_offset, VGMSTREAM * vgmstream) {
             block_samples = 0; /* layout ignores this */
         }
 
+#ifdef VGM_USE_MPEG
         /* "SCHl" start block, when decoding multi files pasted together */
         if (block_id == 0x5343486C) {
             switch(vgmstream->coding_type) {
@@ -58,7 +59,7 @@ void block_update_ea_schl(off_t block_offset, VGMSTREAM * vgmstream) {
                     break;
             }
         }
-
+#endif
         /* padding between "SCEl" and next "SCHl" (when subfiles exist) */
         if (block_id == 0x00000000)
             block_size = 0x04;
