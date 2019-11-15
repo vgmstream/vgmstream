@@ -623,22 +623,39 @@ fail:
 
 
 /* open map/mpf+mus pairs that aren't exact pairs, since EA's games can load any combo */
-static STREAMFILE* open_mapfile_pair(STREAMFILE *streamFile) {
+static STREAMFILE* open_mapfile_pair(STREAMFILE *streamFile, int track, int num_tracks) {
     static const char *const mapfile_pairs[][2] = {
         /* standard cases, replace map part with mus part (from the end to preserve prefixes) */
-        {"MUS_CTRL.MPF","MUS_STR.MUS"}, /* GoldenEye - Rogue Agent (PS2) */
-        {"mus_ctrl.mpf","mus_str.mus"}, /* GoldenEye - Rogue Agent (others) */
-        {".mpf","_main.mus"}, /* 007 - Everything or Nothing (GC) */
-        {"AKA_Mus.mpf","Track.mus"}, /* Boogie (PS2) */
-        /* hack when when multiple maps point to the same mus, uses name before "+"
-         * ex. ZZZTR00A.TRJ+ZTR00PGR.MAP or ZZZTR00A.TRJ+ZTR00R0A.MAP both point to ZZZTR00A.TRJ */
-        {"+",""}, /* Need for Speed III (PS1) */
+        {"mus_ctrl.mpf",    "mus_str.mus"}, /* GoldenEye - Rogue Agent */
+        {".mpf",            "_main.mus"}, /* 007 - Everything or Nothing */
+        {"AKA_Mus.mpf",     "Track.mus"}, /* Boogie */
+        {"SSX4.mpf",        "moments0.mus,main.mus,load_loop0.mus"}, /* SSX Blur */
+        {"willow.mpf",      "willow.mus,willow_o.mus"}, /* Harry Potter and the Chamber of Secrets */
+        {"exterior.mpf",    "exterior.mus,ext_o.mus"}, /* Harry Potter and the Chamber of Secrets */ 
+        {"Peak1Amb.mpf",    "Peak1_Strm.mus,Peak1_Ovr0.mus"}, /* SSX 3 */
+        {"Peak2Amb.mpf",    "Peak2_Strm.mus,Peak2_Ovr0.mus"},
+        {"Peak3Amb.mpf",    "Peak3_Strm.mus,Peak3_Ovr0.mus"},
+        //TODO: improve pairs (needs better wildcard support)
+        //NSF2:
+        /* ZTRxxROK.MAP > ZTRxx.TRJ */
+        /* ZTRxxTEC.MAP > ZTRxx.TRM */
+        /* ZZSHOW.MAP and ZZSHOW2.MAP > ZZSHOW.MUS */
+        //NSF3:
+        /* ZTRxxROK.MAP > ZZZTRxxA.TRJ */
+        /* ZTRxxTEC.MAP > ZZZTRxxB.TRM */
+        /* other extra files that may need the hack below */
     };
     STREAMFILE *musFile = NULL;
     char file_name[PATH_LIMIT];
     int pair_count = (sizeof(mapfile_pairs)/sizeof(mapfile_pairs[0]));
-    int i;
+    int i, j;
     size_t file_len, map_len;
+
+    /* if there's only one track, try opening MUS with the same name first (most common scenario) */
+    if (num_tracks == 1) {
+        musFile = open_streamfile_by_ext(streamFile, "mus");
+        if (musFile) return musFile;
+    }
 
     get_streamfile_filename(streamFile, file_name, PATH_LIMIT);
     file_len = strlen(file_name);
@@ -646,24 +663,27 @@ static STREAMFILE* open_mapfile_pair(STREAMFILE *streamFile) {
     for (i = 0; i < pair_count; i++) {
         const char *map_name = mapfile_pairs[i][0];
         const char *mus_name = mapfile_pairs[i][1];
+        char buf[PATH_LIMIT];
+        char *pch;
         map_len = strlen(map_name);
 
-        if (map_name[0] == '+') {
-            /* use name before "+" */
-            char *mod_name = strchr(file_name, '+');
-            if (mod_name == NULL)
-                continue;
-            mod_name[0] = '\0';
+        /* replace map_name with expected mus_name */
+        if (file_len < map_len)
+            continue;
+        if (strncasecmp(file_name + (file_len - map_len), map_name, map_len) != 0)
+            continue;
+
+        strncpy(buf, mus_name, PATH_LIMIT);
+        pch = strtok(buf, ",");
+        for (j = 0; j < track && pch; j++) {
+            pch = strtok(NULL, ",");
         }
-        else {
-            /* replace map_name with expected mus_name */
-            if (file_len < map_len)
-                continue;
-            if (strncmp(file_name+(file_len - map_len), map_name, map_len) != 0)
-                continue;
-            file_name[file_len - map_len] = '\0';
-            strcat(file_name, mus_name);
-        }
+
+        if (!pch)
+            continue;
+
+        file_name[file_len - map_len] = '\0';
+        strcat(file_name, pch);
 
         musFile = open_streamfile_by_filename(streamFile, file_name);
         if (musFile) return musFile;
@@ -671,12 +691,24 @@ static STREAMFILE* open_mapfile_pair(STREAMFILE *streamFile) {
         get_streamfile_filename(streamFile, file_name, PATH_LIMIT); /* reset for next loop */
     }
 
+    /* hack when when multiple maps point to the same mus, uses name before "+"
+     * ex. ZZZTR00A.TRJ+ZTR00PGR.MAP or ZZZTR00A.TRJ+ZTR00R0A.MAP both point to ZZZTR00A.TRJ
+     * [Need for Speed II (PS1), Need for Speed III (PS1)] */
+    char *mod_name = strchr(file_name, '+');
+    if (mod_name)
+    {
+        mod_name[0] = '\0';
+        musFile = open_streamfile_by_filename(streamFile, file_name);
+        if (musFile) return musFile;
+    }
+
+    VGM_LOG("No MPF/MUS pair specified for %s.\n", file_name);
     return NULL;
 }
 
 /* EA MAP/MUS combo - used in older games for interactive music (for EA's PathFinder tool) */
 VGMSTREAM * init_vgmstream_ea_map_mus(STREAMFILE *streamFile) {
-    uint8_t version, num_sounds, num_userdata, userdata_size;
+    uint8_t version, num_sounds, num_events, num_sections;
     off_t section_offset, schl_offset;
     STREAMFILE *musFile = NULL;
     VGMSTREAM *vgmstream = NULL;
@@ -693,37 +725,34 @@ VGMSTREAM * init_vgmstream_ea_map_mus(STREAMFILE *streamFile) {
     version = read_8bit(0x04, streamFile);
     if (version > 1) goto fail;
 
-    musFile = open_streamfile_by_ext(streamFile, "mus");
-    if (!musFile) {
-        musFile = open_mapfile_pair(streamFile);
-        if (!musFile) goto fail;
-    }
+    musFile = open_mapfile_pair(streamFile, 0, 1);
+    if (!musFile) goto fail;
 
     /*
      * 0x04: version
-     * 0x05: intro segment
-     * 0x06: number of segments
-     * 0x07: userdata entry size (incorrect?)
+     * 0x05: starting node
+     * 0x06: number of nodes
+     * 0x07: number of sections
      * 0x08: three zeroes
-     * 0x0b: number of userdata entries
-     * 0x0c: section 1 start
+     * 0x0b: number of events
+     * 0x0c: data start
      */
     num_sounds = read_8bit(0x06, streamFile);
-    userdata_size = read_8bit(0x07, streamFile);
-    num_userdata = read_8bit(0x0b, streamFile);
+    num_sections = read_8bit(0x07, streamFile);
+    num_events = read_8bit(0x0b, streamFile);
     section_offset = 0x0c;
 
-    /* section 1: contains information about segment playback order */
+    /* section 1: nodes, contains information about segment playback order */
     section_offset += num_sounds * 0x1c;
 
-    /* section 2: userdata, specific to game and track */
-    section_offset += num_userdata * userdata_size;
+    /* section 2: events, specific to game and track */
+    section_offset += num_events * num_sections;
 
     if (target_stream == 0) target_stream = 1;
     if (target_stream < 0 || num_sounds == 0 || target_stream > num_sounds)
         goto fail;
 
-    /* section 3: sound offset table */
+    /* section 3: samples */
     schl_offset = read_32bitBE(section_offset + (target_stream - 1) * 0x04, streamFile);
     if (read_32bitBE(schl_offset, musFile) != EA_BLOCKID_HEADER)
         goto fail;
@@ -741,17 +770,17 @@ fail:
     return NULL;
 }
 
-/* EA MPF/MUS combo - used in newer 6th gen games for interactive music (for EA's PathFinder tool) */
+/* EA MPF/MUS combo - used in 6th gen games for interactive music (for EA's PathFinder tool) */
 VGMSTREAM * init_vgmstream_ea_mpf_mus(STREAMFILE *streamFile) {
-    off_t section_offset, entry_offset, subentry_num, eof_offset, off_mult, schl_offset;
-    size_t sec2_size;
-    uint16_t sec1_num;
-    uint8_t version, sub_version, sec2_num, sec3_num, sec4_num;
+    off_t tracks_table, samples_table, section_offset, entry_offset, eof_offset, off_mult, sound_offset;
+    uint32_t track_start, track_hash, i;
+    uint16_t num_nodes;
+    uint8_t version, sub_version, num_tracks, num_sections, num_events, num_routers, num_vars, subentry_num;
     int32_t(*read_32bit)(off_t, STREAMFILE*);
     int16_t(*read_16bit)(off_t, STREAMFILE*);
     STREAMFILE *musFile = NULL;
     VGMSTREAM *vgmstream = NULL;
-    int target_stream = streamFile->stream_index, total_streams, big_endian;
+    int target_stream = streamFile->stream_index, total_streams, big_endian, is_bnk;
 
     /* check extension */
     if (!check_extensions(streamFile, "mpf"))
@@ -762,7 +791,7 @@ VGMSTREAM * init_vgmstream_ea_mpf_mus(STREAMFILE *streamFile) {
         read_32bit = read_32bitBE;
         read_16bit = read_16bitBE;
         big_endian = 1;
-    } else if (read_32bitBE(0x00, streamFile) == 0x78444650) { /* "xDFP" */
+    } else if (read_32bitLE(0x00, streamFile) == 0x50464478) { /* "xDFP" */
         read_32bit = read_32bitLE;
         read_16bit = read_16bitLE;
         big_endian = 0;
@@ -776,122 +805,157 @@ VGMSTREAM * init_vgmstream_ea_mpf_mus(STREAMFILE *streamFile) {
     if (version < 3 || version > 5) goto fail;
     if (version == 5 && sub_version > 2) goto fail; /* newer version using SNR/SNS */
 
-    musFile = open_streamfile_by_ext(streamFile, "mus");
-    if (!musFile) {
-        musFile = open_mapfile_pair(streamFile);
-        if (!musFile) goto fail;
-    }
+    num_tracks = read_8bit(0x0d, streamFile);
+    num_sections = read_8bit(0x0e, streamFile);
+    num_events = read_8bit(0x0f, streamFile);
+    num_routers = read_8bit(0x10, streamFile);
+    num_vars = read_8bit(0x11, streamFile);
+    num_nodes = read_16bit(0x12, streamFile);
 
-    /* HACK: number of sub-entries is stored in bitstreams that are different in LE and BE */
+    /* HACK: number of sub-entries for nodes and events is stored in bitstreams that are different in LE and BE */
     /* I can't figure it out, so let's just use a workaround for now */
 
-    if (version == 3 && sub_version == 1) { /* SSX Tricky */
-        /* we need to go through the first two sections to find the sound table */
-        sec1_num = read_16bit(0x12, streamFile);
-        sec2_size = read_8bit(0x0d, streamFile) * read_8bit(0x0e, streamFile);
-        sec2_num = read_8bit(0x0f, streamFile);
-        sec3_num = read_8bit(0x10, streamFile);
-        sec4_num = read_8bit(0x11, streamFile);
+    if (target_stream == 0) target_stream = 1;
 
+    if (version == 3)
+        /* SSX Tricky (v3.1), Harry Potter and the Chamber of Secrets (v3.4) */  {
+        /* we need to go through all the sections to get to the samples table */
         /* get the last entry offset */
         section_offset = 0x24;
-        entry_offset = (uint16_t)read_16bit(section_offset + (sec1_num - 1) * 0x02, streamFile) * 0x04;
-        subentry_num = read_8bit(entry_offset + 0x0b, streamFile);
-
-        section_offset = entry_offset + 0x0c + subentry_num * 0x04;
-        section_offset += align_size_to_block(sec2_num * sec2_size, 0x04);
-        section_offset += sec3_num * 0x04;
-        section_offset += sec4_num * 0x04;
-
-        entry_offset = read_32bit(section_offset, streamFile) * 0x04;
-        section_offset = read_32bit(entry_offset + 0x00, streamFile) * 0x04;
-        eof_offset = get_streamfile_size(streamFile);
-        total_streams = (eof_offset - section_offset) / 0x08;
-        off_mult = 0x04;
-    } else if (version == 3 && sub_version == 4) { /* Harry Potter and the Chamber of Secrets */
-        /* we need to go through the first two sections to find the sound table */
-        sec1_num = read_16bit(0x12, streamFile);
-        sec2_size = read_8bit(0x0d, streamFile) * read_8bit(0x0e, streamFile);
-        sec2_num = read_8bit(0x0f, streamFile);
-        sec3_num = read_8bit(0x10, streamFile);
-        sec4_num = read_8bit(0x11, streamFile);
-
-        /* get the last entry offset */
-        section_offset = 0x24;
-        entry_offset = (uint16_t)read_16bit(section_offset + (sec1_num - 1) * 0x02, streamFile) * 0x04;
-        if (big_endian) {
-            subentry_num = (read_32bitBE(entry_offset + 0x04, streamFile) >> 19) & 0xFF;
+        entry_offset = (uint16_t)read_16bit(section_offset + (num_nodes - 1) * 0x02, streamFile) * 0x04;
+        if (sub_version == 1) {
+            subentry_num = read_8bit(entry_offset + 0x0b, streamFile);
+        } else if (sub_version == 4) {
+            if (big_endian) {
+                subentry_num = (read_32bitBE(entry_offset + 0x04, streamFile) >> 19) & 0xFF;
+            } else {
+                subentry_num = (read_32bitBE(entry_offset + 0x04, streamFile) >> 16) & 0xFF;
+            }
         } else {
-            subentry_num = (read_32bitBE(entry_offset + 0x04, streamFile) >> 16) & 0xFF;
+            goto fail;
+        }
+        section_offset = entry_offset + 0x0c + subentry_num * 0x04;
+
+        section_offset += align_size_to_block(num_events * num_tracks * num_sections, 0x04);
+        section_offset += num_routers * 0x04;
+        section_offset += num_vars * 0x04;
+        tracks_table = read_32bit(section_offset, streamFile) * 0x04;
+        samples_table = tracks_table + (num_tracks + 1) * 0x04;
+
+        for (i = 0; i < num_tracks; i++) {
+            track_start = read_32bit(tracks_table + i * 0x04, streamFile) * 0x04;
+            track_start = (track_start - samples_table) / 0x08;
+            if (track_start >= target_stream)
+                break;
         }
 
-        section_offset = entry_offset + 0x0c + subentry_num * 0x04;
-        section_offset += align_size_to_block(sec2_num * sec2_size, 0x04);
-        section_offset += sec3_num * 0x04;
-        section_offset += sec4_num * 0x04;
-
-        entry_offset = read_32bit(section_offset, streamFile) * 0x04;
-        section_offset = read_32bit(entry_offset + 0x00, streamFile) * 0x04;
-        eof_offset = read_32bit(entry_offset + 0x04, streamFile) * 0x04;
-        total_streams = (eof_offset - section_offset) / 0x08;
+        eof_offset = read_32bit(tracks_table + num_tracks * 0x04, streamFile) * 0x04;
+        total_streams = (eof_offset - samples_table) / 0x08;
         off_mult = 0x04;
-    } else if (version == 4) { /* SSX 3, Need for Speed: Underground 2 */
-        /* we need to go through the first two sections to find the sound table */
-        sec1_num = read_16bit(0x12, streamFile);
-        sec2_num = read_8bit(0x0f, streamFile);
-        sec3_num = read_8bit(0x10, streamFile);
-        sec4_num = read_8bit(0x11, streamFile);
-
+    } else if (version == 4) {
+        /* Need for Speed: Underground 2, SSX 3, Harry Potter and the Prisoner of Azkaban */
+        /* we need to go through all the sections to get to the samples table */
         /* get the last entry offset */
         section_offset = 0x20;
-        entry_offset = (uint16_t)read_16bit(section_offset + (sec1_num - 1) * 0x02, streamFile) * 0x04;
+        entry_offset = (uint16_t)read_16bit(section_offset + (num_nodes - 1) * 0x02, streamFile) * 0x04;
         if (big_endian) {
             subentry_num = (read_32bitBE(entry_offset + 0x04, streamFile) >> 15) & 0xFF;
         } else {
             subentry_num = (read_32bitBE(entry_offset + 0x04, streamFile) >> 20) & 0xFF;
         }
-
         section_offset = entry_offset + 0x10 + subentry_num * 0x04;
 
-        entry_offset = (uint16_t)read_16bit(section_offset + (sec2_num - 1) * 0x02, streamFile) * 0x04;
+        /* get the last entry offset */
+        entry_offset = (uint16_t)read_16bit(section_offset + (num_events - 1) * 0x02, streamFile) * 0x04;
         if (big_endian) {
             subentry_num = (read_32bitBE(entry_offset + 0x0c, streamFile) >> 10) & 0xFF;
         } else {
             subentry_num = (read_32bitBE(entry_offset + 0x0c, streamFile) >> 8) & 0xFF;
         }
-
         section_offset = entry_offset + 0x10 + subentry_num * 0x10;
 
-        entry_offset = read_32bit(section_offset, streamFile) * 0x04;
-        entry_offset += sec3_num * 0x04;
-        entry_offset += sec4_num * 0x04;
+        section_offset = read_32bit(section_offset, streamFile) * 0x04;
+        section_offset += num_routers * 0x04;
+        section_offset += num_vars * 0x04;
+        tracks_table = section_offset;
+        samples_table = tracks_table + (num_tracks + 1) * 0x04;
 
-        section_offset = read_32bit(entry_offset + 0x00, streamFile) * 0x04;
-        eof_offset = read_32bit(entry_offset + 0x04, streamFile) * 0x04;
-        total_streams = (eof_offset - section_offset) / 0x08;
+        for (i = 0; i < num_tracks; i++) {
+            track_start = read_32bit(tracks_table + i * 0x04, streamFile) * 0x04;
+            track_start = (track_start - samples_table) / 0x08;
+            if (track_start >= target_stream)
+                break;
+        }
+
+        eof_offset = read_32bit(tracks_table + num_tracks * 0x04, streamFile) * 0x04;
+        total_streams = (eof_offset - samples_table) / 0x08;
         off_mult = 0x80;
-    } else if (version == 5) { /* Need for Speed: Most Wanted, Need for Speed: Carbon */
-        section_offset = read_32bit(0x34, streamFile);
+    } else if (version == 5) {
+        /* Need for Speed: Most Wanted, Need for Speed: Carbon */
+        tracks_table = read_32bit(0x2c, streamFile);
+        samples_table = read_32bit(0x34, streamFile);
+
+        for (i = 0; i < num_tracks; i++) {
+            entry_offset = read_32bit(tracks_table + i * 0x04, streamFile) * 0x04;
+            track_start = read_32bit(entry_offset + 0x00, streamFile);
+            if (track_start >= target_stream)
+                break;
+
+            track_hash = read_32bitBE(entry_offset + 0x08, streamFile);
+            is_bnk = (track_hash == 0xF1F1F1F1);
+
+            /* checks to distinguish it from SNR/SNS version */
+            if (is_bnk) {
+                track_hash = read_32bitBE(entry_offset + 0x14, streamFile);
+                if (read_32bitBE(entry_offset + 0x0c, streamFile) == 0x00)
+                    goto fail;
+            } else {
+                if (read_32bitBE(entry_offset + 0x0c, streamFile) != 0x00)
+                    goto fail;
+            }
+        }
+
         eof_offset = read_32bit(0x38, streamFile);
-        total_streams = (eof_offset - section_offset) / 0x08;
+        total_streams = (eof_offset - samples_table) / 0x08;
         off_mult = 0x80;
     } else {
         goto fail;
     }
 
-    if (target_stream == 0) target_stream = 1;
     if (target_stream < 0 || total_streams == 0 || target_stream > total_streams)
         goto fail;
 
-    schl_offset = read_32bit(section_offset + (target_stream - 1) * 0x08 + 0x00, streamFile) * off_mult;
-    if (read_32bitBE(schl_offset, musFile) != EA_BLOCKID_HEADER)
+    /* open MUS file that matches this track */
+    musFile = open_mapfile_pair(streamFile, i - 1, num_tracks);
+    if (!musFile)
         goto fail;
 
-    vgmstream = parse_schl_block(musFile, schl_offset, 0);
-    if (!vgmstream)
-        goto fail;
+    if (version == 5) {
+        if (read_32bitBE(0x00, musFile) != track_hash)
+            goto fail;
+    } else {
+        is_bnk = (read_32bitBE(0x00, musFile) == (big_endian ? EA_BNK_HEADER_BE : EA_BNK_HEADER_LE));
+    }
+
+    /* 0x00 - offset/BNK index, 0x04 - duration (in milliseconds) */
+    if (is_bnk) {
+        /* TODO: Harry Potter COS appears to reference only the first segments of multi-segment BNK sounds? */
+        sound_offset = read_32bit(samples_table + (target_stream - 1) * 0x08 + 0x00, streamFile);
+        vgmstream = parse_bnk_header(musFile, version < 5 ? 0x00 : 0x100, sound_offset, 1);
+        if (!vgmstream)
+            goto fail;
+    } else {
+        sound_offset = read_32bit(samples_table + (target_stream - 1) * 0x08 + 0x00, streamFile) * off_mult;
+        if (read_32bitBE(sound_offset, musFile) != EA_BLOCKID_HEADER)
+            goto fail;
+
+        vgmstream = parse_schl_block(musFile, sound_offset, 0);
+        if (!vgmstream)
+            goto fail;
+    }
 
     vgmstream->num_streams = total_streams;
+    get_streamfile_filename(musFile, vgmstream->stream_name, STREAM_NAME_SIZE);
     close_streamfile(musFile);
     return vgmstream;
 
