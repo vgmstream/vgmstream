@@ -329,12 +329,13 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
      * (extensionless): Myst III (Xbox)
      * .sbv: Spongebob Squarepants - The Movie (PC)
      * .wvx: Godzilla - Destroy All Monsters Melee (Xbox)
+     * .str: Harry Potter and the Philosopher's Stone (Xbox)
      * .at3: standard ATRAC3
      * .rws: Climax games (Silent Hill Origins PSP, Oblivion PSP) ATRAC3
      * .aud: EA Replay ATRAC3
      * .at9: standard ATRAC9
      */
-    if ( check_extensions(streamFile, "wav,lwav,xwav,da,dax,cd,med,snd,adx,adp,xss,xsew,adpcm,adw,wd,,sbv,wvx,at3,rws,aud,at9") ) {
+    if ( check_extensions(streamFile, "wav,lwav,xwav,da,dax,cd,med,snd,adx,adp,xss,xsew,adpcm,adw,wd,,sbv,wvx,str,at3,rws,aud,at9") ) {
         ;
     }
     else if ( check_extensions(streamFile, "mwv") ) {
