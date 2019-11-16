@@ -34,6 +34,7 @@ void decode_ngc_afc(VGMSTREAMCHANNEL *stream, sample_t *outbuf, int channelspaci
     bytes_per_frame = 0x09;
     samples_per_frame = (bytes_per_frame - 0x01) * 2; /* always 16 */
     frames_in = first_sample / samples_per_frame;
+    first_sample = first_sample % samples_per_frame; /* for flat/blocked layout */
 
     /* parse frame header */
     frame_offset = stream->offset + bytes_per_frame * frames_in;
