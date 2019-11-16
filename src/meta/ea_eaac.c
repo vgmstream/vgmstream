@@ -540,6 +540,8 @@ static STREAMFILE *open_mapfile_pair(STREAMFILE *streamFile, int track, int num_
     static const char *const mapfile_pairs[][2] = {
         /* standard cases, replace map part with mus part (from the end to preserve prefixes) */
         {"FreSkate.mpf",    "track.mus,ram.mus"}, /* Skate It */
+        {"nsf_sing.mpf",    "track_main.mus"}, /* Need for Speed: Nitro */
+        {"nsf_wii.mpf",     "Track.mus"}, /* Need for Speed: Nitro */
         {"ssx_fe.mpf",      "stream_1.mus,stream_2.mus"}, /* SSX 2012 */
         {"ssxdd.mpf",       "main_trk.mus," /* SSX 2012 */
                             "trick_alaska0.mus,"
