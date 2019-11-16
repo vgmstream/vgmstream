@@ -535,16 +535,95 @@ fail:
     return NULL;
 }
 
-/* EA MPF/MUS combo - used in older 7th gen games for storing music */
+/* open map/mpf+mus pairs that aren't exact pairs, since EA's games can load any combo */
+static STREAMFILE *open_mapfile_pair(STREAMFILE *streamFile, int track, int num_tracks) {
+    static const char *const mapfile_pairs[][2] = {
+        /* standard cases, replace map part with mus part (from the end to preserve prefixes) */
+        {"FreSkate.mpf",    "track.mus,ram.mus"}, /* Skate It */
+        {"nsf_sing.mpf",    "track_main.mus"}, /* Need for Speed: Nitro */
+        {"nsf_wii.mpf",     "Track.mus"}, /* Need for Speed: Nitro */
+        {"ssx_fe.mpf",      "stream_1.mus,stream_2.mus"}, /* SSX 2012 */
+        {"ssxdd.mpf",       "main_trk.mus," /* SSX 2012 */
+                            "trick_alaska0.mus,"
+                            "trick_rockies0.mus,"
+                            "trick_pata0.mus,"
+                            "trick_ant0.mus,"
+                            "trick_killi0.mus,"
+                            "trick_cyb0.mus,"
+                            "trick_hima0.mus,"
+                            "trick_nz0.mus,"
+                            "trick_alps0.mus,"
+                            "trick_lhotse0.mus"}
+    };
+    STREAMFILE *musFile = NULL;
+    char file_name[PATH_LIMIT];
+    int pair_count = (sizeof(mapfile_pairs) / sizeof(mapfile_pairs[0]));
+    int i, j;
+    size_t file_len, map_len;
+
+    /* if there's only one track, try opening MUS with the same name first (most common scenario) */
+    if (num_tracks == 1) {
+        musFile = open_streamfile_by_ext(streamFile, "mus");
+        if (musFile) return musFile;
+    }
+
+    get_streamfile_filename(streamFile, file_name, PATH_LIMIT);
+    file_len = strlen(file_name);
+
+    for (i = 0; i < pair_count; i++) {
+        const char *map_name = mapfile_pairs[i][0];
+        const char *mus_name = mapfile_pairs[i][1];
+        char buf[PATH_LIMIT];
+        char *pch;
+        map_len = strlen(map_name);
+
+        /* replace map_name with expected mus_name */
+        if (file_len < map_len)
+            continue;
+        if (strncasecmp(file_name + (file_len - map_len), map_name, map_len) != 0)
+            continue;
+
+        strncpy(buf, mus_name, PATH_LIMIT);
+        pch = strtok(buf, ",");
+        for (j = 0; j < track && pch; j++) {
+            pch = strtok(NULL, ",");
+        }
+
+        if (!pch)
+            continue;
+
+        file_name[file_len - map_len] = '\0';
+        strcat(file_name, pch);
+
+        musFile = open_streamfile_by_filename(streamFile, file_name);
+        if (musFile) return musFile;
+
+        get_streamfile_filename(streamFile, file_name, PATH_LIMIT); /* reset for next loop */
+    }
+
+    /* hack when when multiple maps point to the same mus, uses name before "+"
+     * ex. ZZZTR00A.TRJ+ZTR00PGR.MAP or ZZZTR00A.TRJ+ZTR00R0A.MAP both point to ZZZTR00A.TRJ */
+    char *mod_name = strchr(file_name, '+');
+    if (mod_name) {
+        mod_name[0] = '\0';
+        musFile = open_streamfile_by_filename(streamFile, file_name);
+        if (musFile) return musFile;
+    }
+
+    VGM_LOG("No MPF/MUS pair specified for %s.\n", file_name);
+    return NULL;
+}
+
+/* EA MPF/MUS combo - used in older 7th gen games for storing interactive music */
 VGMSTREAM * init_vgmstream_ea_mpf_mus_eaac(STREAMFILE *streamFile) {
-    uint32_t num_sounds;
+    uint32_t num_tracks, track_start, track_hash, mus_sounds, mus_stream;
     uint8_t version, sub_version, block_id;
-    off_t table_offset, entry_offset, snr_offset, sns_offset;
-    /* size_t snr_size sns_size; */
+    off_t tracks_table, samples_table, eof_offset, table_offset, entry_offset, snr_offset, sns_offset;
     int32_t(*read_32bit)(off_t, STREAMFILE*);
     STREAMFILE *musFile = NULL;
     VGMSTREAM *vgmstream = NULL;
-    int target_stream = streamFile->stream_index;
+    int i;
+    int target_stream = streamFile->stream_index, total_streams, is_ram;
 
     /* check extension */
     if (!check_extensions(streamFile, "mpf"))
@@ -553,47 +632,110 @@ VGMSTREAM * init_vgmstream_ea_mpf_mus_eaac(STREAMFILE *streamFile) {
     /* detect endianness */
     if (read_32bitBE(0x00, streamFile) == 0x50464478) { /* "PFDx" */
         read_32bit = read_32bitBE;
-    } else if (read_32bitBE(0x00, streamFile) == 0x78444650) { /* "xDFP" */
+    } else if (read_32bitLE(0x00, streamFile) == 0x50464478) { /* "xDFP" */
         read_32bit = read_32bitLE;
     } else {
         goto fail;
     }
 
-    musFile = open_streamfile_by_ext(streamFile, "mus");
-    if (!musFile) goto fail;
-
-    /* MPF format is unchanged but we don't really care about its contents since
-     * MUS conveniently contains sound offset table */
-
     version = read_8bit(0x04, streamFile);
     sub_version = read_8bit(0x05, streamFile);
-    if (version != 0x05 || sub_version != 0x03) goto fail;
+    if (version != 5 || sub_version < 2 || sub_version > 3) goto fail;
 
-    /* number of files is always little endian */
-    num_sounds = read_32bitLE(0x04, musFile);
-    table_offset = 0x28;
+    num_tracks = read_8bit(0x0d, streamFile);
+
+    tracks_table = read_32bit(0x2c, streamFile);
+    samples_table = read_32bit(0x34, streamFile);
+    eof_offset = read_32bit(0x38, streamFile);
+    total_streams = (eof_offset - samples_table) / 0x08;
 
     if (target_stream == 0) target_stream = 1;
-    if (target_stream < 0 || num_sounds == 0 || target_stream > num_sounds)
+    if (target_stream < 0 || total_streams == 0 || target_stream > total_streams)
         goto fail;
 
-    /*
-     * 0x00: hash?
-     * 0x04: index
-     * 0x06: zero
-     * 0x08: SNR offset
-     * 0x0c: SNS offset
-     * 0x10: SNR size
-     * 0x14: SNS size
-     * 0x18: zero
-     */
-    entry_offset = table_offset + (target_stream - 1) * 0x1c;
-    snr_offset = read_32bit(entry_offset + 0x08, musFile) * 0x10;
-    sns_offset = read_32bit(entry_offset + 0x0c, musFile) * 0x80;
-    /*
-    snr_size = read_32bit(entry_offset + 0x10, musFile);
-    sns_size = read_32bit(entry_offset + 0x14, musFile);
-    */
+    for (i = num_tracks - 1; i >= 0; i--) {
+        entry_offset = read_32bit(tracks_table + i * 0x04, streamFile) * 0x04;
+        track_start = read_32bit(entry_offset + 0x00, streamFile);
+
+        if (track_start <= target_stream - 1) {
+            track_hash = read_32bitBE(entry_offset + 0x08, streamFile);
+            is_ram = (track_hash == 0xF1F1F1F1);
+
+            /* checks to distinguish it from older versions */
+            if (is_ram) {
+                if (read_32bitBE(entry_offset + 0x0c, streamFile) != 0x00)
+                    goto fail;
+
+                track_hash = read_32bitBE(entry_offset + 0x14, streamFile);
+                if (track_hash == 0xF1F1F1F1)
+                    continue; /* empty track */
+            } else {
+                if (read_32bitBE(entry_offset + 0x0c, streamFile) == 0x00)
+                    goto fail;
+            }
+
+            mus_stream = target_stream - 1 - track_start;
+            break;
+        }
+    }
+
+    /* open MUS file that matches this track */
+    musFile = open_mapfile_pair(streamFile, i, num_tracks);
+    if (!musFile)
+        goto fail;
+
+    if (read_32bitBE(0x00, musFile) != track_hash)
+        goto fail;
+
+    /* sample offsets table is still there but it just holds SNS offsets, it's of little use to us */
+    /* MUS file has a header, however */
+    if (sub_version == 2) {
+        if (read_32bit(0x04, musFile) != 0x00)
+            goto fail;
+
+        /*
+         * 0x00: flags? index?
+         * 0x04: SNR offset
+         * 0x08: SNS offset (contains garbage for RAM sounds)
+         */
+        table_offset = 0x08;
+        entry_offset = table_offset + mus_stream * 0x0c;
+        snr_offset = read_32bit(entry_offset + 0x04, musFile);
+
+        if (is_ram) {
+            sns_offset = snr_offset + get_snr_size(musFile, snr_offset);
+        } else {
+            sns_offset = read_32bit(entry_offset + 0x08, musFile);
+        }
+    } else if (sub_version == 3) {
+        /* number of files is always little endian */
+        mus_sounds = read_32bitLE(0x04, musFile);
+        if (mus_stream >= mus_sounds)
+            goto fail;
+
+        if (is_ram) {
+            /* not seen so far */
+            VGM_ASSERT("Found RAM SNR in MPF v5.3.\n");
+            goto fail;
+        }
+
+        /*
+         * 0x00: hash?
+         * 0x04: index
+         * 0x06: zero
+         * 0x08: SNR offset
+         * 0x0c: SNS offset
+         * 0x10: SNR size
+         * 0x14: SNS size
+         * 0x18: zero
+         */
+        table_offset = 0x28;
+        entry_offset = table_offset + mus_stream * 0x1c;
+        snr_offset = read_32bit(entry_offset + 0x08, musFile) * 0x10;
+        sns_offset = read_32bit(entry_offset + 0x0c, musFile) * 0x80;
+    } else {
+        goto fail;
+    }
 
     block_id = read_8bit(sns_offset, musFile);
     if (block_id != EAAC_BLOCKID0_DATA && block_id != EAAC_BLOCKID0_END)
@@ -603,7 +745,8 @@ VGMSTREAM * init_vgmstream_ea_mpf_mus_eaac(STREAMFILE *streamFile) {
     if (!vgmstream)
         goto fail;
 
-    vgmstream->num_streams = num_sounds;
+    vgmstream->num_streams = total_streams;
+    get_streamfile_filename(musFile, vgmstream->stream_name, STREAM_NAME_SIZE);
     close_streamfile(musFile);
     return vgmstream;
 
