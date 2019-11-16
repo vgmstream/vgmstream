@@ -627,7 +627,6 @@ static STREAMFILE* open_mapfile_pair(STREAMFILE *streamFile, int track, int num_
     static const char *const mapfile_pairs[][2] = {
         /* standard cases, replace map part with mus part (from the end to preserve prefixes) */
         {"mus_ctrl.mpf",    "mus_str.mus"}, /* GoldenEye - Rogue Agent */
-        {".mpf",            "_main.mus"}, /* 007 - Everything or Nothing */
         {"AKA_Mus.mpf",     "Track.mus"}, /* Boogie */
         {"SSX4.mpf",        "moments0.mus,main.mus,load_loop0.mus"}, /* SSX Blur */
         {"willow.mpf",      "willow.mus,willow_o.mus"}, /* Harry Potter and the Chamber of Secrets */
@@ -635,6 +634,7 @@ static STREAMFILE* open_mapfile_pair(STREAMFILE *streamFile, int track, int num_
         {"Peak1Amb.mpf",    "Peak1_Strm.mus,Peak1_Ovr0.mus"}, /* SSX 3 */
         {"Peak2Amb.mpf",    "Peak2_Strm.mus,Peak2_Ovr0.mus"},
         {"Peak3Amb.mpf",    "Peak3_Strm.mus,Peak3_Ovr0.mus"},
+        {".mpf",            "_main.mus"}, /* 007 - Everything or Nothing */
         //TODO: improve pairs (needs better wildcard support)
         //NSF2:
         /* ZTRxxROK.MAP > ZTRxx.TRJ */
@@ -773,13 +773,14 @@ fail:
 /* EA MPF/MUS combo - used in 6th gen games for interactive music (for EA's PathFinder tool) */
 VGMSTREAM * init_vgmstream_ea_mpf_mus(STREAMFILE *streamFile) {
     off_t tracks_table, samples_table, section_offset, entry_offset, eof_offset, off_mult, sound_offset;
-    uint32_t track_start, track_hash, i;
+    uint32_t track_start, track_hash;
     uint16_t num_nodes;
     uint8_t version, sub_version, num_tracks, num_sections, num_events, num_routers, num_vars, subentry_num;
     int32_t(*read_32bit)(off_t, STREAMFILE*);
     int16_t(*read_16bit)(off_t, STREAMFILE*);
     STREAMFILE *musFile = NULL;
     VGMSTREAM *vgmstream = NULL;
+    int i;
     int target_stream = streamFile->stream_index, total_streams, big_endian, is_bnk;
 
     /* check extension */
@@ -842,10 +843,10 @@ VGMSTREAM * init_vgmstream_ea_mpf_mus(STREAMFILE *streamFile) {
         tracks_table = read_32bit(section_offset, streamFile) * 0x04;
         samples_table = tracks_table + (num_tracks + 1) * 0x04;
 
-        for (i = 0; i < num_tracks; i++) {
+        for (i = num_tracks - 1; i >= 0; i--) {
             track_start = read_32bit(tracks_table + i * 0x04, streamFile) * 0x04;
             track_start = (track_start - samples_table) / 0x08;
-            if (track_start >= target_stream)
+            if (track_start <= target_stream - 1)
                 break;
         }
 
@@ -874,16 +875,17 @@ VGMSTREAM * init_vgmstream_ea_mpf_mus(STREAMFILE *streamFile) {
         }
         section_offset = entry_offset + 0x10 + subentry_num * 0x10;
 
+        /* TODO: verify this */
         section_offset = read_32bit(section_offset, streamFile) * 0x04;
         section_offset += num_routers * 0x04;
         section_offset += num_vars * 0x04;
         tracks_table = section_offset;
         samples_table = tracks_table + (num_tracks + 1) * 0x04;
 
-        for (i = 0; i < num_tracks; i++) {
+        for (i = num_tracks - 1; i >= 0; i--) {
             track_start = read_32bit(tracks_table + i * 0x04, streamFile) * 0x04;
             track_start = (track_start - samples_table) / 0x08;
-            if (track_start >= target_stream)
+            if (track_start <= target_stream - 1)
                 break;
         }
 
@@ -895,23 +897,27 @@ VGMSTREAM * init_vgmstream_ea_mpf_mus(STREAMFILE *streamFile) {
         tracks_table = read_32bit(0x2c, streamFile);
         samples_table = read_32bit(0x34, streamFile);
 
-        for (i = 0; i < num_tracks; i++) {
+        for (i = num_tracks - 1; i >= 0; i--) {
             entry_offset = read_32bit(tracks_table + i * 0x04, streamFile) * 0x04;
             track_start = read_32bit(entry_offset + 0x00, streamFile);
-            if (track_start >= target_stream)
+
+            if (track_start <= target_stream - 1) {
+                track_hash = read_32bitBE(entry_offset + 0x08, streamFile);
+                is_bnk = (track_hash == 0xF1F1F1F1);
+
+                /* checks to distinguish it from SNR/SNS version */
+                if (is_bnk) {
+                    if (read_32bitBE(entry_offset + 0x0c, streamFile) == 0x00)
+                        goto fail;
+
+                    track_hash = read_32bitBE(entry_offset + 0x14, streamFile);
+                    if (track_hash == 0xF1F1F1F1)
+                        continue; /* empty track */
+                } else {
+                    if (read_32bitBE(entry_offset + 0x0c, streamFile) != 0x00)
+                        goto fail;
+                }
                 break;
-
-            track_hash = read_32bitBE(entry_offset + 0x08, streamFile);
-            is_bnk = (track_hash == 0xF1F1F1F1);
-
-            /* checks to distinguish it from SNR/SNS version */
-            if (is_bnk) {
-                track_hash = read_32bitBE(entry_offset + 0x14, streamFile);
-                if (read_32bitBE(entry_offset + 0x0c, streamFile) == 0x00)
-                    goto fail;
-            } else {
-                if (read_32bitBE(entry_offset + 0x0c, streamFile) != 0x00)
-                    goto fail;
             }
         }
 
@@ -926,7 +932,7 @@ VGMSTREAM * init_vgmstream_ea_mpf_mus(STREAMFILE *streamFile) {
         goto fail;
 
     /* open MUS file that matches this track */
-    musFile = open_mapfile_pair(streamFile, i - 1, num_tracks);
+    musFile = open_mapfile_pair(streamFile, i, num_tracks);
     if (!musFile)
         goto fail;
 
