@@ -258,7 +258,7 @@ fail:
 static int parse_xsb_old_cues(xsb_header *xsb, STREAMFILE *sf) {
     int32_t  (*read_s32)(off_t,STREAMFILE*) = xsb->big_endian ? read_s32be : read_s32le;
     int16_t  (*read_s16)(off_t,STREAMFILE*) = xsb->big_endian ? read_s16be : read_s16le;
-    uint16_t flags;
+  //uint16_t flags;
     int cue_entry;
     off_t offset, name_offset, jump_offset;
     int i, j, table_count;
@@ -270,7 +270,7 @@ static int parse_xsb_old_cues(xsb_header *xsb, STREAMFILE *sf) {
     for (i = 0; i < xsb->simple_cues_count; i++) {
 
         /*** cue index ***/
-        flags       = read_s16(offset + 0x00, sf); /* 0 is normal, 2 exists and 8 often goes with -1 (random) entry */
+      //flags       = read_s16(offset + 0x00, sf); /* 0 is normal, 2 exists and 8 often goes with -1 (random) entry */
         cue_entry   = read_s16(offset + 0x02, sf);
         name_offset = read_s32(offset + 0x04, sf);
         /* 0x08: table offset, or -1 */
