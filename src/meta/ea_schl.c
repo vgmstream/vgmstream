@@ -663,7 +663,7 @@ static STREAMFILE* open_mapfile_pair(STREAMFILE *streamFile, int track, int num_
     for (i = 0; i < pair_count; i++) {
         const char *map_name = mapfile_pairs[i][0];
         const char *mus_name = mapfile_pairs[i][1];
-        char buf[PATH_LIMIT];
+        char buf[PATH_LIMIT] = {0};
         char *pch;
         map_len = strlen(map_name);
 
@@ -673,8 +673,8 @@ static STREAMFILE* open_mapfile_pair(STREAMFILE *streamFile, int track, int num_
         if (strncasecmp(file_name + (file_len - map_len), map_name, map_len) != 0)
             continue;
 
-        strncpy(buf, mus_name, PATH_LIMIT);
-        pch = strtok(buf, ",");
+        strncpy(buf, mus_name, map_len);
+        pch = strtok(buf, ","); //TODO: not thread safe in std C
         for (j = 0; j < track && pch; j++) {
             pch = strtok(NULL, ",");
         }
@@ -694,12 +694,14 @@ static STREAMFILE* open_mapfile_pair(STREAMFILE *streamFile, int track, int num_
     /* hack when when multiple maps point to the same mus, uses name before "+"
      * ex. ZZZTR00A.TRJ+ZTR00PGR.MAP or ZZZTR00A.TRJ+ZTR00R0A.MAP both point to ZZZTR00A.TRJ
      * [Need for Speed II (PS1), Need for Speed III (PS1)] */
-    char *mod_name = strchr(file_name, '+');
-    if (mod_name)
     {
-        mod_name[0] = '\0';
-        musFile = open_streamfile_by_filename(streamFile, file_name);
-        if (musFile) return musFile;
+        char *mod_name = strchr(file_name, '+');
+        if (mod_name)
+        {
+            mod_name[0] = '\0';
+            musFile = open_streamfile_by_filename(streamFile, file_name);
+            if (musFile) return musFile;
+        }
     }
 
     VGM_LOG("No MPF/MUS pair specified for %s.\n", file_name);
@@ -773,7 +775,7 @@ fail:
 /* EA MPF/MUS combo - used in 6th gen games for interactive music (for EA's PathFinder tool) */
 VGMSTREAM * init_vgmstream_ea_mpf_mus(STREAMFILE *streamFile) {
     off_t tracks_table, samples_table, section_offset, entry_offset, eof_offset, off_mult, sound_offset;
-    uint32_t track_start, track_hash;
+    uint32_t track_start, track_hash = 0;
     uint16_t num_nodes;
     uint8_t version, sub_version, num_tracks, num_sections, num_events, num_routers, num_vars, subentry_num;
     int32_t(*read_32bit)(off_t, STREAMFILE*);
@@ -781,7 +783,7 @@ VGMSTREAM * init_vgmstream_ea_mpf_mus(STREAMFILE *streamFile) {
     STREAMFILE *musFile = NULL;
     VGMSTREAM *vgmstream = NULL;
     int i;
-    int target_stream = streamFile->stream_index, total_streams, big_endian, is_bnk;
+    int target_stream = streamFile->stream_index, total_streams, big_endian, is_bnk = 0;
 
     /* check extension */
     if (!check_extensions(streamFile, "mpf"))
