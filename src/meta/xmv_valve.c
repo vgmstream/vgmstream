@@ -43,7 +43,6 @@ VGMSTREAM *init_vgmstream_xbox_hlwav(STREAMFILE *streamFile) {
 
     /* fill in the vital statistics */
     vgmstream->meta_type = meta_XBOX_HLWAV;
-    vgmstream->channels = channels;
     vgmstream->sample_rate = sample_rate;
     vgmstream->loop_start_sample = loop_start;
 
@@ -76,8 +75,8 @@ fail:
 
 /* .360.WAV, .PS3.WAV - from Valve games running on Source Engine, evolution of Xbox .WAV format */
 /* [The Orange Box (X360), Portal 2 (PS3/X360), Counter-Strike: Global Offensive (PS3/X360)] */
-VGMSTREAM* init_vgmstream_xmv_valve(STREAMFILE* streamFile) {
-    VGMSTREAM* vgmstream = NULL;
+VGMSTREAM *init_vgmstream_xmv_valve(STREAMFILE *streamFile) {
+    VGMSTREAM *vgmstream = NULL;
     int32_t loop_start;
     uint32_t start_offset, data_size, sample_rate, num_samples;
     uint16_t /*loop_block, loop_start_skip,*/ loop_end_skip;
@@ -89,26 +88,26 @@ VGMSTREAM* init_vgmstream_xmv_valve(STREAMFILE* streamFile) {
         goto fail;
 
     /* check header magic */
-    if (read_32bitBE(0x00, streamFile) != 0x58575620) /* "XMV " */
+    if (read_u32be(0x00, streamFile) != 0x58575620) /* "XMV " */
         goto fail;
 
     /* only version 4 is known */
-    if (read_32bitBE(0x04, streamFile) != 0x04)
+    if (read_u32be(0x04, streamFile) != 0x04)
         goto fail;
 
-    start_offset = read_32bitBE(0x10, streamFile);
-    data_size = read_32bitBE(0x14, streamFile);
-    num_samples = read_32bitBE(0x18, streamFile);
-    loop_start = read_32bitBE(0x1c, streamFile);
+    start_offset = read_u32be(0x10, streamFile);
+    data_size = read_u32be(0x14, streamFile);
+    num_samples = read_u32be(0x18, streamFile);
+    loop_start = read_s32be(0x1c, streamFile);
 
     /* XMA only */
-  //loop_block = read_16bitBE(0x20, streamFile);
-  //loop_start_skip = read_16bitBE(0x22, streamFile);
-    loop_end_skip = read_16bitBE(0x24, streamFile);
+  //loop_block = read_u16be(0x20, streamFile);
+  //loop_start_skip = read_u16be(0x22, streamFile);
+    loop_end_skip = read_u16be(0x24, streamFile);
 
-    format = read_8bit(0x28, streamFile);
-    freq_mode = read_8bit(0x2a, streamFile);
-    channels = read_8bit(0x2b, streamFile);
+    format = read_u8(0x28, streamFile);
+    freq_mode = read_u8(0x2a, streamFile);
+    channels = read_u8(0x2b, streamFile);
 
     switch (freq_mode) {
         case 0x00: sample_rate = 11025; break;
@@ -137,7 +136,7 @@ VGMSTREAM* init_vgmstream_xmv_valve(STREAMFILE* streamFile) {
             break;
 #ifdef VGM_USE_FFMPEG
         case 0x01: { /* XMA */
-            ffmpeg_codec_data* ffmpeg_data;
+            ffmpeg_codec_data *ffmpeg_data;
             uint8_t buf[0x100];
             int block_count, block_size;
             size_t bytes;
