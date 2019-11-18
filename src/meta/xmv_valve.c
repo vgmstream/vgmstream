@@ -1,7 +1,80 @@
 #include "meta.h"
 #include "../coding/coding.h"
 
-/* .360.WAV, .PS3.WAV - from Valve games running on Source Engine */
+/* .WAV - from Half-Life 2 (Xbox) */
+VGMSTREAM *init_vgmstream_xbox_hlwav(STREAMFILE *streamFile) {
+    VGMSTREAM *vgmstream = NULL;
+    uint32_t header_size, data_size, start_offset, sample_rate;
+    int32_t loop_start;
+    uint8_t format, freq_mode, channels;
+    int loop_flag;
+
+    /* checks */
+    if (!check_extensions(streamFile, "wav,lwav"))
+        goto fail;
+
+    /* check header and size */
+    header_size = read_u32le(0x00, streamFile);
+    if (header_size != 0x14)
+        goto fail;
+
+    data_size = read_u32le(0x04, streamFile);
+    start_offset = read_u32le(0x08, streamFile);
+    if (data_size != get_streamfile_size(streamFile) - start_offset)
+        goto fail;
+
+    loop_start = read_s32le(0x0c, streamFile);
+    format = read_u8(0x12, streamFile);
+    freq_mode = read_u8(0x13, streamFile) & 0x0F;
+    channels = (read_u8(0x13, streamFile) >> 4) & 0x0F;
+
+    switch (freq_mode) {
+        case 0x00: sample_rate = 11025; break;
+        case 0x01: sample_rate = 22050; break;
+        case 0x02: sample_rate = 44100; break;
+        default: goto fail;
+    }
+
+    loop_flag = (loop_start != -1);
+
+    /* build the VGMSTREAM */
+    vgmstream = allocate_vgmstream(channels, loop_flag);
+    if (!vgmstream) goto fail;
+
+    /* fill in the vital statistics */
+    vgmstream->meta_type = meta_XBOX_HLWAV;
+    vgmstream->channels = channels;
+    vgmstream->sample_rate = sample_rate;
+    vgmstream->loop_start_sample = loop_start;
+
+    switch (format) {
+        case 0x00: /* PCM */
+            vgmstream->coding_type = coding_PCM16LE;
+            vgmstream->layout_type = layout_interleave;
+            vgmstream->interleave_block_size = 0x02;
+            vgmstream->num_samples = pcm_bytes_to_samples(data_size, channels, 16);
+            vgmstream->loop_end_sample = vgmstream->num_samples; /* always loops from the end */
+            break;
+        case 0x01: /* XBOX ADPCM */
+            vgmstream->coding_type = coding_XBOX_IMA;
+            vgmstream->layout_type = layout_none;
+            vgmstream->num_samples = xbox_ima_bytes_to_samples(data_size, channels);
+            vgmstream->loop_end_sample = vgmstream->num_samples;
+            break;
+        default:
+            goto fail;
+    }
+
+    if (!vgmstream_open_stream(vgmstream, streamFile, start_offset))
+        goto fail;
+    return vgmstream;
+
+fail:
+    close_vgmstream(vgmstream);
+    return NULL;
+}
+
+/* .360.WAV, .PS3.WAV - from Valve games running on Source Engine, evolution of Xbox .WAV format */
 /* [The Orange Box (X360), Portal 2 (PS3/X360), Counter-Strike: Global Offensive (PS3/X360)] */
 VGMSTREAM* init_vgmstream_xmv_valve(STREAMFILE* streamFile) {
     VGMSTREAM* vgmstream = NULL;

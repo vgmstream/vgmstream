@@ -512,7 +512,6 @@
     <ClCompile Include="meta\wwise.c" />
     <ClCompile Include="meta\xau.c" />
     <ClCompile Include="meta\xavs.c" />
-    <ClCompile Include="meta\xbox_hlwav.c" />
     <ClCompile Include="meta\xbox_ims.c" />
     <ClCompile Include="meta\raw_wavm.c" />
     <ClCompile Include="meta\xmu.c" />
