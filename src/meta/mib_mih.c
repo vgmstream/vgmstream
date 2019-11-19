@@ -5,8 +5,8 @@
 VGMSTREAM * init_vgmstream_mib_mih(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     STREAMFILE * streamHeader = NULL;
-    off_t start_offset;
-    size_t data_size, frame_size, frame_last, frame_count;
+    off_t header_offset, start_offset;
+    size_t data_size, frame_size, frame_last, frame_count, name_size;
     int channel_count, loop_flag, sample_rate;
 
     /* check extension */
@@ -16,18 +16,28 @@ VGMSTREAM * init_vgmstream_mib_mih(STREAMFILE *streamFile) {
     streamHeader = open_streamfile_by_ext(streamFile,"mih");
     if (!streamHeader) goto fail;
 
-    if (read_32bitBE(0x00,streamHeader) != 0x40000000) /* header size */
-        goto fail;
+    header_offset = 0x00;
+
+    if (read_32bitLE(0x00,streamHeader) != 0x40) { /* header size */
+        name_size = read_32bitLE(0x00, streamHeader);
+        if (read_32bitLE(0x04 + name_size, streamHeader) == 0x40 &&
+            read_32bitLE(0x04 + name_size + 0x04, streamHeader) == 0x40) {
+            /* Marc Ecko's Getting Up (PS2) has a name at the start */
+            header_offset = 0x04 + name_size + 0x04;
+        } else {
+            goto fail;
+        }
+    }
 
     loop_flag = 0; /* MIB+MIH don't loop (nor use PS-ADPCM flags) per spec */
     start_offset = 0x00;
 
     /* 0x04: padding size (always 0x20, MIH header must be multiple of 0x40) */
-    frame_last      = (uint32_t)read_32bitLE(0x05,streamHeader) & 0x00FFFFFF; /* 24b */
-    channel_count   = read_32bitLE(0x08,streamHeader);
-    sample_rate     = read_32bitLE(0x0c,streamHeader);
-    frame_size      = read_32bitLE(0x10,streamHeader);
-    frame_count     = read_32bitLE(0x14,streamHeader);
+    frame_last      = (uint32_t)read_32bitLE(header_offset + 0x05,streamHeader) & 0x00FFFFFF; /* 24b */
+    channel_count   = read_32bitLE(header_offset + 0x08,streamHeader);
+    sample_rate     = read_32bitLE(header_offset + 0x0c,streamHeader);
+    frame_size      = read_32bitLE(header_offset + 0x10,streamHeader);
+    frame_count     = read_32bitLE(header_offset + 0x14,streamHeader);
     if (frame_count == 0) { /* rarely [Gladius (PS2)] */
         frame_count = get_streamfile_size(streamFile) / (frame_size * channel_count);
     }
