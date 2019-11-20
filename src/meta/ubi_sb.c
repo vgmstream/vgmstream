@@ -212,17 +212,30 @@ VGMSTREAM * init_vgmstream_ubi_sb(STREAMFILE *streamFile) {
     if (!config_sb_version(&sb, streamFile))
         goto fail;
 
-    sb.section1_num  = read_32bit(0x04, streamFile);
-    sb.section2_num  = read_32bit(0x08, streamFile);
-    sb.section3_num  = read_32bit(0x0c, streamFile);
-    sb.sectionX_size = read_32bit(0x10, streamFile);
-    sb.flag1         = read_32bit(0x14, streamFile);
+    if (sb.version <= 0x0000000D) {
+        sb.section1_num = read_32bit(0x04, streamFile);
+        sb.section2_num = read_32bit(0x0c, streamFile);
+        sb.section3_num = read_32bit(0x14, streamFile);
+        sb.sectionX_size = read_32bit(0x1c, streamFile);
 
-    if (sb.version <= 0x000A0000) {
+        sb.section1_offset = 0x20;
+    } else if (sb.version <= 0x000A0000) {
+        sb.section1_num = read_32bit(0x04, streamFile);
+        sb.section2_num = read_32bit(0x0c, streamFile);
+        sb.section3_num = read_32bit(0x14, streamFile);
+        sb.sectionX_size = read_32bit(0x1c, streamFile);
+        sb.flag1 = read_32bit(0x14, streamFile);
+
         sb.section1_offset = 0x18;
     } else {
-        sb.section1_offset = 0x1c;
+        sb.section1_num = read_32bit(0x04, streamFile);
+        sb.section2_num = read_32bit(0x0c, streamFile);
+        sb.section3_num = read_32bit(0x14, streamFile);
+        sb.sectionX_size = read_32bit(0x1c, streamFile);
+        sb.flag1 = read_32bit(0x14, streamFile);
         sb.flag2 = read_32bit(0x18, streamFile);
+
+        sb.section1_offset = 0x1c;
     }
 
     if (sb.cfg.is_padded_section1_offset)
@@ -2351,6 +2364,21 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         return 1;
     }
 
+    /* Rainbow Six 3 (2003)(PC)-bank 0x0000000B */
+    if (sb->version == 0x0000000B && sb->platform == UBI_PC) {
+        config_sb_entry(sb, 0x5c, 0x7c);
+
+        config_sb_audio_fs(sb, 0x24, 0x00, 0x28);
+        config_sb_audio_hs(sb, 0x46, 0x40, 0x2c, 0x34, 0x4c, 0x48);
+        sb->cfg.audio_has_internal_names = 1;
+
+        config_sb_sequence(sb, 0x28, 0x34);
+
+        config_sb_layer_hs(sb, 0x20, 0x60, 0x58, 0x30);
+        config_sb_layer_sh(sb, 0x14, 0x00, 0x06, 0x08, 0x10);
+        return 1;
+    }
+
     /* Prince of Persia: The Sands of Time Demo (2003)(Xbox)-bank 0x0000000D */
     if (sb->version == 0x0000000D && sb->platform == UBI_XBOX) {
         config_sb_entry(sb, 0x5c, 0x74);
@@ -2358,6 +2386,11 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         config_sb_audio_fs(sb, 0x24, 0x00, 0x28);
         config_sb_audio_hs(sb, 0x46, 0x40, 0x2c, 0x34, 0x4c, 0x48);
         sb->cfg.audio_has_internal_names = 1;
+
+        config_sb_sequence(sb, 0x28, 0x34);
+
+        config_sb_layer_hs(sb, 0x20, 0x60, 0x58, 0x30);
+        config_sb_layer_sh(sb, 0x14, 0x00, 0x06, 0x08, 0x10);
         return 1;
     }
 
