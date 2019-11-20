@@ -597,7 +597,7 @@ static VGMSTREAM * init_vgmstream_ubi_sb_base(ubi_sb_header *sb, STREAMFILE *str
             int block_align, encoder_delay;
 
             block_align = 0x98 * sb->channels;
-            encoder_delay = 0; /* TODO: this is may be incorrect */
+            encoder_delay = 1024 + 69*2; /* approximate */
 
             vgmstream->codec_data = init_ffmpeg_atrac3_raw(streamData, start_offset,sb->stream_size, sb->num_samples,sb->channels,sb->sample_rate, block_align, encoder_delay);
             if (!vgmstream->codec_data) goto fail;
