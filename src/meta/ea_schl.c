@@ -626,7 +626,8 @@ fail:
 static STREAMFILE* open_mapfile_pair(STREAMFILE *streamFile, int track, int num_tracks) {
     static const char *const mapfile_pairs[][2] = {
         /* standard cases, replace map part with mus part (from the end to preserve prefixes) */
-        {"mus_ctrl.mpf",    "mus_str.mus"}, /* GoldenEye - Rogue Agent */
+        {"MUS_CTRL.MPF",    "MUS_STR.MUS"}, /* GoldenEye - Rogue Agent (PS2) */
+        {"mus_ctrl.mpf",    "mus_str.mus"}, /* GoldenEye - Rogue Agent (others) */
         {"AKA_Mus.mpf",     "Track.mus"}, /* Boogie */
         {"SSX4.mpf",        "moments0.mus,main.mus,load_loop0.mus"}, /* SSX Blur */
         {"willow.mpf",      "willow.mus,willow_o.mus"}, /* Harry Potter and the Chamber of Secrets */
@@ -634,16 +635,17 @@ static STREAMFILE* open_mapfile_pair(STREAMFILE *streamFile, int track, int num_
         {"Peak1Amb.mpf",    "Peak1_Strm.mus,Peak1_Ovr0.mus"}, /* SSX 3 */
         {"Peak2Amb.mpf",    "Peak2_Strm.mus,Peak2_Ovr0.mus"},
         {"Peak3Amb.mpf",    "Peak3_Strm.mus,Peak3_Ovr0.mus"},
-        {".mpf",            "_main.mus"}, /* 007 - Everything or Nothing */
-        //TODO: improve pairs (needs better wildcard support)
-        //NSF2:
-        /* ZTRxxROK.MAP > ZTRxx.TRJ */
-        /* ZTRxxTEC.MAP > ZTRxx.TRM */
-        /* ZZSHOW.MAP and ZZSHOW2.MAP > ZZSHOW.MUS */
-        //NSF3:
-        /* ZTRxxROK.MAP > ZZZTRxxA.TRJ */
-        /* ZTRxxTEC.MAP > ZZZTRxxB.TRM */
-        /* other extra files that may need the hack below */
+        {"*.mpf",            "*_main.mus"}, /* 007 - Everything or Nothing */
+        /* TODO: need better wildcard support
+         * NSF2:
+         * ZTRxxROK.MAP > ZTRxx.TRJ
+         * ZTRxxTEC.MAP > ZTRxx.TRM 
+         * ZZSHOW.MAP and ZZSHOW2.MAP > ZZSHOW.MUS 
+         * NSF3:
+         * ZTRxxROK.MAP > ZZZTRxxA.TRJ 
+         * ZTRxxTEC.MAP > ZZZTRxxB.TRM 
+         * ZTR00R0A.MAP and ZTR00R0B.MAP > ZZZTR00A.TRJ
+         * other extra files that may need the hack below */
     };
     STREAMFILE *musFile = NULL;
     char file_name[PATH_LIMIT];
@@ -665,25 +667,38 @@ static STREAMFILE* open_mapfile_pair(STREAMFILE *streamFile, int track, int num_
         const char *mus_name = mapfile_pairs[i][1];
         char buf[PATH_LIMIT] = {0};
         char *pch;
+        int use_mask = 0;
         map_len = strlen(map_name);
 
         /* replace map_name with expected mus_name */
         if (file_len < map_len)
             continue;
-        if (strncasecmp(file_name + (file_len - map_len), map_name, map_len) != 0)
-            continue;
 
-        strncpy(buf, mus_name, map_len);
+        if (map_name[0] == '*') {
+            use_mask = 1;
+            map_name++;
+            map_len--;
+
+            if (strcmp(file_name + (file_len - map_len), map_name) != 0)
+                continue;
+        } else {
+            if (strcmp(file_name, map_name) != 0)
+                continue;
+        }
+
+        strncpy(buf, mus_name, PATH_LIMIT);
         pch = strtok(buf, ","); //TODO: not thread safe in std C
         for (j = 0; j < track && pch; j++) {
             pch = strtok(NULL, ",");
         }
+        if (!pch) continue; /* invalid track */
 
-        if (!pch)
-            continue;
-
-        file_name[file_len - map_len] = '\0';
-        strcat(file_name, pch);
+        if (use_mask) {
+            file_name[file_len - map_len] = '\0';
+            strncat(file_name, pch + 1, PATH_LIMIT);
+        } else {
+            strncpy(file_name, pch, PATH_LIMIT);
+        }
 
         musFile = open_streamfile_by_filename(streamFile, file_name);
         if (musFile) return musFile;

@@ -573,27 +573,40 @@ static STREAMFILE *open_mapfile_pair(STREAMFILE *streamFile, int track, int num_
     for (i = 0; i < pair_count; i++) {
         const char *map_name = mapfile_pairs[i][0];
         const char *mus_name = mapfile_pairs[i][1];
-        char buf[PATH_LIMIT] = {0};
+        char buf[PATH_LIMIT] = { 0 };
         char *pch;
+        int use_mask = 0;
         map_len = strlen(map_name);
 
         /* replace map_name with expected mus_name */
         if (file_len < map_len)
             continue;
-        if (strncasecmp(file_name + (file_len - map_len), map_name, map_len) != 0)
-            continue;
 
-        strncpy(buf, mus_name, map_len);
+        if (map_name[0] == '*') {
+            use_mask = 1;
+            map_name++;
+            map_len--;
+
+            if (strncmp(file_name + (file_len - map_len), map_name, map_len) != 0)
+                continue;
+        } else {
+            if (strcmp(file_name, map_name) != 0)
+                continue;
+        }
+
+        strncpy(buf, mus_name, PATH_LIMIT);
         pch = strtok(buf, ","); //TODO: not thread safe in std C
         for (j = 0; j < track && pch; j++) {
             pch = strtok(NULL, ",");
         }
+        if (!pch) continue; /* invalid track */
 
-        if (!pch)
-            continue;
-
-        file_name[file_len - map_len] = '\0';
-        strcat(file_name, pch);
+        if (use_mask) {
+            file_name[file_len - map_len] = '\0';
+            strncat(file_name, pch + 1, PATH_LIMIT);
+        } else {
+            strncpy(file_name, pch, PATH_LIMIT);
+        }
 
         musFile = open_streamfile_by_filename(streamFile, file_name);
         if (musFile) return musFile;
