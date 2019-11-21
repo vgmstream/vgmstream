@@ -212,7 +212,7 @@ VGMSTREAM * init_vgmstream_ubi_sb(STREAMFILE *streamFile) {
     if (!config_sb_version(&sb, streamFile))
         goto fail;
 
-    if (sb.version <= 0x0000000D) {
+    if (sb.version <= 0x0000000B) {
         sb.section1_num  = read_32bit(0x04, streamFile);
         sb.section2_num  = read_32bit(0x0c, streamFile);
         sb.section3_num  = read_32bit(0x14, streamFile);
