@@ -207,33 +207,33 @@ VGMSTREAM * init_vgmstream_ubi_sb(STREAMFILE *streamFile) {
     /* SB HEADER */
     /* SBx layout: header, section1, section2, extra section, section3, data (all except header can be null) */
     sb.is_bank = 1;
-    sb.version       = read_32bit(0x00, streamFile);
+    sb.version = read_32bit(0x00, streamFile);
 
     if (!config_sb_version(&sb, streamFile))
         goto fail;
 
     if (sb.version <= 0x0000000D) {
-        sb.section1_num = read_32bit(0x04, streamFile);
-        sb.section2_num = read_32bit(0x0c, streamFile);
-        sb.section3_num = read_32bit(0x14, streamFile);
+        sb.section1_num  = read_32bit(0x04, streamFile);
+        sb.section2_num  = read_32bit(0x0c, streamFile);
+        sb.section3_num  = read_32bit(0x14, streamFile);
         sb.sectionX_size = read_32bit(0x1c, streamFile);
 
         sb.section1_offset = 0x20;
     } else if (sb.version <= 0x000A0000) {
-        sb.section1_num = read_32bit(0x04, streamFile);
-        sb.section2_num = read_32bit(0x0c, streamFile);
-        sb.section3_num = read_32bit(0x14, streamFile);
-        sb.sectionX_size = read_32bit(0x1c, streamFile);
-        sb.flag1 = read_32bit(0x14, streamFile);
+        sb.section1_num  = read_32bit(0x04, streamFile);
+        sb.section2_num  = read_32bit(0x08, streamFile);
+        sb.section3_num  = read_32bit(0x0c, streamFile);
+        sb.sectionX_size = read_32bit(0x10, streamFile);
+        sb.flag1         = read_32bit(0x14, streamFile);
 
         sb.section1_offset = 0x18;
     } else {
-        sb.section1_num = read_32bit(0x04, streamFile);
-        sb.section2_num = read_32bit(0x0c, streamFile);
-        sb.section3_num = read_32bit(0x14, streamFile);
-        sb.sectionX_size = read_32bit(0x1c, streamFile);
-        sb.flag1 = read_32bit(0x14, streamFile);
-        sb.flag2 = read_32bit(0x18, streamFile);
+        sb.section1_num  = read_32bit(0x04, streamFile);
+        sb.section2_num  = read_32bit(0x08, streamFile);
+        sb.section3_num  = read_32bit(0x0c, streamFile);
+        sb.sectionX_size = read_32bit(0x10, streamFile);
+        sb.flag1         = read_32bit(0x14, streamFile);
+        sb.flag2         = read_32bit(0x18, streamFile);
 
         sb.section1_offset = 0x1c;
     }
