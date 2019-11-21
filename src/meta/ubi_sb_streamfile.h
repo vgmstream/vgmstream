@@ -178,6 +178,31 @@ static int ubi_sb_io_init(STREAMFILE *streamfile, ubi_sb_io_data* data) {
             data->block_data_start      = 0x08 + data->layer_max*0x04;
             break;
 
+        case 0x00000003: /* Rainbow Six 3 */
+            /* - layer header
+             * 0x04: layer count
+             * 0x08: stream size
+             * 0x0c: block header size
+             * 0x10: block size (fixed)
+             * 0x14: min layer data?
+             * 0x18: size of header sizes and headers
+             * 0x1c+(04*N): header size per layer
+             * - block header
+             * 0x00: block number
+             * 0x04: block offset
+             * 0x08+(04*N): layer size per layer
+             * 0xNN: layer data per layer */
+            data->layer_max = read_32bit(offset+0x04, streamfile);
+
+            data->header_next_start     = 0x10;
+            data->header_sizes_start    = 0x1c;
+            data->header_data_start     = 0x1c + data->layer_max*0x04;
+
+            data->block_next_start      = 0;
+            data->block_sizes_start     = 0x08;
+            data->block_data_start      = 0x08 + data->layer_max*0x04;
+            break;
+
         case 0x00000004: /* Prince of Persia: Sands of Time, Batman: Rise of Sin Tzu */
             /* - layer header
              * 0x04: layer count
@@ -186,7 +211,7 @@ static int ubi_sb_io_init(STREAMFILE *streamfile, ubi_sb_io_data* data) {
              * 0x10: block header size
              * 0x14: block size (fixed)
              * 0x18: min layer data?
-             * 0x1c: size of header sizes
+             * 0x1c: size of header sizes and headers
              * 0x20+(04*N): header size per layer
              * - block header
              * 0x00: block number
@@ -214,7 +239,7 @@ static int ubi_sb_io_init(STREAMFILE *streamfile, ubi_sb_io_data* data) {
              * 0x14: block header size
              * 0x18: block size (fixed)
              * 0x1c+(04*8): min layer data? for 8 layers (-1 after layer count)
-             * 0x3c: size of header sizes
+             * 0x3c: size of header sizes and headers
              * 0x40+(04*N): header size per layer
              * 0xNN: header data per layer
              * - block header
@@ -243,7 +268,7 @@ static int ubi_sb_io_init(STREAMFILE *streamfile, ubi_sb_io_data* data) {
              * 0x14: block header size
              * 0x18: block size (fixed)
              * 0x1c+(04*11): min layer data? for 11 layers (-1 after layer count)
-             * 0x48: size of header sizes
+             * 0x48: size of header sizes and headers
              * 0x4c+(04*N): header size per layer
              * 0xNN: header data per layer
              * - block header
@@ -272,7 +297,7 @@ static int ubi_sb_io_init(STREAMFILE *streamfile, ubi_sb_io_data* data) {
              * 0x08: layer count
              * 0x0c: blocks count
              * 0x10: block header size
-             * 0x14: size of header sizes/data
+             * 0x14: size of header sizes and headers/data
              * 0x18: next block size
              * 0x1c+(04*N): layer header size
              * 0xNN: header data per layer
@@ -298,7 +323,7 @@ static int ubi_sb_io_init(STREAMFILE *streamfile, ubi_sb_io_data* data) {
              * 0x08: layer count
              * 0x0c: blocks count
              * 0x10: block header size
-             * 0x14: size of header sizes/data
+             * 0x14: size of header sizes and headers/data
              * 0x18: next block size
              * 0x1c+(04*10): usable size per layer
              * 0x5c+(04*N): layer header size
