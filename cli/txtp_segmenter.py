@@ -138,7 +138,7 @@ def main():
             if args.command_volume:
                 ftxtp.write("commands = #@volume " + args.command_volume + "\n")
             if args.command:
-                ftxtp.write(args.command + "\n")
+                ftxtp.write(args.command.replace("\\n", "\n") + "\n")
 
 
 if __name__ == "__main__":
