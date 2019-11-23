@@ -228,6 +228,12 @@ static int parse_musx_stream(STREAMFILE *streamFile, musx_header *musx) {
             musx->codec = DAT;
             break;
 
+        case 0x50435F5F: /* "PC__" */
+            default_channels = 2;
+            default_sample_rate = 44100;
+            musx->codec = DAT;
+            break;
+
         default:
             VGM_LOG("MUSX: unknown platform %x\n", musx->platform);
             goto fail;
