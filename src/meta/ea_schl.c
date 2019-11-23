@@ -645,7 +645,11 @@ static STREAMFILE* open_mapfile_pair(STREAMFILE *streamFile, int track, int num_
          * ZTRxxROK.MAP > ZZZTRxxA.TRJ 
          * ZTRxxTEC.MAP > ZZZTRxxB.TRM 
          * ZTR00R0A.MAP and ZTR00R0B.MAP > ZZZTR00A.TRJ
-         * other extra files that may need the hack below */
+         * other extra files that may need the hack below
+         * SSX 3:
+         * *.mpf > *.mus,xxloops0.mus
+         * really need to think of something for this
+         */
     };
     STREAMFILE *musFile = NULL;
     char file_name[PATH_LIMIT];
@@ -653,8 +657,8 @@ static STREAMFILE* open_mapfile_pair(STREAMFILE *streamFile, int track, int num_
     int i, j;
     size_t file_len, map_len;
 
-    /* if there's only one track, try opening MUS with the same name first (most common scenario) */
-    if (num_tracks == 1) {
+    /* if loading the first track, try opening MUS with the same name first (most common scenario) */
+    if (track == 0) {
         musFile = open_streamfile_by_ext(streamFile, "mus");
         if (musFile) return musFile;
     }
