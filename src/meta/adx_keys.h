@@ -219,6 +219,9 @@ static const adxkey_info adxkey9_list[] = {
         /* Mashiro Witch (Android) */
         {0x2669,0x1495,0x2407, NULL,0x55D11D3349495204},    // 55D11D3349495204
 
+        /* Nogizaka46 Rhythm Festival (Android) */
+        {0x2378,0x5511,0x0201, NULL,5613126134333697},      // 0013F11BC5510101
+
 };
 
 static const int adxkey8_list_count = sizeof(adxkey8_list) / sizeof(adxkey8_list[0]);
