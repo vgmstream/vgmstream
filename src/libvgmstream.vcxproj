@@ -197,7 +197,7 @@
     <ClCompile Include="meta\rad.c" />
     <ClCompile Include="meta\vs_str.c" />
     <ClCompile Include="meta\ps2_wmus.c" />
-    <ClCompile Include="meta\ps3_ivag.c" />
+    <ClCompile Include="meta\ivag.c" />
     <ClCompile Include="meta\ps3_past.c" />
     <ClCompile Include="meta\psf.c" />
     <ClCompile Include="meta\sgxd.c" />
@@ -318,12 +318,7 @@
     <ClCompile Include="meta\mca.c" />
     <ClCompile Include="meta\msvp.c" />
     <ClCompile Include="meta\mus_vc.c" />
-    <ClCompile Include="meta\mus_acm.c">
-      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)%(Filename)1.obj</ObjectFileName>
-      <XMLDocumentationFileName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(IntDir)%(Filename)1.xdc</XMLDocumentationFileName>
-      <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)%(Filename)1.obj</ObjectFileName>
-      <XMLDocumentationFileName Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(IntDir)%(Filename)1.xdc</XMLDocumentationFileName>
-    </ClCompile>
+    <ClCompile Include="meta\mus_acm.c" />
     <ClCompile Include="meta\musc.c" />
     <ClCompile Include="meta\musx.c" />
     <ClCompile Include="meta\myspd.c" />

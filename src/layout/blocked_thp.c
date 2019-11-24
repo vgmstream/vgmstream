@@ -2,30 +2,40 @@
 #include "../vgmstream.h"
 
 /* set up for the block at the given offset */
-void block_update_thp(off_t block_offset, VGMSTREAM * vgmstream) {
-    int i,j;
-	STREAMFILE *streamFile=vgmstream->ch[0].streamfile;
-	off_t	start_offset;
-	int32_t	nextFrameSize;
+void block_update_thp(off_t block_offset, VGMSTREAM *vgmstream) {
+    int i, j;
+    STREAMFILE *streamFile = vgmstream->ch[0].streamfile;
+    off_t audio_offset;
+    size_t next_block_size, video_size;
 
-	vgmstream->current_block_offset = block_offset;
-	nextFrameSize=read_32bitBE(vgmstream->current_block_offset,streamFile);
+    next_block_size = read_32bitBE(block_offset + 0x00, streamFile);
+    /* 0x04: frame size previous */
+    video_size = read_32bitBE(block_offset + 0x08,streamFile);
+    /* 0x0c: audio size */
 
-	vgmstream->next_block_offset = vgmstream->current_block_offset
-		                         + vgmstream->full_block_size;
-	vgmstream->full_block_size = nextFrameSize;
+    audio_offset = block_offset + 0x10 + video_size;
 
-	start_offset=vgmstream->current_block_offset
-		         + read_32bitBE(vgmstream->current_block_offset+0x08,streamFile)+0x10;
-	vgmstream->current_block_size=read_32bitBE(start_offset,streamFile);
-	start_offset+=8;
+    vgmstream->current_block_offset = block_offset;
+    vgmstream->next_block_offset = block_offset + vgmstream->full_block_size;
+    vgmstream->full_block_size = next_block_size;
 
-	for(i=0;i<vgmstream->channels;i++) {
-		for(j=0;j<16;j++) {
-			vgmstream->ch[i].adpcm_coef[j]=read_16bitBE(start_offset+(i*0x20)+(j*2),streamFile);
-		}
-		vgmstream->ch[i].adpcm_history1_16=read_16bitBE(start_offset + (0x20*vgmstream->channels) + (i*4),streamFile);
-		vgmstream->ch[i].adpcm_history2_16=read_16bitBE(start_offset + (0x20*vgmstream->channels) + (i*4) + 2,streamFile);
-        vgmstream->ch[i].offset = start_offset + (0x24*vgmstream->channels)+(i*vgmstream->current_block_size);
-	}
+    /* block samples can be smaller than block size, normally in the last block,
+     * but num_samples already takes that into account, so there is no real difference */
+    vgmstream->current_block_size = read_32bitBE(audio_offset + 0x00, streamFile);
+    vgmstream->current_block_samples = read_32bitBE(audio_offset + 0x04, streamFile);
+
+    audio_offset += 0x08;
+
+    for (i = 0; i < vgmstream->channels; i++) {
+        off_t coef_offset = audio_offset + i*0x20;
+        off_t hist_offset = audio_offset + vgmstream->channels*0x20 + i*0x04;
+        off_t data_offset = audio_offset + vgmstream->channels*0x24 + i*vgmstream->current_block_size;
+
+        for (j = 0; j < 16; j++) {
+            vgmstream->ch[i].adpcm_coef[j] = read_16bitBE(coef_offset + (j*0x02),streamFile);
+        }
+        vgmstream->ch[i].adpcm_history1_16 = read_16bitBE(hist_offset + 0x00,streamFile);
+        vgmstream->ch[i].adpcm_history2_16 = read_16bitBE(hist_offset + 0x02,streamFile);
+        vgmstream->ch[i].offset = data_offset;
+    }
 }

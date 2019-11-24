@@ -2,14 +2,14 @@
 #include "../coding/coding.h"
 
 
+static void load_name(char *name, size_t name_size, STREAMFILE *sf, int big_endian, int total_subsongs, int target_subsong);
 static STREAMFILE* setup_nub_streamfile(STREAMFILE *sf, off_t header_offset, size_t header_size, off_t stream_offset, size_t stream_size, const char *fake_ext);
 
-/* .nub - Namco's nu Sound v2 audio container */
+/* .nub - Namco's nuSound2 audio container */
 VGMSTREAM * init_vgmstream_nub(STREAMFILE *streamFile) {
     VGMSTREAM *vgmstream = NULL;
     STREAMFILE *temp_sf = NULL;
-    off_t name_offset = 0;
-    size_t name_size = 0;
+    int big_endian;
     int total_subsongs, target_subsong = streamFile->stream_index;
     uint32_t version, codec;
     const char* fake_ext;
@@ -25,13 +25,14 @@ VGMSTREAM * init_vgmstream_nub(STREAMFILE *streamFile) {
     version = read_32bitBE(0x00,streamFile);
     if (version != 0x00020000 &&  /* v2.0 (rare, ex. Ridge Race 6 (X360)) */
         version != 0x00020100 &&  /* v2.1 (common) */
-        version != 0x01020100)    /* same but LE? (seen in PSP games, not PS4) */
+        version != 0x01020100)    /* same but LE (seen in PSP/PC games, except PS4) */
         goto fail;
     if (read_32bitBE(0x04,streamFile) != 0x00000000) /* null */
         goto fail;
 
     /* sometimes LE [Soul Calibur: Broken Destiny (PSP), Tales of Vesperia (PS4) */
-    if (guess_endianness32bit(0x10, streamFile)) {
+    big_endian = guess_endianness32bit(0x10, streamFile);
+    if (big_endian) {
         read_32bit = read_32bitBE;
     } else{
         read_32bit = read_32bitLE;
@@ -44,8 +45,8 @@ VGMSTREAM * init_vgmstream_nub(STREAMFILE *streamFile) {
         size_t header_size, subheader_size, stream_size;
 
         /* - base header */
-        /* 0x08: file id/number (can be 0 = first) */
-        total_subsongs = read_32bit(0x0c, streamFile); /* .nub with 0 files do exist */
+        /* 0x08: file id (0 = first) */
+        total_subsongs = read_32bit(0x0c, streamFile); /* .nub with 0 files do exist, and with 1 song only too */
         data_start = read_32bit(0x10, streamFile); /* exists even with 0 files */
         /* 0x14: data end (may have padding) */
         header_start = read_32bit(0x18, streamFile);
@@ -63,16 +64,17 @@ VGMSTREAM * init_vgmstream_nub(STREAMFILE *streamFile) {
 
         /* .nus have all headers first then all data, but extractors often just paste them together,
          * so we'll combine header+data on the fly to make them playable with existing parsers.
-         * Formats inside .nub don't exist as external files, so they could be extracted in various
-         * ways that we'll try to match (though BNSF can be found as header+data in some bigfiles too). */
+         * Formats inside .nub normally don't exist as external files, so they could be extracted in various
+         * ways that we'll try to match (though IDSP/BNSF can be found as header+data in some bigfiles).
+         * Headers seem to be called "tones" and data "streams" in debug strings. */
 
         header_offset = offset;
 
         /* - extension (as referenced in companion files with internal filenames, ex. "BGM_MovingDemo1.is14" > "is14") */
         if (version != 0x00020000)
-            offset += 0x04; /* skip but not in v2.0 */
+            offset += 0x04; /* skip, not found in v2.0 */
 
-        /* - file header */
+        /* - tone header */
         /* 0x00: config? */
         /* 0x04: header id/number */
         codec = (uint32_t)read_32bit(offset + 0x08, streamFile);
@@ -80,7 +82,8 @@ VGMSTREAM * init_vgmstream_nub(STREAMFILE *streamFile) {
         stream_size    = read_32bit(offset + 0x10, streamFile); /* 0x10 aligned */
         stream_offset  = read_32bit(offset + 0x14, streamFile) + data_start;
         subheader_size = read_32bit(offset + 0x18, streamFile);
-        /* rest looks like config/volumes/etc */
+        /* 0x1c: extra info, size 0x10 (meaning varies but usually loop points) */
+        /* rest until sub-header start looks like config/volumes/pan/etc in various floats */
 
         if (version == 0x00020000)
             subheader_start = 0xAC;
@@ -137,33 +140,10 @@ VGMSTREAM * init_vgmstream_nub(STREAMFILE *streamFile) {
         if (!temp_sf) goto fail;
     }
 
-    /* get names */
-    {
-        /* file names are in a companion file, rarely [Noby Noby Boy (PS3)] */
-        STREAMFILE *nameFile = NULL;
-        char filename[PATH_LIMIT];
-        char basename[255];
 
-        get_streamfile_basename(streamFile, basename, sizeof(basename));
-        snprintf(filename,sizeof(filename), "nuSound2ToneStr%s.bin", basename);
+    /* get names from companion file, rarely [Noby Noby Boy (PS3), Wangan Midnight Maximum Tune (AC)] */
+    load_name(name, sizeof(name), streamFile, big_endian, total_subsongs, target_subsong);
 
-        nameFile = open_streamfile_by_filename(streamFile, filename);
-        if (nameFile && read_32bit(0x08, nameFile) == total_subsongs) {
-            off_t header_start = 0x40; /* first name is bank name */
-            char name1[0x20+1] = {0};
-            char name2[0x20+1] = {0};
-
-            name_size = 0x20;
-            name_offset = header_start + (target_subsong-1)*(name_size*2);
-
-            read_string(name1,name_size, name_offset + 0x00, nameFile); /* internal name */
-            read_string(name2,name_size, name_offset + 0x20, nameFile); /* file name */
-            //todo some filenames use shift-jis, not sure what to do
-
-            snprintf(name,sizeof(name), "%s/%s", name1,name2);
-        }
-        close_streamfile(nameFile);
-    }
 
     /* init the VGMSTREAM */
     vgmstream = init_vgmstream_function(temp_sf);
@@ -184,6 +164,50 @@ fail:
 }
 
 /* *********************************************************** */
+
+static void load_name(char *name, size_t name_size, STREAMFILE *sf, int big_endian, int total_subsongs, int target_subsong) {
+    STREAMFILE *sf_names = NULL;
+    char filename[PATH_LIMIT];
+    char basename[255];
+    char name1[0x40+1] = {0};
+    char name2[0x40+1] = {0};
+    int count;
+    off_t offset;
+    size_t name1_size, name2_size;
+    uint32_t (*read_u32)(off_t,STREAMFILE*) = big_endian ? read_u32be : read_u32le;
+
+    get_streamfile_basename(sf, basename, sizeof(basename));
+    snprintf(filename, sizeof(filename), "nuSound2ToneStr%s.bin", basename);
+
+    sf_names = open_streamfile_by_filename(sf, filename);
+    if (!sf_names) goto done;
+
+    /* 0x00: version/endianness? (0=NNB, 1=WMMT5) */
+    /* 0x04: version/endianness? (1=NNB, 0=WMMT5) */
+    count = read_u32(0x08, sf_names);
+    /* 0x0c: file size */
+    name1_size = read_u32(0x10, sf_names);
+    name2_size = read_u32(0x14, sf_names);
+    /* 0x18/1c: null */
+    /* 0x20: bank name (size 0x20) */
+
+    if (count != total_subsongs)
+        goto done;
+    if (name1_size >= sizeof(name1) || name2_size >= sizeof(name2))
+        goto done;
+
+    offset = 0x40 + (target_subsong - 1) * (name1_size + name2_size);
+
+    read_string(name1, name1_size, offset + 0x00, sf_names); /* internal name */
+    read_string(name2, name2_size, offset + name1_size, sf_names); /* file name */
+    //todo some filenames use shift-jis, not sure what to do
+
+    snprintf(name, name_size, "%s/%s", name1, name2);
+
+done:
+    close_streamfile(sf_names);
+}
+
 
 static STREAMFILE* setup_nub_streamfile(STREAMFILE *sf, off_t header_offset, size_t header_size, off_t stream_offset, size_t stream_size, const char *fake_ext) {
     STREAMFILE *new_sf = NULL;
@@ -206,7 +230,10 @@ static STREAMFILE* setup_nub_streamfile(STREAMFILE *sf, off_t header_offset, siz
 VGMSTREAM * init_vgmstream_nub_wav(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset;
-    int loop_flag, channel_count;
+    int loop_flag, channel_count, sample_rate;
+    size_t data_size, loop_start, loop_length;
+    int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
+    int16_t (*read_16bit)(off_t,STREAMFILE*) = NULL;
 
 
     /* checks */
@@ -215,28 +242,47 @@ VGMSTREAM * init_vgmstream_nub_wav(STREAMFILE *streamFile) {
     if (read_32bitBE(0x00,streamFile) != 0x77617600) /* "wav\0" "*/
         goto fail;
 
-    if (read_16bitBE(0xBC+0x00,streamFile) != 0x0001) /* mini "fmt" chunk */
-        goto fail;
+    if (guess_endianness32bit(0x1c, streamFile)) {
+        read_32bit = read_32bitBE;
+        read_16bit = read_16bitBE;
+    } else {
+        read_32bit = read_32bitLE;
+        read_16bit = read_16bitLE;
+    }
 
-    loop_flag = read_32bitBE(0x24,streamFile);
-    channel_count = read_16bitBE(0xBC+0x02,streamFile);
+    data_size   = read_32bit(0x14,streamFile);
+    /* info header */
+    loop_start  = read_32bit(0x20,streamFile);
+    loop_length = read_32bit(0x24,streamFile);
+    loop_flag   = read_32bit(0x28,streamFile);
+    /* 0x2c: null */
+
+    /* format header: mini "fmt" chunk */
+    if (read_16bit(0xBC + 0x00, streamFile) != 0x0001)
+        goto fail;
+    channel_count = read_16bit(0xBC + 0x02,streamFile);
+    sample_rate  = read_32bit(0xBC + 0x04,streamFile);
+    /* 0x08: bitrate */
+    /* 0x0c: block align/bps */
+
     start_offset = 0xD0;
+
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
     vgmstream->meta_type = meta_NUB;
-    vgmstream->sample_rate = read_32bitBE(0xBC+0x04,streamFile);
-    vgmstream->num_samples = pcm_bytes_to_samples(read_32bitBE(0x14,streamFile), channel_count, 16);
-    vgmstream->loop_start_sample = pcm_bytes_to_samples(read_32bitBE(0x20,streamFile), channel_count, 16);
-    vgmstream->loop_end_sample   = pcm_bytes_to_samples(read_32bitBE(0x24,streamFile), channel_count, 16);
+    vgmstream->sample_rate = sample_rate;
+    vgmstream->num_samples = pcm_bytes_to_samples(data_size, channel_count, 16);
+    vgmstream->loop_start_sample = pcm_bytes_to_samples(loop_start, channel_count, 16);
+    vgmstream->loop_end_sample   = pcm_bytes_to_samples(loop_start + loop_length, channel_count, 16);
 
-    vgmstream->coding_type = coding_PCM16BE;
+    vgmstream->coding_type = coding_PCM16BE; /* always BE */
     vgmstream->layout_type = layout_interleave;
     vgmstream->interleave_block_size = 0x02;
 
-    if ( !vgmstream_open_stream(vgmstream,streamFile,start_offset))
+    if (!vgmstream_open_stream(vgmstream, streamFile, start_offset))
         goto fail;
     return vgmstream;
 
@@ -249,7 +295,9 @@ fail:
 VGMSTREAM * init_vgmstream_nub_vag(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset;
-    int loop_flag, channel_count;
+    int loop_flag, channel_count, sample_rate;
+    size_t data_size, loop_start, loop_length;
+    int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
 
 
     /* checks */
@@ -258,25 +306,41 @@ VGMSTREAM * init_vgmstream_nub_vag(STREAMFILE *streamFile) {
     if (read_32bitBE(0x00,streamFile) != 0x76616700) /* "vag\0" */
         goto fail;
 
-    loop_flag = read_32bitBE(0x24,streamFile);
-    channel_count = 1; /* dual file stereo */
+    if (guess_endianness32bit(0x1c, streamFile)) {
+        read_32bit = read_32bitBE;
+    } else {
+        read_32bit = read_32bitLE;
+    }
+
+    data_size   = read_32bit(0x14,streamFile);
+    /* info header */
+    loop_start  = read_32bit(0x20,streamFile);
+    loop_length = read_32bit(0x24,streamFile);
+    loop_flag   = read_32bit(0x28,streamFile);
+    /* 0x2c: null */
+
+    /* format header */
+    sample_rate  = read_32bit(0xBC + 0x00,streamFile);
+
+    channel_count = 1;
     start_offset = 0xC0;
+
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
     vgmstream->meta_type = meta_NUB;
-    vgmstream->sample_rate = read_32bitBE(0xBC,streamFile);
-    vgmstream->num_samples = ps_bytes_to_samples(read_32bitBE(0x14,streamFile), channel_count);
-    vgmstream->loop_start_sample = ps_bytes_to_samples(read_32bitBE(0x20,streamFile), channel_count);
-    vgmstream->loop_end_sample   = ps_bytes_to_samples(read_32bitBE(0x24,streamFile), channel_count);
+    vgmstream->sample_rate = sample_rate;
+    vgmstream->num_samples = ps_bytes_to_samples(data_size, channel_count);
+    vgmstream->loop_start_sample = ps_bytes_to_samples(loop_start, channel_count);
+    vgmstream->loop_end_sample   = ps_bytes_to_samples(loop_start + loop_length, channel_count);
 
     vgmstream->coding_type = coding_PSX;
     vgmstream->layout_type = layout_none;
     vgmstream->allow_dual_stereo = 1;
 
-    if ( !vgmstream_open_stream(vgmstream,streamFile,start_offset))
+    if (!vgmstream_open_stream(vgmstream, streamFile, start_offset))
         goto fail;
     return vgmstream;
 
@@ -299,7 +363,15 @@ VGMSTREAM * init_vgmstream_nub_at3(STREAMFILE *streamFile) {
     if (read_32bitBE(0x00,streamFile) != 0x61743300) /* "at3\0" */
         goto fail;
 
-    /* mini fmt+fact header, we can use RIFF anyway */
+    /* info header */
+    /* 0x20: loop start (in samples) */
+    /* 0x24: loop length (in samples) */
+    /* 0x28: loop flag */
+    /* 0x2c: null */
+
+    /* format header: mini fmt (WAVEFORMATEX) + fact chunks LE (clone of RIFF's) */
+    /* we can just ignore and use RIFF at data start since it has the same info */
+
     subfile_offset = 0x100;
     subfile_size   = read_32bitLE(subfile_offset + 0x04, streamFile) + 0x08; /* RIFF size */
 
@@ -337,7 +409,12 @@ VGMSTREAM * init_vgmstream_nub_xma(STREAMFILE *streamFile) {
         data_size    = read_32bitBE(0x14,streamFile);
         header_size  = read_32bitBE(0x1c,streamFile);
         chunk_offset = 0xBC;
+
+        /* info header */
+        /* 0x20: null */
         chunk_size   = read_32bitBE(0x24,streamFile);
+        /* 0x24: loop flag */
+        /* 0x20: null */
     }
     else if (read_32bitBE(0x08,streamFile) == 0 && read_32bitBE(0x0c,streamFile) == 0) {
         /* nub v2.0 from Ridge Racer 6 */
@@ -345,6 +422,7 @@ VGMSTREAM * init_vgmstream_nub_xma(STREAMFILE *streamFile) {
         data_size    = read_32bitBE(0x10,streamFile);
         header_size  = read_32bitBE(0x18,streamFile);
         chunk_offset = 0xAC;
+
         chunk_size   = header_size;
     }
     else {
@@ -434,52 +512,45 @@ fail:
 
 /* .nub idsp - from Namco NUB archives [Soul Calibur Legends (Wii), Sky Crawlers: Innocent Aces (Wii)] */
 VGMSTREAM * init_vgmstream_nub_idsp(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
-    off_t start_offset;
-    int loop_flag, channel_count;
+    VGMSTREAM *vgmstream = NULL;
+    STREAMFILE *temp_sf = NULL;
+    off_t header_offset, stream_offset;
+    size_t header_size, stream_size;
+
 
     /* checks */
-    if ( !check_extensions(streamFile,"idsp") )
+    if (!check_extensions(streamFile,"idsp"))
         goto fail;
-
     if (read_32bitBE(0x00,streamFile) != 0x69647370)    /* "idsp" */
         goto fail;
-    if (read_32bitBE(0xBC,streamFile) != 0x49445350)    /* "IDSP" (actual header) */
-        goto fail;
 
-    loop_flag = read_32bitBE(0x20,streamFile);
-    channel_count = read_32bitBE(0xC4,streamFile);
-    if (channel_count > 8) goto fail;
-    start_offset = 0x100 + (channel_count * 0x60);
+    /* info header */
+    /* 0x20: loop start (in samples) */
+    /* 0x24: loop length (in samples) */
+    /* 0x28: loop flag */
+    /* 0x2c: null */
 
-    /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    /* paste header+data together and pass to meta, which has loop info too */
+    header_offset = 0xBC;
+    stream_size = read_32bitBE(0x14, streamFile);
+    header_size = read_32bitBE(0x1c, streamFile);
+    stream_offset = align_size_to_block(header_offset + header_size, 0x10);
+
+    temp_sf = setup_nub_streamfile(streamFile, header_offset, header_size, stream_offset, stream_size, "idsp");
+    if (!temp_sf) goto fail;
+
+    vgmstream = init_vgmstream_idsp_namco(temp_sf);
     if (!vgmstream) goto fail;
 
-    vgmstream->meta_type = meta_NUB;
-    vgmstream->sample_rate = read_32bitBE(0xC8,streamFile);
-    vgmstream->num_samples = dsp_bytes_to_samples(read_32bitBE(0x14,streamFile),channel_count);
-    vgmstream->loop_start_sample = read_32bitBE(0xD0,streamFile);
-    vgmstream->loop_end_sample   = read_32bitBE(0xD4,streamFile);
-
-    vgmstream->coding_type = coding_NGC_DSP;
-    vgmstream->layout_type = layout_interleave;
-    vgmstream->interleave_block_size = read_32bitBE(0xD8,streamFile);
-    if (vgmstream->interleave_block_size == 0)
-        vgmstream->interleave_block_size = read_32bitBE(0x14,streamFile) / channel_count;
-
-    dsp_read_coefs_be(vgmstream,streamFile,0x118,0x60);
-
-    if (!vgmstream_open_stream(vgmstream, streamFile, start_offset))
-        goto fail;
+    close_streamfile(temp_sf);
     return vgmstream;
-
 fail:
+    close_streamfile(temp_sf);
     close_vgmstream(vgmstream);
     return NULL;
 }
 
-/* .nub is14 - from Namco NUB archives [Tales of Vesperia (PS3)]  */
+/* .nub is14 - from Namco NUB archives [Tales of Vesperia (PS3), Mojipittan (Wii)]  */
 VGMSTREAM * init_vgmstream_nub_is14(STREAMFILE *streamFile) {
     VGMSTREAM *vgmstream = NULL;
     STREAMFILE *temp_sf = NULL;
@@ -500,6 +571,7 @@ VGMSTREAM * init_vgmstream_nub_is14(STREAMFILE *streamFile) {
         read_32bit = read_32bitLE;
     }
 
+    /* info header: null (even when BSNF loops) */
 
     /* paste header+data together and pass to meta */
     header_offset = 0xBC;

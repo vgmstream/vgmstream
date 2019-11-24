@@ -690,7 +690,7 @@ static STREAMFILE* open_mapfile_pair(STREAMFILE *streamFile, int track, int num_
                 continue;
         }
 
-        strncpy(buf, mus_name, PATH_LIMIT);
+        strncpy(buf, mus_name, PATH_LIMIT - 1);
         pch = strtok(buf, ","); //TODO: not thread safe in std C
         for (j = 0; j < track && pch; j++) {
             pch = strtok(NULL, ",");
@@ -699,9 +699,9 @@ static STREAMFILE* open_mapfile_pair(STREAMFILE *streamFile, int track, int num_
 
         if (use_mask) {
             file_name[file_len - map_len] = '\0';
-            strncat(file_name, pch + 1, PATH_LIMIT);
+            strncat(file_name, pch + 1, PATH_LIMIT - 1);
         } else {
-            strncpy(file_name, pch, PATH_LIMIT);
+            strncpy(file_name, pch, PATH_LIMIT - 1);
         }
 
         musFile = open_streamfile_by_filename(streamFile, file_name);

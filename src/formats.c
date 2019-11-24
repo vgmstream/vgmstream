@@ -32,6 +32,7 @@ static const char* extension_list[] = {
     //"aac", //common
     "aa3", //FFmpeg/not parsed (ATRAC3/ATRAC3PLUS/MP3/LPCM/WMA)
     "aax",
+    "abc", //txth/reserved [Find My Own Way (PS2) tech demo]
     "abk",
     //"ac3", //common, FFmpeg/not parsed (AC3)
     "acb",
@@ -326,6 +327,7 @@ static const char* extension_list[] = {
     "nps",
     "npsf", //fake extension/header id for .nps (in bigfiles)
     "nub",
+    "nub2",
     "nus3audio",
     "nus3bank",
     "nwa",
@@ -798,7 +800,7 @@ static const layout_info layout_info_list[] = {
         {layout_blocked_vs,             "blocked (Melbourne House VS)"},
         {layout_blocked_mul,            "blocked (MUL)"},
         {layout_blocked_gsb,            "blocked (GSB)"},
-        {layout_blocked_thp,            "blocked (THP Movie Audio)"},
+        {layout_blocked_thp,            "blocked (THP)"},
         {layout_blocked_filp,           "blocked (FILP)"},
         {layout_blocked_ea_swvr,        "blocked (EA SWVR)"},
         {layout_blocked_adm,            "blocked (ADM)"},
@@ -987,7 +989,7 @@ static const meta_info meta_info_list[] = {
         {meta_DCS_WAV,              "In Utero DCS+WAV header"},
         {meta_SMP,                  "Infernal Engine .smp header"},
         {meta_MUL,                  "Crystal Dynamics .MUL header"},
-        {meta_THP,                  "THP Movie File Format Header"},
+        {meta_THP,                  "Nintendo THP header"},
         {meta_STS_WII,              "Shikigami no Shiro (WII) Header"},
         {meta_PS2_P2BT,             "Pop'n'Music 7 Header"},
         {meta_PS2_GBTS,             "Pop'n'Music 9 Header"},
@@ -1098,7 +1100,7 @@ static const meta_info meta_info_list[] = {
         {meta_MN_STR,               "Mini Ninjas 'STR' header"},
         {meta_MSS,                  "Guerilla MCSS header"},
         {meta_PS2_HSF,              "Lowrider 'HSF' header"},
-        {meta_PS3_IVAG,             "PS3 'IVAG' Header"},
+        {meta_IVAG,                 "Namco IVAG header"},
         {meta_PS2_2PFS,             "Konami 2PFS header"},
         {meta_UBI_CKD,              "Ubisoft CKD RIFF header"},
         {meta_PS2_VBK,              "PS2 VBK Header"},
@@ -1107,7 +1109,7 @@ static const meta_info meta_info_list[] = {
         {meta_FSTM,                 "Nintendo FSTM Header"},
         {meta_KT_WIIBGM,            "Koei Tecmo WiiBGM Header"},
         {meta_KTSS,                 "Koei Tecmo Nintendo Stream KTSS Header"},
-        {meta_IDSP_NUS3,            "Namco NUS3 IDSP header"},
+        {meta_IDSP_NAMCO,           "Namco IDSP header"},
         {meta_WIIU_BTSND,           "Nintendo Wii U Menu Boot Sound"},
         {meta_MCA,                  "Capcom MCA header"},
         {meta_XB3D_ADX,             "Xenoblade 3D ADX header"},

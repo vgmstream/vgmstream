@@ -465,20 +465,23 @@ static void parse_sead_mab_name(sead_header *sead, STREAMFILE *sf) {
 static void parse_sead_sab_name(sead_header *sead, STREAMFILE *sf) {
     int32_t (*read_32bit)(off_t,STREAMFILE*) = sead->big_endian ? read_32bitBE : read_32bitLE;
     int16_t (*read_16bit)(off_t,STREAMFILE*) = sead->big_endian ? read_16bitBE : read_16bitLE;
-    int i, entries, snd_id, wave_id, snd_found = 0;
+    int i, snd_entries, trk_entries, snd_id, wave_id, snd_found = 0;
     size_t size;
     off_t entry_offset;
 
 
     //todo looks mostly correct for many subsongs but in rare cases wave_ids aren't referenced
-    // or maybe id needs another jump (seq?) (ex. DQB se_break_soil, FFXV aircraftzeroone)
+    // or maybe id needs another jump (seq?) (ex. DQB se_break_soil, FFXV aircraftzeroone, FFXV 03bt100031pc00)
+
+    snd_entries = read_16bit(sead->snd_offset + 0x04, sf);
+    trk_entries = read_16bit(sead->trk_offset + 0x04, sf);
 
     /* parse "trk" (track info) */
-    entries = read_16bit(sead->trk_offset + 0x04, sf);
-    for (i = 0; i < entries; i++) {
+    for (i = 0; i < trk_entries; i++) {
         entry_offset = sead->trk_offset + read_32bit(sead->trk_offset + 0x10 + i*0x04, sf);
 
-        /* 0x00: type/count? */
+        /* 0x00: type? */
+        /* 0x01: subtype? */
         size = read_16bit(entry_offset + 0x02, sf); /* bigger if 'type=03' */
         /* 0x04: trk id? */
         /* 0x04: some id? */
@@ -499,15 +502,20 @@ static void parse_sead_sab_name(sead_header *sead, STREAMFILE *sf) {
         }
     }
 
+    if (snd_found && snd_id >= snd_entries) {
+        VGM_LOG("SEAD: bad snd_id found\n");
+        snd_found = 0;
+    }
+
     if (!snd_found) {
-        if (sead->total_subsongs == 1) {
+        if (sead->total_subsongs == 1 || snd_entries == 1) {
             snd_id = 0; /* meh */
             VGM_LOG("SEAD: snd_id not found, using first\n");
         } else {
+            VGM_LOG("SEAD: snd_id not found, subsongs=%i, snd=%i, trk=%i\n", sead->total_subsongs, snd_entries, trk_entries);
             return;
         }
     }
-
 
     /* parse "snd " (sound info) */
     {

@@ -570,13 +570,13 @@ typedef enum {
     meta_MN_STR,            /* Mini Ninjas (PC/PS3/WII) */
     meta_MSS,               /* Guerilla: ShellShock Nam '67 (PS2/Xbox), Killzone (PS2) */
     meta_PS2_HSF,           /* Lowrider (PS2) */
-    meta_PS3_IVAG,          /* Interleaved VAG files (PS3) */
+    meta_IVAG,
     meta_PS2_2PFS,          /* Konami: Mahoromatic: Moetto - KiraKira Maid-San, GANTZ (PS2) */
     meta_PS2_VBK,           /* Disney's Stitch - Experiment 626 */
     meta_OTM,               /* Otomedius (Arcade) */
     meta_CSTM,              /* Nintendo 3DS CSTM (Century Stream) */
     meta_FSTM,              /* Nintendo Wii U FSTM (caFe? Stream) */
-    meta_IDSP_NUS3,         /* Namco 3DS/Wii U IDSP */
+    meta_IDSP_NAMCO,
     meta_KT_WIIBGM,         /* Koei Tecmo WiiBGM */
     meta_KTSS,              /* Koei Tecmo Nintendo Stream (KNS) */
     meta_MCA,               /* Capcom MCA "MADP" */

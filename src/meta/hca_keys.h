@@ -15,7 +15,7 @@ typedef struct {
  * CRI's tools expect an unsigned 64 bit number string, but keys are commonly found online in hex form.
  * Keys only use 56 bits though, so the upper 8 bits can be ignored.
  *
- * ACB+AWB after mid 2018 use a user seed key + a scramble subkey in the AWB (normally 16b LE at 0x0e)
+ * Some ACB+AWB after mid 2018 use a user seed key + a scramble subkey in the AWB (normally 16b LE at 0x0e)
  * to create the final HCA key, which means there is one key per AWB (so most HCA have a unique key).
  * vgmstream derives the key if subkey table is provided.
  */
@@ -303,7 +303,10 @@ static const hcakey_info hcakey_list[] = {
         /* BLACKSTAR -Theater Starless- (Android) */
         {121837007188},             // 0000001C5E0D3154
 
-        /* Dragalia Lost (Cygames) [iOS/Android] */
+        /* Nogizaka46 Rhythm Festival (Android) */
+        {5613126134333697},         // 0013F11BC5510101
+
+        /* Dragalia Lost (iOS/Android) */
         {2967411924141,         subkeys_dgl, sizeof(subkeys_dgl) / sizeof(subkeys_dgl[0]) },    // 000002B2E7889CAD
 
 };

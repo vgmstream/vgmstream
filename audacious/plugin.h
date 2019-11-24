@@ -9,7 +9,11 @@
 
 #ifndef AUDACIOUS_VGMSTREAM_PRIORITY
 // set higher than FFmpeg but lower than common plugins that use around 3
-#define AUDACIOUS_VGMSTREAM_PRIORITY 4
+#ifdef _AUD_PLUGIN_DEFAULT_PRIO
+# define AUDACIOUS_VGMSTREAM_PRIORITY  (_AUD_PLUGIN_DEFAULT_PRIO - 1)
+#else
+# define AUDACIOUS_VGMSTREAM_PRIORITY  4
+#endif
 #endif
 
 class VgmstreamPlugin : public InputPlugin {
