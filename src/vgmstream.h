@@ -570,7 +570,7 @@ typedef enum {
     meta_MN_STR,            /* Mini Ninjas (PC/PS3/WII) */
     meta_MSS,               /* Guerilla: ShellShock Nam '67 (PS2/Xbox), Killzone (PS2) */
     meta_PS2_HSF,           /* Lowrider (PS2) */
-    meta_PS3_IVAG,          /* Interleaved VAG files (PS3) */
+    meta_IVAG,
     meta_PS2_2PFS,          /* Konami: Mahoromatic: Moetto - KiraKira Maid-San, GANTZ (PS2) */
     meta_PS2_VBK,           /* Disney's Stitch - Experiment 626 */
     meta_OTM,               /* Otomedius (Arcade) */

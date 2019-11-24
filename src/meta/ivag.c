@@ -1,84 +1,50 @@
 #include "meta.h"
-#include "../util.h"
 
-/* IVAG
-    - The Idolm@ster: Gravure For You! Vol. 3 (PS3)
 
-    Appears to be two VAGp streams interleaved.
-*/
-VGMSTREAM * init_vgmstream_ps3_ivag(STREAMFILE *streamFile) 
-{
+/* IVAG - Namco header (from NUS3) [THE iDOLM@STER 2 (PS3), THE iDOLM@STER: Gravure For You! (PS3)] */
+VGMSTREAM * init_vgmstream_ivag(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
-    
     off_t start_offset;
 
     int loop_flag = 0;
     int channel_count;
 
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("ivag",filename_extension(filename))) goto fail;
-
-    /* check header */
-    if (read_32bitBE(0x00,streamFile) != 0x49564147) // "IVAG"
+    /* checks */
+    /* .ivag: header id (since format can't be found outside NUS3) */
+    if (!check_extensions(streamFile, "ivag"))
         goto fail;
 
-    // channel count
-    channel_count = read_32bitBE(0x08, streamFile);
+    if (read_32bitBE(0x00,streamFile) != 0x49564147) /* "IVAG" */
+        goto fail;
 
-    // header size
+    /* 0x04: null */
+    channel_count = read_32bitBE(0x08, streamFile);
+    loop_flag = (read_32bitBE(0x18, streamFile) != 0);
+
+    /* skip VAGp headers per channel (size 0x40) */
     start_offset = 0x40 + (0x40 * channel_count);
-    
-    // loop flag
-    if ((read_32bitBE(0x14, streamFile) != 0 ||
-        (read_32bitBE(0x18, streamFile) != 0)))
-    {
-        loop_flag = 1;
-    }
+
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-    /* fill in the vital statistics */
-    vgmstream->channels = channel_count;
-    vgmstream->sample_rate = read_32bitBE(0x0C,streamFile);
-    vgmstream->coding_type = coding_PSX;
-    vgmstream->num_samples = read_32bitBE(0x10,streamFile);
- 
-    if (loop_flag)
-    {
-        vgmstream->loop_start_sample = read_32bitBE(0x14,streamFile);
-        vgmstream->loop_end_sample = read_32bitBE(0x18,streamFile);
-    }
+    vgmstream->meta_type = meta_IVAG;
 
+    vgmstream->sample_rate = read_32bitBE(0x0C,streamFile);
+    vgmstream->num_samples = read_32bitBE(0x10,streamFile);
+    vgmstream->loop_start_sample = read_32bitBE(0x14,streamFile);
+    vgmstream->loop_end_sample = read_32bitBE(0x18,streamFile);
+
+    vgmstream->coding_type = coding_PSX;
     vgmstream->layout_type = layout_interleave;
     vgmstream->interleave_block_size = read_32bitBE(0x1C,streamFile);
-    vgmstream->meta_type = meta_PS3_IVAG;
 
-    /* open the file for reading */
-    {
-        int i;
-        STREAMFILE * file;
-        file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (!file) goto fail;
-        
-        for (i=0;i<channel_count;i++)
-        {
-            vgmstream->ch[i].streamfile = file;
-
-            vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=start_offset + (vgmstream->interleave_block_size * i);
-
-        }
-
-    }
-
+    if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
+        goto fail;
     return vgmstream;
 
-    /* clean up anything we may have opened */
 fail:
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_vgmstream(vgmstream);
     return NULL;
 }

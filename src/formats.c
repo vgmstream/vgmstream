@@ -1098,7 +1098,7 @@ static const meta_info meta_info_list[] = {
         {meta_MN_STR,               "Mini Ninjas 'STR' header"},
         {meta_MSS,                  "Guerilla MCSS header"},
         {meta_PS2_HSF,              "Lowrider 'HSF' header"},
-        {meta_PS3_IVAG,             "PS3 'IVAG' Header"},
+        {meta_IVAG,                 "Namco IVAG header"},
         {meta_PS2_2PFS,             "Konami 2PFS header"},
         {meta_UBI_CKD,              "Ubisoft CKD RIFF header"},
         {meta_PS2_VBK,              "PS2 VBK Header"},
