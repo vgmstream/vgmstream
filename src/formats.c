@@ -32,6 +32,7 @@ static const char* extension_list[] = {
     //"aac", //common
     "aa3", //FFmpeg/not parsed (ATRAC3/ATRAC3PLUS/MP3/LPCM/WMA)
     "aax",
+    "abc", //txth/reserved [Find My Own Way (PS2) tech demo]
     "abk",
     //"ac3", //common, FFmpeg/not parsed (AC3)
     "acb",
