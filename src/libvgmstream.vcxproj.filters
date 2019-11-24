@@ -1513,7 +1513,7 @@
     <ClCompile Include="meta\ps2_2pfs.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ps3_ivag.c">
+    <ClCompile Include="meta\ivag.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\mp4.c">
