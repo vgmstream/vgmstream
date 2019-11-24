@@ -340,9 +340,9 @@ static int parse_musx(STREAMFILE *streamFile, musx_header *musx) {
             musx->is_old = 1;
             break;
 
-        case 4:     /* Spyro: A Hero's Tail (PS2/Xbox/GC) */
+        case 4:     /* Spyro: A Hero's Tail (PS2/Xbox/GC), Athens 2004 (PC) */
         case 5:     /* Predator: Concrete Jungle (PS2/Xbox), Robots (GC) */
-        case 6:     /* Batman Begins (GC), Ice Age 2 (PS2) */
+        case 6:     /* Batman Begins (GC), Ice Age 2 (PS2/PC) */
             musx->platform = read_32bitBE(0x10,streamFile);
             /* 0x14: some id/hash? */
             /* 0x18: platform number? */
