@@ -77,11 +77,13 @@ VGMSTREAM * init_vgmstream_nus3bank(STREAMFILE *streamFile) {
             off_t tone_header_offset = read_32bitLE(tone_offset+0x04+(i*0x08)+0x00, streamFile);
             size_t tone_header_size  = read_32bitLE(tone_offset+0x04+(i*0x08)+0x04, streamFile);
 
+            header_offset = tone_offset + tone_header_offset;
+            //;VGM_LOG("NUS3BANK: subsong header offset %lx, size %x\n", header_offset, tone_header_size);
+
             if (tone_header_size <= 0x0c) {
                 continue; /* ignore non-sounds */
             }
 
-            header_offset = tone_offset + tone_header_offset;
 
             stream_name_size = read_8bit(header_offset+0x0c, streamFile); /* includes null */
             stream_name_offset = header_offset+0x0d;
@@ -94,6 +96,7 @@ VGMSTREAM * init_vgmstream_nus3bank(STREAMFILE *streamFile) {
 
             stream_offset = read_32bitLE(header_offset+header_suboffset+0x08, streamFile) + pack_offset;
             stream_size   = read_32bitLE(header_offset+header_suboffset+0x0c, streamFile);
+            //;VGM_LOG("NUS3BANK: so=%lx, ss=%x\n", stream_offset, stream_size);
             if (stream_size == 0) {
                 continue; /* happens in some sfx packs */
             }
@@ -149,7 +152,7 @@ VGMSTREAM * init_vgmstream_nus3bank(STREAMFILE *streamFile) {
     /* init the VGMSTREAM */
     switch(codec) {
         case IDSP:
-            vgmstream = init_vgmstream_idsp_nus3(temp_streamFile);
+            vgmstream = init_vgmstream_idsp_namco(temp_streamFile);
             if (!vgmstream) goto fail;
             break;
         case OPUS:

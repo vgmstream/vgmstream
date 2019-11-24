@@ -597,8 +597,8 @@ fail:
     return NULL;
 }
 
-/* IDSP - Namco header (from NUS3) + interleaved dsp [SSB4 (3DS), Tekken Tag Tournament 2 (WiiU)] */
-VGMSTREAM * init_vgmstream_idsp_nus3(STREAMFILE *streamFile) {
+/* IDSP - Namco header (from NUB/NUS3) + interleaved dsp [SSB4 (3DS), Tekken Tag Tournament 2 (WiiU)] */
+VGMSTREAM * init_vgmstream_idsp_namco(STREAMFILE *streamFile) {
     dsp_meta dspm = {0};
 
     /* checks */
@@ -606,21 +606,26 @@ VGMSTREAM * init_vgmstream_idsp_nus3(STREAMFILE *streamFile) {
         goto fail;
     if (read_32bitBE(0x00,streamFile) != 0x49445350) /* "IDSP" */
         goto fail;
-    /* 0x0c: sample rate, 0x10: num_samples, 0x14: loop_start_sample, 0x18: loop_start_sample */
 
-    dspm.channel_count = read_32bitBE(0x08, streamFile);
     dspm.max_channels = 8;
     /* games do adjust loop_end if bigger than num_samples (only happens in user-created IDSPs) */
     dspm.fix_looping = 1;
 
+    /* 0x04: null */
+    dspm.channel_count = read_32bitBE(0x08, streamFile);
+    /* 0x0c: sample rate */
+    /* 0x10: num_samples */
+    /* 0x14: loop start */
+    /* 0x18: loop end */
+    dspm.interleave = read_32bitBE(0x1c,streamFile); /* usually 0x10 */
     dspm.header_offset = read_32bitBE(0x20,streamFile);
     dspm.header_spacing = read_32bitBE(0x24,streamFile);
     dspm.start_offset = read_32bitBE(0x28,streamFile);
-    dspm.interleave = read_32bitBE(0x1c,streamFile); /* usually 0x10 */
-    if (dspm.interleave == 0) /* Taiko no Tatsujin: Atsumete Tomodachi Daisakusen (WiiU) */
-        dspm.interleave = read_32bitBE(0x2c,streamFile); /* half interleave, use channel size */
+    /* Soul Calibur: Broken destiny (PSP), Taiko no Tatsujin: Atsumete Tomodachi Daisakusen (WiiU) */
+    if (dspm.interleave == 0) /* half interleave (happens sometimes), use channel size */
+        dspm.interleave = read_32bitBE(0x2c,streamFile);
 
-    dspm.meta_type = meta_IDSP_NUS3;
+    dspm.meta_type = meta_IDSP_NAMCO;
     return init_vgmstream_dsp_common(streamFile, &dspm);
 fail:
     return NULL;

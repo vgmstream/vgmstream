@@ -92,7 +92,7 @@ VGMSTREAM * init_vgmstream_nus3audio(STREAMFILE *streamFile) {
     /* init the VGMSTREAM */
     switch(codec) {
         case IDSP:
-            vgmstream = init_vgmstream_idsp_nus3(temp_streamFile);
+            vgmstream = init_vgmstream_idsp_namco(temp_streamFile);
             if (!vgmstream) goto fail;
             break;
         case OPUS:
