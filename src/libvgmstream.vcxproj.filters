@@ -116,6 +116,9 @@
     <ClInclude Include="meta\mzrt_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="meta\nus3bank_streamfile.h">
+      <Filter>meta\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="meta\ogg_vorbis_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>

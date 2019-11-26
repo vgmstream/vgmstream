@@ -746,6 +746,7 @@ VGMSTREAM * init_vgmstream_hd3_bd3(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_bnk_sony(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_nus3bank(STREAMFILE *streamFile);
+VGMSTREAM * init_vgmstream_nus3bank_encrypted(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_scd_sscf(STREAMFILE *streamFile);
 

@@ -1,7 +1,9 @@
 #include "meta.h"
 #include "../coding/coding.h"
 
-typedef enum { IDSP, IVAG, BNSF, RIFF, OPUS, } nus3bank_codec;
+#include "nus3bank_streamfile.h"
+
+typedef enum { IDSP, IVAG, BNSF, RIFF, OPUS, RIFF_ENC, } nus3bank_codec;
 
 /* .nus3bank - Namco's newest audio container [Super Smash Bros (Wii U), idolmaster (PS4))] */
 VGMSTREAM * init_vgmstream_nus3bank(STREAMFILE *streamFile) {
@@ -145,7 +147,7 @@ VGMSTREAM * init_vgmstream_nus3bank(STREAMFILE *streamFile) {
             goto fail;
         }
 
-        //todo improve, codec may be in one of the tone sub-chunks (or other chunk? one bank seems to share codec)
+        //todo improve, codec may be in one of the tone sub-chunks (or other chunk? one bank seems to use one codec)
         codec_id = read_32bitBE(subfile_offset, streamFile);
         switch(codec_id) {
             case 0x49445350: /* "IDSP" [Super Smash Bros. for 3DS (3DS)] */
@@ -173,7 +175,11 @@ VGMSTREAM * init_vgmstream_nus3bank(STREAMFILE *streamFile) {
                 fake_ext = "ivag";
                 break;
 
-            case 0x552AAF17: /* "RIFF" with encrypted header (not data) [THE iDOLM@STER 2 (X360)] */ //TODO
+            case 0x552AAF17: /* "RIFF" with encrypted header (not data) [THE iDOLM@STER 2 (X360)] */
+                codec = RIFF_ENC;
+                fake_ext = "xma";
+                break;
+
             default:
                 VGM_LOG("NUS3BANK: unknown codec %x\n", codec_id);
                 goto fail;
@@ -212,6 +218,11 @@ VGMSTREAM * init_vgmstream_nus3bank(STREAMFILE *streamFile) {
             if (!vgmstream) goto fail;
             break;
 
+        case RIFF_ENC:
+            vgmstream = init_vgmstream_nus3bank_encrypted(temp_sf);
+            if (!vgmstream) goto fail;
+            break;
+
         default:
             goto fail;
     }
@@ -220,6 +231,33 @@ VGMSTREAM * init_vgmstream_nus3bank(STREAMFILE *streamFile) {
     if (name_offset)
         read_string(vgmstream->stream_name,name_size, name_offset,streamFile);
 
+
+    close_streamfile(temp_sf);
+    return vgmstream;
+
+fail:
+    close_streamfile(temp_sf);
+    close_vgmstream(vgmstream);
+    return NULL;
+}
+
+/* encrypted RIFF from the above, in case kids try to extract and play single files */
+VGMSTREAM* init_vgmstream_nus3bank_encrypted(STREAMFILE *sf) {
+    VGMSTREAM *vgmstream = NULL;
+    STREAMFILE *temp_sf = NULL;
+
+
+    /* checks */
+    if (!check_extensions(sf, "nus3bank,xma"))
+        goto fail;
+    if (read_u32be(0x00, sf) != 0x552AAF17) /* "RIFF" encrypted */
+        goto fail;
+
+    temp_sf = setup_nus3bank_streamfile(sf, 0x00);
+    if (!temp_sf) goto fail;
+
+    vgmstream = init_vgmstream_xma(temp_sf);
+    if (!vgmstream) goto fail;
 
     close_streamfile(temp_sf);
     return vgmstream;
