@@ -405,6 +405,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_hd3_bd3,
     init_vgmstream_bnk_sony,
     init_vgmstream_nus3bank,
+    init_vgmstream_nus3bank_encrypted,
     init_vgmstream_scd_sscf,
     init_vgmstream_dsp_sps_n1,
     init_vgmstream_dsp_itl_ch,

@@ -184,6 +184,9 @@ static const adxkey_info adxkey8_list[] = {
         /* Gintama Gin-san to Issho! Boku no Kabukichou Nikki (PS2) [Bandai Namco?] */
         {0x67CD,0x5CA7,0x655F, "gt25809",0},
 
+        /* Lucky Star: RAvish Romance (PS2) [Vridge] */
+        {0x5347,0x4FB7,0x6415, "LUCKYSRARPS2",0},
+
 };
 
 static const adxkey_info adxkey9_list[] = {

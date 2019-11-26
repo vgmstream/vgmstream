@@ -59,6 +59,14 @@ void put_16bitBE(uint8_t * buf, int16_t i);
 
 void put_32bitBE(uint8_t * buf, int32_t i);
 
+/* alias of the above */ //TODO: improve
+#define put_u8 put_8bit
+#define put_u16le put_16bitLE
+#define put_u32le put_32bitLE
+#define put_u16be put_16bitBE
+#define put_u32be put_32bitBE
+
+
 /* signed nibbles come up a lot */
 static int nibble_to_int[16] = {0,1,2,3,4,5,6,7,-8,-7,-6,-5,-4,-3,-2,-1};
 
