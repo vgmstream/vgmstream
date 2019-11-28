@@ -201,7 +201,9 @@ int vgmstream_tags_next_tag(VGMSTREAM_TAGS* tags, STREAMFILE* tagfile) {
 
         if (tags->section_found) {
             /* find possible file tag */
-            ok = sscanf(line, "# %%%[^ \t] %[^\r\n] ", tags->key,tags->val);
+            ok = sscanf(line, "# %%%[^%%]%% %[^\r\n] ", tags->key,tags->val); /* key with spaces */
+            if (ok != 2)
+                ok = sscanf(line, "# %%%[^ \t] %[^\r\n] ", tags->key,tags->val); /* key without */
             if (ok == 2) {
                 tags_clean(tags);
                 return 1;
@@ -224,7 +226,9 @@ int vgmstream_tags_next_tag(VGMSTREAM_TAGS* tags, STREAMFILE* tagfile) {
                 }
 
                 /* find possible global tag */
-                ok = sscanf(line, "# @%[^ \t] %[^\r\n]", tags->key,tags->val);
+                ok = sscanf(line, "# @%[^@]@ %[^\r\n]", tags->key,tags->val); /* key with spaces */
+                if (ok != 2)
+                    ok = sscanf(line, "# @%[^ \t] %[^\r\n]", tags->key,tags->val); /* key without */
                 if (ok == 2) {
                     tags_clean(tags);
                     return 1;
