@@ -213,7 +213,7 @@ have total samples after those.
 Certain formats have encrypted data, and need a key to decrypt. vgmstream
 will try to find the correct key from a list, but it can be provided by
 a companion file:
-- .adx: .adxkey (keystring, keycode, or derived 6 byte start/mult/add key)
+- .adx: .adxkey (keystring, 8 byte keycode, or derived 6 byte start/mult/add key)
 - .ahx: .ahxkey (derived 6 byte start/mult/add key)
 - .hca: .hcakey (8 byte decryption key, a 64-bit number)
   - May be followed by 2 byte AWB scramble key for newer HCA
@@ -294,12 +294,12 @@ ordering), the file itself just 'looks' like an M3U.
 Format is:
 ```
 # ignored comment
-# $GLOBAL_COMMAND value (extra features)
-# @GLOBAL_TAG value (applies all following tracks)
+# $GLOBAL_COMMAND (extra features)
+# @GLOBAL_TAG text (applies all following tracks)
 
-# %LOCAL_TAG value (applies to next track only)
+# %LOCAL_TAG text (applies to next track only)
 filename1
-# %LOCAL_TAG value (applies to next track only)
+# %LOCAL_TAG text (applies to next track only)
 filename2
 ```
 Accepted tags depend on the player (foobar: any; winamp: see ATF config),
@@ -314,6 +314,16 @@ Playlist formatting should follow player's config. ASCII or UTF-8 tags work.
 - *AUTOTRACK*: sets *%TRACK* tag automatically (1..N as files are encountered
   in the tag file).
 - *AUTOALBUM*: sets *%ALBUM* tag automatically using the containing dir as album.
+
+Some players like foobar accept tags with spaces. To use them surround the tag
+with both characters.
+```
+# @GLOBAL TAG WITH SPACES@ text
+# ...
+# %LOCAL TAG WITH SPACES% text
+filename1
+```
+As a side effect if text has @/% inside you also need them: `# @ALBUMARTIST@ Tom-H@ck`
 
 Note that since you can use global tags don't need to put all files inside.
 This would be a perfectly valid *!tags.m3u*:

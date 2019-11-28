@@ -189,11 +189,14 @@ void input_vgmstream::get_info(t_uint32 p_subsong, file_info & p_info, abort_cal
             vgmstream_tags_reset(tags, filename);
             while (vgmstream_tags_next_tag(tags, tagFile)) {
                 if (replaygain_info::g_is_meta_replaygain(tag_key)) {
-                    p_info.info_set_replaygain(tag_key,tag_val);
+                    p_info.info_set_replaygain(tag_key, tag_val);
                     /* there is info_set_replaygain_auto too but no doc */
                 }
+                else if (stricmp_utf8("ALBUMARTIST", tag_key) == 0)
+                    /* normalize as foobar won't handle (though it's accepted in .ogg) */
+                    p_info.meta_set("ALBUM ARTIST", tag_val);
                 else {
-                    p_info.meta_set(tag_key,tag_val);
+                    p_info.meta_set(tag_key, tag_val);
                 }
             }
             vgmstream_tags_close(tags);
