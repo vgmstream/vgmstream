@@ -245,7 +245,7 @@ static size_t eaac_io_size(STREAMFILE *streamfile, eaac_io_data* data) {
  * - EATrax: ATRAC9 frames can be split between blooks
  * - EAOpus: multiple Opus packets of frame size + Opus data per block
  */
-static STREAMFILE* setup_eaac_streamfile(STREAMFILE *sf, int version, int codec, int streamed, int stream_number, int stream_count, off_t stream_offset) {
+static STREAMFILE* setup_eaac_audio_streamfile(STREAMFILE *sf, int version, int codec, int streamed, int stream_number, int stream_count, off_t stream_offset) {
     STREAMFILE *new_sf = NULL;
     eaac_io_data io_data = {0};
 

@@ -24,7 +24,7 @@ void block_update_ea_sns(off_t block_offset, VGMSTREAM * vgmstream) {
     /* At 0x00(1): block flag
      * - in SNS: 0x00=normal block, 0x80=last block (not mandatory)
      * - in SPS: 0x48=header, 0x44=normal block, 0x45=last block (empty) */
-    block_id = (block_size & 0x00FFFFFF) >> 24;
+    block_id = (block_size & 0xFF000000) >> 24;
     block_size &= 0x00FFFFFF;
 
     if (block_id == 0x00 || block_id == 0x80 || block_id == 0x44) {
