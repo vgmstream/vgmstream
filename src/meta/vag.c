@@ -199,12 +199,14 @@ VGMSTREAM * init_vgmstream_vag(STREAMFILE *streamFile) {
                 interleave = 0x800;
                 loop_flag = 0;
             }
-            else if (read_32bitBE(0x24, streamFile) == 0x56414778) { /* VAGx" */
+            else if (read_32bitBE(0x24, streamFile) == 0x56414778) { /* "VAGx" */
                 /* Need for Speed: Hot Pursuit 2 (PS2) */
                 start_offset = 0x30;
                 channel_count = read_32bitBE(0x2c, streamFile);
                 channel_size = channel_size / channel_count;
                 loop_flag = 0;
+
+                if (file_size % 0x10 != 0) goto fail;
 
                 /* detect interleave using end markers */
                 interleave = 0;
@@ -214,7 +216,7 @@ VGMSTREAM * init_vgmstream_vag(STREAMFILE *streamFile) {
                     off_t end_off = 0;
                     uint8_t flag;
 
-                    while (1) {
+                    while (offset > start_offset) {
                         offset -= 0x10;
                         flag = read_8bit(offset + 0x01, streamFile);
                         if (flag == 0x01) {
@@ -225,9 +227,9 @@ VGMSTREAM * init_vgmstream_vag(STREAMFILE *streamFile) {
                                 break;
                             }
                         }
-
-                        if (offset == start_offset) goto fail;
                     }
+
+                    if (!interleave) goto fail;
                 }
             }
             else {
