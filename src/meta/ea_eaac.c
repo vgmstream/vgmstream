@@ -338,7 +338,7 @@ VGMSTREAM * init_vgmstream_ea_sbr(STREAMFILE *streamFile) {
         if (read_32bitBE(0x00, sbsFile) != 0x53424B53) /* "SBKS" */
             goto fail;
 
-        vgmstream = init_vgmstream_eaaudiocore_header(sbsFile, NULL, snr_offset, 0x00, meta_EA_SPS, 0);
+        vgmstream = init_vgmstream_eaaudiocore_header(sbsFile, NULL, sns_offset, 0x00, meta_EA_SPS, 0);
         if (!vgmstream)
             goto fail;
     } else if (sns_offset == 0) {
@@ -753,7 +753,6 @@ VGMSTREAM * init_vgmstream_ea_tmx(STREAMFILE *streamFile) {
 
     switch (sound_type) {
         case 0x47494E20: /* "GIN " */
-            /* FIXME: need to get GIN size somehow */
             vgmstream = init_vgmstream_gin_header(streamFile, sound_offset);
             if (!vgmstream) goto fail;
             break;
@@ -777,7 +776,7 @@ VGMSTREAM * init_vgmstream_ea_sbr_harmony(STREAMFILE *streamFile) {
     uint32_t num_dsets, set_sounds, chunk_id;
     uint32_t i;
     uint8_t set_type, flag, offset_size;
-    off_t data_offset, table_offset, dset_offset, base_offset, sound_table_offset, sound_offset, header_offset, start_offset;
+    off_t data_offset, table_offset, dset_offset, base_offset, sound_table_offset, sound_offset;
     STREAMFILE *sbsFile = NULL, *streamData = NULL;
     VGMSTREAM *vgmstream = NULL;
     int target_stream = streamFile->stream_index, total_sounds, local_target, is_streamed = 0;
@@ -927,12 +926,7 @@ VGMSTREAM * init_vgmstream_ea_sbr_harmony(STREAMFILE *streamFile) {
         }
     }
 
-    if (read_8bit(sound_offset, streamData) != EAAC_BLOCKID1_HEADER)
-        goto fail;
-
-    header_offset = sound_offset + 0x04;
-    start_offset = sound_offset + (read_32bitBE(sound_offset, streamData) & 0x00FFFFFF);
-    vgmstream = init_vgmstream_eaaudiocore_header(streamData, streamData, header_offset, start_offset, meta_EA_SNR_SNS, 0);
+    vgmstream = init_vgmstream_eaaudiocore_header(streamData, NULL, sound_offset, 0x00, meta_EA_SPS, 0);
     if (!vgmstream)
         goto fail;
 
@@ -1108,7 +1102,7 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
         } else if (eaac.loop_start > 0) {
             /* RAM assets have two blocks in case of actual loops */
             /* find the second block by getting the first block size */
-            eaac.loop_offset = read_32bitBE(eaac.stream_offset, streamHead) & 0x00FFFFF;
+            eaac.loop_offset = read_32bitBE(eaac.stream_offset, streamHead) & 0x00FFFFFF;
         } else {
             /* RAM assets have only one block in case of full loops */
             eaac.loop_offset = 0x00; /* implicit */
