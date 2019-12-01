@@ -1525,7 +1525,7 @@ static int parse_stream_codec(ubi_sb_header * sb) {
                 break;
 
             default:
-                VGM_LOG("Unknown stream_type %02x for version %08x\n", sb->stream_type, sb->version);
+                VGM_LOG("UBI SB: Unknown stream_type %02x for version %08x\n", sb->stream_type, sb->version);
                 goto fail;
         }
     } else if (sb->version < 0x000A0000) {
@@ -1539,7 +1539,7 @@ static int parse_stream_codec(ubi_sb_header * sb) {
                 break;
 
             default:
-                VGM_LOG("Unknown stream_type %02x for version %08x\n", sb->stream_type, sb->version);
+                VGM_LOG("UBI SB: Unknown stream_type %02x for version %08x\n", sb->stream_type, sb->version);
                 goto fail;
         }
     } else { 
@@ -1555,7 +1555,7 @@ static int parse_stream_codec(ubi_sb_header * sb) {
                         break;
                     case UBI_PSP:
                         /* TODO: IMA using Ubisoft ADPCM frame layout [Splinter Cell: Essentials (PSP)] */
-                        VGM_LOG("Unimplemented custom IMA codec.\n");
+                        VGM_LOG("UBI SB: Unimplemented custom IMA codec.\n");
                         goto fail;
                     default:
                         sb->codec = UBI_ADPCM;
@@ -1581,7 +1581,7 @@ static int parse_stream_codec(ubi_sb_header * sb) {
                         sb->codec = FMT_AT3;
                         break;
                     default:
-                        VGM_LOG("UBI SB: unknown codec for stream_type %x\n", sb->stream_type);
+                        VGM_LOG("UBI SB: unknown codec for stream_type %02x\n", sb->stream_type);
                         goto fail;
                 }
                 break;
@@ -1599,7 +1599,7 @@ static int parse_stream_codec(ubi_sb_header * sb) {
                 break;
 
             default:
-                VGM_LOG("Unknown stream_type %02x\n", sb->stream_type);
+                VGM_LOG("UBI SB: Unknown stream_type %02x\n", sb->stream_type);
                 goto fail;
         }
     }
@@ -2364,7 +2364,7 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         return 1;
     }
 
-    /* Rainbow Six 3 (2003)(PC)-bank 0x0000000B */
+    /* Tom Clancy's Rainbow Six 3: Raven Shield + addons (2003)(PC)-bank 0x0000000B */
     if (sb->version == 0x0000000B && sb->platform == UBI_PC) {
         config_sb_entry(sb, 0x5c, 0x7c);
 
@@ -2519,7 +2519,7 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
 
     /* Batman: Rise of Sin Tzu (2003)(GC)-map 0x000A0002 */
     /* Prince of Persia: The Sands of Time (2003)(GC)-bank 0x000A0004 / 0x000A0002 (POP1 port) */
-    /* Tom Clancy's Rainbow Six 3 (2003)(Xbox)-bank 0x000A0007 */
+    /* Tom Clancy's Rainbow Six 3 (2003)(GC)-bank 0x000A0007 */
     if ((sb->version == 0x000A0002 && sb->platform == UBI_GC) ||
         (sb->version == 0x000A0004 && sb->platform == UBI_GC) ||
         (sb->version == 0x000A0007 && sb->platform == UBI_GC)) {

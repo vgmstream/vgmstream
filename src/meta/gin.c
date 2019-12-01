@@ -5,16 +5,10 @@ VGMSTREAM * init_vgmstream_gin_header(STREAMFILE *streamFile, off_t offset);
 
 /* .gin - EA engine sounds [Need for Speed: Most Wanted (multi)] */
 VGMSTREAM * init_vgmstream_gin(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
-
     if (!check_extensions(streamFile, "gin"))
         goto fail;
 
-    vgmstream = init_vgmstream_gin_header(streamFile, 0x00);
-    if (!vgmstream)
-        goto fail;
-
-    return vgmstream;
+    return init_vgmstream_gin_header(streamFile, 0x00);
 
 fail:
     return NULL;
