@@ -973,7 +973,7 @@ static size_t calculate_eaac_size(STREAMFILE *streamFile, eaac_header *ea, uint3
  * Some .SNR include stream data, while .SPS have headers so .SPH is optional. */
 static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, STREAMFILE * streamData, off_t header_offset, off_t start_offset, meta_t meta_type, int standalone) {
     VGMSTREAM * vgmstream = NULL;
-    STREAMFILE* temp_streamFile = NULL, *streamFile = NULL;
+    STREAMFILE* temp_streamFile = NULL, *streamFile = NULL, *snsFile = NULL;
     uint32_t header1, header2, header_block_size, header_size;
     uint8_t header_block_id;
     eaac_header eaac = {0};
@@ -1112,7 +1112,8 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
     if (eaac.version == EAAC_VERSION_V0 && eaac.streamed) {
         /* open SNS file if needed */
         if (standalone) {
-            streamData = open_streamfile_by_ext(streamHead, "sns");
+            snsFile = open_streamfile_by_ext(streamHead, "sns");
+            streamData = snsFile;
         }
         if (!streamData) goto fail;
     }
@@ -1277,11 +1278,14 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
     if (!vgmstream_open_stream(vgmstream, temp_streamFile ? temp_streamFile : streamFile, 0x00))
         goto fail;
 
+    close_streamfile(streamFile);
+    close_streamfile(snsFile);
     close_streamfile(temp_streamFile);
     return vgmstream;
 
 fail:
     close_streamfile(streamFile);
+    close_streamfile(snsFile);
     close_streamfile(temp_streamFile);
     close_vgmstream(vgmstream);
     return NULL;
