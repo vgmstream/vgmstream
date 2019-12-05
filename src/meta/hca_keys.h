@@ -306,6 +306,12 @@ static const hcakey_info hcakey_list[] = {
         /* Nogizaka46 Rhythm Festival (Android) */
         {5613126134333697},         // 0013F11BC5510101
 
+        /* IDOLiSH7 (Android) */
+        {8548758374946935437},      // 76A34A72E15B928D
+
+        /* Phantom of the Kill (Android) */
+        {33624594140214547},        // 00777563E571B513
+
         /* Dragalia Lost (iOS/Android) */
         {2967411924141,         subkeys_dgl, sizeof(subkeys_dgl) / sizeof(subkeys_dgl[0]) },    // 000002B2E7889CAD
 
