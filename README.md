@@ -2,7 +2,6 @@
 
 [![AppVeyor build status](https://ci.appveyor.com/api/projects/status/github/losnoco/vgmstream?branch=master&svg=true "Build Status")](https://ci.appveyor.com/project/kode54/vgmstream/branch/master/artifacts)
 
-
 This is vgmstream, a library for playing streamed (pre-recorded) audio
 from video games.
 
@@ -43,7 +42,6 @@ Put the following files somewhere Windows can find them:
 
 For Winamp/XMPlay/command line this means in the directory with the main .exe,
 or in a system directory, or any other directory in the PATH variable.
-
 
 ## Components
 
@@ -121,7 +119,6 @@ WAV/MP3 conversions ahead of time.
 
 The tag syntax follows the conventions established in Apple's HTTP Live Streaming
 standard, whose docs discuss extending M3U with arbitrary tags.
-
 
 ## Special cases
 vgmstream aims to support most audio formats as-is, but some files require extra
@@ -240,7 +237,6 @@ file, or static values.
 *TXTH* is recomended over *GENH* as it's far easier to create and has many
 more functions.
 
-
 For files that already play, sometimes they are used by the game in various
 complex and non-standard ways, like playing multiple small songs as a single
 one, or using some channels as a section of the song. For those cases we 
@@ -254,7 +250,6 @@ loops, remove unneeded channels, and many other features.
 
 Creation of those files is meant for advanced users, docs can be found in
 vgmstream source.
-
 
 ### Plugin conflicts
 Since vgmstream supports a huge amount of formats it's possibly that some of
@@ -273,7 +268,6 @@ If current Audacious version doesn't let to change plugin priority you may
 need to disable some plugins (requires restart) or set priority on compile
 time. Particularly, mpg123 plugin may steal formats that aren't even MP3,
 making impossible for vgmstream to play it properly.
-
 
 ### Channel issues
 Some games layer a huge number of channels, that are disabled or downmixed
