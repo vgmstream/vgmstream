@@ -300,18 +300,26 @@ static int parse_musx_stream(STREAMFILE *streamFile, musx_header *musx) {
         musx->loop_flag         = (musx->loop_start_sample >= 0);
     }
 
-    /* fix some v10 sizes */
+    /* fix some v10 platform (like PSP) sizes */
     if (musx->stream_size == 0) {
-        off_t offset;
         musx->stream_size = musx->file_size - musx->stream_offset;
 
-        /* remove padding */
-        offset = musx->stream_offset + musx->stream_size - 0x04;
-        while (offset > 0) {
-            if (read_32bit(offset, streamFile) != 0xABABABAB)
-                break;
-            musx->stream_size -= 0x04;
-            offset -= 0x04;
+        /* always padded to nearest 0x800 sector */
+        if (musx->stream_size > 0x800) {
+            uint8_t buf[0x800];
+            int pos;
+            off_t offset = musx->stream_offset + musx->stream_size - 0x800;
+
+            if (read_streamfile(buf, offset, sizeof(buf), streamFile) != 0x800)
+                goto fail;
+
+            pos = 0x800 - 0x04;
+            while (pos > 0) {
+                if (get_u32be(buf + pos) != 0xABABABAB)
+                    break;
+                musx->stream_size -= 0x04;
+                pos -= 0x04;
+            }
         }
     }
 
