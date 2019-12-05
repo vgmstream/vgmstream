@@ -312,6 +312,9 @@ static const hcakey_info hcakey_list[] = {
         /* Phantom of the Kill (Android) */
         {33624594140214547},        // 00777563E571B513
 
+        /* Dankira!!! Boys, be DANCING! (Android) */
+        {3957325206121219506},      // 36EB3E4EE38E05B2
+
         /* Dragalia Lost (iOS/Android) */
         {2967411924141,         subkeys_dgl, sizeof(subkeys_dgl) / sizeof(subkeys_dgl[0]) },    // 000002B2E7889CAD
 
