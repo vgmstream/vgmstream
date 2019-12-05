@@ -188,7 +188,7 @@ VGMSTREAM * init_vgmstream_txtp(STREAMFILE *streamFile) {
         txtp->vgmstream[i] = init_vgmstream_from_STREAMFILE(temp_streamFile);
         close_streamfile(temp_streamFile);
         if (!txtp->vgmstream[i]) {
-            VGM_LOG("TXTP: cannot open vgmstream for %s\n", txtp->entry[i].filename);
+            VGM_LOG("TXTP: cannot open vgmstream for %s#%i\n", txtp->entry[i].filename, txtp->entry[i].subsong);
             goto fail;
         }
 
@@ -611,7 +611,7 @@ static int get_int(const char * config, int *value) {
     int n,m;
     int temp;
 
-    m = sscanf(config, " %i%n", &temp,&n);
+    m = sscanf(config, " %d%n", &temp,&n);
     if (m != 1 || temp < 0)
         return 0;
 
@@ -645,7 +645,7 @@ static int get_time(const char * config, double *value_f, int32_t *value_i) {
     char temp_c;
 
     /* test if format is hour: N:N(.n) or N_N(.n) */
-    m = sscanf(config, " %i%c%i%n", &temp_i1,&temp_c,&temp_i2,&n);
+    m = sscanf(config, " %d%c%d%n", &temp_i1,&temp_c,&temp_i2,&n);
     if (m == 3 && (temp_c == ':' || temp_c == '_')) {
         m = sscanf(config, " %lf%c%lf%n", &temp_f1,&temp_c,&temp_f2,&n);
         if (m != 3 || /*temp_f1 < 0.0 ||*/ temp_f1 >= 60.0 || temp_f2 < 0.0 || temp_f2 >= 60.0)
@@ -656,7 +656,7 @@ static int get_time(const char * config, double *value_f, int32_t *value_i) {
     }
 
     /* test if format is seconds: N.n */
-    m = sscanf(config, " %i.%i%n", &temp_i1,&temp_i2,&n);
+    m = sscanf(config, " %d.%d%n", &temp_i1,&temp_i2,&n);
     if (m == 2) {
         m = sscanf(config, " %lf%n", &temp_f1,&n);
         if (m != 1 /*|| temp_f1 < 0.0*/)
@@ -677,7 +677,7 @@ static int get_time(const char * config, double *value_f, int32_t *value_i) {
     }
 
     /* assume format is samples: N */
-    m = sscanf(config, " %i%n", &temp_i1,&n);
+    m = sscanf(config, " %d%n", &temp_i1,&n);
     if (m == 1) {
         /* allow negative samples for special meanings */
         //if (temp_i1 < 0)
