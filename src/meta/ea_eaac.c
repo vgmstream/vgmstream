@@ -974,7 +974,7 @@ static size_t calculate_eaac_size(STREAMFILE *streamFile, eaac_header *ea, uint3
 static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, STREAMFILE * streamData, off_t header_offset, off_t start_offset, meta_t meta_type, int standalone) {
     VGMSTREAM * vgmstream = NULL;
     STREAMFILE* temp_streamFile = NULL, *streamFile = NULL, *snsFile = NULL;
-    uint32_t header1, header2, header_block_size, header_size;
+    uint32_t header1, header2, header_block_size = 0, header_size;
     uint8_t header_block_id;
     eaac_header eaac = {0};
 
@@ -1002,6 +1002,8 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
     /* common channel configs are mono/stereo/quad/5.1/7.1 (from debug strings), while others are quite rare
      * [Battlefield 4 (X360)-EAXMA: 3/5/7ch, Army of Two: The Devil's Cartel (PS3)-EALayer3v2P: 11ch] */
     eaac.channels = eaac.channel_config + 1;
+    /* EA 6ch channel mapping is L C R BL BR LFE, but may use stereo layers for dynamic music
+     * instead, so we can't re-map automatically (use TXTP) */
 
     /* V0: SNR+SNS, V1: SPR+SPS (no apparent differences, other than block flags) */
     if (eaac.version != EAAC_VERSION_V0 && eaac.version != EAAC_VERSION_V1) {
@@ -1025,7 +1027,7 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
     eaac.streamed = (eaac.type != EAAC_TYPE_RAM);
 
     /* get loops (fairly involved due to the multiple layouts and mutant streamfiles)
-     * full loops aren't too uncommon [Dead Space (PC) stream sfx/ambiance, FIFA 98 (PS3) RAM sfx],
+     * full loops aren't too uncommon [Dead Space (PC) stream sfx/ambiance, FIFA 08 (PS3) RAM sfx],
      * while actual looping is very rare [Need for Speed: World (PC)-EAL3, The Simpsons Game (X360)-EAXMA] */
 
     /* get optional header values */
@@ -1590,8 +1592,6 @@ static layered_layout_data* build_layered_eaaudiocore(STREAMFILE *sf_data, eaac_
                 if (!data->layers[i]->codec_data) goto fail;
                 data->layers[i]->coding_type = coding_FFmpeg;
                 data->layers[i]->layout_type = layout_none;
-
-                //TODO: 6ch channel layout seems L C R BL BR LFE, not sure about other EAAC
                 break;
             }
 
