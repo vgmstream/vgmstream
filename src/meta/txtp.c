@@ -123,6 +123,7 @@ typedef struct {
     uint32_t loop_start_segment;
     uint32_t loop_end_segment;
     int is_loop_keep;
+    int is_loop_auto;
 
     txtp_entry default_entry;
     int default_entry_set;
@@ -313,8 +314,13 @@ static int make_group_segment(txtp_header* txtp, int position, int count) {
 
     /* loop settings only make sense if this group becomes final vgmstream */
     if (position == 0 && txtp->vgmstream_count == count) {
-        if (txtp->loop_start_segment && !txtp->loop_end_segment)
+        if (txtp->loop_start_segment && !txtp->loop_end_segment) {
             txtp->loop_end_segment = count;
+        }
+        else if (txtp->is_loop_auto) { /* auto set to last segment */
+            txtp->loop_start_segment = count;
+            txtp->loop_end_segment = count;
+        }
         loop_flag = (txtp->loop_start_segment > 0 && txtp->loop_start_segment <= count);
     }
 
@@ -1388,6 +1394,9 @@ static int parse_keyval(txtp_header * txtp, const char * key, const char * val) 
     else if (0==strcmp(key,"loop_mode")) {
         if (is_substring(val,"keep")) {
             txtp->is_loop_keep = 1;
+        }
+        else if (is_substring(val,"auto")) {
+            txtp->is_loop_auto = 1;
         }
         else {
             goto fail;
