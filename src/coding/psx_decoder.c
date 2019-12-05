@@ -239,7 +239,7 @@ static int ps_find_loop_offsets_internal(STREAMFILE *streamFile, off_t start_off
     int detect_full_loops = config & 1;
 
 
-    if (data_size == 0 || channels == 0 || (channels > 0 && interleave == 0))
+    if (data_size == 0 || channels == 0 || (channels > 1 && interleave == 0))
         return 0;
 
     while (offset < max_offset) {
