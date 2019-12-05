@@ -38,6 +38,16 @@ loop_start_segment = 2 # 2nd file start
 loop_end_segment = 2 # optional, default is last
 mode = segments # optional, default is segments
 ```
+You can also set looping to the last segment like this:
+```
+BGM01_BEGIN.VAG
+BGM01_LOOPED.VAG
+
+# equivalent to loop_start_segment = 2, loop_end_segment = 2
+# (only for multiple segments, to repeat a single file use #E)
+loop_mode = auto
+```
+
 
 If your loop segment has proper loops you want to keep, you can use:
 ```
@@ -166,7 +176,7 @@ loop_mode = keep
 
 
 ## TXTP COMMANDS
-You can set file commands by adding multiple `#(command)` after the name. `# (anything)` is considered a comment and ignored, as well as any command not understood.
+You can set file commands by adding multiple `#(command)` after the name. `#(space)(anything)` is considered a comment and ignored, as well as any command not understood.
 
 ### Subsong selection for bank formats
 **`#(number)` or `#s(number)`**: set subsong (number)

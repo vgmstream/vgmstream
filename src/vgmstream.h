@@ -12,6 +12,7 @@ enum { VGMSTREAM_MAX_CHANNELS = 64 };
 enum { VGMSTREAM_MIN_SAMPLE_RATE = 300 }; /* 300 is Wwise min */
 enum { VGMSTREAM_MAX_SAMPLE_RATE = 192000 }; /* found in some FSB5 */
 enum { VGMSTREAM_MAX_SUBSONGS = 65535 };
+enum { VGMSTREAM_MAX_NUM_SAMPLES = 1000000000 }; /* no ~5h vgm hopefully */
 
 #include "streamfile.h"
 

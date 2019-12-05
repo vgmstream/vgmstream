@@ -514,8 +514,8 @@ static VGMSTREAM * init_vgmstream_internal(STREAMFILE *streamFile) {
         if (!vgmstream)
             continue;
 
-        /* fail if there is nothing to play (without this check vgmstream can generate empty files) */
-        if (vgmstream->num_samples <= 0) {
+        /* fail if there is nothing/too much to play (<=0 generates empty files, >N writes GBs of garbage) */
+        if (vgmstream->num_samples <= 0 || vgmstream->num_samples > VGMSTREAM_MAX_NUM_SAMPLES) {
             VGM_LOG("VGMSTREAM: wrong num_samples %i\n", vgmstream->num_samples);
             close_vgmstream(vgmstream);
             continue;

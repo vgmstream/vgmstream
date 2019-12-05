@@ -123,6 +123,7 @@ typedef struct {
     uint32_t loop_start_segment;
     uint32_t loop_end_segment;
     int is_loop_keep;
+    int is_loop_auto;
 
     txtp_entry default_entry;
     int default_entry_set;
@@ -188,7 +189,7 @@ VGMSTREAM * init_vgmstream_txtp(STREAMFILE *streamFile) {
         txtp->vgmstream[i] = init_vgmstream_from_STREAMFILE(temp_streamFile);
         close_streamfile(temp_streamFile);
         if (!txtp->vgmstream[i]) {
-            VGM_LOG("TXTP: cannot open vgmstream for %s\n", txtp->entry[i].filename);
+            VGM_LOG("TXTP: cannot open vgmstream for %s#%i\n", txtp->entry[i].filename, txtp->entry[i].subsong);
             goto fail;
         }
 
@@ -313,8 +314,13 @@ static int make_group_segment(txtp_header* txtp, int position, int count) {
 
     /* loop settings only make sense if this group becomes final vgmstream */
     if (position == 0 && txtp->vgmstream_count == count) {
-        if (txtp->loop_start_segment && !txtp->loop_end_segment)
+        if (txtp->loop_start_segment && !txtp->loop_end_segment) {
             txtp->loop_end_segment = count;
+        }
+        else if (txtp->is_loop_auto) { /* auto set to last segment */
+            txtp->loop_start_segment = count;
+            txtp->loop_end_segment = count;
+        }
         loop_flag = (txtp->loop_start_segment > 0 && txtp->loop_start_segment <= count);
     }
 
@@ -611,7 +617,7 @@ static int get_int(const char * config, int *value) {
     int n,m;
     int temp;
 
-    m = sscanf(config, " %i%n", &temp,&n);
+    m = sscanf(config, " %d%n", &temp,&n);
     if (m != 1 || temp < 0)
         return 0;
 
@@ -645,7 +651,7 @@ static int get_time(const char * config, double *value_f, int32_t *value_i) {
     char temp_c;
 
     /* test if format is hour: N:N(.n) or N_N(.n) */
-    m = sscanf(config, " %i%c%i%n", &temp_i1,&temp_c,&temp_i2,&n);
+    m = sscanf(config, " %d%c%d%n", &temp_i1,&temp_c,&temp_i2,&n);
     if (m == 3 && (temp_c == ':' || temp_c == '_')) {
         m = sscanf(config, " %lf%c%lf%n", &temp_f1,&temp_c,&temp_f2,&n);
         if (m != 3 || /*temp_f1 < 0.0 ||*/ temp_f1 >= 60.0 || temp_f2 < 0.0 || temp_f2 >= 60.0)
@@ -656,7 +662,7 @@ static int get_time(const char * config, double *value_f, int32_t *value_i) {
     }
 
     /* test if format is seconds: N.n */
-    m = sscanf(config, " %i.%i%n", &temp_i1,&temp_i2,&n);
+    m = sscanf(config, " %d.%d%n", &temp_i1,&temp_i2,&n);
     if (m == 2) {
         m = sscanf(config, " %lf%n", &temp_f1,&n);
         if (m != 1 /*|| temp_f1 < 0.0*/)
@@ -677,7 +683,7 @@ static int get_time(const char * config, double *value_f, int32_t *value_i) {
     }
 
     /* assume format is samples: N */
-    m = sscanf(config, " %i%n", &temp_i1,&n);
+    m = sscanf(config, " %d%n", &temp_i1,&n);
     if (m == 1) {
         /* allow negative samples for special meanings */
         //if (temp_i1 < 0)
@@ -1388,6 +1394,9 @@ static int parse_keyval(txtp_header * txtp, const char * key, const char * val) 
     else if (0==strcmp(key,"loop_mode")) {
         if (is_substring(val,"keep")) {
             txtp->is_loop_keep = 1;
+        }
+        else if (is_substring(val,"auto")) {
+            txtp->is_loop_auto = 1;
         }
         else {
             goto fail;
