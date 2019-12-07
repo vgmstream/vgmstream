@@ -230,7 +230,7 @@ void decode_psx_pivotal(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channe
  * - 0x7 (0111): End marker and don't decode
  * - 0x8+(1NNN): Not valid
  */
-static int ps_find_loop_offsets_internal(STREAMFILE *streamFile, off_t start_offset, size_t data_size, int channels, size_t interleave, int32_t * out_loop_start, int32_t * out_loop_end, int config) {
+static int ps_find_loop_offsets_internal(STREAMFILE *sf, off_t start_offset, size_t data_size, int channels, size_t interleave, int32_t * p_loop_start, int32_t * p_loop_end, int config) {
     int num_samples = 0, loop_start = 0, loop_end = 0;
     int loop_start_found = 0, loop_end_found = 0;
     off_t offset = start_offset;
@@ -243,7 +243,7 @@ static int ps_find_loop_offsets_internal(STREAMFILE *streamFile, off_t start_off
         return 0;
 
     while (offset < max_offset) {
-        uint8_t flag = (uint8_t)read_8bit(offset+0x01,streamFile) & 0x0F; /* lower nibble only (for HEVAG) */
+        uint8_t flag = read_u8(offset+0x01, sf) & 0x0F; /* lower nibble only (for HEVAG) */
 
         /* theoretically possible and would use last 0x06 */
         VGM_ASSERT_ONCE(loop_start_found && flag == 0x06, "PS LOOPS: multiple loop start found at %x\n", (uint32_t)offset);
@@ -260,7 +260,7 @@ static int ps_find_loop_offsets_internal(STREAMFILE *streamFile, off_t start_off
             /* ignore strange case in Commandos (PS2), has many loop starts and ends */
             if (channels == 1
                     && offset + 0x10 < max_offset
-                    && ((uint8_t)read_8bit(offset+0x11,streamFile) & 0x0F) == 0x06) {
+                    && (read_u8(offset + 0x11, sf) & 0x0F) == 0x06) {
                 loop_end = 0;
                 loop_end_found = 0;
             }
@@ -271,25 +271,22 @@ static int ps_find_loop_offsets_internal(STREAMFILE *streamFile, off_t start_off
 
         /* hack for some games that don't have loop points but do full loops,
          * if there is a "partial" 0x07 end flag pretend it wants to loop
-         * (sometimes this will loop non-looping tracks, and won't loop all repeating files) */
+         * (sometimes this will loop non-looping tracks, and won't loop all repeating files)
+         * seems only used in Ratchet & Clank series and Ecco the Dolphin */
         if (flag == 0x01 && detect_full_loops) {
-            static const uint8_t eof1[0x10] = {0x00,0x07,0x77,0x77,0x77,0x77,0x77,0x77,0x77,0x77,0x77,0x77,0x77,0x77,0x77,0x77}; /* common */
-            static const uint8_t eof2[0x10] = {0x00,0x07,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
-          //static const uint8_t eofx[0x10] = {0x07,0x00,0x77,0x77,0x77,0x77,0x77,0x77,0x77,0x77,0x77,0x77,0x77,0x77,0x77,0x77}; /* sometimes loops */
-          //static const uint8_t eofx[0x10] = {0xNN,0x07,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00}; /* sometimes loops */
+            static const uint8_t eof[0x10] = {0xFF,0x07,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
             uint8_t buf[0x10];
+            uint8_t hdr = read_u8(offset + 0x00, sf);
 
-            int read = read_streamfile(buf,offset+0x10,0x10,streamFile);
-
+            int read = read_streamfile(buf, offset+0x10, sizeof(buf), sf);
             if (read > 0
-                    /* also test some extra stuff */
-                    && buf[0] != 0x00 /* skip padding */
-                    && buf[0] != 0x0c
-                    && buf[0] != 0x3c /* skip Ecco the Dolphin (PS2), Ratchet & Clank 2 (PS2), lame hack */
+                    && buf[0] != 0x00 /* ignore blank frame */
+                    && buf[0] != 0x0c /* ignore silent frame */
+                    && buf[0] != 0x3c /* ignore some L-R tracks with different end flags */
                     ) {
 
-                /* assume full loop if there isn't an EOF tag after current frame */
-                if (memcmp(buf,eof1,0x10) != 0 && memcmp(buf,eof2,0x10) != 0) {
+                /* assume full loop with repeated frame header and null frame */
+                if (hdr == buf[0] && memcmp(buf+1, eof+1, sizeof(buf) - 1) == 0) {
                     loop_start = 28; /* skip first frame as it's null in PS-ADPCM */
                     loop_end = num_samples + 28; /* loop end after this frame */
                     loop_start_found = 1;
@@ -318,20 +315,20 @@ static int ps_find_loop_offsets_internal(STREAMFILE *streamFile, off_t start_off
 
     /* From Sony's docs: if only loop_end is set loop back to "phoneme region start", but in practice doesn't */
     if (loop_start_found && loop_end_found) {
-        *out_loop_start = loop_start;
-        *out_loop_end = loop_end;
+        *p_loop_start = loop_start;
+        *p_loop_end = loop_end;
         return 1;
     }
 
     return 0; /* no loop */
 }
 
-int ps_find_loop_offsets(STREAMFILE *streamFile, off_t start_offset, size_t data_size, int channels, size_t interleave, int32_t * out_loop_start, int32_t * out_loop_end) {
-    return ps_find_loop_offsets_internal(streamFile, start_offset, data_size, channels, interleave, out_loop_start, out_loop_end, 0);
+int ps_find_loop_offsets(STREAMFILE *sf, off_t start_offset, size_t data_size, int channels, size_t interleave, int32_t *p_loop_start, int32_t *p_loop_end) {
+    return ps_find_loop_offsets_internal(sf, start_offset, data_size, channels, interleave, p_loop_start, p_loop_end, 0);
 }
 
-int ps_find_loop_offsets_full(STREAMFILE *streamFile, off_t start_offset, size_t data_size, int channels, size_t interleave, int32_t * out_loop_start, int32_t * out_loop_end) {
-    return ps_find_loop_offsets_internal(streamFile, start_offset, data_size, channels, interleave, out_loop_start, out_loop_end, 1);
+int ps_find_loop_offsets_full(STREAMFILE *sf, off_t start_offset, size_t data_size, int channels, size_t interleave, int32_t *p_loop_start, int32_t *p_loop_end) {
+    return ps_find_loop_offsets_internal(sf, start_offset, data_size, channels, interleave, p_loop_start, p_loop_end, 1);
 }
 
 size_t ps_find_padding(STREAMFILE *streamFile, off_t start_offset, size_t data_size, int channels, size_t interleave, int discard_empty) {

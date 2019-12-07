@@ -365,41 +365,50 @@ size_t mpeg_get_samples(STREAMFILE *sf, off_t start_offset, size_t bytes) {
         }
 
         /* detect Xing header (disguised as a normal frame) */
-        if (frames < 3 && /* should be first after tags */
-                info.frame_size >= 0x24 + 0x78 &&
-                read_u32be(offset + 0x04, sf) == 0 &&
-                (read_u32be(offset + 0x24, sf) == 0x58696E67 ||  /* "Xing" (mainly for VBR) */
-                 read_u32be(offset + 0x24, sf) == 0x496E666F)) { /* "Info" (mainly for CBR) */
-            uint32_t flags = read_u32be(offset + 0x28, sf);
+        if (frames < 3) { /* should be first after tags */
+            /* frame is empty so Xing goes after MPEG side info */
+            off_t xing_offset;
+            if (info.version == 1)
+                xing_offset = (info.channels == 2 ? 0x20 : 0x11) + 0x04;
+            else
+                xing_offset = (info.channels == 2 ? 0x11 : 0x09) + 0x04;
 
-            if (flags & 1) { /* other flags indicate seek table and stuff */
-                uint32_t frame_count = read_u32be(offset + 0x2c, sf);
-                samples = frame_count * info.frame_samples;
-            }
+            if (info.frame_size >= xing_offset + 0x78 &&
+                read_u32be(offset + 0x04, sf) == 0 && /* empty frame */
+                (read_u32be(offset + xing_offset, sf) == 0x58696E67 ||  /* "Xing" (mainly for VBR) */
+                 read_u32be(offset + xing_offset, sf) == 0x496E666F)) { /* "Info" (mainly for CBR) */
+                uint32_t flags = read_u32be(offset + xing_offset + 0x04, sf);
 
-            /* vendor specific */
-            if (info.frame_size > 0x24 + 0x78 + 0x24 &&
-                    read_u32be(offset + 0x9c, sf) == 0x4C414D45) { /* "LAME" */
-                if (info.layer == 3) {
-                    uint32_t delays = read_u32be(offset + 0xb0, sf);
-                    encoder_delay   = ((delays >> 12) & 0xFFF);
-                    encoder_padding =  ((delays >> 0) & 0xFFF);
-
-                    encoder_delay += (528 + 1); /* implicit MDCT decoder delay (seen in LAME source) */
-                    if (encoder_padding > 528 + 1)
-                        encoder_padding -= (528 + 1);
+                if (flags & 1) {
+                    uint32_t frame_count = read_u32be(offset + xing_offset + 0x08, sf);
+                    samples = frame_count * info.frame_samples;
                 }
-                else {
-                    encoder_delay = 240 + 1;
+                /* other flags indicate seek table and stuff */
+
+                /* vendor specific */
+                if (info.frame_size > xing_offset + 0x78 + 0x24 &&
+                        read_u32be(offset + xing_offset + 0x78, sf) == 0x4C414D45) { /* "LAME" */
+                    if (info.layer == 3) {
+                        uint32_t delays = read_u32be(offset + xing_offset + 0x8C, sf);
+                        encoder_delay   = ((delays >> 12) & 0xFFF);
+                        encoder_padding =  ((delays >> 0) & 0xFFF);
+
+                        encoder_delay += (528 + 1); /* implicit MDCT decoder delay (seen in LAME source) */
+                        if (encoder_padding > 528 + 1)
+                            encoder_padding -= (528 + 1);
+                    }
+                    else {
+                        encoder_delay = 240 + 1;
+                    }
+
+                    /* replay gain and stuff */
                 }
 
-                /* replay gain and stuff */
-            }
+                /* there is also "iTunes" vendor with no apparent extra info, iTunes delays are in "iTunSMPB" ID3 tag */
 
-            /* there is also "iTunes" vendor with no apparent extra info, iTunes delays are in "iTunSMPB" ID3 tag */
-
-            ;VGM_LOG("MPEG: found Xing header\n");
-            break; /* we got samples */
+                ;VGM_LOG("MPEG: found Xing header\n");
+                break; /* we got samples */
+             }
         }
 
         //TODO: detect "VBRI" header (Fraunhofer encoder)

@@ -238,7 +238,13 @@ VGMSTREAM * init_vgmstream_vag(STREAMFILE *streamFile) {
                 interleave = 0;
 
                 channel_count = 1;
-                loop_flag = ps_find_loop_offsets_full(streamFile, start_offset, channel_size*channel_count, channel_count, interleave, &loop_start_sample, &loop_end_sample);
+                if (version == 0x20 /* hack for repeating full loops that aren't too small */
+                        && ps_bytes_to_samples(channel_size, 1) > 20 * sample_rate) {
+                    loop_flag = ps_find_loop_offsets_full(streamFile, start_offset, channel_size*channel_count, channel_count, interleave, &loop_start_sample, &loop_end_sample);
+                }
+                else {
+                    loop_flag = ps_find_loop_offsets(streamFile, start_offset, channel_size*channel_count, channel_count, interleave, &loop_start_sample, &loop_end_sample);
+                }
                 allow_dual_stereo = 1; /* often found with external L/R files */
             }
             break;

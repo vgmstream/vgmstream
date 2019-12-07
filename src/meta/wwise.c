@@ -179,8 +179,8 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
         case 0xFFFE: ww.codec = PCM; break; /* "PCM for Wwise Authoring" */
         case 0xFFFF: ww.codec = VORBIS; break;
         case 0x3039: ww.codec = OPUSNX; break; /* later renamed from "OPUS" */
-#if 0
         case 0x3040: ww.codec = OPUS; break;
+#if 0
         case 0x8311: ww.codec = PTADPCM; break;
 #endif
         default:
@@ -593,23 +593,20 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
             break;
         }
 
-#if 0
-        case OPUS: {     /* PC/etc */
-            ffmpeg_codec_data * ffmpeg_data = NULL;
+        case OPUS: {     /* PC/mobile/etc, rare (most games still use Vorbis) [Girl Cafe Gun (Mobile)] */
             if (ww.block_align != 0 || ww.bits_per_sample != 0) goto fail;
 
-            /* extra: size 0x12, unknown values, maybe num_samples/etc */
+            /* extra: size 0x12 */
+            vgmstream->num_samples = read_32bit(ww.fmt_offset + 0x18, streamFile);
+            /* 0x1c: stream size without OggS? */
+            /* 0x20: full samples (without encoder delay) */
 
-            ffmpeg_data = init_ffmpeg_offset(streamFile, ww.data_offset,ww.data_size);
-            if (!ffmpeg_data) goto fail;
-            vgmstream->codec_data = ffmpeg_data;
+            vgmstream->codec_data = init_ffmpeg_offset(streamFile, ww.data_offset,ww.data_size);
+            if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
-
-            vgmstream->num_samples = (int32_t)ffmpeg_data->totalSamples;
             break;
         }
-#endif
 
 #endif
         case HEVAG:     /* PSV */
