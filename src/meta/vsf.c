@@ -1,13 +1,14 @@
 #include "meta.h"
 #include "../util.h"
 
-/* VSF (from Musashi: Samurai Legend) */
+/* VSF (from many Square Enix games released on the PS2 between 2004-2006) */
 VGMSTREAM * init_vgmstream_ps2_vsf(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset;
     int loop_flag, channel_count;
 
-    /* check extension, case insensitive */
+    /* checks */
+    /* .vsf - header id and actual extension (Code Age Commanders [PS2]) */
     if (!check_extensions(streamFile, "vsf"))
         goto fail;
 
@@ -20,6 +21,7 @@ VGMSTREAM * init_vgmstream_ps2_vsf(STREAMFILE *streamFile) {
         channel_count = 1;
     else
         channel_count = 2;
+    pitch = read_32bitLE(0x20,streamFile);
 
    /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
@@ -27,8 +29,8 @@ VGMSTREAM * init_vgmstream_ps2_vsf(STREAMFILE *streamFile) {
 
    /* fill in the vital statistics */
     start_offset = 0x800;
-   vgmstream->channels = channel_count;
-    vgmstream->sample_rate = 44100;
+    vgmstream->channels = channel_count;
+    vgmstream->sample_rate = round10((48000 * pitch) / 4096);
     vgmstream->coding_type = coding_PSX;
     vgmstream->num_samples = read_32bitLE(0x10,streamFile)*28;
     if (loop_flag) {
