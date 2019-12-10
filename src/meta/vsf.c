@@ -5,7 +5,7 @@
 VGMSTREAM * init_vgmstream_ps2_vsf(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset;
-    int loop_flag, channel_count;
+    int loop_flag, channel_count, pitch;
 
     /* checks */
     /* .vsf - header id and actual extension (Code Age Commanders [PS2]) */
