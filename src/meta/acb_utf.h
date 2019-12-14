@@ -2,10 +2,10 @@
 #define _ACB_UTF_H_
 
 /* CRI @UTF (Universal Table Format?) is a generic database-like table made of
- * rows/columns that contain numbers/strings/ binarydata, which also can be other tables.
+ * rows/columns that contain numbers/strings/binary data, which also can be other tables.
  *
  * A table starts with "@UTF" and defines some values (row/data/string offsets, counts, etc)
- * then schema (columns type+name), then rows, string table and binary data. Formats using @UTF
+ * then DB schema (columns type+name), then rows, string table and binary data. Formats using @UTF
  * store and read data by row number + column name. Being a generic table with no fixed schema
  * CRI uses it for different purposes (.acf: cues, .cpk: files, .aax: bgm, .usm: video, etc).
  *
@@ -16,13 +16,13 @@
 
 /* API */
 typedef struct utf_context utf_context; /* opaque struct */
-/*static*/ utf_context* utf_open(STREAMFILE *streamfile, uint32_t table_offset, int* rows, const char* *row_name);
+/*static*/ utf_context* utf_open(STREAMFILE *sf, uint32_t table_offset, int *p_rows, const char **p_row_name);
 /*static*/ void utf_close(utf_context *utf);
 
-/*static*/ int utf_query_s8(STREAMFILE *streamfile, utf_context *utf, int row, const char* column, int8_t* value);
-/*static*/ int utf_query_s16(STREAMFILE *streamfile, utf_context *utf, int row, const char* column, int16_t* value);
-/*static*/ int utf_query_string(STREAMFILE *streamfile, utf_context *utf, int row, const char* column, const char* *value);
-/*static*/ int utf_query_data(STREAMFILE *streamfile, utf_context *utf, int row, const char* column, uint32_t *offset, uint32_t *size);
+/*static*/ int utf_query_s8(STREAMFILE *sf, utf_context *utf, int row, const char *column, int8_t *value);
+/*static*/ int utf_query_s16(STREAMFILE *sf, utf_context *utf, int row, const char *column, int16_t *value);
+/*static*/ int utf_query_string(STREAMFILE *sf, utf_context *utf, int row, const char *column, const char **value);
+/*static*/ int utf_query_data(STREAMFILE *sf, utf_context *utf, int row, const char *column, uint32_t *offset, uint32_t *size);
 
 /* ************************************************* */
 /* INTERNALS */
@@ -31,29 +31,28 @@ typedef struct utf_context utf_context; /* opaque struct */
 #define COLUMN_BITMASK_STORAGE      0xf0
 #define COLUMN_BITMASK_TYPE         0x0f
 
-#define COLUMN_STORAGE_ZERO         0x10
-#define COLUMN_STORAGE_CONSTANT     0x30
-#define COLUMN_STORAGE_ROW          0x50
-//#define COLUMN_STORAGE_CONSTANT2    0x70 /* from vgmtoolbox */
+enum column_storage_t {
+    COLUMN_STORAGE_ZERO         = 0x10,
+    COLUMN_STORAGE_CONSTANT     = 0x30,
+    COLUMN_STORAGE_ROW          = 0x50
+  //COLUMN_STORAGE_CONSTANT2    = 0x70 /* from vgmtoolbox */
+};
 
-#define COLUMN_TYPE_SINT8           0x00
-#define COLUMN_TYPE_UINT8           0x01
-#define COLUMN_TYPE_SINT16          0x02
-#define COLUMN_TYPE_UINT16          0x03
-#define COLUMN_TYPE_SINT32          0x04
-#define COLUMN_TYPE_UINT32          0x05
-#define COLUMN_TYPE_SINT64          0x06
-//#define COLUMN_TYPE_UINT64          0x07
-#define COLUMN_TYPE_FLOAT           0x08
-//#define COLUMN_TYPE_DOUBLE          0x09
-#define COLUMN_TYPE_STRING          0x0a
-#define COLUMN_TYPE_DATA            0x0b
+enum column_type_t {
+    COLUMN_TYPE_SINT8           = 0x00,
+    COLUMN_TYPE_UINT8           = 0x01,
+    COLUMN_TYPE_SINT16          = 0x02,
+    COLUMN_TYPE_UINT16          = 0x03,
+    COLUMN_TYPE_SINT32          = 0x04,
+    COLUMN_TYPE_UINT32          = 0x05,
+    COLUMN_TYPE_SINT64          = 0x06,
+  //COLUMN_TYPE_UINT64          = 0x07,
+    COLUMN_TYPE_FLOAT           = 0x08,
+  //COLUMN_TYPE_DOUBLE          = 0x09,
+    COLUMN_TYPE_STRING          = 0x0a,
+    COLUMN_TYPE_DATA            = 0x0b
+};
 
-
-typedef struct {
-    uint32_t offset;
-    uint32_t size;
-} utf_data_t;
 typedef struct {
     int valid; /* table is valid */
     int found;
@@ -69,17 +68,13 @@ typedef struct {
         uint64_t value_u64;
         float    value_float;
         double   value_double;
-        utf_data_t value_data;
+        struct utf_data_t {
+            uint32_t offset;
+            uint32_t size;
+        } value_data;
         const char *value_string;
     } value;
 } utf_result;
-
-
-typedef struct {
-    uint8_t flags;
-    const char *name;
-    uint32_t offset;
-} utf_column;
 
 struct utf_context {
     uint32_t table_offset;
@@ -94,18 +89,22 @@ struct utf_context {
     uint16_t columns;
     uint16_t row_width;
     uint32_t rows;
-    /*const*/ utf_column *schema;
+    struct utf_column_t {
+        uint8_t flags;
+        const char *name;
+        uint32_t offset;
+    } *schema;
 
     /* derived */
     uint32_t schema_offset;
     uint32_t strings_size;
-    /*const*/ char *string_table;
+    char *string_table;
     const char *table_name;
 };
 
 
 /* @UTF table reading, abridged */
-/*static*/ utf_context* utf_open(STREAMFILE *streamfile, uint32_t table_offset, int* rows, const char* *row_name) {
+/*static*/ utf_context* utf_open(STREAMFILE *sf, uint32_t table_offset, int *p_rows, const char **p_row_name) {
     utf_context* utf = NULL;
 
 
@@ -115,19 +114,19 @@ struct utf_context {
     utf->table_offset = table_offset;
 
     /* check header */
-    if (read_32bitBE(table_offset + 0x00, streamfile) != 0x40555446) /* "@UTF" */
+    if (read_u32be(table_offset + 0x00, sf) != 0x40555446) /* "@UTF" */
         goto fail;
 
-    /* load table header  */
-    utf->table_size      = read_32bitBE(table_offset + 0x04, streamfile) + 0x08;
-    utf->version         = read_16bitBE(table_offset + 0x08, streamfile);
-    utf->rows_offset     = read_16bitBE(table_offset + 0x0a, streamfile) + 0x08;
-    utf->strings_offset  = read_32bitBE(table_offset + 0x0c, streamfile) + 0x08;
-    utf->data_offset     = read_32bitBE(table_offset + 0x10, streamfile) + 0x08;
-    utf->name_offset     = read_32bitBE(table_offset + 0x14, streamfile); /* within string table */
-    utf->columns         = read_16bitBE(table_offset + 0x18, streamfile);
-    utf->row_width       = read_16bitBE(table_offset + 0x1a, streamfile);
-    utf->rows            = read_32bitBE(table_offset + 0x1c, streamfile);
+    /* load table header */
+    utf->table_size      = read_u32be(table_offset + 0x04, sf) + 0x08;
+    utf->version         = read_u16be(table_offset + 0x08, sf);
+    utf->rows_offset     = read_u16be(table_offset + 0x0a, sf) + 0x08;
+    utf->strings_offset  = read_u32be(table_offset + 0x0c, sf) + 0x08;
+    utf->data_offset     = read_u32be(table_offset + 0x10, sf) + 0x08;
+    utf->name_offset     = read_u32be(table_offset + 0x14, sf); /* within string table */
+    utf->columns         = read_u16be(table_offset + 0x18, sf);
+    utf->row_width       = read_u16be(table_offset + 0x1a, sf);
+    utf->rows            = read_u32be(table_offset + 0x1c, sf);
 
     utf->schema_offset   = 0x20;
     utf->strings_size    = utf->data_offset - utf->strings_offset;
@@ -136,11 +135,14 @@ struct utf_context {
     if (utf->version != 0x00 && utf->version != 0x01) {
         VGM_LOG("@UTF: unknown version\n");
     }
-    if (utf->table_offset + utf->table_size > get_streamfile_size(streamfile))
+    if (utf->table_offset + utf->table_size > get_streamfile_size(sf))
         goto fail;
-    if (utf->rows == 0 || utf->rows_offset > utf->table_size || utf->data_offset > utf->table_size)
+    if (utf->rows_offset > utf->table_size || utf->strings_offset > utf->table_size || utf->data_offset > utf->table_size)
         goto fail;
-    if (utf->name_offset > utf->strings_size)
+    if (utf->strings_size <= 0 || utf->name_offset > utf->strings_size)
+        goto fail;
+    /* no rows is possible for empty tables (have schema and columns names but no data) [PES 2013 (PC)] */
+    if (utf->columns <= 0 /*|| utf->rows <= 0 || utf->rows_width <= 0*/)
         goto fail;
 
 
@@ -153,7 +155,7 @@ struct utf_context {
 
         utf->table_name = utf->string_table + utf->name_offset;
 
-        read = read_streamfile((unsigned char*)utf->string_table, utf->table_offset + utf->strings_offset, utf->strings_size, streamfile);
+        read = read_streamfile((unsigned char*)utf->string_table, utf->table_offset + utf->strings_offset, utf->strings_size, sf);
         if (utf->strings_size != read) goto fail;
     }
 
@@ -165,12 +167,12 @@ struct utf_context {
         uint32_t schema_offset = utf->table_offset + utf->schema_offset;
 
 
-        utf->schema = malloc(sizeof(utf_column) * utf->columns);
+        utf->schema = malloc(sizeof(struct utf_column_t) * utf->columns);
         if (!utf->schema) goto fail;
 
         for (i = 0; i < utf->columns; i++) {
-            uint8_t flags = read_8bit(schema_offset + 0x00, streamfile);
-            uint32_t name_offset = read_32bitBE(schema_offset + 0x01, streamfile);
+            uint8_t flags = read_u8(schema_offset + 0x00, sf);
+            uint32_t name_offset = read_u32be(schema_offset + 0x01, sf);
             if (name_offset > utf->strings_size)
                 goto fail;
 
@@ -226,12 +228,13 @@ struct utf_context {
 
 
     /* write info */
-    if (rows) *rows = utf->rows;
-    if (row_name) *row_name = utf->string_table + utf->name_offset;
+    if (p_rows) *p_rows = utf->rows;
+    if (p_row_name) *p_row_name = utf->string_table + utf->name_offset;
 
     return utf;
 fail:
     utf_close(utf);
+    VGM_LOG("@UTF: fail\n");
     return NULL;
 }
 
@@ -244,7 +247,7 @@ fail:
 }
 
 
-static int utf_query(STREAMFILE *streamfile, utf_context *utf, int row, const char* column, utf_result* result) {
+static int utf_query(STREAMFILE *sf, utf_context *utf, int row, const char *column, utf_result *result) {
     int i;
 
 
@@ -257,7 +260,7 @@ static int utf_query(STREAMFILE *streamfile, utf_context *utf, int row, const ch
 
     /* find target column */
     for (i = 0; i < utf->columns; i++) {
-        utf_column* col = &utf->schema[i];
+        struct utf_column_t *col = &utf->schema[i];
         uint32_t data_offset;
 
         if (strcmp(col->name, column) != 0)
@@ -289,29 +292,29 @@ static int utf_query(STREAMFILE *streamfile, utf_context *utf, int row, const ch
         /* read row/constant value */
         switch (col->flags & COLUMN_BITMASK_TYPE) {
             case COLUMN_TYPE_SINT8:
-                result->value.value_u8 = read_8bit(data_offset, streamfile);
+                result->value.value_s8 = read_s8(data_offset, sf);
                 break;
             case COLUMN_TYPE_UINT8:
-                result->value.value_u8 = (uint8_t)read_8bit(data_offset, streamfile);
+                result->value.value_u8 = read_u8(data_offset, sf);
                 break;
             case COLUMN_TYPE_SINT16:
-                result->value.value_s16 = read_16bitBE(data_offset, streamfile);
+                result->value.value_s16 = read_s16be(data_offset, sf);
                 break;
             case COLUMN_TYPE_UINT16:
-                result->value.value_u16 = (uint16_t)read_16bitBE(data_offset, streamfile);
+                result->value.value_u16 = read_u16be(data_offset, sf);
                 break;
             case COLUMN_TYPE_SINT32:
-                result->value.value_s32 = read_32bitBE(data_offset, streamfile);
+                result->value.value_s32 = read_s32be(data_offset, sf);
                 break;
             case COLUMN_TYPE_UINT32:
-                result->value.value_u32 = (uint32_t)read_32bitBE(data_offset, streamfile);
+                result->value.value_u32 = read_u32be(data_offset, sf);
                 break;
             case COLUMN_TYPE_SINT64:
-                result->value.value_s64 = read_64bitBE(data_offset, streamfile);
+                result->value.value_s64 = read_s64be(data_offset, sf);
                 break;
 #if 0
             case COLUMN_TYPE_UINT64:
-                result->value.value_u64 = read_64bitBE(data_offset, streamfile);
+                result->value.value_u64 = read_u64be(data_offset, sf);
                 break;
 #endif
             case COLUMN_TYPE_FLOAT: {
@@ -325,7 +328,7 @@ static int utf_query(STREAMFILE *streamfile, utf_context *utf, int row, const ch
                     goto fail;
                 }
 
-                cnv.int_value = (uint32_t)read_32bitBE(data_offset, streamfile);
+                cnv.int_value = read_u32be(data_offset, sf);
                 result->value.value_float = cnv.float_value;
                 break;
             }
@@ -341,13 +344,13 @@ static int utf_query(STREAMFILE *streamfile, utf_context *utf, int row, const ch
                     goto fail;
                 }
 
-                cnv.int_value = (uint64_t)read_64bitBE(data_offset, streamfile);
+                cnv.int_value = read_u64be(data_offset, sf);
                 result->value.value_float = cnv.float_value;
                 break;
             }
 #endif
             case COLUMN_TYPE_STRING: {
-                uint32_t name_offset = read_32bitBE(data_offset, streamfile);
+                uint32_t name_offset = read_u32be(data_offset, sf);
                 if (name_offset > utf->strings_size)
                     goto fail;
                 result->value.value_string = utf->string_table + name_offset;
@@ -355,8 +358,8 @@ static int utf_query(STREAMFILE *streamfile, utf_context *utf, int row, const ch
             }
 
             case COLUMN_TYPE_DATA:
-                result->value.value_data.offset = read_32bitBE(data_offset + 0x00, streamfile);
-                result->value.value_data.size   = read_32bitBE(data_offset + 0x04, streamfile);
+                result->value.value_data.offset = read_u32be(data_offset + 0x00, sf);
+                result->value.value_data.size   = read_u32be(data_offset + 0x04, sf);
                 break;
 
             default:
@@ -374,10 +377,10 @@ fail:
 
 ////////////////////////////////////////////////////////////
 
-static int utf_query_value(STREAMFILE *streamfile, utf_context *utf, int row, const char* column, void* value, int type) {
+static int utf_query_value(STREAMFILE *sf, utf_context *utf, int row, const char *column, void *value, int type) {
     utf_result result = {0};
 
-    utf_query(streamfile, utf, row, column, &result);
+    utf_query(sf, utf, row, column, &result);
     if (!result.valid || !result.found || result.type != type)
         return 0;
 
@@ -398,25 +401,25 @@ static int utf_query_value(STREAMFILE *streamfile, utf_context *utf, int row, co
     return 1;
 }
 
-/*static*/ int utf_query_s8(STREAMFILE *streamfile, utf_context *utf, int row, const char* column, int8_t* value) {
-    return utf_query_value(streamfile, utf, row, column, (void*)value, COLUMN_TYPE_SINT8);
+/*static*/ int utf_query_s8(STREAMFILE *sf, utf_context *utf, int row, const char *column, int8_t *value) {
+    return utf_query_value(sf, utf, row, column, (void*)value, COLUMN_TYPE_SINT8);
 }
-/*static*/ int utf_query_s16(STREAMFILE *streamfile, utf_context *utf, int row, const char* column, int16_t* value) {
-    return utf_query_value(streamfile, utf, row, column, (void*)value, COLUMN_TYPE_SINT16);
+/*static*/ int utf_query_s16(STREAMFILE *sf, utf_context *utf, int row, const char *column, int16_t *value) {
+    return utf_query_value(sf, utf, row, column, (void*)value, COLUMN_TYPE_SINT16);
 }
-/*static*/ int utf_query_string(STREAMFILE *streamfile, utf_context *utf, int row, const char* column, const char* *value) {
-    return utf_query_value(streamfile, utf, row, column, (void*)value, COLUMN_TYPE_STRING);
+/*static*/ int utf_query_string(STREAMFILE *sf, utf_context *utf, int row, const char *column, const char **value) {
+    return utf_query_value(sf, utf, row, column, (void*)value, COLUMN_TYPE_STRING);
 }
 
-/*static*/ int utf_query_data(STREAMFILE *streamfile, utf_context *utf, int row, const char* column, uint32_t *offset, uint32_t *size) {
+/*static*/ int utf_query_data(STREAMFILE *sf, utf_context *utf, int row, const char *column, uint32_t *p_offset, uint32_t *p_size) {
     utf_result result = {0};
 
-    utf_query(streamfile, utf, row, column, &result);
+    utf_query(sf, utf, row, column, &result);
     if (!result.valid || !result.found || result.type != COLUMN_TYPE_DATA)
         return 0;
 
-    if (offset) *offset = utf->table_offset + utf->data_offset + result.value.value_data.offset;
-    if (size) *size = result.value.value_data.size;
+    if (p_offset) *p_offset = utf->table_offset + utf->data_offset + result.value.value_data.offset;
+    if (p_size) *p_size = result.value.value_data.size;
     return 1;
 }
 
