@@ -132,7 +132,7 @@ static int read_fmt(int big_endian, STREAMFILE * streamFile, off_t current_chunk
     }
 
     switch (fmt->codec) {
-        case 0x00:  /* Yamaha AICA ADPCM (raw) [Headhunter (DC), Bomber hehhe (DC)] (unofficial) */
+        case 0x00:  /* Yamaha AICA ADPCM [Headhunter (DC), Bomber hehhe (DC)] (unofficial) */
             if (fmt->bps != 4) goto fail;
             if (fmt->block_size != 0x02*fmt->channel_count) goto fail;
             fmt->coding_type = coding_AICA_int;
@@ -173,7 +173,7 @@ static int read_fmt(int big_endian, STREAMFILE * streamFile, off_t current_chunk
             fmt->coding_type = coding_MS_IMA;
             break;
 
-        case 0x20:  /* Yamaha AICA ADPCM (raw) [Takuyo/Dynamix/etc DC games] */
+        case 0x20:  /* Yamaha AICA ADPCM [Takuyo/Dynamix/etc DC games] */
             if (fmt->bps != 4) goto fail;
             fmt->coding_type = coding_AICA;
             /* official RIFF spec has 0x20 as 'Yamaha ADPCM', but data is probably not pure AICA
@@ -196,6 +196,15 @@ static int read_fmt(int big_endian, STREAMFILE * streamFile, off_t current_chunk
                 goto fail; //fmt->coding_type = coding_MS_IMA_3BIT;
             else
                 goto fail;
+            break;
+
+        case 0x0300:  /* IMA ADPCM [Chrono Ma:gia (Android)] (unofficial) */
+            if (fmt->bps != 4) goto fail;
+            if (fmt->block_size != 0x0400*fmt->channel_count) goto fail;
+            if (fmt->size != 0x14) goto fail;
+            if (fmt->channel_count != 1) goto fail; /* not seen */
+            fmt->coding_type = coding_DVI_IMA;
+            /* real 0x300 is "Fujitsu FM Towns SND" with block align 0x01 */
             break;
 
         case 0x0555: /* Level-5 0x555 ADPCM (unofficial) */
@@ -354,18 +363,20 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
     riff_size = read_32bitLE(0x04,streamFile);
     file_size = get_streamfile_size(streamFile);
 
-    /* some of Liar-soft's buggy RIFF+Ogg made with Soundforge [Shikkoku no Sharnoth (PC)] */
-    if (riff_size+0x08+0x01 == file_size)
-        riff_size += 0x01;
-    /* some Xbox games do this [Dynasty Warriors 3 (Xbox), BloodRayne (Xbox)] */
-    if (riff_size == file_size && read_16bitLE(0x14,streamFile)==0x0069)
-        riff_size -= 0x08;
-    /* some Dreamcast/Naomi games do this [Headhunter (DC), Bomber hehhe (DC)] */
-    if (riff_size + 0x04 == file_size && read_16bitLE(0x14,streamFile)==0x0000)
-        riff_size -= 0x04;
-    /* some PC games do this [Halo 2 (PC)] (possibly bad extractor? 'Gravemind Tool') */
-    if (riff_size + 0x04 == file_size && read_16bitLE(0x14,streamFile)==0x0069)
-        riff_size -= 0x04;
+    /* some games have wonky sizes, selectively fix to catch bad rips and new mutations */
+    {
+        uint16_t codec = read_16bitLE(0x14,streamFile);
+        if (riff_size+0x08+0x01 == file_size)
+            riff_size += 0x01; /* [Shikkoku no Sharnoth (PC)] */
+        else if (riff_size == file_size && codec == 0x0069)
+            riff_size -= 0x08; /* [Dynasty Warriors 3 (Xbox), BloodRayne (Xbox)] */
+        else if (riff_size + 0x04 == file_size && codec == 0x0000)
+            riff_size -= 0x04; /* [Headhunter (DC), Bomber hehhe (DC)] */
+        else if (riff_size + 0x04 == file_size && codec == 0x0069)
+            riff_size -= 0x04; /* [Halo 2 (PC)] (possibly bad extractor? 'Gravemind Tool') */
+        else if (riff_size == file_size && codec == 0x0300)
+            riff_size -= 0x08; /* [Chrono Ma:gia (Android)] */
+    }
 
     /* check for truncated RIFF */
     if (file_size < riff_size+0x08)
@@ -553,6 +564,7 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
         case coding_AICA:
         case coding_XBOX_IMA:
         case coding_IMA:
+        case coding_DVI_IMA:
 #ifdef VGM_USE_FFMPEG
         case coding_FFmpeg:
 #endif
@@ -640,6 +652,7 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
             break;
 
         case coding_IMA:
+        case coding_DVI_IMA:
             vgmstream->num_samples = ima_bytes_to_samples(data_size, fmt.channel_count);
             break;
 
