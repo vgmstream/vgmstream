@@ -436,7 +436,7 @@ typedef enum {
     meta_WII_SNG,           /* Excite Trucks */
     meta_MUL,
     meta_SAT_BAKA,          /* Crypt Killer */
-    meta_PS2_VSF,           /* Musashi: Samurai Legend */
+    meta_VSF,
     meta_PS2_VSF_TTA,       /* Tiny Toon Adventures: Defenders of the Universe */
     meta_ADS,               /* Gauntlet Dark Legends (GC) */
     meta_PS2_SPS,           /* Ape Escape 2 */

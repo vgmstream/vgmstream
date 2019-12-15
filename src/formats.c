@@ -1000,7 +1000,7 @@ static const meta_info meta_info_list[] = {
         {meta_FFCC_STR,             "Final Fantasy: Crystal Chronicles STR header"},
         {meta_SAT_BAKA,             "BAKA header from Crypt Killer"},
         {meta_NDS_SWAV,             "SWAV Header"},
-        {meta_PS2_VSF,              "Musashi: Samurai Legend VSF Header"},
+        {meta_VSF,                  "Square-Enix VSF header"},
         {meta_NDS_RRDS,             "Ridger Racer DS Header"},
         {meta_PS2_TK5,              "Tekken 5 Stream Header"},
         {meta_PS2_SND,              "Might and Magic SSND Header"},

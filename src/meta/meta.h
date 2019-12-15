@@ -366,7 +366,7 @@ VGMSTREAM * init_vgmstream_sat_baka(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_nds_swav(STREAMFILE *streamFile);
 
-VGMSTREAM * init_vgmstream_ps2_vsf(STREAMFILE *streamFile);
+VGMSTREAM * init_vgmstream_vsf(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_nds_rrds(STREAMFILE *streamFile);
 
