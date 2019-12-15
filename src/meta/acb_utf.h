@@ -12,17 +12,19 @@
  * (adapted from hcs's code to do multiple querys in the same table)
  */
 
-// todo divide into some .c file and use for other @UTF parsing
+//todo move to src/util subdir
 
-/* API */
-typedef struct utf_context utf_context; /* opaque struct */
-/*static*/ utf_context* utf_open(STREAMFILE *sf, uint32_t table_offset, int *p_rows, const char **p_row_name);
-/*static*/ void utf_close(utf_context *utf);
+/* opaque struct */
+typedef struct utf_context utf_context;
 
-/*static*/ int utf_query_s8(STREAMFILE *sf, utf_context *utf, int row, const char *column, int8_t *value);
-/*static*/ int utf_query_s16(STREAMFILE *sf, utf_context *utf, int row, const char *column, int16_t *value);
-/*static*/ int utf_query_string(STREAMFILE *sf, utf_context *utf, int row, const char *column, const char **value);
-/*static*/ int utf_query_data(STREAMFILE *sf, utf_context *utf, int row, const char *column, uint32_t *offset, uint32_t *size);
+/* open a CRI UTF table at offset, returning table name and rows. Passed streamfile is used internally for next calls */
+utf_context* utf_open(STREAMFILE *sf, uint32_t table_offset, int *p_rows, const char **p_row_name);
+void utf_close(utf_context *utf);
+/* query calls */
+int utf_query_s8(utf_context *utf, int row, const char *column, int8_t *value);
+int utf_query_s16(utf_context *utf, int row, const char *column, int16_t *value);
+int utf_query_string(utf_context *utf, int row, const char *column, const char **value);
+int utf_query_data(utf_context *utf, int row, const char *column, uint32_t *offset, uint32_t *size);
 
 /* ************************************************* */
 /* INTERNALS */
@@ -54,9 +56,8 @@ enum column_type_t {
 };
 
 typedef struct {
-    int valid; /* table is valid */
     int found;
-    int type; /* one of COLUMN_TYPE_* */
+    enum column_type_t type;
     union {
         int8_t   value_s8;
         uint8_t  value_u8;
@@ -74,9 +75,10 @@ typedef struct {
         } value_data;
         const char *value_string;
     } value;
-} utf_result;
+} utf_result_t;
 
 struct utf_context {
+    STREAMFILE *sf;
     uint32_t table_offset;
 
     /* header */
@@ -111,6 +113,7 @@ struct utf_context {
     utf = calloc(1, sizeof(utf_context));
     if (!utf) goto fail;
 
+    utf->sf = sf;
     utf->table_offset = table_offset;
 
     /* check header */
@@ -247,12 +250,10 @@ fail:
 }
 
 
-static int utf_query(STREAMFILE *sf, utf_context *utf, int row, const char *column, utf_result *result) {
+static int utf_query(utf_context *utf, int row, const char *column, utf_result_t *result) {
     int i;
 
 
-    /* fill in the default stuff */
-    result->valid = 0;
     result->found = 0;
 
     if (row >= utf->rows || row < 0)
@@ -292,65 +293,43 @@ static int utf_query(STREAMFILE *sf, utf_context *utf, int row, const char *colu
         /* read row/constant value */
         switch (col->flags & COLUMN_BITMASK_TYPE) {
             case COLUMN_TYPE_SINT8:
-                result->value.value_s8 = read_s8(data_offset, sf);
+                result->value.value_s8 = read_s8(data_offset, utf->sf);
                 break;
             case COLUMN_TYPE_UINT8:
-                result->value.value_u8 = read_u8(data_offset, sf);
+                result->value.value_u8 = read_u8(data_offset, utf->sf);
                 break;
             case COLUMN_TYPE_SINT16:
-                result->value.value_s16 = read_s16be(data_offset, sf);
+                result->value.value_s16 = read_s16be(data_offset, utf->sf);
                 break;
             case COLUMN_TYPE_UINT16:
-                result->value.value_u16 = read_u16be(data_offset, sf);
+                result->value.value_u16 = read_u16be(data_offset, utf->sf);
                 break;
             case COLUMN_TYPE_SINT32:
-                result->value.value_s32 = read_s32be(data_offset, sf);
+                result->value.value_s32 = read_s32be(data_offset, utf->sf);
                 break;
             case COLUMN_TYPE_UINT32:
-                result->value.value_u32 = read_u32be(data_offset, sf);
+                result->value.value_u32 = read_u32be(data_offset, utf->sf);
                 break;
             case COLUMN_TYPE_SINT64:
-                result->value.value_s64 = read_s64be(data_offset, sf);
+                result->value.value_s64 = read_s64be(data_offset, utf->sf);
                 break;
 #if 0
             case COLUMN_TYPE_UINT64:
-                result->value.value_u64 = read_u64be(data_offset, sf);
+                result->value.value_u64 = read_u64be(data_offset, utf->sf);
                 break;
 #endif
             case COLUMN_TYPE_FLOAT: {
-                union { //todo inline function?
-                    float float_value;
-                    uint32_t int_value;
-                } cnv;
-
-                if (sizeof(float) != 4) {
-                    VGM_LOG("@UTF: can't convert float\n");
-                    goto fail;
-                }
-
-                cnv.int_value = read_u32be(data_offset, sf);
-                result->value.value_float = cnv.float_value;
+                result->value.value_float = read_f32be(data_offset, utf->sf);
                 break;
             }
 #if 0
             case COLUMN_TYPE_DOUBLE: {
-                union {
-                    double float_value;
-                    uint64_t int_value;
-                } cnv;
-
-                if (sizeof(double) != 8) {
-                    VGM_LOG("@UTF: can't convert double\n");
-                    goto fail;
-                }
-
-                cnv.int_value = read_u64be(data_offset, sf);
-                result->value.value_float = cnv.float_value;
+                result->value.value_double = read_d64be(data_offset, utf->sf);
                 break;
             }
 #endif
             case COLUMN_TYPE_STRING: {
-                uint32_t name_offset = read_u32be(data_offset, sf);
+                uint32_t name_offset = read_u32be(data_offset, utf->sf);
                 if (name_offset > utf->strings_size)
                     goto fail;
                 result->value.value_string = utf->string_table + name_offset;
@@ -358,8 +337,8 @@ static int utf_query(STREAMFILE *sf, utf_context *utf, int row, const char *colu
             }
 
             case COLUMN_TYPE_DATA:
-                result->value.value_data.offset = read_u32be(data_offset + 0x00, sf);
-                result->value.value_data.size   = read_u32be(data_offset + 0x04, sf);
+                result->value.value_data.offset = read_u32be(data_offset + 0x00, utf->sf);
+                result->value.value_data.size   = read_u32be(data_offset + 0x04, utf->sf);
                 break;
 
             default:
@@ -369,19 +348,17 @@ static int utf_query(STREAMFILE *sf, utf_context *utf, int row, const char *colu
         break; /* column found and read */
     }
 
-    result->valid = 1;
     return 1;
 fail:
     return 0;
 }
 
-////////////////////////////////////////////////////////////
+static int utf_query_value(utf_context *utf, int row, const char *column, void *value, enum column_type_t type) {
+    utf_result_t result = {0};
+    int valid;
 
-static int utf_query_value(STREAMFILE *sf, utf_context *utf, int row, const char *column, void *value, int type) {
-    utf_result result = {0};
-
-    utf_query(sf, utf, row, column, &result);
-    if (!result.valid || !result.found || result.type != type)
+    valid = utf_query(utf, row, column, &result);
+    if (!valid || !result.found || result.type != type)
         return 0;
 
     switch(result.type) {
@@ -401,21 +378,25 @@ static int utf_query_value(STREAMFILE *sf, utf_context *utf, int row, const char
     return 1;
 }
 
-/*static*/ int utf_query_s8(STREAMFILE *sf, utf_context *utf, int row, const char *column, int8_t *value) {
-    return utf_query_value(sf, utf, row, column, (void*)value, COLUMN_TYPE_SINT8);
+int utf_query_s8(utf_context *utf, int row, const char *column, int8_t *value) {
+    return utf_query_value(utf, row, column, (void*)value, COLUMN_TYPE_SINT8);
 }
-/*static*/ int utf_query_s16(STREAMFILE *sf, utf_context *utf, int row, const char *column, int16_t *value) {
-    return utf_query_value(sf, utf, row, column, (void*)value, COLUMN_TYPE_SINT16);
+int utf_query_s16(utf_context *utf, int row, const char *column, int16_t *value) {
+    return utf_query_value(utf, row, column, (void*)value, COLUMN_TYPE_SINT16);
 }
-/*static*/ int utf_query_string(STREAMFILE *sf, utf_context *utf, int row, const char *column, const char **value) {
-    return utf_query_value(sf, utf, row, column, (void*)value, COLUMN_TYPE_STRING);
+int utf_query_s32(utf_context *utf, int row, const char *column, int32_t *value) {
+    return utf_query_value(utf, row, column, (void*)value, COLUMN_TYPE_SINT32);
+}
+int utf_query_string(utf_context *utf, int row, const char *column, const char **value) {
+    return utf_query_value(utf, row, column, (void*)value, COLUMN_TYPE_STRING);
 }
 
-/*static*/ int utf_query_data(STREAMFILE *sf, utf_context *utf, int row, const char *column, uint32_t *p_offset, uint32_t *p_size) {
-    utf_result result = {0};
+int utf_query_data(utf_context *utf, int row, const char *column, uint32_t *p_offset, uint32_t *p_size) {
+    utf_result_t result = {0};
+    int valid;
 
-    utf_query(sf, utf, row, column, &result);
-    if (!result.valid || !result.found || result.type != COLUMN_TYPE_DATA)
+    valid = utf_query(utf, row, column, &result);
+    if (!valid || !result.found || result.type != COLUMN_TYPE_DATA)
         return 0;
 
     if (p_offset) *p_offset = utf->table_offset + utf->data_offset + result.value.value_data.offset;
