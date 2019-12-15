@@ -557,6 +557,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\csb.c"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\csmp.c"
                     >
                 </File>

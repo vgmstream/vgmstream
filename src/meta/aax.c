@@ -21,7 +21,9 @@ VGMSTREAM * init_vgmstream_aax(STREAMFILE *streamFile) {
 
 
     /* checks */
-    if (!check_extensions(streamFile, "aax"))
+    /* .aax: often with extension (with either HCA or AAX tables)
+     * (extensionless): sometimes without [PES 2013 (PC)] */
+    if (!check_extensions(streamFile, "aax,"))
         goto fail;
     if (read_32bitBE(0x00,streamFile) != 0x40555446) /* "@UTF" */
         goto fail;
@@ -143,8 +145,8 @@ VGMSTREAM * init_vgmstream_utf_dsp(STREAMFILE *streamFile) {
 
 
     /* checks */
-    /* aax: assumed
-     * (extensionless): default (extracted names inside csb/cpk don't have extensions) */
+    /* .aax: assumed
+     * (extensionless): extracted names inside csb/cpk often don't have extensions */
     if (!check_extensions(streamFile, "aax,"))
         goto fail;
     if (read_32bitBE(0x00,streamFile) != 0x40555446) /* "@UTF" */
