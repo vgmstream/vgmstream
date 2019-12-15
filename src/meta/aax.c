@@ -1,7 +1,7 @@
 #include "meta.h"
 #include "../layout/layout.h"
 #include "../coding/coding.h"
-#include "aax_utf.h"
+#include "cri_utf.h"
 
 
 #define MAX_SEGMENTS 2 /* usually segment0=intro, segment1=loop/main */
@@ -9,63 +9,62 @@
 /* AAX - segmented ADX [Bayonetta (PS3), Pandora's Tower (Wii), Catherine (X360), Binary Domain (PS3)] */
 VGMSTREAM * init_vgmstream_aax(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    int is_hca;
-
     int loop_flag = 0, channel_count = 0;
     int32_t sample_count, loop_start_sample = 0, loop_end_sample = 0;
-    int segment_count;
 
     segmented_layout_data *data = NULL;
-    int table_error = 0;
-    const long top_offset = 0x00;
+    int segment_count, loop_segment = 0, is_hca;
     off_t segment_offset[MAX_SEGMENTS];
     size_t segment_size[MAX_SEGMENTS];
     int i;
+    utf_context *utf = NULL;
 
 
     /* checks */
-    if (!check_extensions(streamFile, "aax"))
+    /* .aax: often with extension (with either HCA or AAX tables)
+     * (extensionless): sometimes without [PES 2013 (PC)] */
+    if (!check_extensions(streamFile, "aax,"))
         goto fail;
     if (read_32bitBE(0x00,streamFile) != 0x40555446) /* "@UTF" */
         goto fail;
 
-
-    /* get segment count, offsets and sizes */
+    /* .aax contains a simple UTF table, each row being a segment pointing to a CRI audio format */
     {
-        struct utf_query_result result;
-        long aax_string_table_offset;
-        long aax_string_table_size;
-        long aax_data_offset;
+        int rows;
+        const char* name;
+        uint32_t table_offset = 0x00;
 
-        result = query_utf_nofail(streamFile, top_offset, NULL, &table_error);
-        if (table_error) goto fail;
 
-        segment_count = result.rows;
-        if (segment_count > MAX_SEGMENTS) goto fail;
+        utf = utf_open(streamFile, table_offset, &rows, &name);
+        if (!utf) goto fail;
 
-        aax_string_table_offset = top_offset+0x08 + result.string_table_offset;
-        aax_data_offset = top_offset+0x08 + result.data_offset;
-        aax_string_table_size = aax_data_offset - aax_string_table_offset;
-
-        if (result.name_offset+0x04 > aax_string_table_size)
-            goto fail;
-
-        if (read_32bitBE(aax_string_table_offset + result.name_offset, streamFile) == 0x41415800) /* "AAX\0" */
+        if (strcmp(name, "AAX") == 0)
             is_hca = 0;
-        else if (read_32bitBE(aax_string_table_offset + result.name_offset, streamFile) == 0x48434100) /* "HCA\0" */
+        else if (strcmp(name, "HCA") == 0)
             is_hca = 1;
         else
             goto fail;
 
+        segment_count = rows;
+        if (segment_count > MAX_SEGMENTS) goto fail;
+
+
         /* get offsets of constituent segments */
         for (i = 0; i < segment_count; i++) {
-            struct offset_size_pair offset_size;
+            uint32_t offset, size;
+            int8_t segment_loop_flag = 0;
 
-            offset_size = query_utf_data(streamFile, top_offset, i, "data", &table_error);
-            if (table_error) goto fail;
+            if (!utf_query_s8(utf, i, "lpflg", &segment_loop_flag)) /* usually in last segment */
+                goto fail;
+            if (!utf_query_data(utf, i, "data", &offset, &size))
+                goto fail;
 
-            segment_offset[i] = aax_data_offset + offset_size.offset;
-            segment_size[i] = offset_size.size;
+            segment_offset[i] = table_offset + offset;
+            segment_size[i] = size;
+            if (segment_loop_flag) {
+                loop_flag = 1;
+                loop_segment = i;
+            }
         }
     }
 
@@ -75,14 +74,14 @@ VGMSTREAM * init_vgmstream_aax(STREAMFILE *streamFile) {
 
     /* open each segment subfile */
     for (i = 0; i < segment_count; i++) {
-        STREAMFILE* temp_streamFile = setup_subfile_streamfile(streamFile, segment_offset[i],segment_size[i], (is_hca ? "hca" : "adx"));
-        if (!temp_streamFile) goto fail;
+        STREAMFILE* temp_sf = setup_subfile_streamfile(streamFile, segment_offset[i],segment_size[i], (is_hca ? "hca" : "adx"));
+        if (!temp_sf) goto fail;
 
         data->segments[i] = is_hca ?
-                init_vgmstream_hca(temp_streamFile) :
-                init_vgmstream_adx(temp_streamFile);
+                init_vgmstream_hca(temp_sf) :
+                init_vgmstream_adx(temp_sf);
 
-        close_streamfile(temp_streamFile);
+        close_streamfile(temp_sf);
 
         if (!data->segments[i]) goto fail;
     }
@@ -93,25 +92,21 @@ VGMSTREAM * init_vgmstream_aax(STREAMFILE *streamFile) {
 
     /* get looping and samples */
     sample_count = 0;
-    loop_flag = 0;
     for (i = 0; i < segment_count; i++) {
-        int segment_loop_flag = query_utf_1byte(streamFile, top_offset, i, "lpflg", &table_error);
-        if (table_error) segment_loop_flag = 0;
 
-        if (!loop_flag && segment_loop_flag) {
+        if (loop_flag && loop_segment == i) {
             loop_start_sample = sample_count;
         }
 
         sample_count += data->segments[i]->num_samples;
 
-        if (!loop_flag && segment_loop_flag) {
+        if (loop_flag && loop_segment == i) {
             loop_end_sample = sample_count;
-            loop_flag = 1;
         }
     }
 
-
     channel_count = data->segments[0]->channels;
+
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
@@ -128,9 +123,11 @@ VGMSTREAM * init_vgmstream_aax(STREAMFILE *streamFile) {
 
     vgmstream->layout_data = data;
 
+    utf_close(utf);
     return vgmstream;
 
 fail:
+    utf_close(utf);
     close_vgmstream(vgmstream);
     free_layout_segmented(data);
     return NULL;
@@ -141,75 +138,61 @@ fail:
 VGMSTREAM * init_vgmstream_utf_dsp(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset;
-    size_t channel_size;
-
-    int loop_flag = 0, channel_count, sample_rate;
-    long sample_count;
-
-    int table_error = 0;
-    const long top_offset = 0x00;
-    long top_data_offset, segment_count;
-    long body_offset, body_size;
-    long header_offset, header_size;
+    int8_t loop_flag = 0, channel_count;
+    int sample_rate, num_samples, loop_start, loop_end, interleave;
+    uint32_t data_offset, data_size,  header_offset, header_size;
+    utf_context *utf = NULL;
 
 
     /* checks */
-    /* files don't have extension, we accept  "" for CLI and .aax for plugins (they aren't exactly .aax though) */
+    /* .aax: assumed
+     * (extensionless): extracted names inside csb/cpk often don't have extensions */
     if (!check_extensions(streamFile, "aax,"))
         goto fail;
     if (read_32bitBE(0x00,streamFile) != 0x40555446) /* "@UTF" */
         goto fail;
 
-    /* get segment count, offsets and sizes*/
+    /* .aax contains a simple UTF table with one row and various columns being header info */
     {
-        struct utf_query_result result;
-        long top_string_table_offset;
-        long top_string_table_size;
-        long name_offset;
-       
-        result = query_utf_nofail(streamFile, top_offset, NULL, &table_error);
-        if (table_error) goto fail;
+        int rows;
+        const char* name;
+        uint32_t table_offset = 0x00;
 
-        segment_count = result.rows;
-        if (segment_count != 1) goto fail; /* only simple stuff for now (multisegment not known) */
 
-        top_string_table_offset = top_offset + 8 + result.string_table_offset;
-        top_data_offset = top_offset + 8 + result.data_offset;
-        top_string_table_size = top_data_offset - top_string_table_offset;
+        utf = utf_open(streamFile, table_offset, &rows, &name);
+        if (!utf) goto fail;
 
-        if (result.name_offset+10 > top_string_table_size) goto fail;
-
-        name_offset = top_string_table_offset + result.name_offset;
-        if (read_32bitBE(name_offset+0x00, streamFile) != 0x41445043 || /* "ADPC" */
-            read_32bitBE(name_offset+0x04, streamFile) != 0x4D5F5749 || /* "M_WI" */
-            read_16bitBE(name_offset+0x08, streamFile) != 0x4900)       /* "I\0" */
+        if (strcmp(name, "ADPCM_WII") != 0)
             goto fail;
+
+        if (rows != 1)
+            goto fail;
+
+        if (!utf_query_s32(utf, 0, "sfreq", &sample_rate))
+            goto fail;
+        if (!utf_query_s32(utf, 0, "nsmpl", &num_samples))
+            goto fail;
+        if (!utf_query_s8(utf, 0, "nch", &channel_count))
+            goto fail;
+        if (!utf_query_s8(utf, 0, "lpflg", &loop_flag)) /* full loops */
+            goto fail;
+        /* for some reason data is stored before header */
+        if (!utf_query_data(utf, 0, "data", &data_offset, &data_size))
+            goto fail;
+        if (!utf_query_data(utf, 0, "header", &header_offset, &header_size))
+            goto fail;
+
+        if (channel_count < 1 || channel_count > 2)
+            goto fail;
+        if (header_size != channel_count * 0x60)
+            goto fail;
+
+        start_offset = data_offset;
+        interleave = (data_size+7) / 8 * 8 / channel_count;
+
+        loop_start = read_32bitBE(header_offset + 0x10, streamFile);
+        loop_end   = read_32bitBE(header_offset + 0x14, streamFile);
     }
-
-    /* get sizes */
-    {
-        struct offset_size_pair offset_size;
-
-        offset_size = query_utf_data(streamFile, top_offset, 0, "data", &table_error);
-        if (table_error) goto fail;
-        body_offset = top_data_offset + offset_size.offset;
-        body_size = offset_size.size;
-
-        offset_size = query_utf_data(streamFile, top_offset, 0, "header", &table_error);
-        if (table_error) goto fail;
-        header_offset = top_data_offset + offset_size.offset;
-        header_size = offset_size.size;
-    }
-
-    channel_count = query_utf_1byte(streamFile, top_offset, 0, "nch", &table_error);
-    sample_count = query_utf_4byte(streamFile, top_offset, 0, "nsmpl", &table_error);
-    sample_rate = query_utf_4byte(streamFile, top_offset, 0, "sfreq", &table_error);
-    if (table_error) goto fail;
-    if (channel_count != 1 && channel_count != 2) goto fail;
-    if (header_size != channel_count * 0x60) goto fail;
-
-    start_offset = body_offset;
-    channel_size = (body_size+7) / 8 * 8 / channel_count;
 
 
     /* build the VGMSTREAM */
@@ -217,16 +200,18 @@ VGMSTREAM * init_vgmstream_utf_dsp(STREAMFILE *streamFile) {
     if (!vgmstream) goto fail;
 
     vgmstream->sample_rate = sample_rate;
-    vgmstream->num_samples = sample_count;
+    vgmstream->num_samples = num_samples;
+    vgmstream->loop_start_sample = dsp_nibbles_to_samples(loop_start);
+    vgmstream->loop_end_sample   = dsp_nibbles_to_samples(loop_end) + 1;
 
-    vgmstream->meta_type = meta_UTF_DSP;
     vgmstream->coding_type = coding_NGC_DSP;
     vgmstream->layout_type = layout_interleave;
-    vgmstream->interleave_block_size = channel_size;
+    vgmstream->interleave_block_size = interleave;
+    vgmstream->meta_type = meta_UTF_DSP;
 
     dsp_read_coefs_be(vgmstream, streamFile, header_offset+0x1c, 0x60);
 
-    if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
+    if (!vgmstream_open_stream(vgmstream, streamFile, start_offset))
         goto fail;
     return vgmstream;
 

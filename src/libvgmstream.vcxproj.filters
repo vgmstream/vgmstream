@@ -71,9 +71,6 @@
     <ClInclude Include="meta\aax_utf.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="meta\acb_utf.h">
-      <Filter>meta\Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="meta\9tav_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
@@ -87,6 +84,9 @@
       <Filter>meta\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="meta\bgw_streamfile.h">
+      <Filter>meta\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="meta\cri_utf.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="meta\ea_eaac_streamfile.h">
@@ -350,6 +350,12 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ck.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\cri_utf.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\csb.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\csmp.c">
@@ -1586,6 +1592,9 @@
       <Filter>coding\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\xma.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\xma_ue3.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\xnb.c">

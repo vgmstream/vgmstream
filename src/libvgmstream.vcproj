@@ -233,10 +233,6 @@
                     >
                 </File>
                 <File
-                    RelativePath=".\meta\acb_utf.h"
-                    >
-                </File>
-                <File
                     RelativePath=".\meta\9tav_streamfile.h"
                     >
                 </File>
@@ -254,6 +250,10 @@
                 </File>
                 <File
                     RelativePath=".\meta\bgw_streamfile.h"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\cri_utf.h"
                     >
                 </File>
                 <File
@@ -550,6 +550,14 @@
 				</File>
                 <File
                     RelativePath=".\meta\ck.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\cri_utf.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\csb.c"
                     >
                 </File>
                 <File
@@ -1768,6 +1776,10 @@
 				</File>
                 <File
                     RelativePath=".\meta\xma.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\xma_ue3.c"
                     >
                 </File>
                 <File

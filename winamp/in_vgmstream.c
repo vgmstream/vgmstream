@@ -1059,6 +1059,11 @@ int winamp_IsOurFile(const in_char *fn) {
     cfg.skip_standard = 1; /* validated by Winamp */
     cfg.accept_unknown = settings.exts_unknown_on;
     cfg.accept_common = settings.exts_common_on;
+
+    /* Winamp seem to have bizarre handling of MP3 without standard names (ex song.mp3a),
+     * in that it'll try to open normally, rejected if unknown_exts_on is not set, and
+     * finally retry with "hi.mp3", accepted if exts_common_on is set. */
+
     /* returning 0 here means it only accepts the extensions in working_extension_list */
     return vgmstream_ctx_is_valid(filename_utf8, &cfg);
 }
@@ -1163,8 +1168,8 @@ void winamp_Stop() {
     if (decode_thread_handle != INVALID_HANDLE_VALUE) {
         state.decode_abort = 1;
 
-        /* arbitrary wait length */
-        if (WaitForSingleObject(decode_thread_handle,1000) == WAIT_TIMEOUT) {
+        /* arbitrary wait milliseconds (error can trigger if the system is *really* busy) */
+        if (WaitForSingleObject(decode_thread_handle, 5000) == WAIT_TIMEOUT) {
             MessageBox(input_module.hMainWindow, TEXT("Error stopping decode thread\n"), ("Error"),MB_OK|MB_ICONERROR);
             TerminateThread(decode_thread_handle, 0);
         }
@@ -1625,6 +1630,16 @@ static int winampGetExtendedFileInfo_common(in_char* filename, char *metadata, c
             tag_found = 1;
             break;
         }
+    }
+
+    /* if tagfile exists but TITLE doesn't Winamp won't default to GetFileInfo, so call it
+     * manually as it's useful for files with stream names */
+    if (!tag_found && strcasecmp(metadata, "title") == 0) {
+        in_char ret_wchar[2048];
+
+        winamp_GetFileInfo(filename, ret_wchar, NULL);
+        wa_ichar_to_char(ret, retlen, ret_wchar);
+        return 1;
     }
 
     if (!tag_found)

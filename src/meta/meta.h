@@ -366,7 +366,7 @@ VGMSTREAM * init_vgmstream_sat_baka(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_nds_swav(STREAMFILE *streamFile);
 
-VGMSTREAM * init_vgmstream_ps2_vsf(STREAMFILE *streamFile);
+VGMSTREAM * init_vgmstream_vsf(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_nds_rrds(STREAMFILE *streamFile);
 
@@ -872,5 +872,9 @@ VGMSTREAM * init_vgmstream_bmp_konami(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_isb(STREAMFILE * streamFile);
 
 VGMSTREAM* init_vgmstream_xssb(STREAMFILE *sf);
+
+VGMSTREAM* init_vgmstream_xma_ue3(STREAMFILE *sf);
+
+VGMSTREAM* init_vgmstream_csb(STREAMFILE *sf);
 
 #endif /*_META_H*/

@@ -399,15 +399,20 @@ int main(int argc, char ** argv) {
     /* CLI has no need to check */
     {
         int valid;
-        vgmstream_ctx_valid_cfg cfg2 = {0};
+        vgmstream_ctx_valid_cfg vcfg = {0};
 
-        cfg2.skip_standard = 1;
-        cfg2.reject_extensionless = 0;
-        cfg2.accept_unknown = 0;
-        cfg2.accept_common = 1;
+        vcfg.skip_standard = 1;
+        vcfg.reject_extensionless = 0;
+        vcfg.accept_unknown = 0;
+        vcfg.accept_common = 0;
 
-        valid = vgmstream_ctx_is_valid(cfg.infilename, &cfg2);
-        if (!valid) goto fail;
+        VGM_LOG("CLI: valid %s\n", cfg.infilename);
+        valid = vgmstream_ctx_is_valid(cfg.infilename, &vcfg);
+        if (!valid) {
+            VGM_LOG("CLI: valid ko\n");
+            goto fail;
+        }
+        VGM_LOG("CLI: valid ok\n");
     }
 #endif
 
