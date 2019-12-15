@@ -1771,6 +1771,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\xma_ue3.c"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\xnb.c"
                     >
                 </File>

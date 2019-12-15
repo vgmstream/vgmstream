@@ -1588,6 +1588,9 @@
     <ClCompile Include="meta\xma.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\xma_ue3.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\xnb.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
