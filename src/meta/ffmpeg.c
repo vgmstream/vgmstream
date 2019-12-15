@@ -56,11 +56,13 @@ VGMSTREAM * init_vgmstream_ffmpeg_offset(STREAMFILE *streamFile, uint64_t start,
         num_samples = aac_get_samples(streamFile, 0x00, get_streamfile_size(streamFile));
     }
 
+#ifdef VGM_USE_MPEG
     /* hack for MP3 files (will return 0 samples if not an actual file) 
      *  .mus: Marc Ecko's Getting Up (PC) */
     if (!num_samples && check_extensions(streamFile, "mp3,lmp3,mus")) {
         num_samples = mpeg_get_samples(streamFile, 0x00, get_streamfile_size(streamFile));
     }
+#endif
 
     /* hack for MPC, that seeks/resets incorrectly due to seek table shenanigans */
     if (read_32bitBE(0x00, streamFile) == 0x4D502B07 || /* "MP+\7" (Musepack V7) */
