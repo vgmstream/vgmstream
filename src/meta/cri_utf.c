@@ -1,33 +1,4 @@
-#ifndef _ACB_UTF_H_
-#define _ACB_UTF_H_
-
-/* CRI @UTF (Universal Table Format?) is a generic database-like table made of
- * rows/columns that contain numbers/strings/binary data, which also can be other tables.
- *
- * A table starts with "@UTF" and defines some values (row/data/string offsets, counts, etc)
- * then DB schema (columns type+name), then rows, string table and binary data. Formats using @UTF
- * store and read data by row number + column name. Being a generic table with no fixed schema
- * CRI uses it for different purposes (.acf: cues, .cpk: files, .aax: bgm, .usm: video, etc).
- *
- * (adapted from hcs's code to do multiple querys in the same table)
- */
-
-//todo move to src/util subdir
-
-/* opaque struct */
-typedef struct utf_context utf_context;
-
-/* open a CRI UTF table at offset, returning table name and rows. Passed streamfile is used internally for next calls */
-utf_context* utf_open(STREAMFILE *sf, uint32_t table_offset, int *p_rows, const char **p_row_name);
-void utf_close(utf_context *utf);
-/* query calls */
-int utf_query_s8(utf_context *utf, int row, const char *column, int8_t *value);
-int utf_query_s16(utf_context *utf, int row, const char *column, int16_t *value);
-int utf_query_string(utf_context *utf, int row, const char *column, const char **value);
-int utf_query_data(utf_context *utf, int row, const char *column, uint32_t *offset, uint32_t *size);
-
-/* ************************************************* */
-/* INTERNALS */
+#include "cri_utf.h"
 
 /* possibly 3b+5b from clUTF decompilation */
 #define COLUMN_BITMASK_STORAGE      0xf0
@@ -105,8 +76,8 @@ struct utf_context {
 };
 
 
-/* @UTF table reading, abridged */
-/*static*/ utf_context* utf_open(STREAMFILE *sf, uint32_t table_offset, int *p_rows, const char **p_row_name) {
+/* @UTF table context creation */
+utf_context* utf_open(STREAMFILE *sf, uint32_t table_offset, int *p_rows, const char **p_row_name) {
     utf_context* utf = NULL;
 
 
@@ -241,7 +212,7 @@ fail:
     return NULL;
 }
 
-/*static*/ void utf_close(utf_context *utf) {
+void utf_close(utf_context *utf) {
     if (!utf) return;
 
     free(utf->string_table);
@@ -403,5 +374,3 @@ int utf_query_data(utf_context *utf, int row, const char *column, uint32_t *p_of
     if (p_size) *p_size = result.value.value_data.size;
     return 1;
 }
-
-#endif /* _ACB_UTF_H_ */
