@@ -16,7 +16,8 @@ VGMSTREAM * init_vgmstream_ea_swvr(STREAMFILE *streamFile) {
 
 
     /* checks */
-    /* .stream: common (found inside files), .str: shortened, probably unnecessary */
+    /* .stream: common (found inside files)
+     * .str: shortened, probably unnecessary */
     if (!check_extensions(streamFile,"stream,str"))
         goto fail;
 
@@ -49,7 +50,6 @@ VGMSTREAM * init_vgmstream_ea_swvr(STREAMFILE *streamFile) {
         goto fail;
     }
 
-    start_offset = read_32bit(0x04, streamFile);
     if (read_32bit(start_offset+0x00, streamFile) == 0x50414444) /* "PADD" (Freekstyle) */
         start_offset += read_32bit(start_offset+0x04, streamFile);
     else if (read_32bit(start_offset+0x10, streamFile) == 0x53484452) /* "SHDR" (Future Cop PC) */
