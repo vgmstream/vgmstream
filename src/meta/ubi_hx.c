@@ -315,10 +315,11 @@ static int parse_header(ubi_hx_header * hx, STREAMFILE *sf, off_t offset, size_t
 
         hx->codec_id = read_16bit(riff_offset + 0x14 , sf);
         switch(hx->codec_id) {
-            case 0x01: hx->codec = PCM; break;
-            case 0x02: hx->codec = UBI; break;
-            case 0x03: hx->codec = PSX; break;
-            case 0x04: hx->codec = DSP; break;
+            case 0x01: hx->codec = PCM;  break;
+            case 0x02: hx->codec = UBI;  break;
+            case 0x03: hx->codec = PSX;  break;
+            case 0x04: hx->codec = DSP;  break;
+            case 0x05: hx->codec = XIMA; break;
             default: goto fail;
         }
         hx->channels    = read_16bit(riff_offset + 0x16, sf);
