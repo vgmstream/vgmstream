@@ -35,6 +35,9 @@ VGMSTREAM *init_vgmstream_xbox_hlwav(STREAMFILE *streamFile) {
         default: goto fail;
     }
 
+    if (channels > 2) /* Source only supports mono and stereo */
+        goto fail;
+
     loop_flag = (loop_start != -1);
 
     /* build the VGMSTREAM */
@@ -73,7 +76,7 @@ fail:
     return NULL;
 }
 
-/* .360.WAV, .PS3.WAV - from Valve games running on Source Engine, evolution of Xbox .WAV format */
+/* .360.WAV, .PS3.WAV - from Valve games running on Source Engine, evolution of Xbox .WAV format seen above */
 /* [The Orange Box (X360), Portal 2 (PS3/X360), Counter-Strike: Global Offensive (PS3/X360)] */
 VGMSTREAM *init_vgmstream_xmv_valve(STREAMFILE *streamFile) {
     VGMSTREAM *vgmstream = NULL;
@@ -115,6 +118,9 @@ VGMSTREAM *init_vgmstream_xmv_valve(STREAMFILE *streamFile) {
         case 0x02: sample_rate = 44100; break;
         default: goto fail;
     }
+
+    if (channels > 2) /* Source only supports mono and stereo */
+        goto fail;
 
     loop_flag = (loop_start != -1);
 
@@ -162,6 +168,9 @@ VGMSTREAM *init_vgmstream_xmv_valve(STREAMFILE *streamFile) {
         case 0x03: { /* MP3 */
             mpeg_codec_data *mpeg_data;
             coding_t mpeg_coding;
+
+            if (loop_flag) /* should never happen, Source cannot loop MP3 */
+                goto fail;
 
             mpeg_data = init_mpeg(streamFile, start_offset, &mpeg_coding, channels);
             if (!mpeg_data) goto fail;
