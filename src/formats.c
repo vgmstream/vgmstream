@@ -164,6 +164,7 @@ static const char* extension_list[] = {
     "ezw",
 
     "fag",
+    "fda",
     "ffw",
     "filp",
     //"flac", //common
@@ -745,6 +746,7 @@ static const coding_info coding_info_list[] = {
 
         {coding_EA_MT,              "Electronic Arts MicroTalk"},
 
+        {coding_RELIC,              "Relic Codec"},
         {coding_CRI_HCA,            "CRI HCA"},
         
 #ifdef VGM_USE_VORBIS
@@ -1252,6 +1254,7 @@ static const meta_info meta_info_list[] = {
         {meta_ISB,                  "Creative ISACT header"},
         {meta_XSSB,                 "Artoon XSSB header"},
         {meta_XMA_UE3,              "Unreal Engine XMA header"},
+        {meta_FDA,                  "Relic FDA header"},
 
 };
 

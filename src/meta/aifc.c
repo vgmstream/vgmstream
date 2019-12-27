@@ -1,15 +1,17 @@
 #include "meta.h"
 #include "../layout/layout.h"
+#include "../coding/coding.h"
 
 
 /* for reading integers inexplicably packed into 80-bit ('double extended') floats */
 static uint32_t read80bitSANE(off_t offset, STREAMFILE *streamFile) {
-    uint8_t buf[10];
+    uint8_t buf[0x0a];
     int32_t exponent;
     int32_t mantissa;
     int i;
 
-    if (read_streamfile(buf,offset,10,streamFile) != 10) return 0;
+    if (read_streamfile(buf,offset,0x0a,streamFile) != 0x0a)
+        return 0;
 
     exponent = ((buf[0]<<8)|(buf[1]))&0x7fff;
     exponent -= 16383;
@@ -26,13 +28,13 @@ static uint32_t read80bitSANE(off_t offset, STREAMFILE *streamFile) {
     return mantissa*((buf[0]&0x80)?-1:1);
 }
 
-static uint32_t find_marker(STREAMFILE *streamFile, off_t MarkerChunkOffset, int marker_id) {
+static uint32_t find_marker(STREAMFILE *streamFile, off_t mark_offset, int marker_id) {
     uint16_t marker_count;
     int i;
     off_t marker_offset;
 
-    marker_count = read_16bitBE(MarkerChunkOffset+8,streamFile);
-    marker_offset = MarkerChunkOffset+10;
+    marker_count = read_16bitBE(mark_offset+8,streamFile);
+    marker_offset = mark_offset+10;
     for (i=0;i<marker_count;i++) {
         int name_length;
         
@@ -61,8 +63,8 @@ VGMSTREAM * init_vgmstream_aifc(STREAMFILE *streamFile) {
     int32_t loop_start = 0, loop_end = 0;
 
     int is_aiff_ext = 0, is_aifc_ext = 0, is_aiff = 0, is_aifc = 0;
-    int FormatVersionChunkFound = 0, CommonChunkFound = 0, SoundDataChunkFound = 0, MarkerChunkFound = 0, InstrumentChunkFound = 0;
-    off_t MarkerChunkOffset = -1, InstrumentChunkOffset = -1;
+    int fver_found = 0, comm_found = 0, data_found = 0, mark_found = 0, inst_found = 0;
+    off_t mark_offset = -1, inst_offset = -1;
 
 
     /* checks */
@@ -74,12 +76,13 @@ VGMSTREAM * init_vgmstream_aifc(STREAMFILE *streamFile) {
      * .acm: Crusader - No Remorse (SAT)
      * .adp: Sonic Jam (SAT)
      * .ai: Dragon Force (SAT)
-     * (extensionless: Doom (3DO) */
+     * (extensionless: Doom (3DO)
+     * .fda: Homeworld 2 (PC) */
     if (check_extensions(streamFile, "aif,laif,")) {
         is_aifc_ext = 1;
         is_aiff_ext = 1;
     }
-    else if (check_extensions(streamFile, "aifc,laifc,aifcl,afc,cbd2,bgm")) {
+    else if (check_extensions(streamFile, "aifc,laifc,aifcl,afc,cbd2,bgm,fda")) {
         is_aifc_ext = 1;
     }
     else if (check_extensions(streamFile, "aiff,laiff,acm,adp,ai,aiffl")) {
@@ -123,9 +126,9 @@ VGMSTREAM * init_vgmstream_aifc(STREAMFILE *streamFile) {
 
             switch(chunk_type) {
                 case 0x46564552:    /* "FVER" (version info) */
-                    if (FormatVersionChunkFound) goto fail;
+                    if (fver_found) goto fail;
                     if (is_aiff) goto fail; /* plain AIFF shouldn't have */
-                    FormatVersionChunkFound = 1;
+                    fver_found = 1;
 
                     /* specific size */
                     if (chunk_size != 4) goto fail;
@@ -135,8 +138,8 @@ VGMSTREAM * init_vgmstream_aifc(STREAMFILE *streamFile) {
                     break;
 
                 case 0x434F4D4D:    /* "COMM" (main header) */
-                    if (CommonChunkFound) goto fail;
-                    CommonChunkFound = 1;
+                    if (comm_found) goto fail;
+                    comm_found = 1;
 
                     channel_count = read_16bitBE(current_chunk+8,streamFile);
                     if (channel_count <= 0) goto fail;
@@ -146,24 +149,45 @@ VGMSTREAM * init_vgmstream_aifc(STREAMFILE *streamFile) {
                     sample_rate = read80bitSANE(current_chunk+0x10,streamFile);
 
                     if (is_aifc) {
-                        switch (read_32bitBE(current_chunk+0x1a,streamFile)) {
+                        uint32_t codec = read_32bitBE(current_chunk+0x1a,streamFile);
+                        switch (codec) {
                             case 0x53445832:    /* "SDX2" [3DO games: Super Street Fighter II Turbo (3DO), etc] */
                                 coding_type = coding_SDX2;
                                 interleave = 0x01;
                                 break;
+
                             case 0x43424432:    /* "CBD2" [M2 (arcade 3DO) games: IMSA Racing (M2), etc] */
                                 coding_type = coding_CBD2;
                                 interleave = 0x01;
                                 break;
+
                             case 0x41445034:    /* "ADP4" */
                                 coding_type = coding_DVI_IMA_int;
                                 if (channel_count != 1) break; /* don't know how stereo DVI is laid out */
                                 break;
+
                             case 0x696D6134:    /* "ima4"  [Alida (PC), Lunar SSS (iOS)] */
                                 coding_type = coding_APPLE_IMA4;
                                 interleave = 0x22;
                                 sample_count = sample_count * ((interleave-0x2)*2);
                                 break;
+
+                            case 0x434F4D50: {  /* "COMP" (generic compression) */
+                                uint8_t comp_name[255] = {0};
+                                uint8_t comp_size = read_8bit(current_chunk + 0x1e, streamFile);
+                                if (comp_size >= sizeof(comp_name) - 1) goto fail;
+                                
+                                read_streamfile(comp_name, current_chunk + 0x1f, comp_size, streamFile);
+                                if (memcmp(comp_name, "Relic Codec v1.6", comp_size) == 0) { /* Homeworld 2 (PC) */
+                                    coding_type = coding_RELIC;
+                                    sample_count = sample_count * 512;
+                                }
+                                else {
+                                    goto fail;
+                                }
+                                break;
+                            }
+
                             default:
                                 VGM_LOG("AIFC: unknown codec\n");
                                 goto fail;
@@ -192,25 +216,25 @@ VGMSTREAM * init_vgmstream_aifc(STREAMFILE *streamFile) {
 
                 case 0x53534E44:    /* "SSND" (main data) */
                 case 0x4150434D:    /* "APCM" (main data for XA) */
-                    if (SoundDataChunkFound) goto fail;
-                    SoundDataChunkFound = 1;
+                    if (data_found) goto fail;
+                    data_found = 1;
 
                     start_offset = current_chunk + 0x10 + read_32bitBE(current_chunk+0x08,streamFile);
                     /* when "APCM" XA frame size is at 0x0c, fixed to 0x914 */
                     break;
 
                 case 0x4D41524B:    /* "MARK" (loops) */
-                    if (MarkerChunkFound) goto fail;
-                    MarkerChunkFound = 1;
+                    if (mark_found) goto fail;
+                    mark_found = 1;
 
-                    MarkerChunkOffset = current_chunk;
+                    mark_offset = current_chunk;
                     break;
 
                 case 0x494E5354:    /* "INST" (loops) */
-                    if (InstrumentChunkFound) goto fail;
-                    InstrumentChunkFound = 1;
+                    if (inst_found) goto fail;
+                    inst_found = 1;
 
-                    InstrumentChunkOffset = current_chunk;
+                    inst_offset = current_chunk;
                     break;
 
                 default:
@@ -223,28 +247,28 @@ VGMSTREAM * init_vgmstream_aifc(STREAMFILE *streamFile) {
     }
 
     if (is_aifc) {
-        if (!FormatVersionChunkFound || !CommonChunkFound || !SoundDataChunkFound)
+        if (!fver_found || !comm_found || !data_found)
             goto fail;
     } else if (is_aiff) {
-        if (!CommonChunkFound || !SoundDataChunkFound)
+        if (!comm_found || !data_found)
             goto fail;
     }
 
 
     /* read loop points */
-    if (InstrumentChunkFound && MarkerChunkFound) {
+    if (inst_found && mark_found) {
         int start_marker;
         int end_marker;
         /* use the sustain loop */
         /* if playMode=ForwardLooping */
-        if (read_16bitBE(InstrumentChunkOffset+16,streamFile) == 1) {
-            start_marker = read_16bitBE(InstrumentChunkOffset+18,streamFile);
-            end_marker = read_16bitBE(InstrumentChunkOffset+20,streamFile);
+        if (read_16bitBE(inst_offset+16,streamFile) == 1) {
+            start_marker = read_16bitBE(inst_offset+18,streamFile);
+            end_marker = read_16bitBE(inst_offset+20,streamFile);
             /* check for sustain markers != 0 (invalid marker no) */
             if (start_marker && end_marker) {
                 /* find start marker */
-                loop_start = find_marker(streamFile,MarkerChunkOffset,start_marker);
-                loop_end = find_marker(streamFile,MarkerChunkOffset,end_marker);
+                loop_start = find_marker(streamFile,mark_offset,start_marker);
+                loop_end = find_marker(streamFile,mark_offset,end_marker);
 
                 /* find_marker is type uint32_t as the spec says that's the type
                  * of the position value, but it returns a -1 on error, and the
@@ -257,6 +281,8 @@ VGMSTREAM * init_vgmstream_aifc(STREAMFILE *streamFile) {
                     loop_flag = 0;
             }
         }
+
+        /* Relic has "beg loop" "end loop" comments but no actual looping? */
     }
 
 
@@ -270,14 +296,28 @@ VGMSTREAM * init_vgmstream_aifc(STREAMFILE *streamFile) {
     vgmstream->loop_end_sample = loop_end;
 
     vgmstream->coding_type = coding_type;
-    if (coding_type == coding_XA) {
-        vgmstream->layout_type = layout_blocked_xa_aiff;
-        /* AIFF XA can use sample rates other than 37800/18900 */
-        /* some Crusader: No Remorse tracks have XA headers with incorrect 0xFF, rip bug/encoder feature? */
-    }
-    else {
-        vgmstream->layout_type = (channel_count > 1) ? layout_interleave : layout_none;
-        vgmstream->interleave_block_size = interleave;
+    switch(coding_type) {
+        case coding_XA:
+            vgmstream->layout_type = layout_blocked_xa_aiff;
+            /* AIFF XA can use sample rates other than 37800/18900 */
+            /* some Crusader: No Remorse tracks have XA headers with incorrect 0xFF, rip bug/encoder feature? */
+            break;
+
+        case coding_RELIC: {
+            int bitrate = read_16bitBE(start_offset, streamFile);
+            start_offset += 0x02;
+
+            vgmstream->codec_data = init_relic(channel_count, bitrate, sample_rate);
+            if (!vgmstream->codec_data) goto fail;
+            vgmstream->layout_type = layout_none;
+
+            vgmstream->sample_rate = 44100; /* fixed output */
+            break;
+        }
+        default:
+            vgmstream->layout_type = (channel_count > 1) ? layout_interleave : layout_none;
+            vgmstream->interleave_block_size = interleave;
+            break;
     }
 
     if (is_aifc)

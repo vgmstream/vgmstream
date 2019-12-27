@@ -183,6 +183,7 @@ typedef enum {
 
     coding_EA_MT,           /* Electronic Arts MicroTalk (linear-predictive speech codec) */
 
+    coding_RELIC,           /* Relic Codec (DCT-based) */
     coding_CRI_HCA,         /* CRI High Compression Audio (MDCT-based) */
 
 #ifdef VGM_USE_VORBIS
@@ -718,6 +719,7 @@ typedef enum {
     meta_ISB,
     meta_XSSB,
     meta_XMA_UE3,
+    meta_FDA,
 
 } meta_t;
 
@@ -1147,6 +1149,7 @@ typedef struct {
     NWAData *nwa;
 } nwa_codec_data;
 
+typedef struct relic_codec_data relic_codec_data;
 
 typedef struct {
     STREAMFILE *streamfile;

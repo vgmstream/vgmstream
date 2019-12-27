@@ -102,9 +102,14 @@ VGMSTREAM * init_vgmstream_ea_swvr(STREAMFILE *streamFile) {
             sample_rate = 14008;
             break;
         case 0x53484F43: /* "SHOC" (a generic block but hopefully has PC sounds) */
-            coding = coding_PCM8_U_int;
-            channel_count = 1;
-            sample_rate = 14008;
+            if (read_32bit(start_offset+0x10, streamFile) == 0x53484F43) { /* SHDR */
+                coding = coding_PCM8_U_int; //todo there are other codecs
+                channel_count = 1;
+                sample_rate = 14008;
+            }
+            else {
+                goto fail;
+            }
             break;
         default:
             VGM_LOG("EA SWVR: unknown block id\n");

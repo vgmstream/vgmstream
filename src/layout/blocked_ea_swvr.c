@@ -66,17 +66,30 @@ void block_update_ea_swvr(off_t block_offset, VGMSTREAM * vgmstream) {
             header_size = 0x1c;
             channel_size = (block_size - header_size) / vgmstream->channels;
             break;
+
         case 0x53484F43: /* "SHOC" (a generic block but hopefully has PC sounds) */
-            header_size = 0x14; //todo the first block is 0x18
-            channel_size = (block_size - header_size) / vgmstream->channels;
+            if (read_32bit(block_offset+0x10, streamFile) == 0x53444154) { /* "SDAT" */
+                header_size = 0x14;
+                channel_size = (block_size - header_size) / vgmstream->channels;
+            }
+            else {
+                header_size = 0;
+                channel_size = 0;
+            }
             break;
 
-        case 0x46494C4C: /* "FILL" (FILLs do that up to 0x6000, but at 0x5FFC don't actually have size) */
+        case 0x46494C4C: /* "FILL" (FILLs do that up to a block size, but near end don't actually have size) */
             if ((block_offset + 0x04) % 0x6000 == 0)
                 block_size = 0x04;
+            else if ((block_offset + 0x04) % 0x10000 == 0)
+                block_size = 0x04;
+            else if (block_size > 0x100000) { /* other unknown block sizes */
+                VGM_LOG("EA SWVR: bad block size at 0x%lx\n", block_offset);
+                block_size = 0x04;
+            }
             header_size = 0x08;
             break;
-
+ 
         case 0xFFFFFFFF:
             channel_size = -1; /* signal bad block */
             break;

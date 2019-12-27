@@ -203,7 +203,11 @@ static int parse_name(ubi_hx_header * hx, STREAMFILE *sf) {
             wavres_offset += 0x04 + resclass_size + 0x08 + 0x04; /* skip class + cuiid + flags */
 
             internal_size = read_32bit(wavres_offset + 0x00, sf);
-            if (internal_size > sizeof(hx->internal_name)+1) goto fail;
+            /* Xbox has some kind of big size and "flags" has a value of 2, instead of 3/4 like other platforms */
+            if (strcmp(class_name, "CXBoxWavResData") == 0 && internal_size > 0x100)
+                return 1;
+            if (internal_size > sizeof(hx->internal_name)+1)
+                goto fail;
 
             /* usually 0 in consoles */
             if (internal_size != 0) {
@@ -249,7 +253,8 @@ static int parse_header(ubi_hx_header * hx, STREAMFILE *sf, off_t offset, size_t
 
     if (strcmp(hx->class_name, "CPCWaveFileIdObj") == 0 ||
         strcmp(hx->class_name, "CPS2WaveFileIdObj") == 0 ||
-        strcmp(hx->class_name, "CGCWaveFileIdObj") == 0) {
+        strcmp(hx->class_name, "CGCWaveFileIdObj") == 0 ||
+        strcmp(hx->class_name, "CXBoxWaveFileIdObj") == 0) {
         uint32_t flag_type = read_32bit(offset + 0x00, sf);
 
         if (flag_type == 0x01 || flag_type == 0x02) { /* Rayman Arena */
@@ -319,7 +324,10 @@ static int parse_header(ubi_hx_header * hx, STREAMFILE *sf, off_t offset, size_t
             case 0x02: hx->codec = UBI; break;
             case 0x03: hx->codec = PSX; break;
             case 0x04: hx->codec = DSP; break;
-            default: goto fail;
+            case 0x05: hx->codec = XIMA; break;
+            default: 
+                VGM_LOG("UBI HX: unknown codec %i\n", hx->codec_id);
+                goto fail;
         }
         hx->channels    = read_16bit(riff_offset + 0x16, sf);
         hx->sample_rate = read_32bit(riff_offset + 0x18, sf);
@@ -529,6 +537,7 @@ static int parse_hx(ubi_hx_header * hx, STREAMFILE *sf, int target_subsong) {
         else if (strcmp(class_name, "CPCWaveFileIdObj") == 0 ||
                  strcmp(class_name, "CPS2WaveFileIdObj") == 0 ||
                  strcmp(class_name, "CGCWaveFileIdObj") == 0 ||
+                 strcmp(class_name, "CXBoxWaveFileIdObj") == 0 ||
                  strcmp(class_name, "CXBoxStaticHWWaveFileIdObj") == 0 ||
                  strcmp(class_name, "CXBoxStreamHWWaveFileIdObj") == 0 ||
                  strcmp(class_name, "CPS3StaticAC3WaveFileIdObj") == 0 ||
