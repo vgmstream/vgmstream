@@ -39,7 +39,7 @@ static VGMSTREAM *parse_s10a_header(STREAMFILE *streamFile, off_t offset, uint16
 VGMSTREAM * init_vgmstream_gin_header(STREAMFILE *streamFile, off_t offset);
 
 
-/* .SNR+SNS - from EA latest games (~2008-2013), v0 header */
+/* .SNR+SNS - from EA latest games (~2005-2010), v0 header */
 VGMSTREAM * init_vgmstream_ea_snr_sns(STREAMFILE * streamFile) {
     /* check extension, case insensitive */
     if (!check_extensions(streamFile,"snr"))
@@ -51,7 +51,7 @@ fail:
     return NULL;
 }
 
-/* .SPS - from EA latest games (~2014), v1 header */
+/* .SPS - from EA latest games (~2010~present), v1 header */
 VGMSTREAM * init_vgmstream_ea_sps(STREAMFILE * streamFile) {
     /* check extension, case insensitive */
     if (!check_extensions(streamFile,"sps"))
@@ -1556,6 +1556,7 @@ static layered_layout_data* build_layered_eaaudiocore(STREAMFILE *sf_data, eaac_
                 uint8_t buf[0x100];
                 int bytes, block_size, block_count;
                 size_t stream_size;
+                int is_xma1;
 
                 temp_sf = setup_eaac_audio_streamfile(sf_data, eaac->version, eaac->codec, eaac->streamed,i,layers, start_offset);
                 if (!temp_sf) goto fail;
@@ -1564,7 +1565,14 @@ static layered_layout_data* build_layered_eaaudiocore(STREAMFILE *sf_data, eaac_
                 block_size = 0x10000; /* unused */
                 block_count = stream_size / block_size + (stream_size % block_size ? 1 : 0);
 
-                bytes = ffmpeg_make_riff_xma2(buf, 0x100, data->layers[i]->num_samples, stream_size, data->layers[i]->channels, data->layers[i]->sample_rate, block_count, block_size);
+                /* EA adopted XMA2 when it appeared around 2006, but detection isn't so easy
+                 * (SNS with XMA2 do exist). Decoder should work when playing XMA1 as XMA2, but
+                 * the other way around can cause issues, so it's safer to just use XMA2. */
+                is_xma1 = 0; //eaac->version == EAAC_VERSION_V0; /* approximate */
+                if (is_xma1)
+                    bytes = ffmpeg_make_riff_xma1(buf, 0x100, data->layers[i]->num_samples, stream_size, data->layers[i]->channels, data->layers[i]->sample_rate, 0);
+                else
+                    bytes = ffmpeg_make_riff_xma2(buf, 0x100, data->layers[i]->num_samples, stream_size, data->layers[i]->channels, data->layers[i]->sample_rate, block_count, block_size);
                 data->layers[i]->codec_data = init_ffmpeg_header_offset(temp_sf, buf,bytes, 0x00, stream_size);
                 if (!data->layers[i]->codec_data) goto fail;
 
