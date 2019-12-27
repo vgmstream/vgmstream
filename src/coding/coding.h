@@ -203,9 +203,16 @@ void flush_ea_mt(VGMSTREAM *vgmstream);
 void seek_ea_mt(VGMSTREAM * vgmstream, int32_t num_sample);
 void free_ea_mt(ea_mt_codec_data *data, int channels);
 
+/* relic_decoder */
+relic_codec_data* init_relic(int channels, int bitrate, int codec_rate);
+void decode_relic(VGMSTREAMCHANNEL* stream, relic_codec_data* data, sample_t* outbuf, int32_t samples_to_do);
+void reset_relic(relic_codec_data* data);
+void seek_relic(relic_codec_data* data, int32_t num_sample);
+void free_relic(relic_codec_data* data);
+
 /* hca_decoder */
 hca_codec_data *init_hca(STREAMFILE *streamFile);
-void decode_hca(hca_codec_data * data, sample * outbuf, int32_t samples_to_do);
+void decode_hca(hca_codec_data * data, sample_t * outbuf, int32_t samples_to_do);
 void reset_hca(hca_codec_data * data);
 void loop_hca(hca_codec_data * data, int32_t num_sample);
 void free_hca(hca_codec_data * data);

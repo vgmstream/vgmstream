@@ -656,6 +656,10 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
     }
 #endif
 
+    if (vgmstream->coding_type == coding_RELIC) {
+        reset_relic(vgmstream->codec_data);
+    }
+
     if (vgmstream->coding_type == coding_CRI_HCA) {
         reset_hca(vgmstream->codec_data);
     }
@@ -822,6 +826,11 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
         vgmstream->codec_data = NULL;
     }
 #endif
+
+    if (vgmstream->coding_type == coding_RELIC) {
+        free_relic(vgmstream->codec_data);
+        vgmstream->codec_data = NULL;
+    }
 
     if (vgmstream->coding_type == coding_CRI_HCA) {
         free_hca(vgmstream->codec_data);
@@ -1273,6 +1282,8 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
             return 0; /* varies per mode */
         case coding_EA_MT:
             return 0; /* 432, but variable in looped files */
+        case coding_RELIC:
+            return 0; /* 512 */
         case coding_CRI_HCA:
             return 0; /* 1024 - delay/padding (which can be bigger than 1024) */
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
@@ -1757,6 +1768,10 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                     samples_to_do,vgmstream->channels);
             break;
 #endif
+        case coding_RELIC:
+            decode_relic(&vgmstream->ch[0], vgmstream->codec_data, buffer+samples_written*vgmstream->channels,
+                    samples_to_do);
+            break;
         case coding_CRI_HCA:
             decode_hca(vgmstream->codec_data, buffer+samples_written*vgmstream->channels,
                     samples_to_do);
@@ -2190,6 +2205,10 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
 
 
         /* prepare certain codecs' internal state for looping */
+
+        if (vgmstream->coding_type == coding_RELIC) {
+            seek_relic(vgmstream->codec_data, vgmstream->loop_sample);
+        }
 
         if (vgmstream->coding_type == coding_CRI_HCA) {
             loop_hca(vgmstream->codec_data, vgmstream->loop_sample);

@@ -164,6 +164,7 @@ static const char* extension_list[] = {
     "ezw",
 
     "fag",
+    "fda",
     "ffw",
     "filp",
     //"flac", //common
@@ -745,6 +746,7 @@ static const coding_info coding_info_list[] = {
 
         {coding_EA_MT,              "Electronic Arts MicroTalk"},
 
+        {coding_RELIC,              "Relic Codec"},
         {coding_CRI_HCA,            "CRI HCA"},
         
 #ifdef VGM_USE_VORBIS
