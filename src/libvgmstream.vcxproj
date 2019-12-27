@@ -443,6 +443,7 @@
     <ClCompile Include="meta\mta2.c" />
     <ClCompile Include="meta\xa.c" />
     <ClCompile Include="meta\fag.c" />
+    <ClCompile Include="meta\fda.c" />
     <ClCompile Include="meta\ffdl.c" />
     <ClCompile Include="meta\seb.c" />
     <ClCompile Include="meta\ea_swvr.c" />
@@ -570,6 +571,8 @@
     <ClCompile Include="coding\psv_decoder.c" />
     <ClCompile Include="coding\psx_decoder.c" />
     <ClCompile Include="coding\ptadpcm_decoder.c" />
+    <ClCompile Include="coding\relic_decoder.c" />
+    <ClCompile Include="coding\relic_decoder_mixfft.c" />
     <ClCompile Include="coding\sassc_decoder.c" />
     <ClCompile Include="coding\sdx2_decoder.c" />
     <ClCompile Include="coding\ubi_adpcm_decoder.c" />

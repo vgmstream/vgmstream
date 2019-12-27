@@ -1254,6 +1254,7 @@ static const meta_info meta_info_list[] = {
         {meta_ISB,                  "Creative ISACT header"},
         {meta_XSSB,                 "Artoon XSSB header"},
         {meta_XMA_UE3,              "Unreal Engine XMA header"},
+        {meta_FDA,                  "Relic FDA header"},
 
 };
 

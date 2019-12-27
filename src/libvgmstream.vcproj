@@ -1423,6 +1423,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\fda.c"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\ffdl.c"
                     >
                 </File>
@@ -2072,6 +2076,14 @@
                 </File>
                 <File
                     RelativePath=".\coding\ptadpcm_decoder.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\coding\relic_decoder.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\coding\relic_decoder_mixfft.c"
                     >
                 </File>
 				<File
