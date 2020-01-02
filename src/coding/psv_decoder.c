@@ -188,6 +188,7 @@ void decode_hevag(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspaci
                       hist3 * hevag_coefs[coef_index][2] +
                       hist4 * hevag_coefs[coef_index][3] ) / 32;
             sample = (sample + (scale << (20 - shift_factor)) + 128) >> 8;
+            sample = clamp16(sample);
         }
 
         outbuf[sample_count] = sample;

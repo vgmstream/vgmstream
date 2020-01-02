@@ -163,9 +163,9 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
 
                                 /* disable some jingles, it's even possible one jingle (StingerA Var1) to not have loops
                                  * and next one (StingerA Var2) do [Sonic Boom Fire & Ice (3DS)] */
-                                full_loop = fsb5.loop_start == 0 && fsb5.loop_end + 20 >= fsb5.num_samples; /* around ~15 samples less */
-                                /* a few longer Sonic songs shouldn't repeat, may add if other games need it */
-                                is_small = 0; //fsb5.num_samples < 20 * fsb5.sample_rate;
+                                full_loop = fsb5.loop_start == 0 && fsb5.loop_end + 1152 >= fsb5.num_samples; /* around ~15 samples less, ~1000 for MPEG */
+                                /* a few longer Sonic songs shouldn't repeat */
+                                is_small = 1; //fsb5.num_samples < 20 * fsb5.sample_rate;
 
                                 /* wrong values in some files [Pac-Man CE2 Plus (Switch) pce2p_bgm_ajurika_*.fsb] */
                                 ajurika_loops = fsb5.loop_start == 0x3c && fsb5.loop_end == 0x007F007F &&
