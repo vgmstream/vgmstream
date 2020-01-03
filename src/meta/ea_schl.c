@@ -629,6 +629,8 @@ static STREAMFILE* open_mapfile_pair(STREAMFILE *streamFile, int track, int num_
         {"MUS_CTRL.MPF",    "MUS_STR.MUS"}, /* GoldenEye - Rogue Agent (PS2) */
         {"mus_ctrl.mpf",    "mus_str.mus"}, /* GoldenEye - Rogue Agent (others) */
         {"AKA_Mus.mpf",     "Track.mus"}, /* Boogie */
+        {"SSX4FE.mpf",      "TrackFE.mus"}, /* SSX On Tour */
+        {"SSX4Path.mpf",    "Track.mus"}, /* SSX On Tour */
         {"SSX4.mpf",        "moments0.mus,main.mus,load_loop0.mus"}, /* SSX Blur */
         {"willow.mpf",      "willow.mus,willow_o.mus"}, /* Harry Potter and the Chamber of Secrets */
         {"exterior.mpf",    "exterior.mus,ext_o.mus"}, /* Harry Potter and the Chamber of Secrets */ 
