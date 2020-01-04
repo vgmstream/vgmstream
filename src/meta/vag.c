@@ -190,16 +190,16 @@ VGMSTREAM * init_vgmstream_vag(STREAMFILE *streamFile) {
                 channel_size = channel_size / channel_count;
                 /* mono files also have channel/volume, but start at 0x30 and are probably named .vag */
             }
-            else if (read_32bitBE(0x30,streamFile) == 0x53544552   /* "STER" */
-                  && read_32bitBE(0x34,streamFile) == 0x454F5641   /* "EOVA" */
-                  && read_32bitBE(0x38,streamFile) == 0x47324B00){ /* "G2K " */
+            else if (read_32bitBE(0x30,streamFile) == 0x53544552 /* "STEREOVAG2K " */
+                  && read_32bitBE(0x34,streamFile) == 0x454F5641
+                  && read_32bitBE(0x38,streamFile) == 0x47324B00) {
                 /* The Simpsons Skateboarding (PS2) */
                 start_offset = 0x800;
                 channel_count = 2;
                 interleave = 0x800;
                 loop_flag = 0;
             }
-            else if (read_32bitBE(0x24, streamFile) == 0x56414778) { /* "VAGx" */
+            else if (version == 0x00000002 && read_32bitBE(0x24, streamFile) == 0x56414778) { /* "VAGx" */
                 /* Need for Speed: Hot Pursuit 2 (PS2) */
                 start_offset = 0x30;
                 channel_count = read_32bitBE(0x2c, streamFile);
@@ -231,6 +231,15 @@ VGMSTREAM * init_vgmstream_vag(STREAMFILE *streamFile) {
 
                     if (!interleave) goto fail;
                 }
+            }
+            else if (version == 0x00000020 && channel_size == file_size - 0x800 && read_32bitBE(0x08, streamFile) == 0x01) {
+                /* Garfield: Saving Arlene (PS2) */
+                start_offset = 0x800;
+                channel_count = 2;
+                interleave = 0x400;
+
+                channel_size -= ps_find_padding(streamFile, start_offset, channel_size, channel_count, interleave, 0);
+                channel_size = channel_size / channel_count;
             }
             else {
                 /* standard PS1/PS2/PS3 .vag [Ecco the Dolphin (PS2), Legasista (PS3)] */
@@ -313,7 +322,7 @@ VGMSTREAM* init_vgmstream_vag_aaap(STREAMFILE* streamFile) {
     }
     
     /* check version */
-    if (read_u32be(vag_offset + 0x04, streamFile) != 0x20)
+    if (read_u32be(vag_offset + 0x04, streamFile) != 0x00000020)
         goto fail;
 
     channel_size = read_u32be(vag_offset + 0x0c, streamFile);
