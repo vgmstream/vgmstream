@@ -22,8 +22,9 @@ VGMSTREAM * init_vgmstream_xa(STREAMFILE *streamFile) {
     /* .xa: common
      * .str: often videos and sometimes speech/music
      * .adp: Phantasy Star Collection (SAT) raw XA
+     * .pxa: Mortal Kombat 4 (PS1)
      * (extensionless): bigfiles [Castlevania: Symphony of the Night (PS1)] */
-    if (!check_extensions(streamFile,"xa,str,adp,"))
+    if (!check_extensions(streamFile,"xa,str,adp,pxa,"))
         goto fail;
 
     /* Proper XA comes in raw (BIN 2352 mode2/form2) CD sectors, that contain XA subheaders.

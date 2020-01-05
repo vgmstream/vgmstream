@@ -497,8 +497,8 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
                     if (fmt.coding_type == coding_PCM16LE || fmt.coding_type == coding_MSADPCM) {
                         uint32_t num_cues = read_32bitLE(current_chunk + 0x08, streamFile);
 
-                        if (num_cues == 1 || num_cues == 2) {
-                            // The second cue sets loop end point but it's not actually used by the engine.
+                        if (num_cues > 0) {
+                            /* The second cue sets loop end point but it's not actually used by the engine. */
                             loop_flag = 1;
                             loop_start_cue = read_32bitLE(current_chunk + 0x20, streamFile);
                         }
