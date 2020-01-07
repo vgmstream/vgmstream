@@ -10,7 +10,7 @@ if(MINGW)
 	message(FATAL_ERROR "Cannot currently build with MinGW")
 endif()
 
-set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
+set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake;${CMAKE_MODULE_PATH})
 include(vgmstream)
 
 # Options

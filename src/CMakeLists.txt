@@ -5,10 +5,10 @@ file(GLOB LAYOUT_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/layout/*.c")
 file(GLOB META_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/meta/*.h")
 file(GLOB META_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/meta/*.c")
 set(EXT_HEADERS
-	${CMAKE_SOURCE_DIR}/ext_includes/clHCA.h
-	${CMAKE_SOURCE_DIR}/ext_includes/pstdint.h)
+	${CMAKE_CURRENT_SOURCE_DIR}/../ext_includes/clHCA.h
+	${CMAKE_CURRENT_SOURCE_DIR}/../ext_includes/pstdint.h)
 set(EXT_SOURCES
-	${CMAKE_SOURCE_DIR}/ext_libs/clHCA.c)
+	${CMAKE_CURRENT_SOURCE_DIR}/../ext_libs/clHCA.c)
 file(GLOB MAIN_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/*.h")
 file(GLOB MAIN_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/*.c")
 
@@ -42,6 +42,7 @@ setup_target(libvgmstream)
 # Set up the proper include directories
 target_include_directories(libvgmstream PRIVATE
 	${CMAKE_CURRENT_SOURCE_DIR}
+	${CMAKE_CURRENT_SOURCE_DIR}/../ext_includes
 	coding
 	layout
 	meta)
