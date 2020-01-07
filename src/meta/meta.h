@@ -877,6 +877,8 @@ VGMSTREAM* init_vgmstream_xma_ue3(STREAMFILE *sf);
 
 VGMSTREAM* init_vgmstream_csb(STREAMFILE *sf);
 
+VGMSTREAM *init_vgmstream_fwse(STREAMFILE *streamFile);
+
 VGMSTREAM* init_vgmstream_fda(STREAMFILE *sf);
 
 #endif /*_META_H*/

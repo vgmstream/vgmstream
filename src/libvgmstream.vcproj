@@ -681,6 +681,10 @@
                     >
                 </File>
 				<File
+					RelativePath=".\meta\fwse.c"
+					>
+				</File>
+				<File
 					RelativePath=".\meta\g1l.c"
 					>
 				</File>

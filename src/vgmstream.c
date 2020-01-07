@@ -486,6 +486,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_xssb,
     init_vgmstream_xma_ue3,
     init_vgmstream_csb,
+    init_vgmstream_fwse,
     init_vgmstream_fda,
 
     /* lowest priority metas (should go after all metas, and TXTH should go before raw formats) */
@@ -1174,6 +1175,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_UBI_IMA:
         case coding_OKI16:
         case coding_OKI4S:
+        case coding_MTF_IMA:
             return 1;
         case coding_PCM4:
         case coding_PCM4_U:
@@ -1368,6 +1370,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_PCFX:
         case coding_OKI16:
         case coding_OKI4S:
+        case coding_MTF_IMA:
             return 0x01;
         case coding_MS_IMA:
         case coding_RAD_IMA:
@@ -1838,6 +1841,12 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                 decode_standard_ima(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
                         vgmstream->channels,vgmstream->samples_into_block,samples_to_do, ch,
                         is_stereo, is_high_first);
+            }
+            break;
+        case coding_MTF_IMA:
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_mtf_ima(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do);
             }
             break;
         case coding_3DS_IMA:

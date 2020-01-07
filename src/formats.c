@@ -172,6 +172,7 @@ static const char* extension_list[] = {
     "fsb",
     "fsv",
     "fwav",
+    "fwse",
 
     "g1l",
     "gbts",
@@ -692,6 +693,7 @@ static const coding_info coding_info_list[] = {
         {coding_ALP_IMA,            "High Voltage ALP 4-bit IMA ADPCM"},
         {coding_FFTA2_IMA,          "Final Fantasy Tactics A2 4-bit IMA ADPCM"},
         {coding_BLITZ_IMA,          "Blitz Games 4-bit IMA ADPCM"},
+        {coding_MTF_IMA,            "MT Framework 4-bit IMA ADPCM"},
 
         {coding_MS_IMA,             "Microsoft 4-bit IMA ADPCM"},
         {coding_XBOX_IMA,           "XBOX 4-bit IMA ADPCM"},
@@ -1254,6 +1256,7 @@ static const meta_info meta_info_list[] = {
         {meta_ISB,                  "Creative ISACT header"},
         {meta_XSSB,                 "Artoon XSSB header"},
         {meta_XMA_UE3,              "Unreal Engine XMA header"},
+        {meta_FWSE,                 "MT Framework FWSE header"},
         {meta_FDA,                  "Relic FDA header"},
 
 };
