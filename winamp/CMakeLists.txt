@@ -29,7 +29,7 @@ target_compile_definitions(in_vgmstream PRIVATE
 	_UNICODE)
 
 # Make sure that the binary directory is included (for version.h)
-target_include_directories(in_vgmstream PRIVATE ${CMAKE_BINARY_DIR})
+target_include_directories(in_vgmstream PRIVATE ${VGM_BINARY_DIR})
 
 # Include the version string
 if(MSVC)

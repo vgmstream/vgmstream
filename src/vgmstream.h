@@ -143,6 +143,7 @@ typedef enum {
     coding_AWC_IMA,         /* Rockstar AWC IMA ADPCM */
     coding_UBI_IMA,         /* Ubisoft IMA ADPCM */
     coding_H4M_IMA,         /* H4M IMA ADPCM (stereo or mono, high nibble first) */
+    coding_MTF_IMA,         /* Capcom MT Framework IMA ADPCM */
 
     coding_MSADPCM,         /* Microsoft ADPCM (stereo/mono) */
     coding_MSADPCM_int,     /* Microsoft ADPCM (mono) */
@@ -719,6 +720,7 @@ typedef enum {
     meta_ISB,
     meta_XSSB,
     meta_XMA_UE3,
+    meta_FWSE,
     meta_FDA,
 
 } meta_t;

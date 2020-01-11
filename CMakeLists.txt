@@ -10,7 +10,11 @@ if(MINGW)
 	message(FATAL_ERROR "Cannot currently build with MinGW")
 endif()
 
-set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
+set(VGM_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR} PARENT_SCOPE)
+set(VGM_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR} PARENT_SCOPE)
+set(VGM_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+set(VGM_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR})
+set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake;${CMAKE_MODULE_PATH})
 include(vgmstream)
 
 # Options
@@ -56,12 +60,12 @@ if(WIN32)
 	# Update the version
 	set(CMAKE_EXECUTABLE_SUFFIX .exe)
 	if(MSVC)
-		file(TO_NATIVE_PATH "${CMAKE_BINARY_DIR}/version.h" VERSION_H_PATH)
-		add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/version.h
-			COMMAND "${CMAKE_SOURCE_DIR}/version.bat"
+		file(TO_NATIVE_PATH "${VGM_BINARY_DIR}/version.h" VERSION_H_PATH)
+		add_custom_command(OUTPUT ${VGM_BINARY_DIR}/version.h
+			COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/version.bat"
 			ARGS ${VERSION_H_PATH} VERSION
-			DEPENDS ${CMAKE_SOURCE_DIR}/version.bat)
-		add_custom_target(version_h DEPENDS ${CMAKE_BINARY_DIR}/version.h)
+			DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/version.bat)
+		add_custom_target(version_h DEPENDS ${VGM_BINARY_DIR}/version.h)
 	else()
 		find_package(Git)
 		if(GIT_FOUND)
@@ -171,7 +175,7 @@ if(USE_FDKAAC)
 endif()
 if(USE_MAIATRAC3PLUS)
 	if(MAIATRAC3PLUS_PATH)
-		add_subdirectory(${MAIATRAC3PLUS_PATH}/MaiAT3PlusDecoder ${CMAKE_BINARY_DIR}/maitrac3plus)
+		add_subdirectory(${MAIATRAC3PLUS_PATH}/MaiAT3PlusDecoder ${CMAKE_CURRENT_BINARY_DIR}/maitrac3plus)
 	else()
 		message(FATAL_ERROR "Path to MAIATRAC3+ must be set. (Use MAIATRAC3PLUS_PATH)")
 	endif()

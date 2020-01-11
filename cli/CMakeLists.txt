@@ -17,8 +17,8 @@ if(WIN32)
 
 	# Make sure that the binary directory is included (for version.h), as well as the getopt library include directory
 	target_include_directories(vgmstream_cli PRIVATE
-		${CMAKE_BINARY_DIR}
-		${CMAKE_SOURCE_DIR}/ext_libs/Getopt)
+		${VGM_BINARY_DIR}
+		${VGM_SOURCE_DIR}/ext_libs/Getopt)
 
 	# Include the version string
 	if(MSVC)
@@ -44,7 +44,7 @@ endif()
 
 # Install the CLI program
 install(TARGETS vgmstream_cli
-	RUNTIME DESTINATION bin)
+	RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
 
 # TODO: Make it so vgmstream123 can build with Windows (this probably needs a libao.dll included with vgmstream, though)
 
@@ -70,5 +70,5 @@ if(NOT WIN32)
 
 	# Install vgmstream123
 	install(TARGETS vgmstream123
-		RUNTIME DESTINATION bin)
+		RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
 endif()

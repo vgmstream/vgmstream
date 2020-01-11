@@ -15,7 +15,7 @@ set_target_properties(xmp-vgmstream PROPERTIES
 	SUFFIX ".dll")
 
 # Make sure that the binary directory is included (for version.h)
-target_include_directories(xmp-vgmstream PRIVATE ${CMAKE_BINARY_DIR})
+target_include_directories(xmp-vgmstream PRIVATE ${VGM_BINARY_DIR})
 
 # Include the version string
 if(MSVC)

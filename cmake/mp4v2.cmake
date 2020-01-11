@@ -1,6 +1,6 @@
 # qaac doesn't have a Visual Studio project for Windows, so this not only allows things to build for Visual Studio, but also covers other compilers and platforms
 
-configure_file(${QAAC_PATH}/mp4v2/libplatform/config.h.in ${CMAKE_BINARY_DIR}/mp4v2/include/libplatform/config.h COPYONLY)
+configure_file(${QAAC_PATH}/mp4v2/libplatform/config.h.in ${VGM_BINARY_DIR}/mp4v2/include/libplatform/config.h COPYONLY)
 
 file(GLOB INCLUDE_HEADERS "${QAAC_PATH}/mp4v2/include/mp4v2/*.h")
 file(GLOB LIBPLATFORM_HEADERS "${QAAC_PATH}/mp4v2/libplatform/*.h")
@@ -103,7 +103,7 @@ target_compile_definitions(mp4v2 PRIVATE
 target_include_directories(mp4v2 PRIVATE
 	${QAAC_PATH}/mp4v2
 	${QAAC_PATH}/mp4v2/include
-	${CMAKE_BINARY_DIR}/mp4v2/include)
+	${VGM_BINARY_DIR}/mp4v2/include)
 
 # Make sure that whatever compiler we use can handle these features
 target_compile_features(mp4v2 PRIVATE

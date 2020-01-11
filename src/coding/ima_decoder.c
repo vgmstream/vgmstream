@@ -263,6 +263,26 @@ static void blitz_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset
     if (*step_index > 88) *step_index=88;
 }
 
+static const int CIMAADPCM_INDEX_TABLE[16] = {8,  6,  4,  2,  -1, -1, -1, -1,
+                                             -1, -1, -1, -1, 2,  4,  6,  8};
+
+/* Capcom's MT Framework modified IMA, reverse engineered from the exe */
+static void mtf_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset, int nibble_shift, int32_t * hist1, int32_t * step_index) {
+    int sample_nibble, sample_decoded, step, delta;
+
+    sample_nibble = (read_8bit(byte_offset,stream->streamfile) >> nibble_shift) & 0xf;
+    sample_decoded = *hist1;
+    step = ADPCMTable[*step_index];
+
+    delta = step * (2 * sample_nibble - 15);
+    sample_decoded += delta;
+
+    *hist1 = sample_decoded;
+    *step_index += CIMAADPCM_INDEX_TABLE[sample_nibble];
+    if (*step_index < 0) *step_index=0;
+    if (*step_index > 88) *step_index=88;
+}
+
 /* ************************************ */
 /* DVI/IMA                              */
 /* ************************************ */
@@ -292,6 +312,30 @@ void decode_standard_ima(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int chann
 
         std_ima_expand_nibble(stream, byte_offset,nibble_shift, &hist1, &step_index);
         outbuf[sample_count] = (short)(hist1);
+    }
+
+    stream->adpcm_history1_32 = hist1;
+    stream->adpcm_step_index = step_index;
+}
+
+void decode_mtf_ima(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
+    int i, sample_count = 0;
+    int32_t hist1 = stream->adpcm_history1_32;
+    int step_index = stream->adpcm_step_index;
+
+    /* external interleave */
+
+    /* no header (external setup), pre-clamp for wrong values */
+    if (step_index < 0) step_index=0;
+    if (step_index > 88) step_index=88;
+
+    /* decode nibbles (layout: varies) */
+    for (i = first_sample; i < first_sample + samples_to_do; i++, sample_count += channelspacing) {
+        off_t byte_offset = stream->offset + i/2;
+        int nibble_shift = ((i&1) ? 0:4);
+
+        mtf_ima_expand_nibble(stream, byte_offset,nibble_shift, &hist1, &step_index);
+        outbuf[sample_count] = clamp16(hist1 >> 4);
     }
 
     stream->adpcm_history1_32 = hist1;

@@ -168,6 +168,7 @@
     <ClCompile Include="meta\excitebots.c" />
     <ClCompile Include="meta\ezw.c" />
     <ClCompile Include="meta\ffmpeg.c" />
+    <ClCompile Include="meta\fwse.c" />
     <ClCompile Include="meta\g1l.c" />
     <ClCompile Include="meta\ima.c" />
     <ClCompile Include="meta\imc.c" />
