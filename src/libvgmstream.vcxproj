@@ -196,6 +196,7 @@
     <ClCompile Include="meta\mtaf.c" />
     <ClCompile Include="meta\ps2_spm.c" />
     <ClCompile Include="meta\rad.c" />
+    <ClCompile Include="meta\tgc.c" />
     <ClCompile Include="meta\vs_str.c" />
     <ClCompile Include="meta\ps2_wmus.c" />
     <ClCompile Include="meta\ivag.c" />
@@ -224,6 +225,7 @@
     <ClCompile Include="plugins.c" />
     <ClCompile Include="meta\ps2_va3.c" />
     <ClCompile Include="streamfile.c" />
+    <ClCompile Include="coding\tgcadpcm_decoder.c" />
     <ClCompile Include="util.c" />
     <ClCompile Include="vgmstream.c" />
     <ClCompile Include="meta\208.c" />

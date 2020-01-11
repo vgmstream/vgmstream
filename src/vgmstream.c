@@ -487,6 +487,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_xma_ue3,
     init_vgmstream_csb,
     init_vgmstream_fda,
+	init_vgmstream_tgc,
 
     /* lowest priority metas (should go after all metas, and TXTH should go before raw formats) */
     init_vgmstream_txth,            /* proper parsers should supersede TXTH, once added */
@@ -2031,6 +2032,12 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                         vgmstream->channels,vgmstream->samples_into_block,samples_to_do);
             }
             break;
+		case coding_TGC:
+			for (ch = 0; ch < vgmstream->channels; ch++) {
+				decode_tgc(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+					    vgmstream->samples_into_block,samples_to_do);
+			}
+			break;
         case coding_NDS_PROCYON:
             for (ch = 0; ch < vgmstream->channels; ch++) {
                 decode_nds_procyon(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,

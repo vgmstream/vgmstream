@@ -154,6 +154,8 @@ typedef enum {
     coding_ASKA,            /* Aska ADPCM */
     coding_NXAP,            /* NXAP ADPCM */
 
+	coding_TGC,             /* Tiger Game.com 4-bit ADPCM */
+
     coding_NDS_PROCYON,     /* Procyon Studio ADPCM */
     coding_L5_555,          /* Level-5 0x555 ADPCM */
     coding_LSF,             /* lsf ADPCM (Fastlane Street Racing iPhone)*/
@@ -720,7 +722,7 @@ typedef enum {
     meta_XSSB,
     meta_XMA_UE3,
     meta_FDA,
-
+	meta_TGC,
 } meta_t;
 
 /* standard WAVEFORMATEXTENSIBLE speaker positions */

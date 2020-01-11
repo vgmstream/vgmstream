@@ -25,6 +25,7 @@ static const char* extension_list[] = {
     "208",
     "2dx9",
     "2pfs",
+	"4",
     "8", //txth/reserved [Gungage (PS1)]
     "800",
     "9tav",
@@ -177,6 +178,7 @@ static const char* extension_list[] = {
     "gbts",
     "gca",
     "gcm",
+	"gcomadpcm",
     "gcub",
     "gcw",
     "genh",
@@ -474,6 +476,7 @@ static const char* extension_list[] = {
     "sxd3",
 
     "tec",
+	"tgcadpcm",
     "tgq",
     "thp",
     "tk5",
@@ -718,6 +721,7 @@ static const coding_info coding_info_list[] = {
         {coding_AICA_int,           "Yamaha AICA 4-bit ADPCM (mono/interleave)"},
         {coding_ASKA,               "tri-Ace Aska 4-bit ADPCM"},
         {coding_NXAP,               "Nex NXAP 4-bit ADPCM"},
+        {coding_TGC,                "Tiger Game.com 4-bit ADPCM"},
         {coding_NDS_PROCYON,        "Procyon Studio Digital Sound Elements NDS 4-bit APDCM"},
         {coding_L5_555,             "Level-5 0x555 4-bit ADPCM"},
         {coding_LSF,                "lsf 4-bit ADPCM"},
@@ -1255,6 +1259,7 @@ static const meta_info meta_info_list[] = {
         {meta_XSSB,                 "Artoon XSSB header"},
         {meta_XMA_UE3,              "Unreal Engine XMA header"},
         {meta_FDA,                  "Relic FDA header"},
+        {meta_TGC,                  "Tiger Game.com .4 header"},
 
 };
 
