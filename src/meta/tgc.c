@@ -6,7 +6,7 @@ VGMSTREAM * init_vgmstream_tgc(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
 
     /* checks */
-    if (!check_extensions(streamFile, "gcomadpcm,tgcadpcm,4"))
+    if (!check_extensions(streamFile, "4"))
         goto fail;
 
     /* build the VGMSTREAM */

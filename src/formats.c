@@ -25,7 +25,7 @@ static const char* extension_list[] = {
     "208",
     "2dx9",
     "2pfs",
-    "4",
+    "4", // for Game.com audio
     "8", //txth/reserved [Gungage (PS1)]
     "800",
     "9tav",
@@ -178,7 +178,6 @@ static const char* extension_list[] = {
     "gbts",
     "gca",
     "gcm",
-    "gcomadpcm",
     "gcub",
     "gcw",
     "genh",
@@ -476,7 +475,6 @@ static const char* extension_list[] = {
     "sxd3",
 
     "tec",
-    "tgcadpcm",
     "tgq",
     "thp",
     "tk5",
