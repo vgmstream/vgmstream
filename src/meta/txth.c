@@ -36,6 +36,7 @@ typedef enum {
     PCM4_U = 26,        /* 4-bit unsigned PCM (3rd and 4th gen games) */
     OKI16 = 27,         /* OKI ADPCM with 16-bit output (unlike OKI/VOX/Dialogic ADPCM's 12-bit) */
     AAC = 28,           /* Advanced Audio Coding (raw without .mp4) */
+    TGC = 29            /* Tiger Game.com 4-bit ADPCM */
 } txth_type;
 
 typedef struct {
@@ -221,6 +222,7 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
         case PCM4:       coding = coding_PCM4; break;
         case PCM4_U:     coding = coding_PCM4_U; break;
         case OKI16:      coding = coding_OKI16; break;
+        case TGC:        coding = coding_TGC; break;
         default:
             goto fail;
     }
@@ -266,6 +268,7 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
         case coding_IMA:
         case coding_AICA:
         case coding_APPLE_IMA4:
+        case coding_TGC:
             vgmstream->interleave_block_size = txth.interleave;
             vgmstream->interleave_last_block_size = txth.interleave_last;
             if (vgmstream->channels > 1)
@@ -843,6 +846,8 @@ static int parse_keyval(STREAMFILE * streamFile_, txth_header * txth, const char
         else if (is_string(val,"PCM4_U"))       txth->codec = PCM4_U;
         else if (is_string(val,"OKI16"))        txth->codec = OKI16;
         else if (is_string(val,"AAC"))          txth->codec = AAC;
+        else if (is_string(val,"TGC"))          txth->codec = TGC;
+        else if (is_string(val,"GCOM_ADPCM"))   txth->codec = TGC;
         else goto fail;
 
         /* set common interleaves to simplify usage
@@ -1698,6 +1703,7 @@ static int get_bytes_to_samples(txth_header * txth, uint32_t bytes) {
             return pcm_bytes_to_samples(bytes, txth->channels, 8);
         case PCM4:
         case PCM4_U:
+        case TGC:
             return pcm_bytes_to_samples(bytes, txth->channels, 4);
         case MSADPCM:
             return msadpcm_bytes_to_samples(bytes, txth->interleave, txth->channels);

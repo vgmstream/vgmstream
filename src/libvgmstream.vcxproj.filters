@@ -1672,5 +1672,11 @@
     <ClCompile Include="meta\xmv_valve.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="coding\tgcadpcm_decoder.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\tgc.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

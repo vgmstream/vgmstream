@@ -138,6 +138,9 @@ void decode_nxap(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacin
 size_t yamaha_bytes_to_samples(size_t bytes, int channels);
 size_t aska_bytes_to_samples(size_t bytes, int channels);
 
+/* tgcadpcm_decoder */
+void decode_tgc(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int32_t first_sample, int32_t samples_to_do);
+
 /* nds_procyon_decoder */
 void decode_nds_procyon(VGMSTREAMCHANNEL *stream, sample_t *outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
 
