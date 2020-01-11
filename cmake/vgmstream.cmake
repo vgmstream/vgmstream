@@ -14,7 +14,8 @@ macro(setup_target TARGET)
 			_WIN32_WINNT=0x501
 			_CRT_SECURE_NO_WARNINGS)
 	endif()
-	target_include_directories(${TARGET} PRIVATE ${CMAKE_SOURCE_DIR}/ext_includes)
+	target_include_directories(${TARGET} PRIVATE ${VGM_SOURCE_DIR}/src)
+	target_include_directories(${TARGET} PRIVATE ${VGM_SOURCE_DIR}/ext_includes)
 	# Set up position-independent code for all targets
 	set_target_properties(${TARGET} PROPERTIES
 		POSITION_INDEPENDENT_CODE TRUE)
@@ -29,7 +30,7 @@ macro(setup_target TARGET)
 			VGM_USE_FDKAAC)
 		target_include_directories(${TARGET} PRIVATE
 			${QAAC_PATH}/mp4v2/include
-			${CMAKE_BINARY_DIR}/mp4v2/include
+			${VGM_BINARY_DIR}/mp4v2/include
 			${FDK_AAC_PATH}/libSYS/include
 			${FDK_AAC_PATH}/libAACdec/include)
 		if(LINK)
@@ -44,7 +45,7 @@ macro(setup_target TARGET)
 		if(WIN32)
 			if(LINK)
 				add_dependencies(${TARGET} libmpg123)
-				target_link_libraries(${TARGET} ${CMAKE_BINARY_DIR}/ext_libs/libmpg123-0.lib)
+				target_link_libraries(${TARGET} ${VGM_BINARY_DIR}/ext_libs/libmpg123-0.lib)
 			endif()
 		else()
 			target_include_directories(${TARGET} PRIVATE ${MPG123_INCLUDE_DIR})
@@ -59,7 +60,7 @@ macro(setup_target TARGET)
 		if(WIN32)
 			if(LINK)
 				add_dependencies(${TARGET} libvorbis)
-				target_link_libraries(${TARGET} ${CMAKE_BINARY_DIR}/ext_libs/libvorbis.lib)
+				target_link_libraries(${TARGET} ${VGM_BINARY_DIR}/ext_libs/libvorbis.lib)
 			endif()
 		else()
 			target_include_directories(${TARGET} PRIVATE ${VORBISFILE_INCLUDE_DIRS})
@@ -75,9 +76,9 @@ macro(setup_target TARGET)
 			if(LINK)
 				add_dependencies(${TARGET} ffmpeg)
 				target_link_libraries(${TARGET}
-					${CMAKE_BINARY_DIR}/ext_libs/avcodec.lib
-					${CMAKE_BINARY_DIR}/ext_libs/avformat.lib
-					${CMAKE_BINARY_DIR}/ext_libs/avutil.lib)
+					${VGM_BINARY_DIR}/ext_libs/avcodec.lib
+					${VGM_BINARY_DIR}/ext_libs/avformat.lib
+					${VGM_BINARY_DIR}/ext_libs/avutil.lib)
 			endif()
 		else()
 			target_include_directories(${TARGET} PRIVATE ${FFMPEG_INCLUDE_DIRS})
@@ -91,7 +92,7 @@ macro(setup_target TARGET)
 		target_compile_definitions(${TARGET} PRIVATE VGM_USE_G7221)
 		if(LINK)
 			add_dependencies(${TARGET} libg7221_decode)
-			target_link_libraries(${TARGET} ${CMAKE_BINARY_DIR}/ext_libs/libg7221_decode.lib)
+			target_link_libraries(${TARGET} ${VGM_BINARY_DIR}/ext_libs/libg7221_decode.lib)
 		endif()
 	endif()
 
@@ -99,7 +100,7 @@ macro(setup_target TARGET)
 		target_compile_definitions(${TARGET} PRIVATE VGM_USE_G719)
 		if(LINK)
 			add_dependencies(${TARGET} libg719_decode)
-			target_link_libraries(${TARGET} ${CMAKE_BINARY_DIR}/ext_libs/libg719_decode.lib)
+			target_link_libraries(${TARGET} ${VGM_BINARY_DIR}/ext_libs/libg719_decode.lib)
 		endif()
 	endif()
 
@@ -115,7 +116,7 @@ macro(setup_target TARGET)
 		target_compile_definitions(${TARGET} PRIVATE VGM_USE_ATRAC9)
 		if(LINK)
 			add_dependencies(${TARGET} libatrac9)
-			target_link_libraries(${TARGET} ${CMAKE_BINARY_DIR}/ext_libs/libatrac9.lib)
+			target_link_libraries(${TARGET} ${VGM_BINARY_DIR}/ext_libs/libatrac9.lib)
 		endif()
 	endif()
 
@@ -124,8 +125,8 @@ macro(setup_target TARGET)
 		if(LINK)
 			add_dependencies(${TARGET} libcelt)
 			target_link_libraries(${TARGET}
-				${CMAKE_BINARY_DIR}/ext_libs/libcelt-0061.lib
-				${CMAKE_BINARY_DIR}/ext_libs/libcelt-0110.lib)
+				${VGM_BINARY_DIR}/ext_libs/libcelt-0061.lib
+				${VGM_BINARY_DIR}/ext_libs/libcelt-0110.lib)
 		endif()
 	endif()
 endmacro()
@@ -133,19 +134,19 @@ endmacro()
 # Installs the DLLs to the given install prefix
 macro(install_dlls INSTALL_PREFIX)
 	# Paths to the DLLs
-	set(MPEG_DLL ${CMAKE_SOURCE_DIR}/ext_libs/libmpg123-0.dll)
-	set(VORBIS_DLL ${CMAKE_SOURCE_DIR}/ext_libs/libvorbis.dll)
-	set(G7221_DLL ${CMAKE_SOURCE_DIR}/ext_libs/libg7221_decode.dll)
-	set(G719_DLL ${CMAKE_SOURCE_DIR}/ext_libs/libg719_decode.dll)
+	set(MPEG_DLL ${VGM_SOURCE_DIR}/ext_libs/libmpg123-0.dll)
+	set(VORBIS_DLL ${VGM_SOURCE_DIR}/ext_libs/libvorbis.dll)
+	set(G7221_DLL ${VGM_SOURCE_DIR}/ext_libs/libg7221_decode.dll)
+	set(G719_DLL ${VGM_SOURCE_DIR}/ext_libs/libg719_decode.dll)
 	set(FFMPEG_DLL
-		${CMAKE_SOURCE_DIR}/ext_libs/avcodec-vgmstream-58.dll
-		${CMAKE_SOURCE_DIR}/ext_libs/avformat-vgmstream-58.dll
-		${CMAKE_SOURCE_DIR}/ext_libs/avutil-vgmstream-56.dll
-		${CMAKE_SOURCE_DIR}/ext_libs/swresample-vgmstream-3.dll)
-	set(ATRAC9_DLL ${CMAKE_SOURCE_DIR}/ext_libs/libatrac9.dll)
+		${VGM_SOURCE_DIR}/ext_libs/avcodec-vgmstream-58.dll
+		${VGM_SOURCE_DIR}/ext_libs/avformat-vgmstream-58.dll
+		${VGM_SOURCE_DIR}/ext_libs/avutil-vgmstream-56.dll
+		${VGM_SOURCE_DIR}/ext_libs/swresample-vgmstream-3.dll)
+	set(ATRAC9_DLL ${VGM_SOURCE_DIR}/ext_libs/libatrac9.dll)
 	set(CELT_DLL
-		${CMAKE_SOURCE_DIR}/ext_libs/libcelt-0061.dll
-		${CMAKE_SOURCE_DIR}/ext_libs/libcelt-0110.dll)
+		${VGM_SOURCE_DIR}/ext_libs/libcelt-0061.dll
+		${VGM_SOURCE_DIR}/ext_libs/libcelt-0110.dll)
 
 	# List of DLLs to check for install
 	set(DLLS

@@ -42,7 +42,7 @@ double fade_seconds = 10.0;
 double fade_delay_seconds = 0.0;
 double loop_count = 2.0;
 int disable_subsongs = 1;
-bool xmplay_doneloop = 0;
+BOOL xmplay_doneloop = 0;
 
 /* plugin state */
 VGMSTREAM * vgmstream = NULL;

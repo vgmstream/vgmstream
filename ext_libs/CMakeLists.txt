@@ -1,5 +1,3 @@
-set(VGMSTREAM_EXT_INCLUDES ../ext_includes)
-
 if(MSVC)
 	if(USE_MPEG)
 		add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/libmpg123-0.lib ${CMAKE_CURRENT_BINARY_DIR}/libmpg123-0.exp
@@ -9,8 +7,8 @@ if(MSVC)
 		add_custom_target(libmpg123
 			DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/libmpg123-0.lib
 			SOURCES
-				${VGMSTREAM_EXT_INCLUDES}/fmt123.h
-				${VGMSTREAM_EXT_INCLUDES}/mpg123.h)
+				${VGM_SOURCE_DIR}/ext_includes/fmt123.h
+				${VGM_SOURCE_DIR}/ext_includes/mpg123.h)
 	endif()
 
 	if(USE_VORBIS)
@@ -18,8 +16,8 @@ if(MSVC)
 			COMMAND lib
 			ARGS /def:${CMAKE_CURRENT_SOURCE_DIR}/libvorbis.def /machine:x86 /out:${CMAKE_CURRENT_BINARY_DIR}/libvorbis.lib
 			DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/libvorbis.def)
-		file(GLOB OGG_HEADERS "${VGMSTREAM_EXT_INCLUDES}/ogg/*.h")
-		file(GLOB VORBIS_HEADERS "${VGMSTREAM_EXT_INCLUDES}/vorbis/*h")
+		file(GLOB OGG_HEADERS "${VGM_SOURCE_DIR}/ext_includes/ogg/*.h")
+		file(GLOB VORBIS_HEADERS "${VGM_SOURCE_DIR}/ext_includes/vorbis/*h")
 		add_custom_target(libvorbis
 			DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/libvorbis.lib
 			SOURCES
@@ -36,7 +34,7 @@ if(MSVC)
 			DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/libg7221_decode.def)
 		add_custom_target(libg7221_decode
 			DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/libg7221_decode.lib
-			SOURCES ${VGMSTREAM_EXT_INCLUDES}/g7221.h)
+			SOURCES ${VGM_SOURCE_DIR}/ext_includes/g7221.h)
 	endif()
 
 	if(USE_G719)
@@ -46,7 +44,7 @@ if(MSVC)
 			DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/libg719_decode.def)
 		add_custom_target(libg719_decode
 			DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/libg719_decode.lib
-			SOURCES ${VGMSTREAM_EXT_INCLUDES}/g719.h)
+			SOURCES ${VGM_SOURCE_DIR}/ext_includes/g719.h)
 	endif()
 
 	if(USE_FFMPEG)
@@ -66,10 +64,10 @@ if(MSVC)
 			COMMAND lib
 			ARGS /def:${CMAKE_CURRENT_SOURCE_DIR}/swresample-vgmstream-3.def /machine:x86 /out:${CMAKE_CURRENT_BINARY_DIR}/swresample.lib
 			DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/swresample-vgmstream-3.def)
-		file(GLOB AVCODEC_HEADERS "${VGMSTREAM_EXT_INCLUDES}/libavcodec/*.h")
-		file(GLOB AVFORMAT_HEADERS "${VGMSTREAM_EXT_INCLUDES}/libavformat/*.h")
-		file(GLOB AVUTIL_HEADERS "${VGMSTREAM_EXT_INCLUDES}/libavutil/*.h")
-		file(GLOB SWRESAMPLE_HEADERS "${VGMSTREAM_EXT_INCLUDES}/libswresample/*.h")
+		file(GLOB AVCODEC_HEADERS "${VGM_SOURCE_DIR}/ext_includes/libavcodec/*.h")
+		file(GLOB AVFORMAT_HEADERS "${VGM_SOURCE_DIR}/ext_includes/libavformat/*.h")
+		file(GLOB AVUTIL_HEADERS "${VGM_SOURCE_DIR}/ext_includes/libavutil/*.h")
+		file(GLOB SWRESAMPLE_HEADERS "${VGM_SOURCE_DIR}/ext_includes/libswresample/*.h")
 		add_custom_target(ffmpeg
 			DEPENDS
 				${CMAKE_CURRENT_BINARY_DIR}/avcodec.lib
@@ -94,7 +92,7 @@ if(MSVC)
 			DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/libatrac9.def)
 		add_custom_target(libatrac9
 			DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/libatrac9.lib
-			SOURCES ${VGMSTREAM_EXT_INCLUDES}/libatrac9.h)
+			SOURCES ${VGM_SOURCE_DIR}/ext_includes/libatrac9.h)
 	endif()
 
 	if(USE_CELT)
@@ -106,7 +104,7 @@ if(MSVC)
 			COMMAND lib
 			ARGS /def:${CMAKE_CURRENT_SOURCE_DIR}/libcelt-0110.def /machine:x86 /out:${CMAKE_CURRENT_BINARY_DIR}/libcelt-0110.lib
 			DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/libcelt-0110.def)
-		file(GLOB CELT_HEADERS "${VGMSTREAM_EXT_INCLUDES}/celt/*.h")
+		file(GLOB CELT_HEADERS "${VGM_SOURCE_DIR}/ext_includes/celt/*.h")
 		add_custom_target(libcelt
 			DEPENDS
 				${CMAKE_CURRENT_BINARY_DIR}/libcelt-0061.lib
