@@ -36,6 +36,7 @@ void mixing_macro_track(VGMSTREAM* vgmstream, uint32_t mask);
 void mixing_macro_layer(VGMSTREAM* vgmstream, int max, uint32_t mask, char mode);
 void mixing_macro_crosstrack(VGMSTREAM* vgmstream, int max);
 void mixing_macro_crosslayer(VGMSTREAM* vgmstream, int max, char mode);
+void mixing_macro_downmix(VGMSTREAM* vgmstream, int max /*, mapping_t output_mapping*/);
 
 
 #endif /* _MIXING_H_ */

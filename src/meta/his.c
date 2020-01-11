@@ -1,112 +1,99 @@
 #include "meta.h"
-#include "../util.h"
+#include "../coding/coding.h"
 
-/* Her Interactive Sound .his (Nancy Drew) */
-/* A somewhat transformed RIFF WAVE */
 
+/* HIS - Her Interactive games [Nancy Drew series (PC)] */
 VGMSTREAM * init_vgmstream_his(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
-    int channel_count;
-    int loop_flag = 0;
-    int bps = 0;
+    int channel_count, loop_flag = 0, bps, sample_rate, num_samples, version;
     off_t start_offset;
-    const uint8_t header_magic_expected[0x16] = "Her Interactive Sound\x1a";
-    uint8_t header_magic[0x16];
 
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("his",filename_extension(filename))) goto fail;
 
-    /* check header magic */
-    if (0x16 != streamFile->read(streamFile, header_magic, 0, 0x16)) goto fail;
-    if (memcmp(header_magic_expected, header_magic, 0x16)) goto fail;
+    /* checks */
+    if (!check_extensions(streamFile, "his"))
+        goto fail;
 
-    /* data chunk label */
-    if (0x64617461 != read_32bitBE(0x24,streamFile)) goto fail;
+    if (read_32bitBE(0x00,streamFile) == 0x48657220) { /* "Her Interactive Sound\x1a" */
+        /* Nancy Drew: Secrets Can Kill (PC) */
+        version = 0;
+        channel_count = read_16bitLE(0x16,streamFile);
+        sample_rate = read_32bitLE(0x18,streamFile);
+        /* 0x1c: bitrate */
+        /* 0x20: block size */
+        bps = read_16bitLE(0x22,streamFile);
 
-    start_offset = 0x2c;
+        if (read_32bitBE(0x24,streamFile) != 0x64617461) /* "data" */
+            goto fail;
+        num_samples = pcm_bytes_to_samples(read_32bitLE(0x28,streamFile), channel_count, bps);
 
-    channel_count = read_16bitLE(0x16,streamFile);
+        start_offset = 0x2c;
+    }
+    else if (read_32bitBE(0x00,streamFile) == 0x48495300) { /* HIS\0 */
+        /* most(?) others */
+        version = read_32bitLE(0x04,streamFile);
+        /* 0x08: codec */
+        channel_count = read_16bitLE(0x0a,streamFile);
+        sample_rate = read_32bitLE(0x0c,streamFile);
+        /* 0x10: bitrate */
+        /* 0x14: block size */
+        bps = read_16bitLE(0x16,streamFile);
 
-    /* 8-bit or 16-bit expected */
-    switch (read_16bitLE(0x22,streamFile))
-    {
+        num_samples = pcm_bytes_to_samples(read_32bitLE(0x18,streamFile), channel_count, bps); /* true even for Ogg */
+
+        /* later games use "OggS" */
+        if (version == 1)
+            start_offset = 0x1c; /* Nancy Drew: The Final Scene (PC) */
+        else if (version == 2 && read_32bitBE(0x1e,streamFile) == 0x4F676753)
+            start_offset = 0x1e; /* Nancy Drew: The Haunted Carousel (PC) */
+        else if (version == 2 && read_32bitBE(0x20,streamFile) == 0x4F676753)
+            start_offset = 0x20; /* Nancy Drew: The Silent Spy (PC) */
+        else
+            goto fail;
+    }
+    else {
+        goto fail;
+    }
+
+
+    if (version == 2) {
+#ifdef VGM_USE_VORBIS
+        ogg_vorbis_meta_info_t ovmi = {0};
+
+        ovmi.meta_type = meta_HIS;
+        return init_vgmstream_ogg_vorbis_callbacks(streamFile, NULL, start_offset, &ovmi);
+#else
+        goto fail;
+#endif
+    }
+
+    /* build the VGMSTREAM */
+    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    if (!vgmstream) goto fail;
+
+    vgmstream->meta_type = meta_HIS;
+    vgmstream->sample_rate = sample_rate;
+    vgmstream->num_samples = num_samples;
+
+    switch (bps) {
         case 8:
-            bps = 1;
+            vgmstream->coding_type = coding_PCM8_U;
+            vgmstream->layout_type = layout_interleave;
+            vgmstream->interleave_block_size = 0x01;
             break;
         case 16:
-            bps = 2;
+            vgmstream->coding_type = coding_PCM16LE;
+            vgmstream->layout_type = layout_interleave;
+            vgmstream->interleave_block_size = 0x02;
             break;
         default:
             goto fail;
     }
 
-    /* check bytes per frame */
-    if (read_16bitLE(0x20,streamFile) != channel_count*bps) goto fail;
-
-    /* check size */
-    /* file size -8 */
-	if ((read_32bitLE(0x1c,streamFile)+8) != get_streamfile_size(streamFile))
-		goto fail;
-    /* data chunk size, assume it occupies the rest of the file */
-    //if ((read_32bitLE(0x28,streamFile)+start_offset) != get_streamfile_size(streamFile))
-    //    goto fail;
-
-	/* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
-    if (!vgmstream) goto fail;
-
-    /* fill in the vital statistics */
-	vgmstream->num_samples = read_32bitLE(0x28,streamFile) / channel_count / bps;
-    vgmstream->sample_rate = read_32bitLE(0x18,streamFile);
-
-    vgmstream->meta_type = meta_HIS;
-    vgmstream->layout_type = layout_none;
-    if (bps == 2)
-    {
-        vgmstream->coding_type = coding_PCM16LE;
-        if (channel_count == 2)
-        {
-            vgmstream->coding_type = coding_PCM16_int;
-            vgmstream->interleave_block_size = 2;
-        }
-    }
-    else // bps == 1
-    {
-        vgmstream->coding_type = coding_PCM8_U;
-        if (channel_count == 2)
-        {
-            vgmstream->coding_type = coding_PCM8_U_int;
-            vgmstream->interleave_block_size = 1;
-        }
-    }
-
-    /* open the file for reading */
-    {
-        STREAMFILE * file;
-        file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (!file) goto fail;
-        vgmstream->ch[0].streamfile = file;
-
-        vgmstream->ch[0].channel_start_offset=
-            vgmstream->ch[0].offset=start_offset;
-
-        if (channel_count == 2)
-        {
-            file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-            if (!file) goto fail;
-            vgmstream->ch[1].streamfile = file;
-        
-            vgmstream->ch[0].channel_start_offset=
-                vgmstream->ch[1].offset=start_offset + vgmstream->interleave_block_size;
-        }
-    }
-    
+    if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
+        goto fail;
     return vgmstream;
 
-    /* clean up anything we may have opened */
 fail:
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_vgmstream(vgmstream);
     return NULL;
 }

@@ -9,17 +9,19 @@ VGMSTREAM * init_vgmstream_ps2_rxws(STREAMFILE *streamFile) {
     off_t start_offset, chunk_offset, name_offset = 0;
     size_t stream_size, chunk_size;
     int loop_flag = 0, channel_count, is_separate = 0, type, sample_rate;
-    int32_t loop_start, loop_end;
+    int32_t num_samples, loop_start;
     int total_subsongs, target_subsong = streamFile->stream_index;
 
-    /* check extensions */
-    /* .xws: header and data, .xwh+xwb: header + data (.bin+dat are also found in Wild Arms 4/5) */
-    if (!check_extensions(streamFile,"xws,xwb")) goto fail;
+    /* checks */
+    /* .xws: header and data
+     * .xwh+xwb: header + data (.bin+dat are also found in Wild Arms 4/5) */
+    if (!check_extensions(streamFile,"xws,xwb"))
+        goto fail;
     is_separate = check_extensions(streamFile,"xwb");
 
     /* xwh+xwb: use xwh as header; otherwise use the current file */
     if (is_separate) {
-        /* extra check to avoid hijacking Microsoft's XWB */
+        /* extra check to reject Microsoft's XWB faster */
         if ((read_32bitBE(0x00,streamFile) == 0x57424E44) ||    /* "WBND" (LE) */
             (read_32bitBE(0x00,streamFile) == 0x444E4257))      /* "DNBW" (BE) */
             goto fail;
@@ -62,7 +64,7 @@ VGMSTREAM * init_vgmstream_ps2_rxws(STREAMFILE *streamFile) {
         channel_count =    read_8bit(header_offset+0x09, streamHeader);
         sample_rate = (uint16_t)read_16bitLE(header_offset+0x0a,streamHeader);
         stream_offset = read_32bitLE(header_offset+0x10,streamHeader);
-        loop_end      = read_32bitLE(header_offset+0x14,streamHeader);
+        num_samples   = read_32bitLE(header_offset+0x14,streamHeader);
         loop_start    = read_32bitLE(header_offset+0x18,streamHeader);
         loop_flag = (loop_start != 0xFFFFFFFF);
 
@@ -84,7 +86,7 @@ VGMSTREAM * init_vgmstream_ps2_rxws(STREAMFILE *streamFile) {
         }
 
         if (target_subsong == total_subsongs) {
-            next_stream_offset = data_offset + get_streamfile_size(is_separate ? streamFile : streamHeader);
+            next_stream_offset = get_streamfile_size(is_separate ? streamFile : streamHeader) - data_offset;
         } else {
             off_t next_header_offset = chunk_offset + 0x4 + 0x1c * (target_subsong);
             next_stream_offset = read_32bitLE(next_header_offset+0x10,streamHeader);
@@ -120,41 +122,36 @@ VGMSTREAM * init_vgmstream_ps2_rxws(STREAMFILE *streamFile) {
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = 0x10;
 
-            vgmstream->num_samples = ps_bytes_to_samples(loop_end, channel_count);
+            vgmstream->num_samples = ps_bytes_to_samples(num_samples, channel_count);
             vgmstream->loop_start_sample = ps_bytes_to_samples(loop_start, channel_count);
-            vgmstream->loop_end_sample = ps_bytes_to_samples(loop_end, channel_count);
+            vgmstream->loop_end_sample = vgmstream->num_samples;
             break;
 
         case 0x01:      /* PCM */
             vgmstream->coding_type = coding_PCM16LE;
-            vgmstream->layout_type = channel_count==1 ? layout_none : layout_interleave;
+            vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = 0x2;
 
-            vgmstream->num_samples = pcm_bytes_to_samples(loop_end, channel_count, 16);
+            vgmstream->num_samples = pcm_bytes_to_samples(num_samples, channel_count, 16);
             vgmstream->loop_start_sample = pcm_bytes_to_samples(loop_start, channel_count, 16);
-            vgmstream->loop_end_sample = pcm_bytes_to_samples(loop_end, channel_count, 16);
+            vgmstream->loop_end_sample = vgmstream->num_samples;
             break;
 
 #ifdef VGM_USE_FFMPEG
         case 0x02: {    /* ATRAC3 */
-            uint8_t buf[0x100];
-            int32_t bytes, block_size, encoder_delay, joint_stereo;
+            int block_align, encoder_delay;
 
-            block_size = 0xc0 * channel_count;
-            joint_stereo = 0;
-            encoder_delay = 0x0;
+            block_align = 0xc0 * channel_count;
+            encoder_delay = 1024 + 69*2; /* observed default */
+            vgmstream->num_samples = num_samples - encoder_delay;
 
-            bytes = ffmpeg_make_riff_atrac3(buf, 0x100, vgmstream->num_samples, stream_size, vgmstream->channels, vgmstream->sample_rate, block_size, joint_stereo, encoder_delay);
-            if (bytes <= 0) goto fail;
-
-            vgmstream->codec_data = init_ffmpeg_header_offset(streamFile, buf,bytes, start_offset,stream_size);
+            vgmstream->codec_data = init_ffmpeg_atrac3_raw(streamFile, start_offset,stream_size, vgmstream->num_samples,vgmstream->channels,vgmstream->sample_rate, block_align, encoder_delay);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
 
-            vgmstream->num_samples = loop_end;
             vgmstream->loop_start_sample = loop_start;
-            vgmstream->loop_end_sample   = loop_end;
+            vgmstream->loop_end_sample   = vgmstream->num_samples;
             break;
         }
 #endif

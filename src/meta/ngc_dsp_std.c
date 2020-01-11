@@ -6,26 +6,25 @@
 /* If these variables are packed properly in the struct (one after another)
  * then this is actually how they are laid out in the file, albeit big-endian */
 struct dsp_header {
-    uint32_t sample_count;
-    uint32_t nibble_count;
-    uint32_t sample_rate;
-    uint16_t loop_flag;
-    uint16_t format;
-    uint32_t loop_start_offset;
-    uint32_t loop_end_offset;
-    uint32_t ca;
-    int16_t coef[16]; /* really 8x2 */
-    uint16_t gain;
-    uint16_t initial_ps;
-    int16_t initial_hist1;
-    int16_t initial_hist2;
-    uint16_t loop_ps;
-    int16_t loop_hist1;
-    int16_t loop_hist2;
-    int16_t channel_count; /* DSPADPCM.exe ~v2.7 extension */
-    int16_t block_size;
-    /* padding/reserved up to 0x60 */
-    /* DSPADPCM.exe from GC adds some extra data here (uninitialized MSVC memory?) */
+    uint32_t sample_count;      /* 0x00 */
+    uint32_t nibble_count;      /* 0x04 */
+    uint32_t sample_rate;       /* 0x08 */
+    uint16_t loop_flag;         /* 0x0c */
+    uint16_t format;            /* 0x0e */
+    uint32_t loop_start_offset; /* 0x10 */
+    uint32_t loop_end_offset;   /* 0x14 */
+    uint32_t ca;                /* 0x18 */
+    int16_t coef[16];           /* 0x1c (really 8x2) */
+    uint16_t gain;              /* 0x3c */
+    uint16_t initial_ps;        /* 0x3e */
+    int16_t initial_hist1;      /* 0x40 */
+    int16_t initial_hist2;      /* 0x42 */
+    uint16_t loop_ps;           /* 0x44 */
+    int16_t loop_hist1;         /* 0x46 */
+    int16_t loop_hist2;         /* 0x48 */
+    int16_t channel_count;      /* 0x4a (DSPADPCM.exe ~v2.7 extension) */
+    int16_t block_size;         /* 0x4c */
+    /* padding/reserved up to 0x60, DSPADPCM.exe from GC adds garbage here (uninitialized MSVC memory?) */
 };
 
 /* read the above struct; returns nonzero on failure */
@@ -79,6 +78,8 @@ typedef struct {
     size_t header_spacing;          /* distance between DSP header of other channels */
     off_t start_offset;             /* data start */
     size_t interleave;              /* distance between data of other channels */
+    size_t interleave_first;        /* same, in the first block */
+    size_t interleave_first_skip;   /* extra info */
     size_t interleave_last;         /* same, in the last block */
 
     meta_t meta_type;
@@ -208,6 +209,8 @@ static VGMSTREAM * init_vgmstream_dsp_common(STREAMFILE *streamFile, dsp_meta *d
     if (dspm->interleave == 0 || vgmstream->coding_type == coding_NGC_DSP_subint)
         vgmstream->layout_type = layout_none;
     vgmstream->interleave_block_size = dspm->interleave;
+    vgmstream->interleave_first_block_size = dspm->interleave_first;
+    vgmstream->interleave_first_skip = dspm->interleave_first_skip;
     vgmstream->interleave_last_block_size = dspm->interleave_last;
 
     {
@@ -253,8 +256,9 @@ VGMSTREAM * init_vgmstream_ngc_dsp_std(STREAMFILE *streamFile) {
 
     /* checks */
     /* .dsp: standard
-     * .adp: Dr. Muto/Battalion Wars (GC) mono files */
-    if (!check_extensions(streamFile, "dsp,adp"))
+     * .adp: Dr. Muto/Battalion Wars (GC) mono files
+     * (extensionless): Tony Hawk's Downhill Jam (Wii) */
+    if (!check_extensions(streamFile, "dsp,adp,"))
         goto fail;
 
     if (read_dsp_header(&header, 0x00, streamFile))
@@ -414,6 +418,7 @@ VGMSTREAM * init_vgmstream_ngc_dsp_std_le(STREAMFILE *streamFile) {
     vgmstream->meta_type = meta_DSP_STD;
     vgmstream->coding_type = coding_NGC_DSP;
     vgmstream->layout_type = layout_none;
+    vgmstream->allow_dual_stereo = 1;
 
     {
         /* adpcm coeffs/history */
@@ -592,8 +597,8 @@ fail:
     return NULL;
 }
 
-/* IDSP - Namco header (from NUS3) + interleaved dsp [SSB4 (3DS), Tekken Tag Tournament 2 (WiiU)] */
-VGMSTREAM * init_vgmstream_idsp_nus3(STREAMFILE *streamFile) {
+/* IDSP - Namco header (from NUB/NUS3) + interleaved dsp [SSB4 (3DS), Tekken Tag Tournament 2 (WiiU)] */
+VGMSTREAM * init_vgmstream_idsp_namco(STREAMFILE *streamFile) {
     dsp_meta dspm = {0};
 
     /* checks */
@@ -601,21 +606,26 @@ VGMSTREAM * init_vgmstream_idsp_nus3(STREAMFILE *streamFile) {
         goto fail;
     if (read_32bitBE(0x00,streamFile) != 0x49445350) /* "IDSP" */
         goto fail;
-    /* 0x0c: sample rate, 0x10: num_samples, 0x14: loop_start_sample, 0x18: loop_start_sample */
 
-    dspm.channel_count = read_32bitBE(0x08, streamFile);
     dspm.max_channels = 8;
     /* games do adjust loop_end if bigger than num_samples (only happens in user-created IDSPs) */
     dspm.fix_looping = 1;
 
+    /* 0x04: null */
+    dspm.channel_count = read_32bitBE(0x08, streamFile);
+    /* 0x0c: sample rate */
+    /* 0x10: num_samples */
+    /* 0x14: loop start */
+    /* 0x18: loop end */
+    dspm.interleave = read_32bitBE(0x1c,streamFile); /* usually 0x10 */
     dspm.header_offset = read_32bitBE(0x20,streamFile);
     dspm.header_spacing = read_32bitBE(0x24,streamFile);
     dspm.start_offset = read_32bitBE(0x28,streamFile);
-    dspm.interleave = read_32bitBE(0x1c,streamFile); /* usually 0x10 */
-    if (dspm.interleave == 0) /* Taiko no Tatsujin: Atsumete Tomodachi Daisakusen (WiiU) */
-        dspm.interleave = read_32bitBE(0x2c,streamFile); /* half interleave, use channel size */
+    /* Soul Calibur: Broken destiny (PSP), Taiko no Tatsujin: Atsumete Tomodachi Daisakusen (WiiU) */
+    if (dspm.interleave == 0) /* half interleave (happens sometimes), use channel size */
+        dspm.interleave = read_32bitBE(0x2c,streamFile);
 
-    dspm.meta_type = meta_IDSP_NUS3;
+    dspm.meta_type = meta_IDSP_NAMCO;
     return init_vgmstream_dsp_common(streamFile, &dspm);
 fail:
     return NULL;
@@ -685,33 +695,6 @@ VGMSTREAM * init_vgmstream_sadf(STREAMFILE *streamFile) {
 
 fail:
     close_vgmstream(vgmstream);
-    return NULL;
-}
-
-/* SWD - PSF chunks + interleaved dsps [Conflict: Desert Storm 1 & 2] */
-VGMSTREAM * init_vgmstream_ngc_swd(STREAMFILE *streamFile) {
-    dsp_meta dspm = {0};
-
-    /* checks */
-    if (!check_extensions(streamFile, "swd"))
-        goto fail;
-
-    //todo blocked layout when first chunk is 0x50534631 (count + table of 0x0c with offset/sizes)
-
-    if (read_32bitBE(0x00,streamFile) != 0x505346d1) /* PSF\0xd1 */
-        goto fail;
-
-    dspm.channel_count = 2;
-    dspm.max_channels = 2;
-
-    dspm.header_offset = 0x08;
-    dspm.header_spacing = 0x60;
-    dspm.start_offset = dspm.header_offset + 0x60 * dspm.channel_count;
-    dspm.interleave = 0x08;
-
-    dspm.meta_type = meta_NGC_SWD;
-    return init_vgmstream_dsp_common(streamFile, &dspm);
-fail:
     return NULL;
 }
 
@@ -1185,8 +1168,8 @@ fail:
     return NULL;
 }
 
-/* .adpcmx - AQUASTYLE wrapper [Touhou Genso Wanderer -Reloaded- (Switch)] */
-VGMSTREAM * init_vgmstream_dsp_adpcmx(STREAMFILE *streamFile) {
+/* ADPY - AQUASTYLE wrapper [Touhou Genso Wanderer -Reloaded- (Switch)] */
+VGMSTREAM * init_vgmstream_dsp_adpy(STREAMFILE *streamFile) {
     dsp_meta dspm = {0};
 
     /* checks */
@@ -1194,6 +1177,7 @@ VGMSTREAM * init_vgmstream_dsp_adpcmx(STREAMFILE *streamFile) {
         goto fail;
     if (read_32bitBE(0x00,streamFile) != 0x41445059) /* "ADPY" */
         goto fail;
+
     /* 0x04(2): 1? */
     /* 0x08: some size? */
     /* 0x0c: null */
@@ -1207,7 +1191,36 @@ VGMSTREAM * init_vgmstream_dsp_adpcmx(STREAMFILE *streamFile) {
     dspm.start_offset = dspm.header_offset + dspm.header_spacing*dspm.channel_count;
     dspm.interleave = 0x08;
 
-    dspm.meta_type = meta_DSP_ADPCMX;
+    dspm.meta_type = meta_DSP_ADPY;
+    return init_vgmstream_dsp_common(streamFile, &dspm);
+fail:
+    return NULL;
+}
+
+/* ADPX - AQUASTYLE wrapper [Fushigi no Gensokyo: Lotus Labyrinth (Switch)] */
+VGMSTREAM * init_vgmstream_dsp_adpx(STREAMFILE *streamFile) {
+    dsp_meta dspm = {0};
+
+    /* checks */
+    if (!check_extensions(streamFile, "adpcmx"))
+        goto fail;
+    if (read_32bitBE(0x00,streamFile) != 0x41445058) /* "ADPX" */
+        goto fail;
+
+    /* from 0x04 *6 are probably channel sizes, so max would be 6ch; this assumes 2ch */
+    if (read_32bitLE(0x04,streamFile) != read_32bitLE(0x08,streamFile) &&
+        read_32bitLE(0x0c,streamFile) != 0)
+        goto fail;
+    dspm.channel_count = 2;
+    dspm.max_channels = 2;
+    dspm.little_endian = 1;
+
+    dspm.header_offset = 0x1c;
+    dspm.header_spacing = read_32bitLE(0x04,streamFile);
+    dspm.start_offset = dspm.header_offset + 0x60;
+    dspm.interleave = dspm.header_spacing;
+
+    dspm.meta_type = meta_DSP_ADPX;
     return init_vgmstream_dsp_common(streamFile, &dspm);
 fail:
     return NULL;
@@ -1242,6 +1255,37 @@ VGMSTREAM * init_vgmstream_dsp_ds2(STREAMFILE *streamFile) {
     dspm.interleave = channel_offset - dspm.start_offset;
 
     dspm.meta_type = meta_DSP_DS2;
+    return init_vgmstream_dsp_common(streamFile, &dspm);
+fail:
+    return NULL;
+}
+
+/* .itl - Incinerator Studios interleaved dsp [Cars Race-o-rama (Wii), MX vs ATV Untamed (Wii)] */
+VGMSTREAM * init_vgmstream_dsp_itl(STREAMFILE *streamFile) {
+    dsp_meta dspm = {0};
+    size_t stream_size;
+
+    /* checks */
+    /* .itl: standard
+     * .dsp: default to catch a similar file, not sure which devs */
+    if (!check_extensions(streamFile, "itl,dsp"))
+        goto fail;
+
+    stream_size = get_streamfile_size(streamFile);
+    dspm.channel_count = 2;
+    dspm.max_channels = 2;
+
+    dspm.start_offset = 0x60;
+    dspm.interleave = 0x10000;
+    dspm.interleave_first_skip = dspm.start_offset;
+    dspm.interleave_first = dspm.interleave - dspm.interleave_first_skip;
+    dspm.interleave_last = (stream_size / dspm.channel_count) % dspm.interleave;
+    dspm.header_offset = 0x00;
+    dspm.header_spacing = dspm.interleave;
+
+    //todo some files end in half a frame and may click at the very end
+    //todo when .dsp should refer to Ultimate Board Collection (Wii), not sure about dev
+    dspm.meta_type = meta_DSP_ITL_i;
     return init_vgmstream_dsp_common(streamFile, &dspm);
 fail:
     return NULL;

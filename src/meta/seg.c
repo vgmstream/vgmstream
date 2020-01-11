@@ -67,11 +67,14 @@ VGMSTREAM * init_vgmstream_seg(STREAMFILE *streamFile) {
             vgmstream->coding_type = coding_NGC_DSP;
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = 0x2000;
+            vgmstream->interleave_first_skip = 0x60;
+            vgmstream->interleave_first_block_size = vgmstream->interleave_block_size - vgmstream->interleave_first_skip;
 
             /* standard dsp header at start_offset */
             dsp_read_coefs_be(vgmstream, streamFile, start_offset+0x1c, vgmstream->interleave_block_size);
             dsp_read_hist_be(vgmstream, streamFile, start_offset+0x40, vgmstream->interleave_block_size);
-            //todo first_interleave: 0x2000 - 60
+
+            start_offset += vgmstream->interleave_first_skip;
             break;
 
         case 0x70635F00: /* "pc_\0" */

@@ -18,7 +18,7 @@ ifeq ($(TARGET_OS),Windows_NT)
   CFLAGS += -DWIN32
 endif
 
-CFLAGS += -Wall -Werror=format-security -Wdeclaration-after-statement -Wvla -O3 -DVAR_ARRAYS -I../ext_includes $(EXTRA_CFLAGS)
+CFLAGS += -ffast-math -O3 -Wall -Werror=format-security -Wdeclaration-after-statement -Wvla -DVAR_ARRAYS -I../ext_includes $(EXTRA_CFLAGS)
 LDFLAGS += -L../src -L../ext_libs -lvgmstream $(EXTRA_LDFLAGS) -lm
 TARGET_EXT_LIBS = 
 

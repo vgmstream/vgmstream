@@ -6,11 +6,13 @@
 // May be implemented like the SNES/SPC700 BRR.
 
 /* XA ADPCM gain values */
-static const double K0[4] = { 0.0, 0.9375, 1.796875,  1.53125 };
-static const double K1[4] = { 0.0,    0.0,  -0.8125,-0.859375};
-/* K0/1 floats to int, K*2^10 = K*(1<<10) = K*1024 */
-static int get_IK0(int fid) { return ((int)((-K0[fid]) * (1 << 10))); }
-static int get_IK1(int fid) { return ((int)((-K1[fid]) * (1 << 10))); }
+#if 0
+static const float K0[4] = { 0.0, 0.9375, 1.796875, 1.53125 };
+static const float K1[4] = { 0.0,    0.0,  -0.8125, -0.859375 };
+#endif
+/* K0/1 floats to int, -K*2^10 = -K*(1<<10) = -K*1024 */
+static const int IK0[4] = {  0, -960, -1840, -1568 };
+static const int IK1[4] = {  0,    0,   832,   880 };
 
 /* Sony XA ADPCM, defined for CD-DA/CD-i in the "Red Book" (private) or "Green Book" (public) specs.
  * The algorithm basically is BRR (Bit Rate Reduction) from the SNES SPC700, while the data layout is new.
@@ -35,23 +37,22 @@ static int get_IK1(int fid) { return ((int)((-K1[fid]) * (1 << 10))); }
  * int coef tables commonly use N = 6 or 8, so K0 0.9375*64 = 60 or 0.9375*256 = 240
  * PS1 XA is apparently upsampled and interpolated to 44100, vgmstream doesn't simulate this.
  *
+ * XA has an 8-bit decoding and "emphasis" modes, that no PS1 game actually uses, but apparently
+ * are supported by the CD hardware and will play if found.
+ *
  * Info (Green Book): https://www.lscdweb.com/data/downloadables/2/8/cdi_may94_r2.pdf
  * BRR info (no$sns): http://problemkaputt.de/fullsnes.htm#snesapudspbrrsamples
- *           (bsnes): https://gitlab.com/higan/higan/blob/master/higan/sfc/dsp/brr.cpp
+ *           (bsnes): https://github.com/byuu/bsnes/blob/master/bsnes/sfc/dsp/SPC_DSP.cpp#L316
  */
 
-void decode_xa(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
-    off_t frame_offset, sp_offset;
-    int i,j, frames_in, samples_done = 0, sample_count = 0;
+void decode_xa(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
+    uint8_t frame[0x80] = {0};
+    off_t frame_offset;
+    int i,j, sp_pos, frames_in, samples_done = 0, sample_count = 0;
     size_t bytes_per_frame, samples_per_frame;
     int32_t hist1 = stream->adpcm_history1_32;
     int32_t hist2 = stream->adpcm_history2_32;
 
-    /* external interleave (fixed size), mono/stereo */
-    bytes_per_frame = 0x80;
-    samples_per_frame = 28*8 / channelspacing;
-    frames_in = first_sample / samples_per_frame;
-    first_sample = first_sample % samples_per_frame;
 
     /* data layout (mono):
      * - CD-XA audio is divided into sectors ("audio blocks"), each with 18 size 0x80 frames
@@ -72,12 +73,19 @@ void decode_xa(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, i
      *   ...
      *   subframe 7: header @ 0x0b or 0x0f, 28 nibbles (high) @ 0x13,17,1b,1f,23 ... 7f
      */
-    frame_offset = stream->offset + bytes_per_frame*frames_in;
 
-    if (read_32bitBE(frame_offset+0x00,stream->streamfile) != read_32bitBE(frame_offset+0x04,stream->streamfile) ||
-        read_32bitBE(frame_offset+0x08,stream->streamfile) != read_32bitBE(frame_offset+0x0c,stream->streamfile)) {
-        VGM_LOG("bad frames at %x\n", (uint32_t)frame_offset);
-    }
+    /* external interleave (fixed size), mono/stereo */
+    bytes_per_frame = 0x80;
+    samples_per_frame = 28*8 / channelspacing;
+    frames_in = first_sample / samples_per_frame;
+    first_sample = first_sample % samples_per_frame;
+
+    /* parse frame header */
+    frame_offset = stream->offset + bytes_per_frame * frames_in;
+    read_streamfile(frame, frame_offset, bytes_per_frame, stream->streamfile); /* ignore EOF errors */
+
+    VGM_ASSERT(get_32bitBE(frame+0x0) != get_32bitBE(frame+0x4) || get_32bitBE(frame+0x8) != get_32bitBE(frame+0xC),
+               "bad frames at %x\n", (uint32_t)frame_offset);
 
 
     /* decode subframes */
@@ -86,18 +94,18 @@ void decode_xa(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, i
         uint8_t coef_index, shift_factor;
 
         /* parse current subframe (sound unit)'s header (sound parameters) */
-        sp_offset = frame_offset + 0x04 + i*channelspacing + channel;
-        coef_index   = ((uint8_t)read_8bit(sp_offset,stream->streamfile) >> 4) & 0xf;
-        shift_factor = ((uint8_t)read_8bit(sp_offset,stream->streamfile) >> 0) & 0xf;
+        sp_pos = 0x04 + i*channelspacing + channel;
+        coef_index   = (frame[sp_pos] >> 4) & 0xf;
+        shift_factor = (frame[sp_pos] >> 0) & 0xf;
 
-        VGM_ASSERT(coef_index > 4 || shift_factor > 12, "XA: incorrect coefs/shift at %x\n", (uint32_t)sp_offset);
+        VGM_ASSERT(coef_index > 4 || shift_factor > 12, "XA: incorrect coefs/shift at %x\n", (uint32_t)frame_offset + sp_pos);
         if (coef_index > 4)
             coef_index = 0; /* only 4 filters are used, rest is apparently 0 */
         if (shift_factor > 12)
             shift_factor = 9; /* supposedly, from Nocash PSX docs */
 
-        coef1 = get_IK0(coef_index);
-        coef2 = get_IK1(coef_index);
+        coef1 = IK0[coef_index];
+        coef2 = IK1[coef_index];
 
 
         /* decode subframe nibbles */
@@ -105,9 +113,9 @@ void decode_xa(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, i
             uint8_t nibbles;
             int32_t new_sample;
 
-            off_t su_offset = (channelspacing==1) ?
-                    frame_offset + 0x10 + j*0x04 + (i/2) : /* mono */
-                    frame_offset + 0x10 + j*0x04 + i;      /* stereo */
+            int su_pos = (channelspacing==1) ?
+                    0x10 + j*0x04 + (i/2) : /* mono */
+                    0x10 + j*0x04 + i;      /* stereo */
             int get_high_nibble = (channelspacing==1) ?
                     (i&1) :         /* mono (even subframes = low, off subframes = high) */
                     (channel == 1); /* stereo (L channel / even subframes = low, R channel / odd subframes = high) */
@@ -118,11 +126,11 @@ void decode_xa(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, i
                 continue;
             }
 
-            nibbles = (uint8_t)read_8bit(su_offset,stream->streamfile);
+            nibbles = frame[su_pos];
 
             new_sample = get_high_nibble ?
                     (nibbles >> 4) & 0x0f :
-                    (nibbles     ) & 0x0f;
+                    (nibbles >> 0) & 0x0f;
 
             new_sample = (int16_t)((new_sample << 12) & 0xf000) >> shift_factor; /* 16b sign extend + scale */
             new_sample = new_sample << 4;
@@ -144,9 +152,9 @@ void decode_xa(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, i
     stream->adpcm_history2_32 = hist2;
 }
 
-size_t xa_bytes_to_samples(size_t bytes, int channels, int is_blocked) {
+size_t xa_bytes_to_samples(size_t bytes, int channels, int is_blocked, int is_form2) {
     if (is_blocked) {
-        return (bytes / 0x930) * (28*8/ channels) * 18;
+        return (bytes / 0x930) * (28*8/ channels) * (is_form2 ? 18 : 16);
     }
     else {
         return (bytes / 0x80) * (28*8 / channels);

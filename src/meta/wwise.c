@@ -8,7 +8,7 @@
  *
  * Some info: https://www.audiokinetic.com/en/library/edge/
  */
-typedef enum { PCM, IMA, VORBIS, DSP, XMA2, XWMA, AAC, HEVAG, ATRAC9, OPUS } wwise_codec;
+typedef enum { PCM, IMA, VORBIS, DSP, XMA2, XWMA, AAC, HEVAG, ATRAC9, OPUSNX, OPUS, PTADPCM } wwise_codec;
 typedef struct {
     int big_endian;
     size_t file_size;
@@ -72,9 +72,16 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
     ww.file_size = streamFile->get_size(streamFile);
 
 #if 0
-    /* sometimes uses a RIFF size that doesn't count chunks/sizes, has LE size in RIFX, or is just wrong...? */
-    if (4+4+read_32bit(0x04,streamFile) != ww.file_size) {
-        VGM_LOG("WWISE: bad riff size (real=0x%x vs riff=0x%x)\n", 4+4+read_32bit(0x04,streamFile), ww.file_size);
+    /* Wwise's RIFF size is often wonky, seemingly depending on codec:
+     * - PCM, IMA/PTADPCM, VORBIS, AAC, OPUSNX/OPUS: correct
+     * - DSP, XWMA, ATRAC9: almost always slightly smaller (around 0x50)
+     * - HEVAG: very off
+     * - XMA2: exact file size
+     * - some RIFX have LE size
+     * (later we'll validate "data" which fortunately is correct)
+     */
+    if (read_32bit(0x04,streamFile)+0x04+0x04 != ww.file_size) {
+        VGM_LOG("WWISE: bad riff size (real=0x%x vs riff=0x%x)\n", read_32bit(0x04,streamFile)+0x04+0x04, ww.file_size);
         goto fail;
     }
 #endif
@@ -165,42 +172,53 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
         case 0x0162: ww.codec = XWMA; break; /* WMAPro */
         case 0x0165: ww.codec = XMA2; break; /* always with the "XMA2" chunk, Wwise doesn't use XMA1 */
         case 0x0166: ww.codec = XMA2; break;
-        case 0x3039: ww.codec = OPUS; break; /* later renamed to "OPUSNX" */
-      //case 0x3040: ww.codec = OPUS; break; /* same for other platforms, supposedly */
         case 0xAAC0: ww.codec = AAC; break;
         case 0xFFF0: ww.codec = DSP; break;
         case 0xFFFB: ww.codec = HEVAG; break;
         case 0xFFFC: ww.codec = ATRAC9; break;
         case 0xFFFE: ww.codec = PCM; break; /* "PCM for Wwise Authoring" */
         case 0xFFFF: ww.codec = VORBIS; break;
+        case 0x3039: ww.codec = OPUSNX; break; /* later renamed from "OPUS" */
+        case 0x3040: ww.codec = OPUS; break;
+#if 0
+        case 0x8311: ww.codec = PTADPCM; break;
+#endif
         default:
             goto fail;
     }
 
-    /* fix for newer Wwise DSP with coefs: Epic Mickey 2 (Wii), Batman Arkham Origins Blackgate (3DS) */
-    if (ww.format == 0x0002 && ww.extra_size == 0x0c + ww.channels * 0x2e) {
-        ww.codec = DSP;
-    }
-    else if (ww.format == 0x0002 && ww.block_align == 0x104 * ww.channels) {
-        //ww.codec = SWITCH_ADPCM;
-        /* unknown codec, found in Bayonetta 2 (Switch)
-         * frames of 0x104 per ch, possibly frame header is hist1(2)/hist2(2)/index(1)
-         * (may write 2 header samples + FF*2 nibbles = 0x200 samples per block?)
-         * index only goes up to ~0xb, may be a shift/scale value */
-        goto fail;
+    /* identify system's ADPCM */
+    if (ww.format == 0x0002) {
+        if (ww.extra_size == 0x0c + ww.channels * 0x2e) {
+            /* newer Wwise DSP with coefs [Epic Mickey 2 (Wii), Batman Arkham Origins Blackgate (3DS)] */
+            ww.codec = DSP;
+        } else if (ww.extra_size == 0x0a && find_chunk(streamFile, 0x57696948, first_offset,0, NULL,NULL, ww.big_endian, 0)) { /* WiiH */
+            /* few older Wwise DSP with num_samples in extra_size [Tony Hawk: Shred (Wii)] */
+            ww.codec = DSP;
+        } else if (ww.block_align == 0x104 * ww.channels) {
+            ww.codec = PTADPCM; /* Bayonetta 2 (Switch) */
+        }
     }
 
 
     /* Some Wwise files (ex. Oddworld PSV, Bayonetta 2 WiiU, often in BGM.bnk) are truncated mirrors of another file.
-     * They come in RAM banks, probably to play the beginning while the rest of the real stream loads.
+     * They come in RAM banks, prefetch to play the beginning while the rest of the real stream loads.
      * We'll add basic support to avoid complaints of this or that .wem not playing */
-    if (ww.data_size > ww.file_size) {
+    if (ww.data_offset + ww.data_size > ww.file_size) {
         //VGM_LOG("WWISE: truncated data size (prefetch): (real=0x%x > riff=0x%x)\n", ww.data_size, ww.file_size);
-        if (ww.codec == IMA || ww.codec == VORBIS || ww.codec == XMA2) /* only seen those, probably others exist */
-            ww.truncated = 1;
+
+        /* catch wrong rips as truncated tracks' file_size should be much smaller than data_size */
+        if (ww.data_offset + ww.data_size - ww.file_size < 0x5000) {
+            VGM_LOG("WWISE: wrong expected data_size\n");
+            goto fail;
+        }
+
+        if (ww.codec == IMA || ww.codec == VORBIS || ww.codec == XMA2 || ww.codec == OPUSNX)
+            ww.truncated = 1; /* only seen those, probably all exist */
         else
             goto fail;
     }
+
 
     start_offset = ww.data_offset;
 
@@ -284,7 +302,7 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
                         cfg.setup_type = WWV_EXTERNAL_CODEBOOKS; /* setup_type will be corrected later */
                         break;
 
-                    case 0x2a:  /* uncommon (mid 2011) [inFamous 2 (PS3)] */
+                    case 0x2a:  /* uncommon (mid 2011) [inFamous 2 (PS3), Captain America: Super Soldier (X360)] */
                         data_offsets = 0x10;
                         block_offsets = 0x28;
                         cfg.header_type = WWV_TYPE_2;
@@ -305,6 +323,14 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
                     cfg.blocksize_0_exp = read_8bit(vorb_offset + block_offsets + 0x01, streamFile); /* big */
                 }
                 ww.data_size -= audio_offset;
+
+
+                /* detect normal packets */
+                if (vorb_size == 0x2a) {
+                    /* almost all blocksizes are 0x08+0x0B except a few with 0x0a+0x0a [Captain America: Super Soldier (X360) voices/sfx] */
+                    if (cfg.blocksize_0_exp == cfg.blocksize_1_exp)
+                        cfg.packet_type = WWV_STANDARD;
+                }
 
                 /* detect setup type:
                  * - full inline: ~2009, ex. The King of Fighters XII (X360), The Saboteur (PC)
@@ -359,11 +385,9 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
                 cfg.blocksize_0_exp = read_8bit(extra_offset + block_offsets + 0x01, streamFile); /* big */
                 ww.data_size -= audio_offset;
 
-                /* Normal packets are used rarely (ex. Oddworld New 'n' Tasty! (PSV)). They are hard to detect (decoding
-                 * will mostly work with garbage results) but we'll try. Setup size and "fmt" bitrate fields may matter too. */
+                /* detect normal packets */
                 if (ww.extra_size == 0x30) {
-                    /* all blocksizes I've seen are 0x08+0x0B except Oddworld (PSV), that uses 0x09+0x09
-                     * (maybe lower spec machines = needs simpler packets) */
+                    /* almost all blocksizes are 0x08+0x0B except some with 0x09+0x09 [Oddworld New 'n' Tasty! (PSV)] */
                     if (cfg.blocksize_0_exp == cfg.blocksize_1_exp)
                         cfg.packet_type = WWV_STANDARD;
                 }
@@ -418,6 +442,15 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
             else {
                 goto fail;
             }
+
+            /* for some reason all(?) DSP .wem do full loops (even mono/jingles/etc) but
+             * several tracks do loop like this, so disable it for short-ish tracks */
+            if (ww.loop_flag && vgmstream->loop_start_sample == 0 &&
+                    vgmstream->loop_end_sample < 20*ww.sample_rate) { /* in seconds */
+                vgmstream->loop_flag = 0;
+            }
+
+
 
             /* get coefs and default history */
             dsp_read_coefs(vgmstream,streamFile,wiih_offset, 0x2e, ww.big_endian);
@@ -526,7 +559,7 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
             break;
         }
 
-        case OPUS: {  /* Switch */
+        case OPUSNX: {  /* Switch */
             size_t skip;
 
             /* values up to 0x14 seem fixed and similar to HEVAG's (block_align 0x02/04, bits_per_sample 0x10) */
@@ -546,12 +579,35 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
 
             skip = switch_opus_get_encoder_delay(start_offset, streamFile); /* should be 120 */
 
+            /* OPUS is VBR so this is very approximate percent, meh */
+            if (ww.truncated) {
+                vgmstream->num_samples = (int32_t)(vgmstream->num_samples *
+                        (double)(ww.file_size - start_offset) / (double)ww.data_size);
+                ww.data_size = ww.file_size - start_offset;
+            }
+
             vgmstream->codec_data = init_ffmpeg_switch_opus(streamFile, start_offset,ww.data_size, vgmstream->channels, skip, vgmstream->sample_rate);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
             break;
         }
+
+        case OPUS: {     /* PC/mobile/etc, rare (most games still use Vorbis) [Girl Cafe Gun (Mobile)] */
+            if (ww.block_align != 0 || ww.bits_per_sample != 0) goto fail;
+
+            /* extra: size 0x12 */
+            vgmstream->num_samples = read_32bit(ww.fmt_offset + 0x18, streamFile);
+            /* 0x1c: stream size without OggS? */
+            /* 0x20: full samples (without encoder delay) */
+
+            vgmstream->codec_data = init_ffmpeg_offset(streamFile, ww.data_offset,ww.data_size);
+            if (!vgmstream->codec_data) goto fail;
+            vgmstream->coding_type = coding_FFmpeg;
+            vgmstream->layout_type = layout_none;
+            break;
+        }
+
 #endif
         case HEVAG:     /* PSV */
             /* changed values, another bizarre Wwise quirk */
@@ -591,10 +647,22 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
             break;
         }
 #endif
+        case PTADPCM: /* substitutes IMA as default ADPCM codec */
+            if (ww.bits_per_sample != 4) goto fail;
+            if (ww.block_align != 0x24 * ww.channels && ww.block_align != 0x104 * ww.channels) goto fail;
+
+            vgmstream->coding_type = coding_PTADPCM;
+            vgmstream->layout_type = layout_interleave;
+            vgmstream->interleave_block_size = ww.block_align / ww.channels;
+          //vgmstream->codec_endian = ww.big_endian; //?
+
+            vgmstream->num_samples = ptadpcm_bytes_to_samples(ww.data_size, ww.channels, vgmstream->interleave_block_size);
+            break;
 
         default:
             goto fail;
     }
+
 
 
     if ( !vgmstream_open_stream(vgmstream,streamFile,start_offset) )

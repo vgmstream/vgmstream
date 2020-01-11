@@ -195,10 +195,11 @@ void free_vorbis_custom(vorbis_custom_codec_data * data) {
     if (!data)
         return;
 
-    /* internal decoder cleanp */
-    vorbis_info_clear(&data->vi);
-    vorbis_comment_clear(&data->vc);
+    /* internal decoder cleanup */
+    vorbis_block_clear(&data->vb);
     vorbis_dsp_clear(&data->vd);
+    vorbis_comment_clear(&data->vc);
+    vorbis_info_clear(&data->vi);
 
     free(data->buffer);
     free(data);

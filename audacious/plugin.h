@@ -7,9 +7,18 @@
 #include <libaudcore/preferences.h>
 #include <libaudcore/runtime.h>
 
+#ifndef AUDACIOUS_VGMSTREAM_PRIORITY
+// set higher than FFmpeg but lower than common plugins that use around 3
+#ifdef _AUD_PLUGIN_DEFAULT_PRIO
+# define AUDACIOUS_VGMSTREAM_PRIORITY  (_AUD_PLUGIN_DEFAULT_PRIO - 1)
+#else
+# define AUDACIOUS_VGMSTREAM_PRIORITY  4
+#endif
+#endif
+
 class VgmstreamPlugin : public InputPlugin {
 public:
-    //static const char *const exts[];
+    static const char *const exts[];
     static const char *const defaults[];
     static const char about[];
     static const PreferencesWidget widgets[];
@@ -19,12 +28,10 @@ public:
         N_("vgmstream Decoder"), N_("vgmstream"), about, &prefs,
     };
 
-    // accepted exts are validated at runtime in is_our_file now, this is to set a static list
-    //static constexpr auto iinfo = InputInfo().with_exts(exts);
-    //constexpr VgmstreamPlugin() : InputPlugin(info, iinfo) {}
-    //constexpr VgmstreamPlugin() : InputPlugin (info, InputInfo().with_exts(exts)) {}
-
-    constexpr VgmstreamPlugin() : InputPlugin (info, InputInfo()) {}
+    constexpr VgmstreamPlugin() : InputPlugin (info,
+            InputInfo() //InputInfo(FlagSubtunes)  // allow subsongs
+            .with_priority(AUDACIOUS_VGMSTREAM_PRIORITY)  // where 0=highest, 10=lowest (older) or 5 (newer)
+            .with_exts(exts)) {}  // priority exts (accepted exts are still validated at runtime)
 
     bool init();
     void cleanup();
@@ -33,13 +40,7 @@ public:
     bool read_tag(const char * filename, VFSFile & file, Tuple & tuple, Index<char> * image);
     bool play(const char *filename, VFSFile &file);
 
-private:
-    void seek(int seek_value, int &current_sample_pos);
-
 };
-
-// reminder of usage, probably no more need
-//const char *const VgmstreamPlugin::exts[] = { "ext1", "ext2", ...,  NULL }
 
 
 typedef struct {
@@ -47,12 +48,14 @@ typedef struct {
     int loop_count;
     double fade_length;
     double fade_delay;
-} Settings;
+    int downmix_channels;
+    bool exts_unknown_on;
+    bool exts_common_on;
+} audacious_settings;
 
-extern Settings vgmstream_cfg;
+extern audacious_settings settings;
 
-void debugMessage(const char *str);
-void vgmstream_cfg_load();
-void vgmstream_cfg_save();
+void vgmstream_settings_load();
+void vgmstream_settings_save();
 
 #endif

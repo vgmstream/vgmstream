@@ -326,8 +326,11 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
     }
     else if (xwb.version == XACT3_0_MAX && xwb.codec == XMA2
             && xwb.bits_per_sample == 0x01 && xwb.block_align == 0x04
-            && xwb.data_size == 0x55951c1c) { /* some kind of id? */
-        /* Stardew Valley (Switch), full interleaved DSPs (including headers) */
+            && read_32bitLE(xwb.stream_offset + 0x08, streamFile) == xwb.sample_rate /* DSP header */
+            && read_16bitLE(xwb.stream_offset + 0x0e, streamFile) == 0
+            && read_32bitLE(xwb.stream_offset + 0x18, streamFile) == 2
+            /*&& xwb.data_size == 0x55951c1c*/) { /* some kind of id in Stardew Valley? */
+        /* Stardew Valley (Switch), Skulls of the Shogun (Switch): full interleaved DSPs (including headers) */
         xwb.codec = DSP;
     }
     else if (xwb.version == XACT3_0_MAX && xwb.codec == XMA2
@@ -342,7 +345,7 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
     xwb.loop_flag = (xwb.loop_end > 0 || xwb.loop_end_sample > xwb.loop_start)
         && !(xwb.entry_flags & WAVEBANKENTRY_FLAGS_IGNORELOOP);
 
-    /* Oddworld OGG the data_size value is size of uncompressed bytes instead;  DSP uses some id/config as value */
+    /* Oddworld OGG the data_size value is size of uncompressed bytes instead; DSP uses some id/config as value */
     if (xwb.codec != OGG && xwb.codec != DSP && xwb.codec != ATRAC9_RIFF) {
         /* some low-q rips don't remove padding, relax validation a bit */
         if (xwb.data_offset + xwb.stream_size > get_streamfile_size(streamFile))
@@ -446,7 +449,7 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
         case MS_ADPCM: /* Persona 4 Ultimax (AC) */
             vgmstream->coding_type = coding_MSADPCM;
             vgmstream->layout_type = layout_none;
-            vgmstream->interleave_block_size = (xwb.block_align + 22) * xwb.channels; /*22=CONVERSION_OFFSET (?)*/
+            vgmstream->frame_size = (xwb.block_align + 22) * xwb.channels; /*22=CONVERSION_OFFSET (?)*/
             break;
 
 #ifdef VGM_USE_FFMPEG
@@ -525,25 +528,24 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
         }
 
         case ATRAC3: { /* Techland PS3 extension [Sniper Ghost Warrior (PS3)] */
-            uint8_t buf[0x100];
-            int bytes;
+            int block_align, encoder_delay;
 
-            int block_size = xwb.block_align * vgmstream->channels;
-            int joint_stereo = xwb.block_align == 0x60; /* untested, ATRAC3 default */
-            int skip_samples = 0; /* unknown */
+            block_align = xwb.block_align * vgmstream->channels;
+            encoder_delay = 1024; /* assumed */
+            vgmstream->num_samples -= encoder_delay;
 
-            bytes = ffmpeg_make_riff_atrac3(buf,0x100, vgmstream->num_samples, xwb.stream_size, vgmstream->channels, vgmstream->sample_rate, block_size, joint_stereo, skip_samples);
-            vgmstream->codec_data = init_ffmpeg_header_offset(streamFile, buf,bytes, xwb.stream_offset,xwb.stream_size);
-            if ( !vgmstream->codec_data ) goto fail;
+            vgmstream->codec_data = init_ffmpeg_atrac3_raw(streamFile, xwb.stream_offset,xwb.stream_size, vgmstream->num_samples,vgmstream->channels,vgmstream->sample_rate, block_align, encoder_delay);
+            if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
             break;
         }
-
+#endif
+#ifdef VGM_USE_VORBIS
         case OGG: { /* Oddworld: Strangers Wrath (iOS/Android) extension */
-            vgmstream->codec_data = init_ffmpeg_offset(streamFile, xwb.stream_offset, xwb.stream_size);
-            if ( !vgmstream->codec_data ) goto fail;
-            vgmstream->coding_type = coding_FFmpeg;
+            vgmstream->codec_data = init_ogg_vorbis(streamFile, xwb.stream_offset, xwb.stream_size, NULL);
+            if (!vgmstream->codec_data) goto fail;
+            vgmstream->coding_type = coding_OGG_VORBIS;
             vgmstream->layout_type = layout_none;
             break;
         }
@@ -632,29 +634,81 @@ static int get_xsb_name(char * buf, size_t maxsize, int target_subsong, xwb_head
     }
 
     //;VGM_LOG("XSB: name found=%i at %lx\n", xsb.parse_found, xsb.name_offset);
-    if (!xsb.parse_found || xsb.name_offset == 0)
+    if (!xsb.name_len || xsb.name[0] == '\0')
         goto fail;
 
-    read_string(buf,maxsize, xsb.name_offset,streamFile); /* null-terminated */
+    strncpy(buf,xsb.name,maxsize);
+    buf[maxsize-1] = '\0';
+    return 1;
+fail:
+    return 0;
+}
+
+static int get_wbh_name(char* buf, size_t maxsize, int target_subsong, xwb_header* xwb, STREAMFILE* sf) {
+    int selected_stream = target_subsong - 1;
+    int version, name_count;
+    off_t offset, name_number;
+
+    if (read_32bitBE(0x00, sf) != 0x57424844) /* "WBHD" */
+        goto fail;
+    version     = read_32bitLE(0x04, sf);
+    if (version != 1)
+        goto fail;
+    name_count  = read_32bitLE(0x08, sf);
+
+    if (selected_stream > name_count)
+        goto fail;
+
+    /* next table:
+     * - 0x00: wave id? (ordered from 0 to N)
+     * - 0x04: always 0 */
+    offset = 0x10 + 0x08 * name_count;
+
+    name_number = 0;
+    while (offset < get_streamfile_size(sf)) {
+        size_t name_len = read_string(buf, maxsize, offset, sf) + 1;
+
+        if (name_len == 0)
+            goto fail;
+        if (name_number == selected_stream)
+            break;
+
+        name_number++;
+        offset += name_len;
+    }
+
     return 1;
 fail:
     return 0;
 }
 
 static void get_name(char * buf, size_t maxsize, int target_subsong, xwb_header * xwb, STREAMFILE *streamXwb) {
-    STREAMFILE *streamXsb = NULL;
+    STREAMFILE *sf_name = NULL;
     int name_found;
 
     /* try to get the stream name in the .xwb, though they are very rarely included */
     name_found = get_xwb_name(buf, maxsize, target_subsong, xwb, streamXwb);
     if (name_found) return;
 
-    /* try again in a companion .xsb file, a comically complex cue format */
-    streamXsb = open_xsb_filename_pair(streamXwb);
-    if (!streamXsb) return; /* not all xwb have xsb though */
+    /* try again in a companion files */
 
-    name_found = get_xsb_name(buf, maxsize, target_subsong, xwb, streamXsb);
-    close_streamfile(streamXsb);
+    if (xwb->version == 1) {
+        /* .wbh, a simple name container */
+        sf_name = open_streamfile_by_ext(streamXwb, "wbh");
+        if (!sf_name) return; /* rarely found [Pac-Man World 2 (Xbox)] */
+
+        name_found = get_wbh_name(buf, maxsize, target_subsong, xwb, sf_name);
+        close_streamfile(sf_name);
+    }
+    else {
+        /* .xsb, a comically complex cue format */
+        sf_name = open_xsb_filename_pair(streamXwb);
+        if (!sf_name) return; /* not all xwb have xsb though */
+
+        name_found = get_xsb_name(buf, maxsize, target_subsong, xwb, sf_name);
+        close_streamfile(sf_name);
+    }
+
 
     if (!name_found) {
         buf[0] = '\0';

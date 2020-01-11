@@ -19,6 +19,10 @@ VGMSTREAM * init_vgmstream_xma(STREAMFILE *streamFile) {
     if ( !check_extensions(streamFile, "xma,xma2,nps,str") )
         goto fail;
 
+    /* check header */
+    if (read_32bitBE(0x00, streamFile) != 0x52494646) /* "RIFF" */
+        goto fail;
+
     {
         size_t file_size = streamFile->get_size(streamFile);
         size_t riff_size = read_32bitLE(0x04,streamFile);

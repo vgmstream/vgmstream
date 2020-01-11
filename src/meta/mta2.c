@@ -8,7 +8,6 @@ VGMSTREAM * init_vgmstream_mta2(STREAMFILE *streamFile) {
     off_t start_offset;
     int loop_flag, channel_count, sample_rate;
     int32_t loop_start, loop_end;
-    uint32_t sample_rate_int;
 
 
     /* checks */
@@ -47,13 +46,9 @@ VGMSTREAM * init_vgmstream_mta2(STREAMFILE *streamFile) {
     }
 #endif
 
-    sample_rate_int = read_32bitBE(0x7c, streamFile);
-    if (sample_rate_int) { /* sample rate in 32b float (WHY?) typically 48000.0 */
-        float* sample_float = (float*)&sample_rate_int;
-        sample_rate = (int)*sample_float;
-    } else { /* default when not specified (most of the time) */
-        sample_rate = 48000;
-    }
+    sample_rate = (int)read_f32be(0x7c, streamFile); /* sample rate in 32b float (WHY?) typically 48000.0 */
+    if (sample_rate == 0)
+        sample_rate = 48000; /* default when not specified (most of the time) */
 
 
     /* TRKP chunks (x16) */

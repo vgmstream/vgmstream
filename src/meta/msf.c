@@ -12,9 +12,10 @@ VGMSTREAM * init_vgmstream_msf(STREAMFILE *streamFile) {
 
     /* checks */
     /* .msf: standard
+     * .msa: Sonic & Sega All-Stars Racing (PS3)
      * .at3: Silent Hill HD Collection (PS3)
      * .mp3: Darkstalkers Resurrection (PS3) */
-    if (!check_extensions(streamFile,"msf,at3,mp3"))
+    if (!check_extensions(streamFile,"msf,msa,at3,mp3"))
         goto fail;
 
     /* check header "MSF" + version-char, usually:
@@ -65,8 +66,8 @@ VGMSTREAM * init_vgmstream_msf(STREAMFILE *streamFile) {
         case 0x00:   /* PCM (Big Endian) */
         case 0x01: { /* PCM (Little Endian) [Smash Cars (PS3)] */
             vgmstream->coding_type = codec==0 ? coding_PCM16BE : coding_PCM16LE;
-            vgmstream->layout_type = channel_count == 1 ? layout_none : layout_interleave;
-            vgmstream->interleave_block_size = 2;
+            vgmstream->layout_type = layout_interleave;
+            vgmstream->interleave_block_size = 0x02;
 
             vgmstream->num_samples = pcm_bytes_to_samples(data_size, channel_count,16);
             if (loop_flag){
@@ -99,65 +100,33 @@ VGMSTREAM * init_vgmstream_msf(STREAMFILE *streamFile) {
         case 0x04:   /* ATRAC3 low (66 kbps, frame size 96, Joint Stereo) [Silent Hill HD (PS3)] */
         case 0x05:   /* ATRAC3 mid (105 kbps, frame size 152) [Atelier Rorona (PS3)] */
         case 0x06: { /* ATRAC3 high (132 kbps, frame size 192) [Tekken Tag Tournament HD (PS3)] */
-            ffmpeg_codec_data *ffmpeg_data = NULL;
-            uint8_t buf[100];
-            int32_t bytes, block_size, encoder_delay, joint_stereo;
-
-            block_size    = (codec==4 ? 0x60 : (codec==5 ? 0x98 : 0xC0)) * vgmstream->channels;
-            joint_stereo  = (codec==4); /* interleaved joint stereo (ch must be even) */
+            int block_align, encoder_delay;
 
             /* MSF skip samples: from tests with MSEnc and real files (ex. TTT2 eddy.msf v43, v01 demos) seems like 1162 is consistent.
              * Atelier Rorona bt_normal01 needs it to properly skip the beginning garbage but usually doesn't matter.
              * (note that encoder may add a fade-in with looping/resampling enabled but should be skipped) */
-            encoder_delay = 1162;
-            vgmstream->num_samples = atrac3_bytes_to_samples(data_size, block_size) - encoder_delay;
+            encoder_delay = 1024 + 69*2;
+            block_align   = (codec==4 ? 0x60 : (codec==5 ? 0x98 : 0xC0)) * vgmstream->channels;
+            vgmstream->num_samples = atrac3_bytes_to_samples(data_size, block_align) - encoder_delay;
             if (vgmstream->sample_rate == 0xFFFFFFFF) /* some MSFv1 (Digi World SP) */
                 vgmstream->sample_rate = 44100; /* voice tracks seems to use 44khz, not sure about other tracks */
 
-            bytes = ffmpeg_make_riff_atrac3(buf, 100, vgmstream->num_samples, data_size, vgmstream->channels, vgmstream->sample_rate, block_size, joint_stereo, encoder_delay);
-            ffmpeg_data = init_ffmpeg_header_offset(streamFile, buf,bytes, start_offset,data_size);
-            if (!ffmpeg_data) goto fail;
-            vgmstream->codec_data = ffmpeg_data;
+            vgmstream->codec_data = init_ffmpeg_atrac3_raw(streamFile, start_offset,data_size, vgmstream->num_samples,vgmstream->channels,vgmstream->sample_rate, block_align, encoder_delay);
+            if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
 
-
-            /* manually set skip_samples if FFmpeg didn't do it */
-            if (ffmpeg_data->skipSamples <= 0) {
-                ffmpeg_set_skip_samples(ffmpeg_data, encoder_delay);
-            }
-
-            /* MSF loop/sample values are offsets so trickier to adjust the skip_samples but this seems correct */
+            /* MSF loop/sample values are offsets so trickier to adjust but this seems correct */
             if (loop_flag) {
-                vgmstream->loop_start_sample = atrac3_bytes_to_samples(loop_start, block_size) /* - encoder_delay*/;
-                vgmstream->loop_end_sample   = atrac3_bytes_to_samples(loop_end, block_size) - encoder_delay;
+                /* set offset samples (offset 0 jumps to sample 0 > pre-applied delay, and offset end loops after sample end > adjusted delay) */
+                vgmstream->loop_start_sample = atrac3_bytes_to_samples(loop_start, block_align); //- encoder_delay
+                vgmstream->loop_end_sample   = atrac3_bytes_to_samples(loop_end, block_align) - encoder_delay;
             }
 
             break;
         }
 #endif
-#if defined(VGM_USE_FFMPEG) && !defined(VGM_USE_MPEG)
-        case 0x07: { /* MPEG (CBR LAME MP3) [Dengeki Bunko Fighting Climax (PS3)] */
-            ffmpeg_codec_data *ffmpeg_data = NULL;
-
-            ffmpeg_data = init_ffmpeg_offset(streamFile, start_offset, streamFile->get_size(streamFile) );
-            if ( !ffmpeg_data ) goto fail;
-            vgmstream->codec_data = ffmpeg_data;
-            vgmstream->coding_type = coding_FFmpeg;
-            vgmstream->layout_type = layout_none;
-
-            vgmstream->num_samples = (int64_t)data_size * ffmpeg_data->sampleRate * 8 / ffmpeg_data->bitrate;
-            if (loop_flag) {
-                vgmstream->loop_start_sample = (int64_t)loop_start * ffmpeg_data->sampleRate * 8 / ffmpeg_data->bitrate;
-                vgmstream->loop_end_sample = (int64_t)loop_end * ffmpeg_data->sampleRate * 8 / ffmpeg_data->bitrate;
-                /* loops are always aligned to CBR frame beginnings */
-            }
-
-            /* encoder delay varies between 1152 (1f), 528, 576, etc; probably not actually skipped */
-            break;
-        }
-#endif
-#ifdef VGM_USE_MPEG
+#if defined(VGM_USE_MPEG)
         case 0x07: { /* MPEG (CBR LAME MP3) [Dengeki Bunko Fighting Climax (PS3)] */
             mpeg_codec_data *mpeg_data = NULL;
 
@@ -170,6 +139,27 @@ VGMSTREAM * init_vgmstream_msf(STREAMFILE *streamFile) {
             if (loop_flag) {
                 vgmstream->loop_start_sample = mpeg_bytes_to_samples(loop_start, mpeg_data);
                 vgmstream->loop_end_sample = mpeg_bytes_to_samples(loop_end, mpeg_data);
+                /* loops are always aligned to CBR frame beginnings */
+            }
+
+            /* encoder delay varies between 1152 (1f), 528, 576, etc; probably not actually skipped */
+            break;
+        }
+#elif defined(VGM_USE_FFMPEG)
+        case 0x07:
+        { /* MPEG (CBR LAME MP3) [Dengeki Bunko Fighting Climax (PS3)] */
+            ffmpeg_codec_data *ffmpeg_data = NULL;
+
+            ffmpeg_data = init_ffmpeg_offset(streamFile, start_offset, streamFile->get_size(streamFile));
+            if (!ffmpeg_data) goto fail;
+            vgmstream->codec_data = ffmpeg_data;
+            vgmstream->coding_type = coding_FFmpeg;
+            vgmstream->layout_type = layout_none;
+
+            vgmstream->num_samples = (int64_t)data_size * ffmpeg_data->sampleRate * 8 / ffmpeg_data->bitrate;
+            if (loop_flag) {
+                vgmstream->loop_start_sample = (int64_t)loop_start * ffmpeg_data->sampleRate * 8 / ffmpeg_data->bitrate;
+                vgmstream->loop_end_sample = (int64_t)loop_end * ffmpeg_data->sampleRate * 8 / ffmpeg_data->bitrate;
                 /* loops are always aligned to CBR frame beginnings */
             }
 

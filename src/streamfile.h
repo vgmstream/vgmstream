@@ -45,8 +45,6 @@
 #define fseeko fseek
 #endif
 
-#define STREAMFILE_DEFAULT_BUFFER_SIZE 0x8000
-
 #ifndef DIR_SEPARATOR
 #if defined (_WIN32) || defined (WIN32)
 #define DIR_SEPARATOR '\\'
@@ -55,16 +53,24 @@
 #endif
 #endif
 
+/* Streamfiles normally use an internal buffer to increase performance, configurable
+ * but usually of this size. Lower increases the number of freads/system calls (slower).
+ * However some formats need to jump around causing more buffer trashing than usual,
+ * higher may needlessly read data that may be going to be trashed.
+ *
+ * Value can be adjusted freely but 8k is a good enough compromise. */
+#define STREAMFILE_DEFAULT_BUFFER_SIZE 0x8000
+
 /* struct representing a file with callbacks. Code should use STREAMFILEs and not std C functions
  * to do file operations, as plugins may need to provide their own callbacks.
  * Reads from arbitrary offsets, meaning internally may need fseek equivalents during reads. */
 typedef struct _STREAMFILE {
-    size_t (*read)(struct _STREAMFILE *,uint8_t * dest, off_t offset, size_t length);
+    size_t (*read)(struct _STREAMFILE *, uint8_t * dst, off_t offset, size_t length);
     size_t (*get_size)(struct _STREAMFILE *);
     off_t (*get_offset)(struct _STREAMFILE *);   //todo: DO NOT USE, NOT RESET PROPERLY (remove?)
     /* for dual-file support */
-    void (*get_name)(struct _STREAMFILE *,char *name,size_t length);
-    struct _STREAMFILE * (*open)(struct _STREAMFILE *,const char * const filename,size_t buffersize);
+    void (*get_name)(struct _STREAMFILE * ,char *name, size_t length);
+    struct _STREAMFILE * (*open)(struct _STREAMFILE *, const char * const filename, size_t buffersize);
     void (*close)(struct _STREAMFILE *);
 
 
@@ -74,58 +80,68 @@ typedef struct _STREAMFILE {
 
 } STREAMFILE;
 
+/* All open_ fuctions should be safe to call with wrong/null parameters.
+ * _f versions are the same but free the passed streamfile on failure and return NULL,
+ * to ease chaining by avoiding realloc-style temp ptr verbosity */
+
 /* Opens a standard STREAMFILE, opening from path.
  * Uses stdio (FILE) for operations, thus plugins may not want to use it. */
-STREAMFILE *open_stdio_streamfile(const char * filename);
+STREAMFILE* open_stdio_streamfile(const char *filename);
 
 /* Opens a standard STREAMFILE from a pre-opened FILE. */
-STREAMFILE *open_stdio_streamfile_by_file(FILE * file, const char * filename);
+STREAMFILE* open_stdio_streamfile_by_file(FILE *file, const char *filename);
 
 /* Opens a STREAMFILE that does buffered IO.
  * Can be used when the underlying IO may be slow (like when using custom IO).
  * Buffer size is optional. */
-STREAMFILE *open_buffer_streamfile(STREAMFILE *streamfile, size_t buffer_size);
+STREAMFILE* open_buffer_streamfile(STREAMFILE *streamfile, size_t buffer_size);
+STREAMFILE* open_buffer_streamfile_f(STREAMFILE *streamfile, size_t buffer_size);
 
 /* Opens a STREAMFILE that doesn't close the underlying streamfile.
  * Calls to open won't wrap the new SF (assumes it needs to be closed).
  * Can be used in metas to test custom IO without closing the external SF. */
-STREAMFILE *open_wrap_streamfile(STREAMFILE *streamfile);
+STREAMFILE* open_wrap_streamfile(STREAMFILE *streamfile);
+STREAMFILE* open_wrap_streamfile_f(STREAMFILE *streamfile);
 
 /* Opens a STREAMFILE that clamps reads to a section of a larger streamfile.
  * Can be used with subfiles inside a bigger file (to fool metas, or to simplify custom IO). */
-STREAMFILE *open_clamp_streamfile(STREAMFILE *streamfile, off_t start, size_t size);
+STREAMFILE* open_clamp_streamfile(STREAMFILE *streamfile, off_t start, size_t size);
+STREAMFILE* open_clamp_streamfile_f(STREAMFILE *streamfile, off_t start, size_t size);
 
 /* Opens a STREAMFILE that uses custom IO for streamfile reads.
  * Can be used to modify data on the fly (ex. decryption), or even transform it from a format to another. */
-STREAMFILE *open_io_streamfile(STREAMFILE *streamfile, void* data, size_t data_size, void* read_callback, void* size_callback);
+STREAMFILE* open_io_streamfile(STREAMFILE *streamfile, void *data, size_t data_size, void *read_callback, void *size_callback);
+STREAMFILE* open_io_streamfile_f(STREAMFILE *streamfile, void *data, size_t data_size, void *read_callback, void *size_callback);
 
 /* Opens a STREAMFILE that reports a fake name, but still re-opens itself properly.
  * Can be used to trick a meta's extension check (to call from another, with a modified SF).
  * When fakename isn't supplied it's read from the streamfile, and the extension swapped with fakeext.
  * If the fakename is an existing file, open won't work on it as it'll reopen the fake-named streamfile. */
-STREAMFILE *open_fakename_streamfile(STREAMFILE *streamfile, const char * fakename, const char * fakeext);
+STREAMFILE* open_fakename_streamfile(STREAMFILE *streamfile, const char * fakename, const char * fakeext);
+STREAMFILE* open_fakename_streamfile_f(STREAMFILE *streamfile, const char * fakename, const char * fakeext);
 
-//todo probably could simply use custom IO
 /* Opens streamfile formed from multiple streamfiles, their data joined during reads.
  * Can be used when data is segmented in multiple separate files.
  * The first streamfile is used to get names, stream index and so on. */
-STREAMFILE *open_multifile_streamfile(STREAMFILE **streamfiles, size_t streamfiles_size);
+STREAMFILE* open_multifile_streamfile(STREAMFILE **streamfiles, size_t streamfiles_size);
+STREAMFILE* open_multifile_streamfile_f(STREAMFILE **streamfiles, size_t streamfiles_size);
 
 /* Opens a STREAMFILE from a (path)+filename.
  * Just a wrapper, to avoid having to access the STREAMFILE's callbacks directly. */
-STREAMFILE * open_streamfile(STREAMFILE *streamFile, const char * pathname);
+STREAMFILE* open_streamfile(STREAMFILE *streamfile, const char * pathname);
 
 /* Opens a STREAMFILE from a base pathname + new extension
  * Can be used to get companion headers. */
-STREAMFILE * open_streamfile_by_ext(STREAMFILE *streamFile, const char * ext);
+STREAMFILE* open_streamfile_by_ext(STREAMFILE *streamfile, const char * ext);
 
-/* Opens a STREAMFILE from a base path + new filename
- * Can be used to get companion files. */
-STREAMFILE * open_streamfile_by_filename(STREAMFILE *streamFile, const char * filename);
+/* Opens a STREAMFILE from a base path + new filename.
+ * Can be used to get companion files. Relative paths like
+ * './filename', '../filename', 'dir/filename' also work. */
+STREAMFILE* open_streamfile_by_filename(STREAMFILE *streamfile, const char * filename);
 
 /* Reopen a STREAMFILE with a different buffer size, for fine-tuned bigfile parsing.
  * Uses default buffer size when buffer_size is 0 */
-STREAMFILE * reopen_streamfile(STREAMFILE *streamFile, size_t buffer_size);
+STREAMFILE * reopen_streamfile(STREAMFILE *streamfile, size_t buffer_size);
 
 
 /* close a file, destroy the STREAMFILE object */
@@ -135,8 +151,8 @@ static inline void close_streamfile(STREAMFILE * streamfile) {
 }
 
 /* read from a file, returns number of bytes read */
-static inline size_t read_streamfile(uint8_t * dest, off_t offset, size_t length, STREAMFILE * streamfile) {
-    return streamfile->read(streamfile,dest,offset,length);
+static inline size_t read_streamfile(uint8_t *dst, off_t offset, size_t length, STREAMFILE *streamfile) {
+    return streamfile->read(streamfile, dst, offset,length);
 }
 
 /* return file size */
@@ -192,30 +208,81 @@ static inline int8_t read_8bit(off_t offset, STREAMFILE * streamfile) {
 }
 
 /* alias of the above */
-static inline int8_t   read_s8(off_t offset, STREAMFILE * streamfile) { return read_8bit(offset, streamfile); }
-static inline uint8_t  read_u8(off_t offset, STREAMFILE * streamfile) { return (uint8_t)read_8bit(offset, streamfile); }
-static inline int16_t  read_s16le(off_t offset, STREAMFILE * streamfile) { return read_16bitLE(offset, streamfile); }
-static inline uint16_t read_u16le(off_t offset, STREAMFILE * streamfile) { return (uint16_t)read_16bitLE(offset, streamfile); }
-static inline int16_t  read_s16be(off_t offset, STREAMFILE * streamfile) { return read_16bitBE(offset, streamfile); }
-static inline uint16_t read_u16be(off_t offset, STREAMFILE * streamfile) { return (uint16_t)read_16bitBE(offset, streamfile); }
-static inline int32_t  read_s32le(off_t offset, STREAMFILE * streamfile) { return read_32bitLE(offset, streamfile); }
-static inline uint32_t read_u32le(off_t offset, STREAMFILE * streamfile) { return (uint32_t)read_32bitLE(offset, streamfile); }
-static inline int32_t  read_s32be(off_t offset, STREAMFILE * streamfile) { return read_32bitBE(offset, streamfile); }
-static inline uint32_t read_u32be(off_t offset, STREAMFILE * streamfile) { return (uint32_t)read_32bitBE(offset, streamfile); }
-static inline int64_t  read_s64be(off_t offset, STREAMFILE * streamfile) { return read_64bitBE(offset, streamfile); }
-static inline uint64_t read_u64be(off_t offset, STREAMFILE * streamfile) { return (uint64_t)read_64bitBE(offset, streamfile); }
-static inline int64_t  read_s64le(off_t offset, STREAMFILE * streamfile) { return read_64bitLE(offset, streamfile); }
-static inline uint64_t read_u64le(off_t offset, STREAMFILE * streamfile) { return (uint64_t)read_64bitLE(offset, streamfile); }
+static inline int8_t   read_s8   (off_t offset, STREAMFILE *sf) { return           read_8bit(offset, sf); }
+static inline uint8_t  read_u8   (off_t offset, STREAMFILE *sf) { return (uint8_t) read_8bit(offset, sf); }
+static inline int16_t  read_s16le(off_t offset, STREAMFILE *sf) { return           read_16bitLE(offset, sf); }
+static inline uint16_t read_u16le(off_t offset, STREAMFILE *sf) { return (uint16_t)read_16bitLE(offset, sf); }
+static inline int16_t  read_s16be(off_t offset, STREAMFILE *sf) { return           read_16bitBE(offset, sf); }
+static inline uint16_t read_u16be(off_t offset, STREAMFILE *sf) { return (uint16_t)read_16bitBE(offset, sf); }
+static inline int32_t  read_s32le(off_t offset, STREAMFILE *sf) { return           read_32bitLE(offset, sf); }
+static inline uint32_t read_u32le(off_t offset, STREAMFILE *sf) { return (uint32_t)read_32bitLE(offset, sf); }
+static inline int32_t  read_s32be(off_t offset, STREAMFILE *sf) { return           read_32bitBE(offset, sf); }
+static inline uint32_t read_u32be(off_t offset, STREAMFILE *sf) { return (uint32_t)read_32bitBE(offset, sf); }
+static inline int64_t  read_s64be(off_t offset, STREAMFILE *sf) { return           read_64bitBE(offset, sf); }
+static inline uint64_t read_u64be(off_t offset, STREAMFILE *sf) { return (uint64_t)read_64bitBE(offset, sf); }
+static inline int64_t  read_s64le(off_t offset, STREAMFILE *sf) { return           read_64bitLE(offset, sf); }
+static inline uint64_t read_u64le(off_t offset, STREAMFILE *sf) { return (uint64_t)read_64bitLE(offset, sf); }
 
-#if 0  //todo improve + test + simplify code (maybe not inline?)
-static inline float    read_f32be(off_t offset, STREAMFILE * streamfile) {
-    uint32_t sample_int = read_s32be(offset,streamfile);
+/* The recommended int-to-float type punning in C is through union, but pointer casting
+ * works too (though less portable due to aliasing rules?). For C++ memcpy seems
+ * recommended. Both work in GCC and VS2015+ (not sure about older, ifdef as needed). */
+static inline float    read_f32be(off_t offset, STREAMFILE *sf) {
+    union {
+        uint32_t u32;
+        float f32;
+    } temp;
+    temp.u32 = read_u32be(offset, sf);
+    return temp.f32;
+}
+static inline float    read_f32le(off_t offset, STREAMFILE * sf) {
+    union {
+        uint32_t u32;
+        float f32;
+    } temp;
+    temp.u32 = read_u32le(offset, sf);
+    return temp.f32;
+}
+#if 0
+static inline float    read_f32be_p(off_t offset, STREAMFILE *sf) {
+    uint32_t sample_int = read_u32be(offset, sf);
     float* sample_float = (float*)&sample_int;
     return *sample_float;
 }
-static inline float    read_f32le(off_t offset, STREAMFILE * streamfile) {
-    ...
+static inline float    read_f32be_m(off_t offset, STREAMFILE *sf) {
+    uint32_t sample_int = read_u32be(offset, sf);
+    float sample_float;
+    memcpy(&sample_float, &sample_int, sizeof(uint32_t));
+    return sample_float;
 }
+#endif
+#if 0
+/* collection of callbacks for quick access */
+typedef struct sf_reader {
+    int32_t (*read_s32)(off_t,STREAMFILE*); //maybe s32
+    float (*read_f32)(off_t,STREAMFILE*);
+    /* ... */
+} sf_reader;
+
+void init_reader(sf_reader *r, int big_endian);
+/* ... */
+void sf_reader_init(sf_reader *r, int big_endian) {
+    memset(r, 0, sizeof(sf_reader));
+    if (big_endian) {
+        r->read_s32 = read_s32be;
+        r->read_f32 = read_f32be;
+    }
+    else {
+        r->read_s32 = read_s32le;
+        r->read_f32 = read_f32le;
+    }
+}
+/* sf_reader r;
+ * ...
+ * sf_reader_init(&r, big_endian);
+ * val = r.read_s32; //maybe r.s32?
+ */
+#endif
+#if 0  //todo improve + test + simplify code (maybe not inline?)
 static inline int read_s4h(off_t offset, STREAMFILE * streamfile) {
     uint8_t byte = read_u8(offset, streamfile);
     return get_nibble_signed(byte, 1);
@@ -235,6 +302,7 @@ static inline int min_s32(int32_t a, int32_t b) { return a < b ? a : b; }
 //align32, align16, clamp16, etc
 #endif
 
+//TODO: maybe move to streamfile.c
 /* guess byte endianness from a given value, return true if big endian and false if little endian */
 static inline int guess_endianness16bit(off_t offset, STREAMFILE * streamfile) {
     uint8_t buf[0x02];
@@ -255,20 +323,39 @@ static inline size_t align_size_to_block(size_t value, size_t block_align) {
 
 /* various STREAMFILE helpers functions */
 
-size_t get_streamfile_text_line(int dst_length, char * dst, off_t offset, STREAMFILE * streamfile, int *line_done_ptr);
+/* Read into dst a line delimited by CRLF (Windows) / LF (Unux) / CR (Mac) / EOF, null-terminated
+ * and without line feeds. Returns bytes read (including CR/LF), *not* the same as string length.
+ * p_line_ok is set to 1 if the complete line was read; pass NULL to ignore. */
+size_t read_line(char *buf, int buf_size, off_t offset, STREAMFILE *sf, int *p_line_ok);
 
-size_t read_string(char * buf, size_t bufsize, off_t offset, STREAMFILE *streamFile);
+/* reads a c-string (ANSI only), up to bufsize or NULL, returning size. buf is optional (works as get_string_size). */
+size_t read_string(char *buf, size_t buf_size, off_t offset, STREAMFILE *sf);
+/* reads a UTF16 string... but actually only as ANSI (discards the upper byte) */
+size_t read_string_utf16le(char *buf, size_t buf_size, off_t offset, STREAMFILE *sf);
 
-size_t read_key_file(uint8_t * buf, size_t bufsize, STREAMFILE *streamFile);
+/* Opens a file containing decryption keys and copies to buffer.
+ * Tries "(name.ext)key" (per song), "(.ext)key" (per folder) keynames.
+ * returns size of key if found and copied */
+size_t read_key_file(uint8_t *buf, size_t buf_size, STREAMFILE *sf);
 
-void fix_dir_separators(char * filename);
+/* hack to allow relative paths in various OSs */
+void fix_dir_separators(char *filename);
 
+/* Checks if the stream filename is one of the extensions (comma-separated, ex. "adx" or "adx,aix").
+ * Empty is ok to accept files without extension ("", "adx,,aix"). Returns 0 on failure */
 int check_extensions(STREAMFILE *streamFile, const char * cmp_exts);
 
+/* chunk-style file helpers */
 int find_chunk_be(STREAMFILE *streamFile, uint32_t chunk_id, off_t start_offset, int full_chunk_size, off_t *out_chunk_offset, size_t *out_chunk_size);
 int find_chunk_le(STREAMFILE *streamFile, uint32_t chunk_id, off_t start_offset, int full_chunk_size, off_t *out_chunk_offset, size_t *out_chunk_size);
-int find_chunk(STREAMFILE *streamFile, uint32_t chunk_id, off_t start_offset, int full_chunk_size, off_t *out_chunk_offset, size_t *out_chunk_size, int size_big_endian, int zero_size_end);
+int find_chunk(STREAMFILE *streamFile, uint32_t chunk_id, off_t start_offset, int full_chunk_size, off_t *out_chunk_offset, size_t *out_chunk_size, int big_endian_size, int zero_size_end);
+/* find a RIFF-style chunk (with chunk_size not including id and size) */
+int find_chunk_riff_le(STREAMFILE *streamFile, uint32_t chunk_id, off_t start_offset, size_t max_size, off_t *out_chunk_offset, size_t *out_chunk_size);
+int find_chunk_riff_be(STREAMFILE *streamFile, uint32_t chunk_id, off_t start_offset, size_t max_size, off_t *out_chunk_offset, size_t *out_chunk_size);
+/* same with chunk ids in variable endianess (so instead of "fmt " has " tmf" */
+int find_chunk_riff_ve(STREAMFILE *streamFile, uint32_t chunk_id, off_t start_offset, size_t max_size, off_t *out_chunk_offset, size_t *out_chunk_size, int big_endian);
 
+/* filename helpers */
 void get_streamfile_name(STREAMFILE *streamFile, char * buffer, size_t size);
 void get_streamfile_filename(STREAMFILE *streamFile, char * buffer, size_t size);
 void get_streamfile_basename(STREAMFILE *streamFile, char * buffer, size_t size);

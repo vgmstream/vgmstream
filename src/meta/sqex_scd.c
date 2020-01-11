@@ -270,13 +270,15 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
         case 0x0C:      /* MS ADPCM [Final Fantasy XIV (PC) sfx] */
             vgmstream->coding_type = coding_MSADPCM;
             vgmstream->layout_type = layout_none;
-            vgmstream->interleave_block_size = read_16bit(extradata_offset+0x0c,streamFile);
-            /* in extradata_offset is a WAVEFORMATEX (including coefs and all) */
+            vgmstream->frame_size = read_16bit(extradata_offset + 0x0c, streamFile);
+            /* WAVEFORMATEX in extradata_offset */
+            if (!msadpcm_check_coefs(streamFile, extradata_offset + 0x14))
+                goto fail;
 
-            vgmstream->num_samples = msadpcm_bytes_to_samples(stream_size, vgmstream->interleave_block_size, vgmstream->channels);
+            vgmstream->num_samples = msadpcm_bytes_to_samples(stream_size, vgmstream->frame_size, vgmstream->channels);
             if (loop_flag) {
-                vgmstream->loop_start_sample = msadpcm_bytes_to_samples(loop_start, vgmstream->interleave_block_size, vgmstream->channels);
-                vgmstream->loop_end_sample = msadpcm_bytes_to_samples(loop_end, vgmstream->interleave_block_size, vgmstream->channels);
+                vgmstream->loop_start_sample = msadpcm_bytes_to_samples(loop_start, vgmstream->frame_size, vgmstream->channels);
+                vgmstream->loop_end_sample = msadpcm_bytes_to_samples(loop_end, vgmstream->frame_size, vgmstream->channels);
             }
             break;
 
@@ -300,7 +302,7 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
                 vgmstream->num_samples = read_32bitBE(start_offset+0x00,streamFile);
                 if (loop_flag) {
                     vgmstream->loop_start_sample = loop_start;
-                    vgmstream->loop_end_sample = loop_end+1;
+                    vgmstream->loop_end_sample = loop_end + 1;
                 }
 
                 for (i = 1; i < channel_count; i++) {
@@ -349,29 +351,24 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
 
             vgmstream->num_samples = ffmpeg_data->totalSamples;
             vgmstream->loop_start_sample = loop_start;
-            vgmstream->loop_end_sample = loop_end;
+            vgmstream->loop_end_sample = loop_end; //todo +1?
 
             xma_fix_raw_samples(vgmstream, streamFile, start_offset,stream_size, 0, 0,0); /* samples are ok, loops? */
             break;
         }
 
         case 0x0E: {    /* ATRAC3/ATRAC3plus [Lord of Arcana (PSP), Final Fantasy Type-0] */
-            ffmpeg_codec_data *ffmpeg_data = NULL;
+            int fact_samples = 0;
 
-            /* full RIFF header at start_offset/extradata_offset (same) */
-            ffmpeg_data = init_ffmpeg_offset(streamFile, start_offset,stream_size);
-            if (!ffmpeg_data) goto fail;
-            vgmstream->codec_data = ffmpeg_data;
+            vgmstream->codec_data = init_ffmpeg_atrac3_riff(streamFile, start_offset, &fact_samples);
+            if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
 
-            vgmstream->num_samples = ffmpeg_data->totalSamples; /* fact samples */
+            vgmstream->num_samples = fact_samples;
             vgmstream->loop_start_sample = loop_start;
-            vgmstream->loop_end_sample = loop_end;
-
-            if (ffmpeg_data->skipSamples <= 0) /* in case FFmpeg didn't get them */
-                ffmpeg_set_skip_samples(ffmpeg_data, riff_get_fact_skip_samples(streamFile, start_offset));
-            /* SCD loop/sample values are relative (without skip samples) vs RIFF (with skip samples), no need to adjust */
+            vgmstream->loop_end_sample = loop_end + 1;
+            /* loop/sample values are relative (without skip) vs RIFF (with skip), matching "smpl" otherwise */
             break;
         }
 #endif
@@ -391,8 +388,12 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
             vgmstream->layout_type = layout_none;
 
             vgmstream->num_samples = read_32bit(extradata_offset+0x10,streamFile); /* loop values above are also weird and ignored */
-            vgmstream->loop_start_sample = read_32bit(extradata_offset+0x20, streamFile) - (loop_flag ? cfg.encoder_delay : 0); //loop_start
-            vgmstream->loop_end_sample   = read_32bit(extradata_offset+0x24, streamFile) - (loop_flag ? cfg.encoder_delay : 0); //loop_end
+            vgmstream->loop_start_sample = read_32bit(extradata_offset+0x20, streamFile);
+            vgmstream->loop_end_sample   = read_32bit(extradata_offset+0x24, streamFile) + 1;
+            if (loop_flag) {
+                vgmstream->loop_start_sample -= cfg.encoder_delay;
+                vgmstream->loop_end_sample   -= cfg.encoder_delay;
+            }
             break;
         }
 #endif
@@ -417,23 +418,24 @@ fail:
 
 #ifdef VGM_USE_VORBIS
 static void scd_ogg_v2_decryption_callback(void *ptr, size_t size, size_t nmemb, void *datasource) {
-    size_t bytes_read = size*nmemb;
-    ogg_vorbis_streamfile * ov_streamfile = (ogg_vorbis_streamfile*)datasource;
+    uint8_t *ptr8 = ptr;
+    size_t bytes_read = size * nmemb;
+    ogg_vorbis_io *io = datasource;
 
     /* no encryption, sometimes happens */
-    if (ov_streamfile->scd_xor == 0x00)
+    if (io->scd_xor == 0x00)
         return;
 
     /* header is XOR'd with a constant byte */
-    if (ov_streamfile->offset < ov_streamfile->scd_xor_length) {
+    if (io->offset < io->scd_xor_length) {
         int i, num_crypt;
 
-        num_crypt = ov_streamfile->scd_xor_length - ov_streamfile->offset;
+        num_crypt = io->scd_xor_length - io->offset;
         if (num_crypt > bytes_read)
             num_crypt = bytes_read;
 
         for (i = 0; i < num_crypt; i++) {
-            ((uint8_t*)ptr)[i] ^= (uint8_t)ov_streamfile->scd_xor;
+            ptr8[i] ^= (uint8_t)io->scd_xor;
         }
     }
 }
@@ -458,25 +460,25 @@ static void scd_ogg_v3_decryption_callback(void *ptr, size_t size, size_t nmemb,
         0xE2, 0xA2, 0x67, 0x32, 0x32, 0x12, 0x32, 0xB2, 0x32, 0x32, 0x32, 0x32, 0x75, 0xA3, 0x26, 0x7B, // E0-EF
         0x83, 0x26, 0xF9, 0x83, 0x2E, 0xFF, 0xE3, 0x16, 0x7D, 0xC0, 0x1E, 0x63, 0x21, 0x07, 0xE3, 0x01, // F0-FF
     };
-
-    size_t bytes_read = size*nmemb;
-    ogg_vorbis_streamfile *ov_streamfile = (ogg_vorbis_streamfile*)datasource;
+    uint8_t *ptr8 = ptr;
+    size_t bytes_read = size * nmemb;
+    ogg_vorbis_io *io = datasource;
 
     /* file is XOR'd with a table (algorithm and table by Ioncannon) */
-    { //if (ov_streamfile->offset < ov_streamfile->scd_xor_length)
+    { //if (io->offset < io->scd_xor_length)
         int i, num_crypt;
         uint8_t byte1, byte2, xor_byte;
 
         num_crypt = bytes_read;
-        byte1 = ov_streamfile->scd_xor & 0x7F;
-        byte2 = ov_streamfile->scd_xor & 0x3F;
+        byte1 = io->scd_xor & 0x7F;
+        byte2 = io->scd_xor & 0x3F;
 
         for (i = 0; i < num_crypt; i++) {
-            xor_byte = scd_ogg_v3_lookuptable[(byte2 + ov_streamfile->offset + i) & 0xFF];
+            xor_byte = scd_ogg_v3_lookuptable[(byte2 + io->offset + i) & 0xFF];
             xor_byte &= 0xFF;
-            xor_byte ^= ((uint8_t*)ptr)[i];
+            xor_byte ^= ptr8[i];
             xor_byte ^= byte1;
-            ((uint8_t*)ptr)[i] = (uint8_t)xor_byte;
+            ptr8[i] = xor_byte;
         }
     }
 }

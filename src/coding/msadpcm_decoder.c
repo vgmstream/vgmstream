@@ -2,14 +2,14 @@
 #include "coding.h"
 
 
-static const int msadpcm_steps[16] = {
+static const int16_t msadpcm_steps[16] = {
     230, 230, 230, 230,
     307, 409, 512, 614,
     768, 614, 512, 409,
     307, 230, 230, 230
 };
 
-static const int msadpcm_coefs[7][2] = {
+static const int16_t msadpcm_coefs[7][2] = {
     { 256,    0 },
     { 512, -256 },
     {   0,    0 },
@@ -225,4 +225,30 @@ long msadpcm_bytes_to_samples(long bytes, int block_size, int channels) {
     if (block_size <= 0 || channels <= 0) return 0;
     return (bytes / block_size) * (block_size - (7-1)*channels) * 2 / channels
             + ((bytes % block_size) ? ((bytes % block_size) - (7-1)*channels) * 2 / channels : 0);
+}
+
+/* test if MSADPCM coefs were re-defined (possible in theory but not used in practice) */
+int msadpcm_check_coefs(STREAMFILE *sf, off_t offset) {
+    int i;
+    int count = read_16bitLE(offset, sf);
+    if (count != 7) {
+        VGM_LOG("MSADPCM: bad count %i at %lx\n", count, offset);
+        goto fail;
+    }
+
+    offset += 0x02;
+    for (i = 0; i < 7; i++) {
+        int16_t coef1 = read_16bitLE(offset + 0x00, sf);
+        int16_t coef2 = read_16bitLE(offset + 0x02, sf);
+
+        if (coef1 != msadpcm_coefs[i][0] || coef2 != msadpcm_coefs[i][1]) {
+            VGM_LOG("MSADPCM: bad coef %i/%i vs %i/%i\n", coef1, coef2, msadpcm_coefs[i][0], msadpcm_coefs[i][1]);
+            goto fail;
+        }
+        offset += 0x02 + 0x02;
+    }
+
+    return 1;
+fail:
+    return 0;
 }

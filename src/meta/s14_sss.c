@@ -25,11 +25,13 @@ VGMSTREAM * init_vgmstream_s14_sss(STREAMFILE *streamFile) {
         char filename[PATH_LIMIT];
         streamFile->get_name(streamFile,filename,sizeof(filename));
 
-        /* horrid but I ain't losing sleep over it (besides the header must be somewhere as some tracks loop) */
-        if (strstr(filename,"S037")==filename || strstr(filename,"b06")==filename) /* Korogashi Puzzle Katamari Damacy */
+        /* horrid but I ain't losing sleep over it (besides the header is often incrusted in-code as some tracks loop) */
+        if (strstr(filename,"S037")==filename || strstr(filename,"b06")==filename || /* Korogashi Puzzle Katamari Damacy */
+            strstr(filename,"_48kbps")!=NULL) /* Taiko no Tatsujin DS 1/2 */
             interleave = 0x78;
         else if (strstr(filename,"32700")==filename || /* Hottarake no Shima - Kanata to Nijiiro no Kagami */
-                (strstr(filename,"b0")==filename || strstr(filename,"puzzle")==filename || strstr(filename,"M09")==filename) ) /* Korogashi Puzzle Katamari Damacy */
+                 strstr(filename,"b0")==filename || strstr(filename,"puzzle")==filename || strstr(filename,"M09")==filename || /* Korogashi Puzzle Katamari Damacy */
+                 strstr(filename,"_32kbps")!=NULL) /* Taiko no Tatsujin DS 1/2 */
             interleave = 0x50;
         else
             interleave = 0x3c; /* The Idolm@ster - Dearly Stars */

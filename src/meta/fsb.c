@@ -148,6 +148,7 @@ VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
             fsb.loop_start  = read_32bitLE(header_offset+0x38,streamFile);
             fsb.loop_end    = read_32bitLE(header_offset+0x3c,streamFile);
 
+            VGM_ASSERT(fsb.loop_end > fsb.num_samples, "FSB: loop end over samples (%i vs %i)\n", fsb.loop_end, fsb.num_samples);
             fsb.channels = (fsb.mode & FSOUND_STEREO) ? 2 : 1;
             if (fsb.loop_end > fsb.num_samples) /* this seems common... */
                 fsb.num_samples = fsb.loop_end;
@@ -264,25 +265,6 @@ VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
     }
 
 
-    /* XOR encryption for some FSB4, though the flag is only seen after decrypting */
-    //;VGM_ASSERT(fsb.flags & FMOD_FSB_SOURCE_ENCRYPTED, "FSB ENCRYPTED found\n");
-
-    /* sometimes there is garbage at the end or missing bytes due to improper ripping */
-    VGM_ASSERT(fsb.base_header_size + fsb.sample_headers_size + fsb.sample_data_size != streamFile->get_size(streamFile),
-               "FSB wrong head/data_size found (expected 0x%x vs 0x%x)\n",
-               fsb.base_header_size + fsb.sample_headers_size + fsb.sample_data_size, streamFile->get_size(streamFile));
-
-    /* Loops unless disabled. FMOD default seems to be full loops (0/num_samples-1) without flags, for repeating tracks
-     * that should loop and jingles/sfx that shouldn't. We'll try to disable looping if it looks jingly enough. */
-    fsb.loop_flag = !(fsb.mode & FSOUND_LOOP_OFF);
-    if(!(fsb.mode & FSOUND_LOOP_NORMAL)                             /* rarely set */
-            && fsb.loop_start+fsb.loop_end+1 == fsb.num_samples     /* full loop */
-            && fsb.num_samples < 20*fsb.sample_rate)                /* in seconds (lame but no other way to know) */
-        fsb.loop_flag = 0;
-
-    /* ping-pong looping = no looping? (forward > reverse > forward) [ex. Biker Mice from Mars (PS2)] */
-    VGM_ASSERT(fsb.mode & FSOUND_LOOP_BIDI, "FSB BIDI looping found\n");
-
     /* convert to clean some code */
     if      (fsb.mode & FSOUND_MPEG)        fsb.codec = MPEG;
     else if (fsb.mode & FSOUND_IMAADPCM)    fsb.codec = IMA;
@@ -292,6 +274,55 @@ VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
     else if (fsb.mode & FSOUND_CELT)        fsb.codec = CELT;
     else if (fsb.mode & FSOUND_8BITS)       fsb.codec = PCM8;
     else                                    fsb.codec = PCM16;
+
+    /* correct compared to FMOD's tools */
+    if (fsb.loop_end)
+        fsb.loop_end += 1;
+
+    /* ping-pong looping = no looping? (forward > reverse > forward) [ex. Biker Mice from Mars (PS2)] */
+    VGM_ASSERT(fsb.mode & FSOUND_LOOP_BIDI, "FSB BIDI looping found\n");
+    VGM_ASSERT(fsb.mode & FSOUND_LOOP_OFF, "FSB LOOP OFF found\n"); /* sometimes used */
+    VGM_ASSERT(fsb.mode & FSOUND_LOOP_NORMAL, "FSB LOOP NORMAL found\n"); /* very rarely set */
+    /* XOR encryption for some FSB4, though the flag is only seen after decrypting */
+    //;VGM_ASSERT(fsb.flags & FMOD_FSB_SOURCE_ENCRYPTED, "FSB ENCRYPTED found\n");
+
+    /* sometimes there is garbage at the end or missing bytes due to improper ripping */
+    VGM_ASSERT(fsb.base_header_size + fsb.sample_headers_size + fsb.sample_data_size != streamFile->get_size(streamFile),
+               "FSB wrong head/data_size found (expected 0x%x vs 0x%x)\n",
+               fsb.base_header_size + fsb.sample_headers_size + fsb.sample_data_size, streamFile->get_size(streamFile));
+
+    /* autodetect unwanted loops */
+    {
+        /* FMOD tool's default behaviour is creating files with full loops and no flags unless disabled
+         * manually (can be overriden during program too), for all FSB versions. This makes jingles/sfx/voices
+         * loop when they shouldn't, but most music does full loops seamlessly, so we only want to disable
+         * if it looks jingly enough. Incidentally, their tools can only make files with full loops. */
+        int enable_loop, full_loop, is_small;
+
+        /* seems to mean forced loop */
+        enable_loop = (fsb.mode & FSOUND_LOOP_NORMAL);
+
+        /* for MPEG and CELT sometimes full loops are given with around/exact 1 frame less than num_samples,
+         * probably to account for encoder/decoder delay (ex. The Witcher 2, Hard Reset, Timeshift) */
+        if (fsb.codec == CELT)
+            full_loop = fsb.loop_start - 512 <= 0 && fsb.loop_end >= fsb.num_samples - 512; /* aproximate */
+        else if (fsb.codec == MPEG)
+            full_loop = fsb.loop_start - 1152 <= 0 && fsb.loop_end >= fsb.num_samples - 1152; /* WWF Legends of Wrestlemania uses 2 frames? */
+        else
+            full_loop = fsb.loop_start == 0 && fsb.loop_end == fsb.num_samples;
+
+        /* in seconds (lame but no better way) */
+        is_small = fsb.num_samples < 20 * fsb.sample_rate;
+
+        //;VGM_LOG("FSB: loop start=%i, loop end=%i, samples=%i, mode=%x\n", fsb.loop_start, fsb.loop_end, fsb.num_samples, fsb.mode);
+        //;VGM_LOG("FSB: enable=%i, full=%i, small=%i\n",enable_loop,full_loop,is_small );
+
+        fsb.loop_flag = !(fsb.mode & FSOUND_LOOP_OFF); /* disabled manually */
+        if (fsb.loop_flag && !enable_loop && full_loop && is_small) {
+            VGM_LOG("FSB: disable unwanted loop\n");
+            fsb.loop_flag = 0;
+        }
+    }
 
 
     /* build the VGMSTREAM */

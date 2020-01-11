@@ -32,7 +32,7 @@ If you wish to use CMake, see [CMAKE.md](CMAKE.md).
 **With GCC**: use the *./Makefile* in the root folder, see inside for options. For compilation flags check the *Makefile* in each folder.
 You may need to manually rebuild if you change a *.h* file (use *make clean*).
 
-In Linux, Makefiles can be used to cross-compile with the MingW headers, but may not be updated to generate native code at the moment. It should be fixable with some effort. Autotools should build it as vgmstream-cli instead (see the Audacious section). Some Linux distributions like Arch Linux include pre-patched vgmstream with most libraries, you may want that instead (see: https://aur.archlinux.org/packages/vgmstream-kode54-git/).
+In Linux, Makefiles can be used to cross-compile with the MingW headers, but may not be updated to generate native code at the moment. It should be fixable with some effort. Autotools should build and install it as `vgmstream-cli` instead (see the Audacious section). Some Linux distributions like Arch Linux include pre-patched vgmstream with most libraries, you may want that instead (see: https://aur.archlinux.org/packages/vgmstream-kode54-git/).
 
 Windows CMD example:
 ```
@@ -59,6 +59,7 @@ Requires MSVC (foobar/SDK only links to MSVC C++ DLLs) and these dependencies:
 - FDK-AAC, in *(vgmstream)/dependencies/fdk-aac/*: https://github.com/kode54/fdk-aac
 - QAAC, in *(vgmstream)/dependencies/qaac/*: https://github.com/kode54/qaac
 - WTL (if needed), in *(vgmstream)/dependencies/WTL/*: http://wtl.sourceforge.net/
+- may need to install ATL and MFC libraries (can be installed in Visual Studio Installer)
 
 The following project modifications are required:
 - For *foobar2000_ATL_helpers* add *../../../WTL/Include* to the compilers's *additional includes*
@@ -98,10 +99,14 @@ libvorbis and libmpg123 will be used if found, while FFmpeg and other external l
 
 Windows builds aren't supported at the moment (should be possible but there are complex dependency chains).
 
+Take note of other plugins stealing extensions (see README). To change Audacious's default priority for vgmstream you can make with CFLAG `AUDACIOUS_VGMSTREAM_PRIORITY n` (where `N` is number with 10=lowest)
+
 
 Terminal example, assuming a Ubuntu-based Linux distribution:
 ```
-# build requirements
+# build setup
+
+# default requirements
 sudo apt-get update
 sudo apt-get install gcc g++ make
 sudo apt-get install autoconf automake libtool
@@ -109,13 +114,18 @@ sudo apt-get install git
 # vgmstream dependencies
 sudo apt-get install libmpg123-dev libvorbis-dev
 # Audacious player and dependencies
-sudo apt-get install audacious  
+sudo apt-get install audacious
 sudo apt-get install audacious-dev libglib2.0-dev libgtk2.0-dev libpango1.0-dev
+
+# if you want vgmstream123 do this too
+sudo apt-get install libao-dev
 
 # check Audacious version >= 3.5
 pkg-config --modversion audacious
+```
+```
+# vgmstream build
 
-# build
 git clone https://github.com/kode54/vgmstream
 cd vgmstream
 
@@ -123,13 +133,21 @@ cd vgmstream
 ./configure
 make -f Makefile.autotools
 
-# copy to audacious plugins and update global libvgmstream.so.0 refs
+# copy to audacious plugins (note that this will also install "libvgmstream",
+# vgmstream-cli and vgmstream123, so they can be invoked from the terminal)
 sudo make -f Makefile.autotools install
+
+# update global libvgmstream.so.0 refs
 sudo ldconfig
 
 # start audacious in verbose mode to check if it was installed correctly
 audacious -V
 
+# if all goes well no "ERROR (something) referencing libvgmstream should show 
+# in the terminal log, then go to menu services > plugins > input tab and check
+# vgmstream is there (you can start audacious normally next time)
+```
+```
 # uninstall if needed
 sudo make -f Makefile.autotools uninstall
 
@@ -140,11 +158,13 @@ find . -name ".deps" -type d -exec rm -r "{}" \;
 ## WARNING, removes *all* untracked files not in .gitignore
 git clean -fd
 ```
+To update vgmstream it's probably easiest to remove the `vgmstream` folder and start again from "vgmstream build" step, since updates often require a full rebuild anyway.
+
 
 ### vgmstream123 player
-Should be buildable with Autotools, much like the Audacious plugin, though requires libao (libao-dev).
+Should be buildable with Autotools by following the same steps as listen in the Audacious section (requires libao-dev).
 
-Windows builds are possible with libao.dll and includes, but some features are disabled.
+Windows builds are possible with `libao.dll` and `libao` includes (found elsewhere) through the `Makefile`, but some features are disabled.
 
 libao is licensed under the GPL v2 or later.
 

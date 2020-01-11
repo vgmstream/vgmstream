@@ -307,15 +307,14 @@ static layered_layout_data* build_layered_xvag(STREAMFILE *streamFile, xvag_head
                 goto fail;
         }
 
-        if ( !vgmstream_open_stream(data->layers[i], temp_streamFile, 0x00) ) {
+        if ( !vgmstream_open_stream(data->layers[i], temp_streamFile, 0x00) )
             goto fail;
-        }
+        close_streamfile(temp_streamFile);
     }
 
     /* setup layered VGMSTREAMs */
     if (!setup_layout_layered(data))
         goto fail;
-    close_streamfile(temp_streamFile);
     return data;
 
 fail:

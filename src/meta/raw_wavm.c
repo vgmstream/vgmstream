@@ -2,7 +2,7 @@
 #include "../coding/coding.h"
 
 /* WAVM - headerless format which can be found on XBOX */
-VGMSTREAM * init_vgmstream_xbox_wavm(STREAMFILE *streamFile) {
+VGMSTREAM * init_vgmstream_raw_wavm(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset = 0;
     int loop_flag, channel_count;
@@ -19,13 +19,12 @@ VGMSTREAM * init_vgmstream_xbox_wavm(STREAMFILE *streamFile) {
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
+    vgmstream->meta_type = meta_RAW_WAVM;
     vgmstream->sample_rate = 44100;
     vgmstream->num_samples = xbox_ima_bytes_to_samples(get_streamfile_size(streamFile), vgmstream->channels);
 
     vgmstream->coding_type = coding_XBOX_IMA;
     vgmstream->layout_type = layout_none;
-    vgmstream->meta_type = meta_XBOX_WAVM;
-
 
     if (!vgmstream_open_stream(vgmstream, streamFile, start_offset))
         goto fail;

@@ -15,7 +15,7 @@ typedef struct {
  * CRI's tools expect an unsigned 64 bit number string, but keys are commonly found online in hex form.
  * Keys only use 56 bits though, so the upper 8 bits can be ignored.
  *
- * ACB+AWB after mid 2018 use a user seed key + a scramble subkey in the AWB (normally 16b LE at 0x0e)
+ * Some ACB+AWB after mid 2018 use a user seed key + a scramble subkey in the AWB (normally 16b LE at 0x0e)
  * to create the final HCA key, which means there is one key per AWB (so most HCA have a unique key).
  * vgmstream derives the key if subkey table is provided.
  */
@@ -291,7 +291,43 @@ static const hcakey_info hcakey_list[] = {
         /* DAME x PRINCE (Android) */
         {217019410378917901},       // 030302010100080D
 
-        /* Dragalia Lost (Cygames) [iOS/Android] */
+        /* Uta Macross SmaPho De Culture (Android) */
+        {396798934275978741},       // 0581B68744C5F5F5
+
+        /* Touhou Cannonball (Android) */
+        {5465717035832233},         // 00136B0A6A5D13A9
+
+        /* Love Live! School idol festival ALL STARS (Android) */
+        {6498535309877346413},      // 5A2F6F6F0192806D
+
+        /* BLACKSTAR -Theater Starless- (Android) */
+        {121837007188},             // 0000001C5E0D3154
+
+        /* Nogizaka46 Rhythm Festival (Android) */
+        {5613126134333697},         // 0013F11BC5510101
+
+        /* IDOLiSH7 (Android) */
+        {8548758374946935437},      // 76A34A72E15B928D
+
+        /* Phantom of the Kill (Android) */
+        {33624594140214547},        // 00777563E571B513
+
+        /* Dankira!!! Boys, be DANCING! (Android) */
+        {3957325206121219506},      // 36EB3E4EE38E05B2
+
+        /* Idola: Phantasy Star Saga (Android) */
+        {0xA86BF72B4C852CA7},       // A86BF72B4C852CA7 / 12136065386219383975
+
+        /* Arca Last (Android) */
+        {612310807},                // 00000000247F1F17 / 12136065386219383975
+
+        /* ArkResona (Android) */
+        {564321654321},             // 0000008364311631
+
+        /* Kemono Friends 3 (Android) */
+        {3315495188},               // 00000000C59E7114
+
+        /* Dragalia Lost (iOS/Android) */
         {2967411924141,         subkeys_dgl, sizeof(subkeys_dgl) / sizeof(subkeys_dgl[0]) },    // 000002B2E7889CAD
 
 };

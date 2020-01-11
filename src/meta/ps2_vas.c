@@ -1,66 +1,154 @@
 #include "meta.h"
-#include "../util.h"
+#include "../coding/coding.h"
 
-/* VAS (from Pro Baseball Spirits 5) */
+
+/* .VAS - from Konami Jikkyou Powerful Pro Yakyuu games */
 VGMSTREAM * init_vgmstream_ps2_vas(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
     off_t start_offset;
-	int loop_flag;
-	int channel_count;
+    int loop_flag, channel_count;
 
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("vas",filename_extension(filename))) goto fail;
 
-    /* check header */
-#if 0
-    if (read_32bitBE(0x00,streamFile) != 0x00000000) /* 0x0 */
+    /* checks */
+    if (!check_extensions(streamFile, "vas"))
+        goto fail;
+    if (read_32bitLE(0x00,streamFile) + 0x800 != get_streamfile_size(streamFile))
        goto fail;
-#endif
 
-    loop_flag = (read_32bitLE(0x10,streamFile)!=0);
+    loop_flag = (read_32bitLE(0x10,streamFile) != 0);
     channel_count = 2;
-    
-	/* build the VGMSTREAM */
+    start_offset = 0x800;
+
+    /* header is too simple so test a bit */
+    if (!ps_check_format(streamFile, start_offset, 0x1000))
+        goto fail;
+
+
+    /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-	/* fill in the vital statistics */
-    start_offset = 0x800;
-	vgmstream->channels = channel_count;
+    vgmstream->meta_type = meta_PS2_VAS;
     vgmstream->sample_rate = read_32bitLE(0x04,streamFile);
-    vgmstream->coding_type = coding_PSX;
-    vgmstream->num_samples = read_32bitLE(0x00,streamFile)*28/16/channel_count;
-    if (loop_flag) {
-        vgmstream->loop_start_sample = read_32bitLE(0x14,streamFile)*28/16/channel_count;
-        vgmstream->loop_end_sample = read_32bitLE(0x00,streamFile)*28/16/channel_count;
-    }
 
+    vgmstream->coding_type = coding_PSX;
     vgmstream->layout_type = layout_interleave;
     vgmstream->interleave_block_size = 0x200;
-    vgmstream->meta_type = meta_PS2_VAS;
 
-    /* open the file for reading */
-    {
-        int i;
-        STREAMFILE * file;
-        file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (!file) goto fail;
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = file;
+    vgmstream->num_samples = ps_bytes_to_samples(read_32bitLE(0x00,streamFile), channel_count);
+    vgmstream->loop_start_sample = ps_bytes_to_samples(read_32bitLE(0x14,streamFile), channel_count);
+    vgmstream->loop_end_sample = vgmstream->num_samples;
 
-            vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=start_offset+
-                vgmstream->interleave_block_size*i;
-
-        }
-    }
-
+    if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
+        goto fail;
     return vgmstream;
 
-    /* clean up anything we may have opened */
 fail:
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_vgmstream(vgmstream);
+    return NULL;
+}
+
+
+/* .VAS in containers */
+VGMSTREAM * init_vgmstream_ps2_vas_container(STREAMFILE *streamFile) {
+    VGMSTREAM *vgmstream = NULL;
+    STREAMFILE *temp_streamFile = NULL;
+    off_t subfile_offset = 0;
+    size_t subfile_size = 0;
+    int total_subsongs, target_subsong = streamFile->stream_index;
+
+
+    /* checks */
+    if (!check_extensions(streamFile, "vas"))
+        goto fail;
+
+    if (read_32bitBE(0x00, streamFile) == 0xAB8A5A00) { /* fixed value */
+
+        /* just in case */
+        if (read_32bitLE(0x04, streamFile)*0x800 + 0x800 != get_streamfile_size(streamFile))
+            goto fail;
+
+        total_subsongs = read_32bitLE(0x08, streamFile); /* also at 0x10 */
+        if (target_subsong == 0) target_subsong = 1;
+        if (target_subsong < 0 || target_subsong > total_subsongs || total_subsongs < 1) goto fail;
+
+        /* check offset table flag, 0x98 has table size */
+        if (read_32bitLE(0x94, streamFile)) {
+            off_t header_offset = 0x800 + 0x10*(target_subsong-1);
+
+            /* some values are repeats found in the file sub-header */
+            subfile_offset = read_32bitLE(header_offset + 0x00,streamFile) * 0x800;
+            subfile_size   = read_32bitLE(header_offset + 0x08,streamFile) + 0x800;
+        }
+        else {
+            /* a bunch of files */
+            off_t offset = 0x800;
+            int i;
+
+            for (i = 0; i < total_subsongs; i++) {
+                size_t size = read_32bitLE(offset, streamFile) + 0x800;
+
+                if (i + 1 == target_subsong) {
+                    subfile_offset = offset;
+                    subfile_size = size;
+                    break;
+                }
+
+                offset += size;
+            }
+            if (i == total_subsongs)
+                goto fail;
+        }
+    }
+    else {
+        /* some .vas are just files pasted together, better extracted externally but whatevs */
+        size_t file_size = get_streamfile_size(streamFile);
+        off_t offset = 0;
+
+        /* must have multiple .vas */
+        if (read_32bitLE(0x00,streamFile) + 0x800 >= file_size)
+           goto fail;
+
+        total_subsongs = 0;
+        if (target_subsong == 0) target_subsong = 1;
+
+        while (offset < file_size) {
+            size_t size = read_32bitLE(offset,streamFile) + 0x800;
+
+            /* some files can be null, ignore */
+            if (size > 0x800) {
+                total_subsongs++;
+
+                if (total_subsongs == target_subsong) {
+                    subfile_offset = offset;
+                    subfile_size = size;
+                }
+            }
+
+            offset += size;
+        }
+
+        /* should end exactly at file_size */
+        if (offset > file_size)
+            goto fail;
+
+        if (target_subsong < 0 || target_subsong > total_subsongs || total_subsongs < 1) goto fail;
+    }
+
+
+    temp_streamFile = setup_subfile_streamfile(streamFile, subfile_offset,subfile_size, NULL);
+    if (!temp_streamFile) goto fail;
+
+    vgmstream = init_vgmstream_ps2_vas(temp_streamFile);
+    if (!vgmstream) goto fail;
+
+    vgmstream->num_streams = total_subsongs;
+
+    close_streamfile(temp_streamFile);
+    return vgmstream;
+
+fail:
+    close_streamfile(temp_streamFile);
+    close_vgmstream(vgmstream);
     return NULL;
 }

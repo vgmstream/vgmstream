@@ -20,6 +20,7 @@ extern "C" {
 typedef struct {
     STREAMFILE sf;          /* callbacks */
 
+    bool m_file_opened;         /* if foobar IO service opened the file */
     service_ptr_t<file> m_file; /* foobar IO service */
     abort_callback * p_abort;   /* foobar error stuff */
     char * name;                /* IO filename */
@@ -32,12 +33,12 @@ typedef struct {
 } FOO_STREAMFILE;
 
 static STREAMFILE * open_foo_streamfile_buffer(const char * const filename, size_t buffersize, abort_callback * p_abort, t_filestats * stats);
-static STREAMFILE * open_foo_streamfile_buffer_by_file(service_ptr_t<file> m_file,const char * const filename, size_t buffersize, abort_callback * p_abort);
+static STREAMFILE * open_foo_streamfile_buffer_by_file(service_ptr_t<file> m_file, bool m_file_opened, const char * const filename, size_t buffersize, abort_callback * p_abort);
 
 static size_t read_foo(FOO_STREAMFILE *streamfile, uint8_t * dest, off_t offset, size_t length) {
     size_t length_read_total = 0;
 
-    if (!streamfile || !dest || length <= 0 || offset < 0)
+    if (!streamfile || !streamfile->m_file_opened || !dest || length <= 0 || offset < 0)
         return 0;
 
     /* is the part of the requested length in the buffer? */
@@ -124,7 +125,7 @@ static void get_name_foo(FOO_STREAMFILE *streamfile,char *buffer,size_t length) 
    }
 }
 static void close_foo(FOO_STREAMFILE * streamfile) {
-    streamfile->m_file.release();
+    streamfile->m_file.release(); //release alloc'ed ptr
     free(streamfile->name);
     free(streamfile->buffer);
     free(streamfile);
@@ -139,22 +140,22 @@ static STREAMFILE *open_foo(FOO_STREAMFILE *streamFile,const char * const filena
         return NULL;
 
     // if same name, duplicate the file pointer we already have open
-    if (!strcmp(streamFile->name,filename)) {
-        m_file = streamFile->m_file;
+    if (streamFile->m_file_opened && !strcmp(streamFile->name,filename)) {
+        m_file = streamFile->m_file; //copy?
         {
-            newstreamFile = open_foo_streamfile_buffer_by_file(m_file,filename,buffersize,streamFile->p_abort);
+            newstreamFile = open_foo_streamfile_buffer_by_file(m_file, streamFile->m_file_opened, filename, buffersize, streamFile->p_abort);
             if (newstreamFile) {
                 return newstreamFile;
             }
             // failure, close it and try the default path (which will probably fail a second time)
         }
     }
-    // a normal open, open a new file
 
+    // a normal open, open a new file
     return open_foo_streamfile_buffer(filename,buffersize,streamFile->p_abort,NULL);
 }
 
-static STREAMFILE * open_foo_streamfile_buffer_by_file(service_ptr_t<file> m_file,const char * const filename, size_t buffersize, abort_callback * p_abort) {
+static STREAMFILE * open_foo_streamfile_buffer_by_file(service_ptr_t<file> m_file, bool m_file_opened, const char * const filename, size_t buffersize, abort_callback * p_abort) {
     uint8_t * buffer;
     FOO_STREAMFILE * streamfile;
 
@@ -171,6 +172,7 @@ static STREAMFILE * open_foo_streamfile_buffer_by_file(service_ptr_t<file> m_fil
     streamfile->sf.open = (_STREAMFILE *(__cdecl *)(_STREAMFILE *,const char *const ,size_t)) open_foo;
     streamfile->sf.close = (void (__cdecl *)(_STREAMFILE *)) close_foo;
 
+    streamfile->m_file_opened = m_file_opened;
     streamfile->m_file = m_file;
     streamfile->p_abort = p_abort;
     streamfile->buffersize = buffersize;
@@ -180,7 +182,10 @@ static STREAMFILE * open_foo_streamfile_buffer_by_file(service_ptr_t<file> m_fil
     if (!streamfile->name)  goto fail;
 
     /* cache filesize */
-    streamfile->filesize = streamfile->m_file->get_size(*streamfile->p_abort);
+    if (streamfile->m_file_opened)
+        streamfile->filesize = streamfile->m_file->get_size(*streamfile->p_abort);
+    else
+        streamfile->filesize = 0;
 
     return &streamfile->sf;
 
@@ -193,16 +198,23 @@ fail:
 static STREAMFILE * open_foo_streamfile_buffer(const char * const filename, size_t buffersize, abort_callback * p_abort, t_filestats * stats) {
     STREAMFILE *streamFile;
     service_ptr_t<file> infile;
+    bool infile_exists;
 
-    if(!(filesystem::g_exists(filename, *p_abort)))
-        return NULL;
+    infile_exists = filesystem::g_exists(filename, *p_abort);
+    if(!infile_exists) {
+        /* allow non-existing files in some cases */
+        if (!vgmstream_is_virtual_filename(filename))
+            return NULL;
+    }
 
-    filesystem::g_open_read(infile,filename,*p_abort);
-    if(stats) *stats = infile->get_stats(*p_abort);
+    if (infile_exists) {
+        filesystem::g_open_read(infile,filename,*p_abort);
+        if(stats) *stats = infile->get_stats(*p_abort);
+    }
 
-    streamFile = open_foo_streamfile_buffer_by_file(infile,filename,buffersize,p_abort);
+    streamFile = open_foo_streamfile_buffer_by_file(infile, infile_exists, filename, buffersize, p_abort);
     if (!streamFile) {
-        // fclose(infile);
+        //m_file.release(); //refcounted and cleaned after it goes out of scope
     }
 
     return streamFile;

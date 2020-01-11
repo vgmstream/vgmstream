@@ -249,7 +249,19 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\bgw_streamfile.h"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\cri_utf.h"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\ea_eaac_streamfile.h"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\ea_eaac_opus_streamfile.h"
                     >
                 </File>
                 <File
@@ -265,11 +277,23 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\jstm_streamfile.h"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\kma9_streamfile.h"
                     >
                 </File>
                 <File
                     RelativePath=".\meta\mta2_streamfile.h"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\mzrt_streamfile.h"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\nus3bank_streamfile.h"
                     >
                 </File>
                 <File
@@ -289,11 +313,23 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\xavs_streamfile.h"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\riff_ogg_streamfile.h"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\sfh_streamfile.h"
                     >
                 </File>
                 <File
                     RelativePath=".\meta\sqex_scd_streamfile.h"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\sqex_sead_streamfile.h"
                     >
                 </File>
                 <File
@@ -396,6 +432,10 @@
 					RelativePath=".\meta\aax.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\acb.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\acm.c"
 					>
@@ -485,6 +525,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\bmp_konami.c"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\bnk_sony.c"
                     >
                 </File>
@@ -506,6 +550,14 @@
 				</File>
                 <File
                     RelativePath=".\meta\ck.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\cri_utf.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\csb.c"
                     >
                 </File>
                 <File
@@ -685,7 +737,11 @@
                     >
                 </File>
                 <File
-                    RelativePath=".\meta\nub_idsp.c"
+                    RelativePath=".\meta\nub.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\ima.c"
                     >
                 </File>
                 <File
@@ -696,6 +752,10 @@
 					RelativePath=".\meta\ios_psnd.c"
 					>
 				</File>
+                <File
+                    RelativePath=".\meta\isb.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\ish_isd.c"
 					>
@@ -790,10 +850,14 @@
 					RelativePath=".\meta\musx.c"
 					>
 				</File>
-				<File
-					RelativePath=".\meta\myspd.c"
-					>
-				</File>
+                <File
+                    RelativePath=".\meta\myspd.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\mzrt.c"
+                    >
+                </File>
                 <File
                     RelativePath=".\meta\naac.c"
                     >
@@ -914,14 +978,6 @@
                     RelativePath=".\meta\opus.c"
                     >
                 </File>
-				<File
-					RelativePath=".\meta\nub_vag.c"
-					>
-				</File>
-                <File
-                    RelativePath=".\meta\nub_xma.c"
-                    >
-                </File>
                 <File
                     RelativePath=".\meta\nus3audio.c"
                     >
@@ -995,7 +1051,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\pc_snds.c"
+					RelativePath=".\meta\raw_snds.c"
 					>
 				</File>
 				<File
@@ -1003,7 +1059,7 @@
 					>
 				</File>
                 <File
-                    RelativePath=".\meta\pc_xa30.c"
+                    RelativePath=".\meta\xa_xa30.c"
                     >
                 </File>
                 <File
@@ -1115,7 +1171,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\ps2_int.c"
+					RelativePath=".\meta\raw_int.c"
 					>
 				</File>
 				<File
@@ -1123,7 +1179,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\ps2_jstm.c"
+					RelativePath=".\meta\jstm.c"
 					>
 				</File>
 				<File
@@ -1331,7 +1387,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\ps3_ivag.c"
+					RelativePath=".\meta\ivag.c"
 					>
 				</File>
 				<File
@@ -1342,10 +1398,14 @@
                     RelativePath=".\meta\mta2.c"
                     >
                 </File>
-				<File
-					RelativePath=".\meta\ps3_past.c"
-					>
-				</File>
+                <File
+                    RelativePath=".\meta\ps3_past.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\psf.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\sgxd.c"
 					>
@@ -1363,11 +1423,15 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\fda.c"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\ffdl.c"
                     >
                 </File>
 				<File
-					RelativePath=".\meta\psx_gms.c"
+					RelativePath=".\meta\seb.c"
 					>
 				</File>
 				<File
@@ -1375,7 +1439,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\raw.c"
+					RelativePath=".\meta\raw_pcm.c"
 					>
 				</File>
                 <File
@@ -1467,6 +1531,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\smk.c"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\smp.c"
                     >
                 </File>
@@ -1519,10 +1587,6 @@
                     >
                 </File>
 				<File
-					RelativePath=".\meta\stx.c"
-					>
-				</File>
-				<File
 					RelativePath=".\meta\svs.c"
 					>
 				</File>
@@ -1554,10 +1618,14 @@
                     RelativePath=".\meta\ubi_bao.c"
                     >
                 </File>
-				<File
-					RelativePath=".\meta\ubi_ckd.c"
-					>
-				</File>
+                <File
+                    RelativePath=".\meta\ubi_ckd.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\ubi_hx.c"
+                    >
+                </File>
                 <File
                     RelativePath=".\meta\ubi_lyn.c"
                     >
@@ -1619,7 +1687,7 @@
                     >
                 </File>
                 <File
-                    RelativePath=".\meta\wii_04sw.c"
+                    RelativePath=".\meta\xa_04sw.c"
                     >
                 </File>
 				<File
@@ -1686,6 +1754,10 @@
                     RelativePath=".\meta\xau.c"
                     >
                 </File>
+                <File
+                    RelativePath=".\meta\xavs.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\xbox_hlwav.c"
 					>
@@ -1695,19 +1767,23 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\xbox_wavm.c"
+					RelativePath=".\meta\raw_wavm.c"
 					>
 				</File>
 				<File
-					RelativePath=".\meta\xbox_xmu.c"
+					RelativePath=".\meta\xmu.c"
 					>
 				</File>
 				<File
-					RelativePath=".\meta\xbox_xvas.c"
+					RelativePath=".\meta\xvas.c"
 					>
 				</File>
                 <File
                     RelativePath=".\meta\xma.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\xma_ue3.c"
                     >
                 </File>
                 <File
@@ -1726,10 +1802,14 @@
                     RelativePath=".\meta\xps.c"
                     >
                 </File>
-				<File
-					RelativePath=".\meta\xss.c"
-					>
-				</File>
+                <File
+                    RelativePath=".\meta\xss.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\xssb.c"
+                    >
+                </File>
                 <File
                     RelativePath=".\meta\xvag.c"
                     >
@@ -1879,7 +1959,7 @@
                     >
                 </File>
                 <File
-                    RelativePath=".\coding\ffmpeg_decoder_utils_ea_schl.c"
+                    RelativePath=".\coding\ffmpeg_decoder_utils.c"
                     >
                 </File>
                 <File
@@ -1990,18 +2070,34 @@
                     RelativePath=".\coding\psv_decoder.c"
                     >
                 </File>
-				<File
-					RelativePath=".\coding\psx_decoder.c"
-					>
-				</File>
+                <File
+                    RelativePath=".\coding\psx_decoder.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\coding\ptadpcm_decoder.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\coding\relic_decoder.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\coding\relic_decoder_mixfft.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\coding\sassc_decoder.c"
 					>
 				</File>
-				<File
-					RelativePath=".\coding\sdx2_decoder.c"
-					>
-				</File>
+                <File
+                    RelativePath=".\coding\sdx2_decoder.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\coding\ubi_adpcm_decoder.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\coding\ws_decoder.c"
 					>

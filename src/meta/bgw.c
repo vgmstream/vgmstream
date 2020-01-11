@@ -1,8 +1,6 @@
 #include "meta.h"
 #include "../coding/coding.h"
-
-
-static STREAMFILE* setup_bgw_atrac3_streamfile(STREAMFILE *streamFile, off_t subfile_offset, size_t subfile_size, size_t frame_size, int channels);
+#include "bgw_streamfile.h"
 
 
 /* BGW - from Final Fantasy XI (PC) music files */
@@ -27,13 +25,13 @@ VGMSTREAM * init_vgmstream_bgw(STREAMFILE *streamFile) {
 
     codec = read_32bitLE(0x0c,streamFile);
     file_size = read_32bitLE(0x10,streamFile);
-    /*file_id = read_32bitLE(0x14,streamFile);*/
+    /* file_id = read_32bitLE(0x14,streamFile); */
     block_size = read_32bitLE(0x18,streamFile);
     loop_start = read_32bitLE(0x1c,streamFile);
     sample_rate = (read_32bitLE(0x20,streamFile) + read_32bitLE(0x24,streamFile)) & 0x7FFFFFFF; /* bizarrely obfuscated sample rate */
     start_offset = read_32bitLE(0x28,streamFile);
-    /*0x2c: unk (vol?) */
-    /*0x2d: unk (0x10?) */
+    /* 0x2c: unk (vol?) */
+    /* 0x2d: unk (0x10?) */
     channel_count = read_8bit(0x2e,streamFile);
     block_align = (uint8_t)read_8bit(0x2f,streamFile);
 
@@ -65,30 +63,25 @@ VGMSTREAM * init_vgmstream_bgw(STREAMFILE *streamFile) {
 
 #ifdef VGM_USE_FFMPEG
         case 3: { /* ATRAC3 (encrypted) */
-            uint8_t buf[0x100];
-            int bytes, joint_stereo, skip_samples;
             size_t data_size = file_size - start_offset;
+            int encoder_delay, block_align;
 
-            vgmstream->num_samples = block_size; /* atrac3_bytes_to_samples gives the same value */
-            if (loop_flag) {
-                vgmstream->loop_start_sample = loop_start;
-                vgmstream->loop_end_sample = vgmstream->num_samples;
-            }
-
-            block_align  = 0xC0 * vgmstream->channels; /* 0x00 in header */
-            joint_stereo = 0;
-            skip_samples = 0;
-
-            bytes = ffmpeg_make_riff_atrac3(buf, 0x100, vgmstream->num_samples, data_size, vgmstream->channels, vgmstream->sample_rate, block_align, joint_stereo, skip_samples);
-            if (bytes <= 0) goto fail;
+            encoder_delay = 1024*2 + 69*2; /* observed value, all files start at +2200 (PS-ADPCM also starts around 50-150 samples in) */
+            block_align = 0xC0 * vgmstream->channels; /* 0x00 in header */
+            vgmstream->num_samples = block_size - encoder_delay; /* atrac3_bytes_to_samples gives block_size */
 
             temp_streamFile = setup_bgw_atrac3_streamfile(streamFile, start_offset,data_size, 0xC0,channel_count);
             if (!temp_streamFile) goto fail;
 
-            vgmstream->codec_data = init_ffmpeg_header_offset(temp_streamFile, buf,bytes, 0,data_size);
+            vgmstream->codec_data = init_ffmpeg_atrac3_raw(temp_streamFile, 0x00,data_size, vgmstream->num_samples,vgmstream->channels,vgmstream->sample_rate, block_align, encoder_delay);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
+
+            if (loop_flag) {
+                vgmstream->loop_start_sample = loop_start - encoder_delay;
+                vgmstream->loop_end_sample = vgmstream->num_samples;
+            }
 
             close_streamfile(temp_streamFile);
             break;
@@ -132,13 +125,13 @@ VGMSTREAM * init_vgmstream_spw(STREAMFILE *streamFile) {
 
     file_size = read_32bitLE(0x08,streamFile);
     codec = read_32bitLE(0x0c,streamFile);
-    /*file_id = read_32bitLE(0x10,streamFile);*/
+    /* file_id = read_32bitLE(0x10,streamFile);*/
     block_size = read_32bitLE(0x14,streamFile);
     loop_start = read_32bitLE(0x18,streamFile);
     sample_rate = (read_32bitLE(0x1c,streamFile) + read_32bitLE(0x20,streamFile)) & 0x7FFFFFFF; /* bizarrely obfuscated sample rate */
     start_offset = read_32bitLE(0x24,streamFile);
-    /*0x2c: unk (0x00?) */
-    /*0x2d: unk (0x00/01?) */
+    /* 0x2c: unk (0x00?) */
+    /* 0x2d: unk (0x00/01?) */
     channel_count = read_8bit(0x2a,streamFile);
     /*0x2b: unk (0x01 when PCM, 0x10 when VAG?) */
     block_align = read_8bit(0x2c,streamFile);
@@ -184,30 +177,25 @@ VGMSTREAM * init_vgmstream_spw(STREAMFILE *streamFile) {
 
 #ifdef VGM_USE_FFMPEG
         case 3: { /* ATRAC3 (encrypted) */
-            uint8_t buf[0x100];
-            int bytes, joint_stereo, skip_samples;
             size_t data_size = file_size - start_offset;
+            int encoder_delay, block_align;
 
-            vgmstream->num_samples = block_size; /* atrac3_bytes_to_samples gives the same value */
-            if (loop_flag) {
-                vgmstream->loop_start_sample = loop_start;
-                vgmstream->loop_end_sample = vgmstream->num_samples;
-            }
-
-            block_align  = 0xC0 * vgmstream->channels; /* 0x00 in header */
-            joint_stereo = 0;
-            skip_samples = 0;
-
-            bytes = ffmpeg_make_riff_atrac3(buf, 0x100, vgmstream->num_samples, data_size, vgmstream->channels, vgmstream->sample_rate, block_align, joint_stereo, skip_samples);
-            if (bytes <= 0) goto fail;
+            encoder_delay = 1024*2 + 69*2; /* observed value, all files start at +2200 (PS-ADPCM also starts around 50-150 samples in) */
+            block_align = 0xC0 * vgmstream->channels; /* 0x00 in header */
+            vgmstream->num_samples = block_size - encoder_delay; /* atrac3_bytes_to_samples gives block_size */
 
             temp_streamFile = setup_bgw_atrac3_streamfile(streamFile, start_offset,data_size, 0xC0,channel_count);
             if (!temp_streamFile) goto fail;
 
-            vgmstream->codec_data = init_ffmpeg_header_offset(temp_streamFile, buf,bytes, 0,data_size);
+            vgmstream->codec_data = init_ffmpeg_atrac3_raw(temp_streamFile, 0x00,data_size, vgmstream->num_samples,vgmstream->channels,vgmstream->sample_rate, block_align, encoder_delay);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
+
+            if (loop_flag) {
+                vgmstream->loop_start_sample = loop_start - encoder_delay;
+                vgmstream->loop_end_sample = vgmstream->num_samples;
+            }
 
             close_streamfile(temp_streamFile);
             break;
@@ -228,63 +216,5 @@ VGMSTREAM * init_vgmstream_spw(STREAMFILE *streamFile) {
 fail:
     close_streamfile(temp_streamFile);
     close_vgmstream(vgmstream);
-    return NULL;
-}
-
-
-#define BGW_KEY_MAX (0xC0*2)
-
-typedef struct {
-    uint8_t key[BGW_KEY_MAX];
-    size_t key_size;
-} bgw_decryption_data;
-
-/* Encrypted ATRAC3 info from Moogle Toolbox (https://sourceforge.net/projects/mogbox/) */
-static size_t bgw_decryption_read(STREAMFILE *streamfile, uint8_t *dest, off_t offset, size_t length, bgw_decryption_data* data) {
-    size_t bytes_read;
-    int i;
-
-    bytes_read = streamfile->read(streamfile, dest, offset, length);
-
-    /* decrypt data (xor) */
-    for (i = 0; i < bytes_read; i++) {
-        dest[i] ^= data->key[(offset + i) % data->key_size];
-    }
-
-    return bytes_read;
-}
-
-static STREAMFILE* setup_bgw_atrac3_streamfile(STREAMFILE *streamFile, off_t subfile_offset, size_t subfile_size, size_t frame_size, int channels) {
-    STREAMFILE *temp_streamFile = NULL, *new_streamFile = NULL;
-    bgw_decryption_data io_data = {0};
-    size_t io_data_size = sizeof(bgw_decryption_data);
-    int ch;
-
-    /* setup decryption with key (first frame + modified channel header) */
-    if (frame_size*channels == 0 || frame_size*channels > BGW_KEY_MAX) goto fail;
-
-    io_data.key_size = read_streamfile(io_data.key, subfile_offset, frame_size*channels, streamFile);
-    for (ch = 0; ch < channels; ch++) {
-        uint32_t xor = get_32bitBE(io_data.key + frame_size*ch);
-        put_32bitBE(io_data.key + frame_size*ch, xor ^ 0xA0024E9F);
-    }
-
-    /* setup subfile */
-    new_streamFile = open_wrap_streamfile(streamFile);
-    if (!new_streamFile) goto fail;
-    temp_streamFile = new_streamFile;
-
-    new_streamFile = open_clamp_streamfile(temp_streamFile, subfile_offset,subfile_size);
-    if (!new_streamFile) goto fail;
-    temp_streamFile = new_streamFile;
-
-    new_streamFile = open_io_streamfile(temp_streamFile, &io_data,io_data_size, bgw_decryption_read,NULL);
-    if (!new_streamFile) goto fail;
-    temp_streamFile = new_streamFile;
-
-    return temp_streamFile;
-
-fail:
-    close_streamfile(temp_streamFile);
     return NULL;
 }

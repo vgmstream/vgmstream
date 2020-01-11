@@ -200,7 +200,7 @@ static mpg123_handle * init_mpg123_handle() {
     }
 
     mpg123_param(m,MPG123_REMOVE_FLAGS,MPG123_GAPLESS,0.0); /* wonky support */
-    mpg123_param(m,MPG123_RESYNC_LIMIT, -1, 0x10000); /* should be enough */
+    mpg123_param(m,MPG123_RESYNC_LIMIT, -1, 0x2000); /* just in case, games shouldn't ever need this */
 
     if (mpg123_open_feed(m) != MPG123_OK) {
         goto fail;
@@ -234,18 +234,19 @@ void decode_mpeg(VGMSTREAM * vgmstream, sample_t * outbuf, int32_t samples_to_do
  */
 static void decode_mpeg_standard(VGMSTREAMCHANNEL *stream, mpeg_codec_data * data, sample_t * outbuf, int32_t samples_to_do, int channels) {
     int samples_done = 0;
-    mpg123_handle *m = data->m;
+    unsigned char *outbytes = (unsigned char *)outbuf;
 
     while (samples_done < samples_to_do) {
         size_t bytes_done;
-        int rc;
+        int rc, bytes_to_do;
 
         /* read more raw data */
         if (!data->buffer_full) {
             data->bytes_in_buffer = read_streamfile(data->buffer,stream->offset,data->buffer_size,stream->streamfile);
 
             /* end of stream, fill rest with 0s */
-			if (!data->bytes_in_buffer) {
+			if (data->bytes_in_buffer <= 0) {
+			    VGM_ASSERT(samples_to_do < samples_done, "MPEG: end of stream, filling %i\n", (samples_to_do - samples_done));
 				memset(outbuf + samples_done * channels, 0, (samples_to_do - samples_done) * channels * sizeof(sample));
 				break;
 			}
@@ -256,30 +257,26 @@ static void decode_mpeg_standard(VGMSTREAMCHANNEL *stream, mpeg_codec_data * dat
             stream->offset += data->bytes_in_buffer;
         }
 
+        bytes_to_do = (samples_to_do-samples_done)*sizeof(sample)*channels;
+
         /* feed new raw data to the decoder if needed, copy decoded results to output */
         if (!data->buffer_used) {
-            rc = mpg123_decode(m,
-                    data->buffer,data->bytes_in_buffer,
-                    (unsigned char *)(outbuf+samples_done*channels),
-                    (samples_to_do-samples_done)*sizeof(sample)*channels,
-                    &bytes_done);
+            rc = mpg123_decode(data->m, data->buffer,data->bytes_in_buffer, outbytes, bytes_to_do, &bytes_done);
             data->buffer_used = 1;
         }
         else {
-            rc = mpg123_decode(m,
-                    NULL,0,
-                    (unsigned char *)(outbuf+samples_done*channels),
-                    (samples_to_do-samples_done)*sizeof(sample)*channels,
-                    &bytes_done);
+            rc = mpg123_decode(data->m, NULL,0, outbytes, bytes_to_do, &bytes_done);
         }
 
         /* not enough raw data, request more */
         if (rc == MPG123_NEED_MORE) {
             data->buffer_full = 0;
         }
+        VGM_ASSERT(rc != MPG123_NEED_MORE && rc != MPG123_OK, "MPEG: error %i\n", rc);
 
         /* update copied samples */
         samples_done += bytes_done/sizeof(sample)/channels;
+        outbytes += bytes_done;
     }
 }
 

@@ -17,6 +17,8 @@
 #define IDC_DOWNMIX_CHANNELS            1010
 #define IDC_TAGFILE_DISABLE             1011
 #define IDC_OVERRIDE_TITLE              1012
+#define IDC_EXTS_UNKNOWN_ON             1015
+#define IDC_EXTS_COMMON_ON              1016
 
 // Next default values for new objects
 //

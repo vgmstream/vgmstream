@@ -2,7 +2,7 @@
 #include "../coding/coding.h"
 
 
-typedef enum { PSX, DSP, XBOX, WMA, IMA } strwav_codec;
+typedef enum { PSX, DSP, XBOX, WMA, IMA, XMA2 } strwav_codec;
 typedef struct {
     int32_t channels;
     int32_t sample_rate;
@@ -32,12 +32,15 @@ VGMSTREAM * init_vgmstream_str_wav(STREAMFILE *streamFile) {
 
 
     /* checks */
-    if (!check_extensions(streamFile, "str"))
+    if (!check_extensions(streamFile, "str,data"))
         goto fail;
 
     /* get external header (extracted with filenames from bigfiles) */
     {
-        /* try with standard file.wav.str=body + file.wav=header (or file.wma.str + file.wma for Fuzion Frenzy (Xbox)) */
+        /* try body+header combos:
+         * - file.wav.str=body + file.wav=header [common]
+         * - file.wma.str + file.wma [Fuzion Frenzy (Xbox)]
+         * - file.data + file (extensionless) [SpongeBob's Surf & Skate Roadtrip (X360)] */
         char basename[PATH_LIMIT];
         get_streamfile_basename(streamFile,basename,PATH_LIMIT);
         streamHeader = open_streamfile_by_filename(streamFile, basename);
@@ -51,7 +54,8 @@ VGMSTREAM * init_vgmstream_str_wav(STREAMFILE *streamFile) {
             }
         }
         else {
-            if (!check_extensions(streamHeader, "wav,wma"))
+            /* header must have known extensions */
+            if (!check_extensions(streamHeader, "wav,wma,"))
                 goto fail;
         }
     }
@@ -66,7 +70,7 @@ VGMSTREAM * init_vgmstream_str_wav(STREAMFILE *streamFile) {
         goto fail;
 
     /* &0x01: loop?, &0x02: non-mono?, &0x04: stream???, &0x08: unused? */
-    if (strwav.flags != 0x07 && strwav.flags != 0x06 && strwav.flags != 0x05 && strwav.flags != 0x04 && strwav.flags != 0x02) {
+    if (strwav.flags > 0x07) {
         VGM_LOG("STR+WAV: unknown flags\n");
         goto fail;
     }
@@ -146,6 +150,27 @@ VGMSTREAM * init_vgmstream_str_wav(STREAMFILE *streamFile) {
             if (vgmstream->channels != ffmpeg_data->channels)
                 goto fail;
 
+            break;
+        }
+#endif
+
+#ifdef VGM_USE_FFMPEG
+        case XMA2: {
+            uint8_t buf[0x100];
+            size_t stream_size;
+            size_t bytes, block_size, block_count;
+
+            stream_size = get_streamfile_size(streamFile);
+            block_size = 0x10000;
+            block_count = stream_size / block_size; /* not accurate? */
+
+            bytes = ffmpeg_make_riff_xma2(buf,0x100, strwav.num_samples, stream_size, strwav.channels, strwav.sample_rate, block_count, block_size);
+            vgmstream->codec_data = init_ffmpeg_header_offset(streamFile, buf,bytes, 0x00,stream_size);
+            if (!vgmstream->codec_data) goto fail;
+            vgmstream->coding_type = coding_FFmpeg;
+            vgmstream->layout_type = layout_none;
+
+            xma_fix_raw_samples(vgmstream, streamFile, 0x00,stream_size, 0, 0,0);
             break;
         }
 #endif
@@ -431,7 +456,7 @@ static int parse_header(STREAMFILE* streamHeader, strwav_header* strwav) {
     if ((read_32bitBE(0x04,streamHeader) == 0x00000800 ||
             read_32bitBE(0x04,streamHeader) == 0x00000700) && /* rare? */
          read_32bitLE(0x08,streamHeader) != 0x00000000 &&
-         read_32bitBE(0x0c,streamHeader) == header_size && /* variable per DSP header */
+         read_32bitBE(0x0c,streamHeader) == header_size && /* variable per header */
          read_32bitBE(0x7c,streamHeader) != 0 && /* has DSP header */
          read_32bitBE(0x38,streamHeader) == read_32bitBE(read_32bitBE(0x7c,streamHeader)+0x38,streamHeader) /* sample rate vs 1st DSP header */
          ) {
@@ -455,7 +480,7 @@ static int parse_header(STREAMFILE* streamHeader, strwav_header* strwav) {
     if ((read_32bitBE(0x04,streamHeader) == 0x00000800 ||
             read_32bitBE(0x04,streamHeader) == 0x00000700) && /* rare? */
          read_32bitLE(0x08,streamHeader) != 0x00000000 &&
-         read_32bitBE(0x0c,streamHeader) == header_size && /* variable per DSP header */
+         read_32bitBE(0x0c,streamHeader) == header_size && /* variable per header */
          read_32bitBE(0x7c,streamHeader) == 0 /* not DSP header */
          ) {
         strwav->loop_start  = 0; //read_32bitLE(0x24,streamHeader); //not ok?
@@ -470,6 +495,28 @@ static int parse_header(STREAMFILE* streamHeader, strwav_header* strwav) {
 
         strwav->codec = PSX;
         //;VGM_LOG("STR+WAV: header HOTD:O (PS3)\n");
+        return 1;
+    }
+
+    /* SpongeBob's Surf & Skate Roadtrip (X360)[2011] */
+    if ((read_32bitBE(0x04,streamHeader) == 0x00000800 || /* used? */
+            read_32bitBE(0x04,streamHeader) == 0x00000700) &&
+         read_32bitLE(0x08,streamHeader) != 0x00000000 &&
+         read_32bitBE(0x0c,streamHeader) == 0x124 && /* variable, not sure about final calc */
+         read_32bitBE(0x8c,streamHeader) == 0x180 /* encoder delay actually */
+         //0x4c is data_size + 0x210
+         ) {
+        strwav->loop_start  = 0; //read_32bitLE(0x24,streamHeader); //not ok?
+        strwav->num_samples = read_32bitBE(0x30,streamHeader);//todo sometimes wrong?
+        strwav->loop_end    = read_32bitBE(0x34,streamHeader);
+        strwav->sample_rate = read_32bitBE(0x38,streamHeader);
+        strwav->flags       = read_32bitBE(0x3c,streamHeader);
+
+        strwav->channels    = read_32bitBE(0x70,streamHeader); /* multichannel XMA */
+        strwav->loop_flag   = strwav->flags & 0x01;
+
+        strwav->codec = XMA2;
+        //;VGM_LOG("STR+WAV: header SBSSR (X360)\n");
         return 1;
     }
 

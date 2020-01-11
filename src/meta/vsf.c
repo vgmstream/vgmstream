@@ -1,51 +1,57 @@
 #include "meta.h"
-#include "../util.h"
+#include "../coding/coding.h"
 
-/* VSF (from Musashi: Samurai Legend) */
-VGMSTREAM * init_vgmstream_ps2_vsf(STREAMFILE *streamFile) {
+
+/* VSF - from Square Enix PS2 games between 2004-2006 [Musashi: Samurai Legend (PS2), Front Mission 5 (PS2)] */
+VGMSTREAM * init_vgmstream_vsf(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset;
-    int loop_flag, channel_count;
+    int loop_flag, channel_count, flags, pitch;
+    size_t channel_size, loop_start;
 
-    /* check extension, case insensitive */
+    /* checks */
+    /* .vsf: header id and actual extension [Code Age Commanders (PS2)] */
     if (!check_extensions(streamFile, "vsf"))
         goto fail;
-
-    /* check header */
-    if (read_32bitBE(0x00,streamFile) != 0x56534600) /* "VSF" */
+    if (read_32bitBE(0x00,streamFile) != 0x56534600) /* "VSF\0" */
         goto fail;
 
-    loop_flag = (read_32bitLE(0x1c,streamFile)==0x13);
-    if(read_8bit(0x1C,streamFile)==0x0) 
-        channel_count = 1;
-    else
-        channel_count = 2;
+    /* 0x04: data size */
+    /* 0x08: file number? */
+    /* 0x0c: version? (always 0x00010000) */
+    channel_size = read_32bitLE(0x10,streamFile) * 0x10;
+    /* 0x14: frame size */
+    loop_start = read_32bitLE(0x18,streamFile) * 0x10; /* also in channel size */
+    flags = read_32bitLE(0x1c,streamFile);
+    pitch = read_32bitLE(0x20,streamFile);
+    /* 0x24: volume? */
+    /* 0x28: ? (may be 0) */
+    /* rest is 0xFF */
 
-   /* build the VGMSTREAM */
+    channel_count = (flags & (1<<0)) ? 2 : 1;
+    loop_flag = (flags & (1<<1));
+    start_offset = (flags & (1<<8)) ? 0x80 : 0x800;
+    /* flag (1<<4) is common but no apparent differences, no other flags known */
+
+
+    /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-   /* fill in the vital statistics */
-    start_offset = 0x800;
-   vgmstream->channels = channel_count;
-    vgmstream->sample_rate = 44100;
-    vgmstream->coding_type = coding_PSX;
-    vgmstream->num_samples = read_32bitLE(0x10,streamFile)*28;
-    if (loop_flag) {
-        vgmstream->loop_start_sample = read_32bitLE(0x18,streamFile)*28;
-       vgmstream->loop_end_sample = vgmstream->num_samples;
-    }
+    vgmstream->sample_rate = round10((48000 * pitch) / 4096);
+    vgmstream->num_samples = ps_bytes_to_samples(channel_size, 1);
+    vgmstream->loop_start_sample = ps_bytes_to_samples(loop_start, 1);
+    vgmstream->loop_end_sample = vgmstream->num_samples;
 
+    vgmstream->coding_type = coding_PSX;
     vgmstream->layout_type = layout_interleave;
     vgmstream->interleave_block_size = 0x400;
-    vgmstream->meta_type = meta_PS2_VSF;
+    vgmstream->meta_type = meta_VSF;
 
-    /* open the file for reading */
     if (!vgmstream_open_stream(vgmstream, streamFile, start_offset))
         goto fail;
     return vgmstream;
 
-    /* clean up anything we may have opened */
 fail:
     close_vgmstream(vgmstream);
     return NULL;

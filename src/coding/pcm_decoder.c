@@ -206,15 +206,11 @@ void decode_alaw(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacin
 
 void decode_pcmfloat(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int big_endian) {
     int i, sample_count;
-    int32_t (*read_32bit)(off_t,STREAMFILE*) = big_endian ? read_32bitBE : read_32bitLE;
+    float (*read_f32)(off_t,STREAMFILE*) = big_endian ? read_f32be : read_f32le;
 
     for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
-        uint32_t sample_int = read_32bit(stream->offset+i*4,stream->streamfile);
-        float* sample_float;
-        int sample_pcm;
-
-        sample_float = (float*)&sample_int;
-        sample_pcm = (int)floor((*sample_float) * 32767.f + .5f);
+        float sample_float = read_f32(stream->offset+i*4,stream->streamfile);
+        int sample_pcm = (int)floor(sample_float * 32767.f + .5f);
 
         outbuf[sample_count] = clamp16(sample_pcm);
     }

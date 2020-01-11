@@ -9,7 +9,7 @@ static VGMSTREAM * init_vgmstream_opus(STREAMFILE *streamFile, meta_t meta_type,
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset;
     int loop_flag = 0, channel_count;
-    off_t data_offset;
+    off_t data_offset, multichannel_offset = 0;
     size_t data_size, skip = 0;
 
 
@@ -21,6 +21,11 @@ static VGMSTREAM * init_vgmstream_opus(STREAMFILE *streamFile, meta_t meta_type,
     data_offset = offset + read_32bitLE(offset + 0x10, streamFile);
     skip = read_16bitLE(offset + 0x1c, streamFile);
     /* 0x1e: ? (seen in Lego Movie 2 (Switch)) */
+
+    /* recent >2ch info [Clannad (Switch)] */
+    if ((uint32_t)read_32bitLE(offset + 0x20, streamFile) == 0x80000005) {
+        multichannel_offset = offset + 0x20;
+    }
 
     if ((uint32_t)read_32bitLE(data_offset, streamFile) != 0x80000004)
         goto fail;
@@ -37,7 +42,8 @@ static VGMSTREAM * init_vgmstream_opus(STREAMFILE *streamFile, meta_t meta_type,
 
     vgmstream->meta_type = meta_type;
     vgmstream->sample_rate = read_32bitLE(offset + 0x0c,streamFile);
-
+    if (vgmstream->sample_rate == 16000)
+	    vgmstream->sample_rate = 48000; // Grandia HD Collection contains a false sample_rate in header
     vgmstream->num_samples = num_samples;
     vgmstream->loop_start_sample = loop_start;
     vgmstream->loop_end_sample = loop_end;
@@ -45,10 +51,26 @@ static VGMSTREAM * init_vgmstream_opus(STREAMFILE *streamFile, meta_t meta_type,
 
 #ifdef VGM_USE_FFMPEG
     {
-        vgmstream->codec_data = init_ffmpeg_switch_opus(streamFile, start_offset,data_size, vgmstream->channels, skip, vgmstream->sample_rate);
+        opus_config cfg = {0};
+
+        cfg.channels = vgmstream->channels;
+        cfg.skip = skip;
+        cfg.sample_rate = vgmstream->sample_rate;
+
+        if (multichannel_offset && vgmstream->channels <= 8) {
+            int i;
+            cfg.stream_count = read_8bit(multichannel_offset + 0x08,streamFile);
+            cfg.coupled_count = read_8bit(multichannel_offset + 0x09,streamFile);
+            for (i = 0; i < vgmstream->channels; i++) {
+                cfg.channel_mapping[i] = read_8bit(multichannel_offset + 0x0a + i,streamFile);
+            }
+        }
+
+        vgmstream->codec_data = init_ffmpeg_switch_opus_config(streamFile, start_offset,data_size, &cfg);
         if (!vgmstream->codec_data) goto fail;
         vgmstream->coding_type = coding_FFmpeg;
         vgmstream->layout_type = layout_none;
+        vgmstream->channel_layout = ffmpeg_get_channel_layout(vgmstream->codec_data);
 
         if (vgmstream->num_samples == 0) {
             vgmstream->num_samples = switch_opus_get_samples(start_offset, data_size, streamFile) - skip;
@@ -364,6 +386,53 @@ VGMSTREAM * init_vgmstream_opus_prototype(STREAMFILE *streamFile) {
         loop_end = read_32bitLE(0x10, streamFile);
     }
 
+    return init_vgmstream_opus(streamFile, meta_OPUS, offset, num_samples, loop_start, loop_end);
+fail:
+    return NULL;
+}
+
+/* Edelweiss variation [Astebreed (Switch)] */
+VGMSTREAM * init_vgmstream_opus_opusnx(STREAMFILE *streamFile) {
+    off_t offset = 0;
+    int num_samples = 0, loop_start = 0, loop_end = 0;
+
+    /* checks */
+    if (!check_extensions(streamFile, "opus,lopus"))
+        goto fail;
+    if (read_64bitBE(0x00, streamFile) != 0x4F5055534E580000) /* "OPUSNX\0\0" */
+        goto fail;
+
+    offset = 0x10;
+    num_samples = 0; //read_32bitLE(0x08, streamFile); /* samples with encoder delay */
+    if (read_32bitLE(0x0c, streamFile) != 0)
+        goto fail;
+
+    return init_vgmstream_opus(streamFile, meta_OPUS, offset, num_samples, loop_start, loop_end);
+fail:
+    return NULL;
+}
+
+/* Square Enix variation [Dragon Quest I-III (Switch)] */
+VGMSTREAM * init_vgmstream_opus_sqex(STREAMFILE *streamFile) {
+    off_t offset = 0;
+    int num_samples = 0, loop_start = 0, loop_end = 0, loop_flag;
+    
+    /* checks */
+    if (!check_extensions(streamFile, "opus,lopus"))
+        goto fail;
+    if (read_64bitBE(0x00, streamFile) != 0x0100000002000000)
+        goto fail;
+    
+    offset = read_32bitLE(0x0C, streamFile);
+    num_samples = read_32bitLE(0x1C, streamFile);
+    
+    /* Check if there's a loop end value to determine loop_flag*/
+    loop_flag = read_32bitLE(0x18, streamFile);
+    if (loop_flag) {
+        loop_start = read_32bitLE(0x14, streamFile);
+        loop_end = read_32bitLE(0x18, streamFile);
+    }
+    
     return init_vgmstream_opus(streamFile, meta_OPUS, offset, num_samples, loop_start, loop_end);
 fail:
     return NULL;

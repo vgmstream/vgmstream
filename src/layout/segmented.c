@@ -2,7 +2,7 @@
 #include "../vgmstream.h"
 #include "../mixing.h"
 
-#define VGMSTREAM_MAX_SEGMENTS 255
+#define VGMSTREAM_MAX_SEGMENTS 1024
 #define VGMSTREAM_SEGMENT_SAMPLE_BUFFER 8192
 
 
@@ -203,17 +203,28 @@ fail:
 }
 
 void free_layout_segmented(segmented_layout_data *data) {
-    int i;
+    int i, j;
 
     if (!data)
         return;
 
     if (data->segments) {
         for (i = 0; i < data->segment_count; i++) {
+            int is_repeat = 0;
+
+            /* segments are allowed to be repeated so don't close the same thing twice */
+            for (j = 0; j < i; j++) {
+                if (data->segments[i] == data->segments[j])
+                    is_repeat = 1;
+            }
+            if (is_repeat)
+                continue;
+
             close_vgmstream(data->segments[i]);
         }
         free(data->segments);
     }
+    free(data->buffer);
     free(data);
 }
 

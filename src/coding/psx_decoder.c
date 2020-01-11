@@ -2,12 +2,12 @@
 
 
 /* PS-ADPCM table, defined as rational numbers (as in the spec) */
-static const double ps_adpcm_coefs_f[5][2] = {
-        {   0.0        ,   0.0        },
-        {  60.0 / 64.0 ,   0.0        },
-        { 115.0 / 64.0 , -52.0 / 64.0 },
-        {  98.0 / 64.0 , -55.0 / 64.0 },
-        { 122.0 / 64.0 , -60.0 / 64.0 },
+static const float ps_adpcm_coefs_f[5][2] = {
+        { 0.0      ,  0.0      }, //{   0.0        ,   0.0        },
+        { 0.9375   ,  0.0      }, //{  60.0 / 64.0 ,   0.0        },
+        { 1.796875 , -0.8125   }, //{ 115.0 / 64.0 , -52.0 / 64.0 },
+        { 1.53125  , -0.859375 }, //{  98.0 / 64.0 , -55.0 / 64.0 },
+        { 1.90625  , -0.9375   }, //{ 122.0 / 64.0 , -60.0 / 64.0 },
 };
 
 /* PS-ADPCM table, defined as spec_coef*64 (for int implementations) */
@@ -44,12 +44,14 @@ static const int ps_adpcm_coefs_i[5][2] = {
 
 /* standard PS-ADPCM (float math version) */
 void decode_psx(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int is_badflags) {
+    uint8_t frame[0x10] = {0};
     off_t frame_offset;
     int i, frames_in, sample_count = 0;
     size_t bytes_per_frame, samples_per_frame;
     uint8_t coef_index, shift_factor, flag;
     int32_t hist1 = stream->adpcm_history1_32;
     int32_t hist2 = stream->adpcm_history2_32;
+
 
     /* external interleave (fixed size), mono */
     bytes_per_frame = 0x10;
@@ -58,10 +60,11 @@ void decode_psx(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing
     first_sample = first_sample % samples_per_frame;
 
     /* parse frame header */
-    frame_offset = stream->offset + bytes_per_frame*frames_in;
-    coef_index   = ((uint8_t)read_8bit(frame_offset+0x00,stream->streamfile) >> 4) & 0xf;
-    shift_factor = ((uint8_t)read_8bit(frame_offset+0x00,stream->streamfile) >> 0) & 0xf;
-    flag = (uint8_t)read_8bit(frame_offset+0x01,stream->streamfile); /* only lower nibble needed */
+    frame_offset = stream->offset + bytes_per_frame * frames_in;
+    read_streamfile(frame, frame_offset, bytes_per_frame, stream->streamfile); /* ignore EOF errors */
+    coef_index   = (frame[0] >> 4) & 0xf;
+    shift_factor = (frame[0] >> 0) & 0xf;
+    flag = frame[1]; /* only lower nibble needed */
 
     VGM_ASSERT_ONCE(coef_index > 5 || shift_factor > 12, "PS-ADPCM: incorrect coefs/shift at %x\n", (uint32_t)frame_offset);
     if (coef_index > 5) /* needed by inFamous (PS3) (maybe it's supposed to use more filters?) */
@@ -73,18 +76,19 @@ void decode_psx(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing
         flag = 0;
     VGM_ASSERT_ONCE(flag > 7,"PS-ADPCM: unknown flag at %x\n", (uint32_t)frame_offset); /* meta should use PSX-badflags */
 
+
     /* decode nibbles */
     for (i = first_sample; i < first_sample + samples_to_do; i++) {
         int32_t sample = 0;
 
         if (flag < 0x07) { /* with flag 0x07 decoded sample must be 0 */
-            uint8_t nibbles = (uint8_t)read_8bit(frame_offset+0x02+i/2,stream->streamfile);
+            uint8_t nibbles = frame[0x02 + i/2];
 
             sample = i&1 ? /* low nibble first */
                     (nibbles >> 4) & 0x0f :
                     (nibbles >> 0) & 0x0f;
             sample = (int16_t)((sample << 12) & 0xf000) >> shift_factor; /* 16b sign extend + scale */
-            sample = (int)(sample + ps_adpcm_coefs_f[coef_index][0]*hist1 + ps_adpcm_coefs_f[coef_index][1]*hist2);
+            sample = (int32_t)(sample + ps_adpcm_coefs_f[coef_index][0]*hist1 + ps_adpcm_coefs_f[coef_index][1]*hist2);
             sample = clamp16(sample);
         }
 
@@ -101,10 +105,11 @@ void decode_psx(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing
 
 
 /* PS-ADPCM with configurable frame size and no flag (int math version).
- * Found in some PC/PS3 games (FF XI in sizes 3/5/9/41, Afrika in size 4, Blur/James Bond in size 33, etc).
+ * Found in some PC/PS3 games (FF XI in sizes 0x3/0x5/0x9/0x41, Afrika in size 0x4, Blur/James Bond in size 0x33, etc).
  *
  * Uses int math to decode, which seems more likely (based on FF XI PC's code in Moogle Toolbox). */
 void decode_psx_configurable(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int frame_size) {
+    uint8_t frame[0x50] = {0};
     off_t frame_offset;
     int i, frames_in, sample_count = 0;
     size_t bytes_per_frame, samples_per_frame;
@@ -112,16 +117,18 @@ void decode_psx_configurable(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int c
     int32_t hist1 = stream->adpcm_history1_32;
     int32_t hist2 = stream->adpcm_history2_32;
 
+
     /* external interleave (variable size), mono */
     bytes_per_frame = frame_size;
-    samples_per_frame = (bytes_per_frame - 0x01) * 2; /* always 28 */
+    samples_per_frame = (bytes_per_frame - 0x01) * 2;
     frames_in = first_sample / samples_per_frame;
     first_sample = first_sample % samples_per_frame;
 
     /* parse frame header */
-    frame_offset = stream->offset + bytes_per_frame*frames_in;
-    coef_index   = ((uint8_t)read_8bit(frame_offset+0x00,stream->streamfile) >> 4) & 0xf;
-    shift_factor = ((uint8_t)read_8bit(frame_offset+0x00,stream->streamfile) >> 0) & 0xf;
+    frame_offset = stream->offset + bytes_per_frame * frames_in;
+    read_streamfile(frame, frame_offset, bytes_per_frame, stream->streamfile); /* ignore EOF errors */
+    coef_index   = (frame[0] >> 4) & 0xf;
+    shift_factor = (frame[0] >> 0) & 0xf;
 
     VGM_ASSERT_ONCE(coef_index > 5 || shift_factor > 12, "PS-ADPCM: incorrect coefs/shift at %x\n", (uint32_t)frame_offset);
     if (coef_index > 5) /* needed by Afrika (PS3) (maybe it's supposed to use more filters?) */
@@ -129,10 +136,11 @@ void decode_psx_configurable(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int c
     if (shift_factor > 12)
         shift_factor = 9; /* supposedly, from Nocash PSX docs */
 
+
     /* decode nibbles */
     for (i = first_sample; i < first_sample + samples_to_do; i++) {
         int32_t sample = 0;
-        uint8_t nibbles = (uint8_t)read_8bit(frame_offset+0x01+i/2,stream->streamfile);
+        uint8_t nibbles = frame[0x01 + i/2];
 
         sample = i&1 ? /* low nibble first */
                 (nibbles >> 4) & 0x0f :
@@ -146,6 +154,61 @@ void decode_psx_configurable(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int c
 
         hist2 = hist1;
         hist1 = sample;
+    }
+
+    stream->adpcm_history1_32 = hist1;
+    stream->adpcm_history2_32 = hist2;
+}
+
+/* PS-ADPCM from Pivotal games, exactly like psx_cfg but with float math (reverse engineered from the exe) */
+void decode_psx_pivotal(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int frame_size) {
+    uint8_t frame[0x50] = {0};
+    off_t frame_offset;
+    int i, frames_in, sample_count = 0;
+    size_t bytes_per_frame, samples_per_frame;
+    uint8_t coef_index, shift_factor;
+    int32_t hist1 = stream->adpcm_history1_32;
+    int32_t hist2 = stream->adpcm_history2_32;
+    float scale;
+
+
+    /* external interleave (variable size), mono */
+    bytes_per_frame = frame_size;
+    samples_per_frame = (bytes_per_frame - 0x01) * 2;
+    frames_in = first_sample / samples_per_frame;
+    first_sample = first_sample % samples_per_frame;
+
+    /* parse frame header */
+    frame_offset = stream->offset + bytes_per_frame * frames_in;
+    read_streamfile(frame, frame_offset, bytes_per_frame, stream->streamfile); /* ignore EOF errors */
+    coef_index   = (frame[0] >> 4) & 0xf;
+    shift_factor = (frame[0] >> 0) & 0xf;
+
+    VGM_ASSERT_ONCE(coef_index > 5 || shift_factor > 12, "PS-ADPCM-piv: incorrect coefs/shift\n");
+    if (coef_index > 5) /* just in case */
+        coef_index = 5;
+    if (shift_factor > 12) /* same */
+        shift_factor = 12;
+
+    scale = (float)(1.0 / (double)(1 << shift_factor));
+
+
+    /* decode nibbles */
+    for (i = first_sample; i < first_sample + samples_to_do; i++) {
+        int32_t sample = 0;
+        uint8_t nibbles = frame[0x01 + i/2];
+
+        sample = !(i&1) ? /* low nibble first */
+                (nibbles >> 0) & 0x0f :
+                (nibbles >> 4) & 0x0f;
+        sample = (int16_t)((sample << 12) & 0xf000); /* 16b sign extend + default scale */
+        sample = sample*scale + ps_adpcm_coefs_f[coef_index][0]*hist1 + ps_adpcm_coefs_f[coef_index][1]*hist2; /* actually substracts negative coefs but whatevs */
+
+        outbuf[sample_count] = clamp16(sample);
+        sample_count += channelspacing;
+
+        hist2 = hist1;
+        hist1 = sample; /* not clamped but no difference */
     }
 
     stream->adpcm_history1_32 = hist1;
@@ -167,7 +230,7 @@ void decode_psx_configurable(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int c
  * - 0x7 (0111): End marker and don't decode
  * - 0x8+(1NNN): Not valid
  */
-static int ps_find_loop_offsets_internal(STREAMFILE *streamFile, off_t start_offset, size_t data_size, int channels, size_t interleave, int32_t * out_loop_start, int32_t * out_loop_end, int config) {
+static int ps_find_loop_offsets_internal(STREAMFILE *sf, off_t start_offset, size_t data_size, int channels, size_t interleave, int32_t * p_loop_start, int32_t * p_loop_end, int config) {
     int num_samples = 0, loop_start = 0, loop_end = 0;
     int loop_start_found = 0, loop_end_found = 0;
     off_t offset = start_offset;
@@ -176,11 +239,11 @@ static int ps_find_loop_offsets_internal(STREAMFILE *streamFile, off_t start_off
     int detect_full_loops = config & 1;
 
 
-    if (data_size == 0 || channels == 0 || (channels > 0 && interleave == 0))
+    if (data_size == 0 || channels == 0 || (channels > 1 && interleave == 0))
         return 0;
 
     while (offset < max_offset) {
-        uint8_t flag = (uint8_t)read_8bit(offset+0x01,streamFile) & 0x0F; /* lower nibble only (for HEVAG) */
+        uint8_t flag = read_u8(offset+0x01, sf) & 0x0F; /* lower nibble only (for HEVAG) */
 
         /* theoretically possible and would use last 0x06 */
         VGM_ASSERT_ONCE(loop_start_found && flag == 0x06, "PS LOOPS: multiple loop start found at %x\n", (uint32_t)offset);
@@ -197,7 +260,7 @@ static int ps_find_loop_offsets_internal(STREAMFILE *streamFile, off_t start_off
             /* ignore strange case in Commandos (PS2), has many loop starts and ends */
             if (channels == 1
                     && offset + 0x10 < max_offset
-                    && ((uint8_t)read_8bit(offset+0x11,streamFile) & 0x0F) == 0x06) {
+                    && (read_u8(offset + 0x11, sf) & 0x0F) == 0x06) {
                 loop_end = 0;
                 loop_end_found = 0;
             }
@@ -208,25 +271,22 @@ static int ps_find_loop_offsets_internal(STREAMFILE *streamFile, off_t start_off
 
         /* hack for some games that don't have loop points but do full loops,
          * if there is a "partial" 0x07 end flag pretend it wants to loop
-         * (sometimes this will loop non-looping tracks, and won't loop all repeating files) */
+         * (sometimes this will loop non-looping tracks, and won't loop all repeating files)
+         * seems only used in Ratchet & Clank series and Ecco the Dolphin */
         if (flag == 0x01 && detect_full_loops) {
-            static const uint8_t eof1[0x10] = {0x00,0x07,0x77,0x77,0x77,0x77,0x77,0x77,0x77,0x77,0x77,0x77,0x77,0x77,0x77,0x77}; /* common */
-            static const uint8_t eof2[0x10] = {0x00,0x07,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
-          //static const uint8_t eofx[0x10] = {0x07,0x00,0x77,0x77,0x77,0x77,0x77,0x77,0x77,0x77,0x77,0x77,0x77,0x77,0x77,0x77}; /* sometimes loops */
-          //static const uint8_t eofx[0x10] = {0xNN,0x07,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00}; /* sometimes loops */
+            static const uint8_t eof[0x10] = {0xFF,0x07,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
             uint8_t buf[0x10];
+            uint8_t hdr = read_u8(offset + 0x00, sf);
 
-            int read = read_streamfile(buf,offset+0x10,0x10,streamFile);
-
+            int read = read_streamfile(buf, offset+0x10, sizeof(buf), sf);
             if (read > 0
-                    /* also test some extra stuff */
-                    && buf[0] != 0x00 /* skip padding */
-                    && buf[0] != 0x0c
-                    && buf[0] != 0x3c /* skip Ecco the Dolphin (PS2), Ratchet & Clank 2 (PS2), lame hack */
+                    && buf[0] != 0x00 /* ignore blank frame */
+                    && buf[0] != 0x0c /* ignore silent frame */
+                    && buf[0] != 0x3c /* ignore some L-R tracks with different end flags */
                     ) {
 
-                /* assume full loop if there isn't an EOF tag after current frame */
-                if (memcmp(buf,eof1,0x10) != 0 && memcmp(buf,eof2,0x10) != 0) {
+                /* assume full loop with repeated frame header and null frame */
+                if (hdr == buf[0] && memcmp(buf+1, eof+1, sizeof(buf) - 1) == 0) {
                     loop_start = 28; /* skip first frame as it's null in PS-ADPCM */
                     loop_end = num_samples + 28; /* loop end after this frame */
                     loop_start_found = 1;
@@ -255,20 +315,20 @@ static int ps_find_loop_offsets_internal(STREAMFILE *streamFile, off_t start_off
 
     /* From Sony's docs: if only loop_end is set loop back to "phoneme region start", but in practice doesn't */
     if (loop_start_found && loop_end_found) {
-        *out_loop_start = loop_start;
-        *out_loop_end = loop_end;
+        *p_loop_start = loop_start;
+        *p_loop_end = loop_end;
         return 1;
     }
 
     return 0; /* no loop */
 }
 
-int ps_find_loop_offsets(STREAMFILE *streamFile, off_t start_offset, size_t data_size, int channels, size_t interleave, int32_t * out_loop_start, int32_t * out_loop_end) {
-    return ps_find_loop_offsets_internal(streamFile, start_offset, data_size, channels, interleave, out_loop_start, out_loop_end, 0);
+int ps_find_loop_offsets(STREAMFILE *sf, off_t start_offset, size_t data_size, int channels, size_t interleave, int32_t *p_loop_start, int32_t *p_loop_end) {
+    return ps_find_loop_offsets_internal(sf, start_offset, data_size, channels, interleave, p_loop_start, p_loop_end, 0);
 }
 
-int ps_find_loop_offsets_full(STREAMFILE *streamFile, off_t start_offset, size_t data_size, int channels, size_t interleave, int32_t * out_loop_start, int32_t * out_loop_end) {
-    return ps_find_loop_offsets_internal(streamFile, start_offset, data_size, channels, interleave, out_loop_start, out_loop_end, 1);
+int ps_find_loop_offsets_full(STREAMFILE *sf, off_t start_offset, size_t data_size, int channels, size_t interleave, int32_t *p_loop_start, int32_t *p_loop_end) {
+    return ps_find_loop_offsets_internal(sf, start_offset, data_size, channels, interleave, p_loop_start, p_loop_end, 1);
 }
 
 size_t ps_find_padding(STREAMFILE *streamFile, off_t start_offset, size_t data_size, int channels, size_t interleave, int discard_empty) {
@@ -339,6 +399,25 @@ size_t ps_bytes_to_samples(size_t bytes, int channels) {
 }
 
 size_t ps_cfg_bytes_to_samples(size_t bytes, size_t frame_size, int channels) {
-    return bytes / channels / frame_size * 28;
+    int samples_per_frame = (frame_size - 0x01) * 2;
+    return bytes / channels / frame_size * samples_per_frame;
 }
 
+/* test PS-ADPCM frames for correctness */
+int ps_check_format(STREAMFILE *streamFile, off_t offset, size_t max) {
+    off_t max_offset = offset + max;
+    if (max_offset > get_streamfile_size(streamFile))
+        max_offset = get_streamfile_size(streamFile);
+
+    while (offset < max_offset) {
+        uint8_t predictor = (read_8bit(offset+0x00,streamFile) >> 4) & 0x0f;
+        uint8_t flags     =  read_8bit(offset+0x01,streamFile);
+
+        if (predictor > 5 || flags > 7) {
+            return 0;
+        }
+        offset += 0x10;
+    }
+
+    return 1;
+}

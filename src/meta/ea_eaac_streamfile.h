@@ -1,6 +1,7 @@
 #ifndef _EA_EAAC_STREAMFILE_H_
 #define _EA_EAAC_STREAMFILE_H_
 #include "../streamfile.h"
+#include "ea_eaac_opus_streamfile.h"
 
 #define XMA_FRAME_SIZE 0x800
 
@@ -40,6 +41,7 @@ static size_t eaac_io_read(STREAMFILE *streamfile, uint8_t *dest, off_t offset, 
     /* previous offset: re-start as we can't map logical<>physical offsets
      * (kinda slow as it trashes buffers, but shouldn't happen often) */
     if (offset < data->logical_offset) {
+        ;VGM_LOG("EAAC IO: restart offset=%lx + %x, po=%lx, lo=%lx\n", offset, length, data->physical_offset, data->logical_offset);
         data->physical_offset = data->stream_offset;
         data->logical_offset = 0x00;
         data->data_size = 0;
@@ -243,10 +245,9 @@ static size_t eaac_io_size(STREAMFILE *streamfile, eaac_io_data* data) {
  * - EATrax: ATRAC9 frames can be split between blooks
  * - EAOpus: multiple Opus packets of frame size + Opus data per block
  */
-static STREAMFILE* setup_eaac_streamfile(STREAMFILE *streamFile, int version, int codec, int streamed, int stream_number, int stream_count, off_t stream_offset) {
-    STREAMFILE *temp_streamFile = NULL, *new_streamFile = NULL;
+static STREAMFILE* setup_eaac_audio_streamfile(STREAMFILE *sf, int version, int codec, int streamed, int stream_number, int stream_count, off_t stream_offset) {
+    STREAMFILE *new_sf = NULL;
     eaac_io_data io_data = {0};
-    size_t io_data_size = sizeof(eaac_io_data);
 
     io_data.version = version;
     io_data.codec = codec;
@@ -255,26 +256,15 @@ static STREAMFILE* setup_eaac_streamfile(STREAMFILE *streamFile, int version, in
     io_data.stream_count = stream_count;
     io_data.stream_offset = stream_offset;
     io_data.physical_offset = stream_offset;
-    io_data.logical_size = eaac_io_size(streamFile, &io_data); /* force init */
+    io_data.logical_size = eaac_io_size(sf, &io_data); /* force init */
 
     /* setup subfile */
-    new_streamFile = open_wrap_streamfile(streamFile);
-    if (!new_streamFile) goto fail;
-    temp_streamFile = new_streamFile;
-
-    new_streamFile = open_io_streamfile(temp_streamFile, &io_data,io_data_size, eaac_io_read,eaac_io_size);
-    if (!new_streamFile) goto fail;
-    temp_streamFile = new_streamFile;
-
-    new_streamFile = open_buffer_streamfile(new_streamFile,0);
-    if (!new_streamFile) goto fail;
-    temp_streamFile = new_streamFile;
-
-    return temp_streamFile;
-
-fail:
-    close_streamfile(temp_streamFile);
-    return NULL;
+    new_sf = open_wrap_streamfile(sf);
+    new_sf = open_io_streamfile_f(new_sf, &io_data, sizeof(eaac_io_data), eaac_io_read, eaac_io_size);
+    new_sf = open_buffer_streamfile_f(new_sf, 0); /* EA-XMA and multichannel EALayer3 benefit from this */
+    if (codec == 0x0c && stream_count > 1) /* multichannel opus */
+        new_sf = open_io_eaac_opus_streamfile_f(new_sf, stream_number, stream_count);
+    return new_sf;
 }
 
 #endif /* _EA_EAAC_STREAMFILE_H_ */

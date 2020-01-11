@@ -32,53 +32,79 @@ VGMSTREAM * init_vgmstream_ktss(STREAMFILE *streamFile) {
     vgmstream = allocate_vgmstream(channel_count, loop_flag);
     if (!vgmstream) goto fail;
 
-    /* fill in the vital statistics */
-    vgmstream->num_samples = read_32bitLE(0x30, streamFile);
     vgmstream->sample_rate = read_32bitLE(0x2c, streamFile);
+    vgmstream->num_samples = read_32bitLE(0x30, streamFile);
     vgmstream->loop_start_sample = read_32bitLE(0x34, streamFile);
     vgmstream->loop_end_sample = vgmstream->loop_start_sample + loop_length;
     vgmstream->meta_type = meta_KTSS;
     start_offset = read_32bitLE(0x24, streamFile) + 0x20;
 
     switch (codec_id) {
-    case 0x2: /* DSP ADPCM - Hyrule Warriors, Fire Emblem Warriors, and other Koei Tecmo games */
-	    /* check type details */
-        version = read_8bit(0x22, streamFile);
-        if (version == 1) {
-            coef_start_offset = 0x40;
-            coef_spacing = 0x2e;
-        }
-        else if (version == 3) { // Fire Emblem Warriors (Switch)
-            coef_start_offset = 0x5c;
-            coef_spacing = 0x60;
-        }
-        else
-            goto fail;
+        case 0x2: /* DSP ADPCM - Hyrule Warriors, Fire Emblem Warriors, and other Koei Tecmo games */
+            /* check type details */
+            version = read_8bit(0x22, streamFile);
+            if (version == 1) {
+                coef_start_offset = 0x40;
+                coef_spacing = 0x2e;
+            }
+            else if (version == 3) { // Fire Emblem Warriors (Switch)
+                coef_start_offset = 0x5c;
+                coef_spacing = 0x60;
+            }
+            else
+                goto fail;
 
-        vgmstream->coding_type = coding_NGC_DSP;
-        vgmstream->layout_type = layout_interleave;
-        vgmstream->interleave_block_size = 0x8;
-        dsp_read_coefs_le(vgmstream, streamFile, coef_start_offset, coef_spacing);
-        break;
+            vgmstream->coding_type = coding_NGC_DSP;
+            vgmstream->layout_type = layout_interleave;
+            vgmstream->interleave_block_size = 0x8;
+            dsp_read_coefs_le(vgmstream, streamFile, coef_start_offset, coef_spacing);
+            break;
 
 #ifdef VGM_USE_FFMPEG
-    case 0x9: /* Opus - Dead or Alive Xtreme 3: Scarlet */
-        data_size = read_32bitLE(0x44, streamFile);
-        {
-            vgmstream->codec_data = init_ffmpeg_switch_opus(streamFile, start_offset, data_size, vgmstream->channels, skip, vgmstream->sample_rate);
+        case 0x9: { /* Opus - Dead or Alive Xtreme 3: Scarlet, Fire Emblem: Three Houses */
+            opus_config cfg = {0};
+
+            data_size = read_32bitLE(0x44, streamFile);
+
+            cfg.channels = vgmstream->channels;
+            cfg.skip = read_32bitLE(0x58, streamFile);
+            cfg.sample_rate = vgmstream->sample_rate; /* also at 0x54 */
+
+            /* this info seems always included even for stereo streams */
+            if (vgmstream->channels <= 8) {
+                int i;
+                cfg.stream_count = read_8bit(0x5a,streamFile);
+                cfg.coupled_count = read_8bit(0x5b,streamFile);
+                for (i = 0; i < vgmstream->channels; i++) {
+                    cfg.channel_mapping[i] = read_8bit(0x5c + i,streamFile);
+                }
+            }
+
+            vgmstream->codec_data = init_ffmpeg_switch_opus_config(streamFile, start_offset, data_size, &cfg);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
+            vgmstream->channel_layout = ffmpeg_get_channel_layout(vgmstream->codec_data);
 
+            /* apparently KTSS doesn't need standard Opus reordering, so we undo their thing */
+            switch(vgmstream->channels) {
+                case 6: {
+                    /*  FL FC FR BL LFE BR > FL FR FC LFE BL BR */
+                    int channel_remap[] = { 0, 2, 2, 3, 3, 5 };
+                    ffmpeg_set_channel_remapping(vgmstream->codec_data, channel_remap);
+                    break;
+                }
+                default:
+                    break;
+            }
             if (vgmstream->num_samples == 0) {
                 vgmstream->num_samples = switch_opus_get_samples(start_offset, data_size, streamFile) - skip;
             }
+            break;
         }
-        break;
-    
-    default:
-        goto fail;
 #endif
+        default:
+            goto fail;
     }
 
     if (!vgmstream_open_stream(vgmstream, streamFile, start_offset))

@@ -38,7 +38,7 @@ extern "C" {
             "https://github.com/kode54/vgmstream/\n" \
             "https://sourceforge.net/projects/vgmstream/ (original)"
 
-
+// called every time a file is added to the playlist (to get info) or when playing
 input_vgmstream::input_vgmstream() {
     vgmstream = NULL;
     subsong = 0; // 0 = not set, will be properly changed on first setup_vgmstream
@@ -67,26 +67,35 @@ input_vgmstream::input_vgmstream() {
     load_settings();
 }
 
+// called on stop or when playlist info has been read
 input_vgmstream::~input_vgmstream() {
     close_vgmstream(vgmstream);
     vgmstream = NULL;
 }
 
-// called first when a new file is opened
-void input_vgmstream::open(service_ptr_t<file> p_filehint,const char * p_path,t_input_open_reason p_reason,abort_callback & p_abort) {
+// called first when a new file is accepted, before playing it
+void input_vgmstream::open(service_ptr_t<file> p_filehint, const char * p_path,t_input_open_reason p_reason,abort_callback & p_abort) {
 
     if (!p_path) { // shouldn't be possible
         throw exception_io_data();
-        return;
+        return; //???
     }
 
     filename = p_path;
 
+    // allow non-existing files in some cases
+    bool infile_virtual = !filesystem::g_exists(p_path, p_abort)
+        && vgmstream_is_virtual_filename(filename) == 1;
 
-    // keep file stats around (timestamp, filesize)
-    if ( p_filehint.is_empty() )
-        input_open_file_helper( p_filehint, filename, p_reason, p_abort );
-    stats = p_filehint->get_stats( p_abort );
+    // don't try to open virtual files as it'll fail
+    // (doesn't seem to have any adverse effect, except maybe no stats)
+    // setup_vgmstream also makes further checks before file is finally opened
+    if (!infile_virtual) {
+        // keep file stats around (timestamp, filesize)
+        if ( p_filehint.is_empty() )
+            input_open_file_helper( p_filehint, filename, p_reason, p_abort );
+        stats = p_filehint->get_stats( p_abort );
+    }
 
     switch(p_reason) {
         case input_open_decode: // prepare to retrieve info and decode
@@ -124,10 +133,12 @@ unsigned input_vgmstream::get_subsong_count() {
     return subsong_count;
 }
 
+// called after get_subsong_count to play subsong N (even when count is 1)
 t_uint32 input_vgmstream::get_subsong(unsigned p_index) {
     return p_index + 1; // translates index (0..N < subsong_count) for vgmstream: 1=first
 }
 
+// called before playing to get info
 void input_vgmstream::get_info(t_uint32 p_subsong, file_info & p_info, abort_callback & p_abort) {
     int length_in_ms=0, channels = 0, samplerate = 0;
     int total_samples = -1;
@@ -169,7 +180,7 @@ void input_vgmstream::get_info(t_uint32 p_subsong, file_info & p_info, abort_cal
             strcpy(tagfile_path,tagfile_name);
         }
 
-        STREAMFILE *tagFile = open_foo_streamfile(tagfile_path, &p_abort, &stats);
+        STREAMFILE *tagFile = open_foo_streamfile(tagfile_path, &p_abort, NULL);
         if (tagFile != NULL) {
             VGMSTREAM_TAGS *tags;
             const char *tag_key, *tag_val;
@@ -178,11 +189,14 @@ void input_vgmstream::get_info(t_uint32 p_subsong, file_info & p_info, abort_cal
             vgmstream_tags_reset(tags, filename);
             while (vgmstream_tags_next_tag(tags, tagFile)) {
                 if (replaygain_info::g_is_meta_replaygain(tag_key)) {
-                    p_info.info_set_replaygain(tag_key,tag_val);
+                    p_info.info_set_replaygain(tag_key, tag_val);
                     /* there is info_set_replaygain_auto too but no doc */
                 }
+                else if (stricmp_utf8("ALBUMARTIST", tag_key) == 0)
+                    /* normalize as foobar won't handle (though it's accepted in .ogg) */
+                    p_info.meta_set("ALBUM ARTIST", tag_val);
                 else {
-                    p_info.meta_set(tag_key,tag_val);
+                    p_info.meta_set(tag_key, tag_val);
                 }
             }
             vgmstream_tags_close(tags);
@@ -244,6 +258,7 @@ void input_vgmstream::decode_initialize(t_uint32 p_subsong, unsigned p_flags, ab
     decode_seek( 0, p_abort );
 };
 
+// called when audio buffer needs to be filled
 bool input_vgmstream::decode_run(audio_chunk & p_chunk,abort_callback & p_abort) {
     if (!decoding) return false;
     if (!vgmstream) return false;
@@ -298,6 +313,7 @@ bool input_vgmstream::decode_run(audio_chunk & p_chunk,abort_callback & p_abort)
     }
 }
 
+// called when seeking
 void input_vgmstream::decode_seek(double p_seconds,abort_callback & p_abort) {
     seek_pos_samples = (int) audio_math::time_to_samples(p_seconds, vgmstream->sample_rate);
     int max_buffer_samples = SAMPLE_BUFFER_SIZE;
@@ -369,27 +385,17 @@ void input_vgmstream::retag_set_info(t_uint32 p_subsong, const file_info & p_inf
 void input_vgmstream::retag_commit(abort_callback & p_abort) { /*throw exception_io_data();*/ }
 
 bool input_vgmstream::g_is_our_content_type(const char * p_content_type) {return false;}
-bool input_vgmstream::g_is_our_path(const char * p_path,const char * p_extension) {
-    const char ** ext_list;
-    size_t ext_list_len;
-    int i;
 
-    ext_list = vgmstream_get_formats(&ext_list_len);
+// called to check if file can be processed by the plugin
+bool input_vgmstream::g_is_our_path(const char * p_path, const char * p_extension) {
+    vgmstream_ctx_valid_cfg cfg = {0};
 
-    for (i=0; i < ext_list_len; i++) {
-        if (!stricmp_utf8(p_extension, ext_list[i]))
-            return 1;
-    }
-
-    /* some extensionless files can be handled by vgmstream, try to play */
-    if (strlen(p_extension) <= 0) {
-        return 1;
-    }
-
-    return 0;
+    cfg.is_extension = 1;
+    input_vgmstream::g_load_cfg(&cfg.accept_unknown, &cfg.accept_common);
+    return vgmstream_ctx_is_valid(p_extension, &cfg) > 0 ? true : false;
 }
 
-
+// internal util to create a VGMSTREAM
 VGMSTREAM * input_vgmstream::init_vgmstream_foo(t_uint32 p_subsong, const char * const filename, abort_callback & p_abort) {
     VGMSTREAM *vgmstream = NULL;
 
@@ -402,6 +408,7 @@ VGMSTREAM * input_vgmstream::init_vgmstream_foo(t_uint32 p_subsong, const char *
     return vgmstream;
 }
 
+// internal util to initialize vgmstream
 void input_vgmstream::setup_vgmstream(abort_callback & p_abort) {
     // close first in case of changing subsongs
     if (vgmstream) {
@@ -439,6 +446,7 @@ void input_vgmstream::setup_vgmstream(abort_callback & p_abort) {
     fade_samples = (int)(config.song_fade_time * vgmstream->sample_rate);
 }
 
+// internal util to get info
 void input_vgmstream::get_subsong_info(t_uint32 p_subsong, pfc::string_base & title, int *length_in_ms, int *total_samples, int *loop_flag, int *loop_start, int *loop_end, int *sample_rate, int *channels, int *bitrate, pfc::string_base & description, abort_callback & p_abort) {
     VGMSTREAM * infostream = NULL;
     bool is_infostream = false;
@@ -584,38 +592,35 @@ void input_vgmstream::apply_config(VGMSTREAM * vgmstream, foobar_song_config *cu
     }
     if (current->song_ignore_loop) {
         vgmstream_force_loop(vgmstream, 0, 0,0);
-        current->song_fade_time = 0;
     }
 
     /* loop N times, but also play stream end instead of fading out */
     if (current->song_loop_count > 0 && current->song_ignore_fade) {
         vgmstream_set_loop_target(vgmstream, (int)current->song_loop_count);
+        current->song_fade_time = 0; /* force no fade */
     }
 }
 
-GUID input_vgmstream::g_get_guid()
-{
+GUID input_vgmstream::g_get_guid() {
     static const GUID guid = { 0x9e7263c7, 0x4cdd, 0x482c,{ 0x9a, 0xec, 0x5e, 0x71, 0x28, 0xcb, 0xc3, 0x4 } };
     return guid;
 }
 
-const char * input_vgmstream::g_get_name()
-{
+const char * input_vgmstream::g_get_name() {
     return "vgmstream";
 }
 
-GUID input_vgmstream::g_get_preferences_guid()
-{
+GUID input_vgmstream::g_get_preferences_guid() {
     static const GUID guid = { 0x2b5d0302, 0x165b, 0x409c,{ 0x94, 0x74, 0x2c, 0x8c, 0x2c, 0xd7, 0x6a, 0x25 } };;
     return guid;
 }
 
-bool input_vgmstream::g_is_low_merit()
-{
+// checks priority (foobar 1.4+)
+bool input_vgmstream::g_is_low_merit() {
     return true;
 }
 
-/* foobar plugin defs */
+// foobar plugin defs
 static input_factory_t<input_vgmstream> g_input_vgmstream_factory;
 
 DECLARE_COMPONENT_VERSION(APP_NAME,PLUGIN_VERSION,PLUGIN_DESCRIPTION);

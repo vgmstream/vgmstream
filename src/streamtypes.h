@@ -7,12 +7,20 @@
 #define _STREAMTYPES_H
 
 #ifdef _MSC_VER
+/* Common versions:
+ * - 1500: VS2008
+ * - 1600: VS2010
+ * - 1700: VS2012
+ * - 1800: VS2013
+ * - 1900: VS2015
+ * - 1920: VS2019 */
 
 #if (_MSC_VER >= 1600)
+
 #include <stdint.h>
 #else
 #include <pstdint.h>
-#endif /* (_MSC_VER >= 1600) */
+#endif
 
 #ifndef inline /* (_MSC_VER < 1900)? */
 #define inline _inline
@@ -23,10 +31,11 @@
 
 #if (_MSC_VER < 1900)
 #define snprintf _snprintf
-#endif /* (_MSC_VER < 1900) */
+#endif
 
 #else
 #include <stdint.h>
+
 #endif /* _MSC_VER */
 
 typedef int16_t sample; //TODO: deprecated, remove

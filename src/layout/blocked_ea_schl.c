@@ -6,7 +6,6 @@
 void block_update_ea_schl(off_t block_offset, VGMSTREAM * vgmstream) {
     STREAMFILE* streamFile = vgmstream->ch[0].streamfile;
     int i;
-    int new_schl = 0;
     size_t block_size, block_samples;
     int32_t (*read_32bit)(off_t,STREAMFILE*) = vgmstream->codec_endian ? read_32bitBE : read_32bitLE;
 
@@ -44,10 +43,23 @@ void block_update_ea_schl(off_t block_offset, VGMSTREAM * vgmstream) {
             block_samples = 0; /* layout ignores this */
         }
 
-        /* "SCHl" start block (movie "SHxx" shouldn't use multi files) */
-        if (block_id == 0x5343486C)
-            new_schl = 1;
-
+#ifdef VGM_USE_MPEG
+        /* "SCHl" start block, when decoding multi files pasted together */
+        if (block_id == 0x5343486C) {
+            switch(vgmstream->coding_type) {
+                case coding_MPEG_custom:
+                case coding_MPEG_layer1:
+                case coding_MPEG_layer2:
+                case coding_MPEG_layer3:
+                case coding_MPEG_ealayer3:
+                    /* need to reset MPEG decoder to reset discards and trailing samples in the buffers */
+                    flush_mpeg(vgmstream->codec_data);
+                    break;
+                default:
+                    break;
+            }
+        }
+#endif
         /* padding between "SCEl" and next "SCHl" (when subfiles exist) */
         if (block_id == 0x00000000)
             block_size = 0x04;
@@ -159,12 +171,6 @@ void block_update_ea_schl(off_t block_offset, VGMSTREAM * vgmstream) {
 
                 vgmstream->ch[i].offset = block_offset + 0x0C + (0x04*vgmstream->channels) + channel_start;
             }
-
-            /* SCHl with multiple SCHl need to reset their MPEG decoder as there are trailing samples in the buffers */
-            if (new_schl) {
-                flush_mpeg(vgmstream->codec_data);
-            }
-
             break;
 #endif
         /* id, size, samples, offsets-per-channel, interleaved data (w/ optional hist per channel) */

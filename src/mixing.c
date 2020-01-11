@@ -48,7 +48,8 @@
  * (and maybe improve memory cache?), though maybe it should call one function per operation.
  */
 
-#define VGMSTREAM_MAX_MIXING 128
+#define VGMSTREAM_MAX_MIXING 512
+#define MIXING_PI   3.14159265358979323846f
 
 
 /* mixing info */
@@ -98,15 +99,15 @@ static int is_active(mixing_data *data, int32_t current_start, int32_t current_e
     int32_t fade_start, fade_end;
 
     for (i = 0; i < data->mixing_count; i++) {
-        mix_command_data mix = data->mixing_chain[i];
+        mix_command_data *mix = &data->mixing_chain[i];
 
-        if (mix.command != MIX_FADE)
+        if (mix->command != MIX_FADE)
             return 1; /* has non-fades = active */
 
         /* check is current range falls within a fade
          * (assuming fades were already optimized on add) */
-        fade_start = mix.time_pre < 0 ? 0 : mix.time_pre;
-        fade_end = mix.time_post < 0 ? INT_MAX : mix.time_post;
+        fade_start = mix->time_pre < 0 ? 0 : mix->time_pre;
+        fade_end = mix->time_post < 0 ? INT_MAX : mix->time_post;
 
         if (current_start < fade_end && current_end > fade_start)
             return 1;
@@ -115,24 +116,72 @@ static int is_active(mixing_data *data, int32_t current_start, int32_t current_e
     return 0;
 }
 
-static int32_t get_current_pos(VGMSTREAM* vgmstream) {
+static int32_t get_current_pos(VGMSTREAM* vgmstream, int32_t sample_count) {
     int32_t current_pos;
 
-    if (vgmstream->loop_flag && vgmstream->current_sample > vgmstream->loop_start_sample) {
-        int loop_pre = vgmstream->loop_start_sample;
-        int loop_into = vgmstream->current_sample - vgmstream->loop_start_sample;
-        int loop_samples = vgmstream->loop_end_sample - vgmstream->loop_start_sample;
-        current_pos = loop_pre + loop_into + loop_samples*vgmstream->loop_count;
+    if (vgmstream->loop_flag && vgmstream->loop_count > 0) {
+        int loop_pre = vgmstream->loop_start_sample; /* samples before looping */
+        int loop_into = (vgmstream->current_sample - vgmstream->loop_start_sample); /* samples after loop */
+        int loop_samples = (vgmstream->loop_end_sample - vgmstream->loop_start_sample); /* looped section */
+
+        current_pos = loop_pre + (loop_samples * vgmstream->loop_count) + loop_into - sample_count;
     }
     else {
-        current_pos = vgmstream->current_sample;
+        current_pos = (vgmstream->current_sample - sample_count);
     }
 
     return current_pos;
 }
 
+static float get_fade_gain_curve(char shape, float index) {
+    float gain;
+
+    /* don't bother doing calcs near 0.0/1.0 */
+    if (index <= 0.0001f || index >= 0.9999f) {
+        return index;
+    }
+
+    //todo optimizations: interleave calcs, maybe use cosf, powf, etc? (with extra defines)
+
+    /* (curve math mostly from SoX/FFmpeg) */
+    switch(shape) {
+        /* 2.5f in L/E 'pow' is the attenuation factor, where 5.0 (100db) is common but a bit fast
+         * (alt calculations with 'exp' from FFmpeg use (factor)*ln(0.1) = -NN.N...  */
+
+        case 'E': /* exponential (for fade-outs, closer to natural decay of sound) */
+            //gain = pow(0.1f, (1.0f - index) * 2.5f);
+            gain = exp(-5.75646273248511f * (1.0f - index));
+            break;
+        case 'L': /* logarithmic (inverse of the above, maybe for crossfades) */
+            //gain = 1 - pow(0.1f, (index) * 2.5f);
+            gain = 1 - exp(-5.75646273248511f * (index));
+            break;
+
+        case 'H': /* raised sine wave or cosine wave (for more musical crossfades) */
+            gain = (1.0f - cos(index * MIXING_PI)) / 2.0f;
+            break;
+
+        case 'Q': /* quarter of sine wave (for musical fades) */
+            gain = sin(index * MIXING_PI / 2.0f);
+            break;
+
+        case 'p': /* parabola (maybe for crossfades) */
+            gain =  1.0f - sqrt(1.0f - index);
+            break;
+        case 'P': /* inverted parabola (maybe for fades) */
+            gain = (1.0f - (1.0f - index) * (1.0f - index));
+            break;
+
+        case 'T': /* triangular/linear (simpler/sharper fades) */
+        default:
+            gain = index;
+            break;
+    }
+
+    return gain;
+}
+
 static int get_fade_gain(mix_command_data *mix, float *out_cur_vol, int32_t current_subpos) {
-    //todo optimizations: interleave calcs, maybe use cosf, powf, etc?
     float cur_vol = 0.0f;
 
     if ((current_subpos >= mix->time_pre || mix->time_pre < 0) && current_subpos < mix->time_start) {
@@ -173,41 +222,7 @@ static int get_fade_gain(mix_command_data *mix, float *out_cur_vol, int32_t curr
          * curves are complementary (exponential fade-in ~= logarithmic fade-out); the following
          * are described taking fade-in = normal.
          */
-
-        /* (curve math mostly from SoX/FFmpeg) */
-        switch(mix->shape) {
-            /* 2.5f in L/E 'pow' is the attenuation factor, where 5.0 (100db) is common but a bit fast
-             * (alt calculations with 'exp' from FFmpeg use (factor)*ln(0.1) = -NN.N...  */
-
-            case 'E': /* exponential (for fade-outs, closer to natural decay of sound) */
-                //gain = pow(0.1f, (1.0f - index) * 2.5f);
-                gain = exp(-5.75646273248511f * (1.0f - index));
-                break;
-            case 'L': /* logarithmic (inverse of the above, maybe for crossfades) */
-                //gain = 1 - pow(0.1f, (index) * 2.5f);
-                gain = 1 - exp(-5.75646273248511f * (index));
-                break;
-
-            case 'H': /* raised sine wave or cosine wave (for more musical crossfades) */
-                gain = (1.0f - cos(index * M_PI )) / 2.0f;
-                break;
-
-            case 'Q': /* quarter of sine wave (for musical fades) */
-                gain = sin(index * M_PI / 2.0f);
-                break;
-
-            case 'p': /* parabola (maybe for crossfades) */
-                gain =  1.0f - sqrt(1.0f - index);
-                break;
-            case 'P': /* inverted parabola (maybe for fades) */
-                gain = (1.0f - (1.0f - index) * (1.0f - index));
-                break;
-
-            case 'T': /* triangular/linear (simpler/sharper fades) */
-            default:
-                gain = index;
-                break;
-        }
+        gain = get_fade_gain_curve(mix->shape, index);
 
         if (mix->vol_start < mix->vol_end) {  /* fade in */
             cur_vol = mix->vol_start + range_vol * gain;
@@ -216,6 +231,7 @@ static int get_fade_gain(mix_command_data *mix, float *out_cur_vol, int32_t curr
         }
     }
     else {
+        /* fade is outside reach */
         goto fail;
     }
 
@@ -230,20 +246,19 @@ void mix_vgmstream(sample_t *outbuf, int32_t sample_count, VGMSTREAM* vgmstream)
     int ch, s, m, ok;
 
     int32_t current_pos, current_subpos;
-    float temp_f, temp_min, temp_max, cur_vol;
+    float temp_f, temp_min, temp_max, cur_vol = 0.0f;
     float *temp_mixbuf;
     sample_t *temp_outbuf;
 
     const float limiter_max = 32767.0f;
     const float limiter_min = -32768.0f;
 
-
     /* no support or not need to apply */
     if (!data || !data->mixing_on || data->mixing_count == 0)
         return;
 
     /* try to skip if no ops apply (for example if fade set but does nothing yet) */
-    current_pos = get_current_pos(vgmstream);
+    current_pos = get_current_pos(vgmstream, sample_count);
     if (!is_active(data, current_pos, current_pos + sample_count))
         return;
 
@@ -251,6 +266,8 @@ void mix_vgmstream(sample_t *outbuf, int32_t sample_count, VGMSTREAM* vgmstream)
     /* use advancing buffer pointers to simplify logic */
     temp_mixbuf = data->mixbuf;
     temp_outbuf = outbuf;
+
+    current_subpos = current_pos;
 
     /* apply mixes in order per channel */
     for (s = 0; s < sample_count; s++) {
@@ -263,7 +280,7 @@ void mix_vgmstream(sample_t *outbuf, int32_t sample_count, VGMSTREAM* vgmstream)
         }
 
         for (m = 0; m < data->mixing_count; m++) {
-            mix_command_data mix = data->mixing_chain[m];
+            mix_command_data *mix = &data->mixing_chain[m];
 
             /* mixing ops are designed to apply in order, all channels per 1 sample 'step'. Since some ops change
              * total channels, channel number meaning varies as ops move them around, ex:
@@ -274,34 +291,34 @@ void mix_vgmstream(sample_t *outbuf, int32_t sample_count, VGMSTREAM* vgmstream)
              * - 2ch w/ "1-2,1d" = ch1<>ch2, ch1(drop and move ch2(old ch1) to ch1) = ch1
              * - 2ch w/ "1d,1-2" = ch1(drop and pull rest), ch1(do nothing, ch2 doesn't exist now) = ch2
              */
-            switch(mix.command) {
+            switch(mix->command) {
 
                 case MIX_SWAP:
-                    temp_f = stpbuf[mix.ch_dst];
-                    stpbuf[mix.ch_dst] = stpbuf[mix.ch_src];
-                    stpbuf[mix.ch_src] = temp_f;
+                    temp_f = stpbuf[mix->ch_dst];
+                    stpbuf[mix->ch_dst] = stpbuf[mix->ch_src];
+                    stpbuf[mix->ch_src] = temp_f;
                     break;
 
                 case MIX_ADD:
-                    stpbuf[mix.ch_dst] = stpbuf[mix.ch_dst] + stpbuf[mix.ch_src] * mix.vol;
+                    stpbuf[mix->ch_dst] = stpbuf[mix->ch_dst] + stpbuf[mix->ch_src] * mix->vol;
                     break;
 
                 case MIX_VOLUME:
-                    if (mix.ch_dst < 0) {
+                    if (mix->ch_dst < 0) {
                         for (ch = 0; ch < step_channels; ch++) {
-                            stpbuf[ch] = stpbuf[ch] * mix.vol;
+                            stpbuf[ch] = stpbuf[ch] * mix->vol;
                         }
                     }
                     else {
-                        stpbuf[mix.ch_dst] = stpbuf[mix.ch_dst] * mix.vol;
+                        stpbuf[mix->ch_dst] = stpbuf[mix->ch_dst] * mix->vol;
                     }
                     break;
 
                 case MIX_LIMIT:
-                    temp_max = limiter_max * mix.vol;
-                    temp_min = limiter_min * mix.vol;
+                    temp_max = limiter_max * mix->vol;
+                    temp_min = limiter_min * mix->vol;
 
-                    if (mix.ch_dst < 0) {
+                    if (mix->ch_dst < 0) {
                         for (ch = 0; ch < step_channels; ch++) {
                             if (stpbuf[ch] > temp_max)
                                 stpbuf[ch] = temp_max;
@@ -310,47 +327,45 @@ void mix_vgmstream(sample_t *outbuf, int32_t sample_count, VGMSTREAM* vgmstream)
                         }
                     }
                     else {
-                        if (stpbuf[mix.ch_dst] > temp_max)
-                            stpbuf[mix.ch_dst] = temp_max;
-                        else if (stpbuf[mix.ch_dst] < temp_min)
-                            stpbuf[mix.ch_dst] = temp_min;
+                        if (stpbuf[mix->ch_dst] > temp_max)
+                            stpbuf[mix->ch_dst] = temp_max;
+                        else if (stpbuf[mix->ch_dst] < temp_min)
+                            stpbuf[mix->ch_dst] = temp_min;
                     }
                     break;
 
                 case MIX_UPMIX:
                     step_channels += 1;
-                    for (ch = step_channels - 1; ch > mix.ch_dst; ch--) {
+                    for (ch = step_channels - 1; ch > mix->ch_dst; ch--) {
                         stpbuf[ch] = stpbuf[ch-1]; /* 'push' channels forward (or pull backwards) */
                     }
-                    stpbuf[mix.ch_dst] = 0; /* inserted as silent */
+                    stpbuf[mix->ch_dst] = 0; /* inserted as silent */
                     break;
 
                 case MIX_DOWNMIX:
                     step_channels -= 1;
-                    for (ch = mix.ch_dst; ch < step_channels; ch++) {
+                    for (ch = mix->ch_dst; ch < step_channels; ch++) {
                         stpbuf[ch] = stpbuf[ch+1]; /* 'pull' channels back */
                     }
                     break;
 
                 case MIX_KILLMIX:
-                    step_channels = mix.ch_dst; /* clamp channels */
+                    step_channels = mix->ch_dst; /* clamp channels */
                     break;
 
                 case MIX_FADE:
-                    current_subpos = current_pos + s;
-
-                    ok = get_fade_gain(&mix, &cur_vol, current_subpos);
+                    ok = get_fade_gain(mix, &cur_vol, current_subpos);
                     if (!ok) {
-                        break;
+                        break; /* fade doesn't apply right now */
                     }
 
-                    if (mix.ch_dst < 0) {
+                    if (mix->ch_dst < 0) {
                         for (ch = 0; ch < step_channels; ch++) {
                             stpbuf[ch] = stpbuf[ch] * cur_vol;
                         }
                     }
                     else {
-                        stpbuf[mix.ch_dst] = stpbuf[mix.ch_dst] * cur_vol;
+                        stpbuf[mix->ch_dst] = stpbuf[mix->ch_dst] * cur_vol;
                     }
                     break;
 
@@ -358,6 +373,8 @@ void mix_vgmstream(sample_t *outbuf, int32_t sample_count, VGMSTREAM* vgmstream)
                     break;
             }
         }
+
+        current_subpos++;
 
         temp_mixbuf += step_channels;
         temp_outbuf += vgmstream->channels;
@@ -919,6 +936,118 @@ void mixing_macro_crosslayer(VGMSTREAM* vgmstream, int max, char mode) {
         current++;
         if (current >= max)
             current = 0;
+    }
+
+    /* remove unneeded channels */
+    mixing_push_killmix(vgmstream, max);
+}
+
+
+typedef enum {
+    pos_FL  = 0,
+    pos_FR  = 1,
+    pos_FC  = 2,
+    pos_LFE = 3,
+    pos_BL  = 4,
+    pos_BR  = 5,
+    pos_FLC = 6,
+    pos_FRC = 7,
+    pos_BC  = 8,
+    pos_SL  = 9,
+    pos_SR  = 10,
+} mixing_position_t;
+
+void mixing_macro_downmix(VGMSTREAM* vgmstream, int max /*, mapping_t output_mapping*/) {
+    mixing_data *data = vgmstream->mixing_data;
+    int ch, output_channels, mp_in, mp_out, ch_in, ch_out;
+    mapping_t input_mapping, output_mapping;
+    const double vol_max = 1.0;
+    const double vol_sqrt = 1 / sqrt(2);
+    const double vol_half = 1 / 2;
+    double matrix[16][16] = {{0}};
+
+
+    if (!data)
+        return;
+    if (max <= 1 || data->output_channels <= max || max >= 8)
+        return;
+
+    /* assume WAV defaults if not set */
+    input_mapping = vgmstream->channel_layout;
+    if (input_mapping == 0) {
+        switch(data->output_channels) {
+            case 1: input_mapping = mapping_MONO; break;
+            case 2: input_mapping = mapping_STEREO; break;
+            case 3: input_mapping = mapping_2POINT1; break;
+            case 4: input_mapping = mapping_QUAD; break;
+            case 5: input_mapping = mapping_5POINT0; break;
+            case 6: input_mapping = mapping_5POINT1; break;
+            case 7: input_mapping = mapping_7POINT0; break;
+            case 8: input_mapping = mapping_7POINT1; break;
+            default: return;
+        }
+    }
+
+    /* build mapping matrix[input channel][output channel] = volume,
+     * using standard WAV/AC3 downmix formulas
+     * - https://www.audiokinetic.com/library/edge/?source=Help&id=downmix_tables
+     * - https://www.audiokinetic.com/library/edge/?source=Help&id=standard_configurations
+     */
+    switch(max) {
+        case 1:
+            output_mapping = mapping_MONO;
+            matrix[pos_FL][pos_FC] = vol_sqrt;
+            matrix[pos_FR][pos_FC] = vol_sqrt;
+            matrix[pos_FC][pos_FC] = vol_max;
+            matrix[pos_SL][pos_FC] = vol_half;
+            matrix[pos_SR][pos_FC] = vol_half;
+            matrix[pos_BL][pos_FC] = vol_half;
+            matrix[pos_BR][pos_FC] = vol_half;
+            break;
+        case 2:
+            output_mapping = mapping_STEREO;
+            matrix[pos_FL][pos_FL] = vol_max;
+            matrix[pos_FR][pos_FR] = vol_max;
+            matrix[pos_FC][pos_FL] = vol_sqrt;
+            matrix[pos_FC][pos_FR] = vol_sqrt;
+            matrix[pos_SL][pos_FL] = vol_sqrt;
+            matrix[pos_SR][pos_FR] = vol_sqrt;
+            matrix[pos_BL][pos_FL] = vol_sqrt;
+            matrix[pos_BR][pos_FR] = vol_sqrt;
+            break;
+        default:
+            /* not sure if +3ch would use FC/LFE, SL/BR and whatnot without passing extra config, so ignore for now */
+            return;
+    }
+
+    /* save and make N fake channels at the beginning for easier calcs */
+    output_channels = data->output_channels;
+    for (ch = 0; ch < max; ch++) {
+        mixing_push_upmix(vgmstream, 0);
+    }
+
+    /* downmix */
+    ch_in = 0;
+    for (mp_in = 0; mp_in < 16; mp_in++) {
+        /* read input mapping (ex. 5.1) and find channel */
+        if (!(input_mapping & (1<<mp_in)))
+            continue;
+
+        ch_out = 0;
+        for (mp_out = 0; mp_out < 16; mp_out++) {
+            /* read output mapping (ex. 2.0) and find channel */
+            if (!(output_mapping & (1<<mp_out)))
+                continue;
+            mixing_push_add(vgmstream, ch_out, max + ch_in, matrix[mp_in][mp_out]);
+
+            ch_out++;
+            if (ch_out > max)
+                break;
+        }
+
+        ch_in++;
+        if (ch_in >= output_channels)
+            break;
     }
 
     /* remove unneeded channels */

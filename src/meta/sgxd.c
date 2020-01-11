@@ -112,6 +112,14 @@ VGMSTREAM * init_vgmstream_sgxd(STREAMFILE *streamFile) {
         read_string(vgmstream->stream_name,STREAM_NAME_SIZE, name_offset,streamHeader);
 
     switch (type) {
+#ifdef VGM_USE_VORBIS
+        case 0x02:      /* Ogg Vorbis [Ni no Kuni: Wrath of the White Witch Remastered (PC)] (codec hijack?) */
+            vgmstream->codec_data = init_ogg_vorbis(streamFile, start_offset, stream_size, NULL);
+            if (!vgmstream->codec_data) goto fail;
+            vgmstream->coding_type = coding_OGG_VORBIS;
+            vgmstream->layout_type = layout_none;
+            break;
+#endif
         case 0x03:      /* PS-ADPCM [Genji (PS3), Ape Escape Move (PS3)]*/
             vgmstream->coding_type = coding_PSX;
             vgmstream->layout_type = layout_interleave;
@@ -125,18 +133,13 @@ VGMSTREAM * init_vgmstream_sgxd(STREAMFILE *streamFile) {
 
 #ifdef VGM_USE_FFMPEG
         case 0x04: {    /* ATRAC3plus [Kurohyo 1/2 (PSP), BraveStory (PSP)] */
-            ffmpeg_codec_data *ffmpeg_data;
-
-            /* internally has a RIFF header; but the SGXD  header / sample rate has priority over it (may not match) */
-            ffmpeg_data = init_ffmpeg_offset(streamFile, start_offset, stream_size);
-            if ( !ffmpeg_data ) goto fail;
-            vgmstream->codec_data = ffmpeg_data;
+            vgmstream->codec_data = init_ffmpeg_atrac3_riff(streamFile, start_offset, NULL);
+            if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
 
-            if (ffmpeg_data->skipSamples <= 0) /* in case FFmpeg didn't get them */
-                ffmpeg_set_skip_samples(ffmpeg_data, riff_get_fact_skip_samples(streamFile, start_offset));
-            /* SGXD loop/sample values are relative (without skip samples) vs RIFF (with skip samples), no need to adjust */
+            /* SGXD's sample rate has priority over RIFF's sample rate (may not match) */
+            /* loop/sample values are relative (without skip) vs RIFF (with skip), matching "smpl" otherwise */
             break;
         }
 #endif

@@ -139,7 +139,7 @@ VGMSTREAM * init_vgmstream_ta_aac_ps3(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset;
     int loop_flag, channel_count;
-    uint32_t data_size, loop_start, loop_end, codec_id;
+    uint32_t data_size, loop_start, loop_end, codec_id, asc_chunk;
 
     /* check extension, case insensitive */
     /* .aac: expected, .laac/ace: for players to avoid hijacking MP4/AAC */
@@ -149,57 +149,48 @@ VGMSTREAM * init_vgmstream_ta_aac_ps3(STREAMFILE *streamFile) {
     if (read_32bitBE(0x00, streamFile) != 0x41414320)   /* "AAC " */
         goto fail;
 
-    /* Haven't Found a codec flag yet. Let's just use this for now */
-    if (read_32bitBE(0x10000, streamFile) != 0x41534320)   /* "ASC " */
+    /* Find the ASC chunk, That's where the goodies are */
+    asc_chunk = read_32bitBE(0x40, streamFile);
+    if (read_32bitBE(asc_chunk, streamFile) != 0x41534320)   /* "ASC " */
         goto fail;
 
-    if (read_32bitBE(0x10104, streamFile) != 0xFFFFFFFF)
+    if (read_32bitBE(asc_chunk+0x104, streamFile) != 0xFFFFFFFF)
         loop_flag = 1;
     else
         loop_flag = 0;
 
-    channel_count = read_32bitBE(0x100F4, streamFile);
-    codec_id = read_32bitBE(0x100F0, streamFile);
+    channel_count = read_32bitBE(asc_chunk + 0xF4, streamFile);
+    codec_id = read_32bitBE(asc_chunk + 0xF0, streamFile);
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count, loop_flag);
     if (!vgmstream) goto fail;
 
-    /* Useless header, let's play the guessing game */
-    start_offset = 0x10110;
-    vgmstream->sample_rate = read_32bitBE(0x100FC, streamFile);
+    /* ASC header */
+    start_offset = asc_chunk + 0x110;
+    vgmstream->sample_rate = read_32bitBE(asc_chunk + 0xFC, streamFile);
     vgmstream->channels = channel_count;
     vgmstream->meta_type = meta_TA_AAC_PS3;
-    data_size = read_32bitBE(0x100F8, streamFile);
-    loop_start = read_32bitBE(0x10104, streamFile);
-    loop_end = read_32bitBE(0x10108, streamFile);
+    data_size = read_32bitBE(asc_chunk + 0xF8, streamFile);
+    loop_start = read_32bitBE(asc_chunk + 0x104, streamFile);
+    loop_end = read_32bitBE(asc_chunk + 0x108, streamFile);
 
 #ifdef VGM_USE_FFMPEG
     {
-        ffmpeg_codec_data *ffmpeg_data = NULL;
-        uint8_t buf[100];
-        int32_t bytes, samples_size = 1024, block_size, encoder_delay, joint_stereo, max_samples;
-        block_size = (codec_id == 4 ? 0x60 : (codec_id == 5 ? 0x98 : 0xC0)) * vgmstream->channels;
-        max_samples = (data_size / block_size) * samples_size;
-        encoder_delay = 0x0;
-        joint_stereo = 0;
+        int block_align, encoder_delay;
 
-        /* make a fake riff so FFmpeg can parse the ATRAC3 */
-        bytes = ffmpeg_make_riff_atrac3(buf, 100, vgmstream->num_samples, data_size, vgmstream->channels, vgmstream->sample_rate, block_size, joint_stereo, encoder_delay);
-        if (bytes <= 0) goto fail;
+        block_align = (codec_id == 4 ? 0x60 : (codec_id == 5 ? 0x98 : 0xC0)) * vgmstream->channels;
+        encoder_delay = 1024 + 69; /* approximate, gets good loops */
+        vgmstream->num_samples = atrac3_bytes_to_samples(data_size, block_align) - encoder_delay;
 
-        ffmpeg_data = init_ffmpeg_header_offset(streamFile, buf, bytes, start_offset, data_size);
-        if (!ffmpeg_data) goto fail;
-        vgmstream->codec_data = ffmpeg_data;
+        vgmstream->codec_data = init_ffmpeg_atrac3_raw(streamFile, start_offset,data_size, vgmstream->num_samples,vgmstream->channels,vgmstream->sample_rate, block_align, encoder_delay);
+        if (!vgmstream->codec_data) goto fail;
         vgmstream->coding_type = coding_FFmpeg;
         vgmstream->layout_type = layout_none;
-        vgmstream->num_samples = max_samples;
 
-        if (loop_flag) {
-            vgmstream->loop_start_sample = (loop_start / block_size) * samples_size;
-            vgmstream->loop_end_sample = (loop_end / block_size) * samples_size;
-        }
-
+        /* set offset samples (offset 0 jumps to sample 0 > pre-applied delay, and offset end loops after sample end > adjusted delay) */
+        vgmstream->loop_start_sample = atrac3_bytes_to_samples(loop_start, block_align); // - encoder_delay
+        vgmstream->loop_end_sample = atrac3_bytes_to_samples(loop_end, block_align) - encoder_delay;
     }
 #endif
 

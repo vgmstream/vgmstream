@@ -19,13 +19,30 @@ There are no hard coding rules but for consistency one could follow the style us
 - lowercase_helper_structs, UPPERCASE_MAIN_STRUCTS
 - spaces in calcs/ifs/etc may be added as desired for clarity
   ex. `if (simple_check)` or `if ( complex_and_important_stuff(weird + weird) )`
+- goto are used to abort and reach "fail" sections (typical C cleanup style)
 
-But other styles may be found, this isn't very important as most files are isolated.
+But other styles may be found, this isn't very important as most files are isolated. When modifying a file or section of the code just try to follow the style set there so code doesn't clash too much.
 
-Some of the code may be a bit inefficient or duplicated at places, but it isn't much of a problem if gives clarity. vgmstream's performance is fast enough (as it mainly deals with playing songs in real time) so that favors clarity over optimization. Similarly, some code may segfault or even cause infinite loops on bad data, but it's fixed as encountered rather than worrying too much about improbable cases.
+### Code quality
+There is quite a bit of code that could be improved overall, but given how niche the project is priority is given to adding and improving formats. Parts may segfault or even cause infinite loops on bad data, but it's fixed as encountered rather than worrying too much about improbable cases. There isn't an automated test suite at the moment, so tests are manually done as needed.
+
+For regression testing there is a simple script that compares output of a previous version of vgmstream_cli with current. Some bugs may drastically change output when fixed (for example adjusting loops or decoding) so it could be hard to automate and maintain.
+
+Code is checked for leaks from time to time using detection tools, but most of vgmstream formats are quite simple and don't need to manage memory. It's mainly useful for files using external decoders or complex segmented/layered layout combos.
+```
+# recommended to compile with debug info, for example:
+make vgmstream_cli EXTRA_CFLAGS="-g" STRIP=echo
+
+# find leaks
+drmemory -- vgmstream_cli -o file.ext
+```
+
+Some of the code can be inefficient or duplicated at places, but it isn't that much of a problem if gives clarity. vgmstream's performance is fast enough (as it mainly deals with playing songs in real time) so that favors clarity over optimization. Performance bottlenecks are mainly:
+- I/O: since I/O is buffered it's possible to needlessly trash the buffers when reading previous/next offsets back and forth. It's better to read linearly using big enough data chunks and cache values.
+- for loops: since your average audio file contains millions of samples, this means lots of loops. Care should be taken to avoid unnecessary function calls or recalculations per single sample when multiple samples could be processed at once.
 
 
-## Structure
+## Source structure
 
 ```
 ./                   scripts
@@ -42,6 +59,28 @@ Some of the code may be a bit inefficient or duplicated at places, but it isn't 
 ./winamp/            Winamp plugin
 ./xmplay/            XMPlay plugin
 ```
+
+## Terminology
+Quick list of some audio terms used through vgmstream, applied to code. Mainly meant for the neophyte, hopefully helps new people willing to contribute. vgmstream isn't too complex and with some perseverance one can add a new format (*meta*) easily enough.
+
+- stream: an audio file, or a section inside it, or data 'lane' within, as the name implies. Just a generic term for a data chunk.
+  - Streams normally have a header that tells how to play the file, and encoded ('compressed') audio data.
+- encoder: program or code that transforms audio samples to encoded data.
+- decoder: program or code that transforms encoded data to audio samples.
+- encoded data: bunch of bytes (sometimes bits) that decode into one or many samples (for one or many channels) with a decoder.
+- audio sample: digital audio unit (single value) to define playable sound. A sound is a wave, and an array of many samples (digital) together make a wave (analog).
+  - Each output channel has its own set of samples.
+  - Normally `1 sample` actually means `1 sample for every channel` (common standard that makes code logic simpler).
+    - If an stereo file has `1000000` samples it actually means `2*1000000` total samples.
+- sample rate: number of samples per second (in *hz*). Also called frequency.
+  - If a file has a sample rate *44100hz* and lasts *30 seconds* this means `44100 * 30 = 1323000` samples.
+  - Since many samples together make a wave, the higher the sample rate the more samples we have, and the better-sounding wave we get.
+- frame: smallest part of data that a decoder can transform into samples.
+  - A frame can contain samples for one or many channels, depending on the encoder.
+- interleave: size of encoded data for one channel. Some encoders only take a single (mono) channel at a time, so to make stereo or more we interlace frames.
+  - For example 1 frame L, 1 frame R, 1 frame L, 1 frame R, etc. Or 10 frames L, 10 frames R, etc.
+- block: a generic section of data, made of one or many frames for all channels.
+
 
 ## Overview
 vgmstream works by parsing a music stream header (*meta/*), preparing/controlling data and sample buffers (*layout/*) and decoding the compressed data into listenable PCM samples (*coding/*).
@@ -74,6 +113,7 @@ Custom STREAMFILEs wrapping base STREAMFILEs may be used for complex I/O cases:
 - data needs decryption (`io_streamfile`)
 - data must be expanded/reduced on the fly for codecs that are not easy to feed chunked data (`io_streamfile`)
 - data is divided in multiple physical files, but must be read as a single (`multifile_streamfile`)
+
 Certain metas combine those streamfiles together with special layouts to support very complex cases, that would require massive changes in vgmstream to support in a cleaner (possible undesirable) way.
 
 

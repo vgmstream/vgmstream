@@ -255,8 +255,8 @@ static void blitz_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset
     delta = (step >> 1) + delta * step; /* custom */
     sample_decoded += delta;
 
-    /* somehow the exe tries to clamp hist, but actually doesn't (bug?),
-     * not sure if pcm buffer would be clamped outside though */
+    /* in Zapper somehow the exe tries to clamp hist but actually doesn't (bug? not in Lilo & Stitch),
+     * seems the pcm buffer must be clamped outside though to fix some scratchiness */
     *hist1 = sample_decoded;//clamp16(sample_decoded);
     *step_index += IMA_IndexTable[sample_nibble];
     if (*step_index < 0) *step_index=0;
@@ -445,7 +445,7 @@ void decode_blitz_ima(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channels
         int nibble_shift = (i&1?4:0); //low nibble first
 
         blitz_ima_expand_nibble(stream, byte_offset,nibble_shift, &hist1, &step_index);
-        outbuf[sample_count] = (short)(hist1);
+        outbuf[sample_count] = (short)clamp16(hist1);
     }
 
     stream->adpcm_history1_32 = hist1;
@@ -878,7 +878,7 @@ void decode_fsb_ima(VGMSTREAM * vgmstream, VGMSTREAMCHANNEL * stream, sample_t *
     stream->adpcm_step_index = step_index;
 }
 
-/* mono XBOX-IMA with header endianness and alt nibble expand (per hcs's decompilation) */
+/* mono XBOX-IMA with header endianness and alt nibble expand (verified vs AK test demos) */
 void decode_wwise_ima(VGMSTREAM * vgmstream, VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
     int i, sample_count = 0, num_frame;
     int32_t hist1 = stream->adpcm_history1_32;
@@ -922,17 +922,6 @@ void decode_wwise_ima(VGMSTREAM * vgmstream, VGMSTREAMCHANNEL * stream, sample_t
     stream->adpcm_history1_32 = hist1;
     stream->adpcm_step_index = step_index;
 }
-/* from hcs's analysis Wwise IMA expands nibbles slightly different, reducing dbs. Just "MUL" expand?
-<_ZN13CAkADPCMCodec12DecodeSampleEiii>: //From Wwise_v2015.1.6_Build5553_SDK.Linux
-  10:   83 e0 07                and    $0x7,%eax        ; sample
-  13:   01 c0                   add    %eax,%eax        ; sample*2
-  15:   83 c0 01                add    $0x1,%eax        ; sample*2+1
-  18:   0f af 45 e4             imul   -0x1c(%rbp),%eax ; (sample*2+1)*scale
-  1c:   8d 50 07                lea    0x7(%rax),%edx   ; result+7
-  1f:   85 c0                   test   %eax,%eax        ; result negative?
-  21:   0f 48 c2                cmovs  %edx,%eax        ; adjust if negative to fix rounding for below division
-  24:   c1 f8 03                sar    $0x3,%eax        ; (sample*2+1)*scale/8
-*/
 
 /* MS-IMA with possibly the XBOX-IMA model of even number of samples per block (more tests are needed) */
 void decode_awc_ima(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
@@ -1124,9 +1113,20 @@ size_t ms_ima_bytes_to_samples(size_t bytes, int block_align, int channels) {
 }
 
 size_t xbox_ima_bytes_to_samples(size_t bytes, int channels) {
+    int mod;
     int block_align = 0x24 * channels;
     if (channels <= 0) return 0;
+
+    mod = bytes % block_align;
     /* XBOX IMA blocks have a 4 byte header per channel; 2 samples per byte (2 nibbles) */
+    return (bytes / block_align) * (block_align - 4 * channels) * 2 / channels
+            + ((mod > 0 && mod > 0x04*channels) ? (mod - 0x04*channels) * 2 / channels : 0); /* unlikely (encoder aligns) */
+}
+
+size_t dat4_ima_bytes_to_samples(size_t bytes, int channels) {
+    int block_align = 0x20 * channels;
+    if (channels <= 0) return 0;
+    /* DAT4 IMA blocks have a 4 byte header per channel; 2 samples per byte (2 nibbles) */
     return (bytes / block_align) * (block_align - 4 * channels) * 2 / channels
             + ((bytes % block_align) ? ((bytes % block_align) - 4 * channels) * 2 / channels : 0); /* unlikely (encoder aligns) */
 }

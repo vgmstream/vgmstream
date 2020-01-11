@@ -37,45 +37,6 @@ static uint32_t read_bitsBE_b(off_t bit_offset, int num_bits, STREAMFILE *stream
 /* ******************************************** */
 /* All helpers copy a RIFF header to buf and returns the number of bytes in buf or -1 when buf is not big enough */
 
-int ffmpeg_make_riff_atrac3(uint8_t * buf, size_t buf_size, size_t sample_count, size_t data_size, int channels, int sample_rate, int block_align, int joint_stereo, int encoder_delay) {
-    uint16_t codec_ATRAC3 = 0x0270;
-    size_t riff_size = 4+4+ 4 + 0x28 + 0x10 + 4+4;
-
-    if (buf_size < riff_size)
-        return -1;
-
-    memcpy(buf+0x00, "RIFF", 4);
-    put_32bitLE(buf+0x04, (int32_t)(riff_size-4-4 + data_size)); /* riff size */
-    memcpy(buf+0x08, "WAVE", 4);
-
-    memcpy(buf+0x0c, "fmt ", 4);
-    put_32bitLE(buf+0x10, 0x20);/*fmt size*/
-    put_16bitLE(buf+0x14, codec_ATRAC3);
-    put_16bitLE(buf+0x16, channels);
-    put_32bitLE(buf+0x18, sample_rate);
-    put_32bitLE(buf+0x1c, sample_rate*channels / sizeof(sample)); /* average bytes per second (wrong) */
-    put_32bitLE(buf+0x20, (int16_t)(block_align)); /* block align */
-
-    put_16bitLE(buf+0x24, 0x0e); /* extra data size */
-    put_16bitLE(buf+0x26, 1); /* unknown, always 1 */
-    put_16bitLE(buf+0x28, 0x0800 * channels); /* unknown (some size? 0x1000=2ch, 0x0800=1ch) */
-    put_16bitLE(buf+0x2a, 0); /* unknown, always 0 */
-    put_16bitLE(buf+0x2c, joint_stereo ? 0x0001 : 0x0000);
-    put_16bitLE(buf+0x2e, joint_stereo ? 0x0001 : 0x0000); /* repeated? */
-    put_16bitLE(buf+0x30, 1); /* unknown, always 1 (frame_factor?) */
-    put_16bitLE(buf+0x32, 0); /* unknown, always 0 */
-
-    memcpy(buf+0x34, "fact", 4);
-    put_32bitLE(buf+0x38, 0x8); /* fact size */
-    put_32bitLE(buf+0x3c, sample_count);
-    put_32bitLE(buf+0x40, encoder_delay);
-
-    memcpy(buf+0x44, "data", 4);
-    put_32bitLE(buf+0x48, data_size); /* data size */
-
-    return riff_size;
-}
-
 int ffmpeg_make_riff_atrac3plus(uint8_t * buf, size_t buf_size, size_t sample_count, size_t data_size, int channels, int sample_rate, int block_align, int encoder_delay) {
     uint16_t codec_ATRAC3plus = 0xfffe; /* wave format extensible */
     size_t riff_size = 4+4+ 4 + 0x3c + 0x14 + 4+4;
@@ -871,6 +832,11 @@ void xma_fix_raw_samples_ch(VGMSTREAM *vgmstream, STREAMFILE*streamFile, off_t s
 #endif
 }
 
+void xma_fix_raw_samples_hb(VGMSTREAM *vgmstream, STREAMFILE *headerFile, STREAMFILE *bodyFile, off_t stream_offset, size_t stream_size, off_t chunk_offset, int fix_num_samples, int fix_loop_samples) {
+    int channels_per_stream = xma_get_channels_per_stream(headerFile, chunk_offset, vgmstream->channels);
+    xma_fix_raw_samples_ch(vgmstream, bodyFile, stream_offset, stream_size, channels_per_stream, fix_num_samples, fix_loop_samples);
+}
+
 void xma_fix_raw_samples(VGMSTREAM *vgmstream, STREAMFILE*streamFile, off_t stream_offset, size_t stream_size, off_t chunk_offset, int fix_num_samples, int fix_loop_samples) {
     int channels_per_stream = xma_get_channels_per_stream(streamFile, chunk_offset, vgmstream->channels);
     xma_fix_raw_samples_ch(vgmstream, streamFile, stream_offset, stream_size, channels_per_stream, fix_num_samples, fix_loop_samples);
@@ -981,24 +947,6 @@ void xma2_parse_xma2_chunk(STREAMFILE *streamFile, off_t chunk_offset, int * out
     if(out_loop_start_sample)  *out_loop_start_sample = loop_start_sample;
     if(out_loop_end_sample)    *out_loop_end_sample   = loop_end_sample;
     if(out_loop_flag)          *out_loop_flag         = loop_flag;
-}
-
-/* manually read from "fact" chunk */
-int riff_get_fact_skip_samples(STREAMFILE * streamFile, off_t start_offset) {
-    off_t chunk_offset;
-    size_t chunk_size, fact_skip_samples = 0;
-    if (!find_chunk_le(streamFile, 0x66616374, start_offset + 0x0c, 0, &chunk_offset, &chunk_size)) /* find "fact" */
-        goto fail;
-    if (chunk_size == 0x8) {
-        fact_skip_samples = read_32bitLE(chunk_offset + 0x4, streamFile);
-    }
-    else if (chunk_size == 0xc) {
-        fact_skip_samples = read_32bitLE(chunk_offset + 0x8, streamFile);
-    }
-
-    return fact_skip_samples;
-fail:
-    return 0; /* meh */
 }
 
 /* ******************************************** */
@@ -1211,26 +1159,13 @@ int w_bits(vgm_bitstream * ob, int num_bits, uint32_t value) {
 /* CUSTOM STREAMFILES                           */
 /* ******************************************** */
 
-STREAMFILE* setup_subfile_streamfile(STREAMFILE *streamFile, off_t subfile_offset, size_t subfile_size, const char* extension) {
-    STREAMFILE *temp_streamFile = NULL, *new_streamFile = NULL;
+STREAMFILE* setup_subfile_streamfile(STREAMFILE *sf, off_t subfile_offset, size_t subfile_size, const char* extension) {
+    STREAMFILE *new_sf = NULL;
 
-    new_streamFile = open_wrap_streamfile(streamFile);
-    if (!new_streamFile) goto fail;
-    temp_streamFile = new_streamFile;
-
-    new_streamFile = open_clamp_streamfile(temp_streamFile, subfile_offset,subfile_size);
-    if (!new_streamFile) goto fail;
-    temp_streamFile = new_streamFile;
-
+    new_sf = open_wrap_streamfile(sf);
+    new_sf = open_clamp_streamfile_f(new_sf, subfile_offset, subfile_size);
     if (extension) {
-        new_streamFile = open_fakename_streamfile(temp_streamFile, NULL,extension);
-        if (!new_streamFile) goto fail;
-        temp_streamFile = new_streamFile;
+        new_sf = open_fakename_streamfile_f(new_sf, NULL, extension);
     }
-
-    return temp_streamFile;
-
-fail:
-    close_streamfile(temp_streamFile);
-    return NULL;
+    return new_sf;
 }

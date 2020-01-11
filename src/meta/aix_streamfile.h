@@ -112,40 +112,22 @@ static size_t aix_io_size(STREAMFILE *streamfile, aix_io_data* data) {
 }
 
 /* Handles deinterleaving of AIX blocked layer streams */
-static STREAMFILE* setup_aix_streamfile(STREAMFILE *streamFile, off_t stream_offset, size_t stream_size, int layer_number, const char* extension) {
-    STREAMFILE *temp_streamFile = NULL, *new_streamFile = NULL;
+static STREAMFILE* setup_aix_streamfile(STREAMFILE *sf, off_t stream_offset, size_t stream_size, int layer_number, const char* extension) {
+    STREAMFILE *new_sf = NULL;
     aix_io_data io_data = {0};
-    size_t io_data_size = sizeof(aix_io_data);
 
     io_data.stream_offset = stream_offset;
     io_data.stream_size = stream_size;
     io_data.layer_number = layer_number;
     io_data.logical_offset = -1; /* force reset */
 
-    /* setup subfile */
-    new_streamFile = open_wrap_streamfile(streamFile);
-    if (!new_streamFile) goto fail;
-    temp_streamFile = new_streamFile;
-
-    new_streamFile = open_io_streamfile(new_streamFile, &io_data,io_data_size, aix_io_read,aix_io_size);
-    if (!new_streamFile) goto fail;
-    temp_streamFile = new_streamFile;
-
-    new_streamFile = open_buffer_streamfile(new_streamFile,0);
-    if (!new_streamFile) goto fail;
-    temp_streamFile = new_streamFile;
-
+    new_sf = open_wrap_streamfile(sf);
+    new_sf = open_io_streamfile_f(new_sf, &io_data, sizeof(aix_io_data), aix_io_read, aix_io_size);
+    new_sf = open_buffer_streamfile_f(new_sf, 0);
     if (extension) {
-        new_streamFile = open_fakename_streamfile(temp_streamFile, NULL,extension);
-        if (!new_streamFile) goto fail;
-        temp_streamFile = new_streamFile;
+        new_sf = open_fakename_streamfile_f(new_sf, NULL, extension);
     }
-
-    return temp_streamFile;
-
-fail:
-    close_streamfile(temp_streamFile);
-    return NULL;
+    return new_sf;
 }
 
 #endif /* _AIX_STREAMFILE_H_ */

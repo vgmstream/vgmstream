@@ -8,12 +8,12 @@
  * Layout: N tracks of 0x10 header + 0x80*2 (always 2ch; multichannels uses 4ch = 2ch track0 + 2ch track1 xN).
  */
 
-static const int index_table[16] = {
+static const int mtaf_step_indexes[16] = {
     -1, -1, -1, -1, 2, 4, 6, 8,
     -1, -1, -1, -1, 2, 4, 6, 8
 }; 
 
-static const int16_t step_size[32][16] = {
+static const int16_t mtaf_step_sizes[32][16] = {
     {     1,     5,     9,    13,    16,    20,    24,    28,
          -1,    -5,    -9,   -13,   -16,   -20,   -24,   -28, },
     {     2,     6,    11,    15,    20,    24,    29,    33,
@@ -81,52 +81,56 @@ static const int16_t step_size[32][16] = {
 };
 
 
-void decode_mtaf(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
-    int32_t sample_count;
-    int i;
-    int c = channel%2; /* global channel to track channel */
+void decode_mtaf(VGMSTREAMCHANNEL *stream, sample_t *outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
+    uint8_t frame[0x110] = {0};
+    off_t frame_offset;
+    int i, ch, sample_count = 0;
+    size_t bytes_per_frame /*, samples_per_frame*/;
     int32_t hist = stream->adpcm_history1_16;
-    int32_t step_idx = stream->adpcm_step_index;
+    int32_t step_index = stream->adpcm_step_index;
 
 
-    /* read header when we hit a new track every 0x100 samples */
-    first_sample = first_sample % 0x100;
+    /* special stereo interleave, stereo */
+    bytes_per_frame = 0x10 + 0x80*2;
+    //samples_per_frame = (bytes_per_frame - 0x10) / 2 * 2; /* 256 */
+    ch = channel % 2; /* global channel to track channel */
+    //first_sample = first_sample % samples_per_frame; /* for flat layout */
 
+    /* read frame */
+    frame_offset = stream->offset;
+    read_streamfile(frame, frame_offset, bytes_per_frame, stream->streamfile); /* ignore EOF errors */
+
+    /* parse frame header when we hit a new track every frame samples */
     if (first_sample == 0) {
         /*  0x10 header: track (8b, 0=first), track count (24b, 1=first), step-L, step-R, hist-L, hist-R */
-        int32_t init_idx  = read_16bitLE(stream->offset+4+0+c*2, stream->streamfile); /* step-L/R */
-        int32_t init_hist = read_16bitLE(stream->offset+4+4+c*4, stream->streamfile); /* hist-L/R: hist 16bit + empty 16bit */
+        step_index = get_s16le(frame + 0x04 + 0x00 + ch*0x02); /* step-L/R */
+        hist       = get_s16le(frame + 0x04 + 0x04 + ch*0x04); /* hist-L/R: hist 16bit + empty 16bit */
 
-        VGM_ASSERT(init_idx < 0 || init_idx > 31, "MTAF: bad header idx @ 0x%x\n", (uint32_t)stream->offset);
-        /* avoid index out of range in corrupt files */
-        if (init_idx < 0) {
-            init_idx = 0;
-        } else if (init_idx > 31) {
-            init_idx = 31;
+        VGM_ASSERT(step_index < 0 || step_index > 31, "MTAF: bad header idx at 0x%x\n", (uint32_t)stream->offset);
+        if (step_index < 0) {
+            step_index = 0;
+        } else if (step_index > 31) {
+            step_index = 31;
         }
-
-        step_idx = init_idx;
-        hist = init_hist;
     }
 
+    /* decode nibbles */
+    for (i = first_sample; i < first_sample + samples_to_do; i++) {
+        uint8_t nibbles = frame[0x10 + 0x80*ch + i/2];
+        uint8_t nibble = (nibbles >> (!(i&1)?0:4)) & 0xf; /* lower first */
 
-    /* skip to nibble */
-    for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
-        uint8_t byte = read_8bit(stream->offset + 0x10 + 0x80*c + i/2, stream->streamfile);
-        uint8_t nibble = (byte >> (!(i&1)?0:4)) & 0xf; /* lower first */
-
-        hist = clamp16(hist+step_size[step_idx][nibble]);
+        hist = clamp16(hist + mtaf_step_sizes[step_index][nibble]);
         outbuf[sample_count] = hist;
+        sample_count += channelspacing;
 
-        step_idx += index_table[nibble];
-        if (step_idx < 0) { /* clip step */
-            step_idx = 0;
-        } else if (step_idx > 31) {
-            step_idx = 31;
+        step_index += mtaf_step_indexes[nibble];
+        if (step_index < 0) {
+            step_index = 0;
+        } else if (step_index > 31) {
+            step_index = 31;
         }
     }
 
-    /* update state */
-    stream->adpcm_step_index = step_idx;
+    stream->adpcm_step_index = step_index;
     stream->adpcm_history1_16 = hist;
 }
