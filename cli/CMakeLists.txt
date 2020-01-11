@@ -17,7 +17,7 @@ if(WIN32)
 
 	# Make sure that the binary directory is included (for version.h), as well as the getopt library include directory
 	target_include_directories(vgmstream_cli PRIVATE
-		${VGM_SOURCE_DIR}
+		${VGM_BINARY_DIR}
 		${VGM_SOURCE_DIR}/ext_libs/Getopt)
 
 	# Include the version string

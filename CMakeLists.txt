@@ -60,12 +60,12 @@ if(WIN32)
 	# Update the version
 	set(CMAKE_EXECUTABLE_SUFFIX .exe)
 	if(MSVC)
-		file(TO_NATIVE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/version.h" VERSION_H_PATH)
-		add_custom_command(OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/version.h
+		file(TO_NATIVE_PATH "${VGM_BINARY_DIR}/version.h" VERSION_H_PATH)
+		add_custom_command(OUTPUT ${VGM_BINARY_DIR}/version.h
 			COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/version.bat"
 			ARGS ${VERSION_H_PATH} VERSION
 			DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/version.bat)
-		add_custom_target(version_h DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/version.h)
+		add_custom_target(version_h DEPENDS ${VGM_BINARY_DIR}/version.h)
 	else()
 		find_package(Git)
 		if(GIT_FOUND)
