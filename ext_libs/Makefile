@@ -14,9 +14,6 @@ libvorbis.a: libvorbis.def
 libmpg123-0.a: libmpg123-0.def
 	$(DLLTOOL) -d libmpg123-0.def -l libmpg123-0.a
 
-libg7221_decode.a: libg7221_decode.def
-	$(DLLTOOL) -d libg7221_decode.def -l libg7221_decode.a
-
 libg719_decode.a: libg719_decode.def
 	$(DLLTOOL) -d libg719_decode.def -l libg719_decode.a
 
@@ -42,6 +39,6 @@ libcelt-0110.a: libcelt-0110.dll libcelt-0110.def
 	$(DLLTOOL) -D libcelt-0110.dll -d libcelt-0110.def -l libcelt-0110.a
 
 clean:
-	$(RMF) libvorbis.a libmpg123-0.a libg7221_decode.a libg719_decode.a libavcodec.a libavformat.a libavutil.a libswresample.a libatrac9.a libcelt-0061.a libcelt-0110.a
+	$(RMF) libvorbis.a libmpg123-0.a libg719_decode.a libavcodec.a libavformat.a libavutil.a libswresample.a libatrac9.a libcelt-0061.a libcelt-0110.a
 
 .PHONY: clean

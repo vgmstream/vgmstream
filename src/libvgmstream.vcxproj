@@ -136,6 +136,8 @@
     <ClInclude Include="coding\acm_decoder_libacm.h" />
     <ClInclude Include="coding\coding.h" />
     <ClInclude Include="coding\ea_mt_decoder_utk.h" />
+    <ClInclude Include="coding\g7221_decoder_lib.h" />
+    <ClInclude Include="coding\g7221_decoder_lib_data.h" />
     <ClInclude Include="coding\fsb_vorbis_data.h" />
     <ClInclude Include="coding\g72x_state.h" />
     <ClInclude Include="coding\nwa_decoder.h" />
@@ -552,6 +554,7 @@
     <ClCompile Include="coding\g719_decoder.c" />
     <ClCompile Include="coding\g721_decoder.c" />
     <ClCompile Include="coding\g7221_decoder.c" />
+    <ClCompile Include="coding\g7221_decoder_lib.c" />
     <ClCompile Include="coding\hca_decoder.c" />
     <ClCompile Include="coding\ima_decoder.c" />
     <ClCompile Include="coding\l5_555_decoder.c" />

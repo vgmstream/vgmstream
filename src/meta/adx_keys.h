@@ -187,6 +187,12 @@ static const adxkey_info adxkey8_list[] = {
         /* Lucky Star: RAvish Romance (PS2) [Vridge] */
         {0x5347,0x4FB7,0x6415, "LUCKYSRARPS2",0},
 
+        /* Katekyoo Hitman Reborn! Nerae! Ring x Bongole Trainers (PS2) */
+        {0x61C7,0x4549,0x4337, "ORN2HITMAN",0},
+
+        /* Katekyoo Hitman Reborn! Let's Ansatsu! Nerawareta 10-daime! (PS2) */
+        {0x5381,0x52E5,0x53E9, "REBHITMAN",0},
+
 };
 
 static const adxkey_info adxkey9_list[] = {

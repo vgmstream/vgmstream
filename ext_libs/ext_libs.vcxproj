@@ -63,12 +63,6 @@
 </Command>
       <Outputs>libvorbis.lib;libvorbis.exp;%(Outputs)</Outputs>
     </CustomBuild>
-    <CustomBuild Include="libg7221_decode.def">
-      <Message>Building library stub</Message>
-      <Command>lib /def:libg7221_decode.def /machine:x86
-</Command>
-      <Outputs>libg7221_decode.lib;libg7221_decode.exp;%(Outputs)</Outputs>
-    </CustomBuild>
     <CustomBuild Include="libg719_decode.def">
       <Message>Building library stub</Message>
       <Command>lib /def:libg719_decode.def /machine:x86

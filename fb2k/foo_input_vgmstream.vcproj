@@ -62,7 +62,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="shared.lib foobar2000_SDKd.lib foobar2000_component_clientd.lib pfcd.lib foobar2000_sdk_helpersd.lib ../ext_libs/libg7221_decode.lib ../ext_libs/libg719_decode.lib ../ext_libs/libvorbis.lib ../ext_libs/libmpg123-0.lib ../ext_libs/avcodec.lib ../ext_libs/avformat.lib ../ext_libs/avutil.lib ../ext_libs/swresample.lib"
+				AdditionalDependencies="shared.lib foobar2000_SDKd.lib foobar2000_component_clientd.lib pfcd.lib foobar2000_sdk_helpersd.lib ../ext_libs/libg719_decode.lib ../ext_libs/libvorbis.lib ../ext_libs/libmpg123-0.lib ../ext_libs/avcodec.lib ../ext_libs/avformat.lib ../ext_libs/avutil.lib ../ext_libs/swresample.lib"
 				OutputFile="$(OutDir)\$(ProjectName).dll"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories=""
@@ -138,7 +138,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="shared.lib foobar2000_SDK.lib foobar2000_sdk_helpers.lib foobar2000_component_client.lib pfc.lib ../ext_libs/libvorbis.lib ../ext_libs/libmpg123-0.lib ../ext_libs/libg7221_decode.lib ../ext_libs/libg719_decode.lib ../ext_libs/avcodec.lib ../ext_libs/avformat.lib ../ext_libs/avutil.lib ../ext_libs/swresample.lib"
+				AdditionalDependencies="shared.lib foobar2000_SDK.lib foobar2000_sdk_helpers.lib foobar2000_component_client.lib pfc.lib ../ext_libs/libvorbis.lib ../ext_libs/libmpg123-0.lib ../ext_libs/libg719_decode.lib ../ext_libs/avcodec.lib ../ext_libs/avformat.lib ../ext_libs/avutil.lib ../ext_libs/swresample.lib"
 				OutputFile="$(OutDir)\$(ProjectName).dll"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories=""

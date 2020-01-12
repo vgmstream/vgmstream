@@ -1126,7 +1126,7 @@ static const meta_info meta_info_list[] = {
         {meta_FFMPEG,               "FFmpeg supported file format"},
         {meta_X360_CXS,             "tri-Crescendo CXS header"},
         {meta_AKB,                  "Square-Enix AKB header"},
-        {meta_X360_PASX,            "Namco PASX header"},
+        {meta_X360_PASX,            "Premium Agency PASX header"},
         {meta_XMA_RIFF,             "Microsoft XMA RIFF header"},
         {meta_X360_AST,             "Capcom AST (X360) header"},
         {meta_WWISE_RIFF,           "Audiokinetic Wwise RIFF header"},

@@ -31,6 +31,13 @@ LIBAO_LIB_PATH = ../../libao/bin
 #endif
 
 
+# config libs
+VGM_ENABLE_G7221 = 1
+ifeq ($(VGM_ENABLE_G7221),1) 
+  CFLAGS  += -DVGM_USE_G7221
+endif
+
+
 ### external libs
 ifeq ($(TARGET_OS),Windows_NT)
 
@@ -46,13 +53,6 @@ ifeq ($(VGM_ENABLE_MPEG),1)
   CFLAGS  += -DVGM_USE_MPEG
   LDFLAGS += -lmpg123-0
   TARGET_EXT_LIBS += libmpg123-0.a
-endif
-
-VGM_ENABLE_G7221 = 1
-ifeq ($(VGM_ENABLE_G7221),1) 
-  CFLAGS  += -DVGM_USE_G7221
-  LDFLAGS += -lg7221_decode
-  TARGET_EXT_LIBS += libg7221_decode.a
 endif
 
 VGM_ENABLE_G719 = 1

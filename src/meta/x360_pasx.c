@@ -1,7 +1,7 @@
 #include "meta.h"
 #include "../coding/coding.h"
 
-/* PASX - from SoulCalibur II HD (X360) */
+/* PASX - from Premium Agency games [SoulCalibur II HD (X360), Death By Cube (X360)] */
 VGMSTREAM * init_vgmstream_x360_pasx(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset, chunk_offset;
@@ -11,7 +11,9 @@ VGMSTREAM * init_vgmstream_x360_pasx(STREAMFILE *streamFile) {
 
 
     /* checks */
-    if ( !check_extensions(streamFile,"past"))
+    /* .past: Soul Calibur II HD
+     * .sgb: Death By Cube */
+    if ( !check_extensions(streamFile,"past,sgb"))
         goto fail;
     if (read_32bitBE(0x00,streamFile) != 0x50415358)   /* "PASX" */
         goto fail;

@@ -202,16 +202,6 @@ Adds support for MPEG (MP1/MP2/MP3).
 Must use autotools (sh configure, make, make install), though some scripts simplify the process: `makedll.sh`, `windows-builds.sh`.
 
 
-### libg7221_decode
-Adds support for ITU-T G.722.1 annex C (standardization of Polycom Siren 14).
-- Source: https://github.com/bnnm/vgmstream-g7221
-  - Alt lib (has volume problems): https://github.com/kode54/libg7221_decode
-  - licensed under the LGPL v3 (possibly invalid and Polycom's)
-- DLL: `libg7221_decode.dll`
-- unknown license (possibly invalid and Polycom's)
-
-Use make `libg7221_decode.dll`.
-
 ### libg719_decode
 Adds support for ITU-T G.719 (standardization of Polycom Siren 22).
 - Source: https://github.com/kode54/libg719_decode

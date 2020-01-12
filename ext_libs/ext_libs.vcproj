@@ -108,30 +108,6 @@
 			</FileConfiguration>
 		</File>
 		<File
-			RelativePath=".\libg7221_decode.def"
-			>
-			<FileConfiguration
-				Name="Debug|Win32"
-				>
-				<Tool
-					Name="VCCustomBuildTool"
-					Description="Building library stub"
-					CommandLine="lib /def:libg7221_decode.def /machine:x86&#x0D;&#x0A;"
-					Outputs="libg7221_decode.lib libg7221_decode.exp"
-				/>
-			</FileConfiguration>
-			<FileConfiguration
-				Name="Release|Win32"
-				>
-				<Tool
-					Name="VCCustomBuildTool"
-					Description="Building library stub"
-					CommandLine="lib /def:libg7221_decode.def /machine:x86&#x0D;&#x0A;"
-					Outputs="libg7221_decode.lib libg7221_decode.exp"
-				/>
-			</FileConfiguration>
-		</File>
-		<File
 			RelativePath=".\libg719_decode.def"
 			>
 			<FileConfiguration

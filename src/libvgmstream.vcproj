@@ -1874,6 +1874,14 @@
                     RelativePath=".\coding\ea_mt_decoder_utk.h"
                     >
                 </File>
+                <File
+                    RelativePath=".\coding\g7221_decoder_lib.h"
+                    >
+                </File>
+                <File
+                    RelativePath=".\coding\g7221_decoder_lib_data.h"
+                    >
+                </File>
 				<File
 					RelativePath=".\coding\g72x_state.h"
 					>
@@ -1978,10 +1986,14 @@
 					RelativePath=".\coding\g721_decoder.c"
 					>
 				</File>
-				<File
-					RelativePath=".\coding\g7221_decoder.c"
-					>
-				</File>
+                <File
+                    RelativePath=".\coding\g7221_decoder.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\coding\g7221_decoder_lib.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\coding\hca_decoder.c"
 					>

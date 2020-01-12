@@ -4,7 +4,7 @@
 /* FWSE - Capcom's MT Framework V1.x sound file */
 VGMSTREAM *init_vgmstream_fwse(STREAMFILE *streamFile) {
     VGMSTREAM *vgmstream = NULL;
-    uint32_t version, file_size, buffer_offset, 
+    uint32_t version, /*file_size,*/ buffer_offset, 
         channel_count, sample_count, sample_rate;
 
     if (!check_extensions(streamFile,"fwse"))
@@ -18,7 +18,7 @@ VGMSTREAM *init_vgmstream_fwse(STREAMFILE *streamFile) {
     if (version != 2)
         goto fail;
 
-    file_size = read_32bitLE(0x08,streamFile);
+  //file_size = read_32bitLE(0x08,streamFile);
     buffer_offset = read_32bitLE(0x0C,streamFile); 
     channel_count = read_32bitLE(0x10,streamFile);
 

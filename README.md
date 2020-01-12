@@ -31,7 +31,6 @@ or you can get them here: https://github.com/losnoco/vgmstream/tree/master/ext_l
 Put the following files somewhere Windows can find them:
 - `libvorbis.dll`
 - `libmpg123-0.dll`
-- `libg7221_decode.dll`
 - `libg719_decode.dll`
 - `avcodec-vgmstream-58.dll`
 - `avformat-vgmstream-58.dll`
