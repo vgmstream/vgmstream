@@ -39,8 +39,6 @@ endif
 VGM_ENABLE_G7221 = 1
 ifeq ($(VGM_ENABLE_G7221),1) 
   CFLAGS  += -DVGM_USE_G7221
-  LDFLAGS += -lg7221_decode
-  TARGET_EXT_LIBS += libg7221_decode.a
 endif
 
 VGM_ENABLE_G719 = 1

@@ -90,10 +90,6 @@ macro(setup_target TARGET)
 
 	if(USE_G7221)
 		target_compile_definitions(${TARGET} PRIVATE VGM_USE_G7221)
-		if(LINK)
-			add_dependencies(${TARGET} libg7221_decode)
-			target_link_libraries(${TARGET} ${VGM_BINARY_DIR}/ext_libs/libg7221_decode.lib)
-		endif()
 	endif()
 
 	if(USE_G719)
@@ -136,7 +132,6 @@ macro(install_dlls INSTALL_PREFIX)
 	# Paths to the DLLs
 	set(MPEG_DLL ${VGM_SOURCE_DIR}/ext_libs/libmpg123-0.dll)
 	set(VORBIS_DLL ${VGM_SOURCE_DIR}/ext_libs/libvorbis.dll)
-	set(G7221_DLL ${VGM_SOURCE_DIR}/ext_libs/libg7221_decode.dll)
 	set(G719_DLL ${VGM_SOURCE_DIR}/ext_libs/libg719_decode.dll)
 	set(FFMPEG_DLL
 		${VGM_SOURCE_DIR}/ext_libs/avcodec-vgmstream-58.dll

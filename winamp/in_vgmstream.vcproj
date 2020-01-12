@@ -61,7 +61,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="../ext_libs/libvorbis.lib ../ext_libs/libmpg123-0.lib ../ext_libs/libg7221_decode.lib ../ext_libs/libg719_decode.lib"
+				AdditionalDependencies="../ext_libs/libvorbis.lib ../ext_libs/libmpg123-0.lib ../ext_libs/libg719_decode.lib"
 				LinkIncremental="2"
 				GenerateDebugInformation="true"
 				SubSystem="2"
@@ -133,7 +133,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="../ext_libs/libvorbis.lib ../ext_libs/libmpg123-0.lib ../ext_libs/libg7221_decode.lib ../ext_libs/libg719_decode.lib"
+				AdditionalDependencies="../ext_libs/libvorbis.lib ../ext_libs/libmpg123-0.lib ../ext_libs/libg719_decode.lib"
 				LinkIncremental="2"
 				ModuleDefinitionFile=""
 				GenerateDebugInformation="true"
