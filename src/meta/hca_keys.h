@@ -319,13 +319,16 @@ static const hcakey_info hcakey_list[] = {
         {0xA86BF72B4C852CA7},       // A86BF72B4C852CA7 / 12136065386219383975
 
         /* Arca Last (Android) */
-        {612310807},                // 00000000247F1F17 / 12136065386219383975
+        {612310807},                // 00000000247F1F17
 
         /* ArkResona (Android) */
         {564321654321},             // 0000008364311631
 
         /* Kemono Friends 3 (Android) */
         {3315495188},               // 00000000C59E7114
+
+        /* Inazuma Eleven SD (Android) */
+        {0xC436E03737D55B5F},       // C436E03737D55B5F / 14138734607940803423
 
         /* Dragalia Lost (iOS/Android) */
         {2967411924141,         subkeys_dgl, sizeof(subkeys_dgl) / sizeof(subkeys_dgl[0]) },    // 000002B2E7889CAD
