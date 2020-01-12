@@ -38,10 +38,6 @@ enum { VGMSTREAM_MAX_NUM_SAMPLES = 1000000000 }; /* no ~5h vgm hopefully */
 #include <mpg123.h>
 #endif
 
-#ifdef VGM_USE_G7221
-#include <g7221.h>
-#endif
-
 #ifdef VGM_USE_MP4V2
 #define MP4V2_NO_STDINT_DEFS
 #include <mp4v2/mp4v2.h>
@@ -1085,10 +1081,7 @@ typedef struct {
 #endif
 
 #ifdef VGM_USE_G7221
-typedef struct {
-    sample_t buffer[640];
-    g7221_handle *handle;
-} g7221_codec_data;
+typedef struct g7221_codec_data g7221_codec_data;
 #endif
 
 #ifdef VGM_USE_G719

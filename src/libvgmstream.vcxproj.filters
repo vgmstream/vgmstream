@@ -179,6 +179,12 @@
     <ClInclude Include="coding\ea_mt_decoder_utk.h">
       <Filter>coding\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="coding\g7221_decoder_lib.h">
+      <Filter>coding\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="coding\g7221_decoder_lib_data.h">
+      <Filter>coding\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="coding\fsb_vorbis_data.h">
       <Filter>coding\Header Files</Filter>
     </ClInclude>
@@ -1175,6 +1181,9 @@
       <Filter>coding\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\g7221_decoder.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\g7221_decoder_lib.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\hca_decoder.c">
