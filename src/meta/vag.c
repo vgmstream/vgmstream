@@ -237,6 +237,7 @@ VGMSTREAM * init_vgmstream_vag(STREAMFILE *streamFile) {
                 start_offset = 0x800;
                 channel_count = 2;
                 interleave = 0x400;
+                loop_flag = 0;
 
                 channel_size -= ps_find_padding(streamFile, start_offset, channel_size, channel_count, interleave, 0);
                 channel_size = channel_size / channel_count;
