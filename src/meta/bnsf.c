@@ -8,7 +8,7 @@ VGMSTREAM * init_vgmstream_bnsf(STREAMFILE *streamFile) {
     off_t start_offset = 0, first_offset = 0x0C;
     int loop_flag = 0, channel_count = 0, sample_rate;
     int num_samples, loop_start = 0, loop_end = 0, loop_adjust, block_samples;
-    uint32_t codec, subcodec = 0;
+    uint32_t codec, flags = 0;
     size_t bnsf_size, sdat_size, block_size;
     off_t loop_chunk = 0, sfmt_chunk, sdat_chunk;
 
@@ -32,11 +32,11 @@ VGMSTREAM * init_vgmstream_bnsf(STREAMFILE *streamFile) {
         goto fail;
     if ( find_chunk_be(streamFile, 0x6C6F6F70,first_offset,0, &loop_chunk,NULL)) { /* "loop" */
         loop_flag = 1;
-        loop_start = read_32bitBE(loop_chunk+0x00, streamFile); /* block-aligned */
+        loop_start = read_32bitBE(loop_chunk+0x00,streamFile); /* block-aligned */
         loop_end   = read_32bitBE(loop_chunk+0x04,streamFile) + 1;
     }
 
-    subcodec      = read_16bitBE(sfmt_chunk+0x00,streamFile);
+    flags         = read_16bitBE(sfmt_chunk+0x00,streamFile);
     channel_count = read_16bitBE(sfmt_chunk+0x02,streamFile);
     sample_rate   = read_32bitBE(sfmt_chunk+0x04,streamFile);
     num_samples   = read_32bitBE(sfmt_chunk+0x08,streamFile);
@@ -47,9 +47,9 @@ VGMSTREAM * init_vgmstream_bnsf(STREAMFILE *streamFile) {
 
     start_offset = sdat_chunk;
 
-    /* without adjust some files have a small pop when looping */
+    /* shouldn't happen, plus decoder can't handle it */
     if (loop_adjust >= block_samples)
-        goto fail; /* shouldn't happen, plus decoder can't handle it */
+        goto fail;
 
 
     /* build the VGMSTREAM */
@@ -65,14 +65,13 @@ VGMSTREAM * init_vgmstream_bnsf(STREAMFILE *streamFile) {
     vgmstream->layout_type = layout_interleave;
     vgmstream->interleave_block_size = block_size/channel_count;
 
-    /* Late IS14 voice/ambient files use subcodec 0x02 [Tales of Zestiria (PS3/PC), The Idolm@ster 2 (PS3)].
-     * Bitstream looks modified (most noticeable in silent frames), probably not encrypted, still 1ch frames */
-    if (subcodec != 0)
+    /* Late IS14 set flag 0x02 = encrypted [Tales of Zestiria (PS3/PC) voices, The Idolm@ster 2 (PS3) voices] */
+    if (flags != 0)
         goto fail;
 
     switch (codec) {
 #ifdef VGM_USE_G7221
-        case 0x49533134: /* "IS14" */
+        case 0x49533134: /* "IS14" (interleaved Siren14) */
             vgmstream->coding_type = coding_G7221C;
             vgmstream->codec_data = init_g7221(vgmstream->channels, vgmstream->interleave_block_size);
             if (!vgmstream->codec_data) goto fail;
@@ -80,7 +79,7 @@ VGMSTREAM * init_vgmstream_bnsf(STREAMFILE *streamFile) {
             break;
 #endif
 #ifdef VGM_USE_G719
-        case 0x49533232: /* "IS22" */
+        case 0x49533232: /* "IS22" (interleaved Siren22) */
             vgmstream->coding_type = coding_G719;
             vgmstream->codec_data = init_g719(vgmstream->channels, vgmstream->interleave_block_size);
             if (!vgmstream->codec_data) goto fail;
