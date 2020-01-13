@@ -1846,8 +1846,10 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
             break;
         case coding_MTF_IMA:
             for (ch = 0; ch < vgmstream->channels; ch++) {
+                int is_stereo = (vgmstream->channels > 1);
                 decode_mtf_ima(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
-                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do);
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do, ch,
+                        is_stereo);
             }
             break;
         case coding_3DS_IMA:
