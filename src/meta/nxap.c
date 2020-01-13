@@ -19,7 +19,7 @@ VGMSTREAM * init_vgmstream_nxap(STREAMFILE *streamFile) {
 
     start_offset = read_32bitLE(0x04,streamFile);
     channel_count = read_32bitLE(0x0c,streamFile);
-    loop_flag = 0; //(read_32bitLE(0x24,streamFile) > 0); //todo
+    loop_flag = (read_32bitLE(0x24,streamFile) > 0);
 
 
     /* build the VGMSTREAM */
@@ -29,10 +29,9 @@ VGMSTREAM * init_vgmstream_nxap(STREAMFILE *streamFile) {
     vgmstream->sample_rate = read_32bitLE(0x10, streamFile);
     vgmstream->num_samples = read_32bitLE(0x1c,streamFile) * (0x40-0x04)*2 / channel_count; /* number of frames */
 
-    /* unknown loop format, also 0x28/2c values seem related */
-    //vgmstream->loop_start_sample = read_32bitLE(0x20,streamFile) * (0x40-0x04)*2 / channel_count;
-    //vgmstream->loop_end_sample = read_32bitLE(0x24,streamFile) * (0x40-0x04)*2 / channel_count;
-    //vgmstream->loop_end_sample = vgmstream->loop_start_sample + vgmstream->loop_end_sample;
+    /* in channel blocks, also 0x28/2c values seem related */
+    vgmstream->loop_start_sample = read_32bitLE(0x20,streamFile) * (0x40-0x04)*2;
+    vgmstream->loop_end_sample = read_32bitLE(0x24,streamFile) * (0x40-0x04)*2;
 
     vgmstream->meta_type = meta_NXAP;
     vgmstream->coding_type = coding_NXAP;

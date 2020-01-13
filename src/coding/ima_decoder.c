@@ -318,7 +318,7 @@ void decode_standard_ima(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int chann
     stream->adpcm_step_index = step_index;
 }
 
-void decode_mtf_ima(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
+void decode_mtf_ima(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel, int is_stereo) {
     int i, sample_count = 0;
     int32_t hist1 = stream->adpcm_history1_32;
     int step_index = stream->adpcm_step_index;
@@ -331,8 +331,12 @@ void decode_mtf_ima(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspa
 
     /* decode nibbles (layout: varies) */
     for (i = first_sample; i < first_sample + samples_to_do; i++, sample_count += channelspacing) {
-        off_t byte_offset = stream->offset + i/2;
-        int nibble_shift = ((i&1) ? 0:4);
+        off_t byte_offset = is_stereo ?
+                stream->offset + i :    /* stereo: one nibble per channel */
+                stream->offset + i/2;   /* mono: consecutive nibbles */
+        int nibble_shift = is_stereo ?
+                ((channel&1) ? 0:4) :
+                ((i&1) ? 0:4);
 
         mtf_ima_expand_nibble(stream, byte_offset,nibble_shift, &hist1, &step_index);
         outbuf[sample_count] = clamp16(hist1 >> 4);

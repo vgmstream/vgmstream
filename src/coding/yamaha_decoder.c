@@ -28,7 +28,7 @@ static void yamaha_adpcmb_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_of
         delta = -delta;
     sample = *hist1 + delta;
 
-    sample = clamp16(sample); /* this may not be needed (not done in Aska) but no byte changes */
+    sample = clamp16(sample); /* not needed in Aska but seems others do */
 
     *step_size = ((*step_size) * scale_step_adpcmb[code]) >> 6;
     if (*step_size < 0x7f) *step_size = 0x7f;
@@ -150,13 +150,14 @@ void decode_aska(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacin
 }
 
 
-/* Yamaha ADPCM with unknown expand variation (noisy), step size is double of normal Yamaha? */
+/* NXAP ADPCM, Yamaha ADPCM-B with weird headered frames */
 void decode_nxap(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
     int i, sample_count = 0, num_frame;
     int32_t hist1 = stream->adpcm_history1_32;
     int step_size = stream->adpcm_step_index;
+    int16_t out_sample;
 
-    /* external interleave */
+    /* external interleave, mono */
     int block_samples = (0x40 - 0x4) * 2;
     num_frame = first_sample / block_samples;
     first_sample = first_sample % block_samples;
@@ -165,29 +166,20 @@ void decode_nxap(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacin
     if (first_sample == 0) {
         off_t header_offset = stream->offset + 0x40*num_frame;
 
-        hist1     = read_16bitLE(header_offset+0x00,stream->streamfile);
-        step_size = read_16bitLE(header_offset+0x02,stream->streamfile);
+        hist1     = read_s16le(header_offset+0x00,stream->streamfile);
+        step_size = read_u16le(header_offset+0x02,stream->streamfile) >> 1; /* remove lower bit, also note unsignedness */
         if (step_size < 0x7f) step_size = 0x7f;
         else if (step_size > 0x6000) step_size = 0x6000;
+        /* step's lower bit is hist1 sign (useless), and code doesn't seem to do anything useful with it? */
     }
 
     /* decode nibbles (layout: all nibbles from one channel) */
     for (i = first_sample; i < first_sample + samples_to_do; i++) {
-        int code, delta, sample;
         off_t byte_offset = (stream->offset + 0x40*num_frame + 0x04) + i/2;
-        int nibble_shift = (i&1?4:0); /* low nibble first? */
+        int nibble_shift = (i&1?0:4);
 
-        code = (read_8bit(byte_offset,stream->streamfile) >> nibble_shift)&0xf;
-        delta = (step_size * scale_delta[code]) / 8; //todo wrong
-        sample = hist1 + delta;
-
-        outbuf[sample_count] = clamp16(sample);
-        hist1 = outbuf[sample_count];
-
-        step_size = (step_size * scale_step_aica[code]) / 260.0; //todo wrong
-        if (step_size < 0x7f) step_size = 0x7f;
-        else if (step_size > 0x6000) step_size = 0x6000;
-
+        yamaha_adpcmb_expand_nibble(stream, byte_offset, nibble_shift, &hist1, &step_size, &out_sample);
+        outbuf[sample_count] = out_sample;
         sample_count += channelspacing;
     }
 
