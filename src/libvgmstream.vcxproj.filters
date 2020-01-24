@@ -1669,6 +1669,9 @@
     <ClCompile Include="meta\ktss.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\kwb.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\ps2_va3.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>

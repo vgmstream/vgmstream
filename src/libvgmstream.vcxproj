@@ -176,6 +176,7 @@
     <ClCompile Include="meta\imc.c" />
     <ClCompile Include="meta\ios_psnd.c" />
     <ClCompile Include="meta\ktss.c" />
+    <ClCompile Include="meta\kwb.c" />
     <ClCompile Include="meta\lsf.c" />
     <ClCompile Include="meta\mattel_hyperscan.c" />
     <ClCompile Include="meta\mib_mih.c" />
