@@ -52,9 +52,9 @@ VGMSTREAM * init_vgmstream_aax(STREAMFILE *streamFile) {
         /* get offsets of constituent segments */
         for (i = 0; i < segment_count; i++) {
             uint32_t offset, size;
-            int8_t segment_loop_flag = 0;
+            uint8_t segment_loop_flag = 0;
 
-            if (!utf_query_s8(utf, i, "lpflg", &segment_loop_flag)) /* usually in last segment */
+            if (!utf_query_u8(utf, i, "lpflg", &segment_loop_flag)) /* usually in last segment */
                 goto fail;
             if (!utf_query_data(utf, i, "data", &offset, &size))
                 goto fail;
@@ -138,8 +138,8 @@ fail:
 VGMSTREAM * init_vgmstream_utf_dsp(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset;
-    int8_t loop_flag = 0, channel_count;
-    int sample_rate, num_samples, loop_start, loop_end, interleave;
+    uint8_t loop_flag = 0, channel_count;
+    uint32_t sample_rate, num_samples, loop_start, loop_end, interleave;
     uint32_t data_offset, data_size,  header_offset, header_size;
     utf_context *utf = NULL;
 
@@ -168,13 +168,13 @@ VGMSTREAM * init_vgmstream_utf_dsp(STREAMFILE *streamFile) {
         if (rows != 1)
             goto fail;
 
-        if (!utf_query_s32(utf, 0, "sfreq", &sample_rate))
+        if (!utf_query_u32(utf, 0, "sfreq", &sample_rate))
             goto fail;
-        if (!utf_query_s32(utf, 0, "nsmpl", &num_samples))
+        if (!utf_query_u32(utf, 0, "nsmpl", &num_samples))
             goto fail;
-        if (!utf_query_s8(utf, 0, "nch", &channel_count))
+        if (!utf_query_u8(utf, 0, "nch", &channel_count))
             goto fail;
-        if (!utf_query_s8(utf, 0, "lpflg", &loop_flag)) /* full loops */
+        if (!utf_query_u8(utf, 0, "lpflg", &loop_flag)) /* full loops */
             goto fail;
         /* for some reason data is stored before header */
         if (!utf_query_data(utf, 0, "data", &data_offset, &data_size))
@@ -196,7 +196,7 @@ VGMSTREAM * init_vgmstream_utf_dsp(STREAMFILE *streamFile) {
 
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    vgmstream = allocate_vgmstream(channel_count, loop_flag);
     if (!vgmstream) goto fail;
 
     vgmstream->sample_rate = sample_rate;
