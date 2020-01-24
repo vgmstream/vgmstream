@@ -1262,7 +1262,7 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
 #endif
 
 #ifdef VGM_USE_FFMPEG
-        case EAAC_CODEC_EAOPUS: { /* EAOpus (unknown FourCC) [FIFA 17 (PC), FIFA 19 (Switch)]*/
+        case EAAC_CODEC_EAOPUS: { /* "Eop0"? : EAOpus [FIFA 17 (PC), FIFA 19 (Switch)]*/
             vgmstream->layout_data = build_layered_eaaudiocore(streamFile, &eaac, 0x00);
             if (!vgmstream->layout_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
