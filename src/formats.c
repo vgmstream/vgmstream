@@ -392,6 +392,7 @@ static const char* extension_list[] = {
     "rxx", //txth/reserved [Full Auto (X360)]
 
     "s14",
+    "s3v", //txth/reserved [Sound Voltex 5 (AC)]
     "sab",
     "sad",
     "sap",
@@ -421,6 +422,7 @@ static const char* extension_list[] = {
     "sdf",
     "sdt",
     "seb",
+    "sed",
     "seg",
     "sf0",
     "sfl",
@@ -533,6 +535,8 @@ static const char* extension_list[] = {
     "wavm",
     "wavx", //txth/reserved [LEGO Star Wars (Xbox)]
     "wb",
+    "wb2",
+    "wbd",
     "wd",
     "wem",
     "wii",
@@ -1261,6 +1265,7 @@ static const meta_info meta_info_list[] = {
         {meta_FWSE,                 "MT Framework FWSE header"},
         {meta_FDA,                  "Relic FDA header"},
         {meta_TGC,                  "Tiger Game.com .4 header"},
+        {meta_KWB,                  "Koei Tecmo WaveBank header"},
 
 };
 

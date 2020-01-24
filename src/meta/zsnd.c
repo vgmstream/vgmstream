@@ -17,8 +17,10 @@ VGMSTREAM * init_vgmstream_zsnd(STREAMFILE *streamFile) {
 
 
     /* checks */
-    /* .zss/zsm: standard, .ens/enm: same for PS2 */
-    if (!check_extensions(streamFile, "zss,zsm,ens,enm"))
+    /* .zss/zsm: standard
+     * .ens/enm: same for PS2
+     * .zsd: normal or compact [BMX XXX (Xbox), Aggresive Inline (Xbox)] */
+    if (!check_extensions(streamFile, "zss,zsm,ens,enm,zsd"))
         goto fail;
     if (read_32bitBE(0x00,streamFile) != 0x5A534E44) /* "ZSND" */
         goto fail;
@@ -38,74 +40,136 @@ VGMSTREAM * init_vgmstream_zsnd(STREAMFILE *streamFile) {
     }
 
 
-    /* parse header tables (7*0x0c) */
+    /* parse header tables */
     {
         off_t header2_offset, header3_offset;
+        int   table2_entries, table3_entries;
+        off_t table2_body, table3_body;
+        int is_compact, i;
 
-        /* table2: stream head */
-        int   table2_entries = read_32bit(0x1c,streamFile);
-      //off_t table2_head    = read_32bit(0x20,streamFile);
-        off_t table2_body    = read_32bit(0x24,streamFile);
 
-        /* table3: stream body */
-        int   table3_entries = read_32bit(0x28,streamFile);
-      //off_t table3_head    = read_32bit(0x2c,streamFile);
-        off_t table3_body    = read_32bit(0x30,streamFile);
+        /* multiple config tables:
+         *  0x00: entries
+         *  0x04: table head offset
+         *  0x08: table body offset
+         *
+         * table heads are 0x08 * entries:
+         *  0x00 = id? (crc-like, varies between tables but consistent between platforms)
+         *  0x04 = entry? (number, also in table2_body?)
+         *
+         * main tables:
+         *  table1: stream cues? (entry=0x18)
+         *  table2: stream heads (optional, rarely not all stream bodies may have heads)
+         *  table3: stream body
+         *  table4: unknown, very rare, some kind of seek table with numbers going up? (Aggresive Inline: speech01.zsd)
+         *  table5: unknown, very rare, (X-Men Legends II: boss4_m.zsm)
+         *  table6/7: not seen
+         *
+         * table1 may have more entries than table2/3, and sometimes isn't set
+         */
 
-        /* table1: stream cues? (entry=0x18)
-         * tables 4-7 seem reserved with 0 entries and offsets to header end,
-         * though table5 can be seen in boss4_m.zsm (1 entry) */
+        /* 'compact' mode has no table heads, rare [Aggresive Inline (Xbox)]
+         * no apparent flag but we can test if table heads offsets appear */
+        is_compact = read_32bit(0x14,streamFile) > read_32bit(0x18,streamFile);
 
-        /* table heads are always 0x08 * entries */
-        /* 0x00 = ? (varies between tables but consistent between platforms) */
-        /* 0x04 = id? (also in table2_body at 0x00?) */
+        if (!is_compact) {
+            table2_entries = read_32bit(0x1c,streamFile);
+            table2_body    = read_32bit(0x24,streamFile);
 
-        /* table1 may have more entries than table2/3 */
-        if (table2_entries != table3_entries) {
-            VGM_LOG("ZSND: table2/3 entries don't match\n");
-            goto fail;
+            table3_entries = read_32bit(0x28,streamFile);
+            table3_body    = read_32bit(0x30,streamFile);
+        }
+        else {
+            table2_entries = read_32bit(0x18,streamFile);
+            table2_body    = read_32bit(0x1C,streamFile);
+
+            table3_entries = read_32bit(0x20,streamFile);
+            table3_body    = read_32bit(0x24,streamFile);
         }
 
+        total_subsongs = table3_entries;
 
-        total_subsongs = table2_entries;
         if (target_subsong == 0) target_subsong = 1;
         if (target_subsong < 0 || target_subsong > total_subsongs || total_subsongs < 1) goto fail;
 
         switch (codec) {
             case 0x50432020: /* "PC  " */
-                header2_offset = table2_body + 0x18*(target_subsong-1);
-                header3_offset = table3_body + 0x4c*(target_subsong-1);
+                if (table2_entries == 0) goto fail;
 
+                header2_offset = table2_body + 0x18*(target_subsong-1);
                 layers       = read_16bit(header2_offset + 0x02,streamFile);
                 sample_rate  = read_32bit(header2_offset + 0x04,streamFile);
+
+                header3_offset = table3_body + 0x4c*(target_subsong-1);
                 start_offset = read_32bit(header3_offset + 0x00,streamFile);
                 stream_size  = read_32bit(header3_offset + 0x04,streamFile);
                 name_offset  = header3_offset + 0x0c;
                 name_size    = 0x40;
                 break;
 
-            case 0x58424F58: /* "XBOX" */
-                header2_offset = table2_body + 0x1c*(target_subsong-1);
-                header3_offset = table3_body + 0x54*(target_subsong-1);
+            case 0x58424F58: { /* "XBOX" */
+                size_t entry2_size = is_compact ? 0x14 : 0x1c;
 
-                layers       = read_16bit(header2_offset + 0x02,streamFile);
-                sample_rate  = read_32bit(header2_offset + 0x04,streamFile);
+                /* BMX has unordered stream headers, and not every stream has a header */
+                header2_offset = 0;
+                for (i = 0; i < table2_entries; i++) {
+                    int16_t id = read_16bit(table2_body + entry2_size*i + 0x00,streamFile);
+
+                    if (id >= 0 && id + 1 != target_subsong) /* can be -1 == deleted entry */
+                        continue;
+                    header2_offset = table2_body + entry2_size*i;
+                    break;
+                }
+
+                if (header2_offset == 0) {
+                    if (table2_entries > 0) {
+                        /* seems usable for sfx, meh */
+                        header2_offset = table2_body + entry2_size*0;
+                        layers       = read_16bit(header2_offset + 0x02,streamFile);
+                        sample_rate  = read_32bit(header2_offset + 0x04,streamFile);
+                    }
+                    else {
+                        /* defaults to this in cutscene files in BMX with no heads at all,
+                         * but also needs mono for speech files in Aggresive Inline */
+                        if (is_compact) {
+                            layers       = 0x00;
+                            sample_rate  = 16000;
+                        }
+                        else {
+                            layers       = 0x02;
+                            sample_rate  = 44100;
+                        }
+                    }
+                }
+                else {
+                    layers       = read_16bit(header2_offset + 0x02,streamFile);
+                    sample_rate  = read_32bit(header2_offset + 0x04,streamFile);
+                }
+
+                header3_offset = table3_body + 0x54*(target_subsong-1);
                 start_offset = read_32bit(header3_offset + 0x00,streamFile);
                 stream_size  = read_32bit(header3_offset + 0x04,streamFile);
+              //loop_end     = read_32bit(header3_offset + 0x10,streamFile);
                 name_offset  = header3_offset + 0x14;
                 name_size    = 0x40;
+
                 break;
+            }
 
             case 0x50533220: /* "PS2 " (also for PSP) */
-                header2_offset = table2_body + 0x10*(target_subsong-1);
-                header3_offset = table3_body + 0x08*(target_subsong-1);
+                if (table2_entries == 0) goto fail;
 
+                header2_offset = table2_body + 0x10*(target_subsong-1);
                 sample_rate  = read_16bit(header2_offset + 0x02,streamFile);
                 layers       = read_16bit(header2_offset + 0x04,streamFile);
+
+                header3_offset = table3_body + 0x08*(target_subsong-1);
                 start_offset = read_32bit(header3_offset + 0x00,streamFile);
                 stream_size  = read_32bit(header3_offset + 0x04,streamFile);
                 name_offset  = 0;
                 name_size    = 0;
+
+                //TODO: possibly pitch: sample_rate = round10(pitch * 44100 / 4096);
                 switch(sample_rate) {
                     case 0x0800: sample_rate = 22050; break;
                     case 0x0687: sample_rate = 18000; break;
@@ -119,10 +183,10 @@ VGMSTREAM * init_vgmstream_zsnd(STREAMFILE *streamFile) {
 
             case 0x47435542: /* "GCUB" (also for Wii) */
                 header2_offset = table2_body + 0x18*(target_subsong-1);
-                header3_offset = table3_body + 0x0c*(target_subsong-1);
-
                 layers        = read_16bit(header2_offset + 0x02,streamFile);
                 sample_rate   = read_32bit(header2_offset + 0x04,streamFile);
+
+                header3_offset = table3_body + 0x0c*(target_subsong-1);
                 start_offset  = read_32bit(header3_offset + 0x00,streamFile);
                 stream_size   = read_32bit(header3_offset + 0x04,streamFile);
                 /* 0x08: "DSP " for some reason */
@@ -137,7 +201,7 @@ VGMSTREAM * init_vgmstream_zsnd(STREAMFILE *streamFile) {
         /* maybe flags? */
         switch (layers) {
             case 0x00: channel_count = 1; break;
-            case 0x01: channel_count = 1; break; /* related to looping? */
+            case 0x01: channel_count = 1; break; /* set when looping? */
             case 0x02: channel_count = 2; break;
             case 0x22: channel_count = 4; break;
             default:
@@ -173,6 +237,12 @@ VGMSTREAM * init_vgmstream_zsnd(STREAMFILE *streamFile) {
             vgmstream->interleave_block_size = 0x9000 * 2 / channel_count;
 
             vgmstream->num_samples = xbox_ima_bytes_to_samples(stream_size, channel_count);
+
+            /* very rarely entries refer to external .wma, but redoing the logic to handle only real
+             * streams handle is a pain, so signal this case with an empty file [Aggresive Inline (Xbox)] */
+            if (vgmstream->num_samples == 0) {
+                vgmstream->num_samples = 48;
+            }
             break;
 
         case 0x50533220: /* "PS2 " (also for PSP) */

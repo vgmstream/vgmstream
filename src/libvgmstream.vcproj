@@ -784,6 +784,10 @@
                     RelativePath=".\meta\ktss.c"
                     >
                 </File>
+                <File
+                    RelativePath=".\meta\kwb.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\lsf.c"
 					>
