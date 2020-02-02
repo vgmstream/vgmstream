@@ -257,6 +257,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\deblock_streamfile.h"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\ea_eaac_streamfile.h"
                     >
                 </File>
@@ -572,10 +576,14 @@
 					RelativePath=".\meta\dc_asd.c"
 					>
 				</File>
-				<File
-					RelativePath=".\meta\dcs_wav.c"
-					>
-				</File>
+                <File
+                    RelativePath=".\meta\dcs_wav.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\deblock_streamfile.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\dc_idvi.c"
 					>
