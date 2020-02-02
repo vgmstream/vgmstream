@@ -308,22 +308,37 @@ VGMSTREAM * init_vgmstream_opus_sps_n1(STREAMFILE *streamFile) {
     int num_samples, loop_start = 0, loop_end = 0, loop_flag;
 
     /* checks */
-    /* .sps: Labyrinth of Refrain - Coven of Dusk (Switch)
-     * .nlsd: Disgaea Refine (Switch), Ys VIII (Switch) */
-    if (!check_extensions(streamFile, "sps,nlsd"))
+    /* .sps: Labyrinth of Refrain: Coven of Dusk (Switch)
+     * .nlsd: Disgaea Refine (Switch), Ys VIII (Switch)
+     * .at9: void tRrLM(); //Void Terrarium (Switch) */
+    if (!check_extensions(streamFile, "sps,nlsd,at9"))
         goto fail;
     if (read_32bitBE(0x00, streamFile) != 0x09000000) /* file type (see other N1 SPS) */
         goto fail;
 
-    offset = 0x1C;
     num_samples = read_32bitLE(0x0C, streamFile);
 
-    /* sections num_samples (remnant of segmented opus_sps_n1):
-     * 0x10: intro, 0x14: loop, 0x18: end (all must add up to num_samples) */
-    loop_flag = read_32bitLE(0x18, streamFile); /* with loop disabled only loop section has samples */
-    if (loop_flag) {
+    if ( read_32bitLE(0x1c, streamFile) == 0x01000080) {
+        offset = 0x1C;
+
+        /* older games loop section (remnant of segmented opus_sps_n1): */
+        loop_start = read_32bitLE(0x10, streamFile); /* intro samples */
+        loop_end = loop_start + read_32bitLE(0x14, streamFile); /* loop samples */
+        /* 0x18: end samples (all must add up to num_samples) */
+        loop_flag = read_32bitLE(0x18, streamFile); /* with loop disabled only loop_end has a value */
+    }
+    else {
+        offset = 0x18;
+
+        /* newer games loop section: */
         loop_start = read_32bitLE(0x10, streamFile);
-        loop_end = loop_start + read_32bitLE(0x14, streamFile);
+        loop_end = read_32bitLE(0x14, streamFile);
+        loop_flag = loop_start != loop_end; /* with loop disabled start and end are the same as num samples */
+    }
+
+    if (!loop_flag) {
+        loop_start = 0;
+        loop_end = 0;
     }
 
     return init_vgmstream_opus(streamFile, meta_OPUS, offset, num_samples, loop_start, loop_end);
