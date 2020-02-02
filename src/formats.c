@@ -1234,7 +1234,7 @@ static const meta_info meta_info_list[] = {
         {meta_XPCM,                 "Circus XPCM header"},
         {meta_MSF_TAMASOFT,         "Tama-Soft MSF header"},
         {meta_XPS_DAT,              "From Software .XPS+DAT header"},
-        {meta_ZSND,                 "Vicarious Visions ZSND header"},
+        {meta_ZSND,                 "Z-Axis ZSND header"},
         {meta_DSP_ADPY,             "AQUASTYLE ADPY header"},
         {meta_DSP_ADPX,             "AQUASTYLE ADPX header"},
         {meta_OGG_OPUS,             "Ogg Opus header"},
