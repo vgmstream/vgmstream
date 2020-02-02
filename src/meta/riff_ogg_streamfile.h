@@ -1,22 +1,21 @@
 #ifndef _RIFF_OGG_STREAMFILE_H_
 #define _RIFF_OGG_STREAMFILE_H_
-#include "../streamfile.h"
+#include "deblock_streamfile.h"
 
-#ifdef VGM_USE_VORBIS
 typedef struct {
     off_t patch_offset;
 } riff_ogg_io_data;
 
-static size_t riff_ogg_io_read(STREAMFILE *streamfile, uint8_t *dest, off_t offset, size_t length, riff_ogg_io_data* data) {
-    size_t bytes_read = streamfile->read(streamfile, dest, offset, length);
+static size_t riff_ogg_io_read(STREAMFILE *sf, uint8_t *dest, off_t offset, size_t length, riff_ogg_io_data* data) {
+    size_t bytes = read_streamfile(dest, offset, length, sf);
 
     /* has garbage init Oggs pages, patch bad flag */
-    if (data->patch_offset && data->patch_offset >= offset && data->patch_offset < offset + bytes_read) {
+    if (data->patch_offset && data->patch_offset >= offset && data->patch_offset < offset + bytes) {
         VGM_ASSERT(dest[data->patch_offset - offset] != 0x02, "RIFF Ogg: bad patch offset at %lx\n", data->patch_offset);
         dest[data->patch_offset - offset] = 0x00;
     }
 
-    return bytes_read;
+    return bytes;
 }
 
 static size_t ogg_get_page(uint8_t *buf, size_t bufsize, off_t offset, STREAMFILE *sf) {
@@ -43,7 +42,7 @@ fail:
     return 0;
 }
 
-/* patches Oggs with weirdness */
+/* patches Ogg with weirdness */
 static STREAMFILE* setup_riff_ogg_streamfile(STREAMFILE *sf, off_t start, size_t size) {
     off_t patch_offset = 0;
     size_t real_size = size;
@@ -124,7 +123,5 @@ static STREAMFILE* setup_riff_ogg_streamfile(STREAMFILE *sf, off_t start, size_t
         return new_sf;
     }
 }
-
-#endif /* VGM_USE_VORBIS */
 
 #endif /* _RIFF_OGG_STREAMFILE_H_ */

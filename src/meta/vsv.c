@@ -69,7 +69,7 @@ VGMSTREAM * init_vgmstream_vsv(STREAMFILE *streamFile) {
     vgmstream->layout_type = layout_interleave;
     vgmstream->interleave_block_size = interleave;
 
-    temp_streamFile = setup_vsv_streamfile(streamFile, start_offset, data_size);
+    temp_streamFile = setup_vsv_streamfile(streamFile);
     if (!temp_streamFile) goto fail;
 
     if (!vgmstream_open_stream(vgmstream, temp_streamFile, start_offset))

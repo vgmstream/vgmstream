@@ -17,16 +17,14 @@ typedef struct {
 } ogg_vorbis_io_data;
 
 
-static size_t ogg_vorbis_io_read(STREAMFILE *streamfile, uint8_t *dest, off_t offset, size_t length, ogg_vorbis_io_data* data) {
-    size_t bytes_read;
-    int i;
+static size_t ogg_vorbis_io_read(STREAMFILE *sf, uint8_t *dest, off_t offset, size_t length, ogg_vorbis_io_data* data) {
     static const uint8_t header_swap[4] = { 0x4F,0x67,0x67,0x53 }; /* "OggS" */
     static const size_t header_size = 0x04;
-
-    bytes_read = streamfile->read(streamfile, dest, offset, length);
+    int i;
+    size_t bytes = read_streamfile(dest, offset, length, sf);
 
     if (data->cfg.is_encrypted) {
-        for (i = 0; i < bytes_read; i++) {
+        for (i = 0; i < bytes; i++) {
             if (data->cfg.is_header_swap && (offset + i) < header_size) {
                 dest[i] = header_swap[(offset + i) % header_size];
             }
@@ -41,36 +39,21 @@ static size_t ogg_vorbis_io_read(STREAMFILE *streamfile, uint8_t *dest, off_t of
         }
     }
 
-    return bytes_read;
+    return bytes;
 }
 
 //todo maybe use generic decryption streamfile
-static STREAMFILE* setup_ogg_vorbis_streamfile(STREAMFILE *streamFile, ogg_vorbis_io_config_data cfg) {
-    STREAMFILE *temp_streamFile = NULL, *new_streamFile = NULL;
+/* Decrypts Ogg Vorbis streams */
+static STREAMFILE* setup_ogg_vorbis_streamfile(STREAMFILE *sf, ogg_vorbis_io_config_data cfg) {
+    STREAMFILE *new_sf = NULL;
     ogg_vorbis_io_data io_data = {0};
-    size_t io_data_size = sizeof(ogg_vorbis_io_data);
 
-    /* setup decryption */
     io_data.cfg = cfg; /* memcpy */
 
-
-    /* setup custom streamfile */
-    new_streamFile = open_wrap_streamfile(streamFile);
-    if (!new_streamFile) goto fail;
-    temp_streamFile = new_streamFile;
-
-    //todo extension .ogg?
-
-    new_streamFile = open_io_streamfile(temp_streamFile, &io_data,io_data_size, ogg_vorbis_io_read,NULL);
-    if (!new_streamFile) goto fail;
-    temp_streamFile = new_streamFile;
-
-    return temp_streamFile;
-
-fail:
-    close_streamfile(temp_streamFile);
-    return NULL;
+    new_sf = open_wrap_streamfile(sf);
+    new_sf = open_io_streamfile_f(new_sf, &io_data, sizeof(ogg_vorbis_io_data), ogg_vorbis_io_read, NULL);
+    //new_sf = open_fakename_streamfile_f(new_sf, NULL, "ogg"); //todo?
+    return new_sf;
 }
-
 
 #endif /* _OGG_VORBIS_STREAMFILE_H_ */
