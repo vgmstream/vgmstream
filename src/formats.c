@@ -271,6 +271,7 @@ static const char* extension_list[] = {
     "lpcm",
     "lpk",
     "lps",
+    "lrmb",
     "lse",
     "lsf",
     "lstm", //fake extension for .stm
@@ -1266,6 +1267,7 @@ static const meta_info meta_info_list[] = {
         {meta_FDA,                  "Relic FDA header"},
         {meta_TGC,                  "Tiger Game.com .4 header"},
         {meta_KWB,                  "Koei Tecmo WaveBank header"},
+        {meta_LRMD,                 "Sony LRMD header"},
 
 };
 

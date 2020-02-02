@@ -289,6 +289,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\lrmd_streamfile.h"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\mta2_streamfile.h"
                     >
                 </File>
@@ -794,6 +798,10 @@
                 </File>
                 <File
                     RelativePath=".\meta\kwb.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\lrmd.c"
                     >
                 </File>
 				<File
