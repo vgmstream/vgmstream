@@ -16,8 +16,9 @@ VGMSTREAM * init_vgmstream_ogg_opus(STREAMFILE *streamFile) {
 
     /* checks */
     /* .opus: standard, .lopus: fake extension for plugins
-     * .ogg: less common, .logg: same */
-    if (!check_extensions(streamFile, "opus,lopus,ogg,logg"))
+     * .ogg: less common, .logg: same
+     * .bgm: Utawarerumono: Mask of Truth (PC) */
+    if (!check_extensions(streamFile, "opus,lopus,ogg,logg,bgm"))
         goto fail;
     if (read_32bitBE(0x00,streamFile) != 0x4F676753) /* "OggS" */
         goto fail;
@@ -77,6 +78,13 @@ VGMSTREAM * init_vgmstream_ogg_opus(STREAMFILE *streamFile) {
             }
             else if (strstr(user_comment,"TITLE=")==user_comment) { /* for detection */
                 has_title = 1;
+            }
+            else if (strstr(user_comment,"LoopStart=")==user_comment) { /* Utawarerumono: Mask of Truth (PC) */
+                loop_start= atol(strrchr(user_comment,'=')+1);
+                loop_flag = (loop_start >= 0);
+            }
+            else if (strstr(user_comment,"LoopEnd=")==user_comment) { /* LoopStart pair */
+                loop_end = atol(strrchr(user_comment,'=')+1);
             }
 
 
