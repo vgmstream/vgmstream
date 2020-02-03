@@ -4,48 +4,33 @@
 
 
 typedef struct {
-    off_t start_offset;
-} jstm_decryption_data;
+    off_t start;
+} jstm_io_data;
 
-static size_t jstm_decryption_read(STREAMFILE *streamfile, uint8_t *dest, off_t offset, size_t length, jstm_decryption_data* data) {
-    size_t bytes_read;
+static size_t jstm_io_read(STREAMFILE *sf, uint8_t *dest, off_t offset, size_t length, jstm_io_data* data) {
     int i;
-
-    bytes_read = streamfile->read(streamfile, dest, offset, length);
+    size_t bytes = read_streamfile(dest, offset, length, sf);
 
     /* decrypt data (xor) */
-    for (i = 0; i < bytes_read; i++) {
-        if (offset+i >= data->start_offset) {
-            dest[i] = dest[i] ^ 0x5A;
+    for (i = 0; i < bytes; i++) {
+        if (offset + i >= data->start) {
+            dest[i] ^= 0x5A;
         }
     }
 
-    return bytes_read;
+    return bytes;
 }
 
-static STREAMFILE* setup_jstm_streamfile(STREAMFILE *streamFile, off_t start_offset) {
-    STREAMFILE *temp_streamFile = NULL, *new_streamFile = NULL;
-    jstm_decryption_data io_data = {0};
-    size_t io_data_size = sizeof(jstm_decryption_data);
+/* decrypts JSTM stream */
+static STREAMFILE* setup_jstm_streamfile(STREAMFILE *sf, off_t start) {
+    STREAMFILE *new_sf = NULL;
+    jstm_io_data io_data = {0};
 
-    /* setup decryption */
-    io_data.start_offset = start_offset;
+    io_data.start = start;
 
-
-    /* setup custom streamfile */
-    new_streamFile = open_wrap_streamfile(streamFile);
-    if (!new_streamFile) goto fail;
-    temp_streamFile = new_streamFile;
-
-    new_streamFile = open_io_streamfile(temp_streamFile, &io_data,io_data_size, jstm_decryption_read,NULL);
-    if (!new_streamFile) goto fail;
-    temp_streamFile = new_streamFile;
-
-    return temp_streamFile;
-
-fail:
-    close_streamfile(temp_streamFile);
-    return NULL;
+    new_sf = open_wrap_streamfile(sf);
+    new_sf = open_io_streamfile_f(new_sf, &io_data, sizeof(jstm_io_data), jstm_io_read, NULL);
+    return new_sf;
 }
 
 #endif /* _JSTM_STREAMFILE_H_ */

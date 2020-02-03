@@ -722,6 +722,7 @@ typedef enum {
     meta_FDA,
     meta_TGC,
     meta_KWB,
+    meta_LRMD,
 } meta_t;
 
 /* standard WAVEFORMATEXTENSIBLE speaker positions */

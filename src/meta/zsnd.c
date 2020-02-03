@@ -3,13 +3,13 @@
 #include "zsnd_streamfile.h"
 
 
-/* ZSND - Vicarious Visions games [X-Men Legends II (multi), Marvel Ultimate Alliance (multi)] */
+/* ZSND - Z-Axis/Vicarious Visions games [X-Men Legends II (multi), Marvel Ultimate Alliance (multi)] */
 VGMSTREAM * init_vgmstream_zsnd(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     STREAMFILE *temp_streamFile = NULL;
     off_t start_offset, name_offset;
     size_t stream_size, name_size;
-    int loop_flag, channel_count, sample_rate, layers;
+    int loop_flag, channel_count, sample_rate, layers, layers2 = 0;
     uint32_t codec;
     int total_subsongs, target_subsong = streamFile->stream_index;
     int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
@@ -45,7 +45,7 @@ VGMSTREAM * init_vgmstream_zsnd(STREAMFILE *streamFile) {
         off_t header2_offset, header3_offset;
         int   table2_entries, table3_entries;
         off_t table2_body, table3_body;
-        int is_compact, i;
+        int is_v1, i;
 
 
         /* multiple config tables:
@@ -68,11 +68,16 @@ VGMSTREAM * init_vgmstream_zsnd(STREAMFILE *streamFile) {
          * table1 may have more entries than table2/3, and sometimes isn't set
          */
 
-        /* 'compact' mode has no table heads, rare [Aggresive Inline (Xbox)]
+        /* V1 has no table heads, rare [Aggresive Inline (Xbox)]
          * no apparent flag but we can test if table heads offsets appear */
-        is_compact = read_32bit(0x14,streamFile) > read_32bit(0x18,streamFile);
+        is_v1 = read_32bit(0x14,streamFile) <= read_32bit(0x1c,streamFile) &&
+                read_32bit(0x1c,streamFile) <= read_32bit(0x24,streamFile) &&
+                read_32bit(0x24,streamFile) <= read_32bit(0x2c,streamFile) &&
+                read_32bit(0x2c,streamFile) <= read_32bit(0x34,streamFile) &&
+                read_32bit(0x34,streamFile) <= read_32bit(0x3c,streamFile) &&
+                read_32bit(0x3c,streamFile) <= read_32bit(0x44,streamFile);
 
-        if (!is_compact) {
+        if (!is_v1) {
             table2_entries = read_32bit(0x1c,streamFile);
             table2_body    = read_32bit(0x24,streamFile);
 
@@ -108,7 +113,7 @@ VGMSTREAM * init_vgmstream_zsnd(STREAMFILE *streamFile) {
                 break;
 
             case 0x58424F58: { /* "XBOX" */
-                size_t entry2_size = is_compact ? 0x14 : 0x1c;
+                size_t entry2_size = is_v1 || check_extensions(streamFile, "zsd") ? 0x14 : 0x1c;
 
                 /* BMX has unordered stream headers, and not every stream has a header */
                 header2_offset = 0;
@@ -129,29 +134,50 @@ VGMSTREAM * init_vgmstream_zsnd(STREAMFILE *streamFile) {
                         sample_rate  = read_32bit(header2_offset + 0x04,streamFile);
                     }
                     else {
-                        /* defaults to this in cutscene files in BMX with no heads at all,
-                         * but also needs mono for speech files in Aggresive Inline */
-                        if (is_compact) {
-                            layers       = 0x00;
-                            sample_rate  = 16000;
-                        }
-                        else {
-                            layers       = 0x02;
-                            sample_rate  = 44100;
-                        }
+                        layers       = 0;
+                        sample_rate  = 0;
                     }
                 }
                 else {
                     layers       = read_16bit(header2_offset + 0x02,streamFile);
                     sample_rate  = read_32bit(header2_offset + 0x04,streamFile);
+                    if (entry2_size > 0x18) {
+                        layers2 = read_32bit(header2_offset + 0x18,streamFile);
+                    }
                 }
 
                 header3_offset = table3_body + 0x54*(target_subsong-1);
                 start_offset = read_32bit(header3_offset + 0x00,streamFile);
                 stream_size  = read_32bit(header3_offset + 0x04,streamFile);
+                /* 0x08: flags? related to looping? (not channels) */
               //loop_end     = read_32bit(header3_offset + 0x10,streamFile);
                 name_offset  = header3_offset + 0x14;
                 name_size    = 0x40;
+
+                /* early games sometimes don't seem to have info or headers, not sure how to detect better
+                 * ex. Aggresive Inline speech (1ch) vs music (2ch), or BMX cutscenes (2ch) */
+                if (sample_rate == 0) {
+                    int is_music = 0;
+                    if (is_v1) {
+                        char filename[PATH_LIMIT];
+
+                        /* stream length isn't enough */
+                        get_streamfile_filename(streamFile, filename, sizeof(filename));
+                        is_music = strcmp(filename, "music.zsd") == 0;
+                    }
+                    else {
+                        is_music = stream_size > 0x20000;
+                    }
+
+                    if (is_music) {
+                        layers       = 0x02;
+                        sample_rate  = 44100;
+                    }
+                    else {
+                        layers       = 0x00;
+                        sample_rate  = is_v1 ? 16000 : 22050; /* some BMX need 16000 but can't detect? */
+                    }
+                }
 
                 break;
             }
@@ -207,6 +233,10 @@ VGMSTREAM * init_vgmstream_zsnd(STREAMFILE *streamFile) {
             default:
                 VGM_LOG("ZSND: unknown layers\n");
                 goto fail;
+        }
+
+        if (layers2) {
+            channel_count = channel_count * layers2;
         }
 
         loop_flag = 0;

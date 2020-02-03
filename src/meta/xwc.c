@@ -74,17 +74,30 @@ VGMSTREAM * init_vgmstream_xwc(STREAMFILE *streamFile) {
 #ifdef VGM_USE_FFMPEG
         case 0x584D4100: { /* "XMA\0" (X360) */
             uint8_t buf[0x100];
-            int32_t bytes, seek_size, block_size, block_count, sample_rate;
+            int32_t bytes, seek_size, block_size, block_count, sample_rate, chunk_size;
 
-            seek_size = read_32bitLE(extra_offset+0x00, streamFile);
-            start_offset = extra_offset+0x04 + seek_size + read_32bitLE(extra_offset+0x04+seek_size, streamFile) + 0x08;
+            seek_size  = read_32bitLE(extra_offset + 0x00, streamFile);
+            chunk_size = read_32bitLE(extra_offset + 0x04 + seek_size, streamFile);
+
+            start_offset = extra_offset+ 0x04 + seek_size + chunk_size + 0x08;
             start_offset += (start_offset % 0x800) ? 0x800 - (start_offset % 0x800) : 0; /* padded */
             data_size = data_size - start_offset;
 
-            sample_rate = read_32bitBE(extra_offset+0x04+seek_size+0x10, streamFile);
-            block_size  = read_32bitBE(extra_offset+0x04+seek_size+0x1c, streamFile);
-            block_count = read_32bitBE(extra_offset+0x04+seek_size+0x28, streamFile);
-            /* others: scrambled RIFF fmt BE values */
+            if (chunk_size == 0x34) { /* new XMA2 */
+                sample_rate = read_32bitLE(extra_offset+0x04+seek_size+0x08, streamFile);
+                block_size  = read_32bitLE(extra_offset+0x04+seek_size+0x20, streamFile);
+                block_count = data_size / block_size;
+                /* others: standard RIFF XMA2 fmt? */
+            }
+            else if (chunk_size == 0x2c) { /* old XMA2 */
+                sample_rate = read_32bitBE(extra_offset+0x04+seek_size+0x10, streamFile);
+                block_size  = read_32bitBE(extra_offset+0x04+seek_size+0x1c, streamFile);
+                block_count = read_32bitBE(extra_offset+0x04+seek_size+0x28, streamFile);
+                /* others: scrambled RIFF fmt BE values */
+            }
+            else {
+                goto fail;
+            }
 
             bytes = ffmpeg_make_riff_xma2(buf,0x100, vgmstream->num_samples, data_size, vgmstream->channels, sample_rate, block_count, block_size);
             vgmstream->codec_data = init_ffmpeg_header_offset(streamFile, buf,bytes, start_offset,data_size);

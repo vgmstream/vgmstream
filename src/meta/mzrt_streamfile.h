@@ -1,124 +1,27 @@
 #ifndef _MZRT_STREAMFILE_H_
 #define _MZRT_STREAMFILE_H_
-#include "../streamfile.h"
+#include "deblock_streamfile.h"
 
-
-typedef struct {
-    /* config */
-    off_t stream_offset;
-    size_t stream_size;
-
-    /* state */
-    off_t logical_offset;       /* fake offset */
-    off_t physical_offset;      /* actual offset */
-    size_t block_size;          /* current size */
-    size_t skip_size;           /* size from block start to reach data */
-    size_t data_size;           /* usable size in a block */
-
-    size_t logical_size;
-} mzrt_io_data;
-
-
-static size_t mzrt_io_read(STREAMFILE *streamfile, uint8_t *dest, off_t offset, size_t length, mzrt_io_data* data) {
-    size_t total_read = 0;
-
-
-    /* re-start when previous offset (can't map logical<>physical offsets) */
-    if (data->logical_offset < 0 || offset < data->logical_offset) {
-        data->physical_offset = data->stream_offset;
-        data->logical_offset = 0x00;
-        data->data_size = 0;
-    }
-
-    /* read blocks */
-    while (length > 0) {
-
-        /* ignore EOF */
-        if (offset < 0 || data->physical_offset >= data->stream_offset + data->stream_size) {
-            break;
-        }
-
-        /* process new block */
-        if (data->data_size == 0) {
-            /* 0x00: samples in this block */
-            data->data_size = read_32bitBE(data->stream_offset + 0x04, streamfile);
-            data->skip_size = 0x08;
-            data->block_size = data->skip_size + data->data_size;
-        }
-
-        /* move to next block */
-        if (data->data_size == 0 || offset >= data->logical_offset + data->data_size) {
-            data->physical_offset += data->block_size;
-            data->logical_offset += data->data_size;
-            data->data_size = 0;
-            continue;
-        }
-
-        /* read data */
-        {
-            size_t bytes_consumed, bytes_done, to_read;
-
-            bytes_consumed = offset - data->logical_offset;
-            to_read = data->data_size - bytes_consumed;
-            if (to_read > length)
-                to_read = length;
-            bytes_done = read_streamfile(dest, data->physical_offset + data->skip_size + bytes_consumed, to_read, streamfile);
-
-            total_read += bytes_done;
-            dest += bytes_done;
-            offset += bytes_done;
-            length -= bytes_done;
-
-            if (bytes_done != to_read || bytes_done == 0) {
-                break; /* error/EOF */
-            }
-        }
-    }
-
-    return total_read;
+static void block_callback(STREAMFILE *sf, deblock_io_data *data) {
+    /* 0x00: samples in this block */
+    data->data_size = read_s32be(data->physical_offset + 0x04, sf);
+    data->skip_size = 0x08;
+    data->block_size = data->skip_size + data->data_size;
 }
 
-static size_t mzrt_io_size(STREAMFILE *streamfile, mzrt_io_data* data) {
-    uint8_t buf[1];
+/* Deblocks MZRT streams */
+static STREAMFILE* setup_mzrt_streamfile(STREAMFILE *sf, off_t stream_offset) {
+    STREAMFILE *new_sf = NULL;
+    deblock_config_t cfg = {0};
 
-    if (data->logical_size)
-        return data->logical_size;
+    cfg.stream_start = stream_offset;
+    cfg.block_callback = block_callback;
 
-    /* force a fake read at max offset, to get max logical_offset (will be reset next read) */
-    mzrt_io_read(streamfile, buf, 0x7FFFFFFF, 1, data);
-    data->logical_size = data->logical_offset;
-
-    return data->logical_size;
-}
-
-/* Handles deinterleaving of MZRT blocked streams */
-static STREAMFILE* setup_mzrt_streamfile(STREAMFILE *streamFile, off_t stream_offset) {
-    STREAMFILE *temp_streamFile = NULL, *new_streamFile = NULL;
-    mzrt_io_data io_data = {0};
-    size_t io_data_size = sizeof(mzrt_io_data);
-
-    io_data.stream_offset = stream_offset;
-    io_data.stream_size = get_streamfile_size(streamFile) - stream_offset;
-    io_data.logical_offset = -1; /* force phys offset reset */
-
-    /* setup subfile */
-    new_streamFile = open_wrap_streamfile(streamFile);
-    if (!new_streamFile) goto fail;
-    temp_streamFile = new_streamFile;
-
-    new_streamFile = open_io_streamfile(new_streamFile, &io_data,io_data_size, mzrt_io_read,mzrt_io_size);
-    if (!new_streamFile) goto fail;
-    temp_streamFile = new_streamFile;
-
-    new_streamFile = open_buffer_streamfile(new_streamFile,0);
-    if (!new_streamFile) goto fail;
-    temp_streamFile = new_streamFile;
-
-    return temp_streamFile;
-
-fail:
-    close_streamfile(temp_streamFile);
-    return NULL;
+    /* setup sf */
+    new_sf = open_wrap_streamfile(sf);
+    new_sf = open_io_deblock_streamfile_f(new_sf, &cfg);
+    //new_sf = open_buffer_streamfile_f(new_sf, 0);
+    return new_sf;
 }
 
 #endif /* _MZRT_STREAMFILE_H_ */

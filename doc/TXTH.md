@@ -25,7 +25,7 @@ start_offset = 0x100        #data starts after exactly this value
 num_samples = data_size     #find automatically number of samples in the file
 loop_flag = auto            #find loop points in PS-ADPCM
 ```
-A text file with the above commands must be saved as `.vag.txth` or `.txth` (preferably the former), notice it starts with a "." (dot). On Windows files starting with a dot can be created by appending a dot at the end when renaming: `.txth.`
+A text file with the above commands must be saved as `.vag.txth` or `.txth` (preferably the former), notice it starts with a "." (dot). On some Windows versions files starting with a dot need to be created by appending a dot at the end when renaming: `.txth.`
 
 While the main point is playing the file, many of TXTH's features are aimed towards keeping original data intact, for documentation and preservation purposes; try leaving data as untouched as possible and consider how the game plays the file, as there is a good chance some feature can mimic it.
 

@@ -106,6 +106,7 @@
     <ClInclude Include="meta\bar_streamfile.h" />
     <ClInclude Include="meta\bgw_streamfile.h" />
     <ClInclude Include="meta\cri_utf.h" />
+    <ClInclude Include="meta\deblock_streamfile.h" />
     <ClInclude Include="meta\ea_eaac_streamfile.h" />
     <ClInclude Include="meta\ea_eaac_opus_streamfile.h" />
     <ClInclude Include="meta\ea_schl_streamfile.h" />
@@ -113,6 +114,7 @@
     <ClInclude Include="meta\fsb5_interleave_streamfile.h" />
     <ClInclude Include="meta\jstm_streamfile.h" />
     <ClInclude Include="meta\kma9_streamfile.h" />
+    <ClInclude Include="meta\lrmd_streamfile.h" />
     <ClInclude Include="meta\ppst_streamfile.h" />
     <ClInclude Include="meta\vsv_streamfile.h" />
     <ClInclude Include="meta\xavs_streamfile.h" />
@@ -177,6 +179,7 @@
     <ClCompile Include="meta\ios_psnd.c" />
     <ClCompile Include="meta\ktss.c" />
     <ClCompile Include="meta\kwb.c" />
+    <ClCompile Include="meta\lrmd.c" />
     <ClCompile Include="meta\lsf.c" />
     <ClCompile Include="meta\mattel_hyperscan.c" />
     <ClCompile Include="meta\mib_mih.c" />
@@ -279,6 +282,7 @@
     <ClCompile Include="meta\cstr.c" />
     <ClCompile Include="meta\dc_asd.c" />
     <ClCompile Include="meta\dcs_wav.c" />
+    <ClCompile Include="meta\deblock_streamfile.c" />
     <ClCompile Include="meta\dc_idvi.c" />
     <ClCompile Include="meta\dc_kcey.c" />
     <ClCompile Include="meta\dc_str.c" />
