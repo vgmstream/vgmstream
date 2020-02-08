@@ -35,7 +35,7 @@
  * - very minor change in bit unpacking (minor output diffs)
  * - modified DCT-IV optimizations, scaling and window functions (minor output diffs)
  * - internally PCM16 bufs, but converts to float (sample/32768.0) afterwards if the platform needs it
- * - less error control 
+ * - less error control (on error decoder is supposed to repeat last coefs)
  * - can't decode Siren7, and given output diffs it's not actually ITU-compliant
  * - minor optimizations here and there but otherwise very similar
  * This decoder generally uses Polycom's terminology, and while some parts like the bitreader could be
@@ -93,13 +93,14 @@ static int imlt_window(int16_t* new_samples, int16_t* old_samples, int16_t* out_
     old_ptr = old_samples + 0;
     new_ptr = new_samples + 320;
 
-    for (i = 320; i > 0; --i) {
-        *old_ptr++ = *new_ptr++;
+    for (i = 0; i < 320; i++) {
+        old_ptr[i] = new_ptr[i];
     }
 
     return 0;
 }
 
+/* "dct4_x640_int" */
 static int imlt_dct4(int16_t* mlt_coefs, int16_t* new_samples, int mag_shift) {
     int i, j, k, n;
     const uint8_t *set1_ptr;
@@ -186,55 +187,55 @@ static int imlt_dct4(int16_t* mlt_coefs, int16_t* new_samples, int mag_shift) {
     {
         int cos_val, sin_val;
         const uint16_t *cos_ptr, *sin_ptr, *cos_ptr_lo, *sin_ptr_lo;
-        int16_t C_in_val_lo, C_in_val_hi, C_in_val_mlo, C_in_val_mhi;
-        int16_t *C_in_ptr, *C_in_ptr_lo, *C_in_ptr_hi, *C_in_ptr_mlo, *C_in_ptr_mhi;
+        int16_t mlt_val_lo, mlt_val_hi, mlt_val_mlo, mlt_val_mhi;
+        int16_t *mlt_ptr, *mlt_ptr_lo, *mlt_ptr_hi, *mlt_ptr_mlo, *mlt_ptr_mhi;
 
         cos_ptr = &imlt_cos_tables[320+160]; /* cos_table_16 > 8 > 4 > 2 */
         sin_ptr = &imlt_sin_tables[320+160]; /* sin_table_16 > 8 > 4 > 2 */
 
         for (n = 160; n >= 20; n /= 2) {
-            C_in_ptr = mlt_coefs + 0;
-            while (C_in_ptr < mlt_coefs + 640) {
+            mlt_ptr = mlt_coefs + 0;
+            while (mlt_ptr < mlt_coefs + 640) {
                 for (j = *set1_ptr; j > 0; --j) {
-                    C_in_ptr_lo = C_in_ptr + 0;
-                    C_in_ptr_hi = C_in_ptr + n;
-                    C_in_ptr_mlo = C_in_ptr + (n / 2);
-                    C_in_ptr_mhi = C_in_ptr + (n / 2);
+                    mlt_ptr_lo = mlt_ptr + 0;
+                    mlt_ptr_hi = mlt_ptr + n;
+                    mlt_ptr_mlo = mlt_ptr + (n / 2);
+                    mlt_ptr_mhi = mlt_ptr + (n / 2);
                     for (k = n / 4; k > 0; --k) {
-                        C_in_val_lo = *C_in_ptr_lo;
-                        C_in_val_hi = *--C_in_ptr_hi;
-                        C_in_val_mhi = *--C_in_ptr_mhi;
-                        C_in_val_mlo = *C_in_ptr_mlo;
-                        *C_in_ptr_lo++ = C_in_val_lo + C_in_val_hi;
-                        *C_in_ptr_mlo++ = C_in_val_lo - C_in_val_hi;
-                        *C_in_ptr_mhi = C_in_val_mlo + C_in_val_mhi;
-                        *C_in_ptr_hi = C_in_val_mhi - C_in_val_mlo;
+                        mlt_val_lo = *mlt_ptr_lo;
+                        mlt_val_hi = *--mlt_ptr_hi;
+                        mlt_val_mhi = *--mlt_ptr_mhi;
+                        mlt_val_mlo = *mlt_ptr_mlo;
+                        *mlt_ptr_lo++ = mlt_val_lo + mlt_val_hi;
+                        *mlt_ptr_mlo++ = mlt_val_lo - mlt_val_hi;
+                        *mlt_ptr_mhi = mlt_val_mlo + mlt_val_mhi;
+                        *mlt_ptr_hi = mlt_val_mhi - mlt_val_mlo;
                     }
-                    C_in_ptr += n;
+                    mlt_ptr += n;
                 }
                 set1_ptr++;
 
                 for (j = *set1_ptr; j > 0; --j) {
-                    C_in_ptr_lo = C_in_ptr + 0;
-                    C_in_ptr_hi = C_in_ptr + n;
+                    mlt_ptr_lo = mlt_ptr + 0;
+                    mlt_ptr_hi = mlt_ptr + n;
                     cos_ptr_lo = cos_ptr + 0;
                     sin_ptr_lo = sin_ptr + 0;
                     for (k = n / 4; k > 0; --k) {
                         cos_val = *cos_ptr_lo++;
                         sin_val = *sin_ptr_lo++;
-                        C_in_val_lo = *C_in_ptr_lo;
-                        C_in_val_hi = *--C_in_ptr_hi;
-                        *C_in_ptr_lo++ = (cos_val * C_in_val_lo + sin_val * C_in_val_hi + 32768) >> 16;
-                        *C_in_ptr_hi   = (sin_val * -C_in_val_lo + cos_val * C_in_val_hi + 32768) >> 16;
+                        mlt_val_lo = *mlt_ptr_lo;
+                        mlt_val_hi = *--mlt_ptr_hi;
+                        *mlt_ptr_lo++ = (cos_val * mlt_val_lo + sin_val * mlt_val_hi + 32768) >> 16;
+                        *mlt_ptr_hi   = (sin_val * -mlt_val_lo + cos_val * mlt_val_hi + 32768) >> 16;
 
                         cos_val = *cos_ptr_lo++;
                         sin_val = *sin_ptr_lo++;
-                        C_in_val_lo = *C_in_ptr_lo;
-                        C_in_val_hi = *--C_in_ptr_hi;
-                        *C_in_ptr_lo++ = (cos_val * C_in_val_lo + sin_val * C_in_val_hi + 32768) >> 16;
-                        *C_in_ptr_hi   = (sin_val * C_in_val_lo - cos_val * C_in_val_hi + 32768) >> 16;
+                        mlt_val_lo = *mlt_ptr_lo;
+                        mlt_val_hi = *--mlt_ptr_hi;
+                        *mlt_ptr_lo++ = (cos_val * mlt_val_lo + sin_val * mlt_val_hi + 32768) >> 16;
+                        *mlt_ptr_hi   = (sin_val * mlt_val_lo - cos_val * mlt_val_hi + 32768) >> 16;
                     }
-                    C_in_ptr += n;
+                    mlt_ptr += n;
                 }
                 set1_ptr++;
             }
@@ -408,7 +409,7 @@ static int imlt_dct4(int16_t* mlt_coefs, int16_t* new_samples, int mag_shift) {
             new_ptr += 10;
         }
 
-        /* below is some three way swapping tmp ptrs change between mlt<>new */
+        /* below is some three way swapping, tmp ptrs change between mlt<>new */
         tmp0_ptr = mlt_coefs + 640;
         tmp1_ptr = new_samples + 640;
         for (n = 20; n <= 160; n *= 2) {
@@ -532,20 +533,20 @@ static int imlt_dct4(int16_t* mlt_coefs, int16_t* new_samples, int mag_shift) {
     return 0;
 }
 
-/* transform frequency domain MLT spectrum coefs to time domain PCM samples with reverse/inverse MLT */
+/* "inverse_MLT" */
 static int rmlt_coefs_to_samples(int mag_shift, int16_t* mlt_coefs, int16_t* old_samples, int16_t* out_samples /*, int p_samples_done*/) {
     int res;
     int16_t new_samples[640];
 
-    /* block transform coefs-to-samples using DCT-IV (inverse) */
+    /* block transform MLT spectrum coefs to time domain PCM samples using DCT-IV (inverse) */
     res = imlt_dct4(mlt_coefs, new_samples, mag_shift);
-    if (res) return res;
+    if (res < 0) return res;
 
     /* apply IMLT overlapped window filter function (640 samples) */
     res = imlt_window(new_samples, old_samples, out_samples);
-    if (res) return res;
+    if (res < 0) return res;
 
-    //*p_samples_done = 640;/* in Namco's code but actually ignored */
+    //*p_samples_done = 640; /* in Namco's code but actually ignored */
 
     return 0;
 }
@@ -802,7 +803,7 @@ static inline void index_to_array(int index, int* array_cv, int category) {
     }
 }
 
-static int decode_vector_quantized_mlt_indices(uint32_t* data_u32, int bitpos, int bit_count, uint32_t* p_random_value, int* decoder_region_standard_deviation, int* power_categories, int16_t* mlt_coefs) {
+static int decode_vector_quantized_mlt_indices(uint32_t* data_u32, int* p_bitpos, int bit_count, uint32_t* p_random_value, int* decoder_region_standard_deviation, int* power_categories, int16_t* mlt_coefs) {
     int16_t standard_deviation;
     int array_cv[MAX_VECTOR_DIMENSION];
     int i, v, region, category, index;
@@ -810,8 +811,8 @@ static int decode_vector_quantized_mlt_indices(uint32_t* data_u32, int bitpos, i
     uint32_t* ptr_u32;
 
     /* bitreading setup */
-    ptr_u32 = &data_u32[(bitpos >> 5)];
-    bitmask = 1 << (31 - (bitpos & 0x1F));
+    ptr_u32 = &data_u32[(*p_bitpos >> 5)];
+    bitmask = 1 << (31 - (*p_bitpos & 0x1F));
     cur_u32 = *ptr_u32;
     ptr_u32++;
 
@@ -832,6 +833,7 @@ static int decode_vector_quantized_mlt_indices(uint32_t* data_u32, int bitpos, i
                 do {
                     int bit = (bitmask & cur_u32) != 0;
                     bitmask >>= 1;
+                    (*p_bitpos)++;
                     if (bitmask == 0) {
                         bitmask = 0x80000000;
                         cur_u32 = *ptr_u32;
@@ -872,6 +874,7 @@ static int decode_vector_quantized_mlt_indices(uint32_t* data_u32, int bitpos, i
 
                         negative = (bitmask & cur_u32) != 0;
                         bitmask >>= 1;
+                        (*p_bitpos)++;
                         if (bitmask == 0) {
                             bitmask = 0x80000000;
                             cur_u32 = *ptr_u32;
@@ -1015,7 +1018,7 @@ static int unpack_frame(int bit_rate, const uint8_t* data, int frame_size, /*int
     res = categorize(
        8 * expected_frame_size - bitpos,
        absolute_region_power_index, power_categories, category_balances);
-    if (res) return res;
+    if (res < 0) return res;
 
     /* adjust power categories (rate_adjust_categories) */
     {
@@ -1060,14 +1063,42 @@ static int unpack_frame(int bit_rate, const uint8_t* data, int frame_size, /*int
 
     /* decode the quantized bits into MLT coefs */
     res = decode_vector_quantized_mlt_indices(
-        data_u32, bitpos, 8 * expected_frame_size,
+        data_u32, &bitpos, 8 * expected_frame_size,
         p_random_value,
         decoder_region_standard_deviation, power_categories, mlt_coefs);
-    if (res) return res;
+    if (res < 0) return res;
+
+
+    /* test for errors (in refdec but not Namco's, useful to detect decryption) */
+    {
+        int bits_left = 8 * expected_frame_size - bitpos;
+        int i;
+
+        if (bits_left > 0) {
+            /* frame must be padded with 1s */
+            for (i = 0; i < bits_left; i++) {
+                int bit = (data_u32[bitpos >> 5] >> (31 - (bitpos & 0x1F))) & 1;
+                bitpos++;
+
+                if (bit == 0)
+                    return -1;
+            }
+        }
+        else {
+            /* ? */
+            if (categorization_control < NUM_CATEGORIZATION_CONTROL_BITS - 1 && bits_left < 0)
+                return -2;
+        }
+
+        for (i = 0; i < NUMBER_OF_REGIONS; i++) {
+            if ((absolute_region_power_index[i] + ESF_ADJUSTMENT_TO_RMS_INDEX > 31) ||
+                (absolute_region_power_index[i] + ESF_ADJUSTMENT_TO_RMS_INDEX < -8))
+              return -4;
+        }
+    }
 
     return 0;
 }
-
 
 
 /*****************************************************************************
@@ -1084,7 +1115,7 @@ struct g7221_handle {
     uint32_t random_value;
 };
 
-g7221_handle* g7221_init(int bytes_per_frame, int flags) {
+g7221_handle* g7221_init(int bytes_per_frame) {
     g7221_handle* handle = NULL;
     int bit_rate;
 
@@ -1092,9 +1123,6 @@ g7221_handle* g7221_init(int bytes_per_frame, int flags) {
     bit_rate = bytes_per_frame * 8 * 50;
     if (bit_rate != 24000 && bit_rate != 32000 && bit_rate != 48000)
         goto fail;
-
-    //if (flags != 0)
-    //    goto fail;
 
     handle = calloc(1, sizeof(g7221_handle));
     if (!handle) goto fail;
@@ -1111,7 +1139,7 @@ fail:
 }
 
 
-void g7221_decode_frame(g7221_handle* handle, uint8_t* data, int16_t* out_samples) {
+int g7221_decode_frame(g7221_handle* handle, uint8_t* data, int16_t* out_samples) {
     int res;
     int mag_shift;
 
@@ -1124,28 +1152,28 @@ void g7221_decode_frame(g7221_handle* handle, uint8_t* data, int16_t* out_sample
     }
 #endif
 
-    /* Namco's decoder is designed so that out_samples can be used in place of mlt_coefs,
+    /* Namco's decoder is designed so that out_samples can be set in place of mlt_coefs,
      * so we could avoid one extra buffer, but for clarity we'll leave as is */
 
     /* unpack data into MLT spectrum coefs */
     res = unpack_frame(handle->bit_rate, data, handle->frame_size, &mag_shift, handle->mlt_coefs, &handle->random_value);
-    if (res) goto fail;
+    if (res < 0) goto fail;
 
     /* convert coefs to samples using reverse (inverse) MLT */
     res = rmlt_coefs_to_samples(mag_shift, handle->mlt_coefs, handle->old_samples, out_samples);
-    if (res) goto fail;
+    if (res < 0) goto fail;
 
-    /* Namco also gets number of codes/samples done from unpack_frame/rmlt (ptr arg),
+    /* Namco also sets number of codes/samples done from unpack_frame/rmlt (ptr arg),
      * but they seem unused */
 
-    //todo return values
-    return;
+    return 1;
 fail:
-    return;
+    //;printf("S14: fail %i\n", res);
+    return 0;
 }
 
 #if 0
-void g7221_decode_empty(g7221_handle* handle, int16_t* out_samples) {
+int g7221_decode_empty(g7221_handle* handle, int16_t* out_samples) {
     static const uint8_t empty_frame[0x3c] = {
          0x1E,0x0B,0x89,0x40,0x02,0x4F,0x51,0x35, 0x10,0xA1,0xFE,0xDF,0x52,0x51,0x10,0x0B,
          0xF0,0x69,0x7B,0xAE,0x18,0x17,0x00,0x52, 0x07,0x74,0xF4,0x65,0xA2,0x58,0xD8,0x3F,
@@ -1155,8 +1183,8 @@ void g7221_decode_empty(g7221_handle* handle, int16_t* out_samples) {
     int res;
     int mag_shift;
 
-    /* This only seems to exist in older exes. Namco's samples don't seem to reach EOF,
-     * so this wouldn't need to be called. Doesn't seem to use encoder delay either. */
+    /* This only seems to exist in older exes. Namco's samples don't reach EOF, so this
+     * wouldn't need to be called. Doesn't seem to use encoder delay either. */
 
     res = unpack_frame(24000, empty_frame, 0x3c, &mag_shift, handle->mlt_coefs, &handle->random_value);
     if (res) goto fail;
@@ -1165,9 +1193,9 @@ void g7221_decode_empty(g7221_handle* handle, int16_t* out_samples) {
     res = rmlt_coefs_to_samples(mag_shift, handle->mlt_coefs, handle->old_samples, out_samples);
     if (res) goto fail;
 
-    return;
+    return 1;
 fail:
-    return;
+    return 0;
 }
 #endif
 
@@ -1183,6 +1211,9 @@ void g7221_reset(g7221_handle* handle) {
      * bnsf playing at the same time would get slightly different results */
 }
 
-void g7221_free(g7221_handle *handle) {
+void g7221_free(g7221_handle* handle) {
+    if (!handle)
+        return;
+
     free(handle);
 }

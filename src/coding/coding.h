@@ -259,10 +259,10 @@ long mpeg_bytes_to_samples(long bytes, const mpeg_codec_data *data);
 
 #ifdef VGM_USE_G7221
 /* g7221_decoder */
-g7221_codec_data *init_g7221(int channel_count, int frame_size);
-void decode_g7221(VGMSTREAM *vgmstream, sample * outbuf, int channelspacing, int32_t samples_to_do, int channel);
-void reset_g7221(VGMSTREAM *vgmstream);
-void free_g7221(VGMSTREAM *vgmstream);
+g7221_codec_data* init_g7221(int channel_count, int frame_size);
+void decode_g7221(VGMSTREAM* vgmstream, sample_t* outbuf, int channelspacing, int32_t samples_to_do, int channel);
+void reset_g7221(g7221_codec_data* data);
+void free_g7221(g7221_codec_data* data);
 #endif
 
 #ifdef VGM_USE_G719

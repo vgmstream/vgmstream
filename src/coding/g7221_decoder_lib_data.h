@@ -17,7 +17,7 @@
  *   for (i = 0; i < 640; i++)
  *       window[i] = floor(sin((PI/2.0) * (i + 0.5) / 640) * 32767.0)
  * while the original int refdec table uses an altered formula? (smaller values) */
-static const int16_t imlt_samples_window[MAX_DCT_LENGTH] = {
+static const int16_t imlt_samples_window[MAX_DCT_LENGTH] = { /* "Out_Window"? */
     40,    120,   201,   281,   361,   442,   522,   603,   683,   763,
     844,   924,   1005,  1085,  1165,  1246,  1326,  1406,  1487,  1567,
     1647,  1728,  1808,  1888,  1969,  2049,  2129,  2209,  2290,  2370,
@@ -204,7 +204,7 @@ static const uint16_t imlt_cos_tables[636] = {
 };
 
 /* see cos table info */
-static const uint16_t imlt_sin_tables[636] = {
+static const uint16_t imlt_sin_tables[636] = { /* "sin_table" */
     /* imlt_sin_table_64[320] (640/2) */
        80,     241,     402,     562,     723,     884,    1045,    1206,
      1367,    1527,    1688,    1849,    2010,    2171,    2331,    2492,
@@ -326,7 +326,7 @@ static const uint16_t imlt_sin_tables[636] = {
 
 /* vs refdec: has region 0 (unused, all 0s) and regions>13 (repeats of region 13) so they were removed.
  * 2nd index only went to DIFF_REGION_POWER_LEVELS-1 and last was added (all 0s though so probably unused). */
-static const int16_t differential_region_power_decoder_tree[NUMBER_OF_REGIONS][DIFF_REGION_POWER_LEVELS][2] = {
+static const int16_t differential_region_power_decoder_tree[NUMBER_OF_REGIONS][DIFF_REGION_POWER_LEVELS][2] = { /* "rms_table"? */
     {{  1,  2},{  3,  4},{  5,  6},{  7,  8},{  9, 10},{ 11,-12},{-11,-10},{ -8, -9},{ -7, -6},{-13, 12},{ -5, -4},{  0, 13},{ -3,-14},{ -2, 14},{ -1, 15},{-15, 16},{-16, 17},{-17, 18},{ 19, 20},{ 21, 22},{-18,-19},{-20,-21},{-22,-23},{  0,  0}},
     {{  1,  2},{  3,  4},{  5,  6},{  7,  8},{-10, -9},{ -8,-11},{ -7, -6},{  9, -5},{ 10,-12},{ -4, 11},{-13, -3},{ 12, -2},{ 13,-14},{ -1, 14},{ 15,-15},{  0, 16},{-16, 17},{-17, 18},{-18, 19},{ 20, 21},{ 22,-19},{-20,-21},{-22,-23},{  0,  0}},
     {{  1,  2},{  3,  4},{  5,  6},{  7,  8},{  9, 10},{-12, 11},{-11,-13},{-10, -9},{ 12,-14},{ -8, -7},{-15, -6},{ 13, -5},{-16, -4},{ 14,-17},{ 15, -3},{ 16,-18},{ -2, 17},{ 18,-19},{ -1, 19},{-20, 20},{  0, 21},{ 22,-21},{-22,-23},{  0,  0}},
@@ -343,7 +343,7 @@ static const int16_t differential_region_power_decoder_tree[NUMBER_OF_REGIONS][D
 };
 
 /* vs refdec: same table */
-static const int16_t mlt_quant_centroid[NUM_CATEGORIES][NUM_BINS] = {
+static const int16_t mlt_quant_centroid[NUM_CATEGORIES][NUM_BINS] = { /* "mlt_q" */
     {    0, 1606, 3119, 4586, 6049, 7502, 8941,10406,11851,13292,14736,16146,17566,19351,    0,    0},
     {    0, 2229, 4341, 6401, 8471,10531,12583,14588,16673,18924,    0,    0,    0,    0,    0,    0},
     {    0, 3055, 5998, 8929,11806,14680,17680,    0,    0,    0,    0,    0,    0,    0,    0,    0},
@@ -361,7 +361,7 @@ static const int16_t expected_bits_table[NUM_CATEGORIES] = {
 
 /* vs refdec: Namco uses positive values *2 but I'm not sure what they are for (some index access) 
  * so these are the refdec values */
-static const int16_t mlt_decoder_tree_category_0[180][2] = {
+static const int16_t mlt_decoder_tree_category_0[180][2] = { /* "reasion_huffman_table"? */
     {   1,   0},{   2,   3},{   4,   5},{   6,   7},{   8,   9},{  -1, -14},{  10,  11},{  12,  13},
     {  14,  15},{  16,  17},{  18,  19},{ -15,  20},{  21,  22},{  23, -28},{  24,  -2},{  25,  26},
     {  27,  28},{  29,  30},{  31,  32},{ -29,  33},{ -16,  34},{  -3,  35},{  36,  37},{ -42,  38},
@@ -541,7 +541,7 @@ static const int16_t *table_of_decoder_tables[NUM_CATEGORIES-1] = {
 
 
 /* vs refdec: same table */
-static const int16_t region_standard_deviation_table[REGION_POWER_TABLE_SIZE] = {
+static const int16_t region_standard_deviation_table[REGION_POWER_TABLE_SIZE] = { /* "rnd_reg"? */
         0,   0,   0,    0,    0,    0,    0,    0,
         0,   0,   0,    0,    0,    0,    0,    0,
         0,   0,   0,    0,    0,    0,    1,    1,
@@ -559,17 +559,17 @@ static const int16_t number_of_vectors[NUM_CATEGORIES] = {
     10, 10, 10, 5, 5, 4, 4, 0,
 };
 /* vs refdec: same table but last index is 1 */
-static const int16_t vector_dimension[NUM_CATEGORIES] =  { 
+static const int16_t vector_dimension[NUM_CATEGORIES] = { /* "vd_inv"? */
     2, 2, 2, 4, 4, 5, 5, 0,
 };
 
 /* vs refdec: pre-adds one instead of in runtime and last index is 1 */
-static const int16_t max_bin_plus1[NUM_CATEGORIES] = {
+static const int16_t max_bin_plus1[NUM_CATEGORIES] = { /* "kmax_p1" */
     14, 10, 7, 5, 4, 3, 2, 0,
 };
 
 /* vs refdec: pre-scaled x2 (cat3 subs -1 and cat5/7 -2 too) */
-static const uint16_t max_bin_plus_one_inverse_scaled[8] = {
+static const uint16_t max_bin_plus_one_inverse_scaled[8] = { /* "kmax_p1_inv" */
     4682, 6554, 9363, 13108, 16384, 21846, 32768, 0,
 };
 
