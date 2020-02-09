@@ -253,6 +253,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\bnsf_keys.h"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\cri_utf.h"
                     >
                 </File>
@@ -1895,6 +1899,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\coding\g7221_decoder_aes.h"
+                    >
+                </File>
+                <File
                     RelativePath=".\coding\g7221_decoder_lib.h"
                     >
                 </File>
@@ -2008,6 +2016,10 @@
 				</File>
                 <File
                     RelativePath=".\coding\g7221_decoder.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\coding\g7221_decoder_aes.c"
                     >
                 </File>
                 <File
