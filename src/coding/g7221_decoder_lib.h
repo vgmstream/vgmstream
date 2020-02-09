@@ -1,8 +1,8 @@
 /*
     Interface to Namco G.722.1 decoder
 */
-#ifndef G7221_H
-#define G7221_H
+#ifndef _G7221_DECODER_LIB_H
+#define _G7221_DECODER_LIB_H
 
 #include <stdint.h>
 
@@ -25,5 +25,8 @@ void g7221_reset(g7221_handle* handle);
 
 /* free resources */
 void g7221_free(g7221_handle* handle);
+
+/* set new key (ignores key on failure) */
+int g7221_set_key(g7221_handle* handle, const uint8_t* key);
 
 #endif

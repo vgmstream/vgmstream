@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "g7221_decoder_lib.h"
+#include "g7221_decoder_aes.h"
 
 
 /* Decodes Siren14 from Namco's BNSF, a mono MLT/DCT-based codec for speech/sound (low bandwidth).
@@ -1109,6 +1110,8 @@ struct g7221_handle {
     /* control */
     int bit_rate;
     int frame_size;
+    /* AES setup/state */
+    s14aes_handle* aes;
     /* state */
     int16_t mlt_coefs[MAX_DCT_LENGTH];
     int16_t old_samples[MAX_DCT_LENGTH >> 1];
@@ -1143,14 +1146,11 @@ int g7221_decode_frame(g7221_handle* handle, uint8_t* data, int16_t* out_samples
     int res;
     int mag_shift;
 
-#if 0
-    /* first 0x10 bytes are encrypted with an unknown substitution key and a complex
-     * unXOR function. Original code also saves encrypted bytes, then re-crypts after
-     * unpacking, presumably to guard against memdumps. */
-    if (handle->flags & 0x02) {
-        decrypt_frame(data, key);
+    /* first 0x10 bytes may be encrypted with AES. Original code also saves encrypted bytes,
+     * then re-crypts after unpacking, presumably to guard against memdumps. */
+    if (handle->aes != NULL) {
+        s14aes_decrypt(handle->aes, data);
     }
-#endif
 
     /* Namco's decoder is designed so that out_samples can be set in place of mlt_coefs,
      * so we could avoid one extra buffer, but for clarity we'll leave as is */
@@ -1215,5 +1215,43 @@ void g7221_free(g7221_handle* handle) {
     if (!handle)
         return;
 
+    s14aes_close(handle->aes);
     free(handle);
+}
+
+int g7221_set_key(g7221_handle* handle, const uint8_t* key) {
+    const int key_size = 192 / 8; /* only 192 bit mode */
+    uint8_t temp_key[192 / 8];
+    const char* mod_key = "Ua#oK3P94vdxX,ft*k-mnjoO"; /* constant for all platform/games */
+    int i;
+
+    if (!handle)
+        goto fail;
+
+    /* disable, useful for testing? */
+    if (key == NULL) {
+        s14aes_close(handle->aes);
+        handle->aes = NULL;
+        return 1;
+    }
+
+    /* init AES state (tables) or reuse if already exists */
+    if (handle->aes == NULL) {
+        handle->aes = s14aes_init();
+        if (!handle->aes) goto fail;
+    }
+
+    /* Base key is XORed probably against memdumps, as plain key would be part of the final AES key. However
+     * roundkey is still in memdumps near AES state (~0x1310 from sbox table, that starts with 0x63,0x7c,0x77,0x7b...)
+     * so it isn't too effective. XORing was originally done inside aes_expand_key during S14/S22 init. */
+    for (i = 0; i < key_size; i++) {
+        temp_key[i] = key[i] ^ mod_key[i];
+    }
+
+    /* reset new key */
+    s14aes_set_key(handle->aes, temp_key);
+
+    return 1;
+fail:
+    return 0;
 }

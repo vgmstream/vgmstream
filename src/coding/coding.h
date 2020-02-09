@@ -263,6 +263,8 @@ g7221_codec_data* init_g7221(int channel_count, int frame_size);
 void decode_g7221(VGMSTREAM* vgmstream, sample_t* outbuf, int channelspacing, int32_t samples_to_do, int channel);
 void reset_g7221(g7221_codec_data* data);
 void free_g7221(g7221_codec_data* data);
+void set_key_g7221(g7221_codec_data* data, const uint8_t* key);
+int test_key_g7221(g7221_codec_data* data, off_t start, STREAMFILE* sf);
 #endif
 
 #ifdef VGM_USE_G719

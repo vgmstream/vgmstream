@@ -105,6 +105,7 @@
     <ClInclude Include="meta\awc_xma_streamfile.h" />
     <ClInclude Include="meta\bar_streamfile.h" />
     <ClInclude Include="meta\bgw_streamfile.h" />
+    <ClInclude Include="meta\bnsf_keys.h" />
     <ClInclude Include="meta\cri_utf.h" />
     <ClInclude Include="meta\deblock_streamfile.h" />
     <ClInclude Include="meta\ea_eaac_streamfile.h" />
@@ -138,6 +139,7 @@
     <ClInclude Include="coding\acm_decoder_libacm.h" />
     <ClInclude Include="coding\coding.h" />
     <ClInclude Include="coding\ea_mt_decoder_utk.h" />
+    <ClInclude Include="coding\g7221_decoder_aes.h" />
     <ClInclude Include="coding\g7221_decoder_lib.h" />
     <ClInclude Include="coding\g7221_decoder_lib_data.h" />
     <ClInclude Include="coding\fsb_vorbis_data.h" />
@@ -559,6 +561,7 @@
     <ClCompile Include="coding\g719_decoder.c" />
     <ClCompile Include="coding\g721_decoder.c" />
     <ClCompile Include="coding\g7221_decoder.c" />
+    <ClCompile Include="coding\g7221_decoder_aes.c" />
     <ClCompile Include="coding\g7221_decoder_lib.c" />
     <ClCompile Include="coding\hca_decoder.c" />
     <ClCompile Include="coding\ima_decoder.c" />

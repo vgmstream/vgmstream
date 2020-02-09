@@ -86,6 +86,9 @@
     <ClInclude Include="meta\bgw_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="meta\bnsf_keys.h">
+      <Filter>meta\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="meta\cri_utf.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
@@ -185,7 +188,7 @@
     <ClInclude Include="coding\ea_mt_decoder_utk.h">
       <Filter>coding\Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="coding\g7221_decoder_lib.h">
+    <ClInclude Include="coding\g7221_decoder_aes.h">
       <Filter>coding\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="coding\g7221_decoder_lib_data.h">
@@ -1190,6 +1193,9 @@
       <Filter>coding\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\g7221_decoder.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\g7221_decoder_aes.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\g7221_decoder_lib.c">

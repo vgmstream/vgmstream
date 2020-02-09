@@ -220,6 +220,7 @@ a companion file:
 - .hca: .hcakey (8 byte decryption key, a 64-bit number)
   - May be followed by 2 byte AWB scramble key for newer HCA
 - .fsb: .fsbkey (decryption key, in hex)
+- .bnsf: .bnsfkey (decryption key, a string up to 24 chars)
 
 The key file can be ".(ext)key" (for the whole folder), or "(name).(ext)key"
 (for a single file). The format is made up to suit vgmstream.
@@ -285,6 +286,9 @@ card). For those files you can set the "downmix" option in vgmstream, that
 can reduce the number of channels to a playable amount. Note that this type
 of downmixing is very generic, not meant to be used when converting to other
 formats.
+
+You can also choose which channels to play using *TXTP*. For example, create
+a file named `song.adx#C1,2.txtp` to play only channels 1 and 2 from `song.adx`.
 
 ## Tagging
 Some of vgmstream's plugins support simple read-only tagging via external files.
@@ -702,10 +706,11 @@ This list is not complete and many other files are supported.
 	- .sfl (loop info for .ogg)
 	- .vgmstream + .vgmstream.pos (FFmpeg formats + loop assist)
 - other:
-	- .adxkey (decryption key for .adx, in start/mult/add format)
-	- .ahxkey (decryption key for .ahx, in start/mult/add format)
-    - .hcakey (decryption key for .hca, in HCA Decoder format)
-    - .fsbkey (decryption key for .fsb, in hex)
+	- .adxkey (decryption key for .adx)
+	- .ahxkey (decryption key for .ahx)
+    - .hcakey (decryption key for .hca)
+    - .fsbkey (decryption key for .fsb)
+    - .bnsfkey (decryption key for .bnsf)
     - .txtp (per song segment/layer handler and player configurator)
 
 Enjoy! *hcs*
