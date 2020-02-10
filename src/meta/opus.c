@@ -318,7 +318,7 @@ VGMSTREAM * init_vgmstream_opus_sps_n1(STREAMFILE *streamFile) {
 
     num_samples = read_32bitLE(0x0C, streamFile);
 
-    if ( read_32bitLE(0x1c, streamFile) == 0x01000080) {
+    if (read_32bitBE(0x1c, streamFile) == 0x01000080) {
         offset = 0x1C;
 
         /* older games loop section (remnant of segmented opus_sps_n1): */
