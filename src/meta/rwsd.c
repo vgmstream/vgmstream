@@ -47,7 +47,8 @@ static void read_rwav(struct rwav_data * rd)
         /* little endian, version 2 */
         if ((uint32_t)read_32bitBE(rd->offset+4,rd->streamFile)!=0xFFFE4000 ||
             (
-             (uint32_t)read_32bitBE(rd->offset+8,rd->streamFile)!=0x00000102 &&
+             (uint32_t)read_32bitBE(rd->offset+8,rd->streamFile)!=0x00000002 && /* Kirby's Adventure */
+             (uint32_t)read_32bitBE(rd->offset+8,rd->streamFile)!=0x00000102 && /* common */
              (uint32_t)read_32bitBE(rd->offset+8,rd->streamFile)!=0x00010102
             )
            )
@@ -98,7 +99,7 @@ VGMSTREAM * init_vgmstream_rwsd(STREAMFILE *streamFile) {
     coding_t coding_type;
 
     size_t wave_length;
-    int codec_number;
+    int codec;
     int channel_count;
     int loop_flag;
     int rwar = 0;
@@ -111,8 +112,6 @@ VGMSTREAM * init_vgmstream_rwsd(STREAMFILE *streamFile) {
     int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
     int16_t (*read_16bit)(off_t,STREAMFILE*) = NULL;
 
-    const char *ext;
-
     rwav_data.version = -1;
     rwav_data.start_offset = 0;
     rwav_data.info_chunk = -1;
@@ -121,58 +120,39 @@ VGMSTREAM * init_vgmstream_rwsd(STREAMFILE *streamFile) {
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
 
-    ext = filename_extension(filename);
-
-    if (strcasecmp("rwsd",ext))
-    {
-        if (strcasecmp("rwar",ext))
-        {
-            if (strcasecmp("rwav",ext))
-            {
-                /* .bcwav: standard
-                 * .bms: ?
-                 * .sfx: Wizdom (3DS)
-                 * .str: Pac-Man and the Ghostly Adventures 2 (3DS)
-                 * .zic: Wizdom (3DS) */
-                if (check_extensions(streamFile, "bcwav,bms,sfx,str,zic")) {
-                    rwav = 1; // cwav, similar to little endian rwav
-                    big_endian = 0;
-                }
-                else {
-                    goto fail;
-                }
-            }
-            else
-            {
-                // matched rwav
-                rwav = 1;
-            }
-        }
-        else
-        {
-            // matched rwar
-            rwar = 1;
-        }
+    if (check_extensions(streamFile, "rwsd")) {
+        ;
     }
-    else
-    {
-        // match rwsd
+    else if (check_extensions(streamFile, "rwar")) {
+        rwar = 1;
+    }
+    else if (check_extensions(streamFile, "rwav")) {
+        rwav = 1;
+    }
+    /* .bcwav: standard 3DS
+     * .bms: 3D Classics Kirby's Adventure (3DS)
+     * .sfx: Wizdom (3DS)
+     * .str: Pac-Man and the Ghostly Adventures 2 (3DS)
+     * .zic: Wizdom (3DS) */
+    else if (check_extensions(streamFile, "bcwav,bms,sfx,str,zic")) {
+        rwav = 1; // cwav, similar to little endian rwav
+        big_endian = 0;
+    }
+    else {
+        goto fail;
     }
 
-    if (big_endian)
-    {
+    if (big_endian) {
         read_16bit = read_16bitBE;
         read_32bit = read_32bitBE;
     }
-    else
-    {
+    else {
         read_16bit = read_16bitLE;
         read_32bit = read_32bitLE;
     }
 
     /* check header */
-    if (rwar || rwav)
-    {
+    if (rwar || rwav) {
         rwav_data.offset = 0;
         rwav_data.streamFile = streamFile;
         rwav_data.big_endian = big_endian;
@@ -182,13 +162,11 @@ VGMSTREAM * init_vgmstream_rwsd(STREAMFILE *streamFile) {
         if (rwav) read_rwav(&rwav_data);
         if (rwav_data.wave_offset < 0) goto fail;
     }
-    else
-    {
+    else {
         if ((uint32_t)read_32bitBE(0,streamFile)!=0x52575344) /* "RWSD" */
             goto fail;
 
-        switch (read_32bitBE(4,streamFile))
-        {
+        switch (read_32bitBE(4,streamFile)) {
             case 0xFEFF0102:
                 /* ideally we would look through the chunk list for a WAVE chunk,
                  * but it's always in the same order */
@@ -226,14 +204,14 @@ VGMSTREAM * init_vgmstream_rwsd(STREAMFILE *streamFile) {
     }
 
     /* get type details */
-    codec_number = read_8bit(rwav_data.wave_offset+0x10,streamFile);
+    codec = read_8bit(rwav_data.wave_offset+0x10,streamFile);
     loop_flag = read_8bit(rwav_data.wave_offset+0x11,streamFile);
     if (big_endian)
         channel_count = read_8bit(rwav_data.wave_offset+0x12,streamFile);
     else
         channel_count = read_32bit(rwav_data.wave_offset+0x24,streamFile);
 
-    switch (codec_number) {
+    switch (codec) {
         case 0:
             coding_type = coding_PCM8;
             break;
@@ -256,18 +234,14 @@ VGMSTREAM * init_vgmstream_rwsd(STREAMFILE *streamFile) {
     if (channel_count < 1) goto fail;
 
     /* build the VGMSTREAM */
-
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-    /* fill in the vital statistics */
-    if (big_endian)
-    {
+    if (big_endian) {
         vgmstream->num_samples = dsp_nibbles_to_samples(read_32bit(rwav_data.wave_offset+0x1c,streamFile));
         vgmstream->loop_start_sample = dsp_nibbles_to_samples(read_32bit(rwav_data.wave_offset+0x18,streamFile));
     }
-    else
-    {
+    else {
         vgmstream->num_samples = read_32bit(rwav_data.wave_offset+0x1c,streamFile);
         vgmstream->loop_start_sample = read_32bit(rwav_data.wave_offset+0x18,streamFile);
     }
@@ -280,8 +254,7 @@ VGMSTREAM * init_vgmstream_rwsd(STREAMFILE *streamFile) {
 
     if (rwar)
         vgmstream->meta_type = meta_RWAR;
-    else if (rwav)
-    {
+    else if (rwav) {
         if (big_endian) {
             vgmstream->meta_type = meta_RWAV;
         }
@@ -355,12 +328,10 @@ VGMSTREAM * init_vgmstream_rwsd(STREAMFILE *streamFile) {
         }
     }
 
-    if (rwar || rwav)
-    {
+    if (rwar || rwav) {
         /* */
     }
-    else
-    {
+    else {
         if (rwav_data.version == 2)
             rwav_data.start_offset = read_32bit(8,streamFile);
     }
