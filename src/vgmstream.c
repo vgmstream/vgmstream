@@ -346,7 +346,6 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_opus_nus3,
     init_vgmstream_opus_sps_n1,
     init_vgmstream_opus_nxa,
-    init_vgmstream_pc_al2,
     init_vgmstream_pc_ast,
     init_vgmstream_naac,
     init_vgmstream_ubi_sb,
@@ -500,6 +499,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_raw_wavm,        /* .wavm raw xbox */
     init_vgmstream_raw_pcm,         /* .raw raw PCM */
     init_vgmstream_s14_sss,         /* .s14/sss raw siren14 */
+    init_vgmstream_raw_al,          /* .al/al2 raw A-LAW */
 #ifdef VGM_USE_FFMPEG
     init_vgmstream_ffmpeg,          /* may play anything incorrectly, since FFmpeg doesn't check extensions */
 #endif

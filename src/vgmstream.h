@@ -612,7 +612,7 @@ typedef enum {
     meta_EA_SNU,            /* Electronic Arts SNU (Dead Space) */
     meta_AWC,               /* Rockstar AWC (GTA5, RDR) */
     meta_OPUS,              /* Nintendo Opus [Lego City Undercover (Switch)] */
-    meta_PC_AL2,            /* Conquest of Elysium 3 (PC) */
+    meta_RAW_AL,
     meta_PC_AST,            /* Dead Rising (PC) */
     meta_NAAC,              /* Namco AAC (3DS) */
     meta_UBI_SB,            /* Ubisoft banks */

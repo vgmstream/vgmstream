@@ -62,6 +62,7 @@ static const char* extension_list[] = {
     "aiffl", //fake extension for .aif???
     "aix",
     "akb",
+    "al",
     "al2",
     "amts", //fake extension/header id for .stm (renamed? to be removed?)
     "ao",
@@ -1156,7 +1157,7 @@ static const meta_info meta_info_list[] = {
         {meta_EA_SNU,               "Electronic Arts SNU header"},
         {meta_AWC,                  "Rockstar AWC header"},
         {meta_OPUS,                 "Nintendo Switch OPUS header"},
-        {meta_PC_AL2,               "Illwinter Game Design AL2 raw header"},
+        {meta_RAW_AL,               "Illwinter Game Design .AL raw header"},
         {meta_PC_AST,               "Capcom AST (PC) header"},
         {meta_UBI_SB,               "Ubisoft SBx header"},
         {meta_NAAC,                 "Namco NAAC header"},
