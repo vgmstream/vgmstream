@@ -941,7 +941,7 @@ static int decode_vector_quantized_mlt_indices(uint32_t* data_u32, int* p_bitpos
 }
 
 /* unpacks input buffer into MLT coefs */
-static int unpack_frame(int bit_rate, const uint8_t* data, int frame_size, /*int* p_frame_size, */ int* p_mag_shift, int16_t* mlt_coefs, uint32_t* p_random_value) {
+static int unpack_frame(int bit_rate, const uint8_t* data, int frame_size, /*int* p_frame_size, */ int* p_mag_shift, int16_t* mlt_coefs, uint32_t* p_random_value, int test_errors) {
     uint32_t data_u32[0x78/4 + 2];
     int bitpos, expected_frame_size;
     int power_categories[NUMBER_OF_REGIONS];
@@ -1071,19 +1071,38 @@ static int unpack_frame(int bit_rate, const uint8_t* data, int frame_size, /*int
 
 
     /* test for errors (in refdec but not Namco's, useful to detect decryption) */
-    {
+    if (test_errors) {
         int bits_left = 8 * expected_frame_size - bitpos;
-        int i;
+        int i, endpos, test_bits;
 
         if (bits_left > 0) {
+
             /* frame must be padded with 1s */
+            endpos = bitpos;
             for (i = 0; i < bits_left; i++) {
-                int bit = (data_u32[bitpos >> 5] >> (31 - (bitpos & 0x1F))) & 1;
-                bitpos++;
+                int bit = (data_u32[endpos >> 5] >> (31 - (endpos & 0x1F))) & 1;
+                endpos++;
 
                 if (bit == 0)
                     return -1;
             }
+
+            /* extra: test we aren't in the middle of padding (happens with bad keys) */
+            endpos = bitpos;
+            test_bits = 8 * 0x04;
+            if (test_bits > bitpos)
+                test_bits = bitpos;
+            for (i = 0; i < test_bits; i++) {
+                int bit = (data_u32[endpos >> 5] >> (31 - (endpos & 0x1F))) & 1;
+                endpos--;
+
+                if (bit != 1)
+                    break;
+            }
+            /* so many 1s isn't very normal */
+            if (i == test_bits)
+                return -8;
+
         }
         else {
             /* ? */
@@ -1145,10 +1164,11 @@ fail:
 int g7221_decode_frame(g7221_handle* handle, uint8_t* data, int16_t* out_samples) {
     int res;
     int mag_shift;
+    int encrypted = handle->aes != NULL;
 
     /* first 0x10 bytes may be encrypted with AES. Original code also saves encrypted bytes,
      * then re-crypts after unpacking, presumably to guard against memdumps. */
-    if (handle->aes != NULL) {
+    if (encrypted) {
         s14aes_decrypt(handle->aes, data);
     }
 
@@ -1156,7 +1176,7 @@ int g7221_decode_frame(g7221_handle* handle, uint8_t* data, int16_t* out_samples
      * so we could avoid one extra buffer, but for clarity we'll leave as is */
 
     /* unpack data into MLT spectrum coefs */
-    res = unpack_frame(handle->bit_rate, data, handle->frame_size, &mag_shift, handle->mlt_coefs, &handle->random_value);
+    res = unpack_frame(handle->bit_rate, data, handle->frame_size, &mag_shift, handle->mlt_coefs, &handle->random_value, encrypted);
     if (res < 0) goto fail;
 
     /* convert coefs to samples using reverse (inverse) MLT */
