@@ -1275,16 +1275,20 @@ void get_vgmstream_coding_description(VGMSTREAM *vgmstream, char *out, size_t ou
     int i, list_length;
     const char *description;
 
-    /* we need to recurse down because of FFmpeg */
-    if (vgmstream->layout_type == layout_layered) {
-        layered_layout_data* layout_data = vgmstream->layout_data;
-        get_vgmstream_coding_description(layout_data->layers[0], out, out_size);
-        return;
-    } else if (vgmstream->layout_type == layout_segmented) {
-        segmented_layout_data* layout_data = vgmstream->layout_data;
-        get_vgmstream_coding_description(layout_data->segments[0], out, out_size);
-        return;
+#ifdef VGM_USE_FFMPEG
+    if (vgmstream->coding_type == coding_FFmpeg) {
+        /* recurse down for FFmpeg, but metas should set prefered/main codec, or maybe print a list of codecs */
+        if (vgmstream->layout_type == layout_layered) {
+            layered_layout_data* layout_data = vgmstream->layout_data;
+            get_vgmstream_coding_description(layout_data->layers[0], out, out_size);
+            return;
+        } else if (vgmstream->layout_type == layout_segmented) {
+            segmented_layout_data* layout_data = vgmstream->layout_data;
+            get_vgmstream_coding_description(layout_data->segments[0], out, out_size);
+            return;
+        }
     }
+#endif
 
     description = "CANNOT DECODE";
 
