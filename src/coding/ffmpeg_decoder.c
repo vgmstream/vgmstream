@@ -936,7 +936,6 @@ void ffmpeg_set_force_seek(ffmpeg_codec_data * data) {
     /* some formats like Smacker are so buggy that any seeking is impossible (even on video players),
      * or MPC with an incorrectly parsed seek table (using as 0 some non-0 seek offset).
      * whatever, we'll just kill and reconstruct FFmpeg's config every time */
-    ;VGM_LOG("1\n");
     data->force_seek = 1;
     reset_ffmpeg_internal(data); /* reset state from trying to seek */
     //stream = data->formatCtx->streams[data->streamIndex];

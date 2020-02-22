@@ -7,7 +7,7 @@ VGMSTREAM * init_vgmstream_lrmd(STREAMFILE *sf) {
     VGMSTREAM * vgmstream = NULL;
     STREAMFILE * sf_h = NULL, *temp_sf = NULL;
     off_t stream_offset, section1_offset, section2_offset, basename_offset, subname_offset;
-    size_t stream_size, layer_chunk;
+    size_t stream_size, max_chunk, block_size = 0, chunk_start, chunk_size;
     int loop_flag, channel_count, sample_rate, layers;
     int32_t num_samples, loop_start, loop_end;
     int total_subsongs, target_subsong = sf->stream_index;
@@ -37,14 +37,14 @@ VGMSTREAM * init_vgmstream_lrmd(STREAMFILE *sf) {
         VGM_LOG("LRMD: unknown value\n");
         goto fail;
     }
-    layer_chunk = read_u16le(0x2a, sf_h);
+    max_chunk = read_u16le(0x2a, sf_h);
     num_samples = read_u32le(0x2c, sf_h);
     /* 0x30: null? */
     /* 0x34: data size for all layers */
     layers = read_u32le(0x38, sf_h);
     section1_offset = read_u32le(0x3c, sf_h);
-    /* 0x40: seek/layer? table entries */
-    /* 0x44: seek/layer? table offset */
+    /* 0x40: lip table entries */
+    /* 0x44: lip table offset */
     /* 0x48: section2 flag */
     section2_offset = read_u32le(0x4c, sf_h);
     /* 0x40: section3 flag */
@@ -54,19 +54,42 @@ VGMSTREAM * init_vgmstream_lrmd(STREAMFILE *sf) {
     if (target_subsong == 0) target_subsong = 1;
     if (target_subsong < 0 || target_subsong > total_subsongs || total_subsongs < 1) goto fail;
 
-    /* data is divided into N interleaved layers sharing config, so it could be implemented as
-     * layered, but since they have names it's worth showing as subsongs */
+    /* data is divided into N interleaved layers sharing config (channels may vary), and
+     * since they have names it's worth showing as subsongs */
 
     /* section1: layer config */
-    section1_offset += (target_subsong - 1) * 0x18;
-    /* 0x00: null */
-    subname_offset = read_u32le(section1_offset + 0x04, sf_h);
-    /* 0x08: unk */
-    /* 0x0c: flags? */
-    /* 0x10: null? */
-    /* 0x14: null? */
-    sample_rate = 44100;
-    channel_count = 2;
+    {
+        int i;
+        int frame_size = max_chunk / layers / 2; /* even for songs with mono layers */
+
+        chunk_size = 0;
+        for (i = 0; i < layers; i++) {
+            off_t header_offset = section1_offset + i * 0x18;
+            int layer_channels;
+
+            /* not too sure but needed for LR2's muihouse last 3 layers */
+            layer_channels = read_u8(header_offset + 0x0d, sf_h) != 0 ? 1 : 2;
+
+            if (i + 1 == target_subsong) {
+                /* 0x00: null */
+                subname_offset = read_u32le(header_offset + 0x04, sf_h);
+                /* 0x08: unk */
+                /* 0x0c: flags? */
+                /* 0x10: null? */
+                /* 0x14: null? */
+
+                chunk_start = chunk_size;
+                block_size = frame_size * layer_channels;
+
+                channel_count = layer_channels;
+                sample_rate = 44100;
+            }
+
+            chunk_size += frame_size * layer_channels;
+        }
+        if (block_size == 0)
+            goto fail;
+    }
 
     /* section2: loops */
     /* 0x00: offset to "loop" name */
@@ -82,9 +105,8 @@ VGMSTREAM * init_vgmstream_lrmd(STREAMFILE *sf) {
     }
 
 
-    //TODO: LR2's muihouse has buggy 7-layer interleave
     /* data de-interleave */
-    temp_sf = setup_lrmd_streamfile(sf, layer_chunk / layers, (target_subsong-1), total_subsongs);
+    temp_sf = setup_lrmd_streamfile(sf, block_size, chunk_start, chunk_size);
     if (!temp_sf) goto fail;
 
     stream_offset = 0x00;
@@ -105,13 +127,11 @@ VGMSTREAM * init_vgmstream_lrmd(STREAMFILE *sf) {
 
 #ifdef VGM_USE_FFMPEG
     {
-        int block_align, encoder_delay;
+        int encoder_delay = 1024; /* assumed */
 
-        block_align = layer_chunk / layers;
-        encoder_delay = 1024; /* assumed */
         vgmstream->num_samples -= encoder_delay;
 
-        vgmstream->codec_data = init_ffmpeg_atrac3_raw(temp_sf, stream_offset, stream_size, vgmstream->num_samples, vgmstream->channels, vgmstream->sample_rate, block_align, encoder_delay);
+        vgmstream->codec_data = init_ffmpeg_atrac3_raw(temp_sf, stream_offset, stream_size, vgmstream->num_samples, vgmstream->channels, vgmstream->sample_rate, block_size, encoder_delay);
         if (!vgmstream->codec_data) goto fail;
         vgmstream->coding_type = coding_FFmpeg;
         vgmstream->layout_type = layout_none;

@@ -62,6 +62,7 @@ static const char* extension_list[] = {
     "aiffl", //fake extension for .aif???
     "aix",
     "akb",
+    "al",
     "al2",
     "amts", //fake extension/header id for .stm (renamed? to be removed?)
     "ao",
@@ -1156,7 +1157,7 @@ static const meta_info meta_info_list[] = {
         {meta_EA_SNU,               "Electronic Arts SNU header"},
         {meta_AWC,                  "Rockstar AWC header"},
         {meta_OPUS,                 "Nintendo Switch OPUS header"},
-        {meta_PC_AL2,               "Illwinter Game Design AL2 raw header"},
+        {meta_RAW_AL,               "Illwinter Game Design .AL raw header"},
         {meta_PC_AST,               "Capcom AST (PC) header"},
         {meta_UBI_SB,               "Ubisoft SBx header"},
         {meta_NAAC,                 "Namco NAAC header"},
@@ -1275,16 +1276,20 @@ void get_vgmstream_coding_description(VGMSTREAM *vgmstream, char *out, size_t ou
     int i, list_length;
     const char *description;
 
-    /* we need to recurse down because of FFmpeg */
-    if (vgmstream->layout_type == layout_layered) {
-        layered_layout_data* layout_data = vgmstream->layout_data;
-        get_vgmstream_coding_description(layout_data->layers[0], out, out_size);
-        return;
-    } else if (vgmstream->layout_type == layout_segmented) {
-        segmented_layout_data* layout_data = vgmstream->layout_data;
-        get_vgmstream_coding_description(layout_data->segments[0], out, out_size);
-        return;
+#ifdef VGM_USE_FFMPEG
+    if (vgmstream->coding_type == coding_FFmpeg) {
+        /* recurse down for FFmpeg, but metas should set prefered/main codec, or maybe print a list of codecs */
+        if (vgmstream->layout_type == layout_layered) {
+            layered_layout_data* layout_data = vgmstream->layout_data;
+            get_vgmstream_coding_description(layout_data->layers[0], out, out_size);
+            return;
+        } else if (vgmstream->layout_type == layout_segmented) {
+            segmented_layout_data* layout_data = vgmstream->layout_data;
+            get_vgmstream_coding_description(layout_data->segments[0], out, out_size);
+            return;
+        }
     }
+#endif
 
     description = "CANNOT DECODE";
 

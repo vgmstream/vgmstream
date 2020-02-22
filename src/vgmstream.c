@@ -346,7 +346,6 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_opus_nus3,
     init_vgmstream_opus_sps_n1,
     init_vgmstream_opus_nxa,
-    init_vgmstream_pc_al2,
     init_vgmstream_pc_ast,
     init_vgmstream_naac,
     init_vgmstream_ubi_sb,
@@ -500,6 +499,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_raw_wavm,        /* .wavm raw xbox */
     init_vgmstream_raw_pcm,         /* .raw raw PCM */
     init_vgmstream_s14_sss,         /* .s14/sss raw siren14 */
+    init_vgmstream_raw_al,          /* .al/al2 raw A-LAW */
 #ifdef VGM_USE_FFMPEG
     init_vgmstream_ffmpeg,          /* may play anything incorrectly, since FFmpeg doesn't check extensions */
 #endif
@@ -2496,7 +2496,8 @@ static void try_dual_file_stereo(VGMSTREAM * opened_vgmstream, STREAMFILE *strea
         {".V0",".V1"}, /* Homura (PS2) */
         {".L",".R"}, /* Crash Nitro Racing (PS2), Gradius V (PS2) */
         {"_0.dsp","_1.dsp"}, /* Wario World (GC) */
-        {".adpcm","_NxEncoderOut_.adpcm"}, /* Kill la Kill: IF (Switch) */ //todo can't match R>L
+        {".adpcm","_NxEncoderOut_.adpcm"}, /* Kill la Kill: IF (Switch) */
+        {".adpcm","_2.adpcm"}, /* Desire: Remaster Version (Switch) */
     };
     char new_filename[PATH_LIMIT];
     char * extension;
@@ -2541,31 +2542,38 @@ static void try_dual_file_stereo(VGMSTREAM * opened_vgmstream, STREAMFILE *strea
             if (filename_len > this_suffix_len && strchr(this_suffix, '.') != NULL) { /* same suffix with extension */
                 //;VGM_LOG("DFS: suf+ext %s vs %s len %i\n", new_filename, this_suffix, this_suffix_len);
                 if (memcmp(new_filename + (filename_len - this_suffix_len), this_suffix, this_suffix_len) == 0) {
-                    dfs_pair = j;
                     memcpy (new_filename + (filename_len - this_suffix_len), that_suffix,that_suffix_len+1);
+                    dfs_pair = j;
                 }
             }
             else if (filename_len - extension_len > this_suffix_len) { /* same suffix without extension */
                 //;VGM_LOG("DFS: suf-ext %s vs %s len %i\n", extension - this_suffix_len, this_suffix, this_suffix_len);
                 if (memcmp(extension - this_suffix_len, this_suffix,this_suffix_len) == 0) {
-                    dfs_pair = j;
                     memmove(extension + that_suffix_len - this_suffix_len, extension,extension_len+1); /* move old extension to end */
                     memcpy (extension - this_suffix_len, that_suffix,that_suffix_len); /* overwrite with new suffix */
+                    dfs_pair = j;
+                }
+            }
+
+            if (dfs_pair != -1) {
+                //VGM_LOG("DFS: try %i: %s\n", dfs_pair, new_filename);
+                /* try to init other channel (new_filename now has the opposite name) */
+                dual_streamFile = open_streamfile(streamFile, new_filename);
+                if (!dual_streamFile) {
+                    /* restore filename and keep trying (if found it'll break and init) */
+                    dfs_pair = -1;
+                    get_streamfile_name(streamFile, new_filename, sizeof(new_filename));
                 }
             }
         }
     }
 
-    /* see if the filename had a suitable L/R-pair name */
+    /* filename didn't have a suitable L/R-pair name */
     if (dfs_pair == -1)
         goto fail;
     //;VGM_LOG("DFS: match %i filename=%s\n", dfs_pair, new_filename);
 
-    /* try to init other channel (new_filename now has the opposite name) */
-    dual_streamFile = open_streamfile(streamFile, new_filename);
-    if (!dual_streamFile) goto fail;
-
-    new_vgmstream = init_vgmstream_function(dual_streamFile); /* use the init that just worked, no other should work */
+    new_vgmstream = init_vgmstream_function(dual_streamFile); /* use the init function that just worked */
     close_streamfile(dual_streamFile);
 
     /* see if we were able to open the file, and if everything matched nicely */

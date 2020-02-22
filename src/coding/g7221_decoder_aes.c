@@ -18,8 +18,8 @@ struct s14aes_handle {
     /* MixColumn(?) LUTs, unlike normal Rijndael which uses 4 tables: Td0a Td0b..., Td1a Td1b..., ...
      * layout is: Td0a Td1a Td2a Td3a, Td0b Td0b Td1b Td2b, ... (better for CPU cache?) */
     uint32_t tds[256*4];
-    /* expanded roundkey, actual final key */
-    uint32_t rk[52];
+    /* expanded roundkey, actual final key (192-bit keys only need up to 52 though) */
+    uint32_t rk[64];
 } ;
 
 

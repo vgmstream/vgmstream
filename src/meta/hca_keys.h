@@ -330,6 +330,9 @@ static const hcakey_info hcakey_list[] = {
         /* Inazuma Eleven SD (Android) */
         {0xC436E03737D55B5F},       // C436E03737D55B5F / 14138734607940803423
 
+        /* Detective Conan Runner / Case Closed Runner (Android) */
+        {1175268187653273344},      // 104f643098e3f700
+
         /* Dragalia Lost (iOS/Android) */
         {2967411924141,         subkeys_dgl, sizeof(subkeys_dgl) / sizeof(subkeys_dgl[0]) },    // 000002B2E7889CAD
 

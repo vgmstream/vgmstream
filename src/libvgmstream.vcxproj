@@ -379,7 +379,7 @@
     <ClCompile Include="meta\opus_ppp.c" />
     <ClCompile Include="meta\otm.c" />
     <ClCompile Include="meta\p3d.c" />
-    <ClCompile Include="meta\pc_al2.c" />
+    <ClCompile Include="meta\raw_al.c" />
     <ClCompile Include="meta\pc_mxst.c" />
     <ClCompile Include="meta\sab.c" />
     <ClCompile Include="meta\xa_xa30.c" />
