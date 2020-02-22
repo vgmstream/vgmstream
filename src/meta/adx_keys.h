@@ -231,6 +231,9 @@ static const adxkey_info adxkey9_list[] = {
         /* Nogizaka46 Rhythm Festival (Android) */
         {0x2378,0x5511,0x0201, NULL,5613126134333697},      // 0013F11BC5510101
 
+        /* Detective Conan Runner / Case Closed Runner (Android) */
+        {0x0613,0x0e3d,0x6dff, NULL,1175268187653273344},      // 104f643098e3f700
+
 };
 
 static const int adxkey8_list_count = sizeof(adxkey8_list) / sizeof(adxkey8_list[0]);
