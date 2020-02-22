@@ -4,7 +4,12 @@
 #include "bnsf_keys.h"
 
 
-static void find_bnsf_key(g7221_codec_data *data, off_t start, STREAMFILE *sf, uint8_t *best_key);
+//#define BNSF_BRUTEFORCE
+#ifdef BNSF_BRUTEFORCE
+static void bruteforce_bnsf_key(STREAMFILE* sf, off_t start, g7221_codec_data* data, uint8_t* best_key);
+#endif
+static void find_bnsf_key(STREAMFILE *sf, off_t start, g7221_codec_data *data, uint8_t *best_key);
+
 
 /* BNSF - Bandai Namco Sound Format/File [Tales of Graces (Wii), Tales of Berseria (PS4)] */
 VGMSTREAM * init_vgmstream_bnsf(STREAMFILE *streamFile) {
@@ -81,10 +86,14 @@ VGMSTREAM * init_vgmstream_bnsf(STREAMFILE *streamFile) {
                 uint8_t key[24] = {0}; /* keystring 0-padded to 192-bit */
 
                 keysize = read_key_file(key, sizeof(key), streamFile);
+#ifdef BNSF_BRUTEFORCE
+                if (1) {
+                    bruteforce_bnsf_key(streamFile, start_offset, vgmstream->codec_data, key);
+                } else
+#endif
                 if (keysize <= 0 || keysize > sizeof(key)) {
-                    find_bnsf_key(vgmstream->codec_data, start_offset, streamFile, key);
+                    find_bnsf_key(streamFile, start_offset, vgmstream->codec_data, key);
                 }
-
                 set_key_g7221(vgmstream->codec_data, key);
             }
 
@@ -117,40 +126,96 @@ fail:
     return NULL;
 }
 
-static void find_bnsf_key(g7221_codec_data* data, off_t start, STREAMFILE* sf, uint8_t* best_key) {
-    const size_t keys_length = sizeof(s14key_list) / sizeof(bnsfkey_info);
-    int score, best_score = -1;
-    int i;
+static inline void test_key(STREAMFILE* sf, off_t start, g7221_codec_data* data, const char* key, int keylen, int* p_best_score, uint8_t* p_best_key) {
     uint8_t tmpkey[24];
+    int score;
+
+    if (keylen > sizeof(tmpkey))
+        return;
+    memcpy(tmpkey, key, keylen);
+    memset(tmpkey + keylen, 0, sizeof(tmpkey) - keylen);
+
+    //;VGM_LOG("BNSF: test key=%.24s\n", tmpkey);
+    set_key_g7221(data, tmpkey);
+
+    score = test_key_g7221(data, start, sf);
+    if (score < 0) return;
+
+    if (*p_best_score <= 0 || (score < *p_best_score && score > 0)) {
+        *p_best_score = score;
+        memcpy(p_best_key, key, keylen);
+        memset(p_best_key + keylen, 0, sizeof(tmpkey) - keylen);
+    }
+}
+
+static void find_bnsf_key(STREAMFILE* sf, off_t start, g7221_codec_data* data, uint8_t* best_key) {
+    const size_t keys_length = sizeof(s14key_list) / sizeof(bnsfkey_info);
+    int best_score = -1;
+    int i;
 
 
     for (i = 0; i < keys_length; i++) {
         const char* key = s14key_list[i].key;
         int keylen = strlen(key);
 
-        if (keylen > sizeof(tmpkey))
-            continue;
-        memcpy(tmpkey, key, keylen);
-        memset(tmpkey + keylen, 0, sizeof(tmpkey) - keylen);
-
-        //;VGM_LOG("BNSF: test key=%.24s\n", tmpkey);
-        set_key_g7221(data, tmpkey);
-
-        score = test_key_g7221(data, start, sf);
-        if (score < 0) continue;
-
-        if (best_score <= 0 || (score < best_score && score > 0)) {
-            best_score = score;
-            memcpy(best_key, key, keylen);
-            memset(best_key + keylen, 0, sizeof(tmpkey) - keylen);
-        }
-
-        if (best_score == 1) {
+        test_key(sf, start, data, key, keylen, &best_score, best_key);
+        if (best_score == 1)
             break;
-        }
-
     }
 
     VGM_ASSERT(best_score > 0, "BNSF: best key=%.24s (score=%i)\n", best_key, best_score);
-    VGM_ASSERT(best_score < 0, "BNSF: key not found\n"); /* defaults to all 0s */
+    VGM_ASSERT(best_score < 0, "BNSF: key not found\n");
 }
+
+#define BNSF_MIN_KEY_LEN 3
+
+#ifdef BNSF_BRUTEFORCE
+/* bruteforce keys in a string list extracted from executables or files near sound data, trying variations. */
+static void bruteforce_bnsf_key(STREAMFILE* sf, off_t start, g7221_codec_data* data, uint8_t* best_key) {
+    STREAMFILE* sf_keys = NULL;
+    int best_score = -1;
+    int i, j;
+    char line[1024];
+    int bytes, line_ok;
+    off_t offset;
+    size_t keys_size;
+
+
+    VGM_LOG("BNSF: test keys\n");
+
+    sf_keys = open_streamfile_by_filename(sf, "keys.txt");
+    if (!sf_keys) goto done;
+    
+    keys_size = get_streamfile_size(sf_keys);
+    
+    offset = 0x00;
+    while (offset < keys_size) {
+        int line_len;
+
+        bytes = read_line(line, sizeof(line), offset, sf_keys, &line_ok);
+        if (!line_ok) break;
+
+        offset += bytes;
+
+        line_len = strlen(line);
+        for (i = 0; i < line_len - BNSF_MIN_KEY_LEN; i++) {
+            for (j = i + BNSF_MIN_KEY_LEN; j <= line_len; j++) {
+                int keylen = j - i;
+                const char* key = &line[i];
+                
+                test_key(sf, start, data, key, keylen, &best_score, best_key);
+                if (best_score == 1) {
+                    VGM_ASSERT(best_score > 0, "BNSF: good key=%.24s (score=%i)\n", best_key, best_score);
+                    //goto done;
+                }
+            }
+        }
+    }
+
+//done:
+    VGM_ASSERT(best_score > 0, "BNSF: best key=%.24s (score=%i)\n", best_key, best_score);
+    VGM_ASSERT(best_score < 0, "BNSF: key not found\n");
+
+    close_streamfile(sf_keys);
+}
+#endif
