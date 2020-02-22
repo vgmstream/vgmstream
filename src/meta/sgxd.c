@@ -10,7 +10,7 @@ VGMSTREAM * init_vgmstream_sgxd(STREAMFILE *streamFile) {
     size_t stream_size;
 
     int is_sgx, is_sgb = 0;
-    int loop_flag, channels, type;
+    int loop_flag, channels, codec;
     int sample_rate, num_samples, loop_start_sample, loop_end_sample;
     int total_subsongs, target_subsong = streamFile->stream_index;
 
@@ -69,7 +69,7 @@ VGMSTREAM * init_vgmstream_sgxd(STREAMFILE *streamFile) {
         /* 0x00  ? (00/01/02) */
         if (!is_sgx) /* meaning unknown in .sgx; offset 0 = not a stream (a RGND sample) */
             name_offset = read_32bitLE(chunk_offset+0x04,streamHeader);
-        type = read_8bit(chunk_offset+0x08,streamHeader);
+        codec = read_8bit(chunk_offset+0x08,streamHeader);
         channels = read_8bit(chunk_offset+0x09,streamHeader);
         /* 0x0a  null */
         sample_rate = read_32bitLE(chunk_offset+0x0c,streamHeader);
@@ -111,7 +111,14 @@ VGMSTREAM * init_vgmstream_sgxd(STREAMFILE *streamFile) {
     if (name_offset)
         read_string(vgmstream->stream_name,STREAM_NAME_SIZE, name_offset,streamHeader);
 
-    switch (type) {
+    switch (codec) {
+
+        case 0x01:      /* PCM [LocoRoco Cocoreccho! (PS3)] (rare, locoloco_psn#279) */
+            vgmstream->coding_type = coding_PCM16BE;
+            vgmstream->layout_type = layout_interleave;
+            vgmstream->interleave_block_size = 0x02;
+            break;
+
 #ifdef VGM_USE_VORBIS
         case 0x02:      /* Ogg Vorbis [Ni no Kuni: Wrath of the White Witch Remastered (PC)] (codec hijack?) */
             vgmstream->codec_data = init_ogg_vorbis(streamFile, start_offset, stream_size, NULL);
@@ -129,6 +136,9 @@ VGMSTREAM * init_vgmstream_sgxd(STREAMFILE *streamFile) {
                 vgmstream->interleave_block_size = stream_size;
             }
 
+            /* a few files in LocoRoco set 0 stream size/samples, use an empty file for now */
+            if (vgmstream->num_samples == 0)
+                vgmstream->num_samples = 28;
             break;
 
 #ifdef VGM_USE_FFMPEG
@@ -173,6 +183,7 @@ VGMSTREAM * init_vgmstream_sgxd(STREAMFILE *streamFile) {
 #endif
 
         default:
+            VGM_LOG("SGDX: unknown codec %i\n", codec);
             goto fail;
     }
 
