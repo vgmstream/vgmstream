@@ -68,6 +68,15 @@ There are multiple options that alter how the file is converted, for example:
 Available commands are printed when run with no flags. Note that you can also
 achieve similar results for other plugins using TXTP, described later.
 
+With files multiple subsongs you need to specify manually subsong (by design, to avoid
+massive data dumps since some formats have hundred of subsongs), but you could do
+some command line tricks:
+```
+REM extracts from subsong 5 to 10 in file.fsb
+for /L %A in (5,1,10) do  test.exe -s %A -o file_%A.wav file.fsb
+```
+
+
 ### in_vgmstream
 *Installation*: drop the ```in_vgmstream.dll``` in your Winamp plugins directory,
 and follow the above instructions for installing the other files needed.
