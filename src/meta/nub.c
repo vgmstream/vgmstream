@@ -19,7 +19,9 @@ VGMSTREAM * init_vgmstream_nub(STREAMFILE *streamFile) {
 
 
     /* checks */
-    if (!check_extensions(streamFile, "nub"))
+    /* .nub: standard
+     * .nub2: rare [iDOLM@STER - Gravure For You (PS3)] */
+    if (!check_extensions(streamFile, "nub,nub2"))
         goto fail;
 
     version = read_32bitBE(0x00,streamFile);
