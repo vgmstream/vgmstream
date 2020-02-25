@@ -564,6 +564,7 @@ static const char* extension_list[] = {
     "xag",
     "xau",
     "xav",
+    "xb", //txth/reserved [Scooby-Doo! Unmasked (Xbox)]
     "xen",
     "xma",
     "xma2",
