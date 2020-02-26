@@ -177,17 +177,17 @@ VGMSTREAM * init_vgmstream_ea_schl_video(STREAMFILE *streamFile) {
     /* .dct: early-mid [ex. Need for Speed II SE (PC), FIFA 98 (PC)] */
     /* .mad: mid */
     /* .vp6: late */
-    if (check_extensions(streamFile, "vp6")) {
-        /* check initial movie block id */
-        if (read_32bitBE(0x00, streamFile) != 0x4D566864) /* "MVhd" */
-            goto fail;
-    } else if (check_extensions(streamFile, "uv,dct")) {
+    if (check_extensions(streamFile, "uv,dct")) {
         /* starts with audio header block */
         if (read_32bitBE(0x00, streamFile) != EA_BLOCKID_HEADER) /* "SCHl" */
             goto fail;
     } else if (check_extensions(streamFile, "mad")) {
         /* check initial movie block id */
         if (read_32bitBE(0x00, streamFile) != 0x4D41446B) /* "MADk" */
+            goto fail;
+    } else if (check_extensions(streamFile, "vp6")) {
+        /* check initial movie block id */
+        if (read_32bitBE(0x00, streamFile) != 0x4D566864) /* "MVhd" */
             goto fail;
     } else {
         goto fail;
@@ -381,7 +381,7 @@ VGMSTREAM * init_vgmstream_ea_abk(STREAMFILE *streamFile) {
     if (target_entry_offset == 0)
         goto fail;
 
-    /* 0x00: type (0x00 - normal, 0x01 - streamed, 0x02 - streamed looped */
+    /* 0x00: type (0x00 - normal, 0x01 - streamed, 0x02 - streamed looped) */
     /* 0x01: ??? */
     /* 0x04: index for normal sounds, offset for streamed sounds */
     /* 0x08: loop offset for streamed sounds */
