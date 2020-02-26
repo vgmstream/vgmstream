@@ -343,8 +343,9 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
      * .rws: Climax games (Silent Hill Origins PSP, Oblivion PSP) ATRAC3
      * .aud: EA Replay ATRAC3
      * .at9: standard ATRAC9
+     * .saf: Whacked! (Xbox)
      */
-    if ( check_extensions(streamFile, "wav,lwav,xwav,da,dax,cd,med,snd,adx,adp,xss,xsew,adpcm,adw,wd,,sbv,wvx,str,at3,rws,aud,at9") ) {
+    if ( check_extensions(streamFile, "wav,lwav,xwav,da,dax,cd,med,snd,adx,adp,xss,xsew,adpcm,adw,wd,,sbv,wvx,str,at3,rws,aud,at9,saf") ) {
         ;
     }
     else if ( check_extensions(streamFile, "mwv") ) {

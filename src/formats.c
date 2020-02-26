@@ -398,6 +398,7 @@ static const char* extension_list[] = {
     "s3v", //txth/reserved [Sound Voltex 5 (AC)]
     "sab",
     "sad",
+    "saf",
     "sap",
     "sb0",
     "sb1",
