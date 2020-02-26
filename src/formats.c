@@ -198,6 +198,7 @@ static const char* extension_list[] = {
     "his",
     "hps",
     "hsf",
+    "hwx", //txth/reserved [Star Wars Episode III (Xbox)]
     "hx2",
     "hx3",
     "hxc",
@@ -397,6 +398,7 @@ static const char* extension_list[] = {
     "s3v", //txth/reserved [Sound Voltex 5 (AC)]
     "sab",
     "sad",
+    "saf",
     "sap",
     "sb0",
     "sb1",
@@ -563,6 +565,7 @@ static const char* extension_list[] = {
     "xag",
     "xau",
     "xav",
+    "xb", //txth/reserved [Scooby-Doo! Unmasked (Xbox)]
     "xen",
     "xma",
     "xma2",
