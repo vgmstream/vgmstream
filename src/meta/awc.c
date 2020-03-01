@@ -301,7 +301,7 @@ static int parse_awc_header(STREAMFILE* streamFile, awc_header* awc) {
                         (awc->codec && awc->codec != codec)) {
                         VGM_LOG("AWC: found header diffs in channel %i, ns=%i vs %i, sr=%i vs %i, c=%i vs %i\n",
                                 ch, awc->num_samples, num_samples, awc->sample_rate, sample_rate, awc->codec, codec);
-                        goto fail;
+                        //goto fail; //todo some Max Payne 3 cutscene channels have huge sample diffs
                     }
 
                     awc->num_samples = num_samples;
