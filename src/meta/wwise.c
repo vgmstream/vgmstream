@@ -213,7 +213,7 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
             goto fail;
         }
 
-        if (ww.codec == IMA || ww.codec == VORBIS || ww.codec == XMA2 || ww.codec == OPUSNX)
+        if (ww.codec == PCM || ww.codec == IMA || ww.codec == VORBIS || ww.codec == XMA2 || ww.codec == OPUSNX)
             ww.truncated = 1; /* only seen those, probably all exist */
         else
             goto fail;
@@ -241,6 +241,10 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
             vgmstream->coding_type = (ww.big_endian ? coding_PCM16BE : coding_PCM16LE);
             vgmstream->layout_type = ww.channels > 1 ? layout_interleave : layout_none;
             vgmstream->interleave_block_size = 0x02;
+
+            if (ww.truncated) {
+                ww.data_size = ww.file_size - ww.data_offset;
+            }
 
             vgmstream->num_samples = pcm_bytes_to_samples(ww.data_size, ww.channels, ww.bits_per_sample);
             break;
