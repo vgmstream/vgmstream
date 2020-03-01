@@ -132,12 +132,14 @@ VGMSTREAM * init_vgmstream_xvag(STREAMFILE *streamFile) {
 
     switch (xvag.codec) {
         case 0x06: /* VAG (PS-ADPCM): God of War III (PS3), Uncharted 1/2 (PS3), Ratchet and Clank Future (PS3) */
-        case 0x07: /* SVAG? (PS-ADPCM with extended table?): inFamous 1 (PS3) */
+        case 0x07: /* SVAG? (PS-ADPCM with extended table): inFamous 1 (PS3) */
             if (xvag.subsongs > 1 && xvag.layers > 1) goto fail;
             if (xvag.layers > 1 && xvag.layers != xvag.channels) goto fail;
             if (xvag.subsongs > 1 && xvag.channels > 1) goto fail; /* unknown layout */
 
             vgmstream->coding_type = coding_PSX;
+            if (xvag.codec == 0x07)
+                vgmstream->codec_config = 1; /* needs extended table */
 
             if (xvag.subsongs > 1) { /* God of War 3 (PS4) */
                 vgmstream->layout_type = layout_blocked_xvag_subsong;

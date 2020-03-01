@@ -153,10 +153,11 @@ VGMSTREAM * init_vgmstream_sgxd(STREAMFILE *streamFile) {
             break;
         }
 #endif
-        case 0x05:      /* Short PS-ADPCM [Afrika (PS3)] */
+        case 0x05:      /* Short PS-ADPCM [Afrika (PS3), LocoRoco Cocoreccho! (PS3)] */
             vgmstream->coding_type = coding_PSX_cfg;
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = 0x4;
+            vgmstream->codec_config = 1; /* needs extended table */
 
             break;
 

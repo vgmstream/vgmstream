@@ -1694,19 +1694,19 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
         case coding_PSX:
             for (ch = 0; ch < vgmstream->channels; ch++) {
                 decode_psx(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
-                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do, 0);
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do, 0, vgmstream->codec_config);
             }
             break;
         case coding_PSX_badflags:
             for (ch = 0; ch < vgmstream->channels; ch++) {
                 decode_psx(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
-                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do, 1);
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do, 1, vgmstream->codec_config);
             }
             break;
         case coding_PSX_cfg:
             for (ch = 0; ch < vgmstream->channels; ch++) {
                 decode_psx_configurable(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
-                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do, vgmstream->interleave_block_size);
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do, vgmstream->interleave_block_size, vgmstream->codec_config);
             }
             break;
         case coding_PSX_pivotal:
