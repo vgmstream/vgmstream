@@ -221,7 +221,7 @@ static int read_fmt(int big_endian, STREAMFILE * streamFile, off_t current_chunk
             goto fail;
 #endif
 
-        case 0x270: /* ATRAC3 */
+        case 0x0270: /* ATRAC3 */
 #ifdef VGM_USE_FFMPEG
             fmt->coding_type = coding_FFmpeg;
             fmt->is_at3 = 1;
@@ -312,6 +312,7 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
     int32_t loop_start_wsmp = -1, loop_end_wsmp = -1;
     int32_t loop_start_smpl = -1, loop_end_smpl = -1;
     int32_t loop_start_cue = -1;
+    int32_t loop_start_nxbf = -1;
 
     int FormatChunkFound = 0, DataChunkFound = 0, JunkFound = 0;
 
@@ -340,7 +341,7 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
      * .wvx: Godzilla - Destroy All Monsters Melee (Xbox)
      * .str: Harry Potter and the Philosopher's Stone (Xbox)
      * .at3: standard ATRAC3
-     * .rws: Climax games (Silent Hill Origins PSP, Oblivion PSP) ATRAC3
+     * .rws: Climax ATRAC3 [Silent Hill Origins (PSP), Oblivion (PSP)]
      * .aud: EA Replay ATRAC3
      * .at9: standard ATRAC9
      * .saf: Whacked! (Xbox)
@@ -377,6 +378,8 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
             riff_size -= 0x04; /* [Halo 2 (PC)] (possibly bad extractor? 'Gravemind Tool') */
         else if (riff_size == file_size && codec == 0x0300)
             riff_size -= 0x08; /* [Chrono Ma:gia (Android)] */
+        else if (riff_size >= file_size && read_32bitBE(0x24,streamFile) == 0x4E584246) /* "NXBF" */
+            riff_size = file_size - 0x08; /* [R:Racing Evolution (Xbox)] */
     }
 
     /* check for truncated RIFF */
@@ -504,6 +507,23 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
                             loop_start_cue = read_32bitLE(current_chunk + 0x20, streamFile);
                         }
                     }
+                    break;
+
+                case 0x4E584246:    /* "NXBF" (Namco NUS v1) [R:Racing Evolution (Xbox)] */
+                    /* 0x00: "NXBF" again */
+                    /* 0x04: always 0x1000? */
+                    /* 0x08: data size */
+                    /* 0x0c: channels */
+                    /* 0x10: null */
+                    loop_start_nxbf = read_32bitLE(current_chunk + 0x08 + 0x14, streamFile);
+                    /* 0x18: sample rate */
+                    /* 0x1c: volume? */
+                    /* 0x20: type/flags? */
+                    /* 0x24: codec? */
+                    /* 0x28: null */
+                    /* 0x2c: null */
+                    /* 0x30: type/flags? */
+                    loop_flag = (loop_start_nxbf >= 0);
                     break;
 
                 case 0x4A554E4B:    /* "JUNK" */
@@ -777,6 +797,14 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
         else if (loop_start_cue != -1) {
             vgmstream->loop_start_sample = loop_start_cue;
             vgmstream->loop_end_sample = vgmstream->num_samples;
+        }
+        else if (loop_start_nxbf != -1) {
+            switch (fmt.coding_type) {
+                case coding_PCM16LE:
+                    vgmstream->loop_start_sample = pcm_bytes_to_samples(loop_start_nxbf, vgmstream->channels, 16);
+                    vgmstream->loop_end_sample = vgmstream->num_samples;
+                    break;
+            }
         }
     }
     if (mwv) {
