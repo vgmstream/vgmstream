@@ -360,7 +360,17 @@ If your player isn't picking tags make sure vgmstream is detecting the song
 (as other plugins can steal its extensions, see above), .m3u is properly
 named and that filenames inside match the song filename. For Winamp you need
 to make sure *options > titles > advanced title formatting* checkbox is set and
-the format defined.
+the format defined. For foobar2000 don't forget you need to force refresh when
+tags change (for reasons outside vgmstream's control):
+**select songs > shift + right click > Tagging > Reload info from file(s)**.
+
+Currently there is no tool to aid in the creation of there m3u, but you can create
+a base m3u and edit as a text file.
+
+If you are not satisfied with vgmstream's tagging format, foobar2000 has other
+plugins (with write support) that may be of use:
+- m-TAGS: http://www.m-tags.org/
+- foo_external_tags: https://foobar.hyv.fi/?view=foo_external_tags
 
 ## Virtual TXTP files
 Some of vgmstream's plugins allow you to use virtual .txtp files, that combined
