@@ -2,12 +2,24 @@
 
 
 /* PS-ADPCM table, defined as rational numbers (as in the spec) */
-static const float ps_adpcm_coefs_f[5][2] = {
-        { 0.0      ,  0.0      }, //{   0.0        ,   0.0        },
-        { 0.9375   ,  0.0      }, //{  60.0 / 64.0 ,   0.0        },
-        { 1.796875 , -0.8125   }, //{ 115.0 / 64.0 , -52.0 / 64.0 },
-        { 1.53125  , -0.859375 }, //{  98.0 / 64.0 , -55.0 / 64.0 },
-        { 1.90625  , -0.9375   }, //{ 122.0 / 64.0 , -60.0 / 64.0 },
+static const float ps_adpcm_coefs_f[16][2] = {
+        { 0.0       ,  0.0       }, //{   0.0        ,   0.0        },
+        { 0.9375    ,  0.0       }, //{  60.0 / 64.0 ,   0.0        },
+        { 1.796875  , -0.8125    }, //{ 115.0 / 64.0 , -52.0 / 64.0 },
+        { 1.53125   , -0.859375  }, //{  98.0 / 64.0 , -55.0 / 64.0 },
+        { 1.90625   , -0.9375    }, //{ 122.0 / 64.0 , -60.0 / 64.0 },
+        /* extended table used in few PS3 games, found in ELFs */
+        { 0.46875   , -0.0       }, //{  30.0 / 64.0 ,  -0.0 / 64.0 },
+        { 0.8984375 , -0.40625   }, //{  57.5 / 64.0 , -26.0 / 64.0 },
+        { 0.765625  , -0.4296875 }, //{  49.0 / 64.0 , -27.5 / 64.0 },
+        { 0.953125  , -0.46875   }, //{  61.0 / 64.0 , -30.0 / 64.0 },
+        { 0.234375  , -0.0       }, //{  15.0 / 64.0 ,  -0.0 / 64.0 },
+        { 0.44921875, -0.203125  }, //{  28.75/ 64.0 , -13.0 / 64.0 },
+        { 0.3828125 , -0.21484375}, //{  24.5 / 64.0 , -13.75/ 64.0 },
+        { 0.4765625 , -0.234375  }, //{  30.5 / 64.0 , -15.0 / 64.0 },
+        { 0.5       , -0.9375    }, //{  32.0 / 64.0 , -60.0 / 64.0 },
+        { 0.234375  , -0.9375    }, //{  15.0 / 64.0 , -60.0 / 64.0 },
+        { 0.109375  , -0.9375    }, //{   7.0 / 64.0 , -60.0 / 64.0 },
 };
 
 /* PS-ADPCM table, defined as spec_coef*64 (for int implementations) */
@@ -38,12 +50,12 @@ static const int ps_adpcm_coefs_i[5][2] = {
  * Very similar to XA ADPCM (see xa_decoder for extended info).
  *
  * Some official PC tools decode using float coefs (from the spec), as does this code, but
- * consoles/games/libs would vary (PS1 could do it in hardware using BRR/XA's logic, FMOD/PS3
- * may use int math in software, etc). There are inaudible rounding diffs between implementations.
+ * consoles/games/libs would vary (PS1 could do it in hardware using BRR/XA's logic, FMOD may
+ * depend on platform, PS3 games use floats, etc). There are rounding diffs between implementations.
  */
 
 /* standard PS-ADPCM (float math version) */
-void decode_psx(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int is_badflags) {
+void decode_psx(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int is_badflags, int config) {
     uint8_t frame[0x10] = {0};
     off_t frame_offset;
     int i, frames_in, sample_count = 0;
@@ -51,6 +63,7 @@ void decode_psx(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing
     uint8_t coef_index, shift_factor, flag;
     int32_t hist1 = stream->adpcm_history1_32;
     int32_t hist2 = stream->adpcm_history2_32;
+    int extended_mode = (config == 1);
 
 
     /* external interleave (fixed size), mono */
@@ -66,11 +79,14 @@ void decode_psx(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing
     shift_factor = (frame[0] >> 0) & 0xf;
     flag = frame[1]; /* only lower nibble needed */
 
-    VGM_ASSERT_ONCE(coef_index > 5 || shift_factor > 12, "PS-ADPCM: incorrect coefs/shift at %x\n", (uint32_t)frame_offset);
-    if (coef_index > 5) /* needed by inFamous (PS3) (maybe it's supposed to use more filters?) */
-        coef_index = 0; /* upper filters aren't used in PS1/PS2, maybe in PSP/PS3? */
-    if (shift_factor > 12)
-        shift_factor = 9; /* supposedly, from Nocash PSX docs */
+    /* upper filters only used in few PS3 games, normally 0 */
+    if (!extended_mode) {
+        VGM_ASSERT_ONCE(coef_index > 5 || shift_factor > 12, "PS-ADPCM: incorrect coefs/shift at %x\n", (uint32_t)frame_offset);
+        if (coef_index > 5)
+            coef_index = 0;
+        if (shift_factor > 12)
+            shift_factor = 9; /* supposedly, from Nocash PSX docs */
+    }
 
     if (is_badflags) /* some games store garbage or extra internal logic in the flags, must be ignored */
         flag = 0;
@@ -107,8 +123,8 @@ void decode_psx(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing
 /* PS-ADPCM with configurable frame size and no flag (int math version).
  * Found in some PC/PS3 games (FF XI in sizes 0x3/0x5/0x9/0x41, Afrika in size 0x4, Blur/James Bond in size 0x33, etc).
  *
- * Uses int math to decode, which seems more likely (based on FF XI PC's code in Moogle Toolbox). */
-void decode_psx_configurable(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int frame_size) {
+ * Uses int/float math depending on config (PC/other code may be int, PS3 float). */
+void decode_psx_configurable(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int frame_size, int config) {
     uint8_t frame[0x50] = {0};
     off_t frame_offset;
     int i, frames_in, sample_count = 0;
@@ -116,6 +132,8 @@ void decode_psx_configurable(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int c
     uint8_t coef_index, shift_factor;
     int32_t hist1 = stream->adpcm_history1_32;
     int32_t hist2 = stream->adpcm_history2_32;
+    int extended_mode = (config == 1);
+    int float_mode = (config == 1);
 
 
     /* external interleave (variable size), mono */
@@ -130,11 +148,14 @@ void decode_psx_configurable(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int c
     coef_index   = (frame[0] >> 4) & 0xf;
     shift_factor = (frame[0] >> 0) & 0xf;
 
-    VGM_ASSERT_ONCE(coef_index > 5 || shift_factor > 12, "PS-ADPCM: incorrect coefs/shift at %x\n", (uint32_t)frame_offset);
-    if (coef_index > 5) /* needed by Afrika (PS3) (maybe it's supposed to use more filters?) */
-        coef_index = 0; /* upper filters aren't used in PS1/PS2, maybe in PSP/PS3? */
-    if (shift_factor > 12)
-        shift_factor = 9; /* supposedly, from Nocash PSX docs */
+    /* upper filters only used in few PS3 games, normally 0 */
+    if (!extended_mode) {
+        VGM_ASSERT_ONCE(coef_index > 5 || shift_factor > 12, "PS-ADPCM: incorrect coefs/shift at %x\n", (uint32_t)frame_offset);
+        if (coef_index > 5)
+            coef_index = 0;
+        if (shift_factor > 12)
+            shift_factor = 9; /* supposedly, from Nocash PSX docs */
+    }
 
 
     /* decode nibbles */
@@ -146,7 +167,9 @@ void decode_psx_configurable(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int c
                 (nibbles >> 4) & 0x0f :
                 (nibbles >> 0) & 0x0f;
         sample = (int16_t)((sample << 12) & 0xf000) >> shift_factor; /* 16b sign extend + scale */
-        sample = sample + ((ps_adpcm_coefs_i[coef_index][0]*hist1 + ps_adpcm_coefs_i[coef_index][1]*hist2) >> 6);
+        sample = float_mode ?
+            (int32_t)(sample + ps_adpcm_coefs_f[coef_index][0]*hist1 + ps_adpcm_coefs_f[coef_index][1]*hist2) :
+            sample + ((ps_adpcm_coefs_i[coef_index][0]*hist1 + ps_adpcm_coefs_i[coef_index][1]*hist2) >> 6);
         sample = clamp16(sample);
 
         outbuf[sample_count] = sample;

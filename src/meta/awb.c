@@ -209,6 +209,21 @@ static void load_awb_name(STREAMFILE *streamFile, STREAMFILE *acbFile, VGMSTREAM
             }
         }
 
+        /* try (name)_(name)_R001.awb + (name).acb [Sengoku Basara Battle Party (Mobile)] */
+        if (!acbFile) {
+            char *cmp = "_R001";
+            get_streamfile_basename(streamFile, filename, sizeof(filename));
+            len_name = strlen(filename);
+            len_cmp = strlen(cmp);
+
+            if (len_name > len_cmp && strcmp(filename + len_name - len_cmp, cmp) == 0) {
+                filename[(len_name - len_cmp) / 2] = '\0';
+                strcat(filename, ".acb");
+                VGM_LOG("%s\n", filename);
+                acbFile = open_streamfile_by_filename(streamFile, filename);
+            }
+        }
+
 		/* probably loaded */
         load_acb_wave_name(acbFile, vgmstream, waveid, is_memory);
 

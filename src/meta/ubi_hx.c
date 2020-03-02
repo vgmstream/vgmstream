@@ -622,7 +622,7 @@ static VGMSTREAM * init_vgmstream_ubi_hx_header(ubi_hx_header *hx, STREAMFILE *s
 
     switch(hx->codec) {
         case PCM:
-            vgmstream->coding_type = coding_PCM16LE;
+            vgmstream->coding_type = hx->big_endian ? coding_PCM16BE : coding_PCM16LE;
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = 0x02;
 

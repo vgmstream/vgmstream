@@ -285,7 +285,7 @@ VGMSTREAM * init_vgmstream_ta_aac_mobile(STREAMFILE *streamFile) {
     switch(codec) {
         case 0x0d:
             if (read_32bitLE(0x144, streamFile) != 0x40) goto fail; /* frame size */
-            if (read_32bitLE(0x148, streamFile) != (0x40-0x04*channel_count)*2 / channel_count) goto fail; /* frame samples */
+            /* 0x148 or 0x150 (later games): frame samples */
             if (channel_count > 2) goto fail; /* unknown data layout */
 
             vgmstream->coding_type = coding_ASKA;

@@ -2966,12 +2966,14 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
     }
 
     /* TMNT (2007)(X360)-bank 0x00190002 */
+    /* My Word Coach (2007)(Wii)-bank 0x00190002 */
     /* Prince of Persia: Rival Swords (2007)(Wii)-bank 0x00190003 */
     /* Rainbow Six Vegas (2007)(PS3)-bank 0x00190005 */
     /* Surf's Up (2007)(PS3)-bank 0x00190005 */
     /* Surf's Up (2007)(X360)-bank 0x00190005 */
     /* Splinter Cell: Double Agent (2007)(PS3)-map 0x00190005 */
     if ((sb->version == 0x00190002 && sb->platform == UBI_X360) ||
+        (sb->version == 0x00190002 && sb->platform == UBI_WII) ||
         (sb->version == 0x00190003 && sb->platform == UBI_WII) ||
         (sb->version == 0x00190005 && sb->platform == UBI_PS3) ||
         (sb->version == 0x00190005 && sb->platform == UBI_X360)) {
@@ -3006,6 +3008,16 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         config_sb_layer_sh(sb, 0x30, 0x00, 0x04, 0x08, 0x10);
 
         config_sb_silence_f(sb, 0x1c);
+        return 1;
+    }
+
+    /* Cranium Kabookii (2007)(Wii)-bank 0x001a0003 */
+    if (sb->version == 0x001a0003 && sb->platform == UBI_WII) {
+        config_sb_entry(sb, 0x6c, 0x78);
+
+        config_sb_audio_fs(sb, 0x2c, 0x30, 0x34);
+        config_sb_audio_he(sb, 0x40, 0x44, 0x4c, 0x54, 0x5c, 0x60);
+
         return 1;
     }
 

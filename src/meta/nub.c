@@ -120,6 +120,11 @@ VGMSTREAM * init_vgmstream_nub(STREAMFILE *streamFile) {
                 init_vgmstream_function = init_vgmstream_nub_xma;
                 break;
 
+            case 0x05: /* "dsp\0" */
+                fake_ext = "dsp";
+                init_vgmstream_function = init_vgmstream_nub_dsp;
+                break;
+
             case 0x06: /* "idsp" */
                 fake_ext = "idsp";
                 init_vgmstream_function = init_vgmstream_nub_idsp;
@@ -130,7 +135,6 @@ VGMSTREAM * init_vgmstream_nub(STREAMFILE *streamFile) {
                 init_vgmstream_function = init_vgmstream_nub_is14;
                 break;
 
-            case 0x05:
             default:
                 VGM_LOG("NUB: unknown codec %x\n", codec);
                 goto fail;
@@ -508,6 +512,40 @@ VGMSTREAM * init_vgmstream_nub_xma(STREAMFILE *streamFile) {
     return vgmstream;
 
 fail:
+    close_vgmstream(vgmstream);
+    return NULL;
+}
+
+/* .nub dsp - from Namco NUB archives [Taiko no Tatsujin Wii Chou Goukanban (Wii)] */
+VGMSTREAM * init_vgmstream_nub_dsp(STREAMFILE *streamFile) {
+    VGMSTREAM *vgmstream = NULL;
+    STREAMFILE *temp_sf = NULL;
+    off_t header_offset, stream_offset;
+    size_t header_size, stream_size;
+
+
+    /* checks */
+    if (!check_extensions(streamFile,"dsp"))
+        goto fail;
+    if (read_32bitBE(0x00,streamFile) != 0x64737000)    /* "dsp\0" */
+        goto fail;
+
+    /* paste header+data together and pass to meta, which has loop info too */
+    header_offset = 0xBC;
+    stream_size = read_32bitBE(0x14, streamFile);
+    header_size = read_32bitBE(0x1c, streamFile);
+    stream_offset = align_size_to_block(header_offset + header_size, 0x10);
+
+    temp_sf = setup_nub_streamfile(streamFile, header_offset, header_size, stream_offset, stream_size, "dsp");
+    if (!temp_sf) goto fail;
+
+    vgmstream = init_vgmstream_ngc_dsp_std(temp_sf);
+    if (!vgmstream) goto fail;
+
+    close_streamfile(temp_sf);
+    return vgmstream;
+fail:
+    close_streamfile(temp_sf);
     close_vgmstream(vgmstream);
     return NULL;
 }
