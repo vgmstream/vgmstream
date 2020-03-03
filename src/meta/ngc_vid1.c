@@ -2,8 +2,7 @@
 #include "../util.h"
 #include "../coding/coding.h"
 
-
-/* VID1 - from Neversoft games (Gun, Tony Hawk's American Wasteland GC) */
+/* VID1 - DivX format designed specifically for GameCube and Xbox games (Gun [GC], Tony Hawk's American Wasteland [GC]) */
 VGMSTREAM * init_vgmstream_ngc_vid1(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset, header_offset, header_size;
