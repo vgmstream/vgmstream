@@ -133,6 +133,7 @@ void decode_psx_configurable(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int cha
     int32_t hist1 = stream->adpcm_history1_32;
     int32_t hist2 = stream->adpcm_history2_32;
     int extended_mode = (config == 1);
+    int float_mode = (config == 1);
 
 
     /* external interleave (variable size), mono */
@@ -147,52 +148,35 @@ void decode_psx_configurable(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int cha
     coef_index   = (frame[0] >> 4) & 0xf;
     shift_factor = (frame[0] >> 0) & 0xf;
 
-    if (extended_mode) { /*float logic*/
-        shift_factor = 20 - shift_factor;
-        /* decode nibbles */
-        for (i = first_sample; i < first_sample + samples_to_do; i++) {
-            int32_t sample = 0;
-            uint8_t nibbles = frame[0x01 + i/2];
-            
-            sample = (i&1 ? /* low nibble first */
-                    get_high_nibble_signed(nibbles):
-                    get_low_nibble_signed(nibbles)) << shift_factor; /*scale*/
-            sample = sample + (int32_t)((ps_adpcm_coefs_f[coef_index][0]*hist1 + ps_adpcm_coefs_f[coef_index][1]*hist2) * 256.0f);
-            sample >>= 8;
-
-            outbuf[sample_count] = clamp16(sample); /*clamping*/
-            sample_count += channelspacing;
-
-            hist2 = hist1;
-            hist1 = sample;
-        }
-    }
-    else { /*int logic*/
-        /* upper filters only used in few PS3 games, normally 0 */
+    /* upper filters only used in few PS3 games, normally 0 */
+    if (!extended_mode) {
         VGM_ASSERT_ONCE(coef_index > 5 || shift_factor > 12, "PS-ADPCM: incorrect coefs/shift at %x\n", (uint32_t)frame_offset);
         if (coef_index > 5)
             coef_index = 0;
         if (shift_factor > 12)
             shift_factor = 9; /* supposedly, from Nocash PSX docs */
+    }
 
-        shift_factor = 18 - shift_factor;
-        /* decode nibbles */
-        for (i = first_sample; i < first_sample + samples_to_do; i++) {
-            int32_t sample = 0;
-            uint8_t nibbles = frame[0x01 + i/2];
-            
-            sample = (i&1 ? /* low nibble first */
-                    get_high_nibble_signed(nibbles):
-                    get_low_nibble_signed(nibbles)) << shift_factor; /*scale*/
-            sample = sample + (ps_adpcm_coefs_i[coef_index][0]*hist1 + ps_adpcm_coefs_i[coef_index][1]*hist2);
-            sample >>= 6;
 
-            outbuf[sample_count] = clamp16(sample); /*clamping*/
-            sample_count += channelspacing;
+    /* decode nibbles */
+    for (i = first_sample; i < first_sample + samples_to_do; i++) {
+        int32_t sample = 0;
+        uint8_t nibbles = frame[0x01 + i/2];
 
-            hist2 = hist1;
-            hist1 = sample;
-        }
+        sample = i&1 ? /* low nibble first */
+                (nibbles >> 4) & 0x0f :
+                (nibbles >> 0) & 0x0f;
+        sample = (int16_t)((sample << 12) & 0xf000) >> shift_factor; /* 16b sign extend + scale */
+        sample = float_mode ?
+            (int32_t)(sample + ps_adpcm_coefs_f[coef_index][0]*hist1 + ps_adpcm_coefs_f[coef_index][1]*hist2) :
+            sample + ((ps_adpcm_coefs_i[coef_index][0]*hist1 + ps_adpcm_coefs_i[coef_index][1]*hist2) >> 6);
+        sample = clamp16(sample);
+
+        outbuf[sample_count] = sample;
+        sample_count += channelspacing;
+
+        hist2 = hist1;
+        hist1 = sample;
     }
 
     stream->adpcm_history1_32 = hist1;
