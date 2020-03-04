@@ -93,22 +93,22 @@ void decode_psx(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, 
     VGM_ASSERT_ONCE(flag > 7,"PS-ADPCM: unknown flag at %x\n", (uint32_t)frame_offset); /* meta should use PSX-badflags */
 
 
+    shift_factor = 20 - shift_factor;
     /* decode nibbles */
     for (i = first_sample; i < first_sample + samples_to_do; i++) {
         int32_t sample = 0;
 
         if (flag < 0x07) { /* with flag 0x07 decoded sample must be 0 */
             uint8_t nibbles = frame[0x02 + i/2];
-
-            sample = i&1 ? /* low nibble first */
-                    (nibbles >> 4) & 0x0f :
-                    (nibbles >> 0) & 0x0f;
-            sample = (int16_t)((sample << 12) & 0xf000) >> shift_factor; /* 16b sign extend + scale */
-            sample = (int32_t)(sample + ps_adpcm_coefs_f[coef_index][0]*hist1 + ps_adpcm_coefs_f[coef_index][1]*hist2);
-            sample = clamp16(sample);
+            
+            sample = (i&1 ? /* low nibble first */
+                    get_high_nibble_signed(nibbles):
+                    get_low_nibble_signed(nibbles)) << shift_factor; /*scale*/
+            sample = sample + (int32_t)((ps_adpcm_coefs_f[coef_index][0]*hist1 + ps_adpcm_coefs_f[coef_index][1]*hist2) * 256.0f);
+            sample >>= 8;
         }
 
-        outbuf[sample_count] = sample;
+        outbuf[sample_count] = clamp16(sample); /*clamping*/
         sample_count += channelspacing;
 
         hist2 = hist1;
@@ -192,7 +192,6 @@ void decode_psx_pivotal(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channe
     uint8_t coef_index, shift_factor;
     int32_t hist1 = stream->adpcm_history1_32;
     int32_t hist2 = stream->adpcm_history2_32;
-    float scale;
 
 
     /* external interleave (variable size), mono */
@@ -213,21 +212,19 @@ void decode_psx_pivotal(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channe
     if (shift_factor > 12) /* same */
         shift_factor = 12;
 
-    scale = (float)(1.0 / (double)(1 << shift_factor));
-
-
+    shift_factor = 20 - shift_factor;
     /* decode nibbles */
     for (i = first_sample; i < first_sample + samples_to_do; i++) {
         int32_t sample = 0;
         uint8_t nibbles = frame[0x01 + i/2];
 
-        sample = !(i&1) ? /* low nibble first */
-                (nibbles >> 0) & 0x0f :
-                (nibbles >> 4) & 0x0f;
-        sample = (int16_t)((sample << 12) & 0xf000); /* 16b sign extend + default scale */
-        sample = sample*scale + ps_adpcm_coefs_f[coef_index][0]*hist1 + ps_adpcm_coefs_f[coef_index][1]*hist2; /* actually substracts negative coefs but whatevs */
+        sample = (i&1 ? /* low nibble first */
+                get_high_nibble_signed(nibbles):
+                get_low_nibble_signed(nibbles)) << shift_factor; /*scale*/
+        sample = sample + (int32_t)((ps_adpcm_coefs_f[coef_index][0]*hist1 + ps_adpcm_coefs_f[coef_index][1]*hist2) * 256.0f); /* actually substracts negative coefs but whatevs */
+        sample >>= 8;
 
-        outbuf[sample_count] = clamp16(sample);
+        outbuf[sample_count] = clamp16(sample); /*clamping*/
         sample_count += channelspacing;
 
         hist2 = hist1;

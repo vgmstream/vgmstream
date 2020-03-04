@@ -173,25 +173,25 @@ void decode_hevag(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspaci
     if (shift_factor > 12)
         shift_factor = 9; /* ? */
 
+    shift_factor = 20 - shift_factor;
     /* decode nibbles */
     for (i = first_sample; i < first_sample + samples_to_do; i++) {
-        int32_t sample = 0, scale = 0;
+        int32_t sample = 0;
 
         if (flag < 0x07) { /* with flag 0x07 decoded sample must be 0 */
             uint8_t nibbles = frame[0x02 + i/2];
 
-            scale = i&1 ? /* low nibble first */
+            sample = (i&1 ? /* low nibble first */
                     get_high_nibble_signed(nibbles):
-                    get_low_nibble_signed(nibbles);
-            sample = (hist1 * hevag_coefs[coef_index][0] +
-                      hist2 * hevag_coefs[coef_index][1] +
-                      hist3 * hevag_coefs[coef_index][2] +
-                      hist4 * hevag_coefs[coef_index][3] ) / 32;
-            sample = (sample + (scale << (20 - shift_factor)) + 128) >> 8;
-            sample = clamp16(sample);
+                    get_low_nibble_signed(nibbles)) << shift_factor; /*scale*/
+            sample = ((hist1 * hevag_coefs[coef_index][0] +
+                       hist2 * hevag_coefs[coef_index][1] +
+                       hist3 * hevag_coefs[coef_index][2] +
+                       hist4 * hevag_coefs[coef_index][3]) >> 5) + sample;
+            sample >>= 8;
         }
 
-        outbuf[sample_count] = sample;
+        outbuf[sample_count] = clamp16(sample); /*clamping*/
         sample_count += channelspacing;
 
         hist4 = hist3;
