@@ -791,6 +791,9 @@ static const coding_info coding_info_list[] = {
 #ifdef VGM_USE_FFMPEG
         {coding_FFmpeg,             "FFmpeg"},
 #endif
+#ifdef VGM_USE_FDKAAC
+		{coding_MP4_AAC,            "MPEG-4 AAC"},
+#endif
 };
 
 static const layout_info layout_info_list[] = {

@@ -98,8 +98,6 @@ VGMSTREAM * init_vgmstream_mp4_aac_offset(STREAMFILE *streamFile, uint64_t start
 	aac_file->h_aacdecoder = aacDecoder_Open( TT_MP4_RAW, 1 );
 	if ( !aac_file->h_aacdecoder ) goto fail;
 
-	aacDecoder_SetParam( aac_file->h_aacdecoder, AAC_PCM_OUTPUT_CHANNELS, 2 );
-
 	MP4GetTrackESConfiguration( aac_file->h_mp4file, aac_file->track_id, (uint8_t**)(&buffer), (uint32_t*)(&buffer_size));
 
 	ubuffer_size = buffer_size;
