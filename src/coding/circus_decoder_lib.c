@@ -77,19 +77,20 @@ static void convert(uint8_t flags, int32_t* invbuf, int16_t* pcmbuf, int* p_hist
     hist1 = *p_hist1;
     hist2 = *p_hist2;
 
-    /* some ops below would use SHRs (>>), but there is some rounding in the
-     *  original ASM that decompiles and I think corresponds do DIVs
-     * (right shift and divs of negative values isn't equivalent) */
+    /* some ops below would use SHRs (>>), but there is some rounding in the original
+     * ASM that decompiles and I think corresponds do DIVs (right shift and divs of
+     * negative values isn't equivalent). Similarly the filters seem to use CDQ tricks
+     * to simulate s64 ops, but I'm not sure casting is 100% equivalent (sounds ok tho). */
 
     /* do final filtering and conversion to PCM */
     for (i = 0; i < XPCM_FRAME_SAMPLES_ALL + XPCM_FRAME_OVERLAP_ALL; i++) {
         sample = *invbuf++;
         if (flags & 0x10)
-            sample = 3 * sample / 2; // (3 * sample) >> 2
-        sample /= 1024; //sample >>= 10;
+            sample = (3 * (int64_t)sample / 2) / 1024; //>> 10;
+        else
+            sample = sample / 1024; //>> 10;
 
-        sample = ((3 * sample + 8 * 3 * sample + 4 * hist1 + hist2) << 11);
-        sample /= 65536; // sample >>= 16;
+        sample = ((27 * (int64_t)sample + 4 * hist1 + hist2) << 11) / 65536; //>> 16
 
         hist2 = hist1;
         hist1 = sample;
@@ -97,8 +98,7 @@ static void convert(uint8_t flags, int32_t* invbuf, int16_t* pcmbuf, int* p_hist
         /* last 32 decoded samples aren't output, but are used next frame to overlap
          * with beginning samples (filters(?) windowing, not too noticeable though) */
         if (i < XPCM_FRAME_OVERLAP_ALL && frame > 0) {
-            sample = (i * sample) + ((XPCM_FRAME_OVERLAP_ALL - i) * pcmbuf[XPCM_FRAME_SAMPLES_ALL + i]);
-            sample /= 32; //sample >>= 5
+            sample = ((i * (int64_t)sample) + ((XPCM_FRAME_OVERLAP_ALL - i) * pcmbuf[XPCM_FRAME_SAMPLES_ALL + i])) / 32; //>> 5
         }
 
         if (sample > 32767)
