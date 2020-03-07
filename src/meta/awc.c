@@ -51,7 +51,8 @@ VGMSTREAM * init_vgmstream_awc(STREAMFILE *streamFile) {
 
 
     switch(awc.codec) {
-        case 0x01:      /* PCM (PC/PS3) [sfx, rarely] */
+        case 0x00:      /* PCM (PC) sfx, very rare, lower sample rates? [Max Payne 3 (PC)] */
+        case 0x01:      /* PCM (PC/PS3) sfx, rarely */
             if (awc.is_music) goto fail; /* blocked_awc needs to be prepared */
             vgmstream->coding_type = awc.big_endian ? coding_PCM16BE : coding_PCM16LE;
             vgmstream->layout_type = layout_interleave;
