@@ -181,7 +181,7 @@ typedef enum {
     coding_UBI_ADPCM,       /* Ubisoft 4/6-bit ADPCM */
 
     coding_EA_MT,           /* Electronic Arts MicroTalk (linear-predictive speech codec) */
-
+    coding_CIRCUS_VQ,       /* Circus VQ */
     coding_RELIC,           /* Relic Codec (DCT-based) */
     coding_CRI_HCA,         /* CRI High Compression Audio (MDCT-based) */
 

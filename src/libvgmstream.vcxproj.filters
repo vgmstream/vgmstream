@@ -188,6 +188,18 @@
     <ClInclude Include="coding\acm_decoder_libacm.h">
       <Filter>coding\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="coding\circus_decoder_lib.h">
+      <Filter>coding\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="coding\circus_decoder_lib_data.h">
+      <Filter>coding\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="coding\circus_decoder_lzxpcm.h">
+      <Filter>coding\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="coding\circus_decoder_miniz.h">
+      <Filter>coding\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="coding\coding.h">
       <Filter>coding\Header Files</Filter>
     </ClInclude>
@@ -1598,6 +1610,12 @@
       <Filter>coding\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\circus_decoder.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\circus_decoder_lib.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\circus_decoder_miniz.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\bcstm.c">

@@ -139,6 +139,10 @@
     <ClInclude Include="meta\hca_keys_awb.h" />
     <ClInclude Include="meta\fsb_keys.h" />
     <ClInclude Include="coding\acm_decoder_libacm.h" />
+    <ClInclude Include="coding\circus_decoder_lib.h" />
+    <ClInclude Include="coding\circus_decoder_lib_data.h" />
+    <ClInclude Include="coding\circus_decoder_lzxpcm.h" />
+    <ClInclude Include="coding\circus_decoder_miniz.h" />
     <ClInclude Include="coding\coding.h" />
     <ClInclude Include="coding\ea_mt_decoder_utk.h" />
     <ClInclude Include="coding\g7221_decoder_aes.h" />
@@ -154,6 +158,8 @@
     <ClCompile Include="coding\atrac9_decoder.c" />
     <ClCompile Include="coding\celt_fsb_decoder.c" />
     <ClCompile Include="coding\circus_decoder.c" />
+    <ClCompile Include="coding\circus_decoder_lib.c" />
+    <ClCompile Include="coding\circus_decoder_miniz.c" />
     <ClCompile Include="coding\coding_utils.c" />
     <ClCompile Include="coding\ffmpeg_decoder.c" />
     <ClCompile Include="coding\ffmpeg_decoder_utils.c" />

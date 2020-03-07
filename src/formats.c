@@ -762,7 +762,7 @@ static const coding_info coding_info_list[] = {
         {coding_UBI_ADPCM,          "Ubisoft 4/6-bit ADPCM"},
 
         {coding_EA_MT,              "Electronic Arts MicroTalk"},
-
+        {coding_CIRCUS_VQ,          "Circus VQ"},
         {coding_RELIC,              "Relic Codec"},
         {coding_CRI_HCA,            "CRI HCA"},
         
