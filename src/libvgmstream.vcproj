@@ -545,6 +545,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\bkhd.c"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\bmp_konami.c"
                     >
                 </File>
