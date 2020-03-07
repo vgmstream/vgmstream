@@ -297,6 +297,8 @@ static const char* extension_list[] = {
     "mihb",
     "mnstr",
     "mogg",
+    //"m4a", //common
+    //"m4v", //common
     //"mp+", //common [Moonshine Runners (PC)]
     //"mp2", //common
     //"mp3", //common
@@ -608,6 +610,8 @@ static const char* common_extension_list[] = {
     "aiff", //common
     "bin", //common
     "flac", //common
+    "m4a", //common
+    "m4v", //common
     "mp+", //common [Moonshine Runners (PC)]
     "mp2", //common
     "mp3", //common
