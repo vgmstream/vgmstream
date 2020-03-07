@@ -193,10 +193,8 @@ VGMSTREAM * init_vgmstream_ubi_lyn(STREAMFILE *streamFile) {
             off_t chunk_offset;
             size_t chunk_size, seek_size;
 
-            if (read_32bitLE(start_offset+0x00,streamFile) != 3) /* id? */
-               goto fail;
-
             /* skip standard XMA header + seek table */
+            /* 0x00: version? no apparent differences (0x1=Just Dance 4, 0x3=others) */
             chunk_offset = start_offset + 0x04 + 0x04;
             chunk_size = read_32bitLE(start_offset + 0x04, streamFile);
             seek_size = read_32bitLE(chunk_offset+chunk_size, streamFile);
