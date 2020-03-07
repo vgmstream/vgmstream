@@ -143,6 +143,12 @@
     <ClInclude Include="meta\xavs_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="meta\xnb_streamfile.h">
+      <Filter>meta\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="meta\xnb_lz4mg.h">
+      <Filter>meta\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="meta\riff_ogg_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>

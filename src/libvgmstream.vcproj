@@ -329,6 +329,14 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\xnb_streamfile.h"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\xnb_lz4mg.h"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\riff_ogg_streamfile.h"
                     >
                 </File>
