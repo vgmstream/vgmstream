@@ -2445,12 +2445,12 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         snprintf(temp,TEMPSIZE, "interleave: %#x bytes\n", (int32_t)vgmstream->interleave_block_size);
         concatn(length,desc,temp);
 
-        if (vgmstream->interleave_first_block_size) {
+        if (vgmstream->interleave_first_block_size && vgmstream->interleave_first_block_size != vgmstream->interleave_block_size) {
             snprintf(temp,TEMPSIZE, "interleave first block: %#x bytes\n", (int32_t)vgmstream->interleave_first_block_size);
             concatn(length,desc,temp);
         }
 
-        if (vgmstream->interleave_last_block_size) {
+        if (vgmstream->interleave_last_block_size && vgmstream->interleave_last_block_size != vgmstream->interleave_block_size) {
             snprintf(temp,TEMPSIZE, "interleave last block: %#x bytes\n", (int32_t)vgmstream->interleave_last_block_size);
             concatn(length,desc,temp);
         }

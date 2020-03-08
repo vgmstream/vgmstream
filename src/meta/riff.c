@@ -509,20 +509,21 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
                     }
                     break;
 
-                case 0x4E584246:    /* "NXBF" (Namco NUS v1) [R:Racing Evolution (Xbox)] */
-                    /* 0x00: "NXBF" again */
-                    /* 0x04: always 0x1000? */
+                case 0x4E584246:    /* "NXBF" (Namco NuSound v1) [R:Racing Evolution (Xbox)] */
+                    /* very similar to NUS's NPSF, but not quite like Cstr */
+                    /* 0x00: "NXBF" id */
+                    /* 0x04: version? (0x00001000 = 1.00?) */
                     /* 0x08: data size */
                     /* 0x0c: channels */
                     /* 0x10: null */
                     loop_start_nxbf = read_32bitLE(current_chunk + 0x08 + 0x14, streamFile);
                     /* 0x18: sample rate */
-                    /* 0x1c: volume? */
+                    /* 0x1c: volume? (0x3e8 = 1000 = max) */
                     /* 0x20: type/flags? */
-                    /* 0x24: codec? */
+                    /* 0x24: flag? */
                     /* 0x28: null */
                     /* 0x2c: null */
-                    /* 0x30: type/flags? */
+                    /* 0x30: always 0x40 */
                     loop_flag = (loop_start_nxbf >= 0);
                     break;
 
