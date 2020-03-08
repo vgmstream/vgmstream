@@ -1007,7 +1007,7 @@
                     >
                 </File>
                 <File
-                    RelativePath=".\meta\ngc_vid1.c"
+                    RelativePath=".\meta\vid1.c"
                     >
                 </File>
 				<File

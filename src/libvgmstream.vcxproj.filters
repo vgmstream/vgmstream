@@ -646,7 +646,7 @@
     <ClCompile Include="meta\ngc_ulw.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ngc_vid1.c">
+    <ClCompile Include="meta\vid1.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\nus3audio.c">

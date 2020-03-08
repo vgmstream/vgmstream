@@ -374,7 +374,7 @@
     <ClCompile Include="meta\ngc_tydsp.c" />
     <ClCompile Include="meta\ngc_ymf.c" />
     <ClCompile Include="meta\ngc_ulw.c" />
-    <ClCompile Include="meta\ngc_vid1.c" />
+    <ClCompile Include="meta\vid1.c" />
     <ClCompile Include="meta\nus3audio.c" />
     <ClCompile Include="meta\nus3bank.c" />
     <ClCompile Include="meta\nwa.c" />
