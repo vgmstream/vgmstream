@@ -1354,6 +1354,9 @@
     <ClCompile Include="layout\blocked_vgs.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="layout\blocked_vid1.c">
+      <Filter>layout\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="layout\blocked_vs_square.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>

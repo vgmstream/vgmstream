@@ -2279,6 +2279,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\layout\blocked_vid1.c"
+                    >
+                </File>
+                <File
                     RelativePath=".\layout\blocked_vs_square.c"
                     >
                 </File>

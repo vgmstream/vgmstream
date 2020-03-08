@@ -615,6 +615,7 @@
     <ClCompile Include="layout\blocked_awc.c" />
     <ClCompile Include="layout\blocked_ea_1snh.c" />
     <ClCompile Include="layout\blocked_vgs.c" />
+    <ClCompile Include="layout\blocked_vid1.c" />
     <ClCompile Include="layout\blocked_vs_square.c" />
     <ClCompile Include="layout\blocked_vawx.c" />
     <ClCompile Include="layout\blocked_xvag.c" />

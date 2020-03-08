@@ -1107,6 +1107,7 @@ void render_vgmstream(sample_t * buffer, int32_t sample_count, VGMSTREAM * vgmst
         case layout_blocked_h4m:
         case layout_blocked_xa_aiff:
         case layout_blocked_vs_square:
+        case layout_blocked_vid1:
             render_vgmstream_blocked(buffer,sample_count,vgmstream);
             break;
         case layout_segmented:
