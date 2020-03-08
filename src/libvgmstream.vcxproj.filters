@@ -107,7 +107,7 @@
     <ClInclude Include="meta\fsb_interleave_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="meta\fsb5_interleave_streamfile.h">
+    <ClInclude Include="meta\fsb5_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="meta\jstm_streamfile.h">
@@ -170,7 +170,7 @@
     <ClInclude Include="meta\ubi_sb_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="meta\ubi_lyn_ogg_streamfile.h">
+    <ClInclude Include="meta\ubi_lyn_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="meta\meta.h">

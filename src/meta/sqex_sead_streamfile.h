@@ -2,18 +2,16 @@
 #define _SQEX_SEAD_STREAMFILE_H_
 #include "../streamfile.h"
 
-static STREAMFILE* setup_sqex_sead_streamfile(STREAMFILE *streamFile, off_t subfile_offset, size_t subfile_size, int encryption, size_t header_size, size_t key_start);
-
 
 typedef struct {
-    size_t header_size;
+    size_t start;
     size_t key_start;
-} sqex_sead_decryption_data;
+} sqex_sead_io_data;
 
 
-static size_t sqex_sead_decryption_read(STREAMFILE *streamfile, uint8_t *dest, off_t offset, size_t length, sqex_sead_decryption_data* data) {
+static size_t sqex_sead_io_read(STREAMFILE *sf, uint8_t *dest, off_t offset, size_t length, sqex_sead_io_data* data) {
     /* Found in FFXII_TZA.exe (same key in SCD Ogg V3) */
-    static const uint8_t encryption_key[0x100] = {
+    static const uint8_t key[0x100] = {
         0x3A,0x32,0x32,0x32,0x03,0x7E,0x12,0xF7,0xB2,0xE2,0xA2,0x67,0x32,0x32,0x22,0x32, // 00-0F
         0x32,0x52,0x16,0x1B,0x3C,0xA1,0x54,0x7B,0x1B,0x97,0xA6,0x93,0x1A,0x4B,0xAA,0xA6, // 10-1F
         0x7A,0x7B,0x1B,0x97,0xA6,0xF7,0x02,0xBB,0xAA,0xA6,0xBB,0xF7,0x2A,0x51,0xBE,0x03, // 20-2F
@@ -31,56 +29,39 @@ static size_t sqex_sead_decryption_read(STREAMFILE *streamfile, uint8_t *dest, o
         0xE2,0xA2,0x67,0x32,0x32,0x12,0x32,0xB2,0x32,0x32,0x32,0x32,0x75,0xA3,0x26,0x7B, // E0-EF
         0x83,0x26,0xF9,0x83,0x2E,0xFF,0xE3,0x16,0x7D,0xC0,0x1E,0x63,0x21,0x07,0xE3,0x01, // F0-FF
     };
-    size_t bytes_read;
-    off_t encrypted_offset = data->header_size;
     int i;
-
-    bytes_read = streamfile->read(streamfile, dest, offset, length);
+    size_t bytes = read_streamfile(dest, offset, length, sf);
 
     /* decrypt data (xor) */
-    if (offset >= encrypted_offset) {
-        for (i = 0; i < bytes_read; i++) {
-            dest[i] ^= encryption_key[(data->key_start + (offset - encrypted_offset) + i) % 0x100];
+    //if (offset >= data->start) {
+        for (i = 0; i < bytes; i++) {
+            if (offset + i >= data->start) { //todo recheck
+                dest[i] ^= key[(data->key_start + (offset - data->start) + i) % sizeof(key)];
+            }
         }
-    }
+    //}
 
-    return bytes_read;
+    return bytes;
 }
 
-/* decrypts subfile if neccessary */
-static STREAMFILE* setup_sqex_sead_streamfile(STREAMFILE *streamFile, off_t subfile_offset, size_t subfile_size, int encryption, size_t header_size, size_t key_start) {
-    STREAMFILE *temp_streamFile = NULL, *new_streamFile = NULL;
+/* decrypts subfile if needed */
+static STREAMFILE* setup_sqex_sead_streamfile(STREAMFILE* sf, off_t subfile_offset, size_t subfile_size, int encryption, size_t header_size, size_t key_start) {
+    STREAMFILE* new_sf = NULL;
 
-    /* setup subfile */
-    new_streamFile = open_wrap_streamfile(streamFile);
-    if (!new_streamFile) goto fail;
-    temp_streamFile = new_streamFile;
-
-    new_streamFile = open_clamp_streamfile(temp_streamFile, subfile_offset,subfile_size);
-    if (!new_streamFile) goto fail;
-    temp_streamFile = new_streamFile;
-
+    /* setup sf */
+    new_sf = open_wrap_streamfile(sf);
+    new_sf = open_clamp_streamfile_f(new_sf, subfile_offset, subfile_size);
     if (encryption) {
-        sqex_sead_decryption_data io_data = {0};
-        size_t io_data_size = sizeof(sqex_sead_decryption_data);
+        sqex_sead_io_data io_data = {0};
 
-        io_data.header_size = header_size;
+        io_data.start = header_size;
         io_data.key_start = key_start;
 
-        new_streamFile = open_io_streamfile(temp_streamFile, &io_data,io_data_size, sqex_sead_decryption_read,NULL);
-        if (!new_streamFile) goto fail;
-        temp_streamFile = new_streamFile;
+        new_sf = open_io_streamfile_f(new_sf, &io_data, sizeof(sqex_sead_io_data), sqex_sead_io_read, NULL);
     }
 
-    new_streamFile = open_fakename_streamfile(temp_streamFile, NULL,"hca");
-    if (!new_streamFile) goto fail;
-    temp_streamFile = new_streamFile;
-
-    return temp_streamFile;
-
-fail:
-    close_streamfile(temp_streamFile);
-    return NULL;
+    new_sf = open_fakename_streamfile_f(new_sf, NULL, "hca");
+    return new_sf;
 }
 
 #endif /* _SQEX_SEAD_STREAMFILE_H_ */
