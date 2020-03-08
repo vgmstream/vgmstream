@@ -35,7 +35,7 @@ target_compile_definitions(foo_input_vgmstream PRIVATE
 
 # Make sure that the binary directory is included (for version.h), as well as foobar2000's include directories and the WTL include directory
 target_include_directories(foo_input_vgmstream PRIVATE
-	${CMAKE_BINARY_DIR}
+	${VGM_BINARY_DIR}
 	${FB2K_SDK_PATH}/foobar2000/SDK
 	${FB2K_SDK_PATH}/foobar2000/ATLHelpers
 	${FB2K_SDK_PATH}/foobar2000/shared

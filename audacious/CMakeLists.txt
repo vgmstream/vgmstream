@@ -48,7 +48,7 @@ set_target_properties(audacious_vgmstream PROPERTIES
 
 # Make sure that the binary directory is included (for version.h) as well as the Audacious and GTK include directories
 target_include_directories(audacious_vgmstream PRIVATE
-	${CMAKE_BINARY_DIR}
+	${VGM_BINARY_DIR}
 	${AUDACIOUS_INCLUDE_DIRS}
 	${GTK_INCLUDE_DIRS})
 
