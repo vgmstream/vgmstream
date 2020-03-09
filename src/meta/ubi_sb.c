@@ -2903,8 +2903,12 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         return 1;
     }
 
-    /* Red Steel (2006)(Wii)-bank */
-    if (sb->version == 0x00180006 && sb->platform == UBI_WII) {
+    /* Red Steel (2006)(Wii)-bank 0x00180006 */
+    /* Splinter Cell: Double Agent (2006)(Wii)-map 0x00180007 */
+    /* Open Season (2006)(Wii)-map 0x00180008 */
+    if ((sb->version == 0x00180006 && sb->platform == UBI_WII) ||
+        (sb->version == 0x00180007 && sb->platform == UBI_WII) ||
+        (sb->version == 0x00180008 && sb->platform == UBI_WII)) {
         config_sb_entry(sb, 0x68, 0x6c);
 
         config_sb_audio_fs(sb, 0x28, 0x2c, 0x30);
@@ -2969,12 +2973,14 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
     /* My Word Coach (2007)(Wii)-bank 0x00190002 */
     /* Prince of Persia: Rival Swords (2007)(Wii)-bank 0x00190003 */
     /* Rainbow Six Vegas (2007)(PS3)-bank 0x00190005 */
+    /* Surf's Up (2007)(Wii)-bank 0x00190005 */
     /* Surf's Up (2007)(PS3)-bank 0x00190005 */
     /* Surf's Up (2007)(X360)-bank 0x00190005 */
     /* Splinter Cell: Double Agent (2007)(PS3)-map 0x00190005 */
     if ((sb->version == 0x00190002 && sb->platform == UBI_X360) ||
         (sb->version == 0x00190002 && sb->platform == UBI_WII) ||
         (sb->version == 0x00190003 && sb->platform == UBI_WII) ||
+        (sb->version == 0x00190005 && sb->platform == UBI_WII) ||
         (sb->version == 0x00190005 && sb->platform == UBI_PS3) ||
         (sb->version == 0x00190005 && sb->platform == UBI_X360)) {
         config_sb_entry(sb, 0x68, 0x70);

@@ -490,6 +490,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_tgc,
     init_vgmstream_kwb,
     init_vgmstream_lrmd,
+    init_vgmstream_bkhd,
 
     /* lowest priority metas (should go after all metas, and TXTH should go before raw formats) */
     init_vgmstream_txth,            /* proper parsers should supersede TXTH, once added */
@@ -661,6 +662,10 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
     }
 #endif
 
+    if (vgmstream->coding_type == coding_CIRCUS_VQ) {
+        reset_circus_vq(vgmstream->codec_data);
+    }
+
     if (vgmstream->coding_type == coding_RELIC) {
         reset_relic(vgmstream->codec_data);
     }
@@ -831,6 +836,11 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
         vgmstream->codec_data = NULL;
     }
 #endif
+
+    if (vgmstream->coding_type == coding_CIRCUS_VQ) {
+        free_circus_vq(vgmstream->codec_data);
+        vgmstream->codec_data = NULL;
+    }
 
     if (vgmstream->coding_type == coding_RELIC) {
         free_relic(vgmstream->codec_data);
@@ -1097,6 +1107,7 @@ void render_vgmstream(sample_t * buffer, int32_t sample_count, VGMSTREAM * vgmst
         case layout_blocked_h4m:
         case layout_blocked_xa_aiff:
         case layout_blocked_vs_square:
+        case layout_blocked_vid1:
             render_vgmstream_blocked(buffer,sample_count,vgmstream);
             break;
         case layout_segmented:
@@ -1288,6 +1299,8 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
             return 0; /* varies per mode */
         case coding_EA_MT:
             return 0; /* 432, but variable in looped files */
+        case coding_CIRCUS_VQ:
+            return 0;
         case coding_RELIC:
             return 0; /* 512 */
         case coding_CRI_HCA:
@@ -1775,6 +1788,9 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                     samples_to_do,vgmstream->channels);
             break;
 #endif
+        case coding_CIRCUS_VQ:
+            decode_circus_vq(vgmstream->codec_data, buffer+samples_written*vgmstream->channels, samples_to_do, vgmstream->channels);
+            break;
         case coding_RELIC:
             decode_relic(&vgmstream->ch[0], vgmstream->codec_data, buffer+samples_written*vgmstream->channels,
                     samples_to_do);
@@ -2227,6 +2243,10 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
 
         /* prepare certain codecs' internal state for looping */
 
+        if (vgmstream->coding_type == coding_CIRCUS_VQ) {
+            seek_circus_vq(vgmstream->codec_data, vgmstream->loop_sample);
+        }
+
         if (vgmstream->coding_type == coding_RELIC) {
             seek_relic(vgmstream->codec_data, vgmstream->loop_sample);
         }
@@ -2426,12 +2446,12 @@ void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length) {
         snprintf(temp,TEMPSIZE, "interleave: %#x bytes\n", (int32_t)vgmstream->interleave_block_size);
         concatn(length,desc,temp);
 
-        if (vgmstream->interleave_first_block_size) {
+        if (vgmstream->interleave_first_block_size && vgmstream->interleave_first_block_size != vgmstream->interleave_block_size) {
             snprintf(temp,TEMPSIZE, "interleave first block: %#x bytes\n", (int32_t)vgmstream->interleave_first_block_size);
             concatn(length,desc,temp);
         }
 
-        if (vgmstream->interleave_last_block_size) {
+        if (vgmstream->interleave_last_block_size && vgmstream->interleave_last_block_size != vgmstream->interleave_block_size) {
             snprintf(temp,TEMPSIZE, "interleave last block: %#x bytes\n", (int32_t)vgmstream->interleave_last_block_size);
             concatn(length,desc,temp);
         }

@@ -1,9 +1,8 @@
 #include "meta.h"
 #include "../layout/layout.h"
 #include "../coding/coding.h"
-#include "ubi_lyn_ogg_streamfile.h"
+#include "ubi_lyn_streamfile.h"
 
-static STREAMFILE* setup_lyn_streamfile(STREAMFILE *streamFile, off_t subfile_offset, size_t subfile_size);
 
 /* LyN RIFF - from Ubisoft LyN engine games [Red Steel 2 (Wii), Adventures of Tintin (Multi), From Dust (Multi), Just Dance 3/4 (multi)] */
 VGMSTREAM * init_vgmstream_ubi_lyn(STREAMFILE *streamFile) {
@@ -111,7 +110,7 @@ VGMSTREAM * init_vgmstream_ubi_lyn(STREAMFILE *streamFile) {
 
 #ifdef VGM_USE_VORBIS
         case 0x3157: { /* Ogg (PC), interleaved 1ch */
-            size_t interleave_size, stride_size;
+            size_t interleave_size;
             layered_layout_data* data = NULL;
             int i;
 
@@ -119,7 +118,6 @@ VGMSTREAM * init_vgmstream_ubi_lyn(STREAMFILE *streamFile) {
                goto fail;
 
             interleave_size = read_32bitLE(start_offset+0x04,streamFile);
-            stride_size = interleave_size * channel_count;
             /* interleave is adjusted so there is no smaller last block, it seems */
 
             vgmstream->coding_type = coding_OGG_VORBIS;
@@ -132,15 +130,15 @@ VGMSTREAM * init_vgmstream_ubi_lyn(STREAMFILE *streamFile) {
 
             /* open each layer subfile */
             for (i = 0; i < channel_count; i++) {
-                STREAMFILE* temp_streamFile = NULL;
-                size_t total_size = read_32bitLE(start_offset+0x08 + 0x04*i,streamFile);
-                off_t layer_offset = start_offset+0x08 + 0x04*channel_count + interleave_size*i;
+                STREAMFILE* temp_sf = NULL;
+                size_t logical_size = read_32bitLE(start_offset+0x08 + 0x04*i,streamFile);
+                off_t layer_offset = start_offset + 0x08  + 0x04*channel_count; //+ interleave_size*i;
 
-                temp_streamFile = setup_lyn_ogg_streamfile(streamFile, layer_offset, interleave_size, stride_size, total_size);
-                if (!temp_streamFile) goto fail;
+                temp_sf = setup_ubi_lyn_streamfile(streamFile, layer_offset, interleave_size, i, channel_count, logical_size);
+                if (!temp_sf) goto fail;
 
-                data->layers[i] = init_vgmstream_ogg_vorbis(temp_streamFile);
-                close_streamfile(temp_streamFile);
+                data->layers[i] = init_vgmstream_ogg_vorbis(temp_sf);
+                close_streamfile(temp_sf);
                 if (!data->layers[i]) goto fail;
 
                 /* could validate between layers, meh */
@@ -193,10 +191,8 @@ VGMSTREAM * init_vgmstream_ubi_lyn(STREAMFILE *streamFile) {
             off_t chunk_offset;
             size_t chunk_size, seek_size;
 
-            if (read_32bitLE(start_offset+0x00,streamFile) != 3) /* id? */
-               goto fail;
-
             /* skip standard XMA header + seek table */
+            /* 0x00: version? no apparent differences (0x1=Just Dance 4, 0x3=others) */
             chunk_offset = start_offset + 0x04 + 0x04;
             chunk_size = read_32bitLE(start_offset + 0x04, streamFile);
             seek_size = read_32bitLE(chunk_offset+chunk_size, streamFile);
@@ -231,7 +227,7 @@ fail:
 /* LyN RIFF in containers */
 VGMSTREAM * init_vgmstream_ubi_lyn_container(STREAMFILE *streamFile) {
     VGMSTREAM *vgmstream = NULL;
-    STREAMFILE *temp_streamFile = NULL;
+    STREAMFILE *temp_sf = NULL;
     off_t subfile_offset;
     size_t subfile_size;
 
@@ -261,35 +257,16 @@ VGMSTREAM * init_vgmstream_ubi_lyn_container(STREAMFILE *streamFile) {
     
     subfile_size = read_32bitLE(subfile_offset+0x04,streamFile) + 0x04+0x04;
 
-    temp_streamFile = setup_lyn_streamfile(streamFile, subfile_offset,subfile_size);
-    if (!temp_streamFile) goto fail;
+    temp_sf = setup_subfile_streamfile(streamFile, subfile_offset, subfile_size, NULL);
+    if (!temp_sf) goto fail;
 
-    vgmstream = init_vgmstream_ubi_lyn(temp_streamFile);
+    vgmstream = init_vgmstream_ubi_lyn(temp_sf);
     
-    close_streamfile(temp_streamFile);
+    close_streamfile(temp_sf);
     return vgmstream;
 
 fail:
-    close_streamfile(temp_streamFile);
+    close_streamfile(temp_sf);
     close_vgmstream(vgmstream);
-    return NULL;
-}
-
-static STREAMFILE* setup_lyn_streamfile(STREAMFILE *streamFile, off_t subfile_offset, size_t subfile_size) {
-    STREAMFILE *temp_streamFile = NULL, *new_streamFile = NULL;
-
-    /* setup subfile */
-    new_streamFile = open_wrap_streamfile(streamFile);
-    if (!new_streamFile) goto fail;
-    temp_streamFile = new_streamFile;
-
-    new_streamFile = open_clamp_streamfile(temp_streamFile, subfile_offset,subfile_size);
-    if (!new_streamFile) goto fail;
-    temp_streamFile = new_streamFile;
-
-    return temp_streamFile;
-
-fail:
-    close_streamfile(temp_streamFile);
     return NULL;
 }

@@ -172,7 +172,7 @@ VGMSTREAM * init_vgmstream_opus_capcom(STREAMFILE *streamFile) {
     /* 0x30+: extra chunks (0x00: 0x7f, 0x04: num_sample), alt loop starts/regions? */
 
     if (channel_count == 6) {
-        /* 2ch multistream hacky-hacks, don't try this at home. We'll end up with:
+        /* 2ch multistream hacky-hacks in RE:RE, don't try this at home. We'll end up with:
          * main vgmstream > N vgmstream layers > substream IO deinterleaver > opus meta > Opus IO transmogrifier (phew) */
         layered_layout_data* data = NULL;
         int layers = channel_count / 2;
@@ -193,11 +193,11 @@ VGMSTREAM * init_vgmstream_opus_capcom(STREAMFILE *streamFile) {
 
         /* open each layer subfile */
         for (i = 0; i < layers; i++) {
-            STREAMFILE* temp_streamFile = setup_opus_interleave_streamfile(streamFile, offset+0x28*i, layers);
-            if (!temp_streamFile) goto fail;
+            STREAMFILE* temp_sf = setup_opus_interleave_streamfile(streamFile, offset, i, layers);
+            if (!temp_sf) goto fail;
 
-            data->layers[i] = init_vgmstream_opus(temp_streamFile, meta_OPUS, 0x00, num_samples,loop_start,loop_end);
-            close_streamfile(temp_streamFile);
+            data->layers[i] = init_vgmstream_opus(temp_sf, meta_OPUS, 0x00, num_samples,loop_start,loop_end);
+            close_streamfile(temp_sf);
             if (!data->layers[i]) goto fail;
         }
 

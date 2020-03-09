@@ -178,7 +178,13 @@ void decode_xmd(VGMSTREAMCHANNEL *stream, sample_t *outbuf, int channelspacing, 
 void decode_derf(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
 
 /* circus_decoder */
-void decode_circus_adpcm(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
+typedef struct circus_codec_data circus_codec_data;
+circus_codec_data* init_circus_vq(STREAMFILE* sf, off_t start, uint8_t codec, uint8_t flags);
+void decode_circus_vq(circus_codec_data* data, sample_t* outbuf, int32_t samples_to_do, int channels);
+void reset_circus_vq(circus_codec_data* data);
+void seek_circus_vq(circus_codec_data* data, int32_t num_sample);
+void free_circus_vq(circus_codec_data* data);
+void decode_circus_adpcm(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
 
 /* oki_decoder */
 void decode_pcfx(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int mode);

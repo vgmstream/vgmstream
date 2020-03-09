@@ -213,10 +213,12 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
             goto fail;
         }
 
-        if (ww.codec == PCM || ww.codec == IMA || ww.codec == VORBIS || ww.codec == XMA2 || ww.codec == OPUSNX)
+        if (ww.codec == PCM || ww.codec == IMA || ww.codec == VORBIS || ww.codec == XMA2 || ww.codec == OPUSNX || ww.codec == OPUS) {
             ww.truncated = 1; /* only seen those, probably all exist */
-        else
+        } else {
+            VGM_LOG("WWISE: wrong size, maybe truncated\n");
             goto fail;
+        }
     }
 
 
@@ -604,6 +606,13 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
             vgmstream->num_samples = read_32bit(ww.fmt_offset + 0x18, streamFile);
             /* 0x1c: stream size without OggS? */
             /* 0x20: full samples (without encoder delay) */
+
+            /* OPUS is VBR so this is very approximate percent, meh */
+            if (ww.truncated) {
+                vgmstream->num_samples = (int32_t)(vgmstream->num_samples *
+                        (double)(ww.file_size - start_offset) / (double)ww.data_size);
+                ww.data_size = ww.file_size - start_offset;
+            }
 
             vgmstream->codec_data = init_ffmpeg_offset(streamFile, ww.data_offset,ww.data_size);
             if (!vgmstream->codec_data) goto fail;

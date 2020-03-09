@@ -518,8 +518,8 @@ typedef struct {
     size_t data_size;
     size_t (*read_callback)(STREAMFILE *, uint8_t *, off_t, size_t, void*); /* custom read to modify data before copying into buffer */
     size_t (*size_callback)(STREAMFILE *, void*); /* size when custom reads make data smaller/bigger than underlying streamfile */
-    //todo would need to make sure re-opened streamfiles work with this, maybe should use init_data_callback per call
-    //size_t (*close_data_callback)(STREAMFILE *, void*); /* called during close, allows to free stuff in data */
+    int (*init_callback)(STREAMFILE*, void*); /* init the data struct members somehow, return >= 0 if ok */
+    void (*close_callback)(STREAMFILE*, void*); /* close the data struct members somehow */
 } IO_STREAMFILE;
 
 static size_t io_read(IO_STREAMFILE *streamfile, uint8_t *dst, off_t offset, size_t length) {
@@ -538,24 +538,25 @@ static void io_get_name(IO_STREAMFILE *streamfile, char *buffer, size_t length) 
     streamfile->inner_sf->get_name(streamfile->inner_sf, buffer, length); /* default */
 }
 static STREAMFILE* io_open(IO_STREAMFILE *streamfile, const char * const filename, size_t buffersize) {
-    //todo should have some flag to decide if opening other files with IO
     STREAMFILE *new_inner_sf = streamfile->inner_sf->open(streamfile->inner_sf,filename,buffersize);
-    return open_io_streamfile(new_inner_sf, streamfile->data, streamfile->data_size, streamfile->read_callback, streamfile->size_callback);
+    return open_io_streamfile_ex(new_inner_sf, streamfile->data, streamfile->data_size, streamfile->read_callback, streamfile->size_callback, streamfile->init_callback, streamfile->close_callback);
 }
 static void io_close(IO_STREAMFILE *streamfile) {
+    if (streamfile->close_callback)
+        streamfile->close_callback(streamfile->inner_sf, streamfile->data);
     streamfile->inner_sf->close(streamfile->inner_sf);
     free(streamfile->data);
     free(streamfile);
 }
 
-STREAMFILE* open_io_streamfile(STREAMFILE *streamfile, void *data, size_t data_size, void *read_callback, void *size_callback) {
+STREAMFILE* open_io_streamfile_ex(STREAMFILE *streamfile, void *data, size_t data_size, void *read_callback, void *size_callback, void* init_callback, void* close_callback) {
     IO_STREAMFILE *this_sf = NULL;
 
-    if (!streamfile) return NULL;
-    if ((data && !data_size) || (!data && data_size)) return NULL;
+    if (!streamfile) goto fail;
+    if ((data && !data_size) || (!data && data_size)) goto fail;
 
     this_sf = calloc(1,sizeof(IO_STREAMFILE));
-    if (!this_sf) return NULL;
+    if (!this_sf) goto fail;
 
     /* set callbacks and internals */
     this_sf->sf.read = (void*)io_read;
@@ -569,23 +570,40 @@ STREAMFILE* open_io_streamfile(STREAMFILE *streamfile, void *data, size_t data_s
     this_sf->inner_sf = streamfile;
     if (data) {
         this_sf->data = malloc(data_size);
-        if (!this_sf->data)  {
-            free(this_sf);
-            return NULL;
-        }
+        if (!this_sf->data) goto fail;
         memcpy(this_sf->data, data, data_size);
     }
     this_sf->data_size = data_size;
     this_sf->read_callback = read_callback;
     this_sf->size_callback = size_callback;
+    this_sf->init_callback = init_callback;
+    this_sf->close_callback = close_callback;
+
+    if (this_sf->init_callback) {
+        int ok = this_sf->init_callback(this_sf->inner_sf, this_sf->data);
+        if (ok < 0) goto fail;
+    }
 
     return &this_sf->sf;
+    
+fail:
+    if (this_sf) free(this_sf->data);
+    free(this_sf);
+    return NULL;
 }
-STREAMFILE* open_io_streamfile_f(STREAMFILE *streamfile, void *data, size_t data_size, void *read_callback, void *size_callback) {
-    STREAMFILE *new_sf = open_io_streamfile(streamfile, data, data_size, read_callback, size_callback);
+
+STREAMFILE* open_io_streamfile_ex_f(STREAMFILE *streamfile, void *data, size_t data_size, void *read_callback, void *size_callback, void* init_callback, void* close_callback) {
+    STREAMFILE *new_sf = open_io_streamfile_ex(streamfile, data, data_size, read_callback, size_callback, init_callback, close_callback);
     if (!new_sf)
         close_streamfile(streamfile);
     return new_sf;
+}
+
+STREAMFILE* open_io_streamfile(STREAMFILE *streamfile, void *data, size_t data_size, void *read_callback, void *size_callback) {
+    return open_io_streamfile_ex(streamfile, data, data_size, read_callback, size_callback, NULL, NULL);
+}
+STREAMFILE* open_io_streamfile_f(STREAMFILE *streamfile, void *data, size_t data_size, void *read_callback, void *size_callback) {
+    return open_io_streamfile_ex_f(streamfile, data, data_size, read_callback, size_callback, NULL, NULL);
 }
 
 /* **************************************************** */

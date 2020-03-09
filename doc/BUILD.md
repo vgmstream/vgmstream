@@ -56,15 +56,15 @@ You can also call MSBuild directly in the command line (see the foobar2000 secti
 ### foobar2000 plugin (foo\_input\_vgmstream)
 Requires MSVC (foobar/SDK only links to MSVC C++ DLLs) and these dependencies:
 - foobar2000 SDK (2018), in *(vgmstream)/dependencies/foobar/*: http://www.foobar2000.org/SDK
-- FDK-AAC, in *(vgmstream)/dependencies/fdk-aac/*: https://github.com/kode54/fdk-aac
-- QAAC, in *(vgmstream)/dependencies/qaac/*: https://github.com/kode54/qaac
+- (optional) FDK-AAC, in *(vgmstream)/dependencies/fdk-aac/*: https://github.com/kode54/fdk-aac
+- (optional) QAAC, in *(vgmstream)/dependencies/qaac/*: https://github.com/kode54/qaac
 - WTL (if needed), in *(vgmstream)/dependencies/WTL/*: http://wtl.sourceforge.net/
 - may need to install ATL and MFC libraries (can be installed in Visual Studio Installer)
 
 The following project modifications are required:
 - For *foobar2000_ATL_helpers* add *../../../WTL/Include* to the compilers's *additional includes*
 
-FDK-AAC/QAAC can be safely disabled by removing *VGM_USE_MP4V2* and *VGM_USE_FDKAAC* in the compiler/linker options and the project dependencies, as FFmpeg is used instead to support their codecs.
+FDK-AAC/QAAC can be enabled adding *VGM_USE_MP4V2* and *VGM_USE_FDKAAC* in the compiler/linker options and the project dependencies, otherwise FFmpeg is used instead to support .mp4.
 
 You can also manually use the command line to compile with MSBuild, if you don't want to touch the .vcxproj files, register VS after trial, get PowerShell dependencies for the build script, or only have VC++/MSBuild tools.
 

@@ -281,7 +281,7 @@
                     >
                 </File>
                 <File
-                    RelativePath=".\meta\fsb5_interleave_streamfile.h"
+                    RelativePath=".\meta\fsb5_streamfile.h"
                     >
                 </File>
                 <File
@@ -329,6 +329,14 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\xnb_streamfile.h"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\xnb_lz4mg.h"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\riff_ogg_streamfile.h"
                     >
                 </File>
@@ -357,7 +365,7 @@
                     >
                 </File>
                 <File
-                    RelativePath=".\meta\ubi_lyn_ogg_streamfile.h"
+                    RelativePath=".\meta\ubi_lyn_streamfile.h"
                     >
                 </File>
                 <File
@@ -534,6 +542,10 @@
 				</File>
                 <File
                     RelativePath=".\meta\bik.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\bkhd.c"
                     >
                 </File>
                 <File
@@ -995,7 +1007,7 @@
                     >
                 </File>
                 <File
-                    RelativePath=".\meta\ngc_vid1.c"
+                    RelativePath=".\meta\vid1.c"
                     >
                 </File>
 				<File
@@ -1891,6 +1903,22 @@
 					>
 				</File>
                 <File
+                    RelativePath=".\coding\circus_decoder_lib.h"
+                    >
+                </File>
+                <File
+                    RelativePath=".\coding\circus_decoder_lib_data.h"
+                    >
+                </File>
+                <File
+                    RelativePath=".\coding\circus_decoder_lzxpcm.h"
+                    >
+                </File>
+                <File
+                    RelativePath=".\coding\circus_decoder_miniz.h"
+                    >
+                </File>
+                <File
                     RelativePath=".\coding\coding.h"
                     >
                 </File>
@@ -1964,6 +1992,14 @@
                 </File>
                 <File
                     RelativePath=".\coding\circus_decoder.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\coding\circus_decoder_lib.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\coding\circus_decoder_miniz.c"
                     >
                 </File>
                 <File
@@ -2240,6 +2276,10 @@
                 </File>
                 <File
                     RelativePath=".\layout\blocked_vgs.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\layout\blocked_vid1.c"
                     >
                 </File>
                 <File

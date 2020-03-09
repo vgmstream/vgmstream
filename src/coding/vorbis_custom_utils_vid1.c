@@ -58,11 +58,18 @@ int vorbis_custom_parse_packet_vid1(VGMSTREAMCHANNEL *stream, vorbis_custom_code
 
 
     /* test block start */
-    if (read_32bitBE(stream->offset + 0x00,stream->streamfile) == 0x4652414D && /* "FRAM" */
-        read_32bitBE(stream->offset + 0x20,stream->streamfile) == 0x41554444) { /* "AUDD" */
-        data->block_offset = stream->offset;
-        data->block_size   = read_32bitBE(stream->offset + 0x2c,stream->streamfile);
-        stream->offset += 0x34; /* actual start, rest is chunk sizes and maybe granule info */
+    if (read_32bitBE(stream->offset + 0x00,stream->streamfile) == 0x4652414D) { /* "FRAM" */
+        stream->offset += 0x20;
+
+        if (read_32bitBE(stream->offset + 0x00,stream->streamfile) == 0x56494444) { /* "VIDD"*/
+            stream->offset += read_32bitBE(stream->offset + 0x04, stream->streamfile);
+        }
+
+        if (read_32bitBE(stream->offset + 0x00,stream->streamfile) == 0x41554444) { /* "AUDD" */
+            data->block_offset = stream->offset;
+            data->block_size   = read_32bitBE(stream->offset + 0x0c,stream->streamfile);
+            stream->offset += 0x14; /* actual start, rest is chunk sizes and maybe granule info */
+        }
     }
 
 
@@ -78,7 +85,7 @@ int vorbis_custom_parse_packet_vid1(VGMSTREAMCHANNEL *stream, vorbis_custom_code
     //todo: sometimes there are short packets like 01be590000 and Vorbis complains and skips, no idea
 
     /* test block end (weird size calc but seems ok) */
-    if ((stream->offset - (data->block_offset + 0x34)) >= (data->block_size - 0x06)) {
+    if ((stream->offset - (data->block_offset + 0x14)) >= (data->block_size - 0x06)) {
         stream->offset = data->block_offset + read_32bitBE(data->block_offset + 0x04,stream->streamfile);
     }
 

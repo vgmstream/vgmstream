@@ -1,7 +1,7 @@
 #include "meta.h"
 #include "../coding/coding.h"
 #include "../layout/layout.h"
-#include "fsb5_interleave_streamfile.h"
+#include "fsb5_streamfile.h"
 
 
 typedef struct {
@@ -533,7 +533,7 @@ static layered_layout_data* build_layered_fsb5_celt(STREAMFILE *streamFile, fsb5
         goto fail;
 #endif
 
-        temp_streamFile = setup_fsb5_interleave_streamfile(streamFile, fsb5->stream_offset, fsb5->stream_size, layers, i, FSB5_INT_CELT, interleave);
+        temp_streamFile = setup_fsb5_streamfile(streamFile, fsb5->stream_offset, fsb5->stream_size, layers, i, interleave);
         if (!temp_streamFile) goto fail;
 
         if (!vgmstream_open_stream(data->layers[i], temp_streamFile, 0x00))
@@ -609,7 +609,7 @@ static layered_layout_data* build_layered_fsb5_atrac9(STREAMFILE *streamFile, fs
         goto fail;
 #endif
 
-        temp_streamFile = setup_fsb5_interleave_streamfile(streamFile, fsb5->stream_offset, fsb5->stream_size, layers, i, FSB5_INT_ATRAC9, interleave);
+        temp_streamFile = setup_fsb5_streamfile(streamFile, fsb5->stream_offset, fsb5->stream_size, layers, i, interleave);
         if (!temp_streamFile) goto fail;
 
         if (!vgmstream_open_stream(data->layers[i], temp_streamFile, 0x00))

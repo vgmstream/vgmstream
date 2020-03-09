@@ -107,7 +107,7 @@
     <ClInclude Include="meta\fsb_interleave_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="meta\fsb5_interleave_streamfile.h">
+    <ClInclude Include="meta\fsb5_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="meta\jstm_streamfile.h">
@@ -143,6 +143,12 @@
     <ClInclude Include="meta\xavs_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="meta\xnb_streamfile.h">
+      <Filter>meta\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="meta\xnb_lz4mg.h">
+      <Filter>meta\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="meta\riff_ogg_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
@@ -164,7 +170,7 @@
     <ClInclude Include="meta\ubi_sb_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="meta\ubi_lyn_ogg_streamfile.h">
+    <ClInclude Include="meta\ubi_lyn_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="meta\meta.h">
@@ -180,6 +186,18 @@
       <Filter>meta\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="coding\acm_decoder_libacm.h">
+      <Filter>coding\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="coding\circus_decoder_lib.h">
+      <Filter>coding\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="coding\circus_decoder_lib_data.h">
+      <Filter>coding\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="coding\circus_decoder_lzxpcm.h">
+      <Filter>coding\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="coding\circus_decoder_miniz.h">
       <Filter>coding\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="coding\coding.h">
@@ -628,7 +646,7 @@
     <ClCompile Include="meta\ngc_ulw.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ngc_vid1.c">
+    <ClCompile Include="meta\vid1.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\nus3audio.c">
@@ -1336,6 +1354,9 @@
     <ClCompile Include="layout\blocked_vgs.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="layout\blocked_vid1.c">
+      <Filter>layout\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="layout\blocked_vs_square.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
@@ -1594,6 +1615,12 @@
     <ClCompile Include="coding\circus_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="coding\circus_decoder_lib.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\circus_decoder_miniz.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\bcstm.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -1652,6 +1679,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\bik.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\bkhd.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\bmp_konami.c">

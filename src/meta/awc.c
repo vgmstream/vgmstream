@@ -25,16 +25,15 @@ typedef struct {
 static int parse_awc_header(STREAMFILE* streamFile, awc_header* awc);
 
 
-/* AWC - from RAGE (Rockstar Advanced Game Engine) audio (Red Dead Redemption, Max Payne 3, GTA5) */
+/* AWC - from RAGE (Rockstar Advanced Game Engine) audio [Red Dead Redemption, Max Payne 3, GTA5 (multi)] */
 VGMSTREAM * init_vgmstream_awc(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     awc_header awc = {0};
 
-    /* check extension */
+
+    /* checks */
     if (!check_extensions(streamFile,"awc"))
         goto fail;
-
-    /* check header */
     if (!parse_awc_header(streamFile, &awc))
         goto fail;
 
@@ -51,7 +50,8 @@ VGMSTREAM * init_vgmstream_awc(STREAMFILE *streamFile) {
 
 
     switch(awc.codec) {
-        case 0x01:      /* PCM (PC/PS3) [sfx, rarely] */
+        case 0x00:      /* PCM (PC) sfx, very rare, lower sample rates? [Max Payne 3 (PC)] */
+        case 0x01:      /* PCM (PC/PS3) sfx, rarely */
             if (awc.is_music) goto fail; /* blocked_awc needs to be prepared */
             vgmstream->coding_type = awc.big_endian ? coding_PCM16BE : coding_PCM16LE;
             vgmstream->layout_type = layout_interleave;
@@ -294,17 +294,22 @@ static int parse_awc_header(STREAMFILE* streamFile, awc_header* awc) {
                     sample_rate = (uint16_t)read_16bit(offset + 0x0c + 0x10*ch + 0x0a,streamFile);
                     codec = read_8bit(offset + 0x0c + 0x10*ch + 0x0c, streamFile);
 
-                    /* validate as all channels should repeat this (when channels is even and > 2 seems
-                     * it's stereo pairs, and num_samples can vary slightly but no matter) */
+                    /* validate channels differences */
                     if ((awc->num_samples && !(awc->num_samples >= num_samples - 10 && awc->num_samples <= num_samples + 10)) ||
-                        (awc->sample_rate && awc->sample_rate != sample_rate) ||
-                        (awc->codec && awc->codec != codec)) {
-                        VGM_LOG("AWC: found header diffs in channel %i, ns=%i vs %i, sr=%i vs %i, c=%i vs %i\n",
-                                ch, awc->num_samples, num_samples, awc->sample_rate, sample_rate, awc->codec, codec);
-                        //goto fail; //todo some Max Payne 3 cutscene channels have huge sample diffs
+                        (awc->sample_rate && awc->sample_rate != sample_rate)) {
+                        VGM_LOG("AWC: found header diffs in channel %i, ns=%i vs %i, sr=%i vs %i\n",
+                                ch, awc->num_samples, num_samples, awc->sample_rate, sample_rate);
+                        /* sometimes (often cutscenes in Max Payne 3 and RDR DLC) channels have bif sample diffs,
+                         * probably one stream is simply silent after its samples end */
                     }
 
-                    awc->num_samples = num_samples;
+                    if ((awc->codec && awc->codec != codec)) {
+                        VGM_LOG("AWC: found header diffs in channel %i, c=%i vs %i\n", ch, awc->codec, codec);
+                        goto fail;
+                    }
+
+                    if (awc->num_samples < num_samples) /* use biggest channel */
+                        awc->num_samples = num_samples;
                     awc->sample_rate = sample_rate;
                     awc->codec = codec;
                 }
