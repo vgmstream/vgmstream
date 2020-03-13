@@ -24,22 +24,6 @@ macro(setup_target TARGET)
 		target_link_libraries(${TARGET} m)
 	endif()
 
-	if(USE_FDKAAC)
-		target_compile_definitions(${TARGET} PRIVATE
-			VGM_USE_MP4V2
-			VGM_USE_FDKAAC)
-		target_include_directories(${TARGET} PRIVATE
-			${QAAC_PATH}/mp4v2/include
-			${VGM_BINARY_DIR}/mp4v2/include
-			${FDK_AAC_PATH}/libSYS/include
-			${FDK_AAC_PATH}/libAACdec/include)
-		if(LINK)
-			target_link_libraries(${TARGET}
-				fdk-aac
-				mp4v2)
-		endif()
-	endif()
-
 	if(USE_MPEG)
 		target_compile_definitions(${TARGET} PRIVATE VGM_USE_MPEG)
 		if(WIN32)
