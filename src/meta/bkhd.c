@@ -50,7 +50,7 @@ VGMSTREAM* init_vgmstream_bkhd(STREAMFILE* sf) {
     if (!vgmstream) goto fail;
 
     vgmstream->num_streams = total_subsongs;
-    snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%i", subfile_id);
+    snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%u", subfile_id);
 
     close_streamfile(temp_sf);
     return vgmstream;
