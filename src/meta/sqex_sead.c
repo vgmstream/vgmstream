@@ -6,45 +6,46 @@
 typedef struct {
     int big_endian;
 
-    int version;
     int is_sab;
     int is_mab;
 
     int total_subsongs;
     int target_subsong;
 
-    uint16_t wave_id;
+    uint16_t mtrl_index;
+    uint16_t mtrl_number;
     int loop_flag;
-    int channel_count;
+    int channels;
     int codec;
     int sample_rate;
     int loop_start;
     int loop_end;
-    off_t meta_offset;
+    off_t mtrl_offset;
     off_t extradata_offset;
     size_t extradata_size;
     size_t stream_size;
-    size_t special_size;
+    uint16_t extradata_id;
 
-    off_t descriptor_offset;
-    size_t descriptor_size;
-    off_t filename_offset;
+    off_t  filename_offset;
     size_t filename_size;
-    off_t cuename_offset;
-    size_t cuename_size;
-    off_t modename_offset;
+    off_t  muscname_offset;
+    size_t muscname_size;
+    off_t  sectname_offset;
+    size_t sectname_size;
+    off_t  modename_offset;
     size_t modename_size;
-    off_t instname_offset;
+    off_t  instname_offset;
     size_t instname_size;
-    off_t sndname_offset;
+    off_t  sndname_offset;
     size_t sndname_size;
 
     off_t sections_offset;
-    off_t snd_offset;
-    off_t trk_offset;
-    off_t musc_offset;
-    off_t inst_offset;
-    off_t mtrl_offset;
+    off_t snd_section_offset;
+    off_t seq_section_offset;
+    off_t trk_section_offset;
+    off_t musc_section_offset;
+    off_t inst_section_offset;
+    off_t mtrl_section_offset;
 
     char readable_name[STREAM_NAME_SIZE];
 
@@ -54,48 +55,52 @@ static int parse_sead(sead_header *sead, STREAMFILE *sf);
 
 
 /* SABF/MABF - Square Enix's "sead" audio games [Dragon Quest Builders (PS3), Dissidia Opera Omnia (mobile), FF XV (PS4)] */
-VGMSTREAM * init_vgmstream_sqex_sead(STREAMFILE * streamFile) {
-    VGMSTREAM * vgmstream = NULL;
+VGMSTREAM* init_vgmstream_sqex_sead(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
     sead_header sead = {0};
     off_t start_offset;
-    int target_subsong = streamFile->stream_index;
-    int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
-    int16_t (*read_16bit)(off_t,STREAMFILE*) = NULL;
+    int target_subsong = sf->stream_index;
+    uint32_t (*read_u32)(off_t,STREAMFILE*) = NULL;
+    uint16_t (*read_u16)(off_t,STREAMFILE*) = NULL;
 
 
     /* checks */
     /* .sab: sound/bgm
      * .mab: music
      * .sbin: Dissidia Opera Omnia .sab */
-    if (!check_extensions(streamFile,"sab,mab,sbin"))
+    if (!check_extensions(sf,"sab,mab,sbin"))
         goto fail;
 
-    if (read_32bitBE(0x00,streamFile) == 0x73616266) { /* "sabf" */
+    if (read_u32be(0x00, sf) == 0x73616266) { /* "sabf" */
         sead.is_sab = 1;
-    } else if (read_32bitBE(0x00,streamFile) == 0x6D616266) { /* "mabf" */
+    } else if (read_u32be(0x00, sf) == 0x6D616266) { /* "mabf" */
         sead.is_mab = 1;
     } else {
-        /* there are other SEAD files with other chunks but similar formats too */
         goto fail;
     }
 
-    sead.big_endian = guess_endianness16bit(0x06,streamFile); /* use some value as no apparent flag */
+    /* SEAD handles both sab/mab in the same lib, and other similar files (config, engine, etc).
+     * Has some chunks pointing to sections, and each section entry (usually starting with section
+     * version/reserved/size) is always padded to 0x10. Most values are unsigned. */
+
+
+    sead.big_endian = guess_endianness16bit(0x06, sf); /* no flag, use size */
     if (sead.big_endian) {
-        read_32bit = read_32bitBE;
-        read_16bit = read_16bitBE;
+        read_u32 = read_u32be;
+        read_u16 = read_u16be;
     } else {
-        read_32bit = read_32bitLE;
-        read_16bit = read_16bitLE;
+        read_u32 = read_u32le;
+        read_u16 = read_u16le;
     }
 
     sead.target_subsong = target_subsong;
 
-    if (!parse_sead(&sead, streamFile))
+    if (!parse_sead(&sead, sf))
         goto fail;
 
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(sead.channel_count, sead.loop_flag);
+    vgmstream = allocate_vgmstream(sead.channels, sead.loop_flag);
     if (!vgmstream) goto fail;
 
     vgmstream->meta_type = sead.is_sab ? meta_SQEX_SAB : meta_SQEX_MAB;
@@ -106,12 +111,14 @@ VGMSTREAM * init_vgmstream_sqex_sead(STREAMFILE * streamFile) {
 
     switch(sead.codec) {
 
-        case 0x01: { /* PCM [Chrono Trigger sfx (PC)] */
+        case 0x01: { /* PCM [Chrono Trigger (PC) sfx] */
             start_offset = sead.extradata_offset + sead.extradata_size;
 
             vgmstream->coding_type = coding_PCM16LE;
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = 0x02;
+
+            /* no known extradata */
 
             vgmstream->num_samples = pcm_bytes_to_samples(sead.stream_size, vgmstream->channels, 16);
             vgmstream->loop_start_sample = sead.loop_start;
@@ -122,21 +129,29 @@ VGMSTREAM * init_vgmstream_sqex_sead(STREAMFILE * streamFile) {
         case 0x02: { /* MSADPCM [Dragon Quest Builders (Vita) sfx] */
             start_offset = sead.extradata_offset + sead.extradata_size;
 
-            /* 0x00 (2): null?, 0x02(2): entry size? */
             vgmstream->coding_type = coding_MSADPCM;
             vgmstream->layout_type = layout_none;
-            vgmstream->frame_size = read_16bit(sead.extradata_offset+0x04,streamFile);
+            vgmstream->frame_size = read_u16(sead.extradata_offset+0x04, sf);
 
-            /* much like AKBs, there are slightly different loop values here, probably more accurate
+            /* extradata: */
+            /* 0x00: version */
+            /* 0x01: reserved */
+            /* 0x02: size */
+            /* 0x02: frame size */
+            /* 0x06: reserved */
+            /* 0x08: loop start offset */
+            /* 0x0c: loop end offset  */
+
+            /* much like AKBs, loop values are slightly different, probably more accurate
              * (if no loop, loop_end doubles as num_samples) */
             vgmstream->num_samples = msadpcm_bytes_to_samples(sead.stream_size, vgmstream->frame_size, vgmstream->channels);
-            vgmstream->loop_start_sample = read_32bit(sead.extradata_offset+0x08, streamFile); //loop_start
-            vgmstream->loop_end_sample   = read_32bit(sead.extradata_offset+0x0c, streamFile); //loop_end
+            vgmstream->loop_start_sample = read_u32(sead.extradata_offset+0x08, sf);
+            vgmstream->loop_end_sample   = read_u32(sead.extradata_offset+0x0c, sf);
             break;
         }
 
 #ifdef VGM_USE_VORBIS
-        case 0x03: { /* OGG [Final Fantasy XV Benchmark sfx (PC)] */
+        case 0x03: { /* VORBIS (Ogg subfile) [Final Fantasy XV Benchmark sfx (PC)] */
             VGMSTREAM *ogg_vgmstream = NULL;
             ogg_vorbis_meta_info_t ovmi = {0};
             off_t subfile_offset = sead.extradata_offset + sead.extradata_size;
@@ -144,9 +159,20 @@ VGMSTREAM * init_vgmstream_sqex_sead(STREAMFILE * streamFile) {
             ovmi.meta_type = vgmstream->meta_type;
             ovmi.total_subsongs = sead.total_subsongs;
             ovmi.stream_size = sead.stream_size;
-            /* post header has some kind of repeated values, config/table? */
 
-            ogg_vgmstream = init_vgmstream_ogg_vorbis_callbacks(streamFile, NULL, subfile_offset, &ovmi);
+            /* extradata: */
+            /* 0x00: version */
+            /* 0x01: reserved */
+            /* 0x02: size */
+            /* 0x04: loop start offset */
+            /* 0x08: loop end offset */
+            /* 0x0c: num samples */
+            /* 0x10: header size */
+            /* 0x14: seek table size */
+            /* 0x18: reserved x2 */
+            /* 0x20: seek table */
+
+            ogg_vgmstream = init_vgmstream_ogg_vorbis_callbacks(sf, NULL, subfile_offset, &ovmi);
             if (ogg_vgmstream) {
                 ogg_vgmstream->num_streams = vgmstream->num_streams;
                 ogg_vgmstream->stream_size = vgmstream->stream_size;
@@ -168,33 +194,51 @@ VGMSTREAM * init_vgmstream_sqex_sead(STREAMFILE * streamFile) {
             atrac9_config cfg = {0};
 
             start_offset = sead.extradata_offset + sead.extradata_size;
-            /* post header has various typical ATRAC9 values */
+
             cfg.channels = vgmstream->channels;
-            cfg.config_data = read_32bit(sead.extradata_offset+0x0c,streamFile);
-            cfg.encoder_delay = read_32bit(sead.extradata_offset+0x18,streamFile);
+            cfg.config_data = read_u32(sead.extradata_offset+0x0c, sf);
+            cfg.encoder_delay = read_u32(sead.extradata_offset+0x18, sf);
+
+            /* extradata: */
+            /* 0x00: version */
+            /* 0x01: reserved */
+            /* 0x02: size */
+            /* 0x04: block align */
+            /* 0x06: block samples */
+            /* 0x08: channel mask */
+            /* 0x1c: config */
+            /* 0x10: samples */
+            /* 0x14: "overlap delay" */
+            /* 0x18: "encoder delay" */
+            /* 0x1c: sample rate */
+            /* 0x24: loop start */
+            /* 0x28: loop end */
 
             vgmstream->codec_data = init_atrac9(&cfg);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_ATRAC9;
             vgmstream->layout_type = layout_none;
 
-            vgmstream->sample_rate = read_32bit(sead.extradata_offset+0x1c,streamFile); /* SAB's sample rate can be different but it's ignored */
-            vgmstream->num_samples = read_32bit(sead.extradata_offset+0x10,streamFile); /* loop values above are also weird and ignored */
-            vgmstream->loop_start_sample = read_32bit(sead.extradata_offset+0x20, streamFile) - (sead.loop_flag ? cfg.encoder_delay : 0); //loop_start
-            vgmstream->loop_end_sample   = read_32bit(sead.extradata_offset+0x24, streamFile) - (sead.loop_flag ? cfg.encoder_delay : 0); //loop_end
+            vgmstream->channel_layout = read_u32(sead.extradata_offset+0x08,sf);
+            vgmstream->sample_rate = read_u32(sead.extradata_offset+0x1c,sf); /* SAB's sample rate can be different/wrong */
+            vgmstream->num_samples = read_u32(sead.extradata_offset+0x10,sf); /* loop values above are also weird and ignored */
+            vgmstream->loop_start_sample = read_u32(sead.extradata_offset+0x20, sf) - (sead.loop_flag ? cfg.encoder_delay : 0); //loop_start
+            vgmstream->loop_end_sample   = read_u32(sead.extradata_offset+0x24, sf) - (sead.loop_flag ? cfg.encoder_delay : 0); //loop_end
             break;
         }
 #endif
 
 #ifdef VGM_USE_MPEG
-        case 0x06: { /* MSF subfile (MPEG mode) [Dragon Quest Builders (PS3)] */
+        case 0x06: { /* MSMP3 (MSF subfile) [Dragon Quest Builders (PS3)] */
             mpeg_codec_data *mpeg_data = NULL;
             mpeg_custom_config cfg = {0};
 
             start_offset = sead.extradata_offset + sead.extradata_size;
-            /* post header is a proper MSF, but sample rate/loops are ignored in favor of SAB's */
 
-            mpeg_data = init_mpeg_custom(streamFile, start_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_STANDARD, &cfg);
+            /* extradata: */
+            /* proper MSF header, but sample rate/loops are ignored in favor of SAB's */
+
+            mpeg_data = init_mpeg_custom(sf, start_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_STANDARD, &cfg);
             if (!mpeg_data) goto fail;
             vgmstream->codec_data = mpeg_data;
             vgmstream->layout_type = layout_none;
@@ -206,23 +250,35 @@ VGMSTREAM * init_vgmstream_sqex_sead(STREAMFILE * streamFile) {
         }
 #endif
 
-        case 0x07: { /* HCA subfile [Dissidia Opera Omnia (Mobile), Final Fantaxy XV (PS4)] */
-            //todo there is no easy way to use the HCA decoder; try subfile hack for now
+        case 0x07: { /* HCA (subfile) [Dissidia Opera Omnia (Mobile), Final Fantaxy XV (PS4)] */
             VGMSTREAM *temp_vgmstream = NULL;
-            STREAMFILE *temp_streamFile = NULL;
+            STREAMFILE *temp_sf = NULL;
             off_t subfile_offset = sead.extradata_offset + 0x10;
             size_t subfile_size = sead.stream_size + sead.extradata_size - 0x10;
 
-            /* post header: values from the HCA header, in file endianness + HCA header */
-            size_t key_start = sead.special_size & 0xff;
-            size_t header_size = read_16bit(sead.extradata_offset+0x02, streamFile);
-            int encryption = read_16bit(sead.extradata_offset+0x0c, streamFile); //maybe 8bit?
-            /* encryption type 0x01 found in Final Fantasy XII TZA (PS4/PC) */
+            size_t key_start = sead.extradata_id & 0xff;
+            size_t header_size = read_u16(sead.extradata_offset+0x02, sf);
+            int encryption = read_u8(sead.extradata_offset+0x0d, sf);
+            /* encryption type 0x01 found in Final Fantasy XII TZA (PS4/PC)
+             * (XOR subtable is fed to HCA's engine instead of generating from a key) */
 
-            temp_streamFile = setup_sqex_sead_streamfile(streamFile, subfile_offset, subfile_size, encryption, header_size, key_start);
-            if (!temp_streamFile) goto fail;
+            /* extradata (mostly same as HCA's): */
+            /* 0x00: version */
+            /* 0x01: size */
+            /* 0x02: header size */
+            /* 0x04: frame size */
+            /* 0x06: loop start frame */
+            /* 0x08: loop end frame */
+            /* 0x0a: inserted samples (encoder delay) */
+            /* 0x0c: "use mixer" flag */
+            /* 0x0d: encryption flag */
+            /* 0x0e: reserved x2 */
+            /* 0x10+ HCA header */
 
-            temp_vgmstream = init_vgmstream_hca(temp_streamFile);
+            temp_sf = setup_sqex_sead_streamfile(sf, subfile_offset, subfile_size, encryption, header_size, key_start);
+            if (!temp_sf) goto fail;
+
+            temp_vgmstream = init_vgmstream_hca(temp_sf);
             if (temp_vgmstream) {
                 /* loops can be slightly different (~1000 samples) but probably HCA's are more accurate */
                 temp_vgmstream->num_streams = vgmstream->num_streams;
@@ -230,17 +286,19 @@ VGMSTREAM * init_vgmstream_sqex_sead(STREAMFILE * streamFile) {
                 temp_vgmstream->meta_type = vgmstream->meta_type;
                 strcpy(temp_vgmstream->stream_name, vgmstream->stream_name);
 
-                close_streamfile(temp_streamFile);
+                close_streamfile(temp_sf);
                 close_vgmstream(vgmstream);
                 return temp_vgmstream;
             }
             else {
-                close_streamfile(temp_streamFile);
+                close_streamfile(temp_sf);
                 goto fail;
             }
         }
 
-        case 0x00: /* dummy entry */
+        case 0x00: /* NONE / dummy entry */
+        case 0x05: /* XMA2 (extradata may be a XMA2 fmt extra chunk) */
+        case 0x08: /* SWITCHOPUS (no extradata?) */
         default:
             VGM_LOG("SQEX SEAD: unknown codec %x\n", sead.codec);
             goto fail;
@@ -249,7 +307,7 @@ VGMSTREAM * init_vgmstream_sqex_sead(STREAMFILE * streamFile) {
     strcpy(vgmstream->stream_name, sead.readable_name);
 
     /* open the file for reading */
-    if ( !vgmstream_open_stream(vgmstream, streamFile, start_offset) )
+    if ( !vgmstream_open_stream(vgmstream, sf, start_offset) )
         goto fail;
     return vgmstream;
 
@@ -264,9 +322,9 @@ static void build_readable_name(char * buf, size_t buf_size, sead_header *sead, 
     if (sead->is_sab) {
         char descriptor[255], name[255];
 
-        if (sead->descriptor_size > 255 || sead->sndname_size > 255) goto fail;
+        if (sead->filename_size > 255 || sead->sndname_size > 255) goto fail;
 
-        read_string(descriptor,sead->descriptor_size+1,sead->descriptor_offset, sf);
+        read_string(descriptor,sead->filename_size+1,sead->filename_offset, sf);
         read_string(name,sead->sndname_size+1,sead->sndname_offset, sf);
 
         snprintf(buf,buf_size, "%s/%s", descriptor, name);
@@ -274,20 +332,21 @@ static void build_readable_name(char * buf, size_t buf_size, sead_header *sead, 
     else {
         char descriptor[255], name[255], mode[255];
 
-        if (sead->descriptor_size > 255 || sead->filename_size > 255 || sead->cuename_size > 255 || sead->modename_size > 255) goto fail;
+        if (sead->filename_size > 255 || sead->muscname_size > 255 || sead->sectname_size > 255 || sead->modename_size > 255) goto fail;
 
-        read_string(descriptor,sead->descriptor_size+1,sead->descriptor_offset, sf);
-      //read_string(filename,sead->filename_size+1,sead->filename_offset, sf); /* same as filename, not too interesting */
-        if (sead->cuename_offset)
-            read_string(name,sead->cuename_size+1,sead->cuename_offset, sf);
+        read_string(descriptor,sead->filename_size+1,sead->filename_offset, sf);
+      //read_string(filename,sead->muscname_size+1,sead->muscname_offset, sf); /* same as filename, not too interesting */
+        if (sead->sectname_offset)
+            read_string(name,sead->sectname_size+1,sead->sectname_offset, sf);
         else if (sead->instname_offset)
             read_string(name,sead->instname_size+1,sead->instname_offset, sf);
         else
             strcpy(name, "?");
-        read_string(mode,sead->modename_size+1,sead->modename_offset, sf);
+        if (sead->modename_offset > 0)
+            read_string(mode,sead->modename_size+1,sead->modename_offset, sf);
 
-        /* default mode in most files, not very interesting */
-        if (strcmp(mode, "Mode") == 0 || strcmp(mode, "Mode0") == 0)
+        /* default mode in most files */
+        if (sead->modename_offset == 0 || strcmp(mode, "Mode") == 0 || strcmp(mode, "Mode0") == 0)
             snprintf(buf,buf_size, "%s/%s", descriptor, name);
         else
             snprintf(buf,buf_size, "%s/%s/%s", descriptor, name, mode);
@@ -299,357 +358,528 @@ fail:
 }
 
 static void parse_sead_mab_name(sead_header *sead, STREAMFILE *sf) {
-    int32_t (*read_32bit)(off_t,STREAMFILE*) = sead->big_endian ? read_32bitBE : read_32bitLE;
-    int16_t (*read_16bit)(off_t,STREAMFILE*) = sead->big_endian ? read_16bitBE : read_16bitLE;
-    int i, entries, cue, mode, cue_count, mode_count;
-    off_t entry_offset, cue_offset, mode_offset, name_offset, table_offset;
-    size_t name_size;
-    //int wave, wave_count;  off_t wave_offset, subtable_offset;  uint16_t wave_id;
-    int name = 0;
+    uint32_t (*read_u32)(off_t,STREAMFILE*) = sead->big_endian ? read_u32be : read_u32le;
+    uint16_t (*read_u16)(off_t,STREAMFILE*) = sead->big_endian ? read_u16be : read_u16le;
+    int i, j, k, entries;
+    off_t  target_muscname_offset = 0, target_sectname_offset = 0;
+    size_t target_muscname_size = 0, target_sectname_size = 0;
 
 
-    /* find which name corresponds to our song (mabf can have N subsongs
-     * and X cues + Y modes and also Z instruments, one of which should reference it) */
-    //todo exact name matching unknown, assumes subsong N = name N
+    /* find names referencing to our material stream, usually:
+     * - music > sections > layers (<> meters) > material index
+     * - instruments > instrument materials > material index */
 
-    /* parse "musc" (music cue?) */
-    entries = read_16bit(sead->musc_offset + 0x04, sf);
+
+    /* parse musics */
+    entries = read_u16(sead->musc_section_offset + 0x04, sf);
     for (i = 0; i < entries; i++) {
-        entry_offset = sead->musc_offset + read_32bit(sead->musc_offset + 0x10 + i*0x04, sf);
+        off_t musc_offset = sead->musc_section_offset + read_u32(sead->musc_section_offset + 0x10 + i*0x04, sf);
+        off_t muscname_offset, table_offset;
+        size_t musc_size, muscname_size;
+        int musc_version, sect_count, mode_count;
 
-        /* 0x00: config? */
-        sead->filename_offset = entry_offset + read_16bit(entry_offset + 0x02, sf);
-        cue_count  = read_8bit(entry_offset + 0x04, sf);
-        mode_count = read_8bit(entry_offset + 0x05, sf);
-        /* 0x06: some low number? */
-        /* 0x07: always 0x80? (apparently not an offset/size) */
-        /* 0x08: id? */
-        /* 0x0a: 0? */
+        musc_version = read_u8 (musc_offset + 0x00, sf);
+        /* 0x01: "output"? */
+        musc_size    = read_u16(musc_offset + 0x02, sf);
+        sect_count   = read_u8 (musc_offset + 0x04, sf);
+        mode_count   = read_u8 (musc_offset + 0x05, sf);
+        /* 0x06: category? */
+        /* 0x07: priority (default 0x80) */
+        /* 0x08: number */
+        /* 0x0a: flags */
+        /* 0x0b: distance attenuation curve? */
+        /* 0x0c: interior factor (f32) */
+        /* 0x10: name in <=v8 */
+        /* 0x20: audible range? (f32) */
+        /* 0x24: inner range? (f32) */
+        /* 0x28: volume (f32) */
+        /* 0x2c: send busses x4 / send volumes (f32) x4 */
+        /* 0x40: counts: aux sends/end methods/start methods/zero-ones */
         /* 0x44: sample rate */
-        /* others: unknown/null */
-        sead->filename_size   = read_8bit(entry_offset + 0x48, sf);
+        muscname_size  = read_u8(musc_offset + 0x48, sf);
+        /* 0x49: port? */
+        /* 0x4a: reserved */
+        /* 0x4c: audio length (float) */
+        /* 0x50+: extra data in later versions */
 
-        /* table points to all cue offsets first then all modes offsets */
-        table_offset = align_size_to_block(sead->filename_offset + sead->filename_size + 0x01, 0x10);
+        if (musc_version <= 8) {
+            muscname_offset = musc_offset + 0x10;
+            muscname_size = 0x0f;
+        }
+        else {
+            muscname_offset = musc_offset + musc_size;
+        }
 
-        /* cue name (ex. "bgm_007_take2" / "bgm_007s" / etc subsongs) */
-        for (cue = 0; cue < cue_count; cue++) {
-            cue_offset = sead->musc_offset + 0x20 + read_32bit(table_offset + cue*0x04, sf);
+        table_offset = align_size_to_block(muscname_offset + muscname_size + 0x01, 0x10);
 
-            /* 0x00: id? */
-            name_offset = cue_offset + read_16bit(cue_offset + 0x02, sf);
-            name_size = read_8bit(cue_offset + 0x04, sf);
-          //wave_count = read_8bit(cue_offset + 0x05, sf);
-            /* 0x06: ? */
-            /* 0x0c: num samples */
-            /* 0x10: loop start */
-            /* 0x14: loop end */
-            /* 0x18: flag? */
-            /* others: ? */
+        /* parse sections (layered parts that possibly transition into others using "meter" info) */
+        for (j = 0; j < sect_count; j++) {
+            off_t sect_offset = musc_offset + read_u32(table_offset + j*0x04, sf);
+            off_t sectname_offset, subtable_offset;
+            size_t sect_size, sectname_size;
+            int sect_version, layr_count;
 
-            name++;
-            if (name == sead->target_subsong || cue_count == 1) {
-                sead->cuename_offset = name_offset;
-                sead->cuename_size = name_size;
-                break;
+            sect_version = read_u8 (sect_offset + 0x00, sf);
+            /* 0x01: number */
+            sect_size    = read_u16(sect_offset + 0x02, sf);
+
+            if (sect_version <= 7) {
+                /* 0x04: meter count */
+                layr_count = read_u8(sect_offset + 0x05, sf);
+                /* 0x06: custom points count */
+                /* 0x08: entry points (sample) */
+                /* 0x0c: exit points (sample) */
+                /* 0x10: loop start */
+                /* 0x14: loop end */
+                /* 0x18+: meter transition timing info (offsets, points, curves, etc) */
+                sectname_offset = 0x30;
+                sectname_size = 0x0f;
+
+                subtable_offset = sect_offset + sect_size;
+            }
+            else {
+                sectname_size = read_u8(sect_offset + 0x04, sf);
+                layr_count = read_u8(sect_offset + 0x05, sf);
+                /* 0x06: custom points count */
+                /* 0x08: entry point (sample) */
+                /* 0x0c: exit point (sample) */
+                /* 0x10: loop start */
+                /* 0x14: loop end */
+                /* 0x18: meter count */
+                /* 0x1c+: meter transition timing info (offsets, points, curves, etc) */
+                sectname_offset = sect_offset + sect_size;
+
+                subtable_offset = align_size_to_block(sectname_offset + sectname_size + 0x01, 0x10);
             }
 
-#if 0       //this works for some games like KH3 but not others like FFXII
-            /* subtable: first N wave refs + ? unk refs  (rarely more than 1 each) */
-            subtable_offset = align_size_to_block(name_offset + name_size + 1, 0x10);
 
-            for (wave = 0; wave < wave_count; wave++) {
-                wave_offset = cue_offset + read_32bit(subtable_offset + wave*0x04, sf);
+            if (j + 1== sead->target_subsong) {
+                target_muscname_offset = muscname_offset;
+                target_muscname_size = muscname_size;
+                target_sectname_offset = sectname_offset;
+                target_sectname_size = sectname_size;
+            }
 
-                /* 0x00: config? */
-                /* 0x02: entry size */
-                wave_id = read_16bit(wave_offset + 0x04, sf);
-                /* 0x06: null? */
-                /* 0x08: null? */
-                /* 0x0c: some id/config? */
+            /* parse layers */
+            for (k = 0; k < layr_count; k++) {
+                off_t layr_offset = sect_offset + read_u32(subtable_offset + k*0x04, sf);
+                int mtrl_index;
 
-                if (wave_id == sead->wave_id) {
-                    sead->cuename_offset = name_offset;
-                    sead->cuename_size = name_size;
-                    break;
+                /* 0x00: version */
+                /* 0x01: flags */
+                /* 0x02: size */
+                mtrl_index = read_u16(layr_offset + 0x04, sf);
+                /* 0x06: loop count */
+                /* 0x08: offset */
+                /* 0x0c: end point (sample) */
+
+                if (mtrl_index == sead->mtrl_index) {
+                    sead->muscname_offset = muscname_offset;
+                    sead->muscname_size   = muscname_size;
+                    sead->sectname_offset = sectname_offset;
+                    sead->sectname_size = sectname_size;
+                    //break;
                 }
             }
 
-            if (sead->cuename_offset)
-                break;
-#endif
+            /* use last name for cloned materials (see below) */
+            //if (sead->sectname_offset > 0)
+            //    break;
+
+            /* meters offset go after layer offsets, not useful */
         }
 
-        /* mode name (ex. almost always "Mode" and only 1 entry, rarely "Water" / "Restaurant" / etc)
-         * no idea how modes are referenced (perhaps manually with in-game events)
-         * so just a quick hack, only found multiple in FFXV's bgm_gardina */
+        /* in some files (ex. FF12 TZA) materials are cloned, but sections only point to one of the
+         * clones, so one material has multiple section names while others have none. For those cases
+         * we can try to match names by subsong number */
+        if (sead->sectname_offset == 0) {
+            sead->muscname_offset = target_muscname_offset;
+            sead->muscname_size   = target_muscname_size;
+            sead->sectname_offset = target_sectname_offset;
+            sead->sectname_size = target_sectname_size;
+            VGM_LOG("MAB: voodoo name matching\n");
+        }
+
+
+        /* modes have names (almost always "Mode" and only 1 entry, rarely "Water" / "Restaurant" / etc)
+         * and seem referenced manually (in-game events) and alter sound parameters instead of being
+         * an actual playable thing (only found multiple in FFXV's bgm_gardina) */
+
+        /* hack to use mode as subsong name, which for the only known file looks correct */
         if (mode_count == sead->total_subsongs)
-            mode = sead->target_subsong - 1;
+            i = sead->target_subsong - 1;
         else
-            mode = 0;
+            i = 0;
 
-        { //for (mode = 0; mode < mode_count; mode++) {
-            mode_offset = sead->musc_offset + 0x20 + read_32bit(table_offset + cue_count*0x04 + mode*0x04, sf);
+        { //for (i = 0; i < mode_count; i++) {
+            off_t mode_offset = musc_offset + read_u32(table_offset + sect_count*0x04 + i*0x04, sf);
+            off_t modename_offset;
+            size_t mode_size, modename_size;
+            int mode_version;
 
-            /* 0x00: id? */
-            name_offset = mode_offset + read_16bit(mode_offset + 0x02, sf);
-            /* 0x04: mode id */
-            name_size = read_8bit(mode_offset + 0x06, sf);
-            /* 0x08: offset? */
-            /* others: floats and stuff */
+            mode_version  = read_u8 (mode_offset + 0x00, sf);
+            /* 0x01: flags */
+            mode_size     = read_u16(mode_offset + 0x02, sf);
+            /* 0x04: number */
+            modename_size = read_u8 (mode_offset + 0x06, sf);
+            /* 0x07: reserved */
+            /* 0x08: transition param offset */
+            /* 0x0c: reserved */
+            /* 0x10: volume */
+            /* 0x14: pitch */
+            /* 0x18: lowpass */
+            /* 0x1c: speed */
+            /* 0x20: name <=v2 (otherwise null) */
 
-            sead->modename_offset = name_offset;
-            sead->modename_size = name_size;
+            if (mode_version <= 2) {
+                modename_offset = mode_offset + 0x20;
+                modename_size = 0x0f;
+            }
+            else {
+                modename_offset = mode_offset + mode_size;
+            }
+
+            sead->modename_offset = modename_offset;
+            sead->modename_size = modename_size;
         }
     }
 
 
-    /* parse "inst" (instruments) */
-    entries = read_16bit(sead->inst_offset + 0x04, sf);
+    /* parse instruments (very rare, ex. KH3 tut) */
+    entries = read_u16(sead->inst_section_offset + 0x04, sf);
     for (i = 0; i < entries; i++) {
-        entry_offset = sead->inst_offset + read_32bit(sead->inst_offset + 0x10 + i*0x04, sf);
+        off_t inst_offset = sead->inst_section_offset + read_u32(sead->inst_section_offset + 0x10 + i*0x04, sf);
+        off_t instname_offset, mtrl_offset;
+        size_t instname_size;
+        int mtrl_count;
 
-        /* 0x00: id? */
-        /* 0x02: base size? */
-        /* 0x05: count? */
-      //wave_count = read_8bit(entry_offset + 0x06, sf);
-        /* 0x0c: num samples */
-        /* 0x10: loop start */
-        /* 0x14: loop end */
-        /* 0x18: flag? */
-        /* others: ? */
+        /* 0x00: version */
+        /* 0x01: "output"? */
+        /* 0x02: size */
+        /* 0x04: type (normal, random, switch, etc) */
+        mtrl_count = read_u8(inst_offset + 0x05, sf);
+        /* 0x06: category */
+        /* 0x07: priority */
+        /* 0x08: number */
+        /* 0x0a: flags */
+        /* 0x0b: distance attenuation curve */
+        /* 0x0c: interior factor (f32) */
+        /* 0x10: audible range (f32) */
+        /* 0x14: inner range (f32) */
+        /* 0x18: play length (f32) */
+        /* 0x1c: reserved */
+        /* 0x20: ? (f32) */
+        /* 0x30: name */
 
-        /* no apparent fields and inst is very rare (ex. KH3 tut) */
-        name_offset = entry_offset + 0x30;
-        name_size = 0x0F;
+        instname_offset = inst_offset + 0x30;
+        instname_size = 0x0F;
 
-        name++;
-        if (name == sead->target_subsong) {
-            sead->instname_offset = name_offset;
-            sead->instname_size = name_size;
-            break;
-        }
+        mtrl_offset = instname_offset + instname_size + 0x01;
 
+        /* parse instrument materials */
+        for (j = 0; j < mtrl_count; j++) {
+            size_t mtrl_size;
+            int mtrl_index;
 
-#if 0   //not actually tested
-        if (wave_count != 1) break; /* ? */
-
-        /* subtable: N wave refs? */
-        subtable_offset = align_size_to_block(name_offset + name_size + 1, 0x10);
-
-        for (wave = 0; wave < wave_count; wave++) {
-            wave_offset = subtable_offset + read_32bit(subtable_offset + wave*0x04, sf);
-
-            /* 0x00: config? */
-            /* 0x02: entry size? */
-            wave_id = read_16bit(wave_offset + 0x04, sf);
-            /* 0x06: ? */
-            /* 0x08: id/crc? */
-            /* 0x0c: ? */
+            /* 0x00: version */
+            /* 0x01: value (meaning depends on type) */
+            mtrl_size  = read_u16(mtrl_offset + 0x02, sf);
+            mtrl_index = read_u16(mtrl_offset + 0x04, sf);
+            /* 0x06: number */
+            /* 0x08: volume */
+            /* 0x0c: sync point */
             /* 0x10: sample rate */
-            /* others: null? */
+            /* 0x14-20: reserved */
 
-            if (wave_id == sead->wave_id) {
-                sead->instname_offset = name_offset;
-                sead->instname_size = name_size;
+            if (mtrl_index == sead->mtrl_index) {
+                sead->instname_offset = instname_offset;
+                sead->instname_size = instname_size;
                 break;
             }
+
+            mtrl_offset += mtrl_size;
         }
 
-        if (sead->instname_offset)
+        if (sead->instname_offset > 0)
             break;
-#endif
     }
 }
 
 static void parse_sead_sab_name(sead_header *sead, STREAMFILE *sf) {
-    int32_t (*read_32bit)(off_t,STREAMFILE*) = sead->big_endian ? read_32bitBE : read_32bitLE;
-    int16_t (*read_16bit)(off_t,STREAMFILE*) = sead->big_endian ? read_16bitBE : read_16bitLE;
-    int i, snd_entries, trk_entries, snd_id, wave_id, snd_found = 0;
-    size_t size;
-    off_t entry_offset;
+    uint32_t (*read_u32)(off_t,STREAMFILE*) = sead->big_endian ? read_u32be : read_u32le;
+    uint16_t (*read_u16)(off_t,STREAMFILE*) = sead->big_endian ? read_u16be : read_u16le;
+    int i, j, entries;
 
+    /* find names referencing to our material stream, usually:
+     * - sound > sequence index
+     * - sequence > command > track index
+     * - track > material index
+     *
+     * most of the time sounds<>materials go 1:1 but there are exceptions
+     * (ex. DQB se_break_soil, FFXV aircraftzeroone, FFXV 03bt100031pc00)
+     *
+     * some configs (mainly zero-ones, that seem to be a kind of random sound) have a name too,
+     * but it's usually "Default" "(name)ZeroOne" and other uninteresting stuff */
 
-    //todo looks mostly correct for many subsongs but in rare cases wave_ids aren't referenced
-    // or maybe id needs another jump (seq?) (ex. DQB se_break_soil, FFXV aircraftzeroone, FFXV 03bt100031pc00)
+    /* parse sounds */
+    entries = read_u16(sead->snd_section_offset + 0x04, sf);
+    for (i = 0; i < entries; i++) {
+        off_t snd_offset = sead->snd_section_offset + read_u32(sead->snd_section_offset + 0x10 + i*0x04, sf);
+        size_t snd_size, sndname_size;
+        off_t seqi_start, seqi_offset, sndname_offset;
+        int snd_version, seqi_count;
 
-    snd_entries = read_16bit(sead->snd_offset + 0x04, sf);
-    trk_entries = read_16bit(sead->trk_offset + 0x04, sf);
-
-    /* parse "trk" (track info) */
-    for (i = 0; i < trk_entries; i++) {
-        entry_offset = sead->trk_offset + read_32bit(sead->trk_offset + 0x10 + i*0x04, sf);
-
-        /* 0x00: type? */
-        /* 0x01: subtype? */
-        size = read_16bit(entry_offset + 0x02, sf); /* bigger if 'type=03' */
-        /* 0x04: trk id? */
-        /* 0x04: some id? */
-
-        if (size > 0x10) {
-            snd_id = read_8bit(entry_offset + 0x10, sf);
-            wave_id = read_16bit(entry_offset + 0x11, sf);
-        }
-        else {
-            snd_id = read_16bit(entry_offset + 0x08, sf);
-            wave_id = read_16bit(entry_offset + 0x0a, sf);
-        }
-
-
-        if (wave_id == sead->wave_id) {
-            snd_found = 1;
-            break;
-        }
-    }
-
-    if (snd_found && snd_id >= snd_entries) {
-        VGM_LOG("SEAD: bad snd_id found\n");
-        snd_found = 0;
-    }
-
-    if (!snd_found) {
-        if (sead->total_subsongs == 1 || snd_entries == 1) {
-            snd_id = 0; /* meh */
-            VGM_LOG("SEAD: snd_id not found, using first\n");
-        } else {
-            VGM_LOG("SEAD: snd_id not found, subsongs=%i, snd=%i, trk=%i\n", sead->total_subsongs, snd_entries, trk_entries);
-            return;
-        }
-    }
-
-    /* parse "snd " (sound info) */
-    {
-        off_t entry_offset = sead->snd_offset + read_32bit(sead->snd_offset + 0x10 + snd_id*0x04, sf);
-
-        /* 0x00: config? */
-        sead->sndname_offset = entry_offset + read_16bit(entry_offset + 0x02, sf);
-        /* 0x04: count of ? */
-        /* 0x05: count of ? (0 if no sound exist in file) */
-        /* 0x06: some low number? */
-        /* 0x07: always 0x80? (apparently not an offset/size) */
-        /* 0x08: snd id */
-        /* 0x0a: 0? */
-        /* 0x0c: 1.0? */
+        snd_version = read_u8(snd_offset + 0x00, sf);
+        /* 0x01: work? */
+        snd_size = read_u16(snd_offset + 0x02, sf);
+        /* 0x04: type */
+        seqi_count = read_u8(snd_offset + 0x05, sf); /* may be 0 */
+        /* 0x06: category */
+        /* 0x07: priority (default 0x80) */
+        /* 0x08: number */
+        /* 0x0a: start+end macro */
+        /* 0x0c: volume */
+        /* 0x10: cycle config */
         /* 0x1a: header size? */
-        /* 0x1c: 30.0? * */
-        /* 0x24: crc/id? */
-        /* 0x46: header size? */
-        /* 0x4c: header size? */
+        seqi_start = read_u16(snd_offset + 0x1a, sf);
+        /* 0x1c: audible range */
+        /* 0x20: output/curve/port */
+        /* 0x23: reserved/name size */
+        /* 0x24: play length */
+        /* 0x28+: more config params */
 
-        if (sead->version == 1) {
-            sead->sndname_offset -= 0x10;
-            sead->sndname_size = read_8bit(entry_offset + 0x08, sf);
+        if (snd_version <= 8) {
+            sndname_size = 0x0F;
+            sndname_offset = snd_offset + 0x50;
         }
         else {
-            sead->sndname_size = read_8bit(entry_offset + 0x23, sf);
+            sndname_size = read_u8(snd_offset + 0x23, sf);
+            sndname_offset = snd_offset + snd_size;
         }
 
-        /* 0x24: unique id? (referenced in "seq" section?) */
-        /* others: probably sound config like pan/volume (has floats and stuff) */
+        /* parse sequence info */
+        seqi_offset = snd_offset + seqi_start;
+        for (j = 0; j < seqi_count; j++) {
+            size_t seqi_size;
+            int seq_index;
+
+            /* 0x00: version */
+            /* 0x01: reserved */
+            seqi_size = read_u16(seqi_offset + 0x02, sf);
+            seq_index = read_u16(seqi_offset + 0x04, sf);
+            /* 0x06: sequence ID */
+            /* 0x08: reserved x2 */
+
+            seqi_offset += seqi_size;
+
+            /* parse sequence */
+            {
+                off_t seq_offset = sead->seq_section_offset + read_u32(sead->seq_section_offset + 0x10 + seq_index*0x04, sf);
+                off_t cmnd_start, cmnd_offset;
+                int seq_version;
+
+                seq_version = read_u8(seq_offset + 0x00, sf);
+                /* 0x01: reserved */
+                /* 0x02: size */
+
+                if (seq_version <= 2) {
+                    /* 0x04: config depending on type */
+                    /* 0x10: number */
+                    /* 0x12: volume zero-one offsets */
+                    /* 0x12: pitch zero-one offsets */
+                    cmnd_start = read_u16(seq_offset + 0x16, sf);
+                    /* 0x18: reserved x2 */
+                }
+                else {
+                    /* 0x04: id */
+                    cmnd_start = read_u16(seq_offset + 0x06, sf);
+                    /* 0x08: zero-ones count */
+                    /* 0x09: reserved */
+                    /* 0x10: config depending on type */
+                }
+
+
+                /* parse sequence commands (breaks once an end command is found) */
+                cmnd_offset = seq_offset + cmnd_start;
+                while (cmnd_offset < sead->trk_section_offset) {
+                    uint8_t cmnd_size, cmnd_type, cmnd_body;
+
+                    /* 0x00: version (each command may have a different version) */
+                    cmnd_size = read_u8(cmnd_offset + 0x01, sf); /* doesn't include body */
+                    cmnd_type = read_u8(cmnd_offset + 0x02, sf);
+                    cmnd_body = read_u8(cmnd_offset + 0x03, sf);
+
+                    /* 0=none, 1=end, 2=key on, 3=interval, 4=keyoff, 5=wat, 6=loop start, 7=loop end, 8=trigger */
+                    if (cmnd_type == 0x02) {
+                        uint32_t trk_index;
+
+                        trk_index = read_u32(cmnd_offset + cmnd_size + 0x00, sf);
+                        /* 0x04: is loop */
+                        /* 0x05: reserved */
+                        /* 0x06: track id */
+                        /* 0x08: play length (f32) */
+
+                        /* parse track */
+                        {
+                            off_t trk_offset = sead->trk_section_offset + read_u32(sead->trk_section_offset + 0x10 + trk_index*0x04, sf);
+                            uint8_t trk_type;
+                            uint16_t mtrl_index;
+
+                            /* 0x00: version */
+                            trk_type = read_u8(trk_offset + 0x01, sf);
+                            /* 0x02: size */
+                            /* 0x04: config depending on type */
+                            /* 0x08: id */
+                            /* 0x0a: child id */
+                            /* 0x0c: reserved */
+
+                            /* 0=none, 1=material, 2=sound */
+                            if (trk_type == 0x01) {
+                                mtrl_index = read_u16(trk_offset + 0x04, sf);
+                                /* 0x02: bank */
+
+                                /* assumes same bank, not sure if bank info is even inside .sab */
+                                if (mtrl_index == sead->mtrl_index) {
+                                    sead->sndname_offset = sndname_offset;
+                                    sead->sndname_size = sndname_size;
+                                }
+                            }
+                            else if (trk_type == 0x02) {
+                                /* 0x00: index */
+                                /* 0x02: reserved */
+                                /* parse sound again? */
+                            }
+                        }
+                    }
+
+                    cmnd_offset += cmnd_size + cmnd_body;
+
+                    /* commands normally end when a type 0=none is found */
+                    if (cmnd_type <= 0x00 || cmnd_type > 0x08)
+                        break;
+                    if (sead->sndname_offset > 0)
+                        break;
+                }
+            }
+
+        }
     }
 }
 
+
 static int parse_sead(sead_header *sead, STREAMFILE *sf) {
-    int32_t (*read_32bit)(off_t,STREAMFILE*) = sead->big_endian ? read_32bitBE : read_32bitLE;
-    int16_t (*read_16bit)(off_t,STREAMFILE*) = sead->big_endian ? read_16bitBE : read_16bitLE;
+    uint32_t (*read_u32)(off_t,STREAMFILE*) = sead->big_endian ? read_u32be : read_u32le;
+    uint16_t (*read_u16)(off_t,STREAMFILE*) = sead->big_endian ? read_u16be : read_u16le;
 
     /** base header **/
-    sead->version = read_8bit(0x04, sf); /* usually 0x02, rarely 0x01 (ex FF XV early songs) */
-    /* 0x05(1): 0/1? */
-    /* 0x06(2): ? (usually 0x10, rarely 0x20) */
-    /* 0x08(1): 3/4? */
-    sead->descriptor_size = read_8bit(0x09, sf);
-    /*  0x0a(2): ? */
-    if (read_32bit(0x0c, sf) != get_streamfile_size(sf))
+    /* 0x00: id */
+    /* 0x04: version (usually 0x02, rarely 0x01 ex FF XV early songs) */
+    /* 0x05: flags */
+    /* 0x06: size */
+    /* 0x08: chunk count (in practice mab=3, sab=4) */
+    sead->filename_size = read_u8(0x09, sf);
+    /* 0x0a: number (shared between multiple sab/mab though) */
+    if (read_u32(0x0c, sf) != get_streamfile_size(sf))
         goto fail;
 
-    if (sead->descriptor_size == 0) /* not set when version == 1 */
-        sead->descriptor_size = 0x0f;
-    sead->descriptor_offset = 0x10; /* file descriptor ("BGM", "Music2", "SE", etc, long names are ok) */
-    sead->sections_offset = sead->descriptor_offset + (sead->descriptor_size + 0x01); /* string null matters for padding */
+    /* not set/reserved when version == 1 (name is part of size) */
+    if (sead->filename_size == 0)
+        sead->filename_size = 0x0f;
+    sead->filename_offset = 0x10; /* file description ("BGM", "Music2", "SE", etc, long names are ok) */
+    sead->sections_offset = sead->filename_offset + (sead->filename_size + 0x01); /* string null matters for padding */
     sead->sections_offset = align_size_to_block(sead->sections_offset, 0x10);
 
+    /* roughly, mab play audio by calling musics/instruments, and sab with sounds/sequences/track. Both
+     * point to a "material" or stream wave that may be reused. We only want material streams as subsongs,
+     * but also try to find names from musics/sounds/etc. */
 
-    /** offsets to sections **/
+    /** chunk table elements (offsets to sections) **/
+    /* 0x00: id */
+    /* 0x04: version */
+    /* 0x05: reserved */
+    /* 0x06: size */
+    /* 0x08: offset */
+    /* 0x0c: reserved */
     if (sead->is_sab) {
-        if (read_32bitBE(sead->sections_offset + 0x00, sf) != 0x736E6420) goto fail; /* "snd " (sonds) */
-        if (read_32bitBE(sead->sections_offset + 0x10, sf) != 0x73657120) goto fail; /* "seq " (unknown) */
-        if (read_32bitBE(sead->sections_offset + 0x20, sf) != 0x74726B20) goto fail; /* "trk " (unknown) */
-        if (read_32bitBE(sead->sections_offset + 0x30, sf) != 0x6D74726C) goto fail; /* "mtrl" (headers/streams) */
-        sead->snd_offset  = read_32bit(sead->sections_offset + 0x08, sf);
-      //sead->seq_offset  = read_32bit(sead->sections_offset + 0x18, sf);
-        sead->trk_offset  = read_32bit(sead->sections_offset + 0x28, sf);
-        sead->mtrl_offset = read_32bit(sead->sections_offset + 0x38, sf);
+        if (read_u32be(sead->sections_offset + 0x00, sf) != 0x736E6420) goto fail; /* "snd " (sounds) */
+        if (read_u32be(sead->sections_offset + 0x10, sf) != 0x73657120) goto fail; /* "seq " (sequences) */
+        if (read_u32be(sead->sections_offset + 0x20, sf) != 0x74726B20) goto fail; /* "trk " (tracks) */
+        if (read_u32be(sead->sections_offset + 0x30, sf) != 0x6D74726C) goto fail; /* "mtrl" (material headers/streams) */
+        sead->snd_section_offset  = read_u32(sead->sections_offset + 0x08, sf);
+        sead->seq_section_offset  = read_u32(sead->sections_offset + 0x18, sf);
+        sead->trk_section_offset  = read_u32(sead->sections_offset + 0x28, sf);
+        sead->mtrl_section_offset = read_u32(sead->sections_offset + 0x38, sf);
     }
     else if (sead->is_mab) {
-        if (read_32bitBE(sead->sections_offset + 0x00, sf) != 0x6D757363) goto fail; /* "musc" (cues) */
-        if (read_32bitBE(sead->sections_offset + 0x10, sf) != 0x696E7374) goto fail; /* "inst" (instruments) */
-        if (read_32bitBE(sead->sections_offset + 0x20, sf) != 0x6D74726C) goto fail; /* "mtrl" (headers/streams) */
-        sead->musc_offset = read_32bit(sead->sections_offset + 0x08, sf);
-        sead->inst_offset = read_32bit(sead->sections_offset + 0x18, sf);
-        sead->mtrl_offset = read_32bit(sead->sections_offset + 0x28, sf);
+        if (read_u32be(sead->sections_offset + 0x00, sf) != 0x6D757363) goto fail; /* "musc" (musics) */
+        if (read_u32be(sead->sections_offset + 0x10, sf) != 0x696E7374) goto fail; /* "inst" (instruments) */
+        if (read_u32be(sead->sections_offset + 0x20, sf) != 0x6D74726C) goto fail; /* "mtrl" (material headers/streams) */
+        sead->musc_section_offset = read_u32(sead->sections_offset + 0x08, sf);
+        sead->inst_section_offset = read_u32(sead->sections_offset + 0x18, sf);
+        sead->mtrl_section_offset = read_u32(sead->sections_offset + 0x28, sf);
     }
     else {
         goto fail;
     }
 
 
-    /* section format at offset:
-     * 0x00(2): 0/1?
-     * 0x02(2): header size? (always 0x10)
-     * 0x04(2): entries
-     * 0x06(+): padded to 0x10
-     * 0x10 + 0x04*entry: offset to entry from table start (also padded to 0x10 at the end) */
+    /* section "chunk" format at offset: */
+    /* 0x00: version */
+    /* 0x01: reserved */
+    /* 0x02: size */
+    /* 0x04: entries */
+    /* 0x06: reserved */
+    /* 0x10+ 0x04*entry: offset to entry from table start */
 
 
-    /* find meta_offset in "mtrl" and total subsongs */
+    /* find target material offset */
     {
         int i, entries;
 
-        entries = read_16bit(sead->mtrl_offset+0x04, sf);
+        entries = read_u16(sead->mtrl_section_offset + 0x04, sf);
 
         if (sead->target_subsong == 0) sead->target_subsong = 1;
         sead->total_subsongs = 0;
-        sead->meta_offset = 0;
+        sead->mtrl_offset = 0;
 
         /* manually find subsongs as entries can be dummy (ex. sfx banks in Dissidia Opera Omnia) */
         for (i = 0; i < entries; i++) {
-            off_t entry_offset = sead->mtrl_offset + read_32bit(sead->mtrl_offset + 0x10 + i*0x04, sf);
+            off_t entry_offset = sead->mtrl_section_offset + read_u32(sead->mtrl_section_offset + 0x10 + i*0x04, sf);
 
-            if (read_8bit(entry_offset + 0x05, sf) == 0) {
+            if (read_u8(entry_offset + 0x05, sf) == 0) {
                 continue; /* codec 0 when dummy (see stream header) */
             }
 
-
             sead->total_subsongs++;
-            if (!sead->meta_offset && sead->total_subsongs == sead->target_subsong) {
-                sead->meta_offset = entry_offset;
+            if (!sead->mtrl_offset && sead->total_subsongs == sead->target_subsong) {
+                sead->mtrl_offset = entry_offset;
+                sead->mtrl_index = i;
             }
         }
-        if (sead->meta_offset == 0) goto fail;
+
         /* SAB can contain 0 entries too */
+        if (sead->mtrl_offset == 0)
+            goto fail;
     }
 
-
     /** stream header **/
-    /* 0x00(2): 0x00/01? */
-    /* 0x02(2): base entry size? (0x20) */
-    sead->channel_count   =  read_8bit(sead->meta_offset + 0x04, sf);
-    sead->codec           =  read_8bit(sead->meta_offset + 0x05, sf);
-    sead->wave_id         = read_16bit(sead->meta_offset + 0x06, sf); /* 0..N */
-    sead->sample_rate     = read_32bit(sead->meta_offset + 0x08, sf);
-    sead->loop_start      = read_32bit(sead->meta_offset + 0x0c, sf); /* in samples but usually ignored */
-
-    sead->loop_end        = read_32bit(sead->meta_offset + 0x10, sf);
-    sead->extradata_size  = read_32bit(sead->meta_offset + 0x14, sf); /* including subfile header, can be 0 */
-    sead->stream_size     = read_32bit(sead->meta_offset + 0x18, sf); /* not including subfile header */
-    sead->special_size    = read_32bit(sead->meta_offset + 0x1c, sf);
+    /* 0x00: version */
+    /* 0x01: reserved */
+    /* 0x02: size */
+    sead->channels      = read_u8 (sead->mtrl_offset + 0x04, sf);
+    sead->codec         = read_u8 (sead->mtrl_offset + 0x05, sf); /* format */
+    sead->mtrl_number   = read_u16(sead->mtrl_offset + 0x06, sf); /* 0..N */
+    sead->sample_rate   = read_u32(sead->mtrl_offset + 0x08, sf);
+    sead->loop_start    = read_u32(sead->mtrl_offset + 0x0c, sf); /* in samples but usually ignored */
+    sead->loop_end      = read_u32(sead->mtrl_offset + 0x10, sf);
+    sead->extradata_size= read_u32(sead->mtrl_offset + 0x14, sf); /* including subfile header, can be 0 */
+    sead->stream_size   = read_u32(sead->mtrl_offset + 0x18, sf); /* not including subfile header */
+    sead->extradata_id  = read_u16(sead->mtrl_offset + 0x1c, sf);
+    /* 0x1e: reserved */
 
     sead->loop_flag       = (sead->loop_end > 0);
-    sead->extradata_offset = sead->meta_offset + 0x20;
+    sead->extradata_offset = sead->mtrl_offset + 0x20;
 
-
-    /** info section (get stream name) **/
     if (sead->is_sab) {
         parse_sead_sab_name(sead, sf);
     }
