@@ -1063,9 +1063,10 @@ static int parse_keyval(STREAMFILE * streamFile_, txth_header * txth, const char
     /* COEFS */
     else if (is_string(key,"coef_offset")) {
         if (!parse_num(txth->streamHead,txth,val, &txth->coef_offset)) goto fail;
-        /* special adjustment */
+        /* special adjustments */
+        txth->coef_offset += txth->base_offset;
         if (txth->subsong_offset)
-            txth->coef_offset = txth->base_offset + txth->coef_offset + txth->subsong_offset * (txth->target_subsong - 1);
+            txth->coef_offset += txth->subsong_offset * (txth->target_subsong - 1);
     }
     else if (is_string(key,"coef_spacing")) {
         if (!parse_num(txth->streamHead,txth,val, &txth->coef_spacing)) goto fail;
@@ -1090,8 +1091,9 @@ static int parse_keyval(STREAMFILE * streamFile_, txth_header * txth, const char
         if (!parse_num(txth->streamHead,txth,val, &txth->hist_offset)) goto fail;
         txth->hist_set = 1;
         /* special adjustment */
+        txth->hist_offset += txth->hist_offset;
         if (txth->subsong_offset)
-            txth->hist_offset = txth->base_offset + txth->hist_offset + txth->subsong_offset * (txth->target_subsong - 1);
+            txth->hist_offset += txth->subsong_offset * (txth->target_subsong - 1);
     }
     else if (is_string(key,"hist_spacing")) {
         if (!parse_num(txth->streamHead,txth,val, &txth->hist_spacing)) goto fail;
@@ -1115,8 +1117,9 @@ static int parse_keyval(STREAMFILE * streamFile_, txth_header * txth, const char
         if (!parse_num(txth->streamHead,txth,val, &txth->name_offset)) goto fail;
         txth->name_offset_set = 1;
         /* special adjustment */
+        txth->name_offset += txth->base_offset;
         if (txth->subsong_offset)
-            txth->name_offset = txth->base_offset + txth->name_offset + txth->subsong_offset * (txth->target_subsong - 1);
+            txth->name_offset += txth->subsong_offset * (txth->target_subsong - 1);
     }
     else if (is_string(key,"name_size")) {
         if (!parse_num(txth->streamHead,txth,val, &txth->name_size)) goto fail;
@@ -1314,6 +1317,8 @@ static uint16_t get_string_wchar(const char * val, int pos, int *csize) {
 
         if (wchar >= 0x41 && wchar <= 0x5a)
             wchar += 0x20;
+        if (wchar == '\\')
+            wchar = '/'; /* normalize paths */
     }
 
     return wchar;
@@ -1408,11 +1413,12 @@ fail:
 static int parse_name_table(txth_header * txth, char * name_list) {
     STREAMFILE *nameFile = NULL;
     off_t txt_offset, file_size;
+    char fullname[PATH_LIMIT];
     char filename[PATH_LIMIT];
     char basename[PATH_LIMIT];
 
     /* just in case */
-    if (txth->streamfile_is_txth || !txth->streamText || !txth->streamFile)
+    if (!txth->streamText || !txth->streamBody)
         goto fail;
 
     /* trim name_list just in case */
@@ -1426,15 +1432,16 @@ static int parse_name_table(txth_header * txth, char * name_list) {
         }
     }
 
-    //;VGM_LOG("TXTH: name_list2='%s'\n", name_list);
+    //;VGM_LOG("TXTH: name_list='%s'\n", name_list);
 
     /* open companion file near .txth */
     nameFile = open_streamfile_by_filename(txth->streamText, name_list);
     if (!nameFile) goto fail;
 
-    get_streamfile_filename(txth->streamFile, filename, sizeof(filename));
-    get_streamfile_basename(txth->streamFile, basename, sizeof(basename));
-    //;VGM_LOG("TXTH: filename=%s, basename=%s\n", filename, basename);
+    get_streamfile_name(txth->streamBody, fullname, sizeof(filename));
+    get_streamfile_filename(txth->streamBody, filename, sizeof(filename));
+    get_streamfile_basename(txth->streamBody, basename, sizeof(basename));
+    //;VGM_LOG("TXTH: names full=%s, file=%s, base=%s\n", fullname, filename, basename);
 
     txt_offset = 0x00;
     file_size = get_streamfile_size(nameFile);
@@ -1477,7 +1484,10 @@ static int parse_name_table(txth_header * txth, char * name_list) {
 
         //;VGM_LOG("TXTH: compare name '%s'\n", key);
         /* parse values if key (name) matches default ("") or filename with/without extension */
-        if (key[0]=='\0' || is_string_match(filename, key) || is_string_match(basename, key)) {
+        if (key[0]=='\0' 
+                || is_string_match(filename, key) 
+                || is_string_match(basename, key)
+                || is_string_match(fullname, key)) {
             int n;
             char subval[TXT_LINE_MAX];
             const char *current = val;
@@ -1615,7 +1625,8 @@ static int parse_num(STREAMFILE * streamFile, txth_header * txth, const char * v
             else if ((n = is_string_field(val,"subsong_count")))        value = txth->subsong_count;
             else if ((n = is_string_field(val,"subsong_offset")))       value = txth->subsong_offset;
             else if ((n = is_string_field(val,"subfile_offset")))       value = txth->subfile_offset;
-            else if ((n = is_string_field(val,"subfile_size")))       value = txth->subfile_size;
+            else if ((n = is_string_field(val,"subfile_size")))         value = txth->subfile_size;
+            else if ((n = is_string_field(val,"base_offset")))          value = txth->base_offset;
             //todo whatever, improve
             else if ((n = is_string_field(val,"name_value")))           value = txth->name_values[0];
             else if ((n = is_string_field(val,"name_value1")))          value = txth->name_values[0];
