@@ -49,7 +49,7 @@ The following can be used in place of `(value)` for `(key) = (value)` commands.
   * `$1|2|3|4`: value has size of 8/16/24/32 bit (optional, defaults to 4)
   * Example: `@0x10:BE$2` means `get big endian 16b value at 0x10`
 - `(field)`: uses current value of some fields. Accepted strings:
-  - `interleave, interleave_last, channels, sample_rate, start_offset, data_size, num_samples, loop_start_sample,  loop_end_sample, subsong_count, subsong_offset, subfile_offset, subfile_size, name_valueX`
+  - `interleave, interleave_last, channels, sample_rate, start_offset, data_size, num_samples, loop_start_sample,  loop_end_sample, subsong_count, subsong_offset, subfile_offset, subfile_size, base_offset, name_valueX`
 - `(other)`: other special values for certain keys, described per key
 
 
@@ -664,6 +664,19 @@ chunk_size      = 0x8000
 num_samples = data_size
 ```
 
+### Base offset chaining
+Some formats read an offset to another part of the file, then another offset, then other, etc.
+
+You can simulate this chaining multiple `base_offset`
+```
+base_offset = @0x10                 #sets at 0x1000
+channels    = @0x04                 #reads at 0x1004
+base_offset = base_offset + @0x10   #sets at 0x1000 + 0x200 = 0x1200
+sample_rate = @0x04                 #reads at 0x1204
+...
+```
+
+
 ## Examples
 
 **Colin McRae DiRT (PC) .wip.txth**
@@ -827,7 +840,7 @@ JIN003.XAG: 0x180
 ```
 
 
-** Grandia (PS1) **
+**Grandia (PS1) bgm.txth**
 ```
 header_file       = GM1.IDX
 body_file         = GM1.STZ
@@ -838,4 +851,81 @@ subsong_offset    = 0x04
 subfile_offset    = (@0x00 & 0xFFFFF) * 0x800
 subfile_extension = seb
 subfile_size      = ((@0x04 - @0x00) & 0xFFFFF) * 0x800
+```
+
+
+**Zack & Wiki (Wii) .ssd.txth**
+```
+header_file = bgm_S01.srt
+name_table = .names.txt
+
+base_offset = @0x0c:BE
+base_offset = base_offset + @0x08:BE + name_value
+base_offset = base_offset + @0x00:BE
+
+codec = NGC_DSP
+channels = 2
+interleave = half_size
+sample_rate = @0x08:BE
+loop_flag = @0x04:BE
+
+sample_type = bytes
+loop_start_sample = @0x10:BE
+loop_end_sample = @0x14:BE
+num_samples = @0x18:BE
+
+coef_offset = 0x20
+coef_spacing = 0x40
+coef_endianness = BE
+```
+*.names.txt*
+```
+st_s01_00a.ssd: 0*0x04
+st_s01_00b.ssd: 1*0x04
+st_s01_00c.ssd: 2*0x04
+st_s01_01a.ssd: 3*0x04
+st_s01_01b.ssd: 4*0x04
+st_s01_02a.ssd: 5*0x04
+st_s01_02b.ssd: 6*0x04
+st_s01_02c.ssd: 7*0x04
+```
+
+
+**Zack & Wiki (Wii) st_s01_00a.txth**
+```
+#alt from above with untouched folders
+header_file = Sound/BGM/bgm_S01.srt
+body_file = snd/stream/st_s01_00a.ssd
+name_table = .names.txt
+
+base_offset = @0x0c:BE
+base_offset = base_offset + @0x08:BE + name_value
+base_offset = base_offset + @0x00:BE
+
+codec = NGC_DSP
+channels = 2
+interleave = half_size
+sample_rate = @0x08:BE
+loop_flag = @0x04:BE
+
+sample_type = bytes
+loop_start_sample = @0x10:BE
+loop_end_sample = @0x14:BE
+num_samples = @0x18:BE
+
+coef_offset = 0x20
+coef_spacing = 0x40
+coef_endianness = BE
+```
+*.names.txt*
+```
+*snd/stream/st_s01_00a.ssd: 0*0x04
+*snd/stream/st_s01_00b.ssd: 1*0x04
+*snd/stream/st_s01_00c.ssd: 2*0x04
+*snd/stream/st_s01_01a.ssd: 3*0x04
+*snd/stream/st_s01_01b.ssd: 4*0x04
+*snd/stream/st_s01_02a.ssd: 5*0x04
+*snd/stream/st_s01_02b.ssd: 6*0x04
+*snd/stream/st_s01_02c.ssd: 7*0x04
+# uses wildcards for full paths from plugins
 ```
