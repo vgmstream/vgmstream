@@ -86,7 +86,10 @@ VGMSTREAM * init_vgmstream_ogg_opus(STREAMFILE *streamFile) {
             else if (strstr(user_comment,"LoopEnd=")==user_comment) { /* LoopStart pair */
                 loop_end = atol(strrchr(user_comment,'=')+1);
             }
-
+            else if (strstr(user_comment, "loops=") == user_comment) { /* The Legend of Heroes: Trails of Cold Steel III (Switch) */
+                sscanf(strrchr(user_comment, '=') + 1, "%d-%d", &loop_start, &loop_end);
+                loop_flag = 1;
+            }
 
             //;VGM_LOG("OggOpus: user_comment=%s\n", user_comment);
             offset += 0x04 + user_comment_size;
