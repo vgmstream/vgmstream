@@ -889,5 +889,6 @@ VGMSTREAM * init_vgmstream_kwb(STREAMFILE* sf);
 VGMSTREAM * init_vgmstream_lrmd(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_bkhd(STREAMFILE* sf);
+VGMSTREAM* init_vgmstream_bkhd_fx(STREAMFILE* sf);
 
 #endif /*_META_H*/

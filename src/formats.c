@@ -1283,6 +1283,7 @@ static const meta_info meta_info_list[] = {
         {meta_TGC,                  "Tiger Game.com .4 header"},
         {meta_KWB,                  "Koei Tecmo WaveBank header"},
         {meta_LRMD,                 "Sony LRMD header"},
+        {meta_WWISE_FX,             "Audiokinetic Wwise FX header"},
 
 };
 
