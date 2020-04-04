@@ -1618,11 +1618,13 @@ static layered_layout_data* build_layered_eaaudiocore(STREAMFILE *sf_data, eaac_
         if ( !vgmstream_open_stream(data->layers[i], temp_sf, 0x00) ) {
             goto fail;
         }
+
+        close_streamfile(temp_sf);
+        temp_sf = NULL;
     }
 
     if (!setup_layout_layered(data))
         goto fail;
-    close_streamfile(temp_sf);
     return data;
 
 fail:
