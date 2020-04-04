@@ -122,6 +122,9 @@
     <ClInclude Include="meta\mta2_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="meta\mul_streamfile.h">
+      <Filter>meta\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="meta\mzrt_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>

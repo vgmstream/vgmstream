@@ -122,6 +122,7 @@
     <ClInclude Include="meta\xnb_streamfile.h" />
     <ClInclude Include="meta\xnb_lz4mg.h" />
     <ClInclude Include="meta\mta2_streamfile.h" />
+    <ClInclude Include="meta\mul_streamfile.h" />
     <ClInclude Include="meta\mzrt_streamfile.h" />
     <ClInclude Include="meta\nus3bank_streamfile.h" />
     <ClInclude Include="meta\ogg_vorbis_streamfile.h" />

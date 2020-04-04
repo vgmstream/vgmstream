@@ -301,6 +301,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\mul_streamfile.h"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\mzrt_streamfile.h"
                     >
                 </File>
