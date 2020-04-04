@@ -232,7 +232,10 @@ static const adxkey_info adxkey9_list[] = {
         {0x2378,0x5511,0x0201, NULL,5613126134333697},      // 0013F11BC5510101
 
         /* Detective Conan Runner / Case Closed Runner (Android) */
-        {0x0613,0x0e3d,0x6dff, NULL,1175268187653273344},      // 104f643098e3f700
+        {0x0613,0x0e3d,0x6dff, NULL,1175268187653273344},   // 104f643098e3f700
+
+        /* Persona 5 Royal (PS4)*/
+        {0x0000,0x1c85,0x1043, NULL,29902882},              // guessed with VGAudio
 
 };
 
