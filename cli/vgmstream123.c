@@ -89,7 +89,9 @@ static ao_option *device_options = NULL;
 static ao_sample_format current_sample_format;
 
 static sample_t *buffer = NULL;
-static int buffer_size_kb = 16;
+/* reportedly 1kb helps Raspberry Pi Zero play FFmpeg formats without stuttering
+ * (presumably other low powered devices too), plus it's the default in other plugins */
+static int buffer_size_kb = 1;
 
 static int repeat = 0;
 static int verbose = 0;
