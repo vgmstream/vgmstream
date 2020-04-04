@@ -167,6 +167,7 @@ void decode_fadpcm(VGMSTREAMCHANNEL *stream, sample_t *outbuf, int channelspacin
 
 /* asf_decoder */
 void decode_asf(VGMSTREAMCHANNEL *stream, sample_t *outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
+int32_t asf_bytes_to_samples(size_t bytes, int channels);
 
 /* dsa_decoder */
 void decode_dsa(VGMSTREAMCHANNEL *stream, sample_t *outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
