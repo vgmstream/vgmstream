@@ -2704,6 +2704,19 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         return 1;
     }
 
+    /* Tom Clancy's Ghost Recon Advanced Warfighter (2006)(Xbox)-bank */
+    if (sb->version == 0x00130004 && sb->platform == UBI_XBOX) {
+        config_sb_entry(sb, 0x48, 0x50);
+
+        config_sb_audio_fb(sb, 0x1c, (1 << 3), (1 << 4), (1 << 10));
+        config_sb_audio_he(sb, 0x3c, 0x34, 0x20, 0x28, 0x44, 0x40);
+
+        /* what */
+        sb->cfg.audio_extra_offset      = 0x10;
+        sb->cfg.audio_stream_offset     = 0x14;
+        return 1;
+    }
+
     /* Prince of Persia: The Two Thrones (2005)(PC)-bank */
     if (sb->version == 0x00150000 && sb->platform == UBI_PC) {
         config_sb_entry(sb, 0x68, 0x78);
