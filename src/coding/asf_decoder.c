@@ -54,3 +54,8 @@ void decode_asf(VGMSTREAMCHANNEL *stream, sample_t *outbuf, int channelspacing, 
     stream->adpcm_history1_32 = hist1;
     stream->adpcm_history2_32 = hist2;
 }
+
+int32_t asf_bytes_to_samples(size_t bytes, int channels) {
+    if (channels <= 0) return 0;
+    return bytes / channels / 0x11 * 32;
+}
