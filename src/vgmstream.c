@@ -58,7 +58,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_ngc_str,
     init_vgmstream_ea_schl,
     init_vgmstream_caf,
-    init_vgmstream_ps2_vpk,
+    init_vgmstream_vpk,
     init_vgmstream_genh,
 #ifdef VGM_USE_VORBIS
     init_vgmstream_ogg_vorbis,

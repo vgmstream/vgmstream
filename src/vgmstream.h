@@ -275,6 +275,7 @@ typedef enum {
     layout_blocked_xa_aiff, /* XA in AIFF files [Crusader: No Remorse (SAT), Road Rash (3DO)] */
     layout_blocked_vs_square,
     layout_blocked_vid1,
+    layout_blocked_ubi_sce,
 
     /* otherwise odd */
     layout_segmented,       /* song divided in segments (song sections) */

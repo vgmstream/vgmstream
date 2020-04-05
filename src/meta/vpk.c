@@ -2,7 +2,7 @@
 #include "../coding/coding.h"
 
 /* VPK - from SCE America second party devs [God of War (PS2), NBA 08 (PS3)] */
-VGMSTREAM * init_vgmstream_ps2_vpk(STREAMFILE *streamFile) {
+VGMSTREAM * init_vgmstream_vpk(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     int loop_flag, channel_count;
     off_t start_offset, loop_channel_offset;
@@ -16,12 +16,14 @@ VGMSTREAM * init_vgmstream_ps2_vpk(STREAMFILE *streamFile) {
     if (read_32bitBE(0x00,streamFile) != 0x204B5056) /* " KPV" */
         goto fail;
 
-    /* seems this consistently has 0x10-0x20 extra bytes, landing in garbage 0xC00000..00 frames at the end */
-    channel_size = read_32bitLE(0x04,streamFile) - 0x20; /* remove for cleaner ends */
+    /* files are padded with garbage/silent 0xC00000..00 frames, and channel_size sometimes
+     * has extra size into the padding: +0x10 (NBA08), +0x20 (GoW), or none (Sly 2, loops ok).
+     * Could detect and remove to slightly improve full loops, but maybe this is just how the game works */
+    channel_size = read_32bitLE(0x04,streamFile);
 
     start_offset = read_32bitLE(0x08,streamFile);
     channel_count = read_32bitLE(0x14,streamFile);
-    /* 0x18+(per channel): channel config(?) */
+    /* 0x18+: channel config(?), 0x04 per channel */
     loop_channel_offset = read_32bitLE(0x7FC,streamFile);
     loop_flag = (loop_channel_offset != 0); /* found in Sly 2/3 */
 
