@@ -668,6 +668,10 @@
                     RelativePath=".\meta\ea_wve_ad10.c"
                     >
                 </File>
+                <File
+                    RelativePath=".\meta\encrypted.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\mul.c"
 					>

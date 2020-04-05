@@ -311,6 +311,7 @@
     <ClCompile Include="meta\ea_eaac.c" />
     <ClCompile Include="meta\ea_wve_au00.c" />
     <ClCompile Include="meta\ea_wve_ad10.c" />
+    <ClCompile Include="meta\encrypted.c" />
     <ClCompile Include="meta\mul.c" />
     <ClCompile Include="meta\exakt_sc.c" />
     <ClCompile Include="meta\ffw.c" />
