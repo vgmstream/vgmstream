@@ -4,12 +4,13 @@
 #include "bnsf_keys.h"
 
 
+#ifdef VGM_USE_G7221
 //#define BNSF_BRUTEFORCE
 #ifdef BNSF_BRUTEFORCE
 static void bruteforce_bnsf_key(STREAMFILE* sf, off_t start, g7221_codec_data* data, uint8_t* best_key);
 #endif
 static void find_bnsf_key(STREAMFILE *sf, off_t start, g7221_codec_data *data, uint8_t *best_key);
-
+#endif
 
 /* BNSF - Bandai Namco Sound Format/File [Tales of Graces (Wii), Tales of Berseria (PS4)] */
 VGMSTREAM * init_vgmstream_bnsf(STREAMFILE *streamFile) {
@@ -126,6 +127,7 @@ fail:
     return NULL;
 }
 
+#ifdef VGM_USE_G7221
 static inline void test_key(STREAMFILE* sf, off_t start, g7221_codec_data* data, const char* key, int keylen, int* p_best_score, uint8_t* p_best_key) {
     uint8_t tmpkey[24];
     int score;
@@ -218,4 +220,6 @@ static void bruteforce_bnsf_key(STREAMFILE* sf, off_t start, g7221_codec_data* d
 
     close_streamfile(sf_keys);
 }
+#endif
+
 #endif
