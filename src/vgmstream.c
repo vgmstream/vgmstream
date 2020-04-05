@@ -1109,6 +1109,7 @@ void render_vgmstream(sample_t * buffer, int32_t sample_count, VGMSTREAM * vgmst
         case layout_blocked_xa_aiff:
         case layout_blocked_vs_square:
         case layout_blocked_vid1:
+        case layout_blocked_ubi_sce:
             render_vgmstream_blocked(buffer,sample_count,vgmstream);
             break;
         case layout_segmented:
@@ -1947,7 +1948,7 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
         case coding_UBI_IMA:
             for (ch = 0; ch < vgmstream->channels; ch++) {
                 decode_ubi_ima(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
-                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do, ch);
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do, ch, vgmstream->codec_config);
             }
             break;
         case coding_H4M_IMA:

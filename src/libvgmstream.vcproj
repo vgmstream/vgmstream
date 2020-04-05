@@ -2390,10 +2390,14 @@
 					RelativePath=".\layout\blocked_thp.c"
 					>
 				</File>
-				<File
-					RelativePath=".\layout\blocked_tra.c"
-					>
-				</File>
+                <File
+                    RelativePath=".\layout\blocked_tra.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\layout\blocked_ubi_sce.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\layout\blocked_vs.c"
 					>

@@ -173,6 +173,7 @@
     <ClCompile Include="layout\blocked_vs_str.c" />
     <ClCompile Include="layout\layered.c" />
     <ClCompile Include="layout\blocked_tra.c" />
+    <ClCompile Include="layout\blocked_ubi_sce.c" />
     <ClCompile Include="meta\akb.c" />
     <ClCompile Include="meta\awb.c" />
     <ClCompile Include="meta\awc.c" />

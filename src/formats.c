@@ -727,7 +727,6 @@ static const coding_info coding_info_list[] = {
         {coding_REF_IMA,            "Reflections 4-bit IMA ADPCM"},
         {coding_AWC_IMA,            "Rockstar AWC 4-bit IMA ADPCM"},
         {coding_UBI_IMA,            "Ubisoft 4-bit IMA ADPCM"},
-
         {coding_H4M_IMA,            "Hudson HVQM4 4-bit IMA ADPCM"},
 
         {coding_MSADPCM,            "Microsoft 4-bit ADPCM"},
@@ -850,6 +849,7 @@ static const layout_info layout_info_list[] = {
         {layout_blocked_xa_aiff,        "blocked (XA AIFF)"},
         {layout_blocked_vs_square,      "blocked (Square VS)"},
         {layout_blocked_vid1,           "blocked (VID1)"},
+        {layout_blocked_ubi_sce,        "blocked (Ubi SCE)"},
 };
 
 static const meta_info meta_info_list[] = {

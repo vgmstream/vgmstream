@@ -1492,6 +1492,9 @@
     <ClCompile Include="layout\blocked_tra.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="layout\blocked_ubi_sce.c">
+      <Filter>layout\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="coding\lsf_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
