@@ -122,6 +122,9 @@
     <ClInclude Include="meta\mta2_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="meta\mul_streamfile.h">
+      <Filter>meta\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="meta\mzrt_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
@@ -446,6 +449,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ea_wve_ad10.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\encrypted.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\mul.c">
@@ -1487,6 +1493,9 @@
       <Filter>layout\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="layout\blocked_tra.c">
+      <Filter>layout\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="layout\blocked_ubi_sce.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\lsf_decoder.c">

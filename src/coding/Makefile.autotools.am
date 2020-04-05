@@ -10,6 +10,8 @@ libcoding_la_LDFLAGS =
 libcoding_la_SOURCES = (auto-updated)
 EXTRA_DIST = (auto-updated)
 
+AM_CFLAGS += -DVGM_USE_G7221
+
 if HAVE_VORBIS
 if HAVE_VORBISFILE
 AM_CFLAGS += -DVGM_USE_VORBIS

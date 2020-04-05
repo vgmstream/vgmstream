@@ -1009,8 +1009,9 @@ void decode_awc_ima(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspa
 
 
 /* DVI stereo/mono with some mini header and sample output */
-void decode_ubi_ima(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
+void decode_ubi_ima(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel, int codec_config) {
     int i, sample_count = 0;
+    int has_header = (codec_config & 0x80) == 0;
 
     int32_t hist1 = stream->adpcm_history1_32;
     int step_index = stream->adpcm_step_index;
@@ -1018,7 +1019,7 @@ void decode_ubi_ima(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspa
     //internal interleave
 
     //header in the beginning of the stream
-    if (stream->channel_start_offset == stream->offset) {
+    if (has_header && stream->channel_start_offset == stream->offset) {
         int version, big_endian, header_samples, max_samples_to_do;
         int16_t (*read_16bit)(off_t,STREAMFILE*) = NULL;
         off_t offset = stream->offset;
@@ -1051,8 +1052,12 @@ void decode_ubi_ima(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspa
         }
     }
 
+    if (has_header) {
+        first_sample -= 10; //todo fix hack (needed to adjust nibble offset below)
+    }
 
-    first_sample -= 10; //todo fix hack (needed to adjust nibble offset below)
+    if (step_index < 0) step_index=0;
+    if (step_index > 88) step_index=88;
 
     for (i = first_sample; i < first_sample + samples_to_do; i++, sample_count += channelspacing) {
         off_t byte_offset = channelspacing == 1 ?

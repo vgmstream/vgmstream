@@ -139,10 +139,14 @@ as explained below, but often will use default values. Accepted codec strings:
 # - PCM4_U         PCM 4-bit unsigned
 #   * Variation with modified encoding
 # - OKI16          OKI ADPCM with 16-bit output (not VOX/Dialogic 12-bit)
-#   * For few PS2 games (Sweet Legacy, Hooligan)
+#   * For rare PS2 games (Sweet Legacy, Hooligan)
 # - AAC            Advanced Audio Coding (raw without .mp4)
 #   * For some 3DS games and many iOS games
 #   * Should set skip_samples (around 1024 but varies)
+# - TGC            Tiger Game.com 4-bit ADPCM
+#   * For Tiger Game.com
+# - ASF            Argonaut ASF ADPCM
+#   * For rare Argonaut games [Croc (SAT)]
 codec = (codec string)
 ```
 
@@ -679,7 +683,7 @@ sample_rate = @0x04                 #reads at 0x1204
 
 ## Examples
 
-**Colin McRae DiRT (PC) .wip.txth**
+#### Colin McRae DiRT (PC) .wip.txth
 ```
 id_value = 0x00000000   #check that value at 0x00 is really 0x00000000
 id_offset = @0x00:BE
@@ -693,7 +697,7 @@ loop_start_sample = 0
 loop_end_sample = data_size
 ```
 
-**Kim Possible: What's the Switch (PS2) .str.txth**
+#### Kim Possible: What's the Switch (PS2) .str.txth
 ```
 codec = PSX
 interleave = 0x2000
@@ -703,7 +707,7 @@ num_samples = data_size
 interleave_last = auto
 ```
 
-**Manhunt (Xbox) .rib.txth**
+#### Manhunt (Xbox) .rib.txth
 ```
 codec = XBOX
 codec_mode = 1 #interleaved XBOX
@@ -715,7 +719,7 @@ start_offset = 0x00
 num_samples = data_size
 ```
 
-**Pitfall The Lost Expedition (PC) .txth**
+#### Pitfall The Lost Expedition (PC) .txth
 ```
 codec = DVI_IMA
 interleave = 0x80
@@ -725,7 +729,7 @@ sample_rate = 44100
 num_samples = data_size
 ```
 
-**Spy Hunter (GC) .pcm.txth**
+#### Spy Hunter (GC) .pcm.txth
 ```
 codec = PCM8
 sample_rate = 32000
@@ -734,7 +738,7 @@ start_offset = 0
 num_samples = data_size
 ```
 
-**Ultimate Board Game Collection (Wii) .dsp.txth**
+#### Ultimate Board Game Collection (Wii) .dsp.txth
 ```
 codec = NGC_DSP
 interleave = 0x10000
@@ -753,7 +757,8 @@ coef_offset = 0x1c
 coef_spacing = 0x10000
 coef_endianness = BE
 ```
-**Aladdin in Nasira's Revenge (PS1) .cvs.txth**
+
+#### Aladdin in Nasira's Revenge (PS1) .cvs.txth
 ```
 codec = PSX
 interleave = 0x10
@@ -763,7 +768,7 @@ padding_size = auto-empty
 num_samples = data_size
 ```
 
-**Shikigami no Shiro - Nanayozuki Gensoukyoku (PS2) bgm.txth**
+#### Shikigami no Shiro - Nanayozuki Gensoukyoku (PS2) bgm.txth
 ```
 codec = PSX
 interleave = 0x1000
@@ -790,7 +795,7 @@ loop_end_sample   = @0x10 * channels
 data_size         = @0x08 * channels  #for bitrate
 ```
 
-**Dragon Poker (Mobile) .snd.txth**
+#### Dragon Poker (Mobile) .snd.txth
 ```
 # parse MP3 inside the .snd
 subfile_extension = mp3
@@ -805,7 +810,7 @@ loop_start_sample = 0
 loop_end_sample = data_size
 ```
 
-**Simple 2000 Series Vol. 120 - The Saigo no Nihonhei (PS2) .xag.txth**
+#### Simple 2000 Series Vol. 120 - The Saigo no Nihonhei (PS2) .xag.txth
 ```
 header_file = TSNDDRVC.IRX
 
@@ -853,15 +858,14 @@ subfile_extension = seb
 subfile_size      = ((@0x04 - @0x00) & 0xFFFFF) * 0x800
 ```
 
-
-**Zack & Wiki (Wii) .ssd.txth**
+#### Zack & Wiki (Wii) .ssd.txth
 ```
 header_file = bgm_S01.srt
 name_table = .names.txt
 
 base_offset = @0x0c:BE
 base_offset = base_offset + @0x08:BE + name_value
-base_offset = base_offset + @0x00:BE
+base_offset = base_offset + @0x00:BE - name_value
 
 codec = NGC_DSP
 channels = 2
@@ -891,7 +895,7 @@ st_s01_02c.ssd: 7*0x04
 ```
 
 
-**Zack & Wiki (Wii) st_s01_00a.txth**
+#### Zack & Wiki (Wii) st_s01_00a.txth
 ```
 #alt from above with untouched folders
 header_file = Sound/BGM/bgm_S01.srt
@@ -900,7 +904,7 @@ name_table = .names.txt
 
 base_offset = @0x0c:BE
 base_offset = base_offset + @0x08:BE + name_value
-base_offset = base_offset + @0x00:BE
+base_offset = base_offset + @0x00:BE - name_value
 
 codec = NGC_DSP
 channels = 2
@@ -928,4 +932,12 @@ coef_endianness = BE
 *snd/stream/st_s01_02b.ssd: 6*0x04
 *snd/stream/st_s01_02c.ssd: 7*0x04
 # uses wildcards for full paths from plugins
+```
+
+####  Croc (SAT) .asf.txth
+```
+codec = ASF
+sample_rate = 22050
+channels = 2
+num_samples = data_size
 ```

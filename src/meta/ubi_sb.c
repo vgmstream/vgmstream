@@ -7,7 +7,7 @@
 #define SB_MAX_LAYER_COUNT 16  /* arbitrary max */
 #define SB_MAX_CHAIN_COUNT 256 /* +150 exist in Tonic Trouble */
 
-typedef enum { UBI_IMA, UBI_ADPCM, RAW_PCM, RAW_PSX, RAW_DSP, RAW_XBOX, FMT_VAG, FMT_AT3, RAW_AT3, FMT_XMA1, RAW_XMA1, FMT_OGG, FMT_CWAV, FMT_APM, FMT_MPDX } ubi_sb_codec;
+typedef enum { UBI_IMA, UBI_ADPCM, RAW_PCM, RAW_PSX, RAW_DSP, RAW_XBOX, FMT_VAG, FMT_AT3, RAW_AT3, FMT_XMA1, RAW_XMA1, FMT_OGG, FMT_CWAV, FMT_APM, FMT_MPDX, UBI_IMA_SCE } ubi_sb_codec;
 typedef enum { UBI_PC, UBI_PS2, UBI_XBOX, UBI_GC, UBI_X360, UBI_PSP, UBI_PS3, UBI_WII, UBI_3DS } ubi_sb_platform;
 typedef enum { UBI_NONE = 0, UBI_AUDIO, UBI_LAYER, UBI_SEQUENCE, UBI_SILENCE } ubi_sb_type;
 
@@ -494,6 +494,16 @@ static VGMSTREAM * init_vgmstream_ubi_sb_base(ubi_sb_header *sb, STREAMFILE *str
         case UBI_IMA:
             vgmstream->coding_type = coding_UBI_IMA;
             vgmstream->layout_type = layout_none;
+            break;
+
+        case UBI_IMA_SCE:
+            vgmstream->coding_type = coding_UBI_IMA;
+            vgmstream->layout_type = layout_blocked_ubi_sce;
+            vgmstream->full_block_size = read_32bitLE(0x18, streamData);
+
+            /* this "codec" is an ugly hack of IMA w/ Ubi ADPCM's frame format, surely to
+             * shoehorn a simpler codec into the existing code when porting the game */
+            start_offset += 0x08 + 0x30; /* skip Ubi ADPCM header */
             break;
 
         case UBI_ADPCM:
@@ -1553,10 +1563,9 @@ static int parse_stream_codec(ubi_sb_header * sb) {
                     case UBI_PS3:
                         sb->codec = RAW_PSX; /* PS3 */
                         break;
-                    case UBI_PSP:
-                        /* TODO: IMA using Ubisoft ADPCM frame layout [Splinter Cell: Essentials (PSP)] */
-                        VGM_LOG("UBI SB: Unimplemented custom IMA codec.\n");
-                        goto fail;
+                    case UBI_PSP: /* Splinter Cell: Essentials (PSP) */
+                        sb->codec = UBI_IMA_SCE;
+                        break;
                     default:
                         sb->codec = UBI_ADPCM;
                         break;
@@ -2701,6 +2710,19 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
 
         sb->cfg.is_padded_section1_offset = 1;
         sb->cfg.is_padded_sounds_offset = 1;
+        return 1;
+    }
+
+    /* Tom Clancy's Ghost Recon Advanced Warfighter (2006)(Xbox)-bank */
+    if (sb->version == 0x00130004 && sb->platform == UBI_XBOX) {
+        config_sb_entry(sb, 0x48, 0x50);
+
+        config_sb_audio_fb(sb, 0x1c, (1 << 3), (1 << 4), (1 << 10));
+        config_sb_audio_he(sb, 0x3c, 0x34, 0x20, 0x28, 0x44, 0x40);
+
+        /* what */
+        sb->cfg.audio_extra_offset      = 0x10;
+        sb->cfg.audio_stream_offset     = 0x14;
         return 1;
     }
 

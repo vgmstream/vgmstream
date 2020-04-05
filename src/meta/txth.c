@@ -36,7 +36,8 @@ typedef enum {
     PCM4_U = 26,        /* 4-bit unsigned PCM (3rd and 4th gen games) */
     OKI16 = 27,         /* OKI ADPCM with 16-bit output (unlike OKI/VOX/Dialogic ADPCM's 12-bit) */
     AAC = 28,           /* Advanced Audio Coding (raw without .mp4) */
-    TGC = 29            /* Tiger Game.com 4-bit ADPCM */
+    TGC = 29,           /* Tiger Game.com 4-bit ADPCM */
+    ASF = 30,           /* Argonaut ASF 4-bit ADPCM */
 } txth_type;
 
 typedef struct {
@@ -223,6 +224,7 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
         case PCM4_U:     coding = coding_PCM4_U; break;
         case OKI16:      coding = coding_OKI16; break;
         case TGC:        coding = coding_TGC; break;
+        case ASF:        coding = coding_ASF; break;
         default:
             goto fail;
     }
@@ -332,6 +334,11 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
 
         case coding_OKI16:
             vgmstream->layout_type = layout_none;
+            break;
+
+        case coding_ASF:
+            vgmstream->layout_type = layout_interleave;
+            vgmstream->interleave_block_size = 0x11;
             break;
 
         case coding_MS_IMA:
@@ -450,7 +457,7 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
             }
             else {
                 /* fake header FFmpeg */
-                uint8_t buf[200];
+                uint8_t buf[0x100];
                 int32_t bytes;
 
                 if (txth.codec == ATRAC3) {
@@ -465,14 +472,14 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
                 else if (txth.codec == ATRAC3PLUS) {
                     int block_size = txth.interleave;
 
-                    bytes = ffmpeg_make_riff_atrac3plus(buf, 200, vgmstream->num_samples, txth.data_size, vgmstream->channels, vgmstream->sample_rate, block_size, txth.skip_samples);
+                    bytes = ffmpeg_make_riff_atrac3plus(buf, sizeof(buf), vgmstream->num_samples, txth.data_size, vgmstream->channels, vgmstream->sample_rate, block_size, txth.skip_samples);
                     ffmpeg_data = init_ffmpeg_header_offset(txth.streamBody, buf,bytes, txth.start_offset,txth.data_size);
                     if ( !ffmpeg_data ) goto fail;
                 }
                 else if (txth.codec == XMA1) {
                     int xma_stream_mode = txth.codec_mode == 1 ? 1 : 0;
 
-                    bytes = ffmpeg_make_riff_xma1(buf, 100, vgmstream->num_samples, txth.data_size, vgmstream->channels, vgmstream->sample_rate, xma_stream_mode);
+                    bytes = ffmpeg_make_riff_xma1(buf, sizeof(buf), vgmstream->num_samples, txth.data_size, vgmstream->channels, vgmstream->sample_rate, xma_stream_mode);
                     ffmpeg_data = init_ffmpeg_header_offset(txth.streamBody, buf,bytes, txth.start_offset,txth.data_size);
                     if ( !ffmpeg_data ) goto fail;
                 }
@@ -482,7 +489,7 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
                     block_size = txth.interleave ? txth.interleave : 2048;
                     block_count = txth.data_size / block_size;
 
-                    bytes = ffmpeg_make_riff_xma2(buf, 200, vgmstream->num_samples, txth.data_size, vgmstream->channels, vgmstream->sample_rate, block_count, block_size);
+                    bytes = ffmpeg_make_riff_xma2(buf, sizeof(buf), vgmstream->num_samples, txth.data_size, vgmstream->channels, vgmstream->sample_rate, block_count, block_size);
                     ffmpeg_data = init_ffmpeg_header_offset(txth.streamBody, buf,bytes, txth.start_offset,txth.data_size);
                     if ( !ffmpeg_data ) goto fail;
                 }
@@ -848,6 +855,7 @@ static int parse_keyval(STREAMFILE * streamFile_, txth_header * txth, const char
         else if (is_string(val,"AAC"))          txth->codec = AAC;
         else if (is_string(val,"TGC"))          txth->codec = TGC;
         else if (is_string(val,"GCOM_ADPCM"))   txth->codec = TGC;
+        else if (is_string(val,"ASF"))          txth->codec = ASF;
         else goto fail;
 
         /* set common interleaves to simplify usage
@@ -1730,6 +1738,8 @@ static int get_bytes_to_samples(txth_header * txth, uint32_t bytes) {
 #endif
         case AC3:
             return ac3_bytes_to_samples(bytes, txth->interleave, txth->channels);
+        case ASF:
+            return asf_bytes_to_samples(bytes, txth->channels);
 
         /* XMA bytes-to-samples is done at the end as the value meanings are a bit different */
         case XMA1:

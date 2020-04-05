@@ -1007,11 +1007,14 @@ fail:
     if (buf) buf[0] = '\0';
     return 0;
 }
-size_t read_string_utf16le(char *buf, size_t buf_size, off_t offset, STREAMFILE *sf) {
+
+size_t read_string_utf16(char *buf, size_t buf_size, off_t offset, STREAMFILE *sf, int big_endian) {
     size_t pos, offpos;
+    uint16_t (*read_u16)(off_t,STREAMFILE*) = big_endian ? read_u16be : read_u16le;
+
 
     for (pos = 0, offpos = 0; pos < buf_size; pos++, offpos += 2) {
-        char c = read_u16le(offset + offpos, sf) & 0xFF; /* lower byte for now */
+        char c = read_u16(offset + offpos, sf) & 0xFF; /* lower byte for now */
         if (buf) buf[pos] = c;
         if (c == '\0')
             return pos;
@@ -1026,6 +1029,13 @@ size_t read_string_utf16le(char *buf, size_t buf_size, off_t offset, STREAMFILE 
 fail:
     if (buf) buf[0] = '\0';
     return 0;
+}
+
+size_t read_string_utf16le(char* buf, size_t buf_size, off_t offset, STREAMFILE* sf) {
+    return read_string_utf16(buf, buf_size, offset, sf, 0);
+}
+size_t read_string_utf16be(char* buf, size_t buf_size, off_t offset, STREAMFILE* sf) {
+    return read_string_utf16(buf, buf_size, offset, sf, 1);
 }
 
 

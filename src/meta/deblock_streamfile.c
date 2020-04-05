@@ -13,6 +13,7 @@ static void block_callback_default(STREAMFILE *sf, deblock_io_data *data) {
 static size_t deblock_io_read(STREAMFILE *sf, uint8_t *dest, off_t offset, size_t length, deblock_io_data* data) {
     size_t total_read = 0;
 
+    //;VGM_LOG("DEBLOCK: of=%lx, sz=%x, po=%lx\n", offset, length, data->physical_offset);
 
     /* re-start when previous offset (can't map logical<>physical offsets) */
     if (data->logical_offset < 0 || offset < data->logical_offset) {
@@ -81,11 +82,11 @@ static size_t deblock_io_read(STREAMFILE *sf, uint8_t *dest, off_t offset, size_
             data->data_size = 0;
 
             data->step_count = data->cfg.step_count;
-            //VGM_LOG("ignore at %lx + %lx, skips=%i, reads=%i\n", data->physical_offset, data->block_size, data->step_count, data->read_count);
+            //VGM_LOG("ignore at %lx + %lx, skips=%i\n", data->physical_offset, data->block_size, data->step_count);
             continue;
         }
 
-        //VGM_LOG("accept at %lx + %lx, skips=%i, reads=%i\n", data->physical_offset, data->block_size, data->step_count, data->read_count);
+        //;VGM_LOG("accept at %lx + %lx, skips=%i\n", data->physical_offset, data->block_size, data->step_count);
 
         /* read block data */
         {

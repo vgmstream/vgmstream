@@ -58,7 +58,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_ngc_str,
     init_vgmstream_ea_schl,
     init_vgmstream_caf,
-    init_vgmstream_ps2_vpk,
+    init_vgmstream_vpk,
     init_vgmstream_genh,
 #ifdef VGM_USE_VORBIS
     init_vgmstream_ogg_vorbis,
@@ -491,9 +491,11 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_kwb,
     init_vgmstream_lrmd,
     init_vgmstream_bkhd,
+    init_vgmstream_bkhd_fx,
 
     /* lowest priority metas (should go after all metas, and TXTH should go before raw formats) */
     init_vgmstream_txth,            /* proper parsers should supersede TXTH, once added */
+    init_vgmstream_encrypted,       /* encrypted stuff */
     init_vgmstream_raw_int,         /* .int raw PCM */
     init_vgmstream_ps_headerless,   /* tries to detect a bunch of PS-ADPCM formats */
     init_vgmstream_raw_snds,        /* .snds raw SNDS IMA (*after* ps_headerless) */
@@ -1108,6 +1110,7 @@ void render_vgmstream(sample_t * buffer, int32_t sample_count, VGMSTREAM * vgmst
         case layout_blocked_xa_aiff:
         case layout_blocked_vs_square:
         case layout_blocked_vid1:
+        case layout_blocked_ubi_sce:
             render_vgmstream_blocked(buffer,sample_count,vgmstream);
             break;
         case layout_segmented:
@@ -1946,7 +1949,7 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
         case coding_UBI_IMA:
             for (ch = 0; ch < vgmstream->channels; ch++) {
                 decode_ubi_ima(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
-                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do, ch);
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do, ch, vgmstream->codec_config);
             }
             break;
         case coding_H4M_IMA:
