@@ -336,7 +336,9 @@ size_t read_line(char *buf, int buf_size, off_t offset, STREAMFILE *sf, int *p_l
 /* reads a c-string (ANSI only), up to bufsize or NULL, returning size. buf is optional (works as get_string_size). */
 size_t read_string(char *buf, size_t buf_size, off_t offset, STREAMFILE *sf);
 /* reads a UTF16 string... but actually only as ANSI (discards the upper byte) */
-size_t read_string_utf16le(char *buf, size_t buf_size, off_t offset, STREAMFILE *sf);
+size_t read_string_utf16(char* buf, size_t buf_size, off_t offset, STREAMFILE* sf, int big_endian);
+size_t read_string_utf16le(char* buf, size_t buf_size, off_t offset, STREAMFILE* sf);
+size_t read_string_utf16be(char* buf, size_t buf_size, off_t offset, STREAMFILE* sf);
 
 /* Opens a file containing decryption keys and copies to buffer.
  * Tries "(name.ext)key" (per song), "(.ext)key" (per folder) keynames.
