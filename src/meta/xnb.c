@@ -145,7 +145,9 @@ VGMSTREAM* init_vgmstream_xnb(STREAMFILE* sf) {
         if (!temp_sf) goto fail;
 
         if (is_ogg) {
+#ifdef VGM_USE_VORBIS
             vgmstream = init_vgmstream_ogg_vorbis(temp_sf);
+#endif
         } else {
             vgmstream = init_vgmstream_riff(temp_sf);
         }
