@@ -773,36 +773,36 @@ fail:
 
 /* EA Harmony Sample Bank - used in 8th gen EA Sports games */
 VGMSTREAM * init_vgmstream_ea_sbr_harmony(STREAMFILE *streamFile) {
-    uint32_t num_dsets, set_sounds, chunk_id;
-    uint32_t i;
+    uint32_t num_dsets, set_sounds, chunk_id, data_offset, table_offset, dset_offset, base_offset, sound_table_offset, sound_offset;
+    uint32_t i, j;
     uint8_t set_type, flag, offset_size;
-    off_t data_offset, table_offset, dset_offset, base_offset, sound_table_offset, sound_offset;
+    char sound_name[STREAM_NAME_SIZE];
     STREAMFILE *sbsFile = NULL, *streamData = NULL;
     VGMSTREAM *vgmstream = NULL;
     int target_stream = streamFile->stream_index, total_sounds, local_target, is_streamed = 0;
-    int32_t(*read_32bit)(off_t, STREAMFILE*);
-    int16_t(*read_16bit)(off_t, STREAMFILE*);
+    uint32_t(*read_u32)(off_t, STREAMFILE*);
+    uint16_t(*read_u16)(off_t, STREAMFILE*);
 
     if (!check_extensions(streamFile, "sbr"))
         goto fail;
 
+    /* Logically, big endian version starts with SBbe. However, this format is
+     * only used on 8th gen systems so far so big endian version probably doesn't exist. */
     if (read_32bitBE(0x00, streamFile) == 0x53426C65) { /* "SBle" */
-        read_32bit = read_32bitLE;
-        read_16bit = read_16bitLE;
-        /* Logically, big endian version starts with SBbe. However, this format is
-         * only used on 8th gen systems so far so big endian version probably doesn't exist. */
+        read_u32 = read_u32le;
+        read_u16 = read_u16le;
 #if 0
     } else if (read_32bitBE(0x00, streamFile) == 0x53426265) { /* "SBbe" */
-        read_32bit = read_32bitBE;
-        read_16bit = read_16bitBE;
+        read_32bit = read_u32be;
+        read_16bit = read_u16be;
 #endif
     } else {
         goto fail;
     }
 
-    num_dsets = read_16bit(0x0a, streamFile);
-    data_offset = read_32bit(0x20, streamFile);
-    table_offset = read_32bit(0x24, streamFile);
+    num_dsets = read_u16(0x0a, streamFile);
+    data_offset = read_u32(0x20, streamFile);
+    table_offset = read_u32(0x24, streamFile);
 
     if (target_stream == 0) target_stream = 1;
     if (target_stream < 0)
@@ -814,23 +814,24 @@ VGMSTREAM * init_vgmstream_ea_sbr_harmony(STREAMFILE *streamFile) {
     /* The bank is split into DSET sections each of which references one or multiple sounds. */
     /* Each set can contain RAM sounds (stored in SBR in data section) or streamed sounds (stored separately in SBS file). */
     for (i = 0; i < num_dsets; i++) {
-        dset_offset = read_32bit(table_offset + 0x08 * i, streamFile);
-        if (read_32bit(dset_offset, streamFile) != 0x44534554) /* "DSET" */
+        dset_offset = read_u32(table_offset + 0x08 * i, streamFile);
+        if (read_u32(dset_offset, streamFile) != 0x44534554) /* "DSET" */
             goto fail;
 
-        set_sounds = read_32bit(dset_offset + 0x38, streamFile);
+        set_sounds = read_u32(dset_offset + 0x38, streamFile);
         local_target = target_stream - total_sounds - 1;
         dset_offset += 0x48;
 
         /* Find RAM or OFF chunk */
         while(1) {
-            chunk_id = read_32bit(dset_offset, streamFile);
+            chunk_id = read_u32(dset_offset, streamFile);
             if (chunk_id == 0x2E52414D) { /* ".RAM" */
                 break;
             } else if (chunk_id == 0x2E4F4646) { /* ".OFF" */
                 break;
             } else if (chunk_id == 0x2E4C4452 || /* ".LDR" */
                 chunk_id == 0x2E4F424A || /* ".OBJ" */
+                chunk_id == 0x2E445552 || /* ".DUR" */
                 (chunk_id & 0xFF00FFFF) == 0x2E00534C) { /* ".?SL */
                 dset_offset += 0x18;
             } else {
@@ -839,58 +840,75 @@ VGMSTREAM * init_vgmstream_ea_sbr_harmony(STREAMFILE *streamFile) {
         }
 
         /* Different set types store offsets differently */
-        set_type = read_8bit(dset_offset + 0x05, streamFile);
+        set_type = read_u8(dset_offset + 0x05, streamFile);
 
         if (set_type == 0x00) {
             total_sounds++;
             if (local_target < 0 || local_target > 0)
                 continue;
 
-            sound_offset = read_32bit(dset_offset + 0x08, streamFile);
+            sound_offset = read_u32(dset_offset + 0x08, streamFile);
         } else if (set_type == 0x01) {
             total_sounds += 2;
             if (local_target < 0 || local_target > 1)
                 continue;
 
-            base_offset = read_32bit(dset_offset + 0x08, streamFile);
+            base_offset = read_u32(dset_offset + 0x08, streamFile);
 
             if (local_target == 0) {
                 sound_offset = base_offset;
             } else {
-                sound_offset = base_offset + (uint16_t)read_16bit(dset_offset + 0x06, streamFile);
+                sound_offset = base_offset + read_u16(dset_offset + 0x06, streamFile);
             }
-        } else if (set_type == 0x02 || set_type == 0x03) {
-            flag = read_8bit(dset_offset + 0x06, streamFile);
-            offset_size = read_8bit(dset_offset + 0x07, streamFile);
-            base_offset = read_32bit(dset_offset + 0x08, streamFile);
-            sound_table_offset = read_32bit(dset_offset + 0x10, streamFile);
-
-            if (offset_size == 0x04 && flag != 0x00) {
-                set_sounds = base_offset;
-            }
+        } else if (set_type == 0x02) {
+            flag = read_u8(dset_offset + 0x06, streamFile);
+            offset_size = read_u8(dset_offset + 0x07, streamFile);
+            base_offset = read_u32(dset_offset + 0x08, streamFile);
+            sound_table_offset = read_u32(dset_offset + 0x10, streamFile);
 
             total_sounds += set_sounds;
             if (local_target < 0 || local_target >= set_sounds)
                 continue;
 
-            if (offset_size == 0x02) {
-                sound_offset = (uint16_t)read_16bit(sound_table_offset + 0x02 * local_target, streamFile);
-                if (flag != 0x00) sound_offset *= (off_t)pow(2, flag);
-                sound_offset += base_offset;
+            if (offset_size == 0x01) {
+                sound_offset = read_u8(sound_table_offset + 0x01 * local_target, streamFile);
+                for (j = 0; j < flag; j++) sound_offset *= 2;
+            } else if (offset_size == 0x02) {
+                sound_offset = read_u16(sound_table_offset + 0x02 * local_target, streamFile);
+                for (j = 0; j < flag; j++) sound_offset *= 2;
             } else if (offset_size == 0x04) {
-                sound_offset = read_32bit(sound_table_offset + 0x04 * local_target, streamFile);
-                if (flag == 0x00) sound_offset += base_offset;
+                sound_offset = read_u32(sound_table_offset + 0x04 * local_target, streamFile);
+            }
+
+            sound_offset += base_offset;
+        } else if (set_type == 0x03) {
+            offset_size = read_u8(dset_offset + 0x07, streamFile);
+            set_sounds = read_u32(dset_offset + 0x08, streamFile);
+            sound_table_offset = read_u32(dset_offset + 0x10, streamFile);
+
+            total_sounds += set_sounds;
+            if (local_target < 0 || local_target >= set_sounds)
+                continue;
+
+            if (offset_size == 0x01) {
+                sound_offset = read_u8(sound_table_offset + 0x01 * local_target, streamFile);
+            } else if (offset_size == 0x02) {
+                sound_offset = read_u16(sound_table_offset + 0x02 * local_target, streamFile);
+            } else if (offset_size == 0x04) {
+                sound_offset = read_u32(sound_table_offset + 0x04 * local_target, streamFile);
             }
         } else if (set_type == 0x04) {
             total_sounds += set_sounds;
             if (local_target < 0 || local_target >= set_sounds)
                 continue;
 
-            sound_table_offset = read_32bit(dset_offset + 0x10, streamFile);
-            sound_offset = read_32bit(sound_table_offset + 0x08 * local_target, streamFile);
+            sound_table_offset = read_u32(dset_offset + 0x10, streamFile);
+            sound_offset = read_u32(sound_table_offset + 0x08 * local_target, streamFile);
         } else {
             goto fail;
         }
+
+        snprintf(sound_name, STREAM_NAME_SIZE, "DSET %02d/%04d", i, local_target);
 
         if (chunk_id == 0x2E52414D) { /* ".RAM" */
             is_streamed = 0;
@@ -931,6 +949,7 @@ VGMSTREAM * init_vgmstream_ea_sbr_harmony(STREAMFILE *streamFile) {
         goto fail;
 
     vgmstream->num_streams = total_sounds;
+    strncpy(vgmstream->stream_name, sound_name, STREAM_NAME_SIZE);
     close_streamfile(sbsFile);
     return vgmstream;
 
