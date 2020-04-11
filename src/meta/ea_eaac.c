@@ -1343,17 +1343,13 @@ static size_t calculate_eaac_size(STREAMFILE *streamFile, eaac_header *ea, uint3
         stream_size += block_size;
         block_offset += block_size;
 
-        /* RAM data only consists of one block */
-        if (is_ram)
-            break;
-
-        if (ea->version == EAAC_VERSION_V0 && block_id == EAAC_BLOCKID0_END) {
-            if (ea->loop_offset > 0) {
-                if (!looped) looped = 1;
-                else break;
-            } else {
-                break;
-            }
+        if (is_ram) {
+            /* RAM data only consists of one block (two for looped sounds) */
+            if (ea->loop_start > 0 && !looped) looped = 1;
+            else break;
+        } else if (ea->version == EAAC_VERSION_V0 && block_id == EAAC_BLOCKID0_END) {
+            if (ea->loop_offset > 0 && !looped) looped = 1;
+            else break;
         }
     }
 
