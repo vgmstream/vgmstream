@@ -1,3 +1,4 @@
+#include <math.h>
 #include "coding.h"
 
 /* Relic Codec decoder, a fairly simple mono-interleave DCT-based codec.

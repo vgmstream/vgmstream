@@ -6,7 +6,7 @@
 #ifdef HCA_BRUTEFORCE
 static void bruteforce_hca_key(STREAMFILE* sf, hca_codec_data* hca_data, unsigned long long* out_keycode, uint16_t subkey);
 #endif
-static void find_hca_key(hca_codec_data * hca_data, unsigned long long * out_keycode, uint16_t subkey);
+static void find_hca_key(hca_codec_data* hca_data, uint64_t* p_keycode, uint16_t subkey);
 
 
 /* CRI HCA - streamed audio from CRI ADX2/Atom middleware */
@@ -17,7 +17,6 @@ VGMSTREAM * init_vgmstream_hca(STREAMFILE *streamFile) {
 VGMSTREAM * init_vgmstream_hca_subkey(STREAMFILE *streamFile, uint16_t subkey) {
     VGMSTREAM * vgmstream = NULL;
     hca_codec_data * hca_data = NULL;
-    unsigned long long keycode = 0;
 
 
     /* checks */
@@ -32,6 +31,7 @@ VGMSTREAM * init_vgmstream_hca_subkey(STREAMFILE *streamFile, uint16_t subkey) {
 
     /* find decryption key in external file or preloaded list */
     if (hca_data->info.encryptionEnabled) {
+        uint64_t keycode = 0;
         uint8_t keybuf[0x08+0x02];
         size_t keysize;
 
@@ -56,7 +56,7 @@ VGMSTREAM * init_vgmstream_hca_subkey(STREAMFILE *streamFile, uint16_t subkey) {
             find_hca_key(hca_data, &keycode, subkey);
         }
 
-        clHCA_SetKey(hca_data->handle, keycode); //maybe should be done through hca_decoder.c?
+        clHCA_SetKey(hca_data->handle, (unsigned long long)keycode); //maybe should be done through hca_decoder.c?
     }
 
 
@@ -139,25 +139,25 @@ static inline void test_key(hca_codec_data * hca_data, uint64_t key, uint16_t su
 }
 
 /* try to find the decryption key from a list. */
-static void find_hca_key(hca_codec_data* hca_data, unsigned long long* out_keycode, uint16_t subkey) {
+static void find_hca_key(hca_codec_data* hca_data, uint64_t* p_keycode, uint16_t subkey) {
     const size_t keys_length = sizeof(hcakey_list) / sizeof(hcakey_info);
     int best_score = -1;
     int i,j;
 
-    *out_keycode = 0xCC55463930DBE1AB; /* defaults to PSO2 key, most common */
+    *p_keycode = 0xCC55463930DBE1AB; /* defaults to PSO2 key, most common */
 
     for (i = 0; i < keys_length; i++) {
         uint64_t key = hcakey_list[i].key;
         size_t subkeys_size = hcakey_list[i].subkeys_size;
         const uint16_t *subkeys = hcakey_list[i].subkeys;
 
-        test_key(hca_data, key, subkey, &best_score, out_keycode);
+        test_key(hca_data, key, subkey, &best_score, p_keycode);
         if (best_score == 1)
             goto done;
 
         if (subkeys_size > 0 && subkey == 0) {
             for (j = 0; j < subkeys_size; j++) {
-                test_key(hca_data, key, subkeys[j], &best_score, out_keycode);
+                test_key(hca_data, key, subkeys[j], &best_score, p_keycode);
                 if (best_score == 1)
                     goto done;
             }
@@ -166,7 +166,7 @@ static void find_hca_key(hca_codec_data* hca_data, unsigned long long* out_keyco
 
 done:
     VGM_ASSERT(best_score > 1, "HCA: best key=%08x%08x (score=%i)\n",
-            (uint32_t)((*out_keycode >> 32) & 0xFFFFFFFF), (uint32_t)(*out_keycode & 0xFFFFFFFF), best_score);
+            (uint32_t)((*p_keycode >> 32) & 0xFFFFFFFF), (uint32_t)(*p_keycode & 0xFFFFFFFF), best_score);
     VGM_ASSERT(best_score < 0, "HCA: key not found\n");
 }
 
