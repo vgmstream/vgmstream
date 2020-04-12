@@ -20,7 +20,7 @@ VGMSTREAM * init_vgmstream_rsd(STREAMFILE *streamFile) {
 
     loop_flag = 0;
 
-    codec = read_32bitBE(0x04,streamFile);
+    codec = (uint32_t)read_32bitBE(0x04,streamFile);
     channel_count = read_32bitLE(0x08, streamFile);
     /* 0x0c: always 16? */
     sample_rate = read_32bitLE(0x10, streamFile);

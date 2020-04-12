@@ -978,29 +978,46 @@ static void apply_config(VGMSTREAM * vgmstream, winamp_song_config *current) {
 static int winampGetExtendedFileInfo_common(in_char* filename, char *metadata, char* ret, int retlen);
 
 static double get_album_gain_volume(const in_char *fn) {
-    char replaygain_gain[64], replaygain_peak[64];
+    char replaygain[64];
     double gain = 0.0;
     int had_replaygain = 0;
-    if (settings.gain_type != REPLAYGAIN_NONE) {
-        if (settings.gain_type == REPLAYGAIN_ALBUM && winampGetExtendedFileInfo_common((in_char *)fn, "replaygain_album_gain", replaygain_gain, sizeof(replaygain_gain))) {
-            gain = atof(replaygain_gain);
-            had_replaygain = 1;
-        }
-        if (!had_replaygain && winampGetExtendedFileInfo_common((in_char *)fn, "replaygain_track_gain", replaygain_gain, sizeof(replaygain_gain))) {
-            gain = atof(replaygain_gain);
-            had_replaygain = 1;
-        }
-        if (had_replaygain) {
-            double vol = pow(10.0, gain / 20.0), peak = 1.0;
-            if (settings.clip_type == REPLAYGAIN_ALBUM && winampGetExtendedFileInfo_common((in_char *)fn, "replaygain_album_peak", replaygain_peak, sizeof(replaygain_peak))) {
-                peak = atof(replaygain_peak);
-            }
-            else if (settings.clip_type != REPLAYGAIN_NONE && winampGetExtendedFileInfo_common((in_char *)fn, "replaygain_track_peak", replaygain_peak, sizeof(replaygain_peak))) {
-                peak = atof(replaygain_peak);
-            }
-            return peak != 1.0 ? min(vol, 1.0 / peak) : vol;
-        }
+    if (settings.gain_type == REPLAYGAIN_NONE)
+        return 1.0;
+
+    replaygain[0] = '\0'; /* reset each time to make sure we read actual tags */
+    if (settings.gain_type == REPLAYGAIN_ALBUM
+            && winampGetExtendedFileInfo_common((in_char *)fn, "replaygain_album_gain", replaygain, sizeof(replaygain))
+            && replaygain[0] != '\0') {
+        gain = atof(replaygain);
+        had_replaygain = 1;
     }
+
+    replaygain[0] = '\0';
+    if (!had_replaygain
+            && winampGetExtendedFileInfo_common((in_char *)fn, "replaygain_track_gain", replaygain, sizeof(replaygain))
+            && replaygain[0] != '\0') {
+        gain = atof(replaygain);
+        had_replaygain = 1;
+    }
+
+    if (had_replaygain) {
+        double vol = pow(10.0, gain / 20.0);
+        double peak = 1.0;
+
+        replaygain[0] = '\0';
+        if (settings.clip_type == REPLAYGAIN_ALBUM
+                && winampGetExtendedFileInfo_common((in_char *)fn, "replaygain_album_peak", replaygain, sizeof(replaygain))
+                && replaygain[0] != '\0') {
+            peak = atof(replaygain);
+        }
+        else if (settings.clip_type != REPLAYGAIN_NONE
+                && winampGetExtendedFileInfo_common((in_char *)fn, "replaygain_track_peak", replaygain, sizeof(replaygain))
+                && replaygain[0] != '\0') {
+            peak = atof(replaygain);
+        }
+        return peak != 1.0 ? min(vol, 1.0 / peak) : vol;
+    }
+
     return 1.0;
 }
 
@@ -1648,6 +1665,8 @@ static int winampGetExtendedFileInfo_common(in_char* filename, char *metadata, c
     return 1;
 
 fail:
+    //TODO: is this always needed for Winamp to use replaygain?
+    //strcpy(ret, "1.0"); //should set some default value?
     return strcasecmp(metadata, "replaygain_track_gain") == 0 ? 1 : 0;
 }
 

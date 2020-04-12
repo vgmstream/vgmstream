@@ -47,20 +47,22 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
     int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
     int16_t (*read_16bit)(off_t,STREAMFILE*) = NULL;
 
-    /* basic checks */
-    /* .wem (Wwise Encoded Media) is "newer Wwise", used after the 2011.2 SDK (~july)
-     * .wav (ex. Shadowrun X360) and .ogg (ex. KOF XII X360), .xma (ex. Tron Evolution X360) are used in older Wwise */
-    if (!check_extensions(streamFile,"wem,wav,lwav,ogg,logg,xma")) goto fail;
-
-    if ((read_32bitBE(0x00,streamFile) != 0x52494646) &&    /* "RIFF" (LE) */
-        (read_32bitBE(0x00,streamFile) != 0x52494658))      /* "RIFX" (BE) */
-        goto fail;
-    if ((read_32bitBE(0x08,streamFile) != 0x57415645) &&    /* "WAVE" */
-        (read_32bitBE(0x08,streamFile) != 0x58574D41))      /* "XWMA" */
+    /* checks */
+    /* .wem: newer "Wwise Encoded Media" used after the 2011.2 SDK (~july 2011)
+     * .wav: older ADPCM files [Punch Out!! (Wii)]
+     * .xma: older XMA files [Too Human (X360), Tron Evolution (X360)]
+     * .ogg: older Vorbis files [The King of Fighters XII (X360)] */
+    if (!check_extensions(streamFile,"wem,wav,lwav,ogg,logg,xma"))
         goto fail;
 
+    if (read_32bitBE(0x00,streamFile) != 0x52494646 &&  /* "RIFF" (LE) */
+        read_32bitBE(0x00,streamFile) != 0x52494658)    /* "RIFX" (BE) */
+        goto fail;
+    if (read_32bitBE(0x08,streamFile) != 0x57415645 &&  /* "WAVE" */
+        read_32bitBE(0x08,streamFile) != 0x58574D41)    /* "XWMA" */
+        goto fail;
 
-    ww.big_endian = read_32bitBE(0x00,streamFile) == 0x52494658;/* RIFX */
+    ww.big_endian = read_32bitBE(0x00,streamFile) == 0x52494658; /* RIFX */
     if (ww.big_endian) { /* Wwise honors machine's endianness (PC=RIFF, X360=RIFX --unlike XMA) */
         read_32bit = read_32bitBE;
         read_16bit = read_16bitBE;
@@ -94,10 +96,9 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
         if (find_chunk(streamFile, 0x66616374,first_offset,0, &fact_offset,&fact_size, 0, 0)) { /* "fact" */
             if (fact_size == 0x10 && read_32bitBE(fact_offset+0x04, streamFile) == 0x4C794E20) /* "LyN " */
                 goto fail; /* parsed elsewhere */
-            /* Wwise doesn't use "fact", though */
         }
+        /* Wwise doesn't use "fact", though */
     }
-
 
     /* parse format (roughly spec-compliant but some massaging is needed) */
     {
@@ -105,19 +106,26 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
         size_t loop_size;
 
         /* find basic chunks */
-        if (!find_chunk(streamFile, 0x666d7420,first_offset,0, &ww.fmt_offset,&ww.fmt_size, ww.big_endian, 0)) goto fail; /*"fmt "*/
-        if (!find_chunk(streamFile, 0x64617461,first_offset,0, &ww.data_offset,&ww.data_size, ww.big_endian, 0)) goto fail; /*"data"*/
+        if (read_32bitBE(0x0c, streamFile) == 0x584D4132) { /* "XMA2" with no "fmt" [Too Human (X360)] */
+            ww.format = 0x0165; /* signal for below */
+        }
+        else {
+            if (!find_chunk(streamFile, 0x666d7420,first_offset,0, &ww.fmt_offset,&ww.fmt_size, ww.big_endian, 0)) /* "fmt " */
+                goto fail;
+            if (ww.fmt_size < 0x12)
+                goto fail;
+            ww.format = (uint16_t)read_16bit(ww.fmt_offset+0x00,streamFile);
+        }
 
-        /* base fmt */
-        if (ww.fmt_size < 0x12) goto fail;
-        ww.format           = (uint16_t)read_16bit(ww.fmt_offset+0x00,streamFile);
 
-        if (ww.format == 0x0165) { /* pseudo-XMA2WAVEFORMAT (always "fmt"+"XMA2", unlike .xma that may only have "XMA2") */
-            if (!find_chunk(streamFile, 0x584D4132,first_offset,0, &ww.chunk_offset,NULL, ww.big_endian, 0))
+        if (ww.format == 0x0165) {
+            /* pseudo-XMA2WAVEFORMAT ("fmt"+"XMA2" or just "XMA2) */
+            if (!find_chunk(streamFile, 0x584D4132,first_offset,0, &ww.chunk_offset,NULL, ww.big_endian, 0)) /* "XMA2" */
                 goto fail;
             xma2_parse_xma2_chunk(streamFile, ww.chunk_offset,&ww.channels,&ww.sample_rate, &ww.loop_flag, &ww.num_samples, &ww.loop_start_sample, &ww.loop_end_sample);
         }
-        else { /* pseudo-WAVEFORMATEX */
+        else {
+            /* pseudo-WAVEFORMATEX */
             ww.channels         = read_16bit(ww.fmt_offset+0x02,streamFile);
             ww.sample_rate      = read_32bit(ww.fmt_offset+0x04,streamFile);
             ww.average_bps      = read_32bit(ww.fmt_offset+0x08,streamFile);/* bytes per sec */
@@ -128,7 +136,7 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
             if (ww.extra_size >= 0x06) { /* always present (actual RIFFs only have it in WAVEFORMATEXTENSIBLE) */
                 /* mostly WAVEFORMATEXTENSIBLE's bitmask (see AkSpeakerConfig.h) */
                 ww.channel_layout = read_32bit(ww.fmt_offset+0x14,streamFile);
-                /* latest games have a pseudo-format instead to handle more cases:
+                /* later games (+2018?) have a pseudo-format instead to handle more cases:
                  * - 8b: uNumChannels
                  * - 4b: eConfigType  (0=none, 1=standard, 2=ambisonic)
                  * - 19b: uChannelMask */
@@ -138,40 +146,42 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
             }
         }
 
-        /* find loop info */
-        if (ww.format == 0x0166) { /* XMA2WAVEFORMATEX */
+        /* find loop info ("XMA2" chunks already read them) */
+        if (ww.format == 0x0166) { /* XMA2WAVEFORMATEX in fmt */
             ww.chunk_offset = ww.fmt_offset;
             xma2_parse_fmt_chunk_extra(streamFile, ww.chunk_offset, &ww.loop_flag, &ww.num_samples, &ww.loop_start_sample, &ww.loop_end_sample, ww.big_endian);
         }
-        else if (find_chunk(streamFile, 0x736D706C,first_offset,0, &loop_offset,&loop_size, ww.big_endian, 0)) { /*"smpl", common */
+        else if (find_chunk(streamFile, 0x736D706C,first_offset,0, &loop_offset,&loop_size, ww.big_endian, 0)) { /* "smpl", common */
             if (loop_size >= 0x34
-                    && read_32bit(loop_offset+0x1c, streamFile)==1        /*loop count*/
+                    && read_32bit(loop_offset+0x1c, streamFile)==1        /* loop count */
                     && read_32bit(loop_offset+0x24+4, streamFile)==0) {
                 ww.loop_flag = 1;
                 ww.loop_start_sample = read_32bit(loop_offset+0x24+0x8, streamFile);
-                ww.loop_end_sample   = read_32bit(loop_offset+0x24+0xc,streamFile);
-                //todo fix repeat looping
+                ww.loop_end_sample   = read_32bit(loop_offset+0x24+0xc, streamFile) + 1; /* like standard RIFF */
             }
         }
         //else if (find_chunk(streamFile, 0x4C495354,first_offset,0, &loop_offset,&loop_size, ww.big_endian, 0)) { /*"LIST", common */
         //    /* usually contains "cue"s with sample positions for events (ex. Platinum Games) but no real looping info */
         //}
 
-        /* other Wwise specific: */
-        //"JUNK": optional padding for aligment (0-size JUNK exists too)
-        //"akd ": seem to store extra info for Wwise editor (wave peaks/loudness/HDR envelope?)
+        /* other Wwise specific chunks:
+         * "JUNK": optional padding for aligment (0-size JUNK exists too)
+         * "akd ": seem to store extra info for Wwise editor (wave peaks/loudness/HDR envelope?)
+         */
+
+        if (!find_chunk(streamFile, 0x64617461,first_offset,0, &ww.data_offset,&ww.data_size, ww.big_endian, 0)) /* "data" */
+            goto fail;
     }
 
     /* format to codec */
     switch(ww.format) {
         case 0x0001: ww.codec = PCM; break; /* older Wwise */
         case 0x0002: ww.codec = IMA; break; /* newer Wwise (conflicts with MSADPCM, probably means "platform's ADPCM") */
-      //case 0x0011: ww.codec = IMA; break; /* older Wwise (used?) */
-        case 0x0069: ww.codec = IMA; break; /* older Wwise (Spiderman Web of Shadows X360, LotR Conquest PC) */
+        case 0x0069: ww.codec = IMA; break; /* older Wwise [Spiderman Web of Shadows (X360), LotR Conquest (PC)] */
         case 0x0161: ww.codec = XWMA; break; /* WMAv2 */
         case 0x0162: ww.codec = XWMA; break; /* WMAPro */
-        case 0x0165: ww.codec = XMA2; break; /* always with the "XMA2" chunk, Wwise doesn't use XMA1 */
-        case 0x0166: ww.codec = XMA2; break;
+        case 0x0165: ww.codec = XMA2; break; /* XMA2-chunk XMA (Wwise doesn't use XMA1) */
+        case 0x0166: ww.codec = XMA2; break; /* fmt-chunk XMA */
         case 0xAAC0: ww.codec = AAC; break;
         case 0xFFF0: ww.codec = DSP; break;
         case 0xFFFB: ww.codec = HEVAG; break;
@@ -213,7 +223,7 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
             goto fail;
         }
 
-        if (ww.codec == PCM || ww.codec == IMA || ww.codec == VORBIS || ww.codec == XMA2 || ww.codec == OPUSNX || ww.codec == OPUS) {
+        if (ww.codec == PCM || ww.codec == IMA || ww.codec == DSP || ww.codec == VORBIS || ww.codec == XMA2 || ww.codec == OPUSNX || ww.codec == OPUS) {
             ww.truncated = 1; /* only seen those, probably all exist */
         } else {
             VGM_LOG("WWISE: wrong size, maybe truncated\n");
@@ -264,7 +274,6 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
             vgmstream->interleave_block_size = ww.block_align / ww.channels;
             vgmstream->codec_endian = ww.big_endian;
 
-            /* enough to get real samples */
             if (ww.truncated) {
                 ww.data_size = ww.file_size - ww.data_offset;
             }
@@ -286,12 +295,12 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
             if (ww.block_align != 0 || ww.bits_per_sample != 0) goto fail; /* always 0 for Worbis */
 
             /* autodetect format (fields are mostly common, see the end of the file) */
-            if (find_chunk(streamFile, 0x766F7262,first_offset,0, &vorb_offset,&vorb_size, ww.big_endian, 0)) { /*"vorb"*/
+            if (find_chunk(streamFile, 0x766F7262,first_offset,0, &vorb_offset,&vorb_size, ww.big_endian, 0)) { /* "vorb" */
                 /* older Wwise (~<2012) */
 
                 switch(vorb_size) {
-                    case 0x2C: /* earliest (~2009), [UFC Undisputed 2009 (PS3), some EVE Online Apocrypha (PC)?] */
-                    case 0x28: /* early (~2009) [The Lord of the Rings: Conquest (PC)] */
+                    case 0x2C: /* earliest (~2009) [The Lord of the Rings: Conquest (PC)] */
+                    case 0x28: /* early (~2009) [UFC Undisputed 2009 (PS3), some EVE Online Apocrypha (PC)] */
                         data_offsets = 0x18;
                         block_offsets = 0; /* no need, full headers are present */
                         cfg.header_type = WWV_TYPE_8;
@@ -299,8 +308,8 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
                         cfg.setup_type = WWV_HEADER_TRIAD;
                         break;
 
-                    case 0x34:  /* common (2010~2011) */
-                    case 0x32:  /* very rare (mid 2011) [Saints Row the 3rd (PC)] */
+                    case 0x34:  /* common (2010~2011) [The King of Fighters XII (PS3), Assassin's Creed II (X360)] */
+                    case 0x32:  /* rare (mid 2011) [Saints Row the 3rd (PC)] */
                         data_offsets = 0x18;
                         block_offsets = 0x30;
                         cfg.header_type = WWV_TYPE_6;
@@ -377,8 +386,6 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
                         cfg.setup_type  = is_wem ? WWV_AOTUV603_CODEBOOKS : WWV_EXTERNAL_CODEBOOKS; /* aoTuV came along .wem */
                         break;
 
-                    //case 0x2a: /* Rocksmith 2011 (X360)? */
-                        //non mod packets? TYPE_06? (possibly detectable by checking setup's granule, should be 0)
                     default:
                         VGM_LOG("WWISE: unknown extra size 0x%x\n", vorb_size);
                         goto fail;
@@ -449,13 +456,17 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
                 goto fail;
             }
 
+            if (ww.truncated) {
+                ww.data_size = ww.file_size - ww.data_offset;
+                vgmstream->num_samples = dsp_bytes_to_samples(ww.data_size, ww.channels);
+            }
+
             /* for some reason all(?) DSP .wem do full loops (even mono/jingles/etc) but
              * several tracks do loop like this, so disable it for short-ish tracks */
             if (ww.loop_flag && vgmstream->loop_start_sample == 0 &&
                     vgmstream->loop_end_sample < 20*ww.sample_rate) { /* in seconds */
                 vgmstream->loop_flag = 0;
             }
-
 
 
             /* get coefs and default history */

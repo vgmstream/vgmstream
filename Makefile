@@ -5,7 +5,9 @@
 ### defs
 # currently aimed to WIN32 builds but vgmstream_cli should work for others (or use autotools instead)
 export TARGET_OS = $(OS)
- 
+
+#for Win builds with vgmstream123
+LIBAO_DLL_PATH = ../libao/bin
 
 ### tools
 RMF = rm -f
@@ -49,6 +51,8 @@ export RMF SHELL CC AR STRIP WINDRES DLLTOOL
 
 buildrelease: clean bin
 
+buildrelease-ex: clean bin-ex
+
 buildfullrelease: clean sourceball bin
 
 sourceball:
@@ -62,6 +66,10 @@ sourceball:
 
 bin mingwbin: vgmstream_cli winamp xmplay
 	zip -FS -j "vgmstream-`./version.sh`-test.zip" COPYING README.md cli/test.exe winamp/in_vgmstream.dll xmplay/xmp-vgmstream.dll ext_libs/*.dll
+
+#separate since vgmstream123 is kinda untested
+bin-ex mingwbin-ex: vgmstream_cli winamp xmplay vgmstream123
+	zip -FS -j "vgmstream-`./version.sh`-test.zip" COPYING README.md cli/test.exe cli/vgmstream123.exe winamp/in_vgmstream.dll xmplay/xmp-vgmstream.dll ext_libs/*.dll $(LIBAO_DLL_PATH)/*.dll
 
 vgmstream_cli mingw_test:
 	$(MAKE) -C cli vgmstream_cli
