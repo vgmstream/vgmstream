@@ -893,4 +893,6 @@ VGMSTREAM* init_vgmstream_bkhd_fx(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_encrypted(STREAMFILE* sf);
 
+VGMSTREAM* init_vgmstream_diva(STREAMFILE* sf);
+
 #endif /*_META_H*/
