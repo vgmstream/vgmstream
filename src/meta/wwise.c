@@ -190,9 +190,7 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile) {
         case 0xFFFF: ww.codec = VORBIS; break;
         case 0x3039: ww.codec = OPUSNX; break; /* later renamed from "OPUS" */
         case 0x3040: ww.codec = OPUS; break;
-#if 0
-        case 0x8311: ww.codec = PTADPCM; break;
-#endif
+        case 0x8311: ww.codec = PTADPCM; break; /* newer, rare [Genshin Impact (PC)] */
         default:
             goto fail;
     }
