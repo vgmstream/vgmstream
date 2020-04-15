@@ -7,7 +7,7 @@ VGMSTREAM * init_vgmstream_diva(STREAMFILE *streamFile) {
     off_t start_offset;
     int channel_count;
     int loop_end;
-    int loop_flag = (loop_end != 0);
+    int loop_flag;
 
     /* checks */
     if (!check_extensions(streamFile, "diva"))
@@ -19,6 +19,8 @@ VGMSTREAM * init_vgmstream_diva(STREAMFILE *streamFile) {
     start_offset  = 0x40;
     channel_count = read_8bit(0x1C, streamFile);
     loop_end      = read_32bitLE(0x18, streamFile);
+
+    loop_flag = (loop_end != 0);
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count, loop_flag);
