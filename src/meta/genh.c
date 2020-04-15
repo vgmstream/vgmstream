@@ -454,6 +454,12 @@ static int parse_genh(STREAMFILE * streamFile, genh_header * genh) {
     genh->num_samples = genh->num_samples > 0 ? genh->num_samples : genh->loop_end_sample;
     genh->loop_flag = genh->loop_start_sample != -1;
 
+    /* fix for buggy GENHs that used to work before interleaved XBOX-IMA was added
+     * (could do check for other cases, but maybe it's better to give bad sound on nonsense values) */
+    if (genh->codec == XBOX && genh->interleave < 0x24) { /* found as 0x2 */
+        genh->interleave = 0;
+    }
+
     return 1;
 
 fail:
