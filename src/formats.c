@@ -145,6 +145,7 @@ static const char* extension_list[] = {
     "ddsp",
     "de2",
     "dec",
+    "diva",
     "dmsg",
     "ds2", //txth/reserved [Star Wars Bounty Hunter (GC)]
     "dsf",
@@ -1285,6 +1286,7 @@ static const meta_info meta_info_list[] = {
         {meta_KWB,                  "Koei Tecmo WaveBank header"},
         {meta_LRMD,                 "Sony LRMD header"},
         {meta_WWISE_FX,             "Audiokinetic Wwise FX header"},
+        {meta_DIVA,                 "DIVA header"},
 
 };
 
