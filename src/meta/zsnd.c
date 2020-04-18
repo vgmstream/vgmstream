@@ -195,16 +195,10 @@ VGMSTREAM * init_vgmstream_zsnd(STREAMFILE *streamFile) {
                 name_offset  = 0;
                 name_size    = 0;
 
-                //TODO: possibly pitch: sample_rate = round10(pitch * 44100 / 4096);
-                switch(sample_rate) {
-                    case 0x0800: sample_rate = 22050; break;
-                    case 0x0687: sample_rate = 18000; break;
-                    case 0x05ce: sample_rate = 16000; break;
-                    case 0x0400: sample_rate = 11025; break;
-                    default:
-                        VGM_LOG("ZSND: unknown sample_rate %x at %x\n", sample_rate, (uint32_t)header2_offset);
-                        goto fail;
-                }
+                /* pitch value, with 0x1000=44100 (voices vary quite a bit, ex. X-Men Legends 2) */
+                sample_rate = round10(sample_rate * 44100.0 / 4096.0);
+                /* there may be some rounding for lower values, ex 0x45A = 11993.99 ~= 12000, though not all: 
+                 * 0x1000 = 44100, 0x0800 = 22050, 0x0687 ~= 18000, 0x05ce ~= 16000, 0x045a ~= 12000, 0x0400 = 11025 */
                 break;
 
             case 0x47435542: /* "GCUB" (also for Wii) */
