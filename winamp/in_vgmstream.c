@@ -247,6 +247,11 @@ static STREAMFILE *wasf_open(WINAMP_STREAMFILE *streamFile, const char *const fi
     if (!filename)
         return NULL;
 
+#if !defined (__ANDROID__) && !defined (_MSC_VER)
+    /* When enabling this for MSVC it'll seemingly work, but there are issues possibly related to underlying
+     * IO buffers when using dup(), noticeable by re-opening the same streamfile with small buffer sizes
+     * (reads garbage). This reportedly causes issues in Android too */
+
     streamFile->stdiosf->get_name(streamFile->stdiosf, name, PATH_LIMIT);
     /* if same name, duplicate the file descriptor we already have open */ //unsure if all this is needed
     if (streamFile->infile_ref && !strcmp(name,filename)) {
@@ -264,6 +269,7 @@ static STREAMFILE *wasf_open(WINAMP_STREAMFILE *streamFile, const char *const fi
 
         /* on failure just close and try the default path (which will probably fail a second time) */
     }
+#endif
 
     /* STREAMFILEs carry char/UTF8 names, convert to wchar for Winamp */
     wa_char_to_ichar(wpath,PATH_LIMIT, filename);

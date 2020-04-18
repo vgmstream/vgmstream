@@ -292,11 +292,16 @@ static uint32_t read_ubits(uint8_t bits, uint32_t offset, uint8_t *buf) {
 }
 static int read_sbits(uint8_t bits, uint32_t offset, uint8_t *buf) {
     uint32_t val = read_ubits(bits, offset, buf);
+    int outval;
     if (val >> (bits - 1) == 1) { /* upper bit = sign */
         uint32_t mask = (1 << (bits - 1)) - 1;
-        return -(val & mask);
+        outval = (int)(val & mask);
+        outval = -outval;
     }
-    return val;
+    else {
+        outval = (int)val;
+    }
+    return outval;
 }
 
 static void init_dequantization(float* scales) {
@@ -339,7 +344,7 @@ static void unpack_frame(uint8_t *buf, int buf_size, float *freq1, float *freq2,
     if (cb_bits > 0 && ev_bits > 0) {
         pos = 0;
         for (i = 0; i < RELIC_CRITICAL_BAND_COUNT - 1; i++) {
-            if (bit_offset >= 8*buf_size)
+            if (bit_offset >= 8u*buf_size)
                 break;
 
             move = read_ubits(cb_bits, bit_offset, buf);
@@ -361,7 +366,7 @@ static void unpack_frame(uint8_t *buf, int buf_size, float *freq1, float *freq2,
         /* read first part */
         pos = 0;
         for (i = 0; i < RELIC_MAX_FREQ; i++) {
-            if (bit_offset >= 8*buf_size)
+            if (bit_offset >= 8u*buf_size)
                 break;
 
             move = read_ubits(ei_bits, bit_offset, buf);
@@ -385,7 +390,7 @@ static void unpack_frame(uint8_t *buf, int buf_size, float *freq1, float *freq2,
         else {
             pos = 0;
             for (i = 0; i < RELIC_MAX_FREQ; i++) {
-                if (bit_offset >= 8*buf_size)
+                if (bit_offset >= 8u*buf_size)
                     break;
 
                 move = read_ubits(ei_bits, bit_offset, buf);
@@ -437,7 +442,7 @@ static void copy_samples(relic_codec_data* data, sample_t* outbuf, int32_t sampl
     for (ch = 0; ch < ichs; ch++) {
         for (s = 0; s < samples; s++) {
             double d64_sample = data->wave_cur[ch][skip + s];
-            int pcm_sample = clamp16(d64_sample);
+            int pcm_sample = clamp16((int32_t)d64_sample);
 
             /* f32 in PCM 32767.0 .. -32768.0 format, original code
              * does some custom double-to-int rint() though */
@@ -454,12 +459,12 @@ static relic_codec_data* init_codec(int channels, int bitrate, int codec_rate) {
 
     if (channels > RELIC_MAX_CHANNELS)
         goto fail;
-    
+
     data = calloc(1, sizeof(relic_codec_data));
     if (!data) goto fail;
-    
+
     data->channels = channels;
-    
+
     /* dequantized freq1+2 size (separate from DCT) */
     if (codec_rate < 22050) /* probably 11025 only */
         data->freq_size = RELIC_SIZE_LOW;
@@ -472,7 +477,7 @@ static relic_codec_data* init_codec(int channels, int bitrate, int codec_rate) {
     data->wave_size = RELIC_SIZE_HIGH;
     data->dct_mode = RELIC_SIZE_HIGH;
     data->samples_mode = RELIC_SIZE_HIGH;
-    
+
     init_dct(data->dct, RELIC_SIZE_HIGH);
     init_window(data->window, RELIC_SIZE_HIGH);
     init_dequantization(data->scales);

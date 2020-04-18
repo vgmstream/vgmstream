@@ -431,11 +431,11 @@ static void ms_audio_parse_header(STREAMFILE *streamFile, int xma_version, int64
     /* full packet skip, no new frames start in this packet (prev frames can end here)
      * standardized to some value */
     if (*packet_skip_count == 0x7FF) { /* XMA1, 11b */
-        VGM_LOG("MS_SAMPLES: XMA1 full packet_skip at %"PRIx64"\n", offset_b/8);
+        VGM_LOG("MS_SAMPLES: XMA1 full packet_skip\n");// at %"PRIx64"\n", offset_b/8);
         *packet_skip_count = 0x800;
     }
     else if (*packet_skip_count == 0xFF) { /* XMA2, 8b*/
-        VGM_LOG("MS_SAMPLES: XMA2 full packet_skip at %"PRIx64"\n", offset_b/8);
+        VGM_LOG("MS_SAMPLES: XMA2 full packet_skip\n");// at %"PRIx64"\n", offset_b/8);
         *packet_skip_count = 0x800;
     }
 
