@@ -105,7 +105,8 @@ VGMSTREAM* init_vgmstream_bkhd(STREAMFILE* sf) {
     }
     else {
         //;VGM_LOG("BKHD: %lx, %x\n", subfile_offset, subfile_size);
-        temp_sf = setup_subfile_streamfile(sf, subfile_offset, subfile_size, "wem");
+        /* could pass .wem but few files need memory .wem detection */
+        temp_sf = setup_subfile_streamfile(sf, subfile_offset, subfile_size, NULL);
         if (!temp_sf) goto fail;
 
         header_id = read_u32be(0x00, temp_sf);
