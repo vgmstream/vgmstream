@@ -24,7 +24,11 @@ VGMSTREAM * init_vgmstream_imc(STREAMFILE *streamFile) {
     start_offset = 0x10;
 
     /* extra checks since the header is so simple */
-    if (channel_count < 1 || channel_count > 8 || sample_rate < 22000 || sample_rate > 48000)
+    if (channel_count < 1 || channel_count > 8)
+        goto fail;
+    if (!(sample_rate == 11025 || sample_rate == 16000 || sample_rate == 22050 ||
+          sample_rate == 32000 || sample_rate == 44100 || sample_rate == 48000))
+          /* the game can only play these sample rates */
         goto fail;
     if (interleave*blocks + start_offset != file_size)
         goto fail;
