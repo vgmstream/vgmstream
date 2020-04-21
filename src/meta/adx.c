@@ -261,11 +261,11 @@ static int find_adx_key(STREAMFILE *sf, uint8_t type, uint16_t *xor_start, uint1
 
     /* try to find key in external file first */
     {
-        uint8_t keybuf[0x20+1] = {0}; /* +1 extra null for keystrings */
+        uint8_t keybuf[0x40+1] = {0}; /* known max ~0x30, +1 extra null for keystrings */
         size_t key_size;
 
         /* handle type8 keystrings, key9 keycodes and derived keys too */
-        key_size = read_key_file(keybuf,0x20, sf);
+        key_size = read_key_file(keybuf, sizeof(keybuf), sf);
 
         if (key_size > 0) {
             int i, is_ascii = 0;
