@@ -9,7 +9,7 @@
 #define EAAC_VERSION_V0                 0x00 /* SNR/SNS */
 #define EAAC_VERSION_V1                 0x01 /* SPS */
 
-#define EAAC_CODEC_NONE                 0x00 /* XAS v0? */
+#define EAAC_CODEC_NONE                 0x00
 #define EAAC_CODEC_RESERVED             0x01 /* EALAYER3 V1a? MP30/P6L0/P2B0/P2L0/P8S0/P8U0/PFN0? */
 #define EAAC_CODEC_PCM16BE              0x02
 #define EAAC_CODEC_EAXMA                0x03
@@ -34,43 +34,43 @@
 #define EAAC_BLOCKID1_DATA              0x44 /* 'D' */
 #define EAAC_BLOCKID1_END               0x45 /* 'E' */
 
-static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, STREAMFILE * streamData, off_t header_offset, off_t start_offset, meta_t meta_type, int standalone);
-static VGMSTREAM *parse_s10a_header(STREAMFILE *streamFile, off_t offset, uint16_t target_index, off_t ast_offset);
-VGMSTREAM * init_vgmstream_gin_header(STREAMFILE *streamFile, off_t offset);
+static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE* sf_head, STREAMFILE* sf_data, off_t header_offset, off_t start_offset, meta_t meta_type, int standalone);
+static VGMSTREAM *parse_s10a_header(STREAMFILE* sf, off_t offset, uint16_t target_index, off_t ast_offset);
+VGMSTREAM * init_vgmstream_gin_header(STREAMFILE* sf, off_t offset);
 
 
 /* .SNR+SNS - from EA latest games (~2005-2010), v0 header */
-VGMSTREAM * init_vgmstream_ea_snr_sns(STREAMFILE * streamFile) {
+VGMSTREAM * init_vgmstream_ea_snr_sns(STREAMFILE* sf) {
     /* check extension, case insensitive */
-    if (!check_extensions(streamFile,"snr"))
+    if (!check_extensions(sf,"snr"))
         goto fail;
 
-    return init_vgmstream_eaaudiocore_header(streamFile, NULL, 0x00, 0x00, meta_EA_SNR_SNS, 1);
+    return init_vgmstream_eaaudiocore_header(sf, NULL, 0x00, 0x00, meta_EA_SNR_SNS, 1);
 
 fail:
     return NULL;
 }
 
 /* .SPS - from EA latest games (~2010~present), v1 header */
-VGMSTREAM * init_vgmstream_ea_sps(STREAMFILE * streamFile) {
+VGMSTREAM * init_vgmstream_ea_sps(STREAMFILE* sf) {
     /* check extension, case insensitive */
-    if (!check_extensions(streamFile,"sps"))
+    if (!check_extensions(sf,"sps"))
         goto fail;
 
-    return init_vgmstream_eaaudiocore_header(streamFile, NULL, 0x00, 0x00, meta_EA_SPS, 1);
+    return init_vgmstream_eaaudiocore_header(sf, NULL, 0x00, 0x00, meta_EA_SPS, 1);
 
 fail:
     return NULL;
 }
 
 /* .SNU - from EA Redwood Shores/Visceral games (Dead Space, Dante's Inferno, The Godfather 2), v0 header */
-VGMSTREAM * init_vgmstream_ea_snu(STREAMFILE *streamFile) {
+VGMSTREAM * init_vgmstream_ea_snu(STREAMFILE *sf) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset, header_offset;
     int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
 
     /* check extension, case insensitive */
-    if (!check_extensions(streamFile,"snu"))
+    if (!check_extensions(sf,"snu"))
         goto fail;
 
     /* EA SNU header (BE/LE depending on platform) */
@@ -83,16 +83,16 @@ VGMSTREAM * init_vgmstream_ea_snu(STREAMFILE *streamFile) {
      * 0x0c(4): some sub-offset? (0x20, found when @0x01 is set) */
 
     /* use start_offset as endianness flag */
-    if (guess_endianness32bit(0x08,streamFile)) {
+    if (guess_endianness32bit(0x08,sf)) {
         read_32bit = read_32bitBE;
     } else {
         read_32bit = read_32bitLE;
     }
 
     header_offset = 0x10; /* SNR header */
-    start_offset = read_32bit(0x08,streamFile); /* SNS blocks */
+    start_offset = read_32bit(0x08,sf); /* SNS blocks */
 
-    vgmstream = init_vgmstream_eaaudiocore_header(streamFile, streamFile, header_offset, start_offset, meta_EA_SNU, 0);
+    vgmstream = init_vgmstream_eaaudiocore_header(sf, sf, header_offset, start_offset, meta_EA_SNU, 0);
     if (!vgmstream) goto fail;
 
     return vgmstream;
@@ -103,8 +103,8 @@ fail:
 }
 
 /* EA ABK - ABK header seems to be same as in the old games but the sound table is different and it contains SNR/SNS sounds instead */
-VGMSTREAM * init_vgmstream_ea_abk_eaac(STREAMFILE *streamFile) {
-    int is_dupe, total_sounds = 0, target_stream = streamFile->stream_index;
+VGMSTREAM * init_vgmstream_ea_abk_eaac(STREAMFILE* sf) {
+    int is_dupe, total_sounds = 0, target_stream = sf->stream_index;
     off_t bnk_offset, header_table_offset, base_offset, unk_struct_offset, table_offset, snd_entry_offset, ast_offset;
     off_t num_entries_off, base_offset_off, entries_off, sound_table_offset_off;
     uint32_t i, j, k, num_sounds, total_sound_tables;
@@ -116,14 +116,14 @@ VGMSTREAM * init_vgmstream_ea_abk_eaac(STREAMFILE *streamFile) {
     int16_t(*read_16bit)(off_t, STREAMFILE*);
 
     /* check extension */
-    if (!check_extensions(streamFile, "abk"))
+    if (!check_extensions(sf, "abk"))
         goto fail;
 
-    if (read_32bitBE(0x00, streamFile) != 0x41424B43) /* "ABKC" */
+    if (read_32bitBE(0x00, sf) != 0x41424B43) /* "ABKC" */
         goto fail;
 
     /* use table offset to check endianness */
-    if (guess_endianness32bit(0x1C, streamFile)) {
+    if (guess_endianness32bit(0x1C, sf)) {
         read_32bit = read_32bitBE;
         read_16bit = read_16bitBE;
     } else {
@@ -135,14 +135,14 @@ VGMSTREAM * init_vgmstream_ea_abk_eaac(STREAMFILE *streamFile) {
     if (target_stream < 0)
         goto fail;
 
-    num_tables = read_16bit(0x0A, streamFile);
-    header_table_offset = read_32bit(0x1C, streamFile);
-    bnk_offset = read_32bit(0x20, streamFile);
+    num_tables = read_16bit(0x0A, sf);
+    header_table_offset = read_32bit(0x1C, sf);
+    bnk_offset = read_32bit(0x20, sf);
     total_sound_tables = 0;
     bnk_target_index = 0xFFFF;
     ast_offset = 0;
 
-    if (!bnk_offset || read_32bitBE(bnk_offset, streamFile) != 0x53313041) /* "S10A" */
+    if (!bnk_offset || read_32bitBE(bnk_offset, sf) != 0x53313041) /* "S10A" */
         goto fail;
 
     /* set up some common values */
@@ -163,14 +163,14 @@ VGMSTREAM * init_vgmstream_ea_abk_eaac(STREAMFILE *streamFile) {
     }
 
     for (i = 0; i < num_tables; i++) {
-        num_entries = read_8bit(header_table_offset + num_entries_off, streamFile);
-        extra_entries = read_8bit(header_table_offset + num_entries_off + 0x03, streamFile);
-        base_offset = read_32bit(header_table_offset + base_offset_off, streamFile);
+        num_entries = read_8bit(header_table_offset + num_entries_off, sf);
+        extra_entries = read_8bit(header_table_offset + num_entries_off + 0x03, sf);
+        base_offset = read_32bit(header_table_offset + base_offset_off, sf);
         if (num_entries == 0xff) goto fail; /* EOF read */
 
         for (j = 0; j < num_entries; j++) {
-            unk_struct_offset = read_32bit(header_table_offset + entries_off + 0x04 * j, streamFile);
-            table_offset = read_32bit(base_offset + unk_struct_offset + sound_table_offset_off, streamFile);
+            unk_struct_offset = read_32bit(header_table_offset + entries_off + 0x04 * j, sf);
+            table_offset = read_32bit(base_offset + unk_struct_offset + sound_table_offset_off, sf);
 
             /* For some reason, there are duplicate entries pointing at the same sound tables */
             is_dupe = 0;
@@ -185,7 +185,7 @@ VGMSTREAM * init_vgmstream_ea_abk_eaac(STREAMFILE *streamFile) {
                 continue;
 
             sound_table_offsets[total_sound_tables++] = table_offset;
-            num_sounds = read_32bit(table_offset, streamFile);
+            num_sounds = read_32bit(table_offset, sf);
             if (num_sounds == 0xffffffff) goto fail; /* EOF read */
 
             for (k = 0; k < num_sounds; k++) {
@@ -194,7 +194,7 @@ VGMSTREAM * init_vgmstream_ea_abk_eaac(STREAMFILE *streamFile) {
                 /* 0x04: ??? */
                 /* 0x08: streamed data offset */
                 snd_entry_offset = table_offset + 0x04 + 0x0C * k;
-                bnk_index = read_16bit(snd_entry_offset + 0x00, streamFile);
+                bnk_index = read_16bit(snd_entry_offset + 0x00, sf);
 
                 /* some of these are dummies */
                 if (bnk_index == 0xFFFF)
@@ -203,7 +203,7 @@ VGMSTREAM * init_vgmstream_ea_abk_eaac(STREAMFILE *streamFile) {
                 total_sounds++;
                 if (target_stream == total_sounds) {
                     bnk_target_index = bnk_index;
-                    ast_offset = read_32bit(snd_entry_offset + 0x08, streamFile);
+                    ast_offset = read_32bit(snd_entry_offset + 0x08, sf);
                 }
             }
         }
@@ -214,7 +214,7 @@ VGMSTREAM * init_vgmstream_ea_abk_eaac(STREAMFILE *streamFile) {
     if (bnk_target_index == 0xFFFF || ast_offset == 0)
         goto fail;
 
-    vgmstream = parse_s10a_header(streamFile, bnk_offset, bnk_target_index, ast_offset);
+    vgmstream = parse_s10a_header(sf, bnk_offset, bnk_target_index, ast_offset);
     if (!vgmstream)
         goto fail;
 
@@ -226,7 +226,7 @@ fail:
 }
 
 /* EA S10A header - seen inside new ABK files. Putting it here in case it's encountered stand-alone. */
-static VGMSTREAM * parse_s10a_header(STREAMFILE *streamFile, off_t offset, uint16_t target_index, off_t sns_offset) {
+static VGMSTREAM * parse_s10a_header(STREAMFILE* sf, off_t offset, uint16_t target_index, off_t sns_offset) {
     uint32_t num_sounds;
     off_t snr_offset;
     STREAMFILE *astFile = NULL;
@@ -237,24 +237,24 @@ static VGMSTREAM * parse_s10a_header(STREAMFILE *streamFile, off_t offset, uint1
     /* 0x04: zero */
     /* 0x08: number of files */
     /* 0x0C: offsets table */
-    if (read_32bitBE(offset + 0x00, streamFile) != 0x53313041) /* "S10A" */
+    if (read_32bitBE(offset + 0x00, sf) != 0x53313041) /* "S10A" */
         goto fail;
 
-    num_sounds = read_32bitBE(offset + 0x08, streamFile);
+    num_sounds = read_32bitBE(offset + 0x08, sf);
     if (num_sounds == 0 || target_index >= num_sounds)
         goto fail;
 
-    snr_offset = offset + read_32bitBE(offset + 0x0C + 0x04 * target_index, streamFile);
+    snr_offset = offset + read_32bitBE(offset + 0x0C + 0x04 * target_index, sf);
 
     if (sns_offset == 0xFFFFFFFF) {
         /* RAM asset */
         //;VGM_LOG("EA S10A: RAM at snr=%lx", snr_offset);
-        vgmstream = init_vgmstream_eaaudiocore_header(streamFile, NULL, snr_offset, 0x00, meta_EA_SNR_SNS, 0);
+        vgmstream = init_vgmstream_eaaudiocore_header(sf, NULL, snr_offset, 0x00, meta_EA_SNR_SNS, 0);
         if (!vgmstream)
             goto fail;
     } else {
         /* streamed asset */
-        astFile = open_streamfile_by_ext(streamFile, "ast");
+        astFile = open_streamfile_by_ext(sf, "ast");
         if (!astFile)
             goto fail;
 
@@ -262,7 +262,7 @@ static VGMSTREAM * parse_s10a_header(STREAMFILE *streamFile, off_t offset, uint1
             goto fail;
 
         //;VGM_LOG("EA S10A: stream at snr=%lx, sns=%lx\n", snr_offset, sns_offset);
-        vgmstream = init_vgmstream_eaaudiocore_header(streamFile, astFile, snr_offset, sns_offset, meta_EA_SNR_SNS, 0);
+        vgmstream = init_vgmstream_eaaudiocore_header(sf, astFile, snr_offset, sns_offset, meta_EA_SNR_SNS, 0);
         if (!vgmstream)
             goto fail;
 
@@ -277,49 +277,49 @@ fail:
 }
 
 /* EA SBR/SBS - used in older 7th gen games for storing SFX */
-VGMSTREAM * init_vgmstream_ea_sbr(STREAMFILE *streamFile) {
+VGMSTREAM * init_vgmstream_ea_sbr(STREAMFILE* sf) {
     uint32_t i, num_sounds, type_desc;
     uint16_t num_metas, meta_type;
     off_t table_offset, types_offset, entry_offset, metas_offset, data_offset, snr_offset, sns_offset;
     STREAMFILE *sbsFile = NULL;
     VGMSTREAM *vgmstream = NULL;
-    int target_stream = streamFile->stream_index;
+    int target_stream = sf->stream_index;
 
-    if (!check_extensions(streamFile, "sbr"))
+    if (!check_extensions(sf, "sbr"))
         goto fail;
 
-    if (read_32bitBE(0x00, streamFile) != 0x53424B52) /* "SBKR" */
+    if (read_32bitBE(0x00, sf) != 0x53424B52) /* "SBKR" */
         goto fail;
 
     /* SBR files are always big endian */
-    num_sounds = read_32bitBE(0x1c, streamFile);
-    table_offset = read_32bitBE(0x24, streamFile);
-    types_offset = read_32bitBE(0x28, streamFile);
+    num_sounds = read_32bitBE(0x1c, sf);
+    table_offset = read_32bitBE(0x24, sf);
+    types_offset = read_32bitBE(0x28, sf);
 
     if (target_stream == 0) target_stream = 1;
     if (target_stream < 0 || num_sounds == 0 || target_stream > num_sounds)
         goto fail;
 
     entry_offset = table_offset + 0x0a * (target_stream - 1);
-    num_metas = read_16bitBE(entry_offset + 0x04, streamFile);
-    metas_offset = read_32bitBE(entry_offset + 0x06, streamFile);
+    num_metas = read_16bitBE(entry_offset + 0x04, sf);
+    metas_offset = read_32bitBE(entry_offset + 0x06, sf);
 
     snr_offset = 0;
     sns_offset = 0;
 
     for (i = 0; i < num_metas; i++) {
         entry_offset = metas_offset + 0x06 * i;
-        meta_type = read_16bitBE(entry_offset + 0x00, streamFile);
-        data_offset = read_32bitBE(entry_offset + 0x02, streamFile);
+        meta_type = read_16bitBE(entry_offset + 0x00, sf);
+        data_offset = read_32bitBE(entry_offset + 0x02, sf);
 
-        type_desc = read_32bitBE(types_offset + 0x06 * meta_type, streamFile);
+        type_desc = read_32bitBE(types_offset + 0x06 * meta_type, sf);
 
         switch (type_desc) {
             case 0x534E5231: /* "SNR1" */
                 snr_offset = data_offset;
                 break;
             case 0x534E5331: /* "SNS1" */
-                sns_offset = read_32bitBE(data_offset, streamFile);
+                sns_offset = read_32bitBE(data_offset, sf);
                 break;
             default:
                 break;
@@ -331,7 +331,7 @@ VGMSTREAM * init_vgmstream_ea_sbr(STREAMFILE *streamFile) {
 
     if (snr_offset == 0) {
         /* SPS file */
-        sbsFile = open_streamfile_by_ext(streamFile, "sbs");
+        sbsFile = open_streamfile_by_ext(sf, "sbs");
         if (!sbsFile)
             goto fail;
 
@@ -343,19 +343,19 @@ VGMSTREAM * init_vgmstream_ea_sbr(STREAMFILE *streamFile) {
             goto fail;
     } else if (sns_offset == 0) {
         /* RAM asset */
-        vgmstream = init_vgmstream_eaaudiocore_header(streamFile, NULL, snr_offset, 0x00, meta_EA_SNR_SNS, 0);
+        vgmstream = init_vgmstream_eaaudiocore_header(sf, NULL, snr_offset, 0x00, meta_EA_SNR_SNS, 0);
         if (!vgmstream)
             goto fail;
     } else {
         /* streamed asset */
-        sbsFile = open_streamfile_by_ext(streamFile, "sbs");
+        sbsFile = open_streamfile_by_ext(sf, "sbs");
         if (!sbsFile)
             goto fail;
 
         if (read_32bitBE(0x00, sbsFile) != 0x53424B53) /* "SBKS" */
             goto fail;
 
-        vgmstream = init_vgmstream_eaaudiocore_header(streamFile, sbsFile, snr_offset, sns_offset, meta_EA_SNR_SNS, 0);
+        vgmstream = init_vgmstream_eaaudiocore_header(sf, sbsFile, snr_offset, sns_offset, meta_EA_SNR_SNS, 0);
         if (!vgmstream)
             goto fail;
     }
@@ -370,8 +370,8 @@ fail:
 }
 
 /* EA HDR/STH/DAT - seen in older 7th gen games, used for storing speech */
-VGMSTREAM * init_vgmstream_ea_hdr_sth_dat(STREAMFILE *streamFile) {
-    int target_stream = streamFile->stream_index;
+VGMSTREAM * init_vgmstream_ea_hdr_sth_dat(STREAMFILE* sf) {
+    int target_stream = sf->stream_index;
     uint8_t userdata_size, total_sounds, block_id;
     off_t snr_offset, sns_offset, sth_offset, sth_offset2;
     size_t dat_size, block_size;
@@ -389,24 +389,24 @@ VGMSTREAM * init_vgmstream_ea_hdr_sth_dat(STREAMFILE *streamFile) {
     /* 0x0C: zero */
     /* 0x10: table start */
 
-    if (!check_extensions(streamFile, "hdr"))
+    if (!check_extensions(sf, "hdr"))
         goto fail;
 
-    if (read_8bit(0x09, streamFile) != 0)
+    if (read_8bit(0x09, sf) != 0)
         goto fail;
 
-    if (read_32bitBE(0x0c, streamFile) != 0)
+    if (read_32bitBE(0x0c, sf) != 0)
         goto fail;
 
     /* first offset is always zero */
-    if (read_16bitBE(0x10, streamFile) != 0)
+    if (read_16bitBE(0x10, sf) != 0)
         goto fail;
 
-    sthFile = open_streamfile_by_ext(streamFile, "sth");
+    sthFile = open_streamfile_by_ext(sf, "sth");
     if (!sthFile)
         goto fail;
 
-    datFile = open_streamfile_by_ext(streamFile, "dat");
+    datFile = open_streamfile_by_ext(sf, "dat");
     if (!datFile)
         goto fail;
 
@@ -420,10 +420,10 @@ VGMSTREAM * init_vgmstream_ea_hdr_sth_dat(STREAMFILE *streamFile) {
     if (block_id != EAAC_BLOCKID0_DATA && block_id != EAAC_BLOCKID0_END)
         goto fail;
 
-    userdata_size = read_8bit(0x02, streamFile);
-    total_sounds = read_8bit(0x03, streamFile);
+    userdata_size = read_8bit(0x02, sf);
+    total_sounds = read_8bit(0x03, sf);
 
-    if (read_8bit(0x08, streamFile) > total_sounds)
+    if (read_8bit(0x08, sf) > total_sounds)
         goto fail;
 
     if (target_stream == 0) target_stream = 1;
@@ -431,7 +431,7 @@ VGMSTREAM * init_vgmstream_ea_hdr_sth_dat(STREAMFILE *streamFile) {
         goto fail;
 
     /* offsets in HDR are always big endian */
-    sth_offset = (uint16_t)read_16bitBE(0x10 + (0x02 + userdata_size) * (target_stream - 1), streamFile);
+    sth_offset = (uint16_t)read_16bitBE(0x10 + (0x02 + userdata_size) * (target_stream - 1), sf);
 
 #if 0
     snr_offset = sth_offset + 0x04;
@@ -466,7 +466,7 @@ VGMSTREAM * init_vgmstream_ea_hdr_sth_dat(STREAMFILE *streamFile) {
                 break;
         }
 
-        sth_offset2 = (uint16_t)read_16bitBE(0x10 + (0x02 + userdata_size) * 1, streamFile);
+        sth_offset2 = (uint16_t)read_16bitBE(0x10 + (0x02 + userdata_size) * 1, sf);
         if (sns_offset == read_32bitBE(sth_offset2, sthFile)) {
             read_32bit = read_32bitBE;
         } else if (sns_offset == read_32bitLE(sth_offset2, sthFile)) {
@@ -500,7 +500,7 @@ fail:
 }
 
 /* open map/mpf+mus pairs that aren't exact pairs, since EA's games can load any combo */
-static STREAMFILE *open_mapfile_pair(STREAMFILE *streamFile, int track, int num_tracks) {
+static STREAMFILE *open_mapfile_pair(STREAMFILE* sf, int track, int num_tracks) {
     static const char *const mapfile_pairs[][2] = {
         /* standard cases, replace map part with mus part (from the end to preserve prefixes) */
         {"FreSkate.mpf",    "track.mus,ram.mus"}, /* Skate It */
@@ -527,11 +527,11 @@ static STREAMFILE *open_mapfile_pair(STREAMFILE *streamFile, int track, int num_
 
     /* if loading the first track, try opening MUS with the same name first (most common scenario) */
     if (track == 0) {
-        musFile = open_streamfile_by_ext(streamFile, "mus");
+        musFile = open_streamfile_by_ext(sf, "mus");
         if (musFile) return musFile;
     }
 
-    get_streamfile_filename(streamFile, file_name, PATH_LIMIT);
+    get_streamfile_filename(sf, file_name, PATH_LIMIT);
     file_len = strlen(file_name);
 
     for (i = 0; i < pair_count; i++) {
@@ -572,10 +572,10 @@ static STREAMFILE *open_mapfile_pair(STREAMFILE *streamFile, int track, int num_
             strncpy(file_name, pch, PATH_LIMIT - 1);
         }
 
-        musFile = open_streamfile_by_filename(streamFile, file_name);
+        musFile = open_streamfile_by_filename(sf, file_name);
         if (musFile) return musFile;
 
-        get_streamfile_filename(streamFile, file_name, PATH_LIMIT); /* reset for next loop */
+        get_streamfile_filename(sf, file_name, PATH_LIMIT); /* reset for next loop */
     }
 
     /* hack when when multiple maps point to the same mus, uses name before "+"
@@ -584,7 +584,7 @@ static STREAMFILE *open_mapfile_pair(STREAMFILE *streamFile, int track, int num_
         char *mod_name = strchr(file_name, '+');
         if (mod_name) {
             mod_name[0] = '\0';
-            musFile = open_streamfile_by_filename(streamFile, file_name);
+            musFile = open_streamfile_by_filename(sf, file_name);
             if (musFile) return musFile;
         }
     }
@@ -594,7 +594,7 @@ static STREAMFILE *open_mapfile_pair(STREAMFILE *streamFile, int track, int num_
 }
 
 /* EA MPF/MUS combo - used in older 7th gen games for storing interactive music */
-VGMSTREAM * init_vgmstream_ea_mpf_mus_eaac(STREAMFILE *streamFile) {
+VGMSTREAM * init_vgmstream_ea_mpf_mus_eaac(STREAMFILE* sf) {
     uint32_t num_tracks, track_start, track_hash, mus_sounds, mus_stream = 0;
     uint8_t version, sub_version;
     off_t tracks_table, samples_table, eof_offset, table_offset, entry_offset, snr_offset, sns_offset;
@@ -602,30 +602,30 @@ VGMSTREAM * init_vgmstream_ea_mpf_mus_eaac(STREAMFILE *streamFile) {
     STREAMFILE *musFile = NULL;
     VGMSTREAM *vgmstream = NULL;
     int i;
-    int target_stream = streamFile->stream_index, total_streams, is_ram = 0;
+    int target_stream = sf->stream_index, total_streams, is_ram = 0;
 
     /* check extension */
-    if (!check_extensions(streamFile, "mpf"))
+    if (!check_extensions(sf, "mpf"))
         goto fail;
 
     /* detect endianness */
-    if (read_32bitBE(0x00, streamFile) == 0x50464478) { /* "PFDx" */
+    if (read_32bitBE(0x00, sf) == 0x50464478) { /* "PFDx" */
         read_32bit = read_32bitBE;
-    } else if (read_32bitLE(0x00, streamFile) == 0x50464478) { /* "xDFP" */
+    } else if (read_32bitLE(0x00, sf) == 0x50464478) { /* "xDFP" */
         read_32bit = read_32bitLE;
     } else {
         goto fail;
     }
 
-    version = read_8bit(0x04, streamFile);
-    sub_version = read_8bit(0x05, streamFile);
+    version = read_8bit(0x04, sf);
+    sub_version = read_8bit(0x05, sf);
     if (version != 5 || sub_version < 2 || sub_version > 3) goto fail;
 
-    num_tracks = read_8bit(0x0d, streamFile);
+    num_tracks = read_8bit(0x0d, sf);
 
-    tracks_table = read_32bit(0x2c, streamFile);
-    samples_table = read_32bit(0x34, streamFile);
-    eof_offset = read_32bit(0x38, streamFile);
+    tracks_table = read_32bit(0x2c, sf);
+    samples_table = read_32bit(0x34, sf);
+    eof_offset = read_32bit(0x38, sf);
     total_streams = (eof_offset - samples_table) / 0x08;
 
     if (target_stream == 0) target_stream = 1;
@@ -633,23 +633,23 @@ VGMSTREAM * init_vgmstream_ea_mpf_mus_eaac(STREAMFILE *streamFile) {
         goto fail;
 
     for (i = num_tracks - 1; i >= 0; i--) {
-        entry_offset = read_32bit(tracks_table + i * 0x04, streamFile) * 0x04;
-        track_start = read_32bit(entry_offset + 0x00, streamFile);
+        entry_offset = read_32bit(tracks_table + i * 0x04, sf) * 0x04;
+        track_start = read_32bit(entry_offset + 0x00, sf);
 
         if (track_start <= target_stream - 1) {
-            track_hash = read_32bitBE(entry_offset + 0x08, streamFile);
+            track_hash = read_32bitBE(entry_offset + 0x08, sf);
             is_ram = (track_hash == 0xF1F1F1F1);
 
             /* checks to distinguish it from older versions */
             if (is_ram) {
-                if (read_32bitBE(entry_offset + 0x0c, streamFile) != 0x00)
+                if (read_32bitBE(entry_offset + 0x0c, sf) != 0x00)
                     goto fail;
 
-                track_hash = read_32bitBE(entry_offset + 0x14, streamFile);
+                track_hash = read_32bitBE(entry_offset + 0x14, sf);
                 if (track_hash == 0xF1F1F1F1)
                     continue; /* empty track */
             } else {
-                if (read_32bitBE(entry_offset + 0x0c, streamFile) == 0x00)
+                if (read_32bitBE(entry_offset + 0x0c, sf) == 0x00)
                     goto fail;
             }
 
@@ -659,7 +659,7 @@ VGMSTREAM * init_vgmstream_ea_mpf_mus_eaac(STREAMFILE *streamFile) {
     }
 
     /* open MUS file that matches this track */
-    musFile = open_mapfile_pair(streamFile, i, num_tracks);
+    musFile = open_mapfile_pair(sf, i, num_tracks);
     if (!musFile)
         goto fail;
 
@@ -726,38 +726,38 @@ fail:
 }
 
 /* EA TMX - used for engine sounds in NFS games (2007-present) */
-VGMSTREAM * init_vgmstream_ea_tmx(STREAMFILE *streamFile) {
+VGMSTREAM * init_vgmstream_ea_tmx(STREAMFILE* sf) {
     uint32_t num_sounds, sound_type;
     off_t table_offset, data_offset, entry_offset, sound_offset;
     VGMSTREAM *vgmstream = NULL;
-    int target_stream = streamFile->stream_index;
+    int target_stream = sf->stream_index;
 
-    if (!check_extensions(streamFile, "tmx"))
+    if (!check_extensions(sf, "tmx"))
         goto fail;
 
     /* always little endian */
-    if (read_32bitLE(0x0c, streamFile) != 0x30303031) /* "0001" */
+    if (read_32bitLE(0x0c, sf) != 0x30303031) /* "0001" */
         goto fail;
 
-    num_sounds = read_32bitLE(0x20, streamFile);
-    table_offset = read_32bitLE(0x58, streamFile);
-    data_offset = read_32bitLE(0x5c, streamFile);
+    num_sounds = read_32bitLE(0x20, sf);
+    table_offset = read_32bitLE(0x58, sf);
+    data_offset = read_32bitLE(0x5c, sf);
 
     if (target_stream == 0) target_stream = 1;
     if (target_stream < 0 || num_sounds == 0 || target_stream > num_sounds)
         goto fail;
 
     entry_offset = table_offset + (target_stream - 1) * 0x24;
-    sound_type = read_32bitLE(entry_offset + 0x00, streamFile);
-    sound_offset = read_32bitLE(entry_offset + 0x08, streamFile) + data_offset;
+    sound_type = read_32bitLE(entry_offset + 0x00, sf);
+    sound_offset = read_32bitLE(entry_offset + 0x08, sf) + data_offset;
 
     switch (sound_type) {
         case 0x47494E20: /* "GIN " */
-            vgmstream = init_vgmstream_gin_header(streamFile, sound_offset);
+            vgmstream = init_vgmstream_gin_header(sf, sound_offset);
             if (!vgmstream) goto fail;
             break;
         case 0x534E5220: /* "SNR " */
-            vgmstream = init_vgmstream_eaaudiocore_header(streamFile, NULL, sound_offset, 0x00, meta_EA_SNR_SNS, 0);
+            vgmstream = init_vgmstream_eaaudiocore_header(sf, NULL, sound_offset, 0x00, meta_EA_SNR_SNS, 0);
             if (!vgmstream) goto fail;
             break;
         default:
@@ -772,27 +772,27 @@ fail:
 }
 
 /* EA Harmony Sample Bank - used in 8th gen EA Sports games */
-VGMSTREAM * init_vgmstream_ea_sbr_harmony(STREAMFILE *streamFile) {
+VGMSTREAM * init_vgmstream_ea_sbr_harmony(STREAMFILE *sf) {
     uint32_t num_dsets, set_sounds, chunk_id, data_offset, table_offset, dset_offset, base_offset, sound_table_offset, sound_offset;
     uint32_t i, j;
     uint8_t set_type, flag, offset_size;
     char sound_name[STREAM_NAME_SIZE];
-    STREAMFILE *sbsFile = NULL, *streamData = NULL;
+    STREAMFILE *sbsFile = NULL, *sf_data = NULL;
     VGMSTREAM *vgmstream = NULL;
-    int target_stream = streamFile->stream_index, total_sounds, local_target, is_streamed = 0;
+    int target_stream = sf->stream_index, total_sounds, local_target, is_streamed = 0;
     uint32_t(*read_u32)(off_t, STREAMFILE*);
     uint16_t(*read_u16)(off_t, STREAMFILE*);
 
-    if (!check_extensions(streamFile, "sbr"))
+    if (!check_extensions(sf, "sbr"))
         goto fail;
 
     /* Logically, big endian version starts with SBbe. However, this format is
      * only used on 8th gen systems so far so big endian version probably doesn't exist. */
-    if (read_32bitBE(0x00, streamFile) == 0x53426C65) { /* "SBle" */
+    if (read_32bitBE(0x00, sf) == 0x53426C65) { /* "SBle" */
         read_u32 = read_u32le;
         read_u16 = read_u16le;
 #if 0
-    } else if (read_32bitBE(0x00, streamFile) == 0x53426265) { /* "SBbe" */
+    } else if (read_32bitBE(0x00, sf) == 0x53426265) { /* "SBbe" */
         read_32bit = read_u32be;
         read_16bit = read_u16be;
 #endif
@@ -800,9 +800,9 @@ VGMSTREAM * init_vgmstream_ea_sbr_harmony(STREAMFILE *streamFile) {
         goto fail;
     }
 
-    num_dsets = read_u16(0x0a, streamFile);
-    data_offset = read_u32(0x20, streamFile);
-    table_offset = read_u32(0x24, streamFile);
+    num_dsets = read_u16(0x0a, sf);
+    data_offset = read_u32(0x20, sf);
+    table_offset = read_u32(0x24, sf);
 
     if (target_stream == 0) target_stream = 1;
     if (target_stream < 0)
@@ -814,17 +814,17 @@ VGMSTREAM * init_vgmstream_ea_sbr_harmony(STREAMFILE *streamFile) {
     /* The bank is split into DSET sections each of which references one or multiple sounds. */
     /* Each set can contain RAM sounds (stored in SBR in data section) or streamed sounds (stored separately in SBS file). */
     for (i = 0; i < num_dsets; i++) {
-        dset_offset = read_u32(table_offset + 0x08 * i, streamFile);
-        if (read_u32(dset_offset, streamFile) != 0x44534554) /* "DSET" */
+        dset_offset = read_u32(table_offset + 0x08 * i, sf);
+        if (read_u32(dset_offset, sf) != 0x44534554) /* "DSET" */
             goto fail;
 
-        set_sounds = read_u32(dset_offset + 0x38, streamFile);
+        set_sounds = read_u32(dset_offset + 0x38, sf);
         local_target = target_stream - total_sounds - 1;
         dset_offset += 0x48;
 
         /* Find RAM or OFF chunk */
         while(1) {
-            chunk_id = read_u32(dset_offset, streamFile);
+            chunk_id = read_u32(dset_offset, sf);
             if (chunk_id == 0x2E52414D) { /* ".RAM" */
                 break;
             } else if (chunk_id == 0x2E4F4646) { /* ".OFF" */
@@ -840,70 +840,70 @@ VGMSTREAM * init_vgmstream_ea_sbr_harmony(STREAMFILE *streamFile) {
         }
 
         /* Different set types store offsets differently */
-        set_type = read_u8(dset_offset + 0x05, streamFile);
+        set_type = read_u8(dset_offset + 0x05, sf);
 
         if (set_type == 0x00) {
             total_sounds++;
             if (local_target < 0 || local_target > 0)
                 continue;
 
-            sound_offset = read_u32(dset_offset + 0x08, streamFile);
+            sound_offset = read_u32(dset_offset + 0x08, sf);
         } else if (set_type == 0x01) {
             total_sounds += 2;
             if (local_target < 0 || local_target > 1)
                 continue;
 
-            base_offset = read_u32(dset_offset + 0x08, streamFile);
+            base_offset = read_u32(dset_offset + 0x08, sf);
 
             if (local_target == 0) {
                 sound_offset = base_offset;
             } else {
-                sound_offset = base_offset + read_u16(dset_offset + 0x06, streamFile);
+                sound_offset = base_offset + read_u16(dset_offset + 0x06, sf);
             }
         } else if (set_type == 0x02) {
-            flag = read_u8(dset_offset + 0x06, streamFile);
-            offset_size = read_u8(dset_offset + 0x07, streamFile);
-            base_offset = read_u32(dset_offset + 0x08, streamFile);
-            sound_table_offset = read_u32(dset_offset + 0x10, streamFile);
+            flag = read_u8(dset_offset + 0x06, sf);
+            offset_size = read_u8(dset_offset + 0x07, sf);
+            base_offset = read_u32(dset_offset + 0x08, sf);
+            sound_table_offset = read_u32(dset_offset + 0x10, sf);
 
             total_sounds += set_sounds;
             if (local_target < 0 || local_target >= set_sounds)
                 continue;
 
             if (offset_size == 0x01) {
-                sound_offset = read_u8(sound_table_offset + 0x01 * local_target, streamFile);
+                sound_offset = read_u8(sound_table_offset + 0x01 * local_target, sf);
                 for (j = 0; j < flag; j++) sound_offset *= 2;
             } else if (offset_size == 0x02) {
-                sound_offset = read_u16(sound_table_offset + 0x02 * local_target, streamFile);
+                sound_offset = read_u16(sound_table_offset + 0x02 * local_target, sf);
                 for (j = 0; j < flag; j++) sound_offset *= 2;
             } else if (offset_size == 0x04) {
-                sound_offset = read_u32(sound_table_offset + 0x04 * local_target, streamFile);
+                sound_offset = read_u32(sound_table_offset + 0x04 * local_target, sf);
             }
 
             sound_offset += base_offset;
         } else if (set_type == 0x03) {
-            offset_size = read_u8(dset_offset + 0x07, streamFile);
-            set_sounds = read_u32(dset_offset + 0x08, streamFile);
-            sound_table_offset = read_u32(dset_offset + 0x10, streamFile);
+            offset_size = read_u8(dset_offset + 0x07, sf);
+            set_sounds = read_u32(dset_offset + 0x08, sf);
+            sound_table_offset = read_u32(dset_offset + 0x10, sf);
 
             total_sounds += set_sounds;
             if (local_target < 0 || local_target >= set_sounds)
                 continue;
 
             if (offset_size == 0x01) {
-                sound_offset = read_u8(sound_table_offset + 0x01 * local_target, streamFile);
+                sound_offset = read_u8(sound_table_offset + 0x01 * local_target, sf);
             } else if (offset_size == 0x02) {
-                sound_offset = read_u16(sound_table_offset + 0x02 * local_target, streamFile);
+                sound_offset = read_u16(sound_table_offset + 0x02 * local_target, sf);
             } else if (offset_size == 0x04) {
-                sound_offset = read_u32(sound_table_offset + 0x04 * local_target, streamFile);
+                sound_offset = read_u32(sound_table_offset + 0x04 * local_target, sf);
             }
         } else if (set_type == 0x04) {
             total_sounds += set_sounds;
             if (local_target < 0 || local_target >= set_sounds)
                 continue;
 
-            sound_table_offset = read_u32(dset_offset + 0x10, streamFile);
-            sound_offset = read_u32(sound_table_offset + 0x08 * local_target, streamFile);
+            sound_table_offset = read_u32(dset_offset + 0x10, sf);
+            sound_offset = read_u32(sound_table_offset + 0x08 * local_target, sf);
         } else {
             goto fail;
         }
@@ -922,29 +922,29 @@ VGMSTREAM * init_vgmstream_ea_sbr_harmony(STREAMFILE *streamFile) {
 
     if (!is_streamed) {
         /* RAM asset */
-        if (read_32bitBE(data_offset, streamFile) != 0x64617461) /* "data" */
+        if (read_32bitBE(data_offset, sf) != 0x64617461) /* "data" */
             goto fail;
 
-        streamData = streamFile;
+        sf_data = sf;
         sound_offset += data_offset;
     } else {
         /* streamed asset */
-        sbsFile = open_streamfile_by_ext(streamFile, "sbs");
+        sbsFile = open_streamfile_by_ext(sf, "sbs");
         if (!sbsFile)
             goto fail;
 
         if (read_32bitBE(0x00, sbsFile) != 0x64617461) /* "data" */
             goto fail;
 
-        streamData = sbsFile;
+        sf_data = sbsFile;
 
-        if (read_32bitBE(sound_offset, streamData) == 0x736C6F74) {
+        if (read_32bitBE(sound_offset, sf_data) == 0x736C6F74) {
             /* skip "slot" section */
             sound_offset += 0x30;
         }
     }
 
-    vgmstream = init_vgmstream_eaaudiocore_header(streamData, NULL, sound_offset, 0x00, meta_EA_SPS, 0);
+    vgmstream = init_vgmstream_eaaudiocore_header(sf_data, NULL, sound_offset, 0x00, meta_EA_SPS, 0);
     if (!vgmstream)
         goto fail;
 
@@ -982,24 +982,24 @@ typedef struct {
 } eaac_header;
 
 static segmented_layout_data* build_segmented_eaaudiocore_looping(STREAMFILE *sf_data, eaac_header *eaac);
-static layered_layout_data* build_layered_eaaudiocore(STREAMFILE *streamFile, eaac_header *eaac, off_t start_offset);
-static STREAMFILE *setup_eaac_streamfile(eaac_header *ea, STREAMFILE *streamHead, STREAMFILE *streamData);
-static size_t calculate_eaac_size(STREAMFILE *streamFile, eaac_header *ea, uint32_t num_samples, off_t start_offset, int is_ram);
+static layered_layout_data* build_layered_eaaudiocore(STREAMFILE* sf, eaac_header *eaac, off_t start_offset);
+static STREAMFILE *setup_eaac_streamfile(eaac_header *ea, STREAMFILE* sf_head, STREAMFILE* sf_data);
+static size_t calculate_eaac_size(STREAMFILE* sf, eaac_header *ea, uint32_t num_samples, off_t start_offset, int is_ram);
 
 /* EA newest header from RwAudioCore (RenderWare?) / EAAudioCore library (still generated by sx.exe).
  * Audio "assets" come in separate RAM headers (.SNR/SPH) and raw blocked streams (.SNS/SPS),
  * or together in pseudoformats (.SNU, .SBR+.SBS banks, .AEMS, .MUS, etc).
  * Some .SNR include stream data, while .SPS have headers so .SPH is optional. */
-static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, STREAMFILE * streamData, off_t header_offset, off_t start_offset, meta_t meta_type, int standalone) {
+static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE* sf_head, STREAMFILE* sf_data, off_t header_offset, off_t start_offset, meta_t meta_type, int standalone) {
     VGMSTREAM * vgmstream = NULL;
-    STREAMFILE* temp_streamFile = NULL, *streamFile = NULL, *snsFile = NULL;
+    STREAMFILE *temp_sf = NULL, *sf = NULL, *snsFile = NULL;
     uint32_t header1, header2, header_block_size = 0, header_size;
     uint8_t header_block_id;
     eaac_header eaac = {0};
 
     if (meta_type == meta_EA_SPS) {
-        header_block_id = read_8bit(header_offset, streamHead);
-        header_block_size = read_32bitBE(header_offset, streamHead) & 0x00FFFFFF;
+        header_block_id = read_8bit(header_offset, sf_head);
+        header_block_size = read_32bitBE(header_offset, sf_head) & 0x00FFFFFF;
         if (header_block_id != EAAC_BLOCKID1_HEADER)
             goto fail;
 
@@ -1007,8 +1007,8 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
     }
 
     /* EA SNR/SPH header */
-    header1 = (uint32_t)read_32bitBE(header_offset + 0x00, streamHead);
-    header2 = (uint32_t)read_32bitBE(header_offset + 0x04, streamHead);
+    header1 = (uint32_t)read_32bitBE(header_offset + 0x00, sf_head);
+    header2 = (uint32_t)read_32bitBE(header_offset + 0x04, sf_head);
     eaac.version        = (header1 >> 28) & 0x0F; /* 4 bits */
     eaac.codec          = (header1 >> 24) & 0x0F; /* 4 bits */
     eaac.channel_config = (header1 >> 18) & 0x3F; /* 6 bits */
@@ -1053,14 +1053,8 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
     header_size = 0x08;
     if (eaac.loop_flag) {
         header_size += 0x04;
-        eaac.loop_start = read_32bitBE(header_offset + 0x08, streamHead);
+        eaac.loop_start = read_32bitBE(header_offset + 0x08, sf_head);
         eaac.loop_end = eaac.num_samples;
-
-        /* TODO: EATrax has extra values in header, which would coexist with loop values */
-        if (eaac.codec == EAAC_CODEC_EATRAX) {
-            VGM_LOG("EA EAAC: unknown loop header for EATrax\n");
-            goto fail;
-        }
 
         /* TODO: need more cases to test how layout/streamfiles react */
         if (eaac.loop_start > 0 && !(
@@ -1080,7 +1074,7 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
         case EAAC_TYPE_STREAM:
             if (eaac.loop_flag) {
                 header_size += 0x04;
-                eaac.loop_offset = read_32bitBE(header_offset + 0x0c, streamHead);
+                eaac.loop_offset = read_32bitBE(header_offset + 0x0c, sf_head);
             }
             break;
         case EAAC_TYPE_GIGASAMPLE: /* rarely seen [Def Jam Icon (X360)] */
@@ -1089,7 +1083,7 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
                 goto fail;
             }
             header_size += 0x04;
-            eaac.prefetch_samples = read_32bitBE(header_offset + 0x08, streamHead);
+            eaac.prefetch_samples = read_32bitBE(header_offset + 0x08, sf_head);
             break;
     }
 
@@ -1123,7 +1117,7 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
         } else if (eaac.loop_start > 0) {
             /* RAM assets have two blocks in case of actual loops */
             /* find the second block by getting the first block size */
-            eaac.loop_offset = read_32bitBE(eaac.stream_offset, streamHead) & 0x00FFFFFF;
+            eaac.loop_offset = read_32bitBE(eaac.stream_offset, sf_head) & 0x00FFFFFF;
         } else {
             /* RAM assets have only one block in case of full loops */
             eaac.loop_offset = 0x00; /* implicit */
@@ -1133,15 +1127,15 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
     if (eaac.version == EAAC_VERSION_V0 && eaac.streamed) {
         /* open SNS file if needed */
         if (standalone) {
-            snsFile = open_streamfile_by_ext(streamHead, "sns");
-            streamData = snsFile;
+            snsFile = open_streamfile_by_ext(sf_head, "sns");
+            sf_data = snsFile;
         }
-        if (!streamData) goto fail;
+        if (!sf_data) goto fail;
     }
 
     /* build streamfile with audio data */
-    streamFile = setup_eaac_streamfile(&eaac, streamHead, streamData);
-    if (!streamFile) goto fail;
+    sf = setup_eaac_streamfile(&eaac, sf_head, sf_data);
+    if (!sf) goto fail;
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(eaac.channels,eaac.loop_flag);
@@ -1152,7 +1146,7 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
     vgmstream->loop_start_sample = eaac.loop_start;
     vgmstream->loop_end_sample = eaac.loop_end;
     vgmstream->meta_type = meta_type;
-    vgmstream->stream_size = get_streamfile_size(streamFile);
+    vgmstream->stream_size = get_streamfile_size(sf);
 
     /* EA decoder list and known internal FourCCs */
     switch(eaac.codec) {
@@ -1168,14 +1162,14 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
 
             /* special (if hacky) loop handling, see comments */
             if (eaac.loop_start > 0) {
-                segmented_layout_data *data = build_segmented_eaaudiocore_looping(streamFile, &eaac);
+                segmented_layout_data *data = build_segmented_eaaudiocore_looping(sf, &eaac);
                 if (!data) goto fail;
                 vgmstream->layout_data = data;
                 vgmstream->coding_type = data->segments[0]->coding_type;
                 vgmstream->layout_type = layout_segmented;
             }
             else {
-                vgmstream->layout_data = build_layered_eaaudiocore(streamFile, &eaac, 0x00);
+                vgmstream->layout_data = build_layered_eaaudiocore(sf, &eaac, 0x00);
                 if (!vgmstream->layout_data) goto fail;
                 vgmstream->coding_type = coding_FFmpeg;
                 vgmstream->layout_type = layout_layered;
@@ -1189,7 +1183,7 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
 
             /* special (if hacky) loop handling, see comments */
             if (eaac.loop_start > 0) {
-                segmented_layout_data *data = build_segmented_eaaudiocore_looping(streamFile, &eaac);
+                segmented_layout_data *data = build_segmented_eaaudiocore_looping(sf, &eaac);
                 if (!data) goto fail;
                 vgmstream->layout_data = data;
                 vgmstream->coding_type = data->segments[0]->coding_type;
@@ -1198,7 +1192,7 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
                 vgmstream->coding_type = coding_EA_XAS_V1;
                 vgmstream->layout_type = layout_blocked_ea_sns;
             }
-            
+
             break;
 
 #ifdef VGM_USE_MPEG
@@ -1214,17 +1208,17 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
 
             /* special (if hacky) loop handling, see comments */
             if (eaac.loop_start > 0) {
-                segmented_layout_data *data = build_segmented_eaaudiocore_looping(streamFile, &eaac);
+                segmented_layout_data *data = build_segmented_eaaudiocore_looping(sf, &eaac);
                 if (!data) goto fail;
                 vgmstream->layout_data = data;
                 vgmstream->coding_type = data->segments[0]->coding_type;
                 vgmstream->layout_type = layout_segmented;
             }
             else {
-                temp_streamFile = setup_eaac_audio_streamfile(streamFile, eaac.version, eaac.codec, eaac.streamed,0,0, 0x00);
-                if (!temp_streamFile) goto fail;
+                temp_sf = setup_eaac_audio_streamfile(sf, eaac.version, eaac.codec, eaac.streamed,0,0, 0x00);
+                if (!temp_sf) goto fail;
 
-                vgmstream->codec_data = init_mpeg_custom(temp_streamFile, 0x00, &vgmstream->coding_type, vgmstream->channels, type, &cfg);
+                vgmstream->codec_data = init_mpeg_custom(temp_sf, 0x00, &vgmstream->coding_type, vgmstream->channels, type, &cfg);
                 if (!vgmstream->codec_data) goto fail;
                 vgmstream->layout_type = layout_none;
             }
@@ -1246,18 +1240,18 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
             /* EATrax is "buffered" ATRAC9, uses custom IO since it's kind of complex to add to the decoder */
 
             cfg.channels = eaac.channels;
-            cfg.config_data = read_32bitBE(header_offset + 0x08,streamHead);
-            /* 0x10: frame size? (same as config data?) */
-            /* actual data size without blocks, LE b/c why make sense (but don't use it in case of truncated files) */
-            //total_size = read_32bitLE(header_offset + 0x0c,streamHead);
+            /* sub-header after normal header */
+            cfg.config_data = read_32bitBE(header_offset + header_size + 0x00,sf_head);
+            /* 0x04: data size without blocks, LE b/c why make sense (but don't use it in case of truncated files) */
+            /* 0x08: 16b frame size (same as config data) */
 
             vgmstream->codec_data = init_atrac9(&cfg);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_ATRAC9;
             vgmstream->layout_type = layout_none;
 
-            temp_streamFile = setup_eaac_audio_streamfile(streamFile, eaac.version, eaac.codec, eaac.streamed,0,0, 0x00);
-            if (!temp_streamFile) goto fail;
+            temp_sf = setup_eaac_audio_streamfile(sf, eaac.version, eaac.codec, eaac.streamed,0,0, 0x00);
+            if (!temp_sf) goto fail;
 
             break;
         }
@@ -1268,10 +1262,10 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
         case EAAC_CODEC_EAMP3: { /* "EM30"?: EAMP3 [Need for Speed 2015 (PS4)] */
             mpeg_custom_config cfg = {0};
 
-            temp_streamFile = setup_eaac_audio_streamfile(streamFile, eaac.version, eaac.codec, eaac.streamed,0,0, 0x00);
-            if (!temp_streamFile) goto fail;
+            temp_sf = setup_eaac_audio_streamfile(sf, eaac.version, eaac.codec, eaac.streamed,0,0, 0x00);
+            if (!temp_sf) goto fail;
 
-            vgmstream->codec_data = init_mpeg_custom(temp_streamFile, 0x00, &vgmstream->coding_type, vgmstream->channels, MPEG_EAMP3, &cfg);
+            vgmstream->codec_data = init_mpeg_custom(temp_sf, 0x00, &vgmstream->coding_type, vgmstream->channels, MPEG_EAMP3, &cfg);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->layout_type = layout_none;
 
@@ -1282,7 +1276,7 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
 
 #ifdef VGM_USE_FFMPEG
         case EAAC_CODEC_EAOPUS: { /* "Eop0"? : EAOpus [FIFA 17 (PC), FIFA 19 (Switch)]*/
-            vgmstream->layout_data = build_layered_eaaudiocore(streamFile, &eaac, 0x00);
+            vgmstream->layout_data = build_layered_eaaudiocore(sf, &eaac, 0x00);
             if (!vgmstream->layout_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_layered;
@@ -1296,37 +1290,37 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE * streamHead, ST
             goto fail;
     }
 
-    if (!vgmstream_open_stream(vgmstream, temp_streamFile ? temp_streamFile : streamFile, 0x00))
+    if (!vgmstream_open_stream(vgmstream, temp_sf ? temp_sf : sf, 0x00))
         goto fail;
 
-    close_streamfile(streamFile);
+    close_streamfile(sf);
     close_streamfile(snsFile);
-    close_streamfile(temp_streamFile);
+    close_streamfile(temp_sf);
     return vgmstream;
 
 fail:
-    close_streamfile(streamFile);
+    close_streamfile(sf);
     close_streamfile(snsFile);
-    close_streamfile(temp_streamFile);
+    close_streamfile(temp_sf);
     close_vgmstream(vgmstream);
     return NULL;
 }
 
-static size_t calculate_eaac_size(STREAMFILE *streamFile, eaac_header *ea, uint32_t num_samples, off_t start_offset, int is_ram) {
+static size_t calculate_eaac_size(STREAMFILE *sf, eaac_header *ea, uint32_t num_samples, off_t start_offset, int is_ram) {
     uint32_t block_size;
     uint8_t block_id;
     size_t stream_size, file_size;
     off_t block_offset;
     int looped;
 
-    file_size = get_streamfile_size(streamFile);
+    file_size = get_streamfile_size(sf);
     block_offset = start_offset;
     stream_size = 0;
     looped = 0;
 
     while (block_offset < file_size) {
-        block_id = read_8bit(block_offset, streamFile);
-        block_size = read_32bitBE(block_offset, streamFile) & 0x00FFFFFF;
+        block_id = read_8bit(block_offset, sf);
+        block_size = read_32bitBE(block_offset, sf) & 0x00FFFFFF;
 
         /* stop when we reach the end marker */
         if (ea->version == EAAC_VERSION_V0) {
@@ -1360,71 +1354,71 @@ fail:
 }
 
 
-static STREAMFILE *setup_eaac_streamfile(eaac_header *ea, STREAMFILE *streamHead, STREAMFILE *streamData) {
+static STREAMFILE *setup_eaac_streamfile(eaac_header *ea, STREAMFILE* sf_head, STREAMFILE* sf_data) {
     size_t data_size;
-    STREAMFILE *new_streamFile = NULL;
-    STREAMFILE *temp_streamFile = NULL;
-    STREAMFILE *stream_segments[2] = { 0 };
+    STREAMFILE *new_sf = NULL;
+    STREAMFILE *temp_sf = NULL;
+    STREAMFILE *sf_segments[2] = { 0 };
 
     if (ea->version == EAAC_VERSION_V0) {
         switch (ea->type) {
             case EAAC_TYPE_RAM:
                 /* both header and data in SNR */
-                data_size = calculate_eaac_size(streamHead, ea, ea->num_samples, ea->stream_offset, 1);
+                data_size = calculate_eaac_size(sf_head, ea, ea->num_samples, ea->stream_offset, 1);
                 if (data_size == 0) goto fail;
 
-                new_streamFile = open_wrap_streamfile(streamHead);
-                if (!new_streamFile) goto fail;
-                temp_streamFile = new_streamFile;
+                new_sf = open_wrap_streamfile(sf_head);
+                if (!new_sf) goto fail;
+                temp_sf = new_sf;
 
-                new_streamFile = open_clamp_streamfile(temp_streamFile, ea->stream_offset, data_size);
-                if (!new_streamFile) goto fail;
-                temp_streamFile = new_streamFile;
+                new_sf = open_clamp_streamfile(temp_sf, ea->stream_offset, data_size);
+                if (!new_sf) goto fail;
+                temp_sf = new_sf;
                 break;
             case EAAC_TYPE_STREAM:
                 /* header in SNR, data in SNS */
-                data_size = calculate_eaac_size(streamData, ea, ea->num_samples, ea->stream_offset, 0);
+                data_size = calculate_eaac_size(sf_data, ea, ea->num_samples, ea->stream_offset, 0);
                 if (data_size == 0) goto fail;
 
-                new_streamFile = open_wrap_streamfile(streamData);
-                if (!new_streamFile) goto fail;
-                temp_streamFile = new_streamFile;
+                new_sf = open_wrap_streamfile(sf_data);
+                if (!new_sf) goto fail;
+                temp_sf = new_sf;
 
-                new_streamFile = open_clamp_streamfile(temp_streamFile, ea->stream_offset, data_size);
-                if (!new_streamFile) goto fail;
-                temp_streamFile = new_streamFile;
+                new_sf = open_clamp_streamfile(temp_sf, ea->stream_offset, data_size);
+                if (!new_sf) goto fail;
+                temp_sf = new_sf;
                 break;
             case EAAC_TYPE_GIGASAMPLE:
                 /* header and prefetched data in SNR, rest of data in SNS */
                 /* open prefetched data */
-                data_size = calculate_eaac_size(streamHead, ea, ea->prefetch_samples, ea->prefetch_offset, 1);
+                data_size = calculate_eaac_size(sf_head, ea, ea->prefetch_samples, ea->prefetch_offset, 1);
                 if (data_size == 0) goto fail;
 
-                new_streamFile = open_wrap_streamfile(streamHead);
-                if (!new_streamFile) goto fail;
-                stream_segments[0] = new_streamFile;
+                new_sf = open_wrap_streamfile(sf_head);
+                if (!new_sf) goto fail;
+                sf_segments[0] = new_sf;
 
-                new_streamFile = open_clamp_streamfile(stream_segments[0], ea->prefetch_offset, data_size);
-                if (!new_streamFile) goto fail;
-                stream_segments[0] = new_streamFile;
+                new_sf = open_clamp_streamfile(sf_segments[0], ea->prefetch_offset, data_size);
+                if (!new_sf) goto fail;
+                sf_segments[0] = new_sf;
 
                 /* open main data */
-                data_size = calculate_eaac_size(streamData, ea, ea->num_samples - ea->prefetch_samples, ea->stream_offset, 0);
+                data_size = calculate_eaac_size(sf_data, ea, ea->num_samples - ea->prefetch_samples, ea->stream_offset, 0);
                 if (data_size == 0) goto fail;
 
-                new_streamFile = open_wrap_streamfile(streamData);
-                if (!new_streamFile) goto fail;
-                stream_segments[1] = new_streamFile;
+                new_sf = open_wrap_streamfile(sf_data);
+                if (!new_sf) goto fail;
+                sf_segments[1] = new_sf;
 
-                new_streamFile = open_clamp_streamfile(stream_segments[1], ea->stream_offset, data_size);
-                if (!new_streamFile) goto fail;
-                stream_segments[1] = new_streamFile;
+                new_sf = open_clamp_streamfile(sf_segments[1], ea->stream_offset, data_size);
+                if (!new_sf) goto fail;
+                sf_segments[1] = new_sf;
 
-                new_streamFile = open_multifile_streamfile(stream_segments, 2);
-                if (!new_streamFile) goto fail;
-                temp_streamFile = new_streamFile;
-                stream_segments[0] = NULL;
-                stream_segments[1] = NULL;
+                new_sf = open_multifile_streamfile(sf_segments, 2);
+                if (!new_sf) goto fail;
+                temp_sf = new_sf;
+                sf_segments[0] = NULL;
+                sf_segments[1] = NULL;
                 break;
         }
     } else {
@@ -1434,24 +1428,24 @@ static STREAMFILE *setup_eaac_streamfile(eaac_header *ea, STREAMFILE *streamHead
             goto fail;
         }
 
-        data_size = calculate_eaac_size(streamHead, ea, ea->num_samples, ea->stream_offset, ea->type == EAAC_TYPE_RAM);
+        data_size = calculate_eaac_size(sf_head, ea, ea->num_samples, ea->stream_offset, ea->type == EAAC_TYPE_RAM);
         if (data_size == 0) goto fail;
 
-        new_streamFile = open_wrap_streamfile(streamHead);
-        if (!new_streamFile) goto fail;
-        temp_streamFile = new_streamFile;
+        new_sf = open_wrap_streamfile(sf_head);
+        if (!new_sf) goto fail;
+        temp_sf = new_sf;
 
-        new_streamFile = open_clamp_streamfile(temp_streamFile, ea->stream_offset, data_size);
-        if (!new_streamFile) goto fail;
-        temp_streamFile = new_streamFile;
+        new_sf = open_clamp_streamfile(temp_sf, ea->stream_offset, data_size);
+        if (!new_sf) goto fail;
+        temp_sf = new_sf;
     }
 
-    return temp_streamFile;
+    return temp_sf;
 
 fail:
-    close_streamfile(stream_segments[0]);
-    close_streamfile(stream_segments[1]);
-    close_streamfile(temp_streamFile);
+    close_streamfile(sf_segments[0]);
+    close_streamfile(sf_segments[1]);
+    close_streamfile(temp_sf);
 
     return NULL;
 }
