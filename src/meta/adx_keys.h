@@ -193,6 +193,9 @@ static const adxkey_info adxkey8_list[] = {
         /* Katekyoo Hitman Reborn! Let's Ansatsu! Nerawareta 10-daime! (PS2) */
         {0x5381,0x52E5,0x53E9, "REBHITMAN",0},
 
+        /* 428: Fuusasareta Shibuya de (PS3) */
+        {0x52ff,0x649f,0x448f, "hj1kviaqqdzUacryoacwmscfvwtlfkVbbbqpqmzqnbile2euljywazejgyxxvqlf",0},
+
 };
 
 static const adxkey_info adxkey9_list[] = {
