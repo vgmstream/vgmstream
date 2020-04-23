@@ -2890,6 +2890,25 @@ int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t s
         vgmstream->frame_size = vgmstream->interleave_block_size;
     }
 
+    /* big interleaved values for non-interleaved data may result in incorrect behavior,
+     * quick fix for now since layouts are finicky, with 'interleave' left for meta info
+     * (certain layouts+codecs combos results in funny output too, should rework the whole thing) */
+    if (vgmstream->layout_type == layout_interleave
+            && vgmstream->channels == 1
+            && vgmstream->interleave_block_size > 0) {
+        /* main codecs that use arbitrary interleaves but could happen for others too */
+        switch(vgmstream->coding_type) {
+            case coding_NGC_DSP:
+            case coding_NGC_DSP_subint:
+            case coding_PSX:
+            case coding_PSX_badflags:
+                vgmstream->interleave_block_size = 0;
+                break;
+            default:
+                break;
+        }
+    }
+
     /* if interleave is big enough keep a buffer per channel */
     if (vgmstream->interleave_block_size * vgmstream->channels >= STREAMFILE_DEFAULT_BUFFER_SIZE) {
         use_streamfile_per_channel = 1;
