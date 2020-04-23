@@ -435,7 +435,6 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE* sf) {
         case DSP: {     /* Wii/3DS/WiiU */
             off_t wiih_offset;
             size_t wiih_size;
-            int i;
 
             //if (ww.fmt_size != 0x28 && ww.fmt_size != ?) goto fail; /* old, new */
             if (ww.bits_per_sample != 4) goto fail;
@@ -711,10 +710,16 @@ static int is_dsp_full_interleave(STREAMFILE* sf, wwise_header* ww, off_t coef_o
     if (ww->truncated)
         return 0;
 
+    if (ww->channels == 1)
+        return 0;
+
     if (check_extensions(sf,"bnk"))
         return 1;
 
-    if (ww->channels == 2 && ww->data_size <= 0x30000) {
+    if (ww->data_size > 0x30000)
+        return 0;
+
+    {
         uint16_t head_ps2 = read_u16be(coef_offset + 1 * 0x2e + 0x22, sf); /* ch2's initial predictor */
         uint16_t init_ps2 = read_u8(ww->data_offset + 0x08, sf); /* at normal interleave */
         uint16_t half_ps2 = read_u8(ww->data_offset + ww->data_size / 2, sf); /* at full interleave */
