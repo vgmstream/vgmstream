@@ -26,9 +26,9 @@ VGMSTREAM * init_vgmstream_imc(STREAMFILE *streamFile) {
     /* extra checks since the header is so simple */
     if (channel_count < 1 || channel_count > 8)
         goto fail;
-    if (!(sample_rate == 11025 || sample_rate == 16000 || sample_rate == 22050 ||
-          sample_rate == 32000 || sample_rate == 44100 || sample_rate == 48000))
-          /* the game can only play these sample rates */
+    if (sample_rate < 11025 || sample_rate > 48000)
+        /* game can play 11025, 16000, 22050, 32000, 44100, 48000. Anything else will be
+         silent in-game. ST10.IMC subsongs 42-47 use 22000, those are unused silent audio */
         goto fail;
     if (interleave*blocks + start_offset != file_size)
         goto fail;
