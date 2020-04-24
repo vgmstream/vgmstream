@@ -24,7 +24,11 @@ VGMSTREAM * init_vgmstream_imc(STREAMFILE *streamFile) {
     start_offset = 0x10;
 
     /* extra checks since the header is so simple */
-    if (channel_count < 1 || channel_count > 8 || sample_rate < 22000 || sample_rate > 48000)
+    if (channel_count < 1 || channel_count > 8)
+        goto fail;
+    if (sample_rate < 11025 || sample_rate > 48000)
+        /* game can play 11025, 16000, 22050, 32000, 44100, 48000. Anything else will be
+         silent in-game. ST10.IMC subsongs 42-47 use 22000, those are unused silent audio */
         goto fail;
     if (interleave*blocks + start_offset != file_size)
         goto fail;
