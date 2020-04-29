@@ -3,6 +3,10 @@
 
 AM_MAKEFLAGS=-f Makefile.autotools
 
-SUBDIRS = src audacious cli
+SUBDIRS = src cli
+
+if HAVE_AUDACIOUS
+SUBDIRS += audacious
+endif
 
 EXTRA_DIST = version.h
