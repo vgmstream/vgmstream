@@ -35,9 +35,11 @@ PKG_CHECK_MODULES(MPG123, [libmpg123], have_libmpg123=yes,
 )
 AM_CONDITIONAL(HAVE_LIBMPG123, test "$have_libmpg123" = yes)
 
-PKG_CHECK_MODULES(AUDACIOUS, [audacious >= 3.5.0],,
-        [AC_MSG_ERROR([Cannot find audacious >= 3.5.0 correctly installed])]
+have_audacious=no
+PKG_CHECK_MODULES(AUDACIOUS, [audacious >= 3.5.0],  have_audacious=yes,
+        [AC_MSG_WARN([Cannot find audacious >= 3.5.0 correctly installed - will not build Audacious plugin])]
 )
+AM_CONDITIONAL(HAVE_AUDACIOUS, test "$have_audacious" = yes)
 
 PKG_CHECK_MODULES(GTK, [glib-2.0 >= 2.6.0 gtk+-2.0 >= 2.6.0 gthread-2.0 pango],
     , [AC_MSG_ERROR([Cannot find glib2/gtk2/pango])]
