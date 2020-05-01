@@ -788,6 +788,10 @@
                     RelativePath=".\meta\imc.c"
                     >
                 </File>
+                <File
+                    RelativePath=".\meta\imuse.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\ios_psnd.c"
 					>
@@ -2074,10 +2078,14 @@
 					RelativePath=".\coding\hca_decoder.c"
 					>
 				</File>
-				<File
-					RelativePath=".\coding\ima_decoder.c"
-					>
-				</File>
+                <File
+                    RelativePath=".\coding\ima_decoder.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\coding\imuse_decoder.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\coding\l5_555_decoder.c"
 					>

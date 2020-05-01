@@ -188,6 +188,7 @@
     <ClCompile Include="meta\g1l.c" />
     <ClCompile Include="meta\ima.c" />
     <ClCompile Include="meta\imc.c" />
+    <ClCompile Include="meta\imuse.c" />
     <ClCompile Include="meta\ios_psnd.c" />
     <ClCompile Include="meta\ktss.c" />
     <ClCompile Include="meta\kwb.c" />
@@ -578,6 +579,7 @@
     <ClCompile Include="coding\g7221_decoder_lib.c" />
     <ClCompile Include="coding\hca_decoder.c" />
     <ClCompile Include="coding\ima_decoder.c" />
+    <ClCompile Include="coding\imuse_decoder.c" />
     <ClCompile Include="coding\l5_555_decoder.c" />
     <ClCompile Include="coding\mc3_decoder.c" />
     <ClCompile Include="coding\mpeg_custom_utils.c" />

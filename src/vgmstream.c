@@ -493,6 +493,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_bkhd,
     init_vgmstream_bkhd_fx,
     init_vgmstream_diva,
+    init_vgmstream_imuse,
 
     /* lowest priority metas (should go after all metas, and TXTH should go before raw formats) */
     init_vgmstream_txth,            /* proper parsers should supersede TXTH, once added */
@@ -681,6 +682,10 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
         reset_ubi_adpcm(vgmstream->codec_data);
     }
 
+    if (vgmstream->coding_type == coding_IMUSE) {
+        reset_imuse(vgmstream->codec_data);
+    }
+
     if (vgmstream->coding_type == coding_EA_MT) {
         reset_ea_mt(vgmstream);
     }
@@ -857,6 +862,11 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
 
     if (vgmstream->coding_type == coding_UBI_ADPCM) {
         free_ubi_adpcm(vgmstream->codec_data);
+        vgmstream->codec_data = NULL;
+    }
+
+    if (vgmstream->coding_type == coding_IMUSE) {
+        free_imuse(vgmstream->codec_data);
         vgmstream->codec_data = NULL;
     }
 
@@ -1301,6 +1311,8 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
             return (vgmstream->interleave_block_size - 0x05)*2 + 2;
         case coding_UBI_ADPCM:
             return 0; /* varies per mode */
+        case coding_IMUSE:
+            return 0; /* varies per frame */
         case coding_EA_MT:
             return 0; /* 432, but variable in looped files */
         case coding_CIRCUS_VQ:
@@ -1493,6 +1505,8 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
             return vgmstream->interleave_block_size;
         case coding_UBI_ADPCM:
             return 0; /* varies per mode? */
+        case coding_IMUSE:
+            return 0; /* varies per frame */
         case coding_EA_MT:
             return 0; /* variable (frames of bit counts or PCM frames) */
 #ifdef VGM_USE_ATRAC9
@@ -2170,6 +2184,10 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
             decode_ubi_adpcm(vgmstream, buffer+samples_written*vgmstream->channels, samples_to_do);
             break;
 
+        case coding_IMUSE:
+            decode_imuse(vgmstream, buffer+samples_written*vgmstream->channels, samples_to_do);
+            break;
+
         case coding_EA_MT:
             for (ch = 0; ch < vgmstream->channels; ch++) {
                 decode_ea_mt(vgmstream, buffer+samples_written*vgmstream->channels+ch,
@@ -2261,6 +2279,10 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
 
         if (vgmstream->coding_type == coding_UBI_ADPCM) {
             seek_ubi_adpcm(vgmstream->codec_data, vgmstream->loop_sample);
+        }
+
+        if (vgmstream->coding_type == coding_IMUSE) {
+            seek_imuse(vgmstream->codec_data, vgmstream->loop_sample);
         }
 
         if (vgmstream->coding_type == coding_EA_MT) {

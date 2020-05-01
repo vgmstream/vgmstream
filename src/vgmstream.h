@@ -167,6 +167,7 @@ typedef enum {
     coding_OKI16,           /* OKI 4-bit ADPCM with 16-bit output and modified expand */
     coding_OKI4S,           /* OKI 4-bit ADPCM with 16-bit output and cuadruple step */
     coding_PTADPCM,         /* Platinum 4-bit ADPCM */
+    coding_IMUSE,           /* LucasArts iMUSE Variable ADPCM */
 
     /* others */
     coding_SDX2,            /* SDX2 2:1 Squareroot-Delta-Exact compression DPCM */
@@ -727,6 +728,7 @@ typedef enum {
     meta_LRMD,
     meta_WWISE_FX,
     meta_DIVA,
+    meta_IMUSE,
 } meta_t;
 
 /* standard WAVEFORMATEXTENSIBLE speaker positions */

@@ -205,6 +205,14 @@ void seek_ubi_adpcm(ubi_adpcm_codec_data *data, int32_t num_sample);
 void free_ubi_adpcm(ubi_adpcm_codec_data *data);
 int ubi_adpcm_get_samples(ubi_adpcm_codec_data *data);
 
+/* imuse_decoder */
+typedef struct imuse_codec_data imuse_codec_data;
+imuse_codec_data *init_imuse(STREAMFILE* sf, int channels);
+void decode_imuse(VGMSTREAM* vgmstream, sample_t* outbuf, int32_t samples_to_do);
+void reset_imuse(imuse_codec_data* data);
+void seek_imuse(imuse_codec_data* data, int32_t num_sample);
+void free_imuse(imuse_codec_data* data);
+
 /* ea_mt_decoder*/
 ea_mt_codec_data *init_ea_mt(int channels, int type);
 ea_mt_codec_data *init_ea_mt_loops(int channels, int pcm_blocks, int loop_sample, off_t *loop_offsets);

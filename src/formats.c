@@ -222,6 +222,7 @@ static const char* extension_list[] = {
     "ilv", //txth/reserved [Star Wars Episode III (PS2)]
     "ima",
     "imc",
+    "imx",
     "int",
     "is14",
     "isb",
@@ -764,6 +765,7 @@ static const coding_info coding_info_list[] = {
         {coding_NWA,                "VisualArt's NWA DPCM"},
         {coding_CIRCUS_ADPCM,       "Circus 8-bit ADPCM"},
         {coding_UBI_ADPCM,          "Ubisoft 4/6-bit ADPCM"},
+        {coding_IMUSE,              "LucasArts iMUSE VIMA ADPCM"},
 
         {coding_EA_MT,              "Electronic Arts MicroTalk"},
         {coding_CIRCUS_VQ,          "Circus VQ"},
@@ -1287,6 +1289,7 @@ static const meta_info meta_info_list[] = {
         {meta_LRMD,                 "Sony LRMD header"},
         {meta_WWISE_FX,             "Audiokinetic Wwise FX header"},
         {meta_DIVA,                 "DIVA header"},
+        {meta_IMUSE,                "LucasArts iMUSE header"},
 
 };
 
