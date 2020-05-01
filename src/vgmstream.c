@@ -2860,8 +2860,11 @@ int get_vgmstream_average_bitrate(VGMSTREAM * vgmstream) {
  * - opens its own streamfile from on a base one. One streamfile per channel may be open (to improve read/seeks).
  * Should be called in metas before returning the VGMSTREAM.
  */
-int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t start_offset) {
-    STREAMFILE * file = NULL;
+int vgmstream_open_stream(VGMSTREAM* vgmstream, STREAMFILE* sf, off_t start_offset) {
+    return vgmstream_open_stream_bf(vgmstream, sf, start_offset, 0);
+}
+int vgmstream_open_stream_bf(VGMSTREAM* vgmstream, STREAMFILE* sf, off_t start_offset, int force_multibuffer) {
+    STREAMFILE* file = NULL;
     char filename[PATH_LIMIT];
     int ch;
     int use_streamfile_per_channel = 0;
@@ -2953,6 +2956,11 @@ int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t s
         use_streamfile_per_channel = 1;
     }
 
+    /* for hard-to-detect fixed offsets or full interleave */
+    if (force_multibuffer) {
+        use_streamfile_per_channel = 1;
+    }
+
     /* for mono or codecs like IMA (XBOX, MS IMA, MS ADPCM) where channels work with the same bytes */
     if (vgmstream->layout_type == layout_none) {
         use_same_offset_per_channel = 1;
@@ -2964,17 +2972,16 @@ int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t s
         is_stereo_codec = 1;
     }
 
-    if (streamFile == NULL || start_offset < 0) {
+    if (sf == NULL || start_offset < 0) {
         VGM_LOG("VGMSTREAM: buggy code (null streamfile / wrong start_offset)\n");
         goto fail;
     }
 
-
-    get_streamfile_name(streamFile,filename,sizeof(filename));
+    get_streamfile_name(sf, filename, sizeof(filename));
     /* open the file for reading by each channel */
     {
         if (!use_streamfile_per_channel) {
-            file = open_streamfile(streamFile,filename);
+            file = open_streamfile(sf, filename);
             if (!file) goto fail;
         }
 
@@ -2992,13 +2999,13 @@ int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t s
             /* open new one if needed, useful to avoid jumping around when each channel data is too apart
              * (don't use when data is close as it'd make buffers read the full file multiple times) */
             if (use_streamfile_per_channel) {
-                file = open_streamfile(streamFile,filename);
+                file = open_streamfile(sf,filename);
                 if (!file) goto fail;
             }
 
             vgmstream->ch[ch].streamfile = file;
-            vgmstream->ch[ch].channel_start_offset =
-                    vgmstream->ch[ch].offset = offset;
+            vgmstream->ch[ch].channel_start_offset = offset;
+            vgmstream->ch[ch].offset = offset;
         }
     }
 

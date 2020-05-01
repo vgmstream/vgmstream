@@ -1374,6 +1374,7 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream);
 /* Open the stream for reading at offset (taking into account layouts, channels and so on).
  * Returns 0 on failure */
 int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t start_offset);
+int vgmstream_open_stream_bf(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t start_offset, int force_multibuffer);
 
 /* Get description info */
 void get_vgmstream_coding_description(VGMSTREAM *vgmstream, char *out, size_t out_size);

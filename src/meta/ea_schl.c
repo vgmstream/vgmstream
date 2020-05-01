@@ -1337,8 +1337,8 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE* sf, ea_header* 
 
     vgmstream->stream_size = ea->stream_size;
 
-    /* open files; channel offsets are updated below */
-    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
+    /* open files; channel offsets are updated below (force multibuffer for bnk) */
+    if (!vgmstream_open_stream_bf(vgmstream, sf, start_offset, 1))
         goto fail;
 
 
