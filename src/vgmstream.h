@@ -95,6 +95,7 @@ typedef enum {
     coding_NGC_DSP_subint,  /* Nintendo DSP ADPCM with frame subinterframe */
     coding_NGC_DTK,         /* Nintendo DTK ADPCM (hardware disc), also called TRK or ADP */
     coding_NGC_AFC,         /* Nintendo AFC ADPCM */
+    coding_VADPCM,          /* Silicon Graphics VADPCM */
 
     coding_G721,            /* CCITT G.721 */
 
@@ -167,6 +168,7 @@ typedef enum {
     coding_OKI16,           /* OKI 4-bit ADPCM with 16-bit output and modified expand */
     coding_OKI4S,           /* OKI 4-bit ADPCM with 16-bit output and cuadruple step */
     coding_PTADPCM,         /* Platinum 4-bit ADPCM */
+    coding_IMUSE,           /* LucasArts iMUSE Variable ADPCM */
 
     /* others */
     coding_SDX2,            /* SDX2 2:1 Squareroot-Delta-Exact compression DPCM */
@@ -727,6 +729,7 @@ typedef enum {
     meta_LRMD,
     meta_WWISE_FX,
     meta_DIVA,
+    meta_IMUSE,
 } meta_t;
 
 /* standard WAVEFORMATEXTENSIBLE speaker positions */
@@ -784,14 +787,15 @@ typedef struct {
     /* format specific */
 
     /* adpcm */
-    int16_t adpcm_coef[16];     /* for formats with decode coefficients built in */
-    int32_t adpcm_coef_3by32[0x60];     /* for Level-5 0x555 */
+    int16_t adpcm_coef[16];             /* formats with decode coefficients built in (DSP, some ADX) */
+    int32_t adpcm_coef_3by32[0x60];     /* Level-5 0x555 */
+    int16_t vadpcm_coefs[8*2*8];        /* VADPCM: max 8 groups * max 2 order * fixed 8 subframe coefs */
     union {
-        int16_t adpcm_history1_16;  /* previous sample */
+        int16_t adpcm_history1_16;      /* previous sample */
         int32_t adpcm_history1_32;
     };
     union {
-        int16_t adpcm_history2_16;  /* previous previous sample */
+        int16_t adpcm_history2_16;      /* previous previous sample */
         int32_t adpcm_history2_32;
     };
     union {
@@ -806,8 +810,8 @@ typedef struct {
     double adpcm_history1_double;
     double adpcm_history2_double;
 
-    int adpcm_step_index;       /* for IMA */
-    int adpcm_scale;            /* for MS ADPCM */
+    int adpcm_step_index;               /* for IMA */
+    int adpcm_scale;                    /* for MS ADPCM */
 
     /* state for G.721 decoder, sort of big but we might as well keep it around */
     struct g72x_state g72x_state;
@@ -1370,6 +1374,7 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream);
 /* Open the stream for reading at offset (taking into account layouts, channels and so on).
  * Returns 0 on failure */
 int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t start_offset);
+int vgmstream_open_stream_bf(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t start_offset, int force_multibuffer);
 
 /* Get description info */
 void get_vgmstream_coding_description(VGMSTREAM *vgmstream, char *out, size_t out_size);

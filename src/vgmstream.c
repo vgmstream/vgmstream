@@ -493,6 +493,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_bkhd,
     init_vgmstream_bkhd_fx,
     init_vgmstream_diva,
+    init_vgmstream_imuse,
 
     /* lowest priority metas (should go after all metas, and TXTH should go before raw formats) */
     init_vgmstream_txth,            /* proper parsers should supersede TXTH, once added */
@@ -681,6 +682,10 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
         reset_ubi_adpcm(vgmstream->codec_data);
     }
 
+    if (vgmstream->coding_type == coding_IMUSE) {
+        reset_imuse(vgmstream->codec_data);
+    }
+
     if (vgmstream->coding_type == coding_EA_MT) {
         reset_ea_mt(vgmstream);
     }
@@ -857,6 +862,11 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
 
     if (vgmstream->coding_type == coding_UBI_ADPCM) {
         free_ubi_adpcm(vgmstream->codec_data);
+        vgmstream->codec_data = NULL;
+    }
+
+    if (vgmstream->coding_type == coding_IMUSE) {
+        free_imuse(vgmstream->codec_data);
         vgmstream->codec_data = NULL;
     }
 
@@ -1146,6 +1156,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_NGC_DSP_subint:
             return 14;
         case coding_NGC_AFC:
+        case coding_VADPCM:
             return 16;
         case coding_NGC_DTK:
             return 28;
@@ -1301,6 +1312,8 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
             return (vgmstream->interleave_block_size - 0x05)*2 + 2;
         case coding_UBI_ADPCM:
             return 0; /* varies per mode */
+        case coding_IMUSE:
+            return 0; /* varies per frame */
         case coding_EA_MT:
             return 0; /* 432, but variable in looped files */
         case coding_CIRCUS_VQ:
@@ -1345,6 +1358,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_NGC_DSP_subint:
             return 0x08 * vgmstream->channels;
         case coding_NGC_AFC:
+        case coding_VADPCM:
             return 0x09;
         case coding_NGC_DTK:
             return 0x20;
@@ -1493,6 +1507,8 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
             return vgmstream->interleave_block_size;
         case coding_UBI_ADPCM:
             return 0; /* varies per mode? */
+        case coding_IMUSE:
+            return 0; /* varies per frame */
         case coding_EA_MT:
             return 0; /* variable (frames of bit counts or PCM frames) */
 #ifdef VGM_USE_ATRAC9
@@ -1708,6 +1724,14 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                         vgmstream->channels,vgmstream->samples_into_block,samples_to_do);
             }
             break;
+        case coding_VADPCM: {
+            int order = vgmstream->codec_config;
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_vadpcm(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do, order);
+            }
+            break;
+        }
         case coding_PSX:
             for (ch = 0; ch < vgmstream->channels; ch++) {
                 decode_psx(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
@@ -2170,6 +2194,10 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
             decode_ubi_adpcm(vgmstream, buffer+samples_written*vgmstream->channels, samples_to_do);
             break;
 
+        case coding_IMUSE:
+            decode_imuse(vgmstream, buffer+samples_written*vgmstream->channels, samples_to_do);
+            break;
+
         case coding_EA_MT:
             for (ch = 0; ch < vgmstream->channels; ch++) {
                 decode_ea_mt(vgmstream, buffer+samples_written*vgmstream->channels+ch,
@@ -2261,6 +2289,10 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
 
         if (vgmstream->coding_type == coding_UBI_ADPCM) {
             seek_ubi_adpcm(vgmstream->codec_data, vgmstream->loop_sample);
+        }
+
+        if (vgmstream->coding_type == coding_IMUSE) {
+            seek_imuse(vgmstream->codec_data, vgmstream->loop_sample);
         }
 
         if (vgmstream->coding_type == coding_EA_MT) {
@@ -2828,8 +2860,11 @@ int get_vgmstream_average_bitrate(VGMSTREAM * vgmstream) {
  * - opens its own streamfile from on a base one. One streamfile per channel may be open (to improve read/seeks).
  * Should be called in metas before returning the VGMSTREAM.
  */
-int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t start_offset) {
-    STREAMFILE * file = NULL;
+int vgmstream_open_stream(VGMSTREAM* vgmstream, STREAMFILE* sf, off_t start_offset) {
+    return vgmstream_open_stream_bf(vgmstream, sf, start_offset, 0);
+}
+int vgmstream_open_stream_bf(VGMSTREAM* vgmstream, STREAMFILE* sf, off_t start_offset, int force_multibuffer) {
+    STREAMFILE* file = NULL;
     char filename[PATH_LIMIT];
     int ch;
     int use_streamfile_per_channel = 0;
@@ -2921,6 +2956,11 @@ int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t s
         use_streamfile_per_channel = 1;
     }
 
+    /* for hard-to-detect fixed offsets or full interleave */
+    if (force_multibuffer) {
+        use_streamfile_per_channel = 1;
+    }
+
     /* for mono or codecs like IMA (XBOX, MS IMA, MS ADPCM) where channels work with the same bytes */
     if (vgmstream->layout_type == layout_none) {
         use_same_offset_per_channel = 1;
@@ -2932,17 +2972,16 @@ int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t s
         is_stereo_codec = 1;
     }
 
-    if (streamFile == NULL || start_offset < 0) {
+    if (sf == NULL || start_offset < 0) {
         VGM_LOG("VGMSTREAM: buggy code (null streamfile / wrong start_offset)\n");
         goto fail;
     }
 
-
-    get_streamfile_name(streamFile,filename,sizeof(filename));
+    get_streamfile_name(sf, filename, sizeof(filename));
     /* open the file for reading by each channel */
     {
         if (!use_streamfile_per_channel) {
-            file = open_streamfile(streamFile,filename);
+            file = open_streamfile(sf, filename);
             if (!file) goto fail;
         }
 
@@ -2960,13 +2999,13 @@ int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t s
             /* open new one if needed, useful to avoid jumping around when each channel data is too apart
              * (don't use when data is close as it'd make buffers read the full file multiple times) */
             if (use_streamfile_per_channel) {
-                file = open_streamfile(streamFile,filename);
+                file = open_streamfile(sf,filename);
                 if (!file) goto fail;
             }
 
             vgmstream->ch[ch].streamfile = file;
-            vgmstream->ch[ch].channel_start_offset =
-                    vgmstream->ch[ch].offset = offset;
+            vgmstream->ch[ch].channel_start_offset = offset;
+            vgmstream->ch[ch].offset = offset;
         }
     }
 
