@@ -3,7 +3,8 @@
 #include "../coding/coding.h"
 
 
-/* for reading integers inexplicably packed into 80-bit ('double extended') floats */
+/* for reading integers inexplicably packed into 80-bit ('double extended') floats, AKA:
+ * "80 bit IEEE Standard 754 floating point number (Standard AppleNumeric Environment [SANE] data type Extended)" */
 static uint32_t read_f80be(off_t offset, STREAMFILE* sf) {
     uint8_t buf[0x0a];
     int32_t exponent;
@@ -49,14 +50,27 @@ static uint32_t find_marker(STREAMFILE* sf, off_t mark_offset, int marker_id) {
     return -1;
 }
 
+static int is_str(const char* str, int len, off_t offset, STREAMFILE* sf) {
+    uint8_t buf[0x100];
 
-/* AIFF/AIFF-C (Audio Interchange File Format) - Apple format, from Mac/3DO/other games */
+    if (len == 0)
+        len = strlen(str);
+
+    if (len > sizeof(buf))
+        return 0;
+    if (read_streamfile(buf, offset, len, sf) != len)
+        return 0;
+    return memcmp(buf, str, len) == 0; /* memcmp to allow "AB\0\0" */
+}
+
+
+/* AIFF/AIFF-C (Audio Interchange File Format - Compressed) - Apple format, from Mac/3DO/other games */
 VGMSTREAM* init_vgmstream_aifc(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
-    off_t start_offset = 0;
+    off_t start_offset = 0, coef_offset = 0;
     size_t file_size;
     coding_t coding_type = 0;
-    int channel_count = 0, sample_count = 0, sample_size = 0, sample_rate = 0;
+    int channels = 0, sample_count = 0, sample_size = 0, sample_rate = 0;
     int interleave = 0;
     int loop_flag = 0;
     int32_t loop_start = 0, loop_end = 0;
@@ -76,12 +90,13 @@ VGMSTREAM* init_vgmstream_aifc(STREAMFILE* sf) {
      * .adp: Sonic Jam (SAT)
      * .ai: Dragon Force (SAT)
      * (extensionless: Doom (3DO)
-     * .fda: Homeworld 2 (PC) */
+     * .fda: Homeworld 2 (PC)
+     * .n64: Turok (N64) src */
     if (check_extensions(sf, "aif,laif,")) {
         is_aifc_ext = 1;
         is_aiff_ext = 1;
     }
-    else if (check_extensions(sf, "aifc,laifc,aifcl,afc,cbd2,bgm,fda")) {
+    else if (check_extensions(sf, "aifc,laifc,aifcl,afc,cbd2,bgm,fda,n64")) {
         is_aifc_ext = 1;
     }
     else if (check_extensions(sf, "aiff,laiff,acm,adp,ai,aiffl")) {
@@ -96,6 +111,8 @@ VGMSTREAM* init_vgmstream_aifc(STREAMFILE* sf) {
         read_u32be(0x04,sf)+0x08 != file_size)
         goto fail;
 
+    /* AIFF originally allowed only PCM (non-compressed) audio, so newer AIFC was added,
+     * though some AIFF with other codecs exist */
     if (read_u32be(0x08,sf) == 0x41494643) { /* "AIFC" */
         if (!is_aifc_ext) goto fail;
         is_aifc = 1;
@@ -127,14 +144,13 @@ VGMSTREAM* init_vgmstream_aifc(STREAMFILE* sf) {
                 goto fail;
 
             switch(chunk_type) {
-                case 0x46564552:    /* "FVER" (version info) */
+                case 0x46564552:    /* "FVER" (version info, required) */
                     if (fver_found) goto fail;
                     if (is_aiff) goto fail; /* plain AIFF shouldn't have */
                     fver_found = 1;
 
-                    /* specific size */
-                    if (chunk_size != 4) goto fail;
-
+                    if (chunk_size != 4)
+                        goto fail;
                     /* Version 1 of AIFF-C spec timestamp */
                     if (read_u32be(offset + 0x00,sf) != 0xA2805140)
                         goto fail;
@@ -144,44 +160,46 @@ VGMSTREAM* init_vgmstream_aifc(STREAMFILE* sf) {
                     if (comm_found) goto fail;
                     comm_found = 1;
 
-                    channel_count = read_u16be(offset + 0x00,sf);
-                    if (channel_count <= 0) goto fail;
+                    channels = read_u16be(offset + 0x00,sf);
+                    if (channels <= 0) goto fail;
 
-                    sample_count = read_u32be(offset + 0x02,sf); /* sometimes number of blocks */
+                    sample_count = read_u32be(offset + 0x02,sf); /* sample_frames in theory, depends on codec */
                     sample_size  = read_u16be(offset + 0x06,sf);
                     sample_rate  = read_f80be(offset + 0x08,sf);
 
                     if (is_aifc) {
                         uint32_t codec = read_u32be(offset + 0x12,sf);
+                        /* followed by "pascal string": name size + human-readable name (full count padded to even size)  */
+
                         switch (codec) {
                             case 0x53445832:    /* "SDX2" [3DO games: Super Street Fighter II Turbo (3DO), etc] */
+                                /* "2:1 Squareroot-Delta-Exact compression" */
                                 coding_type = coding_SDX2;
                                 interleave = 0x01;
                                 break;
 
                             case 0x43424432:    /* "CBD2" [M2 (arcade 3DO) games: IMSA Racing (M2), etc] */
+                                /* "2:1 Cuberoot-Delta-Exact compression" */
                                 coding_type = coding_CBD2;
                                 interleave = 0x01;
                                 break;
 
                             case 0x41445034:    /* "ADP4" */
                                 coding_type = coding_DVI_IMA_int;
-                                if (channel_count != 1) break; /* don't know how stereo DVI is laid out */
+                                if (channels != 1) break; /* don't know how stereo DVI is laid out */
                                 break;
 
                             case 0x696D6134:    /* "ima4"  [Alida (PC), Lunar SSS (iOS)] */
+                                /* "IMA 4:1FLLR" */
                                 coding_type = coding_APPLE_IMA4;
                                 interleave = 0x22;
                                 sample_count = sample_count * ((interleave-0x2)*2);
                                 break;
 
                             case 0x434F4D50: {  /* "COMP" (generic compression) */
-                                uint8_t comp_name[255] = {0};
-                                uint8_t comp_size = read_u8(offset + 0x16, sf);
-                                if (comp_size >= sizeof(comp_name) - 1) goto fail;
-                                
-                                read_streamfile(comp_name, offset + 0x17, comp_size, sf);
-                                if (memcmp(comp_name, "Relic Codec v1.6", comp_size) == 0) { /* Homeworld 2 (PC) */
+                                uint8_t name_size = read_u8(offset + 0x16, sf);
+
+                                if (is_str("Relic Codec v1.6", name_size, offset + 0x17, sf)) {
                                     coding_type = coding_RELIC;
                                     sample_count = sample_count * 512;
                                 }
@@ -191,11 +209,19 @@ VGMSTREAM* init_vgmstream_aifc(STREAMFILE* sf) {
                                 break;
                             }
 
+                            case 0x56415043: {  /* "VAPC" [N64 (SDK mainly but apparently may exist in ROMs)] */
+                                /* "VADPCM ~4-1" */
+                                coding_type = coding_VADPCM;
+
+                                /* N64 tools don't create FVER, but it's required by the spec (could skip the check though) */
+                                fver_found = 1;
+                                break;
+                            }
+
                             default:
                                 VGM_LOG("AIFC: unknown codec\n");
                                 goto fail;
                         }
-                        /* string size and human-readable AIFF-C codec follows */
                     }
                     else if (is_aiff) {
                         switch (sample_size) {
@@ -222,8 +248,9 @@ VGMSTREAM* init_vgmstream_aifc(STREAMFILE* sf) {
                     if (data_found) goto fail;
                     data_found = 1;
 
+                    /* 00: offset (for aligment, usually 0)
+                     * 04: block size (ex. XA: 0x914) */
                     start_offset = offset + 0x08 + read_u32be(offset + 0x00,sf);
-                    /* when "APCM" XA frame size is at 0x0c, fixed to 0x914 */
                     break;
 
                 case 0x4D41524B:    /* "MARK" (loops) */
@@ -232,6 +259,33 @@ VGMSTREAM* init_vgmstream_aifc(STREAMFILE* sf) {
 
                 case 0x494E5354:    /* "INST" (loops) */
                     inst_offset = offset;
+                    break;
+
+                case 0x4150504C:    /* "APPL" (application specific) */
+                    if (is_str("stoc", 0, offset + 0x00, sf)) {
+                        uint8_t name_size = read_u8(offset + 0x4, sf);
+                        off_t next_offset = offset + 0x04 + align_size_to_block(0x1 + name_size, 0x02);
+
+                        /* chunks appears multiple times per substring */
+                        if (is_str("VADPCMCODES", name_size, offset + 0x05, sf)) {
+                            coef_offset = next_offset;
+                        }
+                        else if (is_str("VADPCMLOOPS", name_size, offset + 0x05, sf)) {
+                            /* goes with inst (spec says app chunks have less priority than inst+mark loops) */
+                            int version = read_u16be(next_offset + 0x00, sf);
+                            int loops   = read_u16be(next_offset + 0x02, sf);
+                            if (version != 1 || loops != 1) goto fail;
+
+                            loop_start  = read_u32be(next_offset + 0x04, sf);
+                            loop_end    = read_u32be(next_offset + 0x08, sf);
+                            loop_flag   = read_s32be(next_offset + 0x08, sf) != 0; /*-1 = infinite */
+                            /* 0x10: ADPCM state[16] (hists?) */
+                        }
+                        else {
+                            VGM_LOG("AIFC: unknown APPL chunk\n");
+                            goto fail;
+                        }
+                    }
                     break;
 
                 default:
@@ -282,7 +336,7 @@ VGMSTREAM* init_vgmstream_aifc(STREAMFILE* sf) {
 
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
     vgmstream->sample_rate = sample_rate;
@@ -302,7 +356,7 @@ VGMSTREAM* init_vgmstream_aifc(STREAMFILE* sf) {
             int bitrate = read_u16be(start_offset, sf);
             start_offset += 0x02;
 
-            vgmstream->codec_data = init_relic(channel_count, bitrate, sample_rate);
+            vgmstream->codec_data = init_relic(channels, bitrate, sample_rate);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->layout_type = layout_none;
 
@@ -310,8 +364,25 @@ VGMSTREAM* init_vgmstream_aifc(STREAMFILE* sf) {
             break;
         }
 
+        case coding_VADPCM:
+            if (channels > 1) goto fail; /* unknown layout */
+            if (coef_offset == 0) goto fail;
+
+            vgmstream->layout_type = layout_none;
+            {
+                int version = read_u16be(coef_offset + 0x00, sf);
+                int order   = read_u16be(coef_offset + 0x02, sf);
+                int entries = read_u16be(coef_offset + 0x04, sf);
+                if (version != 1) goto fail;
+
+                vadpcm_read_coefs_be(vgmstream, sf, coef_offset + 0x06, order, entries, 0);
+            }
+
+            //vgmstream->num_samples = vadpcm_bytes_to_samples(data_size, channels); /* unneeded */
+            break;
+
         default:
-            vgmstream->layout_type = (channel_count > 1) ? layout_interleave : layout_none;
+            vgmstream->layout_type = (channels > 1) ? layout_interleave : layout_none;
             vgmstream->interleave_block_size = interleave;
             break;
     }

@@ -1156,6 +1156,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream) {
         case coding_NGC_DSP_subint:
             return 14;
         case coding_NGC_AFC:
+        case coding_VADPCM:
             return 16;
         case coding_NGC_DTK:
             return 28;
@@ -1357,6 +1358,7 @@ int get_vgmstream_frame_size(VGMSTREAM * vgmstream) {
         case coding_NGC_DSP_subint:
             return 0x08 * vgmstream->channels;
         case coding_NGC_AFC:
+        case coding_VADPCM:
             return 0x09;
         case coding_NGC_DTK:
             return 0x20;
@@ -1722,6 +1724,14 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                         vgmstream->channels,vgmstream->samples_into_block,samples_to_do);
             }
             break;
+        case coding_VADPCM: {
+            int order = vgmstream->codec_config;
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_vadpcm(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,
+                        vgmstream->channels,vgmstream->samples_into_block,samples_to_do, order);
+            }
+            break;
+        }
         case coding_PSX:
             for (ch = 0; ch < vgmstream->channels; ch++) {
                 decode_psx(&vgmstream->ch[ch],buffer+samples_written*vgmstream->channels+ch,

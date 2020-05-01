@@ -2198,6 +2198,10 @@
                     RelativePath=".\coding\ubi_adpcm_decoder.c"
                     >
                 </File>
+                <File
+                    RelativePath=".\coding\vadpcm_decoder.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\coding\ws_decoder.c"
 					>

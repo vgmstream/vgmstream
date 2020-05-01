@@ -95,6 +95,7 @@ typedef enum {
     coding_NGC_DSP_subint,  /* Nintendo DSP ADPCM with frame subinterframe */
     coding_NGC_DTK,         /* Nintendo DTK ADPCM (hardware disc), also called TRK or ADP */
     coding_NGC_AFC,         /* Nintendo AFC ADPCM */
+    coding_VADPCM,          /* Silicon Graphics VADPCM */
 
     coding_G721,            /* CCITT G.721 */
 
@@ -786,14 +787,15 @@ typedef struct {
     /* format specific */
 
     /* adpcm */
-    int16_t adpcm_coef[16];     /* for formats with decode coefficients built in */
-    int32_t adpcm_coef_3by32[0x60];     /* for Level-5 0x555 */
+    int16_t adpcm_coef[16];             /* formats with decode coefficients built in (DSP, some ADX) */
+    int32_t adpcm_coef_3by32[0x60];     /* Level-5 0x555 */
+    int16_t vadpcm_coefs[8*2*8];        /* VADPCM: max 8 groups * max 2 order * fixed 8 subframe coefs */
     union {
-        int16_t adpcm_history1_16;  /* previous sample */
+        int16_t adpcm_history1_16;      /* previous sample */
         int32_t adpcm_history1_32;
     };
     union {
-        int16_t adpcm_history2_16;  /* previous previous sample */
+        int16_t adpcm_history2_16;      /* previous previous sample */
         int32_t adpcm_history2_32;
     };
     union {
@@ -808,8 +810,8 @@ typedef struct {
     double adpcm_history1_double;
     double adpcm_history2_double;
 
-    int adpcm_step_index;       /* for IMA */
-    int adpcm_scale;            /* for MS ADPCM */
+    int adpcm_step_index;               /* for IMA */
+    int adpcm_scale;                    /* for MS ADPCM */
 
     /* state for G.721 decoder, sort of big but we might as well keep it around */
     struct g72x_state g72x_state;
