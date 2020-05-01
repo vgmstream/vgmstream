@@ -168,7 +168,7 @@ VGMSTREAM * init_vgmstream_fsb5(STREAMFILE *streamFile) {
                                 is_small = 1; //fsb5.num_samples < 20 * fsb5.sample_rate;
 
                                 /* wrong values in some files [Pac-Man CE2 Plus (Switch) pce2p_bgm_ajurika_*.fsb] */
-                                ajurika_loops = fsb5.loop_start == 0x3c && fsb5.loop_end == 0x007F007F &&
+                                ajurika_loops = fsb5.loop_start == 0x3c && fsb5.loop_end == (0x007F007F + 1) &&
                                         fsb5.num_samples > fsb5.loop_end + 10000; /* arbitrary test in case some game does have those */
 
                                 fsb5.loop_flag = 1;
