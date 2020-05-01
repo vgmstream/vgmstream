@@ -32,7 +32,8 @@
 #define EA_CODEC1_VAG           0x01  // unsure
 #define EA_CODEC1_EAXA          0x07
 #define EA_CODEC1_MT10          0x09
-//#define EA_CODEC1_N64         ?
+#define EA_CODEC1_N64           0x64 /* unknown but probably before MT10 */
+
 
 #define EA_CODEC2_NONE          -1
 #define EA_CODEC2_MT10          0x04
@@ -48,6 +49,7 @@
 #define EA_CODEC2_MT5           0x16
 #define EA_CODEC2_EALAYER3      0x17
 #define EA_CODEC2_ATRAC3PLUS    0x1B
+#define EA_CODEC2_N64           0x64 /* unknown but probably before MT10 */
 
 /* Block headers, SCxy - where x is block ID and y is endianness flag (always 'l'?) */
 #define EA_BLOCKID_HEADER       0x5343486C /* "SCHl" */
@@ -93,6 +95,8 @@ typedef struct {
 
     int32_t loop_start;
     int32_t loop_end;
+
+    uint32_t flag_value;
 
     off_t offsets[EA_MAX_CHANNELS];
     off_t coefs[EA_MAX_CHANNELS];
@@ -489,7 +493,7 @@ VGMSTREAM * init_vgmstream_ea_hdr_dat(STREAMFILE *streamFile) {
     /* main header is machine endian but it's not important here */
     /* 0x00: ID */
     /* 0x02: sub-ID (used for different police voices in NFS games) */
-    /* 0x04: parameters (userdata size, ...)
+    /* 0x04: parameters (userdata size, ...) */
     /* 0x05: number of files */
     /* 0x06: alt number of files? */
     /* 0x07: offset multiplier flag */
@@ -1164,10 +1168,16 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE *streamFile, ea_
             }
         }
         else if (ea->channels > 1 && ea->codec2 == EA_CODEC2_GCADPCM && ea->offsets[0] == ea->offsets[1]) {
-            /* pcstream+gcadpcm with sx.exe v2, this is probably a bug (even with this parts of the wave are off) */
+            /* pcstream+gcadpcm with sx.exe v2, not in flag_value, probably a bug (even with this parts of the wave are off) */
             int interleave = (ea->num_samples / 14 * 8); /* full interleave */
             for (i = 0; i < ea->channels; i++) {
                 ea->offsets[i] = ea->offsets[0] + interleave*i;
+            }
+        }
+        else if (ea->channels > 1 && ea->codec2 == EA_CODEC2_N64 && ea->offsets[1] == 0) {
+            uint32_t interleave = ea->flag_value;
+            for (i = 0; i < ea->channels; i++) {
+                ea->offsets[i] = ea->offsets[0] + interleave * i;
             }
         }
     }
@@ -1228,6 +1238,17 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE *streamFile, ea_
                         vgmstream->ch[ch].adpcm_coef[i] = read_16bit(ea->coefs[ch] + i*2, streamFile);
                     }
                 }
+            }
+            break;
+
+        case EA_CODEC2_N64:         /* VADPCM */
+            vgmstream->coding_type = coding_VADPCM;
+            vgmstream->layout_type = layout_none;
+
+            for (ch = 0; ch < ea->channels; ch++) {
+                int order   = read_u32be(ea->coefs[ch] + 0x00, streamFile);
+                int entries = read_u32be(ea->coefs[ch] + 0x04, streamFile);
+                vadpcm_read_coefs_be(vgmstream, streamFile, ea->coefs[ch] + 0x08, order, entries, ch);
             }
             break;
 
@@ -1317,7 +1338,7 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE *streamFile, ea_
     vgmstream->stream_size = ea->stream_size;
 
     /* open files; channel offsets are updated below */
-    if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
+    if (!vgmstream_open_stream(vgmstream, streamFile, start_offset))
         goto fail;
 
 
@@ -1427,8 +1448,7 @@ static int parse_variable_header(STREAMFILE* streamFile, ea_header* ea, off_t be
         uint8_t patch_type = read_8bit(offset,streamFile);
         offset++;
 
-        //;off_t test_offset = offset;
-        //;VGM_LOG("EA SCHl: patch=%02x at %lx, value=%x\n", patch_type, offset-1, read_patch(streamFile, &test_offset));
+        //;{ off_t test = offset; VGM_LOG("EA SCHl: patch=%02x at %lx, value=%x\n", patch_type, offset-1, read_patch(streamFile, &test)); }
         switch(patch_type) {
             case 0x00: /* signals non-default block rate and maybe other stuff; or padding after 0xFF */
                 if (!is_header_end)
@@ -1566,10 +1586,14 @@ static int parse_variable_header(STREAMFILE* streamFile, ea_header* ea, off_t be
                 ea->loops[5] = read_patch(streamFile, &offset);
                 break;
 
-            case 0x8A: /* long padding (always 0x00000000) */
-            case 0x8B: /* also padding? [Need for Speed: Hot Pursuit 2 (PC)] */
             case 0x8C: /* flags (ex. play type = 01=static/02=dynamic | spatialize = 20=pan/etc) */
                        /* (ex. PS1 VAG=0, PS2 PCM/LAYER2=4, GC EAXA=4, 3DS DSP=512, Xbox EAXA=36, N64 BLK=05E800, N64 MT10=01588805E800) */
+                /* in rare cases value is the interleave, will be ignored if > 32b */
+                ea->flag_value = read_patch(streamFile, &offset);
+                break;
+
+            case 0x8A: /* long padding (always 0x00000000) */
+            case 0x8B: /* also padding? [Need for Speed: Hot Pursuit 2 (PC)] */
             case 0x8D: /* unknown, rare [FIFA 07 (GC)] */
             case 0x8E:
             case 0x92: /* bytes per sample? */
@@ -1653,7 +1677,7 @@ static int parse_variable_header(STREAMFILE* streamFile, ea_header* ea, off_t be
         switch(ea->platform) {
             case EA_PLATFORM_PC:        ea->codec1 = EA_CODEC1_PCM; break;
             case EA_PLATFORM_PSX:       ea->codec1 = EA_CODEC1_VAG; break; // assumed
-            //case EA_PLATFORM_N64:     ea->codec1 = EA_CODEC1_N64; break;
+            case EA_PLATFORM_N64:       ea->codec1 = EA_CODEC1_N64; break;
             case EA_PLATFORM_MAC:       ea->codec1 = EA_CODEC1_PCM; break; // assumed
             case EA_PLATFORM_SAT:       ea->codec1 = EA_CODEC1_PCM; break;
             default:
@@ -1671,6 +1695,7 @@ static int parse_variable_header(STREAMFILE* streamFile, ea_header* ea, off_t be
             case EA_CODEC1_VAG:         ea->codec2 = EA_CODEC2_VAG; break;
             case EA_CODEC1_EAXA:        ea->codec2 = EA_CODEC2_EAXA; break;
             case EA_CODEC1_MT10:        ea->codec2 = EA_CODEC2_MT10; break;
+            case EA_CODEC1_N64:         ea->codec2 = EA_CODEC2_N64; break;
             default:
                 VGM_LOG("EA SCHl: unknown codec1 0x%02x\n", ea->codec1);
                 goto fail;
