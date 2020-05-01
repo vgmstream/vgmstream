@@ -15,3 +15,4 @@
 #define IDC_CLIP_TYPE                   1014
 #define IDC_EXTS_UNKNOWN_ON             1015
 #define IDC_EXTS_COMMON_ON              1016
+#define IDC_FORCE_TITLE                 1017
