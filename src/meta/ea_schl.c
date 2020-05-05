@@ -1285,8 +1285,10 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE* sf, ea_header* 
         case EA_CODEC2_MT5: {       /* MicroTalk (5:1 compression) */
             int use_pcm_blocks = 0;
 
-            if (ea->version == EA_VERSION_V3 || (ea->version == EA_VERSION_V2 && 
-                (ea->platform == EA_PLATFORM_PC || ea->platform == EA_PLATFORM_MAC))) {
+            if (ea->version == EA_VERSION_V3 || (ea->version == EA_VERSION_V2 &&
+                (ea->platform == EA_PLATFORM_PC ||
+                    ea->platform == EA_PLATFORM_MAC ||
+                    ea->platform == EA_PLATFORM_GENERIC))) {
                 use_pcm_blocks = 1;
             }
 
