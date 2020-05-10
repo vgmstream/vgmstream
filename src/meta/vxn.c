@@ -2,44 +2,44 @@
 #include "../coding/coding.h"
 
 /* VXN - from Gameloft mobile games */
-VGMSTREAM * init_vgmstream_vxn(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
+VGMSTREAM* init_vgmstream_vxn(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
     int loop_flag = 0, channel_count, codec, sample_rate, block_align, bits, num_samples;
     off_t start_offset, stream_offset, chunk_offset, first_offset = 0x00;
     size_t stream_size;
-    int total_subsongs, target_subsong = streamFile->stream_index;
+    int total_subsongs, target_subsong = sf->stream_index;
 
     /* checks */
-    if (!check_extensions(streamFile,"vxn"))
+    if (!check_extensions(sf,"vxn"))
         goto fail;
 
-    if (read_32bitBE(0x00,streamFile) != 0x566F784E) /* "VoxN" */
+    if (read_u32be(0x00,sf) != 0x566F784E) /* "VoxN" */
         goto fail;
-    if (read_32bitLE(0x10,streamFile) != get_streamfile_size(streamFile) )
+    if (read_u32le(0x10,sf) != get_streamfile_size(sf))
         goto fail;
 
     /* header is RIFF-like with many custom chunks */
-    if (!find_chunk_le(streamFile, 0x41666D74,first_offset,0, &chunk_offset,NULL)) /* "Afmt" */
+    if (!find_chunk_le(sf, 0x41666D74,first_offset,0, &chunk_offset,NULL)) /* "Afmt" */
         goto fail;
-    codec = (uint16_t)read_16bitLE(chunk_offset+0x00, streamFile);
-    channel_count = (uint16_t)read_16bitLE(chunk_offset+0x02, streamFile);
-    sample_rate = read_32bitLE(chunk_offset+0x04, streamFile);
-    block_align = (uint16_t)read_16bitLE(chunk_offset+0x08, streamFile);
-    bits = read_16bitLE(chunk_offset+0x0a, streamFile);
+    codec = read_u16le(chunk_offset+0x00, sf);
+    channel_count = read_u16le(chunk_offset+0x02, sf);
+    sample_rate = read_u32le(chunk_offset+0x04, sf);
+    block_align = read_u16le(chunk_offset+0x08, sf);
+    bits = read_16bitLE(chunk_offset+0x0a, sf);
 
     /* files are divided into segment subsongs, often a leadout and loop in that order
      * (the "Plst" and "Rule" chunks may have order info) */
-    if (!find_chunk_le(streamFile, 0x5365676D,first_offset,0, &chunk_offset,NULL))  /* "Segm" */
+    if (!find_chunk_le(sf, 0x5365676D,first_offset,0, &chunk_offset,NULL))  /* "Segm" */
         goto fail;
-    total_subsongs = read_32bitLE(chunk_offset+0x00, streamFile);
+    total_subsongs = read_u32le(chunk_offset+0x00, sf);
     if (target_subsong == 0) target_subsong = 1;
     if (target_subsong < 0 || target_subsong > total_subsongs || total_subsongs < 1) goto fail;
 
-    stream_offset = read_32bitLE(chunk_offset+0x04 + (target_subsong-1)*0x18 + 0x00, streamFile);
-    stream_size   = read_32bitLE(chunk_offset+0x04 + (target_subsong-1)*0x18 + 0x04, streamFile);
-    num_samples   = read_32bitLE(chunk_offset+0x04 + (target_subsong-1)*0x18 + 0x08, streamFile);
+    stream_offset = read_u32le(chunk_offset+0x04 + (target_subsong-1)*0x18 + 0x00, sf);
+    stream_size   = read_u32le(chunk_offset+0x04 + (target_subsong-1)*0x18 + 0x04, sf);
+    num_samples   = read_u32le(chunk_offset+0x04 + (target_subsong-1)*0x18 + 0x08, sf);
 
-    if (!find_chunk_le(streamFile, 0x44617461,first_offset,0, &chunk_offset,NULL)) /* "Data" */
+    if (!find_chunk_le(sf, 0x44617461,first_offset,0, &chunk_offset,NULL)) /* "Data" */
         goto fail;
     start_offset = chunk_offset + stream_offset;
 
@@ -70,14 +70,14 @@ VGMSTREAM * init_vgmstream_vxn(STREAMFILE *streamFile) {
             vgmstream->frame_size = block_align;
             vgmstream->layout_type = layout_none;
 
-            if (find_chunk_le(streamFile, 0x4D736165,first_offset,0, &chunk_offset,NULL)) { /* "Msae" */
-                if (!msadpcm_check_coefs(streamFile, chunk_offset + 0x02))
+            if (find_chunk_le(sf, 0x4D736165,first_offset,0, &chunk_offset,NULL)) { /* "Msae" */
+                if (!msadpcm_check_coefs(sf, chunk_offset + 0x02))
                     goto fail;
             }
             break;
 
         case 0x0011:    /* MS-IMA (ex. Asphalt 6) */
-            if (bits != 16) goto fail;
+            if (bits != 4 && bits != 16) goto fail; /* 16=common, 4=Asphalt Injection (Vita) */
 
             vgmstream->coding_type = coding_MS_IMA;
             vgmstream->interleave_block_size = block_align;
@@ -88,7 +88,7 @@ VGMSTREAM * init_vgmstream_vxn(STREAMFILE *streamFile) {
         case 0x0800:    /* Musepack (ex. Asphalt Xtreme) */
             if (bits != -1) goto fail;
 
-            vgmstream->codec_data = init_ffmpeg_offset(streamFile, start_offset,stream_size);
+            vgmstream->codec_data = init_ffmpeg_offset(sf, start_offset,stream_size);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
@@ -103,7 +103,7 @@ VGMSTREAM * init_vgmstream_vxn(STREAMFILE *streamFile) {
             goto fail;
     }
 
-    if ( !vgmstream_open_stream(vgmstream, streamFile, start_offset) )
+    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
         goto fail;
     return vgmstream;
 
