@@ -334,6 +334,9 @@ static const hcakey_info hcakey_list[] = {
         /* Detective Conan Runner / Case Closed Runner (Android) */
         {1175268187653273344},      // 104f643098e3f700
 
+        /* I Chu EtoileStage (Android) */
+        {1433227444226663680},      // 13E3D8C45778A500
+
         /* Dragalia Lost (iOS/Android) */
         {2967411924141,         subkeys_dgl, sizeof(subkeys_dgl) / sizeof(subkeys_dgl[0]) },    // 000002B2E7889CAD
 
