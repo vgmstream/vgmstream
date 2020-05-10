@@ -77,6 +77,8 @@ typedef struct {
 
     replay_gain_type_t gain_type;
     replay_gain_type_t clip_type;
+
+    int is_xmplay;
 } winamp_settings_t;
 
 /* current song config */
@@ -432,67 +434,75 @@ int priority_values[] = {
 
 // todo finish UNICODE (requires IPC_GETINIDIRECTORYW from later SDKs to read the ini path properly)
 /* Winamp INI reader */
-static void ini_get_filename(TCHAR *iniFile) {
+static void ini_get_filename(TCHAR *inifile) {
 
     if (IsWindow(input_module.hMainWindow) && SendMessage(input_module.hMainWindow, WM_WA_IPC,0,IPC_GETVERSION) >= 0x5000) {
         /* newer Winamp with per-user settings */
-        TCHAR *iniDir = (TCHAR *)SendMessage(input_module.hMainWindow, WM_WA_IPC, 0, IPC_GETINIDIRECTORY);
-        cfg_strncpy(iniFile, iniDir, PATH_LIMIT);
+        TCHAR *ini_dir = (TCHAR *)SendMessage(input_module.hMainWindow, WM_WA_IPC, 0, IPC_GETINIDIRECTORY);
+        cfg_strncpy(inifile, ini_dir, PATH_LIMIT);
 
-        cfg_strncat(iniFile, TEXT("\\Plugins\\"), PATH_LIMIT);
+        cfg_strncat(inifile, TEXT("\\Plugins\\"), PATH_LIMIT);
 
         /* can't be certain that \Plugins already exists in the user dir */
-        CreateDirectory(iniFile,NULL);
+        CreateDirectory(inifile,NULL);
 
-        cfg_strncat(iniFile, CONFIG_INI_NAME, PATH_LIMIT);
+        cfg_strncat(inifile, CONFIG_INI_NAME, PATH_LIMIT);
     }
     else {
         /* older winamp with single settings */
         TCHAR *lastSlash;
 
-        GetModuleFileName(NULL, iniFile, PATH_LIMIT);
-        lastSlash = cfg_strrchr(iniFile, TEXT('\\'));
+        GetModuleFileName(NULL, inifile, PATH_LIMIT);
+        lastSlash = cfg_strrchr(inifile, TEXT('\\'));
 
         *(lastSlash + 1) = 0;
-        cfg_strncat(iniFile, TEXT("Plugins\\") CONFIG_INI_NAME,PATH_LIMIT);
+
+        /* XMPlay doesn't have a "plugins" subfolder */
+        if (settings.is_xmplay)
+            cfg_strncat(inifile, CONFIG_INI_NAME,PATH_LIMIT);
+        else
+            cfg_strncat(inifile, TEXT("Plugins\\") CONFIG_INI_NAME,PATH_LIMIT);
+        /* Maybe should query IPC_GETINIDIRECTORY and use that, not sure what ancient Winamps need.
+         * There must be some proper way to handle dirs since other Winamp plugins save config in 
+         * XMPlay correctly (this feels like archaeology, try later) */
     }
 }
 
 
-static void ini_get_d(const char *iniFile, const char *entry, double defval, double *p_val) {
+static void ini_get_d(const char *inifile, const char *entry, double defval, double *p_val) {
     TCHAR buf[256];
     TCHAR defbuf[256];
     int consumed, res;
 
     cfg_sprintf(defbuf, TEXT("%.2lf"), defval);
-    GetPrivateProfileString(CONFIG_APP_NAME, entry, defbuf, buf, 256, iniFile);
+    GetPrivateProfileString(CONFIG_APP_NAME, entry, defbuf, buf, 256, inifile);
     res = cfg_sscanf(buf, TEXT("%lf%n"), p_val, &consumed);
     if (res < 1 || consumed != cfg_strlen(buf) || *p_val < 0) {
         *p_val = defval;
     }
 }
-static void ini_get_i(const char *iniFile, const char *entry, int defval, int *p_val, int min, int max) {
-    *p_val = GetPrivateProfileInt(CONFIG_APP_NAME, entry, defval, iniFile);
+static void ini_get_i(const char *inifile, const char *entry, int defval, int *p_val, int min, int max) {
+    *p_val = GetPrivateProfileInt(CONFIG_APP_NAME, entry, defval, inifile);
     if (*p_val < min || *p_val > max) {
         *p_val = defval;
     }
 }
-static void ini_get_b(const char *iniFile, const char *entry, int defval, int *p_val) {
-    ini_get_i(iniFile, entry, defval, p_val, 0, 1);
+static void ini_get_b(const char *inifile, const char *entry, int defval, int *p_val) {
+    ini_get_i(inifile, entry, defval, p_val, 0, 1);
 }
 
-static void ini_set_d(const char *iniFile, const char *entry, double val) {
+static void ini_set_d(const char *inifile, const char *entry, double val) {
     TCHAR buf[256];
     cfg_sprintf(buf, TEXT("%.2lf"), val);
-    WritePrivateProfileString(CONFIG_APP_NAME, entry, buf, iniFile);
+    WritePrivateProfileString(CONFIG_APP_NAME, entry, buf, inifile);
 }
-static void ini_set_i(const char *iniFile, const char *entry, int val) {
+static void ini_set_i(const char *inifile, const char *entry, int val) {
     TCHAR buf[32];
     cfg_sprintf(buf, TEXT("%d"), val);
-    WritePrivateProfileString(CONFIG_APP_NAME, entry, buf, iniFile);
+    WritePrivateProfileString(CONFIG_APP_NAME, entry, buf, inifile);
 }
-static void ini_set_b(const char *iniFile, const char *entry, int val) {
-    ini_set_i(iniFile, entry, val);
+static void ini_set_b(const char *inifile, const char *entry, int val) {
+    ini_set_i(inifile, entry, val);
 }
 
 static void load_defaults(winamp_settings_t *defaults) {
@@ -1062,12 +1072,14 @@ void winamp_About(HWND hwndParent) {
 /* called at program init */
 void winamp_Init() {
 
+    settings.is_xmplay = is_xmplay();
+
     /* get ini config */
     load_defaults(&defaults);
     load_config(&settings, &defaults);
 
     /* XMPlay with in_vgmstream doesn't support most IPC_x messages so no playlist manipulation */
-    if (is_xmplay()) {
+    if (settings.is_xmplay) {
         settings.disable_subsongs = 1;
     }
 
