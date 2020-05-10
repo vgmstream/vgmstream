@@ -15,7 +15,7 @@ VGMSTREAM* init_vgmstream_vxn(STREAMFILE* sf) {
 
     if (read_u32be(0x00,sf) != 0x566F784E) /* "VoxN" */
         goto fail;
-    if (read_u32le(0x10,sf) != get_streamfile_size(sf) )
+    if (read_u32le(0x10,sf) != get_streamfile_size(sf))
         goto fail;
 
     /* header is RIFF-like with many custom chunks */
@@ -77,7 +77,7 @@ VGMSTREAM* init_vgmstream_vxn(STREAMFILE* sf) {
             break;
 
         case 0x0011:    /* MS-IMA (ex. Asphalt 6) */
-            if (bits != 16) goto fail;
+            if (bits != 4 && bits != 16) goto fail; /* 16=common, 4=Asphalt Injection (Vita) */
 
             vgmstream->coding_type = coding_MS_IMA;
             vgmstream->interleave_block_size = block_align;
