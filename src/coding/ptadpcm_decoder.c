@@ -80,7 +80,7 @@ void decode_ptadpcm(VGMSTREAMCHANNEL *stream, sample_t *outbuf, int channelspaci
     sample_count++;
 
     /* decode nibbles */
-    for (i = first_sample; i < first_sample + samples_to_do; i++) {
+    for (i = 0; i < samples_per_frame - 2; i++) {
         uint8_t nibbles = frame[0x05 + i/2];
         int32_t sample;
 
