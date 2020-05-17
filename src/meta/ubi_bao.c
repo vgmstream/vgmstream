@@ -1473,19 +1473,26 @@ static STREAMFILE * setup_bao_streamfile(ubi_bao_header *bao, STREAMFILE *stream
             if (!new_streamFile) goto fail;
             stream_segments[0] = new_streamFile;
 
-            new_streamFile = open_atomic_bao(bao->cfg.file_type, bao->stream_id, 1, streamFile);
-            if (!new_streamFile) goto fail;
-            stream_segments[1] = new_streamFile;
+            if (bao->stream_size - bao->prefetch_size != 0) {
+                new_streamFile = open_atomic_bao(bao->cfg.file_type, bao->stream_id, 1, streamFile);
+                if (!new_streamFile) goto fail;
+                stream_segments[1] = new_streamFile;
 
-            new_streamFile = open_clamp_streamfile(stream_segments[1], bao->stream_offset, (bao->stream_size - bao->prefetch_size));
-            if (!new_streamFile) goto fail;
-            stream_segments[1] = new_streamFile;
+                new_streamFile = open_clamp_streamfile(stream_segments[1], bao->stream_offset, (bao->stream_size - bao->prefetch_size));
+                if (!new_streamFile) goto fail;
+                stream_segments[1] = new_streamFile;
 
-            new_streamFile = open_multifile_streamfile(stream_segments, 2);
-            if (!new_streamFile) goto fail;
-            temp_streamFile = new_streamFile;
-            stream_segments[0] = NULL;
-            stream_segments[1] = NULL;
+                new_streamFile = open_multifile_streamfile(stream_segments, 2);
+                if (!new_streamFile) goto fail;
+                temp_streamFile = new_streamFile;
+                stream_segments[0] = NULL;
+                stream_segments[1] = NULL;
+            }
+            else {
+                /* weird but happens, streamed chunk is empty in this case */
+                temp_streamFile = new_streamFile;
+                stream_segments[0] = NULL;
+            }
         }
         else {
             new_streamFile = open_atomic_bao(bao->cfg.file_type, bao->stream_id, bao->is_external, streamFile);
@@ -1507,20 +1514,27 @@ static STREAMFILE * setup_bao_streamfile(ubi_bao_header *bao, STREAMFILE *stream
             if (!new_streamFile) goto fail;
             stream_segments[0] = new_streamFile;
 
-            new_streamFile = open_streamfile_by_filename(streamFile, bao->resource_name);
-            if (!new_streamFile) { VGM_LOG("UBI BAO: external stream '%s' not found\n", bao->resource_name); goto fail; }
-            stream_segments[1] = new_streamFile;
+            if (bao->stream_size - bao->prefetch_size != 0) {
+                new_streamFile = open_streamfile_by_filename(streamFile, bao->resource_name);
+                if (!new_streamFile) { VGM_LOG("UBI BAO: external stream '%s' not found\n", bao->resource_name); goto fail; }
+                stream_segments[1] = new_streamFile;
 
-            new_streamFile = open_clamp_streamfile(stream_segments[1], bao->stream_offset, (bao->stream_size - bao->prefetch_size));
-            if (!new_streamFile) goto fail;
-            stream_segments[1] = new_streamFile;
-            temp_streamFile = NULL;
+                new_streamFile = open_clamp_streamfile(stream_segments[1], bao->stream_offset, (bao->stream_size - bao->prefetch_size));
+                if (!new_streamFile) goto fail;
+                stream_segments[1] = new_streamFile;
+                temp_streamFile = NULL;
 
-            new_streamFile = open_multifile_streamfile(stream_segments, 2);
-            if (!new_streamFile) goto fail;
-            temp_streamFile = new_streamFile;
-            stream_segments[0] = NULL;
-            stream_segments[1] = NULL;
+                new_streamFile = open_multifile_streamfile(stream_segments, 2);
+                if (!new_streamFile) goto fail;
+                temp_streamFile = new_streamFile;
+                stream_segments[0] = NULL;
+                stream_segments[1] = NULL;
+            }
+            else {
+                /* weird but happens, streamed chunk is empty in this case */
+                temp_streamFile = new_streamFile;
+                stream_segments[0] = NULL;
+            }
         }
         else if (bao->is_external) {
             new_streamFile = open_streamfile_by_filename(streamFile, bao->resource_name);
