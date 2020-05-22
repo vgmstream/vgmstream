@@ -1,1 +1,0 @@
-#define VERSION "r1050-40-g33563f4"
