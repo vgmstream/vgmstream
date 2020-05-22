@@ -2124,14 +2124,14 @@ static void config_sb_audio_fb(ubi_sb_header * sb, off_t flag_bits, int external
 }
 static void config_sb_audio_fb_ps2_old(ubi_sb_header* sb, off_t flag_bits, int external_and, int loop_and, int loc_and, int stereo_and) {
     /* audio header with bit flags */
-    sb->cfg.audio_external_flag = flag_bits;
-    sb->cfg.audio_loop_flag = flag_bits;
-    sb->cfg.audio_loc_flag = flag_bits;
-    sb->cfg.audio_stereo_flag = flag_bits;
-    sb->cfg.audio_external_and = external_and;
-    sb->cfg.audio_loop_and = loop_and;
-    sb->cfg.audio_loc_and = loc_and;
-    sb->cfg.audio_stereo_and = stereo_and;
+    sb->cfg.audio_external_flag     = flag_bits;
+    sb->cfg.audio_loop_flag         = flag_bits;
+    sb->cfg.audio_loc_flag          = flag_bits;
+    sb->cfg.audio_stereo_flag       = flag_bits;
+    sb->cfg.audio_external_and      = external_and;
+    sb->cfg.audio_loop_and          = loop_and;
+    sb->cfg.audio_loc_and           = loc_and;
+    sb->cfg.audio_stereo_and        = stereo_and;
 }
 static void config_sb_audio_hs(ubi_sb_header * sb, off_t channels, off_t sample_rate, off_t num_samples, off_t num_samples2, off_t stream_name, off_t stream_type) {
     /* audio header with stream name */
@@ -2161,6 +2161,10 @@ static void config_sb_sequence(ubi_sb_header * sb, off_t sequence_count, off_t e
     if (sb->is_bnm) {
         sb->cfg.sequence_sequence_loop  = sequence_count - 0x0c;
         sb->cfg.sequence_sequence_single= sequence_count - 0x08;
+    }
+    if (sb->is_blk) {
+        sb->cfg.sequence_sequence_loop  = sequence_count - 0x14;
+        sb->cfg.sequence_sequence_single= sequence_count - 0x0c;
     }
 }
 static void config_sb_layer_hs(ubi_sb_header * sb, off_t layer_count, off_t stream_size, off_t stream_offset, off_t stream_name) {
