@@ -28,6 +28,7 @@ typedef struct {
     off_t audio_external_flag;
     off_t audio_loop_flag;
     off_t audio_loc_flag;
+    off_t audio_stereo_flag;
     off_t audio_num_samples;
     off_t audio_num_samples2;
     off_t audio_sample_rate;
@@ -39,11 +40,11 @@ typedef struct {
     int audio_loop_and;
     int audio_group_and;
     int audio_loc_and;
+    int audio_stereo_and;
     int num_codec_flags;
     int audio_has_internal_names;
     size_t audio_interleave;
     int audio_fix_psx_samples;
-    int is_ps2_old;
 
     off_t sequence_extra_offset;
     off_t sequence_sequence_loop;
@@ -63,7 +64,7 @@ typedef struct {
     off_t layer_stream_type;
     off_t layer_num_samples;
     size_t layer_entry_size;
-    size_t layer_hijack;
+    int layer_hijack;
 
     off_t silence_duration_int;
     off_t silence_duration_float;
@@ -84,6 +85,7 @@ typedef struct {
 
 typedef struct {
     ubi_sb_platform platform;
+    int is_ps2_old;
     int is_psp_old;
     int big_endian;
     int total_subsongs;
@@ -96,12 +98,12 @@ typedef struct {
 
     /* map base header info */
     off_t map_start;
-    off_t map_num;
+    uint32_t map_num;
 
     uint32_t map_type;
     uint32_t map_zero;
     off_t map_offset;
-    off_t map_size;
+    size_t map_size;
     char map_name[0x28];
     uint32_t map_unknown;
 
@@ -116,19 +118,19 @@ typedef struct {
     /* events (often share header_id/type with some descriptors,
      * but may exist without headers or header exist without them) */
     size_t section1_num;
-    size_t section1_offset;
+    off_t section1_offset;
     /* descriptors, audio header or other config types */
     size_t section2_num;
-    size_t section2_offset;
+    off_t section2_offset;
     /* internal streams table, referenced by each header */
     size_t section3_num;
-    size_t section3_offset;
+    off_t section3_offset;
     /* section with sounds in some map versions */
     size_t section4_num;
-    size_t section4_offset;
+    off_t section4_offset;
     /* extra table, config for certain types (DSP coefs, external resources, layer headers, etc) */
     size_t sectionX_size;
-    size_t sectionX_offset;
+    off_t sectionX_offset;
     /* unknown, usually -1 but can be others (0/1/2/etc) */
     int flag1;
     int flag2;
@@ -146,6 +148,7 @@ typedef struct {
     uint32_t stream_type;       /* rough codec value */
     uint32_t group_id;          /* internal id to reference in section3 */
     int is_localized;
+    int is_stereo;
 
     int loop_flag;              /* stream loops (normally internal sfx, but also external music) */
     int loop_start;             /* usually 0 */
@@ -480,11 +483,24 @@ VGMSTREAM * init_vgmstream_ubi_blk(STREAMFILE *streamFile) {
      * Parsing may be be simplified with multifile_streamfiles?
      *
      * The format is different from SMx in that there's a single sec1 and sec2
-     * shared by all maps so we can't determine which sound belong to which map.
+     * shared by all maps so we can't determine which sounds belong to which map.
      * Meanwhile, RAM sounds are stored in MAP.BLK/MAPLANG.BLK, which are split into blocks,
-     * one per map, which contain all RAM sounds that should be cached for the given map. */
+     * one per map, which contain all RAM sounds that should be loaded for a given map.
+     * 0x00: version
+     * 0x04: number of maps
+     * 0x08: number of events (EVT.BLK)
+     * 0x0c: number of resources (RES.BLK)
+     * 0x10: flags?
+     * 0x14: size of extra section in RES.BLK
+     * for each map:
+     *   0x00: total size of common RAM sounds
+     *   0x04: total size of localized RAM sounds
+     *   0x08: offset of common sound table in MAP.BLK
+     *   0x0c: offset of localized sound table in MAPLANG.BLK
+     *   0x10: map name (0x20 bytes)
+     */
 
-     /* checks */
+    /* checks */
     if (!check_extensions(streamFile, "blk"))
         goto fail;
 
@@ -510,11 +526,13 @@ VGMSTREAM * init_vgmstream_ubi_blk(STREAMFILE *streamFile) {
     sb.sf_header = streamFile;
     sb.map_num = read_32bit(0x04, streamFile);
     sb.section1_num = read_32bit(0x08, streamFile);
-    sb.section2_num = read_32bit(0x0c, streamFile);
     sb.section1_offset = 0;
+    sb.section2_num = read_32bit(0x0c, streamFile);
     sb.section2_offset = 0;
     sb.sectionX_offset = sb.section2_num * sb.cfg.section2_entry_size;
+    sb.sectionX_size = read_32bit(0x14, streamFile);
 
+    /* ugh... */
     resData = open_streamfile_by_filename(streamFile, "RES.BLK");
     streamTest = reopen_streamfile(resData, 0x100);
     if (target_subsong == 0) target_subsong = 1;
@@ -534,7 +552,7 @@ fail:
     return NULL;
 }
 
-static int blk_calculate_offset_and_size(ubi_sb_header *sb) {
+static int blk_parse_offsets(ubi_sb_header *sb) {
     STREAMFILE *sndData = NULL;
     uint32_t i;
     int32_t(*read_32bit)(off_t, STREAMFILE *) = sb->big_endian ? read_32bitBE : read_32bitLE;
@@ -542,7 +560,6 @@ static int blk_calculate_offset_and_size(ubi_sb_header *sb) {
     /* correct offsets */
     if (sb->is_external) {
         sb->stream_offset *= sb->cfg.audio_interleave;
-        sb->stream_size *= sb->channels;
     } else {
         /* find the first map block which has this sound */
         sndData = open_streamfile_by_filename(sb->sf_header, sb->resource_name);
@@ -556,14 +573,14 @@ static int blk_calculate_offset_and_size(ubi_sb_header *sb) {
             sb->stream_offset = read_32bit(table_offset + sb->header_index * 0x04, sndData);
             if (sb->stream_offset != 0xFFFFFFFF) {
                 sb->stream_offset += table_offset + sb->cfg.blk_table_size;
-                sb->stream_size -= 0x04;
+                //sb->stream_size -= 0x04;
                 break;
             }
         }
         close_streamfile(sndData);
 
         if (sb->stream_offset == 0xFFFFFFFF) {
-            VGM_LOG("No map block contains the resource %08x\n", sb->header_id);
+            VGM_LOG("No map block contains resource %08x (%d)\n", sb->header_id, sb->header_index);
             return 0;
         }
     }
@@ -930,7 +947,7 @@ static VGMSTREAM * init_vgmstream_ubi_sb_layer(ubi_sb_header *sb, STREAMFILE *st
     size_t full_stream_size = sb->stream_size;
     int i, total_channels = 0;
 
-    if (sb->cfg.is_ps2_old) {
+    if (sb->is_ps2_old) {
         /* no blocked layout yet, just open as normal file */
         return init_vgmstream_ubi_sb_audio(sb, streamTest, streamFile);
     }
@@ -1291,12 +1308,84 @@ static void build_readable_name(char * buf, size_t buf_size, ubi_sb_header * sb)
     }
 }
 
+static int parse_type_audio_ps2_old(ubi_sb_header *sb, off_t offset, STREAMFILE *streamFile) {
+    int32_t(*read_32bit)(off_t, STREAMFILE *) = sb->big_endian ? read_32bitBE : read_32bitLE;
+
+    sb->stream_size = read_32bit(offset + sb->cfg.audio_stream_size, streamFile);
+    sb->stream_offset = read_32bit(offset + sb->cfg.audio_stream_offset, streamFile);
+    sb->sample_rate = read_32bit(offset + sb->cfg.audio_sample_rate, streamFile);
+
+    if (sb->stream_size == 0) {
+        VGM_LOG("UBI SB: bad stream size\n");
+        goto fail;
+    }
+
+    sb->is_external = read_32bit(offset + sb->cfg.audio_external_flag, streamFile) & sb->cfg.audio_external_and;
+    sb->loop_flag = read_32bit(offset + sb->cfg.audio_loop_flag, streamFile) & sb->cfg.audio_loop_and;
+    sb->is_localized = read_32bit(offset + sb->cfg.audio_loc_flag, streamFile) & sb->cfg.audio_loc_and;
+    sb->is_stereo = read_32bit(offset + sb->cfg.audio_stereo_flag, streamFile) & sb->cfg.audio_stereo_and;
+
+    sb->num_samples = 0; /* calculate from size */
+    sb->channels = sb->is_stereo ? 2 : 1;
+    sb->stream_size *= sb->channels;
+    sb->group_id = 0; /* TODO: verify, flag could exist */
+
+    /* filenames are hardcoded */
+    if (sb->is_blk) {
+        blk_get_resource_name(sb);
+    } else if (sb->is_external) {
+        strcpy(sb->resource_name, sb->is_localized ? "STRM.LM1" : "STRM.SM1");
+    }
+
+    return 1;
+fail:
+    return 0;
+}
+
+static int parse_type_layer_ps2_old(ubi_sb_header *sb, off_t offset, STREAMFILE *streamFile) {
+    int32_t(*read_32bit)(off_t, STREAMFILE *) = sb->big_endian ? read_32bitBE : read_32bitLE;
+
+    sb->layer_count = read_32bit(offset + sb->cfg.layer_layer_count, streamFile);
+    sb->stream_size = read_32bit(offset + sb->cfg.layer_stream_size, streamFile);
+    sb->stream_offset = read_32bit(offset + sb->cfg.layer_stream_offset, streamFile);
+
+    if (sb->stream_size == 0) {
+        VGM_LOG("UBI SB: bad stream size\n");
+        goto fail;
+    }
+
+    if (sb->layer_count > SB_MAX_LAYER_COUNT) {
+        VGM_LOG("Ubi SB: incorrect layer count\n");
+        goto fail;
+    }
+
+    /* much simpler than later iteration */
+    sb->sample_rate = 44100; /* fixed? */
+    sb->num_samples = 0; /* calculate from size */
+    sb->channels = sb->layer_count * 2; /* layers are always stereo */
+    sb->stream_size *= sb->channels;
+
+    /* filenames are hardcoded */
+    if (sb->is_blk) {
+        blk_get_resource_name(sb);
+    } else if (sb->is_external) {
+        strcpy(sb->resource_name, sb->is_localized ? "STRM.LM1" : "STRM.SM1");
+    }
+
+    return 1;
+fail:
+    return 0;
+}
+
 static int parse_type_audio(ubi_sb_header * sb, off_t offset, STREAMFILE* streamFile) {
     int32_t (*read_32bit)(off_t,STREAMFILE*) = sb->big_endian ? read_32bitBE : read_32bitLE;
     int16_t (*read_16bit)(off_t,STREAMFILE*) = sb->big_endian ? read_16bitBE : read_16bitLE;
 
     /* audio header */
     sb->type = UBI_AUDIO;
+
+    if (sb->is_ps2_old)
+        return parse_type_audio_ps2_old(sb, offset, streamFile);
 
     sb->extra_offset    = read_32bit(offset + sb->cfg.audio_extra_offset, streamFile) + sb->sectionX_offset;
     sb->stream_size     = read_32bit(offset + sb->cfg.audio_stream_size, streamFile);
@@ -1312,9 +1401,7 @@ static int parse_type_audio(ubi_sb_header * sb, off_t offset, STREAMFILE* stream
         goto fail;
     }
 
-    if (sb->cfg.audio_external_flag && sb->cfg.audio_external_and) {
-        sb->is_external = (read_32bit(offset + sb->cfg.audio_external_flag, streamFile) & sb->cfg.audio_external_and);
-    }
+    sb->is_external = read_32bit(offset + sb->cfg.audio_external_flag, streamFile) & sb->cfg.audio_external_and;
 
     if (sb->cfg.audio_group_id && sb->cfg.audio_group_and) {
         /* probably means "SW decoded" */
@@ -1330,9 +1417,7 @@ static int parse_type_audio(ubi_sb_header * sb, off_t offset, STREAMFILE* stream
         sb->group_id = (int)!(sb->stream_type & 0x01);
     }
 
-    if (sb->cfg.audio_loop_flag && sb->cfg.audio_loop_and) {
-        sb->loop_flag = (read_32bit(offset + sb->cfg.audio_loop_flag, streamFile) & sb->cfg.audio_loop_and);
-    }
+    sb->loop_flag = read_32bit(offset + sb->cfg.audio_loop_flag, streamFile) & sb->cfg.audio_loop_and;
 
     if (sb->loop_flag) {
         sb->loop_start  = read_32bit(offset + sb->cfg.audio_num_samples, streamFile);
@@ -1349,10 +1434,6 @@ static int parse_type_audio(ubi_sb_header * sb, off_t offset, STREAMFILE* stream
         sb->num_samples = read_32bit(offset + sb->cfg.audio_num_samples, streamFile);
     }
 
-    if (sb->cfg.audio_loc_flag && sb->cfg.audio_loc_and) {
-        sb->is_localized = (read_32bit(offset + sb->cfg.audio_loc_flag, streamFile) & sb->cfg.audio_loc_and);
-    }
-
     if (sb->cfg.resource_name_size > sizeof(sb->resource_name)) {
         goto fail;
     }
@@ -1361,7 +1442,7 @@ static int parse_type_audio(ubi_sb_header * sb, off_t offset, STREAMFILE* stream
     if (sb->cfg.audio_stream_name) {
         read_string(sb->resource_name, sb->cfg.resource_name_size, offset + sb->cfg.audio_stream_name, streamFile);
     }
-    else if (sb->cfg.audio_extra_name) {
+    else {
         sb->cfg.audio_stream_name = read_32bit(offset + sb->cfg.audio_extra_name, streamFile);
         if (sb->cfg.layer_stream_name != 0xFFFFFFFF)
             read_string(sb->resource_name, sb->cfg.resource_name_size, sb->sectionX_offset + sb->cfg.audio_stream_name, streamFile);
@@ -1370,17 +1451,6 @@ static int parse_type_audio(ubi_sb_header * sb, off_t offset, STREAMFILE* stream
     /* points at XMA1 header in the extra section (only for RAW_XMA1, ignored garbage otherwise) */
     if (sb->cfg.audio_xma_offset) {
         sb->xma_header_offset = read_32bit(offset + sb->cfg.audio_xma_offset, streamFile) + sb->sectionX_offset;
-    }
-
-    if (sb->cfg.is_ps2_old) {
-        /* no channel count, probably assumes streamed = stereo, RAM = mono */
-        sb->channels = sb->is_external ? 2 : 1;
-        sb->num_samples = 0;
-
-        /* filenames are hardcoded */
-        if (sb->is_blk) {
-            blk_get_resource_name(sb);
-        }
     }
 
     return 1;
@@ -1462,13 +1532,16 @@ static int parse_type_layer(ubi_sb_header * sb, off_t offset, STREAMFILE* stream
         goto fail;
     }
 
+    /* all layers seem external */
+    sb->is_external = 1;
+
+    if (sb->is_ps2_old)
+        return parse_type_layer_ps2_old(sb, offset, streamFile);
+
     sb->extra_offset    = read_32bit(offset + sb->cfg.layer_extra_offset, streamFile) + sb->sectionX_offset;
     sb->layer_count     = read_32bit(offset + sb->cfg.layer_layer_count, streamFile);
     sb->stream_size     = read_32bit(offset + sb->cfg.layer_stream_size, streamFile);
     sb->stream_offset   = read_32bit(offset + sb->cfg.layer_stream_offset, streamFile);
-
-    /* all layers seem external */
-    sb->is_external = 1;
 
     if (sb->stream_size == 0) {
         VGM_LOG("UBI SB: bad stream size\n");
@@ -1480,59 +1553,47 @@ static int parse_type_layer(ubi_sb_header * sb, off_t offset, STREAMFILE* stream
         goto fail;
     }
 
-    if (sb->cfg.is_ps2_old) {
-        /* much simpler than later iteration */
-        sb->sample_rate = 44100; /* fixed? */
-        sb->num_samples = 0;
-        sb->channels = sb->layer_count * 2; /* no channel count, probably assumes stereo per layer */
+    /* get 1st layer header in extra table and validate all headers match */
+    table_offset = sb->extra_offset;
+    //sb->channels        = (sb->cfg.layer_channels % 4) ? /* non-aligned offset is always 16b */
+    //            (uint16_t)read_16bit(table_offset + sb->cfg.layer_channels, streamFile) :
+    //            (uint32_t)read_32bit(table_offset + sb->cfg.layer_channels, streamFile);
+    sb->sample_rate = read_32bit(table_offset + sb->cfg.layer_sample_rate, streamFile);
+    sb->stream_type = read_32bit(table_offset + sb->cfg.layer_stream_type, streamFile);
+    sb->num_samples = read_32bit(table_offset + sb->cfg.layer_num_samples, streamFile);
 
-        /* filenames are hardcoded */
-        if (sb->is_blk) {
-            blk_get_resource_name(sb);
-        }
-    } else {
-        /* get 1st layer header in extra table and validate all headers match */
-        table_offset = sb->extra_offset;
-        //sb->channels        = (sb->cfg.layer_channels % 4) ? /* non-aligned offset is always 16b */
-        //            (uint16_t)read_16bit(table_offset + sb->cfg.layer_channels, streamFile) :
-        //            (uint32_t)read_32bit(table_offset + sb->cfg.layer_channels, streamFile);
-        sb->sample_rate = read_32bit(table_offset + sb->cfg.layer_sample_rate, streamFile);
-        sb->stream_type = read_32bit(table_offset + sb->cfg.layer_stream_type, streamFile);
-        sb->num_samples = read_32bit(table_offset + sb->cfg.layer_num_samples, streamFile);
+    for (i = 0; i < sb->layer_count; i++) {
+        int channels = (sb->cfg.layer_channels % 4) ? /* non-aligned offset is always 16b */
+            (uint16_t)read_16bit(table_offset + sb->cfg.layer_channels, streamFile) :
+            (uint32_t)read_32bit(table_offset + sb->cfg.layer_channels, streamFile);
+        int sample_rate = read_32bit(table_offset + sb->cfg.layer_sample_rate, streamFile);
+        int stream_type = read_32bit(table_offset + sb->cfg.layer_stream_type, streamFile);
+        int num_samples = read_32bit(table_offset + sb->cfg.layer_num_samples, streamFile);
 
-        for (i = 0; i < sb->layer_count; i++) {
-            int channels = (sb->cfg.layer_channels % 4) ? /* non-aligned offset is always 16b */
-                (uint16_t)read_16bit(table_offset + sb->cfg.layer_channels, streamFile) :
-                (uint32_t)read_32bit(table_offset + sb->cfg.layer_channels, streamFile);
-            int sample_rate = read_32bit(table_offset + sb->cfg.layer_sample_rate, streamFile);
-            int stream_type = read_32bit(table_offset + sb->cfg.layer_stream_type, streamFile);
-            int num_samples = read_32bit(table_offset + sb->cfg.layer_num_samples, streamFile);
-
-            if (sb->sample_rate != sample_rate || sb->stream_type != stream_type) {
-                VGM_LOG("Ubi SB: %i layer headers don't match at %x > %x\n", sb->layer_count, (uint32_t)offset, (uint32_t)table_offset);
-                if (!sb->cfg.ignore_layer_error) /* layers of different rates happens sometimes */
-                    goto fail;
-            }
-
-            /* uncommonly channels may vary per layer [Brothers in Arms 2 (PS2) ex. MP_B01_NL.SB1] */
-            sb->layer_channels[i] = channels;
-
-            /* can be +-1 */
-            if (sb->num_samples != num_samples && sb->num_samples + 1 == num_samples) {
-                sb->num_samples -= 1;
-            }
-
-            table_offset += sb->cfg.layer_entry_size;
+        if (sb->sample_rate != sample_rate || sb->stream_type != stream_type) {
+            VGM_LOG("Ubi SB: %i layer headers don't match at %x > %x\n", sb->layer_count, (uint32_t)offset, (uint32_t)table_offset);
+            if (!sb->cfg.ignore_layer_error) /* layers of different rates happens sometimes */
+                goto fail;
         }
 
-        /* external stream name can be found in the header (first versions) or the sectionX table (later versions) */
-        if (sb->cfg.layer_stream_name) {
-            read_string(sb->resource_name, sb->cfg.resource_name_size, offset + sb->cfg.layer_stream_name, streamFile);
-        } else if (sb->cfg.layer_extra_name) {
-            sb->cfg.layer_stream_name = read_32bit(offset + sb->cfg.layer_extra_name, streamFile);
-            if (sb->cfg.layer_stream_name != 0xFFFFFFFF)
-                read_string(sb->resource_name, sb->cfg.resource_name_size, sb->sectionX_offset + sb->cfg.layer_stream_name, streamFile);
+        /* uncommonly channels may vary per layer [Brothers in Arms 2 (PS2) ex. MP_B01_NL.SB1] */
+        sb->layer_channels[i] = channels;
+
+        /* can be +-1 */
+        if (sb->num_samples != num_samples && sb->num_samples + 1 == num_samples) {
+            sb->num_samples -= 1;
         }
+
+        table_offset += sb->cfg.layer_entry_size;
+    }
+
+    /* external stream name can be found in the header (first versions) or the sectionX table (later versions) */
+    if (sb->cfg.layer_stream_name) {
+        read_string(sb->resource_name, sb->cfg.resource_name_size, offset + sb->cfg.layer_stream_name, streamFile);
+    } else if (sb->cfg.layer_extra_name) {
+        sb->cfg.layer_stream_name = read_32bit(offset + sb->cfg.layer_extra_name, streamFile);
+        if (sb->cfg.layer_stream_name != 0xFFFFFFFF)
+            read_string(sb->resource_name, sb->cfg.resource_name_size, sb->sectionX_offset + sb->cfg.layer_stream_name, streamFile);
     }
 
     /* layers seem to include XMA header */
@@ -1624,16 +1685,17 @@ static int parse_stream_codec(ubi_sb_header * sb) {
     if (sb->type == UBI_SEQUENCE)
         return 1;
 
+    if (sb->is_ps2_old) {
+        /* early PS2 games don't support different codecs, it's always PSX ADPCM */
+        sb->codec = RAW_PSX;
+        return 1;
+    }
+
     /* in early versions, this is a bitfield with either 1 or 2 rightmost bits being flags */
     sb->stream_type >>= sb->cfg.num_codec_flags;
 
     if (sb->cfg.default_codec_for_group0 && sb->type == UBI_AUDIO && sb->group_id == 0) {
-        /* early Xbox games contain garbage in stream_type field in this case, it seems that 0x00 is assumed */
-        sb->stream_type = 0x00;
-    }
-
-    if (sb->cfg.is_ps2_old) {
-        /* early PS2 games don't support different codecs, it's always PSX ADPCM */
+        /* some Xbox games contain garbage in stream_type field in this case, it seems that 0x00 is assumed */
         sb->stream_type = 0x00;
     }
 
@@ -1716,6 +1778,9 @@ static int parse_stream_codec(ubi_sb_header * sb) {
 
             case 0x02:
                 switch (sb->platform) {
+                    case UBI_PC:
+                        sb->codec = UBI_ADPCM;
+                        break;
                     case UBI_PS3:
                         sb->codec = RAW_PSX; /* PS3 */
                         break;
@@ -1723,8 +1788,8 @@ static int parse_stream_codec(ubi_sb_header * sb) {
                         sb->codec = UBI_IMA_SCE;
                         break;
                     default:
-                        sb->codec = UBI_ADPCM;
-                        break;
+                        VGM_LOG("UBI SB: unknown codec for stream_type %02x\n", sb->stream_type);
+                        goto fail;
                 }
                 break;
 
@@ -1760,7 +1825,7 @@ static int parse_stream_codec(ubi_sb_header * sb) {
                 break;
 
             case 0x08:
-                sb->codec = FMT_AT3;
+                sb->codec = FMT_AT3; /* PS3 */
                 break;
 
             default:
@@ -1776,113 +1841,85 @@ fail:
 
 /* find actual stream offset in section3 */
 static int parse_offsets(ubi_sb_header * sb, STREAMFILE *streamFile) {
-    STREAMFILE *sndData = NULL;
     int32_t (*read_32bit)(off_t,STREAMFILE*) = sb->big_endian ? read_32bitBE : read_32bitLE;
     int i, j, k;
 
     if (sb->type == UBI_SEQUENCE)
         return 1;
 
-    if (sb->is_blk) {
-        if (sb->is_external) {
-            sb->stream_offset *= sb->cfg.audio_interleave;
-            sb->stream_size *= sb->channels;
-        } else {
-            /* find the first map block which has this sound */
-            sndData = open_streamfile_by_filename(sb->sf_header, sb->resource_name);
-            for (i = 0; i < sb->map_num; i++) {
-                uint32_t entry_offset, cmn_table_offset, loc_table_offset, table_offset;
-                entry_offset = 0x18 + i * sb->cfg.map_entry_size;
-                cmn_table_offset = read_32bit(entry_offset + 0x08, sb->sf_header);
-                loc_table_offset = read_32bit(entry_offset + 0x0c, sb->sf_header);
-                table_offset = sb->is_localized ? loc_table_offset : cmn_table_offset;
+    if (sb->is_blk)
+        return blk_parse_offsets(sb);
 
-                sb->stream_offset = read_32bit(table_offset + sb->header_index * 0x04, sndData);
-                if (sb->stream_offset != 0xFFFFFFFF) {
-                    sb->stream_offset += table_offset + sb->cfg.blk_table_size;
-                    sb->stream_size -= 0x04;
+    VGM_ASSERT(!sb->is_map && sb->section3_num > 2, "UBI SB: section3 > 2 found\n");
+
+    if (sb->is_external)
+        return 1;
+
+    /* Internal sounds are split into codec groups, with their offsets being relative to group start.
+     * A table contains sizes of each group, so we adjust offsets based on the group ID of our sound.
+     * Headers normally only use 0 or 1, and section3 may only define id1 (which the internal sound would use).
+     * May exist even for external streams only, and they often use id 1 too. */
+
+    if (sb->is_map) {
+        /* maps store internal sounds offsets in a separate subtable, find the matching entry
+         * each sec3 entry consists of the header and two tables
+         * 0x00: some ID? (always -1 for the first entry)
+         * 0x04: table 1 offset
+         * 0x08: table 1 entries
+         * 0x0c: table 2 offset
+         * 0x10: table 2 entries
+         * table 1 - for each entry:
+         * 0x00: sec2 entry index
+         * 0x04: sound offset
+         * table 2 - for each entry:
+         * 0x00 - group ID
+         * 0x04 - size with padding included
+         * 0x08 - size without padding
+         * 0x0c - absolute group offset */
+
+        for (i = 0; i < sb->section3_num; i++) {
+            off_t offset = sb->section3_offset + 0x14 * i;
+            off_t table_offset  = read_32bit(offset + 0x04, streamFile) + sb->section3_offset;
+            uint32_t table_num  = read_32bit(offset + 0x08, streamFile);
+            off_t table2_offset = read_32bit(offset + 0x0c, streamFile) + sb->section3_offset;
+            uint32_t table2_num = read_32bit(offset + 0x10, streamFile);
+
+            for (j = 0; j < table_num; j++) {
+                int index = read_32bit(table_offset + 0x08 * j + 0x00, streamFile) & 0x7FFFFFFF;
+
+                if (index == sb->header_index) {
+                    sb->stream_offset = read_32bit(table_offset + 0x08 * j + 0x04, streamFile);
+                    for (k = 0; k < table2_num; k++) {
+                        uint32_t id = read_32bit(table2_offset + 0x10 * k + 0x00, streamFile);
+
+                        if (id == sb->group_id) {
+                            sb->stream_offset += read_32bit(table2_offset + 0x10 * k + 0x0c, streamFile);
+                            break;
+                        }
+                    }
                     break;
                 }
             }
-            close_streamfile(sndData);
 
-            if (sb->stream_offset == 0xFFFFFFFF) {
-                VGM_LOG("No map block contains the resource %08x\n", sb->header_id);
-                return 0;
-            }
+            if (sb->stream_offset)
+                break;
         }
     } else {
-        VGM_ASSERT(!sb->is_map && sb->section3_num > 2, "UBI SB: section3 > 2 found\n");
+        /* banks store internal sounds after all headers and adjusted by the group table, find the matching entry */
 
-        if (sb->is_external)
-            return 1;
+        off_t sounds_offset = sb->section3_offset + sb->cfg.section3_entry_size*sb->section3_num;
+        if (sb->cfg.is_padded_sounds_offset)
+            sounds_offset = align_size_to_block(sounds_offset, 0x10);
+        sb->stream_offset = sounds_offset + sb->stream_offset;
 
-        /* Internal sounds are split into codec groups, with their offsets being relative to group start.
-         * A table contains sizes of each group, so we adjust offsets based on the group ID of our sound.
-         * Headers normally only use 0 or 1, and section3 may only define id1 (which the internal sound would use).
-         * May exist even for external streams only, and they often use id 1 too. */
-
-        if (sb->is_map) {
-            /* maps store internal sounds offsets in a separate subtable, find the matching entry
-             * each sec3 entry consists of the header and two tables
-             * 0x00: some ID? (always -1 for the first entry)
-             * 0x04: table 1 offset
-             * 0x08: table 1 entries
-             * 0x0c: table 2 offset
-             * 0x10: table 2 entries
-             * table 1 - for each entry:
-             * 0x00: sec2 entry index
-             * 0x04: sound offset
-             * table 2 - for each entry:
-             * 0x00 - group ID
-             * 0x04 - size with padding included
-             * 0x08 - size without padding
-             * 0x0c - absolute group offset */
-
+        if (sb->section3_num > 1) { /* maybe should always test this? */
             for (i = 0; i < sb->section3_num; i++) {
-                off_t offset = sb->section3_offset + 0x14 * i;
-                off_t table_offset  = read_32bit(offset + 0x04, streamFile) + sb->section3_offset;
-                uint32_t table_num  = read_32bit(offset + 0x08, streamFile);
-                off_t table2_offset = read_32bit(offset + 0x0c, streamFile) + sb->section3_offset;
-                uint32_t table2_num = read_32bit(offset + 0x10, streamFile);
+                off_t offset = sb->section3_offset + sb->cfg.section3_entry_size * i;
 
-                for (j = 0; j < table_num; j++) {
-                    int index = read_32bit(table_offset + 0x08 * j + 0x00, streamFile) & 0x0000FFFF;
-
-                    if (index == sb->header_index) {
-                        sb->stream_offset = read_32bit(table_offset + 0x08 * j + 0x04, streamFile);
-                        for (k = 0; k < table2_num; k++) {
-                            uint32_t id = read_32bit(table2_offset + 0x10 * k + 0x00, streamFile);
-
-                            if (id == sb->group_id) {
-                                sb->stream_offset += read_32bit(table2_offset + 0x10 * k + 0x0c, streamFile);
-                                break;
-                            }
-                        }
-                        break;
-                    }
-                }
-
-                if (sb->stream_offset)
+                /* table has unordered ids+size, so if our id doesn't match current data offset must be beyond */
+                if (read_32bit(offset + 0x00, streamFile) == sb->group_id)
                     break;
-            }
-        } else {
-            /* banks store internal sounds after all headers and adjusted by the group table, find the matching entry */
-
-            off_t sounds_offset = sb->section3_offset + sb->cfg.section3_entry_size*sb->section3_num;
-            if (sb->cfg.is_padded_sounds_offset)
-                sounds_offset = align_size_to_block(sounds_offset, 0x10);
-            sb->stream_offset = sounds_offset + sb->stream_offset;
-
-            if (sb->section3_num > 1) { /* maybe should always test this? */
-                for (i = 0; i < sb->section3_num; i++) {
-                    off_t offset = sb->section3_offset + sb->cfg.section3_entry_size * i;
-
-                    /* table has unordered ids+size, so if our id doesn't match current data offset must be beyond */
-                    if (read_32bit(offset + 0x00, streamFile) == sb->group_id)
-                        break;
-                    sb->stream_offset += read_32bit(offset + 0x04, streamFile);
-                }
+                sb->stream_offset += read_32bit(offset + 0x04, streamFile);
             }
         }
     }
@@ -2085,14 +2122,16 @@ static void config_sb_audio_fb(ubi_sb_header * sb, off_t flag_bits, int external
     sb->cfg.audio_group_and         = group_and;
     sb->cfg.audio_loop_and          = loop_and;
 }
-static void config_sb_audio_fb_ps2_old(ubi_sb_header* sb, off_t flag_bits, int external_and, int loop_and, int loc_and) {
+static void config_sb_audio_fb_ps2_old(ubi_sb_header* sb, off_t flag_bits, int external_and, int loop_and, int loc_and, int stereo_and) {
     /* audio header with bit flags */
     sb->cfg.audio_external_flag = flag_bits;
     sb->cfg.audio_loop_flag = flag_bits;
     sb->cfg.audio_loc_flag = flag_bits;
+    sb->cfg.audio_stereo_flag = flag_bits;
     sb->cfg.audio_external_and = external_and;
     sb->cfg.audio_loop_and = loop_and;
     sb->cfg.audio_loc_and = loc_and;
+    sb->cfg.audio_stereo_and = stereo_and;
 }
 static void config_sb_audio_hs(ubi_sb_header * sb, off_t channels, off_t sample_rate, off_t num_samples, off_t num_samples2, off_t stream_name, off_t stream_type) {
     /* audio header with stream name */
@@ -2377,7 +2416,7 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
     }
 
 
-    /* Tonic Trouble Special Edition (1999)(PC)-bnm */
+    /* Tonic Trouble Special Edition (1998)(PC)-bnm */
     if (sb->version == 0x00000000 && sb->platform == UBI_PC && is_ttse_pc) {
         config_sb_entry(sb, 0x20, 0x5c);
 
@@ -2436,17 +2475,34 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
     }
 
     /* Donald Duck: Goin' Quackers (2000)(PS2)-blk */
+    /* The Jungle Book Rhythm N'Groove (PS2)-blk */
     if (sb->version == 0x00000003 && sb->platform == UBI_PS2 && sb->is_blk) {
         config_sb_entry(sb, 0x20, 0x40);
 
-        config_sb_audio_fb_ps2_old(sb, 0x18, (1 << 4), (1 << 5), (1 << 6));
+        config_sb_audio_fb_ps2_old(sb, 0x18, (1 << 4), (1 << 5), (1 << 6), (1 << 7));
         config_sb_audio_hs(sb, 0x00, 0x20, 0x00, 0x00, 0x00, 0x00);
         sb->cfg.audio_interleave = 0x800;
-        sb->cfg.is_ps2_old = 1; /* yikes */
+        sb->is_ps2_old = 1; /* yikes */
 
         config_sb_sequence(sb, 0x2c, 0x18); /* this is normal enough */
 
         config_sb_layer_hs(sb, 0x1c, 0x0c, 0x10, 0x00);
+        return 1;
+    }
+
+    /* Batman: Vengeance (2001)(PS2)-map */
+    /* Disney's Tarzan: Untamed (2001)(PS2)-map */
+    if (sb->version == 0x00000003 && sb->platform == UBI_PS2) {
+        config_sb_entry(sb, 0x30, 0x3c);
+
+        config_sb_audio_fb_ps2_old(sb, 0x1c, (1 << 4), (1 << 5), (1 << 6), (1 << 7));
+        config_sb_audio_hs(sb, 0x00, 0x24, 0x00, 0x00, 0x00, 0x00);
+        sb->cfg.audio_interleave = 0x800;
+        sb->is_ps2_old = 1;
+
+        config_sb_sequence(sb, 0x2c, 0x18);
+
+        config_sb_layer_hs(sb, 0x20, 0x0c, 0x14, 0x00);
         return 1;
     }
 
@@ -2465,26 +2521,6 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         config_sb_layer_sh(sb, 0x1c, 0x04, 0x0a, 0x0c, 0x18);
         return 1;
     }
-
-#if 0
-    //todo too weird
-    /* Batman: Vengeance (2001)(PS2)-map */
-    /* Disney's Tarzan: Untamed (2001)(PS2)-map */
-    if (sb->version == 0x00000003 && sb->platform == UBI_PS2) {
-        config_sb_entry(sb, 0x30, 0x3c);
-
-        config_sb_audio_fb(sb, 0x1c, (1 << 2), (1 << 3), (1 << 4)); /* not ok */
-        config_sb_audio_hs(sb, 0x00, 0x24, 0x28, 0x28, 0x00, 0x00);
-        /* channels: 0? maybe 2=external, 1=internal? */
-        /* stream type: always PS-ADPCM (interleave unknown) */
-        /* sb->cfg.audio_stream_string = "STRM.SM1"; */ /* fixed */
-
-        config_sb_sequence(sb, 0x2c, 0x10); /* this is normal enough */
-
-        /* layers have a weird format too */
-        return 1;
-    }
-#endif
 
 #if 0
     //todo group flags and maybe num_samples for sfx are off
@@ -2546,7 +2582,7 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
     }
 
     /* Splinter Cell (2002)(PS2)-map */
-    /* Splinter Cell: Pandora Tomorrow (2006)(PS2)-map 0x00000007 */
+    /* Splinter Cell: Pandora Tomorrow (2004)(PS2)-map */
     if (sb->version == 0x00000007 && sb->platform == UBI_PS2) {
         config_sb_entry(sb, 0x40, 0x70);
 
@@ -2586,7 +2622,7 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         return 1;
     }
 
-    /* Tom Clancy's Rainbow Six 3: Raven Shield + addons (2003)(PC)-bank 0x0000000B */
+    /* Tom Clancy's Rainbow Six 3: Raven Shield + addons (2003)(PC)-bank */
     if (sb->version == 0x0000000B && sb->platform == UBI_PC) {
         config_sb_entry(sb, 0x5c, 0x7c);
 
@@ -2601,7 +2637,7 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         return 1;
     }
 
-    /* Prince of Persia: The Sands of Time (Demo)(2003)(Xbox)-bank 0x0000000D */
+    /* Prince of Persia: The Sands of Time (Demo)(2003)(Xbox)-bank */
     if (sb->version == 0x0000000D && sb->platform == UBI_XBOX) {
         config_sb_entry(sb, 0x5c, 0x74);
 
@@ -2616,7 +2652,7 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         return 1;
     }
 
-    /* Prince of Persia: The Sands of Time (Demo)(2003)(Xbox)-bank 0x000A0000 */
+    /* Prince of Persia: The Sands of Time (Demo)(2003)(Xbox)-bank */
     if (sb->version == 0x000A0000 && sb->platform == UBI_XBOX) {
         config_sb_entry(sb, 0x64, 0x78);
 
@@ -2684,8 +2720,8 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         return 1;
     }
 
-    /* Brothers in Arms: Road to Hill 30 (2005)[PS2] */
-    /* Brothers in Arms: Earned in Blood (2005)[PS2] */
+    /* Brothers in Arms: Road to Hill 30 (2005)(PS2) */
+    /* Brothers in Arms: Earned in Blood (2005)(PS2) */
     if (sb->version == 0x000A0007 && sb->platform == UBI_PS2 && is_bia_ps2) {
         config_sb_entry(sb, 0x5c, 0x14c);
 
@@ -2705,7 +2741,7 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         return 1;
     }
 
-    /* Batman: Rise of Sin Tzu (2003)(Xbox)-map 0x000A0003 */
+    /* Batman: Rise of Sin Tzu (2003)(Xbox)-map */
     if (sb->version == 0x000A0003 && sb->platform == UBI_XBOX) {
         config_sb_entry(sb, 0x64, 0x80);
 
@@ -2759,7 +2795,7 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         return 1;
     }
 
-    /* Tom Clancy's Rainbow Six 3 (2003)(Xbox)-bank 0x000A0007 */
+    /* Tom Clancy's Rainbow Six 3 (2003)(Xbox)-bank */
     if (sb->version == 0x000A0007 && sb->platform == UBI_XBOX) {
         config_sb_entry(sb, 0x64, 0x8c);
 
@@ -3043,7 +3079,7 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         return 1;
     }
 
-    /* Open Season (2006)(PC)-map 0x00180003 */
+    /* Open Season (2006)(PC)-map */
     if (sb->version == 0x00180003 && sb->platform == UBI_PC) {
         config_sb_entry(sb, 0x68, 0x78);
 
@@ -3059,7 +3095,7 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         return 1;
     }
 
-    /* Open Season (2006)(Xbox)-map 0x00180003 */
+    /* Open Season (2006)(Xbox)-map */
     if (sb->version == 0x00180003 && sb->platform == UBI_XBOX) {
         config_sb_entry(sb, 0x48, 0x58);
 
@@ -3075,7 +3111,7 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         return 1;
     }
 
-    /* Open Season (2006)(GC)-map 0x00180003 */
+    /* Open Season (2006)(GC)-map */
     if (sb->version == 0x00180003 && sb->platform == UBI_GC) {
         config_sb_entry(sb, 0x68, 0x6c);
 
@@ -3252,8 +3288,8 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         return 1;
     }
 
-    /* Cranium Kabookii (2007)(Wii)-bank 0x001a0003 */
-    if (sb->version == 0x001a0003 && sb->platform == UBI_WII) {
+    /* Cranium Kabookii (2007)(Wii)-bank */
+    if (sb->version == 0x001A0003 && sb->platform == UBI_WII) {
         config_sb_entry(sb, 0x6c, 0x78);
 
         config_sb_audio_fs(sb, 0x2c, 0x30, 0x34);
