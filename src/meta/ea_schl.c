@@ -264,7 +264,6 @@ fail:
 
 /* EA BNK with variable header - from EA games SFXs; also created by sx.exe */
 VGMSTREAM * init_vgmstream_ea_bnk(STREAMFILE* sf) {
-    off_t offset;
     int target_stream = sf->stream_index;
 
     /* check extension */
@@ -276,15 +275,8 @@ VGMSTREAM * init_vgmstream_ea_bnk(STREAMFILE* sf) {
     if (!check_extensions(sf,"bnk,sdt,mus,abk,ast"))
         goto fail;
 
-    /* check header (doesn't use EA blocks, otherwise very similar to SCHl) */
-    if (read_32bitBE(0x100,sf) == EA_BNK_HEADER_LE)
-        offset = 0x100; /* Harry Potter and the Goblet of Fire (PS2) .mus have weird extra 0x100 bytes */
-    else
-        offset = 0x00;
-
     if (target_stream == 0) target_stream = 1;
-
-    return parse_bnk_header(sf, offset, target_stream - 1, 0);
+    return parse_bnk_header(sf, 0x00, target_stream - 1, 0);
     
 fail:
     return NULL;
