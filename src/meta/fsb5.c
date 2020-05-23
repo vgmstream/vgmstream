@@ -538,12 +538,14 @@ static layered_layout_data* build_layered_fsb5_celt(STREAMFILE* sf, fsb5_header*
 
         if (!vgmstream_open_stream(data->layers[i], temp_sf, 0x00))
             goto fail;
+
+        close_streamfile(temp_sf);
+        temp_sf = NULL;
     }
 
     /* setup layered VGMSTREAMs */
     if (!setup_layout_layered(data))
         goto fail;
-    close_streamfile(temp_sf);
     return data;
 
 fail:
@@ -614,12 +616,14 @@ static layered_layout_data* build_layered_fsb5_atrac9(STREAMFILE* sf, fsb5_heade
 
         if (!vgmstream_open_stream(data->layers[i], temp_sf, 0x00))
             goto fail;
+
+        close_streamfile(temp_sf);
+        temp_sf = NULL;
     }
 
     /* setup layered VGMSTREAMs */
     if (!setup_layout_layered(data))
         goto fail;
-    close_streamfile(temp_sf);
     return data;
 
 fail:

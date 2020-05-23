@@ -522,15 +522,16 @@ static layered_layout_data* build_layered_fsb_celt(STREAMFILE* sf, fsb_header* f
         temp_sf = setup_fsb_interleave_streamfile(sf, fsb->stream_offset, fsb->stream_size, layers, i, FSB_INT_CELT);
         if (!temp_sf) goto fail;
 
-        if ( !vgmstream_open_stream(data->layers[i], temp_sf, 0x00) ) {
+        if (!vgmstream_open_stream(data->layers[i], temp_sf, 0x00))
             goto fail;
-        }
+
+        close_streamfile(temp_sf);
+        temp_sf = NULL;
     }
 
     /* setup layered VGMSTREAMs */
     if (!setup_layout_layered(data))
         goto fail;
-    close_streamfile(temp_sf);
     return data;
 
 fail:
