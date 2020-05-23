@@ -655,6 +655,7 @@ VGMSTREAM * init_vgmstream_naac(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_ubi_sb(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_ubi_sm(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_ubi_bnm(STREAMFILE * streamFile);
+VGMSTREAM *init_vgmstream_ubi_blk(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_ezw(STREAMFILE * streamFile);
 

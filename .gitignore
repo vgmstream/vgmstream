@@ -40,6 +40,8 @@ Release
 /xmplay/Release
 /xmplay/*.dll
 /dependencies
+/version.h
+/version.mk
 
 /**/test.zip
 /**/foo_input_vgmstream.fb2k-component

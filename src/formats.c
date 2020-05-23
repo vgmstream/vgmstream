@@ -106,6 +106,7 @@ static const char* extension_list[] = {
     "bik2",
     //"bin", //common
     "bk2",
+    "blk",
     "bmdx",
     "bms",
     "bnk",
