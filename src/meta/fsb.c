@@ -103,31 +103,31 @@ typedef struct {
 
 /* ********************************************************************************** */
 
-static layered_layout_data* build_layered_fsb_celt(STREAMFILE *streamFile, fsb_header* fsb, int is_new_lib);
+static layered_layout_data* build_layered_fsb_celt(STREAMFILE* sf, fsb_header* fsb, int is_new_lib);
 
 /* FSB1~4 - from games using FMOD audio middleware */
-VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
-    int target_subsong = streamFile->stream_index;
+VGMSTREAM* init_vgmstream_fsb(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
+    int target_subsong = sf->stream_index;
     fsb_header fsb = {0};
 
 
     /* checks
      * .fsb: standard
      * .bnk: Hard Corps Uprising (PS3) */
-    if ( !check_extensions(streamFile, "fsb,bnk") )
+    if ( !check_extensions(sf, "fsb,bnk") )
         goto fail;
 
     /* check header */
-    fsb.id = read_32bitBE(0x00,streamFile);
+    fsb.id = read_32bitBE(0x00,sf);
     if (fsb.id == 0x46534231) { /* "FSB1" (somewhat different from other fsbs) */
         fsb.meta_type = meta_FSB1;
         fsb.base_header_size = 0x10;
         fsb.sample_header_min = 0x40;
 
         /* main header */
-        fsb.total_subsongs = read_32bitLE(0x04,streamFile);
-        fsb.sample_data_size = read_32bitLE(0x08,streamFile);
+        fsb.total_subsongs = read_32bitLE(0x04,sf);
+        fsb.sample_data_size = read_32bitLE(0x08,sf);
         fsb.sample_headers_size = 0x40;
         fsb.version = 0;
         fsb.flags = 0;
@@ -140,13 +140,13 @@ VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
 
             fsb.name_offset = header_offset;
             fsb.name_size   = 0x20;
-            fsb.num_samples = read_32bitLE(header_offset+0x20,streamFile);
-            fsb.stream_size = read_32bitLE(header_offset+0x24,streamFile);
-            fsb.sample_rate = read_32bitLE(header_offset+0x28,streamFile);
+            fsb.num_samples = read_32bitLE(header_offset+0x20,sf);
+            fsb.stream_size = read_32bitLE(header_offset+0x24,sf);
+            fsb.sample_rate = read_32bitLE(header_offset+0x28,sf);
             /* 0x2c:?  0x2e:?  0x30:?  0x32:? */
-            fsb.mode        = read_32bitLE(header_offset+0x34,streamFile);
-            fsb.loop_start  = read_32bitLE(header_offset+0x38,streamFile);
-            fsb.loop_end    = read_32bitLE(header_offset+0x3c,streamFile);
+            fsb.mode        = read_32bitLE(header_offset+0x34,sf);
+            fsb.loop_start  = read_32bitLE(header_offset+0x38,sf);
+            fsb.loop_end    = read_32bitLE(header_offset+0x3c,sf);
 
             VGM_ASSERT(fsb.loop_end > fsb.num_samples, "FSB: loop end over samples (%i vs %i)\n", fsb.loop_end, fsb.num_samples);
             fsb.channels = (fsb.mode & FSOUND_STEREO) ? 2 : 1;
@@ -177,12 +177,12 @@ VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
         }
 
         /* main header */
-        fsb.total_subsongs = read_32bitLE(0x04,streamFile);
-        fsb.sample_headers_size = read_32bitLE(0x08,streamFile);
-        fsb.sample_data_size = read_32bitLE(0x0c,streamFile);
+        fsb.total_subsongs = read_32bitLE(0x04,sf);
+        fsb.sample_headers_size = read_32bitLE(0x08,sf);
+        fsb.sample_data_size = read_32bitLE(0x0c,sf);
         if (fsb.base_header_size > 0x10) {
-            fsb.version = read_32bitLE(0x10,streamFile);
-            fsb.flags   = read_32bitLE(0x14,streamFile);
+            fsb.version = read_32bitLE(0x10,sf);
+            fsb.flags   = read_32bitLE(0x14,sf);
             /* FSB4: 0x18(8):hash  0x20(10):guid */
         } else {
             fsb.version = 0;
@@ -214,24 +214,24 @@ VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
                 if ((fsb.flags & FMOD_FSB_SOURCE_BASICHEADERS) && i > 0) {
                     /* miniheader, all subsongs reuse first header [rare, ex. Biker Mice from Mars (PS2)] */
                     stream_header_size = 0x08;
-                    fsb.num_samples = read_32bitLE(header_offset+0x00,streamFile);
-                    fsb.stream_size = read_32bitLE(header_offset+0x04,streamFile);
+                    fsb.num_samples = read_32bitLE(header_offset+0x00,sf);
+                    fsb.stream_size = read_32bitLE(header_offset+0x04,sf);
                     fsb.loop_start = 0;
                     fsb.loop_end = 0;
                 }
                 else {
                     /* subsong header for normal files */
-                    stream_header_size = (uint16_t)read_16bitLE(header_offset+0x00,streamFile);
+                    stream_header_size = (uint16_t)read_16bitLE(header_offset+0x00,sf);
                     fsb.name_offset = header_offset+0x02;
                     fsb.name_size   = 0x20-0x02;
-                    fsb.num_samples = read_32bitLE(header_offset+0x20,streamFile);
-                    fsb.stream_size = read_32bitLE(header_offset+0x24,streamFile);
-                    fsb.loop_start  = read_32bitLE(header_offset+0x28,streamFile);
-                    fsb.loop_end    = read_32bitLE(header_offset+0x2c,streamFile);
-                    fsb.mode        = read_32bitLE(header_offset+0x30,streamFile);
-                    fsb.sample_rate = read_32bitLE(header_offset+0x34,streamFile);
+                    fsb.num_samples = read_32bitLE(header_offset+0x20,sf);
+                    fsb.stream_size = read_32bitLE(header_offset+0x24,sf);
+                    fsb.loop_start  = read_32bitLE(header_offset+0x28,sf);
+                    fsb.loop_end    = read_32bitLE(header_offset+0x2c,sf);
+                    fsb.mode        = read_32bitLE(header_offset+0x30,sf);
+                    fsb.sample_rate = read_32bitLE(header_offset+0x34,sf);
                     /* 0x38: defvol, 0x3a: defpan, 0x3c: defpri */
-                    fsb.channels = read_16bitLE(header_offset+0x3e,streamFile);
+                    fsb.channels = read_16bitLE(header_offset+0x3e,sf);
                     /* FSB3.1/4:
                      *   0x40: mindistance, 0x44: maxdistance, 0x48: varfreq/size_32bits
                      *   0x4c: varvol, 0x4e: fsb.varpan */
@@ -287,9 +287,9 @@ VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
     //;VGM_ASSERT(fsb.flags & FMOD_FSB_SOURCE_ENCRYPTED, "FSB ENCRYPTED found\n");
 
     /* sometimes there is garbage at the end or missing bytes due to improper ripping */
-    VGM_ASSERT(fsb.base_header_size + fsb.sample_headers_size + fsb.sample_data_size != streamFile->get_size(streamFile),
+    VGM_ASSERT(fsb.base_header_size + fsb.sample_headers_size + fsb.sample_data_size != sf->get_size(sf),
                "FSB wrong head/data_size found (expected 0x%x vs 0x%x)\n",
-               fsb.base_header_size + fsb.sample_headers_size + fsb.sample_data_size, streamFile->get_size(streamFile));
+               fsb.base_header_size + fsb.sample_headers_size + fsb.sample_data_size, sf->get_size(sf));
 
     /* autodetect unwanted loops */
     {
@@ -337,7 +337,7 @@ VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
     vgmstream->stream_size = fsb.stream_size;
     vgmstream->meta_type = fsb.meta_type;
     if (fsb.name_offset)
-        read_string(vgmstream->stream_name,fsb.name_size+1, fsb.name_offset,streamFile);
+        read_string(vgmstream->stream_name,fsb.name_size+1, fsb.name_offset,sf);
 
     switch(fsb.codec) {
 #ifdef VGM_USE_MPEG
@@ -348,7 +348,7 @@ VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
                 (fsb.flags & FMOD_FSB_SOURCE_MPEG_PADDED4 ? 4 :
                 (fsb.flags & FMOD_FSB_SOURCE_MPEG_PADDED ? 2 : 0)));
 
-            vgmstream->codec_data = init_mpeg_custom(streamFile, fsb.stream_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_FSB, &cfg);
+            vgmstream->codec_data = init_mpeg_custom(sf, fsb.stream_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_FSB, &cfg);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->layout_type = layout_none;
 
@@ -390,12 +390,12 @@ VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
             block_count = fsb.stream_size / block_size; /* not accurate but not needed (custom_data_offset+0x14 -1?) */
 
             bytes = ffmpeg_make_riff_xma2(buf,0x100, fsb.num_samples, fsb.stream_size, fsb.channels, fsb.sample_rate, block_count, block_size);
-            vgmstream->codec_data = init_ffmpeg_header_offset(streamFile, buf,bytes, fsb.stream_offset,fsb.stream_size);
+            vgmstream->codec_data = init_ffmpeg_header_offset(sf, buf,bytes, fsb.stream_offset,fsb.stream_size);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
 
-            xma_fix_raw_samples(vgmstream, streamFile, fsb.stream_offset,fsb.stream_size, 0, 0,0); /* samples look ok */
+            xma_fix_raw_samples(vgmstream, sf, fsb.stream_offset,fsb.stream_size, 0, 0,0); /* samples look ok */
             break;
         }
 #endif
@@ -411,7 +411,7 @@ VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
                 vgmstream->layout_type = layout_none;
                 vgmstream->interleave_block_size = 0x2;
             }
-            dsp_read_coefs_be(vgmstream, streamFile, fsb.extradata_offset, 0x2e);
+            dsp_read_coefs_be(vgmstream, sf, fsb.extradata_offset, 0x2e);
             break;
 
 #ifdef VGM_USE_CELT
@@ -421,8 +421,8 @@ VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
             /* get libcelt version (set in the first subsong only, but try all extradata just in case) */
             if (fsb.first_extradata_offset || fsb.extradata_offset) {
                 uint32_t lib = fsb.first_extradata_offset ?
-                        (uint32_t)read_32bitLE(fsb.first_extradata_offset, streamFile) :
-                        (uint32_t)read_32bitLE(fsb.extradata_offset, streamFile);;
+                        (uint32_t)read_32bitLE(fsb.first_extradata_offset, sf) :
+                        (uint32_t)read_32bitLE(fsb.extradata_offset, sf);;
                 switch(lib) {
                     case 0x80000009: is_new_lib = 0; break; /* War Thunder (PC) */
                     case 0x80000010: is_new_lib = 1; break; /* Vessel (PC) */
@@ -431,7 +431,7 @@ VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
             }
             else {
                 /* split FSBs? try to guess from observed bitstreams */
-                uint16_t frame = (uint16_t)read_16bitBE(fsb.stream_offset+0x04+0x04,streamFile);
+                uint16_t frame = (uint16_t)read_16bitBE(fsb.stream_offset+0x04+0x04,sf);
                 if ((frame & 0xF000) == 0x6000 || frame == 0xFFFE) {
                     is_new_lib = 1;
                 } else {
@@ -440,7 +440,7 @@ VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
             }
 
             if (fsb.channels > 2) { /* multistreams */
-                vgmstream->layout_data = build_layered_fsb_celt(streamFile, &fsb, is_new_lib);
+                vgmstream->layout_data = build_layered_fsb_celt(sf, &fsb, is_new_lib);
                 if (!vgmstream->layout_data) goto fail;
                 vgmstream->coding_type = coding_CELT_FSB;
                 vgmstream->layout_type = layout_layered;
@@ -476,7 +476,7 @@ VGMSTREAM * init_vgmstream_fsb(STREAMFILE *streamFile) {
     }
 
 
-    if ( !vgmstream_open_stream(vgmstream, streamFile, fsb.stream_offset) )
+    if ( !vgmstream_open_stream(vgmstream, sf, fsb.stream_offset) )
         goto fail;
     return vgmstream;
 
@@ -486,9 +486,9 @@ fail:
 }
 
 #ifdef VGM_USE_CELT
-static layered_layout_data* build_layered_fsb_celt(STREAMFILE *streamFile, fsb_header* fsb, int is_new_lib) {
+static layered_layout_data* build_layered_fsb_celt(STREAMFILE* sf, fsb_header* fsb, int is_new_lib) {
     layered_layout_data* data = NULL;
-    STREAMFILE* temp_streamFile = NULL;
+    STREAMFILE* temp_sf = NULL;
     int i, layers = (fsb->channels+1) / 2;
 
 
@@ -519,10 +519,10 @@ static layered_layout_data* build_layered_fsb_celt(STREAMFILE *streamFile, fsb_h
         goto fail;
 #endif
 
-        temp_streamFile = setup_fsb_interleave_streamfile(streamFile, fsb->stream_offset, fsb->stream_size, layers, i, FSB_INT_CELT);
-        if (!temp_streamFile) goto fail;
+        temp_sf = setup_fsb_interleave_streamfile(sf, fsb->stream_offset, fsb->stream_size, layers, i, FSB_INT_CELT);
+        if (!temp_sf) goto fail;
 
-        if ( !vgmstream_open_stream(data->layers[i], temp_streamFile, 0x00) ) {
+        if ( !vgmstream_open_stream(data->layers[i], temp_sf, 0x00) ) {
             goto fail;
         }
     }
@@ -530,11 +530,11 @@ static layered_layout_data* build_layered_fsb_celt(STREAMFILE *streamFile, fsb_h
     /* setup layered VGMSTREAMs */
     if (!setup_layout_layered(data))
         goto fail;
-    close_streamfile(temp_streamFile);
+    close_streamfile(temp_sf);
     return data;
 
 fail:
-    close_streamfile(temp_streamFile);
+    close_streamfile(temp_sf);
     free_layout_layered(data);
     return NULL;
 }
@@ -546,55 +546,55 @@ static STREAMFILE* setup_fsb4_wav_streamfile(STREAMFILE *streamfile, off_t subfi
 
 /* FSB4 with "\0WAV" Header, found in Deadly Creatures (Wii).
  * Has a 0x10 BE header that holds the filesize (unsure if this is from a proper rip). */
-VGMSTREAM * init_vgmstream_fsb4_wav(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
-    STREAMFILE *test_streamFile = NULL;
+VGMSTREAM* init_vgmstream_fsb4_wav(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
+    STREAMFILE *test_sf = NULL;
     off_t subfile_start = 0x10;
-    size_t subfile_size = get_streamfile_size(streamFile) - 0x10 - 0x10;
+    size_t subfile_size = get_streamfile_size(sf) - 0x10 - 0x10;
 
     /* check extensions */
-    if ( !check_extensions(streamFile, "fsb,wii") )
+    if ( !check_extensions(sf, "fsb,wii") )
         goto fail;
 
-    if (read_32bitBE(0x00,streamFile) != 0x00574156) /* "\0WAV" */
+    if (read_32bitBE(0x00,sf) != 0x00574156) /* "\0WAV" */
         goto fail;
 
     /* parse FSB subfile */
-    test_streamFile = setup_fsb4_wav_streamfile(streamFile, subfile_start,subfile_size);
-    if (!test_streamFile) goto fail;
+    test_sf = setup_fsb4_wav_streamfile(sf, subfile_start,subfile_size);
+    if (!test_sf) goto fail;
 
-    vgmstream = init_vgmstream_fsb(test_streamFile);
+    vgmstream = init_vgmstream_fsb(test_sf);
     if (!vgmstream) goto fail;
 
     /* init the VGMSTREAM */
-    close_streamfile(test_streamFile);
+    close_streamfile(test_sf);
     return vgmstream;
 
 fail:
-    close_streamfile(test_streamFile);
+    close_streamfile(test_sf);
     close_vgmstream(vgmstream);
     return NULL;
 }
 
-static STREAMFILE* setup_fsb4_wav_streamfile(STREAMFILE *streamFile, off_t subfile_offset, size_t subfile_size) {
-    STREAMFILE *temp_streamFile = NULL, *new_streamFile = NULL;
+static STREAMFILE* setup_fsb4_wav_streamfile(STREAMFILE* sf, off_t subfile_offset, size_t subfile_size) {
+    STREAMFILE *temp_sf = NULL, *new_sf = NULL;
 
     /* setup subfile */
-    new_streamFile = open_wrap_streamfile(streamFile);
-    if (!new_streamFile) goto fail;
-    temp_streamFile = new_streamFile;
+    new_sf = open_wrap_streamfile(sf);
+    if (!new_sf) goto fail;
+    temp_sf = new_sf;
 
-    new_streamFile = open_clamp_streamfile(temp_streamFile, subfile_offset,subfile_size);
-    if (!new_streamFile) goto fail;
-    temp_streamFile = new_streamFile;
+    new_sf = open_clamp_streamfile(temp_sf, subfile_offset,subfile_size);
+    if (!new_sf) goto fail;
+    temp_sf = new_sf;
 
-    new_streamFile = open_fakename_streamfile(temp_streamFile, NULL,"fsb");
-    if (!new_streamFile) goto fail;
-    temp_streamFile = new_streamFile;
+    new_sf = open_fakename_streamfile(temp_sf, NULL,"fsb");
+    if (!new_sf) goto fail;
+    temp_sf = new_sf;
 
-    return temp_streamFile;
+    return temp_sf;
 
 fail:
-    close_streamfile(temp_streamFile);
+    close_streamfile(temp_sf);
     return NULL;
 }
