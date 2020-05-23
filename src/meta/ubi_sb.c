@@ -1885,7 +1885,7 @@ static int parse_offsets(ubi_sb_header * sb, STREAMFILE *streamFile) {
             uint32_t table2_num = read_32bit(offset + 0x10, streamFile);
 
             for (j = 0; j < table_num; j++) {
-                int index = read_32bit(table_offset + 0x08 * j + 0x00, streamFile) & 0x7FFFFFFF;
+                int index = read_32bit(table_offset + 0x08 * j + 0x00, streamFile) & 0x3FFFFFFF;
 
                 if (index == sb->header_index) {
                     sb->stream_offset = read_32bit(table_offset + 0x08 * j + 0x04, streamFile);
