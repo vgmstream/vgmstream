@@ -28,16 +28,36 @@ VGMSTREAM* init_vgmstream_fsb5_fev_bank(STREAMFILE* sf) {
         read_32bitBE(chunk_offset+0x04,sf) != 0x424E4B49)   /* "BNKI" */
         goto fail; /* event .fev has "OBCT" instead of "BNKI" */
 
-    /* inside BNKI is a bunch of LIST each with event subchunks and finally the fsb offset */
+    /* inside BNKI is a bunch of LIST each with event subchunks and finally fsb offset */
     first_offset = chunk_offset + 0x04;
     if (!find_chunk_le(sf, 0x534E4448,first_offset,0, &chunk_offset,&chunk_size)) /* "SNDH" */
         goto fail;
 
-    if (chunk_size != 0x0c)
-        goto fail; /* assuming only one FSB5 is possible */
+    /* 0x00: unknown (version? ex LE: 0x00080003, 0x00080005) */
+    {
+        int banks;
+
+        /* multiple banks is possible but rare (only seen an extra "Silence" FSB5 in Guacamelee 2 (Switch),
+         *  which on PC is a regular subsong in the only FSB5) */
+        banks = (chunk_size - 0x04) / 0x08;
+        VGM_ASSERT(banks > 1, "FSB5FEV: multiple banks found\n");
+
+        /* Could try to set stream index based on FSB subsong ranges, also fixing num_streams and stream_index
+         * kinda involved and hard to test so for now just ignore it and use first offset */
+
+        if (banks > 2)
+            goto fail;
+        if (banks == 2) {
+            off_t temp_offset  = read_32bitLE(chunk_offset + 0x04 + 0x08*1 + 0x00,sf);
+            //size_t temp_size = read_32bitLE(chunk_offset + 0x04 + 0x08*1 + 0x04,sf);
+
+            int bank_subsongs = read_32bitLE(temp_offset + 0x08,sf);
+            if (bank_subsongs != 1) goto fail;
+        }
+    }
+
     subfile_offset  = read_32bitLE(chunk_offset+0x04,sf);
     subfile_size    = read_32bitLE(chunk_offset+0x08,sf);
-
 
     temp_sf = setup_subfile_streamfile(sf, subfile_offset,subfile_size, "fsb");
     if (!temp_sf) goto fail;
