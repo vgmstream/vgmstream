@@ -898,4 +898,6 @@ VGMSTREAM* init_vgmstream_diva(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_imuse(STREAMFILE* sf);
 
+VGMSTREAM* init_vgmstream_ktsr(STREAMFILE* sf);
+
 #endif /*_META_H*/

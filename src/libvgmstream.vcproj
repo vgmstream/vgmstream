@@ -821,6 +821,10 @@
 					>
 				</File>
                 <File
+                    RelativePath=".\meta\ktsr.c"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\ktss.c"
                     >
                 </File>

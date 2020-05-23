@@ -730,6 +730,7 @@ typedef enum {
     meta_WWISE_FX,
     meta_DIVA,
     meta_IMUSE,
+    meta_KTSR,
 } meta_t;
 
 /* standard WAVEFORMATEXTENSIBLE speaker positions */

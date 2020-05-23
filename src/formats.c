@@ -1142,7 +1142,7 @@ static const meta_info meta_info_list[] = {
         {meta_CSTM,                 "Nintendo CSTM Header"},
         {meta_FSTM,                 "Nintendo FSTM Header"},
         {meta_KT_WIIBGM,            "Koei Tecmo WiiBGM Header"},
-        {meta_KTSS,                 "Koei Tecmo Nintendo Stream KTSS Header"},
+        {meta_KTSS,                 "Koei Tecmo KTSS header"},
         {meta_IDSP_NAMCO,           "Namco IDSP header"},
         {meta_WIIU_BTSND,           "Nintendo Wii U Menu Boot Sound"},
         {meta_MCA,                  "Capcom MCA header"},
@@ -1293,7 +1293,7 @@ static const meta_info meta_info_list[] = {
         {meta_WWISE_FX,             "Audiokinetic Wwise FX header"},
         {meta_DIVA,                 "DIVA header"},
         {meta_IMUSE,                "LucasArts iMUSE header"},
-
+        {meta_KTSR,                 "Koei Tecmo KTSR header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM *vgmstream, char *out, size_t out_size) {
