@@ -1,4 +1,5 @@
 #include "meta.h"
+#include "../coding/coding.h"
 
 /* sadf - from Procyon Studio audio driver games [Xenoblade Chronicles 2 (Switch)] (sfx) */
 VGMSTREAM* init_vgmstream_sadf(STREAMFILE* sf) {
@@ -8,10 +9,15 @@ VGMSTREAM* init_vgmstream_sadf(STREAMFILE* sf) {
 
 
     /* checks */
-    if (!check_extensions(sf, "sad"))
+    /* .sad: assumed (from older sadX formats)
+     * .nop: assumed (from streamed files)
+     * (extensionless): name in .xsp bigfiles */
+    if (!check_extensions(sf, "sad,nop,"))
         goto fail;
 
     if (read_32bitBE(0x00, sf) != 0x73616466) /* "sadf" */
+        goto fail;
+    if (read_32bitBE(0x08, sf) != 0x6470636D) /* "dpcm" ("opus" is used too, see opus.c, "ipcm" supposedly too) */
         goto fail;
 
     channel_count = read_8bit(0x18, sf);
