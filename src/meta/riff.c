@@ -924,6 +924,7 @@ static size_t get_ue4_msadpcm_interleave(STREAMFILE *sf, riff_fmt_chunk *fmt, of
     return v2_interleave; /* favor newer games */
 }
 
+/* same but big endian, seen in the spec and in Kitchenette (PC) */
 VGMSTREAM * init_vgmstream_rifx(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     riff_fmt_chunk fmt = {0};
