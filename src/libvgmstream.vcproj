@@ -942,10 +942,14 @@
 					RelativePath=".\meta\nds_rrds.c"
 					>
 				</File>
-				<File
-					RelativePath=".\meta\sadl.c"
-					>
-				</File>
+                <File
+                    RelativePath=".\meta\sadf.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\sadl.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\nds_strm.c"
 					>
