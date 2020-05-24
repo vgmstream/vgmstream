@@ -305,6 +305,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\mups_streamfile.h"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\mzrt_streamfile.h"
                     >
                 </File>
@@ -672,10 +676,14 @@
                     RelativePath=".\meta\encrypted.c"
                     >
                 </File>
-				<File
-					RelativePath=".\meta\mul.c"
-					>
-				</File>
+                <File
+                    RelativePath=".\meta\mul.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\mups.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\exakt_sc.c"
 					>

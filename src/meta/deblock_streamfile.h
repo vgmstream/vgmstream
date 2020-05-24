@@ -34,7 +34,9 @@ struct deblock_config_t {
     size_t interleave_last_count;
 
     /* callback that setups deblock_io_data state, normally block_size and data_size */
-    void (*block_callback)(STREAMFILE *sf, deblock_io_data *data);
+    void (*block_callback)(STREAMFILE* sf, deblock_io_data* data);
+    /* callback that alters block, with the current position into the block (0=beginning) */
+    void (*read_callback)(uint8_t* dst, deblock_io_data* data, size_t block_pos, size_t read_size);
 } ;
 
 struct deblock_io_data {
@@ -56,6 +58,6 @@ struct deblock_io_data {
     off_t physical_end;
 };
 
-STREAMFILE* open_io_deblock_streamfile_f(STREAMFILE *sf, deblock_config_t *cfg);
+STREAMFILE* open_io_deblock_streamfile_f(STREAMFILE* sf, deblock_config_t* cfg);
 
 #endif /* _DEBLOCK_STREAMFILE_H_ */

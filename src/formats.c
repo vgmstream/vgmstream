@@ -323,6 +323,7 @@ static const char* extension_list[] = {
     "mta2",
     "mtaf",
     "mul",
+    "mups",
     "mus",
     "musc",
     "musx",
