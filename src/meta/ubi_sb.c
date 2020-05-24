@@ -465,7 +465,7 @@ static int is_bnm_other_bank(STREAMFILE *streamFile, int bank_number) {
     return strcmp(current_name, bank_name) != 0;
 }
 
-/* .BLK - maps in separate .blk chunks [Donald Duck: Goin' Quackers (PS2), The Jungle Book Rhythm N'Groove (PS2)] */
+/* .BLK - maps in separate .blk chunks [Donald Duck: Goin' Quackers (PS2), The Jungle Book: Rhythm N'Groove (PS2)] */
 VGMSTREAM * init_vgmstream_ubi_blk(STREAMFILE *streamFile) {
     VGMSTREAM* vgmstream = NULL;
     STREAMFILE *resData = NULL, *streamTest = NULL;
@@ -749,7 +749,9 @@ static VGMSTREAM * init_vgmstream_ubi_sb_base(ubi_sb_header *sb, STREAMFILE *str
             break;
         }
 
-        //todo: some XMA1 decode a bit strangely at certain positions (FFmpeg bug?)
+        //TODO: Ubi XMA1 (raw or fmt) is a bit strange, FFmpeg decodes some frames slightly wrong
+        // XMA1 normally has a frame counter in the first nibble but Ubi's is always set to 0.
+        // Probably a beta/custom encoder that creates some buggy frames, that a real X360 handles ok, but trips FFmpeg
         case FMT_XMA1: {
             ffmpeg_codec_data *ffmpeg_data;
             uint8_t buf[0x100];
@@ -904,6 +906,7 @@ static VGMSTREAM * init_vgmstream_ubi_sb_base(ubi_sb_header *sb, STREAMFILE *str
     return vgmstream;
 
 fail:
+    VGM_LOG("UBI SB: init vgmstream error\n");
     close_vgmstream(vgmstream);
     return NULL;
 }
@@ -934,6 +937,7 @@ static VGMSTREAM * init_vgmstream_ubi_sb_audio(ubi_sb_header *sb, STREAMFILE *st
     return vgmstream;
 
 fail:
+    VGM_LOG("UBI SB: init audio error\n");
     if (streamData != streamFile) close_streamfile(streamData);
     close_vgmstream(vgmstream);
     return NULL;
@@ -1011,6 +1015,7 @@ static VGMSTREAM * init_vgmstream_ubi_sb_layer(ubi_sb_header *sb, STREAMFILE *st
 
     return vgmstream;
 fail:
+    VGM_LOG("UBI SB: init layer error\n");
     close_streamfile(temp_streamFile);
     if (streamData != streamFile) close_streamfile(streamData);
     if (vgmstream)
@@ -1048,13 +1053,25 @@ static VGMSTREAM * init_vgmstream_ubi_sb_sequence(ubi_sb_header *sb, STREAMFILE 
             /* see if *current* bank has changed (may use a different bank N times) */
             if (is_bnm_other_bank(streamBank, sb->sequence_banks[i])) {
                 char bank_name[255];
-                sprintf(bank_name, "Bnk_%i.bnm", sb->sequence_banks[i]);
 
                 if (streamBank != streamTest)
                     close_streamfile(streamBank);
 
+                sprintf(bank_name, "Bnk_%i.bnm", sb->sequence_banks[i]);
                 streamBank = open_streamfile_by_filename(streamFile, bank_name);
-                if (!streamBank) goto fail;
+
+                /* may be worth trying in localized folder? */
+                //if (!streamBank) {
+                //    sprintf(bank_name, "English/Bnk_%i.bnm", sb->sequence_banks[i]);
+                //    streamBank = open_streamfile_by_filename(streamFile, bank_name);
+                //}
+
+                if (!streamBank) {
+                    VGM_LOG("UBI SB: sequence bank %i not found\n", sb->sequence_banks[i]);
+                    goto fail;
+                }
+
+                //;VGM_LOG("UBI SB: opened %s\n", bank_name);
             }
 
             /* re-parse the thing */
@@ -1066,13 +1083,19 @@ static VGMSTREAM * init_vgmstream_ubi_sb_sequence(ubi_sb_header *sb, STREAMFILE 
             temp_sb = *sb;  /* memcpy'ed */
         }
 
+        ///* not detectable in .bnm */
+        //if (entry_index > temp_sb.total_subsongs) {
+        //    VGM_LOG("UBI SB: wrong sequence entry %i bank index %i (max: %i)\n", i, entry_index, temp_sb.total_subsongs);
+        //    goto fail;
+        //}
+
         /* parse expected entry */
         entry_offset = temp_sb.section2_offset + temp_sb.cfg.section2_entry_size * entry_index;
         if (!parse_header(&temp_sb, streamBank, entry_offset, entry_index))
             goto fail;
 
         if (temp_sb.type == UBI_NONE || temp_sb.type == UBI_SEQUENCE) {
-            VGM_LOG("UBI SB: unexpected sequence %i entry type at %x\n", i, (uint32_t)entry_offset);
+            VGM_LOG("UBI SB: unexpected sequence %i entry type %x at %x\n", i, temp_sb.type, (uint32_t)entry_offset);
             goto fail; /* not seen, technically ok but too much recursiveness? */
         }
 
@@ -1114,6 +1137,7 @@ static VGMSTREAM * init_vgmstream_ubi_sb_sequence(ubi_sb_header *sb, STREAMFILE 
 
     return vgmstream;
 fail:
+    VGM_LOG("UBI SB: init sequence error\n");
     if (vgmstream)
         close_vgmstream(vgmstream);
     else
@@ -1490,7 +1514,7 @@ static int parse_type_sequence(ubi_sb_header * sb, off_t offset, STREAMFILE* str
             int16_t bank_number = (entry_number >> 16) & 0xFFFF;
             entry_number        = (entry_number >> 00) & 0xFFFF;
 
-            //;VGM_LOG("UBI SB: bnm sequence entry=%i, bank=%i\n", entry_number, bank_number);
+            //;VGM_LOG("UBI SB: bnm sequence entry=%i, bank=%i at %lx\n", entry_number, bank_number, table_offset);
             sb->sequence_banks[i] = bank_number;
 
             /* info flag, does bank number point to another file? */
@@ -1736,27 +1760,28 @@ static int parse_stream_codec(ubi_sb_header * sb) {
                 VGM_LOG("UBI SB: unknown internal format\n");
                 goto fail;
         }
-    } else if (sb->version == 0x00000000) {
-        /* really old version predating SBx and SMx formats */
-        /* Rayman 2: The Great Escape */
-        /* Tonic Trouble */
-        /* Donald Duck: Goin' Quackers */
-        /* Disney's Dinosaur */
+    }
+    else if (sb->is_bnm) { /* ~v0 but some games have wonky versions */
 
         switch (sb->stream_type) {
             case 0x01:
                 sb->codec = FMT_MPDX;
                 break;
-                
+
             case 0x02:
                 sb->codec = FMT_APM;
                 break;
 
+            case 0x03: /* The Jungle Book (internal extension is .adp, maybe Ubi ADPCM can be considered FMT_ADP) */
+                sb->codec = UBI_ADPCM;
+                break;
+
             default:
-                VGM_LOG("UBI SB: Unknown stream_type %02x for version %08x\n", sb->stream_type, sb->version);
+                VGM_LOG("UBI SB: unknown stream_type %02x for version %08x\n", sb->stream_type, sb->version);
                 goto fail;
         }
-    } else if (sb->version < 0x000A0000) {
+    }
+    else if (sb->version < 0x000A0000) {
         switch (sb->stream_type) {
             case 0x01:
                 sb->codec = UBI_ADPCM;
@@ -1770,7 +1795,8 @@ static int parse_stream_codec(ubi_sb_header * sb) {
                 VGM_LOG("UBI SB: Unknown stream_type %02x for version %08x\n", sb->stream_type, sb->version);
                 goto fail;
         }
-    } else { 
+    }
+    else {
         switch (sb->stream_type) {
             case 0x01:
                 sb->codec = RAW_PCM; /* uncommon, ex. Wii/PSP/3DS */
@@ -2205,7 +2231,6 @@ static void config_sb_random_old(ubi_sb_header * sb, off_t sequence_count, off_t
 }
 
 static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
-    int is_dino_pc = 0;
     int is_ttse_pc = 0;
     int is_bia_ps2 = 0, is_biadd_psp = 0;
     int is_sc2_ps2_gc = 0;
@@ -2327,7 +2352,7 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         sb->cfg.map_entry_size = 0x30;
     }
 
-    if (sb->version == 0x00000000 || sb->version == 0x00000200 || sb->is_blk) {
+    if (sb->is_bnm || sb->is_blk) {
         sb->cfg.audio_stream_size       = 0x0c;
         sb->cfg.audio_stream_offset     = 0x10;
       //sb->cfg.audio_extra_offset      = 0x10;
@@ -2359,7 +2384,7 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         sb->cfg.layer_extra_offset      = 0x0c;
     }
 
-    if (sb->version == 0x00000000 || sb->version == 0x00000200) {
+    if (sb->is_bnm) {
         sb->cfg.num_codec_flags = 1;
     } else if (sb->version <= 0x00000004) {
         sb->cfg.num_codec_flags = 2;
@@ -2398,16 +2423,17 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
     if (sb->version == 0x00000000 && sb->platform == UBI_PC) {
         STREAMFILE * streamTest = open_streamfile_by_filename(streamFile, "Dino.lcb");
         if (streamTest) {
-            is_dino_pc = 1;
+            sb->version = 0x00000200; /* some files in Dinosaur use this, probably final version */
             close_streamfile(streamTest);
         }
     }
 
-    /* some files in Dinosaur */
-    if (sb->version == 0x00000200 && sb->platform == UBI_PC) {
+    /* memory garbage found in F1 Racing Simulation */
+    if ((sb->version == 0xAAAAAAAA && sb->platform == UBI_PC) ||
+        (sb->version == 0xCDCDCDCD && sb->platform == UBI_PC)) {
         sb->version = 0x00000000;
-        is_dino_pc = 1;
     }
+
 
     /* Tonic Touble beta has garbage instead of version */
     if (sb->is_bnm && sb->version > 0x00000000 && sb->platform == UBI_PC) {
@@ -2438,13 +2464,16 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
         return 1;
     }
 
-
+    /* F1 Racing Simulation (1997)(PC)-bnm [not TTSE version] */
     /* Rayman 2: The Great Escape (1999)(PC)-bnm */
     /* Tonic Trouble (1999)(PC)-bnm */
     /* Donald Duck: Goin' Quackers (2000)(PC)-bnm */
     /* Disney's Dinosaur (2000)(PC)-bnm */
-    if (sb->version == 0x00000000 && sb->platform == UBI_PC) {
+    if ((sb->version == 0x00000000 && sb->platform == UBI_PC) ||
+        (sb->version == 0x00000200 && sb->platform == UBI_PC)) {
         config_sb_entry(sb, 0x20, 0x5c);
+        if (sb->version == 0x00000200)
+            config_sb_entry(sb, 0x20, 0x60);
 
         config_sb_audio_fs(sb, 0x2c, 0x00, 0x30);
         config_sb_audio_hs(sb, 0x42, 0x3c, 0x34, 0x34, 0x48, 0x44);
@@ -2456,8 +2485,21 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
 
         /* no layers */
 
-        if (is_dino_pc)
-            config_sb_entry(sb, 0x20, 0x60);
+        return 1;
+    }
+
+    /* The Jungle Book: Rhythm N'Groove (2000)(PC)-bnm */
+    if (sb->version == 0x00060409 && sb->platform == UBI_PC) {
+        config_sb_entry(sb, 0x24, 0x64);
+
+        config_sb_audio_fs(sb, 0x2c, 0x00, 0x30);
+        config_sb_audio_hs(sb, 0x4E, 0x48, 0x34, 0x34, 0x54, 0x50);
+        sb->cfg.audio_has_internal_names = 1;
+
+        config_sb_sequence(sb, 0x2c, 0x1c);
+
+        /* no layers */
+
         return 1;
     }
 
@@ -2479,7 +2521,7 @@ static int config_sb_version(ubi_sb_header * sb, STREAMFILE *streamFile) {
     }
 
     /* Donald Duck: Goin' Quackers (2000)(PS2)-blk */
-    /* The Jungle Book Rhythm N'Groove (PS2)-blk */
+    /* The Jungle Book: Rhythm N'Groove (2000)(PS2)-blk */
     if (sb->version == 0x00000003 && sb->platform == UBI_PS2 && sb->is_blk) {
         config_sb_entry(sb, 0x20, 0x40);
 
