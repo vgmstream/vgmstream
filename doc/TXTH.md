@@ -300,7 +300,7 @@ DSP needs a "coefs" list to decode correctly. These are 8*2 16-bit values per ch
 
 Usually each channel uses its own list, so we may need to set separation per channel, usually 0x20 (16 values * 2 bytes). So channel N coefs are read at `coef_offset + coef_spacing * N`
 
-Those 16-bit coefs can be little or big endian (usually BE), set `coef_endianness` directly or in an offset value where ´0=LE, >0=BE´.
+Those 16-bit coefs can be little or big endian (usually BE), set `coef_endianness` directly or in an offset value where `0=LE, >0=BE`.
 
 While the coef table is almost always included per-file, some games have their coef table in the executable or precalculated somehow. You can set inline coefs instead of coef_offset. Format is a long string of bytes (optionally space-separated) like `coef_table = 0x1E02DE01 3C0C0EFA ...`. You still need to set `coef_spacing` and `coef_endianness` though.
 ```
@@ -426,11 +426,11 @@ bgm*_M: 1   # 1ch: some files end with _M for mono
 bgm*: 2     # 2ch: all other files, notice order matters
 ```
 
-While you can put anything in the numbers, this feature is meant to be used to store some number that points to the actual data inside a real multi-header, that could be set with `header_file`. If you need to store many constant values there is good chance this can be supported in some better way.
+While you can put anything in the values, this feature is meant to be used to store some number that points to the actual data inside a real multi-header, that could be set with `header_file`. If you need to store many constant values there is good chance it could be done in some better way.
 
 
 #### BASE OFFSET MODIFIER
-You can set a default offset that affects next `@(offset)` reads making them `@(offset + base_offset)`, for cleaner parsing (particularly interesting when combined with the `name_list).
+You can set a default offset that affects next `@(offset)` reads making them `@(offset + base_offset)`, for cleaner parsing (particularly interesting when combined with the `name_list`).
 
 For example instead of `channels = @0x714` you could set `base_offset = 0x710, channels = @0x04`. Set to 0 when you want to disable it.
 ```

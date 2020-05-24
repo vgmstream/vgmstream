@@ -308,7 +308,6 @@ typedef enum {
     meta_DSP_WII_WSD,       /* Phantom Brave (WII) */
     meta_WII_NDP,           /* Vertigo (Wii) */
     meta_DSP_YGO,           /* Konami: Yu-Gi-Oh! The Falsebound Kingdom (NGC), Hikaru no Go 3 (NGC) */
-    meta_DSP_SADF,          /* Procyon Studio SADF - Xenoblade Chronicles 2 (Switch) */
 
     meta_STRM,              /* Nintendo STRM */
     meta_RSTM,              /* Nintendo RSTM (Revolution Stream, similar to STRM) */
@@ -421,7 +420,7 @@ typedef enum {
     meta_NGC_SSM,           /* Golden Gashbell Full Power */
     meta_PS2_JOE,           /* Wall-E / Pixar games */
     meta_NGC_YMF,           /* WWE WrestleMania X8 */
-    meta_SADL,              /* .sad */
+    meta_SADL,
     meta_PS2_CCC,           /* Tokyo Xtreme Racer DRIFT 2 */
     meta_FAG,               /* Jackie Chan - Stuntmaster */
     meta_PS2_MIHB,          /* Merged MIH+MIB */
@@ -682,6 +681,7 @@ typedef enum {
     meta_WV2,               /* Slave Zero (PC) */
     meta_XAU_KONAMI,        /* Yu-Gi-Oh - The Dawn of Destiny (Xbox) */
     meta_DERF,              /* Stupid Invaders (PC) */
+    meta_SADF,
     meta_UTK,
     meta_NXA,
     meta_ADPCM_CAPCOM,
@@ -730,6 +730,7 @@ typedef enum {
     meta_WWISE_FX,
     meta_DIVA,
     meta_IMUSE,
+    meta_KTSR,
 } meta_t;
 
 /* standard WAVEFORMATEXTENSIBLE speaker positions */

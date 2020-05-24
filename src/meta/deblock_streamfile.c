@@ -2,7 +2,7 @@
 
 //todo move to utils or something
 
-static void block_callback_default(STREAMFILE *sf, deblock_io_data *data) {
+static void block_callback_default(STREAMFILE* sf, deblock_io_data* data) {
     data->block_size = data->cfg.chunk_size;
     data->skip_size = data->cfg.skip_size;
     data->data_size = data->block_size - data->skip_size;
@@ -10,7 +10,7 @@ static void block_callback_default(STREAMFILE *sf, deblock_io_data *data) {
     //;VGM_LOG("DEBLOCK: of=%lx, bs=%lx, ss=%lx, ds=%lx\n", data->physical_offset, data->block_size, data->skip_size, data->data_size);
 }
 
-static size_t deblock_io_read(STREAMFILE *sf, uint8_t *dest, off_t offset, size_t length, deblock_io_data* data) {
+static size_t deblock_io_read(STREAMFILE* sf, uint8_t* dest, off_t offset, size_t length, deblock_io_data* data) {
     size_t total_read = 0;
 
     //;VGM_LOG("DEBLOCK: of=%lx, sz=%x, po=%lx\n", offset, length, data->physical_offset);
@@ -25,9 +25,7 @@ static size_t deblock_io_read(STREAMFILE *sf, uint8_t *dest, off_t offset, size_
         data->skip_size = 0;
 
         data->step_count = data->cfg.step_start;
-/*
-        data->read_count = data->cfg.read_count;
-*/
+        //data->read_count = data->cfg.read_count;
     }
 
     /* read blocks */
@@ -98,6 +96,10 @@ static size_t deblock_io_read(STREAMFILE *sf, uint8_t *dest, off_t offset, size_
                 to_read = length;
             bytes_done = read_streamfile(dest, data->physical_offset + data->skip_size + bytes_consumed, to_read, sf);
 
+            if (data->cfg.read_callback) {
+                data->cfg.read_callback(dest, data, bytes_consumed, bytes_done);
+            }
+
             total_read += bytes_done;
             dest += bytes_done;
             offset += bytes_done;
@@ -112,7 +114,7 @@ static size_t deblock_io_read(STREAMFILE *sf, uint8_t *dest, off_t offset, size_
     return total_read;
 }
 
-static size_t deblock_io_size(STREAMFILE *streamfile, deblock_io_data* data) {
+static size_t deblock_io_size(STREAMFILE* sf, deblock_io_data* data) {
     uint8_t buf[0x04];
 
     if (data->logical_size)
@@ -124,7 +126,7 @@ static size_t deblock_io_size(STREAMFILE *streamfile, deblock_io_data* data) {
     }
 
     /* force a fake read at max offset, to get max logical_offset (will be reset next read) */
-    deblock_io_read(streamfile, buf, 0x7FFFFFFF, 1, data);
+    deblock_io_read(sf, buf, 0x7FFFFFFF, 1, data);
     data->logical_size = data->logical_offset;
     
     //todo tests:
@@ -141,8 +143,8 @@ static size_t deblock_io_size(STREAMFILE *streamfile, deblock_io_data* data) {
  * decoder can't easily use blocked layout, or some other weird feature. It "filters" data so
  * reader only sees clean data without blocks. Must pass setup config and a callback that sets
  * sizes of a single block. */
-STREAMFILE* open_io_deblock_streamfile_f(STREAMFILE *sf, deblock_config_t *cfg) {
-    STREAMFILE *new_sf = NULL;
+STREAMFILE* open_io_deblock_streamfile_f(STREAMFILE* sf, deblock_config_t *cfg) {
+    STREAMFILE* new_sf = NULL;
     deblock_io_data io_data = {0};
 
     /* prepare data */

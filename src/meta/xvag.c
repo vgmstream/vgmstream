@@ -24,37 +24,37 @@ typedef struct {
     off_t stream_offset;
 } xvag_header;
 
-static int init_xvag_atrac9(STREAMFILE *streamFile, VGMSTREAM* vgmstream, xvag_header * xvag, off_t chunk_offset);
-static layered_layout_data* build_layered_xvag(STREAMFILE *streamFile, xvag_header * xvag, off_t chunk_offset, off_t start_offset);
+static int init_xvag_atrac9(STREAMFILE* sf, VGMSTREAM* vgmstream, xvag_header * xvag, off_t chunk_offset);
+static layered_layout_data* build_layered_xvag(STREAMFILE* sf, xvag_header * xvag, off_t chunk_offset, off_t start_offset);
 
 /* XVAG - Sony's Scream Tool/Stream Creator format (God of War III, Ratchet & Clank Future, The Last of Us, Uncharted) */
-VGMSTREAM * init_vgmstream_xvag(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
-    STREAMFILE* temp_streamFile = NULL;
+VGMSTREAM* init_vgmstream_xvag(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
+    STREAMFILE* temp_sf = NULL;
     xvag_header xvag = {0};
     int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
     off_t start_offset, chunk_offset, first_offset = 0x20;
     size_t chunk_size;
-    int total_subsongs = 0, target_subsong = streamFile->stream_index;
+    int total_subsongs = 0, target_subsong = sf->stream_index;
 
 
     /* checks */
     /* .xvag: standard
      * (extensionless): The Last Of Us (PS3) speech files */
-    if (!check_extensions(streamFile,"xvag,"))
+    if (!check_extensions(sf,"xvag,"))
         goto fail;
-    if (read_32bitBE(0x00,streamFile) != 0x58564147) /* "XVAG" */
+    if (read_32bitBE(0x00,sf) != 0x58564147) /* "XVAG" */
         goto fail;
 
     /* endian flag (XVAGs of the same game can use BE or LE, usually when reusing from other platforms) */
-    xvag.big_endian = read_8bit(0x08,streamFile) & 0x01;
+    xvag.big_endian = read_8bit(0x08,sf) & 0x01;
     if (xvag.big_endian) {
         read_32bit = read_32bitBE;
     } else {
         read_32bit = read_32bitLE;
     }
 
-    start_offset = read_32bit(0x04,streamFile);
+    start_offset = read_32bit(0x04,sf);
     /* 0x08: flags? (&0x01=big endian, 0x02=?, 0x06=full RIFF AT9?)
      * 0x09: flags2? (0x00/0x01/0x04, speaker mode?)
      * 0x0a: always 0?
@@ -62,24 +62,24 @@ VGMSTREAM * init_vgmstream_xvag(STREAMFILE *streamFile) {
 
 
     /* "fmat": base format (always first) */
-    if (!find_chunk(streamFile, 0x666D6174,first_offset,0, &chunk_offset,&chunk_size, xvag.big_endian, 1)) /*"fmat"*/
+    if (!find_chunk(sf, 0x666D6174,first_offset,0, &chunk_offset,&chunk_size, xvag.big_endian, 1)) /*"fmat"*/
         goto fail;
-    xvag.channels    = read_32bit(chunk_offset+0x00,streamFile);
-    xvag.codec       = read_32bit(chunk_offset+0x04,streamFile);
-    xvag.num_samples = read_32bit(chunk_offset+0x08,streamFile);
+    xvag.channels    = read_32bit(chunk_offset+0x00,sf);
+    xvag.codec       = read_32bit(chunk_offset+0x04,sf);
+    xvag.num_samples = read_32bit(chunk_offset+0x08,sf);
     /* 0x0c: samples again? */
-    VGM_ASSERT(xvag.num_samples != read_32bit(chunk_offset+0x0c,streamFile), "XVAG: num_samples values don't match\n");
+    VGM_ASSERT(xvag.num_samples != read_32bit(chunk_offset+0x0c,sf), "XVAG: num_samples values don't match\n");
 
-    xvag.factor      = read_32bit(chunk_offset+0x10,streamFile); /* for interleave */
-    xvag.sample_rate = read_32bit(chunk_offset+0x14,streamFile);
-    xvag.data_size = read_32bit(chunk_offset+0x18,streamFile); /* not always accurate */
+    xvag.factor      = read_32bit(chunk_offset+0x10,sf); /* for interleave */
+    xvag.sample_rate = read_32bit(chunk_offset+0x14,sf);
+    xvag.data_size = read_32bit(chunk_offset+0x18,sf); /* not always accurate */
 
     /* extra data, seen in versions 0x61+ */
     if (chunk_size > 0x1c) {
         /* number of interleaved subsongs */
-        xvag.subsongs = read_32bit(chunk_offset+0x1c,streamFile);
+        xvag.subsongs = read_32bit(chunk_offset+0x1c,sf);
         /* number of interleaved layers (layers * channels_per_layer = channels) */
-        xvag.layers   = read_32bit(chunk_offset+0x20,streamFile);
+        xvag.layers   = read_32bit(chunk_offset+0x20,sf);
     }
     else {
         xvag.subsongs = 1;
@@ -99,9 +99,9 @@ VGMSTREAM * init_vgmstream_xvag(STREAMFILE *streamFile) {
 
     /* XVAG has no looping, but some PS3 PS-ADPCM seems to do full loops (without data flags) */
     if (xvag.codec == 0x06 && xvag.subsongs == 1) {
-        size_t file_size = get_streamfile_size(streamFile);
+        size_t file_size = get_streamfile_size(sf);
         /* simply test if last frame is not empty = may loop */
-        xvag.loop_flag = (read_8bit(file_size - 0x01, streamFile) != 0);
+        xvag.loop_flag = (read_8bit(file_size - 0x01, sf) != 0);
         xvag.loop_start = 0;
         xvag.loop_end = ps_bytes_to_samples(file_size - start_offset, xvag.channels);
     }
@@ -162,7 +162,7 @@ VGMSTREAM * init_vgmstream_xvag(STREAMFILE *streamFile) {
             if (xvag.layers > 1 && !(xvag.layers*1 == vgmstream->channels || xvag.layers*2 == vgmstream->channels)) goto fail;
 
             /* "mpin": mpeg info */
-            if (!find_chunk(streamFile, 0x6D70696E,first_offset,0, &chunk_offset,NULL, xvag.big_endian, 1)) /*"mpin"*/
+            if (!find_chunk(sf, 0x6D70696E,first_offset,0, &chunk_offset,NULL, xvag.big_endian, 1)) /*"mpin"*/
                 goto fail;
 
             /* all layers/subsongs share the same config; not very useful but for posterity:
@@ -182,18 +182,18 @@ VGMSTREAM * init_vgmstream_xvag(STREAMFILE *streamFile) {
              * - 0x34: data size
              * (rest is padding)
              * */
-            cfg.chunk_size = read_32bit(chunk_offset+0x1c,streamFile);
-            cfg.skip_samples = read_32bit(chunk_offset+0x20,streamFile);
+            cfg.chunk_size = read_32bit(chunk_offset+0x1c,sf);
+            cfg.skip_samples = read_32bit(chunk_offset+0x20,sf);
             cfg.interleave = cfg.chunk_size * xvag.factor;
 
-            vgmstream->codec_data = init_mpeg_custom(streamFile, start_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_XVAG, &cfg);
+            vgmstream->codec_data = init_mpeg_custom(sf, start_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_XVAG, &cfg);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->layout_type = layout_none;
 
             /* interleaved subsongs, rarely [Sly Cooper: Thieves in Time (PS3)] */
             if (xvag.subsongs > 1) {
-                temp_streamFile = setup_xvag_streamfile(streamFile, start_offset, cfg.interleave,cfg.chunk_size, (target_subsong-1), total_subsongs);
-                if (!temp_streamFile) goto fail;
+                temp_sf = setup_xvag_streamfile(sf, start_offset, cfg.interleave,cfg.chunk_size, (target_subsong-1), total_subsongs);
+                if (!temp_sf) goto fail;
                 start_offset = 0;
             }
 
@@ -207,13 +207,13 @@ VGMSTREAM * init_vgmstream_xvag(STREAMFILE *streamFile) {
 
             /* "a9in": ATRAC9 info */
             /*  0x00: frame size, 0x04: samples per frame, 0x0c: fact num_samples (no change), 0x10: encoder delay1 */
-            if (!find_chunk(streamFile, 0x6139696E,first_offset,0, &chunk_offset,NULL, xvag.big_endian, 1)) /*"a9in"*/
+            if (!find_chunk(sf, 0x6139696E,first_offset,0, &chunk_offset,NULL, xvag.big_endian, 1)) /*"a9in"*/
                 goto fail;
 
             if (xvag.layers > 1) {
                 /* some Vita/PS4 multichannel [flower (Vita), Uncharted Collection (PS4)]. PS4 ATRAC9 also
                  * does single-stream >2ch, but this can do configs ATRAC9 can't, like 5ch/14ch/etc */
-                vgmstream->layout_data = build_layered_xvag(streamFile, &xvag, chunk_offset, start_offset);
+                vgmstream->layout_data = build_layered_xvag(sf, &xvag, chunk_offset, start_offset);
                 if (!vgmstream->layout_data) goto fail;
                 vgmstream->coding_type = coding_ATRAC9;
                 vgmstream->layout_type = layout_layered;
@@ -222,12 +222,12 @@ VGMSTREAM * init_vgmstream_xvag(STREAMFILE *streamFile) {
             }
             else {
                 /* interleaved subsongs (section layers) */
-                size_t frame_size = read_32bit(chunk_offset+0x00,streamFile);
+                size_t frame_size = read_32bit(chunk_offset+0x00,sf);
 
-                if (!init_xvag_atrac9(streamFile, vgmstream, &xvag, chunk_offset))
+                if (!init_xvag_atrac9(sf, vgmstream, &xvag, chunk_offset))
                     goto fail;
-                temp_streamFile = setup_xvag_streamfile(streamFile, start_offset, frame_size*xvag.factor,frame_size, (target_subsong-1), total_subsongs);
-                if (!temp_streamFile) goto fail;
+                temp_sf = setup_xvag_streamfile(sf, start_offset, frame_size*xvag.factor,frame_size, (target_subsong-1), total_subsongs);
+                if (!temp_sf) goto fail;
                 start_offset = 0;
             }
 
@@ -240,25 +240,25 @@ VGMSTREAM * init_vgmstream_xvag(STREAMFILE *streamFile) {
     }
 
 
-    if (!vgmstream_open_stream(vgmstream,temp_streamFile ? temp_streamFile : streamFile,start_offset))
+    if (!vgmstream_open_stream(vgmstream,temp_sf ? temp_sf : sf,start_offset))
         goto fail;
-    close_streamfile(temp_streamFile);
+    close_streamfile(temp_sf);
     return vgmstream;
 
 fail:
-    close_streamfile(temp_streamFile);
+    close_streamfile(temp_sf);
     close_vgmstream(vgmstream);
     return NULL;
 }
 
 #ifdef VGM_USE_ATRAC9
-static int init_xvag_atrac9(STREAMFILE *streamFile, VGMSTREAM* vgmstream, xvag_header * xvag, off_t chunk_offset) {
+static int init_xvag_atrac9(STREAMFILE* sf, VGMSTREAM* vgmstream, xvag_header * xvag, off_t chunk_offset) {
     int32_t (*read_32bit)(off_t,STREAMFILE*) = xvag->big_endian ? read_32bitBE : read_32bitLE;
     atrac9_config cfg = {0};
 
     cfg.channels = vgmstream->channels;
-    cfg.config_data = read_32bitBE(chunk_offset+0x08,streamFile);
-    cfg.encoder_delay = read_32bit(chunk_offset+0x14,streamFile);
+    cfg.config_data = read_32bitBE(chunk_offset+0x08,sf);
+    cfg.encoder_delay = read_32bit(chunk_offset+0x14,sf);
 
     vgmstream->codec_data = init_atrac9(&cfg);
     if (!vgmstream->codec_data) goto fail;
@@ -271,9 +271,9 @@ fail:
 }
 #endif
 
-static layered_layout_data* build_layered_xvag(STREAMFILE *streamFile, xvag_header * xvag, off_t chunk_offset, off_t start_offset) {
+static layered_layout_data* build_layered_xvag(STREAMFILE* sf, xvag_header * xvag, off_t chunk_offset, off_t start_offset) {
     layered_layout_data* data = NULL;
-    STREAMFILE* temp_streamFile = NULL;
+    STREAMFILE* temp_sf = NULL;
     int32_t (*read_32bit)(off_t,STREAMFILE*) = xvag->big_endian ? read_32bitBE : read_32bitLE;
     int i, layers = xvag->layers;
 
@@ -296,12 +296,12 @@ static layered_layout_data* build_layered_xvag(STREAMFILE *streamFile, xvag_head
         switch(xvag->codec) {
 #ifdef VGM_USE_ATRAC9
             case 0x09: {
-                size_t frame_size = read_32bit(chunk_offset+0x00,streamFile);
+                size_t frame_size = read_32bit(chunk_offset+0x00,sf);
 
-                if (!init_xvag_atrac9(streamFile, data->layers[i], xvag, chunk_offset))
+                if (!init_xvag_atrac9(sf, data->layers[i], xvag, chunk_offset))
                     goto fail;
-                temp_streamFile = setup_xvag_streamfile(streamFile, start_offset, frame_size*xvag->factor,frame_size, i, layers);
-                if (!temp_streamFile) goto fail;
+                temp_sf = setup_xvag_streamfile(sf, start_offset, frame_size*xvag->factor,frame_size, i, layers);
+                if (!temp_sf) goto fail;
                 break;
             }
 #endif
@@ -309,9 +309,11 @@ static layered_layout_data* build_layered_xvag(STREAMFILE *streamFile, xvag_head
                 goto fail;
         }
 
-        if ( !vgmstream_open_stream(data->layers[i], temp_streamFile, 0x00) )
+        if (!vgmstream_open_stream(data->layers[i], temp_sf, 0x00))
             goto fail;
-        close_streamfile(temp_streamFile);
+
+        close_streamfile(temp_sf);
+        temp_sf = NULL;
     }
 
     /* setup layered VGMSTREAMs */
@@ -320,7 +322,7 @@ static layered_layout_data* build_layered_xvag(STREAMFILE *streamFile, xvag_head
     return data;
 
 fail:
-    close_streamfile(temp_streamFile);
+    close_streamfile(temp_sf);
     free_layout_layered(data);
     return NULL;
 }

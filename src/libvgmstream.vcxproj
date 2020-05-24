@@ -123,6 +123,7 @@
     <ClInclude Include="meta\xnb_lz4mg.h" />
     <ClInclude Include="meta\mta2_streamfile.h" />
     <ClInclude Include="meta\mul_streamfile.h" />
+    <ClInclude Include="meta\mups_streamfile.h" />
     <ClInclude Include="meta\mzrt_streamfile.h" />
     <ClInclude Include="meta\nus3bank_streamfile.h" />
     <ClInclude Include="meta\ogg_vorbis_streamfile.h" />
@@ -190,6 +191,7 @@
     <ClCompile Include="meta\imc.c" />
     <ClCompile Include="meta\imuse.c" />
     <ClCompile Include="meta\ios_psnd.c" />
+    <ClCompile Include="meta\ktsr.c" />
     <ClCompile Include="meta\ktss.c" />
     <ClCompile Include="meta\kwb.c" />
     <ClCompile Include="meta\lrmd.c" />
@@ -315,6 +317,7 @@
     <ClCompile Include="meta\ea_wve_ad10.c" />
     <ClCompile Include="meta\encrypted.c" />
     <ClCompile Include="meta\mul.c" />
+    <ClCompile Include="meta\mups.c" />
     <ClCompile Include="meta\exakt_sc.c" />
     <ClCompile Include="meta\ffw.c" />
     <ClCompile Include="meta\flx.c" />
@@ -357,7 +360,8 @@
     <ClCompile Include="meta\naomi_spsd.c" />
     <ClCompile Include="meta\nds_hwas.c" />
     <ClCompile Include="meta\nds_rrds.c" />
-    <ClCompile Include="meta\nds_sad.c" />
+    <ClCompile Include="meta\sadf.c" />
+    <ClCompile Include="meta\sadl.c" />
     <ClCompile Include="meta\nds_strm.c" />
     <ClCompile Include="meta\nds_strm_ffta2.c" />
     <ClCompile Include="meta\nds_swav.c" />

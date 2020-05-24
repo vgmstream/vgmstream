@@ -125,6 +125,9 @@
     <ClInclude Include="meta\mul_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="meta\mups_streamfile.h">
+      <Filter>meta\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="meta\mzrt_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
@@ -460,6 +463,9 @@
     <ClCompile Include="meta\mul.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\mups.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\exakt_sc.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -589,7 +595,10 @@
     <ClCompile Include="meta\nds_rrds.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\nds_sad.c">
+    <ClCompile Include="meta\sadf.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\sadl.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\nds_strm.c">
@@ -1730,6 +1739,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\mogg.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\ktsr.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ktss.c">

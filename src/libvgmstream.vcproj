@@ -305,6 +305,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\mups_streamfile.h"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\mzrt_streamfile.h"
                     >
                 </File>
@@ -672,10 +676,14 @@
                     RelativePath=".\meta\encrypted.c"
                     >
                 </File>
-				<File
-					RelativePath=".\meta\mul.c"
-					>
-				</File>
+                <File
+                    RelativePath=".\meta\mul.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\mups.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\exakt_sc.c"
 					>
@@ -821,6 +829,10 @@
 					>
 				</File>
                 <File
+                    RelativePath=".\meta\ktsr.c"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\ktss.c"
                     >
                 </File>
@@ -930,10 +942,14 @@
 					RelativePath=".\meta\nds_rrds.c"
 					>
 				</File>
-				<File
-					RelativePath=".\meta\nds_sad.c"
-					>
-				</File>
+                <File
+                    RelativePath=".\meta\sadf.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\sadl.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\nds_strm.c"
 					>
