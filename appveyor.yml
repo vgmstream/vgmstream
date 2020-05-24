@@ -1,15 +1,46 @@
 version: 1.0.{build}
-image: Visual Studio 2017
+image:
+  - Visual Studio 2017
+  - Ubuntu
 configuration: Release
-build_script:
-- ps: .\build.bat
-test: off
-artifacts:
-- path: Release/test.zip
-  name: test.zip
-- path: Release/foo_input_vgmstream.fb2k-component
-  name: foo_input_vgmstream.fb2k-component
-- path: Release/test.pdb.zip
-  name: test.pdb.zip
-- path: Release/foo_input_vgmstream.pdb.zip
-  name: foo_input_vgmstream.pdb.zip
+for:
+-
+  matrix:
+    only:
+      - image: Visual Studio 2017
+  build_script:
+    - ps: .\build.bat
+  test: off
+  artifacts:
+    - path: Release/test.zip
+      name: test.zip
+    - path: Release/foo_input_vgmstream.fb2k-component
+      name: foo_input_vgmstream.fb2k-component
+    - path: Release/test.pdb.zip
+      name: test.pdb.zip
+    - path: Release/foo_input_vgmstream.pdb.zip
+      name: foo_input_vgmstream.pdb.zip
+-
+  matrix:
+    only:
+      - image: Ubuntu
+  init:
+    - sudo apt-get install -y libmpg123-dev libvorbis-dev libavformat-dev libavcodec-dev libavutil-dev
+    - sudo apt-get install -y libao-dev audacious-dev
+    - sudo apt-get install -y cmake
+  install:
+    - cmake .
+  build_script:
+    - make
+  after_build:
+    - cd cli
+    - tar cvfz vgmstream-cli.tar.gz vgmstream_cli vgmstream123
+    - cd ../audacious
+    - tar cvfz vgmstream-audacious.tar.gz vgmstream.so
+    - cd ..
+  test: off
+  artifacts:
+    - path: cli/vgmstream-cli.tar.gz
+      name: vgmstream-cli.tar.gz
+    - path: audacious/vgmstream-audacious.tar.gz
+      name: vgmstream-audacious.tar.gz
