@@ -360,7 +360,7 @@
     <ClCompile Include="meta\naomi_spsd.c" />
     <ClCompile Include="meta\nds_hwas.c" />
     <ClCompile Include="meta\nds_rrds.c" />
-    <ClCompile Include="meta\nds_sad.c" />
+    <ClCompile Include="meta\sadl.c" />
     <ClCompile Include="meta\nds_strm.c" />
     <ClCompile Include="meta\nds_strm_ffta2.c" />
     <ClCompile Include="meta\nds_swav.c" />

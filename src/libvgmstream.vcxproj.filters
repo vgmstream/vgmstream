@@ -595,7 +595,7 @@
     <ClCompile Include="meta\nds_rrds.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\nds_sad.c">
+    <ClCompile Include="meta\sadl.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\nds_strm.c">
