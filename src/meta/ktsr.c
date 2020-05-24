@@ -45,8 +45,7 @@ VGMSTREAM* init_vgmstream_ktsr(STREAMFILE* sf) {
 
 
     /* checks */
-    /* .ktsl2asbin: common [Atelier Ryza (PC), Attack on Titan: Wings of Freedom (Vita)]
-     * .ktsr: header ID */
+    /* .ktsl2asbin: common [Atelier Ryza (PC/Switch), Nioh (PC)] */
     if (!check_extensions(sf, "ktsl2asbin"))
         goto fail;
 

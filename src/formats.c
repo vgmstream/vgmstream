@@ -245,6 +245,7 @@ static const char* extension_list[] = {
     "kovs", //fake extension/header id for .kvs
     "kns",
     "kraw",
+    "ktsl2asbin",
     "ktss", //fake extension/header id for .kns
     "kvs",
 
