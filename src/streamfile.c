@@ -680,9 +680,12 @@ STREAMFILE* open_fakename_streamfile(STREAMFILE *streamfile, const char *fakenam
     }
 
     if (fakeext) {
-        char * ext = strrchr(this_sf->fakename,'.');
-        if (ext != NULL)
+        char* ext = strrchr(this_sf->fakename,'.');
+        if (ext != NULL) {
             ext[1] = '\0'; /* truncate past dot */
+        } else {
+            strcat(this_sf->fakename, "."); /* no extension = add dot */
+        }
         strcat(this_sf->fakename, fakeext);
     }
 
