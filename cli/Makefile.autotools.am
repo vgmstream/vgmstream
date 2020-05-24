@@ -6,7 +6,7 @@ if HAVE_LIBAO
 bin_PROGRAMS += vgmstream123
 endif
 
-AM_CFLAGS = -I$(top_builddir) -I$(top_srcdir) -I$(top_srcdir)/ext_includes/ $(AO_CFLAGS)
+AM_CFLAGS = -DVERSION=\"VGMSTREAM_VERSION\" -I$(top_builddir) -I$(top_srcdir) -I$(top_srcdir)/ext_includes/ $(AO_CFLAGS)
 AM_MAKEFLAGS = -f Makefile.autotools
 
 vgmstream_cli_SOURCES = vgmstream_cli.c
