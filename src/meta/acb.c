@@ -4,18 +4,18 @@
 
 
 /* ACB (Atom Cue sheet Binary) - CRI container of memory audio, often together with a .awb wave bank */
-VGMSTREAM * init_vgmstream_acb(STREAMFILE *streamFile) {
-    VGMSTREAM *vgmstream = NULL;
-    STREAMFILE *temp_streamFile = NULL;
+VGMSTREAM* init_vgmstream_acb(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
+    STREAMFILE* temp_sf = NULL;
     off_t subfile_offset;
     size_t subfile_size;
     utf_context *utf = NULL;
 
 
     /* checks */
-    if (!check_extensions(streamFile, "acb"))
+    if (!check_extensions(sf, "acb"))
         goto fail;
-    if (read_32bitBE(0x00,streamFile) != 0x40555446) /* "@UTF" */
+    if (read_32bitBE(0x00,sf) != 0x40555446) /* "@UTF" */
         goto fail;
 
     /* .acb is a cue sheet that uses @UTF (CRI's generic table format) to store row/columns
@@ -28,7 +28,7 @@ VGMSTREAM * init_vgmstream_acb(STREAMFILE *streamFile) {
         uint32_t offset = 0, size = 0;
         uint32_t table_offset = 0x00;
 
-        utf = utf_open(streamFile, table_offset, &rows, &name);
+        utf = utf_open(sf, table_offset, &rows, &name);
         if (!utf) goto fail;
 
         if (rows != 1 || strcmp(name, "Header") != 0)
@@ -49,41 +49,57 @@ VGMSTREAM * init_vgmstream_acb(STREAMFILE *streamFile) {
 
     //;VGM_LOG("ACB: subfile offset=%lx + %x\n", subfile_offset, subfile_size);
 
-    temp_streamFile = setup_subfile_streamfile(streamFile, subfile_offset,subfile_size, "awb");
-    if (!temp_streamFile) goto fail;
+    temp_sf = setup_subfile_streamfile(sf, subfile_offset,subfile_size, "awb");
+    if (!temp_sf) goto fail;
 
-    vgmstream = init_vgmstream_awb_memory(temp_streamFile, streamFile);
+    vgmstream = init_vgmstream_awb_memory(temp_sf, sf);
     if (!vgmstream) goto fail;
 
     /* name-loading for this for memory .awb will be called from init_vgmstream_awb_memory */
 
     utf_close(utf);
-    close_streamfile(temp_streamFile);
+    close_streamfile(temp_sf);
     return vgmstream;
 
 fail:
     utf_close(utf);
-    close_streamfile(temp_streamFile);
+    close_streamfile(temp_sf);
     close_vgmstream(vgmstream);
     return NULL;
 }
 
 /* ************************************** */
 
-//todo maybe use reopen sf? since internal buffer is going to be read
-#define ACB_TABLE_BUFFER_SIZE 0x4000
+/* extra config for .acb with lots of sounds, since there is a lot of IO back and forth,
+ * ex. +7000 acb+awb subsongs in Ultra Despair Girls (PC) */
+//TODO: could pre-load all sections first, but needs cache for multiple subsongs (+semaphs, if multiple read the same thing)
+#define ACB_TABLE_BUFFER_CUENAME 0x8000
+#define ACB_TABLE_BUFFER_CUE 0x40000
+#define ACB_TABLE_BUFFER_BLOCK 0x8000
+#define ACB_TABLE_BUFFER_SEQUENCE 0x40000
+#define ACB_TABLE_BUFFER_TRACK 0x10000
+#define ACB_TABLE_BUFFER_TRACKCOMMAND 0x20000
+#define ACB_TABLE_BUFFER_SYNTH 0x40000
+#define ACB_TABLE_BUFFER_WAVEFORM 0x20000
 
-STREAMFILE* setup_acb_streamfile(STREAMFILE *sf, size_t buffer_size) {
-    STREAMFILE *new_sf = NULL;
+#define ACB_MAX_NAMELIST 255
+#define ACB_MAX_NAME 1024 /* even more is possible in rare cases [Senran Kagura Burst Re:Newal (PC)] */
 
+
+STREAMFILE* setup_acb_streamfile(STREAMFILE* sf, size_t buffer_size) {
+    STREAMFILE* new_sf = NULL;
+
+    /* buffer seems better than reopening when opening multiple subsongs at the same time with STDIO,
+     * even though there is more buffer trashing, maybe concurrent IO is slower */
     new_sf = open_wrap_streamfile(sf);
     new_sf = open_buffer_streamfile_f(new_sf, buffer_size);
+    //new_sf = reopen_streamfile(sf, buffer_size);
     return new_sf;
 }
 
 
 typedef struct {
-    STREAMFILE *acbFile; /* original reference, don't close */
+    STREAMFILE* acbFile; /* original reference, don't close */
 
     /* keep track of these tables so they can be closed when done */
     utf_context *Header;
@@ -97,14 +113,14 @@ typedef struct {
     utf_context *SynthTable;
     utf_context *WaveformTable;
 
-    STREAMFILE *CueNameSf;
-    STREAMFILE *CueSf;
-    STREAMFILE *BlockSf;
-    STREAMFILE *SequenceSf;
-    STREAMFILE *TrackSf;
-    STREAMFILE *TrackCommandSf;
-    STREAMFILE *SynthSf;
-    STREAMFILE *WaveformSf;
+    STREAMFILE* CueNameSf;
+    STREAMFILE* CueSf;
+    STREAMFILE* BlockSf;
+    STREAMFILE* SequenceSf;
+    STREAMFILE* TrackSf;
+    STREAMFILE* TrackCommandSf;
+    STREAMFILE* SynthSf;
+    STREAMFILE* WaveformSf;
 
     /* config */
     int is_memory;
@@ -120,12 +136,12 @@ typedef struct {
     int16_t cuename_index;
     const char * cuename_name;
     int awbname_count;
-    int16_t awbname_list[255];
-    char name[1024];
+    int16_t awbname_list[ACB_MAX_NAMELIST];
+    char name[ACB_MAX_NAME];
 
 } acb_header;
 
-static int open_utf_subtable(acb_header* acb, STREAMFILE* *TableSf, utf_context* *Table, const char* TableName, int* rows) {
+static int open_utf_subtable(acb_header* acb, STREAMFILE* *TableSf, utf_context* *Table, const char* TableName, int* rows, int buffer) {
     uint32_t offset = 0;
 
     /* already loaded */
@@ -135,22 +151,35 @@ static int open_utf_subtable(acb_header* acb, STREAMFILE* *TableSf, utf_context*
     if (!utf_query_data(acb->Header, 0, TableName, &offset, NULL))
         goto fail;
 
-    /* open a buffered streamfile to avoid so much IO back and forth between all the tables */
-    *TableSf = setup_acb_streamfile(acb->acbFile, ACB_TABLE_BUFFER_SIZE);
+    *TableSf = setup_acb_streamfile(acb->acbFile, buffer);
     if (!*TableSf) goto fail;
 
     *Table = utf_open(*TableSf, offset, rows, NULL);
     if (!*Table) goto fail;
 
     //;VGM_LOG("ACB: loaded table %s\n", TableName);
+    //;VGM_LOG("ACB: sf=%x\n", (uint32_t)*TableSf);
     return 1;
 fail:
     return 0;
 }
 
+//todo safeops, avoid recalc lens 
+static void acb_cat(char* dst, int dst_max, const char* src) {
+    int dst_len = strlen(dst);
+    int src_len = strlen(dst);
+    if (dst_len + src_len > dst_max - 1)
+        return;
+    strcat(dst, src);
+}
+static void acb_cpy(char* dst, int dst_max, const char* src) {
+    int src_len = strlen(dst);
+    if (src_len > dst_max - 1)
+        return;
+    strcpy(dst, src);
+}
 
 static void add_acb_name(acb_header* acb, int8_t Waveform_Streaming) {
-    //todo safe string ops
 
     /* ignore name repeats */
     if (acb->awbname_count) {
@@ -161,22 +190,22 @@ static void add_acb_name(acb_header* acb, int8_t Waveform_Streaming) {
         }
     }
 
-    /* since waveforms can be reused by cues multiple names are a thing */
+    /* since waveforms can be reused by cues, multiple names are a thing */
     if (acb->awbname_count) {
-        strcat(acb->name, "; ");
-        strcat(acb->name, acb->cuename_name);
+        acb_cat(acb->name, sizeof(acb->name), "; ");
+        acb_cat(acb->name, sizeof(acb->name), acb->cuename_name);
     }
     else {
-        strcpy(acb->name, acb->cuename_name);
+        acb_cpy(acb->name, sizeof(acb->name), acb->cuename_name);
     }
     if (Waveform_Streaming == 2 && acb->is_memory) {
-        strcat(acb->name, " [pre]");
+        acb_cat(acb->name, sizeof(acb->name), " [pre]");
     }
 
     acb->awbname_list[acb->awbname_count] = acb->cuename_index;
     acb->awbname_count++;
-    if (acb->awbname_count >= 254)
-        acb->awbname_count = 254; /* ??? */
+    if (acb->awbname_count >= ACB_MAX_NAMELIST)
+        acb->awbname_count = ACB_MAX_NAMELIST - 1; /* ??? */
 
     //;VGM_LOG("ACB: found cue for waveid=%i: %s\n", acb->target_waveid, acb->cuename_name);
 }
@@ -187,7 +216,7 @@ static int load_acb_waveform(acb_header* acb, int16_t Index) {
     uint8_t Waveform_Streaming;
 
     /* read Waveform[Index] */
-    if (!open_utf_subtable(acb, &acb->WaveformSf, &acb->WaveformTable, "WaveformTable", NULL))
+    if (!open_utf_subtable(acb, &acb->WaveformSf, &acb->WaveformTable, "WaveformTable", NULL, ACB_TABLE_BUFFER_WAVEFORM))
         goto fail;
     if (!utf_query_u16(acb->WaveformTable, Index, "Id", &Waveform_Id)) { /* older versions use Id */
         if (acb->is_memory) {
@@ -228,7 +257,7 @@ static int load_acb_synth(acb_header* acb, int16_t Index) {
 
 
     /* read Synth[Index] */
-    if (!open_utf_subtable(acb, &acb->SynthSf, &acb->SynthTable, "SynthTable", NULL))
+    if (!open_utf_subtable(acb, &acb->SynthSf, &acb->SynthTable, "SynthTable", NULL, ACB_TABLE_BUFFER_SYNTH))
         goto fail;
     if (!utf_query_u8(acb->SynthTable, Index, "Type", &Synth_Type))
         goto fail;
@@ -306,7 +335,7 @@ static int load_acb_track_event_command(acb_header* acb, int16_t Index) {
 
 
     /* read Track[Index] */
-    if (!open_utf_subtable(acb, &acb->TrackSf, &acb->TrackTable, "TrackTable", NULL))
+    if (!open_utf_subtable(acb, &acb->TrackSf, &acb->TrackTable, "TrackTable", NULL, ACB_TABLE_BUFFER_TRACK ))
         goto fail;
     if (!utf_query_u16(acb->TrackTable, Index, "EventIndex", &Track_EventIndex))
         goto fail;
@@ -315,7 +344,7 @@ static int load_acb_track_event_command(acb_header* acb, int16_t Index) {
     /* next link varies with version, check by table existence */
     if (acb->has_CommandTable) { /* <=v1.27 */
         /* read Command[EventIndex] */
-        if (!open_utf_subtable(acb, &acb->TrackCommandSf, &acb->TrackCommandTable, "CommandTable", NULL))
+        if (!open_utf_subtable(acb, &acb->TrackCommandSf, &acb->TrackCommandTable, "CommandTable", NULL, ACB_TABLE_BUFFER_TRACKCOMMAND))
             goto fail;
         if (!utf_query_data(acb->TrackCommandTable, Track_EventIndex, "Command", &Track_Command_offset, &Track_Command_size))
             goto fail;
@@ -323,7 +352,7 @@ static int load_acb_track_event_command(acb_header* acb, int16_t Index) {
     }
     else if (acb->has_TrackEventTable) { /* >=v1.28 */
         /* read TrackEvent[EventIndex] */
-        if (!open_utf_subtable(acb, &acb->TrackCommandSf, &acb->TrackCommandTable, "TrackEventTable", NULL))
+        if (!open_utf_subtable(acb, &acb->TrackCommandSf, &acb->TrackCommandTable, "TrackEventTable", NULL, ACB_TABLE_BUFFER_TRACKCOMMAND))
             goto fail;
         if (!utf_query_data(acb->TrackCommandTable, Track_EventIndex, "Command", &Track_Command_offset, &Track_Command_size))
             goto fail;
@@ -405,7 +434,7 @@ static int load_acb_sequence(acb_header* acb, int16_t Index) {
 
 
     /* read Sequence[Index] */
-    if (!open_utf_subtable(acb, &acb->SequenceSf, &acb->SequenceTable, "SequenceTable", NULL))
+    if (!open_utf_subtable(acb, &acb->SequenceSf, &acb->SequenceTable, "SequenceTable", NULL, ACB_TABLE_BUFFER_SEQUENCE))
         goto fail;
     if (!utf_query_u16(acb->SequenceTable, Index, "NumTracks", &Sequence_NumTracks))
         goto fail;
@@ -448,7 +477,7 @@ static int load_acb_block(acb_header* acb, int16_t Index) {
 
 
     /* read Block[Index] */
-    if (!open_utf_subtable(acb, &acb->BlockSf, &acb->BlockTable, "BlockTable", NULL))
+    if (!open_utf_subtable(acb, &acb->BlockSf, &acb->BlockTable, "BlockTable", NULL, ACB_TABLE_BUFFER_BLOCK))
         goto fail;
     if (!utf_query_u16(acb->BlockTable, Index, "NumTracks", &Block_NumTracks))
         goto fail;
@@ -481,7 +510,7 @@ static int load_acb_cue(acb_header* acb, int16_t Index) {
 
 
     /* read Cue[Index] */
-    if (!open_utf_subtable(acb, &acb->CueSf, &acb->CueTable, "CueTable", NULL))
+    if (!open_utf_subtable(acb, &acb->CueSf, &acb->CueTable, "CueTable", NULL, ACB_TABLE_BUFFER_CUE))
         goto fail;
     if (!utf_query_u8(acb->CueTable, Index, "ReferenceType", &Cue_ReferenceType))
         goto fail;
@@ -540,7 +569,7 @@ static int load_acb_cuename(acb_header* acb, int16_t Index) {
 
 
     /* read CueName[Index] */
-    if (!open_utf_subtable(acb, &acb->CueNameSf, &acb->CueNameTable, "CueNameTable", NULL))
+    if (!open_utf_subtable(acb, &acb->CueNameSf, &acb->CueNameTable, "CueNameTable", NULL, ACB_TABLE_BUFFER_CUENAME))
         goto fail;
     if (!utf_query_u16(acb->CueNameTable, Index, "CueIndex", &CueName_CueIndex))
         goto fail;
@@ -562,12 +591,12 @@ fail:
 }
 
 
-void load_acb_wave_name(STREAMFILE *streamFile, VGMSTREAM* vgmstream, int waveid, int is_memory) {
+void load_acb_wave_name(STREAMFILE* sf, VGMSTREAM* vgmstream, int waveid, int is_memory) {
     acb_header acb = {0};
     int i, CueName_rows;
 
 
-    if (!streamFile || !vgmstream || waveid < 0)
+    if (!sf || !vgmstream || waveid < 0)
         return;
 
     /* Normally games load a .acb + .awb, and asks the .acb to play a cue by name or index.
@@ -594,7 +623,7 @@ void load_acb_wave_name(STREAMFILE *streamFile, VGMSTREAM* vgmstream, int waveid
 
     //;VGM_LOG("ACB: find waveid=%i\n", waveid);
 
-    acb.acbFile = streamFile;
+    acb.acbFile = sf;
 
     acb.Header = utf_open(acb.acbFile, 0x00, NULL, NULL);
     if (!acb.Header) goto fail;
@@ -606,7 +635,7 @@ void load_acb_wave_name(STREAMFILE *streamFile, VGMSTREAM* vgmstream, int waveid
 
 
     /* read all possible cue names and find which waveids are referenced by it */
-    if (!open_utf_subtable(&acb, &acb.CueNameSf, &acb.CueNameTable, "CueNameTable", &CueName_rows))
+    if (!open_utf_subtable(&acb, &acb.CueNameSf, &acb.CueNameTable, "CueNameTable", &CueName_rows, ACB_TABLE_BUFFER_CUENAME))
         goto fail;
     for (i = 0; i < CueName_rows; i++) {
 
