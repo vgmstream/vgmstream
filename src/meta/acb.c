@@ -4,18 +4,18 @@
 
 
 /* ACB (Atom Cue sheet Binary) - CRI container of memory audio, often together with a .awb wave bank */
-VGMSTREAM * init_vgmstream_acb(STREAMFILE *streamFile) {
-    VGMSTREAM *vgmstream = NULL;
-    STREAMFILE *temp_streamFile = NULL;
+VGMSTREAM* init_vgmstream_acb(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
+    STREAMFILE* temp_sf = NULL;
     off_t subfile_offset;
     size_t subfile_size;
     utf_context *utf = NULL;
 
 
     /* checks */
-    if (!check_extensions(streamFile, "acb"))
+    if (!check_extensions(sf, "acb"))
         goto fail;
-    if (read_32bitBE(0x00,streamFile) != 0x40555446) /* "@UTF" */
+    if (read_32bitBE(0x00,sf) != 0x40555446) /* "@UTF" */
         goto fail;
 
     /* .acb is a cue sheet that uses @UTF (CRI's generic table format) to store row/columns
@@ -28,7 +28,7 @@ VGMSTREAM * init_vgmstream_acb(STREAMFILE *streamFile) {
         uint32_t offset = 0, size = 0;
         uint32_t table_offset = 0x00;
 
-        utf = utf_open(streamFile, table_offset, &rows, &name);
+        utf = utf_open(sf, table_offset, &rows, &name);
         if (!utf) goto fail;
 
         if (rows != 1 || strcmp(name, "Header") != 0)
@@ -49,21 +49,21 @@ VGMSTREAM * init_vgmstream_acb(STREAMFILE *streamFile) {
 
     //;VGM_LOG("ACB: subfile offset=%lx + %x\n", subfile_offset, subfile_size);
 
-    temp_streamFile = setup_subfile_streamfile(streamFile, subfile_offset,subfile_size, "awb");
-    if (!temp_streamFile) goto fail;
+    temp_sf = setup_subfile_streamfile(sf, subfile_offset,subfile_size, "awb");
+    if (!temp_sf) goto fail;
 
-    vgmstream = init_vgmstream_awb_memory(temp_streamFile, streamFile);
+    vgmstream = init_vgmstream_awb_memory(temp_sf, sf);
     if (!vgmstream) goto fail;
 
     /* name-loading for this for memory .awb will be called from init_vgmstream_awb_memory */
 
     utf_close(utf);
-    close_streamfile(temp_streamFile);
+    close_streamfile(temp_sf);
     return vgmstream;
 
 fail:
     utf_close(utf);
-    close_streamfile(temp_streamFile);
+    close_streamfile(temp_sf);
     close_vgmstream(vgmstream);
     return NULL;
 }
@@ -73,8 +73,8 @@ fail:
 //todo maybe use reopen sf? since internal buffer is going to be read
 #define ACB_TABLE_BUFFER_SIZE 0x4000
 
-STREAMFILE* setup_acb_streamfile(STREAMFILE *sf, size_t buffer_size) {
-    STREAMFILE *new_sf = NULL;
+STREAMFILE* setup_acb_streamfile(STREAMFILE* sf, size_t buffer_size) {
+    STREAMFILE* new_sf = NULL;
 
     new_sf = open_wrap_streamfile(sf);
     new_sf = open_buffer_streamfile_f(new_sf, buffer_size);
@@ -83,7 +83,7 @@ STREAMFILE* setup_acb_streamfile(STREAMFILE *sf, size_t buffer_size) {
 
 
 typedef struct {
-    STREAMFILE *acbFile; /* original reference, don't close */
+    STREAMFILE* acbFile; /* original reference, don't close */
 
     /* keep track of these tables so they can be closed when done */
     utf_context *Header;
@@ -97,14 +97,14 @@ typedef struct {
     utf_context *SynthTable;
     utf_context *WaveformTable;
 
-    STREAMFILE *CueNameSf;
-    STREAMFILE *CueSf;
-    STREAMFILE *BlockSf;
-    STREAMFILE *SequenceSf;
-    STREAMFILE *TrackSf;
-    STREAMFILE *TrackCommandSf;
-    STREAMFILE *SynthSf;
-    STREAMFILE *WaveformSf;
+    STREAMFILE* CueNameSf;
+    STREAMFILE* CueSf;
+    STREAMFILE* BlockSf;
+    STREAMFILE* SequenceSf;
+    STREAMFILE* TrackSf;
+    STREAMFILE* TrackCommandSf;
+    STREAMFILE* SynthSf;
+    STREAMFILE* WaveformSf;
 
     /* config */
     int is_memory;
@@ -562,12 +562,12 @@ fail:
 }
 
 
-void load_acb_wave_name(STREAMFILE *streamFile, VGMSTREAM* vgmstream, int waveid, int is_memory) {
+void load_acb_wave_name(STREAMFILE* sf, VGMSTREAM* vgmstream, int waveid, int is_memory) {
     acb_header acb = {0};
     int i, CueName_rows;
 
 
-    if (!streamFile || !vgmstream || waveid < 0)
+    if (!sf || !vgmstream || waveid < 0)
         return;
 
     /* Normally games load a .acb + .awb, and asks the .acb to play a cue by name or index.
@@ -594,7 +594,7 @@ void load_acb_wave_name(STREAMFILE *streamFile, VGMSTREAM* vgmstream, int waveid
 
     //;VGM_LOG("ACB: find waveid=%i\n", waveid);
 
-    acb.acbFile = streamFile;
+    acb.acbFile = sf;
 
     acb.Header = utf_open(acb.acbFile, 0x00, NULL, NULL);
     if (!acb.Header) goto fail;
