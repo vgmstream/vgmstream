@@ -36,6 +36,7 @@ typedef struct {
     off_t audio_stream_name;
     off_t audio_extra_name;
     off_t audio_xma_offset;
+    off_t audio_pitch;
     int audio_external_and;
     int audio_loop_and;
     int audio_group_and;
@@ -62,6 +63,9 @@ typedef struct {
     off_t layer_channels;
     off_t layer_stream_type;
     off_t layer_num_samples;
+    off_t layer_pitch;
+    off_t layer_loc_flag;
+    int layer_loc_and;
     size_t layer_entry_size;
     int layer_hijack;
 
@@ -1377,12 +1381,24 @@ static void build_readable_name(char * buf, size_t buf_size, ubi_sb_header* sb) 
     }
 }
 
+static uint32_t ubi_ps2_pitch_to_freq(uint32_t pitch) {
+    /* old PS2 games store sample rate in a weird range of 0-65536 remapped from 0-48000 */
+    /* strangely, audio res type does have sample rate value but it's unused */
+    double sample_rate = (((double)pitch / 65536) * 48000);
+    return (uint32_t)ceil(sample_rate);
+}
+
 static int parse_type_audio_ps2_old(ubi_sb_header* sb, off_t offset, STREAMFILE* sf) {
     int32_t(*read_32bit)(off_t, STREAMFILE*) = sb->big_endian ? read_32bitBE : read_32bitLE;
+    uint32_t pitch;
+    uint32_t test_sample_rate;
 
     sb->stream_size = read_32bit(offset + sb->cfg.audio_stream_size, sf);
     sb->stream_offset = read_32bit(offset + sb->cfg.audio_stream_offset, sf);
-    sb->sample_rate = read_32bit(offset + sb->cfg.audio_sample_rate, sf);
+    pitch = read_32bit(offset + sb->cfg.audio_pitch, sf);
+    test_sample_rate = read_32bit(offset + sb->cfg.audio_sample_rate, sf);
+    sb->sample_rate = ubi_ps2_pitch_to_freq(pitch);
+    VGM_ASSERT(sb->sample_rate != test_sample_rate, "UBI SB: Converted PS2 pitch doesn't match the sample rate (%d = %d vs %d)\n", pitch, sb->sample_rate, test_sample_rate);
 
     if (sb->stream_size == 0) {
         VGM_LOG("UBI SB: bad stream size\n");
@@ -1414,9 +1430,11 @@ fail:
 static int parse_type_layer_ps2_old(ubi_sb_header* sb, off_t offset, STREAMFILE* sf) {
     int32_t(*read_32bit)(off_t, STREAMFILE*) = sb->big_endian ? read_32bitBE : read_32bitLE;
 
+    /* much simpler than later iteration */
     sb->layer_count = read_32bit(offset + sb->cfg.layer_layer_count, sf);
-    sb->stream_size = read_32bit(offset + sb->cfg.layer_stream_size, sf);
-    sb->stream_offset = read_32bit(offset + sb->cfg.layer_stream_offset, sf);
+    sb->stream_size = read_32bit(offset + sb->cfg.audio_stream_size, sf);
+    sb->stream_offset = read_32bit(offset + sb->cfg.audio_stream_offset, sf);
+    sb->sample_rate = ubi_ps2_pitch_to_freq(read_32bit(offset + sb->cfg.layer_pitch, sf));
 
     if (sb->stream_size == 0) {
         VGM_LOG("UBI SB: bad stream size\n");
@@ -1428,8 +1446,8 @@ static int parse_type_layer_ps2_old(ubi_sb_header* sb, off_t offset, STREAMFILE*
         goto fail;
     }
 
-    /* much simpler than later iteration */
-    sb->sample_rate = 44100; /* fixed? */
+    sb->is_localized = read_32bit(offset + sb->cfg.layer_loc_flag, sf) & sb->cfg.layer_loc_and;
+
     sb->num_samples = 0; /* calculate from size */
     sb->channels = sb->layer_count * 2; /* layers are always stereo */
     sb->stream_size *= sb->channels;
@@ -2224,8 +2242,8 @@ static void config_sb_audio_fb(ubi_sb_header* sb, off_t flag_bits, int external_
     sb->cfg.audio_group_and         = group_and;
     sb->cfg.audio_loop_and          = loop_and;
 }
-static void config_sb_audio_fb_ps2_old(ubi_sb_header* sb, off_t flag_bits, int external_and, int loop_and, int loc_and, int stereo_and) {
-    /* audio header with bit flags */
+static void config_sb_audio_ps2_old(ubi_sb_header* sb, off_t flag_bits, int external_and, int loop_and, int loc_and, int stereo_and, off_t pitch, off_t sample_rate) {
+    /* sample rate only, bit flags */
     sb->cfg.audio_external_flag     = flag_bits;
     sb->cfg.audio_loop_flag         = flag_bits;
     sb->cfg.audio_loc_flag          = flag_bits;
@@ -2234,6 +2252,8 @@ static void config_sb_audio_fb_ps2_old(ubi_sb_header* sb, off_t flag_bits, int e
     sb->cfg.audio_loop_and          = loop_and;
     sb->cfg.audio_loc_and           = loc_and;
     sb->cfg.audio_stereo_and        = stereo_and;
+    sb->cfg.audio_pitch             = pitch;
+    sb->cfg.audio_sample_rate       = sample_rate;
 }
 static void config_sb_audio_hs(ubi_sb_header* sb, off_t channels, off_t sample_rate, off_t num_samples, off_t num_samples2, off_t stream_name, off_t stream_type) {
     /* audio header with stream name */
@@ -2290,6 +2310,13 @@ static void config_sb_layer_sh(ubi_sb_header* sb, off_t entry_size, off_t sample
     sb->cfg.layer_channels          = channels;
     sb->cfg.layer_stream_type       = stream_type;
     sb->cfg.layer_num_samples       = num_samples;
+}
+static void config_sb_layer_ps2_old(ubi_sb_header *sb, off_t loc_flag, int loc_and, off_t layer_count, off_t pitch) {
+    /* no name, no layer headers */
+    sb->cfg.layer_loc_flag          = loc_flag;
+    sb->cfg.layer_loc_and           = loc_and;
+    sb->cfg.layer_layer_count       = layer_count;
+    sb->cfg.layer_pitch             = pitch;
 }
 static void config_sb_silence_i(ubi_sb_header* sb, off_t duration) {
     /* silence headers in int value */
@@ -2593,14 +2620,13 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
     if (sb->version == 0x00000003 && sb->platform == UBI_PS2 && sb->is_blk) {
         config_sb_entry(sb, 0x20, 0x40);
 
-        config_sb_audio_fb_ps2_old(sb, 0x18, (1 << 4), (1 << 5), (1 << 6), (1 << 7));
-        config_sb_audio_hs(sb, 0x00, 0x20, 0x00, 0x00, 0x00, 0x00);
+        config_sb_audio_ps2_old(sb, 0x18, (1 << 4), (1 << 5), (1 << 6), (1 << 7), 0x1c, 0x20);
         sb->cfg.audio_interleave = 0x800;
         sb->is_ps2_old = 1; /* yikes */
 
         config_sb_sequence(sb, 0x2c, 0x18); /* this is normal enough */
 
-        config_sb_layer_hs(sb, 0x1c, 0x0c, 0x10, 0x00);
+        config_sb_layer_ps2_old(sb, 0x18, (1 << 0), 0x1c, 0x20);
         return 1;
     }
 
@@ -2609,14 +2635,13 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
     if (sb->version == 0x00000003 && sb->platform == UBI_PS2) {
         config_sb_entry(sb, 0x30, 0x3c);
 
-        config_sb_audio_fb_ps2_old(sb, 0x1c, (1 << 4), (1 << 5), (1 << 6), (1 << 7));
-        config_sb_audio_hs(sb, 0x00, 0x24, 0x00, 0x00, 0x00, 0x00);
+        config_sb_audio_ps2_old(sb, 0x1c, (1 << 4), (1 << 5), (1 << 6), (1 << 7), 0x20, 0x24);
         sb->cfg.audio_interleave = 0x800;
         sb->is_ps2_old = 1;
 
         config_sb_sequence(sb, 0x2c, 0x18);
 
-        config_sb_layer_hs(sb, 0x20, 0x0c, 0x14, 0x00);
+        config_sb_layer_ps2_old(sb, 0x1c, (1 << 0), 0x20, 0x24);
         return 1;
     }
 
