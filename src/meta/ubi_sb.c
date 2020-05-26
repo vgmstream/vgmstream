@@ -41,7 +41,6 @@ typedef struct {
     int audio_group_and;
     int audio_loc_and;
     int audio_stereo_and;
-    int num_codec_flags;
     int audio_has_internal_names;
     size_t audio_interleave;
     int audio_fix_psx_samples;
@@ -1427,7 +1426,6 @@ static int parse_type_audio(ubi_sb_header* sb, off_t offset, STREAMFILE* sf) {
     sb->is_external = read_32bit(offset + sb->cfg.audio_external_flag, sf) & sb->cfg.audio_external_and;
 
     if (sb->cfg.audio_group_id && sb->cfg.audio_group_and) {
-        /* probably means "SW decoded" */
         sb->group_id = read_32bit(offset + sb->cfg.audio_group_id, sf);
         if (sb->cfg.audio_group_and) sb->group_id &= sb->cfg.audio_group_and;
 
@@ -1436,8 +1434,8 @@ static int parse_type_audio(ubi_sb_header* sb, off_t offset, STREAMFILE* sf) {
         if (sb->group_id > 1)
             sb->group_id = 1;
     } else {
-        /* old group flag (HW decoded?) */
-        sb->group_id = (int)!(sb->stream_type & 0x01);
+        /* apparently, there may also be group id 2 but it was not seen so far */
+        sb->group_id = (sb->stream_type == 0x01) ? 0 : 1;
     }
 
     sb->loop_flag = read_32bit(offset + sb->cfg.audio_loop_flag, sf) & sb->cfg.audio_loop_and;
@@ -1701,6 +1699,45 @@ fail:
     return 0;
 }
 
+static int set_default_codec_for_platform(ubi_sb_header *sb) {
+    switch (sb->platform) {
+        case UBI_PC:
+            sb->codec = RAW_PCM;
+            break;
+        case UBI_PS2:
+            sb->codec = RAW_PSX;
+            break;
+        case UBI_PSP:
+            if (sb->is_psp_old)
+                sb->codec = FMT_VAG;
+            else
+                sb->codec = RAW_PSX;
+            break;
+        case UBI_XBOX:
+            sb->codec = RAW_XBOX;
+            break;
+        case UBI_GC:
+        case UBI_WII:
+            sb->codec = RAW_DSP;
+            break;
+        case UBI_X360:
+            sb->codec = RAW_XMA1;
+            break;
+#if 0
+        case UBI_PS3: /* assumed, but no games seem to use it */
+            sb->codec = RAW_AT3;
+            break;
+#endif
+        case UBI_3DS:
+            sb->codec = FMT_CWAV;
+            break;
+        default:
+            VGM_LOG("UBI SB: unknown internal format\n");
+            return 0;
+    }
+
+    return 1;
+}
 
 /* find actual codec from type (as different games' stream_type can overlap) */
 static int parse_stream_codec(ubi_sb_header* sb) {
@@ -1714,65 +1751,33 @@ static int parse_stream_codec(ubi_sb_header* sb) {
         return 1;
     }
 
-    /* in early versions, this is a bitfield with either 1 or 2 rightmost bits being flags */
-    sb->stream_type >>= sb->cfg.num_codec_flags;
-
     if (sb->cfg.default_codec_for_group0 && sb->type == UBI_AUDIO && sb->group_id == 0) {
         /* some Xbox games contain garbage in stream_type field in this case, it seems that 0x00 is assumed */
         sb->stream_type = 0x00;
     }
 
     /* guess codec */
-    if (sb->stream_type == 0x00) {
-        switch (sb->platform) {
-            case UBI_PC:
-                sb->codec = RAW_PCM;
-                break;
-            case UBI_PS2:
-                sb->codec = RAW_PSX;
-                break;
-            case UBI_PSP:
-                if (sb->is_psp_old)
-                    sb->codec = FMT_VAG;
-                else
-                    sb->codec = RAW_PSX;
-                break;
-            case UBI_XBOX:
-                sb->codec = RAW_XBOX;
-                break;
-            case UBI_GC:
-            case UBI_WII:
-                sb->codec = RAW_DSP;
-                break;
-            case UBI_X360:
-                sb->codec = RAW_XMA1;
-                break;
-#if 0
-            case UBI_PS3: /* assumed, but no games seem to use it */
-                sb->codec = RAW_AT3;
-                break;
-#endif
-            case UBI_3DS:
-                sb->codec = FMT_CWAV;
-                break;
-            default:
-                VGM_LOG("UBI SB: unknown internal format\n");
-                goto fail;
-        }
-    }
-    else if (sb->is_bnm) { /* ~v0 but some games have wonky versions */
-
+    if (sb->is_bnm || sb->version < 0x00000007) { /* bnm is ~v0 but some games have wonky versions */
         switch (sb->stream_type) {
             case 0x01:
-                sb->codec = FMT_MPDX;
+                if (!set_default_codec_for_platform(sb))
+                    goto fail;
                 break;
 
             case 0x02:
+                sb->codec = FMT_MPDX;
+                break;
+
+            case 0x04:
                 sb->codec = FMT_APM;
                 break;
 
-            case 0x03: /* The Jungle Book (internal extension is .adp, maybe Ubi ADPCM can be considered FMT_ADP) */
+            case 0x06: /* The Jungle Book (internal extension is .adp, maybe Ubi ADPCM can be considered FMT_ADP) */
                 sb->codec = UBI_ADPCM;
+                break;
+
+            case 0x08:
+                sb->codec = UBI_IMA; /* Ubi IMA v2/v3 */
                 break;
 
             default:
@@ -1783,10 +1788,15 @@ static int parse_stream_codec(ubi_sb_header* sb) {
     else if (sb->version < 0x000A0000) {
         switch (sb->stream_type) {
             case 0x01:
-                sb->codec = UBI_ADPCM;
+                if (!set_default_codec_for_platform(sb))
+                    goto fail;
                 break;
 
             case 0x02:
+                sb->codec = UBI_ADPCM;
+                break;
+
+            case 0x04:
                 sb->codec = UBI_IMA; /* Ubi IMA v2/v3 */
                 break;
 
@@ -1797,6 +1807,11 @@ static int parse_stream_codec(ubi_sb_header* sb) {
     }
     else {
         switch (sb->stream_type) {
+            case 0x00:
+                if (!set_default_codec_for_platform(sb))
+                    goto fail;
+                break;
+
             case 0x01:
                 sb->codec = RAW_PCM; /* uncommon, ex. Wii/PSP/3DS */
                 break;
@@ -2381,14 +2396,6 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
         sb->cfg.sequence_extra_offset   = 0x0c;
 
         sb->cfg.layer_extra_offset      = 0x0c;
-    }
-
-    if (sb->is_bnm) {
-        sb->cfg.num_codec_flags = 1;
-    } else if (sb->version <= 0x00000004) {
-        sb->cfg.num_codec_flags = 2;
-    } else if (sb->version < 0x000A0000) {
-        sb->cfg.num_codec_flags = 1;
     }
 
     sb->allowed_types[0x01] = 1;
