@@ -36,12 +36,12 @@ typedef struct {
     off_t audio_stream_name;
     off_t audio_extra_name;
     off_t audio_xma_offset;
+    off_t audio_pitch;
     int audio_external_and;
     int audio_loop_and;
     int audio_group_and;
     int audio_loc_and;
     int audio_stereo_and;
-    int num_codec_flags;
     int audio_has_internal_names;
     size_t audio_interleave;
     int audio_fix_psx_samples;
@@ -63,6 +63,9 @@ typedef struct {
     off_t layer_channels;
     off_t layer_stream_type;
     off_t layer_num_samples;
+    off_t layer_pitch;
+    off_t layer_loc_flag;
+    int layer_loc_and;
     size_t layer_entry_size;
     int layer_hijack;
 
@@ -400,9 +403,9 @@ VGMSTREAM* init_vgmstream_ubi_bnm(STREAMFILE* sf) {
         goto fail;
 
     /* v0, header is somewhat like a map-style bank (offsets + sizes) but sectionX/3 fields are
-     * fixed/reserved (unused?). Header entry sizes and config works the same, and type numbers are
-     * slightly different, but otherwise pretty much the same engine (not named DARE yet). Curiously
-     * it may stream RIFF .wav (stream_offset pointing to "data"), and also .raw (PCM) or .apm IMA. */
+     * fixed/reserved. Header entry sizes and config works the same, and type numbers are slightly
+     * different, but otherwise pretty much the same engine (not named DARE yet). Curiously, it may
+     * stream RIFF .wav (stream_offset pointing to "data"), and also .raw (PCM) or .apm IMA. */
 
     /* use smaller header buffer for performance */
     sf_index = reopen_streamfile(sf, 0x100);
@@ -440,7 +443,6 @@ static int parse_bnm_header(ubi_sb_header* sb, STREAMFILE* sf) {
     sb->section1_num     = read_32bit(0x08, sf);
     sb->section2_offset  = read_32bit(0x0c, sf);
     sb->section2_num     = read_32bit(0x10, sf);
-    /* next are data start offset x3 + data size offset x3 */
     sb->section3_offset  = read_32bit(0x14, sf);
     sb->section3_num     = 0;
 
@@ -463,6 +465,54 @@ static int is_bnm_other_bank(STREAMFILE* sf, int bank_number) {
     sprintf(bank_name, "Bnk_%i.bnm", bank_number);
 
     return strcmp(current_name, bank_name) != 0;
+}
+
+static int bnm_parse_offsets(ubi_sb_header *sb, STREAMFILE *sf) {
+    int32_t(*read_32bit)(off_t, STREAMFILE *) = sb->big_endian ? read_32bitBE : read_32bitLE;
+    uint32_t block_offset;
+
+    if (sb->is_external)
+        return 1;
+
+    /* sounds are split into groups based on resource type and codec, the order is hardcoded */
+    if (sb->version == 0x00000000 || sb->version == 0x00000200) {
+        /* 0x14: MPDX, 0x18: MIDI, 0x1c: PCM, 0x20: APM, 0x24: streamed, 0x28: EOF */
+        switch (sb->stream_type) {
+            case 0x01:
+                block_offset = read_32bit(0x1c, sf);
+                break;
+            case 0x02:
+                block_offset = read_32bit(0x14, sf);
+                break;
+            case 0x04:
+                block_offset = read_32bit(0x20, sf);
+                break;
+            default:
+                goto fail;
+        }
+    } else if (sb->version == 0x00060409) {
+        /* The Jungle Book is stripped down compared to other versions */
+        /* 0x14: Ubi ADPCM, 0x18: PCM, 0x1c: streamed */
+        switch (sb->stream_type) {
+            case 0x01:
+                block_offset = read_32bit(0x18, sf);
+                break;
+            case 0x06:
+                block_offset = read_32bit(0x14, sf);
+                break;
+            default:
+                goto fail;
+        }
+    } else {
+        VGM_LOG("UBI BNM: Unknown group offsets for version %08x", sb->version);
+        goto fail;
+    }
+
+    sb->stream_offset += block_offset;
+
+    return 1;
+fail:
+    return 0;
 }
 
 /* .BLK - maps in separate .blk chunks [Donald Duck: Goin' Quackers (PS2), The Jungle Book: Rhythm N'Groove (PS2)] */
@@ -579,7 +629,7 @@ static int blk_parse_offsets(ubi_sb_header* sb) {
         close_streamfile(sf_snd);
 
         if (sb->stream_offset == 0xFFFFFFFF) {
-            VGM_LOG("No map block contains resource %08x (%d)\n", sb->header_id, sb->header_index);
+            VGM_LOG("UBI BLK: No map block contains resource %08x (%d)\n", sb->header_id, sb->header_index);
             return 0;
         }
     }
@@ -1331,12 +1381,24 @@ static void build_readable_name(char * buf, size_t buf_size, ubi_sb_header* sb) 
     }
 }
 
+static uint32_t ubi_ps2_pitch_to_freq(uint32_t pitch) {
+    /* old PS2 games store sample rate in a weird range of 0-65536 remapped from 0-48000 */
+    /* strangely, audio res type does have sample rate value but it's unused */
+    double sample_rate = (((double)pitch / 65536) * 48000);
+    return (uint32_t)ceil(sample_rate);
+}
+
 static int parse_type_audio_ps2_old(ubi_sb_header* sb, off_t offset, STREAMFILE* sf) {
     int32_t(*read_32bit)(off_t, STREAMFILE*) = sb->big_endian ? read_32bitBE : read_32bitLE;
+    uint32_t pitch;
+    uint32_t test_sample_rate;
 
     sb->stream_size = read_32bit(offset + sb->cfg.audio_stream_size, sf);
     sb->stream_offset = read_32bit(offset + sb->cfg.audio_stream_offset, sf);
-    sb->sample_rate = read_32bit(offset + sb->cfg.audio_sample_rate, sf);
+    pitch = read_32bit(offset + sb->cfg.audio_pitch, sf);
+    test_sample_rate = read_32bit(offset + sb->cfg.audio_sample_rate, sf);
+    sb->sample_rate = ubi_ps2_pitch_to_freq(pitch);
+    VGM_ASSERT(sb->sample_rate != test_sample_rate, "UBI SB: Converted PS2 pitch doesn't match the sample rate (%d = %d vs %d)\n", pitch, sb->sample_rate, test_sample_rate);
 
     if (sb->stream_size == 0) {
         VGM_LOG("UBI SB: bad stream size\n");
@@ -1351,7 +1413,7 @@ static int parse_type_audio_ps2_old(ubi_sb_header* sb, off_t offset, STREAMFILE*
     sb->num_samples = 0; /* calculate from size */
     sb->channels = sb->is_stereo ? 2 : 1;
     sb->stream_size *= sb->channels;
-    sb->group_id = 0; /* TODO: verify, flag could exist */
+    sb->group_id = 0;
 
     /* filenames are hardcoded */
     if (sb->is_blk) {
@@ -1368,9 +1430,11 @@ fail:
 static int parse_type_layer_ps2_old(ubi_sb_header* sb, off_t offset, STREAMFILE* sf) {
     int32_t(*read_32bit)(off_t, STREAMFILE*) = sb->big_endian ? read_32bitBE : read_32bitLE;
 
+    /* much simpler than later iteration */
     sb->layer_count = read_32bit(offset + sb->cfg.layer_layer_count, sf);
-    sb->stream_size = read_32bit(offset + sb->cfg.layer_stream_size, sf);
-    sb->stream_offset = read_32bit(offset + sb->cfg.layer_stream_offset, sf);
+    sb->stream_size = read_32bit(offset + sb->cfg.audio_stream_size, sf);
+    sb->stream_offset = read_32bit(offset + sb->cfg.audio_stream_offset, sf);
+    sb->sample_rate = ubi_ps2_pitch_to_freq(read_32bit(offset + sb->cfg.layer_pitch, sf));
 
     if (sb->stream_size == 0) {
         VGM_LOG("UBI SB: bad stream size\n");
@@ -1382,8 +1446,8 @@ static int parse_type_layer_ps2_old(ubi_sb_header* sb, off_t offset, STREAMFILE*
         goto fail;
     }
 
-    /* much simpler than later iteration */
-    sb->sample_rate = 44100; /* fixed? */
+    sb->is_localized = read_32bit(offset + sb->cfg.layer_loc_flag, sf) & sb->cfg.layer_loc_and;
+
     sb->num_samples = 0; /* calculate from size */
     sb->channels = sb->layer_count * 2; /* layers are always stereo */
     sb->stream_size *= sb->channels;
@@ -1426,8 +1490,14 @@ static int parse_type_audio(ubi_sb_header* sb, off_t offset, STREAMFILE* sf) {
 
     sb->is_external = read_32bit(offset + sb->cfg.audio_external_flag, sf) & sb->cfg.audio_external_and;
 
+    /* hack for Donald Duck Demo, there are some external APM sounds that don't have the flag set */
+    if (sb->is_bnm && sb->version == 0x00000000 && sb->stream_type == 0x04 && !sb->is_external) {
+        /* check the header for whether there are actually any internal APM sounds */
+        if (read_32bit(0x24, sf) - read_32bit(0x20, sf) == 0x00)
+            sb->is_external = 1;
+    }
+
     if (sb->cfg.audio_group_id && sb->cfg.audio_group_and) {
-        /* probably means "SW decoded" */
         sb->group_id = read_32bit(offset + sb->cfg.audio_group_id, sf);
         if (sb->cfg.audio_group_and) sb->group_id &= sb->cfg.audio_group_and;
 
@@ -1436,8 +1506,8 @@ static int parse_type_audio(ubi_sb_header* sb, off_t offset, STREAMFILE* sf) {
         if (sb->group_id > 1)
             sb->group_id = 1;
     } else {
-        /* old group flag (HW decoded?) */
-        sb->group_id = (int)!(sb->stream_type & 0x01);
+        /* apparently, there may also be group id 2 but it was not seen so far */
+        sb->group_id = (sb->stream_type == 0x01) ? 0 : 1;
     }
 
     sb->loop_flag = read_32bit(offset + sb->cfg.audio_loop_flag, sf) & sb->cfg.audio_loop_and;
@@ -1701,6 +1771,45 @@ fail:
     return 0;
 }
 
+static int set_default_codec_for_platform(ubi_sb_header *sb) {
+    switch (sb->platform) {
+        case UBI_PC:
+            sb->codec = RAW_PCM;
+            break;
+        case UBI_PS2:
+            sb->codec = RAW_PSX;
+            break;
+        case UBI_PSP:
+            if (sb->is_psp_old)
+                sb->codec = FMT_VAG;
+            else
+                sb->codec = RAW_PSX;
+            break;
+        case UBI_XBOX:
+            sb->codec = RAW_XBOX;
+            break;
+        case UBI_GC:
+        case UBI_WII:
+            sb->codec = RAW_DSP;
+            break;
+        case UBI_X360:
+            sb->codec = RAW_XMA1;
+            break;
+#if 0
+        case UBI_PS3: /* assumed, but no games seem to use it */
+            sb->codec = RAW_AT3;
+            break;
+#endif
+        case UBI_3DS:
+            sb->codec = FMT_CWAV;
+            break;
+        default:
+            VGM_LOG("UBI SB: unknown internal format\n");
+            return 0;
+    }
+
+    return 1;
+}
 
 /* find actual codec from type (as different games' stream_type can overlap) */
 static int parse_stream_codec(ubi_sb_header* sb) {
@@ -1714,65 +1823,33 @@ static int parse_stream_codec(ubi_sb_header* sb) {
         return 1;
     }
 
-    /* in early versions, this is a bitfield with either 1 or 2 rightmost bits being flags */
-    sb->stream_type >>= sb->cfg.num_codec_flags;
-
     if (sb->cfg.default_codec_for_group0 && sb->type == UBI_AUDIO && sb->group_id == 0) {
         /* some Xbox games contain garbage in stream_type field in this case, it seems that 0x00 is assumed */
         sb->stream_type = 0x00;
     }
 
     /* guess codec */
-    if (sb->stream_type == 0x00) {
-        switch (sb->platform) {
-            case UBI_PC:
-                sb->codec = RAW_PCM;
-                break;
-            case UBI_PS2:
-                sb->codec = RAW_PSX;
-                break;
-            case UBI_PSP:
-                if (sb->is_psp_old)
-                    sb->codec = FMT_VAG;
-                else
-                    sb->codec = RAW_PSX;
-                break;
-            case UBI_XBOX:
-                sb->codec = RAW_XBOX;
-                break;
-            case UBI_GC:
-            case UBI_WII:
-                sb->codec = RAW_DSP;
-                break;
-            case UBI_X360:
-                sb->codec = RAW_XMA1;
-                break;
-#if 0
-            case UBI_PS3: /* assumed, but no games seem to use it */
-                sb->codec = RAW_AT3;
-                break;
-#endif
-            case UBI_3DS:
-                sb->codec = FMT_CWAV;
-                break;
-            default:
-                VGM_LOG("UBI SB: unknown internal format\n");
-                goto fail;
-        }
-    }
-    else if (sb->is_bnm) { /* ~v0 but some games have wonky versions */
-
+    if (sb->is_bnm || sb->version < 0x00000007) { /* bnm is ~v0 but some games have wonky versions */
         switch (sb->stream_type) {
             case 0x01:
-                sb->codec = FMT_MPDX;
+                if (!set_default_codec_for_platform(sb))
+                    goto fail;
                 break;
 
             case 0x02:
+                sb->codec = FMT_MPDX;
+                break;
+
+            case 0x04:
                 sb->codec = FMT_APM;
                 break;
 
-            case 0x03: /* The Jungle Book (internal extension is .adp, maybe Ubi ADPCM can be considered FMT_ADP) */
+            case 0x06: /* The Jungle Book (internal extension is .adp, maybe Ubi ADPCM can be considered FMT_ADP) */
                 sb->codec = UBI_ADPCM;
+                break;
+
+            case 0x08:
+                sb->codec = UBI_IMA; /* Ubi IMA v2/v3 */
                 break;
 
             default:
@@ -1783,10 +1860,15 @@ static int parse_stream_codec(ubi_sb_header* sb) {
     else if (sb->version < 0x000A0000) {
         switch (sb->stream_type) {
             case 0x01:
-                sb->codec = UBI_ADPCM;
+                if (!set_default_codec_for_platform(sb))
+                    goto fail;
                 break;
 
             case 0x02:
+                sb->codec = UBI_ADPCM;
+                break;
+
+            case 0x04:
                 sb->codec = UBI_IMA; /* Ubi IMA v2/v3 */
                 break;
 
@@ -1797,6 +1879,11 @@ static int parse_stream_codec(ubi_sb_header* sb) {
     }
     else {
         switch (sb->stream_type) {
+            case 0x00:
+                if (!set_default_codec_for_platform(sb))
+                    goto fail;
+                break;
+
             case 0x01:
                 sb->codec = RAW_PCM; /* uncommon, ex. Wii/PSP/3DS */
                 break;
@@ -1872,6 +1959,9 @@ static int parse_offsets(ubi_sb_header* sb, STREAMFILE* sf) {
     if (sb->type == UBI_SEQUENCE)
         return 1;
 
+    if (sb->is_bnm)
+        return bnm_parse_offsets(sb, sf);
+
     if (sb->is_blk)
         return blk_parse_offsets(sb);
 
@@ -1929,6 +2019,11 @@ static int parse_offsets(ubi_sb_header* sb, STREAMFILE* sf) {
             if (sb->stream_offset)
                 break;
         }
+
+        if (sb->stream_offset == 0) {
+            VGM_LOG("UBI SM: Failed to find offset for resource %d in group %d in map %s\n", sb->header_index, sb->group_id, sb->map_name);
+            goto fail;
+        }
     } else {
         /* banks store internal sounds after all headers and adjusted by the group table, find the matching entry */
 
@@ -1950,8 +2045,8 @@ static int parse_offsets(ubi_sb_header* sb, STREAMFILE* sf) {
     }
 
     return 1;
-//fail:
-//    return 0;
+fail:
+    return 0;
 }
 
 /* parse a single known header resource at offset (see config_sb for info) */
@@ -2147,8 +2242,8 @@ static void config_sb_audio_fb(ubi_sb_header* sb, off_t flag_bits, int external_
     sb->cfg.audio_group_and         = group_and;
     sb->cfg.audio_loop_and          = loop_and;
 }
-static void config_sb_audio_fb_ps2_old(ubi_sb_header* sb, off_t flag_bits, int external_and, int loop_and, int loc_and, int stereo_and) {
-    /* audio header with bit flags */
+static void config_sb_audio_ps2_old(ubi_sb_header* sb, off_t flag_bits, int external_and, int loop_and, int loc_and, int stereo_and, off_t pitch, off_t sample_rate) {
+    /* sample rate only, bit flags */
     sb->cfg.audio_external_flag     = flag_bits;
     sb->cfg.audio_loop_flag         = flag_bits;
     sb->cfg.audio_loc_flag          = flag_bits;
@@ -2157,6 +2252,8 @@ static void config_sb_audio_fb_ps2_old(ubi_sb_header* sb, off_t flag_bits, int e
     sb->cfg.audio_loop_and          = loop_and;
     sb->cfg.audio_loc_and           = loc_and;
     sb->cfg.audio_stereo_and        = stereo_and;
+    sb->cfg.audio_pitch             = pitch;
+    sb->cfg.audio_sample_rate       = sample_rate;
 }
 static void config_sb_audio_hs(ubi_sb_header* sb, off_t channels, off_t sample_rate, off_t num_samples, off_t num_samples2, off_t stream_name, off_t stream_type) {
     /* audio header with stream name */
@@ -2213,6 +2310,13 @@ static void config_sb_layer_sh(ubi_sb_header* sb, off_t entry_size, off_t sample
     sb->cfg.layer_channels          = channels;
     sb->cfg.layer_stream_type       = stream_type;
     sb->cfg.layer_num_samples       = num_samples;
+}
+static void config_sb_layer_ps2_old(ubi_sb_header *sb, off_t loc_flag, int loc_and, off_t layer_count, off_t pitch) {
+    /* no name, no layer headers */
+    sb->cfg.layer_loc_flag          = loc_flag;
+    sb->cfg.layer_loc_and           = loc_and;
+    sb->cfg.layer_layer_count       = layer_count;
+    sb->cfg.layer_pitch             = pitch;
 }
 static void config_sb_silence_i(ubi_sb_header* sb, off_t duration) {
     /* silence headers in int value */
@@ -2383,14 +2487,6 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
         sb->cfg.layer_extra_offset      = 0x0c;
     }
 
-    if (sb->is_bnm) {
-        sb->cfg.num_codec_flags = 1;
-    } else if (sb->version <= 0x00000004) {
-        sb->cfg.num_codec_flags = 2;
-    } else if (sb->version < 0x000A0000) {
-        sb->cfg.num_codec_flags = 1;
-    }
-
     sb->allowed_types[0x01] = 1;
     sb->allowed_types[0x05] = 1;
     sb->allowed_types[0x0c] = 1;
@@ -2520,18 +2616,17 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
     }
 
     /* Donald Duck: Goin' Quackers (2000)(PS2)-blk */
-    /* The Jungle Book: Rhythm N'Groove (2000)(PS2)-blk */
+    /* The Jungle Book: Rhythm N'Groove (2003)(PS2)-blk */
     if (sb->version == 0x00000003 && sb->platform == UBI_PS2 && sb->is_blk) {
         config_sb_entry(sb, 0x20, 0x40);
 
-        config_sb_audio_fb_ps2_old(sb, 0x18, (1 << 4), (1 << 5), (1 << 6), (1 << 7));
-        config_sb_audio_hs(sb, 0x00, 0x20, 0x00, 0x00, 0x00, 0x00);
+        config_sb_audio_ps2_old(sb, 0x18, (1 << 4), (1 << 5), (1 << 6), (1 << 7), 0x1c, 0x20);
         sb->cfg.audio_interleave = 0x800;
         sb->is_ps2_old = 1; /* yikes */
 
         config_sb_sequence(sb, 0x2c, 0x18); /* this is normal enough */
 
-        config_sb_layer_hs(sb, 0x1c, 0x0c, 0x10, 0x00);
+        config_sb_layer_ps2_old(sb, 0x18, (1 << 0), 0x1c, 0x20);
         return 1;
     }
 
@@ -2540,14 +2635,13 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
     if (sb->version == 0x00000003 && sb->platform == UBI_PS2) {
         config_sb_entry(sb, 0x30, 0x3c);
 
-        config_sb_audio_fb_ps2_old(sb, 0x1c, (1 << 4), (1 << 5), (1 << 6), (1 << 7));
-        config_sb_audio_hs(sb, 0x00, 0x24, 0x00, 0x00, 0x00, 0x00);
+        config_sb_audio_ps2_old(sb, 0x1c, (1 << 4), (1 << 5), (1 << 6), (1 << 7), 0x20, 0x24);
         sb->cfg.audio_interleave = 0x800;
         sb->is_ps2_old = 1;
 
         config_sb_sequence(sb, 0x2c, 0x18);
 
-        config_sb_layer_hs(sb, 0x20, 0x0c, 0x14, 0x00);
+        config_sb_layer_ps2_old(sb, 0x1c, (1 << 0), 0x20, 0x24);
         return 1;
     }
 
