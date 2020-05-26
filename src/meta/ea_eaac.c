@@ -503,6 +503,9 @@ fail:
 static STREAMFILE *open_mapfile_pair(STREAMFILE* sf, int track, int num_tracks) {
     static const char *const mapfile_pairs[][2] = {
         /* standard cases, replace map part with mus part (from the end to preserve prefixes) */
+        {"game.mpf",        "Game_Stream.mus"}, /* Skate */
+        {"ipod.mpf",        "Ipod_Stream.mus"},
+        {"world.mpf",       "World_Stream.mus"},
         {"FreSkate.mpf",    "track.mus,ram.mus"}, /* Skate It */
         {"nsf_sing.mpf",    "track_main.mus"}, /* Need for Speed: Nitro */
         {"nsf_wii.mpf",     "Track.mus"}, /* Need for Speed: Nitro */
