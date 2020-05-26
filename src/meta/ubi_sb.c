@@ -1397,7 +1397,7 @@ static int parse_type_audio_ps2_old(ubi_sb_header* sb, off_t offset, STREAMFILE*
     sb->num_samples = 0; /* calculate from size */
     sb->channels = sb->is_stereo ? 2 : 1;
     sb->stream_size *= sb->channels;
-    sb->group_id = 0; /* TODO: verify, flag could exist */
+    sb->group_id = 0;
 
     /* filenames are hardcoded */
     if (sb->is_blk) {
@@ -2001,6 +2001,11 @@ static int parse_offsets(ubi_sb_header* sb, STREAMFILE* sf) {
             if (sb->stream_offset)
                 break;
         }
+
+        if (sb->stream_offset == 0) {
+            VGM_LOG("UBI SM: Failed to find offset for resource %d in group %d in map %s\n", sb->header_index, sb->group_id, sb->map_name);
+            goto fail;
+        }
     } else {
         /* banks store internal sounds after all headers and adjusted by the group table, find the matching entry */
 
@@ -2022,8 +2027,8 @@ static int parse_offsets(ubi_sb_header* sb, STREAMFILE* sf) {
     }
 
     return 1;
-//fail:
-//    return 0;
+fail:
+    return 0;
 }
 
 /* parse a single known header resource at offset (see config_sb for info) */
