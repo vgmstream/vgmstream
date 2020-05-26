@@ -399,9 +399,9 @@ VGMSTREAM* init_vgmstream_ubi_bnm(STREAMFILE* sf) {
         goto fail;
 
     /* v0, header is somewhat like a map-style bank (offsets + sizes) but sectionX/3 fields are
-     * fixed/reserved (unused?). Header entry sizes and config works the same, and type numbers are
-     * slightly different, but otherwise pretty much the same engine (not named DARE yet). Curiously
-     * it may stream RIFF .wav (stream_offset pointing to "data"), and also .raw (PCM) or .apm IMA. */
+     * fixed/reserved. Header entry sizes and config works the same, and type numbers are slightly
+     * different, but otherwise pretty much the same engine (not named DARE yet). Curiously, it may
+     * stream RIFF .wav (stream_offset pointing to "data"), and also .raw (PCM) or .apm IMA. */
 
     /* use smaller header buffer for performance */
     sf_index = reopen_streamfile(sf, 0x100);
@@ -439,7 +439,6 @@ static int parse_bnm_header(ubi_sb_header* sb, STREAMFILE* sf) {
     sb->section1_num     = read_32bit(0x08, sf);
     sb->section2_offset  = read_32bit(0x0c, sf);
     sb->section2_num     = read_32bit(0x10, sf);
-    /* next are data start offset x3 + data size offset x3 */
     sb->section3_offset  = read_32bit(0x14, sf);
     sb->section3_num     = 0;
 
@@ -462,6 +461,54 @@ static int is_bnm_other_bank(STREAMFILE* sf, int bank_number) {
     sprintf(bank_name, "Bnk_%i.bnm", bank_number);
 
     return strcmp(current_name, bank_name) != 0;
+}
+
+static int bnm_parse_offsets(ubi_sb_header *sb, STREAMFILE *sf) {
+    int32_t(*read_32bit)(off_t, STREAMFILE *) = sb->big_endian ? read_32bitBE : read_32bitLE;
+    uint32_t block_offset;
+
+    if (sb->is_external)
+        return 1;
+
+    /* sounds are split into groups based on resource type and codec, the order is hardcoded */
+    if (sb->version == 0x00000000 || sb->version == 0x00000200) {
+        /* 0x14: MPDX, 0x18: MIDI, 0x1c: PCM, 0x20: APM, 0x24: streamed, 0x28: EOF */
+        switch (sb->stream_type) {
+            case 0x01:
+                block_offset = read_32bit(0x1c, sf);
+                break;
+            case 0x02:
+                block_offset = read_32bit(0x14, sf);
+                break;
+            case 0x04:
+                block_offset = read_32bit(0x20, sf);
+                break;
+            default:
+                goto fail;
+        }
+    } else if (sb->version == 0x00060409) {
+        /* The Jungle Book is stripped down compared to other versions */
+        /* 0x14: Ubi ADPCM, 0x18: PCM, 0x1c: streamed */
+        switch (sb->stream_type) {
+            case 0x01:
+                block_offset = read_32bit(0x18, sf);
+                break;
+            case 0x06:
+                block_offset = read_32bit(0x14, sf);
+                break;
+            default:
+                goto fail;
+        }
+    } else {
+        VGM_LOG("UBI BNM: Unknown group offsets for version %08x", sb->version);
+        goto fail;
+    }
+
+    sb->stream_offset += block_offset;
+
+    return 1;
+fail:
+    return 0;
 }
 
 /* .BLK - maps in separate .blk chunks [Donald Duck: Goin' Quackers (PS2), The Jungle Book: Rhythm N'Groove (PS2)] */
@@ -578,7 +625,7 @@ static int blk_parse_offsets(ubi_sb_header* sb) {
         close_streamfile(sf_snd);
 
         if (sb->stream_offset == 0xFFFFFFFF) {
-            VGM_LOG("No map block contains resource %08x (%d)\n", sb->header_id, sb->header_index);
+            VGM_LOG("UBI BLK: No map block contains resource %08x (%d)\n", sb->header_id, sb->header_index);
             return 0;
         }
     }
@@ -1425,6 +1472,13 @@ static int parse_type_audio(ubi_sb_header* sb, off_t offset, STREAMFILE* sf) {
 
     sb->is_external = read_32bit(offset + sb->cfg.audio_external_flag, sf) & sb->cfg.audio_external_and;
 
+    /* hack for Donald Duck Demo, there are some external APM sounds that don't have the flag set */
+    if (sb->is_bnm && sb->version == 0x00000000 && sb->stream_type == 0x04 && !sb->is_external) {
+        /* check the header for whether there are actually any internal APM sounds */
+        if (read_32bit(0x24, sf) - read_32bit(0x20, sf) == 0x00)
+            sb->is_external = 1;
+    }
+
     if (sb->cfg.audio_group_id && sb->cfg.audio_group_and) {
         sb->group_id = read_32bit(offset + sb->cfg.audio_group_id, sf);
         if (sb->cfg.audio_group_and) sb->group_id &= sb->cfg.audio_group_and;
@@ -1886,6 +1940,9 @@ static int parse_offsets(ubi_sb_header* sb, STREAMFILE* sf) {
 
     if (sb->type == UBI_SEQUENCE)
         return 1;
+
+    if (sb->is_bnm)
+        return bnm_parse_offsets(sb, sf);
 
     if (sb->is_blk)
         return blk_parse_offsets(sb);
@@ -2527,7 +2584,7 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
     }
 
     /* Donald Duck: Goin' Quackers (2000)(PS2)-blk */
-    /* The Jungle Book: Rhythm N'Groove (2000)(PS2)-blk */
+    /* The Jungle Book: Rhythm N'Groove (2003)(PS2)-blk */
     if (sb->version == 0x00000003 && sb->platform == UBI_PS2 && sb->is_blk) {
         config_sb_entry(sb, 0x20, 0x40);
 
