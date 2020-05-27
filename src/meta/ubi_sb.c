@@ -1395,15 +1395,16 @@ static int parse_type_audio_ps2_old(ubi_sb_header* sb, off_t offset, STREAMFILE*
 
     sb->stream_size = read_32bit(offset + sb->cfg.audio_stream_size, sf);
     sb->stream_offset = read_32bit(offset + sb->cfg.audio_stream_offset, sf);
-    pitch = read_32bit(offset + sb->cfg.audio_pitch, sf);
-    test_sample_rate = read_32bit(offset + sb->cfg.audio_sample_rate, sf);
-    sb->sample_rate = ubi_ps2_pitch_to_freq(pitch);
-    VGM_ASSERT(sb->sample_rate != test_sample_rate, "UBI SB: Converted PS2 pitch doesn't match the sample rate (%d = %d vs %d)\n", pitch, sb->sample_rate, test_sample_rate);
 
     if (sb->stream_size == 0) {
         VGM_LOG("UBI SB: bad stream size\n");
         goto fail;
     }
+
+    pitch = read_32bit(offset + sb->cfg.audio_pitch, sf);
+    test_sample_rate = read_32bit(offset + sb->cfg.audio_sample_rate, sf);
+    sb->sample_rate = ubi_ps2_pitch_to_freq(pitch);
+    VGM_ASSERT(sb->sample_rate != test_sample_rate, "UBI SB: Converted PS2 sample rate mismatch (%d = %d vs %d)\n", pitch, sb->sample_rate, test_sample_rate);
 
     sb->is_external = read_32bit(offset + sb->cfg.audio_external_flag, sf) & sb->cfg.audio_external_and;
     sb->loop_flag = read_32bit(offset + sb->cfg.audio_loop_flag, sf) & sb->cfg.audio_loop_and;
@@ -1434,7 +1435,6 @@ static int parse_type_layer_ps2_old(ubi_sb_header* sb, off_t offset, STREAMFILE*
     sb->layer_count = read_32bit(offset + sb->cfg.layer_layer_count, sf);
     sb->stream_size = read_32bit(offset + sb->cfg.audio_stream_size, sf);
     sb->stream_offset = read_32bit(offset + sb->cfg.audio_stream_offset, sf);
-    sb->sample_rate = ubi_ps2_pitch_to_freq(read_32bit(offset + sb->cfg.layer_pitch, sf));
 
     if (sb->stream_size == 0) {
         VGM_LOG("UBI SB: bad stream size\n");
@@ -1446,6 +1446,7 @@ static int parse_type_layer_ps2_old(ubi_sb_header* sb, off_t offset, STREAMFILE*
         goto fail;
     }
 
+    sb->sample_rate = ubi_ps2_pitch_to_freq(read_32bit(offset + sb->cfg.layer_pitch, sf));
     sb->is_localized = read_32bit(offset + sb->cfg.layer_loc_flag, sf) & sb->cfg.layer_loc_and;
 
     sb->num_samples = 0; /* calculate from size */
@@ -1537,7 +1538,7 @@ static int parse_type_audio(ubi_sb_header* sb, off_t offset, STREAMFILE* sf) {
     }
     else {
         sb->cfg.audio_stream_name = read_32bit(offset + sb->cfg.audio_extra_name, sf);
-        if (sb->cfg.layer_stream_name != 0xFFFFFFFF)
+        if (sb->cfg.audio_stream_name != 0xFFFFFFFF)
             read_string(sb->resource_name, sb->cfg.resource_name_size, sb->sectionX_offset + sb->cfg.audio_stream_name, sf);
     }
 
@@ -2011,6 +2012,11 @@ static int parse_offsets(ubi_sb_header* sb, STREAMFILE* sf) {
                             sb->stream_offset += read_32bit(table2_offset + 0x10 * k + 0x0c, sf);
                             break;
                         }
+                    }
+
+                    if (k == table2_num) {
+                        VGM_LOG("UBI SM: Failed to find group %d in map %s\n", sb->group_id, sb->map_name);
+                        goto fail;
                     }
                     break;
                 }

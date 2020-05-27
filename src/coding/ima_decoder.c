@@ -11,7 +11,7 @@
  * - expand type: IMA style or variations; low or high nibble first
  */
 
-static const int ADPCMTable[89] = {
+static const int ADPCMTable[90] = {
     7, 8, 9, 10, 11, 12, 13, 14,
     16, 17, 19, 21, 23, 25, 28, 31,
     34, 37, 41, 45, 50, 55, 60, 66,
@@ -23,7 +23,9 @@ static const int ADPCMTable[89] = {
     3327, 3660, 4026, 4428, 4871, 5358, 5894, 6484,
     7132, 7845, 8630, 9493, 10442, 11487, 12635, 13899,
     15289, 16818, 18500, 20350, 22385, 24623, 27086, 29794,
-    32767
+    32767,
+
+    0 /* garbage value for Ubisoft IMA (see blocked_ubi_sce.c) */
 };
 
 static const int IMA_IndexTable[16] = {
@@ -1054,10 +1056,14 @@ void decode_ubi_ima(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspa
 
     if (has_header) {
         first_sample -= 10; //todo fix hack (needed to adjust nibble offset below)
-    }
 
-    if (step_index < 0) step_index=0;
-    if (step_index > 88) step_index=88;
+        if (step_index < 0) step_index = 0;
+        if (step_index > 88) step_index = 88;
+    } else {
+        if (step_index < 0) step_index = 0;
+        if (step_index > 89) step_index = 89;
+    }
+    
 
     for (i = first_sample; i < first_sample + samples_to_do; i++, sample_count += channelspacing) {
         off_t byte_offset = channelspacing == 1 ?

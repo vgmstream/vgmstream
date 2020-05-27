@@ -25,7 +25,7 @@ for:
     only:
       - image: Ubuntu
   init:
-    - sudo apt-get install -y libmpg123-dev libvorbis-dev libavformat-dev libavcodec-dev libavutil-dev
+    - sudo apt-get install -y libmpg123-dev libvorbis-dev libavformat-dev libavcodec-dev libavutil-dev libswresample-dev
     - sudo apt-get install -y libao-dev audacious-dev
     - sudo apt-get install -y cmake
   install:
