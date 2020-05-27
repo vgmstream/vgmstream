@@ -44,13 +44,13 @@ void block_update_ubi_sce(off_t block_offset, VGMSTREAM* vgmstream) {
             vgmstream->ch[i].adpcm_step_index  = read_32bitLE(block_offset + header_size * i + 0x04, sf);
             vgmstream->ch[i].adpcm_history1_32 = read_32bitLE(block_offset + header_size * i + 0x08, sf);
 
-            /* TODO figure out
-             * First step seems to always be a special value for the decoder, unsure of meaning.
-             * 0 = too quiet and max = 88 = waveform starts a bit off and clicky. First hist is usually +-1,
-             * other frames look, fine not sure what are they aiming for.
-             */
+             /* First step is always 0x500, not sure if it's a bug or a feature but the game just takes it as is and
+              * ends up reading 0 from out-of-bounds memory area which causes a pop at the start. Yikes.
+              * It gets clampled later so the rest of the sound plays ok.
+              * We put 89 here as our special index which contains 0 to simulate this.
+              */
             if (vgmstream->ch[i].adpcm_step_index == 0x500) {
-                vgmstream->ch[i].adpcm_step_index = 88;
+                vgmstream->ch[i].adpcm_step_index = 89;
             }
         }
     }
