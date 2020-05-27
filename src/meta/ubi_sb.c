@@ -2013,6 +2013,11 @@ static int parse_offsets(ubi_sb_header* sb, STREAMFILE* sf) {
                             break;
                         }
                     }
+
+                    if (k == table2_num) {
+                        VGM_LOG("UBI SM: Failed to find group %d in map %s\n", sb->group_id, sb->map_name);
+                        goto fail;
+                    }
                     break;
                 }
             }
