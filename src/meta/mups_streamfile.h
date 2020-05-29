@@ -11,7 +11,7 @@ static inline int32_t max32(int32_t val1, int32_t val2) {
 static void read_callback(uint8_t* dst, deblock_io_data* data, size_t block_pos, size_t read_size) {
     static const uint8_t oggs[] = { 0x4F, 0x67, 0x67, 0x53 };
     static const uint8_t vorbis[] = { 0x76, 0x6F, 0x72, 0x62, 0x69, 0x73 };
-    int i, j, min, max;
+    int i, min, max;
 
     /* Swaps Xiph magic words back (resulting page checksum is ok).
      * Reads can start/end anywhere, but block_pos = 0 is always page start */
@@ -41,7 +41,7 @@ static void read_callback(uint8_t* dst, deblock_io_data* data, size_t block_pos,
         if (max > 0x23)
             max = 0x23;
 
-        for (i = min; i < max; i++, j++) {
+        for (i = min; i < max; i++) {
             dst[i] = vorbis[i - 0x1d];
         }
     }
