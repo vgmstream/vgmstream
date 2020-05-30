@@ -351,6 +351,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_ubi_sb,
     init_vgmstream_ubi_sm,
     init_vgmstream_ubi_bnm,
+    init_vgmstream_ubi_dat,
     init_vgmstream_ubi_blk,
     init_vgmstream_ezw,
     init_vgmstream_vxn,
