@@ -17,7 +17,7 @@ VGMSTREAM * init_vgmstream_ffmpeg_offset(STREAMFILE *streamFile, uint64_t start,
     VGMSTREAM *vgmstream = NULL;
     ffmpeg_codec_data *data = NULL;
     int loop_flag = 0;
-    int32_t loop_start = 0, loop_end = 0, num_samples = 0;
+    int32_t loop_start = -1, loop_end = -1, num_samples = 0;
     int total_subsongs, target_subsong = streamFile->stream_index;
 
     /* no checks */
@@ -48,6 +48,48 @@ VGMSTREAM * init_vgmstream_ffmpeg_offset(STREAMFILE *streamFile, uint64_t start,
             /* FFmpeg can't always determine totalSamples correctly so optionally load it (can be 0/NULL)
              * won't crash and will output silence if no loop points and bigger than actual stream's samples */
             num_samples = get_32bitLE(posbuf+8);
+        } else {
+            char* endptr;
+            AVDictionary *streamMetadata = data->formatCtx->streams[streamFile->stream_index]->metadata;
+
+            // Try to detect the loop flags based on current file metadata
+            AVDictionaryEntry *avLoopStart = av_dict_get(streamMetadata, "LoopStart", NULL, AV_DICT_IGNORE_SUFFIX);
+            if (avLoopStart != NULL) {
+                loop_start = strtol(avLoopStart->value, &endptr, 10);
+                loop_flag = 1;
+            }
+
+            AVDictionaryEntry *avLoopEnd = av_dict_get(streamMetadata, "LoopEnd", NULL, AV_DICT_IGNORE_SUFFIX);
+            if (avLoopEnd != NULL) {
+                loop_end = strtol(avLoopEnd->value, &endptr, 10);
+                loop_flag = 1;
+            }
+
+            if (loop_flag) {
+                if (loop_end <= 0) {
+                    // Detected a loop, but loop_end is still undefined or wrong. Try to calculate it.
+                    AVDictionaryEntry *avLoopLength = av_dict_get(streamMetadata, "LoopLength", NULL, AV_DICT_IGNORE_SUFFIX);
+                    if (avLoopLength != NULL) {
+                        int loop_length = strtol(avLoopLength->value, &endptr, 10);
+
+                        if (loop_start != -1) loop_end = loop_start + loop_length;
+                    }
+                }
+
+                if (loop_end <= 0) {
+                    // Looks a calculation was not possible, or tag value is wrongly set. Use the end of track as end value
+                    loop_end = data->totalSamples;
+                }
+
+                if (loop_start <= 0) {
+                    // Weird edge case: loopend is defined and there's a loop, but loopstart was never defined. Reset to sane value
+                    loop_start = 0;
+                }
+            } else {
+                // Every other attempt to detect loop information failed, reset start/end flags to sane values
+                loop_start = 0;
+                loop_end = 0;
+            }
         }
     }
 
