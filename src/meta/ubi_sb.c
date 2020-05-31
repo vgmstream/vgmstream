@@ -25,7 +25,8 @@ typedef struct {
     off_t audio_stream_offset;
     off_t audio_stream_type;
     off_t audio_group_id;
-    off_t audio_external_flag;
+    off_t audio_streamed_flag;
+    off_t audio_cd_streamed_flag;
     off_t audio_loop_flag;
     off_t audio_loc_flag;
     off_t audio_stereo_flag;
@@ -37,7 +38,8 @@ typedef struct {
     off_t audio_extra_name;
     off_t audio_xma_offset;
     off_t audio_pitch;
-    int audio_external_and;
+    int audio_streamed_and;
+    int audio_cd_streamed_and;
     int audio_loop_and;
     int audio_group_and;
     int audio_loc_and;
@@ -115,6 +117,7 @@ typedef struct {
     int is_map;
     int is_bnm;
     int is_dat;
+    int is_ps2_bnm;
     int is_blk;
     STREAMFILE* sf_header;
     uint32_t version;           /* 16b+16b major+minor version */
@@ -135,6 +138,10 @@ typedef struct {
     /* extra table, config for certain types (DSP coefs, external resources, layer headers, etc) */
     size_t sectionX_size;
     off_t sectionX_offset;
+    /* sound bank size */
+    size_t bank_size;
+    /* BNM bank number */
+    int bank_number;
     /* unknown, usually -1 but can be others (0/1/2/etc) */
     int flag1;
     int flag2;
@@ -173,7 +180,8 @@ typedef struct {
 
     float duration;             /* silence duration */
 
-    int is_external;            /* stream is in a external file */
+    int is_streamed;            /* stream is in a external file */
+    int is_cd_streamed;         /* found in PS2 BNM */
     char resource_name[0x28];   /* filename to the external stream, or internal stream info for some games */
 
     char readable_name[255];    /* final subsong name */
@@ -182,6 +190,7 @@ typedef struct {
 } ubi_sb_header;
 
 static int parse_bnm_header(ubi_sb_header* sb, STREAMFILE* sf);
+static int parse_bnm_ps2_header(ubi_sb_header* sb, STREAMFILE* sf);
 static int parse_dat_header(ubi_sb_header *sb, STREAMFILE *sf);
 static int parse_header(ubi_sb_header* sb, STREAMFILE* sf, off_t offset, int index);
 static int parse_sb(ubi_sb_header* sb, STREAMFILE* sf, int target_subsong);
@@ -442,15 +451,15 @@ static int parse_bnm_header(ubi_sb_header* sb, STREAMFILE* sf) {
     /* SBx layout: header, section1, section2, extra section, section3, data (all except header can be null) */
     sb->is_bnm = 1;
     sb->version          = read_32bit(0x00, sf);
+    if (!config_sb_version(sb, sf))
+        goto fail;
+
     sb->section1_offset  = read_32bit(0x04, sf);
     sb->section1_num     = read_32bit(0x08, sf);
     sb->section2_offset  = read_32bit(0x0c, sf);
     sb->section2_num     = read_32bit(0x10, sf);
     sb->section3_offset  = read_32bit(0x14, sf);
     sb->section3_num     = 0;
-
-    if (!config_sb_version(sb, sf))
-        goto fail;
 
     sb->sectionX_offset  = sb->section2_offset + sb->section2_num * sb->cfg.section2_entry_size;
     sb->sectionX_size    = sb->section3_offset - sb->sectionX_offset;
@@ -465,6 +474,8 @@ static void get_ubi_bank_name(ubi_sb_header *sb, STREAMFILE *sf, int bank_number
         sprintf(bank_name, "Bnk_%i.bnm", bank_number);
     } else if (sb->is_dat) {
         sprintf(bank_name, "BNK_%i.DAT", bank_number);
+    } else if (sb->is_ps2_bnm) {
+        sprintf(bank_name, "BNK_%i.BNM", bank_number);
     }
 }
 
@@ -482,7 +493,7 @@ static int bnm_parse_offsets(ubi_sb_header *sb, STREAMFILE *sf) {
     int32_t(*read_32bit)(off_t, STREAMFILE *) = sb->big_endian ? read_32bitBE : read_32bitLE;
     uint32_t block_offset;
 
-    if (sb->is_external)
+    if (sb->is_streamed)
         return 1;
 
     /* sounds are split into groups based on resource type and codec, the order is hardcoded */
@@ -520,6 +531,72 @@ static int bnm_parse_offsets(ubi_sb_header *sb, STREAMFILE *sf) {
     }
 
     sb->stream_offset += block_offset;
+
+    return 1;
+fail:
+    return 0;
+}
+
+/* .BNM - used in the earliest PS2 games */
+VGMSTREAM *init_vgmstream_ubi_bnm_ps2(STREAMFILE *sf) {
+    VGMSTREAM *vgmstream = NULL;
+    STREAMFILE *sf_index = NULL;
+    ubi_sb_header sb = { 0 };
+    int target_subsong = sf->stream_index;
+
+    if (target_subsong <= 0) target_subsong = 1;
+
+    /* checks */
+    if (!check_extensions(sf, "bnm"))
+        goto fail;
+
+    if (!parse_bnm_ps2_header(&sb, sf))
+        goto fail;
+
+    /* use smaller header buffer for performance */
+    sf_index = reopen_streamfile(sf, 0x100);
+    if (!sf_index) goto fail;
+
+    if (!parse_sb(&sb, sf_index, target_subsong))
+        goto fail;
+
+    /* CREATE VGMSTREAM */
+    vgmstream = init_vgmstream_ubi_sb_header(&sb, sf_index, sf);
+    close_streamfile(sf_index);
+    return vgmstream;
+
+fail:
+    close_streamfile(sf_index);
+    return NULL;
+}
+
+static int parse_bnm_ps2_header(ubi_sb_header* sb, STREAMFILE* sf) {
+    int32_t(*read_32bit)(off_t, STREAMFILE*) = NULL;
+
+    sb->platform = UBI_PS2;
+    sb->big_endian = 0;
+    read_32bit = sb->big_endian ? read_32bitBE : read_32bitLE;
+
+    /* SB HEADER */
+    /* SBx layout: header, section1, section2, extra section, section3, data (all except header can be null) */
+    sb->is_ps2_bnm = 1;
+    sb->version          = read_32bit(0x00, sf);
+    if (sb->version != 0x32787370) /* "psx2" */
+        goto fail;
+
+    if (!config_sb_version(sb, sf))
+        goto fail;
+
+    sb->bank_number      = read_32bit(0x04, sf);
+    sb->section1_offset  = read_32bit(0x08, sf);
+    sb->section1_num     = read_32bit(0x0c, sf);
+    sb->section2_offset  = read_32bit(0x10, sf);
+    sb->section2_num     = read_32bit(0x14, sf);
+    sb->sectionX_offset  = read_32bit(0x18, sf);
+    sb->bank_size        = read_32bit(0x1c, sf);
+    sb->flag1            = read_32bit(0x20, sf);
+
+    sb->sectionX_size    = sb->bank_size - sb->sectionX_offset;
 
     return 1;
 fail:
@@ -594,7 +671,7 @@ static VGMSTREAM *init_vgmstream_ubi_dat_main(ubi_sb_header *sb, STREAMFILE *sf)
     VGMSTREAM *vgmstream = NULL;
     STREAMFILE *sf_data = NULL;
 
-    if (sb->is_external) {
+    if (sb->is_streamed) {
         sf_data = open_streamfile_by_filename(sf, sb->resource_name);
         if (!sf_data) {
             VGM_LOG("UBI DAT: no matching KAT found\n");
@@ -606,7 +683,7 @@ static VGMSTREAM *init_vgmstream_ubi_dat_main(ubi_sb_header *sb, STREAMFILE *sf)
      * on their metadata, that's why we're handling this here, separately from other types */
     switch (sb->stream_type) {
         case 0x01: {
-            if (!sb->is_external) { /* Dreamcast bank */
+            if (!sb->is_streamed) { /* Dreamcast bank */
                 if (sb->version == 0x00000000) {
                     uint32_t entry_offset, start_offset, num_samples, codec;
                     uint8_t buf[4];
@@ -617,7 +694,7 @@ static VGMSTREAM *init_vgmstream_ubi_dat_main(ubi_sb_header *sb, STREAMFILE *sf)
                         goto fail;
                     }
 
-                    /* hacky handdling of OSB bank, need to eventually write a full parser once
+                    /* FIXME: hacky handling of OSB bank, need to eventually write a full parser once
                      * the format is fully cracked */
                     entry_offset = read_32bitLE(0x10 + sb->subbank_index * 0x04, sf_data);
 
@@ -686,7 +763,7 @@ static VGMSTREAM *init_vgmstream_ubi_dat_main(ubi_sb_header *sb, STREAMFILE *sf)
             break;
         }
         case 0x04: { /* standard WAV */
-            if (!sb->is_external) {
+            if (!sb->is_streamed) {
                 VGM_LOG("Ubi DAT: Found RAM stream_type 0x04\n");
                 goto fail;
             }
@@ -803,8 +880,9 @@ static int blk_parse_offsets(ubi_sb_header* sb) {
     int32_t(*read_32bit)(off_t, STREAMFILE*) = sb->big_endian ? read_32bitBE : read_32bitLE;
 
     /* correct offsets */
-    if (sb->is_external) {
-        sb->stream_offset *= sb->cfg.audio_interleave;
+    if (sb->is_streamed) {
+        /* offsets for streamed sounds are stored in sectors */
+        sb->stream_offset *= 0x800;
     } else {
         STREAMFILE* sf_snd = NULL;
 
@@ -836,7 +914,7 @@ static int blk_parse_offsets(ubi_sb_header* sb) {
 }
 
 static void blk_get_resource_name(ubi_sb_header* sb) {
-    if (sb->is_external) {
+    if (sb->is_streamed) {
         if (sb->is_localized) {
             strcpy(sb->resource_name, "STRLANG.BLK");
         } else {
@@ -921,9 +999,15 @@ static VGMSTREAM* init_vgmstream_ubi_sb_base(ubi_sb_header* sb, STREAMFILE* sf_h
         case RAW_PSX:
             vgmstream->coding_type = coding_PSX;
             vgmstream->layout_type = layout_interleave;
-            vgmstream->interleave_block_size =  (sb->cfg.audio_interleave) ?
-                            sb->cfg.audio_interleave :
-                            sb->stream_size / sb->channels;
+            if (sb->is_ps2_bnm) {
+                vgmstream->interleave_block_size = (sb->is_cd_streamed) ?
+                    sb->cfg.audio_interleave :
+                    sb->stream_size / sb->channels;
+            } else {
+                vgmstream->interleave_block_size = (sb->cfg.audio_interleave) ?
+                    sb->cfg.audio_interleave :
+                    sb->stream_size / sb->channels;
+            }
 
             if (vgmstream->num_samples == 0) { /* early PS2 games may not set it for internal streams */
                 vgmstream->num_samples = ps_bytes_to_samples(sb->stream_size, sb->channels);
@@ -1047,7 +1131,7 @@ static VGMSTREAM* init_vgmstream_ubi_sb_base(ubi_sb_header* sb, STREAMFILE* sf_h
             size_t bytes, chunk_size;
             off_t header_offset;
 
-            VGM_ASSERT(sb->is_external, "Ubi SB: Raw XMA used for external sound\n");
+            VGM_ASSERT(sb->is_streamed, "Ubi SB: Raw XMA used for streamed sound\n");
 
             /* get XMA header from extra section */
             chunk_size = 0x20;
@@ -1166,7 +1250,7 @@ static VGMSTREAM* init_vgmstream_ubi_sb_audio(ubi_sb_header* sb, STREAMFILE* sf_
         return init_vgmstream_ubi_dat_main(sb, sf);
 
     /* open external stream if needed */
-    if (sb->is_external || sb->is_blk) {
+    if (sb->is_streamed || sb->is_blk || sb->is_ps2_bnm) {
         sf_data = open_streamfile_by_filename(sf, sb->resource_name);
         if (sf_data == NULL) {
             VGM_LOG("UBI SB: external stream '%s' not found\n", sb->resource_name);
@@ -1210,7 +1294,7 @@ static VGMSTREAM* init_vgmstream_ubi_sb_layer(ubi_sb_header* sb, STREAMFILE* sf_
     }
 
     /* open external stream if needed */
-    if (sb->is_external || sb->is_blk) {
+    if (sb->is_streamed || sb->is_blk) {
         sf_data = open_streamfile_by_filename(sf,sb->resource_name);
         if (sf_data == NULL) {
             VGM_LOG("UBI SB: external stream '%s' not found\n", sb->resource_name);
@@ -1302,7 +1386,7 @@ static VGMSTREAM* init_vgmstream_ubi_sb_sequence(ubi_sb_header* sb, STREAMFILE* 
 
 
         /* bnm sequences may use to entries from other banks, do some voodoo */
-        if (sb->is_bnm || sb->is_dat) {
+        if (sb->is_bnm || sb->is_dat || sb->is_ps2_bnm) {
             /* see if *current* bank has changed (may use a different bank N times) */
             if (is_other_bank(sb, sf_bank, sb->sequence_banks[i])) {
                 char bank_name[255];
@@ -1333,6 +1417,9 @@ static VGMSTREAM* init_vgmstream_ubi_sb_sequence(ubi_sb_header* sb, STREAMFILE* 
                     goto fail;
             } else if (sb->is_dat) {
                 if (!parse_dat_header(&temp_sb, sf_bank))
+                    goto fail;
+            } else if (sb->is_ps2_bnm) {
+                if (!parse_bnm_ps2_header(&temp_sb, sf_bank))
                     goto fail;
             }
             temp_sb.total_subsongs = 1; /* eh... just to keep parse_header happy */
@@ -1487,7 +1574,7 @@ static VGMSTREAM* init_vgmstream_ubi_sb_header(ubi_sb_header* sb, STREAMFILE* sf
 
     ;VGM_LOG("UBI SB: target at %x + %x, extra=%x, name=%s, g=%i, t=%i\n",
         (uint32_t)sb->header_offset, sb->cfg.section2_entry_size, (uint32_t)sb->extra_offset, sb->resource_name, sb->group_id, sb->stream_type);
-    ;VGM_LOG("UBI SB: stream offset=%x, size=%x, name=%s\n", (uint32_t)sb->stream_offset, sb->stream_size, sb->is_external ? sb->resource_name : "internal" );
+    ;VGM_LOG("UBI SB: stream offset=%x, size=%x, name=%s\n", (uint32_t)sb->stream_offset, sb->stream_size, sb->is_streamed ? sb->resource_name : "internal" );
 
     switch(sb->type) {
         case UBI_AUDIO:
@@ -1534,7 +1621,7 @@ static void build_readable_name(char * buf, size_t buf_size, ubi_sb_header* sb) 
     if (sb->is_map) {
         grp_name = sb->map_name;
     }
-    else if (sb->is_bnm) {
+    else if (sb->is_bnm || sb->is_ps2_bnm) {
         if (sb->sequence_multibank)
             grp_name = "bnm-multi";
         else
@@ -1574,7 +1661,7 @@ static void build_readable_name(char * buf, size_t buf_size, ubi_sb_header* sb) 
         }
     }
     else {
-        if (sb->is_external || sb->cfg.audio_has_internal_names || sb->is_blk)
+        if (sb->is_streamed || sb->cfg.audio_has_internal_names || sb->is_blk || sb->is_ps2_bnm)
             res_name = sb->resource_name;
         else
             res_name = NULL;
@@ -1596,6 +1683,48 @@ static void build_readable_name(char * buf, size_t buf_size, ubi_sb_header* sb) 
     }
 }
 
+static int parse_type_audio_ps2_bnm(ubi_sb_header *sb, off_t offset, STREAMFILE *sf) {
+    int32_t(*read_32bit)(off_t, STREAMFILE *) = sb->big_endian ? read_32bitBE : read_32bitLE;
+    int16_t(*read_16bit)(off_t, STREAMFILE *) = sb->big_endian ? read_16bitBE : read_16bitLE;
+
+    sb->stream_size     = read_32bit(offset + sb->cfg.audio_stream_size, sf);
+    sb->stream_offset   = read_32bit(offset + sb->cfg.audio_stream_offset, sf);
+    sb->channels        = read_8bit(offset + sb->cfg.audio_channels, sf);
+    sb->sample_rate     = read_16bit(offset + sb->cfg.audio_sample_rate, sf);
+
+    if (sb->stream_size == 0) {
+        VGM_LOG("UBI SB: bad stream size\n");
+        goto fail;
+    }
+
+    sb->is_streamed     = read_32bit(offset + sb->cfg.audio_streamed_flag, sf) & sb->cfg.audio_streamed_and;
+    sb->is_cd_streamed  = read_32bit(offset + sb->cfg.audio_cd_streamed_flag, sf) & sb->cfg.audio_cd_streamed_and;
+    sb->loop_flag       = read_32bit(offset + sb->cfg.audio_loop_flag, sf) & sb->cfg.audio_loop_and;
+
+    sb->num_samples     = 0; /* calculate from size */
+
+    if (!sb->is_cd_streamed) {
+        sb->stream_size *= sb->channels;
+    }
+
+    if (sb->is_streamed) {
+        if (sb->is_cd_streamed) {
+            /* streamed from CD */
+            sprintf(sb->resource_name, "BNK_%d.VSC", sb->bank_number);
+        } else {
+            /* streamed from RAM */
+            sprintf(sb->resource_name, "BNK_%d.VSB", sb->bank_number);
+        }
+    } else {
+        /* loaded fully into SPU memory */
+        sprintf(sb->resource_name, "BNK_%d.VB", sb->bank_number);
+    }
+
+    return 1;
+fail:
+    return 0;
+}
+
 static uint32_t ubi_ps2_pitch_to_freq(uint32_t pitch) {
     /* old PS2 games store sample rate in a weird range of 0-65536 remapped from 0-48000 */
     /* strangely, audio res type does have sample rate value but it's unused */
@@ -1608,33 +1737,33 @@ static int parse_type_audio_ps2_old(ubi_sb_header* sb, off_t offset, STREAMFILE*
     uint32_t pitch;
     uint32_t test_sample_rate;
 
-    sb->stream_size = read_32bit(offset + sb->cfg.audio_stream_size, sf);
-    sb->stream_offset = read_32bit(offset + sb->cfg.audio_stream_offset, sf);
+    sb->stream_size     = read_32bit(offset + sb->cfg.audio_stream_size, sf);
+    sb->stream_offset   = read_32bit(offset + sb->cfg.audio_stream_offset, sf);
 
     if (sb->stream_size == 0) {
         VGM_LOG("UBI SB: bad stream size\n");
         goto fail;
     }
 
-    pitch = read_32bit(offset + sb->cfg.audio_pitch, sf);
-    test_sample_rate = read_32bit(offset + sb->cfg.audio_sample_rate, sf);
-    sb->sample_rate = ubi_ps2_pitch_to_freq(pitch);
+    pitch               = read_32bit(offset + sb->cfg.audio_pitch, sf);
+    test_sample_rate    = read_32bit(offset + sb->cfg.audio_sample_rate, sf);
+    sb->sample_rate     = ubi_ps2_pitch_to_freq(pitch);
     VGM_ASSERT(sb->sample_rate != test_sample_rate, "UBI SB: Converted PS2 sample rate mismatch (%d = %d vs %d)\n", pitch, sb->sample_rate, test_sample_rate);
 
-    sb->is_external = read_32bit(offset + sb->cfg.audio_external_flag, sf) & sb->cfg.audio_external_and;
-    sb->loop_flag = read_32bit(offset + sb->cfg.audio_loop_flag, sf) & sb->cfg.audio_loop_and;
-    sb->is_localized = read_32bit(offset + sb->cfg.audio_loc_flag, sf) & sb->cfg.audio_loc_and;
-    sb->is_stereo = read_32bit(offset + sb->cfg.audio_stereo_flag, sf) & sb->cfg.audio_stereo_and;
+    sb->is_streamed     = read_32bit(offset + sb->cfg.audio_streamed_flag, sf) & sb->cfg.audio_streamed_and;
+    sb->loop_flag       = read_32bit(offset + sb->cfg.audio_loop_flag, sf) & sb->cfg.audio_loop_and;
+    sb->is_localized    = read_32bit(offset + sb->cfg.audio_loc_flag, sf) & sb->cfg.audio_loc_and;
+    sb->is_stereo       = read_32bit(offset + sb->cfg.audio_stereo_flag, sf) & sb->cfg.audio_stereo_and;
 
-    sb->num_samples = 0; /* calculate from size */
-    sb->channels = sb->is_stereo ? 2 : 1;
-    sb->stream_size *= sb->channels;
-    sb->group_id = 0;
+    sb->num_samples     = 0; /* calculate from size */
+    sb->channels        = sb->is_stereo ? 2 : 1;
+    sb->stream_size     *= sb->channels;
+    sb->group_id        = 0;
 
     /* filenames are hardcoded */
     if (sb->is_blk) {
         blk_get_resource_name(sb);
-    } else if (sb->is_external) {
+    } else if (sb->is_streamed) {
         strcpy(sb->resource_name, sb->is_localized ? "STRM.LM1" : "STRM.SM1");
     }
 
@@ -1671,7 +1800,7 @@ static int parse_type_layer_ps2_old(ubi_sb_header* sb, off_t offset, STREAMFILE*
     /* filenames are hardcoded */
     if (sb->is_blk) {
         blk_get_resource_name(sb);
-    } else if (sb->is_external) {
+    } else if (sb->is_streamed) {
         strcpy(sb->resource_name, sb->is_localized ? "STRM.LM1" : "STRM.SM1");
     }
 
@@ -1686,6 +1815,9 @@ static int parse_type_audio(ubi_sb_header* sb, off_t offset, STREAMFILE* sf) {
 
     /* audio header */
     sb->type = UBI_AUDIO;
+
+    if (sb->is_ps2_bnm)
+        return parse_type_audio_ps2_bnm(sb, offset, sf);
 
     if (sb->is_ps2_old)
         return parse_type_audio_ps2_old(sb, offset, sf);
@@ -1704,13 +1836,13 @@ static int parse_type_audio(ubi_sb_header* sb, off_t offset, STREAMFILE* sf) {
         goto fail;
     }
 
-    sb->is_external = read_32bit(offset + sb->cfg.audio_external_flag, sf) & sb->cfg.audio_external_and;
+    sb->is_streamed = read_32bit(offset + sb->cfg.audio_streamed_flag, sf) & sb->cfg.audio_streamed_and;
 
-    /* hack for Donald Duck Demo, there are some external APM sounds that don't have the flag set */
-    if (sb->is_bnm && sb->version == 0x00000000 && sb->stream_type == 0x04 && !sb->is_external) {
-        /* check the header for whether there are actually any internal APM sounds */
+    /* hack for Donald Duck Demo, there are some streamed APM sounds that don't have the flag set */
+    if (sb->is_bnm && sb->version == 0x00000000 && sb->stream_type == 0x04 && !sb->is_streamed) {
+        /* check the header for whether there are actually any RAM APM sounds */
         if (read_32bit(0x24, sf) - read_32bit(0x20, sf) == 0x00)
-            sb->is_external = 1;
+            sb->is_streamed = 1;
     }
 
     if (sb->cfg.audio_group_id && sb->cfg.audio_group_and) {
@@ -1749,7 +1881,7 @@ static int parse_type_audio(ubi_sb_header* sb, off_t offset, STREAMFILE* sf) {
 
     /* external stream name can be found in the header (first versions) or the sectionX table (later versions) */
     if (sb->cfg.audio_stream_name) {
-        if (sb->is_dat && !sb->is_external) {
+        if (sb->is_dat && !sb->is_streamed) {
             sb->subbank_index = read_8bit(offset + sb->cfg.audio_stream_name + 0x01, sf);
         } else {
             read_string(sb->resource_name, sb->cfg.resource_name_size, offset + sb->cfg.audio_stream_name, sf);
@@ -1799,7 +1931,7 @@ static int parse_type_sequence(ubi_sb_header* sb, off_t offset, STREAMFILE* sf) 
         uint32_t entry_number = (uint32_t)read_32bit(table_offset+sb->cfg.sequence_entry_number, sf);
 
         /* bnm sequences may refer to entries from different banks, whee */
-        if (sb->is_bnm || sb->is_dat) {
+        if (sb->is_bnm || sb->is_dat || sb->is_ps2_bnm) {
             int16_t bank_number = (entry_number >> 16) & 0xFFFF;
             entry_number        = (entry_number >> 00) & 0xFFFF;
 
@@ -1845,8 +1977,8 @@ static int parse_type_layer(ubi_sb_header* sb, off_t offset, STREAMFILE* sf) {
         goto fail;
     }
 
-    /* all layers seem external */
-    sb->is_external = 1;
+    /* all layers seem streamed */
+    sb->is_streamed = 1;
 
     if (sb->is_ps2_old)
         return parse_type_layer_ps2_old(sb, offset, sf);
@@ -2042,7 +2174,7 @@ static int parse_stream_codec(ubi_sb_header* sb) {
         return 1;
     }
 
-    if (sb->is_ps2_old) {
+    if (sb->is_ps2_bnm || sb->is_ps2_old) {
         /* early PS2 games don't support different codecs, it's always PSX ADPCM */
         sb->codec = RAW_PSX;
         return 1;
@@ -2177,24 +2309,33 @@ fail:
 /* find actual stream offset in section3 */
 static int parse_offsets(ubi_sb_header* sb, STREAMFILE* sf) {
     int32_t (*read_32bit)(off_t,STREAMFILE*) = sb->big_endian ? read_32bitBE : read_32bitLE;
-    int i, j, k;
+    uint32_t i, j, k;
 
     if (sb->type == UBI_SEQUENCE)
         return 1;
+
+    if (sb->is_bnm)
+        return bnm_parse_offsets(sb, sf);
 
     /* handled separately */
     if (sb->is_dat)
         return 1;
 
-    if (sb->is_bnm)
-        return bnm_parse_offsets(sb, sf);
+    if (sb->is_ps2_bnm) {
+        if (sb->is_cd_streamed) {
+            /* offsets for CD streams are stored in sectors */
+            sb->stream_offset *= 0x800;
+        }
+
+        return 1;
+    }
 
     if (sb->is_blk)
         return blk_parse_offsets(sb);
 
     VGM_ASSERT(!sb->is_map && sb->section3_num > 2, "UBI SB: section3 > 2 found\n");
 
-    if (sb->is_external)
+    if (sb->is_streamed)
         return 1;
 
     /* Internal sounds are split into codec groups, with their offsets being relative to group start.
@@ -2211,13 +2352,14 @@ static int parse_offsets(ubi_sb_header* sb, STREAMFILE* sf) {
          * 0x0c: table 2 offset
          * 0x10: table 2 entries
          * table 1 - for each entry:
-         * 0x00: sec2 entry index
-         * 0x04: sound offset
+         *   0x00: sec2 entry index
+         *   0x04: sound offset
          * table 2 - for each entry:
-         * 0x00 - group ID
-         * 0x04 - size with padding included
-         * 0x08 - size without padding
-         * 0x0c - absolute group offset */
+         *   0x00 - group ID
+         *   0x04 - size with padding included
+         *   0x08 - size without padding
+         *   0x0c - absolute group offset
+         */
 
         for (i = 0; i < sb->section3_num; i++) {
             off_t offset = sb->section3_offset + 0x14 * i;
@@ -2456,31 +2598,40 @@ static void config_sb_entry(ubi_sb_header* sb, size_t section1_size_entry, size_
     sb->cfg.section2_entry_size     = section2_size_entry;
     sb->cfg.section3_entry_size     = 0x08;
 }
-static void config_sb_audio_fs(ubi_sb_header* sb, off_t external_flag, off_t group_id, off_t loop_flag) {
+static void config_sb_audio_fs(ubi_sb_header* sb, off_t streamed_flag, off_t group_id, off_t loop_flag) {
     /* audio header with standard flags */
-    sb->cfg.audio_external_flag     = external_flag;
+    sb->cfg.audio_streamed_flag     = streamed_flag;
     sb->cfg.audio_group_id          = group_id;
     sb->cfg.audio_loop_flag         = loop_flag;
-    sb->cfg.audio_external_and      = 1;
+    sb->cfg.audio_streamed_and      = 1;
     sb->cfg.audio_group_and         = 1;
     sb->cfg.audio_loop_and          = 1;
 }
-static void config_sb_audio_fb(ubi_sb_header* sb, off_t flag_bits, int external_and, int group_and, int loop_and) {
+static void config_sb_audio_fb(ubi_sb_header* sb, off_t flag_bits, int streamed_and, int ram_streamed_and, int loop_and) {
     /* audio header with bit flags */
-    sb->cfg.audio_external_flag     = flag_bits;
+    sb->cfg.audio_streamed_flag     = flag_bits;
     sb->cfg.audio_group_id          = flag_bits;
     sb->cfg.audio_loop_flag         = flag_bits;
-    sb->cfg.audio_external_and      = external_and;
-    sb->cfg.audio_group_and         = group_and;
+    sb->cfg.audio_streamed_and      = streamed_and;
+    sb->cfg.audio_group_and         = ram_streamed_and;
     sb->cfg.audio_loop_and          = loop_and;
 }
-static void config_sb_audio_ps2_old(ubi_sb_header* sb, off_t flag_bits, int external_and, int loop_and, int loc_and, int stereo_and, off_t pitch, off_t sample_rate) {
+static void config_sb_audio_fb_ps2_bnm(ubi_sb_header *sb, off_t flag_bits, int streamed_and, int cd_streamed_and, int loop_and) {
+    /* audio header with standard flags */
+    sb->cfg.audio_streamed_flag     = flag_bits;
+    sb->cfg.audio_cd_streamed_flag  = flag_bits;
+    sb->cfg.audio_loop_flag         = flag_bits;
+    sb->cfg.audio_streamed_and      = streamed_and;
+    sb->cfg.audio_cd_streamed_and   = cd_streamed_and;
+    sb->cfg.audio_loop_and          = loop_and;
+}
+static void config_sb_audio_ps2_old(ubi_sb_header* sb, off_t flag_bits, int streamed_and, int loop_and, int loc_and, int stereo_and, off_t pitch, off_t sample_rate) {
     /* sample rate only, bit flags */
-    sb->cfg.audio_external_flag     = flag_bits;
+    sb->cfg.audio_streamed_flag     = flag_bits;
     sb->cfg.audio_loop_flag         = flag_bits;
     sb->cfg.audio_loc_flag          = flag_bits;
     sb->cfg.audio_stereo_flag       = flag_bits;
-    sb->cfg.audio_external_and      = external_and;
+    sb->cfg.audio_streamed_and      = streamed_and;
     sb->cfg.audio_loop_and          = loop_and;
     sb->cfg.audio_loc_and           = loc_and;
     sb->cfg.audio_stereo_and        = stereo_and;
@@ -2512,7 +2663,7 @@ static void config_sb_sequence(ubi_sb_header* sb, off_t sequence_count, off_t en
     sb->cfg.sequence_sequence_count = sequence_count;
     sb->cfg.sequence_entry_size     = entry_size;
     sb->cfg.sequence_entry_number   = 0x00;
-    if (sb->is_bnm || sb->is_dat) {
+    if (sb->is_bnm || sb->is_dat || sb->is_ps2_bnm) {
         sb->cfg.sequence_sequence_loop  = sequence_count - 0x0c;
         sb->cfg.sequence_sequence_single= sequence_count - 0x08;
     }
@@ -2701,6 +2852,15 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
 
         sb->cfg.random_extra_offset     = 0x10;
       //sb->cfg.random_extra_size       = 0x0c;
+    } else if (sb->is_ps2_bnm) {
+        sb->cfg.audio_stream_size       = 0x2c;
+        sb->cfg.audio_stream_offset     = 0x30;
+
+        sb->cfg.sequence_extra_offset   = 0x10;
+      //sb->cfg.sequence_extra_size     = 0x0c;
+
+        sb->cfg.random_extra_offset     = 0x10;
+      //sb->cfg.random_extra_size       = 0x0c;
     } else if (sb->version <= 0x00000007) {
         sb->cfg.audio_stream_size       = 0x0c;
         sb->cfg.audio_extra_offset      = 0x10;
@@ -2726,7 +2886,7 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
     sb->allowed_types[0x0d] = 1;
   //sb->allowed_types[0x08] = 1; /* only needed inside sequences */
   //sb->allowed_types[0x0f] = 1;
-    if (sb->is_bnm || sb->is_dat) {
+    if (sb->is_bnm || sb->is_dat || sb->is_ps2_bnm) {
       //sb->allowed_types[0x0a] = 1; /* only needed inside sequences */
         sb->allowed_types[0x0b] = 1;
         sb->allowed_types[0x09] = 1;
@@ -2860,6 +3020,23 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
         return 1;
     }
 
+    /* Rayman 2: Revolution (2000)(PS2)-bnm */
+    /* Disney's Dinosaur (2000)(PS2)-bnm */
+    /* Hype: The Time Quest (2001)(PS2)-bnm */
+    if (sb->version == 0x32787370 && sb->platform == UBI_PS2 && sb->is_ps2_bnm) {
+        sb->version = 0x00000003; /* for convenience */
+        config_sb_entry(sb, 0x1c, 0x44);
+
+        config_sb_audio_fb_ps2_bnm(sb, 0x18, (1 << 5), (1 << 6), (1 << 7));
+        config_sb_audio_hs(sb, 0x20, 0x22, 0x00, 0x00, 0x00, 0x1c);
+        sb->cfg.audio_interleave = 0x400;
+
+        config_sb_sequence(sb, 0x24, 0x14);
+
+        /* no layers */
+        return 1;
+    }
+
     /* Batman: Vengeance (2001)(PC)-map */
     /* Batman: Vengeance (2001)(Xbox)-map */
     if ((sb->version == 0x00000003 && sb->platform == UBI_PC) ||
@@ -2878,7 +3055,7 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
     }
 
     /* Donald Duck: Goin' Quackers (2000)(PS2)-blk */
-    /* The Jungle Book: Rhythm N'Groove (2003)(PS2)-blk */
+    /* The Jungle Book: Rhythm N'Groove (2001)(PS2)-blk */
     if (sb->version == 0x00000003 && sb->platform == UBI_PS2 && sb->is_blk) {
         config_sb_entry(sb, 0x20, 0x40);
 
@@ -2931,7 +3108,7 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
 
         config_sb_audio_fb(sb, 0x1c, (1 << 3), (1 << 6), (1 << 4)); //???
         config_sb_audio_hs(sb, 0x24, 0x28, 0x2c, 0x34, 0x44, 0x6c);
-        sb->cfg.audio_external_flag = 0x6c; /* no external flag? use codec as flag */
+        sb->cfg.audio_streamed_flag = 0x6c; /* no streamed flag? use codec as flag */
 
         config_sb_sequence(sb, 0x2c, 0x24);
         return 1;
@@ -3018,7 +3195,7 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
 
         if (is_sc2_ps2_gc) {
             sb->cfg.map_entry_size = 0x38;
-            sb->cfg.audio_external_and = 0x01000000; /* did somebody forget about BE? */
+            sb->cfg.audio_streamed_and = 0x01000000; /* did somebody forget about BE? */
         }
         return 1;
     }
