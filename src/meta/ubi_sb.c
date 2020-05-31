@@ -652,15 +652,23 @@ static int parse_dat_header(ubi_sb_header *sb, STREAMFILE *sf) {
     if (!config_sb_version(sb, sf))
         goto fail;
 
-    sb->section1_offset = read_32bit(0x04, sf);
-    sb->section1_num = read_32bit(0x08, sf);
-    sb->section2_offset = read_32bit(0x0c, sf);
-    sb->section2_num = read_32bit(0x10, sf);
-    sb->section3_offset = read_32bit(0x14, sf);
-    sb->section3_num = 0;
+    sb->section1_offset     = read_32bit(0x04, sf);
+    sb->section1_num        = read_32bit(0x08, sf);
+    sb->section2_offset     = read_32bit(0x0c, sf);
+    sb->section2_num        = read_32bit(0x10, sf);
+    sb->bank_size           = read_32bit(0x14, sf);
 
-    sb->sectionX_offset = sb->section2_offset + sb->section2_num * sb->cfg.section2_entry_size;
-    sb->sectionX_size = sb->section3_offset - sb->sectionX_offset;
+    if (sb->section1_offset != 0x18)
+        goto fail;
+
+    if (sb->section2_offset != sb->section1_offset + sb->section1_num * sb->cfg.section1_entry_size)
+        goto fail;
+
+    if (sb->bank_size != get_streamfile_size(sf))
+        goto fail;
+
+    sb->sectionX_offset     = sb->section2_offset + sb->section2_num * sb->cfg.section2_entry_size;
+    sb->sectionX_size       = sb->bank_size - sb->sectionX_offset;
 
     return 1;
 fail:
