@@ -330,12 +330,12 @@ class TxtpMaker(object):
     def get_stream_mask(self, layer):
         cfg = self.cfg
 
-        mask = '#c'
+        mask = '#C'
 
-        loops = cfg.layers
+        loops = cfg.layers + 1
         if layer + cfg.layers > self.channels:
             loops = self.channels - cfg.layers
-        for ch in range(0,loops):
+        for ch in range(1,loops):
             mask += str(layer+ch) + ','
 
         mask = mask[:-1]
