@@ -351,6 +351,8 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_ubi_sb,
     init_vgmstream_ubi_sm,
     init_vgmstream_ubi_bnm,
+    init_vgmstream_ubi_bnm_ps2,
+    init_vgmstream_ubi_dat,
     init_vgmstream_ubi_blk,
     init_vgmstream_ezw,
     init_vgmstream_vxn,
@@ -499,6 +501,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
 #ifdef VGM_USE_VORBIS
     init_vgmstream_mups,
 #endif
+    init_vgmstream_kat,
 
     /* lowest priority metas (should go after all metas, and TXTH should go before raw formats) */
     init_vgmstream_txth,            /* proper parsers should supersede TXTH, once added */

@@ -138,6 +138,7 @@ static const char* extension_list[] = {
     "cxs",
 
     "da",
+    "dat",
     "data",
     "dax",
     "dbm",
@@ -238,6 +239,7 @@ static const char* extension_list[] = {
     "joe",
     "jstm",
 
+    "kat",
     "kces",
     "kcey", //fake extension/header id for .pcm (renamed, to be removed)
     "khv", //fake extension/header id for .vas (renamed, to be removed)
@@ -1296,6 +1298,7 @@ static const meta_info meta_info_list[] = {
         {meta_DIVA,                 "DIVA header"},
         {meta_IMUSE,                "LucasArts iMUSE header"},
         {meta_KTSR,                 "Koei Tecmo KTSR header"},
+        {meta_KAT,                  "Sega KAT header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM *vgmstream, char *out, size_t out_size) {
