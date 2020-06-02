@@ -826,7 +826,7 @@ VGMSTREAM* init_vgmstream_ubi_blk(STREAMFILE* sf) {
      * - HEADER.BLK: base map header + submaps headers
      * - EVT.BLK: section1
      * - RES.BLK: section2 + sectionX
-     * - MAPS.BLK, MAPLANG.BLK: section3's for each map
+     * - MAP.BLK, MAPLANG.BLK: section3's for each map
      * - STREAMED.BLK, STRLANG.BLK: streamed sounds
      *
      * The format is different from SMx in that there's a single sec1 and sec2
@@ -1720,7 +1720,7 @@ static int parse_type_audio_ps2_bnm(ubi_sb_header *sb, off_t offset, STREAMFILE 
     sb->is_cd_streamed  = read_32bit(offset + sb->cfg.audio_cd_streamed_flag, sf) & sb->cfg.audio_cd_streamed_and;
     sb->loop_flag       = read_32bit(offset + sb->cfg.audio_loop_flag, sf) & sb->cfg.audio_loop_and;
 
-    sb->num_samples     = 0; /* calculate from size */
+    sb->num_samples = 0; /* calculate from size */
 
     if (!sb->is_cd_streamed) {
         sb->stream_size *= sb->channels;
@@ -1774,10 +1774,10 @@ static int parse_type_audio_ps2_old(ubi_sb_header* sb, off_t offset, STREAMFILE*
     sb->is_localized    = read_32bit(offset + sb->cfg.audio_loc_flag, sf) & sb->cfg.audio_loc_and;
     sb->is_stereo       = read_32bit(offset + sb->cfg.audio_stereo_flag, sf) & sb->cfg.audio_stereo_and;
 
-    sb->num_samples     = 0; /* calculate from size */
-    sb->channels        = sb->is_stereo ? 2 : 1;
-    sb->stream_size     *= sb->channels;
-    sb->group_id        = 0;
+    sb->num_samples = 0; /* calculate from size */
+    sb->channels = sb->is_stereo ? 2 : 1;
+    sb->stream_size *= sb->channels;
+    sb->group_id = 0;
 
     /* filenames are hardcoded */
     if (sb->is_blk) {
@@ -1795,9 +1795,9 @@ static int parse_type_layer_ps2_old(ubi_sb_header* sb, off_t offset, STREAMFILE*
     int32_t(*read_32bit)(off_t, STREAMFILE*) = sb->big_endian ? read_32bitBE : read_32bitLE;
 
     /* much simpler than later iteration */
-    sb->layer_count = read_32bit(offset + sb->cfg.layer_layer_count, sf);
-    sb->stream_size = read_32bit(offset + sb->cfg.audio_stream_size, sf);
-    sb->stream_offset = read_32bit(offset + sb->cfg.audio_stream_offset, sf);
+    sb->layer_count     = read_32bit(offset + sb->cfg.layer_layer_count, sf);
+    sb->stream_size     = read_32bit(offset + sb->cfg.audio_stream_size, sf);
+    sb->stream_offset   = read_32bit(offset + sb->cfg.audio_stream_offset, sf);
 
     if (sb->stream_size == 0) {
         VGM_LOG("UBI SB: bad stream size\n");
@@ -1809,8 +1809,8 @@ static int parse_type_layer_ps2_old(ubi_sb_header* sb, off_t offset, STREAMFILE*
         goto fail;
     }
 
-    sb->sample_rate = ubi_ps2_pitch_to_freq(read_32bit(offset + sb->cfg.layer_pitch, sf));
-    sb->is_localized = read_32bit(offset + sb->cfg.layer_loc_flag, sf) & sb->cfg.layer_loc_and;
+    sb->sample_rate     = ubi_ps2_pitch_to_freq(read_32bit(offset + sb->cfg.layer_pitch, sf));
+    sb->is_localized    = read_32bit(offset + sb->cfg.layer_loc_flag, sf) & sb->cfg.layer_loc_and;
 
     sb->num_samples = 0; /* calculate from size */
     sb->channels = sb->layer_count * 2; /* layers are always stereo */
@@ -2625,13 +2625,13 @@ static void config_sb_audio_fs(ubi_sb_header* sb, off_t streamed_flag, off_t gro
     sb->cfg.audio_group_and         = 1;
     sb->cfg.audio_loop_and          = 1;
 }
-static void config_sb_audio_fb(ubi_sb_header* sb, off_t flag_bits, int streamed_and, int ram_streamed_and, int loop_and) {
+static void config_sb_audio_fb(ubi_sb_header* sb, off_t flag_bits, int streamed_and, int group_and, int loop_and) {
     /* audio header with bit flags */
     sb->cfg.audio_streamed_flag     = flag_bits;
     sb->cfg.audio_group_id          = flag_bits;
     sb->cfg.audio_loop_flag         = flag_bits;
     sb->cfg.audio_streamed_and      = streamed_and;
-    sb->cfg.audio_group_and         = ram_streamed_and;
+    sb->cfg.audio_group_and         = group_and;
     sb->cfg.audio_loop_and          = loop_and;
 }
 static void config_sb_audio_fb_ps2_bnm(ubi_sb_header *sb, off_t flag_bits, int streamed_and, int cd_streamed_and, int loop_and) {
@@ -2992,6 +2992,21 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
         return 1;
     }
 
+    /* The Jungle Book: Rhythm N'Groove (2000)(PC)-bnm */
+    if (sb->version == 0x00060409 && sb->platform == UBI_PC) {
+        config_sb_entry(sb, 0x24, 0x64);
+
+        config_sb_audio_fs(sb, 0x2c, 0x00, 0x30);
+        config_sb_audio_hs(sb, 0x4E, 0x48, 0x34, 0x34, 0x54, 0x50);
+        sb->cfg.audio_has_internal_names = 1;
+
+        config_sb_sequence(sb, 0x2c, 0x1c);
+
+        /* no layers */
+
+        return 1;
+    }
+
     /* not again... */
     if (sb->version == 0x00000000 && sb->platform == UBI_DC) {
         /* check if there's a matching KAT, crap but works */
@@ -3023,26 +3038,11 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
         return 1;
     }
 
-    /* The Jungle Book: Rhythm N'Groove (2000)(PC)-bnm */
-    if (sb->version == 0x00060409 && sb->platform == UBI_PC) {
-        config_sb_entry(sb, 0x24, 0x64);
-
-        config_sb_audio_fs(sb, 0x2c, 0x00, 0x30);
-        config_sb_audio_hs(sb, 0x4E, 0x48, 0x34, 0x34, 0x54, 0x50);
-        sb->cfg.audio_has_internal_names = 1;
-
-        config_sb_sequence(sb, 0x2c, 0x1c);
-
-        /* no layers */
-
-        return 1;
-    }
-
     /* Rayman 2: Revolution (2000)(PS2)-bnm */
     /* Disney's Dinosaur (2000)(PS2)-bnm */
     /* Hype: The Time Quest (2001)(PS2)-bnm */
     if (sb->version == 0x32787370 && sb->platform == UBI_PS2 && sb->is_ps2_bnm) {
-        sb->version = 0x00000003; /* for convenience */
+        sb->version = 0x00000000; /* for convenience */
         config_sb_entry(sb, 0x1c, 0x44);
 
         config_sb_audio_fb_ps2_bnm(sb, 0x18, (1 << 5), (1 << 6), (1 << 7));
