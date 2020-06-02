@@ -1864,16 +1864,11 @@ static int parse_type_audio(ubi_sb_header* sb, off_t offset, STREAMFILE* sf) {
             sb->is_streamed = 1;
     }
 
+    /* apparently, there may also be other group ids based on various flags but they were not seen so far */
     if (sb->cfg.audio_group_id && sb->cfg.audio_group_and) {
-        sb->group_id = read_32bit(offset + sb->cfg.audio_group_id, sf);
-        if (sb->cfg.audio_group_and) sb->group_id &= sb->cfg.audio_group_and;
-
-        /* normalize bitflag, known groups are only id 0/1 (if needed could calculate
-         * shift-right value here, based on cfg.audio_group_and first 1-bit) */
-        if (sb->group_id > 1)
-            sb->group_id = 1;
+        int group_flag = read_32bit(offset + sb->cfg.audio_group_id, sf) & sb->cfg.audio_group_and;
+        sb->group_id = (!group_flag) ? 0 : 1;
     } else {
-        /* apparently, there may also be group id 2 but it was not seen so far */
         sb->group_id = (sb->stream_type == 0x01) ? 0 : 1;
     }
 
