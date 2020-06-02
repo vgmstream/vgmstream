@@ -2260,6 +2260,7 @@ static int parse_stream_codec(ubi_sb_header* sb) {
             case 0x02:
                 switch (sb->platform) {
                     case UBI_PC:
+                    case UBI_XBOX:
                         sb->codec = UBI_ADPCM;
                         break;
                     case UBI_PS3:
