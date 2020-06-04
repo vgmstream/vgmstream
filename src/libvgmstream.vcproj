@@ -277,6 +277,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\fsb_encrypted_streamfile.h"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\fsb_interleave_streamfile.h"
                     >
                 </File>

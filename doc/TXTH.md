@@ -845,7 +845,7 @@ JIN003.XAG: 0x180
 ```
 
 
-**Grandia (PS1) bgm.txth**
+#### Grandia (PS1) bgm.txth
 ```
 header_file       = GM1.IDX
 body_file         = GM1.STZ

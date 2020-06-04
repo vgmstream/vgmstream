@@ -21,12 +21,15 @@ VGMSTREAM* init_vgmstream_mups(STREAMFILE* sf) {
         goto fail;
 
     /* just an Ogg with changed OggS/vorbis words (see streamfile) */
-
     temp_sf = setup_mups_streamfile(sf, 0x08);
     if (!temp_sf) goto fail;
 
+#ifdef VGM_USE_VORBIS
     vgmstream = init_vgmstream_ogg_vorbis(temp_sf);
     if (!vgmstream) goto fail;
+#else
+    goto fail;
+#endif
 
     close_streamfile(temp_sf);
 

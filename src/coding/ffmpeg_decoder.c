@@ -941,4 +941,22 @@ void ffmpeg_set_force_seek(ffmpeg_codec_data * data) {
     //stream = data->formatCtx->streams[data->streamIndex];
 }
 
+const char* ffmpeg_get_metadata_value(ffmpeg_codec_data* data, const char* key) {
+    AVDictionary* avd;
+    AVDictionaryEntry* avde;
+
+    if (!data || !data->codec)
+        return NULL;
+
+    avd = data->formatCtx->streams[data->streamIndex]->metadata;
+    if (!avd)
+        return NULL;
+
+    avde = av_dict_get(avd, key, NULL, AV_DICT_IGNORE_SUFFIX);
+    if (!avde)
+        return NULL;
+
+    return avde->value;
+}
+
 #endif

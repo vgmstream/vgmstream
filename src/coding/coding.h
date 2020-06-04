@@ -348,6 +348,7 @@ uint32_t ffmpeg_get_channel_layout(ffmpeg_codec_data * data);
 void ffmpeg_set_channel_remapping(ffmpeg_codec_data * data, int *channels_remap);
 const char* ffmpeg_get_codec_name(ffmpeg_codec_data * data);
 void ffmpeg_set_force_seek(ffmpeg_codec_data * data);
+const char* ffmpeg_get_metadata_value(ffmpeg_codec_data* data, const char* key);
 
 
 /* ffmpeg_decoder_utils.c (helper-things) */

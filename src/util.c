@@ -61,8 +61,6 @@ void interleave_stereo(sample_t * buffer, int32_t sample_count) {
         else
             belongs = (tomove-sample_count)*2+1;
 
-        printf("move %d to %d\n",tomove,belongs);
-
         temp = buffer[belongs];
         buffer[belongs] = moving;
         moving = temp;
@@ -98,6 +96,14 @@ void put_32bitBE(uint8_t * buf, int32_t i) {
     buf[1] = (uint8_t)((i >> 16) & 0xFF);
     buf[2] = (uint8_t)((i >> 8) & 0xFF);
     buf[3] = (uint8_t)(i & 0xFF);
+}
+
+int round10(int val) {
+    int round_val = val % 10;
+    if (round_val < 5) /* half-down rounding */
+        return val - round_val;
+    else
+        return val + (10 - round_val);
 }
 
 void swap_samples_le(sample_t *buf, int count) {

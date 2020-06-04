@@ -111,6 +111,7 @@
     <ClInclude Include="meta\ea_eaac_streamfile.h" />
     <ClInclude Include="meta\ea_eaac_opus_streamfile.h" />
     <ClInclude Include="meta\ea_schl_streamfile.h" />
+    <ClInclude Include="meta\fsb_encrypted_streamfile.h" />
     <ClInclude Include="meta\fsb_interleave_streamfile.h" />
     <ClInclude Include="meta\fsb5_streamfile.h" />
     <ClInclude Include="meta\jstm_streamfile.h" />
