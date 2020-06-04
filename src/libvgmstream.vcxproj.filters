@@ -104,6 +104,9 @@
     <ClInclude Include="meta\ea_schl_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="meta\fsb_encrypted_streamfile.h">
+      <Filter>meta\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="meta\fsb_interleave_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
