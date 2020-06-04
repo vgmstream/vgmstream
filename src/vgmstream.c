@@ -498,9 +498,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_diva,
     init_vgmstream_imuse,
     init_vgmstream_ktsr,
-#ifdef VGM_USE_VORBIS
     init_vgmstream_mups,
-#endif
     init_vgmstream_kat,
 
     /* lowest priority metas (should go after all metas, and TXTH should go before raw formats) */
