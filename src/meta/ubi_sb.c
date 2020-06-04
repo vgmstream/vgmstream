@@ -3792,6 +3792,19 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
         return 1;
     }
 
+    /* Tom Clancy's Ghost Recon Advanced Warfighter 2 (2007)(X360)-bank */
+    if (sb->version == 0x0018000b && sb->platform == UBI_X360) {
+        config_sb_entry(sb, 0x68, 0x70);
+
+        config_sb_audio_fs(sb, 0x28, 0x2c, 0x30);
+        config_sb_audio_he(sb, 0x3c, 0x40, 0x48, 0x50, 0x58, 0x5c);
+        sb->cfg.audio_xma_offset = 0x68;
+
+        config_sb_sequence(sb, 0x2c, 0x14);
+
+        return 1;
+    }
+
     /* TMNT (2007)(PSP)-map 0x00190001 */
     /* Surf's Up (2007)(PSP)-map 0x00190005 */
     if ((sb->version == 0x00190001 && sb->platform == UBI_PSP) ||
@@ -3885,6 +3898,18 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
         config_sb_layer_sh(sb, 0x30, 0x00, 0x04, 0x08, 0x10);
 
         config_sb_silence_f(sb, 0x1c);
+        return 1;
+    }
+
+    /* Tom Clancy's Ghost Recon Advanced Warfighter 2 (2007)(PS3)-bank */
+    if (sb->version == 0x001A0003 && sb->platform == UBI_PS3) {
+        config_sb_entry(sb, 0x6c, 0x78);
+
+        config_sb_audio_fs(sb, 0x30, 0x34, 0x38);
+        config_sb_audio_he(sb, 0x40, 0x44, 0x4c, 0x54, 0x5c, 0x60);
+
+        config_sb_sequence(sb, 0x2c, 0x14);
+
         return 1;
     }
 
