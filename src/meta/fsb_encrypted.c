@@ -3,49 +3,49 @@
 
 #define FSB_KEY_MAX 128 /* probably 32 */
 
-static STREAMFILE* setup_fsb_streamfile(STREAMFILE *streamFile, const uint8_t * key, size_t key_size, int is_alt);
+static STREAMFILE* setup_fsb_streamfile(STREAMFILE* sf, const uint8_t* key, size_t key_size, int is_alt);
 
 
 /* fully encrypted FSBs */
-VGMSTREAM * init_vgmstream_fsb_encrypted(STREAMFILE * streamFile) {
-    VGMSTREAM * vgmstream = NULL;
+VGMSTREAM* init_vgmstream_fsb_encrypted(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
 
     /* checks */
     /* .fsb: standard
-     * .fsb.xen: various Guitar Hero (X360) */
-    if ( !check_extensions(streamFile, "fsb,xen") )
+     * .fsb.xen: various Guitar Hero (X360/PC) */
+    if (!check_extensions(sf, "fsb,xen"))
         goto fail;
 
     /* ignore non-encrypted FSB */
-    if ((read_32bitBE(0x00,streamFile) & 0xFFFFFF00) == 0x46534200) /* "FSB\0" */
+    if ((read_u32be(0x00,sf) & 0xFFFFFF00) == 0x46534200) /* "FSB\0" */
         goto fail;
 
 
     /* try fsbkey + all combinations of FSB4/5 and decryption algorithms */
     {
-        STREAMFILE *temp_streamFile = NULL;
+        STREAMFILE* temp_sf = NULL;
         uint8_t key[FSB_KEY_MAX];
-        size_t key_size = read_key_file(key, FSB_KEY_MAX, streamFile);
+        size_t key_size = read_key_file(key, FSB_KEY_MAX, sf);
 
         if (key_size) {
             {
-                temp_streamFile = setup_fsb_streamfile(streamFile, key,key_size, 0);
-                if (!temp_streamFile) goto fail;
+                temp_sf = setup_fsb_streamfile(sf, key,key_size, 0);
+                if (!temp_sf) goto fail;
 
-                if (!vgmstream) vgmstream = init_vgmstream_fsb(temp_streamFile);
-                if (!vgmstream) vgmstream = init_vgmstream_fsb5(temp_streamFile);
+                if (!vgmstream) vgmstream = init_vgmstream_fsb(temp_sf);
+                if (!vgmstream) vgmstream = init_vgmstream_fsb5(temp_sf);
 
-                close_streamfile(temp_streamFile);
+                close_streamfile(temp_sf);
             }
 
             if (!vgmstream) {
-                temp_streamFile = setup_fsb_streamfile(streamFile, key,key_size, 1);
-                if (!temp_streamFile) goto fail;
+                temp_sf = setup_fsb_streamfile(sf, key,key_size, 1);
+                if (!temp_sf) goto fail;
 
-                if (!vgmstream) vgmstream = init_vgmstream_fsb(temp_streamFile);
-                if (!vgmstream) vgmstream = init_vgmstream_fsb5(temp_streamFile);
+                if (!vgmstream) vgmstream = init_vgmstream_fsb(temp_sf);
+                if (!vgmstream) vgmstream = init_vgmstream_fsb5(temp_sf);
 
-                close_streamfile(temp_streamFile);
+                close_streamfile(temp_sf);
             }
         }
     }
@@ -54,22 +54,25 @@ VGMSTREAM * init_vgmstream_fsb_encrypted(STREAMFILE * streamFile) {
     /* try all keys until one works */
     if (!vgmstream) {
         int i;
-        STREAMFILE *temp_streamFile = NULL;
+        STREAMFILE* temp_sf = NULL;
 
         for (i = 0; i < fsbkey_list_count; i++) {
             fsbkey_info entry = fsbkey_list[i];
             //;VGM_LOG("fsbkey: size=%i, is_fsb5=%i, is_alt=%i\n", entry.fsbkey_size,entry.is_fsb5, entry.is_alt);
 
-            temp_streamFile = setup_fsb_streamfile(streamFile, entry.fsbkey, entry.fsbkey_size, entry.is_alt);
-            if (!temp_streamFile) goto fail;
+            temp_sf = setup_fsb_streamfile(sf, entry.fsbkey, entry.fsbkey_size, entry.is_alt);
+            if (!temp_sf) goto fail;
 
             if (fsbkey_list[i].is_fsb5) {
-                vgmstream = init_vgmstream_fsb5(temp_streamFile);
+                vgmstream = init_vgmstream_fsb5(temp_sf);
             } else {
-                vgmstream = init_vgmstream_fsb(temp_streamFile);
+                vgmstream = init_vgmstream_fsb(temp_sf);
             }
 
-            close_streamfile(temp_streamFile);
+            if (vgmstream)
+                dump_streamfile(temp_sf, 0);
+
+            close_streamfile(temp_sf);
             if (vgmstream) break;
         }
     }
@@ -92,7 +95,7 @@ typedef struct {
 } fsb_decryption_data;
 
 /* Encrypted FSB info from guessfsb and fsbext */
-static size_t fsb_decryption_read(STREAMFILE *streamfile, uint8_t *dest, off_t offset, size_t length, fsb_decryption_data* data) {
+static size_t fsb_decryption_read(STREAMFILE* sf, uint8_t *dest, off_t offset, size_t length, fsb_decryption_data* data) {
     static const unsigned char reverse_bits_table[] = { /* LUT to simplify, could use some bitswap function */
       0x00,0x80,0x40,0xC0,0x20,0xA0,0x60,0xE0,0x10,0x90,0x50,0xD0,0x30,0xB0,0x70,0xF0,
       0x08,0x88,0x48,0xC8,0x28,0xA8,0x68,0xE8,0x18,0x98,0x58,0xD8,0x38,0xB8,0x78,0xF8,
@@ -114,7 +117,7 @@ static size_t fsb_decryption_read(STREAMFILE *streamfile, uint8_t *dest, off_t o
     size_t bytes_read;
     int i;
 
-    bytes_read = streamfile->read(streamfile, dest, offset, length);
+    bytes_read = read_streamfile(dest, offset, length, sf);
 
     /* decrypt data (inverted bits and xor) */
     for (i = 0; i < bytes_read; i++) {
@@ -131,34 +134,22 @@ static size_t fsb_decryption_read(STREAMFILE *streamfile, uint8_t *dest, off_t o
     return bytes_read;
 }
 
-static STREAMFILE* setup_fsb_streamfile(STREAMFILE *streamFile, const uint8_t * key, size_t key_size, int is_alt) {
-    STREAMFILE *temp_streamFile = NULL, *new_streamFile = NULL;
+static STREAMFILE* setup_fsb_streamfile(STREAMFILE* sf, const uint8_t* key, size_t key_size, int is_alt) {
+    STREAMFILE* new_sf = NULL;
     fsb_decryption_data io_data = {0};
     size_t io_data_size = sizeof(fsb_decryption_data);
 
     /* setup decryption with key (external) */
-    if (!key_size || key_size > FSB_KEY_MAX) goto fail;
+    if (!key_size || key_size > FSB_KEY_MAX)
+        return NULL;
 
     memcpy(io_data.key, key, key_size);
     io_data.key_size = key_size;
     io_data.is_alt = is_alt;
 
     /* setup subfile */
-    new_streamFile = open_wrap_streamfile(streamFile);
-    if (!new_streamFile) goto fail;
-    temp_streamFile = new_streamFile;
-
-    new_streamFile = open_io_streamfile(temp_streamFile, &io_data,io_data_size, fsb_decryption_read,NULL);
-    if (!new_streamFile) goto fail;
-    temp_streamFile = new_streamFile;
-
-    new_streamFile = open_fakename_streamfile(temp_streamFile, NULL,"fsb");
-    if (!new_streamFile) goto fail;
-    temp_streamFile = new_streamFile;
-
-    return temp_streamFile;
-
-fail:
-    close_streamfile(temp_streamFile);
-    return NULL;
+    new_sf = open_wrap_streamfile(sf);
+    new_sf = open_io_streamfile_f(new_sf, &io_data,io_data_size, fsb_decryption_read,NULL);
+    new_sf = open_fakename_streamfile(new_sf, NULL,"fsb");
+    return new_sf;
 }
