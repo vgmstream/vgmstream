@@ -137,7 +137,6 @@ VGMSTREAM * init_vgmstream_hca_subkey(STREAMFILE *streamFile, uint16_t subkey);
 
 #ifdef VGM_USE_FFMPEG
 VGMSTREAM * init_vgmstream_ffmpeg(STREAMFILE *streamFile);
-VGMSTREAM * init_vgmstream_ffmpeg_offset(STREAMFILE *streamFile, uint64_t start, uint64_t size);
 
 VGMSTREAM * init_vgmstream_mp4_aac_ffmpeg(STREAMFILE * streamFile);
 #endif
