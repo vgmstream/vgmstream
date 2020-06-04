@@ -7,6 +7,8 @@
 #ifndef _UTIL_H
 #define _UTIL_H
 
+/* very common functions, so static inline in .h is useful to avoid some call overhead */
+
 /* host endian independent multi-byte integer reading */
 
 static inline int16_t get_16bitBE(uint8_t * p) {
@@ -91,13 +93,9 @@ static inline int clamp16(int32_t val) {
     else return val;
 }
 
-static inline int round10(int val) {
-    int round_val = val % 10;
-    if (round_val < 5) /* half-down rounding */
-        return val - round_val;
-    else
-        return val + (10 - round_val);
-}
+/* less common functions, no need to inline */
+
+int round10(int val);
 
 /* return a file's extension (a pointer to the first character of the
  * extension in the original filename or the ending null byte if no extension */
