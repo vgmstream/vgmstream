@@ -195,6 +195,7 @@ static int parse_dat_header(ubi_sb_header *sb, STREAMFILE *sf);
 static int parse_header(ubi_sb_header* sb, STREAMFILE* sf, off_t offset, int index);
 static int parse_sb(ubi_sb_header* sb, STREAMFILE* sf, int target_subsong);
 static VGMSTREAM* init_vgmstream_ubi_sb_header(ubi_sb_header* sb, STREAMFILE* sf_index, STREAMFILE* sf);
+static VGMSTREAM *init_vgmstream_ubi_sb_silence(ubi_sb_header *sb, STREAMFILE *sf_index, STREAMFILE *sf);
 static int config_sb_platform(ubi_sb_header* sb, STREAMFILE* sf);
 static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf);
 
@@ -476,7 +477,7 @@ static int bnm_parse_offsets(ubi_sb_header *sb, STREAMFILE *sf) {
     if (sb->is_streamed)
         return 1;
 
-    /* sounds are split into groups based on resource type and codec, the order is hardcoded */
+    /* sounds are split into subblock based on resource type and codec, the order is hardcoded */
     if (sb->version == 0x00000000 || sb->version == 0x00000200) {
         /* 0x14: MPDX, 0x18: MIDI, 0x1c: PCM, 0x20: APM, 0x24: streamed, 0x28: EOF */
         switch (sb->stream_type) {
@@ -506,7 +507,7 @@ static int bnm_parse_offsets(ubi_sb_header *sb, STREAMFILE *sf) {
                 goto fail;
         }
     } else {
-        VGM_LOG("UBI BNM: Unknown group offsets for version %08x", sb->version);
+        VGM_LOG("UBI BNM: Unknown subblock offsets for version %08x", sb->version);
         goto fail;
     }
 
@@ -623,11 +624,17 @@ fail:
     return 0;
 }
 
-static VGMSTREAM *init_vgmstream_ubi_dat_main(ubi_sb_header *sb, STREAMFILE *sf) {
+static VGMSTREAM *init_vgmstream_ubi_dat_main(ubi_sb_header *sb, STREAMFILE *sf_index, STREAMFILE *sf) {
     VGMSTREAM *vgmstream = NULL;
     STREAMFILE *sf_data = NULL;
 
     if (sb->is_streamed) {
+        if (strcmp(sb->resource_name, "silence.wav") == 0) {
+            /* some Rayman 2 banks reference non-existent silence.wav, looks like some kind of hack? */
+            sb->duration = (float)(sb->stream_size / sb->channels / 2) / (float)sb->sample_rate;
+            return init_vgmstream_ubi_sb_silence(sb, sf_index, sf);
+        }
+
         sf_data = open_streamfile_by_filename(sf, sb->resource_name);
         if (!sf_data) {
             VGM_LOG("UBI DAT: no matching KAT found\n");
@@ -705,7 +712,7 @@ static VGMSTREAM *init_vgmstream_ubi_dat_main(ubi_sb_header *sb, STREAMFILE *sf)
                 vgmstream = allocate_vgmstream(sb->channels, sb->loop_flag);
                 if (!vgmstream) goto fail;
 
-                data_size = get_streamfile_size(sf) - sb->stream_offset;
+                data_size = get_streamfile_size(sf_data) - sb->stream_offset;
 
                 vgmstream->coding_type = coding_PCM16LE;
                 vgmstream->layout_type = layout_interleave;
@@ -719,8 +726,7 @@ static VGMSTREAM *init_vgmstream_ubi_dat_main(ubi_sb_header *sb, STREAMFILE *sf)
             }
             break;
         }
-        case 0x04:
-        { /* standard WAV */
+        case 0x04:{ /* standard WAV */
             if (!sb->is_streamed) {
                 VGM_LOG("Ubi DAT: Found RAM stream_type 0x04\n");
                 goto fail;
@@ -1274,7 +1280,7 @@ static VGMSTREAM* init_vgmstream_ubi_sb_audio(ubi_sb_header* sb, STREAMFILE* sf_
     STREAMFILE* sf_data = NULL;
 
     if (sb->is_dat)
-        return init_vgmstream_ubi_dat_main(sb, sf);
+        return init_vgmstream_ubi_dat_main(sb, sf_index, sf);
 
     /* open external stream if needed */
     if (sb->is_streamed || sb->is_blk || sb->is_ps2_bnm) {
@@ -1310,10 +1316,6 @@ static VGMSTREAM* init_vgmstream_ubi_sb_layer(ubi_sb_header* sb, STREAMFILE* sf_
     STREAMFILE* sf_data = NULL;
     size_t full_stream_size = sb->stream_size;
     int i, total_channels = 0;
-
-    if (sb->is_dat) {
-        return init_vgmstream_ubi_dat_main(sb, sf);
-    }
 
     if (sb->is_ps2_old) {
         /* no blocked layout yet, just open it as normal file */
@@ -1709,7 +1711,7 @@ static int parse_type_audio_ps2_bnm(ubi_sb_header *sb, off_t offset, STREAMFILE 
     sb->stream_size     = read_32bit(offset + sb->cfg.audio_stream_size, sf);
     sb->stream_offset   = read_32bit(offset + sb->cfg.audio_stream_offset, sf);
     sb->channels        = read_8bit(offset + sb->cfg.audio_channels, sf);
-    sb->sample_rate     = read_16bit(offset + sb->cfg.audio_sample_rate, sf);
+    sb->sample_rate     = (uint16_t)read_16bit(offset + sb->cfg.audio_sample_rate, sf);
 
     if (sb->stream_size == 0) {
         VGM_LOG("UBI SB: bad stream size\n");
@@ -2360,8 +2362,8 @@ static int parse_offsets(ubi_sb_header* sb, STREAMFILE* sf) {
     if (sb->is_streamed)
         return 1;
 
-    /* Internal sounds are split into codec groups, with their offsets being relative to group start.
-     * A table contains sizes of each group, so we adjust offsets based on the group ID of our sound.
+    /* Internal sounds are split into subblock, with their offsets being relative to subblock start.
+     * A table contains sizes of each subblock, so we adjust offsets based on the subblock ID of our sound.
      * Headers normally only use 0 or 1, and section3 may only define id1 (which the internal sound would use).
      * May exist even for external streams only, and they often use id 1 too. */
 
@@ -2377,10 +2379,10 @@ static int parse_offsets(ubi_sb_header* sb, STREAMFILE* sf) {
          *   0x00: sec2 entry index
          *   0x04: sound offset
          * table 2 - for each entry:
-         *   0x00 - group ID
+         *   0x00 - subblock ID
          *   0x04 - size with padding included
          *   0x08 - size without padding
-         *   0x0c - absolute group offset
+         *   0x0c - absolute subblock offset
          */
 
         for (i = 0; i < sb->section3_num; i++) {
@@ -2405,7 +2407,7 @@ static int parse_offsets(ubi_sb_header* sb, STREAMFILE* sf) {
                     }
 
                     if (k == table2_num) {
-                        VGM_LOG("UBI SM: Failed to find group %d in map %s\n", sb->subblock_id, sb->map_name);
+                        VGM_LOG("UBI SM: Failed to find subblock %d in map %s\n", sb->subblock_id, sb->map_name);
                         goto fail;
                     }
                     break;
@@ -2417,11 +2419,11 @@ static int parse_offsets(ubi_sb_header* sb, STREAMFILE* sf) {
         }
 
         if (sb->stream_offset == 0) {
-            VGM_LOG("UBI SM: Failed to find offset for resource %d in group %d in map %s\n", sb->header_index, sb->subblock_id, sb->map_name);
+            VGM_LOG("UBI SM: Failed to find offset for resource %d in subblock %d in map %s\n", sb->header_index, sb->subblock_id, sb->map_name);
             goto fail;
         }
     } else {
-        /* banks store internal sounds after all headers and adjusted by the group table, find the matching entry */
+        /* banks store internal sounds after all headers and adjusted by the subblock table, find the matching entry */
 
         off_t sounds_offset = sb->section3_offset + sb->cfg.section3_entry_size*sb->section3_num;
         if (sb->cfg.is_padded_sounds_offset)
@@ -2620,10 +2622,10 @@ static void config_sb_entry(ubi_sb_header* sb, size_t section1_size_entry, size_
     sb->cfg.section2_entry_size     = section2_size_entry;
     sb->cfg.section3_entry_size     = 0x08;
 }
-static void config_sb_audio_fs(ubi_sb_header* sb, off_t streamed_flag, off_t group_flag, off_t loop_flag) {
+static void config_sb_audio_fs(ubi_sb_header* sb, off_t streamed_flag, off_t subblock_flag, off_t loop_flag) {
     /* audio header with standard flags */
     sb->cfg.audio_streamed_flag     = streamed_flag;
-    sb->cfg.audio_subblock_flag     = group_flag;
+    sb->cfg.audio_subblock_flag     = subblock_flag;
     sb->cfg.audio_loop_flag         = loop_flag;
     sb->cfg.audio_streamed_and      = 1;
     sb->cfg.audio_subblock_and      = 1;
@@ -3320,8 +3322,8 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
         return 1;
     }
 
-    /* Brothers in Arms: Road to Hill 30 (2005)(PS2) */
-    /* Brothers in Arms: Earned in Blood (2005)(PS2) */
+    /* Brothers in Arms: Road to Hill 30 (2005)(PS2)-bank */
+    /* Brothers in Arms: Earned in Blood (2005)(PS2)-bank */
     if (sb->version == 0x000A0007 && sb->platform == UBI_PS2 && is_bia_ps2) {
         config_sb_entry(sb, 0x5c, 0x14c);
 
