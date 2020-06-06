@@ -132,9 +132,10 @@ static int read_fmt(int big_endian, STREAMFILE * streamFile, off_t current_chunk
     }
 
     switch (fmt->codec) {
-        case 0x00:  /* Yamaha AICA ADPCM [Headhunter (DC), Bomber hehhe (DC)] (unofficial) */
+        case 0x00:  /* Yamaha AICA ADPCM [Headhunter (DC), Bomber hehhe (DC), Rayman 2 (DC)] (unofficial) */
             if (fmt->bps != 4) goto fail;
-            if (fmt->block_size != 0x02*fmt->channel_count) goto fail;
+            if (fmt->block_size != 0x02*fmt->channel_count &&
+                fmt->block_size != 0x01*fmt->channel_count) goto fail;
             fmt->coding_type = coding_AICA_int;
             fmt->interleave = 0x01;
             break;
@@ -370,14 +371,25 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
         uint16_t codec = read_16bitLE(0x14,streamFile);
         if (riff_size+0x08+0x01 == file_size)
             riff_size += 0x01; /* [Shikkoku no Sharnoth (PC)] */
+
         else if (riff_size == file_size && codec == 0x0069)
             riff_size -= 0x08; /* [Dynasty Warriors 3 (Xbox), BloodRayne (Xbox)] */
-        else if (riff_size + 0x04 == file_size && codec == 0x0000)
-            riff_size -= 0x04; /* [Headhunter (DC), Bomber hehhe (DC)] */
+
         else if (riff_size + 0x04 == file_size && codec == 0x0069)
             riff_size -= 0x04; /* [Halo 2 (PC)] (possibly bad extractor? 'Gravemind Tool') */
+
+        else if (riff_size + 0x04 == file_size && codec == 0x0000)
+            riff_size -= 0x04; /* [Headhunter (DC), Bomber hehhe (DC)] */
+
+        else if (riff_size == file_size && codec == 0x0000)
+            riff_size -= 0x08; /* [Rayman 2 (DC)] */
+
+        else if (riff_size + 0x02 + 0x08 == file_size && codec == 0x0000)
+            riff_size -= 0x02; /* [Rayman 2 (DC)]-dcz */
+
         else if (riff_size == file_size && codec == 0x0300)
             riff_size -= 0x08; /* [Chrono Ma:gia (Android)] */
+
         else if (riff_size >= file_size && read_32bitBE(0x24,streamFile) == 0x4E584246) /* "NXBF" */
             riff_size = file_size - 0x08; /* [R:Racing Evolution (Xbox)] */
     }
@@ -405,7 +417,7 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
                     if (!read_fmt(0, streamFile, current_chunk, &fmt, mwv))
                         goto fail;
 
-                    /* some Dreamcast/Naomi games again [Headhunter (DC), Bomber hehhe (DC)] */
+                    /* some Dreamcast/Naomi games again [Headhunter (DC), Bomber hehhe (DC), Rayman 2 (DC)] */
                     if (fmt.codec == 0x0000 && chunk_size == 0x12)
                         chunk_size += 0x02;
                     break;

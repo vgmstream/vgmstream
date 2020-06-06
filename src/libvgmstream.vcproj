@@ -1138,6 +1138,10 @@
                     RelativePath=".\meta\pcm_sre.c"
                     >
                 </File>
+                <File
+                    RelativePath=".\meta\pcm_success.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\scd_pcm.c"
 					>
