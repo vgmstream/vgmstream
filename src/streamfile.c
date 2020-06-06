@@ -1190,6 +1190,9 @@ static int find_chunk_internal(STREAMFILE *streamFile, uint32_t chunk_id, off_t 
         uint32_t chunk_size = read_32bit_size(offset + 0x04,streamFile);
         //;VGM_LOG("CHUNK: type=%x, size=%x at %lx\n", chunk_type, chunk_size, offset);
 
+        if (chunk_type == 0xFFFFFFFF || chunk_size == 0xFFFFFFFF)
+            return 0;
+
         if (chunk_type == chunk_id) {
             if (out_chunk_offset) *out_chunk_offset = offset + 0x08;
             if (out_chunk_size) *out_chunk_size = chunk_size;
