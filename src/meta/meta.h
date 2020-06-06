@@ -905,4 +905,6 @@ VGMSTREAM* init_vgmstream_mups(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_kat(STREAMFILE* sf);
 
+VGMSTREAM* init_vgmstream_pcm_success(STREAMFILE* sf);
+
 #endif /*_META_H*/

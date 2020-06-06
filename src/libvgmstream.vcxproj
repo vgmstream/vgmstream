@@ -404,6 +404,7 @@
     <ClCompile Include="meta\sab.c" />
     <ClCompile Include="meta\xa_xa30.c" />
     <ClCompile Include="meta\pcm_sre.c" />
+    <ClCompile Include="meta\pcm_success.c" />
     <ClCompile Include="meta\scd_pcm.c" />
     <ClCompile Include="meta\pona.c" />
     <ClCompile Include="meta\pos.c" />
