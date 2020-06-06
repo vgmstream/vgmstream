@@ -8,7 +8,7 @@ VGMSTREAM * init_vgmstream_ps2_joe(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset;
     int channel_count, loop_flag, sample_rate;
-    int32_t num_samples, loop_start = 0, loop_end = 0;
+    int32_t num_samples;
     size_t file_size, data_size, unknown1, unknown2, interleave, padding_size;
 
 
@@ -65,8 +65,6 @@ VGMSTREAM * init_vgmstream_ps2_joe(STREAMFILE *streamFile) {
 
     vgmstream->sample_rate = sample_rate;
     vgmstream->num_samples = num_samples;
-    vgmstream->loop_start_sample = loop_start;
-    vgmstream->loop_end_sample = loop_end;
     vgmstream->stream_size = data_size;
 
     vgmstream->coding_type = coding_PSX;

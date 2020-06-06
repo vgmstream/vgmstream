@@ -59,7 +59,7 @@ VGMSTREAM *init_vgmstream_kat(STREAMFILE *sf) {
             vgmstream->num_samples = yamaha_bytes_to_samples(data_size, channels);
             break;
         case 8:
-            vgmstream->coding_type = coding_PCM8_U;
+            vgmstream->coding_type = coding_PCM8;
             vgmstream->layout_type = layout_none;
             vgmstream->num_samples = pcm_bytes_to_samples(data_size, channels, 8);
             break;
