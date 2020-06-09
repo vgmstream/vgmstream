@@ -303,3 +303,8 @@ void decode_maxis_xa(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspac
     if (i == frame_samples)
         stream->offset += frame_size;
 }
+
+int32_t ea_xa_bytes_to_samples(size_t bytes, int channels) {
+    if (channels <= 0) return 0;
+    return bytes / channels / 0x0f * 28;
+}

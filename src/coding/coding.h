@@ -106,10 +106,11 @@ void decode_ea_xa(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing
 void decode_ea_xa_int(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel);
 void decode_ea_xa_v2(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do,int channel);
 void decode_maxis_xa(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel);
+int32_t ea_xa_bytes_to_samples(size_t bytes, int channels);
 
 /* ea_xas_decoder */
 void decode_ea_xas_v0(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel);
-void decode_ea_xas_v1(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel);
+void decode_ea_xas_v1(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel);
 
 /* sdx2_decoder */
 void decode_sdx2(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
@@ -236,7 +237,7 @@ void free_relic(relic_codec_data* data);
 
 /* hca_decoder */
 hca_codec_data *init_hca(STREAMFILE *streamFile);
-void decode_hca(hca_codec_data * data, sample_t * outbuf, int32_t samples_to_do);
+void decode_hca(hca_codec_data * data, sample * outbuf, int32_t samples_to_do);
 void reset_hca(hca_codec_data * data);
 void loop_hca(hca_codec_data * data, int32_t num_sample);
 void free_hca(hca_codec_data * data);
