@@ -709,17 +709,14 @@ static VGMSTREAM *init_vgmstream_ubi_dat_main(ubi_sb_header *sb, STREAMFILE *sf_
                     goto fail;
                 }
             } else { /* raw PCM */
-                uint32_t data_size;
-
                 vgmstream = allocate_vgmstream(sb->channels, sb->loop_flag);
                 if (!vgmstream) goto fail;
 
-                data_size = get_streamfile_size(sf_data) - sb->stream_offset;
-
+                /* TODO: some WAVs pop at the end because of LIST chunk, doesn't happen in-game [Donald Duck (DC)] */
                 vgmstream->coding_type = coding_PCM16LE;
                 vgmstream->layout_type = layout_interleave;
                 vgmstream->interleave_block_size = 0x02;
-                vgmstream->num_samples = pcm_bytes_to_samples(data_size, sb->channels, 16);
+                vgmstream->num_samples = pcm_bytes_to_samples(sb->stream_size, sb->channels, 16);
                 vgmstream->loop_start_sample = sb->loop_start;
                 vgmstream->loop_end_sample = vgmstream->num_samples;
 
@@ -1025,7 +1022,6 @@ static VGMSTREAM* init_vgmstream_ubi_sb_base(ubi_sb_header* sb, STREAMFILE* sf_h
             vgmstream->interleave_block_size = 0x02;
 
             if (vgmstream->num_samples == 0) { /* happens in .bnm */
-                //todo with external wav streams stream_size may be off?
                 vgmstream->num_samples       = pcm_bytes_to_samples(sb->stream_size, sb->channels, 16);
                 vgmstream->loop_end_sample   = vgmstream->num_samples;
             }
