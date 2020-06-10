@@ -989,11 +989,9 @@ static int parse_type_layer(ubi_bao_header * bao, off_t offset, STREAMFILE* stre
         if (bao->sample_rate != sample_rate || bao->stream_type != stream_type) {
             VGM_LOG("UBI BAO: layer headers don't match at %x\n", (uint32_t)table_offset);
 
-            if (bao->cfg.layer_ignore_error) {
-                continue;
+            if (!bao->cfg.layer_ignore_error) {
+                goto fail;
             }
-
-            goto fail;
         }
 
         /* uncommonly channels may vary per layer [Rayman Raving Rabbids: TV Party (Wii) ex. 0x22000cbc.pk] */
