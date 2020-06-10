@@ -709,17 +709,14 @@ static VGMSTREAM *init_vgmstream_ubi_dat_main(ubi_sb_header *sb, STREAMFILE *sf_
                     goto fail;
                 }
             } else { /* raw PCM */
-                uint32_t data_size;
-
                 vgmstream = allocate_vgmstream(sb->channels, sb->loop_flag);
                 if (!vgmstream) goto fail;
 
-                data_size = get_streamfile_size(sf_data) - sb->stream_offset;
-
+                /* TODO: some WAVs pop at the end because of LIST chunk, doesn't happen in-game [Donald Duck (DC)] */
                 vgmstream->coding_type = coding_PCM16LE;
                 vgmstream->layout_type = layout_interleave;
                 vgmstream->interleave_block_size = 0x02;
-                vgmstream->num_samples = pcm_bytes_to_samples(data_size, sb->channels, 16);
+                vgmstream->num_samples = pcm_bytes_to_samples(sb->stream_size, sb->channels, 16);
                 vgmstream->loop_start_sample = sb->loop_start;
                 vgmstream->loop_end_sample = vgmstream->num_samples;
 
@@ -1025,7 +1022,6 @@ static VGMSTREAM* init_vgmstream_ubi_sb_base(ubi_sb_header* sb, STREAMFILE* sf_h
             vgmstream->interleave_block_size = 0x02;
 
             if (vgmstream->num_samples == 0) { /* happens in .bnm */
-                //todo with external wav streams stream_size may be off?
                 vgmstream->num_samples       = pcm_bytes_to_samples(sb->stream_size, sb->channels, 16);
                 vgmstream->loop_end_sample   = vgmstream->num_samples;
             }
@@ -2742,11 +2738,30 @@ static void config_sb_silence_f(ubi_sb_header* sb, off_t duration) {
     /* silence headers in float value */
     sb->cfg.silence_duration_float  = duration;
 }
-
 static void config_sb_random_old(ubi_sb_header* sb, off_t sequence_count, off_t entry_size) {
     sb->cfg.random_sequence_count = sequence_count;
     sb->cfg.random_entry_size = entry_size;
     sb->cfg.random_percent_int = 1;
+}
+
+static int check_project_file(STREAMFILE *sf_header, const char *name, int has_localized_banks) {
+    STREAMFILE *sf_test = open_streamfile_by_filename(sf_header, name);
+    if (sf_test) {
+        close_streamfile(sf_test);
+        return 1;
+    }
+
+    if (has_localized_banks) { /* try again for localized subfolders */
+        char buf[PATH_LIMIT];
+        snprintf(buf, PATH_LIMIT, "../%s", name);
+        sf_test = open_streamfile_by_filename(sf_header, name);
+        if (sf_test) {
+            close_streamfile(sf_test);
+            return 1;
+        }
+    }
+
+    return 0;
 }
 
 static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
@@ -2943,10 +2958,8 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
 
     /* two configs with same id; use SND file as identifier */
     if (sb->version == 0x00000000 && sb->platform == UBI_PC) {
-        STREAMFILE* test_sf = open_streamfile_by_filename(sf, "Dino.lcb");
-        if (test_sf) {
+        if (check_project_file(sf, "Dino.lcb", 0)) {
             sb->version = 0x00000200; /* some files in Dinosaur use this, probably final version */
-            close_streamfile(test_sf);
         }
     }
 
@@ -2959,11 +2972,9 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
 
     /* Tonic Touble beta has garbage instead of version */
     if (sb->is_bnm && sb->version > 0x00000000 && sb->platform == UBI_PC) {
-        STREAMFILE* test_sf = open_streamfile_by_filename(sf, "ED_MAIN.LCB");
-        if (test_sf) {
+        if (check_project_file(sf, "ED_MAIN.LCB", 0)) {
             is_ttse_pc = 1;
             sb->version = 0x00000000;
-            close_streamfile(test_sf);
         }
     }
 
@@ -3297,12 +3308,8 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
 
     /* two configs with same id; use project file as identifier */
     if (sb->version == 0x000A0007 && sb->platform == UBI_PS2) {
-        STREAMFILE* test_sf = open_streamfile_by_filename(sf, "BIAAUDIO.SP1");
-        if (!test_sf) /* try again for localized subfolders */
-            test_sf = open_streamfile_by_filename(sf, "../BIAAUDIO.SP1");
-        if (test_sf) {
+        if (check_project_file(sf, "BIAAUDIO.SP1", 1)) {
             is_bia_ps2 = 1;
-            close_streamfile(test_sf);
         }
     }
 
@@ -3476,10 +3483,8 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
 
     /* two configs with same id and both sb4/sm4; use project file as identifier */
     if (sb->version == 0x0012000C && sb->platform == UBI_PSP) {
-        STREAMFILE* test_sf = open_streamfile_by_filename(sf, "BIAAUDIO.SP4");
-        if (test_sf) {
+        if (check_project_file(sf, "BIAAUDIO.SP4", 1)) {
             is_biadd_psp = 1;
-            close_streamfile(test_sf);
         }
     }
 
@@ -3743,10 +3748,8 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
 
     /* two configs with same id; use project file as identifier */
     if (sb->version == 0x00180006 && sb->platform == UBI_PC) {
-        STREAMFILE* test_sf = open_streamfile_by_filename(sf, "Sc4_online_SoundProject.SP0");
-        if (test_sf) {
+        if (check_project_file(sf, "Sc4_online_SoundProject.SP0", 1)) {
             is_sc4_pc_online = 1;
-            close_streamfile(test_sf);
         }
     }
 

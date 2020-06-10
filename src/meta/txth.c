@@ -38,6 +38,7 @@ typedef enum {
     AAC = 28,           /* Advanced Audio Coding (raw without .mp4) */
     TGC = 29,           /* Tiger Game.com 4-bit ADPCM */
     ASF = 30,           /* Argonaut ASF 4-bit ADPCM */
+    EAXA = 31,          /* Electronic Arts EA-XA 4-bit ADPCM v1 */
 } txth_type;
 
 typedef struct {
@@ -225,6 +226,7 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
         case OKI16:      coding = coding_OKI16; break;
         case TGC:        coding = coding_TGC; break;
         case ASF:        coding = coding_ASF; break;
+        case EAXA:       coding = coding_EA_XA; break;
         default:
             goto fail;
     }
@@ -339,6 +341,20 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE *streamFile) {
         case coding_ASF:
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = 0x11;
+            break;
+
+        case coding_EA_XA:
+            if (vgmstream->channels == 1 || txth.codec_mode == 1) { /* mono/interleave */
+                coding = coding_EA_XA_int;
+                vgmstream->layout_type = layout_interleave;
+                vgmstream->interleave_block_size = txth.interleave;
+                vgmstream->interleave_last_block_size = txth.interleave_last;
+            } else { /* stereo */
+                if (vgmstream->channels > 2)
+                    goto fail; /* only 2ch is known */
+
+                vgmstream->layout_type = layout_none;
+            }
             break;
 
         case coding_MS_IMA:
@@ -856,6 +872,7 @@ static int parse_keyval(STREAMFILE * streamFile_, txth_header * txth, const char
         else if (is_string(val,"TGC"))          txth->codec = TGC;
         else if (is_string(val,"GCOM_ADPCM"))   txth->codec = TGC;
         else if (is_string(val,"ASF"))          txth->codec = ASF;
+        else if (is_string(val,"EAXA"))         txth->codec = EAXA;
         else goto fail;
 
         /* set common interleaves to simplify usage
@@ -1740,6 +1757,8 @@ static int get_bytes_to_samples(txth_header * txth, uint32_t bytes) {
             return ac3_bytes_to_samples(bytes, txth->interleave, txth->channels);
         case ASF:
             return asf_bytes_to_samples(bytes, txth->channels);
+        case EAXA:
+            return ea_xa_bytes_to_samples(bytes, txth->channels);
 
         /* XMA bytes-to-samples is done at the end as the value meanings are a bit different */
         case XMA1:
