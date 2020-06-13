@@ -147,7 +147,7 @@ as explained below, but often will use default values. Accepted codec strings:
 #   * For Tiger Game.com
 # - ASF            Argonaut ASF ADPCM
 #   * For rare Argonaut games [Croc (SAT)]
-# - EAXA           Electronis Arts EA-XA ADPCM
+# - EAXA           Electronic Arts EA-XA ADPCM
 #   * For rare EA games [Harry Potter and the Chamber of Secrets (PC)]
 codec = (codec string)
 ```

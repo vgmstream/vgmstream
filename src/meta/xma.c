@@ -14,9 +14,10 @@ VGMSTREAM * init_vgmstream_xma(STREAMFILE *streamFile) {
     /* checks */
     /* .xma: standard
      * .xma2: Skullgirls (X360)
+     * .wav: Super Meat Boy (X360)
      * .nps: Beautiful Katamari (X360)
      * .str: Sonic & Sega All Stars Racing (X360) */
-    if ( !check_extensions(streamFile, "xma,xma2,nps,str") )
+    if ( !check_extensions(streamFile, "xma,xma2,wav,nps,str") )
         goto fail;
 
     /* check header */
