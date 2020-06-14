@@ -155,7 +155,8 @@ int ffmpeg_make_riff_xma1(uint8_t * buf, size_t buf_size, size_t sample_count, s
         put_16bitLE(buf+off+0x12, speakers);
     }
 
-    /* xmaencode decoding rejects XMA1 without "seek" chunk, though it doesn't seem to use it */
+    /* xmaencode decoding rejects XMA1 without "seek" chunk, though it doesn't seem to use it
+     * (needs to be have entries but can be bogus, also generates seek for even small sounds) */
 
     memcpy(buf+riff_size-4-4, "data", 4);
     put_32bitLE(buf+riff_size-4, data_size); /* data size */
