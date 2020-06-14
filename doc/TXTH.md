@@ -268,15 +268,16 @@ loop_end_sample     = (value)|data_size
 Force loop on or off, as loop start/end may be defined but not used. If not set, by default it loops when loop_end_sample is defined and less than num_samples.
 
 Special values:
-- auto: tries to autodetect loop points for PS-ADPCM data using data loop flags.
+- `auto`: tries to autodetect loop points for PS-ADPCM data using data loop flags.
 
 Sometimes games give loop flags different meaning, so behavior can be tweaked by defining `loop_behavior` before `loop_flag`:
 - `default`: values 0 or 0xFFFF/0xFFFFFFFF (-1) disable looping, but not 0xFF (loop endlessly)
 - `negative`: values 0xFF/0xFFFF/0xFFFFFFFF (-1) enable looping
 - `positive`: values 0xFF/0xFFFF/0xFFFFFFFF (-1) disable looping
+- `inverted`: values not 0 disable looping
 
 ```
-loop_negative = default|negative|positive
+loop_behavior = default|negative|positive|inverted
 loop_flag = (value)|auto
 ```
 
@@ -414,12 +415,12 @@ Inside the table you define lines mapping a filename to a bunch of values, in th
 (filename1): (value)
 ...
 # may put multiple comma-separated values, spaces are ok
-(filenameN)    : (value1), (...)   ,   (valueN)
+(filenameN)    : (value1), (...)   ,   (valueN)  # inline comments too
 
 # put no name before the : to set default values
  : (value1), (...), (valueN)
 ```
-Then I'll find your current file name, and you can then reference its numbers from the list as a `name_value` field, like `base_offset = name_value`, `start_offset = 0x1000 + name_value1`, `interleave = name_value5`, etc. `(filename)` can be with or without extension (like `bgm01.vag` or just `bgm01`), and if the file's name isn't found it'll use default values, and if those aren't defined you'll get 0 instead. Being "values" they can be use math or offsets too.
+Then I'll find your current file name, and you can then reference its numbers from the list as a `name_value` field, like `base_offset = name_value`, `start_offset = 0x1000 + name_value1`, `interleave = name_value5`, etc. `(filename)` can be with or without extension (like `bgm01.vag` or just `bgm01`), and if the file's name isn't found it'll use default values, and if those aren't defined you'll get 0 instead. Being "values" they can use math or offsets too (`bgm05: 5*0x010`).
 
 You can use wildcards to match multiple names too (it stops on first name that matches), and UTF-8 names should work, case insensitive even.
 ```
@@ -428,11 +429,11 @@ bgm*_M: 1   # 1ch: some files end with _M for mono
 bgm*: 2     # 2ch: all other files, notice order matters
 ```
 
-While you can put anything in the values, this feature is meant to be used to store some number that points to the actual data inside a real multi-header, that could be set with `header_file`. If you need to store many constant values there is good chance it could be done in some better way.
+While you can put anything in the values, this feature is meant to be used to store some number that points to the actual data inside a real multi-header, that could be set with `header_file`. If you feel the need to store many constant values per file, there is good chance it can be done in some better, simpler way.
 
 
 #### BASE OFFSET MODIFIER
-You can set a default offset that affects next `@(offset)` reads making them `@(offset + base_offset)`, for cleaner parsing (particularly interesting when combined with the `name_list`).
+You can set a default offset that affects next `@(offset)` reads making them `@(offset + base_offset)`, for cleaner parsing (particularly interesting when combined with the `name_table`).
 
 For example instead of `channels = @0x714` you could set `base_offset = 0x710, channels = @0x04`. Set to 0 when you want to disable it.
 ```
@@ -633,7 +634,7 @@ chunk_count = 26
 
 # after setting chunks (sizes vary when 'dechunking')
 start_offset = 0x00
-padding_size = auto-empty   
+padding_size = auto-empty
 num_samples = data_size
 ```
 
@@ -675,9 +676,9 @@ Some formats read an offset to another part of the file, then another offset, th
 
 You can simulate this chaining multiple `base_offset`
 ```
-base_offset = @0x10                 #sets at 0x1000
-channels    = @0x04                 #reads at 0x1004
-base_offset = base_offset + @0x10   #sets at 0x1000 + 0x200 = 0x1200
+base_offset = @0x10                 #sets current at 0x1000
+channels    = @0x04                 #reads at 0x1004 (base_offset + 0x04)
+base_offset = base_offset + @0x10   #sets current at 0x1000 + 0x200 = 0x1200
 sample_rate = @0x04                 #reads at 0x1204
 ...
 ```

@@ -41,6 +41,8 @@ typedef enum {
     EAXA = 31,          /* Electronic Arts EA-XA 4-bit ADPCM v1 */
 } txth_type;
 
+typedef enum { DEFAULT, NEGATIVE, POSITIVE, INVERTED } txth_loop_t;
+
 typedef struct {
     txth_type codec;
     uint32_t codec_mode;
@@ -73,7 +75,7 @@ typedef struct {
     uint32_t skip_samples;
 
     uint32_t loop_flag;
-    uint32_t loop_behavior;
+    txth_loop_t loop_behavior;
     int loop_flag_set;
     int loop_flag_auto;
 
@@ -1059,28 +1061,32 @@ static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char * key, ch
             if (!parse_num(txth->sf_head,txth,val, &txth->loop_flag)) goto fail;
             txth->loop_flag_set = 1;
 
-            if (txth->loop_behavior == 0) {
+            if (txth->loop_behavior == DEFAULT) {
                 if ((txth->loop_flag == 0xFFFF || txth->loop_flag == 0xFFFFFFFF) )
                     txth->loop_flag = 0;
-
             }
-            else if (txth->loop_behavior == 1) {
+            else if (txth->loop_behavior == NEGATIVE) {
                 if (txth->loop_flag == 0xFF || txth->loop_flag == 0xFFFF || txth->loop_flag == 0xFFFFFFFF)
                     txth->loop_flag = 1;
             }
-            else if (txth->loop_behavior == 2) {
+            else if (txth->loop_behavior == POSITIVE) {
                 if (txth->loop_flag == 0xFF || txth->loop_flag == 0xFFFF || txth->loop_flag == 0xFFFFFFFF)
                     txth->loop_flag = 0;
+            }
+            else if (txth->loop_behavior == INVERTED) {
+                txth->loop_flag = (txth->loop_flag == 0);
             }
         }
     }
     else if (is_string(key,"loop_behavior")) {
         if (is_string(val, "default"))
-            txth->loop_behavior = 0;
+            txth->loop_behavior = DEFAULT;
         else if (is_string(val, "negative"))
-            txth->loop_behavior = 1;
+            txth->loop_behavior = NEGATIVE;
         else if (is_string(val, "positive"))
-            txth->loop_behavior = 2;
+            txth->loop_behavior = POSITIVE;
+        else if (is_string(val, "inverted"))
+            txth->loop_behavior = INVERTED;
         else
             goto fail;
     }
