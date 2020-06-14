@@ -91,7 +91,7 @@ BIK_E1_6A_DialEnd_00000000.audio.multi.bik#3
 
 mode = layers
 ```
-Note that the number of channels is the sum of all layers, so three 2ch layers play as a 6ch file. If all layers share loop points they are automatically kept.
+Note that the number of channels is the sum of all layers, so three 2ch layers play as a 6ch file (you can downmix to stereo using mixing commands, described later). If all layers share loop points they are automatically kept.
 
 ### Mixed groups
 You can set "groups" to 'fold' various files into one, as layers or segments, to allow complex cases:
@@ -166,7 +166,7 @@ mainB_2ch.at3
 group = 2L2 #@layer-v 2
 
 # finally resulting layers are played as segments (2ch, 2ch)
-# (could set a group = S and ommit S here, too)
+# (could set a group = S and ommit mode here, too)
 mode = segments
 
 # if the last group joins all as segments you can use loop_start
@@ -239,34 +239,42 @@ music_Home.ps3.scd#C3 4
 ### Play settings
 **`#l(loops)`**, **`#f(fade)`**, **`#d(fade-delay)`**, **`#i(ignore loop)`**, **`#F(ignore fade)`**, **`#E(end-to-end loop)`**
 
-Those setting should override player's defaults if set (except "loop forever"). They are equivalent to some test.exe options.
+Those setting should override player's defaults if set. They are equivalent to some test.exe options.
 
-**God Hand (PS2)**: *boss2_3ningumi_ver6.txtp* (each line is a separate TXTP)
+**God Hand (PS2)**: *boss2_3ningumi_ver6.txtp*
 ```
 # set number of loops
 boss2_3ningumi_ver6.adx#l3
-
+```
+```
 # set fade time (in seconds)
 boss2_3ningumi_ver6.adx#f10.5
-
+```
+```
 # set fade delay (in seconds)
 boss2_3ningumi_ver6.adx#d0.5
-
+```
+```
 # ignore and disable loops
 boss2_3ningumi_ver6.adx#i
-
+```
+```
 # don't fade out and instead play the song ending after
 boss2_3ningumi_ver6.adx#F  # this song has a nice stop
-
+```
+```
 # force full loops from end-to-end
 boss2_3ningumi_ver6.adx#E
-
+```
+```
 # settings can be combined
 boss2_3ningumi_ver6.adx#l2#F  # 2 loops + ending
-
+```
+```
 # settings can be combined
 boss2_3ningumi_ver6.adx#l1.5#d1#f5
-
+```
+```
 # boss2_3ningumi_ver6.adx#l1.0#F  # this is equivalent to #i
 ```
 
@@ -284,7 +292,7 @@ main.fsb
 
 Similarly other games don't use loop points, but rather repeat/loops the song internally many times:
 ```
-intro.vag #t3:20 #i #l1.0 #trim + combine with forced loops for easy fades
+bgm01.vag #t3:20 #i #l1.0   # trim + combine with forced loops for easy fades
 ```
 
 Note that if you need to remove very few samples (like 1) to get smooth transitions it may be a bug in vgmstream, consider reporting.
