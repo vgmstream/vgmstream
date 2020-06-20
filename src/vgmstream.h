@@ -321,7 +321,7 @@ typedef enum {
     meta_RSTM_SPM,          /* RSTM with 44->22khz hack */
     meta_THP,               /* THP movie files */
     meta_RSTM_shrunken,     /* Atlus' mutant shortened RSTM */
-    meta_NDS_SWAV,          /* Asphalt Urban GT 1 & 2 */
+    meta_SWAV,
     meta_NDS_RRDS,          /* Ridge Racer DS */
     meta_WII_BNS,           /* Wii BNS Banner Sound (similar to RSTM) */
     meta_WIIU_BTSND,        /* Wii U Boot Sound */
@@ -777,6 +777,19 @@ typedef enum {
     mapping_7POINT1_surround = speaker_FL | speaker_FR | speaker_FC  | speaker_LFE | speaker_BL | speaker_BR  | speaker_SL  | speaker_SR,
 } mapping_t;
 
+typedef struct {
+    int play_forever;
+    int loop_count_set;
+    double loop_count;
+    int fade_time_set;
+    double fade_time;
+    int fade_delay_set;
+    double fade_delay;
+    int ignore_fade;
+    int force_loop;
+    int really_force_loop;
+    int ignore_loop;
+} play_config_t;
 
 /* info for a single vgmstream channel */
 typedef struct {
@@ -861,14 +874,9 @@ typedef struct {
     /* other config */
     int allow_dual_stereo;          /* search for dual stereo (file_L.ext + file_R.ext = single stereo file) */
 
-    /* config requests, players must read and honor these values */
-    /* (ideally internally would work as a player, but for now player must do it manually) */
-    double config_loop_count;
-    double config_fade_time;
-    double config_fade_delay;
-    int config_ignore_loop;
-    int config_force_loop;
-    int config_ignore_fade;
+    /* config requests, players must read and honor these values
+     * (ideally internally would work as a player, but for now player must do it manually) */
+    play_config_t config;
 
 
     /* layout/block state */

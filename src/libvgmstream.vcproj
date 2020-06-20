@@ -963,7 +963,7 @@
                     >
                 </File>
 				<File
-					RelativePath=".\meta\nds_swav.c"
+					RelativePath=".\meta\swav.c"
 					>
 				</File>
 				<File

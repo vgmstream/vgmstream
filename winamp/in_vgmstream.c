@@ -87,9 +87,10 @@ typedef struct {
     double song_loop_count;
     double song_fade_time;
     double song_fade_delay;
-    int song_ignore_loop;
-    int song_really_force_loop;
     int song_ignore_fade;
+    int song_ignore_loop;
+    int song_force_loop;
+    int song_really_force_loop;
 } winamp_song_config;
 
 /* current play state */
@@ -949,52 +950,74 @@ static void set_config_defaults(winamp_song_config *current) {
     current->song_loop_count = settings.loop_count;
     current->song_fade_time = settings.fade_time;
     current->song_fade_delay = settings.fade_delay;
-    current->song_ignore_loop = settings.ignore_loop;
-    current->song_really_force_loop = 0;
     current->song_ignore_fade = 0;
+    current->song_force_loop = 0;
+    current->song_really_force_loop = 0;
+    current->song_ignore_loop = settings.ignore_loop;
 }
 
-static void apply_config(VGMSTREAM * vgmstream, winamp_song_config *current) {
+static void apply_config(VGMSTREAM* vgmstream, winamp_song_config* cfg) {
 
-    /* honor suggested config, if any (defined order matters)
-     * note that ignore_fade and play_forever should take priority */
-    if (vgmstream->config_loop_count) {
-        current->song_loop_count = vgmstream->config_loop_count;
+    /* honor suggested config (order matters, and config mixes with/overwrites player defaults) */
+    if (vgmstream->config.play_forever) {
+        cfg->song_play_forever = 1;
+        cfg->song_ignore_loop = 0;
     }
-    if (vgmstream->config_fade_delay) {
-        current->song_fade_delay = vgmstream->config_fade_delay;
+    if (vgmstream->config.loop_count_set) {
+        cfg->song_loop_count = vgmstream->config.loop_count;
+        cfg->song_play_forever = 0;
+        cfg->song_ignore_loop = 0;
     }
-    if (vgmstream->config_fade_time) {
-        current->song_fade_time = vgmstream->config_fade_time;
+    if (vgmstream->config.fade_delay_set) {
+        cfg->song_fade_delay = vgmstream->config.fade_delay;
     }
-    if (vgmstream->config_force_loop) {
-        current->song_really_force_loop = 1;
+    if (vgmstream->config.fade_time_set) {
+        cfg->song_fade_time = vgmstream->config.fade_time;
     }
-    if (vgmstream->config_ignore_loop) {
-        current->song_ignore_loop = 1;
-    }
-    if (vgmstream->config_ignore_fade) {
-        current->song_ignore_fade = 1;
-    }
-
-    /* remove non-compatible options */
-    if (current->song_play_forever) {
-        current->song_ignore_fade = 0;
-        current->song_ignore_loop = 0;
+    if (vgmstream->config.ignore_fade) {
+        cfg->song_ignore_fade = 1;
     }
 
-    /* change loop stuff, in no particular order */
-    if (current->song_really_force_loop) {
+    if (vgmstream->config.force_loop) {
+        cfg->song_ignore_loop = 0;
+        cfg->song_force_loop = 1;
+        cfg->song_really_force_loop = 0;
+    }
+    if (vgmstream->config.really_force_loop) {
+        cfg->song_ignore_loop = 0;
+        cfg->song_force_loop = 0;
+        cfg->song_really_force_loop = 1;
+    }
+    if (vgmstream->config.ignore_loop) {
+        cfg->song_ignore_loop = 1;
+        cfg->song_force_loop = 0;
+        cfg->song_really_force_loop = 0;
+    }
+
+
+    /* apply config */
+    if (cfg->song_force_loop && !vgmstream->loop_flag) {
         vgmstream_force_loop(vgmstream, 1, 0,vgmstream->num_samples);
     }
-    if (current->song_ignore_loop) {
+    if (cfg->song_really_force_loop) {
+        vgmstream_force_loop(vgmstream, 1, 0,vgmstream->num_samples);
+    }
+    if (cfg->song_ignore_loop) {
         vgmstream_force_loop(vgmstream, 0, 0,0);
     }
 
+    /* remove non-compatible options */
+    if (!vgmstream->loop_flag) {
+        cfg->song_play_forever = 0;
+    }
+    if (cfg->song_play_forever) {
+        cfg->song_ignore_fade = 0;
+    }
+
     /* loop N times, but also play stream end instead of fading out */
-    if (current->song_loop_count > 0 && current->song_ignore_fade) {
-        vgmstream_set_loop_target(vgmstream, (int)current->song_loop_count);
-        current->song_fade_time = 0; /* force no fade */
+    if (cfg->song_loop_count > 0 && cfg->song_ignore_fade) {
+        vgmstream_set_loop_target(vgmstream, (int)cfg->song_loop_count);
+        cfg->song_fade_time = 0;
     }
 }
 
@@ -1378,7 +1401,7 @@ DWORD WINAPI __stdcall decode(void *arg) {
         int output_bytes;
 
         if (state.decode_pos_samples + max_buffer_samples > state.stream_length_samples
-                && (!settings.loop_forever || !vgmstream->loop_flag))
+                && (!config.song_play_forever || !vgmstream->loop_flag))
             samples_to_do = state.stream_length_samples - state.decode_pos_samples;
         else
             samples_to_do = max_buffer_samples;
@@ -1396,7 +1419,7 @@ DWORD WINAPI __stdcall decode(void *arg) {
 
             /* adjust seeking past file, can happen using the right (->) key
              * (should be done here and not in SetOutputTime due to threads/race conditions) */
-            if (state.seek_needed_samples > max_samples && !settings.loop_forever) {
+            if (state.seek_needed_samples > max_samples && !config.song_play_forever) {
                 state.seek_needed_samples = max_samples;
             }
 
@@ -1448,7 +1471,7 @@ DWORD WINAPI __stdcall decode(void *arg) {
             }
 
             /* fade near the end */
-            if (vgmstream->loop_flag && state.fade_samples > 0 && !settings.loop_forever) {
+            if (vgmstream->loop_flag && state.fade_samples > 0 && !config.song_play_forever) {
                 int fade_channels = state.output_channels;
                 int samples_into_fade = state.decode_pos_samples - (state.stream_length_samples - state.fade_samples);
                 if (samples_into_fade + samples_to_do > 0) {
@@ -1836,7 +1859,7 @@ __declspec(dllexport) size_t winampGetExtendedRead_getData(void *handle, char *d
         int samples_to_do;
 
         if (xstate.decode_pos_samples + max_buffer_samples > xstate.stream_length_samples
-                && (!settings.loop_forever || !xvgmstream->loop_flag))
+                && (!config.song_play_forever || !xvgmstream->loop_flag))
             samples_to_do = xstate.stream_length_samples - xstate.decode_pos_samples;
         else
             samples_to_do = max_buffer_samples;
@@ -1853,7 +1876,7 @@ __declspec(dllexport) size_t winampGetExtendedRead_getData(void *handle, char *d
 
             /* adjust seeking past file, can happen using the right (->) key
              * (should be done here and not in SetOutputTime due to threads/race conditions) */
-            if (xstate.seek_needed_samples > max_samples && !settings.loop_forever) {
+            if (xstate.seek_needed_samples > max_samples && !config.song_play_forever) {
                 xstate.seek_needed_samples = max_samples;
             }
 
@@ -1881,7 +1904,7 @@ __declspec(dllexport) size_t winampGetExtendedRead_getData(void *handle, char *d
             render_vgmstream(xsample_buffer, samples_to_do, xvgmstream);
 
             /* fade near the end */
-            if (xvgmstream->loop_flag && xstate.fade_samples > 0 && !settings.loop_forever) {
+            if (xvgmstream->loop_flag && xstate.fade_samples > 0 && !config.song_play_forever) {
                 int fade_channels = xstate.output_channels;
                 int samples_into_fade = xstate.decode_pos_samples - (xstate.stream_length_samples - xstate.fade_samples);
                 if (samples_into_fade + xstate.decode_pos_samples > 0) {

@@ -318,7 +318,6 @@ void input_vgmstream::decode_seek(double p_seconds,abort_callback & p_abort) {
     seek_pos_samples = (int) audio_math::time_to_samples(p_seconds, vgmstream->sample_rate);
     int max_buffer_samples = SAMPLE_BUFFER_SIZE;
     bool loop_okay = config.song_play_forever && vgmstream->loop_flag && !config.song_ignore_loop && !force_ignore_loop;
-    int loop_skips = 0;
 
     // possible when disabling looping without refreshing foobar's cached song length
     // (with infinite looping on p_seconds can't go over seek bar though)
@@ -326,13 +325,13 @@ void input_vgmstream::decode_seek(double p_seconds,abort_callback & p_abort) {
         seek_pos_samples = stream_length_samples;
 
     int corrected_pos_samples = seek_pos_samples;
+    int loop_length = (vgmstream->loop_end_sample - vgmstream->loop_start_sample);
+    int loop_count = 0;
 
     // optimize seeks withing loops
-    if (vgmstream->loop_flag && (vgmstream->loop_end_sample - vgmstream->loop_start_sample) && seek_pos_samples >= vgmstream->loop_end_sample) {
-        int loop_length = (vgmstream->loop_end_sample - vgmstream->loop_start_sample);
-
+    if (vgmstream->loop_flag && loop_length > 0 && seek_pos_samples >= vgmstream->loop_end_sample) {
         corrected_pos_samples -= vgmstream->loop_start_sample;
-        loop_skips = corrected_pos_samples / loop_length;
+        loop_count = corrected_pos_samples / loop_length;
         corrected_pos_samples %= loop_length;
         corrected_pos_samples += vgmstream->loop_start_sample;
     }
@@ -356,9 +355,9 @@ void input_vgmstream::decode_seek(double p_seconds,abort_callback & p_abort) {
 
     while(decode_pos_samples < corrected_pos_samples) {
         int seek_samples = max_buffer_samples;
-        if((decode_pos_samples + max_buffer_samples >= stream_length_samples) && !loop_okay)
+        if ((decode_pos_samples + max_buffer_samples >= stream_length_samples) && !loop_okay)
             seek_samples = stream_length_samples - seek_pos_samples;
-        if(decode_pos_samples + max_buffer_samples > seek_pos_samples)
+        if (decode_pos_samples + max_buffer_samples > seek_pos_samples)
             seek_samples = seek_pos_samples - decode_pos_samples;
 
         decode_pos_samples += seek_samples;
@@ -366,7 +365,7 @@ void input_vgmstream::decode_seek(double p_seconds,abort_callback & p_abort) {
     }
 
     // seek may have been clamped to skip unneeded loops, adjust as some internals need this value
-    vgmstream->loop_count += loop_skips; //todo evil, make seek_vgmstream
+    vgmstream->loop_count = loop_count; //todo make seek_vgmstream, not ok if seeking in fade section with ignore_fade
 
     // remove seek loop correction from counter so file ends correctly
     decode_pos_samples = seek_pos_samples;
@@ -552,52 +551,74 @@ void input_vgmstream::set_config_defaults(foobar_song_config *current) {
     current->song_loop_count = loop_count;
     current->song_fade_time = fade_seconds;
     current->song_fade_delay = fade_delay_seconds;
-    current->song_ignore_loop = ignore_loop;
-    current->song_really_force_loop = 0;
     current->song_ignore_fade = 0;
+    current->song_force_loop = 0;
+    current->song_really_force_loop = 0;
+    current->song_ignore_loop = ignore_loop;
 }
 
-void input_vgmstream::apply_config(VGMSTREAM * vgmstream, foobar_song_config *current) {
+void input_vgmstream::apply_config(VGMSTREAM* vgmstream, foobar_song_config* cfg) {
 
-    /* honor suggested config, if any (defined order matters)
-     * note that ignore_fade and play_forever should take priority */
-    if (vgmstream->config_loop_count) {
-        current->song_loop_count = vgmstream->config_loop_count;
+    /* honor suggested config (order matters, and config mixes with/overwrites player defaults) */
+    if (vgmstream->config.play_forever) {
+        cfg->song_play_forever = 1;
+        cfg->song_ignore_loop = 0;
     }
-    if (vgmstream->config_fade_delay) {
-        current->song_fade_delay = vgmstream->config_fade_delay;
+    if (vgmstream->config.loop_count_set) {
+        cfg->song_loop_count = vgmstream->config.loop_count;
+        cfg->song_play_forever = 0;
+        cfg->song_ignore_loop = 0;
     }
-    if (vgmstream->config_fade_time) {
-        current->song_fade_time = vgmstream->config_fade_time;
+    if (vgmstream->config.fade_delay_set) {
+        cfg->song_fade_delay = vgmstream->config.fade_delay;
     }
-    if (vgmstream->config_force_loop) {
-        current->song_really_force_loop = 1;
+    if (vgmstream->config.fade_time_set) {
+        cfg->song_fade_time = vgmstream->config.fade_time;
     }
-    if (vgmstream->config_ignore_loop) {
-        current->song_ignore_loop = 1;
-    }
-    if (vgmstream->config_ignore_fade) {
-        current->song_ignore_fade = 1;
-    }
-
-    /* remove non-compatible options */
-    if (current->song_play_forever) {
-        current->song_ignore_fade = 0;
-        current->song_ignore_loop = 0;
+    if (vgmstream->config.ignore_fade) {
+        cfg->song_ignore_fade = 1;
     }
 
-    /* change loop stuff, in no particular order */
-    if (current->song_really_force_loop) {
+    if (vgmstream->config.force_loop) {
+        cfg->song_ignore_loop = 0;
+        cfg->song_force_loop = 1;
+        cfg->song_really_force_loop = 0;
+    }
+    if (vgmstream->config.really_force_loop) {
+        cfg->song_ignore_loop = 0;
+        cfg->song_force_loop = 0;
+        cfg->song_really_force_loop = 1;
+    }
+    if (vgmstream->config.ignore_loop) {
+        cfg->song_ignore_loop = 1;
+        cfg->song_force_loop = 0;
+        cfg->song_really_force_loop = 0;
+    }
+
+
+    /* apply config */
+    if (cfg->song_force_loop && !vgmstream->loop_flag) {
         vgmstream_force_loop(vgmstream, 1, 0,vgmstream->num_samples);
     }
-    if (current->song_ignore_loop) {
+    if (cfg->song_really_force_loop) {
+        vgmstream_force_loop(vgmstream, 1, 0,vgmstream->num_samples);
+    }
+    if (cfg->song_ignore_loop) {
         vgmstream_force_loop(vgmstream, 0, 0,0);
     }
 
+    /* remove non-compatible options */
+    if (!vgmstream->loop_flag) {
+        cfg->song_play_forever = 0;
+    }
+    if (cfg->song_play_forever) {
+        cfg->song_ignore_fade = 0;
+    }
+
     /* loop N times, but also play stream end instead of fading out */
-    if (current->song_loop_count > 0 && current->song_ignore_fade) {
-        vgmstream_set_loop_target(vgmstream, (int)current->song_loop_count);
-        current->song_fade_time = 0; /* force no fade */
+    if (cfg->song_loop_count > 0 && cfg->song_ignore_fade) {
+        vgmstream_set_loop_target(vgmstream, (int)cfg->song_loop_count);
+        cfg->song_fade_time = 0;
     }
 }
 

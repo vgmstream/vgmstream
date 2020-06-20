@@ -187,7 +187,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_utf_dsp,
     init_vgmstream_ngc_ffcc_str,
     init_vgmstream_sat_baka,
-    init_vgmstream_nds_swav,
+    init_vgmstream_swav,
     init_vgmstream_vsf,
     init_vgmstream_nds_rrds,
     init_vgmstream_ps2_tk5,

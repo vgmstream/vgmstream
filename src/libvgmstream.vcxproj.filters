@@ -610,7 +610,7 @@
     <ClCompile Include="meta\nds_strm_ffta2.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\nds_swav.c">
+    <ClCompile Include="meta\swav.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ngc_adpdtk.c">

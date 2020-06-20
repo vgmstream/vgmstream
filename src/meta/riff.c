@@ -392,6 +392,9 @@ VGMSTREAM * init_vgmstream_riff(STREAMFILE *streamFile) {
 
         else if (riff_size >= file_size && read_32bitBE(0x24,streamFile) == 0x4E584246) /* "NXBF" */
             riff_size = file_size - 0x08; /* [R:Racing Evolution (Xbox)] */
+
+        else if (riff_size / 4 + 0x3c == file_size && codec == 0x0011) /* riff_size = data_size * 4, always has fact and 0x14 fmt */
+            riff_size = file_size - 0x08; /* [Asphalt 6 (iOS)] (sfx/memory wavs have ok sizes, only streaming wavs?) */
     }
 
     /* check for truncated RIFF */

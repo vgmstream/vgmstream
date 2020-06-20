@@ -72,15 +72,7 @@ typedef struct {
     int mixing_count;
     txtp_mix_data mixing[TXTP_MIXING_MAX];
 
-    int config_loop_count_set;
-    double config_loop_count;
-    int config_fade_time_set;
-    double config_fade_time;
-    int config_fade_delay_set;
-    double config_fade_delay;
-    int config_ignore_loop;
-    int config_force_loop;
-    int config_ignore_fade;
+    play_config_t config;
 
     int sample_rate;
 
@@ -437,21 +429,37 @@ fail:
 
 static void apply_config(VGMSTREAM *vgmstream, txtp_entry *current) {
 
-    if (current->config_loop_count_set)
-        vgmstream->config_loop_count = current->config_loop_count;
-    if (current->config_fade_time_set)
-        vgmstream->config_fade_time = current->config_fade_time;
-    if (current->config_fade_delay_set)
-        vgmstream->config_fade_delay = current->config_fade_delay;
-    if (current->config_ignore_loop)
-        vgmstream->config_ignore_loop = current->config_ignore_loop;
-    if (current->config_force_loop)
-        vgmstream->config_force_loop = current->config_force_loop;
-    if (current->config_ignore_fade)
-        vgmstream->config_ignore_fade = current->config_ignore_fade;
+    if (current->config.play_forever) {
+        vgmstream->config.play_forever = current->config.play_forever;
+    }
+    if (current->config.loop_count_set) {
+        vgmstream->config.loop_count_set = 1;
+        vgmstream->config.loop_count = current->config.loop_count;
+    }
+    if (current->config.fade_time_set) {
+        vgmstream->config.fade_time_set = 1;
+        vgmstream->config.fade_time = current->config.fade_time;
+    }
+    if (current->config.fade_delay_set) {
+        vgmstream->config.fade_delay_set = 1;
+        vgmstream->config.fade_delay = current->config.fade_delay;
+    }
+    if (current->config.ignore_fade) {
+        vgmstream->config.ignore_fade = current->config.ignore_fade;
+    }
+    if (current->config.force_loop) {
+        vgmstream->config.force_loop = current->config.force_loop;
+    }
+    if (current->config.really_force_loop) {
+        vgmstream->config.really_force_loop = current->config.really_force_loop;
+    }
+    if (current->config.ignore_loop) {
+        vgmstream->config.ignore_loop = current->config.ignore_loop;
+    }
 
-    if (current->sample_rate > 0)
+    if (current->sample_rate > 0) {
         vgmstream->sample_rate = current->sample_rate;
+    }
 
     if (current->loop_install_set) {
         if (current->loop_start_second > 0 || current->loop_end_second > 0) {
@@ -899,26 +907,32 @@ static void add_config(txtp_entry* current, txtp_entry* cfg, const char* filenam
         }
     }
 
-    if (cfg->config_loop_count_set) {
-        current->config_loop_count_set = cfg->config_loop_count_set;
-        current->config_loop_count = cfg->config_loop_count;
+    if (cfg->config.play_forever) {
+        current->config.play_forever = cfg->config.play_forever;
     }
-    if (cfg->config_fade_time_set) {
-        current->config_fade_time_set = cfg->config_fade_time_set;
-        current->config_fade_time = cfg->config_fade_time;
+    if (cfg->config.loop_count_set) {
+        current->config.loop_count_set = 1;
+        current->config.loop_count = cfg->config.loop_count;
     }
-    if (cfg->config_fade_delay_set) {
-        current->config_fade_delay_set = cfg->config_fade_delay_set;
-        current->config_fade_delay = cfg->config_fade_delay;
+    if (cfg->config.fade_time_set) {
+        current->config.fade_time_set = 1;
+        current->config.fade_time = cfg->config.fade_time;
     }
-    if (cfg->config_ignore_loop) {
-        current->config_ignore_loop = cfg->config_ignore_loop;
+    if (cfg->config.fade_delay_set) {
+        current->config.fade_delay_set = 1;
+        current->config.fade_delay = cfg->config.fade_delay;
     }
-    if (cfg->config_force_loop) {
-        current->config_force_loop = cfg->config_force_loop;
+    if (cfg->config.ignore_fade) {
+        current->config.ignore_fade = cfg->config.ignore_fade;
     }
-    if (cfg->config_ignore_fade) {
-        current->config_ignore_fade = cfg->config_ignore_fade;
+    if (cfg->config.force_loop) {
+        current->config.force_loop = cfg->config.force_loop;
+    }
+    if (cfg->config.really_force_loop) {
+        current->config.really_force_loop = cfg->config.really_force_loop;
+    }
+    if (cfg->config.ignore_loop) {
+        current->config.ignore_loop = cfg->config.ignore_loop;
     }
 
     if (cfg->sample_rate > 0) {
@@ -1081,28 +1095,42 @@ static void parse_config(txtp_entry *cfg, char *config) {
             }
         }
         else if (strcmp(command,"i") == 0) {
-            config += get_bool(config, &cfg->config_ignore_loop);
-            //;VGM_LOG("TXTP:   ignore_loop=%i\n", cfg->config_ignore_loop);
+            config += get_bool(config, &cfg->config.ignore_loop);
+            //;VGM_LOG("TXTP:   ignore_loop=%i\n", cfg->config.ignore_loop);
+        }
+        else if (strcmp(command,"e") == 0) {
+            config += get_bool(config, &cfg->config.force_loop);
+            //;VGM_LOG("TXTP:   force_loop=%i\n", cfg->config.force_loop);
         }
         else if (strcmp(command,"E") == 0) {
-            config += get_bool(config, &cfg->config_force_loop);
-            //;VGM_LOG("TXTP:   force_loop=%i\n", cfg->config_force_loop);
+            config += get_bool(config, &cfg->config.really_force_loop);
+            //;VGM_LOG("TXTP:   really_force_loop=%i\n", cfg->config.really_force_loop);
         }
         else if (strcmp(command,"F") == 0) {
-            config += get_bool(config, &cfg->config_ignore_fade);
-            //;VGM_LOG("TXTP:   ignore_fade=%i\n", cfg->config_ignore_fade);
+            config += get_bool(config, &cfg->config.ignore_fade);
+            //;VGM_LOG("TXTP:   ignore_fade=%i\n", cfg->config.ignore_fade);
+        }
+        else if (strcmp(command,"L") == 0) {
+            config += get_bool(config, &cfg->config.play_forever);
+            //;VGM_LOG("TXTP:   play_forever=%i\n", cfg->config.play_forever);
         }
         else if (strcmp(command,"l") == 0) {
-            config += get_double(config, &cfg->config_loop_count, &cfg->config_loop_count_set);
-            //;VGM_LOG("TXTP:   loop_count=%f\n", cfg->config_loop_count);
+            config += get_double(config, &cfg->config.loop_count, &cfg->config.loop_count_set);
+            if (cfg->config.loop_count < 0)
+                cfg->config.loop_count_set = 0;
+            //;VGM_LOG("TXTP:   loop_count=%f\n", cfg->config.loop_count);
         }
         else if (strcmp(command,"f") == 0) {
-            config += get_double(config, &cfg->config_fade_time, &cfg->config_fade_time_set);
-            //;VGM_LOG("TXTP:   fade_time=%f\n", cfg->config_fade_time);
+            config += get_double(config, &cfg->config.fade_time, &cfg->config.fade_time_set);
+            if (cfg->config.fade_time < 0)
+                cfg->config.fade_time_set = 0;
+            //;VGM_LOG("TXTP:   fade_time=%f\n", cfg->config.fade_time);
         }
         else if (strcmp(command,"d") == 0) {
-            config += get_double(config, &cfg->config_fade_delay, &cfg->config_fade_delay_set);
-            //;VGM_LOG("TXTP:   fade_delay %f\n", cfg->config_fade_delay);
+            config += get_double(config, &cfg->config.fade_delay, &cfg->config.fade_delay_set);
+            if (cfg->config.fade_delay < 0)
+                cfg->config.fade_delay_set = 0;
+            //;VGM_LOG("TXTP:   fade_delay %f\n", cfg->config.fade_delay);
         }
         else if (strcmp(command,"h") == 0) {
             config += get_int(config, &cfg->sample_rate);

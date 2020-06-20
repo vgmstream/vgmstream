@@ -72,12 +72,9 @@ typedef struct {
     char * outfilename;
     char * tag_filename;
     int decode_only;
-    int ignore_loop;
-    int force_loop;
-    int really_force_loop;
+    int play_forever;
     int play_sdtout;
     int play_wreckless;
-    int play_forever;
     int print_metaonly;
     int print_adxencd;
     int print_oggenc;
@@ -86,10 +83,15 @@ typedef struct {
     int write_lwav;
     int only_stereo;
     int stream_index;
+
     double loop_count;
     double fade_time;
     double fade_delay;
     int ignore_fade;
+    int ignore_loop;
+    int force_loop;
+    int really_force_loop;
+
     int seek_samples;
 
     /* not quite config but eh */
@@ -279,36 +281,46 @@ static void print_info(VGMSTREAM * vgmstream, cli_config *cfg) {
     }
 }
 
-static void apply_config(VGMSTREAM * vgmstream, cli_config *cfg) {
+static void apply_config(VGMSTREAM* vgmstream, cli_config* cfg) {
 
-    /* honor suggested config, if any (defined order matters)
-     * note that ignore_fade and play_forever should take priority */
-    if (vgmstream->config_loop_count > 0.0) {
-        cfg->loop_count = vgmstream->config_loop_count;
+    /* honor suggested config (order matters, and config mixes with/overwrites player defaults) */
+  //if (vgmstream->config.play_forever) { /* not really suited for CLI */
+  //    cfg->play_forever = 1;
+  //    cfg->ignore_loop = 0;
+  //}
+    if (vgmstream->config.loop_count_set) {
+        cfg->loop_count = vgmstream->config.loop_count;
+        cfg->play_forever = 0;
+        cfg->ignore_loop = 0;
     }
-    if (vgmstream->config_fade_delay > 0.0) {
-        cfg->fade_delay = vgmstream->config_fade_delay;
+    if (vgmstream->config.fade_delay_set) {
+        cfg->fade_delay = vgmstream->config.fade_delay;
     }
-    if (vgmstream->config_fade_time > 0.0) {
-        cfg->fade_time = vgmstream->config_fade_time;
+    if (vgmstream->config.fade_time_set) {
+        cfg->fade_time = vgmstream->config.fade_time;
     }
-    if (vgmstream->config_force_loop) {
-        cfg->really_force_loop = 1;
-    }
-    if (vgmstream->config_ignore_loop) {
-        cfg->ignore_loop = 1;
-    }
-    if (vgmstream->config_ignore_fade) {
+    if (vgmstream->config.ignore_fade) {
         cfg->ignore_fade = 1;
     }
 
-    /* remove non-compatible options */
-    if (cfg->play_forever) {
-        cfg->ignore_fade = 0;
+    if (vgmstream->config.force_loop) {
         cfg->ignore_loop = 0;
+        cfg->force_loop = 1;
+        cfg->really_force_loop = 0;
+    }
+    if (vgmstream->config.really_force_loop) {
+        cfg->ignore_loop = 0;
+        cfg->force_loop = 0;
+        cfg->really_force_loop = 1;
+    }
+    if (vgmstream->config.ignore_loop) {
+        cfg->ignore_loop = 1;
+        cfg->force_loop = 0;
+        cfg->really_force_loop = 0;
     }
 
-    /* change vgmstream's loop stuff (ignore loop goes last) */
+
+    /* apply config */
     if (cfg->force_loop && !vgmstream->loop_flag) {
         vgmstream_force_loop(vgmstream, 1, 0,vgmstream->num_samples);
     }
@@ -317,6 +329,14 @@ static void apply_config(VGMSTREAM * vgmstream, cli_config *cfg) {
     }
     if (cfg->ignore_loop) {
         vgmstream_force_loop(vgmstream, 0, 0,0);
+    }
+
+    /* remove non-compatible options */
+    if (!vgmstream->loop_flag) {
+        cfg->play_forever = 0;
+    }
+    if (cfg->play_forever) {
+        cfg->ignore_fade = 0;
     }
 
     /* loop N times, but also play stream end instead of fading out */
