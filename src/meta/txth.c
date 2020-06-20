@@ -345,7 +345,7 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
             vgmstream->interleave_block_size = 0x11;
             break;
 
-        case coding_EA_XA:
+        case coding_EA_XA: /* from 'raw' modes in sx.exe [Harry Potter and the Chamber of Secrets (PC)] */
             if (vgmstream->channels == 1 || txth.codec_mode == 1) { /* mono/interleave */
                 coding = coding_EA_XA_int;
                 vgmstream->layout_type = layout_interleave;
