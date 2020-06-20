@@ -807,8 +807,8 @@ void mixing_macro_crosstrack(VGMSTREAM* vgmstream, int max) {
 
     /* set loops to hear all track changes */
     track_num = output_channels / max;
-    if (vgmstream->config_loop_count < track_num)
-        vgmstream->config_loop_count = track_num;
+    if (vgmstream->config.loop_count < track_num)
+        vgmstream->config.loop_count = track_num;
 
     ch = 0;
     for (track = 0; track < track_num; track++) {
@@ -868,8 +868,8 @@ void mixing_macro_crosslayer(VGMSTREAM* vgmstream, int max, char mode) {
 
     /* set loops to hear all track changes */
     layer_num = output_channels / max;
-    if (vgmstream->config_loop_count < layer_num)
-        vgmstream->config_loop_count = layer_num;
+    if (vgmstream->config.loop_count < layer_num)
+        vgmstream->config.loop_count = layer_num;
 
     /* mode 'v': constant volume
      * mode 'e': sets fades to successively lower/equalize volume per loop for each layer

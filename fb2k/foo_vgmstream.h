@@ -10,6 +10,7 @@ typedef struct {
     double song_fade_time;
     double song_fade_delay;
     int song_ignore_loop;
+    int song_force_loop;
     int song_really_force_loop;
     int song_ignore_fade;
 } foobar_song_config;
