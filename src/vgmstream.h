@@ -321,7 +321,7 @@ typedef enum {
     meta_RSTM_SPM,          /* RSTM with 44->22khz hack */
     meta_THP,               /* THP movie files */
     meta_RSTM_shrunken,     /* Atlus' mutant shortened RSTM */
-    meta_NDS_SWAV,          /* Asphalt Urban GT 1 & 2 */
+    meta_SWAV,
     meta_NDS_RRDS,          /* Ridge Racer DS */
     meta_WII_BNS,           /* Wii BNS Banner Sound (similar to RSTM) */
     meta_WIIU_BTSND,        /* Wii U Boot Sound */

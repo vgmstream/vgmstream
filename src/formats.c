@@ -1036,7 +1036,7 @@ static const meta_info meta_info_list[] = {
         {meta_RIFF_WAVE_MWV,        "RIFF WAVE header with .mwv flavoring"},
         {meta_FFCC_STR,             "Final Fantasy: Crystal Chronicles STR header"},
         {meta_SAT_BAKA,             "BAKA header from Crypt Killer"},
-        {meta_NDS_SWAV,             "SWAV Header"},
+        {meta_SWAV,                 "Gameloft SWAV header"},
         {meta_VSF,                  "Square-Enix VSF header"},
         {meta_NDS_RRDS,             "Ridger Racer DS Header"},
         {meta_PS2_TK5,              "Tekken 5 Stream Header"},

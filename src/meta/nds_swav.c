@@ -1,45 +1,39 @@
 #include "meta.h"
 #include "../util.h"
 
-/* 28.01.2009 - bxaimc :
-    SWAV - found in Asphalt Urban GT & Asphalt Urban GT 2 */
-VGMSTREAM * init_vgmstream_nds_swav(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
-    int codec_number;
-    int channel_count;
-    int loop_flag;
-	coding_t coding_type;
+
+/* SWAV - from Gameloft(?) games [Asphalt Urban GT (DS), Asphalt Urban GT 2 (DS)] */
+VGMSTREAM* init_vgmstream_swav(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
+    int channel_count, loop_flag;
     off_t start_offset;
-    int bits_per_sample;
+    int codec_number, bits_per_sample;
+    coding_t coding_type;
 
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("swav",filename_extension(filename))) goto fail;
 
-    /* check header */
-    if ((uint32_t)read_32bitBE(0x00,streamFile)!=0x53574156)	/* SWAV */
+    /* checks */
+    /* .swav: standard
+     * .adpcm: Merlin - A Servant of Two Masters (DS) */
+    if (!check_extensions(sf, "swav,adpcm"))
         goto fail;
 
-    /* check for DATA section */
-    if ((uint32_t)read_32bitBE(0x10,streamFile)!=0x44415441) /* "DATA" */
+    if (read_u32be(0x00,sf) != 0x53574156) /* "SWAV" */
+        goto fail;
+    if (read_u32be(0x10,sf) != 0x44415441) /* "DATA" */
         goto fail;
 
     /* check type details */
-    codec_number = read_8bit(0x18,streamFile);
-    loop_flag = read_8bit(0x19,streamFile);
+    codec_number = read_8bit(0x18,sf);
+    loop_flag = read_8bit(0x19,sf);
 
     channel_count = 1;
-    if (get_streamfile_size(streamFile) != read_32bitLE(0x8,streamFile))
-    {
-        if (get_streamfile_size(streamFile) !=
-                (read_32bitLE(0x8,streamFile) - 0x24) * 2 + 0x24)
+    if (get_streamfile_size(sf) != read_s32le(0x08,sf)) {
+        if (get_streamfile_size(sf) != (read_s32le(0x08,sf) - 0x24) * 2 + 0x24)
             goto fail;
-
         channel_count = 2;
     }
 
-	switch (codec_number) {
+    switch (codec_number) {
         case 0:
             coding_type = coding_PCM8;
             bits_per_sample = 8;
@@ -55,24 +49,19 @@ VGMSTREAM * init_vgmstream_nds_swav(STREAMFILE *streamFile) {
         default:
             goto fail;
     }
+    start_offset = 0x24;
 
-	/* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+
+    /* build the VGMSTREAM */
+    vgmstream = allocate_vgmstream(channel_count, loop_flag);
     if (!vgmstream) goto fail;
 
-    /* fill in the vital statistics */
-    start_offset = 0x24;
-	vgmstream->num_samples =
-        (read_32bitLE(0x14,streamFile) - 0x14) * 8 / bits_per_sample;
-    vgmstream->sample_rate = (uint16_t)read_16bitLE(0x1A,streamFile);
-
-	if (loop_flag) {
-		vgmstream->loop_start_sample =
-            (uint16_t)read_16bitLE(0x1E,streamFile) * 32 / bits_per_sample;
-		vgmstream->loop_end_sample =
-            read_32bitLE(0x20,streamFile) * 32 / bits_per_sample +
-            vgmstream->loop_start_sample;
-	}
+    vgmstream->num_samples = (read_s32le(0x14,sf) - 0x14) * 8 / bits_per_sample;
+    vgmstream->sample_rate = read_u16le(0x1A,sf);
+    if (loop_flag) {
+        vgmstream->loop_start_sample = read_u16le(0x1E,sf) * 32 / bits_per_sample;
+        vgmstream->loop_end_sample = read_s32le(0x20,sf) * 32 / bits_per_sample + vgmstream->loop_start_sample;
+    }
 
     if (coding_type == coding_IMA_int) {
         /* handle IMA frame header */
@@ -82,19 +71,17 @@ VGMSTREAM * init_vgmstream_nds_swav(STREAMFILE *streamFile) {
 
         {
             int i;
-            for (i=0; i<channel_count; i++) {
-                vgmstream->ch[i].adpcm_history1_32 =
-                    read_16bitLE(start_offset + 0 + 4*i, streamFile);
-                vgmstream->ch[i].adpcm_step_index =
-                    read_16bitLE(start_offset + 2 + 4*i, streamFile);
+            for (i = 0; i < channel_count; i++) {
+                vgmstream->ch[i].adpcm_history1_32 = read_s16le(start_offset + 0 + 4*i, sf);
+                vgmstream->ch[i].adpcm_step_index = read_s16le(start_offset + 2 + 4*i, sf);
             }
         }
 
         start_offset += 4 * channel_count;
     }
-	
-	vgmstream->coding_type = coding_type;
-    vgmstream->meta_type = meta_NDS_SWAV;
+
+    vgmstream->coding_type = coding_type;
+    vgmstream->meta_type = meta_SWAV;
     if (channel_count == 2) {
         vgmstream->layout_type = layout_interleave;
         vgmstream->interleave_block_size = 1;
@@ -102,26 +89,11 @@ VGMSTREAM * init_vgmstream_nds_swav(STREAMFILE *streamFile) {
         vgmstream->layout_type = layout_none;
     }
 
-    /* open the file for reading by each channel */
-      
-    {
-        int i;
-        STREAMFILE * file;
-        file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (!file) goto fail;
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = file;
-
-            vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=start_offset+
-                vgmstream->interleave_block_size*i;
-        }
-    }
-    
+    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
+        goto fail;
     return vgmstream;
 
-    /* clean up anything we may have opened */
 fail:
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_vgmstream(vgmstream);
     return NULL;
 }
