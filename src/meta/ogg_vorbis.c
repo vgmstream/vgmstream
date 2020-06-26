@@ -444,6 +444,7 @@ VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, ov_callb
                 strstr(comment,"um3.stream.looppoint.start=") == comment ||
                 strstr(comment,"LOOP_BEGIN=") == comment || /* Hatsune Miku: Project Diva F (PS3) */
                 strstr(comment,"LoopStart=") == comment ||  /* Devil May Cry 4 (PC) */
+                strstr(comment,"LOOP=") == comment || /* Duke Nukem 3D: 20th Anniversary World Tour */
                 strstr(comment,"XIPH_CUE_LOOPSTART=") == comment) {  /* Super Mario Run (Android) */
                 loop_start = atol(strrchr(comment,'=')+1);
                 loop_flag = (loop_start >= 0);
