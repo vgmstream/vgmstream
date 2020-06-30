@@ -399,7 +399,7 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
     }
 
     /* check for truncated RIFF */
-    if (file_size < riff_size+0x08)
+    if (file_size != riff_size + 0x08)
         goto fail;
 
     /* read through chunks to verify format and find metadata */
