@@ -367,34 +367,35 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
     file_size = get_streamfile_size(sf);
 
     /* some games have wonky sizes, selectively fix to catch bad rips and new mutations */
-    {
+    if (file_size != riff_size + 0x08) {
         uint16_t codec = read_16bitLE(0x14,sf);
-        if (riff_size+0x08+0x01 == file_size)
+
+        if (riff_size + 0x08 + 0x01 == file_size)
             riff_size += 0x01; /* [Shikkoku no Sharnoth (PC)] */
 
-        else if (riff_size == file_size && codec == 0x0069)
+        else if (codec == 0x0069 && riff_size == file_size)
             riff_size -= 0x08; /* [Dynasty Warriors 3 (Xbox), BloodRayne (Xbox)] */
 
-        else if (riff_size + 0x04 == file_size && codec == 0x0069)
+        else if (codec == 0x0069 && riff_size + 0x04 == file_size)
             riff_size -= 0x04; /* [Halo 2 (PC)] (possibly bad extractor? 'Gravemind Tool') */
 
-        else if (riff_size + 0x04 == file_size && codec == 0x0000)
+        else if (codec == 0x0000 && riff_size + 0x04 == file_size)
             riff_size -= 0x04; /* [Headhunter (DC), Bomber hehhe (DC)] */
 
-        else if (riff_size == file_size && codec == 0x0000)
+        else if (codec == 0x0000 && riff_size == file_size)
             riff_size -= 0x08; /* [Rayman 2 (DC)] */
 
-        else if (riff_size + 0x02 + 0x08 == file_size && codec == 0x0000)
+        else if (codec == 0x0000 && riff_size + 0x02 + 0x08 == file_size)
             riff_size -= 0x02; /* [Rayman 2 (DC)]-dcz */
 
-        else if (riff_size == file_size && codec == 0x0300)
+        else if (codec == 0x0300 && riff_size == file_size)
             riff_size -= 0x08; /* [Chrono Ma:gia (Android)] */
 
         else if (riff_size >= file_size && read_32bitBE(0x24,sf) == 0x4E584246) /* "NXBF" */
             riff_size = file_size - 0x08; /* [R:Racing Evolution (Xbox)] */
 
-        else if (riff_size / 4 + 0x4800 + 0x3c == file_size && codec == 0x0011) /* riff_size ~= data_size * 4, always has fact and 0x14 fmt */
-            riff_size = file_size - 0x08; /* [Asphalt 6 (iOS)] (sfx/memory wavs have ok sizes, only streaming wavs?) */
+        else if (codec == 0x0011 && (riff_size / 2 / 2 == read_32bitLE(0x30,sf))) /* riff_size = pcm_size (always stereo, has fact at 0x30) */
+            riff_size = file_size - 0x08; /* [Asphalt 6 (iOS)] (sfx/memory wavs have ok sizes?) */
     }
 
     /* check for truncated RIFF */
