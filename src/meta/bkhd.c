@@ -8,9 +8,10 @@ VGMSTREAM* init_vgmstream_bkhd(STREAMFILE* sf) {
     STREAMFILE* temp_sf = NULL;
     off_t subfile_offset, base_offset = 0;
     size_t subfile_size;
-    uint32_t subfile_id, header_id;
-    int big_endian, version, is_dummy = 0;
+    uint32_t subfile_id;
+    int big_endian, version, is_riff = 0, is_dummy = 0, is_wmid = 0;
     uint32_t (*read_u32)(off_t,STREAMFILE*);
+    float (*read_f32)(off_t,STREAMFILE*);
     int total_subsongs, target_subsong = sf->stream_index;
 
 
@@ -24,6 +25,7 @@ VGMSTREAM* init_vgmstream_bkhd(STREAMFILE* sf) {
         goto fail;
     big_endian = guess_endianness32bit(base_offset + 0x04, sf);
     read_u32 = big_endian ? read_u32be : read_u32le;
+    read_f32 = big_endian ? read_f32be : read_f32le;
 
 
     /* Wwise banks have event/track/sequence/etc info in the HIRC chunk, as well
@@ -90,27 +92,42 @@ VGMSTREAM* init_vgmstream_bkhd(STREAMFILE* sf) {
         subfile_offset  = read_u32(offset + 0x04, sf) + data_offset;
         subfile_size    = read_u32(offset + 0x08, sf);
     }
+    
+    //;VGM_LOG("BKHD: %lx, %x\n", subfile_offset, subfile_size);
 
-    /* some indexes don't have that, but for now leave a dummy song for easier HIRC mapping */
+    /* detect format */
     if (subfile_offset <= 0 || subfile_size <= 0) {
-        //;VGM_LOG("BKHD: dummy entry");
-        temp_sf = setup_subfile_streamfile(sf, 0x00, 0x10, "raw");
+        /* some indexes don't have data */
+        is_dummy = 1;
+    }
+    else if (read_u32be(subfile_offset + 0x00, sf) == 0x52494646 || /* "RIFF" */
+             read_u32be(subfile_offset + 0x00, sf) == 0x52494658) { /* "RIFX" */
+        is_riff = 1;
+    }
+    else if (read_f32(subfile_offset + 0x02, sf) >= 30.0 && 
+             read_f32(subfile_offset + 0x02, sf) <= 250.0) {
+        /* ignore Wwise's custom .wmid (similar to a regular midi but with simplified
+         *  chunks and custom fields: 0x00=MThd's division, 0x02: bpm (new), etc) */
+        is_wmid = 1;
+    }
+    /* default is sfx */
+
+
+    if (is_dummy || is_wmid) {
+        /* for now leave a dummy song for easier .bnk index-to-subsong mapping */
+        temp_sf = setup_subfile_streamfile(sf, 0x00, 1000 * 0x02 * 2, "raw");
         if (!temp_sf) goto fail;
 
         //todo make some better silent entry
         vgmstream = init_vgmstream_raw_pcm(temp_sf);
         if (!vgmstream) goto fail;
-        
-        is_dummy = 1;
     }
     else {
-        //;VGM_LOG("BKHD: %lx, %x\n", subfile_offset, subfile_size);
         /* could pass .wem but few files need memory .wem detection */
         temp_sf = setup_subfile_streamfile(sf, subfile_offset, subfile_size, NULL);
         if (!temp_sf) goto fail;
 
-        header_id = read_u32be(0x00, temp_sf);
-        if (header_id == 0x52494646 || header_id == 0x52494658) { /* "RIFF" / "RIFX" */
+        if (is_riff) {
             vgmstream = init_vgmstream_wwise(temp_sf);
             if (!vgmstream) goto fail;
         }
@@ -124,7 +141,9 @@ VGMSTREAM* init_vgmstream_bkhd(STREAMFILE* sf) {
     vgmstream->num_streams = total_subsongs;
     
     if (is_dummy)
-        snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%s", "dummy");
+        snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%u/dummy", subfile_id);
+    else if (is_wmid)
+        snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%u/wmid", subfile_id);
     else if (subfile_id != 0xFFFFFFFF)
         snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%u", subfile_id);
 
