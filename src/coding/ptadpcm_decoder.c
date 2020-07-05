@@ -66,6 +66,8 @@ void decode_ptadpcm(VGMSTREAMCHANNEL *stream, sample_t *outbuf, int channelspaci
     index = frame[0x04];
 
     VGM_ASSERT_ONCE(index > 12, "PTADPCM: incorrect index at %x\n", (uint32_t)frame_offset);
+    if (index > 12)
+        index = 12;
 
     /* write header samples (needed) */
     if (sample_count >= first_sample && samples_done < samples_to_do) {
