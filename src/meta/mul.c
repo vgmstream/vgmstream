@@ -3,7 +3,7 @@
 #include "../coding/coding.h"
 #include "mul_streamfile.h"
 
-typedef enum { PSX, DSP, XBOX, XMA1 } mul_codec;
+typedef enum { PSX, DSP, IMA, XMA1 } mul_codec;
 
 static int guess_codec(STREAMFILE* sf, int big_endian, int channels, mul_codec* p_codec, off_t* p_extra_offset);
 
@@ -86,8 +86,8 @@ VGMSTREAM * init_vgmstream_mul(STREAMFILE *sf) {
             dsp_read_hist_be (vgmstream,sf,coefs_offset+0x24,0x2e);
             break;
 
-        case XBOX:
-            vgmstream->coding_type = coding_XBOX_IMA_int;
+        case IMA:
+            vgmstream->coding_type = coding_CD_IMA;
             vgmstream->layout_type = layout_blocked_mul;
             break;
 
@@ -195,7 +195,7 @@ static int guess_codec(STREAMFILE* sf, int big_endian, int channels, mul_codec* 
                     break;
             }
             if (i == data_size / frame_size) {
-                *p_codec = XBOX;
+                *p_codec = IMA;
                 return 1;
             }
 

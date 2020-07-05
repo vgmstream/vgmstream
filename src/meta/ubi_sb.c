@@ -3844,22 +3844,6 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
         return 1;
     }
 
-    /* TMNT (2007)(GC)-bank */
-    if (sb->version == 0x00190002 && sb->platform == UBI_GC) {
-        config_sb_entry(sb, 0x68, 0x6c);
-
-        config_sb_audio_fs(sb, 0x28, 0x2c, 0x30); /* assumed groud_id */
-        config_sb_audio_he(sb, 0x3c, 0x40, 0x48, 0x50, 0x58, 0x5c);
-
-        config_sb_sequence(sb, 0x2c, 0x14);
-
-        config_sb_layer_he(sb, 0x20, 0x34, 0x38, 0x40);
-        config_sb_layer_sh(sb, 0x30, 0x00, 0x04, 0x08, 0x10);
-
-        config_sb_silence_f(sb, 0x1c);
-        return 1;
-    }
-
     /* TMNT (2007)(PS2)-bank */
     if (sb->version == 0x00190002 && sb->platform == UBI_PS2) {
         config_sb_entry(sb, 0x48, 0x5c);
@@ -3870,6 +3854,24 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
         config_sb_sequence(sb, 0x2c, 0x10);
 
         config_sb_layer_he(sb, 0x20, 0x2c, 0x30, 0x38);
+        config_sb_layer_sh(sb, 0x30, 0x00, 0x04, 0x08, 0x10);
+
+        config_sb_silence_f(sb, 0x1c);
+        return 1;
+    }
+
+    /* TMNT (2007)(GC)-bank */
+    /* Surf's Up (2007)(GC)-bank 0x00190005 */
+    if ((sb->version == 0x00190002 && sb->platform == UBI_GC) ||
+        (sb->version == 0x00190005 && sb->platform == UBI_GC)) {
+        config_sb_entry(sb, 0x68, 0x6c);
+
+        config_sb_audio_fs(sb, 0x28, 0x2c, 0x30); /* assumed groud_id */
+        config_sb_audio_he(sb, 0x3c, 0x40, 0x48, 0x50, 0x58, 0x5c);
+
+        config_sb_sequence(sb, 0x2c, 0x14);
+
+        config_sb_layer_he(sb, 0x20, 0x34, 0x38, 0x40);
         config_sb_layer_sh(sb, 0x30, 0x00, 0x04, 0x08, 0x10);
 
         config_sb_silence_f(sb, 0x1c);
