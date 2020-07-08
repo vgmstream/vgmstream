@@ -345,6 +345,10 @@ static const hcakey_info hcakey_list[] = {
 
         /* Cardcaptor Sakura: Happiness Memories (Android) */
         {625144437747651},          // 00023890C8252FC3
+
+        /* Digimon Story: Cyber Sleuth (PC) */
+        {0x283553DCE3FD5FB9},       // 283553DCE3FD5FB9
+
 };
 
 #endif/*_HCA_KEYS_H_*/

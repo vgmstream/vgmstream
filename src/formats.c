@@ -395,6 +395,7 @@ static const char* extension_list[] = {
     "rsd",
     "rsf",
     "rsm",
+    "rsp",
     "rstm", //fake extension/header id for .rstm (in bigfiles)
     "rvws",
     "rwar",
