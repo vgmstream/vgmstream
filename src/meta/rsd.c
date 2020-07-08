@@ -13,7 +13,7 @@ VGMSTREAM * init_vgmstream_rsd(STREAMFILE *streamFile) {
 
 
     /* checks */
-    if (!check_extensions(streamFile,"rsd"))
+    if (!check_extensions(streamFile,"rsd,rsp"))
         goto fail;
     if ((read_32bitBE(0x00,streamFile) & 0xFFFFFF00) != 0x52534400) /* "RSD\00" */
         goto fail;
