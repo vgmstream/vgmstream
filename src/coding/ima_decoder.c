@@ -322,11 +322,11 @@ static const int16_t mul_delta_table[16] = {
 
 
 /* Crystal Dynamics IMA, reverse engineered from the exe, also info: https://github.com/sephiroth99/MulDeMu */
-static void cd_ima_expand_nibble(VGMSTREAMCHANNEL* stream, off_t byte_offset, int shift, int32_t* hist1, int32_t* index) {
+static void cd_ima_expand_nibble(uint8_t byte, int shift, int32_t* hist1, int32_t* index) {
     int code, sample, step, delta;
 
     /* could do the above table calcs during decode too */
-    code = (read_8bit(byte_offset,stream->streamfile) >> shift) & 0xf;
+    code = (byte >> shift) & 0xf;
     sample = *hist1;
     step = mul_adpcm_table[*index];
 
@@ -1210,50 +1210,55 @@ void decode_h4m_ima(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspa
     stream->adpcm_step_index = step_index;
 }
 
+/* test... */
+static inline int _clamp_s32(int value, int min, int max) {
+    if (value < min)
+        return min;
+    else if (value > max)
+        return max;
+    else
+        return value;
+}
 
 /* Crystal Dynamics IMA. Original code uses mind-bending intrinsics, so this may not be fully accurate.
- * Has another table with delta_table MMX combos, and using header sample and clamps seems necessary. */
+ * Has another table with delta_table MMX combos, and uses header sample (first nibble is always 0). */
 void decode_cd_ima(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
+    uint8_t frame[0x24] = {0};
     int i, frames_in, sample_pos = 0, block_samples, frame_size;
     int32_t hist1 = stream->adpcm_history1_32;
     int step_index = stream->adpcm_step_index;
     off_t frame_offset;
 
     /* external interleave (fixed size), mono */
-    block_samples = (0x24 - 0x4) * 2;
+    frame_size = 0x24;
+    block_samples = (frame_size - 0x4) * 2;
     frames_in = first_sample / block_samples;
     first_sample = first_sample % block_samples;
-    frame_size = 0x24;
 
-    frame_offset = stream->offset + frame_size*frames_in;
+    frame_offset = stream->offset + frame_size * frames_in;
+    read_streamfile(frame, frame_offset, frame_size, stream->streamfile); /* ignore EOF errors */
 
     /* normal header (hist+step+reserved), mono */
     if (first_sample == 0) {
-        off_t header_offset = frame_offset + 0x00;
+        hist1   = get_s16le(frame + 0x00);
+        step_index = get_u8(frame + 0x02);
+        step_index = _clamp_s32(step_index, 0, 88);
 
-        hist1   = read_16bitLE(header_offset+0x00,stream->streamfile);
-        step_index = read_8bit(header_offset+0x02,stream->streamfile);
-        if (step_index < 0) step_index=0;
-        if (step_index > 88) step_index=88;
-
-        /* write header sample (even samples per block, skips last nibble) */
+        /* write header sample (even samples per block, skips first nibble) */
         outbuf[sample_pos] = (short)(hist1);
         sample_pos += channelspacing;
         first_sample += 1;
         samples_to_do -= 1;
     }
 
-    /* decode nibbles (layout: straight in mono ) */
+    /* decode nibbles (layout: straight in mono) */
     for (i = first_sample; i < first_sample + samples_to_do; i++) {
-        off_t byte_offset = frame_offset + 0x04 + (i-1)/2;
-        int nibble_shift = (!((i-1)&1)   ? 0:4);   /* low first */
+        int pos = 0x04 + (i/2);
+        int shift = (i&1 ? 4:0); /* low first, but first low nibble is skipped */
 
-        /* must skip last nibble per spec, rarely needed though (ex. Gauntlet Dark Legacy) */
-        if (i < block_samples) {
-            cd_ima_expand_nibble(stream, byte_offset,nibble_shift, &hist1, &step_index);
-            outbuf[sample_pos] = (short)(hist1);
-            sample_pos += channelspacing;
-        }
+        cd_ima_expand_nibble(frame[pos], shift, &hist1, &step_index);
+        outbuf[sample_pos] = (short)(hist1);
+        sample_pos += channelspacing;
     }
 
     stream->adpcm_history1_32 = hist1;
