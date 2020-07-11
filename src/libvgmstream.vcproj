@@ -833,6 +833,10 @@
 					>
 				</File>
                 <File
+                    RelativePath=".\meta\ktsc.c"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\ktsr.c"
                     >
                 </File>

@@ -1747,6 +1747,9 @@
     <ClCompile Include="meta\mogg.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\ktsc.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\ktsr.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>

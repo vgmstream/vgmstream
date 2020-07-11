@@ -193,6 +193,7 @@
     <ClCompile Include="meta\imuse.c" />
     <ClCompile Include="meta\ios_psnd.c" />
     <ClCompile Include="meta\kat.c" />
+    <ClCompile Include="meta\ktsc.c" />
     <ClCompile Include="meta\ktsr.c" />
     <ClCompile Include="meta\ktss.c" />
     <ClCompile Include="meta\kwb.c" />

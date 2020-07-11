@@ -312,6 +312,7 @@ static int parse_ktsr_subfile(ktsr_header* ktsr, STREAMFILE* sf, off_t offset) {
     switch(type) { /* hash-id? */
 
         case 0x38D0437D: /* external [Nioh (PC), Atelier Ryza (PC)] */
+        case 0xDF92529F: /* external [Atelier Ryza (PC)] */
             /* 08 subtype? (ex. 0x522B86B9)
              * 0c channels
              * 10 ? (always 0x002706B8)
