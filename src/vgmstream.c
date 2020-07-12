@@ -501,6 +501,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_mups,
     init_vgmstream_kat,
     init_vgmstream_pcm_success,
+    init_vgmstream_ktsc,
 
     /* lowest priority metas (should go after all metas, and TXTH should go before raw formats) */
     init_vgmstream_txth,            /* proper parsers should supersede TXTH, once added */
