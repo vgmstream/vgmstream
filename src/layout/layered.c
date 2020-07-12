@@ -170,14 +170,18 @@ void reset_layout_layered(layered_layout_data *data) {
 /* helper for easier creation of layers */
 VGMSTREAM *allocate_layered_vgmstream(layered_layout_data* data) {
     VGMSTREAM *vgmstream = NULL;
-    int i, channels, loop_flag;
+    int i, channels, loop_flag, num_samples;
 
     /* get data */
     channels = data->output_channels;
+
     loop_flag = 1;
+    num_samples = 0;
     for (i = 0; i < data->layer_count; i++) {
         if (loop_flag && !data->layers[i]->loop_flag)
             loop_flag = 0;
+        if (num_samples < data->layers[i]->num_samples)
+            num_samples = data->layers[i]->num_samples;
     }
 
 
@@ -187,7 +191,7 @@ VGMSTREAM *allocate_layered_vgmstream(layered_layout_data* data) {
 
     vgmstream->meta_type = data->layers[0]->meta_type;
     vgmstream->sample_rate = data->layers[0]->sample_rate;
-    vgmstream->num_samples = data->layers[0]->num_samples;
+    vgmstream->num_samples = num_samples;
     vgmstream->loop_start_sample = data->layers[0]->loop_start_sample;
     vgmstream->loop_end_sample = data->layers[0]->loop_end_sample;
     vgmstream->coding_type = data->layers[0]->coding_type;
