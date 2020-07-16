@@ -4,10 +4,14 @@
 #ifdef VGM_USE_G719
 #define G719_MAX_CODES ((1280/8)) /* in int16, so max frame size is (value/8)*2 (0xF0=common, 0x140=decoder max 2560b, rare) */
 
+struct g719_codec_data {
+   sample_t buffer[960];
+   void *handle;
+};
 
-g719_codec_data *init_g719(int channel_count, int frame_size) {
+g719_codec_data* init_g719(int channel_count, int frame_size) {
     int i;
-    g719_codec_data *data = NULL;
+    g719_codec_data* data = NULL;
 
     if (frame_size / sizeof(int16_t) > G719_MAX_CODES)
         goto fail;
@@ -34,10 +38,10 @@ fail:
 }
 
 
-void decode_g719(VGMSTREAM * vgmstream, sample * outbuf, int channelspacing, int32_t samples_to_do, int channel) {
-    VGMSTREAMCHANNEL *ch = &vgmstream->ch[channel];
-    g719_codec_data *data = vgmstream->codec_data;
-    g719_codec_data *ch_data = &data[channel];
+void decode_g719(VGMSTREAM* vgmstream, sample_t* outbuf, int channelspacing, int32_t samples_to_do, int channel) {
+    VGMSTREAMCHANNEL* ch = &vgmstream->ch[channel];
+    g719_codec_data* data = vgmstream->codec_data;
+    g719_codec_data* ch_data = &data[channel];
     int i;
 
     if (0 == vgmstream->samples_into_block) {
@@ -53,7 +57,7 @@ void decode_g719(VGMSTREAM * vgmstream, sample * outbuf, int channelspacing, int
 }
 
 
-void reset_g719(g719_codec_data * data, int channels) {
+void reset_g719(g719_codec_data* data, int channels) {
     int i;
     if (!data) return;
 
@@ -62,7 +66,7 @@ void reset_g719(g719_codec_data * data, int channels) {
     }
 }
 
-void free_g719(g719_codec_data * data, int channels) {
+void free_g719(g719_codec_data* data, int channels) {
     int i;
     if (!data) return;
 

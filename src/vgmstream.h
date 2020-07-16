@@ -908,108 +908,23 @@ typedef struct {
 
 
     /* main state */
-    VGMSTREAMCHANNEL * ch;          /* array of channels */
-    VGMSTREAMCHANNEL * start_ch;    /* shallow copy of channels as they were at the beginning of the stream (for resets) */
-    VGMSTREAMCHANNEL * loop_ch;     /* shallow copy of channels as they were at the loop point (for loops) */
+    VGMSTREAMCHANNEL* ch;           /* array of channels */
+    VGMSTREAMCHANNEL* start_ch;     /* shallow copy of channels as they were at the beginning of the stream (for resets) */
+    VGMSTREAMCHANNEL* loop_ch;      /* shallow copy of channels as they were at the loop point (for loops) */
     void* start_vgmstream;          /* shallow copy of the VGMSTREAM as it was at the beginning of the stream (for resets) */
 
-    void * mixing_data;             /* state for mixing effects */
+    void* mixing_data;              /* state for mixing effects */
 
     /* Optional data the codec needs for the whole stream. This is for codecs too
      * different from vgmstream's structure to be reasonably shoehorned.
      * Note also that support must be added for resetting, looping and
      * closing for every codec that uses this, as it will not be handled. */
-    void * codec_data;
+    void* codec_data;
     /* Same, for special layouts. layout_data + codec_data may exist at the same time. */
-    void * layout_data;
+    void* layout_data;
 
 } VGMSTREAM;
 
-#ifdef VGM_USE_VORBIS
-
-/* standard Ogg Vorbis */
-typedef struct {
-    STREAMFILE *streamfile;
-    ogg_int64_t start; /* file offset where the Ogg starts */
-    ogg_int64_t offset; /* virtual offset, from 0 to size */
-    ogg_int64_t size; /* virtual size of the Ogg */
-
-    /* decryption setup */
-    void (*decryption_callback)(void *ptr, size_t size, size_t nmemb, void *datasource);
-    uint8_t scd_xor;
-    off_t scd_xor_length;
-    uint32_t xor_value;
-
-} ogg_vorbis_io;
-
-typedef struct ogg_vorbis_codec_data ogg_vorbis_codec_data;
-
-
-/* custom Vorbis modes */
-typedef enum {
-    VORBIS_FSB,         /* FMOD FSB: simplified/external setup packets, custom packet headers */
-    VORBIS_WWISE,       /* Wwise WEM: many variations (custom setup, headers and data) */
-    VORBIS_OGL,         /* Shin'en OGL: custom packet headers */
-    VORBIS_SK,          /* Silicon Knights AUD: "OggS" replaced by "SK" */
-    VORBIS_VID1,        /* Neversoft VID1: custom packet blocks/headers */
-} vorbis_custom_t;
-
-/* config for Wwise Vorbis (3 types for flexibility though not all combinations exist) */
-typedef enum { WWV_HEADER_TRIAD, WWV_FULL_SETUP, WWV_INLINE_CODEBOOKS, WWV_EXTERNAL_CODEBOOKS, WWV_AOTUV603_CODEBOOKS } wwise_setup_t;
-typedef enum { WWV_TYPE_8, WWV_TYPE_6, WWV_TYPE_2 } wwise_header_t;
-typedef enum { WWV_STANDARD, WWV_MODIFIED } wwise_packet_t;
-
-typedef struct {
-    /* to reconstruct init packets */
-    int channels;
-    int sample_rate;
-    int blocksize_0_exp;
-    int blocksize_1_exp;
-
-    uint32_t setup_id; /* external setup */
-    int big_endian; /* flag */
-
-    /* Wwise Vorbis config */
-    wwise_setup_t setup_type;
-    wwise_header_t header_type;
-    wwise_packet_t packet_type;
-
-    /* output (kinda ugly here but to simplify) */
-    off_t data_start_offset;
-
-} vorbis_custom_config;
-
-/* custom Vorbis without Ogg layer */
-typedef struct {
-    vorbis_info vi;             /* stream settings */
-    vorbis_comment vc;          /* stream comments */
-    vorbis_dsp_state vd;        /* decoder global state */
-    vorbis_block vb;            /* decoder local state */
-    ogg_packet op;              /* fake packet for internal use */
-
-    uint8_t * buffer;           /* internal raw data buffer */
-    size_t buffer_size;
-
-    size_t samples_to_discard;  /* for looping purposes */
-    int samples_full;           /* flag, samples available in vorbis buffers */
-
-    vorbis_custom_t type;        /* Vorbis subtype */
-    vorbis_custom_config config; /* config depending on the mode */
-
-    /* Wwise Vorbis: saved data to reconstruct modified packets */
-    uint8_t mode_blockflag[64+1];   /* max 6b+1; flags 'n stuff */
-    int mode_bits;                  /* bits to store mode_number */
-    uint8_t prev_blockflag;         /* blockflag in the last decoded packet */
-    /* Ogg-style Vorbis: packet within a page */
-    int current_packet;
-    /* reference for page/blocks */
-    off_t block_offset;
-    size_t block_size;
-
-    int prev_block_samples;     /* count for optimization */
-
-} vorbis_custom_codec_data;
-#endif
 
 
 #ifdef VGM_USE_MPEG
@@ -1102,47 +1017,13 @@ typedef struct {
 } mpeg_codec_data;
 #endif
 
-#ifdef VGM_USE_G7221
-typedef struct g7221_codec_data g7221_codec_data;
-#endif
-
-#ifdef VGM_USE_G719
-typedef struct {
-   sample_t buffer[960];
-   void *handle;
-} g719_codec_data;
-#endif
-
-#ifdef VGM_USE_MAIATRAC3PLUS
-typedef struct {
-    sample_t *buffer;
-    int channels;
-    int samples_discard;
-    void *handle;
-} maiatrac3plus_codec_data;
-#endif
-
-#ifdef VGM_USE_ATRAC9
-/* ATRAC9 config */
-typedef struct {
-    int channels;           /* to detect weird multichannel */
-    uint32_t config_data;   /* ATRAC9 config header */
-    int encoder_delay;      /* initial samples to discard */
-} atrac9_config;
-typedef struct atrac9_codec_data atrac9_codec_data;
-#endif
-
-#ifdef VGM_USE_CELT
-typedef enum { CELT_0_06_1,CELT_0_11_0} celt_lib_t;
-typedef struct celt_codec_data celt_codec_data;
-#endif
-
 /* libacm interface */
 typedef struct {
-    STREAMFILE *streamfile;
-    void *handle;
-    void *io_config;
+    STREAMFILE* streamfile;
+    void* handle;
+    void* io_config;
 } acm_codec_data;
+
 
 /* for files made of "continuous" segments, one per section of a song (using a complete sub-VGMSTREAM) */
 typedef struct {
@@ -1163,28 +1044,12 @@ typedef struct {
     int output_channels;    /* resulting channels (after mixing, if applied) */
 } layered_layout_data;
 
+
 /* for compressed NWA */
 typedef struct {
     NWAData *nwa;
 } nwa_codec_data;
 
-typedef struct relic_codec_data relic_codec_data;
-
-typedef struct {
-    STREAMFILE *streamfile;
-    clHCA_stInfo info;
-
-    signed short *sample_buffer;
-    size_t samples_filled;
-    size_t samples_consumed;
-    size_t samples_to_discard;
-
-    void* data_buffer;
-
-    unsigned int current_block;
-
-    void* handle;
-} hca_codec_data;
 
 #ifdef VGM_USE_FFMPEG
 typedef struct {
@@ -1263,51 +1128,8 @@ typedef struct {
     INT_PCM sample_buffer[( (6) * (2048)*4 )];
 } mp4_aac_codec_data;
 #endif
-#endif
+#endif //VGM_USE_MP4V2
 
-typedef struct ubi_adpcm_codec_data ubi_adpcm_codec_data;
-
-typedef struct ea_mt_codec_data ea_mt_codec_data;
-
-
-#if 0
-//possible future public/opaque API
-
-/* define standard C param call and name mangling (to avoid __stdcall / .defs) */
-#define VGMSTREAM_CALL __cdecl //needed?
-
-/* define external function types (during compilation) */
-#if defined(VGMSTREAM_EXPORT)
-    #define VGMSTREAM_API __declspec(dllexport) /* when exporting/creating vgmstream DLL */
-#elif defined(VGMSTREAM_IMPORT)
-    #define VGMSTREAM_API __declspec(dllimport) /* when importing/linking vgmstream DLL */
-#else
-    #define VGMSTREAM_API /* nothing, internal/default */
-#endif
-
-//VGMSTREAM_API void VGMSTREAM_CALL vgmstream_function(void);
-
-//info for opaque VGMSTREAM
-typedef struct {
-    const int channels;
-    const int sample_rate;
-    const int num_samples;
-    const int loop_start_sample;
-    const int loop_end_sample;
-    const int loop_flag;
-    const int num_streams;
-    const int current_sample;
-    const int average_bitrate;
-} VGMSTREAM_INFO;
-void vgmstream_get_info(VGMSTREAM* vgmstream, VGMSTREAM_INFO *vgmstream_info);
-
-//or maybe
-enum vgmstream_value_t { VGMSTREAM_CHANNELS, VGMSTREAM_CURRENT_SAMPLE, ... };
-int vgmstream_get_info(VGMSTREAM* vgmstream, vgmstream_value_t type);
-// or
-int vgmstream_get_current_sample(VGMSTREAM* vgmstream);
-
-#endif
 
 /* -------------------------------------------------------------------------*/
 /* vgmstream "public" API                                                   */

@@ -2748,8 +2748,7 @@ static STREAMFILE * get_vgmstream_average_bitrate_channel_streamfile(VGMSTREAM *
     }
 
     if (vgmstream->coding_type == coding_ACM) {
-        acm_codec_data *data = vgmstream->codec_data;
-        return (data && data->handle) ? data->streamfile : NULL;
+        return acm_get_streamfile(vgmstream->codec_data);
     }
 
 #ifdef VGM_USE_VORBIS
@@ -2758,13 +2757,11 @@ static STREAMFILE * get_vgmstream_average_bitrate_channel_streamfile(VGMSTREAM *
     }
 #endif
     if (vgmstream->coding_type == coding_CRI_HCA) {
-        hca_codec_data *data = vgmstream->codec_data;
-        return data ? data->streamfile : NULL;
+        return hca_get_streamfile(vgmstream->codec_data);
     }
 #ifdef VGM_USE_FFMPEG
     if (vgmstream->coding_type == coding_FFmpeg) {
-        ffmpeg_codec_data *data = vgmstream->codec_data;
-        return data ? data->streamfile : NULL;
+        return ffmpeg_get_streamfile(vgmstream->codec_data);
     }
 #endif
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)

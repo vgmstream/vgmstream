@@ -10,69 +10,73 @@ static void find_hca_key(hca_codec_data* hca_data, uint64_t* p_keycode, uint16_t
 
 
 /* CRI HCA - streamed audio from CRI ADX2/Atom middleware */
-VGMSTREAM * init_vgmstream_hca(STREAMFILE *streamFile) {
-    return init_vgmstream_hca_subkey(streamFile, 0x0000);
+VGMSTREAM * init_vgmstream_hca(STREAMFILE* sf) {
+    return init_vgmstream_hca_subkey(sf, 0x0000);
 }
 
-VGMSTREAM * init_vgmstream_hca_subkey(STREAMFILE *streamFile, uint16_t subkey) {
+VGMSTREAM * init_vgmstream_hca_subkey(STREAMFILE* sf, uint16_t subkey) {
     VGMSTREAM * vgmstream = NULL;
-    hca_codec_data * hca_data = NULL;
+    hca_codec_data* hca_data = NULL;
+    clHCA_stInfo* hca_info;
 
 
     /* checks */
-    if ( !check_extensions(streamFile, "hca"))
+    if (!check_extensions(sf, "hca"))
         return NULL;
-    if (((uint32_t)read_32bitBE(0x00,streamFile) & 0x7f7f7f7f) != 0x48434100) /* "HCA\0", possibly masked */
+
+    if ((read_u32be(0x00,sf) & 0x7F7F7F7F) != 0x48434100) /* "HCA\0", possibly masked */
         goto fail;
 
     /* init vgmstream and library's context, will validate the HCA */
-    hca_data = init_hca(streamFile);
+    hca_data = init_hca(sf);
     if (!hca_data) goto fail;
 
+    hca_info = hca_get_info(hca_data);
+
     /* find decryption key in external file or preloaded list */
-    if (hca_data->info.encryptionEnabled) {
+    if (hca_info->encryptionEnabled) {
         uint64_t keycode = 0;
         uint8_t keybuf[0x08+0x02];
         size_t keysize;
 
-        keysize = read_key_file(keybuf, 0x08+0x04, streamFile);
+        keysize = read_key_file(keybuf, 0x08+0x04, sf);
         if (keysize == 0x08) { /* standard */
-            keycode = (uint64_t)get_64bitBE(keybuf+0x00);
+            keycode = get_u64be(keybuf+0x00);
             if (subkey) {
                 keycode = keycode * ( ((uint64_t)subkey << 16u) | ((uint16_t)~subkey + 2u) );
             }
         }
         else if (keysize == 0x08+0x02) { /* seed key + AWB subkey */
-            uint64_t file_key = (uint64_t)get_64bitBE(keybuf+0x00);
-            uint16_t file_sub = (uint16_t)get_16bitBE(keybuf+0x08);
+            uint64_t file_key = get_u64be(keybuf+0x00);
+            uint16_t file_sub = get_u16be(keybuf+0x08);
             keycode = file_key * ( ((uint64_t)file_sub << 16u) | ((uint16_t)~file_sub + 2u) );
         }
 #ifdef HCA_BRUTEFORCE
         else if (1) {
-            bruteforce_hca_key(streamFile, hca_data, &keycode, subkey);
+            bruteforce_hca_key(sf, hca_data, &keycode, subkey);
         }
 #endif
         else {
             find_hca_key(hca_data, &keycode, subkey);
         }
 
-        clHCA_SetKey(hca_data->handle, (unsigned long long)keycode); //maybe should be done through hca_decoder.c?
+        hca_set_encryption_key(hca_data, keycode);
     }
 
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(hca_data->info.channelCount, hca_data->info.loopEnabled);
+    vgmstream = allocate_vgmstream(hca_info->channelCount, hca_info->loopEnabled);
     if (!vgmstream) goto fail;
 
     vgmstream->meta_type = meta_HCA;
-    vgmstream->sample_rate = hca_data->info.samplingRate;
+    vgmstream->sample_rate = hca_info->samplingRate;
 
-    vgmstream->num_samples = hca_data->info.blockCount * hca_data->info.samplesPerBlock -
-            hca_data->info.encoderDelay - hca_data->info.encoderPadding;
-    vgmstream->loop_start_sample = hca_data->info.loopStartBlock * hca_data->info.samplesPerBlock -
-            hca_data->info.encoderDelay + hca_data->info.loopStartDelay;
-    vgmstream->loop_end_sample = hca_data->info.loopEndBlock * hca_data->info.samplesPerBlock -
-            hca_data->info.encoderDelay + (hca_data->info.samplesPerBlock - hca_data->info.loopEndPadding);
+    vgmstream->num_samples = hca_info->blockCount * hca_info->samplesPerBlock -
+            hca_info->encoderDelay - hca_info->encoderPadding;
+    vgmstream->loop_start_sample = hca_info->loopStartBlock * hca_info->samplesPerBlock -
+            hca_info->encoderDelay + hca_info->loopStartDelay;
+    vgmstream->loop_end_sample = hca_info->loopEndBlock * hca_info->samplesPerBlock -
+            hca_info->encoderDelay + (hca_info->samplesPerBlock - hca_info->loopEndPadding);
     /* After loop end CRI's encoder removes the rest of the original samples and puts some
      * garbage in the last frame that should be ignored. Optionally it can encode fully preserving
      * the file too, but it isn't detectable, so we'll allow the whole thing just in case */
@@ -80,10 +84,10 @@ VGMSTREAM * init_vgmstream_hca_subkey(STREAMFILE *streamFile, uint16_t subkey) {
     //    vgmstream->num_samples = vgmstream->loop_end_sample;
 
     /* this can happen in preloading HCA from memory AWB */
-    if (hca_data->info.blockCount * hca_data->info.blockSize > get_streamfile_size(streamFile)) {
-        unsigned int max_block = get_streamfile_size(streamFile) / hca_data->info.blockSize;
-        vgmstream->num_samples = max_block * hca_data->info.samplesPerBlock -
-                hca_data->info.encoderDelay - hca_data->info.encoderPadding;
+    if (hca_info->blockCount * hca_info->blockSize > get_streamfile_size(sf)) {
+        unsigned int max_block = get_streamfile_size(sf) / hca_info->blockSize;
+        vgmstream->num_samples = max_block * hca_info->samplesPerBlock -
+                hca_info->encoderDelay - hca_info->encoderPadding;
     }
 
     vgmstream->coding_type = coding_CRI_HCA;
@@ -115,7 +119,7 @@ fail:
 }
 
 
-static inline void test_key(hca_codec_data * hca_data, uint64_t key, uint16_t subkey, int *best_score, uint64_t *best_keycode) {
+static inline void test_key(hca_codec_data* hca_data, uint64_t key, uint16_t subkey, int* best_score, uint64_t* best_keycode) {
     int score;
 
     if (subkey) {

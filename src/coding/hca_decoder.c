@@ -1,21 +1,37 @@
 #include "coding.h"
 
 
+struct hca_codec_data {
+    STREAMFILE* streamfile;
+    clHCA_stInfo info;
+
+    signed short* sample_buffer;
+    size_t samples_filled;
+    size_t samples_consumed;
+    size_t samples_to_discard;
+
+    void* data_buffer;
+
+    unsigned int current_block;
+
+    void* handle;
+};
+
 /* init a HCA stream; STREAMFILE will be duplicated for internal use. */
-hca_codec_data * init_hca(STREAMFILE *streamFile) {
+hca_codec_data* init_hca(STREAMFILE* sf) {
     char filename[PATH_LIMIT];
     uint8_t header_buffer[0x2000]; /* hca header buffer data (probable max ~0x400) */
-    hca_codec_data * data = NULL; /* vgmstream HCA context */
+    hca_codec_data* data = NULL; /* vgmstream HCA context */
     int header_size;
     int status;
 
     /* test header */
-    if (read_streamfile(header_buffer, 0x00, 0x08, streamFile) != 0x08)
+    if (read_streamfile(header_buffer, 0x00, 0x08, sf) != 0x08)
         goto fail;
     header_size = clHCA_isOurFile(header_buffer, 0x08);
     if (header_size < 0 || header_size > 0x1000)
         goto fail;
-    if (read_streamfile(header_buffer, 0x00, header_size, streamFile) != header_size)
+    if (read_streamfile(header_buffer, 0x00, header_size, sf) != header_size)
         goto fail;
 
     /* init vgmstream context */
@@ -39,8 +55,8 @@ hca_codec_data * init_hca(STREAMFILE *streamFile) {
     if (!data->sample_buffer) goto fail;
 
     /* load streamfile for reads */
-    get_streamfile_name(streamFile,filename, sizeof(filename));
-    data->streamfile = open_streamfile(streamFile,filename);
+    get_streamfile_name(sf,filename, sizeof(filename));
+    data->streamfile = open_streamfile(sf,filename);
     if (!data->streamfile) goto fail;
 
     /* set initial values */
@@ -53,7 +69,7 @@ fail:
     return NULL;
 }
 
-void decode_hca(hca_codec_data * data, sample * outbuf, int32_t samples_to_do) {
+void decode_hca(hca_codec_data* data, sample_t* outbuf, int32_t samples_to_do) {
 	int samples_done = 0;
     const unsigned int channels = data->info.channelCount;
     const unsigned int blockSize = data->info.blockSize;
@@ -120,7 +136,7 @@ void decode_hca(hca_codec_data * data, sample * outbuf, int32_t samples_to_do) {
     }
 }
 
-void reset_hca(hca_codec_data * data) {
+void reset_hca(hca_codec_data* data) {
     if (!data) return;
 
     clHCA_DecodeReset(data->handle);
@@ -130,7 +146,7 @@ void reset_hca(hca_codec_data * data) {
     data->samples_to_discard = data->info.encoderDelay;
 }
 
-void loop_hca(hca_codec_data * data, int32_t num_sample) {
+void loop_hca(hca_codec_data* data, int32_t num_sample) {
     if (!data) return;
 
     /* manually calc loop values if not set (should only happen with installed/forced looping,
@@ -149,7 +165,7 @@ void loop_hca(hca_codec_data * data, int32_t num_sample) {
     data->samples_to_discard = data->info.loopStartDelay;
 }
 
-void free_hca(hca_codec_data * data) {
+void free_hca(hca_codec_data* data) {
     if (!data) return;
 
     close_streamfile(data->streamfile);
@@ -175,7 +191,7 @@ void free_hca(hca_codec_data * data) {
 
 /* Test a number of frames if key decrypts correctly.
  * Returns score: <0: error/wrong, 0: unknown/silent file, >0: good (the closest to 1 the better). */
-int test_hca_key(hca_codec_data * data, unsigned long long keycode) {
+int test_hca_key(hca_codec_data* data, unsigned long long keycode) {
     size_t test_frames = 0, current_frame = 0, blank_frames = 0;
     int total_score = 0, found_regular_frame = 0;
     const unsigned int blockSize = data->info.blockSize;
@@ -241,4 +257,18 @@ int test_hca_key(hca_codec_data * data, unsigned long long keycode) {
 
     clHCA_DecodeReset(data->handle);
     return total_score;
+}
+
+void hca_set_encryption_key(hca_codec_data* data, uint64_t keycode) {
+    VGM_LOG("k=%x%x", (uint32_t)((keycode >> 32) & 0xFFFFFFFF), (uint32_t)(keycode & 0xFFFFFFFF));
+    clHCA_SetKey(data->handle, (unsigned long long)keycode);
+}
+
+clHCA_stInfo* hca_get_info(hca_codec_data* data) {
+    return &data->info;
+}
+
+STREAMFILE* hca_get_streamfile(hca_codec_data* data) {
+    if (!data) return NULL;
+    return data->streamfile;
 }
