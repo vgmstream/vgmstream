@@ -128,12 +128,8 @@ VGMSTREAM * init_vgmstream_akb(STREAMFILE *streamFile) {
         /* Alt decoding without libvorbis (minor number of beginning samples difference).
          * Otherwise same output with (inaudible) +-1 lower byte differences due to rounding. */
         case 0x05: { /* Ogg Vorbis [Final Fantasy VI (iOS), Dragon Quest II-VI (iOS)] */
-            ffmpeg_codec_data *ffmpeg_data;
-
-            ffmpeg_data = init_ffmpeg_offset(streamFile, start_offset,stream_size);
-            if ( !ffmpeg_data ) goto fail;
-
-            vgmstream->codec_data = ffmpeg_data;
+            vgmstream->codec_data = init_ffmpeg_offset(streamFile, start_offset,stream_size);
+            if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
             /* These oggs have loop info in the comments, too */
@@ -149,12 +145,8 @@ VGMSTREAM * init_vgmstream_akb(STREAMFILE *streamFile) {
 #ifdef VGM_USE_FFMPEG
         case 0x06: { /* M4A with AAC [The World Ends with You (iPad)] */
             /* init_vgmstream_akb_mp4 above has priority, but this works fine too */
-            ffmpeg_codec_data *ffmpeg_data;
-
-            ffmpeg_data = init_ffmpeg_offset(streamFile, start_offset,stream_size-start_offset);
-            if ( !ffmpeg_data ) goto fail;
-
-            vgmstream->codec_data = ffmpeg_data;
+            vgmstream->codec_data = init_ffmpeg_offset(streamFile, start_offset,stream_size-start_offset);
+            if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
 
