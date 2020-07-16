@@ -479,14 +479,15 @@ static void apply_config(VGMSTREAM *vgmstream, txtp_entry *current) {
 
     if (current->trim_set) {
         if (current->trim_second != 0.0) {
-            current->trim_sample = current->trim_second * vgmstream->sample_rate;
+            /* trim sample can become 0 here when second is too small (rounded) */
+            current->trim_sample = (double)current->trim_second * (double)vgmstream->sample_rate;
         }
 
         if (current->trim_sample < 0) {
             vgmstream->num_samples += current->trim_sample; /* trim from end (add negative) */
         }
-        else if (vgmstream->num_samples > current->trim_sample) {
-            vgmstream->num_samples = current->trim_sample; /* trim to value */
+        else if (current->trim_sample > 0 && vgmstream->num_samples > current->trim_sample) {
+            vgmstream->num_samples = current->trim_sample; /* trim to value >0 */
         }
 
         /* readjust after triming if it went over (could check for more edge cases but eh) */
