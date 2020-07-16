@@ -46,10 +46,10 @@ static inline  int32_t get_s32le(uint8_t *p) { return ( int32_t)get_32bitLE(p); 
 static inline uint32_t get_u32le(uint8_t *p) { return (uint32_t)get_32bitLE(p); }
 static inline  int32_t get_s32be(uint8_t *p) { return ( int32_t)get_32bitBE(p); }
 static inline uint32_t get_u32be(uint8_t *p) { return (uint32_t)get_32bitBE(p); }
-static inline  int64_t get_s64be(uint8_t *p) { return ( int64_t)get_64bitLE(p); }
-static inline uint64_t get_u64be(uint8_t *p) { return (uint64_t)get_64bitLE(p); }
-static inline  int64_t get_s64le(uint8_t *p) { return ( int64_t)get_64bitBE(p); }
-static inline uint64_t get_u64le(uint8_t *p) { return (uint64_t)get_64bitBE(p); }
+static inline  int64_t get_s64le(uint8_t *p) { return ( int64_t)get_64bitLE(p); }
+static inline uint64_t get_u64le(uint8_t *p) { return (uint64_t)get_64bitLE(p); }
+static inline  int64_t get_s64be(uint8_t *p) { return ( int64_t)get_64bitBE(p); }
+static inline uint64_t get_u64be(uint8_t *p) { return (uint64_t)get_64bitBE(p); }
 
 void put_8bit(uint8_t * buf, int8_t i);
 
