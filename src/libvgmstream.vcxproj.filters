@@ -871,10 +871,10 @@
     <ClCompile Include="meta\ps2_ster.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ps2_svag.c">
+    <ClCompile Include="meta\svag_kcet.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ps2_svag_snk.c">
+    <ClCompile Include="meta\svag_snk.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ps2_tec.c">

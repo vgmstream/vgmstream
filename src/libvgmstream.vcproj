@@ -1387,11 +1387,11 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\ps2_svag.c"
+					RelativePath=".\meta\svag_kcet.c"
 					>
 				</File>
 				<File
-					RelativePath=".\meta\ps2_svag_snk.c"
+					RelativePath=".\meta\svag_snk.c"
 					>
 				</File>
 				<File
