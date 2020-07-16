@@ -587,7 +587,7 @@ typedef enum {
     meta_MCA,               /* Capcom MCA "MADP" */
     meta_XB3D_ADX,          /* Xenoblade Chronicles 3D ADX */
     meta_HCA,               /* CRI HCA */
-    meta_PS2_SVAG_SNK,      /* SNK PS2 SVAG */
+    meta_SVAG_SNK,
     meta_PS2_VDS_VDM,       /* Graffiti Kingdom */
     meta_FFMPEG,            /* any file supported by FFmpeg */
     meta_X360_CXS,          /* Eternal Sonata (Xbox 360) */

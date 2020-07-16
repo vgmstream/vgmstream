@@ -297,7 +297,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_kt_wiibgm,
     init_vgmstream_ktss,
     init_vgmstream_hca,
-    init_vgmstream_ps2_svag_snk,
+    init_vgmstream_svag_snk,
     init_vgmstream_ps2_vds_vdm,
     init_vgmstream_x360_cxs,
     init_vgmstream_dsp_adx,

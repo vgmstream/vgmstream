@@ -1154,7 +1154,7 @@ static const meta_info meta_info_list[] = {
         {meta_MCA,                  "Capcom MCA header"},
         {meta_XB3D_ADX,             "Xenoblade 3D ADX header"},
         {meta_HCA,                  "CRI HCA header"},
-        {meta_PS2_SVAG_SNK,         "SNK SVAG header"},
+        {meta_SVAG_SNK,             "SNK SVAG header"},
         {meta_PS2_VDS_VDM,          "Procyon Studio VDS/VDM header"},
         {meta_FFMPEG,               "FFmpeg supported file format"},
         {meta_X360_CXS,             "tri-Crescendo CXS header"},
