@@ -468,10 +468,14 @@
                     RelativePath=".\meta\acb.c"
                     >
                 </File>
-				<File
-					RelativePath=".\meta\acm.c"
-					>
-				</File>
+                <File
+                    RelativePath=".\meta\acm.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\adp_konami.c"
+                    >
+                </File>
                 <File
                     RelativePath=".\meta\adpcm_capcom.c"
                     >
