@@ -898,7 +898,7 @@ static const meta_info meta_info_list[] = {
         {meta_PS2_OMU,              "Alter Echo OMU Header"},
         {meta_DSP_STM,              "Intelligent Systems STM header"},
         {meta_PS2_EXST,             "Sony EXST header"},
-        {meta_PS2_SVAG,             "Konami SVAG header"},
+        {meta_SVAG_KCET,            "Konami SVAG header"},
         {meta_PS_HEADERLESS,        "Headerless PS-ADPCM raw header"},
         {meta_PS2_MIB_MIH,          "Sony MultiStream MIH+MIB header"},
         {meta_DSP_MPDSP,            "Single DSP header stereo by .mpdsp extension"},

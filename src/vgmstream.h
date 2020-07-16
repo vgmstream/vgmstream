@@ -349,7 +349,7 @@ typedef enum {
     meta_PS2_RXWS,          /* Sony games (Genji, Okage Shadow King, Arc The Lad Twilight of Spirits) */
     meta_RAW_INT,
     meta_PS2_EXST,          /* Shadow of Colossus EXST */
-    meta_PS2_SVAG,          /* Konami SVAG */
+    meta_SVAG_KCET,
     meta_PS_HEADERLESS,     /* headerless PS-ADPCM */
     meta_PS2_MIB_MIH,       /* MIB File + MIH Header*/
     meta_PS2_MIC,           /* KOEI MIC File */

@@ -45,7 +45,7 @@ VGMSTREAM * (*init_vgmstream_functions[])(STREAMFILE *streamFile) = {
     init_vgmstream_ps2_rxw,
     init_vgmstream_ngc_dsp_stm,
     init_vgmstream_ps2_exst,
-    init_vgmstream_ps2_svag,
+    init_vgmstream_svag_kcet,
     init_vgmstream_mib_mih,
     init_vgmstream_ngc_mpdsp,
     init_vgmstream_ps2_mic,
