@@ -29,8 +29,8 @@ struct dsp_header {
 
 /* read the above struct; returns nonzero on failure */
 static int read_dsp_header_endian(struct dsp_header *header, off_t offset, STREAMFILE *streamFile, int big_endian) {
-    int32_t (*get_32bit)(uint8_t *) = big_endian ? get_32bitBE : get_32bitLE;
-    int16_t (*get_16bit)(uint8_t *) = big_endian ? get_16bitBE : get_16bitLE;
+    int32_t (*get_32bit)(const uint8_t *) = big_endian ? get_32bitBE : get_32bitLE;
+    int16_t (*get_16bit)(const uint8_t *) = big_endian ? get_16bitBE : get_16bitLE;
     int i;
     uint8_t buf[0x4e];
 

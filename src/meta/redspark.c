@@ -23,8 +23,8 @@ VGMSTREAM * init_vgmstream_redspark(STREAMFILE *streamFile) {
     uint32_t key;
     enum {encsize = 0x1000};
     uint8_t buf[encsize];
-	int32_t(*get_32bit)(uint8_t *p) = NULL;
-	int16_t(*get_16bit)(uint8_t *p) = NULL;
+	int32_t(*get_32bit)(const uint8_t *p) = NULL;
+	int16_t(*get_16bit)(const uint8_t *p) = NULL;
 	get_16bit = get_16bitBE;
 	get_32bit = get_32bitBE;
 
