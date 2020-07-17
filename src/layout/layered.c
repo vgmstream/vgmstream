@@ -12,9 +12,9 @@
  * Similar to interleave layout, but decodec samples are mixed from complete vgmstreams, each
  * with custom codecs and different number of channels, creating a single super-vgmstream.
  * Usually combined with custom streamfiles to handle data interleaved in weird ways. */
-void render_vgmstream_layered(sample_t * outbuf, int32_t sample_count, VGMSTREAM * vgmstream) {
+void render_vgmstream_layered(sample_t* outbuf, int32_t sample_count, VGMSTREAM* vgmstream) {
     int samples_written = 0;
-    layered_layout_data *data = vgmstream->layout_data;
+    layered_layout_data* data = vgmstream->layout_data;
 
 
     while (samples_written < sample_count) {

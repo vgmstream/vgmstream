@@ -82,7 +82,7 @@ void render_vgmstream_interleave(sample_t * buffer, int32_t sample_count, VGMSTR
             continue;
         }
 
-        samples_to_do = vgmstream_samples_to_do(samples_this_block, samples_per_frame, vgmstream);
+        samples_to_do = get_vgmstream_samples_to_do(samples_this_block, samples_per_frame, vgmstream);
         if (samples_to_do > sample_count - samples_written)
             samples_to_do = sample_count - samples_written;
 

@@ -9,9 +9,9 @@
 /* Decodes samples for segmented streams.
  * Chains together sequential vgmstreams, for data divided into separate sections or files
  * (like one part for intro and other for loop segments, which may even use different codecs). */
-void render_vgmstream_segmented(sample_t * outbuf, int32_t sample_count, VGMSTREAM * vgmstream) {
+void render_vgmstream_segmented(sample_t* outbuf, int32_t sample_count, VGMSTREAM* vgmstream) {
     int samples_written = 0, loop_samples_skip = 0;
-    segmented_layout_data *data = vgmstream->layout_data;
+    segmented_layout_data* data = vgmstream->layout_data;
     int use_internal_buffer = 0;
 
 
@@ -59,7 +59,7 @@ void render_vgmstream_segmented(sample_t * outbuf, int32_t sample_count, VGMSTRE
             continue;
         }
 
-        samples_to_do = vgmstream_samples_to_do(samples_this_segment, sample_count, vgmstream);
+        samples_to_do = get_vgmstream_samples_to_do(samples_this_segment, sample_count, vgmstream);
         if (samples_to_do > sample_count - samples_written)
             samples_to_do = sample_count - samples_written;
         if (samples_to_do > VGMSTREAM_SEGMENT_SAMPLE_BUFFER /*&& use_internal_buffer*/) /* always for fade/etc mixes */
@@ -107,7 +107,7 @@ void render_vgmstream_segmented(sample_t * outbuf, int32_t sample_count, VGMSTRE
 
 
 segmented_layout_data* init_layout_segmented(int segment_count) {
-    segmented_layout_data *data = NULL;
+    segmented_layout_data* data = NULL;
 
     if (segment_count <= 0 || segment_count > VGMSTREAM_MAX_SEGMENTS)
         goto fail;
@@ -203,7 +203,7 @@ fail:
     return 0; /* caller is expected to free */
 }
 
-void free_layout_segmented(segmented_layout_data *data) {
+void free_layout_segmented(segmented_layout_data* data) {
     int i, j;
 
     if (!data)
@@ -229,7 +229,7 @@ void free_layout_segmented(segmented_layout_data *data) {
     free(data);
 }
 
-void reset_layout_segmented(segmented_layout_data *data) {
+void reset_layout_segmented(segmented_layout_data* data) {
     int i;
 
     if (!data)

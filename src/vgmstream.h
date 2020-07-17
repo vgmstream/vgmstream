@@ -1047,7 +1047,7 @@ typedef struct {
 /* -------------------------------------------------------------------------*/
 
 /* do format detection, return pointer to a usable VGMSTREAM, or NULL on failure */
-VGMSTREAM* init_vgmstream(const char * const filename);
+VGMSTREAM* init_vgmstream(const char* const filename);
 
 /* init with custom IO via streamfile */
 VGMSTREAM* init_vgmstream_from_STREAMFILE(STREAMFILE* sf);
@@ -1073,10 +1073,10 @@ int get_vgmstream_average_bitrate(VGMSTREAM* vgmstream);
 
 /* List supported formats and return elements in the list, for plugins that need to know.
  * The list disables some common formats that may conflict (.wav, .ogg, etc). */
-const char ** vgmstream_get_formats(size_t * size);
+const char** vgmstream_get_formats(size_t* size);
 
 /* same, but for common-but-disabled formats in the above list. */
-const char ** vgmstream_get_common_formats(size_t * size);
+const char** vgmstream_get_common_formats(size_t* size);
 
 /* Force enable/disable internal looping. Should be done before playing anything (or after reset),
  * and not all codecs support arbitrary loop values ATM. */
@@ -1111,7 +1111,7 @@ int get_vgmstream_shortframe_size(VGMSTREAM* vgmstream);
 void decode_vgmstream(VGMSTREAM* vgmstream, int samples_written, int samples_to_do, sample_t* buffer);
 
 /* Calculate number of consecutive samples to do (taking into account stopping for loop start and end) */
-int vgmstream_samples_to_do(int samples_this_block, int samples_per_frame, VGMSTREAM* vgmstream);
+int get_vgmstream_samples_to_do(int samples_this_block, int samples_per_frame, VGMSTREAM* vgmstream);
 
 /* Detect loop start and save values, or detect loop end and restore (loop back). Returns 1 if loop was done. */
 int vgmstream_do_loop(VGMSTREAM* vgmstream);
