@@ -19,7 +19,6 @@ struct hca_codec_data {
 
 /* init a HCA stream; STREAMFILE will be duplicated for internal use. */
 hca_codec_data* init_hca(STREAMFILE* sf) {
-    char filename[PATH_LIMIT];
     uint8_t header_buffer[0x2000]; /* hca header buffer data (probable max ~0x400) */
     hca_codec_data* data = NULL; /* vgmstream HCA context */
     int header_size;
@@ -55,8 +54,7 @@ hca_codec_data* init_hca(STREAMFILE* sf) {
     if (!data->sample_buffer) goto fail;
 
     /* load streamfile for reads */
-    get_streamfile_name(sf,filename, sizeof(filename));
-    data->streamfile = open_streamfile(sf,filename);
+    data->streamfile = reopen_streamfile(sf, 0);
     if (!data->streamfile) goto fail;
 
     /* set initial values */

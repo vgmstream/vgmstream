@@ -16,7 +16,6 @@ static int acm_get_length_streamfile(void* arg);
 
 acm_codec_data* init_acm(STREAMFILE* sf, int force_channel_number) {
     acm_codec_data* data = NULL;
-    char filename[PATH_LIMIT];
 
 
     data = calloc(1,sizeof(acm_codec_data));
@@ -25,8 +24,7 @@ acm_codec_data* init_acm(STREAMFILE* sf, int force_channel_number) {
     data->io_config = calloc(1,sizeof(acm_io_config));
     if (!data->io_config) goto fail;
 
-    get_streamfile_name(sf, filename, sizeof(filename));
-    data->streamfile = open_streamfile(sf,filename);
+    data->streamfile = reopen_streamfile(sf, 0);
     if (!data->streamfile) goto fail;
 
     /* Setup libacm decoder, needs read callbacks and a parameter for said callbacks */

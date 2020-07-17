@@ -396,8 +396,7 @@ void decode_nwa(nwa_codec_data* data, sample_t* outbuf, int32_t samples_to_do) {
 
 
 nwa_codec_data* init_nwa(STREAMFILE* sf) {
-    nwa_codec_data *data = NULL;
-    char filename[PATH_LIMIT];
+    nwa_codec_data* data = NULL;
 
     data = malloc(sizeof(nwa_codec_data));
     if (!data) goto fail;
@@ -405,8 +404,7 @@ nwa_codec_data* init_nwa(STREAMFILE* sf) {
     data->nwa = nwalib_open(sf);
     if (!data->nwa) goto fail;
 
-    get_streamfile_name(sf,filename,sizeof(filename));
-    data->sf = open_streamfile(sf, filename);
+    data->sf = reopen_streamfile(sf, 0);
     if (!data->sf) goto fail;
 
     return data;
@@ -416,13 +414,13 @@ fail:
     return NULL;
 }
 
-void seek_nwa(nwa_codec_data *data, int32_t sample) {
+void seek_nwa(nwa_codec_data* data, int32_t sample) {
     if (!data) return;
 
     nwalib_seek(data->sf, data->nwa, sample);
 }
 
-void reset_nwa(nwa_codec_data *data) {
+void reset_nwa(nwa_codec_data* data) {
     if (!data) return;
 
     nwalib_reset(data->nwa);
