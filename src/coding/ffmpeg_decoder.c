@@ -11,9 +11,6 @@ static volatile int g_ffmpeg_initialized = 0;
 static void free_ffmpeg_config(ffmpeg_codec_data* data);
 static int init_ffmpeg_config(ffmpeg_codec_data* data, int target_subsong, int reset);
 
-static void reset_ffmpeg_internal(ffmpeg_codec_data* data);
-static void seek_ffmpeg_internal(ffmpeg_codec_data* data, int32_t num_sample);
-
 /* ******************************************** */
 /* INTERNAL UTILS                               */
 /* ******************************************** */
@@ -757,14 +754,11 @@ decode_fail:
 /* UTILS                                        */
 /* ******************************************** */
 
-void reset_ffmpeg_internal(ffmpeg_codec_data* data) {
-    seek_ffmpeg_internal(data, 0);
-}
-void reset_ffmpeg(VGMSTREAM* vgmstream) {
-    reset_ffmpeg_internal(vgmstream->codec_data);
+void reset_ffmpeg(ffmpeg_codec_data* data) {
+    seek_ffmpeg(data, 0);
 }
 
-void seek_ffmpeg_internal(ffmpeg_codec_data* data, int32_t num_sample) {
+void seek_ffmpeg(ffmpeg_codec_data* data, int32_t num_sample) {
     if (!data) return;
 
     /* Start from 0 and discard samples until sample (slower but not too noticeable).
@@ -811,10 +805,6 @@ void seek_ffmpeg_internal(ffmpeg_codec_data* data, int32_t num_sample) {
 fail:
     VGM_LOG("FFMPEG: error during force_seek\n");
     data->bad_init = 1; /* internals were probably free'd */
-}
-
-void seek_ffmpeg(VGMSTREAM* vgmstream, int32_t num_sample) {
-    seek_ffmpeg_internal(vgmstream->codec_data, num_sample);
 }
 
 
@@ -937,7 +927,7 @@ void ffmpeg_set_force_seek(ffmpeg_codec_data* data) {
      * or MPC with an incorrectly parsed seek table (using as 0 some non-0 seek offset).
      * whatever, we'll just kill and reconstruct FFmpeg's config every time */
     data->force_seek = 1;
-    reset_ffmpeg_internal(data); /* reset state from trying to seek */
+    reset_ffmpeg(data); /* reset state from trying to seek */
     //stream = data->formatCtx->streams[data->streamIndex];
 }
 

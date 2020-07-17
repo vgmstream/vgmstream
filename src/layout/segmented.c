@@ -34,8 +34,9 @@ void render_vgmstream_segmented(sample_t * outbuf, int32_t sample_count, VGMSTRE
             while (total_samples < vgmstream->num_samples) {
                 int32_t segment_samples = data->segments[loop_segment]->num_samples;
 
-                if (vgmstream->loop_sample >= total_samples && vgmstream->loop_sample < total_samples + segment_samples) {
-                    loop_samples_skip = vgmstream->loop_sample - total_samples;
+                if (vgmstream->loop_current_sample >= total_samples &&
+                        vgmstream->loop_current_sample < total_samples + segment_samples) {
+                    loop_samples_skip = vgmstream->loop_current_sample - total_samples;
                     break; /* loop_start falls within loop_segment's samples */
                 }
                 total_samples += segment_samples;

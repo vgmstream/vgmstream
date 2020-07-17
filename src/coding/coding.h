@@ -323,7 +323,7 @@ typedef struct { //todo simplify
 ogg_vorbis_codec_data* init_ogg_vorbis(STREAMFILE* sf, off_t start, off_t size, ogg_vorbis_io* io);
 void decode_ogg_vorbis(ogg_vorbis_codec_data* data, sample_t* outbuf, int32_t samples_to_do, int channels);
 void reset_ogg_vorbis(VGMSTREAM* vgmstream);
-void seek_ogg_vorbis(VGMSTREAM* vgmstream, int32_t num_sample);
+void seek_ogg_vorbis(ogg_vorbis_codec_data* data, int32_t num_sample);
 void free_ogg_vorbis(ogg_vorbis_codec_data* data);
 
 int ogg_vorbis_get_comment(ogg_vorbis_codec_data* data, const char** comment);
@@ -419,7 +419,7 @@ typedef struct {
 mpeg_codec_data* init_mpeg(STREAMFILE* sf, off_t start_offset, coding_t *coding_type, int channels);
 mpeg_codec_data* init_mpeg_custom(STREAMFILE* sf, off_t start_offset, coding_t* coding_type, int channels, mpeg_custom_t custom_type, mpeg_custom_config* config);
 void decode_mpeg(VGMSTREAM* vgmstream, sample_t* outbuf, int32_t samples_to_do, int channels);
-void reset_mpeg(VGMSTREAM* vgmstream);
+void reset_mpeg(mpeg_codec_data* data);
 void seek_mpeg(VGMSTREAM* vgmstream, int32_t num_sample);
 void free_mpeg(mpeg_codec_data* data);
 void flush_mpeg(mpeg_codec_data* data);
@@ -485,7 +485,7 @@ typedef struct atrac9_codec_data atrac9_codec_data;
 
 atrac9_codec_data* init_atrac9(atrac9_config* cfg);
 void decode_atrac9(VGMSTREAM* vgmstream, sample_t* outbuf, int32_t samples_to_do, int channels);
-void reset_atrac9(VGMSTREAM* vgmstream);
+void reset_atrac9(atrac9_codec_data* data);
 void seek_atrac9(VGMSTREAM* vgmstream, int32_t num_sample);
 void free_atrac9(atrac9_codec_data* data);
 size_t atrac9_bytes_to_samples(size_t bytes, atrac9_codec_data* data);
@@ -499,8 +499,8 @@ typedef enum { CELT_0_06_1,CELT_0_11_0} celt_lib_t;
 typedef struct celt_codec_data celt_codec_data;
 
 celt_codec_data* init_celt_fsb(int channels, celt_lib_t version);
-void decode_celt_fsb(VGMSTREAM* vgmstream, sample * outbuf, int32_t samples_to_do, int channels);
-void reset_celt_fsb(VGMSTREAM* vgmstream);
+void decode_celt_fsb(VGMSTREAM* vgmstream, sample_t* outbuf, int32_t samples_to_do, int channels);
+void reset_celt_fsb(celt_codec_data* data);
 void seek_celt_fsb(VGMSTREAM* vgmstream, int32_t num_sample);
 void free_celt_fsb(celt_codec_data* data);
 #endif
@@ -513,8 +513,8 @@ ffmpeg_codec_data* init_ffmpeg_header_offset(STREAMFILE* sf, uint8_t* header, ui
 ffmpeg_codec_data* init_ffmpeg_header_offset_subsong(STREAMFILE* sf, uint8_t* header, uint64_t header_size, uint64_t start, uint64_t size, int target_subsong);
 
 void decode_ffmpeg(VGMSTREAM* vgmstream, sample_t* outbuf, int32_t samples_to_do, int channels);
-void reset_ffmpeg(VGMSTREAM* vgmstream);
-void seek_ffmpeg(VGMSTREAM* vgmstream, int32_t num_sample);
+void reset_ffmpeg(ffmpeg_codec_data* data);
+void seek_ffmpeg(ffmpeg_codec_data* data, int32_t num_sample);
 void free_ffmpeg(ffmpeg_codec_data* data);
 
 void ffmpeg_set_skip_samples(ffmpeg_codec_data* data, int skip_samples);

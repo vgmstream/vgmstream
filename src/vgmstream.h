@@ -793,9 +793,10 @@ typedef struct {
     int ignore_loop;
 } play_config_t;
 
+
 /* info for a single vgmstream channel */
 typedef struct {
-    STREAMFILE * streamfile;    /* file used by this channel */
+    STREAMFILE* streamfile;     /* file used by this channel */
     off_t channel_start_offset; /* where data for this channel begins */
     off_t offset;               /* current location in the file */
 
@@ -825,8 +826,8 @@ typedef struct {
         int32_t adpcm_history4_32;
     };
 
-    double adpcm_history1_double;
-    double adpcm_history2_double;
+    //double adpcm_history1_double;
+    //double adpcm_history2_double;
 
     int adpcm_step_index;               /* for IMA */
     int adpcm_scale;                    /* for MS ADPCM */
@@ -841,6 +842,7 @@ typedef struct {
     uint16_t adx_add;
 
 } VGMSTREAMCHANNEL;
+
 
 /* main vgmstream info */
 typedef struct {
@@ -876,31 +878,35 @@ typedef struct {
     /* other config */
     int allow_dual_stereo;          /* search for dual stereo (file_L.ext + file_R.ext = single stereo file) */
 
+
     /* config requests, players must read and honor these values
      * (ideally internally would work as a player, but for now player must do it manually) */
     play_config_t config;
 
 
+    /* play state */
+    int loop_count;                 /* counter of complete loops (1=looped once) */
+    int loop_target;                /* max loops before continuing with the stream end (loops forever if not set) */
+
+
     /* layout/block state */
     size_t full_block_size;         /* actual data size of an entire block (ie. may be fixed, include padding/headers, etc) */
-    int32_t current_sample;         /* number of samples we've passed (for loop detection) */
+    int32_t current_sample;         /* sample point within the file (for loop detection) */
     int32_t samples_into_block;     /* number of samples into the current block/interleave/segment/etc */
     off_t current_block_offset;     /* start of this block (offset of block header) */
     size_t current_block_size;      /* size in usable bytes of the block we're in now (used to calculate num_samples per block) */
-    int32_t current_block_samples;   /* size in samples of the block we're in now (used over current_block_size if possible) */
+    int32_t current_block_samples;  /* size in samples of the block we're in now (used over current_block_size if possible) */
     off_t next_block_offset;        /* offset of header of the next block */
-    /* layout/block loop state */
-    int32_t loop_sample;            /* saved from current_sample (same as loop_start_sample, but more state-like) */
+
+    /* loop state (saved when loop is hit to restore later) */
+    int32_t loop_current_sample;    /* saved from current_sample (same as loop_start_sample, but more state-like) */
     int32_t loop_samples_into_block;/* saved from samples_into_block */
     off_t loop_block_offset;        /* saved from current_block_offset */
     size_t loop_block_size;         /* saved from current_block_size */
-    int32_t loop_block_samples;      /* saved from current_block_samples */
+    int32_t loop_block_samples;     /* saved from current_block_samples */
     off_t loop_next_block_offset;   /* saved from next_block_offset */
+    int hit_loop;                   /* save config when loop is hit, but first time only */
 
-    /* loop state */
-    int hit_loop;                   /* have we seen the loop yet? */
-    int loop_count;                 /* counter of complete loops (1=looped once) */
-    int loop_target;                /* max loops before continuing with the stream end (loops forever if not set) */
 
     /* decoder config/state */
     int codec_endian;               /* little/big endian marker; name is left vague but usually means big endian */
@@ -930,9 +936,9 @@ typedef struct {
 /* for files made of "continuous" segments, one per section of a song (using a complete sub-VGMSTREAM) */
 typedef struct {
     int segment_count;
-    VGMSTREAM **segments;
+    VGMSTREAM** segments;
     int current_segment;
-    sample_t *buffer;
+    sample_t* buffer;
     int input_channels;     /* internal buffer channels */
     int output_channels;    /* resulting channels (after mixing, if applied) */
 } segmented_layout_data;
@@ -940,8 +946,8 @@ typedef struct {
 /* for files made of "parallel" layers, one per group of channels (using a complete sub-VGMSTREAM) */
 typedef struct {
     int layer_count;
-    VGMSTREAM **layers;
-    sample_t *buffer;
+    VGMSTREAM** layers;
+    sample_t* buffer;
     int input_channels;     /* internal buffer channels */
     int output_channels;    /* resulting channels (after mixing, if applied) */
 } layered_layout_data;
@@ -959,7 +965,7 @@ typedef struct {
 #ifdef VGM_USE_FFMPEG
 typedef struct {
     /*** IO internals ***/
-    STREAMFILE *streamfile;
+    STREAMFILE* streamfile;
 
     uint64_t start;             // absolute start within the streamfile
     uint64_t offset;            // absolute offset within the streamfile
@@ -1015,7 +1021,7 @@ typedef struct {
 
 #ifdef VGM_USE_MP4V2
 typedef struct {
-    STREAMFILE *streamfile;
+    STREAMFILE* streamfile;
     uint64_t start;
     uint64_t offset;
     uint64_t size;
@@ -1041,29 +1047,29 @@ typedef struct {
 /* -------------------------------------------------------------------------*/
 
 /* do format detection, return pointer to a usable VGMSTREAM, or NULL on failure */
-VGMSTREAM * init_vgmstream(const char * const filename);
+VGMSTREAM* init_vgmstream(const char * const filename);
 
 /* init with custom IO via streamfile */
-VGMSTREAM * init_vgmstream_from_STREAMFILE(STREAMFILE *streamFile);
+VGMSTREAM* init_vgmstream_from_STREAMFILE(STREAMFILE* sf);
 
 /* reset a VGMSTREAM to start of stream */
-void reset_vgmstream(VGMSTREAM * vgmstream);
+void reset_vgmstream(VGMSTREAM* vgmstream);
 
 /* close an open vgmstream */
-void close_vgmstream(VGMSTREAM * vgmstream);
+void close_vgmstream(VGMSTREAM* vgmstream);
 
 /* calculate the number of samples to be played based on looping parameters */
-int32_t get_vgmstream_play_samples(double looptimes, double fadeseconds, double fadedelayseconds, VGMSTREAM * vgmstream);
+int32_t get_vgmstream_play_samples(double looptimes, double fadeseconds, double fadedelayseconds, VGMSTREAM* vgmstream);
 
 /* Decode data into sample buffer */
-void render_vgmstream(sample_t * buffer, int32_t sample_count, VGMSTREAM * vgmstream);
+void render_vgmstream(sample_t* buffer, int32_t sample_count, VGMSTREAM* vgmstream);
 
 /* Write a description of the stream into array pointed by desc, which must be length bytes long.
  * Will always be null-terminated if length > 0 */
-void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length);
+void describe_vgmstream(VGMSTREAM* vgmstream, char* desc, int length);
 
 /* Return the average bitrate in bps of all unique files contained within this stream. */
-int get_vgmstream_average_bitrate(VGMSTREAM * vgmstream);
+int get_vgmstream_average_bitrate(VGMSTREAM* vgmstream);
 
 /* List supported formats and return elements in the list, for plugins that need to know.
  * The list disables some common formats that may conflict (.wav, .ogg, etc). */
@@ -1090,34 +1096,34 @@ int vgmstream_is_virtual_filename(const char* filename);
 VGMSTREAM * allocate_vgmstream(int channel_count, int looped);
 
 /* Prepare the VGMSTREAM's initial state once parsed and ready, but before playing. */
-void setup_vgmstream(VGMSTREAM * vgmstream);
+void setup_vgmstream(VGMSTREAM* vgmstream);
 
 /* Get the number of samples of a single frame (smallest self-contained sample group, 1/N channels) */
-int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream);
+int get_vgmstream_samples_per_frame(VGMSTREAM* vgmstream);
 /* Get the number of bytes of a single frame (smallest self-contained byte group, 1/N channels) */
-int get_vgmstream_frame_size(VGMSTREAM * vgmstream);
+int get_vgmstream_frame_size(VGMSTREAM* vgmstream);
 /* In NDS IMA the frame size is the block size, so the last one is short */
-int get_vgmstream_samples_per_shortframe(VGMSTREAM * vgmstream);
-int get_vgmstream_shortframe_size(VGMSTREAM * vgmstream);
+int get_vgmstream_samples_per_shortframe(VGMSTREAM* vgmstream);
+int get_vgmstream_shortframe_size(VGMSTREAM* vgmstream);
 
 /* Decode samples into the buffer. Assume that we have written samples_written into the
  * buffer already, and we have samples_to_do consecutive samples ahead of us. */
-void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to_do, sample_t * buffer);
+void decode_vgmstream(VGMSTREAM* vgmstream, int samples_written, int samples_to_do, sample_t* buffer);
 
 /* Calculate number of consecutive samples to do (taking into account stopping for loop start and end) */
-int vgmstream_samples_to_do(int samples_this_block, int samples_per_frame, VGMSTREAM * vgmstream);
+int vgmstream_samples_to_do(int samples_this_block, int samples_per_frame, VGMSTREAM* vgmstream);
 
 /* Detect loop start and save values, or detect loop end and restore (loop back). Returns 1 if loop was done. */
-int vgmstream_do_loop(VGMSTREAM * vgmstream);
+int vgmstream_do_loop(VGMSTREAM* vgmstream);
 
 /* Open the stream for reading at offset (taking into account layouts, channels and so on).
  * Returns 0 on failure */
-int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t start_offset);
-int vgmstream_open_stream_bf(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t start_offset, int force_multibuffer);
+int vgmstream_open_stream(VGMSTREAM* vgmstream, STREAMFILE* sf, off_t start_offset);
+int vgmstream_open_stream_bf(VGMSTREAM* vgmstream, STREAMFILE* sf, off_t start_offset, int force_multibuffer);
 
 /* Get description info */
-void get_vgmstream_coding_description(VGMSTREAM *vgmstream, char *out, size_t out_size);
-void get_vgmstream_layout_description(VGMSTREAM *vgmstream, char *out, size_t out_size);
-void get_vgmstream_meta_description(VGMSTREAM *vgmstream, char *out, size_t out_size);
+void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size);
+void get_vgmstream_layout_description(VGMSTREAM* vgmstream, char* out, size_t out_size);
+void get_vgmstream_meta_description(VGMSTREAM* vgmstream, char* out, size_t out_size);
 
 #endif

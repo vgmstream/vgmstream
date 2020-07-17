@@ -505,8 +505,7 @@ void free_mpeg(mpeg_codec_data *data) {
 }
 
 /* seeks stream to 0 */
-void reset_mpeg(VGMSTREAM *vgmstream) {
-    mpeg_codec_data *data = vgmstream->codec_data;
+void reset_mpeg(mpeg_codec_data* data) {
     if (!data) return;
 
     flush_mpeg(data);
