@@ -135,6 +135,12 @@ standard, whose docs discuss extending M3U with arbitrary tags.
 vgmstream aims to support most audio formats as-is, but some files require extra
 handling.
 
+### Subsongs
+Certain container formats have multiple audio files, usually called "subsongs", often
+not meant to be extracted (no simple separation). Some plugins are able to "unpack"
+those files automatically into the playlist. For others without support, you can create
+multiple .txtp (explained below) to select one of the subsongs (like `bgm.sxd#10.txtp`).
+
 ### Renamed files
 A few extensions that vgmstream supports clash with common ones. Since players
 like foobar or Winamp don't react well to that, they may be renamed to make
@@ -264,7 +270,6 @@ loops, remove unneeded channels, and many other features.
 Creation of those files is meant for advanced users, docs can be found in
 vgmstream source.
 
-
 ### Plugin conflicts
 Since vgmstream supports a huge amount of formats it's possibly that some of
 them are also supported in other plugins, and this sometimes causes conflicts.
@@ -283,7 +288,6 @@ need to disable some plugins (requires restart) or set priority on compile
 time. Particularly, mpg123 plugin may steal formats that aren't even MP3,
 making impossible for vgmstream to play it properly.
 
-
 ### Channel issues
 Some games layer a huge number of channels, that are disabled or downmixed
 during gameplay. The player may be unable to play those files (for example
@@ -295,6 +299,7 @@ formats.
 
 You can also choose which channels to play using *TXTP*. For example, create
 a file named `song.adx#C1,2.txtp` to play only channels 1 and 2 from `song.adx`.
+
 
 ## Tagging
 Some of vgmstream's plugins support simple read-only tagging via external files.
@@ -320,7 +325,7 @@ separated by one or multiple spaces. Repeated tags overwrite previous
 (ex.- may define *@COMPOSER* for multiple tracks). It only reads up to current
 *filename* though, so any *@TAG* below would be ignored.
 
-Playlist formatting should follow player's config. ASCII or UTF-8 tags work.
+Playlist title formatting should follow player's config. ASCII or UTF-8 tags work.
 
 *GLOBAL_COMMAND*s currently can be:
 - *AUTOTRACK*: sets *%TRACK* tag automatically (1..N as files are encountered
@@ -364,10 +369,14 @@ tags change (for reasons outside vgmstream's control):
 Currently there is no tool to aid in the creation of there m3u, but you can create
 a base m3u and edit as a text file.
 
+vgmstream's "m3u tagging" is meant to be simple to make and share (just a text
+file), easier to support in multiple players (rather than needed a custom plugin),
+having OST-like ordering in the M3U, and be flexible enough to have commands.
 If you are not satisfied with vgmstream's tagging format, foobar2000 has other
 plugins (with write support) that may be of use:
 - m-TAGS: http://www.m-tags.org/
 - foo_external_tags: https://foobar.hyv.fi/?view=foo_external_tags
+
 
 ## Virtual TXTP files
 Some of vgmstream's plugins allow you to use virtual .txtp files, that combined
@@ -444,6 +453,7 @@ are used in few games.
 - Argonaut ASF 4-bit ADPCM
 - Ocean DSA 4-bit ADPCM
 - Circus XPCM ADPCM
+- Circus XPCM VQ
 - OKI 4-bit ADPCM (16-bit output, 4-shift, PC-FX)
 - Ubisoft 4/6-bit ADPCM
 - Tiger Game.com ADPCM
