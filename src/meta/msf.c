@@ -128,17 +128,15 @@ VGMSTREAM * init_vgmstream_msf(STREAMFILE *streamFile) {
 #endif
 #if defined(VGM_USE_MPEG)
         case 0x07: { /* MPEG (CBR LAME MP3) [Dengeki Bunko Fighting Climax (PS3)] */
-            mpeg_codec_data *mpeg_data = NULL;
 
-            mpeg_data = init_mpeg(streamFile, start_offset, &vgmstream->coding_type, vgmstream->channels);
-            if (!mpeg_data) goto fail;
-            vgmstream->codec_data = mpeg_data;
+            vgmstream->codec_data = init_mpeg(streamFile, start_offset, &vgmstream->coding_type, vgmstream->channels);
+            if (!vgmstream->codec_data) goto fail;
             vgmstream->layout_type = layout_none;
 
-            vgmstream->num_samples = mpeg_bytes_to_samples(data_size, mpeg_data);
+            vgmstream->num_samples = mpeg_bytes_to_samples(data_size, vgmstream->codec_data);
             if (loop_flag) {
-                vgmstream->loop_start_sample = mpeg_bytes_to_samples(loop_start, mpeg_data);
-                vgmstream->loop_end_sample = mpeg_bytes_to_samples(loop_end, mpeg_data);
+                vgmstream->loop_start_sample = mpeg_bytes_to_samples(loop_start, vgmstream->codec_data);
+                vgmstream->loop_end_sample = mpeg_bytes_to_samples(loop_end, vgmstream->codec_data);
                 /* loops are always aligned to CBR frame beginnings */
             }
 

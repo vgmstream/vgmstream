@@ -230,7 +230,6 @@ VGMSTREAM* init_vgmstream_sqex_sead(STREAMFILE* sf) {
 
 #ifdef VGM_USE_MPEG
         case 0x06: { /* MSMP3 (MSF subfile) [Dragon Quest Builders (PS3)] */
-            mpeg_codec_data *mpeg_data = NULL;
             mpeg_custom_config cfg = {0};
 
             start_offset = sead.extradata_offset + sead.extradata_size;
@@ -238,12 +237,11 @@ VGMSTREAM* init_vgmstream_sqex_sead(STREAMFILE* sf) {
             /* extradata: */
             /* proper MSF header, but sample rate/loops are ignored in favor of SAB's */
 
-            mpeg_data = init_mpeg_custom(sf, start_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_STANDARD, &cfg);
-            if (!mpeg_data) goto fail;
-            vgmstream->codec_data = mpeg_data;
+            vgmstream->codec_data = init_mpeg_custom(sf, start_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_STANDARD, &cfg);
+            if (!vgmstream->codec_data) goto fail;
             vgmstream->layout_type = layout_none;
 
-            vgmstream->num_samples = mpeg_bytes_to_samples(sead.stream_size, mpeg_data);
+            vgmstream->num_samples = mpeg_bytes_to_samples(sead.stream_size, vgmstream->codec_data);
             vgmstream->loop_start_sample = sead.loop_start;
             vgmstream->loop_end_sample = sead.loop_end;
             break;

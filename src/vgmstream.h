@@ -927,105 +927,6 @@ typedef struct {
 } VGMSTREAM;
 
 
-
-#ifdef VGM_USE_MPEG
-/* Custom MPEG modes, mostly differing in the data layout */
-typedef enum {
-    MPEG_STANDARD,          /* 1 stream */
-    MPEG_AHX,               /* 1 stream with false frame headers */
-    MPEG_XVAG,              /* N streams of fixed interleave (frame-aligned, several data-frames of fixed size) */
-    MPEG_FSB,               /* N streams of 1 data-frame+padding (=interleave) */
-    MPEG_P3D,               /* N streams of fixed interleave (not frame-aligned) */
-    MPEG_SCD,               /* N streams of fixed interleave (not frame-aligned) */
-    MPEG_EA,                /* 1 stream (maybe N streams in absolute offsets?) */
-    MPEG_EAL31,             /* EALayer3 v1 (SCHl), custom frames with v1 header */
-    MPEG_EAL31b,            /* EALayer3 v1 (SNS), custom frames with v1 header + minor changes */
-    MPEG_EAL32P,            /* EALayer3 v2 "PCM", custom frames with v2 header + bigger PCM blocks? */
-    MPEG_EAL32S,            /* EALayer3 v2 "Spike", custom frames with v2 header + smaller PCM blocks? */
-    MPEG_LYN,               /* N streams of fixed interleave */
-    MPEG_AWC,               /* N streams in block layout (music) or absolute offsets (sfx) */
-    MPEG_EAMP3              /* custom frame header + MPEG frame + PCM blocks */
-} mpeg_custom_t;
-
-/* config for the above modes */
-typedef struct {
-    int channels; /* max channels */
-    int fsb_padding; /* fsb padding mode */
-    int chunk_size; /* size of a data portion */
-    int data_size; /* playable size */
-    int interleave; /* size of stream interleave */
-    int encryption; /* encryption mode */
-    int big_endian;
-    int skip_samples;
-    /* for AHX */
-    int cri_type;
-    uint16_t cri_key1;
-    uint16_t cri_key2;
-    uint16_t cri_key3;
-} mpeg_custom_config;
-
-/* represents a single MPEG stream */
-typedef struct {
-    /* per stream as sometimes mpg123 must be fed in passes if data is big enough (ex. EALayer3 multichannel) */
-    uint8_t *buffer; /* raw data buffer */
-    size_t buffer_size;
-    size_t bytes_in_buffer;
-    int buffer_full; /* raw buffer has been filled */
-    int buffer_used; /* raw buffer has been fed to the decoder */
-    mpg123_handle *m; /* MPEG decoder */
-
-    uint8_t *output_buffer; /* decoded samples from this stream (in bytes for mpg123) */
-    size_t output_buffer_size;
-    size_t samples_filled; /* data in the buffer (in samples) */
-    size_t samples_used; /* data extracted from the buffer */
-
-    size_t current_size_count; /* data read (if the parser needs to know) */
-    size_t current_size_target; /* max data, until something happens */
-    size_t decode_to_discard;  /* discard from this stream only (for EALayer3 or AWC) */
-
-    int channels_per_frame; /* for rare cases that streams don't share this */
-} mpeg_custom_stream;
-
-typedef struct {
-    /* regular/single MPEG internals */
-    uint8_t *buffer; /* raw data buffer */
-    size_t buffer_size;
-    size_t bytes_in_buffer;
-    int buffer_full; /* raw buffer has been filled */
-    int buffer_used; /* raw buffer has been fed to the decoder */
-    mpg123_handle *m; /* MPEG decoder */
-    struct mpg123_frameinfo mi; /* start info, so it's available even when resetting */
-
-    /* for internal use */
-    int channels_per_frame;
-    int samples_per_frame;
-    /* for some calcs */
-    int bitrate_per_frame;
-    int sample_rate_per_frame;
-
-    /* custom MPEG internals */
-    int custom; /* flag */
-    mpeg_custom_t type; /* mpeg subtype */
-    mpeg_custom_config config; /* config depending on the mode */
-
-    size_t default_buffer_size;
-    mpeg_custom_stream **streams; /* array of MPEG streams (ex. 2ch+2ch) */
-    size_t streams_size;
-
-    size_t skip_samples; /* base encoder delay */
-    size_t samples_to_discard; /* for custom mpeg looping */
-
-} mpeg_codec_data;
-#endif
-
-/* libacm interface */
-typedef struct {
-    STREAMFILE* streamfile;
-    void* handle;
-    void* io_config;
-} acm_codec_data;
-
-
 /* for files made of "continuous" segments, one per section of a song (using a complete sub-VGMSTREAM) */
 typedef struct {
     int segment_count;
@@ -1044,6 +945,15 @@ typedef struct {
     int input_channels;     /* internal buffer channels */
     int output_channels;    /* resulting channels (after mixing, if applied) */
 } layered_layout_data;
+
+
+
+/* libacm interface */
+typedef struct {
+    STREAMFILE* streamfile;
+    void* handle;
+    void* io_config;
+} acm_codec_data;
 
 
 #ifdef VGM_USE_FFMPEG

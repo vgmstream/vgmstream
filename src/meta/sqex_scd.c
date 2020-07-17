@@ -241,22 +241,20 @@ VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE *streamFile) {
 
 #ifdef VGM_USE_MPEG
         case 0x07: {    /* MPEG [Final Fantasy XIII (PS3)] */
-            mpeg_codec_data *mpeg_data = NULL;
             mpeg_custom_config cfg = {0};
 
             cfg.interleave = 0x800; /* for multistream [Final Fantasy XIII-2 (PS3)], otherwise ignored */
             cfg.data_size = stream_size;
 
-            mpeg_data = init_mpeg_custom(streamFile, start_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_SCD, &cfg);
-            if (!mpeg_data) goto fail;
-            vgmstream->codec_data = mpeg_data;
+            vgmstream->codec_data = init_mpeg_custom(streamFile, start_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_SCD, &cfg);
+            if (!vgmstream->codec_data) goto fail;
             vgmstream->layout_type = layout_none;
 
             /* some Drakengard 3, Kingdom Hearts HD have adjusted sample rate (47999, 44099), for looping? */
 
-            vgmstream->num_samples = mpeg_bytes_to_samples(stream_size, mpeg_data);
-            vgmstream->loop_start_sample = mpeg_bytes_to_samples(loop_start, mpeg_data);
-            vgmstream->loop_end_sample = mpeg_bytes_to_samples(loop_end, mpeg_data);
+            vgmstream->num_samples = mpeg_bytes_to_samples(stream_size, vgmstream->codec_data);
+            vgmstream->loop_start_sample = mpeg_bytes_to_samples(loop_start, vgmstream->codec_data);
+            vgmstream->loop_end_sample = mpeg_bytes_to_samples(loop_end, vgmstream->codec_data);
 
             /* somehow loops offsets aren't always frame-aligned, and the code below supposedly helped,
              * but there isn't much difference since MPEG loops are rough (1152-aligned). Seems it

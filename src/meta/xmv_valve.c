@@ -163,16 +163,13 @@ VGMSTREAM *init_vgmstream_xmv_valve(STREAMFILE *streamFile) {
 #endif
 #ifdef VGM_USE_MPEG
         case 0x03: { /* MP3 */
-            mpeg_codec_data *mpeg_data;
             coding_t mpeg_coding;
 
             if (loop_flag) /* should never happen, Source cannot loop MP3 */
                 goto fail;
 
-            mpeg_data = init_mpeg(streamFile, start_offset, &mpeg_coding, channels);
-            if (!mpeg_data) goto fail;
-
-            vgmstream->codec_data = mpeg_data;
+            vgmstream->codec_data = init_mpeg(streamFile, start_offset, &mpeg_coding, channels);
+            if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = mpeg_coding;
             vgmstream->layout_type = layout_none;
 

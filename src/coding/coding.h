@@ -379,6 +379,43 @@ void free_vorbis_custom(vorbis_custom_codec_data* data);
 
 #ifdef VGM_USE_MPEG
 /* mpeg_decoder */
+typedef struct mpeg_codec_data mpeg_codec_data;
+
+/* Custom MPEG modes, mostly differing in the data layout */
+typedef enum {
+    MPEG_STANDARD,          /* 1 stream */
+    MPEG_AHX,               /* 1 stream with false frame headers */
+    MPEG_XVAG,              /* N streams of fixed interleave (frame-aligned, several data-frames of fixed size) */
+    MPEG_FSB,               /* N streams of 1 data-frame+padding (=interleave) */
+    MPEG_P3D,               /* N streams of fixed interleave (not frame-aligned) */
+    MPEG_SCD,               /* N streams of fixed interleave (not frame-aligned) */
+    MPEG_EA,                /* 1 stream (maybe N streams in absolute offsets?) */
+    MPEG_EAL31,             /* EALayer3 v1 (SCHl), custom frames with v1 header */
+    MPEG_EAL31b,            /* EALayer3 v1 (SNS), custom frames with v1 header + minor changes */
+    MPEG_EAL32P,            /* EALayer3 v2 "PCM", custom frames with v2 header + bigger PCM blocks? */
+    MPEG_EAL32S,            /* EALayer3 v2 "Spike", custom frames with v2 header + smaller PCM blocks? */
+    MPEG_LYN,               /* N streams of fixed interleave */
+    MPEG_AWC,               /* N streams in block layout (music) or absolute offsets (sfx) */
+    MPEG_EAMP3              /* custom frame header + MPEG frame + PCM blocks */
+} mpeg_custom_t;
+
+/* config for the above modes */
+typedef struct {
+    int channels; /* max channels */
+    int fsb_padding; /* fsb padding mode */
+    int chunk_size; /* size of a data portion */
+    int data_size; /* playable size */
+    int interleave; /* size of stream interleave */
+    int encryption; /* encryption mode */
+    int big_endian;
+    int skip_samples;
+    /* for AHX */
+    int cri_type;
+    uint16_t cri_key1;
+    uint16_t cri_key2;
+    uint16_t cri_key3;
+} mpeg_custom_config;
+
 mpeg_codec_data* init_mpeg(STREAMFILE* sf, off_t start_offset, coding_t *coding_type, int channels);
 mpeg_codec_data* init_mpeg_custom(STREAMFILE* sf, off_t start_offset, coding_t* coding_type, int channels, mpeg_custom_t custom_type, mpeg_custom_config* config);
 void decode_mpeg(VGMSTREAM* vgmstream, sample_t* outbuf, int32_t samples_to_do, int channels);
@@ -387,6 +424,7 @@ void seek_mpeg(VGMSTREAM* vgmstream, int32_t num_sample);
 void free_mpeg(mpeg_codec_data* data);
 void flush_mpeg(mpeg_codec_data* data);
 
+int mpeg_get_sample_rate(mpeg_codec_data* data);
 long mpeg_bytes_to_samples(long bytes, const mpeg_codec_data* data);
 #endif
 
