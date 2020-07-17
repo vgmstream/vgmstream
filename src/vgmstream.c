@@ -756,8 +756,7 @@ void reset_vgmstream(VGMSTREAM * vgmstream) {
     }
 
     if (vgmstream->coding_type == coding_NWA) {
-        nwa_codec_data *data = vgmstream->codec_data;
-        if (data) reset_nwa(data->nwa);
+        reset_nwa(vgmstream->codec_data);
     }
 
     /* reset custom layouts */
@@ -950,13 +949,8 @@ void close_vgmstream(VGMSTREAM * vgmstream) {
     }
 
     if (vgmstream->coding_type == coding_NWA) {
-        if (vgmstream->codec_data) {
-            nwa_codec_data *data = (nwa_codec_data *) vgmstream->codec_data;
-            if (data->nwa)
-                close_nwa(data->nwa);
-            free(data);
-            vgmstream->codec_data = NULL;
-        }
+        free_nwa(vgmstream->codec_data);
+        vgmstream->codec_data = NULL;
     }
 
 
@@ -2062,8 +2056,8 @@ void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to
                     samples_to_do, vgmstream->channels);
             break;
         case coding_NWA:
-            decode_nwa(((nwa_codec_data*)vgmstream->codec_data)->nwa,
-                    buffer+samples_written*vgmstream->channels, samples_to_do);
+            decode_nwa(vgmstream->codec_data, buffer+samples_written*vgmstream->channels,
+                    samples_to_do);
             break;
         case coding_MSADPCM:
         case coding_MSADPCM_int:
@@ -2367,9 +2361,7 @@ int vgmstream_do_loop(VGMSTREAM * vgmstream) {
 #endif
 
         if (vgmstream->coding_type == coding_NWA) {
-            nwa_codec_data *data = vgmstream->codec_data;
-            if (data)
-                seek_nwa(data->nwa, vgmstream->loop_sample);
+            seek_nwa(vgmstream->codec_data, vgmstream->loop_sample);
         }
 
         /* restore! */
@@ -2744,8 +2736,7 @@ fail:
 static STREAMFILE * get_vgmstream_average_bitrate_channel_streamfile(VGMSTREAM * vgmstream, int channel) {
 
     if (vgmstream->coding_type == coding_NWA) {
-        nwa_codec_data *data = vgmstream->codec_data;
-        return (data && data->nwa) ? data->nwa->file : NULL;
+        return nwa_get_streamfile(vgmstream->codec_data);
     }
 
     if (vgmstream->coding_type == coding_ACM) {

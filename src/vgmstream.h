@@ -1046,12 +1046,6 @@ typedef struct {
 } layered_layout_data;
 
 
-/* for compressed NWA */
-typedef struct {
-    NWAData *nwa;
-} nwa_codec_data;
-
-
 #ifdef VGM_USE_FFMPEG
 typedef struct {
     /*** IO internals ***/

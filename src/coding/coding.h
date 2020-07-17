@@ -146,8 +146,14 @@ STREAMFILE* acm_get_streamfile(acm_codec_data* data);
 
 
 /* nwa_decoder */
-void decode_nwa(NWAData* nwa, sample *outbuf, int32_t samples_to_do);
+typedef struct nwa_codec_data nwa_codec_data;
 
+nwa_codec_data* init_nwa(STREAMFILE* sf);
+void decode_nwa(nwa_codec_data* data, sample_t* outbuf, int32_t samples_to_do);
+void seek_nwa(nwa_codec_data *data, int32_t sample);
+void reset_nwa(nwa_codec_data *data);
+void free_nwa(nwa_codec_data* data);
+STREAMFILE* nwa_get_streamfile(nwa_codec_data* data);
 
 /* msadpcm_decoder */
 void decode_msadpcm_stereo(VGMSTREAM* vgmstream, sample_t* outbuf, int32_t first_sample, int32_t samples_to_do);

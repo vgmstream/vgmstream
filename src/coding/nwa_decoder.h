@@ -1,4 +1,4 @@
-/* originally from nwatowav.cc 2007.7.28 version, which read: */
+/* derived from nwatowav.cc 2007.7.28 version, which read: */
 /*
  * Copyright 2001-2007  jagarl / Kazunori Ueno <jagarl@creator.club.ne.jp>
  * All Rights Reserved.
@@ -35,33 +35,39 @@
 
 #include "../streamfile.h"
 
-typedef struct NWAData_s
-{
+typedef struct NWAData_s {
     int channels;
-    int bps;						/* bits per sample */
-    int freq;						/* samples per second */
-    int complevel;				/* compression level */
-    int blocks;					/* block count */
-    int datasize;					/* all data size */
-    int compdatasize;				/* compressed data size */
-    int samplecount;				/* all samples */
-    int blocksize;				/* samples per block */
-    int restsize;					/* samples of the last block */
+    int bps; /* bits per sample */
+    int freq; /* samples per second */
+
+    int complevel; /* compression level */
+    int dummy; /* ? : 0x00 */
+
+    int blocks; /* block count */
+    int datasize; /* all data size */
+
+    int compdatasize; /* compressed data size */
+    int samplecount; /* all samples */
+    int blocksize; /* samples per block */
+    int restsize; /* samples of the last block */
+    int dummy2; /* ? : 0x89 */
 
     int curblock;
-    off_t *offsets;
+    off_t* offsets;
+    int filesize;
 
-    STREAMFILE *file;
+    int use_runlength; //extra
 
-    /* temporarily store samples */
-    sample *buffer;
-    sample *buffer_readpos;
+    uint8_t *tmpdata;
+    int16_t *outdata;
+    int16_t *outdata_readpos;
     int samples_in_buffer;
 } NWAData;
 
-NWAData *open_nwa(STREAMFILE *streamFile, const char *filename);
-void close_nwa(NWAData *nwa);
-void reset_nwa(NWAData *nwa);
-void seek_nwa(NWAData *nwa, int32_t seekpos);
+NWAData* nwalib_open(STREAMFILE* sf);
+void nwalib_close(NWAData* nwa);
+int nwalib_decode(STREAMFILE* sf, NWAData* nwa);
+void nwalib_seek(STREAMFILE* sf, NWAData* nwa, int32_t seekpos);
+void nwalib_reset(NWAData* nwa);
 
 #endif
