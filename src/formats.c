@@ -138,7 +138,7 @@ static const char* extension_list[] = {
     "cxs",
 
     "da",
-    "dat",
+    //"dat", //common
     "data",
     "dax",
     "dbm",
@@ -622,6 +622,7 @@ static const char* common_extension_list[] = {
     "aif", //common
     "aiff", //common
     "bin", //common
+    "dat", //common
     "flac", //common
     "m4a", //common
     "m4v", //common
