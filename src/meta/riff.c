@@ -317,7 +317,7 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
 
     int FormatChunkFound = 0, DataChunkFound = 0, JunkFound = 0;
 
-    int mwv = 0; /* Level-5 .mwv (Dragon Quest VIII, Rogue Galaxy) */
+    int mwv = 0;
     off_t mwv_pflt_offset = -1;
     off_t mwv_ctrl_offset = -1;
 
@@ -346,6 +346,7 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
      * .aud: EA Replay ATRAC3
      * .at9: standard ATRAC9
      * .saf: Whacked! (Xbox)
+     * .mwv: Level-5 games [Dragon Quest VIII (PS2), Rogue Galaxy (PS2)]
      */
     if ( check_extensions(sf, "wav,lwav,xwav,da,dax,cd,med,snd,adx,adp,xss,xsew,adpcm,adw,wd,,sbv,wvx,str,at3,rws,aud,at9,saf") ) {
         ;
@@ -390,6 +391,9 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
 
         else if (codec == 0x0300 && riff_size == file_size)
             riff_size -= 0x08; /* [Chrono Ma:gia (Android)] */
+
+        else if (mwv && riff_size + 0x0c == file_size)
+            riff_size += 0x04; /* [Dragon Quest VIII (PS2), Rogue Galaxy (PS2)] */
 
         else if (riff_size >= file_size && read_32bitBE(0x24,sf) == 0x4E584246) /* "NXBF" */
             riff_size = file_size - 0x08; /* [R:Racing Evolution (Xbox)] */
