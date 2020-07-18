@@ -67,7 +67,7 @@ VGMSTREAM * init_vgmstream_xwc(STREAMFILE *streamFile) {
             if (!vgmstream->codec_data) goto fail;
             vgmstream->layout_type = layout_none;
 
-            vgmstream->sample_rate = ((mpeg_codec_data*)vgmstream->codec_data)->sample_rate_per_frame;
+            vgmstream->sample_rate = mpeg_get_sample_rate(vgmstream->codec_data);
             break;
         }
 #endif

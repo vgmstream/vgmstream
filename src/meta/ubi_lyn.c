@@ -154,7 +154,6 @@ VGMSTREAM * init_vgmstream_ubi_lyn(STREAMFILE *streamFile) {
 
 #ifdef VGM_USE_MPEG
         case 0x5051: { /* MPEG (PS3/PC), interleaved 1ch */
-            mpeg_codec_data *mpeg_data = NULL;
             mpeg_custom_config cfg = {0};
             int i;
 
@@ -175,9 +174,8 @@ VGMSTREAM * init_vgmstream_ubi_lyn(STREAMFILE *streamFile) {
             cfg.data_size = data_size;
 
             //todo data parsing looks correct but some files decode a bit wrong at the end (ex. Tintin: Music~Boss~Allan~Victory~02)
-            mpeg_data = init_mpeg_custom(streamFile, start_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_LYN, &cfg);
-            if (!mpeg_data) goto fail;
-            vgmstream->codec_data = mpeg_data;
+            vgmstream->codec_data = init_mpeg_custom(streamFile, start_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_LYN, &cfg);
+            if (!vgmstream->codec_data) goto fail;
             vgmstream->layout_type = layout_none;
 
             break;

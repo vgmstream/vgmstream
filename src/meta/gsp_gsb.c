@@ -112,8 +112,7 @@ VGMSTREAM * init_vgmstream_gsp_gsb(STREAMFILE *streamFile) {
         }
 
         case 0x09: { /* XMA2 [Quantum Theory (PS3)] */
-            ffmpeg_codec_data *ffmpeg_data = NULL;
-            uint8_t buf[200];
+            uint8_t buf[0x100];
             int32_t bytes;
 
             if (!find_chunk_be(streamHeader, 0x584D4558,first_offset,1, &chunk_offset,NULL)) /* "XMEX" */
@@ -122,9 +121,8 @@ VGMSTREAM * init_vgmstream_gsp_gsb(STREAMFILE *streamFile) {
             /* 0x34: seek table */
 
             bytes = ffmpeg_make_riff_xma_from_fmt_chunk(buf,200, chunk_offset,0x34, data_size, streamHeader, 1);
-            ffmpeg_data = init_ffmpeg_header_offset(streamFile, buf,bytes, start_offset,data_size);
-            if ( !ffmpeg_data ) goto fail;
-            vgmstream->codec_data = ffmpeg_data;
+            vgmstream->codec_data = init_ffmpeg_header_offset(streamFile, buf,bytes, start_offset,data_size);
+            if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
 

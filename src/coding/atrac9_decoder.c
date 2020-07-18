@@ -6,10 +6,10 @@
 
 /* opaque struct */
 struct atrac9_codec_data {
-    uint8_t *data_buffer;
+    uint8_t* data_buffer;
     size_t data_buffer_size;
 
-    sample_t *sample_buffer;
+    sample_t* sample_buffer;
     size_t samples_filled; /* number of samples in the buffer */
     size_t samples_used; /* number of samples extracted from the buffer */
 
@@ -17,15 +17,15 @@ struct atrac9_codec_data {
 
     atrac9_config config;
 
-    void *handle; /* decoder handle */
+    void* handle; /* decoder handle */
     Atrac9CodecInfo info; /* decoder info */
 };
 
 
-atrac9_codec_data *init_atrac9(atrac9_config *cfg) {
+atrac9_codec_data* init_atrac9(atrac9_config* cfg) {
     int status;
     uint8_t config_data[4];
-    atrac9_codec_data *data = NULL;
+    atrac9_codec_data* data = NULL;
 
     data = calloc(1, sizeof(atrac9_codec_data));
     if (!data) goto fail;
@@ -65,9 +65,9 @@ fail:
     return NULL;
 }
 
-void decode_atrac9(VGMSTREAM *vgmstream, sample_t * outbuf, int32_t samples_to_do, int channels) {
-    VGMSTREAMCHANNEL *stream = &vgmstream->ch[0];
-    atrac9_codec_data * data = vgmstream->codec_data;
+void decode_atrac9(VGMSTREAM* vgmstream, sample_t* outbuf, int32_t samples_to_do, int channels) {
+    VGMSTREAMCHANNEL* stream = &vgmstream->ch[0];
+    atrac9_codec_data* data = vgmstream->codec_data;
     int samples_done = 0;
 
 
@@ -134,8 +134,7 @@ decode_fail:
     memset(outbuf + samples_done * channels, 0, (samples_to_do - samples_done) * sizeof(sample) * channels);
 }
 
-void reset_atrac9(VGMSTREAM *vgmstream) {
-    atrac9_codec_data *data = vgmstream->codec_data;
+void reset_atrac9(atrac9_codec_data* data) {
     if (!data) return;
 
     if (!data->handle)
@@ -167,11 +166,11 @@ fail:
     return; /* decode calls should fail... */
 }
 
-void seek_atrac9(VGMSTREAM *vgmstream, int32_t num_sample) {
-    atrac9_codec_data *data = vgmstream->codec_data;
+void seek_atrac9(VGMSTREAM* vgmstream, int32_t num_sample) {
+    atrac9_codec_data* data = vgmstream->codec_data;
     if (!data) return;
 
-    reset_atrac9(vgmstream);
+    reset_atrac9(data);
 
     /* find closest offset to desired sample, and samples to discard after that offset to reach loop */
     {
@@ -212,7 +211,7 @@ void seek_atrac9(VGMSTREAM *vgmstream, int32_t num_sample) {
 
 }
 
-void free_atrac9(atrac9_codec_data *data) {
+void free_atrac9(atrac9_codec_data* data) {
     if (!data) return;
 
     if (data->handle) Atrac9ReleaseHandle(data->handle);
@@ -265,7 +264,7 @@ fail:
     return 0;
 }
 
-size_t atrac9_bytes_to_samples(size_t bytes, atrac9_codec_data *data) {
+size_t atrac9_bytes_to_samples(size_t bytes, atrac9_codec_data* data) {
     return bytes / data->info.superframeSize * (data->info.frameSamples * data->info.framesInSuperframe);
 }
 

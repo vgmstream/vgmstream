@@ -265,8 +265,7 @@ void reset_ogg_vorbis(VGMSTREAM *vgmstream) {
     ov_pcm_seek(&data->ogg_vorbis_file, 0);
 }
 
-void seek_ogg_vorbis(VGMSTREAM *vgmstream, int32_t num_sample) {
-    ogg_vorbis_codec_data *data = vgmstream->codec_data;
+void seek_ogg_vorbis(ogg_vorbis_codec_data *data, int32_t num_sample) {
     if (!data) return;
 
     /* this seek crosslaps to avoid possible clicks, so seeking to 0 will

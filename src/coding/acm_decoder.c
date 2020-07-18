@@ -5,17 +5,17 @@
 /* libacm 1.2 (despite what libacm.h says) from: https://github.com/markokr/libacm */
 
 typedef struct {
-    STREAMFILE *streamfile;
+    STREAMFILE* streamfile; /* reference */
     int offset;
 } acm_io_config;
 
-static int acm_read_streamfile(void *ptr, int size, int n, void *arg);
-static int acm_seek_streamfile(void *arg, int offset, int whence);
-static int acm_get_length_streamfile(void *arg);
 
-acm_codec_data *init_acm(STREAMFILE *streamFile, int force_channel_number) {
+static int acm_read_streamfile(void* ptr, int size, int n, void* arg);
+static int acm_seek_streamfile(void* arg, int offset, int whence);
+static int acm_get_length_streamfile(void* arg);
+
+acm_codec_data* init_acm(STREAMFILE* sf, int force_channel_number) {
     acm_codec_data* data = NULL;
-    char filename[PATH_LIMIT];
 
 
     data = calloc(1,sizeof(acm_codec_data));
@@ -24,15 +24,14 @@ acm_codec_data *init_acm(STREAMFILE *streamFile, int force_channel_number) {
     data->io_config = calloc(1,sizeof(acm_io_config));
     if (!data->io_config) goto fail;
 
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    data->streamfile = open_streamfile(streamFile,filename);
+    data->streamfile = reopen_streamfile(sf, 0);
     if (!data->streamfile) goto fail;
 
     /* Setup libacm decoder, needs read callbacks and a parameter for said callbacks */
     {
-        ACMStream *handle = NULL;
+        ACMStream* handle = NULL;
         int res;
-        acm_io_config *io_config = data->io_config;
+        acm_io_config* io_config = data->io_config;
         acm_io_callbacks io_callbacks = {0};
 
         io_config->offset = 0;
@@ -60,8 +59,8 @@ fail:
     return NULL;
 }
 
-void decode_acm(acm_codec_data *data, sample * outbuf, int32_t samples_to_do, int channelspacing) {
-    ACMStream * acm = data->handle;
+void decode_acm(acm_codec_data* data, sample_t* outbuf, int32_t samples_to_do, int channelspacing) {
+    ACMStream* acm = data->handle;
     int32_t samples_read = 0;
 
     while (samples_read < samples_to_do) {
@@ -79,14 +78,14 @@ void decode_acm(acm_codec_data *data, sample * outbuf, int32_t samples_to_do, in
     }
 }
 
-void reset_acm(acm_codec_data *data) {
+void reset_acm(acm_codec_data* data) {
     if (!data || !data->handle)
         return;
 
     acm_seek_pcm(data->handle, 0);
 }
 
-void free_acm(acm_codec_data *data) {
+void free_acm(acm_codec_data* data) {
     if (!data)
         return;
 
@@ -94,6 +93,11 @@ void free_acm(acm_codec_data *data) {
     close_streamfile(data->streamfile);
     free(data->io_config);
     free(data);
+}
+
+STREAMFILE* acm_get_streamfile(acm_codec_data* data) {
+    if (!data) return NULL;
+    return data->streamfile;
 }
 
 /* ******************************* */

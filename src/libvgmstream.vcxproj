@@ -271,6 +271,7 @@
     <ClCompile Include="meta\aax.c" />
     <ClCompile Include="meta\acb.c" />
     <ClCompile Include="meta\acm.c" />
+    <ClCompile Include="meta\adp_konami.c" />
     <ClCompile Include="meta\adpcm_capcom.c" />
     <ClCompile Include="meta\ads.c" />
     <ClCompile Include="meta\adx.c" />
@@ -454,8 +455,8 @@
     <ClCompile Include="meta\ps2_snd.c" />
     <ClCompile Include="meta\ps2_sps.c" />
     <ClCompile Include="meta\ps2_ster.c" />
-    <ClCompile Include="meta\ps2_svag.c" />
-    <ClCompile Include="meta\ps2_svag_snk.c" />
+    <ClCompile Include="meta\svag_kcet.c" />
+    <ClCompile Include="meta\svag_snk.c" />
     <ClCompile Include="meta\ps2_tec.c" />
     <ClCompile Include="meta\ps2_tk5.c" />
     <ClCompile Include="meta\vag.c" />

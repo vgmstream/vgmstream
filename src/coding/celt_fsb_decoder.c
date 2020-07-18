@@ -4,16 +4,16 @@
 #include "celt/celt_fsb.h"
 
 #define FSB_CELT_0_06_1_VERSION 0x80000009 /* libcelt-0.6.1 */
-#define FSB_CELT_0_11_0_VERSION 0x80000010 /* libcelt-0.6.1 */
+#define FSB_CELT_0_11_0_VERSION 0x80000010 /* libcelt-0.11.0 */
 #define FSB_CELT_SAMPLES_PER_FRAME 512
 #define FSB_CELT_INTERNAL_SAMPLE_RATE 44100
 #define FSB_CELT_MAX_DATA_SIZE 0x200 /* from 0x2e~0x172/1d0, all files are CBR though */
 
 /* opaque struct */
 struct celt_codec_data {
-    sample *buffer;
+    sample_t* buffer;
 
-    sample *sample_buffer;
+    sample_t* sample_buffer;
     size_t samples_filled; /* number of samples in the buffer */
     size_t samples_used; /* number of samples extracted from the buffer */
 
@@ -31,7 +31,7 @@ struct celt_codec_data {
 
 celt_codec_data *init_celt_fsb(int channels, celt_lib_t version) {
     int error = 0, lib_version = 0;
-    celt_codec_data *data = NULL;
+    celt_codec_data* data = NULL;
 
 
     data = calloc(1, sizeof(celt_codec_data));
@@ -79,9 +79,9 @@ fail:
 }
 
 
-void decode_celt_fsb(VGMSTREAM *vgmstream, sample * outbuf, int32_t samples_to_do, int channels) {
-    VGMSTREAMCHANNEL *stream = &vgmstream->ch[0];
-    celt_codec_data * data = vgmstream->codec_data;
+void decode_celt_fsb(VGMSTREAM* vgmstream, sample_t* outbuf, int32_t samples_to_do, int channels) {
+    VGMSTREAMCHANNEL* stream = &vgmstream->ch[0];
+    celt_codec_data* data = vgmstream->codec_data;
     int samples_done = 0;
 
 
@@ -161,8 +161,7 @@ decode_fail:
     memset(outbuf + samples_done * channels, 0, (samples_to_do - samples_done) * sizeof(sample) * channels);
 }
 
-void reset_celt_fsb(VGMSTREAM *vgmstream) {
-    celt_codec_data *data = vgmstream->codec_data;
+void reset_celt_fsb(celt_codec_data* data) {
     if (!data) return;
 
     /* recreate decoder (mode should not change) */
@@ -195,10 +194,10 @@ fail:
 }
 
 void seek_celt_fsb(VGMSTREAM *vgmstream, int32_t num_sample) {
-    celt_codec_data *data = vgmstream->codec_data;
+    celt_codec_data* data = vgmstream->codec_data;
     if (!data) return;
 
-    reset_celt_fsb(vgmstream);
+    reset_celt_fsb(data);
 
     data->samples_to_discard = num_sample;
 
@@ -207,7 +206,7 @@ void seek_celt_fsb(VGMSTREAM *vgmstream, int32_t num_sample) {
         vgmstream->loop_ch[0].offset = vgmstream->loop_ch[0].channel_start_offset;
 }
 
-void free_celt_fsb(celt_codec_data *data) {
+void free_celt_fsb(celt_codec_data* data) {
     if (!data) return;
 
     switch(data->version) {

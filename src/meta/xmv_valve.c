@@ -142,7 +142,6 @@ VGMSTREAM *init_vgmstream_xmv_valve(STREAMFILE *streamFile) {
             break;
 #ifdef VGM_USE_FFMPEG
         case 0x01: { /* XMA */
-            ffmpeg_codec_data *ffmpeg_data;
             uint8_t buf[0x100];
             int block_count, block_size;
             size_t bytes;
@@ -152,10 +151,8 @@ VGMSTREAM *init_vgmstream_xmv_valve(STREAMFILE *streamFile) {
 
             bytes = ffmpeg_make_riff_xma2(buf, 0x100, num_samples, data_size, channels, sample_rate, block_count, block_size);
 
-            ffmpeg_data = init_ffmpeg_header_offset(streamFile, buf, bytes, start_offset, data_size);
-            if (!ffmpeg_data) goto fail;
-
-            vgmstream->codec_data = ffmpeg_data;
+            vgmstream->codec_data = init_ffmpeg_header_offset(streamFile, buf, bytes, start_offset, data_size);
+            if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
             vgmstream->loop_end_sample -= loop_end_skip;
@@ -166,16 +163,13 @@ VGMSTREAM *init_vgmstream_xmv_valve(STREAMFILE *streamFile) {
 #endif
 #ifdef VGM_USE_MPEG
         case 0x03: { /* MP3 */
-            mpeg_codec_data *mpeg_data;
             coding_t mpeg_coding;
 
             if (loop_flag) /* should never happen, Source cannot loop MP3 */
                 goto fail;
 
-            mpeg_data = init_mpeg(streamFile, start_offset, &mpeg_coding, channels);
-            if (!mpeg_data) goto fail;
-
-            vgmstream->codec_data = mpeg_data;
+            vgmstream->codec_data = init_mpeg(streamFile, start_offset, &mpeg_coding, channels);
+            if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = mpeg_coding;
             vgmstream->layout_type = layout_none;
 

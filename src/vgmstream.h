@@ -349,7 +349,7 @@ typedef enum {
     meta_PS2_RXWS,          /* Sony games (Genji, Okage Shadow King, Arc The Lad Twilight of Spirits) */
     meta_RAW_INT,
     meta_PS2_EXST,          /* Shadow of Colossus EXST */
-    meta_PS2_SVAG,          /* Konami SVAG */
+    meta_SVAG_KCET,
     meta_PS_HEADERLESS,     /* headerless PS-ADPCM */
     meta_PS2_MIB_MIH,       /* MIB File + MIH Header*/
     meta_PS2_MIC,           /* KOEI MIC File */
@@ -587,7 +587,7 @@ typedef enum {
     meta_MCA,               /* Capcom MCA "MADP" */
     meta_XB3D_ADX,          /* Xenoblade Chronicles 3D ADX */
     meta_HCA,               /* CRI HCA */
-    meta_PS2_SVAG_SNK,      /* SNK PS2 SVAG */
+    meta_SVAG_SNK,
     meta_PS2_VDS_VDM,       /* Graffiti Kingdom */
     meta_FFMPEG,            /* any file supported by FFmpeg */
     meta_X360_CXS,          /* Eternal Sonata (Xbox 360) */
@@ -734,6 +734,7 @@ typedef enum {
     meta_KTSR,
     meta_KAT,
     meta_PCM_SUCCESS,
+    meta_ADP_KONAMI,
 } meta_t;
 
 /* standard WAVEFORMATEXTENSIBLE speaker positions */
@@ -792,9 +793,10 @@ typedef struct {
     int ignore_loop;
 } play_config_t;
 
+
 /* info for a single vgmstream channel */
 typedef struct {
-    STREAMFILE * streamfile;    /* file used by this channel */
+    STREAMFILE* streamfile;     /* file used by this channel */
     off_t channel_start_offset; /* where data for this channel begins */
     off_t offset;               /* current location in the file */
 
@@ -824,8 +826,8 @@ typedef struct {
         int32_t adpcm_history4_32;
     };
 
-    double adpcm_history1_double;
-    double adpcm_history2_double;
+    //double adpcm_history1_double;
+    //double adpcm_history2_double;
 
     int adpcm_step_index;               /* for IMA */
     int adpcm_scale;                    /* for MS ADPCM */
@@ -840,6 +842,7 @@ typedef struct {
     uint16_t adx_add;
 
 } VGMSTREAMCHANNEL;
+
 
 /* main vgmstream info */
 typedef struct {
@@ -875,31 +878,35 @@ typedef struct {
     /* other config */
     int allow_dual_stereo;          /* search for dual stereo (file_L.ext + file_R.ext = single stereo file) */
 
+
     /* config requests, players must read and honor these values
      * (ideally internally would work as a player, but for now player must do it manually) */
     play_config_t config;
 
 
+    /* play state */
+    int loop_count;                 /* counter of complete loops (1=looped once) */
+    int loop_target;                /* max loops before continuing with the stream end (loops forever if not set) */
+
+
     /* layout/block state */
     size_t full_block_size;         /* actual data size of an entire block (ie. may be fixed, include padding/headers, etc) */
-    int32_t current_sample;         /* number of samples we've passed (for loop detection) */
+    int32_t current_sample;         /* sample point within the file (for loop detection) */
     int32_t samples_into_block;     /* number of samples into the current block/interleave/segment/etc */
     off_t current_block_offset;     /* start of this block (offset of block header) */
     size_t current_block_size;      /* size in usable bytes of the block we're in now (used to calculate num_samples per block) */
-    int32_t current_block_samples;   /* size in samples of the block we're in now (used over current_block_size if possible) */
+    int32_t current_block_samples;  /* size in samples of the block we're in now (used over current_block_size if possible) */
     off_t next_block_offset;        /* offset of header of the next block */
-    /* layout/block loop state */
-    int32_t loop_sample;            /* saved from current_sample (same as loop_start_sample, but more state-like) */
+
+    /* loop state (saved when loop is hit to restore later) */
+    int32_t loop_current_sample;    /* saved from current_sample (same as loop_start_sample, but more state-like) */
     int32_t loop_samples_into_block;/* saved from samples_into_block */
     off_t loop_block_offset;        /* saved from current_block_offset */
     size_t loop_block_size;         /* saved from current_block_size */
-    int32_t loop_block_samples;      /* saved from current_block_samples */
+    int32_t loop_block_samples;     /* saved from current_block_samples */
     off_t loop_next_block_offset;   /* saved from next_block_offset */
+    int hit_loop;                   /* save config when loop is hit, but first time only */
 
-    /* loop state */
-    int hit_loop;                   /* have we seen the loop yet? */
-    int loop_count;                 /* counter of complete loops (1=looped once) */
-    int loop_target;                /* max loops before continuing with the stream end (loops forever if not set) */
 
     /* decoder config/state */
     int codec_endian;               /* little/big endian marker; name is left vague but usually means big endian */
@@ -908,248 +915,30 @@ typedef struct {
 
 
     /* main state */
-    VGMSTREAMCHANNEL * ch;          /* array of channels */
-    VGMSTREAMCHANNEL * start_ch;    /* shallow copy of channels as they were at the beginning of the stream (for resets) */
-    VGMSTREAMCHANNEL * loop_ch;     /* shallow copy of channels as they were at the loop point (for loops) */
+    VGMSTREAMCHANNEL* ch;           /* array of channels */
+    VGMSTREAMCHANNEL* start_ch;     /* shallow copy of channels as they were at the beginning of the stream (for resets) */
+    VGMSTREAMCHANNEL* loop_ch;      /* shallow copy of channels as they were at the loop point (for loops) */
     void* start_vgmstream;          /* shallow copy of the VGMSTREAM as it was at the beginning of the stream (for resets) */
 
-    void * mixing_data;             /* state for mixing effects */
+    void* mixing_data;              /* state for mixing effects */
 
     /* Optional data the codec needs for the whole stream. This is for codecs too
      * different from vgmstream's structure to be reasonably shoehorned.
      * Note also that support must be added for resetting, looping and
      * closing for every codec that uses this, as it will not be handled. */
-    void * codec_data;
+    void* codec_data;
     /* Same, for special layouts. layout_data + codec_data may exist at the same time. */
-    void * layout_data;
+    void* layout_data;
 
 } VGMSTREAM;
 
-#ifdef VGM_USE_VORBIS
-
-/* standard Ogg Vorbis */
-typedef struct {
-    STREAMFILE *streamfile;
-    ogg_int64_t start; /* file offset where the Ogg starts */
-    ogg_int64_t offset; /* virtual offset, from 0 to size */
-    ogg_int64_t size; /* virtual size of the Ogg */
-
-    /* decryption setup */
-    void (*decryption_callback)(void *ptr, size_t size, size_t nmemb, void *datasource);
-    uint8_t scd_xor;
-    off_t scd_xor_length;
-    uint32_t xor_value;
-
-} ogg_vorbis_io;
-
-typedef struct ogg_vorbis_codec_data ogg_vorbis_codec_data;
-
-
-/* custom Vorbis modes */
-typedef enum {
-    VORBIS_FSB,         /* FMOD FSB: simplified/external setup packets, custom packet headers */
-    VORBIS_WWISE,       /* Wwise WEM: many variations (custom setup, headers and data) */
-    VORBIS_OGL,         /* Shin'en OGL: custom packet headers */
-    VORBIS_SK,          /* Silicon Knights AUD: "OggS" replaced by "SK" */
-    VORBIS_VID1,        /* Neversoft VID1: custom packet blocks/headers */
-} vorbis_custom_t;
-
-/* config for Wwise Vorbis (3 types for flexibility though not all combinations exist) */
-typedef enum { WWV_HEADER_TRIAD, WWV_FULL_SETUP, WWV_INLINE_CODEBOOKS, WWV_EXTERNAL_CODEBOOKS, WWV_AOTUV603_CODEBOOKS } wwise_setup_t;
-typedef enum { WWV_TYPE_8, WWV_TYPE_6, WWV_TYPE_2 } wwise_header_t;
-typedef enum { WWV_STANDARD, WWV_MODIFIED } wwise_packet_t;
-
-typedef struct {
-    /* to reconstruct init packets */
-    int channels;
-    int sample_rate;
-    int blocksize_0_exp;
-    int blocksize_1_exp;
-
-    uint32_t setup_id; /* external setup */
-    int big_endian; /* flag */
-
-    /* Wwise Vorbis config */
-    wwise_setup_t setup_type;
-    wwise_header_t header_type;
-    wwise_packet_t packet_type;
-
-    /* output (kinda ugly here but to simplify) */
-    off_t data_start_offset;
-
-} vorbis_custom_config;
-
-/* custom Vorbis without Ogg layer */
-typedef struct {
-    vorbis_info vi;             /* stream settings */
-    vorbis_comment vc;          /* stream comments */
-    vorbis_dsp_state vd;        /* decoder global state */
-    vorbis_block vb;            /* decoder local state */
-    ogg_packet op;              /* fake packet for internal use */
-
-    uint8_t * buffer;           /* internal raw data buffer */
-    size_t buffer_size;
-
-    size_t samples_to_discard;  /* for looping purposes */
-    int samples_full;           /* flag, samples available in vorbis buffers */
-
-    vorbis_custom_t type;        /* Vorbis subtype */
-    vorbis_custom_config config; /* config depending on the mode */
-
-    /* Wwise Vorbis: saved data to reconstruct modified packets */
-    uint8_t mode_blockflag[64+1];   /* max 6b+1; flags 'n stuff */
-    int mode_bits;                  /* bits to store mode_number */
-    uint8_t prev_blockflag;         /* blockflag in the last decoded packet */
-    /* Ogg-style Vorbis: packet within a page */
-    int current_packet;
-    /* reference for page/blocks */
-    off_t block_offset;
-    size_t block_size;
-
-    int prev_block_samples;     /* count for optimization */
-
-} vorbis_custom_codec_data;
-#endif
-
-
-#ifdef VGM_USE_MPEG
-/* Custom MPEG modes, mostly differing in the data layout */
-typedef enum {
-    MPEG_STANDARD,          /* 1 stream */
-    MPEG_AHX,               /* 1 stream with false frame headers */
-    MPEG_XVAG,              /* N streams of fixed interleave (frame-aligned, several data-frames of fixed size) */
-    MPEG_FSB,               /* N streams of 1 data-frame+padding (=interleave) */
-    MPEG_P3D,               /* N streams of fixed interleave (not frame-aligned) */
-    MPEG_SCD,               /* N streams of fixed interleave (not frame-aligned) */
-    MPEG_EA,                /* 1 stream (maybe N streams in absolute offsets?) */
-    MPEG_EAL31,             /* EALayer3 v1 (SCHl), custom frames with v1 header */
-    MPEG_EAL31b,            /* EALayer3 v1 (SNS), custom frames with v1 header + minor changes */
-    MPEG_EAL32P,            /* EALayer3 v2 "PCM", custom frames with v2 header + bigger PCM blocks? */
-    MPEG_EAL32S,            /* EALayer3 v2 "Spike", custom frames with v2 header + smaller PCM blocks? */
-    MPEG_LYN,               /* N streams of fixed interleave */
-    MPEG_AWC,               /* N streams in block layout (music) or absolute offsets (sfx) */
-    MPEG_EAMP3              /* custom frame header + MPEG frame + PCM blocks */
-} mpeg_custom_t;
-
-/* config for the above modes */
-typedef struct {
-    int channels; /* max channels */
-    int fsb_padding; /* fsb padding mode */
-    int chunk_size; /* size of a data portion */
-    int data_size; /* playable size */
-    int interleave; /* size of stream interleave */
-    int encryption; /* encryption mode */
-    int big_endian;
-    int skip_samples;
-    /* for AHX */
-    int cri_type;
-    uint16_t cri_key1;
-    uint16_t cri_key2;
-    uint16_t cri_key3;
-} mpeg_custom_config;
-
-/* represents a single MPEG stream */
-typedef struct {
-    /* per stream as sometimes mpg123 must be fed in passes if data is big enough (ex. EALayer3 multichannel) */
-    uint8_t *buffer; /* raw data buffer */
-    size_t buffer_size;
-    size_t bytes_in_buffer;
-    int buffer_full; /* raw buffer has been filled */
-    int buffer_used; /* raw buffer has been fed to the decoder */
-    mpg123_handle *m; /* MPEG decoder */
-
-    uint8_t *output_buffer; /* decoded samples from this stream (in bytes for mpg123) */
-    size_t output_buffer_size;
-    size_t samples_filled; /* data in the buffer (in samples) */
-    size_t samples_used; /* data extracted from the buffer */
-
-    size_t current_size_count; /* data read (if the parser needs to know) */
-    size_t current_size_target; /* max data, until something happens */
-    size_t decode_to_discard;  /* discard from this stream only (for EALayer3 or AWC) */
-
-    int channels_per_frame; /* for rare cases that streams don't share this */
-} mpeg_custom_stream;
-
-typedef struct {
-    /* regular/single MPEG internals */
-    uint8_t *buffer; /* raw data buffer */
-    size_t buffer_size;
-    size_t bytes_in_buffer;
-    int buffer_full; /* raw buffer has been filled */
-    int buffer_used; /* raw buffer has been fed to the decoder */
-    mpg123_handle *m; /* MPEG decoder */
-    struct mpg123_frameinfo mi; /* start info, so it's available even when resetting */
-
-    /* for internal use */
-    int channels_per_frame;
-    int samples_per_frame;
-    /* for some calcs */
-    int bitrate_per_frame;
-    int sample_rate_per_frame;
-
-    /* custom MPEG internals */
-    int custom; /* flag */
-    mpeg_custom_t type; /* mpeg subtype */
-    mpeg_custom_config config; /* config depending on the mode */
-
-    size_t default_buffer_size;
-    mpeg_custom_stream **streams; /* array of MPEG streams (ex. 2ch+2ch) */
-    size_t streams_size;
-
-    size_t skip_samples; /* base encoder delay */
-    size_t samples_to_discard; /* for custom mpeg looping */
-
-} mpeg_codec_data;
-#endif
-
-#ifdef VGM_USE_G7221
-typedef struct g7221_codec_data g7221_codec_data;
-#endif
-
-#ifdef VGM_USE_G719
-typedef struct {
-   sample_t buffer[960];
-   void *handle;
-} g719_codec_data;
-#endif
-
-#ifdef VGM_USE_MAIATRAC3PLUS
-typedef struct {
-    sample_t *buffer;
-    int channels;
-    int samples_discard;
-    void *handle;
-} maiatrac3plus_codec_data;
-#endif
-
-#ifdef VGM_USE_ATRAC9
-/* ATRAC9 config */
-typedef struct {
-    int channels;           /* to detect weird multichannel */
-    uint32_t config_data;   /* ATRAC9 config header */
-    int encoder_delay;      /* initial samples to discard */
-} atrac9_config;
-typedef struct atrac9_codec_data atrac9_codec_data;
-#endif
-
-#ifdef VGM_USE_CELT
-typedef enum { CELT_0_06_1,CELT_0_11_0} celt_lib_t;
-typedef struct celt_codec_data celt_codec_data;
-#endif
-
-/* libacm interface */
-typedef struct {
-    STREAMFILE *streamfile;
-    void *handle;
-    void *io_config;
-} acm_codec_data;
 
 /* for files made of "continuous" segments, one per section of a song (using a complete sub-VGMSTREAM) */
 typedef struct {
     int segment_count;
-    VGMSTREAM **segments;
+    VGMSTREAM** segments;
     int current_segment;
-    sample_t *buffer;
+    sample_t* buffer;
     int input_channels;     /* internal buffer channels */
     int output_channels;    /* resulting channels (after mixing, if applied) */
 } segmented_layout_data;
@@ -1157,39 +946,26 @@ typedef struct {
 /* for files made of "parallel" layers, one per group of channels (using a complete sub-VGMSTREAM) */
 typedef struct {
     int layer_count;
-    VGMSTREAM **layers;
-    sample_t *buffer;
+    VGMSTREAM** layers;
+    sample_t* buffer;
     int input_channels;     /* internal buffer channels */
     int output_channels;    /* resulting channels (after mixing, if applied) */
 } layered_layout_data;
 
-/* for compressed NWA */
+
+
+/* libacm interface */
 typedef struct {
-    NWAData *nwa;
-} nwa_codec_data;
-
-typedef struct relic_codec_data relic_codec_data;
-
-typedef struct {
-    STREAMFILE *streamfile;
-    clHCA_stInfo info;
-
-    signed short *sample_buffer;
-    size_t samples_filled;
-    size_t samples_consumed;
-    size_t samples_to_discard;
-
-    void* data_buffer;
-
-    unsigned int current_block;
-
+    STREAMFILE* streamfile;
     void* handle;
-} hca_codec_data;
+    void* io_config;
+} acm_codec_data;
+
 
 #ifdef VGM_USE_FFMPEG
 typedef struct {
     /*** IO internals ***/
-    STREAMFILE *streamfile;
+    STREAMFILE* streamfile;
 
     uint64_t start;             // absolute start within the streamfile
     uint64_t offset;            // absolute offset within the streamfile
@@ -1245,7 +1021,7 @@ typedef struct {
 
 #ifdef VGM_USE_MP4V2
 typedef struct {
-    STREAMFILE *streamfile;
+    STREAMFILE* streamfile;
     uint64_t start;
     uint64_t offset;
     uint64_t size;
@@ -1263,87 +1039,44 @@ typedef struct {
     INT_PCM sample_buffer[( (6) * (2048)*4 )];
 } mp4_aac_codec_data;
 #endif
-#endif
+#endif //VGM_USE_MP4V2
 
-typedef struct ubi_adpcm_codec_data ubi_adpcm_codec_data;
-
-typedef struct ea_mt_codec_data ea_mt_codec_data;
-
-
-#if 0
-//possible future public/opaque API
-
-/* define standard C param call and name mangling (to avoid __stdcall / .defs) */
-#define VGMSTREAM_CALL __cdecl //needed?
-
-/* define external function types (during compilation) */
-#if defined(VGMSTREAM_EXPORT)
-    #define VGMSTREAM_API __declspec(dllexport) /* when exporting/creating vgmstream DLL */
-#elif defined(VGMSTREAM_IMPORT)
-    #define VGMSTREAM_API __declspec(dllimport) /* when importing/linking vgmstream DLL */
-#else
-    #define VGMSTREAM_API /* nothing, internal/default */
-#endif
-
-//VGMSTREAM_API void VGMSTREAM_CALL vgmstream_function(void);
-
-//info for opaque VGMSTREAM
-typedef struct {
-    const int channels;
-    const int sample_rate;
-    const int num_samples;
-    const int loop_start_sample;
-    const int loop_end_sample;
-    const int loop_flag;
-    const int num_streams;
-    const int current_sample;
-    const int average_bitrate;
-} VGMSTREAM_INFO;
-void vgmstream_get_info(VGMSTREAM* vgmstream, VGMSTREAM_INFO *vgmstream_info);
-
-//or maybe
-enum vgmstream_value_t { VGMSTREAM_CHANNELS, VGMSTREAM_CURRENT_SAMPLE, ... };
-int vgmstream_get_info(VGMSTREAM* vgmstream, vgmstream_value_t type);
-// or
-int vgmstream_get_current_sample(VGMSTREAM* vgmstream);
-
-#endif
 
 /* -------------------------------------------------------------------------*/
 /* vgmstream "public" API                                                   */
 /* -------------------------------------------------------------------------*/
 
 /* do format detection, return pointer to a usable VGMSTREAM, or NULL on failure */
-VGMSTREAM * init_vgmstream(const char * const filename);
+VGMSTREAM* init_vgmstream(const char* const filename);
 
 /* init with custom IO via streamfile */
-VGMSTREAM * init_vgmstream_from_STREAMFILE(STREAMFILE *streamFile);
+VGMSTREAM* init_vgmstream_from_STREAMFILE(STREAMFILE* sf);
 
 /* reset a VGMSTREAM to start of stream */
-void reset_vgmstream(VGMSTREAM * vgmstream);
+void reset_vgmstream(VGMSTREAM* vgmstream);
 
 /* close an open vgmstream */
-void close_vgmstream(VGMSTREAM * vgmstream);
+void close_vgmstream(VGMSTREAM* vgmstream);
 
 /* calculate the number of samples to be played based on looping parameters */
-int32_t get_vgmstream_play_samples(double looptimes, double fadeseconds, double fadedelayseconds, VGMSTREAM * vgmstream);
+int32_t get_vgmstream_play_samples(double looptimes, double fadeseconds, double fadedelayseconds, VGMSTREAM* vgmstream);
 
 /* Decode data into sample buffer */
-void render_vgmstream(sample_t * buffer, int32_t sample_count, VGMSTREAM * vgmstream);
+void render_vgmstream(sample_t* buffer, int32_t sample_count, VGMSTREAM* vgmstream);
 
 /* Write a description of the stream into array pointed by desc, which must be length bytes long.
  * Will always be null-terminated if length > 0 */
-void describe_vgmstream(VGMSTREAM * vgmstream, char * desc, int length);
+void describe_vgmstream(VGMSTREAM* vgmstream, char* desc, int length);
 
 /* Return the average bitrate in bps of all unique files contained within this stream. */
-int get_vgmstream_average_bitrate(VGMSTREAM * vgmstream);
+int get_vgmstream_average_bitrate(VGMSTREAM* vgmstream);
 
 /* List supported formats and return elements in the list, for plugins that need to know.
  * The list disables some common formats that may conflict (.wav, .ogg, etc). */
-const char ** vgmstream_get_formats(size_t * size);
+const char** vgmstream_get_formats(size_t* size);
 
 /* same, but for common-but-disabled formats in the above list. */
-const char ** vgmstream_get_common_formats(size_t * size);
+const char** vgmstream_get_common_formats(size_t* size);
 
 /* Force enable/disable internal looping. Should be done before playing anything (or after reset),
  * and not all codecs support arbitrary loop values ATM. */
@@ -1363,34 +1096,34 @@ int vgmstream_is_virtual_filename(const char* filename);
 VGMSTREAM * allocate_vgmstream(int channel_count, int looped);
 
 /* Prepare the VGMSTREAM's initial state once parsed and ready, but before playing. */
-void setup_vgmstream(VGMSTREAM * vgmstream);
+void setup_vgmstream(VGMSTREAM* vgmstream);
 
 /* Get the number of samples of a single frame (smallest self-contained sample group, 1/N channels) */
-int get_vgmstream_samples_per_frame(VGMSTREAM * vgmstream);
+int get_vgmstream_samples_per_frame(VGMSTREAM* vgmstream);
 /* Get the number of bytes of a single frame (smallest self-contained byte group, 1/N channels) */
-int get_vgmstream_frame_size(VGMSTREAM * vgmstream);
+int get_vgmstream_frame_size(VGMSTREAM* vgmstream);
 /* In NDS IMA the frame size is the block size, so the last one is short */
-int get_vgmstream_samples_per_shortframe(VGMSTREAM * vgmstream);
-int get_vgmstream_shortframe_size(VGMSTREAM * vgmstream);
+int get_vgmstream_samples_per_shortframe(VGMSTREAM* vgmstream);
+int get_vgmstream_shortframe_size(VGMSTREAM* vgmstream);
 
 /* Decode samples into the buffer. Assume that we have written samples_written into the
  * buffer already, and we have samples_to_do consecutive samples ahead of us. */
-void decode_vgmstream(VGMSTREAM * vgmstream, int samples_written, int samples_to_do, sample_t * buffer);
+void decode_vgmstream(VGMSTREAM* vgmstream, int samples_written, int samples_to_do, sample_t* buffer);
 
 /* Calculate number of consecutive samples to do (taking into account stopping for loop start and end) */
-int vgmstream_samples_to_do(int samples_this_block, int samples_per_frame, VGMSTREAM * vgmstream);
+int get_vgmstream_samples_to_do(int samples_this_block, int samples_per_frame, VGMSTREAM* vgmstream);
 
 /* Detect loop start and save values, or detect loop end and restore (loop back). Returns 1 if loop was done. */
-int vgmstream_do_loop(VGMSTREAM * vgmstream);
+int vgmstream_do_loop(VGMSTREAM* vgmstream);
 
 /* Open the stream for reading at offset (taking into account layouts, channels and so on).
  * Returns 0 on failure */
-int vgmstream_open_stream(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t start_offset);
-int vgmstream_open_stream_bf(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t start_offset, int force_multibuffer);
+int vgmstream_open_stream(VGMSTREAM* vgmstream, STREAMFILE* sf, off_t start_offset);
+int vgmstream_open_stream_bf(VGMSTREAM* vgmstream, STREAMFILE* sf, off_t start_offset, int force_multibuffer);
 
 /* Get description info */
-void get_vgmstream_coding_description(VGMSTREAM *vgmstream, char *out, size_t out_size);
-void get_vgmstream_layout_description(VGMSTREAM *vgmstream, char *out, size_t out_size);
-void get_vgmstream_meta_description(VGMSTREAM *vgmstream, char *out, size_t out_size);
+void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size);
+void get_vgmstream_layout_description(VGMSTREAM* vgmstream, char* out, size_t out_size);
+void get_vgmstream_meta_description(VGMSTREAM* vgmstream, char* out, size_t out_size);
 
 #endif

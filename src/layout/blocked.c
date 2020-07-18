@@ -5,7 +5,7 @@
 /* Decodes samples for blocked streams.
  * Data is divided into headered blocks with a bunch of data. The layout calls external helper functions
  * when a block is decoded, and those must parse the new block and move offsets accordingly. */
-void render_vgmstream_blocked(sample_t * buffer, int32_t sample_count, VGMSTREAM * vgmstream) {
+void render_vgmstream_blocked(sample_t* buffer, int32_t sample_count, VGMSTREAM* vgmstream) {
     int samples_written = 0;
     int frame_size, samples_per_frame, samples_this_block;
 
@@ -52,7 +52,7 @@ void render_vgmstream_blocked(sample_t * buffer, int32_t sample_count, VGMSTREAM
             break;
         }
 
-        samples_to_do = vgmstream_samples_to_do(samples_this_block, samples_per_frame, vgmstream);
+        samples_to_do = get_vgmstream_samples_to_do(samples_this_block, samples_per_frame, vgmstream);
         if (samples_to_do > sample_count - samples_written)
             samples_to_do = sample_count - samples_written;
 

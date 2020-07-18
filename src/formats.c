@@ -898,7 +898,7 @@ static const meta_info meta_info_list[] = {
         {meta_PS2_OMU,              "Alter Echo OMU Header"},
         {meta_DSP_STM,              "Intelligent Systems STM header"},
         {meta_PS2_EXST,             "Sony EXST header"},
-        {meta_PS2_SVAG,             "Konami SVAG header"},
+        {meta_SVAG_KCET,            "Konami SVAG header"},
         {meta_PS_HEADERLESS,        "Headerless PS-ADPCM raw header"},
         {meta_PS2_MIB_MIH,          "Sony MultiStream MIH+MIB header"},
         {meta_DSP_MPDSP,            "Single DSP header stereo by .mpdsp extension"},
@@ -1154,7 +1154,7 @@ static const meta_info meta_info_list[] = {
         {meta_MCA,                  "Capcom MCA header"},
         {meta_XB3D_ADX,             "Xenoblade 3D ADX header"},
         {meta_HCA,                  "CRI HCA header"},
-        {meta_PS2_SVAG_SNK,         "SNK SVAG header"},
+        {meta_SVAG_SNK,             "SNK SVAG header"},
         {meta_PS2_VDS_VDM,          "Procyon Studio VDS/VDM header"},
         {meta_FFMPEG,               "FFmpeg supported file format"},
         {meta_X360_CXS,             "tri-Crescendo CXS header"},
@@ -1302,6 +1302,7 @@ static const meta_info meta_info_list[] = {
         {meta_KTSR,                 "Koei Tecmo KTSR header"},
         {meta_KAT,                  "Sega KAT header"},
         {meta_PCM_SUCCESS,          "Success PCM header"},
+        {meta_ADP_KONAMI,           "Konami ADP header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM *vgmstream, char *out, size_t out_size) {
