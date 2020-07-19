@@ -392,8 +392,10 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
         else if (codec == 0x0300 && riff_size == file_size)
             riff_size -= 0x08; /* [Chrono Ma:gia (Android)] */
 
-        else if (mwv && riff_size + 0x0c == file_size)
-            riff_size += 0x04; /* [Dragon Quest VIII (PS2), Rogue Galaxy (PS2)] */
+        else if (mwv && riff_size + 0x0c <= file_size) { /* files inside HD6/DAT are also padded to 0x10 */ 
+            file_size = riff_size + 0x0c; /* [Dragon Quest VIII (PS2), Rogue Galaxy (PS2)] */
+            riff_size = file_size - 0x08;
+        }
 
         else if (riff_size >= file_size && read_32bitBE(0x24,sf) == 0x4E584246) /* "NXBF" */
             riff_size = file_size - 0x08; /* [R:Racing Evolution (Xbox)] */
@@ -410,7 +412,7 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
     {
         off_t current_chunk = 0x0c; /* start with first chunk */
 
-        while (current_chunk < file_size && current_chunk < riff_size+8) {
+        while (current_chunk < file_size) {
             uint32_t chunk_id = read_32bitBE(current_chunk + 0x00,sf); /* FOURCC */
             size_t chunk_size = read_32bitLE(current_chunk + 0x04,sf);
 
