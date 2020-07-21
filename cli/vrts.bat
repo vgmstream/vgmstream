@@ -60,14 +60,20 @@ set C_W=0e
 set C_E=0c
 set C_O=0f
 
+REM # remove command options and possibly "
+for /f "tokens=1-1 delims= "    %%A in ("%OP_CMD_OLD%") do set CHECK_OLD=%%A
+for /f "tokens=1-1 delims= "    %%A in ("%OP_CMD_NEW%") do set CHECK_NEW=%%A
+set CHECK_OLD=%CHECK_OLD:"=%
+set CHECK_NEW=%CHECK_NEW:"=%
 
 REM # check exe
-set CMD_CHECK=where "%OP_CMD_OLD%" "%OP_CMD_NEW%"
+set CMD_CHECK=where "%CHECK_OLD%" "%CHECK_NEW%"
 %CMD_CHECK% > nul
 if %ERRORLEVEL% NEQ 0 (
     echo Old/new exe not found
     goto error
 )
+
 if %OP_SEARCH%=="" (
     echo Search wildcard not specified
     goto error
