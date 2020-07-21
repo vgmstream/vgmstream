@@ -560,6 +560,7 @@ static const char* extension_list[] = {
     "wem",
     "wii",
     "wip", //txth/reserved [Colin McRae DiRT (PC)]
+    "wlv", //txth/reserved [ToeJam & Earl III: Mission to Earth (DC)]
     "wma", //common
     "wmus",
     "wp2",
