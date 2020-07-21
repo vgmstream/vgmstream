@@ -186,6 +186,10 @@
                 >
             </File>
             <File
+                RelativePath=".\player.c"
+                >
+            </File>
+            <File
                 RelativePath=".\plugins.c"
                 >
             </File>

@@ -5,6 +5,25 @@
 #define _PLUGINS_H_
 
 #include "streamfile.h"
+//todo rename to api.h once public enough
+
+
+#if 0
+/* define standard C param call and name mangling (to avoid __stdcall / .defs) */
+//#define VGMSTREAM_CALL __cdecl //needed?
+
+/* define external function types (during compilation) */
+#if defined(VGMSTREAM_EXPORT)
+    #define VGMSTREAM_API __declspec(dllexport) /* when exporting/creating vgmstream DLL */
+#elif defined(VGMSTREAM_IMPORT)
+    #define VGMSTREAM_API __declspec(dllimport) /* when importing/linking vgmstream DLL */
+#else
+    #define VGMSTREAM_API /* nothing, internal/default */
+#endif
+
+//VGMSTREAM_API void VGMSTREAM_CALL vgmstream_function(void);
+#endif
+
 
 /* ****************************************** */
 /* CONTEXT: simplifies plugin code            */
@@ -21,42 +40,129 @@ typedef struct {
 /* returns if vgmstream can parse file by extension */
 int vgmstream_ctx_is_valid(const char* filename, vgmstream_ctx_valid_cfg *cfg);
 
-#if 0
-
-/* opaque player state */
-typedef struct VGMSTREAM_CTX VGMSTREAM_CTX;
 
 typedef struct {
-    //...
-} VGMSTREAM_CTX_INFO;
+    int allow_play_forever;
+    int disable_config_override;
 
-VGMSTREAM_CTX* vgmstream_ctx_init(...);
+    /* song mofidiers */
+    int play_forever;           /* keeps looping forever (needs loop points) */
+    int ignore_loop;            /* ignores loops points */
+    int force_loop;             /* enables full loops (0..samples) if file doesn't have loop points */
+    int really_force_loop;      /* forces full loops even if file has loop points */
+    int ignore_fade;            /*  don't fade after N loops */
 
-VGMSTREAM_CTX* vgmstream_ctx_format_check(...);
-VGMSTREAM_CTX* vgmstream_ctx_set_format_whilelist(...);
-VGMSTREAM_CTX* vgmstream_ctx_set_format_blacklist(...);
+    /* song processing */
+    double loop_times;          /* target loops */
+    double fade_delay;          /* fade delay after target loops */
+    double fade_period;         /* fade time after target loops */
 
-VGMSTREAM_CTX* vgmstream_ctx_set_file(...);
+  //int downmix;                /* max number of channels allowed (0=disable downmix) */
 
-VGMSTREAM_CTX* vgmstream_ctx_get_config(...);
+} vgmstream_cfg_t;
 
-VGMSTREAM_CTX* vgmstream_ctx_set_config(...);
+// WARNING: these are not stable and may change anytime without notice
+void vgmstream_apply_config(VGMSTREAM* vgmstream, vgmstream_cfg_t* pcfg);
+int32_t vgmstream_get_samples(VGMSTREAM* vgmstream);
+int vgmstream_get_play_forever(VGMSTREAM* vgmstream);
 
-VGMSTREAM_CTX* vgmstream_ctx_get_buffer(...);
 
-VGMSTREAM_CTX* vgmstream_ctx_get_info(...);
 
-VGMSTREAM_CTX* vgmstream_ctx_describe(...);
+#if 0
+//possible future public/opaque API
 
-VGMSTREAM_CTX* vgmstream_ctx_get_title(...);
+/* opaque player state */
+//#define VGMSTREAM_CTX_VERSION 1
+typedef struct VGMSTREAM_CTX VGMSTREAM_CTX;
 
-VGMSTREAM_CTX* vgmstream_ctx_get_tagfile(...);
 
-VGMSTREAM_CTX* vgmstream_ctx_play(...);
+/* Setups base vgmstream player context. */
+VGMSTREAM_CTX* vgmstream_init_ctx(void);
 
-VGMSTREAM_CTX* vgmstream_ctx_seek(...);
 
-VGMSTREAM_CTX* vgmstream_ctx_close(...);
+/* Sets default config, that will be applied to song on open (some formats like TXTP may override
+ * these settings).
+ * May only be called without song loaded (before _open or after _close), otherwise ignored.  */
+void vgmstream_set_config(VGMSTREAM_CTX* vctx, VGMSTREAM_CFG* vcfg);
+
+void vgmstream_set_buffer(VGMSTREAM_CTX* vctx, int samples, int max_samples);
+
+/* Opens a new STREAMFILE to play. Returns < 0 on error when the file isn't recogniced.
+ * If file has subsongs, first open usually loads first subsong. get_info then can be used to check
+ * whether file has more subsongs (total_subsongs > 1), and call others.
+ *  */
+int vgmstream_open(STREAMFILE* sf);
+int vgmstream_open_subsong(STREAMFILE* sf, int subsong);
+
+typedef struct {
+    const int channels;
+    const int sample_rate;
+
+    const int sample_count;         /* file's samples (not final duration) */
+    const int loop_start_sample;
+    const int loop_end_sample;
+    const int loop_flag;
+
+    const int current_subsong;      /* 0=not set, N=loaded subsong N */
+    const int total_subsongs;       /* 0=format has no subsongs, N=has N subsongs */
+    const int file_bitrate;         /* file's average bitrate */
+    //const int codec_bitrate;      /* codec's average bitrate */
+
+    /* descriptions */
+    //const char* codec;
+    //const char* layout;
+    //const char* metadata;
+
+    //int type;                     /* 0=pcm16, 1=float32, always interleaved: [0]=ch0, [1]=ch1 ... */
+} VGMSTREAM_INFO;
+
+/* Get info from current song. */
+void vgmstream_ctx_get_info(VGMSTREAM_CTX* vctx, VGMSTREAM_INFO* vinfo);
+
+
+/* Gets final time based on config and current song. If config is set to "play forever"
+ * this still returns final time based on config as a reference. Returns > 0 on success. */
+int32_t vgmstream_get_total_time(VGMSTREAM_CTX* vctx);
+double vgmstream_get_total_samples(VGMSTREAM_CTX* vctx);
+
+
+/* Gets current position within song. When "play forever" is set, it'll clamp results to total_time. */
+int32_t vgmstream_get_current_time(VGMSTREAM_CTX* vctx);
+double vgmstream_get_current_samples(VGMSTREAM_CTX* vctx);
+
+
+/* Seeks to position */
+VGMSTREAM_CTX* vgmstream_seek_absolute_sample(VGMSTREAM_CTX* vctx, int32_t sample);
+VGMSTREAM_CTX* vgmstream_seek_absolute_time(VGMSTREAM_CTX* vctx, double time);
+VGMSTREAM_CTX* vgmstream_seek_current_sample(VGMSTREAM_CTX* vctx, int32_t sample);
+VGMSTREAM_CTX* vgmstream_seek_current_time(VGMSTREAM_CTX* vctx, double time);
+
+
+/* Closes current song. */
+void vgmstream_close(VGMSTREAM_CTX* vctx);
+
+/* Frees vgmstream context. */
+void vgmstream_free_ctx(VGMSTREAM_CTX* vctx);
+
+
+/* Converts samples. returns number of rendered samples, or <=0 if no more
+ * samples left (will fill buffer with silence) */
+int  vgmstream_play(VGMSTREAM_CTX* vctx);
+
+
+#if 0
+void vgmstream_get_buffer(...);
+
+void vgmstream_format_check(...);
+void vgmstream_set_format_whilelist(...);
+void vgmstream_set_format_blacklist(...);
+
+const char* vgmstream_describe(...);
+
+const char* vgmstream_get_title(...);
+
+VGMSTREAM_TAGS* vgmstream_get_tagfile(...);
+#endif
 
 #endif
 

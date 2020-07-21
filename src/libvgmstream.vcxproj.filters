@@ -271,6 +271,9 @@
     <ClCompile Include="mixing.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="player.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="plugins.c">
       <Filter>Source Files</Filter>
     </ClCompile>

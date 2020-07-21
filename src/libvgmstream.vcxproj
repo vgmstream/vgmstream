@@ -247,6 +247,7 @@
     <ClCompile Include="formats.c" />
     <ClCompile Include="meta\xmv_valve.c" />
     <ClCompile Include="mixing.c" />
+    <ClCompile Include="player.c" />
     <ClCompile Include="plugins.c" />
     <ClCompile Include="meta\ps2_va3.c" />
     <ClCompile Include="streamfile.c" />
