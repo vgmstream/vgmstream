@@ -81,18 +81,6 @@ typedef struct {
     int is_xmplay;
 } winamp_settings_t;
 
-/* current song config */
-typedef struct {
-    int song_play_forever;
-    double song_loop_count;
-    double song_fade_time;
-    double song_fade_delay;
-    int song_ignore_fade;
-    int song_ignore_loop;
-    int song_force_loop;
-    int song_really_force_loop;
-} winamp_song_config;
-
 /* current play state */
 typedef struct {
     int paused;
@@ -101,7 +89,6 @@ typedef struct {
     int decode_pos_ms;
     int decode_pos_samples;
     int stream_length_samples;
-    int fade_samples;
     int output_channels;
     double volume;
 } winamp_state_t;
@@ -114,12 +101,11 @@ const char* tagfile_name = "!tags.m3u";
 /* plugin state */
 HANDLE decode_thread_handle = INVALID_HANDLE_VALUE;
 
-VGMSTREAM * vgmstream = NULL;
+VGMSTREAM* vgmstream = NULL;
 in_char lastfn[PATH_LIMIT] = {0}; /* name of the currently playing file */
 
 winamp_settings_t defaults;
 winamp_settings_t settings;
-winamp_song_config config;
 winamp_state_t state;
 short sample_buffer[SAMPLE_BUFFER_SIZE*2 * VGMSTREAM_MAX_CHANNELS]; //todo maybe should be dynamic
 
@@ -228,23 +214,23 @@ typedef struct {
 static STREAMFILE *open_winamp_streamfile_by_file(FILE *infile, const char * path);
 static STREAMFILE *open_winamp_streamfile_by_ipath(const in_char *wpath);
 
-static size_t wasf_read(WINAMP_STREAMFILE *streamfile, uint8_t *dest, off_t offset, size_t length) {
-    return streamfile->stdiosf->read(streamfile->stdiosf,dest,offset,length);
+static size_t wasf_read(WINAMP_STREAMFILE* sf, uint8_t* dest, off_t offset, size_t length) {
+    return sf->stdiosf->read(sf->stdiosf, dest, offset, length);
 }
 
-static off_t wasf_get_size(WINAMP_STREAMFILE *streamfile) {
-    return streamfile->stdiosf->get_size(streamfile->stdiosf);
+static off_t wasf_get_size(WINAMP_STREAMFILE* sf) {
+    return sf->stdiosf->get_size(sf->stdiosf);
 }
 
-static off_t wasf_get_offset(WINAMP_STREAMFILE *streamfile) {
-    return streamfile->stdiosf->get_offset(streamfile->stdiosf);
+static off_t wasf_get_offset(WINAMP_STREAMFILE* sf) {
+    return sf->stdiosf->get_offset(sf->stdiosf);
 }
 
-static void wasf_get_name(WINAMP_STREAMFILE *streamfile, char *buffer, size_t length) {
-    streamfile->stdiosf->get_name(streamfile->stdiosf, buffer, length);
+static void wasf_get_name(WINAMP_STREAMFILE* sf, char* buffer, size_t length) {
+    sf->stdiosf->get_name(sf->stdiosf, buffer, length);
 }
 
-static STREAMFILE *wasf_open(WINAMP_STREAMFILE *streamFile, const char *const filename, size_t buffersize) {
+static STREAMFILE *wasf_open(WINAMP_STREAMFILE* sf, const char* const filename, size_t buffersize) {
     in_char wpath[PATH_LIMIT];
     char name[PATH_LIMIT];
 
@@ -256,13 +242,13 @@ static STREAMFILE *wasf_open(WINAMP_STREAMFILE *streamFile, const char *const fi
      * IO buffers when using dup(), noticeable by re-opening the same streamfile with small buffer sizes
      * (reads garbage). This reportedly causes issues in Android too */
 
-    streamFile->stdiosf->get_name(streamFile->stdiosf, name, PATH_LIMIT);
+    sf->stdiosf->get_name(sf->stdiosf, name, PATH_LIMIT);
     /* if same name, duplicate the file descriptor we already have open */ //unsure if all this is needed
-    if (streamFile->infile_ref && !strcmp(name,filename)) {
+    if (sf->infile_ref && !strcmp(name,filename)) {
         int new_fd;
         FILE *new_file;
 
-        if (((new_fd = dup(fileno(streamFile->infile_ref))) >= 0) && (new_file = wa_fdopen(new_fd))) {
+        if (((new_fd = dup(fileno(sf->infile_ref))) >= 0) && (new_file = wa_fdopen(new_fd))) {
             STREAMFILE *new_sf = open_winamp_streamfile_by_file(new_file, filename);
             if (new_sf)
                 return new_sf;
@@ -276,24 +262,24 @@ static STREAMFILE *wasf_open(WINAMP_STREAMFILE *streamFile, const char *const fi
 #endif
 
     /* STREAMFILEs carry char/UTF8 names, convert to wchar for Winamp */
-    wa_char_to_ichar(wpath,PATH_LIMIT, filename);
+    wa_char_to_ichar(wpath, PATH_LIMIT, filename);
     return open_winamp_streamfile_by_ipath(wpath);
 }
 
-static void wasf_close(WINAMP_STREAMFILE *streamfile) {
+static void wasf_close(WINAMP_STREAMFILE* sf) {
     /* closes infile_ref + frees in the internal STDIOSTREAMFILE (fclose for wchar is not needed) */
-    streamfile->stdiosf->close(streamfile->stdiosf);
-    free(streamfile); /* and the current struct */
+    sf->stdiosf->close(sf->stdiosf);
+    free(sf); /* and the current struct */
 }
 
-static STREAMFILE *open_winamp_streamfile_by_file(FILE *infile, const char * path) {
-    WINAMP_STREAMFILE *this_sf = NULL;
-    STREAMFILE *stdiosf = NULL;
+static STREAMFILE *open_winamp_streamfile_by_file(FILE* file, const char* path) {
+    WINAMP_STREAMFILE* this_sf = NULL;
+    STREAMFILE* stdiosf = NULL;
 
     this_sf = calloc(1,sizeof(WINAMP_STREAMFILE));
     if (!this_sf) goto fail;
 
-    stdiosf = open_stdio_streamfile_by_file(infile, path);
+    stdiosf = open_stdio_streamfile_by_file(file, path);
     if (!stdiosf) goto fail;
 
     this_sf->sf.read = (void*)wasf_read;
@@ -304,7 +290,7 @@ static STREAMFILE *open_winamp_streamfile_by_file(FILE *infile, const char * pat
     this_sf->sf.close = (void*)wasf_close;
 
     this_sf->stdiosf = stdiosf;
-    this_sf->infile_ref = infile;
+    this_sf->infile_ref = file;
 
     return &this_sf->sf; /* pointer to STREAMFILE start = rest of the custom data follows */
 
@@ -315,9 +301,9 @@ fail:
 }
 
 
-static STREAMFILE *open_winamp_streamfile_by_ipath(const in_char *wpath) {
-    FILE *infile = NULL;
-    STREAMFILE *streamFile;
+static STREAMFILE* open_winamp_streamfile_by_ipath(const in_char* wpath) {
+    FILE* infile = NULL;
+    STREAMFILE* sf;
     char path[PATH_LIMIT];
 
 
@@ -332,26 +318,26 @@ static STREAMFILE *open_winamp_streamfile_by_ipath(const in_char *wpath) {
             return NULL;
     }
 
-    streamFile = open_winamp_streamfile_by_file(infile,path);
-    if (!streamFile) {
+    sf = open_winamp_streamfile_by_file(infile,path);
+    if (!sf) {
         if (infile) fclose(infile);
     }
 
-    return streamFile;
+    return sf;
 }
 
 /* opens vgmstream for winamp */
-static VGMSTREAM* init_vgmstream_winamp(const in_char *fn, int stream_index) {
-    VGMSTREAM * vgmstream = NULL;
+static VGMSTREAM* init_vgmstream_winamp(const in_char* fn, int stream_index) {
+    VGMSTREAM* vgmstream = NULL;
 
     //return init_vgmstream(fn);
 
     /* manually init streamfile to pass the stream index */
-    STREAMFILE *streamFile = open_winamp_streamfile_by_ipath(fn); //open_stdio_streamfile(fn);
-    if (streamFile) {
-        streamFile->stream_index = stream_index;
-        vgmstream = init_vgmstream_from_STREAMFILE(streamFile);
-        close_streamfile(streamFile);
+    STREAMFILE* sf = open_winamp_streamfile_by_ipath(fn); //open_stdio_streamfile(fn);
+    if (sf) {
+        sf->stream_index = stream_index;
+        vgmstream = init_vgmstream_from_STREAMFILE(sf);
+        close_streamfile(sf);
     }
 
     return vgmstream;
@@ -506,7 +492,7 @@ static void ini_set_b(const char *inifile, const char *entry, int val) {
     ini_set_i(inifile, entry, val);
 }
 
-static void load_defaults(winamp_settings_t *defaults) {
+static void load_defaults(winamp_settings_t* defaults) {
     defaults->thread_priority = 3;
     defaults->fade_time = 10.0;
     defaults->fade_delay = 0.0;
@@ -523,7 +509,7 @@ static void load_defaults(winamp_settings_t *defaults) {
     defaults->clip_type = 2;
 }
 
-static void load_config(winamp_settings_t *settings, winamp_settings_t *defaults) {
+static void load_config(winamp_settings_t* settings, winamp_settings_t* defaults) {
     TCHAR inifile[PATH_LIMIT];
 
     ini_get_filename(inifile);
@@ -551,7 +537,7 @@ static void load_config(winamp_settings_t *settings, winamp_settings_t *defaults
         settings->ignore_loop = 0;
 }
 
-static void save_config(winamp_settings_t *settings) {
+static void save_config(winamp_settings_t* settings) {
     TCHAR inifile[PATH_LIMIT];
 
     ini_get_filename(inifile);
@@ -638,7 +624,7 @@ static void dlg_combo_get(HWND hDlg, int idc, int *p_val) {
     *p_val = SendMessage(GetDlgItem(hDlg, idc), CB_GETCURSEL, 0, 0);
 }
 
-static int dlg_load_form(HWND hDlg, winamp_settings_t *settings) {
+static int dlg_load_form(HWND hDlg, winamp_settings_t* settings) {
     int err = 0;
     dlg_input_get_d(hDlg, IDC_FADE_TIME, &settings->fade_time,  TEXT("Fade Length must be a positive number"), &err);
     dlg_input_get_d(hDlg, IDC_FADE_DELAY, &settings->fade_delay, TEXT("Fade Delay must be a positive number"), &err);
@@ -660,7 +646,7 @@ static int dlg_load_form(HWND hDlg, winamp_settings_t *settings) {
     return err ? 0 : 1;
 }
 
-static void dlg_save_form(HWND hDlg, winamp_settings_t *settings, int reset) {
+static void dlg_save_form(HWND hDlg, winamp_settings_t* settings, int reset) {
     cfg_slider_set(hDlg, IDC_THREAD_PRIORITY_SLIDER, IDC_THREAD_PRIORITY_TEXT, settings->thread_priority, 1, 7, dlg_priority_strings);
 
     dlg_input_set_d(hDlg, IDC_FADE_TIME, settings->fade_time);
@@ -904,8 +890,8 @@ static void build_extension_list(char *winamp_list, int winamp_list_size) {
 }
 
 /* unicode utils */
-static void get_title(in_char * dst, int dst_size, const in_char * fn, VGMSTREAM * infostream) {
-    in_char *basename;
+static void get_title(in_char* dst, int dst_size, const in_char* fn, VGMSTREAM* infostream) {
+    in_char* basename;
     in_char buffer[PATH_LIMIT];
     in_char filename[PATH_LIMIT];
     //int stream_index = 0;
@@ -945,80 +931,17 @@ static void get_title(in_char * dst, int dst_size, const in_char * fn, VGMSTREAM
     }
 }
 
-static void set_config_defaults(winamp_song_config *current) {
-    current->song_play_forever = settings.loop_forever;
-    current->song_loop_count = settings.loop_count;
-    current->song_fade_time = settings.fade_time;
-    current->song_fade_delay = settings.fade_delay;
-    current->song_ignore_fade = 0;
-    current->song_force_loop = 0;
-    current->song_really_force_loop = 0;
-    current->song_ignore_loop = settings.ignore_loop;
-}
+static void apply_config(VGMSTREAM* vgmstream, winamp_settings_t* settings) {
+    vgmstream_cfg_t vcfg = {0};
 
-static void apply_config(VGMSTREAM* vgmstream, winamp_song_config* cfg) {
+    vcfg.allow_play_forever = 1;
+    vcfg.play_forever = settings->loop_forever;
+    vcfg.loop_times = settings->loop_count;
+    vcfg.fade_period = settings->fade_time;
+    vcfg.fade_delay = settings->fade_delay;
+    vcfg.ignore_loop = settings->ignore_loop;
 
-    /* honor suggested config (order matters, and config mixes with/overwrites player defaults) */
-    if (vgmstream->config.play_forever) {
-        cfg->song_play_forever = 1;
-        cfg->song_ignore_loop = 0;
-    }
-    if (vgmstream->config.loop_count_set) {
-        cfg->song_loop_count = vgmstream->config.loop_count;
-        cfg->song_play_forever = 0;
-        cfg->song_ignore_loop = 0;
-    }
-    if (vgmstream->config.fade_delay_set) {
-        cfg->song_fade_delay = vgmstream->config.fade_delay;
-    }
-    if (vgmstream->config.fade_time_set) {
-        cfg->song_fade_time = vgmstream->config.fade_time;
-    }
-    if (vgmstream->config.ignore_fade) {
-        cfg->song_ignore_fade = 1;
-    }
-
-    if (vgmstream->config.force_loop) {
-        cfg->song_ignore_loop = 0;
-        cfg->song_force_loop = 1;
-        cfg->song_really_force_loop = 0;
-    }
-    if (vgmstream->config.really_force_loop) {
-        cfg->song_ignore_loop = 0;
-        cfg->song_force_loop = 0;
-        cfg->song_really_force_loop = 1;
-    }
-    if (vgmstream->config.ignore_loop) {
-        cfg->song_ignore_loop = 1;
-        cfg->song_force_loop = 0;
-        cfg->song_really_force_loop = 0;
-    }
-
-
-    /* apply config */
-    if (cfg->song_force_loop && !vgmstream->loop_flag) {
-        vgmstream_force_loop(vgmstream, 1, 0,vgmstream->num_samples);
-    }
-    if (cfg->song_really_force_loop) {
-        vgmstream_force_loop(vgmstream, 1, 0,vgmstream->num_samples);
-    }
-    if (cfg->song_ignore_loop) {
-        vgmstream_force_loop(vgmstream, 0, 0,0);
-    }
-
-    /* remove non-compatible options */
-    if (!vgmstream->loop_flag) {
-        cfg->song_play_forever = 0;
-    }
-    if (cfg->song_play_forever) {
-        cfg->song_ignore_fade = 0;
-    }
-
-    /* loop N times, but also play stream end instead of fading out */
-    if (cfg->song_loop_count > 0 && cfg->song_ignore_fade) {
-        vgmstream_set_loop_target(vgmstream, (int)cfg->song_loop_count);
-        cfg->song_fade_time = 0;
-    }
+    vgmstream_apply_config(vgmstream, &vcfg);
 }
 
 static int winampGetExtendedFileInfo_common(in_char* filename, char *metadata, char* ret, int retlen);
@@ -1161,8 +1084,7 @@ int winamp_Play(const in_char *fn) {
     }
 
     /* config */
-    set_config_defaults(&config);
-    apply_config(vgmstream, &config);
+    apply_config(vgmstream, &settings);
 
     /* enable after all config but before outbuf (though ATM outbuf is not dynamic so no need to read input_channels) */
     vgmstream_mixing_autodownmix(vgmstream, settings.downmix_channels);
@@ -1174,8 +1096,7 @@ int winamp_Play(const in_char *fn) {
     state.seek_needed_samples = -1;
     state.decode_pos_ms = 0;
     state.decode_pos_samples = 0;
-    state.stream_length_samples = get_vgmstream_play_samples(config.song_loop_count,config.song_fade_time,config.song_fade_delay,vgmstream);
-    state.fade_samples = (int)(config.song_fade_time * vgmstream->sample_rate);
+    state.stream_length_samples = vgmstream_get_samples(vgmstream);
     state.volume = get_album_gain_volume(fn);
 
 
@@ -1191,7 +1112,7 @@ int winamp_Play(const in_char *fn) {
     }
 
     /* set info display */
-    input_module.SetInfo(get_vgmstream_average_bitrate(vgmstream)/1000, vgmstream->sample_rate/1000, state.output_channels, 1);
+    input_module.SetInfo(get_vgmstream_average_bitrate(vgmstream) / 1000, vgmstream->sample_rate / 1000, state.output_channels, 1);
 
     /* setup visualization */
     input_module.SAVSAInit(max_latency,vgmstream->sample_rate);
@@ -1293,8 +1214,7 @@ int winamp_InfoBox(const in_char *fn, HWND hwnd) {
     }
     else {
         /* some other file in playlist given by filename */
-        VGMSTREAM * infostream = NULL;
-        winamp_song_config infoconfig = {0};
+        VGMSTREAM* infostream = NULL;
         in_char filename[PATH_LIMIT];
         int stream_index = 0;
 
@@ -1305,8 +1225,7 @@ int winamp_InfoBox(const in_char *fn, HWND hwnd) {
         infostream = init_vgmstream_winamp(filename, stream_index);
         if (!infostream) return 0;
 
-        set_config_defaults(&infoconfig);
-        apply_config(infostream, &infoconfig);
+        apply_config(infostream, &settings);
 
         vgmstream_mixing_autodownmix(infostream, settings.downmix_channels);
         vgmstream_mixing_enable(infostream, 0, NULL, NULL);
@@ -1351,8 +1270,7 @@ void winamp_GetFileInfo(const in_char *fn, in_char *title, int *length_in_ms) {
     }
     else {
         /* some other file in playlist given by filename */
-        VGMSTREAM * infostream = NULL;
-        winamp_song_config infoconfig = {0};
+        VGMSTREAM* infostream = NULL;
         in_char filename[PATH_LIMIT];
         int stream_index = 0;
 
@@ -1363,8 +1281,7 @@ void winamp_GetFileInfo(const in_char *fn, in_char *title, int *length_in_ms) {
         infostream = init_vgmstream_winamp(filename, stream_index);
         if (!infostream) return;
 
-        set_config_defaults(&infoconfig);
-        apply_config(infostream, &infoconfig);
+        apply_config(infostream, &settings);
 
         vgmstream_mixing_autodownmix(infostream, settings.downmix_channels);
         vgmstream_mixing_enable(infostream, 0, NULL, NULL);
@@ -1376,8 +1293,7 @@ void winamp_GetFileInfo(const in_char *fn, in_char *title, int *length_in_ms) {
         if (length_in_ms) {
             *length_in_ms = -1000;
             if (infostream) {
-                const int num_samples = get_vgmstream_play_samples(
-                        infoconfig.song_loop_count,infoconfig.song_fade_time,infoconfig.song_fade_delay,infostream);
+                const int num_samples = vgmstream_get_samples(infostream);
                 *length_in_ms = num_samples * 1000LL /infostream->sample_rate;
             }
         }
@@ -1395,13 +1311,13 @@ void winamp_EQSet(int on, char data[10], int preamp) {
 DWORD WINAPI __stdcall decode(void *arg) {
     const int max_buffer_samples = SAMPLE_BUFFER_SIZE;
     const int max_samples = state.stream_length_samples;
+    int play_forever = vgmstream_get_play_forever(vgmstream);
 
     while (!state.decode_abort) {
         int samples_to_do;
         int output_bytes;
 
-        if (state.decode_pos_samples + max_buffer_samples > state.stream_length_samples
-                && (!config.song_play_forever || !vgmstream->loop_flag))
+        if (state.decode_pos_samples + max_buffer_samples > state.stream_length_samples && !play_forever)
             samples_to_do = state.stream_length_samples - state.decode_pos_samples;
         else
             samples_to_do = max_buffer_samples;
@@ -1411,7 +1327,6 @@ DWORD WINAPI __stdcall decode(void *arg) {
             /* reset if we need to seek backwards */
             if (state.seek_needed_samples < state.decode_pos_samples) {
                 reset_vgmstream(vgmstream);
-                apply_config(vgmstream, &config); /* config is undone by reset */
 
                 state.decode_pos_samples = 0;
                 state.decode_pos_ms = 0;
@@ -1419,7 +1334,7 @@ DWORD WINAPI __stdcall decode(void *arg) {
 
             /* adjust seeking past file, can happen using the right (->) key
              * (should be done here and not in SetOutputTime due to threads/race conditions) */
-            if (state.seek_needed_samples > max_samples && !config.song_play_forever) {
+            if (state.seek_needed_samples > max_samples && !play_forever) {
                 state.seek_needed_samples = max_samples;
             }
 
@@ -1457,33 +1372,16 @@ DWORD WINAPI __stdcall decode(void *arg) {
             state.decode_pos_ms = state.decode_pos_samples * 1000LL / vgmstream->sample_rate;
         }
         else if (input_module.outMod->CanWrite() >= output_bytes) { /* decode */
-            render_vgmstream(sample_buffer,samples_to_do,vgmstream);
 
-           /* apply ReplayGain, if needed */
+            render_vgmstream(sample_buffer, samples_to_do, vgmstream);
+
+            /* apply ReplayGain, if needed */
             if (state.volume != 1.0) {
                 int j, k;
                 for (j = 0; j < samples_to_do; j++) {
                     for (k = 0; k < vgmstream->channels; k++) {
                         sample_buffer[j*vgmstream->channels + k] =
                             (short)(sample_buffer[j*vgmstream->channels + k] * state.volume);
-                    }
-                }
-            }
-
-            /* fade near the end */
-            if (vgmstream->loop_flag && state.fade_samples > 0 && !config.song_play_forever) {
-                int fade_channels = state.output_channels;
-                int samples_into_fade = state.decode_pos_samples - (state.stream_length_samples - state.fade_samples);
-                if (samples_into_fade + samples_to_do > 0) {
-                    int j, k;
-                    for (j = 0; j < samples_to_do; j++, samples_into_fade++) {
-                        if (samples_into_fade > 0) {
-                            const double fadedness = (double)(state.fade_samples - samples_into_fade) / state.fade_samples;
-                            for (k = 0; k < fade_channels; k++) {
-                                sample_buffer[j*fade_channels+k] =
-                                    (short)(sample_buffer[j*fade_channels+k]*fadedness);
-                            }
-                        }
                     }
                 }
             }
@@ -1622,7 +1520,7 @@ static void load_tagfile_info(in_char* filename) {
     /* load all tags from tagfile */
     tagFile = open_winamp_streamfile_by_ipath(tagfile_path_i);
     if (tagFile != NULL) {
-        VGMSTREAM_TAGS *tags;
+        VGMSTREAM_TAGS* tags;
         const char *tag_key, *tag_val;
         int i;
 
@@ -1776,7 +1674,6 @@ __declspec(dllexport) int winampUninstallPlugin(HINSTANCE hDllInst, HWND hwndDlg
  * library or CD burner, if implemented. In usual Winamp fashion they are messy, barely
  * documented, slightly different repeats of the above. */
 
-winamp_song_config xconfig;
 winamp_state_t xstate;
 short xsample_buffer[SAMPLE_BUFFER_SIZE*2 * VGMSTREAM_MAX_CHANNELS];
 
@@ -1798,8 +1695,7 @@ static void *winampGetExtendedRead_open_common(in_char *fn, int *size, int *bps,
     }
 
     /* config */
-    set_config_defaults(&xconfig);
-    apply_config(xvgmstream, &xconfig);
+    apply_config(xvgmstream, &settings);
 
     /* enable after all config but before outbuf (though ATM outbuf is not dynamic so no need to read input_channels) */
     vgmstream_mixing_autodownmix(xvgmstream, settings.downmix_channels);
@@ -1811,8 +1707,7 @@ static void *winampGetExtendedRead_open_common(in_char *fn, int *size, int *bps,
     xstate.seek_needed_samples = -1;
     xstate.decode_pos_ms = 0; /* unused */
     xstate.decode_pos_samples = 0;
-    xstate.stream_length_samples = get_vgmstream_play_samples(xconfig.song_loop_count, xconfig.song_fade_time, xconfig.song_fade_delay, xvgmstream);
-    xstate.fade_samples = (int)(xconfig.song_fade_time * xvgmstream->sample_rate);
+    xstate.stream_length_samples = vgmstream_get_samples(xvgmstream);
     xstate.volume = 1.0; /* unused */
 
     if (size) /* bytes to decode (-1 if unknown) */
@@ -1849,17 +1744,17 @@ __declspec(dllexport) size_t winampGetExtendedRead_getData(void *handle, char *d
     const int max_samples = xstate.stream_length_samples;
     unsigned copied = 0;
     int done = 0;
-    VGMSTREAM *xvgmstream = handle;
-
-    if (!xvgmstream) {
+    VGMSTREAM* xvgmstream = handle;
+    int play_forever;
+    if (!xvgmstream)
         return 0;
-    }
+
+    play_forever = vgmstream_get_play_forever(xvgmstream);
 
     while (copied + (max_buffer_samples * xvgmstream->channels * sizeof(short)) < len && !done) {
         int samples_to_do;
 
-        if (xstate.decode_pos_samples + max_buffer_samples > xstate.stream_length_samples
-                && (!config.song_play_forever || !xvgmstream->loop_flag))
+        if (xstate.decode_pos_samples + max_buffer_samples > xstate.stream_length_samples && !play_forever)
             samples_to_do = xstate.stream_length_samples - xstate.decode_pos_samples;
         else
             samples_to_do = max_buffer_samples;
@@ -1869,14 +1764,13 @@ __declspec(dllexport) size_t winampGetExtendedRead_getData(void *handle, char *d
             /* reset if we need to seek backwards */
             if (xstate.seek_needed_samples < xstate.decode_pos_samples) {
                 reset_vgmstream(xvgmstream);
-                apply_config(xvgmstream, &xconfig); /* config is undone by reset */
 
                 xstate.decode_pos_samples = 0;
             }
 
             /* adjust seeking past file, can happen using the right (->) key
              * (should be done here and not in SetOutputTime due to threads/race conditions) */
-            if (xstate.seek_needed_samples > max_samples && !config.song_play_forever) {
+            if (xstate.seek_needed_samples > max_samples && !play_forever) {
                 xstate.seek_needed_samples = max_samples;
             }
 
@@ -1902,24 +1796,6 @@ __declspec(dllexport) size_t winampGetExtendedRead_getData(void *handle, char *d
         }
         else { /* decode */
             render_vgmstream(xsample_buffer, samples_to_do, xvgmstream);
-
-            /* fade near the end */
-            if (xvgmstream->loop_flag && xstate.fade_samples > 0 && !config.song_play_forever) {
-                int fade_channels = xstate.output_channels;
-                int samples_into_fade = xstate.decode_pos_samples - (xstate.stream_length_samples - xstate.fade_samples);
-                if (samples_into_fade + xstate.decode_pos_samples > 0) {
-                    int j, k;
-                    for (j = 0; j < samples_to_do; j++, samples_into_fade++) {
-                        if (samples_into_fade > 0) {
-                            const double fadedness = (double)(xstate.fade_samples - samples_into_fade) / xstate.fade_samples;
-                            for (k = 0; k < fade_channels; k++) {
-                                xsample_buffer[j*fade_channels+k] =
-                                    (short)(xsample_buffer[j*fade_channels+k]*fadedness);
-                            }
-                        }
-                    }
-                }
-            }
 
             /* output samples */
             memcpy(&dest[copied], xsample_buffer, samples_to_do * xstate.output_channels * sizeof(short));
