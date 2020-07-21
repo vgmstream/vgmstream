@@ -101,15 +101,15 @@ typedef struct {
 } txtp_group;
 
 typedef struct {
-    txtp_entry *entry;
+    txtp_entry* entry;
     size_t entry_count;
     size_t entry_max;
 
-    txtp_group *group;
+    txtp_group* group;
     size_t group_count;
     size_t group_max;
 
-    VGMSTREAM* *vgmstream;
+    VGMSTREAM** vgmstream;
     size_t vgmstream_count;
 
     uint32_t loop_start_segment;
@@ -125,61 +125,105 @@ typedef struct {
     int is_single;
 } txtp_header;
 
-static txtp_header* parse_txtp(STREAMFILE* streamFile);
+static txtp_header* parse_txtp(STREAMFILE* sf);
+static int parse_entries(txtp_header* txtp, STREAMFILE* sf);
+static int parse_groups(txtp_header* txtp);
 static void clean_txtp(txtp_header* txtp, int fail);
-static void apply_config(VGMSTREAM *vgmstream, txtp_entry *current);
+static void apply_config(VGMSTREAM* vgmstream, txtp_entry* current);
 void add_mixing(txtp_entry* cfg, txtp_mix_data* mix, txtp_mix_t command);
-
-static int make_group_segment(txtp_header* txtp, int from, int count);
-static int make_group_layer(txtp_header* txtp, int from, int count);
 
 
 /* TXTP - an artificial playlist-like format to play files with segments/layers/config */
-VGMSTREAM * init_vgmstream_txtp(STREAMFILE *streamFile) {
-    VGMSTREAM *vgmstream = NULL;
+VGMSTREAM* init_vgmstream_txtp(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
     txtp_header* txtp = NULL;
-    int i;
+    int ok;
 
 
     /* checks */
-    if (!check_extensions(streamFile, "txtp"))
+    if (!check_extensions(sf, "txtp"))
         goto fail;
 
     /* read .txtp with all files and config */
-    txtp = parse_txtp(streamFile);
+    txtp = parse_txtp(sf);
     if (!txtp) goto fail;
 
-    /* post-process */
-    {
-        if (txtp->entry_count == 0)
-            goto fail;
+    /* process files in the .txtp */
+    ok = parse_entries(txtp, sf);
+    if (!ok) goto fail;
 
-        txtp->vgmstream = calloc(txtp->entry_count, sizeof(VGMSTREAM*));
-        if (!txtp->vgmstream) goto fail;
+    /* group files into layouts */
+    ok = parse_groups(txtp);
+    if (!ok) goto fail;
 
-        txtp->vgmstream_count = txtp->entry_count;
+
+    /* may happen if using mixed mode but some files weren't grouped */
+    if (txtp->vgmstream_count != 1) {
+        VGM_LOG("TXTP: wrong final vgmstream count %i\n", txtp->vgmstream_count);
+        goto fail;
     }
 
+    /* should result in a final, single vgmstream possibly containing multiple vgmstreams */
+    vgmstream = txtp->vgmstream[0];
 
-    /* detect single files before grouping */
-    if (txtp->group_count == 0 && txtp->vgmstream_count == 1) {
-        txtp->is_single = 1;
-        txtp->is_segmented = 0;
-        txtp->is_layered = 0;
+    clean_txtp(txtp, 0);
+    return vgmstream;
+
+fail:
+    clean_txtp(txtp, 1);
+    return NULL;
+}
+
+static void clean_txtp(txtp_header* txtp, int fail) {
+    int i, start;
+
+    if (!txtp)
+        return;
+
+    /* returns first vgmstream on success so it's not closed */
+    start = fail ? 0 : 1;
+
+    for (i = start; i < txtp->vgmstream_count; i++) {
+        close_vgmstream(txtp->vgmstream[i]);
     }
+
+    free(txtp->vgmstream);
+    free(txtp->group);
+    free(txtp->entry);
+    free(txtp);
+}
+
+//todo fragment parser later
+
+/*******************************************************************************/
+/* ENTRIES                                                                     */
+/*******************************************************************************/
+
+/* open all entries and apply config to resulting VGMSTREAMs */
+static int parse_entries(txtp_header* txtp, STREAMFILE* sf) {
+    int i;
+
+
+    if (txtp->entry_count == 0)
+        goto fail;
+
+    txtp->vgmstream = calloc(txtp->entry_count, sizeof(VGMSTREAM*));
+    if (!txtp->vgmstream) goto fail;
+
+    txtp->vgmstream_count = txtp->entry_count;
 
 
     /* open all entry files first as they'll be modified by modes */
     for (i = 0; i < txtp->vgmstream_count; i++) {
-        STREAMFILE* temp_streamFile = open_streamfile_by_filename(streamFile, txtp->entry[i].filename);
-        if (!temp_streamFile) {
+        STREAMFILE* temp_sf = open_streamfile_by_filename(sf, txtp->entry[i].filename);
+        if (!temp_sf) {
             VGM_LOG("TXTP: cannot open streamfile for %s\n", txtp->entry[i].filename);
             goto fail;
         }
-        temp_streamFile->stream_index = txtp->entry[i].subsong;
+        temp_sf->stream_index = txtp->entry[i].subsong;
 
-        txtp->vgmstream[i] = init_vgmstream_from_STREAMFILE(temp_streamFile);
-        close_streamfile(temp_streamFile);
+        txtp->vgmstream[i] = init_vgmstream_from_STREAMFILE(temp_sf);
+        close_streamfile(temp_sf);
         if (!txtp->vgmstream[i]) {
             VGM_LOG("TXTP: cannot open vgmstream for %s#%i\n", txtp->entry[i].filename, txtp->entry[i].subsong);
             goto fail;
@@ -188,6 +232,180 @@ VGMSTREAM * init_vgmstream_txtp(STREAMFILE *streamFile) {
         apply_config(txtp->vgmstream[i], &txtp->entry[i]);
     }
 
+    return 1;
+fail:
+    return 0;
+}
+
+
+/*******************************************************************************/
+/* GROUPS                                                                      */
+/*******************************************************************************/
+
+static void update_vgmstream_list(VGMSTREAM* vgmstream, txtp_header* txtp, int position, int count) {
+    int i;
+
+    //;VGM_LOG("TXTP: compact position=%i count=%i, vgmstreams=%i\n", position, count, txtp->vgmstream_count);
+
+    /* sets and compacts vgmstream list pulling back all following entries */
+    txtp->vgmstream[position] = vgmstream;
+    for (i = position + count; i < txtp->vgmstream_count; i++) {
+        //;VGM_LOG("TXTP: copy %i to %i\n", i, i + 1 - count);
+        txtp->vgmstream[i + 1 - count] = txtp->vgmstream[i];
+    }
+
+    /* list can only become smaller, no need to alloc/free/etc */
+    txtp->vgmstream_count = txtp->vgmstream_count + 1 - count;
+    //;VGM_LOG("TXTP: compact vgmstreams=%i\n", txtp->vgmstream_count);
+}
+
+static int make_group_segment(txtp_header* txtp, int position, int count) {
+    VGMSTREAM* vgmstream = NULL;
+    segmented_layout_data *data_s = NULL;
+    int i, loop_flag = 0;
+
+
+    if (count == 1) { /* nothing to do */
+        //;VGM_LOG("TXTP: ignored segments of 1\n");
+        return 1;
+    }
+
+    if (position + count > txtp->vgmstream_count || position < 0 || count < 0) {
+        VGM_LOG("TXTP: ignored segment position=%i, count=%i, entries=%i\n", position, count, txtp->vgmstream_count);
+        return 1;
+    }
+
+    /* loop settings only make sense if this group becomes final vgmstream */
+    if (position == 0 && txtp->vgmstream_count == count) {
+        if (txtp->loop_start_segment && !txtp->loop_end_segment) {
+            txtp->loop_end_segment = count;
+        }
+        else if (txtp->is_loop_auto) { /* auto set to last segment */
+            txtp->loop_start_segment = count;
+            txtp->loop_end_segment = count;
+        }
+        loop_flag = (txtp->loop_start_segment > 0 && txtp->loop_start_segment <= count);
+    }
+
+
+    /* init layout */
+    data_s = init_layout_segmented(count);
+    if (!data_s) goto fail;
+
+    /* copy each subfile */
+    for (i = 0; i < count; i++) {
+        data_s->segments[i] = txtp->vgmstream[i + position];
+        txtp->vgmstream[i + position] = NULL; /* will be freed by layout */
+    }
+
+    /* setup VGMSTREAMs */
+    if (!setup_layout_segmented(data_s))
+        goto fail;
+
+    /* build the layout VGMSTREAM */
+    vgmstream = allocate_segmented_vgmstream(data_s,loop_flag, txtp->loop_start_segment - 1, txtp->loop_end_segment - 1);
+    if (!vgmstream) goto fail;
+
+    /* custom meta name if all parts don't match */
+    for (i = 0; i < count; i++) {
+        if (vgmstream->meta_type != data_s->segments[i]->meta_type) {
+            vgmstream->meta_type = meta_TXTP;
+            break;
+        }
+    }
+
+    /* fix loop keep */
+    if (loop_flag && txtp->is_loop_keep) {
+        int32_t current_samples = 0;
+        for (i = 0; i < count; i++) {
+            if (txtp->loop_start_segment == i+1 /*&& data_s->segments[i]->loop_start_sample*/) {
+                vgmstream->loop_start_sample = current_samples + data_s->segments[i]->loop_start_sample;
+            }
+
+            current_samples += data_s->segments[i]->num_samples;
+
+            if (txtp->loop_end_segment == i+1 && data_s->segments[i]->loop_end_sample) {
+                vgmstream->loop_end_sample = current_samples - data_s->segments[i]->num_samples + data_s->segments[i]->loop_end_sample;
+            }
+        }
+    }
+
+
+    /* set new vgmstream and reorder positions */
+    update_vgmstream_list(vgmstream, txtp, position, count);
+
+    return 1;
+fail:
+    close_vgmstream(vgmstream);
+    if (!vgmstream)
+        free_layout_segmented(data_s);
+    return 0;
+}
+
+static int make_group_layer(txtp_header* txtp, int position, int count) {
+    VGMSTREAM* vgmstream = NULL;
+    layered_layout_data* data_l = NULL;
+    int i;
+
+
+    if (count == 1) { /* nothing to do */
+        //;VGM_LOG("TXTP: ignored layer of 1\n");
+        return 1;
+    }
+
+    if (position + count > txtp->vgmstream_count || position < 0 || count < 0) {
+        VGM_LOG("TXTP: ignored layer position=%i, count=%i, entries=%i\n", position, count, txtp->vgmstream_count);
+        return 1;
+    }
+
+
+    /* init layout */
+    data_l = init_layout_layered(count);
+    if (!data_l) goto fail;
+
+    /* copy each subfile */
+    for (i = 0; i < count; i++) {
+        data_l->layers[i] = txtp->vgmstream[i + position];
+        txtp->vgmstream[i + position] = NULL; /* will be freed by layout */
+    }
+
+    /* setup VGMSTREAMs */
+    if (!setup_layout_layered(data_l))
+        goto fail;
+
+    /* build the layout VGMSTREAM */
+    vgmstream = allocate_layered_vgmstream(data_l);
+    if (!vgmstream) goto fail;
+
+    /* custom meta name if all parts don't match */
+    for (i = 0; i < count; i++) {
+        if (vgmstream->meta_type != data_l->layers[i]->meta_type) {
+            vgmstream->meta_type = meta_TXTP;
+            break;
+        }
+    }
+
+
+    /* set new vgmstream and reorder positions */
+    update_vgmstream_list(vgmstream, txtp, position, count);
+
+    return 1;
+fail:
+    close_vgmstream(vgmstream);
+    if (!vgmstream)
+        free_layout_layered(data_l);
+    return 0;
+}
+
+static int parse_groups(txtp_header* txtp) {
+    int i;
+
+    /* detect single files before grouping */
+    if (txtp->group_count == 0 && txtp->vgmstream_count == 1) {
+        txtp->is_single = 1;
+        txtp->is_segmented = 0;
+        txtp->is_layered = 0;
+    }
 
     /* group files as needed */
     for (i = 0; i < txtp->group_count; i++) {
@@ -248,186 +466,22 @@ VGMSTREAM * init_vgmstream_txtp(STREAMFILE *streamFile) {
         }
     }
 
-
-    /* may happen if using mixed mode but some files weren't grouped */
-    if (txtp->vgmstream_count != 1) {
-        VGM_LOG("TXTP: wrong final vgmstream count %i\n", txtp->vgmstream_count);
-        goto fail;
-    }
-
     /* apply default config to the resulting file */
     if (txtp->default_entry_set) {
         apply_config(txtp->vgmstream[0], &txtp->default_entry);
     }
 
-
-    vgmstream = txtp->vgmstream[0];
-
-    clean_txtp(txtp, 0);
-    return vgmstream;
-
-fail:
-    clean_txtp(txtp, 1);
-    return NULL;
-}
-
-static void update_vgmstream_list(VGMSTREAM* vgmstream, txtp_header* txtp, int position, int count) {
-    int i;
-
-    //;VGM_LOG("TXTP: compact position=%i count=%i, vgmstreams=%i\n", position, count, txtp->vgmstream_count);
-
-    /* sets and compacts vgmstream list pulling back all following entries */
-    txtp->vgmstream[position] = vgmstream;
-    for (i = position + count; i < txtp->vgmstream_count; i++) {
-        //;VGM_LOG("TXTP: copy %i to %i\n", i, i + 1 - count);
-        txtp->vgmstream[i + 1 - count] = txtp->vgmstream[i];
-    }
-
-    /* list can only become smaller, no need to alloc/free/etc */
-    txtp->vgmstream_count = txtp->vgmstream_count + 1 - count;
-    //;VGM_LOG("TXTP: compact vgmstreams=%i\n", txtp->vgmstream_count);
-}
-
-static int make_group_segment(txtp_header* txtp, int position, int count) {
-    VGMSTREAM * vgmstream = NULL;
-    segmented_layout_data *data_s = NULL;
-    int i, loop_flag = 0;
-
-
-    if (count == 1) { /* nothing to do */
-        //;VGM_LOG("TXTP: ignored segments of 1\n");
-        return 1;
-    }
-
-    if (position + count > txtp->vgmstream_count || position < 0 || count < 0) {
-        VGM_LOG("TXTP: ignored segment position=%i, count=%i, entries=%i\n", position, count, txtp->vgmstream_count);
-        return 1;
-    }
-
-    /* loop settings only make sense if this group becomes final vgmstream */
-    if (position == 0 && txtp->vgmstream_count == count) {
-        if (txtp->loop_start_segment && !txtp->loop_end_segment) {
-            txtp->loop_end_segment = count;
-        }
-        else if (txtp->is_loop_auto) { /* auto set to last segment */
-            txtp->loop_start_segment = count;
-            txtp->loop_end_segment = count;
-        }
-        loop_flag = (txtp->loop_start_segment > 0 && txtp->loop_start_segment <= count);
-    }
-
-
-    /* init layout */
-    data_s = init_layout_segmented(count);
-    if (!data_s) goto fail;
-
-    /* copy each subfile */
-    for (i = 0; i < count; i++) {
-        data_s->segments[i] = txtp->vgmstream[i + position];
-        txtp->vgmstream[i + position] = NULL; /* will be freed by layout */
-    }
-
-    /* setup VGMSTREAMs */
-    if (!setup_layout_segmented(data_s))
-        goto fail;
-
-    /* build the layout VGMSTREAM */
-    vgmstream = allocate_segmented_vgmstream(data_s,loop_flag, txtp->loop_start_segment - 1, txtp->loop_end_segment - 1);
-    if (!vgmstream) goto fail;
-
-    /* custom meta name if all parts don't match */
-    for (i = 0; i < data_s->segment_count; i++) {
-        if (vgmstream->meta_type != data_s->segments[i]->meta_type) {
-            vgmstream->meta_type = meta_TXTP;
-            break;
-        }
-    }
-
-    /* fix loop keep */
-    if (loop_flag && txtp->is_loop_keep) {
-        int32_t current_samples = 0;
-        for (i = 0; i < data_s->segment_count; i++) {
-            if (txtp->loop_start_segment == i+1 /*&& data_s->segments[i]->loop_start_sample*/) {
-                vgmstream->loop_start_sample = current_samples + data_s->segments[i]->loop_start_sample;
-            }
-
-            current_samples += data_s->segments[i]->num_samples;
-
-            if (txtp->loop_end_segment == i+1 && data_s->segments[i]->loop_end_sample) {
-                vgmstream->loop_end_sample = current_samples - data_s->segments[i]->num_samples + data_s->segments[i]->loop_end_sample;
-            }
-        }
-    }
-
-
-    /* set new vgmstream and reorder positions */
-    update_vgmstream_list(vgmstream, txtp, position, count);
-
     return 1;
 fail:
-    close_vgmstream(vgmstream);
-    if (!vgmstream)
-        free_layout_segmented(data_s);
-    return 0;
-}
-
-static int make_group_layer(txtp_header* txtp, int position, int count) {
-    VGMSTREAM * vgmstream = NULL;
-    layered_layout_data * data_l = NULL;
-    int i;
-
-
-    if (count == 1) { /* nothing to do */
-        //;VGM_LOG("TXTP: ignored layer of 1\n");
-        return 1;
-    }
-
-    if (position + count > txtp->vgmstream_count || position < 0 || count < 0) {
-        VGM_LOG("TXTP: ignored layer position=%i, count=%i, entries=%i\n", position, count, txtp->vgmstream_count);
-        return 1;
-    }
-
-
-    /* init layout */
-    data_l = init_layout_layered(count);
-    if (!data_l) goto fail;
-
-    /* copy each subfile */
-    for (i = 0; i < count; i++) {
-        data_l->layers[i] = txtp->vgmstream[i + position];
-        txtp->vgmstream[i + position] = NULL; /* will be freed by layout */
-    }
-
-    /* setup VGMSTREAMs */
-    if (!setup_layout_layered(data_l))
-        goto fail;
-
-    /* build the layout VGMSTREAM */
-    vgmstream = allocate_layered_vgmstream(data_l);
-    if (!vgmstream) goto fail;
-
-    /* custom meta name if all parts don't match */
-    for (i = 0; i < count; i++) {
-        if (vgmstream->meta_type != data_l->layers[i]->meta_type) {
-            vgmstream->meta_type = meta_TXTP;
-            break;
-        }
-    }
-
-
-    /* set new vgmstream and reorder positions */
-    update_vgmstream_list(vgmstream, txtp, position, count);
-
-    return 1;
-fail:
-    close_vgmstream(vgmstream);
-    if (!vgmstream)
-        free_layout_layered(data_l);
     return 0;
 }
 
 
-static void apply_config(VGMSTREAM *vgmstream, txtp_entry *current) {
+/*******************************************************************************/
+/* CONFIG                                                                      */
+/*******************************************************************************/
+
+static void apply_config(VGMSTREAM* vgmstream, txtp_entry* current) {
 
     if (current->config.play_forever) {
         vgmstream->config.play_forever = current->config.play_forever;
@@ -570,28 +624,10 @@ static void apply_config(VGMSTREAM *vgmstream, txtp_entry *current) {
     }
 }
 
-/* ********************************** */
 
-static void clean_filename(char * filename) {
-    int i;
-    size_t len;
-
-    if (filename[0] == '\0')
-        return;
-
-    /* normalize paths */
-    fix_dir_separators(filename);
-
-    /* remove trailing spaces */
-    len = strlen(filename);
-    for (i = len-1; i > 0; i--) {
-        if (filename[i] != ' ')
-            break;
-        filename[i] = '\0';
-    }
-
-}
-
+/*******************************************************************************/
+/* PARSER - HELPERS                                                            */
+/*******************************************************************************/
 
 /* sscanf 101: "matches = sscanf(string-from, string-commands, parameters...)"
  * - reads linearly and matches "%" commands to input parameters as found
@@ -607,7 +643,7 @@ static void clean_filename(char * filename) {
  * - %n: special match (not counted in return value), chars consumed until that point (can appear and be set multiple times)
  */
 
-static int get_double(const char * config, double *value, int *is_set) {
+static int get_double(const char* config, double *value, int *is_set) {
     int n, m;
     double temp;
 
@@ -622,7 +658,7 @@ static int get_double(const char * config, double *value, int *is_set) {
     return n;
 }
 
-static int get_int(const char * config, int *value) {
+static int get_int(const char* config, int *value) {
     int n,m;
     int temp;
 
@@ -634,7 +670,7 @@ static int get_int(const char * config, int *value) {
     return n;
 }
 
-static int get_position(const char * config, double *value_f, char *value_type) {
+static int get_position(const char* config, double* value_f, char* value_type) {
     int n,m;
     double temp_f;
     char temp_c;
@@ -653,7 +689,7 @@ static int get_position(const char * config, double *value_f, char *value_type) 
 }
 
 
-static int get_time(const char * config, double *value_f, int32_t *value_i) {
+static int get_time(const char* config, double* value_f, int32_t* value_i) {
     int n,m;
     int temp_i1, temp_i2;
     double temp_f1, temp_f2;
@@ -705,7 +741,7 @@ static int get_time(const char * config, double *value_f, int32_t *value_i) {
     return 0;
 }
 
-static int get_bool(const char * config, int *value) {
+static int get_bool(const char* config, int* value) {
     int n,m;
     char temp;
 
@@ -720,7 +756,7 @@ static int get_bool(const char * config, int *value) {
     return n;
 }
 
-static int get_mask(const char * config, uint32_t *value) {
+static int get_mask(const char* config, uint32_t* value) {
     int n, m, total_n = 0;
     int temp1,temp2, r1, r2;
     int i;
@@ -766,7 +802,7 @@ static int get_mask(const char * config, uint32_t *value) {
 }
 
 
-static int get_fade(const char * config, txtp_mix_data *mix, int *out_n) {
+static int get_fade(const char* config, txtp_mix_data* mix, int* p_n) {
     int n, m, tn = 0;
     char type, separator;
 
@@ -862,11 +898,15 @@ static int get_fade(const char * config, txtp_mix_data *mix, int *out_n) {
 
     mix->time_end = mix->time_start + mix->time_end; /* defined as length */
 
-    *out_n = tn;
+    *p_n = tn;
     return 1;
 fail:
     return 0;
 }
+
+/*******************************************************************************/
+/* PARSER - MAIN                                                               */
+/*******************************************************************************/
 
 void add_mixing(txtp_entry* cfg, txtp_mix_data* mix, txtp_mix_t command) {
     if (cfg->mixing_count + 1 > TXTP_MIXING_MAX) {
@@ -956,7 +996,7 @@ static void add_config(txtp_entry* current, txtp_entry* cfg, const char* filenam
     }
 }
 
-static void parse_config(txtp_entry *cfg, char *config) {
+static void parse_config(txtp_entry* cfg, char* config) {
     /* parse config: #(commands) */
     int n, nc, nm, mc;
     char command[TXTP_LINE_MAX] = {0};
@@ -1243,7 +1283,7 @@ static void parse_config(txtp_entry *cfg, char *config) {
 
 
 
-static int add_group(txtp_header * txtp, char *line) {
+static int add_group(txtp_header* txtp, char* line) {
     int n, m;
     txtp_group cfg = {0};
 
@@ -1300,7 +1340,27 @@ fail:
 }
 
 
-static int add_entry(txtp_header * txtp, char *filename, int is_default) {
+static void clean_filename(char* filename) {
+    int i;
+    size_t len;
+
+    if (filename[0] == '\0')
+        return;
+
+    /* normalize paths */
+    fix_dir_separators(filename);
+
+    /* remove trailing spaces */
+    len = strlen(filename);
+    for (i = len-1; i > 0; i--) {
+        if (filename[i] != ' ')
+            break;
+        filename[i] = '\0';
+    }
+
+}
+
+static int add_entry(txtp_header* txtp, char* filename, int is_default) {
     int i;
     txtp_entry cfg = {0};
 
@@ -1309,7 +1369,7 @@ static int add_entry(txtp_header * txtp, char *filename, int is_default) {
 
     /* parse filename: file.ext#(commands) */
     {
-        char *config;
+        char* config;
 
         if (is_default) {
             config = filename; /* multiple commands without filename */
@@ -1341,11 +1401,11 @@ static int add_entry(txtp_header * txtp, char *filename, int is_default) {
 
     /* add final entry */
     for (i = cfg.range_start; i < cfg.range_end; i++){
-        txtp_entry *current;
+        txtp_entry* current;
 
         /* resize in steps if not enough */
         if (txtp->entry_count+1 > txtp->entry_max) {
-            txtp_entry *temp_entry;
+            txtp_entry* temp_entry;
 
             txtp->entry_max += 5;
             temp_entry = realloc(txtp->entry, sizeof(txtp_entry) * txtp->entry_max);
@@ -1368,9 +1428,12 @@ fail:
     return 0;
 }
 
-/* ************************************************************************ */
 
-static int is_substring(const char * val, const char * cmp) {
+/*******************************************************************************/
+/* PARSER - BASE                                                               */
+/*******************************************************************************/
+
+static int is_substring(const char* val, const char* cmp) {
     int n;
     char subval[TXTP_LINE_MAX] = {0};
 
@@ -1383,7 +1446,7 @@ static int is_substring(const char * val, const char * cmp) {
     return n;
 }
 
-static int parse_num(const char * val, uint32_t * out_value) {
+static int parse_num(const char* val, uint32_t* out_value) {
     int hex = (val[0]=='0' && val[1]=='x');
     if (sscanf(val, hex ? "%x" : "%u", out_value) != 1)
         goto fail;
@@ -1393,7 +1456,7 @@ fail:
     return 0;
 }
 
-static int parse_keyval(txtp_header * txtp, const char * key, const char * val) {
+static int parse_keyval(txtp_header* txtp, const char* key, const char* val) {
     //;VGM_LOG("TXTP: key=val '%s'='%s'\n", key,val);
 
 
@@ -1452,10 +1515,10 @@ fail:
     return 0;
 }
 
-static txtp_header* parse_txtp(STREAMFILE* streamFile) {
+static txtp_header* parse_txtp(STREAMFILE* sf) {
     txtp_header* txtp = NULL;
     off_t txt_offset = 0x00;
-    off_t file_size = get_streamfile_size(streamFile);
+    off_t file_size = get_streamfile_size(sf);
 
 
     txtp = calloc(1,sizeof(txtp_header));
@@ -1467,7 +1530,7 @@ static txtp_header* parse_txtp(STREAMFILE* streamFile) {
 
     /* skip BOM if needed */
     if (file_size > 0 &&
-            ((uint16_t)read_16bitLE(0x00, streamFile) == 0xFFFE || (uint16_t)read_16bitLE(0x00, streamFile) == 0xFEFF))
+            ((uint16_t)read_16bitLE(0x00, sf) == 0xFFFE || (uint16_t)read_16bitLE(0x00, sf) == 0xFEFF))
         txt_offset = 0x02;
 
     /* read and parse lines */
@@ -1477,7 +1540,7 @@ static txtp_header* parse_txtp(STREAMFILE* streamFile) {
         char filename[TXTP_LINE_MAX] = {0};
         int ok, bytes_read, line_ok;
 
-        bytes_read = read_line(line, sizeof(line), txt_offset, streamFile, &line_ok);
+        bytes_read = read_line(line, sizeof(line), txt_offset, sf, &line_ok);
         if (!line_ok) goto fail;
 
         txt_offset += bytes_read;
@@ -1507,7 +1570,7 @@ static txtp_header* parse_txtp(STREAMFILE* streamFile) {
     if (txtp->entry_count == 0) {
         char filename[PATH_LIMIT] = {0};
 
-        get_streamfile_basename(streamFile, filename, sizeof(filename));
+        get_streamfile_basename(sf, filename, sizeof(filename));
 
         add_entry(txtp, filename, 0);
     }
@@ -1517,23 +1580,4 @@ static txtp_header* parse_txtp(STREAMFILE* streamFile) {
 fail:
     clean_txtp(txtp, 1);
     return NULL;
-}
-
-static void clean_txtp(txtp_header* txtp, int fail) {
-    int i, start;
-
-    if (!txtp)
-        return;
-
-    /* returns first vgmstream on success so it's not closed */
-    start = fail ? 0 : 1;
-
-    for (i = start; i < txtp->vgmstream_count; i++) {
-        close_vgmstream(txtp->vgmstream[i]);
-    }
-
-    free(txtp->vgmstream);
-    free(txtp->group);
-    free(txtp->entry);
-    free(txtp);
 }
