@@ -26,13 +26,13 @@
 #define SAMPLE_BUFFER_SIZE  32768
 
 /* getopt globals (the horror...) */
-extern char * optarg;
+extern char* optarg;
 extern int optind, opterr, optopt;
 
 
-static size_t make_wav_header(uint8_t * buf, size_t buf_size, int32_t sample_count, int32_t sample_rate, int channels, int smpl_chunk, int32_t loop_start, int32_t loop_end);
+static size_t make_wav_header(uint8_t* buf, size_t buf_size, int32_t sample_count, int32_t sample_rate, int channels, int smpl_chunk, int32_t loop_start, int32_t loop_end);
 
-static void usage(const char * name, int is_full) {
+static void usage(const char* name, int is_full) {
     fprintf(stderr,"vgmstream CLI decoder " VERSION " " __DATE__ "\n"
             "Usage: %s [-o outfile.wav] [options] infile\n"
             "Options:\n"
@@ -68,9 +68,9 @@ static void usage(const char * name, int is_full) {
 
 
 typedef struct {
-    char * infilename;
-    char * outfilename;
-    char * tag_filename;
+    char* infilename;
+    char* outfilename;
+    char* tag_filename;
     int decode_only;
     int play_forever;
     int play_sdtout;
@@ -100,7 +100,7 @@ typedef struct {
 } cli_config;
 
 
-static int parse_config(cli_config *cfg, int argc, char ** argv) {
+static int parse_config(cli_config* cfg, int argc, char** argv) {
     int opt;
 
     /* non-zero defaults */
@@ -206,7 +206,7 @@ fail:
     return 0;
 }
 
-static int validate_config(cli_config *cfg) {
+static int validate_config(cli_config* cfg) {
     if (cfg->play_sdtout && (!cfg->play_wreckless && isatty(STDOUT_FILENO))) {
         fprintf(stderr,"Are you sure you want to output wave data to the terminal?\nIf so use -P instead of -p.\n");
         goto fail;
@@ -215,29 +215,19 @@ static int validate_config(cli_config *cfg) {
         fprintf(stderr,"-c must use -p or -P\n");
         goto fail;
     }
-    if (cfg->ignore_loop && cfg->force_loop) {
-        fprintf(stderr,"-e and -i are incompatible\n");
-        goto fail;
-    }
-    if (cfg->ignore_loop && cfg->really_force_loop) {
-        fprintf(stderr,"-E and -i are incompatible\n");
-        goto fail;
-    }
-    if (cfg->force_loop && cfg->really_force_loop) {
-        fprintf(stderr,"-E and -e are incompatible\n");
-        goto fail;
-    }
     if (cfg->play_sdtout && cfg->outfilename) {
-        fprintf(stderr,"either -p or -o, make up your mind\n");
+        fprintf(stderr,"use either -p or -o\n");
         goto fail;
     }
+
+    /* other options have built-in priority defined */
 
     return 1;
 fail:
     return 0;
 }
 
-static void print_info(VGMSTREAM * vgmstream, cli_config *cfg) {
+static void print_info(VGMSTREAM* vgmstream, cli_config* cfg) {
     int channels = vgmstream->channels;
     if (!cfg->play_sdtout) {
         if (cfg->print_adxencd) {
@@ -281,98 +271,37 @@ static void print_info(VGMSTREAM * vgmstream, cli_config *cfg) {
     }
 }
 
+
 static void apply_config(VGMSTREAM* vgmstream, cli_config* cfg) {
-
-    /* honor suggested config (order matters, and config mixes with/overwrites player defaults) */
-  //if (vgmstream->config.play_forever) { /* not really suited for CLI */
-  //    cfg->play_forever = 1;
-  //    cfg->ignore_loop = 0;
-  //}
-    if (vgmstream->config.loop_count_set) {
-        cfg->loop_count = vgmstream->config.loop_count;
-        cfg->play_forever = 0;
-        cfg->ignore_loop = 0;
-    }
-    if (vgmstream->config.fade_delay_set) {
-        cfg->fade_delay = vgmstream->config.fade_delay;
-    }
-    if (vgmstream->config.fade_time_set) {
-        cfg->fade_time = vgmstream->config.fade_time;
-    }
-    if (vgmstream->config.ignore_fade) {
-        cfg->ignore_fade = 1;
-    }
-
-    if (vgmstream->config.force_loop) {
-        cfg->ignore_loop = 0;
-        cfg->force_loop = 1;
-        cfg->really_force_loop = 0;
-    }
-    if (vgmstream->config.really_force_loop) {
-        cfg->ignore_loop = 0;
-        cfg->force_loop = 0;
-        cfg->really_force_loop = 1;
-    }
-    if (vgmstream->config.ignore_loop) {
-        cfg->ignore_loop = 1;
-        cfg->force_loop = 0;
-        cfg->really_force_loop = 0;
-    }
-
-
-    /* apply config */
-    if (cfg->force_loop && !vgmstream->loop_flag) {
-        vgmstream_force_loop(vgmstream, 1, 0,vgmstream->num_samples);
-    }
-    if (cfg->really_force_loop) {
-        vgmstream_force_loop(vgmstream, 1, 0,vgmstream->num_samples);
-    }
-    if (cfg->ignore_loop) {
-        vgmstream_force_loop(vgmstream, 0, 0,0);
-    }
-
-    /* remove non-compatible options */
-    if (!vgmstream->loop_flag) {
-        cfg->play_forever = 0;
-    }
-    if (cfg->play_forever) {
-        cfg->ignore_fade = 0;
-    }
-
-    /* loop N times, but also play stream end instead of fading out */
-    if (cfg->loop_count > 0 && cfg->ignore_fade) {
-        vgmstream_set_loop_target(vgmstream, (int)cfg->loop_count);
-        cfg->fade_time = 0;
-    }
+    vgmstream_cfg_t vcfg = {0};
 
     /* write loops in the wav, but don't actually loop it */
     if (cfg->write_lwav) {
+        vcfg.disable_config_override = 1;
+        cfg->ignore_loop = 1;
         cfg->lwav_loop_start = vgmstream->loop_start_sample;
         cfg->lwav_loop_end = vgmstream->loop_end_sample;
-        vgmstream_force_loop(vgmstream, 0, 0,0);
     }
+    /* only allowed if manually active */
+    if (cfg->play_forever) {
+        vcfg.allow_play_forever = 1;
+    }
+
+    vcfg.play_forever = cfg->play_forever;
+    vcfg.fade_period = cfg->fade_time;
+    vcfg.loop_times = cfg->loop_count;
+    vcfg.fade_delay = cfg->fade_delay;
+
+    vcfg.ignore_loop  = cfg->ignore_loop;
+    vcfg.force_loop = cfg->force_loop;
+    vcfg.really_force_loop = cfg->really_force_loop;
+    vcfg.ignore_fade = cfg->ignore_fade;
+
+    vgmstream_apply_config(vgmstream, &vcfg);
 }
 
-void apply_fade(sample_t * buf, VGMSTREAM * vgmstream, int to_get, int i, int len_samples, int fade_samples, int channels) {
-    int is_fade_on = vgmstream->loop_flag;
 
-    if (is_fade_on && fade_samples > 0) {
-        int samples_into_fade = i - (len_samples - fade_samples);
-        if (samples_into_fade + to_get > 0) {
-            int j, k;
-            for (j = 0; j < to_get; j++, samples_into_fade++) {
-                if (samples_into_fade > 0) {
-                    double fadedness = (double)(fade_samples - samples_into_fade) / fade_samples;
-                    for (k = 0; k < channels; k++) {
-                        buf[j*channels + k] = (sample_t)buf[j*channels + k] * fadedness;
-                    }
-                }
-            }
-        }
-    }
-}
-
-void apply_seek(sample_t * buf, VGMSTREAM * vgmstream, int len_samples) {
+static void apply_seek(sample_t* buf, VGMSTREAM* vgmstream, int len_samples) {
     int i;
 
     for (i = 0; i < len_samples; i += SAMPLE_BUFFER_SIZE) {
@@ -384,17 +313,42 @@ void apply_seek(sample_t * buf, VGMSTREAM * vgmstream, int len_samples) {
     }
 }
 
+static void print_tags(cli_config* cfg) {
+    VGMSTREAM_TAGS* tags = NULL;
+    STREAMFILE* sf_tags = NULL;
+    const char *tag_key, *tag_val;
+
+    if (!cfg->tag_filename)
+        return;
+
+    sf_tags = open_stdio_streamfile(cfg->tag_filename);
+    if (!sf_tags) {
+        printf("tag file %s not found\n", cfg->tag_filename);
+        return;
+    }
+
+    printf("tags:\n");
+
+    tags = vgmstream_tags_init(&tag_key, &tag_val);
+    vgmstream_tags_reset(tags, cfg->infilename);
+    while (vgmstream_tags_next_tag(tags, sf_tags)) {
+        printf("- '%s'='%s'\n", tag_key, tag_val);
+    }
+
+    vgmstream_tags_close(tags);
+    close_streamfile(sf_tags);
+}
+
 /* ************************************************************ */
 
-int main(int argc, char ** argv) {
-    VGMSTREAM * vgmstream = NULL;
-    FILE * outfile = NULL;
+int main(int argc, char** argv) {
+    VGMSTREAM* vgmstream = NULL;
+    FILE* outfile = NULL;
     char outfilename_temp[PATH_LIMIT];
 
-    sample_t * buf = NULL;
+    sample_t* buf = NULL;
     int channels, input_channels;
     int32_t len_samples;
-    int32_t fade_samples;
     int i, j;
 
     cli_config cfg = {0};
@@ -438,16 +392,15 @@ int main(int argc, char ** argv) {
 
     /* open streamfile and pass subsong */
     {
-        //s = init_vgmstream(infilename);
-        STREAMFILE *streamFile = open_stdio_streamfile(cfg.infilename);
-        if (!streamFile) {
+        STREAMFILE* sf = open_stdio_streamfile(cfg.infilename);
+        if (!sf) {
             fprintf(stderr,"file %s not found\n",cfg.infilename);
             goto fail;
         }
 
-        streamFile->stream_index = cfg.stream_index;
-        vgmstream = init_vgmstream_from_STREAMFILE(streamFile);
-        close_streamfile(streamFile);
+        sf->stream_index = cfg.stream_index;
+        vgmstream = init_vgmstream_from_STREAMFILE(sf);
+        close_streamfile(sf);
 
         if (!vgmstream) {
             fprintf(stderr,"failed opening %s\n",cfg.infilename);
@@ -465,8 +418,8 @@ int main(int argc, char ** argv) {
     /* enable after config but before outbuf */
     vgmstream_mixing_enable(vgmstream, SAMPLE_BUFFER_SIZE, &input_channels, &channels);
 
-    if (cfg.play_forever && (!vgmstream->loop_flag || vgmstream->loop_target > 0)) {
-        fprintf(stderr,"I could play a nonlooped track forever, but it wouldn't end well.");
+    if (cfg.play_forever && !vgmstream_get_play_forever(vgmstream)) {
+        fprintf(stderr,"File can't be played forever");
         goto fail;
     }
 
@@ -501,26 +454,7 @@ int main(int argc, char ** argv) {
     print_info(vgmstream, &cfg);
 
     /* print tags info */
-    if (cfg.tag_filename) {
-        VGMSTREAM_TAGS *tags;
-        const char *tag_key, *tag_val;
-
-        STREAMFILE *tagFile = open_stdio_streamfile(cfg.tag_filename);
-        if (!tagFile) {
-            fprintf(stderr,"tag file %s not found\n",cfg.tag_filename);
-            goto fail;
-        }
-
-        printf("tags:\n");
-
-        tags = vgmstream_tags_init(&tag_key, &tag_val);
-        vgmstream_tags_reset(tags, cfg.infilename);
-        while ( vgmstream_tags_next_tag(tags, tagFile)) {
-            printf("- '%s'='%s'\n", tag_key, tag_val);
-        }
-        vgmstream_tags_close(tags);
-        close_streamfile(tagFile);
-    }
+    print_tags(&cfg);
 
     /* prints done */
     if (cfg.print_metaonly) {
@@ -534,23 +468,11 @@ int main(int argc, char ** argv) {
 
 
     /* get final play config */
-    len_samples = get_vgmstream_play_samples(cfg.loop_count,cfg.fade_time,cfg.fade_delay,vgmstream);
-    fade_samples = (int32_t)(cfg.fade_time < 0 ? 0 : cfg.fade_time * vgmstream->sample_rate);
+    len_samples = vgmstream_get_samples(vgmstream);
 
     if (cfg.seek_samples >= len_samples)
         cfg.seek_samples = 0;
     len_samples -= cfg.seek_samples;
-
-    if (!cfg.play_sdtout && !cfg.print_adxencd && !cfg.print_oggenc && !cfg.print_batchvar) {
-        double time_mm, time_ss, seconds;
-
-        seconds = (double)len_samples / vgmstream->sample_rate;
-        time_mm = (int)(seconds / 60.0);
-        time_ss = seconds - time_mm * 60.0f;
-        printf("samples to play: %d (%1.0f:%06.3f seconds)\n", len_samples, time_mm, time_ss);
-    }
-
-
 
     /* last init */
     buf = malloc(SAMPLE_BUFFER_SIZE * sizeof(sample_t) * input_channels);
@@ -600,8 +522,6 @@ int main(int argc, char ** argv) {
 
         render_vgmstream(buf, to_get, vgmstream);
 
-        apply_fade(buf, vgmstream, to_get, i, len_samples, fade_samples, channels);
-
         if (!cfg.decode_only) {
             swap_samples_le(buf, channels * to_get); /* write PC endian */
             if (cfg.only_stereo != -1) {
@@ -634,9 +554,6 @@ int main(int argc, char ** argv) {
 
         reset_vgmstream(vgmstream);
 
-        /* vgmstream manipulations are undone by reset */
-        apply_config(vgmstream, &cfg);
-
         apply_seek(buf, vgmstream, cfg.seek_samples);
 
         /* slap on a .wav header */
@@ -659,8 +576,6 @@ int main(int argc, char ** argv) {
                 to_get = len_samples - i;
 
             render_vgmstream(buf, to_get, vgmstream);
-
-            apply_fade(buf, vgmstream, to_get, i, len_samples, fade_samples, channels);
 
             if (!cfg.decode_only) {
                 swap_samples_le(buf, channels * to_get); /* write PC endian */
@@ -697,28 +612,28 @@ fail:
 
 
 
-static void make_smpl_chunk(uint8_t * buf, int32_t loop_start, int32_t loop_end) {
+static void make_smpl_chunk(uint8_t* buf, int32_t loop_start, int32_t loop_end) {
     int i;
 
-    memcpy(buf+0, "smpl", 4);/* header */
-    put_32bitLE(buf+4, 0x3c);/* size */
+    memcpy(buf+0, "smpl", 0x04); /* header */
+    put_s32le(buf+0x04, 0x3c); /* size */
 
     for (i = 0; i < 7; i++)
-        put_32bitLE(buf+8 + i * 4, 0);
+        put_s32le(buf+0x08 + i * 0x04, 0);
 
-    put_32bitLE(buf+36, 1);
+    put_s32le(buf+0x24, 1);
 
     for (i = 0; i < 3; i++)
-        put_32bitLE(buf+40 + i * 4, 0);
+        put_s32le(buf+0x28 + i * 0x04, 0);
 
-    put_32bitLE(buf+52, loop_start);
-    put_32bitLE(buf+56, loop_end);
-    put_32bitLE(buf+60, 0);
-    put_32bitLE(buf+64, 0);
+    put_s32le(buf+0x34, loop_start);
+    put_s32le(buf+0x38, loop_end);
+    put_s32le(buf+0x3C, 0);
+    put_s32le(buf+0x40, 0);
 }
 
 /* make a RIFF header for .wav */
-static size_t make_wav_header(uint8_t * buf, size_t buf_size, int32_t sample_count, int32_t sample_rate, int channels, int smpl_chunk, int32_t loop_start, int32_t loop_end) {
+static size_t make_wav_header(uint8_t* buf, size_t buf_size, int32_t sample_count, int32_t sample_rate, int channels, int smpl_chunk, int32_t loop_start, int32_t loop_end) {
     size_t data_size, header_size;
 
     data_size = sample_count * channels * sizeof(sample_t);
@@ -729,28 +644,28 @@ static size_t make_wav_header(uint8_t * buf, size_t buf_size, int32_t sample_cou
     if (header_size > buf_size)
         goto fail;
 
-    memcpy(buf+0x00, "RIFF", 4); /* RIFF header */
-    put_32bitLE(buf+4, (int32_t)(header_size - 0x08 + data_size)); /* size of RIFF */
+    memcpy(buf+0x00, "RIFF", 0x04); /* RIFF header */
+    put_32bitLE(buf+0x04, (int32_t)(header_size - 0x08 + data_size)); /* size of RIFF */
 
     memcpy(buf+0x08, "WAVE", 4); /* WAVE header */
 
-    memcpy(buf+0x0c, "fmt ", 4); /* WAVE fmt chunk */
-    put_32bitLE(buf+0x10, 0x10); /* size of WAVE fmt chunk */
-    put_16bitLE(buf+0x14, 1); /* compression code 1=PCM */
-    put_16bitLE(buf+0x16, channels); /* channel count */
-    put_32bitLE(buf+0x18, sample_rate); /* sample rate */
-    put_32bitLE(buf+0x1c, sample_rate*channels*sizeof(sample_t)); /* bytes per second */
-    put_16bitLE(buf+0x20, (int16_t)(channels*sizeof(sample_t))); /* block align */
-    put_16bitLE(buf+0x22, sizeof(sample_t)*8); /* significant bits per sample */
+    memcpy(buf+0x0c, "fmt ", 0x04); /* WAVE fmt chunk */
+    put_s32le(buf+0x10, 0x10); /* size of WAVE fmt chunk */
+    put_s16le(buf+0x14, 0x0001); /* codec PCM */
+    put_s16le(buf+0x16, channels); /* channel count */
+    put_s32le(buf+0x18, sample_rate); /* sample rate */
+    put_s32le(buf+0x1c, sample_rate * channels * sizeof(sample_t)); /* bytes per second */
+    put_s16le(buf+0x20, (int16_t)(channels * sizeof(sample_t))); /* block align */
+    put_s16le(buf+0x22, sizeof(sample_t) * 8); /* significant bits per sample */
 
     if (smpl_chunk && loop_end) {
         make_smpl_chunk(buf+0x24, loop_start, loop_end);
         memcpy(buf+0x24+0x3c+0x08, "data", 0x04); /* WAVE data chunk */
-        put_32bitLE(buf+0x28+0x3c+0x08, (int32_t)data_size); /* size of WAVE data chunk */
+        put_u32le(buf+0x28+0x3c+0x08, (int32_t)data_size); /* size of WAVE data chunk */
     }
     else {
         memcpy(buf+0x24, "data", 0x04); /* WAVE data chunk */
-        put_32bitLE(buf+0x28, (int32_t)data_size); /* size of WAVE data chunk */
+        put_s32le(buf+0x28, (int32_t)data_size); /* size of WAVE data chunk */
     }
 
     /* could try to add channel_layout, but would need to write WAVEFORMATEXTENSIBLE (maybe only if arg flag?) */
