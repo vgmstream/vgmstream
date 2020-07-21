@@ -780,18 +780,63 @@ typedef enum {
 } mapping_t;
 
 typedef struct {
+    /* modifiers */
     int play_forever;
-    int loop_count_set;
-    double loop_count;
-    int fade_time_set;
-    double fade_time;
-    int fade_delay_set;
-    double fade_delay;
-    int ignore_fade;
+    int ignore_loop;
     int force_loop;
     int really_force_loop;
-    int ignore_loop;
+    int ignore_fade;
+
+    /* processing */
+    int32_t pad_begin;
+    int32_t trim_begin;
+    int32_t target_time;
+    double loop_count;
+    int32_t trim_end;
+    double fade_delay; /* not in samples for backwards compatibility */
+    double fade_time;
+    int32_t pad_end;
+
+    /* internal flags */
+    int pad_begin_set;
+    int trim_begin_set;
+    int target_time_set;
+    int loop_count_set;
+    int trim_end_set;
+    int fade_delay_set;
+    int fade_time_set;
+    int pad_end_set;
+
 } play_config_t;
+
+
+typedef struct {
+    int input_channels;
+    int output_channels;
+
+    int32_t pad_begin_duration;
+    int32_t pad_begin_start;
+    int32_t pad_begin_end;
+
+    int32_t trim_begin_duration;
+    int32_t trim_begin_start;
+    int32_t trim_begin_end;
+
+    int32_t body_duration;
+    int32_t body_start;
+    int32_t body_end;
+
+    int32_t fade_duration;
+    int32_t fade_start;
+    int32_t fade_end;
+
+    int32_t pad_end_duration;
+    int32_t pad_end_start;
+    int32_t pad_end_end;
+
+    int32_t play_duration;      /* total samples that the stream lasts (after applying all config) */
+    int32_t play_position;      /* absolute sample where stream is */
+} play_state_t;
 
 
 /* info for a single vgmstream channel */
@@ -879,16 +924,6 @@ typedef struct {
     int allow_dual_stereo;          /* search for dual stereo (file_L.ext + file_R.ext = single stereo file) */
 
 
-    /* config requests, players must read and honor these values
-     * (ideally internally would work as a player, but for now player must do it manually) */
-    play_config_t config;
-
-
-    /* play state */
-    int loop_count;                 /* counter of complete loops (1=looped once) */
-    int loop_target;                /* max loops before continuing with the stream end (loops forever if not set) */
-
-
     /* layout/block state */
     size_t full_block_size;         /* actual data size of an entire block (ie. may be fixed, include padding/headers, etc) */
     int32_t current_sample;         /* sample point within the file (for loop detection) */
@@ -929,6 +964,14 @@ typedef struct {
     void* codec_data;
     /* Same, for special layouts. layout_data + codec_data may exist at the same time. */
     void* layout_data;
+
+
+    /* play config/state */
+    int config_set;                 /* current config */
+    play_config_t config;           /* player config (applied over decoding) */
+    play_state_t pstate;            /* player state (applied over decoding) */
+    int loop_count;                 /* counter of complete loops (1=looped once) */
+    int loop_target;                /* max loops before continuing with the stream end (loops forever if not set) */
 
 } VGMSTREAM;
 
@@ -1126,4 +1169,8 @@ void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t ou
 void get_vgmstream_layout_description(VGMSTREAM* vgmstream, char* out, size_t out_size);
 void get_vgmstream_meta_description(VGMSTREAM* vgmstream, char* out, size_t out_size);
 
+//void pad_begin_vgmstream(VGMSTREAM* vgmstream, sample_t* buf, int samples_to_do);
+//void trim_begin_vgmstream(VGMSTREAM* vgmstream, sample_t* buf, int samples_to_do);
+//void pad_end_vgmstream(VGMSTREAM* vgmstream, sample_t* buf, int samples_to_do);
+void fade_vgmstream(VGMSTREAM* vgmstream, sample_t* buf, int samples_done);
 #endif

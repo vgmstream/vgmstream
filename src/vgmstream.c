@@ -1068,15 +1068,14 @@ int32_t get_vgmstream_play_samples(double looptimes, double fadeseconds, double 
     }
 }
 
-/* Decode data into sample buffer. Controls the "external" part of the decoding,
- * while layouts control the "internal" part. */
-void render_vgmstream(sample_t* buffer, int32_t sample_count, VGMSTREAM* vgmstream) {
+void render_vgmstream_internal(sample_t* buf, int32_t sample_count, VGMSTREAM* vgmstream) {
+
     switch (vgmstream->layout_type) {
         case layout_interleave:
-            render_vgmstream_interleave(buffer,sample_count,vgmstream);
+            render_vgmstream_interleave(buf, sample_count, vgmstream);
             break;
         case layout_none:
-            render_vgmstream_flat(buffer,sample_count,vgmstream);
+            render_vgmstream_flat(buf, sample_count, vgmstream);
             break;
         case layout_blocked_mxch:
         case layout_blocked_ast:
@@ -1118,19 +1117,45 @@ void render_vgmstream(sample_t* buffer, int32_t sample_count, VGMSTREAM* vgmstre
         case layout_blocked_vs_square:
         case layout_blocked_vid1:
         case layout_blocked_ubi_sce:
-            render_vgmstream_blocked(buffer,sample_count,vgmstream);
+            render_vgmstream_blocked(buf, sample_count, vgmstream);
             break;
         case layout_segmented:
-            render_vgmstream_segmented(buffer,sample_count,vgmstream);
+            render_vgmstream_segmented(buf, sample_count,vgmstream);
             break;
         case layout_layered:
-            render_vgmstream_layered(buffer,sample_count,vgmstream);
+            render_vgmstream_layered(buf, sample_count, vgmstream);
             break;
         default:
             break;
     }
 
-    mix_vgmstream(buffer, sample_count, vgmstream);
+
+    mix_vgmstream(buf, sample_count, vgmstream);
+}
+
+/* Decode data into sample buffer. Controls the "external" part of the decoding,
+ * while layouts control the "internal" part. */
+void render_vgmstream(sample_t* buf, int32_t sample_count, VGMSTREAM* vgmstream) {
+
+
+    render_vgmstream_internal(buf, sample_count, vgmstream);
+
+    if (vgmstream->config_set)
+        fade_vgmstream(vgmstream, buf, sample_count);
+
+    //todo silence if position > and not loop forever
+
+    if (vgmstream->config_set) {
+        vgmstream->pstate.play_position += sample_count;
+
+        if (vgmstream->pstate.play_position > vgmstream->pstate.play_duration) {
+            //if (!vgmstream->config.play_forever) {
+            //    memset(...);
+            //}
+            vgmstream->pstate.play_position = vgmstream->pstate.play_duration;
+        }
+    }
+
 }
 
 
@@ -2542,6 +2567,18 @@ void describe_vgmstream(VGMSTREAM* vgmstream, char* desc, int length) {
 
     if (vgmstream->stream_name[0] != '\0') {
         snprintf(temp,TEMPSIZE, "stream name: %s\n", vgmstream->stream_name);
+        concatn(length,desc,temp);
+    }
+
+    if (vgmstream->config_set) {
+        double time_mm, time_ss, seconds;
+        int32_t samples = vgmstream->pstate.play_duration;
+
+        seconds = (double)samples / vgmstream->sample_rate;
+        time_mm = (int)(seconds / 60.0);
+        time_ss = seconds - time_mm * 60.0f;
+
+        snprintf(temp,TEMPSIZE, "play duration: %d samples (%1.0f:%06.3f seconds)\n", samples, time_mm, time_ss);
         concatn(length,desc,temp);
     }
 }
