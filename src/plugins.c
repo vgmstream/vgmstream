@@ -329,6 +329,10 @@ void vgmstream_tags_reset(VGMSTREAM_TAGS* tags, const char* target_filename) {
 void vgmstream_mixing_enable(VGMSTREAM* vgmstream, int32_t max_sample_count, int *input_channels, int *output_channels) {
     mixing_setup(vgmstream, max_sample_count);
     mixing_info(vgmstream, input_channels, output_channels);
+
+    /* update internals */
+    mixing_info(vgmstream, &vgmstream->pstate.input_channels, &vgmstream->pstate.output_channels);
+    setup_vgmstream(vgmstream);
 }
 
 void vgmstream_mixing_autodownmix(VGMSTREAM *vgmstream, int max_channels) {

@@ -1068,7 +1068,7 @@ int32_t get_vgmstream_play_samples(double looptimes, double fadeseconds, double 
     }
 }
 
-void render_vgmstream_internal(sample_t* buf, int32_t sample_count, VGMSTREAM* vgmstream) {
+static int render_layout(sample_t* buf, int32_t sample_count, VGMSTREAM* vgmstream) {
 
     switch (vgmstream->layout_type) {
         case layout_interleave:
@@ -1129,33 +1129,91 @@ void render_vgmstream_internal(sample_t* buf, int32_t sample_count, VGMSTREAM* v
             break;
     }
 
-
-    mix_vgmstream(buf, sample_count, vgmstream);
+    return sample_count;
 }
 
+static void render_trim(VGMSTREAM* vgmstream) {
+    /* big-ish buffer since the average trim would be a few seconds for >=2ch at 48000, and less calls = better */
+    sample_t tmpbuf[0x40000];
+    int max_samples = 0x40000 / vgmstream->pstate.input_channels;
+
+    while (vgmstream->pstate.trim_begin_left) {
+        int to_do = vgmstream->pstate.trim_begin_left;
+        if (to_do > max_samples)
+            to_do = max_samples;
+
+        render_layout(tmpbuf, to_do, vgmstream);
+        /* just consume samples so no need to apply mixing */
+        vgmstream->pstate.trim_begin_left -= to_do;
+    }
+}
+
+static int render_pad_begin(VGMSTREAM* vgmstream, sample_t* buf, int samples_to_do) {
+    int channels = vgmstream->pstate.output_channels;
+    int to_do = vgmstream->pstate.pad_begin_left;
+    if (to_do > samples_to_do)
+        to_do = samples_to_do;
+
+    memset(buf, 0, to_do * sizeof(sample_t) * channels);
+    vgmstream->pstate.pad_begin_left -= to_do;
+
+    return to_do;
+}
+
+
 /* Decode data into sample buffer. Controls the "external" part of the decoding,
- * while layouts control the "internal" part. */
+ * while layout/decode control the "internal" part. */
 void render_vgmstream(sample_t* buf, int32_t sample_count, VGMSTREAM* vgmstream) {
+    int done;
+    int samples_done = 0;
 
-
-    render_vgmstream_internal(buf, sample_count, vgmstream);
-
-    if (vgmstream->config_set)
-        fade_vgmstream(vgmstream, buf, sample_count);
-
-    //todo silence if position > and not loop forever
-
-    if (vgmstream->config_set) {
-        vgmstream->pstate.play_position += sample_count;
-
-        if (vgmstream->pstate.play_position > vgmstream->pstate.play_duration) {
-            //if (!vgmstream->config.play_forever) {
-            //    memset(...);
-            //}
-            vgmstream->pstate.play_position = vgmstream->pstate.play_duration;
-        }
+    /* no settings */
+    if (!vgmstream->config_set) {
+        render_layout(buf, sample_count, vgmstream);
+        mix_vgmstream(buf, sample_count, vgmstream);
+        return;
     }
 
+
+    /* trim may go first since it doesn't need output */
+    if (vgmstream->pstate.trim_begin_left) {
+        render_trim(vgmstream);
+    }
+
+    /* adds empty samples to buf */
+    if (vgmstream->pstate.pad_begin_left) {
+        done = render_pad_begin(vgmstream, buf, sample_count);
+        samples_done += done;
+        sample_count -= done;
+        buf += done * vgmstream->pstate.output_channels;
+    }
+
+    /* main decode */
+    {
+        done = render_layout(buf, sample_count, vgmstream);
+        samples_done += done;
+        mix_vgmstream(buf, done, vgmstream);
+    }
+
+    /* simple fadeout */
+    if (vgmstream->pstate.fade_left && !vgmstream->config.play_forever) {
+        render_fade(vgmstream, buf, samples_done);
+    }
+    /* silence samples in buf */
+    //else if (vgmstream->pstate.pad_end_left) {
+    //    done = pad_end_vgmstream(vgmstream, buf, sample_count);
+    //}
+
+
+    vgmstream->pstate.play_position += samples_done;
+
+    if (vgmstream->pstate.play_position > vgmstream->pstate.play_duration) {
+        //todo silence if position > end and not loop forever?
+        //if (!vgmstream->config.play_forever) {
+        //    memset(...);
+        //}
+        vgmstream->pstate.play_position = vgmstream->pstate.play_duration;
+    }
 }
 
 

@@ -788,14 +788,22 @@ typedef struct {
     int ignore_fade;
 
     /* processing */
+    double loop_count;
     int32_t pad_begin;
     int32_t trim_begin;
     int32_t target_time;
-    double loop_count;
     int32_t trim_end;
     double fade_delay; /* not in samples for backwards compatibility */
     double fade_time;
     int32_t pad_end;
+
+    double pad_begin_s;
+    double trim_begin_s;
+    double target_time_s;
+    double trim_end_s;
+  //double fade_delay_s;
+  //double fade_time_s;
+    double pad_end_s;
 
     /* internal flags */
     int pad_begin_set;
@@ -807,6 +815,7 @@ typedef struct {
     int fade_time_set;
     int pad_end_set;
 
+
 } play_config_t;
 
 
@@ -814,25 +823,13 @@ typedef struct {
     int input_channels;
     int output_channels;
 
-    int32_t pad_begin_duration;
-    int32_t pad_begin_start;
-    int32_t pad_begin_end;
-
-    int32_t trim_begin_duration;
-    int32_t trim_begin_start;
-    int32_t trim_begin_end;
-
-    int32_t body_duration;
-    int32_t body_start;
-    int32_t body_end;
-
+    int32_t pad_begin_left;
+    int32_t trim_begin_left;
+    int32_t body_left;
     int32_t fade_duration;
     int32_t fade_start;
-    int32_t fade_end;
-
-    int32_t pad_end_duration;
-    int32_t pad_end_start;
-    int32_t pad_end_end;
+    int32_t fade_left;
+    int32_t pad_end_left;
 
     int32_t play_duration;      /* total samples that the stream lasts (after applying all config) */
     int32_t play_position;      /* absolute sample where stream is */
@@ -1169,8 +1166,6 @@ void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t ou
 void get_vgmstream_layout_description(VGMSTREAM* vgmstream, char* out, size_t out_size);
 void get_vgmstream_meta_description(VGMSTREAM* vgmstream, char* out, size_t out_size);
 
-//void pad_begin_vgmstream(VGMSTREAM* vgmstream, sample_t* buf, int samples_to_do);
-//void trim_begin_vgmstream(VGMSTREAM* vgmstream, sample_t* buf, int samples_to_do);
-//void pad_end_vgmstream(VGMSTREAM* vgmstream, sample_t* buf, int samples_to_do);
-void fade_vgmstream(VGMSTREAM* vgmstream, sample_t* buf, int samples_done);
+
+void render_fade(VGMSTREAM* vgmstream, sample_t* buf, int samples_done);
 #endif

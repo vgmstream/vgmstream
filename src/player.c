@@ -1,4 +1,5 @@
 #include "vgmstream.h"
+#include "mixing.h"
 #include "plugins.h"
 
 
@@ -16,62 +17,87 @@ int32_t vgmstream_get_samples(VGMSTREAM* vgmstream) {
 static void setup_state_vgmstream(VGMSTREAM* vgmstream) {
     play_state_t* ps = &vgmstream->pstate;
     play_config_t* pc = &vgmstream->config;
+    double sample_rate = vgmstream->sample_rate;
+
+    /* time to samples */
+    if (pc->pad_begin_s)
+        pc->pad_begin = pc->pad_begin_s * sample_rate;
+    if (pc->pad_end_s)
+        pc->pad_end = pc->pad_end_s * sample_rate;
+    if (pc->trim_begin_s)
+        pc->trim_begin = pc->trim_begin_s * sample_rate;
+    if (pc->trim_end_s)
+        pc->trim_end = pc->trim_end_s * sample_rate;
+    if (pc->target_time_s)
+        pc->target_time = pc->target_time_s * sample_rate;
+    //todo fade time also set to samples
 
 
-    ps->pad_begin_duration = pc->pad_begin;
-    ps->pad_begin_start = 0;
-    ps->pad_begin_end = ps->pad_begin_start + ps->pad_begin_duration;
+    /* samples before all decode */
+    ps->pad_begin_left = pc->pad_begin;
 
-    ps->trim_begin_duration = pc->trim_begin;
-    ps->trim_begin_start = ps->pad_begin_end;
-    ps->trim_begin_end = ps->trim_begin_start + ps->trim_begin_duration;
+    /* removed samples from first decode */
+    ps->trim_begin_left = pc->trim_begin;
 
     /* main samples part */
-    ps->body_duration = 0;
+    ps->body_left = 0;
     if (pc->target_time) {
-        ps->body_duration += pc->target_time; /* wheter it loops or not */
+        ps->body_left += pc->target_time; /* whether it loops or not */
     }
     else if (vgmstream->loop_flag) {
-        ps->body_duration += vgmstream->loop_start_sample;
+        ps->body_left += vgmstream->loop_start_sample;
         if (pc->ignore_fade) {
-            ps->body_duration += (vgmstream->loop_end_sample - vgmstream->loop_start_sample) * (int)pc->loop_count;
-            ps->body_duration += (vgmstream->num_samples - vgmstream->loop_end_sample);
+            ps->body_left += (vgmstream->loop_end_sample - vgmstream->loop_start_sample) * (int)pc->loop_count;
+            ps->body_left += (vgmstream->num_samples - vgmstream->loop_end_sample);
         }
         else {
-            ps->body_duration += (vgmstream->loop_end_sample - vgmstream->loop_start_sample) * pc->loop_count;
+            ps->body_left += (vgmstream->loop_end_sample - vgmstream->loop_start_sample) * pc->loop_count;
         }
     }
     else {
-        ps->body_duration += vgmstream->num_samples;
+        ps->body_left += vgmstream->num_samples;
     }
 
-    /* no need to apply in real time */
+    /* samples from some modify body */
+    if (pc->trim_begin)
+        ps->body_left -= pc->trim_begin;
     if (pc->trim_end)
-        ps->body_duration -= pc->trim_end;
+        ps->body_left -= pc->trim_end;
     if (pc->fade_delay && vgmstream->loop_flag)
-        ps->body_duration += pc->fade_delay * vgmstream->sample_rate;
-    if (ps->body_duration < 0) /* ? */
-        ps->body_duration = 0;
-    ps->body_start = ps->trim_begin_end;
-    ps->body_end = ps->body_start + ps->body_duration;
+        ps->body_left += pc->fade_delay * vgmstream->sample_rate;
 
+    /* samples from fade part */
     if (pc->fade_time && vgmstream->loop_flag)
         ps->fade_duration = pc->fade_time * vgmstream->sample_rate;
-    ps->fade_start = ps->body_end;
-    ps->fade_end = ps->fade_start + ps->fade_duration;
+    ps->fade_start = ps->pad_begin_left + ps->body_left;
+    ps->fade_left = ps->fade_duration;
 
-    ps->pad_end_duration = pc->pad_end;
-    ps->pad_end_start = ps->fade_end;
-    ps->pad_end_end = ps->pad_end_start + ps->pad_end_duration;
+    /* samples from last part */
+    ps->pad_end_left = pc->pad_end;
+
+    /* todo if play forever: ignore some? */
+
 
     /* final count */
-    ps->play_duration = ps->pad_end_end;
+    ps->play_duration = ps->pad_begin_left + ps->body_left + ps->fade_left + ps->pad_end_left;
     ps->play_position = 0;
 
-    /* other info */
-    vgmstream_mixing_enable(vgmstream, 0, &ps->input_channels, &ps->output_channels);
+    /* values too big can overflow, just ignore */
+    if (ps->pad_begin_left < 0)
+        ps->pad_begin_left = 0;
+    if (ps->body_left < 0)
+        ps->body_left = 0;
+    if (ps->fade_left < 0)
+        ps->fade_left = 0;
+    if (ps->pad_end_left < 0)
+        ps->pad_end_left = 0;
+    if (ps->play_duration < 0)
+        ps->play_duration = 0;
 
-    VGM_LOG("**%i, %i, %i\n", ps->body_duration, ps->fade_duration, ps->play_duration);//todo
+
+    /* other info (updated once mixing is enabled) */
+    ps->input_channels = vgmstream->channels;
+    ps->output_channels = vgmstream->channels;
 }
 
 static void load_player_config(VGMSTREAM* vgmstream, play_config_t* def, vgmstream_cfg_t* vcfg) {
@@ -83,6 +109,15 @@ static void load_player_config(VGMSTREAM* vgmstream, play_config_t* def, vgmstre
     def->loop_count = vcfg->loop_times;  //todo loop times
     def->fade_delay = vcfg->fade_delay;
     def->fade_time = vcfg->fade_period; //todo loop period
+}
+
+
+static void copy_time(int* dst_flag, int32_t* dst_time, double* dst_time_s, int* src_flag, int32_t* src_time, double* src_time_s) {
+    if (!*src_flag)
+        return;
+    *dst_flag = 1;
+    *dst_time = *src_time;
+    *dst_time_s = *src_time_s;
 }
 
 static void load_internal_config(VGMSTREAM* vgmstream, play_config_t* def, play_config_t* tcfg) {
@@ -125,6 +160,12 @@ static void load_internal_config(VGMSTREAM* vgmstream, play_config_t* def, play_
         def->force_loop = 0;
         def->really_force_loop = 0;
     }
+
+    copy_time(&def->pad_begin_set,  &def->pad_begin,    &def->pad_begin_s,      &tcfg->pad_begin_set,   &tcfg->pad_begin,   &tcfg->pad_begin_s);
+    copy_time(&def->pad_end_set,    &def->pad_end,      &def->pad_end_s,        &tcfg->pad_end_set,     &tcfg->pad_end,     &tcfg->pad_end_s);
+    copy_time(&def->trim_begin_set, &def->trim_begin,   &def->trim_begin_s,     &tcfg->trim_begin_set,  &tcfg->trim_begin,  &tcfg->trim_begin_s);
+    copy_time(&def->trim_end_set,   &def->trim_end,     &def->trim_end_s,       &tcfg->trim_end_set,    &tcfg->trim_end,    &tcfg->trim_end_s);
+    copy_time(&def->target_time_set,&def->target_time,  &def->target_time_s,    &tcfg->target_time_set, &tcfg->target_time, &tcfg->target_time_s);
 }
 
 
@@ -180,37 +221,36 @@ void vgmstream_apply_config(VGMSTREAM* vgmstream, vgmstream_cfg_t* vcfg) {
 
 /*****************************************************************************/
 
-void fade_vgmstream(VGMSTREAM* vgmstream, sample_t* buf, int samples_done) {
+void render_fade(VGMSTREAM* vgmstream, sample_t* buf, int samples_done) {
     play_state_t* ps = &vgmstream->pstate;
     play_config_t* pc = &vgmstream->config;
 
-    if (!ps->fade_duration || pc->play_forever)
+    if (!ps->fade_left || pc->play_forever)
         return;
     if (ps->play_position + samples_done < ps->fade_start)
-        return;
-    if (ps->play_position > ps->fade_end)
-        return;
+        return; /* not yet */
 
     {
-        int s, ch;
+        int s, ch,  start, pos;
         int channels = ps->output_channels;
-        int sample_start, fade_pos;
 
         if (ps->play_position < ps->fade_start) {
-            sample_start = samples_done - (ps->play_position + samples_done - ps->fade_start);
-            fade_pos = 0;
+            start = samples_done - (ps->play_position + samples_done - ps->fade_start);
+            pos = 0;
         }
         else {
-            sample_start = 0;
-            fade_pos = ps->play_position - ps->fade_start;
+            start = 0;
+            pos = ps->play_position - ps->fade_start;
         }
 
         //TODO: use delta fadedness to improve performance?
-        for (s = sample_start; s < samples_done; s++, fade_pos++) {
-            double fadedness = (double)(ps->fade_duration - fade_pos) / ps->fade_duration;
+        for (s = start; s < samples_done; s++, pos++) {
+            double fadedness = (double)(ps->fade_duration - pos) / ps->fade_duration;
             for (ch = 0; ch < channels; ch++) {
                 buf[s*channels + ch] = (sample_t)buf[s*channels + ch] * fadedness;
             }
         }
+
+        vgmstream->pstate.fade_left -= (samples_done - start);
     }
 }

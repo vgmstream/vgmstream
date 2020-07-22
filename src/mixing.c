@@ -1062,12 +1062,6 @@ void mixing_setup(VGMSTREAM * vgmstream, int32_t max_sample_count) {
 
     if (!data) goto fail;
 
-    /* a bit wonky but eh... */
-    if (vgmstream->channel_layout && vgmstream->channels != data->output_channels) {
-        vgmstream->channel_layout = 0;
-        ((VGMSTREAM*)vgmstream->start_vgmstream)->channel_layout = 0;
-    }
-
     /* special value to not actually enable anything (used to query values) */
     if (max_sample_count <= 0)
         goto fail;
@@ -1079,6 +1073,12 @@ void mixing_setup(VGMSTREAM * vgmstream, int32_t max_sample_count) {
     data->mixbuf = mixbuf_re;
     data->mixing_on = 1;
 
+    /* a bit wonky but eh... */
+    if (vgmstream->channel_layout && vgmstream->channels != data->output_channels) {
+        vgmstream->channel_layout = 0;
+        ((VGMSTREAM*)vgmstream->start_vgmstream)->channel_layout = 0;
+    }
+
     /* since data exists on its own memory and pointer is already set
      * there is no need to propagate to start_vgmstream */
 
@@ -1089,7 +1089,7 @@ fail:
     return;
 }
 
-void mixing_info(VGMSTREAM * vgmstream, int *out_input_channels, int *out_output_channels) {
+void mixing_info(VGMSTREAM* vgmstream, int* p_input_channels, int* p_output_channels) {
     mixing_data *data = vgmstream->mixing_data;
     int input_channels, output_channels;
 
@@ -1101,11 +1101,13 @@ void mixing_info(VGMSTREAM * vgmstream, int *out_input_channels, int *out_output
     else
         input_channels = vgmstream->channels;
 
-    if (out_input_channels)  *out_input_channels = input_channels;
-    if (out_output_channels) *out_output_channels = output_channels;
+    if (p_input_channels)  *p_input_channels = input_channels;
+    if (p_output_channels) *p_output_channels = output_channels;
 
     //;VGM_LOG("MIX: channels %i, in=%i, out=%i, mix=%i\n", vgmstream->channels, input_channels, output_channels, data->mixing_channels);
     return;
 fail:
+    if (p_input_channels)  *p_input_channels = vgmstream->channels;
+    if (p_output_channels) *p_output_channels = vgmstream->channels;
     return;
 }
