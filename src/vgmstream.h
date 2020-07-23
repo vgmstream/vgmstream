@@ -791,7 +791,7 @@ typedef struct {
     double loop_count;
     int32_t pad_begin;
     int32_t trim_begin;
-    int32_t target_time;
+    int32_t body_time;
     int32_t trim_end;
     double fade_delay; /* not in samples for backwards compatibility */
     double fade_time;
@@ -799,7 +799,7 @@ typedef struct {
 
     double pad_begin_s;
     double trim_begin_s;
-    double target_time_s;
+    double body_time_s;
     double trim_end_s;
   //double fade_delay_s;
   //double fade_time_s;
@@ -808,7 +808,7 @@ typedef struct {
     /* internal flags */
     int pad_begin_set;
     int trim_begin_set;
-    int target_time_set;
+    int body_time_set;
     int loop_count_set;
     int trim_end_set;
     int fade_delay_set;
@@ -964,11 +964,15 @@ typedef struct {
 
 
     /* play config/state */
-    int config_set;                 /* current config */
+    int config_set;                 /* config can be used */
     play_config_t config;           /* player config (applied over decoding) */
     play_state_t pstate;            /* player state (applied over decoding) */
     int loop_count;                 /* counter of complete loops (1=looped once) */
     int loop_target;                /* max loops before continuing with the stream end (loops forever if not set) */
+    /* config must be set/allowed by the player, otherwise vgmstream behaves like a simple lib decoder
+     * (could always apply some config like begin trim/padding + modify get_vgmstream_samples, but
+     * external caller may read loops/samples manually and wouldn't expect this changed output),
+     * also segment/layer layouts may behave differently wheter set or not */
 
 } VGMSTREAM;
 

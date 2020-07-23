@@ -28,10 +28,9 @@ static void setup_state_vgmstream(VGMSTREAM* vgmstream) {
         pc->trim_begin = pc->trim_begin_s * sample_rate;
     if (pc->trim_end_s)
         pc->trim_end = pc->trim_end_s * sample_rate;
-    if (pc->target_time_s)
-        pc->target_time = pc->target_time_s * sample_rate;
+    if (pc->body_time_s)
+        pc->body_time = pc->body_time_s * sample_rate;
     //todo fade time also set to samples
-
 
     /* samples before all decode */
     ps->pad_begin_left = pc->pad_begin;
@@ -41,8 +40,8 @@ static void setup_state_vgmstream(VGMSTREAM* vgmstream) {
 
     /* main samples part */
     ps->body_left = 0;
-    if (pc->target_time) {
-        ps->body_left += pc->target_time; /* whether it loops or not */
+    if (pc->body_time) {
+        ps->body_left += pc->body_time; /* whether it loops or not */
     }
     else if (vgmstream->loop_flag) {
         ps->body_left += vgmstream->loop_start_sample;
@@ -165,7 +164,7 @@ static void load_internal_config(VGMSTREAM* vgmstream, play_config_t* def, play_
     copy_time(&def->pad_end_set,    &def->pad_end,      &def->pad_end_s,        &tcfg->pad_end_set,     &tcfg->pad_end,     &tcfg->pad_end_s);
     copy_time(&def->trim_begin_set, &def->trim_begin,   &def->trim_begin_s,     &tcfg->trim_begin_set,  &tcfg->trim_begin,  &tcfg->trim_begin_s);
     copy_time(&def->trim_end_set,   &def->trim_end,     &def->trim_end_s,       &tcfg->trim_end_set,    &tcfg->trim_end,    &tcfg->trim_end_s);
-    copy_time(&def->target_time_set,&def->target_time,  &def->target_time_s,    &tcfg->target_time_set, &tcfg->target_time, &tcfg->target_time_s);
+    copy_time(&def->body_time_set,  &def->body_time,    &def->body_time_s,      &tcfg->body_time_set,   &tcfg->body_time,   &tcfg->body_time_s);
 }
 
 
