@@ -36,7 +36,7 @@ static void usage(const char* name, int is_full) {
     fprintf(stderr,"vgmstream CLI decoder " VERSION " " __DATE__ "\n"
             "Usage: %s [-o outfile.wav] [options] infile\n"
             "Options:\n"
-            "    -o outfile.wav: name of output .wav file, default infile.wav\n"
+            "    -o <outfile.wav>: name of output .wav file, default <infile>.wav\n"
             "    -l loop count: loop count, default 2.0\n"
             "    -f fade time: fade time in seconds after N loops, default 10.0\n"
             "    -d fade delay: fade delay in seconds, default 0.0\n"
@@ -418,6 +418,12 @@ int main(int argc, char** argv) {
     /* enable after config but before outbuf */
     vgmstream_mixing_enable(vgmstream, SAMPLE_BUFFER_SIZE, &input_channels, &channels);
 
+    /* get final play config */
+    len_samples = vgmstream_get_samples(vgmstream);
+    if (len_samples <= 0)
+        goto fail;
+
+
     if (cfg.play_forever && !vgmstream_get_play_forever(vgmstream)) {
         fprintf(stderr,"File can't be played forever");
         goto fail;
@@ -466,9 +472,6 @@ int main(int argc, char** argv) {
         return EXIT_SUCCESS;
     }
 
-
-    /* get final play config */
-    len_samples = vgmstream_get_samples(vgmstream);
 
     if (cfg.seek_samples >= len_samples)
         cfg.seek_samples = 0;
