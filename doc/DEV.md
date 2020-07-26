@@ -174,18 +174,13 @@ If the decoder needs to keep state between calls it may use the VGMSTREAM for co
 
 Adding a new decoder involves:
 - *src/coding/(decoder-name).c*: create `decode_x` function that decodes stream data into the passed sample buffer. If the codec requires custom internals it may need `init/reset/seek/free_x`, or other helper functions.
-- *src/coding/coding.h*: define decoder's functions.
-- *src/vgmstream.h*: define new coding type in the list.
-- *src/vgmstream.c: reset_vgmstream*: call `reset_x` if needed 
-- *src/vgmstream.c: close_vgmstream*: call `free_x` if needed
-- *src/vgmstream.c: get_vgmstream_samples_per_frame*: define so vgmstream only asks for N samples per decode_x call. May return 0 if variable/unknown/etc (decoder must handle setting arbitrary number of samples)
-- *src/vgmstream.c: get_vgmstream_frame_size*: define so vgmstream can do certain internal calculations. May return 0 if variable/unknown/etc, but blocked/interleave layouts will need to be used in a certain way.
-- *src/vgmstream.c: decode_vgmstream*: call `decode_x`, possibly once per channel if the decoder works with a channel at a time.
-- *src/vgmstream.c: vgmstream_do_loop*: call `seek_x` if needed
-- *src/vgmstream.c: reset_vgmstream*: call `reset_x` if needed
+- *src/coding/coding.h*: define decoder's functions and type
+- *src/decode.c: get_vgmstream_samples_per_frame*: define so vgmstream only asks for N samples per decode_x call. May return 0 if variable/unknown/etc (decoder then must handle arbitrary number of samples)
+- *src/decode.c: get_vgmstream_frame_size*: define so vgmstream can do certain internal calculations. May return 0 if variable/unknown/etc, but blocked/interleave layouts will need to be used in a certain way.
+- *src/decode.c: decode_vgmstream*: call `decode_x`, possibly once per channel if the decoder works with a channel at a time.
+- *src/decode.c: add handling in `reset/seek/free_codec` if needed
 - *src/formats.c*: add coding type description
 - *src/libvgmstream.vcproj/vcxproj/filters*: add to compile new (decoder-name).c parser in VS
-- *src/vgmstream.c*: add parser init to the init list
 - if the codec depends on a external library don't forget to mark parts with: *#ifdef VGM_USE_X ... #endif*
 
 ### core
