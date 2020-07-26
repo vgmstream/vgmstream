@@ -301,18 +301,6 @@ static void apply_config(VGMSTREAM* vgmstream, cli_config* cfg) {
 }
 
 
-static void apply_seek(sample_t* buf, VGMSTREAM* vgmstream, int len_samples) {
-    int i;
-
-    for (i = 0; i < len_samples; i += SAMPLE_BUFFER_SIZE) {
-        int to_get = SAMPLE_BUFFER_SIZE;
-        if (i + SAMPLE_BUFFER_SIZE > len_samples)
-            to_get = len_samples - i;
-
-        render_vgmstream(buf, to_get, vgmstream);
-    }
-}
-
 static void print_tags(cli_config* cfg) {
     VGMSTREAM_TAGS* tags = NULL;
     STREAMFILE* sf_tags = NULL;
@@ -484,20 +472,6 @@ int main(int argc, char** argv) {
         goto fail;
     }
 
-    /* slap on a .wav header */
-    if (!cfg.decode_only) {
-        uint8_t wav_buf[0x100];
-        int channels_write = (cfg.only_stereo != -1) ? 2 : channels;
-        size_t bytes_done;
-
-        bytes_done = make_wav_header(wav_buf,0x100,
-                len_samples, vgmstream->sample_rate, channels_write,
-                cfg.write_lwav, cfg.lwav_loop_start, cfg.lwav_loop_end);
-
-        fwrite(wav_buf,sizeof(uint8_t),bytes_done,outfile);
-    }
-
-
     /* decode forever */
     while (cfg.play_forever) {
         int to_get = SAMPLE_BUFFER_SIZE;
@@ -515,7 +489,21 @@ int main(int argc, char** argv) {
     }
 
 
-    apply_seek(buf, vgmstream, cfg.seek_samples);
+    /* slap on a .wav header */
+    if (!cfg.decode_only) {
+        uint8_t wav_buf[0x100];
+        int channels_write = (cfg.only_stereo != -1) ? 2 : channels;
+        size_t bytes_done;
+
+        bytes_done = make_wav_header(wav_buf,0x100,
+                len_samples, vgmstream->sample_rate, channels_write,
+                cfg.write_lwav, cfg.lwav_loop_start, cfg.lwav_loop_end);
+
+        fwrite(wav_buf,sizeof(uint8_t),bytes_done,outfile);
+    }
+
+
+    seek_vgmstream(vgmstream, cfg.seek_samples);
 
     /* decode */
     for (i = 0; i < len_samples; i += SAMPLE_BUFFER_SIZE) {
@@ -555,10 +543,6 @@ int main(int argc, char** argv) {
             goto fail;
         }
 
-        reset_vgmstream(vgmstream);
-
-        apply_seek(buf, vgmstream, cfg.seek_samples);
-
         /* slap on a .wav header */
         if (!cfg.decode_only) {
             uint8_t wav_buf[0x100];
@@ -571,6 +555,11 @@ int main(int argc, char** argv) {
 
             fwrite(wav_buf,sizeof(uint8_t),bytes_done,outfile);
         }
+
+
+        reset_vgmstream(vgmstream);
+
+        seek_vgmstream(vgmstream, cfg.seek_samples);
 
         /* decode */
         for (i = 0; i < len_samples; i += SAMPLE_BUFFER_SIZE) {

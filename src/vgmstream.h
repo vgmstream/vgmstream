@@ -825,14 +825,17 @@ typedef struct {
     int input_channels;
     int output_channels;
 
+    int32_t pad_begin_duration;
     int32_t pad_begin_left;
+    int32_t trim_begin_duration;
     int32_t trim_begin_left;
-    int32_t body_left;
+    int32_t body_duration;
     int32_t fade_duration;
-    int32_t fade_start;
     int32_t fade_left;
-    int32_t pad_end_start;
+    int32_t fade_start;
+    int32_t pad_end_duration;
     int32_t pad_end_left;
+    int32_t pad_end_start;
 
     int32_t play_duration;      /* total samples that the stream lasts (after applying all config) */
     int32_t play_position;      /* absolute sample where stream is */
@@ -1107,6 +1110,9 @@ int32_t get_vgmstream_play_samples(double looptimes, double fadeseconds, double 
 
 /* Decode data into sample buffer. Returns < sample_count on stream end */
 int render_vgmstream(sample_t* buffer, int32_t sample_count, VGMSTREAM* vgmstream);
+
+/* Seek to sample position (next render starts from that point). Use only with internal config set */
+void seek_vgmstream(VGMSTREAM* vgmstream, int32_t seek_sample);
 
 /* Write a description of the stream into array pointed by desc, which must be length bytes long.
  * Will always be null-terminated if length > 0 */

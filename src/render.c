@@ -5,6 +5,48 @@
 #include "plugins.h"
 
 
+/* VGMSTREAM RENDERING
+ * Caller asks for N samples in buf. vgmstream then calls layouts, that call decoders, and some optional pre/post-processing.
+ * Processing must be enabled externally: padding/trimming (config), mixing (output changes), resampling, etc.
+ *
+ * - MIXING
+ * After decoding sometimes we need to change number of channels, volume, etc. This is applied in order as
+ * a mixing chain, and modifies the final buffer (see mixing.c).
+ *
+ * - CONFIG
+ * A VGMSTREAM can work in 2 modes, defaults to simple mode:
+ * - simple mode (lib-like): decodes/loops forever and results are controlled externally (fades/max time/etc).
+ * - config mode (player-like): everything is internally controlled (pads/trims/time/fades/etc may be applied).
+ *
+ * It's done this way mainly for compatibility and to enable complex TXTP for layers/segments in selected cases
+ * (Wwise emulation). Could apply always some config like begin trim/padding + modify get_vgmstream_samples, but
+ * external caller may read loops/samples manually or apply its own config/fade, and changed output would mess it up.
+ *
+ * To enable config mode it needs 2 steps:
+ * - add some internal config settings (via TXTP, or passed by plugin).
+ * - enable flag with function (to signal "really delegate all decoding to vgmstream").
+ * Once done, plugin should simply decode until max samples (calculated by vgmstream).
+ *
+ * For complex layouts, behavior of "internal" (single segment/layer) and "external" (main) VGMSTREAMs is
+ * a bit complex. Internals' enable flag if play config exists (via TXTP), and this allows each part to be
+ * padded/trimmed/set time/loop/etc individually.
+ *
+ * Config mode in the external VGMSTREAM is mostly straighforward with segments:
+ * - each internal is always decoded separatedly (in simple or config mode) and results in N samples
+ * - segments may even loop "internally" before moving to next segment (by default they don't)
+ * - external's samples is the sum of all segments' N samples
+ * - looping, fades, etc then can be applied in the external part normally.
+ *
+ * With layers it's a bit more complex:
+ * - external's samples is the max of all layers
+ * - in simple mode external uses internal's looping to loop (for performance)
+ * - if layers' config mode is set, external can't rely on internal looping, so it uses it's own
+ *
+ * Layouts can contain layouts in cascade, so behavior can be a bit hard to understand at times.
+ * This mainly applies to TXTP, segments/layers in metas usually don't need to trigger config mode.
+ */
+
+
 int vgmstream_get_play_forever(VGMSTREAM* vgmstream) {
     return vgmstream->config.play_forever;
 }
@@ -89,68 +131,71 @@ static void setup_state_processing(VGMSTREAM* vgmstream) {
     //todo fade time also set to samples
 
     /* samples before all decode */
-    ps->pad_begin_left = pc->pad_begin;
+    ps->pad_begin_duration = pc->pad_begin;
 
     /* removed samples from first decode */
-    ps->trim_begin_left = pc->trim_begin;
+    ps->trim_begin_duration = pc->trim_begin;
 
     /* main samples part */
-    ps->body_left = 0;
+    ps->body_duration = 0;
     if (pc->body_time) {
-        ps->body_left += pc->body_time; /* whether it loops or not */
+        ps->body_duration += pc->body_time; /* whether it loops or not */
     }
     else if (vgmstream->loop_flag) {
         double loop_count = 1.0;
         if (pc->loop_count_set) /* may set 0.0 on purpose I guess */
             loop_count = pc->loop_count;
 
-        ps->body_left += vgmstream->loop_start_sample;
+        ps->body_duration += vgmstream->loop_start_sample;
         if (pc->ignore_fade) {
-            ps->body_left += (vgmstream->loop_end_sample - vgmstream->loop_start_sample) * (int)loop_count;
-            ps->body_left += (vgmstream->num_samples - vgmstream->loop_end_sample);
+            ps->body_duration += (vgmstream->loop_end_sample - vgmstream->loop_start_sample) * (int)loop_count;
+            ps->body_duration += (vgmstream->num_samples - vgmstream->loop_end_sample);
         }
         else {
-            ps->body_left += (vgmstream->loop_end_sample - vgmstream->loop_start_sample) * loop_count;
+            ps->body_duration += (vgmstream->loop_end_sample - vgmstream->loop_start_sample) * loop_count;
         }
     }
     else {
-        ps->body_left += vgmstream->num_samples;
+        ps->body_duration += vgmstream->num_samples;
     }
 
     /* samples from some modify body */
     if (pc->trim_begin)
-        ps->body_left -= pc->trim_begin;
+        ps->body_duration -= pc->trim_begin;
     if (pc->trim_end)
-        ps->body_left -= pc->trim_end;
+        ps->body_duration -= pc->trim_end;
     if (pc->fade_delay && vgmstream->loop_flag)
-        ps->body_left += pc->fade_delay * vgmstream->sample_rate;
+        ps->body_duration += pc->fade_delay * vgmstream->sample_rate;
 
     /* samples from fade part */
     if (pc->fade_time && vgmstream->loop_flag)
         ps->fade_duration = pc->fade_time * vgmstream->sample_rate;
-    ps->fade_start = ps->pad_begin_left + ps->body_left;
-    ps->fade_left = ps->fade_duration;
 
     /* samples from last part (anything beyond this is empty, unless play forever is set) */
-    ps->pad_end_start = ps->fade_start + ps->fade_left;
-    ps->pad_end_left = pc->pad_end;
+    ps->pad_end_duration = pc->pad_end;
 
     /* final count */
-    ps->play_duration = ps->pad_begin_left + ps->body_left + ps->fade_left + ps->pad_end_left;
+    ps->play_duration = ps->pad_begin_duration + ps->body_duration + ps->fade_duration + ps->pad_end_duration;
     ps->play_position = 0;
 
     /* values too big can overflow, just ignore */
-    if (ps->pad_begin_left < 0)
-        ps->pad_begin_left = 0;
-    if (ps->body_left < 0)
-        ps->body_left = 0;
-    if (ps->fade_left < 0)
-        ps->fade_left = 0;
-    if (ps->pad_end_left < 0)
-        ps->pad_end_left = 0;
+    if (ps->pad_begin_duration < 0)
+        ps->pad_begin_duration = 0;
+    if (ps->body_duration < 0)
+        ps->body_duration = 0;
+    if (ps->fade_duration < 0)
+        ps->fade_duration = 0;
+    if (ps->pad_end_duration < 0)
+        ps->pad_end_duration = 0;
     if (ps->play_duration < 0)
         ps->play_duration = 0;
 
+    ps->pad_begin_left = ps->pad_begin_duration;
+    ps->trim_begin_left = ps->trim_begin_duration;
+    ps->fade_left = ps->fade_duration;
+    ps->fade_start = ps->pad_begin_duration + ps->body_duration;
+    ps->pad_end_left = ps->pad_end_duration;
+    ps->pad_end_start = ps->fade_start + ps->fade_duration;
 
     /* other info (updated once mixing is enabled) */
     ps->input_channels = vgmstream->channels;
@@ -427,4 +472,56 @@ int render_vgmstream(sample_t* buf, int32_t sample_count, VGMSTREAM* vgmstream) 
     }
 
     return samples_done;
+}
+
+
+void seek_vgmstream(VGMSTREAM* vgmstream, int32_t seek_sample) {
+    play_state_t* ps = &vgmstream->pstate;
+    sample_t tmpbuf[0x40000]; /* big-ish buffer as less calls = better */
+    int buf_samples = 0x40000 / vgmstream->channels; /* no need to apply mixing */
+    int i;
+  //int play_duration = ps->play_duration;
+    int play_pos = ps->play_position;
+    int decode_samples = 0;
+  //int decode_pos = 0;
+
+    if (!vgmstream->config_enabled) {
+        return;
+    }
+
+    //todo allow seeking past max for loop forever
+    /* seeking past max for loop forever */
+    //if (seek_sample > play_duration)
+    //    seek_sample = play_duration;
+
+    /* find which relative decode sample corresponds to seek sample
+     * (if it falls in a pad or loop it can be simplified rather than decoding the full thing) */
+    //todo calculate
+
+    if (seek_sample < play_pos) {
+        reset_vgmstream(vgmstream);
+        decode_samples = seek_sample;
+    }
+    else if (seek_sample > play_pos) {
+        decode_samples = (seek_sample - play_pos);
+    }
+    else {
+        return;
+    }
+
+
+    for (i = 0; i < decode_samples; i += buf_samples) {
+        int to_get = buf_samples;
+        if (i + buf_samples > decode_samples)
+            to_get = decode_samples - i;
+
+        render_vgmstream(tmpbuf, to_get, vgmstream);
+
+        //todo
+        //render_layout(tmpbuf, to_get, vgmstream);
+        ///* no mixing needed */
+    }
+
+    /* adjust positions */
+    //todo
 }
