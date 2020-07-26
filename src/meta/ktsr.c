@@ -124,29 +124,6 @@ VGMSTREAM* init_vgmstream_ktsr(STREAMFILE* sf) {
             vgmstream->layout_type = layout_layered;
             vgmstream->coding_type = coding_ATRAC9;
             break;
-
-#if 0
-            atrac9_config cfg = {0};
-            if (ktsr.channels > 1) {
-                VGM_LOG("1\n");
-                goto fail;
-            }
-
-            /* 0x00: samples per frame */
-            /* 0x02: frame size */
-            cfg.config_data = read_u32be(ktsr.extra_offset + 0x04, sf_b);
-            if ((cfg.config_data & 0xFF) == 0xFE) /* later versions(?) in LE */
-                cfg.config_data = read_u32le(ktsr.extra_offset + 0x04, sf_b);
-
-            cfg.channels = vgmstream->channels;
-            cfg.encoder_delay = 256; /* observed default (ex. Attack on Titan PC vs Vita) */
-
-            vgmstream->codec_data = init_atrac9(&cfg);
-            if (!vgmstream->codec_data) goto fail;
-            vgmstream->coding_type = coding_ATRAC9;
-            vgmstream->layout_type = layout_none;
-            break;
-#endif
         }
 #endif
 
