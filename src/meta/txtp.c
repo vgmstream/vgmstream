@@ -2,6 +2,7 @@
 #include "../coding/coding.h"
 #include "../layout/layout.h"
 #include "../mixing.h"
+#include "../plugins.h"
 
 
 #define TXTP_LINE_MAX 1024
@@ -506,6 +507,10 @@ static void copy_time(int* dst_flag, int32_t* dst_time, double* dst_time_s, int*
 }
 
 static void copy_config(play_config_t* dst, play_config_t* src) {
+    if (!src->config_set)
+        return;
+
+    dst->config_set = 1;
     copy_flag(&dst->play_forever,       &src->play_forever);
     copy_flag(&dst->ignore_fade,        &src->ignore_fade);
     copy_flag(&dst->force_loop,         &src->force_loop);
@@ -521,12 +526,24 @@ static void copy_config(play_config_t* dst, play_config_t* src) {
     copy_time(&dst->body_time_set,      &dst->body_time,    &dst->body_time_s,     &src->body_time_set,     &src->body_time,    &src->body_time_s);
 }
 
+#if 0
+static void init_config(VGMSTREAM* vgmstream) {
+    play_config_t* cfg = &vgmstream->config;
+
+    //todo only on segmented/layered?
+    if (cfg->play_forever
+            cfg->loop_count_set || cfg->fade_time_set || cfg->fade_delay_set ||
+            cfg->pad_begin_set || cfg->pad_end_set || cfg->trim_begin_set || cfg->trim_end_set ||
+            cfg->body_time_set) {
+        VGM_LOG("setup!\n");
+
+    }
+}
+#endif
+
 static void apply_settings(VGMSTREAM* vgmstream, txtp_entry* current) {
 
-    /* default play config */
-    copy_config(&vgmstream->config, &current->config);
-
-    /* other settings */
+    /* base settings */
     if (current->sample_rate > 0) {
         vgmstream->sample_rate = current->sample_rate;
     }
@@ -638,6 +655,13 @@ static void apply_settings(VGMSTREAM* vgmstream, txtp_entry* current) {
             }
         }
     }
+
+
+    /* default play config (last after sample rate mods/mixing/etc) */
+    copy_config(&vgmstream->config, &current->config);
+    setup_state_vgmstream(vgmstream);
+    /* config is enabled in layouts or externally (for compatibility, since we don't know yet if this
+     * VGMSTREAM will part of a layout, or is enabled externally to not mess up plugins's calcs) */
 }
 
 
@@ -947,9 +971,7 @@ void add_mixing(txtp_entry* entry, txtp_mix_data* mix, txtp_mix_t command) {
     entry->mixing_count++;
 }
 
-static void add_settings(txtp_entry* current, txtp_entry* base, const char* filename) {
-    play_config_t* src_cfg = &base->config;
-    play_config_t* dst_cfg = &current->config;
+static void add_settings(txtp_entry* current, txtp_entry* entry, const char* filename) {
 
     /* don't memcopy to allow list additions and ignore values not set, as current can be "default" settings */
     //*current = *cfg;
@@ -959,50 +981,50 @@ static void add_settings(txtp_entry* current, txtp_entry* base, const char* file
 
 
     /* play config */
-    copy_config(dst_cfg, src_cfg);
+    copy_config(&current->config, &entry->config);
 
     /* file settings */
-    if (base->subsong)
-        current->subsong = base->subsong;
+    if (entry->subsong)
+        current->subsong = entry->subsong;
 
-    if (base->sample_rate > 0)
-        current->sample_rate = base->sample_rate;
+    if (entry->sample_rate > 0)
+        current->sample_rate = entry->sample_rate;
 
-    if (base->channel_mask)
-        current->channel_mask = base->channel_mask;
+    if (entry->channel_mask)
+        current->channel_mask = entry->channel_mask;
 
-    if (base->loop_install_set) {
-        current->loop_install_set = base->loop_install_set;
-        current->loop_end_max = base->loop_end_max;
-        current->loop_start_sample = base->loop_start_sample;
-        current->loop_start_second = base->loop_start_second;
-        current->loop_end_sample = base->loop_end_sample;
-        current->loop_end_second = base->loop_end_second;
+    if (entry->loop_install_set) {
+        current->loop_install_set = entry->loop_install_set;
+        current->loop_end_max = entry->loop_end_max;
+        current->loop_start_sample = entry->loop_start_sample;
+        current->loop_start_second = entry->loop_start_second;
+        current->loop_end_sample = entry->loop_end_sample;
+        current->loop_end_second = entry->loop_end_second;
     }
 
-    if (base->trim_set) {
-        current->trim_set = base->trim_set;
-        current->trim_second = base->trim_second;
-        current->trim_sample = base->trim_sample;
+    if (entry->trim_set) {
+        current->trim_set = entry->trim_set;
+        current->trim_second = entry->trim_second;
+        current->trim_sample = entry->trim_sample;
     }
 
-    if (base->mixing_count > 0) {
+    if (entry->mixing_count > 0) {
         int i;
-        for (i = 0; i < base->mixing_count; i++) {
-            current->mixing[current->mixing_count] = base->mixing[i];
+        for (i = 0; i < entry->mixing_count; i++) {
+            current->mixing[current->mixing_count] = entry->mixing[i];
             current->mixing_count++;
         }
     }
 }
 
-static void parse_params(txtp_entry* cfg, char* params) {
+static void parse_params(txtp_entry* entry, char* params) {
     /* parse params: #(commands) */
     int n, nc, nm, mc;
     char command[TXTP_LINE_MAX] = {0};
-    play_config_t* tcfg = &cfg->config;
+    play_config_t* tcfg = &entry->config;
 
-    cfg->range_start = 0;
-    cfg->range_end = 1;
+    entry->range_start = 0;
+    entry->range_end = 1;
 
     while (params != NULL) {
         /* position in next #(command) */
@@ -1024,8 +1046,8 @@ static void parse_params(txtp_entry* cfg, char* params) {
         if (strcmp(command,"c") == 0) {
             /* channel mask: file.ext#c1,2 = play channels 1,2 and mutes rest */
 
-            params += get_mask(params, &cfg->channel_mask);
-            //;VGM_LOG("TXTP:   channel_mask ");{int i; for (i=0;i<16;i++)VGM_LOG("%i ",(cfg->channel_mask>>i)&1);}VGM_LOG("\n");
+            params += get_mask(params, &entry->channel_mask);
+            //;VGM_LOG("TXTP:   channel_mask ");{int i; for (i=0;i<16;i++)VGM_LOG("%i ",(entry->channel_mask>>i)&1);}VGM_LOG("\n");
         }
         else if (strcmp(command,"m") == 0) {
             /* channel mixing: file.ext#m(sub-command),(sub-command),etc */
@@ -1044,7 +1066,7 @@ static void parse_params(txtp_entry* cfg, char* params) {
 
                 if (sscanf(params, " %d - %d%n", &mix.ch_dst, &mix.ch_src, &n) == 2 && n != 0) {
                     //;VGM_LOG("TXTP:   mix %i-%i\n", mix.ch_dst, mix.ch_src);
-                    add_mixing(cfg, &mix, MIX_SWAP); /* N-M: swaps M with N */
+                    add_mixing(entry, &mix, MIX_SWAP); /* N-M: swaps M with N */
                     params += n;
                     continue;
                 }
@@ -1052,14 +1074,14 @@ static void parse_params(txtp_entry* cfg, char* params) {
                 if ((sscanf(params, " %d + %d * %lf%n", &mix.ch_dst, &mix.ch_src, &mix.vol, &n) == 3 && n != 0) ||
                     (sscanf(params, " %d + %d x %lf%n", &mix.ch_dst, &mix.ch_src, &mix.vol, &n) == 3 && n != 0)) {
                     //;VGM_LOG("TXTP:   mix %i+%i*%f\n", mix.ch_dst, mix.ch_src, mix.vol);
-                    add_mixing(cfg, &mix, MIX_ADD_VOLUME); /* N+M*V: mixes M*volume to N */
+                    add_mixing(entry, &mix, MIX_ADD_VOLUME); /* N+M*V: mixes M*volume to N */
                     params += n;
                     continue;
                 }
 
                 if (sscanf(params, " %d + %d%n", &mix.ch_dst, &mix.ch_src, &n) == 2 && n != 0) {
                     //;VGM_LOG("TXTP:   mix %i+%i\n", mix.ch_dst, mix.ch_src);
-                    add_mixing(cfg, &mix, MIX_ADD); /* N+M: mixes M to N */
+                    add_mixing(entry, &mix, MIX_ADD); /* N+M: mixes M to N */
                     params += n;
                     continue;
                 }
@@ -1067,35 +1089,35 @@ static void parse_params(txtp_entry* cfg, char* params) {
                 if ((sscanf(params, " %d * %lf%n", &mix.ch_dst, &mix.vol, &n) == 2 && n != 0) ||
                     (sscanf(params, " %d x %lf%n", &mix.ch_dst, &mix.vol, &n) == 2 && n != 0)) {
                     //;VGM_LOG("TXTP:   mix %i*%f\n", mix.ch_dst, mix.vol);
-                    add_mixing(cfg, &mix, MIX_VOLUME); /* N*V: changes volume of N */
+                    add_mixing(entry, &mix, MIX_VOLUME); /* N*V: changes volume of N */
                     params += n;
                     continue;
                 }
 
                 if ((sscanf(params, " %d = %lf%n", &mix.ch_dst, &mix.vol, &n) == 2 && n != 0)) {
                     //;VGM_LOG("TXTP:   mix %i=%f\n", mix.ch_dst, mix.vol);
-                    add_mixing(cfg, &mix, MIX_LIMIT); /* N=V: limits volume of N */
+                    add_mixing(entry, &mix, MIX_LIMIT); /* N=V: limits volume of N */
                     params += n;
                     continue;
                 }
 
                 if (sscanf(params, " %d%c%n", &mix.ch_dst, &cmd, &n) == 2 && n != 0 && cmd == 'D') {
                     //;VGM_LOG("TXTP:   mix %iD\n", mix.ch_dst);
-                    add_mixing(cfg, &mix, MIX_KILLMIX); /* ND: downmix N and all following channels */
+                    add_mixing(entry, &mix, MIX_KILLMIX); /* ND: downmix N and all following channels */
                     params += n;
                     continue;
                 }
 
                 if (sscanf(params, " %d%c%n", &mix.ch_dst, &cmd, &n) == 2 && n != 0 && cmd == 'd') {
                     //;VGM_LOG("TXTP:   mix %id\n", mix.ch_dst);
-                    add_mixing(cfg, &mix, MIX_DOWNMIX);/* Nd: downmix N only */
+                    add_mixing(entry, &mix, MIX_DOWNMIX);/* Nd: downmix N only */
                     params += n;
                     continue;
                 }
 
                 if (sscanf(params, " %d%c%n", &mix.ch_dst, &cmd, &n) == 2 && n != 0 && cmd == 'u') {
                     //;VGM_LOG("TXTP:   mix %iu\n", mix.ch_dst);
-                    add_mixing(cfg, &mix, MIX_UPMIX); /* Nu: upmix N */
+                    add_mixing(entry, &mix, MIX_UPMIX); /* Nu: upmix N */
                     params += n;
                     continue;
                 }
@@ -1104,7 +1126,7 @@ static void parse_params(txtp_entry* cfg, char* params) {
                     //;VGM_LOG("TXTP:   fade %d^%f~%f=%c@%f~%f+%f~%f\n",
                     //        mix.ch_dst, mix.vol_start, mix.vol_end, mix.shape,
                     //        mix.time_pre, mix.time_start, mix.time_end, mix.time_post);
-                    add_mixing(cfg, &mix, MIX_FADE); /* N^V1~V2@T1~T2+T3~T4: fades volumes between positions */
+                    add_mixing(entry, &mix, MIX_FADE); /* N^V1~V2@T1~T2+T3~T4: fades volumes between positions */
                     params += n;
                     continue;
                 }
@@ -1119,15 +1141,15 @@ static void parse_params(txtp_entry* cfg, char* params) {
             //todo also advance params?
             if (sscanf(params, " %d ~ %d", &subsong_start, &subsong_end) == 2) {
                 if (subsong_start > 0 && subsong_end > 0) {
-                    cfg->range_start = subsong_start-1;
-                    cfg->range_end = subsong_end;
+                    entry->range_start = subsong_start-1;
+                    entry->range_end = subsong_end;
                 }
                 //;VGM_LOG("TXTP:   subsong range %i~%i\n", range_start, range_end);
             }
             else if (sscanf(params, " %d", &subsong_start) == 1) {
                 if (subsong_start > 0) {
-                    cfg->range_start = subsong_start-1;
-                    cfg->range_end = subsong_start;
+                    entry->range_start = subsong_start-1;
+                    entry->range_end = subsong_start;
                 }
                 //;VGM_LOG("TXTP:   subsong single %i-%i\n", range_start, range_end);
             }
@@ -1136,86 +1158,91 @@ static void parse_params(txtp_entry* cfg, char* params) {
             }
         }
 
-        /* play settings */
+        /* play config */
         else if (strcmp(command,"i") == 0) {
             params += get_bool(params, &tcfg->ignore_loop);
-            //;VGM_LOG("TXTP:   ignore_loop=%i\n", tcfg->ignore_loop);
+            tcfg->config_set = 1;
         }
         else if (strcmp(command,"e") == 0) {
             params += get_bool(params, &tcfg->force_loop);
-            //;VGM_LOG("TXTP:   force_loop=%i\n", tcfg->force_loop);
+            tcfg->config_set = 1;
         }
         else if (strcmp(command,"E") == 0) {
             params += get_bool(params, &tcfg->really_force_loop);
+            tcfg->config_set = 1;
         }
         else if (strcmp(command,"F") == 0) {
             params += get_bool(params, &tcfg->ignore_fade);
-            //;VGM_LOG("TXTP:   ignore_fade=%i\n", tcfg->ignore_fade);
+            tcfg->config_set = 1;
         }
         else if (strcmp(command,"L") == 0) {
             params += get_bool(params, &tcfg->play_forever);
-            //;VGM_LOG("TXTP:   play_forever=%i\n", tcfg->play_forever);
+            tcfg->config_set = 1;
         }
         else if (strcmp(command,"l") == 0) {
             params += get_double(params, &tcfg->loop_count, &tcfg->loop_count_set);
             if (tcfg->loop_count < 0)
                 tcfg->loop_count_set = 0;
-            //;VGM_LOG("TXTP:   loop_count=%f\n", tcfg->loop_count);
+            tcfg->config_set = 1;
         }
         else if (strcmp(command,"f") == 0) {
             params += get_double(params, &tcfg->fade_time, &tcfg->fade_time_set);
             if (tcfg->fade_time < 0)
                 tcfg->fade_time_set = 0;
-            //;VGM_LOG("TXTP:   fade_time=%f\n", tcfg->fade_time);
+            tcfg->config_set = 1;
         }
         else if (strcmp(command,"d") == 0) {
             params += get_double(params, &tcfg->fade_delay, &tcfg->fade_delay_set);
             if (tcfg->fade_delay < 0)
                 tcfg->fade_delay_set = 0;
-            //;VGM_LOG("TXTP:   fade_delay %f\n", tcfg->fade_delay);
+            tcfg->config_set = 1;
         }
         else if (strcmp(command,"p") == 0) {
             params += get_time_f(params, &tcfg->pad_begin_s, &tcfg->pad_begin, &tcfg->pad_begin_set);
+            tcfg->config_set = 1;
         }
         else if (strcmp(command,"P") == 0) {
             params += get_time_f(params, &tcfg->pad_end_s, &tcfg->pad_end, &tcfg->pad_end_set);
+            tcfg->config_set = 1;
         }
         else if (strcmp(command,"r") == 0) {
             params += get_time_f(params, &tcfg->trim_begin_s, &tcfg->trim_begin, &tcfg->trim_begin_set);
+            tcfg->config_set = 1;
         }
         else if (strcmp(command,"R") == 0) {
             params += get_time_f(params, &tcfg->trim_end_s, &tcfg->trim_end, &tcfg->trim_end_set);
+            tcfg->config_set = 1;
         }
         else if (strcmp(command,"b") == 0) {
             params += get_time_f(params, &tcfg->body_time_s, &tcfg->body_time, &tcfg->body_time_set);
-            //;VGM_LOG("TXTP:   body_time %i, %f, %i\n", tcfg->body_time_set, tcfg->body_time_s, tcfg->body_time);
+            tcfg->config_set = 1;
         }
 
         /* other settings */
         else if (strcmp(command,"h") == 0) {
-            params += get_int(params, &cfg->sample_rate);
+            params += get_int(params, &entry->sample_rate);
             //;VGM_LOG("TXTP:   sample_rate %i\n", cfg->sample_rate);
         }
         else if (strcmp(command,"I") == 0) {
-            n = get_time(params,  &cfg->loop_start_second, &cfg->loop_start_sample);
+            n = get_time(params,  &entry->loop_start_second, &entry->loop_start_sample);
             if (n > 0) { /* first value must exist */
                 params += n;
 
-                n = get_time(params,  &cfg->loop_end_second, &cfg->loop_end_sample);
+                n = get_time(params,  &entry->loop_end_second, &entry->loop_end_sample);
                 if (n == 0) { /* second value is optional */
-                    cfg->loop_end_max = 1;
+                    entry->loop_end_max = 1;
                 }
 
                 params += n;
-                cfg->loop_install_set = 1;
+                entry->loop_install_set = 1;
             }
 
-            //;VGM_LOG("TXTP:   loop_install %i (max=%i): %i %i / %f %f\n", cfg->loop_install, cfg->loop_end_max,
-            //        cfg->loop_start_sample, cfg->loop_end_sample, cfg->loop_start_second, cfg->loop_end_second);
+            //;VGM_LOG("TXTP:   loop_install %i (max=%i): %i %i / %f %f\n", entry->loop_install, entry->loop_end_max,
+            //        entry->loop_start_sample, entry->loop_end_sample, entry->loop_start_second, entry->loop_end_second);
         }
         else if (strcmp(command,"t") == 0) {
-            cfg->trim_set = get_time(params,  &cfg->trim_second, &cfg->trim_sample);
-            //;VGM_LOG("TXTP: trim %i - %f / %i\n", cfg->trim_set, cfg->trim_second, cfg->trim_sample);
+            entry->trim_set = get_time(params,  &entry->trim_second, &entry->trim_sample);
+            //;VGM_LOG("TXTP: trim %i - %f / %i\n", entry->trim_set, entry->trim_second, entry->trim_sample);
         }
 
         //todo cleanup
@@ -1231,7 +1258,7 @@ static void parse_params(txtp_entry* cfg, char* params) {
             nm = get_mask(params, &mix.mask);
             params += nm;
 
-            add_mixing(cfg, &mix, MACRO_VOLUME);
+            add_mixing(entry, &mix, MACRO_VOLUME);
         }
         else if (strcmp(command,"@track") == 0 ||
                  strcmp(command,"C") == 0 ) {
@@ -1241,7 +1268,7 @@ static void parse_params(txtp_entry* cfg, char* params) {
             params += nm;
             if (nm == 0) continue;
 
-            add_mixing(cfg, &mix, MACRO_TRACK);
+            add_mixing(entry, &mix, MACRO_TRACK);
         }
         else if (strcmp(command,"@layer-v") == 0 ||
                  strcmp(command,"@layer-b") == 0 ||
@@ -1256,7 +1283,7 @@ static void parse_params(txtp_entry* cfg, char* params) {
             params += nm;
 
             mix.mode = command[7]; /* pass letter */
-            add_mixing(cfg, &mix, MACRO_LAYER);
+            add_mixing(entry, &mix, MACRO_LAYER);
         }
         else if (strcmp(command,"@crosslayer-v") == 0 ||
                  strcmp(command,"@crosslayer-b") == 0 ||
@@ -1276,7 +1303,7 @@ static void parse_params(txtp_entry* cfg, char* params) {
             params += nm;
             if (nm == 0) continue;
 
-            add_mixing(cfg, &mix, type);
+            add_mixing(entry, &mix, type);
         }
         else if (strcmp(command,"@downmix") == 0) {
             txtp_mix_data mix = {0};
@@ -1286,7 +1313,7 @@ static void parse_params(txtp_entry* cfg, char* params) {
             //params += nm;
             //if (nm == 0) continue;
 
-            add_mixing(cfg, &mix, MACRO_DOWNMIX);
+            add_mixing(entry, &mix, MACRO_DOWNMIX);
         }
         else if (params[nc] == ' ') {
             //;VGM_LOG("TXTP:   comment\n");

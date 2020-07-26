@@ -986,15 +986,19 @@ void vgmstream_force_loop(VGMSTREAM* vgmstream, int loop_flag, int loop_start_sa
 
     /* this requires a bit more messing with the VGMSTREAM than I'm comfortable with... */
     if (loop_flag && !vgmstream->loop_flag && !vgmstream->loop_ch) {
-        vgmstream->loop_ch = calloc(vgmstream->channels,sizeof(VGMSTREAMCHANNEL));
+        vgmstream->loop_ch = calloc(vgmstream->channels, sizeof(VGMSTREAMCHANNEL));
         if (!vgmstream->loop_ch) loop_flag = 0; /* ??? */
     }
+#if 0
+    /* allow in case loop_flag is re-enabled later  */
     else if (!loop_flag && vgmstream->loop_flag) {
-        free(vgmstream->loop_ch); /* not important though */
+        free(vgmstream->loop_ch);
         vgmstream->loop_ch = NULL;
     }
+#endif
 
     vgmstream->loop_flag = loop_flag;
+
     if (loop_flag) {
         vgmstream->loop_start_sample = loop_start_sample;
         vgmstream->loop_end_sample = loop_end_sample;
@@ -1009,9 +1013,12 @@ void vgmstream_force_loop(VGMSTREAM* vgmstream, int loop_flag, int loop_start_sa
     /* propagate changes to layouts that need them */
     if (vgmstream->layout_type == layout_layered) {
         int i;
-        layered_layout_data *data = vgmstream->layout_data;
+        layered_layout_data* data = vgmstream->layout_data;
+
+        /* layered loops using the internal VGMSTREAMs */
         for (i = 0; i < data->layer_count; i++) {
-            vgmstream_force_loop(data->layers[i], loop_flag, loop_start_sample, loop_end_sample);
+            if (!data->layers[i]->config_enabled) /* only in simple mode */
+                vgmstream_force_loop(data->layers[i], loop_flag, loop_start_sample, loop_end_sample);
             /* layer's force_loop also calls setup_vgmstream, no need to do it here */
         }
     }
@@ -1166,9 +1173,11 @@ static int render_pad_begin(VGMSTREAM* vgmstream, sample_t* buf, int samples_to_
 void render_vgmstream(sample_t* buf, int32_t sample_count, VGMSTREAM* vgmstream) {
     int done;
     int samples_done = 0;
+    sample_t* tmpbuf = buf;
 
-    /* no settings */
-    if (!vgmstream->config_set) {
+
+    /* simple mode with no settings */
+    if (!vgmstream->config_enabled) {
         render_layout(buf, sample_count, vgmstream);
         mix_vgmstream(buf, sample_count, vgmstream);
         return;
@@ -1182,22 +1191,22 @@ void render_vgmstream(sample_t* buf, int32_t sample_count, VGMSTREAM* vgmstream)
 
     /* adds empty samples to buf */
     if (vgmstream->pstate.pad_begin_left) {
-        done = render_pad_begin(vgmstream, buf, sample_count);
+        done = render_pad_begin(vgmstream, tmpbuf, sample_count);
         samples_done += done;
         sample_count -= done;
-        buf += done * vgmstream->pstate.output_channels;
+        tmpbuf += done * vgmstream->pstate.output_channels;
     }
 
     /* main decode */
     {
-        done = render_layout(buf, sample_count, vgmstream);
+        done = render_layout(tmpbuf, sample_count, vgmstream);
         samples_done += done;
-        mix_vgmstream(buf, done, vgmstream);
+        mix_vgmstream(tmpbuf, done, vgmstream);
     }
 
     /* simple fadeout */
     if (vgmstream->pstate.fade_left && !vgmstream->config.play_forever) {
-        render_fade(vgmstream, buf, samples_done);
+        render_fade(vgmstream, tmpbuf, samples_done);
     }
     /* silence samples in buf */
     //else if (vgmstream->pstate.pad_end_left) {
@@ -1208,11 +1217,15 @@ void render_vgmstream(sample_t* buf, int32_t sample_count, VGMSTREAM* vgmstream)
     vgmstream->pstate.play_position += samples_done;
 
     if (vgmstream->pstate.play_position > vgmstream->pstate.play_duration) {
+        //int channels = vgmstream->pstate.output_channels;
+
         //todo silence if position > end and not loop forever?
         //if (!vgmstream->config.play_forever) {
         //    memset(...);
         //}
         vgmstream->pstate.play_position = vgmstream->pstate.play_duration;
+
+        //memset(buf, 0, samples_done * sizeof(sample_t) * channels);
     }
 }
 
@@ -2448,6 +2461,7 @@ int vgmstream_do_loop(VGMSTREAM* vgmstream) {
         vgmstream->current_block_samples = vgmstream->loop_block_samples;
         vgmstream->current_block_offset = vgmstream->loop_block_offset;
         vgmstream->next_block_offset = vgmstream->loop_next_block_offset;
+        //vgmstream->pstate = vgmstream->lstate; /* play state is applied over loops */
 
         return 1; /* looped */
     }
@@ -2463,6 +2477,8 @@ int vgmstream_do_loop(VGMSTREAM* vgmstream) {
         vgmstream->loop_block_samples = vgmstream->current_block_samples;
         vgmstream->loop_block_offset = vgmstream->current_block_offset;
         vgmstream->loop_next_block_offset = vgmstream->next_block_offset;
+        //vgmstream->lstate = vgmstream->pstate; /* play state is applied over loops */
+
         vgmstream->hit_loop = 1;
     }
 
@@ -2628,7 +2644,7 @@ void describe_vgmstream(VGMSTREAM* vgmstream, char* desc, int length) {
         concatn(length,desc,temp);
     }
 
-    if (vgmstream->config_set) {
+    if (vgmstream->config_enabled) {
         double time_mm, time_ss, seconds;
         int32_t samples = vgmstream->pstate.play_duration;
 

@@ -6,15 +6,46 @@
 int vgmstream_get_play_forever(VGMSTREAM* vgmstream) {
     return vgmstream->config.play_forever;
 }
+
 int32_t vgmstream_get_samples(VGMSTREAM* vgmstream) {
-    if (!vgmstream->config_set)
+    if (!vgmstream->config_enabled || !vgmstream->config.config_set)
         return vgmstream->num_samples;
     return vgmstream->pstate.play_duration;
 }
 
 /*****************************************************************************/
 
-static void setup_state_vgmstream(VGMSTREAM* vgmstream) {
+static void setup_state_modifiers(VGMSTREAM* vgmstream) {
+    play_config_t* pc = &vgmstream->config;
+
+    /* apply final config */
+    if (pc->really_force_loop) {
+        vgmstream_force_loop(vgmstream, 1, 0,vgmstream->num_samples);
+    }
+    if (pc->force_loop && !vgmstream->loop_flag) {
+        vgmstream_force_loop(vgmstream, 1, 0,vgmstream->num_samples);
+    }
+    if (pc->ignore_loop) {
+        vgmstream_force_loop(vgmstream, 0, 0,0);
+    }
+
+    if (!vgmstream->loop_flag) {
+        pc->play_forever = 0;
+    }
+    if (pc->play_forever) {
+        pc->ignore_fade = 0;
+    }
+
+
+    /* loop N times, but also play stream end instead of fading out */
+    if (pc->ignore_fade) {
+        vgmstream_set_loop_target(vgmstream, (int)pc->loop_count);
+        pc->fade_time = 0;
+        pc->fade_delay = 0;
+    }
+}
+
+static void setup_state_processing(VGMSTREAM* vgmstream) {
     play_state_t* ps = &vgmstream->pstate;
     play_config_t* pc = &vgmstream->config;
     double sample_rate = vgmstream->sample_rate;
@@ -44,13 +75,17 @@ static void setup_state_vgmstream(VGMSTREAM* vgmstream) {
         ps->body_left += pc->body_time; /* whether it loops or not */
     }
     else if (vgmstream->loop_flag) {
+        double loop_count = 1.0;
+        if (pc->loop_count_set) /* may set 0.0 on purpose I guess */
+            loop_count = pc->loop_count;
+
         ps->body_left += vgmstream->loop_start_sample;
         if (pc->ignore_fade) {
-            ps->body_left += (vgmstream->loop_end_sample - vgmstream->loop_start_sample) * (int)pc->loop_count;
+            ps->body_left += (vgmstream->loop_end_sample - vgmstream->loop_start_sample) * (int)loop_count;
             ps->body_left += (vgmstream->num_samples - vgmstream->loop_end_sample);
         }
         else {
-            ps->body_left += (vgmstream->loop_end_sample - vgmstream->loop_start_sample) * pc->loop_count;
+            ps->body_left += (vgmstream->loop_end_sample - vgmstream->loop_start_sample) * loop_count;
         }
     }
     else {
@@ -99,15 +134,13 @@ static void setup_state_vgmstream(VGMSTREAM* vgmstream) {
     ps->output_channels = vgmstream->channels;
 }
 
-static void load_player_config(VGMSTREAM* vgmstream, play_config_t* def, vgmstream_cfg_t* vcfg) {
-    def->play_forever = vcfg->play_forever;
-    def->ignore_loop = vcfg->ignore_loop;
-    def->force_loop = vcfg->force_loop;
-    def->really_force_loop = vcfg->really_force_loop;
-    def->ignore_fade = vcfg->ignore_fade;
-    def->loop_count = vcfg->loop_times;  //todo loop times
-    def->fade_delay = vcfg->fade_delay;
-    def->fade_time = vcfg->fade_period; //todo loop period
+void setup_state_vgmstream(VGMSTREAM* vgmstream) {
+    if (!vgmstream->config.config_set)
+        return;
+
+    setup_state_modifiers(vgmstream);
+    setup_state_processing(vgmstream);
+    setup_vgmstream(vgmstream); /* save current config for reset */
 }
 
 
@@ -119,7 +152,9 @@ static void copy_time(int* dst_flag, int32_t* dst_time, double* dst_time_s, int*
     *dst_time_s = *src_time_s;
 }
 
-static void load_internal_config(VGMSTREAM* vgmstream, play_config_t* def, play_config_t* tcfg) {
+//todo reuse in txtp?
+static void load_default_config(play_config_t* def, play_config_t* tcfg) {
+
     /* loop limit: txtp #L > txtp #l > player #L > player #l */
     if (tcfg->play_forever) {
         def->play_forever = 1;
@@ -128,6 +163,7 @@ static void load_internal_config(VGMSTREAM* vgmstream, play_config_t* def, play_
     if (tcfg->loop_count_set) {
         def->ignore_loop = 0;
         def->loop_count = tcfg->loop_count;
+        def->loop_count_set = 1;
         if (!tcfg->play_forever)
             def->play_forever = 0;
     }
@@ -167,6 +203,20 @@ static void load_internal_config(VGMSTREAM* vgmstream, play_config_t* def, play_
     copy_time(&def->body_time_set,  &def->body_time,    &def->body_time_s,      &tcfg->body_time_set,   &tcfg->body_time,   &tcfg->body_time_s);
 }
 
+static void load_player_config(play_config_t* def, vgmstream_cfg_t* vcfg) {
+    def->play_forever = vcfg->play_forever;
+    def->ignore_loop = vcfg->ignore_loop;
+    def->force_loop = vcfg->force_loop;
+    def->really_force_loop = vcfg->really_force_loop;
+    def->ignore_fade = vcfg->ignore_fade;
+
+    def->loop_count = vcfg->loop_times;  //todo loop times
+    def->loop_count_set = 1;
+    def->fade_delay = vcfg->fade_delay;
+    def->fade_delay_set = 1;
+    def->fade_time = vcfg->fade_period; //todo loop period
+    def->fade_time_set = 1;
+}
 
 void vgmstream_apply_config(VGMSTREAM* vgmstream, vgmstream_cfg_t* vcfg) {
     play_config_t defs = {0};
@@ -174,48 +224,20 @@ void vgmstream_apply_config(VGMSTREAM* vgmstream, vgmstream_cfg_t* vcfg) {
     play_config_t* tcfg = &vgmstream->config;
 
 
-    load_player_config(vgmstream, def, vcfg);
+    load_player_config(def, vcfg);
+    def->config_set = 1;
 
     if (!vcfg->disable_config_override)
-        load_internal_config(vgmstream, def, tcfg);
+        load_default_config(def, tcfg);
 
-
-    /* apply final config */
-    if (def->really_force_loop) {
-        vgmstream_force_loop(vgmstream, 1, 0,vgmstream->num_samples);
-    }
-    if (def->force_loop && !vgmstream->loop_flag) {
-        vgmstream_force_loop(vgmstream, 1, 0,vgmstream->num_samples);
-    }
-    if (def->ignore_loop) {
-        vgmstream_force_loop(vgmstream, 0, 0,0);
-    }
-
-    /* remove non-compatible options */
     if (!vcfg->allow_play_forever)
         def->play_forever = 0;
 
-    if (!vgmstream->loop_flag) {
-        def->play_forever = 0;
-    }
-    if (def->play_forever) {
-        def->ignore_fade = 0;
-    }
-
-    /* loop N times, but also play stream end instead of fading out */
-    if (def->ignore_fade) {
-        vgmstream_set_loop_target(vgmstream, (int)def->loop_count);
-        def->fade_time = 0;
-        def->fade_delay = 0;
-    }
-
-
     /* copy final config back */
      *tcfg = *def;
-     vgmstream->config_set = 1;
 
+     vgmstream->config_enabled = def->config_set;
      setup_state_vgmstream(vgmstream);
-     setup_vgmstream(vgmstream); /* save current config for reset */
 }
 
 /*****************************************************************************/

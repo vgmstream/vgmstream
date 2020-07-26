@@ -780,6 +780,8 @@ typedef enum {
 } mapping_t;
 
 typedef struct {
+    int config_set; /* some of the mods below are set */
+
     /* modifiers */
     int play_forever;
     int ignore_loop;
@@ -964,15 +966,11 @@ typedef struct {
 
 
     /* play config/state */
-    int config_set;                 /* config can be used */
+    int config_enabled;             /* config can be used */
     play_config_t config;           /* player config (applied over decoding) */
     play_state_t pstate;            /* player state (applied over decoding) */
     int loop_count;                 /* counter of complete loops (1=looped once) */
     int loop_target;                /* max loops before continuing with the stream end (loops forever if not set) */
-    /* config must be set/allowed by the player, otherwise vgmstream behaves like a simple lib decoder
-     * (could always apply some config like begin trim/padding + modify get_vgmstream_samples, but
-     * external caller may read loops/samples manually and wouldn't expect this changed output),
-     * also segment/layer layouts may behave differently wheter set or not */
 
 } VGMSTREAM;
 
@@ -994,6 +992,7 @@ typedef struct {
     sample_t* buffer;
     int input_channels;     /* internal buffer channels */
     int output_channels;    /* resulting channels (after mixing, if applied) */
+    int external_looping;   /* don't loop using per-layer loops, but layout's own looping */
 } layered_layout_data;
 
 
@@ -1172,4 +1171,5 @@ void get_vgmstream_meta_description(VGMSTREAM* vgmstream, char* out, size_t out_
 
 
 void render_fade(VGMSTREAM* vgmstream, sample_t* buf, int samples_done);
+void setup_state_vgmstream(VGMSTREAM* vgmstream);
 #endif
