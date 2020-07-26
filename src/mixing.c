@@ -119,6 +119,10 @@ static int is_active(mixing_data *data, int32_t current_start, int32_t current_e
 static int32_t get_current_pos(VGMSTREAM* vgmstream, int32_t sample_count) {
     int32_t current_pos;
 
+    if (vgmstream->config_enabled) {
+        return vgmstream->pstate.play_position;
+    }
+
     if (vgmstream->loop_flag && vgmstream->loop_count > 0) {
         int loop_pre = vgmstream->loop_start_sample; /* samples before looping */
         int loop_into = (vgmstream->current_sample - vgmstream->loop_start_sample); /* samples after loop */
