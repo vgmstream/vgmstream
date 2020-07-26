@@ -21,6 +21,10 @@ void render_vgmstream_segmented(sample_t* outbuf, int32_t sample_count, VGMSTREA
         use_internal_buffer = 1;
     }
 
+    if (data->current_segment >= data->segment_count) {
+        VGM_LOG("SEGMENT: wrong current segment\n");
+        return;
+    }
 
     while (samples_written < sample_count) {
         int samples_to_do;
@@ -75,6 +79,10 @@ void render_vgmstream_segmented(sample_t* outbuf, int32_t sample_count, VGMSTREA
         /* detect segment change and restart */
         if (samples_to_do == 0) {
             data->current_segment++;
+            /* could happen on last segment trying to decode more samples */
+            if (data->current_segment >= data->segment_count) {
+                break;
+            }
             reset_vgmstream(data->segments[data->current_segment]);
             vgmstream->samples_into_block = 0;
             continue;

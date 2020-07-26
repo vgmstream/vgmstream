@@ -106,11 +106,9 @@ static void setup_state_processing(VGMSTREAM* vgmstream) {
     ps->fade_start = ps->pad_begin_left + ps->body_left;
     ps->fade_left = ps->fade_duration;
 
-    /* samples from last part */
+    /* samples from last part (anything beyond this is empty, unless play forever is set) */
+    ps->pad_end_start = ps->fade_start + ps->fade_left;
     ps->pad_end_left = pc->pad_end;
-
-    /* todo if play forever: ignore some? */
-
 
     /* final count */
     ps->play_duration = ps->pad_begin_left + ps->body_left + ps->fade_left + ps->pad_end_left;
@@ -242,36 +240,45 @@ void vgmstream_apply_config(VGMSTREAM* vgmstream, vgmstream_cfg_t* vcfg) {
 
 /*****************************************************************************/
 
-void render_fade(VGMSTREAM* vgmstream, sample_t* buf, int samples_done) {
+int render_fade(VGMSTREAM* vgmstream, sample_t* buf, int samples_done) {
     play_state_t* ps = &vgmstream->pstate;
-    play_config_t* pc = &vgmstream->config;
+    //play_config_t* pc = &vgmstream->config;
 
-    if (!ps->fade_left || pc->play_forever)
-        return;
-    if (ps->play_position + samples_done < ps->fade_start)
-        return; /* not yet */
+    //if (!ps->fade_left || pc->play_forever)
+    //    return;
+    //if (ps->play_position + samples_done < ps->fade_start)
+    //    return;
 
     {
-        int s, ch,  start, pos;
+        int s, ch,  start, fade_pos;
         int channels = ps->output_channels;
+        int32_t to_do = ps->fade_left;
 
         if (ps->play_position < ps->fade_start) {
             start = samples_done - (ps->play_position + samples_done - ps->fade_start);
-            pos = 0;
+            fade_pos = 0;
         }
         else {
             start = 0;
-            pos = ps->play_position - ps->fade_start;
+            fade_pos = ps->play_position - ps->fade_start;
         }
 
+        if (to_do > samples_done - start)
+            to_do = samples_done - start;
+
         //TODO: use delta fadedness to improve performance?
-        for (s = start; s < samples_done; s++, pos++) {
-            double fadedness = (double)(ps->fade_duration - pos) / ps->fade_duration;
+        for (s = start; s < start + to_do; s++, fade_pos++) {
+            double fadedness = (double)(ps->fade_duration - fade_pos) / ps->fade_duration;
             for (ch = 0; ch < channels; ch++) {
                 buf[s*channels + ch] = (sample_t)buf[s*channels + ch] * fadedness;
             }
         }
 
-        vgmstream->pstate.fade_left -= (samples_done - start);
+        ps->fade_left -= to_do;
+
+        /* next samples after fade end would be pad end/silence, so we can just memset */
+        memset(buf + (start + to_do) * channels, 0, (samples_done - to_do - start) * sizeof(sample_t) * channels);
+
+        return samples_done;
     }
 }

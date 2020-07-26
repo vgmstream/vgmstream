@@ -831,6 +831,7 @@ typedef struct {
     int32_t fade_duration;
     int32_t fade_start;
     int32_t fade_left;
+    int32_t pad_end_start;
     int32_t pad_end_left;
 
     int32_t play_duration;      /* total samples that the stream lasts (after applying all config) */
@@ -1104,8 +1105,8 @@ void close_vgmstream(VGMSTREAM* vgmstream);
 /* calculate the number of samples to be played based on looping parameters */
 int32_t get_vgmstream_play_samples(double looptimes, double fadeseconds, double fadedelayseconds, VGMSTREAM* vgmstream);
 
-/* Decode data into sample buffer */
-void render_vgmstream(sample_t* buffer, int32_t sample_count, VGMSTREAM* vgmstream);
+/* Decode data into sample buffer. Returns < sample_count on stream end */
+int render_vgmstream(sample_t* buffer, int32_t sample_count, VGMSTREAM* vgmstream);
 
 /* Write a description of the stream into array pointed by desc, which must be length bytes long.
  * Will always be null-terminated if length > 0 */
@@ -1170,6 +1171,6 @@ void get_vgmstream_layout_description(VGMSTREAM* vgmstream, char* out, size_t ou
 void get_vgmstream_meta_description(VGMSTREAM* vgmstream, char* out, size_t out_size);
 
 
-void render_fade(VGMSTREAM* vgmstream, sample_t* buf, int samples_done);
+int render_fade(VGMSTREAM* vgmstream, sample_t* buf, int samples_done);
 void setup_state_vgmstream(VGMSTREAM* vgmstream);
 #endif
