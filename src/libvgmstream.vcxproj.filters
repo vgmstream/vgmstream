@@ -47,6 +47,12 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="decode.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="render.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="mixing.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -268,10 +274,13 @@
     <ClCompile Include="formats.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="mixing.c">
+    <ClCompile Include="decode.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="player.c">
+    <ClCompile Include="render.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="mixing.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="plugins.c">

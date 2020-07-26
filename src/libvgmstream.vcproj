@@ -148,6 +148,14 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
             <File
+                RelativePath=".\decode.h"
+                >
+            </File>
+            <File
+                RelativePath=".\render.h"
+                >
+            </File>
+            <File
                 RelativePath=".\mixing.h"
                 >
             </File>
@@ -182,11 +190,15 @@
                 >
             </File>
             <File
-                RelativePath=".\mixing.c"
+                RelativePath=".\decode.c"
                 >
             </File>
             <File
-                RelativePath=".\player.c"
+                RelativePath=".\render.c"
+                >
+            </File>
+            <File
+                RelativePath=".\mixing.c"
                 >
             </File>
             <File

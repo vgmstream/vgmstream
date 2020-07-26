@@ -92,6 +92,8 @@
     <ClInclude Include="meta\xwb_xsb.h" />
     <ClInclude Include="meta\xwma_konami_streamfile.h" />
     <ClInclude Include="meta\zsnd_streamfile.h" />
+    <ClInclude Include="decode.h" />
+    <ClInclude Include="render.h" />
     <ClInclude Include="mixing.h" />
     <ClInclude Include="plugins.h" />
     <ClInclude Include="streamfile.h" />
@@ -246,8 +248,9 @@
     <ClCompile Include="meta\x360_tra.c" />
     <ClCompile Include="formats.c" />
     <ClCompile Include="meta\xmv_valve.c" />
+    <ClCompile Include="decode.c" />
+    <ClCompile Include="render.c" />
     <ClCompile Include="mixing.c" />
-    <ClCompile Include="player.c" />
     <ClCompile Include="plugins.c" />
     <ClCompile Include="meta\ps2_va3.c" />
     <ClCompile Include="streamfile.c" />
