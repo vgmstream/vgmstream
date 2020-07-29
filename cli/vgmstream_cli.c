@@ -292,8 +292,13 @@ static void apply_config(VGMSTREAM* vgmstream, cli_config* cfg) {
     if (cfg->write_lwav) {
         vcfg.disable_config_override = 1;
         cfg->ignore_loop = 1;
-        cfg->lwav_loop_start = vgmstream->loop_start_sample;
-        cfg->lwav_loop_end = vgmstream->loop_end_sample;
+
+        if (vgmstream->loop_start_sample < vgmstream->loop_end_sample) {
+            cfg->lwav_loop_start = vgmstream->loop_start_sample;
+            cfg->lwav_loop_end = vgmstream->loop_end_sample;
+            cfg->lwav_loop_end--; /* from spec, +1 is added when reading "smpl" */
+        }
+
     }
     /* only allowed if manually active */
     if (cfg->play_forever) {
