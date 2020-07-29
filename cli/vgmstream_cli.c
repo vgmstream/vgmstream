@@ -34,9 +34,10 @@ static size_t make_wav_header(uint8_t* buf, size_t buf_size, int32_t sample_coun
 
 static void usage(const char* name, int is_full) {
     fprintf(stderr,"vgmstream CLI decoder " VERSION " " __DATE__ "\n"
-            "Usage: %s [-o outfile.wav] [options] infile\n"
+            "Usage: %s [-o <outfile.wav>] [options] <infile>\n"
             "Options:\n"
             "    -o <outfile.wav>: name of output .wav file, default <infile>.wav\n"
+            "       <outfile> wildcards can be :s=subsong, :n=stream name, :f=infile\n"
             "    -l loop count: loop count, default 2.0\n"
             "    -f fade time: fade time in seconds after N loops, default 10.0\n"
             "    -d fade delay: fade delay in seconds, default 0.0\n"
@@ -339,6 +340,93 @@ static void print_tags(cli_config* cfg) {
     close_streamfile(sf_tags);
 }
 
+static void clean_filename(char* dst, int clean_paths) {
+    int i;
+    for (i = 0; i < strlen(dst); i++) {
+        char c = dst[i];
+        int is_badchar = (clean_paths && (c == '\\' || c == '/'))
+            || c == '*' || c == '?' || c == ':' /*|| c == '|'*/ || c == '<' || c == '>';
+        if (is_badchar)
+            dst[i] = '_';
+    }
+}
+
+/* replaces a filename with ":n" (stream name), ":f" (infilename) or ":s" (subsong) wildcards
+ * (":" was chosen since it's not a valid Windows filename char and hopefully nobody uses it on Linux) */
+void replace_filename(char* dst, size_t dstsize, const char* outfilename, const char* infilename, VGMSTREAM* vgmstream) {
+    int subsong;
+    char stream_name[PATH_LIMIT];
+    char buf[PATH_LIMIT];
+    char tmp[PATH_LIMIT];
+    int i;
+
+
+    /* file has a "%" > temp replace for sprintf */
+    strcpy(buf, outfilename);
+    for (i = 0; i < strlen(buf); i++) {
+        if (buf[i] == '%')
+            buf[i] = '|'; /* non-valid filename, not used in format */
+    }
+
+    /* init config */
+    subsong = vgmstream->stream_index;
+    if (subsong > vgmstream->num_streams) {
+        subsong = 0; /* for games without subsongs */
+    }
+
+    if (vgmstream->stream_name && vgmstream->stream_name[0] != '\0') {
+        snprintf(stream_name, sizeof(stream_name), "%s", vgmstream->stream_name);
+        clean_filename(stream_name, 1); /* clean subsong name's subdirs */
+    }
+    else {
+        snprintf(stream_name, sizeof(stream_name), "%s", infilename);
+        clean_filename(stream_name, 0); /* don't clean user's subdirs */
+    }
+
+    /* do controlled replaces of each wildcard (in theory could appear N times) */
+    do {
+        char* pos = strchr(buf, ':');
+        if (!pos)
+            break;
+
+        /* use buf as format and copy formatted result to tmp (assuming sprintf's format must not overlap with dst) */
+        pos[0] = '%';
+        if (pos[1] == 'n') {
+            pos[1] = 's'; /* use %s */
+            snprintf(tmp, sizeof(tmp), buf, stream_name);
+        }
+        else if (pos[1] == 'f') {
+            pos[1] = 's'; /* use %s */
+            snprintf(tmp, sizeof(tmp), buf, infilename);
+        }
+        else if (pos[1] == 's') {
+            pos[1] = 'i'; /* use %i */
+            snprintf(tmp, sizeof(tmp), buf, subsong);
+        }
+        else if ((pos[1] == '0' && pos[2] >= '1' && pos[2] <= '9' && pos[3] == 's')) {
+            pos[3] = 'i'; /* use %0Ni */
+            snprintf(tmp, sizeof(tmp), buf, subsong);
+        }
+        else {
+            continue;
+        }
+
+        /* copy result to buf again, so it can be used as format in next replace
+         * (can be optimized with some pointer swapping but who cares about a few extra nanoseconds) */
+        strcpy(buf, tmp);
+    }
+    while (1);
+
+    /* replace % back */
+    for (i = 0; i < strlen(buf); i++) {
+        if (buf[i] == '|')
+            buf[i] = '%';
+    }
+
+    snprintf(dst, dstsize, "%s", buf);
+}
+
+
 /* ************************************************************ */
 
 int main(int argc, char** argv) {
@@ -436,10 +524,21 @@ int main(int argc, char** argv) {
             /* maybe should avoid overwriting with this auto-name, for the unlikely
              * case of file header-body pairs (file.ext+file.ext.wav) */
         }
+        else if (strchr(cfg.outfilename, ':') != NULL) {
+            /* special substitution */
+            replace_filename(outfilename_temp, sizeof(outfilename_temp), cfg.outfilename, cfg.infilename, vgmstream);
+            cfg.outfilename = outfilename_temp;
+        }
+
+        /* don't overwrite itself! */
+        if (strcmp(cfg.outfilename, cfg.infilename) == 0) {
+            fprintf(stderr,"same infile and outfile name: %s\n", cfg.outfilename);
+            goto fail;
+        }
 
         outfile = fopen(cfg.outfilename,"wb");
         if (!outfile) {
-            fprintf(stderr,"failed to open %s for output\n",cfg.outfilename);
+            fprintf(stderr,"failed to open %s for output\n", cfg.outfilename);
             goto fail;
         }
 
