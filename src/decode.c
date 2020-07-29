@@ -1452,7 +1452,7 @@ int vgmstream_do_loop(VGMSTREAM* vgmstream) {
         vgmstream->loop_next_block_offset = vgmstream->next_block_offset;
         //vgmstream->lstate = vgmstream->pstate; /* play state is applied over loops */
 
-        vgmstream->hit_loop = 1;
+        vgmstream->hit_loop = 1; /* info that loop is now ready to use */
     }
 
     return 0; /* not looped */

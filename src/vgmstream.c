@@ -529,7 +529,7 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
 /* internal version with all parameters */
 static VGMSTREAM* init_vgmstream_internal(STREAMFILE* sf) {
     int i, fcns_size;
-    
+
     if (!sf)
         return NULL;
 
@@ -708,7 +708,7 @@ VGMSTREAM* allocate_vgmstream(int channel_count, int loop_flag) {
     /* create vgmstream + main structs (other data is 0'ed) */
     vgmstream = calloc(1,sizeof(VGMSTREAM));
     if (!vgmstream) return NULL;
-    
+
     vgmstream->start_vgmstream = calloc(1,sizeof(VGMSTREAM));
     if (!vgmstream->start_vgmstream) goto fail;
 
@@ -830,6 +830,8 @@ void vgmstream_force_loop(VGMSTREAM* vgmstream, int loop_flag, int loop_start_sa
 
 void vgmstream_set_loop_target(VGMSTREAM* vgmstream, int loop_target) {
     if (!vgmstream) return;
+    if (!vgmstream->loop_flag) return;
+
 
     vgmstream->loop_target = loop_target; /* loop count must be rounded (int) as otherwise target is meaningless */
 
