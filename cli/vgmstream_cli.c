@@ -58,8 +58,10 @@ static void usage(const char* name, int is_full) {
             , name);
     if (is_full) {
         fprintf(stderr,
+                "    -v: validate extensions (for extension testing)\n"
                 "    -r: output a second file after resetting (for reset testing)\n"
                 "    -k N: seeks to N samples before decoding (for seek testing)\n"
+                "    -K N: seeks to N samples before decoding again (for seek testing)\n"
                 "    -t file: print tags found in file (for tag testing)\n"
                 "    -O: decode but don't write to file (for performance testing)\n"
                 );
@@ -71,7 +73,6 @@ typedef struct {
     char* infilename;
     char* outfilename;
     char* tag_filename;
-    int decode_only;
     int play_forever;
     int play_sdtout;
     int play_wreckless;
@@ -79,7 +80,6 @@ typedef struct {
     int print_adxencd;
     int print_oggenc;
     int print_batchvar;
-    int test_reset;
     int write_lwav;
     int only_stereo;
     int stream_index;
@@ -92,7 +92,11 @@ typedef struct {
     int force_loop;
     int really_force_loop;
 
-    int seek_samples;
+    int validate_extensions;
+    int test_reset;
+    int seek_samples1;
+    int seek_samples2;
+    int decode_only;
 
     /* not quite config but eh */
     int lwav_loop_start;
@@ -107,12 +111,14 @@ static int parse_config(cli_config* cfg, int argc, char** argv) {
     cfg->only_stereo = -1;
     cfg->loop_count = 2.0;
     cfg->fade_time = 10.0;
+    cfg->seek_samples1 = -1;
+    cfg->seek_samples2 = -1;
 
     /* don't let getopt print errors to stdout automatically */
     opterr = 0;
 
     /* read config */
-    while ((opt = getopt(argc, argv, "o:l:f:d:ipPcmxeLEFrgb2:s:t:k:hO")) != -1) {
+    while ((opt = getopt(argc, argv, "o:l:f:d:ipPcmxeLEFrgb2:s:t:k:K:hOv")) != -1) {
         switch (opt) {
             case 'o':
                 cfg->outfilename = optarg;
@@ -176,10 +182,16 @@ static int parse_config(cli_config* cfg, int argc, char** argv) {
                 cfg->tag_filename= optarg;
                 break;
             case 'k':
-                cfg->seek_samples = atoi(optarg);
+                cfg->seek_samples1 = atoi(optarg);
+                break;
+            case 'K':
+                cfg->seek_samples2 = atoi(optarg);
                 break;
             case 'O':
                 cfg->decode_only = 1;
+                break;
+            case 'v':
+                cfg->validate_extensions = 1;
                 break;
             case 'h':
                 usage(argv[0], 1);
@@ -357,26 +369,20 @@ int main(int argc, char** argv) {
     res = validate_config(&cfg);
     if (!res) goto fail;
 
-#if 0
-    /* CLI has no need to check */
-    {
+
+    /* for plugin testing */
+    if (cfg.validate_extensions)  {
         int valid;
         vgmstream_ctx_valid_cfg vcfg = {0};
 
-        vcfg.skip_standard = 1;
+        vcfg.skip_standard = 0;
         vcfg.reject_extensionless = 0;
         vcfg.accept_unknown = 0;
         vcfg.accept_common = 0;
 
-        VGM_LOG("CLI: valid %s\n", cfg.infilename);
         valid = vgmstream_ctx_is_valid(cfg.infilename, &vcfg);
-        if (!valid) {
-            VGM_LOG("CLI: valid ko\n");
-            goto fail;
-        }
-        VGM_LOG("CLI: valid ok\n");
+        if (!valid) goto fail;
     }
-#endif
 
     /* open streamfile and pass subsong */
     {
@@ -410,7 +416,6 @@ int main(int argc, char** argv) {
     len_samples = vgmstream_get_samples(vgmstream);
     if (len_samples <= 0)
         goto fail;
-
 
     if (cfg.play_forever && !vgmstream_get_play_forever(vgmstream)) {
         fprintf(stderr,"File can't be played forever");
@@ -461,9 +466,16 @@ int main(int argc, char** argv) {
     }
 
 
-    if (cfg.seek_samples >= len_samples)
-        cfg.seek_samples = 0;
-    len_samples -= cfg.seek_samples;
+    if (cfg.seek_samples1 >= len_samples)
+        cfg.seek_samples1 = -1;
+    if (cfg.seek_samples2 >= len_samples)
+        cfg.seek_samples2 = -1;
+
+    if (cfg.seek_samples2 >= 0)
+        len_samples -= cfg.seek_samples2;
+    else if (cfg.seek_samples1 >= 0)
+        len_samples -= cfg.seek_samples1;
+
 
     /* last init */
     buf = malloc(SAMPLE_BUFFER_SIZE * sizeof(sample_t) * input_channels);
@@ -503,7 +515,10 @@ int main(int argc, char** argv) {
     }
 
 
-    seek_vgmstream(vgmstream, cfg.seek_samples);
+    if (cfg.seek_samples1 >= 0)
+        seek_vgmstream(vgmstream, cfg.seek_samples1);
+    if (cfg.seek_samples2 >= 0)
+        seek_vgmstream(vgmstream, cfg.seek_samples2);
 
     /* decode */
     for (i = 0; i < len_samples; i += SAMPLE_BUFFER_SIZE) {
@@ -559,7 +574,10 @@ int main(int argc, char** argv) {
 
         reset_vgmstream(vgmstream);
 
-        seek_vgmstream(vgmstream, cfg.seek_samples);
+        if (cfg.seek_samples1 >= 0)
+            seek_vgmstream(vgmstream, cfg.seek_samples1);
+        if (cfg.seek_samples2 >= 0)
+            seek_vgmstream(vgmstream, cfg.seek_samples2);
 
         /* decode */
         for (i = 0; i < len_samples; i += SAMPLE_BUFFER_SIZE) {
