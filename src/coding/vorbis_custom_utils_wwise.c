@@ -13,23 +13,18 @@
 /* DEFS                                                                         */
 /* **************************************************************************** */
 
-static size_t build_header_identification(uint8_t * buf, size_t bufsize, int channels, int sample_rate, int blocksize_short, int blocksize_long);
-static size_t build_header_comment(uint8_t * buf, size_t bufsize);
-static size_t get_packet_header(STREAMFILE *streamFile, off_t offset, wwise_header_t header_type, int * granulepos, size_t * packet_size, int big_endian);
-static size_t rebuild_packet(uint8_t * obuf, size_t obufsize, STREAMFILE *streamFile, off_t offset, vorbis_custom_codec_data * data, int big_endian);
-static size_t rebuild_setup(uint8_t * obuf, size_t obufsize, STREAMFILE *streamFile, off_t offset, vorbis_custom_codec_data * data, int big_endian, int channels);
+static size_t build_header_identification(uint8_t* buf, size_t bufsize, int channels, int sample_rate, int blocksize_short, int blocksize_long);
+static size_t build_header_comment(uint8_t* buf, size_t bufsize);
+static size_t get_packet_header(STREAMFILE* sf, off_t offset, wwise_header_t header_type, int* granulepos, size_t* packet_size, int big_endian);
+static size_t rebuild_packet(uint8_t* obuf, size_t obufsize, STREAMFILE* sf, off_t offset, vorbis_custom_codec_data* data, int big_endian);
+static size_t rebuild_setup(uint8_t* obuf, size_t obufsize, STREAMFILE* sf, off_t offset, vorbis_custom_codec_data* data, int big_endian, int channels);
 
-static int ww2ogg_generate_vorbis_packet(vgm_bitstream * ow, vgm_bitstream * iw, STREAMFILE *streamFile, off_t offset, vorbis_custom_codec_data * data, int big_endian);
-static int ww2ogg_generate_vorbis_setup(vgm_bitstream * ow, vgm_bitstream * iw, vorbis_custom_codec_data * data, int channels, size_t packet_size, STREAMFILE *streamFile);
-static int ww2ogg_codebook_library_copy(vgm_bitstream * ow, vgm_bitstream * iw);
-static int ww2ogg_codebook_library_rebuild(vgm_bitstream * ow, vgm_bitstream * iw, size_t cb_size, STREAMFILE *streamFile);
-static int ww2ogg_codebook_library_rebuild_by_id(vgm_bitstream * ow, uint32_t codebook_id, wwise_setup_t setup_type, STREAMFILE *streamFile);
-static int ww2ogg_tremor_ilog(unsigned int v);
-static unsigned int ww2ogg_tremor_book_maptype1_quantvals(unsigned int entries, unsigned int dimensions);
+static int ww2ogg_generate_vorbis_packet(vgm_bitstream* ow, vgm_bitstream* iw, STREAMFILE* sf, off_t offset, vorbis_custom_codec_data* data, int big_endian);
+static int ww2ogg_generate_vorbis_setup(vgm_bitstream* ow, vgm_bitstream* iw, vorbis_custom_codec_data* data, int channels, size_t packet_size, STREAMFILE* sf);
 
-static int load_wvc(uint8_t * ibuf, size_t ibufsize, uint32_t codebook_id, wwise_setup_t setup_type, STREAMFILE *streamFile);
-static int load_wvc_file(uint8_t * buf, size_t bufsize, uint32_t codebook_id, STREAMFILE *streamFile);
-static int load_wvc_array(uint8_t * buf, size_t bufsize, uint32_t codebook_id, wwise_setup_t setup_type);
+static int load_wvc(uint8_t* ibuf, size_t ibufsize, uint32_t codebook_id, wwise_setup_t setup_type, STREAMFILE* sf);
+static int load_wvc_file(uint8_t* buf, size_t bufsize, uint32_t codebook_id, STREAMFILE* sf);
+static int load_wvc_array(uint8_t* buf, size_t bufsize, uint32_t codebook_id, wwise_setup_t setup_type);
 
 
 /* **************************************************************************** */
@@ -43,7 +38,7 @@ static int load_wvc_array(uint8_t * buf, size_t bufsize, uint32_t codebook_id, w
  *
  * Format reverse-engineered by hcs in ww2ogg (https://github.com/hcs64/ww2ogg).
  */
-int vorbis_custom_setup_init_wwise(STREAMFILE *streamFile, off_t start_offset, vorbis_custom_codec_data *data) {
+int vorbis_custom_setup_init_wwise(STREAMFILE* sf, off_t start_offset, vorbis_custom_codec_data *data) {
     size_t header_size, packet_size;
     vorbis_custom_config cfg = data->config;
 
@@ -52,23 +47,23 @@ int vorbis_custom_setup_init_wwise(STREAMFILE *streamFile, off_t start_offset, v
         off_t offset = start_offset;
 
         /* normal identificacion packet */
-        header_size = get_packet_header(streamFile, offset, cfg.header_type, (int*)&data->op.granulepos, &packet_size, cfg.big_endian);
+        header_size = get_packet_header(sf, offset, cfg.header_type, (int*)&data->op.granulepos, &packet_size, cfg.big_endian);
         if (!header_size || packet_size > data->buffer_size) goto fail;
-        data->op.bytes = read_streamfile(data->buffer,offset+header_size,packet_size, streamFile);
+        data->op.bytes = read_streamfile(data->buffer,offset+header_size,packet_size, sf);
         if (vorbis_synthesis_headerin(&data->vi, &data->vc, &data->op) != 0) goto fail; /* parse identification header */
         offset += header_size + packet_size;
 
         /* normal comment packet */
-        header_size = get_packet_header(streamFile, offset, cfg.header_type, (int*)&data->op.granulepos, &packet_size, cfg.big_endian);
+        header_size = get_packet_header(sf, offset, cfg.header_type, (int*)&data->op.granulepos, &packet_size, cfg.big_endian);
         if (!header_size || packet_size > data->buffer_size) goto fail;
-        data->op.bytes = read_streamfile(data->buffer,offset+header_size,packet_size, streamFile);
+        data->op.bytes = read_streamfile(data->buffer,offset+header_size,packet_size, sf);
         if (vorbis_synthesis_headerin(&data->vi, &data->vc, &data->op) !=0 ) goto fail; /* parse comment header */
         offset += header_size + packet_size;
 
         /* normal setup packet */
-        header_size = get_packet_header(streamFile, offset, cfg.header_type, (int*)&data->op.granulepos, &packet_size, cfg.big_endian);
+        header_size = get_packet_header(sf, offset, cfg.header_type, (int*)&data->op.granulepos, &packet_size, cfg.big_endian);
         if (!header_size || packet_size > data->buffer_size) goto fail;
-        data->op.bytes = read_streamfile(data->buffer,offset+header_size,packet_size, streamFile);
+        data->op.bytes = read_streamfile(data->buffer,offset+header_size,packet_size, sf);
         if (vorbis_synthesis_headerin(&data->vi, &data->vc, &data->op) != 0) goto fail; /* parse setup header */
         offset += header_size + packet_size;
     }
@@ -86,7 +81,7 @@ int vorbis_custom_setup_init_wwise(STREAMFILE *streamFile, off_t start_offset, v
         if (vorbis_synthesis_headerin(&data->vi, &data->vc, &data->op) !=0 ) goto fail; /* parse comment header */
 
         /* rebuild setup packet */
-        data->op.bytes = rebuild_setup(data->buffer, data->buffer_size, streamFile, start_offset, data, cfg.big_endian, cfg.channels);
+        data->op.bytes = rebuild_setup(data->buffer, data->buffer_size, sf, start_offset, data, cfg.big_endian, cfg.channels);
         if (!data->op.bytes) goto fail;
         if (vorbis_synthesis_headerin(&data->vi, &data->vc, &data->op) != 0) goto fail; /* parse setup header */
     }
@@ -120,24 +115,25 @@ fail:
 /* **************************************************************************** */
 
 /* loads info from a wwise packet header */
-static size_t get_packet_header(STREAMFILE *streamFile, off_t offset, wwise_header_t header_type, int * granulepos, size_t * packet_size, int big_endian) {
-    int32_t (*read_32bit)(off_t,STREAMFILE*) = big_endian ? read_32bitBE : read_32bitLE;
-    int16_t (*read_16bit)(off_t,STREAMFILE*) = big_endian ? read_16bitBE : read_16bitLE;
+static size_t get_packet_header(STREAMFILE* sf, off_t offset, wwise_header_t header_type, int* granulepos, size_t* packet_size, int big_endian) {
+    uint32_t (*read_u32)(off_t,STREAMFILE*) = big_endian ? read_u32be : read_u32le;
+    uint16_t (*read_u16)(off_t,STREAMFILE*) = big_endian ? read_u16be : read_u16le;
+    int32_t  (*read_s32)(off_t,STREAMFILE*) = big_endian ? read_s32be : read_s32le;
 
     /* packet size doesn't include header size */
     switch(header_type) {
         case WWV_TYPE_8: /* size 4+4 */
-            *packet_size = (uint32_t)read_32bit(offset, streamFile);
-            *granulepos = read_32bit(offset+4, streamFile);
+            *packet_size = read_u32(offset, sf);
+            *granulepos = read_s32(offset + 0x04, sf);
             return 8;
 
         case WWV_TYPE_6: /* size 4+2 */
-            *packet_size = (uint16_t)read_16bit(offset, streamFile);
-            *granulepos = read_32bit(offset+2, streamFile);
+            *packet_size = read_u16(offset, sf);
+            *granulepos = read_s32(offset + 0x02, sf);
             return 6;
 
         case WWV_TYPE_2: /* size 2 */
-            *packet_size = (uint16_t)read_16bit(offset, streamFile);
+            *packet_size = read_u16(offset, sf);
             *granulepos = 0; /* granule is an arbitrary unit so we could use offset instead; libvorbis has no actually need it actually */
             return 2;
             break;
@@ -147,7 +143,7 @@ static size_t get_packet_header(STREAMFILE *streamFile, off_t offset, wwise_head
 }
 
 /* Transforms a Wwise data packet into a real Vorbis one (depending on config) */
-static size_t rebuild_packet(uint8_t * obuf, size_t obufsize, STREAMFILE *streamFile, off_t offset, vorbis_custom_codec_data * data, int big_endian) {
+static size_t rebuild_packet(uint8_t* obuf, size_t obufsize, STREAMFILE* sf, off_t offset, vorbis_custom_codec_data* data, int big_endian) {
     vgm_bitstream ow, iw;
     int rc, granulepos;
     size_t header_size, packet_size;
@@ -156,11 +152,11 @@ static size_t rebuild_packet(uint8_t * obuf, size_t obufsize, STREAMFILE *stream
     uint8_t ibuf[0x8000]; /* Wwise setup packet buffer */
     if (obufsize < ibufsize) goto fail; /* arbitrary expected min */
 
-    header_size = get_packet_header(streamFile, offset, data->config.header_type, &granulepos, &packet_size, big_endian);
+    header_size = get_packet_header(sf, offset, data->config.header_type, &granulepos, &packet_size, big_endian);
     if (!header_size || packet_size > obufsize) goto fail;
 
     /* load Wwise data into internal buffer */
-    if (read_streamfile(ibuf,offset+header_size,packet_size, streamFile)!=packet_size)
+    if (read_streamfile(ibuf,offset+header_size,packet_size, sf)!=packet_size)
         goto fail;
 
     /* prepare helper structs */
@@ -174,7 +170,7 @@ static size_t rebuild_packet(uint8_t * obuf, size_t obufsize, STREAMFILE *stream
     iw.b_off = 0;
     iw.mode = BITSTREAM_VORBIS;
 
-    rc = ww2ogg_generate_vorbis_packet(&ow,&iw, streamFile,offset, data, big_endian);
+    rc = ww2ogg_generate_vorbis_packet(&ow,&iw, sf,offset, data, big_endian);
     if (!rc) goto fail;
 
     if (ow.b_off % 8 != 0) {
@@ -190,7 +186,7 @@ fail:
 
 
 /* Transforms a Wwise setup packet into a real Vorbis one (depending on config). */
-static size_t rebuild_setup(uint8_t * obuf, size_t obufsize, STREAMFILE *streamFile, off_t offset, vorbis_custom_codec_data * data, int big_endian, int channels) {
+static size_t rebuild_setup(uint8_t* obuf, size_t obufsize, STREAMFILE* sf, off_t offset, vorbis_custom_codec_data* data, int big_endian, int channels) {
     vgm_bitstream ow, iw;
     int rc, granulepos;
     size_t header_size, packet_size;
@@ -200,11 +196,11 @@ static size_t rebuild_setup(uint8_t * obuf, size_t obufsize, STREAMFILE *streamF
     if (obufsize < ibufsize) goto fail; /* arbitrary expected min */
 
     /* read Wwise packet header */
-    header_size = get_packet_header(streamFile, offset, data->config.header_type, &granulepos, &packet_size, big_endian);
+    header_size = get_packet_header(sf, offset, data->config.header_type, &granulepos, &packet_size, big_endian);
     if (!header_size || packet_size > ibufsize) goto fail;
 
     /* load Wwise setup into internal buffer */
-    if (read_streamfile(ibuf,offset+header_size,packet_size, streamFile)!=packet_size)
+    if (read_streamfile(ibuf,offset+header_size,packet_size, sf)!=packet_size)
         goto fail;
 
     /* prepare helper structs */
@@ -218,7 +214,7 @@ static size_t rebuild_setup(uint8_t * obuf, size_t obufsize, STREAMFILE *streamF
     iw.b_off = 0;
     iw.mode = BITSTREAM_VORBIS;
 
-    rc = ww2ogg_generate_vorbis_setup(&ow,&iw, data, channels, packet_size, streamFile);
+    rc = ww2ogg_generate_vorbis_setup(&ow,&iw, data, channels, packet_size, sf);
     if (!rc) goto fail;
 
     if (ow.b_off % 8 != 0) {
@@ -232,7 +228,7 @@ fail:
     return 0;
 }
 
-static size_t build_header_identification(uint8_t * buf, size_t bufsize, int channels, int sample_rate, int blocksize_0_exp, int blocksize_1_exp) {
+static size_t build_header_identification(uint8_t* buf, size_t bufsize, int channels, int sample_rate, int blocksize_0_exp, int blocksize_1_exp) {
     size_t bytes = 0x1e;
     uint8_t blocksizes;
 
@@ -254,7 +250,7 @@ static size_t build_header_identification(uint8_t * buf, size_t bufsize, int cha
     return bytes;
 }
 
-static size_t build_header_comment(uint8_t * buf, size_t bufsize) {
+static size_t build_header_comment(uint8_t* buf, size_t bufsize) {
     size_t bytes = 0x19;
 
     if (bytes > bufsize) return 0;
@@ -282,14 +278,14 @@ static size_t build_header_comment(uint8_t * buf, size_t bufsize) {
 
 /* Copy packet as-is or rebuild first byte if mod_packets is used.
  * (ref: https://www.xiph.org/vorbis/doc/Vorbis_I_spec.html#x1-720004.3) */
-static int ww2ogg_generate_vorbis_packet(vgm_bitstream * ow, vgm_bitstream * iw, STREAMFILE *streamFile, off_t offset, vorbis_custom_codec_data * data, int big_endian) {
+static int ww2ogg_generate_vorbis_packet(vgm_bitstream* ow, vgm_bitstream* iw, STREAMFILE* sf, off_t offset, vorbis_custom_codec_data* data, int big_endian) {
     int i,granule;
     size_t header_size, packet_size, data_size;
 
-    header_size = get_packet_header(streamFile,offset, data->config.header_type, &granule, &packet_size, big_endian);
+    header_size = get_packet_header(sf,offset, data->config.header_type, &granule, &packet_size, big_endian);
     if (!header_size || packet_size > iw->bufsize) goto fail;
 
-    data_size = get_streamfile_size(streamFile);//todo get external data_size
+    data_size = get_streamfile_size(sf);//todo get external data_size
 
     if (offset + header_size + packet_size > data_size) {
         VGM_LOG("Wwise Vorbis: page header truncated\n");
@@ -330,7 +326,7 @@ static int ww2ogg_generate_vorbis_packet(vgm_bitstream * ow, vgm_bitstream * iw,
                 size_t next_header_size, next_packet_size;
                 int next_granule;
 
-                next_header_size = get_packet_header(streamFile,next_offset, data->config.header_type, &next_granule, &next_packet_size, big_endian);
+                next_header_size = get_packet_header(sf,next_offset, data->config.header_type, &next_granule, &next_packet_size, big_endian);
                 if (!next_header_size) goto fail;
 
                 if (next_packet_size > 0) {
@@ -345,7 +341,7 @@ static int ww2ogg_generate_vorbis_packet(vgm_bitstream * ow, vgm_bitstream * iw,
                     nw.mode = BITSTREAM_VORBIS;
 
 
-                    if (read_streamfile(nw.buf, next_offset + next_header_size, nw.bufsize, streamFile) != nw.bufsize)
+                    if (read_streamfile(nw.buf, next_offset + next_header_size, nw.bufsize, sf) != nw.bufsize)
                         goto fail;
 
                     r_bits(&nw,  data->mode_bits,&next_mode_number); /* max 6b */
@@ -396,10 +392,306 @@ fail:
     return 0;
 }
 
+/*******************************************************************************/
+
+/* fixed-point ilog from Xiph's Tremor */
+static int ww2ogg_tremor_ilog(unsigned int v) {
+    int ret=0;
+    while(v){
+        ret++;
+        v>>=1;
+    }
+    return(ret);
+}
+
+/* quantvals-something from Xiph's Tremor */
+static unsigned int ww2ogg_tremor_book_maptype1_quantvals(unsigned int entries, unsigned int dimensions) {
+    /* get us a starting hint, we'll polish it below */
+    int bits=ww2ogg_tremor_ilog(entries);
+    int vals=entries>>((bits-1)*(dimensions-1)/dimensions);
+
+    while(1){
+        unsigned long acc=1;
+        unsigned long acc1=1;
+        unsigned int i;
+        for(i=0;i<dimensions;i++){
+            acc*=vals;
+            acc1*=vals+1;
+        }
+        if(acc<=entries && acc1>entries){
+            return(vals);
+        }else{
+            if(acc>entries){
+                vals--;
+            }else{
+                vals++;
+            }
+        }
+    }
+}
+
+
+/* copies Vorbis codebooks (untouched, but size uncertain) */
+static int ww2ogg_codebook_library_copy(vgm_bitstream* ow, vgm_bitstream* iw) {
+    int i;
+    uint32_t id = 0, dimensions = 0, entries = 0;
+    uint32_t ordered = 0, lookup_type = 0;
+
+    r_bits(iw, 24,&id);
+    w_bits(ow, 24, id);
+    r_bits(iw, 16,&dimensions);
+    w_bits(ow, 16, dimensions);
+    r_bits(iw, 24,&entries);
+    w_bits(ow, 24, entries);
+
+    if (0x564342 != id) { /* "VCB" */
+        VGM_LOG("Wwise Vorbis: invalid codebook identifier\n");
+        goto fail;
+    }
+
+    /* codeword lengths */
+    r_bits(iw,  1,&ordered);
+    w_bits(ow,  1, ordered);
+    if (ordered) {
+        uint32_t initial_length = 0, current_entry = 0;
+
+        r_bits(iw,  5,&initial_length);
+        w_bits(ow,  5, initial_length);
+
+        current_entry = 0;
+        while (current_entry < entries) {
+            uint32_t number = 0;
+            int number_bits = ww2ogg_tremor_ilog(entries-current_entry);
+
+            r_bits(iw, number_bits,&number);
+            w_bits(ow, number_bits, number);
+            current_entry += number;
+        }
+        if (current_entry > entries) {
+            VGM_LOG("Wwise Vorbis: current_entry out of range\n");
+            goto fail;
+        }
+    }
+    else {
+        uint32_t sparse = 0;
+
+        r_bits(iw,  1,&sparse);
+        w_bits(ow,  1, sparse);
+
+        for (i = 0; i < entries; i++) {
+            uint32_t present_bool = 0;
+
+            present_bool = 1;
+            if (sparse) {
+                uint32_t present = 0;
+
+                r_bits(iw,  1,&present);
+                w_bits(ow,  1, present);
+
+                present_bool = (0 != present);
+            }
+
+            if (present_bool) {
+                uint32_t codeword_length = 0;
+
+                r_bits(iw,  5,&codeword_length);
+                w_bits(ow,  5, codeword_length);
+            }
+        }
+    }
+
+
+    /* lookup table */
+    r_bits(iw,  4,&lookup_type);
+    w_bits(ow,  4, lookup_type);
+
+    if (0 == lookup_type) {
+        //VGM_LOG("Wwise Vorbis: no lookup table\n");
+    }
+    else if (1 == lookup_type) {
+        //VGM_LOG("Wwise Vorbis: lookup type 1\n");
+        uint32_t quantvals = 0, min = 0, max = 0;
+        uint32_t value_length = 0, sequence_flag = 0;
+
+        r_bits(iw, 32,&min);
+        w_bits(ow, 32, min);
+        r_bits(iw, 32,&max);
+        w_bits(ow, 32, max);
+        r_bits(iw,  4,&value_length);
+        w_bits(ow,  4, value_length);
+        r_bits(iw,  1,&sequence_flag);
+        w_bits(ow,  1, sequence_flag);
+
+        quantvals = ww2ogg_tremor_book_maptype1_quantvals(entries, dimensions);
+        for (i = 0; i < quantvals; i++) {
+            uint32_t val = 0, val_bits = 0;
+            val_bits = value_length+1;
+
+            r_bits(iw, val_bits,&val);
+            w_bits(ow, val_bits, val);
+        }
+    }
+    else if (2 == lookup_type) {
+        VGM_LOG("Wwise Vorbis: didn't expect lookup type 2\n");
+        goto fail;
+    }
+    else {
+        VGM_LOG("Wwise Vorbis: invalid lookup type\n");
+        goto fail;
+    }
+
+    return 1;
+fail:
+    return 0;
+}
+
+/* rebuilds a Wwise codebook into a Vorbis codebook */
+static int ww2ogg_codebook_library_rebuild(vgm_bitstream* ow, vgm_bitstream* iw, size_t cb_size, STREAMFILE* sf) {
+    int i;
+    uint32_t id = 0, dimensions = 0, entries = 0;
+    uint32_t ordered = 0, lookup_type = 0;
+
+    id = 0x564342; /* "VCB" */
+
+    w_bits(ow, 24, id);
+    r_bits(iw,  4,&dimensions);
+    w_bits(ow, 16, dimensions); /* 4 to 16 */
+    r_bits(iw, 14,&entries);
+    w_bits(ow, 24, entries); /* 14 to 24*/
+
+    /* codeword lengths */
+    r_bits(iw,  1,&ordered);
+    w_bits(ow,  1, ordered);
+    if (ordered) {
+        uint32_t initial_length = 0, current_entry = 0;
+
+        r_bits(iw,  5,&initial_length);
+        w_bits(ow,  5, initial_length);
+
+        current_entry = 0;
+        while (current_entry < entries) {
+            uint32_t number = 0;
+            int number_bits = ww2ogg_tremor_ilog(entries-current_entry);
+
+            r_bits(iw, number_bits,&number);
+            w_bits(ow, number_bits, number);
+            current_entry += number;
+        }
+        if (current_entry > entries) {
+            VGM_LOG("Wwise Vorbis: current_entry out of range\n");
+            goto fail;
+        }
+    }
+    else {
+        uint32_t codeword_length_length = 0, sparse = 0;
+
+        r_bits(iw,  3,&codeword_length_length);
+        r_bits(iw,  1,&sparse);
+        w_bits(ow,  1, sparse);
+
+        if (0 == codeword_length_length || 5 < codeword_length_length) {
+            VGM_LOG("Wwise Vorbis: nonsense codeword length\n");
+            goto fail;
+        }
+
+        for (i = 0; i < entries; i++) {
+            uint32_t present_bool = 0;
+
+            present_bool = 1;
+            if (sparse) {
+                uint32_t present = 0;
+
+                r_bits(iw,  1,&present);
+                w_bits(ow,  1, present);
+
+                present_bool = (0 != present);
+            }
+
+            if (present_bool) {
+                uint32_t codeword_length = 0;
+
+                r_bits(iw,  codeword_length_length,&codeword_length);
+                w_bits(ow,  5, codeword_length); /* max 7 (3b) to 5 */
+            }
+        }
+    }
+
+
+    /* lookup table */
+    r_bits(iw,  1,&lookup_type);
+    w_bits(ow,  4, lookup_type); /* 1 to 4 */
+
+    if (0 == lookup_type) {
+        //VGM_LOG("Wwise Vorbis: no lookup table\n");
+    }
+    else if (1 == lookup_type) {
+        //VGM_LOG("Wwise Vorbis: lookup type 1\n");
+        uint32_t quantvals = 0, min = 0, max = 0;
+        uint32_t value_length = 0, sequence_flag = 0;
+
+        r_bits(iw, 32,&min);
+        w_bits(ow, 32, min);
+        r_bits(iw, 32,&max);
+        w_bits(ow, 32, max);
+        r_bits(iw,  4,&value_length);
+        w_bits(ow,  4, value_length);
+        r_bits(iw,  1,&sequence_flag);
+        w_bits(ow,  1, sequence_flag);
+
+        quantvals = ww2ogg_tremor_book_maptype1_quantvals(entries, dimensions);
+        for (i = 0; i < quantvals; i++) {
+            uint32_t val = 0, val_bits = 0;
+            val_bits = value_length+1;
+
+            r_bits(iw, val_bits,&val);
+            w_bits(ow, val_bits, val);
+        }
+    }
+    else if (2 == lookup_type) {
+        VGM_LOG("Wwise Vorbis: didn't expect lookup type 2\n");
+        goto fail;
+    }
+    else {
+        VGM_LOG("Wwise Vorbis: invalid lookup type\n");
+        goto fail;
+    }
+
+
+    /* check that we used exactly all bytes */
+    /* note: if all bits are used in the last byte there will be one extra 0 byte */
+    if ( 0 != cb_size && iw->b_off/8+1 != cb_size ) {
+        //VGM_LOG("Wwise Vorbis: codebook size mistach (expected 0x%x, wrote 0x%lx)\n", cb_size, iw->b_off/8+1);
+        goto fail;
+    }
+
+    return 1;
+fail:
+    return 0;
+}
+
+/* rebuilds an external Wwise codebook referenced by id to a Vorbis codebook */
+static int ww2ogg_codebook_library_rebuild_by_id(vgm_bitstream* ow, uint32_t codebook_id, wwise_setup_t setup_type, STREAMFILE* sf) {
+    size_t ibufsize = 0x8000; /* arbitrary max size of a codebook */
+    uint8_t ibuf[0x8000]; /* Wwise codebook buffer */
+    size_t cb_size;
+    vgm_bitstream iw;
+
+    cb_size = load_wvc(ibuf,ibufsize, codebook_id, setup_type, sf);
+    if (cb_size == 0) goto fail;
+
+    iw.buf = ibuf;
+    iw.bufsize = ibufsize;
+    iw.b_off = 0;
+    iw.mode = BITSTREAM_VORBIS;
+
+    return ww2ogg_codebook_library_rebuild(ow, &iw, cb_size, sf);
+fail:
+    return 0;
+}
 
 /* Rebuild a Wwise setup (simplified with removed stuff), recreating all six setup parts.
  * (ref: https://www.xiph.org/vorbis/doc/Vorbis_I_spec.html#x1-650004.2.4) */
-static int ww2ogg_generate_vorbis_setup(vgm_bitstream * ow, vgm_bitstream * iw, vorbis_custom_codec_data * data, int channels, size_t packet_size, STREAMFILE *streamFile) {
+static int ww2ogg_generate_vorbis_setup(vgm_bitstream* ow, vgm_bitstream* iw, vorbis_custom_codec_data* data, int channels, size_t packet_size, STREAMFILE* sf) {
     int i,j,k;
     uint32_t codebook_count = 0, floor_count = 0, residue_count = 0;
     uint32_t codebook_count_less1 = 0;
@@ -420,13 +712,15 @@ static int ww2ogg_generate_vorbis_setup(vgm_bitstream * ow, vgm_bitstream * iw, 
     if (data->config.setup_type == WWV_FULL_SETUP) {
         /* rebuild Wwise codebooks: untouched */
         for (i = 0; i < codebook_count; i++) {
-            if(!ww2ogg_codebook_library_copy(ow, iw)) goto fail;
+            if (!ww2ogg_codebook_library_copy(ow, iw))
+                goto fail;
         }
     }
     else if (data->config.setup_type == WWV_INLINE_CODEBOOKS) {
         /* rebuild Wwise codebooks: inline in simplified format */
         for (i = 0; i < codebook_count; i++) {
-            if(!ww2ogg_codebook_library_rebuild(ow, iw, 0, streamFile)) goto fail;
+            if (!ww2ogg_codebook_library_rebuild(ow, iw, 0, sf))
+                goto fail;
         }
     }
     else {
@@ -437,7 +731,7 @@ static int ww2ogg_generate_vorbis_setup(vgm_bitstream * ow, vgm_bitstream * iw, 
 
             r_bits(iw, 10,&codebook_id);
 
-            rc = ww2ogg_codebook_library_rebuild_by_id(ow, codebook_id, data->config.setup_type, streamFile);
+            rc = ww2ogg_codebook_library_rebuild_by_id(ow, codebook_id, data->config.setup_type, sf);
             if (!rc) goto fail;
         }
     }
@@ -787,309 +1081,12 @@ fail:
 }
 
 
-/* copies Vorbis codebooks (untouched, but size uncertain) */
-static int ww2ogg_codebook_library_copy(vgm_bitstream * ow, vgm_bitstream * iw) {
-    int i;
-    uint32_t id = 0, dimensions = 0, entries = 0;
-    uint32_t ordered = 0, lookup_type = 0;
-
-    r_bits(iw, 24,&id);
-    w_bits(ow, 24, id);
-    r_bits(iw, 16,&dimensions);
-    w_bits(ow, 16, dimensions);
-    r_bits(iw, 24,&entries);
-    w_bits(ow, 24, entries);
-
-    if (0x564342 != id) { /* "VCB" */
-        VGM_LOG("Wwise Vorbis: invalid codebook identifier\n");
-        goto fail;
-    }
-
-    /* codeword lengths */
-    r_bits(iw,  1,&ordered);
-    w_bits(ow,  1, ordered);
-    if (ordered) {
-        uint32_t initial_length = 0, current_entry = 0;
-
-        r_bits(iw,  5,&initial_length);
-        w_bits(ow,  5, initial_length);
-
-        current_entry = 0;
-        while (current_entry < entries) {
-            uint32_t number = 0;
-            int number_bits = ww2ogg_tremor_ilog(entries-current_entry);
-
-            r_bits(iw, number_bits,&number);
-            w_bits(ow, number_bits, number);
-            current_entry += number;
-        }
-        if (current_entry > entries) {
-            VGM_LOG("Wwise Vorbis: current_entry out of range\n");
-            goto fail;
-        }
-    }
-    else {
-        uint32_t sparse = 0;
-
-        r_bits(iw,  1,&sparse);
-        w_bits(ow,  1, sparse);
-
-        for (i = 0; i < entries; i++) {
-            uint32_t present_bool = 0;
-
-            present_bool = 1;
-            if (sparse) {
-                uint32_t present = 0;
-
-                r_bits(iw,  1,&present);
-                w_bits(ow,  1, present);
-
-                present_bool = (0 != present);
-            }
-
-            if (present_bool) {
-                uint32_t codeword_length = 0;
-
-                r_bits(iw,  5,&codeword_length);
-                w_bits(ow,  5, codeword_length);
-            }
-        }
-    }
-
-
-    /* lookup table */
-    r_bits(iw,  4,&lookup_type);
-    w_bits(ow,  4, lookup_type);
-
-    if (0 == lookup_type) {
-        //VGM_LOG("Wwise Vorbis: no lookup table\n");
-    }
-    else if (1 == lookup_type) {
-        //VGM_LOG("Wwise Vorbis: lookup type 1\n");
-        uint32_t quantvals = 0, min = 0, max = 0;
-        uint32_t value_length = 0, sequence_flag = 0;
-
-        r_bits(iw, 32,&min);
-        w_bits(ow, 32, min);
-        r_bits(iw, 32,&max);
-        w_bits(ow, 32, max);
-        r_bits(iw,  4,&value_length);
-        w_bits(ow,  4, value_length);
-        r_bits(iw,  1,&sequence_flag);
-        w_bits(ow,  1, sequence_flag);
-
-        quantvals = ww2ogg_tremor_book_maptype1_quantvals(entries, dimensions);
-        for (i = 0; i < quantvals; i++) {
-            uint32_t val = 0, val_bits = 0;
-            val_bits = value_length+1;
-
-            r_bits(iw, val_bits,&val);
-            w_bits(ow, val_bits, val);
-        }
-    }
-    else if (2 == lookup_type) {
-        VGM_LOG("Wwise Vorbis: didn't expect lookup type 2\n");
-        goto fail;
-    }
-    else {
-        VGM_LOG("Wwise Vorbis: invalid lookup type\n");
-        goto fail;
-    }
-
-
-    return 1;
-fail:
-    return 0;
-}
-
-
-/* rebuilds a Wwise codebook into a Vorbis codebook */
-static int ww2ogg_codebook_library_rebuild(vgm_bitstream * ow, vgm_bitstream * iw, size_t cb_size, STREAMFILE *streamFile) {
-    int i;
-    uint32_t id = 0, dimensions = 0, entries = 0;
-    uint32_t ordered = 0, lookup_type = 0;
-
-    id = 0x564342; /* "VCB" */
-
-    w_bits(ow, 24, id);
-    r_bits(iw,  4,&dimensions);
-    w_bits(ow, 16, dimensions); /* 4 to 16 */
-    r_bits(iw, 14,&entries);
-    w_bits(ow, 24, entries); /* 14 to 24*/
-
-    /* codeword lengths */
-    r_bits(iw,  1,&ordered);
-    w_bits(ow,  1, ordered);
-    if (ordered) {
-        uint32_t initial_length = 0, current_entry = 0;
-
-        r_bits(iw,  5,&initial_length);
-        w_bits(ow,  5, initial_length);
-
-        current_entry = 0;
-        while (current_entry < entries) {
-            uint32_t number = 0;
-            int number_bits = ww2ogg_tremor_ilog(entries-current_entry);
-
-            r_bits(iw, number_bits,&number);
-            w_bits(ow, number_bits, number);
-            current_entry += number;
-        }
-        if (current_entry > entries) {
-            VGM_LOG("Wwise Vorbis: current_entry out of range\n");
-            goto fail;
-        }
-    }
-    else {
-        uint32_t codeword_length_length = 0, sparse = 0;
-
-        r_bits(iw,  3,&codeword_length_length);
-        r_bits(iw,  1,&sparse);
-        w_bits(ow,  1, sparse);
-
-        if (0 == codeword_length_length || 5 < codeword_length_length) {
-            VGM_LOG("Wwise Vorbis: nonsense codeword length\n");
-            goto fail;
-        }
-
-        for (i = 0; i < entries; i++) {
-            uint32_t present_bool = 0;
-
-            present_bool = 1;
-            if (sparse) {
-                uint32_t present = 0;
-
-                r_bits(iw,  1,&present);
-                w_bits(ow,  1, present);
-
-                present_bool = (0 != present);
-            }
-
-            if (present_bool) {
-                uint32_t codeword_length = 0;
-
-                r_bits(iw,  codeword_length_length,&codeword_length);
-                w_bits(ow,  5, codeword_length); /* max 7 (3b) to 5 */
-            }
-        }
-    }
-
-
-    /* lookup table */
-    r_bits(iw,  1,&lookup_type);
-    w_bits(ow,  4, lookup_type); /* 1 to 4 */
-
-    if (0 == lookup_type) {
-        //VGM_LOG("Wwise Vorbis: no lookup table\n");
-    }
-    else if (1 == lookup_type) {
-        //VGM_LOG("Wwise Vorbis: lookup type 1\n");
-        uint32_t quantvals = 0, min = 0, max = 0;
-        uint32_t value_length = 0, sequence_flag = 0;
-
-        r_bits(iw, 32,&min);
-        w_bits(ow, 32, min);
-        r_bits(iw, 32,&max);
-        w_bits(ow, 32, max);
-        r_bits(iw,  4,&value_length);
-        w_bits(ow,  4, value_length);
-        r_bits(iw,  1,&sequence_flag);
-        w_bits(ow,  1, sequence_flag);
-
-        quantvals = ww2ogg_tremor_book_maptype1_quantvals(entries, dimensions);
-        for (i = 0; i < quantvals; i++) {
-            uint32_t val = 0, val_bits = 0;
-            val_bits = value_length+1;
-
-            r_bits(iw, val_bits,&val);
-            w_bits(ow, val_bits, val);
-        }
-    }
-    else if (2 == lookup_type) {
-        VGM_LOG("Wwise Vorbis: didn't expect lookup type 2\n");
-        goto fail;
-    }
-    else {
-        VGM_LOG("Wwise Vorbis: invalid lookup type\n");
-        goto fail;
-    }
-
-
-    /* check that we used exactly all bytes */
-    /* note: if all bits are used in the last byte there will be one extra 0 byte */
-    if ( 0 != cb_size && iw->b_off/8+1 != cb_size ) {
-        //VGM_LOG("Wwise Vorbis: codebook size mistach (expected 0x%x, wrote 0x%lx)\n", cb_size, iw->b_off/8+1);
-        goto fail;
-    }
-
-    return 1;
-fail:
-    return 0;
-}
-
-/* rebuilds an external Wwise codebook referenced by id to a Vorbis codebook */
-static int ww2ogg_codebook_library_rebuild_by_id(vgm_bitstream * ow, uint32_t codebook_id, wwise_setup_t setup_type, STREAMFILE *streamFile) {
-    size_t ibufsize = 0x8000; /* arbitrary max size of a codebook */
-    uint8_t ibuf[0x8000]; /* Wwise codebook buffer */
-    size_t cb_size;
-    vgm_bitstream iw;
-
-    cb_size = load_wvc(ibuf,ibufsize, codebook_id, setup_type, streamFile);
-    if (cb_size == 0) goto fail;
-
-    iw.buf = ibuf;
-    iw.bufsize = ibufsize;
-    iw.b_off = 0;
-    iw.mode = BITSTREAM_VORBIS;
-
-    return ww2ogg_codebook_library_rebuild(ow, &iw, cb_size, streamFile);
-fail:
-    return 0;
-}
-
-
-/* fixed-point ilog from Xiph's Tremor */
-static int ww2ogg_tremor_ilog(unsigned int v) {
-    int ret=0;
-    while(v){
-        ret++;
-        v>>=1;
-    }
-    return(ret);
-}
-/* quantvals-something from Xiph's Tremor */
-static unsigned int ww2ogg_tremor_book_maptype1_quantvals(unsigned int entries, unsigned int dimensions) {
-    /* get us a starting hint, we'll polish it below */
-    int bits=ww2ogg_tremor_ilog(entries);
-    int vals=entries>>((bits-1)*(dimensions-1)/dimensions);
-
-    while(1){
-        unsigned long acc=1;
-        unsigned long acc1=1;
-        unsigned int i;
-        for(i=0;i<dimensions;i++){
-            acc*=vals;
-            acc1*=vals+1;
-        }
-        if(acc<=entries && acc1>entries){
-            return(vals);
-        }else{
-            if(acc>entries){
-                vals--;
-            }else{
-                vals++;
-            }
-        }
-    }
-}
-
-
 /* **************************************************************************** */
 /* INTERNAL UTILS                                                               */
 /* **************************************************************************** */
 
 /* loads an external Wwise Vorbis Codebooks file (wvc) referenced by ID and returns size */
-static int load_wvc(uint8_t * ibuf, size_t ibufsize, uint32_t codebook_id, wwise_setup_t setup_type, STREAMFILE *streamFile) {
+static int load_wvc(uint8_t* ibuf, size_t ibufsize, uint32_t codebook_id, wwise_setup_t setup_type, STREAMFILE* sf) {
     size_t bytes;
 
     /* try to locate from the precompiled list */
@@ -1098,7 +1095,7 @@ static int load_wvc(uint8_t * ibuf, size_t ibufsize, uint32_t codebook_id, wwise
         return bytes;
 
     /* try to load from external file (ignoring type, just use file if found) */
-    bytes = load_wvc_file(ibuf, ibufsize, codebook_id, streamFile);
+    bytes = load_wvc_file(ibuf, ibufsize, codebook_id, sf);
     if (bytes)
         return bytes;
 
@@ -1107,8 +1104,8 @@ static int load_wvc(uint8_t * ibuf, size_t ibufsize, uint32_t codebook_id, wwise
     return 0;
 }
 
-static int load_wvc_file(uint8_t * buf, size_t bufsize, uint32_t codebook_id, STREAMFILE *streamFile) {
-    STREAMFILE * streamFileWvc = NULL;
+static int load_wvc_file(uint8_t* buf, size_t bufsize, uint32_t codebook_id, STREAMFILE* sf) {
+    STREAMFILE* sfWvc = NULL;
     size_t wvc_size = 0;
 
     {
@@ -1117,7 +1114,7 @@ static int load_wvc_file(uint8_t * buf, size_t bufsize, uint32_t codebook_id, ST
         char *path;
 
         /* read "(dir/).wvc" */
-        streamFile->get_name(streamFile,pathname,sizeof(pathname));
+        sf->get_name(sf,pathname,sizeof(pathname));
         path = strrchr(pathname,DIR_SEPARATOR);
         if (path)
             *(path+1) = '\0';
@@ -1125,10 +1122,10 @@ static int load_wvc_file(uint8_t * buf, size_t bufsize, uint32_t codebook_id, ST
             pathname[0] = '\0';
 
         snprintf(setupname,PATH_LIMIT,"%s.wvc", pathname);
-        streamFileWvc = streamFile->open(streamFile,setupname,STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (!streamFileWvc) goto fail;
+        sfWvc = sf->open(sf,setupname,STREAMFILE_DEFAULT_BUFFER_SIZE);
+        if (!sfWvc) goto fail;
 
-        wvc_size = streamFileWvc->get_size(streamFileWvc);
+        wvc_size = sfWvc->get_size(sfWvc);
     }
 
     /* find codebook and copy to buffer */
@@ -1138,28 +1135,28 @@ static int load_wvc_file(uint8_t * buf, size_t bufsize, uint32_t codebook_id, ST
         int codebook_count;
 
         /* at the end of the WVC is an offset table, and we need to find codebook id (number) offset */
-        table_start = read_32bitLE(wvc_size - 4, streamFileWvc); /* last offset */
+        table_start = read_u32le(wvc_size - 4, sfWvc); /* last offset */
         codebook_count = ((wvc_size - table_start) / 4) - 1;
         if (table_start > wvc_size || codebook_id >= codebook_count) goto fail;
 
-        codebook_offset = read_32bitLE(table_start + codebook_id*4, streamFileWvc);
-        codebook_size   = read_32bitLE(table_start + codebook_id*4 + 4, streamFileWvc) - codebook_offset;
+        codebook_offset = read_u32le(table_start + codebook_id*4, sfWvc);
+        codebook_size   = read_u32le(table_start + codebook_id*4 + 4, sfWvc) - codebook_offset;
         if (codebook_size > bufsize) goto fail;
 
-        if (read_streamfile(buf, codebook_offset, codebook_size, streamFileWvc) != codebook_size)
+        if (read_streamfile(buf, codebook_offset, codebook_size, sfWvc) != codebook_size)
             goto fail;
-        streamFileWvc->close(streamFileWvc);
+        sfWvc->close(sfWvc);
 
         return codebook_size;
     }
 
 
 fail:
-    if (streamFileWvc) streamFileWvc->close(streamFileWvc);
+    if (sfWvc) sfWvc->close(sfWvc);
     return 0;
 }
 
-static int load_wvc_array(uint8_t * buf, size_t bufsize, uint32_t codebook_id, wwise_setup_t setup_type) {
+static int load_wvc_array(uint8_t* buf, size_t bufsize, uint32_t codebook_id, wwise_setup_t setup_type) {
 #if WWISE_VORBIS_USE_PRECOMPILED_WVC
 
     /* get pointer to array */
