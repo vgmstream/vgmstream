@@ -31,8 +31,8 @@ void decode_msadpcm_stereo(VGMSTREAM * vgmstream, sample_t * outbuf, int32_t fir
     streamfile = ch1->streamfile;
 
     /* external interleave (variable size), stereo */
-    bytes_per_frame = get_vgmstream_frame_size(vgmstream);
-    samples_per_frame = get_vgmstream_samples_per_frame(vgmstream);
+    bytes_per_frame = vgmstream->frame_size;
+    samples_per_frame = (vgmstream->frame_size - 0x07*vgmstream->channels)*2 / vgmstream->channels + 2;
     frames_in = first_sample / samples_per_frame;
     first_sample = first_sample % samples_per_frame;
 
@@ -104,8 +104,8 @@ void decode_msadpcm_mono(VGMSTREAM * vgmstream, sample_t * outbuf, int channelsp
     off_t frame_offset;
 
     /* external interleave (variable size), mono */
-    bytes_per_frame = get_vgmstream_frame_size(vgmstream);
-    samples_per_frame = get_vgmstream_samples_per_frame(vgmstream);
+    bytes_per_frame = vgmstream->frame_size;
+    samples_per_frame = (vgmstream->frame_size - 0x07)*2 + 2;
     frames_in = first_sample / samples_per_frame;
     first_sample = first_sample % samples_per_frame;
 
@@ -167,8 +167,8 @@ void decode_msadpcm_ck(VGMSTREAM * vgmstream, sample_t * outbuf, int channelspac
     off_t frame_offset;
 
     /* external interleave (variable size), mono */
-    bytes_per_frame = get_vgmstream_frame_size(vgmstream);
-    samples_per_frame = get_vgmstream_samples_per_frame(vgmstream);
+    bytes_per_frame = vgmstream->frame_size;
+    samples_per_frame = (vgmstream->frame_size - 0x07)*2 + 2;
     frames_in = first_sample / samples_per_frame;
     first_sample = first_sample % samples_per_frame;
 

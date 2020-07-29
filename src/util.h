@@ -67,6 +67,11 @@ void put_32bitBE(uint8_t* buf, int32_t i);
 #define put_u32le put_32bitLE
 #define put_u16be put_16bitBE
 #define put_u32be put_32bitBE
+#define put_s8 put_8bit
+#define put_s16le put_16bitLE
+#define put_s32le put_32bitLE
+#define put_s16be put_16bitBE
+#define put_s32be put_32bitBE
 
 
 /* signed nibbles come up a lot */
