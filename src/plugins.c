@@ -129,11 +129,11 @@ static void load_player_config(play_config_t* def, vgmstream_cfg_t* vcfg) {
     def->really_force_loop = vcfg->really_force_loop;
     def->ignore_fade = vcfg->ignore_fade;
 
-    def->loop_count = vcfg->loop_times;  //todo loop times
+    def->loop_count = vcfg->loop_count;
     def->loop_count_set = 1;
     def->fade_delay = vcfg->fade_delay;
     def->fade_delay_set = 1;
-    def->fade_time = vcfg->fade_period; //todo loop period
+    def->fade_time = vcfg->fade_time;
     def->fade_time_set = 1;
 }
 

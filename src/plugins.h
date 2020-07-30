@@ -53,9 +53,9 @@ typedef struct {
     int ignore_fade;            /*  don't fade after N loops */
 
     /* song processing */
-    double loop_times;          /* target loops */
+    double loop_count;          /* target loops */
     double fade_delay;          /* fade delay after target loops */
-    double fade_period;         /* fade time after target loops */
+    double fade_time;           /* fade period after target loops */
 
   //int downmix;                /* max number of channels allowed (0=disable downmix) */
 

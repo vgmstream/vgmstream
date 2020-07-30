@@ -486,8 +486,8 @@ void input_vgmstream::apply_config(VGMSTREAM* vgmstream) {
 
     vcfg.allow_play_forever = 1;
     vcfg.play_forever = loop_forever;
-    vcfg.loop_times = loop_count;
-    vcfg.fade_period = fade_seconds;
+    vcfg.loop_count = loop_count;
+    vcfg.fade_time = fade_seconds;
     vcfg.fade_delay = fade_delay_seconds;
     vcfg.ignore_loop = ignore_loop;
 
