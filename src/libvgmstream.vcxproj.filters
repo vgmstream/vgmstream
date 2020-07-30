@@ -245,6 +245,9 @@
     <ClInclude Include="coding\mpeg_decoder.h">
       <Filter>coding\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="coding\vorbis_bitreader.h">
+      <Filter>coding\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="coding\vorbis_custom_data_fsb.h">
       <Filter>coding\Header Files</Filter>
     </ClInclude>

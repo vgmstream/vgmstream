@@ -2011,6 +2011,10 @@
 					>
 				</File>
                 <File
+                    RelativePath=".\coding\vorbis_bitreader.h"
+                    >
+                </File>
+                <File
                     RelativePath=".\coding\vorbis_custom_decoder.h"
                     >
                 </File>
