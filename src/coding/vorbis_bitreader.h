@@ -11,6 +11,13 @@ typedef struct {
     uint32_t b_off;         /* current offset in bits inside the buffer */
 } bitstream_t;
 
+/* convenience util */
+static void init_bitstream(bitstream_t* b, uint8_t* buf, size_t bufsize) {
+    b->buf = buf;
+    b->bufsize = bufsize;
+    b->b_off = 0;
+}
+
 /* same as (1 << bits) - 1, but that seems to trigger some nasty UB when bits = 32
  * (though in theory (1 << 32) = 0, 0 - 1 = UINT_MAX, but gives 0 compiling in some cases, but not always) */
 static const uint32_t MASK_TABLE[33] = {

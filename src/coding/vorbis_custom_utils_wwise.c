@@ -14,14 +14,24 @@
 /* DEFS                                                                         */
 /* **************************************************************************** */
 
-static size_t build_header_identification(uint8_t* buf, size_t bufsize, int channels, int sample_rate, int blocksize_short, int blocksize_long);
-static size_t build_header_comment(uint8_t* buf, size_t bufsize);
-static size_t get_packet_header(STREAMFILE* sf, off_t offset, wwise_header_t header_type, int* granulepos, size_t* packet_size, int big_endian);
-static size_t rebuild_packet(uint8_t* obuf, size_t obufsize, STREAMFILE* sf, off_t offset, vorbis_custom_codec_data* data, int big_endian);
-static size_t rebuild_setup(uint8_t* obuf, size_t obufsize, STREAMFILE* sf, off_t offset, vorbis_custom_codec_data* data, int big_endian, int channels);
+typedef struct {
+    size_t header_size;
+    size_t packet_size;
+    int granulepos;
 
-static int ww2ogg_generate_vorbis_packet(bitstream_t* ow, bitstream_t* iw, STREAMFILE* sf, off_t offset, vorbis_custom_codec_data* data, int big_endian);
-static int ww2ogg_generate_vorbis_setup(bitstream_t* ow, bitstream_t* iw, vorbis_custom_codec_data* data, int channels, size_t packet_size, STREAMFILE* sf);
+    int has_next;
+    uint8_t inxt[0x01];
+} wpacket_t;
+
+static size_t build_header_identification(uint8_t* buf, size_t bufsize, vorbis_custom_config* cfg);
+static size_t build_header_comment(uint8_t* buf, size_t bufsize);
+
+static int read_packet(wpacket_t* wp, uint8_t* ibuf, size_t ibufsize, STREAMFILE* sf, off_t offset, vorbis_custom_codec_data* data, int is_setup);
+static size_t rebuild_packet(uint8_t* obuf, size_t obufsize, wpacket_t* wp, STREAMFILE* sf, off_t offset, vorbis_custom_codec_data* data);
+static size_t rebuild_setup(uint8_t* obuf, size_t obufsize, wpacket_t* wp, STREAMFILE* sf, off_t offset, vorbis_custom_codec_data* data);
+
+static int ww2ogg_generate_vorbis_packet(bitstream_t* ow, bitstream_t* iw, wpacket_t* wp, vorbis_custom_codec_data* data);
+static int ww2ogg_generate_vorbis_setup(bitstream_t* ow, bitstream_t* iw, vorbis_custom_codec_data* data, size_t packet_size, STREAMFILE* sf);
 
 static int load_wvc(uint8_t* ibuf, size_t ibufsize, uint32_t codebook_id, wwise_setup_t setup_type, STREAMFILE* sf);
 static int load_wvc_file(uint8_t* buf, size_t bufsize, uint32_t codebook_id, STREAMFILE* sf);
@@ -39,40 +49,41 @@ static int load_wvc_array(uint8_t* buf, size_t bufsize, uint32_t codebook_id, ww
  *
  * Format reverse-engineered by hcs in ww2ogg (https://github.com/hcs64/ww2ogg).
  */
-int vorbis_custom_setup_init_wwise(STREAMFILE* sf, off_t start_offset, vorbis_custom_codec_data *data) {
-    size_t header_size, packet_size;
-    vorbis_custom_config cfg = data->config;
+int vorbis_custom_setup_init_wwise(STREAMFILE* sf, off_t start_offset, vorbis_custom_codec_data* data) {
+    wpacket_t wp = {0};
+    int ok;
 
-    if (cfg.setup_type == WWV_HEADER_TRIAD) {
+
+    if (data->config.setup_type == WWV_HEADER_TRIAD) {
         /* read 3 Wwise packets with triad (id/comment/setup), each with a Wwise header */
         off_t offset = start_offset;
 
         /* normal identificacion packet */
-        header_size = get_packet_header(sf, offset, cfg.header_type, (int*)&data->op.granulepos, &packet_size, cfg.big_endian);
-        if (!header_size || packet_size > data->buffer_size) goto fail;
-        data->op.bytes = read_streamfile(data->buffer,offset+header_size,packet_size, sf);
-        if (vorbis_synthesis_headerin(&data->vi, &data->vc, &data->op) != 0) goto fail; /* parse identification header */
-        offset += header_size + packet_size;
+        ok = read_packet(&wp, data->buffer, data->buffer_size, sf, offset, data, 1);
+        if (!ok) goto fail;
+        data->op.bytes = wp.packet_size;
+        if (vorbis_synthesis_headerin(&data->vi, &data->vc, &data->op) != 0) goto fail;
+        offset += wp.header_size + wp.packet_size;
 
         /* normal comment packet */
-        header_size = get_packet_header(sf, offset, cfg.header_type, (int*)&data->op.granulepos, &packet_size, cfg.big_endian);
-        if (!header_size || packet_size > data->buffer_size) goto fail;
-        data->op.bytes = read_streamfile(data->buffer,offset+header_size,packet_size, sf);
-        if (vorbis_synthesis_headerin(&data->vi, &data->vc, &data->op) !=0 ) goto fail; /* parse comment header */
-        offset += header_size + packet_size;
+        ok = read_packet(&wp, data->buffer, data->buffer_size, sf, offset, data, 1);
+        if (!ok) goto fail;
+        data->op.bytes = wp.packet_size;
+        if (vorbis_synthesis_headerin(&data->vi, &data->vc, &data->op) != 0) goto fail;
+        offset += wp.header_size + wp.packet_size;
 
         /* normal setup packet */
-        header_size = get_packet_header(sf, offset, cfg.header_type, (int*)&data->op.granulepos, &packet_size, cfg.big_endian);
-        if (!header_size || packet_size > data->buffer_size) goto fail;
-        data->op.bytes = read_streamfile(data->buffer,offset+header_size,packet_size, sf);
-        if (vorbis_synthesis_headerin(&data->vi, &data->vc, &data->op) != 0) goto fail; /* parse setup header */
-        offset += header_size + packet_size;
+        ok = read_packet(&wp, data->buffer, data->buffer_size, sf, offset, data, 1);
+        if (!ok) goto fail;
+        data->op.bytes = wp.packet_size;
+        if (vorbis_synthesis_headerin(&data->vi, &data->vc, &data->op) != 0) goto fail;
+        offset += wp.header_size + wp.packet_size;
     }
     else {
         /* rebuild headers */
 
         /* new identificacion packet */
-        data->op.bytes = build_header_identification(data->buffer, data->buffer_size, cfg.channels, cfg.sample_rate, cfg.blocksize_0_exp, cfg.blocksize_1_exp);
+        data->op.bytes = build_header_identification(data->buffer, data->buffer_size, &data->config);
         if (!data->op.bytes) goto fail;
         if (vorbis_synthesis_headerin(&data->vi, &data->vc, &data->op) != 0) goto fail; /* parse identification header */
 
@@ -82,7 +93,7 @@ int vorbis_custom_setup_init_wwise(STREAMFILE* sf, off_t start_offset, vorbis_cu
         if (vorbis_synthesis_headerin(&data->vi, &data->vc, &data->op) !=0 ) goto fail; /* parse comment header */
 
         /* rebuild setup packet */
-        data->op.bytes = rebuild_setup(data->buffer, data->buffer_size, sf, start_offset, data, cfg.big_endian, cfg.channels);
+        data->op.bytes = rebuild_setup(data->buffer, data->buffer_size, &wp, sf, start_offset, data);
         if (!data->op.bytes) goto fail;
         if (vorbis_synthesis_headerin(&data->vi, &data->vc, &data->op) != 0) goto fail; /* parse setup header */
     }
@@ -94,16 +105,15 @@ fail:
 }
 
 
-int vorbis_custom_parse_packet_wwise(VGMSTREAMCHANNEL *stream, vorbis_custom_codec_data *data) {
-    size_t header_size, packet_size = 0;
+int vorbis_custom_parse_packet_wwise(VGMSTREAMCHANNEL* stream, vorbis_custom_codec_data* data) {
+    wpacket_t wp = {0};
 
-    /* reconstruct a Wwise packet, if needed; final bytes may be bigger than packet_size so we get the header offsets here */
-    header_size = get_packet_header(stream->streamfile, stream->offset, data->config.header_type, (int*)&data->op.granulepos, &packet_size, data->config.big_endian);
-    if (!header_size || packet_size > data->buffer_size) goto fail;
-
-    data->op.bytes = rebuild_packet(data->buffer, data->buffer_size, stream->streamfile,stream->offset, data, data->config.big_endian);
-    stream->offset += header_size + packet_size;
+    /* reconstruct a Wwise packet, if needed; final bytes may be bigger than packet_size */
+    data->op.bytes = rebuild_packet(data->buffer, data->buffer_size, &wp, stream->streamfile, stream->offset, data);
+    stream->offset += wp.header_size + wp.packet_size;
     if (!data->op.bytes || data->op.bytes >= 0xFFFF) goto fail;
+
+    data->op.granulepos = wp.granulepos;
 
     return 1;
 
@@ -115,62 +125,93 @@ fail:
 /* INTERNAL HELPERS                                                             */
 /* **************************************************************************** */
 
-/* loads info from a wwise packet header */
-static size_t get_packet_header(STREAMFILE* sf, off_t offset, wwise_header_t header_type, int* granulepos, size_t* packet_size, int big_endian) {
-    uint32_t (*read_u32)(off_t,STREAMFILE*) = big_endian ? read_u32be : read_u32le;
-    uint16_t (*read_u16)(off_t,STREAMFILE*) = big_endian ? read_u16be : read_u16le;
-    int32_t  (*read_s32)(off_t,STREAMFILE*) = big_endian ? read_s32be : read_s32le;
+static int read_packet(wpacket_t* wp, uint8_t* ibuf, size_t ibufsize, STREAMFILE* sf, off_t offset, vorbis_custom_codec_data* data, int is_setup) {
+    uint32_t (*get_u32)(const uint8_t*) = data->config.big_endian ? get_u32be : get_u32le;
+    uint16_t (*get_u16)(const uint8_t*) = data->config.big_endian ? get_u16be : get_u16le;
+    int32_t  (*get_s32)(const uint8_t*) = data->config.big_endian ? get_s32be : get_s32le;
 
-    /* packet size doesn't include header size */
-    switch(header_type) {
-        case WWV_TYPE_8: /* size 4+4 */
-            *packet_size = read_u32(offset, sf);
-            *granulepos = read_s32(offset + 0x04, sf);
-            return 8;
-
-        case WWV_TYPE_6: /* size 4+2 */
-            *packet_size = read_u16(offset, sf);
-            *granulepos = read_s32(offset + 0x02, sf);
-            return 6;
-
-        case WWV_TYPE_2: /* size 2 */
-            *packet_size = read_u16(offset, sf);
-            *granulepos = 0; /* granule is an arbitrary unit so we could use offset instead; libvorbis has no actually need it actually */
-            return 2;
+    /* read header info (packet size doesn't include header size) */
+    switch(data->config.header_type) {
+        case WWV_TYPE_8:
+            wp->header_size = 0x08;
+            read_streamfile(ibuf, offset, wp->header_size, sf);
+            wp->packet_size = get_u32(ibuf + 0x00);
+            wp->granulepos  = get_s32(ibuf + 0x04);
             break;
+
+        case WWV_TYPE_6:
+            wp->header_size = 0x06;
+            read_streamfile(ibuf, offset, wp->header_size, sf);
+            wp->packet_size = get_u16(ibuf + 0x00);
+            wp->granulepos  = get_s32(ibuf + 0x02);
+            break;
+
+        case WWV_TYPE_2:
+            wp->header_size = 0x02;
+            read_streamfile(ibuf, offset, wp->header_size, sf);
+            wp->packet_size = get_u16(ibuf + 0x00);
+            wp->granulepos  = 0; /* granule is an arbitrary unit so we could use offset instead; libvorbis has no need for it */
+            break;
+
         default: /* ? */
-            return 0;
+            wp->header_size = 0;
+            wp->packet_size = 0;
+            wp->granulepos  = 0;
+            break;
     }
+
+    /* read packet data */
+    {
+        size_t read_size = wp->packet_size;
+        size_t read;
+
+        /* mod packets need next packet's first byte (6 bits) except at EOF, so read now too */
+        if (!is_setup && data->config.packet_type == WWV_MODIFIED) {
+            read_size += wp->header_size + 0x01;
+        }
+
+        if (!wp->header_size || read_size > ibufsize)
+            goto fail;
+
+        read = read_streamfile(ibuf, offset + wp->header_size, read_size, sf);
+        if (read < wp->packet_size) {
+            VGM_LOG("Wwise Vorbis: truncated packet\n");
+            goto fail;
+        }
+
+        if (!is_setup && data->config.packet_type == WWV_MODIFIED && read == read_size) {
+            wp->has_next = 1;
+            wp->inxt[0] = ibuf[wp->packet_size + wp->header_size];
+        }
+        else {
+            wp->has_next = 0;
+        }
+    }
+
+    return 1;
+fail:
+    return 0;
 }
 
+
 /* Transforms a Wwise data packet into a real Vorbis one (depending on config) */
-static size_t rebuild_packet(uint8_t* obuf, size_t obufsize, STREAMFILE* sf, off_t offset, vorbis_custom_codec_data* data, int big_endian) {
+static size_t rebuild_packet(uint8_t* obuf, size_t obufsize, wpacket_t* wp, STREAMFILE* sf, off_t offset, vorbis_custom_codec_data* data) {
     bitstream_t ow, iw;
-    int rc, granulepos;
-    size_t header_size, packet_size;
+    int ok;
+    uint8_t ibuf[0x8000]; /* arbitrary max */
+    size_t ibufsize = sizeof(ibuf);
 
-    size_t ibufsize = 0x8000; /* arbitrary max size of a setup packet */
-    uint8_t ibuf[0x8000]; /* Wwise setup packet buffer */
-    if (obufsize < ibufsize) goto fail; /* arbitrary expected min */
-
-    header_size = get_packet_header(sf, offset, data->config.header_type, &granulepos, &packet_size, big_endian);
-    if (!header_size || packet_size > obufsize) goto fail;
-
-    /* load Wwise data into internal buffer */
-    if (read_streamfile(ibuf,offset+header_size,packet_size, sf)!=packet_size)
+    if (obufsize < ibufsize) /* arbitrary min */
         goto fail;
 
-    /* prepare helper structs */
-    ow.buf = obuf;
-    ow.bufsize = obufsize;
-    ow.b_off = 0;
+    ok = read_packet(wp, ibuf, ibufsize, sf, offset, data, 0);
+    if (!ok) goto fail;
 
-    iw.buf = ibuf;
-    iw.bufsize = ibufsize;
-    iw.b_off = 0;
+    init_bitstream(&ow, obuf, obufsize);
+    init_bitstream(&iw, ibuf, ibufsize);
 
-    rc = ww2ogg_generate_vorbis_packet(&ow,&iw, sf,offset, data, big_endian);
-    if (!rc) goto fail;
+    ok = ww2ogg_generate_vorbis_packet(&ow, &iw, wp, data);
+    if (!ok) goto fail;
 
     if (ow.b_off % 8 != 0) {
         //VGM_LOG("Wwise Vorbis: didn't write exactly audio packet: 0x%lx + %li bits\n", ow.b_off / 8, ow.b_off % 8);
@@ -183,36 +224,24 @@ fail:
     return 0;
 }
 
-
 /* Transforms a Wwise setup packet into a real Vorbis one (depending on config). */
-static size_t rebuild_setup(uint8_t* obuf, size_t obufsize, STREAMFILE* sf, off_t offset, vorbis_custom_codec_data* data, int big_endian, int channels) {
+static size_t rebuild_setup(uint8_t* obuf, size_t obufsize, wpacket_t* wp, STREAMFILE* sf, off_t offset, vorbis_custom_codec_data* data) {
     bitstream_t ow, iw;
-    int rc, granulepos;
-    size_t header_size, packet_size;
+    int ok;
+    uint8_t ibuf[0x8000]; /* arbitrary max */
+    size_t ibufsize = sizeof(ibuf);
 
-    size_t ibufsize = 0x8000; /* arbitrary max size of a setup packet */
-    uint8_t ibuf[0x8000]; /* Wwise setup packet buffer */
-    if (obufsize < ibufsize) goto fail; /* arbitrary expected min */
-
-    /* read Wwise packet header */
-    header_size = get_packet_header(sf, offset, data->config.header_type, &granulepos, &packet_size, big_endian);
-    if (!header_size || packet_size > ibufsize) goto fail;
-
-    /* load Wwise setup into internal buffer */
-    if (read_streamfile(ibuf,offset+header_size,packet_size, sf)!=packet_size)
+    if (obufsize < ibufsize) /* arbitrary min */
         goto fail;
 
-    /* prepare helper structs */
-    ow.buf = obuf;
-    ow.bufsize = obufsize;
-    ow.b_off = 0;
+    ok = read_packet(wp, ibuf, ibufsize, sf, offset, data, 1);
+    if (!ok) goto fail;
 
-    iw.buf = ibuf;
-    iw.bufsize = ibufsize;
-    iw.b_off = 0;
+    init_bitstream(&ow, obuf, obufsize);
+    init_bitstream(&iw, ibuf, ibufsize);
 
-    rc = ww2ogg_generate_vorbis_setup(&ow,&iw, data, channels, packet_size, sf);
-    if (!rc) goto fail;
+    ok = ww2ogg_generate_vorbis_setup(&ow,&iw, data, wp->packet_size, sf);
+    if (!ok) goto fail;
 
     if (ow.b_off % 8 != 0) {
         //VGM_LOG("Wwise Vorbis: didn't write exactly setup packet: 0x%lx + %li bits\n", ow.b_off / 8, ow.b_off % 8);
@@ -225,19 +254,19 @@ fail:
     return 0;
 }
 
-static size_t build_header_identification(uint8_t* buf, size_t bufsize, int channels, int sample_rate, int blocksize_0_exp, int blocksize_1_exp) {
+static size_t build_header_identification(uint8_t* buf, size_t bufsize, vorbis_custom_config* cfg) {
     size_t bytes = 0x1e;
     uint8_t blocksizes;
 
     if (bytes > bufsize) return 0;
 
-    blocksizes = (blocksize_0_exp << 4) | (blocksize_1_exp);
+    blocksizes = (cfg->blocksize_0_exp << 4) | (cfg->blocksize_1_exp);
 
     put_8bit   (buf+0x00, 0x01);            /* packet_type (id) */
     memcpy     (buf+0x01, "vorbis", 6);     /* id */
     put_32bitLE(buf+0x07, 0x00);            /* vorbis_version (fixed) */
-    put_8bit   (buf+0x0b, channels);        /* audio_channels */
-    put_32bitLE(buf+0x0c, sample_rate);     /* audio_sample_rate */
+    put_8bit   (buf+0x0b, cfg->channels);   /* audio_channels */
+    put_32bitLE(buf+0x0c, cfg->sample_rate);/* audio_sample_rate */
     put_32bitLE(buf+0x10, 0x00);            /* bitrate_maximum (optional hint) */
     put_32bitLE(buf+0x14, 0x00);            /* bitrate_nominal (optional hint) */
     put_32bitLE(buf+0x18, 0x00);            /* bitrate_minimum (optional hint) */
@@ -265,8 +294,8 @@ static size_t build_header_comment(uint8_t* buf, size_t bufsize) {
 /* **************************************************************************** */
 /* INTERNAL WW2OGG STUFF                                                        */
 /* **************************************************************************** */
-/* The following code was mostly and manually converted from hcs's ww2ogg.
- * Could be simplified but roughly tries to preserve the structure in case fixes have to be backported.
+/* The following code was mostly and manually converted from hcs's ww2ogg (https://github.com/hcs64/ww2ogg).
+ * Could be simplified but roughly tries to preserve the structure for comparison.
  *
  * Some validations are ommited (ex. read/write), as incorrect data should be rejected by libvorbis.
  * To avoid GCC complaining all values are init to 0, and some that do need it are init again, for clarity.
@@ -275,19 +304,7 @@ static size_t build_header_comment(uint8_t* buf, size_t bufsize) {
 
 /* Copy packet as-is or rebuild first byte if mod_packets is used.
  * (ref: https://www.xiph.org/vorbis/doc/Vorbis_I_spec.html#x1-720004.3) */
-static int ww2ogg_generate_vorbis_packet(bitstream_t* ow, bitstream_t* iw, STREAMFILE* sf, off_t offset, vorbis_custom_codec_data* data, int big_endian) {
-    int granule;
-    size_t header_size, packet_size, data_size;
-
-    header_size = get_packet_header(sf,offset, data->config.header_type, &granule, &packet_size, big_endian);
-    if (!header_size || packet_size > iw->bufsize) goto fail;
-
-    data_size = get_streamfile_size(sf);//todo get external data_size
-
-    if (offset + header_size + packet_size > data_size) {
-        VGM_LOG("Wwise Vorbis: page header truncated\n");
-        goto fail;
-    }
+static int ww2ogg_generate_vorbis_packet(bitstream_t* ow, bitstream_t* iw, wpacket_t* wp, vorbis_custom_codec_data* data) {
 
     /* this may happen in the first packet; maybe it's for the encoder delay but doesn't seem to affect libvorbis */
     //VGM_ASSERT(granule < 0, "Wwise Vorbis: negative granule %i @ 0x%lx\n", granule, offset);
@@ -314,36 +331,23 @@ static int ww2ogg_generate_vorbis_packet(bitstream_t* ow, bitstream_t* iw, STREA
         /* adjust window info */
         if (data->mode_blockflag[mode_number]) {
             /* long window: peek at next frame to find flags */
-            off_t next_offset = offset + header_size + packet_size;
+            //off_t next_offset = offset + header_size + packet_size;
             uint32_t next_blockflag = 0, prev_window_type = 0, next_window_type = 0;
 
-            next_blockflag = 0;
-            /* check if more data / not eof */
-            if (next_offset + header_size <= data_size) {
-                size_t next_header_size, next_packet_size;
-                int next_granule;
+            if (wp->has_next) {
+                /* get next first byte to read next_mode_number */
+                uint32_t next_mode_number;
+                bitstream_t nw;
 
-                next_header_size = get_packet_header(sf,next_offset, data->config.header_type, &next_granule, &next_packet_size, big_endian);
-                if (!next_header_size) goto fail;
+                init_bitstream(&nw, wp->inxt, sizeof(wp->inxt));
 
-                if (next_packet_size > 0) {
-                    /* get next first byte to read next_mode_number */
-                    uint32_t next_mode_number;
-                    uint8_t nbuf[1];
-                    bitstream_t nw;
+                rv_bits(&nw,  data->mode_bits,&next_mode_number); /* max 6b */
 
-                    nw.buf = nbuf;
-                    nw.bufsize = 1;
-                    nw.b_off = 0;
-
-
-                    if (read_streamfile(nw.buf, next_offset + next_header_size, nw.bufsize, sf) != nw.bufsize)
-                        goto fail;
-
-                    rv_bits(&nw,  data->mode_bits,&next_mode_number); /* max 6b */
-
-                    next_blockflag = data->mode_blockflag[next_mode_number];
-                }
+                next_blockflag = data->mode_blockflag[next_mode_number];
+            }
+            else {
+                /* EOF (probably doesn't matter) */
+                next_blockflag = 0;
             }
 
             prev_window_type = data->prev_blockflag;
@@ -358,7 +362,7 @@ static int ww2ogg_generate_vorbis_packet(bitstream_t* ow, bitstream_t* iw, STREA
         wv_bits(ow,  8-data->mode_bits, remainder);
 
         /* rest of the packet (input/output bytes aren't byte aligned here, so no memcpy) */
-        copy_bytes(ow, iw, packet_size - 1);
+        copy_bytes(ow, iw, wp->packet_size - 1);
 
         /* remove trailing garbage bits (probably unneeded) */
         if (ow->b_off % 8 != 0) {
@@ -371,10 +375,10 @@ static int ww2ogg_generate_vorbis_packet(bitstream_t* ow, bitstream_t* iw, STREA
     else {
         /* normal packets */
 
-        /* can directly copy here (much, much faster), but least common case vs the above... */
-        memcpy(ow->buf + ow->b_off / 8, iw->buf + iw->b_off / 8, packet_size);
-        ow->b_off += packet_size * 8;
-        iw->b_off += packet_size * 8;
+        /* can directly copy (much, much faster), but least common case vs the above... */
+        memcpy(ow->buf + ow->b_off / 8, iw->buf + iw->b_off / 8, wp->packet_size);
+        ow->b_off += wp->packet_size * 8;
+        iw->b_off += wp->packet_size * 8;
     }
 
 
@@ -670,9 +674,7 @@ static int ww2ogg_codebook_library_rebuild_by_id(bitstream_t* ow, uint32_t codeb
     cb_size = load_wvc(ibuf,ibufsize, codebook_id, setup_type, sf);
     if (cb_size == 0) goto fail;
 
-    iw.buf = ibuf;
-    iw.bufsize = ibufsize;
-    iw.b_off = 0;
+    init_bitstream(&iw, ibuf, ibufsize);
 
     return ww2ogg_codebook_library_rebuild(ow, &iw, cb_size, sf);
 fail:
@@ -681,8 +683,9 @@ fail:
 
 /* Rebuild a Wwise setup (simplified with removed stuff), recreating all six setup parts.
  * (ref: https://www.xiph.org/vorbis/doc/Vorbis_I_spec.html#x1-650004.2.4) */
-static int ww2ogg_generate_vorbis_setup(bitstream_t* ow, bitstream_t* iw, vorbis_custom_codec_data* data, int channels, size_t packet_size, STREAMFILE* sf) {
-    int i,j,k;
+static int ww2ogg_generate_vorbis_setup(bitstream_t* ow, bitstream_t* iw, vorbis_custom_codec_data* data, size_t packet_size, STREAMFILE* sf) {
+    int i, j, k;
+    int channels = data->config.channels;
     uint32_t codebook_count = 0, floor_count = 0, residue_count = 0;
     uint32_t codebook_count_less1 = 0;
     uint32_t time_count_less1 = 0, dummy_time_value = 0;
@@ -738,7 +741,7 @@ static int ww2ogg_generate_vorbis_setup(bitstream_t* ow, bitstream_t* iw, vorbis
         /* rest of setup is untouched, copy bits */
         uint32_t bitly = 0;
         uint32_t total_bits_read = iw->b_off;
-        uint32_t setup_packet_size_bits = packet_size*8;
+        uint32_t setup_packet_size_bits = packet_size * 8;
 
         while (total_bits_read < setup_packet_size_bits) {
             rv_bits(iw,  1,&bitly);
