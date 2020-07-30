@@ -74,12 +74,12 @@ for /L %A in (5,1,10) do  test.exe -s %A -o file_%A.wav file.fsb
 ```
 
 Output filename in `-o` may use multiple wildcards:
-- `:s`: sets current subsong (or 0 if format doesn't have subsongs)
-- `:0Ns`: same, but left pads subsong with up to `N` zeroes
-- `:n`: internal stream name, or input filename if format doesn't have name
-- `:f`: input filename
+- `?s`: sets current subsong (or 0 if format doesn't have subsongs)
+- `?0Ns`: same, but left pads subsong with up to `N` zeroes
+- `?n`: internal stream name, or input filename if format doesn't have name
+- `?f`: input filename
 
-For example `test.exe -s 2 -o :04s_:n.wav file.fsb` could generate `0002_song1.wav`
+For example `test.exe -s 2 -o ?04s_?n.wav file.fsb` could generate `0002_song1.wav`
 
 
 ### in_vgmstream
