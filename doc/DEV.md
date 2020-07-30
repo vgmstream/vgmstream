@@ -11,15 +11,17 @@ There are no hard coding rules but for consistency one could follow the style us
 - underscore_and_lowercase_names instead of CamelCase
 - /* C89 comments */ for general comments, //C99 comments for special comments (like disabling code but leaving it there for visibility)
 - brackets starting in the same line 
-  ex `if (..) { CRLF ... }`
+  - ex. `if (..) { CRLF ... }`
 - line length ~100, more is ok for 'noise code' (uninteresting calcs or function defs)
 - offsets/sizes in hex, counts/numbers in decimal
 - test functions may return 1=ok, 0=ko for simplicity.
 - free(ptr) no need to NULL-check per standard, close_stuff(ptr) should follow when possible
 - lowercase_helper_structs, UPPERCASE_MAIN_STRUCTS
 - spaces in calcs/ifs/etc may be added as desired for clarity
-  ex. `if (simple_check)` or `if ( complex_and_important_stuff(weird + weird) )`
+  - ex. `if (simple_check)` or `if ( complex_and_important_stuff(weird + weird) )`
 - goto are used to abort and reach "fail" sections (typical C cleanup style)
+- pointer definitions should keep the `*` together for consistency 
+  - ex. `VGMSTREAM* init_x() { ... }` `STREAMFILE* sf = ...`
 
 But other styles may be found, this isn't very important as most files are isolated. When modifying a file or section of the code just try to follow the style set there so code doesn't clash too much.
 
@@ -164,26 +166,21 @@ The layout used mainly depends on the decoder. MP3 data (that may have 1 or 2 ch
 Layouts expect the VGMSTREAM to be properly initialized during the meta processing (channel offsets must point to each channel start offset).
 
 ### decoders
-Decoders take a sample buffer, convert data to PCM samples and fill one or multiple channels at a time, depending on the decoder itself. Usually its data is divided into frames with a number of samples, and should only need to do one frame at a time (when size is fixed/informed; vgmstream gives flexibility to the decoder), but must take into account that the sample buffer may be smaller than the frame samples, and that may start some samples into the frame.
+Decoders take a sample buffer, convert data to PCM samples and fill one or multiple channels at a time, depending on the decoder itself. Usually its data is divided into frames with a number of samples, and should only need to do one frame at a time (when size is fixed/informed; vgmstream gives flexibility to the decoder), but must take into account that the sample buffer may be smaller than the frame samples, and that may start some samples into the frame (this is also done to handle looping in some cases, where decoder state must stop in the middle).
 
 Every call the decoder will need to find out the current frame offset (usually per channel). This is usually done with a base channel offset (from the VGMSTREAM) plus deriving the frame number (thus sub-offset, but only if frames are fixed) through the current sample, or manually updating the channel offsets every frame. This second method is not suitable to use with the interleave layout as it advances the offsets assuming they didn't change (this is a limitation/bug at the moment). Similarly, the blocked layout cannot contain interleaved data, and must use alt decoders with internal interleave (also a current limitation). Thus, some decoders and layouts don't mix.
 
-If the decoder needs to keep state between calls it may use the VGMSTREAM for common values (like ADPCM history), or alloc a custom data struct. In that case the decoder should provide init/free functions so the meta or vgmstream may use. This is the case with decoders implemented using external libraries (*ext_libs*), as seen in *#ifdef VGM_USE_X ... #endif* sections.
+If the decoder needs to keep state between calls it may use the VGMSTREAM for common values (like ADPCM history), or alloc a custom data struct. In that case the decoder should provide init/free functions so the meta or vgmstream may use. This is seen with decoders implemented using external libraries (*ext_libs*), as seen in *#ifdef VGM_USE_X ... #endif* sections.
 
 Adding a new decoder involves:
 - *src/coding/(decoder-name).c*: create `decode_x` function that decodes stream data into the passed sample buffer. If the codec requires custom internals it may need `init/reset/seek/free_x`, or other helper functions.
-- *src/coding/coding.h*: define decoder's functions.
-- *src/vgmstream.h*: define new coding type in the list. If the codec requires custom internals, define new `x_codec_data` struct.
-- *src/vgmstream.c: reset_vgmstream*: call `reset_x` if needed 
-- *src/vgmstream.c: close_vgmstream*: call `free_x` if needed
-- *src/vgmstream.c: get_vgmstream_samples_per_frame*: define so vgmstream only asks for N samples per decode_x call. May return 0 if variable/unknown/etc (decoder must handle setting arbitrary number of samples)
-- *src/vgmstream.c: get_vgmstream_frame_size*: define so vgmstream can do certain internal calculations. May return 0 if variable/unknown/etc, but blocked/interleave layouts will need to be used in a certain way.
-- *src/vgmstream.c: decode_vgmstream*: call `decode_x`, possibly once per channel if the decoder works with a channel at a time.
-- *src/vgmstream.c: vgmstream_do_loop*: call `seek_x` if needed
-- *src/vgmstream.c: reset_vgmstream*: call `reset_x` if needed
+- *src/coding/coding.h*: define decoder's functions and type
+- *src/decode.c: get_vgmstream_samples_per_frame*: define so vgmstream only asks for N samples per decode_x call. May return 0 if variable/unknown/etc (decoder then must handle arbitrary number of samples)
+- *src/decode.c: get_vgmstream_frame_size*: define so vgmstream can do certain internal calculations. May return 0 if variable/unknown/etc, but blocked/interleave layouts will need to be used in a certain way.
+- *src/decode.c: decode_vgmstream*: call `decode_x`, possibly once per channel if the decoder works with a channel at a time.
+- *src/decode.c: add handling in `reset/seek/free_codec` if needed
 - *src/formats.c*: add coding type description
 - *src/libvgmstream.vcproj/vcxproj/filters*: add to compile new (decoder-name).c parser in VS
-- *src/vgmstream.c*: add parser init to the init list
 - if the codec depends on a external library don't forget to mark parts with: *#ifdef VGM_USE_X ... #endif*
 
 ### core

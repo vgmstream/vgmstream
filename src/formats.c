@@ -242,7 +242,6 @@ static const char* extension_list[] = {
     "kat",
     "kces",
     "kcey", //fake extension/header id for .pcm (renamed, to be removed)
-    "khv", //fake extension/header id for .vas (renamed, to be removed)
     "km9",
     "kovs", //fake extension/header id for .kvs
     "kns",
@@ -560,6 +559,7 @@ static const char* extension_list[] = {
     "wem",
     "wii",
     "wip", //txth/reserved [Colin McRae DiRT (PC)]
+    "wlv", //txth/reserved [ToeJam & Earl III: Mission to Earth (DC)]
     "wma", //common
     "wmus",
     "wp2",

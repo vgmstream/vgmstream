@@ -258,7 +258,6 @@ int test_hca_key(hca_codec_data* data, unsigned long long keycode) {
 }
 
 void hca_set_encryption_key(hca_codec_data* data, uint64_t keycode) {
-    VGM_LOG("k=%x%x", (uint32_t)((keycode >> 32) & 0xFFFFFFFF), (uint32_t)(keycode & 0xFFFFFFFF));
     clHCA_SetKey(data->handle, (unsigned long long)keycode);
 }
 

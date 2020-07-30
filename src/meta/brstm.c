@@ -106,26 +106,39 @@ VGMSTREAM * init_vgmstream_brstm(STREAMFILE *streamFile) {
 
     if (vgmstream->coding_type == coding_NGC_DSP) {
         off_t coef_offset;
-        off_t coef_offset1;
-        off_t coef_offset2;
+        off_t head_part3_offset;
+        off_t adpcm_header_offset;
         int i,j;
-        int coef_spacing = 0x38;
+        int coef_spacing;
 
         if (atlus_shrunken_head)
         {
             coef_offset = 0x50;
             coef_spacing = 0x30;
+
+            for (j = 0; j < vgmstream->channels; j++) {
+                for (i = 0; i < 16; i++) {
+                    vgmstream->ch[j].adpcm_coef[i] = read_16bitBE(head_offset + coef_offset + j * coef_spacing + i * 2,streamFile);
+                }
+            }
         }
         else
         {
-            coef_offset1=read_32bitBE(head_offset+0x1c,streamFile);
-            coef_offset2=read_32bitBE(head_offset+0x10+coef_offset1,streamFile);
-            coef_offset=coef_offset2+0x10;
-        }
+            head_part3_offset = read_32bitBE(head_offset + 0x1c, streamFile);
 
-        for (j=0;j<vgmstream->channels;j++) {
-            for (i=0;i<16;i++) {
-                vgmstream->ch[j].adpcm_coef[i]=read_16bitBE(head_offset+coef_offset+j*coef_spacing+i*2,streamFile);
+            for (j = 0; j < vgmstream->channels; j++) {
+                adpcm_header_offset = head_offset + 0x08
+                    + head_part3_offset + 0x04 /* skip over HEAD part 3 */
+                    + j * 0x08 /* skip to channel's ADPCM offset table */
+                    + 0x04; /* ADPCM header offset field */
+
+                coef_offset = head_offset + 0x08
+                    + read_32bitBE(adpcm_header_offset, streamFile)
+                    + 0x08; /* coeffs field */
+
+                for (i = 0; i < 16; i++) {
+                    vgmstream->ch[j].adpcm_coef[i] = read_16bitBE(coef_offset + i * 2, streamFile);
+                }
             }
         }
     }

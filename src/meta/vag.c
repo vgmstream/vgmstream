@@ -20,9 +20,8 @@ VGMSTREAM * init_vgmstream_vag(STREAMFILE *streamFile) {
      * .str: Ben10 Galactic Racing
      * .vig: MX vs. ATV Untamed (PS2)
      * .l/r: Crash Nitro Kart (PS2), Gradius V (PS2)
-     * .vas: Kingdom Hearts II (PS2)
-     * .khv: fake for .vas */
-    if ( !check_extensions(streamFile,"vag,swag,str,vig,l,r,vas,khv") )
+     * .vas: Kingdom Hearts II (PS2) */
+    if ( !check_extensions(streamFile,"vag,swag,str,vig,l,r,vas") )
         goto fail;
 
     /* check VAG Header */
