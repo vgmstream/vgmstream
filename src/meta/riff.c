@@ -392,9 +392,16 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
         else if (codec == 0x0300 && riff_size == file_size)
             riff_size -= 0x08; /* [Chrono Ma:gia (Android)] */
 
-        else if (mwv && riff_size + 0x0c <= file_size) { /* files inside HD6/DAT are also padded to 0x10 */ 
-            file_size = riff_size + 0x0c; /* [Dragon Quest VIII (PS2), Rogue Galaxy (PS2)] */
-            riff_size = file_size - 0x08;
+        else if (mwv) {
+            int channels = read_16bitLE(0x16, sf); /* [Dragon Quest VIII (PS2), Rogue Galaxy (PS2)] */
+            size_t file_size_fixed = riff_size + 0x08 + 0x04 * (channels - 1);
+
+            if (file_size_fixed <= file_size && file_size - file_size_fixed < 0x10)
+            {
+                /* files inside HD6/DAT are also padded to 0x10 so need to fix file_size */
+                file_size = file_size_fixed;
+                riff_size = file_size - 0x08;
+            }
         }
 
         else if (riff_size >= file_size && read_32bitBE(0x24,sf) == 0x4E584246) /* "NXBF" */
