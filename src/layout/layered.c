@@ -9,54 +9,34 @@
 
 
 /* Decodes samples for layered streams.
- * Similar to interleave layout, but decodec samples are mixed from complete vgmstreams, each
- * with custom codecs and different number of channels, creating a single super-vgmstream.
+ * Similar to flat layout, but decoded vgmstream are mixed into a final buffer, each vgmstream
+ * may have different codecs and number of channels, creating a single super-vgmstream.
  * Usually combined with custom streamfiles to handle data interleaved in weird ways. */
 void render_vgmstream_layered(sample_t* outbuf, int32_t sample_count, VGMSTREAM* vgmstream) {
-    int samples_written = 0, loop_samples_skip = 0;
+    int samples_written = 0;
     layered_layout_data* data = vgmstream->layout_data;
+    int samples_per_frame, samples_this_block;
 
+    samples_per_frame = VGMSTREAM_LAYER_SAMPLE_BUFFER;
+    samples_this_block = vgmstream->num_samples; /* do all samples if possible */
 
     while (samples_written < sample_count) {
         int samples_to_do;
-        int samples_this_block = VGMSTREAM_LAYER_SAMPLE_BUFFER;
-        int layer, ch = 0;
+        int layer, ch;
 
 
-        if (data->external_looping) {
-            /* normally each layer handles its own looping internally, except when using config
-             * were each layer is treated as a solid part, so loop is applied externally */
-
-            if (vgmstream->loop_flag && vgmstream_do_loop(vgmstream)) {
-                for (layer = 0; layer < data->layer_count; layer++) {
-                    reset_vgmstream(data->layers[layer]);
-                    //todo per-layer seeking instead of layout looping
-                }
-
-                loop_samples_skip = vgmstream->loop_start_sample;
-                vgmstream->current_sample = 0;
-                vgmstream->samples_into_block = 0;
-                continue;
-            }
-
-            samples_to_do = get_vgmstream_samples_to_do(vgmstream->num_samples, samples_this_block, vgmstream);
-            if (samples_to_do > sample_count - samples_written)
-                samples_to_do = sample_count - samples_written;
-
-            /* looping: discard until actual start */
-            if (loop_samples_skip > 0) {
-                if (samples_to_do > loop_samples_skip)
-                    samples_to_do = loop_samples_skip;
-            }
+        if (vgmstream->loop_flag && vgmstream_do_loop(vgmstream)) {
+            /* handle looping (loop_layout has been called below) */
+            continue;
         }
-        else {
-            samples_to_do = samples_this_block;
-            if (samples_to_do > sample_count - samples_written)
-                samples_to_do = sample_count - samples_written;
-        }
+
+        samples_to_do = get_vgmstream_samples_to_do(samples_this_block, samples_per_frame, vgmstream);
+        if (samples_to_do > sample_count - samples_written)
+            samples_to_do = sample_count - samples_written;
 
 
         /* decode all layers */
+        ch = 0;
         for (layer = 0; layer < data->layer_count; layer++) {
             int s, layer_ch, layer_channels;
 
@@ -67,10 +47,6 @@ void render_vgmstream_layered(sample_t* outbuf, int32_t sample_count, VGMSTREAM*
                     data->buffer,
                     samples_to_do,
                     data->layers[layer]);
-
-            if (loop_samples_skip > 0) {
-                continue;
-            }
 
             /* mix layer samples to main samples */
             for (layer_ch = 0; layer_ch < layer_channels; layer_ch++) {
@@ -84,25 +60,40 @@ void render_vgmstream_layered(sample_t* outbuf, int32_t sample_count, VGMSTREAM*
             }
         }
 
-        if (loop_samples_skip > 0) {
-            loop_samples_skip -= samples_to_do;
-            vgmstream->samples_into_block += samples_to_do;
-            continue;
-        }
+
+        samples_written += samples_to_do;
+        vgmstream->current_sample += samples_to_do;
+        vgmstream->samples_into_block += samples_to_do;
+    }
+}
 
 
+void loop_layout_layered(VGMSTREAM* vgmstream, int32_t loop_sample) {
+    int layer;
+    layered_layout_data* data = vgmstream->layout_data;
+
+
+    for (layer = 0; layer < data->layer_count; layer++) {
         if (data->external_looping) {
-            samples_written += samples_to_do;
-            vgmstream->current_sample += samples_to_do;
-            vgmstream->samples_into_block += samples_to_do;
+            /* looping is applied over resulting decode, as each layer is its own "solid" block with
+             * config and needs 'external' seeking */
+            seek_vgmstream(data->layers[layer], loop_sample);
         }
         else {
-            samples_written += samples_to_do;
-            vgmstream->current_sample = data->layers[0]->current_sample;
-            vgmstream->samples_into_block = 0; /* handled in each layer */
-            vgmstream->loop_count = data->layers[0]->loop_count;
+            /* looping is aplied as internal loops. normally each layer does it automatically, but
+             * just calls do_loop manually to behave a bit more controlled, and so that manual
+             * calls to do_loop work (used in seek_vgmstream) */
+            if (data->layers[layer]->loop_flag) { /* mixing looping and non-looping layers is allowed */
+                data->layers[layer]->current_sample = data->layers[layer]->loop_end_sample; /* forces do loop */
+                vgmstream_do_loop(data->layers[layer]); /* guaranteed to work should loop_layout be called */
+            }
         }
     }
+
+    /* could always call seek_vgmstream, but it's not optimized to loop non-config vgmstreams ATM */
+
+    vgmstream->current_sample = loop_sample;
+    vgmstream->samples_into_block = loop_sample;
 }
 
 

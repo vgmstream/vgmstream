@@ -1,6 +1,6 @@
 #include "vgmstream.h"
 #include "decode.h"
-//#include "layout/layout.h"
+#include "layout/layout.h"
 #include "coding/coding.h"
 #include "mixing.h"
 #include "plugins.h"
@@ -1423,7 +1423,7 @@ int vgmstream_do_loop(VGMSTREAM* vgmstream) {
             }
         }
 
-        /* prepare certain codecs' internal state for looping */
+        /* loop codecs */
         seek_codec(vgmstream);
 
         /* restore! */
@@ -1435,6 +1435,18 @@ int vgmstream_do_loop(VGMSTREAM* vgmstream) {
         vgmstream->current_block_offset = vgmstream->loop_block_offset;
         vgmstream->next_block_offset = vgmstream->loop_next_block_offset;
         //vgmstream->pstate = vgmstream->lstate; /* play state is applied over loops */
+
+        /* loop layouts (after restore, in case layout needs state manipulations) */
+        switch(vgmstream->layout_type) {
+            case layout_segmented:
+                loop_layout_segmented(vgmstream, vgmstream->loop_current_sample);
+                break;
+            case layout_layered:
+                loop_layout_layered(vgmstream, vgmstream->loop_current_sample);
+                break;
+            default:
+                break;
+        }
 
         return 1; /* looped */
     }
