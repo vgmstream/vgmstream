@@ -13,13 +13,13 @@
 /* DEFS                                                                         */
 /* **************************************************************************** */
 
-static int build_header_identification(uint8_t * buf, size_t bufsize, int channels, int sample_rate, int blocksize_short, int blocksize_long);
-static int build_header_comment(uint8_t * buf, size_t bufsize);
-static int build_header_setup(uint8_t * buf, size_t bufsize, uint32_t setup_id, STREAMFILE *streamFile);
+static int build_header_identification(uint8_t* buf, size_t bufsize, int channels, int sample_rate, int blocksize_short, int blocksize_long);
+static int build_header_comment(uint8_t* buf, size_t bufsize);
+static int build_header_setup(uint8_t* buf, size_t bufsize, uint32_t setup_id, STREAMFILE* sf);
 
-static int load_fvs_file_single(uint8_t * buf, size_t bufsize, uint32_t setup_id, STREAMFILE *streamFile);
-static int load_fvs_file_multi(uint8_t * buf, size_t bufsize, uint32_t setup_id, STREAMFILE *streamFile);
-static int load_fvs_array(uint8_t * buf, size_t bufsize, uint32_t setup_id, STREAMFILE *streamFile);
+static int load_fvs_file_single(uint8_t* buf, size_t bufsize, uint32_t setup_id, STREAMFILE* sf);
+static int load_fvs_file_multi(uint8_t* buf, size_t bufsize, uint32_t setup_id, STREAMFILE* sf);
+static int load_fvs_array(uint8_t* buf, size_t bufsize, uint32_t setup_id, STREAMFILE* sf);
 
 
 /* **************************************************************************** */
@@ -32,7 +32,7 @@ static int load_fvs_array(uint8_t * buf, size_t bufsize, uint32_t setup_id, STRE
  * Format info from python-fsb5 (https://github.com/HearthSim/python-fsb5) and
  *  fsb-vorbis-extractor (https://github.com/tmiasko/fsb-vorbis-extractor).
  */
-int vorbis_custom_setup_init_fsb(STREAMFILE *streamFile, off_t start_offset, vorbis_custom_codec_data *data) {
+int vorbis_custom_setup_init_fsb(STREAMFILE* sf, off_t start_offset, vorbis_custom_codec_data* data) {
     vorbis_custom_config cfg = data->config;
 
     data->op.bytes = build_header_identification(data->buffer, data->buffer_size, cfg.channels, cfg.sample_rate, 256, 2048); /* FSB default block sizes */
@@ -43,7 +43,7 @@ int vorbis_custom_setup_init_fsb(STREAMFILE *streamFile, off_t start_offset, vor
     if (!data->op.bytes) goto fail;
     if (vorbis_synthesis_headerin(&data->vi, &data->vc, &data->op) !=0 ) goto fail; /* parse comment header */
 
-    data->op.bytes = build_header_setup(data->buffer, data->buffer_size, cfg.setup_id, streamFile);
+    data->op.bytes = build_header_setup(data->buffer, data->buffer_size, cfg.setup_id, sf);
     if (!data->op.bytes) goto fail;
     if (vorbis_synthesis_headerin(&data->vi, &data->vc, &data->op) != 0) goto fail; /* parse setup header */
 
@@ -54,7 +54,7 @@ fail:
 }
 
 
-int vorbis_custom_parse_packet_fsb(VGMSTREAMCHANNEL *stream, vorbis_custom_codec_data *data) {
+int vorbis_custom_parse_packet_fsb(VGMSTREAMCHANNEL* stream, vorbis_custom_codec_data* data) {
     size_t bytes;
 
     /* get next packet size from the FSB 16b header (doesn't count this 16b) */
@@ -77,7 +77,7 @@ fail:
 /* INTERNAL HELPERS                                                             */
 /* **************************************************************************** */
 
-static int build_header_identification(uint8_t * buf, size_t bufsize, int channels, int sample_rate, int blocksize_short, int blocksize_long) {
+static int build_header_identification(uint8_t* buf, size_t bufsize, int channels, int sample_rate, int blocksize_short, int blocksize_long) {
     int bytes = 0x1e;
     uint8_t blocksizes, exp_blocksize_0, exp_blocksize_1;
 
@@ -122,7 +122,7 @@ static int build_header_identification(uint8_t * buf, size_t bufsize, int channe
     return bytes;
 }
 
-static int build_header_comment(uint8_t * buf, size_t bufsize) {
+static int build_header_comment(uint8_t* buf, size_t bufsize) {
     int bytes = 0x19;
 
     if (bytes > bufsize) return 0;
@@ -137,20 +137,20 @@ static int build_header_comment(uint8_t * buf, size_t bufsize) {
     return bytes;
 }
 
-static int build_header_setup(uint8_t * buf, size_t bufsize, uint32_t setup_id, STREAMFILE *streamFile) {
+static int build_header_setup(uint8_t* buf, size_t bufsize, uint32_t setup_id, STREAMFILE* sf) {
     int bytes;
 
     /* try to locate from the precompiled list */
-    bytes = load_fvs_array(buf, bufsize, setup_id, streamFile);
+    bytes = load_fvs_array(buf, bufsize, setup_id, sf);
     if (bytes)
         return bytes;
 
     /* try to load from external files */
-    bytes = load_fvs_file_single(buf, bufsize, setup_id, streamFile);
+    bytes = load_fvs_file_single(buf, bufsize, setup_id, sf);
     if (bytes)
         return bytes;
 
-    bytes = load_fvs_file_multi(buf, bufsize, setup_id, streamFile);
+    bytes = load_fvs_file_multi(buf, bufsize, setup_id, sf);
     if (bytes)
         return bytes;
 
@@ -159,8 +159,8 @@ static int build_header_setup(uint8_t * buf, size_t bufsize, uint32_t setup_id, 
     return 0;
 }
 
-static int load_fvs_file_single(uint8_t * buf, size_t bufsize, uint32_t setup_id, STREAMFILE *streamFile) {
-    STREAMFILE * streamFileSetup = NULL;
+static int load_fvs_file_single(uint8_t* buf, size_t bufsize, uint32_t setup_id, STREAMFILE* sf) {
+    STREAMFILE* sf_setup = NULL;
 
     {
         char setupname[PATH_LIMIT];
@@ -168,7 +168,7 @@ static int load_fvs_file_single(uint8_t * buf, size_t bufsize, uint32_t setup_id
         char *path;
 
         /* read "(dir/).fvs_{setup_id}" */
-        streamFile->get_name(streamFile,pathname,sizeof(pathname));
+        sf->get_name(sf,pathname,sizeof(pathname));
         path = strrchr(pathname,DIR_SEPARATOR);
         if (path)
             *(path+1) = '\0';
@@ -176,36 +176,36 @@ static int load_fvs_file_single(uint8_t * buf, size_t bufsize, uint32_t setup_id
             pathname[0] = '\0';
 
         snprintf(setupname,PATH_LIMIT,"%s.fvs_%08x", pathname, setup_id);
-        streamFileSetup = streamFile->open(streamFile,setupname,STREAMFILE_DEFAULT_BUFFER_SIZE);
+        sf_setup = sf->open(sf,setupname,STREAMFILE_DEFAULT_BUFFER_SIZE);
     }
 
-    if (streamFileSetup) {
+    if (sf_setup) {
         /* file found, get contents into the buffer */
-        size_t bytes = streamFileSetup->get_size(streamFileSetup);
+        size_t bytes = sf_setup->get_size(sf_setup);
         if (bytes > bufsize) goto fail;
 
-        if (read_streamfile(buf, 0, bytes, streamFileSetup) != bytes)
+        if (read_streamfile(buf, 0, bytes, sf_setup) != bytes)
             goto fail;
 
-        streamFileSetup->close(streamFileSetup);
+        sf_setup->close(sf_setup);
         return bytes;
     }
 
 fail:
-    if (streamFileSetup) streamFileSetup->close(streamFileSetup);
+    if (sf_setup) sf_setup->close(sf_setup);
     return 0;
 }
 
-static int load_fvs_file_multi(uint8_t * buf, size_t bufsize, uint32_t setup_id, STREAMFILE *streamFile) {
-    STREAMFILE * streamFileSetup = NULL;
+static int load_fvs_file_multi(uint8_t* buf, size_t bufsize, uint32_t setup_id, STREAMFILE* sf) {
+    STREAMFILE* sf_setup = NULL;
 
     {
         char setupname[PATH_LIMIT];
         char pathname[PATH_LIMIT];
-        char *path;
+        char* path;
 
         /* read "(dir/).fvs" */
-        streamFile->get_name(streamFile,pathname,sizeof(pathname));
+        sf->get_name(sf,pathname,sizeof(pathname));
         path = strrchr(pathname,DIR_SEPARATOR);
         if (path)
             *(path+1) = '\0';
@@ -213,41 +213,41 @@ static int load_fvs_file_multi(uint8_t * buf, size_t bufsize, uint32_t setup_id,
             pathname[0] = '\0';
 
         snprintf(setupname,PATH_LIMIT,"%s.fvs", pathname);
-        streamFileSetup = streamFile->open(streamFile,setupname,STREAMFILE_DEFAULT_BUFFER_SIZE);
+        sf_setup = sf->open(sf,setupname,STREAMFILE_DEFAULT_BUFFER_SIZE);
     }
 
-    if (streamFileSetup) {
+    if (sf_setup) {
         /* file found: read mini-header (format by bnnm, feel free to change) and locate FVS */
         int entries, i;
         uint32_t offset = 0, size = 0;
 
-        if (read_32bitBE(0x0, streamFileSetup) != 0x56465653) goto fail; /* "VFVS" */
-        entries = read_32bitLE(0x08, streamFileSetup); /* 0x04=v0, 0x0c-0x20: reserved */
+        if (read_32bitBE(0x0, sf_setup) != 0x56465653) goto fail; /* "VFVS" */
+        entries = read_32bitLE(0x08, sf_setup); /* 0x04=v0, 0x0c-0x20: reserved */
         if (entries <= 0) goto fail;
 
         for (i=0; i < entries; i++) {  /* entry = id, offset, size, reserved */
-            if ((uint32_t)read_32bitLE(0x20 + i*0x10, streamFileSetup) == setup_id) {
-                offset = read_32bitLE(0x24 + i*0x10, streamFileSetup);
-                size = read_32bitLE(0x28 + i*0x10, streamFileSetup);
+            if ((uint32_t)read_32bitLE(0x20 + i*0x10, sf_setup) == setup_id) {
+                offset = read_32bitLE(0x24 + i*0x10, sf_setup);
+                size = read_32bitLE(0x28 + i*0x10, sf_setup);
                 break;
             }
         }
         if (!size || !offset || size > bufsize) goto fail;
 
         /* read into buf */
-        if (read_streamfile(buf, offset, size, streamFileSetup) != size)
+        if (read_streamfile(buf, offset, size, sf_setup) != size)
             goto fail;
 
-        streamFileSetup->close(streamFileSetup);
+        sf_setup->close(sf_setup);
         return size;
     }
 
 fail:
-    if (streamFileSetup) streamFileSetup->close(streamFileSetup);
+    if (sf_setup) sf_setup->close(sf_setup);
     return 0;
 }
 
-static int load_fvs_array(uint8_t * buf, size_t bufsize, uint32_t setup_id, STREAMFILE *streamFile) {
+static int load_fvs_array(uint8_t* buf, size_t bufsize, uint32_t setup_id, STREAMFILE* sf) {
 #if FSB_VORBIS_USE_PRECOMPILED_FVS
     int i, list_length;
 

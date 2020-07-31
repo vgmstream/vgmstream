@@ -7,7 +7,7 @@
 
 #define VORBIS_DEFAULT_BUFFER_SIZE 0x8000 /* should be at least the size of the setup header, ~0x2000 */
 
-static void pcm_convert_float_to_16(int channels, sample_t * outbuf, int samples_to_do, float ** pcm);
+static void pcm_convert_float_to_16(sample_t* outbuf, int samples_to_do, float** pcm, int channels);
 
 /**
  * Inits a vorbis stream of some custom variety.
@@ -19,8 +19,8 @@ static void pcm_convert_float_to_16(int channels, sample_t * outbuf, int samples
  *
  * Reference: https://www.xiph.org/vorbis/doc/libvorbis/overview.html
  */
-vorbis_custom_codec_data * init_vorbis_custom(STREAMFILE *streamFile, off_t start_offset, vorbis_custom_t type, vorbis_custom_config * config) {
-    vorbis_custom_codec_data * data = NULL;
+vorbis_custom_codec_data* init_vorbis_custom(STREAMFILE* sf, off_t start_offset, vorbis_custom_t type, vorbis_custom_config* config) {
+    vorbis_custom_codec_data* data = NULL;
     int ok;
 
     /* init stuff */
@@ -46,11 +46,11 @@ vorbis_custom_codec_data * init_vorbis_custom(STREAMFILE *streamFile, off_t star
 
     /* init header */
     switch(data->type) {
-        case VORBIS_FSB:    ok = vorbis_custom_setup_init_fsb(streamFile, start_offset, data); break;
-        case VORBIS_WWISE:  ok = vorbis_custom_setup_init_wwise(streamFile, start_offset, data); break;
-        case VORBIS_OGL:    ok = vorbis_custom_setup_init_ogl(streamFile, start_offset, data); break;
-        case VORBIS_SK:     ok = vorbis_custom_setup_init_sk(streamFile, start_offset, data); break;
-        case VORBIS_VID1:   ok = vorbis_custom_setup_init_vid1(streamFile, start_offset, data); break;
+        case VORBIS_FSB:    ok = vorbis_custom_setup_init_fsb(sf, start_offset, data); break;
+        case VORBIS_WWISE:  ok = vorbis_custom_setup_init_wwise(sf, start_offset, data); break;
+        case VORBIS_OGL:    ok = vorbis_custom_setup_init_ogl(sf, start_offset, data); break;
+        case VORBIS_SK:     ok = vorbis_custom_setup_init_sk(sf, start_offset, data); break;
+        case VORBIS_VID1:   ok = vorbis_custom_setup_init_vid1(sf, start_offset, data); break;
         default: goto fail;
     }
     if(!ok) goto fail;
@@ -75,9 +75,9 @@ fail:
 }
 
 /* Decodes Vorbis packets into a libvorbis sample buffer, and copies them to outbuf */
-void decode_vorbis_custom(VGMSTREAM * vgmstream, sample_t * outbuf, int32_t samples_to_do, int channels) {
+void decode_vorbis_custom(VGMSTREAM* vgmstream, sample_t* outbuf, int32_t samples_to_do, int channels) {
     VGMSTREAMCHANNEL *stream = &vgmstream->ch[0];
-    vorbis_custom_codec_data * data = vgmstream->codec_data;
+    vorbis_custom_codec_data* data = vgmstream->codec_data;
     size_t stream_size =  get_streamfile_size(stream->streamfile);
     //data->op.packet = data->buffer;/* implicit from init */
     int samples_done = 0;
@@ -112,7 +112,7 @@ void decode_vorbis_custom(VGMSTREAM * vgmstream, sample_t * outbuf, int32_t samp
                 /* get max samples and convert from Vorbis float pcm to 16bit pcm */
                 if (samples_to_get > samples_to_do - samples_done)
                     samples_to_get = samples_to_do - samples_done;
-                pcm_convert_float_to_16(data->vi.channels, outbuf + samples_done * channels, samples_to_get, pcm);
+                pcm_convert_float_to_16(outbuf + samples_done * channels, samples_to_get, pcm, data->vi.channels);
                 samples_done += samples_to_get;
             }
 
@@ -167,10 +167,10 @@ decode_fail:
 }
 
 /* converts from internal Vorbis format to standard PCM (mostly from Xiph's decoder_example.c) */
-static void pcm_convert_float_to_16(int channels, sample_t * outbuf, int samples_to_do, float ** pcm) {
+static void pcm_convert_float_to_16(sample_t* outbuf, int samples_to_do, float** pcm, int channels) {
     int ch, s;
-    sample_t *ptr;
-    float *channel;
+    sample_t* ptr;
+    float* channel;
 
     /* convert float PCM (multichannel float array, with pcm[0]=ch0, pcm[1]=ch1, pcm[2]=ch0, etc)
      * to 16 bit signed PCM ints (host order) and interleave + fix clipping */
@@ -191,7 +191,7 @@ static void pcm_convert_float_to_16(int channels, sample_t * outbuf, int samples
 
 /* ********************************************** */
 
-void free_vorbis_custom(vorbis_custom_codec_data * data) {
+void free_vorbis_custom(vorbis_custom_codec_data* data) {
     if (!data)
         return;
 
@@ -205,17 +205,15 @@ void free_vorbis_custom(vorbis_custom_codec_data * data) {
     free(data);
 }
 
-void reset_vorbis_custom(VGMSTREAM *vgmstream) {
+void reset_vorbis_custom(VGMSTREAM* vgmstream) {
     vorbis_custom_codec_data *data = vgmstream->codec_data;
     if (!data) return;
 
-    /* Seeking is provided by the Ogg layer, so with custom vorbis we'd need seek tables instead.
-     * To avoid having to parse different formats we'll just discard until the expected sample */
     vorbis_synthesis_restart(&data->vd);
     data->samples_to_discard = 0;
 }
 
-void seek_vorbis_custom(VGMSTREAM *vgmstream, int32_t num_sample) {
+void seek_vorbis_custom(VGMSTREAM* vgmstream, int32_t num_sample) {
     vorbis_custom_codec_data *data = vgmstream->codec_data;
     if (!data) return;
 
