@@ -291,6 +291,54 @@ static size_t build_header_comment(uint8_t* buf, size_t bufsize) {
     return bytes;
 }
 
+
+/* copy packet bytes, where input/output bufs may not be byte-aligned (so no memcpy) */
+static int copy_bytes(bitstream_t* ob, bitstream_t* ib, uint32_t bytes) {
+    int i;
+
+#if 0
+    /* in theory this would be faster, but not clear results; maybe default is just optimized by compiler */
+    for (i = 0; i < bytes / 4; i++) {
+        uint32_t c = 0;
+
+        rv_bits(ib, 32, &c);
+        wv_bits(ob, 32,  c);
+    }
+    for (i = 0; i < bytes % 4; i++) {
+        uint32_t c = 0;
+
+        rv_bits(ib,  8, &c);
+        wv_bits(ob,  8,  c);
+    }
+#endif
+
+#if 0
+    /* output bits are never(?) byte aligned but input always is, yet this doesn't seem any faster */
+    if (ib->b_off % 8 == 0) {
+        int iw_pos = ib->b_off / 8;
+
+        for (i = 0; i < bytes; i++, iw_pos++) {
+            uint32_t c = ib->buf[iw_pos];
+
+          //rv_bits(ib,  8, &c);
+            wv_bits(ob,  8,  c);
+        }
+
+        ib->b_off += bytes * 8;
+        return 1;
+    }
+#endif
+
+    for (i = 0; i < bytes; i++) {
+        uint32_t c = 0;
+
+        rv_bits(ib,  8, &c);
+        wv_bits(ob,  8,  c);
+    }
+
+    return 1;
+}
+
 /* **************************************************************************** */
 /* INTERNAL WW2OGG STUFF                                                        */
 /* **************************************************************************** */
@@ -302,7 +350,7 @@ static size_t build_header_comment(uint8_t* buf, size_t bufsize) {
  * Reads/writes unsigned ints as most are bit values less than 32 and with no sign meaning.
  */
 
-/* Copy packet as-is or rebuild first byte if mod_packets is used.
+/* Copy packet as-is or rebuild to standard Vorbis packet if mod_packets is used.
  * (ref: https://www.xiph.org/vorbis/doc/Vorbis_I_spec.html#x1-720004.3) */
 static int ww2ogg_generate_vorbis_packet(bitstream_t* ow, bitstream_t* iw, wpacket_t* wp, vorbis_custom_codec_data* data) {
 
@@ -326,12 +374,12 @@ static int ww2ogg_generate_vorbis_packet(bitstream_t* ow, bitstream_t* iw, wpack
         /* collect this packet mode from the first byte */
         rv_bits(iw,  data->mode_bits,&mode_number); /* max 6b */
         wv_bits(ow,  data->mode_bits, mode_number);
+
         rv_bits(iw,  8-data->mode_bits,&remainder);
 
         /* adjust window info */
         if (data->mode_blockflag[mode_number]) {
             /* long window: peek at next frame to find flags */
-            //off_t next_offset = offset + header_size + packet_size;
             uint32_t next_blockflag = 0, prev_window_type = 0, next_window_type = 0;
 
             if (wp->has_next) {

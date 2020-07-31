@@ -39,8 +39,7 @@ static int rv_bits(bitstream_t* ib, uint32_t bits, uint32_t* value) {
     shift = ib->b_off % 8;      /* bit sub-offset */
     mask = MASK_TABLE[bits];    /* to remove upper in highest byte */
 
-    val = 0;
-    val |= ib->buf[pos+0] >> shift;
+    val = ib->buf[pos+0] >> shift;
     if (bits + shift > 8) {
         val |= ib->buf[pos+1] << (8u - shift);
         if (bits + shift > 16) {
@@ -48,8 +47,7 @@ static int rv_bits(bitstream_t* ib, uint32_t bits, uint32_t* value) {
             if (bits + shift > 24) {
                 val |= ib->buf[pos+3] << (24u - shift);
                 if (bits + shift > 32) {
-                    /* upper bits are lost (shifting over 32) */
-                    val |= ib->buf[pos+4] << (32u - shift);
+                    val |= ib->buf[pos+4] << (32u - shift); /* upper bits are lost (shifting over 32) */
                 }
             }
         }
@@ -66,6 +64,7 @@ fail:
     return 0;
 }
 
+#ifndef BITSTREAM_READ_ONLY
 /* Write bits (max 32) to buf and update the bit offset. Vorbis packs values in LSB order and byte by byte.
  * (ex. writing 1101011010 from b_off 2 we get 01101011 00001101 (value split, and 11 in the first byte skipped)*/
 static int wv_bits(bitstream_t* ob, uint32_t bits, uint32_t value) {
@@ -99,37 +98,6 @@ fail:
     VGM_LOG("BITREADER: write fail\n");
     return 0;
 }
-
-static int copy_bytes(bitstream_t* ob, bitstream_t* ib, uint32_t bytes) {
-    int i;
-
-    /* copy packet bytes, where input/output bufs may not be byte-aligned (so non memcpy) */
-
-    for (i = 0; i < bytes / 4; i++) {
-        uint32_t c = 0;
-
-        rv_bits(ib, 32, &c);
-        wv_bits(ob, 32,  c);
-    }
-    for (i = 0; i < bytes % 4; i++) {
-        uint32_t c = 0;
-
-        rv_bits(ib,  8, &c);
-        wv_bits(ob,  8,  c);
-    }
-
-#if 0
-    /* in theory the above is faster, but only seems minimally noticeable when converting lots of files  */
-    for (i = 0; i < bytes; i++) {
-        uint32_t c = 0;
-
-        rv_bits(ib,  8, &c);
-        wv_bits(ob,  8,  c);
-    }
 #endif
-
-    return 1;
-}
-
 
 #endif
