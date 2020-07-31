@@ -242,6 +242,9 @@
     <ClInclude Include="..\ext_includes\clHCA.h">
       <Filter>ext_libs\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="coding\mpeg_bitreader.h">
+      <Filter>coding\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="coding\mpeg_decoder.h">
       <Filter>coding\Header Files</Filter>
     </ClInclude>

@@ -2003,6 +2003,10 @@
 					>
 				</File>
                 <File
+                    RelativePath=".\coding\mpeg_bitreader.h"
+                    >
+                </File>
+                <File
                     RelativePath=".\coding\mpeg_decoder.h"
                     >
                 </File>

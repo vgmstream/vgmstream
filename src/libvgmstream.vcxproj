@@ -84,6 +84,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\ext_includes\clHCA.h" />
+    <ClInclude Include="coding\mpeg_bitreader.h" />
     <ClInclude Include="coding\mpeg_decoder.h" />
     <ClInclude Include="coding\vorbis_bitreader.h" />
     <ClInclude Include="coding\vorbis_custom_data_fsb.h" />
