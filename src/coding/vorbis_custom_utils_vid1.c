@@ -1,5 +1,8 @@
 #include "vorbis_custom_decoder.h"
 
+#define BITSTREAM_READ_ONLY /* config */
+#include "vorbis_bitreader.h"
+
 #ifdef VGM_USE_VORBIS
 #include <vorbis/codec.h>
 
@@ -8,8 +11,8 @@
 /* DEFS                                                                         */
 /* **************************************************************************** */
 
-static int get_packet_header(STREAMFILE *streamFile, off_t *offset, size_t *size);
-static int build_header_comment(uint8_t * buf, size_t bufsize);
+static int get_packet_header(STREAMFILE* sf, off_t* offset, size_t* size);
+static int build_header_comment(uint8_t* buf, size_t bufsize);
 
 
 /* **************************************************************************** */
@@ -21,16 +24,16 @@ static int build_header_comment(uint8_t * buf, size_t bufsize);
  *
  * Info from hcs's vid1_2ogg: https://github.com/hcs64/vgm_ripping/tree/master/demux/vid1_2ogg
  */
-int vorbis_custom_setup_init_vid1(STREAMFILE *streamFile, off_t start_offset, vorbis_custom_codec_data *data) {
+int vorbis_custom_setup_init_vid1(STREAMFILE* sf, off_t start_offset, vorbis_custom_codec_data* data) {
     off_t offset = start_offset;
     size_t packet_size = 0;
 
     /* read header packets (id/setup), each with an VID1 header */
 
     /* normal identificacion packet */
-    get_packet_header(streamFile, &offset, &packet_size);
+    get_packet_header(sf, &offset, &packet_size);
     if (packet_size > data->buffer_size) goto fail;
-    data->op.bytes = read_streamfile(data->buffer,offset,packet_size, streamFile);
+    data->op.bytes = read_streamfile(data->buffer,offset,packet_size, sf);
     if (vorbis_synthesis_headerin(&data->vi, &data->vc, &data->op) != 0) goto fail; /* parse identification header */
     offset += packet_size;
 
@@ -40,9 +43,9 @@ int vorbis_custom_setup_init_vid1(STREAMFILE *streamFile, off_t start_offset, vo
     if (vorbis_synthesis_headerin(&data->vi, &data->vc, &data->op) !=0 ) goto fail; /* parse comment header */
 
     /* normal setup packet */
-    get_packet_header(streamFile, &offset, &packet_size);
+    get_packet_header(sf, &offset, &packet_size);
     if (packet_size > data->buffer_size) goto fail;
-    data->op.bytes = read_streamfile(data->buffer,offset,packet_size, streamFile);
+    data->op.bytes = read_streamfile(data->buffer,offset,packet_size, sf);
     if (vorbis_synthesis_headerin(&data->vi, &data->vc, &data->op) != 0) goto fail; /* parse setup header */
     offset += packet_size;
 
@@ -53,7 +56,7 @@ fail:
 }
 
 
-int vorbis_custom_parse_packet_vid1(VGMSTREAMCHANNEL *stream, vorbis_custom_codec_data *data) {
+int vorbis_custom_parse_packet_vid1(VGMSTREAMCHANNEL* stream, vorbis_custom_codec_data* data) {
     size_t bytes;
 
 
@@ -100,7 +103,7 @@ fail:
 /* INTERNAL HELPERS                                                             */
 /* **************************************************************************** */
 
-static int build_header_comment(uint8_t * buf, size_t bufsize) {
+static int build_header_comment(uint8_t* buf, size_t bufsize) {
     int bytes = 0x19;
 
     if (bytes > bufsize) return 0;
@@ -116,26 +119,24 @@ static int build_header_comment(uint8_t * buf, size_t bufsize) {
 }
 
 /* read header in Vorbis bitpacking format  */
-static int get_packet_header(STREAMFILE *streamFile, off_t *offset, size_t *size) {
+static int get_packet_header(STREAMFILE* sf, off_t* offset, size_t* size) {
     uint8_t ibuf[0x04]; /* header buffer */
     size_t ibufsize = 0x04; /* header ~max */
-    vgm_bitstream ib = {0};
+    bitstream_t ib = {0};
     uint32_t size_bits;
 
 
-    if (read_streamfile(ibuf,(*offset),ibufsize, streamFile) != ibufsize)
+    if (read_streamfile(ibuf,(*offset),ibufsize, sf) != ibufsize)
         goto fail;
-    ib.buf = ibuf;
-    ib.bufsize = ibufsize;
-    ib.b_off = 0;
-    ib.mode = BITSTREAM_VORBIS;
+
+    init_bitstream(&ib, ibuf, ibufsize);
 
     /* read using Vorbis weird LSF */
-    r_bits(&ib,  4,&size_bits);
-    r_bits(&ib,  (size_bits+1),(uint32_t*)size);
+    rv_bits(&ib,  4,&size_bits);
+    rv_bits(&ib,  (size_bits+1),(uint32_t*)size);
 
     /* special meaning, seen in silent frames */
-    if (size_bits == 0 && *size == 0 && (uint8_t)read_8bit(*offset, streamFile)==0x80) {
+    if (size_bits == 0 && *size == 0 && (uint8_t)read_8bit(*offset, sf) == 0x80) {
         *size = 0x01;
     }
 
