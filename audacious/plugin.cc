@@ -34,8 +34,8 @@ extern "C" {
 
 /* global state */
 /*EXPORT*/ VgmstreamPlugin aud_plugin_instance;
-audacious_settings settings;
-VGMSTREAM *vgmstream = NULL; //todo make local?
+audacious_settings_t settings;
+VGMSTREAM* vgmstream = NULL; //todo make local?
 
 /* Audacious will first send the file to a plugin based on this static extension list. If none
  * accepts it'll try again all plugins, ordered by priority, until one accepts the file. Problem is,
@@ -50,6 +50,7 @@ const char *const VgmstreamPlugin::exts[] = {
 
 const char *const VgmstreamPlugin::defaults[] = {
     "loop_forever",     "FALSE",
+    "ignore_loop",      "FALSE",
     "loop_count",       "2", //maybe double?
     "fade_length",      "10.0",
     "fade_delay",       "0.0",
@@ -75,8 +76,9 @@ const char VgmstreamPlugin::about[] =
 const PreferencesWidget VgmstreamPlugin::widgets[] = {
     WidgetLabel(N_("<b>vgmstream config</b>")),
     WidgetCheck(N_("Loop forever:"), WidgetBool(settings.loop_forever)),
+    WidgetCheck(N_("Ignore loop:"), WidgetBool(settings.ignore_loop)),
     WidgetSpin(N_("Loop count:"), WidgetInt(settings.loop_count), {1, 20, 1}),
-    WidgetSpin(N_("Fade length:"), WidgetFloat(settings.fade_length), {0, 60, 0.1}),
+    WidgetSpin(N_("Fade length:"), WidgetFloat(settings.fade_time), {0, 60, 0.1}),
     WidgetSpin(N_("Fade delay:"), WidgetFloat(settings.fade_delay), {0, 60, 0.1}),
     WidgetSpin(N_("Downmix:"), WidgetInt(settings.downmix_channels), {1, 20, 1}),
     WidgetCheck(N_("Enable unknown exts"), WidgetBool(settings.exts_unknown_on)),
@@ -89,8 +91,9 @@ void vgmstream_settings_load() {
     AUDINFO("load settings\n");
     aud_config_set_defaults(CFG_ID, VgmstreamPlugin::defaults);
     settings.loop_forever = aud_get_bool(CFG_ID, "loop_forever");
+    settings.ignore_loop = aud_get_bool(CFG_ID, "ignore_loop");
     settings.loop_count = aud_get_int(CFG_ID, "loop_count");
-    settings.fade_length = aud_get_double(CFG_ID, "fade_length");
+    settings.fade_time = aud_get_double(CFG_ID, "fade_length");
     settings.fade_delay = aud_get_double(CFG_ID, "fade_delay");
     settings.downmix_channels = aud_get_int(CFG_ID, "downmix_channels");
     settings.exts_unknown_on = aud_get_bool(CFG_ID, "exts_unknown_on");
@@ -100,8 +103,9 @@ void vgmstream_settings_load() {
 void vgmstream_settings_save() {
     AUDINFO("save settings\n");
     aud_set_bool(CFG_ID, "loop_forever", settings.loop_forever);
+    aud_set_bool(CFG_ID, "ignore_loop", settings.ignore_loop);
     aud_set_int(CFG_ID, "loop_count", settings.loop_count);
-    aud_set_double(CFG_ID, "fade_length", settings.fade_length);
+    aud_set_double(CFG_ID, "fade_length", settings.fade_time);
     aud_set_double(CFG_ID, "fade_delay", settings.fade_delay);
     aud_set_int(CFG_ID, "downmix_channels", settings.downmix_channels);
     aud_set_bool(CFG_ID, "exts_unknown_on", settings.exts_unknown_on);
@@ -113,7 +117,7 @@ const PluginPreferences VgmstreamPlugin::prefs = {
 };
 
 // validate extension (thread safe)
-bool VgmstreamPlugin::is_our_file(const char *filename, VFSFile &file) {
+bool VgmstreamPlugin::is_our_file(const char * filename, VFSFile & file) {
     AUDDBG("test file=%s\n", filename);
 
     vgmstream_ctx_valid_cfg cfg = {0};
@@ -140,7 +144,7 @@ void VgmstreamPlugin::cleanup() {
 }
 
 #if 0
-static int get_filename_subtune(const char * filename) {
+static int get_filename_subtune(const char* filename) {
     int subtune;
 
     int pos = strstr("?"))
@@ -152,8 +156,21 @@ static int get_filename_subtune(const char * filename) {
 }
 #endif
 
+static void apply_config(VGMSTREAM* vgmstream, audacious_settings_t* settings) {
+    vgmstream_cfg_t vcfg = {0};
+
+    vcfg.allow_play_forever = 1;
+    vcfg.play_forever = settings->loop_forever;
+    vcfg.loop_count = settings->loop_count;
+    vcfg.fade_time = settings->fade_time;
+    vcfg.fade_delay = settings->fade_delay;
+    vcfg.ignore_loop = settings->ignore_loop;
+
+    vgmstream_apply_config(vgmstream, &vcfg);
+}
+
 // internal helper, called every time user adds a new file to playlist
-static bool read_info(const char * filename, Tuple & tuple) {
+static bool read_info(const char* filename, Tuple & tuple) {
     AUDINFO("read file=%s\n", filename);
 
 #if 0
@@ -167,12 +184,12 @@ static bool read_info(const char * filename, Tuple & tuple) {
     //must use basename to open streamfile
 #endif
 
-    STREAMFILE *streamfile = open_vfs(filename);
-    if (!streamfile) return false;
+    STREAMFILE* sf = open_vfs(filename);
+    if (!sf) return false;
 
-    VGMSTREAM *infostream = init_vgmstream_from_STREAMFILE(streamfile);
+    VGMSTREAM* infostream = init_vgmstream_from_STREAMFILE(sf);
     if (!infostream) {
-        close_streamfile(streamfile);
+        close_streamfile(sf);
         return false;
     }
 
@@ -193,20 +210,21 @@ static bool read_info(const char * filename, Tuple & tuple) {
 #endif
 
 
-    //todo apply_config
+    apply_config(vgmstream, &settings);
+
     int output_channels = infostream->channels;
     vgmstream_mixing_autodownmix(infostream, settings.downmix_channels);
     vgmstream_mixing_enable(infostream, 0, NULL, &output_channels);
 
     int bitrate = get_vgmstream_average_bitrate(infostream);
-    int ms = get_vgmstream_play_samples(settings.loop_count, settings.fade_length, settings.fade_delay, infostream);
-    ms = ms* 1000LL / infostream->sample_rate;
+    int length_samples = vgmstream_get_samples(infostream);
+    int length_ms = length_samples * 1000LL / infostream->sample_rate;
 
     // short form, not sure if better way
     tuple.set_format("vgmstream codec", output_channels, infostream->sample_rate, bitrate);
     tuple.set_filename(filename); //used?
     tuple.set_int(Tuple::Bitrate, bitrate); //in kb/s
-    tuple.set_int(Tuple::Length, ms);
+    tuple.set_int(Tuple::Length, length_ms);
 
     //todo here we could call describe_vgmstream() and get substring to add tags and stuff
     tuple.set_str(Tuple::Codec, "vgmstream codec");
@@ -218,14 +236,14 @@ static bool read_info(const char * filename, Tuple & tuple) {
     //tuple.set_str (Tuple::Artist, ...);
     //tuple.set_str (Tuple::Album, ...);
 
-    close_streamfile(streamfile);
+    close_streamfile(sf);
     close_vgmstream(infostream);
 
     return true;
 }
 
 // thread safe (for Audacious <= 3.7, unused otherwise)
-Tuple VgmstreamPlugin::read_tuple(const char *filename, VFSFile &file) {
+Tuple VgmstreamPlugin::read_tuple(const char * filename, VFSFile & file) {
     Tuple tuple;
     read_info(filename, tuple);
     return tuple;
@@ -237,56 +255,33 @@ bool VgmstreamPlugin::read_tag(const char * filename, VFSFile & file, Tuple & tu
 }
 
 // internal util to seek during play
-static void seek_helper(int seek_value, int &current_sample_pos, int input_channels) {
+static void do_seek(VGMSTREAM* vgmstream, int seek_ms, int& current_sample_pos) {
     AUDINFO("seeking\n");
 
     // compute from ms to samples
-    int seek_needed_samples = (long long)seek_value * vgmstream->sample_rate / 1000L;
-    short buffer[MIN_BUFFER_SIZE * input_channels];
-    int max_buffer_samples = MIN_BUFFER_SIZE;
+    int seek_sample = (long long)seek_ms * vgmstream->sample_rate / 1000L;
 
-    int samples_to_do = 0;
-    if (seek_needed_samples < current_sample_pos) {
-        // go back in time, reopen file
-        AUDINFO("resetting file to seek backwards\n");
-        reset_vgmstream(vgmstream);
-        current_sample_pos = 0;
-        samples_to_do = seek_needed_samples;
-    } else if (current_sample_pos < seek_needed_samples) {
-        // go forward in time
-        samples_to_do = seek_needed_samples - current_sample_pos;
-    }
+    seek_vgmstream(vgmstream, seek_sample);
 
-    // do the actual seeking
-    if (samples_to_do >= 0) {
-        AUDINFO("rendering forward\n");
-
-        // render till seeked sample
-        while (samples_to_do > 0) {
-            int seek_samples = std::min(max_buffer_samples, samples_to_do);
-            current_sample_pos += seek_samples;
-            samples_to_do -= seek_samples;
-            render_vgmstream(buffer, seek_samples, vgmstream);
-        }
-    }
+    current_sample_pos = seek_sample;
 }
 
 // called on play (play thread)
-bool VgmstreamPlugin::play(const char *filename, VFSFile &file) {
+bool VgmstreamPlugin::play(const char * filename, VFSFile & file) {
     AUDINFO("play file=%s\n", filename);
 
     // just in case
     if (vgmstream)
         close_vgmstream(vgmstream);
 
-    STREAMFILE *streamfile = open_vfs(filename);
-    if (!streamfile) {
+    STREAMFILE* sf = open_vfs(filename);
+    if (!sf) {
         AUDERR("failed opening file %s\n", filename);
         return false;
     }
 
-    vgmstream = init_vgmstream_from_STREAMFILE(streamfile);
-    close_streamfile(streamfile);
+    vgmstream = init_vgmstream_from_STREAMFILE(sf);
+    close_streamfile(sf);
 
     if (!vgmstream) {
         AUDINFO("filename %s is not a valid format\n", filename);
@@ -300,6 +295,9 @@ bool VgmstreamPlugin::play(const char *filename, VFSFile &file) {
 
     //todo apply config
 
+
+    apply_config(vgmstream, &settings);
+
     int input_channels = vgmstream->channels;
     int output_channels = vgmstream->channels;
     /* enable after all config but before outbuf */
@@ -312,48 +310,34 @@ bool VgmstreamPlugin::play(const char *filename, VFSFile &file) {
     // play
     short buffer[MIN_BUFFER_SIZE * input_channels];
     int max_buffer_samples = MIN_BUFFER_SIZE;
-    int stream_samples_amount = get_vgmstream_play_samples(
-            settings.loop_count, settings.fade_length,
-            settings.fade_delay, vgmstream);
-    int fade_samples = settings.fade_length * vgmstream->sample_rate;
-    int current_sample_pos = 0;
+
+    int play_forever = vgmstream_get_play_forever(vgmstream);
+    int length_samples = vgmstream_get_samples(vgmstream);
+    int decode_pos_samples = 0;
 
     while (!check_stop()) {
-        int toget = max_buffer_samples;
+        int to_do = max_buffer_samples;
 
         // handle seek request
         int seek_value = check_seek();
-        if (seek_value >= 0)
-            seek_helper(seek_value, current_sample_pos, input_channels);
+        if (seek_value >= 0) {
+            do_seek(vgmstream, seek_value, decode_pos_samples);
+            continue;
+        }
 
         // check stream finished
-        if (!settings.loop_forever || !vgmstream->loop_flag) {
-            if (current_sample_pos >= stream_samples_amount)
+        if (!play_forever) {
+            if (decode_pos_samples >= length_samples)
                 break;
-            if (current_sample_pos + toget > stream_samples_amount)
-                toget = stream_samples_amount - current_sample_pos;
+
+            if (decode_pos_samples + to_do > length_samples)
+                to_do = length_samples - decode_pos_samples;
         }
 
-        render_vgmstream(buffer, toget, vgmstream);
+        render_vgmstream(buffer, to_do, vgmstream);
 
-        if (vgmstream->loop_flag && fade_samples > 0 &&
-                !settings.loop_forever) {
-            int samples_into_fade =
-                    current_sample_pos - (stream_samples_amount - fade_samples);
-            if (samples_into_fade + toget > 0) {
-                for (int j = 0; j < toget; j++, samples_into_fade++) {
-                    if (samples_into_fade > 0) {
-                        double fadedness =
-                                (double)(fade_samples - samples_into_fade) / fade_samples;
-                        for (int k = 0; k < output_channels; k++)
-                            buffer[j * output_channels + k] *= fadedness;
-                    }
-                }
-            }
-        }
-
-        write_audio(buffer, toget * sizeof(short) * output_channels);
-        current_sample_pos += toget;
+        write_audio(buffer, to_do * sizeof(short) * output_channels);
+        decode_pos_samples += to_do;
     }
 
     AUDINFO("play finished\n");
