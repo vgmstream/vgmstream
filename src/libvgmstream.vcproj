@@ -596,10 +596,14 @@
 					RelativePath=".\meta\brstm.c"
 					>
 				</File>
-				<File
-					RelativePath=".\meta\btsnd.c"
-					>
-				</File>
+                <File
+                    RelativePath=".\meta\btsnd.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\bsf.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\capdsp.c"
 					>
@@ -658,6 +662,10 @@
                 </File>
                 <File
                     RelativePath=".\meta\dmsg_segh.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\dsb.c"
                     >
                 </File>
                 <File
@@ -1946,10 +1954,14 @@
                     RelativePath=".\meta\zsnd.c"
                     >
                 </File>
-				<File
-					RelativePath=".\meta\zwdsp.c"
-					>
-				</File>
+                <File
+                    RelativePath=".\meta\zwdsp.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\zwv.c"
+                    >
+                </File>
 			</Filter>
 		</Filter>
 		<Filter

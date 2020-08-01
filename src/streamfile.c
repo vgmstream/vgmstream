@@ -1000,7 +1000,8 @@ size_t read_string(char *buf, size_t buf_size, off_t offset, STREAMFILE *sf) {
     size_t pos;
 
     for (pos = 0; pos < buf_size; pos++) {
-        char c = read_8bit(offset + pos, sf);
+        uint8_t byte = read_u8(offset + pos, sf);
+        char c = (char)byte;
         if (buf) buf[pos] = c;
         if (c == '\0')
             return pos;
@@ -1008,7 +1009,8 @@ size_t read_string(char *buf, size_t buf_size, off_t offset, STREAMFILE *sf) {
             if (buf) buf[pos] = '\0';
             return buf_size;
         }
-        if (c < 0x20 || (uint8_t)c > 0xA5)
+        /* UTF-8 only goes to 0x7F, but allow a bunch of Windows-1252 codes that some games use */
+        if (byte < 0x20 || byte > 0xF0)
             goto fail;
     }
 

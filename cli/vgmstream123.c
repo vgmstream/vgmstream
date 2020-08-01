@@ -37,6 +37,7 @@
 #endif
 
 #include "../src/vgmstream.h"
+#include "../src/plugins.h"
 
 #ifndef VERSION
 # include "version.h"
@@ -70,17 +71,21 @@
 #undef  MIN
 #define MIN(X, Y) ((X) < (Y) ? (X) : (Y))
 
-/* Stream playback parameters
- */
-struct params {
-    int loop_count;
+
+#define DEFAULT_PARAMS { 0, -1, 2.0, 10.0, 0.0,   0, 0, 0, 0 }
+typedef struct {
+    int stream_index;
+
     double min_time;
+    double loop_count;
     double fade_time;
     double fade_delay;
-    int stream_index;
-};
 
-#define DEFAULT_PARAMS { 2, -1, 10.0, 0.0, 0 }
+    int ignore_loop;
+    int force_loop;
+    int really_force_loop;
+    int play_forever;
+} song_settings_t;
 
 static const char *out_filename = NULL;
 static int driver_id;
@@ -99,7 +104,7 @@ static int verbose = 0;
 static volatile int interrupted = 0;
 static double interrupt_time = 0.0;
 
-static int play_file(const char *filename, struct params *par);
+static int play_file(const char *filename, song_settings_t *par);
 
 static void interrupt_handler(int signum) {
     interrupted = 1;
@@ -125,7 +130,7 @@ static int record_interrupt(void) {
 }
 
 static void usage(const char *progname) {
-    struct params default_par = DEFAULT_PARAMS;
+    song_settings_t default_par = DEFAULT_PARAMS;
     const char *default_driver = "???";
 
     {
@@ -163,21 +168,24 @@ static void usage(const char *progname) {
         "    -b N        Use an audio buffer of N kilobytes [%d]\n"
         "    -@ LSTFILE  Read playlist from LSTFILE\n"
         "    -h          Print this help\n"
-        "    -r          Repeat playback indefinitely\n"
+        "    -r          Repeat playback again (with fade, use -p for infinite loops)\n"
         "    -v          Display stream metadata and playback progress\n"
-        "    -S N        Play substream with index N [%d]\n"
+        "    -S N        Play substream with index N\n"
         "\n"
-        "Options for looped streams:\n"
-        "    -L N        Play loop N times [%d]\n"
+        "Looping options:\n"
         "    -M MINTIME  Loop for a playback time of at least MINTIME seconds\n"
+        "    -L N        Loop N times [%.1f]\n"
         "    -F FTIME    End playback with a fade-out of FTIME seconds [%.1f]\n"
         "    -D FDELAY   Delay fade-out for an additional FDELAY seconds [%.1f]\n"
+        "    -i          Ignore loop\n"
+        "    -e          Force loop (loop only if file doesn't have loop points)\n"
+        "    -E          Really force loop (repeat file)\n"
+        "    -p          Play forever (loops file until stopped)\n"
         "\n"
         "INFILE can be any stream file type supported by vgmstream, or an .m3u/.m3u8\n"
         "playlist referring to same. This program supports the \"EXT-X-VGMSTREAM\" tag\n"
         "in playlists, and files compressed with gzip/bzip2/xz.\n",
         buffer_size_kb,
-        default_par.stream_index,
         default_par.loop_count,
         default_par.fade_time,
         default_par.fade_delay
@@ -186,13 +194,14 @@ static void usage(const char *progname) {
 
 /* Opens the audio device with the appropriate parameters
  */
-static int set_sample_format(VGMSTREAM *vgms) {
+static int set_sample_format(int channels, int sample_rate) {
     ao_sample_format format;
 
+
     memset(&format, 0, sizeof(format));
-    format.bits = 8 * sizeof(sample);
-    format.channels = vgms->channels;
-    format.rate = vgms->sample_rate;
+    format.bits = 8 * sizeof(sample_t);
+    format.channels = channels;
+    format.rate = sample_rate;
     format.byte_format =
 #ifdef LITTLE_ENDIAN_OUTPUT
         AO_FMT_LITTLE
@@ -235,20 +244,33 @@ static int set_sample_format(VGMSTREAM *vgms) {
     return 0;
 }
 
-static int play_vgmstream(const char *filename, struct params *par) {
+static void apply_config(VGMSTREAM* vgmstream, song_settings_t* cfg) {
+    vgmstream_cfg_t vcfg = {0};
+
+    vcfg.allow_play_forever = 1;
+
+    vcfg.play_forever = cfg->play_forever;
+    vcfg.fade_time = cfg->fade_time;
+    vcfg.loop_count = cfg->loop_count;
+    vcfg.fade_delay = cfg->fade_delay;
+
+    vcfg.ignore_loop  = cfg->ignore_loop;
+    vcfg.force_loop = cfg->force_loop;
+    vcfg.really_force_loop = cfg->really_force_loop;
+
+    vgmstream_apply_config(vgmstream, &vcfg);
+}
+
+static int play_vgmstream(const char *filename, song_settings_t *cfg) {
     int ret = 0;
-    STREAMFILE *sf;
-    VGMSTREAM *vgms;
+    STREAMFILE* sf;
+    VGMSTREAM *vgmstream;
     FILE *save_fps[4];
-    int loop_count;
-    int64_t total_samples;
     size_t buffer_size;
-    int64_t buffer_samples;
-    int64_t fade_time_samples, fade_start;
-    int time_total_min;
-    double time_total_sec;
-    int64_t s;
+    int32_t max_buffer_samples;
     int i;
+    int output_channels;
+
 
     sf = open_stdio_streamfile(filename);
     if (!sf) {
@@ -256,11 +278,11 @@ static int play_vgmstream(const char *filename, struct params *par) {
         return -1;
     }
 
-    sf->stream_index = par->stream_index;
-    vgms = init_vgmstream_from_STREAMFILE(sf);
+    sf->stream_index = cfg->stream_index;
+    vgmstream = init_vgmstream_from_STREAMFILE(sf);
     close_streamfile(sf);
 
-    if (!vgms) {
+    if (!vgmstream) {
         fprintf(stderr, "%s: error opening stream\n", filename);
         return -1;
     }
@@ -271,7 +293,7 @@ static int play_vgmstream(const char *filename, struct params *par) {
      */
     if (verbose) {
         char description[4096] = { '\0' };
-        describe_vgmstream(vgms, description, sizeof(description));
+        describe_vgmstream(vgmstream, description, sizeof(description));
         puts(description);
         putchar('\n');
     }
@@ -292,37 +314,32 @@ static int play_vgmstream(const char *filename, struct params *par) {
     for (i = 0; i < 4; i++)
         save_fps[i] = fopen("/dev/null", "r");
 
-    ret = set_sample_format(vgms);
-    if (ret) goto fail;
 
-    loop_count = par->loop_count;
-
-    if (vgms->loop_flag && loop_count < 0) {
-        /*
-         * Calculate how many loops are needed to achieve a minimum
-         * playback time. Note: This calculation is derived from the
-         * logic in get_vgmstream_play_samples().
-         */
-        double intro = (double)vgms->loop_start_sample / vgms->sample_rate;
-        double loop = (double)(vgms->loop_end_sample - vgms->loop_start_sample) / vgms->sample_rate;
-        double end = par->fade_time + par->fade_delay;
+    /* Calculate how many loops are needed to achieve a minimum
+     * playback time. Note: This calculation is derived from the
+     * logic in get_vgmstream_play_samples().
+     */
+    if (vgmstream->loop_flag && cfg->loop_count < 0) {
+        double intro = (double)vgmstream->loop_start_sample / vgmstream->sample_rate;
+        double loop = (double)(vgmstream->loop_end_sample - vgmstream->loop_start_sample) / vgmstream->sample_rate;
+        double end = cfg->fade_time + cfg->fade_delay;
         if (loop < 1.0) loop = 1.0;
-        loop_count = (int)((par->min_time - intro - end) / loop + 0.99);
-        if (loop_count < 1) loop_count = 1;
+        cfg->loop_count = ((cfg->min_time - intro - end) / loop + 0.99);
+        if (cfg->loop_count < 1.0) cfg->loop_count = 1.0;
     }
 
-    total_samples = get_vgmstream_play_samples(loop_count, par->fade_time, par->fade_delay, vgms);
 
-    {
-        double total = (double)total_samples / vgms->sample_rate;
-        time_total_min = (int)total / 60;
-        time_total_sec = total - 60 * time_total_min;
-    }
+    /* Config
+     */
+    apply_config(vgmstream, cfg);
 
-    /* Buffer size in bytes
+    output_channels = vgmstream->channels;
+    vgmstream_mixing_enable(vgmstream, 0, NULL, &output_channels); /* query */
+
+
+    /* Buffer size in bytes (after getting channels)
      */
     buffer_size = 1024 * buffer_size_kb;
-
     if (!buffer) {
         if (buffer_size_kb < 1) {
             fprintf(stderr, "Invalid buffer size '%d'\n", buffer_size_kb);
@@ -333,85 +350,110 @@ static int play_vgmstream(const char *filename, struct params *par) {
         if (!buffer) goto fail;
     }
 
-    buffer_samples = buffer_size / (vgms->channels * sizeof(sample));
+    max_buffer_samples = buffer_size / (output_channels * sizeof(sample));
 
-    fade_time_samples = (int64_t)(par->fade_time * vgms->sample_rate);
-    fade_start = total_samples - fade_time_samples;
-    if (fade_start < 0)
-        fade_start = total_samples;
+    vgmstream_mixing_enable(vgmstream, max_buffer_samples, NULL, NULL); /* enable */
 
-    for (s = 0; s < total_samples && !interrupted; s += buffer_samples) {
-        int64_t buffer_used_samples = MIN(buffer_samples, total_samples - s);
-        char *suffix = "";
 
-        render_vgmstream(buffer, buffer_used_samples, vgms);
+    /* Init
+     */
+    ret = set_sample_format(output_channels, vgmstream->sample_rate);
+    if (ret) goto fail;
 
-#ifdef LITTLE_ENDIAN_OUTPUT
-        swap_samples_le(buffer, vgms->channels * buffer_used_samples);
-#endif
+    /* Decode
+     */
+    {
+        double total;
+        int time_total_min;
+        double time_total_sec;
+        int play_forever = vgmstream_get_play_forever(vgmstream);
 
-        if (vgms->loop_flag && fade_time_samples > 0 && s >= fade_start) {
-            /* Got to do the fade-out ourselves :p */
-            int64_t b;
-            for (b = 0; b < buffer_used_samples; b++) {
-                double factor = 1.0 - (double)(s + b - fade_start) / fade_time_samples;
-                int c;
-                for (c = 0; c < vgms->channels; c++)
-                    buffer[vgms->channels * b + c] *= factor;
-            }
-            suffix = " (fading)";
+        if (out_filename && play_forever) {
+            fprintf(stderr, "%s: cannot play forever and use output filename\n", filename);
+            ret = -1;
+            goto fail;
         }
 
-        if (verbose && !out_filename) {
-            double played = (double)s / vgms->sample_rate;
-            double remain = (double)(total_samples - s) / vgms->sample_rate;
+        int32_t decode_pos_samples = 0;
+        int32_t length_samples = vgmstream_get_samples(vgmstream);
+        if (length_samples <= 0) goto fail;
 
-            int time_played_min = (int)played / 60;
-            double time_played_sec = played - 60 * time_played_min;
-            int time_remain_min = (int)remain / 60;
-            double time_remain_sec = remain - 60 * time_remain_min;
+        total = (double)length_samples / vgmstream->sample_rate;
+        time_total_min = (int)total / 60;
+        time_total_sec = total - 60 * time_total_min;
 
-            /* Time: 01:02.34 [08:57.66] of 10:00.00 */
-            printf("\rTime: %02d:%05.2f [%02d:%05.2f] of %02d:%05.2f%s ",
-                time_played_min, time_played_sec,
-                time_remain_min, time_remain_sec,
-                time_total_min,  time_total_sec,
-                suffix);
 
+        while (!interrupted) {
+            int to_do;
+
+            if (decode_pos_samples + max_buffer_samples > length_samples && !play_forever)
+                to_do = length_samples - decode_pos_samples;
+            else
+                to_do = max_buffer_samples;
+
+            if (to_do <= 0) {
+                break; /* EOF */
+            }
+
+            render_vgmstream(buffer, to_do, vgmstream);
+
+#ifdef LITTLE_ENDIAN_OUTPUT
+            swap_samples_le(buffer, output_channels * to_do);
+#endif
+
+            if (verbose && !out_filename) {
+                double played = (double)decode_pos_samples / vgmstream->sample_rate;
+                double remain = (double)(length_samples - decode_pos_samples) / vgmstream->sample_rate;
+
+                int time_played_min = (int)played / 60;
+                double time_played_sec = played - 60 * time_played_min;
+                int time_remain_min = (int)remain / 60;
+                double time_remain_sec = remain - 60 * time_remain_min;
+
+                /* Time: 01:02.34 [08:57.66] of 10:00.00 */
+                printf("\rTime: %02d:%05.2f [%02d:%05.2f] of %02d:%05.2f ",
+                    time_played_min, time_played_sec,
+                    time_remain_min, time_remain_sec,
+                    time_total_min,  time_total_sec);
+
+                fflush(stdout);
+            }
+
+            if (!ao_play(device, (char *)buffer, to_do * output_channels * sizeof(sample))) {
+                fputs("\nAudio playback error\n", stderr);
+                ao_close(device);
+                device = NULL;
+                ret = -1;
+                break;
+            }
+
+            decode_pos_samples += to_do;
+        }
+
+
+        if (verbose && !ret) {
+            /* Clear time status line */
+            putchar('\r');
+            for (i = 0; i < 64; i++)
+                putchar(' ');
+            putchar('\r');
             fflush(stdout);
         }
 
-        if (!ao_play(device, (char *)buffer, buffer_used_samples * vgms->channels * sizeof(sample))) {
-            fputs("\nAudio playback error\n", stderr);
-            ao_close(device);
-            device = NULL;
-            ret = -1;
-            break;
+        if (out_filename && !ret)
+            printf("Wrote %02d:%05.2f of audio to %s\n\n",
+                time_total_min, time_total_sec, out_filename);
+
+        if (interrupted) {
+            fputs("Playback terminated.\n\n", stdout);
+            ret = record_interrupt();
+            if (ret) fputs("Exiting...\n", stdout);
         }
     }
 
-    if (verbose && !ret) {
-        /* Clear time status line */
-        putchar('\r');
-        for (i = 0; i < 64; i++)
-            putchar(' ');
-        putchar('\r');
-        fflush(stdout);
-    }
 
-    if (out_filename && !ret)
-        printf("Wrote %02d:%05.2f of audio to %s\n\n",
-            time_total_min, time_total_sec, out_filename);
-
-    if (interrupted) {
-        fputs("Playback terminated.\n\n", stdout);
-        ret = record_interrupt();
-        if (ret) fputs("Exiting...\n", stdout);
-    }
-
-    fail:
-
-    close_vgmstream(vgms);
+fail:
+    close_vgmstream(vgmstream);
 
     for (i = 0; i < 4; i++)
         fclose(save_fps[i]);
@@ -419,13 +461,13 @@ static int play_vgmstream(const char *filename, struct params *par) {
     return ret;
 }
 
-static int play_playlist(const char *filename, struct params *default_par) {
+static int play_playlist(const char *filename, song_settings_t *default_par) {
     int ret = 0;
     FILE *f;
     char *line = NULL;
     size_t line_mem = 0;
     ssize_t line_len = 0;
-    struct params par;
+    song_settings_t par;
 
     memcpy(&par, default_par, sizeof(par));
 
@@ -469,7 +511,7 @@ static int play_playlist(const char *filename, struct params *default_par) {
                 else if (PARAM_MATCHES("FADETIME"))
                     par.fade_time = atof(arg);
                 else if (PARAM_MATCHES("LOOPCOUNT"))
-                    par.loop_count = atoi(arg);
+                    par.loop_count = atof(arg);
                 else if (PARAM_MATCHES("STREAMINDEX"))
                     par.stream_index = atoi(arg);
 
@@ -495,7 +537,7 @@ static int play_playlist(const char *filename, struct params *default_par) {
     return ret;
 }
 
-static int play_compressed_file(const char *filename, struct params *par, const char *expand_cmd) {
+static int play_compressed_file(const char *filename, song_settings_t *par, const char *expand_cmd) {
     int ret;
     char temp_dir[128] = "/tmp/vgmXXXXXX";
     const char *base_name;
@@ -577,7 +619,7 @@ fail:
     return ret;
 }
 
-static int play_file(const char *filename, struct params *par) {
+static int play_file(const char *filename, song_settings_t *par) {
     size_t len = strlen(filename);
 
 #define ENDS_IN(EXT) !strcasecmp(EXT, filename + len - sizeof(EXT) + 1)
@@ -614,9 +656,10 @@ static void add_driver_option(const char *key_value) {
 }
 
 int main(int argc, char **argv) {
-    int status = 0;
-    struct params par;
+    int error = 0;
     int opt;
+    song_settings_t cfg;
+    int extension = 0;
 
     signal(SIGHUP,  interrupt_handler);
     signal(SIGINT,  interrupt_handler);
@@ -632,43 +675,59 @@ int main(int argc, char **argv) {
         goto done;
     }
 
-again:
-
+again_opts:
     {
-        struct params default_par = DEFAULT_PARAMS;
-        memcpy(&par, &default_par, sizeof(par));
+        song_settings_t default_par = DEFAULT_PARAMS;
+        cfg = default_par;
     }
 
-    while ((opt = getopt(argc, argv, "-D:F:L:M:S:b:d:f:o:@:hrv")) != -1) {
+    while ((opt = getopt(argc, argv, "-D:F:L:M:S:b:d:f:o:@:hrvieEp")) != -1) {
         switch (opt) {
             case 1:
-                if (play_file(optarg, &par)) {
-                    status = 1;
+                /* glibc getopt extension
+                 * (files may appear multiple times in any position, ex. "file.adx -L 1.0 file.adx") */
+                extension = 1;
+                if (play_file(optarg, &cfg)) {
+                    error = 1;
                     goto done;
                 }
                 break;
             case '@':
-                if (play_playlist(optarg, &par)) {
-                    status = 1;
+                if (play_playlist(optarg, &cfg)) {
+                    error = 1;
                     goto done;
                 }
                 break;
+
             case 'D':
-                par.fade_delay = atof(optarg);
+                cfg.fade_delay = atof(optarg);
                 break;
             case 'F':
-                par.fade_time = atof(optarg);
+                cfg.fade_time = atof(optarg);
                 break;
             case 'L':
-                par.loop_count = atoi(optarg);
+                cfg.loop_count = atof(optarg);
                 break;
             case 'M':
-                par.min_time = atof(optarg);
-                par.loop_count = -1;
+                cfg.min_time = atof(optarg);
+                cfg.loop_count = -1.0;
                 break;
             case 'S':
-                par.stream_index = atoi(optarg);
+                cfg.stream_index = atoi(optarg);
                 break;
+            case 'i':
+                cfg.ignore_loop = 1;
+                break;
+            case 'e':
+                cfg.force_loop = 1;
+                break;
+            case 'E':
+                cfg.really_force_loop = 1;
+                break;
+            case 'p':
+                cfg.play_forever = 1;
+                break;
+
             case 'b':
                 if (!buffer)
                     buffer_size_kb = atoi(optarg);
@@ -677,7 +736,7 @@ again:
                 driver_id = ao_driver_id(optarg);
                 if (driver_id < 0) {
                     fprintf(stderr, "Invalid output driver \"%s\"\n", optarg);
-                    status = 1;
+                    error = 1;
                     goto done;
                 }
                 break;
@@ -702,24 +761,29 @@ again:
         }
     }
 
-    /* try to read infile here in case getopt didn't pass "1" to the above switch I guess */
-    argc -= optind;
-    argv += optind;
-
-    for (opt = 0; opt < argc; ++opt) {
-        if (play_file(argv[opt], &par)) {
-            status = 1;
-            goto done;
+again_files:
+    if (!extension) {
+        /* standard POSIX getopt
+         * (files are expected to go at the end, optind is at that point) */
+        for (opt = optind; opt < argc; ++opt) {
+            if (play_file(argv[opt], &cfg)) {
+                error = 1;
+                goto done;
+            }
         }
     }
 
     if (repeat) {
-        optind = 0;
-        goto again;
+        if (extension) {
+            optind = 0; /* mark reset (BSD may need optreset?) */
+            goto again_opts;
+        }
+        else {
+            goto again_files;
+        }
     }
 
 done:
-
     if (device)
         ao_close(device);
     if (buffer)
@@ -728,7 +792,5 @@ done:
     ao_free_options(device_options);
     ao_shutdown();
 
-    return status;
+    return error;
 }
-
-/* end vgmstream123.c */

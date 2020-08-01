@@ -150,6 +150,7 @@ static const char* extension_list[] = {
     "diva",
     "dmsg",
     "ds2", //txth/reserved [Star Wars Bounty Hunter (GC)]
+    "dsb",
     "dsf",
     "dsp",
     "dspw",
@@ -610,6 +611,7 @@ static const char* extension_list[] = {
     "zsm",
     "zss",
     "zwdsp",
+    "zwv",
 
     "vgmstream" /* fake extension, catch-all for FFmpeg/txth/etc */
 
