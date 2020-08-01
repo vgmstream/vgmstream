@@ -1946,10 +1946,14 @@
                     RelativePath=".\meta\zsnd.c"
                     >
                 </File>
-				<File
-					RelativePath=".\meta\zwdsp.c"
-					>
-				</File>
+                <File
+                    RelativePath=".\meta\zwdsp.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\zwv.c"
+                    >
+                </File>
 			</Filter>
 		</Filter>
 		<Filter

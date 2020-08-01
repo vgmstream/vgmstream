@@ -575,6 +575,7 @@
     <ClCompile Include="meta\zsd.c" />
     <ClCompile Include="meta\zsnd.c" />
     <ClCompile Include="meta\zwdsp.c" />
+    <ClCompile Include="meta\zwv.c" />
     <ClCompile Include="coding\acm_decoder.c" />
     <ClCompile Include="coding\acm_decoder_decode.c" />
     <ClCompile Include="coding\acm_decoder_util.c" />

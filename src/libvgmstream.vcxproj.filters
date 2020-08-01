@@ -1216,6 +1216,9 @@
     <ClCompile Include="meta\zwdsp.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\zwv.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="coding\acm_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>

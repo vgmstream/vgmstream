@@ -610,6 +610,7 @@ static const char* extension_list[] = {
     "zsm",
     "zss",
     "zwdsp",
+    "zwv",
 
     "vgmstream" /* fake extension, catch-all for FFmpeg/txth/etc */
 
