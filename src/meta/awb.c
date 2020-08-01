@@ -3,7 +3,7 @@
 
 typedef enum { ADX, HCA, VAG, RIFF, CWAV, DSP } awb_type;
 
-static void load_awb_name(STREAMFILE* sf, STREAMFILE* sf_acb, VGMSTREAM *vgmstream, int waveid);
+static void load_awb_name(STREAMFILE* sf, STREAMFILE* sf_acb, VGMSTREAM* vgmstream, int waveid);
 
 /* AFS2/AWB (Atom Wave Bank) - CRI container of streaming audio, often together with a .acb cue sheet */
 VGMSTREAM* init_vgmstream_awb(STREAMFILE* sf) {
@@ -102,6 +102,7 @@ VGMSTREAM* init_vgmstream_awb_memory(STREAMFILE* sf, STREAMFILE* sf_acb) {
     else if (read_u32be(subfile_offset,sf) == 0x52494646) { /* "RIFF" (type 8=ATRAC3, 11=ATRAC9) */
         type = RIFF;
         extension = "wav";
+        subfile_size = read_u32le(subfile_offset + 0x04,sf) + 0x08; /* rough size, use RIFF's */
     }
     else if (read_u32be(subfile_offset,sf) == 0x43574156) { /* "CWAV" (type 9) */
         type = CWAV;
