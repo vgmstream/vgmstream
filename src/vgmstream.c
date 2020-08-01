@@ -507,6 +507,7 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_adp_konami,
     init_vgmstream_zwv,
     init_vgmstream_dsb,
+    init_vgmstream_bsf,
 
     /* lowest priority metas (should go after all metas, and TXTH should go before raw formats) */
     init_vgmstream_txth,            /* proper parsers should supersede TXTH, once added */

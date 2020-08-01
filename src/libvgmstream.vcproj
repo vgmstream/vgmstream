@@ -596,10 +596,14 @@
 					RelativePath=".\meta\brstm.c"
 					>
 				</File>
-				<File
-					RelativePath=".\meta\btsnd.c"
-					>
-				</File>
+                <File
+                    RelativePath=".\meta\btsnd.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\bsf.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\capdsp.c"
 					>
