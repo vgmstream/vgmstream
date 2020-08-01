@@ -605,19 +605,6 @@ size_t aac_get_samples(STREAMFILE* sf, off_t start_offset, size_t bytes);
 size_t mpeg_get_samples(STREAMFILE* sf, off_t start_offset, size_t bytes);
 
 
-/* An internal struct to pass around and simulate a bitstream. */
-typedef enum { BITSTREAM_MSF, BITSTREAM_VORBIS } vgm_bitstream_t;
-typedef struct {
-    uint8_t* buf;          /* buffer to read/write*/
-    size_t bufsize;         /* max size of the buffer */
-    off_t b_off;            /* current offset in bits inside the buffer */
-    vgm_bitstream_t mode;   /* read/write modes */
-} vgm_bitstream;
-
-int r_bits(vgm_bitstream* ib, int num_bits, uint32_t* value);
-int w_bits(vgm_bitstream* ob, int num_bits, uint32_t value);
-
-
 /* helper to pass a wrapped, clamped, fake extension-ed, SF to another meta */
 STREAMFILE* setup_subfile_streamfile(STREAMFILE* sf, off_t subfile_offset, size_t subfile_size, const char* extension);
 

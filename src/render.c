@@ -513,14 +513,24 @@ void seek_vgmstream(VGMSTREAM* vgmstream, int32_t seek_sample) {
     int is_looped = vgmstream->loop_flag || vgmstream->loop_target > 0; /* loop target disabled loop flag during decode */
 
 
+    /* will decode and loop until seek sample, but slower */
+    //todo apply same loop logic as below, or pretend we have play_forever + settings?
     if (!vgmstream->config_enabled) {
-        //todo same but ignore play duration or play_position
+        //;VGM_LOG("SEEK: simple seek=%i, cur=%i\n", seek_sample, vgmstream->current_sample);
+        if (seek_sample < vgmstream->current_sample) {
+            decode_samples = seek_sample;
+            reset_vgmstream(vgmstream);
+        }
+        else {
+            decode_samples = seek_sample - vgmstream->current_sample;
+        }
+
+        seek_force_decode(vgmstream, decode_samples);
         return;
     }
 
-    //todo optimize layout looping with seek_vgmstream
     //todo could improve performance bit if hit_loop wasn't lost when calling reset
-    //todo wrong seek with ignore fade
+    //todo wrong seek with ignore fade, also for layered layers (pass count to force loop + layers)
 
 
     /* seeking to requested sample normally means decoding and discarding up to that point (from

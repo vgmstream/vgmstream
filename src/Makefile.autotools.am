@@ -23,7 +23,13 @@ AM_CFLAGS += -DVGM_USE_VORBIS
 libvgmstream_la_LIBADD += $(VORBISFILE_LIBS) $(VORBIS_LIBS)
 endif
 endif
+
 if HAVE_LIBMPG123
 AM_CFLAGS += -DVGM_USE_MPEG
 libvgmstream_la_LIBADD += $(MPG123_LIBS)
+endif
+
+if HAVE_FFMPEG
+AM_CFLAGS += -DVGM_USE_FFMPEG
+libvgmstream_la_LIBADD += $(FFMPEG_LIBS)
 endif

@@ -2003,6 +2003,10 @@
 					>
 				</File>
                 <File
+                    RelativePath=".\coding\mpeg_bitreader.h"
+                    >
+                </File>
+                <File
                     RelativePath=".\coding\mpeg_decoder.h"
                     >
                 </File>
@@ -2010,6 +2014,10 @@
 					RelativePath=".\coding\nwa_decoder.h"
 					>
 				</File>
+                <File
+                    RelativePath=".\coding\vorbis_bitreader.h"
+                    >
+                </File>
                 <File
                     RelativePath=".\coding\vorbis_custom_decoder.h"
                     >

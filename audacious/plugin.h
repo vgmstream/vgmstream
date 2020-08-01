@@ -35,25 +35,26 @@ public:
 
     bool init();
     void cleanup();
-    bool is_our_file(const char *filename, VFSFile &file);
-    Tuple read_tuple(const char *filename, VFSFile &file);
+    bool is_our_file(const char * filename, VFSFile & file);
+    Tuple read_tuple(const char * filename, VFSFile & file);
     bool read_tag(const char * filename, VFSFile & file, Tuple & tuple, Index<char> * image);
-    bool play(const char *filename, VFSFile &file);
+    bool play(const char * filename, VFSFile & file);
 
 };
 
 
 typedef struct {
     bool loop_forever;
-    int loop_count;
-    double fade_length;
+    bool ignore_loop;
+    double loop_count;
+    double fade_time;
     double fade_delay;
     int downmix_channels;
     bool exts_unknown_on;
     bool exts_common_on;
-} audacious_settings;
+} audacious_settings_t;
 
-extern audacious_settings settings;
+extern audacious_settings_t settings;
 
 void vgmstream_settings_load();
 void vgmstream_settings_save();

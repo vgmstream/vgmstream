@@ -8,48 +8,59 @@ static const int32_t l5_scales[32] = {
     0x00130B82, 0x00182B83, 0x001EAC92, 0x0026EDB2, 0x00316777, 0x003EB2E6, 0x004F9232, 0x0064FBD1
 };
 
-void decode_l5_555(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
-    int i=first_sample;
-    int32_t sample_count;
+void decode_l5_555(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
+    uint8_t frame[0x12] = {0};
+    off_t frame_offset;
+    int i, frames_in, sample_count = 0;
+    size_t bytes_per_frame, samples_per_frame;
+    uint16_t header;
+    uint8_t coef_index;
 
-    int framesin = first_sample/32;
-
-    uint16_t header = (uint16_t)read_16bitLE(framesin*0x12+stream->offset,stream->streamfile);
-    int32_t pos_scale = l5_scales[(header>>5)&0x1f];
-    int32_t neg_scale = l5_scales[header&0x1f];
-
-    int coef_index = (header >> 10) & 0x1f;
     int16_t hist1 = stream->adpcm_history1_16;
     int16_t hist2 = stream->adpcm_history2_16;
     int16_t hist3 = stream->adpcm_history3_16;
-    int32_t coef1 = stream->adpcm_coef_3by32[coef_index*3];
-    int32_t coef2 = stream->adpcm_coef_3by32[coef_index*3+1];
-    int32_t coef3 = stream->adpcm_coef_3by32[coef_index*3+2];
-    /*printf("offset: %x\nscale: %d\nindex: %d (%lf,%lf)\nhist: %d %d\n",
-            (unsigned)stream->offset,scale,coef_index,coef1/2048.0,coef2/2048.0,hist1,hist2);*/
+    int32_t coef1, coef2, coef3;
+    int32_t pos_scale, neg_scale;
 
-    first_sample = first_sample%32;
+    /* external interleave (fixed size), mono */
+    bytes_per_frame = 0x12;
+    samples_per_frame = (bytes_per_frame - 0x02) * 2; /* always 32 */
+    frames_in = first_sample / samples_per_frame;
+    first_sample = first_sample % samples_per_frame;
 
-    for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
-        int sample_byte = read_8bit(framesin*0x12+stream->offset+2+i/2,stream->streamfile);
-        int nibble = (i&1?
-                get_low_nibble_signed(sample_byte):
-                get_high_nibble_signed(sample_byte));
-        int32_t prediction =
-            -(hist1 * coef1 + hist2 * coef2 + hist3 * coef3);
+    /* parse frame header */
+    frame_offset = stream->offset + bytes_per_frame * frames_in;
+    read_streamfile(frame, frame_offset, bytes_per_frame, stream->streamfile); /* ignore EOF errors */
+    header = get_u32le(frame);
+    coef_index = (header >> 10) & 0x1f;
+    pos_scale = l5_scales[(header >> 5) & 0x1f];
+    neg_scale = l5_scales[(header >> 0) & 0x1f];
 
-        if (nibble >= 0)
-        {
-            outbuf[sample_count] = clamp16((prediction + nibble * pos_scale) >> 12);
-        }
+    coef1 = stream->adpcm_coef_3by32[coef_index * 3 + 0];
+    coef2 = stream->adpcm_coef_3by32[coef_index * 3 + 1];
+    coef3 = stream->adpcm_coef_3by32[coef_index * 3 + 2];
+
+    for (i = first_sample; i < first_sample + samples_to_do; i++) {
+        int32_t prediction, sample = 0;
+        uint8_t nibbles = frame[0x02 + i/2];
+
+        sample = (i&1) ?
+                get_low_nibble_signed(nibbles):
+                get_high_nibble_signed(nibbles);
+        prediction = -(hist1 * coef1 + hist2 * coef2 + hist3 * coef3);
+
+        if (sample >= 0)
+            sample = (prediction + sample * pos_scale) >> 12;
         else
-        {
-            outbuf[sample_count] = clamp16((prediction + nibble * neg_scale) >> 12);
-        }
+            sample = (prediction + sample * neg_scale) >> 12;
+        sample = clamp16(sample);
+
+        outbuf[sample_count] = sample;
+        sample_count += channelspacing;
 
         hist3 = hist2;
         hist2 = hist1;
-        hist1 = outbuf[sample_count];
+        hist1 = sample;
     }
 
     stream->adpcm_history1_16 = hist1;

@@ -15,7 +15,7 @@ struct vorbis_custom_codec_data {
     vorbis_block vb;            /* decoder local state */
     ogg_packet op;              /* fake packet for internal use */
 
-    uint8_t * buffer;           /* internal raw data buffer */
+    uint8_t* buffer;            /* internal raw data buffer */
     size_t buffer_size;
 
     size_t samples_to_discard;  /* for looping purposes */

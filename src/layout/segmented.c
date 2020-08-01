@@ -12,10 +12,9 @@
  * Chains together sequential vgmstreams, for data divided into separate sections or files
  * (like one part for intro and other for loop segments, which may even use different codecs). */
 void render_vgmstream_segmented(sample_t* outbuf, int32_t sample_count, VGMSTREAM* vgmstream) {
-    int samples_written = 0, loop_samples_skip = 0;
+    int samples_written = 0, samples_this_block;
     segmented_layout_data* data = vgmstream->layout_data;
     int use_internal_buffer = 0;
-
 
     /* normally uses outbuf directly (faster?) but could need internal buffer if downmixing */
     if (vgmstream->channels != data->input_channels) {
@@ -27,80 +26,48 @@ void render_vgmstream_segmented(sample_t* outbuf, int32_t sample_count, VGMSTREA
         return;
     }
 
+    samples_this_block = vgmstream_get_samples(data->segments[data->current_segment]);
+
+    //VGM_LOG("segment decode start: cur=%i, this=%i, into=%i\n", data->current_segment, samples_this_block, vgmstream->samples_into_block);
     while (samples_written < sample_count) {
         int samples_to_do;
-        int samples_this_segment = vgmstream_get_samples(data->segments[data->current_segment]);
 
         if (vgmstream->loop_flag && vgmstream_do_loop(vgmstream)) {
-            int segment, loop_segment, total_samples;
+            /* handle looping (loop_layout has been called below, changes segments/state) */
+            samples_this_block = vgmstream_get_samples(data->segments[data->current_segment]);
+            continue;
+        }
 
-            /* handle looping by finding loop segment and loop_start inside that segment */
-            loop_segment = 0;
-            total_samples = 0;
-            while (total_samples < vgmstream->num_samples) {
-                int32_t segment_samples = vgmstream_get_samples(data->segments[loop_segment]);
+        /* detect segment change and restart (after loop, but before decode, to allow looping to kick in) */
+        if (vgmstream->samples_into_block == samples_this_block) {
+            data->current_segment++;
 
-                if (vgmstream->loop_current_sample >= total_samples &&
-                        vgmstream->loop_current_sample < total_samples + segment_samples) {
-                    loop_samples_skip = vgmstream->loop_current_sample - total_samples;
-                    break; /* loop_start falls within loop_segment's samples */
-                }
-                total_samples += segment_samples;
-                loop_segment++;
+            /* could happen on last segment trying to decode more samples */
+            if (data->current_segment >= data->segment_count) {
+                VGM_LOG("SEGMENTED: wrong next segment\n");
+                break;
             }
 
-            if (loop_segment == data->segment_count) {
-                VGM_LOG("SEGMENTED: can't find loop segment\n");
-                loop_segment = 0;
-            }
+            /* in case of looping spanning multiple segments */
+            reset_vgmstream(data->segments[data->current_segment]);
 
-            data->current_segment = loop_segment;
-
-            /* loops can span multiple segments */
-            for (segment = loop_segment; segment < data->segment_count; segment++) {
-                reset_vgmstream(data->segments[segment]);
-            }
-
+            samples_this_block = vgmstream_get_samples(data->segments[data->current_segment]);
             vgmstream->samples_into_block = 0;
             continue;
         }
 
-        samples_to_do = get_vgmstream_samples_to_do(samples_this_segment, sample_count, vgmstream);
+
+        samples_to_do = get_vgmstream_samples_to_do(samples_this_block, sample_count, vgmstream);
         if (samples_to_do > sample_count - samples_written)
             samples_to_do = sample_count - samples_written;
         if (samples_to_do > VGMSTREAM_SEGMENT_SAMPLE_BUFFER /*&& use_internal_buffer*/) /* always for fade/etc mixes */
             samples_to_do = VGMSTREAM_SEGMENT_SAMPLE_BUFFER;
 
-        /* looping: discard until actual start */
-        if (loop_samples_skip > 0) {
-            if (samples_to_do > loop_samples_skip)
-                samples_to_do = loop_samples_skip;
-        }
-
-        /* detect segment change and restart */
-        if (samples_to_do == 0) {
-            data->current_segment++;
-            /* could happen on last segment trying to decode more samples */
-            if (data->current_segment >= data->segment_count) {
-                break;
-            }
-            reset_vgmstream(data->segments[data->current_segment]);
-            vgmstream->samples_into_block = 0;
-            continue;
-        }
-
         render_vgmstream(
                 use_internal_buffer ?
-                        data->buffer :
-                        &outbuf[samples_written * data->output_channels],
+                        data->buffer : &outbuf[samples_written * data->output_channels],
                 samples_to_do,
                 data->segments[data->current_segment]);
-
-        if (loop_samples_skip > 0) {
-            loop_samples_skip -= samples_to_do;
-            vgmstream->samples_into_block += samples_to_do;
-            continue;
-        }
 
         if (use_internal_buffer) {
             int s;
@@ -112,6 +79,33 @@ void render_vgmstream_segmented(sample_t* outbuf, int32_t sample_count, VGMSTREA
         samples_written += samples_to_do;
         vgmstream->current_sample += samples_to_do;
         vgmstream->samples_into_block += samples_to_do;
+    }
+}
+
+void loop_layout_segmented(VGMSTREAM* vgmstream, int32_t loop_sample) {
+    int segment, total_samples;
+    segmented_layout_data* data = vgmstream->layout_data;
+
+    segment = 0;
+    total_samples = 0;
+    while (total_samples < vgmstream->num_samples) {
+        int32_t segment_samples = vgmstream_get_samples(data->segments[segment]);
+
+        /* find if loop falls within segment's samples */
+        if (loop_sample >= total_samples && loop_sample < total_samples + segment_samples) {
+            int32_t loop_relative = loop_sample - total_samples;
+
+            seek_vgmstream(data->segments[segment], loop_relative);
+            data->current_segment = segment;
+            vgmstream->samples_into_block = loop_relative;
+            break;
+        }
+        total_samples += segment_samples;
+        segment++;
+    }
+
+    if (segment == data->segment_count) {
+        VGM_LOG("SEGMENTED: can't find loop segment\n");
     }
 }
 

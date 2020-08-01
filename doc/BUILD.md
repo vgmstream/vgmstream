@@ -91,7 +91,7 @@ msbuild fb2k/foo_input_vgmstream.vcxproj ^
 ```
 
 ### Audacious plugin
-Requires the dev version of Audacious (and dependencies), automake/autoconf, and gcc/make (C++11). It must be compiled and installed into Audacious, where it should appear in the plugin list as "vgmstream".
+Requires the dev version of Audacious (and dependencies), automake/autoconf or cmake, and gcc/make (C++11). It must be compiled and installed into Audacious, where it should appear in the plugin list as "vgmstream".
 
 The plugin needs Audacious 3.5 or higher. New Audacious releases can break plugin compatibility so it may not work with the latest version unless adapted first.
 
@@ -99,7 +99,9 @@ libvorbis and libmpg123 will be used if found, while FFmpeg and other external l
 
 Windows builds aren't supported at the moment (should be possible but there are complex dependency chains).
 
-Take note of other plugins stealing extensions (see README). To change Audacious's default priority for vgmstream you can make with CFLAG `AUDACIOUS_VGMSTREAM_PRIORITY n` (where `N` is number with 10=lowest)
+If you get errors during the build phase we probably forgot some `#ifdef` needed for Audacious, notify and should be quickly fixed.
+
+Take note of other plugins stealing extensions (see README). To change Audacious's default priority for vgmstream you can make with CFLAG `AUDACIOUS_VGMSTREAM_PRIORITY n` (where `N` is a number where 10=lowest)
 
 
 Terminal example, assuming a Ubuntu-based Linux distribution:
@@ -113,22 +115,22 @@ sudo apt-get install autoconf automake libtool
 sudo apt-get install git
 # vgmstream dependencies
 sudo apt-get install libmpg123-dev libvorbis-dev
+#sudo apt-get install libavformat-dev libavcodec-dev libavutil-dev libswresample-dev
 # Audacious player and dependencies
 sudo apt-get install audacious
 sudo apt-get install audacious-dev libglib2.0-dev libgtk2.0-dev libpango1.0-dev
-
-# if you want vgmstream123 do this too
+# vgmstream123 dependencies (optional)
 sudo apt-get install libao-dev
 
 # check Audacious version >= 3.5
 pkg-config --modversion audacious
 ```
 ```
-# vgmstream build
-
-git clone https://github.com/kode54/vgmstream
+# base vgmstream build
+git clone https://github.com/losnoco/vgmstream
 cd vgmstream
 
+# main vgmstream build (if you get errors here please report)
 ./bootstrap
 ./configure
 make -f Makefile.autotools
@@ -158,8 +160,19 @@ find . -name ".deps" -type d -exec rm -r "{}" \;
 ## WARNING, removes *all* untracked files not in .gitignore
 git clean -fd
 ```
-To update vgmstream it's probably easiest to remove the `vgmstream` folder and start again from "vgmstream build" step, since updates often require a full rebuild anyway.
+To update vgmstream it's probably easiest to remove the `vgmstream` folder and start again from *base vgmstream build* step, since updates often require a full rebuild anyway.
 
+Instead of autotools you can try building with CMake. Some older distros may not work though (CMake version needs to recognize FILTER command). You may need to install resulting artifacts manually.
+```
+sudo apt-get update
+sudo apt-get install -y libmpg123-dev libvorbis-dev
+sudo apt-get install -y libavformat-dev libavcodec-dev libavutil-dev libswresample-dev
+sudo apt-get install -y libao-dev audacious-dev
+sudo apt-get install -y cmake
+
+cmake .
+make
+```
 
 ### vgmstream123 player
 Should be buildable with Autotools by following the same steps as listen in the Audacious section (requires libao-dev).

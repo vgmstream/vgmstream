@@ -936,8 +936,8 @@ static void apply_config(VGMSTREAM* vgmstream, winamp_settings_t* settings) {
 
     vcfg.allow_play_forever = 1;
     vcfg.play_forever = settings->loop_forever;
-    vcfg.loop_times = settings->loop_count;
-    vcfg.fade_period = settings->fade_time;
+    vcfg.loop_count = settings->loop_count;
+    vcfg.fade_time = settings->fade_time;
     vcfg.fade_delay = settings->fade_delay;
     vcfg.ignore_loop = settings->ignore_loop;
 
