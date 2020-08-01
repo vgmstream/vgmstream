@@ -36,7 +36,7 @@ PKG_CHECK_MODULES(MPG123, [libmpg123], have_libmpg123=yes,
 AM_CONDITIONAL(HAVE_LIBMPG123, test "$have_libmpg123" = yes)
 
 #have_ffmpeg=no
-#PKG_CHECK_MODULES(FFMPEG, [libavformat-dev libavcodec-dev libavutil-dev libswresample-dev], have_ffmpeg=yes,
+#PKG_CHECK_MODULES(FFMPEG, [libavformat libavcodec libavutil libswresample], have_ffmpeg=yes,
 #        [AC_MSG_WARN([Cannot find ffmpeg - will not enable FFmpeg formats])]
 #)
 #AM_CONDITIONAL(HAVE_FFMPEG, test "$have_ffmpeg" = yes)
