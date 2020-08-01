@@ -55,18 +55,20 @@ static void usage(const char* name, int is_full) {
             "    -x: decode and print adxencd command line to encode as ADX\n"
             "    -g: decode and print oggenc command line to encode as OGG\n"
             "    -b: decode and print batch variable commands\n"
-            "    -h: print extra commands\n"
+            "    -h: print extra commands (for testing)\n"
             , name);
-    if (is_full) {
-        fprintf(stderr,
-                "    -v: validate extensions (for extension testing)\n"
-                "    -r: output a second file after resetting (for reset testing)\n"
-                "    -k N: seeks to N samples before decoding (for seek testing)\n"
-                "    -K N: seeks to N samples before decoding again (for seek testing)\n"
-                "    -t file: print tags found in file (for tag testing)\n"
-                "    -O: decode but don't write to file (for performance testing)\n"
-                );
-    }
+    if (!is_full)
+        return;
+    fprintf(stderr,
+            "    -v: validate extensions (for extension testing)\n"
+            "    -r: output a second file after resetting (for reset testing)\n"
+            "    -k N: seeks to N samples before decoding (for seek testing)\n"
+            "    -K N: seeks again to N samples before decoding (for seek testing)\n"
+            "    -t file: print tags found in file (for tag testing)\n"
+            "    -D <max channels>: downmix to <max channels> (for plugin downmix testing)\n"
+            "    -O: decode but don't write to file (for performance testing)\n"
+    );
+
 }
 
 
@@ -98,6 +100,7 @@ typedef struct {
     int seek_samples1;
     int seek_samples2;
     int decode_only;
+    int downmix_channels;
 
     /* not quite config but eh */
     int lwav_loop_start;
@@ -119,7 +122,7 @@ static int parse_config(cli_config* cfg, int argc, char** argv) {
     opterr = 0;
 
     /* read config */
-    while ((opt = getopt(argc, argv, "o:l:f:d:ipPcmxeLEFrgb2:s:t:k:K:hOv")) != -1) {
+    while ((opt = getopt(argc, argv, "o:l:f:d:ipPcmxeLEFrgb2:s:t:k:K:hOvD:")) != -1) {
         switch (opt) {
             case 'o':
                 cfg->outfilename = optarg;
@@ -193,6 +196,9 @@ static int parse_config(cli_config* cfg, int argc, char** argv) {
                 break;
             case 'v':
                 cfg->validate_extensions = 1;
+                break;
+            case 'D':
+                cfg->downmix_channels = atoi(optarg);
                 break;
             case 'h':
                 usage(argv[0], 1);
@@ -507,6 +513,8 @@ int main(int argc, char** argv) {
     input_channels = vgmstream->channels;
 
     /* enable after config but before outbuf */
+    if (cfg.downmix_channels)
+        vgmstream_mixing_autodownmix(vgmstream, cfg.downmix_channels);
     vgmstream_mixing_enable(vgmstream, SAMPLE_BUFFER_SIZE, &input_channels, &channels);
 
     /* get final play config */
