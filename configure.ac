@@ -35,6 +35,12 @@ PKG_CHECK_MODULES(MPG123, [libmpg123], have_libmpg123=yes,
 )
 AM_CONDITIONAL(HAVE_LIBMPG123, test "$have_libmpg123" = yes)
 
+#have_ffmpeg=no
+#PKG_CHECK_MODULES(FFMPEG, [libavformat-dev libavcodec-dev libavutil-dev libswresample-dev], have_ffmpeg=yes,
+#        [AC_MSG_WARN([Cannot find ffmpeg - will not enable FFmpeg formats])]
+#)
+#AM_CONDITIONAL(HAVE_FFMPEG, test "$have_ffmpeg" = yes)
+
 have_audacious=no
 PKG_CHECK_MODULES(AUDACIOUS, [audacious >= 3.5.0],  have_audacious=yes,
         [AC_MSG_WARN([Cannot find audacious >= 3.5.0 correctly installed - will not build Audacious plugin])]
@@ -55,6 +61,7 @@ then
   CFLAGS="$CFLAGS -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-but-set-variable"
 fi
 
+#plugindir=`pkg-config audacious --define-variable=prefix="$prefix" --variable=plugin_dir`
 plugindir=`pkg-config audacious --variable=plugin_dir`
 AC_SUBST(plugindir)
 
