@@ -944,3 +944,83 @@ sample_rate = 22050
 channels = 2
 num_samples = data_size
 ```
+
+####  Sega Rally 3 (SAT) ALL_SOUND.txth
+```
+codec             = PCM16LE
+
+header_file       = ALL_AUDIO.sfx
+body_file         = ALL_AUDIO.sfx
+
+#header format
+# 0..0x100: garbage/info?
+# 0x100 table1 offset (points to audio configs w/ floats, etc)
+# 0x104 table1 count
+# 0x108 table2 offset (points to stream offsets for audio configs?)
+# 0x10c table2 count
+
+# 0x110 table3 offset (points to headers)
+# 0x114 table3 count
+# 0x118 table3 offset (points to stream offsets)
+# 0x11c table3 count
+
+
+# read stream header using table3
+subsong_count     = @0x114
+base_offset       = @0x110
+subsong_offset    = 0xc8
+
+name_offset       = 0x00
+#0xc0: file number
+base_offset       = @0xc4 #absolute jump
+subsong_offset    = 0     #stop offsetting for next vals
+
+channels          = @0xC0
+sample_rate       = @0xC4
+data_size         = @0xC8 #without header
+num_samples       = data_size
+
+# read stream offset using table4
+base_offset       = 0     #reset current jump
+base_offset       = @0x118
+subsong_offset    = 0xc8
+
+start_offset      = @0xc4 + 0xc0
+```
+####  Sega Rally 3 (PC) EnglishStream.txth
+```
+codec             = PCM16LE
+
+header_file       = EnglishStreamHeader.stm
+body_file         = EnglishStreamData.stm
+
+#header format
+# 0..0x100: garbage/info?
+# 0x100 table1 offset (points to headers)
+# 0x104 table1 count
+# 0x108 table2 offset (points to stream offsets)
+# 0x10c table2 count
+
+
+# read stream header using table1
+subsong_count     = @0x104
+base_offset       = @0x100
+subsong_offset    = 0xc8
+
+name_offset       = 0x00
+#0xc0: file number
+base_offset       = @0xc4 #absolute jump
+subsong_offset    = 0     #stop offsetting for next vals
+
+channels          = @0xC0
+sample_rate       = @0xC4
+data_size         = @0xC8 #without header
+num_samples       = data_size
+
+# read stream offset using table1
+base_offset       = 0     #reset current jump
+base_offset       = @0x108
+subsong_offset    = 0xc8
+
+start_offset      = @0xc4 + 0xc0
+```
