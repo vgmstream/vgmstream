@@ -64,12 +64,7 @@
  */
 #define DOUBLE_INTERRUPT_TIME 1.0
 
-/* TODO: Make sure this whole mess works for big-endian systems
- */
-#define LITTLE_ENDIAN_OUTPUT
-
-#undef  MIN
-#define MIN(X, Y) ((X) < (Y) ? (X) : (Y))
+#define LITTLE_ENDIAN_OUTPUT 1 /* untested in BE */
 
 
 #define DEFAULT_PARAMS { 0, -1, 2.0, 10.0, 0.0,   0, 0, 0, 0 }
@@ -203,7 +198,7 @@ static int set_sample_format(int channels, int sample_rate) {
     format.channels = channels;
     format.rate = sample_rate;
     format.byte_format =
-#ifdef LITTLE_ENDIAN_OUTPUT
+#if LITTLE_ENDIAN_OUTPUT
         AO_FMT_LITTLE
 #else
         AO_FMT_BIG
@@ -397,7 +392,7 @@ static int play_vgmstream(const char *filename, song_settings_t *cfg) {
 
             render_vgmstream(buffer, to_do, vgmstream);
 
-#ifdef LITTLE_ENDIAN_OUTPUT
+#if LITTLE_ENDIAN_OUTPUT
             swap_samples_le(buffer, output_channels * to_do);
 #endif
 
