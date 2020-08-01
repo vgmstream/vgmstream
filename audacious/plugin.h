@@ -46,7 +46,7 @@ public:
 typedef struct {
     bool loop_forever;
     bool ignore_loop;
-    int loop_count;
+    double loop_count;
     double fade_time;
     double fade_delay;
     int downmix_channels;
