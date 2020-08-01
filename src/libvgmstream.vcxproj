@@ -316,6 +316,7 @@
     <ClCompile Include="meta\derf.c" />
     <ClCompile Include="meta\diva.c" />
     <ClCompile Include="meta\dmsg_segh.c" />
+    <ClCompile Include="meta\dsb.c" />
     <ClCompile Include="meta\dsf.c" />
     <ClCompile Include="meta\dsp_adx.c" />
     <ClCompile Include="meta\dsp_bdsp.c" />

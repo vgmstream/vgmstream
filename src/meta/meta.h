@@ -913,4 +913,6 @@ VGMSTREAM* init_vgmstream_adp_konami(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_zwv(STREAMFILE* sf);
 
+VGMSTREAM* init_vgmstream_dsb(STREAMFILE* sf);
+
 #endif /*_META_H*/

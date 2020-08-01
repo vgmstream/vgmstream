@@ -661,6 +661,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\dsb.c"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\dsf.c"
                     >
                 </File>

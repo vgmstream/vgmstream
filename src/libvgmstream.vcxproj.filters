@@ -457,6 +457,9 @@
     <ClCompile Include="meta\dmsg_segh.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\dsb.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\dsf.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
