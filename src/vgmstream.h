@@ -975,6 +975,8 @@ typedef struct {
     play_state_t pstate;            /* player state (applied over decoding) */
     int loop_count;                 /* counter of complete loops (1=looped once) */
     int loop_target;                /* max loops before continuing with the stream end (loops forever if not set) */
+    sample_t* tmpbuf;               /* garbage buffer used for seeking/trimming */
+    size_t tmpbuf_size;             /* for all channels (samples = tmpbuf_size / channels) */
 
 } VGMSTREAM;
 

@@ -243,9 +243,8 @@ static int render_layout(sample_t* buf, int32_t sample_count, VGMSTREAM* vgmstre
 
     if (vgmstream->current_sample > vgmstream->num_samples) {
         int channels = vgmstream->channels;
-        int to_do = sample_count;
-        int done = 0;
-        memset(buf + done * channels, 0, to_do * sizeof(sample_t) * channels);
+
+        memset(buf, 0, sample_count * sizeof(sample_t) * channels);
         return sample_count;
     }
 
@@ -310,27 +309,33 @@ static int render_layout(sample_t* buf, int32_t sample_count, VGMSTREAM* vgmstre
 
     if (vgmstream->current_sample > vgmstream->num_samples) {
         int channels = vgmstream->channels;
-        int to_do = (vgmstream->current_sample - vgmstream->num_samples);
-        int done = sample_count - to_do;
-        memset(buf + done * channels, 0, to_do * sizeof(sample_t) * channels);
+        int32_t excess, decoded;
+
+        excess = (vgmstream->current_sample - vgmstream->num_samples);
+        if (excess > sample_count)
+            excess = sample_count;
+        decoded = sample_count - excess;
+
+        memset(buf + decoded * channels, 0, excess * sizeof(sample_t) * channels);
         return sample_count;
     }
 
     return sample_count;
 }
 
+
 static void render_trim(VGMSTREAM* vgmstream) {
-    /* big-ish buffer since the average trim would be a few seconds for >=2ch at 48000, and less calls = better */
-    sample_t tmpbuf[0x40000];
-    int max_samples = 0x40000 / vgmstream->pstate.input_channels;
+    sample_t* tmpbuf = vgmstream->tmpbuf;
+    size_t tmpbuf_size = vgmstream->tmpbuf_size;
+    int32_t buf_samples = tmpbuf_size / vgmstream->channels; /* base channels, no need to apply mixing */
 
     while (vgmstream->pstate.trim_begin_left) {
         int to_do = vgmstream->pstate.trim_begin_left;
-        if (to_do > max_samples)
-            to_do = max_samples;
+        if (to_do > buf_samples)
+            to_do = buf_samples;
 
         render_layout(tmpbuf, to_do, vgmstream);
-        /* just consume samples so no need to apply mixing */
+        /* no mixing */
         vgmstream->pstate.trim_begin_left -= to_do;
     }
 }
@@ -489,18 +494,18 @@ static void seek_force_loop(VGMSTREAM* vgmstream) {
 }
 
 static void seek_force_decode(VGMSTREAM* vgmstream, int samples) {
-    sample_t tmpbuf[0x40000]; /* big-ish buffer as less calls = better */
-    int32_t buf_samples = 0x40000 / vgmstream->channels; /* base channels, no need to apply mixing */
+    sample_t* tmpbuf = vgmstream->tmpbuf;
+    size_t tmpbuf_size = vgmstream->tmpbuf_size;
+    int32_t buf_samples = tmpbuf_size / vgmstream->channels; /* base channels, no need to apply mixing */
 
-    int i;
+    while (samples) {
+        int to_do = samples;
+        if (to_do > buf_samples)
+            to_do = buf_samples;
 
-    for (i = 0; i < samples; i += buf_samples) {
-        int to_get = buf_samples;
-        if (i + buf_samples > samples)
-            to_get = samples - i;
-
-        render_layout(tmpbuf, to_get, vgmstream);
+        render_layout(tmpbuf, to_do, vgmstream);
         /* no mixing */
+        samples -= to_do;
     }
 }
 
