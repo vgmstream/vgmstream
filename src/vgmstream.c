@@ -726,6 +726,12 @@ VGMSTREAM* allocate_vgmstream(int channel_count, int loop_flag) {
         if (!vgmstream->loop_ch) goto fail;
     }
 
+    /* garbage buffer for decode discarding (local bufs may cause stack overflows with segments/layers)
+     * in theory the bigger the better but in practice there isn't much difference */
+    vgmstream->tmpbuf_size = 0x10000; /* for all channels */
+    vgmstream->tmpbuf = malloc(sizeof(sample_t) * vgmstream->tmpbuf_size);
+
+
     vgmstream->channels = channel_count;
     vgmstream->loop_flag = loop_flag;
 
@@ -736,6 +742,7 @@ VGMSTREAM* allocate_vgmstream(int channel_count, int loop_flag) {
 fail:
     if (vgmstream) {
         mixing_close(vgmstream);
+        free(vgmstream->tmpbuf);
         free(vgmstream->ch);
         free(vgmstream->start_ch);
         free(vgmstream->loop_ch);
@@ -776,6 +783,7 @@ void close_vgmstream(VGMSTREAM* vgmstream) {
     }
 
     mixing_close(vgmstream);
+    free(vgmstream->tmpbuf);
     free(vgmstream->ch);
     free(vgmstream->start_ch);
     free(vgmstream->loop_ch);

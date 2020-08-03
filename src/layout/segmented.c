@@ -28,7 +28,6 @@ void render_vgmstream_segmented(sample_t* outbuf, int32_t sample_count, VGMSTREA
 
     samples_this_block = vgmstream_get_samples(data->segments[data->current_segment]);
 
-    //VGM_LOG("segment decode start: cur=%i, this=%i, into=%i\n", data->current_segment, samples_this_block, vgmstream->samples_into_block);
     while (samples_written < sample_count) {
         int samples_to_do;
 
@@ -39,7 +38,7 @@ void render_vgmstream_segmented(sample_t* outbuf, int32_t sample_count, VGMSTREA
         }
 
         /* detect segment change and restart (after loop, but before decode, to allow looping to kick in) */
-        if (vgmstream->samples_into_block == samples_this_block) {
+        if (vgmstream->samples_into_block >= samples_this_block) {
             data->current_segment++;
 
             /* could happen on last segment trying to decode more samples */
@@ -62,6 +61,11 @@ void render_vgmstream_segmented(sample_t* outbuf, int32_t sample_count, VGMSTREA
             samples_to_do = sample_count - samples_written;
         if (samples_to_do > VGMSTREAM_SEGMENT_SAMPLE_BUFFER /*&& use_internal_buffer*/) /* always for fade/etc mixes */
             samples_to_do = VGMSTREAM_SEGMENT_SAMPLE_BUFFER;
+
+        if (samples_to_do < 0) { /* ? */
+            VGM_LOG("SEGMENTED: wrong samples_to_do %i found\n", samples_to_do);
+            break;
+        }
 
         render_vgmstream(
                 use_internal_buffer ?

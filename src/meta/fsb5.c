@@ -36,7 +36,7 @@ typedef struct {
 static layered_layout_data* build_layered_fsb5_celt(STREAMFILE* sf, fsb5_header* fsb5);
 static layered_layout_data* build_layered_fsb5_atrac9(STREAMFILE* sf, fsb5_header* fsb5, off_t configs_offset, size_t configs_size);
 
-/* FSB5 - FMOD Studio multiplatform format */
+/* FSB5 - Firelight's FMOD Studio SoundBank format */
 VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     fsb5_header fsb5 = {0};
@@ -211,6 +211,7 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
                             /* found in some XMA2/Vorbis/FADPCM */
                             VGM_LOG("FSB5: stream %i flag %x with value %08x\n", i, extraflag_type, read_32bitLE(extraflag_offset+0x04,sf));
                             break;
+                        case 0x0e:  /* number of layered Vorbis channels [Invisible, Inc. (Switch)] */
                         default:
                             VGM_LOG("FSB5: stream %i unknown flag 0x%x at %x + 0x04 (size 0x%x)\n", i, extraflag_type, (uint32_t)extraflag_offset, extraflag_size);
                             break;
