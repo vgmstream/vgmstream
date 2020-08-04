@@ -110,5 +110,5 @@ void decode_ptadpcm(VGMSTREAMCHANNEL *stream, sample_t *outbuf, int channelspaci
 
 size_t ptadpcm_bytes_to_samples(size_t bytes, int channels, size_t frame_size) {
     if (channels <= 0 || frame_size < 0x06) return 0;
-    return (bytes / channels / frame_size) * ((frame_size-0x05) * 2);
+    return (bytes / (channels * frame_size)) * (2 + (frame_size-0x05) * 2);
 }
