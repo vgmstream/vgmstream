@@ -52,6 +52,13 @@ int vgmstream_get_play_forever(VGMSTREAM* vgmstream) {
     return vgmstream->config.play_forever;
 }
 
+void vgmstream_set_play_forever(VGMSTREAM* vgmstream, int enabled) {
+    /* sometimes we need to enable/disable right before playback
+     * (play config is left untouched, should mix ok as this flag is only used during
+     * render, while config is always prepared as if play forever wasn't enabled) */
+    vgmstream->config.play_forever = enabled;
+}
+
 int32_t vgmstream_get_samples(VGMSTREAM* vgmstream) {
     if (!vgmstream->config_enabled || !vgmstream->config.config_set)
         return vgmstream->num_samples;
