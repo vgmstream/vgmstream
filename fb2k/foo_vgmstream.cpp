@@ -248,7 +248,6 @@ t_filestats input_vgmstream::get_file_stats(abort_callback & p_abort) {
 
 // called right before actually playing (decoding) a song/subsong
 void input_vgmstream::decode_initialize(t_uint32 p_subsong, unsigned p_flags, abort_callback & p_abort) {
-    force_ignore_loop = !!(p_flags & input_flag_no_looping);
 
     // if subsong changes recreate vgmstream
     if (subsong != p_subsong && !direct_subsong) {
@@ -256,7 +255,13 @@ void input_vgmstream::decode_initialize(t_uint32 p_subsong, unsigned p_flags, ab
         setup_vgmstream(p_abort);
     }
 
-    decode_seek( 0, p_abort );
+    // "don't loop forever" flag (set when converting to file, scanning for replaygain, etc)
+    // flag is set *after* loading vgmstream + applying config so manually disable
+    bool force_ignore_loop = !!(p_flags & input_flag_no_looping);
+    if (force_ignore_loop) // could always set but vgmstream is re-created on play start
+        vgmstream_set_play_forever(vgmstream, 0);
+
+    decode_seek(0, p_abort);
 };
 
 // called when audio buffer needs to be filled

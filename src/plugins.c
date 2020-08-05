@@ -80,9 +80,9 @@ static void load_default_config(play_config_t* def, play_config_t* tcfg) {
         def->ignore_loop = 0;
     }
     if (tcfg->loop_count_set) {
-        def->ignore_loop = 0;
         def->loop_count = tcfg->loop_count;
         def->loop_count_set = 1;
+        def->ignore_loop = 0;
         if (!tcfg->play_forever)
             def->play_forever = 0;
     }
@@ -93,9 +93,11 @@ static void load_default_config(play_config_t* def, play_config_t* tcfg) {
     }
     if (tcfg->fade_delay_set) {
         def->fade_delay = tcfg->fade_delay;
+        def->fade_delay_set = 1;
     }
     if (tcfg->fade_time_set) {
         def->fade_time = tcfg->fade_time;
+        def->fade_time_set = 1;
     }
 
     /* loop priority: #i > #e > #E */

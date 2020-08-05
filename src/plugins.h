@@ -65,6 +65,7 @@ typedef struct {
 void vgmstream_apply_config(VGMSTREAM* vgmstream, vgmstream_cfg_t* pcfg);
 int32_t vgmstream_get_samples(VGMSTREAM* vgmstream);
 int vgmstream_get_play_forever(VGMSTREAM* vgmstream);
+void vgmstream_set_play_forever(VGMSTREAM* vgmstream, int enabled);
 
 
 

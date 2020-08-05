@@ -58,7 +58,6 @@ class input_vgmstream : public input_stubs {
         double fade_delay_seconds;
         double loop_count;
         bool loop_forever;
-        bool force_ignore_loop;
         int ignore_loop;
         bool disable_subsongs;
 
