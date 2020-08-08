@@ -99,7 +99,7 @@ Note that the number of channels is the sum of all layers so three 2ch layers pl
 
 
 ### Mixed groups
-You can set "groups" to 'fold' various files into one, as layers or segments, to allow complex cases. This is an advanced settings for complex cases, so read this after understanding other features first.
+You can set "groups" to 'fold' various files into one, as layers or segments, to allow complex cases. This is an advanced setting for complex cases, so read this after understanding other features first.
 ```
 # commands to make two 6ch segments with layered intro + layered loop:
 
@@ -147,10 +147,11 @@ mode = layers
 ```
 
 `group` can go anywhere in the .txtp, as many times as needed (groups are read and kept in an list that is applied in order at the end). Format is `(position)(type)(count)(repeat)`:
-- `position`: file start (optional, default is 1 = first)
-- `type`: group as S=segments or L=layers
+- `position`: file start (optional, default is 1 = first, or set `-` for auto from prev N files)
+- `type`: group as `S`=segments, `L`=layers, or `R`=pseudo-random
 - `count`: number of files in group (optional, default is all)
 - `repeat`: R=repeat group of `count` files until end (optional, default is no repeat)
+- `>file`: select file in pseudo-random groups (ignored for others)
 
 Examples:
 - `L`: take all files as layers (equivalent to `mode = layers`)
@@ -161,8 +162,40 @@ Examples:
 - `1L1`: layer of one file (same)
 - `9999L`: absurd values are ignored
 
+`position` may be `-` = automatic, meaning "start from position in previous `count` before current". If `repeat` is set it's ignored though (assumes first).
+```
+bgm1.adx
+bgm2.adx
+group = -L2  #layer prev 2 (will start from pos.1 = bgm1, makes group of bgm1+2 = pos.1)
 
-Internally, `mode = segment/layers` are treated basically the same as a (default, at the end) group. You can apply commands to the resulting group (rather than the individual files) too. `commands` would be applied to this final group.
+bgm3.adx
+bgm4.adx
+group = -L2  #layer prev 2 (will start from pos.2 = bgm3, makes group of bgm3+4 = pos.2)
+
+group = -S2  #segment prev 2 (will start from pos.1 = bgm1+2, makes group of bgm1+2 + bgm3+4)
+
+# uses "previous" because "next files" often creates ambiguous cases
+# may mix groups of auto and manual positions too, but results are harder to predict
+```
+
+Group `R` is meant to help with games that randomly select a file in a group. You can set with `>N` which file will be selected. This way you can quickly edit the TXTP and change the file (you could/should just comment files too, this is just for convenience in complex cases and testing). Files do need to exist and are parsed before being selected, and it can select groups too.
+```
+ bgm1.adx
+ bgm2.adx
+ bgm3.adx
+group = -R3>1  #first file, change to >2 for second
+```
+```
+  bgm1a.adx
+  bgm1b.adx
+ group = -S2
+  bgm2a.adx
+  bgm2b.adx
+ group = -S2
+group = -R2>2  #select either group >1 or >2
+```
+
+Internally, `mode = segment/layers` are treated basically as a (default, at the end) group. You can apply commands to the resulting group (rather than the individual files) too. `commands` would be applied to this final group.
 ```
 mainA_2ch.at3
 mainB_2ch.at3
@@ -369,6 +402,18 @@ Similarly other games don't use loop points, but rather repeat/loops the song in
 bgm01.vag #t3:20
 ```
 
+You can combine file trims and begin removes (see above) for weirder combos:
+
+**Cave Story 3D (3DS)**
+```
+# loop has intro2 (bridge) + body, so we want intro1 + body + intro2 + body ... 
+wanpaku_ending_intro.lwav               # intro1
+wanpaku_ending_loop.lwav #r 141048      # remove intro2 and leave body (same samples as intro1)
+wanpaku_ending_loop.lwav #t 141048      # plays up to intro2
+
+loop_start_segment = 2                  # loops back to body
+```
+
 If you need to remove very few samples (like 1) to get smooth transitions it may be a bug in vgmstream, consider reporting.
 
 
@@ -396,9 +441,9 @@ Note that a few codecs may not work with arbitrary loop values since they weren'
 
 
 ### Force sample rate
-**`#h(sample rate)`**: changes sample rate to selected value (within some limits).
+**`#h(sample rate)`**: changes sample rate to selected value, changing play speed.
 
-Needed for a few games set a sample rate value in the header but actually play with other (applying some of pitch or just forcing it), resulting in wrong play speed if not changed.
+Needed for a few games set a sample rate value in the header but actually play with other (applying some of pitch or just forcing it), resulting in wrong play speed if not changed. Higher rates will sound faster, and lower rates slower.
 
 **Super Paper Mario (Wii)**
 ```
@@ -485,7 +530,7 @@ Mixing must be supported by the plugin, otherwise it's ignored (there is a negli
 Manually setting values gets old, so TXTP supports a bunch of simple macros. They automate some of the above commands (analyzing the file), and may be combined, so order still matters.
 - `volume N (channels)`: sets volume V to selected channels
 - `track (channels)`: makes a file of selected channels
-- `layer-v N (channels)`: mixes selected channels to N channels with default volume (for layered vocals)
+- `layer-v N (channels)`: mixes selected channels to N channels with default volume (for layered vocals). If N is 0 (or ommited), automatically sets highest channel count among all layers.
 - `layer-b N (channels)`: same, but adjusts volume depending on layers (for layered bgm)
 - `layer-e N (channels)`: same, but adjusts volume equally for all layers (for generic downmixing)
 - `remix N (channels)`: same, but mixes selected channels to N channels properly adjusting volume (for layered bgm)
@@ -522,6 +567,13 @@ nier_automata-BGM_0_012_04.wem
 nier_automata-BGM_0_012_07.wem
 mode = layers
 commands = #@layer-v 2
+```
+```
+# downmix 4ch bgm + 4ch vocals to 4ch (highest among all layers), automatically
+mgr-main-4ch.wem
+mgr-vocal-4ch.wem
+mode = layers
+commands = #@layer-v
 ```
 ```
 # can be combined with normal mixes too for creative results

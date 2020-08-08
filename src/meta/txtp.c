@@ -9,6 +9,7 @@
 #define TXTP_MIXING_MAX 512
 #define TXTP_GROUP_MODE_SEGMENTED 'S'
 #define TXTP_GROUP_MODE_LAYERED 'L'
+#define TXTP_GROUP_MODE_RANDOM 'R'
 #define TXTP_GROUP_REPEAT 'R'
 #define TXTP_POSITION_LOOPS 'L'
 
@@ -99,6 +100,7 @@ typedef struct {
     char type;
     int count;
     char repeat;
+    int selected;
 
     txtp_entry group_settings;
 
@@ -112,6 +114,7 @@ typedef struct {
     txtp_group* group;
     size_t group_count;
     size_t group_max;
+    int group_pos; /* entry counter for groups */
 
     VGMSTREAM** vgmstream;
     size_t vgmstream_count;
@@ -401,6 +404,50 @@ fail:
     return 0;
 }
 
+static int make_group_random(txtp_header* txtp, int position, int count, int selected) {
+    VGMSTREAM* vgmstream = NULL;
+    int i;
+
+    if (count == 1) { /* nothing to do */
+        //;VGM_LOG("TXTP: ignored random of 1\n");
+        return 1;
+    }
+
+    if (position + count > txtp->vgmstream_count || position < 0 || count < 0) {
+        VGM_LOG("TXTP: ignored random position=%i, count=%i, entries=%i\n", position, count, txtp->vgmstream_count);
+        return 1;
+    }
+
+
+    /* 0=actually random for fun and testing, but undocumented since random music is kinda weird, may change anytime
+     * (plus foobar caches song duration so it can get strange if randoms are too different) */
+    if (selected < 0) {
+        static int random_seed = 0;
+        srand((unsigned)txtp + random_seed++); /* whatevs */
+        selected = (rand() % count); /* 0..count-1 */
+        //;VGM_LOG("TXTP: autoselected random %i\n", selected);
+    }
+
+    if (selected < 0 || selected >= count) {
+        goto fail;
+    }
+
+    /* get selected and remove non-selected */
+    vgmstream = txtp->vgmstream[position + selected];
+    txtp->vgmstream[position + selected] = NULL;
+    for (i = 0; i < count; i++) {
+        close_vgmstream(txtp->vgmstream[i + position]);
+    }
+
+    /* set new vgmstream and reorder positions */
+    update_vgmstream_list(vgmstream, txtp, position, count);
+
+    return 1;
+fail:
+    close_vgmstream(vgmstream);
+    return 0;
+}
+
 static int parse_groups(txtp_header* txtp) {
     int i;
 
@@ -442,6 +489,10 @@ static int parse_groups(txtp_header* txtp) {
                     break;
                 case TXTP_GROUP_MODE_SEGMENTED:
                     if (!make_group_segment(txtp, pos, grp->count))
+                        goto fail;
+                    break;
+                case TXTP_GROUP_MODE_RANDOM:
+                    if (!make_group_random(txtp, pos, grp->count, grp->selected))
                         goto fail;
                     break;
                 default:
@@ -1277,10 +1328,11 @@ static void parse_params(txtp_entry* entry, char* params) {
 
             nm = get_int(params, &mix.max);
             params += nm;
-            if (nm == 0) continue;
 
-            nm = get_mask(params, &mix.mask);
-            params += nm;
+            if (nm > 0) { /* max is optional (auto-detects and uses max channels) */
+                nm = get_mask(params, &mix.mask);
+                params += nm;
+            }
 
             mix.mode = command[7]; /* pass letter */
             add_mixing(entry, &mix, MACRO_LAYER);
@@ -1329,13 +1381,20 @@ static void parse_params(txtp_entry* entry, char* params) {
 }
 
 
-
 static int add_group(txtp_header* txtp, char* line) {
     int n, m;
     txtp_group cfg = {0};
+    int auto_pos = 0;
+    char c;
 
     /* parse group: (position)(type)(count)(repeat)  #(commands) */
     //;VGM_LOG("TXTP: parse group '%s'\n", line);
+
+    m = sscanf(line, " %c%n", &c, &n);
+    if (m == 1 && c == '-') {
+        auto_pos = 1;
+        line += n;
+    }
 
     m = sscanf(line, " %d%n", &cfg.position, &n);
     if (m == 1) {
@@ -1355,13 +1414,41 @@ static int add_group(txtp_header* txtp, char* line) {
 
     m = sscanf(line, " %c%n", &cfg.repeat, &n);
     if (m == 1 && cfg.repeat == TXTP_GROUP_REPEAT) {
+        auto_pos = 0;
         line += n;
     }
 
+    m = sscanf(line, " >%d%n", &cfg.selected, &n);
+    if (m == 1) {
+        cfg.selected--; /* externally 1=first but internally 0=first */
+        line += n;
+    }
 
     parse_params(&cfg.group_settings, line);
 
-    //;VGM_LOG("TXTP: parsed group %i%c%i%c\n",cfg.position+1,cfg.type,cfg.count,cfg.repeat);
+    /* Groups can use "auto" position of last N files, so we need a counter that changes like this:
+     *   #layer of 2         (pos = 0)
+     *     #sequence of 2
+     *       bgm             pos +1    > 1
+     *       bgm             pos +1    > 2
+     *     group = -S2       pos -2 +1 > 1 (group is at 1 now since it "collapses" wems but becomes a position)
+     *     #sequence of 3
+     *       bgm             pos +1    > 2
+     *       bgm             pos +1    > 3
+     *       #sequence of 2
+     *         bgm           pos +1    > 4
+     *         bgm           pos +1    > 5
+     *       group = -S2     pos -2 +1 > 4 (groups is at 4 now since are uncollapsed wems at 2/3)
+     *     group = -S3       pos -3 +1 > 2
+     *   group = -L2         pos -2 +1 > 1
+     */
+    txtp->group_pos++;
+    txtp->group_pos -= cfg.count;
+    if (auto_pos) {
+        cfg.position = txtp->group_pos - 1; /* internally 1 = first */
+    }
+
+    //;VGM_LOG("TXTP: parsed group %i%c%i%c, auto=%i\n",cfg.position+1,cfg.type,cfg.count,cfg.repeat, auto_pos);
 
     /* add final group */
     {
@@ -1468,6 +1555,7 @@ static int add_entry(txtp_header* txtp, char* filename, int is_default) {
         add_settings(current, &entry, filename);
 
         txtp->entry_count++;
+        txtp->group_pos++;
     }
 
     return 1;
