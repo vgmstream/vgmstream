@@ -1308,7 +1308,7 @@ static const meta_info meta_info_list[] = {
         {meta_ADP_KONAMI,           "Konami ADP header"},
 };
 
-void get_vgmstream_coding_description(VGMSTREAM *vgmstream, char *out, size_t out_size) {
+void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {
     int i, list_length;
     const char *description;
 
@@ -1319,7 +1319,8 @@ void get_vgmstream_coding_description(VGMSTREAM *vgmstream, char *out, size_t ou
             layered_layout_data* layout_data = vgmstream->layout_data;
             get_vgmstream_coding_description(layout_data->layers[0], out, out_size);
             return;
-        } else if (vgmstream->layout_type == layout_segmented) {
+        }
+        else if (vgmstream->layout_type == layout_segmented) {
             segmented_layout_data* layout_data = vgmstream->layout_data;
             get_vgmstream_coding_description(layout_data->segments[0], out, out_size);
             return;
@@ -1348,7 +1349,8 @@ void get_vgmstream_coding_description(VGMSTREAM *vgmstream, char *out, size_t ou
 
     strncpy(out, description, out_size);
 }
-const char * get_vgmstream_layout_name(layout_t layout_type) {
+
+static const char* get_layout_name(layout_t layout_type) {
     int i, list_length;
 
     list_length = sizeof(layout_info_list) / sizeof(layout_info);
@@ -1359,40 +1361,103 @@ const char * get_vgmstream_layout_name(layout_t layout_type) {
 
     return NULL;
 }
-void get_vgmstream_layout_description(VGMSTREAM *vgmstream, char *out, size_t out_size) {
-    char temp[256];
-    VGMSTREAM* vgmstreamsub = NULL;
-    const char* description;
 
-    description = get_vgmstream_layout_name(vgmstream->layout_type);
+static int has_sublayouts(VGMSTREAM** vgmstreams, int count) {
+    int i;
+    for (i = 0; i < count; i++) {
+        if (vgmstreams[i]->layout_type == layout_segmented || vgmstreams[i]->layout_type == layout_layered)
+            return 1;
+    }
+    return 0;
+}
+
+/* Makes a mixed description, considering a segments/layers can contain segments/layers infinitely, like:
+ *
+ * "(L3[S2L2]S3)"        "(S3[L2[S2S2]])"
+ *  L3                    S3
+ *    S2                    L2
+ *      file                  S2
+ *      file                    file
+ *    file                      file
+ *    L2                      file
+ *      file                file
+ *      file                file
+ *
+ * ("mixed" is added externally)
+ */
+static int get_layout_mixed_description(VGMSTREAM* vgmstream, char* dst, int dst_size) {
+    int i, count, done = 0;
+    VGMSTREAM** vgmstreams = NULL;
+
+    if (vgmstream->layout_type == layout_layered) {
+        layered_layout_data* data = vgmstream->layout_data;
+        vgmstreams = data->layers;
+        count = data->layer_count;
+        done = snprintf(dst, dst_size, "L%i", count);
+    }
+    else if (vgmstream->layout_type == layout_segmented) {
+        segmented_layout_data* data = vgmstream->layout_data;
+        vgmstreams = data->segments;
+        count = data->segment_count;
+        done = snprintf(dst, dst_size, "S%i", count);
+    }
+
+    if (!vgmstreams || done == 0 || done >= dst_size)
+        return 0;
+
+    if (!has_sublayouts(vgmstreams, count))
+        return done;
+
+    if (done + 1 < dst_size) {
+        dst[done++] = '[';
+    }
+
+    for (i = 0; i < count; i++) {
+        done += get_layout_mixed_description(vgmstreams[i], dst + done, dst_size - done);
+    }
+
+    if (done + 1 < dst_size) {
+        dst[done++] = ']';
+    }
+
+    return done;
+}
+
+void get_vgmstream_layout_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {
+    const char* description;
+    int mixed = 0;
+
+    description = get_layout_name(vgmstream->layout_type);
     if (!description) description = "INCONCEIVABLE";
 
     if (vgmstream->layout_type == layout_layered) {
-        vgmstreamsub = ((layered_layout_data*)vgmstream->layout_data)->layers[0];
-        snprintf(temp, sizeof(temp), "%s (%i layers)", description, ((layered_layout_data*)vgmstream->layout_data)->layer_count);
-    } else if (vgmstream->layout_type == layout_segmented) {
-        snprintf(temp, sizeof(temp), "%s (%i segments)", description, ((segmented_layout_data*)vgmstream->layout_data)->segment_count);
-        vgmstreamsub = ((segmented_layout_data*)vgmstream->layout_data)->segments[0];
-    } else {
-        snprintf(temp, sizeof(temp), "%s", description);
+        layered_layout_data* data = vgmstream->layout_data;
+        mixed = has_sublayouts(data->layers, data->layer_count);
+        if (!mixed)
+            snprintf(out, out_size, "%s (%i layers)", description, data->layer_count);
     }
-    strncpy(out, temp, out_size);
+    else if (vgmstream->layout_type == layout_segmented) {
+        segmented_layout_data* data = vgmstream->layout_data;
+        mixed = has_sublayouts(data->segments, data->segment_count);
+        if (!mixed)
+            snprintf(out, out_size, "%s (%i segments)", description, data->segment_count);
+    }
+    else {
+        snprintf(out, out_size, "%s", description);
+    }
 
-    /* layouts can contain layouts infinitely let's leave it at one level deep (most common) */
-    /* TODO: improve this somehow */
-    if (vgmstreamsub && vgmstreamsub->layout_type == layout_layered) {
-        description = get_vgmstream_layout_name(vgmstreamsub->layout_type);
-        snprintf(temp, sizeof(temp), " + %s (%i layers)", description, ((layered_layout_data*)vgmstreamsub->layout_data)->layer_count);
-        concatn(out_size, out, temp);
-    } else if (vgmstreamsub && vgmstreamsub->layout_type == layout_segmented) {
-        description = get_vgmstream_layout_name(vgmstreamsub->layout_type);
-        snprintf(temp, sizeof(temp), " + %s (%i segments)", description, ((segmented_layout_data*)vgmstream->layout_data)->segment_count);
-        concatn(out_size, out, temp);
+    if (mixed) {
+        char tmp[256] = {0};
+
+        get_layout_mixed_description(vgmstream, tmp, sizeof(tmp) - 1);
+        snprintf(out, out_size, "mixed (%s)", tmp);
+        return;
     }
 }
-void get_vgmstream_meta_description(VGMSTREAM *vgmstream, char *out, size_t out_size) {
+
+void get_vgmstream_meta_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {
     int i, list_length;
-    const char *description;
+    const char* description;
 
     description = "THEY SHOULD HAVE SENT A POET";
 
