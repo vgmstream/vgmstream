@@ -112,6 +112,7 @@ typedef struct {
     txtp_group* group;
     size_t group_count;
     size_t group_max;
+    int group_pos; /* entry counter for groups */
 
     VGMSTREAM** vgmstream;
     size_t vgmstream_count;
@@ -1277,10 +1278,11 @@ static void parse_params(txtp_entry* entry, char* params) {
 
             nm = get_int(params, &mix.max);
             params += nm;
-            if (nm == 0) continue;
 
-            nm = get_mask(params, &mix.mask);
-            params += nm;
+            if (nm > 0) { /* max is optional (auto-detects and uses max channels) */
+                nm = get_mask(params, &mix.mask);
+                params += nm;
+            }
 
             mix.mode = command[7]; /* pass letter */
             add_mixing(entry, &mix, MACRO_LAYER);
@@ -1329,13 +1331,20 @@ static void parse_params(txtp_entry* entry, char* params) {
 }
 
 
-
 static int add_group(txtp_header* txtp, char* line) {
     int n, m;
     txtp_group cfg = {0};
+    int auto_pos = 0;
+    char c;
 
     /* parse group: (position)(type)(count)(repeat)  #(commands) */
     //;VGM_LOG("TXTP: parse group '%s'\n", line);
+
+    m = sscanf(line, " %c%n", &c, &n);
+    if (m == 1 && c == '-') {
+        auto_pos = 1;
+        line += n;
+    }
 
     m = sscanf(line, " %d%n", &cfg.position, &n);
     if (m == 1) {
@@ -1355,13 +1364,36 @@ static int add_group(txtp_header* txtp, char* line) {
 
     m = sscanf(line, " %c%n", &cfg.repeat, &n);
     if (m == 1 && cfg.repeat == TXTP_GROUP_REPEAT) {
+        auto_pos = 0;
         line += n;
     }
 
 
     parse_params(&cfg.group_settings, line);
 
-    //;VGM_LOG("TXTP: parsed group %i%c%i%c\n",cfg.position+1,cfg.type,cfg.count,cfg.repeat);
+    /* Groups can use "auto" position of last N files, so we need a counter that changes like this:
+     *   #layer of 2         (pos = 0)
+     *     #sequence of 2
+     *       bgm             pos +1    > 1
+     *       bgm             pos +1    > 2
+     *     group = -S2       pos -2 +1 > 1 (group is at 1 now since it "collapses" wems but becomes a position)
+     *     #sequence of 3
+     *       bgm             pos +1    > 2
+     *       bgm             pos +1    > 3
+     *       #sequence of 2
+     *         bgm           pos +1    > 4
+     *         bgm           pos +1    > 5
+     *       group = -S2     pos -2 +1 > 4 (groups is at 4 now since are uncollapsed wems at 2/3)
+     *     group = -S3       pos -3 +1 > 2
+     *   group = -L2         pos -2 +1 > 1
+     */
+    txtp->group_pos++;
+    txtp->group_pos -= cfg.count;
+    if (auto_pos) {
+        cfg.position = txtp->group_pos - 1; /* internally 1 = first */
+    }
+
+    //;VGM_LOG("TXTP: parsed group %i%c%i%c, auto=%i\n",cfg.position+1,cfg.type,cfg.count,cfg.repeat, auto_pos);
 
     /* add final group */
     {
@@ -1468,6 +1500,7 @@ static int add_entry(txtp_header* txtp, char* filename, int is_default) {
         add_settings(current, &entry, filename);
 
         txtp->entry_count++;
+        txtp->group_pos++;
     }
 
     return 1;

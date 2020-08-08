@@ -717,12 +717,40 @@ void mixing_macro_track(VGMSTREAM* vgmstream, uint32_t mask) {
     }
 }
 
+
+/* get highest channel count */
+static int get_layered_max_channels(VGMSTREAM* vgmstream) {
+    int i, max;
+    layered_layout_data* data;
+
+    if (vgmstream->layout_type != layout_layered)
+        return 0;
+
+    data = vgmstream->layout_data;
+
+    max = 0;
+    for (i = 0; i < data->layer_count; i++) {
+        int output_channels = 0;
+
+        mixing_info(data->layers[i], NULL, &output_channels);
+
+        if (max < output_channels)
+            max = output_channels;
+    }
+
+    return max;
+}
+
 void mixing_macro_layer(VGMSTREAM* vgmstream, int max, uint32_t mask, char mode) {
     mixing_data *data = vgmstream->mixing_data;
     int current, ch, output_channels, selected_channels;
 
     if (!data)
         return;
+
+    if (max == 0) /* auto calculate */
+        max = get_layered_max_channels(vgmstream);
+
     if (max <= 0 || data->output_channels <= max)
         return;
 
