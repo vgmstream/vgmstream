@@ -9,6 +9,7 @@
 #define TXTP_MIXING_MAX 512
 #define TXTP_GROUP_MODE_SEGMENTED 'S'
 #define TXTP_GROUP_MODE_LAYERED 'L'
+#define TXTP_GROUP_MODE_RANDOM 'R'
 #define TXTP_GROUP_REPEAT 'R'
 #define TXTP_POSITION_LOOPS 'L'
 
@@ -99,6 +100,7 @@ typedef struct {
     char type;
     int count;
     char repeat;
+    int selected;
 
     txtp_entry group_settings;
 
@@ -402,6 +404,50 @@ fail:
     return 0;
 }
 
+static int make_group_random(txtp_header* txtp, int position, int count, int selected) {
+    VGMSTREAM* vgmstream = NULL;
+    int i;
+
+    if (count == 1) { /* nothing to do */
+        //;VGM_LOG("TXTP: ignored random of 1\n");
+        return 1;
+    }
+
+    if (position + count > txtp->vgmstream_count || position < 0 || count < 0) {
+        VGM_LOG("TXTP: ignored random position=%i, count=%i, entries=%i\n", position, count, txtp->vgmstream_count);
+        return 1;
+    }
+
+
+    /* 0=actually random for fun and testing, but undocumented since random music is kinda weird, may change anytime
+     * (plus foobar caches song duration so it can get strange if randoms are too different) */
+    if (selected < 0) {
+        static int random_seed = 0;
+        srand((unsigned)txtp + random_seed++); /* whatevs */
+        selected = (rand() % count); /* 0..count-1 */
+        //;VGM_LOG("TXTP: autoselected random %i\n", selected);
+    }
+
+    if (selected < 0 || selected >= count) {
+        goto fail;
+    }
+
+    /* get selected and remove non-selected */
+    vgmstream = txtp->vgmstream[position + selected];
+    txtp->vgmstream[position + selected] = NULL;
+    for (i = 0; i < count; i++) {
+        close_vgmstream(txtp->vgmstream[i + position]);
+    }
+
+    /* set new vgmstream and reorder positions */
+    update_vgmstream_list(vgmstream, txtp, position, count);
+
+    return 1;
+fail:
+    close_vgmstream(vgmstream);
+    return 0;
+}
+
 static int parse_groups(txtp_header* txtp) {
     int i;
 
@@ -443,6 +489,10 @@ static int parse_groups(txtp_header* txtp) {
                     break;
                 case TXTP_GROUP_MODE_SEGMENTED:
                     if (!make_group_segment(txtp, pos, grp->count))
+                        goto fail;
+                    break;
+                case TXTP_GROUP_MODE_RANDOM:
+                    if (!make_group_random(txtp, pos, grp->count, grp->selected))
                         goto fail;
                     break;
                 default:
@@ -1368,6 +1418,11 @@ static int add_group(txtp_header* txtp, char* line) {
         line += n;
     }
 
+    m = sscanf(line, " >%d%n", &cfg.selected, &n);
+    if (m == 1) {
+        cfg.selected--; /* externally 1=first but internally 0=first */
+        line += n;
+    }
 
     parse_params(&cfg.group_settings, line);
 
