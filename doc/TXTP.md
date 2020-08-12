@@ -95,7 +95,19 @@ BIK_E1_6A_DialEnd_00000000.audio.multi.bik#3
 
 mode = layers
 ```
-Note that the number of channels is the sum of all layers so three 2ch layers play as a 6ch file (you can manually downmix using mixing commands, described later, since vgmstream can't guess if the result should be stereo or 5.1 audio). If all layers share loop points they are automatically kept.
+
+If all layers share loop points they are automatically kept.
+```
+BGM1a.adx  # loops from 10.0 to 90.0
+BGM1b.adx  # loops from 10.0 to 90.0
+mode = layers
+# resulting file loops from 10.0 to 90.0
+
+# if layers *don't* share loop points this sets a full loop (0..max)
+loop_mode = auto
+```
+
+Note that the number of channels is the sum of all layers so three 2ch layers play as a 6ch file (you can manually downmix using mixing commands, described later, since vgmstream can't guess if the result should be stereo or 5.1 audio).
 
 
 ### Mixed groups
@@ -158,7 +170,7 @@ Examples:
 - `S`: take all files as segments (equivalent to `mode = segments`)
 - `3L2`: layer 2 files starting from file 3
 - `2L3R`: group every 3 files from position 2 as layers
-- `1S1`: segment of one file (useless thus ignored)
+- `1S1`: segment of one file (mostly useless but allowed as internal file may have play config)
 - `1L1`: layer of one file (same)
 - `9999L`: absurd values are ignored
 
