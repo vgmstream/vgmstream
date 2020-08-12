@@ -7,7 +7,7 @@ VGMSTREAM* init_vgmstream_fsb5_fev_bank(STREAMFILE* sf) {
     STREAMFILE* temp_sf = NULL;
     off_t subfile_offset, chunk_offset, bank_offset, offset;
     size_t subfile_size, bank_size;
-    int is_old = 0;
+    uint32_t version = 0;
 
 
     /* checks */
@@ -18,6 +18,7 @@ VGMSTREAM* init_vgmstream_fsb5_fev_bank(STREAMFILE* sf) {
         goto fail;
     if (read_u32be(0x08,sf) != 0x46455620) /* "FEV " */
         goto fail;
+    version = read_u32le(0x14,sf); /* newer FEV have some kind of sub-version at 0x18 */
 
     /* .fev is an event format referencing various external .fsb, but FMOD can bake .fev and .fsb to
      * form a .bank, which is the format we support here (regular .fev is complex and not very interesting).
@@ -42,15 +43,14 @@ VGMSTREAM* init_vgmstream_fsb5_fev_bank(STREAMFILE* sf) {
             goto fail;
 
         switch(chunk_type) {
-            case 0x4C495354: /* "LIST" with "SNDH" (older) */
+            case 0x4C495354: /* "LIST" with "SNDH" (usually v0x28 but also in Fall Guys's BNK_Music_RoundReveal) */
                 if (read_u32be(offset + 0x04, sf) == 0x534E4448) {
                     bank_offset = offset + 0x0c;
                     bank_size = read_s32le(offset + 0x08,sf);
-                    is_old = 1;
                 }
                 break;
 
-            case 0x534E4448: /* "SNDH" (newer) */
+            case 0x534E4448: /* "SNDH" */
                 bank_offset = offset;
                 bank_size = chunk_size;
                 break;
@@ -65,10 +65,18 @@ VGMSTREAM* init_vgmstream_fsb5_fev_bank(STREAMFILE* sf) {
     if (bank_offset == 0)
         goto fail;
 
-    /* 0x00: unknown (version? ex LE: 0x00080003, 0x00080005) */
+    /* 0x00: unknown (chunk version? ex LE: 0x00080003, 0x00080005) */
     {
+        /* versions:
+         * 0x28: Transistor (iOS) [+2015]
+         * 0x50: Runic Rampage (PC), Forza 7 (PC), Shantae: Half Genie Hero (Switch) [+2017]
+         * 0x58: Mana Spark (PC), Shantae and the Seven Sirens (PC) [+2018]
+         * 0x63: Banner Saga 3 (PC) [+2018]
+         * 0x64: Guacamelee! Super Turbo Championship Edition (Switch) [+2018]
+         * 0x65: Carrion (Switch) [+2020]
+         * 0x7D: Fall Guys (PC) [+2020] */
+        size_t entry_size = version <= 0x28 ? 0x04 : 0x08;
         int banks;
-        size_t entry_size = is_old ? 0x04 : 0x08;
 
         /* multiple banks is possible but rare (only seen an extra "Silence" FSB5 in Guacamelee 2 (Switch),
          *  which on PC is a regular subsong in the only FSB5) */
@@ -88,7 +96,7 @@ VGMSTREAM* init_vgmstream_fsb5_fev_bank(STREAMFILE* sf) {
             if (bank_subsongs != 1) goto fail;
         }
 
-        if (is_old) {
+        if (version <= 0x28) {
             subfile_offset  = read_u32le(bank_offset+0x04,sf);
             subfile_size    = /* meh */
                 read_u32le(subfile_offset + 0x0C,sf) + 
