@@ -737,6 +737,8 @@ VGMSTREAM* allocate_vgmstream(int channel_count, int loop_flag) {
 
     mixing_init(vgmstream); /* pre-init */
 
+    /* BEWARE: try_dual_file_stereo does some free'ing too */ 
+
     //vgmstream->stream_name_size = STREAM_NAME_SIZE;
     return vgmstream;
 fail:
@@ -1203,6 +1205,7 @@ static void try_dual_file_stereo(VGMSTREAM* opened_vgmstream, STREAMFILE* sf, VG
 
         /* discard the second VGMSTREAM */
         mixing_close(new_vgmstream);
+        free(new_vgmstream->tmpbuf);
         free(new_vgmstream->start_vgmstream);
         free(new_vgmstream);
 

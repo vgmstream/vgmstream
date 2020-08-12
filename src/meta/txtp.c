@@ -266,14 +266,15 @@ static void update_vgmstream_list(VGMSTREAM* vgmstream, txtp_header* txtp, int p
     //;VGM_LOG("TXTP: compact vgmstreams=%i\n", txtp->vgmstream_count);
 }
 
-static int make_group_segment(txtp_header* txtp, int position, int count) {
+static int make_group_segment(txtp_header* txtp, int is_group, int position, int count) {
     VGMSTREAM* vgmstream = NULL;
     segmented_layout_data *data_s = NULL;
     int i, loop_flag = 0;
 
 
-    if (count == 1) { /* nothing to do */
-        //;VGM_LOG("TXTP: ignored segments of 1\n");
+    /* allowed for actual groups (not final "mode"), otherwise skip to optimize */
+    if (!is_group && count == 1) {
+        //;VGM_LOG("TXTP: ignored single group\n");
         return 1;
     }
 
@@ -349,14 +350,15 @@ fail:
     return 0;
 }
 
-static int make_group_layer(txtp_header* txtp, int position, int count) {
+static int make_group_layer(txtp_header* txtp, int is_group, int position, int count) {
     VGMSTREAM* vgmstream = NULL;
     layered_layout_data* data_l = NULL;
     int i;
 
 
-    if (count == 1) { /* nothing to do */
-        //;VGM_LOG("TXTP: ignored layer of 1\n");
+    /* allowed for actual groups (not final mode), otherwise skip to optimize */
+    if (!is_group && count == 1) {
+        //;VGM_LOG("TXTP: ignored single group\n");
         return 1;
     }
 
@@ -392,6 +394,12 @@ static int make_group_layer(txtp_header* txtp, int position, int count) {
         }
     }
 
+    /* loop settings only make sense if this group becomes final vgmstream */
+    if (position == 0 && txtp->vgmstream_count == count) {
+        if (txtp->is_loop_auto && !vgmstream->loop_flag) {
+            vgmstream_force_loop(vgmstream, 1, 0, vgmstream->num_samples);
+        }
+    }
 
     /* set new vgmstream and reorder positions */
     update_vgmstream_list(vgmstream, txtp, position, count);
@@ -404,12 +412,13 @@ fail:
     return 0;
 }
 
-static int make_group_random(txtp_header* txtp, int position, int count, int selected) {
+static int make_group_random(txtp_header* txtp, int is_group, int position, int count, int selected) {
     VGMSTREAM* vgmstream = NULL;
     int i;
 
-    if (count == 1) { /* nothing to do */
-        //;VGM_LOG("TXTP: ignored random of 1\n");
+    /* allowed for actual groups (not final mode), otherwise skip to optimize */
+    if (!is_group && count == 1) {
+        //;VGM_LOG("TXTP: ignored single group\n");
         return 1;
     }
 
@@ -484,15 +493,15 @@ static int parse_groups(txtp_header* txtp) {
             //;VGM_LOG("TXTP: group=%i, count=%i, groups=%i\n", pos, grp->count, groups);
             switch(grp->type) {
                 case TXTP_GROUP_MODE_LAYERED:
-                    if (!make_group_layer(txtp, pos, grp->count))
+                    if (!make_group_layer(txtp, 1, pos, grp->count))
                         goto fail;
                     break;
                 case TXTP_GROUP_MODE_SEGMENTED:
-                    if (!make_group_segment(txtp, pos, grp->count))
+                    if (!make_group_segment(txtp, 1, pos, grp->count))
                         goto fail;
                     break;
                 case TXTP_GROUP_MODE_RANDOM:
-                    if (!make_group_random(txtp, pos, grp->count, grp->selected))
+                    if (!make_group_random(txtp, 1, pos, grp->count, grp->selected))
                         goto fail;
                     break;
                 default:
@@ -506,11 +515,11 @@ static int parse_groups(txtp_header* txtp) {
 
     /* final tweaks (should be integrated with the above?) */
     if (txtp->is_layered) {
-        if (!make_group_layer(txtp, 0, txtp->vgmstream_count))
+        if (!make_group_layer(txtp, 0, 0, txtp->vgmstream_count))
             goto fail;
     }
     if (txtp->is_segmented) {
-        if (!make_group_segment(txtp, 0, txtp->vgmstream_count))
+        if (!make_group_segment(txtp, 0, 0, txtp->vgmstream_count))
             goto fail;
     }
     if (txtp->is_single) {

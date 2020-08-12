@@ -371,8 +371,8 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
     if (file_size != riff_size + 0x08) {
         uint16_t codec = read_16bitLE(0x14,sf);
 
-        if (riff_size + 0x08 + 0x01 == file_size)
-            riff_size += 0x01; /* [Shikkoku no Sharnoth (PC)] */
+        if      (codec == 0x6771 && riff_size + 0x08 + 0x01 == file_size)
+            riff_size += 0x01; /* [Shikkoku no Sharnoth (PC)] (Sony Sound Forge?) */
 
         else if (codec == 0x0069 && riff_size == file_size)
             riff_size -= 0x08; /* [Dynasty Warriors 3 (Xbox), BloodRayne (Xbox)] */
@@ -386,11 +386,14 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
         else if (codec == 0x0000 && riff_size == file_size)
             riff_size -= 0x08; /* [Rayman 2 (DC)] */
 
-        else if (codec == 0x0000 && riff_size + 0x02 + 0x08 == file_size)
+        else if (codec == 0x0000 && riff_size + 0x08 + 0x02 == file_size)
             riff_size -= 0x02; /* [Rayman 2 (DC)]-dcz */
 
         else if (codec == 0x0300 && riff_size == file_size)
             riff_size -= 0x08; /* [Chrono Ma:gia (Android)] */
+
+        else if (codec == 0xFFFE && riff_size + 0x08 + 0x18 == file_size)
+            riff_size += 0x18; /* [F1 2011 (Vita)] (adds a "pada" chunk but RIFF size wasn't updated) */
 
         else if (mwv) {
             int channels = read_16bitLE(0x16, sf); /* [Dragon Quest VIII (PS2), Rogue Galaxy (PS2)] */

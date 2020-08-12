@@ -1316,35 +1316,30 @@ void winamp_EQSet(int on, char data[10], int preamp) {
 /*****************************************************************************/
 /* MAIN DECODE (some used in extended part too, so avoid globals) */
 
-static void setup_seek(winamp_state_t* state, int32_t max_samples, int play_forever) {
-
-    /* adjust seeking past file, can happen using the right (->) key
-     * (should be done here and not in SetOutputTime due to threads/race conditions) */
-    if (state->seek_sample > max_samples && !play_forever) {
-        state->seek_sample = max_samples;
-    }
-
-#if 0
-    /* reset if we need to seek backwards (causes funny cursor jumps though) */
-    if (state->seek_sample < state->decode_pos_samples) {
-        state->decode_pos_samples = 0;
-        state->decode_pos_ms = 0;
-    }
-    /* seek done */
-    else if (state->decode_pos_samples >= state->seek_sample) {
-        state->seek_sample = -1;
-    }
-#endif
-}
-
 static void do_seek(winamp_state_t* state, VGMSTREAM* vgmstream) {
-    /* could divide in N seeks (from pos) for slower files so cursor moves, but doesn't seem too necessary */
-    seek_vgmstream(vgmstream, state->seek_sample);
+    int play_forever = vgmstream_get_play_forever(vgmstream);
+    int seek_sample = state->seek_sample;  /* local due to threads/race conditions changing state->seek_sample elsewhere */
 
-    /* discard decoded samples and keep seeking */
-    state->decode_pos_samples = state->seek_sample;
+    /* ignore seeking past file, can happen using the right (->) key, ok if playing forever */
+    if (state->seek_sample > state->length_samples && !play_forever) {
+        state->seek_sample = -1;
+        //state->seek_sample = state->length_samples;
+        //seek_sample = state->length_samples;
+
+        state->decode_pos_samples = state->length_samples;
+        state->decode_pos_ms = state->decode_pos_samples * 1000LL / vgmstream->sample_rate;
+        return;
+    }
+
+    /* could divide in N seeks (from pos) for slower files so cursor moves, but doesn't seem too necessary */
+    seek_vgmstream(vgmstream, seek_sample);
+
+    state->decode_pos_samples = seek_sample;
     state->decode_pos_ms = state->decode_pos_samples * 1000LL / vgmstream->sample_rate;
-    state->seek_sample = -1;
+
+    /* different sample: other seek may have been requested during seek_vgmstream */
+    if (state->seek_sample == seek_sample)
+        state->seek_sample = -1;
 }
 
 static void apply_gain(winamp_state_t* state, int samples_to_do) {
@@ -1365,21 +1360,19 @@ static void apply_gain(winamp_state_t* state, int samples_to_do) {
 /* the decode thread */
 DWORD WINAPI __stdcall decode(void *arg) {
     const int max_buffer_samples = SAMPLE_BUFFER_SIZE;
-    const int max_samples = state.length_samples;
     int play_forever = vgmstream_get_play_forever(vgmstream);
 
     while (!state.decode_abort) {
         int samples_to_do;
         int output_bytes;
 
-        if (state.decode_pos_samples + max_buffer_samples > state.length_samples && !play_forever)
+        if (state.decode_pos_samples + max_buffer_samples > state.length_samples && !play_forever) {
             samples_to_do = state.length_samples - state.decode_pos_samples;
-        else
+            if (samples_to_do < 0) /* just in case */
+                samples_to_do = 0;
+        }
+        else {
             samples_to_do = max_buffer_samples;
-
-        /* seek setup  */
-        if (state.seek_sample >= 0) {
-            setup_seek(&state, max_samples, play_forever);
         }
 
         output_bytes = (samples_to_do * state.output_channels * sizeof(short));
@@ -1398,7 +1391,8 @@ DWORD WINAPI __stdcall decode(void *arg) {
             do_seek(&state, vgmstream);
 
             /* flush Winamp buffers *after* fully seeking (allows to play buffered samples while we seek, feels a bit snappier) */
-            input_module.outMod->Flush(state.decode_pos_ms);
+            if (state.seek_sample < 0)
+                input_module.outMod->Flush(state.decode_pos_ms);
         }
         else if (input_module.outMod->CanWrite() >= output_bytes) { /* decode */
             render_vgmstream(sample_buffer, samples_to_do, vgmstream);
@@ -1760,7 +1754,6 @@ __declspec(dllexport) void *winampGetExtendedRead_openW(const wchar_t *fn, int *
 /* decode len to dest buffer, called multiple times until file done or decoding is aborted */
 __declspec(dllexport) size_t winampGetExtendedRead_getData(void *handle, char *dest, size_t len, int *killswitch) {
     const int max_buffer_samples = SAMPLE_BUFFER_SIZE;
-    const int max_samples = xstate.length_samples;
     unsigned copied = 0;
     int done = 0;
     VGMSTREAM* xvgmstream = handle;
@@ -1773,14 +1766,13 @@ __declspec(dllexport) size_t winampGetExtendedRead_getData(void *handle, char *d
     while (copied + (max_buffer_samples * xvgmstream->channels * sizeof(short)) < len && !done) {
         int samples_to_do;
 
-        if (xstate.decode_pos_samples + max_buffer_samples > xstate.length_samples && !play_forever)
+        if (xstate.decode_pos_samples + max_buffer_samples > xstate.length_samples && !play_forever) {
             samples_to_do = xstate.length_samples - xstate.decode_pos_samples;
-        else
+            if (samples_to_do < 0) /* just in case */
+                samples_to_do = 0;
+        }
+        else {
             samples_to_do = max_buffer_samples;
-
-        /* seek setup (max samples to skip if still seeking, mark done) */
-        if (xstate.seek_sample != -1) {
-            setup_seek(&xstate, max_samples, play_forever);
         }
 
         if (!samples_to_do) { /* track finished */
