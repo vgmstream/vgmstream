@@ -248,6 +248,7 @@ static int render_layout(sample_t* buf, int32_t sample_count, VGMSTREAM* vgmstre
     /* current_sample goes between loop points (if looped) or up to max samples,
      * must detect beyond that decoders would encounter garbage data */
 
+    /* not ">=" to allow layouts to loop in some cases when == happens */
     if (vgmstream->current_sample > vgmstream->num_samples) {
         int channels = vgmstream->channels;
 
