@@ -235,6 +235,30 @@ loop_mode = keep
 ```
 
 
+### Silent files
+You can put `?.` in an entry to make a silent (non-existing) file. By default takes channels and sample rate of nearby files, can be combined with regular commands to configure.
+```
+intro.adx
+?.silence #b 3.0  # 3 seconds of silence
+loop.adx
+```
+
+It also doubles as a quick "silence this file" while keeping the same structure, for complex cases. The `.` can actually be anywhere after `?`, but must appear before commands to function correctly.
+```
+  layer1a.adx
+ ?layer1b.adx
+ group = -L2
+ 
+ ?layer2a.adx
+  layer2b.adx
+ group = -L2
+ 
+group = -S2
+```
+
+Most of the time you can do the same with `#p`/`#P` padding commands or `#@volume 0.0`. This is mainly for complex engines that combine silent entries in twisted ways. You can't silence `group` with `?group` though since they aren't considered "entries".
+
+
 ## TXTP COMMANDS
 You can set file commands by adding multiple `#(command)` after the name. `#(space)(anything)` is considered a comment and ignored, as well as any command not understood.
 

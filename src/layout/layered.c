@@ -34,6 +34,10 @@ void render_vgmstream_layered(sample_t* outbuf, int32_t sample_count, VGMSTREAM*
         if (samples_to_do > sample_count - samples_written)
             samples_to_do = sample_count - samples_written;
 
+        if (samples_to_do <= 0) { /* when decoding more than num_samples */
+            VGM_LOG("LAYERED: samples_to_do 0\n");
+            goto decode_fail;
+        }
 
         /* decode all layers */
         ch = 0;
@@ -65,6 +69,10 @@ void render_vgmstream_layered(sample_t* outbuf, int32_t sample_count, VGMSTREAM*
         vgmstream->current_sample += samples_to_do;
         vgmstream->samples_into_block += samples_to_do;
     }
+
+    return;
+decode_fail:
+    memset(outbuf + samples_written * data->output_channels, 0, (sample_count - samples_written) * data->output_channels * sizeof(sample_t));
 }
 
 

@@ -23,7 +23,7 @@ void render_vgmstream_segmented(sample_t* outbuf, int32_t sample_count, VGMSTREA
 
     if (data->current_segment >= data->segment_count) {
         VGM_LOG("SEGMENT: wrong current segment\n");
-        return;
+        goto decode_fail;
     }
 
     samples_this_block = vgmstream_get_samples(data->segments[data->current_segment]);
@@ -41,10 +41,9 @@ void render_vgmstream_segmented(sample_t* outbuf, int32_t sample_count, VGMSTREA
         if (vgmstream->samples_into_block >= samples_this_block) {
             data->current_segment++;
 
-            /* could happen on last segment trying to decode more samples */
-            if (data->current_segment >= data->segment_count) {
-                VGM_LOG("SEGMENTED: wrong next segment\n");
-                break;
+            if (data->current_segment >= data->segment_count) { /* when decoding more than num_samples */
+                VGM_LOG("SEGMENTED: reached last segment\n");
+                goto decode_fail;
             }
 
             /* in case of looping spanning multiple segments */
@@ -62,9 +61,9 @@ void render_vgmstream_segmented(sample_t* outbuf, int32_t sample_count, VGMSTREA
         if (samples_to_do > VGMSTREAM_SEGMENT_SAMPLE_BUFFER /*&& use_internal_buffer*/) /* always for fade/etc mixes */
             samples_to_do = VGMSTREAM_SEGMENT_SAMPLE_BUFFER;
 
-        if (samples_to_do < 0) { /* ? */
+        if (samples_to_do < 0) { /* 0 is ok? */
             VGM_LOG("SEGMENTED: wrong samples_to_do %i found\n", samples_to_do);
-            break;
+            goto decode_fail;
         }
 
         render_vgmstream(
@@ -84,6 +83,10 @@ void render_vgmstream_segmented(sample_t* outbuf, int32_t sample_count, VGMSTREA
         vgmstream->current_sample += samples_to_do;
         vgmstream->samples_into_block += samples_to_do;
     }
+
+    return;
+decode_fail:
+    memset(outbuf + samples_written * data->output_channels, 0, (sample_count - samples_written) * data->output_channels * sizeof(sample_t));
 }
 
 void loop_layout_segmented(VGMSTREAM* vgmstream, int32_t loop_sample) {

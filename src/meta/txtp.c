@@ -66,6 +66,7 @@ typedef struct {
 typedef struct {
     /* main entry */
     char filename[TXTP_LINE_MAX];
+    int silent;
 
     /* TXTP settings (applied at the end) */
     int range_start;
@@ -206,9 +207,46 @@ static void clean_txtp(txtp_header* txtp, int fail) {
 /* ENTRIES                                                                     */
 /*******************************************************************************/
 
+static int parse_silents(txtp_header* txtp) {
+    int i;
+    int channels = 0;
+    int sample_rate = 0;
+    int32_t num_samples = 0;
+
+    /* silents use same channels as close files */
+    for (i = 0; i < txtp->vgmstream_count; i++) {
+        if (!txtp->entry[i].silent) {
+            channels = txtp->vgmstream[i]->channels;
+            sample_rate = txtp->vgmstream[i]->sample_rate;
+            break;
+        }
+    }
+
+    /* actually open silents */
+    for (i = 0; i < txtp->vgmstream_count; i++) {
+        if (!txtp->entry[i].silent)
+            continue;
+
+        txtp->vgmstream[i] = init_vgmstream_silence(channels, sample_rate, num_samples);
+        if (!txtp->vgmstream[i]) goto fail;
+
+        apply_settings(txtp->vgmstream[i], &txtp->entry[i]);
+    }
+
+    return 1;
+fail:
+    return 0;
+}
+
+static int is_silent(txtp_entry* entry) {
+    /* should also contain "." in the filename for commands with seconds ("1.0") to work */
+    return entry->filename[0] == '?';
+}
+
 /* open all entries and apply settings to resulting VGMSTREAMs */
 static int parse_entries(txtp_header* txtp, STREAMFILE* sf) {
     int i;
+    int has_silents = 0;
 
 
     if (txtp->entry_count == 0)
@@ -222,7 +260,16 @@ static int parse_entries(txtp_header* txtp, STREAMFILE* sf) {
 
     /* open all entry files first as they'll be modified by modes */
     for (i = 0; i < txtp->vgmstream_count; i++) {
-        STREAMFILE* temp_sf = open_streamfile_by_filename(sf, txtp->entry[i].filename);
+        STREAMFILE* temp_sf = NULL;
+
+        /* silent entry ignore */
+        if (is_silent(&txtp->entry[i])) {
+            txtp->entry[i].silent = 1;
+            has_silents = 1;
+            continue;
+        }
+
+        temp_sf = open_streamfile_by_filename(sf, txtp->entry[i].filename);
         if (!temp_sf) {
             VGM_LOG("TXTP: cannot open streamfile for %s\n", txtp->entry[i].filename);
             goto fail;
@@ -237,6 +284,11 @@ static int parse_entries(txtp_header* txtp, STREAMFILE* sf) {
         }
 
         apply_settings(txtp->vgmstream[i], &txtp->entry[i]);
+    }
+
+    if (has_silents) {
+        if (!parse_silents(txtp))
+            goto fail;
     }
 
     return 1;

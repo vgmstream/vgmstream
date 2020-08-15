@@ -66,8 +66,7 @@ VGMSTREAM* init_vgmstream_fsb_encrypted(STREAMFILE* sf) {
                 vgmstream = init_vgmstream_fsb(temp_sf);
             }
 
-            if (vgmstream)
-                dump_streamfile(temp_sf, 0);
+            //;if (vgmstream) dump_streamfile(temp_sf, 0);
 
             close_streamfile(temp_sf);
             if (vgmstream) break;

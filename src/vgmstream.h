@@ -65,6 +65,8 @@ enum { VGMSTREAM_MAX_NUM_SAMPLES = 1000000000 }; /* no ~5h vgm hopefully */
 
 /* The encoding type specifies the format the sound data itself takes */
 typedef enum {
+    coding_SILENCE,         /* generates silence */
+
     /* PCM */
     coding_PCM16LE,         /* little endian 16-bit PCM */
     coding_PCM16BE,         /* big endian 16-bit PCM */
@@ -289,6 +291,7 @@ typedef enum {
 /* The meta type specifies how we know what we know about the file.
  * We may know because of a header we read, some of it may have been guessed from filenames, etc. */
 typedef enum {
+    meta_SILENCE,
 
     meta_DSP_STD,           /* Nintendo standard GC ADPCM (DSP) header */
     meta_DSP_CSTR,          /* Star Fox Assault "Cstr" */

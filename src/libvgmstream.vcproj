@@ -1514,10 +1514,14 @@
                     RelativePath=".\meta\psf.c"
                     >
                 </File>
-				<File
-					RelativePath=".\meta\sgxd.c"
-					>
-				</File>
+                <File
+                    RelativePath=".\meta\sgxd.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\silence.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\vawx.c"
 					>
