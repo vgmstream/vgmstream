@@ -115,11 +115,7 @@ VGMSTREAM* init_vgmstream_bkhd(STREAMFILE* sf) {
 
     if (is_dummy || is_wmid) {
         /* for now leave a dummy song for easier .bnk index-to-subsong mapping */
-        temp_sf = setup_subfile_streamfile(sf, 0x00, 1000 * 0x02 * 2, "raw");
-        if (!temp_sf) goto fail;
-
-        //todo make some better silent entry
-        vgmstream = init_vgmstream_raw_pcm(temp_sf);
+        vgmstream = init_vgmstream_silence(0, 0, 0);
         if (!vgmstream) goto fail;
     }
     else {
