@@ -293,6 +293,9 @@ int get_vgmstream_samples_per_frame(VGMSTREAM* vgmstream) {
      * (or some internal sample buffer max too). */
 
     switch (vgmstream->coding_type) {
+        case coding_SILENCE:
+            return 0;
+
         case coding_CRI_ADX:
         case coding_CRI_ADX_fixed:
         case coding_CRI_ADX_exp:
@@ -495,6 +498,9 @@ int get_vgmstream_samples_per_frame(VGMSTREAM* vgmstream) {
 /* Get the number of bytes of a single frame (smallest self-contained byte group, 1/N channels) */
 int get_vgmstream_frame_size(VGMSTREAM* vgmstream) {
     switch (vgmstream->coding_type) {
+        case coding_SILENCE:
+            return 0;
+
         case coding_CRI_ADX:
         case coding_CRI_ADX_fixed:
         case coding_CRI_ADX_exp:
@@ -695,7 +701,7 @@ int get_vgmstream_shortframe_size(VGMSTREAM* vgmstream) {
 
 /* Decode samples into the buffer. Assume that we have written samples_written into the
  * buffer already, and we have samples_to_do consecutive samples ahead of us (won't call
- * more than one frame it configured above to do so).
+ * more than one frame if configured above to do so).
  * Called by layouts since they handle samples written/to_do */
 void decode_vgmstream(VGMSTREAM* vgmstream, int samples_written, int samples_to_do, sample_t* buffer) {
     int ch;
@@ -703,6 +709,10 @@ void decode_vgmstream(VGMSTREAM* vgmstream, int samples_written, int samples_to_
     buffer += samples_written * vgmstream->channels; /* passed externally to simplify I guess */
 
     switch (vgmstream->coding_type) {
+        case coding_SILENCE:
+            memset(buffer, 0, samples_to_do * vgmstream->channels * sizeof(sample_t));
+            break;
+
         case coding_CRI_ADX:
         case coding_CRI_ADX_exp:
         case coding_CRI_ADX_fixed:

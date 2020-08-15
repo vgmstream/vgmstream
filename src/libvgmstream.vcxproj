@@ -232,6 +232,7 @@
     <ClCompile Include="meta\ps3_past.c" />
     <ClCompile Include="meta\psf.c" />
     <ClCompile Include="meta\sgxd.c" />
+    <ClCompile Include="meta\silence.c" />
     <ClCompile Include="meta\sk_aud.c" />
     <ClCompile Include="meta\vawx.c" />
     <ClCompile Include="meta\seg.c" />
