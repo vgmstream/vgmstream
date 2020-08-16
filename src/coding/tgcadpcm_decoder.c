@@ -33,14 +33,14 @@ void decode_tgc(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int32_t first_samp
         uint8_t nibble = ((uint8_t)read_8bit(i/2, stream->streamfile) >>
             (i & 1 ? 4 : 0)) & 0xf;
 
-        stream->adpcm_history1_16 += slope_table[stream->adpcm_step_index][nibble];
+        stream->adpcm_history1_32 += slope_table[stream->adpcm_step_index][nibble];
         stream->adpcm_step_index   = next_step  [stream->adpcm_step_index][nibble];
 
-        if (stream->adpcm_history1_16 < -32768)
-            stream->adpcm_history1_16 = -32768;
+        if (stream->adpcm_history1_32 < -32768)
+            stream->adpcm_history1_32 = -32768;
 
-        if (stream->adpcm_history1_16 > 32767)
-            stream->adpcm_history1_16 = 32767;
+        if (stream->adpcm_history1_32 > 32767)
+            stream->adpcm_history1_32 = 32767;
 
         outbuf[sample_count] = stream->adpcm_history1_16;
     }
