@@ -30,7 +30,7 @@ void decode_tgc(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int32_t first_samp
 {
     for (int i = first_sample, sample_count = 0; i < first_sample + samples_to_do; i++, sample_count++)
     {
-        uint8_t nibble = ((uint8_t)read_8bit(i/2, stream->streamfile) >>
+        uint8_t nibble = ((uint8_t)read_8bit(stream->offset + i/2, stream->streamfile) >>
             (i & 1 ? 4 : 0)) & 0xf;
 
         stream->adpcm_history1_32 += slope_table[stream->adpcm_step_index][nibble];
