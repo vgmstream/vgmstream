@@ -42,6 +42,6 @@ void decode_tgc(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int32_t first_samp
         if (stream->adpcm_history1_32 > 32767)
             stream->adpcm_history1_32 = 32767;
 
-        outbuf[sample_count] = stream->adpcm_history1_16;
+        outbuf[sample_count] = (sample_t)stream->adpcm_history1_32;
     }
 }
