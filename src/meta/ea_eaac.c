@@ -639,6 +639,9 @@ VGMSTREAM * init_vgmstream_ea_mpf_mus_eaac(STREAMFILE* sf) {
         entry_offset = read_32bit(tracks_table + i * 0x04, sf) * 0x04;
         track_start = read_32bit(entry_offset + 0x00, sf);
 
+        if (track_start == 0 && i != 0)
+            continue; /* empty track */
+
         if (track_start <= target_stream - 1) {
             track_hash = read_32bitBE(entry_offset + 0x08, sf);
             is_ram = (track_hash == 0xF1F1F1F1);
@@ -649,8 +652,6 @@ VGMSTREAM * init_vgmstream_ea_mpf_mus_eaac(STREAMFILE* sf) {
                     goto fail;
 
                 track_hash = read_32bitBE(entry_offset + 0x14, sf);
-                if (track_hash == 0xF1F1F1F1)
-                    continue; /* empty track */
             } else {
                 if (read_32bitBE(entry_offset + 0x0c, sf) == 0x00)
                     goto fail;
