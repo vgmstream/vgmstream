@@ -20,22 +20,22 @@ typedef struct {
 
 } ivaud_header;
 
-static int parse_ivaud_header(STREAMFILE* streamFile, ivaud_header* ivaud);
+static int parse_ivaud_header(STREAMFILE* sf, ivaud_header* ivaud);
 
 
 /* .ivaud - from GTA IV (PC) */
-VGMSTREAM * init_vgmstream_ivaud(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
+VGMSTREAM* init_vgmstream_ivaud(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
     ivaud_header ivaud = {0};
     int loop_flag;
 
     /* checks */
     /* (hashed filenames are likely extensionless and .ivaud is added by tools) */
-    if (!check_extensions(streamFile, "ivaud,"))
+    if (!check_extensions(sf, "ivaud,"))
         goto fail;
 
     /* check header */
-    if (!parse_ivaud_header(streamFile, &ivaud))
+    if (!parse_ivaud_header(sf, &ivaud))
         goto fail;
 
 
@@ -71,7 +71,7 @@ VGMSTREAM * init_vgmstream_ivaud(STREAMFILE *streamFile) {
     }
 
 
-    if (!vgmstream_open_stream(vgmstream,streamFile,ivaud.stream_offset))
+    if (!vgmstream_open_stream(vgmstream,sf,ivaud.stream_offset))
         goto fail;
     return vgmstream;
 
@@ -81,28 +81,28 @@ fail:
 }
 
 /* Parse Rockstar's .ivaud header (much info from SparkIV). */
-static int parse_ivaud_header(STREAMFILE* streamFile, ivaud_header* ivaud) {
-    int target_subsong = streamFile->stream_index;
+static int parse_ivaud_header(STREAMFILE* sf, ivaud_header* ivaud) {
+    int target_subsong = sf->stream_index;
 
 
     /* use bank's stream count to detect */
-    ivaud->is_music = (read_32bitLE(0x10,streamFile) == 0);
+    ivaud->is_music = (read_32bitLE(0x10,sf) == 0);
 
     if (ivaud->is_music)  {
         off_t block_table_offset, channel_table_offset, channel_info_offset;
 
         /* music header */
-        block_table_offset = read_32bitLE(0x00,streamFile); /* 64b */
-        ivaud->block_count = read_32bitLE(0x08,streamFile);
-        ivaud->block_size = read_32bitLE(0x0c,streamFile); /* 64b, uses padded blocks */
-        channel_table_offset = read_32bitLE(0x14,streamFile); /* 64b */
+        block_table_offset = read_32bitLE(0x00,sf); /* 64b */
+        ivaud->block_count = read_32bitLE(0x08,sf);
+        ivaud->block_size = read_32bitLE(0x0c,sf); /* 64b, uses padded blocks */
+        channel_table_offset = read_32bitLE(0x14,sf); /* 64b */
         /* 0x1c(8): block_table_offset again? */
-        ivaud->channel_count = read_32bitLE(0x24,streamFile);
+        ivaud->channel_count = read_32bitLE(0x24,sf);
         /* 0x28(4): unknown entries? */
-        ivaud->stream_offset = read_32bitLE(0x2c,streamFile);
+        ivaud->stream_offset = read_32bitLE(0x2c,sf);
         channel_info_offset = channel_table_offset + ivaud->channel_count*0x10;
 
-        if ((ivaud->block_count * ivaud->block_size) + ivaud->stream_offset != get_streamfile_size(streamFile)) {
+        if ((ivaud->block_count * ivaud->block_size) + ivaud->stream_offset != get_streamfile_size(sf)) {
             VGM_LOG("IVAUD: bad file size\n");
             goto fail;
         }
@@ -116,33 +116,33 @@ static int parse_ivaud_header(STREAMFILE* streamFile, ivaud_header* ivaud) {
         /* 0x00(8): offset within data (should be 0) */
         /* 0x08(4): hash */
         /* 0x0c(4): half num_samples? */
-        ivaud->num_samples = read_32bitLE(channel_info_offset+0x10,streamFile);
+        ivaud->num_samples = read_32bitLE(channel_info_offset+0x10,sf);
         /* 0x14(4): unknown (-1) */
         /* 0x18(2): sample rate */
         /* 0x1a(2): unknown */
-        ivaud->codec = read_32bitLE(channel_info_offset+0x1c,streamFile);
+        ivaud->codec = read_32bitLE(channel_info_offset+0x1c,sf);
         /* (when codec is IMA) */
         /* 0x20(8): adpcm states offset, 0x38: num states? (reference for seeks?) */
         /* rest: unknown data */
 
         /* block table (one entry per block) */
         /* 0x00: data size processed up to this block (doesn't count block padding) */
-        ivaud->sample_rate = read_32bitLE(block_table_offset + 0x04,streamFile);
+        ivaud->sample_rate = read_32bitLE(block_table_offset + 0x04,sf);
         /* sample_rate should agree with each channel in the channel table */
 
 
         ivaud->total_subsongs = 1;
-        ivaud->stream_size = get_streamfile_size(streamFile);
+        ivaud->stream_size = get_streamfile_size(sf);
     }
     else {
         off_t stream_table_offset, stream_info_offset, stream_entry_offset;
 
         /* bank header */
-        stream_table_offset = read_32bitLE(0x00,streamFile); /* 64b */
+        stream_table_offset = read_32bitLE(0x00,sf); /* 64b */
         /* 0x08(8): header size? start offset? */
-        ivaud->total_subsongs = read_32bitLE(0x10,streamFile);
+        ivaud->total_subsongs = read_32bitLE(0x10,sf);
         /* 0x14(4): unknown */
-        ivaud->stream_offset = read_32bitLE(0x18,streamFile); /* base start_offset */
+        ivaud->stream_offset = read_32bitLE(0x18,sf); /* base start_offset */
 
         if (target_subsong == 0) target_subsong = 1;
         if (target_subsong < 0 || target_subsong > ivaud->total_subsongs || ivaud->total_subsongs < 1) goto fail;
@@ -152,20 +152,20 @@ static int parse_ivaud_header(STREAMFILE* streamFile, ivaud_header* ivaud) {
         stream_info_offset = stream_table_offset + 0x10*ivaud->total_subsongs;
 
         /* stream table (one entry per stream, points to stream info) */
-        stream_entry_offset = read_32bitLE(stream_table_offset + 0x10*(target_subsong-1) + 0x00,streamFile); /* within stream info */
+        stream_entry_offset = read_32bitLE(stream_table_offset + 0x10*(target_subsong-1) + 0x00,sf); /* within stream info */
         /* 0x00(8): offset within stream_info_offset */
         /* 0x08(4): hash */
         /* 0x0c(4): size */
 
         /* stream info (one entry per stream) */
-        ivaud->stream_offset += read_32bitLE(stream_info_offset+stream_entry_offset+0x00,streamFile); /* 64b, within data */
+        ivaud->stream_offset += read_32bitLE(stream_info_offset+stream_entry_offset+0x00,sf); /* 64b, within data */
         /* 0x08(4): hash */
         /* 0x0c(4): half num_samples? */
-        ivaud->num_samples = read_32bitLE(stream_info_offset+stream_entry_offset+0x10,streamFile);
+        ivaud->num_samples = read_32bitLE(stream_info_offset+stream_entry_offset+0x10,sf);
         /* 0x14(4): unknown (-1) */
-        ivaud->sample_rate = (uint16_t)read_16bitLE(stream_info_offset+stream_entry_offset+0x18,streamFile);
+        ivaud->sample_rate = (uint16_t)read_16bitLE(stream_info_offset+stream_entry_offset+0x18,sf);
         /* 0x1a(2): unknown */
-        ivaud->codec = read_32bitLE(stream_info_offset+stream_entry_offset+0x1c,streamFile);
+        ivaud->codec = read_32bitLE(stream_info_offset+stream_entry_offset+0x1c,sf);
         /* (when codec is IMA) */
         /* 0x20(8): adpcm states offset, 0x38: num states? (reference for seeks?) */
         /* rest: unknown data */
