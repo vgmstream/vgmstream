@@ -462,13 +462,22 @@ Wrong loop values (for example loop end being much larger than file's samples) w
 
 **Jewels Ocean (PC)**
 ```
-bgm01.ogg#I32.231             # from ~1421387 samples to end
-
-#bgm01.ogg#I 0:32.231         # equivalent
-#bgm01.ogg#I 1421387 4212984  # equivalent, end is 4212984
-#bgm01.ogg#I32.231 1_35.533   # equivalent, end over file samples (~4213005) but adjusted to 4212984
-#bgm01.ogg#I 1421387 4212985  # ignored, end over file samples
-#bgm01.ogg#I32.231 1_37       # ignored, end over file (~4277700) but clearly wrong
+bgm01.ogg #I32.231              # from ~1421387 samples to end
+```
+```
+bgm01.ogg #I 0:32.231           # equivalent
+```
+```
+bgm01.ogg #I 1421387 4212984    # equivalent, end is 4212984
+```
+```
+bgm01.ogg #I32.231 1_35.533     # equivalent, end over file samples (~4213005) but adjusted to 4212984
+```
+```
+bgm01.ogg #I 1421387 4212985    # ignored, end over file samples
+```
+```
+bgm01.ogg #I32.231 1_37         # ignored, end over file (~4277700) but clearly wrong
 ```
 
 Use this feature responsibly, though. If you find a format that should loop using internal values that vgmstream doesn't detect correctly, consider reporting the bug for the benefit of all users and other games using the same format, and don't throw out the original loop definitions (as sometimes they may not take into account "encoder delay" and must be carefully adjusted).
