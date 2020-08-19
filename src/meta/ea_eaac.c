@@ -598,7 +598,7 @@ static STREAMFILE *open_mapfile_pair(STREAMFILE* sf, int track, int num_tracks) 
 
 /* EA MPF/MUS combo - used in older 7th gen games for storing interactive music */
 VGMSTREAM * init_vgmstream_ea_mpf_mus_eaac(STREAMFILE* sf) {
-    uint32_t num_tracks, track_start, track_hash, mus_sounds, mus_stream = 0;
+    uint32_t num_tracks, track_start, track_hash = 0, mus_sounds, mus_stream = 0;
     uint8_t version, sub_version;
     off_t tracks_table, samples_table, eof_offset, table_offset, entry_offset, snr_offset, sns_offset;
     int32_t(*read_32bit)(off_t, STREAMFILE*);

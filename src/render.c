@@ -57,6 +57,7 @@ void vgmstream_set_play_forever(VGMSTREAM* vgmstream, int enabled) {
      * (play config is left untouched, should mix ok as this flag is only used during
      * render, while config is always prepared as if play forever wasn't enabled) */
     vgmstream->config.play_forever = enabled;
+    setup_vgmstream(vgmstream); /* update config */
 }
 
 int32_t vgmstream_get_samples(VGMSTREAM* vgmstream) {
