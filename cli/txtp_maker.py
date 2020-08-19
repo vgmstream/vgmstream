@@ -1,233 +1,113 @@
 #!/usr/bin/env python3
-
-# ########################################################################### #
-# TXTP MAKER
-# ########################################################################### #
-
 from __future__ import division
-import subprocess
-import zlib
-import os.path
-import os
-import re
-import sys
-import fnmatch
+import argparse, subprocess, zlib, os, re, sys, fnmatch, logging as log
 
-def print_usage(appname):
-    print("Usage: {} (filename) [options]".format(appname)+"\n"
-          "\n"
-          "Creates (filename)_(subsong).txtp for every subsong in (filename).\n"
-          " (filename) can be a * or *.ext wildcard too (works with dupe filters).\n"
-          "Works with files with no subsongs (unless filtered) too.\n"
-          "\n"
-          "Use -h to print [options]. Examples:\n"
-          "\n"
-          "{} bgm.fsb -in -fcm 2 -fms 5.0 ".format(appname)+"\n"
-          "    make TXTP for subsongs with at least 2 channels and 5 seconds\n"
-          "{} *.scd -r -fd -l 2".format(appname)+"\n"
-          "   all .scd in subdirs, ignoring dupes and making per 2ch layers\n"
-          "{} *.sm1 -fne .+STREAM[.]SS[0-9]$ ".format(appname)+"\n"
-          "    all .sm1 excluding those subsong names that ends with 'STREAM.SS0..9'\n"
-          "{} samples.bnk -fni ^bgm.? ".format(appname)+"\n"
-          "    in .bnk including only subsong names that start with 'bgm'\n"
-          "{} * -r -fss 1".format(appname)+"\n"
-          "   all files in subdirs with at least 1 subsong (ignoring formats without them)\n"
-          )
+#******************************************************************************
+# TXTP MAKER
+#
+# Creates .txtp from lists of files, mainly one .txtp per subsongs
+#******************************************************************************
 
-def print_help(appname):
-    print("Options:\n"
-          " -r: find recursive (writes files to current dir, with dir in TXTP)\n"
-          " -c (name): set path to CLI (default: test.exe)\n"
-          " -n (name): use (name).txtp, that can be formatted using:\n"
-          "   {filename}, {subsong}, {internal-name}\n"
-          "   ex. -n BGM_{subsong}, -n {subsong}__{internal-name} "
-          " -z N: zero-fill subsong number (default: auto fill up to total subsongs)\n"
-          " -d (dir): add dir in TXTP (if the file will reside in a subdir)\n"
-          " -m: create mini-txtp\n"
-          " -o: overwrite existing .txtp (beware when using with internal names)\n"
-          " -O: rename rather than overwriting\n"
-          " -in: name TXTP using the subsong's internal name if found\n"
-          " -ie: remove internal name's extension\n"
-          " -ii: add subsong number when using internal name\n"
-          " -l N: create multiple TXTP per subsong layers, every N channels\n"
-          " -fd: filter duplicates (slower)\n"
-          " -fcm N: filter min channels\n"
-          " -fcM N: filter by max channels\n"
-          " -frm N: filter by min sample rate\n"
-          " -frM N: filter by max sample rate\n"
-          " -fsm N.N: filter by min seconds\n"
-          " -fsM N.N: filter by max seconds\n"
-          " -fss N: filter min subsongs (1 filters formats incapable of subsongs)\n"
-          " -fni (regex): filter by subsong name, include files that match\n"
-          " -fne (regex): filter by subsong name, exclude files that match\n"
-          " -v (name): verbose level (off|trace|debug|info, default: info)\n"
-          " -h N: show this help\n"
-          )
+class Cli(object):
+    def _parse(self):
+        description = (
+            "Makes TXTP from files in folders"
+        )
+        epilog = (
+            "examples:\n"
+            "  %(prog)s bgm.fsb -in -fcm 2 -fms 5.0\n"
+            "  - make .txtp for subsongs with at least 2 channels and 5 seconds\n\n"
+            "  %(prog)s *.scd -r -fd -l 2\n"
+            "  - make .txtp for all .scd in subdirs, ignoring dupes, one .txtp per 2ch\n\n"
+            "  %(prog)s *.sm1 -fne .+STREAM[.]SS[0-9]$\n"
+            "  - make .txtp for all .sm1 excluding subsongs ending with 'STREAM.SS0..9'\n\n"
+            "  %(prog)s samples.bnk -fni ^bgm.?\n"
+            "  - make .txtp for in .bnk including only subsong names that start with 'bgm'\n\n"
+            "  %(prog)s * -r -fss 1\n"
+            "  - make .txtp for all files in subdirs with at least 1 subsong\n"
+            "    (ignores formats without subsongs)\n\n"
+            "  %(prog)s *.fsb -n \"{fn}<__{ss}>< [{in}]>\" -z 4 -o\n"
+            "  - make .txtp for all fsb, adding subsongs and stream name if they exist\n\n"
+        )
 
-# ########################################################################### #
+        p = argparse.ArgumentParser(description=description, epilog=epilog, formatter_class=argparse.RawTextHelpFormatter)
+        p.add_argument('files', help="files to get (wildcards work)", nargs='+')
+        p.add_argument('-r',  dest='recursive', help="write TXTP from files in subfolders to current dir", action='store_true')
+        p.add_argument('-c',  dest='cli', help="set path to CLI (default: test.exe)", default='test.exe')
+        p.add_argument('-n',  dest='base_name', help=("define (base-name).txtp, that can be formatted using:\n"
+                                                      "- {filename}|{fn}=filename without extension\n"
+                                                      "- {subsong}|{ss}=subsong number)\n"
+                                                      "- {internal-name}|{in}=internal stream name\n"
+                                                      "* may be inside <...> for conditional text\n"))
+        p.add_argument('-z',  dest='zero_fill', help="zero-fill subsong number (default: auto per subsongs)", type=int, default=-1)
+        p.add_argument('-d',  dest='subdir', help="set subdir inside TXTP (where file will reside)")
+        p.add_argument('-m',  dest='mini_txtp', help="create mini-txtp", action='store_true')
+        p.add_argument('-o',  dest='overwrite', help="overwrite existing .txtp\n(beware when using with internal names)", action='store_true')
+        p.add_argument('-O',  dest='overwrite_rename', help="rename rather than overwriting", action='store_true')
+        p.add_argument('-in', dest='use_internal_name', help="name TXTP using the subsong's internal name if found", action='store_true')
+        p.add_argument('-ie', dest='use_internal_ext', help="remove internal name's extension", action='store_true')
+        p.add_argument('-ii', dest='use_internal_index', help="add subsong number when using internal name", action='store_true')
+        p.add_argument('-l',  dest='layers', help="create TXTP per subsong layers, every N channels", type=int, default=0)
+        p.add_argument('-fd', dest='test_dupes', help="filter TXTP that point to duplicate streams (slower)", action='store_true')
+        p.add_argument('-fcm', dest='min_channels', help="filter by min channels", type=int)
+        p.add_argument('-fcM', dest='max_channels', help="filter by max channels", type=int)
+        p.add_argument('-frm', dest='min_sample_rate', help="filter by min sample rate", type=int)
+        p.add_argument('-frM', dest='max_sample_rate', help="filter by max sample rate", type=int)
+        p.add_argument('-fsm', dest='min_seconds', help="filter by min seconds (N.N)", type=float)
+        p.add_argument('-fsM', dest='max_seconds', help="filter by max seconds (N.N)", type=float)
+        p.add_argument('-fss', dest='min_subsongs', help="filter min subsongs\n(1 filters formats incapable of subsongs)", type=int)
+        p.add_argument('-fni', dest='include_regex', help="filter by REGEX including matches of subsong name")
+        p.add_argument('-fne', dest='exclude_regex', help="filter by REGEX excluding matches of subsong name")
+        p.add_argument('-v', dest='log_level', help="verbose log level (off|debug|info, default: info)", default='info')
+        return p.parse_args()
 
-def find_files(dir, pattern, recursive):
-    files = []
-    for root, dirnames, filenames in os.walk(dir):
-        for filename in fnmatch.filter(filenames, pattern):
-            files.append(os.path.join(root, filename))
+    def start(self):
+        #setup_cli_logger()
+        args = self._parse()
+        if not args.files:
+            return
+        Logger(args).setup_cli()
+        App(args).start()
 
-        if not recursive:
-            break
-            
-    return files
+#******************************************************************************
 
-def make_cmd(cfg, fname_in, fname_out, target_subsong):
-    if (cfg.test_dupes):
-        cmd = "{} -s {} -i -o \"{}\" \"{}\"".format(cfg.cli, target_subsong, fname_out, fname_in)
-    else:
-        cmd = "{} -s {} -m -i -o \"{}\" \"{}\"".format(cfg.cli, target_subsong, fname_out, fname_in)
-    return cmd
+class _GuiLogHandler(log.Handler):
+    def __init__(self, txt):
+        log.Handler.__init__(self)
+        self._txt = txt
 
-class LogHelper(object):
+    def emit(self, message):
+        msg = self.format(message)  #You can change the format here
+        self._txt.config(state='normal')
+        self._txt.insert('end', msg + '\n')
+        self._txt.config(state='disabled')
 
+class Logger(object):
     def __init__(self, cfg):
-        self.cfg = cfg
+        levels = {
+            'info': log.INFO,
+            'debug': log.DEBUG,
+        }
+        self.level = levels.get(cfg.log_level, log.ERROR)
 
-    def trace(self, msg):
-        v = self.cfg.verbose
-        if v == "trace":
-            print(msg)
+    def setup_cli(self):
+        log.basicConfig(level=self.level, format='%(message)s')
 
-    def debug(self, msg):
-        v = self.cfg.verbose
-        if v == "trace" or v == "debug":
-            print(msg)
+    def setup_gui(self, txt):
+        log.basicConfig(level=self.level, format='%(message)s', handlers=[_GuiLogHandler(txt)])
 
-    def info(self, msg):
-        v = self.cfg.verbose
-        if v == "trace" or v == "debug" or v == "info":
-            print(msg)
-
-class ConfigHelper(object):
-    show_help = False
-    cli = "test.exe"
-
-    recursive = False
-    base_name = ''
-    zero_fill = -1
-    subdir = ''
-    mini_txtp = False
-    overwrite = False
-    overwrite_rename = False
-    rename_map = {}
-    layers = 0
-
-    use_internal_name = False
-    use_internal_ext = False
-    use_internal_index = False
-
-    test_dupes = False
-    min_channels = 0
-    max_channels = 0
-    min_sample_rate = 0
-    max_sample_rate = 0
-    min_seconds = 0.0
-    max_seconds = 0.0
-    min_subsongs = 0
-    include_regex = ""
-    exclude_regex = ""
-
-    verbose = "info"
-
-    argv_len = 0
-    index = 0
-
-
-    def read_bool(self, command, default):
-        if self.index > self.argv_len - 1:
-            return default
-        if self.argv[self.index] == command:
-            val = True
-            self.index += 1
-            return val
-        return default
-    
-    def read_value(self, command, default):
-        if self.index > self.argv_len - 2:
-            return default
-        if self.argv[self.index] == command:
-            val = self.argv[self.index+1]
-            self.index += 2
-            return val
-        return default
-
-    def read_string(self, command, default):
-        return str(self.read_value(command, default))
-
-    def read_int(self, command, default):
-        return int(self.read_value(command, default))
-
-    def read_float(self, command, default):
-        return float(self.read_value(command, default))
-
-    #todo improve this poop
-    def __init__(self, argv):
-        self.index = 2 #after file
-        self.argv = argv 
-        self.argv_len = len(argv)
-
-        if argv[1] == '-h':
-            self.show_help = True
-        
-        prev_index = self.index
-        while self.index < len(self.argv):
-            self.show_help = self.read_bool('-h', self.show_help)
-            self.cli = self.read_string('-c', self.cli)
-            self.recursive = self.read_bool('-r', self.recursive)
-            self.base_name = self.read_string('-n', self.base_name)
-            self.zero_fill = self.read_int('-z', self.zero_fill)
-            self.subdir = self.read_string('-d', self.subdir)
-
-            self.test_dupes = self.read_bool('-fd', self.test_dupes)
-            self.min_channels = self.read_int('-fcm', self.min_channels)
-            self.max_channels = self.read_int('-fcM', self.max_channels)
-            self.min_sample_rate = self.read_int('-frm', self.min_sample_rate)
-            self.max_sample_rate = self.read_int('-frM', self.max_sample_rate)
-            self.min_seconds = self.read_float('-fsm', self.min_seconds)
-            self.max_seconds = self.read_float('-fsM', self.max_seconds)
-            self.min_subsongs = self.read_int('-fss', self.min_subsongs)
-            self.include_regex = self.read_string('-fni', self.include_regex)
-            self.exclude_regex = self.read_string('-fne', self.exclude_regex)
-
-            self.mini_txtp = self.read_bool('-m', self.mini_txtp)
-            self.overwrite = self.read_bool('-o', self.overwrite)
-            self.overwrite_rename = self.read_bool('-O', self.overwrite_rename)
-            self.layers = self.read_int('-l', self.layers)
-
-            self.use_internal_name = self.read_bool('-in', self.use_internal_name)
-            self.use_internal_ext = self.read_bool('-ie', self.use_internal_ext)
-            self.use_internal_index = self.read_bool('-ii', self.use_internal_index)
-
-            self.verbose = self.read_string('-v', self.verbose)
-
-            if prev_index == self.index:
-                self.index += 1
-            prev_index = self.index
-
-        if (self.subdir != '') and not (self.subdir.endswith('/') or self.subdir.endswith('\\')):
-            self.subdir += '/'
-
-    def __str__(self):
-        return str(self.__dict__)
-
+#******************************************************************************
 
 class Cr32Helper(object):
-    crc32_map = {}
-    dupe = False
-    cfg = None
-    
+
     def __init__(self, cfg):
         self.cfg = cfg
+        self.crc32_map = {}
+        self.last_dupe = False
 
-    def get_crc32(self, fname):
+    def get_crc32(self, filename):
         buf_size = 0x8000
-        with open(fname, 'rb') as file:
+        with open(filename, 'rb') as file:
             buf = file.read(buf_size)
             crc32 = 0
             while len(buf) > 0:
@@ -235,166 +115,151 @@ class Cr32Helper(object):
                 buf = file.read(buf_size)
         return crc32 & 0xFFFFFFFF 
 
-    def update(self, fname):
-        cfg = self.cfg
-
-        self.dupe = False
-        if cfg.test_dupes == 0:
+    def update(self, filename):
+        self.last_dupe = False
+        if self.cfg.test_dupes == 0:
             return
-        if not os.path.exists(fname):
+        if not os.path.exists(filename):
             return
 
-        crc32_str = format(self.get_crc32(fname),'08x')
+        crc32_str = format(self.get_crc32(filename),'08x')
         if (crc32_str in self.crc32_map):
-            self.dupe = True
+            self.last_dupe = True
             return
         self.crc32_map[crc32_str] = True
 
         return
 
-    def is_dupe(self):
-        return self.dupe
+    def is_last_dupe(self):
+        return self.last_dupe
 
+#******************************************************************************
 
+# Makes .txtp (usually 1 but may do N) from a CLI output + subsong
 class TxtpMaker(object):
-    channels = 0
-    sample_rate = 0
-    num_samples = 0
-    stream_count = 0
-    stream_index = 0
-    stream_name = ''
-    stream_seconds = 0
 
-    def __init__(self, cfg, output_b, log):
+    def __init__(self, cfg, output_b):
         self.cfg = cfg
-        self.log = log
 
         self.output = str(output_b).replace("\\r","").replace("\\n","\n")
-        self.channels = self.get_value("channels: ")
-        self.sample_rate = self.get_value("sample rate: ")
-        self.num_samples = self.get_value("stream total samples: ")
-        self.stream_count = self.get_value("stream count: ")
-        self.stream_index = self.get_value("stream index: ")
-        self.stream_name = self.get_string("stream name: ")
+        self.channels = self._get_value("channels: ")
+        self.sample_rate = self._get_value("sample rate: ")
+        self.num_samples = self._get_value("stream total samples: ")
+        self.stream_count = self._get_value("stream count: ")
+        self.stream_index = self._get_value("stream index: ")
+        self.stream_name = self._get_string("stream name: ")
 
-        if self.channels == 0:
+        if self.channels <= 0 or self.sample_rate <= 0:
             raise ValueError('Incorrect command result')
 
         self.stream_seconds = self.num_samples / self.sample_rate
+        self.ignorable = self._is_ignorable(cfg)
+        self.rename_map = {}
 
     def __str__(self):
         return str(self.__dict__)
 
-    def get_string(self, str):
+    def _get_string(self, str):
         find_pos = self.output.find(str)
         if (find_pos == -1):
-            return ''
+            return None
         cut_pos = find_pos + len(str)
         str_cut = self.output[cut_pos:]
         return str_cut.split()[0]
 
-    def get_value(self, str):
-        res = self.get_string(str)
-        if (res == ''):
-           return 0;
+    def _get_value(self, str):
+        res = self._get_string(str)
+        if not res:
+           return 0
         return int(res)
 
     def is_ignorable(self):
-        cfg = self.cfg
+        return self.ignorable
 
-        if (self.channels < cfg.min_channels):
-            return True;
-        if (cfg.max_channels > 0 and self.channels > cfg.max_channels):
-            return True;
-        if (self.sample_rate < cfg.min_sample_rate):
-            return True;
-        if (cfg.max_sample_rate > 0 and self.sample_rate > cfg.max_sample_rate):
-            return True;
-        if (self.stream_seconds < cfg.min_seconds):
-            return True;
-        if (cfg.max_seconds > 0 and self.stream_seconds > cfg.max_seconds):
-            return True;
-        if (self.stream_count < cfg.min_subsongs):
-            return True;
-        if (cfg.exclude_regex != "" and self.stream_name != ""):
+    def _is_ignorable(self, cfg):
+        if cfg.min_channels and self.channels < cfg.min_channels:
+            return True
+        if cfg.max_channels and self.channels > cfg.max_channels:
+            return True
+        if cfg.min_sample_rate and self.sample_rate < cfg.min_sample_rate:
+            return True
+        if cfg.max_sample_rate and self.sample_rate > cfg.max_sample_rate:
+            return True
+        if cfg.min_seconds and self.stream_seconds < cfg.min_seconds:
+            return True
+        if cfg.max_seconds and self.stream_seconds > cfg.max_seconds:
+            return True
+        if cfg.min_subsongs and self.stream_count < cfg.min_subsongs:
+            return True
+        if cfg.exclude_regex and self.stream_name:
             p = re.compile(cfg.exclude_regex)
-            if (p.match(self.stream_name) != None):
+            if p.match(self.stream_name) is not None:
                 return True
-        if (cfg.include_regex != "" and self.stream_name != ""):
+        if cfg.include_regex and self.stream_name:
             p = re.compile(cfg.include_regex)
-            if (p.match(self.stream_name) == None):
+            if p.match(self.stream_name) is None:
                 return True
-
         return False
 
-    def get_stream_mask(self, layer):
-        cfg = self.cfg
+    def _get_stream_mask(self, layer):
+        if layer + self.cfg.layers > self.channels:
+            loops = self.channels - self.cfg.layers
+        else:
+            loops = self.cfg.layers + 1
 
         mask = '#C'
+        for ch in range(1, loops):
+            mask += str(layer + ch) + ','
+        return mask[:-1]
 
-        loops = cfg.layers + 1
-        if layer + cfg.layers > self.channels:
-            loops = self.channels - cfg.layers
-        for ch in range(1,loops):
-            mask += str(layer+ch) + ','
-
-        mask = mask[:-1]
-        return mask
-
-    def get_stream_name(self):
-        cfg = self.cfg
-
-        if not cfg.use_internal_name:
+    def _clean_stream_name(self):
+        if not self.stream_name:
             return ''
-        txt = self.stream_name
 
+        txt = self.stream_name
         # remove paths #todo maybe config/replace?
-        pos = txt.rfind("\\")
-        if (pos != -1):
+        pos = txt.rfind('\\')
+        if pos >= 0:
             txt = txt[pos+1:]
-        pos = txt.rfind("/")
-        if (pos != -1):
+        pos = txt.rfind('/')
+        if pos >= 0:
             txt = txt[pos+1:]
+
         # remove bad chars
-        txt = txt.replace("%", "_")
-        txt = txt.replace("*", "_")
-        txt = txt.replace("?", "_")
-        txt = txt.replace(":", "_")
-        txt = txt.replace("\"", "_")
-        txt = txt.replace("|", "_")
-        txt = txt.replace("<", "_")
-        txt = txt.replace(">", "_")
-    
-        if not cfg.use_internal_ext:
+        badchars = ['%', '*', '?', ':', '\"', '|', '<', '>']
+        for badchar in badchars:
+            txt = txt.replace(badchar, '_')
+
+        if not self.cfg.use_internal_ext:
             pos = txt.rfind(".")
-            if (pos != -1):
+            if pos >= 0:
                 txt = txt[:pos]
         return txt
-        
-    def write(self, outname, line):
-        cfg = self.cfg
 
+    def _write(self, outname, line):
         outname += '.txtp'
 
+        cfg = self.cfg
         if cfg.overwrite_rename and os.path.exists(outname):
-            if outname in cfg.rename_map:
-                rename_count = cfg.rename_map[outname]
+            if outname in self.rename_map:
+                rename_count = self.rename_map[outname]
             else:
                 rename_count = 0
-            cfg.rename_map[outname] = rename_count + 1
-            outname = outname.replace(".txtp", "_{}.txtp".format(rename_count))
+            self.rename_map[outname] = rename_count + 1
+            outname = outname.replace(".txtp", "_%s.txtp" % (rename_count))
 
         if not cfg.overwrite and os.path.exists(outname):
             raise ValueError('TXTP exists in path: ' + outname)
+
         ftxtp = open(outname,"w+")
-        if line != '':
+        if line:
             ftxtp.write(line)
         ftxtp.close()
 
-        self.log.debug("created: " + outname)
+        log.debug("created: " + outname)
         return
-
-    def make(self, fname_path, fname_clean):
+        
+    def make(self, filename_path, filename_clean):
         cfg = self.cfg
         total_done = 0
 
@@ -403,7 +268,7 @@ class TxtpMaker(object):
 
         # write plain (name).txtp when no subsongs
         if self.stream_count <= 1:
-            index = ""
+            index = None
         else:
             index = str(self.stream_index)
             if cfg.zero_fill < 0:
@@ -412,56 +277,88 @@ class TxtpMaker(object):
                 index = index.zfill(cfg.zero_fill)
 
         if cfg.mini_txtp:
-            outname = fname_path
-            if index != "":
+            outname = filename_path
+            if index:
                 outname += "#" + index
 
             if cfg.layers > 0 and cfg.layers < self.channels:
                 for layer in range(0, self.channels, cfg.layers):
-                    mask = self.get_stream_mask(layer)
-                    self.write(outname + mask, '')
+                    mask = self._get_stream_mask(layer)
+                    self._write(outname + mask, '')
                     total_done += 1
             else:
-                self.write(outname, '')
+                self._write(outname, '')
                 total_done += 1
 
         else:
-            stream_name = self.get_stream_name()
-            if stream_name != '':
-                outname = stream_name
+            if self.cfg.use_internal_name and self.stream_name:
+                outname = self._clean_stream_name()
                 if cfg.use_internal_index:
-                    outname += "_{}".format(index)
+                    outname += "_%s" % (index)
+
+            elif cfg.base_name:
+                filename_base = os.path.basename(filename_path)
+                pos = filename_base.rfind(".") #remove ext
+                if pos > 1:
+                    filename_base = filename_base[:pos]
+
+                stream_name = self._clean_stream_name()
+
+                replaces = {
+                    'fn': filename_base,
+                    'filename': filename_base,
+                    'ss': index,
+                    'subsong': index,
+                    'in': stream_name,
+                    'internal-name': stream_name,
+                }
+
+                pattern1 = re.compile(r"<(.+?)>")
+                pattern2 = re.compile(r"{(.+?)}")
+                txt = cfg.base_name
+
+                # print optional info like "<text__{cmd}__>" only if value in {cmd} exists
+                optionals = pattern1.findall(txt)
+                for optional in optionals:
+                    has_values = False
+                    cmds = pattern2.findall(optional)
+                    for cmd in cmds:
+                        if cmd in replaces and replaces[cmd] is not None:
+                            has_values = True
+                            break
+                    if has_values: #leave text there (cmds will be replaced later)
+                        txt = txt.replace('<%s>' % optional, optional, 1)
+                    else:
+                        txt = txt.replace('<%s>' % optional, '', 1)
+
+                # replace "{cmd}" if cmd exists with its value (non-existent values use '')
+                cmds = pattern2.findall(txt)
+                for cmd in cmds:
+                    if cmd in replaces:
+                        value = replaces[cmd]
+                        if value is None:
+                           value = ''
+                        txt = txt.replace('{%s}' % cmd, value, 1)
+
+                if not txt:
+                    txt = filename_base
+                outname = "%s" % (txt)
+
             else:
-                if cfg.base_name != '':
-                    fname_base = os.path.basename(fname_path)
-                    pos = fname_base.rfind(".") #remove ext
-                    if (pos != -1 and pos > 1):
-                        fname_base = fname_base[:pos]
-                        
-                    internal_name = self.stream_name
-                
-                    txt = cfg.base_name
-                    txt = txt.replace("{filename}",fname_base)
-                    txt = txt.replace("{subsong}",index)
-                    txt = txt.replace("{internal-name}",internal_name)
+                txt = filename_path
+                pos = txt.rfind(".") #remove ext
+                if pos > 1:
+                    txt = txt[:pos]
 
-                    outname = "{}".format(txt)
-
-                else:
-                    txt = fname_path
-                    pos = txt.rfind(".") #remove ext
-                    if (pos != -1 and pos > 1):
-                        txt = txt[:pos]
-
-                    outname = "{}".format(txt)
-                    if index != "":
-                        outname += "_" + index
+                outname = "%s" % (txt)
+                if index:
+                    outname += "_" + index
 
             line = ''
-            if cfg.subdir != '':
+            if cfg.subdir:
                 line += cfg.subdir
-            line += fname_clean
-            if index != "":
+            line += filename_clean
+            if index:
                 line += "#" + index
 
             if cfg.layers > 0 and cfg.layers < self.channels:
@@ -469,97 +366,136 @@ class TxtpMaker(object):
                 for layer in range(0, self.channels, cfg.layers):
                     sub = chr(ord('a') + done)
                     done += 1
-                    mask = self.get_stream_mask(layer)
-                    self.write(outname + sub, line + mask)
+                    mask = self._get_stream_mask(layer)
+                    self._write(outname + sub, line + mask)
                     total_done += 1
             else:
-                self.write(outname, line)
+                self._write(outname, line)
                 total_done += 1
         return total_done
 
     def has_more_subsongs(self, target_subsong):
         return target_subsong < self.stream_count
 
-# ########################################################################### #
+#******************************************************************************
 
-def main():
-    appname = os.path.basename(sys.argv[0])
-    if (len(sys.argv) <= 1):
-        print_usage(appname)
-        return
+class App(object):
+    def __init__(self, args):
+        self.cfg = args
+        self.crc32 = Cr32Helper(args)
 
-    cfg = ConfigHelper(sys.argv)
-    crc32 = Cr32Helper(cfg)
-    log = LogHelper(cfg)
+    # check CLI in path (can be called, not just file exists)
+    def _test_cli(self):
+        if not self.cfg.cli:
+            return False
+        try:
+            with open(os.devnull, 'wb') as DEVNULL: #subprocess.STDOUT #py3 only
+                cmd = "%s" % (self.cfg.cli)
+                subprocess.check_call(cmd, stdout=DEVNULL, stderr=DEVNULL)
+            return True #exists and returns ok
+        except subprocess.CalledProcessError as e:
+            return True #exists but returns strerr (ran with no args)
+        except Exception as e:
+            return False #doesn't exist
 
-    if cfg.show_help:
-        print_help(appname)
-        return
+    def _make_cmd(self, filename_in, filename_out, target_subsong):
+        if self.cfg.test_dupes:
+            cmd = "%s -s %s -i -o \"%s\" \"%s\"" % (self.cfg.cli, target_subsong, filename_out, filename_in)
+        else:
+            cmd = "%s -s %s -m -i -O \"%s\"" % (self.cfg.cli, target_subsong, filename_in)
+        return cmd
 
-    fname = sys.argv[1]
-    fnames_in = find_files('.', fname, cfg.recursive)
-
-    total_created = 0
-    total_dupes = 0
-    total_errors = 0
-    for fname_in in fnames_in:
-        fname_in_clean = fname_in.replace("\\", "/")
-        if fname_in_clean.startswith("./"):
-            fname_in_clean = fname_in_clean[2:]
-           
-        fname_in_base = os.path.basename(fname_in)
-        
-        if fname_in.startswith(".\\"): #skip starting dot for extensionless files
-            fname_in = fname_in[2:]
-        
-        fname_out = ".temp." + fname_in_base + ".wav"
-        created = 0
-        dupes = 0
-        errors = 0
-        target_subsong = 1
-        while 1:
-
-            try:
-                cmd = make_cmd(cfg, fname_in, fname_out, target_subsong)
-                log.trace("calling: " + cmd)
-                output_b = subprocess.check_output(cmd, shell=False) #stderr=subprocess.STDOUT
-            except subprocess.CalledProcessError as e:
-                log.debug("ignoring CLI error in " + fname_in + "#"+str(target_subsong)+": " + e.output)
-                errors += 1
-                break
-
-            if target_subsong == 1:
-                log.debug("processing {}...".format(fname_in_clean))
-
-            maker = TxtpMaker(cfg, output_b, log)
-
-            if not maker.is_ignorable():
-                crc32.update(fname_out)
-
-            if not crc32.is_dupe():
-                created += maker.make(fname_in_base, fname_in_clean)
-            else:
-                dupes += 1
-                log.debug("Dupe subsong {}".format(target_subsong))
-
-            if not maker.has_more_subsongs(target_subsong):
-                break
-            target_subsong += 1
-
-            if target_subsong % 200 == 0:
-                log.info("{}/{} subsongs... ".format(target_subsong, maker.stream_count) + 
-                          "({} dupes, {} errors)".format(dupes, errors)
-                          )
-
-        if os.path.exists(fname_out):
-            os.remove(fname_out)
-
-        total_created += created
-        total_dupes += dupes
-        total_errors += errors
-
-
-    log.info("done! ({} done, {} dupes, {} errors)".format(total_created, total_dupes, total_errors))
+    def _find_files(self, dir, pattern):
+        if os.path.isfile(pattern):
+            return [pattern]
+        if os.path.isdir(pattern):
+            dir = pattern
+            pattern = None
     
+        files = []
+        for root, dirnames, filenames in os.walk(dir):
+            for filename in fnmatch.filter(filenames, pattern):
+                files.append(os.path.join(root, filename))
+
+            if not self.cfg.recursive:
+                break
+
+        return files
+
+    def start(self):
+        if not self._test_cli():
+            log.error("ERROR: CLI not found")
+            return
+
+        filenames_in = []
+        for filename in self.cfg.files:
+            filenames_in += self._find_files('.', filename)
+
+
+        total_created = 0
+        total_dupes = 0
+        total_errors = 0
+        for filename_in in filenames_in:
+            filename_in_clean = filename_in.replace("\\", "/")
+            if filename_in_clean.startswith("./"):
+                filename_in_clean = filename_in_clean[2:]
+
+            filename_in_base = os.path.basename(filename_in)
+
+            #skip starting dot for extensionless files
+            if filename_in.startswith(".\\"):
+                filename_in = filename_in[2:]
+
+            filename_out = ".temp." + filename_in_base + ".wav"
+            created = 0
+            dupes = 0
+            errors = 0
+            target_subsong = 1
+            while True:
+                try:
+                    cmd = self._make_cmd(filename_in, filename_out, target_subsong)
+                    log.debug("calling: %s", cmd)
+                    output_b = subprocess.check_output(cmd, shell=False) #stderr=subprocess.STDOUT
+                except subprocess.CalledProcessError as e:
+                    log.debug("ignoring CLI error in %s #%s: %s", filename_in, target_subsong, str(e.output))
+                    errors += 1
+                    break
+
+                if target_subsong == 1:
+                    log.debug("processing %s...", filename_in_clean)
+
+                maker = TxtpMaker(self.cfg, output_b)
+
+                if not maker.is_ignorable():
+                    self.crc32.update(filename_out)
+
+                if not self.crc32.is_last_dupe():
+                    created += maker.make(filename_in_base, filename_in_clean)
+                else:
+                    dupes += 1
+                    log.debug("dupe subsong %s", target_subsong)
+
+                if not maker.has_more_subsongs(target_subsong):
+                    break
+                target_subsong += 1
+
+                if target_subsong % 200 == 0:
+                    log.info("%s/%s subsongs... (%s dupes, %s errors)", target_subsong, maker.stream_count, dupes, errors)
+
+            if os.path.exists(filename_out):
+                os.remove(filename_out)
+
+            total_created += created
+            total_dupes += dupes
+            total_errors += errors
+
+        log.info("done! (%s done, %s dupes, %s errors)", total_created, total_dupes, total_errors)
+
+
 if __name__ == "__main__":
-    main()
+    Cli().start()
+
+    #if len(sys.argv) > 1:
+    #    Cli().start()
+    #else:
+    #    Gui().start()
