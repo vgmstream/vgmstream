@@ -5,7 +5,7 @@ import argparse, subprocess, zlib, os, re, sys, fnmatch, logging as log
 #******************************************************************************
 # TXTP MAKER
 #
-# Creates .txtp from lists of files, mainly one .txtp per subsongs
+# Creates .txtp from lists of files, mainly one .txtp per subsong
 #******************************************************************************
 
 class Cli(object):
@@ -31,38 +31,36 @@ class Cli(object):
         )
 
         p = argparse.ArgumentParser(description=description, epilog=epilog, formatter_class=argparse.RawTextHelpFormatter)
-        p.add_argument('files', help="files to get (wildcards work)", nargs='+')
-        p.add_argument('-r',  dest='recursive', help="write TXTP from files in subfolders to current dir", action='store_true')
-        p.add_argument('-c',  dest='cli', help="set path to CLI (default: test.exe)", default='test.exe')
-        p.add_argument('-n',  dest='base_name', help=("define (base-name).txtp, that can be formatted using:\n"
+        p.add_argument('files', help="Files to get (wildcards work)", nargs='+')
+        p.add_argument('-r',  dest='recursive', help="Create .txtp in base folder from data in subfolders", action='store_true')
+        p.add_argument('-c',  dest='cli', help="Set path to CLI (default: auto)")
+        p.add_argument('-d',  dest='subdir', help="Set subdir inside .txtp (where file will reside)")
+        p.add_argument('-n',  dest='base_name', help=("Define (name).txtp, that can be formatted using:\n"
                                                       "- {filename}|{fn}=filename without extension\n"
                                                       "- {subsong}|{ss}=subsong number)\n"
                                                       "- {internal-name}|{in}=internal stream name\n"
+                                                      "- {if}=internal name or filename if not found\n"
                                                       "* may be inside <...> for conditional text\n"))
-        p.add_argument('-z',  dest='zero_fill', help="zero-fill subsong number (default: auto per subsongs)", type=int, default=-1)
-        p.add_argument('-d',  dest='subdir', help="set subdir inside TXTP (where file will reside)")
-        p.add_argument('-m',  dest='mini_txtp', help="create mini-txtp", action='store_true')
-        p.add_argument('-o',  dest='overwrite', help="overwrite existing .txtp\n(beware when using with internal names)", action='store_true')
-        p.add_argument('-O',  dest='overwrite_rename', help="rename rather than overwriting", action='store_true')
-        p.add_argument('-in', dest='use_internal_name', help="name TXTP using the subsong's internal name if found", action='store_true')
-        p.add_argument('-ie', dest='use_internal_ext', help="remove internal name's extension", action='store_true')
-        p.add_argument('-ii', dest='use_internal_index', help="add subsong number when using internal name", action='store_true')
-        p.add_argument('-l',  dest='layers', help="create TXTP per subsong layers, every N channels", type=int, default=0)
-        p.add_argument('-fd', dest='test_dupes', help="filter TXTP that point to duplicate streams (slower)", action='store_true')
-        p.add_argument('-fcm', dest='min_channels', help="filter by min channels", type=int)
-        p.add_argument('-fcM', dest='max_channels', help="filter by max channels", type=int)
-        p.add_argument('-frm', dest='min_sample_rate', help="filter by min sample rate", type=int)
-        p.add_argument('-frM', dest='max_sample_rate', help="filter by max sample rate", type=int)
-        p.add_argument('-fsm', dest='min_seconds', help="filter by min seconds (N.N)", type=float)
-        p.add_argument('-fsM', dest='max_seconds', help="filter by max seconds (N.N)", type=float)
-        p.add_argument('-fss', dest='min_subsongs', help="filter min subsongs\n(1 filters formats incapable of subsongs)", type=int)
-        p.add_argument('-fni', dest='include_regex', help="filter by REGEX including matches of subsong name")
-        p.add_argument('-fne', dest='exclude_regex', help="filter by REGEX excluding matches of subsong name")
-        p.add_argument('-v', dest='log_level', help="verbose log level (off|debug|info, default: info)", default='info')
+        p.add_argument('-z',  dest='zero_fill', help="Zero-fill subsong number (default: auto per subsongs)", type=int)
+        p.add_argument('-ie', dest='no_internal_ext', help="Remove internal name's extension if any", action='store_true')
+        p.add_argument('-m',  dest='mini_txtp', help="Create mini-txtp", action='store_true')
+        p.add_argument('-o',  dest='overwrite', help="Overwrite existing .txtp\n(beware when using with internal names alone)", action='store_true')
+        p.add_argument('-O',  dest='overwrite_rename', help="Rename rather than overwriting", action='store_true')
+        p.add_argument('-l',  dest='layers', help="Create .txtp per subsong layers, every N channels", type=int)
+        p.add_argument('-fd', dest='test_dupes', help="Skip .txtp that point to duplicate streams (slower)", action='store_true')
+        p.add_argument('-fcm', dest='min_channels', help="Filter by min channels", type=int)
+        p.add_argument('-fcM', dest='max_channels', help="Filter by max channels", type=int)
+        p.add_argument('-frm', dest='min_sample_rate', help="Filter by min sample rate", type=int)
+        p.add_argument('-frM', dest='max_sample_rate', help="Filter by max sample rate", type=int)
+        p.add_argument('-fsm', dest='min_seconds', help="Filter by min seconds (N.N)", type=float)
+        p.add_argument('-fsM', dest='max_seconds', help="Filter by max seconds (N.N)", type=float)
+        p.add_argument('-fss', dest='min_subsongs', help="Filter min subsongs\n(1 filters formats incapable of subsongs)", type=int)
+        p.add_argument('-fni', dest='include_regex', help="Filter by REGEX including matches of subsong name")
+        p.add_argument('-fne', dest='exclude_regex', help="Filter by REGEX excluding matches of subsong name")
+        p.add_argument('-v', dest='log_level', help="Verbose log level (off|debug|info, default: info)", default='info')
         return p.parse_args()
 
     def start(self):
-        #setup_cli_logger()
         args = self._parse()
         if not args.files:
             return
@@ -77,7 +75,7 @@ class _GuiLogHandler(log.Handler):
         self._txt = txt
 
     def emit(self, message):
-        msg = self.format(message)  #You can change the format here
+        msg = self.format(message)
         self._txt.config(state='normal')
         self._txt.insert('end', msg + '\n')
         self._txt.config(state='disabled')
@@ -214,7 +212,7 @@ class TxtpMaker(object):
 
     def _clean_stream_name(self):
         if not self.stream_name:
-            return ''
+            return None
 
         txt = self.stream_name
         # remove paths #todo maybe config/replace?
@@ -230,7 +228,7 @@ class TxtpMaker(object):
         for badchar in badchars:
             txt = txt.replace(badchar, '_')
 
-        if not self.cfg.use_internal_ext:
+        if not self.cfg.no_internal_ext:
             pos = txt.rfind(".")
             if pos >= 0:
                 txt = txt[:pos]
@@ -270,8 +268,8 @@ class TxtpMaker(object):
         if self.stream_count <= 1:
             index = None
         else:
-            index = str(self.stream_index)
-            if cfg.zero_fill < 0:
+            index = str(self.stream_index) #str to avoid falsy 0
+            if cfg.zero_fill is None or cfg.zero_fill < 0:
                 index = index.zfill(len(str(self.stream_count)))
             else:
                 index = index.zfill(cfg.zero_fill)
@@ -281,7 +279,7 @@ class TxtpMaker(object):
             if index:
                 outname += "#" + index
 
-            if cfg.layers > 0 and cfg.layers < self.channels:
+            if cfg.layers and cfg.layers < self.channels:
                 for layer in range(0, self.channels, cfg.layers):
                     mask = self._get_stream_mask(layer)
                     self._write(outname + mask, '')
@@ -291,18 +289,17 @@ class TxtpMaker(object):
                 total_done += 1
 
         else:
-            if self.cfg.use_internal_name and self.stream_name:
-                outname = self._clean_stream_name()
-                if cfg.use_internal_index:
-                    outname += "_%s" % (index)
+            filename_base = os.path.basename(filename_path)
+            pos = filename_base.rfind(".") #remove ext
+            if pos > 1:
+                filename_base = filename_base[:pos]
 
-            elif cfg.base_name:
-                filename_base = os.path.basename(filename_path)
-                pos = filename_base.rfind(".") #remove ext
-                if pos > 1:
-                    filename_base = filename_base[:pos]
-
+            outname = ''
+            if cfg.base_name:
                 stream_name = self._clean_stream_name()
+                internal_filename = stream_name
+                if not internal_filename:
+                    internal_filename = filename_base
 
                 replaces = {
                     'fn': filename_base,
@@ -311,6 +308,7 @@ class TxtpMaker(object):
                     'subsong': index,
                     'in': stream_name,
                     'internal-name': stream_name,
+                    'if': internal_filename,
                 }
 
                 pattern1 = re.compile(r"<(.+?)>")
@@ -339,18 +337,11 @@ class TxtpMaker(object):
                         if value is None:
                            value = ''
                         txt = txt.replace('{%s}' % cmd, value, 1)
-
-                if not txt:
-                    txt = filename_base
                 outname = "%s" % (txt)
 
-            else:
-                txt = filename_path
-                pos = txt.rfind(".") #remove ext
-                if pos > 1:
-                    txt = txt[:pos]
-
-                outname = "%s" % (txt)
+            # no name set, or empty results above            
+            if not outname:
+                outname = "%s" % (filename_base)
                 if index:
                     outname += "_" + index
 
@@ -361,7 +352,7 @@ class TxtpMaker(object):
             if index:
                 line += "#" + index
 
-            if cfg.layers > 0 and cfg.layers < self.channels:
+            if cfg.layers and cfg.layers < self.channels:
                 done = 0
                 for layer in range(0, self.channels, cfg.layers):
                     sub = chr(ord('a') + done)
@@ -386,17 +377,28 @@ class App(object):
 
     # check CLI in path (can be called, not just file exists)
     def _test_cli(self):
-        if not self.cfg.cli:
-            return False
-        try:
-            with open(os.devnull, 'wb') as DEVNULL: #subprocess.STDOUT #py3 only
-                cmd = "%s" % (self.cfg.cli)
-                subprocess.check_call(cmd, stdout=DEVNULL, stderr=DEVNULL)
-            return True #exists and returns ok
-        except subprocess.CalledProcessError as e:
-            return True #exists but returns strerr (ran with no args)
-        except Exception as e:
-            return False #doesn't exist
+        clis = []
+        if self.cfg.cli:
+            clis.append(self.cfg.cli)
+        else:
+            clis.append('vgmstream_cli')
+            clis.append('test.exe')
+
+        for cli in clis:
+            try:
+                with open(os.devnull, 'wb') as DEVNULL: #subprocess.STDOUT #py3 only
+                    cmd = "%s" % (cli)
+                    subprocess.check_call(cmd, stdout=DEVNULL, stderr=DEVNULL)
+                self.cfg.cli = cli
+                return True #exists and returns ok
+            except subprocess.CalledProcessError as e:
+                self.cfg.cli = cli
+                return True #exists but returns strerr (ran with no args)
+            except Exception as e:
+                continue #doesn't exist
+
+        #none found
+        return False
 
     def _make_cmd(self, filename_in, filename_out, target_subsong):
         if self.cfg.test_dupes:
