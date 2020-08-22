@@ -59,7 +59,7 @@ static int rv_bits(bitstream_t* ib, uint32_t bits, uint32_t* value) {
 
     return 1;
 fail:
-    VGM_LOG("BITREADER: read fail\n");
+    VGM_LOG_ONCE("BITREADER: read fail\n");
     *value = 0;
     return 0;
 }
@@ -95,7 +95,7 @@ static int wv_bits(bitstream_t* ob, uint32_t bits, uint32_t value) {
     ob->b_off += bits;
     return 1;
 fail:
-    VGM_LOG("BITREADER: write fail\n");
+    VGM_LOG_ONCE("BITREADER: write fail\n");
     return 0;
 }
 #endif

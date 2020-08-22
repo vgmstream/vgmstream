@@ -160,6 +160,9 @@ static int read_packet(wpacket_t* wp, uint8_t* ibuf, size_t ibufsize, STREAMFILE
             break;
     }
 
+    if (wp->header_size == 0 || wp->packet_size == 0)
+        goto fail;
+
     /* read packet data */
     {
         size_t read_size = wp->packet_size;
