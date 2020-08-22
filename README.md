@@ -329,9 +329,9 @@ filename2
 ```
 Accepted tags depend on the player (foobar: any; winamp: see ATF config),
 typically *ALBUM/ARTIST/TITLE/DISC/TRACK/COMPOSER/etc*, lower or uppercase,
-separated by one or multiple spaces. Repeated tags overwrite previous
-(ex.- may define *@COMPOSER* for multiple tracks). It only reads up to current
-*filename* though, so any *@TAG* below would be ignored.
+separated by one or multiple spaces. Repeated tags overwrite previous (ex.-
+may define *@COMPOSER* multiple times for "sections"). It only reads up to
+current *filename* though, so any *@TAG* below would be ignored.
 
 Playlist title formatting should follow player's config. ASCII or UTF-8 tags work.
 
@@ -339,7 +339,16 @@ Playlist title formatting should follow player's config. ASCII or UTF-8 tags wor
 - *AUTOTRACK*: sets *%TRACK* tag automatically (1..N as files are encountered
   in the tag file).
 - *AUTOALBUM*: sets *%ALBUM* tag automatically using the containing dir as album.
+- *EXACTMATCH*: disables matching .txtp with regular files (explained below).
 
+Note that with global tags you don't need to put all files inside. This would be
+a perfectly valid *!tags.m3u*:
+```
+# @ALBUM    Game
+# @ARTIST   Various Artists
+```
+
+### Tags with spaces
 Some players like foobar accept tags with spaces. To use them surround the tag
 with both characters.
 ```
@@ -350,13 +359,7 @@ filename1
 ```
 As a side effect if text has @/% inside you also need them: `# @ALBUMARTIST@ Tom-H@ck`
 
-Note that since you can use global tags don't need to put all files inside.
-This would be a perfectly valid *!tags.m3u*:
-```
-# @ALBUM    Game
-# @ARTIST   Various Artists
-```
-
+### ReplayGain
 foobar2000/Winamp can apply the following replaygain tags (if ReplayGain is
 enabled in preferences):
 ```
@@ -365,7 +368,48 @@ enabled in preferences):
 # @replaygain_album_gain N.NN dB
 # @replaygain_album_peak N.NNN
 ```
+
+### TXTP matching
+To ease *TXTP* config, tags with plain files will match .txtp with config, and tags
+with .txtp config also match plain files:
+**!tags.m3u**
+```
+# @TITLE    Title1
+BGM01.adx #P 3.0.txtp
+# @TITLE    Title2
+BGM02.wav
+```
+**config.m3u**
+```
+# matches "Title1" (1:1)
+BGM01.adx #P 3.0.txtp
+# matches "Title1" (plain file matches config tag)
+BGM01.adx
+# matches "Title2" (config file matches plain tag)
+BGM02.wav #P 3.0.txtp
+# doesn't match anything (different config can't match)
+BGM01.adx #P 10.0.txtp
+```
+
+Since it matches when a tag is found, some cases that depend on order won't work.
+You can disable this feature manually then:
+**!tags.m3u**
+```
+# $EXACTMATCH
+#
+# %TITLE    Title3 (without config)
+BGM01.adx
+# %TITLE    Title3 (with config)
+BGM01.adx #I 1.0 90.0 .txtp
+```
+**config.m3u**
+```
+# Would match "Title3 (without config)" without "$EXACTMATCH", as it's found first
+# Could use "BGM01.adx.txtp" as first entry in !tags.m3u instead (different configs won't match)
+BGM01.adx #I 1.0 90.0 .txtp
+```
   
+### Issues
 If your player isn't picking tags make sure vgmstream is detecting the song
 (as other plugins can steal its extensions, see above), .m3u is properly
 named and that filenames inside match the song filename. For Winamp you need
@@ -378,7 +422,7 @@ Currently there is no tool to aid in the creation of there m3u, but you can crea
 a base m3u and edit as a text file.
 
 vgmstream's "m3u tagging" is meant to be simple to make and share (just a text
-file), easier to support in multiple players (rather than needed a custom plugin),
+file), easier to support in multiple players (rather than needing a custom plugin),
 having OST-like ordering in the M3U, and be flexible enough to have commands.
 If you are not satisfied with vgmstream's tagging format, foobar2000 has other
 plugins (with write support) that may be of use:
@@ -420,8 +464,8 @@ boss2_3ningumi_ver6.adx     #l 1.0  #F .txtp
 
 You can also use it in CLI for quick access to some txtp-exclusive functions:
 ```
-# force change sample rate to 22050
-test.exe btl_koopa1_44k_lp.brstm  #h22050.txtp -o btl_koopa1_44k_lp.wav
+# force change sample rate to 22050 (don't forget to use " with spaces)
+test.exe -o btl_koopa1_44k_lp.wav "btl_koopa1_44k_lp.brstm  #h22050.txtp"
 ```
 
 
