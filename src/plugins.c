@@ -189,6 +189,7 @@ struct VGMSTREAM_TAGS {
     int autotrack_on;
     int autotrack_written;
     int track_count;
+    int exact_match;
 
     int autoalbum_on;
     int autoalbum_written;
@@ -311,22 +312,27 @@ int vgmstream_tags_next_tag(VGMSTREAM_TAGS* tags, STREAMFILE* tagfile) {
 
             if (line[0] == '#') {
                 /* find possible global command */
-                ok = sscanf(line, "# $%[^ \t] %[^\r\n]", tags->key,tags->val);
+                ok = sscanf(line, "# $%n%[^ \t]%n %[^\r\n]", &n1, tags->key, &n2, tags->val);
                 if (ok == 1 || ok == 2) {
-                    if (strcasecmp(tags->key,"AUTOTRACK") == 0) {
+                    int key_len = n2 - n1;
+                    if (strncasecmp(tags->key, "AUTOTRACK", key_len) == 0) {
                         tags->autotrack_on = 1;
                     }
-                    else if (strcasecmp(tags->key,"AUTOALBUM") == 0) {
+                    else if (strncasecmp(tags->key, "AUTOALBUM", key_len) == 0) {
                         tags->autoalbum_on = 1;
+                    }
+                    else if (strncasecmp(tags->key, "EXACTMATCH", key_len) == 0) {
+                        tags->exact_match = 1;
+                        VGM_LOG("exact\n");
                     }
 
                     continue; /* not an actual tag */
                 }
 
                 /* find possible global tag */
-                ok = sscanf(line, "# @%[^@]@ %[^\r\n]", tags->key,tags->val); /* key with spaces */
+                ok = sscanf(line, "# @%[^@]@ %[^\r\n]", tags->key, tags->val); /* key with spaces */
                 if (ok != 2)
-                    ok = sscanf(line, "# @%[^ \t] %[^\r\n]", tags->key,tags->val); /* key without */
+                    ok = sscanf(line, "# @%[^ \t] %[^\r\n]", tags->key, tags->val); /* key without */
                 if (ok == 2) {
                     tags_clean(tags);
                     return 1;
@@ -342,20 +348,28 @@ int vgmstream_tags_next_tag(VGMSTREAM_TAGS* tags, STREAMFILE* tagfile) {
                 int currentname_len = n2 - n1;
                 int filename_found = 0;
 
-                /* we want to find file with the same name (case insensitive), OR a virtual .txtp with
-                 * the filename inside (so 'file.adx' gets tags from 'file.adx#i.txtp', reading
-                 * tags even if we don't open !tags.m3u with virtual .txtp directly) */
+                /* we want to match file with the same name (case insensitive), OR a virtual .txtp with
+                 * the filename inside to ease creation of tag files with config, also check end char to 
+                 * tell apart the unlikely case of having both 'bgm01.ad.txtp' and 'bgm01.adp.txtp' */
 
-                /* strcasecmp works ok even for UTF-8 */
-                if (currentname_len >= tags->targetname_len && /* starts with targetname */
-                        strncasecmp(currentname, tags->targetname, tags->targetname_len) == 0) {
-
-                    if (currentname_len == tags->targetname_len) { /* exact match */
-                        filename_found = 1;
+                /* try exact match (strcasecmp works ok even for UTF-8) */
+                if (currentname_len == tags->targetname_len &&
+                        strncasecmp(currentname, tags->targetname, currentname_len) == 0) {
+                    filename_found = 1;
+                }
+                else if (!tags->exact_match) {
+                    /* try tagfile is "bgm.adx" + target is "bgm.adx #(cfg) .txtp" */
+                    if (currentname_len < tags->targetname_len &&
+                            strncasecmp(currentname, tags->targetname, currentname_len) == 0 &&
+                            vgmstream_is_virtual_filename(tags->targetname)) {
+                        char c = tags->targetname[currentname_len];
+                        filename_found = (c==' ' || c == '.' || c == '#');
                     }
-                    else if (vgmstream_is_virtual_filename(currentname)) { /* ends with .txth */
+                    /* tagfile has "bgm.adx (...) .txtp" + target has "bgm.adx" */
+                    else if (tags->targetname_len < currentname_len &&
+                            strncasecmp(tags->targetname, currentname, tags->targetname_len) == 0 &&
+                            vgmstream_is_virtual_filename(currentname)) {
                         char c = currentname[tags->targetname_len];
-                        /* tell apart the unlikely case of having both 'bgm01.ad.txtp' and 'bgm01.adp.txtp' */
                         filename_found = (c==' ' || c == '.' || c == '#');
                     }
                 }

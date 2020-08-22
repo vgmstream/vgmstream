@@ -491,13 +491,13 @@ int render_vgmstream(sample_t* buf, int32_t sample_count, VGMSTREAM* vgmstream) 
 
 /*****************************************************************************/
 
-static void seek_force_loop(VGMSTREAM* vgmstream) {
+static void seek_force_loop(VGMSTREAM* vgmstream, int loop_count) {
     /* only called after hit loop */
     if (!vgmstream->hit_loop)
         return;
 
     /* pretend decoder reached loop end so state is set to loop start */
-    vgmstream->loop_count = 0;
+    vgmstream->loop_count = loop_count - 1; /* seeking to first loop musy become ++ > 0 */
     vgmstream->current_sample = vgmstream->loop_end_sample;
     vgmstream_do_loop(vgmstream);
 }
@@ -647,7 +647,7 @@ void seek_vgmstream(VGMSTREAM* vgmstream, int32_t seek_sample) {
             if (vgmstream->current_sample < vgmstream->loop_start_sample
                     || vgmstream->current_sample < vgmstream->loop_end_sample) {
                 //;VGM_LOG("SEEK: current outside loop area / curr=%i, ls=%i, le=%i\n", vgmstream->current_sample, vgmstream->current_sample, vgmstream->loop_end_sample);
-                seek_force_loop(vgmstream);
+                seek_force_loop(vgmstream, 0);
             }
 
 
@@ -657,10 +657,16 @@ void seek_vgmstream(VGMSTREAM* vgmstream, int32_t seek_sample) {
             loop_seek = loop_seek % loop_body;
             loop_curr = vgmstream->current_sample - vgmstream->loop_start_sample;
 
+            /* when "ignore fade" is used and seek falls into non-fade part, this needs to seek right before it
+               so when calling seek_force_loop detection kicks in, and non-fade then decodes normally */
+            if (vgmstream->loop_target && vgmstream->loop_target == loop_count) {
+                loop_seek = loop_body;
+            }
+
             //;VGM_LOG("SEEK: in loop / seekl=%i, loops=%i, cur=%i, dec=%i\n", loop_seek, loop_count, loop_curr, decode_samples);
             if (loop_seek < loop_curr) {
                 decode_samples += loop_seek;
-                seek_force_loop(vgmstream);
+                seek_force_loop(vgmstream, loop_count);
 
                 //;VGM_LOG("SEEK: loop reset / dec=%i, loop=%i\n", decode_samples, loop_count);
             }
@@ -698,10 +704,6 @@ void seek_vgmstream(VGMSTREAM* vgmstream, int32_t seek_sample) {
 
 
     seek_force_decode(vgmstream, decode_samples);
-
-    /* adjust positions */
-    if (vgmstream->loop_count >= 0)
-        vgmstream->loop_count = loop_count;
 
     vgmstream->pstate.play_position = seek_sample;
 }
