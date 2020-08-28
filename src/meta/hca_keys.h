@@ -340,14 +340,32 @@ static const hcakey_info hcakey_list[] = {
         /* 22/7 Ongaku no Jikan (Android) */
         {20190906},                 // 00000000013416BA
 
-        /* Dragalia Lost (iOS/Android) */
-        {2967411924141,         subkeys_dgl, sizeof(subkeys_dgl) / sizeof(subkeys_dgl[0]) },    // 000002B2E7889CAD
-
         /* Cardcaptor Sakura: Happiness Memories (Android) */
         {625144437747651},          // 00023890C8252FC3
 
         /* Digimon Story: Cyber Sleuth (PC) */
-        {0x283553DCE3FD5FB9},       // 283553DCE3FD5FB9
+        {2897314143465725881},      // 283553DCE3FD5FB9
+
+        /* Alice Re:Code (Android) */
+        {0x82C3C951C561F736},       // 9422596198430275382 / 82C3C951C561F736
+
+        /* Tokyo 7th Sisters (Android) */
+        {0xFDAE531AAB414BA1},       // FDAE531AAB414BA1 / 18279639311550860193
+
+        /* High School Fleet: Kantai Battle de Pinch! (Mobile) */
+        {43472919336422565},        // 009A7263CA658CA5
+
+        /* Disney's Twisted Wonderland (Android) */
+        {2895000877},               // 00000000AC8E352D 
+
+        /* B-PROJECT Kaikan Everyday (Android) */
+        {0xAAED297DDEF1D9F6},       // AAED297DDEF1D9F6 / 12316546176516217334
+
+        /* HELIOS Rising Heroes (Android) */
+        {311981570940334162},       // 04546195F85DF052
+
+        /* Dragalia Lost (iOS/Android) */
+        {2967411924141,         subkeys_dgl, sizeof(subkeys_dgl) / sizeof(subkeys_dgl[0]) },    // 000002B2E7889CAD
 
 };
 
