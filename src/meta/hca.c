@@ -183,7 +183,7 @@ static void bruteforce_hca_key(STREAMFILE* sf, hca_codec_data* hca_data, unsigne
     uint8_t* buf = NULL;
     int best_score = -1;
     off_t keys_size, bytes;
-    int i, pos;
+    int pos;
 
 
     VGM_LOG("HCA: test keys\n");
@@ -214,7 +214,7 @@ static void bruteforce_hca_key(STREAMFILE* sf, hca_codec_data* hca_data, unsigne
         if (key == 0)
             continue;
 
-        test_key(hca_data, keys[i], subkey, &best_score, out_keycode);
+        test_key(hca_data, key, subkey, &best_score, out_keycode);
         if (best_score == 1)
             goto done;
 
