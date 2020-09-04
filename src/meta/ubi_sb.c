@@ -3972,8 +3972,13 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
         return 1;
     }
 
+    /* Petz Sports: Dog Playground (2008)(Wii)-bank */
+    /* Cloudy with a Chance of Meatballs (2009)(Wii)-bank */
+    /* Grey's Anatomy: The Video Game (2009)(Wii)-bank */
+    /* NCIS: Based on the TV Series (2011)(Wii)-bank */
     /* Splinter Cell Classic Trilogy HD (2011)(PS3)-map */
-    if (sb->version == 0x001D0000 && sb->platform == UBI_PS3) {
+    if ((sb->version == 0x001D0000 && sb->platform == UBI_PS3) ||
+        (sb->version == 0x001D0000 && sb->platform == UBI_WII)) {
         config_sb_entry(sb, 0x5c, 0x80);
         sb->cfg.audio_interleave = 0x10;
         sb->cfg.audio_fix_psx_samples = 1;

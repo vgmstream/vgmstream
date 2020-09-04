@@ -369,6 +369,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\sab_streamfile.h"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\sfh_streamfile.h"
                     >
                 </File>
