@@ -26,7 +26,7 @@ static const hcakey_info hcakey_list[] = {
 
         // Phantasy Star Online 2 (multi?)
         // used by most console games
-        {0xCC55463930DBE1AB},       // CC55463930DBE1AB / 14723751768204501419
+        {14723751768204501419u},    // CC55463930DBE1AB
 
         // Old Phantasy Star Online 2 (multi?)
         {61891147883431481},        // 30DBE1ABCC554639
@@ -103,7 +103,7 @@ static const hcakey_info hcakey_list[] = {
         {8910},                     // 00000000000022CE
 
         // Tokyo 7th Sisters (iOS/Android) *unconfirmed
-        {0xFDAE531AAB414BA1},       // FDAE531AAB414BA1
+        {18279639311550860193u},    // FDAE531AAB414BA1
 
         // One Piece Dance Battle (iOS/Android)
         {1905818},                  // 00000000001D149A
@@ -118,7 +118,7 @@ static const hcakey_info hcakey_list[] = {
         {4867249871962584729},      // 438BF1F883653699
 
         // Tekken Mobile (iOS/Android)
-        {0xFFFFFFFFFFFFFFFF},       // FFFFFFFFFFFFFFFF / 18446744073709551615
+        {18446744073709551615u},    // FFFFFFFFFFFFFFFF
 
         // Tales of the Rays (iOS/Android)
         {9516284},                  // 00000000009134FC
@@ -136,7 +136,7 @@ static const hcakey_info hcakey_list[] = {
         {1224},                     // 00000000000004C8
 
         // Schoolgirl Strikers ~Twinkle Melodies~ (iOS/Android)
-        {0xDB5B61B8343D0000},       // DB5B61B8343D0000
+        {15806334760965177344u},    // DB5B61B8343D0000
 
         // Bad Apple Wars (PSVita)
         {241352432},                // 000000000E62BEF0
@@ -163,7 +163,7 @@ static const hcakey_info hcakey_list[] = {
         {11708691},                 // 0000000000B2A913
 
         // Monster Gear Versus (iOS/Android)
-        {0xB1E30F346415B475},       // B1E30F346415B475
+        {12818105682118423669u},    // B1E30F346415B475
 
         // Yumeiro Cast (iOS/Android)
         {14418},                    // 0000000000003852
@@ -172,13 +172,13 @@ static const hcakey_info hcakey_list[] = {
         {1000},                     // 00000000000003E8
 
         // Zero kara Hajimeru Mahou no Sho (iOS/Android)
-        {0xD2E836E662F20000},       // D2E836E662F20000
+        {15197457305692143616u},    // D2E836E662F20000
 
         // Soul Reverse Zero (iOS/Android)
         {2873513618},               // 00000000AB465692
 
         // Jojo's Bizarre Adventure: Diamond Records (iOS/Android) [additional data]
-        {0x820212864CAB35DE},       // 820212864CAB35DE
+        {9368070542905259486u},     // 820212864CAB35DE
 
         // HUNTER x HUNTER: World Hunt (iOS/Android)
         {71777214294589695},        // 00FF00FF00FF00FF
@@ -317,7 +317,7 @@ static const hcakey_info hcakey_list[] = {
         {3957325206121219506},      // 36EB3E4EE38E05B2
 
         /* Idola: Phantasy Star Saga (Android) */
-        {0xA86BF72B4C852CA7},       // A86BF72B4C852CA7 / 12136065386219383975
+        {12136065386219383975u},    // A86BF72B4C852CA7
 
         /* Arca Last (Android) */
         {612310807},                // 00000000247F1F17
@@ -329,7 +329,7 @@ static const hcakey_info hcakey_list[] = {
         {3315495188},               // 00000000C59E7114
 
         /* Inazuma Eleven SD (Android) */
-        {0xC436E03737D55B5F},       // C436E03737D55B5F / 14138734607940803423
+        {14138734607940803423u},    // C436E03737D55B5F
 
         /* Detective Conan Runner / Case Closed Runner (Android) */
         {1175268187653273344},      // 104f643098e3f700
@@ -347,10 +347,10 @@ static const hcakey_info hcakey_list[] = {
         {2897314143465725881},      // 283553DCE3FD5FB9
 
         /* Alice Re:Code (Android) */
-        {0x82C3C951C561F736},       // 9422596198430275382 / 82C3C951C561F736
+        {9422596198430275382u},     // 82C3C951C561F736
 
         /* Tokyo 7th Sisters (Android) */
-        {0xFDAE531AAB414BA1},       // FDAE531AAB414BA1 / 18279639311550860193
+        {18279639311550860193u},    // FDAE531AAB414BA1
 
         /* High School Fleet: Kantai Battle de Pinch! (Mobile) */
         {43472919336422565},        // 009A7263CA658CA5
@@ -359,10 +359,13 @@ static const hcakey_info hcakey_list[] = {
         {2895000877},               // 00000000AC8E352D 
 
         /* B-PROJECT Kaikan Everyday (Android) */
-        {0xAAED297DDEF1D9F6},       // AAED297DDEF1D9F6 / 12316546176516217334
+        {12316546176516217334u},    // AAED297DDEF1D9F6
 
         /* HELIOS Rising Heroes (Android) */
         {311981570940334162},       // 04546195F85DF052
+
+        /* World Ends's Club (iOS) */
+        {50979632184989243},        // 00B51DB4932A963B
 
         /* Dragalia Lost (iOS/Android) */
         {2967411924141,         subkeys_dgl, sizeof(subkeys_dgl) / sizeof(subkeys_dgl[0]) },    // 000002B2E7889CAD
