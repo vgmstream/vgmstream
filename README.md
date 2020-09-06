@@ -69,7 +69,7 @@ With files multiple subsongs you need to specify manually subsong (by design, to
 massive data dumps since some formats have hundred of subsongs), but you could do
 some command line tricks:
 ```
-REM extracts from subsong 5 to 10 in file.fsb
+: REM extracts from subsong 5 to 10 in file.fsb
 for /L %A in (5,1,10) do  test.exe -s %A -o file_%A.wav file.fsb
 ```
 
