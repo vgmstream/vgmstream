@@ -49,6 +49,7 @@ struct deblock_io_data {
     off_t block_size;       /* current block (added to physical offset) */
     off_t skip_size;        /* data to skip from block start to reach data (like a header) */
     off_t data_size;        /* usable data in a block (added to logical offset) */
+    off_t chunk_size;       /* current super-block size (for complex blocks, handled manually) */
 
     int step_count;         /* number of blocks to step over */
     //int read_count;         /* number of blocks to read */

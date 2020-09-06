@@ -3,15 +3,15 @@
 #include "../coding/coding.h"
 #include "mul_streamfile.h"
 
-typedef enum { PSX, DSP, IMA, XMA1 } mul_codec;
+typedef enum { PSX, DSP, IMA, XMA1, FSB4 } mul_codec;
 
-static int guess_codec(STREAMFILE* sf, int big_endian, int channels, mul_codec* p_codec, off_t* p_extra_offset);
-
-static layered_layout_data* build_layered_mul(STREAMFILE *sf_data, int big_endian, VGMSTREAM* vgmstream);
+static off_t get_start_offset(STREAMFILE* sf);
+static int guess_codec(STREAMFILE* sf, off_t start_offset, int big_endian, int channels, mul_codec* p_codec, off_t* p_extra_offset);
+static layered_layout_data* build_layered_mul(STREAMFILE* sf, off_t offset, int big_endian, VGMSTREAM* vgmstream, mul_codec codec);
 
 /* .MUL - from Crystal Dynamics games [Legacy of Kain: Defiance (PS2), Tomb Raider Underworld (multi)] */
-VGMSTREAM * init_vgmstream_mul(STREAMFILE *sf) {
-    VGMSTREAM * vgmstream = NULL;
+VGMSTREAM* init_vgmstream_mul(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
     off_t start_offset, coefs_offset = 0;
     int loop_flag, channel_count, sample_rate, num_samples, loop_start;
     int big_endian;
@@ -48,21 +48,23 @@ VGMSTREAM * init_vgmstream_mul(STREAMFILE *sf) {
     /* 0x34: id? */
     /* 0x38+: channel config until ~0x100? (multiple 0x3F800000 / 1.0f depending on the number of channels) */
 
-    /* test known versions (later versions start from 0x24 instead of 0x20) */
-    if (!(read_u32(0x38,sf) == 0x3F800000 ||
+    /* test known "version" (some float) later versions start from 0x24 instead of 0x20 */
+    if (!((read_u32(0x38,sf) == 0x3F800000 && read_u32(0x38,sf) != 0x4530F000) || /* Avengers */
           read_u32(0x3c,sf) == 0x3F800000))   /* Tomb Raider Underworld */
         goto fail;
 
     loop_flag = (loop_start >= 0); /* 0xFFFFFFFF when not looping */
-    start_offset = 0x800;
+
+    start_offset = get_start_offset(sf);
+    if (!start_offset) goto fail;
 
     /* format is pretty limited so we need to guess codec */
-    if (!guess_codec(sf, big_endian, channel_count, &codec, &coefs_offset))
+    if (!guess_codec(sf, start_offset, big_endian, channel_count, &codec, &coefs_offset))
         goto fail;
 
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    vgmstream = allocate_vgmstream(channel_count, loop_flag);
     if (!vgmstream) goto fail;
 
     vgmstream->meta_type = meta_MUL;
@@ -91,16 +93,13 @@ VGMSTREAM * init_vgmstream_mul(STREAMFILE *sf) {
             vgmstream->layout_type = layout_blocked_mul;
             break;
 
-#ifdef VGM_USE_FFMPEG
-        case XMA1: {
-
-            vgmstream->layout_data = build_layered_mul(sf, big_endian, vgmstream);
+        case XMA1:
+        case FSB4:
+            vgmstream->layout_data = build_layered_mul(sf, start_offset, big_endian, vgmstream, codec);
             if (!vgmstream->layout_data) goto fail;
-            vgmstream->coding_type = coding_FFmpeg;
+            //vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_layered;
             break;
-        }
-#endif
 
         default:
             goto fail;
@@ -115,7 +114,19 @@ fail:
     return NULL;
 }
 
-static int guess_codec(STREAMFILE* sf, int big_endian, int channels, mul_codec* p_codec, off_t* p_extra_offset) {
+static off_t get_start_offset(STREAMFILE* sf) {
+
+    /* find first block with header info */
+    if (read_u32be(0x0800,sf) != 0 || read_u32be(0x0804,sf) != 0) /* earlier games */
+        return 0x800;
+
+    if (read_u32be(0x2000,sf) != 0 || read_u32be(0x2004,sf) != 0) /* later games */
+        return 0x2000;
+
+    return 0;
+}
+
+static int guess_codec(STREAMFILE* sf, off_t start_offset, int big_endian, int channels, mul_codec* p_codec, off_t* p_extra_offset) {
     uint32_t (*read_u32)(off_t,STREAMFILE*);
 
     read_u32 = big_endian ? read_u32be : read_u32le;
@@ -141,14 +152,11 @@ static int guess_codec(STREAMFILE* sf, int big_endian, int channels, mul_codec* 
         else { //if (ps_check_format(sf, 0x820, 0x100)) {
             /* may be PS3/X360, tested below [Tomb Raider 7 (PS3)] */
         }
-
-        // todo test XMA1 (X360): N mono streams (layered), each block has 1 sub-blocks of 0x800 packet per channel
     }
-
 
     {
         int i;
-        off_t offset = 0x800;
+        off_t offset = start_offset;
         size_t file_size = get_streamfile_size(sf);
         size_t frame_size;
 
@@ -161,6 +169,12 @@ static int guess_codec(STREAMFILE* sf, int big_endian, int channels, mul_codec* 
             if (block_type != 0x00) {
                 offset += 0x10 + block_size;
                 continue; /* not audio */
+            }
+
+            /* test FSB4 header */
+            if (read_u32be(offset + 0x10, sf) == 0x46534234 || read_u32be(offset + 0x20, sf) == 0x46534234) {
+                *p_codec = FSB4;
+                return 1;
             }
 
             /* test XMA1 (X360): has sub-blocks of 0x800 per channel */
@@ -207,8 +221,8 @@ static int guess_codec(STREAMFILE* sf, int big_endian, int channels, mul_codec* 
 }
 
 
-/* MUL contain one XMA1 streams per channel so we need the usual voodoo */
-static layered_layout_data* build_layered_mul(STREAMFILE *sf_data, int big_endian, VGMSTREAM* vgmstream) {
+/* MUL contain one XMA1/FSB streams per channel so we need the usual voodoo */
+static layered_layout_data* build_layered_mul(STREAMFILE* sf, off_t offset, int big_endian, VGMSTREAM* vgmstream, mul_codec codec) {
     layered_layout_data* data = NULL;
     STREAMFILE* temp_sf = NULL;
     int i, layers = vgmstream->channels;
@@ -219,47 +233,60 @@ static layered_layout_data* build_layered_mul(STREAMFILE *sf_data, int big_endia
     if (!data) goto fail;
 
     for (i = 0; i < layers; i++) {
-        int layer_channels = 1;
 
-
-        /* build the layer VGMSTREAM */
-        data->layers[i] = allocate_vgmstream(layer_channels, 0);
-        if (!data->layers[i]) goto fail;
-
-        data->layers[i]->sample_rate = vgmstream->sample_rate;
-        data->layers[i]->num_samples = vgmstream->num_samples;
-
+        switch(codec) {
 #ifdef VGM_USE_FFMPEG
-        {
-            uint8_t buf[0x100];
-            int bytes;
-            size_t stream_size;
+            case XMA1: {
+                uint8_t buf[0x100];
+                int bytes;
+                size_t stream_size;
+                int layer_channels = 1;
 
-            temp_sf = setup_mul_streamfile(sf_data, big_endian, i, layers);
-            if (!temp_sf) goto fail;
+                temp_sf = setup_mul_streamfile(sf, offset, big_endian, i, layers, NULL);
+                if (!temp_sf) goto fail;
 
-            stream_size = get_streamfile_size(temp_sf);
+                stream_size = get_streamfile_size(temp_sf);
 
-            bytes = ffmpeg_make_riff_xma1(buf, 0x100, data->layers[i]->num_samples, stream_size, data->layers[i]->channels, data->layers[i]->sample_rate, 0);
-            data->layers[i]->codec_data = init_ffmpeg_header_offset(temp_sf, buf,bytes, 0x00, stream_size);
-            if (!data->layers[i]->codec_data) goto fail;
+                /* build the layer VGMSTREAM */
+                data->layers[i] = allocate_vgmstream(layer_channels, 0);
+                if (!data->layers[i]) goto fail;
 
-            data->layers[i]->coding_type = coding_FFmpeg;
-            data->layers[i]->layout_type = layout_none;
-            data->layers[i]->stream_size = stream_size;
+                data->layers[i]->sample_rate = vgmstream->sample_rate;
+                data->layers[i]->num_samples = vgmstream->num_samples;
 
-            xma_fix_raw_samples(data->layers[i], temp_sf, 0x00,stream_size, 0, 0,0); /* ? */
+                bytes = ffmpeg_make_riff_xma1(buf, 0x100, data->layers[i]->num_samples, stream_size, data->layers[i]->channels, data->layers[i]->sample_rate, 0);
+                data->layers[i]->codec_data = init_ffmpeg_header_offset(temp_sf, buf,bytes, 0x00, stream_size);
+                if (!data->layers[i]->codec_data) goto fail;
 
-            close_streamfile(temp_sf);
-            temp_sf = NULL;
-        }
-#else
-    goto fail;
+                data->layers[i]->coding_type = coding_FFmpeg;
+                data->layers[i]->layout_type = layout_none;
+                data->layers[i]->stream_size = stream_size;
+
+                xma_fix_raw_samples(data->layers[i], temp_sf, 0x00,stream_size, 0, 0,0); /* ? */
+                break;
+            }
 #endif
+            case FSB4: { /* FSB4 w/ mono MP3 [Tomb Raider 8 (PS3), Avengers (PC)] */
+                temp_sf = setup_mul_streamfile(sf, offset, big_endian, i, layers, "fsb");
+                if (!temp_sf) goto fail;
+
+                data->layers[i] = init_vgmstream_fsb(temp_sf);
+                if (!data->layers[i]) goto fail;
+                break;
+            }
+
+            default:
+                goto fail;
+        }
+
+        close_streamfile(temp_sf);
+        temp_sf = NULL;
     }
 
     if (!setup_layout_layered(data))
         goto fail;
+
+    vgmstream->coding_type = data->layers[0]->coding_type;
     return data;
 
 fail:
