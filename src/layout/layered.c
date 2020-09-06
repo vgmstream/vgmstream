@@ -95,6 +95,10 @@ void loop_layout_layered(VGMSTREAM* vgmstream, int32_t loop_sample) {
                 data->layers[layer]->current_sample = data->layers[layer]->loop_end_sample; /* forces do loop */
                 vgmstream_do_loop(data->layers[layer]); /* guaranteed to work should loop_layout be called */
             }
+            else {
+                /* needed when mixing non-looping layers and installing loop externally */
+                seek_vgmstream(data->layers[layer], loop_sample);
+            }
         }
     }
 

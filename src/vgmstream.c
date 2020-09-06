@@ -796,6 +796,12 @@ void close_vgmstream(VGMSTREAM* vgmstream) {
 void vgmstream_force_loop(VGMSTREAM* vgmstream, int loop_flag, int loop_start_sample, int loop_end_sample) {
     if (!vgmstream) return;
 
+	/* ignore bad values (may happen with layers + TXTP loop install) */
+    if (loop_flag && (loop_start_sample < 0 ||
+            loop_start_sample > loop_end_sample ||
+            loop_end_sample > vgmstream->num_samples))
+        return;
+
     /* this requires a bit more messing with the VGMSTREAM than I'm comfortable with... */
     if (loop_flag && !vgmstream->loop_flag && !vgmstream->loop_ch) {
         vgmstream->loop_ch = calloc(vgmstream->channels, sizeof(VGMSTREAMCHANNEL));
