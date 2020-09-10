@@ -439,6 +439,7 @@ VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, ov_callb
 
             if (strstr(comment,"loop_start=") == comment || /* PSO4 */
                 strstr(comment,"LOOP_START=") == comment || /* PSO4 */
+                strstr(comment,"LOOPPOINT=") == comment || /* Sonic Robo Blast 2 */
                 strstr(comment,"COMMENT=LOOPPOINT=") == comment ||
                 strstr(comment,"LOOPSTART=") == comment ||
                 strstr(comment,"um3.stream.looppoint.start=") == comment ||
