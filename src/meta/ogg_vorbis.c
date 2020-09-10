@@ -431,6 +431,9 @@ VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, ov_callb
     data = init_ogg_vorbis(streamFile, start, stream_size, &io);
     if (!data) goto fail;
 
+    ogg_vorbis_get_info(data, &channels, &sample_rate);
+    ogg_vorbis_get_samples(data, &num_samples); /* let libvorbisfile find total samples */
+
     /* search for loop comments */
     {//todo ignore if loop flag already set?
         const char * comment = NULL;
@@ -439,6 +442,7 @@ VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, ov_callb
 
             if (strstr(comment,"loop_start=") == comment || /* PSO4 */
                 strstr(comment,"LOOP_START=") == comment || /* PSO4 */
+                strstr(comment,"LOOPPOINT=") == comment || /* Sonic Robo Blast 2 */
                 strstr(comment,"COMMENT=LOOPPOINT=") == comment ||
                 strstr(comment,"LOOPSTART=") == comment ||
                 strstr(comment,"um3.stream.looppoint.start=") == comment ||
@@ -513,6 +517,12 @@ VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, ov_callb
                     loop_end_found = 1;
                 }
             }
+            else if (strstr(comment,"LOOPMS=") == comment) { /* Sonic Robo Blast 2 */
+                /* Convert from milliseconds to samples. */
+                /* (x ms) * (y samples/s) / (1000 ms/s) */
+                loop_start = atol(strrchr(comment,'=')+1) * sample_rate / 1000;
+                loop_flag = (loop_start >= 0);
+            }
 
             /* Hatsune Miku Project DIVA games, though only 'Arcade Future Tone' has >4ch files
              * ENCODER tag is common but ogg_vorbis_encode looks unique enough
@@ -530,8 +540,6 @@ VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, ov_callb
     }
 
     ogg_vorbis_set_disable_reordering(data, disable_reordering);
-    ogg_vorbis_get_info(data, &channels, &sample_rate);
-    ogg_vorbis_get_samples(data, &num_samples); /* let libvorbisfile find total samples */
 
 
     /* build the VGMSTREAM */
