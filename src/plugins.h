@@ -68,6 +68,15 @@ int vgmstream_get_play_forever(VGMSTREAM* vgmstream);
 void vgmstream_set_play_forever(VGMSTREAM* vgmstream, int enabled);
 
 
+typedef struct {
+    int force_title;
+    int subsong_range;
+} vgmstream_title_t;
+
+/* get a simple title for plugins */
+void vgmstream_get_title(char* buf, int buf_len, const char* filename, VGMSTREAM* vgmstream, vgmstream_title_t* cfg);
+
+
 
 #if 0
 //possible future public/opaque API

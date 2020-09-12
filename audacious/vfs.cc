@@ -3,7 +3,9 @@
 
 #include <libaudcore/plugin.h>
 
+extern "C" {
 #include "../src/vgmstream.h"
+}
 #include "plugin.h"
 #include "vfs.h"
 
@@ -19,7 +21,7 @@ static STREAMFILE *open_vfs_by_VFSFILE(VFSFile *file, const char *path);
 static size_t read_vfs(VFS_STREAMFILE *streamfile, uint8_t *dest, off_t offset, size_t length) {
     size_t bytes_read;
 
-    if (!dest || length <= 0 || offset < 0)
+    if (/*!streamfile->vfsFile ||*/ !dest || length <= 0 || offset < 0)
         return 0;
 
     // if the offsets don't match, then we need to perform a seek
@@ -36,11 +38,14 @@ static size_t read_vfs(VFS_STREAMFILE *streamfile, uint8_t *dest, off_t offset, 
 }
 
 static void close_vfs(VFS_STREAMFILE *streamfile) {
+    //if (streamfile->vfsFile)
     delete streamfile->vfsFile; //fcloses the internal file too
     free(streamfile);
 }
 
 static size_t get_size_vfs(VFS_STREAMFILE *streamfile) {
+    //if (!streamfile->vfsFile)
+    //    return 0;
     return streamfile->vfsFile->fsize();
 }
 
@@ -100,5 +105,16 @@ STREAMFILE *open_vfs(const char *path) {
         return NULL;
     }
 
+#if 0 // files that don't exist seem blocked by probe.cc before reaching here
+    bool infile_exists = vfsFile && *vfsFile;
+    if (!infile_exists) {
+        /* allow non-existing files in some cases */
+        if (!vgmstream_is_virtual_filename(path)) {
+            delete vfsFile;
+            return NULL;
+        }
+        vfsFile = NULL;
+    }
+#endif
     return open_vfs_by_VFSFILE(vfsFile, path);
 }

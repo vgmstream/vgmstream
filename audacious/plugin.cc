@@ -36,6 +36,8 @@ extern "C" {
 /*EXPORT*/ VgmstreamPlugin aud_plugin_instance;
 audacious_settings_t settings;
 
+static const char* tagfile_name = "!tags.m3u";
+
 /* Audacious will first send the file to a plugin based on this static extension list. If none
  * accepts it'll try again all plugins, ordered by priority, until one accepts the file. Problem is,
  * mpg123 plugin has higher priority and tendency to accept files that aren't even MP3. To fix this
@@ -56,6 +58,7 @@ const char *const VgmstreamPlugin::defaults[] = {
     "downmix_channels", "2",
     "exts_unknown_on",  "FALSE",
     "exts_common_on",   "FALSE",
+    "tagfile_disable",   "FALSE",
     NULL
 };
 
@@ -81,10 +84,11 @@ const PreferencesWidget VgmstreamPlugin::widgets[] = {
     WidgetSpin(N_("Fade length:"), WidgetFloat(settings.fade_time), {0, 60, 0.1}),
     WidgetSpin(N_("Fade delay:"), WidgetFloat(settings.fade_delay), {0, 60, 0.1}),
     WidgetSpin(N_("Downmix:"), WidgetInt(settings.downmix_channels), {0, 8, 1}),
-    WidgetCheck(N_("Enable unknown exts"), WidgetBool(settings.exts_unknown_on)),
+    WidgetCheck(N_("Enable unknown exts:"), WidgetBool(settings.exts_unknown_on)),
     // Audacious 3.6 will only match one plugin so this option has no actual use
     // (ex. a fake .flac only gets to the FLAC plugin and never to vgmstream, even on error)
     //WidgetCheck(N_("Enable common exts"), WidgetBool(settings.exts_common_on)),
+    WidgetCheck(N_("Disable tagfile:"), WidgetBool(settings.tagfile_disable)),
 };
 
 void vgmstream_settings_load() {
@@ -143,18 +147,25 @@ void VgmstreamPlugin::cleanup() {
     vgmstream_settings_save();
 }
 
-#if 0
-static int get_filename_subtune(const char* filename) {
+static int get_basename_subtune(const char* filename, char* buf, int buf_len, int* p_subtune) {
     int subtune;
 
-    int pos = strstr("?"))
-    if (pos <= 0)
-        return -1;
-    if (sscanf(filename + pos, "%i", &subtune) != 1)
-        return -1;
-    return subtune;
+    const char* pos = strrchr(filename, '?');
+    if (!pos)
+        return 0;
+    if (sscanf(pos, "?%i", &subtune) != 1)
+        return 0;
+
+    if (p_subtune)
+        *p_subtune = subtune;
+
+    strncpy(buf, filename, buf_len);
+    char* pos2 = strrchr(buf, '?');
+    if (pos2) //removes '?'
+        pos2[0] = '\0';
+
+    return 1;
 }
-#endif
 
 static void apply_config(VGMSTREAM* vgmstream, audacious_settings_t* settings) {
     vgmstream_cfg_t vcfg = {0};
@@ -173,19 +184,19 @@ static void apply_config(VGMSTREAM* vgmstream, audacious_settings_t* settings) {
 static bool read_info(const char* filename, Tuple & tuple) {
     AUDINFO("read file=%s\n", filename);
 
-#if 0
-    //todo subsongs:
-    // in theory just set FlagSubtunes in plugin.h, and set_subtunes below
-    // Audacious will call "play" and this(?) with filename?N where N=subtune
-    // and you just load subtune N, but I can't get it working
-    int subtune;
-    string basename;
-    int subtune = get_filename_subtune(basename, &subtune);
-    //must use basename to open streamfile
-#endif
+    // Audacious first calls this as a regular file (use_subtune is 0). If file has subsongs,
+    // you need to detect and call set_subtunes below and return. Then Audacious will call again
+    // this and "play" with "filename?N" (where N=subtune, 1=first), that must be detected and handled
+    // (see plugin.h)
+    char basename[PATH_LIMIT]; //filename without '?'
+    int subtune = 0;
+    int use_subtune = get_basename_subtune(filename, basename, sizeof(basename), &subtune);
 
-    STREAMFILE* sf = open_vfs(filename);
+    STREAMFILE* sf = open_vfs(use_subtune ? basename : filename);
     if (!sf) return false;
+
+    if (use_subtune)
+        sf->stream_index = subtune;
 
     VGMSTREAM* infostream = init_vgmstream_from_STREAMFILE(sf);
     if (!infostream) {
@@ -193,21 +204,21 @@ static bool read_info(const char* filename, Tuple & tuple) {
         return false;
     }
 
-#if 0
+
     int total_subtunes = infostream->num_streams;
 
-    //somehow max was changed to short in recent versions, though
-    // some formats can exceed this
+    // int was changed to short in some version, though vgmstream formats can exceed it
     if (total_subtunes > 32767)
         total_subtunes = 32767;
-    if (infostream->num_streams > 1 && subtune <= 0) {
+    // format has subsongs but Audacious didn't ask for subsong yet
+    if (total_subtunes >= 1 && !use_subtune) {
         //set nullptr to leave subsong index linear (must add +1 to subtune)
         tuple.set_subtunes(total_subtunes, nullptr);
-        return true; //must return?
-    }
 
-    sf->stream_index = (subtune + 1);
-#endif
+        close_streamfile(sf);
+        close_vgmstream(infostream);
+        return true;
+    }
 
 
     apply_config(infostream, &settings);
@@ -229,13 +240,78 @@ static bool read_info(const char* filename, Tuple & tuple) {
 
     //todo here we could call describe_vgmstream() and get substring to add tags and stuff
     tuple.set_str(Tuple::Codec, "vgmstream codec");
-    //tuple.set_int(Tuple::Subtune, subtune);
-    //tuple.set_int(Tuple::NumSubtunes, subtune); //done un set_subtunes
+    if (use_subtune) {
+        tuple.set_int(Tuple::Subtune, subtune);
+        tuple.set_int(Tuple::NumSubtunes, infostream->num_streams);
 
-    //todo tags (see tuple.h)
-    //tuple.set_int (Tuple::Track, ...);
-    //tuple.set_str (Tuple::Artist, ...);
-    //tuple.set_str (Tuple::Album, ...);
+        char title[1024];
+        vgmstream_get_title(title, sizeof(title), basename, infostream, NULL);
+        tuple.set_str(Tuple::Title, title); //may be overwritten by tags
+    }
+
+
+    // this function is only called when files are added to playlist,
+    // so to reload tags files need to readded
+    if (!settings.tagfile_disable) {
+        //todo improve string functions
+        char tagfile_path[PATH_LIMIT];
+        strcpy(tagfile_path, filename);
+
+        char *path = strrchr(tagfile_path,'/');
+        if (path != NULL) {
+            path[1] = '\0';  /* includes "/", remove after that from tagfile_path */
+            strcat(tagfile_path,tagfile_name);
+        }
+        else { /* ??? */
+            strcpy(tagfile_path,tagfile_name);
+        }
+
+        STREAMFILE* sf_tags = open_vfs(tagfile_path);
+        if (sf_tags != NULL) {
+            VGMSTREAM_TAGS* tags;
+            const char *tag_key, *tag_val;
+
+            tags = vgmstream_tags_init(&tag_key, &tag_val);
+            vgmstream_tags_reset(tags, filename);
+            while (vgmstream_tags_next_tag(tags, sf_tags)) {
+                // see tuple.h (ugly but other plugins do it like this)
+                if (strcasecmp(tag_key, "ARTIST") == 0)
+                    tuple.set_str(Tuple::Artist, tag_val);
+                else if (strcasecmp(tag_key, "ALBUMARTIST") == 0)
+                    tuple.set_str(Tuple::AlbumArtist, tag_val);
+                else if (strcasecmp(tag_key, "TITLE") == 0)
+                    tuple.set_str(Tuple::Title, tag_val);
+                else if (strcasecmp(tag_key, "ALBUM") == 0)
+                    tuple.set_str(Tuple::Album, tag_val);
+                else if (strcasecmp(tag_key, "PERFORMER") == 0)
+                    tuple.set_str(Tuple::Performer, tag_val);
+                else if (strcasecmp(tag_key, "COMPOSER") == 0)
+                    tuple.set_str(Tuple::Composer, tag_val);
+                else if (strcasecmp(tag_key, "COMMENT") == 0)
+                    tuple.set_str(Tuple::Comment, tag_val);
+                else if (strcasecmp(tag_key, "GENRE") == 0)
+                    tuple.set_str(Tuple::Genre, tag_val);
+                else if (strcasecmp(tag_key, "TRACK") == 0)
+                    tuple.set_int(Tuple::Track, atoi(tag_val));
+                else if (strcasecmp(tag_key, "YEAR") == 0)
+                    tuple.set_int(Tuple::Year, atoi (tag_val));
+#if defined(_AUD_PLUGIN_VERSION) && _AUD_PLUGIN_VERSION >= 48 // Audacious 3.8+
+                else if (strcasecmp(tag_key, "REPLAYGAIN_TRACK_GAIN") == 0)
+                    tuple.set_gain(Tuple::TrackGain, Tuple::GainDivisor, tag_val);
+                else if (strcasecmp(tag_key, "REPLAYGAIN_TRACK_PEAK") == 0)
+                    tuple.set_gain(Tuple::TrackPeak, Tuple::PeakDivisor, tag_val);
+                else if (strcasecmp(tag_key, "REPLAYGAIN_ALBUM_GAIN") == 0)
+                    tuple.set_gain(Tuple::AlbumGain, Tuple::GainDivisor, tag_val);
+                else if (strcasecmp(tag_key, "REPLAYGAIN_ALBUM_PEAK") == 0)
+                    tuple.set_gain(Tuple::AlbumPeak, Tuple::PeakDivisor, tag_val);
+#endif
+            }
+
+            vgmstream_tags_close(tags);
+            close_streamfile(sf_tags);
+        }        
+    }
+
 
     close_streamfile(sf);
     close_vgmstream(infostream);
@@ -271,11 +347,19 @@ static void do_seek(VGMSTREAM* vgmstream, int seek_ms, int& current_sample_pos) 
 bool VgmstreamPlugin::play(const char * filename, VFSFile & file) {
     AUDINFO("play file=%s\n", filename);
 
-    STREAMFILE* sf = open_vfs(filename);
+    //handle subsongs (see read_info)
+    char basename[PATH_LIMIT]; //filename without '?'
+    int subtune = 0;
+    int use_subtune = get_basename_subtune(filename, basename, sizeof(basename), &subtune);
+
+    STREAMFILE* sf = open_vfs(use_subtune ? basename : filename);
     if (!sf) {
         AUDERR("failed opening file %s\n", filename);
         return false;
     }
+
+    if (use_subtune)
+        sf->stream_index = subtune;
 
     VGMSTREAM* vgmstream = init_vgmstream_from_STREAMFILE(sf);
     close_streamfile(sf);

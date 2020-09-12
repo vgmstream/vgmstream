@@ -65,6 +65,7 @@ static void usage(const char* name, int is_full) {
             "    -k N: seeks to N samples before decoding (for seek testing)\n"
             "    -K N: seeks again to N samples before decoding (for seek testing)\n"
             "    -t file: print tags found in file (for tag testing)\n"
+            "    -T: print title (for title testing)\n"
             "    -D <max channels>: downmix to <max channels> (for plugin downmix testing)\n"
             "    -O: decode but don't write to file (for performance testing)\n"
     );
@@ -100,6 +101,7 @@ typedef struct {
     int seek_samples1;
     int seek_samples2;
     int decode_only;
+    int show_title;
     int downmix_channels;
 
     /* not quite config but eh */
@@ -122,7 +124,7 @@ static int parse_config(cli_config* cfg, int argc, char** argv) {
     opterr = 0;
 
     /* read config */
-    while ((opt = getopt(argc, argv, "o:l:f:d:ipPcmxeLEFrgb2:s:t:k:K:hOvD:")) != -1) {
+    while ((opt = getopt(argc, argv, "o:l:f:d:ipPcmxeLEFrgb2:s:t:Tk:K:hOvD:")) != -1) {
         switch (opt) {
             case 'o':
                 cfg->outfilename = optarg;
@@ -184,6 +186,9 @@ static int parse_config(cli_config* cfg, int argc, char** argv) {
                 break;
             case 't':
                 cfg->tag_filename= optarg;
+                break;
+            case 'T':
+                cfg->show_title = 1;
                 break;
             case 'k':
                 cfg->seek_samples1 = atoi(optarg);
@@ -349,6 +354,17 @@ static void print_tags(cli_config* cfg) {
 
     vgmstream_tags_close(tags);
     close_streamfile(sf_tags);
+}
+
+static void print_title(VGMSTREAM* vgmstream, cli_config* cfg) {
+    char title[1024];
+
+    if (!cfg->show_title)
+        return;
+
+    vgmstream_get_title(title, sizeof(title), cfg->infilename, vgmstream, NULL);
+
+    printf("title: %s\n", title);
 }
 
 static void clean_filename(char* dst, int clean_paths) {
@@ -565,11 +581,10 @@ int main(int argc, char** argv) {
     }
 
 
-    /* print file info (or batch commands, depending on config) */
+    /* prints */
     print_info(vgmstream, &cfg);
-
-    /* print tags info */
     print_tags(&cfg);
+    print_title(vgmstream, &cfg);
 
     /* prints done */
     if (cfg.print_metaonly) {
