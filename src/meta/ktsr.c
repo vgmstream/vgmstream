@@ -290,6 +290,7 @@ static int parse_ktsr_subfile(ktsr_header* ktsr, STREAMFILE* sf, off_t offset) {
 
         case 0x38D0437D: /* external [Nioh (PC), Atelier Ryza (PC)] */
         case 0xDF92529F: /* external [Atelier Ryza (PC)] */
+        case 0x6422007C: /* external [Atelier Ryza (PC)] */
             /* 08 subtype? (ex. 0x522B86B9)
              * 0c channels
              * 10 ? (always 0x002706B8)
@@ -443,7 +444,6 @@ static void parse_longname(ktsr_header* ktsr, STREAMFILE* sf, uint32_t target_id
 
         offset += size;
     }
-
 }
 
 static int parse_ktsr(ktsr_header* ktsr, STREAMFILE* sf) {
@@ -481,6 +481,7 @@ static int parse_ktsr(ktsr_header* ktsr, STREAMFILE* sf) {
             case 0x6172DBA8: /* padding (empty) */
             case 0xBD888C36: /* config (floats, stream id, etc, may have extended name) */
             case 0xC9C48EC1: /* unknown (has some string inside like "boss") */
+            case 0xA9D23BF1: /* "state container", some kind of config/floats, witgh names like 'State_bgm01'..N */
                 break;
 
             case 0xC5CCCB70: /* sound (internal data or external stream) */
