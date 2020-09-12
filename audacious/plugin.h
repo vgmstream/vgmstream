@@ -29,7 +29,7 @@ public:
     };
 
     constexpr VgmstreamPlugin() : InputPlugin (info,
-            InputInfo() //InputInfo(FlagSubtunes)  // allow subsongs
+            InputInfo(FlagSubtunes) // allow subsongs
             .with_priority(AUDACIOUS_VGMSTREAM_PRIORITY)  // where 0=highest, 10=lowest (older) or 5 (newer)
             .with_exts(exts)) {}  // priority exts (accepted exts are still validated at runtime)
 
@@ -52,6 +52,7 @@ typedef struct {
     int downmix_channels;
     bool exts_unknown_on;
     bool exts_common_on;
+    bool tagfile_disable;
 } audacious_settings_t;
 
 extern audacious_settings_t settings;

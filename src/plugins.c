@@ -63,6 +63,58 @@ int vgmstream_ctx_is_valid(const char* filename, vgmstream_ctx_valid_cfg *cfg) {
     return 0;
 }
 
+void vgmstream_get_title(char* buf, int buf_len, const char* filename, VGMSTREAM* vgmstream, vgmstream_title_t* cfg) {
+    const char *pos;
+    char* pos2;
+    char temp[1024];
+
+
+    /* name without path */
+    pos = strrchr(filename, '\\');
+    if (!pos)
+        pos = strrchr(filename, '/');
+    if (!pos)
+        pos = filename;
+    else
+        pos++;
+    strncpy(buf, pos, buf_len);
+
+    /* name without extension */
+    pos2 = strrchr(buf, '.');
+    if (pos2)
+        pos2[0] = '\0';
+
+    {
+        const char* stream_name = vgmstream->stream_name;
+        int total_subsongs = vgmstream->num_streams;
+        int target_subsong = vgmstream->stream_index;
+        //int is_first = vgmstream->stream_index == 0;
+        //int is_txtp = ; //todo don't show number/name for txtp but show for mini-txtp
+        int show_name;
+
+        if (target_subsong == 0)
+            target_subsong = 1;
+
+        /* show number if file has more than 1 subsong */
+        if (total_subsongs > 1) {
+            if (cfg && cfg->subsong_range)
+                snprintf(temp, sizeof(temp), "%s#1~%i", buf, total_subsongs);
+            else
+                snprintf(temp, sizeof(temp), "%s#%i", buf, target_subsong);
+            strncpy(buf, temp, buf_len);
+        }
+
+        /* show name for some cases */
+        show_name = (total_subsongs > 0 && (!cfg || !cfg->subsong_range)) ||
+                (cfg && cfg->force_title);
+        if (stream_name[0] != '\0' && show_name) {
+            snprintf(temp, sizeof(temp), "%s (%s)", buf, stream_name);
+            strncpy(buf, temp, buf_len);
+        }
+    }
+}
+
+
 static void copy_time(int* dst_flag, int32_t* dst_time, double* dst_time_s, int* src_flag, int32_t* src_time, double* src_time_s) {
     if (!*src_flag)
         return;
