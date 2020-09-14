@@ -49,8 +49,9 @@ VGMSTREAM* init_vgmstream_mul(STREAMFILE* sf) {
     /* 0x38+: channel config until ~0x100? (multiple 0x3F800000 / 1.0f depending on the number of channels) */
 
     /* test known "version" (some float) later versions start from 0x24 instead of 0x20 */
-    if (!((read_u32(0x38,sf) == 0x3F800000 && read_u32(0x38,sf) != 0x4530F000) || /* Avengers */
-          read_u32(0x3c,sf) == 0x3F800000))   /* Tomb Raider Underworld */
+    if (!(read_u32(0x38,sf) == 0x3F800000 ||    /* common */
+          read_u32(0x38,sf) == 0x4530F000 ||    /* Avengers */
+          read_u32(0x3c,sf) == 0x3F800000))     /* Tomb Raider Underworld */
         goto fail;
 
     loop_flag = (loop_start >= 0); /* 0xFFFFFFFF when not looping */
