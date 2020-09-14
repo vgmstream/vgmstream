@@ -113,8 +113,14 @@ VGMSTREAM* init_vgmstream_fsb5_fev_bank(STREAMFILE* sf) {
     temp_sf = setup_subfile_streamfile(sf, subfile_offset,subfile_size, "fsb");
     if (!temp_sf) goto fail;
 
-    vgmstream = init_vgmstream_fsb5(temp_sf);
-    close_streamfile(temp_sf);
+    if (read_u32be(0x00, temp_sf) == 0x46534235) {
+        vgmstream = init_vgmstream_fsb5(temp_sf);
+        close_streamfile(temp_sf);
+    }
+    else { //other flag?
+        vgmstream = init_vgmstream_fsb_encrypted(temp_sf);
+        close_streamfile(temp_sf);
+    }
 
     return vgmstream;
 
