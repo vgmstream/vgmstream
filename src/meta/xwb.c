@@ -75,40 +75,43 @@ typedef struct {
     int fix_xma_loop_samples;
 } xwb_header;
 
-static void get_name(char * buf, size_t maxsize, int target_subsong, xwb_header * xwb, STREAMFILE *streamFile);
+static void get_name(char* buf, size_t maxsize, int target_subsong, xwb_header* xwb, STREAMFILE* sf);
 
 
 /* XWB - XACT Wave Bank (Microsoft SDK format for XBOX/XBOX360/Windows) */
-VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
+VGMSTREAM* init_vgmstream_xwb(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
     off_t start_offset, offset, suboffset;
     xwb_header xwb = {0};
-    int target_subsong = streamFile->stream_index;
-    int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
+    int target_subsong = sf->stream_index;
+    uint32_t (*read_u32)(off_t,STREAMFILE*) = NULL;
+    int32_t (*read_s32)(off_t,STREAMFILE*) = NULL;
 
 
     /* checks */
     /* .xwb: standard
      * .xna: Touhou Makukasai ~ Fantasy Danmaku Festival (PC)
      * (extensionless): Ikaruga (X360/PC), Grabbed by the Ghoulies (Xbox) */
-    if (!check_extensions(streamFile,"xwb,xna,"))
+    if (!check_extensions(sf,"xwb,xna,"))
         goto fail;
-    if ((read_32bitBE(0x00,streamFile) != 0x57424E44) &&    /* "WBND" (LE) */
-        (read_32bitBE(0x00,streamFile) != 0x444E4257))      /* "DNBW" (BE) */
+    if ((read_u32be(0x00,sf) != 0x57424E44) &&    /* "WBND" (LE) */
+        (read_u32be(0x00,sf) != 0x444E4257))      /* "DNBW" (BE) */
         goto fail;
 
-    xwb.little_endian = read_32bitBE(0x00,streamFile) == 0x57424E44; /* WBND */
+    xwb.little_endian = read_u32be(0x00,sf) == 0x57424E44; /* WBND */
     if (xwb.little_endian) {
-        read_32bit = read_32bitLE;
+        read_u32 = read_u32le;
+        read_s32 = read_s32le;
     } else {
-        read_32bit = read_32bitBE;
+        read_u32 = read_u32be;
+        read_s32 = read_s32be;
     }
 
 
     /* read main header (WAVEBANKHEADER) */
-    xwb.version = read_32bit(0x04, streamFile); /* XACT3: 0x04=tool version, 0x08=header version */
+    xwb.version = read_u32(0x04, sf); /* XACT3: 0x04=tool version, 0x08=header version */
 
-    /* Crackdown 1 (X360), essentially XACT2 but may have split header in some cases */
+    /* Crackdown 1 (X360), essentially XACT2 but may have split header in some cases, compact entries change */
     if (xwb.version == XACT_CRACKDOWN) {
         xwb.version = XACT2_2_MAX;
         xwb.is_crackdown = 1;
@@ -116,15 +119,15 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
 
     /* read segment offsets (SEGIDX) */
     if (xwb.version <= XACT1_0_MAX) {
-        xwb.total_subsongs = read_32bit(0x0c, streamFile);
-        read_string(xwb.wavebank_name,0x10+1, 0x10, streamFile); /* null-terminated */
+        xwb.total_subsongs = read_s32(0x0c, sf);
+        read_string(xwb.wavebank_name,0x10+1, 0x10, sf); /* null-terminated */
         xwb.base_offset     = 0;
         xwb.base_size       = 0;
         xwb.entry_offset    = 0x50;
         xwb.entry_elem_size = 0x14;
         xwb.entry_size      = xwb.entry_elem_size * xwb.total_subsongs;
         xwb.data_offset     = xwb.entry_offset + xwb.entry_size;
-        xwb.data_size       = get_streamfile_size(streamFile) - xwb.data_offset;
+        xwb.data_size       = get_streamfile_size(sf) - xwb.data_offset;
 
         xwb.names_offset    = 0;
         xwb.names_size      = 0;
@@ -134,52 +137,52 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
     }
     else {
         offset = xwb.version <= XACT2_2_MAX ? 0x08 : 0x0c;
-        xwb.base_offset = read_32bit(offset+0x00, streamFile);//BANKDATA
-        xwb.base_size   = read_32bit(offset+0x04, streamFile);
-        xwb.entry_offset= read_32bit(offset+0x08, streamFile);//ENTRYMETADATA
-        xwb.entry_size  = read_32bit(offset+0x0c, streamFile);
+        xwb.base_offset = read_s32(offset+0x00, sf);//BANKDATA
+        xwb.base_size   = read_s32(offset+0x04, sf);
+        xwb.entry_offset= read_s32(offset+0x08, sf);//ENTRYMETADATA
+        xwb.entry_size  = read_s32(offset+0x0c, sf);
 
         /* read extra segments (values can be 0 == no segment) */
         if (xwb.version <= XACT1_1_MAX) {
-            xwb.names_offset    = read_32bit(offset+0x10, streamFile);//ENTRYNAMES
-            xwb.names_size      = read_32bit(offset+0x14, streamFile);
+            xwb.names_offset    = read_s32(offset+0x10, sf);//ENTRYNAMES
+            xwb.names_size      = read_s32(offset+0x14, sf);
             xwb.names_entry_size= 0x40;
             xwb.extra_offset    = 0;
             xwb.extra_size      = 0;
             suboffset = 0x04*2;
         }
         else if (xwb.version <= XACT2_1_MAX) {
-            xwb.names_offset    = read_32bit(offset+0x10, streamFile);//ENTRYNAMES
-            xwb.names_size      = read_32bit(offset+0x14, streamFile);
+            xwb.names_offset    = read_s32(offset+0x10, sf);//ENTRYNAMES
+            xwb.names_size      = read_s32(offset+0x14, sf);
             xwb.names_entry_size= 0x40;
-            xwb.extra_offset    = read_32bit(offset+0x18, streamFile);//EXTRA
-            xwb.extra_size      = read_32bit(offset+0x1c, streamFile);
+            xwb.extra_offset    = read_s32(offset+0x18, sf);//EXTRA
+            xwb.extra_size      = read_s32(offset+0x1c, sf);
             suboffset = 0x04*2 + 0x04*2;
         } else {
-            xwb.extra_offset    = read_32bit(offset+0x10, streamFile);//SEEKTABLES
-            xwb.extra_size      = read_32bit(offset+0x14, streamFile);
-            xwb.names_offset    = read_32bit(offset+0x18, streamFile);//ENTRYNAMES
-            xwb.names_size      = read_32bit(offset+0x1c, streamFile);
+            xwb.extra_offset    = read_s32(offset+0x10, sf);//SEEKTABLES
+            xwb.extra_size      = read_s32(offset+0x14, sf);
+            xwb.names_offset    = read_s32(offset+0x18, sf);//ENTRYNAMES
+            xwb.names_size      = read_s32(offset+0x1c, sf);
             xwb.names_entry_size= 0x40;
             suboffset = 0x04*2 + 0x04*2;
         }
 
-        xwb.data_offset = read_32bit(offset+0x10+suboffset, streamFile);//ENTRYWAVEDATA
-        xwb.data_size   = read_32bit(offset+0x14+suboffset, streamFile);
+        xwb.data_offset = read_s32(offset+0x10+suboffset, sf);//ENTRYWAVEDATA
+        xwb.data_size   = read_s32(offset+0x14+suboffset, sf);
 
         /* for Techland's XWB with no data */
         if (xwb.base_offset == 0) goto fail;
 
         /* read base entry (WAVEBANKDATA) */
         offset = xwb.base_offset;
-        xwb.base_flags = (uint32_t)read_32bit(offset+0x00, streamFile);
-        xwb.total_subsongs       = read_32bit(offset+0x04, streamFile);
-        read_string(xwb.wavebank_name,0x40+1, offset+0x08, streamFile); /* null-terminated */
+        xwb.base_flags = read_u32(offset+0x00, sf);
+        xwb.total_subsongs       = read_s32(offset+0x04, sf);
+        read_string(xwb.wavebank_name,0x40+1, offset+0x08, sf); /* null-terminated */
         suboffset = 0x08 + (xwb.version <= XACT1_1_MAX ? 0x10 : 0x40);
-        xwb.entry_elem_size = read_32bit(offset+suboffset+0x00, streamFile);
+        xwb.entry_elem_size = read_s32(offset+suboffset+0x00, sf);
         /* suboff+0x04: meta name entry size */
-        xwb.entry_alignment = read_32bit(offset+suboffset+0x08, streamFile); /* usually 1 dvd sector */
-        xwb.format          = read_32bit(offset+suboffset+0x0c, streamFile); /* compact mode only */
+        xwb.entry_alignment = read_s32(offset+suboffset+0x08, sf); /* usually 1 dvd sector */
+        xwb.format          = read_s32(offset+suboffset+0x0c, sf); /* compact mode only */
         /* suboff+0x10: build time 64b (XACT2/3) */
     }
 
@@ -192,20 +195,34 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
     /* read stream entry (WAVEBANKENTRY) */
     offset = xwb.entry_offset + (target_subsong-1) * xwb.entry_elem_size;
 
-    if (xwb.base_flags & WAVEBANK_FLAGS_COMPACT) { /* compact entry [NFL Fever 2004 demo from Amped 2 (Xbox)] */
+
+    if ((xwb.base_flags & WAVEBANK_FLAGS_COMPACT) && xwb.is_crackdown) {
+        /* mutant compact (w/ entry_elem_size=0x08) [Crackdown (X360)] */
+        uint32_t entry, size_sectors, sector_offset;
+
+        entry = read_u32(offset+0x00, sf);
+        size_sectors = ((entry >> 19) & 0x1FFF); /* 13b, exact size in sectors */
+        sector_offset = (entry & 0x7FFFF); /* 19b, offset within data in sectors */
+        xwb.stream_size = size_sectors * xwb.entry_alignment;
+        xwb.num_samples = read_u32(offset+0x04, sf);
+
+        xwb.stream_offset  = xwb.data_offset + sector_offset * xwb.entry_alignment;
+    }
+    else if (xwb.base_flags & WAVEBANK_FLAGS_COMPACT) {
+        /* compact entry [NFL Fever 2004 demo from Amped 2 (Xbox)] */
         uint32_t entry, size_deviation, sector_offset;
         off_t next_stream_offset;
 
-        entry = (uint32_t)read_32bit(offset+0x00, streamFile);
+        entry = read_u32(offset+0x00, sf);
         size_deviation = ((entry >> 21) & 0x7FF); /* 11b, padding data for sector alignment in bytes*/
         sector_offset = (entry & 0x1FFFFF); /* 21b, offset within data in sectors */
 
-        xwb.stream_offset  = xwb.data_offset + sector_offset*xwb.entry_alignment;
+        xwb.stream_offset  = xwb.data_offset + sector_offset * xwb.entry_alignment;
 
         /* find size using next offset */
         if (target_subsong < xwb.total_subsongs) {
-            uint32_t next_entry = (uint32_t)read_32bit(offset+0x04, streamFile);
-            next_stream_offset = xwb.data_offset + (next_entry & 0x1FFFFF)*xwb.entry_alignment;
+            uint32_t next_entry = read_u32(offset + xwb.entry_elem_size, sf);
+            next_stream_offset = xwb.data_offset + (next_entry & 0x1FFFFF) * xwb.entry_alignment;
         }
         else { /* for last entry (or first, when subsongs = 1) */
             next_stream_offset = xwb.data_offset + xwb.data_size;
@@ -213,31 +230,31 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
         xwb.stream_size = next_stream_offset - xwb.stream_offset - size_deviation;
     }
     else if (xwb.version <= XACT1_0_MAX) {
-        xwb.format          = (uint32_t)read_32bit(offset+0x00, streamFile);
-        xwb.stream_offset   = xwb.data_offset + (uint32_t)read_32bit(offset+0x04, streamFile);
-        xwb.stream_size     = (uint32_t)read_32bit(offset+0x08, streamFile);
+        xwb.format          = read_u32(offset+0x00, sf);
+        xwb.stream_offset   = xwb.data_offset + read_u32(offset+0x04, sf);
+        xwb.stream_size     = read_u32(offset+0x08, sf);
 
-        xwb.loop_start      = (uint32_t)read_32bit(offset+0x0c, streamFile);
-        xwb.loop_end        = (uint32_t)read_32bit(offset+0x10, streamFile);//length
+        xwb.loop_start      = read_u32(offset+0x0c, sf);
+        xwb.loop_end        = read_u32(offset+0x10, sf);//length
     }
     else {
-        uint32_t entry_info = (uint32_t)read_32bit(offset+0x00, streamFile);
+        uint32_t entry_info = read_u32(offset+0x00, sf);
         if (xwb.version <= XACT1_1_MAX) {
             xwb.entry_flags = entry_info;
         } else {
             xwb.entry_flags = (entry_info) & 0xF; /*4b*/
             xwb.num_samples = (entry_info >> 4) & 0x0FFFFFFF; /*28b*/
         }
-        xwb.format          = (uint32_t)read_32bit(offset+0x04, streamFile);
-        xwb.stream_offset   = xwb.data_offset + (uint32_t)read_32bit(offset+0x08, streamFile);
-        xwb.stream_size     = (uint32_t)read_32bit(offset+0x0c, streamFile);
+        xwb.format          = read_u32(offset+0x04, sf);
+        xwb.stream_offset   = xwb.data_offset + read_u32(offset+0x08, sf);
+        xwb.stream_size     = read_u32(offset+0x0c, sf);
 
         if (xwb.version <= XACT2_1_MAX) { /* LoopRegion (bytes) */
-            xwb.loop_start  = (uint32_t)read_32bit(offset+0x10, streamFile);
-            xwb.loop_end    = (uint32_t)read_32bit(offset+0x14, streamFile);//length (LoopRegion) or offset (XMALoopRegion in late XACT2)
+            xwb.loop_start  = read_u32(offset+0x10, sf);
+            xwb.loop_end    = read_u32(offset+0x14, sf);//length (LoopRegion) or offset (XMALoopRegion in late XACT2)
         } else { /* LoopRegion (samples) */
-            xwb.loop_start_sample   = (uint32_t)read_32bit(offset+0x10, streamFile);
-            xwb.loop_end_sample     = (uint32_t)read_32bit(offset+0x14, streamFile) + xwb.loop_start_sample;
+            xwb.loop_start_sample   = read_u32(offset+0x10, sf);
+            xwb.loop_end_sample     = read_u32(offset+0x14, sf) + xwb.loop_start_sample;
         }
     }
 
@@ -326,9 +343,9 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
     }
     else if (xwb.version == XACT3_0_MAX && xwb.codec == XMA2
             && xwb.bits_per_sample == 0x01 && xwb.block_align == 0x04
-            && read_32bitLE(xwb.stream_offset + 0x08, streamFile) == xwb.sample_rate /* DSP header */
-            && read_16bitLE(xwb.stream_offset + 0x0e, streamFile) == 0
-            && read_32bitLE(xwb.stream_offset + 0x18, streamFile) == 2
+            && read_u32le(xwb.stream_offset + 0x08, sf) == xwb.sample_rate /* DSP header */
+            && read_u16le(xwb.stream_offset + 0x0e, sf) == 0
+            && read_u32le(xwb.stream_offset + 0x18, sf) == 2
             /*&& xwb.data_size == 0x55951c1c*/) { /* some kind of id in Stardew Valley? */
         /* Stardew Valley (Switch), Skulls of the Shogun (Switch): full interleaved DSPs (including headers) */
         xwb.codec = DSP;
@@ -348,9 +365,9 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
     /* Oddworld OGG the data_size value is size of uncompressed bytes instead; DSP uses some id/config as value */
     if (xwb.codec != OGG && xwb.codec != DSP && xwb.codec != ATRAC9_RIFF) {
         /* some low-q rips don't remove padding, relax validation a bit */
-        if (xwb.data_offset + xwb.stream_size > get_streamfile_size(streamFile))
+        if (xwb.data_offset + xwb.stream_size > get_streamfile_size(sf))
             goto fail;
-        //if (xwb.data_offset + xwb.data_size > get_streamfile_size(streamFile)) /* badly split */
+        //if (xwb.data_offset + xwb.data_size > get_streamfile_size(sf)) /* badly split */
         //    goto fail;
     }
 
@@ -394,7 +411,7 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
         msd.loop_end_subframe    = ((xwb.loop_end >> 2) & 0x3) + 1; /* 2b */
         msd.loop_start_subframe  = ((xwb.loop_end >> 0) & 0x3) + 1; /* 2b */
 
-        xma_get_samples(&msd, streamFile);
+        xma_get_samples(&msd, sf);
         xwb.loop_start_sample = msd.loop_start_sample;
         xwb.loop_end_sample   = msd.loop_end_sample;
 
@@ -404,7 +421,7 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
 
         /* for XWB v22 (and below?) this seems normal [Project Gotham Racing (X360)] */
         if (xwb.num_samples == 0) {
-            xwb.num_samples   = msd.num_samples;
+            xwb.num_samples = msd.num_samples;
             xwb.fix_xma_num_samples = 1;
         }
     }
@@ -431,7 +448,7 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
     vgmstream->num_streams = xwb.total_subsongs;
     vgmstream->stream_size = xwb.stream_size;
     vgmstream->meta_type = meta_XWB;
-    get_name(vgmstream->stream_name,STREAM_NAME_SIZE, target_subsong, &xwb, streamFile);
+    get_name(vgmstream->stream_name,STREAM_NAME_SIZE, target_subsong, &xwb, sf);
 
     switch(xwb.codec) {
         case PCM: /* Unreal Championship (Xbox)[PCM8], KOF2003 (Xbox)[PCM16LE], Otomedius (X360)[PCM16BE] */
@@ -458,12 +475,12 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
             int bytes;
 
             bytes = ffmpeg_make_riff_xma1(buf,0x100, vgmstream->num_samples, xwb.stream_size, vgmstream->channels, vgmstream->sample_rate, 0);
-            vgmstream->codec_data = init_ffmpeg_header_offset(streamFile, buf,bytes, xwb.stream_offset,xwb.stream_size);
+            vgmstream->codec_data = init_ffmpeg_header_offset(sf, buf,bytes, xwb.stream_offset,xwb.stream_size);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
 
-            xma_fix_raw_samples(vgmstream, streamFile, xwb.stream_offset,xwb.stream_size, 0, xwb.fix_xma_num_samples,xwb.fix_xma_loop_samples);
+            xma_fix_raw_samples(vgmstream, sf, xwb.stream_offset,xwb.stream_size, 0, xwb.fix_xma_num_samples,xwb.fix_xma_loop_samples);
 
             /* this fixes some XMA1, perhaps the above isn't reading end_skip correctly (doesn't happen for all files though) */
             if (vgmstream->loop_flag &&
@@ -482,19 +499,19 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
             block_count = xwb.stream_size / block_size + (xwb.stream_size % block_size ? 1 : 0);
 
             bytes = ffmpeg_make_riff_xma2(buf,0x100, vgmstream->num_samples, xwb.stream_size, vgmstream->channels, vgmstream->sample_rate, block_count, block_size);
-            vgmstream->codec_data = init_ffmpeg_header_offset(streamFile, buf,bytes, xwb.stream_offset,xwb.stream_size);
+            vgmstream->codec_data = init_ffmpeg_header_offset(sf, buf,bytes, xwb.stream_offset,xwb.stream_size);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
 
-            xma_fix_raw_samples(vgmstream, streamFile, xwb.stream_offset,xwb.stream_size, 0, xwb.fix_xma_num_samples,xwb.fix_xma_loop_samples);
+            xma_fix_raw_samples(vgmstream, sf, xwb.stream_offset,xwb.stream_size, 0, xwb.fix_xma_num_samples,xwb.fix_xma_loop_samples);
             break;
         }
 
         case WMA: { /* WMAudio1 (WMA v2): Prince of Persia 2 port (Xbox) */
             ffmpeg_codec_data *ffmpeg_data = NULL;
 
-            ffmpeg_data = init_ffmpeg_offset(streamFile, xwb.stream_offset,xwb.stream_size);
+            ffmpeg_data = init_ffmpeg_offset(sf, xwb.stream_offset,xwb.stream_size);
             if ( !ffmpeg_data ) goto fail;
             vgmstream->codec_data = ffmpeg_data;
             vgmstream->coding_type = coding_FFmpeg;
@@ -520,7 +537,7 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
             wma_codec = xwb.bits_per_sample ? 0x162 : 0x161; /* 0=WMAudio2, 1=WMAudio3 */
 
             bytes = ffmpeg_make_riff_xwma(buf,0x100, wma_codec, xwb.stream_size, vgmstream->channels, vgmstream->sample_rate, avg_bps, block_align);
-            vgmstream->codec_data = init_ffmpeg_header_offset(streamFile, buf,bytes, xwb.stream_offset,xwb.stream_size);
+            vgmstream->codec_data = init_ffmpeg_header_offset(sf, buf,bytes, xwb.stream_offset,xwb.stream_size);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
@@ -534,7 +551,7 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
             encoder_delay = 1024; /* assumed */
             vgmstream->num_samples -= encoder_delay;
 
-            vgmstream->codec_data = init_ffmpeg_atrac3_raw(streamFile, xwb.stream_offset,xwb.stream_size, vgmstream->num_samples,vgmstream->channels,vgmstream->sample_rate, block_align, encoder_delay);
+            vgmstream->codec_data = init_ffmpeg_atrac3_raw(sf, xwb.stream_offset,xwb.stream_size, vgmstream->num_samples,vgmstream->channels,vgmstream->sample_rate, block_align, encoder_delay);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
@@ -543,7 +560,7 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
 #endif
 #ifdef VGM_USE_VORBIS
         case OGG: { /* Oddworld: Strangers Wrath (iOS/Android) extension */
-            vgmstream->codec_data = init_ogg_vorbis(streamFile, xwb.stream_offset, xwb.stream_size, NULL);
+            vgmstream->codec_data = init_ogg_vorbis(sf, xwb.stream_offset, xwb.stream_size, NULL);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_OGG_VORBIS;
             vgmstream->layout_type = layout_none;
@@ -556,8 +573,8 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = xwb.stream_size / xwb.channels;
 
-            dsp_read_coefs(vgmstream,streamFile,xwb.stream_offset + 0x1c,vgmstream->interleave_block_size,!xwb.little_endian);
-            dsp_read_hist (vgmstream,streamFile,xwb.stream_offset + 0x3c,vgmstream->interleave_block_size,!xwb.little_endian);
+            dsp_read_coefs(vgmstream,sf,xwb.stream_offset + 0x1c,vgmstream->interleave_block_size,!xwb.little_endian);
+            dsp_read_hist (vgmstream,sf,xwb.stream_offset + 0x3c,vgmstream->interleave_block_size,!xwb.little_endian);
             xwb.stream_offset += 0x60; /* skip DSP header */
             break;
         }
@@ -565,16 +582,16 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
 #ifdef VGM_USE_ATRAC9
         case ATRAC9_RIFF: { /* Stardew Valley (Vita) extension */
             VGMSTREAM *temp_vgmstream = NULL;
-            STREAMFILE *temp_streamFile = NULL;
+            STREAMFILE* temp_sf = NULL;
 
             /* standard RIFF, use subfile (seems doesn't use xwb loops) */
             VGM_ASSERT(xwb.loop_flag, "XWB: RIFF ATRAC9 loop flag found\n");
 
-            temp_streamFile = setup_subfile_streamfile(streamFile, xwb.stream_offset,xwb.stream_size, "at9");
-            if (!temp_streamFile) goto fail;
+            temp_sf = setup_subfile_streamfile(sf, xwb.stream_offset,xwb.stream_size, "at9");
+            if (!temp_sf) goto fail;
 
-            temp_vgmstream = init_vgmstream_riff(temp_streamFile);
-            close_streamfile(temp_streamFile);
+            temp_vgmstream = init_vgmstream_riff(temp_sf);
+            close_streamfile(temp_sf);
             if (!temp_vgmstream) goto fail;
 
             temp_vgmstream->num_streams = vgmstream->num_streams;
@@ -594,7 +611,7 @@ VGMSTREAM * init_vgmstream_xwb(STREAMFILE *streamFile) {
 
     start_offset = xwb.stream_offset;
 
-    if ( !vgmstream_open_stream(vgmstream,streamFile,start_offset) )
+    if ( !vgmstream_open_stream(vgmstream,sf,start_offset) )
         goto fail;
     return vgmstream;
 
@@ -605,13 +622,13 @@ fail:
 
 /* ****************************************************************************** */
 
-static int get_xwb_name(char * buf, size_t maxsize, int target_subsong, xwb_header * xwb, STREAMFILE *streamFile) {
+static int get_xwb_name(char* buf, size_t maxsize, int target_subsong, xwb_header* xwb, STREAMFILE* sf) {
     size_t read;
 
     if (!xwb->names_offset || !xwb->names_size || xwb->names_entry_size > maxsize)
         goto fail;
 
-    read = read_string(buf,xwb->names_entry_size, xwb->names_offset + xwb->names_entry_size*(target_subsong-1),streamFile);
+    read = read_string(buf,xwb->names_entry_size, xwb->names_offset + xwb->names_entry_size*(target_subsong-1),sf);
     if (read == 0) goto fail;
 
     return 1;
@@ -620,11 +637,11 @@ fail:
     return 0;
 }
 
-static int get_xsb_name(char * buf, size_t maxsize, int target_subsong, xwb_header * xwb, STREAMFILE *streamFile) {
+static int get_xsb_name(char* buf, size_t maxsize, int target_subsong, xwb_header* xwb, STREAMFILE* sf) {
     xsb_header xsb = {0};
 
     xsb.selected_stream = target_subsong - 1;
-    if (!parse_xsb(&xsb, streamFile, xwb->wavebank_name))
+    if (!parse_xsb(&xsb, sf, xwb->wavebank_name))
         goto fail;
 
     if ((xwb->version <= XACT1_1_MAX && xsb.version > XSB_XACT1_2_MAX) ||
@@ -649,12 +666,12 @@ static int get_wbh_name(char* buf, size_t maxsize, int target_subsong, xwb_heade
     int version, name_count;
     off_t offset, name_number;
 
-    if (read_32bitBE(0x00, sf) != 0x57424844) /* "WBHD" */
+    if (read_u32be(0x00, sf) != 0x57424844) /* "WBHD" */
         goto fail;
-    version     = read_32bitLE(0x04, sf);
+    version     = read_u32le(0x04, sf);
     if (version != 1)
         goto fail;
-    name_count  = read_32bitLE(0x08, sf);
+    name_count  = read_u32le(0x08, sf);
 
     if (selected_stream > name_count)
         goto fail;
@@ -682,19 +699,19 @@ fail:
     return 0;
 }
 
-static void get_name(char * buf, size_t maxsize, int target_subsong, xwb_header * xwb, STREAMFILE *streamXwb) {
-    STREAMFILE *sf_name = NULL;
+static void get_name(char* buf, size_t maxsize, int target_subsong, xwb_header* xwb, STREAMFILE* sf_xwb) {
+    STREAMFILE* sf_name = NULL;
     int name_found;
 
     /* try to get the stream name in the .xwb, though they are very rarely included */
-    name_found = get_xwb_name(buf, maxsize, target_subsong, xwb, streamXwb);
+    name_found = get_xwb_name(buf, maxsize, target_subsong, xwb, sf_xwb);
     if (name_found) return;
 
     /* try again in a companion files */
 
     if (xwb->version == 1) {
         /* .wbh, a simple name container */
-        sf_name = open_streamfile_by_ext(streamXwb, "wbh");
+        sf_name = open_streamfile_by_ext(sf_xwb, "wbh");
         if (!sf_name) return; /* rarely found [Pac-Man World 2 (Xbox)] */
 
         name_found = get_wbh_name(buf, maxsize, target_subsong, xwb, sf_name);
@@ -702,7 +719,7 @@ static void get_name(char * buf, size_t maxsize, int target_subsong, xwb_header 
     }
     else {
         /* .xsb, a comically complex cue format */
-        sf_name = open_xsb_filename_pair(streamXwb);
+        sf_name = open_xsb_filename_pair(sf_xwb);
         if (!sf_name) return; /* not all xwb have xsb though */
 
         name_found = get_xsb_name(buf, maxsize, target_subsong, xwb, sf_name);
