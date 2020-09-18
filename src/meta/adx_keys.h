@@ -196,6 +196,9 @@ static const adxkey_info adxkey8_list[] = {
         /* 428: Fuusasareta Shibuya de (PS3) */
         {0x52ff,0x649f,0x448f, "hj1kviaqqdzUacryoacwmscfvwtlfkVbbbqpqmzqnbile2euljywazejgyxxvqlf",0},
 
+        /* Mirai Nikki: 13-ninme no Nikki Shoyuusha Re-Write (PSP) */
+        {0x58a3,0x66f5,0x599f, "FDRW17th",0},
+
 };
 
 static const adxkey_info adxkey9_list[] = {
