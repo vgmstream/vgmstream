@@ -211,6 +211,8 @@ static void bruteforce_hca_key(STREAMFILE* sf, hca_codec_data* hca_data, unsigne
       //key = ((uint64_t)get_u32le(buf + pos + 0x00) << 32) | ((uint64_t)get_u32le(buf + pos + 0x04) << 0);
       //key = ((uint64_t)get_u32be(buf + pos + 0x00) << 0 ) | ((uint64_t)get_u32be(buf + pos + 0x04) << 32);
       //key = ((uint64_t)get_u32be(buf + pos + 0x00) << 32) | ((uint64_t)get_u32be(buf + pos + 0x04) << 0);
+      //key = ((uint64_t)get_u32le(buf + pos + 0x00) << 0 ) | 0; /* upper bytes not set, ex. P5 */
+      //key = ((uint64_t)get_u32be(buf + pos + 0x00) << 0 ) | 0; /* upper bytes not set, ex. P5 */
         if (key == 0)
             continue;
 
@@ -221,7 +223,8 @@ static void bruteforce_hca_key(STREAMFILE* sf, hca_codec_data* hca_data, unsigne
         VGM_ASSERT(pos % 0x100000 == 0, "HCA: pos %x...\n", pos);
 
         /* observed files have aligned keys in the .text section, change if needed */
-        pos += 0x04; //pos++;
+        pos += 0x04;
+        //pos++;
     }
 
 done:

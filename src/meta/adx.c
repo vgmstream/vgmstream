@@ -79,12 +79,14 @@ VGMSTREAM * init_vgmstream_adx(STREAMFILE *streamFile) {
             coding_type = coding_CRI_ADX_enc_8;
             version = 0x0400;
         }
+        VGM_ASSERT(version != 0x0400, "ADX: keystring not found\n");
     }
     else if (version == 0x0409) {
         if (find_adx_key(streamFile, 9, &xor_start, &xor_mult, &xor_add)) {
             coding_type = coding_CRI_ADX_enc_9;
             version = 0x0400;
         }
+        VGM_ASSERT(version != 0x0400, "ADX: keycode not found\n");
     }
 
     /* version + extra data */

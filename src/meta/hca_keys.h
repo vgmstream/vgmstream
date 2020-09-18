@@ -367,6 +367,12 @@ static const hcakey_info hcakey_list[] = {
         /* World Ends's Club (iOS) */
         {50979632184989243},        // 00B51DB4932A963B
 
+        /* Kandagawa Jet Girls (PC) */
+        {6235253715273671},         // 001626EE22C887C7
+
+        /* Re:Zero - Lost in Memories (Android) */
+        {1611432018519751642},      // 165CF4E2138F7BDA
+
         /* Dragalia Lost (iOS/Android) */
         {2967411924141,         subkeys_dgl, sizeof(subkeys_dgl) / sizeof(subkeys_dgl[0]) },    // 000002B2E7889CAD
 
