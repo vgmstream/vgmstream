@@ -579,7 +579,7 @@ fail:
 static VGMSTREAM* init_subfile(txth_header* txth) {
     VGMSTREAM* vgmstream = NULL;
     char extension[PATH_LIMIT];
-    STREAMFILE* streamSubfile = NULL;
+    STREAMFILE* sf_sub = NULL;
 
 
     if (txth->subfile_size == 0) {
@@ -604,10 +604,12 @@ static VGMSTREAM* init_subfile(txth_header* txth) {
     strcpy(extension, "subfile_txth.");
     strcat(extension, txth->subfile_extension);
 
-    streamSubfile = setup_subfile_streamfile(txth->sf_body, txth->subfile_offset, txth->subfile_size, extension);
-    if (!streamSubfile) goto fail;
+    sf_sub = setup_subfile_streamfile(txth->sf_body, txth->subfile_offset, txth->subfile_size, extension);
+    if (!sf_sub) goto fail;
 
-    vgmstream = init_vgmstream_from_STREAMFILE(streamSubfile);
+    sf_sub->stream_index = txth->sf->stream_index; /* in case of subfiles with subsongs */
+
+    vgmstream = init_vgmstream_from_STREAMFILE(sf_sub);
     if (!vgmstream) goto fail;
 
     /* apply some fields */
@@ -643,11 +645,11 @@ static VGMSTREAM* init_subfile(txth_header* txth) {
     //    txth->loop_flag = vgmstream->loop_flag;
 
 
-    close_streamfile(streamSubfile);
+    close_streamfile(sf_sub);
     return vgmstream;
 
 fail:
-    close_streamfile(streamSubfile);
+    close_streamfile(sf_sub);
     close_vgmstream(vgmstream);
     return NULL;
 }
