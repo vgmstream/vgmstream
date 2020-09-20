@@ -146,7 +146,7 @@ short sample_buffer[SAMPLE_BUFFER_SIZE*2 * VGMSTREAM_MAX_CHANNELS]; //todo maybe
 /* converts from utf16 to utf8 (if unicode is on) */
 static void wa_ichar_to_char(char *dst, size_t dstsize, const in_char *wsrc) {
 #ifdef UNICODE_INPUT_PLUGIN
-    /* converto to UTF8 codepage, default separate bytes, source wstr, wstr lenght,  */
+    /* converto to UTF8 codepage, default separate bytes, source wstr, wstr length */
     //int size_needed = WideCharToMultiByte(CP_UTF8,0, src,-1, NULL,0, NULL, NULL);
     WideCharToMultiByte(CP_UTF8,0, wsrc,-1, dst,dstsize, NULL, NULL);
 #else
@@ -1174,12 +1174,17 @@ void winamp_Stop() {
 
 /* get length in ms */
 int winamp_GetLength() {
+    if (!vgmstream)
+        return 0;
     return state.length_samples * 1000LL / vgmstream->sample_rate;
 }
 
 /* current output time in ms */
 int winamp_GetOutputTime() {
     int32_t pos_ms = state.decode_pos_ms;
+    /* for some reason this gets triggered hundred of times by non-classic skins when using subsongs */
+    if (!vgmstream)
+        return 0;
 
     /* pretend we have reached destination if called while seeking is on */
     if (state.seek_sample >= 0)
