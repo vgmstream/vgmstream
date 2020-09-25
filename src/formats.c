@@ -1129,7 +1129,7 @@ static const meta_info meta_info_list[] = {
         {meta_PS2_IAB,              "Runtime .IAB header"},
         {meta_VS_STR,               "Square .VS STR* header"},
         {meta_LSF_N1NJ4N,           ".lsf !n1nj4n header"},
-        {meta_VAWX,                 "feelplus VAWX header"},
+        {meta_XWAV,                 "feelplus XWAV header"},
         {meta_RAW_SNDS,             "PC .snds raw header"},
         {meta_PS2_WMUS,             "assumed The Warriors Sony ADPCM by .wmus extension"},
         {meta_HYPERSCAN_KVAG,       "Mattel Hyperscan KVAG"},

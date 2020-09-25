@@ -561,7 +561,7 @@ typedef enum {
     meta_PS2_IAB,           /* Ueki no Housoku - Taosu ze Robert Juudan!! (PS2) */
     meta_VS_STR,            /* The Bouncer */
     meta_LSF_N1NJ4N,        /* .lsf n1nj4n Fastlane Street Racing (iPhone) */
-    meta_VAWX,              /* feelplus: No More Heroes Heroes Paradise, Moon Diver */
+    meta_XWAV,
     meta_RAW_SNDS,
     meta_PS2_WMUS,          /* The Warriors (PS2) */
     meta_HYPERSCAN_KVAG,    /* Hyperscan KVAG/BVG */
