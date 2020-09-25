@@ -22,13 +22,13 @@ VGMSTREAM* init_vgmstream_ffmpeg(STREAMFILE* sf) {
     if (get_streamfile_size(sf) <= 0x1000)
         goto fail;
 
+    if (target_subsong == 0) target_subsong = 1;
 
     /* init ffmpeg */
-    data = init_ffmpeg_offset(sf, 0, get_streamfile_size(sf));
+    data = init_ffmpeg_header_offset_subsong(sf, NULL, 0, 0, get_streamfile_size(sf), target_subsong);
     if (!data) return NULL;
 
-    total_subsongs = data->streamCount;
-    if (target_subsong == 0) target_subsong = 1;
+    total_subsongs = data->streamCount; /* uncommon, ex. wmv [Lost Odyssey (X360)] */
     if (target_subsong < 0 || target_subsong > total_subsongs || total_subsongs < 1) goto fail;
 
     /* try to get .pos data */
