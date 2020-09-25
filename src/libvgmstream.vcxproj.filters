@@ -1744,6 +1744,9 @@
     <ClCompile Include="meta\xps.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\xse.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\x360_cxs.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>

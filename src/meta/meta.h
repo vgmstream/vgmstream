@@ -921,4 +921,7 @@ VGMSTREAM* init_vgmstream_dsb(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_bsf(STREAMFILE* sf);
 
+VGMSTREAM* init_vgmstream_xse_new(STREAMFILE* sf);
+VGMSTREAM* init_vgmstream_xse_old(STREAMFILE* sf);
+
 #endif /*_META_H*/

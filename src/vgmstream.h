@@ -738,6 +738,7 @@ typedef enum {
     meta_KAT,
     meta_PCM_SUCCESS,
     meta_ADP_KONAMI,
+    meta_SDRH,
 } meta_t;
 
 /* standard WAVEFORMATEXTENSIBLE speaker positions */

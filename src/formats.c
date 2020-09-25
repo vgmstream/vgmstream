@@ -588,6 +588,7 @@ static const char* extension_list[] = {
     "xmu",
     "xnb",
     "xsf",
+    "xse",
     "xsew",
     "xss",
     "xvag",
@@ -1309,6 +1310,7 @@ static const meta_info meta_info_list[] = {
         {meta_KAT,                  "Sega KAT header"},
         {meta_PCM_SUCCESS,          "Success PCM header"},
         {meta_ADP_KONAMI,           "Konami ADP header"},
+        {meta_SDRH,                 "feelplus SDRH header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {
