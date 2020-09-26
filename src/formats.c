@@ -588,6 +588,7 @@ static const char* extension_list[] = {
     "xmu",
     "xnb",
     "xsf",
+    "xse",
     "xsew",
     "xss",
     "xvag",
@@ -1129,7 +1130,7 @@ static const meta_info meta_info_list[] = {
         {meta_PS2_IAB,              "Runtime .IAB header"},
         {meta_VS_STR,               "Square .VS STR* header"},
         {meta_LSF_N1NJ4N,           ".lsf !n1nj4n header"},
-        {meta_VAWX,                 "feelplus VAWX header"},
+        {meta_XWAV,                 "feelplus XWAV header"},
         {meta_RAW_SNDS,             "PC .snds raw header"},
         {meta_PS2_WMUS,             "assumed The Warriors Sony ADPCM by .wmus extension"},
         {meta_HYPERSCAN_KVAG,       "Mattel Hyperscan KVAG"},
@@ -1309,6 +1310,7 @@ static const meta_info meta_info_list[] = {
         {meta_KAT,                  "Sega KAT header"},
         {meta_PCM_SUCCESS,          "Success PCM header"},
         {meta_ADP_KONAMI,           "Konami ADP header"},
+        {meta_SDRH,                 "feelplus SDRH header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {

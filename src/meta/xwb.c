@@ -342,7 +342,8 @@ VGMSTREAM* init_vgmstream_xwb(STREAMFILE* sf) {
         xwb.loop_end = 0;
     }
     else if (xwb.version == XACT3_0_MAX && xwb.codec == XMA2
-            && xwb.bits_per_sample == 0x01 && xwb.block_align == 0x04
+            && (xwb.bits_per_sample == 0x00 || xwb.bits_per_sample == 0x01) /* bps=0+ba=2 in mono? (Blossom Tales) */
+            && (xwb.block_align == 0x02 || xwb.block_align == 0x04)
             && read_u32le(xwb.stream_offset + 0x08, sf) == xwb.sample_rate /* DSP header */
             && read_u16le(xwb.stream_offset + 0x0e, sf) == 0
             && read_u32le(xwb.stream_offset + 0x18, sf) == 2

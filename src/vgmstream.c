@@ -273,7 +273,8 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_ps2_iab,
     init_vgmstream_vs_str,
     init_vgmstream_lsf_n1nj4n,
-    init_vgmstream_vawx,
+    init_vgmstream_xwav_new,
+    init_vgmstream_xwav_old,
     init_vgmstream_ps2_wmus,
     init_vgmstream_hyperscan_kvag,
     init_vgmstream_ios_psnd,
@@ -508,6 +509,8 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_zwv,
     init_vgmstream_dsb,
     init_vgmstream_bsf,
+    init_vgmstream_xse_new,
+    init_vgmstream_xse_old,
 
     /* lowest priority metas (should go after all metas, and TXTH should go before raw formats) */
     init_vgmstream_txth,            /* proper parsers should supersede TXTH, once added */

@@ -515,7 +515,8 @@ VGMSTREAM * init_vgmstream_vs_str(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_lsf_n1nj4n(STREAMFILE* streamFile);
 
-VGMSTREAM * init_vgmstream_vawx(STREAMFILE* streamFile);
+VGMSTREAM * init_vgmstream_xwav_new(STREAMFILE* sf);
+VGMSTREAM * init_vgmstream_xwav_old(STREAMFILE* sf);
 
 VGMSTREAM * init_vgmstream_raw_snds(STREAMFILE* streamFile);
 
@@ -919,5 +920,8 @@ VGMSTREAM* init_vgmstream_zwv(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_dsb(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_bsf(STREAMFILE* sf);
+
+VGMSTREAM* init_vgmstream_xse_new(STREAMFILE* sf);
+VGMSTREAM* init_vgmstream_xse_old(STREAMFILE* sf);
 
 #endif /*_META_H*/

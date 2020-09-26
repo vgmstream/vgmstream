@@ -1919,6 +1919,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\xse.c"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\xss.c"
                     >
                 </File>
