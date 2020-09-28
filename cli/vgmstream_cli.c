@@ -31,6 +31,9 @@ extern int optind, opterr, optopt;
 
 
 static size_t make_wav_header(uint8_t* buf, size_t buf_size, int32_t sample_count, int32_t sample_rate, int channels, int smpl_chunk, int32_t loop_start, int32_t loop_end);
+#ifdef HAVE_JSON
+static void print_json_version();
+#endif
 
 static void usage(const char* name, int is_full) {
     fprintf(stderr,"vgmstream CLI decoder " VERSION " " __DATE__ "\n"
@@ -56,6 +59,10 @@ static void usage(const char* name, int is_full) {
             "    -g: decode and print oggenc command line to encode as OGG\n"
             "    -b: decode and print batch variable commands\n"
             "    -h: print extra commands (for testing)\n"
+#ifdef HAVE_JSON
+            "    -V: print version info and supported extensions as JSON\n"
+            "    -I: print requested file info as JSON\n"
+#endif
             , name);
     if (!is_full)
         return;
@@ -81,6 +88,9 @@ typedef struct {
     int play_sdtout;
     int play_wreckless;
     int print_metaonly;
+#ifdef HAVE_JSON
+    int print_metajson;
+#endif
     int print_adxencd;
     int print_oggenc;
     int print_batchvar;
@@ -124,7 +134,11 @@ static int parse_config(cli_config* cfg, int argc, char** argv) {
     opterr = 0;
 
     /* read config */
-    while ((opt = getopt(argc, argv, "o:l:f:d:ipPcmxeLEFrgb2:s:t:Tk:K:hOvD:")) != -1) {
+    while ((opt = getopt(argc, argv, "o:l:f:d:ipPcmxeLEFrgb2:s:t:Tk:K:hOvD:"
+#ifdef HAVE_JSON
+        "VI"
+#endif
+    )) != -1) {
         switch (opt) {
             case 'o':
                 cfg->outfilename = optarg;
@@ -208,6 +222,15 @@ static int parse_config(cli_config* cfg, int argc, char** argv) {
             case 'h':
                 usage(argv[0], 1);
                 goto fail;
+#ifdef HAVE_JSON
+            case 'V':
+                print_json_version();
+                goto fail;
+            case 'I':
+                cfg->print_metaonly = 1;
+                cfg->print_metajson = 1;
+                break;
+#endif
             case '?':
                 fprintf(stderr, "Unknown option -%c found\n", optopt);
                 goto fail;
@@ -366,6 +389,33 @@ static void print_title(VGMSTREAM* vgmstream, cli_config* cfg) {
 
     printf("title: %s\n", title);
 }
+
+#ifdef HAVE_JSON
+void print_json_version() {
+    size_t extension_list_len;
+    const char** extension_list;
+    extension_list = vgmstream_get_formats(&extension_list_len);
+
+    json_t* ext_list = json_array();
+
+    for (size_t i = 0; i < extension_list_len; ++i) {
+        json_t* ext = json_string(extension_list[i]);
+        json_array_append(ext_list, ext);
+        json_decref(ext);
+    }
+
+    json_t* version_string = json_string(VERSION);
+
+    json_t* final_object = json_object();
+    json_object_set(final_object, "version", version_string);
+    json_decref(version_string);
+
+    json_object_set(final_object, "extensions", ext_list);
+    json_decref(ext_list);
+
+    json_dumpf(final_object, stdout, );
+}
+#endif
 
 static void clean_filename(char* dst, int clean_paths) {
     int i;
@@ -582,9 +632,18 @@ int main(int argc, char** argv) {
 
 
     /* prints */
-    print_info(vgmstream, &cfg);
-    print_tags(&cfg);
-    print_title(vgmstream, &cfg);
+#ifdef HAVE_JSON
+    if (!cfg.print_metajson) {
+#endif
+        print_info(vgmstream, &cfg);
+        print_tags(&cfg);
+        print_title(vgmstream, &cfg);
+#ifdef HAVE_JSON
+    }
+    else {
+        print_json_info(vgmstream, &cfg);
+    }
+#endif
 
     /* prints done */
     if (cfg.print_metaonly) {

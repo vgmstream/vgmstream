@@ -1042,6 +1042,95 @@ void describe_vgmstream(VGMSTREAM* vgmstream, char* desc, int length) {
     }
 }
 
+void describe_vgmstream_info(VGMSTREAM* vgmstream, vgmstream_info* info) {
+    if (!info) {
+        return;
+    }
+
+    memset(info, 0, sizeof(*info));
+
+    if (!vgmstream) {
+        return;
+    }
+
+    info->sample_rate = vgmstream->sample_rate;
+
+    info->channels = vgmstream->channels;
+
+    {
+        int output_channels = 0;
+        mixing_info(vgmstream, NULL, &output_channels);
+
+        if (output_channels != vgmstream->channels) {
+            info->mixing_info.input_channels = vgmstream->channels;
+            info->mixing_info.output_channels = output_channels;
+        }
+    }
+
+    info->channel_layout = vgmstream->channel_layout;
+
+    if (vgmstream->loop_start_sample >= 0 && vgmstream->loop_end_sample > vgmstream->loop_start_sample) {
+        info->loop_info.start = vgmstream->loop_start_sample;
+        info->loop_info.end = vgmstream->loop_end_sample;
+    }
+
+    info->num_samples = vgmstream->num_samples;
+
+    get_vgmstream_coding_description(vgmstream, info->encoding, sizeof(info->encoding));
+
+    get_vgmstream_layout_description(vgmstream, info->layout, sizeof(info->layout));
+
+    if (vgmstream->layout_type == layout_interleave && vgmstream->channels > 1) {
+        info->interleave_info.value = vgmstream->interleave_block_size;
+
+        if (vgmstream->interleave_first_block_size && vgmstream->interleave_first_block_size != vgmstream->interleave_block_size) {
+            info->interleave_info.first_block = vgmstream->interleave_first_block_size;
+        }
+
+        if (vgmstream->interleave_last_block_size && vgmstream->interleave_last_block_size != vgmstream->interleave_block_size) {
+            info->interleave_info.last_block = vgmstream->interleave_last_block_size;
+        }
+    }
+
+    /* codecs with configurable frame size */
+    if (vgmstream->frame_size > 0 || vgmstream->interleave_block_size > 0) {
+        int32_t frame_size = vgmstream->frame_size > 0 ? vgmstream->frame_size : vgmstream->interleave_block_size;
+        switch (vgmstream->coding_type) {
+        case coding_MSADPCM:
+        case coding_MSADPCM_int:
+        case coding_MSADPCM_ck:
+        case coding_MS_IMA:
+        case coding_MC3:
+        case coding_WWISE_IMA:
+        case coding_REF_IMA:
+        case coding_PSX_cfg:
+            info->frame_size = frame_size;
+            break;
+        default:
+            break;
+        }
+    }
+
+    get_vgmstream_meta_description(vgmstream, info->metadata, sizeof(info->metadata));
+
+    info->bitrate = get_vgmstream_average_bitrate(vgmstream);
+
+    /* only interesting if more than one */
+    if (vgmstream->num_streams > 1) {
+        info->stream_info.total = vgmstream->num_streams;
+    }
+    else {
+        info->stream_info.total = 1;
+    }
+
+    if (vgmstream->num_streams > 1) {
+        info->stream_info.current = vgmstream->stream_index == 0 ? 1 : vgmstream->stream_index;
+    }
+
+    if (vgmstream->stream_name[0] != '\0') {
+        snprintf(info->stream_info.name, sizeof(info->stream_info.name), "%s", vgmstream->stream_name);
+    }
+}
 
 /* See if there is a second file which may be the second channel, given an already opened mono vgmstream.
  * If a suitable file is found, open it and change opened_vgmstream to a stereo vgmstream. */

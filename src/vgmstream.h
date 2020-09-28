@@ -1094,6 +1094,36 @@ typedef struct {
 #endif
 #endif //VGM_USE_MP4V2
 
+// VGMStream description in structure format
+typedef struct {
+    int sample_rate;
+    int channels;
+    struct mixing_info {
+        int input_channels;
+        int output_channels;
+    } mixing_info;
+    int channel_layout;
+    struct loop_info {
+        int start;
+        int end;
+    } loop_info;
+    size_t num_samples;
+    char encoding[128];
+    char layout[128];
+    struct interleave_info {
+        int value;
+        int first_block;
+        int last_block;
+    } interleave_info;
+    int frame_size;
+    char metadata[128];
+    int bitrate;
+    struct stream_info {
+        int current;
+        int total;
+        char name[128];
+    } stream_info;
+} vgmstream_info;
 
 /* -------------------------------------------------------------------------*/
 /* vgmstream "public" API                                                   */
@@ -1123,6 +1153,7 @@ void seek_vgmstream(VGMSTREAM* vgmstream, int32_t seek_sample);
 /* Write a description of the stream into array pointed by desc, which must be length bytes long.
  * Will always be null-terminated if length > 0 */
 void describe_vgmstream(VGMSTREAM* vgmstream, char* desc, int length);
+void describe_vgmstream_info(VGMSTREAM* vgmstream, vgmstream_info* desc);
 
 /* Return the average bitrate in bps of all unique files contained within this stream. */
 int get_vgmstream_average_bitrate(VGMSTREAM* vgmstream);
