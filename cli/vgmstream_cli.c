@@ -398,15 +398,23 @@ static void print_title(VGMSTREAM* vgmstream, cli_config* cfg) {
 #ifdef HAVE_JSON
 void print_json_version() {
     size_t extension_list_len;
+    size_t common_extension_list_len;
     const char** extension_list;
+    const char** common_extension_list;
     extension_list = vgmstream_get_formats(&extension_list_len);
+    common_extension_list = vgmstream_get_common_formats(&common_extension_list_len);
 
     json_t* ext_list = json_array();
+    json_t* cext_list = json_array();
 
     for (size_t i = 0; i < extension_list_len; ++i) {
         json_t* ext = json_string(extension_list[i]);
         json_array_append(ext_list, ext);
-        json_decref(ext);
+    }
+
+    for (size_t i = 0; i < common_extension_list_len; ++i) {
+        json_t* cext = json_string(common_extension_list[i]);
+        json_array_append(cext_list, cext);
     }
 
     json_t* version_string = json_string(VERSION);
@@ -415,8 +423,10 @@ void print_json_version() {
     json_object_set(final_object, "version", version_string);
     json_decref(version_string);
 
-    json_object_set(final_object, "extensions", ext_list);
-    json_decref(ext_list);
+    json_object_set(final_object, "extensions",
+                    json_pack("{soso}",
+                              "vgm", ext_list,
+                              "common", cext_list));
 
     json_dumpf(final_object, stdout, JSON_COMPACT);
 }
