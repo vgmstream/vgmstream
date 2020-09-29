@@ -1,7 +1,7 @@
 version: 1.0.{build}
 image:
   - Visual Studio 2017
-  - Ubuntu
+  - Ubuntu2004
 configuration: Release
 for:
 -
@@ -23,7 +23,7 @@ for:
 -
   matrix:
     only:
-      - image: Ubuntu
+      - image: Ubuntu2004
   init:
     - sudo apt-get update
     - sudo apt-get install -y libmpg123-dev libvorbis-dev libavformat-dev libavcodec-dev libavutil-dev libswresample-dev
