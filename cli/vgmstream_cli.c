@@ -21,6 +21,10 @@
 #define VERSION "(unknown version)"
 #endif
 
+#ifdef HAVE_JSON
+#include "jansson.h"
+#endif
+
 /* low values are ok as there is very little performance difference, but higher
  * may improve write I/O in some systems as this*channels doubles as output buffer */
 #define SAMPLE_BUFFER_SIZE  32768
@@ -31,9 +35,6 @@ extern int optind, opterr, optopt;
 
 
 static size_t make_wav_header(uint8_t* buf, size_t buf_size, int32_t sample_count, int32_t sample_rate, int channels, int smpl_chunk, int32_t loop_start, int32_t loop_end);
-#ifdef HAVE_JSON
-static void print_json_version();
-#endif
 
 static void usage(const char* name, int is_full) {
     fprintf(stderr,"vgmstream CLI decoder " VERSION " " __DATE__ "\n"
@@ -118,6 +119,10 @@ typedef struct {
     int lwav_loop_start;
     int lwav_loop_end;
 } cli_config;
+#ifdef HAVE_JSON
+static void print_json_version();
+static void print_json_info(VGMSTREAM* vgm, cli_config* cfg);
+#endif
 
 
 static int parse_config(cli_config* cfg, int argc, char** argv) {
@@ -413,7 +418,7 @@ void print_json_version() {
     json_object_set(final_object, "extensions", ext_list);
     json_decref(ext_list);
 
-    json_dumpf(final_object, stdout, );
+    json_dumpf(final_object, stdout, JSON_COMPACT);
 }
 #endif
 
@@ -810,7 +815,72 @@ fail:
     return EXIT_FAILURE;
 }
 
+#ifdef HAVE_JSON
+static void print_json_info(VGMSTREAM* vgm, cli_config* cfg) {
+    vgmstream_info info;
+    describe_vgmstream_info(vgm, &info);
+    json_t* mixing_info = NULL;
 
+    if (info.mixing_info.input_channels > 0) {
+        json_t* mixing_info = json_pack("{sisi}", 
+            "inputChannels", info.mixing_info.input_channels,
+            "outputChannels", info.mixing_info.output_channels);
+    }
+
+    json_t* loop_info = NULL;
+
+    if (info.loop_info.end > info.loop_info.start) {
+        loop_info = json_pack("{sisi}",
+            "start", info.loop_info.start,
+            "end", info.loop_info.end);
+    }
+
+    json_t* interleave_info = NULL;
+
+    if (info.interleave_info.value > 0) {
+        interleave_info = json_pack("{sisisi}",
+            "value", info.interleave_info.value,
+            "firstBlock", info.interleave_info.first_block,
+            "lastBlock", info.interleave_info.last_block
+        );
+    }
+    
+    json_t* stream_info = json_pack("{sisssi}",
+        "current", info.stream_info.current,
+        "name", info.stream_info.name,
+        "total", info.stream_info.total
+    );
+
+    json_t* final_object = json_pack(
+        "{sisiso*siso*so*sisssssisssiso?}",
+        "sampleRate", info.sample_rate,
+        "channels", info.channels,
+        "mixingInfo", mixing_info,
+        "channelLayout", info.channel_layout,
+        "loopingInfo", loop_info,
+        "interleaveInfo", interleave_info,
+        "numberOfSamples", info.num_samples,
+        "encoding", info.encoding,
+        "layout", info.layout,
+        "frameSize", info.frame_size,
+        "metadataSource", info.metadata,
+        "bitrate", info.bitrate,
+        "streamInfo", stream_info
+    );
+
+    if (info.frame_size == 0) {
+        json_object_del(final_object, "frameSize");
+    }
+
+    if (info.channel_layout == 0) {
+        json_object_del(final_object, "channelLayout");
+    }
+    
+    json_dumpf(final_object, stdout, JSON_INDENT(4));
+
+    json_decref(final_object);
+}
+#endif
 
 static void make_smpl_chunk(uint8_t* buf, int32_t loop_start, int32_t loop_end) {
     int i;

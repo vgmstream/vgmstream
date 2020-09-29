@@ -45,3 +45,6 @@ Release
 
 /**/test.zip
 /**/foo_input_vgmstream.fb2k-component
+
+/build
+/cmake-build*

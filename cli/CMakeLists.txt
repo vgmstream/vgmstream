@@ -6,6 +6,12 @@ add_executable(vgmstream_cli
 # Link to the vgmstream library
 target_link_libraries(vgmstream_cli libvgmstream)
 
+# Link to Jansson, if we have it
+if (JANSSON_FOUND)
+    target_compile_definitions(vgmstream_cli PRIVATE HAVE_JSON)
+	target_link_libraries(vgmstream_cli jansson)
+endif()
+
 setup_target(vgmstream_cli TRUE)
 
 if(WIN32)
@@ -42,6 +48,8 @@ elseif(VGMSTREAM_VERSION)
 	target_compile_definitions(vgmstream_cli PRIVATE VERSION="${VGMSTREAM_VERSION}")
 endif()
 
+
+
 # Install the CLI program
 install(TARGETS vgmstream_cli
 	RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
@@ -67,6 +75,8 @@ if(NOT WIN32)
 
 	# Include the version string
 	target_compile_definitions(vgmstream123 PRIVATE VERSION="${VGMSTREAM_VERSION}")
+
+	
 
 	# Install vgmstream123
 	install(TARGETS vgmstream123
