@@ -890,7 +890,7 @@ STREAMFILE* open_streamfile_by_filename(STREAMFILE *streamfile, const char * fil
     char partname[PATH_LIMIT];
     char *path, *name;
 
-    if (!streamfile || !filename) return NULL;
+    if (!streamfile || !filename || !filename[0]) return NULL;
 
     streamfile->get_name(streamfile, fullname, sizeof(fullname));
 
