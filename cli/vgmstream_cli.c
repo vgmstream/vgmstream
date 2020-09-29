@@ -817,12 +817,16 @@ fail:
 
 #ifdef HAVE_JSON
 static void print_json_info(VGMSTREAM* vgm, cli_config* cfg) {
+    json_t* version_string = json_string(VERSION);
     vgmstream_info info;
     describe_vgmstream_info(vgm, &info);
+
     json_t* mixing_info = NULL;
 
+    // The JSON pack format string is defined here: https://jansson.readthedocs.io/en/latest/apiref.html#building-values
+
     if (info.mixing_info.input_channels > 0) {
-        json_t* mixing_info = json_pack("{sisi}", 
+        mixing_info = json_pack("{sisi}",
             "inputChannels", info.mixing_info.input_channels,
             "outputChannels", info.mixing_info.output_channels);
     }
@@ -837,22 +841,26 @@ static void print_json_info(VGMSTREAM* vgm, cli_config* cfg) {
 
     json_t* interleave_info = NULL;
 
-    if (info.interleave_info.value > 0) {
-        interleave_info = json_pack("{sisisi}",
-            "value", info.interleave_info.value,
+    if (info.interleave_info.last_block > info.interleave_info.first_block) {
+        interleave_info = json_pack("{sisi}",
             "firstBlock", info.interleave_info.first_block,
             "lastBlock", info.interleave_info.last_block
         );
     }
     
     json_t* stream_info = json_pack("{sisssi}",
-        "current", info.stream_info.current,
+        "index", info.stream_info.current,
         "name", info.stream_info.name,
         "total", info.stream_info.total
     );
 
+    if (info.stream_info.name[0] == '\0') {
+        json_object_set(stream_info, "name", json_null());
+    }
+
     json_t* final_object = json_pack(
-        "{sisiso*siso*so*sisssssisssiso?}",
+        "{sssisiso?siso?so?sisssssisssiso?}",
+        "version", version_string,
         "sampleRate", info.sample_rate,
         "channels", info.channels,
         "mixingInfo", mixing_info,
@@ -869,14 +877,14 @@ static void print_json_info(VGMSTREAM* vgm, cli_config* cfg) {
     );
 
     if (info.frame_size == 0) {
-        json_object_del(final_object, "frameSize");
+        json_object_set(final_object, "frameSize", json_null());
     }
 
     if (info.channel_layout == 0) {
-        json_object_del(final_object, "channelLayout");
+        json_object_set(final_object, "channelLayout", json_null());
     }
     
-    json_dumpf(final_object, stdout, JSON_INDENT(4));
+    json_dumpf(final_object, stdout, JSON_COMPACT);
 
     json_decref(final_object);
 }
