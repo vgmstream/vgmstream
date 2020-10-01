@@ -61,7 +61,7 @@ VGMSTREAM* init_vgmstream_xwav_new(STREAMFILE* sf) {
     switch(codec) {
         case 2: /* No Nore Heroes (PS3) */
             vgmstream->coding_type = coding_PSX;
-            vgmstream->layout_type = channels == 6 ? layout_blocked_vawx : layout_interleave;
+            vgmstream->layout_type = channels == 6 ? layout_blocked_xwav : layout_interleave;
             vgmstream->interleave_block_size = 0x10;
 
             vgmstream->loop_start_sample = loop_start;

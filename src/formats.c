@@ -858,7 +858,7 @@ static const layout_info layout_info_list[] = {
         {layout_blocked_ea_sns,         "blocked (EA SNS)"},
         {layout_blocked_awc,            "blocked (AWC)"},
         {layout_blocked_vgs,            "blocked (VGS)"},
-        {layout_blocked_vawx,           "blocked (VAWX)"},
+        {layout_blocked_xwav,           "blocked (XWAV)"},
         {layout_blocked_xvag_subsong,   "blocked (XVAG subsong)"},
         {layout_blocked_ea_wve_au00,    "blocked (EA WVE au00)"},
         {layout_blocked_ea_wve_ad10,    "blocked (EA WVE Ad10)"},

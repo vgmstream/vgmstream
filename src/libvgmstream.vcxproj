@@ -235,7 +235,7 @@
     <ClCompile Include="meta\sgxd.c" />
     <ClCompile Include="meta\silence.c" />
     <ClCompile Include="meta\sk_aud.c" />
-    <ClCompile Include="meta\vawx.c" />
+    <ClCompile Include="meta\xwav.c" />
     <ClCompile Include="meta\seg.c" />
     <ClCompile Include="meta\sfh.c" />
     <ClCompile Include="meta\sqex_scd.c" />
@@ -644,7 +644,7 @@
     <ClCompile Include="layout\blocked_vgs.c" />
     <ClCompile Include="layout\blocked_vid1.c" />
     <ClCompile Include="layout\blocked_vs_square.c" />
-    <ClCompile Include="layout\blocked_vawx.c" />
+    <ClCompile Include="layout\blocked_xwav.c" />
     <ClCompile Include="layout\blocked_xvag.c" />
     <ClCompile Include="layout\blocked_caf.c" />
     <ClCompile Include="layout\blocked_dec.c" />

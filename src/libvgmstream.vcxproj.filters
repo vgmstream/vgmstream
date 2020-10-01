@@ -1420,7 +1420,7 @@
     <ClCompile Include="layout\blocked_vs_square.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="layout\blocked_vawx.c">
+    <ClCompile Include="layout\blocked_xwav.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="layout\blocked_xvag.c">
@@ -1561,7 +1561,7 @@
     <ClCompile Include="meta\lsf.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\vawx.c">
+    <ClCompile Include="meta\xwav.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\raw_snds.c">

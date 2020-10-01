@@ -294,7 +294,7 @@ static int render_layout(sample_t* buf, int32_t sample_count, VGMSTREAM* vgmstre
         case layout_blocked_ea_sns:
         case layout_blocked_awc:
         case layout_blocked_vgs:
-        case layout_blocked_vawx:
+        case layout_blocked_xwav:
         case layout_blocked_xvag_subsong:
         case layout_blocked_ea_wve_au00:
         case layout_blocked_ea_wve_ad10:

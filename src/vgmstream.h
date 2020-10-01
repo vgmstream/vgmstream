@@ -271,7 +271,7 @@ typedef enum {
     layout_blocked_ea_sns,  /* newest Electronic Arts blocks, found in SNS/SNU/SPS/etc formats */
     layout_blocked_awc,     /* Rockstar AWC */
     layout_blocked_vgs,     /* Guitar Hero II (PS2) */
-    layout_blocked_vawx,    /* No More Heroes 6ch (PS3) */
+    layout_blocked_xwav,
     layout_blocked_xvag_subsong, /* XVAG subsongs [God of War III (PS4)] */
     layout_blocked_ea_wve_au00, /* EA WVE au00 blocks */
     layout_blocked_ea_wve_ad10, /* EA WVE Ad10 blocks */
