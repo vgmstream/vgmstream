@@ -5,6 +5,8 @@ Param(
     [string]$Task
 )
 
+Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy Bypass
+
 # https://stackoverflow.com/a/41618979/9919772
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
