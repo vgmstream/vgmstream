@@ -656,7 +656,7 @@ typedef enum {
     meta_TXTP,              /* generic text playlist */
     meta_SMC_SMH,           /* Wangan Midnight (System 246) */
     meta_PPST,              /* PPST [Parappa the Rapper (PSP)] */
-    meta_OPUS_PPP,          /* .at9 Opus [Penny-Punching Princess (Switch)] */
+    meta_SPS_N1,
     meta_UBI_BAO,           /* Ubisoft BAO */
     meta_DSP_SWITCH_AUDIO,  /* Gal Gun 2 (Switch) */
     meta_TA_AAC_VITA,       /* tri-Ace AAC (Judas Code) */

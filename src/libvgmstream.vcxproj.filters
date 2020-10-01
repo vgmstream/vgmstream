@@ -730,9 +730,6 @@
     <ClCompile Include="meta\omu.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\opus_ppp.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="meta\otm.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>

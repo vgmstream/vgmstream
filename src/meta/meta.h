@@ -691,6 +691,7 @@ VGMSTREAM * init_vgmstream_xwc(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_atsl(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_sps_n1(STREAMFILE *streamFile);
+VGMSTREAM * init_vgmstream_sps_n1_segmented(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_atx(STREAMFILE *streamFile);
 
@@ -726,8 +727,6 @@ VGMSTREAM * init_vgmstream_txtp(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_smc_smh(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_ppst(STREAMFILE *streamFile);
-
-VGMSTREAM * init_vgmstream_opus_sps_n1_segmented(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_ubi_bao_pk(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_ubi_bao_atomic(STREAMFILE *streamFile);

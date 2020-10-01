@@ -408,7 +408,6 @@
     <ClCompile Include="meta\ogg_vorbis.c" />
     <ClCompile Include="meta\ogl.c" />
     <ClCompile Include="meta\omu.c" />
-    <ClCompile Include="meta\opus_ppp.c" />
     <ClCompile Include="meta\otm.c" />
     <ClCompile Include="meta\p3d.c" />
     <ClCompile Include="meta\raw_al.c" />

@@ -1126,10 +1126,6 @@
                     RelativePath=".\meta\omu.c"
                     >
                 </File>
-                <File
-                    RelativePath=".\meta\opus_ppp.c"
-                    >
-                </File>
 				<File
 					RelativePath=".\meta\otm.c"
 					>
