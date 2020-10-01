@@ -9,7 +9,6 @@ for:
     only:
       - image: Visual Studio 2017
   build_script:
-    - ps: Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy Bypass
     - ps: .\build.ps1 Build
   test: off
   artifacts:
