@@ -182,8 +182,8 @@ void block_update(off_t block_offset, VGMSTREAM * vgmstream) {
         case layout_blocked_vgs:
             block_update_vgs(block_offset,vgmstream);
             break;
-        case layout_blocked_vawx:
-            block_update_vawx(block_offset,vgmstream);
+        case layout_blocked_xwav:
+            block_update_xwav(block_offset,vgmstream);
             break;
         case layout_blocked_xvag_subsong:
             block_update_xvag_subsong(block_offset,vgmstream);

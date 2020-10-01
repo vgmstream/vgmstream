@@ -2,7 +2,7 @@
 #include "../vgmstream.h"
 
 /* pseudo-blocks that must skip last 0x20 every 0x8000 */
-void block_update_vawx(off_t block_offset, VGMSTREAM * vgmstream) {
+void block_update_xwav(off_t block_offset, VGMSTREAM * vgmstream) {
     int i;
     size_t block_size;
 

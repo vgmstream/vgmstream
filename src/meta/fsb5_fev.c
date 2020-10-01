@@ -8,6 +8,8 @@ VGMSTREAM* init_vgmstream_fsb5_fev_bank(STREAMFILE* sf) {
     off_t subfile_offset, chunk_offset, bank_offset, offset;
     size_t subfile_size, bank_size;
     uint32_t version = 0;
+    int fsb5_pos, fsb5_subsong;
+    int total_subsongs, target_subsong = sf->stream_index;
 
 
     /* checks */
@@ -31,7 +33,7 @@ VGMSTREAM* init_vgmstream_fsb5_fev_bank(STREAMFILE* sf) {
         goto fail; /* event .fev has "OBCT" instead of "BNKI" (which can also be empty) */
 
 
-    /* inside BNKI is a bunch of LIST each with event subchunks and somewhere the FSB5 offset */
+    /* inside BNKI is a bunch of LISTs each with event subchunks and somewhere the FSB5 offsets */
     bank_offset = 0;
     offset = chunk_offset + 0x04;
     while (bank_offset == 0 && offset < get_streamfile_size(sf)) {
@@ -65,39 +67,48 @@ VGMSTREAM* init_vgmstream_fsb5_fev_bank(STREAMFILE* sf) {
     if (bank_offset == 0)
         goto fail;
 
-    /* 0x00: unknown (chunk version? ex LE: 0x00080003, 0x00080005) */
     {
-        /* versions:
-         * 0x28: Transistor (iOS) [+2015]
-         * 0x50: Runic Rampage (PC), Forza 7 (PC), Shantae: Half Genie Hero (Switch) [+2017]
-         * 0x58: Mana Spark (PC), Shantae and the Seven Sirens (PC) [+2018]
-         * 0x63: Banner Saga 3 (PC) [+2018]
-         * 0x64: Guacamelee! Super Turbo Championship Edition (Switch) [+2018]
-         * 0x65: Carrion (Switch) [+2020]
-         * 0x7D: Fall Guys (PC) [+2020] */
+        /* known bank versions:
+         * 0x28: Transistor (iOS) [~2015]
+         * 0x50: Runic Rampage (PC), Forza 7 (PC), Shantae: Half Genie Hero (Switch) [~2017]
+         * 0x58: Mana Spark (PC), Shantae and the Seven Sirens (PC) [~2018]
+         * 0x63: Banner Saga 3 (PC) [~2018]
+         * 0x64: Guacamelee! Super Turbo Championship Edition (Switch) [~2018]
+         * 0x65: Carrion (Switch) [~2020]
+         * 0x7D: Fall Guys (PC) [~2020]
+         * 0x84: SCP Unity (PC) [~2020]
+         * 0x86: Hades (Switch) [~2020] */
         size_t entry_size = version <= 0x28 ? 0x04 : 0x08;
-        int banks;
+        int i, banks;
 
-        /* multiple banks is possible but rare (only seen an extra "Silence" FSB5 in Guacamelee 2 (Switch),
-         *  which on PC is a regular subsong in the only FSB5) */
+        /* 0x00: unknown (chunk version? ex LE: 0x00080003, 0x00080005) */
         banks = (bank_size - 0x04) / entry_size;
-        VGM_ASSERT(banks > 1, "FSB5FEV: multiple banks found\n");
+        
+        /* multiple banks is possible but rare [Hades (Switch), Guacamelee 2 (Switch)],
+         * must map bank (global) subsong to FSB (internal) subsong */
 
-        /* Could try to set stream index based on FSB subsong ranges, also fixing num_streams and stream_index
-         * kinda involved and hard to test so for now just ignore it and use first offset */
+        if (target_subsong == 0) target_subsong = 1;
 
-        if (banks > 2)
-            goto fail;
-        if (banks == 2) {
-            off_t temp_offset  = read_u32le(bank_offset + 0x04 + entry_size*1 + 0x00,sf);
-            //size_t temp_size = read_u32le(bank_offset + 0x04 + entry_size*1 + 0x04,sf);
+        fsb5_pos = 0;
+        fsb5_subsong = -1;
+        total_subsongs = 0;
+        for (i = 0; i < banks; i++) {
+            off_t fsb5_offset  = read_u32le(bank_offset + 0x04 + entry_size*i + 0x00,sf);
+            int fsb5_subsongs = read_s32le(fsb5_offset + 0x08,sf);
 
-            int bank_subsongs = read_s32le(temp_offset + 0x08,sf);
-            if (bank_subsongs != 1) goto fail;
+            /* target in range */
+            if (target_subsong >= total_subsongs + 1 && target_subsong < total_subsongs + 1 + fsb5_subsongs) {
+                fsb5_pos = i;
+                fsb5_subsong = target_subsong - total_subsongs;
+            }
+
+            total_subsongs += fsb5_subsongs;
         }
+        if (fsb5_subsong < 0)
+            goto fail;
 
         if (version <= 0x28) {
-            subfile_offset  = read_u32le(bank_offset+0x04,sf);
+            subfile_offset  = read_u32le(bank_offset+0x04 + entry_size*fsb5_pos,sf);
             subfile_size    = /* meh */
                 read_u32le(subfile_offset + 0x0C,sf) + 
                 read_u32le(subfile_offset + 0x10,sf) + 
@@ -105,22 +116,24 @@ VGMSTREAM* init_vgmstream_fsb5_fev_bank(STREAMFILE* sf) {
                 0x3C;
         }
         else {
-            subfile_offset  = read_u32le(bank_offset+0x04,sf);
-            subfile_size    = read_u32le(bank_offset+0x08,sf);
+            subfile_offset  = read_u32le(bank_offset+0x04 + entry_size*fsb5_pos,sf);
+            subfile_size    = read_u32le(bank_offset+0x08 + entry_size*fsb5_pos,sf);
         }
     }
 
     temp_sf = setup_subfile_streamfile(sf, subfile_offset,subfile_size, "fsb");
     if (!temp_sf) goto fail;
+    
+    temp_sf->stream_index = fsb5_subsong; /* relative subsong, in case of multiple FSBs */
 
-    if (read_u32be(0x00, temp_sf) == 0x46534235) {
-        vgmstream = init_vgmstream_fsb5(temp_sf);
-        close_streamfile(temp_sf);
-    }
-    else { //other flag?
-        vgmstream = init_vgmstream_fsb_encrypted(temp_sf);
-        close_streamfile(temp_sf);
-    }
+    vgmstream = (read_u32be(0x00, temp_sf) == 0x46534235) ? /* "FSB5" (better flag?)*/
+        init_vgmstream_fsb5(temp_sf) :
+        init_vgmstream_fsb_encrypted(temp_sf);
+    close_streamfile(temp_sf);
+    if (!vgmstream) goto fail;
+
+    vgmstream->stream_index = sf->stream_index; //target_subsong; /* 0-index matters */
+    vgmstream->num_streams = total_subsongs;
 
     return vgmstream;
 

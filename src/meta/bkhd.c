@@ -153,7 +153,7 @@ fail:
 }
 
 
-/* BKHD mini format, probably from a FX generator plugin [Borderlands 2 (X360)] */
+/* BKHD mini format, probably from FX generator plugins [Borderlands 2 (X360), Warhammer 40000 (PC)] */
 VGMSTREAM* init_vgmstream_bkhd_fx(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     off_t start_offset, data_size;
@@ -172,19 +172,20 @@ VGMSTREAM* init_vgmstream_bkhd_fx(STREAMFILE* sf) {
     if (read_u32(0x04, sf) != 0x0800) /* codec? */
         goto fail;
     sample_rate = read_u32(0x08, sf);
-    channels    = read_u32(0x0c, sf);
-    /* 0x10: some id or small size? */
+    channels    = read_u32(0x0c, sf) & 0xFF; /* 0x31 at 0x0d in PC, field is 32b vs X360 */
+    /* 0x10: some id or small size? (related to entries?) */
     /* 0x14/18: some float? */
     entries     = read_u32(0x1c, sf);
     /* 0x20 data size / 0x10 */
     /* 0x24 usually 4, sometimes higher values? */
-    /* 0x30: unknown table of 16b that goes up and down */
+    /* 0x30: unknown table of 16b that goes up and down, or is fixed */
 
     start_offset = 0x30 + align_size_to_block(entries * 0x02, 0x10);
     data_size = get_streamfile_size(sf) - start_offset;
     loop_flag = 0;
 
-    /* output sounds a bit funny, maybe not an actual stream but parts using the table */
+    /* output sounds a bit funny, maybe not an actual stream but sections or models for reverb/etc,
+     * data seems divided in chunks of 0x2000 */
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channels, loop_flag);

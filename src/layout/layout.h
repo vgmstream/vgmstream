@@ -38,7 +38,7 @@ void block_update_hwas(off_t block_offset, VGMSTREAM* vgmstream);
 void block_update_ea_sns(off_t block_offset, VGMSTREAM* vgmstream);
 void block_update_awc(off_t block_offset, VGMSTREAM* vgmstream);
 void block_update_vgs(off_t block_offset, VGMSTREAM* vgmstream);
-void block_update_vawx(off_t block_offset, VGMSTREAM* vgmstream);
+void block_update_xwav(off_t block_offset, VGMSTREAM* vgmstream);
 void block_update_xvag_subsong(off_t block_offset, VGMSTREAM* vgmstream);
 void block_update_ea_wve_au00(off_t block_offset, VGMSTREAM* vgmstream);
 void block_update_ea_wve_ad10(off_t block_offset, VGMSTREAM* vgmstream);

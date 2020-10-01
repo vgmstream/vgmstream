@@ -1126,10 +1126,6 @@
                     RelativePath=".\meta\omu.c"
                     >
                 </File>
-                <File
-                    RelativePath=".\meta\opus_ppp.c"
-                    >
-                </File>
 				<File
 					RelativePath=".\meta\otm.c"
 					>
@@ -1527,7 +1523,7 @@
                     >
                 </File>
 				<File
-					RelativePath=".\meta\vawx.c"
+					RelativePath=".\meta\xwav.c"
 					>
 				</File>
 				<File
@@ -2371,7 +2367,7 @@
                     >
                 </File>
                 <File
-                    RelativePath=".\layout\blocked_vawx.c"
+                    RelativePath=".\layout\blocked_xwav.c"
                     >
                 </File>
                 <File
