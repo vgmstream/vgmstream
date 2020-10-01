@@ -100,9 +100,7 @@ function Init
 
     New-Item -Path "dependencies\jansson" -Name "build" -ItemType "directory"
     Set-Location "dependencies\jansson\build"
-    $ErrorActionPreference = "SilentlyContinue"
-    & cmake -G "Visual Studio 15 2017" -T v141_xp -DJANSSON_BUILD_SHARED_LIBS=1 -DJANSSON_BUILD_DOCS=OFF ..
-    $ErrorActionPreference = "Continue"
+    Start-Process cmake -NoNewWindow -ArgumentList "-G `"Visual Studio 15 2017`" -T v141_xp -DJANSSON_BUILD_SHARED_LIBS=1 -DJANSSON_BUILD_DOCS=OFF .." -ErrorAction Ignore
     Set-Location "..\..\..\"
 }
 
