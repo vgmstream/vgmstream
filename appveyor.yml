@@ -9,7 +9,7 @@ for:
     only:
       - image: Visual Studio 2017
   build_script:
-    - ps: .\build.ps1 Build
+    - ps: .\build.bat
   test: off
   artifacts:
     - path: Release/test.zip

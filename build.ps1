@@ -5,8 +5,6 @@ Param(
     [string]$Task
 )
 
-Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy Bypass
-
 # https://stackoverflow.com/a/41618979/9919772
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
@@ -102,8 +100,9 @@ function Init
 
     New-Item -Path "dependencies\jansson" -Name "build" -ItemType "directory"
     Set-Location "dependencies\jansson\build"
+    $ErrorActionPreference = 'SilentlyContinue' 
     & cmake -G "Visual Studio 15 2017" -T v141_xp -DJANSSON_BUILD_SHARED_LIBS=1 -DJANSSON_BUILD_DOCS=OFF ..
-    
+    $ErrorActionPreference = 'Continue'
     Set-Location "..\..\..\"
 }
 
