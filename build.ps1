@@ -101,6 +101,8 @@ function Init
     New-Item -Path "dependencies\jansson" -Name "build" -ItemType "directory"
     Set-Location "dependencies\jansson\build"
     & cmake -G "Visual Studio 15 2017" -T v141_xp -DJANSSON_BUILD_SHARED_LIBS=1 -DJANSSON_BUILD_DOCS=OFF ..
+    
+    Set-Location "..\..\..\"
 }
 
 function Package
