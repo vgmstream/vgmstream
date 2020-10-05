@@ -32,35 +32,35 @@ jobs:
         with:
           name: foo_input_vgmstream.fb2k-component
           path: |
-            ${{runner.workspace}}\ext_libs\*.dll
-            ${{runner.workspace}}\ext_libs\*.dll.asc
-            ${{runner.workspace}}\Release\foo_input_vgmstream.dll
-            ${{runner.workspace}}\README.md
+            ${{github.workspace}}\ext_libs\*.dll
+            ${{github.workspace}}\ext_libs\*.dll.asc
+            ${{github.workspace}}\Release\foo_input_vgmstream.dll
+            ${{github.workspace}}\README.md
             
       - name: Upload CLI Tools Artifact
         uses: actions/upload-artifact@v2
         with:
           name: test
           path: |
-            ${{runner.workspace}}\ext_libs\*.dll
-            ${{runner.workspace}}\Release\in_vgmstream.dll
-            ${{runner.workspace}}\Release\test.exe
-            ${{runner.workspace}}\Release\xmp-vgmstream.dll
-            ${{runner.workspace}}\COPYING
-            ${{runner.workspace}}\README.md
+            ${{github.workspace}}\ext_libs\*.dll
+            ${{github.workspace}}\Release\in_vgmstream.dll
+            ${{github.workspace}}\Release\test.exe
+            ${{github.workspace}}\Release\xmp-vgmstream.dll
+            ${{github.workspace}}\COPYING
+            ${{github.workspace}}\README.md
             
       - name: Upload CLI Tools Debug Symbols Artifact
         uses: actions/upload-artifact@v2
         with:
           name: test.pdb.zip
           path: |
-            ${{runner.workspace}}\Release\in_vgmstream.pdb
-            ${{runner.workspace}}\Release\test.pdb
-            ${{runner.workspace}}\Release\xmp-vgmstream.pdb
+            ${{github.workspace}}\Release\in_vgmstream.pdb
+            ${{github.workspace}}\Release\test.pdb
+            ${{github.workspace}}\Release\xmp-vgmstream.pdb
             
       - name: Upload foobar2000 Component Debug Symbols Artifact
         uses: actions/upload-artifact@v2
         with:
           name: foo_input_vgmstream.pdb.zip
           path: |
-            ${{runner.workspace}}\Release\foo_input_vgmstream.pdb
+            ${{github.workspace}}\Release\foo_input_vgmstream.pdb
