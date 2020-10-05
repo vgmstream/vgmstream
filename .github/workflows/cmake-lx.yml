@@ -71,5 +71,8 @@ jobs:
         cd ../audacious
         tar cvfz vgmstream-audacious.tar.gz vgmstream.so
         cd ..
-        aws s3 cp cli/vgmstream-cli.tar.gz s3://vgmstream-builds/${{github.sha}}/linux/vgmstream-cli.tar.gz
-        aws s3 cp audacious/vgmstream-audacious.tar.gz s3://vgmstream-builds/${{github.sha}}/linux/vgmstream-audacious.tar.gz
+        aws s3 cp cli/vgmstream-cli.tar.gz s3://vgmstream-builds/${{github.sha}}/linux/vgmstream-cli.tar.gz --acl public-read 
+        aws s3 cp cli/vgmstream-cli.tar.gz s3://vgmstream-builds/latest/linux/vgmstream-cli.tar.gz --acl public-read 
+        aws s3 cp audacious/vgmstream-audacious.tar.gz s3://vgmstream-builds/${{github.sha}}/linux/vgmstream-audacious.tar.gz --acl public-read
+        aws s3 cp audacious/vgmstream-audacious.tar.gz s3://vgmstream-builds/latest/linux/vgmstream-audacious.tar.gz --acl public-read
+        aws s3 cp audacious/vgmstream-audacious.tar.gz s3://vgmstream-builds/${{github.sha}}/linux/vgmstream-audacious.tar.gz --acl public-read
