@@ -116,8 +116,5 @@ jobs:
           aws s3 cp Release\foo_input_vgmstream.fb2k-component s3://vgmstream-builds/${{github.sha}}/windows/ --acl public-read 
           aws s3 cp Release\test.pdb.zip s3://vgmstream-builds/${{github.sha}}/windows/ --acl public-read 
           aws s3 cp Release\foo_input_vgmstream.pdb.zip s3://vgmstream-builds/${{github.sha}}/windows/ --acl public-read 
-          
-          aws s3 cp Release\test.zip s3://vgmstream-builds/latest/windows/ --acl public-read 
-          aws s3 cp Release\foo_input_vgmstream.fb2k-component s3://vgmstream-builds/latest/windows/ --acl public-read 
-          aws s3 cp Release\test.pdb.zip s3://vgmstream-builds/latest/windows/ --acl public-read 
-          aws s3 cp Release\foo_input_vgmstream.pdb.zip s3://vgmstream-builds/latest/windows/ --acl public-read 
+          echo ${{github.sha}} > latest_id
+          aws s3 cp latest_id s3://vgmstream-builds/ --acl public-read
