@@ -21,46 +21,70 @@ jobs:
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
+        
+      - name: Initialize Build Environment
+        shell: cmd
+        run: powershell -ExecutionPolicy Bypass -NoProfile -File .\build.ps1 Init
 
       # Runs a single command using the runners shell
-      - name: Run Our Script
+      - name: Build
         shell: cmd
         run: powershell -ExecutionPolicy Bypass -NoProfile -File .\build.ps1 Build
+      
+      - name: Prepare Files For Packaging
+        shell: powershell
+        run: |
+          $fb2kFiles = @(
+              "ext_libs/*.dll",
+              "ext_libs/*.dll.asc",
+              "Release/foo_input_vgmstream.dll",
+              "README.md"
+          )
+
+          $cliFiles = @(
+              "ext_libs/*.dll",
+              "Release/in_vgmstream.dll",
+              "Release/test.exe",
+              "Release/xmp-vgmstream.dll",
+              "COPYING",
+              "README.md"
+          )
+
+          $fb2kPdbFiles = @(
+              "Release/foo_input_vgmstream.pdb"
+          )
+
+          $cliPdbFiles = @(
+              "Release/in_vgmstream.pdb",
+              "Release/test.pdb",
+              "Release/xmp-vgmstream.pdb"
+          )
+          
+          Copy-Item $cliFiles tmp/cli/
+          Copy-Item $fb2kFiles tmp/fb2k/
+          Copy-Item $cliPdbFiles tmp/cli-p/
+          Copy-Item $fb2kPdbFiles tmp/fb2k-p/
         
       - name: Upload foobar2000 Component Artifact
         uses: actions/upload-artifact@v2
         with:
           name: foo_input_vgmstream.fb2k-component
-          path: |
-            ${{github.workspace}}\ext_libs\*.dll
-            ${{github.workspace}}\ext_libs\*.dll.asc
-            ${{github.workspace}}\Release\foo_input_vgmstream.dll
-            ${{github.workspace}}\README.md
+          path: ${{github.workspace}}\tmp\fb2k
             
       - name: Upload CLI Tools Artifact
         uses: actions/upload-artifact@v2
         with:
           name: test
-          path: |
-            ${{github.workspace}}\ext_libs\*.dll
-            ${{github.workspace}}\Release\in_vgmstream.dll
-            ${{github.workspace}}\Release\test.exe
-            ${{github.workspace}}\Release\xmp-vgmstream.dll
-            ${{github.workspace}}\COPYING
-            ${{github.workspace}}\README.md
-            
-      - name: Upload CLI Tools Debug Symbols Artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: test.pdb.zip
-          path: |
-            ${{github.workspace}}\Release\in_vgmstream.pdb
-            ${{github.workspace}}\Release\test.pdb
-            ${{github.workspace}}\Release\xmp-vgmstream.pdb
+          path: ${{github.workspace}}\tmp\cli
             
       - name: Upload foobar2000 Component Debug Symbols Artifact
         uses: actions/upload-artifact@v2
         with:
-          name: foo_input_vgmstream.pdb.zip
-          path: |
-            ${{github.workspace}}\Release\foo_input_vgmstream.pdb
+          name: foo_input_vgmstream.pdb
+          path: ${{github.workspace}}\tmp\fb2k-p
+            
+      - name: Upload CLI Tools Debug Symbols Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: test.pdb
+          path: ${{github.workspace}}\tmp\cli-p
