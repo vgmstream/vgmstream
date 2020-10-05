@@ -16,7 +16,8 @@ Help and newest builds can be found here: https://www.hcs64.com/
 Latest development is usually here: https://github.com/losnoco/vgmstream/
 
 Latest releases are here: https://github.com/losnoco/vgmstream/releases
-Automated builds with the latest changes: https://ci.appveyor.com/project/kode54/vgmstream/branch/master/artifacts
+
+Automated builds with the latest changes: https://vgmstream-builds.losno.co/latest/
 
 You can find further info about other details in https://github.com/losnoco/vgmstream/tree/master/doc
 
