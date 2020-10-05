@@ -57,4 +57,21 @@ jobs:
       with:
           path: ${{runner.workspace}}/build/audacious/vgmstream.so
           name: vgmstream-audacious
-      
+
+    - name: Upload Artifacts to S3
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      env:
+          AWS_DEFAULT_REGION: us-west-1
+          AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY_ID}}
+          AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
+      run: |
+        cd cli
+        tar cvfz vgmstream-cli.tar.gz vgmstream_cli vgmstream123
+        cd ../audacious
+        tar cvfz vgmstream-audacious.tar.gz vgmstream.so
+        cd ..
+        aws s3 cp cli/vgmstream-cli.tar.gz s3://vgmstream-builds/${{github.sha}}/linux/vgmstream-cli.tar.gz --acl public-read 
+        aws s3 cp cli/vgmstream-cli.tar.gz s3://vgmstream-builds/latest/linux/vgmstream-cli.tar.gz --acl public-read 
+        aws s3 cp audacious/vgmstream-audacious.tar.gz s3://vgmstream-builds/${{github.sha}}/linux/vgmstream-audacious.tar.gz --acl public-read
+        aws s3 cp audacious/vgmstream-audacious.tar.gz s3://vgmstream-builds/latest/linux/vgmstream-audacious.tar.gz --acl public-read

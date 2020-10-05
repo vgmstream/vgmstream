@@ -93,3 +93,23 @@ jobs:
         with:
           name: test.pdb
           path: ${{github.workspace}}\tmp\cli-p
+          
+      - name: Upload Artifacts to S3
+        working-directory: ${{github.workspace}}
+        shell: powershell
+        env:
+            AWS_DEFAULT_REGION: us-west-1
+            AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY_ID}}
+            AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
+        run: |
+          aws s3 cp Release\test.zip s3://vgmstream-builds/${{github.sha}}/windows/ --acl public-read 
+          aws s3 cp Release\foo_input_vgmstream.fb2k-component s3://vgmstream-builds/${{github.sha}}/windows/ --acl public-read 
+          aws s3 cp Release\test.pdb.zip s3://vgmstream-builds/${{github.sha}}/windows/ --acl public-read 
+          aws s3 cp Release\foo_input_vgmstream.pdb.zip s3://vgmstream-builds/${{github.sha}}/windows/ --acl public-read 
+          
+          aws s3 cp Release\test.zip s3://vgmstream-builds/latest/windows/ --acl public-read 
+          aws s3 cp Release\foo_input_vgmstream.fb2k-component s3://vgmstream-builds/latest/windows/ --acl public-read 
+          aws s3 cp Release\test.pdb.zip s3://vgmstream-builds/latest/windows/ --acl public-read 
+          aws s3 cp Release\foo_input_vgmstream.pdb.zip s3://vgmstream-builds/latest/windows/ --acl public-read 
+          
+          
