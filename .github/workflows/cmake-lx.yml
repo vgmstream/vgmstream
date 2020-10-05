@@ -44,7 +44,7 @@ jobs:
       # Execute the build.  You can specify a specific target with "--target <NAME>"
       run: cmake --build . --config $BUILD_TYPE
         
-    - name: Upload CLI Tool Artifacts
+    - name: Upload CLI Tools Artifact
       uses: actions/upload-artifact@v2
       with:
           path: |

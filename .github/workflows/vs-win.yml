@@ -26,6 +26,15 @@ jobs:
         shell: cmd
         run: powershell -ExecutionPolicy Bypass -NoProfile -File .\build.ps1 Init
 
+      - name: Generate Build Files for Jansson 
+        working-directory: ${{github.workspace}}
+        shell: cmd
+        run: |
+          cd dependencies\jansson\
+          mkdir build
+          cd build
+          cmake .. -DJANSSON_BUILD_SHARED_LIBS=ON -DJANSSON_EXAMPLES=OFF -DJANSSON_BUILD_DOCS=OFF -G "Visual Studio 15 2017" -T "v141_xp"
+
       # Runs a single command using the runners shell
       - name: Build
         shell: cmd
@@ -46,6 +55,7 @@ jobs:
               "Release/in_vgmstream.dll",
               "Release/test.exe",
               "Release/xmp-vgmstream.dll",
+              "dependencies/jansson/build/bin/Release/jansson.dll",
               "COPYING",
               "README.md"
           )
@@ -111,5 +121,3 @@ jobs:
           aws s3 cp Release\foo_input_vgmstream.fb2k-component s3://vgmstream-builds/latest/windows/ --acl public-read 
           aws s3 cp Release\test.pdb.zip s3://vgmstream-builds/latest/windows/ --acl public-read 
           aws s3 cp Release\foo_input_vgmstream.pdb.zip s3://vgmstream-builds/latest/windows/ --acl public-read 
-          
-          

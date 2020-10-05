@@ -26,6 +26,7 @@ $cliFiles = @(
     "Release/in_vgmstream.dll",
     "Release/test.exe",
     "Release/xmp-vgmstream.dll",
+    "dependencies/jansson/build/bin/Release/jansson.dll",
     "COPYING",
     "README.md"
 )
@@ -65,6 +66,7 @@ function Init
     Download "https://github.com/kode54/fdk-aac/archive/master.zip" "dependencies\fdk-aac.zip"
     Download "https://github.com/kode54/qaac/archive/master.zip" "dependencies\qaac.zip"
     Download "https://www.nuget.org/api/v2/package/wtl/9.1.1" "dependencies\wtl.zip"
+    Download "https://github.com/akheron/jansson/archive/v2.13.1.zip" "dependencies\jansson.zip"
     Download "https://github.com/Microsoft/vswhere/releases/download/2.6.7/vswhere.exe" "dependencies\vswhere.exe"
 
     Download "https://www.foobar2000.org/SDK" "dependencies\SDK"
@@ -75,15 +77,18 @@ function Init
     Unzip "dependencies\fdk-aac.zip" "dependencies\fdk-aac_tmp"
     Unzip "dependencies\qaac.zip" "dependencies\qaac_tmp"
     Unzip "dependencies\wtl.zip" "dependencies\wtl_tmp"
+    Unzip "dependencies\jansson.zip" "dependencies\jansson_tmp"
     Unzip "dependencies\foobar.zip" "dependencies\foobar"
 
     Move-Item "dependencies\fdk-aac_tmp\fdk-aac-master" "dependencies\fdk-aac"
     Move-Item "dependencies\qaac_tmp\qaac-master" "dependencies\qaac"
     Move-Item "dependencies\wtl_tmp\lib\native" "dependencies\wtl"
+    Move-Item "dependencies\jansson_tmp\jansson-2.13.1" "dependencies\jansson"
 
     Remove-Item -Path "dependencies\fdk-aac_tmp" -Recurse
     Remove-Item -Path "dependencies\qaac_tmp" -Recurse
     Remove-Item -Path "dependencies\wtl_tmp" -Recurse
+    Remove-Item -Path "dependencies\jansson_tmp" -Recurse
 
     [xml]$proj = Get-Content dependencies\foobar\foobar2000\ATLHelpers\foobar2000_ATL_helpers.vcxproj
     $proj.project.ItemDefinitionGroup | ForEach-Object {
