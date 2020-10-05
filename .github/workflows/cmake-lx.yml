@@ -56,12 +56,12 @@ jobs:
     - name: Upload CLI tool artifact
       uses: actions/upload-artifact@v2
       with:
-          path: cli/vgmstream-cli.tar.gz
+          path: ${{runner.workspace}}/build/cli/vgmstream-cli.tar.gz
           name: vgmstream-cli.tar.gz
           
     - name: Upload Audacious plugin artifact
       uses: actions/upload-artifact@v2
       with:
-          path: audacious/vgmstream-audacious.tar.gz
+          path: ${{runner.workspace}}/build/audacious/vgmstream-audacious.tar.gz
           name: vgmstream-audacious.tar.gz
       
