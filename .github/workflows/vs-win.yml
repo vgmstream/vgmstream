@@ -60,10 +60,10 @@ jobs:
               "Release/xmp-vgmstream.pdb"
           )
           
-          Copy-Item $cliFiles tmp/cli/
-          Copy-Item $fb2kFiles tmp/fb2k/
-          Copy-Item $cliPdbFiles tmp/cli-p/
-          Copy-Item $fb2kPdbFiles tmp/fb2k-p/
+          Copy-Item $cliFiles tmp/cli/ -Recurse -Force
+          Copy-Item $fb2kFiles tmp/fb2k/ -Recurse -Force
+          Copy-Item $cliPdbFiles tmp/cli-p/ -Recurse -Force
+          Copy-Item $fb2kPdbFiles tmp/fb2k-p/ -Recurse -Force
         
       - name: Upload foobar2000 Component Artifact
         uses: actions/upload-artifact@v2
