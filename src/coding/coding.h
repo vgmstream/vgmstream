@@ -223,6 +223,8 @@ void decode_xmd(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, 
 /* derf_decoder */
 void decode_derf(VGMSTREAMCHANNEL* stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
 
+/* wady_decoder */
+void decode_wady(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
 
 /* circus_decoder */
 typedef struct circus_codec_data circus_codec_data;
