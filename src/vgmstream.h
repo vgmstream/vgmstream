@@ -741,6 +741,7 @@ typedef enum {
     meta_ADP_KONAMI,
     meta_SDRH,
     meta_WADY,
+    meta_DSP_SQEX,
 } meta_t;
 
 /* standard WAVEFORMATEXTENSIBLE speaker positions */
