@@ -1,6 +1,6 @@
 name: CMake Linux
 
-on: [push]
+on: [push, pull_request]
 
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
@@ -59,6 +59,7 @@ jobs:
           name: vgmstream-audacious
 
     - name: Upload Artifacts to S3
+      if: github.event_name != 'pull_request'
       working-directory: ${{runner.workspace}}/build
       shell: bash
       env:
