@@ -539,6 +539,7 @@
     <ClCompile Include="meta\vsf_tta.c" />
     <ClCompile Include="meta\vxn.c" />
     <ClCompile Include="meta\ubi_jade.c" />
+    <ClCompile Include="meta\wady.c" />
     <ClCompile Include="meta\waf.c" />
     <ClCompile Include="meta\wave_segmented.c" />
     <ClCompile Include="meta\wave.c" />
@@ -632,6 +633,7 @@
     <ClCompile Include="coding\vorbis_custom_utils_sk.c" />
     <ClCompile Include="coding\vorbis_custom_utils_vid1.c" />
     <ClCompile Include="coding\vorbis_custom_utils_wwise.c" />
+    <ClCompile Include="coding\wady_decoder.c" />
     <ClCompile Include="coding\ws_decoder.c" />
     <ClCompile Include="coding\xa_decoder.c" />
     <ClCompile Include="coding\xmd_decoder.c" />

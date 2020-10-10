@@ -1783,6 +1783,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\wady.c"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\waf.c"
                     >
                 </File>
@@ -2278,6 +2282,10 @@
                     RelativePath=".\coding\vadpcm_decoder.c"
                     >
                 </File>
+				<File
+					RelativePath=".\coding\wady_decoder.c"
+					>
+				</File>
 				<File
 					RelativePath=".\coding\ws_decoder.c"
 					>

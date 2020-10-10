@@ -177,11 +177,12 @@ typedef enum {
     coding_SDX2,            /* SDX2 2:1 Squareroot-Delta-Exact compression DPCM */
     coding_SDX2_int,        /* SDX2 2:1 Squareroot-Delta-Exact compression with sample-level interleave */
     coding_CBD2,            /* CBD2 2:1 Cuberoot-Delta-Exact compression DPCM */
-    coding_CBD2_int,        /* CBD2 2:1 Cuberoot-Delta-Exact compression, with sample-level interleave  */
+    coding_CBD2_int,        /* CBD2 2:1 Cuberoot-Delta-Exact compression, with sample-level interleave */
     coding_SASSC,           /* Activision EXAKT SASSC 8-bit DPCM */
     coding_DERF,            /* DERF 8-bit DPCM */
+    coding_WADY,            /* WADY 8-bit DPCM */
+    coding_NWA,             /* VisualArt's NWA DPCM */
     coding_ACM,             /* InterPlay ACM */
-    coding_NWA,             /* VisualArt's NWA */
     coding_CIRCUS_ADPCM,    /* Circus 8-bit ADPCM */
     coding_UBI_ADPCM,       /* Ubisoft 4/6-bit ADPCM */
 
@@ -739,6 +740,7 @@ typedef enum {
     meta_PCM_SUCCESS,
     meta_ADP_KONAMI,
     meta_SDRH,
+    meta_WADY,
 } meta_t;
 
 /* standard WAVEFORMATEXTENSIBLE speaker positions */

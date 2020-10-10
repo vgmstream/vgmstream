@@ -343,6 +343,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM* vgmstream) {
         case coding_CBD2:
         case coding_ACM:
         case coding_DERF:
+        case coding_WADY:
         case coding_NWA:
         case coding_SASSC:
         case coding_CIRCUS_ADPCM:
@@ -540,6 +541,7 @@ int get_vgmstream_frame_size(VGMSTREAM* vgmstream) {
         case coding_SDX2_int:
         case coding_CBD2:
         case coding_DERF:
+        case coding_WADY:
         case coding_NWA:
         case coding_SASSC:
         case coding_CIRCUS_ADPCM:
@@ -1028,6 +1030,12 @@ void decode_vgmstream(VGMSTREAM* vgmstream, int samples_written, int samples_to_
         case coding_DERF:
             for (ch = 0; ch < vgmstream->channels; ch++) {
                 decode_derf(&vgmstream->ch[ch], buffer+ch,
+                        vgmstream->channels, vgmstream->samples_into_block, samples_to_do);
+            }
+            break;
+        case coding_WADY:
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_wady(&vgmstream->ch[ch], buffer+ch,
                         vgmstream->channels, vgmstream->samples_into_block, samples_to_do);
             }
             break;

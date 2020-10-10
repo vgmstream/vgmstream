@@ -553,6 +553,7 @@ static const char* extension_list[] = {
     "wavebatch",
     "wavm",
     "wavx", //txth/reserved [LEGO Star Wars (Xbox)]
+    "way",
     "wb",
     "wb2",
     "wbd",
@@ -769,6 +770,7 @@ static const coding_info coding_info_list[] = {
         {coding_OKI16,              "OKI 4-bit ADPCM (16-bit output)"},
         {coding_OKI4S,              "OKI 4-bit ADPCM (4-shift)"},
         {coding_PTADPCM,            "Platinum 4-bit ADPCM"},
+        {coding_IMUSE,              "LucasArts iMUSE VIMA ADPCM"},
 
         {coding_SDX2,               "Squareroot-delta-exact (SDX2) 8-bit DPCM"},
         {coding_SDX2_int,           "Squareroot-delta-exact (SDX2) 8-bit DPCM with 1 byte interleave"},
@@ -776,11 +778,11 @@ static const coding_info coding_info_list[] = {
         {coding_CBD2_int,           "Cuberoot-delta-exact (CBD2) 8-bit DPCM with 1 byte interleave"},
         {coding_SASSC,              "Activision / EXAKT SASSC 8-bit DPCM"},
         {coding_DERF,               "Xilam DERF 8-bit DPCM"},
-        {coding_ACM,                "InterPlay ACM"},
+        {coding_WADY,               "Marble WADY 8-bit DPCM"},
         {coding_NWA,                "VisualArt's NWA DPCM"},
+        {coding_ACM,                "InterPlay ACM"},
         {coding_CIRCUS_ADPCM,       "Circus 8-bit ADPCM"},
         {coding_UBI_ADPCM,          "Ubisoft 4/6-bit ADPCM"},
-        {coding_IMUSE,              "LucasArts iMUSE VIMA ADPCM"},
 
         {coding_EA_MT,              "Electronic Arts MicroTalk"},
         {coding_CIRCUS_VQ,          "Circus VQ"},
@@ -1311,6 +1313,7 @@ static const meta_info meta_info_list[] = {
         {meta_PCM_SUCCESS,          "Success PCM header"},
         {meta_ADP_KONAMI,           "Konami ADP header"},
         {meta_SDRH,                 "feelplus SDRH header"},
+        {meta_WADY,                 "Marble WADY header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {
