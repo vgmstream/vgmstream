@@ -167,7 +167,6 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_seg,
     init_vgmstream_nds_strm_ffta2,
     init_vgmstream_str_asr,
-    init_vgmstream_zwdsp,
     init_vgmstream_gca,
     init_vgmstream_spt_spd,
     init_vgmstream_ish_isd,
@@ -524,6 +523,7 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_raw_pcm,         /* .raw raw PCM */
     init_vgmstream_s14_sss,         /* .s14/sss raw siren14 */
     init_vgmstream_raw_al,          /* .al/al2 raw A-LAW */
+    init_vgmstream_zwdsp,           /* fake format */
 #ifdef VGM_USE_FFMPEG
     init_vgmstream_ffmpeg,          /* may play anything incorrectly, since FFmpeg doesn't check extensions */
 #endif
