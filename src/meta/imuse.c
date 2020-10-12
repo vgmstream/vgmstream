@@ -108,23 +108,19 @@ VGMSTREAM* init_vgmstream_imuse(STREAMFILE* sf) {
         if (!is_id4("DATA", head_offset + 0x10 + map_size + 0x00, sf))
             goto fail;
         data_bytes = read_u32be(head_offset + 0x10 + map_size + 0x04, sf);
-
         num_samples = data_bytes / channels / sizeof(int16_t);
-        //num_samples = (read_u32be(head_offset + 0x04,sf) - head_size) / channels / sizeof(int16_t); /* equivalent */
     }
     else if (is_id4("RIFF", head_offset, sf)) { /* MCMP voices */
-        /* standard (LE), with fake codec 1 and sizes also in decoded bytes (see above) */
+        /* standard (LE), with fake codec 1 and sizes also in decoded bytes (see above),
+         * has standard RIFF chunks (may include extra), start offset in MCSC */
 
-        if (!is_id4("fmt ", head_offset + 0x0c, sf))
+        if (!find_chunk_le(sf, 0x666D7420, head_offset + 0x0c, 0, &offset, NULL)) /* "fmt " */
             goto fail;
-        offset = head_offset + 0x14;
         channels    = read_u16le(offset + 0x02,sf);
         sample_rate = read_u32le(offset + 0x04,sf);
 
-        if (!is_id4("data", head_offset + 0x24, sf))
+        if (!find_chunk_le(sf, 0x64617461, head_offset + 0x0c, 0, NULL, &data_bytes)) /*"data"*/
             goto fail;
-        data_bytes = read_u32le(head_offset + 0x28, sf);
-
         num_samples = data_bytes / channels / sizeof(int16_t);
     }
     else {
