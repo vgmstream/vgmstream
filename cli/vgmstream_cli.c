@@ -670,7 +670,8 @@ int main(int argc, char** argv) {
         return EXIT_SUCCESS;
     }
 
-
+    if (cfg.seek_samples1 < -1) /* ex value for loop testing */
+        cfg.seek_samples1 = vgmstream->loop_start_sample;
     if (cfg.seek_samples1 >= len_samples)
         cfg.seek_samples1 = -1;
     if (cfg.seek_samples2 >= len_samples)
