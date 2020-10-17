@@ -14,9 +14,8 @@ VGMSTREAM* init_vgmstream_ps2_enth(STREAMFILE* sf) {
 
     /* checks */
     /* .bin/lbin: internal (no names in bigfiles but exes mention "bgm%05d.bin" and "LEP data")
-     * .lp/lep/ap: header ID
-     * .enth: fake */
-    if (!check_extensions(sf, "bin,lbin,lp,lep,ap,enth"))
+     * .lp/lep/ap: header ID */
+    if (!check_extensions(sf, "bin,lbin,lp,lep,ap"))
         goto fail;
 
     id = read_u32be(0x00,sf);

@@ -167,7 +167,6 @@ static const char* extension_list[] = {
     "enm",
     "eno",
     "ens",
-    "enth",
     "exa",
     "ezw",
 
