@@ -67,6 +67,7 @@ static const char* extension_list[] = {
     "ams", //txth/reserved [Super Dragon Ball Z (PS2) ELF names]
     "amts", //fake extension/header id for .stm (renamed? to be removed?)
     "ao",
+    "ap",
     "apc",
     "as4",
     "asd",
@@ -261,6 +262,7 @@ static const char* extension_list[] = {
     "lasf", //fake extension for .asf (various)
     "lbin", //fake extension for .bin (various)
     "leg",
+    "lep",
     "lflac", //fake extension for .flac, FFmpeg/not parsed
     "lin",
     "lm0",
@@ -277,6 +279,7 @@ static const char* extension_list[] = {
     "lmpc", //fake extension for .mpc, FFmpeg/not parsed
     "logg", //fake extension for .ogg
     "lopus", //fake extension for .opus
+    "lp",
     "lpcm",
     "lpk",
     "lps",
