@@ -37,7 +37,6 @@ static const char* extension_list[] = {
     "abk",
     //"ac3", //common, FFmpeg/not parsed (AC3)
     "acb",
-    "ace", //fake extension for tri-Ace's .aac (renamed, to be removed)
     "acm",
     "ad", //txth/reserved [Xenosaga Freaks (PS2)]
     "adc", //txth/reserved [Tomb Raider The Last Revelation (DC), Tomb Raider Chronicles (DC)]
@@ -67,6 +66,7 @@ static const char* extension_list[] = {
     "ams", //txth/reserved [Super Dragon Ball Z (PS2) ELF names]
     "amts", //fake extension/header id for .stm (renamed? to be removed?)
     "ao",
+    "ap",
     "apc",
     "as4",
     "asd",
@@ -166,7 +166,6 @@ static const char* extension_list[] = {
     "enm",
     "eno",
     "ens",
-    "enth",
     "exa",
     "ezw",
 
@@ -261,6 +260,7 @@ static const char* extension_list[] = {
     "lasf", //fake extension for .asf (various)
     "lbin", //fake extension for .bin (various)
     "leg",
+    "lep",
     "lflac", //fake extension for .flac, FFmpeg/not parsed
     "lin",
     "lm0",
@@ -277,6 +277,7 @@ static const char* extension_list[] = {
     "lmpc", //fake extension for .mpc, FFmpeg/not parsed
     "logg", //fake extension for .ogg
     "lopus", //fake extension for .opus
+    "lp",
     "lpcm",
     "lpk",
     "lps",
@@ -1177,9 +1178,7 @@ static const meta_info meta_info_list[] = {
         {meta_OGL,                  "Shin'en OGL header"},
         {meta_MC3,                  "Paradigm MC3 header"},
         {meta_GTD,                  "GTD/GHS header"},
-        {meta_TA_AAC_X360,          "tri-Ace AAC (X360) header"},
-        {meta_TA_AAC_PS3,           "tri-Ace AAC (PS3) header"},
-        {meta_TA_AAC_MOBILE,        "tri-Ace AAC (Mobile) header"},
+        {meta_TA_AAC,               "tri-Ace AAC header"},
         {meta_MTA2,                 "Konami MTA2 header"},
         {meta_NGC_ULW,              "Criterion ULW raw header"},
         {meta_XA_XA30,              "Reflections XA30 header"},
@@ -1233,7 +1232,6 @@ static const meta_info meta_info_list[] = {
         {meta_SPS_N1,               "Nippon Ichi .SPS header"},
         {meta_UBI_BAO,              "Ubisoft BAO header"},
         {meta_DSP_SWITCH_AUDIO,     "UE4 Switch Audio header"},
-        {meta_TA_AAC_VITA,          "tri-Ace AAC (Vita) header"},
         {meta_SADF,                 "Procyon Studio SADF header"},
         {meta_H4M,                  "Hudson HVQM4 header"},
         {meta_ASF,                  "Argonaut ASF header"},

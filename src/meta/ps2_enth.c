@@ -1,9 +1,11 @@
 #include "meta.h"
 #include "../coding/coding.h"
+#include "ps2_enth_streamfile.h"
 
-/* LP/AP/LEP - from Enthusia: Professional Racing */
+/* LP/AP/LEP - from Konami (KCES)'s Enthusia: Professional Racing (PS2) */
 VGMSTREAM* init_vgmstream_ps2_enth(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
+    STREAMFILE* temp_sf = NULL;
     off_t start_offset;
     int loop_flag, channels, sample_rate, interleave;
     int32_t data_size, loop_start; 
@@ -11,12 +13,12 @@ VGMSTREAM* init_vgmstream_ps2_enth(STREAMFILE* sf) {
 
 
     /* checks */
-    /* .bin/lbin: assumed (no actual extensino in bigfiles)
-     * .enth: fake */
-    if (!check_extensions(sf, "bin,lbin,enth"))
+    /* .bin/lbin: internal (no names in bigfiles but exes mention "bgm%05d.bin" and "LEP data")
+     * .lp/lep/ap: header ID */
+    if (!check_extensions(sf, "bin,lbin,lp,lep,ap"))
         goto fail;
 
-    id = read_32bitBE(0x00,sf);
+    id = read_u32be(0x00,sf);
     switch (id) {
         case 0x41502020: /* "AP  " */
         case 0x4C502020: /* "LP  " */
@@ -24,7 +26,7 @@ VGMSTREAM* init_vgmstream_ps2_enth(STREAMFILE* sf) {
             interleave  = read_u32le(0x0c,sf);
             loop_start  = read_u32le(0x14,sf);
             data_size   = read_u32le(0x18,sf);
-            start_offset = read_32bitLE(0x1C,sf);
+            start_offset = read_u32le(0x1C,sf);
             break;
 
         case 0x4C455020: /* "LEP " */
@@ -42,6 +44,7 @@ VGMSTREAM* init_vgmstream_ps2_enth(STREAMFILE* sf) {
     loop_flag = loop_start != 0;
     channels = 2;
 
+
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
@@ -58,9 +61,10 @@ VGMSTREAM* init_vgmstream_ps2_enth(STREAMFILE* sf) {
             vgmstream->num_samples = pcm_bytes_to_samples(data_size, channels, 16);
             vgmstream->loop_start_sample = pcm_bytes_to_samples(loop_start, channels, 16);
             vgmstream->loop_end_sample = vgmstream->num_samples;
-            /* PCM data look different or encrypted
-             * some PCM16 must be xored(?) with 0x8000, not sure when */
-            goto fail;
+
+            temp_sf = setup_lp_streamfile(sf, start_offset); /* encrypted/obfuscated PCM */
+            if (!temp_sf) goto fail;
+            break;
 
         case 0x41502020: /* "AP  " */
         case 0x4C455020: /* "LEP " */
@@ -77,10 +81,12 @@ VGMSTREAM* init_vgmstream_ps2_enth(STREAMFILE* sf) {
             goto fail;
     }
 
-    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
+    if (!vgmstream_open_stream(vgmstream, temp_sf ? temp_sf : sf, start_offset))
         goto fail;
+    close_streamfile(temp_sf);
     return vgmstream;
 fail:
+    close_streamfile(temp_sf);
     close_vgmstream(vgmstream);
     return NULL;
 }

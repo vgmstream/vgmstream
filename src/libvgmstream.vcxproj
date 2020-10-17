@@ -122,6 +122,7 @@
     <ClInclude Include="meta\kma9_streamfile.h" />
     <ClInclude Include="meta\lrmd_streamfile.h" />
     <ClInclude Include="meta\ppst_streamfile.h" />
+    <ClInclude Include="meta\ps2_enth_streamfile.h" />
     <ClInclude Include="meta\vsv_streamfile.h" />
     <ClInclude Include="meta\xavs_streamfile.h" />
     <ClInclude Include="meta\xnb_streamfile.h" />
