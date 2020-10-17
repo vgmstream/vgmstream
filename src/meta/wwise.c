@@ -583,7 +583,7 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE* sf) {
             if (ww.fmt_size == 0x28) {
                 size_t seek_size;
 
-                vgmstream->num_samples += read_32bit(ww.fmt_offset + 0x18, sf);
+                vgmstream->num_samples = read_32bit(ww.fmt_offset + 0x18, sf);
                 /* 0x1c: null? 0x20: data_size without seek_size */
                 seek_size = read_32bit(ww.fmt_offset + 0x24, sf);
 
@@ -595,6 +595,14 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE* sf) {
             }
 
             skip = switch_opus_get_encoder_delay(start_offset, sf); /* should be 120 */
+
+            /* some voices have original sample rate but opus can only do 48000 (ex. Mario Kart Home Circuit 24khz) */
+            if (vgmstream->sample_rate != 48000) {
+                vgmstream->sample_rate = 48000;
+                vgmstream->num_samples = switch_opus_get_samples(start_offset,ww.data_size, sf); /* also original's */
+                vgmstream->num_samples -= skip;
+            }
+
 
             /* OPUS is VBR so this is very approximate percent, meh */
             if (ww.truncated) {
