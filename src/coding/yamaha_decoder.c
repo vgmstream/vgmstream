@@ -19,10 +19,10 @@ static const int scale_delta[16] = {
 };
 
 /* Yamaha ADPCM-B (aka DELTA-T) expand used in YM2608/YM2610/etc (cross referenced with various sources and .so) */
-static void yamaha_adpcmb_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset, int nibble_shift, int32_t* hist1, int32_t* step_size, int16_t *out_sample) {
+static void yamaha_adpcmb_expand_nibble(uint8_t byte, int shift, int32_t* hist1, int32_t* step_size, int16_t *out_sample) {
     int code, delta, sample;
 
-    code = (read_8bit(byte_offset,stream->streamfile) >> nibble_shift) & 0xf;
+    code =  (byte >> shift) & 0xf;
     delta = ((((code & 0x7) * 2) + 1) * (*step_size)) >> 3; /* like 'mul' IMA */
     if (code & 8)
         delta = -delta;
@@ -109,38 +109,47 @@ void decode_aica(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacin
 
 /* tri-Ace Aska ADPCM, Yamaha ADPCM-B with headered frames (reversed from Android SO's .so)
  * implements table with if-else/switchs too but that's too goofy */
-void decode_aska(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
-    int i, sample_count = 0, num_frame;
+void decode_aska(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel, size_t frame_size) {
+    uint8_t frame[0x100] = {0}; /* known max is 0xC0 */
+    off_t frame_offset;
+    int i, sample_count = 0, frames_in;
     int16_t out_sample;
     int32_t hist1 = stream->adpcm_history1_32;
     int step_size = stream->adpcm_step_index;
 
     /* external interleave */
-    int block_samples = (0x40 - 0x04*channelspacing) * 2 / channelspacing;
-    num_frame = first_sample / block_samples;
+    int block_samples = (frame_size - 0x04*channelspacing) * 2 / channelspacing;
+    frames_in = first_sample / block_samples;
     first_sample = first_sample % block_samples;
+
+    if (frame_size > sizeof(frame)) {
+        VGM_LOG_ONCE("ASKA: unknown frame size %x\n", frame_size);
+        return;
+    }
+
+    /* parse frame */
+    frame_offset = stream->offset + frame_size * frames_in;
+    read_streamfile(frame, frame_offset, frame_size, stream->streamfile); /* ignore EOF errors */
 
     /* header (hist+step) */
     if (first_sample == 0) {
-        off_t header_offset = stream->offset + 0x40*num_frame + 0x04*channel;
-
-        hist1     = read_16bitLE(header_offset+0x00,stream->streamfile);
-        step_size = read_16bitLE(header_offset+0x02,stream->streamfile);
-        /* in most files 1st frame has step 0 but it seems ok and accounted for */
+        hist1     = get_s16le(frame + 0x04*channel + 0x00);
+        step_size = get_s16le(frame + 0x04*channel + 0x02);
+        /* in most files 1st frame has step 0 but it seems ok and needed for correct waveform */
         //if (step_size < 0x7f) step_size = 0x7f;
         //else if (step_size > 0x6000) step_size = 0x6000;
     }
 
-    /* decode nibbles (layout: varies) */
+    /* decode nibbles (layout: one nibble per channel, low-high order, ex 6ch=10325410 32541032 ...) */
     for (i = first_sample; i < first_sample + samples_to_do; i++) {
-        off_t byte_offset = (channelspacing == 2) ?
-                (stream->offset + 0x40*num_frame + 0x04*channelspacing) + i :    /* stereo: one nibble per channel */
-                (stream->offset + 0x40*num_frame + 0x04*channelspacing) + i/2;   /* mono: consecutive nibbles */
-        int nibble_shift = (channelspacing == 2) ?
-                (!(channel&1) ? 0:4) :
-                (!(i&1) ? 0:4);  /* even = low, odd = high */
+        int pos = (channelspacing == 1) ?
+                (0x04*channelspacing) + i/2 :
+                (0x04*channelspacing) + (i * 4 * channelspacing + 4*channel) / 8; /* nibble position to closest byte */
+        int shift = (channelspacing == 1) ? /* low first */
+                (!(i&1) ? 0:4) :
+                (!(channel&1) ? 0:4);
 
-        yamaha_adpcmb_expand_nibble(stream, byte_offset, nibble_shift, &hist1, &step_size, &out_sample);
+        yamaha_adpcmb_expand_nibble(frame[pos], shift, &hist1, &step_size, &out_sample);
         outbuf[sample_count] = out_sample;
         sample_count += channelspacing;
     }
@@ -150,24 +159,29 @@ void decode_aska(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacin
 }
 
 
-/* NXAP ADPCM, Yamaha ADPCM-B with weird headered frames */
+/* NXAP ADPCM, Yamaha ADPCM-B with weird headered frames, partially rev'd from the ELF */
 void decode_nxap(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
-    int i, sample_count = 0, num_frame;
+    uint8_t frame[0x40] = {0}; /* known max is 0xC0 */
+    off_t frame_offset;
+    int i, sample_count = 0, frames_in;
     int32_t hist1 = stream->adpcm_history1_32;
     int step_size = stream->adpcm_step_index;
     int16_t out_sample;
 
     /* external interleave, mono */
-    int block_samples = (0x40 - 0x4) * 2;
-    num_frame = first_sample / block_samples;
+    size_t frame_size = 0x40;
+    int block_samples = (frame_size - 0x4) * 2;
+    frames_in = first_sample / block_samples;
     first_sample = first_sample % block_samples;
+
+    /* parse frame */
+    frame_offset = stream->offset + frame_size * frames_in;
+    read_streamfile(frame, frame_offset, frame_size, stream->streamfile); /* ignore EOF errors */
 
     /* header (hist+step) */
     if (first_sample == 0) {
-        off_t header_offset = stream->offset + 0x40*num_frame;
-
-        hist1     = read_s16le(header_offset+0x00,stream->streamfile);
-        step_size = read_u16le(header_offset+0x02,stream->streamfile) >> 1; /* remove lower bit, also note unsignedness */
+        hist1     = get_s16le(frame + 0x00);
+        step_size = get_u16le(frame + 0x02) >> 1; /* remove lower bit, also note unsignedness */
         if (step_size < 0x7f) step_size = 0x7f;
         else if (step_size > 0x6000) step_size = 0x6000;
         /* step's lower bit is hist1 sign (useless), and code doesn't seem to do anything useful with it? */
@@ -175,10 +189,10 @@ void decode_nxap(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacin
 
     /* decode nibbles (layout: all nibbles from one channel) */
     for (i = first_sample; i < first_sample + samples_to_do; i++) {
-        off_t byte_offset = (stream->offset + 0x40*num_frame + 0x04) + i/2;
-        int nibble_shift = (i&1?0:4);
+        int pos = 0x04 + i/2;
+        int shift = (i&1?0:4);
 
-        yamaha_adpcmb_expand_nibble(stream, byte_offset, nibble_shift, &hist1, &step_size, &out_sample);
+        yamaha_adpcmb_expand_nibble(frame[pos], shift, &hist1, &step_size, &out_sample);
         outbuf[sample_count] = out_sample;
         sample_count += channelspacing;
     }
@@ -193,8 +207,8 @@ size_t yamaha_bytes_to_samples(size_t bytes, int channels) {
     return bytes * 2 / channels;
 }
 
-size_t aska_bytes_to_samples(size_t bytes, int channels) {
-    int block_align = 0x40;
+size_t aska_bytes_to_samples(size_t bytes, size_t frame_size, int channels) {
+    int block_align = frame_size;
     if (channels <= 0) return 0;
     return (bytes / block_align) * (block_align - 0x04*channels) * 2 / channels
             + ((bytes % block_align) ? ((bytes % block_align) - 0x04*channels) * 2 / channels : 0);
