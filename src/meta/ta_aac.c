@@ -32,9 +32,8 @@ VGMSTREAM* init_vgmstream_ta_aac(STREAMFILE* sf) {
 
 
     /* checks */
-    /* .aac: actual extension, .laac: for players to avoid hijacking MP4/AAC 
-     * .ace: fake */
-    if (!check_extensions(sf, "aac,laac,ace"))
+    /* .aac: actual extension, .laac: for players to avoid hijacking MP4/AAC */
+    if (!check_extensions(sf, "aac,laac"))
         goto fail;
     if (read_u32be(0x00, sf) != 0x41414320 &&
         read_u32le(0x00, sf) != 0x41414320)   /* "AAC " */

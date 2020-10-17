@@ -37,7 +37,6 @@ static const char* extension_list[] = {
     "abk",
     //"ac3", //common, FFmpeg/not parsed (AC3)
     "acb",
-    "ace", //fake extension for tri-Ace's .aac (renamed, to be removed)
     "acm",
     "ad", //txth/reserved [Xenosaga Freaks (PS2)]
     "adc", //txth/reserved [Tomb Raider The Last Revelation (DC), Tomb Raider Chronicles (DC)]
