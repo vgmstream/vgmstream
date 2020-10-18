@@ -1,13 +1,13 @@
 /*
 ** Copyright (C) 1997-2008 Nullsoft, Inc.
 **
-** This software is provided 'as-is', without any express or implied warranty. In no event will the authors be held 
-** liable for any damages arising from the use of this software. 
+** This software is provided 'as-is', without any express or implied warranty. In no event will the authors be held
+** liable for any damages arising from the use of this software.
 **
-** Permission is granted to anyone to use this software for any purpose, including commercial applications, and to 
+** Permission is granted to anyone to use this software for any purpose, including commercial applications, and to
 ** alter it and redistribute it freely, subject to the following restrictions:
 **
-**   1. The origin of this software must not be misrepresented; you must not claim that you wrote the original software. 
+**   1. The origin of this software must not be misrepresented; you must not claim that you wrote the original software.
 **      If you use this software in a product, an acknowledgment in the product documentation would be appreciated but is not required.
 **
 **   2. Altered source versions must be plainly marked as such, and must not be misrepresented as being the original software.
@@ -21,11 +21,11 @@
 
 #include <windows.h>
 #include <stddef.h>
-#if (_MSC_VER <= 1200)
+#if defined(_MSC_VER) && (_MSC_VER <= 1200)
 typedef int intptr_t;
 #endif
 /*
-** This is the modern replacement for the classic 'frontend.h'. Most of these 
+** This is the modern replacement for the classic 'frontend.h'. Most of these
 ** updates are designed for in-process use, i.e. from a plugin.
 **
 */
@@ -43,7 +43,7 @@ typedef int intptr_t;
 #define WM_WA_IPC WM_USER
 
 #define WINAMP_VERSION_MAJOR(winampVersion) ((winampVersion & 0x0000FF00) >> 12)
-#define WINAMP_VERSION_MINOR(winampVersion) (winampVersion & 0x000000FF)  // returns, i.e. 0x12 for 5.12 and 0x10 for 5.1... 
+#define WINAMP_VERSION_MINOR(winampVersion) (winampVersion & 0x000000FF)  // returns, i.e. 0x12 for 5.12 and 0x10 for 5.1...
 
 
 #define IPC_GETVERSION 0
@@ -78,7 +78,7 @@ typedef struct {
   const char *filename;
   const char *title;
   int length;
-} enqueueFileWithMetaStruct; // send this to a IPC_PLAYFILE in a non WM_COPYDATA, 
+} enqueueFileWithMetaStruct; // send this to a IPC_PLAYFILE in a non WM_COPYDATA,
 // and you get the nice desired result. if title is NULL, it is treated as a "thing",
 // otherwise it's assumed to be a file (for speed)
 
@@ -89,7 +89,7 @@ typedef struct {
 } enqueueFileWithMetaStructW;
 
 #define IPC_PLAYFILE 100  // dont be fooled, this is really the same as enqueufile
-#define IPC_ENQUEUEFILE 100 
+#define IPC_ENQUEUEFILE 100
 #define IPC_PLAYFILEW 1100
 #define IPC_ENQUEUEFILEW 1100
 /* This is sent as a WM_COPYDATA with IPC_PLAYFILE as the dwData member and the string
@@ -118,7 +118,7 @@ typedef struct {
 
 
 #define IPC_DELETE 101
-#define IPC_DELETE_INT 1101 
+#define IPC_DELETE_INT 1101
 /* SendMessage(hwnd_winamp,WM_WA_IPC,0,IPC_DELETE);
 ** Use this api to clear Winamp's internal playlist.
 ** You should not need to use IPC_DELETE_INT since it is used internally by Winamp when
@@ -126,8 +126,8 @@ typedef struct {
 */
 
 
-#define IPC_STARTPLAY 102   
-#define IPC_STARTPLAY_INT 1102 
+#define IPC_STARTPLAY 102
+#define IPC_STARTPLAY_INT 1102
 /* SendMessage(hwnd_winamp,WM_WA_IPC,0,IPC_STARTPLAY);
 ** Sending this will start playback and is almost the same as hitting the play button.
 ** The IPC_STARTPLAY_INT version is used internally and you should not need to use it
@@ -289,7 +289,7 @@ typedef struct {
 #define IPC_GETEQDATA 127
 /* (requires Winamp 2.05+)
 ** int data=SendMessage(hwnd_winamp,WM_WA_IPC,pos,IPC_GETEQDATA);
-** IPC_GETEQDATA queries the status of the EQ. 
+** IPC_GETEQDATA queries the status of the EQ.
 ** The value returned depends on what 'pos' is set to:
 ** Value      Meaning
 ** ------------------
@@ -309,7 +309,7 @@ typedef struct {
 ** an extended version that lets you do a MAKELPARAM(pos,value).
 ** someday...
 
-  new (2.92+): 
+  new (2.92+):
     if the high byte is set to 0xDB, then the third byte specifies
     which band, and the bottom word specifies the value.
 */
@@ -467,9 +467,9 @@ typedef struct {
 #define IPC_SETSKIN 200
 /* (requires Winamp 2.04+, only usable from plug-ins (not external apps))
 ** SendMessage(hwnd_winamp,WM_WA_IPC,(WPARAM)"skinname",IPC_SETSKIN);
-** IPC_SETSKIN sets the current skin to "skinname". Note that skinname 
-** can be the name of a skin, a skin .zip file, with or without path. 
-** If path isn't specified, the default search path is the winamp skins 
+** IPC_SETSKIN sets the current skin to "skinname". Note that skinname
+** can be the name of a skin, a skin .zip file, with or without path.
+** If path isn't specified, the default search path is the winamp skins
 ** directory.
 */
 
@@ -478,7 +478,7 @@ typedef struct {
 #define IPC_GETSKINW 1201
 /* (requires Winamp 2.04+, only usable from plug-ins (not external apps))
 ** SendMessage(hwnd_winamp,WM_WA_IPC,(WPARAM)skinname_buffer,IPC_GETSKIN);
-** IPC_GETSKIN puts the directory where skin bitmaps can be found 
+** IPC_GETSKIN puts the directory where skin bitmaps can be found
 ** into  skinname_buffer.
 ** skinname_buffer must be MAX_PATH characters in length.
 ** When using a .zip'd skin file, it'll return a temporary directory
@@ -493,7 +493,7 @@ typedef struct {
 ** the format of this string can be:
 ** "vis_whatever.dll"
 ** "vis_whatever.dll,0" // (first mod, file in winamp plug-in dir)
-** "C:\\dir\\vis_whatever.dll,1" 
+** "C:\\dir\\vis_whatever.dll,1"
 */
 
 
@@ -573,7 +573,7 @@ typedef struct {
 /* (requires Winamp 2.4+)
 ** SendMessage(hwnd_winamp,WM_WA_IPC,(WPARAM)url,IPC_MBOPENREAL);
 **
-** IPC_MBOPENREAL works the same as IPC_MBOPEN except that it will works even if 
+** IPC_MBOPENREAL works the same as IPC_MBOPEN except that it will works even if
 ** IPC_MBBLOCK has been set to 1
 */
 
@@ -590,7 +590,7 @@ typedef struct {
 /* (requires Winamp 2.9+)
 ** HMENU hMenu=SendMessage(hwnd_winamp,WM_WA_IPC,(WPARAM)0,IPC_GET_HMENU);
 ** values for data:
-** 0 : main popup menu 
+** 0 : main popup menu
 ** 1 : main menubar file menu
 ** 2 : main menubar options menu
 ** 3 : main menubar windows menu
@@ -663,14 +663,14 @@ typedef struct {
 #define IPC_SET_EXTENDED_FILE_INFO 294 //pass a pointer to the a extendedFileInfoStruct in wParam
 /* (requires Winamp 2.9+)
 ** to use, create an extendedFileInfoStruct, point the values filename and metadata to the
-** filename and metadata field you wish to write in ret. (retlen is not used). and then 
+** filename and metadata field you wish to write in ret. (retlen is not used). and then
 ** SendMessage(hwnd_winamp,WM_WA_IPC,&struct,IPC_SET_EXTENDED_FILE_INFO);
 ** returns 1 if the metadata is supported
 ** Call IPC_WRITE_EXTENDED_FILE_INFO once you're done setting all the metadata you want to update
 */
 
 
-#define IPC_WRITE_EXTENDED_FILE_INFO 295 
+#define IPC_WRITE_EXTENDED_FILE_INFO 295
 /* (requires Winamp 2.9+)
 ** writes all the metadata set thru IPC_SET_EXTENDED_FILE_INFO to the file
 ** returns 1 if the file has been successfully updated, 0 if error
@@ -678,7 +678,7 @@ typedef struct {
 
 
 #define IPC_FORMAT_TITLE 297
-typedef struct 
+typedef struct
 {
   char *spec; // NULL=default winamp spec
   void *p;
@@ -692,7 +692,7 @@ typedef struct
 
 
 #define IPC_FORMAT_TITLE_EXTENDED 298 // similiar to IPC_FORMAT_TITLE, but falls back to Winamp's %tags% if your passed tag function doesn't handle it
-typedef struct 
+typedef struct
 {
   const wchar_t *filename;
   int useExtendedInfo; // set to 1 if you want the Title Formatter to query the input plugins for any tags that your tag function fails on
@@ -1057,7 +1057,7 @@ typedef struct embedEnumStruct
   int (*enumProc)(embedWindowState *ws, struct embedEnumStruct *param); // return 1 to abort
   int user_data; // or more :)
 } embedEnumStruct;
-  // pass 
+  // pass
 
 
 #define IPC_EMBED_ISVALID 533
@@ -1082,14 +1082,14 @@ typedef struct embedEnumStruct
 **    Be sure to call IPC_CONVERTFILE_END when your callback window receives the
 **    IPC_CB_CONVERT_DONE message.
 */
-typedef struct 
+typedef struct
 {
   char *sourcefile;  // "c:\\source.mp3"
   char *destfile;    // "c:\\dest.pcm"
   intptr_t destformat[8]; // like 'PCM ',srate,nch,bps.
   //hack alert! you can set destformat[6]=mmioFOURCC('I','N','I',' '); and destformat[7]=(int)my_ini_file; (where my_ini_file is a char*)
   HWND callbackhwnd; // window that will receive the IPC_CB_CONVERT notification messages
-  
+
   //filled in by winamp.exe
   char *error;        //if IPC_CONVERTFILE returns 0, the reason will be here
 
@@ -1248,12 +1248,12 @@ typedef struct
 */
 
 
-#define IPC_GETSADATAFUNC 800 
+#define IPC_GETSADATAFUNC 800
 // 0: returns a char *export_sa_get() that returns 150 bytes of data
 // 1: returns a export_sa_setreq(int want);
 
 
-#define IPC_GETVUDATAFUNC 801 
+#define IPC_GETVUDATAFUNC 801
 // 0: returns a int export_vu_get(int channel) that returns 0-255 (or -1 for bad channel)
 
 
@@ -1413,7 +1413,7 @@ class IVideoOutput
     virtual INT_PTR extended(INT_PTR param1, INT_PTR param2, INT_PTR param3) { UNREFERENCED_PARAMETER(param1); UNREFERENCED_PARAMETER(param2); UNREFERENCED_PARAMETER(param3); return 0; } // Dispatchable, eat this!
 };
 
-class ITrackSelector 
+class ITrackSelector
 {
   public:
     virtual int getNumAudioTracks()=0;
@@ -1432,15 +1432,15 @@ class ITrackSelector
 
 // these messages are callbacks that you can grab by subclassing the winamp window
 
-// wParam = 
+// wParam =
 #define IPC_CB_WND_EQ 0 // use one of these for the param
 #define IPC_CB_WND_PE 1
 #define IPC_CB_WND_MB 2
 #define IPC_CB_WND_VIDEO 3
 #define IPC_CB_WND_MAIN 4
 
-#define IPC_CB_ONSHOWWND 600 
-#define IPC_CB_ONHIDEWND 601 
+#define IPC_CB_ONSHOWWND 600
+#define IPC_CB_ONHIDEWND 601
 
 #define IPC_CB_GETTOOLTIP 602
 
@@ -1599,7 +1599,7 @@ typedef struct {
 } windowCommand; // send this as param to an IPC_PLCMD, IPC_MBCMD, IPC_VIDCMD
 
 
-#define IPC_CB_ONTOGGLEAOT 618 
+#define IPC_CB_ONTOGGLEAOT 618
 
 
 #define IPC_GETPREFSWND 619
@@ -1815,7 +1815,7 @@ typedef struct {
 */
 
 
-#define IPC_SETRATING 639 
+#define IPC_SETRATING 639
 /* (requires Winamp 5.04+ with ML)
 ** int rating=SendMessage(hwnd_winamp,WM_WA_IPC,rating,IPC_SETRATING);
 ** This will allow you to set the 'rating' on the current playlist entry where 'rating'
@@ -1833,7 +1833,7 @@ typedef struct {
 */
 
 
-#define IPC_GETRATING 640 
+#define IPC_GETRATING 640
 /* (requires Winamp 5.04+ with ML)
 ** int rating=SendMessage(hwnd_winamp,WM_WA_IPC,0,IPC_GETRATING);
 ** This returns the current playlist entry's rating between 0 (no rating) to 5 (5 stars).
@@ -1951,7 +1951,7 @@ typedef struct {
 #define IPC_FLUSHAUDITS 652
 /*
 ** SendMessage(hwnd_winamp,WM_WA_IPC,0,IPC_FLUSHAUDITS);
-** 
+**
 ** Will flush any pending audits in the global audits queue
 **
 */
@@ -1982,7 +1982,7 @@ typedef struct {
 
 // >>>>>>>>>>> Next is 658
 
-#define IPC_PLCMD  1000 
+#define IPC_PLCMD  1000
 
 #define PLCMD_ADD  0
 #define PLCMD_REM  1
@@ -1990,7 +1990,7 @@ typedef struct {
 #define PLCMD_MISC 3
 #define PLCMD_LIST 4
 
-//#define IPC_MBCMD  1001 
+//#define IPC_MBCMD  1001
 
 #define MBCMD_BACK    0
 #define MBCMD_FORWARD 1
@@ -1998,7 +1998,7 @@ typedef struct {
 #define MBCMD_RELOAD  3
 #define MBCMD_MISC  4
 
-#define IPC_VIDCMD 1002 
+#define IPC_VIDCMD 1002
 
 #define VIDCMD_FULLSCREEN 0
 #define VIDCMD_1X         1
@@ -2115,7 +2115,7 @@ typedef struct {
 */
 
 
-#define IPC_PLAYLIST_MODIFIED 3002 
+#define IPC_PLAYLIST_MODIFIED 3002
 /* (requires Winamp 5.0+)
 ** This is a notification message sent to the main Winamp window whenever the playlist is
 ** modified in any way e.g. the addition/removal of a playlist entry.
@@ -2131,7 +2131,7 @@ typedef struct {
 */
 
 
-#define IPC_PLAYING_FILE 3003 
+#define IPC_PLAYING_FILE 3003
 /* (requires Winamp 5.0+)
 ** This is a notification message sent to the main Winamp window when playback begins for
 ** a file. This passes the full filepath in the wParam of the message received.
@@ -2144,7 +2144,7 @@ typedef struct {
 */
 
 
-#define IPC_PLAYING_FILEW 13003 
+#define IPC_PLAYING_FILEW 13003
 /* (requires Winamp 5.0+)
 ** This is a notification message sent to the main Winamp window when playback begins for
 ** a file. This passes the full filepath in the wParam of the message received.
@@ -2180,7 +2180,7 @@ typedef struct {
 */
 
 
-#define IPC_HOOK_OKTOQUIT 3010 
+#define IPC_HOOK_OKTOQUIT 3010
 /* (requires Winamp 5.0+)
 ** This is a notification message sent to the main Winamp window asking if it's okay to
 ** close or not. Return zero to prevent Winamp from closing or return anything non-zero
@@ -2239,7 +2239,7 @@ typedef struct {
 */
 
 
-#define IPC_METADATA_CHANGED 3017 
+#define IPC_METADATA_CHANGED 3017
 /* (requires Winamp 5.1+)
 ** int changed=SendMessage(hwnd_winamp,WM_WA_IPC,(WPARAM)(char*)field,IPC_METADATA_CHANGED);
 ** a plugin can SendMessage this to winamp if internal metadata has changes.
@@ -2258,7 +2258,7 @@ typedef struct {
 */
 
 
-#define IPC_SKIN_CHANGED 3018 
+#define IPC_SKIN_CHANGED 3018
 /* (requires Winamp 5.1+)
 ** This is a notification message sent to the main Winamp window by itself whenever
 ** the skin in use is changed. There is no information sent by the wParam for this.
@@ -2270,7 +2270,7 @@ typedef struct {
 */
 
 
-#define IPC_REGISTER_LOWORD_COMMAND 3019 
+#define IPC_REGISTER_LOWORD_COMMAND 3019
 /* (requires Winamp 5.1+)
 ** WORD id = SendMessage(hwnd_winamp,WM_WA_IPC,0,IPC_REGISTER_LOWORD_COMMAND);
 ** This will assign you a unique id for making your own commands such as for extra menu
@@ -2287,7 +2287,7 @@ typedef struct {
 #define IPC_GET_UNIQUE_DISPATCH_ID 3021 // gives you a unique dispatch ID that won't conflict with anything in winamp's IDispatch *
 #define IPC_ADD_DISPATCH_OBJECT 3022 // add your own dispatch object into winamp's.  This lets embedded webpages access your functions
 // pass a pointer to DispatchInfo (see below).  Winamp makes a copy of all this data so you can safely delete it later
-typedef struct 
+typedef struct
 {
   wchar_t *name; // filled in by plugin, make sure it's a unicode string!! (i.e. L"myObject" instead of "myObject).
   struct IDispatch *dispatch; // filled in by plugin
@@ -2303,7 +2303,7 @@ typedef struct
 */
 
 
-#define IPC_USE_REGISTRY 3024 
+#define IPC_USE_REGISTRY 3024
 /* (requires Winamp 5.11+)
 ** int reg_enabled=SendMessage(hwnd_winamp,WM_WA_IPC,0,IPC_USE_REGISTRY);
 ** This will return 0 if you should leave your grubby hands off the registry (i.e. for
@@ -2312,7 +2312,7 @@ typedef struct
 */
 
 
-#define IPC_GET_API_SERVICE 3025 
+#define IPC_GET_API_SERVICE 3025
 /* (requires Winamp 5.12+)
 ** api_service* api_service = (api_service)SendMessage(hwnd_winamp,WM_WA_IPC,0,IPC_GET_API_SERVICE);
 ** This api will return Winamp's api_service pointer (which is what Winamp3 used, heh).
@@ -2335,14 +2335,14 @@ typedef struct {
   size_t retlen;
 } extendedFileInfoStructW;
 
-#define IPC_GET_EXTENDED_FILE_INFOW 3026 
+#define IPC_GET_EXTENDED_FILE_INFOW 3026
 /* (requires Winamp 5.13+)
 ** Pass a pointer to the above struct in wParam
 */
 
 
 #define IPC_GET_EXTENDED_FILE_INFOW_HOOKABLE 3027
-#define IPC_SET_EXTENDED_FILE_INFOW 3028 
+#define IPC_SET_EXTENDED_FILE_INFOW 3028
 /* (requires Winamp 5.13+)
 ** Pass a pointer to the above struct in wParam
 */
@@ -2451,7 +2451,7 @@ typedef struct {
 ** Pass to IE via IDocHostUIHandler::GetExternal and it will become window.external in javscript
 */
 
-#define IPC_REGISTER_WINAMP_IPCMESSAGE 65536 
+#define IPC_REGISTER_WINAMP_IPCMESSAGE 65536
 /* (requires Winamp 5.0+)
 ** DWORD id = SendMessage(hwnd_winamp,WM_WA_IPC,(WPARAM)name,IPC_REGISTER_WINAMP_IPCMESSAGE);
 ** The value 'id' returned is > 65536 and is incremented on subsequent calls for unique

@@ -2,12 +2,6 @@ cmake_minimum_required(VERSION 3.5)
 project(vgmstream C)
 enable_language(CXX)
 
-# TODO: Figure out why MinGW-w64 doesn't build
-
-if(MINGW)
-	message(FATAL_ERROR "Cannot currently build with MinGW")
-endif()
-
 get_directory_property(hasParent PARENT_DIRECTORY)
 if(hasParent)
   set(VGM_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR} PARENT_SCOPE)
