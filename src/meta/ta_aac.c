@@ -135,6 +135,8 @@ VGMSTREAM* init_vgmstream_ta_aac(STREAMFILE* sf) {
             vgmstream->layout_type = layout_none;
             vgmstream->frame_size = read_u32le(aac.extra_offset + 0x04,sf); /* usually 0x40, rarely 0x20/C0 (ex. some ROF PC) */
             /* N-channel frames are allowed (ex. 4/6ch in SO4/ROF PC) */
+            if (vgmstream->frame_size > 0xc0) /* known max */
+                goto fail;
 
             vgmstream->num_samples = aska_bytes_to_samples(aac.stream_size, vgmstream->frame_size, aac.channels);
             vgmstream->loop_start_sample = aska_bytes_to_samples(aac.loop_start, vgmstream->frame_size, aac.channels);

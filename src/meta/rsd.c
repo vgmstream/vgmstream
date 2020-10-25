@@ -3,7 +3,7 @@
 
 
 /* RSD - from Radical Entertainment games */
-VGMSTREAM * init_vgmstream_rsd(STREAMFILE *streamFile) {
+VGMSTREAM * init_vgmstream_rsd(STREAMFILE *sf) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset, name_offset;
     size_t data_size;
@@ -13,24 +13,24 @@ VGMSTREAM * init_vgmstream_rsd(STREAMFILE *streamFile) {
 
 
     /* checks */
-    if (!check_extensions(streamFile,"rsd,rsp"))
+    if (!check_extensions(sf,"rsd,rsp"))
         goto fail;
-    if ((read_32bitBE(0x00,streamFile) & 0xFFFFFF00) != 0x52534400) /* "RSD\00" */
+    if ((read_32bitBE(0x00,sf) & 0xFFFFFF00) != 0x52534400) /* "RSD\00" */
         goto fail;
 
     loop_flag = 0;
 
-    codec = (uint32_t)read_32bitBE(0x04,streamFile);
-    channel_count = read_32bitLE(0x08, streamFile);
+    codec = (uint32_t)read_32bitBE(0x04,sf);
+    channel_count = read_32bitLE(0x08, sf);
     /* 0x0c: always 16? */
-    sample_rate = read_32bitLE(0x10, streamFile);
+    sample_rate = read_32bitLE(0x10, sf);
 
-    version = read_8bit(0x03, streamFile);
+    version = read_8bit(0x03, sf);
     switch(version) {
         case '2': /* known codecs: VAG/XADP/PCMB [The Simpsons: Road Rage] */
         case '3': /* known codecs: VAG/PCM/PCMB/GADP? [Dark Summit] */
-            interleave   = read_32bitLE(0x14,streamFile); /* VAG only, 0x04 otherwise */
-            start_offset = read_32bitLE(0x18,streamFile);
+            interleave   = read_32bitLE(0x14,sf); /* VAG only, 0x04 otherwise */
+            start_offset = read_32bitLE(0x18,sf);
             name_offset  = 0;
             break;
 
@@ -43,7 +43,7 @@ VGMSTREAM * init_vgmstream_rsd(STREAMFILE *streamFile) {
 
             /* PCMB/PCM/GADP normally start early but sometimes have padding [The Simpsons: Hit & Run (GC/Xbox)] */
             if ((codec == 0x50434D20 || codec == 0x550434D42 || codec == 0x47414450)
-                    && read_32bitLE(0x80,streamFile) != 0x2D2D2D2D)
+                    && read_32bitLE(0x80,sf) != 0x2D2D2D2D)
                 start_offset = 0x80;
             break;
 
@@ -58,7 +58,7 @@ VGMSTREAM * init_vgmstream_rsd(STREAMFILE *streamFile) {
             goto fail;
     }
 
-    data_size = get_streamfile_size(streamFile) - start_offset;
+    data_size = get_streamfile_size(sf) - start_offset;
 
 
     /* build the VGMSTREAM */
@@ -104,8 +104,8 @@ VGMSTREAM * init_vgmstream_rsd(STREAMFILE *streamFile) {
             vgmstream->coding_type = coding_NGC_DSP;
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = 0x08; /* assumed, known files are mono */
-            dsp_read_coefs_le(vgmstream,streamFile,0x14,0x2e); /* LE! */
-            dsp_read_hist_le (vgmstream,streamFile,0x38,0x2e);
+            dsp_read_coefs_le(vgmstream,sf,0x14,0x2e); /* LE! */
+            dsp_read_hist_le (vgmstream,sf,0x38,0x2e);
 
             vgmstream->num_samples = dsp_bytes_to_samples(data_size, channel_count);
             break;
@@ -114,8 +114,8 @@ VGMSTREAM * init_vgmstream_rsd(STREAMFILE *streamFile) {
             vgmstream->coding_type = coding_NGC_DSP_subint;
             vgmstream->layout_type = layout_none;
             vgmstream->interleave_block_size = 0x02;
-            dsp_read_coefs_be(vgmstream,streamFile,0x1a4,0x28);
-            dsp_read_hist_be (vgmstream,streamFile,0x1c8,0x28);
+            dsp_read_coefs_be(vgmstream,sf,0x1a4,0x28);
+            dsp_read_hist_be (vgmstream,sf,0x1c8,0x28);
 
             vgmstream->num_samples = dsp_bytes_to_samples(data_size, channel_count);
             break;
@@ -134,7 +134,7 @@ VGMSTREAM * init_vgmstream_rsd(STREAMFILE *streamFile) {
 
             ovmi.meta_type = meta_RSD;
             close_vgmstream(vgmstream);
-            vgmstream = init_vgmstream_ogg_vorbis_callbacks(streamFile, NULL, start_offset, &ovmi);
+            vgmstream = init_vgmstream_ogg_vorbis_callbacks(sf, NULL, start_offset, &ovmi);
             if (!vgmstream) goto fail;
             break;
         }
@@ -145,22 +145,22 @@ VGMSTREAM * init_vgmstream_rsd(STREAMFILE *streamFile) {
             ffmpeg_codec_data *ffmpeg_data = NULL;
 
             /* mini header + WMA header at start_offset */
-            ffmpeg_data = init_ffmpeg_offset(streamFile, start_offset+0x08,data_size);
+            ffmpeg_data = init_ffmpeg_offset(sf, start_offset+0x08,data_size);
             if (!ffmpeg_data) goto fail;
             vgmstream->codec_data = ffmpeg_data;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
 
             vgmstream->num_samples = (int32_t)ffmpeg_data->totalSamples; /* an estimation, sometimes cuts files a bit early */
-          //vgmstream->num_samples = read_32bitLE(start_offset + 0x00, streamFile) / channel_count / 2; /* may be PCM data size, but not exact */
-            vgmstream->sample_rate = read_32bitLE(start_offset + 0x04, streamFile);
+          //vgmstream->num_samples = read_32bitLE(start_offset + 0x00, sf) / channel_count / 2; /* may be PCM data size, but not exact */
+            vgmstream->sample_rate = read_32bitLE(start_offset + 0x04, sf);
             break;
         }
 
         case 0x4154332B: { /* "AT3+" [Crash of the Titans (PSP)] */
             int fact_samples = 0;
 
-            vgmstream->codec_data = init_ffmpeg_atrac3_riff(streamFile, start_offset, &fact_samples);
+            vgmstream->codec_data = init_ffmpeg_atrac3_riff(sf, start_offset, &fact_samples);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
@@ -177,21 +177,21 @@ VGMSTREAM * init_vgmstream_rsd(STREAMFILE *streamFile) {
 
 
             /* skip mini header */
-            start_offset = read_32bitBE(0x800, streamFile) + read_32bitBE(0x804, streamFile) + 0xc; /* assumed, seek table always at 0x800 */
-            xma_size = read_32bitBE(0x808, streamFile);
-            xma_version = read_32bitBE(0x80C, streamFile);
+            start_offset = 0x800 + read_32bitBE(0x800, sf) + read_32bitBE(0x804, sf) + 0xc; /* assumed, seek table always at 0x800 */
+            xma_size = read_32bitBE(0x808, sf);
+            xma_version = read_32bitBE(0x80C, sf);
 
             switch (xma_version) {
                 case 0x03010000:
-                    vgmstream->sample_rate = read_32bitBE(0x818, streamFile);
-                    vgmstream->num_samples = read_32bitBE(0x824, streamFile);
-                    block_count = read_32bitBE(0x828, streamFile);
+                    vgmstream->sample_rate = read_32bitBE(0x818, sf);
+                    vgmstream->num_samples = read_32bitBE(0x824, sf);
+                    block_count = read_32bitBE(0x828, sf);
                     block_size = 0x10000;
                     break;
                 case 0x04010000:
-                    vgmstream->num_samples = read_32bitBE(0x814, streamFile);
-                    vgmstream->sample_rate = read_32bitBE(0x818, streamFile);
-                    block_count = read_32bitBE(0x830, streamFile);
+                    vgmstream->num_samples = read_32bitBE(0x814, sf);
+                    vgmstream->sample_rate = read_32bitBE(0x818, sf);
+                    block_count = read_32bitBE(0x830, sf);
                     block_size = 0x10000;
                     break;
                 default:
@@ -199,14 +199,14 @@ VGMSTREAM * init_vgmstream_rsd(STREAMFILE *streamFile) {
             }
 
             bytes = ffmpeg_make_riff_xma2(buf,sizeof(buf), vgmstream->num_samples, xma_size, vgmstream->channels, vgmstream->sample_rate, block_count, block_size);
-            ffmpeg_data = init_ffmpeg_header_offset(streamFile, buf, bytes, start_offset, xma_size);
+            ffmpeg_data = init_ffmpeg_header_offset(sf, buf, bytes, start_offset, xma_size);
             if (!ffmpeg_data) goto fail;
             vgmstream->codec_data = ffmpeg_data;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
 
             /* for some reason (dev trickery?) .rsd don't set skip in the bitstream, though they should */
-            //xma_fix_raw_samples(vgmstream, streamFile, start_offset,xma_size, 0, 0,0);
+            //xma_fix_raw_samples(vgmstream, sf, start_offset,xma_size, 0, 0,0);
             ffmpeg_set_skip_samples(ffmpeg_data, 512+64);
             break;
         }
@@ -217,9 +217,9 @@ VGMSTREAM * init_vgmstream_rsd(STREAMFILE *streamFile) {
     }
 
     if (name_offset)
-        read_string(vgmstream->stream_name,STREAM_NAME_SIZE, name_offset,streamFile);
+        read_string(vgmstream->stream_name,STREAM_NAME_SIZE, name_offset,sf);
 
-    if (!vgmstream_open_stream(vgmstream, streamFile, start_offset))
+    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
         goto fail;
     return vgmstream;
 
