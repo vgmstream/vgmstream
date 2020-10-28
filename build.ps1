@@ -97,6 +97,12 @@ function Init
         $_.ClCompile.AppendChild($includes)
     }
     $proj.Save("dependencies\foobar\foobar2000\ATLHelpers\foobar2000_ATL_helpers.vcxproj")
+    
+    cd dependencies\jansson\
+    mkdir build
+    cd build
+    cmake .. -DJANSSON_BUILD_SHARED_LIBS=ON -DJANSSON_EXAMPLES=OFF -DJANSSON_BUILD_DOCS=OFF -G "Visual Studio 15 2017" -T "v141_xp"
+    cd ..\..\..
 }
 
 function Package
