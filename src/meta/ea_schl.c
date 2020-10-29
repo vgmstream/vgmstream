@@ -5,13 +5,12 @@
 
 /* header version */
 #define EA_VERSION_NONE         -1
-#define EA_VERSION_V0           0x00  /* ~early PC (when codec1 was used) */
-#define EA_VERSION_V1           0x01  /* ~PC */
-#define EA_VERSION_V2           0x02  /* ~PS1 */
-#define EA_VERSION_V3           0x03  /* ~PS2 */
+#define EA_VERSION_V0           0x00 /* ~early PC (when codec1 was used) */
+#define EA_VERSION_V1           0x01 /* ~PC */
+#define EA_VERSION_V2           0x02 /* ~PS1 */
+#define EA_VERSION_V3           0x03 /* ~PS2 */
 
 /* platform constants (unassigned values seem internal only) */
-#define EA_PLATFORM_GENERIC     -1    /* typically Wii/X360/PS3/videos */
 #define EA_PLATFORM_PC          0x00
 #define EA_PLATFORM_PSX         0x01
 #define EA_PLATFORM_N64         0x02
@@ -20,36 +19,47 @@
 #define EA_PLATFORM_PS2         0x05
 #define EA_PLATFORM_GC_WII      0x06
 #define EA_PLATFORM_XBOX        0x07
+#define EA_PLATFORM_GENERIC     0x08 /* typically Wii/X360/PS3/videos */
 #define EA_PLATFORM_X360        0x09
 #define EA_PLATFORM_PSP         0x0A
-#define EA_PLATFORM_PS3         0x0E  /* very rare [Need for Speed: Carbon (PS3)] */
+#define EA_PLATFORM_PS3         0x0E /* very rare [Need for Speed: Carbon (PS3)] */
 #define EA_PLATFORM_3DS         0x14
 
 /* codec constants (undefined are probably reserved, ie.- sx.exe encodes PCM24/DVI but no platform decodes them) */
 /* CODEC1 values were used early, then they migrated to CODEC2 values */
 #define EA_CODEC1_NONE          -1
 #define EA_CODEC1_PCM           0x00
-#define EA_CODEC1_VAG           0x01  // unsure
+#define EA_CODEC1_VAG           0x01 /* unsure */
 #define EA_CODEC1_EAXA          0x07
 #define EA_CODEC1_MT10          0x09
 #define EA_CODEC1_N64           0x64 /* unknown but probably before MT10 */
 
 
 #define EA_CODEC2_NONE          -1
+#define EA_CODEC2_S16LE_INT     0x00
+#define EA_CODEC2_S16BE_INT     0x01
+#define EA_CODEC2_S8_INT        0x02
+#define EA_CODEC2_EAXA_INT      0x03
 #define EA_CODEC2_MT10          0x04
 #define EA_CODEC2_VAG           0x05
+#define EA_CODEC2_N64           0x06
 #define EA_CODEC2_S16BE         0x07
 #define EA_CODEC2_S16LE         0x08
 #define EA_CODEC2_S8            0x09
 #define EA_CODEC2_EAXA          0x0A
+//#define EA_CODEC2_U8_INT        0x0B /* not used */
+//#define EA_CODEC2_CDXA          0x0C /* not used */
+//#define EA_CODEC2_IMA           0x0D /* not used */
+//#define EA_CODEC2_LAYER1        0x0E /* not used */
 #define EA_CODEC2_LAYER2        0x0F
-#define EA_CODEC2_LAYER3        0x10
+#define EA_CODEC2_LAYER3        0x10 /* not seen so far but may be used somewhere */
 #define EA_CODEC2_GCADPCM       0x12
+//#define EA_CODEC2_S24LE_INT     0x13 /* not used */
 #define EA_CODEC2_XBOXADPCM     0x14
+//#define EA_CODEC2_S24BE_INT     0x15 /* not used */
 #define EA_CODEC2_MT5           0x16
 #define EA_CODEC2_EALAYER3      0x17
 #define EA_CODEC2_ATRAC3PLUS    0x1B
-#define EA_CODEC2_N64           0x64 /* unknown but probably before MT10 */
 
 /* Block headers, SCxy - where x is block ID and y is endianness flag (always 'l'?) */
 #define EA_BLOCKID_HEADER       0x5343486C /* "SCHl" */
@@ -1182,16 +1192,25 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE* sf, ea_header* 
      * Unneeded codecs are removed over time (ex. LAYER3 when EALAYER3 was introduced). */
     switch (ea->codec2) {
 
-        case EA_CODEC2_EAXA:        /* EA-XA, CDXA ADPCM variant */
-            if (ea->version == EA_VERSION_V0) {
-                if (ea->platform != EA_PLATFORM_SAT && ea->channels > 1)
-                    vgmstream->coding_type = coding_EA_XA; /* original version, stereo stream */
-                else
-                    vgmstream->coding_type = coding_EA_XA_int; /* interleaved mono streams */
-            }
-            else { /* later revision with PCM blocks and slighty modified decoding */
-                vgmstream->coding_type = coding_EA_XA_V2;
-            }
+        case EA_CODEC2_EAXA_INT:    /* EA-XA, CDXA ADPCM variant */
+            if (ea->platform != EA_PLATFORM_SAT && ea->channels > 1)
+                vgmstream->coding_type = coding_EA_XA; /* stereo stream */
+            else
+                vgmstream->coding_type = coding_EA_XA_int; /* interleaved mono streams */
+            break;
+
+        case EA_CODEC2_EAXA:        /* EA-XA v2 */
+            /* later revision with PCM blocks and slighty modified decoding */
+            vgmstream->coding_type = coding_EA_XA_V2;
+            break;
+
+        case EA_CODEC2_S8_INT:      /* PCM8 (interleaved) */
+            vgmstream->coding_type = coding_PCM8_int;
+            break;
+
+        case EA_CODEC2_S16LE_INT:   /* PCM16LE (interleaved) */
+        case EA_CODEC2_S16BE_INT:   /* PCM16BE (interleaved) */
+            vgmstream->coding_type = coding_PCM16_int;
             break;
 
         case EA_CODEC2_S8:          /* PCM8 */
@@ -1203,11 +1222,7 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE* sf, ea_header* 
             break;
 
         case EA_CODEC2_S16LE:       /* PCM16LE */
-            if (ea->version > EA_VERSION_V0) {
-                vgmstream->coding_type = coding_PCM16LE;
-            } else { /* Need for Speed III: Hot Pursuit (PC) */
-                vgmstream->coding_type = coding_PCM16_int;
-            }
+            vgmstream->coding_type = coding_PCM16LE;
             break;
 
         case EA_CODEC2_VAG:         /* PS-ADPCM */
@@ -1298,7 +1313,7 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE* sf, ea_header* 
         }
 
 #ifdef VGM_USE_FFMPEG
-        case EA_CODEC2_ATRAC3PLUS: {
+        case EA_CODEC2_ATRAC3PLUS: {    /* ATRAC3+ */
             /* regular ATRAC3plus chunked in SCxx blocks, including RIFF header [Medal of Honor Heroes 2 (PSP)] */
             if (!is_bnk) {
                 STREAMFILE* temp_sf = NULL;
@@ -1349,8 +1364,14 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE* sf, ea_header* 
         //        vgmstream->ch[i].offset = ea->offsets[0] + vgmstream->interleave_block_size*i;
         //    }
         //}
-        else if (vgmstream->coding_type == coding_PCM16_int && ea->version == EA_VERSION_V0) {
-            /* Need for Speed II (PC) bad offsets */
+        else if (vgmstream->coding_type == coding_PCM8_int) {
+            /* fix interleaved PCM offsets */
+            for (i = 0; i < vgmstream->channels; i++) {
+                vgmstream->ch[i].offset = ea->offsets[0] + 0x01*i;
+            }
+        }
+        else if (vgmstream->coding_type == coding_PCM16_int) {
+            /* fix interleaved PCM offsets */
             for (i = 0; i < vgmstream->channels; i++) {
                 vgmstream->ch[i].offset = ea->offsets[0] + 0x02*i;
             }
@@ -1683,11 +1704,11 @@ static int parse_variable_header(STREAMFILE* sf, ea_header* ea, off_t begin_offs
     /* codec1 to codec2 to simplify later parsing */
     if (ea->codec1 != EA_CODEC1_NONE && ea->codec2 == EA_CODEC2_NONE) {
         switch (ea->codec1) {
-            case EA_CODEC1_PCM:
-                ea->codec2 = ea->bps==8 ? EA_CODEC2_S8 : (ea->big_endian ? EA_CODEC2_S16BE : EA_CODEC2_S16LE);
+            case EA_CODEC1_PCM: /* assumed to always be interleaved, need to verify */
+                ea->codec2 = ea->bps==8 ? EA_CODEC2_S8_INT : (ea->big_endian ? EA_CODEC2_S16BE_INT : EA_CODEC2_S16LE_INT);
                 break;
             case EA_CODEC1_VAG:         ea->codec2 = EA_CODEC2_VAG; break;
-            case EA_CODEC1_EAXA:        ea->codec2 = EA_CODEC2_EAXA; break;
+            case EA_CODEC1_EAXA:        ea->codec2 = EA_CODEC2_EAXA_INT; break;
             case EA_CODEC1_MT10:        ea->codec2 = EA_CODEC2_MT10; break;
             case EA_CODEC1_N64:         ea->codec2 = EA_CODEC2_N64; break;
             default:
