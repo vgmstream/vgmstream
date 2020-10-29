@@ -636,6 +636,7 @@ static VGMSTREAM *init_vgmstream_ubi_dat_main(ubi_sb_header *sb, STREAMFILE *sf_
         if (!sf_data) {
             /* play silence if external file is not found since Rayman 2 seems to rely on this behavior */
             VGM_LOG("UBI DAT: external stream '%s' not found\n", sb->resource_name);
+            strncat(sb->readable_name, " (missing)", sizeof(sb->readable_name));
             sb->duration = (float)pcm_bytes_to_samples(sb->stream_size, sb->channels, 16) / (float)sb->sample_rate;
             return init_vgmstream_ubi_sb_silence(sb, sf_index, sf);
         }
