@@ -1192,16 +1192,25 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE* sf, ea_header* 
      * Unneeded codecs are removed over time (ex. LAYER3 when EALAYER3 was introduced). */
     switch (ea->codec2) {
 
-        case EA_CODEC2_EAXA:        /* EA-XA, CDXA ADPCM variant */
-            if (ea->version == EA_VERSION_V0) {
-                if (ea->platform != EA_PLATFORM_SAT && ea->channels > 1)
-                    vgmstream->coding_type = coding_EA_XA; /* original version, stereo stream */
-                else
-                    vgmstream->coding_type = coding_EA_XA_int; /* interleaved mono streams */
-            }
-            else { /* later revision with PCM blocks and slighty modified decoding */
-                vgmstream->coding_type = coding_EA_XA_V2;
-            }
+        case EA_CODEC2_EAXA_INT:    /* EA-XA, CDXA ADPCM variant */
+            if (ea->platform != EA_PLATFORM_SAT && ea->channels > 1)
+                vgmstream->coding_type = coding_EA_XA; /* stereo stream */
+            else
+                vgmstream->coding_type = coding_EA_XA_int; /* interleaved mono streams */
+            break;
+
+        case EA_CODEC2_EAXA:        /* EA-XA v2 */
+            /* later revision with PCM blocks and slighty modified decoding */
+            vgmstream->coding_type = coding_EA_XA_V2;
+            break;
+
+        case EA_CODEC2_S8_INT:      /* PCM8 (interleaved) */
+            vgmstream->coding_type = coding_PCM8_int;
+            break;
+
+        case EA_CODEC2_S16LE_INT:   /* PCM16LE (interleaved) */
+        case EA_CODEC2_S16BE_INT:   /* PCM16BE (interleaved) */
+            vgmstream->coding_type = coding_PCM16_int;
             break;
 
         case EA_CODEC2_S8:          /* PCM8 */
@@ -1213,11 +1222,7 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE* sf, ea_header* 
             break;
 
         case EA_CODEC2_S16LE:       /* PCM16LE */
-            if (ea->version > EA_VERSION_V0) {
-                vgmstream->coding_type = coding_PCM16LE;
-            } else { /* Need for Speed III: Hot Pursuit (PC) */
-                vgmstream->coding_type = coding_PCM16_int;
-            }
+            vgmstream->coding_type = coding_PCM16LE;
             break;
 
         case EA_CODEC2_VAG:         /* PS-ADPCM */
@@ -1308,7 +1313,7 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE* sf, ea_header* 
         }
 
 #ifdef VGM_USE_FFMPEG
-        case EA_CODEC2_ATRAC3PLUS: {
+        case EA_CODEC2_ATRAC3PLUS: {    /* ATRAC3+ */
             /* regular ATRAC3plus chunked in SCxx blocks, including RIFF header [Medal of Honor Heroes 2 (PSP)] */
             if (!is_bnk) {
                 STREAMFILE* temp_sf = NULL;
@@ -1359,8 +1364,14 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE* sf, ea_header* 
         //        vgmstream->ch[i].offset = ea->offsets[0] + vgmstream->interleave_block_size*i;
         //    }
         //}
-        else if (vgmstream->coding_type == coding_PCM16_int && ea->version == EA_VERSION_V0) {
-            /* Need for Speed II (PC) bad offsets */
+        else if (vgmstream->coding_type == coding_PCM8_int) {
+            /* fix interleaved PCM offsets */
+            for (i = 0; i < vgmstream->channels; i++) {
+                vgmstream->ch[i].offset = ea->offsets[0] + 0x01*i;
+            }
+        }
+        else if (vgmstream->coding_type == coding_PCM16_int) {
+            /* fix interleaved PCM offsets */
             for (i = 0; i < vgmstream->channels; i++) {
                 vgmstream->ch[i].offset = ea->offsets[0] + 0x02*i;
             }
@@ -1693,11 +1704,11 @@ static int parse_variable_header(STREAMFILE* sf, ea_header* ea, off_t begin_offs
     /* codec1 to codec2 to simplify later parsing */
     if (ea->codec1 != EA_CODEC1_NONE && ea->codec2 == EA_CODEC2_NONE) {
         switch (ea->codec1) {
-            case EA_CODEC1_PCM:
-                ea->codec2 = ea->bps==8 ? EA_CODEC2_S8 : (ea->big_endian ? EA_CODEC2_S16BE : EA_CODEC2_S16LE);
+            case EA_CODEC1_PCM: /* assumed to always be interleaved, need to verify */
+                ea->codec2 = ea->bps==8 ? EA_CODEC2_S8_INT : (ea->big_endian ? EA_CODEC2_S16BE_INT : EA_CODEC2_S16LE_INT);
                 break;
             case EA_CODEC1_VAG:         ea->codec2 = EA_CODEC2_VAG; break;
-            case EA_CODEC1_EAXA:        ea->codec2 = EA_CODEC2_EAXA; break;
+            case EA_CODEC1_EAXA:        ea->codec2 = EA_CODEC2_EAXA_INT; break;
             case EA_CODEC1_MT10:        ea->codec2 = EA_CODEC2_MT10; break;
             case EA_CODEC1_N64:         ea->codec2 = EA_CODEC2_N64; break;
             default:
