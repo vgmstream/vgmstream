@@ -1152,40 +1152,7 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE* sf, ea_header* 
     vgmstream->codec_config = ea->codec_config;
 
     vgmstream->meta_type = is_bnk ? meta_EA_BNK : meta_EA_SCHL;
-
-    if (is_bnk) {
-        vgmstream->layout_type = layout_none;
-
-        /* BNKs usually have absolute offsets for all channels ("full" interleave) except in some versions */
-        if (ea->channels > 1 && ea->codec1 == EA_CODEC1_PCM) {
-            int interleave = (ea->num_samples * (ea->bps == 8 ? 0x01 : 0x02)); /* full interleave */
-            for (i = 0; i < ea->channels; i++) {
-                ea->offsets[i] = ea->offsets[0] + interleave*i;
-            }
-        }
-        else if (ea->channels > 1 && ea->codec1 == EA_CODEC1_VAG) {
-            int interleave = (ea->num_samples / 28 * 16); /* full interleave */
-            for (i = 0; i < ea->channels; i++) {
-                ea->offsets[i] = ea->offsets[0] + interleave*i;
-            }
-        }
-        else if (ea->channels > 1 && ea->codec2 == EA_CODEC2_GCADPCM && ea->offsets[0] == ea->offsets[1]) {
-            /* pcstream+gcadpcm with sx.exe v2, not in flag_value, probably a bug (even with this parts of the wave are off) */
-            int interleave = (ea->num_samples / 14 * 8); /* full interleave */
-            for (i = 0; i < ea->channels; i++) {
-                ea->offsets[i] = ea->offsets[0] + interleave*i;
-            }
-        }
-        else if (ea->channels > 1 && ea->codec2 == EA_CODEC2_N64 && ea->offsets[1] == 0) {
-            uint32_t interleave = ea->flag_value;
-            for (i = 0; i < ea->channels; i++) {
-                ea->offsets[i] = ea->offsets[0] + interleave * i;
-            }
-        }
-    }
-    else {
-        vgmstream->layout_type = layout_blocked_ea_schl;
-    }
+    vgmstream->layout_type = is_bnk ? layout_none : layout_blocked_ea_schl;
 
     /* EA usually implements their codecs in all platforms (PS2/WII do EAXA/MT/EALAYER3) and
      * favors them over platform's natives (ex. EAXA vs VAG/DSP).
@@ -1205,12 +1172,22 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE* sf, ea_header* 
             break;
 
         case EA_CODEC2_S8_INT:      /* PCM8 (interleaved) */
-            vgmstream->coding_type = coding_PCM8_int;
+            if (ea->platform == EA_PLATFORM_N64) {
+                /* FIXME: Saturn most likely has non-interleaved PCM, too */
+                vgmstream->coding_type = coding_PCM8;
+            } else {
+                vgmstream->coding_type = coding_PCM8_int;
+            }
             break;
 
         case EA_CODEC2_S16LE_INT:   /* PCM16LE (interleaved) */
         case EA_CODEC2_S16BE_INT:   /* PCM16BE (interleaved) */
-            vgmstream->coding_type = coding_PCM16_int;
+            if (ea->platform == EA_PLATFORM_N64) {
+                /* FIXME: Saturn most likely has non-interleaved PCM, too */
+                vgmstream->coding_type = coding_PCM16BE;
+            } else {
+                vgmstream->coding_type = coding_PCM16_int;
+            }
             break;
 
         case EA_CODEC2_S8:          /* PCM8 */
@@ -1250,7 +1227,6 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE* sf, ea_header* 
 
         case EA_CODEC2_N64:         /* VADPCM */
             vgmstream->coding_type = coding_VADPCM;
-            vgmstream->layout_type = layout_none;
 
             for (ch = 0; ch < ea->channels; ch++) {
                 int order   = read_u32be(ea->coefs[ch] + 0x00, sf);
@@ -1352,37 +1328,76 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE* sf, ea_header* 
 
 
     if (is_bnk) {
-        /* setup channel offsets */
-        if (vgmstream->coding_type == coding_EA_XA) {
-            /* shared (stereo/mono codec) */
-            for (i = 0; i < vgmstream->channels; i++) {
-                vgmstream->ch[i].offset = ea->offsets[0];
+        /* BNKs usually have absolute offsets for all channels ("full" interleave) except in some versions */
+        if (ea->version == EA_VERSION_V0) {
+            switch (vgmstream->coding_type) {
+                case coding_EA_XA:
+                    /* shared (stereo version) */
+                    for (i = 0; i < vgmstream->channels; i++) {
+                        vgmstream->ch[i].offset = ea->offsets[0];
+                    }
+                    break;
+                case coding_EA_XA_int: {
+                    int interleave = ea->num_samples / 28 * 0x0f; /* full interleave */
+                    for (i = 0; i < vgmstream->channels; i++) {
+                        vgmstream->ch[i].offset = ea->offsets[0] * interleave*i;
+                    }
+                    break;
+                }
+                case coding_PCM8_int:
+                case coding_PCM16_int: {
+                    int interleave = ea->bps==8 ? 0x01 : 0x02;
+                    for (i = 0; i < vgmstream->channels; i++) {
+                        vgmstream->ch[i].offset = ea->offsets[0] + interleave*i;
+                    }
+                    break;
+                }
+                case coding_PCM8:
+                case coding_PCM16LE:
+                case coding_PCM16BE: {
+                    int interleave = ea->num_samples * (ea->bps==8 ? 0x01 : 0x02); /* full interleave */
+                    for (i = 0; i < vgmstream->channels; i++) {
+                        vgmstream->ch[i].offset = ea->offsets[0] + interleave*i;
+                    }
+                    break;
+                }
+                case coding_PSX: {
+                    int interleave = ea->num_samples / 28 * 0x10; /* full interleave */
+                    for (i = 0; i < vgmstream->channels; i++) {
+                        vgmstream->ch[i].offset = ea->offsets[0] + interleave*i;
+                    }
+                    break;
+                }
+                case coding_VADPCM: {
+                    uint32_t interleave = ea->flag_value;
+                    for (i = 0; i < vgmstream->channels; i++) {
+                        vgmstream->ch[i].offset = ea->offsets[0] + interleave*i;
+                    }
+                    break;
+                }
+                case coding_EA_MT: {
+                    uint32_t interleave = ea->flag_value;
+                    for (i = 0; i < vgmstream->channels; i++) {
+                        vgmstream->ch[i].offset = ea->offsets[0] + interleave*i;
+                    }
+                    break;
+                }
+                default:
+                    VGM_LOG("EA SCHl: Unknown interleave for codec 0x%02x in version %d\n", ea->codec1, ea->version);
+                    goto fail;
             }
-        }
-        //else if (vgmstream->layout_type == layout_interleave) { /* interleaved */
-        //    for (i = 0; i < vgmstream->channels; i++) {
-        //        vgmstream->ch[i].offset = ea->offsets[0] + vgmstream->interleave_block_size*i;
-        //    }
-        //}
-        else if (vgmstream->coding_type == coding_PCM8_int) {
-            /* fix interleaved PCM offsets */
-            for (i = 0; i < vgmstream->channels; i++) {
-                vgmstream->ch[i].offset = ea->offsets[0] + 0x01*i;
+        } else if (vgmstream->coding_type == coding_NGC_DSP && vgmstream->channels > 1 && ea->offsets[0] == ea->offsets[1]) {
+            /* pcstream+gcadpcm with sx.exe v2, not in flag_value, probably a bug (even with this parts of the wave are off) */
+            int interleave = (ea->num_samples / 14 * 8); /* full interleave */
+            for (i = 0; i < ea->channels; i++) {
+                ea->offsets[i] = ea->offsets[0] + interleave*i;
             }
-        }
-        else if (vgmstream->coding_type == coding_PCM16_int) {
-            /* fix interleaved PCM offsets */
-            for (i = 0; i < vgmstream->channels; i++) {
-                vgmstream->ch[i].offset = ea->offsets[0] + 0x02*i;
-            }
-        }
-        else if (vgmstream->coding_type == coding_PCM8 && ea->platform == EA_PLATFORM_PS2 && ea->version == EA_VERSION_V3) {
+        } else if (vgmstream->coding_type == coding_PCM8 && ea->platform == EA_PLATFORM_PS2 && ea->version == EA_VERSION_V3) {
             /* SSX3 (PS2) weird 0x10 mini header (codec/loop start/loop end/samples) */
             for (i = 0; i < vgmstream->channels; i++) {
-                vgmstream->ch[i].offset = ea->offsets[0] + 0x10;
+                vgmstream->ch[i].offset = ea->offsets[i] + 0x10;
             }
-        }
-        else {
+        } else {
             /* absolute */
             for (i = 0; i < vgmstream->channels; i++) {
                 vgmstream->ch[i].offset = ea->offsets[i];

@@ -90,6 +90,7 @@ void block_update_ea_schl(off_t block_offset, VGMSTREAM * vgmstream) {
     /* set new channel offsets and ADPCM history */
     /* ADPCM hist could be considered part of the stream/decoder (some EAXA decoders call it "EAXA R1" when it has hist), and BNKs
      * (with no blocks) may also have them in the first offset, but also may not. To simplify we just read them here. */
+    /* FIXME: Saturn PCM streams are most likely non-interleaved and need to have offsets fixed */
     switch(vgmstream->coding_type) {
         /* id, size, unk1, unk2, interleaved data */
         case coding_PSX:
@@ -108,6 +109,14 @@ void block_update_ea_schl(off_t block_offset, VGMSTREAM * vgmstream) {
                 vgmstream->ch[i].adpcm_history1_32 = read_16bitLE(header_offset+0x00, vgmstream->ch[i].streamfile);
                 vgmstream->ch[i].adpcm_step_index  = read_16bitLE(header_offset+0x02, vgmstream->ch[i].streamfile);
                 vgmstream->ch[i].offset = block_offset + 0xc + (4*vgmstream->channels);
+            }
+
+            break;
+
+        /* id, size, samples */
+        case coding_PCM8_int:
+            for (i = 0; i < vgmstream->channels; i++) {
+                vgmstream->ch[i].offset = block_offset + 0x0c + (i*0x01);
             }
 
             break;
