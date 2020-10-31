@@ -1390,8 +1390,8 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE* sf, ea_header* 
             for (i = 0; i < ea->channels; i++) {
                 ea->offsets[i] = ea->offsets[0] + interleave*i;
             }
-        } else if (vgmstream->coding_type == coding_PCM8 && ea->platform == EA_PLATFORM_PS2 && ea->version == EA_VERSION_V3) {
-            /* SSX3 (PS2) weird 0x10 mini header (codec/loop start/loop end/samples) */
+        } else if ((vgmstream->coding_type == coding_PCM8 || vgmstream->coding_type == coding_PCM16LE) && ea->platform == EA_PLATFORM_PS2) {
+            /* weird 0x10 mini header (codec/loop start/loop end/samples) [SSX 3 (PS2)] */
             for (i = 0; i < vgmstream->channels; i++) {
                 vgmstream->ch[i].offset = ea->offsets[i] + 0x10;
             }
