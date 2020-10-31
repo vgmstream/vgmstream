@@ -1172,8 +1172,7 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE* sf, ea_header* 
             break;
 
         case EA_CODEC2_S8_INT:      /* PCM8 (interleaved) */
-            if (ea->platform == EA_PLATFORM_N64) {
-                /* FIXME: Saturn most likely has non-interleaved PCM, too */
+            if (ea->platform == EA_PLATFORM_SAT || ea->platform == EA_PLATFORM_N64) {
                 vgmstream->coding_type = coding_PCM8;
             } else {
                 vgmstream->coding_type = coding_PCM8_int;
@@ -1182,8 +1181,7 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE* sf, ea_header* 
 
         case EA_CODEC2_S16LE_INT:   /* PCM16LE (interleaved) */
         case EA_CODEC2_S16BE_INT:   /* PCM16BE (interleaved) */
-            if (ea->platform == EA_PLATFORM_N64) {
-                /* FIXME: Saturn most likely has non-interleaved PCM, too */
+            if (ea->platform == EA_PLATFORM_SAT || ea->platform == EA_PLATFORM_N64) {
                 vgmstream->coding_type = coding_PCM16BE;
             } else {
                 vgmstream->coding_type = coding_PCM16_int;
@@ -1383,7 +1381,7 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE* sf, ea_header* 
                     break;
                 }
                 default:
-                    VGM_LOG("EA SCHl: Unknown interleave for codec 0x%02x in version %d\n", ea->codec1, ea->version);
+                    VGM_LOG("EA SCHl: Unknown channel offsets for codec 0x%02x in version %d\n", ea->codec1, ea->version);
                     goto fail;
             }
         } else if (vgmstream->coding_type == coding_NGC_DSP && vgmstream->channels > 1 && ea->offsets[0] == ea->offsets[1]) {
@@ -1793,6 +1791,12 @@ static int parse_variable_header(STREAMFILE* sf, ea_header* ea, off_t begin_offs
                     ea->codec_config |= 0x01;
             }
         }
+    }
+
+    if (ea->version > EA_VERSION_V0) {
+        /* v0 needs channel offsets to be manually calculated
+         * v1+ always has split channels and provides channel offsets */
+        ea->codec_config |= 0x04;
     }
 
     return offset;
