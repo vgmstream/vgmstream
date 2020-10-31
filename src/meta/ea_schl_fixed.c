@@ -16,9 +16,9 @@ typedef struct {
 
     int big_endian;
     int loop_flag;
-} ea_header;
+} ea_fixed_header;
 
-static int parse_fixed_header(STREAMFILE* streamFile, ea_header* ea, off_t begin_offset);
+static int parse_fixed_header(STREAMFILE* streamFile, ea_fixed_header* ea, off_t begin_offset);
 
 
 /* EA SCHl with fixed header - from EA games (~1997? ex. NHL 97 PC) */
@@ -26,7 +26,7 @@ VGMSTREAM * init_vgmstream_ea_schl_fixed(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset;
     size_t header_size;
-    ea_header ea = {0};
+    ea_fixed_header ea = {0};
 
 
     /* checks */
@@ -87,7 +87,7 @@ fail:
 }
 
 
-static int parse_fixed_header(STREAMFILE* streamFile, ea_header* ea, off_t begin_offset) {
+static int parse_fixed_header(STREAMFILE* streamFile, ea_fixed_header* ea, off_t begin_offset) {
     off_t offset = begin_offset;
 
     if (read_32bitBE(offset+0x00, streamFile) != 0x5041546C &&      /* "PATl" */

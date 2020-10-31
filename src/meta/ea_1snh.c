@@ -25,17 +25,17 @@ typedef struct {
     int codec_config;
     int is_bank;
     int total_subsongs;
-} ea_header;
+} eacs_header;
 
-static int parse_header(STREAMFILE* streamFile, ea_header* ea, off_t begin_offset);
-static VGMSTREAM * init_vgmstream_main(STREAMFILE *streamFile, ea_header* ea);
+static int parse_header(STREAMFILE* streamFile, eacs_header* ea, off_t begin_offset);
+static VGMSTREAM * init_vgmstream_main(STREAMFILE *streamFile, eacs_header* ea);
 
-static void set_ea_1snh_num_samples(VGMSTREAM *vgmstream, STREAMFILE *streamFile, ea_header *ea, int find_loop);
-static int get_ea_1snh_ima_version(STREAMFILE* streamFile, off_t start_offset, const ea_header* ea);
+static void set_ea_1snh_num_samples(VGMSTREAM *vgmstream, STREAMFILE *streamFile, eacs_header *ea, int find_loop);
+static int get_ea_1snh_ima_version(STREAMFILE* streamFile, off_t start_offset, const eacs_header* ea);
 
 /* EA 1SNh - from early EA games, stream (~1996, ex. Need for Speed) */
 VGMSTREAM * init_vgmstream_ea_1snh(STREAMFILE *streamFile) {
-    ea_header ea = { 0 };
+    eacs_header ea = { 0 };
     off_t offset, eacs_offset;
     VGMSTREAM *vgmstream = NULL;
 
@@ -93,7 +93,7 @@ fail:
 
 /* EA EACS - from early EA games, bank (~1996, ex. Need for Speed) */
 VGMSTREAM * init_vgmstream_ea_eacs(STREAMFILE *streamFile) {
-    ea_header ea = {0};
+    eacs_header ea = {0};
     off_t eacs_offset;
 
 
@@ -157,7 +157,7 @@ fail:
 }
 
 
-static VGMSTREAM * init_vgmstream_main(STREAMFILE *streamFile, ea_header* ea) {
+static VGMSTREAM * init_vgmstream_main(STREAMFILE *streamFile, eacs_header* ea) {
     VGMSTREAM * vgmstream = NULL;
 
 
@@ -210,7 +210,7 @@ fail:
     return NULL;
 }
 
-static int parse_header(STREAMFILE* streamFile, ea_header* ea, off_t offset) {
+static int parse_header(STREAMFILE* streamFile, eacs_header* ea, off_t offset) {
     /* audio header endianness doesn't always match block headers, use sample rate to detect */
     int32_t (*read_32bit)(off_t,STREAMFILE*);
 
@@ -278,7 +278,7 @@ static int parse_header(STREAMFILE* streamFile, ea_header* ea, off_t offset) {
 }
 
 /* get total samples by parsing block headers, needed when EACS isn't present */
-static void set_ea_1snh_num_samples(VGMSTREAM *vgmstream, STREAMFILE *streamFile, ea_header *ea, int find_loop) {
+static void set_ea_1snh_num_samples(VGMSTREAM *vgmstream, STREAMFILE *streamFile, eacs_header *ea, int find_loop) {
     int32_t num_samples = 0, block_id;
     size_t file_size;
     int32_t(*read_32bit)(off_t, STREAMFILE *) = ea->big_endian ? read_32bitBE : read_32bitLE;
@@ -323,7 +323,7 @@ static void set_ea_1snh_num_samples(VGMSTREAM *vgmstream, STREAMFILE *streamFile
 }
 
 /* find codec version used, with or without ADPCM hist per block */
-static int get_ea_1snh_ima_version(STREAMFILE* streamFile, off_t start_offset, const ea_header* ea) {
+static int get_ea_1snh_ima_version(STREAMFILE* streamFile, off_t start_offset, const eacs_header* ea) {
     off_t block_offset = start_offset;
     size_t file_size = get_streamfile_size(streamFile);
     int32_t (*read_32bit)(off_t,STREAMFILE*) = ea->big_endian ? read_32bitBE : read_32bitLE;
