@@ -119,7 +119,7 @@ void decode_vadpcm(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacin
     }
 
     /* update hist once all frame is actually copied */
-    if (first_sample + sample_count == samples_per_frame) {
+    if (first_sample + sample_count / channelspacing == samples_per_frame) {
         stream->adpcm_history2_16 = hist[6];
         stream->adpcm_history1_16 = hist[7];
     }
