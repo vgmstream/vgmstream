@@ -93,6 +93,39 @@ void block_update_ea_schl(off_t block_offset, VGMSTREAM * vgmstream) {
      * (with no blocks) may also have them in the first offset, but also may not. To simplify we just read them here. */
     if (!flag_offsets) { /* v0 doesn't provide channel offsets, they need to be calculated */
         switch (vgmstream->coding_type) {
+            /* id, size, samples, data */
+            case coding_PCM8_int:
+                for (i = 0; i < vgmstream->channels; i++) {
+                    vgmstream->ch[i].offset = block_offset + 0x0c + (i*0x01);
+                }
+
+                break;
+
+            /* id, size, samples, data */
+            case coding_PCM16_int:
+                for (i = 0; i < vgmstream->channels; i++) {
+                    vgmstream->ch[i].offset = block_offset + 0x0c + (i*0x02);
+                }
+
+                break;
+
+            /* id, size, samples, data */
+            case coding_PCM8:
+                for (i = 0; i < vgmstream->channels; i++) {
+                    vgmstream->ch[i].offset = block_offset + 0x0c + (block_samples*i*0x01);
+                }
+
+                break;
+
+            /* id, size, samples, data */
+            case coding_PCM16LE:
+            case coding_PCM16BE:
+                for (i = 0; i < vgmstream->channels; i++) {
+                    vgmstream->ch[i].offset = block_offset + 0x0c + (block_samples*i*0x02);
+                }
+
+                break;
+
             /* id, size, unk1, unk2, interleaved data */
             case coding_PSX:
                 for (i = 0; i < vgmstream->channels; i++) {
@@ -103,46 +136,13 @@ void block_update_ea_schl(off_t block_offset, VGMSTREAM * vgmstream) {
 
                 break;
 
-            /* id, size, IMA hist, stereo/mono data */
+            /* id, size, samples, IMA hist, stereo/mono data */
             case coding_DVI_IMA:
                 for(i = 0; i < vgmstream->channels; i++) {
                     off_t header_offset = block_offset + 0xc + i*4;
                     vgmstream->ch[i].adpcm_history1_32 = read_16bitLE(header_offset+0x00, vgmstream->ch[i].streamfile);
                     vgmstream->ch[i].adpcm_step_index  = read_16bitLE(header_offset+0x02, vgmstream->ch[i].streamfile);
                     vgmstream->ch[i].offset = block_offset + 0xc + (4*vgmstream->channels);
-                }
-
-                break;
-
-            /* id, size, samples */
-            case coding_PCM8_int:
-                for (i = 0; i < vgmstream->channels; i++) {
-                    vgmstream->ch[i].offset = block_offset + 0x0c + (i*0x01);
-                }
-
-                break;
-
-            /* id, size, samples */
-            case coding_PCM16_int:
-                for (i = 0; i < vgmstream->channels; i++) {
-                    vgmstream->ch[i].offset = block_offset + 0x0c + (i*0x02);
-                }
-
-                break;
-
-            /* id, size, samples */
-            case coding_PCM8:
-                for (i = 0; i < vgmstream->channels; i++) {
-                    vgmstream->ch[i].offset = block_offset + 0x0c + (block_samples*i*0x01);
-                }
-
-                break;
-
-            /* id, size, samples */
-            case coding_PCM16LE:
-            case coding_PCM16BE:
-                for (i = 0; i < vgmstream->channels; i++) {
-                    vgmstream->ch[i].offset = block_offset + 0x0c + (block_samples*i*0x02);
                 }
 
                 break;

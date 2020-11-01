@@ -1682,7 +1682,7 @@ static int parse_variable_header(STREAMFILE* sf, ea_header* ea, off_t begin_offs
     if (ea->version == EA_VERSION_NONE) {
         switch(ea->platform) {
             case EA_PLATFORM_PC:        ea->version = EA_VERSION_V0; break;
-            case EA_PLATFORM_PSX:       ea->version = EA_VERSION_V0; break; // assumed
+            case EA_PLATFORM_PSX:       ea->version = EA_VERSION_V0; break;
             case EA_PLATFORM_N64:       ea->version = EA_VERSION_V0; break;
             case EA_PLATFORM_MAC:       ea->version = EA_VERSION_V0; break;
             case EA_PLATFORM_SAT:       ea->version = EA_VERSION_V0; break;
@@ -1704,9 +1704,9 @@ static int parse_variable_header(STREAMFILE* sf, ea_header* ea, off_t begin_offs
     if (ea->codec1 == EA_CODEC1_NONE && ea->version == EA_VERSION_V0) {
         switch(ea->platform) {
             case EA_PLATFORM_PC:        ea->codec1 = EA_CODEC1_PCM; break;
-            case EA_PLATFORM_PSX:       ea->codec1 = EA_CODEC1_VAG; break; // assumed
+            case EA_PLATFORM_PSX:       ea->codec1 = EA_CODEC1_VAG; break;
             case EA_PLATFORM_N64:       ea->codec1 = EA_CODEC1_N64; break;
-            case EA_PLATFORM_MAC:       ea->codec1 = EA_CODEC1_PCM; break; // assumed
+            case EA_PLATFORM_MAC:       ea->codec1 = EA_CODEC1_PCM; break;
             case EA_PLATFORM_SAT:       ea->codec1 = EA_CODEC1_PCM; break;
             default:
                 VGM_LOG("EA SCHl: unknown default codec1 for platform 0x%02x\n", ea->platform);
