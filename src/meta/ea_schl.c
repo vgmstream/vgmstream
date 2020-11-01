@@ -115,6 +115,7 @@ typedef struct {
     int big_endian;
     int loop_flag;
     int codec_config;
+    int use_pcm_blocks;
 
     size_t stream_size;
 } ea_header;
@@ -1164,7 +1165,7 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE* sf, ea_header* 
             break;
 
         case EA_CODEC2_EAXA:        /* EA-XA (split mono) */
-            if (ea->version == EA_VERSION_V0) {
+            if (!ea->use_pcm_blocks) {
                 /* original version */
                 vgmstream->coding_type = coding_EA_XA_int;
             } else {
@@ -1237,7 +1238,7 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE* sf, ea_header* 
             if (!mpeg_start_offset) goto fail;
 
             /* layout is still blocks, but should work fine with the custom mpeg decoder */
-            vgmstream->codec_data = init_mpeg_custom(sf, mpeg_start_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_EA, &cfg);
+            vgmstream->codec_data = init_mpeg_custom(sf, mpeg_start_offset, &vgmstream->coding_type, ea->channels, MPEG_EA, &cfg);
             if (!vgmstream->codec_data) goto fail;
             break;
         }
@@ -1250,23 +1251,14 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE* sf, ea_header* 
             if (!mpeg_start_offset) goto fail;
 
             /* layout is still blocks, but should work fine with the custom mpeg decoder */
-            vgmstream->codec_data = init_mpeg_custom(sf, mpeg_start_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_EAL31, &cfg);
+            vgmstream->codec_data = init_mpeg_custom(sf, mpeg_start_offset, &vgmstream->coding_type, ea->channels, MPEG_EAL31, &cfg);
             if (!vgmstream->codec_data) goto fail;
             break;
         }
 #endif
 
         case EA_CODEC2_MT10:        /* MicroTalk (10:1 compression) */
-        case EA_CODEC2_MT5: {       /* MicroTalk (5:1 compression) */
-            int use_pcm_blocks = 0;
-
-            if (ea->version == EA_VERSION_V3 || (ea->version == EA_VERSION_V2 &&
-                (ea->platform == EA_PLATFORM_PC ||
-                    ea->platform == EA_PLATFORM_MAC ||
-                    ea->platform == EA_PLATFORM_GENERIC))) {
-                use_pcm_blocks = 1;
-            }
-
+        case EA_CODEC2_MT5:         /* MicroTalk (5:1 compression) */
             /* make relative loops absolute for the decoder */
             if (ea->loop_flag) {
                 for (i = 0; i < ea->channels; i++) {
@@ -1275,10 +1267,9 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE* sf, ea_header* 
             }
 
             vgmstream->coding_type = coding_EA_MT;
-            vgmstream->codec_data = init_ea_mt_loops(vgmstream->channels, use_pcm_blocks, ea->loop_start, ea->loops);
+            vgmstream->codec_data = init_ea_mt_loops(ea->channels, ea->use_pcm_blocks, ea->loop_start, ea->loops);
             if (!vgmstream->codec_data) goto fail;
             break;
-        }
 
 #ifdef VGM_USE_FFMPEG
         case EA_CODEC2_ATRAC3PLUS: {    /* ATRAC3+ */
@@ -1321,7 +1312,7 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE* sf, ea_header* 
 
     if (is_bnk) {
         /* BNKs usually have absolute offsets for all channels ("full" interleave) except in some versions */
-        if (ea->version == EA_VERSION_V0) {
+        if (!(ea->codec_config & 0x04)) {
             switch (vgmstream->coding_type) {
                 case coding_EA_XA:
                     /* shared (stereo version) */
@@ -1382,10 +1373,12 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE* sf, ea_header* 
             /* pcstream+gcadpcm with sx.exe v2, not in flag_value, probably a bug (even with this parts of the wave are off) */
             int interleave = (ea->num_samples / 14 * 8); /* full interleave */
             for (i = 0; i < ea->channels; i++) {
-                ea->offsets[i] = ea->offsets[0] + interleave*i;
+                vgmstream->ch[i].offset = ea->offsets[0] + interleave*i;
             }
-        } else if ((vgmstream->coding_type == coding_PCM8 || vgmstream->coding_type == coding_PCM16LE) && ea->platform == EA_PLATFORM_PS2) {
-            /* weird 0x10 mini header (codec/loop start/loop end/samples) [SSX 3 (PS2)] */
+        } else if ((vgmstream->coding_type == coding_PCM8 || vgmstream->coding_type == coding_PCM16LE) &&
+            ea->platform == EA_PLATFORM_PS2 &&
+            (ea->flag_value & 0x100)) {
+            /* weird 0x10 mini header when played on IOP (codec/loop start/loop end/samples) [SSX 3 (PS2)] */
             for (i = 0; i < vgmstream->channels; i++) {
                 vgmstream->ch[i].offset = ea->offsets[i] + 0x10;
             }
@@ -1397,8 +1390,7 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE* sf, ea_header* 
         }
 
         /* TODO: Figure out how to get stream size for BNK sounds */
-    }
-    else {
+    } else {
         update_ea_stream_size_and_samples(sf, start_offset, vgmstream, standalone);
     }
 
@@ -1774,6 +1766,12 @@ static int parse_variable_header(STREAMFILE* sf, ea_header* ea, off_t begin_offs
         }
     }
 
+    /* EA-XA and MicroTalk got updated revisions with PCM blocks in sx v2.30 */
+    ea->use_pcm_blocks = (ea->version == EA_VERSION_V3 || (ea->version == EA_VERSION_V2 &&
+        (ea->platform == EA_PLATFORM_PC ||
+            ea->platform == EA_PLATFORM_MAC ||
+            ea->platform == EA_PLATFORM_GENERIC)));
+
     /* some codecs have ADPCM hist at the start of every block in streams (but not BNKs) */
     if (!is_bnk) {
         if (ea->codec2 == EA_CODEC2_GCADPCM) {
@@ -1781,17 +1779,9 @@ static int parse_variable_header(STREAMFILE* sf, ea_header* ea, off_t begin_offs
                 ea->codec_config |= 0x01;
         }
         else if (ea->codec2 == EA_CODEC2_EAXA) {
-            /* EA-XA has ADPCM hist in earlier versions */
-            /* V0, V1: always */
-            /* V2: consoles only */
-            /* V3: never */
-            if (ea->version <= EA_VERSION_V1) {
+            /* EA-XA has ADPCM hist in the original version */
+            if (!ea->use_pcm_blocks)
                 ea->codec_config |= 0x01;
-            }
-            else if (ea->version == EA_VERSION_V2) {
-                if (ea->platform == EA_PLATFORM_PS2 || ea->platform == EA_PLATFORM_GC_WII || ea->platform == EA_PLATFORM_XBOX)
-                    ea->codec_config |= 0x01;
-            }
         }
     }
 

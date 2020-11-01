@@ -29,7 +29,7 @@ static const int EA_XA_TABLE[20] = {
     0,   -1,   -3,   -4
 };
 
-/* EA XA v2 (always mono); like ea_xa_int but with "PCM samples" flag and doesn't add 128 on expand or clamp (pre-adjusted by the encoder?) */
+/* EA XA v2 (always mono); like v1 but with "PCM samples" flag and doesn't add 128 on expand or clamp (pre-adjusted by the encoder?) */
 void decode_ea_xa_v2(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
     uint8_t frame_info;
     int32_t coef1, coef2;
@@ -194,15 +194,20 @@ void decode_ea_xa(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing
     int frame_samples = 28;
     first_sample = first_sample % frame_samples;
 
-    /* header (coefs ch0+ch1 + shift ch0+ch1) */
-    frame_info = read_8bit(stream->offset+0x00,stream->streamfile);
-    coef1 = EA_XA_TABLE[(hn ? frame_info >> 4 : frame_info & 0x0F) + 0];
-    coef2 = EA_XA_TABLE[(hn ? frame_info >> 4 : frame_info & 0x0F) + 4];
-    shift = (frame_info & 0x0F) + 8;
-
     if (is_stereo) {
-        frame_info = read_8bit(stream->offset+0x01,stream->streamfile);
+        /* header (coefs ch0+ch1 + shift ch0+ch1) */
+        frame_info = read_8bit(stream->offset + 0x00, stream->streamfile);
+        coef1 = EA_XA_TABLE[(hn ? frame_info >> 4 : frame_info & 0x0F) + 0];
+        coef2 = EA_XA_TABLE[(hn ? frame_info >> 4 : frame_info & 0x0F) + 4];
+
+        frame_info = read_8bit(stream->offset + 0x01, stream->streamfile);
         shift = (hn ? frame_info >> 4 : frame_info & 0x0F) + 8;
+    } else {
+        /* header (coefs + shift ch0) */
+        frame_info = read_8bit(stream->offset + 0x00, stream->streamfile);
+        coef1 = EA_XA_TABLE[(frame_info >> 4) + 0];
+        coef2 = EA_XA_TABLE[(frame_info >> 4) + 4];
+        shift = (frame_info & 0x0F) + 8;
     }
 
     /* samples */
