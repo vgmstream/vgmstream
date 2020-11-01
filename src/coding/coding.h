@@ -114,8 +114,7 @@ size_t xa_bytes_to_samples(size_t bytes, int channels, int is_blocked, int is_fo
 
 
 /* ea_xa_decoder */
-void decode_ea_xa(VGMSTREAMCHANNEL* stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel);
-void decode_ea_xa_int(VGMSTREAMCHANNEL* stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel);
+void decode_ea_xa(VGMSTREAMCHANNEL* stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel, int is_stereo);
 void decode_ea_xa_v2(VGMSTREAMCHANNEL* stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do,int channel);
 void decode_maxis_xa(VGMSTREAMCHANNEL* stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel);
 int32_t ea_xa_bytes_to_samples(size_t bytes, int channels);

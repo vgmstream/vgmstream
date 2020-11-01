@@ -1159,54 +1159,46 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE* sf, ea_header* 
      * Unneeded codecs are removed over time (ex. LAYER3 when EALAYER3 was introduced). */
     switch (ea->codec2) {
 
-        case EA_CODEC2_EAXA_INT:    /* EA-XA, CDXA ADPCM variant */
-            if (ea->platform != EA_PLATFORM_SAT && ea->channels > 1)
-                vgmstream->coding_type = coding_EA_XA; /* stereo stream */
-            else
-                vgmstream->coding_type = coding_EA_XA_int; /* interleaved mono streams */
+        case EA_CODEC2_EAXA_INT:    /* EA-XA (stereo) */
+            vgmstream->coding_type = coding_EA_XA;
             break;
 
-        case EA_CODEC2_EAXA:        /* EA-XA v2 */
-            /* later revision with PCM blocks and slighty modified decoding */
-            vgmstream->coding_type = coding_EA_XA_V2;
+        case EA_CODEC2_EAXA:        /* EA-XA (split mono) */
+            if (ea->version == EA_VERSION_V0) {
+                /* original version */
+                vgmstream->coding_type = coding_EA_XA_int;
+            } else {
+                /* later revision with PCM blocks and slighty modified decoding */
+                vgmstream->coding_type = coding_EA_XA_V2;
+            }
             break;
 
         case EA_CODEC2_S8_INT:      /* PCM8 (interleaved) */
-            if (ea->platform == EA_PLATFORM_N64) {
-                /* FIXME: Saturn most likely has non-interleaved PCM, too */
-                vgmstream->coding_type = coding_PCM8;
-            } else {
-                vgmstream->coding_type = coding_PCM8_int;
-            }
+            vgmstream->coding_type = coding_PCM8_int;
             break;
 
         case EA_CODEC2_S16LE_INT:   /* PCM16LE (interleaved) */
         case EA_CODEC2_S16BE_INT:   /* PCM16BE (interleaved) */
-            if (ea->platform == EA_PLATFORM_N64) {
-                /* FIXME: Saturn most likely has non-interleaved PCM, too */
-                vgmstream->coding_type = coding_PCM16BE;
-            } else {
-                vgmstream->coding_type = coding_PCM16_int;
-            }
+            vgmstream->coding_type = coding_PCM16_int;
             break;
 
-        case EA_CODEC2_S8:          /* PCM8 */
+        case EA_CODEC2_S8:          /* PCM8 (split) */
             vgmstream->coding_type = coding_PCM8;
             break;
 
-        case EA_CODEC2_S16BE:       /* PCM16BE */
-            vgmstream->coding_type = coding_PCM16BE;
+        case EA_CODEC2_S16LE:       /* PCM16LE (split) */
+            vgmstream->coding_type = coding_PCM16LE;
             break;
 
-        case EA_CODEC2_S16LE:       /* PCM16LE */
-            vgmstream->coding_type = coding_PCM16LE;
+        case EA_CODEC2_S16BE:       /* PCM16BE (split) */
+            vgmstream->coding_type = coding_PCM16BE;
             break;
 
         case EA_CODEC2_VAG:         /* PS-ADPCM */
             vgmstream->coding_type = coding_PSX;
             break;
 
-        case EA_CODEC2_XBOXADPCM:   /* XBOX IMA (interleaved mono) */
+        case EA_CODEC2_XBOXADPCM:   /* XBOX IMA (split mono) */
             vgmstream->coding_type = coding_XBOX_IMA_int;
             break;
 
@@ -1383,7 +1375,7 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE* sf, ea_header* 
                     break;
                 }
                 default:
-                    VGM_LOG("EA SCHl: Unknown interleave for codec 0x%02x in version %d\n", ea->codec1, ea->version);
+                    VGM_LOG("EA SCHl: Unknown channel offsets for codec 0x%02x in version %d\n", ea->codec1, ea->version);
                     goto fail;
             }
         } else if (vgmstream->coding_type == coding_NGC_DSP && vgmstream->channels > 1 && ea->offsets[0] == ea->offsets[1]) {
@@ -1392,8 +1384,8 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE* sf, ea_header* 
             for (i = 0; i < ea->channels; i++) {
                 ea->offsets[i] = ea->offsets[0] + interleave*i;
             }
-        } else if (vgmstream->coding_type == coding_PCM8 && ea->platform == EA_PLATFORM_PS2 && ea->version == EA_VERSION_V3) {
-            /* SSX3 (PS2) weird 0x10 mini header (codec/loop start/loop end/samples) */
+        } else if ((vgmstream->coding_type == coding_PCM8 || vgmstream->coding_type == coding_PCM16LE) && ea->platform == EA_PLATFORM_PS2) {
+            /* weird 0x10 mini header (codec/loop start/loop end/samples) [SSX 3 (PS2)] */
             for (i = 0; i < vgmstream->channels; i++) {
                 vgmstream->ch[i].offset = ea->offsets[i] + 0x10;
             }
@@ -1684,7 +1676,7 @@ static int parse_variable_header(STREAMFILE* sf, ea_header* ea, off_t begin_offs
     if (ea->version == EA_VERSION_NONE) {
         switch(ea->platform) {
             case EA_PLATFORM_PC:        ea->version = EA_VERSION_V0; break;
-            case EA_PLATFORM_PSX:       ea->version = EA_VERSION_V0; break; // assumed
+            case EA_PLATFORM_PSX:       ea->version = EA_VERSION_V0; break;
             case EA_PLATFORM_N64:       ea->version = EA_VERSION_V0; break;
             case EA_PLATFORM_MAC:       ea->version = EA_VERSION_V0; break;
             case EA_PLATFORM_SAT:       ea->version = EA_VERSION_V0; break;
@@ -1706,9 +1698,9 @@ static int parse_variable_header(STREAMFILE* sf, ea_header* ea, off_t begin_offs
     if (ea->codec1 == EA_CODEC1_NONE && ea->version == EA_VERSION_V0) {
         switch(ea->platform) {
             case EA_PLATFORM_PC:        ea->codec1 = EA_CODEC1_PCM; break;
-            case EA_PLATFORM_PSX:       ea->codec1 = EA_CODEC1_VAG; break; // assumed
+            case EA_PLATFORM_PSX:       ea->codec1 = EA_CODEC1_VAG; break;
             case EA_PLATFORM_N64:       ea->codec1 = EA_CODEC1_N64; break;
-            case EA_PLATFORM_MAC:       ea->codec1 = EA_CODEC1_PCM; break; // assumed
+            case EA_PLATFORM_MAC:       ea->codec1 = EA_CODEC1_PCM; break;
             case EA_PLATFORM_SAT:       ea->codec1 = EA_CODEC1_PCM; break;
             default:
                 VGM_LOG("EA SCHl: unknown default codec1 for platform 0x%02x\n", ea->platform);
@@ -1719,11 +1711,19 @@ static int parse_variable_header(STREAMFILE* sf, ea_header* ea, off_t begin_offs
     /* codec1 to codec2 to simplify later parsing */
     if (ea->codec1 != EA_CODEC1_NONE && ea->codec2 == EA_CODEC2_NONE) {
         switch (ea->codec1) {
-            case EA_CODEC1_PCM: /* assumed to always be interleaved, need to verify */
-                ea->codec2 = ea->bps==8 ? EA_CODEC2_S8_INT : (ea->big_endian ? EA_CODEC2_S16BE_INT : EA_CODEC2_S16LE_INT);
+            case EA_CODEC1_PCM:
+                if (ea->platform == EA_PLATFORM_PC)
+                    ea->codec2 = ea->bps==8 ? EA_CODEC2_S8_INT : (ea->big_endian ? EA_CODEC2_S16BE_INT : EA_CODEC2_S16LE_INT);
+                else
+                    ea->codec2 = ea->bps==8 ? EA_CODEC2_S8 : (ea->big_endian ? EA_CODEC2_S16BE : EA_CODEC2_S16LE);
                 break;
             case EA_CODEC1_VAG:         ea->codec2 = EA_CODEC2_VAG; break;
-            case EA_CODEC1_EAXA:        ea->codec2 = EA_CODEC2_EAXA_INT; break;
+            case EA_CODEC1_EAXA:
+                if (ea->platform == EA_PLATFORM_PC || ea->platform == EA_PLATFORM_MAC)
+                    ea->codec2 = EA_CODEC2_EAXA_INT;
+                else
+                    ea->codec2 = EA_CODEC2_EAXA;
+                break;
             case EA_CODEC1_MT10:        ea->codec2 = EA_CODEC2_MT10; break;
             case EA_CODEC1_N64:         ea->codec2 = EA_CODEC2_N64; break;
             default:
@@ -1793,6 +1793,12 @@ static int parse_variable_header(STREAMFILE* sf, ea_header* ea, off_t begin_offs
                     ea->codec_config |= 0x01;
             }
         }
+    }
+
+    if (ea->version > EA_VERSION_V0) {
+        /* v0 needs channel offsets to be manually calculated
+         * v1+ always has split channels and provides channel offsets */
+        ea->codec_config |= 0x04;
     }
 
     return offset;
