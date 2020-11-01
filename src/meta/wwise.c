@@ -7,6 +7,7 @@
  * There is some repetition from other metas, but not enough to bother me.
  *
  * Some info: https://www.audiokinetic.com/en/library/edge/
+ * .bnk (dynamic music/loop) info: https://github.com/bnnm/wwiser
  */
 typedef enum { PCM, IMA, VORBIS, DSP, XMA2, XWMA, AAC, HEVAG, ATRAC9, OPUSNX, OPUS, PTADPCM } wwise_codec;
 typedef struct {
@@ -115,7 +116,7 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE* sf) {
         else {
             if (!find_chunk(sf, 0x666d7420,first_offset,0, &ww.fmt_offset,&ww.fmt_size, ww.big_endian, 0)) /* "fmt " */
                 goto fail;
-            if (ww.fmt_size < 0x12)
+            if (ww.fmt_size < 0x10)
                 goto fail;
             ww.format = (uint16_t)read_16bit(ww.fmt_offset+0x00,sf);
         }
@@ -167,8 +168,8 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE* sf) {
         //    /* usually contains "cue"s with sample positions for events (ex. Platinum Games) but no real looping info */
         //}
 
-        /* other Wwise specific chunks:
-         * "JUNK": optional padding for aligment (0-size JUNK exists too)
+        /* other chunks:
+         * "JUNK": optional padding for aligment (0-size JUNK exists too), also in regular RIFF
          * "akd ": seem to store extra info for Wwise editor (wave peaks/loudness/HDR envelope?)
          */
 
@@ -249,6 +250,7 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE* sf) {
 
     switch(ww.codec) {
         case PCM: /* common */
+VGM_LOG("1\n");
             /* normally riff.c has priority but it's needed when .wem is used */
             if (ww.fmt_size != 0x10 && ww.fmt_size != 0x18 && ww.fmt_size != 0x28) goto fail; /* old, new/Limbo (PC) */
             if (ww.bits_per_sample != 16) goto fail;
@@ -268,7 +270,7 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE* sf) {
             /* slightly modified XBOX-IMA */
             /* Wwise reuses common codec ids (ex. 0x0002 MSADPCM) for IMA so this parser should go AFTER riff.c avoid misdetection */
 
-            if (ww.fmt_size != 0x28 && ww.fmt_size != 0x18) goto fail; /* old, new */
+            if (ww.fmt_size != 0x14 && ww.fmt_size != 0x28 && ww.fmt_size != 0x18) goto fail; /* oldest, old, new */
             if (ww.bits_per_sample != 4) goto fail;
             if (ww.block_align != 0x24 * ww.channels) goto fail;
 
@@ -488,7 +490,10 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE* sf) {
 
             /* endian check should be enough */
             //if (ww.fmt_size != ...) goto fail; /* XMA1 0x20, XMA2old: 0x34, XMA2new: 0x40, XMA2 Guitar Hero Live/padded: 0x64, etc */
-            if (!ww.big_endian) goto fail; /* must be Wwise (real XMA are LE and parsed elsewhere) */
+
+            /* only Wwise XMA: X360=BE, or XBone=LE+wem (real X360 XMA are LE and parsed elsewhere) */
+            if (!(ww.big_endian || (!ww.big_endian && check_extensions(sf,"wem,bnk"))))
+                goto fail;
 
             if (find_chunk(sf, 0x584D4132,first_offset,0, &xma2_offset,&xma2_size, ww.big_endian, 0)) { /*"XMA2"*/ /* older Wwise */
                 bytes = ffmpeg_make_riff_xma2_from_xma2_chunk(buf,0x100, xma2_offset, xma2_size, ww.data_size, sf);
