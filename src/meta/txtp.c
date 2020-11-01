@@ -10,6 +10,7 @@
 #define TXTP_GROUP_MODE_SEGMENTED 'S'
 #define TXTP_GROUP_MODE_LAYERED 'L'
 #define TXTP_GROUP_MODE_RANDOM 'R'
+#define TXTP_GROUP_RANDOM_ALL '-'
 #define TXTP_GROUP_REPEAT 'R'
 #define TXTP_POSITION_LOOPS 'L'
 
@@ -479,9 +480,13 @@ static int make_group_random(txtp_header* txtp, int is_group, int position, int 
         return 1;
     }
 
+    /* special case meaning "play all", basically for quick testing */
+    if (selected == count) {
+        return make_group_segment(txtp, is_group, position, count);
+    }
 
     /* 0=actually random for fun and testing, but undocumented since random music is kinda weird, may change anytime
-     * (plus foobar caches song duration so it can get strange if randoms are too different) */
+     * (plus foobar caches song duration unless .txtp is modifies, so it can get strange if randoms are too different) */
     if (selected < 0) {
         static int random_seed = 0;
         srand((unsigned)txtp + random_seed++); /* whatevs */
@@ -1518,10 +1523,17 @@ static int add_group(txtp_header* txtp, char* line) {
         line += n;
     }
 
-    m = sscanf(line, " >%d%n", &cfg.selected, &n);
-    if (m == 1) {
-        cfg.selected--; /* externally 1=first but internally 0=first */
+    m = sscanf(line, " >%c%n", &c, &n);
+    if (m == 1 && c == TXTP_GROUP_RANDOM_ALL) {
+        cfg.selected = cfg.count; /* special meaning */
         line += n;
+    }
+    else {
+        m = sscanf(line, " >%d%n", &cfg.selected, &n);
+        if (m == 1) {
+            cfg.selected--; /* externally 1=first but internally 0=first */
+            line += n;
+        }
     }
 
     parse_params(&cfg.group_settings, line);

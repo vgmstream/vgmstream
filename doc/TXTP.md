@@ -190,7 +190,7 @@ group = -S2  #segment prev 2 (will start from pos.1 = bgm1+2, makes group of bgm
 # may mix groups of auto and manual positions too, but results are harder to predict
 ```
 
-Group `R` is meant to help with games that randomly select a file in a group. You can set with `>N` which file will be selected. This way you can quickly edit the TXTP and change the file (you could/should just comment files too, this is just for convenience in complex cases and testing). Files do need to exist and are parsed before being selected, and it can select groups too.
+Group `R` is meant to help with games that randomly select a file in a group. You can set with `>N` which file will be selected. This way you can quickly edit the TXTP and change the file (you could just comment files too, this is just for convenience in complex cases and testing). You can also set `>-`, meaning "play all", basically turning `R` into `S`. Files do need to exist and are parsed before being selected, and it can select groups too.
 ```
  bgm1.adx
  bgm2.adx
