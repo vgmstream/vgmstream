@@ -840,6 +840,45 @@ static int get_position(const char* params, double* value_f, char* value_type) {
     return n;
 }
 
+static int get_volume(const char* params, double *value, int *is_set) {
+    int n, m;
+    double temp_f;
+    int temp_i;
+    char temp_c1, temp_c2;
+
+    if (is_set) *is_set = 0;
+
+    /* test if format is NdB (decibels) */
+    m = sscanf(params, " %i%c%c%n", &temp_i, &temp_c1, &temp_c2, &n);
+    if (m == 3 && temp_c1 == 'd' && (temp_c2 == 'B' || temp_c2 == 'b')) {
+        /* dB 101:
+         * - logaritmic scale
+         *   - dB = 20 * log(percent / 100)
+         *   - percent = pow(10, dB / 20)) * 100
+         * - for audio: 100% = 0dB (base max volume of current file = reference dB)
+         *   - negative dB decreases volume, positive dB increases
+         * ex.
+         *     200% = 20 * log(200 / 100) = +6.02059991328 dB
+         *      50% = 20 * log( 50 / 100) = -6.02059991328 dB
+         *      6dB = pow(10,  6 / 20) * 100 = +195.26231497 %
+         *     -6dB = pow(10, -6 / 20) * 100 = +50.50118723362 %
+         */
+
+        if (is_set) *is_set = 1;
+        *value = pow(10, temp_i / 20.0); /* dB to % where 1.0 = max */
+        return n;
+    }
+
+    /* test if format is N.N (percent) */
+    m = sscanf(params, " %lf%n", &temp_f, &n);
+    if (m == 1) {
+        if (is_set) *is_set = 1;
+        *value = temp_f;
+        return n;
+    }
+
+    return 0;
+}
 
 static int get_time(const char* params, double* value_f, int32_t* value_i) {
     int n,m;
@@ -1362,7 +1401,7 @@ static void parse_params(txtp_entry* entry, char* params) {
         else if (strcmp(command,"@volume") == 0) {
             txtp_mix_data mix = {0};
 
-            nm = get_double(params, &mix.vol, NULL);
+            nm = get_volume(params, &mix.vol, NULL);
             params += nm;
 
             if (nm == 0) continue;
