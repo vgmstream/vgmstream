@@ -346,14 +346,14 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
             break;
 
         case coding_EA_XA: /* from 'raw' modes in sx.exe [Harry Potter and the Chamber of Secrets (PC)] */
-            if (vgmstream->channels == 1 || txth.codec_mode == 1) { /* mono/interleave */
+            if (txth.codec_mode == 1) { /* mono interleave */
                 coding = coding_EA_XA_int;
                 vgmstream->layout_type = layout_interleave;
                 vgmstream->interleave_block_size = txth.interleave;
                 vgmstream->interleave_last_block_size = txth.interleave_last;
-            } else { /* stereo */
+            } else { /* mono/stereo */
                 if (vgmstream->channels > 2)
-                    goto fail; /* only 2ch is known */
+                    goto fail; /* only 1ch and 2ch are known */
 
                 vgmstream->layout_type = layout_none;
             }

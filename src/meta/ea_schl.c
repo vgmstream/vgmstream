@@ -1159,16 +1159,18 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE* sf, ea_header* 
      * Unneeded codecs are removed over time (ex. LAYER3 when EALAYER3 was introduced). */
     switch (ea->codec2) {
 
-        case EA_CODEC2_EAXA_INT:    /* EA-XA, CDXA ADPCM variant */
-            if (ea->platform != EA_PLATFORM_SAT && ea->channels > 1)
-                vgmstream->coding_type = coding_EA_XA; /* stereo stream */
-            else
-                vgmstream->coding_type = coding_EA_XA_int; /* interleaved mono streams */
+        case EA_CODEC2_EAXA_INT:    /* EA-XA (stereo) */
+            vgmstream->coding_type = coding_EA_XA;
             break;
 
-        case EA_CODEC2_EAXA:        /* EA-XA v2 */
-            /* later revision with PCM blocks and slighty modified decoding */
-            vgmstream->coding_type = coding_EA_XA_V2;
+        case EA_CODEC2_EAXA:        /* EA-XA (split mono) */
+            if (ea->version == EA_VERSION_V0) {
+                /* original version */
+                vgmstream->coding_type = coding_EA_XA_int;
+            } else {
+                /* later revision with PCM blocks and slighty modified decoding */
+                vgmstream->coding_type = coding_EA_XA_V2;
+            }
             break;
 
         case EA_CODEC2_S8_INT:      /* PCM8 (interleaved) */
@@ -1716,7 +1718,12 @@ static int parse_variable_header(STREAMFILE* sf, ea_header* ea, off_t begin_offs
                     ea->codec2 = ea->bps==8 ? EA_CODEC2_S8 : (ea->big_endian ? EA_CODEC2_S16BE : EA_CODEC2_S16LE);
                 break;
             case EA_CODEC1_VAG:         ea->codec2 = EA_CODEC2_VAG; break;
-            case EA_CODEC1_EAXA:        ea->codec2 = EA_CODEC2_EAXA_INT; break;
+            case EA_CODEC1_EAXA:
+                if (ea->platform == EA_PLATFORM_PC || ea->platform == EA_PLATFORM_MAC)
+                    ea->codec2 = EA_CODEC2_EAXA_INT;
+                else
+                    ea->codec2 = EA_CODEC2_EAXA;
+                break;
             case EA_CODEC1_MT10:        ea->codec2 = EA_CODEC2_MT10; break;
             case EA_CODEC1_N64:         ea->codec2 = EA_CODEC2_N64; break;
             default:

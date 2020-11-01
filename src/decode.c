@@ -941,17 +941,14 @@ void decode_vgmstream(VGMSTREAM* vgmstream, int samples_written, int samples_to_
             }
             break;
         case coding_EA_XA:
+        case coding_EA_XA_int: {
+            int is_stereo = (vgmstream->channels > 1 && vgmstream->coding_type == coding_EA_XA);
             for (ch = 0; ch < vgmstream->channels; ch++) {
                 decode_ea_xa(&vgmstream->ch[ch], buffer+ch,
-                        vgmstream->channels, vgmstream->samples_into_block, samples_to_do, ch);
+                        vgmstream->channels, vgmstream->samples_into_block, samples_to_do, ch, is_stereo);
             }
             break;
-        case coding_EA_XA_int:
-            for (ch = 0; ch < vgmstream->channels; ch++) {
-                decode_ea_xa_int(&vgmstream->ch[ch], buffer+ch,
-                        vgmstream->channels, vgmstream->samples_into_block, samples_to_do, ch);
-            }
-            break;
+        }
         case coding_EA_XA_V2:
             for (ch = 0; ch < vgmstream->channels; ch++) {
                 decode_ea_xa_v2(&vgmstream->ch[ch], buffer+ch,
