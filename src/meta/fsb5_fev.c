@@ -121,20 +121,22 @@ VGMSTREAM* init_vgmstream_fsb5_fev_bank(STREAMFILE* sf) {
         }
     }
 
+	//;VGM_LOG("FSB5 FEV: offset=%lx, size=%x\n", subfile_offset,subfile_size);
+
     temp_sf = setup_subfile_streamfile(sf, subfile_offset,subfile_size, "fsb");
     if (!temp_sf) goto fail;
-    
+
     temp_sf->stream_index = fsb5_subsong; /* relative subsong, in case of multiple FSBs */
 
     vgmstream = (read_u32be(0x00, temp_sf) == 0x46534235) ? /* "FSB5" (better flag?)*/
         init_vgmstream_fsb5(temp_sf) :
         init_vgmstream_fsb_encrypted(temp_sf);
-    close_streamfile(temp_sf);
     if (!vgmstream) goto fail;
 
     vgmstream->stream_index = sf->stream_index; //target_subsong; /* 0-index matters */
     vgmstream->num_streams = total_subsongs;
 
+    close_streamfile(temp_sf);
     return vgmstream;
 
 fail:
