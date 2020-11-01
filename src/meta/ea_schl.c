@@ -1172,39 +1172,31 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE* sf, ea_header* 
             break;
 
         case EA_CODEC2_S8_INT:      /* PCM8 (interleaved) */
-            if (ea->platform == EA_PLATFORM_SAT || ea->platform == EA_PLATFORM_N64) {
-                vgmstream->coding_type = coding_PCM8;
-            } else {
-                vgmstream->coding_type = coding_PCM8_int;
-            }
+            vgmstream->coding_type = coding_PCM8_int;
             break;
 
         case EA_CODEC2_S16LE_INT:   /* PCM16LE (interleaved) */
         case EA_CODEC2_S16BE_INT:   /* PCM16BE (interleaved) */
-            if (ea->platform == EA_PLATFORM_SAT || ea->platform == EA_PLATFORM_N64) {
-                vgmstream->coding_type = coding_PCM16BE;
-            } else {
-                vgmstream->coding_type = coding_PCM16_int;
-            }
+            vgmstream->coding_type = coding_PCM16_int;
             break;
 
-        case EA_CODEC2_S8:          /* PCM8 */
+        case EA_CODEC2_S8:          /* PCM8 (split) */
             vgmstream->coding_type = coding_PCM8;
             break;
 
-        case EA_CODEC2_S16BE:       /* PCM16BE */
-            vgmstream->coding_type = coding_PCM16BE;
+        case EA_CODEC2_S16LE:       /* PCM16LE (split) */
+            vgmstream->coding_type = coding_PCM16LE;
             break;
 
-        case EA_CODEC2_S16LE:       /* PCM16LE */
-            vgmstream->coding_type = coding_PCM16LE;
+        case EA_CODEC2_S16BE:       /* PCM16BE (split) */
+            vgmstream->coding_type = coding_PCM16BE;
             break;
 
         case EA_CODEC2_VAG:         /* PS-ADPCM */
             vgmstream->coding_type = coding_PSX;
             break;
 
-        case EA_CODEC2_XBOXADPCM:   /* XBOX IMA (interleaved mono) */
+        case EA_CODEC2_XBOXADPCM:   /* XBOX IMA (split mono) */
             vgmstream->coding_type = coding_XBOX_IMA_int;
             break;
 
@@ -1717,8 +1709,11 @@ static int parse_variable_header(STREAMFILE* sf, ea_header* ea, off_t begin_offs
     /* codec1 to codec2 to simplify later parsing */
     if (ea->codec1 != EA_CODEC1_NONE && ea->codec2 == EA_CODEC2_NONE) {
         switch (ea->codec1) {
-            case EA_CODEC1_PCM: /* assumed to always be interleaved, need to verify */
-                ea->codec2 = ea->bps==8 ? EA_CODEC2_S8_INT : (ea->big_endian ? EA_CODEC2_S16BE_INT : EA_CODEC2_S16LE_INT);
+            case EA_CODEC1_PCM:
+                if (ea->platform == EA_PLATFORM_PC)
+                    ea->codec2 = ea->bps==8 ? EA_CODEC2_S8_INT : (ea->big_endian ? EA_CODEC2_S16BE_INT : EA_CODEC2_S16LE_INT);
+                else
+                    ea->codec2 = ea->bps==8 ? EA_CODEC2_S8 : (ea->big_endian ? EA_CODEC2_S16BE : EA_CODEC2_S16LE);
                 break;
             case EA_CODEC1_VAG:         ea->codec2 = EA_CODEC2_VAG; break;
             case EA_CODEC1_EAXA:        ea->codec2 = EA_CODEC2_EAXA_INT; break;
