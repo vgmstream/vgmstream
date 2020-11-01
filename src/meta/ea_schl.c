@@ -1375,8 +1375,10 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE* sf, ea_header* 
             for (i = 0; i < ea->channels; i++) {
                 vgmstream->ch[i].offset = ea->offsets[0] + interleave*i;
             }
-        } else if ((vgmstream->coding_type == coding_PCM8 || vgmstream->coding_type == coding_PCM16LE) && ea->platform == EA_PLATFORM_PS2) {
-            /* weird 0x10 mini header (codec/loop start/loop end/samples) [SSX 3 (PS2)] */
+        } else if ((vgmstream->coding_type == coding_PCM8 || vgmstream->coding_type == coding_PCM16LE) &&
+            ea->platform == EA_PLATFORM_PS2 &&
+            (ea->flag_value & 0x100)) {
+            /* weird 0x10 mini header when played on IOP (codec/loop start/loop end/samples) [SSX 3 (PS2)] */
             for (i = 0; i < vgmstream->channels; i++) {
                 vgmstream->ch[i].offset = ea->offsets[i] + 0x10;
             }
@@ -1388,8 +1390,7 @@ static VGMSTREAM * init_vgmstream_ea_variable_header(STREAMFILE* sf, ea_header* 
         }
 
         /* TODO: Figure out how to get stream size for BNK sounds */
-    }
-    else {
+    } else {
         update_ea_stream_size_and_samples(sf, start_offset, vgmstream, standalone);
     }
 
