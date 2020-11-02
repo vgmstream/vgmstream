@@ -547,12 +547,14 @@ ffmpeg_codec_data* init_ffmpeg_switch_opus(STREAMFILE* sf, off_t start_offset, s
 ffmpeg_codec_data* init_ffmpeg_ue4_opus(STREAMFILE* sf, off_t start_offset, size_t data_size, int channels, int skip, int sample_rate);
 ffmpeg_codec_data* init_ffmpeg_ea_opus(STREAMFILE* sf, off_t start_offset, size_t data_size, int channels, int skip, int sample_rate);
 ffmpeg_codec_data* init_ffmpeg_x_opus(STREAMFILE* sf, off_t start_offset, size_t data_size, int channels, int skip, int sample_rate);
+ffmpeg_codec_data* init_ffmpeg_fsb_opus(STREAMFILE* sf, off_t start_offset, size_t data_size, int channels, int skip, int sample_rate);
 
 size_t switch_opus_get_samples(off_t offset, size_t stream_size, STREAMFILE* sf);
 
 size_t switch_opus_get_encoder_delay(off_t offset, STREAMFILE* sf);
 size_t ue4_opus_get_encoder_delay(off_t offset, STREAMFILE* sf);
 size_t ea_opus_get_encoder_delay(off_t offset, STREAMFILE* sf);
+size_t fsb_opus_get_encoder_delay(off_t offset, STREAMFILE* sf);
 #endif
 
 
