@@ -821,6 +821,9 @@ typedef struct {
     int fade_time_set;
     int pad_end_set;
 
+    /* for lack of a better place... */
+    int is_txtp;
+    int is_mini_txtp;
 
 } play_config_t;
 
@@ -843,6 +846,7 @@ typedef struct {
 
     int32_t play_duration;      /* total samples that the stream lasts (after applying all config) */
     int32_t play_position;      /* absolute sample where stream is */
+
 } play_state_t;
 
 

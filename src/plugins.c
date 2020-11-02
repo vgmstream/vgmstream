@@ -68,6 +68,7 @@ void vgmstream_get_title(char* buf, int buf_len, const char* filename, VGMSTREAM
     char* pos2;
     char temp[1024];
 
+    buf[0] = '\0';
 
     /* name without path */
     pos = strrchr(filename, '\\');
@@ -80,23 +81,31 @@ void vgmstream_get_title(char* buf, int buf_len, const char* filename, VGMSTREAM
     strncpy(buf, pos, buf_len);
 
     /* name without extension */
-    pos2 = strrchr(buf, '.');
-    if (pos2)
-        pos2[0] = '\0';
+    if (cfg->remove_extension) {
+        pos2 = strrchr(buf, '.');
+        if (pos2 && strlen(pos2) < 15) /* too big extension = file name probably has a dot in the middle */
+            pos2[0] = '\0';
+    }
 
     {
         const char* stream_name = vgmstream->stream_name;
         int total_subsongs = vgmstream->num_streams;
         int target_subsong = vgmstream->stream_index;
         //int is_first = vgmstream->stream_index == 0;
-        //int is_txtp = ; //todo don't show number/name for txtp but show for mini-txtp
         int show_name;
+
+        /* special considerations for TXTP:
+         * - full txtp: don't show subsong number, nor name (assumes one names .txtp as wanted)
+         * - mini txtp: don't show subsong number, but show name (assumes one choses song #n in filename, but wants title)
+         */
+        int full_txtp = vgmstream->config.is_txtp && !vgmstream->config.is_mini_txtp;
+        int mini_txtp = vgmstream->config.is_mini_txtp;
 
         if (target_subsong == 0)
             target_subsong = 1;
 
         /* show number if file has more than 1 subsong */
-        if (total_subsongs > 1) {
+        if (total_subsongs > 1 && !(full_txtp || mini_txtp)) {
             if (cfg && cfg->subsong_range)
                 snprintf(temp, sizeof(temp), "%s#1~%i", buf, total_subsongs);
             else
@@ -105,13 +114,19 @@ void vgmstream_get_title(char* buf, int buf_len, const char* filename, VGMSTREAM
         }
 
         /* show name for some cases */
-        show_name = (total_subsongs > 0 && (!cfg || !cfg->subsong_range)) ||
-                (cfg && cfg->force_title);
+        show_name = (total_subsongs > 0) && (!cfg || !cfg->subsong_range);
+        if (full_txtp)
+            show_name = 0;
+        if (cfg && cfg->force_title)
+            show_name = 1;
+
         if (stream_name[0] != '\0' && show_name) {
             snprintf(temp, sizeof(temp), "%s (%s)", buf, stream_name);
             strncpy(buf, temp, buf_len);
         }
     }
+
+    buf[buf_len - 1] = '\0';
 }
 
 
@@ -174,6 +189,9 @@ static void load_default_config(play_config_t* def, play_config_t* tcfg) {
     copy_time(&def->trim_begin_set, &def->trim_begin,   &def->trim_begin_s,     &tcfg->trim_begin_set,  &tcfg->trim_begin,  &tcfg->trim_begin_s);
     copy_time(&def->trim_end_set,   &def->trim_end,     &def->trim_end_s,       &tcfg->trim_end_set,    &tcfg->trim_end,    &tcfg->trim_end_s);
     copy_time(&def->body_time_set,  &def->body_time,    &def->body_time_s,      &tcfg->body_time_set,   &tcfg->body_time,   &tcfg->body_time_s);
+
+    def->is_mini_txtp = tcfg->is_mini_txtp;
+    def->is_txtp = tcfg->is_txtp;
 }
 
 static void load_player_config(play_config_t* def, vgmstream_cfg_t* vcfg) {

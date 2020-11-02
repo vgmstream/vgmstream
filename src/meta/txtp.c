@@ -178,6 +178,10 @@ VGMSTREAM* init_vgmstream_txtp(STREAMFILE* sf) {
     /* should result in a final, single vgmstream possibly containing multiple vgmstreams */
     vgmstream = txtp->vgmstream[0];
 
+    /* flags for title config */
+    vgmstream->config.is_txtp = 1;
+    vgmstream->config.is_mini_txtp = (get_streamfile_size(sf) == 0);
+
     clean_txtp(txtp, 0);
     return vgmstream;
 

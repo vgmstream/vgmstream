@@ -429,8 +429,7 @@ void input_vgmstream::get_subsong_info(t_uint32 p_subsong, pfc::string_base & ti
             int num_samples = vgmstream_get_samples(infostream);
             *length_in_ms = num_samples*1000LL / infostream->sample_rate;
 
-            char temp[1024];
-            describe_vgmstream(infostream, temp, 1024);
+            describe_vgmstream(infostream, temp, sizeof(temp));
             description = temp;
         }
     }
@@ -438,30 +437,12 @@ void input_vgmstream::get_subsong_info(t_uint32 p_subsong, pfc::string_base & ti
 
     /* infostream gets added with index 0 (other) or 1 (current) */
     if (infostream && title) {
-        const char *p = filename + strlen(filename);
-        while (*p != '\\' && p >= filename) p--;
-        p++;
-        const char *e = filename + strlen(filename);
-        while (*e != '.' && e >= filename) e--;
-        title.set_string(p, e - p); /* name without ext */
+        vgmstream_title_t tcfg = {0};
+        tcfg.remove_extension = 1;
 
-        const char* info_name = infostream->stream_name;
-        int info_streams = infostream->num_streams;
-        int info_subsong = infostream->stream_index;
-        if (info_subsong == 0)
-            info_subsong = 1;
-
-        /* show number if file has more than 1 subsong */
-        if (info_streams > 1) {
-            sprintf(temp,"#%d",info_subsong);
-            title += temp;
-        }
-
-        /* show name if file has subsongs (implicitly shows also for TXTP) */
-        if (info_name[0] != '\0' && info_streams > 0) {
-            sprintf(temp," (%s)",info_name);
-            title += temp;
-        }
+        const char* filename_str = filename;
+        vgmstream_get_title(temp, sizeof(temp), filename_str, infostream, &tcfg);
+        title = temp;
     }
 
     // and only close if was querying a new subsong
