@@ -1,6 +1,9 @@
 #include "meta.h"
 #include "../coding/coding.h"
 
+
+static int get_subsongs(STREAMFILE* sf, off_t fsb5_offset, size_t fsb5_size);
+
 /* FEV+FSB5 container [Just Cause 3 (PC), Shantae: Half-Genie Hero (Switch)] */
 VGMSTREAM* init_vgmstream_fsb5_fev_bank(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
@@ -93,8 +96,12 @@ VGMSTREAM* init_vgmstream_fsb5_fev_bank(STREAMFILE* sf) {
         fsb5_subsong = -1;
         total_subsongs = 0;
         for (i = 0; i < banks; i++) {
+            //TODO: fsb5_size fails for v0x28< + encrypted, but only used with multibanks = unlikely
             off_t fsb5_offset  = read_u32le(bank_offset + 0x04 + entry_size*i + 0x00,sf);
-            int fsb5_subsongs = read_s32le(fsb5_offset + 0x08,sf);
+            size_t fsb5_size   = read_u32le(bank_offset+0x08 + entry_size*i,sf);
+            int fsb5_subsongs = get_subsongs(sf, fsb5_offset, fsb5_size);
+            if (!fsb5_subsongs)
+                goto fail;
 
             /* target in range */
             if (target_subsong >= total_subsongs + 1 && target_subsong < total_subsongs + 1 + fsb5_subsongs) {
@@ -143,4 +150,30 @@ fail:
     close_streamfile(temp_sf);
     close_vgmstream(vgmstream);
     return NULL;
+}
+
+static int get_subsongs(STREAMFILE* sf, off_t fsb5_offset, size_t fsb5_size) {
+    VGMSTREAM* vgmstream = NULL;
+    STREAMFILE* temp_sf = NULL;
+    int subsongs = 0;
+
+
+    /* standard */
+    if (read_u32be(fsb5_offset, sf) == 0x46534235) { /* FSB5 */
+        return read_s32le(fsb5_offset + 0x08,sf);
+    }
+
+    /* encrypted, meh */
+    temp_sf = setup_subfile_streamfile(sf, fsb5_offset, fsb5_size, "fsb");
+    if (!temp_sf) goto end;
+
+    vgmstream = init_vgmstream_fsb_encrypted(temp_sf);
+    if (!vgmstream) goto end;
+
+    subsongs = vgmstream->num_streams;
+
+end:
+    close_streamfile(temp_sf);
+    close_vgmstream(vgmstream);
+    return subsongs;
 }
