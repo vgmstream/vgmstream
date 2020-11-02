@@ -32,13 +32,14 @@ VGMSTREAM* init_vgmstream_bkhd(STREAMFILE* sf) {
      * as other chunks, and may have a DATA/DIDX index to memory .wem in DATA.
      * We support the internal .wem mainly for quick tests, as the HIRC is
      * complex and better handled with TXTP (some info from Nicknine's script).
-     * unlike RIFF, first chunk follows chunk rules */
+     * Use this to explore HIRC and covert to .txtp: https://github.com/bnnm/wwiser */
 
     version = read_u32(base_offset + 0x08, sf);
     if (version == 0 || version == 1) { /* early games */
         version = read_u32(base_offset + 0x10, sf);
     }
 
+    /* first chunk also follows standard chunk sizes unlike RIFF */
     if (version <= 26) {
         off_t data_offset, data_start, offset;
         if (!find_chunk(sf, 0x44415441, base_offset, 0, &data_offset, NULL, big_endian, 0)) /* "DATA" */
@@ -50,7 +51,7 @@ VGMSTREAM* init_vgmstream_bkhd(STREAMFILE* sf) {
          * 08: entries size
          * 0c: padding size after entries
          * 10: data size
-         * 14: size?
+         * 14: size? or null
          * 18: data start
          * 1c: data size
          * per entry:
@@ -135,13 +136,23 @@ VGMSTREAM* init_vgmstream_bkhd(STREAMFILE* sf) {
 
 
     vgmstream->num_streams = total_subsongs;
-    
-    if (is_dummy)
-        snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%u/dummy", subfile_id);
-    else if (is_wmid)
-        snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%u/wmid", subfile_id);
-    else if (subfile_id != 0xFFFFFFFF)
-        snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%u", subfile_id);
+
+    {
+        const char* info = NULL;
+        if (is_dummy)
+            info = "dummy";
+        else if (is_wmid)
+            info = "wmid";
+
+        /* old Wwise shows index or (more often) -1, unify to index*/
+        if (subfile_id == 0xFFFFFFFF)
+            subfile_id = target_subsong - 1;
+
+        if (info)
+            snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%u/%s", subfile_id, info);
+        else
+            snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%u", subfile_id);
+    }
 
     close_streamfile(temp_sf);
     return vgmstream;

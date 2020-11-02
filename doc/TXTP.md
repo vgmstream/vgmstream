@@ -37,7 +37,7 @@ Some games clumsily loop audio by using multiple full file "segments", so you ca
 BGM01_BEGIN.VAG
 BGM01_LOOPED.VAG
 
-# segments must define loops
+# segments may define loops
 loop_start_segment = 2 # 2nd file start
 loop_end_segment = 2 # optional, default is last
 mode = segments # optional, default is segments
@@ -51,6 +51,7 @@ BGM01_LOOPED.VAG
 # (only for multiple segments, to repeat a single file use #E)
 loop_mode = auto
 ```
+Another way to set looping is using "loop anchors", that are meant to simplify more complex .txtp (explained later).
 
 
 If your loop segment has proper loops you want to keep, you can use:
@@ -158,6 +159,7 @@ mode = layers
 # you could also set: group = L and mode = mixed, same thing
 ```
 
+### Group definition
 `group` can go anywhere in the .txtp, as many times as needed (groups are read and kept in an list that is applied in order at the end). Format is `(position)(type)(count)(repeat)`:
 - `position`: file start (optional, default is 1 = first, or set `-` for auto from prev N files)
 - `type`: group as `S`=segments, `L`=layers, or `R`=pseudo-random
@@ -190,7 +192,8 @@ group = -S2  #segment prev 2 (will start from pos.1 = bgm1+2, makes group of bgm
 # may mix groups of auto and manual positions too, but results are harder to predict
 ```
 
-Group `R` is meant to help with games that randomly select a file in a group. You can set with `>N` which file will be selected. This way you can quickly edit the TXTP and change the file (you could/should just comment files too, this is just for convenience in complex cases and testing). Files do need to exist and are parsed before being selected, and it can select groups too.
+### Pseudo-random groups
+Group `R` is meant to help with games that randomly select a file in a group. You can set with `>N` which file will be selected. This way you can quickly edit the TXTP and change the file (you could just comment files too, this is just for convenience in complex cases and testing). You can also set `>-`, meaning "play all", basically turning `R` into `S`. Files do need to exist and are parsed before being selected, and it can select groups too.
 ```
  bgm1.adx
  bgm2.adx
@@ -207,6 +210,30 @@ group = -R3>1  #first file, change to >2 for second
 group = -R2>2  #select either group >1 or >2
 ```
 
+### Silent files
+You can put `?.` in an entry to make a silent (non-existing) file. By default takes channels and sample rate of nearby files, can be combined with regular commands to configure.
+```
+intro.adx
+?.silence #b 3.0  # 3 seconds of silence
+loop.adx
+```
+
+It also doubles as a quick "silence this file" while keeping the same structure, for complex cases. The `.` can actually be anywhere after `?`, but must appear before commands to function correctly.
+```
+  layer1a.adx
+ ?layer1b.adx
+ group = -L2
+ 
+ ?layer2a.adx
+  layer2b.adx
+ group = -L2
+ 
+group = -S2
+```
+
+Most of the time you can do the same with `#p`/`#P` padding commands or `#@volume 0.0`. This is mainly for complex engines that combine silent entries in twisted ways. You can't silence `group` with `?group` though since they aren't considered "entries".
+
+### Other considerations
 Internally, `mode = segment/layers` are treated basically as a (default, at the end) group. You can apply commands to the resulting group (rather than the individual files) too. `commands` would be applied to this final group.
 ```
 mainA_2ch.at3
@@ -233,30 +260,7 @@ mode = segments
 loop_start_segment = 3 #refers to final group at position 2
 loop_mode = keep
 ```
-
-
-### Silent files
-You can put `?.` in an entry to make a silent (non-existing) file. By default takes channels and sample rate of nearby files, can be combined with regular commands to configure.
-```
-intro.adx
-?.silence #b 3.0  # 3 seconds of silence
-loop.adx
-```
-
-It also doubles as a quick "silence this file" while keeping the same structure, for complex cases. The `.` can actually be anywhere after `?`, but must appear before commands to function correctly.
-```
-  layer1a.adx
- ?layer1b.adx
- group = -L2
- 
- ?layer2a.adx
-  layer2b.adx
- group = -L2
- 
-group = -S2
-```
-
-Most of the time you can do the same with `#p`/`#P` padding commands or `#@volume 0.0`. This is mainly for complex engines that combine silent entries in twisted ways. You can't silence `group` with `?group` though since they aren't considered "entries".
+Also see loop anchors to handle looping in some cases.
 
 
 ## TXTP COMMANDS
@@ -569,11 +573,45 @@ This can be applied to individual layers and segments, but normally you want to 
 Mixing must be supported by the plugin, otherwise it's ignored (there is a negligible performance penalty per mix operation though).
 
 
+### Loop anchors
+**`#a`** (loop start segment), **`#A`** (loop end segment): mark looping parts in segmented layout.
+
+For segmented layout normally you set loop points using `loop_start_segment` and `loop_end_segment`. It's clean in simpler cases but can be a hassle when lots of files exist. To simplify those cases you can set "loop anchors":
+```
+bgm01.adx
+bgm02.adx #a  ##defines loop start
+```
+```
+bgm01.adx
+bgm02.adx #a  ##defines loop start
+bgm03.adx
+bgm04.adx #A  ##defines loop end
+bgm05.adx
+```
+You can also use `#@loop` to set loop start.
+
+This setting also works in groups, which allows loops when using multiple segmented groups (not possible with `loop_start/end_segment`).
+```
+  bgm01.adx
+  bgm02.adx #a
+ group -S2 #l 2.0
+  bgm01.adx
+  bgm02.adx #a
+  bgm03.adx
+ group -S2 #l 3.0
+group -S2
+#could use R groups to select one sub-groups that loops
+# (loop_start_segment doesn't make sense for both segments)
+```
+Loop anchors have priority over `loop_start_segment`, and are ignored in layered layouts.
+
+
 ### Macros
 **`#@(macro name and parameters)`**: adds a new macro
 
 Manually setting values gets old, so TXTP supports a bunch of simple macros. They automate some of the above commands (analyzing the file), and may be combined, so order still matters.
-- `volume N (channels)`: sets volume V to selected channels
+- `volume N (channels)`: sets volume V to selected channels. N.N = percent or NdB = decibels.
+  -  `1.0` or `0dB` = base volume, `2.0` or `6dB` = double volume, `0.5` or `-6dB` = half volume
 - `track (channels)`: makes a file of selected channels
 - `layer-v N (channels)`: mixes selected channels to N channels with default volume (for layered vocals). If N is 0 (or ommited), automatically sets highest channel count among all layers.
 - `layer-b N (channels)`: same, but adjusts volume depending on layers (for layered bgm)

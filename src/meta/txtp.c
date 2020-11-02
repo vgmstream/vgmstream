@@ -10,6 +10,7 @@
 #define TXTP_GROUP_MODE_SEGMENTED 'S'
 #define TXTP_GROUP_MODE_LAYERED 'L'
 #define TXTP_GROUP_MODE_RANDOM 'R'
+#define TXTP_GROUP_RANDOM_ALL '-'
 #define TXTP_GROUP_REPEAT 'R'
 #define TXTP_POSITION_LOOPS 'L'
 
@@ -88,6 +89,9 @@ typedef struct {
     int32_t loop_start_sample;
     double loop_end_second;
     int32_t loop_end_sample;
+    /* flags */
+    int loop_anchor_start;
+    int loop_anchor_end;
 
     int trim_set;
     double trim_second;
@@ -173,6 +177,10 @@ VGMSTREAM* init_vgmstream_txtp(STREAMFILE* sf) {
 
     /* should result in a final, single vgmstream possibly containing multiple vgmstreams */
     vgmstream = txtp->vgmstream[0];
+
+    /* flags for title config */
+    vgmstream->config.is_txtp = 1;
+    vgmstream->config.is_mini_txtp = (get_streamfile_size(sf) == 0);
 
     clean_txtp(txtp, 0);
     return vgmstream;
@@ -311,6 +319,7 @@ static void update_vgmstream_list(VGMSTREAM* vgmstream, txtp_header* txtp, int p
     for (i = position + count; i < txtp->vgmstream_count; i++) {
         //;VGM_LOG("TXTP: copy %i to %i\n", i, i + 1 - count);
         txtp->vgmstream[i + 1 - count] = txtp->vgmstream[i];
+        txtp->entry[i + 1 - count] = txtp->entry[i]; /* memcpy old settings for other groups */
     }
 
     /* list can only become smaller, no need to alloc/free/etc */
@@ -318,10 +327,38 @@ static void update_vgmstream_list(VGMSTREAM* vgmstream, txtp_header* txtp, int p
     //;VGM_LOG("TXTP: compact vgmstreams=%i\n", txtp->vgmstream_count);
 }
 
+static int find_loop_anchors(txtp_header* txtp, int position, int count, int* p_loop_start, int* p_loop_end) {
+    int loop_start = 0, loop_end = 0;
+    int i, j;
+
+    //;VGM_LOG("TXTP: find loop anchors from %i to %i\n", position, count);
+
+    for (i = position, j = 0; i < position + count; i++, j++) {
+        if (txtp->entry[i].loop_anchor_start) {
+            loop_start = j + 1; /* logic elsewhere also uses +1 */
+        }
+        if (txtp->entry[i].loop_anchor_end) {
+            loop_end = j + 1;
+        }
+    }
+
+    if (loop_start) {
+        if (!loop_end)
+            loop_end = count;
+        *p_loop_start = loop_start;
+        *p_loop_end = loop_end;
+        //;VGM_LOG("TXTP: loop anchors %i, %i\n", loop_start, loop_end);
+        return 1;
+    }
+
+    return 0;
+}
+
 static int make_group_segment(txtp_header* txtp, int is_group, int position, int count) {
     VGMSTREAM* vgmstream = NULL;
     segmented_layout_data *data_s = NULL;
     int i, loop_flag = 0;
+    int loop_start = 0, loop_end = 0;
 
 
     /* allowed for actual groups (not final "mode"), otherwise skip to optimize */
@@ -335,16 +372,25 @@ static int make_group_segment(txtp_header* txtp, int is_group, int position, int
         return 1;
     }
 
-    /* loop settings only make sense if this group becomes final vgmstream */
-    if (position == 0 && txtp->vgmstream_count == count) {
-        if (txtp->loop_start_segment && !txtp->loop_end_segment) {
-            txtp->loop_end_segment = count;
+
+    /* set loops with "anchors" (this allows loop config inside groups, not just in the final group,
+     * which is sometimes useful when paired with random/selectable groups or loop times) */
+    if (find_loop_anchors(txtp, position, count, &loop_start, &loop_end)) {
+        loop_flag = (loop_start > 0 && loop_start <= count);
+    }
+    /* loop segment settings only make sense if this group becomes final vgmstream */
+    else if (position == 0 && txtp->vgmstream_count == count) {
+        loop_start = txtp->loop_start_segment;
+        loop_end = txtp->loop_end_segment;
+
+        if (loop_start && !loop_end) {
+            loop_end = count;
         }
         else if (txtp->is_loop_auto) { /* auto set to last segment */
-            txtp->loop_start_segment = count;
-            txtp->loop_end_segment = count;
+            loop_start = count;
+            loop_end = count;
         }
-        loop_flag = (txtp->loop_start_segment > 0 && txtp->loop_start_segment <= count);
+        loop_flag = (loop_start > 0 && loop_start <= count);
     }
 
 
@@ -363,7 +409,7 @@ static int make_group_segment(txtp_header* txtp, int is_group, int position, int
         goto fail;
 
     /* build the layout VGMSTREAM */
-    vgmstream = allocate_segmented_vgmstream(data_s,loop_flag, txtp->loop_start_segment - 1, txtp->loop_end_segment - 1);
+    vgmstream = allocate_segmented_vgmstream(data_s, loop_flag, loop_start - 1, loop_end - 1);
     if (!vgmstream) goto fail;
 
     /* custom meta name if all parts don't match */
@@ -378,13 +424,13 @@ static int make_group_segment(txtp_header* txtp, int is_group, int position, int
     if (loop_flag && txtp->is_loop_keep) {
         int32_t current_samples = 0;
         for (i = 0; i < count; i++) {
-            if (txtp->loop_start_segment == i+1 /*&& data_s->segments[i]->loop_start_sample*/) {
+            if (loop_start == i+1 /*&& data_s->segments[i]->loop_start_sample*/) {
                 vgmstream->loop_start_sample = current_samples + data_s->segments[i]->loop_start_sample;
             }
 
             current_samples += data_s->segments[i]->num_samples;
 
-            if (txtp->loop_end_segment == i+1 && data_s->segments[i]->loop_end_sample) {
+            if (loop_end == i+1 && data_s->segments[i]->loop_end_sample) {
                 vgmstream->loop_end_sample = current_samples - data_s->segments[i]->num_samples + data_s->segments[i]->loop_end_sample;
             }
         }
@@ -479,9 +525,13 @@ static int make_group_random(txtp_header* txtp, int is_group, int position, int 
         return 1;
     }
 
+    /* special case meaning "play all", basically for quick testing */
+    if (selected == count) {
+        return make_group_segment(txtp, is_group, position, count);
+    }
 
     /* 0=actually random for fun and testing, but undocumented since random music is kinda weird, may change anytime
-     * (plus foobar caches song duration so it can get strange if randoms are too different) */
+     * (plus foobar caches song duration unless .txtp is modifies, so it can get strange if randoms are too different) */
     if (selected < 0) {
         static int random_seed = 0;
         srand((unsigned)txtp + random_seed++); /* whatevs */
@@ -563,6 +613,7 @@ static int parse_groups(txtp_header* txtp) {
 
         /* group may also have settings (like downmixing) */
         apply_settings(txtp->vgmstream[grp->position], &grp->group_settings);
+        txtp->entry[grp->position] = grp->group_settings; /* memcpy old settings for subgroups */
     }
 
     /* final tweaks (should be integrated with the above?) */
@@ -840,6 +891,45 @@ static int get_position(const char* params, double* value_f, char* value_type) {
     return n;
 }
 
+static int get_volume(const char* params, double *value, int *is_set) {
+    int n, m;
+    double temp_f;
+    int temp_i;
+    char temp_c1, temp_c2;
+
+    if (is_set) *is_set = 0;
+
+    /* test if format is NdB (decibels) */
+    m = sscanf(params, " %i%c%c%n", &temp_i, &temp_c1, &temp_c2, &n);
+    if (m == 3 && temp_c1 == 'd' && (temp_c2 == 'B' || temp_c2 == 'b')) {
+        /* dB 101:
+         * - logaritmic scale
+         *   - dB = 20 * log(percent / 100)
+         *   - percent = pow(10, dB / 20)) * 100
+         * - for audio: 100% = 0dB (base max volume of current file = reference dB)
+         *   - negative dB decreases volume, positive dB increases
+         * ex.
+         *     200% = 20 * log(200 / 100) = +6.02059991328 dB
+         *      50% = 20 * log( 50 / 100) = -6.02059991328 dB
+         *      6dB = pow(10,  6 / 20) * 100 = +195.26231497 %
+         *     -6dB = pow(10, -6 / 20) * 100 = +50.50118723362 %
+         */
+
+        if (is_set) *is_set = 1;
+        *value = pow(10, temp_i / 20.0); /* dB to % where 1.0 = max */
+        return n;
+    }
+
+    /* test if format is N.N (percent) */
+    m = sscanf(params, " %lf%n", &temp_f, &n);
+    if (m == 1) {
+        if (is_set) *is_set = 1;
+        *value = temp_f;
+        return n;
+    }
+
+    return 0;
+}
 
 static int get_time(const char* params, double* value_f, int32_t* value_i) {
     int n,m;
@@ -1127,6 +1217,14 @@ static void add_settings(txtp_entry* current, txtp_entry* entry, const char* fil
             current->mixing_count++;
         }
     }
+
+    current->loop_anchor_start = entry->loop_anchor_start;
+    current->loop_anchor_end = entry->loop_anchor_end;
+}
+
+//TODO use
+static inline int is_match(const char* str1, const char* str2) {
+    return strcmp(str1, str2) == 0;
 }
 
 static void parse_params(txtp_entry* entry, char* params) {
@@ -1357,12 +1455,21 @@ static void parse_params(txtp_entry* entry, char* params) {
             //;VGM_LOG("TXTP: trim %i - %f / %i\n", entry->trim_set, entry->trim_second, entry->trim_sample);
         }
 
+        else if (is_match(command,"a") || is_match(command,"@loop")) {
+            entry->loop_anchor_start = 1;
+            //;VGM_LOG("TXTP: anchor start set\n");
+        }
+        else if (is_match(command,"A") || is_match(command,"@LOOP")) {
+            entry->loop_anchor_end = 1;
+            //;VGM_LOG("TXTP: anchor end set\n");
+        }
+
         //todo cleanup
         /* macros */
         else if (strcmp(command,"@volume") == 0) {
             txtp_mix_data mix = {0};
 
-            nm = get_double(params, &mix.vol, NULL);
+            nm = get_volume(params, &mix.vol, NULL);
             params += nm;
 
             if (nm == 0) continue;
@@ -1479,10 +1586,17 @@ static int add_group(txtp_header* txtp, char* line) {
         line += n;
     }
 
-    m = sscanf(line, " >%d%n", &cfg.selected, &n);
-    if (m == 1) {
-        cfg.selected--; /* externally 1=first but internally 0=first */
+    m = sscanf(line, " >%c%n", &c, &n);
+    if (m == 1 && c == TXTP_GROUP_RANDOM_ALL) {
+        cfg.selected = cfg.count; /* special meaning */
         line += n;
+    }
+    else {
+        m = sscanf(line, " >%d%n", &cfg.selected, &n);
+        if (m == 1) {
+            cfg.selected--; /* externally 1=first but internally 0=first */
+            line += n;
+        }
     }
 
     parse_params(&cfg.group_settings, line);
@@ -1555,6 +1669,7 @@ static void clean_filename(char* filename) {
 
 }
 
+//TODO see if entry can be set to &default/&entry[entry_count] to avoid add_settings
 static int add_entry(txtp_header* txtp, char* filename, int is_default) {
     int i;
     txtp_entry entry = {0};

@@ -150,7 +150,8 @@ static void wa_ichar_to_char(char *dst, size_t dstsize, const in_char *wsrc) {
     //int size_needed = WideCharToMultiByte(CP_UTF8,0, src,-1, NULL,0, NULL, NULL);
     WideCharToMultiByte(CP_UTF8,0, wsrc,-1, dst,dstsize, NULL, NULL);
 #else
-    strcpy(dst,wsrc);
+    strncpy(dst, wsrc, dstsize);
+    dst[dstsize - 1] = '\0';
 #endif
 }
 
@@ -160,7 +161,8 @@ static void wa_char_to_ichar(in_char *wdst, size_t wdstsize, const char *src) {
     //int size_needed = MultiByteToWideChar(CP_UTF8,0, src,-1, NULL,0);
     MultiByteToWideChar(CP_UTF8,0, src,-1, wdst,wdstsize);
 #else
-    strcpy(wdst,src);
+    strncpy(wdst, src, wdstsize);
+    wdst[wdstsize - 1] = '\0';
 #endif
 }
 
@@ -891,43 +893,27 @@ static void build_extension_list(char *winamp_list, int winamp_list_size) {
 
 /* unicode utils */
 static void get_title(in_char* dst, int dst_size, const in_char* fn, VGMSTREAM* infostream) {
-    in_char* basename;
-    in_char buffer[PATH_LIMIT];
     in_char filename[PATH_LIMIT];
-    //int stream_index = 0;
+    char buffer[PATH_LIMIT];
+    char filename_utf8[PATH_LIMIT];
 
     parse_fn_string(fn, NULL, filename,PATH_LIMIT);
     //parse_fn_int(fn, wa_L("$s"), &stream_index);
 
-    basename = (in_char*)filename + wa_strlen(filename); /* find end */
-    while (*basename != '\\' && basename >= filename) /* and find last "\" */
-        basename--;
-    basename++;
-    wa_strcpy(dst,basename);
+    wa_ichar_to_char(filename_utf8, PATH_LIMIT, filename);
 
     /* infostream gets added at first with index 0, then once played it re-adds proper numbers */
     if (infostream) {
-        const char* info_name = infostream->stream_name;
-        int info_streams = infostream->num_streams;
-        int info_subsong = infostream->stream_index;
+        vgmstream_title_t tcfg = {0};
         int is_first = infostream->stream_index == 0;
 
-        /* show number if file has more than 1 subsong */
-        if (info_streams > 1) {
-            if (is_first)
-                wa_snprintf(buffer,PATH_LIMIT, wa_L("#1~%i"), info_streams);
-            else
-                wa_snprintf(buffer,PATH_LIMIT, wa_L("#%i"), info_subsong);
-            wa_strcat(dst,buffer);
-        }
+        tcfg.force_title = settings.force_title;
+        tcfg.subsong_range = is_first;
+        tcfg.remove_extension = 1;
 
-        /* show name if file has subsongs (implicitly shows also for TXTP) */
-        if (info_name[0] != '\0' && ((info_streams > 0 && !is_first) || info_streams == 1 || settings.force_title)) {
-            in_char stream_name[PATH_LIMIT];
-            wa_char_to_ichar(stream_name, PATH_LIMIT, info_name);
-            wa_snprintf(buffer,PATH_LIMIT, wa_L(" (%s)"), stream_name);
-            wa_strcat(dst,buffer);
-        }
+        vgmstream_get_title(buffer, sizeof(buffer), filename_utf8, infostream, &tcfg);
+
+        wa_char_to_ichar(dst, dst_size, buffer);
     }
 }
 

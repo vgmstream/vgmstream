@@ -71,6 +71,7 @@ void vgmstream_set_play_forever(VGMSTREAM* vgmstream, int enabled);
 typedef struct {
     int force_title;
     int subsong_range;
+    int remove_extension;
 } vgmstream_title_t;
 
 /* get a simple title for plugins */
