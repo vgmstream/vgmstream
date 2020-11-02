@@ -298,11 +298,11 @@ fail:
 /* streamed assets are stored externally in AST file (mostly seen in earlier 6th-gen games) */
 VGMSTREAM * init_vgmstream_ea_abk(STREAMFILE* sf) {
     int bnk_target_stream, is_dupe, total_sounds = 0, target_stream = sf->stream_index;
-    off_t bnk_offset, header_table_offset, base_offset, value_offset, table_offset, entry_offset, target_entry_offset, schl_offset, schl_loop_offset;
-    uint32_t i, j, k, num_sounds, total_sound_tables;
-    uint16_t num_tables;
-    uint8_t sound_type, num_entries;
-    off_t sound_table_offsets[0x2000];
+    off_t bnk_offset, modules_table, module_data, player_offset, samples_table, entry_offset, target_entry_offset, schl_offset, schl_loop_offset;
+    uint32_t i, j, k, num_sounds, num_sample_tables;
+    uint16_t num_modules;
+    uint8_t sound_type, num_players;
+    off_t sample_tables[0x400];
     STREAMFILE * astData = NULL;
     VGMSTREAM * vgmstream = NULL;
     segmented_layout_data *data_s = NULL;
@@ -329,11 +329,11 @@ VGMSTREAM * init_vgmstream_ea_abk(STREAMFILE* sf) {
     if (target_stream < 0)
         goto fail;
 
-    num_tables = read_16bit(0x0A, sf);
-    header_table_offset = read_32bit(0x1C, sf);
+    num_modules = read_16bit(0x0A, sf);
+    modules_table = read_32bit(0x1C, sf);
     bnk_offset = read_32bit(0x20, sf);
     target_entry_offset = 0;
-    total_sound_tables = 0;
+    num_sample_tables = 0;
 
     /* check to avoid clashing with the newer ABK format */
     if (bnk_offset &&
@@ -341,19 +341,19 @@ VGMSTREAM * init_vgmstream_ea_abk(STREAMFILE* sf) {
         read_32bitBE(bnk_offset, sf) != EA_BNK_HEADER_BE)
         goto fail;
 
-    for (i = 0; i < num_tables; i++) {
-        num_entries = read_8bit(header_table_offset + 0x24, sf);
-        base_offset = read_32bit(header_table_offset + 0x2C, sf);
-        if (num_entries == 0xff) goto fail; /* EOF read */
+    for (i = 0; i < num_modules; i++) {
+        num_players = read_8bit(modules_table + 0x24, sf);
+        module_data = read_32bit(modules_table + 0x2C, sf);
+        if (num_players == 0xff) goto fail; /* EOF read */
 
-        for (j = 0; j < num_entries; j++) {
-            value_offset = read_32bit(header_table_offset + 0x3C + 0x04 * j, sf);
-            table_offset = read_32bit(base_offset + value_offset + 0x04, sf);
+        for (j = 0; j < num_players; j++) {
+            player_offset = read_32bit(modules_table + 0x3C + 0x04 * j, sf);
+            samples_table = read_32bit(module_data + player_offset + 0x04, sf);
 
-            /* For some reason, there are duplicate entries pointing at the same sound tables */
+            /* multiple players may point at the same sound table */
             is_dupe = 0;
-            for (k = 0; k < total_sound_tables; k++) {
-                if (table_offset == sound_table_offsets[k]) {
+            for (k = 0; k < num_sample_tables; k++) {
+                if (samples_table == sample_tables[k]) {
                     is_dupe = 1;
                     break;
                 }
@@ -362,12 +362,12 @@ VGMSTREAM * init_vgmstream_ea_abk(STREAMFILE* sf) {
             if (is_dupe)
                 continue;
 
-            sound_table_offsets[total_sound_tables++] = table_offset;
-            num_sounds = read_32bit(table_offset, sf);
+            sample_tables[num_sample_tables++] = samples_table;
+            num_sounds = read_32bit(samples_table, sf);
             if (num_sounds == 0xffffffff) goto fail; /* EOF read */
 
             for (k = 0; k < num_sounds; k++) {
-                entry_offset = table_offset + 0x04 + 0x0C * k;
+                entry_offset = samples_table + 0x04 + 0x0C * k;
                 sound_type = read_8bit(entry_offset + 0x00, sf);
 
                 /* some of these are dummies pointing at sound 0 in BNK */
@@ -380,16 +380,17 @@ VGMSTREAM * init_vgmstream_ea_abk(STREAMFILE* sf) {
             }
         }
 
-        /* there can be another set of values, don't know what they mean */
-        num_entries += read_8bit(header_table_offset + 0x27, sf);
-        header_table_offset += 0x3C + num_entries * 0x04;
+        /* skip class controllers */
+        num_players += read_8bit(modules_table + 0x27, sf);
+        modules_table += 0x3C + num_players * 0x04;
     }
 
     if (target_entry_offset == 0)
         goto fail;
 
     /* 0x00: type (0x00 - normal, 0x01 - streamed, 0x02 - streamed looped) */
-    /* 0x01: ??? */
+    /* 0x01: priority */
+    /* 0x02: padding */
     /* 0x04: index for normal sounds, offset for streamed sounds */
     /* 0x08: loop offset for streamed sounds */
     sound_type = read_8bit(target_entry_offset + 0x00, sf);
@@ -573,10 +574,11 @@ VGMSTREAM * init_vgmstream_ea_hdr_dat_v2(STREAMFILE* sf) {
     /* 0x02: parameters (userdata size, ...) */
     /* 0x03: number of files */
     /* 0x04: sub-ID (used for different police voices in NFS games) */
-    /* 0x08: alt number of files? */
-    /* 0x09: offset mult */
-    /* 0x0a: DAT size divided by offset mult */
-    /* 0x0c: zero */
+    /* 0x08: sample repeat (alt number of files?) */
+    /* 0x09: block size (offset multiplier) */
+    /* 0x0A: number of blocks (DAT size divided by block size) */
+    /* 0x0C: number of sub-banks (always zero?) */
+    /* 0x0E: padding */
     /* 0x10: table start */
 
     /* no nice way to validate these so we do what we can */
