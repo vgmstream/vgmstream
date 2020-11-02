@@ -207,9 +207,9 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
                              * (xN entries)
                              */
                             break;
-                        case 0x0d:  /* unknown 32b (config? usually 0x3fnnnn00 BE and sometimes 0x3dnnnn00 BE) */
-                            /* found in some XMA2/Vorbis/FADPCM */
-                            VGM_LOG("FSB5: stream %i flag %x with value %08x\n", i, extraflag_type, read_32bitLE(extraflag_offset+0x04,sf));
+                        case 0x0d:  /* peak volume float (optional setting when making fsb) */
+                            break;
+                        case 0x0f:  /* OPUS data size not counting frames headers */
                             break;
                         case 0x0e:  /* number of layered Vorbis channels [Invisible, Inc. (Switch)] */
                         default:
@@ -479,6 +479,20 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
             vgmstream->interleave_block_size = 0x8c;
             break;
 
+#if 0 		//disabled until some game is found, can be created in the GUI tool
+#ifdef VGM_USE_FFMPEG
+        case 0x11: { /* FMOD_SOUND_FORMAT_OPUS */
+            int skip = 312; //fsb_opus_get_encoder_delay(fsb5.stream_offset, sf); /* returns 120 but this seems correct */
+            //vgmstream->num_samples -= skip;
+
+            vgmstream->codec_data = init_ffmpeg_fsb_opus(sf, fsb5.stream_offset, fsb5.stream_size, vgmstream->channels, skip, vgmstream->sample_rate);
+            if (!vgmstream->codec_data) goto fail;
+            vgmstream->coding_type = coding_FFmpeg;
+            vgmstream->layout_type = layout_none;
+            break;
+        }
+#endif
+#endif
         default:
             VGM_LOG("FSB5: unknown codec %x found\n", fsb5.codec);
             goto fail;
