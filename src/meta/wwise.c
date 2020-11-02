@@ -267,7 +267,7 @@ VGM_LOG("1\n");
             break;
 
         case IMA: /* common */
-            /* slightly modified XBOX-IMA */
+            /* slightly modified and mono-interleaved XBOX-IMA */
             /* Wwise reuses common codec ids (ex. 0x0002 MSADPCM) for IMA so this parser should go AFTER riff.c avoid misdetection */
 
             if (ww.fmt_size != 0x14 && ww.fmt_size != 0x28 && ww.fmt_size != 0x18) goto fail; /* oldest, old, new */
@@ -278,6 +278,15 @@ VGM_LOG("1\n");
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = ww.block_align / ww.channels;
             vgmstream->codec_endian = ww.big_endian;
+
+            /* oldest version uses regular XBOX IMA with stereo mode [Shadowrun (PC)] */
+            if (ww.fmt_size == 0x14 && ww.format == 0x0069) {
+                if (ww.channels > 2) goto fail; /* unlikely but just in case */
+                if (ww.big_endian) goto fail; /* unsure */
+                vgmstream->coding_type = coding_XBOX_IMA;
+                vgmstream->layout_type = layout_none;
+                vgmstream->interleave_block_size = 0;
+            }
 
             if (ww.truncated) {
                 ww.data_size = ww.file_size - ww.data_offset;
