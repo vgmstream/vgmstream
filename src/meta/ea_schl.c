@@ -136,6 +136,7 @@ VGMSTREAM* init_vgmstream_ea_schl(STREAMFILE* sf) {
      * .asf: ~early (audio stream file?) [ex. Need for Speed II (PC)]
      * .lasf: fake for plugins
      * .str: ~early [ex. FIFA 98 (PS1), FIFA 2002 (PS1)]
+     * .chk: ~early [ex. NBA Live 98 (PS1)]
      * .eam: ~mid?
      * .exa: ~mid [ex. 007 - From Russia with Love]
      * .sng: ~late (FIFA games)
@@ -149,7 +150,7 @@ VGMSTREAM* init_vgmstream_ea_schl(STREAMFILE* sf) {
      * .gsf: 007 - Everything or Nothing (GC)
      * .mus: map/mpf+mus only?
      * (extensionless): SSX (PS2) (inside .big) */
-    if (!check_extensions(sf,"asf,lasf,str,eam,exa,sng,aud,sx,xa,strm,stm,hab,xsf,gsf,mus,"))
+    if (!check_extensions(sf,"asf,lasf,str,chk,eam,exa,sng,aud,sx,xa,strm,stm,hab,xsf,gsf,mus,"))
         goto fail;
 
     /* check header */
