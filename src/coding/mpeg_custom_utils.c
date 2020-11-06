@@ -3,12 +3,12 @@
 #ifdef VGM_USE_MPEG
 
 /* init config and validate per type */
-int mpeg_custom_setup_init_default(STREAMFILE *streamFile, off_t start_offset, mpeg_codec_data *data, coding_t *coding_type) {
+int mpeg_custom_setup_init_default(STREAMFILE* sf, off_t start_offset, mpeg_codec_data* data, coding_t* coding_type) {
     mpeg_frame_info info;
 
 
     /* get frame info at offset */
-    if ( !mpeg_get_frame_info(streamFile, start_offset, &info))
+    if ( !mpeg_get_frame_info(sf, start_offset, &info))
         goto fail;
     switch(info.layer) {
         case 1: *coding_type = coding_MPEG_layer1; break;
@@ -113,7 +113,7 @@ fail:
 
 
 /* writes data to the buffer and moves offsets */
-int mpeg_custom_parse_frame_default(VGMSTREAMCHANNEL *stream, mpeg_codec_data *data, int num_stream) {
+int mpeg_custom_parse_frame_default(VGMSTREAMCHANNEL* stream, mpeg_codec_data* data, int num_stream) {
     mpeg_custom_stream *ms = data->streams[num_stream];
     mpeg_frame_info info;
     size_t current_data_size = 0;
@@ -242,7 +242,7 @@ fail:
  * Gets info from a MPEG frame header at offset. Normally you would use mpg123_info but somehow
  * it's wrong at times (maybe because we use an ancient version) so here we do our thing.
  */
-static int mpeg_get_frame_info_h(uint32_t header, mpeg_frame_info *info) {
+static int mpeg_get_frame_info_h(uint32_t header, mpeg_frame_info* info) {
     /* index tables */
     static const int versions[4] = { /* MPEG 2.5 */ 3, /* reserved */ -1,  /* MPEG 2 */ 2, /* MPEG 1 */ 1 };
     static const int layers[4] = { -1,3,2,1 };
@@ -313,12 +313,12 @@ static int mpeg_get_frame_info_h(uint32_t header, mpeg_frame_info *info) {
 fail:
     return 0;
 }
-int mpeg_get_frame_info(STREAMFILE *sf, off_t offset, mpeg_frame_info *info) {
+int mpeg_get_frame_info(STREAMFILE* sf, off_t offset, mpeg_frame_info* info) {
     uint32_t header = read_u32be(offset, sf);
     return mpeg_get_frame_info_h(header, info);
 }
 
-size_t mpeg_get_samples(STREAMFILE *sf, off_t start_offset, size_t bytes) {
+size_t mpeg_get_samples(STREAMFILE* sf, off_t start_offset, size_t bytes) {
     off_t offset = start_offset;
     off_t max_offset = start_offset + bytes;
     int frames = 0, samples = 0, encoder_delay = 0, encoder_padding = 0;
@@ -426,6 +426,50 @@ size_t mpeg_get_samples(STREAMFILE *sf, off_t start_offset, size_t bytes) {
     //todo return encoder delay
     samples = samples - encoder_delay - encoder_padding;
     return samples;
+}
+
+
+/* variation of the above, for clean streams = no ID3/VBR headers
+ * (maybe should be fused in a single thing with config, API is kinda messy too) */
+int32_t mpeg_get_samples_clean(STREAMFILE *sf, off_t start, size_t size, size_t* p_loop_start, size_t* p_loop_end, int is_vbr) {
+    mpeg_frame_info info;
+    off_t offset = start;
+    int32_t num_samples = 0, loop_start = 0, loop_end = 0;
+
+    if (!is_vbr) {
+        /* CBR = quick calcs */
+        if (!mpeg_get_frame_info(sf, offset, &info))
+            goto fail;
+
+        num_samples = size / info.frame_size * info.frame_samples;
+        loop_start = *p_loop_start / info.frame_size * info.frame_samples;
+        loop_end = *p_loop_end / info.frame_size * info.frame_samples;
+    }
+    else {
+        /* VBR (or unknown) = count frames */
+        while (offset < start + size) {
+            if (!mpeg_get_frame_info(sf, offset, &info))
+                goto fail;
+
+            if (*p_loop_start + start == offset)
+                loop_start = num_samples;
+
+            num_samples += info.frame_samples;
+            offset += info.frame_size;
+
+            if (*p_loop_end + start == offset)
+                loop_end = num_samples;
+        }
+    }
+
+
+    *p_loop_start = loop_start;
+    *p_loop_end = loop_end;
+
+    return num_samples;
+fail:
+    VGM_LOG("MPEG: sample reader failed at %lx\n", offset);
+    return 0;
 }
 
 #endif

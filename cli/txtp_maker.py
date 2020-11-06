@@ -57,6 +57,7 @@ class Cli(object):
         p.add_argument('-fss', dest='min_subsongs', help="Filter min subsongs\n(1 filters formats incapable of subsongs)", type=int)
         p.add_argument('-fni', dest='include_regex', help="Filter by REGEX including matches of subsong name")
         p.add_argument('-fne', dest='exclude_regex', help="Filter by REGEX excluding matches of subsong name")
+        p.add_argument('-nsc',dest='no_semicolon', help="Remove semicolon names (for songs with multinames)", action='store_true')
         p.add_argument('-v', dest='log_level', help="Verbose log level (off|debug|info, default: info)", default='info')
         return p.parse_args()
 
@@ -136,7 +137,7 @@ class Cr32Helper(object):
 # Makes .txtp (usually 1 but may do N) from a CLI output + subsong
 class TxtpMaker(object):
 
-    def __init__(self, cfg, output_b):
+    def __init__(self, cfg, output_b, rename_map):
         self.cfg = cfg
 
         self.output = str(output_b).replace("\\r","").replace("\\n","\n")
@@ -145,25 +146,31 @@ class TxtpMaker(object):
         self.num_samples = self._get_value("stream total samples: ")
         self.stream_count = self._get_value("stream count: ")
         self.stream_index = self._get_value("stream index: ")
-        self.stream_name = self._get_string("stream name: ")
+        self.stream_name = self._get_text("stream name: ")
 
         if self.channels <= 0 or self.sample_rate <= 0:
             raise ValueError('Incorrect command result')
 
         self.stream_seconds = self.num_samples / self.sample_rate
         self.ignorable = self._is_ignorable(cfg)
-        self.rename_map = {}
+        self.rename_map = rename_map
 
     def __str__(self):
         return str(self.__dict__)
 
-    def _get_string(self, str):
+    def _get_string(self, str, full=False):
         find_pos = self.output.find(str)
         if (find_pos == -1):
             return None
         cut_pos = find_pos + len(str)
         str_cut = self.output[cut_pos:]
-        return str_cut.split()[0]
+        if full:
+            return str_cut.split("\n")[0].strip()
+        else:
+            return str_cut.split()[0].strip()
+
+    def _get_text(self, str):
+        return self._get_string(str, full=True)
 
     def _get_value(self, str):
         res = self._get_string(str)
@@ -232,6 +239,12 @@ class TxtpMaker(object):
             pos = txt.rfind(".")
             if pos >= 0:
                 txt = txt[:pos]
+
+        if self.cfg.no_semicolon:
+            pos = txt.find(";")
+            if pos >= 0:
+                txt = txt[:pos].strip()
+
         return txt
 
     def _write(self, outname, line):
@@ -244,7 +257,7 @@ class TxtpMaker(object):
             else:
                 rename_count = 0
             self.rename_map[outname] = rename_count + 1
-            outname = outname.replace(".txtp", "_%s.txtp" % (rename_count))
+            outname = outname.replace(".txtp", "_%08i.txtp" % (rename_count))
 
         if not cfg.overwrite and os.path.exists(outname):
             raise ValueError('TXTP exists in path: ' + outname)
@@ -434,6 +447,8 @@ class App(object):
             filenames_in += self._find_files('.', filename)
 
 
+        rename_map = {}
+
         total_created = 0
         total_dupes = 0
         total_errors = 0
@@ -466,7 +481,7 @@ class App(object):
                 if target_subsong == 1:
                     log.debug("processing %s...", filename_in_clean)
 
-                maker = TxtpMaker(self.cfg, output_b)
+                maker = TxtpMaker(self.cfg, output_b, rename_map)
 
                 if not maker.is_ignorable():
                     self.crc32.update(filename_out)
