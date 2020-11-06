@@ -17,12 +17,13 @@
 #define EA_PLATFORM_MAC         0x03
 #define EA_PLATFORM_SAT         0x04
 #define EA_PLATFORM_PS2         0x05
-#define EA_PLATFORM_GC_WII      0x06
+#define EA_PLATFORM_GC          0x06 /* also used on Wii */
 #define EA_PLATFORM_XBOX        0x07
 #define EA_PLATFORM_GENERIC     0x08 /* typically Wii/X360/PS3/videos */
 #define EA_PLATFORM_X360        0x09
 #define EA_PLATFORM_PSP         0x0A
 #define EA_PLATFORM_PS3         0x0E /* very rare [Need for Speed: Carbon (PS3)] */
+#define EA_PLATFORM_WII         0x10
 #define EA_PLATFORM_3DS         0x14
 
 /* codec constants (undefined are probably reserved, ie.- sx.exe encodes PCM24/DVI but no platform decodes them) */
@@ -59,6 +60,7 @@
 //#define EA_CODEC2_S24BE_INT     0x15 /* not used */
 #define EA_CODEC2_MT5           0x16
 #define EA_CODEC2_EALAYER3      0x17
+//#define EA_CODEC2_ATRAC3        0x1A /* not seen so far */
 #define EA_CODEC2_ATRAC3PLUS    0x1B
 
 /* Block headers, SCxy - where x is block ID and y is endianness flag (always 'l'?) */
@@ -1655,9 +1657,10 @@ static int parse_variable_header(STREAMFILE* sf, ea_header* ea, off_t begin_offs
     if (ea->platform == EA_PLATFORM_N64
         || ea->platform == EA_PLATFORM_MAC
         || ea->platform == EA_PLATFORM_SAT
-        || ea->platform == EA_PLATFORM_GC_WII
+        || ea->platform == EA_PLATFORM_GC
         || ea->platform == EA_PLATFORM_X360
         || ea->platform == EA_PLATFORM_PS3
+        || ea->platform == EA_PLATFORM_WII
         || ea->platform == EA_PLATFORM_GENERIC) {
         ea->big_endian = 1;
     }
@@ -1676,11 +1679,12 @@ static int parse_variable_header(STREAMFILE* sf, ea_header* ea, off_t begin_offs
             case EA_PLATFORM_MAC:       ea->version = EA_VERSION_V0; break;
             case EA_PLATFORM_SAT:       ea->version = EA_VERSION_V0; break;
             case EA_PLATFORM_PS2:       ea->version = EA_VERSION_V1; break;
-            case EA_PLATFORM_GC_WII:    ea->version = EA_VERSION_V2; break;
+            case EA_PLATFORM_GC:        ea->version = EA_VERSION_V2; break;
             case EA_PLATFORM_XBOX:      ea->version = EA_VERSION_V2; break;
             case EA_PLATFORM_X360:      ea->version = EA_VERSION_V3; break;
             case EA_PLATFORM_PSP:       ea->version = EA_VERSION_V3; break;
             case EA_PLATFORM_PS3:       ea->version = EA_VERSION_V3; break;
+            case EA_PLATFORM_WII:       ea->version = EA_VERSION_V3; break;
             case EA_PLATFORM_3DS:       ea->version = EA_VERSION_V3; break;
             case EA_PLATFORM_GENERIC:   ea->version = EA_VERSION_V2; break;
             default:
@@ -1735,11 +1739,12 @@ static int parse_variable_header(STREAMFILE* sf, ea_header* ea, off_t begin_offs
             case EA_PLATFORM_PSX:       ea->codec2 = EA_CODEC2_VAG; break;
             case EA_PLATFORM_MAC:       ea->codec2 = EA_CODEC2_EAXA; break;
             case EA_PLATFORM_PS2:       ea->codec2 = EA_CODEC2_VAG; break;
-            case EA_PLATFORM_GC_WII:    ea->codec2 = EA_CODEC2_S16BE; break;
+            case EA_PLATFORM_GC:        ea->codec2 = EA_CODEC2_S16BE; break;
             case EA_PLATFORM_XBOX:      ea->codec2 = EA_CODEC2_S16LE; break;
             case EA_PLATFORM_X360:      ea->codec2 = EA_CODEC2_EAXA; break;
             case EA_PLATFORM_PSP:       ea->codec2 = EA_CODEC2_EAXA; break;
             case EA_PLATFORM_PS3:       ea->codec2 = EA_CODEC2_EAXA; break;
+            //case EA_PLATFORM_WII:       ea->codec2 = EA_CODEC2_EAXA; break; /* not set? */
             case EA_PLATFORM_3DS:       ea->codec2 = EA_CODEC2_GCADPCM; break;
             default:
                 VGM_LOG("EA SCHl: unknown default codec2 for platform 0x%02x\n", ea->platform);
@@ -1757,11 +1762,12 @@ static int parse_variable_header(STREAMFILE* sf, ea_header* ea, off_t begin_offs
             case EA_PLATFORM_MAC:       ea->sample_rate = 22050; break;
             case EA_PLATFORM_SAT:       ea->sample_rate = 22050; break;
             case EA_PLATFORM_PS2:       ea->sample_rate = 22050; break;
-            case EA_PLATFORM_GC_WII:    ea->sample_rate = 24000; break;
+            case EA_PLATFORM_GC:        ea->sample_rate = 24000; break;
             case EA_PLATFORM_XBOX:      ea->sample_rate = 24000; break;
             case EA_PLATFORM_X360:      ea->sample_rate = 44100; break;
             case EA_PLATFORM_PSP:       ea->sample_rate = 22050; break;
             case EA_PLATFORM_PS3:       ea->sample_rate = 44100; break;
+            case EA_PLATFORM_WII:       ea->sample_rate = 32000; break;
             case EA_PLATFORM_3DS:       ea->sample_rate = 32000; break;
             default:
                 VGM_LOG("EA SCHl: unknown default sample rate for platform 0x%02x\n", ea->platform);
