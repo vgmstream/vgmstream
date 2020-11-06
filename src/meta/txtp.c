@@ -894,13 +894,12 @@ static int get_position(const char* params, double* value_f, char* value_type) {
 static int get_volume(const char* params, double *value, int *is_set) {
     int n, m;
     double temp_f;
-    int temp_i;
     char temp_c1, temp_c2;
 
     if (is_set) *is_set = 0;
 
     /* test if format is NdB (decibels) */
-    m = sscanf(params, " %i%c%c%n", &temp_i, &temp_c1, &temp_c2, &n);
+    m = sscanf(params, " %lf%c%c%n", &temp_f, &temp_c1, &temp_c2, &n);
     if (m == 3 && temp_c1 == 'd' && (temp_c2 == 'B' || temp_c2 == 'b')) {
         /* dB 101:
          * - logaritmic scale
@@ -916,7 +915,7 @@ static int get_volume(const char* params, double *value, int *is_set) {
          */
 
         if (is_set) *is_set = 1;
-        *value = pow(10, temp_i / 20.0); /* dB to % where 1.0 = max */
+        *value = pow(10, temp_f / 20.0); /* dB to % where 1.0 = max */
         return n;
     }
 
@@ -1466,7 +1465,7 @@ static void parse_params(txtp_entry* entry, char* params) {
 
         //todo cleanup
         /* macros */
-        else if (strcmp(command,"@volume") == 0) {
+        else if (is_match(command,"v") || is_match(command,"@volume")) {
             txtp_mix_data mix = {0};
 
             nm = get_volume(params, &mix.vol, NULL);

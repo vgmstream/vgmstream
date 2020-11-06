@@ -612,6 +612,7 @@ Loop anchors have priority over `loop_start_segment`, and are ignored in layered
 Manually setting values gets old, so TXTP supports a bunch of simple macros. They automate some of the above commands (analyzing the file), and may be combined, so order still matters.
 - `volume N (channels)`: sets volume V to selected channels. N.N = percent or NdB = decibels.
   -  `1.0` or `0dB` = base volume, `2.0` or `6dB` = double volume, `0.5` or `-6dB` = half volume
+  - `#v N` also works
 - `track (channels)`: makes a file of selected channels
 - `layer-v N (channels)`: mixes selected channels to N channels with default volume (for layered vocals). If N is 0 (or ommited), automatically sets highest channel count among all layers.
 - `layer-b N (channels)`: same, but adjusts volume depending on layers (for layered bgm)
