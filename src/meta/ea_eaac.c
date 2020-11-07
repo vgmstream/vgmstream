@@ -735,29 +735,33 @@ fail:
 
 /* EA TMX - used for engine sounds in NFS games (2007-present) */
 VGMSTREAM * init_vgmstream_ea_tmx(STREAMFILE* sf) {
-    uint32_t num_sounds, sound_type;
-    off_t table_offset, data_offset, entry_offset, sound_offset;
+    uint32_t num_sounds, sound_type, table_offset, data_offset, entry_offset, sound_offset;
     VGMSTREAM *vgmstream = NULL;
     int target_stream = sf->stream_index;
+    uint32_t(*read_u32)(off_t, STREAMFILE *);
 
     if (!check_extensions(sf, "tmx"))
         goto fail;
 
-    /* always little endian */
-    if (read_32bitLE(0x0c, sf) != 0x30303031) /* "0001" */
+    if (read_u32be(0x0c, sf) == 0x30303031) { /* "0001" */
+        read_u32 = read_u32be;
+    } else if (read_u32le(0x0c, sf) == 0x30303031) { /* "1000" */
+        read_u32 = read_u32le;
+    } else {
         goto fail;
+    }
 
-    num_sounds = read_32bitLE(0x20, sf);
-    table_offset = read_32bitLE(0x58, sf);
-    data_offset = read_32bitLE(0x5c, sf);
+    num_sounds = read_u32(0x20, sf);
+    table_offset = read_u32(0x58, sf);
+    data_offset = read_u32(0x5c, sf);
 
     if (target_stream == 0) target_stream = 1;
     if (target_stream < 0 || num_sounds == 0 || target_stream > num_sounds)
         goto fail;
 
     entry_offset = table_offset + (target_stream - 1) * 0x24;
-    sound_type = read_32bitLE(entry_offset + 0x00, sf);
-    sound_offset = read_32bitLE(entry_offset + 0x08, sf) + data_offset;
+    sound_type = read_u32(entry_offset + 0x00, sf);
+    sound_offset = read_u32(entry_offset + 0x08, sf) + data_offset;
 
     switch (sound_type) {
         case 0x47494E20: /* "GIN " */
