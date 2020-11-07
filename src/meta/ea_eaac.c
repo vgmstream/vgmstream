@@ -4,7 +4,7 @@
 #include "../coding/coding.h"
 #include "ea_eaac_streamfile.h"
 
-/* EAAudioCore formats, EA's current audio middleware */
+/* EAAudioCore (aka SND10) formats, EA's current audio middleware */
 
 #define EAAC_VERSION_V0                 0x00 /* SNR/SNS */
 #define EAAC_VERSION_V1                 0x01 /* SPS */
@@ -512,9 +512,9 @@ static STREAMFILE *open_mapfile_pair(STREAMFILE* sf, int track, int num_tracks) 
         {"world.mpf",       "World_Stream.mus"},
         {"FreSkate.mpf",    "track.mus,ram.mus"}, /* Skate It */
         {"nsf_sing.mpf",    "track_main.mus"}, /* Need for Speed: Nitro */
-        {"nsf_wii.mpf",     "Track.mus"}, /* Need for Speed: Nitro */
+        {"nsf_wii.mpf",     "Track.mus"},
         {"ssx_fe.mpf",      "stream_1.mus,stream_2.mus"}, /* SSX 2012 */
-        {"ssxdd.mpf",       "main_trk.mus," /* SSX 2012 */
+        {"ssxdd.mpf",       "main_trk.mus,"
                             "trick_alaska0.mus,"
                             "trick_rockies0.mus,"
                             "trick_pata0.mus,"
@@ -733,7 +733,7 @@ fail:
     return NULL;
 }
 
-/* EA TMX - used for engine sounds in NFS games (2007-present) */
+/* EA TMX - used for engine sounds in NFS games (2007-2011) */
 VGMSTREAM * init_vgmstream_ea_tmx(STREAMFILE* sf) {
     uint32_t num_sounds, sound_type, table_offset, data_offset, entry_offset, sound_offset;
     VGMSTREAM *vgmstream = NULL;
@@ -1026,7 +1026,7 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE* sf_head, STREAM
     eaac.channel_config = (header1 >> 18) & 0x3F; /* 6 bits */
     eaac.sample_rate    = (header1 >>  0) & 0x03FFFF; /* 18 bits */
     eaac.type           = (header2 >> 30) & 0x03; /* 2 bits */
-    eaac.loop_flag      = (header2 >> 29) & 0x01; /* 1 bits */
+    eaac.loop_flag      = (header2 >> 29) & 0x01; /* 1 bit */
     eaac.num_samples    = (header2 >>  0) & 0x1FFFFFFF; /* 29 bits */
     /* rest is optional, depends on used flags and codec (handled below) */
 
@@ -1036,7 +1036,7 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE* sf_head, STREAM
     /* EA 6ch channel mapping is L C R BL BR LFE, but may use stereo layers for dynamic music
      * instead, so we can't re-map automatically (use TXTP) */
 
-    /* V0: SNR+SNS, V1: SPR+SPS (no apparent differences, other than block flags) */
+    /* V0: SNR+SNS, V1: SPH+SPS (no apparent differences, other than block flags) */
     if (eaac.version != EAAC_VERSION_V0 && eaac.version != EAAC_VERSION_V1) {
         VGM_LOG("EA EAAC: unknown version\n");
         goto fail;
