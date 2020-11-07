@@ -1050,6 +1050,12 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE* sf_head, STREAM
         goto fail;
     }
 
+    if (eaac.version == EAAC_VERSION_V1 && eaac.type != EAAC_TYPE_STREAM) {
+        /* should never happen */
+        VGM_LOG("EA EAAC: bad stream type for version %x\n", eaac.version);
+        goto fail;
+    }
+
     /* Non-streamed sounds are stored as a single block (may not set block end flags) */
     eaac.streamed = (eaac.type != EAAC_TYPE_RAM);
 
@@ -1086,12 +1092,6 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE* sf_head, STREAM
             }
             break;
         case EAAC_TYPE_GIGASAMPLE: /* rarely seen [Def Jam Icon (X360)] */
-            if (eaac.version == EAAC_VERSION_V1) {
-                /* not seen so far, need samples */
-                VGM_LOG("EAAC: Found SPS gigasample\n");
-                goto fail;
-            }
-
             header_size += 0x04;
             eaac.prefetch_samples = read_32bitBE(header_offset + eaac.loop_flag ? 0x0c : 0x08, sf_head);
 
@@ -1126,21 +1126,21 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE* sf_head, STREAM
             /* SNR+SNS are separate so offsets are relative to the data start
              * (first .SNS block, or extra data before the .SNS block in case of .SNU)
              * SPS have headers+data together so offsets are relative to the file start [ex. FIFA 18 (PC)] */
-            if (eaac.version == EAAC_VERSION_V1) {
-                eaac.loop_offset -= header_block_size;
-            }
-
-            if (eaac.prefetch_samples != 0) {
-                if (eaac.loop_start == 0) {
-                    /* loop from the beginning */
-                    eaac.loop_offset = 0x00;
-                } else if (eaac.loop_start < eaac.prefetch_samples) {
-                    /* loop from the second RAM block */
-                    eaac.loop_offset = read_32bitBE(eaac.prefetch_offset, sf_head) & 0x00FFFFFF;
-                } else {
-                    /* loop from offset within SNS */
-                    eaac.loop_offset += read_32bitBE(eaac.prefetch_offset, sf_head) & 0x00FFFFFF;
+            if (eaac.version == EAAC_VERSION_V0) {
+                if (eaac.prefetch_samples != 0) {
+                    if (eaac.loop_start == 0) {
+                        /* loop from the beginning */
+                        eaac.loop_offset = 0x00;
+                    } else if (eaac.loop_start < eaac.prefetch_samples) {
+                        /* loop from the second RAM block */
+                        eaac.loop_offset = read_32bitBE(eaac.prefetch_offset, sf_head) & 0x00FFFFFF;
+                    } else {
+                        /* loop from offset within SNS */
+                        eaac.loop_offset += read_32bitBE(eaac.prefetch_offset, sf_head) & 0x00FFFFFF;
+                    }
                 }
+            } else {
+                eaac.loop_offset -= header_block_size;
             }
         } else if (eaac.loop_start > 0) {
             /* RAM assets have two blocks in case of actual loops */
@@ -1365,13 +1365,15 @@ static size_t calculate_eaac_size(STREAMFILE *sf, eaac_header *ea, uint32_t num_
         stream_size += block_size;
         block_offset += block_size;
 
-        if (is_ram) {
-            /* RAM data only consists of one block (two for looped sounds) */
-            if (ea->loop_start > 0 && ea->loop_start < num_samples && !looped) looped = 1;
-            else break;
-        } else if (ea->version == EAAC_VERSION_V0 && block_id == EAAC_BLOCKID0_END) {
-            if (ea->loop_offset > 0 && ea->loop_start >= ea->prefetch_samples && !looped) looped = 1;
-            else break;
+        if (ea->version == EAAC_VERSION_V0) {
+            if (is_ram) {
+                /* RAM data only consists of one block (two for looped sounds) */
+                if (ea->loop_start > 0 && ea->loop_start < num_samples && !looped) looped = 1;
+                else break;
+            } else if (block_id == EAAC_BLOCKID0_END) {
+                if (ea->loop_offset > 0 && ea->loop_start >= ea->prefetch_samples && !looped) looped = 1;
+                else break;
+            }
         }
     }
 
@@ -1450,11 +1452,7 @@ static STREAMFILE *setup_eaac_streamfile(eaac_header *ea, STREAMFILE* sf_head, S
                 break;
         }
     } else {
-        if (ea->type == EAAC_TYPE_GIGASAMPLE) {
-            goto fail;
-        }
-
-        data_size = calculate_eaac_size(sf_head, ea, ea->num_samples, ea->stream_offset, ea->type == EAAC_TYPE_RAM);
+        data_size = calculate_eaac_size(sf_head, ea, ea->num_samples, ea->stream_offset, 0);
         if (data_size == 0) goto fail;
 
         new_sf = open_wrap_streamfile(sf_head);
