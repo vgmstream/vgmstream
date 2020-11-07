@@ -101,7 +101,7 @@ function Init
     cd dependencies\jansson\
     mkdir build
     cd build
-    cmake .. -DJANSSON_BUILD_SHARED_LIBS=ON -DJANSSON_EXAMPLES=OFF -DJANSSON_BUILD_DOCS=OFF -G "Visual Studio 15 2017" -T "v141_xp"
+    cmake .. -DJANSSON_BUILD_SHARED_LIBS=ON -DJANSSON_EXAMPLES=OFF -DJANSSON_BUILD_DOCS=OFF -A "Win32" -T "v141_xp"
     cd ..\..\..
 }
 

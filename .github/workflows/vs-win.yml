@@ -1,6 +1,6 @@
 # This is a basic workflow to help you get started with Actions
 
-name: Windows VS 2017
+name: Windows build
 
 # Controls when the action will run. Triggers the workflow on push or pull request
 # events but only for the master branch
@@ -10,6 +10,8 @@ on: [push, pull_request]
 jobs:
   # This workflow contains a single job called "build"
   build:
+    name: VS 2017
+    
     # The type of runner that the job will run on
     runs-on: windows-2016
 
@@ -25,15 +27,6 @@ jobs:
       - name: Initialize Build Environment
         shell: cmd
         run: powershell -ExecutionPolicy Bypass -NoProfile -File .\build.ps1 Init
-
-      - name: Generate Build Files for Jansson 
-        working-directory: ${{github.workspace}}
-        shell: cmd
-        run: |
-          cd dependencies\jansson\
-          mkdir build
-          cd build
-          cmake .. -DJANSSON_BUILD_SHARED_LIBS=ON -DJANSSON_EXAMPLES=OFF -DJANSSON_BUILD_DOCS=OFF -G "Visual Studio 15 2017" -T "v141_xp"
 
       # Runs a single command using the runners shell
       - name: Build

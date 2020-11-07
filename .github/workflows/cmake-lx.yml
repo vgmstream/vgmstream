@@ -1,4 +1,4 @@
-name: CMake Linux
+name: Linux build
 
 on: [push, pull_request]
 
@@ -12,6 +12,7 @@ jobs:
     # well on Windows or Mac.  You can convert this to a matrix build if you need
     # cross-platform coverage.
     # See: https://docs.github.com/en/actions/configuring-and-managing-workflows/configuring-a-workflow#configuring-a-build-matrix
+    name: CMake, Ubuntu
     runs-on: ubuntu-latest
 
     steps:
