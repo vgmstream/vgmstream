@@ -788,6 +788,7 @@ VGMSTREAM * init_vgmstream_ea_map_mus(STREAMFILE* sf) {
         goto fail;
 
     vgmstream->num_streams = num_sounds;
+    get_streamfile_filename(sf_mus, vgmstream->stream_name, STREAM_NAME_SIZE);
     close_streamfile(sf_mus);
     return vgmstream;
 
