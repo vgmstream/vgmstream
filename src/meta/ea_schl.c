@@ -857,6 +857,9 @@ VGMSTREAM * init_vgmstream_ea_mpf_mus(STREAMFILE* sf) {
     if (version == 3)
         /* SSX Tricky (v3.1), Harry Potter and the Chamber of Secrets (v3.4) */  {
         /* we need to go through all the sections to get to the samples table */
+        if (sub_version != 1 && sub_version != 4)
+            goto fail;
+
         /* get the last entry offset */
         section_offset = 0x24;
         entry_offset = (uint16_t)read_16bit(section_offset + (num_nodes - 1) * 0x02, sf) * 0x04;
@@ -868,8 +871,6 @@ VGMSTREAM * init_vgmstream_ea_mpf_mus(STREAMFILE* sf) {
             } else {
                 subentry_num = (read_32bitBE(entry_offset + 0x04, sf) >> 16) & 0xFF;
             }
-        } else {
-            goto fail;
         }
         section_offset = entry_offset + 0x0c + subentry_num * 0x04;
 
@@ -877,7 +878,10 @@ VGMSTREAM * init_vgmstream_ea_mpf_mus(STREAMFILE* sf) {
         section_offset += num_routers * 0x04;
         section_offset += num_vars * 0x04;
         tracks_table = read_32bit(section_offset, sf) * 0x04;
-        samples_table = tracks_table + (num_tracks + 1) * 0x04;
+        if (sub_version == 1)
+            samples_table = tracks_table + num_tracks * 0x04;
+        else if (sub_version == 4)
+            samples_table = tracks_table + (num_tracks + 1) * 0x04;
 
         for (i = num_tracks - 1; i >= 0; i--) {
             track_start = read_32bit(tracks_table + i * 0x04, sf) * 0x04;
@@ -886,7 +890,11 @@ VGMSTREAM * init_vgmstream_ea_mpf_mus(STREAMFILE* sf) {
                 break;
         }
 
-        eof_offset = read_32bit(tracks_table + num_tracks * 0x04, sf) * 0x04;
+        
+        if (sub_version == 1)
+            eof_offset = get_streamfile_size(sf);
+        else if (sub_version == 4)
+            eof_offset = read_32bit(tracks_table + num_tracks * 0x04, sf) * 0x04;
         total_streams = (eof_offset - samples_table) / 0x08;
         off_mult = 0x04;
     } else if (version == 4) {
