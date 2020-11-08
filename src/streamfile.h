@@ -345,6 +345,10 @@ size_t read_string_utf16be(char* buf, size_t buf_size, off_t offset, STREAMFILE*
  * returns size of key if found and copied */
 size_t read_key_file(uint8_t* buf, size_t buf_size, STREAMFILE* sf);
 
+/* Opens .txtm file containing file:companion file(-s) mappings and tries to see if there's a match
+ * then loads the associated companion file if one is found */
+STREAMFILE *read_filemap_file(STREAMFILE *sf, int file_num);
+
 /* hack to allow relative paths in various OSs */
 void fix_dir_separators(char* filename);
 

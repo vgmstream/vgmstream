@@ -636,11 +636,6 @@ static STREAMFILE* open_mapfile_pair(STREAMFILE* sf, int track, int num_tracks) 
         {"SSX4FE.mpf",      "TrackFE.mus"}, /* SSX On Tour */
         {"SSX4Path.mpf",    "Track.mus"}, /* SSX On Tour */
         {"SSX4.mpf",        "moments0.mus,main.mus,load_loop0.mus"}, /* SSX Blur */
-        {"willow.mpf",      "willow.mus,willow_o.mus"}, /* Harry Potter and the Chamber of Secrets */
-        {"exterior.mpf",    "exterior.mus,ext_o.mus"}, /* Harry Potter and the Chamber of Secrets */ 
-        {"Peak1Amb.mpf",    "Peak1_Strm.mus,Peak1_Ovr0.mus"}, /* SSX 3 */
-        {"Peak2Amb.mpf",    "Peak2_Strm.mus,Peak2_Ovr0.mus"},
-        {"Peak3Amb.mpf",    "Peak3_Strm.mus,Peak3_Ovr0.mus"},
         {"*.mpf",            "*_main.mus"}, /* 007 - Everything or Nothing */
         /* TODO: need better wildcard support
          * NSF2:
@@ -662,6 +657,10 @@ static STREAMFILE* open_mapfile_pair(STREAMFILE* sf, int track, int num_tracks) 
     int pair_count = (sizeof(mapfile_pairs)/sizeof(mapfile_pairs[0]));
     int i, j;
     size_t file_len, map_len;
+
+    /* try parsing TXTM if present */
+    sf_mus = read_filemap_file(sf, track);
+    if (sf_mus) return sf_mus;
 
     /* if loading the first track, try opening MUS with the same name first (most common scenario) */
     if (track == 0) {
