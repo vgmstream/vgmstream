@@ -366,10 +366,11 @@ Sets the name of the stream, most useful when used with subsongs. TXTH will read
 
 `name_size` defaults to 0, which reads until null-terminator or a non-ascii character is found.
 
-`name_offset` can be a (number) value, but being an offset it's also adjusted by `subsong_spacing`.
+`name_offset` can be a (number) value, but being an offset it's also adjusted by `subsong_spacing`. If you need to point to some absolute offset (for example a subsong pointings to name in another table) that doesn't depend on subsong (must not be changed by `subsong_spacing`), use `name_offset_absolute`.
 ```
 name_offset = (value)
 name_size = (value)
+name_offset_absolute = (value)
 ```
 
 #### SUBFILES
@@ -853,7 +854,6 @@ JIN002.XAG: 0x168
 JIN003.XAG: 0x180
 ```
 
-
 #### Grandia (PS1) bgm.txth
 ```
 header_file       = GM1.IDX
@@ -903,7 +903,6 @@ st_s01_02b.ssd: 6*0x04
 st_s01_02c.ssd: 7*0x04
 ```
 
-
 #### Zack & Wiki (Wii) st_s01_00a.txth
 ```
 #alt from above with untouched folders
@@ -943,7 +942,7 @@ coef_endianness = BE
 # uses wildcards for full paths from plugins
 ```
 
-####  Croc (SAT) .asf.txth
+#### Croc (SAT) .asf.txth
 ```
 codec = ASF
 sample_rate = 22050
@@ -951,7 +950,7 @@ channels = 2
 num_samples = data_size
 ```
 
-####  Sega Rally 3 (SAT) ALL_SOUND.txth
+#### Sega Rally 3 (SAT) ALL_SOUND.txth
 ```
 codec             = PCM16LE
 
@@ -993,7 +992,8 @@ subsong_spacing   = 0xc8
 
 start_offset      = @0xc4 + 0xc0
 ```
-####  Sega Rally 3 (PC) EnglishStream.txth
+
+#### Sega Rally 3 (PC) EnglishStream.txth
 ```
 codec             = PCM16LE
 
@@ -1029,4 +1029,26 @@ base_offset       = @0x108
 subsong_spacing   = 0xc8
 
 start_offset      = @0xc4 + 0xc0
+```
+
+#### Starsky & Hutch (PS2) MUSICPS2.WAD.txth
+```
+codec = PSX
+channels = 1
+sample_type = bytes
+
+header_file = MUSICPS2.WAD
+body_file   = MUSICPS2.WAD
+
+subsong_count     = 0xC
+subsong_spacing   = 0x30
+sample_rate       = 32000
+base_offset       = 0x70
+start_offset      = @0x14 + 0x380
+num_samples       = @0x18
+data_size         = num_samples
+loop_flag         = auto
+
+#@0x10 is an absolute offset to another table, that shouldn't be affected by subsong_spacing
+name_offset_absolute = @0x10 + 0x270
 ```

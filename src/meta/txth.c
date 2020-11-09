@@ -1154,6 +1154,13 @@ static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char * key, ch
         if (txth->subsong_spacing)
             txth->name_offset += txth->subsong_spacing * (txth->target_subsong - 1);
     }
+    else if (is_string(key,"name_offset_absolute")) {
+        if (!parse_num(txth->sf_head,txth,val, &txth->name_offset)) goto fail;
+        txth->name_offset_set = 1;
+        /* special adjustment */
+        txth->name_offset += txth->base_offset;
+        /* unlike the above this is meant for reads that point to somewhere in the file, regardless subsong number */
+    }
     else if (is_string(key,"name_size")) {
         if (!parse_num(txth->sf_head,txth,val, &txth->name_size)) goto fail;
     }
@@ -1561,7 +1568,7 @@ static int parse_num(STREAMFILE* sf, txth_header* txth, const char * val, uint32
     uint32_t value_div = txth->value_div;
     uint32_t value_add = txth->value_add;
     uint32_t value_sub = txth->value_sub;
-    uint32_t subsong_offset = txth->subsong_spacing;
+    uint32_t subsong_spacing = txth->subsong_spacing;
 
     char op = ' ';
     int brackets = 0;
@@ -1626,8 +1633,8 @@ static int parse_num(STREAMFILE* sf, txth_header* txth, const char * val, uint32
             else if (!(ed1 == 'L' && ed2 == 'E'))
                 goto fail;
 
-            if (subsong_offset)
-                offset = offset + subsong_offset * (txth->target_subsong - 1);
+            if (subsong_spacing)
+                offset = offset + subsong_spacing * (txth->target_subsong - 1);
 
             switch(size) {
                 case 1: value = (uint8_t)read_8bit(offset,sf); break;
@@ -1658,8 +1665,8 @@ static int parse_num(STREAMFILE* sf, txth_header* txth, const char * val, uint32
             else if ((n = is_string_field(val,"loop_end_sample")))      value = txth->loop_end_sample;
             else if ((n = is_string_field(val,"loop_end")))             value = txth->loop_end_sample;
             else if ((n = is_string_field(val,"subsong_count")))        value = txth->subsong_count;
-            else if ((n = is_string_field(val,"subsong_offset")))       value = txth->subsong_spacing;
             else if ((n = is_string_field(val,"subsong_spacing")))      value = txth->subsong_spacing;
+            else if ((n = is_string_field(val,"subsong_offset")))       value = txth->subsong_spacing;
             else if ((n = is_string_field(val,"subfile_offset")))       value = txth->subfile_offset;
             else if ((n = is_string_field(val,"subfile_size")))         value = txth->subfile_size;
             else if ((n = is_string_field(val,"base_offset")))          value = txth->base_offset;
