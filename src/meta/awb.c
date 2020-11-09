@@ -180,10 +180,11 @@ static void load_awb_name(STREAMFILE* sf, STREAMFILE* sf_acb, VGMSTREAM* vgmstre
 
         /* try parsing TXTM if present */
         sf_acb = read_filemap_file(sf_acb, 0);
-        if (sf_acb) return sf_acb;
 
         /* try (name).awb + (name).awb */
-        sf_acb = open_streamfile_by_ext(sf, "acb");
+        if (!sf_acb) {
+            sf_acb = open_streamfile_by_ext(sf, "acb");
+        }
 
         /* try (name)_streamfiles.awb + (name).acb */
         if (!sf_acb) {
