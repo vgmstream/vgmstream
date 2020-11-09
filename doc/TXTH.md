@@ -49,7 +49,7 @@ The following can be used in place of `(value)` for `(key) = (value)` commands.
   * `$1|2|3|4`: value has size of 8/16/24/32 bit (optional, defaults to 4)
   * Example: `@0x10:BE$2` means `get big endian 16b value at 0x10`
 - `(field)`: uses current value of some fields. Accepted strings:
-  - `interleave, interleave_last, channels, sample_rate, start_offset, data_size, num_samples, loop_start_sample,  loop_end_sample, subsong_count, subsong_offset, subfile_offset, subfile_size, base_offset, name_valueX`
+  - `interleave, interleave_last, channels, sample_rate, start_offset, data_size, num_samples, loop_start_sample, loop_end_sample, subsong_count, subsong_spacing, subfile_offset, subfile_size, base_offset, name_valueX`
 - `(other)`: other special values for certain keys, described per key
 
 
@@ -256,8 +256,12 @@ sample_type = samples|bytes|blocks
 ```
 
 #### SAMPLE VALUES [REQUIRED (num_samples)]
+Those tell vgmstream how long the song is. Define loop points for the track to repeat at those points (if plugin is configured to loop).
+
+You can use `loop_start` and `loop_end` instead as aliases of `loop_start_sample` and `loop_end_sample` (no difference).
+
 Special values:
-- `data_size`: automatically converts bytes-to-samples
+- `data_size`: automatically converts bytes-to-samples (a few codecs don't allow this)
 ```
 num_samples         = (value)|data_size
 loop_start_sample   = (value)
@@ -347,12 +351,14 @@ body_file = (filename)|*.(extension)|null
 ```
 
 #### SUBSONGS
-Sets the number of subsongs in the file, adjusting reads per subsong N: `value = @(offset) + subsong_offset*N`. number/constants values aren't adjusted though.
+Sets the number of subsongs in the file, adjusting reads per subsong N: `value = @(offset) + subsong_spacing*N`. Number/constants values aren't adjusted though.
+
+Instead of `subsong_spacing` you can use `subsong_offset` (older alias).
 
 Mainly for bigfiles with consecutive headers per subsong, set subsong_offset to 0 when done as it affects any reads. The current subsong number is handled externally by plugins or TXTP.
 ```
 subsong_count = (value)
-subsong_offset = (value)
+subsong_spacing = (value)
 ```
 
 #### NAMES
@@ -360,7 +366,7 @@ Sets the name of the stream, most useful when used with subsongs. TXTH will read
 
 `name_size` defaults to 0, which reads until null-terminator or a non-ascii character is found.
 
-`name_offset` can be a (number) value, but being an offset it's also adjusted by subsong_offset.
+`name_offset` can be a (number) value, but being an offset it's also adjusted by `subsong_spacing`.
 ```
 name_offset = (value)
 name_size = (value)
@@ -513,7 +519,7 @@ Note that DSP coefs are special in that aren't read immediately, and will use *l
 Values may need to be reset (to 0 or other sensible value) when done. Subsong example:
 ```
 subsong_count = 5
-subsong_offset = 0x20   # there are 5 subsong headers, 0x20 each
+subsong_spacing = 0x20  # there are 5 subsong headers, 0x20 each
 channel_count = @0x10   # reads channels at 0x10+0x20*subsong
 # 1st subsong: 0x10+0x20*0: 0x10
 # 2nd subsong: 0x10+0x20*1: 0x30
@@ -521,7 +527,7 @@ channel_count = @0x10   # reads channels at 0x10+0x20*subsong
 # ...
 start_offset = @0x14    # reads offset within data at 0x14+0x20*subsong
 
-subsong_offset = 0      # reset value
+subsong_spacing = 0     # reset value
 sample_rate = 0x04      # sample rate is the same for all subsongs
 # Nth subsong ch: 0x04+0x00*N: 0x08
 ```
@@ -784,7 +790,7 @@ channels = 2
 
 # subsong headers at 0x1A5A40, entry size 0x14, total 58 * 0x14 = 0x488
 subsong_count     = 58
-subsong_offset    = 0x14
+subsong_spacing   = 0x14
 base_offset       = 0x1A5A40
 
 sample_rate       = @0x00
@@ -854,7 +860,7 @@ header_file       = GM1.IDX
 body_file         = GM1.STZ
 
 subsong_count     = 394  #last doesn't have size though
-subsong_offset    = 0x04
+subsong_spacing   = 0x04
 
 subfile_offset    = (@0x00 & 0xFFFFF) * 0x800
 subfile_extension = seb
@@ -968,12 +974,12 @@ body_file         = ALL_AUDIO.sfx
 # read stream header using table3
 subsong_count     = @0x114
 base_offset       = @0x110
-subsong_offset    = 0xc8
+subsong_spacing   = 0xc8
 
 name_offset       = 0x00
 #0xc0: file number
 base_offset       = @0xc4 #absolute jump
-subsong_offset    = 0     #stop offsetting for next vals
+subsong_spacing   = 0     #stop offsetting for next vals
 
 channels          = @0xC0
 sample_rate       = @0xC4
@@ -983,7 +989,7 @@ num_samples       = data_size
 # read stream offset using table4
 base_offset       = 0     #reset current jump
 base_offset       = @0x118
-subsong_offset    = 0xc8
+subsong_spacing   = 0xc8
 
 start_offset      = @0xc4 + 0xc0
 ```
@@ -1005,12 +1011,12 @@ body_file         = EnglishStreamData.stm
 # read stream header using table1
 subsong_count     = @0x104
 base_offset       = @0x100
-subsong_offset    = 0xc8
+subsong_spacing   = 0xc8
 
 name_offset       = 0x00
 #0xc0: file number
 base_offset       = @0xc4 #absolute jump
-subsong_offset    = 0     #stop offsetting for next vals
+subsong_spacing   = 0     #stop offsetting for next vals
 
 channels          = @0xC0
 sample_rate       = @0xC4
@@ -1020,7 +1026,7 @@ num_samples       = data_size
 # read stream offset using table1
 base_offset       = 0     #reset current jump
 base_offset       = @0x108
-subsong_offset    = 0xc8
+subsong_spacing   = 0xc8
 
 start_offset      = @0xc4 + 0xc0
 ```

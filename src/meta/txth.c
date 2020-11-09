@@ -95,7 +95,7 @@ typedef struct {
 
     int target_subsong;
     uint32_t subsong_count;
-    uint32_t subsong_offset;
+    uint32_t subsong_spacing;
 
     uint32_t name_offset_set;
     uint32_t name_offset;
@@ -1017,7 +1017,7 @@ static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char * key, ch
                 txth->num_samples = get_bytes_to_samples(txth, txth->num_samples * (txth->interleave*txth->channels));
         }
     }
-    else if (is_string(key,"loop_start_sample")) {
+    else if (is_string(key,"loop_start_sample") || is_string(key,"loop_start")) {
         if (!parse_num(txth->sf_head,txth,val, &txth->loop_start_sample)) goto fail;
         if (txth->sample_type==1)
             txth->loop_start_sample = get_bytes_to_samples(txth, txth->loop_start_sample);
@@ -1026,7 +1026,7 @@ static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char * key, ch
         if (txth->loop_adjust)
             txth->loop_start_sample += txth->loop_adjust;
     }
-    else if (is_string(key,"loop_end_sample")) {
+    else if (is_string(key,"loop_end_sample") || is_string(key,"loop_end")) {
         if (is_string(val,"data_size")) {
             txth->loop_end_sample = get_bytes_to_samples(txth, txth->data_size);
         }
@@ -1098,8 +1098,8 @@ static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char * key, ch
         if (!parse_num(txth->sf_head,txth,val, &txth->coef_offset)) goto fail;
         /* special adjustments */
         txth->coef_offset += txth->base_offset;
-        if (txth->subsong_offset)
-            txth->coef_offset += txth->subsong_offset * (txth->target_subsong - 1);
+        if (txth->subsong_spacing)
+            txth->coef_offset += txth->subsong_spacing * (txth->target_subsong - 1);
     }
     else if (is_string(key,"coef_spacing")) {
         if (!parse_num(txth->sf_head,txth,val, &txth->coef_spacing)) goto fail;
@@ -1125,8 +1125,8 @@ static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char * key, ch
         txth->hist_set = 1;
         /* special adjustment */
         txth->hist_offset += txth->hist_offset;
-        if (txth->subsong_offset)
-            txth->hist_offset += txth->subsong_offset * (txth->target_subsong - 1);
+        if (txth->subsong_spacing)
+            txth->hist_offset += txth->subsong_spacing * (txth->target_subsong - 1);
     }
     else if (is_string(key,"hist_spacing")) {
         if (!parse_num(txth->sf_head,txth,val, &txth->hist_spacing)) goto fail;
@@ -1143,16 +1143,16 @@ static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char * key, ch
     else if (is_string(key,"subsong_count")) {
         if (!parse_num(txth->sf_head,txth,val, &txth->subsong_count)) goto fail;
     }
-    else if (is_string(key,"subsong_offset")) {
-        if (!parse_num(txth->sf_head,txth,val, &txth->subsong_offset)) goto fail;
+    else if (is_string(key,"subsong_spacing") || is_string(key,"subsong_offset")) {
+        if (!parse_num(txth->sf_head,txth,val, &txth->subsong_spacing)) goto fail;
     }
     else if (is_string(key,"name_offset")) {
         if (!parse_num(txth->sf_head,txth,val, &txth->name_offset)) goto fail;
         txth->name_offset_set = 1;
         /* special adjustment */
         txth->name_offset += txth->base_offset;
-        if (txth->subsong_offset)
-            txth->name_offset += txth->subsong_offset * (txth->target_subsong - 1);
+        if (txth->subsong_spacing)
+            txth->name_offset += txth->subsong_spacing * (txth->target_subsong - 1);
     }
     else if (is_string(key,"name_size")) {
         if (!parse_num(txth->sf_head,txth,val, &txth->name_size)) goto fail;
@@ -1561,7 +1561,7 @@ static int parse_num(STREAMFILE* sf, txth_header* txth, const char * val, uint32
     uint32_t value_div = txth->value_div;
     uint32_t value_add = txth->value_add;
     uint32_t value_sub = txth->value_sub;
-    uint32_t subsong_offset = txth->subsong_offset;
+    uint32_t subsong_offset = txth->subsong_spacing;
 
     char op = ' ';
     int brackets = 0;
@@ -1654,9 +1654,12 @@ static int parse_num(STREAMFILE* sf, txth_header* txth, const char * val, uint32
             else if ((n = is_string_field(val,"data_size")))            value = txth->data_size;
             else if ((n = is_string_field(val,"num_samples")))          value = txth->num_samples;
             else if ((n = is_string_field(val,"loop_start_sample")))    value = txth->loop_start_sample;
+            else if ((n = is_string_field(val,"loop_start")))           value = txth->loop_start_sample;
             else if ((n = is_string_field(val,"loop_end_sample")))      value = txth->loop_end_sample;
+            else if ((n = is_string_field(val,"loop_end")))             value = txth->loop_end_sample;
             else if ((n = is_string_field(val,"subsong_count")))        value = txth->subsong_count;
-            else if ((n = is_string_field(val,"subsong_offset")))       value = txth->subsong_offset;
+            else if ((n = is_string_field(val,"subsong_offset")))       value = txth->subsong_spacing;
+            else if ((n = is_string_field(val,"subsong_spacing")))      value = txth->subsong_spacing;
             else if ((n = is_string_field(val,"subfile_offset")))       value = txth->subfile_offset;
             else if ((n = is_string_field(val,"subfile_size")))         value = txth->subfile_size;
             else if ((n = is_string_field(val,"base_offset")))          value = txth->base_offset;
