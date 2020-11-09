@@ -1,9 +1,10 @@
 #include "meta.h"
 #include "../coding/coding.h"
 
-typedef enum { PCM16, MSADPCM, DSP, AT9 } kwb_codec;
+typedef enum { PCM16, MSADPCM, DSP_HEAD, DSP_BODY, AT9 } kwb_codec;
 
 typedef struct {
+    int big_endian;
     int total_subsongs;
     int target_subsong;
     kwb_codec codec;
@@ -31,6 +32,7 @@ VGMSTREAM * init_vgmstream_kwb(STREAMFILE* sf) {
     VGMSTREAM * vgmstream = NULL;
     STREAMFILE *sf_h = NULL, *sf_b = NULL;
     kwb_header kwb = {0};
+    int32_t (*read_s32)(off_t,STREAMFILE*) = NULL;
     int target_subsong = sf->stream_index;
 
 
@@ -67,6 +69,7 @@ VGMSTREAM * init_vgmstream_kwb(STREAMFILE* sf) {
 
     if (!parse_kwb(&kwb, sf_h, sf_b))
         goto fail;
+    read_s32 = kwb.big_endian ? read_s32be : read_s32le;
 
 
     /* build the VGMSTREAM */
@@ -92,13 +95,24 @@ VGMSTREAM * init_vgmstream_kwb(STREAMFILE* sf) {
             vgmstream->frame_size = kwb.block_size;
             break;
 
-        case DSP:
+        case DSP_HEAD:
+        case DSP_BODY:
             if (kwb.channels > 1) goto fail;
             vgmstream->coding_type = coding_NGC_DSP; /* subinterleave? */
             vgmstream->layout_type = layout_interleave;
-            vgmstream->layout_type = 0x08;
-            dsp_read_coefs_le(vgmstream, sf_h, kwb.dsp_offset + 0x1c, 0x60);
-            dsp_read_hist_le (vgmstream, sf_h, kwb.dsp_offset + 0x40, 0x60);
+            vgmstream->interleave_block_size = 0x08;
+            if (kwb.codec == DSP_HEAD) {
+                dsp_read_coefs(vgmstream, sf_h, kwb.dsp_offset + 0x1c, 0x60, kwb.big_endian);
+                dsp_read_hist (vgmstream, sf_h, kwb.dsp_offset + 0x40, 0x60, kwb.big_endian);
+            }
+            else {
+                /* typical DSP header + data */
+                vgmstream->num_samples = read_s32(kwb.stream_offset + 0x00, sf_b);
+                dsp_read_coefs(vgmstream, sf_b, kwb.stream_offset + 0x1c, 0x60, kwb.big_endian);
+                dsp_read_hist (vgmstream, sf_b, kwb.stream_offset + 0x40, 0x60, kwb.big_endian);
+                kwb.stream_offset += 0x60;
+            }
+
             break;
 
 #ifdef VGM_USE_ATRAC9
@@ -130,8 +144,6 @@ VGMSTREAM * init_vgmstream_kwb(STREAMFILE* sf) {
             break;
         }
 #endif
-
-
         default:
             goto fail;
     }
@@ -220,7 +232,7 @@ static int parse_type_kwb2(kwb_header* kwb, off_t offset, STREAMFILE* sf_h) {
                     kwb->codec = MSADPCM;
                     break;
                 case 0x90:
-                    kwb->codec = DSP;
+                    kwb->codec = DSP_HEAD;
                     kwb->dsp_offset = subsound_offset + 0x4c;
                     break;
                 default:
@@ -257,8 +269,8 @@ static int parse_type_k4hd(kwb_header* kwb, off_t offset, STREAMFILE* sf_h) {
 
 
     /* a format mimicking PSVita's hd4+bd4 format */
-    /* 00 K4HD id */
-    /* 04 chunk size */
+    /* 00: K4HD id */
+    /* 04: chunk size */
     /* 08: ? */
     /* 0c: ? */
     /* 10: PPPG offset ('program'? cues?) */
@@ -271,7 +283,7 @@ static int parse_type_k4hd(kwb_header* kwb, off_t offset, STREAMFILE* sf_h) {
     if (read_u32be(ppva_offset + 0x00, sf_h) != 0x50505641) /* "PPVA" */
         goto fail;
 
-    entry_size = read_u32le(ppva_offset + 0x08, sf_h); /* */
+    entry_size = read_u32le(ppva_offset + 0x08, sf_h);
     /* 0x0c: -1? */
     /* 0x10: 0? */
     entries = read_u32le(ppva_offset + 0x14, sf_h) + 1;
@@ -314,16 +326,78 @@ static int parse_type_sdsd(kwb_header* kwb, off_t offset, STREAMFILE* sf_h) {
     return 0;
 }
 
+static int parse_type_sdwi(kwb_header* kwb, off_t offset, STREAMFILE* sf_h) {
+    off_t smpl_offset, header_offset;
+    int entries;
+    size_t entry_size;
+
+
+    /* variation of SDsd */
+    /* 00: SDWiVers */
+    /* 08: chunk size */
+    /* 0c: null */
+    /* 10: SDsdHead */
+    /* 18: chunk size */
+    /* 1c: WBH_ size */
+    /* 20: WBD_ size */
+    /* 24: SDsdProg offset ('program'? cues?) */
+    /* 28: SDsdSmpl offset ('samples'? waves?) */
+    /* rest: ? */
+    smpl_offset = read_u32be(offset + 0x28, sf_h);
+    smpl_offset += offset;
+
+    /* Smpl table: */
+    if (read_u32be(smpl_offset + 0x00, sf_h) != 0x53447364 &&   /* "SDsd" */
+        read_u32be(smpl_offset + 0x04, sf_h) != 0x536D706C)     /* "Smpl" */
+        goto fail;
+
+    /* 0x08: ? */
+    entries = read_u32le(smpl_offset + 0x0c, sf_h); /* LE! */
+    entry_size = 0x40;
+
+    kwb->total_subsongs = entries;
+    if (kwb->target_subsong < 0 || kwb->target_subsong > kwb->total_subsongs || kwb->total_subsongs < 1) goto fail;
+
+    header_offset = smpl_offset + 0x10 + (kwb->target_subsong-1) * entry_size;
+
+    /* 00: "SS" + ID (0..N) */
+    kwb->stream_offset  = read_u32be(header_offset + 0x04, sf_h);
+    /* 08: flag? */
+    /* 0c: ? + channels? */
+    kwb->sample_rate    = read_u32be(header_offset + 0x10, sf_h);
+    /* 14: bitrate */
+    /* 18: codec? + bps */
+    /* 1c: null? */
+    /* 20: null? */
+    kwb->stream_size    = read_u32be(header_offset + 0x24, sf_h);
+    /* 28: full stream size (with padding) */
+    /* 2c: related to samples? */
+    /* 30: ID */
+    /* 34-38: null */
+
+    kwb->codec = DSP_BODY;
+    kwb->channels = 1;
+
+    return 1;
+fail:
+    return 0;
+}
+
 static int parse_kwb(kwb_header* kwb, STREAMFILE* sf_h, STREAMFILE* sf_b) {
     off_t head_offset, body_offset, start;
     uint32_t type;
+    uint32_t (*read_u32)(off_t,STREAMFILE*) = NULL;
 
 
     if (read_u32be(0x00, sf_h) == 0x57484431) { /* "WHD1" */
-        /* container of wbh+wbd */
+        /* container of fused .wbh+wbd */
         /* 0x04: fixed value? */
-        /* 0x08: version? */
-        start = read_u32le(0x0c, sf_h);
+        kwb->big_endian = read_u8(0x08, sf_h) == 0xFF;
+        /* 0x0a: version? */
+
+        read_u32 = kwb->big_endian ? read_u32be : read_u32le;
+
+        start = read_u32(0x0c, sf_h);
         /* 0x10: file size */
         /* 0x14: subfiles? */
         /* 0x18: subfiles? */
@@ -331,8 +405,8 @@ static int parse_kwb(kwb_header* kwb, STREAMFILE* sf_h, STREAMFILE* sf_b) {
         /* 0x20: some size? */
         /* 0x24: some size? */
 
-        head_offset = read_u32le(start + 0x00, sf_h);
-        body_offset = read_u32le(start + 0x04, sf_h);
+        head_offset = read_u32(start + 0x00, sf_h);
+        body_offset = read_u32(start + 0x04, sf_h);
         /* 0x10: head size */
         /* 0x14: body size */
     }
@@ -340,13 +414,17 @@ static int parse_kwb(kwb_header* kwb, STREAMFILE* sf_h, STREAMFILE* sf_b) {
         /* dual file */
         head_offset = 0x00;
         body_offset = 0x00;
+
+        kwb->big_endian = guess_endianness32bit(head_offset + 0x08, sf_h);
+
+        read_u32 = kwb->big_endian ? read_u32be : read_u32le;
     }
 
-    if (read_u32be(head_offset + 0x00, sf_h) != 0x5F484257 ||   /* "_HBW" */
-        read_u32be(head_offset + 0x04, sf_h) != 0x30303030)     /* "0000" */
+    if (read_u32(head_offset + 0x00, sf_h) != 0x5742485F ||   /* "WBH_" */
+        read_u32(head_offset + 0x04, sf_h) != 0x30303030)     /* "0000" */
         goto fail;
-    if (read_u32be(body_offset + 0x00, sf_b) != 0x5F444257 ||   /* "_DBW" */
-        read_u32be(body_offset + 0x04, sf_b) != 0x30303030)     /* "0000" */
+    if (read_u32(body_offset + 0x00, sf_b) != 0x5742445F ||   /* "WBD_" */
+        read_u32(body_offset + 0x04, sf_b) != 0x30303030)     /* "0000" */
         goto fail;
     /* 0x08: head/body size */
 
@@ -356,19 +434,24 @@ static int parse_kwb(kwb_header* kwb, STREAMFILE* sf_h, STREAMFILE* sf_b) {
     /* format has multiple bank subtypes that are quite different from each other */
     type = read_u32be(head_offset + 0x00, sf_h);
     switch(type) {
-        case 0x4B574232: /* "KWB2" (PC) */
-        case 0x4B57424E: /* "KWBN" (Switch) */
+        case 0x4B574232: /* "KWB2" [Bladestorm Nightmare (PC), Dissidia NT (PC)] */
+        case 0x4B57424E: /* "KWBN" [Fire Emblem Warriors (Switch)] */
             if (!parse_type_kwb2(kwb, head_offset, sf_h))
                 goto fail;
             break;
 
-        case 0x4B344844: /* "K4HD" (PS4/Vita) */
+        case 0x4B344844: /* "K4HD" [Dissidia NT (PS4), (Vita) */
             if (!parse_type_k4hd(kwb, head_offset, sf_h))
                 goto fail;
             break;
 
-        case 0x53447364: /* "SDsd" (PS3?) */
+        case 0x53447364: /* "SDsd" (PS3? leftover files) */
             if (!parse_type_sdsd(kwb, head_offset, sf_h))
+                goto fail;
+            break;
+
+        case 0x53445769: /* "SDWi" [Fatal Frame 5 (WiiU)] */
+            if (!parse_type_sdwi(kwb, head_offset, sf_h))
                 goto fail;
             break;
 
