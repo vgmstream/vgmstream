@@ -508,6 +508,8 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_xse_old,
     init_vgmstream_wady,
     init_vgmstream_dsp_sqex,
+    init_vgmstream_dsp_wiivoice,
+    init_vgmstream_xws,
 
     /* lowest priority metas (should go after all metas, and TXTH should go before raw formats) */
     init_vgmstream_txth,            /* proper parsers should supersede TXTH, once added */

@@ -540,14 +540,18 @@ typedef struct {
     int coupled_count;
     int stream_count;
     int channel_mapping[8];
+    /* frame table */
+    off_t table_offset;
+    int table_count;
 } opus_config;
 
 ffmpeg_codec_data* init_ffmpeg_switch_opus_config(STREAMFILE* sf, off_t start_offset, size_t data_size, opus_config* cfg);
 ffmpeg_codec_data* init_ffmpeg_switch_opus(STREAMFILE* sf, off_t start_offset, size_t data_size, int channels, int skip, int sample_rate);
 ffmpeg_codec_data* init_ffmpeg_ue4_opus(STREAMFILE* sf, off_t start_offset, size_t data_size, int channels, int skip, int sample_rate);
 ffmpeg_codec_data* init_ffmpeg_ea_opus(STREAMFILE* sf, off_t start_offset, size_t data_size, int channels, int skip, int sample_rate);
-ffmpeg_codec_data* init_ffmpeg_x_opus(STREAMFILE* sf, off_t start_offset, size_t data_size, int channels, int skip, int sample_rate);
+ffmpeg_codec_data* init_ffmpeg_x_opus(STREAMFILE* sf, off_t table_offset, int table_count, off_t data_offset, size_t data_size, int channels, int skip);
 ffmpeg_codec_data* init_ffmpeg_fsb_opus(STREAMFILE* sf, off_t start_offset, size_t data_size, int channels, int skip, int sample_rate);
+ffmpeg_codec_data* init_ffmpeg_wwise_opus(STREAMFILE* sf, off_t table_offset, int table_count, off_t data_offset, size_t data_size, int channels, int skip);
 
 size_t switch_opus_get_samples(off_t offset, size_t stream_size, STREAMFILE* sf);
 

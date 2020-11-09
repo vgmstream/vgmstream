@@ -802,11 +802,11 @@ VGMSTREAM * init_vgmstream_ea_mpf_mus(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     STREAMFILE* sf_mus = NULL;
     segmented_layout_data *data_s = NULL;
-    uint32_t track_start, track_end, track_hash, tracks_table, samples_table, section_offset, entry_offset, eof_offset, off_mult, sound_offset;
+    uint32_t track_start, track_end = 0, track_hash = 0, tracks_table, samples_table = 0, section_offset, entry_offset = 0, eof_offset = 0, off_mult, sound_offset;
     uint16_t num_nodes;
-    uint8_t version, sub_version, num_tracks, num_sections, num_events, num_routers, num_vars, subentry_num;
-    int32_t(*read_u32)(off_t, STREAMFILE*);
-    int16_t(*read_u16)(off_t, STREAMFILE*);
+    uint8_t version, sub_version, num_tracks, num_sections, num_events, num_routers, num_vars, subentry_num = 0;
+    uint32_t(*read_u32)(off_t, STREAMFILE*);
+    uint16_t(*read_u16)(off_t, STREAMFILE*);
     int i;
     int target_stream = sf->stream_index, total_streams, big_endian, is_bnk = 0;
 
@@ -997,7 +997,7 @@ VGMSTREAM * init_vgmstream_ea_mpf_mus(STREAMFILE* sf) {
         if (version == 5 && bnk_index != 0) {
             /* HACK: open proper .mus now since open_mapfile_pair doesn't let us adjust the name */
             char filename[PATH_LIMIT], basename[PATH_LIMIT], ext[32];
-            int basename_len, fileext_len;
+            int basename_len;
 
             get_streamfile_basename(sf_mus, basename, PATH_LIMIT);
             basename_len = strlen(basename);

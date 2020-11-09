@@ -1278,3 +1278,31 @@ VGMSTREAM* init_vgmstream_dsp_sqex(STREAMFILE* sf) {
 fail:
     return NULL;
 }
+
+/* WiiVoice - Koei Tecmo wrapper [Fatal Frame 5 (WiiU)] */
+VGMSTREAM* init_vgmstream_dsp_wiivoice(STREAMFILE* sf) {
+    dsp_meta dspm = {0};
+    /* also see g1l.c for WiiBGM weirder variation */
+
+    /* checks */
+    /* .dsp: assumed */
+    if (!check_extensions(sf, "dsp"))
+        goto fail;
+    if (read_u32be(0x00,sf) != 0x57696956 &&    /* "WiiV" */
+        read_u32be(0x04,sf) != 0x6F696365)      /* "oice" */
+        goto fail;
+
+    dspm.channel_count = 1;
+    dspm.max_channels = 1;
+
+    dspm.header_offset = read_u32be(0x08,sf);
+    /* 0x10: file size */
+    /* 0x14: data size */
+    dspm.header_spacing = 0x60;
+    dspm.start_offset = dspm.header_offset + dspm.header_spacing*dspm.channel_count;
+
+    dspm.meta_type = meta_DSP_WIIVOICE;
+    return init_vgmstream_dsp_common(sf, &dspm);
+fail:
+    return NULL;
+}
