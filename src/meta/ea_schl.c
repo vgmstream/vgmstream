@@ -634,7 +634,7 @@ static STREAMFILE* open_mapfile_pair(STREAMFILE* sf, int track, int num_tracks) 
         {"mus_ctrl.mpf",    "mus_str.mus"}, /* GoldenEye - Rogue Agent (others) */
         {"AKA_Mus.mpf",     "Track.mus"}, /* Boogie */
         {"SSX4FE.mpf",      "TrackFE.mus"}, /* SSX On Tour */
-        {"SSX4Path.mpf",    "Track.mus"}, /* SSX On Tour */
+        {"SSX4Path.mpf",    "Track.mus"},
         {"SSX4.mpf",        "moments0.mus,main.mus,load_loop0.mus"}, /* SSX Blur */
         {"*.mpf",            "*_main.mus"}, /* 007 - Everything or Nothing */
         /* TODO: need better wildcard support
@@ -947,20 +947,19 @@ VGMSTREAM * init_vgmstream_ea_mpf_mus(STREAMFILE* sf) {
             entry_offset = read_u32(tracks_table + i * 0x04, sf) * 0x04;
             track_start = read_u32(entry_offset + 0x00, sf);
 
+            if (track_start == 0 && i != 0)
+                continue; /* empty track */
+
             if (track_start <= target_stream - 1) {
                 track_hash = read_u32be(entry_offset + 0x08, sf);
                 is_bnk = (track_hash == 0xF1F1F1F1);
 
                 /* checks to distinguish it from SNR/SNS version */
                 if (is_bnk) {
-                    if (read_u32be(entry_offset + 0x0c, sf) == 0x00)
+                    if (read_u32(entry_offset + 0x0c, sf) == 0x00)
                         goto fail;
-
-                    track_hash = read_u32be(entry_offset + 0x14, sf);
-                    if (track_hash == 0xF1F1F1F1)
-                        continue; /* empty track */
                 } else {
-                    if (read_u32be(entry_offset + 0x0c, sf) != 0x00)
+                    if (read_u32(entry_offset + 0x0c, sf) != 0x00)
                         goto fail;
                 }
                 break;
@@ -978,10 +977,7 @@ VGMSTREAM * init_vgmstream_ea_mpf_mus(STREAMFILE* sf) {
     if (!sf_mus)
         goto fail;
 
-    if (version == 5) {
-        if (read_u32be(0x00, sf_mus) != track_hash)
-            goto fail;
-    } else {
+    if (version < 5) {
         is_bnk = (read_u32be(0x00, sf_mus) == (big_endian ? EA_BNK_HEADER_BE : EA_BNK_HEADER_LE));
     }
 
@@ -991,22 +987,61 @@ VGMSTREAM * init_vgmstream_ea_mpf_mus(STREAMFILE* sf) {
     if (is_bnk) {
         /* for some reason, RAM segments are almost always split into multiple sounds (usually 4) */
         off_t bnk_offset = version < 5 ? 0x00 : 0x100;
-        int bnk_total_sounds = read_u16(0x06, sf_mus);
+        uint32_t bnk_sound_index = (sound_offset & 0x0000FFFF);
+        uint32_t bnk_index = (sound_offset & 0xFFFF0000) >> 16;
+        uint32_t next_entry;
+        uint32_t bnk_total_sounds = read_u16(bnk_offset + 0x06, sf_mus);
         int bnk_segments;
+        STREAMFILE *sf_bnk = sf_mus;
+
+        if (version == 5 && bnk_index != 0) {
+            /* HACK: open proper .mus now since open_mapfile_pair doesn't let us adjust the name */
+            char filename[PATH_LIMIT], basename[PATH_LIMIT], ext[32];
+            int basename_len, fileext_len;
+
+            get_streamfile_basename(sf_mus, basename, PATH_LIMIT);
+            basename_len = strlen(basename);
+            get_streamfile_ext(sf_mus, ext, sizeof(ext));
+
+            /* strip off 0 at the end */
+            basename[basename_len - 1] = '\0';
+
+            /* append bank index to the name */
+            snprintf(filename, PATH_LIMIT, "%s%d.%s", basename, bnk_index, ext);
+
+            sf_bnk = open_streamfile_by_filename(sf_mus, filename);
+            if (!sf_bnk) goto fail;
+            bnk_total_sounds = read_u16(bnk_offset + 0x06, sf_bnk);
+            close_streamfile(sf_mus);
+            sf_mus = sf_bnk;
+        }
+
+        if (version == 5) {
+            track_hash = read_u32be(entry_offset + 0x14 + 0x10 * bnk_index, sf);
+            if (read_u32be(0x00, sf_mus) != track_hash)
+                goto fail;
+        }
 
         /* play until the next entry in MPF track or the end of BNK */
         if (target_stream < track_end) {
-            bnk_segments = read_u32(samples_table + (target_stream - 0) * 0x08 + 0x00, sf) - sound_offset;
+            next_entry = read_u32(samples_table + (target_stream - 0) * 0x08 + 0x00, sf);
+            if (((next_entry & 0xFFFF0000) >> 16) == bnk_index) {
+                bnk_segments = (next_entry & 0x0000FFFF) - bnk_sound_index;
+            } else {
+                bnk_segments = bnk_total_sounds - bnk_sound_index;
+            }
         } else {
-            bnk_segments = bnk_total_sounds - sound_offset;
+            bnk_segments = bnk_total_sounds - bnk_sound_index;
         }
 
         /* init layout */
         data_s = init_layout_segmented(bnk_segments);
         if (!data_s) goto fail;
 
-        for (i = 0; i < bnk_segments; i++)
-            data_s->segments[i] = parse_bnk_header(sf_mus, bnk_offset, sound_offset + i, 1);
+        for (i = 0; i < bnk_segments; i++) {
+            data_s->segments[i] = parse_bnk_header(sf_mus, bnk_offset, bnk_sound_index + i, 1);
+            if (!data_s->segments[i]) goto fail;
+        }
 
         /* setup segmented VGMSTREAMs */
         if (!setup_layout_segmented(data_s)) goto fail;
@@ -1015,6 +1050,9 @@ VGMSTREAM * init_vgmstream_ea_mpf_mus(STREAMFILE* sf) {
         if (!vgmstream)
             goto fail;
     } else {
+        if (version == 5 && read_u32be(0x00, sf_mus) != track_hash)
+            goto fail;
+
         sound_offset *= off_mult;;
         if (read_32bitBE(sound_offset, sf_mus) != EA_BLOCKID_HEADER)
             goto fail;
