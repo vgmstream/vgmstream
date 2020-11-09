@@ -1,7 +1,7 @@
 #include "meta.h"
 #include "../coding/coding.h"
 
-typedef enum { PCM16, MSADPCM, DSP_HEAD, DSP_BODY, AT9 } kwb_codec;
+typedef enum { PCM16, MSADPCM, DSP_HEAD, DSP_BODY, AT9, MSF } kwb_codec;
 
 typedef struct {
     int big_endian;
@@ -25,11 +25,12 @@ typedef struct {
 } kwb_header;
 
 static int parse_kwb(kwb_header* kwb, STREAMFILE* sf_h, STREAMFILE* sf_b);
+static int parse_xws(kwb_header* kwb, STREAMFILE* sf);
 
 
 /* KWB - WaveBank from Koei games */
-VGMSTREAM * init_vgmstream_kwb(STREAMFILE* sf) {
-    VGMSTREAM * vgmstream = NULL;
+VGMSTREAM* init_vgmstream_kwb(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
     STREAMFILE *sf_h = NULL, *sf_b = NULL;
     kwb_header kwb = {0};
     int32_t (*read_s32)(off_t,STREAMFILE*) = NULL;
@@ -159,6 +160,54 @@ fail:
     close_vgmstream(vgmstream);
     return NULL;
 }
+
+/* XWS - WaveStream? from Koei games */
+VGMSTREAM* init_vgmstream_xws(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
+    STREAMFILE* temp_sf = NULL;
+    kwb_header kwb = {0};
+    int target_subsong = sf->stream_index;
+
+
+    /* checks */
+    if (!check_extensions(sf, "xws"))
+        goto fail;
+
+    if (target_subsong == 0) target_subsong = 1;
+    kwb.target_subsong = target_subsong;
+
+    if (!parse_xws(&kwb, sf))
+        goto fail;
+
+    if (kwb.codec == MSF) {
+        if (kwb.stream_offset == 0) {
+            vgmstream = init_vgmstream_silence(0,0,0); /* dummy, whatevs */
+            if (!vgmstream) goto fail;
+        }
+        else {
+            kwb.stream_size = read_u32be(kwb.stream_offset + 0x0c, sf) + 0x40;
+
+            temp_sf = setup_subfile_streamfile(sf, kwb.stream_offset, kwb.stream_size, "msf");
+            if (!temp_sf) goto fail;
+
+            vgmstream = init_vgmstream_msf(temp_sf);
+            if (!vgmstream) goto fail;
+        }
+
+        vgmstream->num_streams = kwb.total_subsongs;
+    }
+    else {
+        goto fail;
+    }
+
+    close_streamfile(temp_sf);
+    return vgmstream;
+fail:
+    close_streamfile(temp_sf);
+    return NULL;
+}
+
+
 
 static int parse_type_kwb2(kwb_header* kwb, off_t offset, STREAMFILE* sf_h) {
     int i, j, sounds;
@@ -458,6 +507,84 @@ static int parse_kwb(kwb_header* kwb, STREAMFILE* sf_h, STREAMFILE* sf_b) {
         default:
             goto fail;
     }
+
+    kwb->stream_offset += body_offset;
+
+    return 1;
+fail:
+    return 0;
+}
+
+static int parse_type_msfbank(kwb_header* kwb, off_t offset, STREAMFILE* sf) {
+    /* this is just like XWSF, abridged: */
+    off_t header_offset;
+
+    kwb->total_subsongs = read_u32be(offset + 0x14, sf);
+    if (kwb->target_subsong < 0 || kwb->target_subsong > kwb->total_subsongs || kwb->total_subsongs < 1) goto fail;
+
+    header_offset = offset + 0x30 + (kwb->target_subsong-1) * 0x04;
+
+    /* just a dumb table pointing to MSF, entries can be dummy */
+    kwb->stream_offset  = read_u32be(header_offset, sf);
+    kwb->codec = MSF;
+
+    return 1;
+fail:
+    return 0;
+}
+
+
+static int parse_xws(kwb_header* kwb, STREAMFILE* sf) {
+    off_t head_offset, body_offset, start;
+    uint32_t (*read_u32)(off_t,STREAMFILE*) = NULL;
+    int chunks, chunks2;
+    off_t msfb_offset;
+
+    /* format is similar to WHD1 with some annoyances of its own
+     * variations:
+     * - tdpack: points to N XWSFILE
+     * - XWSFILE w/ 4 chunks: CUEBANK offset, ? offset, MSFBANK offset, end offset (PS3)
+     *   [Ninja Gaiden Sigma 2 (PS3), Ninja Gaiden 3 Razor's Edge (PS3)]
+     * - XWSFILE w/ 2*N chunks: KWB2 offset + data offset * N (ex. 3 pairs = 6 chunks)
+     *   [Dead or Alive 5 Last Round (PC)]
+     *
+     * for now basic support for the second case, others we'd have to map subsong N to internal bank M
+     */
+
+    if (read_u32be(0x00, sf) != 0x58575346 ||   /* "XWSF" */
+        read_u32be(0x04, sf) != 0x494C4500)     /* "ILE\0" */
+        goto fail;
+
+    kwb->big_endian = read_u8(0x08, sf) == 0xFF;
+    /* 0x0a: version? */
+
+    read_u32 = kwb->big_endian ? read_u32be : read_u32le;
+
+    start = read_u32(0x0c, sf);
+    /* 0x10: file size */
+    chunks  = read_u32(0x14, sf);
+    chunks2 = read_u32(0x18, sf);
+    /* 0x1c: null */
+    /* 0x20: some size? */
+    /* 0x24: some size? */
+    if (chunks != chunks2)
+        goto fail;
+
+    if (chunks != 4)
+        goto fail;
+
+    msfb_offset = read_u32(start + 0x08, sf);
+    if (read_u32be(msfb_offset, sf) == 0x4D534642) { /* "MSFB" + "ANK\0" */
+        head_offset = msfb_offset;
+        body_offset = msfb_offset; /* relative to start */
+
+        if (!parse_type_msfbank(kwb, head_offset, sf))
+            goto fail;
+    }
+    else {
+        goto fail;
+    }
+
 
     kwb->stream_offset += body_offset;
 

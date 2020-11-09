@@ -887,7 +887,8 @@ VGMSTREAM* init_vgmstream_fda(STREAMFILE *sf);
 
 VGMSTREAM * init_vgmstream_tgc(STREAMFILE *streamFile);
 
-VGMSTREAM * init_vgmstream_kwb(STREAMFILE* sf);
+VGMSTREAM* init_vgmstream_kwb(STREAMFILE* sf);
+VGMSTREAM* init_vgmstream_xws(STREAMFILE* sf);
 
 VGMSTREAM * init_vgmstream_lrmd(STREAMFILE* sf);
 
