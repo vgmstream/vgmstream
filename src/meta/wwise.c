@@ -9,7 +9,7 @@
  * Some info: https://www.audiokinetic.com/en/library/edge/
  * .bnk (dynamic music/loop) info: https://github.com/bnnm/wwiser
  */
-typedef enum { PCM, IMA, VORBIS, DSP, XMA2, XWMA, AAC, HEVAG, ATRAC9, OPUSNX, OPUS, PTADPCM } wwise_codec;
+typedef enum { PCM, IMA, VORBIS, DSP, XMA2, XWMA, AAC, HEVAG, ATRAC9, OPUSNX, OPUS, OPUSWW, PTADPCM } wwise_codec;
 typedef struct {
     int big_endian;
     size_t file_size;
@@ -192,8 +192,9 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE* sf) {
         case 0xFFFC: ww.codec = ATRAC9; break;
         case 0xFFFE: ww.codec = PCM; break; /* "PCM for Wwise Authoring" */
         case 0xFFFF: ww.codec = VORBIS; break;
-        case 0x3039: ww.codec = OPUSNX; break; /* later renamed from "OPUS" */
+        case 0x3039: ww.codec = OPUSNX; break; /* renamed from "OPUS" on Wwise 2018.1 */
         case 0x3040: ww.codec = OPUS; break;
+        case 0x3041: ww.codec = OPUSWW; break; /* added on Wwise 2019.2.3, presumably replaces OPUS */
         case 0x8311: ww.codec = PTADPCM; break; /* newer, rare [Genshin Impact (PC)] */
         default:
             goto fail;
@@ -227,7 +228,7 @@ VGMSTREAM * init_vgmstream_wwise(STREAMFILE* sf) {
         }
 
         if (ww.codec == PCM || ww.codec == IMA || ww.codec == VORBIS || ww.codec == DSP || ww.codec == XMA2 ||
-            ww.codec == OPUSNX || ww.codec == OPUS || ww.codec == PTADPCM) {
+            ww.codec == OPUSNX || ww.codec == OPUS || ww.codec == OPUSWW || ww.codec == PTADPCM) {
             ww.truncated = 1; /* only seen those, probably all exist (XWMA, AAC, HEVAG, ATRAC9?) */
         } else {
             VGM_LOG("WWISE: wrong size, maybe truncated\n");
@@ -529,6 +530,7 @@ VGM_LOG("1\n");
             if (ww.truncated) {
                 vgmstream->num_samples = (int32_t)(vgmstream->num_samples *
                         (double)(ww.file_size - start_offset) / (double)ww.data_size);
+                //todo data size, call function
             }
 
             break;
@@ -610,13 +612,12 @@ VGM_LOG("1\n");
 
             skip = switch_opus_get_encoder_delay(start_offset, sf); /* should be 120 */
 
-            /* some voices have original sample rate but opus can only do 48000 (ex. Mario Kart Home Circuit 24khz) */
+            /* some voices have original sample rate but OPUS can only do 48000 (ex. Mario Kart Home Circuit 24khz) */
             if (vgmstream->sample_rate != 48000) {
                 vgmstream->sample_rate = 48000;
                 vgmstream->num_samples = switch_opus_get_samples(start_offset,ww.data_size, sf); /* also original's */
                 vgmstream->num_samples -= skip;
             }
-
 
             /* OPUS is VBR so this is very approximate percent, meh */
             if (ww.truncated) {
@@ -647,12 +648,44 @@ VGM_LOG("1\n");
                 ww.data_size = ww.file_size - start_offset;
             }
 
-            vgmstream->codec_data = init_ffmpeg_offset(sf, ww.data_offset,ww.data_size);
+            vgmstream->codec_data = init_ffmpeg_offset(sf, ww.data_offset, ww.data_size);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
             break;
         }
+#if 0   // disabled until more files/tests
+        case OPUSWW: {   /* updated Opus added in Wwise 2019.2.3 [Assassin's Creed Valhalla (PC)] */
+            int skip, table_count;
+            off_t seek_offset;
+        
+            if (ww.block_align != 0 || ww.bits_per_sample != 0) goto fail;
+
+            if (!find_chunk(sf, 0x7365656B,first_offset,0, &seek_offset, NULL, ww.big_endian, 0)) /* "seek" */
+                goto fail;
+
+            /* extra: size 0x10 */
+            /* 0x12: samples per frame */
+            vgmstream->num_samples = read_32bit(ww.fmt_offset + 0x18, sf);
+            table_count = read_32bit(ww.fmt_offset + 0x1c, sf); /* same as seek size / 2 */
+            skip = read_16bit(ww.fmt_offset + 0x20, sf);
+            /* 0x22: 1? (though extra size is declared as 0x10 so this is outsize, AK plz */
+
+            /* OPUS is VBR so this is very approximate percent, meh */
+            if (ww.truncated) {
+                vgmstream->num_samples = (int32_t)(vgmstream->num_samples *
+                        (double)(ww.file_size - start_offset) / (double)ww.data_size);
+                ww.data_size = ww.file_size - start_offset;
+            }
+
+            /* Wwise Opus saves all frame sizes in the seek table */
+            vgmstream->codec_data = init_ffmpeg_wwise_opus(sf, seek_offset, table_count, ww.data_offset, ww.data_size, ww.channels, skip);
+            if (!vgmstream->codec_data) goto fail;
+            vgmstream->coding_type = coding_FFmpeg;
+            vgmstream->layout_type = layout_none;
+            break;
+        }
+#endif
 
 #endif
         case HEVAG:     /* PSV */
