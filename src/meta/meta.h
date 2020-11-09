@@ -54,7 +54,8 @@ VGMSTREAM* init_vgmstream_dsp_adpy(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_dsp_adpx(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_dsp_ds2(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_dsp_itl(STREAMFILE* sf);
-VGMSTREAM* init_vgmstream_dsp_sqex(STREAMFILE *sf);
+VGMSTREAM* init_vgmstream_dsp_sqex(STREAMFILE* sf);
+VGMSTREAM* init_vgmstream_dsp_wiivoice(STREAMFILE* sf);
 
 VGMSTREAM * init_vgmstream_csmp(STREAMFILE *streamFile);
 

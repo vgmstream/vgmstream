@@ -1314,6 +1314,7 @@ static const meta_info meta_info_list[] = {
         {meta_SDRH,                 "feelplus SDRH header"},
         {meta_WADY,                 "Marble WADY header"},
         {meta_DSP_SQEX,             "Square Enix DSP header"},
+        {meta_DSP_WIIVOICE,         "Koei Tecmo WiiVoice header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {
