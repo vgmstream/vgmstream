@@ -194,7 +194,7 @@ static char** parse_mus(STREAMFILE *streamFile, int *out_file_count, int *out_lo
     char dir_name[NAME_LENGTH];
     char subdir_name[NAME_LENGTH];
 
-    int file_count;
+    int file_count = 0;
     size_t bytes_read;
     int line_ok = 0;
     off_t mus_offset = 0;

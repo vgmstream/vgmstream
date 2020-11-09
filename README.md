@@ -236,6 +236,11 @@ Similarly some formats split header and/or data in separate files (.sgh+sgd,
 and use those as needed and must be together, even if only one of the two
 will be used to play.
 
+Some formats may have companion files with different names which are hardcoded
+instead of being listed in the main file (e.g. .mpf+.mus). In these cases, you
+can use TXTM format to specify associated companion files. See below for more
+information.
+
 .pos is a small file with 32 bit little endian values: loop start sample
 and  loop end sample. For FFmpeg formats (.vgmstream.pos) it may optionally
 have total samples after those.
@@ -283,6 +288,19 @@ can contain a list of filenames to play as one (ex. `intro.vag(line)loop.vag`),
 list of separate channel files to join as a single multichannel file,
 subsong index (ex. `bgm.sxd#10`), per-file configurations like number of
 loops, remove unneeded channels, and many other features.
+
+**TXTM**: text file named `.txtm` for formats with companion files. It lists
+name combos determining which companion files to load for each main file.
+It is useful for formats where name combos are hardcoded so vgmstream doesn't
+know which companion file(-s) to load if its name doesn't match the main file.
+Note that companion file order is usually important.
+
+Usage example:
+```
+# Harry Potter and the Chamber of Secrets (PS2)
+entrance.mpf:entrance.mus,entrance_o.mus
+willow.mpf:willow.mus,willow_o.mus
+```
 
 Creation of those files is meant for advanced users, docs can be found in
 vgmstream source.

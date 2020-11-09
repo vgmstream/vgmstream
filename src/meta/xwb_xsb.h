@@ -905,6 +905,10 @@ static STREAMFILE * open_xsb_filename_pair(STREAMFILE *streamXwb) {
     char temp_filename[PATH_LIMIT];
     int target_len;
 
+    /* try parsing TXTM if present */
+    streamXsb = read_filemap_file(streamXwb, 0);
+    if (streamXsb) return streamXsb;
+
     /* try names in external .xsb, using a bunch of possible name pairs */
     get_streamfile_filename(streamXwb,target_filename,PATH_LIMIT);
     target_len = strlen(target_filename);

@@ -1122,6 +1122,76 @@ fail:
     return 0;
 }
 
+STREAMFILE *read_filemap_file(STREAMFILE *sf, int file_num) {
+    char filename[PATH_LIMIT];
+    off_t txt_offset, file_size;
+    STREAMFILE *sf_map = NULL;
+
+    sf_map = open_streamfile_by_filename(sf, ".txtm");
+    if (!sf_map) goto fail;
+
+    get_streamfile_filename(sf, filename, sizeof(filename));
+
+    txt_offset = 0x00;
+    file_size = get_streamfile_size(sf_map);
+
+    /* skip BOM if needed */
+    if ((uint16_t)read_16bitLE(0x00, sf_map) == 0xFFFE ||
+        (uint16_t)read_16bitLE(0x00, sf_map) == 0xFEFF) {
+        txt_offset = 0x02;
+    } else if (((uint32_t)read_32bitBE(0x00, sf_map) & 0xFFFFFF00) == 0xEFBBBF00) {
+        txt_offset = 0x03;
+    }
+
+    /* read lines and find target filename, format is (filename): value1, ... valueN */
+    while (txt_offset < file_size) {
+        char line[0x2000];
+        char key[PATH_LIMIT] = { 0 }, val[0x2000] = { 0 };
+        int ok, bytes_read, line_ok;
+
+        bytes_read = read_line(line, sizeof(line), txt_offset, sf_map, &line_ok);
+        if (!line_ok) goto fail;
+
+        txt_offset += bytes_read;
+
+        /* get key/val (ignores lead spaces, stops at space/comment/separator) */
+        ok = sscanf(line, " %[^ \t#:] : %[^\t#\r\n] ", key, val);
+        if (ok != 2) { /* ignore line if no key=val (comment or garbage) */
+            continue;  
+        }
+
+        if (strcmp(key, filename) == 0) {
+            int n;
+            char subval[PATH_LIMIT];
+            const char *current = val;
+            int i;
+
+            for (i = 0; i <= file_num; i++) {
+                if (current[0] == '\0')
+                    goto fail;
+
+                ok = sscanf(current, " %[^\t#\r\n,]%n ", subval, &n);
+                if (ok != 1)
+                    goto fail;
+
+                if (i == file_num)
+                {
+                    close_streamfile(sf_map);
+                    return open_streamfile_by_filename(sf, subval);
+                }
+
+                current += n;
+                if (current[0] == ',')
+                    current++;
+            }
+        }
+    }
+
+fail:
+    close_streamfile(sf_map);
+    return NULL;
+}
+
 void fix_dir_separators(char * filename) {
     char c;
     int i = 0;

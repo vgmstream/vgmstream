@@ -526,16 +526,20 @@ static STREAMFILE *open_mapfile_pair(STREAMFILE* sf, int track, int num_tracks) 
                             "trick_alps0.mus,"
                             "trick_lhotse0.mus"}
     };
-    STREAMFILE *musFile = NULL;
+    STREAMFILE *sf_mus = NULL;
     char file_name[PATH_LIMIT];
     int pair_count = (sizeof(mapfile_pairs) / sizeof(mapfile_pairs[0]));
     int i, j;
     size_t file_len, map_len;
 
+    /* try parsing TXTM if present */
+    sf_mus = read_filemap_file(sf, track);
+    if (sf_mus) return sf_mus;
+
     /* if loading the first track, try opening MUS with the same name first (most common scenario) */
     if (track == 0) {
-        musFile = open_streamfile_by_ext(sf, "mus");
-        if (musFile) return musFile;
+        sf_mus = open_streamfile_by_ext(sf, "mus");
+        if (sf_mus) return sf_mus;
     }
 
     get_streamfile_filename(sf, file_name, PATH_LIMIT);
@@ -579,8 +583,8 @@ static STREAMFILE *open_mapfile_pair(STREAMFILE* sf, int track, int num_tracks) 
             strncpy(file_name, pch, PATH_LIMIT - 1);
         }
 
-        musFile = open_streamfile_by_filename(sf, file_name);
-        if (musFile) return musFile;
+        sf_mus = open_streamfile_by_filename(sf, file_name);
+        if (sf_mus) return sf_mus;
 
         get_streamfile_filename(sf, file_name, PATH_LIMIT); /* reset for next loop */
     }
@@ -591,8 +595,8 @@ static STREAMFILE *open_mapfile_pair(STREAMFILE* sf, int track, int num_tracks) 
         char *mod_name = strchr(file_name, '+');
         if (mod_name) {
             mod_name[0] = '\0';
-            musFile = open_streamfile_by_filename(sf, file_name);
-            if (musFile) return musFile;
+            sf_mus = open_streamfile_by_filename(sf, file_name);
+            if (sf_mus) return sf_mus;
         }
     }
 
