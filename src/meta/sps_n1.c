@@ -92,10 +92,12 @@ VGMSTREAM* init_vgmstream_sps_n1_segmented(STREAMFILE* sf) {
     /* 0x0c: num_samples (slightly smaller than added samples?) */
 
     switch(type) {
+    #ifdef VGM_USE_VORBIS
         case 7:
             init_vgmstream_subfile = init_vgmstream_ogg_vorbis;
             extension = "ogg";
             break;
+    #endif
 
         case 9:
             init_vgmstream_subfile = init_vgmstream_opus_std;
