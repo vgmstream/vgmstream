@@ -179,7 +179,7 @@ static void load_awb_name(STREAMFILE* sf, STREAMFILE* sf_acb, VGMSTREAM* vgmstre
         int len_name, len_cmp;
 
         /* try parsing TXTM if present */
-        sf_acb = read_filemap_file(sf_acb, 0);
+        sf_acb = read_filemap_file(sf, 0);
 
         /* try (name).awb + (name).awb */
         if (!sf_acb) {
