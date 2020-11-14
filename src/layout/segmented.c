@@ -22,7 +22,7 @@ void render_vgmstream_segmented(sample_t* outbuf, int32_t sample_count, VGMSTREA
     }
 
     if (data->current_segment >= data->segment_count) {
-        VGM_LOG("SEGMENT: wrong current segment\n");
+        VGM_LOG_ONCE("SEGMENT: wrong current segment\n");
         goto decode_fail;
     }
 
@@ -42,7 +42,7 @@ void render_vgmstream_segmented(sample_t* outbuf, int32_t sample_count, VGMSTREA
             data->current_segment++;
 
             if (data->current_segment >= data->segment_count) { /* when decoding more than num_samples */
-                VGM_LOG("SEGMENTED: reached last segment\n");
+                VGM_LOG_ONCE("SEGMENTED: reached last segment\n");
                 goto decode_fail;
             }
 
@@ -62,7 +62,7 @@ void render_vgmstream_segmented(sample_t* outbuf, int32_t sample_count, VGMSTREA
             samples_to_do = VGMSTREAM_SEGMENT_SAMPLE_BUFFER;
 
         if (samples_to_do < 0) { /* 0 is ok? */
-            VGM_LOG("SEGMENTED: wrong samples_to_do %i found\n", samples_to_do);
+            VGM_LOG_ONCE("SEGMENTED: wrong samples_to_do %i found\n", samples_to_do);
             goto decode_fail;
         }
 
