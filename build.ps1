@@ -14,32 +14,6 @@ $config = "/p:Configuration=Release"
 $onAppveyor = ($env:APPVEYOR -eq "true")
 $appveyorLoggerPath = "C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
 
-$fb2kFiles = @(
-    "ext_libs/*.dll",
-    "ext_libs/*.dll.asc",
-    "Release/foo_input_vgmstream.dll",
-    "README.md"
-)
-
-$cliFiles = @(
-    "ext_libs/*.dll",
-    "Release/in_vgmstream.dll",
-    "Release/test.exe",
-    "Release/xmp-vgmstream.dll",
-    "COPYING",
-    "README.md"
-)
-
-$fb2kPdbFiles = @(
-    "Release/foo_input_vgmstream.pdb"
-)
-
-$cliPdbFiles = @(
-    "Release/in_vgmstream.pdb",
-    "Release/test.pdb",
-    "Release/xmp-vgmstream.pdb"
-)
-
 function Unzip
 {
     param([string]$zipfile, [string]$outpath)
@@ -92,15 +66,6 @@ function Init
         $_.ClCompile.AppendChild($includes)
     }
     $proj.Save("dependencies\foobar\foobar2000\ATLHelpers\foobar2000_ATL_helpers.vcxproj")
-}
-
-function Package
-{
-    Compress-Archive $cliFiles Release/test.zip -Force
-    Compress-Archive $fb2kFiles Release/foo_input_vgmstream.zip -Force
-    Move-Item Release/foo_input_vgmstream.zip Release/foo_input_vgmstream.fb2k-component -Force
-    Compress-Archive $cliPdbFiles Release/test.pdb.zip -Force
-    Compress-Archive $fb2kPdbFiles Release/foo_input_vgmstream.pdb.zip -Force
 }
 
 function Build
