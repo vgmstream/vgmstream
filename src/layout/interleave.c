@@ -145,6 +145,6 @@ void render_vgmstream_interleave(sample_t * buffer, int32_t sample_count, VGMSTR
     }
     return;
 fail:
-    VGM_LOG("layout_interleave: wrong values found\n");
+    VGM_LOG_ONCE("layout_interleave: wrong values found\n");
     memset(buffer + samples_written*vgmstream->channels, 0, (sample_count - samples_written) * vgmstream->channels * sizeof(sample_t));
 }

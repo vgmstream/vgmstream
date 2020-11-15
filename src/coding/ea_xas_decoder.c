@@ -25,12 +25,12 @@ static const float xa_coefs[16][2] = {
     /* only 4 pairs exist, assume 0s for bad indexes */
 };
 
-/* EA-XAS v1, evolution of EA-XA/XAS and cousin of MTA2. Reverse engineered from various .exes/.so
+/* EA-XAS (XA Seekable) Version 1, evolution of EA-XA/XAS and cousin of MTA2. Reverse engineered from various .exes/.so
  *
  * Layout: blocks of 0x4c per channel (128 samples), divided into 4 headers + 4 vertical groups of 15 bytes.
  * Original code reads all headers first then processes all nibbles (for CPU cache/parallelism/SIMD optimizations).
  * To simplify, always decodes the block and discards unneeded samples, so doesn't use external hist. */
-void decode_ea_xas_v1(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
+void decode_ea_xas_v1(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
     uint8_t frame[0x4c] = {0};
     off_t frame_offset;
     int group, row, i, samples_done = 0, sample_count = 0;
@@ -112,7 +112,7 @@ void decode_ea_xas_v1(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channels
 }
 
 
-/* EA-XAS v0, without complex layouts and closer to EA-XA. Somewhat based on daemon1's decoder */
+/* EA-XAS v0 (xas0), without complex layouts and closer to EA-XA. Somewhat based on daemon1's decoder. */
 void decode_ea_xas_v0(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
     uint8_t frame[0x13] = {0};
     off_t frame_offset;

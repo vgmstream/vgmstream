@@ -24,9 +24,14 @@ typedef struct utf_context utf_context;
 utf_context* utf_open(STREAMFILE* sf, uint32_t table_offset, int* p_rows, const char** p_row_name);
 void utf_close(utf_context* utf);
 /* query calls */
+int utf_query_s8(utf_context* utf, int row, const char* column, int8_t* value);
 int utf_query_u8(utf_context* utf, int row, const char* column, uint8_t* value);
+int utf_query_s16(utf_context* utf, int row, const char* column, int16_t* value);
 int utf_query_u16(utf_context* utf, int row, const char* column, uint16_t* value);
+int utf_query_s32(utf_context* utf, int row, const char* column, int32_t* value);
 int utf_query_u32(utf_context* utf, int row, const char* column, uint32_t* value);
+int utf_query_s64(utf_context* utf, int row, const char* column, int64_t* value);
+int utf_query_u64(utf_context* utf, int row, const char* column, uint64_t* value);
 int utf_query_string(utf_context* utf, int row, const char* column, const char** value);
 int utf_query_data(utf_context* utf, int row, const char* column, uint32_t* offset, uint32_t* size);
 

@@ -26,7 +26,7 @@ void render_vgmstream_flat(sample_t* outbuf, int32_t sample_count, VGMSTREAM* vg
             samples_to_do = sample_count - samples_written;
 
         if (samples_to_do == 0) { /* when decoding more than num_samples */
-            VGM_LOG("FLAT: samples_to_do 0\n"); 
+            VGM_LOG_ONCE("FLAT: samples_to_do 0\n"); 
             goto decode_fail;
         }
 

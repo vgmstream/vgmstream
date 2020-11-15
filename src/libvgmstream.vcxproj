@@ -306,6 +306,7 @@
     <ClCompile Include="meta\bsf.c" />
     <ClCompile Include="meta\capdsp.c" />
     <ClCompile Include="meta\ck.c" />
+    <ClCompile Include="meta\cpk.c" />
     <ClCompile Include="meta\cri_utf.c" />
     <ClCompile Include="meta\csb.c" />
     <ClCompile Include="meta\csmp.c" />
