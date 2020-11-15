@@ -184,7 +184,7 @@ void decode_ea_xa_v2(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspac
 #endif
 
 /* EA XA v1 (mono/stereo) */
-void decode_ea_xa(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do,int channel, int is_stereo) {
+void decode_ea_xa(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel, int is_stereo) {
     uint8_t frame_info;
     int32_t coef1, coef2;
     int i, sample_count, shift;
@@ -194,8 +194,9 @@ void decode_ea_xa(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing
     int frame_samples = 28;
     first_sample = first_sample % frame_samples;
 
+    /* header */
     if (is_stereo) {
-        /* header (coefs ch0+ch1 + shift ch0+ch1) */
+        /* coefs ch0+ch1 + shift ch0+ch1 */
         frame_info = read_8bit(stream->offset + 0x00, stream->streamfile);
         coef1 = EA_XA_TABLE[(hn ? frame_info >> 4 : frame_info & 0x0F) + 0];
         coef2 = EA_XA_TABLE[(hn ? frame_info >> 4 : frame_info & 0x0F) + 4];
@@ -203,7 +204,7 @@ void decode_ea_xa(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing
         frame_info = read_8bit(stream->offset + 0x01, stream->streamfile);
         shift = (hn ? frame_info >> 4 : frame_info & 0x0F) + 8;
     } else {
-        /* header (coefs + shift ch0) */
+        /* coefs + shift ch0 */
         frame_info = read_8bit(stream->offset + 0x00, stream->streamfile);
         coef1 = EA_XA_TABLE[(frame_info >> 4) + 0];
         coef2 = EA_XA_TABLE[(frame_info >> 4) + 4];
@@ -233,7 +234,7 @@ void decode_ea_xa(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing
         stream->offset += frame_size;
 }
 
-/* Maxis EA-XA v1 (mono+stereo) with byte-interleave layout in stereo mode */
+/* Maxis EA-XA v1 (mono/stereo) with byte-interleave layout in stereo mode */
 void decode_maxis_xa(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
     uint8_t frame_info;
     int32_t coef1, coef2;
