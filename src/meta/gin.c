@@ -1,26 +1,17 @@
 #include "meta.h"
 #include "../coding/coding.h"
 
-VGMSTREAM * init_vgmstream_gin_header(STREAMFILE *streamFile, off_t offset);
-
 /* .gin - EA engine sounds [Need for Speed: Most Wanted (multi)] */
 VGMSTREAM * init_vgmstream_gin(STREAMFILE *streamFile) {
-    if (!check_extensions(streamFile, "gin"))
-        goto fail;
-
-    return init_vgmstream_gin_header(streamFile, 0x00);
-
-fail:
-    return NULL;
-}
-
-VGMSTREAM * init_vgmstream_gin_header(STREAMFILE *streamFile, off_t offset) {
-    VGMSTREAM * vgmstream = NULL;
+    VGMSTREAM *vgmstream = NULL;
     off_t start_offset;
     int loop_flag, channel_count, sample_rate, num_samples;
 
+    if (!check_extensions(streamFile, "gin"))
+        goto fail;
+
     /* checks */
-    if (read_32bitBE(offset + 0x00, streamFile) != 0x476E7375) /* "Gnsu" */
+    if (read_32bitBE(0x00, streamFile) != 0x476E7375) /* "Gnsu" */
         goto fail;
 
     /* contains mapped values for engine RPM sounds but we'll just play the whole thing */
@@ -30,11 +21,11 @@ VGMSTREAM * init_vgmstream_gin_header(STREAMFILE *streamFile, off_t offset) {
     /* 0x14: RPM ??? table size */
     /* always LE even on X360/PS3 */
 
-    num_samples = read_32bitLE(offset + 0x18, streamFile);
-    sample_rate = read_32bitLE(offset + 0x1c, streamFile);
-    start_offset = offset + 0x20 +
-        (read_32bitLE(offset + 0x10, streamFile) + 1) * 0x04 +
-        (read_32bitLE(offset + 0x14, streamFile) + 1) * 0x04;
+    num_samples = read_32bitLE(0x18, streamFile);
+    sample_rate = read_32bitLE(0x1c, streamFile);
+    start_offset = 0x20 +
+        (read_32bitLE(0x10, streamFile) + 1) * 0x04 +
+        (read_32bitLE(0x14, streamFile) + 1) * 0x04;
     channel_count = 1;
     loop_flag = 0;
 

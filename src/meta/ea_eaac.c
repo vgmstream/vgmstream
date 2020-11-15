@@ -36,7 +36,6 @@
 
 static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE* sf_head, STREAMFILE* sf_data, off_t header_offset, off_t start_offset, meta_t meta_type, int standalone);
 static VGMSTREAM *parse_s10a_header(STREAMFILE* sf, off_t offset, uint16_t target_index, off_t ast_offset);
-VGMSTREAM * init_vgmstream_gin_header(STREAMFILE* sf, off_t offset);
 
 
 /* .SNR+SNS - from EA latest games (~2005-2010), v0 header */
@@ -741,6 +740,7 @@ fail:
 VGMSTREAM * init_vgmstream_ea_tmx(STREAMFILE* sf) {
     uint32_t num_sounds, sound_type, table_offset, data_offset, entry_offset, sound_offset;
     VGMSTREAM *vgmstream = NULL;
+    STREAMFILE *temp_sf = NULL;
     int target_stream = sf->stream_index;
     uint32_t(*read_u32)(off_t, STREAMFILE *);
 
@@ -769,8 +769,12 @@ VGMSTREAM * init_vgmstream_ea_tmx(STREAMFILE* sf) {
 
     switch (sound_type) {
         case 0x47494E20: /* "GIN " */
-            vgmstream = init_vgmstream_gin_header(sf, sound_offset);
+            temp_sf = setup_subfile_streamfile(sf, sound_offset, get_streamfile_size(sf) - sound_offset, "gin");
+            if (!temp_sf) goto fail;
+
+            vgmstream = init_vgmstream_gin(temp_sf);
             if (!vgmstream) goto fail;
+            close_streamfile(temp_sf);
             break;
         case 0x534E5220: /* "SNR " */
             vgmstream = init_vgmstream_eaaudiocore_header(sf, NULL, sound_offset, 0x00, meta_EA_SNR_SNS, 0);
@@ -784,6 +788,7 @@ VGMSTREAM * init_vgmstream_ea_tmx(STREAMFILE* sf) {
     return vgmstream;
 
 fail:
+    close_streamfile(temp_sf);
     return NULL;
 }
 
