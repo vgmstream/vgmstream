@@ -22,7 +22,7 @@
 #endif
 
 #ifdef HAVE_JSON
-#include "jansson.h"
+#include "jansson/jansson.h"
 #endif
 
 /* low values are ok as there is very little performance difference, but higher
