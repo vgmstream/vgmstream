@@ -35,7 +35,7 @@ void render_vgmstream_layered(sample_t* outbuf, int32_t sample_count, VGMSTREAM*
             samples_to_do = sample_count - samples_written;
 
         if (samples_to_do <= 0) { /* when decoding more than num_samples */
-            VGM_LOG("LAYERED: samples_to_do 0\n");
+            VGM_LOG_ONCE("LAYERED: samples_to_do 0\n");
             goto decode_fail;
         }
 

@@ -369,14 +369,29 @@ static int utf_query_value(utf_context* utf, int row, const char* column, void* 
     return 1;
 }
 
+int utf_query_s8(utf_context* utf, int row, const char* column, int8_t* value) {
+    return utf_query_value(utf, row, column, (void*)value, COLUMN_TYPE_SINT8);
+}
 int utf_query_u8(utf_context* utf, int row, const char* column, uint8_t* value) {
     return utf_query_value(utf, row, column, (void*)value, COLUMN_TYPE_UINT8);
+}
+int utf_query_s16(utf_context* utf, int row, const char* column, int16_t* value) {
+    return utf_query_value(utf, row, column, (void*)value, COLUMN_TYPE_SINT16);
 }
 int utf_query_u16(utf_context* utf, int row, const char* column, uint16_t* value) {
     return utf_query_value(utf, row, column, (void*)value, COLUMN_TYPE_UINT16);
 }
+int utf_query_s32(utf_context* utf, int row, const char* column, int32_t* value) {
+    return utf_query_value(utf, row, column, (void*)value, COLUMN_TYPE_SINT32);
+}
 int utf_query_u32(utf_context* utf, int row, const char* column, uint32_t* value) {
     return utf_query_value(utf, row, column, (void*)value, COLUMN_TYPE_UINT32);
+}
+int utf_query_s64(utf_context* utf, int row, const char* column, int64_t* value) {
+    return utf_query_value(utf, row, column, (void*)value, COLUMN_TYPE_SINT64);
+}
+int utf_query_u64(utf_context* utf, int row, const char* column, uint64_t* value) {
+    return utf_query_value(utf, row, column, (void*)value, COLUMN_TYPE_UINT64);
 }
 int utf_query_string(utf_context* utf, int row, const char* column, const char** value) {
     return utf_query_value(utf, row, column, (void*)value, COLUMN_TYPE_STRING);

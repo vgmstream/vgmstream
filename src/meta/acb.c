@@ -15,11 +15,11 @@ VGMSTREAM* init_vgmstream_acb(STREAMFILE* sf) {
     /* checks */
     if (!check_extensions(sf, "acb"))
         goto fail;
-    if (read_32bitBE(0x00,sf) != 0x40555446) /* "@UTF" */
+    if (read_u32be(0x00,sf) != 0x40555446) /* "@UTF" */
         goto fail;
 
     /* .acb is a cue sheet that uses @UTF (CRI's generic table format) to store row/columns
-     * with complex info (cues, sequences, spatial info, etc). it can store a memory .awb
+     * with complex info (cues, sequences, spatial info, etc). It can store a memory .awb
      * (our target here), or reference external/streamed .awb (loaded elsewhere)
      * we only want .awb with actual waves but may use .acb to get names */
     {
@@ -33,8 +33,6 @@ VGMSTREAM* init_vgmstream_acb(STREAMFILE* sf) {
 
         if (rows != 1 || strcmp(name, "Header") != 0)
             goto fail;
-
-        //todo acb+cpk is also possible
 
         if (!utf_query_data(utf, 0, "AwbFile", &offset, &size))
             goto fail;
@@ -52,10 +50,16 @@ VGMSTREAM* init_vgmstream_acb(STREAMFILE* sf) {
     temp_sf = setup_subfile_streamfile(sf, subfile_offset,subfile_size, "awb");
     if (!temp_sf) goto fail;
 
-    vgmstream = init_vgmstream_awb_memory(temp_sf, sf);
-    if (!vgmstream) goto fail;
+    if (read_u32be(0x00, temp_sf) == 0x43504B20) { /* "CPK " */
+        vgmstream = init_vgmstream_cpk_memory(temp_sf, sf); /* older */
+        if (!vgmstream) goto fail;
+    }
+    else {
+        vgmstream = init_vgmstream_awb_memory(temp_sf, sf); /* newer */
+        if (!vgmstream) goto fail;
+    }
 
-    /* name-loading for this for memory .awb will be called from init_vgmstream_awb_memory */
+    /* name-loading for this for memory .awb will be called from init_vgmstream_awb/cpk_memory */
 
     utf_close(utf);
     close_streamfile(temp_sf);
@@ -271,11 +275,12 @@ static int load_acb_synth(acb_header* acb, int16_t Index) {
 
     acb->synth_depth++;
 
-    if (acb->synth_depth > 2) {
+    /* sometimes 2 (ex. Yakuza 6) or even 3 (Street Fighter vs Tekken) */
+    if (acb->synth_depth > 3) {
         VGM_LOG("ACB: Synth depth too high\n");
-        goto fail; /* max Synth > Synth > Waveform (ex. Yakuza 6) */
+        goto fail;
     }
-    
+
     //todo .CommandIndex > CommandTable
     //todo .TrackValues > TrackTable?
 
@@ -351,7 +356,7 @@ static int load_acb_command_tlvs(acb_header* acb, STREAMFILE* sf, uint32_t Comma
         tlv_code = read_u16be(offset + 0x00, sf);
         tlv_size = read_u8   (offset + 0x02, sf);
         offset += 0x03;
-        
+
         /* There are around 160 codes (some unused), with things like set volume, pan, stop, mute, and so on.
          * Multiple commands are linked and only "note on" seems to point so other objects, so maybe others
          * apply to current object (since there is "note off" without reference. */
@@ -533,7 +538,7 @@ static int load_acb_block(acb_header* acb, int16_t Index) {
         VGM_LOG("ACB: wrong Block.TrackIndex size\n");
         goto fail;
     }
-    
+
     //todo .ActionTrackStartIndex/NumActionTracks > ?
 
     /* read Tracks inside Block */

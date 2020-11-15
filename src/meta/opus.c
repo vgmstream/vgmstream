@@ -427,6 +427,25 @@ fail:
     return NULL;
 }
 
+/* Edelweiss variation [Sakuna: Of Rice and Ruin (Switch)] */
+VGMSTREAM* init_vgmstream_opus_nsopus(STREAMFILE* sf) {
+    off_t offset = 0;
+    int num_samples = 0, loop_start = 0, loop_end = 0;
+
+    /* checks */
+    if (!check_extensions(sf, "nsopus"))
+        goto fail;
+    if (read_u32be(0x00, sf) != 0x45574E4F) /* "EWNO" */
+        goto fail;
+
+    offset = 0x08;
+    num_samples = 0; //read_32bitLE(0x08, sf); /* samples without encoder delay? (lower than count) */
+
+    return init_vgmstream_opus(sf, meta_OPUS, offset, num_samples, loop_start, loop_end);
+fail:
+    return NULL;
+}
+
 /* Square Enix variation [Dragon Quest I-III (Switch)] */
 VGMSTREAM* init_vgmstream_opus_sqex(STREAMFILE* sf) {
     off_t offset = 0;

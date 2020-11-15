@@ -164,7 +164,7 @@ fail:
 }
 
 
-/* BKHD mini format, probably from FX generator plugins [Borderlands 2 (X360), Warhammer 40000 (PC)] */
+/* BKHD mini format, for FX plugins [Borderlands 2 (X360), Warhammer 40000 (PC)] */
 VGMSTREAM* init_vgmstream_bkhd_fx(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     off_t start_offset, data_size;
@@ -173,30 +173,48 @@ VGMSTREAM* init_vgmstream_bkhd_fx(STREAMFILE* sf) {
 
 
     /* checks */
-    if (!check_extensions(sf,"wem,bnk")) /* assumed */
+    /* .wem: used when (rarely) external */
+    if (!check_extensions(sf,"wem,bnk"))
         goto fail;
     big_endian = guess_endianness32bit(0x00, sf);
     read_u32 = big_endian ? read_u32be : read_u32le;
 
-    if (read_u32(0x00, sf) != 0x0400) /* codec? */
-        goto fail;
-    if (read_u32(0x04, sf) != 0x0800) /* codec? */
-        goto fail;
-    sample_rate = read_u32(0x08, sf);
-    channels    = read_u32(0x0c, sf) & 0xFF; /* 0x31 at 0x0d in PC, field is 32b vs X360 */
-    /* 0x10: some id or small size? (related to entries?) */
-    /* 0x14/18: some float? */
-    entries     = read_u32(0x1c, sf);
-    /* 0x20 data size / 0x10 */
-    /* 0x24 usually 4, sometimes higher values? */
-    /* 0x30: unknown table of 16b that goes up and down, or is fixed */
+    /* Not an actual stream but typically convolution reverb models and other FX plugin helpers.
+     * Useless but to avoid "subsong not playing" complaints. */
 
-    start_offset = 0x30 + align_size_to_block(entries * 0x02, 0x10);
-    data_size = get_streamfile_size(sf) - start_offset;
+    if (read_u32(0x00, sf) == 0x0400 &&
+        read_u32(0x04, sf) == 0x0800) {
+        sample_rate = read_u32(0x08, sf);
+        channels    = read_u32(0x0c, sf) & 0xFF; /* 0x31 at 0x0d in PC, field is 32b vs X360 */
+        /* 0x10: some id or small size? (related to entries?) */
+        /* 0x14/18: some float? */
+        entries     = read_u32(0x1c, sf);
+        /* 0x20 data size / 0x10 */
+        /* 0x24 usually 4, sometimes higher values? */
+        /* 0x30: unknown table of 16b that goes up and down, or is fixed */
+
+        start_offset = 0x30 + align_size_to_block(entries * 0x02, 0x10);
+        data_size = get_streamfile_size(sf) - start_offset;
+    }
+    else if (read_u32be(0x04, sf) == 0x00004844 && /* floats actually? */
+             read_u32be(0x08, sf) == 0x0000FA45 &&
+             read_u32be(0x1c, sf) == 0x80000000) {
+        /* seen in Crucible banks */
+        sample_rate = 48000; /* meh */
+        channels    = 1;
+
+        start_offset = 0;
+        data_size = get_streamfile_size(sf);
+        big_endian = 0;
+    }
+    else {
+        goto fail;
+    }
+
     loop_flag = 0;
 
-    /* output sounds a bit funny, maybe not an actual stream but sections or models for reverb/etc,
-     * data seems divided in chunks of 0x2000 */
+
+    /* data seems divided in chunks of 0x2000 */
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channels, loop_flag);
@@ -212,7 +230,7 @@ VGMSTREAM* init_vgmstream_bkhd_fx(STREAMFILE* sf) {
 
     vgmstream->num_samples = pcm_bytes_to_samples(data_size, channels, 32);
 
-    if (!vgmstream_open_stream(vgmstream,sf,start_offset))
+    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
         goto fail;
     return vgmstream;
 fail:

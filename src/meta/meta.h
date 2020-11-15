@@ -645,6 +645,7 @@ VGMSTREAM* init_vgmstream_opus_nxa(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_opus_opusx(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_opus_prototype(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_opus_opusnx(STREAMFILE* sf);
+VGMSTREAM* init_vgmstream_opus_nsopus(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_opus_sqex(STREAMFILE* sf);
 
 VGMSTREAM * init_vgmstream_raw_al(STREAMFILE * streamFile);
@@ -923,5 +924,8 @@ VGMSTREAM* init_vgmstream_xse_new(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_xse_old(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_wady(STREAMFILE* sf);
+
+VGMSTREAM* init_vgmstream_cpk(STREAMFILE* sf);
+VGMSTREAM* init_vgmstream_cpk_memory(STREAMFILE* sf, STREAMFILE* sf_acb);
 
 #endif /*_META_H*/

@@ -621,6 +621,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\cpk.c"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\cri_utf.c"
                     >
                 </File>
