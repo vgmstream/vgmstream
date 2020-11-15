@@ -7,7 +7,7 @@ typedef enum { HCA, CWAV, } cpk_type_t;
 
 static void load_cpk_name(STREAMFILE* sf, STREAMFILE* sf_acb, VGMSTREAM* vgmstream, int waveid);
 
-/* CPK - CRI container, audio part only [Metal Gear Solid: Snake Eater 3D (3DS), Street Fighter X Tekken Rip (X360)] */
+/* CPK - CRI container as audio bank [Metal Gear Solid: Snake Eater 3D (3DS), Street Fighter X Tekken (X360), Ace Combat Infinity (PS3)] */
 VGMSTREAM* init_vgmstream_cpk(STREAMFILE* sf) {
     return init_vgmstream_cpk_memory(sf, NULL);
 }
@@ -36,7 +36,7 @@ VGMSTREAM* init_vgmstream_cpk_memory(STREAMFILE* sf, STREAMFILE* sf_acb) {
     /* 08: 0x02A0? */
     /* 0c: null? */
 
-    /* .cpk is CRI's generic file container, but here we only support CPK .awb used as
+    /* CPK .cpk is CRI's generic file container, but here we only support CPK .awb used as
      * early audio bank, that like standard AFS2 .awb comes with .acb */
     {
         int rows, i;
@@ -64,13 +64,13 @@ VGMSTREAM* init_vgmstream_cpk_memory(STREAMFILE* sf, STREAMFILE* sf_acb) {
         utf_close(utf);
         utf = NULL;
 
-        if (strncmp(Tvers, "awb.", 4) != 0) /* starts with "awb." + version */
+        if (strncmp(Tvers, "awb", 3) != 0) /* starts with "awb" + ".(version)" (SFvTK, MGS3D) or " for (version)" (ACI) */
             goto fail;
         if (Files <= 0)
             goto fail;
 
 
-        /* Itoc header */
+        /* Itoc header (regular .CPK tend to use Toc or Etoc header) */
         table_offset = 0x10 + ItocOffset;
         utf = utf_open(sf, table_offset, &rows, &name);
         if (!utf) goto fail;
