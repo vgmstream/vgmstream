@@ -275,9 +275,10 @@ static int load_acb_synth(acb_header* acb, int16_t Index) {
 
     acb->synth_depth++;
 
-    if (acb->synth_depth > 2) {
+    /* sometimes 2 (ex. Yakuza 6) or even 3 (Street Fighter vs Tekken) */
+    if (acb->synth_depth > 3) {
         VGM_LOG("ACB: Synth depth too high\n");
-        goto fail; /* max Synth > Synth > Waveform (ex. Yakuza 6) */
+        goto fail;
     }
 
     //todo .CommandIndex > CommandTable
