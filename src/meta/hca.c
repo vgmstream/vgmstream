@@ -181,9 +181,10 @@ done:
 static void bruteforce_hca_key(STREAMFILE* sf, hca_codec_data* hca_data, unsigned long long* out_keycode, uint16_t subkey) {
     STREAMFILE* sf_keys = NULL;
     uint8_t* buf = NULL;
-    int best_score = -1;
+    int best_score = 0xFFFFFF, cur_score;
     off_t keys_size, bytes;
     int pos;
+    uint64_t old_key = 0;
 
 
     VGM_LOG("HCA: test keys\n");
@@ -202,9 +203,12 @@ static void bruteforce_hca_key(STREAMFILE* sf, hca_codec_data* hca_data, unsigne
     bytes = read_streamfile(buf, 0, keys_size, sf_keys);
     if (bytes != keys_size) goto done;
 
+    VGM_LOG("HCA: start\n");
+
     pos = 0;
     while (pos < keys_size - 4) {
         uint64_t key;
+        VGM_ASSERT(pos % 0x1000000 == 0, "HCA: pos %x...\n", pos);
 
         /* keys are usually u32le lower, u32le upper (u64le) but other orders may exist */
         key = ((uint64_t)get_u32le(buf + pos + 0x00) << 0 ) | ((uint64_t)get_u32le(buf + pos + 0x04) << 32);
@@ -213,25 +217,32 @@ static void bruteforce_hca_key(STREAMFILE* sf, hca_codec_data* hca_data, unsigne
       //key = ((uint64_t)get_u32be(buf + pos + 0x00) << 32) | ((uint64_t)get_u32be(buf + pos + 0x04) << 0);
       //key = ((uint64_t)get_u32le(buf + pos + 0x00) << 0 ) | 0; /* upper bytes not set, ex. P5 */
       //key = ((uint64_t)get_u32be(buf + pos + 0x00) << 0 ) | 0; /* upper bytes not set, ex. P5 */
-        if (key == 0)
-            continue;
 
-        test_key(hca_data, key, subkey, &best_score, out_keycode);
-        if (best_score == 1)
+        /* observed files have aligned keys, change if needed */
+        pos += 0x04; //pos++;
+
+        if (key == 0 || key == old_key)
+            continue;
+        old_key = key;
+
+        cur_score = 0;
+        test_key(hca_data, key, subkey, &cur_score, out_keycode);
+        if (cur_score == 1)
             goto done;
 
-        VGM_ASSERT(pos % 0x100000 == 0, "HCA: pos %x...\n", pos);
-
-        /* observed files have aligned keys in the .text section, change if needed */
-        pos += 0x04;
-        //pos++;
+        if (cur_score > 0 && cur_score <= 500) {
+            VGM_LOG("HCA: possible key=%08x%08x (score=%i) at %x\n",
+                (uint32_t)((key >> 32) & 0xFFFFFFFF), (uint32_t)(key & 0xFFFFFFFF), cur_score, pos-0x04);
+            if (best_score > cur_score)
+                best_score = cur_score;
+        }
     }
 
 done:
     VGM_ASSERT(best_score > 0, "HCA: best key=%08x%08x (score=%i)\n",
             (uint32_t)((*out_keycode >> 32) & 0xFFFFFFFF), (uint32_t)(*out_keycode & 0xFFFFFFFF), best_score);
     VGM_ASSERT(best_score < 0, "HCA: key not found\n");
-    
+
     close_streamfile(sf_keys);
     free(buf);
 }
