@@ -417,7 +417,7 @@ static int render_pad_end(VGMSTREAM* vgmstream, sample_t* buf, int samples_done)
         start = 0;
     }
 
-    memset(buf + (start * channels), 0, (samples_done - start) * sizeof(sample_t) * channels);
+    memset(buf + (start * channels), 0, (samples_done - start) * channels * sizeof(sample_t));
     return samples_done;
 }
 
@@ -455,7 +455,8 @@ int render_vgmstream(sample_t* buf, int32_t sample_count, VGMSTREAM* vgmstream) 
 
     /* end padding (done before to avoid decoding if possible, samples_to_do becomes 0) */
     if (!vgmstream->config.play_forever /* && ps->pad_end_left */
-            && ps->play_position + samples_done >= ps->pad_end_start) {
+            && ps->play_position + samples_done >= ps->pad_end_start
+            && samples_to_do) {
         done = render_pad_end(vgmstream, tmpbuf, samples_to_do);
         samples_done += done;
         samples_to_do -= done;
