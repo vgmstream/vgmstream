@@ -61,6 +61,12 @@ jobs:
               "Release/xmp-vgmstream.pdb"
           )
           
+          Compress-Archive $cliFiles Release/test.zip -Force
+          Compress-Archive $fb2kFiles Release/foo_input_vgmstream.zip -Force
+          Move-Item Release/foo_input_vgmstream.zip Release/foo_input_vgmstream.fb2k-component -Force
+          Compress-Archive $cliPdbFiles Release/test.pdb.zip -Force
+          Compress-Archive $fb2kPdbFiles Release/foo_input_vgmstream.pdb.zip -Force
+          
           mkdir tmp/cli
           mkdir tmp/fb2k
           mkdir tmp/cli-p

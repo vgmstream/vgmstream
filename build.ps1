@@ -1,7 +1,7 @@
 [CmdletBinding()]
 Param(
     [Parameter(Position=0, mandatory=$true)]
-    [ValidateSet("Init", "Build", "Package")]
+    [ValidateSet("Init", "Build")]
     [string]$Task
 )
 
@@ -11,8 +11,6 @@ Param(
 $solution = "vgmstream_full.sln"
 $vswhere = "dependencies/vswhere.exe"
 $config = "/p:Configuration=Release"
-$onAppveyor = ($env:APPVEYOR -eq "true")
-$appveyorLoggerPath = "C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
 
 function Unzip
 {
@@ -70,17 +68,6 @@ function Init
 
 function Build
 {
-    $commit = & git describe --always
-    if($onAppveyor) {
-        if($env:APPVEYOR_PULL_REQUEST_NUMBER) {
-            $prCommits = & git rev-list "$env:APPVEYOR_REPO_BRANCH.." --count
-            $prNum = ".PR$env:APPVEYOR_PULL_REQUEST_NUMBER.$prCommits"
-        }
-        if($env:APPVEYOR_REPO_BRANCH -ne "master") { $branch = ".$env:APPVEYOR_REPO_BRANCH" }
-        $version = "$commit$prNum$branch"
-        Update-AppveyorBuild -Version $version -errorAction SilentlyContinue
-    }
-
     if(!(Test-Path $vswhere)) { Init }
 
     $msbuild = & $vswhere -latest -products * -requires Microsoft.Component.MSBuild -find MSBuild\**\Bin\MSBuild.exe
@@ -89,19 +76,11 @@ function Build
         Write-Error "Unable to find MSBuild. Is Visual Studio installed?"
     }
 
-    $logger = ""
-    if(Test-Path $appveyorLoggerPath) {
-        $logger = "/logger:$appveyorLoggerPath"
-    }
-
-    & $msbuild $solution $config $logger /m
-
-    Package
+    & $msbuild $solution $config /m
 }
 
 switch ($Task)
 {
     "Init" { Init }
     "Build" { Build }
-    "Package" { Package }
 }
