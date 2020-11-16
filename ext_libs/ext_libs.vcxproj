@@ -104,6 +104,11 @@
       <Command>lib /def:libcelt-0110.def /machine:x86 /out:libcelt-0110.lib</Command>
       <Outputs>libcelt-0110.lib;libcelt-0110.exp;%(Outputs)</Outputs>
     </CustomBuild>
+	<CustomBuild Include="jansson.def">
+      <Message>Building library stub</Message>
+      <Command>lib /def:jansson.def /machine:x86 /out:jansson.lib</Command>
+      <Outputs>jansson.lib;jansson.exp;%(Outputs)</Outputs>
+    </CustomBuild>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -38,7 +38,6 @@ jobs:
         run: |
           $fb2kFiles = @(
               "ext_libs/*.dll",
-              "ext_libs/*.dll.asc",
               "Release/foo_input_vgmstream.dll",
               "README.md"
           )
@@ -48,7 +47,6 @@ jobs:
               "Release/in_vgmstream.dll",
               "Release/test.exe",
               "Release/xmp-vgmstream.dll",
-              "dependencies/jansson/build/bin/Release/jansson.dll",
               "COPYING",
               "README.md"
           )
