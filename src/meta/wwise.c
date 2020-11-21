@@ -484,12 +484,11 @@ VGMSTREAM* init_vgmstream_wwise(STREAMFILE* sf) {
             break;
         }
 
-#if 0   // disabled until more files/tests
         case OPUSWW: {   /* updated Opus [Assassin's Creed Valhalla (PC)] */
             int skip, table_count;
         
             if (ww.block_align != 0 || ww.bits_per_sample != 0) goto fail;
-            if (!ww.seek_offset)) goto fail;
+            if (!ww.seek_offset) goto fail;
 
             /* extra: size 0x10 */
             /* 0x12: samples per frame */
@@ -512,7 +511,6 @@ VGMSTREAM* init_vgmstream_wwise(STREAMFILE* sf) {
             vgmstream->layout_type = layout_none;
             break;
         }
-#endif
 
 #endif
         case HEVAG: /* PSV */
@@ -781,13 +779,13 @@ static int parse_wwise(STREAMFILE* sf, wwise_header* ww) {
         case 0x0166: ww->codec = XMA2; break; /* fmt-chunk XMA */
         case 0xAAC0: ww->codec = AAC; break;
         case 0xFFF0: ww->codec = DSP; break;
-        case 0xFFFB: ww->codec = HEVAG; break;
+        case 0xFFFB: ww->codec = HEVAG; break; /* "VAG" */
         case 0xFFFC: ww->codec = ATRAC9; break;
         case 0xFFFE: ww->codec = PCM; break; /* "PCM for Wwise Authoring" */
         case 0xFFFF: ww->codec = VORBIS; break;
         case 0x3039: ww->codec = OPUSNX; break; /* renamed from "OPUS" on Wwise 2018.1 */
         case 0x3040: ww->codec = OPUS; break;
-        case 0x3041: ww->codec = OPUSWW; break; /* added on Wwise 2019.2.3, presumably replaces OPUS */
+        case 0x3041: ww->codec = OPUSWW; break; /* "OPUS_WEM", added on Wwise 2019.2.3, replaces OPUS */
         case 0x8311: ww->codec = PTADPCM; break; /* added on Wwise 2019.1, replaces IMA */
         default:
             goto fail;
