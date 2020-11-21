@@ -333,6 +333,7 @@ static const char* extension_list[] = {
     "musc",
     "musx",
     "mvb", //txth/reserved [Porsche Challenge (PS1)]
+    "mwa", //txth/reserved [Fatal Frame (Xbox)]
     "mwv",
     "mxst",
     "myspd",
