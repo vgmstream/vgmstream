@@ -9,7 +9,7 @@
 #define WAVEBANKENTRY_FLAGS_IGNORELOOP      0x00000008  // Used internally when the loop region can't be used (no idea...)
 
 /* the x.x version is just to make it clearer, MS only classifies XACT as 1/2/3 */
-#define XACT1_0_MAX     1           /* Project Gotham Racing 2 (v1), Silent Hill 4 (v1) */
+#define XACT1_0_MAX     1           /* Project Gotham Racing 2 (v1), Silent Hill 4 (v1), Shin Megami Tensei NINE (v1) */
 #define XACT1_1_MAX     3           /* Unreal Championship (v2), The King of Fighters 2003 (v3) */
 #define XACT2_0_MAX     34          /* Dead or Alive 4 (v17), Kameo (v23), Table Tennis (v34) */ // v35/36/37 too?
 #define XACT2_1_MAX     38          /* Prey (v38) */ // v39 too?
@@ -471,12 +471,12 @@ VGMSTREAM* init_vgmstream_xwb(STREAMFILE* sf) {
             break;
 
 #ifdef VGM_USE_FFMPEG
-        case XMA1: { /* Kameo (X360) */
+        case XMA1: { /* Kameo (X360), Table Tennis (X360) */
             uint8_t buf[0x100];
             int bytes;
 
-            bytes = ffmpeg_make_riff_xma1(buf,0x100, vgmstream->num_samples, xwb.stream_size, vgmstream->channels, vgmstream->sample_rate, 0);
-            vgmstream->codec_data = init_ffmpeg_header_offset(sf, buf,bytes, xwb.stream_offset,xwb.stream_size);
+            bytes = ffmpeg_make_riff_xma1(buf, sizeof(buf), vgmstream->num_samples, xwb.stream_size, vgmstream->channels, vgmstream->sample_rate, 0);
+            vgmstream->codec_data = init_ffmpeg_header_offset(sf, buf, bytes, xwb.stream_offset,xwb.stream_size);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
@@ -499,8 +499,8 @@ VGMSTREAM* init_vgmstream_xwb(STREAMFILE* sf) {
             block_size = 0x10000; /* XACT default */
             block_count = xwb.stream_size / block_size + (xwb.stream_size % block_size ? 1 : 0);
 
-            bytes = ffmpeg_make_riff_xma2(buf,0x100, vgmstream->num_samples, xwb.stream_size, vgmstream->channels, vgmstream->sample_rate, block_count, block_size);
-            vgmstream->codec_data = init_ffmpeg_header_offset(sf, buf,bytes, xwb.stream_offset,xwb.stream_size);
+            bytes = ffmpeg_make_riff_xma2(buf, sizeof(buf), vgmstream->num_samples, xwb.stream_size, vgmstream->channels, vgmstream->sample_rate, block_count, block_size);
+            vgmstream->codec_data = init_ffmpeg_header_offset(sf, buf, bytes, xwb.stream_offset,xwb.stream_size);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
@@ -537,8 +537,8 @@ VGMSTREAM* init_vgmstream_xwb(STREAMFILE* sf) {
             block_align = wma_block_align_index[block_index];
             wma_codec = xwb.bits_per_sample ? 0x162 : 0x161; /* 0=WMAudio2, 1=WMAudio3 */
 
-            bytes = ffmpeg_make_riff_xwma(buf,0x100, wma_codec, xwb.stream_size, vgmstream->channels, vgmstream->sample_rate, avg_bps, block_align);
-            vgmstream->codec_data = init_ffmpeg_header_offset(sf, buf,bytes, xwb.stream_offset,xwb.stream_size);
+            bytes = ffmpeg_make_riff_xwma(buf, sizeof(buf), wma_codec, xwb.stream_size, vgmstream->channels, vgmstream->sample_rate, avg_bps, block_align);
+            vgmstream->codec_data = init_ffmpeg_header_offset(sf, buf, bytes, xwb.stream_offset,xwb.stream_size);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
@@ -646,7 +646,7 @@ static int get_xsb_name(char* buf, size_t maxsize, int target_subsong, xwb_heade
         goto fail;
 
     if ((xwb->version <= XACT1_1_MAX && xsb.version > XSB_XACT1_2_MAX) ||
-        (xwb->version <= XACT2_2_MAX && xsb.version > XSB_XACT2_MAX)) {
+        (xwb->version <= XACT2_2_MAX && xsb.version > XSB_XACT2_2_MAX)) {
         VGM_LOG("XSB: mismatched XACT versions: xsb v%i vs xwb v%i\n", xsb.version, xwb->version);
         goto fail;
     }

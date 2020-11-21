@@ -5,7 +5,9 @@
 #define XSB_XACT1_0_MAX 5       /* Unreal Championship (Xbox) */
 #define XSB_XACT1_1_MAX 8       /* Die Hard: Vendetta (Xbox) */
 #define XSB_XACT1_2_MAX 11      /* other Xbox games */
-#define XSB_XACT2_MAX   41      /* other PC/X360 games */
+#define XSB_XACT2_0_MAX 34      /* Table Tennis (v34) */
+//#define XSB_XACT2_1_MAX 38    /* Prey (v38) */ // v39 too?
+#define XSB_XACT2_2_MAX 41      /* other PC/X360 games */
 
 
 typedef struct {
@@ -44,10 +46,10 @@ typedef struct {
 static void xsb_check_stream(xsb_header *xsb, int stream_index, int wavebank_index, off_t name_offset, STREAMFILE *sf) {
     if (xsb->parse_done)
         return;
-    //;VGM_LOG("XSB old: found stream=%i vs %i, wavebank=%i vs %i, name_offset=%lx\n", stream_index, xsb->selected_stream, wavebank_index, xsb->selected_wavebank, name_offset);
+    //;VGM_LOG("XSB: found stream=%i vs %i, wavebank=%i vs %i, name_offset=%lx\n", stream_index, xsb->selected_stream, wavebank_index, xsb->selected_wavebank, name_offset);
 
     if (stream_index < 0 || stream_index > 0xFFF || wavebank_index < 0 || wavebank_index > xsb->wavebanks_count) {
-        VGM_LOG("XSB old: bad stream=%i, wavebank=%i\n", stream_index, wavebank_index);
+        VGM_LOG("XSB: bad stream=%i, wavebank=%i\n", stream_index, wavebank_index);
         return;
     }
 
@@ -277,7 +279,7 @@ static int parse_xsb_old_cues(xsb_header *xsb, STREAMFILE *sf) {
         /* 0x0c: some low value or flag? */
         /* 0x0e: some index? */
         /* 0x10: 4 fields? (-1 or 7) */
-        //;VGM_LOG("XSB old index %i at %lx: flags=%x, entry=%i, name_offset=%lx\n", i, offset, flags, cue_entry, name_offset);
+        //;VGM_LOG("XSB old index %i at %lx: entry=%i, name_offset=%lx\n", i, offset, cue_entry, name_offset);
 
         if (cue_entry < 0) {
             jump_offset = read_s32(offset + 0x08, sf);
@@ -315,12 +317,12 @@ static int parse_xsb_clip(xsb_header *xsb, off_t offset, off_t name_offset, STRE
 
     uint32_t flags;
     int stream_index, wavebank_index;
-    int i, t, track_count, event_count;
+    int i, t, track_count, event_count, size;
 
 
     event_count = read_s8(offset + 0x00, sf);
 
-    //;VGM_LOG("XSB clip at %lx\n", offset);
+    //;VGM_LOG("XSB clip at %lx, events=%i\n", offset, event_count);
     offset += 0x01;
 
     for (i = 0; i < event_count; i++) {
@@ -333,16 +335,26 @@ static int parse_xsb_clip(xsb_header *xsb, off_t offset, off_t name_offset, STRE
         switch (flags & 0x1F) { /* event ID */
 
             case 0x01: /* playwave event */
-                /* 00(1): unknown */
-                /* 01(1): flags */
-                stream_index    = read_s16(offset + 0x02, sf);
-                wavebank_index  = read_s8 (offset + 0x04, sf);
-                /* 05(1): loop count */
-                /* 06(2): pan angle */
-                /* 08(2): pan arc */
+                if (xsb->version <= XSB_XACT2_0_MAX) { /* v34 (Table Tennis) */
+                    /* 00(1): unknown */
+                    stream_index    = read_s16(offset + 0x01, sf);
+                    wavebank_index  = read_s8 (offset + 0x03, sf);
+                    /* 04(1): loop count? */
+                    size = 0x05;
+                }
+                else { /* v40 (Blue Dragon) */
+                    /* 00(1): unknown */
+                    /* 01(1): flags */
+                    stream_index    = read_s16(offset + 0x02, sf);
+                    wavebank_index  = read_s8 (offset + 0x04, sf);
+                    /* 05(1): loop count */
+                    /* 06(2): pan angle */
+                    /* 08(2): pan arc */
+                    size = 0x0a;
+                }
 
                 //;VGM_LOG("XSB clip event 1 at %lx: stream=%i, wavebank=%i\n", offset, stream_index, wavebank_index);
-                offset += 0x0a;
+                offset += size;
 
                 xsb_check_stream(xsb, stream_index, wavebank_index, name_offset, sf);
                 if (xsb->parse_done) return 1;
@@ -354,11 +366,11 @@ static int parse_xsb_clip(xsb_header *xsb, off_t offset, off_t name_offset, STRE
                 /* 02(1): loop count */
                 /* 03(2): pan angle */
                 /* 05(2): pan arc */
-                track_count = read_s16(offset + 0x07, sf);
-                /* 09(1): flags? */
-                /* 0a(5): unknown */
+                /* 07(2): flags? */
+                track_count = read_s16(offset + 0x09, sf); /* MonoGame reads at 0x07, but this looks correct [LocoCycle (X360)-v46] */
+                /* 0b(4): unknown */
 
-                //;VGM_LOG("XSB clip event 3 at %lx\n", offset);
+                //;VGM_LOG("XSB clip event 3 at %lx, tracks=%i\n", offset, track_count);
                 offset += 0x0F;
 
                 for (t = 0; t < track_count; t++) {
@@ -389,13 +401,13 @@ static int parse_xsb_clip(xsb_header *xsb, off_t offset, off_t name_offset, STRE
                 /* 0f(1): max volume */
                 /* 10(4): min frequency */
                 /* 14(4): max frequency */
-                /* 18(1): min Q */
-                /* 19(1): max Q */
-                /* 1a(1): unknown */
-                /* 1b(1): variation flags */
+                /* 18(4): min Q */
+                /* 1c(4): max Q */
+                /* 20(1): unknown */
+                /* 21(1): variation flags */
 
                 //;VGM_LOG("XSB clip event 4 at %lx: stream=%i, wavebank=%i\n", offset, stream_index, wavebank_index);
-                offset += 0x1c;
+                offset += 0x22;
 
                 xsb_check_stream(xsb, stream_index, wavebank_index, name_offset, sf);
                 if (xsb->parse_done) return 1;
@@ -413,16 +425,17 @@ static int parse_xsb_clip(xsb_header *xsb, off_t offset, off_t name_offset, STRE
                 /* 0c(1): max volume */
                 /* 0d(4): min frequency */
                 /* 11(4): max frequency */
-                /* 15(1): min Q */
-                /* 16(1): max Q */
-                /* 17(1): unknown */
-                /* 18(1): variation flags */
-                track_count = read_s16(offset + 0x19, sf);
-                /* 1a(1): flags 2 */
-                /* 1b(5): unknown 2 */
+                /* 15(4): min Q */
+                /* 19(4): max Q */
+                /* 1d(1): unknown */
+                /* 1e(1): variation flags? */
+                /* 1f(1): unknown 2 */
+                /* 20(1): variation flags? */
+                track_count = read_s16(offset + 0x21, sf); /* MonoGame reads at 0x1f, but this looks correct [LocoCycle (X360)-v46] */
+                /* 23(4): unknown 3 (-1?) */
 
-                //;VGM_LOG("XSB clip event 6 at %lx\n", offset);
-                offset += 0x20;
+                //;VGM_LOG("XSB clip event 6 at %lx, tracks=%i\n", offset, track_count);
+                offset += 0x27;
 
                 for (t = 0; t < track_count; t++) {
                     stream_index    = read_s16(offset + 0x00, sf);
@@ -529,6 +542,7 @@ static int parse_xsb_sound(xsb_header *xsb, off_t offset, off_t name_offset, STR
         }
     }
 
+    //;VGM_LOG("XSB sound end\n");
     return 0;
 }
 
@@ -542,11 +556,15 @@ static int parse_xsb_variation(xsb_header *xsb, off_t offset, off_t name_offset,
     int i, variation_count;
 
 
-    variation_count = read_s16(offset + 0x00, sf);
-    flags           = read_u16(offset + 0x02, sf);
+    /* MonoGame reads count first, but this looks correct [LocoCycle (X360)-v46] */
+    flags           = read_u16(offset + 0x00, sf);
+    variation_count = read_s16(offset + 0x02, sf);
+    /* 0x04(1): unknown */
+    /* 0x05(2): unknown */
+    /* 0x07(1): unknown */
 
-    //;VGM_LOG("XSB variation at %lx\n", offset);
-    offset += 0x04;
+    //;VGM_LOG("XSB variation at %lx, count=%i\n", offset, variation_count);
+    offset += 0x08;
 
     for (i = 0; i < variation_count; i++) {
         off_t sound_offset;
@@ -558,7 +576,7 @@ static int parse_xsb_variation(xsb_header *xsb, off_t offset, off_t name_offset,
                 /* 03(1): weight min */
                 /* 04(1): weight max */
 
-                //;VGM_LOG("XSB variation: type 0 with stream=%i, wavebank=%i\n", stream_index, wavebank_index);
+                //;VGM_LOG("XSB variation: type 0 at %lx with stream=%i, wavebank=%i\n", offset, stream_index, wavebank_index);
                 offset += 0x05;
 
                 xsb_check_stream(xsb, stream_index, wavebank_index, name_offset, sf);
@@ -570,7 +588,7 @@ static int parse_xsb_variation(xsb_header *xsb, off_t offset, off_t name_offset,
                 /* 04(1): weight min */
                 /* 05(1): weight max */
 
-                //;VGM_LOG("XSB variation: type 1\n");
+                //;VGM_LOG("XSB variation: type 1 at %lx\n", offset);
                 offset += 0x06;
 
                 parse_xsb_sound(xsb, sound_offset, name_offset, sf);
@@ -583,7 +601,7 @@ static int parse_xsb_variation(xsb_header *xsb, off_t offset, off_t name_offset,
                 /* 08(4): weight max */
                 /* 0c(4): flags */
 
-                //;VGM_LOG("XSB variation: type 3\n");
+                //;VGM_LOG("XSB variation: type 3 at %lx\n", offset);
                 offset += 0x10;
 
                 parse_xsb_sound(xsb, sound_offset, name_offset, sf);
@@ -594,7 +612,7 @@ static int parse_xsb_variation(xsb_header *xsb, off_t offset, off_t name_offset,
                 stream_index   = read_s16(offset + 0x00, sf);
                 wavebank_index =  read_s8(offset + 0x02, sf);
 
-                //;VGM_LOG("XSB variation: type 4 with stream=%i, wavebank=%i\n", stream_index, wavebank_index);
+                //;VGM_LOG("XSB variation: type 4 at %lx with stream=%i, wavebank=%i\n", offset, stream_index, wavebank_index);
                 offset += 0x03;
 
                 xsb_check_stream(xsb, stream_index, wavebank_index, name_offset, sf);
@@ -612,7 +630,7 @@ static int parse_xsb_variation(xsb_header *xsb, off_t offset, off_t name_offset,
     /* 03(1): unknown */
     offset += 0x04;
 
-
+    //;VGM_LOG("XSB variation end\n");
     return 1;
 fail:
     return 0;
@@ -620,7 +638,7 @@ fail:
 
 
 static int parse_xsb_cues(xsb_header *xsb, STREAMFILE *sf) {
-    int32_t  (*read_s32)(off_t,STREAMFILE*) = xsb->big_endian ? read_s32be : read_s32le;
+    int32_t (*read_s32)(off_t,STREAMFILE*) = xsb->big_endian ? read_s32be : read_s32le;
 
     uint8_t flags;
     off_t offset, name_offset, sound_offset;
@@ -767,7 +785,7 @@ static int parse_xsb(xsb_header *xsb, STREAMFILE *sf, char *xwb_wavebank_name) {
         xsb->index_size             = 0x14;
         xsb->entry_size             = 0x14;
     }
-    else if (xsb->version <= XSB_XACT2_MAX) {
+    else if (xsb->version <= XSB_XACT2_2_MAX) {
         /* 06(2): crc */
         /* 08(1): platform? (3=X360) */
         xsb->simple_cues_count      = read_s16(0x09, sf);
@@ -821,12 +839,9 @@ static int parse_xsb(xsb_header *xsb, STREAMFILE *sf, char *xwb_wavebank_name) {
     }
 
     //;VGM_LOG("XSB header: version=%i\n", xsb->version);
-    //;VGM_LOG("XSB header: count: simple=%i, complex=%i, wavebanks=%i, sounds=%i\n",
-    //        xsb->simple_cues_count, xsb->complex_cues_count, xsb->wavebanks_count, xsb->sounds_count);
-    //;VGM_LOG("XSB header: offset: simple=%lx, complex=%lx, wavebanks=%lx, sounds=%lx\n",
-    //        xsb->simple_cues_offset, xsb->complex_cues_offset, xsb->wavebanks_offset, xsb->sounds_offset);
-    //;VGM_LOG("XSB header: names: cues=%lx, size=%x, hash=%lx\n",
-    //        xsb->cue_names_offset, xsb->cue_names_size, xsb->nameoffsets_offset);
+    //;VGM_LOG("XSB header: count: simple=%i, complex=%i, wavebanks=%i, sounds=%i\n", xsb->simple_cues_count, xsb->complex_cues_count, xsb->wavebanks_count, xsb->sounds_count);
+    //;VGM_LOG("XSB header: offset: simple=%lx, complex=%lx, wavebanks=%lx, sounds=%lx\n", xsb->simple_cues_offset, xsb->complex_cues_offset, xsb->wavebanks_offset, xsb->sounds_offset);
+    //;VGM_LOG("XSB header: names: cues=%lx, size=%x, hash=%lx\n", xsb->cue_names_offset, xsb->cue_names_size, xsb->nameoffsets_offset);
 
     if (xsb->version > XSB_XACT1_2_MAX && xsb->cue_names_size <= 0) {
         VGM_LOG("XSB: no names found\n");
@@ -845,7 +860,7 @@ static int parse_xsb(xsb_header *xsb, STREAMFILE *sf, char *xwb_wavebank_name) {
         offset = xsb->wavebanks_offset;
         for (i = 0; i < xsb->wavebanks_count; i++) {
             read_string(xsb_wavebank_name,xsb->wavebanks_name_size, offset, sf);
-            //;VGM_LOG("XSB wavebanks: bank %i=%s\n", i, wavebank_name);
+            //;VGM_LOG("XSB wavebanks: bank %i\n", i); //, wavebank_name
             if (strcasecmp(xsb_wavebank_name, xwb_wavebank_name)==0) {
                 //;VGM_LOG("XSB banks: current xwb is wavebank %i=%s\n", i, xsb_wavebank_name);
                 xsb->selected_wavebank = i;
