@@ -143,7 +143,7 @@ void seek_layout_segmented(VGMSTREAM* vgmstream, int32_t seek_sample) {
 }
 
 void loop_layout_segmented(VGMSTREAM* vgmstream, int32_t loop_sample) {
-    loop_layout_segmented(vgmstream, loop_sample);
+    seek_layout_segmented(vgmstream, loop_sample);
 }
 
 
