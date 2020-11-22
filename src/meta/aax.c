@@ -105,7 +105,7 @@ VGMSTREAM * init_vgmstream_aax(STREAMFILE *streamFile) {
         }
     }
 
-    channel_count = data->segments[0]->channels;
+    channel_count = data->output_channels;
 
 
     /* build the VGMSTREAM */

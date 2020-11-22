@@ -440,9 +440,13 @@ While you can put anything in the values, this feature is meant to be used to st
 
 
 #### BASE OFFSET MODIFIER
-You can set a default offset that affects next `@(offset)` reads making them `@(offset + base_offset)`, for cleaner parsing (particularly interesting when combined with the `name_table`).
+You can set a default offset that affects next `@(offset)` reads making them `@(offset + base_offset)`, for cleaner parsing.
 
-For example instead of `channels = @0x714` you could set `base_offset = 0x710, channels = @0x04`. Set to 0 when you want to disable it.
+This is particularly interesting when combined with offsets to some long value. For example instead of `channels = @0x714` you could set `base_offset = 0x710, channels = @0x04`. Or values from the `name_table`, like `base_offset = name_value, channels = @0x04`.
+ 
+It also allows parsing formats that set offsets to another offset, by "chaining" `base_offset`. With `base_offset = @0x10` (pointing to `0x40`) then `base_offset = @0x20`, it reads value at `0x60`. Set to 0 when you want to disable/reset the chain: `base_offset = @0x10` then `base_offset = 0` then `base_offset = @0x20` reads value at `0x20`
+
+
 ```
 base_offset = (value)
 ```
@@ -1051,4 +1055,44 @@ loop_flag         = auto
 
 #@0x10 is an absolute offset to another table, that shouldn't be affected by subsong_spacing
 name_offset_absolute = @0x10 + 0x270
+```
+
+#### Fatal Frame (Xbox) .mwa.txth
+```
+#00: MWAV
+#04: flags?
+#08: subsongs
+#0c: data size
+#10: null
+#14: sizes offset
+#18: offsets table
+#1c: offset to tables?
+#20: header offset
+
+subsong_count = @0x08
+
+# size table
+subsong_spacing = 0
+base_offset = 0
+base_offset = @0x14
+subsong_spacing = 0x04
+data_size = @0x00
+
+# offset table
+subsong_spacing = 0
+base_offset = 0
+base_offset = @0x18
+subsong_spacing = 0x04
+start_offset = @0x00
+
+# header (standard "fmt")
+subsong_spacing = 0
+base_offset = 0
+base_offset = @0x20
+channels = @0x02$2
+sample_rate = @0x04
+
+codec = XBOX
+num_samples = data_size
+#todo: there are dummy entries
 ```

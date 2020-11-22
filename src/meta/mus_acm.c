@@ -78,7 +78,7 @@ VGMSTREAM * init_vgmstream_mus_acm(STREAMFILE *streamFile) {
         goto fail;
 
 
-    channel_count = data->segments[0]->channels;
+    channel_count = data->output_channels;
 
 
     /* build the VGMSTREAM */

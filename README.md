@@ -278,6 +278,24 @@ simpler to make and cleaner: for example create a text file named `bgm01-loop.tx
 and inside write `bgm01.mp3 #I 10.0 90.0`. Open the `.txtp` to play the `.mp3`
 looping from 10 to 90 seconds.
 
+#### OS case sensitiveness
+When using OS with case sensitive filesystem (mainly Linux), a known issue with
+companion files is that vgmstream generally tries to find them using lowercase
+extension.
+
+This means that if the developer used uppercase instead (e.g. `bgm.ABK`+`bgm.AST`)
+loading will fail. It's technically complex to fix this, so for the time being
+the only option is renaming the companion extension to lowercase.
+
+A particularly nasty variation of that is that some formats load files by full
+name (e.g. `STREAM.SS0`), but sometimes the actual filename is in other case
+(`Stream.ss0`), and some files could even point to that with another case. You
+could try adding *symlinks* in various upper/lower/mixed cases to handle this.
+Currently there isn't any way to know what exact name is needed (other than
+hex-editting), though only a few formats do this, mainly *Ubisoft* banks.
+
+Regular formats without companion files should work fine in upper/lowercase.
+
 ### Decryption keys
 Certain formats have encrypted data, and need a key to decrypt. vgmstream
 will try to find the correct key from a list, but it can be provided by

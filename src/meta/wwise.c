@@ -40,6 +40,7 @@ typedef struct {
     int block_align;
     int average_bps;
     int bits_per_sample;
+    uint8_t channel_type;
     uint32_t channel_layout;
     size_t extra_size;
 
@@ -462,7 +463,7 @@ VGMSTREAM* init_vgmstream_wwise(STREAMFILE* sf) {
             break;
         }
 
-        case OPUS: { /* alt to Vorbis [Girl Cafe Gun (Mobile)] */
+        case OPUS: { /* fully standard Ogg Opus [Girl Cafe Gun (Mobile)] */
             if (ww.block_align != 0 || ww.bits_per_sample != 0) goto fail;
 
             /* extra: size 0x12 */
@@ -484,19 +485,26 @@ VGMSTREAM* init_vgmstream_wwise(STREAMFILE* sf) {
             break;
         }
 
-#if 0   // disabled until more files/tests
-        case OPUSWW: {   /* updated Opus [Assassin's Creed Valhalla (PC)] */
-            int skip, table_count;
-        
-            if (ww.block_align != 0 || ww.bits_per_sample != 0) goto fail;
-            if (!ww.seek_offset)) goto fail;
+        case OPUSWW: { /* updated Opus [Assassin's Creed Valhalla (PC)] */
+            int mapping;
+            opus_config cfg = {0};
 
-            /* extra: size 0x10 */
+            if (ww.block_align != 0 || ww.bits_per_sample != 0) goto fail;
+            if (!ww.seek_offset) goto fail;
+
+            cfg.channels = ww.channels;
+            cfg.table_offset = ww.seek_offset;
+
+            /* extra: size 0x10 (though last 2 fields are beyond, AK plz) */
             /* 0x12: samples per frame */
             vgmstream->num_samples = read_s32(ww.fmt_offset + 0x18, sf);
-            table_count = read_u32(ww.fmt_offset + 0x1c, sf); /* same as seek size / 2 */
-            skip = read_u16(ww.fmt_offset + 0x20, sf);
-            /* 0x22: 1? (though extra size is declared as 0x10 so this is outsize, AK plz */
+            cfg.table_count = read_u32(ww.fmt_offset + 0x1c, sf); /* same as seek size / 2 */
+            cfg.skip = read_u16(ww.fmt_offset + 0x20, sf);
+            /* 0x22: codec version */
+            mapping = read_u8(ww.fmt_offset + 0x23, sf);
+
+            if (read_u8(ww.fmt_offset + 0x22, sf) != 1)
+                goto fail;
 
             /* OPUS is VBR so this is very approximate percent, meh */
             if (ww.truncated) {
@@ -505,14 +513,47 @@ VGMSTREAM* init_vgmstream_wwise(STREAMFILE* sf) {
                 ww.data_size = ww.file_size - start_offset;
             }
 
+            /* AK does some wonky implicit config for multichannel */
+            if (mapping == 1 && ww.channel_type == 1) { /* only allowed values ATM, set when >2ch */
+                static const int8_t mapping_matrix[8][8] = {
+                    { 0, 0, 0, 0, 0, 0, 0, 0, },
+                    { 0, 1, 0, 0, 0, 0, 0, 0, },
+                    { 0, 2, 1, 0, 0, 0, 0, 0, },
+                    { 0, 1, 2, 3, 0, 0, 0, 0, },
+                    { 0, 4, 1, 2, 3, 0, 0, 0, },
+                    { 0, 4, 1, 2, 3, 5, 0, 0, },
+                    { 0, 6, 1, 2, 3, 4, 5, 0, },
+                    { 0, 6, 1, 2, 3, 4, 5, 7, },
+                };
+                int i;
+
+                /* find coupled OPUS streams (internal streams using 2ch) */
+                switch(ww.channel_layout) {
+                    case mapping_7POINT1_surround:  cfg.coupled_count = 3; break;   /* 2ch+2ch+2ch+1ch+1ch, 5 streams */
+                    case mapping_5POINT1_surround:                                  /* 2ch+2ch+1ch+1ch, 4 streams */
+                    case mapping_QUAD_side:         cfg.coupled_count = 2; break;   /* 2ch+2ch, 2 streams */
+                    case mapping_2POINT1_xiph:                                      /* 2ch+1ch, 2 streams */
+                    case mapping_STEREO:            cfg.coupled_count = 1; break;   /* 2ch, 1 stream */
+                    default:                        cfg.coupled_count = 0; break;   /* 1ch, 1 stream */
+                    //TODO: AK OPUS doesn't seem to handles others mappings, though AK's .h imply they exist (uses 0 coupleds?)
+                }
+
+                /* total number internal OPUS streams (should be >0) */
+                cfg.stream_count = ww.channels - cfg.coupled_count;
+
+                /* channel assignments */
+                for (i = 0; i < ww.channels; i++) {
+                    cfg.channel_mapping[i] = mapping_matrix[ww.channels - 1][i];
+                }
+            }
+
             /* Wwise Opus saves all frame sizes in the seek table */
-            vgmstream->codec_data = init_ffmpeg_wwise_opus(sf, ww.seek_offset, table_count, ww.data_offset, ww.data_size, ww.channels, skip);
+            vgmstream->codec_data = init_ffmpeg_wwise_opus(sf, ww.data_offset, ww.data_size, &cfg);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
             break;
         }
-#endif
 
 #endif
         case HEVAG: /* PSV */
@@ -650,6 +691,7 @@ static int parse_wwise(STREAMFILE* sf, wwise_header* ww) {
      * - HEVAG: very off
      * - XMA2: exact file size
      * - some RIFX have LE size
+     * Value is ignored by AK's parser (set to -1).
      * (later we'll validate "data" which fortunately is correct)
      */
     if (read_u32(0x04,sf) + 0x04 + 0x04 != ww->file_size) {
@@ -745,6 +787,7 @@ static int parse_wwise(STREAMFILE* sf, wwise_header* ww) {
              * - 4b: eConfigType  (0=none, 1=standard, 2=ambisonic)
              * - 19b: uChannelMask */
             if ((ww->channel_layout & 0xFF) == ww->channels) {
+                ww->channel_type = (ww->channel_layout >> 8) & 0x0F;
                 ww->channel_layout = (ww->channel_layout >> 12);
             }
         }
@@ -781,13 +824,13 @@ static int parse_wwise(STREAMFILE* sf, wwise_header* ww) {
         case 0x0166: ww->codec = XMA2; break; /* fmt-chunk XMA */
         case 0xAAC0: ww->codec = AAC; break;
         case 0xFFF0: ww->codec = DSP; break;
-        case 0xFFFB: ww->codec = HEVAG; break;
+        case 0xFFFB: ww->codec = HEVAG; break; /* "VAG" */
         case 0xFFFC: ww->codec = ATRAC9; break;
         case 0xFFFE: ww->codec = PCM; break; /* "PCM for Wwise Authoring" */
         case 0xFFFF: ww->codec = VORBIS; break;
         case 0x3039: ww->codec = OPUSNX; break; /* renamed from "OPUS" on Wwise 2018.1 */
         case 0x3040: ww->codec = OPUS; break;
-        case 0x3041: ww->codec = OPUSWW; break; /* added on Wwise 2019.2.3, presumably replaces OPUS */
+        case 0x3041: ww->codec = OPUSWW; break; /* "OPUS_WEM", added on Wwise 2019.2.3, replaces OPUS */
         case 0x8311: ww->codec = PTADPCM; break; /* added on Wwise 2019.1, replaces IMA */
         default:
             goto fail;

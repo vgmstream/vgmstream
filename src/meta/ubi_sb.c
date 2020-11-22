@@ -1477,7 +1477,7 @@ static VGMSTREAM* init_vgmstream_ubi_sb_sequence(ubi_sb_header* sb, STREAMFILE* 
         goto fail;
 
     /* build the base VGMSTREAM */
-    vgmstream = allocate_vgmstream(data->segments[0]->channels, !sb->sequence_single);
+    vgmstream = allocate_vgmstream(data->output_channels, !sb->sequence_single);
     if (!vgmstream) goto fail;
 
     vgmstream->meta_type = meta_UBI_SB;

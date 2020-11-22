@@ -361,7 +361,7 @@ static int render_pad_begin(VGMSTREAM* vgmstream, sample_t* buf, int samples_to_
     return to_do;
 }
 
-static int render_fade(VGMSTREAM* vgmstream, sample_t* buf, int samples_done) {
+static int render_fade(VGMSTREAM* vgmstream, sample_t* buf, int samples_left) {
     play_state_t* ps = &vgmstream->pstate;
     //play_config_t* pc = &vgmstream->config;
 
@@ -376,7 +376,7 @@ static int render_fade(VGMSTREAM* vgmstream, sample_t* buf, int samples_done) {
         int32_t to_do = ps->fade_left;
 
         if (ps->play_position < ps->fade_start) {
-            start = samples_done - (ps->play_position + samples_done - ps->fade_start);
+            start = samples_left - (ps->play_position + samples_left - ps->fade_start);
             fade_pos = 0;
         }
         else {
@@ -384,8 +384,8 @@ static int render_fade(VGMSTREAM* vgmstream, sample_t* buf, int samples_done) {
             fade_pos = ps->play_position - ps->fade_start;
         }
 
-        if (to_do > samples_done - start)
-            to_do = samples_done - start;
+        if (to_do > samples_left - start)
+            to_do = samples_left - start;
 
         //TODO: use delta fadedness to improve performance?
         for (s = start; s < start + to_do; s++, fade_pos++) {
@@ -398,27 +398,33 @@ static int render_fade(VGMSTREAM* vgmstream, sample_t* buf, int samples_done) {
         ps->fade_left -= to_do;
 
         /* next samples after fade end would be pad end/silence, so we can just memset */
-        memset(buf + (start + to_do) * channels, 0, (samples_done - to_do - start) * sizeof(sample_t) * channels);
-
-        return samples_done;
+        memset(buf + (start + to_do) * channels, 0, (samples_left - to_do - start) * sizeof(sample_t) * channels);
+        return start + to_do;
     }
 }
 
-static int render_pad_end(VGMSTREAM* vgmstream, sample_t* buf, int samples_done) {
+static int render_pad_end(VGMSTREAM* vgmstream, sample_t* buf, int samples_left) {
     play_state_t* ps = &vgmstream->pstate;
     int channels = vgmstream->pstate.output_channels;
-    int start = 0;
+    int skip = 0;
+    int32_t to_do;
 
-    /* since anything beyond pad end is silence no need to check end */
+    /* pad end works like fades, where part of buf samples and part padding (silent),
+     * calc exact totals (beyond pad end normally is silence, except with segmented layout) */
     if (ps->play_position < ps->pad_end_start) {
-        start = samples_done - (ps->play_position + samples_done - ps->pad_end_start);
+        skip = ps->pad_end_start - ps->play_position;
+        to_do = ps->pad_end_duration;
     }
     else {
-        start = 0;
+        skip = 0;
+        to_do = (ps->pad_end_start + ps->pad_end_duration) - ps->play_position;
     }
 
-    memset(buf + (start * channels), 0, (samples_done - start) * channels * sizeof(sample_t));
-    return samples_done;
+    if (to_do > samples_left - skip)
+        to_do = samples_left - skip;
+
+    memset(buf + (skip * channels), 0, to_do * sizeof(sample_t) * channels);
+    return skip + to_do;
 }
 
 
@@ -453,9 +459,9 @@ int render_vgmstream(sample_t* buf, int32_t sample_count, VGMSTREAM* vgmstream) 
         tmpbuf += done * vgmstream->pstate.output_channels; /* as if mixed */
     }
 
-    /* end padding (done before to avoid decoding if possible, samples_to_do becomes 0) */
-    if (!vgmstream->config.play_forever /* && ps->pad_end_left */
-            && ps->play_position + samples_done >= ps->pad_end_start
+    /* end padding (before to avoid decoding if possible, but must be inside pad region) */
+    if (!vgmstream->config.play_forever
+            && ps->play_position /*+ samples_to_do*/ >= ps->pad_end_start
             && samples_to_do) {
         done = render_pad_end(vgmstream, tmpbuf, samples_to_do);
         samples_done += done;
@@ -542,6 +548,33 @@ void seek_vgmstream(VGMSTREAM* vgmstream, int32_t seek_sample) {
     int is_looped = vgmstream->loop_flag || vgmstream->loop_target > 0; /* loop target disabled loop flag during decode */
 
 
+    /* cleanup */
+    if (seek_sample < 0)
+        seek_sample = 0;
+    /* play forever can seek past max */
+    if (vgmstream->config_enabled && seek_sample > ps->play_duration && !play_forever)
+        seek_sample = ps->play_duration;
+
+
+    /* optimize as layouts can seek faster internally */
+    if (vgmstream->layout_type == layout_segmented) {
+        seek_layout_segmented(vgmstream, seek_sample);
+
+        if (vgmstream->config_enabled) {
+            vgmstream->pstate.play_position = seek_sample;
+        }
+        return;
+    }
+    else if (vgmstream->layout_type == layout_layered) {
+        seek_layout_layered(vgmstream, seek_sample);
+
+        if (vgmstream->config_enabled) {
+            vgmstream->pstate.play_position = seek_sample;
+        }
+        return;
+    }
+
+
     /* will decode and loop until seek sample, but slower */
     //todo apply same loop logic as below, or pretend we have play_forever + settings?
     if (!vgmstream->config_enabled) {
@@ -574,12 +607,6 @@ void seek_vgmstream(VGMSTREAM* vgmstream, int32_t seek_sample) {
      *  |  pad-begin  |  body-begin | body-loop0 | body-loop1 | body-loop2 | fade |  pad-end + beyond)
      *  0             5s   (-3s)    25s          95s          165s         235s   245s       Ns
      */
-
-    if (seek_sample < 0)
-        seek_sample = 0;
-    if (seek_sample > ps->play_duration && !play_forever) /* play forever can seek to any loop */
-        seek_sample = ps->play_duration;
-
     //;VGM_LOG("SEEK: seek sample=%i, is_looped=%i\n", seek_sample, is_looped);
 
     /* start/pad-begin: consume pad samples */

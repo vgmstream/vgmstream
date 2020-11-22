@@ -767,16 +767,19 @@ typedef enum {
 } speaker_t;
 
 /* typical mappings that metas may use to set channel_layout (but plugin must actually use it)
- * (in order, so 3ch file could be mapped to FL FR FC or FL FR LFE but not LFE FL FR) */
+ * (in order, so 3ch file could be mapped to FL FR FC or FL FR LFE but not LFE FL FR)
+ * not too sure about names but no clear standards */
 typedef enum {
     mapping_MONO             = speaker_FC,
     mapping_STEREO           = speaker_FL | speaker_FR,
     mapping_2POINT1          = speaker_FL | speaker_FR | speaker_LFE,
-    mapping_2POINT1_xiph     = speaker_FL | speaker_FR | speaker_FC,
+    mapping_2POINT1_xiph     = speaker_FL | speaker_FR | speaker_FC, /* aka 3STEREO? */
     mapping_QUAD             = speaker_FL | speaker_FR | speaker_BL  | speaker_BR,
     mapping_QUAD_surround    = speaker_FL | speaker_FR | speaker_FC  | speaker_BC,
+    mapping_QUAD_side        = speaker_FL | speaker_FR | speaker_SL  | speaker_SR,
     mapping_5POINT0          = speaker_FL | speaker_FR | speaker_LFE | speaker_BL | speaker_BR,
     mapping_5POINT0_xiph     = speaker_FL | speaker_FR | speaker_FC  | speaker_BL | speaker_BR,
+    mapping_5POINT0_surround = speaker_FL | speaker_FR | speaker_FC  | speaker_SL | speaker_SR,
     mapping_5POINT1          = speaker_FL | speaker_FR | speaker_FC  | speaker_LFE | speaker_BL | speaker_BR,
     mapping_5POINT1_surround = speaker_FL | speaker_FR | speaker_FC  | speaker_LFE | speaker_SL | speaker_SR,
     mapping_7POINT0          = speaker_FL | speaker_FR | speaker_FC  | speaker_LFE | speaker_BC | speaker_FLC | speaker_FRC,
@@ -998,6 +1001,7 @@ typedef struct {
     sample_t* buffer;
     int input_channels;     /* internal buffer channels */
     int output_channels;    /* resulting channels (after mixing, if applied) */
+    int mixed_channels;     /* segments have different number of channels */
 } segmented_layout_data;
 
 /* for files made of "parallel" layers, one per group of channels (using a complete sub-VGMSTREAM) */

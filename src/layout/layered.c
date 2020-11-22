@@ -76,6 +76,18 @@ decode_fail:
 }
 
 
+void seek_layout_layered(VGMSTREAM* vgmstream, int32_t seek_sample) {
+    int layer;
+    layered_layout_data* data = vgmstream->layout_data;
+
+    for (layer = 0; layer < data->layer_count; layer++) {
+        seek_vgmstream(data->layers[layer], seek_sample);
+    }
+
+    vgmstream->current_sample = seek_sample;
+    vgmstream->samples_into_block = seek_sample;
+}
+
 void loop_layout_layered(VGMSTREAM* vgmstream, int32_t loop_sample) {
     int layer;
     layered_layout_data* data = vgmstream->layout_data;
