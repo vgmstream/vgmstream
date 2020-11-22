@@ -399,30 +399,32 @@ static int render_fade(VGMSTREAM* vgmstream, sample_t* buf, int samples_left) {
 
         /* next samples after fade end would be pad end/silence, so we can just memset */
         memset(buf + (start + to_do) * channels, 0, (samples_left - to_do - start) * sizeof(sample_t) * channels);
-        return samples_left; //start + to_do;
+        return start + to_do;
     }
 }
 
 static int render_pad_end(VGMSTREAM* vgmstream, sample_t* buf, int samples_left) {
     play_state_t* ps = &vgmstream->pstate;
     int channels = vgmstream->pstate.output_channels;
-    int start = 0;
-    int32_t to_do = samples_left;
+    int skip = 0;
+    int32_t to_do;
 
-    /* pad end works like fades, where part of buf done it may be valid data and part padding (silent),
-     * so needs positions (since anything beyond pad end start is silence no need to check end) */
+    /* pad end works like fades, where part of buf samples and part padding (silent),
+     * calc exact totals (beyond pad end normally is silence, except with segmented layout) */
     if (ps->play_position < ps->pad_end_start) {
-        start = samples_left - (ps->play_position + samples_left - ps->pad_end_start);
+        skip = ps->pad_end_start - ps->play_position;
+        to_do = ps->pad_end_duration;
     }
     else {
-        start = 0;
+        skip = 0;
+        to_do = (ps->pad_end_start + ps->pad_end_duration) - ps->play_position;
     }
 
-    if (to_do > samples_left - start)
-        to_do = samples_left - start;
+    if (to_do > samples_left - skip)
+        to_do = samples_left - skip;
 
-    memset(buf + (start * channels), 0, to_do * sizeof(sample_t) * channels);
-    return samples_left; //start + to_do;
+    memset(buf + (skip * channels), 0, to_do * sizeof(sample_t) * channels);
+    return skip + to_do;
 }
 
 
@@ -457,9 +459,9 @@ int render_vgmstream(sample_t* buf, int32_t sample_count, VGMSTREAM* vgmstream) 
         tmpbuf += done * vgmstream->pstate.output_channels; /* as if mixed */
     }
 
-    /* end padding (done before to avoid decoding if possible, samples_to_do becomes 0) */
-    if (!vgmstream->config.play_forever /* && ps->pad_end_left */
-            && ps->play_position + samples_to_do >= ps->pad_end_start
+    /* end padding (before to avoid decoding if possible, but must be inside pad region) */
+    if (!vgmstream->config.play_forever
+            && ps->play_position /*+ samples_to_do*/ >= ps->pad_end_start
             && samples_to_do) {
         done = render_pad_end(vgmstream, tmpbuf, samples_to_do);
         samples_done += done;
