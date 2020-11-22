@@ -570,7 +570,7 @@ static VGMSTREAM* init_vgmstream_ubi_bao_sequence(ubi_bao_header* bao, STREAMFIL
 
 
     /* build the base VGMSTREAM */
-    vgmstream = allocate_vgmstream(data->segments[0]->channels, !bao->sequence_single);
+    vgmstream = allocate_vgmstream(data->output_channels, !bao->sequence_single);
     if (!vgmstream) goto fail;
 
     vgmstream->meta_type = meta_UBI_BAO;

@@ -72,7 +72,7 @@ loop_start_segment = 2
 loop_end_segment = 3
 loop_mode = keep    # loops in 2nd file's loop_start to 3rd file's loop_end
 ```
-Mixing sample rates is ok (uses max) but channel number must be equal for all files. You can use mixing (explained later) to join segments of different channels though.
+Mixing sample rates is ok (uses max). Different number of channels is allowed, but you may need to use mixing (explained later) to improve results. 4ch + 2ch will sound ok, but 1ch + 2ch would need some upmixing first.
 
 
 ### Layers mode
@@ -242,15 +242,16 @@ group = L #h44100
 commands = #h48000 #overwrites
 ```
 
-Segments and layer settings and rules still apply when making groups, so you can't group segments of files with different total channels. To do it you could use commands to "downmix" the group first:
+Segments and layer settings and rules still apply when making groups, so you may need to adjust groups a bit with commands:
 ```
 # this doesn't need to be grouped
 intro_2ch.at3
 
-# this is grouped into a single 4ch file, then downmixed to stereo
+# this is grouped into a single 4ch file, then auto-downmixed to stereo
+# (without downmixing may sound a bit strange since channels from mainB wouldn't mix with intro)
 mainA_2ch.at3
 mainB_2ch.at3
-group = 2L2 #@layer-v 2
+group = -L2 #@layer-v
 
 # finally resulting layers are played as segments (2ch, 2ch)
 # (could set a group = S and ommit mode here, too)
@@ -489,6 +490,39 @@ Use this feature responsibly, though. If you find a format that should loop usin
 Note that a few codecs may not work with arbitrary loop values since they weren't tested with loops. Misaligned loops will cause audible "clicks" at loop point too.
 
 
+### Loop anchors
+**`#a`** (loop start segment), **`#A`** (loop end segment): mark looping parts in segmented layout.
+
+For segmented layout normally you set loop points using `loop_start_segment` and `loop_end_segment`. It's clean in simpler cases but can be a hassle when lots of files exist. To simplify those cases you can set "loop anchors":
+```
+bgm01.adx
+bgm02.adx #a  ##defines loop start
+```
+```
+bgm01.adx
+bgm02.adx #a  ##defines loop start
+bgm03.adx
+bgm04.adx #A  ##defines loop end
+bgm05.adx
+```
+You can also use `#@loop` to set loop start.
+
+This setting also works in groups, which allows loops when using multiple segmented groups (not possible with `loop_start/end_segment`).
+```
+  bgm01.adx
+  bgm02.adx #a
+ group -S2 #l 2.0
+  bgm01.adx
+  bgm02.adx #a
+  bgm03.adx
+ group -S2 #l 3.0
+group -S2
+#could use R groups to select one sub-groups that loops
+# (loop_start_segment doesn't make sense for both segments)
+```
+Loop anchors have priority over `loop_start_segment`, and are ignored in layered layouts.
+
+
 ### Force sample rate
 **`#h(sample rate)`**: changes sample rate to selected value, changing play speed.
 
@@ -566,44 +600,11 @@ song#m1-3,2-4,3D
 # - drop channel 1 then 2 (now 1)
 song#m1d,1d
 ```
-Proper mixing requires some basic knowledge though, it's further explained later. Order matters and operations are applied sequentially, for extra flexibility at the cost of complexity and user-friendliness, and may result in surprising mixes. Try to stick to macros and simple combos, using later examples as a base.
+Proper mixing requires some basic knowledge though, it's further explained later. Order matters and operations are applied sequentially, for extra flexibility at the cost of complexity and user-friendliness, and may result in surprising mixes. Typical mixing operations are provided as *macros* (see below), so try to stick to macros and simple combos, using later examples as a base.
 
 This can be applied to individual layers and segments, but normally you want to use `commands` to apply mixing to the resulting file (see examples). Per-segment mixing should be reserved to specific up/downmixings.
 
-Mixing must be supported by the plugin, otherwise it's ignored (there is a negligible performance penalty per mix operation though).
-
-
-### Loop anchors
-**`#a`** (loop start segment), **`#A`** (loop end segment): mark looping parts in segmented layout.
-
-For segmented layout normally you set loop points using `loop_start_segment` and `loop_end_segment`. It's clean in simpler cases but can be a hassle when lots of files exist. To simplify those cases you can set "loop anchors":
-```
-bgm01.adx
-bgm02.adx #a  ##defines loop start
-```
-```
-bgm01.adx
-bgm02.adx #a  ##defines loop start
-bgm03.adx
-bgm04.adx #A  ##defines loop end
-bgm05.adx
-```
-You can also use `#@loop` to set loop start.
-
-This setting also works in groups, which allows loops when using multiple segmented groups (not possible with `loop_start/end_segment`).
-```
-  bgm01.adx
-  bgm02.adx #a
- group -S2 #l 2.0
-  bgm01.adx
-  bgm02.adx #a
-  bgm03.adx
- group -S2 #l 3.0
-group -S2
-#could use R groups to select one sub-groups that loops
-# (loop_start_segment doesn't make sense for both segments)
-```
-Loop anchors have priority over `loop_start_segment`, and are ignored in layered layouts.
+Mixing must be supported by the plugin, otherwise it's ignored (there is a negligible performance penalty per mix operation though, though having *a lot* will add up).
 
 
 ### Macros
@@ -613,10 +614,10 @@ Manually setting values gets old, so TXTP supports a bunch of simple macros. The
 - `volume N (channels)`: sets volume V to selected channels. N.N = percent or NdB = decibels.
   -  `1.0` or `0dB` = base volume, `2.0` or `6dB` = double volume, `0.5` or `-6dB` = half volume
   - `#v N` also works
-- `track (channels)`: makes a file of selected channels
-- `layer-v N (channels)`: mixes selected channels to N channels with default volume (for layered vocals). If N is 0 (or ommited), automatically sets highest channel count among all layers.
-- `layer-b N (channels)`: same, but adjusts volume depending on layers (for layered bgm)
-- `layer-e N (channels)`: same, but adjusts volume equally for all layers (for generic downmixing)
+- `track (channels)`: makes a file of selected channels (drops others)
+- `layer-v (N) (channels)`: for layered files, mixes selected channels to N channels with default volume (for layered vocals). If N is ommited (or 0), automatically sets highest channel count among all layers plus does some extra optimizations for (hopefully) better sounding results. May be applied to global commands or group config.
+- `layer-e (N) (channels)`: same, but adjusts volume equally for all layers (for generic downmixing)
+- `layer-b (N) (channels)`: same, but adjusts volume focusing on "main" layer (for layered bgm)
 - `remix N (channels)`: same, but mixes selected channels to N channels properly adjusting volume (for layered bgm)
 - `crosstrack N`: crossfades between Nch tracks after every loop (loop count is adjusted as needed)
 - `crosslayer-v/b/e N`: crossfades Nch layers to the main track after every loop (loop count is adjusted as needed)
@@ -731,7 +732,7 @@ Here is a rough look of how TXTP parses files, so you get a better idea of what'
 subdir name/bgm bank.fsb#s2#C1,2
 subdir name/bgm bank.fsb #s2  #C1,2 #comment
 ```
-All defined files must exist and be parseable by vgmstream, and general config like `mode` must make sense (not `mde = layers` or `mode = laye`).
+All defined files must exist and be parseable by vgmstream, and general config like `mode` must make sense (not `mde = layers` or `mode = laye`). *subdir* may even be relative paths like `../file.adx`, provided your OS supports that.
 
 Commands may add spaces as needed, but try to keep it simple. They *must* start with `#(command)`, as `#(space)(anything)` is a comment. Commands without corresponding file are ignored too (seen as comments), while incorrect commands are ignored and skip to next, though the parser may try to make something usable of them (this may be change anytime without warning):
 ```
@@ -796,7 +797,7 @@ You can also add spaces before files/commands, mainly to improve readability whe
  #segment x2
   song1
   song2
- group = 1S2 #E
+ group = -S2 #E
 ```
 
 Repeated commands overwrite previous setting, except comma-separated commands that are additive:
@@ -844,7 +845,7 @@ All this means there is no simple, standard way to mix, so you must experiment a
 
 
 ### Mixing examples
-TXTP has a few macros that help you handle most simpler cases (like `#C 1 2`, `#@layer-v 2`), that you should use when possible, but below is a full explanation of manual mixing (macros just automate these options using some standard formulas). 
+TXTP has a few macros that help you handle most simpler cases (like `#C 1 2`, `#@layer-v`), that you should use when possible, but below is a full explanation of manual mixing (macros just automate these options using some standard formulas). 
 ```
 # boost volume of all channels by 30%
 song#m0*1.3
@@ -915,19 +916,22 @@ ffxiii2-eclipse.scd#m5u,6u,5+1,6+2#@crosstrack 2
 
 Segment/layer downmixing is allowed but try to keep it simple, some mixes accomplish the same things but are a bit strange.
 ```
-# mix one stereo segment with a mono segment
+# mix one stereo segment with a mono segment upmixed to stereo
 intro-stereo.hca
-loop-mono.hca#m2u
-
-# this makes mono file
-intro-stereo.hca#m2u
-loop-stereo.hca#m2u
-
-# but you normally should do this instead as it's more natural
+loop-mono.hca#m2u,2+1
+```
+```
+# this makes mono file from each stereo song
+intro-stereo.hca#m2d
+loop-stereo.hca#m2d
+```
+```
+# but you normally should do it on the final result as it's more natural
 intro-stereo.hca
 loop-stereo.hca
-commands = #m2u
-
+commands = #m2d
+```
+```
 # fading segments work rather unexpectedly
 # fades out 1 minute into the _segment_  (could be 2 minutes into the resulting file)
 segment1.hca#m0{0:10+10.0

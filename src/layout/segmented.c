@@ -7,6 +7,7 @@
 #define VGMSTREAM_MAX_SEGMENTS 1024
 #define VGMSTREAM_SEGMENT_SAMPLE_BUFFER 8192
 
+static inline void copy_samples(sample_t* outbuf, segmented_layout_data* data, int current_channels, int32_t samples_to_do, int32_t samples_written);
 
 /* Decodes samples for segmented streams.
  * Chains together sequential vgmstreams, for data divided into separate sections or files
@@ -15,9 +16,10 @@ void render_vgmstream_segmented(sample_t* outbuf, int32_t sample_count, VGMSTREA
     int samples_written = 0, samples_this_block;
     segmented_layout_data* data = vgmstream->layout_data;
     int use_internal_buffer = 0;
+    int current_channels = 0;
 
     /* normally uses outbuf directly (faster?) but could need internal buffer if downmixing */
-    if (vgmstream->channels != data->input_channels) {
+    if (vgmstream->channels != data->input_channels || data->mixed_channels) {
         use_internal_buffer = 1;
     }
 
@@ -27,6 +29,7 @@ void render_vgmstream_segmented(sample_t* outbuf, int32_t sample_count, VGMSTREA
     }
 
     samples_this_block = vgmstream_get_samples(data->segments[data->current_segment]);
+    mixing_info(data->segments[data->current_segment], NULL, &current_channels);
 
     while (samples_written < sample_count) {
         int samples_to_do;
@@ -34,6 +37,7 @@ void render_vgmstream_segmented(sample_t* outbuf, int32_t sample_count, VGMSTREA
         if (vgmstream->loop_flag && vgmstream_do_loop(vgmstream)) {
             /* handle looping (loop_layout has been called below, changes segments/state) */
             samples_this_block = vgmstream_get_samples(data->segments[data->current_segment]);
+            mixing_info(data->segments[data->current_segment], NULL, &current_channels);
             continue;
         }
 
@@ -50,6 +54,7 @@ void render_vgmstream_segmented(sample_t* outbuf, int32_t sample_count, VGMSTREA
             reset_vgmstream(data->segments[data->current_segment]);
 
             samples_this_block = vgmstream_get_samples(data->segments[data->current_segment]);
+            mixing_info(data->segments[data->current_segment], NULL, &current_channels);
             vgmstream->samples_into_block = 0;
             continue;
         }
@@ -73,10 +78,7 @@ void render_vgmstream_segmented(sample_t* outbuf, int32_t sample_count, VGMSTREA
                 data->segments[data->current_segment]);
 
         if (use_internal_buffer) {
-            int s;
-            for (s = 0; s < samples_to_do * data->output_channels; s++) {
-                outbuf[samples_written * data->output_channels + s] = data->buffer[s];
-            }
+            copy_samples(outbuf, data, current_channels, samples_to_do, samples_written);
         }
 
         samples_written += samples_to_do;
@@ -88,6 +90,30 @@ void render_vgmstream_segmented(sample_t* outbuf, int32_t sample_count, VGMSTREA
 decode_fail:
     memset(outbuf + samples_written * data->output_channels, 0, (sample_count - samples_written) * data->output_channels * sizeof(sample_t));
 }
+
+static inline void copy_samples(sample_t* outbuf, segmented_layout_data* data, int current_channels, int32_t samples_to_do, int32_t samples_written) {
+    int ch_out = data->output_channels;
+    int ch_in = current_channels;
+    int pos = samples_written * ch_out;
+    int s;
+    if (ch_in == ch_out) { /* most common and probably faster */
+        for (s = 0; s < samples_to_do * ch_out; s++) {
+            outbuf[pos + s] = data->buffer[s];
+        }
+    }
+    else {
+        int ch;
+        for (s = 0; s < samples_to_do; s++) {
+            for (ch = 0; ch < ch_in; ch++) {
+                outbuf[pos + s*ch_out + ch] = data->buffer[s*ch_in + ch];
+            }
+            for (ch = ch_in; ch < ch_out; ch++) {
+                outbuf[pos + s*ch_out + ch] = 0;
+            }
+        }
+    }
+}
+
 
 void loop_layout_segmented(VGMSTREAM* vgmstream, int32_t loop_sample) {
     int segment, total_samples;
@@ -139,7 +165,7 @@ fail:
 }
 
 int setup_layout_segmented(segmented_layout_data* data) {
-    int i, max_input_channels = 0, max_output_channels = 0;
+    int i, max_input_channels = 0, max_output_channels = 0, mixed_channels = 0;
     sample_t *outbuf_re = NULL;
 
 
@@ -170,8 +196,8 @@ int setup_layout_segmented(segmented_layout_data* data) {
             }
         }
 
-        /* different segments may have different input channels, though output should be
-         * the same for all (ex. 2ch + 1ch segments, but 2ch segment is downmixed to 1ch) */
+        /* different segments may have different input or output channels, we
+         * need to know maxs to properly handle */
         mixing_info(data->segments[i], &segment_input_channels, &segment_output_channels);
         if (max_input_channels < segment_input_channels)
             max_input_channels = segment_input_channels;
@@ -183,11 +209,12 @@ int setup_layout_segmented(segmented_layout_data* data) {
 
             mixing_info(data->segments[i-1], NULL, &prev_output_channels);
             if (segment_output_channels != prev_output_channels) {
-                VGM_LOG("SEGMENTED: segment %i has wrong channels %i vs prev channels %i\n", i, segment_output_channels, prev_output_channels);
-                goto fail;
+                mixed_channels = 1;
+                //VGM_LOG("SEGMENTED: segment %i has wrong channels %i vs prev channels %i\n", i, segment_output_channels, prev_output_channels);
+                //goto fail;
             }
 
-            /* a bit weird, but no matter */
+            /* a bit weird, but no matter (should resample) */
             if (data->segments[i]->sample_rate != data->segments[i-1]->sample_rate) {
                 VGM_LOG("SEGMENTED: segment %i has different sample rate\n", i);
             }
@@ -214,6 +241,7 @@ int setup_layout_segmented(segmented_layout_data* data) {
 
     data->input_channels = max_input_channels;
     data->output_channels = max_output_channels;
+    data->mixed_channels = mixed_channels;
 
     return 1;
 fail:
