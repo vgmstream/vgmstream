@@ -490,11 +490,11 @@ static size_t make_opus_header(uint8_t* buf, int buf_size, opus_config *cfg) {
     if (mapping_family > 0) {
         int i;
 
-        /* internal mono/stereo streams (N mono/stereo streams form M channels) */
+        /* internal mono/stereo streams (N mono/stereo streams that make M channels) */
         put_u8(buf+0x13, cfg->stream_count);
-        /* joint stereo streams (rest would be mono, so 6ch can be 2ch+2ch+1ch+1ch = 2 coupled */
+        /* joint stereo streams (rest would be mono, so 6ch can be 2ch+2ch+1ch+1ch = 2 coupled in 4 streams */
         put_u8(buf+0x14, cfg->coupled_count);
-        /* mapping bits per channel? */
+        /* mapping per channel (order of channels, ex: 0x000104050203) */
         for (i = 0; i < cfg->channels; i++) {
             put_u8(buf+0x15+i, cfg->channel_mapping[i]);
         }
@@ -753,8 +753,8 @@ ffmpeg_codec_data* init_ffmpeg_x_opus(STREAMFILE* sf, off_t table_offset, int ta
 ffmpeg_codec_data* init_ffmpeg_fsb_opus(STREAMFILE* sf, off_t start_offset, size_t data_size, int channels, int skip, int sample_rate) {
     return init_ffmpeg_custom_opus(sf, start_offset, data_size, channels, skip, sample_rate, OPUS_FSB);
 }
-ffmpeg_codec_data* init_ffmpeg_wwise_opus(STREAMFILE* sf, off_t table_offset, int table_count, off_t data_offset, size_t data_size, int channels, int skip) {
-    return init_ffmpeg_custom_table_opus(sf, table_offset, table_count, data_offset, data_size, channels, skip, 0, OPUS_WWISE);
+ffmpeg_codec_data* init_ffmpeg_wwise_opus(STREAMFILE* sf, off_t data_offset, size_t data_size, opus_config* cfg) {
+    return init_ffmpeg_custom_opus_config(sf, data_offset, data_size, cfg, OPUS_WWISE);
 }
 
 static opus_type_t get_ue4opus_version(STREAMFILE* sf, off_t offset) {
