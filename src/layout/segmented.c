@@ -115,7 +115,7 @@ static inline void copy_samples(sample_t* outbuf, segmented_layout_data* data, i
 }
 
 
-void loop_layout_segmented(VGMSTREAM* vgmstream, int32_t loop_sample) {
+void seek_layout_segmented(VGMSTREAM* vgmstream, int32_t seek_sample) {
     int segment, total_samples;
     segmented_layout_data* data = vgmstream->layout_data;
 
@@ -124,13 +124,13 @@ void loop_layout_segmented(VGMSTREAM* vgmstream, int32_t loop_sample) {
     while (total_samples < vgmstream->num_samples) {
         int32_t segment_samples = vgmstream_get_samples(data->segments[segment]);
 
-        /* find if loop falls within segment's samples */
-        if (loop_sample >= total_samples && loop_sample < total_samples + segment_samples) {
-            int32_t loop_relative = loop_sample - total_samples;
+        /* find if sample falls within segment's samples */
+        if (seek_sample >= total_samples && seek_sample < total_samples + segment_samples) {
+            int32_t seek_relative = seek_sample - total_samples;
 
-            seek_vgmstream(data->segments[segment], loop_relative);
+            seek_vgmstream(data->segments[segment], seek_relative);
             data->current_segment = segment;
-            vgmstream->samples_into_block = loop_relative;
+            vgmstream->samples_into_block = seek_relative;
             break;
         }
         total_samples += segment_samples;
@@ -138,8 +138,12 @@ void loop_layout_segmented(VGMSTREAM* vgmstream, int32_t loop_sample) {
     }
 
     if (segment == data->segment_count) {
-        VGM_LOG("SEGMENTED: can't find loop segment\n");
+        VGM_LOG("SEGMENTED: can't find seek segment\n");
     }
+}
+
+void loop_layout_segmented(VGMSTREAM* vgmstream, int32_t loop_sample) {
+    loop_layout_segmented(vgmstream, loop_sample);
 }
 
 

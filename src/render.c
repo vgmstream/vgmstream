@@ -548,6 +548,33 @@ void seek_vgmstream(VGMSTREAM* vgmstream, int32_t seek_sample) {
     int is_looped = vgmstream->loop_flag || vgmstream->loop_target > 0; /* loop target disabled loop flag during decode */
 
 
+    /* cleanup */
+    if (seek_sample < 0)
+        seek_sample = 0;
+    /* play forever can seek past max */
+    if (vgmstream->config_enabled && seek_sample > ps->play_duration && !play_forever)
+        seek_sample = ps->play_duration;
+
+
+    /* optimize as layouts can seek faster internally */
+    if (vgmstream->layout_type == layout_segmented) {
+        seek_layout_segmented(vgmstream, seek_sample);
+
+        if (vgmstream->config_enabled) {
+            vgmstream->pstate.play_position = seek_sample;
+        }
+        return;
+    }
+    else if (vgmstream->layout_type == layout_layered) {
+        seek_layout_layered(vgmstream, seek_sample);
+
+        if (vgmstream->config_enabled) {
+            vgmstream->pstate.play_position = seek_sample;
+        }
+        return;
+    }
+
+
     /* will decode and loop until seek sample, but slower */
     //todo apply same loop logic as below, or pretend we have play_forever + settings?
     if (!vgmstream->config_enabled) {
@@ -580,12 +607,6 @@ void seek_vgmstream(VGMSTREAM* vgmstream, int32_t seek_sample) {
      *  |  pad-begin  |  body-begin | body-loop0 | body-loop1 | body-loop2 | fade |  pad-end + beyond)
      *  0             5s   (-3s)    25s          95s          165s         235s   245s       Ns
      */
-
-    if (seek_sample < 0)
-        seek_sample = 0;
-    if (seek_sample > ps->play_duration && !play_forever) /* play forever can seek to any loop */
-        seek_sample = ps->play_duration;
-
     //;VGM_LOG("SEEK: seek sample=%i, is_looped=%i\n", seek_sample, is_looped);
 
     /* start/pad-begin: consume pad samples */
