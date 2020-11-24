@@ -555,7 +555,7 @@ void seek_vgmstream(VGMSTREAM* vgmstream, int32_t seek_sample) {
     if (vgmstream->config_enabled && seek_sample > ps->play_duration && !play_forever)
         seek_sample = ps->play_duration;
 
-
+#if 0 //todo move below, needs to clamp in decode part
     /* optimize as layouts can seek faster internally */
     if (vgmstream->layout_type == layout_segmented) {
         seek_layout_segmented(vgmstream, seek_sample);
@@ -573,7 +573,7 @@ void seek_vgmstream(VGMSTREAM* vgmstream, int32_t seek_sample) {
         }
         return;
     }
-
+#endif
 
     /* will decode and loop until seek sample, but slower */
     //todo apply same loop logic as below, or pretend we have play_forever + settings?
