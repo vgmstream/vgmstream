@@ -30,7 +30,8 @@ typedef struct {
     size_t smpl_size;
     off_t  seek_offset;
     size_t seek_size;
-
+    off_t  meta_offset;
+    size_t meta_size;
 
     /* standard fmt stuff */
     wwise_codec codec;
@@ -254,6 +255,12 @@ VGMSTREAM* init_vgmstream_wwise(STREAMFILE* sf) {
                 cfg.blocksize_1_exp = read_u8(extra_offset + block_offsets + 0x00, sf); /* small */
                 cfg.blocksize_0_exp = read_u8(extra_offset + block_offsets + 0x01, sf); /* big */
                 ww.data_size -= audio_offset;
+
+                /* mutant .wem with metadata (voice strings/etc) between seek table and vorbis setup [Gears of War 4 (PC)] */
+                if (ww.meta_offset) {
+                    /* 0x00: original setup_offset */
+                    setup_offset += read_u32(ww.meta_offset + 0x04, sf); /* metadata size */
+                }
 
                 /* detect normal packets */
                 if (ww.extra_size == 0x30) {
@@ -736,6 +743,10 @@ static int parse_wwise(STREAMFILE* sf, wwise_header* ww) {
                 case 0x736D706C: /* "smpl" */
                     ww->smpl_offset = offset;
                     ww->smpl_size = size;
+                    break;
+                case 0x6D657461: /* "meta" */
+                    ww->meta_offset = offset;
+                    ww->meta_size = size;
                     break;
 
                 case 0x66616374: /* "fact" */
