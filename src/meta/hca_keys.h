@@ -376,6 +376,12 @@ static const hcakey_info hcakey_list[] = {
         /* D4DJ Groovy Mix (Android) [base files] */
         {393410674916959300},       // 0575ACECA945A444
 
+        /* Toji no Miko: Kizamishi Issen no Tomoshibi (Android) */
+        {62057514034227932},        // 00DC78FAEFA76ADC
+
+        /* Readyyy! (Android) */
+        {1234567890987654321},      // 112210F4B16C1CB1
+
         /* Dragalia Lost (iOS/Android) */
         {2967411924141,         subkeys_dgl, sizeof(subkeys_dgl) / sizeof(subkeys_dgl[0]) },    // 000002B2E7889CAD
 

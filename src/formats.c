@@ -25,7 +25,8 @@ static const char* extension_list[] = {
     "208",
     "2dx9",
     "2pfs",
-    "4", // for Game.com audio
+    "3do",
+    "4", //for Game.com audio
     "8", //txth/reserved [Gungage (PS1)]
     "800",
     "9tav",
@@ -943,7 +944,7 @@ static const meta_info meta_info_list[] = {
         {meta_DSP_WSI,              "Alone in the Dark .WSI header"},
         {meta_AIFC,                 "Apple AIFF-C (Audio Interchange File Format) header"},
         {meta_AIFF,                 "Apple AIFF (Audio Interchange File Format) header"},
-        {meta_STR_SNDS,             "3DO .str header"},
+        {meta_STR_SNDS,             "3DO SNDS header"},
         {meta_WS_AUD,               "Westwood Studios .aud header"},
         {meta_WS_AUD_old,           "Westwood Studios .aud (old) header"},
         {meta_PS2_IVB,              "IVB/BVII header"},
