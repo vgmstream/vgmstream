@@ -107,7 +107,7 @@ typedef struct {
     char repeat;
     int selected;
 
-    txtp_entry group_settings;
+    txtp_entry entry;
 
 } txtp_group;
 
@@ -334,10 +334,11 @@ static int find_loop_anchors(txtp_header* txtp, int position, int count, int* p_
     //;VGM_LOG("TXTP: find loop anchors from %i to %i\n", position, count);
 
     for (i = position, j = 0; i < position + count; i++, j++) {
-        if (txtp->entry[i].loop_anchor_start) {
-            loop_start = j + 1; /* logic elsewhere also uses +1 */
+        /* catch first time anchors appear only, also logic elsewhere also uses +1 */
+        if (txtp->entry[i].loop_anchor_start && !loop_start) {
+            loop_start = j + 1;
         }
-        if (txtp->entry[i].loop_anchor_end) {
+        if (txtp->entry[i].loop_anchor_end && !loop_end) {
             loop_end = j + 1;
         }
     }
@@ -354,7 +355,8 @@ static int find_loop_anchors(txtp_header* txtp, int position, int count, int* p_
     return 0;
 }
 
-static int make_group_segment(txtp_header* txtp, int is_group, int position, int count) {
+
+static int make_group_segment(txtp_header* txtp, txtp_group* grp, int position, int count) {
     VGMSTREAM* vgmstream = NULL;
     segmented_layout_data *data_s = NULL;
     int i, loop_flag = 0;
@@ -362,7 +364,7 @@ static int make_group_segment(txtp_header* txtp, int is_group, int position, int
 
 
     /* allowed for actual groups (not final "mode"), otherwise skip to optimize */
-    if (!is_group && count == 1) {
+    if (!grp && count == 1) {
         //;VGM_LOG("TXTP: ignored single group\n");
         return 1;
     }
@@ -440,6 +442,13 @@ static int make_group_segment(txtp_header* txtp, int is_group, int position, int
     /* set new vgmstream and reorder positions */
     update_vgmstream_list(vgmstream, txtp, position, count);
 
+
+    /* special "whole loop" settings */
+    if (grp->entry.loop_anchor_start == 1) {
+        grp->entry.config.config_set = 1;
+        grp->entry.config.really_force_loop = 1;
+    }
+
     return 1;
 fail:
     close_vgmstream(vgmstream);
@@ -448,14 +457,14 @@ fail:
     return 0;
 }
 
-static int make_group_layer(txtp_header* txtp, int is_group, int position, int count) {
+static int make_group_layer(txtp_header* txtp, txtp_group* grp, int position, int count) {
     VGMSTREAM* vgmstream = NULL;
     layered_layout_data* data_l = NULL;
     int i;
 
 
     /* allowed for actual groups (not final mode), otherwise skip to optimize */
-    if (!is_group && count == 1) {
+    if (!grp && count == 1) {
         //;VGM_LOG("TXTP: ignored single group\n");
         return 1;
     }
@@ -492,15 +501,16 @@ static int make_group_layer(txtp_header* txtp, int is_group, int position, int c
         }
     }
 
-    /* loop settings only make sense if this group becomes final vgmstream */
-    if (position == 0 && txtp->vgmstream_count == count) {
-        if (txtp->is_loop_auto && !vgmstream->loop_flag) {
-            vgmstream_force_loop(vgmstream, 1, 0, vgmstream->num_samples);
-        }
-    }
-
     /* set new vgmstream and reorder positions */
     update_vgmstream_list(vgmstream, txtp, position, count);
+
+
+    /* special "whole loop" settings (also loop if this group becomes final vgmstream) */
+    if (grp->entry.loop_anchor_start == 1
+            || (position == 0 && txtp->vgmstream_count == count && txtp->is_loop_auto)) {
+        grp->entry.config.config_set = 1;
+        grp->entry.config.really_force_loop = 1;
+    }
 
     return 1;
 fail:
@@ -510,12 +520,12 @@ fail:
     return 0;
 }
 
-static int make_group_random(txtp_header* txtp, int is_group, int position, int count, int selected) {
+static int make_group_random(txtp_header* txtp, txtp_group* grp, int position, int count, int selected) {
     VGMSTREAM* vgmstream = NULL;
     int i;
 
     /* allowed for actual groups (not final mode), otherwise skip to optimize */
-    if (!is_group && count == 1) {
+    if (!grp && count == 1) {
         //;VGM_LOG("TXTP: ignored single group\n");
         return 1;
     }
@@ -523,11 +533,6 @@ static int make_group_random(txtp_header* txtp, int is_group, int position, int 
     if (position + count > txtp->vgmstream_count || position < 0 || count < 0) {
         VGM_LOG("TXTP: ignored random position=%i, count=%i, entries=%i\n", position, count, txtp->vgmstream_count);
         return 1;
-    }
-
-    /* special case meaning "play all", basically for quick testing */
-    if (selected == count) {
-        return make_group_segment(txtp, is_group, position, count);
     }
 
     /* 0=actually random for fun and testing, but undocumented since random music is kinda weird, may change anytime
@@ -539,19 +544,43 @@ static int make_group_random(txtp_header* txtp, int is_group, int position, int 
         //;VGM_LOG("TXTP: autoselected random %i\n", selected);
     }
 
-    if (selected < 0 || selected >= count) {
+    if (selected < 0 || selected > count) {
         goto fail;
     }
 
-    /* get selected and remove non-selected */
-    vgmstream = txtp->vgmstream[position + selected];
-    txtp->vgmstream[position + selected] = NULL;
-    for (i = 0; i < count; i++) {
-        close_vgmstream(txtp->vgmstream[i + position]);
+    if (selected == count) {
+        /* special case meaning "select all", basically for quick testing and clearer Wwise */
+        if (!make_group_segment(txtp, grp, position, count))
+            goto fail;
+        vgmstream = txtp->vgmstream[position];
+    }
+    else {
+        /* get selected and remove non-selected */
+        vgmstream = txtp->vgmstream[position + selected];
+        txtp->vgmstream[position + selected] = NULL;
+        for (i = 0; i < count; i++) {
+            close_vgmstream(txtp->vgmstream[i + position]);
+        }
+
+        /* set new vgmstream and reorder positions */
+        update_vgmstream_list(vgmstream, txtp, position, count);
     }
 
-    /* set new vgmstream and reorder positions */
-    update_vgmstream_list(vgmstream, txtp, position, count);
+
+    /* special "whole loop" settings */
+    if (grp->entry.loop_anchor_start == 1) {
+        grp->entry.config.config_set = 1;
+        grp->entry.config.really_force_loop = 1;
+    }
+
+    /* force selected vgmstream to be a segment when not a group already, and
+     * group + vgmstream has config (AKA must loop/modify over the result) */
+    //todo could optimize to not generate segment in some cases?
+    if (!(vgmstream->layout_type == layout_layered || vgmstream->layout_type == layout_segmented) &&
+            (grp->entry.config.config_set && vgmstream->config.config_set) ) {
+        if (!make_group_segment(txtp, grp, position, 1))
+            goto fail;
+    }
 
     return 1;
 fail:
@@ -595,15 +624,15 @@ static int parse_groups(txtp_header* txtp) {
             //;VGM_LOG("TXTP: group=%i, count=%i, groups=%i\n", pos, grp->count, groups);
             switch(grp->type) {
                 case TXTP_GROUP_MODE_LAYERED:
-                    if (!make_group_layer(txtp, 1, pos, grp->count))
+                    if (!make_group_layer(txtp, grp, pos, grp->count))
                         goto fail;
                     break;
                 case TXTP_GROUP_MODE_SEGMENTED:
-                    if (!make_group_segment(txtp, 1, pos, grp->count))
+                    if (!make_group_segment(txtp, grp, pos, grp->count))
                         goto fail;
                     break;
                 case TXTP_GROUP_MODE_RANDOM:
-                    if (!make_group_random(txtp, 1, pos, grp->count, grp->selected))
+                    if (!make_group_random(txtp, grp, pos, grp->count, grp->selected))
                         goto fail;
                     break;
                 default:
@@ -611,24 +640,28 @@ static int parse_groups(txtp_header* txtp) {
             }
         }
 
+
         /* group may also have settings (like downmixing) */
-        apply_settings(txtp->vgmstream[grp->position], &grp->group_settings);
-        txtp->entry[grp->position] = grp->group_settings; /* memcpy old settings for subgroups */
+        apply_settings(txtp->vgmstream[grp->position], &grp->entry);
+        txtp->entry[grp->position] = grp->entry; /* memcpy old settings for subgroups */
     }
 
     /* final tweaks (should be integrated with the above?) */
     if (txtp->is_layered) {
-        if (!make_group_layer(txtp, 0, 0, txtp->vgmstream_count))
+        if (!make_group_layer(txtp, NULL, 0, txtp->vgmstream_count))
             goto fail;
     }
     if (txtp->is_segmented) {
-        if (!make_group_segment(txtp, 0, 0, txtp->vgmstream_count))
+        if (!make_group_segment(txtp, NULL, 0, txtp->vgmstream_count))
             goto fail;
     }
     if (txtp->is_single) {
         /* special case of setting start_segment to force/overwrite looping
          * (better to use #E but left for compatibility with older TXTPs) */
         if (txtp->loop_start_segment == 1 && !txtp->loop_end_segment) {
+            //todo try look settings
+            //txtp->default_entry.config.config_set = 1;
+            //txtp->default_entry.config.really_force_loop = 1;
             vgmstream_force_loop(txtp->vgmstream[0], 1, txtp->vgmstream[0]->loop_start_sample, txtp->vgmstream[0]->num_samples);
         }
     }
@@ -1426,6 +1459,15 @@ static void parse_params(txtp_entry* entry, char* params) {
             params += get_time_f(params, &tcfg->body_time_s, &tcfg->body_time, &tcfg->body_time_set);
             tcfg->config_set = 1;
         }
+        else if (strcmp(command,"B") == 0) {
+            params += get_time_f(params, &tcfg->body_time_s, &tcfg->body_time, &tcfg->body_time_set);
+            tcfg->config_set = 1;
+            /* similar to 'b' but implies no fades */
+            tcfg->fade_time_set = 1;
+            tcfg->fade_time = 0;
+            tcfg->fade_delay_set = 1;
+            tcfg->fade_delay = 0;
+        }
 
         /* other settings */
         else if (strcmp(command,"h") == 0) {
@@ -1458,7 +1500,7 @@ static void parse_params(txtp_entry* entry, char* params) {
             entry->loop_anchor_start = 1;
             //;VGM_LOG("TXTP: anchor start set\n");
         }
-        else if (is_match(command,"A") || is_match(command,"@LOOP")) {
+        else if (is_match(command,"A") || is_match(command,"@loop-end")) {
             entry->loop_anchor_end = 1;
             //;VGM_LOG("TXTP: anchor end set\n");
         }
@@ -1598,7 +1640,7 @@ static int add_group(txtp_header* txtp, char* line) {
         }
     }
 
-    parse_params(&cfg.group_settings, line);
+    parse_params(&cfg.entry, line);
 
     /* Groups can use "auto" position of last N files, so we need a counter that changes like this:
      *   #layer of 2         (pos = 0)
