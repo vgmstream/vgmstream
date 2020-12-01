@@ -184,7 +184,6 @@ VGMSTREAM* init_vgmstream_txtp(STREAMFILE* sf) {
 
     clean_txtp(txtp, 0);
     return vgmstream;
-
 fail:
     clean_txtp(txtp, 1);
     return NULL;
@@ -444,7 +443,7 @@ static int make_group_segment(txtp_header* txtp, txtp_group* grp, int position, 
 
 
     /* special "whole loop" settings */
-    if (grp->entry.loop_anchor_start == 1) {
+    if (grp && grp->entry.loop_anchor_start == 1) {
         grp->entry.config.config_set = 1;
         grp->entry.config.really_force_loop = 1;
     }
@@ -506,8 +505,8 @@ static int make_group_layer(txtp_header* txtp, txtp_group* grp, int position, in
 
 
     /* special "whole loop" settings (also loop if this group becomes final vgmstream) */
-    if (grp->entry.loop_anchor_start == 1
-            || (position == 0 && txtp->vgmstream_count == count && txtp->is_loop_auto)) {
+    if (grp && (grp->entry.loop_anchor_start == 1
+            || (position == 0 && txtp->vgmstream_count == count && txtp->is_loop_auto))) {
         grp->entry.config.config_set = 1;
         grp->entry.config.really_force_loop = 1;
     }
@@ -568,7 +567,7 @@ static int make_group_random(txtp_header* txtp, txtp_group* grp, int position, i
 
 
     /* special "whole loop" settings */
-    if (grp->entry.loop_anchor_start == 1) {
+    if (grp && grp->entry.loop_anchor_start == 1) {
         grp->entry.config.config_set = 1;
         grp->entry.config.really_force_loop = 1;
     }
@@ -576,7 +575,8 @@ static int make_group_random(txtp_header* txtp, txtp_group* grp, int position, i
     /* force selected vgmstream to be a segment when not a group already, and
      * group + vgmstream has config (AKA must loop/modify over the result) */
     //todo could optimize to not generate segment in some cases?
-    if (!(vgmstream->layout_type == layout_layered || vgmstream->layout_type == layout_segmented) &&
+    if (grp &&
+            !(vgmstream->layout_type == layout_layered || vgmstream->layout_type == layout_segmented) &&
             (grp->entry.config.config_set && vgmstream->config.config_set) ) {
         if (!make_group_segment(txtp, grp, position, 1))
             goto fail;
