@@ -28,7 +28,7 @@ typedef struct {
 } txth_io_data;
 
 
-static size_t txth_io_read(STREAMFILE *streamfile, uint8_t *dest, off_t offset, size_t length, txth_io_data* data) {
+static size_t txth_io_read(STREAMFILE* sf, uint8_t* dest, off_t offset, size_t length, txth_io_data* data) {
     size_t total_read = 0;
 
 
@@ -91,7 +91,7 @@ static size_t txth_io_read(STREAMFILE *streamfile, uint8_t *dest, off_t offset, 
             to_read = data->data_size - bytes_consumed;
             if (to_read > length)
                 to_read = length;
-            bytes_done = read_streamfile(dest, data->physical_offset + data->skip_size + bytes_consumed, to_read, streamfile);
+            bytes_done = read_streamfile(dest, data->physical_offset + data->skip_size + bytes_consumed, to_read, sf);
 
             total_read += bytes_done;
             dest += bytes_done;
@@ -107,55 +107,44 @@ static size_t txth_io_read(STREAMFILE *streamfile, uint8_t *dest, off_t offset, 
     return total_read;
 }
 
-static size_t txth_io_size(STREAMFILE *streamfile, txth_io_data* data) {
+static size_t txth_io_size(STREAMFILE* sf, txth_io_data* data) {
     uint8_t buf[1];
 
     if (data->logical_size)
         return data->logical_size;
 
     /* force a fake read at max offset, to get max logical_offset (will be reset next read) */
-    txth_io_read(streamfile, buf, 0x7FFFFFFF, 1, data);
+    txth_io_read(sf, buf, 0x7FFFFFFF, 1, data);
     data->logical_size = data->logical_offset;
 
     return data->logical_size;
 }
 
+//todo use deblock streamfile
 /* Handles deinterleaving of generic chunked streams */
-static STREAMFILE* setup_txth_streamfile(STREAMFILE *streamFile, txth_io_config_data cfg, int is_opened_streamfile) {
-    STREAMFILE *temp_streamFile = NULL, *new_streamFile = NULL;
+static STREAMFILE* setup_txth_streamfile(STREAMFILE* sf, txth_io_config_data cfg, int is_opened_streamfile) {
+    STREAMFILE* new_sf = NULL;
     txth_io_data io_data = {0};
     size_t io_data_size = sizeof(txth_io_data);
 
     io_data.cfg = cfg; /* memcpy */
-    io_data.stream_size = (get_streamfile_size(streamFile) - cfg.chunk_start);
+    io_data.stream_size = (get_streamfile_size(sf) - cfg.chunk_start);
     io_data.logical_offset = -1; /* force phys offset reset */
     //io_data.logical_size = io_data.stream_size / cfg.chunk_count; //todo would help with performance but not ok if data_size is set
 
-
-    new_streamFile = streamFile;
-
     /* setup subfile */
     if (!is_opened_streamfile) {
-        /* if streamFile was opened by txth code we MUST close it once done (as it's now "fused"),,
+        /* if sf was opened by txth code we MUST close it once done (as it's now "fused"),
          * otherwise it was external to txth and must be wrapped to avoid closing it */
-        new_streamFile = open_wrap_streamfile(new_streamFile);
-        if (!new_streamFile) goto fail;
-        temp_streamFile = new_streamFile;
+        new_sf = open_wrap_streamfile(sf);
+    }
+    else {
+        new_sf = sf; /* can be closed */
     }
 
-    new_streamFile = open_io_streamfile(new_streamFile, &io_data,io_data_size, txth_io_read,txth_io_size);
-    if (!new_streamFile) goto fail;
-    temp_streamFile = new_streamFile;
-
-    //new_streamFile = open_buffer_streamfile(new_streamFile,0);
-    //if (!new_streamFile) goto fail;
-    //temp_streamFile = new_streamFile;
-
-    return temp_streamFile;
-
-fail:
-    close_streamfile(temp_streamFile);
-    return NULL;
+    new_sf = open_io_streamfile(new_sf, &io_data,io_data_size, txth_io_read,txth_io_size);
+    new_sf = open_buffer_streamfile_f(new_sf, 0); /* big speedup when used with interleaved codecs */
+    return new_sf;
 }
 
 #endif /* _TXTH_STREAMFILE_H_ */
