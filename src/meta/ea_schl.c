@@ -474,15 +474,14 @@ fail:
     return NULL;
 }
 
-/* EA HDR/DAT v1 (2004-2005) - used for storing speech and other streamed sounds (except for music) */
-VGMSTREAM * init_vgmstream_ea_hdr_dat(STREAMFILE* sf) {
-    VGMSTREAM* vgmstream;
-    STREAMFILE* sf_dat = NULL;
+/* EA HDR/DAT v1 (2004-2005) - used for storing speech, sometimes streamed SFX */
+VGMSTREAM *init_vgmstream_ea_hdr_dat(STREAMFILE *sf) {
+    VGMSTREAM *vgmstream;
+    STREAMFILE *sf_dat = NULL, *temp_sf = NULL;
     int target_stream = sf->stream_index;
-    uint32_t offset_mult;
+    uint32_t offset_mult, sound_offset, sound_size;
     uint8_t userdata_size, total_sounds;
     size_t dat_size;
-    off_t schl_offset;
 
     /* checks */
     if (!check_extensions(sf, "hdr"))
@@ -493,10 +492,10 @@ VGMSTREAM * init_vgmstream_ea_hdr_dat(STREAMFILE* sf) {
     /* 0x02: sub-ID (used for different police voices in NFS games) */
     /* 0x04: parameters (userdata size, ...) */
     /* 0x05: number of files */
-    /* 0x06: alt number of files? */
-    /* 0x07: offset multiplier flag */
-    /* 0x08: combined size of all sounds without padding divided by offset mult */
-    /* 0x0a: zero */
+    /* 0x06: sample repeat (alt number of files?) */
+    /* 0x07: block size (offset multiplier) */
+    /* 0x08: number of blocks (DAT size divided by block size) */
+    /* 0x0a: number of sub-banks */
     /* 0x0c: table start */
 
     /* no nice way to validate these so we do what we can */
@@ -507,12 +506,13 @@ VGMSTREAM * init_vgmstream_ea_hdr_dat(STREAMFILE* sf) {
     if (read_u16be(0x0c, sf) != 0)
         goto fail;
 
-    /* must be accompanied by DAT file with SCHl sounds */
+    /* must be accompanied by DAT file with SCHl or VAG sounds */
     sf_dat = open_streamfile_by_ext(sf, "dat");
     if (!sf_dat)
         goto fail;
 
-    if (read_u32be(0x00, sf_dat) != EA_BLOCKID_HEADER)
+    if (read_u32be(0x00, sf_dat) != EA_BLOCKID_HEADER &&
+        read_u32be(0x00, sf_dat) != 0x56414770)
         goto fail;
 
     userdata_size = read_u8(0x04, sf) & 0x0F;
@@ -532,13 +532,23 @@ VGMSTREAM * init_vgmstream_ea_hdr_dat(STREAMFILE* sf) {
         goto fail;
 
     /* offsets are always big endian */
-    schl_offset = read_u16be(0x0C + (0x02 + userdata_size) * (target_stream - 1), sf) * offset_mult;
-    if (read_32bitBE(schl_offset, sf_dat) != EA_BLOCKID_HEADER)
-        goto fail;
+    sound_offset = read_u16be(0x0C + (0x02 + userdata_size) * (target_stream - 1), sf) * offset_mult;
+    if (read_u32be(sound_offset, sf_dat) == EA_BLOCKID_HEADER) { /* "SCHl" */
+        vgmstream = parse_schl_block(sf_dat, sound_offset, 0);
+        if (!vgmstream)
+            goto fail;
+    } else if (read_u32be(sound_offset, sf_dat) == 0x56414770) { /* "VAGp" */
+        /* Need for Speed: Hot Pursuit 2 (PS2) */
+        sound_size = read_u32be(sound_offset + 0x0c, sf_dat) + 0x30;
+        temp_sf = setup_subfile_streamfile(sf_dat, sound_offset, sound_size, "vag");
+        if (!temp_sf) goto fail;
 
-    vgmstream = parse_schl_block(sf_dat, schl_offset, 0);
-    if (!vgmstream)
+        vgmstream = init_vgmstream_vag(temp_sf);
+        if (!vgmstream) goto fail;
+        close_streamfile(temp_sf);
+    } else {
         goto fail;
+    }
 
     vgmstream->num_streams = total_sounds;
     close_streamfile(sf_dat);
@@ -546,6 +556,7 @@ VGMSTREAM * init_vgmstream_ea_hdr_dat(STREAMFILE* sf) {
 
 fail:
     close_streamfile(sf_dat);
+    close_streamfile(temp_sf);
     return NULL;
 }
 
@@ -554,10 +565,9 @@ VGMSTREAM * init_vgmstream_ea_hdr_dat_v2(STREAMFILE* sf) {
     VGMSTREAM *vgmstream;
     STREAMFILE *sf_dat = NULL;
     int target_stream = sf->stream_index;
-    uint32_t offset_mult;
+    uint32_t offset_mult, sound_offset;
     uint8_t userdata_size, total_sounds;
     size_t dat_size;
-    off_t schl_offset;
 
     /* checks */
     if (!check_extensions(sf, "hdr"))
@@ -570,9 +580,9 @@ VGMSTREAM * init_vgmstream_ea_hdr_dat_v2(STREAMFILE* sf) {
     /* 0x04: sub-ID (used for different police voices in NFS games) */
     /* 0x08: sample repeat (alt number of files?) */
     /* 0x09: block size (offset multiplier) */
-    /* 0x0A: number of blocks (DAT size divided by block size) */
-    /* 0x0C: number of sub-banks (always zero?) */
-    /* 0x0E: padding */
+    /* 0x0a: number of blocks (DAT size divided by block size) */
+    /* 0x0c: number of sub-banks (always zero?) */
+    /* 0x0e: padding */
     /* 0x10: table start */
 
     /* no nice way to validate these so we do what we can */
@@ -608,11 +618,11 @@ VGMSTREAM * init_vgmstream_ea_hdr_dat_v2(STREAMFILE* sf) {
         goto fail;
 
     /* offsets are always big endian */
-    schl_offset = read_u16be(0x10 + (0x02 + userdata_size) * (target_stream - 1), sf) * offset_mult;
-    if (read_32bitBE(schl_offset, sf_dat) != EA_BLOCKID_HEADER)
+    sound_offset = read_u16be(0x10 + (0x02 + userdata_size) * (target_stream - 1), sf) * offset_mult;
+    if (read_u32be(sound_offset, sf_dat) != EA_BLOCKID_HEADER)
         goto fail;
 
-    vgmstream = parse_schl_block(sf_dat, schl_offset, 0);
+    vgmstream = parse_schl_block(sf_dat, sound_offset, 0);
     if (!vgmstream)
         goto fail;
 
