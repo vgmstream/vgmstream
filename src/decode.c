@@ -341,6 +341,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM* vgmstream) {
         case coding_SDX2:
         case coding_SDX2_int:
         case coding_CBD2:
+        case coding_CBD2_int:
         case coding_ACM:
         case coding_DERF:
         case coding_WADY:
@@ -540,6 +541,7 @@ int get_vgmstream_frame_size(VGMSTREAM* vgmstream) {
         case coding_SDX2:
         case coding_SDX2_int:
         case coding_CBD2:
+        case coding_CBD2_int:
         case coding_DERF:
         case coding_WADY:
         case coding_NWA:

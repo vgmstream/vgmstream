@@ -13,10 +13,10 @@ VGMSTREAM* init_vgmstream_str_snds(STREAMFILE* sf) {
 
     /* checks */
     /* .str: standard
+     * .stream: Battle Tryst (Arcade) movies
      * .3do: Aqua World - Umimi Monogatari (3DO) movies */
-    if (!check_extensions(sf, "str,3do"))
+    if (!check_extensions(sf, "str,stream,3do"))
         goto fail;
-
     if (read_u32be(0x00,sf) != 0x4354524c &&   /* "CTRL" */
         read_u32be(0x00,sf) != 0x534e4453 &&   /* "SNDS" */
         read_u32be(0x00,sf) != 0x53484452)     /* "SHDR" */
@@ -96,14 +96,24 @@ VGMSTREAM* init_vgmstream_str_snds(STREAMFILE* sf) {
     vgmstream->num_samples /= vgmstream->channels;
 
     switch (read_u32be(shdr_offset + 0x24,sf)) {
-        case 0x53445832:    /* "SDX2" */
+        case 0x53445832:    /* "SDX2" (common) */
             if (channels > 1) {
                 vgmstream->coding_type = coding_SDX2_int;
-                vgmstream->interleave_block_size = 1;
+                vgmstream->interleave_block_size = 0x01;
             } else {
                 vgmstream->coding_type = coding_SDX2;
             }
             break;
+
+        case 0x43424432:    /* "CBD2" (rare, Battle Tryst) */
+            if (channels > 1) {
+                vgmstream->coding_type = coding_CBD2_int;
+                vgmstream->interleave_block_size = 0x01;
+            } else {
+                vgmstream->coding_type = coding_CBD2; /* assumed */
+            }
+            break;
+
         default:
             goto fail;
     }
