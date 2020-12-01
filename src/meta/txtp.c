@@ -1629,14 +1629,20 @@ static int add_group(txtp_header* txtp, char* line) {
 
     m = sscanf(line, " >%c%n", &c, &n);
     if (m == 1 && c == TXTP_GROUP_RANDOM_ALL) {
+        cfg.type = TXTP_GROUP_MODE_RANDOM; /* usually R>- but allows L/S>- */
         cfg.selected = cfg.count; /* special meaning */
         line += n;
     }
     else {
         m = sscanf(line, " >%d%n", &cfg.selected, &n);
         if (m == 1) {
+            cfg.type = TXTP_GROUP_MODE_RANDOM; /* usually R>1 but allows L/S>1 */
             cfg.selected--; /* externally 1=first but internally 0=first */
             line += n;
+        }
+        else if (cfg.type == TXTP_GROUP_MODE_RANDOM) {
+            /* was a random but didn't select anything, just select all */
+            cfg.selected = cfg.count;
         }
     }
 
