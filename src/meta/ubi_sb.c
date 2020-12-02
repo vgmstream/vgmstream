@@ -724,7 +724,7 @@ static VGMSTREAM *init_vgmstream_ubi_dat_main(ubi_sb_header *sb, STREAMFILE *sf_
         }
         case 0x04: { /* standard WAV */
             if (!sb->is_external) {
-                VGM_LOG("Ubi DAT: Found RAM stream_type 0x04\n");
+                VGM_LOG("UBI DAT: Found RAM stream_type 0x04\n");
                 goto fail;
             }
 
@@ -1157,7 +1157,7 @@ static VGMSTREAM* init_vgmstream_ubi_sb_base(ubi_sb_header* sb, STREAMFILE* sf_h
             size_t bytes, chunk_size;
             off_t header_offset;
 
-            VGM_ASSERT(sb->is_streamed, "Ubi SB: Raw XMA used for streamed sound\n");
+            VGM_ASSERT(sb->is_streamed, "UBI SB: Raw XMA used for streamed sound\n");
 
             /* get XMA header from extra section */
             chunk_size = 0x20;
@@ -1741,7 +1741,7 @@ fail:
 }
 
 static uint32_t ubi_ps2_pitch_to_freq(uint32_t pitch) {
-    /* old PS2 games store sample rate in a weird range of 0-65536 remapped from 0-48000 */
+    /* old PS2 games store sample rate in a weird range of 0-0x10000 remapped from 0-48000 */
     /* strangely, audio res type does have sample rate value but it's unused */
     double sample_rate = (((double)pitch / 65536) * 48000);
     return (uint32_t)ceil(sample_rate);
@@ -1803,7 +1803,7 @@ static int parse_type_layer_ps2_old(ubi_sb_header* sb, off_t offset, STREAMFILE*
     }
 
     if (sb->layer_count > SB_MAX_LAYER_COUNT) {
-        VGM_LOG("Ubi SB: incorrect layer count\n");
+        VGM_LOG("UBI SB: incorrect layer count\n");
         goto fail;
     }
 
@@ -1924,7 +1924,7 @@ static int parse_type_sequence(ubi_sb_header* sb, off_t offset, STREAMFILE* sf) 
     /* sequence chain */
     sb->type = UBI_SEQUENCE;
     if (sb->cfg.sequence_sequence_count == 0) {
-        VGM_LOG("Ubi SB: sequence not configured at %x\n", (uint32_t)offset);
+        VGM_LOG("UBI SB: sequence not configured at %x\n", (uint32_t)offset);
         goto fail;
     }
 
@@ -1934,7 +1934,7 @@ static int parse_type_sequence(ubi_sb_header* sb, off_t offset, STREAMFILE* sf) 
     sb->sequence_count  = read_32bit(offset + sb->cfg.sequence_sequence_count, sf);
 
     if (sb->sequence_count > SB_MAX_CHAIN_COUNT) {
-        VGM_LOG("Ubi SB: incorrect sequence count %i vs %i\n", sb->sequence_count, SB_MAX_CHAIN_COUNT);
+        VGM_LOG("UBI SB: incorrect sequence count %i vs %i\n", sb->sequence_count, SB_MAX_CHAIN_COUNT);
         goto fail;
     }
 
@@ -1986,7 +1986,7 @@ static int parse_type_layer(ubi_sb_header* sb, off_t offset, STREAMFILE* sf) {
     /* layer header */
     sb->type = UBI_LAYER;
     if (sb->cfg.layer_layer_count == 0) {
-        VGM_LOG("Ubi SB: layers not configured at %x\n", (uint32_t)offset);
+        VGM_LOG("UBI SB: layers not configured at %x\n", (uint32_t)offset);
         goto fail;
     }
 
@@ -2007,7 +2007,7 @@ static int parse_type_layer(ubi_sb_header* sb, off_t offset, STREAMFILE* sf) {
     }
 
     if (sb->layer_count > SB_MAX_LAYER_COUNT) {
-        VGM_LOG("Ubi SB: incorrect layer count\n");
+        VGM_LOG("UBI SB: incorrect layer count\n");
         goto fail;
     }
 
@@ -2031,7 +2031,7 @@ static int parse_type_layer(ubi_sb_header* sb, off_t offset, STREAMFILE* sf) {
         int num_samples = read_32bit(table_offset + sb->cfg.layer_num_samples, sf);
 
         if (sb->sample_rate != sample_rate || sb->stream_type != stream_type) {
-            VGM_LOG("Ubi SB: %i layer headers don't match at %x > %x\n", sb->layer_count, (uint32_t)offset, (uint32_t)table_offset);
+            VGM_LOG("UBI SB: %i layer headers don't match at %x > %x\n", sb->layer_count, (uint32_t)offset, (uint32_t)table_offset);
             if (!sb->cfg.ignore_layer_error) /* layers of different rates happens sometimes */
                 goto fail;
         }
@@ -2070,7 +2070,7 @@ static int parse_type_silence(ubi_sb_header* sb, off_t offset, STREAMFILE* sf) {
     /* silence header */
     sb->type = UBI_SILENCE;
     if (sb->cfg.silence_duration_int == 0 && sb->cfg.silence_duration_float == 0) {
-        VGM_LOG("Ubi SB: silence duration not configured at %x\n", (uint32_t)offset);
+        VGM_LOG("UBI SB: silence duration not configured at %x\n", (uint32_t)offset);
         goto fail;
     }
 
@@ -2096,7 +2096,7 @@ static int parse_type_random(ubi_sb_header* sb, off_t offset, STREAMFILE* sf) {
 
     /* sequence chain */
     if (sb->cfg.random_entry_size == 0) {
-        VGM_LOG("Ubi SB: random entry size not configured at %x\n", (uint32_t)offset);
+        VGM_LOG("UBI SB: random entry size not configured at %x\n", (uint32_t)offset);
         goto fail;
     }
 
@@ -2689,8 +2689,7 @@ static void config_sb_sequence(ubi_sb_header* sb, off_t sequence_count, off_t en
     if (sb->is_bnm || sb->is_dat || sb->is_ps2_bnm) {
         sb->cfg.sequence_sequence_loop  = sequence_count - 0x0c;
         sb->cfg.sequence_sequence_single= sequence_count - 0x08;
-    }
-    if (sb->is_blk) {
+    } else if (sb->is_blk) {
         sb->cfg.sequence_sequence_loop  = sequence_count - 0x14;
         sb->cfg.sequence_sequence_single= sequence_count - 0x0c;
     }
@@ -3314,7 +3313,7 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
     /* Prince of Persia: The Sands of Time (2003)(PS2)-bank 0x000A0004 / 0x000A0002 (POP1 port/Demo) */
     /* Tom Clancy's Rainbow Six 3 (2003)(PS2)-bank 0x000A0007 */
     /* Tom Clancy's Ghost Recon 2 (2004)(PS2)-bank 0x000A0007 */
-    /* Splinter Cell: Pandora Tomorrow (2006)(PS2)-bank 0x000A0008 (separate banks from main map) */
+    /* Splinter Cell: Pandora Tomorrow (2004)(PS2)-bank 0x000A0008 (separate banks from main map) */
     /* Prince of Persia: Warrior Within (Demo)(2004)(PS2)-bank 0x00100000 */
     /* Prince of Persia: Warrior Within (2004)(PS2)-bank 0x00120009 */
     if ((sb->version == 0x000A0002 && sb->platform == UBI_PS2) ||
@@ -3334,7 +3333,6 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
         config_sb_layer_sh(sb, 0x14, 0x00, 0x06, 0x08, 0x10);
 
         config_sb_silence_i(sb, 0x18);
-
         return 1;
     }
 
