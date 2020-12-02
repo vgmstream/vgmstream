@@ -197,7 +197,7 @@ void decode_oki4s(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing
                 stream->offset + i :    /* stereo: one nibble per channel */
                 stream->offset + i/2;   /* mono: consecutive nibbles (assumed) */
         int nibble_shift =
-                is_stereo ? (!(channel&1) ? 0:4) : (!(i&1) ? 0:4);  /* even = low, odd = high */
+                is_stereo ? (!(channel&1) ? 0:4) : ((i&1) ? 0:4);  /* even = low, odd = high */
 
         oki4s_expand_nibble(stream, byte_offset,nibble_shift, &hist1, &step_index, &out_sample);
         outbuf[sample_count] = (out_sample);

@@ -140,6 +140,8 @@ as explained below, but often will use default values. Accepted codec strings:
 #   * Variation with modified encoding
 # - OKI16          OKI ADPCM with 16-bit output (not VOX/Dialogic 12-bit)
 #   * For rare PS2 games (Sweet Legacy, Hooligan)
+# - OKI4S          OKI ADPCM with 16-bit output and adjusted tables
+#   * For later Konami rhythm games
 # - AAC            Advanced Audio Coding (raw without .mp4)
 #   * For some 3DS games and many iOS games
 #   * Should set skip_samples (around 1024 but varies)
@@ -443,7 +445,7 @@ While you can put anything in the values, this feature is meant to be used to st
 You can set a default offset that affects next `@(offset)` reads making them `@(offset + base_offset)`, for cleaner parsing.
 
 This is particularly interesting when combined with offsets to some long value. For example instead of `channels = @0x714` you could set `base_offset = 0x710, channels = @0x04`. Or values from the `name_table`, like `base_offset = name_value, channels = @0x04`.
- 
+
 It also allows parsing formats that set offsets to another offset, by "chaining" `base_offset`. With `base_offset = @0x10` (pointing to `0x40`) then `base_offset = @0x20`, it reads value at `0x60`. Set to 0 when you want to disable/reset the chain: `base_offset = @0x10` then `base_offset = 0` then `base_offset = @0x20` reads value at `0x20`
 
 
