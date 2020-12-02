@@ -140,7 +140,7 @@ as explained below, but often will use default values. Accepted codec strings:
 #   * Variation with modified encoding
 # - OKI16          OKI ADPCM with 16-bit output (not VOX/Dialogic 12-bit)
 #   * For rare PS2 games (Sweet Legacy, Hooligan)
-# - OKI4s          OKI ADPCM with 16-bit output and adjusted tables
+# - OKI4S          OKI ADPCM with 16-bit output and adjusted tables
 #   * For later Konami rhythm games
 # - AAC            Advanced Audio Coding (raw without .mp4)
 #   * For some 3DS games and many iOS games
