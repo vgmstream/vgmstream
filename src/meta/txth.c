@@ -39,6 +39,7 @@ typedef enum {
     TGC = 29,           /* Tiger Game.com 4-bit ADPCM */
     ASF = 30,           /* Argonaut ASF 4-bit ADPCM */
     EAXA = 31,          /* Electronic Arts EA-XA 4-bit ADPCM v1 */
+    OKI4S = 32,         /* OKI ADPCM with 16-bit output (unlike OKI/VOX/Dialogic ADPCM's 12-bit) */
 } txth_type;
 
 typedef enum { DEFAULT, NEGATIVE, POSITIVE, INVERTED } txth_loop_t;
@@ -226,6 +227,7 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
         case PCM4:       coding = coding_PCM4; break;
         case PCM4_U:     coding = coding_PCM4_U; break;
         case OKI16:      coding = coding_OKI16; break;
+        case OKI4S:      coding = coding_OKI4S; break;
         case TGC:        coding = coding_TGC; break;
         case ASF:        coding = coding_ASF; break;
         case EAXA:       coding = coding_EA_XA; break;
@@ -337,6 +339,7 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
             break;
 
         case coding_OKI16:
+        case coding_OKI4S:
             vgmstream->layout_type = layout_none;
             break;
 
@@ -872,6 +875,7 @@ static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char * key, ch
         else if (is_string(val,"PCM4"))         txth->codec = PCM4;
         else if (is_string(val,"PCM4_U"))       txth->codec = PCM4_U;
         else if (is_string(val,"OKI16"))        txth->codec = OKI16;
+        else if (is_string(val,"OKI4S"))        txth->codec = OKI4S;
         else if (is_string(val,"AAC"))          txth->codec = AAC;
         else if (is_string(val,"TGC"))          txth->codec = TGC;
         else if (is_string(val,"GCOM_ADPCM"))   txth->codec = TGC;
@@ -1524,8 +1528,8 @@ static int parse_name_table(txth_header* txth, char * name_list) {
 
         //;VGM_LOG("TXTH: compare name '%s'\n", key);
         /* parse values if key (name) matches default ("") or filename with/without extension */
-        if (key[0]=='\0' 
-                || is_string_match(filename, key) 
+        if (key[0]=='\0'
+                || is_string_match(filename, key)
                 || is_string_match(basename, key)
                 || is_string_match(fullname, key)) {
             int n;
@@ -1790,6 +1794,7 @@ static int get_bytes_to_samples(txth_header* txth, uint32_t bytes) {
             return yamaha_bytes_to_samples(bytes, txth->channels);
         case PCFX:
         case OKI16:
+        case OKI4S:
             return oki_bytes_to_samples(bytes, txth->channels);
 
         /* untested */
