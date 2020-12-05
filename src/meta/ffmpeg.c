@@ -6,7 +6,20 @@
 static int read_pos_file(uint8_t* buf, size_t bufsize, STREAMFILE* sf);
 static int find_ogg_loops(ffmpeg_codec_data* data, int32_t* p_loop_start, int32_t* p_loop_end);
 
-/* parses any file supported by FFmpeg and not handled elsewhere (mainly: MP4/AAC, MP3, MPC, FLAC) */
+/* parses any format supported by FFmpeg and not handled elsewhere:
+ * - MP3 (.mp3, .mus): Marc Ecko's Getting Up (PC)
+ * - MPC (.mpc): Moonshine Runners (PC), Asphalt 7 (PC)
+ * - FLAC (.flac):  Warcraft 3 Reforged (PC), Call of Duty: Ghosts (PC)
+ * - DUCK (.wav): Sonic Jam (SAT), Virtua Fighter 2 (SAT)
+ * - ALAC/AAC (.caf): Chrono Trigger (iOS)
+ * - ATRAC3 (.oma, .aa3): demuxed PSP/PS3 videos
+ * - WMA/WMAPRO (.wma): Castlevania Symphony of the Night (Xbox)
+ * - AC3 (.ac3): some PS2 games
+ *
+ * May also catch files that are supported elsewhere but rejected due to bugs,
+ * but those should be fixed in their parser for proper loops/etc support
+ * (catch-all behavior may be disabled later).
+  */
 VGMSTREAM* init_vgmstream_ffmpeg(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     ffmpeg_codec_data* data = NULL;
