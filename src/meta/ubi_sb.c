@@ -2214,7 +2214,11 @@ static int parse_stream_codec(ubi_sb_header* sb) {
             case 0x06: /* The Jungle Book (internal extension is .adp, maybe Ubi ADPCM can be considered FMT_ADP) */
                 sb->codec = UBI_ADPCM;
                 break;
-
+#if 0
+            case 0x07:
+                sb->codec = FMT_PFK; /* not seen yet, some MPEG based codec, referred to as "PFK" in the code */
+                break;
+#endif
             case 0x08:
                 sb->codec = UBI_IMA; /* Ubi IMA v2/v3 */
                 break;
@@ -2235,7 +2239,7 @@ static int parse_stream_codec(ubi_sb_header* sb) {
                 break;
 #if 0
             case 0x03:
-                sb->codec = FMT_MPDX; /* not seen yet, some MPEG based codec */
+                sb->codec = FMT_PFK; /* not seen yet, some MPEG based codec, referred to as "PFK" in the code */
                 break;
 #endif
             case 0x04:
