@@ -2124,6 +2124,12 @@ static int parse_type_random(ubi_sb_header* sb, off_t offset, STREAMFILE* sf) {
                 VGM_LOG("UBI SB: random in other bank\n");
                 goto fail;
             }
+        } else {
+            entry_number = entry_number & 0x3FFFFFFF;
+            if (entry_number > sb->section2_num) {
+                VGM_LOG("UBI SB: random with wrong entry %i vs %i at %x\n", entry_number, sb->section2_num, (uint32_t)sb->extra_offset);
+                goto fail;
+            }
         }
 
         //todo make rand or stuff (old chance: int from 0 to 0x10000, new: float from 0.0 to 1.0)
