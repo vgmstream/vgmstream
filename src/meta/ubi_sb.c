@@ -3143,20 +3143,16 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
         return 1;
     }
 
-#if 0
-    //todo group flags and maybe num_samples for sfx are off
     /* Myst III: Exile (2001)(PS2)-map */
     if (sb->version == 0x00000004 && sb->platform == UBI_PS2) {
         config_sb_entry(sb, 0x34, 0x70);
 
-        config_sb_audio_fb(sb, 0x1c, (1 << 3), (1 << 6), (1 << 4)); //???
-        config_sb_audio_hs(sb, 0x24, 0x28, 0x2c, 0x34, 0x44, 0x6c);
-        sb->cfg.audio_streamed_flag = 0x6c; /* no streamed flag? use codec as flag */
+        config_sb_audio_fb(sb, 0x1c, (1 << 4), 0, (1 << 5));
+        config_sb_audio_hs(sb, 0x24, 0x28, 0x34, 0x3c, 0x44, 0x6c);
 
         config_sb_sequence(sb, 0x2c, 0x24);
         return 1;
     }
-#endif
 
     /* Splinter Cell (2002)(PC)-map */
     /* Splinter Cell: Pandora Tomorrow (2004)(PC)-map */
@@ -3819,7 +3815,6 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
         sb->cfg.audio_xma_offset = 0x68;
 
         config_sb_sequence(sb, 0x2c, 0x14);
-
         return 1;
     }
 
@@ -3899,7 +3894,6 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
 
         config_sb_layer_he(sb, 0x20, 0x34, 0x38, 0x40);
         config_sb_layer_sh(sb, 0x30, 0x00, 0x04, 0x08, 0x10);
-
         return 1;
     }
 
@@ -3939,7 +3933,6 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
 
         config_sb_audio_fs(sb, 0x2c, 0x30, 0x34);
         config_sb_audio_he(sb, 0x40, 0x44, 0x4c, 0x54, 0x5c, 0x60);
-
         return 1;
     }
 
