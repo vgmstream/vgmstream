@@ -326,12 +326,31 @@ VGMSTREAM* init_vgmstream_aifc(STREAMFILE* sf) {
                  * will become apparent.
                  * We shouldn't have a loop point that overflows an int32_t anyway. */
                 loop_flag = 1;
-                if (loop_start==loop_end)
+                if (loop_start == loop_end)
                     loop_flag = 0;
             }
         }
+    }
+    if (!loop_flag && mark_offset) {
+        int mark_count = read_u16be(mark_offset + 0x00,sf);
 
-        /* Relic has "beg loop" "end loop" comments but no actual looping? */
+        /* use "beg/end" loop comments [Battle Tryst (Arcade)]
+         * Relic codec has 3 "beg loop" "end loop" "start offset" comments, but  always  begin = 0 and end = -1 */
+        if (mark_count == 2) {
+            /* per mark: 
+             * 00(2): id
+             * 02(4): sample point
+             * 06(1): string size
+             * --(-): string (non-null terminated)
+             * --(1): null terminator */
+            /* simplified... */
+            if (read_u32be(mark_offset + 0x09,sf) == 0x62656720 &&  /* "beg " */
+                read_u32be(mark_offset + 0x19,sf) == 0x656E6420) {  /* "end " */
+                loop_start = read_s32be(mark_offset + 0x04, sf);
+                loop_end   = read_s32be(mark_offset + 0x14, sf);
+                loop_flag = 1;
+            }
+        }
     }
 
 
