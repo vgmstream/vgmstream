@@ -167,14 +167,14 @@ static void load_default_config(play_config_t* def, play_config_t* tcfg) {
         def->fade_time_set = 1;
     }
 
-    /* loop priority: #i > #e > #E */
+    /* loop priority: #i > #e > #E (respect player's ignore too) */
     if (tcfg->really_force_loop) {
-        def->ignore_loop = 0;
+        //def->ignore_loop = 0;
         def->force_loop = 0;
         def->really_force_loop = 1;
     }
     if (tcfg->force_loop) {
-        def->ignore_loop = 0;
+        //def->ignore_loop = 0;
         def->force_loop = 1;
         def->really_force_loop = 0;
     }
