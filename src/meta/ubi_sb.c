@@ -2199,7 +2199,9 @@ static int parse_stream_codec(ubi_sb_header* sb) {
     if (sb->is_bnm || sb->version < 0x00000007) { /* bnm is ~v0 but some games have wonky versions */
         switch (sb->stream_type) {
             case 0x01:
-                if (!set_default_codec_for_platform(sb))
+                if (sb->is_streamed)
+                    sb->codec = RAW_PCM;
+                else if (!set_default_codec_for_platform(sb))
                     goto fail;
                 break;
 
@@ -2230,7 +2232,9 @@ static int parse_stream_codec(ubi_sb_header* sb) {
     } else if (sb->version < 0x000A0000) {
         switch (sb->stream_type) {
             case 0x01:
-                if (!set_default_codec_for_platform(sb))
+                if (sb->is_streamed)
+                    sb->codec = RAW_PCM;
+                else if (!set_default_codec_for_platform(sb))
                     goto fail;
                 break;
 
