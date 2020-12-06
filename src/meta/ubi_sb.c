@@ -167,7 +167,6 @@ typedef struct {
     int num_samples;            /* should match manually calculated samples */
     int sample_rate;
     int channels;
-    int is_stereo;              /* found in old PS2 games */
     off_t xma_header_offset;    /* some XMA have extra header stuff */
 
     int layer_count;            /* number of layers in a layer type */
@@ -984,7 +983,7 @@ static VGMSTREAM* init_vgmstream_ubi_sb_base(ubi_sb_header* sb, STREAMFILE* sf_h
             break;
 
         case UBI_IMA_SCE:
-            vgmstream->coding_type = coding_UBI_IMA;
+            vgmstream->coding_type = coding_UBI_SCE_IMA;
             vgmstream->layout_type = layout_blocked_ubi_sce;
             vgmstream->full_block_size = read_32bitLE(0x18, sf_data);
 
@@ -998,7 +997,7 @@ static VGMSTREAM* init_vgmstream_ubi_sb_base(ubi_sb_header* sb, STREAMFILE* sf_h
              * - Splinter Cell (PC): 4-bit w/ 1ch/2ch (all streams + menu music)
              * - Batman: Vengeance (PC): 4-bit w/ 1ch/2ch (all streams)
              * - Myst IV (PC/Xbox): 4-bit w/ 1ch (amb), some files only (ex. sfx_si_puzzle_stream.sb2)
-             * - The Jungle Book: Rhythm n' Groove (PC): 4-bit w/ 2ch (music/amb), 6-bit w/ 1ch (speech)
+             * - The Jungle Book: Rhythm N'Groove (PC): 4-bit w/ 2ch (music/amb), 6-bit w/ 1ch (speech)
              * - possibly others
              * internal extension is .adp, maybe this can be called FMT_ADP */
 
@@ -1753,6 +1752,7 @@ static int parse_type_audio_ps2_old(ubi_sb_header* sb, off_t offset, STREAMFILE*
     int32_t(*read_32bit)(off_t, STREAMFILE*) = sb->big_endian ? read_32bitBE : read_32bitLE;
     uint32_t pitch;
     uint32_t test_sample_rate;
+    int is_stereo;
 
     sb->stream_size     = read_32bit(offset + sb->cfg.audio_stream_size, sf);
     sb->stream_offset   = read_32bit(offset + sb->cfg.audio_stream_offset, sf);
@@ -1770,10 +1770,10 @@ static int parse_type_audio_ps2_old(ubi_sb_header* sb, off_t offset, STREAMFILE*
     sb->is_streamed     = read_32bit(offset + sb->cfg.audio_streamed_flag, sf) & sb->cfg.audio_streamed_and;
     sb->loop_flag       = read_32bit(offset + sb->cfg.audio_loop_flag, sf) & sb->cfg.audio_loop_and;
     sb->is_localized    = read_32bit(offset + sb->cfg.audio_loc_flag, sf) & sb->cfg.audio_loc_and;
-    sb->is_stereo       = read_32bit(offset + sb->cfg.audio_stereo_flag, sf) & sb->cfg.audio_stereo_and;
+    is_stereo           = read_32bit(offset + sb->cfg.audio_stereo_flag, sf) & sb->cfg.audio_stereo_and;
 
     sb->num_samples = 0; /* calculate from size */
-    sb->channels = sb->is_stereo ? 2 : 1;
+    sb->channels = is_stereo ? 2 : 1;
     sb->stream_size *= sb->channels;
     sb->subblock_id = 0;
 
@@ -1793,6 +1793,7 @@ fail:
 
 static int parse_type_layer_ps2_old(ubi_sb_header* sb, off_t offset, STREAMFILE* sf) {
     int32_t(*read_32bit)(off_t, STREAMFILE*) = sb->big_endian ? read_32bitBE : read_32bitLE;
+    uint32_t pitch;
 
     /* much simpler than later iteration */
     sb->layer_count     = read_32bit(offset + sb->cfg.layer_layer_count, sf);
@@ -1809,7 +1810,8 @@ static int parse_type_layer_ps2_old(ubi_sb_header* sb, off_t offset, STREAMFILE*
         goto fail;
     }
 
-    sb->sample_rate     = ubi_ps2_pitch_to_freq(read_32bit(offset + sb->cfg.layer_pitch, sf));
+    pitch               = read_32bit(offset + sb->cfg.layer_pitch, sf);
+    sb->sample_rate     = ubi_ps2_pitch_to_freq(pitch);
     sb->is_localized    = read_32bit(offset + sb->cfg.layer_loc_flag, sf) & sb->cfg.layer_loc_and;
 
     sb->num_samples = 0; /* calculate from size */
@@ -1957,8 +1959,7 @@ static int parse_type_sequence(ubi_sb_header* sb, off_t offset, STREAMFILE* sf) 
             if (!sb->sequence_multibank) {
                 sb->sequence_multibank = is_other_bank(sb, sf, bank_number);
             }
-        }
-        else {
+        } else {
             entry_number = entry_number & 0x3FFFFFFF;
             if (entry_number > sb->section2_num) {
                 VGM_LOG("UBI SB: chain with wrong entry %i vs %i at %x\n", entry_number, sb->section2_num, (uint32_t)sb->extra_offset);
@@ -2954,7 +2955,6 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
     if (sb->is_bnm || sb->is_dat || sb->is_ps2_bnm) {
       //sb->allowed_types[0x0a] = 1; /* only needed inside sequences */
         sb->allowed_types[0x0b] = 1;
-        sb->allowed_types[0x09] = 1;
     }
 
 #if 0
@@ -2983,7 +2983,6 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
         (sb->version == 0xCDCDCDCD && sb->platform == UBI_PC)) {
         sb->version = 0x00000000;
     }
-
 
     /* Tonic Touble beta has garbage instead of version */
     if (sb->is_bnm && sb->version > 0x00000000 && sb->platform == UBI_PC) {
@@ -3084,7 +3083,7 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
     /* Rayman 2: Revolution (2000)(PS2)-bnm */
     /* Disney's Dinosaur (2000)(PS2)-bnm */
     /* Hype: The Time Quest (2001)(PS2)-bnm */
-    if (sb->version == 0x32787370 && sb->platform == UBI_PS2 && sb->is_ps2_bnm) {
+    if (sb->version == 0x32787370 && sb->platform == UBI_PS2) {
         sb->version = 0x00000000; /* for convenience */
         config_sb_entry(sb, 0x1c, 0x44);
 

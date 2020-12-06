@@ -1,4 +1,5 @@
 #include "layout.h"
+#include "../coding/coding.h"
 #include "../vgmstream.h"
 
 /* weird mix of Ubi ADPCM format with Ubi IMA, found in Splinter Cell Essentials (PSP) */
@@ -18,8 +19,6 @@ void block_update_ubi_sce(off_t block_offset, VGMSTREAM* vgmstream) {
      * (higher bit has a special meaning)
      */
 
-    vgmstream->codec_config |= 0x80; /* flag for decoder, ugly I know */
-
     if ((vgmstream->codec_config & 1) == 0) {
         header_size = 0x34; /* read header in first subframe */
     }
@@ -34,8 +33,8 @@ void block_update_ubi_sce(off_t block_offset, VGMSTREAM* vgmstream) {
     padding_size = 0x01;
 
     vgmstream->current_block_offset = block_offset;
-    vgmstream->current_block_size = subframe_size;
     vgmstream->next_block_offset = block_offset +  header_size * vgmstream->channels + subframe_size + padding_size;
+    vgmstream->current_block_samples = ima_bytes_to_samples(subframe_size, channels);
 
     for (i = 0; i < vgmstream->channels; i++) {
         vgmstream->ch[i].offset = block_offset + header_size * channels;
@@ -44,11 +43,11 @@ void block_update_ubi_sce(off_t block_offset, VGMSTREAM* vgmstream) {
             vgmstream->ch[i].adpcm_step_index  = read_32bitLE(block_offset + header_size * i + 0x04, sf);
             vgmstream->ch[i].adpcm_history1_32 = read_32bitLE(block_offset + header_size * i + 0x08, sf);
 
-             /* First step is always 0x500, not sure if it's a bug or a feature but the game just takes it as is and
-              * ends up reading 0 from out-of-bounds memory area which causes a pop at the start. Yikes.
-              * It gets clampled later so the rest of the sound plays ok.
-              * We put 89 here as our special index which contains 0 to simulate this.
-              */
+            /* First step is always 0x500, not sure if it's a bug or a feature but the game just takes it as is and
+             * ends up reading 0 from out-of-bounds memory area which causes a pop at the start. Yikes.
+             * It gets clampled later so the rest of the sound plays ok.
+             * We put 89 here as our special index which contains 0 to simulate this.
+             */
             if (vgmstream->ch[i].adpcm_step_index == 0x500) {
                 vgmstream->ch[i].adpcm_step_index = 89;
             }

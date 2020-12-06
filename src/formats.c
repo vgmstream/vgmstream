@@ -749,6 +749,7 @@ static const coding_info coding_info_list[] = {
         {coding_REF_IMA,            "Reflections 4-bit IMA ADPCM"},
         {coding_AWC_IMA,            "Rockstar AWC 4-bit IMA ADPCM"},
         {coding_UBI_IMA,            "Ubisoft 4-bit IMA ADPCM"},
+        {coding_UBI_SCE_IMA,        "Ubisoft 4-bit SCE IMA ADPCM"},
         {coding_H4M_IMA,            "Hudson HVQM4 4-bit IMA ADPCM"},
         {coding_CD_IMA,             "Crystal Dynamics 4-bit IMA ADPCM"},
 
