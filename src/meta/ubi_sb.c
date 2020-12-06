@@ -161,14 +161,13 @@ typedef struct {
     uint32_t stream_type;       /* rough codec value */
     uint32_t subblock_id;       /* internal id to reference in section3 */
     uint8_t subbank_index;      /* ID of the entry in DC bank */
-    int is_localized;
-    int is_stereo;
 
     int loop_flag;              /* stream loops (normally internal sfx, but also external music) */
     int loop_start;             /* usually 0 */
     int num_samples;            /* should match manually calculated samples */
     int sample_rate;
     int channels;
+    int is_stereo;              /* found in old PS2 games */
     off_t xma_header_offset;    /* some XMA have extra header stuff */
 
     int layer_count;            /* number of layers in a layer type */
@@ -185,6 +184,7 @@ typedef struct {
     int is_streamed;            /* sound is streamed from storage */
     int is_cd_streamed;         /* found in PS2 BNM */
     int is_external;            /* sound is in an external file */
+    int is_localized;           /* found in old PS2 games, determines which file the sound is in */
     char resource_name[0x28];   /* filename to the external stream, or internal stream info for some games */
 
     char readable_name[255];    /* final subsong name */
@@ -995,10 +995,12 @@ static VGMSTREAM* init_vgmstream_ubi_sb_base(ubi_sb_header* sb, STREAMFILE* sf_h
 
         case UBI_ADPCM:
             /* custom Ubi 4/6-bit ADPCM used in early games:
-             * - Splinter Cell (PC): 4-bit w/ 2ch (music), 6-bit w/ 1ch (sfx)
-             * - Batman: Vengeance (PC): 4-bit w/ 2ch (music), 6-bit w/ 1ch (sfx)
-             * - Myst IV (PC/Xbox): 4bit-1ch (amb), some files only (ex. sfx_si_puzzle_stream.sb2)
-             * - possibly others */
+             * - Splinter Cell (PC): 4-bit w/ 1ch/2ch (all streams + menu music)
+             * - Batman: Vengeance (PC): 4-bit w/ 1ch/2ch (all streams)
+             * - Myst IV (PC/Xbox): 4-bit w/ 1ch (amb), some files only (ex. sfx_si_puzzle_stream.sb2)
+             * - The Jungle Book: Rhythm n' Groove (PC): 4-bit w/ 2ch (music/amb), 6-bit w/ 1ch (speech)
+             * - possibly others
+             * internal extension is .adp, maybe this can be called FMT_ADP */
 
             /* skip extra header (some kind of id?) found in Myst IV */
             if (read_32bitBE(start_offset + 0x00, sf_data) != 0x08000000 &&
@@ -2122,6 +2124,12 @@ static int parse_type_random(ubi_sb_header* sb, off_t offset, STREAMFILE* sf) {
                 VGM_LOG("UBI SB: random in other bank\n");
                 goto fail;
             }
+        } else {
+            entry_number = entry_number & 0x3FFFFFFF;
+            if (entry_number > sb->section2_num) {
+                VGM_LOG("UBI SB: random with wrong entry %i vs %i at %x\n", entry_number, sb->section2_num, (uint32_t)sb->extra_offset);
+                goto fail;
+            }
         }
 
         //todo make rand or stuff (old chance: int from 0 to 0x10000, new: float from 0.0 to 1.0)
@@ -2199,7 +2207,9 @@ static int parse_stream_codec(ubi_sb_header* sb) {
     if (sb->is_bnm || sb->version < 0x00000007) { /* bnm is ~v0 but some games have wonky versions */
         switch (sb->stream_type) {
             case 0x01:
-                if (!set_default_codec_for_platform(sb))
+                if (sb->is_streamed)
+                    sb->codec = RAW_PCM;
+                else if (!set_default_codec_for_platform(sb))
                     goto fail;
                 break;
 
@@ -2211,10 +2221,14 @@ static int parse_stream_codec(ubi_sb_header* sb) {
                 sb->codec = FMT_APM;
                 break;
 
-            case 0x06: /* The Jungle Book (internal extension is .adp, maybe Ubi ADPCM can be considered FMT_ADP) */
+            case 0x06:
                 sb->codec = UBI_ADPCM;
                 break;
-
+#if 0
+            case 0x07:
+                sb->codec = FMT_PFK; /* not seen yet, some MPEG based codec, referred to as "PFK" in the code */
+                break;
+#endif
             case 0x08:
                 sb->codec = UBI_IMA; /* Ubi IMA v2/v3 */
                 break;
@@ -2226,7 +2240,9 @@ static int parse_stream_codec(ubi_sb_header* sb) {
     } else if (sb->version < 0x000A0000) {
         switch (sb->stream_type) {
             case 0x01:
-                if (!set_default_codec_for_platform(sb))
+                if (sb->is_streamed)
+                    sb->codec = RAW_PCM;
+                else if (!set_default_codec_for_platform(sb))
                     goto fail;
                 break;
 
@@ -2235,7 +2251,7 @@ static int parse_stream_codec(ubi_sb_header* sb) {
                 break;
 #if 0
             case 0x03:
-                sb->codec = FMT_MPDX; /* not seen yet, some MPEG based codec */
+                sb->codec = FMT_PFK; /* not seen yet, some MPEG based codec, referred to as "PFK" in the code */
                 break;
 #endif
             case 0x04:
@@ -2639,17 +2655,19 @@ static void config_sb_audio_fb(ubi_sb_header* sb, off_t flag_bits, int streamed_
     sb->cfg.audio_subblock_and      = subblock_and;
     sb->cfg.audio_loop_and          = loop_and;
 }
-static void config_sb_audio_fb_ps2_bnm(ubi_sb_header *sb, off_t flag_bits, int streamed_and, int cd_streamed_and, int loop_and) {
-    /* audio header with standard flags */
+static void config_sb_audio_ps2_bnm(ubi_sb_header *sb, off_t flag_bits, int streamed_and, int cd_streamed_and, int loop_and, off_t channels, off_t sample_rate) {
+    /* bit flags, channels and sample rate */
     sb->cfg.audio_streamed_flag     = flag_bits;
     sb->cfg.audio_cd_streamed_flag  = flag_bits;
     sb->cfg.audio_loop_flag         = flag_bits;
     sb->cfg.audio_streamed_and      = streamed_and;
     sb->cfg.audio_cd_streamed_and   = cd_streamed_and;
     sb->cfg.audio_loop_and          = loop_and;
+    sb->cfg.audio_channels          = channels;
+    sb->cfg.audio_sample_rate       = sample_rate;
 }
 static void config_sb_audio_ps2_old(ubi_sb_header* sb, off_t flag_bits, int streamed_and, int loop_and, int loc_and, int stereo_and, off_t pitch, off_t sample_rate) {
-    /* sample rate only, bit flags */
+    /* bit flags, sample rate only */
     sb->cfg.audio_streamed_flag     = flag_bits;
     sb->cfg.audio_loop_flag         = flag_bits;
     sb->cfg.audio_loc_flag          = flag_bits;
@@ -3053,7 +3071,7 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
 
         config_sb_audio_fs(sb, 0x2c, 0x00, 0x30);
         config_sb_audio_hs(sb, 0x42, 0x3c, 0x34, 0x34, 0x48, 0x44);
-        /* has internal names but they're partially overwritten by sound index */
+        /* has internal names but they're partially overwritten by subbank index */
 
         config_sb_sequence(sb, 0x24, 0x18);
 
@@ -3070,8 +3088,7 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
         sb->version = 0x00000000; /* for convenience */
         config_sb_entry(sb, 0x1c, 0x44);
 
-        config_sb_audio_fb_ps2_bnm(sb, 0x18, (1 << 5), (1 << 6), (1 << 7));
-        config_sb_audio_hs(sb, 0x20, 0x22, 0x00, 0x00, 0x00, 0x1c);
+        config_sb_audio_ps2_bnm(sb, 0x18, (1 << 5), (1 << 6), (1 << 7), 0x20, 0x22);
         sb->cfg.audio_interleave = 0x400;
 
         config_sb_sequence(sb, 0x24, 0x14);
@@ -3143,20 +3160,16 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
         return 1;
     }
 
-#if 0
-    //todo group flags and maybe num_samples for sfx are off
     /* Myst III: Exile (2001)(PS2)-map */
     if (sb->version == 0x00000004 && sb->platform == UBI_PS2) {
         config_sb_entry(sb, 0x34, 0x70);
 
-        config_sb_audio_fb(sb, 0x1c, (1 << 3), (1 << 6), (1 << 4)); //???
-        config_sb_audio_hs(sb, 0x24, 0x28, 0x2c, 0x34, 0x44, 0x6c);
-        sb->cfg.audio_streamed_flag = 0x6c; /* no streamed flag? use codec as flag */
+        config_sb_audio_fb(sb, 0x1c, (1 << 4), 0, (1 << 5));
+        config_sb_audio_hs(sb, 0x24, 0x28, 0x34, 0x3c, 0x44, 0x6c);
 
         config_sb_sequence(sb, 0x2c, 0x24);
         return 1;
     }
-#endif
 
     /* Splinter Cell (2002)(PC)-map */
     /* Splinter Cell: Pandora Tomorrow (2004)(PC)-map */
@@ -3819,7 +3832,6 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
         sb->cfg.audio_xma_offset = 0x68;
 
         config_sb_sequence(sb, 0x2c, 0x14);
-
         return 1;
     }
 
@@ -3899,7 +3911,6 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
 
         config_sb_layer_he(sb, 0x20, 0x34, 0x38, 0x40);
         config_sb_layer_sh(sb, 0x30, 0x00, 0x04, 0x08, 0x10);
-
         return 1;
     }
 
@@ -3939,7 +3950,6 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
 
         config_sb_audio_fs(sb, 0x2c, 0x30, 0x34);
         config_sb_audio_he(sb, 0x40, 0x44, 0x4c, 0x54, 0x5c, 0x60);
-
         return 1;
     }
 
