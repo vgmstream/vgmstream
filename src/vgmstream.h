@@ -141,6 +141,7 @@ typedef enum {
     coding_REF_IMA,         /* Reflections IMA ADPCM */
     coding_AWC_IMA,         /* Rockstar AWC IMA ADPCM */
     coding_UBI_IMA,         /* Ubisoft IMA ADPCM */
+    coding_UBI_SCE_IMA,     /* Ubisoft SCE IMA ADPCM */
     coding_H4M_IMA,         /* H4M IMA ADPCM (stereo or mono, high nibble first) */
     coding_MTF_IMA,         /* Capcom MT Framework IMA ADPCM */
     coding_CD_IMA,          /* Crystal Dynamics IMA ADPCM */

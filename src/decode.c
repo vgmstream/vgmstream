@@ -355,6 +355,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM* vgmstream) {
         case coding_SNDS_IMA:
         case coding_OTNS_IMA:
         case coding_UBI_IMA:
+        case coding_UBI_SCE_IMA:
         case coding_OKI16:
         case coding_OKI4S:
         case coding_MTF_IMA:
@@ -579,6 +580,8 @@ int get_vgmstream_frame_size(VGMSTREAM* vgmstream) {
         case coding_OTNS_IMA:
             return 0; //todo: 0x01?
         case coding_UBI_IMA: /* variable (PCM then IMA) */
+            return 0;
+        case coding_UBI_SCE_IMA:
             return 0;
         case coding_XBOX_IMA:
             //todo should be  0x48 when stereo, but blocked/interleave layout don't understand stereo codecs
@@ -1145,8 +1148,13 @@ void decode_vgmstream(VGMSTREAM* vgmstream, int samples_written, int samples_to_
         case coding_UBI_IMA:
             for (ch = 0; ch < vgmstream->channels; ch++) {
                 decode_ubi_ima(&vgmstream->ch[ch], buffer+ch,
-                        vgmstream->channels, vgmstream->samples_into_block, samples_to_do, ch,
-                        vgmstream->codec_config);
+                        vgmstream->channels, vgmstream->samples_into_block, samples_to_do, ch);
+            }
+            break;
+        case coding_UBI_SCE_IMA:
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_ubi_sce_ima(&vgmstream->ch[ch], buffer+ch,
+                    vgmstream->channels, vgmstream->samples_into_block, samples_to_do, ch);
             }
             break;
         case coding_H4M_IMA:

@@ -984,7 +984,7 @@ static VGMSTREAM* init_vgmstream_ubi_sb_base(ubi_sb_header* sb, STREAMFILE* sf_h
             break;
 
         case UBI_IMA_SCE:
-            vgmstream->coding_type = coding_UBI_IMA;
+            vgmstream->coding_type = coding_UBI_SCE_IMA;
             vgmstream->layout_type = layout_blocked_ubi_sce;
             vgmstream->full_block_size = read_32bitLE(0x18, sf_data);
 
