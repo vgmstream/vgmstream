@@ -86,7 +86,6 @@ typedef struct {
     int is_padded_sectionX_offset;
     int is_padded_sounds_offset;
     int ignore_layer_error;
-    int default_codec_for_subblock0;
 } ubi_sb_config;
 
 typedef struct {
@@ -1869,8 +1868,14 @@ static int parse_type_audio(ubi_sb_header* sb, off_t offset, STREAMFILE* sf) {
 
     /* apparently, there may also be other subblocks based on various flags but they were not seen so far */
     if (sb->cfg.audio_subblock_flag && sb->cfg.audio_subblock_and) {
+        /* flag probably means "hardware decoded" */
         int subblock_flag = read_32bit(offset + sb->cfg.audio_subblock_flag, sf) & sb->cfg.audio_subblock_and;
         sb->subblock_id = (!subblock_flag) ? 0 : 1;
+
+        /* stream_type field is not used if the flag is not set (it even contains garbage in some versions)
+         * except for PS3 which has two hardware codecs (PSX and AT3) */
+        if (!subblock_flag && sb->platform != UBI_PS3)
+            sb->stream_type = 0x00;
     } else {
         sb->subblock_id = (sb->stream_type == 0x01) ? 0 : 1;
     }
@@ -2147,7 +2152,7 @@ fail:
     return 0;
 }
 
-static int set_default_codec_for_platform(ubi_sb_header *sb) {
+static int set_hardware_codec_for_platform(ubi_sb_header *sb) {
     switch (sb->platform) {
         case UBI_PC:
             sb->codec = RAW_PCM;
@@ -2171,16 +2176,11 @@ static int set_default_codec_for_platform(ubi_sb_header *sb) {
         case UBI_X360:
             sb->codec = RAW_XMA1;
             break;
-#if 0
-        case UBI_PS3: /* assumed, but no games seem to use it */
-            sb->codec = RAW_AT3;
-            break;
-#endif
         case UBI_3DS:
             sb->codec = FMT_CWAV;
             break;
         default:
-            VGM_LOG("UBI SB: unknown internal format\n");
+            VGM_LOG("UBI SB: unknown hardware codec\n");
             return 0;
     }
 
@@ -2210,7 +2210,7 @@ static int parse_stream_codec(ubi_sb_header* sb) {
             case 0x01:
                 if (sb->is_streamed)
                     sb->codec = RAW_PCM;
-                else if (!set_default_codec_for_platform(sb))
+                else if (!set_hardware_codec_for_platform(sb))
                     goto fail;
                 break;
 
@@ -2243,7 +2243,7 @@ static int parse_stream_codec(ubi_sb_header* sb) {
             case 0x01:
                 if (sb->is_streamed)
                     sb->codec = RAW_PCM;
-                else if (!set_default_codec_for_platform(sb))
+                else if (!set_hardware_codec_for_platform(sb))
                     goto fail;
                 break;
 
@@ -2268,14 +2268,9 @@ static int parse_stream_codec(ubi_sb_header* sb) {
                 goto fail;
         }
     } else {
-        /* some Xbox games default to codec 0 if subblock flag isn't set while the actual field contains garbage */
-        if (sb->cfg.default_codec_for_subblock0 && sb->type == UBI_AUDIO && sb->subblock_id == 0) {
-            sb->stream_type = 0x00;
-        }
-
         switch (sb->stream_type) {
             case 0x00:
-                if (!set_default_codec_for_platform(sb))
+                if (!set_hardware_codec_for_platform(sb))
                     goto fail;
                 break;
 
@@ -2446,15 +2441,13 @@ static int parse_offsets(ubi_sb_header* sb, STREAMFILE* sf) {
             sounds_offset = align_size_to_block(sounds_offset, 0x10);
         sb->stream_offset = sounds_offset + sb->stream_offset;
 
-        if (sb->section3_num > 1) { /* maybe should always test this? */
-            for (i = 0; i < sb->section3_num; i++) {
-                off_t offset = sb->section3_offset + sb->cfg.section3_entry_size * i;
+        for (i = 0; i < sb->section3_num; i++) {
+            off_t offset = sb->section3_offset + sb->cfg.section3_entry_size * i;
 
-                /* table has unordered ids+size, so if our id doesn't match current data offset must be beyond */
-                if (read_32bit(offset + 0x00, sf) == sb->subblock_id)
-                    break;
-                sb->stream_offset += read_32bit(offset + 0x04, sf);
-            }
+            /* table has unordered ids+size, so if our id doesn't match current data offset must be beyond */
+            if (read_32bit(offset + 0x00, sf) == sb->subblock_id)
+                break;
+            sb->stream_offset += read_32bit(offset + 0x04, sf);
         }
     }
 
@@ -3377,7 +3370,6 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
         config_sb_audio_fs(sb, 0x24, 0x28, 0x34);
         config_sb_audio_hs(sb, 0x52, 0x4c, 0x38, 0x40, 0x58, 0x54);
         sb->cfg.audio_has_internal_names = 1;
-        sb->cfg.default_codec_for_subblock0 = 1;
 
         config_sb_sequence(sb, 0x28, 0x14);
 
@@ -3394,8 +3386,6 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
 
         config_sb_audio_fs(sb, 0x24, 0x28, 0x2c);
         config_sb_audio_hs(sb, 0x4a, 0x44, 0x30, 0x38, 0x50, 0x4c);
-        sb->cfg.audio_has_internal_names = 1;
-        sb->cfg.default_codec_for_subblock0 = 1;
 
         config_sb_sequence(sb, 0x28, 0x14);
 
@@ -3431,7 +3421,6 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
         config_sb_audio_fs(sb, 0x24, 0x28, 0x40);
         config_sb_audio_hs(sb, 0x5e, 0x58, 0x44, 0x4c, 0x64, 0x60);
         sb->cfg.audio_has_internal_names = 1;
-        sb->cfg.default_codec_for_subblock0 = 1;
 
         config_sb_sequence(sb, 0x28, 0x14);
 
@@ -3483,7 +3472,6 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
         config_sb_audio_fs(sb, 0x24, 0x28, 0x40);
         config_sb_audio_hs(sb, 0x60, 0x58, 0x44, 0x4c, 0x68, 0x64);
         sb->cfg.audio_has_internal_names = 1;
-        sb->cfg.default_codec_for_subblock0 = 1;
 
         config_sb_sequence(sb, 0x28, 0x14);
         return 1;
