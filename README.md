@@ -17,7 +17,7 @@ Latest development is usually here: https://github.com/losnoco/vgmstream/
 
 Latest releases are here: https://github.com/losnoco/vgmstream/releases
 
-Automated builds with the latest changes: https://vgmstream-builds.losno.co/latest/
+Automated builds with the latest changes: https://vgmstream.org/downloads
 
 You can find further info about other details in https://github.com/losnoco/vgmstream/tree/master/doc
 
