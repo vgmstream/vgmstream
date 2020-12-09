@@ -51,6 +51,7 @@ vorbis_custom_codec_data* init_vorbis_custom(STREAMFILE* sf, off_t start_offset,
         case VORBIS_OGL:    ok = vorbis_custom_setup_init_ogl(sf, start_offset, data); break;
         case VORBIS_SK:     ok = vorbis_custom_setup_init_sk(sf, start_offset, data); break;
         case VORBIS_VID1:   ok = vorbis_custom_setup_init_vid1(sf, start_offset, data); break;
+        case VORBIS_AWC:    ok = vorbis_custom_setup_init_awc(sf, start_offset, data); break;
         default: goto fail;
     }
     if(!ok) goto fail;
@@ -134,6 +135,7 @@ void decode_vorbis_custom(VGMSTREAM* vgmstream, sample_t* outbuf, int32_t sample
                 case VORBIS_OGL:    ok = vorbis_custom_parse_packet_ogl(stream, data); break;
                 case VORBIS_SK:     ok = vorbis_custom_parse_packet_sk(stream, data); break;
                 case VORBIS_VID1:   ok = vorbis_custom_parse_packet_vid1(stream, data); break;
+                case VORBIS_AWC:    ok = vorbis_custom_parse_packet_awc(stream, data); break;
                 default: goto decode_fail;
             }
             if(!ok) {

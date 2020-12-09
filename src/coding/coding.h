@@ -344,6 +344,7 @@ typedef enum {
     VORBIS_OGL,         /* Shin'en OGL: custom packet headers */
     VORBIS_SK,          /* Silicon Knights AUD: "OggS" replaced by "SK" */
     VORBIS_VID1,        /* Neversoft VID1: custom packet blocks/headers */
+    VORBIS_AWC,         /* Rockstar AWC: custom packet blocks/headers */
 } vorbis_custom_t;
 
 /* config for Wwise Vorbis (3 types for flexibility though not all combinations exist) */
@@ -365,6 +366,9 @@ typedef struct {
     wwise_setup_t setup_type;
     wwise_header_t header_type;
     wwise_packet_t packet_type;
+
+    /* AWC config */
+    off_t header_offset;
 
     /* output (kinda ugly here but to simplify) */
     off_t data_start_offset;

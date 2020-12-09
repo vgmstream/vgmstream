@@ -2311,6 +2311,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\coding\vorbis_custom_utils_awc.c"
+                    >
+                </File>
+                <File
                     RelativePath=".\coding\vorbis_custom_utils_fsb.c"
                     >
                 </File>
