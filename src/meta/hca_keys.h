@@ -382,6 +382,9 @@ static const hcakey_info hcakey_list[] = {
         /* Readyyy! (Android) */
         {1234567890987654321},      // 112210F4B16C1CB1
 
+        /* HoneyWorks Premium Live (Android) */
+        {20200401000000},           // 0000125F45B9D640
+
         /* Dragalia Lost (iOS/Android) */
         {2967411924141,         subkeys_dgl, sizeof(subkeys_dgl) / sizeof(subkeys_dgl[0]) },    // 000002B2E7889CAD
 

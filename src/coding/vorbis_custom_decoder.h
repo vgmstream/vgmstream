@@ -43,12 +43,14 @@ int vorbis_custom_setup_init_wwise(STREAMFILE* sf, off_t start_offset, vorbis_cu
 int vorbis_custom_setup_init_ogl(STREAMFILE* sf, off_t start_offset, vorbis_custom_codec_data* data);
 int vorbis_custom_setup_init_sk(STREAMFILE* sf, off_t start_offset, vorbis_custom_codec_data* data);
 int vorbis_custom_setup_init_vid1(STREAMFILE* sf, off_t start_offset, vorbis_custom_codec_data* data);
+int vorbis_custom_setup_init_awc(STREAMFILE* sf, off_t start_offset, vorbis_custom_codec_data* data);
 
-int vorbis_custom_parse_packet_fsb(VGMSTREAMCHANNEL *stream, vorbis_custom_codec_data* data);
-int vorbis_custom_parse_packet_wwise(VGMSTREAMCHANNEL *stream, vorbis_custom_codec_data* data);
-int vorbis_custom_parse_packet_ogl(VGMSTREAMCHANNEL *stream, vorbis_custom_codec_data* data);
-int vorbis_custom_parse_packet_sk(VGMSTREAMCHANNEL *stream, vorbis_custom_codec_data* data);
-int vorbis_custom_parse_packet_vid1(VGMSTREAMCHANNEL *stream, vorbis_custom_codec_data* data);
+int vorbis_custom_parse_packet_fsb(VGMSTREAMCHANNEL* stream, vorbis_custom_codec_data* data);
+int vorbis_custom_parse_packet_wwise(VGMSTREAMCHANNEL* stream, vorbis_custom_codec_data* data);
+int vorbis_custom_parse_packet_ogl(VGMSTREAMCHANNEL* stream, vorbis_custom_codec_data* data);
+int vorbis_custom_parse_packet_sk(VGMSTREAMCHANNEL* stream, vorbis_custom_codec_data* data);
+int vorbis_custom_parse_packet_vid1(VGMSTREAMCHANNEL* stream, vorbis_custom_codec_data* data);
+int vorbis_custom_parse_packet_awc(VGMSTREAMCHANNEL* stream, vorbis_custom_codec_data* data);
 #endif/* VGM_USE_VORBIS */
 
 #endif/*_VORBIS_CUSTOM_DECODER_H_ */
