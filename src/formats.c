@@ -103,7 +103,7 @@ static const char* extension_list[] = {
     "bgw",
     "bh2pcm",
     "bik",
-    "bika",
+    "bika", //fake extension for .bik (to be removed)
     "bik2",
     //"bin", //common
     "bk2",
