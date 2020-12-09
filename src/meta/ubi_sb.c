@@ -1868,7 +1868,7 @@ static int parse_type_audio(ubi_sb_header* sb, off_t offset, STREAMFILE* sf) {
 
     /* apparently, there may also be other subblocks based on various flags but they were not seen so far */
     if (sb->cfg.audio_subblock_flag && sb->cfg.audio_subblock_and) {
-        /* flag probably means "hardware decoded" */
+        /* flag probably means "software decoded" */
         int subblock_flag = read_32bit(offset + sb->cfg.audio_subblock_flag, sf) & sb->cfg.audio_subblock_and;
         sb->subblock_id = (!subblock_flag) ? 0 : 1;
 
@@ -3039,7 +3039,6 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
         config_sb_sequence(sb, 0x2c, 0x1c);
 
         /* no layers */
-
         return 1;
     }
 
