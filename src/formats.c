@@ -425,6 +425,7 @@ static const char* extension_list[] = {
     "sb5",
     "sb6",
     "sb7",
+    "sbk",
     "sbr",
     "sbv",
     "sm0",
@@ -1319,6 +1320,7 @@ static const meta_info meta_info_list[] = {
         {meta_WADY,                 "Marble WADY header"},
         {meta_DSP_SQEX,             "Square Enix DSP header"},
         {meta_DSP_WIIVOICE,         "Koei Tecmo WiiVoice header"},
+        {meta_SBK,                  "Team17 SBK header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {

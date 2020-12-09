@@ -741,6 +741,7 @@ typedef enum {
     meta_WADY,
     meta_DSP_SQEX,
     meta_DSP_WIIVOICE,
+    meta_SBK,
 } meta_t;
 
 /* standard WAVEFORMATEXTENSIBLE speaker positions */
