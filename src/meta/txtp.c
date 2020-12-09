@@ -1888,8 +1888,13 @@ static txtp_header* parse_txtp(STREAMFILE* sf) {
 
     /* skip BOM if needed */
     if (file_size > 0 &&
-            ((uint16_t)read_16bitLE(0x00, sf) == 0xFFFE || (uint16_t)read_16bitLE(0x00, sf) == 0xFEFF))
+            (read_u16le(0x00, sf) == 0xFFFE || read_u16le(0x00, sf) == 0xFEFF)) {
         txt_offset = 0x02;
+    }
+    else if ((read_u32be(0x00, sf) & 0xFFFFFF00) == 0xEFBBBF00) {
+        txt_offset = 0x03;
+    }
+
 
     /* read and parse lines */
     while (txt_offset < file_size) {
