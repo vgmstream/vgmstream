@@ -928,4 +928,6 @@ VGMSTREAM* init_vgmstream_wady(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_cpk(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_cpk_memory(STREAMFILE* sf, STREAMFILE* sf_acb);
 
+VGMSTREAM *init_vgmstream_sbk(STREAMFILE *sf);
+
 #endif /*_META_H*/
