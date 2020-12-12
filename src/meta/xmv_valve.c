@@ -178,7 +178,7 @@ VGMSTREAM *init_vgmstream_xmv_valve(STREAMFILE *streamFile) {
             break;
         }
 #endif
-        case 0x02: /* ADPCM (not actually implemented, was probably supposed to be Microsoft ADPCM) */
+        case 0x02: /* ADPCM (not actually implemented, was probably supposed to be Microsoft ADPCM or Xbox IMA) */
         default:
             goto fail;
     }
