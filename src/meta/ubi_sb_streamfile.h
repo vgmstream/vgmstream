@@ -1,6 +1,7 @@
 #ifndef _UBI_SB_STREAMFILE_H_
 #define _UBI_SB_STREAMFILE_H_
 #include "../streamfile.h"
+#include "ubi_sb_garbage_streamfile.h"
 
 
 typedef struct {
@@ -34,8 +35,8 @@ typedef struct {
 } ubi_sb_io_data;
 
 
-static size_t ubi_sb_io_read(STREAMFILE *streamfile, uint8_t *dest, off_t offset, size_t length, ubi_sb_io_data* data) {
-    int32_t(*read_32bit)(off_t, STREAMFILE*) = data->big_endian ? read_32bitBE : read_32bitLE;
+static size_t ubi_sb_io_read(STREAMFILE* sf, uint8_t* dest, off_t offset, size_t length, ubi_sb_io_data* data) {
+    uint32_t(*read_u32)(off_t, STREAMFILE*) = data->big_endian ? read_u32be : read_u32le;
     size_t total_read = 0;
     int i;
 
@@ -49,14 +50,14 @@ static size_t ubi_sb_io_read(STREAMFILE *streamfile, uint8_t *dest, off_t offset
         /* process header block (slightly different and data size may be 0) */
         {
             data->block_size = data->header_size;
-            data->next_block_size = read_32bit(data->physical_offset + data->header_next_start, streamfile);
+            data->next_block_size = read_u32(data->physical_offset + data->header_next_start, sf);
 
             if (data->header_sizes_start) {
                 data->skip_size = data->header_data_start;
                 for (i = 0; i < data->layer_number; i++) {
-                    data->skip_size += read_32bit(data->physical_offset + data->header_sizes_start + i*0x04, streamfile);
+                    data->skip_size += read_u32(data->physical_offset + data->header_sizes_start + i*0x04, sf);
                 }
-                data->data_size = read_32bit(data->physical_offset + data->header_sizes_start + data->layer_number*0x04, streamfile);
+                data->data_size = read_u32(data->physical_offset + data->header_sizes_start + data->layer_number*0x04, sf);
             }
 
             if (data->data_size == 0) {
@@ -78,13 +79,13 @@ static size_t ubi_sb_io_read(STREAMFILE *streamfile, uint8_t *dest, off_t offset
         if (data->data_size == 0) {
             data->block_size = data->next_block_size;
             if (data->block_next_start) /* not set when fixed block size */
-                data->next_block_size = read_32bit(data->physical_offset + data->block_next_start, streamfile);
+                data->next_block_size = read_u32(data->physical_offset + data->block_next_start, sf);
 
             data->skip_size = data->block_data_start;
             for (i = 0; i < data->layer_number; i++) {
-                data->skip_size += read_32bit(data->physical_offset + data->block_sizes_start + i*0x04, streamfile);
+                data->skip_size += read_u32(data->physical_offset + data->block_sizes_start + i*0x04, sf);
             }
-            data->data_size = read_32bit(data->physical_offset + data->block_sizes_start + data->layer_number*0x04, streamfile);
+            data->data_size = read_u32(data->physical_offset + data->block_sizes_start + data->layer_number*0x04, sf);
         }
 
         /* move to next block */
@@ -105,7 +106,7 @@ static size_t ubi_sb_io_read(STREAMFILE *streamfile, uint8_t *dest, off_t offset
             to_read = data->data_size - bytes_consumed;
             if (to_read > length)
                 to_read = length;
-            bytes_done = read_streamfile(dest, data->physical_offset + data->skip_size + bytes_consumed, to_read, streamfile);
+            bytes_done = read_streamfile(dest, data->physical_offset + data->skip_size + bytes_consumed, to_read, sf);
 
             total_read += bytes_done;
             dest += bytes_done;
@@ -121,34 +122,34 @@ static size_t ubi_sb_io_read(STREAMFILE *streamfile, uint8_t *dest, off_t offset
     return total_read;
 }
 
-static size_t ubi_sb_io_size(STREAMFILE *streamfile, ubi_sb_io_data* data) {
+static size_t ubi_sb_io_size(STREAMFILE* sf, ubi_sb_io_data* data) {
     uint8_t buf[1];
 
     if (data->logical_size)
         return data->logical_size;
 
     /* force a fake read at max offset, to get max logical_offset (will be reset next read) */
-    ubi_sb_io_read(streamfile, buf, 0x7FFFFFFF, 1, data);
+    ubi_sb_io_read(sf, buf, 0x7FFFFFFF, 1, data);
     data->logical_size = data->logical_offset;
 
     return data->logical_size;
 }
 
 
-static int ubi_sb_io_init(STREAMFILE *streamfile, ubi_sb_io_data* data) {
-    int32_t (*read_32bit)(off_t,STREAMFILE*) = data->big_endian ? read_32bitBE : read_32bitLE;
+static int ubi_sb_io_init(STREAMFILE* sf, ubi_sb_io_data* data) {
+    uint32_t(*read_u32)(off_t, STREAMFILE*) = data->big_endian ? read_u32be : read_u32le;
     off_t offset = data->stream_offset; 
     uint32_t version;
     int i;
 
-    if (data->stream_offset + data->stream_size > get_streamfile_size(streamfile)) {
+    if (data->stream_offset + data->stream_size > get_streamfile_size(sf)) {
         VGM_LOG("UBI SB: bad size\n");
         goto fail;
     }
 
     /* Layers have a main header, then headered blocks with data.
      * We configure stuff to unify parsing of all variations. */
-    version = (uint32_t)read_32bit(offset+0x00, streamfile);
+    version = read_u32(offset+0x00, sf);
 
     /* it was bound to happen... orz */
     if (data->layer_hijack == 1 && version == 0x000B0008)
@@ -167,7 +168,7 @@ static int ubi_sb_io_init(STREAMFILE *streamfile, ubi_sb_io_data* data) {
              * 0x04: block offset
              * 0x08+(04*N): layer size per layer
              * 0xNN: layer data per layer */
-            data->layer_max = read_32bit(offset+0x04, streamfile);
+            data->layer_max = read_u32(offset+0x04, sf);
 
             data->header_next_start     = 0x10;
             data->header_sizes_start    = 0;
@@ -192,7 +193,7 @@ static int ubi_sb_io_init(STREAMFILE *streamfile, ubi_sb_io_data* data) {
              * 0x04: block offset
              * 0x08+(04*N): layer size per layer
              * 0xNN: layer data per layer */
-            data->layer_max = read_32bit(offset+0x04, streamfile);
+            data->layer_max = read_u32(offset+0x04, sf);
 
             data->header_next_start     = 0x10;
             data->header_sizes_start    = 0x1c;
@@ -219,7 +220,7 @@ static int ubi_sb_io_init(STREAMFILE *streamfile, ubi_sb_io_data* data) {
              * 0x08: always 0x03
              * 0x0c+(04*N): layer size per layer
              * 0xNN: layer data per layer */
-            data->layer_max = read_32bit(offset+0x04, streamfile);
+            data->layer_max = read_u32(offset+0x04, sf);
 
             data->header_next_start     = 0x14;
             data->header_sizes_start    = 0x20;
@@ -248,7 +249,7 @@ static int ubi_sb_io_init(STREAMFILE *streamfile, ubi_sb_io_data* data) {
              * 0x08: always 0x03
              * 0x0c+(04*N): layer size per layer
              * 0xNN: layer data per layer */
-            data->layer_max = read_32bit(offset+0x08, streamfile);
+            data->layer_max = read_u32(offset+0x08, sf);
 
             data->header_next_start     = 0x18;
             data->header_sizes_start    = 0x40;
@@ -277,7 +278,7 @@ static int ubi_sb_io_init(STREAMFILE *streamfile, ubi_sb_io_data* data) {
              * 0x08: always 0x03
              * 0x0c+(04*N): layer size per layer
              * 0xNN: layer data per layer */
-            data->layer_max = read_32bit(offset+0x08, streamfile);
+            data->layer_max = read_u32(offset+0x08, sf);
 
             data->header_next_start     = 0x18;
             data->header_sizes_start    = 0x4c;
@@ -306,7 +307,7 @@ static int ubi_sb_io_init(STREAMFILE *streamfile, ubi_sb_io_data* data) {
              * 0x04: next block size
              * 0x08+(04*N): layer size per layer
              * 0xNN: layer data per layer */
-            data->layer_max = read_32bit(offset+0x08, streamfile);
+            data->layer_max = read_u32(offset+0x08, sf);
 
             data->header_next_start     = 0x18;
             data->header_sizes_start    = 0x1c;
@@ -333,7 +334,7 @@ static int ubi_sb_io_init(STREAMFILE *streamfile, ubi_sb_io_data* data) {
              * 0x04: next block size
              * 0x08+(04*N): layer size per layer
              * 0xNN: layer data per layer */
-            data->layer_max = read_32bit(offset+0x08, streamfile);
+            data->layer_max = read_u32(offset+0x08, sf);
 
             data->header_next_start     = 0x18;
             data->header_sizes_start    = 0x5c;
@@ -353,7 +354,7 @@ static int ubi_sb_io_init(STREAMFILE *streamfile, ubi_sb_io_data* data) {
     data->header_size = data->header_data_start;
     if (data->header_sizes_start) {
         for (i = 0; i < data->layer_max; i++) {
-            data->header_size += read_32bit(offset + data->header_sizes_start + i*0x04, streamfile);
+            data->header_size += read_u32(offset + data->header_sizes_start + i*0x04, sf);
         }
     }
 
@@ -386,10 +387,9 @@ fail:
 
 
 /* Handles deinterleaving of Ubisoft's headered+blocked 'multitrack' streams */
-static STREAMFILE* setup_ubi_sb_streamfile(STREAMFILE *streamFile, off_t stream_offset, size_t stream_size, int layer_number, int layer_count, int big_endian, int layer_hijack) {
-    STREAMFILE *temp_streamFile = NULL, *new_streamFile = NULL;
+static STREAMFILE* setup_ubi_sb_streamfile(STREAMFILE* sf, off_t stream_offset, size_t stream_size, int layer_number, int layer_count, int big_endian, int layer_hijack) {
+    STREAMFILE* new_sf = NULL;
     ubi_sb_io_data io_data = {0};
-    size_t io_data_size = sizeof(ubi_sb_io_data);
 
     io_data.stream_offset = stream_offset;
     io_data.stream_size = stream_size;
@@ -398,26 +398,19 @@ static STREAMFILE* setup_ubi_sb_streamfile(STREAMFILE *streamFile, off_t stream_
     io_data.big_endian = big_endian;
     io_data.layer_hijack = layer_hijack;
 
-    if (!ubi_sb_io_init(streamFile, &io_data))
+    if (!ubi_sb_io_init(sf, &io_data))
         goto fail;
 
     /* setup subfile */
-    new_streamFile = open_wrap_streamfile(streamFile);
-    if (!new_streamFile) goto fail;
-    temp_streamFile = new_streamFile;
-
-    new_streamFile = open_io_streamfile(new_streamFile, &io_data,io_data_size, ubi_sb_io_read,ubi_sb_io_size);
-    if (!new_streamFile) goto fail;
-    temp_streamFile = new_streamFile;
-
-    new_streamFile = open_buffer_streamfile(new_streamFile,0);
-    if (!new_streamFile) goto fail;
-    temp_streamFile = new_streamFile;
-
-    return temp_streamFile;
-
+    new_sf = open_wrap_streamfile(sf);
+    if (layer_hijack == 2 && is_garbage_stream(sf)) {
+        new_sf = setup_ubi_sb_garbage_streamfile_f(new_sf);
+        //io_data.stream_size = get_garbage_stream_size(stream_offset, stream_size); //todo must do relative calcs, doesn't seem needed
+    }
+    new_sf = open_io_streamfile_f(new_sf, &io_data, sizeof(ubi_sb_io_data), ubi_sb_io_read,ubi_sb_io_size);
+    new_sf = open_buffer_streamfile_f(new_sf,0);
+    return new_sf;
 fail:
-    close_streamfile(temp_streamFile);
     return NULL;
 }
 

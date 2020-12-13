@@ -7,6 +7,9 @@
 #define SB_MAX_LAYER_COUNT 16  /* arbitrary max */
 #define SB_MAX_CHAIN_COUNT 256 /* +150 exist in Tonic Trouble */
 
+#define LAYER_HIJACK_GRAW_X360  1
+#define LAYER_HIJACK_SCPT_PS2   2
+
 typedef enum { UBI_IMA, UBI_ADPCM, RAW_PCM, RAW_PSX, RAW_DSP, RAW_XBOX, FMT_VAG, FMT_AT3, RAW_AT3, FMT_XMA1, RAW_XMA1, FMT_OGG, FMT_CWAV, FMT_APM, FMT_MPDX, UBI_IMA_SCE } ubi_sb_codec;
 typedef enum { UBI_PC, UBI_DC, UBI_PS2, UBI_XBOX, UBI_GC, UBI_X360, UBI_PSP, UBI_PS3, UBI_WII, UBI_3DS } ubi_sb_platform;
 typedef enum { UBI_NONE = 0, UBI_AUDIO, UBI_LAYER, UBI_SEQUENCE, UBI_SILENCE } ubi_sb_type;
@@ -2065,7 +2068,9 @@ static int parse_type_layer(ubi_sb_header* sb, off_t offset, STREAMFILE* sf) {
 
         if (sb->sample_rate != sample_rate || sb->stream_type != stream_type) {
             VGM_LOG("UBI SB: %i layer headers don't match at %x > %x\n", sb->layer_count, (uint32_t)offset, (uint32_t)table_offset);
-            if (!sb->cfg.ignore_layer_error) /* layers of different rates happens sometimes */
+            /* Layers of different rates happens sometimes. From decompilations, first layer's sample rate
+             * looks used as main, though lower sample rate layer only seem to appear to after first. */
+            if (!sb->cfg.ignore_layer_error)
                 goto fail;
         }
 
@@ -2463,11 +2468,12 @@ static int parse_offsets(ubi_sb_header* sb, STREAMFILE* sf) {
         }
     } else {
         /* banks store internal sounds after all headers and adjusted by the subblock table, find the matching entry */
+        off_t sounds_offset;
 
         if (sb->is_external)
             return 1;
 
-        off_t sounds_offset = sb->section3_offset + sb->cfg.section3_entry_size*sb->section3_num;
+        sounds_offset = sb->section3_offset + sb->cfg.section3_entry_size*sb->section3_num;
         if (sb->cfg.is_padded_sounds_offset)
             sounds_offset = align_size_to_block(sounds_offset, 0x10);
         sb->stream_offset = sounds_offset + sb->stream_offset;
@@ -3259,8 +3265,8 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
             sb->cfg.audio_ram_streamed_flag = 0x1c;
             sb->cfg.audio_ram_streamed_and = (1 << 3);
             sb->cfg.audio_loop_and = (1 << 4);
-            /* some RAM sounds have bad sizes */
-            /* some amb .ss1 have garbage data mixed in, bad extraction/unused crap? */
+            /* some RAM sounds have bad sizes (ex #252, #10874) */
+            sb->cfg.layer_hijack = LAYER_HIJACK_SCPT_PS2; /* some amb .ss1 layers (ex. #226, not #1927) have mixed garbage */
         }
         return 1;
     }
@@ -3743,7 +3749,7 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
 
         config_sb_layer_he(sb, 0x20, 0x38, 0x40, 0x48);
         config_sb_layer_sh(sb, 0x30, 0x00, 0x08, 0x0c, 0x14);
-        sb->cfg.layer_hijack = 1; /* WTF!!! layer format different from other layers using same id!!! */
+        sb->cfg.layer_hijack = LAYER_HIJACK_GRAW_X360; /* WTF!!! layer format different from other layers using same id!!! */
         return 1;
     }
 
