@@ -401,6 +401,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\ubi_sb_garbage_streamfile.h"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\ubi_lyn_streamfile.h"
                     >
                 </File>

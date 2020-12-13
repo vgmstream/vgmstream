@@ -191,6 +191,9 @@
     <ClInclude Include="meta\ubi_sb_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="meta\ubi_sb_garbage_streamfile.h">
+      <Filter>meta\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="meta\ubi_lyn_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>

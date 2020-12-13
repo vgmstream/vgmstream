@@ -9,7 +9,7 @@
  * Some info: https://www.audiokinetic.com/en/library/edge/
  * .bnk (dynamic music/loop) info: https://github.com/bnnm/wwiser
  */
-typedef enum { PCM, IMA, VORBIS, DSP, XMA2, XWMA, AAC, HEVAG, ATRAC9, OPUSNX, OPUS, OPUSWW, PTADPCM } wwise_codec;
+typedef enum { PCM, IMA, VORBIS, DSP, XMA2, XWMA, AAC, HEVAG, ATRAC9, OPUSNX, OPUS, OPUSCPR, OPUSWW, PTADPCM } wwise_codec;
 typedef struct {
     int big_endian;
     size_t file_size;
@@ -492,6 +492,22 @@ VGMSTREAM* init_vgmstream_wwise(STREAMFILE* sf) {
             break;
         }
 
+        case OPUSCPR: { /* CD Project RED's Ogg Opus masquerading as PCMEX [Cyberpunk 2077 (PC)] */
+            if (ww.bits_per_sample != 16) goto fail;
+
+            /* original data_size doesn't look related to samples or anything */
+			ww.data_size = ww.file_size - ww.data_offset;
+
+            vgmstream->codec_data = init_ffmpeg_offset(sf, ww.data_offset, ww.data_size);
+            if (!vgmstream->codec_data) goto fail;
+            vgmstream->coding_type = coding_FFmpeg;
+            vgmstream->layout_type = layout_none;
+
+            /* FFmpeg's samples seem correct, otherwise see ogg_opus.c for getting samples. */
+            vgmstream->num_samples = (int32_t)((ffmpeg_codec_data*)vgmstream->codec_data)->totalSamples;
+            break;
+        }
+
         case OPUSWW: { /* updated Opus [Assassin's Creed Valhalla (PC)] */
             int mapping;
             opus_config cfg = {0};
@@ -881,6 +897,16 @@ static int parse_wwise(STREAMFILE* sf, wwise_header* ww) {
         } else {
             VGM_LOG("WWISE: wrong size, maybe truncated\n");
             goto fail;
+        }
+    }
+
+
+    /* Cyberpunk 2077 has some mutant .wem, with proper Wwise header and PCMEX but data is standard OPUS.
+     * From init bank and CAkSound's sources, those may be piped through their plugins. They come in
+     * .opuspak (no names), have wrong riff/data sizes and only seem used for sfx (other audio is Vorbis). */
+    if (ww->format == 0xFFFE && ww->truncated) {
+        if (read_u32be(ww->data_offset + 0x00, sf) == 0x4F676753) {
+            ww->codec = OPUSCPR;
         }
     }
 

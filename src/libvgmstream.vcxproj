@@ -142,6 +142,7 @@
     <ClInclude Include="meta\txth_streamfile.h" />
     <ClInclude Include="meta\ubi_bao_streamfile.h" />
     <ClInclude Include="meta\ubi_sb_streamfile.h" />
+    <ClInclude Include="meta\ubi_sb_garbage_streamfile.h" />
     <ClInclude Include="meta\ubi_lyn_streamfile.h" />
     <ClInclude Include="meta\meta.h" />
     <ClInclude Include="meta\hca_keys.h" />
