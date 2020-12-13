@@ -14,6 +14,7 @@ typedef enum { UBI_NONE = 0, UBI_AUDIO, UBI_LAYER, UBI_SEQUENCE, UBI_SILENCE } u
 typedef struct {
     int map_version;
     size_t map_entry_size;
+    off_t map_name;
     size_t section1_entry_size;
     size_t section2_entry_size;
     size_t section3_entry_size;
@@ -30,6 +31,7 @@ typedef struct {
     off_t audio_loop_flag;
     off_t audio_loc_flag;
     off_t audio_stereo_flag;
+    off_t audio_ram_streamed_flag;
     off_t audio_internal_flag;
     off_t audio_num_samples;
     off_t audio_num_samples2;
@@ -45,9 +47,11 @@ typedef struct {
     int audio_subblock_and;
     int audio_loc_and;
     int audio_stereo_and;
+    int audio_ram_streamed_and;
     int audio_has_internal_names;
     size_t audio_interleave;
     int audio_fix_psx_samples;
+    int has_rs_files;
 
     off_t sequence_extra_offset;
     off_t sequence_sequence_loop;
@@ -181,6 +185,7 @@ typedef struct {
 
     int is_streamed;            /* sound is streamed from storage */
     int is_cd_streamed;         /* found in PS2 BNM */
+    int is_ram_streamed;        /* found in some PS2 games */
     int is_external;            /* sound is in an external file */
     int is_localized;           /* found in old PS2 games, determines which file the sound is in */
     char resource_name[0x28];   /* filename to the external stream, or internal stream info for some games */
@@ -343,7 +348,7 @@ VGMSTREAM* init_vgmstream_ubi_sm(STREAMFILE* sf) {
         sb.map_zero     = read_32bit(offset + 0x04, sf);
         sb.map_offset   = read_32bit(offset + 0x08, sf);
         sb.map_size     = read_32bit(offset + 0x0c, sf); /* includes sbX header, but not internal streams */
-        read_string(sb.map_name, sizeof(sb.map_name), offset + 0x10, sf); /* null-terminated and may contain garbage after null */
+        read_string(sb.map_name, sizeof(sb.map_name), offset + sb.cfg.map_name, sf); /* null-terminated and may contain garbage after null */
         if (sb.cfg.map_version >= 3)
             sb.map_unknown  = read_32bit(offset + 0x30, sf); /* uncommon, id/config? longer name? mem garbage? */
 
@@ -1027,6 +1032,13 @@ static VGMSTREAM* init_vgmstream_ubi_sb_base(ubi_sb_header* sb, STREAMFILE* sf_h
         case RAW_PSX:
             vgmstream->coding_type = coding_PSX;
             vgmstream->layout_type = layout_interleave;
+
+            if (sb->cfg.has_rs_files) {
+                /* SC:PT PS2 has extra 0x30 bytes, presumably from (missing) VAG header */
+                sb->stream_size -= 0x30;
+                vgmstream->stream_size -= 0x30;
+            }
+
             if (sb->is_ps2_bnm) {
                 vgmstream->interleave_block_size = (sb->is_cd_streamed) ?
                     sb->cfg.audio_interleave :
@@ -1039,7 +1051,12 @@ static VGMSTREAM* init_vgmstream_ubi_sb_base(ubi_sb_header* sb, STREAMFILE* sf_h
 
             if (vgmstream->num_samples == 0) { /* early PS2 games may not set it for internal streams */
                 vgmstream->num_samples = ps_bytes_to_samples(sb->stream_size, sb->channels);
-                vgmstream->loop_end_sample = vgmstream->num_samples;
+
+                if (sb->loop_start == 0) {
+                    ps_find_loop_offsets(sf_data, sb->stream_offset, sb->stream_size,
+                        sb->channels, vgmstream->interleave_block_size,
+                        &vgmstream->loop_start_sample, &vgmstream->loop_end_sample);
+                }
             }
 
             /* late PS3 SBs have double sample count here for who knows why
@@ -1880,6 +1897,12 @@ static int parse_type_audio(ubi_sb_header* sb, off_t offset, STREAMFILE* sf) {
         sb->subblock_id = (sb->stream_type == 0x01) ? 0 : 1;
     }
 
+    if (sb->cfg.has_rs_files && !sb->is_external) {
+        /* found in Splinter Cell: Pandora Tomorrow (PS2) */
+        sb->is_ram_streamed = read_32bit(offset + sb->cfg.audio_ram_streamed_flag, sf) & sb->cfg.audio_ram_streamed_and;
+        sb->is_external = sb->is_ram_streamed;
+    }
+
     sb->loop_flag = read_32bit(offset + sb->cfg.audio_loop_flag, sf) & sb->cfg.audio_loop_and;
 
     if (sb->loop_flag) {
@@ -1905,6 +1928,8 @@ static int parse_type_audio(ubi_sb_header* sb, off_t offset, STREAMFILE* sf) {
     if (sb->cfg.audio_stream_name) {
         if (sb->is_dat && !sb->is_external) {
             sb->subbank_index = read_8bit(offset + sb->cfg.audio_stream_name + 0x01, sf);
+        } else if (sb->cfg.has_rs_files && sb->is_ram_streamed) {
+            strcpy(sb->resource_name, "MAPS.RS1");
         } else if (sb->is_external || sb->cfg.audio_has_internal_names) {
             read_string(sb->resource_name, sb->cfg.resource_name_size, offset + sb->cfg.audio_stream_name, sf);
         }
@@ -2370,9 +2395,6 @@ static int parse_offsets(ubi_sb_header* sb, STREAMFILE* sf) {
 
     VGM_ASSERT(!sb->is_map && sb->section3_num > 2, "UBI SB: section3 > 2 found\n");
 
-    if (sb->is_external)
-        return 1;
-
     /* Internal sounds are split into subblocks, with their offsets being relative to subblock start.
      * A table contains sizes of each subblock, so we adjust offsets based on the subblock ID of our sound.
      * Headers normally only use 0 or 1, and section3 may only define id1 (which the internal sound would use).
@@ -2396,6 +2418,9 @@ static int parse_offsets(ubi_sb_header* sb, STREAMFILE* sf) {
          *   0x0c - absolute subblock offset
          */
 
+        if (sb->is_external && !sb->is_ram_streamed)
+            return 1;
+
         for (i = 0; i < sb->section3_num; i++) {
             off_t offset = sb->section3_offset + 0x14 * i;
             off_t table_offset  = read_32bit(offset + 0x04, sf) + sb->section3_offset;
@@ -2408,6 +2433,9 @@ static int parse_offsets(ubi_sb_header* sb, STREAMFILE* sf) {
 
                 if (index == sb->header_index) {
                     sb->stream_offset = read_32bit(table_offset + 0x08 * j + 0x04, sf);
+                    if (sb->is_ram_streamed)
+                        break;
+
                     for (k = 0; k < table2_num; k++) {
                         uint32_t id = read_32bit(table2_offset + 0x10 * k + 0x00, sf);
 
@@ -2435,6 +2463,9 @@ static int parse_offsets(ubi_sb_header* sb, STREAMFILE* sf) {
         }
     } else {
         /* banks store internal sounds after all headers and adjusted by the subblock table, find the matching entry */
+
+        if (sb->is_external)
+            return 1;
 
         off_t sounds_offset = sb->section3_offset + sb->cfg.section3_entry_size*sb->section3_num;
         if (sb->cfg.is_padded_sounds_offset)
@@ -2892,6 +2923,7 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
         sb->cfg.map_version             = 3;
 
     sb->cfg.map_entry_size = (sb->cfg.map_version < 2) ? 0x30 : 0x34;
+    sb->cfg.map_name = 0x10;
     if (sb->is_blk) {
         sb->cfg.map_entry_size = 0x30;
     }
@@ -3212,7 +3244,7 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
     if (sb->version == 0x00000007 && sb->platform == UBI_PS2) {
         config_sb_entry(sb, 0x40, 0x70);
 
-        config_sb_audio_fb(sb, 0x1c, (1 << 2), 0, (1 << 4));
+        config_sb_audio_fb(sb, 0x1c, (1 << 2), 0, (1 << 3));
         config_sb_audio_hs(sb, 0x24, 0x28, 0x34, 0x3c, 0x44, 0x6c); /* num_samples may be null */
 
         config_sb_sequence(sb, 0x2c, 0x30);
@@ -3222,8 +3254,13 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
 
         if (is_sc2_ps2_gc) {
             sb->cfg.map_entry_size = 0x38;
-            /* some amb .ss2 have bad sizes with mixed random data, bad extraction/unused crap? */
-            /* Pandora Tomorrow voices have bad offsets too */
+            sb->cfg.map_name = 0x18;
+            sb->cfg.has_rs_files = 1;
+            sb->cfg.audio_ram_streamed_flag = 0x1c;
+            sb->cfg.audio_ram_streamed_and = (1 << 3);
+            sb->cfg.audio_loop_and = (1 << 4);
+            /* some RAM sounds have bad sizes */
+            /* some amb .ss1 have garbage data mixed in, bad extraction/unused crap? */
         }
         return 1;
     }
@@ -3243,6 +3280,7 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
 
         if (is_sc2_ps2_gc) {
             sb->cfg.map_entry_size = 0x38;
+            sb->cfg.map_name = 0x18;
             sb->cfg.audio_streamed_and = 0x01000000; /* did somebody forget about BE? */
         }
         return 1;
@@ -3318,7 +3356,7 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
     /* Prince of Persia: The Sands of Time (2003)(PS2)-bank 0x000A0004 / 0x000A0002 (POP1 port/Demo) */
     /* Tom Clancy's Rainbow Six 3 (2003)(PS2)-bank 0x000A0007 */
     /* Tom Clancy's Ghost Recon 2 (2004)(PS2)-bank 0x000A0007 */
-    /* Splinter Cell: Pandora Tomorrow (2004)(PS2)-bank 0x000A0008 (separate banks from main map) */
+    /* Splinter Cell: Pandora Tomorrow-online (2004)(PS2)-bank 0x000A0008 */
     /* Prince of Persia: Warrior Within (Demo)(2004)(PS2)-bank 0x00100000 */
     /* Prince of Persia: Warrior Within (2004)(PS2)-bank 0x00120009 */
     if ((sb->version == 0x000A0002 && sb->platform == UBI_PS2) ||

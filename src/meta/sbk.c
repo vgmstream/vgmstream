@@ -23,11 +23,11 @@ VGMSTREAM *init_vgmstream_sbk(STREAMFILE *sf) {
     if (!find_chunk_le(sf, 0x57415649, 0x0c, 0, &table_offset, &table_size)) /* "WAVI" */
         goto fail;
 
-    if (read_u16le(0x2c, sf) == 0x00) {
+    if (find_chunk_le(sf, 0x53574156, 0x0c, 0, &data_offset, &data_size)) { /* "SWAV" */
         cfg_entry_size = 0x38;
         cfg_fmt_offset = 0x1c;
     } else {
-        /* 1997 demo version with sound names */
+        /* 1997 demo version with sound names and no streamed section */
         cfg_entry_size = 0x24;
         cfg_fmt_offset = 0x0c;
     }
