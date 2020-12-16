@@ -896,8 +896,8 @@ VGMSTREAM * init_vgmstream_ea_sbr_harmony(STREAMFILE *sf) {
                 sound_offset = base_offset + read_u16(dset_offset + 0x06, sf);
             }
         } else if (set_type == 0x02) {
-            flag = read_u8(dset_offset + 0x06, sf);
-            offset_size = read_u8(dset_offset + 0x07, sf);
+            flag = (read_u16(dset_offset + 0x06, sf) >> 0) & 0xFF;
+            offset_size = (read_u16(dset_offset + 0x06, sf) >> 8) & 0xFF;
             base_offset = read_u64(dset_offset + 0x08, sf);
             sound_table_offset = read_u32(dset_offset + 0x10, sf);
 
@@ -911,13 +911,15 @@ VGMSTREAM * init_vgmstream_ea_sbr_harmony(STREAMFILE *sf) {
             } else if (offset_size == 0x02) {
                 sound_offset = read_u16(sound_table_offset + 0x02 * local_target, sf);
                 for (j = 0; j < flag; j++) sound_offset *= 2;
-            } else if (offset_size == 0x04 || offset_size == 0x08) { /* both 0x04 and 0x08 are 32-bit? */
+            } else if (offset_size == 0x04) {
                 sound_offset = read_u32(sound_table_offset + 0x04 * local_target, sf);
+            } else {
+                goto fail;
             }
 
             sound_offset += base_offset;
         } else if (set_type == 0x03) {
-            offset_size = read_u8(dset_offset + 0x07, sf);
+            offset_size = (read_u16(dset_offset + 0x06, sf) >> 8) & 0xFF;
             set_sounds = read_u64(dset_offset + 0x08, sf);
             sound_table_offset = read_u32(dset_offset + 0x10, sf);
 
@@ -929,8 +931,10 @@ VGMSTREAM * init_vgmstream_ea_sbr_harmony(STREAMFILE *sf) {
                 sound_offset = read_u8(sound_table_offset + 0x01 * local_target, sf);
             } else if (offset_size == 0x02) {
                 sound_offset = read_u16(sound_table_offset + 0x02 * local_target, sf);
-            } else if (offset_size == 0x04 || offset_size == 0x08) { /* both 0x04 and 0x08 are 32-bit? */
+            } else if (offset_size == 0x04) {
                 sound_offset = read_u32(sound_table_offset + 0x04 * local_target, sf);
+            } else {
+                goto fail;
             }
         } else if (set_type == 0x04) {
             total_sounds += set_sounds;
