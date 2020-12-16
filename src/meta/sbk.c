@@ -6,8 +6,8 @@ VGMSTREAM *init_vgmstream_sbk(STREAMFILE *sf) {
     VGMSTREAM *vgmstream = NULL;
     uint32_t sound_offset, sound_size, padding_size, sample_rate;
     uint16_t format, channels, block_size, bps;
-    off_t table_offset, data_offset, entry_offset, cfg_entry_size;
-    size_t table_size, data_size, cfg_fmt_offset;
+    off_t table_offset, data_offset, entry_offset, cfg_fmt_offset;
+    size_t table_size, data_size, cfg_entry_size;
     int target_subsong = sf->stream_index, total_subsongs, loop_flag, is_streamed;
 
     /* checks */

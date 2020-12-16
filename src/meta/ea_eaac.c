@@ -806,29 +806,31 @@ fail:
 
 /* EA Harmony Sample Bank - used in 8th gen EA Sports games */
 VGMSTREAM * init_vgmstream_ea_sbr_harmony(STREAMFILE *sf) {
-    uint32_t num_dsets, set_sounds, chunk_id, data_offset, table_offset, dset_offset, base_offset, sound_table_offset, sound_offset;
-    uint32_t i, j;
+    uint64_t set_sounds, base_offset, sound_offset;
+    uint32_t chunk_id, data_offset, table_offset, dset_offset, sound_table_offset;
+    uint16_t num_dsets;
     uint8_t set_type, flag, offset_size;
+    uint32_t i, j;
     char sound_name[STREAM_NAME_SIZE];
-    STREAMFILE *sbsFile = NULL, *sf_data = NULL;
+    STREAMFILE *sf_sbs = NULL, *sf_data = NULL;
     VGMSTREAM *vgmstream = NULL;
     int target_stream = sf->stream_index, total_sounds, local_target, is_streamed = 0;
+    uint64_t(*read_u64)(off_t, STREAMFILE *);
     uint32_t(*read_u32)(off_t, STREAMFILE*);
     uint16_t(*read_u16)(off_t, STREAMFILE*);
 
     if (!check_extensions(sf, "sbr"))
         goto fail;
 
-    /* Logically, big endian version starts with SBbe. However, this format is
-     * only used on 8th gen systems so far so big endian version probably doesn't exist. */
-    if (read_32bitBE(0x00, sf) == 0x53426C65) { /* "SBle" */
+    /* check header */
+    if (read_u32be(0x00, sf) == 0x53426C65) { /* "SBle" */
+        read_u64 = read_u64le;
         read_u32 = read_u32le;
         read_u16 = read_u16le;
-#if 0
-    } else if (read_32bitBE(0x00, sf) == 0x53426265) { /* "SBbe" */
-        read_32bit = read_u32be;
-        read_16bit = read_u16be;
-#endif
+    } else if (read_u32be(0x00, sf) == 0x53426265) { /* "SBbe" */
+        read_u64 = read_u64be;
+        read_u32 = read_u32be;
+        read_u16 = read_u16be;
     } else {
         goto fail;
     }
@@ -880,13 +882,13 @@ VGMSTREAM * init_vgmstream_ea_sbr_harmony(STREAMFILE *sf) {
             if (local_target < 0 || local_target > 0)
                 continue;
 
-            sound_offset = read_u32(dset_offset + 0x08, sf);
+            sound_offset = read_u64(dset_offset + 0x08, sf);
         } else if (set_type == 0x01) {
             total_sounds += 2;
             if (local_target < 0 || local_target > 1)
                 continue;
 
-            base_offset = read_u32(dset_offset + 0x08, sf);
+            base_offset = read_u64(dset_offset + 0x08, sf);
 
             if (local_target == 0) {
                 sound_offset = base_offset;
@@ -896,7 +898,7 @@ VGMSTREAM * init_vgmstream_ea_sbr_harmony(STREAMFILE *sf) {
         } else if (set_type == 0x02) {
             flag = read_u8(dset_offset + 0x06, sf);
             offset_size = read_u8(dset_offset + 0x07, sf);
-            base_offset = read_u32(dset_offset + 0x08, sf);
+            base_offset = read_u64(dset_offset + 0x08, sf);
             sound_table_offset = read_u32(dset_offset + 0x10, sf);
 
             total_sounds += set_sounds;
@@ -909,14 +911,14 @@ VGMSTREAM * init_vgmstream_ea_sbr_harmony(STREAMFILE *sf) {
             } else if (offset_size == 0x02) {
                 sound_offset = read_u16(sound_table_offset + 0x02 * local_target, sf);
                 for (j = 0; j < flag; j++) sound_offset *= 2;
-            } else if (offset_size == 0x04) {
+            } else if (offset_size == 0x04 || offset_size == 0x08) { /* both 0x04 and 0x08 are 32-bit? */
                 sound_offset = read_u32(sound_table_offset + 0x04 * local_target, sf);
             }
 
             sound_offset += base_offset;
         } else if (set_type == 0x03) {
             offset_size = read_u8(dset_offset + 0x07, sf);
-            set_sounds = read_u32(dset_offset + 0x08, sf);
+            set_sounds = read_u64(dset_offset + 0x08, sf);
             sound_table_offset = read_u32(dset_offset + 0x10, sf);
 
             total_sounds += set_sounds;
@@ -927,7 +929,7 @@ VGMSTREAM * init_vgmstream_ea_sbr_harmony(STREAMFILE *sf) {
                 sound_offset = read_u8(sound_table_offset + 0x01 * local_target, sf);
             } else if (offset_size == 0x02) {
                 sound_offset = read_u16(sound_table_offset + 0x02 * local_target, sf);
-            } else if (offset_size == 0x04) {
+            } else if (offset_size == 0x04 || offset_size == 0x08) { /* both 0x04 and 0x08 are 32-bit? */
                 sound_offset = read_u32(sound_table_offset + 0x04 * local_target, sf);
             }
         } else if (set_type == 0x04) {
@@ -955,23 +957,24 @@ VGMSTREAM * init_vgmstream_ea_sbr_harmony(STREAMFILE *sf) {
 
     if (!is_streamed) {
         /* RAM asset */
-        if (read_32bitBE(data_offset, sf) != 0x64617461) /* "data" */
+        if (read_u32be(data_offset, sf) != 0x64617461) /* "data" */
             goto fail;
 
         sf_data = sf;
         sound_offset += data_offset;
     } else {
         /* streamed asset */
-        sbsFile = open_streamfile_by_ext(sf, "sbs");
-        if (!sbsFile)
+        sf_sbs = open_streamfile_by_ext(sf, "sbs");
+        if (!sf_sbs)
             goto fail;
 
-        if (read_32bitBE(0x00, sbsFile) != 0x64617461) /* "data" */
+        if (read_u32be(0x00, sf_sbs) != 0x64617461 && /* "data" */
+            read_u32be(0x00, sf_sbs) != 0x44415441)   /* "DATA" */
             goto fail;
 
-        sf_data = sbsFile;
+        sf_data = sf_sbs;
 
-        if (read_32bitBE(sound_offset, sf_data) == 0x736C6F74) {
+        if (read_u32be(sound_offset, sf_data) == 0x736C6F74) {
             /* skip "slot" section */
             sound_offset += 0x30;
         }
@@ -983,11 +986,11 @@ VGMSTREAM * init_vgmstream_ea_sbr_harmony(STREAMFILE *sf) {
 
     vgmstream->num_streams = total_sounds;
     strncpy(vgmstream->stream_name, sound_name, STREAM_NAME_SIZE);
-    close_streamfile(sbsFile);
+    close_streamfile(sf_sbs);
     return vgmstream;
 
 fail:
-    close_streamfile(sbsFile);
+    close_streamfile(sf_sbs);
     return NULL;
 }
 
