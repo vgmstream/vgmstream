@@ -961,7 +961,8 @@ VGMSTREAM * init_vgmstream_ea_sbr_harmony(STREAMFILE *sf) {
 
     if (!is_streamed) {
         /* RAM asset */
-        if (read_u32be(data_offset, sf) != 0x64617461) /* "data" */
+        if (read_u32be(data_offset, sf) != 0x64617461 && /* "data" */
+            read_u32be(data_offset, sf) != 0x44415441)   /* "DATA" */
             goto fail;
 
         sf_data = sf;
