@@ -17,7 +17,7 @@
  *   https://github.com/hcs64/ww2ogg
  */
 
-typedef enum { OPUS_SWITCH, OPUS_UE4_v1, OPUS_UE4_v2, OPUS_EA, OPUS_X, OPUS_FSB, OPUS_WWISE } opus_type_t;
+typedef enum { OPUS_SWITCH, OPUS_UE4_v1, OPUS_UE4_v2, OPUS_EA, OPUS_X, OPUS_FSB, OPUS_WWISE, OPUS_FIXED } opus_type_t;
 
 static size_t make_oggs_first(uint8_t *buf, int buf_size, opus_config *cfg);
 static size_t make_oggs_page(uint8_t *buf, int buf_size, size_t data_size, int page_sequence, int granule);
@@ -35,6 +35,9 @@ typedef struct {
     off_t table_offset;
     int table_count;
     uint16_t* frame_table;
+
+    /* fixed frame size for variations that use this */
+    uint16_t frame_size;
 
     /* state */
     off_t logical_offset;           /* offset that corresponds to physical_offset */
@@ -128,6 +131,10 @@ static size_t opus_io_read(STREAMFILE* sf, uint8_t *dest, off_t offset, size_t l
                 case OPUS_X:
                 case OPUS_WWISE:
                     data_size = get_table_frame_size(data, data->sequence - 2);
+                    skip_size = 0;
+                    break;
+                case OPUS_FIXED:
+                    data_size = data->frame_size;
                     skip_size = 0;
                     break;
                 default:
@@ -231,6 +238,10 @@ static size_t opus_io_size(STREAMFILE* sf, opus_io_data* data) {
                 data_size = get_table_frame_size(data, packet);
                 skip_size = 0x00;
                 break;
+            case OPUS_FIXED:
+                data_size = data->frame_size;
+                skip_size = 0;
+                break;
             default:
                 return 0;
         }
@@ -295,7 +306,7 @@ static void opus_io_close(STREAMFILE* sf, opus_io_data* data) {
 
 
 /* Prepares custom IO for custom Opus, that is converted to Ogg Opus on the fly */
-static STREAMFILE* setup_opus_streamfile(STREAMFILE* sf, opus_config *cfg, off_t stream_offset, size_t stream_size, opus_type_t type) {
+static STREAMFILE* setup_opus_streamfile(STREAMFILE* sf, opus_config* cfg, off_t stream_offset, size_t stream_size, opus_type_t type) {
     STREAMFILE* new_sf = NULL;
     opus_io_data io_data = {0};
     
@@ -308,6 +319,7 @@ static STREAMFILE* setup_opus_streamfile(STREAMFILE* sf, opus_config *cfg, off_t
     io_data.physical_offset = stream_offset;
     io_data.table_offset = cfg->table_offset;
     io_data.table_count = cfg->table_count;
+    io_data.frame_size = cfg->frame_size;
 
     io_data.head_size = make_oggs_first(io_data.head_buffer, sizeof(io_data.head_buffer), cfg);
     if (!io_data.head_size) goto fail;
@@ -612,11 +624,15 @@ static size_t custom_opus_get_samples(off_t offset, size_t stream_size, STREAMFI
                 skip_size = 0x02;
                 break;
 
-#if 0       // needs data* for frame table, but num_samples should exist on header
+#if 0       //needs data*, num_samples should exist on header
             case OPUS_X:
             case OPUS_WWISE:
                 data_size = get_table_frame_size(data, packet);
                 skip_size = 0x00;
+                break;
+            case OPUS_FIXED:
+                data_size = data->frame_size;
+                skip_size = 0;
                 break;
 #endif
             default:
@@ -661,6 +677,11 @@ static size_t custom_opus_get_encoder_delay(off_t offset, STREAMFILE* sf, opus_t
         case OPUS_WWISE:
             skip_size = 0x00;
             break;
+#if 0 //should exist on header
+        case OPUS_FIXED:
+            skip_size = 0x00;
+            break;
+#endif
         default:
             return 0;
     }
@@ -755,6 +776,9 @@ ffmpeg_codec_data* init_ffmpeg_fsb_opus(STREAMFILE* sf, off_t start_offset, size
 }
 ffmpeg_codec_data* init_ffmpeg_wwise_opus(STREAMFILE* sf, off_t data_offset, size_t data_size, opus_config* cfg) {
     return init_ffmpeg_custom_opus_config(sf, data_offset, data_size, cfg, OPUS_WWISE);
+}
+ffmpeg_codec_data* init_ffmpeg_fixed_opus(STREAMFILE* sf, off_t data_offset, size_t data_size, opus_config* cfg) {
+    return init_ffmpeg_custom_opus_config(sf, data_offset, data_size, cfg, OPUS_FIXED);
 }
 
 static opus_type_t get_ue4opus_version(STREAMFILE* sf, off_t offset) {
