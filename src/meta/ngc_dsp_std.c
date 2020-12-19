@@ -7,19 +7,19 @@
  * then this is actually how they are laid out in the file, albeit big-endian */
 struct dsp_header {
     uint32_t sample_count;      /* 0x00 */
-    uint32_t nibble_count;      /* 0x04 */
-    uint32_t sample_rate;       /* 0x08 */
+    uint32_t nibble_count;      /* 0x04 (includes frame headers) */
+    uint32_t sample_rate;       /* 0x08 (generally 32/48kz but games like Wario World set 32028hz to adjust for GC's rate) */
     uint16_t loop_flag;         /* 0x0c */
-    uint16_t format;            /* 0x0e */
+    uint16_t format;            /* 0x0e (always 0 for ADPCM) */
     uint32_t loop_start_offset; /* 0x10 */
     uint32_t loop_end_offset;   /* 0x14 */
-    uint32_t ca;                /* 0x18 */
-    int16_t coef[16];           /* 0x1c (really 8x2) */
-    uint16_t gain;              /* 0x3c */
-    uint16_t initial_ps;        /* 0x3e */
+    uint32_t ca;                /* 0x18 (always 0) */
+    int16_t coef[16];           /* 0x1c (eight pairs) */
+    uint16_t gain;              /* 0x3c (always 0 for ADPCM) */
+    uint16_t initial_ps;        /* 0x3e (predictor/scale in frame header) */
     int16_t initial_hist1;      /* 0x40 */
     int16_t initial_hist2;      /* 0x42 */
-    uint16_t loop_ps;           /* 0x44 */
+    uint16_t loop_ps;           /* 0x44 (predictor/scale in loop frame header) */
     int16_t loop_hist1;         /* 0x46 */
     int16_t loop_hist2;         /* 0x48 */
     int16_t channel_count;      /* 0x4a (DSPADPCM.exe ~v2.7 extension) */
@@ -29,34 +29,35 @@ struct dsp_header {
 
 /* read the above struct; returns nonzero on failure */
 static int read_dsp_header_endian(struct dsp_header *header, off_t offset, STREAMFILE* sf, int big_endian) {
-    int32_t (*get_32bit)(const uint8_t *) = big_endian ? get_32bitBE : get_32bitLE;
-    int16_t (*get_16bit)(const uint8_t *) = big_endian ? get_16bitBE : get_16bitLE;
+    uint32_t (*get_u32)(const uint8_t*) = big_endian ? get_u32be : get_u32le;
+    uint16_t (*get_u16)(const uint8_t*) = big_endian ? get_u16be : get_u16le;
+    int16_t  (*get_s16)(const uint8_t*) = big_endian ? get_s16be : get_s16le;
     int i;
-    uint8_t buf[0x4e];
+    uint8_t buf[0x60];
 
     if (offset > get_streamfile_size(sf))
         return 1;
-    if (read_streamfile(buf, offset, 0x4e, sf) != 0x4e)
+    if (read_streamfile(buf, offset, 0x60, sf) != 0x60)
         return 1;
-    header->sample_count =      get_32bit(buf+0x00);
-    header->nibble_count =      get_32bit(buf+0x04);
-    header->sample_rate =       get_32bit(buf+0x08);
-    header->loop_flag =         get_16bit(buf+0x0c);
-    header->format =            get_16bit(buf+0x0e);
-    header->loop_start_offset = get_32bit(buf+0x10);
-    header->loop_end_offset =   get_32bit(buf+0x14);
-    header->ca =                get_32bit(buf+0x18);
+    header->sample_count =      get_u32(buf+0x00);
+    header->nibble_count =      get_u32(buf+0x04);
+    header->sample_rate =       get_u32(buf+0x08);
+    header->loop_flag =         get_u16(buf+0x0c);
+    header->format =            get_u16(buf+0x0e);
+    header->loop_start_offset = get_u32(buf+0x10);
+    header->loop_end_offset =   get_u32(buf+0x14);
+    header->ca =                get_u32(buf+0x18);
     for (i=0; i < 16; i++)
-        header->coef[i] =       get_16bit(buf+0x1c+i*0x02);
-    header->gain =              get_16bit(buf+0x3c);
-    header->initial_ps =        get_16bit(buf+0x3e);
-    header->initial_hist1 =     get_16bit(buf+0x40);
-    header->initial_hist2 =     get_16bit(buf+0x42);
-    header->loop_ps =           get_16bit(buf+0x44);
-    header->loop_hist1 =        get_16bit(buf+0x46);
-    header->loop_hist2 =        get_16bit(buf+0x48);
-    header->channel_count =     get_16bit(buf+0x4a);
-    header->block_size =        get_16bit(buf+0x4c);
+        header->coef[i] =       get_s16(buf+0x1c+i*0x02);
+    header->gain =              get_u16(buf+0x3c);
+    header->initial_ps =        get_u16(buf+0x3e);
+    header->initial_hist1 =     get_s16(buf+0x40);
+    header->initial_hist2 =     get_s16(buf+0x42);
+    header->loop_ps =           get_u16(buf+0x44);
+    header->loop_hist1 =        get_s16(buf+0x46);
+    header->loop_hist2 =        get_s16(buf+0x48);
+    header->channel_count =     get_s16(buf+0x4a);
+    header->block_size =        get_s16(buf+0x4c);
     return 0;
 }
 static int read_dsp_header(struct dsp_header *header, off_t offset, STREAMFILE* file) {
@@ -156,7 +157,7 @@ static VGMSTREAM* init_vgmstream_dsp_common(STREAMFILE* sf, dsp_meta *dspm) {
 
         for (i = 0; i < channels; i++) {
             off_t channel_offset = dspm->start_offset + i*dspm->interleave;
-            if (ch_header[i].initial_ps != (uint8_t)read_8bit(channel_offset, sf))
+            if (ch_header[i].initial_ps != read_u8(channel_offset, sf))
                 goto fail;
         }
     }
@@ -169,13 +170,15 @@ static VGMSTREAM* init_vgmstream_dsp_common(STREAMFILE* sf, dsp_meta *dspm) {
 
         for (i = 0; i < channels; i++) {
             off_t loop_offset = ch_header[i].loop_start_offset;
+
+            loop_offset = loop_offset / 0x8 * 0x8; /* loop points to a nibble, but we need closest frame header */
             if (dspm->interleave) {
-                loop_offset = loop_offset / 16 * 8;
                 loop_offset = (loop_offset / dspm->interleave * dspm->interleave * channels) + (loop_offset % dspm->interleave);
             }
 
-            if (ch_header[i].loop_ps != (uint8_t)read_8bit(dspm->start_offset + i*dspm->interleave + loop_offset,sf))
+            if (ch_header[i].loop_ps != read_u8(dspm->start_offset + i*dspm->interleave + loop_offset,sf)) {
                 goto fail;
+            }
         }
     }
 
@@ -199,7 +202,7 @@ static VGMSTREAM* init_vgmstream_dsp_common(STREAMFILE* sf, dsp_meta *dspm) {
     vgmstream->sample_rate = ch_header[0].sample_rate;
     vgmstream->num_samples = ch_header[0].sample_count;
     vgmstream->loop_start_sample = dsp_nibbles_to_samples(ch_header[0].loop_start_offset);
-    vgmstream->loop_end_sample   = dsp_nibbles_to_samples(ch_header[0].loop_end_offset)+1;
+    vgmstream->loop_end_sample   = dsp_nibbles_to_samples(ch_header[0].loop_end_offset) + 1;
 
     vgmstream->meta_type = dspm->meta_type;
     vgmstream->coding_type = coding_NGC_DSP;
@@ -224,7 +227,7 @@ static VGMSTREAM* init_vgmstream_dsp_common(STREAMFILE* sf, dsp_meta *dspm) {
         }
     }
 
-    /* don't know why, but it does happen*/
+    /* don't know why, but it does happen */
     if (dspm->fix_looping && vgmstream->loop_end_sample > vgmstream->num_samples)
         vgmstream->loop_end_sample = vgmstream->num_samples;
 
@@ -235,7 +238,7 @@ static VGMSTREAM* init_vgmstream_dsp_common(STREAMFILE* sf, dsp_meta *dspm) {
     }
 
 
-    if (!vgmstream_open_stream(vgmstream,sf,dspm->start_offset))
+    if (!vgmstream_open_stream(vgmstream, sf, dspm->start_offset))
         goto fail;
     return vgmstream;
 
@@ -1094,8 +1097,6 @@ VGMSTREAM* init_vgmstream_dsp_sps_n1(STREAMFILE* sf) {
     dspm.start_offset = dspm.header_offset + dspm.header_spacing*dspm.channel_count;
     dspm.interleave = 0;
 
-    dspm.fix_loop_start = 1;
-
     dspm.meta_type = meta_DSP_VAG;
     return init_vgmstream_dsp_common(sf, &dspm);
 fail:
@@ -1302,6 +1303,36 @@ VGMSTREAM* init_vgmstream_dsp_wiivoice(STREAMFILE* sf) {
     dspm.start_offset = dspm.header_offset + dspm.header_spacing*dspm.channel_count;
 
     dspm.meta_type = meta_DSP_WIIVOICE;
+    return init_vgmstream_dsp_common(sf, &dspm);
+fail:
+    return NULL;
+}
+
+
+/* WIIADPCM - Exient wrapper [Need for Speed: Hot Pursuit (Wii)] */
+VGMSTREAM* init_vgmstream_dsp_wiiadpcm(STREAMFILE* sf) {
+    dsp_meta dspm = {0};
+
+    /* checks */
+    if (!check_extensions(sf, "adpcm"))
+        goto fail;
+    if (!is_id32be(0x00,sf, "WIIA") && !is_id32be(0x00,sf, "DPCM"))
+        goto fail;
+
+    dspm.interleave = read_u32be(0x08,sf); /* interleave offset */
+    if (dspm.interleave) {
+        dspm.interleave -= 0x10;
+    }
+    /* 0x0c: 0 when RAM (2 DSP headers), interleave size when stream (2 WIIADPCM headers) */
+
+    dspm.channel_count = (dspm.interleave ? 2 : 1);
+    dspm.max_channels = 2;
+
+    dspm.header_offset = 0x10;
+    dspm.header_spacing = dspm.interleave;
+    dspm.start_offset = dspm.header_offset + 0x60;
+
+    dspm.meta_type = meta_DSP_WIIADPCM;
     return init_vgmstream_dsp_common(sf, &dspm);
 fail:
     return NULL;
