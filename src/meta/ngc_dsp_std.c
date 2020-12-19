@@ -92,6 +92,7 @@ typedef struct {
     int fix_loop_start;             /* weird files with bad loop start */
     int single_header;              /* all channels share header, thus totals are off */
     int ignore_header_agreement;    /* sometimes there are minor differences between headers */
+    int ignore_loop_ps;             /* sometimes has bad loop start ps */
 } dsp_meta;
 
 #define COMMON_DSP_MAX_CHANNELS 6
@@ -114,8 +115,10 @@ static VGMSTREAM* init_vgmstream_dsp_common(STREAMFILE* sf, dsp_meta *dspm) {
     /* load standard DSP header per channel */
     {
         for (i = 0; i < dspm->channel_count; i++) {
-            if (read_dsp_header_endian(&ch_header[i], dspm->header_offset + i*dspm->header_spacing, sf, !dspm->little_endian))
+            if (read_dsp_header_endian(&ch_header[i], dspm->header_offset + i*dspm->header_spacing, sf, !dspm->little_endian)) {
+                //;VGM_LOG("DSP: bad header\n");
                 goto fail;
+            }
         }
     }
 
@@ -130,8 +133,10 @@ static VGMSTREAM* init_vgmstream_dsp_common(STREAMFILE* sf, dsp_meta *dspm) {
     /* check type==0 and gain==0 */
     {
         for (i = 0; i < dspm->channel_count; i++) {
-            if (ch_header[i].format || ch_header[i].gain)
+            if (ch_header[i].format || ch_header[i].gain) {
+                //;VGM_LOG("DSP: bad type/gain\n");
                 goto fail;
+            }
         }
     }
 
@@ -157,13 +162,15 @@ static VGMSTREAM* init_vgmstream_dsp_common(STREAMFILE* sf, dsp_meta *dspm) {
 
         for (i = 0; i < channels; i++) {
             off_t channel_offset = dspm->start_offset + i*dspm->interleave;
-            if (ch_header[i].initial_ps != read_u8(channel_offset, sf))
+            if (ch_header[i].initial_ps != read_u8(channel_offset, sf)) {
+                //;VGM_LOG("DSP: bad initial ps\n");
                 goto fail;
+            }
         }
     }
 
     /* check expected loop predictor/scale */
-    if (ch_header[0].loop_flag) {
+    if (ch_header[0].loop_flag && !dspm->ignore_loop_ps) {
         int channels = dspm->channel_count;
         if (dspm->single_header)
             channels = 1;
@@ -177,6 +184,7 @@ static VGMSTREAM* init_vgmstream_dsp_common(STREAMFILE* sf, dsp_meta *dspm) {
             }
 
             if (ch_header[i].loop_ps != read_u8(dspm->start_offset + i*dspm->interleave + loop_offset,sf)) {
+                //;VGM_LOG("DSP: bad loop ps: %x vs at %lx\n", ch_header[i].loop_ps, dspm->start_offset + i*dspm->interleave + loop_offset);
                 goto fail;
             }
         }
@@ -870,25 +878,28 @@ fail:
 }
 
 /* NPD - Icon Games header + subinterleaved DSPs [Vertigo (Wii), Build n' Race (Wii)] */
-VGMSTREAM* init_vgmstream_wii_ndp(STREAMFILE* sf) {
+VGMSTREAM* init_vgmstream_dsp_ndp(STREAMFILE* sf) {
     dsp_meta dspm = {0};
 
     /* checks */
-    if (!check_extensions(sf, "ndp"))
+    /* .nds: standard
+     * .ndp: header id */
+    if (!check_extensions(sf, "nds,ndp"))
         goto fail;
-    if (read_32bitBE(0x00,sf) != 0x4E445000) /* "NDP\0" */
+    if (!is_id32be(0x00,sf, "NDP\0"))
         goto fail;
-    if (read_32bitLE(0x08,sf) + 0x18 != get_streamfile_size(sf))
+    if (read_u32le(0x08,sf) + 0x18 != get_streamfile_size(sf))
         goto fail;
     /* 0x0c: sample rate */
 
-    dspm.channel_count = read_32bitLE(0x10,sf);
+    dspm.channel_count = read_u32le(0x10,sf);
     dspm.max_channels = 2;
 
     dspm.header_offset = 0x18;
     dspm.header_spacing = 0x60;
     dspm.start_offset = dspm.header_offset + dspm.channel_count*dspm.header_spacing;
     dspm.interleave = 0x04;
+    dspm.ignore_loop_ps = 1; /* some files loops from 0 but loop ps is null */
 
     dspm.meta_type = meta_WII_NDP;
     return init_vgmstream_dsp_common(sf, &dspm);
@@ -1333,6 +1344,33 @@ VGMSTREAM* init_vgmstream_dsp_wiiadpcm(STREAMFILE* sf) {
     dspm.start_offset = dspm.header_offset + 0x60;
 
     dspm.meta_type = meta_DSP_WIIADPCM;
+    return init_vgmstream_dsp_common(sf, &dspm);
+fail:
+    return NULL;
+}
+
+
+/* CWAC - CRI wrapper [Mario & Sonic at the Rio 2016 Olympic Games (WiiU)] */
+VGMSTREAM* init_vgmstream_dsp_cwac(STREAMFILE* sf) {
+    dsp_meta dspm = {0};
+
+    /* checks */
+    /* .dsp: assumed */
+    if (!check_extensions(sf, "dsp"))
+        goto fail;
+    if (!is_id32be(0x00,sf, "CWAC"))
+        goto fail;
+
+    dspm.channel_count  = read_u16be(0x04,sf);
+    dspm.header_offset  = read_u32be(0x08,sf);
+    dspm.interleave     = read_u32be(0x0c,sf) - dspm.header_offset;
+
+    dspm.max_channels = 2;
+    dspm.header_spacing = dspm.interleave;
+    dspm.start_offset = dspm.header_offset + 0x60;
+    dspm.ignore_loop_ps = 1; /* loop offset seems relative to CWAC? also interleave affects it */
+
+    dspm.meta_type = meta_DSP_CWAC;
     return init_vgmstream_dsp_common(sf, &dspm);
 fail:
     return NULL;

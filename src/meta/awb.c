@@ -1,7 +1,7 @@
 #include "meta.h"
 #include "../coding/coding.h"
 
-typedef enum { ADX, HCA, VAG, RIFF, CWAV, DSP } awb_type;
+typedef enum { ADX, HCA, VAG, RIFF, CWAV, DSP, CWAC } awb_type;
 
 static void load_awb_name(STREAMFILE* sf, STREAMFILE* sf_acb, VGMSTREAM* vgmstream, int waveid);
 
@@ -116,6 +116,10 @@ VGMSTREAM* init_vgmstream_awb_memory(STREAMFILE* sf, STREAMFILE* sf_acb) {
         type = DSP;
         extension = "dsp";
     }
+    else if (is_id32be(subfile_offset,sf, "CWAC")) { /* type 13 again */
+        type = CWAC;
+        extension = "dsp";
+    }
     else {
         VGM_LOG("AWB: unknown codec\n");
         goto fail;
@@ -148,6 +152,10 @@ VGMSTREAM* init_vgmstream_awb_memory(STREAMFILE* sf, STREAMFILE* sf_acb) {
             break;
         case DSP: /* Sonic: Lost World (WiiU) */
             vgmstream = init_vgmstream_ngc_dsp_std(temp_sf);
+            if (!vgmstream) goto fail;
+            break;
+        case CWAC: /* Mario & Sonic at the Rio 2016 Olympic Games (WiiU) */
+            vgmstream = init_vgmstream_dsp_cwac(temp_sf);
             if (!vgmstream) goto fail;
             break;
         default:

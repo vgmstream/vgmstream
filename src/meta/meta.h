@@ -42,7 +42,7 @@ VGMSTREAM* init_vgmstream_wii_was(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_dsp_str_ig(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_dsp_xiii(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_dsp_cabelas(STREAMFILE* sf);
-VGMSTREAM* init_vgmstream_wii_ndp(STREAMFILE* sf);
+VGMSTREAM* init_vgmstream_dsp_ndp(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_ngc_dsp_aaap(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_dsp_dspw(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_ngc_dsp_iadp(STREAMFILE* sf);
@@ -57,6 +57,7 @@ VGMSTREAM* init_vgmstream_dsp_itl(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_dsp_sqex(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_dsp_wiivoice(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_dsp_wiiadpcm(STREAMFILE* sf);
+VGMSTREAM* init_vgmstream_dsp_cwac(STREAMFILE* sf);
 
 VGMSTREAM * init_vgmstream_csmp(STREAMFILE *streamFile);
 
