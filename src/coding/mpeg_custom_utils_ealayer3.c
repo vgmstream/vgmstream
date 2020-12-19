@@ -97,23 +97,23 @@ static int ealayer3_is_empty_frame_v2p(STREAMFILE* sf, off_t offset);
 /* **************************************************************************** */
 
 /* init codec from an EALayer3 frame */
-int mpeg_custom_setup_init_ealayer3(STREAMFILE* streamfile, off_t start_offset, mpeg_codec_data* data, coding_t *coding_type) {
+int mpeg_custom_setup_init_ealayer3(STREAMFILE* sf, off_t start_offset, mpeg_codec_data* data, coding_t *coding_type) {
     int ok;
     ealayer3_buffer_t ib = {0};
     ealayer3_frame_t eaf;
 
 
-    //;VGM_LOG("init at %lx\n", start_offset);
+    //;VGM_LOG("init at %lx, %x\n", start_offset, read_u32be(start_offset, sf));
     /* get first frame for info */
     {
-        ib.sf = streamfile;
+        ib.sf = sf;
         ib.offset = start_offset;
         ib.is.buf = ib.buf;
 
         ok = ealayer3_parse_frame(data, -1, &ib, &eaf);
         if (!ok) goto fail;
     }
-    ;VGM_ASSERT(!eaf.mpeg1, "EAL3: mpeg2 found at 0x%lx\n", start_offset); /* rare [FIFA 08 (PS3) abk] */
+    VGM_ASSERT(!eaf.mpeg1, "EAL3: mpeg2 found at 0x%lx\n", start_offset); /* rare [FIFA 08 (PS3) abk] */
 
     *coding_type = coding_MPEG_ealayer3;
     data->channels_per_frame = eaf.channels;
@@ -385,11 +385,16 @@ static int ealayer3_parse_frame_v2(ealayer3_buffer_t* ib, ealayer3_frame_t* eaf)
         ok = ealayer3_parse_frame_common(ib, eaf);
         if (!ok) goto fail;
     }
+    else {
+        /* rarely frames contain PCM data only [FIFA 2014 World Cup Brazil (PS3)] */
+        eaf->channels = eaf->v2_stereo_flag + 1;
+    }
+
     VGM_ASSERT(eaf->v2_extended_flag && eaf->v2_common_size == 0, "EA EAL3: v2 empty frame\n"); /* seen in V2S */
     VGM_ASSERT(eaf->v2_extended_flag && eaf->v2_offset_samples > 0, "EA EAL3: v2_offset_mode=%x with value=0x%x\n", eaf->v2_offset_mode, eaf->v2_offset_samples);
     //VGM_ASSERT(eaf->v2_pcm_samples > 0, "EA EAL3: v2_pcm_samples 0x%x\n", eaf->v2_pcm_samples);
 
-    eaf->pcm_size = (2*eaf->v2_pcm_samples * eaf->channels);
+    eaf->pcm_size = (eaf->v2_pcm_samples * sizeof(int16_t) * eaf->channels);
 
     eaf->eaframe_size = eaf->pre_size + eaf->common_size + eaf->pcm_size;
 
@@ -408,14 +413,14 @@ fail:
 /* parses an EALayer3 frame (common part) */
 static int ealayer3_parse_frame_common(ealayer3_buffer_t* ib, ealayer3_frame_t* eaf) {
     /* index tables */
-    static const int versions[4] = { /* MPEG 2.5 */ 3, /* reserved */ -1,  /* MPEG 2 */ 2, /* MPEG 1 */ 1 };
-    static const int sample_rates[4][4] = { /* [version_index][sample rate index] */
+    static const int version_table[4] = { /* MPEG 2.5 */ 3, /* reserved */ -1,  /* MPEG 2 */ 2, /* MPEG 1 */ 1 };
+    static const int sample_rate_table[4][4] = { /* [version_index][sample rate index] */
             { 11025, 12000,  8000, -1}, /* MPEG2.5 */
             {    -1,    -1,    -1, -1}, /* reserved */
             { 22050, 24000, 16000, -1}, /* MPEG2 */
             { 44100, 48000, 32000, -1}, /* MPEG1 */
     };
-    static const int channels[4] = { 2,2,2, 1 }; /* [channel_mode] */
+    static const int channel_table[4] = { 2,2,2, 1 }; /* [channel_mode] */
 
     bitstream_t* is = &ib->is;
     off_t start_b_off = is->b_off;
@@ -441,9 +446,9 @@ static int ealayer3_parse_frame_common(ealayer3_buffer_t* ib, ealayer3_frame_t* 
 
 
     /* derived */
-    eaf->version = versions[eaf->version_index];
-    eaf->channels = channels[eaf->channel_mode];
-    eaf->sample_rate = sample_rates[eaf->version_index][eaf->sample_rate_index];
+    eaf->version = version_table[eaf->version_index];
+    eaf->channels = channel_table[eaf->channel_mode];
+    eaf->sample_rate = sample_rate_table[eaf->version_index][eaf->sample_rate_index];
     eaf->mpeg1 = (eaf->version == 1);
 
     if (eaf->version == -1 || eaf->sample_rate == -1) {
