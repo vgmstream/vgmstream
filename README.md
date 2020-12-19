@@ -112,12 +112,12 @@ automatically. You need to manually refresh it by selecting songs and doing
 **shift + right click > Tagging > Reload info from file(s)**.
 
 ### Audacious plugin
-*Installation*: needs to be manually built. Instructions can be found in the BUILD
-document in vgmstream's source code.
+*Installation*: needs to be manually built. Instructions can be found in doc/BUILD.md
+document in vgmstream's source code (can be done with CMake or autotools).
 
 ### vgmstream123
-*Installation*: needs to be manually built. Instructions can be found in the BUILD
-document in vgmstream's source code.
+*Installation*: needs to be manually built. Instructions can be found in doc/BUILD.md
+document in vgmstream's source code (can be done with CMake or autotools).
 
 Usage: `vgmstream123 [options] INFILE ...`
 
@@ -156,7 +156,7 @@ multiple .txtp (explained below) to select one of the subsongs (like `bgm.sxd#10
 You can use this python script to autogenerate one `.txtp` per subsong:
 https://github.com/losnoco/vgmstream/tree/master/cli/txtp_maker.py
 Put in the same dir as test.exe/vgmstream_cli, then to drag-and-drop files with
-subsongs to `txtp_maker.py`.
+subsongs to `txtp_maker.py` (it has CLI options to control output too).
 
 ### Renamed files
 A few extensions that vgmstream supports clash with common ones. Since players
@@ -189,8 +189,8 @@ internal loop info, or apply subtle fixes, but is also limited in some ways
 may work as a last resort to make a file playable.
 
 Some plugins have options that allow any extension (common or unknown) to be
-played, making renaming unnecessary (may need to adjust plugin priority in
-player's options).
+played, making renaming unnecessary. You may need to adjust plugin priority in
+player's options first.
 
 Also be aware that some plugins can tell the player they handle some extension,
 then not actually play it. This makes the file unplayable as vgmstream doesn't
@@ -223,7 +223,7 @@ on the internet.
 
 ### Companion files
 Some formats have companion files with external info, that should be left together:
-- `.mus`: playlist for `.acm`
+- `.mus`: playlist with `.acm`
 - `.ogg.sli` or `.sli`: loop info for `.ogg`
 - `.ogg.sfl` : loop info for `.ogg`
 - `.opus.sli`: loop info for `.opus`
@@ -250,12 +250,12 @@ Similarly some formats split header+body data in separate files, examples:
 - `.wav`+`.dcs`
 - `.wbh`+`.wbd`
 Both are needed to play and must be together. The usual rule is you open the
-bigger file (body), save a few formats where the smaller file is opened instead
-for technical reasons (mainly some bank formats).
+bigger file (body), save a few formats where the smaller (header) file is opened
+instead for technical reasons (mainly some bank formats).
 
 Generally companion files are named the same (`bgm.awb`+`bgm.acb`), or internally
 point to another file `sfx.sb0`+`STREAM.sb0`. A few formats may have different names
-which are hardcoded instead of being listed in the main file (e.g. `.mpf+.mus`).
+which are hardcoded instead of being listed in the header file (e.g. `.mpf+.mus`).
 In these cases, you can use *TXTM* format to specify associated companion files.
 See *Artificial files* below for more information.
 
@@ -304,7 +304,7 @@ a companion file:
 - `.ahx`: `.ahxkey` (derived 6 byte start/mult/add key)
 - `.hca`: `.hcakey` (8 byte decryption key, a 64-bit number)
   - May be followed by 2 byte AWB scramble key for newer HCA
-- `.fsb`: `.fsbkey` (decryption key, in hex)
+- `.fsb`: `.fsbkey` (decryption key in hex, usually between 8-32 bytes) 
 - `.bnsf`: `.bnsfkey` (decryption key, a string up to 24 chars)
 
 The key file can be `.(ext)key` (for the whole folder), or `(name).(ext)key"
