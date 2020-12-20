@@ -396,8 +396,10 @@ a file named `song.adx#C1,2.txtp` to play only channels 1 and 2 from `song.adx`.
 Some of vgmstream's plugins support simple read-only tagging via external files.
 
 Tags are loaded from a text/M3U-like file named *!tags.m3u* in the song folder.
-You don't have to load your songs with that M3U though (but you can, for pre-made
-ordering), the file itself just 'looks' like an M3U.
+You don't have to load your songs with this M3U though, but you can (for pre-made
+order). The format is meant to be both a quick playlist and tags, but the tagfile
+itself just 'looks' like an M3U. you can load files manually or using other playlists
+and still get tags.
 
 Format is:
 ```
@@ -416,13 +418,15 @@ or uppercase, separated by one or multiple spaces. Repeated tags overwrite previ
 (ex.- may define *@COMPOSER* multiple times for "sections"). It only reads up to
 current *filename* though, so any *@TAG* below would be ignored.
 
-Playlist title formatting should follow player's config. ASCII or UTF-8 tags work.
-
 *GLOBAL_COMMAND*s currently can be:
 - *AUTOTRACK*: sets *%TRACK* tag automatically (1..N as files are encountered
   in the tag file).
 - *AUTOALBUM*: sets *%ALBUM* tag automatically using the containing dir as album.
 - *EXACTMATCH*: disables matching .txtp with regular files (explained below).
+
+Playlist title formatting (how tags are shown) should follow player's config, as
+vgmstream simply passes tags to the player. It's better to name the file lowercase
+`!tags.m3u` rather than `!Tags.m3u` (Windows accepts both but Linux is case sensitive).
 
 Note that with global tags you don't need to put all files inside. This would be
 a perfectly valid *!tags.m3u*:
@@ -430,6 +434,21 @@ a perfectly valid *!tags.m3u*:
 # @ALBUM    Game
 # @ARTIST   Various Artists
 ```
+
+### Non-English filenames and tags
+Tags and filenames using extended characters (like Japanese) should work, as long
+as `!tags.m3u` is saved as *"UTF-8 with BOM"* (UTF-8 is a way to define non-English
+characters, and BOM is a helper "byte-order" mark). Windows' *notepad* creates files
+*"with BOM"* when selecting UTF-8 encoding in *save as* dialog, or you may use other
+programs like *notepad++.exe* to convert them.
+
+More exactly, vgmstream matches filenames and reads tags assuming they are in UTF-8,
+while foobar/winamp can only read UTF-8 Japanese/extended filenames in a `.m3u` if file
+is saved *with BOM* (opening files manually or with a `playlist.m3u8` won't need BOM).
+
+Other players may not need BOM (or CRLF), but for consistency use them when dealing
+with non-ASCII names and tags.
+
 
 ### Tags with spaces
 Some players like foobar accept tags with spaces. To use them surround the tag
