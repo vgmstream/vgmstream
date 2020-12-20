@@ -610,10 +610,22 @@ static VGMSTREAM* init_subfile(txth_header* txth) {
     sf_sub = setup_subfile_streamfile(txth->sf_body, txth->subfile_offset, txth->subfile_size, extension);
     if (!sf_sub) goto fail;
 
-    sf_sub->stream_index = txth->sf->stream_index; /* in case of subfiles with subsongs */
+    sf_sub->stream_index = txth->sf->stream_index;
 
     vgmstream = init_vgmstream_from_STREAMFILE(sf_sub);
-    if (!vgmstream) goto fail;
+    if (!vgmstream) {
+        /* In case of subfiles with subsongs pass subsong N by default (ex. subfile is a .fsb with N subsongs).
+         * But if the subfile is a single-subsong subfile (ex. subfile is a .fsb with 1 subsong) try again
+         * without passing index (as it would fail first trying to open subsong N). */
+        if (sf_sub->stream_index > 1) {
+            sf_sub->stream_index = 0;
+            vgmstream = init_vgmstream_from_STREAMFILE(sf_sub);
+            if (!vgmstream) goto fail;
+        }
+        else {
+            goto fail;
+        }
+    }
 
     /* apply some fields */
     if (txth->sample_rate)

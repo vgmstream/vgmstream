@@ -98,6 +98,10 @@ static inline int clamp16(int32_t val) {
     else return val;
 }
 
+static inline const uint32_t get_id32be(const char* s) {
+    return (uint32_t)(s[0] << 24) | (s[1] << 16) | (s[2] << 8) | (s[3] << 0);
+}
+
 /* less common functions, no need to inline */
 
 int round10(int val);

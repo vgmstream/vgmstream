@@ -664,7 +664,7 @@ void mixing_push_fade(VGMSTREAM* vgmstream, int ch_dst, double vol_start, double
      *   pre1       start1  end1      post1
      * - when pre and post are set nothing is done (fade is exact and multiple fades may overlap)
      * - when previous fade's post or current fade's pre are negative (meaning file end/start)
-     *   they should cancel each other (to allow changing fade-in + fade-out + fade-in + etc):
+     *   they should cancel each other (to allow chaining fade-in + fade-out + fade-in + etc):
      *   <----------|----------|----------| |----------|----------|---------->
      *   pre1       start1  end1      post1 pre2       start2  end2      post2
      * - other cases (previous fade is actually after/in-between current fade) are ignored

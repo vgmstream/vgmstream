@@ -200,7 +200,7 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_redspark,
     init_vgmstream_ivaud,
     init_vgmstream_wii_wsd,
-    init_vgmstream_wii_ndp,
+    init_vgmstream_dsp_ndp,
     init_vgmstream_ps2_sps,
     init_vgmstream_ps2_xa2_rrp,
     init_vgmstream_nds_hwas,
@@ -513,6 +513,9 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_cpk,
     init_vgmstream_opus_nsopus,
     init_vgmstream_sbk,
+    init_vgmstream_dsp_wiiadpcm,
+    init_vgmstream_dsp_cwac,
+    init_vgmstream_ifs,
 
     /* lowest priority metas (should go after all metas, and TXTH should go before raw formats) */
     init_vgmstream_txth,            /* proper parsers should supersede TXTH, once added */

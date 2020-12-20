@@ -548,6 +548,8 @@ typedef struct {
     /* frame table */
     off_t table_offset;
     int table_count;
+    /* fixed frames */
+    uint16_t frame_size;
 } opus_config;
 
 ffmpeg_codec_data* init_ffmpeg_switch_opus_config(STREAMFILE* sf, off_t start_offset, size_t data_size, opus_config* cfg);
@@ -557,6 +559,7 @@ ffmpeg_codec_data* init_ffmpeg_ea_opus(STREAMFILE* sf, off_t start_offset, size_
 ffmpeg_codec_data* init_ffmpeg_x_opus(STREAMFILE* sf, off_t table_offset, int table_count, off_t data_offset, size_t data_size, int channels, int skip);
 ffmpeg_codec_data* init_ffmpeg_fsb_opus(STREAMFILE* sf, off_t start_offset, size_t data_size, int channels, int skip, int sample_rate);
 ffmpeg_codec_data* init_ffmpeg_wwise_opus(STREAMFILE* sf, off_t data_offset, size_t data_size, opus_config* cfg);
+ffmpeg_codec_data* init_ffmpeg_fixed_opus(STREAMFILE* sf, off_t data_offset, size_t data_size, opus_config* cfg);
 
 size_t switch_opus_get_samples(off_t offset, size_t stream_size, STREAMFILE* sf);
 

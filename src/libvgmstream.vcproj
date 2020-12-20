@@ -1282,10 +1282,14 @@
 					RelativePath=".\meta\ps2_iab.c"
 					>
 				</File>
-				<File
-					RelativePath=".\meta\ikm.c"
-					>
-				</File>
+                <File
+                    RelativePath=".\meta\ifs.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\ikm.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\ps2_ild.c"
 					>

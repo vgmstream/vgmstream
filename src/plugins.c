@@ -81,7 +81,7 @@ void vgmstream_get_title(char* buf, int buf_len, const char* filename, VGMSTREAM
     strncpy(buf, pos, buf_len);
 
     /* name without extension */
-    if (cfg->remove_extension) {
+    if (cfg && cfg->remove_extension) {
         pos2 = strrchr(buf, '.');
         if (pos2 && strlen(pos2) < 15) /* too big extension = file name probably has a dot in the middle */
             pos2[0] = '\0';

@@ -112,12 +112,12 @@ automatically. You need to manually refresh it by selecting songs and doing
 **shift + right click > Tagging > Reload info from file(s)**.
 
 ### Audacious plugin
-*Installation*: needs to be manually built. Instructions can be found in the BUILD
-document in vgmstream's source code.
+*Installation*: needs to be manually built. Instructions can be found in doc/BUILD.md
+document in vgmstream's source code (can be done with CMake or autotools).
 
 ### vgmstream123
-*Installation*: needs to be manually built. Instructions can be found in the BUILD
-document in vgmstream's source code.
+*Installation*: needs to be manually built. Instructions can be found in doc/BUILD.md
+document in vgmstream's source code (can be done with CMake or autotools).
 
 Usage: `vgmstream123 [options] INFILE ...`
 
@@ -156,7 +156,7 @@ multiple .txtp (explained below) to select one of the subsongs (like `bgm.sxd#10
 You can use this python script to autogenerate one `.txtp` per subsong:
 https://github.com/losnoco/vgmstream/tree/master/cli/txtp_maker.py
 Put in the same dir as test.exe/vgmstream_cli, then to drag-and-drop files with
-subsongs to `txtp_maker.py`.
+subsongs to `txtp_maker.py` (it has CLI options to control output too).
 
 ### Renamed files
 A few extensions that vgmstream supports clash with common ones. Since players
@@ -189,8 +189,8 @@ internal loop info, or apply subtle fixes, but is also limited in some ways
 may work as a last resort to make a file playable.
 
 Some plugins have options that allow any extension (common or unknown) to be
-played, making renaming unnecessary (may need to adjust plugin priority in
-player's options).
+played, making renaming unnecessary. You may need to adjust plugin priority in
+player's options first.
 
 Also be aware that some plugins can tell the player they handle some extension,
 then not actually play it. This makes the file unplayable as vgmstream doesn't
@@ -223,7 +223,7 @@ on the internet.
 
 ### Companion files
 Some formats have companion files with external info, that should be left together:
-- `.mus`: playlist for `.acm`
+- `.mus`: playlist with `.acm`
 - `.ogg.sli` or `.sli`: loop info for `.ogg`
 - `.ogg.sfl` : loop info for `.ogg`
 - `.opus.sli`: loop info for `.opus`
@@ -250,12 +250,12 @@ Similarly some formats split header+body data in separate files, examples:
 - `.wav`+`.dcs`
 - `.wbh`+`.wbd`
 Both are needed to play and must be together. The usual rule is you open the
-bigger file (body), save a few formats where the smaller file is opened instead
-for technical reasons (mainly some bank formats).
+bigger file (body), save a few formats where the smaller (header) file is opened
+instead for technical reasons (mainly some bank formats).
 
 Generally companion files are named the same (`bgm.awb`+`bgm.acb`), or internally
 point to another file `sfx.sb0`+`STREAM.sb0`. A few formats may have different names
-which are hardcoded instead of being listed in the main file (e.g. `.mpf+.mus`).
+which are hardcoded instead of being listed in the header file (e.g. `.mpf+.mus`).
 In these cases, you can use *TXTM* format to specify associated companion files.
 See *Artificial files* below for more information.
 
@@ -304,7 +304,7 @@ a companion file:
 - `.ahx`: `.ahxkey` (derived 6 byte start/mult/add key)
 - `.hca`: `.hcakey` (8 byte decryption key, a 64-bit number)
   - May be followed by 2 byte AWB scramble key for newer HCA
-- `.fsb`: `.fsbkey` (decryption key, in hex)
+- `.fsb`: `.fsbkey` (decryption key in hex, usually between 8-32 bytes) 
 - `.bnsf`: `.bnsfkey` (decryption key, a string up to 24 chars)
 
 The key file can be `.(ext)key` (for the whole folder), or `(name).(ext)key"
@@ -396,8 +396,10 @@ a file named `song.adx#C1,2.txtp` to play only channels 1 and 2 from `song.adx`.
 Some of vgmstream's plugins support simple read-only tagging via external files.
 
 Tags are loaded from a text/M3U-like file named *!tags.m3u* in the song folder.
-You don't have to load your songs with that M3U though (but you can, for pre-made
-ordering), the file itself just 'looks' like an M3U.
+You don't have to load your songs with this M3U though, but you can (for pre-made
+order). The format is meant to be both a quick playlist and tags, but the tagfile
+itself just 'looks' like an M3U. you can load files manually or using other playlists
+and still get tags.
 
 Format is:
 ```
@@ -416,13 +418,15 @@ or uppercase, separated by one or multiple spaces. Repeated tags overwrite previ
 (ex.- may define *@COMPOSER* multiple times for "sections"). It only reads up to
 current *filename* though, so any *@TAG* below would be ignored.
 
-Playlist title formatting should follow player's config. ASCII or UTF-8 tags work.
-
 *GLOBAL_COMMAND*s currently can be:
 - *AUTOTRACK*: sets *%TRACK* tag automatically (1..N as files are encountered
   in the tag file).
 - *AUTOALBUM*: sets *%ALBUM* tag automatically using the containing dir as album.
 - *EXACTMATCH*: disables matching .txtp with regular files (explained below).
+
+Playlist title formatting (how tags are shown) should follow player's config, as
+vgmstream simply passes tags to the player. It's better to name the file lowercase
+`!tags.m3u` rather than `!Tags.m3u` (Windows accepts both but Linux is case sensitive).
 
 Note that with global tags you don't need to put all files inside. This would be
 a perfectly valid *!tags.m3u*:
@@ -430,6 +434,21 @@ a perfectly valid *!tags.m3u*:
 # @ALBUM    Game
 # @ARTIST   Various Artists
 ```
+
+### Non-English filenames and tags
+Tags and filenames using extended characters (like Japanese) should work, as long
+as `!tags.m3u` is saved as *"UTF-8 with BOM"* (UTF-8 is a way to define non-English
+characters, and BOM is a helper "byte-order" mark). Windows' *notepad* creates files
+*"with BOM"* when selecting UTF-8 encoding in *save as* dialog, or you may use other
+programs like *notepad++.exe* to convert them.
+
+More exactly, vgmstream matches filenames and reads tags assuming they are in UTF-8,
+while foobar/winamp can only read UTF-8 Japanese/extended filenames in a `.m3u` if file
+is saved *with BOM* (opening files manually or with a `playlist.m3u8` won't need BOM).
+
+Other players may not need BOM (or CRLF), but for consistency use them when dealing
+with non-ASCII names and tags.
+
 
 ### Tags with spaces
 Some players like foobar accept tags with spaces. To use them surround the tag

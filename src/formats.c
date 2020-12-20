@@ -221,6 +221,7 @@ static const char* extension_list[] = {
     "idwav",
     "idx",
     "idxma",
+    "ifs",
     "ikm",
     "ild",
     "ilv", //txth/reserved [Star Wars Episode III (PS2)]
@@ -341,7 +342,8 @@ static const char* extension_list[] = {
 
     "n64",
     "naac",
-    "ndp",
+    "nds",
+    "ndp", //fake extension/header id for .nds
     "ngca",
     "nlsd",
     "nop",
@@ -1321,6 +1323,8 @@ static const meta_info meta_info_list[] = {
         {meta_DSP_SQEX,             "Square Enix DSP header"},
         {meta_DSP_WIIVOICE,         "Koei Tecmo WiiVoice header"},
         {meta_SBK,                  "Team17 SBK header"},
+        {meta_DSP_WIIADPCM,         "Exient WIIADPCM header"},
+        {meta_DSP_CWAC,             "CRI CWAC header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {

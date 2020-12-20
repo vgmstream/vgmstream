@@ -307,6 +307,10 @@ static inline int min_s32(int32_t a, int32_t b) { return a < b ? a : b; }
 //align32, align16, clamp16, etc
 #endif
 
+static inline const int is_id32be(off_t offset, STREAMFILE* sf, const char* s) {
+    return read_u32be(offset, sf) == get_id32be(s);
+}
+
 //TODO: maybe move to streamfile.c
 /* guess byte endianness from a given value, return true if big endian and false if little endian */
 static inline int guess_endianness16bit(off_t offset, STREAMFILE* sf) {
