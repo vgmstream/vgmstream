@@ -118,3 +118,10 @@ jobs:
           git describe --always | tee latest_ver
           aws s3 cp latest_id s3://vgmstream-builds/ --acl public-read
           aws s3 cp latest_ver s3://vgmstream-builds/ --acl public-read
+          
+      - name: Web Request Action
+        uses: Satak/webrequest-action@v1.2.3
+        if: github.event_name != 'pull_request'
+        with:
+          url: https://vgmstream-builds.losno.co/callFupa?secret=${{ secrets.FUPA_UPDATER_SECRET }}
+
