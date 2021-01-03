@@ -162,7 +162,7 @@ VGMSTREAM* init_vgmstream_awc(STREAMFILE* sf) {
                 vgmstream->layout_data = build_layered_awc(sf, &awc);
                 if (!vgmstream->layout_data) goto fail;
                 vgmstream->layout_type = layout_layered;
-                vgmstream->coding_type = coding_FFmpeg;
+                vgmstream->coding_type = coding_VORBIS_custom;
             }
             else {
                 vorbis_custom_config cfg = {0};
