@@ -4,22 +4,22 @@
 
 
 /* CSB (Cue Sheet Binary?) - CRI container of memory audio, often together with a .cpk wave bank */
-VGMSTREAM * init_vgmstream_csb(STREAMFILE *streamFile) {
-    VGMSTREAM *vgmstream = NULL;
-    STREAMFILE *temp_sf = NULL;
+VGMSTREAM* init_vgmstream_csb(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
+    STREAMFILE* temp_sf = NULL;
     off_t subfile_offset;
     size_t subfile_size;
     utf_context *utf = NULL;
     utf_context *utf_sdl = NULL;
-    int total_subsongs, target_subsong = streamFile->stream_index;
+    int total_subsongs, target_subsong = sf->stream_index;
     uint8_t fmt = 0;
-    const char *stream_name;
+    const char* stream_name;
 
 
     /* checks */
-    if (!check_extensions(streamFile, "csb"))
+    if (!check_extensions(sf, "csb"))
         goto fail;
-    if (read_32bitBE(0x00,streamFile) != 0x40555446) /* "@UTF" */
+    if (!is_id32be(0x00,sf, "@UTF"))
         goto fail;
 
     /* .csb is an early, simpler version of .acb+awk (see acb.c) used until ~2013?
@@ -35,32 +35,41 @@ VGMSTREAM * init_vgmstream_csb(STREAMFILE *streamFile) {
         int found = 0;
 
 
-        utf = utf_open(streamFile, table_offset, &rows, &name);
+        utf = utf_open(sf, table_offset, &rows, &name);
         if (!utf) goto fail;
 
         if (strcmp(name, "TBLCSB") != 0)
             goto fail;
 
         /* each TBLCSB row has a name and subtable with actual things:
-         * - INFO (TBL_INFO): table type/version
+         * - INFO (TBL_INFO): table type/version, rarely ommited [Nights: Journey of Dreams (Wii)-some csb]
          * - CUE (TBLCUE): base cues
          * - SYNTH (TBLSYN): cue configs
          * - SOUND_ELEMENT (TBLSDL): audio info/data (usually AAX)
          * - ISAAC (TBLISC): 3D config
          * - VOICE_LIMIT_GROUP (TBLVLG): system info?
-         * Subtable can be empty but must still appear (0 rows).
+         * Subtable can be empty but still appear (0 rows).
          */
-        sdl_row = 3; /* should use fixed order */
-
-        /* get SOUND_ELEMENT and table */
-        if (!utf_query_string(utf, sdl_row, "name", &row_name) || strcmp(row_name, "SOUND_ELEMENT") != 0)
+        sdl_row = -1;
+        for (i = 0; i < rows; i++) {
+            if (!utf_query_string(utf, i, "name", &row_name))
+                goto fail;
+            if (strcmp(row_name, "SOUND_ELEMENT") == 0) {
+                sdl_row = i; /* usually 2 or 3 */
+                break;
+            }
+        }
+        if (sdl_row < 0)
             goto fail;
+
+
+        /* read SOUND_ELEMENT table */
         if (!utf_query_u8(utf, sdl_row, "ttype", &ttype) || ttype != 4)
             goto fail;
         if (!utf_query_data(utf, sdl_row, "utf", &sdl_offset, &sdl_size))
             goto fail;
 
-        utf_sdl = utf_open(streamFile, sdl_offset, &sdl_rows, &sdl_name);
+        utf_sdl = utf_open(sf, sdl_offset, &sdl_rows, &sdl_name);
         if (!utf_sdl) goto fail;
 
         if (strcmp(sdl_name, "TBLSDL") != 0)
@@ -109,7 +118,7 @@ VGMSTREAM * init_vgmstream_csb(STREAMFILE *streamFile) {
     //;VGM_LOG("CSB: subfile offset=%lx + %x\n", subfile_offset, subfile_size);
 
 
-    temp_sf = setup_subfile_streamfile(streamFile, subfile_offset, subfile_size, "aax");
+    temp_sf = setup_subfile_streamfile(sf, subfile_offset, subfile_size, "aax");
     if (!temp_sf) goto fail;
 
     switch(fmt) {
