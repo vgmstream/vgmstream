@@ -39,6 +39,7 @@ static const char* extension_list[] = {
     //"ac3", //common, FFmpeg/not parsed (AC3)
     "acb",
     "acm",
+    "acx",
     "ad", //txth/reserved [Xenosaga Freaks (PS2)]
     "adc", //txth/reserved [Tomb Raider The Last Revelation (DC), Tomb Raider Chronicles (DC)]
     "adm",
