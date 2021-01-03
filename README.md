@@ -67,7 +67,7 @@ Available commands are printed when run with no flags. Note that you can also
 achieve similar results for other plugins using TXTP, described later.
 
 With files multiple subsongs you need to specify manually subsong (by design, to avoid
-massive data dumps since some formats have hundred of subsongs), but you could do
+massive data dumps since some formats have hundreds of subsongs), but you could do
 some command line tricks:
 ```
 : REM extracts from subsong 5 to 10 in file.fsb
@@ -259,6 +259,7 @@ which are hardcoded instead of being listed in the header file (e.g. `.mpf+.mus`
 In these cases, you can use *TXTM* format to specify associated companion files.
 See *Artificial files* below for more information.
 
+#### Dual stereo
 A special case of the above is "dual file stereo", where 2 similarly named mono
 files are fused together to make 1 stereo song.
 - `(file)_L.dsp`+`(file)_R.dsp`
@@ -267,16 +268,12 @@ files are fused together to make 1 stereo song.
 - `(file)_0.dsp`+`(file)_1.dsp`
 - `(file)_Left.dsp`+`(file)_Right.dsp`
 - `(file).v0`+`(file).v1`
-This is only allowed in a few formats (mainly `.dsp` and `.vag`). In those cases
-you can open either `L` or `R` and you'll get the same stereo song. If you rename
-one of the files the "pair" won't be found, and both will be played as mono.
 
-`.pos` is a small file with 32 bit little endian values: loop start sample and
-loop end sample. This is a real format, but is sometimes reused to force loops.
-If you want to force looping files consider using *TXTP* instead, as it's much
-simpler to make and cleaner: for example create a text file named `bgm01-loop.txtp`
-and inside write `bgm01.mp3 #I 10.0 90.0`. Open the `.txtp` to play the `.mp3`
-looping from 10 to 90 seconds.
+vgmstream automatically detects these pairs and makes a stereo song from `L` + `R`.
+You can open either `L` or `R` and you'll get the same stereo. If you rename one
+of the files the "pair" won't be found, and both will be played as mono. This
+is only done for a few choice formats (mainly `.dsp` and `.vag`) that commonly
+split audio like that, though.
 
 #### OS case sensitiveness
 When using OS with case sensitive filesystem (mainly Linux), a known issue with
@@ -295,6 +292,16 @@ Currently there isn't any way to know what exact name is needed (other than
 hex-editting), though only a few formats do this, mainly *Ubisoft* banks.
 
 Regular formats without companion files should work fine in upper/lowercase.
+
+#### .pos looping
+`.pos` is a small file with 32 bit little endian values: loop start sample and
+loop end sample. This is a real format, but is sometimes reused to force loops.
+
+If you want to force looping consider using *TXTP* instead, as it's much simpler
+to make and cleaner (plus doesn't hijack a real format). For example, make a text
+file named `bgm01-loop.txtp` and inside write `bgm01.mp3 #I 10.0 90.0`. Open the
+`.txtp` and vgmstream will loop that `.mp3` from 10 to 90 seconds.
+
 
 ### Decryption keys
 Certain formats have encrypted data, and need a key to decrypt. vgmstream
@@ -317,7 +324,7 @@ sample rate, channels, etc) is stored in the .exe or other hard to locate places
 Those can be played using an artificial header with info vgmstream needs.
 
 **GENH**: a byte header placed right before the original data, modyfing it.
-The resulting file must be (name).genh. Contains static header data.
+The resulting file must be `(name).genh`. Contains static header data.
 Programs like VGMToolbox can help to create *GENH*.
 
 **TXTH**: a text header placed in an external file. The TXTH must be named
@@ -325,7 +332,7 @@ Programs like VGMToolbox can help to create *GENH*.
 single file). Contains dynamic text commands to read data from the original
 file, or static values.
 
-*TXTH* is recomended over *GENH* as it's far easier to create and has many
+*TXTH* is recommended over *GENH* as it's far easier to create and has many
 more functions.
 
 For files that already play, sometimes they are used by the game in various

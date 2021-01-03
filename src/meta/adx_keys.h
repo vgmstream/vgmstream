@@ -20,7 +20,7 @@ static const adxkey_info adxkey8_list[] = {
         {0x49e1,0x4a57,0x553d, "karaage",0},
 
         /* Blood+ (PS2) [Grasshopper Manufacture] */
-        {0x5f5d,0x58bd,0x55ed, NULL,0},     // keystring not in ELF?
+        {0x5f5d,0x58bd,0x55ed, "LOVELOVE",0},   // obfuscated keystring is "KNUDKNUD", adds +1 to chars to get final key
 
         /* Killer7 (PS2) [Grasshopper Manufacture] */
         {0x50fb,0x5803,0x5701, "GHM",0},
@@ -34,14 +34,14 @@ static const adxkey_info adxkey8_list[] = {
         /* Phantasy Star Universe (PC), Phantasy Star Universe: Ambition of the Illuminus (PS2) [Sonic Team] */
         {0x5deb,0x5f27,0x673f, "3x5k62bg9ptbwy",0},
 
-        /* Senko no Ronde [G.rev] */
+        /* Senko no Ronde Rev.X (X360) [G.rev] */
         {0x46d3,0x5ced,0x474d, "ranatus",0},
 
         /* NiGHTS: Journey of Dreams (Wii) [Sonic Team] */
         {0x440b,0x6539,0x5723, "sakakit4649",0},
 
-        /* unknown source */
-        {0x586d,0x5d65,0x63eb, NULL,0},     // from guessadx (unique?)
+        /* The iDOLM@STER: Live For You (X360) [Bandai Namco] (.aix) */
+        {0x586d,0x5d65,0x63eb, "75_501NO_003B",0},
 
         /* Shuffle! On the Stage (PS2) [Navel] */
         {0x4969,0x5deb,0x467f, "SHUF",0},
@@ -64,8 +64,8 @@ static const adxkey_info adxkey8_list[] = {
         /* Soulcalibur IV (PS3) [Namco] */
         {0x59ed,0x4679,0x46c9, "SC4Test",0},
 
-        /* Senko no Ronde DUO (X360) [G.rev] */
-        {0x6157,0x6809,0x4045, NULL,0},     // from guessadx
+        /* Senko no Ronde DUO (X360/AC) [G.rev] */
+        {0x6157,0x6809,0x4045, "yomesokushitsu",0},
 
         /* Nogizaka Haruka no Himitsu: Cosplay Hajimemashita (PS2) [Vridge] */
         {0x45af,0x5f27,0x52b1, "SKFHSIA",0},
@@ -100,16 +100,16 @@ static const adxkey_info adxkey8_list[] = {
         /* Soshite Kono Uchuu ni Kirameku Kimi no Shi XXX (PS2) [Datam Polystar] */
         {0x5f5d,0x552b,0x5507, "DATAM-KK2",0},
 
-        /* Sakura Taisen: Atsuki Chishio Ni (PS2) [Sega] */
-        {0x645d,0x6011,0x5c29, NULL,0},     // confirmed unique with guessadx
+        /* Sakura Taisen: Atsuki Chishio ni (PS2) [Sega] */
+        {0x645d,0x6011,0x5c29, NULL,0},     // possible key: "[Seq][ADX] illegal cri or libsd status."
 
-        /* Sakura Taisen 3 ~Paris wa Moeteiru ka~ (PS2) [Sega] */
-        {0x62ad,0x4b13,0x5957, NULL,0},     // confirmed unique with guessadx
+        /* Sakura Taisen Monogatari: Mysterious Paris (PS2) [Sega] */
+        {0x62ad,0x4b13,0x5957, "inoue4126",0},
 
         /* Sotsugyou 2nd Generation (PS2) [Jinx] */
         {0x6305,0x509f,0x4c01, NULL,0},     // First guess from guessadx, other was {0x6307,0x509f,0x2ac5}
 
-        /* La Corda d'Oro (PSP) [Koei] */
+        /* Kin'iro no Corda -La Corda d'Oro- (PSP) [Koei] */
         {0x55b7,0x67e5,0x5387, NULL,0},     // keystring not in ELF?
 
         /* Nanatsuiro * Drops Pure!! (PS2) [Media Works] */
@@ -127,7 +127,7 @@ static const adxkey_info adxkey8_list[] = {
         /* Sora no Otoshimono: DokiDoki Summer Vacation (PSP) [Kadokawa Shoten] */
         {0x5e75,0x4a89,0x4c61, "funen-gomi",0},
 
-        /* Boku wa Koukuu Kanseikan: Airport Hero Naha (PSP) [Sonic Powered] */
+        /* Boku wa Koukuu Kanseikan: Airport Hero Naha/Narita/Shinchitose/Haneda/Kankuu (PSP) [Sonic Powered] */
         {0x64ab,0x5297,0x632f, "sonic",0},
 
         /* Lucky Star: Net Idol Meister (PSP) [Vridge, Kadokawa Shoten] */

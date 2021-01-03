@@ -9,7 +9,7 @@
 
 typedef enum { CODEC_NONE = 0, UBI_IMA, RAW_PCM, RAW_PSX, RAW_XMA1, RAW_XMA2_OLD, RAW_XMA2_NEW, RAW_AT3, RAW_AT3_105, FMT_AT3, RAW_DSP, FMT_OGG } ubi_bao_codec;
 typedef enum { TYPE_NONE = 0, UBI_AUDIO, UBI_LAYER, UBI_SEQUENCE, UBI_SILENCE } ubi_bao_type;
-typedef enum { FILE_NONE = 0, UBI_FORGE, UBI_FORGE_b } ubi_bao_file;
+typedef enum { FILE_NONE = 0, UBI_FORGE, UBI_FORGE_b, UBI_FAT } ubi_bao_file;
 
 typedef struct {
     size_t bao_class;
@@ -1403,6 +1403,13 @@ static STREAMFILE* open_atomic_bao(ubi_bao_file file_type, uint32_t file_id, int
 
             goto fail;
 
+        case UBI_FAT:
+            snprintf(buf,buf_size, "%08x.bao", file_id);
+            sf_bao = open_streamfile_by_filename(sf, buf);
+            if (sf_bao) return sf_bao;
+
+            goto fail;
+
         default:
             goto fail;
     }
@@ -1747,6 +1754,30 @@ static int config_bao_version(ubi_bao_header* bao, STREAMFILE* sf) {
             bao->cfg.file_type = UBI_FORGE;
             return 1;
 
+        case 0x001B0200: /* Beowulf (PS3/X360)-atomic-bin+fat */
+            config_bao_entry(bao, 0xA0, 0x24);
+
+            config_bao_audio_b(bao, 0x08, 0x1c, 0x28, 0x34, 1, 1); /* 0x2c: prefetch flag? */
+            config_bao_audio_m(bao, 0x44, 0x48, 0x50, 0x58, 0x64, 0x74);
+            bao->cfg.audio_interleave = 0x10;
+            bao->cfg.audio_fix_psx_samples = 1;
+
+            config_bao_sequence(bao, 0x2c, 0x20, 0x1c, 0x14);
+
+            config_bao_layer_m(bao, 0x4c, 0x20, 0x2c, 0x44, 0x00, 0x50, 0x00, 0x00, 1); /* stream size: 0x48? */
+            config_bao_layer_e(bao, 0x30, 0x00, 0x04, 0x08, 0x10);
+
+            config_bao_silence_f(bao, 0x1c);
+
+            bao->cfg.codec_map[0x00] = RAW_XMA1;
+            bao->cfg.codec_map[0x02] = RAW_PSX;
+            bao->cfg.codec_map[0x03] = UBI_IMA;
+            bao->cfg.codec_map[0x04] = FMT_OGG;
+            bao->cfg.codec_map[0x07] = RAW_AT3_105;
+
+            bao->cfg.file_type = UBI_FAT;
+            return 1;
+
         case 0x001F0008: /* Rayman Raving Rabbids: TV Party (Wii)-package */
         case 0x001F0010: /* Prince of Persia 2008 (PC/PS3/X360)-atomic-forge, Far Cry 2 (PS3)-atomic-dunia? */
         case 0x001F0011: /* Naruto: The Broken Bond (X360)-package */
@@ -1879,9 +1910,6 @@ static int config_bao_version(ubi_bao_header* bao, STREAMFILE* sf) {
             bao->cfg.file_type = UBI_FORGE_b;
             return 1;
 
-        case 0x001B0200: /* Beowulf (PS3)-atomic-bin+fat */
-            /* same as 0x001B0100 except:
-             * - base 0xA0, skip 0x24, name style %08x (.bao/sbao?) */
         case 0x001C0000: /* Lost: Via Domus (PS3)-atomic-gear */
             /* same as 0x001B0100 except:
              * - base 0xA0, skip 0x24, name style %08x.bao (not .sbao?) */

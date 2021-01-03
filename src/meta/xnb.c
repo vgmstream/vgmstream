@@ -12,13 +12,14 @@ VGMSTREAM* init_vgmstream_xnb(STREAMFILE* sf) {
     int big_endian, flags, codec, sample_rate, block_align, bps;
     size_t data_size;
     char platform;
-    int is_ogg = 0, is_at9 = 0;
+    int is_sound = 0, is_ogg = 0, is_at9 = 0, is_song = 0;
+    char song_name[255+1];
 
 
     /* checks */
     if (!check_extensions(sf,"xnb"))
         goto fail;
-    if ((read_32bitBE(0x00, sf) & 0xFFFFFF00) != 0x584E4200) /* "XNB" */
+    if ((read_u32be(0x00, sf) & 0xFFFFFF00) != get_id32be("XNB\0"))
         goto fail;
 
     /* XNA Studio platforms: 'w' = Windows, 'm' = Windows Phone 7, 'x' = X360
@@ -32,9 +33,9 @@ VGMSTREAM* init_vgmstream_xnb(STREAMFILE* sf) {
 
     flags = read_u8(0x05, sf);
   //if (flags & 0x01) goto fail; /* "HiDef profile" content (no actual difference) */
-    
+
     /* full size */
-    if (read_32bitLE(0x06, sf) != get_streamfile_size(sf)) {
+    if (read_u32le(0x06, sf) != get_streamfile_size(sf)) {
         goto fail;
     }
 
@@ -59,49 +60,73 @@ VGMSTREAM* init_vgmstream_xnb(STREAMFILE* sf) {
     /* XNB contains "type reader" class references to parse "shared resource" data (can be any implemented filetype) */
     {
         char reader_name[255+1];
-        size_t reader_string_len;
-        uint32_t fmt_chunk_size;
-        const char* type_sound =  "Microsoft.Xna.Framework.Content.SoundEffectReader"; /* partial "fmt" chunk or XMA */
-        const char* type_ogg = "SoundEffectFromOggReader"; /* has extra text info after base part */
-        //const char* type_song =  "Microsoft.Xna.Framework.Content.SongReader"; /* references a companion .wma */
+        size_t string_len;
+        uint8_t type_count;
+        const static char* type_sound =  "Microsoft.Xna.Framework.Content.SoundEffectReader"; /* partial "fmt" chunk or XMA */
+        const static char* type_ogg = "SoundEffectFromOggReader"; /* has extra text info after base part */
+        const static char* type_song = "Microsoft.Xna.Framework.Content.SongReader"; /* references a companion .wma */
+        const static char* type_int32 = "Microsoft.Xna.Framework.Content.Int32Reader"; /* extra crap */
 
-        /* type reader count, accept only one for now */
-        if (read_u8(offset++, sf_h) != 1)
+        type_count = read_u8(offset++, sf_h);
+
+        /* check type reader string */
+        string_len = read_u8(offset++, sf_h); /* doesn't count null */
+        if (read_string(reader_name, string_len+1, offset, sf_h) != string_len)
             goto fail;
 
-        reader_string_len = read_u8(offset++, sf_h); /* doesn't count null */
-        if (reader_string_len > 255) goto fail;
-
-        /* check SoundEffect type string */
-        if (read_string(reader_name, reader_string_len+1, offset, sf_h) != reader_string_len)
+        if (strcmp(reader_name, type_sound) == 0) {
+            if (type_count != 1) goto fail;
+            is_sound = 1;
+        }
+        else if (strncmp(reader_name, type_ogg, strlen(type_ogg)) == 0) { /* has extra info after base string */
+            if (type_count != 1) goto fail;
+            is_ogg = 1;
+        }
+        else if (strcmp(reader_name, type_song) == 0) {
+            if (type_count != 2) goto fail;
+            is_song = 1;
+        }
+        else {
             goto fail;
-        if (strcmp(reader_name, type_sound) != 0) {
-            is_ogg = strncmp(reader_name, type_ogg, strlen(type_ogg)) == 0;
-            if (!is_ogg)
-                goto fail;
         }
 
-        offset += reader_string_len + 1;
+        offset += string_len + 1;
+
+        if (is_song) {
+            offset += 3;
+
+            string_len = read_u8(offset++, sf_h);
+            if (read_string(reader_name, string_len+1, offset, sf_h) != string_len)
+                goto fail;
+
+            if (strcmp(reader_name, type_int32) != 0)
+                goto fail;
+
+            offset += string_len + 1;
+        }
+
         offset += 0x04; /* reader version, 0 */
 
-        /* shared resource count */
+        /* shared resource number 1 */
         if (read_u8(offset++, sf_h) != 1)
             goto fail;
 
-        /* shared resource: partial "fmt" chunk */
-        fmt_chunk_size = read_32bitLE(offset, sf_h);
-        offset += 0x04;
+        /* read shared resource */
+        if (is_sound || is_ogg) {
+            /* partial "fmt" chunk */
+            uint32_t (*read_u32)(off_t,STREAMFILE*) = big_endian ? read_u32be : read_u32le;
+            uint16_t (*read_u16)(off_t,STREAMFILE*) = big_endian ? read_u16be : read_u16le;
+            uint32_t fmt_chunk_size;
 
-        {
-            int32_t (*read_32bit)(off_t,STREAMFILE*) = big_endian ? read_32bitBE : read_32bitLE;
-            int16_t (*read_16bit)(off_t,STREAMFILE*) = big_endian ? read_16bitBE : read_16bitLE;
+            fmt_chunk_size = read_u32le(offset, sf_h);
+            offset += 0x04;
 
-            codec         = (uint16_t)read_16bit(offset+0x00, sf_h);
-            channel_count = read_16bit(offset+0x02, sf_h);
-            sample_rate   = read_32bit(offset+0x04, sf_h);
+            codec         = read_u16(offset+0x00, sf_h);
+            channel_count = read_u16(offset+0x02, sf_h);
+            sample_rate   = read_u32(offset+0x04, sf_h);
             /* 0x08: byte rate */
-            block_align   = read_16bit(offset+0x0c, sf_h);
-            bps           = read_16bit(offset+0x0e, sf_h);
+            block_align   = read_u16(offset+0x0c, sf_h);
+            bps           = read_u16(offset+0x0e, sf_h);
 
             if (codec == 0x0002) {
                 if (!msadpcm_check_coefs(sf_h, offset + 0x14))
@@ -115,30 +140,44 @@ VGMSTREAM* init_vgmstream_xnb(STREAMFILE* sf) {
 
             if (codec == 0xFFFF) {
                 if (platform != 'S') goto fail;
-                sample_rate   = read_32bit(offset+fmt_chunk_size+0x04+0x08, sf_h);
+                sample_rate = read_u32(offset+fmt_chunk_size+0x04+0x08, sf_h);
             }
 
             /* mini-fmt has AT9 stuff then a regular RIFF [Square Heroes (PS4)] */
             if (codec == 0xFFFE) {
                 is_at9 = 1;
             }
-            
-            /* regular (with loop tags) Ogg poses as PCM [Little Savior (PC)] */
+
+            /* Ogg (with loop tags) poses as PCM [Little Savior (PC)] */
+
+            offset += fmt_chunk_size;
+
+            data_size = read_u32le(offset, sf_h);
+            offset += 0x04;
+
+            start_offset = offset;
         }
+        else if (is_song) {
+            /* filename (typically same as .xnb but .wma) */
+            string_len = read_u8(offset++, sf_h);
 
-        offset += fmt_chunk_size;
+            if (read_string(song_name, string_len+1, offset, sf_h) != string_len + 1)
+                goto fail;
 
-        data_size = read_32bitLE(offset, sf_h);
-        offset += 0x04;
-
-        start_offset = offset;
+            start_offset = 0;
+            data_size = 0;
+            /* after name is shared resource number 1 + 32b int (durationMs?) */
+        }
+        else {
+            goto fail;
+        }
     }
 
     /* container handling */
     if (is_ogg || is_at9) {
         STREAMFILE* temp_sf = NULL;
         const char* fake_ext = is_ogg ? "ogg" : "at9";
-        
+
         /* after data_size is loop start + loop length and offset? (same as loop tags), 0 if not enabled */
 
         temp_sf = setup_subfile_streamfile(sf_h, start_offset, data_size, fake_ext);
@@ -152,6 +191,31 @@ VGMSTREAM* init_vgmstream_xnb(STREAMFILE* sf) {
             vgmstream = init_vgmstream_riff(temp_sf);
         }
         close_streamfile(temp_sf);
+        if (!vgmstream) goto fail;
+
+        vgmstream->meta_type = meta_XNB;
+        if (sf_h != sf) close_streamfile(sf_h);
+        return vgmstream;
+    }
+    else if (is_song) {
+        STREAMFILE* sf_body = open_streamfile_by_filename(sf, song_name);
+        if (!sf_body) goto fail;
+
+        if (read_u32be(0x00, sf_body) == 0x01000080) {
+            STREAMFILE* temp_sf = setup_subfile_streamfile(sf_body, 0x00, get_streamfile_size(sf_body), "opus");
+            if (!temp_sf) goto fail;
+
+            /* MonoGame with NXOpus [Clan N (Switch)] */
+            vgmstream = init_vgmstream_opus_std(temp_sf);
+            close_streamfile(temp_sf);
+        }
+        else {
+#ifdef VGM_USE_FFMPEG
+            /* XNA with WMA [Guncraft: Blocked and Loaded (X360)] */
+            vgmstream = init_vgmstream_ffmpeg(sf_body);
+#endif
+        }
+        close_streamfile(sf_body);
         if (!vgmstream) goto fail;
 
         vgmstream->meta_type = meta_XNB;
@@ -221,7 +285,7 @@ VGMSTREAM* init_vgmstream_xnb(STREAMFILE* sf) {
             vgmstream->coding_type = coding_NGC_DSP;
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = data_size / channel_count;
-            vgmstream->num_samples = read_32bitLE(start_offset + 0x00, sf_h);
+            vgmstream->num_samples = read_s32le(start_offset + 0x00, sf_h);
             //vgmstream->num_samples = dsp_bytes_to_samples(data_size - 0x60*channel_count, channel_count);
 
             dsp_read_coefs(vgmstream, sf_h, start_offset + 0x1c, vgmstream->interleave_block_size, big_endian);

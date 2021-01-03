@@ -501,6 +501,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\acx.c"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\adp_konami.c"
                     >
                 </File>
