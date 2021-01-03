@@ -96,7 +96,8 @@ VGMSTREAM* init_vgmstream_wwise(STREAMFILE* sf) {
     switch(ww.codec) {
         case PCM: /* common */
             /* normally riff.c has priority but it's needed when .wem is used */
-            if (ww.fmt_size != 0x10 && ww.fmt_size != 0x18 && ww.fmt_size != 0x28) goto fail; /* old, new/Limbo (PC) */
+            /* old=0x10, 0x12=Army of Two: the 40th Day (PS3), new/Limbo (PC) */
+            if (ww.fmt_size != 0x10 && ww.fmt_size != 0x12 && ww.fmt_size != 0x18 && ww.fmt_size != 0x28) goto fail;
             if (ww.bits_per_sample != 16) goto fail;
 
             vgmstream->coding_type = (ww.big_endian ? coding_PCM16BE : coding_PCM16LE);
