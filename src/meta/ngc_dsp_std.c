@@ -660,6 +660,8 @@ VGMSTREAM* init_vgmstream_sadb(STREAMFILE* sf) {
     dspm.start_offset = read_32bitBE(0x48,sf);
     dspm.interleave = 0x10;
 
+    dspm.ignore_loop_ps = 1; /* does something strange with offsets/etc, ignore */
+
     dspm.meta_type = meta_DSP_SADB;
     return init_vgmstream_dsp_common(sf, &dspm);
 fail:
