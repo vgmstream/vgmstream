@@ -3988,9 +3988,11 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
         return 1;
     }
 
+    /* Naruto: Rise of a Ninja (2007)(X360)-bank */
     /* Rainbow Six Vegas 2 (2008)(PS3)-bank */
     /* Rainbow Six Vegas 2 (2008)(X360)-bank */
-    if ((sb->version == 0x001C0000 && sb->platform == UBI_PS3) ||
+    if ((sb->version == 0x001B0001 && sb->platform == UBI_X360) ||
+        (sb->version == 0x001C0000 && sb->platform == UBI_PS3) ||
         (sb->version == 0x001C0000 && sb->platform == UBI_X360)) {
         config_sb_entry(sb, 0x64, 0x7c);
 
