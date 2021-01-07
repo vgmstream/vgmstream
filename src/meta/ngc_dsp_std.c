@@ -178,13 +178,18 @@ static VGMSTREAM* init_vgmstream_dsp_common(STREAMFILE* sf, dsp_meta *dspm) {
         for (i = 0; i < channels; i++) {
             off_t loop_offset = ch_header[i].loop_start_offset;
 
-            loop_offset = loop_offset / 0x8 * 0x8; /* loop points to a nibble, but we need closest frame header */
-            if (dspm->interleave) {
+            /* Loop offset points to a nibble, but we need closest frame header.
+             * Stereo doesn't always point to a proper offset unless de-adjusted with interleave first. */
+            if (!dspm->interleave) {
+                loop_offset = loop_offset / 0x08 * 0x8;
+            }
+            else {
+                loop_offset = loop_offset / 0x10 * 0x8;
                 loop_offset = (loop_offset / dspm->interleave * dspm->interleave * channels) + (loop_offset % dspm->interleave);
             }
 
             if (ch_header[i].loop_ps != read_u8(dspm->start_offset + i*dspm->interleave + loop_offset,sf)) {
-                //;VGM_LOG("DSP: bad loop ps: %x vs at %lx\n", ch_header[i].loop_ps, dspm->start_offset + i*dspm->interleave + loop_offset);
+                //;VGM_LOG("DSP: ch%i bad loop ps: %x vs at %lx\n", i, ch_header[i].loop_ps, dspm->start_offset + i*dspm->interleave + loop_offset);
                 goto fail;
             }
         }
@@ -659,8 +664,6 @@ VGMSTREAM* init_vgmstream_sadb(STREAMFILE* sf) {
     dspm.header_spacing = 0x60;
     dspm.start_offset = read_32bitBE(0x48,sf);
     dspm.interleave = 0x10;
-
-    dspm.ignore_loop_ps = 1; /* does something strange with offsets/etc, ignore */
 
     dspm.meta_type = meta_DSP_SADB;
     return init_vgmstream_dsp_common(sf, &dspm);
@@ -1370,7 +1373,6 @@ VGMSTREAM* init_vgmstream_dsp_cwac(STREAMFILE* sf) {
     dspm.max_channels = 2;
     dspm.header_spacing = dspm.interleave;
     dspm.start_offset = dspm.header_offset + 0x60;
-    dspm.ignore_loop_ps = 1; /* loop offset seems relative to CWAC? also interleave affects it */
 
     dspm.meta_type = meta_DSP_CWAC;
     return init_vgmstream_dsp_common(sf, &dspm);
