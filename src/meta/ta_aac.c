@@ -35,8 +35,7 @@ VGMSTREAM* init_vgmstream_ta_aac(STREAMFILE* sf) {
     /* .aac: actual extension, .laac: for players to avoid hijacking MP4/AAC */
     if (!check_extensions(sf, "aac,laac"))
         goto fail;
-    if (read_u32be(0x00, sf) != 0x41414320 &&
-        read_u32le(0x00, sf) != 0x41414320)   /* "AAC " */
+    if (!is_id32be(0x00, sf, "AAC ") && !is_id32le(0x00, sf, "AAC "))
         goto fail;
 
     if (!parse_aac(sf, &aac))
@@ -92,12 +91,28 @@ VGMSTREAM* init_vgmstream_ta_aac(STREAMFILE* sf) {
         }
 #endif
 #ifdef VGM_USE_ATRAC9
-        case 0x08: { /* Judas Code (Vita) */
+        case 0x08:   /* Judas Code (Vita) */
+        case 0x18: { /* Resonance of Fate (PS4) */
             atrac9_config cfg = {0};
-
             cfg.channels = vgmstream->channels;
-            cfg.encoder_delay = read_s32le(aac.extra_offset + 0x04,sf);
-            cfg.config_data   = read_u32be(aac.extra_offset + 0x08,sf);
+
+            if (aac.codec == 0x08) {
+                /* 0x00: ? (related to bitrate/channels?) */
+                cfg.encoder_delay = read_s32le(aac.extra_offset + 0x04,sf);
+                cfg.config_data   = read_u32be(aac.extra_offset + 0x08,sf);
+            }
+            else {
+                /* 0x00: ? (related to bitrate/channels?) */
+                cfg.encoder_delay = read_s16le(aac.extra_offset + 0x04,sf);
+                /* 0x06: samples per frame */
+                /* 0x08: num samples (without encoder delay) */
+                cfg.config_data   = read_u32le(aac.extra_offset + 0x0c,sf);
+                /* 0x10: loop start sample (without encoder delay) */
+                /* 0x14: loop end sample (without encoder delay) */
+                /* 0x18: related to loop start (adjustment? same as loop start when less than a sample) */
+                /* using loop samples causes clicks in some tracks, so maybe it's info only,
+                 * or it's meant to be adjusted with value at 0x18 */
+            }
 
             vgmstream->codec_data = init_atrac9(&cfg);
             if (!vgmstream->codec_data) goto fail;
@@ -158,6 +173,7 @@ VGMSTREAM* init_vgmstream_ta_aac(STREAMFILE* sf) {
         }
 #endif
         default:
+            VGM_LOG("AAC: unknown codec %x\n", aac.codec);
             goto fail;
     }
 
@@ -189,7 +205,7 @@ static int parse_aac_v1(STREAMFILE* sf, aac_header* aac) {
     /* 0x20: config? (0x00010003) */
     /* 0x30+ DIR + dirn subsongs */
 
-    if (read_u32be(0x30, sf) != 0x44495220) /* "DIR " */
+    if (!is_id32be(0x30, sf, "DIR "))
         goto fail;
     aac->total_subsongs = read_u32be(0x40, sf);
 
@@ -220,7 +236,7 @@ static int parse_aac_v1(STREAMFILE* sf, aac_header* aac) {
         }
     }
 
-    if (read_u32be(offset + 0x00, sf) != 0x57415645)   /* "WAVE" */
+    if (!is_id32be(offset + 0x00, sf, "WAVE"))
         goto fail;
     wave_offset = offset;
     offset += 0x10;
@@ -291,9 +307,9 @@ static int parse_aac_v2(STREAMFILE* sf, aac_header* aac) {
     if (target_subsong == 0) target_subsong = 1;
     aac->total_subsongs = 0;
 
-    if (read_u32be(start + 0x00, sf) == 0x414D4620) { /* "AMF " */
+    if (is_id32be(start + 0x00, sf, "AMF ")) {
         /* GUID subsongs */
-        if (read_u32be(start + 0x10, sf) != 0x68656164) /* "head" */
+        if (!is_id32be(start + 0x10, sf, "head"))
             goto fail;
         size = read_u32be(start + 0x10 + 0x10, sf);
 
@@ -321,7 +337,7 @@ static int parse_aac_v2(STREAMFILE* sf, aac_header* aac) {
             test_offset += entry_size;
         }
     }
-    else if (read_u32be(start + 0x00, sf) == 0x41534320) { /* "ASC " */
+    else if (is_id32be(start + 0x00, sf, "ASC ")) {
         /* regular subsongs */
         offset = 0;
         for (test_offset = 0x30; test_offset < start; test_offset += 0x10) {
@@ -342,14 +358,14 @@ static int parse_aac_v2(STREAMFILE* sf, aac_header* aac) {
 
     if (target_subsong < 0 || target_subsong > aac->total_subsongs || aac->total_subsongs < 1) goto fail;
 
-    if (read_u32be(offset + 0x00, sf) != 0x41534320) /* "ASC " */
+    if (!is_id32be(offset + 0x00, sf, "ASC "))
         goto fail;
     asc_offset = offset;
 
     /* ASC section has offsets to "PLBK" chunk (?) and "WAVE" (header), may be followed by "VRC " (?) */
     /* 0x50: PLBK offset */
     offset += read_u32be(offset + 0x54, sf); /* WAVE offset */
-    if (read_u32be(offset + 0x00, sf) != 0x57415645)   /* "WAVE" */
+    if (!is_id32be(offset + 0x00, sf, "WAVE"))
         goto fail;
     offset += 0x10;
 
@@ -415,14 +431,14 @@ static int parse_aac_v3(STREAMFILE* sf, aac_header* aac) {
     /* 0x00: id */
     /* 0x04: size */
     /* 0x10: config? (0x00020100/0x00020002/0x00020301/etc) */
-    /* 0x14: platform ("VITA"=Vita, "DRD "=Android, "MSPC"=PC) */
+    /* 0x14: platform ("VITA"=Vita, "DRD "=Android, "MSPC"=PC, "PS4 "=PS4) */
 
     /* offsets table: offset + flag? + size + align? */
     offset = read_u32le(0x20, sf); /* "AAOB" table (audio object?) */
     /* 0x30: "VRCB" table (some cue/config? related to subsongs? may be empty) */
     /* 0x40: "WAVB" table (wave body, has offset + size per stream then data, not needed since offsets are elsewhere too) */
 
-    if (read_u32le(offset + 0x00, sf) != 0x41414F42)   /* "AAOB" */
+    if (!is_id32le(offset + 0x00, sf, "AAOB"))
         goto fail;
     size = read_u32le(offset + 0x04, sf);
 
@@ -436,7 +452,7 @@ static int parse_aac_v3(STREAMFILE* sf, aac_header* aac) {
             uint32_t entry_offset = read_u32le(test_offset + 0x00, sf);
             /* 0x04: entry size */
 
-            if (entry_offset == 0x41414F20) /* reached first "AAO " */
+            if (entry_offset == get_id32be("AAO ")) /* reached end */
                 break;
 
             if (entry_offset) { /* often 0 */
@@ -450,14 +466,14 @@ static int parse_aac_v3(STREAMFILE* sf, aac_header* aac) {
 
     if (target_subsong < 0 || target_subsong > aac->total_subsongs || aac->total_subsongs < 1) goto fail;
 
-    if (read_u32le(offset + 0x00, sf) != 0x41414F20)   /* "AAO " */
+    if (!is_id32le(offset + 0x00, sf, "AAO "))
         goto fail;
 
 
     /* AAO section has offsets to "PLBK" chunk (?) and "WAVE" (header) */
     /* 0x14: PLBK offset */
     offset += read_u32le(offset + 0x18, sf); /* WAVE offset */
-    if (read_u32le(offset + 0x00, sf) != 0x57415645)   /* "WAVE" */
+    if (!is_id32le(offset + 0x00, sf, "WAVE"))
         goto fail;
     offset += 0x10;
 

@@ -1332,7 +1332,6 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE* sf_head, STREAM
 
             break;
         }
-
 #endif
 
 #ifdef VGM_USE_FFMPEG
@@ -1345,7 +1344,23 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE* sf_head, STREAM
         }
 #endif
 
-        case EAAC_CODEC_EASPEEX: /* "Esp0"?: EASpeex (libspeex variant, base versions vary: 1.0.5, 1.2beta3) */ //todo
+#ifdef VGM_USE_SPEEX
+        case EAAC_CODEC_EASPEEX: { /* "Esp0"?: EASpeex (libspeex variant, base versions vary: 1.0.5, 1.2beta3) [FIFA 14 (PS4), FIFA 2020 (Switch)] */
+            /* EASpeex looks normal but simplify with custom IO to avoid worrying about blocks.
+             * First block samples count frames' samples subtracting encoder delay. */
+
+            vgmstream->codec_data = init_speex_ea(eaac.channels);
+            if (!vgmstream->codec_data) goto fail;
+            vgmstream->coding_type = coding_SPEEX;
+            vgmstream->layout_type = layout_none;
+
+            temp_sf = setup_eaac_audio_streamfile(sf, eaac.version, eaac.codec, eaac.streamed,0,0, 0x00);
+            if (!temp_sf) goto fail;
+
+            break;
+        }
+#endif
+
         default:
             VGM_LOG("EA EAAC: unknown codec 0x%02x\n", eaac.codec);
             goto fail;

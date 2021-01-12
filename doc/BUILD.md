@@ -64,7 +64,7 @@ Requires MSVC (foobar/SDK only links to MSVC C++ DLLs) and these dependencies:
 The following project modifications are required:
 - For *foobar2000_ATL_helpers* add *../../../WTL/Include* to the compilers's *additional includes*
 
-FDK-AAC/QAAC can be enabled adding *VGM_USE_MP4V2* and *VGM_USE_FDKAAC* in the compiler/linker options and the project dependencies, otherwise FFmpeg is used instead to support .mp4.
+FDK-AAC/QAAC can be enabled adding *VGM_USE_MP4V2* and *VGM_USE_FDKAAC* in the compiler/linker options and the project dependencies, otherwise FFmpeg is used instead to support .mp4. Support is limited so FFmpeg is recommended.
 
 You can also manually use the command line to compile with MSBuild, if you don't want to touch the .vcxproj files, register VS after trial, get PowerShell dependencies for the build script, or only have VC++/MSBuild tools.
 
@@ -285,6 +285,16 @@ To compile we'll use autotools with GCC preprocessor renaming:
   ```
 - take the .dlls from celt-x.x.x/libcelt/.libs, and rename libcelt.dll to libcelt-0061.dll and libcelt-0110.dll respectively.
 - Finally the includes. libcelt gives "celt.h" "celt_types.h" "celt_header.h", but since we renamed a few functions we have a simpler custom .h with minimal renamed symbols.
+
+
+### libspeex
+Adds support for Speex (inside custom containers).
+- Source: http://downloads.us.xiph.org/releases/speex/speex-1.2.0.tar.gz
+- DLL: `libspeex.dll`
+- licensed under the Xiph.Org variant of the BSD license.
+  https://www.xiph.org/licenses/bsd/speex/
+
+Should be buildable with MSVC (in /win32 dir are .sln files, but not up to date) or autotools (use `autogen.sh`).
 
 
 ### maiatrac3plus

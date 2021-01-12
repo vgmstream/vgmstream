@@ -2027,6 +2027,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\coding\coding_utils_samples.h"
+                    >
+                </File>
+                <File
                     RelativePath=".\coding\ea_mt_decoder_utk.h"
                     >
                 </File>
@@ -2292,6 +2296,10 @@
 				</File>
                 <File
                     RelativePath=".\coding\sdx2_decoder.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\coding\speex_decoder.c"
                     >
                 </File>
                 <File

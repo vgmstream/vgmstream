@@ -512,6 +512,18 @@ void free_celt_fsb(celt_codec_data* data);
 #endif
 
 
+#ifdef VGM_USE_SPEEX
+/* speex_decoder */
+typedef struct speex_codec_data speex_codec_data;
+
+speex_codec_data* init_speex_ea(int channels);
+void decode_speex(VGMSTREAM* vgmstream, sample_t* outbuf, int32_t samples_to_do);
+void reset_speex(speex_codec_data* data);
+void seek_speex(VGMSTREAM* vgmstream, int32_t num_sample);
+void free_speex(speex_codec_data* data);
+#endif
+
+
 #ifdef VGM_USE_FFMPEG
 /* ffmpeg_decoder */
 ffmpeg_codec_data* init_ffmpeg_offset(STREAMFILE* sf, uint64_t start, uint64_t size);

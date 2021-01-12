@@ -28,6 +28,7 @@ enum { VGMSTREAM_MAX_NUM_SAMPLES = 1000000000 }; /* no ~5h vgm hopefully */
 //#define VGM_USE_FFMPEG
 //#define VGM_USE_ATRAC9
 //#define VGM_USE_CELT
+//#define VGM_USE_SPEEX
 
 
 #ifdef VGM_USE_VORBIS
@@ -227,6 +228,10 @@ typedef enum {
 
 #ifdef VGM_USE_CELT
     coding_CELT_FSB,        /* Custom Xiph CELT (MDCT-based) */
+#endif
+
+#ifdef VGM_USE_SPEEX
+    coding_SPEEX,           /* Custom Speex (CELP-based) */
 #endif
 
 #ifdef VGM_USE_FFMPEG
