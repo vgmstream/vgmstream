@@ -7,7 +7,7 @@
 #ifndef _UTIL_H
 #define _UTIL_H
 
-/* very common functions, so static inline in .h is useful to avoid some call overhead */
+/* very common functions, so static (inline) in .h as compiler can optimize to avoid some call overhead */
 
 /* host endian independent multi-byte integer reading */
 
@@ -98,9 +98,17 @@ static inline int clamp16(int32_t val) {
     else return val;
 }
 
+
+/* transforms a string to uint32 (for comparison), but if this is static + all goes well
+ * compiler should pre-calculate and use uint32 directly */
 static inline const uint32_t get_id32be(const char* s) {
     return (uint32_t)(s[0] << 24) | (s[1] << 16) | (s[2] << 8) | (s[3] << 0);
 }
+
+//static inline const uint32_t get_id32le(const char* s) {
+//    return (uint32_t)(s[0] << 0) | (s[1] << 8) | (s[2] << 16) | (s[3] << 24);
+//}
+
 
 /* less common functions, no need to inline */
 
