@@ -87,6 +87,7 @@ static size_t eaac_io_read(STREAMFILE *streamfile, uint8_t *dest, off_t offset, 
                 case 0x05: /* EALayer3 v1 */
                 case 0x06: /* EALayer3 v2 "PCM" */
                 case 0x07: /* EALayer3 v2 "Spike" */
+                case 0x09: /* EASpeex */
                 case 0x0b: /* EAMP3 */
                 case 0x0c: /* EAOpus */
                     data->skip_size = 0x08;
@@ -208,6 +209,7 @@ static size_t eaac_io_size(STREAMFILE *streamfile, eaac_io_data* data) {
             case 0x05: /* EALayer3 v1 */
             case 0x06: /* EALayer3 v2 "PCM" */
             case 0x07: /* EALayer3 v2 "Spike" */
+            case 0x09: /* EASpeex */
             case 0x0b: /* EAMP3 */
             case 0x0c: /* EAOpus */
                 data_size = block_size - 0x08;
