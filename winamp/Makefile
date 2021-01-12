@@ -76,6 +76,12 @@ ifeq ($(VGM_ENABLE_CELT),1)
   TARGET_EXT_LIBS += libcelt-0061.a libcelt-0110.a
 endif
 
+VGM_ENABLE_SPEEX = 0
+ifeq ($(VGM_ENABLE_SPEEX),1) 
+  CFLAGS  += -DVGM_USE_SPEEX
+  LDFLAGS += -lspeex
+  TARGET_EXT_LIBS += libspeex.a
+endif
 
 export CFLAGS LDFLAGS
 

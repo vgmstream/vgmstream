@@ -227,6 +227,9 @@
     <ClInclude Include="coding\coding.h">
       <Filter>coding\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="coding\coding_utils_samples.h">
+      <Filter>coding\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="coding\ea_mt_decoder_utk.h">
       <Filter>coding\Header Files</Filter>
     </ClInclude>
@@ -1370,6 +1373,9 @@
       <Filter>coding\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\sdx2_decoder.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\speex_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\ubi_adpcm_decoder.c">

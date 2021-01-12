@@ -96,6 +96,12 @@ void free_codec(VGMSTREAM* vgmstream) {
     }
 #endif
 
+#ifdef VGM_USE_SPEEX
+    if (vgmstream->coding_type == coding_SPEEX) {
+        free_speex(vgmstream->codec_data);
+    }
+#endif
+
     if (vgmstream->coding_type == coding_ACM) {
         free_acm(vgmstream->codec_data);
     }
@@ -168,6 +174,12 @@ void seek_codec(VGMSTREAM* vgmstream) {
 #ifdef VGM_USE_CELT
     if (vgmstream->coding_type == coding_CELT_FSB) {
         seek_celt_fsb(vgmstream, vgmstream->loop_current_sample);
+    }
+#endif
+
+#ifdef VGM_USE_SPEEX
+    if (vgmstream->coding_type == coding_SPEEX) {
+        seek_speex(vgmstream, vgmstream->loop_current_sample);
     }
 #endif
 
@@ -266,6 +278,12 @@ void reset_codec(VGMSTREAM* vgmstream) {
 #ifdef VGM_USE_CELT
     if (vgmstream->coding_type == coding_CELT_FSB) {
         reset_celt_fsb(vgmstream->codec_data);
+    }
+#endif
+
+#ifdef VGM_USE_SPEEX
+    if (vgmstream->coding_type == coding_SPEEX) {
+        reset_speex(vgmstream->codec_data);
     }
 #endif
 
@@ -493,6 +511,10 @@ int get_vgmstream_samples_per_frame(VGMSTREAM* vgmstream) {
         case coding_CELT_FSB:
             return 0; /* 512? */
 #endif
+#ifdef VGM_USE_SPEEX
+        case coding_SPEEX:
+            return 0;
+#endif
         default:
             return 0;
     }
@@ -682,6 +704,10 @@ int get_vgmstream_frame_size(VGMSTREAM* vgmstream) {
 #ifdef VGM_USE_CELT
         case coding_CELT_FSB:
             return 0; /* varies, usually 0x80-100 */
+#endif
+#ifdef VGM_USE_SPEEX
+        case coding_SPEEX:
+            return 0; /* varies, usually 0x40-60 */
 #endif
         default: /* Vorbis, MPEG, ACM, etc */
             return 0;
@@ -1218,6 +1244,11 @@ void decode_vgmstream(VGMSTREAM* vgmstream, int samples_written, int samples_to_
 #ifdef VGM_USE_CELT
         case coding_CELT_FSB:
             decode_celt_fsb(vgmstream, buffer, samples_to_do, vgmstream->channels);
+            break;
+#endif
+#ifdef VGM_USE_SPEEX
+        case coding_SPEEX:
+            decode_speex(vgmstream, buffer, samples_to_do);
             break;
 #endif
         case coding_ACM:
