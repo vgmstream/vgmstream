@@ -38,7 +38,7 @@ libcelt-0061.a: libcelt-0061.dll libcelt-0061.def
 libcelt-0110.a: libcelt-0110.dll libcelt-0110.def
 	$(DLLTOOL) -D libcelt-0110.dll -d libcelt-0110.def -l libcelt-0110.a
 
-libspeex.a: libspeex.dll libspeex.def
+libspeex/libspeex.a: libspeex/libspeex.dll libspeex/libspeex.def
 	$(DLLTOOL) -D libspeex.dll -d libspeex.def -l libspeex.a
 
 clean:
