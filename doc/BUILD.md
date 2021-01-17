@@ -1,38 +1,100 @@
 # vgmstream build help
 
-If you wish to use CMake, see [CMAKE.md](CMAKE.md).
+This document explains how to build each of vgmstream's components and libs.
+
 
 ## Compilation requirements
 
-**GCC / Make**: In Windows this means one of these two somewhere in PATH:
+Because each module has different quirks one can't use a single tool for everything. You should be able to build most using a standard compiler (GCC/MSVC/Clang) in any typical OS (Windows/Linux/Mac) using common build helpers (scripts/CMake/autotools).
+
+64-bit support may work but has been minimally tested, since main use of vgmstream is plugins for 32-bit players (should work but extra codec libs are included for 32-bit only ATM).
+
+
+### GCC / Make
+Common C compiler, most development is done with this.
+
+On Windows you need one of these two somewhere in PATH:
 - MinGW-w64 (32bit version): https://sourceforge.net/projects/mingw-w64/
   - Use this for easier standalone executables
-  - Latest online installer with any config should work (for example: gcc-7.2.0, i686, win32, sjlj).
+  - Latest online installer with any config should work (for example: gcc-8.1.0, i686, win32, sjlj).
+    https://sourceforge.net/projects/mingw-w64/files/Toolchains%20targetting%20Win32/Personal%20Builds/mingw-builds/installer/mingw-w64-install.exe
+  - Or simply download and unzip portable package:
+    https://sourceforge.net/projects/mingw-w64/files/Toolchains%20targetting%20Win64/Personal%20Builds/mingw-builds/8.1.0/threads-win32/sjlj/x86_64-8.1.0-release-win32-sjlj-rt_v6-rev0.7z
 - MSYS2 with the MinGW-w64_shell (32bit) package: https://msys2.github.io/
 
-**MSVC / Visual Studio**: Microsoft's Visual C++ and MSBuild, bundled in either:
-- Visual Studio (2015/2017/latest): https://www.visualstudio.com/downloads/
-  - Visual Studio Community should work (free, but must register after trial period)
-- Visual C++ Build Tools (no IDE): http://landinghub.visualstudio.com/visual-cpp-build-tools
+On Linux it should be included by default in the distribution, or can be easily installed using the distro's package manager (for example `sudo apt-get install gcc g++ make`).
 
-**Git**: optional, to generate version numbers:
+
+### Microsoft's Visual C++ (MSVC) / Visual Studio / MSBuild
+Alt C compiler, auto-generated builds for Windows use this.
+
+Bundled in either:
+- Visual Studio (2015/2017/latest): https://www.visualstudio.com/downloads/
+
+Visual Studio Community should work (free), but must register after trial period. Even after trial you can still use MSBuild, command-line tool that actually does all the building. You can also find and install "Visual C++ Build Tools" without Visual Studio IDE (link tend to move around).
+
+Older versions of MSVC (2010 and before) have limited C support, while reportedly beta/new versions aren't always very stable. Some very odd issues affecting only MSVC have been found and fixed before. Keep in mind if you run into problems.
+
+### Clang
+Reportedly works fine on Mac and may used as a replacement for GCC without issues.
+
+
+### Git
+Optional, used to generate version numbers:
 - Git for Windows: https://git-scm.com/download/win
 
-**autotools**: optional, indirectly used by some libs.
-- For Windows you must include GCC and Linux's sh tool in some form in PATH. 
-  - The simplest would be installing MinGW-w64 for GCC.exe and Git for sh.exe, and making PATH point their bin dir. 
-  - ex. `C:/i686-7.1.0-win32-sjlj-rt_v5-rev2/mingw32/bin` and `C:/Git/bin`
-- Both must be installed/copied in a dir without spaces
+
+### CMake
+Optional, can be used to compile vgmstream's modules instead of regular scripts. Needs v3.6 or later:
+- https://cmake.org/download/
+
+If you wish to use CMake, see [CMAKE.md](CMAKE.md). Some extra info is only mentioned in this doc though.
+
+
+### autotools
+Optional, used by some modules (mainly Audacious for Linux, and external libs).
+
+For Windows you must include GCC, and Linux's sh tool in some form in PATH. The simplest would be installing MinGW-w64 for GCC.exe, and Git for sh.exe, and making PATH point their bin dir. 
+- ex. `C:\i686-8.1.0-release-win32-sjlj-rt_v6-rev0\mingw32\bin` and `C:\Git\usr\bin`
+- Both must be installed/copied in a dir without spaces (with spaces autoconf seemingly works but creates buggy files)
+- If you don't have Git, try compiled GNU tools for Windows (http://gnuwin32.sourceforge.net/packages.html)
+
+A useful trick for Windows is that you can alter PATH variable temporarly in `.bat` scripts (PATH is used to call programs in Windows without having to write full path to .exe)
+```
+set PATH=%PATH%;C:\i686-8.1.0-release-win32-sjlj-rt_v6-rev0\mingw32\bin
+set PATH=%PATH%;C:\Git\usr\bin
+gcc.exe (...)
+```
+
+For Linux, those may be included already, or install with a package manager (`sudo apt-get install autoconf automake libtool`).
+
+Typical usage involves `./configure` (creates makefiles) + `Make` (compiles) + `Make install` (copies results), but varies slightly depending on module/lib (explained later).
+
+External libs using autotools can be compiled on Windows too, try using `sh.exe ./configure`, `mingw32-make.exe`, `mingw32-make.exe install` instead. Also for older libs, call `sh.exe ./configure` with either  `--build=mingw32`, `--host=mingw32` or `--target-os=mingw32` (varies) for older configure. You may also need to use `mingw32-make.exe LDFLAGS="-no-undefined -static-libgcc" MAKE=mingw32-make.exe` so that `.dll` are correctly generated.
+
+
+### Extra libs
+Optional, add codec or extra functionalities. See *External libraries* for full info.
+
+On Windows most libs are pre-compiled and included to simplify building (since they can be quite involved to compile).
+
+On Linux you usually need dev packages of each (for example `libao-dev` for vgmstream123, `audacious-dev` for Audacious, and so on) and they should be picked by CMake/autotool scripts.
+
 
 
 ## Compiling modules
 
 ### CLI (test.exe/vgmstream-cli) / Winamp plugin (in_vgmstream) / XMPlay plugin (xmp-vgmstream)
 
-**With GCC**: use the *./Makefile* in the root folder, see inside for options. For compilation flags check the *Makefile* in each folder.
-You may need to manually rebuild if you change a *.h* file (use *make clean*).
+**With GCC**: use the *./Makefile* in the root folder, see inside for options. For compilation flags check the *Makefile* in each folder. You may need to manually rebuild if you change a *.h* file (use *make clean*).
 
-In Linux, Makefiles can be used to cross-compile with the MingW headers, but may not be updated to generate native code at the moment. It should be fixable with some effort. Autotools should build and install it as `vgmstream-cli` instead (see the Audacious section). Some Linux distributions like Arch Linux include pre-patched vgmstream with most libraries, you may want that instead (see: https://aur.archlinux.org/packages/vgmstream-kode54-git/).
+In Linux, Makefiles can be used to cross-compile with the MingW headers, but may not be updated to generate native code at the moment. It should be fixable with some effort. 
+
+*Autotools* should build and install it as `vgmstream-cli`, this is explained in detail in the Audacious section. It also build with (some) extra codecs. Some Linux distributions like Arch Linux include pre-patched vgmstream with most libraries, you may want that instead:
+https://aur.archlinux.org/packages/vgmstream-kode54-git/
+
+You may try CMake instead as it may be simpler and handle libs better.
+
 
 Windows CMD example:
 ```
@@ -181,6 +243,7 @@ Windows builds are possible with `libao.dll` and `libao` includes (found elsewhe
 
 libao is licensed under the GPL v2 or later.
 
+
 ## External libraries
 Support for some codecs is done with external libs, instead of copying their code in vgmstream. There are various reasons for this:
 - each lib may have complex or conflicting ways to compile that aren't simple to duplicate
@@ -193,7 +256,9 @@ They are compiled in their own sources, and the resulting binary is linked by vg
 
 Currently only Windows builds can use external libraries, as vgmstream only includes generated 32-bit DLLs, but it should be fixable for others systems with some effort (libs are enabled on compile time). Ideally vgmstream could use libs compiled as static code (thus eliminating the need of DLLs), but involves a bunch of changes.
 
-Below is a quick explanation of each library and how to compile binaries from them. Unless mentioned, their latest version should be ok to use, though included DLLs may be a bit older.
+Below is a quick explanation of each library and how to compile binaries from them (for Windows, for Linux modules should include them automatically). Unless mentioned, their latest version should be ok to use, though included DLLs may be a bit older.
+
+MSVC needs a .lib helper to link .dll files, but libs below usually only create .dll (and maybe .def). Instead, those .lib are automatically generated during build step in `ext_libs.vcxproj` from .dll+.def, using lib.exe tool.
 
 
 ### libvorbis
@@ -221,7 +286,7 @@ Adds support for ITU-T G.719 (standardization of Polycom Siren 22).
 - DLL: `libg719_decode.dll`
 - unknown license (possibly invalid and Polycom's)
 
-Requires MSVC (use `g719.sln`).
+Use MSVC (use `g719.sln`). It can be built with GCC too, but you'll need to manually create scripts/makefiles.
 
 
 ### FFmpeg
@@ -266,8 +331,8 @@ To compile we'll use autotools with GCC preprocessor renaming:
 - in the celt-0.6.1 dir:
   ```
   # creates Makefiles with Automake
-  sh.exe ./configure
-  
+  sh.exe ./configure --build=mingw32 --prefix=/c/celt-0.11.0/bin/  --exec-prefix=/c/celt-0.11.0/bin/
+
   # LDFLAGS are needed to create the .dll (Automake whinning)
   # CFLAGS rename a few CELT functions (we don't import the rest so they won't clash)
   mingw32-make.exe clean
@@ -276,15 +341,16 @@ To compile we'll use autotools with GCC preprocessor renaming:
 - in the celt-0.11.0 dir:
   ```
   # creates Makefiles with Automake
-  sh.exe ./configure
+  sh.exe ./configure --build=mingw32 --prefix=/c/celt-0.11.0/bin/  --exec-prefix=/c/celt-0.11.0/bin/
 
   # LDFLAGS are needed to create the .dll (Automake whinning)
   # CFLAGS rename a few CELT functions (notice one is different vs 0.6.1), CUSTOM_MODES is also a must.
   mingw32-make.exe clean
   mingw32-make.exe LDFLAGS="-no-undefined" AM_CFLAGS="-DCUSTOM_MODES=1 -Dcelt_decode=celt_0110_decode -Dcelt_decoder_create_custom=celt_0110_decoder_create_custom -Dcelt_decoder_destroy=celt_0110_decoder_destroy -Dcelt_mode_create=celt_0110_mode_create -Dcelt_mode_destroy=celt_0110_mode_destroy -Dcelt_mode_info=celt_0110_mode_info"
   ```
-- take the .dlls from celt-x.x.x/libcelt/.libs, and rename libcelt.dll to libcelt-0061.dll and libcelt-0110.dll respectively.
-- Finally the includes. libcelt gives "celt.h" "celt_types.h" "celt_header.h", but since we renamed a few functions we have a simpler custom .h with minimal renamed symbols.
+- take the .dlls from ./bin/bin, and rename libcelt.dll to libcelt-0061.dll and libcelt-0110.dll respectively.
+- you need to create a .def file for those DLL with the renamed simbol names above
+- finally the includes. libcelt gives "celt.h" "celt_types.h" "celt_header.h", but since we renamed a few functions we have a simpler custom .h with minimal renamed symbols.
 
 
 ### libspeex
@@ -294,7 +360,20 @@ Adds support for Speex (inside custom containers).
 - licensed under the Xiph.Org variant of the BSD license.
   https://www.xiph.org/licenses/bsd/speex/
 
-Should be buildable with MSVC (in /win32 dir are .sln files, but not up to date) or autotools (use `autogen.sh`).
+Should be buildable with MSVC (in /win32 dir are .sln files, but not up to date and may need to convert .vcproj to vcxproj) or autotools (use `autogen.sh`, or script below).
+
+You can also find a release on Github (https://github.com/xiph/speex/releases/tag/Speex-1.2.0). It has newer timestamps and some different helper files vs Xiph's release, but actual lib should be the same. Notably, Github's release *needs* `autogen.sh` that calls `autoreconf` to generate a base `configure` script, while Xiph's pre-includes `configure`. Since getting autoreconf working on Windows can be quite involved, Xiph's release is recommended.
+
+Windows CMD example:
+```
+set PATH=%PATH%;C:\Git\usr\bin
+set PATH=%PATH%;C:\i686-8.1.0-release-win32-sjlj-rt_v6-rev0\mingw32\bin
+
+sh ./configure --host=mingw32 --prefix=/c/celt-0.11.0/bin/  --exec-prefix=/c/celt-0.11.0/bin/
+mingw32-make.exe LDFLAGS="-no-undefined -static-libgcc" MAKE=mingw32-make.exe
+mingw32-make.exe MAKE=mingw32-make.exe install
+```
+If all goes well, use generated .DLL in ./bin/bin (may need to rename to libspeex.dll) and ./win32/libspeex.def, and speex folder with .h in bin/include.
 
 
 ### maiatrac3plus
