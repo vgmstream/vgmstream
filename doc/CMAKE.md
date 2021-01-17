@@ -2,24 +2,17 @@
 
 ## Build requirements
 
-**CMake**: Needs v3.6 or later
+**CMake**: needs v3.6 or later
 - https://cmake.org/download/
 
-**Git**: optional, to generate version numbers:
-- Git for Windows: https://git-scm.com/download/win
+**Git**: optional, for version numbers
+- Windows: https://git-scm.com/download/win
 
-If building for Windows, you need one of the following:
+**GCC / Make** 
+- Windows: https://sourceforge.net/projects/mingw-w64/
 
-**GCC / Make**: In Windows this means one of these two somewhere in PATH:
-- MinGW-w64 (32bit version): https://sourceforge.net/projects/mingw-w64/
-  - Use this for easier standalone executables
-  - Latest online installer with any config should work (for example: gcc-7.2.0, i686, win32, sjlj).
-- MSYS2 with the MinGW-w64_shell (32bit) package: https://msys2.github.io/
-
-**MSVC / Visual Studio**: Microsoft's Visual C++ and MSBuild, bundled in either:
-- Visual Studio (2015/2017/latest): https://www.visualstudio.com/downloads/
-  - Visual Studio Community should work (free, but must register after trial period)
-- Visual C++ Build Tools (no IDE): http://landinghub.visualstudio.com/visual-cpp-build-tools
+**MSVC / Visual Studio**
+- Windows: https://www.visualstudio.com/downloads/
 
 If building the CLI for *nix-based OSes, vgmstream123 also needs the following:
 
@@ -30,6 +23,9 @@ If building for *nix-based OSes, the following libraries are optional:
 - **libmpg123**
 - **libvorbis** (really libvorbisfile, though)
 - **FFmpeg**
+
+See [BUILD.md](BUILD.md)'s *Compilation requirements* for more info about various component and installation.
+
 
 ## Build directions
 
