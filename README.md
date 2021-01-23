@@ -40,6 +40,7 @@ Put the following files somewhere Windows can find them:
 - `libatrac9.dll`
 - `libcelt-0061.dll`
 - `libcelt-0110.dll`
+- `libspeex.dll`
 
 For Winamp/XMPlay/command line this means in the directory with the main .exe,
 or in a system directory, or any other directory in the PATH variable.
