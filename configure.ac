@@ -35,6 +35,12 @@ PKG_CHECK_MODULES(MPG123, [libmpg123], have_libmpg123=yes,
 )
 AM_CONDITIONAL(HAVE_LIBMPG123, test "$have_libmpg123" = yes)
 
+have_libspeex=no
+PKG_CHECK_MODULES(SPEEX, [speex], have_libspeex=yes,
+        [AC_MSG_WARN([Cannot find libspeex - will not enable Speex formats])]
+)
+AM_CONDITIONAL(HAVE_LIBSPEEX, test "$have_libspeex" = yes)
+
 have_ffmpeg=no
 #PKG_CHECK_MODULES(FFMPEG, [libavformat libavcodec libavutil libswresample], have_ffmpeg=yes,
 #        [AC_MSG_WARN([Cannot find ffmpeg - will not enable FFmpeg formats])]
