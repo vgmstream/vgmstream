@@ -628,6 +628,8 @@ are used in few games.
 - OKI 4-bit ADPCM (16-bit output, 4-shift, PC-FX)
 - Ubisoft 4/6-bit ADPCM
 - Tiger Game.com ADPCM
+- LucasArts iMUSE VBR ADPCM
+- CompressWave Huffman ADPCM
 - SDX2 2:1 Squareroot-Delta-Exact compression DPCM
 - CBD2 2:1 Cuberoot-Delta-Exact compression DPCM
 - Activision EXAKT SASSC DPCM
@@ -641,6 +643,7 @@ are used in few games.
 - MPEG MP1/2/3 (standard, AHX, XVAG, FSB, AWC, P3D, etc)
 - ITU-T G.722.1 annex C (Polycom Siren 14)
 - ITU-T G.719 annex B (Polycom Siren 22)
+- Electronic Arts EASpeex
 - Electronic Arts EALayer3
 - Electronic Arts EA-XMA
 - Sony ATRAC3, ATRAC3plus

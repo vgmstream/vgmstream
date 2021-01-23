@@ -40,6 +40,10 @@ void free_codec(VGMSTREAM* vgmstream) {
         free_imuse(vgmstream->codec_data);
     }
 
+    if (vgmstream->coding_type == coding_COMPRESSWAVE) {
+        free_compresswave(vgmstream->codec_data);
+    }
+
     if (vgmstream->coding_type == coding_EA_MT) {
         free_ea_mt(vgmstream->codec_data, vgmstream->channels);
     }
@@ -131,6 +135,10 @@ void seek_codec(VGMSTREAM* vgmstream) {
 
     if (vgmstream->coding_type == coding_IMUSE) {
         seek_imuse(vgmstream->codec_data, vgmstream->loop_current_sample);
+    }
+
+    if (vgmstream->coding_type == coding_COMPRESSWAVE) {
+        seek_compresswave(vgmstream->codec_data, vgmstream->loop_current_sample);
     }
 
     if (vgmstream->coding_type == coding_EA_MT) {
@@ -229,6 +237,10 @@ void reset_codec(VGMSTREAM* vgmstream) {
 
     if (vgmstream->coding_type == coding_IMUSE) {
         reset_imuse(vgmstream->codec_data);
+    }
+
+    if (vgmstream->coding_type == coding_COMPRESSWAVE) {
+        reset_compresswave(vgmstream->codec_data);
     }
 
     if (vgmstream->coding_type == coding_EA_MT) {
@@ -487,6 +499,8 @@ int get_vgmstream_samples_per_frame(VGMSTREAM* vgmstream) {
             return 0; /* varies per mode */
         case coding_IMUSE:
             return 0; /* varies per frame */
+        case coding_COMPRESSWAVE:
+            return 0; /* multiple of 2 */
         case coding_EA_MT:
             return 0; /* 432, but variable in looped files */
         case coding_CIRCUS_VQ:
@@ -695,6 +709,8 @@ int get_vgmstream_frame_size(VGMSTREAM* vgmstream) {
             return 0; /* varies per mode? */
         case coding_IMUSE:
             return 0; /* varies per frame */
+        case coding_COMPRESSWAVE:
+            return 0; /* huffman bits */
         case coding_EA_MT:
             return 0; /* variable (frames of bit counts or PCM frames) */
 #ifdef VGM_USE_ATRAC9
@@ -1404,6 +1420,10 @@ void decode_vgmstream(VGMSTREAM* vgmstream, int samples_written, int samples_to_
 
         case coding_IMUSE:
             decode_imuse(vgmstream, buffer, samples_to_do);
+            break;
+
+        case coding_COMPRESSWAVE:
+            decode_compresswave(vgmstream->codec_data, buffer, samples_to_do);
             break;
 
         case coding_EA_MT:

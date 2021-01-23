@@ -138,6 +138,7 @@ static const char* extension_list[] = {
     "csa", //txth/reserved [LEGO Racers 2 (PS2)]
     "csmp",
     "cvs",
+    "cwav",
     "cxs",
 
     "da",
@@ -781,6 +782,7 @@ static const coding_info coding_info_list[] = {
         {coding_OKI4S,              "OKI 4-bit ADPCM (4-shift)"},
         {coding_PTADPCM,            "Platinum 4-bit ADPCM"},
         {coding_IMUSE,              "LucasArts iMUSE VIMA ADPCM"},
+        {coding_COMPRESSWAVE,       "CompressWave Huffman ADPCM"},
 
         {coding_SDX2,               "Squareroot-delta-exact (SDX2) 8-bit DPCM"},
         {coding_SDX2_int,           "Squareroot-delta-exact (SDX2) 8-bit DPCM with 1 byte interleave"},
@@ -1329,6 +1331,7 @@ static const meta_info meta_info_list[] = {
         {meta_SBK,                  "Team17 SBK header"},
         {meta_DSP_WIIADPCM,         "Exient WIIADPCM header"},
         {meta_DSP_CWAC,             "CRI CWAC header"},
+        {meta_COMPRESSWAVE,         "CompressWave .cwav header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {

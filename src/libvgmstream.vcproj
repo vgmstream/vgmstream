@@ -629,6 +629,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\compresswave.c"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\cpk.c"
                     >
                 </File>
@@ -2031,6 +2035,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\coding\compresswave_decoder_lib.h"
+                    >
+                </File>
+                <File
                     RelativePath=".\coding\ea_mt_decoder_utk.h"
                     >
                 </File>
@@ -2120,6 +2128,14 @@
                 </File>
                 <File
                     RelativePath=".\coding\coding_utils.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\coding\compresswave_decoder.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\coding\compresswave_decoder_lib.c"
                     >
                 </File>
                 <File

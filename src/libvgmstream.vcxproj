@@ -155,6 +155,7 @@
     <ClInclude Include="coding\circus_decoder_miniz.h" />
     <ClInclude Include="coding\coding.h" />
     <ClInclude Include="coding\coding_utils_samples.h" />
+    <ClInclude Include="coding\compresswave_decoder_lib.h" />
     <ClInclude Include="coding\ea_mt_decoder_utk.h" />
     <ClInclude Include="coding\g7221_decoder_aes.h" />
     <ClInclude Include="coding\g7221_decoder_lib.h" />
@@ -310,6 +311,7 @@
     <ClCompile Include="meta\bsf.c" />
     <ClCompile Include="meta\capdsp.c" />
     <ClCompile Include="meta\ck.c" />
+    <ClCompile Include="meta\compresswave.c" />
     <ClCompile Include="meta\cpk.c" />
     <ClCompile Include="meta\cri_utf.c" />
     <ClCompile Include="meta\csb.c" />
@@ -594,6 +596,8 @@
     <ClCompile Include="coding\adx_decoder.c" />
     <ClCompile Include="coding\asf_decoder.c" />
     <ClCompile Include="coding\yamaha_decoder.c" />
+    <ClCompile Include="coding\compresswave_decoder.c" />
+    <ClCompile Include="coding\compresswave_decoder_lib.c" />
     <ClCompile Include="coding\derf_decoder.c" />
     <ClCompile Include="coding\dsa_decoder.c" />
     <ClCompile Include="coding\ea_mt_decoder.c" />
