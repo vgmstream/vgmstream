@@ -45,7 +45,7 @@ static const int IK1[4] = {  0,    0,   832,   880 };
  *           (bsnes): https://github.com/byuu/bsnes/blob/master/bsnes/sfc/dsp/SPC_DSP.cpp#L316
  */
 
-void decode_xa(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
+void decode_xa(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
     uint8_t frame[0x80] = {0};
     off_t frame_offset;
     int i,j, sp_pos, frames_in, samples_done = 0, sample_count = 0;

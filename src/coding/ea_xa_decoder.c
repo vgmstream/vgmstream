@@ -30,7 +30,7 @@ static const int EA_XA_TABLE[20] = {
 };
 
 /* EA XA v2 (always mono); like v1 but with "PCM samples" flag and doesn't add 128 on expand or clamp (pre-adjusted by the encoder?) */
-void decode_ea_xa_v2(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
+void decode_ea_xa_v2(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
     uint8_t frame_info;
     int32_t coef1, coef2;
     int i, sample_count, shift;
@@ -87,7 +87,7 @@ void decode_ea_xa_v2(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspac
 /* later PC games use float math, though in the end sounds basically the same (decompiled from various exes) */
 static const double XA_K0[16] = { 0.0, 0.9375, 1.796875,  1.53125 };
 static const double XA_K1[16] = { 0.0,    0.0,  -0.8125, -0.859375 };
-/* code uses look-up table but it's be equivalent to:
+/* code uses look-up table but it's equivalent to:
  * (double)((nibble << 28) >> (shift + 8) >> 8) or (double)(signed_nibble << (12 - shift)) */
 static const uint32_t FLOAT_TABLE_INT[256] = {
         0x00000000,0x45800000,0x46000000,0x46400000,0x46800000,0x46A00000,0x46C00000,0x46E00000,
@@ -123,9 +123,9 @@ static const uint32_t FLOAT_TABLE_INT[256] = {
         0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,
         0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,0x00000000,
 };
-static const float *FLOAT_TABLE = (const float *)FLOAT_TABLE_INT;
+static const float* FLOAT_TABLE = (const float *)FLOAT_TABLE_INT;
 
-void decode_ea_xa_v2(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
+void decode_ea_xa_v2(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
     uint8_t frame_info;
     int i, sample_count, shift;
 
@@ -184,7 +184,7 @@ void decode_ea_xa_v2(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspac
 #endif
 
 /* EA XA v1 (mono/stereo) */
-void decode_ea_xa(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel, int is_stereo) {
+void decode_ea_xa(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel, int is_stereo) {
     uint8_t frame_info;
     int32_t coef1, coef2;
     int i, sample_count, shift;
@@ -235,7 +235,7 @@ void decode_ea_xa(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing
 }
 
 /* Maxis EA-XA v1 (mono/stereo) with byte-interleave layout in stereo mode */
-void decode_maxis_xa(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
+void decode_maxis_xa(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
     uint8_t frame_info;
     int32_t coef1, coef2;
     int i, sample_count, shift;
