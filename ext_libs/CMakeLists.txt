@@ -101,6 +101,17 @@ if(MSVC)
 				${CMAKE_CURRENT_BINARY_DIR}/libcelt-0110.lib
 			SOURCES ${CELT_HEADERS})
 	endif()
+
+    if(USE_SPEEX)
+        add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/libspeex/libspeex.lib ${CMAKE_CURRENT_BINARY_DIR}/libspeex/libspeex.exp
+            COMMAND lib
+            ARGS /def:${CMAKE_CURRENT_SOURCE_DIR}/libspeex/libspeex.def /machine:x86 /out:${CMAKE_CURRENT_BINARY_DIR}/libspeex/libspeex.lib
+            DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/libspeex/libspeex.def)
+        file(GLOB SPEEX_HEADERS "${VGM_SOURCE_DIR}/ext_includes/speex/*.h")
+        add_custom_target(libspeex
+            DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/libspeex/libspeex.lib
+            SOURCES ${SPEEX_HEADERS})
+    endif()
 elseif(MINGW)
 	if(NOT DLLTOOL)
 		set(DLLTOOL dlltool)
@@ -181,4 +192,13 @@ elseif(MINGW)
 				${CMAKE_CURRENT_BINARY_DIR}/libcelt-0061.lib
 				${CMAKE_CURRENT_BINARY_DIR}/libcelt-0110.lib)
 	endif()
+
+    if(USE_SPEEX)
+        add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/libspeex/libspeex.lib
+            COMMAND ${DLLTOOL}
+            ARGS -d ${CMAKE_CURRENT_SOURCE_DIR}/libspeex/libspeex.def -l ${CMAKE_CURRENT_BINARY_DIR}/libspeex/libspeex.lib
+            DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/libspeex/libspeex.def)
+        add_custom_target(libspeex
+            DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/libspeex/libspeex.lib)
+    endif()
 endif()

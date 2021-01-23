@@ -38,12 +38,14 @@ jobs:
         run: |
           $fb2kFiles = @(
               "ext_libs/*.dll",
+              "ext_libs/libspeex/*.dll",
               "Release/foo_input_vgmstream.dll",
               "README.md"
           )
 
           $cliFiles = @(
               "ext_libs/*.dll",
+              "ext_libs/libspeex/*.dll",
               "Release/in_vgmstream.dll",
               "Release/test.exe",
               "Release/xmp-vgmstream.dll",

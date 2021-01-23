@@ -104,6 +104,7 @@ The following options are currently only available for Windows:
 - **USE_G719**: Chooses if you wish to use libg719_decode for support ITU-T G.719. The default is `ON`.
 - **USE_ATRAC9**: Chooses if you wish to use LibAtrac9 for support of ATRAC9. The default is `ON`.
 - **USE_CELT**: Chooses if you wish to use libcelt for support of FSB CELT versions 0.6.1 and 0.11.0. The default is `ON`.
+- **USE_SPEEX**: Chooses if you wish to use libspeex for support of SPEEX. The default is `ON`.
 
 #### Build Options
 
