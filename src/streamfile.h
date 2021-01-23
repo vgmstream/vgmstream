@@ -308,12 +308,16 @@ static inline int min_s32(int32_t a, int32_t b) { return a < b ? a : b; }
 #endif
 
 /* fastest to compare would be read_u32x == (uint32), but should be pre-optimized (see get_id32x) */
-static inline const int is_id32be(off_t offset, STREAMFILE* sf, const char* s) {
+static inline /*const*/ int is_id32be(off_t offset, STREAMFILE* sf, const char* s) {
     return read_u32be(offset, sf) == get_id32be(s);
 }
 
-static inline const int is_id32le(off_t offset, STREAMFILE* sf, const char* s) {
+static inline /*const*/ int is_id32le(off_t offset, STREAMFILE* sf, const char* s) {
     return read_u32le(offset, sf) == get_id32be(s);
+}
+
+static inline /*const*/ int is_id64be(off_t offset, STREAMFILE* sf, const char* s) {
+    return read_u64be(offset, sf) == get_id64be(s);
 }
 
 
