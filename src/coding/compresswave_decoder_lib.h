@@ -1,5 +1,5 @@
-#ifndef _COMPRESSWAVE_DECODING_LIB_H
-#define _COMPRESSWAVE_DECODING_LIB_H
+#ifndef _COMPRESSWAVE_DECODER_LIB_H
+#define _COMPRESSWAVE_DECODER_LIB_H
 #include "../streamfile.h"
 
 typedef struct TCompressWaveData TCompressWaveData;
@@ -24,4 +24,4 @@ float TCompressWaveData_GetFade(TCompressWaveData* this);
 float TCompressWaveData_GetPlayTime(TCompressWaveData* this);
 float TCompressWaveData_GetTotalTime(TCompressWaveData* this);
 
-#endif /*_COMPRESSWAVE_DECODING_LIB_H */
+#endif /*_COMPRESSWAVE_DECODER_LIB_H */

@@ -1,4 +1,4 @@
-#include "compresswave_decode_lib.h"
+#include "compresswave_decoder_lib.h"
 #include <math.h>
 #include <stdint.h>
 #include <stdlib.h>
