@@ -885,6 +885,10 @@
 					>
 				</File>
                 <File
+                    RelativePath=".\meta\ktac.c"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\ktsc.c"
                     >
                 </File>

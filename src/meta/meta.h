@@ -938,4 +938,6 @@ VGMSTREAM* init_vgmstream_acx(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_compresswave(STREAMFILE* sf);
 
+VGMSTREAM* init_vgmstream_ktac(STREAMFILE* sf);
+
 #endif /*_META_H*/

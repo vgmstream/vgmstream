@@ -251,6 +251,7 @@ static const char* extension_list[] = {
     "kovs", //fake extension/header id for .kvs
     "kns",
     "kraw",
+    "ktac",
     "ktsl2asbin",
     "ktss", //fake extension/header id for .kns
     "kvs",
@@ -1332,6 +1333,7 @@ static const meta_info meta_info_list[] = {
         {meta_DSP_WIIADPCM,         "Exient WIIADPCM header"},
         {meta_DSP_CWAC,             "CRI CWAC header"},
         {meta_COMPRESSWAVE,         "CompressWave .cwav header"},
+        {meta_KTAC,                 "Koei Tecmo KTAC header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {
