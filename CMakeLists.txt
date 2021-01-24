@@ -23,7 +23,8 @@ if(WIN32)
 	# May need to see if it is possible to get these to work on non-Windows systems too
 	option(USE_G719 "Use libg719_decode for support ITU-T G.719" ON)
 	option(USE_ATRAC9 "Use LibAtrac9 for support of ATRAC9" ON)
-	option(USE_CELT "Use libcelt for support of FSB CELT versions 0.6.1 and 0.11.0" ON)
+    option(USE_CELT "Use libcelt for support of FSB CELT versions 0.6.1 and 0.11.0" ON)
+    option(USE_SPEEX "Use libspeex for support of SPEEX" ON)
 endif()
 
 # Build choices
@@ -227,7 +228,8 @@ message(STATUS "     G.722.1: ${USE_G7221}")
 if(WIN32)
 	message(STATUS "       G.719: ${USE_G719}")
 	message(STATUS "      ATRAC9: ${USE_ATRAC9}")
-	message(STATUS "    FSB CELT: ${USE_CELT}")
+    message(STATUS "    FSB CELT: ${USE_CELT}")
+    message(STATUS "       SPEEX: ${USE_SPEEX}")
 endif()
 message(STATUS "")
 

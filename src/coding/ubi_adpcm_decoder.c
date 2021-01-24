@@ -5,7 +5,7 @@
  * mono or stereo modes, using multiple tables and temp step/delta values.
  *
  * Base reverse engineering by Zench: https://bitbucket.org/Zenchreal/decubisnd
- * Original ASM MMX/intrinsics to C++ by sigsegv; adapted by bnnm; special thanks to Nicknine.
+ * Original 4-bit mode ASM MMX/intrinsics to C++ by sigsegv; adapted + 6-bit mode by bnnm; special thanks to Nicknine.
  *
  * Data always starts with a 0x30 main header (some games have extra data before too), then frames of
  * fixed size: 0x34 ADPCM setup per channel, 1 subframe + 1 padding byte, then another subframe and 1 byte.
@@ -86,11 +86,11 @@ struct ubi_adpcm_codec_data {
 
 /* *********************************************************************** */
 
-static int parse_header(STREAMFILE* sf, ubi_adpcm_codec_data *data, off_t offset);
-static void decode_frame(STREAMFILE* sf, ubi_adpcm_codec_data *data);
+static int parse_header(STREAMFILE* sf, ubi_adpcm_codec_data* data, off_t offset);
+static void decode_frame(STREAMFILE* sf, ubi_adpcm_codec_data* data);
 
-ubi_adpcm_codec_data *init_ubi_adpcm(STREAMFILE *sf, off_t offset, int channels) {
-    ubi_adpcm_codec_data *data = NULL;
+ubi_adpcm_codec_data* init_ubi_adpcm(STREAMFILE* sf, off_t offset, int channels) {
+    ubi_adpcm_codec_data* data = NULL;
 
     data = calloc(1, sizeof(ubi_adpcm_codec_data));
     if (!data) goto fail;
@@ -114,9 +114,9 @@ fail:
     return NULL;
 }
 
-void decode_ubi_adpcm(VGMSTREAM * vgmstream, sample_t * outbuf, int32_t samples_to_do) {
+void decode_ubi_adpcm(VGMSTREAM* vgmstream, sample_t* outbuf, int32_t samples_to_do) {
     STREAMFILE* sf = vgmstream->ch[0].streamfile;
-    ubi_adpcm_codec_data *data = vgmstream->codec_data;
+    ubi_adpcm_codec_data* data = vgmstream->codec_data;
     uint32_t channels = data->header.channels;
     int samples_done = 0;
 
@@ -153,14 +153,14 @@ void decode_ubi_adpcm(VGMSTREAM * vgmstream, sample_t * outbuf, int32_t samples_
     }
 }
 
-void reset_ubi_adpcm(ubi_adpcm_codec_data *data) {
+void reset_ubi_adpcm(ubi_adpcm_codec_data* data) {
     if (!data) return;
 
     data->offset = data->start_offset;
     data->subframe_number = 0;
 }
 
-void seek_ubi_adpcm(ubi_adpcm_codec_data *data, int32_t num_sample) {
+void seek_ubi_adpcm(ubi_adpcm_codec_data* data, int32_t num_sample) {
     if (!data) return;
 
     //todo improve by seeking to closest frame
@@ -178,7 +178,7 @@ void free_ubi_adpcm(ubi_adpcm_codec_data *data) {
 
 /* ************************************************************************ */
 
-static void read_header_state(uint8_t *data, ubi_adpcm_header_data *header) {
+static void read_header_state(uint8_t* data, ubi_adpcm_header_data* header) {
     header->signature              = get_32bitLE(data + 0x00);
     header->sample_count           = get_32bitLE(data + 0x04);
     header->subframe_count         = get_32bitLE(data + 0x08);
@@ -193,7 +193,7 @@ static void read_header_state(uint8_t *data, ubi_adpcm_header_data *header) {
     header->channels               = get_32bitLE(data + 0x2c);
 }
 
-static int parse_header(STREAMFILE* sf, ubi_adpcm_codec_data *data, off_t offset) {
+static int parse_header(STREAMFILE* sf, ubi_adpcm_codec_data* data, off_t offset) {
     uint8_t buf[0x30];
     size_t bytes;
 
@@ -221,7 +221,7 @@ fail:
 
 /* *********************************************************************** */
 
-int32_t adpcm6_table1[64] = {
+static const int32_t adpcm6_table1[64] = {
         -100000000, -369, -245, -133, -33, 56, 135, 207,
         275, 338, 395, 448, 499, 548, 593, 635,
         676, 717, 755, 791, 825, 858, 889, 919,
@@ -233,7 +233,7 @@ int32_t adpcm6_table1[64] = {
         51200, 56320, 63488, 67704, 75776, 89088, 102400,     0,
 };
 
-int32_t adpcm6_table2[64] = {
+static const int32_t adpcm6_table2[64] = {
         1800,   1800,  1800,  2048,  3072,  4096,   5000,  5056,
         5184,   5240,  6144,  6880,  9624, 12880,  14952, 18040,
         20480, 22920, 25600, 28040, 32560, 35840,  40960, 45832,
@@ -245,19 +245,19 @@ int32_t adpcm6_table2[64] = {
         4, 5, 5, 5, 6, 6, 6, 7,
 };
 
-int32_t adpcm4_table1[16] = {
+static const int32_t adpcm4_table1[16] = {
         -100000000, 8, 269, 425, 545, 645, 745, 850,
         /* probably unused */
         -1082465976, 1058977874, 1068540887, 1072986849, 1075167887, 1076761723, 1078439444, 1203982336,
 };
 
-int32_t adpcm4_table2[16] = {
+static const int32_t adpcm4_table2[16] = {
         -1536, 2314, 5243, 8192, 14336, 25354, 45445, 143626,
         /* probably unused */
         0, 0, 0, 1, 1, 1, 3, 7,
 };
 
-int32_t delta_table[33+33] = {
+static const int32_t delta_table[33+33] = {
         1024, 1031, 1053, 1076, 1099, 1123, 1148, 1172,
         1198, 1224, 1251, 1278, 1306, 1334, 1363, 1393,
         1423, 1454, 1485, 1518, 1551, 1584, 1619, 1654,
@@ -455,7 +455,7 @@ static void decode_subframe_stereo(ubi_adpcm_channel_data* ch0_state, ubi_adpcm_
  *    0xA82557DB LE = 1010 100000 100101 010101 111101 1011 ... (where last 00 | first 1010 = 001010), etc
  * Codes aren't signed but rather have a particular meaning (see decoding).
  */
-void unpack_codes(uint8_t *data, uint8_t* codes, int code_count, int bps) {
+void unpack_codes(uint8_t* data, uint8_t* codes, int code_count, int bps) {
     int i;
     size_t pos = 0;
     uint64_t bits = 0, input = 0;
@@ -475,7 +475,7 @@ void unpack_codes(uint8_t *data, uint8_t* codes, int code_count, int bps) {
     }
 }
 
-static void read_channel_state(uint8_t *data, ubi_adpcm_channel_data *ch) {
+static void read_channel_state(uint8_t* data, ubi_adpcm_channel_data* ch) {
     /* ADPCM frame state, some fields are unused and contain repeated garbage in all frames but
      * probably exist for padding (original code uses MMX to operate in multiple 16b at the same time)
      * or reserved for other bit modes */
@@ -511,7 +511,7 @@ static void read_channel_state(uint8_t *data, ubi_adpcm_channel_data *ch) {
     VGM_ASSERT(ch->unused4 != 0x00,    "UBI ADPCM: found unused4 used\n");
 }
 
-static void decode_frame(STREAMFILE* sf, ubi_adpcm_codec_data *data) {
+static void decode_frame(STREAMFILE* sf, ubi_adpcm_codec_data* data) {
     int code_count_a, code_count_b;
     size_t subframe_size_a, subframe_size_b, frame_size, bytes;
     int bps = data->header.bits_per_sample;
@@ -580,7 +580,7 @@ static void decode_frame(STREAMFILE* sf, ubi_adpcm_codec_data *data) {
 }
 
 
-int ubi_adpcm_get_samples(ubi_adpcm_codec_data *data) {
+int ubi_adpcm_get_samples(ubi_adpcm_codec_data* data) {
     if (!data)
         return 0;
 

@@ -122,7 +122,7 @@ static const int mc3_table[4][4][64] = {
  *
  * Tables and original algorithm by daemon1
  */
-void decode_mc3(VGMSTREAM * vgmstream, VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
+void decode_mc3(VGMSTREAM* vgmstream, VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
     int i, sample_count = 0;
 
     int32_t hist = stream->adpcm_history1_32;

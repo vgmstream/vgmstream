@@ -174,6 +174,7 @@ typedef enum {
     coding_OKI4S,           /* OKI 4-bit ADPCM with 16-bit output and cuadruple step */
     coding_PTADPCM,         /* Platinum 4-bit ADPCM */
     coding_IMUSE,           /* LucasArts iMUSE Variable ADPCM */
+    coding_COMPRESSWAVE,    /* CompressWave Huffman ADPCM */
 
     /* others */
     coding_SDX2,            /* SDX2 2:1 Squareroot-Delta-Exact compression DPCM */
@@ -361,7 +362,7 @@ typedef enum {
     meta_PS2_EXST,          /* Shadow of Colossus EXST */
     meta_SVAG_KCET,
     meta_PS_HEADERLESS,     /* headerless PS-ADPCM */
-    meta_PS2_MIB_MIH,       /* MIB File + MIH Header*/
+    meta_MIB_MIH,
     meta_PS2_MIC,           /* KOEI MIC File */
     meta_PS2_VAGi,          /* VAGi Interleaved File */
     meta_PS2_VAGp,          /* VAGp Mono File */
@@ -749,6 +750,9 @@ typedef enum {
     meta_SBK,
     meta_DSP_WIIADPCM,
     meta_DSP_CWAC,
+    meta_COMPRESSWAVE,
+    meta_KTAC,
+    meta_MJB_MJH,
 } meta_t;
 
 /* standard WAVEFORMATEXTENSIBLE speaker positions */

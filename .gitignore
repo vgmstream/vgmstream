@@ -24,6 +24,10 @@ Release
 /ext_libs/Release
 /ext_libs/*.exp
 /ext_libs/*.lib
+/ext_libs/libspeex/Debug
+/ext_libs/libspeex/Release
+/ext_libs/libspeex/*.exp
+/ext_libs/libspeex/*.lib
 /ext_libs/Getopt/Debug
 /ext_libs/Getopt/Release
 /fb2k/Debug

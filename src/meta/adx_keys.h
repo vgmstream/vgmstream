@@ -243,6 +243,9 @@ static const adxkey_info adxkey9_list[] = {
         /* Persona 5 Royal (PS4) */
         {0x0000,0x1c85,0x7043, NULL,29915170},              // 0000000001C87822
 
+        /* Assault Lily Last Bullet (Android) */
+        {0x0aca,0x0ef5,0x05c9, NULL,0},                     // guessed with VGAudio (possible key: 5650EF42E5 / 370725044965)
+
 };
 
 static const int adxkey8_list_count = sizeof(adxkey8_list) / sizeof(adxkey8_list[0]);

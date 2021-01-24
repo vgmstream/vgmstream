@@ -153,11 +153,11 @@ msbuild fb2k/foo_input_vgmstream.vcxproj ^
 ```
 
 ### Audacious plugin
-Requires the dev version of Audacious (and dependencies), automake/autoconf or cmake, and gcc/make (C++11). It must be compiled and installed into Audacious, where it should appear in the plugin list as "vgmstream".
+Requires the dev version of Audacious (and dependencies), automake/autoconf or CMake, and gcc/make (C++11). It must be compiled and installed into Audacious, where it should appear in the plugin list as "vgmstream".
 
 The plugin needs Audacious 3.5 or higher. New Audacious releases can break plugin compatibility so it may not work with the latest version unless adapted first.
 
-libvorbis and libmpg123 will be used if found, while FFmpeg and other external libraries aren't enabled at the moment, thus some formats won't work (build scripts need to be fixed).
+libvorbis/libmpg123/libspeex will be used if found, while FFmpeg and other external libraries aren't enabled at the moment, thus some formats won't work (build scripts need to be fixed).
 
 Windows builds aren't supported at the moment (should be possible but there are complex dependency chains).
 
@@ -176,7 +176,7 @@ sudo apt-get install gcc g++ make
 sudo apt-get install autoconf automake libtool
 sudo apt-get install git
 # vgmstream dependencies
-sudo apt-get install libmpg123-dev libvorbis-dev
+sudo apt-get install libmpg123-dev libvorbis-dev libspeex-dev
 #sudo apt-get install libavformat-dev libavcodec-dev libavutil-dev libswresample-dev
 # Audacious player and dependencies
 sudo apt-get install audacious
@@ -227,7 +227,7 @@ To update vgmstream it's probably easiest to remove the `vgmstream` folder and s
 Instead of autotools you can try building with CMake. Some older distros may not work though (CMake version needs to recognize FILTER command). You may need to install resulting artifacts manually.
 ```
 sudo apt-get update
-sudo apt-get install -y libmpg123-dev libvorbis-dev
+sudo apt-get install -y libmpg123-dev libvorbis-dev libspeex-dev
 sudo apt-get install -y libavformat-dev libavcodec-dev libavutil-dev libswresample-dev
 sudo apt-get install -y libao-dev audacious-dev
 sudo apt-get install -y cmake

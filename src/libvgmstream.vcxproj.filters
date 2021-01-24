@@ -230,6 +230,9 @@
     <ClInclude Include="coding\coding_utils_samples.h">
       <Filter>coding\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="coding\compresswave_decoder_lib.h">
+      <Filter>coding\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="coding\ea_mt_decoder_utk.h">
       <Filter>coding\Header Files</Filter>
     </ClInclude>
@@ -434,6 +437,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ck.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\compresswave.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\cpk.c">
@@ -1264,6 +1270,12 @@
     <ClCompile Include="coding\yamaha_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="coding\compresswave_decoder.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\compresswave_decoder_lib.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="coding\derf_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
@@ -1663,6 +1675,9 @@
     <ClCompile Include="meta\mib_mih.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\mjb_mjh.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\mn_str.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -1811,6 +1826,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\mogg.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\ktac.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ktsc.c">

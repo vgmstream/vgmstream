@@ -1,7 +1,7 @@
 #ifndef _FSB_ENCRYPTED_STREAMFILE_H_
 #define _FSB_ENCRYPTED_H_
 
-#define FSB_KEY_MAX 128 /* probably 32 */
+#define FSB_KEY_MAX 0x10000 //0x168
 
 
 typedef struct {

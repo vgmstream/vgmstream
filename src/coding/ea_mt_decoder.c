@@ -36,12 +36,12 @@ struct ea_mt_codec_data {
 
 static size_t ea_mt_read_callback(void *dest, int size, void *arg);
 
-ea_mt_codec_data *init_ea_mt(int channels, int pcm_blocks) {
+ea_mt_codec_data* init_ea_mt(int channels, int pcm_blocks) {
     return init_ea_mt_loops(channels, pcm_blocks, 0, NULL);
 }
 
-ea_mt_codec_data *init_ea_mt_loops(int channels, int pcm_blocks, int loop_sample, off_t *loop_offsets) {
-    ea_mt_codec_data *data = NULL;
+ea_mt_codec_data* init_ea_mt_loops(int channels, int pcm_blocks, int loop_sample, off_t *loop_offsets) {
+    ea_mt_codec_data* data = NULL;
     int i;
 
     data = calloc(channels, sizeof(ea_mt_codec_data)); /* one decoder per channel */
@@ -67,10 +67,10 @@ fail:
     return NULL;
 }
 
-void decode_ea_mt(VGMSTREAM * vgmstream, sample * outbuf, int channelspacing, int32_t samples_to_do, int channel) {
+void decode_ea_mt(VGMSTREAM* vgmstream, sample_t* outbuf, int channelspacing, int32_t samples_to_do, int channel) {
     int i;
-    ea_mt_codec_data *data = vgmstream->codec_data;
-    ea_mt_codec_data *ch_data = &data[channel];
+    ea_mt_codec_data* data = vgmstream->codec_data;
+    ea_mt_codec_data* ch_data = &data[channel];
     UTKContext* ctx = ch_data->utk_context;
     int samples_done = 0;
 
@@ -136,8 +136,8 @@ void decode_ea_mt(VGMSTREAM * vgmstream, sample * outbuf, int channelspacing, in
     }
 }
 
-static void flush_ea_mt_offsets(VGMSTREAM *vgmstream, int is_start, int samples_discard) {
-    ea_mt_codec_data *data = vgmstream->codec_data;
+static void flush_ea_mt_offsets(VGMSTREAM* vgmstream, int is_start, int samples_discard) {
+    ea_mt_codec_data* data = vgmstream->codec_data;
     int i;
 
     if (!data) return;
@@ -168,19 +168,19 @@ static void flush_ea_mt_offsets(VGMSTREAM *vgmstream, int is_start, int samples_
     }
 }
 
-void flush_ea_mt(VGMSTREAM *vgmstream) {
+void flush_ea_mt(VGMSTREAM* vgmstream) {
     flush_ea_mt_offsets(vgmstream, 0, 0);
 }
 
-void reset_ea_mt(VGMSTREAM *vgmstream) {
+void reset_ea_mt(VGMSTREAM* vgmstream) {
     flush_ea_mt_offsets(vgmstream, 1, 0);
 }
 
-void seek_ea_mt(VGMSTREAM * vgmstream, int32_t num_sample) {
+void seek_ea_mt(VGMSTREAM* vgmstream, int32_t num_sample) {
     flush_ea_mt_offsets(vgmstream, 1, num_sample);
 }
 
-void free_ea_mt(ea_mt_codec_data *data, int channels) {
+void free_ea_mt(ea_mt_codec_data* data, int channels) {
     int i;
 
     if (!data)
@@ -202,5 +202,4 @@ static size_t ea_mt_read_callback(void *dest, int size, void *arg) {
     ch_data->offset += bytes_read;
 
     return bytes_read;
-
 }

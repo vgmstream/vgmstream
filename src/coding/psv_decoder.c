@@ -141,7 +141,7 @@ static const int16_t hevag_coefs[128][4] = {
  *
  * Original research and algorithm by id-daemon / daemon1.
  */
-void decode_hevag(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
+void decode_hevag(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
     uint8_t frame[0x10] = {0};
     off_t frame_offset;
     int i, frames_in, sample_count = 0;

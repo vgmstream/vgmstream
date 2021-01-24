@@ -29,6 +29,11 @@ AM_CFLAGS += -DVGM_USE_MPEG
 libvgmstream_la_LIBADD += $(MPG123_LIBS)
 endif
 
+if HAVE_LIBSPEEX
+AM_CFLAGS += -DVGM_USE_SPEEX
+libvgmstream_la_LIBADD += $(SPEEX_LIBS)
+endif
+
 if HAVE_FFMPEG
 AM_CFLAGS += -DVGM_USE_FFMPEG
 libvgmstream_la_LIBADD += $(FFMPEG_LIBS)

@@ -109,6 +109,14 @@ macro(setup_target TARGET)
 				${VGM_BINARY_DIR}/ext_libs/libcelt-0110.lib)
 		endif()
 	endif()
+
+    if(USE_SPEEX)
+        target_compile_definitions(${TARGET} PRIVATE VGM_USE_SPEEX)
+        if(LINK)
+            add_dependencies(${TARGET} libspeex)
+            target_link_libraries(${TARGET} ${VGM_BINARY_DIR}/ext_libs/libspeex/libspeex.lib)
+        endif()
+    endif()
 endmacro()
 
 # Installs the DLLs to the given install prefix
@@ -126,6 +134,7 @@ macro(install_dlls INSTALL_PREFIX)
 	set(CELT_DLL
 		${VGM_SOURCE_DIR}/ext_libs/libcelt-0061.dll
 		${VGM_SOURCE_DIR}/ext_libs/libcelt-0110.dll)
+    set(SPEEX_DLL ${VGM_SOURCE_DIR}/ext_libs/libspeex/libspeex.dll)
 
 	# List of DLLs to check for install
 	set(DLLS
@@ -135,7 +144,8 @@ macro(install_dlls INSTALL_PREFIX)
 		G719
 		FFMPEG
 		ATRAC9
-		CELT)
+		CELT
+		SPEEX)
 
 	# Loop over DLLs and only install if the USE_* is set for that DLL
 	foreach(DLL ${DLLS})
