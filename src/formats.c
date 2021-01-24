@@ -925,7 +925,7 @@ static const meta_info meta_info_list[] = {
         {meta_PS2_EXST,             "Sony EXST header"},
         {meta_SVAG_KCET,            "Konami SVAG header"},
         {meta_PS_HEADERLESS,        "Headerless PS-ADPCM raw header"},
-        {meta_PS2_MIB_MIH,          "Sony MultiStream MIH+MIB header"},
+        {meta_MIB_MIH,              "Sony MultiStream MIH+MIB header"},
         {meta_DSP_MPDSP,            "Single DSP header stereo by .mpdsp extension"},
         {meta_PS2_MIC,              "KOEI .MIC header"},
         {meta_DSP_JETTERS,          "Double DSP header stereo by _lr.dsp extension"},

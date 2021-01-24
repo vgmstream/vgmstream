@@ -362,7 +362,7 @@ typedef enum {
     meta_PS2_EXST,          /* Shadow of Colossus EXST */
     meta_SVAG_KCET,
     meta_PS_HEADERLESS,     /* headerless PS-ADPCM */
-    meta_PS2_MIB_MIH,       /* MIB File + MIH Header*/
+    meta_MIB_MIH,
     meta_PS2_MIC,           /* KOEI MIC File */
     meta_PS2_VAGi,          /* VAGi Interleaved File */
     meta_PS2_VAGp,          /* VAGp Mono File */
