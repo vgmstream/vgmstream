@@ -63,7 +63,7 @@ jobs:
               "Release/xmp-vgmstream.pdb"
           )
           
-          Compress-Archive $cliFiles Release/test.zip -Force
+          Compress-Archive $cliFiles Release/vgmstream-win.zip -Force
           Compress-Archive $fb2kFiles Release/foo_input_vgmstream.zip -Force
           Move-Item Release/foo_input_vgmstream.zip Release/foo_input_vgmstream.fb2k-component -Force
           Compress-Archive $cliPdbFiles Release/test.pdb.zip -Force
@@ -112,7 +112,7 @@ jobs:
             AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY_ID}}
             AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
         run: |
-          aws s3 cp Release\test.zip s3://vgmstream-builds/${{github.sha}}/windows/ --acl public-read 
+          aws s3 cp Release\vgmstream-win.zip s3://vgmstream-builds/${{github.sha}}/windows/ --acl public-read 
           aws s3 cp Release\foo_input_vgmstream.fb2k-component s3://vgmstream-builds/${{github.sha}}/windows/ --acl public-read 
           aws s3 cp Release\test.pdb.zip s3://vgmstream-builds/${{github.sha}}/windows/ --acl public-read 
           aws s3 cp Release\foo_input_vgmstream.pdb.zip s3://vgmstream-builds/${{github.sha}}/windows/ --acl public-read 
