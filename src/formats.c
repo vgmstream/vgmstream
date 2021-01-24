@@ -305,6 +305,7 @@ static const char* extension_list[] = {
     "mds",
     "mdsp",
     "med",
+    "mjb",
     "mi4",
     "mib",
     "mic",
@@ -1334,6 +1335,7 @@ static const meta_info meta_info_list[] = {
         {meta_DSP_CWAC,             "CRI CWAC header"},
         {meta_COMPRESSWAVE,         "CompressWave .cwav header"},
         {meta_KTAC,                 "Koei Tecmo KTAC header"},
+        {meta_MJB_MJH,              "Sony MultiStream MJH+MJB header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {

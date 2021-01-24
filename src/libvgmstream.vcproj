@@ -932,6 +932,10 @@
                     RelativePath=".\meta\mib_mih.c"
                     >
                 </File>
+                <File
+                    RelativePath=".\meta\mjb_mjh.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\mn_str.c"
 					>

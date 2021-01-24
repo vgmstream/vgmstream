@@ -519,6 +519,7 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_acx,
     init_vgmstream_compresswave,
     init_vgmstream_ktac,
+    init_vgmstream_mjb_mjh,
 
     /* lowest priority metas (should go after all metas, and TXTH should go before raw formats) */
     init_vgmstream_txth,            /* proper parsers should supersede TXTH, once added */
