@@ -16,14 +16,15 @@ VGMSTREAM* init_vgmstream_mzrt_v0(STREAMFILE* sf) {
     if (!check_extensions(sf, "idwav,idmsf,idxma"))
         goto fail;
 
-    if (!is_id32be(0x00,sf, "mzrt")) /* null-terminated string */
+    if (!is_id32be(0x00,sf, "mzrt"))
         goto fail;
-    if (read_u32be(0x05, sf) != 0x00000000) /* version */
+
+    if (read_u32be(0x04, sf) != 0) /* version */
         goto fail;
 
     /* this format is bizarrely mis-aligned (and mis-designed too) */
 
-    num_samples = read_s32le(0x11,sf);
+    num_samples = read_s32be(0x11,sf);
     codec = read_u16le(0x15,sf);
     switch(codec) {
         case 0x0001:
@@ -142,7 +143,8 @@ VGMSTREAM* init_vgmstream_mzrt_v0(STREAMFILE* sf) {
             goto fail;
     }
 
-    if (!vgmstream_open_stream(vgmstream,temp_sf == NULL ? sf : temp_sf, temp_sf == NULL ? start_offset : 0x00))
+
+    if (!vgmstream_open_stream(vgmstream, temp_sf == NULL ? sf : temp_sf, temp_sf == NULL ? start_offset : 0x00))
         goto fail;
     close_streamfile(temp_sf);
     return vgmstream;
@@ -168,9 +170,9 @@ VGMSTREAM* init_vgmstream_mzrt_v1(STREAMFILE* sf) {
     if (!check_extensions(sf, "idmsf")) //idmsa: untested
         goto fail;
 
-    if (!is_id32be(0x00,sf, "mzrt")) /* null-terminated string */
+    if (!is_id32be(0x00,sf, "mzrt"))
         goto fail;
-    if (read_u32be(0x05, sf) != 0x00000100) /* version */
+    if (read_u32be(0x04, sf) != 1) /* version */
         goto fail;
 
     type = read_s32be(0x09,sf);
