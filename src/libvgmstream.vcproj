@@ -329,7 +329,7 @@
                     >
                 </File>
                 <File
-                    RelativePath=".\meta\mzrt_streamfile.h"
+                    RelativePath=".\meta\idtech_streamfile.h"
                     >
                 </File>
                 <File
@@ -987,7 +987,7 @@
                     >
                 </File>
                 <File
-                    RelativePath=".\meta\mzrt.c"
+                    RelativePath=".\meta\idtech.c"
                     >
                 </File>
                 <File

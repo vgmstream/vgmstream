@@ -137,7 +137,7 @@
     <ClInclude Include="meta\mups_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="meta\mzrt_streamfile.h">
+    <ClInclude Include="meta\idtech_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="meta\nus3bank_streamfile.h">
@@ -631,7 +631,7 @@
     <ClCompile Include="meta\myspd.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\mzrt.c">
+    <ClCompile Include="meta\idtech.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\naac.c">
