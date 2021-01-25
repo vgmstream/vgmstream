@@ -753,6 +753,7 @@ typedef enum {
     meta_COMPRESSWAVE,
     meta_KTAC,
     meta_MJB_MJH,
+    meta_BSNF,
 } meta_t;
 
 /* standard WAVEFORMATEXTENSIBLE speaker positions */

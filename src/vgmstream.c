@@ -463,7 +463,7 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_acb,
     init_vgmstream_rad,
     init_vgmstream_smk,
-    init_vgmstream_mzrt,
+    init_vgmstream_mzrt_v0,
     init_vgmstream_xavs,
     init_vgmstream_psf_single,
     init_vgmstream_psf_segmented,
@@ -520,6 +520,8 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_compresswave,
     init_vgmstream_ktac,
     init_vgmstream_mjb_mjh,
+    init_vgmstream_mzrt_v1,
+    init_vgmstream_bsnf,
 
     /* lowest priority metas (should go after all metas, and TXTH should go before raw formats) */
     init_vgmstream_txth,            /* proper parsers should supersede TXTH, once added */

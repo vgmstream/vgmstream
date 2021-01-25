@@ -851,7 +851,9 @@ VGMSTREAM * init_vgmstream_rad(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_smk(STREAMFILE * streamFile);
 
-VGMSTREAM * init_vgmstream_mzrt(STREAMFILE * streamFile);
+VGMSTREAM* init_vgmstream_mzrt_v0(STREAMFILE* sf);
+VGMSTREAM* init_vgmstream_mzrt_v1(STREAMFILE* sf);
+VGMSTREAM* init_vgmstream_bsnf(STREAMFILE* sf);
 
 VGMSTREAM * init_vgmstream_xavs(STREAMFILE * streamFile);
 

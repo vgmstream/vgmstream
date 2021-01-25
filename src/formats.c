@@ -118,6 +118,7 @@ static const char* extension_list[] = {
     "bo2",
     "brstm",
     "brstmspm",
+    "bsnd",
     "btsnd",
     "bvg",
     "bwav",
@@ -1336,6 +1337,7 @@ static const meta_info meta_info_list[] = {
         {meta_COMPRESSWAVE,         "CompressWave .cwav header"},
         {meta_KTAC,                 "Koei Tecmo KTAC header"},
         {meta_MJB_MJH,              "Sony MultiStream MJH+MJB header"},
+        {meta_BSNF,                 "id Software BSNF header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {
