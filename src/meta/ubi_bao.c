@@ -1051,7 +1051,7 @@ static int parse_values(ubi_bao_header* bao, STREAMFILE* sf) {
     }
     bao->codec = bao->cfg.codec_map[bao->stream_type];
     if (bao->codec == 0x00) {
-        VGM_LOG("UBI BAO: unknown codec at %x\n", (uint32_t)bao->header_offset); goto fail;
+        VGM_LOG("UBI BAO: unknown codec %x at %x\n", bao->stream_type, (uint32_t)bao->header_offset); goto fail;
         goto fail;
     }
 
@@ -1746,9 +1746,11 @@ static int config_bao_version(ubi_bao_header* bao, STREAMFILE* sf) {
 
             config_bao_silence_f(bao, 0x1c);
 
+            bao->cfg.codec_map[0x00] = RAW_XMA1;
             bao->cfg.codec_map[0x02] = RAW_PSX;
             bao->cfg.codec_map[0x03] = UBI_IMA;
             bao->cfg.codec_map[0x04] = FMT_OGG;
+            bao->cfg.codec_map[0x05] = RAW_XMA1; /* same but streamed? */
             bao->cfg.codec_map[0x07] = RAW_AT3_105;
 
             bao->cfg.file_type = UBI_FORGE;
