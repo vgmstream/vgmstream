@@ -3,7 +3,7 @@
 #include "../coding/coding.h"
 
 
-typedef enum { PCM, UBI, PSX, DSP, XIMA, ATRAC3, XMA2 } ubi_hx_codec;
+typedef enum { PCM, UBI, PSX, DSP, XIMA, ATRAC3, XMA2, MP3 } ubi_hx_codec;
 
 typedef struct {
     int big_endian;
@@ -36,14 +36,14 @@ typedef struct {
 } ubi_hx_header;
 
 
-static int parse_hx(ubi_hx_header * hx, STREAMFILE *sf, int target_subsong);
-static VGMSTREAM * init_vgmstream_ubi_hx_header(ubi_hx_header *hx, STREAMFILE *sf);
+static int parse_hx(ubi_hx_header* hx, STREAMFILE* sf, int target_subsong);
+static VGMSTREAM* init_vgmstream_ubi_hx_header(ubi_hx_header* hx, STREAMFILE* sf);
 
 /* .HXx - banks from Ubisoft's HXAudio engine games [Rayman Arena, Rayman 3, XIII] */
-VGMSTREAM * init_vgmstream_ubi_hx(STREAMFILE *streamFile) {
+VGMSTREAM* init_vgmstream_ubi_hx(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     ubi_hx_header hx = {0};
-    int target_subsong = streamFile->stream_index;
+    int target_subsong = sf->stream_index;
 
 
     /* checks */
@@ -53,7 +53,7 @@ VGMSTREAM * init_vgmstream_ubi_hx(STREAMFILE *streamFile) {
      * .hxg: Rayman 3 (GC), XIII (GC)
      * .hxx: Rayman 3 (Xbox), Rayman 3 HD (X360)
      * .hx3: Rayman 3 HD (PS3) */
-    if (!check_extensions(streamFile, "hxd,hxc,hx2,hxg,hxx,hx3"))
+    if (!check_extensions(sf, "hxd,hxc,hx2,hxg,hxx,hx3"))
         goto fail;
 
     /* .HXx is a slightly less bizarre bank with various resource classes (events, streams, etc, not unlike other Ubi's engines)
@@ -61,14 +61,14 @@ VGMSTREAM * init_vgmstream_ubi_hx(STREAMFILE *streamFile) {
      * Game seems to play files by calling linked ids: EventResData (play/stop/etc) > Random/Program/Wav ResData (1..N refs) > FileIdObj */
 
     /* HX CONFIG */
-    hx.big_endian = guess_endianness32bit(0x00, streamFile);
+    hx.big_endian = guess_endianness32bit(0x00, sf);
 
     /* HX HEADER */
-    if (!parse_hx(&hx, streamFile, target_subsong))
+    if (!parse_hx(&hx, sf, target_subsong))
         goto fail;
 
     /* CREATE VGMSTREAM */
-    vgmstream = init_vgmstream_ubi_hx_header(&hx, streamFile);
+    vgmstream = init_vgmstream_ubi_hx_header(&hx, sf);
     return vgmstream;
 
 fail:
@@ -77,7 +77,7 @@ fail:
 }
 
 
-static void build_readable_name(char * buf, size_t buf_size, ubi_hx_header * hx) {
+static void build_readable_name(char* buf, size_t buf_size, ubi_hx_header* hx) {
     const char *grp_name;
 
     if (hx->is_external)
@@ -94,8 +94,8 @@ static void build_readable_name(char * buf, size_t buf_size, ubi_hx_header * hx)
 #define TXT_LINE_MAX 0x1000
 
 /* get name */
-static int parse_name_bnh(ubi_hx_header * hx, STREAMFILE *sf, uint32_t cuuid1, uint32_t cuuid2) {
-    STREAMFILE *sf_t;
+static int parse_name_bnh(ubi_hx_header* hx, STREAMFILE* sf, uint32_t cuuid1, uint32_t cuuid2) {
+    STREAMFILE* sf_t;
     off_t txt_offset = 0;
     char line[TXT_LINE_MAX];
     char cuuid[40];
@@ -132,15 +132,16 @@ fail:
 
 
 /* get referenced name from WavRes, using the index again (abridged) */
-static int parse_name(ubi_hx_header * hx, STREAMFILE *sf) {
-    int32_t (*read_32bit)(off_t,STREAMFILE*) = hx->big_endian ? read_32bitBE : read_32bitLE;
+static int parse_name(ubi_hx_header* hx, STREAMFILE* sf) {
+    uint32_t (*read_u32)(off_t,STREAMFILE*) = hx->big_endian ? read_u32be : read_u32le;
+    int32_t (*read_s32)(off_t,STREAMFILE*) = hx->big_endian ? read_s32be : read_s32le;
     off_t index_offset, offset;
     int i, index_entries;
     char class_name[255];
 
 
-    index_offset = read_32bit(0x00, sf);
-    index_entries = read_32bit(index_offset + 0x08, sf);
+    index_offset = read_u32(0x00, sf);
+    index_entries = read_s32(index_offset + 0x08, sf);
     offset = index_offset + 0x0c;
     for (i = 0; i < index_entries; i++) {
         off_t header_offset;
@@ -149,25 +150,25 @@ static int parse_name(ubi_hx_header * hx, STREAMFILE *sf) {
         uint32_t cuuid1, cuuid2;
 
 
-        class_size = read_32bit(offset + 0x00, sf);
+        class_size = read_u32(offset + 0x00, sf);
         if (class_size > sizeof(class_name)+1) goto fail;
         read_string(class_name,class_size+1, offset + 0x04, sf); /* not null-terminated */
         offset += 0x04 + class_size;
 
-        cuuid1 = (uint32_t)read_32bit(offset + 0x00, sf);
-        cuuid2 = (uint32_t)read_32bit(offset + 0x04, sf);
+        cuuid1 = read_u32(offset + 0x00, sf);
+        cuuid2 = read_u32(offset + 0x04, sf);
 
-        header_offset = read_32bit(offset + 0x08, sf);
+        header_offset = read_u32(offset + 0x08, sf);
         offset += 0x10;
 
-        //unknown_count = read_32bit(offset + 0x00, sf);
+        //unknown_count = read_s32(offset + 0x00, sf);
         offset += 0x04;
 
-        link_count = read_32bit(offset + 0x00, sf);
+        link_count = read_s32(offset + 0x00, sf);
         offset += 0x04;
         for (j = 0; j < link_count; j++) {
-            uint32_t link_id1 = (uint32_t)read_32bit(offset + 0x00, sf);
-            uint32_t link_id2 = (uint32_t)read_32bit(offset + 0x04, sf);
+            uint32_t link_id1 = read_u32(offset + 0x00, sf);
+            uint32_t link_id2 = read_u32(offset + 0x04, sf);
 
             if (link_id1 == hx->cuuid1 && link_id2 == hx->cuuid2) {
                 is_found = 1;
@@ -175,11 +176,11 @@ static int parse_name(ubi_hx_header * hx, STREAMFILE *sf) {
             offset += 0x08;
         }
 
-        language_count = read_32bit(offset + 0x00, sf);
+        language_count = read_s32(offset + 0x00, sf);
         offset += 0x04;
         for (j = 0; j < language_count; j++) {
-            uint32_t link_id1 = (uint32_t)read_32bit(offset + 0x08, sf);
-            uint32_t link_id2 = (uint32_t)read_32bit(offset + 0x0c, sf);
+            uint32_t link_id1 = read_u32(offset + 0x08, sf);
+            uint32_t link_id2 = read_u32(offset + 0x0c, sf);
 
             if (link_id1 == hx->cuuid1 && link_id2 == hx->cuuid2) {
                 is_found = 1;
@@ -199,10 +200,10 @@ static int parse_name(ubi_hx_header * hx, STREAMFILE *sf) {
             off_t wavres_offset = header_offset;
 
             /* parse WavRes header */
-            resclass_size = read_32bit(wavres_offset, sf);
+            resclass_size = read_u32(wavres_offset, sf);
             wavres_offset += 0x04 + resclass_size + 0x08 + 0x04; /* skip class + cuiid + flags */
 
-            internal_size = read_32bit(wavres_offset + 0x00, sf);
+            internal_size = read_u32(wavres_offset + 0x00, sf);
             /* Xbox has some kind of big size and "flags" has a value of 2, instead of 3/4 like other platforms */
             if (strcmp(class_name, "CXBoxWavResData") == 0 && internal_size > 0x100)
                 return 1;
@@ -227,9 +228,10 @@ fail:
 
 
 /* parse a single known header resource at offset */
-static int parse_header(ubi_hx_header * hx, STREAMFILE *sf, off_t offset, size_t size, int index)  {
-    int32_t (*read_32bit)(off_t,STREAMFILE*) = hx->big_endian ? read_32bitBE : read_32bitLE;
-    int16_t (*read_16bit)(off_t,STREAMFILE*) = hx->big_endian ? read_16bitBE : read_16bitLE;
+static int parse_header(ubi_hx_header* hx, STREAMFILE* sf, off_t offset, size_t size, int index)  {
+    uint32_t (*read_u32)(off_t,STREAMFILE*) = hx->big_endian ? read_u32be : read_u32le;
+    int32_t (*read_s32)(off_t,STREAMFILE*) = hx->big_endian ? read_s32be : read_s32le;
+    uint16_t (*read_u16)(off_t,STREAMFILE*) = hx->big_endian ? read_u16be : read_u16le;
     off_t riff_offset, riff_size, chunk_offset, stream_adjust = 0, resource_size;
     size_t chunk_size;
     int cue_flag = 0;
@@ -242,24 +244,28 @@ static int parse_header(ubi_hx_header * hx, STREAMFILE *sf, off_t offset, size_t
     hx->header_offset   = offset;
     hx->header_size     = size;
 
-    hx->class_size = read_32bit(offset + 0x00, sf);
+    hx->class_size = read_u32(offset + 0x00, sf);
     if (hx->class_size > sizeof(hx->class_name)+1) goto fail;
     read_string(hx->class_name,hx->class_size+1, offset + 0x04, sf);
     offset += 0x04 + hx->class_size;
 
-    hx->cuuid1  = (uint32_t)read_32bit(offset + 0x00, sf);
-    hx->cuuid2  = (uint32_t)read_32bit(offset + 0x04, sf);
+    hx->cuuid1  = read_u32(offset + 0x00, sf);
+    hx->cuuid2  = read_u32(offset + 0x04, sf);
     offset += 0x08;
 
     if (strcmp(hx->class_name, "CPCWaveFileIdObj") == 0 ||
         strcmp(hx->class_name, "CPS2WaveFileIdObj") == 0 ||
         strcmp(hx->class_name, "CGCWaveFileIdObj") == 0 ||
         strcmp(hx->class_name, "CXBoxWaveFileIdObj") == 0) {
-        uint32_t flag_type = read_32bit(offset + 0x00, sf);
+        uint32_t flag_type = read_u32(offset + 0x00, sf);
 
         if (flag_type == 0x01 || flag_type == 0x02) { /* Rayman Arena */
-            if (read_32bit(offset + 0x04, sf) != 0x00) goto fail;
-            hx->stream_mode = read_32bit(offset + 0x08, sf); /* flag: 0=internal, 1=external */
+            uint32_t unk_value = read_u32(offset + 0x04, sf);
+            if (unk_value != 0x00 &&        /* common */
+                unk_value != 0xbe570a3d &&  /* Largo Winch: Empire Under Threat (PC)-most */
+                unk_value != 0xbf8e147b)    /* Largo Winch: Empire Under Threat (PC)-few */
+                goto fail;
+            hx->stream_mode = read_u32(offset + 0x08, sf); /* flag: 0=internal, 1=external */
             /* 0x0c: flag: 0=static, 1=stream */
             offset += 0x10;
         }
@@ -268,12 +274,12 @@ static int parse_header(ubi_hx_header * hx, STREAMFILE *sf, off_t offset, size_t
             offset += 0x08;
 
             if (strcmp(hx->class_name, "CGCWaveFileIdObj") == 0) {
-                if (read_32bit(offset + 0x00, sf) != read_32bit(offset + 0x04, sf)) goto fail; /* meaning? */
-                hx->stream_mode = read_32bit(offset + 0x04, sf);
+                if (read_u32(offset + 0x00, sf) != read_u32(offset + 0x04, sf)) goto fail; /* meaning? */
+                hx->stream_mode = read_u32(offset + 0x04, sf);
                 offset += 0x08;
             }
             else {
-                hx->stream_mode = read_8bit(offset, sf);
+                hx->stream_mode = read_u8(offset, sf);
                 offset += 0x01;
             }
         }
@@ -284,7 +290,7 @@ static int parse_header(ubi_hx_header * hx, STREAMFILE *sf, off_t offset, size_t
 
         /* get bizarro adjust (found in XIII external files) */
         if (hx->stream_mode == 0x0a) {
-            stream_adjust = read_32bit(offset, sf); /* what */
+            stream_adjust = read_u32(offset, sf); /* what */
             offset += 0x04;
         }
 
@@ -292,66 +298,71 @@ static int parse_header(ubi_hx_header * hx, STREAMFILE *sf, off_t offset, size_t
         switch(hx->stream_mode) {
             case 0x00: /* memory (internal file) */
                 riff_offset = offset;
-                riff_size   = read_32bit(riff_offset + 0x04, sf) + 0x08;
+                riff_size   = read_u32(riff_offset + 0x04, sf) + 0x08;
                 break;
 
             case 0x01: /* static (smaller external file) */
             case 0x03: /* stream (bigger external file) */
             case 0x07: /* static? */
             case 0x0a: /* static? */
-                resource_size = read_32bit(offset + 0x00, sf);
+                resource_size = read_u32(offset + 0x00, sf);
                 if (resource_size > sizeof(hx->resource_name)+1) goto fail;
                 read_string(hx->resource_name,resource_size+1, offset + 0x04, sf);
 
                 riff_offset = offset + 0x04 + resource_size;
-                riff_size   = read_32bit(riff_offset + 0x04, sf) + 0x08;
+                riff_size   = read_u32(riff_offset + 0x04, sf) + 0x08;
 
                 hx->is_external = 1;
                 break;
 
             default:
+                VGM_LOG("UBI HX: %x\n", hx->stream_mode);
                 goto fail;
         }
 
-
         /* parse pseudo-RIFF "fmt" */
-        if (read_32bit(riff_offset, sf) != 0x46464952) /* "RIFF" in machine endianness */
+        if (read_u32(riff_offset, sf) != 0x46464952) /* "RIFF" in machine endianness */
             goto fail;
 
-        hx->codec_id = read_16bit(riff_offset + 0x14 , sf);
+        hx->codec_id = read_u16(riff_offset + 0x14 , sf);
         switch(hx->codec_id) {
             case 0x01: hx->codec = PCM; break;
             case 0x02: hx->codec = UBI; break;
             case 0x03: hx->codec = PSX; break;
             case 0x04: hx->codec = DSP; break;
             case 0x05: hx->codec = XIMA; break;
+            case 0x55: hx->codec = MP3; break;  /* Largo Winch: Empire Under Threat (PC) */
             default: 
-                VGM_LOG("UBI HX: unknown codec %i\n", hx->codec_id);
+                VGM_LOG("UBI HX: unknown codec %x\n", hx->codec_id);
                 goto fail;
         }
-        hx->channels    = read_16bit(riff_offset + 0x16, sf);
-        hx->sample_rate = read_32bit(riff_offset + 0x18, sf);
+        hx->channels    = read_u16(riff_offset + 0x16, sf);
+        hx->sample_rate = read_u32(riff_offset + 0x18, sf);
 
         /* find "datx" (external) or "data" (internal) also in machine endianness */
         if (hx->is_external) {
+
             if (find_chunk_riff_ve(sf, 0x78746164,riff_offset + 0x0c,riff_size - 0x0c, &chunk_offset,NULL, hx->big_endian)) {
-                hx->stream_size     = read_32bit(chunk_offset + 0x00, sf);
-                hx->stream_offset   = read_32bit(chunk_offset + 0x04, sf) + stream_adjust;
+                hx->stream_size     = read_u32(chunk_offset + 0x00, sf);
+                hx->stream_offset   = read_u32(chunk_offset + 0x04, sf) + stream_adjust;
             }
             else if ((flag_type == 0x01 || flag_type == 0x02) && /* Rayman M (not Arena) uses "data" instead */
                     find_chunk_riff_ve(sf, 0x61746164,riff_offset + 0x0c,riff_size - 0x0c, &chunk_offset,&chunk_size, hx->big_endian)) {
                 hx->stream_size     = chunk_size;
-                hx->stream_offset   = read_32bit(chunk_offset + 0x00, sf) + stream_adjust;
+                hx->stream_offset   = read_u32(chunk_offset + 0x00, sf) + stream_adjust;
             }
             else {
                 goto fail;
             }
         }
         else {
-            if (!find_chunk_riff_ve(sf, 0x61746164,riff_offset + 0x0c,riff_size - 0x0c, &chunk_offset,NULL, hx->big_endian))
+            if (!find_chunk_riff_ve(sf, 0x61746164,riff_offset + 0x0c,riff_size - 0x0c, &chunk_offset,&chunk_size, hx->big_endian))
                 goto fail;
             hx->stream_offset   = chunk_offset;
-            hx->stream_size     = riff_size - (chunk_offset - riff_offset);
+
+            if (chunk_size >  riff_size - (chunk_offset - riff_offset) || !chunk_size)
+                chunk_size = riff_size - (chunk_offset - riff_offset); /* just in case */
+            hx->stream_size     = chunk_size;
         }
 
         /* can contain other RIFF stuff like "cue ", "labl" and "ump3"
@@ -362,13 +373,13 @@ static int parse_header(ubi_hx_header * hx, STREAMFILE *sf, off_t offset, size_t
              strcmp(hx->class_name, "CPS3StaticAC3WaveFileIdObj") == 0 ||
              strcmp(hx->class_name, "CPS3StreamAC3WaveFileIdObj") == 0) {
 
-        hx->stream_offset   = read_32bit(offset + 0x00, sf);
-        hx->stream_size     = read_32bit(offset + 0x04, sf);
+        hx->stream_offset   = read_u32(offset + 0x00, sf);
+        hx->stream_size     = read_u32(offset + 0x04, sf);
         offset += 0x08;
 
         //todo some dummy files have 0 size
 
-        if (read_32bit(offset + 0x00, sf) != 0x01) goto fail;
+        if (read_u32(offset + 0x00, sf) != 0x01) goto fail;
         /* 0x04: some kind of parent id shared by multiple Waves, or 0 */
         offset += 0x08;
 
@@ -385,27 +396,27 @@ static int parse_header(ubi_hx_header * hx, STREAMFILE *sf, off_t offset, size_t
                 case 0x90: hx->channels = 2; break;
                 default: goto fail;
             }
-            hx->sample_rate = (uint16_t)(read_16bit(offset + 0x02, sf) & 0x7FFF) << 1;  /* ??? */
-            cue_flag        = (uint8_t) read_8bit (offset + 0x03, sf) & (1<<7);
+            hx->sample_rate = (read_u16(offset + 0x02, sf) & 0x7FFFu) << 1u;  /* ??? */
+            cue_flag        = read_u8(offset + 0x03, sf) & (1<<7);
             offset += 0x04;
         }
         else if ((strcmp(hx->class_name, "CXBoxStaticHWWaveFileIdObj") == 0 ||
                   strcmp(hx->class_name, "CXBoxStreamHWWaveFileIdObj") == 0) && hx->big_endian) {
             /* fake fmt chunk */
             hx->codec       = XMA2;
-            hx->channels    = (uint16_t)read_16bit(offset + 0x02, sf);
-            hx->sample_rate = read_32bit(offset + 0x04, sf);
-            hx->num_samples = read_32bit(offset + 0x18, sf) / 0x02 / hx->channels;
-            cue_flag        = read_32bit(offset + 0x34, sf);
+            hx->channels    = read_u16(offset + 0x02, sf);
+            hx->sample_rate = read_u32(offset + 0x04, sf);
+            hx->num_samples = read_s32(offset + 0x18, sf) / 0x02 / hx->channels;
+            cue_flag        = read_u32(offset + 0x34, sf);
             offset += 0x38;
         }
         else {
             /* MSFC header */
             hx->codec       = ATRAC3;
-            hx->codec_id    = read_32bit(offset + 0x04, sf);
-            hx->channels    = read_32bit(offset + 0x08, sf);
-            hx->sample_rate = read_32bit(offset + 0x10, sf);
-            cue_flag        = read_32bit(offset + 0x40, sf);
+            hx->codec_id    = read_u32(offset + 0x04, sf);
+            hx->channels    = read_u32(offset + 0x08, sf);
+            hx->sample_rate = read_u32(offset + 0x10, sf);
+            cue_flag        = read_u32(offset + 0x40, sf);
             offset += 0x44;
         }
 
@@ -413,11 +424,11 @@ static int parse_header(ubi_hx_header * hx, STREAMFILE *sf, off_t offset, size_t
         if (cue_flag) {
             int j;
 
-            size_t cue_count = read_32bit(offset, sf);
+            size_t cue_count = read_s32(offset, sf);
             offset += 0x04;
             for (j = 0; j < cue_count; j++) {
                 /* 0x00: id? */
-                size_t description_size = read_32bit(offset + 0x04, sf); /* for next string */
+                size_t description_size = read_u32(offset + 0x04, sf); /* for next string */
                 offset += 0x08 + description_size;
             }
         }
@@ -427,7 +438,7 @@ static int parse_header(ubi_hx_header * hx, STREAMFILE *sf, off_t offset, size_t
             case 0x01: /* static (smaller external file) */
             case 0x03: /* stream (bigger external file) */
             case 0x07: /* stream? */
-                resource_size = read_32bit(offset + 0x00, sf);
+                resource_size = read_u32(offset + 0x00, sf);
                 if (resource_size > sizeof(hx->resource_name)+1) goto fail;
                 read_string(hx->resource_name,resource_size+1, offset + 0x04, sf);
 
@@ -450,22 +461,23 @@ fail:
 
 
 /* parse a bank index and its possible audio headers (some info from Droolie's .bms) */
-static int parse_hx(ubi_hx_header * hx, STREAMFILE *sf, int target_subsong) {
-    int32_t (*read_32bit)(off_t,STREAMFILE*) = hx->big_endian ? read_32bitBE : read_32bitLE;
+static int parse_hx(ubi_hx_header* hx, STREAMFILE* sf, int target_subsong) {
+    uint32_t (*read_u32)(off_t,STREAMFILE*) = hx->big_endian ? read_u32be : read_u32le;
+    int32_t (*read_s32)(off_t,STREAMFILE*) = hx->big_endian ? read_s32be : read_s32le;
     off_t index_offset, offset;
     int i, index_entries;
     char class_name[255];
 
 
-    index_offset = read_32bit(0x00, sf);
-    if (read_32bit(index_offset + 0x00, sf) != 0x58444E49) /* "XDNI" (INDX in given endianness) */
+    index_offset = read_u32(0x00, sf);
+    if (read_u32(index_offset + 0x00, sf) != 0x58444E49) /* "XDNI" (INDX in given endianness) */
         goto fail;
-    if (read_32bit(index_offset + 0x04, sf) != 0x02) /* type? */
+    if (read_u32(index_offset + 0x04, sf) != 0x02) /* type? */
         goto fail;
 
     if (target_subsong == 0) target_subsong = 1;
 
-    index_entries = read_32bit(index_offset + 0x08, sf);
+    index_entries = read_s32(index_offset + 0x08, sf);
     offset = index_offset + 0x0c;
     for (i = 0; i < index_entries; i++) {
         off_t header_offset;
@@ -476,19 +488,19 @@ static int parse_hx(ubi_hx_header * hx, STREAMFILE *sf, int target_subsong) {
 
         /* parse index entries: offset to actual header plus some extra info also in the header */
 
-        class_size = read_32bit(offset + 0x00, sf);
+        class_size = read_u32(offset + 0x00, sf);
         if (class_size > sizeof(class_name)+1) goto fail;
 
         read_string(class_name,class_size+1, offset + 0x04, sf); /* not null-terminated */
         offset += 0x04 + class_size;
 
         /* 0x00: id1+2 */
-        header_offset = read_32bit(offset + 0x08, sf);
-        header_size   = read_32bit(offset + 0x0c, sf);
+        header_offset = read_u32(offset + 0x08, sf);
+        header_size   = read_u32(offset + 0x0c, sf);
         offset += 0x10;
 
         /* not seen */
-        unknown_count = read_32bit(offset + 0x00, sf);
+        unknown_count = read_s32(offset + 0x00, sf);
         if (unknown_count != 0) {
             VGM_LOG("UBI HX: found unknown near %lx\n", offset);
             goto fail;
@@ -496,18 +508,18 @@ static int parse_hx(ubi_hx_header * hx, STREAMFILE *sf, int target_subsong) {
         offset += 0x04;
 
         /* ids that this object directly points to (ex. Event > Random) */
-        link_count = read_32bit(offset + 0x00, sf);
+        link_count = read_s32(offset + 0x00, sf);
         offset += 0x04 + 0x08 * link_count;
 
         /* localized id list of WavRes (can use this list instead of the prev one) */
-        language_count = read_32bit(offset + 0x00, sf);
+        language_count = read_s32(offset + 0x00, sf);
         offset += 0x04;
         for (j = 0; j < language_count; j++) {
             /* 0x00: lang code, in reverse endianness: "en  ", "fr  ", etc */
             /* 0x04: possibly count of ids for this lang */
             /* 0x08: id1+2 */
 
-            if (read_32bit(offset + 0x04, sf) != 1) {
+            if (read_u32(offset + 0x04, sf) != 1) {
                 VGM_LOG("UBI HX: wrong lang count near %lx\n", offset);
                 goto fail; /* WavRes doesn't have this field */
             }
@@ -575,39 +587,39 @@ fail:
 }
 
 
-static STREAMFILE * open_hx_streamfile(ubi_hx_header *hx, STREAMFILE *sf) {
-    STREAMFILE *streamData = NULL;
+static STREAMFILE* open_hx_streamfile(ubi_hx_header* hx, STREAMFILE* sf) {
+    STREAMFILE* sb = NULL;
 
 
     if (!hx->is_external)
         return NULL;
 
-    streamData = open_streamfile_by_filename(sf, hx->resource_name);
-    if (streamData == NULL) {
+    sb = open_streamfile_by_filename(sf, hx->resource_name);
+    if (sb == NULL) {
         VGM_LOG("UBI HX: external stream '%s' not found\n", hx->resource_name);
         goto fail;
     }
 
     /* streams often have a "RIFF" with "fmt" and "data" but stream offset/size is already adjusted to skip them */
 
-    return streamData;
+    return sb;
 fail:
     return NULL;
 }
 
-static VGMSTREAM * init_vgmstream_ubi_hx_header(ubi_hx_header *hx, STREAMFILE *streamFile) {
-    STREAMFILE *streamTemp = NULL;
-    STREAMFILE *streamData = NULL;
+static VGMSTREAM* init_vgmstream_ubi_hx_header(ubi_hx_header* hx, STREAMFILE* sf) {
+    STREAMFILE* temp_sf = NULL;
+    STREAMFILE* sb = NULL;
     VGMSTREAM* vgmstream = NULL;
 
 
     if (hx->is_external) {
-        streamTemp = open_hx_streamfile(hx, streamFile);
-        if (streamTemp == NULL) goto fail;
-        streamData = streamTemp;
+        temp_sf = open_hx_streamfile(hx, sf);
+        if (temp_sf == NULL) goto fail;
+        sb = temp_sf;
     }
     else {
-        streamData = streamFile;
+        sb = sf;
     }
 
 
@@ -630,7 +642,7 @@ static VGMSTREAM * init_vgmstream_ubi_hx_header(ubi_hx_header *hx, STREAMFILE *s
             break;
 
         case UBI:
-            vgmstream->codec_data = init_ubi_adpcm(streamData, hx->stream_offset, vgmstream->channels);
+            vgmstream->codec_data = init_ubi_adpcm(sb, hx->stream_offset, vgmstream->channels);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_UBI_ADPCM;
             vgmstream->layout_type = layout_none;
@@ -653,9 +665,9 @@ static VGMSTREAM * init_vgmstream_ubi_hx_header(ubi_hx_header *hx, STREAMFILE *s
             vgmstream->interleave_block_size = 0x08;
 
             /* dsp header at start offset */
-            vgmstream->num_samples = read_32bitBE(hx->stream_offset + 0x00, streamData);
-            dsp_read_coefs_be(vgmstream, streamData, hx->stream_offset + 0x1c, 0x60);
-            dsp_read_hist_be (vgmstream, streamData, hx->stream_offset + 0x40, 0x60);
+            vgmstream->num_samples = read_s32be(hx->stream_offset + 0x00, sb);
+            dsp_read_coefs_be(vgmstream, sb, hx->stream_offset + 0x1c, 0x60);
+            dsp_read_hist_be (vgmstream, sb, hx->stream_offset + 0x40, 0x60);
             hx->stream_offset += 0x60 * hx->channels;
             hx->stream_size -= 0x60 * hx->channels;
             break;
@@ -676,14 +688,14 @@ static VGMSTREAM * init_vgmstream_ubi_hx_header(ubi_hx_header *hx, STREAMFILE *s
             block_count = hx->stream_size / block_size;
 
             bytes = ffmpeg_make_riff_xma2(buf,0x200, hx->num_samples, hx->stream_size, hx->channels, hx->sample_rate, block_count, block_size);
-            vgmstream->codec_data = init_ffmpeg_header_offset(streamData, buf,bytes, hx->stream_offset,hx->stream_size);
+            vgmstream->codec_data = init_ffmpeg_header_offset(sb, buf,bytes, hx->stream_offset,hx->stream_size);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
 
             vgmstream->num_samples = hx->num_samples;
 
-            xma_fix_raw_samples_ch(vgmstream, streamData, hx->stream_offset,hx->stream_size, hx->channels, 0,0);
+            xma_fix_raw_samples_ch(vgmstream, sb, hx->stream_offset,hx->stream_size, hx->channels, 0,0);
             break;
         }
 
@@ -700,7 +712,7 @@ static VGMSTREAM * init_vgmstream_ubi_hx_header(ubi_hx_header *hx, STREAMFILE *s
 
             vgmstream->num_samples = atrac3_bytes_to_samples(hx->stream_size, block_align) - encoder_delay;
 
-            vgmstream->codec_data = init_ffmpeg_atrac3_raw(streamData, hx->stream_offset,hx->stream_size, vgmstream->num_samples,vgmstream->channels,vgmstream->sample_rate, block_align, encoder_delay);
+            vgmstream->codec_data = init_ffmpeg_atrac3_raw(sb, hx->stream_offset, hx->stream_size, vgmstream->num_samples,vgmstream->channels,vgmstream->sample_rate, block_align, encoder_delay);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
@@ -708,19 +720,34 @@ static VGMSTREAM * init_vgmstream_ubi_hx_header(ubi_hx_header *hx, STREAMFILE *s
         }
 #endif
 
+#ifdef VGM_USE_MPEG
+        case MP3: {
+            mpeg_custom_config cfg = {0};
+
+            cfg.skip_samples = 0; /* ? */
+
+            vgmstream->codec_data = init_mpeg_custom(sb, hx->stream_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_STANDARD, &cfg);
+            if (!vgmstream->codec_data) goto fail;
+            vgmstream->layout_type = layout_none;
+
+            vgmstream->num_samples = mpeg_get_samples_clean(sb, hx->stream_offset, hx->stream_size, NULL, NULL, 1);
+
+            break;
+        }
+#endif
         default:
             goto fail;
     }
 
     strcpy(vgmstream->stream_name, hx->readable_name);
 
-    if (!vgmstream_open_stream(vgmstream, streamData, hx->stream_offset))
+    if (!vgmstream_open_stream(vgmstream, sb, hx->stream_offset))
         goto fail;
-    close_streamfile(streamTemp);
+    close_streamfile(temp_sf);
     return vgmstream;
 
 fail:
-    close_streamfile(streamTemp);
+    close_streamfile(temp_sf);
     close_vgmstream(vgmstream);
     return NULL;
 }

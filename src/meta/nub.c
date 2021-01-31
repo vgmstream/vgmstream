@@ -2,18 +2,18 @@
 #include "../coding/coding.h"
 
 
-static void load_name(char *name, size_t name_size, STREAMFILE *sf, int big_endian, int total_subsongs, int target_subsong);
-static STREAMFILE* setup_nub_streamfile(STREAMFILE *sf, off_t header_offset, size_t header_size, off_t stream_offset, size_t stream_size, const char *fake_ext);
+static void load_name(char* name, size_t name_size, STREAMFILE* sf, int big_endian, int total_subsongs, int target_subsong);
+static STREAMFILE* setup_nub_streamfile(STREAMFILE *sf, off_t header_offset, size_t header_size, off_t stream_offset, size_t stream_size, const char* fake_ext);
 
 /* .nub - Namco's nuSound2 audio container */
-VGMSTREAM * init_vgmstream_nub(STREAMFILE *streamFile) {
-    VGMSTREAM *vgmstream = NULL;
-    STREAMFILE *temp_sf = NULL;
+VGMSTREAM* init_vgmstream_nub(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
+    STREAMFILE* temp_sf = NULL;
     int big_endian;
-    int total_subsongs, target_subsong = streamFile->stream_index;
+    int total_subsongs, target_subsong = sf->stream_index;
     uint32_t version, codec;
     const char* fake_ext;
-    VGMSTREAM*(*init_vgmstream_function)(STREAMFILE *) = NULL;
+    VGMSTREAM*(*init_vgmstream_function)(STREAMFILE*) = NULL;
     char name[STREAM_NAME_SIZE] = {0};
     int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
 
@@ -21,19 +21,19 @@ VGMSTREAM * init_vgmstream_nub(STREAMFILE *streamFile) {
     /* checks */
     /* .nub: standard
      * .nub2: rare [iDOLM@STER - Gravure For You (PS3)] */
-    if (!check_extensions(streamFile, "nub,nub2"))
+    if (!check_extensions(sf, "nub,nub2"))
         goto fail;
 
-    version = read_32bitBE(0x00,streamFile);
+    version = read_32bitBE(0x00,sf);
     if (version != 0x00020000 &&  /* v2.0 (rare, ex. Ridge Race 6 (X360)) */
         version != 0x00020100 &&  /* v2.1 (common) */
         version != 0x01020100)    /* same but LE (seen in PSP/PC games, except PS4) */
         goto fail;
-    if (read_32bitBE(0x04,streamFile) != 0x00000000) /* null */
+    if (read_32bitBE(0x04,sf) != 0x00000000) /* null */
         goto fail;
 
     /* sometimes LE [Soul Calibur: Broken Destiny (PSP), Tales of Vesperia (PS4) */
-    big_endian = guess_endianness32bit(0x10, streamFile);
+    big_endian = guess_endianness32bit(0x18, sf);
     if (big_endian) {
         read_32bit = read_32bitBE;
     } else{
@@ -48,11 +48,12 @@ VGMSTREAM * init_vgmstream_nub(STREAMFILE *streamFile) {
 
         /* - base header */
         /* 0x08: file id (0 = first) */
-        total_subsongs = read_32bit(0x0c, streamFile); /* .nub with 0 files do exist, and with 1 song only too */
-        data_start = read_32bit(0x10, streamFile); /* exists even with 0 files */
+        total_subsongs = read_32bit(0x0c, sf); /* .nub with 0 files do exist, and with 1 song only too */
+        data_start = read_32bit(0x10, sf); /* exists even with 0 files */
         /* 0x14: data end (may have padding) */
-        header_start = read_32bit(0x18, streamFile);
+        header_start = read_32bit(0x18, sf); /* exists even with 0 files */
         /* 0x1c: header end */
+
 
         /* probably means "header end" in v2.0 */
         if (version == 0x00020000) {
@@ -62,7 +63,7 @@ VGMSTREAM * init_vgmstream_nub(STREAMFILE *streamFile) {
         if (target_subsong == 0) target_subsong = 1;
         if (target_subsong < 0 || target_subsong > total_subsongs || total_subsongs < 1) goto fail;
 
-        offset = read_32bit(header_start + (target_subsong-1)*0x04, streamFile);
+        offset = read_32bit(header_start + (target_subsong-1)*0x04, sf);
 
         /* .nus have all headers first then all data, but extractors often just paste them together,
          * so we'll combine header+data on the fly to make them playable with existing parsers.
@@ -79,11 +80,11 @@ VGMSTREAM * init_vgmstream_nub(STREAMFILE *streamFile) {
         /* - tone header */
         /* 0x00: config? */
         /* 0x04: header id/number */
-        codec = (uint32_t)read_32bit(offset + 0x08, streamFile);
+        codec = (uint32_t)read_32bit(offset + 0x08, sf);
         /* 0x0c: null */
-        stream_size    = read_32bit(offset + 0x10, streamFile); /* 0x10 aligned */
-        stream_offset  = read_32bit(offset + 0x14, streamFile) + data_start;
-        subheader_size = read_32bit(offset + 0x18, streamFile);
+        stream_size    = read_32bit(offset + 0x10, sf); /* 0x10 aligned */
+        stream_offset  = read_32bit(offset + 0x14, sf) + data_start;
+        subheader_size = read_32bit(offset + 0x18, sf);
         /* 0x1c: extra info, size 0x10 (meaning varies but usually loop points) */
         /* rest until sub-header start looks like config/volumes/pan/etc in various floats */
 
@@ -142,13 +143,13 @@ VGMSTREAM * init_vgmstream_nub(STREAMFILE *streamFile) {
 
         //;VGM_LOG("NUB: subfile header=%lx + %x, offset=%lx + %x\n", header_offset, header_size, stream_offset, stream_size);
 
-        temp_sf = setup_nub_streamfile(streamFile, header_offset, header_size, stream_offset, stream_size, fake_ext);
+        temp_sf = setup_nub_streamfile(sf, header_offset, header_size, stream_offset, stream_size, fake_ext);
         if (!temp_sf) goto fail;
     }
 
 
     /* get names from companion file, rarely [Noby Noby Boy (PS3), Wangan Midnight Maximum Tune (AC)] */
-    load_name(name, sizeof(name), streamFile, big_endian, total_subsongs, target_subsong);
+    load_name(name, sizeof(name), sf, big_endian, total_subsongs, target_subsong);
 
 
     /* init the VGMSTREAM */
@@ -171,7 +172,7 @@ fail:
 
 /* *********************************************************** */
 
-static void load_name(char *name, size_t name_size, STREAMFILE *sf, int big_endian, int total_subsongs, int target_subsong) {
+static void load_name(char* name, size_t name_size, STREAMFILE* sf, int big_endian, int total_subsongs, int target_subsong) {
     STREAMFILE *sf_names = NULL;
     char filename[PATH_LIMIT];
     char basename[255];
@@ -215,9 +216,9 @@ done:
 }
 
 
-static STREAMFILE* setup_nub_streamfile(STREAMFILE *sf, off_t header_offset, size_t header_size, off_t stream_offset, size_t stream_size, const char *fake_ext) {
-    STREAMFILE *new_sf = NULL;
-    STREAMFILE *multi_sf[2] = {0};
+static STREAMFILE* setup_nub_streamfile(STREAMFILE* sf, off_t header_offset, size_t header_size, off_t stream_offset, size_t stream_size, const char* fake_ext) {
+    STREAMFILE* new_sf = NULL;
+    STREAMFILE* multi_sf[2] = {0};
 
     multi_sf[0] = open_wrap_streamfile(sf);
     multi_sf[0] = open_clamp_streamfile_f(multi_sf[0], header_offset, header_size);
@@ -233,8 +234,8 @@ static STREAMFILE* setup_nub_streamfile(STREAMFILE *sf, off_t header_offset, siz
 //todo could be simplified
 
 /* .nub wav - from Namco NUB archives [Ridge Racer 7 (PS3)] */
-VGMSTREAM * init_vgmstream_nub_wav(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
+VGMSTREAM* init_vgmstream_nub_wav(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
     off_t start_offset;
     int loop_flag, channel_count, sample_rate;
     size_t data_size, loop_start, loop_length;
@@ -243,12 +244,12 @@ VGMSTREAM * init_vgmstream_nub_wav(STREAMFILE *streamFile) {
 
 
     /* checks */
-    if (!check_extensions(streamFile, "wav,lwav"))
+    if (!check_extensions(sf, "wav,lwav"))
         goto fail;
-    if (read_32bitBE(0x00,streamFile) != 0x77617600) /* "wav\0" "*/
+    if (read_32bitBE(0x00,sf) != 0x77617600) /* "wav\0" "*/
         goto fail;
 
-    if (guess_endianness32bit(0x1c, streamFile)) {
+    if (guess_endianness32bit(0x1c, sf)) {
         read_32bit = read_32bitBE;
         read_16bit = read_16bitBE;
     } else {
@@ -256,18 +257,18 @@ VGMSTREAM * init_vgmstream_nub_wav(STREAMFILE *streamFile) {
         read_16bit = read_16bitLE;
     }
 
-    data_size   = read_32bit(0x14,streamFile);
+    data_size   = read_32bit(0x14,sf);
     /* info header */
-    loop_start  = read_32bit(0x20,streamFile);
-    loop_length = read_32bit(0x24,streamFile);
-    loop_flag   = read_32bit(0x28,streamFile);
+    loop_start  = read_32bit(0x20,sf);
+    loop_length = read_32bit(0x24,sf);
+    loop_flag   = read_32bit(0x28,sf);
     /* 0x2c: null */
 
     /* format header: mini "fmt" chunk */
-    if (read_16bit(0xBC + 0x00, streamFile) != 0x0001)
+    if (read_16bit(0xBC + 0x00, sf) != 0x0001)
         goto fail;
-    channel_count = read_16bit(0xBC + 0x02,streamFile);
-    sample_rate  = read_32bit(0xBC + 0x04,streamFile);
+    channel_count = read_16bit(0xBC + 0x02,sf);
+    sample_rate  = read_32bit(0xBC + 0x04,sf);
     /* 0x08: bitrate */
     /* 0x0c: block align/bps */
 
@@ -288,7 +289,7 @@ VGMSTREAM * init_vgmstream_nub_wav(STREAMFILE *streamFile) {
     vgmstream->layout_type = layout_interleave;
     vgmstream->interleave_block_size = 0x02;
 
-    if (!vgmstream_open_stream(vgmstream, streamFile, start_offset))
+    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
         goto fail;
     return vgmstream;
 
@@ -298,7 +299,7 @@ fail:
 }
 
 /* .nub vag - from Namco NUB archives [Ridge Racer 7 (PS3), Noby Noby Boy (PS3)] */
-VGMSTREAM * init_vgmstream_nub_vag(STREAMFILE *streamFile) {
+VGMSTREAM* init_vgmstream_nub_vag(STREAMFILE* sf) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset;
     int loop_flag, channel_count, sample_rate;
@@ -307,26 +308,26 @@ VGMSTREAM * init_vgmstream_nub_vag(STREAMFILE *streamFile) {
 
 
     /* checks */
-    if ( !check_extensions(streamFile, "vag"))
+    if ( !check_extensions(sf, "vag"))
         goto fail;
-    if (read_32bitBE(0x00,streamFile) != 0x76616700) /* "vag\0" */
+    if (read_32bitBE(0x00,sf) != 0x76616700) /* "vag\0" */
         goto fail;
 
-    if (guess_endianness32bit(0x1c, streamFile)) {
+    if (guess_endianness32bit(0x1c, sf)) {
         read_32bit = read_32bitBE;
     } else {
         read_32bit = read_32bitLE;
     }
 
-    data_size   = read_32bit(0x14,streamFile);
+    data_size   = read_32bit(0x14,sf);
     /* info header */
-    loop_start  = read_32bit(0x20,streamFile);
-    loop_length = read_32bit(0x24,streamFile);
-    loop_flag   = read_32bit(0x28,streamFile);
+    loop_start  = read_32bit(0x20,sf);
+    loop_length = read_32bit(0x24,sf);
+    loop_flag   = read_32bit(0x28,sf);
     /* 0x2c: null */
 
     /* format header */
-    sample_rate  = read_32bit(0xBC + 0x00,streamFile);
+    sample_rate  = read_32bit(0xBC + 0x00,sf);
 
     channel_count = 1;
     start_offset = 0xC0;
@@ -346,7 +347,7 @@ VGMSTREAM * init_vgmstream_nub_vag(STREAMFILE *streamFile) {
     vgmstream->layout_type = layout_none;
     vgmstream->allow_dual_stereo = 1;
 
-    if (!vgmstream_open_stream(vgmstream, streamFile, start_offset))
+    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
         goto fail;
     return vgmstream;
 
@@ -356,17 +357,17 @@ fail:
 }
 
 /* .nub at3 - from Namco NUB archives [Ridge Racer 7 (PS3), Katamari Forever (PS3)] */
-VGMSTREAM * init_vgmstream_nub_at3(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
-    STREAMFILE *temp_sf = NULL;
+VGMSTREAM* init_vgmstream_nub_at3(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
+    STREAMFILE* temp_sf = NULL;
     off_t subfile_offset = 0;
     size_t subfile_size = 0;
 
 
     /* checks */
-    if (!check_extensions(streamFile,"at3"))
+    if (!check_extensions(sf,"at3"))
         goto fail;
-    if (read_32bitBE(0x00,streamFile) != 0x61743300) /* "at3\0" */
+    if (read_32bitBE(0x00,sf) != 0x61743300) /* "at3\0" */
         goto fail;
 
     /* info header */
@@ -379,9 +380,9 @@ VGMSTREAM * init_vgmstream_nub_at3(STREAMFILE *streamFile) {
     /* we can just ignore and use RIFF at data start since it has the same info */
 
     subfile_offset = 0x100;
-    subfile_size   = read_32bitLE(subfile_offset + 0x04, streamFile) + 0x08; /* RIFF size */
+    subfile_size   = read_32bitLE(subfile_offset + 0x04, sf) + 0x08; /* RIFF size */
 
-    temp_sf = setup_subfile_streamfile(streamFile, subfile_offset,subfile_size, NULL);
+    temp_sf = setup_subfile_streamfile(sf, subfile_offset,subfile_size, NULL);
     if (!temp_sf) goto fail;
 
     vgmstream = init_vgmstream_riff(temp_sf);
@@ -397,8 +398,8 @@ fail:
 
 
 /* .nub xma - from Namco NUB archives [Ridge Racer 6 (X360), Tekken 6 (X360), Galaga Legions DX (X360)] */
-VGMSTREAM * init_vgmstream_nub_xma(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
+VGMSTREAM* init_vgmstream_nub_xma(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
     off_t start_offset, chunk_offset;
     size_t data_size, chunk_size, header_size;
     int loop_flag, channel_count, sample_rate, nus_codec;
@@ -406,27 +407,27 @@ VGMSTREAM * init_vgmstream_nub_xma(STREAMFILE *streamFile) {
 
 
     /* checks */
-    if (!check_extensions(streamFile,"xma"))
+    if (!check_extensions(sf,"xma"))
         goto fail;
 
-    if (read_32bitBE(0x00,streamFile) == 0x786D6100) { /* "xma\0" */
+    if (read_32bitBE(0x00,sf) == 0x786D6100) { /* "xma\0" */
         /* nub v2.1 */
-        nus_codec    = read_32bitBE(0x0C,streamFile);
-        data_size    = read_32bitBE(0x14,streamFile);
-        header_size  = read_32bitBE(0x1c,streamFile);
+        nus_codec    = read_32bitBE(0x0C,sf);
+        data_size    = read_32bitBE(0x14,sf);
+        header_size  = read_32bitBE(0x1c,sf);
         chunk_offset = 0xBC;
 
         /* info header */
         /* 0x20: null */
-        chunk_size   = read_32bitBE(0x24,streamFile);
+        chunk_size   = read_32bitBE(0x24,sf);
         /* 0x24: loop flag */
         /* 0x20: null */
     }
-    else if (read_32bitBE(0x08,streamFile) == 0 && read_32bitBE(0x0c,streamFile) == 0) {
+    else if (read_32bitBE(0x08,sf) == 0 && read_32bitBE(0x0c,sf) == 0) {
         /* nub v2.0 from Ridge Racer 6 */
-        nus_codec    = read_32bitBE(0x08,streamFile);
-        data_size    = read_32bitBE(0x10,streamFile);
-        header_size  = read_32bitBE(0x18,streamFile);
+        nus_codec    = read_32bitBE(0x08,sf);
+        data_size    = read_32bitBE(0x10,sf);
+        header_size  = read_32bitBE(0x18,sf);
         chunk_offset = 0xAC;
 
         chunk_size   = header_size;
@@ -440,7 +441,7 @@ VGMSTREAM * init_vgmstream_nub_xma(STREAMFILE *streamFile) {
     if (nus_codec == 0x00) { /* XMA1 "fmt " */
         int loop_start_b, loop_end_b, loop_subframe;
 
-        xma1_parse_fmt_chunk(streamFile, chunk_offset, &channel_count,&sample_rate, &loop_flag, &loop_start_b, &loop_end_b, &loop_subframe, 1);
+        xma1_parse_fmt_chunk(sf, chunk_offset, &channel_count,&sample_rate, &loop_flag, &loop_start_b, &loop_end_b, &loop_subframe, 1);
 
         {
             ms_sample_data msd = {0};
@@ -456,7 +457,7 @@ VGMSTREAM * init_vgmstream_nub_xma(STREAMFILE *streamFile) {
             msd.loop_end_subframe   = loop_subframe >> 4; /* upper 4b: subframe where the loop ends, 0..3 */
             msd.chunk_offset= chunk_offset;
 
-            xma_get_samples(&msd, streamFile);
+            xma_get_samples(&msd, sf);
 
             num_samples = msd.num_samples;
             loop_start_sample = msd.loop_start_sample;
@@ -464,12 +465,12 @@ VGMSTREAM * init_vgmstream_nub_xma(STREAMFILE *streamFile) {
         }
     }
     else if (nus_codec == 0x04) { /* "XMA2" */
-        xma2_parse_xma2_chunk(streamFile, chunk_offset, &channel_count,&sample_rate, &loop_flag, &num_samples, &loop_start_sample, &loop_end_sample);
+        xma2_parse_xma2_chunk(sf, chunk_offset, &channel_count,&sample_rate, &loop_flag, &num_samples, &loop_start_sample, &loop_end_sample);
     }
     else if (nus_codec == 0x08) { /* XMA2 "fmt " */
-        channel_count = read_16bitBE(chunk_offset+0x02,streamFile);
-        sample_rate   = read_32bitBE(chunk_offset+0x04,streamFile);
-        xma2_parse_fmt_chunk_extra(streamFile, chunk_offset, &loop_flag, &num_samples, &loop_start_sample, &loop_end_sample, 1);
+        channel_count = read_16bitBE(chunk_offset+0x02,sf);
+        sample_rate   = read_32bitBE(chunk_offset+0x04,sf);
+        xma2_parse_fmt_chunk_extra(sf, chunk_offset, &loop_flag, &num_samples, &loop_start_sample, &loop_end_sample, 1);
     }
     else {
         goto fail;
@@ -492,22 +493,22 @@ VGMSTREAM * init_vgmstream_nub_xma(STREAMFILE *streamFile) {
         size_t bytes;
 
         if (nus_codec == 0x04) {
-            bytes = ffmpeg_make_riff_xma2_from_xma2_chunk(buf,0x100, chunk_offset,chunk_size, data_size, streamFile);
+            bytes = ffmpeg_make_riff_xma2_from_xma2_chunk(buf,0x100, chunk_offset,chunk_size, data_size, sf);
         } else {
-            bytes = ffmpeg_make_riff_xma_from_fmt_chunk(buf,0x100, chunk_offset,chunk_size, data_size, streamFile, 1);
+            bytes = ffmpeg_make_riff_xma_from_fmt_chunk(buf,0x100, chunk_offset,chunk_size, data_size, sf, 1);
         }
-        vgmstream->codec_data = init_ffmpeg_header_offset(streamFile, buf,bytes, start_offset,data_size);
+        vgmstream->codec_data = init_ffmpeg_header_offset(sf, buf,bytes, start_offset,data_size);
         if ( !vgmstream->codec_data ) goto fail;
         vgmstream->coding_type = coding_FFmpeg;
         vgmstream->layout_type = layout_none;
 
-        xma_fix_raw_samples(vgmstream, streamFile, start_offset, data_size, chunk_offset, 1,1); /* samples needs adjustment */
+        xma_fix_raw_samples(vgmstream, sf, start_offset, data_size, chunk_offset, 1,1); /* samples needs adjustment */
     }
 #else
     goto fail;
 #endif
 
-    if ( !vgmstream_open_stream(vgmstream, streamFile, start_offset) )
+    if ( !vgmstream_open_stream(vgmstream, sf, start_offset) )
         goto fail;
     return vgmstream;
 
@@ -517,26 +518,26 @@ fail:
 }
 
 /* .nub dsp - from Namco NUB archives [Taiko no Tatsujin Wii Chou Goukanban (Wii)] */
-VGMSTREAM * init_vgmstream_nub_dsp(STREAMFILE *streamFile) {
-    VGMSTREAM *vgmstream = NULL;
-    STREAMFILE *temp_sf = NULL;
+VGMSTREAM* init_vgmstream_nub_dsp(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
+    STREAMFILE* temp_sf = NULL;
     off_t header_offset, stream_offset;
     size_t header_size, stream_size;
 
 
     /* checks */
-    if (!check_extensions(streamFile,"dsp"))
+    if (!check_extensions(sf,"dsp"))
         goto fail;
-    if (read_32bitBE(0x00,streamFile) != 0x64737000)    /* "dsp\0" */
+    if (read_32bitBE(0x00,sf) != 0x64737000)    /* "dsp\0" */
         goto fail;
 
     /* paste header+data together and pass to meta, which has loop info too */
     header_offset = 0xBC;
-    stream_size = read_32bitBE(0x14, streamFile);
-    header_size = read_32bitBE(0x1c, streamFile);
+    stream_size = read_32bitBE(0x14, sf);
+    header_size = read_32bitBE(0x1c, sf);
     stream_offset = align_size_to_block(header_offset + header_size, 0x10);
 
-    temp_sf = setup_nub_streamfile(streamFile, header_offset, header_size, stream_offset, stream_size, "dsp");
+    temp_sf = setup_nub_streamfile(sf, header_offset, header_size, stream_offset, stream_size, "dsp");
     if (!temp_sf) goto fail;
 
     vgmstream = init_vgmstream_ngc_dsp_std(temp_sf);
@@ -551,17 +552,17 @@ fail:
 }
 
 /* .nub idsp - from Namco NUB archives [Soul Calibur Legends (Wii), Sky Crawlers: Innocent Aces (Wii)] */
-VGMSTREAM * init_vgmstream_nub_idsp(STREAMFILE *streamFile) {
-    VGMSTREAM *vgmstream = NULL;
-    STREAMFILE *temp_sf = NULL;
+VGMSTREAM* init_vgmstream_nub_idsp(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
+    STREAMFILE* temp_sf = NULL;
     off_t header_offset, stream_offset;
     size_t header_size, stream_size;
 
 
     /* checks */
-    if (!check_extensions(streamFile,"idsp"))
+    if (!check_extensions(sf,"idsp"))
         goto fail;
-    if (read_32bitBE(0x00,streamFile) != 0x69647370)    /* "idsp" */
+    if (read_32bitBE(0x00,sf) != 0x69647370)    /* "idsp" */
         goto fail;
 
     /* info header */
@@ -572,11 +573,11 @@ VGMSTREAM * init_vgmstream_nub_idsp(STREAMFILE *streamFile) {
 
     /* paste header+data together and pass to meta, which has loop info too */
     header_offset = 0xBC;
-    stream_size = read_32bitBE(0x14, streamFile);
-    header_size = read_32bitBE(0x1c, streamFile);
+    stream_size = read_32bitBE(0x14, sf);
+    header_size = read_32bitBE(0x1c, sf);
     stream_offset = align_size_to_block(header_offset + header_size, 0x10);
 
-    temp_sf = setup_nub_streamfile(streamFile, header_offset, header_size, stream_offset, stream_size, "idsp");
+    temp_sf = setup_nub_streamfile(sf, header_offset, header_size, stream_offset, stream_size, "idsp");
     if (!temp_sf) goto fail;
 
     vgmstream = init_vgmstream_idsp_namco(temp_sf);
@@ -591,21 +592,21 @@ fail:
 }
 
 /* .nub is14 - from Namco NUB archives [Tales of Vesperia (PS3), Mojipittan (Wii)]  */
-VGMSTREAM * init_vgmstream_nub_is14(STREAMFILE *streamFile) {
-    VGMSTREAM *vgmstream = NULL;
-    STREAMFILE *temp_sf = NULL;
+VGMSTREAM* init_vgmstream_nub_is14(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
+    STREAMFILE* temp_sf = NULL;
     off_t header_offset, stream_offset;
     size_t header_size, stream_size, sdat_size;
     int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
 
 
     /* checks */
-    if (!check_extensions(streamFile,"is14"))
+    if (!check_extensions(sf,"is14"))
         goto fail;
-    if (read_32bitBE(0x00,streamFile) != 0x69733134) /* "is14" */
+    if (read_32bitBE(0x00,sf) != 0x69733134) /* "is14" */
         goto fail;
 
-    if (guess_endianness32bit(0x1c, streamFile)) {
+    if (guess_endianness32bit(0x1c, sf)) {
         read_32bit = read_32bitBE;
     } else{
         read_32bit = read_32bitLE;
@@ -615,16 +616,16 @@ VGMSTREAM * init_vgmstream_nub_is14(STREAMFILE *streamFile) {
 
     /* paste header+data together and pass to meta */
     header_offset = 0xBC;
-    header_size = read_32bit(0x1c, streamFile);
+    header_size = read_32bit(0x1c, sf);
 
     /* size at 0x14 is padded, find "sdat" size BE (may move around) */
-    if (!find_chunk_riff_be(streamFile, 0x73646174, 0xbc+0x0c, header_size - 0x0c, NULL, &sdat_size))
+    if (!find_chunk_riff_be(sf, 0x73646174, 0xbc+0x0c, header_size - 0x0c, NULL, &sdat_size))
         goto fail;
     stream_offset = align_size_to_block(header_offset + header_size, 0x10);
     stream_size   = sdat_size;
 
 
-    temp_sf = setup_nub_streamfile(streamFile, header_offset, header_size, stream_offset, stream_size, "bnsf");
+    temp_sf = setup_nub_streamfile(sf, header_offset, header_size, stream_offset, stream_size, "bnsf");
     if (!temp_sf) goto fail;
 
     vgmstream = init_vgmstream_bnsf(temp_sf);
