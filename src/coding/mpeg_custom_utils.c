@@ -442,8 +442,10 @@ int32_t mpeg_get_samples_clean(STREAMFILE *sf, off_t start, size_t size, size_t*
             goto fail;
 
         num_samples = size / info.frame_size * info.frame_samples;
-        loop_start = *p_loop_start / info.frame_size * info.frame_samples;
-        loop_end = *p_loop_end / info.frame_size * info.frame_samples;
+        if (p_loop_start)
+            loop_start = *p_loop_start / info.frame_size * info.frame_samples;
+        if (p_loop_end)
+            loop_end = *p_loop_end / info.frame_size * info.frame_samples;
     }
     else {
         /* VBR (or unknown) = count frames */
@@ -451,20 +453,22 @@ int32_t mpeg_get_samples_clean(STREAMFILE *sf, off_t start, size_t size, size_t*
             if (!mpeg_get_frame_info(sf, offset, &info))
                 goto fail;
 
-            if (*p_loop_start + start == offset)
+            if (p_loop_start && *p_loop_start + start == offset)
                 loop_start = num_samples;
 
             num_samples += info.frame_samples;
             offset += info.frame_size;
 
-            if (*p_loop_end + start == offset)
+            if (p_loop_end && *p_loop_end + start == offset)
                 loop_end = num_samples;
         }
     }
 
 
-    *p_loop_start = loop_start;
-    *p_loop_end = loop_end;
+    if (p_loop_start)
+        *p_loop_start = loop_start;
+    if (p_loop_end)
+        *p_loop_end = loop_end;
 
     return num_samples;
 fail:
