@@ -183,7 +183,7 @@ VGMSTREAM * init_vgmstream_rsd(STREAMFILE *sf) {
 
             switch (xma_version) {
                 case 0x03010000:
-				case 0x03030000:
+                case 0x03030000:
                     vgmstream->sample_rate = read_32bitBE(0x818, sf);
                     vgmstream->num_samples = read_32bitBE(0x824, sf);
                     block_count = read_32bitBE(0x828, sf);
