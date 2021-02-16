@@ -388,6 +388,9 @@ static const hcakey_info hcakey_list[] = {
         /* Assault Lily Last Bullet (Android) */
         {6349046567469313},         // 00168E6C99510101
 
+        /* Sakura Kakumei (iOS/Android) */
+        {382759},                   // 000000000005D727
+
         /* Dragalia Lost (iOS/Android) */
         {2967411924141,         subkeys_dgl, sizeof(subkeys_dgl) / sizeof(subkeys_dgl[0]) },    // 000002B2E7889CAD
 
