@@ -803,7 +803,8 @@ static const coding_info coding_info_list[] = {
         {coding_CIRCUS_VQ,          "Circus VQ"},
         {coding_RELIC,              "Relic Codec"},
         {coding_CRI_HCA,            "CRI HCA"},
-        
+        {coding_TAC,                "tri-Ace Codec"},
+
 #ifdef VGM_USE_VORBIS
         {coding_OGG_VORBIS,         "Ogg Vorbis"},
         {coding_VORBIS_custom,      "Custom Vorbis"},
@@ -1338,6 +1339,7 @@ static const meta_info meta_info_list[] = {
         {meta_KTAC,                 "Koei Tecmo KTAC header"},
         {meta_MJB_MJH,              "Sony MultiStream MJH+MJB header"},
         {meta_BSNF,                 "id Software BSNF header"},
+        {meta_TAC,                  "tri-Ace Codec header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {

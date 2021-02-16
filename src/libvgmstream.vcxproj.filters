@@ -251,6 +251,15 @@
     <ClInclude Include="coding\nwa_decoder.h">
       <Filter>coding\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="coding\tac_decoder_lib.h">
+      <Filter>coding\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="coding\tac_decoder_lib_data.h">
+      <Filter>coding\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="coding\tac_decoder_lib_ops.h">
+      <Filter>coding\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="layout\layout.h">
       <Filter>layout\Header Files</Filter>
     </ClInclude>
@@ -1102,6 +1111,9 @@
     <ClCompile Include="meta\ta_aac.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\tac.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\thp.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -1388,6 +1400,12 @@
       <Filter>coding\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\speex_decoder.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\tac_decoder.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\tac_decoder_lib.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\ubi_adpcm_decoder.c">

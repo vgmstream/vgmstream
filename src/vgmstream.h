@@ -193,6 +193,7 @@ typedef enum {
     coding_CIRCUS_VQ,       /* Circus VQ */
     coding_RELIC,           /* Relic Codec (DCT-based) */
     coding_CRI_HCA,         /* CRI High Compression Audio (MDCT-based) */
+    coding_TAC,             /* tri-Ace Codec (MDCT-based) */
 
 #ifdef VGM_USE_VORBIS
     coding_OGG_VORBIS,      /* Xiph Vorbis with Ogg layer (MDCT-based) */
@@ -754,6 +755,7 @@ typedef enum {
     meta_KTAC,
     meta_MJB_MJH,
     meta_BSNF,
+    meta_TAC,
 } meta_t;
 
 /* standard WAVEFORMATEXTENSIBLE speaker positions */
@@ -1048,7 +1050,7 @@ typedef struct {
     uint64_t size;              // max size within the streamfile
     uint64_t logical_offset;    // computed offset FFmpeg sees (including fake header)
     uint64_t logical_size;      // computed size FFmpeg sees (including fake header)
-    
+
     uint64_t header_size;       // fake header (parseable by FFmpeg) prepended on reads
     uint8_t* header_block;      // fake header data (ie. RIFF)
 
@@ -1061,7 +1063,7 @@ typedef struct {
     int64_t totalSamples; // estimated count (may not be accurate for some demuxers)
     int64_t skipSamples; // number of start samples that will be skipped (encoder delay), for looping adjustments
     int streamCount; // number of FFmpeg audio streams
-    
+
     /*** internal state ***/
     // config
     int channel_remap_set;
@@ -1073,7 +1075,7 @@ typedef struct {
 
     // FFmpeg context used for metadata
     AVCodec *codec;
-    
+
     // FFmpeg decoder state
     unsigned char *buffer;
     AVIOContext *ioCtx;

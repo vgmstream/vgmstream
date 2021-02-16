@@ -32,6 +32,10 @@ void free_codec(VGMSTREAM* vgmstream) {
         free_hca(vgmstream->codec_data);
     }
 
+    if (vgmstream->coding_type == coding_TAC) {
+        free_tac(vgmstream->codec_data);
+    }
+
     if (vgmstream->coding_type == coding_UBI_ADPCM) {
         free_ubi_adpcm(vgmstream->codec_data);
     }
@@ -125,8 +129,8 @@ void seek_codec(VGMSTREAM* vgmstream) {
         seek_relic(vgmstream->codec_data, vgmstream->loop_current_sample);
     }
 
-    if (vgmstream->coding_type == coding_CRI_HCA) {
-        loop_hca(vgmstream->codec_data, vgmstream->loop_current_sample);
+    if (vgmstream->coding_type == coding_TAC) {
+        seek_tac(vgmstream->codec_data, vgmstream->loop_current_sample);
     }
 
     if (vgmstream->coding_type == coding_UBI_ADPCM) {
@@ -227,8 +231,8 @@ void reset_codec(VGMSTREAM* vgmstream) {
         reset_relic(vgmstream->codec_data);
     }
 
-    if (vgmstream->coding_type == coding_CRI_HCA) {
-        reset_hca(vgmstream->codec_data);
+    if (vgmstream->coding_type == coding_TAC) {
+        reset_tac(vgmstream->codec_data);
     }
 
     if (vgmstream->coding_type == coding_UBI_ADPCM) {
@@ -509,6 +513,8 @@ int get_vgmstream_samples_per_frame(VGMSTREAM* vgmstream) {
             return 0; /* 512 */
         case coding_CRI_HCA:
             return 0; /* 1024 - delay/padding (which can be bigger than 1024) */
+        case coding_TAC:
+            return 0; /* 1024 - delay/padding */
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
         case coding_MP4_AAC:
             return ((mp4_aac_codec_data*)vgmstream->codec_data)->samples_per_frame;
@@ -705,27 +711,16 @@ int get_vgmstream_frame_size(VGMSTREAM* vgmstream) {
             return vgmstream->interleave_block_size;
         case coding_PTADPCM:
             return vgmstream->interleave_block_size;
-        case coding_UBI_ADPCM:
-            return 0; /* varies per mode? */
-        case coding_IMUSE:
-            return 0; /* varies per frame */
-        case coding_COMPRESSWAVE:
-            return 0; /* huffman bits */
-        case coding_EA_MT:
-            return 0; /* variable (frames of bit counts or PCM frames) */
-#ifdef VGM_USE_ATRAC9
-        case coding_ATRAC9:
-            return 0; /* varies with config data, usually 0x100-200 */
-#endif
-#ifdef VGM_USE_CELT
-        case coding_CELT_FSB:
-            return 0; /* varies, usually 0x80-100 */
-#endif
-#ifdef VGM_USE_SPEEX
-        case coding_SPEEX:
-            return 0; /* varies, usually 0x40-60 */
-#endif
-        default: /* Vorbis, MPEG, ACM, etc */
+        /* UBI_ADPCM: varies per mode? */
+        /* IMUSE: VBR */
+        /* EA_MT: VBR, frames of bit counts or PCM frames */
+        /* COMPRESSWAVE: VBR/huffman bits */
+        /* ATRAC9: CBR around  0x100-200 */
+        /* CELT FSB: varies, usually 0x80-100 */
+        /* SPEEX: varies, usually 0x40-60 */
+        /* TAC: VBR around ~0x200-300 */
+        /* Vorbis, MPEG, ACM, etc: varies */
+        default: /* (VBR or managed by decoder) */
             return 0;
     }
 }
@@ -1037,6 +1032,9 @@ void decode_vgmstream(VGMSTREAM* vgmstream, int samples_written, int samples_to_
             break;
         case coding_CRI_HCA:
             decode_hca(vgmstream->codec_data, buffer, samples_to_do);
+            break;
+        case coding_TAC:
+            decode_tac(vgmstream, buffer, samples_to_do);
             break;
 #ifdef VGM_USE_FFMPEG
         case coding_FFmpeg:

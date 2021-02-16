@@ -179,17 +179,16 @@ VGMSTREAM * init_vgmstream_rsd(STREAMFILE *sf) {
             /* skip mini header */
             start_offset = 0x800 + read_32bitBE(0x800, sf) + read_32bitBE(0x804, sf) + 0xc; /* assumed, seek table always at 0x800 */
             xma_size = read_32bitBE(0x808, sf);
-            xma_version = read_32bitBE(0x80C, sf);
+            xma_version = read_u8(0x80C, sf);
 
             switch (xma_version) {
-                case 0x03010000:
-                case 0x03030000:
+                case 0x03:
                     vgmstream->sample_rate = read_32bitBE(0x818, sf);
                     vgmstream->num_samples = read_32bitBE(0x824, sf);
                     block_count = read_32bitBE(0x828, sf);
                     block_size = 0x10000;
                     break;
-                case 0x04010000:
+                case 0x04:
                     vgmstream->num_samples = read_32bitBE(0x814, sf);
                     vgmstream->sample_rate = read_32bitBE(0x818, sf);
                     block_count = read_32bitBE(0x830, sf);
