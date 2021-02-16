@@ -1742,6 +1742,10 @@
                     RelativePath=".\meta\ta_aac.c"
                     >
                 </File>
+                <File
+                    RelativePath=".\meta\tac.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\thp.c"
 					>
@@ -2074,10 +2078,22 @@
                     RelativePath=".\coding\mpeg_decoder.h"
                     >
                 </File>
-				<File
-					RelativePath=".\coding\nwa_decoder.h"
-					>
-				</File>
+                <File
+                    RelativePath=".\coding\nwa_decoder.h"
+                    >
+                </File>
+                <File
+                    RelativePath=".\coding\tac_decoder_lib.h"
+                    >
+                </File>
+                <File
+                    RelativePath=".\coding\tac_decoder_lib_data.h"
+                    >
+                </File>
+                <File
+                    RelativePath=".\coding\tac_decoder_lib_ops.h"
+                    >
+                </File>
                 <File
                     RelativePath=".\coding\vorbis_bitreader.h"
                     >
@@ -2324,6 +2340,14 @@
                 </File>
                 <File
                     RelativePath=".\coding\speex_decoder.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\coding\tac_decoder.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\coding\tac_decoder_lib.c"
                     >
                 </File>
                 <File

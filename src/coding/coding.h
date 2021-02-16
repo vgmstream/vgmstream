@@ -317,6 +317,16 @@ clHCA_stInfo* hca_get_info(hca_codec_data* data);
 STREAMFILE* hca_get_streamfile(hca_codec_data* data);
 
 
+/* tac_decoder */
+typedef struct tac_codec_data tac_codec_data;
+
+tac_codec_data* init_tac(STREAMFILE* sf);
+void decode_tac(VGMSTREAM* vgmstream, sample_t* outbuf, int32_t samples_to_do);
+void reset_tac(tac_codec_data* data);
+void seek_tac(tac_codec_data* data, int32_t num_sample);
+void free_tac(tac_codec_data* data);
+
+
 #ifdef VGM_USE_VORBIS
 /* ogg_vorbis_decoder */
 typedef struct ogg_vorbis_codec_data ogg_vorbis_codec_data;

@@ -944,4 +944,6 @@ VGMSTREAM* init_vgmstream_ktac(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_mjb_mjh(STREAMFILE* sf);
 
+VGMSTREAM* init_vgmstream_tac(STREAMFILE* sf);
+
 #endif /*_META_H*/
