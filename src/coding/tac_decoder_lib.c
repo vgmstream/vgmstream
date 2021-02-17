@@ -46,6 +46,7 @@
 #define TAC_CODED_BANDS     27
 #define TAC_CODED_COEFS     32
 #define TAC_TOTAL_POINTS    32 /* not sure about this term */
+#define TAC_SCALE_TABLE_MAX_INDEX 511
 
 
 struct tac_handle_t {
@@ -66,7 +67,7 @@ struct tac_handle_t {
     int16_t codes[TAC_CHANNELS][TAC_FRAME_SAMPLES];
 
     /* decoding vector state */
-    REG_VF spectrum[TAC_FRAME_SAMPLES / 4]; /* temp huffman-to-coefs (could be stack) */
+    REG_VF spectrum[TAC_CHANNELS][TAC_FRAME_SAMPLES / 4]; /* temp huffman-to-coefs */
     REG_VF wave[TAC_CHANNELS][TAC_FRAME_SAMPLES / 4]; /* final samples, in vector form */
     REG_VF hist[TAC_CHANNELS][TAC_FRAME_SAMPLES / 4]; /* saved between frames */
 };
@@ -121,6 +122,17 @@ static void unpack_antialias(REG_VF* spectrum) {
     }
 }
 
+
+static inline int16_t clamp_s16(int16_t value, int16_t min, int16_t max) {
+    if (value < min)
+        return min;
+    else if (value > max)
+        return max;
+    else
+        return value;
+}
+
+
 /* converts 4 huffman codes to 4 spectrums coefs */
 //SUB_1188
 static void unpack_code4(REG_VF* spectrum, const REG_VF* spc1, const REG_VF* spc2, const REG_VF* code, const REG_VF* idx, int out_pos) {
@@ -170,14 +182,20 @@ static void unpack_code4(REG_VF* spectrum, const REG_VF* spc1, const REG_VF* spc
     STORE(_xyzw, spectrum, &out, out_pos);
 }
 
+
 /* Unpacks huffman codes in one band into 32 spectrum coefs, using selected scales for that band. */
 // SUB_C88
 static void unpack_band(REG_VF* spectrum, const int16_t* codes, int band_pos, int* code_pos, int out_pos) {
     const REG_VF* ST = SCALE_TABLE;
     int i;
-    int16_t base_index = codes[0]; /* vector table index, max ~35 */
-    int16_t band_index = codes[band_pos]; /* vector too */
+    int16_t base_index = codes[0]; /* table index, max ~35 */
+    int16_t band_index = codes[band_pos]; /* table too */
     REG_VF scale;
+
+    /* bad values should be caught by CRC check but for completeness */
+    base_index = clamp_s16(base_index, 0, TAC_SCALE_TABLE_MAX_INDEX);
+    band_index = clamp_s16(band_index, 0, TAC_SCALE_TABLE_MAX_INDEX-128);
+
 
     /* index zero = band is not coded and all of its coefs are 0 */
     if (band_index == 0) {
@@ -188,7 +206,7 @@ static void unpack_band(REG_VF* spectrum, const int16_t* codes, int band_pos, in
     }
 
     /* put final band scale at .y */
-    MULy (__y__, &scale, &ST[0x80 + band_index], &ST[base_index]);
+    MULy (__y__, &scale, &ST[128 + band_index], &ST[base_index]);
 
     /* unpack coefs */
     for (i = 0; i < 8; i++) {
@@ -196,12 +214,12 @@ static void unpack_band(REG_VF* spectrum, const int16_t* codes, int band_pos, in
         REG_VF spc1, spc2;
 
         COPY (_xyzw, &code, &codes[(*code_pos)]);
-       (*code_pos) += 4;
+        (*code_pos) += 4;
 
         /* scale coef then round down to int to get table indexes (!!!) */
         ABS  (_xyzw, &tm01, &code);
         MULy (_xyzw, &tm01, &tm01, &scale);
-        FMUL (_xyzw, &tm02, &tm01, 512.0);
+        FMUL (_xyzw, &tm02, &tm01, 512.0); /* 512 = SCALE_TABLE max */
         ADD  (_xyzw, &tm03, &tm02, &VECTOR_ONE);
 
         FTOI0(_xyzw, &idx, &tm02); /* keep idx as int for later (probably could use (int)f.N too) */
@@ -215,12 +233,18 @@ static void unpack_band(REG_VF* spectrum, const int16_t* codes, int band_pos, in
         SUB  (_xyzw, &spc1, &tm01, &tm02);
         SUB  (_xyzw, &spc2, &tm03, &tm02);
 
+        /* Also just in case. In rare cases index may access 511+1 but table takes this into account */
+        idx.i.x = clamp_s16(idx.i.x, 0, TAC_SCALE_TABLE_MAX_INDEX);
+        idx.i.y = clamp_s16(idx.i.y, 0, TAC_SCALE_TABLE_MAX_INDEX);
+        idx.i.z = clamp_s16(idx.i.z, 0, TAC_SCALE_TABLE_MAX_INDEX);
+        idx.i.w = clamp_s16(idx.i.w, 0, TAC_SCALE_TABLE_MAX_INDEX);
+
         unpack_code4(spectrum, &spc1, &spc2, &code, &idx, out_pos + i);
     }
 }
 
-/* Unpacks frame's huffman codes to spectrum coefs. Also done in the VU1 (uses VIFcode UNPACK V4-16
- * to copy 16b huffman codes to VU1 memory as 32b first) but simplified a bit here. */
+/* Unpacks channel's huffman codes to spectrum coefs. Also done in the VU1 (uses VIFcode UNPACK V4-16
+ * to copy 16b huffman codes to VU1 memory as 32b first) but it's simplified a bit here. */
 // SUB_6E0
 static void unpack_channel(REG_VF* spectrum, const int16_t* codes) {
     int i;
@@ -349,7 +373,7 @@ static void process(REG_VF* wave, REG_VF* hist) {
         /* WTF is going on here? Yeah, no clue. Probably some multi-step FFT/DCT twiddle thing.
          * Remember all those separate ops are left as-is to allow PS2 float simulation (disabled though).
          * Tried cleaning up some more but... */
-        ADDw (_x___, &tm10, &tm01, &tm00); 
+        ADDw (_x___, &tm10, &tm01, &tm00);
         ADDx (____w, &tm10, &tm01, &tm02);
         ADDx (____w, &tm11, &tm02, &tm03);
         ADDw (_x___, &tm12, &tm04, &tm03);
@@ -859,6 +883,18 @@ static void process(REG_VF* wave, REG_VF* hist) {
     }
 }
 
+
+/* Fix joint stereo files that only encode diffs in R (assumed, double check) */
+static void parse_joint_stereo(REG_VF* resultL, REG_VF* resultR) {
+    int i;
+
+    /* Combine OG L sample + R diff. For pseudo-mono files R is all 0s
+     * (R only saves 28 huffman codes, signalling no coefs per 1+27 bands) */
+    for (i = 0; i < TAC_TOTAL_POINTS * 8; i++) {
+        ADD  (_xyzw, &resultR[i], &resultL[i], &resultR[i]);
+    }
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 
 /* main decoding in the VU1 coprocessor */
@@ -866,18 +902,23 @@ static void decode_vu1(tac_handle_t* h) {
     int ch;
 
     for (ch = 0; ch < TAC_CHANNELS; ch++) {
-        unpack_channel(h->spectrum, h->codes[ch]);
+        unpack_channel(h->spectrum[ch], h->codes[ch]);
 
-        transform(h->wave[ch], h->spectrum);
+        transform(h->wave[ch], h->spectrum[ch]);
 
         process(h->wave[ch], h->hist[ch]);
     }
 
     /* Decoded data is originally stored in VUMem1 as clamped ints, though final step
      * seems may be done done externally (StFlushWriteBuffer/StMakeFinalOut?) */
+
+    /* this step may be outside VU1 code */
+    if (h->header.joint_stereo) {
+        parse_joint_stereo(h->wave[0], h->wave[1]);
+    }
 }
 
-/* read huffman codes for all channels */
+/* read huffman codes for all channels (max per channel 27*32 = 864 + 27 + 1 = 892) */
 static int read_codes(tac_handle_t* h, const uint8_t* ptr, uint16_t huff_flag, uint32_t huff_cfg) {
     int huff_count = 0;
     int ch;
@@ -996,14 +1037,14 @@ static uint16_t get_u16le(const uint8_t* mem) {
 
 static int init_header(tac_header_t* header, const uint8_t* buf) {
     header->huffman_offset  = get_u32le(buf+0x00);
-    header->unknown1        = get_u32le(buf+0x04);
+    header->unknown         = get_u32le(buf+0x04);
     header->loop_frame      = get_u16le(buf+0x08);
     header->loop_discard    = get_u16le(buf+0x0A);
     header->frame_count     = get_u16le(buf+0x0C);
     header->frame_discard   = get_u16le(buf+0x0E);
     header->loop_offset     = get_u32le(buf+0x10);
     header->file_size       = get_u32le(buf+0x14);
-    header->unknown2        = get_u32le(buf+0x18);
+    header->joint_stereo    = get_u32le(buf+0x18);
     header->empty           = get_u32le(buf+0x1c);
 
     /* huffman table offset should make sense */
@@ -1019,7 +1060,7 @@ static int init_header(tac_header_t* header, const uint8_t* buf) {
     if (header->loop_frame > header->frame_count || header->loop_offset > header->file_size)
         return TAC_PROCESS_HEADER_ERROR;
     /* just in case */
-    if ((header->unknown2 != 0 && header->unknown2 != 1) || header->empty != 0)
+    if ((header->joint_stereo != 0 && header->joint_stereo != 1) || header->empty != 0)
         return TAC_PROCESS_HEADER_ERROR;
 
     return TAC_PROCESS_OK;
@@ -1206,7 +1247,7 @@ void tac_get_samples_pcm16(tac_handle_t* handle, int16_t* dst) {
     int ch, i;
     int chs = TAC_CHANNELS;
 
-    for (ch = 0; ch < chs; ch++) { 
+    for (ch = 0; ch < chs; ch++) {
         int s = 0;
         for (i = 0; i < TAC_FRAME_SAMPLES / 4; i++) {
             dst[(s+0)*chs + ch] = clamp16f(handle->wave[ch][i].f.x);

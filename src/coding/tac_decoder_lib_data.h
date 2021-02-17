@@ -3,17 +3,17 @@
 
 /* VU1 register simulation, needs type conversion at times (should be optimized out by compiler). */
 typedef union {
-	struct {
-		float x,y,z,w;
-	} f;
+    struct {
+        float x,y,z,w;
+    } f;
 
-	struct {
-		uint32_t x,y,z,w;
-	} i;
+    struct {
+        uint32_t x,y,z,w;
+    } i;
 
-	float     F[4];
-	uint32_t UL[4];
-	int32_t  SL[4];
+    float     F[4];
+    uint32_t UL[4];
+    int32_t  SL[4];
     /* can access as US/SS/etc but not needed by current code */
 } _REG_VF;
 typedef _REG_VF REG_VF;
