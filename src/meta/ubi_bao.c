@@ -1327,6 +1327,27 @@ fail:
 
 /* ************************************************************************* */
 
+/* These are all of the languages that were referenced in Assassin's Creed exe (out of each platform). */
+/* Also, additional languages were referenced in Shawn White Skateboarding (X360) exe in this order, there may be more. */
+static const char* language_bao_formats[] = {
+    "English_BAO_0x%08x",
+    "French_BAO_0x%08x",
+    "Spanish_BAO_0x%08x",
+    "Polish_BAO_0x%08x",
+    "German_BAO_0x%08x",
+    "Chinese_BAO_0x%08x",
+    "Hungarian_BAO_0x%08x",
+    "Italian_BAO_0x%08x",
+    "Japanese_BAO_0x%08x",
+    "Czech_BAO_0x%08x",
+    "Korean_BAO_0x%08x",
+    "Russian_BAO_0x%08x",
+    "Dutch_BAO_0x%08x",
+    "Danish_BAO_0x%08x",
+    "Norwegian_BAO_0x%08x",
+    "Swedish_BAO_0x%08x",
+};
+
 /* opens a file BAO's companion BAO (memory or stream) */
 static STREAMFILE* open_atomic_bao(ubi_bao_file file_type, uint32_t file_id, int is_stream, STREAMFILE* sf) {
     STREAMFILE* sf_bao = NULL;
@@ -1349,72 +1370,17 @@ static STREAMFILE* open_atomic_bao(ubi_bao_file file_type, uint32_t file_id, int
                 sf_bao = open_streamfile_by_filename(sf, buf);
                 if (sf_bao) return sf_bao;
 
-                snprintf(buf,buf_size, "English_BAO_0x%08x", file_id);
-                sf_bao = open_streamfile_by_filename(sf, buf);
-                if (sf_bao) return sf_bao;
+                {
+                    int i;
+                    int count = (sizeof(language_bao_formats) / sizeof(language_bao_formats[0]));
+                    for (i = 0; i < count; i++) {
+                        const char* format = language_bao_formats[i];
 
-                snprintf(buf,buf_size, "French_BAO_0x%08x", file_id);
-                sf_bao = open_streamfile_by_filename(sf, buf);
-                if (sf_bao) return sf_bao;
-
-                snprintf(buf,buf_size, "Spanish_BAO_0x%08x", file_id);
-                sf_bao = open_streamfile_by_filename(sf, buf);
-                if (sf_bao) return sf_bao;
-                
-                snprintf(buf,buf_size, "Polish_BAO_0x%08x", file_id);
-                sf_bao = open_streamfile_by_filename(sf, buf);
-                if (sf_bao) return sf_bao;
-
-                snprintf(buf,buf_size, "German_BAO_0x%08x", file_id);
-                sf_bao = open_streamfile_by_filename(sf, buf);
-                if (sf_bao) return sf_bao;
-                
-                snprintf(buf,buf_size, "Chinese_BAO_0x%08x", file_id);
-                sf_bao = open_streamfile_by_filename(sf, buf);
-                if (sf_bao) return sf_bao;
-                
-                snprintf(buf,buf_size, "Hungarian_BAO_0x%08x", file_id);
-                sf_bao = open_streamfile_by_filename(sf, buf);
-                if (sf_bao) return sf_bao;
-
-                snprintf(buf,buf_size, "Italian_BAO_0x%08x", file_id);
-                sf_bao = open_streamfile_by_filename(sf, buf);
-                if (sf_bao) return sf_bao;
-
-                snprintf(buf,buf_size, "Japanese_BAO_0x%08x", file_id);
-                sf_bao = open_streamfile_by_filename(sf, buf);
-                if (sf_bao) return sf_bao;
-                
-                snprintf(buf,buf_size, "Czech_BAO_0x%08x", file_id);
-                sf_bao = open_streamfile_by_filename(sf, buf);
-                if (sf_bao) return sf_bao;
-
-                snprintf(buf,buf_size, "Korean_BAO_0x%08x", file_id);
-                sf_bao = open_streamfile_by_filename(sf, buf);
-                if (sf_bao) return sf_bao;
-
-                snprintf(buf,buf_size, "Russian_BAO_0x%08x", file_id);
-                sf_bao = open_streamfile_by_filename(sf, buf);
-                if (sf_bao) return sf_bao;
-
-                snprintf(buf,buf_size, "Dutch_BAO_0x%08x", file_id);
-                sf_bao = open_streamfile_by_filename(sf, buf);
-                if (sf_bao) return sf_bao;
-                
-                snprintf(buf,buf_size, "Danish_BAO_0x%08x", file_id);
-                sf_bao = open_streamfile_by_filename(sf, buf);
-                if (sf_bao) return sf_bao;
-                
-                snprintf(buf,buf_size, "Norwegian_BAO_0x%08x", file_id);
-                sf_bao = open_streamfile_by_filename(sf, buf);
-                if (sf_bao) return sf_bao;
-                
-                snprintf(buf,buf_size, "Swedish_BAO_0x%08x", file_id);
-                sf_bao = open_streamfile_by_filename(sf, buf);
-                if (sf_bao) return sf_bao;
-
-                /* these are all of the languages that were referenced in Assassin's Creed exe (out of each platform) */
-                /* also, additional languages were referenced in Shawn White Skateboarding (X360) exe in this order, there may be more */
+                        snprintf(buf,buf_size, format, file_id);
+                        sf_bao = open_streamfile_by_filename(sf, buf);
+                        if (sf_bao) return sf_bao;
+                    }
+                }
             }
             else {
                 snprintf(buf,buf_size, "BAO_0x%08x", file_id);
