@@ -129,6 +129,10 @@ void seek_codec(VGMSTREAM* vgmstream) {
         seek_relic(vgmstream->codec_data, vgmstream->loop_current_sample);
     }
 
+    if (vgmstream->coding_type == coding_CRI_HCA) {
+        loop_hca(vgmstream->codec_data, vgmstream->loop_current_sample);
+    }
+
     if (vgmstream->coding_type == coding_TAC) {
         seek_tac(vgmstream->codec_data, vgmstream->loop_current_sample);
     }
@@ -229,6 +233,10 @@ void reset_codec(VGMSTREAM* vgmstream) {
 
     if (vgmstream->coding_type == coding_RELIC) {
         reset_relic(vgmstream->codec_data);
+    }
+
+    if (vgmstream->coding_type == coding_CRI_HCA) {
+        reset_hca(vgmstream->codec_data);
     }
 
     if (vgmstream->coding_type == coding_TAC) {
