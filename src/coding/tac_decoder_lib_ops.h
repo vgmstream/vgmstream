@@ -8,8 +8,8 @@
  * registers like the ACC, and updates zero/neg/etc flags per op (plus added here a few helper ops).
  * Main reason to use them vs doing standard +*-/ in code is allowing to simulate PS2 floats.
  * See Nisto's decoder for actual emulation. */
- 
- 
+
+
 /* PS2 floats are slightly different vs IEEE 754 floats:
  * - NaN and Inf (exp 255) don't exist on the PS2, meaning it has a bigger range of floats
  * - denormals (exp 0) don't exist either, and ops truncate to 0
@@ -21,7 +21,7 @@
 
 static inline void UPDATE_FLOATS(uint8_t dest, REG_VF *vf) {
 #if TAC_ENABLE_PS2_FLOATS
-	int i;
+    int i;
 
     for (i = 0; i < 4; i++) {
         int shift = 3 - i;
@@ -44,7 +44,7 @@ static inline void UPDATE_FLOATS(uint8_t dest, REG_VF *vf) {
                         break;
                 }
             }
-        } 
+        }
     }
 #endif
 }
@@ -61,7 +61,6 @@ static inline void _DIV_INTERNAL(REG_VF *fd, const REG_VF *fs, const REG_VF *ft,
         else {
             fd->UL[from] = 0x7F7FFFFF;
         }
-        
     }
     else {
         fd->F[from] = dividend / divisor;
