@@ -135,7 +135,7 @@ VGMSTREAM* init_vgmstream_awb_memory(STREAMFILE* sf, STREAMFILE* sf_acb) {
             if (!vgmstream) goto fail;
             break;
         case ADX: /* Okami HD (PS4) */
-            vgmstream = init_vgmstream_adx(temp_sf);
+            vgmstream = init_vgmstream_adx_subkey(temp_sf, subkey);
             if (!vgmstream) goto fail;
             break;
         case VAG: /* Ukiyo no Roushi (Vita) */

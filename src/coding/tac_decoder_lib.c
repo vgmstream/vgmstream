@@ -16,8 +16,8 @@
  * container?) and handler lib may be "Csd". Looks inspired by MPEG (much simplified) with bits
  * from other codecs (per-file codebook and 1024 samples).
  *
- * Original decoder is implemented in the PS2's VU1, a coprocessor specialized in vector/SIMD and
- * parallel instructions. As VU1 works with many 128 bit registers (typically x4 floats) algorithm
+ * Original decoder is mainly implemented in the PS2's VU1, a coprocessor specialized in vector/SIMD
+ * and parallel instructions. As VU1 works with many 128 bit registers (typically x4 floats) algorithm
  * was tailored to do multiple ops at once. This code tries to simplify it into standard C to a point,
  * but keeps this vector style in main decoding to ease porting (since tables are made with SIMD in
  * mind it would need some transposing around) and for PS2 float simulation.
@@ -1053,7 +1053,7 @@ static int init_header(tac_header_t* header, const uint8_t* buf) {
     /* header size ia block-aligned (but actual size can be smaller, ex. VP 00000715) */
     if (header->file_size % TAC_BLOCK_SIZE != 0)
         return TAC_PROCESS_HEADER_ERROR;
-    /* assumed but should be ok */
+    /* loop_discard over max makes game crash, while frame_discard seems to ignore it */
     if (header->loop_discard > TAC_FRAME_SAMPLES || header->frame_discard > TAC_FRAME_SAMPLES)
         return TAC_PROCESS_HEADER_ERROR;
     /* looping makes sense */

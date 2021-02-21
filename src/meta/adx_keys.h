@@ -244,7 +244,7 @@ static const adxkey_info adxkey9_list[] = {
         {0x0000,0x1c85,0x7043, NULL,29915170},              // 0000000001C87822
 
         /* Assault Lily Last Bullet (Android) */
-        {0x0aca,0x0ef5,0x05c9, NULL,0},                     // guessed with VGAudio (possible key: 5650EF42E5 / 370725044965)
+        {0x0000,0x0000,0x0000, NULL,6349046567469313},      // 00168E6C99510101 (+ AWB subkeys)
 
 };
 

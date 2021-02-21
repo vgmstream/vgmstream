@@ -1,3 +1,4 @@
+#include <math.h>
 #include "meta.h"
 #include "../layout/layout.h"
 #include "../coding/coding.h"
