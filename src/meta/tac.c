@@ -35,7 +35,7 @@ VGMSTREAM* init_vgmstream_tac(STREAMFILE* sf) {
         goto fail;
 
     channel_count = 2; /* always stereo */
-    loop_flag = (loop_offset != stream_size);
+    loop_flag = (loop_offset != stream_size); /* actual check may be loop_frame > 0? */
     start_offset = 0;
 
 
@@ -45,8 +45,8 @@ VGMSTREAM* init_vgmstream_tac(STREAMFILE* sf) {
 
     vgmstream->meta_type = meta_TAC;
     vgmstream->sample_rate = 48000;
-    vgmstream->num_samples = frame_count * 1024 - frame_discard;
-    vgmstream->loop_start_sample = loop_frame * 1024 + loop_discard;
+    vgmstream->num_samples = frame_count * 1024 - (1024 - frame_discard);
+    vgmstream->loop_start_sample = (loop_frame - 1) * 1024 + loop_discard;
     vgmstream->loop_end_sample = vgmstream->num_samples;
 
     {

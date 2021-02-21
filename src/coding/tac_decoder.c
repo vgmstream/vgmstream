@@ -12,7 +12,7 @@ struct tac_codec_data {
     int encoder_delay;
 
     uint8_t buf[TAC_BLOCK_SIZE];
-    int read_block;
+    int feed_block;
     off_t offset;
 
     int16_t* samples;
@@ -38,7 +38,7 @@ tac_codec_data* init_tac(STREAMFILE* sf) {
     data->handle = tac_init(data->buf, bytes);
     if (!data->handle) goto fail;
 
-    data->read_block = 0; /* ok to use current block */
+    data->feed_block = 0; /* ok to use current block */
     data->offset = bytes;
     data->channels = TAC_CHANNELS;
     data->frame_samples = TAC_FRAME_SAMPLES;
@@ -66,15 +66,17 @@ static int decode_frame(tac_codec_data* data) {
     err = tac_decode_frame(data->handle, data->buf);
 
     if (err == TAC_PROCESS_NEXT_BLOCK) {
-        data->read_block = 1;
+        data->feed_block = 1;
         return 1;
     }
 
     if (err == TAC_PROCESS_DONE) {
+        VGM_LOG("TAC: process done (EOF) %i\n", err);
         goto fail; /* shouldn't reach this */
     }
     
     if (err != TAC_PROCESS_OK) {
+        VGM_LOG("TAC: process error %i\n", err);
         goto fail;
     }
 
@@ -90,10 +92,10 @@ fail:
 static int read_frame(tac_codec_data* data, STREAMFILE* sf) {
 
     /* new block must be read only when signaled by lib */
-    if (data->read_block) {
+    if (data->feed_block) {
         int bytes = read_streamfile(data->buf, data->offset, sizeof(data->buf), sf);
         data->offset += bytes;
-        data->read_block = 0;
+        data->feed_block = 0;
         if (bytes <= 0) goto fail; /* can read less that buf near EOF */
     }
 
@@ -139,7 +141,8 @@ void reset_tac(tac_codec_data* data) {
 
     tac_reset(data->handle);
 
-    data->read_block = 1;
+    data->offset = 0;
+    data->feed_block = 1;
     data->sbuf.filled = 0;
     data->samples_discard = data->encoder_delay;
 
@@ -149,20 +152,19 @@ void reset_tac(tac_codec_data* data) {
 void seek_tac(tac_codec_data* data, int32_t num_sample) {
     int32_t loop_sample;
     const tac_header_t* hdr;
-    
+
     if (!data)
         return;
 
     hdr = tac_get_header(data->handle);
 
-    loop_sample = hdr->loop_frame * TAC_FRAME_SAMPLES + hdr->loop_discard;
+    loop_sample = (hdr->loop_frame - 1) * TAC_FRAME_SAMPLES + hdr->loop_discard;
     if (loop_sample == num_sample) {
-        /* simulates original looping (that wouldn't clean codec internals) */
-        tac_set_loop(data->handle);
+        tac_set_loop(data->handle); /* direct looping */
 
         data->samples_discard = hdr->loop_discard;
         data->offset = hdr->loop_offset;
-        data->read_block = 1;
+        data->feed_block = 1;
         data->sbuf.filled = 0;
     }
     else {
@@ -170,7 +172,7 @@ void seek_tac(tac_codec_data* data, int32_t num_sample) {
 
         data->samples_discard = num_sample;
         data->offset = 0;
-        data->read_block = 1;
+        data->feed_block = 1;
         data->sbuf.filled = 0;
     }
 }
