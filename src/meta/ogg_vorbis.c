@@ -82,6 +82,20 @@ static void rpgmvo_ogg_decryption_callback(void* ptr, size_t size, size_t nmemb,
     }
 }
 
+static void at4_ogg_decryption_callback(void* ptr, size_t size, size_t nmemb, void* datasource) {
+    static const uint8_t af4_key[0x10] = {
+            0x00,0x0E,0x08,0x1E, 0x18,0x37,0x12,0x00, 0x48,0x87,0x46,0x0B, 0x9C,0x68,0xA8,0x4B
+    };
+    uint8_t *ptr8 = ptr;
+    size_t bytes_read = size * nmemb;
+    ogg_vorbis_io *io = datasource;
+    int i;
+
+    for (i = 0; i < bytes_read; i++) {
+        ptr8[i] -= af4_key[(io->offset + i) % sizeof(af4_key)];
+    }
+}
+
 
 static const uint32_t xiph_mappings[] = {
         0,
@@ -152,31 +166,34 @@ VGMSTREAM* init_vgmstream_ogg_vorbis(STREAMFILE* sf) {
     }
 
     if (is_ogg) {
-        if (read_32bitBE(0x00,sf) == 0x2c444430) { /* Psychic Software [Darkwind: War on Wheels (PC)] */
+        if (read_u32be(0x00,sf) == 0x2c444430) { /* Psychic Software [Darkwind: War on Wheels (PC)] */
             ovmi.decryption_callback = psychic_ogg_decryption_callback;
         }
-        else if (read_32bitBE(0x00,sf) == 0x4C325344) { /* "L2SD" instead of "OggS" [Lineage II Chronicle 4 (PC)] */
+        else if (read_u32be(0x00,sf) == 0x4C325344) { /* "L2SD" instead of "OggS" [Lineage II Chronicle 4 (PC)] */
             cfg.is_header_swap = 1;
             cfg.is_encrypted = 1;
         }
-        else if (read_32bitBE(0x00,sf) == 0x048686C5) { /* "OggS" XOR'ed + bitswapped [Ys VIII (PC)] */
+        else if (read_u32be(0x00,sf) == 0x048686C5) { /* "OggS" XOR'ed + bitswapped [Ys VIII (PC)] */
             cfg.key[0] = 0xF0;
             cfg.key_len = 1;
             cfg.is_nibble_swap = 1;
             cfg.is_encrypted = 1;
 
         }
-        else if (read_32bitBE(0x00,sf) == 0x00000000 && /* null instead of "OggS" [Yuppie Psycho (PC)] */
-                 read_32bitBE(0x3a,sf) == 0x4F676753) { /* "OggS" in next page */
+        else if (read_u32be(0x00,sf) == 0x00000000 && /* null instead of "OggS" [Yuppie Psycho (PC)] */
+                 read_u32be(0x3a,sf) == 0x4F676753) { /* "OggS" in next page */
             cfg.is_header_swap = 1;
             cfg.is_encrypted = 1;
         }
-        else if (read_32bitBE(0x00,sf) != 0x4F676753 && /* random(?) swap instead of "OggS" [Tobi Tsukihime (PC)] */
-                 read_32bitBE(0x3a,sf) == 0x4F676753) { /* "OggS" in next page */
+        else if (read_u32be(0x00,sf) != 0x4F676753 && /* random(?) swap instead of "OggS" [Tobi Tsukihime (PC)] */
+                 read_u32be(0x3a,sf) == 0x4F676753) { /* "OggS" in next page */
             cfg.is_header_swap = 1;
             cfg.is_encrypted = 1;
         }
-        else if (read_32bitBE(0x00,sf) == 0x4F676753) { /* "OggS" (standard) */
+        else if (read_u32be(0x00,sf) == 0x4F756F71) { /* "OggS" encrypted [Adventure Field 4 (PC)]*/
+            ovmi.decryption_callback = at4_ogg_decryption_callback;
+        }
+        else if (read_u32be(0x00,sf) == 0x4F676753) { /* "OggS" (standard) */
             ;
         }
         else {
@@ -185,13 +202,13 @@ VGMSTREAM* init_vgmstream_ogg_vorbis(STREAMFILE* sf) {
     }
 
     if (is_um3) { /* ["Ultramarine3" (???)] */
-        if (read_32bitBE(0x00,sf) != 0x4f676753) { /* "OggS" (optionally encrypted) */
+        if (read_u32be(0x00,sf) != 0x4f676753) { /* "OggS" (optionally encrypted) */
             ovmi.decryption_callback = um3_ogg_decryption_callback;
         }
     }
 
     if (is_kovs) { /* Koei Tecmo PC games */
-        if (read_32bitBE(0x00,sf) != 0x4b4f5653) { /* "KOVS" */
+        if (read_u32be(0x00,sf) != 0x4b4f5653) { /* "KOVS" */
             goto fail;
         }
         ovmi.loop_start = read_32bitLE(0x08,sf);
@@ -203,7 +220,7 @@ VGMSTREAM* init_vgmstream_ogg_vorbis(STREAMFILE* sf) {
     }
 
     if (is_sngw) { /* [Capcom's MT Framework PC games] */
-        if (read_32bitBE(0x00,sf) != 0x4f676753) { /* "OggS" (optionally encrypted) */
+        if (read_u32be(0x00,sf) != 0x4f676753) { /* "OggS" (optionally encrypted) */
             cfg.key_len = read_streamfile(cfg.key, 0x00, 0x04, sf);
             cfg.is_header_swap = 1;
             cfg.is_nibble_swap = 1;
@@ -217,7 +234,7 @@ VGMSTREAM* init_vgmstream_ogg_vorbis(STREAMFILE* sf) {
         const char *isl_name = NULL;
 
         /* check various encrypted "OggS" values */
-        if (read_32bitBE(0x00,sf) == 0xAF678753) { /* Azure Striker Gunvolt (PC) */
+        if (read_u32be(0x00,sf) == 0xAF678753) { /* Azure Striker Gunvolt (PC) */
             static const uint8_t isd_gv_key[16] = {
                     0xe0,0x00,0xe0,0x00,0xa0,0x00,0x00,0x00,0xe0,0x00,0xe0,0x80,0x40,0x40,0x40,0x00
             };
@@ -225,7 +242,7 @@ VGMSTREAM* init_vgmstream_ogg_vorbis(STREAMFILE* sf) {
             memcpy(cfg.key, isd_gv_key, cfg.key_len);
             isl_name = "GV_steam.isl";
         }
-        else if (read_32bitBE(0x00,sf) == 0x0FE787D3) { /* Mighty Gunvolt (PC) */
+        else if (read_u32be(0x00,sf) == 0x0FE787D3) { /* Mighty Gunvolt (PC) */
             static const uint8_t isd_mgv_key[120] = {
                     0x40,0x80,0xE0,0x80,0x40,0x40,0xA0,0x00,0xA0,0x40,0x00,0x80,0x00,0x40,0xA0,0x00,
                     0xC0,0x40,0xE0,0x00,0x60,0x40,0x80,0x00,0xA0,0x00,0xE0,0x00,0x60,0x40,0xC0,0x00,
@@ -240,7 +257,7 @@ VGMSTREAM* init_vgmstream_ogg_vorbis(STREAMFILE* sf) {
             memcpy(cfg.key, isd_mgv_key, cfg.key_len);
             isl_name = "MGV_steam.isl";
         }
-        else if (read_32bitBE(0x00,sf) == 0x0FA74753) { /* Blaster Master Zero (PC) */
+        else if (read_u32be(0x00,sf) == 0x0FA74753) { /* Blaster Master Zero (PC) */
             static const uint8_t isd_bmz_key[120] = {
                     0x40,0xC0,0x20,0x00,0x40,0xC0,0xC0,0x00,0x00,0x80,0xE0,0x80,0x80,0x40,0x20,0x00,
                     0x60,0xC0,0xC0,0x00,0xA0,0x80,0x60,0x00,0x40,0x40,0x20,0x00,0x60,0x40,0xC0,0x00,
@@ -374,7 +391,7 @@ VGMSTREAM* init_vgmstream_ogg_vorbis(STREAMFILE* sf) {
         uint32_t xor_be;
 
         put_32bitLE(key, (uint32_t)file_size);
-        xor_be = (uint32_t)get_32bitBE(key);
+        xor_be = get_u32be(key);
         if ((read_32bitBE(0x00,sf) ^ xor_be) == 0x4F676753) { /* "OggS" */
             int i;
             cfg.key_len = 4;
