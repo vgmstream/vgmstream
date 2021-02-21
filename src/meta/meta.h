@@ -6,7 +6,8 @@
 VGMSTREAM* init_vgmstream_silence(int channels, int sample_rate, int32_t num_samples);
 
 
-VGMSTREAM * init_vgmstream_adx(STREAMFILE *streamFile);
+VGMSTREAM* init_vgmstream_adx(STREAMFILE* sf);
+VGMSTREAM* init_vgmstream_adx_subkey(STREAMFILE* sf, uint16_t subkey);
 
 VGMSTREAM * init_vgmstream_afc(STREAMFILE *streamFile);
 
