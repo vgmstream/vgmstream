@@ -3,17 +3,17 @@
 #include "../coding/coding.h"
 
 
-static int xa_read_subsongs(STREAMFILE *sf, int target_subsong, off_t start, uint16_t *p_stream_config, off_t *p_stream_offset, size_t *p_stream_size, int *p_form2);
-static int xa_check_format(STREAMFILE *sf, off_t offset, int is_blocked);
+static int xa_read_subsongs(STREAMFILE* sf, int target_subsong, off_t start, uint16_t* p_stream_config, off_t* p_stream_offset, size_t* p_stream_size, int* p_form2);
+static int xa_check_format(STREAMFILE* sf, off_t offset, int is_blocked);
 
 /* XA - from Sony PS1 and Philips CD-i CD audio, also Saturn streams */
-VGMSTREAM * init_vgmstream_xa(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
+VGMSTREAM* init_vgmstream_xa(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
     off_t start_offset;
-    int loop_flag = 0, channel_count, sample_rate;
+    int loop_flag = 0, channels, sample_rate, bps;
     int is_riff = 0, is_blocked = 0, is_form2 = 0;
     size_t stream_size = 0;
-    int total_subsongs = 0, target_subsong = streamFile->stream_index;
+    int total_subsongs = 0, target_subsong = sf->stream_index;
     uint16_t target_config = 0;
 
 
@@ -23,26 +23,27 @@ VGMSTREAM * init_vgmstream_xa(STREAMFILE *streamFile) {
      * .str: often videos and sometimes speech/music
      * .adp: Phantasy Star Collection (SAT) raw XA
      * .pxa: Mortal Kombat 4 (PS1)
+     * .grn: Micro Machines (CDi)
      * (extensionless): bigfiles [Castlevania: Symphony of the Night (PS1)] */
-    if (!check_extensions(streamFile,"xa,str,adp,pxa,"))
+    if (!check_extensions(sf,"xa,str,adp,pxa,grn,"))
         goto fail;
 
     /* Proper XA comes in raw (BIN 2352 mode2/form2) CD sectors, that contain XA subheaders.
      * Also has minimal support for headerless (ISO 2048 mode1/data) mode. */
 
     /* check RIFF header = raw (optional, added when ripping and not part of the CD data) */
-    if (read_u32be(0x00,streamFile) == 0x52494646 &&  /* "RIFF" */
-        read_u32be(0x08,streamFile) == 0x43445841 &&  /* "CDXA" */
-        read_u32be(0x0C,streamFile) == 0x666D7420) {  /* "fmt " */
+    if (read_u32be(0x00,sf) == 0x52494646 &&  /* "RIFF" */
+        read_u32be(0x08,sf) == 0x43445841 &&  /* "CDXA" */
+        read_u32be(0x0C,sf) == 0x666D7420) {  /* "fmt " */
         is_blocked = 1;
         is_riff = 1;
         start_offset = 0x2c; /* after "data", ignore RIFF values as often are wrong */
     }
     else {
         /* sector sync word = raw */
-        if (read_u32be(0x00,streamFile) == 0x00FFFFFF &&
-            read_u32be(0x04,streamFile) == 0xFFFFFFFF &&
-            read_u32be(0x08,streamFile) == 0xFFFFFF00) {
+        if (read_u32be(0x00,sf) == 0x00FFFFFF &&
+            read_u32be(0x04,sf) == 0xFFFFFFFF &&
+            read_u32be(0x08,sf) == 0xFFFFFF00) {
             is_blocked = 1;
             start_offset = 0x00;
         }
@@ -53,26 +54,26 @@ VGMSTREAM * init_vgmstream_xa(STREAMFILE *streamFile) {
     }
 
     /* test for XA data, since format is raw-ish (with RIFF it's assumed to be ok) */
-    if (!is_riff && !xa_check_format(streamFile, start_offset, is_blocked))
+    if (!is_riff && !xa_check_format(sf, start_offset, is_blocked))
        goto fail;
 
     /* find subsongs as XA can interleave sectors using 'file' and 'channel' makers (see blocked_xa.c) */
     if (/*!is_riff &&*/ is_blocked) {
-        total_subsongs = xa_read_subsongs(streamFile, target_subsong, start_offset, &target_config, &start_offset, &stream_size, &is_form2);
+        total_subsongs = xa_read_subsongs(sf, target_subsong, start_offset, &target_config, &start_offset, &stream_size, &is_form2);
         if (total_subsongs <= 0) goto fail;
     }
     else {
-        stream_size = get_streamfile_size(streamFile) - start_offset;
+        stream_size = get_streamfile_size(sf) - start_offset;
     }
 
     /* data is ok: parse header */
     if (is_blocked) {
         /* parse 0x18 sector header (also see blocked_xa.c)  */
-        uint8_t xa_header = read_u8(start_offset + 0x13,streamFile);
+        uint8_t xa_header = read_u8(start_offset + 0x13,sf);
 
         switch((xa_header >> 0) & 3) { /* 0..1: mono/stereo */
-            case 0: channel_count = 1; break;
-            case 1: channel_count = 2; break;
+            case 0: channels = 1; break;
+            case 1: channels = 2; break;
             default: goto fail;
         }
         switch((xa_header >> 2) & 3) { /* 2..3: sample rate */
@@ -80,11 +81,10 @@ VGMSTREAM * init_vgmstream_xa(STREAMFILE *streamFile) {
             case 1: sample_rate = 18900; break;
             default: goto fail;
         }
-        switch((xa_header >> 4) & 3) { /* 4..5: bits per sample (0=4-bit ADPCM, 1=8-bit ADPCM) */
-            case 0: break;
-            default: /* PS1 games only do 4-bit */
-                VGM_LOG("XA: unknown bits per sample found\n");
-                goto fail;
+        switch((xa_header >> 4) & 3) { /* 4..5: bits per sample */
+            case 0: bps = 4; break; /* PS1 games only do 4-bit ADPCM */
+            case 1: bps = 8; break; /* Micro Machines (CDi) */
+            default: goto fail;
         }
         switch((xa_header >> 6) & 1) { /* 6: emphasis (applies a filter) */
             case 0: break;
@@ -101,38 +101,44 @@ VGMSTREAM * init_vgmstream_xa(STREAMFILE *streamFile) {
     }
     else {
         /* headerless */
-        if (check_extensions(streamFile,"adp")) {
+        if (check_extensions(sf,"adp")) {
             /* Phantasy Star Collection (SAT) raw files */
             /* most are stereo, though a few (mainly sfx banks, sometimes using .bin) are mono */
 
             char filename[PATH_LIMIT] = {0};
-            get_streamfile_filename(streamFile, filename,PATH_LIMIT);
+            get_streamfile_filename(sf, filename,PATH_LIMIT);
 
             /* detect PS1 mono files, very lame but whatevs, no way to detect XA mono/stereo */
             if (filename[0]=='P' && filename[1]=='S' && filename[2]=='1' && filename[3]=='S') {
-                channel_count = 1;
+                channels = 1;
                 sample_rate = 22050;
             }
             else {
-                channel_count = 2;
+                channels = 2;
                 sample_rate = 44100;
             }
+            bps = 4;
         }
         else {
             /* incorrectly ripped standard XA */
-            channel_count = 2;
+            channels = 2;
             sample_rate = 37800;
+            bps = 4;
         }
     }
 
+    /* untested */
+    if (bps == 8 && channels == 1)
+        goto fail;
+
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
     vgmstream->meta_type = meta_XA;
     vgmstream->sample_rate = sample_rate;
-    vgmstream->coding_type = coding_XA;
+    vgmstream->coding_type = bps == 8 ? coding_XA8 : coding_XA;
     vgmstream->layout_type = is_blocked ? layout_blocked_xa : layout_none;
     if (is_blocked) {
         vgmstream->codec_config = target_config;
@@ -144,9 +150,9 @@ VGMSTREAM * init_vgmstream_xa(STREAMFILE *streamFile) {
         }
     }
 
-    vgmstream->num_samples = xa_bytes_to_samples(stream_size, channel_count, is_blocked, is_form2);
+    vgmstream->num_samples = xa_bytes_to_samples(stream_size, channels, is_blocked, is_form2, bps);
 
-    if ( !vgmstream_open_stream(vgmstream, streamFile, start_offset) )
+    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
         goto fail;
     return vgmstream;
 
@@ -230,7 +236,7 @@ typedef struct xa_subsong_t {
  *
  * Bigfiles that paste tons of XA together are slow to parse since we need to read every sector to
  * count totals, but XA subsong handling is mainly for educational purposes. */
-static int xa_read_subsongs(STREAMFILE *sf, int target_subsong, off_t start, uint16_t *p_stream_config, off_t *p_stream_offset, size_t *p_stream_size, int *p_form2) {
+static int xa_read_subsongs(STREAMFILE* sf, int target_subsong, off_t start, uint16_t* p_stream_config, off_t* p_stream_offset, size_t* p_stream_size, int* p_form2) {
     xa_subsong_t *cur_subsong = NULL;
     xa_subsong_t subsongs[XA_SUBSONG_MAX] = {0};
     const size_t sector_size = 0x930;

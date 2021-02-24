@@ -439,6 +439,8 @@ int get_vgmstream_samples_per_frame(VGMSTREAM* vgmstream) {
 
         case coding_XA:
             return 28*8 / vgmstream->channels; /* 8 subframes per frame, mono/stereo */
+        case coding_XA8:
+            return 28*4 / vgmstream->channels; /* 4 subframes per frame, mono/stereo */
         case coding_PSX:
         case coding_PSX_badflags:
         case coding_HEVAG:
@@ -649,6 +651,7 @@ int get_vgmstream_frame_size(VGMSTREAM* vgmstream) {
             return 0x00; /* variable (block-controlled) */
 
         case coding_XA:
+        case coding_XA8:
             return 0x80;
         case coding_PSX:
         case coding_PSX_badflags:
@@ -985,11 +988,14 @@ void decode_vgmstream(VGMSTREAM* vgmstream, int samples_written, int samples_to_
             }
             break;
         case coding_XA:
+        case coding_XA8: {
+            int is_xa8 = (vgmstream->coding_type == coding_XA8);
             for (ch = 0; ch < vgmstream->channels; ch++) {
                 decode_xa(&vgmstream->ch[ch], buffer+ch,
-                        vgmstream->channels, vgmstream->samples_into_block, samples_to_do, ch);
+                        vgmstream->channels, vgmstream->samples_into_block, samples_to_do, ch, is_xa8);
             }
             break;
+        }
         case coding_EA_XA:
         case coding_EA_XA_int: {
             int is_stereo = (vgmstream->channels > 1 && vgmstream->coding_type == coding_EA_XA);

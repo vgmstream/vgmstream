@@ -102,7 +102,8 @@ typedef enum {
 
     coding_G721,            /* CCITT G.721 */
 
-    coding_XA,              /* CD-ROM XA */
+    coding_XA,              /* CD-ROM XA 4-bit */
+    coding_XA8,             /* CD-ROM XA 8-bit */
     coding_PSX,             /* Sony PS ADPCM (VAG) */
     coding_PSX_badflags,    /* Sony PS ADPCM with custom flag byte */
     coding_PSX_cfg,         /* Sony PS ADPCM with configurable frame size (int math) */

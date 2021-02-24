@@ -351,10 +351,11 @@ VGMSTREAM* init_vgmstream_xwb(STREAMFILE* sf) {
         /* Stardew Valley (Switch), Skulls of the Shogun (Switch): full interleaved DSPs (including headers) */
         xwb.codec = DSP;
     }
-    else if (xwb.version == XACT3_0_MAX && xwb.codec == XMA2
-            && xwb.bits_per_sample == 0x01 && xwb.block_align == 0x04
-            && xwb.data_size == 0x4e0a1000) { /* some kind of id? */
-        /* Stardew Valley (Vita), standard RIFF with ATRAC9 */
+    else if (xwb.version == XACT3_0_MAX && (xwb.codec == XMA2 || xwb.codec == PCM)
+            && xwb.bits_per_sample == 0x01 && xwb.block_align == 0x02*xwb.channels
+            && is_id32be(xwb.stream_offset, sf, "RIFF") /* clashes with XMA2 */
+            /*&& xwb.data_size == 0x4e0a1000*/) { /* some kind of id in Stardew Valley? */
+        /* Stardew Valley (Vita), Owlboy (PS4): standard RIFF with ATRAC9 */
         xwb.codec = ATRAC9_RIFF;
     }
 
