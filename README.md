@@ -208,10 +208,11 @@ Some plugins have options that allow any extension (common or unknown) to be
 played, making renaming unnecessary. You may need to adjust plugin priority in
 player's options first.
 
-Also be aware that some plugins can tell the player they handle some extension,
-then not actually play it. This makes the file unplayable as vgmstream doesn't
-even get the chance to parse that file, so you may need to disable the offending
-plugin or rename the file (for example this may happen with .asf and foobar).
+Also be aware that other plugins (not vgmstream's) can tell the player they
+handle some extension, then not actually play it. This makes the file unplayable
+as vgmstream doesn't even get the chance to parse that file, so you may need to
+disable the offending plugin or rename the file (for example this may happen with
+.asf and foobar2000).
 
 When extracting from a bigfile, sometimes internal files don't have an actual
 name+extension. Those should be renamed to its proper/common extension, as the
@@ -222,9 +223,10 @@ Note that vgmstream also accepts certain extension-less files too.
 
 ### Demuxed videos
 vgmstream also supports audio from videos, but usually must be demuxed (extracted
-without modification) first, since vgmstream doesn't attempt to support them.
+without modification) first, since vgmstream doesn't attempt to support most of them
+(it does support a few video formats as-is though).
 
-The easiest way to do this is using VGMToolBox's "Video Demultiplexer" option
+The easiest way to do this is using *VGMToolBox*'s "Video Demultiplexer" option
 for common game video formats (`.bik`, `.vp6`, `.pss`, `.pam`, `.pmf`, `.usm`, `.xmv`, etc).
 
 For standard videos formats (`.avi`, `.mp4`, `.webm`, `.m2v`, `.ogv`, etc) not supported
@@ -302,8 +304,8 @@ the only option is renaming the companion extension to lowercase.
 
 A particularly nasty variation of that is that some formats load files by full
 name (e.g. `STREAM.SS0`), but sometimes the actual filename is in other case
-(`Stream.ss0`), and some files could even point to that with another case. You
-could try adding *symlinks* in various upper/lower/mixed cases to handle this.
+(`Stream.ss0`), and some files could even point to that with yet another case.
+You could try adding *symlinks* in various upper/lower/mixed cases to handle this.
 Currently there isn't any way to know what exact name is needed (other than
 hex-editting), though only a few formats do this, mainly *Ubisoft* banks.
 
@@ -409,14 +411,16 @@ Some games layer a huge number of channels, that are disabled or downmixed
 during gameplay. The player may be unable to play those files (for example
 foobar can only play up to 8 channels, and Winamp depends on your sound
 card). For those files you can set the "downmix" option in vgmstream, that
-can reduce the number of channels to a playable amount. Note that this type
-of downmixing is very generic, not meant to be used when converting to other
-formats (channels are re-assigned and volumes modified in simplistic ways,
-since it can't guess how the file should be properly adjusted).
+can reduce the number of channels to a playable amount. 
+
+Note that this type of downmixing is very generic (not meant to be used when
+converting to other formats), channels are re-assigned and volumes modified
+in simplistic ways, since it can't guess how the file should be properly
+adjusted. Most likely it will sound a bit quieter than usual.
 
 You can also choose which channels to play using *TXTP*. For example, create
 a file named `song.adx#C1,2.txtp` to play only channels 1 and 2 from `song.adx`.
-*TXTP* also has command to tweak how files is downmixed.
+*TXTP* also has command to set how files are downmixed.
 
 
 ## Tagging
