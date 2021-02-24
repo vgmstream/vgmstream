@@ -110,8 +110,8 @@ void decode_hevag(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing
 
 
 /* xa_decoder */
-void decode_xa(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel);
-size_t xa_bytes_to_samples(size_t bytes, int channels, int is_blocked, int is_form2);
+void decode_xa(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel, int is_xa8);
+size_t xa_bytes_to_samples(size_t bytes, int channels, int is_blocked, int is_form2, int bps);
 
 
 /* ea_xa_decoder */

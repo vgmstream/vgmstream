@@ -194,6 +194,7 @@ static const char* extension_list[] = {
     "genh",
     "gin",
     "gms",
+    "grn",
     "gsb",
     "gsf",
     "gtd",
@@ -717,6 +718,7 @@ static const coding_info coding_info_list[] = {
         {coding_G721,               "CCITT G.721 4-bit ADPCM"},
 
         {coding_XA,                 "CD-ROM XA 4-bit ADPCM"},
+        {coding_XA8,                "CD-ROM XA 8-bit ADPCM"},
         {coding_PSX,                "Playstation 4-bit ADPCM"},
         {coding_PSX_badflags,       "Playstation 4-bit ADPCM (bad flags)"},
         {coding_PSX_cfg,            "Playstation 4-bit ADPCM (configurable)"},
