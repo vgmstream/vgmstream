@@ -262,6 +262,8 @@ Those tell vgmstream how long the song is. Define loop points for the track to r
 
 You can use `loop_start` and `loop_end` instead as aliases of `loop_start_sample` and `loop_end_sample` (no difference).
 
+To activate loops you need to define both `loop_start` and `loop_end` (rather than say, only defining `start`  and defaulting `end` to `num_samples`). This is to make the *.txtp* more descriptive, and avoid ambiguity in  cases where `start` value is 0. See loop settings below to fine tune when to loop.
+
 Special values:
 - `data_size`: automatically converts bytes-to-samples (a few codecs don't allow this)
 ```
@@ -270,8 +272,8 @@ loop_start_sample   = (value)
 loop_end_sample     = (value)|data_size
 ```
 
-#### LOOP SETTING
-Force loop on or off, as loop start/end may be defined but not used. If not set, by default it loops when loop_end_sample is defined and less than num_samples.
+#### LOOP SETTINGS
+Force loop on or off, as loop start/end may be defined but not used. If not set, by default it loops when loop_end_sample is defined and not bigger than num_samples.
 
 Special values:
 - `auto`: tries to autodetect loop points for PS-ADPCM data using data loop flags.
