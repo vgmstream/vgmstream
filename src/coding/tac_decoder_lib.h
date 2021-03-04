@@ -28,7 +28,7 @@ typedef struct {
     uint16_t loop_frame;        /* aligned to block start */
     uint16_t loop_discard;      /* discarded start samples in loop frame (lower = outputs more) */
     uint16_t frame_count;       /* number of valid frames ("block end" frames not included) */
-    uint16_t frame_discard;     /* discarded end samples in final frame (lower = outputs less), even for non-looped files */
+    uint16_t frame_last;        /* valid samples in final frame - 1 (lower = outputs less, 0 = outputs 1), even for non-looped files */
     uint32_t loop_offset;       /* points to a block; file size if not looped */
     uint32_t file_size;         /* block aligned; actual file size can be a bit smaller if last block is truncated */
     uint32_t joint_stereo;      /* usually 0 and rarely 1 */
