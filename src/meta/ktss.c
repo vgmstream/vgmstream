@@ -16,7 +16,7 @@ VGMSTREAM* init_vgmstream_ktss(STREAMFILE* sf) {
     if (!check_extensions(sf, "kns,kno,ktss"))
         goto fail;
 
-    if (is_id32be(0x00,sf, "KTSS"))
+    if (!is_id32be(0x00,sf, "KTSS"))
         goto fail;
     /* 0x04: data size */
 
