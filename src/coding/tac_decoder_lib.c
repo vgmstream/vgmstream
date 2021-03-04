@@ -25,14 +25,14 @@
  * Codec returns float samples then converted to PCM16. Output samples are +-1 vs Nisto's/PCSX2's
  * results, due to various quirks:
  * - simplified PS2 float handling (PS2 VU floats don't map 1:1 to PC IEEE floats), can be re-enabled (slow)
- * - various heisenbugs (PC 80b register floats <> 32b memory floats conversions, see transform).
+ * - various heisenbugs (PC 80b register floats <> 32b memory floats conversions, see transform()).
  *
  * Files are divided into blocks (size 0x4E000). At file start is a simple header and huffman codebook
  * then N VBR frames (of size around 0x200~300) containing huffman codes of spectral data. A frame has
- * codes for 2 channels, decoded separatedly (first all L then all R). Spectrum coefs are processeed,
- * then MDCT(?) + window overlap to get final samples. When a "block end frame" is found, handler must
- * get next block and resume decoding (blocks may be pre/post padded, for looping porposes). Game reads
- * a couple of blocks at once though.
+ * codes for 2 channels, decoded separatedly (first all L then all R), then handle joint stereo.
+ * Channel spectrum coefs are processeed, then MDCT(?) + window overlap to get final samples. When a
+ * "block end frame" is found, handler must get next block and resume decoding (blocks may be pre/post
+ * padded, for looping porposes). Game reads a couple of blocks at once though.
  */
 
 /**********************************************************************************/
@@ -884,17 +884,6 @@ static void process(REG_VF* wave, REG_VF* hist) {
 }
 
 
-/* Fix joint stereo files that only encode diffs in R (assumed, double check) */
-static void parse_joint_stereo(REG_VF* resultL, REG_VF* resultR) {
-    int i;
-
-    /* Combine OG L sample + R diff. For pseudo-mono files R is all 0s
-     * (R only saves 28 huffman codes, signalling no coefs per 1+27 bands) */
-    for (i = 0; i < TAC_TOTAL_POINTS * 8; i++) {
-        ADD  (_xyzw, &resultR[i], &resultL[i], &resultR[i]);
-    }
-}
-
 ///////////////////////////////////////////////////////////////////////////////
 
 /* main decoding in the VU1 coprocessor */
@@ -910,11 +899,35 @@ static void decode_vu1(tac_handle_t* h) {
     }
 
     /* Decoded data is originally stored in VUMem1 as clamped ints, though final step
-     * seems may be done done externally (StFlushWriteBuffer/StMakeFinalOut?) */
+     * seems may be done done externally (StMakeFinalOut/StFlushWriteBuffer) */
+}
 
-    /* this step may be outside VU1 code */
+/* Create final output samples */
+// StMakeFinalOut
+static void finalize_output(tac_handle_t* h) {
+    int i;
+
+    /* original code copies + clamps to PCM buffer here instead of modifying wave,
+     * but we do it later to potentially allow float output. It also sets total output:
+     * - type 1 (at loop frame): start_sample = loop_discard, frame_samples = 1024 - loop_discard
+     * - type 2 (at last frame): start_sample = 0, frame_samples = frame_last + 1
+     * - other: start_sample = 0, frame_samples = 1024
+     * (only copies or does joint stereo from start_sample) */
+
     if (h->header.joint_stereo) {
-        parse_joint_stereo(h->wave[0], h->wave[1]);
+        REG_VF* wave_l = h->wave[0];
+        REG_VF* wave_r = h->wave[1];
+
+        /* Combine joint stereo channels that encode diffs in L/R. In pseudo-mono files R has */
+        /* all samples as 0 (R only saves 28 huffman codes, signalling no coefs per 1+27 bands) */
+        for (i = 0; i < TAC_TOTAL_POINTS * 8; i++) {
+            REG_VF samples_l, samples_r;
+
+            ADD  (_xyzw, &samples_l, &wave_l[i], &wave_r[i]); /* L = L + R */
+            SUB  (_xyzw, &samples_r, &wave_l[i], &wave_r[i]); /* R = L - R */
+            MOVE (_xyzw, &wave_l[i], &samples_l);
+            MOVE (_xyzw, &wave_r[i], &samples_r);
+        }
     }
 }
 
@@ -1041,7 +1054,7 @@ static int init_header(tac_header_t* header, const uint8_t* buf) {
     header->loop_frame      = get_u16le(buf+0x08);
     header->loop_discard    = get_u16le(buf+0x0A);
     header->frame_count     = get_u16le(buf+0x0C);
-    header->frame_discard   = get_u16le(buf+0x0E);
+    header->frame_last      = get_u16le(buf+0x0E);
     header->loop_offset     = get_u32le(buf+0x10);
     header->file_size       = get_u32le(buf+0x14);
     header->joint_stereo    = get_u32le(buf+0x18);
@@ -1053,8 +1066,8 @@ static int init_header(tac_header_t* header, const uint8_t* buf) {
     /* header size ia block-aligned (but actual size can be smaller, ex. VP 00000715) */
     if (header->file_size % TAC_BLOCK_SIZE != 0)
         return TAC_PROCESS_HEADER_ERROR;
-    /* loop_discard over max makes game crash, while frame_discard seems to ignore it */
-    if (header->loop_discard > TAC_FRAME_SAMPLES || header->frame_discard > TAC_FRAME_SAMPLES)
+    /* loop_discard over max makes game crash, while frame_last seems to ignore it */
+    if (header->loop_discard > TAC_FRAME_SAMPLES || header->frame_last + 1 > TAC_FRAME_SAMPLES)
         return TAC_PROCESS_HEADER_ERROR;
     /* looping makes sense */
     if (header->loop_frame > header->frame_count || header->loop_offset > header->file_size)
@@ -1213,7 +1226,7 @@ int tac_decode_frame(tac_handle_t* handle, const uint8_t* block) {
         if (pos + 0x08 + frame_size > TAC_BLOCK_SIZE)
             return TAC_PROCESS_ERROR_SIZE;
 
-        /* from tests seems CRC errors cause current frame to be skipped */
+        /* from tests seems CRC errors cause current frame to be skipped, so change values before validations */
         handle->frame_number++;
         handle->frame_offset += 0x08 + frame_size;
 
@@ -1228,6 +1241,9 @@ int tac_decode_frame(tac_handle_t* handle, const uint8_t* block) {
 
         /* main decode */
         decode_vu1(handle);
+
+        /* post process */
+        finalize_output(handle);
     }
 
     /* current frame decoded and samples can be requested */
