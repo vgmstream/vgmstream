@@ -391,6 +391,9 @@ static const hcakey_info hcakey_list[] = {
         /* Sakura Kakumei (iOS/Android) */
         {382759},                   // 000000000005D727
 
+        /* Uma Musume (Android) */
+        {75923756697503},           // 0000450D608C479F
+
         /* Dragalia Lost (iOS/Android) */
         {2967411924141,         subkeys_dgl, sizeof(subkeys_dgl) / sizeof(subkeys_dgl[0]) },    // 000002B2E7889CAD
 
