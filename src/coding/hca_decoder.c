@@ -117,6 +117,8 @@ void decode_hca(hca_codec_data* data, sample_t* outbuf, int32_t samples_to_do) {
                 break;
             }
 
+            data->current_block++;
+
             /* decode frame */
             status = clHCA_DecodeBlock(data->handle, (void*)(data->data_buffer), blockSize);
             if (status < 0) {
@@ -127,7 +129,6 @@ void decode_hca(hca_codec_data* data, sample_t* outbuf, int32_t samples_to_do) {
             /* extract samples */
             clHCA_ReadSamples16(data->handle, data->sample_buffer);
 
-            data->current_block++;
             data->samples_consumed = 0;
             data->samples_filled += data->info.samplesPerBlock;
         }
