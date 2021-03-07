@@ -473,13 +473,18 @@ characters, and BOM is a helper "byte-order" mark). Windows' *notepad* creates f
 *"with BOM"* when selecting UTF-8 encoding in *save as* dialog, or you may use other
 programs like *notepad++.exe* to convert them.
 
-More exactly, vgmstream matches filenames and reads tags assuming they are in UTF-8,
-while foobar/winamp can only read UTF-8 Japanese/extended filenames in a `.m3u` if file
-is saved *with BOM* (opening files manually or with a `playlist.m3u8` won't need BOM).
+More exactly, vgmstream needs the file saved in *UTF-8* to match tags and filenames
+(and ignores *BOM*), while foobar/Winamp won't understand UTF-8 *filenames* unless
+`.m3u` is saved *with BOM* (ignoring tags). Whereas if saved in what Windows calls
+"Unicode" (UTF-16) neither may work.
+
+Conversely, if your *filenames* only use English/ANSI characters you may ommit *BOM*,
+and if your tags are English only you may save the `.m3u` as ANSI. Or if you only use
+`!tags.m3u` for tags and not for opening files (for example opening them manually
+or with a `playlist.m3u8`) you won't need BOM either.
 
 Other players may not need BOM (or CRLF), but for consistency use them when dealing
 with non-ASCII names and tags.
-
 
 ### Tags with spaces
 Some players like foobar accept tags with spaces. To use them surround the tag
@@ -558,7 +563,8 @@ When tags change behavior varies depending on player:
 - *Audacious*: files need to be readded to the playlist
 
 Currently there is no tool to aid in the creation of these tags, but you can create
-a base `.m3u` and edit as a text file.
+a base `.m3u` and edit as a text file. You may try this python script to make the
+base file: https://pastebin.com/Sdu82SAp
 
 vgmstream's "m3u tagging" is meant to be simple to make and share (just a text
 file), easier to support in multiple players (rather than needing a custom plugin),
