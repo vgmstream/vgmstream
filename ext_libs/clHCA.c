@@ -1648,8 +1648,7 @@ static void apply_intensity_stereo(stChannel* ch_pair, int subframe, unsigned in
     {
         int band;
         float ratio_l = hcadecoder_intensity_ratio_table[ ch_pair[1].intensity[subframe] ];
-        float ratio_r = ratio_l - 2.0f; //TODO remove
-        //float ratio_r = 2.0f - ratio_l; /* correct, though other decoders substract 2.0 (it does use 'fsubr 2.0' and such) */
+        float ratio_r = 2.0f - ratio_l; /* correct, though other decoders substract 2.0 (it does use 'fsubr 2.0' and such) */
         float* sp_l = ch_pair[0].spectra;
         float* sp_r = ch_pair[1].spectra;
 
