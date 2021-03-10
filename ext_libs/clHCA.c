@@ -1,8 +1,9 @@
 /**
  * clHCA DECODER
  *
- * Decodes CRI's HCA (High Compression Audio) codec. Also supports what CRI calls HCA-MX, which
- * basically is the same thing with constrained encoder settings.
+ * Decodes CRI's HCA (High Compression Audio), a CBR DCT-based codec (similar to AAC).
+ * Also supports what CRI calls HCA-MX, which basically is the same thing with constrained
+ * encoder settings.
  *
  * - Original decompilation and C++ decoder by nyaga
  *     https://github.com/Nyagamon/HCADecoder
@@ -14,11 +15,11 @@
 
 /* TODO:
  * - improve portability on types and float casts, sizeof(int) isn't necessarily sizeof(float)
- * - check "delta scalefactors" vs VGAudio (CriHcaPacking.DeltaDecode), may be setting wrong values on bad data
  * - simplify DCT4 code
- * - add extra validations: encoder_delay/padding < sample_count, coded/bands/totals (max: 128?), track count==1, etc
- * - coded_scalefactor_count maybe rename coded_band_count or coded_count
- * - intensity should calloc if intensity is 15 or set in reset
+ * - add extra validations: encoder_delay/padding < sample_count, etc
+ * - intensity should memset if intensity is 15 or set in reset? (no games hit 15?)
+ * - check mdct + tables, add floats
+ * - simplify bitreader to use in decoder only (no need to read +16 bits)
  */
 
 //--------------------------------------------------
@@ -29,8 +30,8 @@
 #include <stdlib.h>
 #include <memory.h>
 
-/* CRI libs only allow last version, though most decoding code takes older versions into account.
- * lib is identified with "HCA Decoder (Float)" + version string. Some known versions:
+/* CRI libs may only accept last version in some cases/modes, though most decoding takes older versions
+ * into account. Lib is identified with "HCA Decoder (Float)" + version string. Some known versions:
  * - ~V1.1 2011 [first public version]
  * - ~V1.2 2011 [ciph/ath chunks, disabled ATH]
  * - Ver.1.40 2011-04 [header mask]
@@ -45,23 +46,28 @@
  * only change when decoder does. Despite the name, no "Integer" version seems to exist.
  */
 #define HCA_VERSION_V101 0x0101 /* V1.1+ [El Shaddai (PS3/X360)] */
-#define HCA_VERSION_V102 0x0102 /* V1.2+ [Gekka Ryouran Romance (PSP)]] */
+#define HCA_VERSION_V102 0x0102 /* V1.2+ [Gekka Ryouran Romance (PSP)] */
 #define HCA_VERSION_V103 0x0103 /* V1.4+ [Phantasy Star Online 2 (PC), Binary Domain (PS3)] */
 #define HCA_VERSION_V200 0x0200 /* V2.0+ [Yakuza 5 (PS3)] */
 #define HCA_VERSION_V300 0x0300 /* V3.0+ [Uma Musume (Android)] */
 
 /* maxs depend on encoder quality settings (for example, stereo has:
  * highest=0x400, high=0x2AA, medium=0x200, low=0x155, lowest=0x100) */
-#define HCA_MAX_FRAME_SIZE 0xFFFF   /* max allowed by lib */
-#define HCA_MIN_FRAME_SIZE 0x8      /* assumed */
+#define HCA_MIN_FRAME_SIZE 0x8          /* lib min */
+#define HCA_MAX_FRAME_SIZE 0xFFFF       /* lib max */
 
-#define HCA_MASK  0x7F7F7F7F        /* chunk obfuscation when the HCA is encrypted with key */
+#define HCA_MASK  0x7F7F7F7F            /* chunk obfuscation when the HCA is encrypted with key */
 #define HCA_SUBFRAMES_PER_FRAME  8
-#define HCA_SAMPLES_PER_SUBFRAME  128
+#define HCA_SAMPLES_PER_SUBFRAME  128   /* also spectrum points/etc */
 #define HCA_SAMPLES_PER_FRAME  (HCA_SUBFRAMES_PER_FRAME*HCA_SAMPLES_PER_SUBFRAME)
-#define HCA_MDCT_BITS  7            /* (1<<7) = 128 */
+#define HCA_MDCT_BITS  7                /* (1<<7) = 128 */
 
-#define HCA_MAX_CHANNELS  16        /* internal max (in practice only 8 can be encoded) */
+#define HCA_MIN_CHANNELS  1
+#define HCA_MAX_CHANNELS  16            /* internal max (in practice only 8 can be encoded) */
+#define HCA_MIN_SAMPLE_RATE  1          /* assumed */
+#define HCA_MAX_SAMPLE_RATE  0x7FFFFF   /* encoder max seems 48000 */
+
+#define HCA_DEFAULT_RANDOM  1
 
 #define HCA_ERROR_OK            0
 #define HCA_ERROR_PARAMS        -1
@@ -78,24 +84,22 @@ typedef enum { DISCRETE = 0, STEREO_PRIMARY = 1, STEREO_SECONDARY = 2 } channel_
 
 typedef struct stChannel {
     /* HCA channel config */
-    int type; /* channel_type_t */
-    unsigned char* hfr_scales; /* high frequency scales, pointing to higher scalefactors (simplification) */
+    channel_type_t type;
+    unsigned int coded_count;                               /* encoded scales/resolutions/coefs */
 
     /* subframe state */
-    unsigned char intensity[HCA_SUBFRAMES_PER_FRAME];       /* intensity indexes (value max: 15 / 4b) */
+    unsigned char intensity[HCA_SUBFRAMES_PER_FRAME];       /* intensity indexes for joins stereo (value max: 15 / 4b) */
     unsigned char scalefactors[HCA_SAMPLES_PER_SUBFRAME];   /* scale indexes (value max: 64 / 6b)*/
     unsigned char resolution[HCA_SAMPLES_PER_SUBFRAME];     /* resolution indexes (value max: 15 / 4b) */
-    unsigned char unknowns[HCA_SAMPLES_PER_SUBFRAME];       /* ? indexes of resolutions 0? (value max: 128 / 8b) */
-    unsigned int coded_scalefactor_count;                   /* scalefactors used (depending on channel type) */
-    unsigned int unknown1_max;                              /* resolutions that use other values */
-    unsigned int unknown2_max;                              /* resolutions that use 0 */
+    unsigned char noises[HCA_SAMPLES_PER_SUBFRAME];         /* indexes to coefs that need noise fill + coefs that don't (value max: 128 / 8b) */
+    unsigned int noise_count;                               /* resolutions with noise values saved in 'noises' */
+    unsigned int valid_count;                               /* resolutions with valid values saved in 'noises' */
 
     float gain[HCA_SAMPLES_PER_SUBFRAME];                   /* gain to apply to quantized spectral data */
     float spectra[HCA_SAMPLES_PER_SUBFRAME];                /* resulting dequantized data */
     float temp[HCA_SAMPLES_PER_SUBFRAME];                   /* temp for DCT-IV */
     float dct[HCA_SAMPLES_PER_SUBFRAME];                    /* result of DCT-IV */
     float imdct_previous[HCA_SAMPLES_PER_SUBFRAME];         /* IMDCT */
-
 
     /* frame state */
     float wave[HCA_SUBFRAMES_PER_FRAME][HCA_SAMPLES_PER_SUBFRAME];  /* resulting samples */
@@ -124,8 +128,8 @@ typedef struct clHCA {
     unsigned int base_band_count;
     unsigned int stereo_band_count;
     unsigned int bands_per_hfr_group;
-    unsigned int reserved1;
-    unsigned int reserved2;
+    unsigned int ms_stereo;
+    unsigned int reserved;
     /* vbr chunk */
     unsigned int vbr_max_frame_size;
     unsigned int vbr_noise_Level;
@@ -147,11 +151,11 @@ typedef struct clHCA {
     char comment[255+1];
 
     /* initial state */
-    int v3_flag;
-    unsigned int hfr_group_count;
+    unsigned int hfr_group_count;                       /* high frequency band groups not encoded directly */
     unsigned char ath_curve[HCA_SAMPLES_PER_SUBFRAME];
     unsigned char cipher_table[256];
     /* variable state */
+    unsigned int random;
     stChannel channel[HCA_MAX_CHANNELS];
 } clHCA;
 
@@ -165,8 +169,7 @@ typedef struct clData {
 //--------------------------------------------------
 // Checksum
 //--------------------------------------------------
-//hcacommon_crc_mask_table
-static const unsigned short crc16_lookup_table[256] = {
+static const unsigned short hcacommon_crc_mask_table[256] = {
     0x0000,0x8005,0x800F,0x000A,0x801B,0x001E,0x0014,0x8011,0x8033,0x0036,0x003C,0x8039,0x0028,0x802D,0x8027,0x0022,
     0x8063,0x0066,0x006C,0x8069,0x0078,0x807D,0x8077,0x0072,0x0050,0x8055,0x805F,0x005A,0x804B,0x004E,0x0044,0x8041,
     0x80C3,0x00C6,0x00CC,0x80C9,0x00D8,0x80DD,0x80D7,0x00D2,0x00F0,0x80F5,0x80FF,0x00FA,0x80EB,0x00EE,0x00E4,0x80E1,
@@ -192,7 +195,7 @@ static unsigned short crc16_checksum(const unsigned char* data, unsigned int siz
 
     /* HCA header/frames should always have checksum 0 (checksum(size-16b) = last 16b) */
     for (i = 0; i < size; i++) {
-        sum = (sum << 8) ^ crc16_lookup_table[(sum >> 8) ^ data[i]];
+        sum = (sum << 8) ^ hcacommon_crc_mask_table[(sum >> 8) ^ data[i]];
     }
     return sum;
 }
@@ -206,6 +209,8 @@ static void bitreader_init(clData* br, const void *data, int size) {
     br->bit = 0;
 }
 
+/* CRI's bitreader only handles 16b max during decode (header just reads bytes)
+ * so maybe could be optimized by ignoring higher cases */
 static unsigned int bitreader_peek(clData* br, int bitsize) {
     const unsigned int bit = br->bit;
     const unsigned int bit_rem = bit & 7;
@@ -458,14 +463,14 @@ static void ath_init1(unsigned char* ath_curve, unsigned int sample_rate) {
 
 static int ath_init(unsigned char* ath_curve, int type, unsigned int sample_rate) {
     switch (type) {
-    case 0:
-        ath_init0(ath_curve);
-        break;
-    case 1:
-        ath_init1(ath_curve, sample_rate);
-        break;
-    default:
-        return HCA_ERROR_HEADER;
+        case 0:
+            ath_init0(ath_curve);
+            break;
+        case 1:
+            ath_init1(ath_curve, sample_rate);
+            break;
+        default:
+            return HCA_ERROR_HEADER;
     }
     return HCA_ERROR_OK;
 }
@@ -587,17 +592,17 @@ static int cipher_init(unsigned char* cipher_table, int type, unsigned long long
         type = 0;
 
     switch (type) {
-    case 0:
-        cipher_init0(cipher_table);
-        break;
-    case 1:
-        cipher_init1(cipher_table);
-        break;
-    case 56:
-        cipher_init56(cipher_table, keycode);
-        break;
-    default:
-        return HCA_ERROR_HEADER;
+        case 0:
+            cipher_init0(cipher_table);
+            break;
+        case 1:
+            cipher_init1(cipher_table);
+            break;
+        case 56:
+            cipher_init56(cipher_table, keycode);
+            break;
+        default:
+            return HCA_ERROR_HEADER;
     }
     return HCA_ERROR_OK;
 }
@@ -606,7 +611,9 @@ static int cipher_init(unsigned char* cipher_table, int type, unsigned long long
 // Parse
 //--------------------------------------------------
 static unsigned int header_ceil2(unsigned int a, unsigned int b) {
-    return (b > 0) ? (a / b + ((a % b) ? 1 : 0)) : 0;
+    if (b < 1)
+        return 0;
+    return (a / b + ((a % b) ? 1 : 0)); /* lib modulo: a - (a / b * b) */
 }
 
 int clHCA_DecodeHeader(clHCA* hca, const void *data, unsigned int size) {
@@ -623,12 +630,12 @@ int clHCA_DecodeHeader(clHCA* hca, const void *data, unsigned int size) {
 
     bitreader_init(&br, data, size);
 
-    /* read header chunks */
+    /* read header chunks (in HCA chunks must follow a fixed order) */
 
     /* HCA base header */
     if ((bitreader_peek(&br, 32) & HCA_MASK) == 0x48434100) { /* "HCA\0" */
         bitreader_skip(&br, 32);
-        hca->version = bitreader_read(&br, 16);
+        hca->version = bitreader_read(&br, 16); /* lib reads as version + subversion (uses main version for feature checks) */
         hca->header_size = bitreader_read(&br, 16);
 
         if (hca->version != HCA_VERSION_V101 &&
@@ -659,13 +666,13 @@ int clHCA_DecodeHeader(clHCA* hca, const void *data, unsigned int size) {
         hca->encoder_delay = bitreader_read(&br, 16);
         hca->encoder_padding = bitreader_read(&br, 16);
 
-        if (!(hca->channels >= 1 && hca->channels <= HCA_MAX_CHANNELS))
+        if (!(hca->channels >= HCA_MIN_CHANNELS && hca->channels <= HCA_MAX_CHANNELS))
             return HCA_ERROR_HEADER;
 
         if (hca->frame_count == 0)
             return HCA_ERROR_HEADER;
 
-        if (!(hca->sample_rate >= 1 && hca->sample_rate <= 0x7FFFFF)) /* encoder max seems 48000 */
+        if (!(hca->sample_rate >= HCA_MIN_SAMPLE_RATE && hca->sample_rate <= HCA_MAX_SAMPLE_RATE))
             return HCA_ERROR_HEADER;
 
         size -= 0x10;
@@ -686,8 +693,8 @@ int clHCA_DecodeHeader(clHCA* hca, const void *data, unsigned int size) {
         hca->base_band_count = bitreader_read(&br, 8);
         hca->stereo_band_count = bitreader_read(&br, 8);
         hca->bands_per_hfr_group = bitreader_read(&br, 8);
-        hca->reserved1 = bitreader_read(&br, 8);
-        hca->reserved2 = bitreader_read(&br, 8);
+        hca->ms_stereo = bitreader_read(&br, 8);
+        hca->reserved = bitreader_read(&br, 8); /* not actually read by lib */
 
         size -= 0x10;
     }
@@ -791,7 +798,7 @@ int clHCA_DecodeHeader(clHCA* hca, const void *data, unsigned int size) {
 
         size -= 0x08;
     } else {
-        hca->rva_volume = 1.0f;
+        hca->rva_volume = 1.0f; /* encoder volume setting is pre-applied to data, though chunk still exists in +v3.0 */
     }
 
     /* comment */
@@ -828,20 +835,30 @@ int clHCA_DecodeHeader(clHCA* hca, const void *data, unsigned int size) {
         return HCA_ERROR_HEADER; /* theoretically can be 0 if VBR (not seen) */
 
     if (hca->version <= HCA_VERSION_V200) {
-        if (!(hca->min_resolution == 1 && hca->max_resolution == 15))
+        if (hca->min_resolution != 1 || hca->max_resolution != 15)
             return HCA_ERROR_HEADER;
     }
     else {
-        if (hca->min_resolution > hca->max_resolution || hca->max_resolution > 31)
+        if (hca->min_resolution > hca->max_resolution || hca->max_resolution > 15) /* header seems to allow 31, but later max is 15 */
             return HCA_ERROR_HEADER;
     }
 
 
     /* init state */
-    if (hca->track_count == 0) //todo lib gives error?
-        hca->track_count = 1; /* default to avoid division by zero */
 
-    hca->v3_flag = 0; //hca->version >= HCA_VERSION_V300; //todo check actual flag
+    if (hca->track_count == 0)
+        hca->track_count = 1; /* as done by lib, can be 0 in old HCAs */
+
+    if (hca->track_count > hca->channels)
+        return HCA_ERROR_HEADER;
+
+    /* encoded coefs (up to 128) depend in the encoder's "cutoff" hz option */
+    if (hca->total_band_count > HCA_SAMPLES_PER_SUBFRAME ||
+        hca->base_band_count > HCA_SAMPLES_PER_SUBFRAME ||
+        hca->stereo_band_count > HCA_SAMPLES_PER_SUBFRAME ||
+        hca->base_band_count + hca->stereo_band_count > HCA_SAMPLES_PER_SUBFRAME ||
+        hca->bands_per_hfr_group > HCA_SAMPLES_PER_SUBFRAME)
+        return HCA_ERROR_HEADER;
 
     hca->hfr_group_count = header_ceil2(
             hca->total_band_count - hca->base_band_count - hca->stereo_band_count,
@@ -855,75 +872,80 @@ int clHCA_DecodeHeader(clHCA* hca, const void *data, unsigned int size) {
         return res;
 
 
+    //todo separate into function, cleanup
+    //HCAHeaderUtility_GetElementTypes
     /* init channels */
     {
-        int channel_types[HCA_MAX_CHANNELS] = {0};
+        channel_type_t channel_types[HCA_MAX_CHANNELS] = {0}; /* part of lib struct */
         unsigned int i, channels_per_track;
 
         channels_per_track = hca->channels / hca->track_count;
         if (hca->stereo_band_count > 0 && channels_per_track > 1) {
-            int *ct = channel_types;
+            channel_type_t* ct = channel_types;
             for (i = 0; i < hca->track_count; i++, ct += channels_per_track) {
                 switch (channels_per_track) {
-                case 2:
-                    ct[0] = STEREO_PRIMARY;
-                    ct[1] = STEREO_SECONDARY;
-                    break;
-                case 3:
-                    ct[0] = STEREO_PRIMARY;
-                    ct[1] = STEREO_SECONDARY;
-                    ct[2] = DISCRETE;
-                    break;
-                case 4:
-                    ct[0] = STEREO_PRIMARY;
-                    ct[1] = STEREO_SECONDARY;
-                    if (hca->channel_config == 0) {
-                        ct[2] = STEREO_PRIMARY;
-                        ct[3] = STEREO_SECONDARY;
-                    } else {
+                    case 2:
+                        ct[0] = STEREO_PRIMARY;
+                        ct[1] = STEREO_SECONDARY;
+                        break;
+                    case 3:
+                        ct[0] = STEREO_PRIMARY;
+                        ct[1] = STEREO_SECONDARY;
+                        ct[2] = DISCRETE;
+                        break;
+                    case 4:
+                        ct[0] = STEREO_PRIMARY;
+                        ct[1] = STEREO_SECONDARY;
+                        if (hca->channel_config == 0) {
+                            ct[2] = STEREO_PRIMARY;
+                            ct[3] = STEREO_SECONDARY;
+                        } else {
+                            ct[2] = DISCRETE;
+                            ct[3] = DISCRETE;
+                        }
+                        break;
+                    case 5:
+                        ct[0] = STEREO_PRIMARY;
+                        ct[1] = STEREO_SECONDARY;
+                        ct[2] = DISCRETE;
+                        if (hca->channel_config <= 2) {
+                            ct[3] = STEREO_PRIMARY;
+                            ct[4] = STEREO_SECONDARY;
+                        } else {
+                            ct[3] = DISCRETE;
+                            ct[4] = DISCRETE;
+                        }
+                        break;
+                    case 6:
+                        ct[0] = STEREO_PRIMARY;
+                        ct[1] = STEREO_SECONDARY;
                         ct[2] = DISCRETE;
                         ct[3] = DISCRETE;
-                    }
-                    break;
-                case 5:
-                    ct[0] = STEREO_PRIMARY;
-                    ct[1] = STEREO_SECONDARY;
-                    ct[2] = DISCRETE;
-                    if (hca->channel_config <= 2) {
-                        ct[3] = STEREO_PRIMARY;
-                        ct[4] = STEREO_SECONDARY;
-                    } else {
+                        ct[4] = STEREO_PRIMARY;
+                        ct[5] = STEREO_SECONDARY;
+                        break;
+                    case 7:
+                        ct[0] = STEREO_PRIMARY;
+                        ct[1] = STEREO_SECONDARY;
+                        ct[2] = DISCRETE;
                         ct[3] = DISCRETE;
-                        ct[4] = DISCRETE;
-                    }
-                    break;
-                case 6:
-                    ct[0] = STEREO_PRIMARY;
-                    ct[1] = STEREO_SECONDARY;
-                    ct[2] = DISCRETE;
-                    ct[3] = DISCRETE;
-                    ct[4] = STEREO_PRIMARY;
-                    ct[5] = STEREO_SECONDARY;
-                    break;
-                case 7:
-                    ct[0] = STEREO_PRIMARY;
-                    ct[1] = STEREO_SECONDARY;
-                    ct[2] = DISCRETE;
-                    ct[3] = DISCRETE;
-                    ct[4] = STEREO_PRIMARY;
-                    ct[5] = STEREO_SECONDARY;
-                    ct[6] = DISCRETE;
-                    break;
-                case 8:
-                    ct[0] = STEREO_PRIMARY;
-                    ct[1] = STEREO_SECONDARY;
-                    ct[2] = DISCRETE;
-                    ct[3] = DISCRETE;
-                    ct[4] = STEREO_PRIMARY;
-                    ct[5] = STEREO_SECONDARY;
-                    ct[6] = STEREO_PRIMARY;
-                    ct[7] = STEREO_SECONDARY;
-                    break;
+                        ct[4] = STEREO_PRIMARY;
+                        ct[5] = STEREO_SECONDARY;
+                        ct[6] = DISCRETE;
+                        break;
+                    case 8:
+                        ct[0] = STEREO_PRIMARY;
+                        ct[1] = STEREO_SECONDARY;
+                        ct[2] = DISCRETE;
+                        ct[3] = DISCRETE;
+                        ct[4] = STEREO_PRIMARY;
+                        ct[5] = STEREO_SECONDARY;
+                        ct[6] = STEREO_PRIMARY;
+                        ct[7] = STEREO_SECONDARY;
+                        break;
+                    default:
+                        /* implied all 0 (DISCRETE) */
+                        break;
                 }
             }
         }
@@ -931,14 +953,21 @@ int clHCA_DecodeHeader(clHCA* hca, const void *data, unsigned int size) {
         memset(hca->channel, 0, sizeof(hca->channel));
         for (i = 0; i < hca->channels; i++) {
             hca->channel[i].type = channel_types[i];
-            hca->channel[i].coded_scalefactor_count = (channel_types[i] != 2) ?
+
+            hca->channel[i].coded_count = (channel_types[i] != STEREO_SECONDARY) ?
                     hca->base_band_count + hca->stereo_band_count :
                     hca->base_band_count;
-            /* simplifies usage a bit but isn't pre-saved as such in reversed original lib (calc'd during decode) */
-            hca->channel[i].hfr_scales = &hca->channel[i].scalefactors[hca->base_band_count + hca->stereo_band_count];
         }
     }
 
+    hca->random = HCA_DEFAULT_RANDOM;
+
+
+    //TODO: should work but untested
+    if (hca->ms_stereo)
+        return HCA_ERROR_HEADER;
+    if (hca->hfr_group_count > 0 && hca->version == HCA_VERSION_V300)
+        return HCA_ERROR_HEADER;
 
     /* clHCA is correctly initialized and decoder state reset
      * (keycode is not changed between calls) */
@@ -1040,6 +1069,8 @@ void clHCA_DecodeReset(clHCA * hca) {
     if (!hca || !hca->is_valid)
         return;
 
+    hca->random = HCA_DEFAULT_RANDOM;
+
     for (i = 0; i < hca->channels; i++) {
         stChannel* ch = &hca->channel[i];
 
@@ -1070,20 +1101,20 @@ static void calculate_gain(stChannel* ch);
 
 static void dequantize_coefficients(stChannel* ch, clData* br);
 
-static void reconstruct_high_frequency(stChannel* ch,
-        unsigned int hfr_group_count, unsigned int bands_per_hfr_group,
-        unsigned int stereo_band_count, unsigned int base_band_count, unsigned int total_band_count);
+static void reconstruct_noise(stChannel* ch, unsigned int min_resolution, unsigned int ms_stereo, unsigned int* random_p);
 
-static void reconstruct_resolution_0(stChannel* ch, unsigned int min_resolution, int v3_flag);
+static void reconstruct_high_frequency(stChannel* ch, unsigned int hfr_group_count, unsigned int bands_per_hfr_group,
+        unsigned int stereo_band_count, unsigned int base_band_count, unsigned int total_band_count, unsigned int version);
 
-static void apply_intensity_stereo(stChannel* ch_pair, int subframe,
-        unsigned int usable_band_count, unsigned int base_band_count, unsigned int stereo_band_count);
+static void apply_intensity_stereo(stChannel* ch_pair, int subframe, unsigned int base_band_count, unsigned int total_band_count);
 
-static void apply_unknown_stereo(stChannel* ch_pair, int v3_flag, unsigned int base_band_count);
+static void apply_ms_stereo(stChannel* ch_pair, unsigned int ms_stereo, unsigned int base_band_count, unsigned int total_band_count);
 
 static void imdct_transform(stChannel* ch, int subframe);
 
 
+/* takes HCA data and decodes all of a frame's samples */
+//hcadecoder_decode_block
 int clHCA_DecodeBlock(clHCA* hca, void *data, unsigned int size) {
     clData br;
     unsigned short sync;
@@ -1109,8 +1140,10 @@ int clHCA_DecodeBlock(clHCA* hca, void *data, unsigned int size) {
 
     /* unpack frame values */
     {
-        unsigned int frame_acceptable_noise_level = bitreader_read(&br, 9); //todo part of struct
+        /* lib saves this in the struct since they can stop/resume subframe decoding */
+        unsigned int frame_acceptable_noise_level = bitreader_read(&br, 9);
         unsigned int frame_evaluation_boundary = bitreader_read(&br, 7);
+
         unsigned int packed_noise_level = (frame_acceptable_noise_level << 8) - frame_evaluation_boundary;
 
         for (ch = 0; ch < hca->channels; ch++) {
@@ -1126,6 +1159,7 @@ int clHCA_DecodeBlock(clHCA* hca, void *data, unsigned int size) {
         }
     }
 
+    /* lib seems to use a state value to skip parts (unpacking/subframe N/etc) as needed */
     for (subframe = 0; subframe < HCA_SUBFRAMES_PER_FRAME; subframe++) {
 
         /* unpack channel data and get dequantized spectra */
@@ -1133,21 +1167,21 @@ int clHCA_DecodeBlock(clHCA* hca, void *data, unsigned int size) {
             dequantize_coefficients(&hca->channel[ch], &br);
         }
 
-        /* restore missing bands from spectra 1 */
+        /* restore missing bands from spectra */
         for (ch = 0; ch < hca->channels; ch++) {
-            reconstruct_resolution_0(&hca->channel[ch], hca->min_resolution, hca->v3_flag);
+            reconstruct_noise(&hca->channel[ch], hca->min_resolution, hca->ms_stereo, &hca->random);
 
-            reconstruct_high_frequency(&hca->channel[ch],
-                    hca->hfr_group_count, hca->bands_per_hfr_group,
-                    hca->stereo_band_count, hca->base_band_count, hca->total_band_count);
+            reconstruct_high_frequency(&hca->channel[ch], hca->hfr_group_count, hca->bands_per_hfr_group,
+                    hca->stereo_band_count, hca->base_band_count, hca->total_band_count, hca->version);
         }
 
-        /* restore missing bands from spectra 2 */
-        for (ch = 0; ch < hca->channels - 1; ch++) {
-            apply_intensity_stereo(&hca->channel[ch], subframe,
-                    hca->total_band_count, hca->base_band_count, hca->stereo_band_count);
+        /* restore missing joint stereo bands */
+        if (hca->stereo_band_count > 0) {
+            for (ch = 0; ch < hca->channels - 1; ch++) {
+                apply_intensity_stereo(&hca->channel[ch], subframe, hca->base_band_count, hca->total_band_count);
 
-            apply_unknown_stereo(&hca->channel[ch], hca->v3_flag, hca->base_band_count);
+                apply_ms_stereo(&hca->channel[ch], hca->ms_stereo, hca->base_band_count, hca->total_band_count);
+            }
         }
 
         /* apply imdct */
@@ -1155,6 +1189,7 @@ int clHCA_DecodeBlock(clHCA* hca, void *data, unsigned int size) {
             imdct_transform(&hca->channel[ch], subframe);
         }
     }
+
 
     /* should read all frame sans checksum (16b) at most */
     /* one frame was found to read up to 14b left (cross referenced with CRI's tools),
@@ -1164,7 +1199,7 @@ int clHCA_DecodeBlock(clHCA* hca, void *data, unsigned int size) {
         return HCA_ERROR_BITREADER;
     }
 
-    return 0;
+    return HCA_ERROR_OK;
 }
 
 //--------------------------------------------------
@@ -1180,9 +1215,8 @@ static const unsigned char hcadecoder_invert_table[66] = {
     /* indexes after 56 are not defined in v2.0<= (manually clamped to 1) */
 };
 
-//hcadequantizer_scaling_table_float
 /* scalefactor-to-scaling table, generated from sqrt(128) * (2^(53/128))^(scale_factor - 63) */
-static const unsigned int decode1_dequantizer_scaling_table_hex[64] = {
+static const unsigned int hcadequantizer_scaling_table_float_hex[64] = {
     0x342A8D26,0x34633F89,0x3497657D,0x34C9B9BE,0x35066491,0x353311C4,0x356E9910,0x359EF532,
     0x35D3CCF1,0x360D1ADF,0x363C034A,0x367A83B3,0x36A6E595,0x36DE60F5,0x371426FF,0x3745672A,
     0x37838359,0x37AF3B79,0x37E97C38,0x381B8D3A,0x384F4319,0x388A14D5,0x38B7FBF0,0x38F5257D,
@@ -1192,22 +1226,21 @@ static const unsigned int decode1_dequantizer_scaling_table_hex[64] = {
     0x3E1C6573,0x3E506334,0x3E8AD4C6,0x3EB8FBAF,0x3EF67A41,0x3F243516,0x3F5ACB94,0x3F91C3D3,
     0x3FC238D2,0x400164D2,0x402C6897,0x4065B907,0x40990B88,0x40CBEC15,0x4107DB35,0x413504F3,
 };
-static const float* decode1_dequantizer_scaling_table = (const float*)decode1_dequantizer_scaling_table_hex;
+static const float* hcadequantizer_scaling_table_float = (const float*)hcadequantizer_scaling_table_float_hex;
 
-//hcadequantizer_range_table_float
-static const unsigned int decode1_quantizer_step_size_hex[16] = {
-    0x00000000,0x3F2AAAAB,0x3ECCCCCD,0x3E924925,0x3E638E39,0x3E3A2E8C,0x3E1D89D9,0x3E088889,
+/* in v2.0 lib index 0 is 0x00000000, but resolution 0 is only valid in v3.0 files */
+static const unsigned int hcadequantizer_range_table_float_hex[16] = {
+    0x3F800000,0x3F2AAAAB,0x3ECCCCCD,0x3E924925,0x3E638E39,0x3E3A2E8C,0x3E1D89D9,0x3E088889,
     0x3D842108,0x3D020821,0x3C810204,0x3C008081,0x3B804020,0x3B002008,0x3A801002,0x3A000801,
 };
-static const float* decode1_quantizer_step_size = (const float*)decode1_quantizer_step_size_hex;
+static const float* hcadequantizer_range_table_float = (const float*)hcadequantizer_range_table_float_hex;
 
 /* get scale indexes to normalize dequantized coefficients */
 static int unpack_scalefactors(stChannel* ch, clData* br, unsigned int hfr_group_count, unsigned int version) {
     int i;
-    unsigned int csf_count = ch->coded_scalefactor_count;
-    unsigned char delta_bits = bitreader_read(br, 3);
+    unsigned int cs_count = ch->coded_count;
     unsigned int extra_count;
-
+    unsigned char delta_bits = bitreader_read(br, 3);
 
     /* added in v3.0 */
     if (ch->type == STEREO_SECONDARY || hfr_group_count <= 0 || version <= HCA_VERSION_V200) {
@@ -1215,55 +1248,47 @@ static int unpack_scalefactors(stChannel* ch, clData* br, unsigned int hfr_group
     }
     else {
         extra_count = hfr_group_count;
-        csf_count = csf_count + extra_count;
+        cs_count = cs_count + extra_count;
+
+        /* just in case */
+        if (cs_count > HCA_SAMPLES_PER_SUBFRAME)
+            return HCA_ERROR_UNPACK;
     }
 
-    /* just in case */
-    if (csf_count > HCA_SAMPLES_PER_SUBFRAME)
-        return HCA_ERROR_UNPACK;
-
-    /* lib does check that csf_count is 2+, but doesn't seem to affect anything */
+    /* lib does check that cs_count is 2+ in fixed/delta case, but doesn't seem to affect anything */
     if (delta_bits >= 6) {
         /* fixed scalefactors */
-        if (csf_count > 1) {
-            for (i = 0; i < csf_count; i++) {
-                ch->scalefactors[i] = bitreader_read(br, 6);
-            }
+        for (i = 0; i < cs_count; i++) {
+            ch->scalefactors[i] = bitreader_read(br, 6);
         }
     }
     else if (delta_bits > 0) {
         /* delta scalefactors */
-        if (csf_count > 1) {
-            const unsigned char expected_delta = (1 << delta_bits) - 1;
-            const unsigned char extra_delta = expected_delta >> 1;
-            unsigned char scalefactor_prev = bitreader_read(br, 6);
+        const unsigned char expected_delta = (1 << delta_bits) - 1;
+        unsigned char value = bitreader_read(br, 6);
 
-            ch->scalefactors[0] = scalefactor_prev;
-            for (i = 1; i < csf_count; i++) {
-                unsigned char delta = bitreader_read(br, delta_bits);
+        ch->scalefactors[0] = value;
+        for (i = 1; i < cs_count; i++) {
+            unsigned char delta = bitreader_read(br, delta_bits);
 
-                if (delta == expected_delta) {
-                    /* fixed scalefactor */
-                    scalefactor_prev = bitreader_read(br, 6);
-                }
-                else {
-                    /* delta scalefactor */
-
-                    /* may happen with bad keycodes, scalefactors must be 6b indexes */
-                    int scalefactor_test = (int)scalefactor_prev + ((int)delta - (int)extra_delta);
-                    if (scalefactor_test < 0 || scalefactor_test >= 64) {
-                        return HCA_ERROR_UNPACK;
-                    }
-
-                    scalefactor_prev = scalefactor_prev - extra_delta + delta;
-
-                    //todo as negative better? (may roll otherwise?)
-                    //if (scalefactor_prev >= 64) {
-                    //    return HCA_ERROR_UNPACK;
-                    //}
-                }
-                ch->scalefactors[i] = scalefactor_prev;
+            if (delta == expected_delta) {
+                value = bitreader_read(br, 6); /* encoded */
             }
+            else {
+                /* may happen with bad keycodes, scalefactors must be 6b indexes */
+                int scalefactor_test = (int)value + ((int)delta - (int)(expected_delta >> 1));
+                if (scalefactor_test < 0 || scalefactor_test >= 64) {
+                    return HCA_ERROR_UNPACK;
+                }
+
+                value = value - (expected_delta >> 1) + delta; /* differential */
+                value = value & 0x3F; /* v3.0 lib */
+
+                //todo as negative better? (may roll otherwise?)
+                //if (value >= 64)
+                //    return HCA_ERROR_UNPACK;
+            }
+            ch->scalefactors[i] = value;
         }
     }
     else {
@@ -1273,14 +1298,15 @@ static int unpack_scalefactors(stChannel* ch, clData* br, unsigned int hfr_group
         }
     }
 
-#if 0
+    /* set derived HFR scales for v3.0 */
     for (i = 0; i < extra_count; i++) {
-        ch->...[x] = ch->...[x];
+        ch->scalefactors[HCA_SAMPLES_PER_SUBFRAME - 1 - i] = ch->scalefactors[cs_count - i];
     }
-#endif
 
     return HCA_ERROR_OK;
 }
+
+/* read intensity (for joint stereo R) or v2.0 high frequency scales (for regular channels) */
 static int unpack_intensity(stChannel* ch, clData* br, unsigned int hfr_group_count, unsigned int version) {
     int i;
 
@@ -1296,23 +1322,23 @@ static int unpack_intensity(stChannel* ch, clData* br, unsigned int hfr_group_co
                     ch->intensity[i] = bitreader_read(br, 4);
                 }
             }
-            /* 15 may be an invalid value? (index 15 is 0, but may imply "reuse last subframe's intensity") */
+            /* 15 may be an invalid value? index 15 is 0, but may imply "reuse last subframe's intensity".
+             * no games seem to use 15 though */
             //else {
             //    return HCA_ERROR_UNPACK;
             //}
         }
         else {
-            unsigned char pack = bitreader_peek(br, 6);
-            unsigned char value, delta_bits, bits, bmax, code;
+            unsigned char value = bitreader_peek(br, 4);
+            unsigned char delta_bits;
 
-            if (pack < 60) {
-                bitreader_skip(br, 6);
+            if (value < 15) {
+                bitreader_skip(br, 4);
 
-                value = pack >> 2; /* 4b */
-                delta_bits = pack & 0x3; /* 2b */
+                delta_bits = bitreader_read(br, 2); /* +1 */
 
                 ch->intensity[0] = value;
-                if (delta_bits == 3) {
+                if (delta_bits == 3) { /* 3+1 = 4b */
                     /* fixed intensities */
                     for (i = 1; i < HCA_SUBFRAMES_PER_FRAME; i++) {
                         ch->intensity[i] = bitreader_read(br, 4);
@@ -1320,21 +1346,18 @@ static int unpack_intensity(stChannel* ch, clData* br, unsigned int hfr_group_co
                 }
                 else {
                     /* delta intensities */
-                    bmax = (2 << delta_bits) - 1;
-                    bits = delta_bits + 1;
+                    unsigned char bmax = (2 << delta_bits) - 1;
+                    unsigned char bits = delta_bits + 1;
 
                     for (i = 1; i < HCA_SUBFRAMES_PER_FRAME; i++) {
-                        code = bitreader_read(br, bits);
-                        if (code == bmax) {
+                        unsigned char delta = bitreader_read(br, bits);
+                        if (delta == bmax) {
                             value = bitreader_read(br, 4); /* encoded */
                         }
                         else {
-                            value = value - (bmax >> 1) + code; /* differential */
-
-                            if (value > 15) {  /* not done originally */
-                                //todo check
-                                return HCA_ERROR_UNPACK;
-                            }
+                            value = value - (bmax >> 1) + delta; /* differential */
+                            if (value > 15) //todo check
+                                return HCA_ERROR_UNPACK; /* not done in lib */
                         }
 
                         ch->intensity[i] = value;
@@ -1342,7 +1365,7 @@ static int unpack_intensity(stChannel* ch, clData* br, unsigned int hfr_group_co
                 }
             }
             else {
-                bitreader_skip(br, 4); /* not 6! */
+                bitreader_skip(br, 4);
                 for (i = 0; i < HCA_SUBFRAMES_PER_FRAME; i++) {
                     ch->intensity[i] = 7;
                 }
@@ -1350,10 +1373,15 @@ static int unpack_intensity(stChannel* ch, clData* br, unsigned int hfr_group_co
         }
     }
     else {
-        /* read high frequency scalefactors */
+        /* read high frequency scalefactors (v3.0 uses derived values in unpack_scalefactors instead) */
         if (version <= HCA_VERSION_V200) {
+            /* pointer in v2.0 lib for v2.0 files is base+stereo bands, while v3.0 lib for v2.0 files
+             * is last HFR. No output difference but v3.0 files need that to handle HFR */
+            //unsigned char* hfr_scales = &ch->scalefactors[base_band_count + stereo_band_count]; /* v2.0 lib */
+            unsigned char* hfr_scales = &ch->scalefactors[128 - hfr_group_count]; /* v3.0 lib */
+
             for (i = 0; i < hfr_group_count; i++) {
-                ch->hfr_scales[i] = bitreader_read(br, 6);
+                hfr_scales[i] = bitreader_read(br, 6);
             }
         }
     }
@@ -1361,16 +1389,14 @@ static int unpack_intensity(stChannel* ch, clData* br, unsigned int hfr_group_co
     return HCA_ERROR_OK;
 }
 
-/* resolution determines the range of values per encoded spectra,
- * using codebooks for lower resolutions during dequantization */
+/* get resolutions, that determines range of values per encoded spectrum coefficients */
 static void calculate_resolution(stChannel* ch, unsigned int packed_noise_level, const unsigned char* ath_curve, unsigned int min_resolution, unsigned int max_resolution) {
-    const unsigned int csf_count = ch->coded_scalefactor_count;
     int i;
+    unsigned int cr_count = ch->coded_count;
+    unsigned int noise_count = 0;
+    unsigned int valid_count = 0;
 
-    int unknown1_pos = 0;
-    int unknown2_pos = 0;
-
-    for (i = 0; i < csf_count; i++) {
+    for (i = 0; i < cr_count; i++) {
         unsigned char new_resolution = 0;
         unsigned char scalefactor = ch->scalefactors[i];
 
@@ -1391,40 +1417,40 @@ static void calculate_resolution(stChannel* ch, unsigned int packed_noise_level,
                 new_resolution = 0;
             }
 
-            /* resolution 0 handling added in v3.0 */
+            /* added in v3.0 (before, min_resolution was always 1) */
             if (new_resolution > max_resolution)
                 new_resolution = max_resolution;
             else if (new_resolution < min_resolution)
                 new_resolution = min_resolution;
 
-            /* indexes for resolution 0 (from 0..N) and other values (from N..0) */
+            /* save resolution 0 (not encoded) indexes (from 0..N), and regular indexes (from N..0) */
             if (new_resolution < 1) {
-                ch->unknowns[unknown2_pos] = i;
-                unknown2_pos++;
+                ch->noises[noise_count] = i;
+                noise_count++;
             }
             else {
-                ch->unknowns[127 - unknown1_pos] = i;
-                unknown1_pos++;
+                ch->noises[HCA_SAMPLES_PER_SUBFRAME - 1 - valid_count] = i;
+                valid_count++;
             }
         }
         ch->resolution[i] = new_resolution;
     }
 
-    ch->unknown1_max = unknown1_pos;
-    ch->unknown2_max = unknown2_pos;
+    ch->noise_count = noise_count;
+    ch->valid_count = valid_count;
 
-    memset(&ch->resolution[csf_count], 0, sizeof(ch->resolution[0]) * (HCA_SAMPLES_PER_SUBFRAME - csf_count));
+    memset(&ch->resolution[cr_count], 0, sizeof(ch->resolution[0]) * (HCA_SAMPLES_PER_SUBFRAME - cr_count));
 }
 
-/* HCADequantizer_CalculateGain */
+/* get actual scales to dequantize based on saved scalefactors */
+// HCADequantizer_CalculateGain
 static void calculate_gain(stChannel* ch) {
     int i;
-    const unsigned int csf_count = ch->coded_scalefactor_count;
+    unsigned int cg_count = ch->coded_count;
 
-    /* get actual scales to dequantize */
-    for (i = 0; i < csf_count; i++) {
-        float scalefactor_scale = decode1_dequantizer_scaling_table[ ch->scalefactors[i] ];
-        float resolution_scale = decode1_quantizer_step_size[ ch->resolution[i] ];
+    for (i = 0; i < cg_count; i++) {
+        float scalefactor_scale = hcadequantizer_scaling_table_float[ ch->scalefactors[i] ];
+        float resolution_scale = hcadequantizer_range_table_float[ ch->resolution[i] ];
         ch->gain[i] = scalefactor_scale * resolution_scale;
     }
 }
@@ -1434,46 +1460,45 @@ static void calculate_gain(stChannel* ch) {
 //--------------------------------------------------
 /* coded resolution to max bits */
 static const unsigned char hcatbdecoder_max_bit_table[16] = {
-    0,2,3,3,4,4,4,4,5,6,7,8,9,10,11,12
+    0,2,3,3,4,4,4,4, 5,6,7,8,9,10,11,12
 };
 /* bits used for quant codes */
 static const unsigned char hcatbdecoder_read_bit_table[128] = {
-    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-    1,1,2,2,0,0,0,0,0,0,0,0,0,0,0,0,
-    2,2,2,2,2,2,3,3,0,0,0,0,0,0,0,0,
-    2,2,3,3,3,3,3,3,0,0,0,0,0,0,0,0,
-    3,3,3,3,3,3,3,3,3,3,3,3,3,3,4,4,
-    3,3,3,3,3,3,3,3,3,3,4,4,4,4,4,4,
-    3,3,3,3,3,3,4,4,4,4,4,4,4,4,4,4,
-    3,3,4,4,4,4,4,4,4,4,4,4,4,4,4,4,
+    0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,
+    1,1,2,2,0,0,0,0, 0,0,0,0,0,0,0,0,
+    2,2,2,2,2,2,3,3, 0,0,0,0,0,0,0,0,
+    2,2,3,3,3,3,3,3, 0,0,0,0,0,0,0,0,
+    3,3,3,3,3,3,3,3, 3,3,3,3,3,3,4,4,
+    3,3,3,3,3,3,3,3, 3,3,4,4,4,4,4,4,
+    3,3,3,3,3,3,4,4, 4,4,4,4,4,4,4,4,
+    3,3,4,4,4,4,4,4, 4,4,4,4,4,4,4,4,
 };
 /* code to quantized spectrum value */
 static const float hcatbdecoder_read_val_table[128] = {
-    +0,+0,+0,+0,+0,+0,+0,+0,+0,+0,+0,+0,+0,+0,+0,+0,
-    +0,+0,+1,-1,+0,+0,+0,+0,+0,+0,+0,+0,+0,+0,+0,+0,
-    +0,+0,+1,+1,-1,-1,+2,-2,+0,+0,+0,+0,+0,+0,+0,+0,
-    +0,+0,+1,-1,+2,-2,+3,-3,+0,+0,+0,+0,+0,+0,+0,+0,
-    +0,+0,+1,+1,-1,-1,+2,+2,-2,-2,+3,+3,-3,-3,+4,-4,
-    +0,+0,+1,+1,-1,-1,+2,+2,-2,-2,+3,-3,+4,-4,+5,-5,
-    +0,+0,+1,+1,-1,-1,+2,-2,+3,-3,+4,-4,+5,-5,+6,-6,
-    +0,+0,+1,-1,+2,-2,+3,-3,+4,-4,+5,-5,+6,-6,+7,-7,
+    +0.0f,+0.0f,+0.0f,+0.0f,+0.0f,+0.0f,+0.0f,+0.0f, +0.0f,+0.0f,+0.0f,+0.0f,+0.0f,+0.0f,+0.0f,+0.0f,
+    +0.0f,+0.0f,+1.0f,-1.0f,+0.0f,+0.0f,+0.0f,+0.0f, +0.0f,+0.0f,+0.0f,+0.0f,+0.0f,+0.0f,+0.0f,+0.0f,
+    +0.0f,+0.0f,+1.0f,+1.0f,-1.0f,-1.0f,+2.0f,-2.0f, +0.0f,+0.0f,+0.0f,+0.0f,+0.0f,+0.0f,+0.0f,+0.0f,
+    +0.0f,+0.0f,+1.0f,-1.0f,+2.0f,-2.0f,+3.0f,-3.0f, +0.0f,+0.0f,+0.0f,+0.0f,+0.0f,+0.0f,+0.0f,+0.0f,
+    +0.0f,+0.0f,+1.0f,+1.0f,-1.0f,-1.0f,+2.0f,+2.0f, -2.0f,-2.0f,+3.0f,+3.0f,-3.0f,-3.0f,+4.0f,-4.0f,
+    +0.0f,+0.0f,+1.0f,+1.0f,-1.0f,-1.0f,+2.0f,+2.0f, -2.0f,-2.0f,+3.0f,-3.0f,+4.0f,-4.0f,+5.0f,-5.0f,
+    +0.0f,+0.0f,+1.0f,+1.0f,-1.0f,-1.0f,+2.0f,-2.0f, +3.0f,-3.0f,+4.0f,-4.0f,+5.0f,-5.0f,+6.0f,-6.0f,
+    +0.0f,+0.0f,+1.0f,-1.0f,+2.0f,-2.0f,+3.0f,-3.0f, +4.0f,-4.0f,+5.0f,-5.0f,+6.0f,-6.0f,+7.0f,-7.0f,
 };
 
+/* read spectral coefficients in the bitstream */
 static void dequantize_coefficients(stChannel* ch, clData* br) {
     int i;
-    const unsigned int csf_count = ch->coded_scalefactor_count;
+    unsigned int cc_count = ch->coded_count;
 
-
-    for (i = 0; i < csf_count; i++) {
+    for (i = 0; i < cc_count; i++) {
         float qc;
         unsigned char resolution = ch->resolution[i];
         unsigned char bits = hcatbdecoder_max_bit_table[resolution];
         unsigned int code = bitreader_read(br, bits);
 
-        /* read spectral coefficients */
         if (resolution > 7) {
             /* parse values in sign-magnitude form (lowest bit = sign) */
-            int signed_code = (1 - ((code & 1) << 1)) * (code >> 1); /* move sign */
+            int signed_code = (1 - ((code & 1) << 1)) * (code >> 1); /* move sign from low to up */
             if (signed_code == 0)
                 bitreader_skip(br, -1); /* zero uses one less bit since it has no sign */
             qc = (float)signed_code;
@@ -1491,8 +1516,9 @@ static void dequantize_coefficients(stChannel* ch, clData* br) {
     }
 
     /* clean rest of spectra */
-    memset(&ch->spectra[csf_count], 0, sizeof(ch->spectra[0]) * (HCA_SAMPLES_PER_SUBFRAME - csf_count));
+    memset(&ch->spectra[cc_count], 0, sizeof(ch->spectra[0]) * (HCA_SAMPLES_PER_SUBFRAME - cc_count));
 }
+
 
 //--------------------------------------------------
 // Decode 3rd step
@@ -1520,51 +1546,86 @@ static const unsigned int hcadecoder_scale_conversion_table_hex[128] = {
 };
 static const float* hcadecoder_scale_conversion_table = (const float*)hcadecoder_scale_conversion_table_hex;
 
-
-static void reconstruct_resolution_0(stChannel* ch, unsigned int min_resolution, int v3_flag) {
+/* recreate resolution 0 coefs (not encoded) with pseudo-random noise based on
+ * other coefs/scales (probably similar to AAC's perceptual noise substitution) */
+static void reconstruct_noise(stChannel* ch, unsigned int min_resolution, unsigned int ms_stereo, unsigned int* random_p) {
     if (min_resolution > 0) /* added in v3.0 */
         return;
-    if (ch->type != STEREO_PRIMARY || v3_flag)
+    if (ch->valid_count <= 0 || ch->noise_count <= 0)
+        return;
+    if (!(!ms_stereo || ch->type == STEREO_PRIMARY))
         return;
 
-    //TODO
-}
-
-static void reconstruct_high_frequency(stChannel* ch,
-        unsigned int hfr_group_count, unsigned int bands_per_hfr_group,
-        unsigned int stereo_band_count, unsigned int base_band_count, unsigned int total_band_count) {
-    if (ch->type == STEREO_SECONDARY)
-        return;
-    if (bands_per_hfr_group == 0) /* added in v2.0 */
-        return;
-    //if (stereo_band_count == 0) //todo affects some mono files, recheck
-    //    return;
-
-    //todo handle v3
     {
         int i;
-        unsigned int group;
-        unsigned int start_band = stereo_band_count + base_band_count;
-        unsigned int highband = start_band;
-        unsigned int lowband = start_band - 1;
-        unsigned int sc_index;
+        int random_index, noise_index, valid_index, sf_noise, sf_valid, sc_index;
+        unsigned int random = *random_p;
+
+        for (i = 0; i < ch->noise_count; i++) {
+            random = 0x343FD * random + 0x269EC3; /* typical rand() */
+
+            random_index = HCA_SAMPLES_PER_SUBFRAME - ch->valid_count + (((random & 0x7FFF) * ch->valid_count) >> 15); /* can't go over 128 */
+
+            /* points to next resolution 0 index and random non-resolution 0 index */
+            noise_index = ch->noises[i];
+            valid_index = ch->noises[random_index];
+
+            /* get final scale index */
+            sf_noise = ch->scalefactors[noise_index];
+            sf_valid = ch->scalefactors[valid_index];
+            sc_index = (sf_noise - sf_valid + 62) & ~((sf_noise - sf_valid + 62) >> 31);
+
+            ch->spectra[noise_index] = hcadecoder_scale_conversion_table[sc_index] * ch->spectra[valid_index];
+        }
+
+        *random_p = random; /* lib saves this in the bitreader, maybe for simplified passing around */
+    }
+}
+
+/* recreate missing coefs in high bands based on lower bands (probably similar to AAC's spectral band replication) */
+static void reconstruct_high_frequency(stChannel* ch, unsigned int hfr_group_count, unsigned int bands_per_hfr_group,
+        unsigned int stereo_band_count, unsigned int base_band_count, unsigned int total_band_count, unsigned int version) {
+    if (bands_per_hfr_group == 0) /* added in v2.0, skipped in v2.0 files with 0 bands too */
+        return;
+    if (ch->type == STEREO_SECONDARY)
+        return;
+
+    {
+        int i;
+        int group, group_limit;
+        int start_band = stereo_band_count + base_band_count;
+        int highband = start_band;
+        int lowband = start_band - 1;
+        int sc_index;
+        //unsigned char* hfr_scales = &ch->scalefactors[base_band_count + stereo_band_count]; /* v2.0 lib */
+        unsigned char* hfr_scales = &ch->scalefactors[128 - hfr_group_count]; /* v3.0 lib */
+
+        if (version <= HCA_VERSION_V200) {
+            group_limit = hfr_group_count;
+        }
+        else {
+            group_limit = (hfr_group_count >= 0) ? hfr_group_count : hfr_group_count + 1; /* ??? */
+            group_limit = group_limit >> 1;
+        }
 
         for (group = 0; group < hfr_group_count; group++) {
+            int lowband_sub = (group < group_limit) ? 1 : 0; /* move lowband towards 0 until group reachs limit */
+
             for (i = 0; i < bands_per_hfr_group; i++) {
                 if (highband >= total_band_count || lowband < 0)
                     break;
 
-                sc_index = ch->hfr_scales[group] - ch->scalefactors[lowband] + 63;
-                /* as clamped in lib in v3.0, though in theory 6b scalefactors don't reach this */
-                sc_index = sc_index & ~(sc_index >> 31);
+                sc_index = hfr_scales[group] - ch->scalefactors[lowband] + 63;
+                sc_index = sc_index & ~(sc_index >> 31); /* clamped in v3.0 lib (in theory 6b sf are 0..128) */
 
                 ch->spectra[highband] = hcadecoder_scale_conversion_table[sc_index] * ch->spectra[lowband];
-                highband++;
-                lowband--;
+
+                highband += 1;
+                lowband -= lowband_sub;
             }
         }
 
-        /* last spectrum coefficient is 0 (highband = 128 here, but perhaps could 'break' before) */
+        /* last spectrum coefficient is 0 (normally highband = 128, but perhaps could 'break' before) */
         ch->spectra[highband - 1] = 0.0f;
     }
 }
@@ -1572,43 +1633,54 @@ static void reconstruct_high_frequency(stChannel* ch,
 //--------------------------------------------------
 // Decode 4th step
 //--------------------------------------------------
-
+/* index to scale */
 static const unsigned int hcadecoder_intensity_ratio_table_hex[16] = { /* max 4b */
     0x40000000,0x3FEDB6DB,0x3FDB6DB7,0x3FC92492,0x3FB6DB6E,0x3FA49249,0x3F924925,0x3F800000,
     0x3F5B6DB7,0x3F36DB6E,0x3F124925,0x3EDB6DB7,0x3E924925,0x3E124925,0x00000000,0x00000000,
 };
 static const float* hcadecoder_intensity_ratio_table = (const float*)hcadecoder_intensity_ratio_table_hex;
 
-static void apply_intensity_stereo(stChannel* ch_pair, int subframe,
-        unsigned int total_band_count, unsigned int base_band_count, unsigned int stereo_band_count) {
+/* restore L/R bands based on channel coef + panning */
+static void apply_intensity_stereo(stChannel* ch_pair, int subframe, unsigned int base_band_count, unsigned int total_band_count) {
     if (ch_pair[0].type != STEREO_PRIMARY)
-        return;
-    if (stereo_band_count == 0)
         return;
 
     {
+        int band;
         float ratio_l = hcadecoder_intensity_ratio_table[ ch_pair[1].intensity[subframe] ];
-        float ratio_r = ratio_l - 2.0f; //todo 2.0 - ratio_l
+        float ratio_r = 2.0f - ratio_l; /* correct, though other decoders substract 2.0 (it does use 'fsubr 2.0' and such) */
         float* sp_l = ch_pair[0].spectra;
         float* sp_r = ch_pair[1].spectra;
-        unsigned int band;
 
         for (band = base_band_count; band < total_band_count; band++) {
-            sp_r[band] = sp_l[band] * ratio_r;
-            sp_l[band] = sp_l[band] * ratio_l;
+            float coef_l = sp_l[band] * ratio_l;
+            float coef_r = sp_l[band] * ratio_r;
+            sp_l[band] = coef_l;
+            sp_r[band] = coef_r;
         }
-
-        //todo lib seems to do extra processing here
     }
 }
 
-static void apply_unknown_stereo(stChannel* ch_pair, int v3_flag, unsigned int base_band_count) {
-    if (!v3_flag) /* added in v3.0 */
+/* restore L/R bands based on mid channel + side differences */
+static void apply_ms_stereo(stChannel* ch_pair, unsigned int ms_stereo, unsigned int base_band_count, unsigned int total_band_count) {
+    if (!ms_stereo) /* added in v3.0 */
         return;
-    if (ch_pair[0].type != STEREO_PRIMARY || base_band_count == 0)
+    if (ch_pair[0].type != STEREO_PRIMARY)
         return;
 
-    //TODO
+    {
+        int band;
+        const float ratio = 0.70710676908493; /* 0x3F3504F3 */
+        float* sp_l = ch_pair[0].spectra;
+        float* sp_r = ch_pair[1].spectra;
+
+        for (band = base_band_count; band < total_band_count; band++) {
+            float coef_l = (sp_l[band] + sp_r[band]) * ratio;
+            float coef_r = (sp_l[band] - sp_r[band]) * ratio;
+            sp_l[band] = coef_l;
+            sp_r[band] = coef_r;
+        }
+    }
 }
 
 //--------------------------------------------------
@@ -1769,7 +1841,7 @@ static const unsigned int hcaimdct_window_float_hex[128] = {
 };
 static const float* hcaimdct_window_float = (const float*)hcaimdct_window_float_hex;
 
-/* apply DCT-IV to dequantized spectra */
+/* apply DCT-IV to dequantized spectra to get final samples */
 //HCAIMDCT_Transform
 static void imdct_transform(stChannel* ch, int subframe) {
     static const unsigned int size = HCA_SAMPLES_PER_SUBFRAME;
