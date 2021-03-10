@@ -42,7 +42,10 @@ hca_codec_data* init_hca(STREAMFILE* sf) {
     clHCA_clear(data->handle);
 
     status = clHCA_DecodeHeader(data->handle, header_buffer, header_size); /* parse header */
-    if (status < 0) goto fail;
+    if (status < 0) {
+        VGM_LOG("HCA: unsupported header found, %i\n", status);
+        goto fail;
+    }
 
     status = clHCA_getInfo(data->handle, &data->info); /* extract header info */
     if (status < 0) goto fail;
