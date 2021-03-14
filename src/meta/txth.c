@@ -818,24 +818,29 @@ static int parse_txth(txth_header* txth) {
     }
 
     /* read lines */
-    while (txt_offset < file_size) {
+    {
         char line[TXT_LINE_MAX];
-        char key[TXT_LINE_MAX] = {0}, val[TXT_LINE_MAX] = {0}; /* at least as big as a line to avoid overflows (I hope) */
-        int ok, bytes_read, line_ok;
+        char key[TXT_LINE_MAX];
+        char val[TXT_LINE_MAX];
+        /* at least as big as a line to avoid overflows (I hope) */
 
-        bytes_read = read_line(line, sizeof(line), txt_offset, txth->sf_text, &line_ok);
-        if (!line_ok) goto fail;
-        //;VGM_LOG("TXTH: line=%s\n",line);
+        while (txt_offset < file_size) {
+            int ok, bytes_read, line_ok;
 
-        txt_offset += bytes_read;
+            bytes_read = read_line(line, sizeof(line), txt_offset, txth->sf_text, &line_ok);
+            if (!line_ok) goto fail;
+            //;VGM_LOG("TXTH: line=%s\n",line);
 
-        /* get key/val (ignores lead spaces, stops at space/comment/separator) */
-        ok = sscanf(line, " %[^ \t#=] = %[^\t#\r\n] ", key,val);
-        if (ok != 2) /* ignore line if no key=val (comment or garbage) */
-            continue;
+            txt_offset += bytes_read;
 
-        if (!parse_keyval(txth->sf, txth, key, val)) /* read key/val */
-            goto fail;
+            /* get key/val (ignores lead spaces, stops at space/comment/separator) */
+            ok = sscanf(line, " %[^ \t#=] = %[^\t#\r\n] ", key,val);
+            if (ok != 2) /* ignore line if no key=val (comment or garbage) */
+                continue;
+
+            if (!parse_keyval(txth->sf, txth, key, val)) /* read key/val */
+                goto fail;
+        }
     }
 
     if (!txth->loop_flag_set)
@@ -1197,6 +1202,8 @@ static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char * key, ch
 
     /* HEADER/BODY CONFIG */
     else if (is_string(key,"header_file")) {
+
+        /* first remove old head if needed */
         if (txth->sf_head_opened) {
             close_streamfile(txth->sf_head);
             txth->sf_head = NULL;
@@ -1205,7 +1212,10 @@ static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char * key, ch
 
         if (is_string(val,"null")) { /* reset */
             if (!txth->streamfile_is_txth) {
-                txth->sf_head = txth->sf;
+                txth->sf_head = txth->sf; /* base non-txth file */
+            }
+            else {
+                goto fail; /* .txth, nothing to fall back */
             }
         }
         else if (val[0]=='*' && val[1]=='.') { /* basename + extension */
@@ -1222,6 +1232,8 @@ static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char * key, ch
         }
     }
     else if (is_string(key,"body_file")) {
+
+        /* first remove old body if needed */
         if (txth->sf_body_opened) {
             close_streamfile(txth->sf_body);
             txth->sf_body = NULL;
@@ -1230,7 +1242,10 @@ static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char * key, ch
 
         if (is_string(val,"null")) { /* reset */
             if (!txth->streamfile_is_txth) {
-                txth->sf_body = txth->sf;
+                txth->sf_body = txth->sf; /* base non-txth file */
+            }
+            else {
+                goto fail; /* .txth, nothing to fall back */
             }
         }
         else if (val[0]=='*' && val[1]=='.') { /* basename + extension */
@@ -1516,55 +1531,59 @@ static int parse_name_table(txth_header* txth, char * name_list) {
     txth->name_values_count = 0;
 
     /* read lines and find target filename, format is (filename): value1, ... valueN */
-    while (txt_offset < file_size) {
+    {
         char line[TXT_LINE_MAX];
-        char key[TXT_LINE_MAX] = {0}, val[TXT_LINE_MAX] = {0};
-        int ok, bytes_read, line_ok;
+        char key[TXT_LINE_MAX];
+        char val[TXT_LINE_MAX];
 
-        bytes_read = read_line(line, sizeof(line), txt_offset, nameFile, &line_ok);
-        if (!line_ok) goto fail;
-        //;VGM_LOG("TXTH: line=%s\n",line);
+        while (txt_offset < file_size) {
+            int ok, bytes_read, line_ok;
 
-        txt_offset += bytes_read;
+            bytes_read = read_line(line, sizeof(line), txt_offset, nameFile, &line_ok);
+            if (!line_ok) goto fail;
+            //;VGM_LOG("TXTH: line=%s\n",line);
 
-        /* get key/val (ignores lead spaces, stops at space/comment/separator) */
-        ok = sscanf(line, " %[^ \t#:] : %[^\t#\r\n] ", key,val);
-        if (ok != 2) { /* ignore line if no key=val (comment or garbage) */
-            /* try again with " (empty): (val)) */
-            key[0] = '\0';
-            ok = sscanf(line, " : %[^\t#\r\n] ", val);
-            if (ok != 1)
-                continue;
-        }
+            txt_offset += bytes_read;
 
-
-        //;VGM_LOG("TXTH: compare name '%s'\n", key);
-        /* parse values if key (name) matches default ("") or filename with/without extension */
-        if (key[0]=='\0'
-                || is_string_match(filename, key)
-                || is_string_match(basename, key)
-                || is_string_match(fullname, key)) {
-            int n;
-            char subval[TXT_LINE_MAX];
-            const char *current = val;
-
-            while (current[0] != '\0') {
-                ok = sscanf(current, " %[^\t#\r\n,]%n ", subval, &n);
+            /* get key/val (ignores lead spaces, stops at space/comment/separator) */
+            ok = sscanf(line, " %[^ \t#:] : %[^\t#\r\n] ", key,val);
+            if (ok != 2) { /* ignore line if no key=val (comment or garbage) */
+                /* try again with " (empty): (val)) */
+                key[0] = '\0';
+                ok = sscanf(line, " : %[^\t#\r\n] ", val);
                 if (ok != 1)
-                    goto fail;
-
-                current += n;
-                if (current[0] == ',')
-                    current++;
-
-                if (!parse_num(txth->sf_head,txth,subval, &txth->name_values[txth->name_values_count])) goto fail;
-                txth->name_values_count++;
-                if (txth->name_values_count >= 16) /* surely nobody needs that many */
-                    goto fail;
+                    continue;
             }
 
-            //;VGM_LOG("TXTH: found name '%s'\n", key);
-            break; /* target found */
+
+            //;VGM_LOG("TXTH: compare name '%s'\n", key);
+            /* parse values if key (name) matches default ("") or filename with/without extension */
+            if (key[0]=='\0'
+                    || is_string_match(filename, key)
+                    || is_string_match(basename, key)
+                    || is_string_match(fullname, key)) {
+                int n;
+                char subval[TXT_LINE_MAX];
+                const char *current = val;
+
+                while (current[0] != '\0') {
+                    ok = sscanf(current, " %[^\t#\r\n,]%n ", subval, &n);
+                    if (ok != 1)
+                        goto fail;
+
+                    current += n;
+                    if (current[0] == ',')
+                        current++;
+
+                    if (!parse_num(txth->sf_head,txth,subval, &txth->name_values[txth->name_values_count])) goto fail;
+                    txth->name_values_count++;
+                    if (txth->name_values_count >= 16) /* surely nobody needs that many */
+                        goto fail;
+                }
+
+                //;VGM_LOG("TXTH: found name '%s'\n", key);
+                break; /* target found */
+            }
         }
     }
 
