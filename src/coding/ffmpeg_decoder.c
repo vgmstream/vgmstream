@@ -933,12 +933,14 @@ void ffmpeg_set_force_seek(ffmpeg_codec_data* data) {
 
 const char* ffmpeg_get_metadata_value(ffmpeg_codec_data* data, const char* key) {
     AVDictionary* avd;
-    AVDictionaryEntry* avde;
+    AVDictionaryEntry* avde = NULL;
 
     if (!data || !data->codec)
         return NULL;
 
-    avd = data->formatCtx->streams[data->streamIndex]->metadata;
+    avd = data->formatCtx->streams[data->streamIndex]->metadata; /* per stream (like Ogg) */
+    if (!avd)
+        avd = data->formatCtx->metadata; /* per format (like Flac) */
     if (!avd)
         return NULL;
 

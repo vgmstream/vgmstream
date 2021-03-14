@@ -4,7 +4,7 @@
 #ifdef VGM_USE_FFMPEG
 
 static int read_pos_file(uint8_t* buf, size_t bufsize, STREAMFILE* sf);
-static int find_ogg_loops(ffmpeg_codec_data* data, int32_t* p_loop_start, int32_t* p_loop_end);
+static int find_meta_loops(ffmpeg_codec_data* data, int32_t* p_loop_start, int32_t* p_loop_end);
 
 /* parses any format supported by FFmpeg and not handled elsewhere:
  * - MP3 (.mp3, .mus): Marc Ecko's Getting Up (PC)
@@ -58,9 +58,9 @@ VGMSTREAM* init_vgmstream_ffmpeg(STREAMFILE* sf) {
         }
     }
 
-    /* try to read Ogg loop tags (abridged) */
-    if (loop_flag == 0 && read_u32be(0x00, sf) == 0x4F676753) { /* "OggS" */
-        loop_flag = find_ogg_loops(data, &loop_start, &loop_end);
+    /* try to read Ogg/Flac loop tags (abridged) */
+    if (!loop_flag && (is_id32be(0x00, sf, "OggS") || is_id32be(0x00, sf, "fLaC"))) {
+        loop_flag = find_meta_loops(data, &loop_start, &loop_end);
     }
 
     /* hack for AAC files (will return 0 samples if not an actual file) */
@@ -155,22 +155,30 @@ fail:
 }
 
 
-/* loop tag handling could be unified with ogg_vorbis.c, but that one has a extra features too */
-static int find_ogg_loops(ffmpeg_codec_data* data, int32_t* p_loop_start, int32_t* p_loop_end) {
+/* loop tag handling could be unified with ogg_vorbis.c, but that one has a extra features too.
+ * Also has support for flac meta loops, that can be used by stuff like Platformer Game Engine
+ * or ZDoom/Duke Nukem 3D source ports (maybe RPG Maker too). */
+//todo call ffmpeg_get_next_tag and iterate like ogg_vorbis.c
+//todo also save title
+static int find_meta_loops(ffmpeg_codec_data* data, int32_t* p_loop_start, int32_t* p_loop_end) {
     char* endptr;
     const char* value;
     int loop_flag = 0;
     int32_t loop_start = -1, loop_end = -1;
 
-    // Try to detect the loop flags based on current file metadata
+    // Try to detect the loop flags based on current file metadata (ignores case)
     value = ffmpeg_get_metadata_value(data, "LoopStart");
-    if (value != NULL) {
+    if (!value)
+        value = ffmpeg_get_metadata_value(data, "LOOP_START"); /* ZDoom/DN3D */
+    if (value) {
         loop_start = strtol(value, &endptr, 10);
         loop_flag = 1;
     }
 
     value = ffmpeg_get_metadata_value(data, "LoopEnd");
-    if (value != NULL) {
+    if (!value)
+        value = ffmpeg_get_metadata_value(data, "LOOP_END"); /* ZDoom/DN3D */
+    if (value) {
         loop_end = strtol(value, &endptr, 10);
         loop_flag = 1;
     }
