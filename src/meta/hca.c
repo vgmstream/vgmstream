@@ -10,11 +10,11 @@ static void find_hca_key(hca_codec_data* hca_data, uint64_t* p_keycode, uint16_t
 
 
 /* CRI HCA - streamed audio from CRI ADX2/Atom middleware */
-VGMSTREAM * init_vgmstream_hca(STREAMFILE* sf) {
+VGMSTREAM* init_vgmstream_hca(STREAMFILE* sf) {
     return init_vgmstream_hca_subkey(sf, 0x0000);
 }
 
-VGMSTREAM * init_vgmstream_hca_subkey(STREAMFILE* sf, uint16_t subkey) {
+VGMSTREAM* init_vgmstream_hca_subkey(STREAMFILE* sf, uint16_t subkey) {
     VGMSTREAM * vgmstream = NULL;
     hca_codec_data* hca_data = NULL;
     clHCA_stInfo* hca_info;
@@ -122,6 +122,9 @@ fail:
 static inline void test_key(hca_codec_data* hca_data, uint64_t key, uint16_t subkey, int* best_score, uint64_t* best_keycode) {
     int score;
 
+    //;VGM_LOG("HCA: test key=%08x%08x, subkey=%04x\n",
+    //        (uint32_t)((key >> 32) & 0xFFFFFFFF), (uint32_t)(key & 0xFFFFFFFF), subkey);
+
     if (subkey) {
         key = key * ( ((uint64_t)subkey << 16u) | ((uint16_t)~subkey + 2u) );
     }
@@ -134,6 +137,9 @@ static inline void test_key(hca_codec_data* hca_data, uint64_t key, uint16_t sub
     /* wrong key */
     if (score < 0)
         return;
+
+    //;VGM_LOG("HCA: ok key=%08x%08x, subkey=%04x, score=%i\n",
+    //        (uint32_t)((key >> 32) & 0xFFFFFFFF), (uint32_t)(key & 0xFFFFFFFF), subkey, score);
 
     /* update if something better is found */
     if (*best_score <= 0 || (score < *best_score && score > 0)) {

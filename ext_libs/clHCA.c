@@ -69,7 +69,7 @@
 
 #define HCA_DEFAULT_RANDOM  1
 
-#define HCA_ERROR_OK            0
+#define HCA_RESULT_OK            0
 #define HCA_ERROR_PARAMS        -1
 #define HCA_ERROR_HEADER        -2
 #define HCA_ERROR_CHECKSUM      -3
@@ -472,7 +472,7 @@ static int ath_init(unsigned char* ath_curve, int type, unsigned int sample_rate
         default:
             return HCA_ERROR_HEADER;
     }
-    return HCA_ERROR_OK;
+    return HCA_RESULT_OK;
 }
 
 
@@ -604,7 +604,7 @@ static int cipher_init(unsigned char* cipher_table, int type, unsigned long long
         default:
             return HCA_ERROR_HEADER;
     }
-    return HCA_ERROR_OK;
+    return HCA_RESULT_OK;
 }
 
 //--------------------------------------------------
@@ -973,7 +973,7 @@ int clHCA_DecodeHeader(clHCA* hca, const void *data, unsigned int size) {
      * (keycode is not changed between calls) */
     hca->is_valid = 1;
 
-    return HCA_ERROR_OK;
+    return HCA_RESULT_OK;
 }
 
 void clHCA_SetKey(clHCA* hca, unsigned long long keycode) {
@@ -993,18 +993,16 @@ void clHCA_SetKey(clHCA* hca, unsigned long long keycode) {
 int clHCA_TestBlock(clHCA* hca, void *data, unsigned int size) {
     const int frame_samples = HCA_SUBFRAMES_PER_FRAME * HCA_SAMPLES_PER_SUBFRAME;
     const float scale = 32768.0f;
-    unsigned int ch, sf, s;
+    unsigned int i, ch, sf, s;
     int status;
     int clips = 0, blanks = 0, channel_blanks[HCA_MAX_CHANNELS] = {0};
-
+    const unsigned char* buf = data;
 
     /* first blocks can be empty/silent, check all bytes but sync/crc */
     {
-        int i;
         int is_empty = 1;
-        const unsigned char* buf = data;
 
-        for (i = 2; i < size - 0x02; i++) {
+        for (i = 0x02; i < size - 0x02; i++) {
             if (buf[i] != 0) {
                 is_empty = 0;
                 break;
@@ -1021,7 +1019,30 @@ int clHCA_TestBlock(clHCA* hca, void *data, unsigned int size) {
     if (status < 0)
         return -1;
 
-    /* check decode results as bad keys may still get here */
+    /* detect data errors */
+    {
+        int bits_max = hca->frame_size * 8;
+        int byte_start;
+
+        /* Should read all frame sans end checksum (16b), but allow 14b as one frame was found to
+         * read up to that (cross referenced with CRI's tools), perhaps some encoding hiccup
+         * [World of Final Fantasy Maxima (Switch) am_ev21_0170 video] */
+        if (status + 14 > bits_max)
+            return HCA_ERROR_BITREADER;
+
+        /* leftover data after read bits in HCA is always null (up to end 16b checksum), so bad keys
+         * give garbage beyond those bits (data is decrypted at this point and size >= frame_size) */
+        byte_start = (status / 8) + (status % 8 ? 0x01 : 0);
+        /* maybe should memcmp with a null frame, unsure of max though, and in most cases
+         * should fail fast (this check catches almost everything) */
+        for (i = byte_start; i < hca->frame_size - 0x02; i++) {
+            if (buf[i] != 0) {
+                return -1;
+            }
+        }
+    }
+
+    /* check decode results as (rarely) bad keys may still get here */
     for (ch = 0; ch < hca->channels; ch++) {
         for (sf = 0; sf < HCA_SUBFRAMES_PER_FRAME; sf++) {
             for (s = 0; s < HCA_SAMPLES_PER_SUBFRAME; s++) {
@@ -1191,15 +1212,7 @@ int clHCA_DecodeBlock(clHCA* hca, void *data, unsigned int size) {
     }
 
 
-    /* should read all frame sans checksum (16b) at most */
-    /* one frame was found to read up to 14b left (cross referenced with CRI's tools),
-     * perhaps some encoding hiccup [World of Final Fantasy Maxima (Switch) am_ev21_0170 video],
-     * though this validation makes more sense when testing keys and isn't normally done on decode */
-    if (br.bit + 14 > br.size) { /* relax validation a bit for that case */
-        return HCA_ERROR_BITREADER;
-    }
-
-    return HCA_ERROR_OK;
+    return br.bit; /* numbers of read bits for validations */
 }
 
 //--------------------------------------------------
@@ -1303,7 +1316,7 @@ static int unpack_scalefactors(stChannel* ch, clData* br, unsigned int hfr_group
         ch->scalefactors[HCA_SAMPLES_PER_SUBFRAME - 1 - i] = ch->scalefactors[cs_count - i];
     }
 
-    return HCA_ERROR_OK;
+    return HCA_RESULT_OK;
 }
 
 /* read intensity (for joint stereo R) or v2.0 high frequency scales (for regular channels) */
@@ -1386,7 +1399,7 @@ static int unpack_intensity(stChannel* ch, clData* br, unsigned int hfr_group_co
         }
     }
 
-    return HCA_ERROR_OK;
+    return HCA_RESULT_OK;
 }
 
 /* get resolutions, that determines range of values per encoded spectrum coefficients */
