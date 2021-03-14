@@ -345,7 +345,7 @@ typedef struct { //todo simplify
 
 ogg_vorbis_codec_data* init_ogg_vorbis(STREAMFILE* sf, off_t start, off_t size, ogg_vorbis_io* io);
 void decode_ogg_vorbis(ogg_vorbis_codec_data* data, sample_t* outbuf, int32_t samples_to_do, int channels);
-void reset_ogg_vorbis(VGMSTREAM* vgmstream);
+void reset_ogg_vorbis(ogg_vorbis_codec_data* data);
 void seek_ogg_vorbis(ogg_vorbis_codec_data* data, int32_t num_sample);
 void free_ogg_vorbis(ogg_vorbis_codec_data* data);
 
@@ -353,6 +353,7 @@ int ogg_vorbis_get_comment(ogg_vorbis_codec_data* data, const char** comment);
 void ogg_vorbis_get_info(ogg_vorbis_codec_data* data, int* p_channels, int* p_sample_rate);
 void ogg_vorbis_get_samples(ogg_vorbis_codec_data* data, int* p_samples);
 void ogg_vorbis_set_disable_reordering(ogg_vorbis_codec_data* data, int set);
+void ogg_vorbis_set_force_seek(ogg_vorbis_codec_data* data, int set);
 STREAMFILE* ogg_vorbis_get_streamfile(ogg_vorbis_codec_data* data);
 
 

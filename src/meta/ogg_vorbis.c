@@ -441,6 +441,7 @@ VGMSTREAM* init_vgmstream_ogg_vorbis_callbacks(STREAMFILE* sf, ov_callbacks* cal
     size_t stream_size = ovmi->stream_size ?
             ovmi->stream_size :
             get_streamfile_size(sf) - start;
+    int force_seek = 0;
     int disable_reordering = ovmi->disable_reordering;
 
 
@@ -539,11 +540,19 @@ VGMSTREAM* init_vgmstream_ogg_vorbis_callbacks(STREAMFILE* sf, ov_callbacks* cal
                     loop_end_found = 1;
                 }
             }
-            else if (strstr(comment,"LOOPMS=") == comment) { /* Sonic Robo Blast 2 */
-                /* Convert from milliseconds to samples. */
-                /* (x ms) * (y samples/s) / (1000 ms/s) */
-                loop_start = atol(strrchr(comment,'=')+1) * sample_rate / 1000;
+            else if (strstr(comment,"LOOPMS=") == comment) { /* Sonic Robo Blast 2 (PC) */
+                loop_start = atol(strrchr(comment,'=')+1) * sample_rate / 1000; /* ms to samples */
                 loop_flag = (loop_start >= 0);
+            }
+            else if (strstr(comment,"COMMENT=- loopTime ") == comment) { /* Aristear Remain (PC) */
+                loop_start = atol(strrchr(comment,' ')+1) * sample_rate / 1000.0f; /* ms to samples */
+                loop_flag = (loop_start >= 0);
+
+                /* files have all page granule positions -1 except a few close to loop. This throws off
+                 * libvorbis seeking (that uses granules), so we need manual fix = slower. Could be detected
+                 * by checking granules in the first new OggS pages (other games from same dev don't use
+                 * loopTime not have wrong granules though) */
+                force_seek = 1;
             }
 
             /* Hatsune Miku Project DIVA games, though only 'Arcade Future Tone' has >4ch files
@@ -562,10 +571,11 @@ VGMSTREAM* init_vgmstream_ogg_vorbis_callbacks(STREAMFILE* sf, ov_callbacks* cal
     }
 
     ogg_vorbis_set_disable_reordering(data, disable_reordering);
+    ogg_vorbis_set_force_seek(data, force_seek);
 
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channels,loop_flag);
+    vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
     vgmstream->codec_data = data;
@@ -590,7 +600,7 @@ VGMSTREAM* init_vgmstream_ogg_vorbis_callbacks(STREAMFILE* sf, ov_callbacks* cal
         else if (loop_end_found)
             vgmstream->loop_end_sample = loop_end;
         else
-            vgmstream->loop_end_sample = vgmstream->num_samples;
+            vgmstream->loop_end_sample = vgmstream->num_samples - 100000;
 
         if (vgmstream->loop_end_sample > vgmstream->num_samples)
             vgmstream->loop_end_sample = vgmstream->num_samples;

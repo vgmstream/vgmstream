@@ -219,7 +219,7 @@ void reset_codec(VGMSTREAM* vgmstream) {
 
 #ifdef VGM_USE_VORBIS
     if (vgmstream->coding_type == coding_OGG_VORBIS) {
-        reset_ogg_vorbis(vgmstream);
+        reset_ogg_vorbis(vgmstream->codec_data);
     }
 
     if (vgmstream->coding_type == coding_VORBIS_custom) {
