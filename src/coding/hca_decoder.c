@@ -179,6 +179,13 @@ void free_hca(hca_codec_data* data) {
 }
 
 
+/* ************************************************************************* */
+
+/* Test a single HCA key and assign an score for comparison. Multiple keys could potentially result
+ * in "playable" results (mostly silent with random clips), so it also checks the resulting PCM.
+ * Currently wrong keys should be detected during decoding+un-xor test, so this score may not
+ * be needed anymore, but keep around in case CRI breaks those tests in the future. */
+
 /* arbitrary scale to simplify score comparisons */
 #define HCA_KEY_SCORE_SCALE      10
 /* ignores beginning frames (~10 is not uncommon, Dragalia Lost vocal layers have lots) */
@@ -215,7 +222,8 @@ int test_hca_key(hca_codec_data* data, unsigned long long keycode) {
         /* read and test frame */
         bytes = read_streamfile(data->data_buffer, offset, blockSize, data->streamfile);
         if (bytes != blockSize) {
-            total_score = -1;
+            /* normally this shouldn't happen, but pre-fetch ACB stop with frames in half, so just keep score */
+            //total_score = -1; 
             break;
         }
 

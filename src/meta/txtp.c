@@ -1262,7 +1262,7 @@ static inline int is_match(const char* str1, const char* str2) {
 static void parse_params(txtp_entry* entry, char* params) {
     /* parse params: #(commands) */
     int n, nc, nm, mc;
-    char command[TXTP_LINE_MAX] = {0};
+    char command[TXTP_LINE_MAX];
     play_config_t* tcfg = &entry->config;
 
     entry->range_start = 0;
@@ -1793,7 +1793,7 @@ fail:
 
 static int is_substring(const char* val, const char* cmp) {
     int n;
-    char subval[TXTP_LINE_MAX] = {0};
+    char subval[TXTP_LINE_MAX];
 
     /* read string without trailing spaces or comments/commands */
     if (sscanf(val, " %s%n[^ #\t\r\n]%n", subval, &n, &n) != 1)
@@ -1897,42 +1897,48 @@ static txtp_header* parse_txtp(STREAMFILE* sf) {
 
 
     /* read and parse lines */
-    while (txt_offset < file_size) {
+    {
         char line[TXTP_LINE_MAX];
-        char key[TXTP_LINE_MAX] = {0}, val[TXTP_LINE_MAX] = {0}; /* at least as big as a line to avoid overflows (I hope) */
-        char filename[TXTP_LINE_MAX] = {0};
-        int ok, bytes_read, line_ok;
+        char key[TXTP_LINE_MAX];
+        char val[TXTP_LINE_MAX];
+        char filename[TXTP_LINE_MAX];
+        /* at least as big as a line to avoid overflows (I hope) */
 
-        bytes_read = read_line(line, sizeof(line), txt_offset, sf, &line_ok);
-        if (!line_ok) goto fail;
+        while (txt_offset < file_size) {
+            int ok, bytes_read, line_ok;
 
-        txt_offset += bytes_read;
+            bytes_read = read_line(line, sizeof(line), txt_offset, sf, &line_ok);
+            if (!line_ok) goto fail;
 
-        /* get key/val (ignores lead/trail spaces, # may be commands or comments) */
-        ok = sscanf(line, " %[^ \t#=] = %[^\t\r\n] ", key,val);
-        if (ok == 2) { /* key=val */
-            if (!parse_keyval(txtp, key, val)) /* read key/val */
+            txt_offset += bytes_read;
+
+            /* try key/val (ignores lead/trail spaces, # may be commands or comments) */
+            ok = sscanf(line, " %[^ \t#=] = %[^\t\r\n] ", key,val);
+            if (ok == 2) { /* key=val */
+                if (!parse_keyval(txtp, key, val)) /* read key/val */
+                    goto fail;
+                continue;
+            }
+
+            /* must be a filename (only remove spaces from start/end, as filenames con contain mid spaces/#/etc) */
+            ok = sscanf(line, " %[^\t\r\n] ", filename);
+            if (ok != 1) /* not a filename either */
+                continue;
+            if (filename[0] == '#')
+                continue; /* simple comment */
+
+            /* filename with settings */
+            if (!add_entry(txtp, filename, 0))
                 goto fail;
-            continue;
         }
-
-        /* must be a filename (only remove spaces from start/end, as filenames con contain mid spaces/#/etc) */
-        ok = sscanf(line, " %[^\t\r\n] ", filename);
-        if (ok != 1) /* not a filename either */
-            continue;
-        if (filename[0] == '#')
-            continue; /* simple comment */
-
-        /* filename with settings */
-        if (!add_entry(txtp, filename, 0))
-            goto fail;
     }
 
     /* mini-txth: if no entries are set try with filename, ex. from "song.ext#3.txtp" use "song.ext#3"
      * (it's possible to have default "commands" inside the .txtp plus filename+settings) */
     if (txtp->entry_count == 0) {
-        char filename[PATH_LIMIT] = {0};
+        char filename[PATH_LIMIT];
 
+        filename[0] = '\0';
         get_streamfile_basename(sf, filename, sizeof(filename));
 
         add_entry(txtp, filename, 0);
