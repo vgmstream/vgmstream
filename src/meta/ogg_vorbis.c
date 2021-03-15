@@ -545,7 +545,7 @@ VGMSTREAM* init_vgmstream_ogg_vorbis_callbacks(STREAMFILE* sf, ov_callbacks* cal
                 loop_flag = (loop_start >= 0);
             }
             else if (strstr(comment,"COMMENT=- loopTime ") == comment) { /* Aristear Remain (PC) */
-                loop_start = atol(strrchr(comment,' ')+1) * sample_rate / 1000.0f; /* ms to samples */
+                loop_start = atol(strrchr(comment,' ')+1) / 1000.0f * sample_rate; /* ms to samples */
                 loop_flag = (loop_start >= 0);
 
                 /* files have all page granule positions -1 except a few close to loop. This throws off
@@ -600,7 +600,7 @@ VGMSTREAM* init_vgmstream_ogg_vorbis_callbacks(STREAMFILE* sf, ov_callbacks* cal
         else if (loop_end_found)
             vgmstream->loop_end_sample = loop_end;
         else
-            vgmstream->loop_end_sample = vgmstream->num_samples - 100000;
+            vgmstream->loop_end_sample = vgmstream->num_samples;
 
         if (vgmstream->loop_end_sample > vgmstream->num_samples)
             vgmstream->loop_end_sample = vgmstream->num_samples;
