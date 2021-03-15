@@ -201,8 +201,8 @@ void decode_ogg_vorbis(ogg_vorbis_codec_data* data, sample_t* outbuf, int32_t sa
 
         pcm_convert_float_to_16(channels, outbuf, start, rc, pcm_channels, data->disable_reordering);
 
-        outbuf += rc * channels;
-        samples_done += rc;
+        outbuf += (rc - start) * channels;
+        samples_done += (rc - start);
 
 
 #if 0   // alt decoding
