@@ -11,6 +11,7 @@ typedef struct {
     int flags;
 
     int channels;
+    int layers;
     int sample_rate;
     int32_t num_samples;
     int32_t loop_start;
@@ -33,8 +34,7 @@ typedef struct {
 
 /* ********************************************************************************** */
 
-static layered_layout_data* build_layered_fsb5_celt(STREAMFILE* sf, fsb5_header* fsb5);
-static layered_layout_data* build_layered_fsb5_atrac9(STREAMFILE* sf, fsb5_header* fsb5, off_t configs_offset, size_t configs_size);
+static layered_layout_data* build_layered_fsb5(STREAMFILE* sf, fsb5_header* fsb5);
 
 /* FSB5 - Firelight's FMOD Studio SoundBank format */
 VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
@@ -50,23 +50,24 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
     if (!check_extensions(sf,"fsb,snd"))
         goto fail;
 
-    if (read_32bitBE(0x00,sf) != 0x46534235) /* "FSB5" */
+    if (!is_id32be(0x00,sf, "FSB5"))
         goto fail;
 
     /* 0x00 is rare (seen in Tales from Space Vita) */
-    fsb5.version = read_32bitLE(0x04,sf);
-    if (fsb5.version != 0x00 && fsb5.version != 0x01) goto fail;
+    fsb5.version = read_u32le(0x04,sf);
+    if (fsb5.version != 0x00 && fsb5.version != 0x01)
+        goto fail;
 
-    fsb5.total_subsongs     = read_32bitLE(0x08,sf);
-    fsb5.sample_header_size = read_32bitLE(0x0C,sf);
-    fsb5.name_table_size    = read_32bitLE(0x10,sf);
-    fsb5.sample_data_size   = read_32bitLE(0x14,sf);
-    fsb5.codec              = read_32bitLE(0x18,sf);
+    fsb5.total_subsongs     = read_u32le(0x08,sf);
+    fsb5.sample_header_size = read_u32le(0x0C,sf);
+    fsb5.name_table_size    = read_u32le(0x10,sf);
+    fsb5.sample_data_size   = read_u32le(0x14,sf);
+    fsb5.codec              = read_u32le(0x18,sf);
     /* version 0x01 - 0x1c(4): zero,  0x24(16): hash,  0x34(8): unk
      * version 0x00 has an extra field (always 0?) at 0x1c */
     if (fsb5.version == 0x01) {
         /* found by tests and assumed to be flags, no games known */
-        fsb5.flags = read_32bitLE(0x20,sf);
+        fsb5.flags = read_u32le(0x20,sf);
     }
     fsb5.base_header_size   = (fsb5.version==0x00) ? 0x40 : 0x3C;
 
@@ -87,8 +88,8 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
         off_t data_offset = 0;
         uint32_t sample_mode1, sample_mode2; /* maybe one uint64? */
 
-        sample_mode1 = (uint32_t)read_32bitLE(fsb5.sample_header_offset+0x00,sf);
-        sample_mode2 = (uint32_t)read_32bitLE(fsb5.sample_header_offset+0x04,sf);
+        sample_mode1 = read_u32le(fsb5.sample_header_offset+0x00,sf);
+        sample_mode2 = read_u32le(fsb5.sample_header_offset+0x04,sf);
         stream_header_size += 0x08;
 
         /* get samples */
@@ -133,7 +134,7 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
             uint32_t extraflag, extraflag_type, extraflag_size, extraflag_end;
 
             do {
-                extraflag = read_32bitLE(extraflag_offset,sf);
+                extraflag = read_u32le(extraflag_offset,sf);
                 extraflag_type = (extraflag >> 25) & 0x7F; /* bits 32..26 (7) */
                 extraflag_size = (extraflag >> 1) & 0xFFFFFF; /* bits 25..1 (24)*/
                 extraflag_end  = (extraflag & 0x01); /* bit 0 (1) */
@@ -142,15 +143,15 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
                 if (i + 1 == target_subsong) {
                     switch(extraflag_type) {
                         case 0x01:  /* channels */
-                            fsb5.channels = read_8bit(extraflag_offset+0x04,sf);
+                            fsb5.channels = read_u8(extraflag_offset+0x04,sf);
                             break;
                         case 0x02:  /* sample rate */
-                            fsb5.sample_rate = read_32bitLE(extraflag_offset+0x04,sf);
+                            fsb5.sample_rate = read_s32le(extraflag_offset+0x04,sf);
                             break;
                         case 0x03:  /* loop info */
-                            fsb5.loop_start = read_32bitLE(extraflag_offset+0x04,sf);
+                            fsb5.loop_start = read_s32le(extraflag_offset+0x04,sf);
                             if (extraflag_size > 0x04) { /* probably not needed */
-                                fsb5.loop_end = read_32bitLE(extraflag_offset+0x08,sf);
+                                fsb5.loop_end = read_s32le(extraflag_offset+0x08,sf);
                                 fsb5.loop_end += 1; /* correct compared to FMOD's tools */
                             }
                             //;VGM_LOG("FSB5: stream %i loop start=%i, loop end=%i, samples=%i\n", i, fsb5.loop_start, fsb5.loop_end, fsb5.num_samples);
@@ -183,7 +184,7 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
                         case 0x05:  /* unknown 32b */
                             /* rare, found in Tearaway (Vita) with value 0 in first stream and
                              * Shantae and the Seven Sirens (Mobile) with value 0x0003bd72 BE in #44 (Arena Town) */
-                            VGM_LOG("FSB5: stream %i flag %x with value %08x\n", i, extraflag_type, read_32bitLE(extraflag_offset+0x04,sf));
+                            VGM_LOG("FSB5: stream %i flag %x with value %08x\n", i, extraflag_type, read_u32le(extraflag_offset+0x04,sf));
                             break;
                         case 0x06:  /* XMA seek table */
                             /* no need for it */
@@ -204,14 +205,17 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
                              * 0x08: table_size (total_entries = seek_table_size / (4+4)), not counting this value; can be 0
                              * 0x0C: sample number (only some samples are saved in the table)
                              * 0x10: offset within data, pointing to a FSB vorbis block (with the 16b block size header)
-                             * (xN entries)
-                             */
+                             * (xN entries) */
                             break;
                         case 0x0d:  /* peak volume float (optional setting when making fsb) */
                             break;
                         case 0x0f:  /* OPUS data size not counting frames headers */
                             break;
-                        case 0x0e:  /* number of layered Vorbis channels [Invisible, Inc. (Switch)] */
+                        case 0x0e:  /* Vorbis intra-layers (multichannel FMOD ~2021) [Invisible, Inc. (Switch), Just Cause 4 (PC)] */
+                            fsb5.layers = read_u32le(extraflag_offset+0x04,sf);
+                            /* info only as decoding is standard Vorbis that handles Nch multichannel (channels is 1 here) */
+                            fsb5.channels = fsb5.channels * fsb5.layers;
+                            break;
                         default:
                             VGM_LOG("FSB5: stream %i unknown flag 0x%x at %x + 0x04 (size 0x%x)\n", i, extraflag_type, (uint32_t)extraflag_offset, extraflag_size);
                             break;
@@ -240,8 +244,8 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
             else {
                 off_t next_data_offset;
                 uint32_t next_sample_mode1, next_sample_mode2;
-                next_sample_mode1 = (uint32_t)read_32bitLE(fsb5.sample_header_offset+stream_header_size+0x00,sf);
-                next_sample_mode2 = (uint32_t)read_32bitLE(fsb5.sample_header_offset+stream_header_size+0x04,sf);
+                next_sample_mode1 = read_u32le(fsb5.sample_header_offset+stream_header_size+0x00,sf);
+                next_sample_mode2 = read_u32le(fsb5.sample_header_offset+stream_header_size+0x04,sf);
                 next_data_offset = (((next_sample_mode2 & 0x03) << 25) | ((next_sample_mode1 >> 7) & 0x1FFFFFF)) << 5;
 
                 fsb5.stream_size = next_data_offset - data_offset;
@@ -254,17 +258,18 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
         fsb5.sample_header_offset += stream_header_size;
     }
     /* target stream not found*/
-    if (!fsb5.stream_offset || !fsb5.stream_size) goto fail;
+    if (!fsb5.stream_offset || !fsb5.stream_size)
+        goto fail;
 
     /* get stream name */
     if (fsb5.name_table_size) {
         off_t name_suboffset = fsb5.base_header_size + fsb5.sample_header_size + 0x04*(target_subsong-1);
-        fsb5.name_offset = fsb5.base_header_size + fsb5.sample_header_size + read_32bitLE(name_suboffset,sf);
+        fsb5.name_offset = fsb5.base_header_size + fsb5.sample_header_size + read_u32le(name_suboffset,sf);
     }
 
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(fsb5.channels,fsb5.loop_flag);
+    vgmstream = allocate_vgmstream(fsb5.channels, fsb5.loop_flag);
     if (!vgmstream) goto fail;
 
     vgmstream->sample_rate = fsb5.sample_rate;
@@ -379,10 +384,10 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
 
 #ifdef VGM_USE_CELT
         case 0x0C: {  /* FMOD_SOUND_FORMAT_CELT  [BIT.TRIP Presents Runner2 (PC), Full Bore (PC)] */
-            int is_multistream = fsb5.channels > 2;
+            fsb5.layers = (fsb5.channels <= 2) ? 1 : (fsb5.channels+1) / 2;
 
-            if (is_multistream) {
-                vgmstream->layout_data = build_layered_fsb5_celt(sf, &fsb5);
+            if (fsb5.layers > 1) {
+                vgmstream->layout_data = build_layered_fsb5(sf, &fsb5);
                 if (!vgmstream->layout_data) goto fail;
                 vgmstream->coding_type = coding_CELT_FSB;
                 vgmstream->layout_type = layout_layered;
@@ -399,22 +404,18 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
 
 #ifdef VGM_USE_ATRAC9
         case 0x0D: {/* FMOD_SOUND_FORMAT_AT9 */
-            int is_multistream;
-            off_t configs_offset = fsb5.extradata_offset;
-            size_t configs_size = fsb5.extradata_size;
-
-
             /* skip frame size in newer FSBs [Day of the Tentacle Remastered (Vita), Tearaway Unfolded (PS4)] */
-            if (configs_size >= 0x08 && (uint8_t)read_8bit(configs_offset, sf) != 0xFE) { /* ATRAC9 sync */
-                configs_offset += 0x04;
-                configs_size -= 0x04;
+            if (fsb5.extradata_size >= 0x08
+                    && read_u8(fsb5.extradata_offset, sf) != 0xFE) { /* not ATRAC9 sync */
+                fsb5.extradata_offset += 0x04;
+                fsb5.extradata_size -= 0x04;
             }
 
-            is_multistream = (configs_size / 0x04) > 1;
+            fsb5.layers = (fsb5.extradata_size / 0x04);
 
-            if (is_multistream) {
-                /* multichannel made of various streams [Little Big Planet (Vita)] */
-                vgmstream->layout_data = build_layered_fsb5_atrac9(sf, &fsb5, configs_offset, configs_size);
+            if (fsb5.layers > 1) {
+                /* multichannel made of various layers [Little Big Planet (Vita)] */
+                vgmstream->layout_data = build_layered_fsb5(sf, &fsb5);
                 if (!vgmstream->layout_data) goto fail;
                 vgmstream->coding_type = coding_ATRAC9;
                 vgmstream->layout_type = layout_layered;
@@ -424,7 +425,7 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
                 atrac9_config cfg = {0};
 
                 cfg.channels = vgmstream->channels;
-                cfg.config_data = read_32bitBE(configs_offset,sf);
+                cfg.config_data = read_u32be(fsb5.extradata_offset,sf);
                 //cfg.encoder_delay = 0x100; //todo not used? num_samples seems to count all data
 
                 vgmstream->codec_data = init_atrac9(&cfg);
@@ -441,9 +442,9 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
             uint8_t buf[0x100];
             int bytes, format, average_bps, block_align;
 
-            format = read_16bitBE(fsb5.extradata_offset+0x00,sf);
-            block_align = (uint16_t)read_16bitBE(fsb5.extradata_offset+0x02,sf);
-            average_bps = (uint32_t)read_32bitBE(fsb5.extradata_offset+0x04,sf);
+            format = read_u16be(fsb5.extradata_offset+0x00,sf);
+            block_align = read_u16be(fsb5.extradata_offset+0x02,sf);
+            average_bps = read_u32be(fsb5.extradata_offset+0x04,sf);
             /* rest: seek entries + mini seek table? */
             /* XWMA encoder only does up to 6ch (doesn't use FSB multistreams for more) */
 
@@ -460,15 +461,14 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
         case 0x0F: {/* FMOD_SOUND_FORMAT_VORBIS  [Shantae Half Genie Hero (PC), Pokemon Go (iOS)] */
             vorbis_custom_config cfg = {0};
 
-            cfg.channels = vgmstream->channels;
-            cfg.sample_rate = vgmstream->sample_rate;
-            cfg.setup_id = read_32bitLE(fsb5.extradata_offset,sf);
+            cfg.channels = fsb5.channels;
+            cfg.sample_rate = fsb5.sample_rate;
+            cfg.setup_id = read_u32le(fsb5.extradata_offset,sf);
 
-            vgmstream->layout_type = layout_none;
-            vgmstream->coding_type = coding_VORBIS_custom;
             vgmstream->codec_data = init_vorbis_custom(sf, fsb5.stream_offset, VORBIS_FSB, &cfg);
             if (!vgmstream->codec_data) goto fail;
-
+            vgmstream->coding_type = coding_VORBIS_custom;
+            vgmstream->layout_type = layout_none;
             break;
         }
 #endif
@@ -509,32 +509,63 @@ fail:
 }
 
 
-static layered_layout_data* build_layered_fsb5_celt(STREAMFILE* sf, fsb5_header* fsb5) {
+static layered_layout_data* build_layered_fsb5(STREAMFILE* sf, fsb5_header* fsb5) {
     layered_layout_data* data = NULL;
     STREAMFILE* temp_sf = NULL;
-    int i, layers = (fsb5->channels+1) / 2;
-    size_t interleave;
-
-    if (read_32bitBE(fsb5->stream_offset+0x00,sf) != 0x17C30DF3) /* FSB CELT frame ID */
-        goto fail;
-    interleave = 0x04+0x04+read_32bitLE(fsb5->stream_offset+0x04,sf); /* frame size */
-
-    //todo unknown interleave for max quality odd channel streams (found in test files)
-    /* FSB5 odd channels use 2ch+2ch...+1ch streams, and the last only goes up to 0x17a, and other
-     * streams only use that max (doesn't happen for smaller frames, even channels, or FSB4)
-     * however streams other than the last seem to be padded with 0s somehow and wont work */
-    if (interleave > 0x17a && (fsb5->channels % 2 == 1))
-        interleave = 0x17a;
+    size_t interleave, config = 0;
+    int i, layer_channels;
 
 
     /* init layout */
-    data = init_layout_layered(layers);
+    data = init_layout_layered(fsb5->layers);
     if (!data) goto fail;
 
-    /* open each layer subfile (1/2ch CELT streams: 2ch+2ch..+1ch or 2ch+2ch..+2ch) */
-    for (i = 0; i < layers; i++) {
-        int layer_channels = (i+1 == layers && fsb5->channels % 2 == 1)
-                ? 1 : 2; /* last layer can be 1/2ch */
+    for (i = 0; i < fsb5->layers; i++) {
+        switch (fsb5->codec) {
+            case 0x0C: { /* CELT */
+                /* 2ch+2ch..+1ch or 2ch+2ch..+2ch = check last layer */
+                layer_channels = (i+1 == fsb5->layers && fsb5->channels % 2 == 1) ? 1 : 2;
+
+                if (read_u32be(fsb5->stream_offset+0x00,sf) != 0x17C30DF3) /* FSB CELT frame ID */
+                    goto fail;
+                interleave = 0x04+0x04+read_u32le(fsb5->stream_offset+0x04,sf); /* frame size */
+
+                //todo unknown interleave for max quality odd channel streams (found in test files)
+                /* FSB5 odd channels use 2ch+2ch...+1ch streams, and the last only goes up to 0x17a, and other
+                 * streams only use that max (doesn't happen for smaller frames, even channels, or FSB4)
+                 * however streams other than the last seem to be padded with 0s somehow and wont work */
+                if (interleave > 0x17a && (fsb5->channels % 2 == 1))
+                    interleave = 0x17a;
+                break;
+            }
+
+            case 0x0D: { /* ATRAC9 */
+                int channel_index;
+                size_t frame_size;
+
+                /* 2ch+2ch..+1/2ch */
+                config = read_u32be(fsb5->extradata_offset + 0x04*i, sf); /* ATRAC9 config */
+
+                channel_index = ((config >> 17) & 0x7);
+                frame_size = (((config >> 5) & 0x7FF) + 1) * (1 << ((config >> 3) & 0x2)); /* frame size * superframe index */
+                if (channel_index > 2)
+                    goto fail; /* only 1/2ch expected */
+
+                layer_channels = (channel_index==0) ? 1 : 2;
+                interleave = frame_size;
+                //todo in test files with 2ch+..+1ch interleave is off (uses some strange padding)
+                break;
+            }
+
+            case 0x0F: { /* VORBIS */
+                layer_channels = fsb5->channels;
+                interleave = 0;
+                break;
+            }
+
+            default:
+                goto fail;
+        }
 
         /* build the layer VGMSTREAM */
         data->layers[i] = allocate_vgmstream(layer_channels, fsb5->loop_flag);
@@ -545,94 +576,40 @@ static layered_layout_data* build_layered_fsb5_celt(STREAMFILE* sf, fsb5_header*
         data->layers[i]->loop_start_sample = fsb5->loop_start;
         data->layers[i]->loop_end_sample = fsb5->loop_end;
 
+
+        switch (fsb5->codec) {
 #ifdef VGM_USE_CELT
-        data->layers[i]->codec_data = init_celt_fsb(layer_channels, CELT_0_11_0);
-        if (!data->layers[i]->codec_data) goto fail;
-        data->layers[i]->coding_type = coding_CELT_FSB;
-        data->layers[i]->layout_type = layout_none;
-#else
-        goto fail;
+            case 0x0C: { /* CELT */
+                data->layers[i]->codec_data = init_celt_fsb(layer_channels, CELT_0_11_0);
+                if (!data->layers[i]->codec_data) goto fail;
+                data->layers[i]->coding_type = coding_CELT_FSB;
+                data->layers[i]->layout_type = layout_none;
+                break;
+            }
 #endif
-
-        temp_sf = setup_fsb5_streamfile(sf, fsb5->stream_offset, fsb5->stream_size, layers, i, interleave);
-        if (!temp_sf) goto fail;
-
-        if (!vgmstream_open_stream(data->layers[i], temp_sf, 0x00))
-            goto fail;
-
-        close_streamfile(temp_sf);
-        temp_sf = NULL;
-    }
-
-    /* setup layered VGMSTREAMs */
-    if (!setup_layout_layered(data))
-        goto fail;
-    return data;
-
-fail:
-    close_streamfile(temp_sf);
-    free_layout_layered(data);
-    return NULL;
-}
-
-
-static layered_layout_data* build_layered_fsb5_atrac9(STREAMFILE* sf, fsb5_header* fsb5, off_t configs_offset, size_t configs_size) {
-    layered_layout_data* data = NULL;
-    STREAMFILE* temp_sf = NULL;
-    int i, layers = (configs_size / 0x04);
-    size_t interleave = 0;
-
-
-    /* init layout */
-    data = init_layout_layered(layers);
-    if (!data) goto fail;
-
-    /* open each layer subfile (2ch+2ch..+1/2ch) */
-    for (i = 0; i < layers; i++) {
-        uint32_t config = read_32bitBE(configs_offset + 0x04*i, sf);
-        int channel_index, layer_channels;
-        size_t frame_size;
-
-
-        /* parse ATRAC9 config (see VGAudio docs) */
-        channel_index = ((config >> 17) & 0x7);
-        frame_size = (((config >> 5) & 0x7FF) + 1) * (1 << ((config >> 3) & 0x2)); /* frame size * superframe index */
-        if (channel_index > 2)
-            goto fail; /* only 1/2ch expected */
-
-        layer_channels = (channel_index==0) ? 1 : 2;
-        if (interleave == 0)
-            interleave = frame_size;
-        //todo in test files with 2ch+..+1ch interleave is off (uses some strange padding)
-
-
-        /* build the layer VGMSTREAM */
-        data->layers[i] = allocate_vgmstream(layer_channels, fsb5->loop_flag);
-        if (!data->layers[i]) goto fail;
-
-        data->layers[i]->sample_rate = fsb5->sample_rate;
-        data->layers[i]->num_samples = fsb5->num_samples;
-        data->layers[i]->loop_start_sample = fsb5->loop_start;
-        data->layers[i]->loop_end_sample = fsb5->loop_end;
 
 #ifdef VGM_USE_ATRAC9
-        {
-            atrac9_config cfg = {0};
+            case 0x0D: { /* ATRAC9 */
+                atrac9_config cfg = {0};
 
-            cfg.channels = layer_channels;
-            cfg.config_data = config;
-            //cfg.encoder_delay = 0x100; //todo not used? num_samples seems to count all data
+                cfg.channels = layer_channels;
+                cfg.config_data = config;
+                //cfg.encoder_delay = 0x100; //todo not used? num_samples seems to count all data
 
-            data->layers[i]->codec_data = init_atrac9(&cfg);
-            if (!data->layers[i]->codec_data) goto fail;
-            data->layers[i]->coding_type = coding_ATRAC9;
-            data->layers[i]->layout_type = layout_none;
-        }
-#else
-        goto fail;
+                data->layers[i]->codec_data = init_atrac9(&cfg);
+                if (!data->layers[i]->codec_data) goto fail;
+                data->layers[i]->coding_type = coding_ATRAC9;
+                data->layers[i]->layout_type = layout_none;
+                break;
+            }
 #endif
 
-        temp_sf = setup_fsb5_streamfile(sf, fsb5->stream_offset, fsb5->stream_size, layers, i, interleave);
+            default:
+                goto fail;
+        }
+
+
+        temp_sf = setup_fsb5_streamfile(sf, fsb5->stream_offset, fsb5->stream_size, fsb5->layers, i, interleave);
         if (!temp_sf) goto fail;
 
         if (!vgmstream_open_stream(data->layers[i], temp_sf, 0x00))
