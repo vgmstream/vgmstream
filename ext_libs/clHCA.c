@@ -325,26 +325,25 @@ int clHCA_getInfo(clHCA* hca, clHCA_stInfo *info) {
     return 0;
 }
 
+//HCADecoder_DecodeBlockInt32
 void clHCA_ReadSamples16(clHCA* hca, signed short *samples) {
-    const float scale = 32768.0f;
+    const float scale_f = 32768.0f;
     float f;
     signed int s;
     unsigned int i, j, k;
 
+    /* PCM output is generally unused, but lib functions seem to use SIMD for f32 to s32 + round to zero */
     for (i = 0; i < HCA_SUBFRAMES_PER_FRAME; i++) {
         for (j = 0; j < HCA_SAMPLES_PER_SUBFRAME; j++) {
             for (k = 0; k < hca->channels; k++) {
                 f = hca->channel[k].wave[i][j];
                 //f = f * hca->rva_volume; /* rare, won't apply for now */
-                if (f > 1.0f) {
-                    f = 1.0f;
-                } else if (f < -1.0f) {
-                    f = -1.0f;
-                }
-                s = (signed int) (f * scale);
-                if ((unsigned) (s + 0x8000) & 0xFFFF0000)
-                    s = (s >> 31) ^ 0x7FFF;
-                *samples++ = (signed short) s;
+                s = (signed int)(f * scale_f);
+                if (s > 32767)
+                    s = 32767;
+                else if (s < -32768)
+                    s = -32768;
+                *samples++ = (signed short)s;
             }
         }
     }
@@ -1860,57 +1859,58 @@ static void imdct_transform(stChannel* ch, int subframe) {
     static const unsigned int size = HCA_SAMPLES_PER_SUBFRAME;
     static const unsigned int half = HCA_SAMPLES_PER_SUBFRAME / 2;
     static const unsigned int mdct_bits = HCA_MDCT_BITS;
+    unsigned int i, j, k;
 
+    /* This IMDCT (supposedly standard) is all too crafty for me to simplify, see VGAudio (Mdct.Dct4). */
+
+    /* pre-pre-rotation(?) */
     {
-        unsigned int i, j, k;
-        unsigned int count1a, count2a, count1b, count2b;
-        const float *temp1a, *temp1b;
-        float *temp2a, *temp2b;
+        unsigned int count1 = 1;
+        unsigned int count2 = half;
+        float* temp1 = ch->spectra;
+        float* temp2 = ch->temp;
 
-        /* this is all too crafty for me to simplify, see VGAudio (Mdct.Dct4) */
-
-        temp1a = ch->spectra;
-        temp2a = ch->temp;
-        count1a = 1;
-        count2a = half;
         for (i = 0; i < mdct_bits; i++) {
             float* swap;
-            float* d1 = &temp2a[0];
-            float* d2 = &temp2a[count2a];
+            float* d1 = &temp2[0];
+            float* d2 = &temp2[count2];
 
-            for (j = 0; j < count1a; j++) {
-                for (k = 0; k < count2a; k++) {
-                    float a = *(temp1a++);
-                    float b = *(temp1a++);
-                    *(d1++) = b + a;
+            for (j = 0; j < count1; j++) {
+                for (k = 0; k < count2; k++) {
+                    float a = *(temp1++);
+                    float b = *(temp1++);
+                    *(d1++) = a + b;
                     *(d2++) = a - b;
                 }
-                d1 += count2a;
-                d2 += count2a;
+                d1 += count2;
+                d2 += count2;
             }
-            swap = (float*) temp1a - HCA_SAMPLES_PER_SUBFRAME; /* move spectra/temp to beginning */
-            temp1a = temp2a;
-            temp2a = swap;
+            swap = temp1 - HCA_SAMPLES_PER_SUBFRAME; /* move spectra or temp to beginning */
+            temp1 = temp2;
+            temp2 = swap;
 
-            count1a = count1a << 1;
-            count2a = count2a >> 1;
+            count1 = count1 << 1;
+            count2 = count2 >> 1;
         }
+    }
 
-        temp1b = ch->temp;
-        temp2b = ch->spectra;
-        count1b = half;
-        count2b = 1;
+    {
+        unsigned int count1 = half;
+        unsigned int count2 = 1;
+        float* temp1 = ch->temp;
+        float* temp2 = ch->spectra;
+
         for (i = 0; i < mdct_bits; i++) {
             const float* sin_table = (const float*) sin_tables_hex[i];//todo cleanup
             const float* cos_table = (const float*) cos_tables_hex[i];
             float* swap;
-            float* d1 = temp2b;
-            float* d2 = &temp2b[count2b * 2 - 1];
-            const float* s1 = &temp1b[0];
-            const float* s2 = &temp1b[count2b];
+            float* d1 = &temp2[0];
+            float* d2 = &temp2[count2 * 2 - 1];
+            const float* s1 = &temp1[0];
+            const float* s2 = &temp1[count2];
 
-            for (j = 0; j < count1b; j++) {
-                for (k = 0; k < count2b; k++) {
+            for (j = 0; j < count1; j++) {
+                for (k = 0; k < count2; k++) {
                     float a = *(s1++);
                     float b = *(s2++);
                     float sin = *(sin_table++);
@@ -1918,38 +1918,41 @@ static void imdct_transform(stChannel* ch, int subframe) {
                     *(d1++) = a * sin - b * cos;
                     *(d2--) = a * cos + b * sin;
                 }
-                s1 += count2b;
-                s2 += count2b;
-                d1 += count2b;
-                d2 += count2b * 3;
+                s1 += count2;
+                s2 += count2;
+                d1 += count2;
+                d2 += count2 * 3;
             }
-            swap = (float*) temp1b;
-            temp1b = temp2b;
-            temp2b = swap;
+            swap = temp1;
+            temp1 = temp2;
+            temp2 = swap;
 
-            count1b = count1b >> 1;
-            count2b = count2b << 1;
+            count1 = count1 >> 1;
+            count2 = count2 << 1;
         }
-
+#if 0
         /* copy dct */
         /* (with the above optimization spectra is already modified, so this is redundant) */
         for (i = 0; i < size; i++) {
             ch->dct[i] = ch->spectra[i];
         }
+#endif
     }
 
-    /* update output/imdct (lib fuses this with the above) */
+    /* update output/imdct with overlapped window (lib fuses this with the above) */
     {
         unsigned int i;
+        const float* dct = ch->spectra; //ch->dct;
+        const float* prev = ch->imdct_previous;
 
         for (i = 0; i < half; i++) {
-            ch->wave[subframe][i] = hcaimdct_window_float[i] * ch->dct[i + half] + ch->imdct_previous[i];
-            ch->wave[subframe][i + half] = hcaimdct_window_float[i + half] * ch->dct[size - 1 - i] - ch->imdct_previous[i + half];
-            ch->imdct_previous[i] = hcaimdct_window_float[size - 1 - i] * ch->dct[half - i - 1];
-            ch->imdct_previous[i + half] = hcaimdct_window_float[half - i - 1] * ch->dct[i];
+            ch->wave[subframe][i] = hcaimdct_window_float[i] * dct[i + half] + prev[i];
+            ch->wave[subframe][i + half] = hcaimdct_window_float[i + half] * dct[size - 1 - i] - prev[i + half];
+            ch->imdct_previous[i] = hcaimdct_window_float[size - 1 - i] * dct[half - i - 1];
+            ch->imdct_previous[i + half] = hcaimdct_window_float[half - i - 1] * dct[i];
         }
 #if 0
-        /* over-optimized IMDCT (for reference), barely noticeable even when decoding hundred of files */
+        /* over-optimized IMDCT window (for reference), barely noticeable even when decoding hundred of files */
         const float* imdct_window = hcaimdct_window_float;
         const float* dct;
         float* imdct_previous;
