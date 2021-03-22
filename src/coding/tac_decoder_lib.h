@@ -31,7 +31,7 @@ typedef struct {
     uint16_t frame_last;        /* valid samples in final frame - 1 (lower = outputs less, 0 = outputs 1), even for non-looped files */
     uint32_t loop_offset;       /* points to a block; file size if not looped */
     uint32_t file_size;         /* block aligned; actual file size can be a bit smaller if last block is truncated */
-    uint32_t joint_stereo;      /* usually 0 and rarely 1 */
+    uint32_t joint_stereo;      /* usually 0 and rarely 1 ("MSStereoMode") */
     uint32_t empty;             /* always null */
 } tac_header_t;
 

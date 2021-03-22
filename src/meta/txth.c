@@ -633,6 +633,22 @@ static VGMSTREAM* init_subfile(txth_header* txth) {
     if (txth->num_samples)
         vgmstream->num_samples = txth->num_samples;
 
+    /* load some fields for possible calcs */
+    if (!txth->channels)
+        txth->channels = vgmstream->channels;
+    if (!txth->sample_rate)
+        txth->sample_rate = vgmstream->sample_rate;
+    if (!txth->interleave)
+        txth->interleave = vgmstream->interleave_block_size;
+    if (!txth->interleave_last)
+        txth->interleave_last = vgmstream->interleave_last_block_size;
+    //if (!txth->loop_flag) //?
+    //    txth->loop_flag = vgmstream->loop_flag;
+    /* sometimes headers set loop start but getting loop_end before subfile init is hard */
+    if (!txth->loop_end_sample && txth->loop_flag)
+        txth->loop_end_sample = vgmstream->num_samples;
+
+    /* other init */
     if (txth->loop_flag) {
         vgmstream_force_loop(vgmstream, txth->loop_flag, txth->loop_start_sample, txth->loop_end_sample);
     }
@@ -645,19 +661,6 @@ static VGMSTREAM* init_subfile(txth_header* txth) {
         vgmstream->num_streams = txth->subsong_count;
     }
     //todo: other combos with subsongs + subfile?
-
-
-    /* load some fields for possible calcs */
-    if (!txth->channels)
-        txth->channels = vgmstream->channels;
-    if (!txth->sample_rate)
-        txth->sample_rate = vgmstream->sample_rate;
-    if (!txth->interleave)
-        txth->interleave = vgmstream->interleave_block_size;
-    if (!txth->interleave_last)
-        txth->interleave_last = vgmstream->interleave_last_block_size;
-    //if (!txth->loop_flag) //?
-    //    txth->loop_flag = vgmstream->loop_flag;
 
 
     close_streamfile(sf_sub);
@@ -786,12 +789,12 @@ static void set_body_chunk(txth_header* txth) {
     }
 }
 
-static int parse_keyval(STREAMFILE* sf, txth_header* txth, const char * key, char * val);
-static int parse_num(STREAMFILE* sf, txth_header* txth, const char * val, uint32_t * out_value);
-static int parse_string(STREAMFILE* sf, txth_header* txth, const char * val, char * str);
-static int parse_coef_table(STREAMFILE* sf, txth_header* txth, const char * val, uint8_t * out_value, size_t out_size);
-static int parse_name_table(txth_header* txth, char * val);
-static int is_string(const char * val, const char * cmp);
+static int parse_keyval(STREAMFILE* sf, txth_header* txth, const char* key, char* val);
+static int parse_num(STREAMFILE* sf, txth_header* txth, const char* val, uint32_t* out_value);
+static int parse_string(STREAMFILE* sf, txth_header* txth, const char* val, char* str);
+static int parse_coef_table(STREAMFILE* sf, txth_header* txth, const char* val, uint8_t* out_value, size_t out_size);
+static int parse_name_table(txth_header* txth, char* val);
+static int is_string(const char* val, const char* cmp);
 static int get_bytes_to_samples(txth_header* txth, uint32_t bytes);
 static int get_padding_size(txth_header* txth, int discard_empty);
 
@@ -857,7 +860,7 @@ fail:
     return 0;
 }
 
-static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char * key, char * val) {
+static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char* key, char* val) {
     //;VGM_LOG("TXTH: key=%s, val=%s\n", key, val);
 
     /* CODEC */
@@ -1331,10 +1334,11 @@ static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char * key, ch
 
     return 1;
 fail:
+    VGM_LOG("TXTH: error parsing key=%s, val=%s\n", key, val);
     return 0;
 }
 
-static int is_substring(const char * val, const char * cmp, int inline_field) {
+static int is_substring(const char* val, const char* cmp, int inline_field) {
     char chr;
     int len = strlen(cmp);
     /* "val" must contain "cmp" entirely */
@@ -1354,7 +1358,7 @@ static int is_substring(const char * val, const char * cmp, int inline_field) {
     return len;
 }
 
-static int is_string(const char * val, const char * cmp) {
+static int is_string(const char* val, const char* cmp) {
     int len = is_substring(val, cmp, 0);
     if (!len) return 0;
 
@@ -1368,11 +1372,11 @@ static int is_string(const char * val, const char * cmp) {
 
     return len;
 }
-static int is_string_field(const char * val, const char * cmp) {
+static int is_string_field(const char* val, const char* cmp) {
     return is_substring(val, cmp, 1);
 }
 
-static uint16_t get_string_wchar(const char * val, int pos, int *csize) {
+static uint16_t get_string_wchar(const char* val, int pos, int* csize) {
     uint16_t wchar = 0;
 
     if ((val[pos] & 0x80) && val[pos+1] != '\0') {
@@ -1394,10 +1398,11 @@ static uint16_t get_string_wchar(const char * val, int pos, int *csize) {
 
     return wchar;
 }
-static int is_string_match(const char * text, const char * pattern) {
-    int t_pos = 0, p_pos = 0;
+static int is_string_match(const char* text, const char* pattern) {
+    int t_pos = 0, p_pos = 0, t_len = 0, p_len = 0;
     int p_size, t_size;
     uint16_t p_char, t_char;
+
     //;VGM_LOG("TXTH: match '%s' vs '%s'\n", text,pattern);
 
     /* compares 2 strings (case insensitive, to a point) allowing wildcards
@@ -1405,7 +1410,7 @@ static int is_string_match(const char * text, const char * pattern) {
      *
      * does some bleh UTF-8 handling, consuming dual bytes if needed (codepages set char's eighth bit).
      * as such it's slower than standard funcs, but it's not like we need it to be ultra fast.
-     * */
+     */
 
     while (text[t_pos] != '\0' && pattern[p_pos] != '\0') {
         //;VGM_LOG("TXTH:  compare '%s' vs '%s'\n", (text+t_pos), (pattern+p_pos));
@@ -1417,10 +1422,28 @@ static int is_string_match(const char * text, const char * pattern) {
 
             while(text[t_pos] != '\0') {
                 t_char = get_string_wchar(text, t_pos, &t_size);
-                //;VGM_LOG("TXTH:  consume %i '%s'\n", t_size, (text+t_pos)  );
+                //;VGM_LOG("TXTH:  consume %i '%s'\n", t_size, (text+t_pos));
 
-                if (t_char == p_char)
-                    break;
+                /* break from this wildcard (AKA possible match = stop consuming) only if:
+                 * - rest of string has the same length (=could be a match)
+                 * - there are more wildcards (=would consume other parts)
+                 * otherwise current wildcard must keep consuming text (without this,
+                 * sound_1_1.adx vs *_1.adx wouldn't match since the _ would stop too early)
+                 */
+                if (t_char == p_char) {
+                    if (strchr(&pattern[p_pos], '*'))
+                        break;
+
+                    if (!t_len || !p_len) { /* lazy init helpful? */
+                        t_len = strlen(text);
+                        p_len = strlen(pattern);
+                    }
+
+                    //;VGM_LOG("TXTH:  possible match '%s' vs '%s'\n", (text+t_pos), (pattern+p_pos));
+                    /* not strcmp to allow case insensitive-ness, handled below */
+                    if (t_len - t_pos == p_len - p_pos)
+                        break;
+                }
                 t_pos += t_size;
             }
         }
@@ -1430,21 +1453,24 @@ static int is_string_match(const char * text, const char * pattern) {
             p_pos++;
             t_pos += t_size;
         }
-        else { /* must match 1:1 */
+        else { /* must match char 1:1 */
+            //;VGM_LOG("TXTH:  test 1:1 '%s' vs '%s'\n", (text+t_pos), (pattern+p_pos));
             t_char = get_string_wchar(text, t_pos, &t_size);
             p_char = get_string_wchar(pattern, p_pos, &p_size);
             if (p_char != t_char)
                 break;
-            p_pos += p_size;
             t_pos += t_size;
+            p_pos += p_size;
         }
     }
 
+    //;VGM_LOG("TXTH:  current '%s' vs '%s'\n", (text+t_pos), (pattern+p_pos));
     //;VGM_LOG("TXTH: match '%s' vs '%s' = %s\n", text,pattern, (text[t_pos] == '\0' && pattern[p_pos] == '\0') ? "true" : "false");
+
     /* either all chars consumed/matched and both pos point to null, or one didn't so string didn't match */
     return text[t_pos] == '\0' && pattern[p_pos] == '\0';
 }
-static int parse_string(STREAMFILE* sf, txth_header* txth, const char * val, char * str) {
+static int parse_string(STREAMFILE* sf, txth_header* txth, const char* val, char* str) {
     int n = 0;
 
     /* read string without trailing spaces */
@@ -1453,7 +1479,7 @@ static int parse_string(STREAMFILE* sf, txth_header* txth, const char * val, cha
     return n;
 }
 
-static int parse_coef_table(STREAMFILE* sf, txth_header* txth, const char * val, uint8_t * out_value, size_t out_size) {
+static int parse_coef_table(STREAMFILE* sf, txth_header* txth, const char* val, uint8_t* out_value, size_t out_size) {
     uint32_t byte;
     int done = 0;
 
@@ -1481,7 +1507,7 @@ fail:
     return 0;
 }
 
-static int parse_name_table(txth_header* txth, char * name_list) {
+static int parse_name_table(txth_header* txth, char* name_list) {
     STREAMFILE* nameFile = NULL;
     off_t txt_offset, file_size;
     char fullname[PATH_LIMIT];
@@ -1597,7 +1623,7 @@ fail:
 }
 
 
-static int parse_num(STREAMFILE* sf, txth_header* txth, const char * val, uint32_t * out_value) {
+static int parse_num(STREAMFILE* sf, txth_header* txth, const char* val, uint32_t* out_value) {
     /* out_value can be these, save before modifying */
     uint32_t value_mul = txth->value_mul;
     uint32_t value_div = txth->value_div;
@@ -1643,8 +1669,10 @@ static int parse_num(STREAMFILE* sf, txth_header* txth, const char * val, uint32
             int hex = (val[1]=='0' && val[2]=='x');
 
             /* can happen when loading .txth and not setting body/head */
-            if (!sf)
+            if (!sf) {
+                VGM_LOG("TXTH: wrong header\n");
                 goto fail;
+            }
 
             /* read exactly N fields in the expected format */
             if (strchr(val,':') && strchr(val,'$')) {
@@ -1660,8 +1688,10 @@ static int parse_num(STREAMFILE* sf, txth_header* txth, const char * val, uint32
             /* adjust offset */
             offset += txth->base_offset;
 
-            if (/*offset < 0 ||*/ offset > get_streamfile_size(sf))
+            if (/*offset < 0 ||*/ offset > get_streamfile_size(sf)) {
+                VGM_LOG("TXTH: wrong offset %x + %x\n", offset - txth->base_offset, txth->base_offset);
                 goto fail;
+            }
 
             if (ed1 == 'B' && ed2 == 'E')
                 big_endian = 1;
@@ -1671,11 +1701,12 @@ static int parse_num(STREAMFILE* sf, txth_header* txth, const char * val, uint32
             if (subsong_spacing)
                 offset = offset + subsong_spacing * (txth->target_subsong - 1);
 
+            //;VGM_LOG("TXTH: read at offset %x + %x\n", offset - txth->base_offset, txth->base_offset);
             switch(size) {
-                case 1: value = (uint8_t)read_8bit(offset,sf); break;
-                case 2: value = big_endian ? (uint16_t)read_16bitBE(offset,sf) : (uint16_t)read_16bitLE(offset,sf); break;
-                case 3: value = (big_endian ? (uint32_t)read_32bitBE(offset,sf) : (uint32_t)read_32bitLE(offset,sf)) & 0x00FFFFFF; break;
-                case 4: value = big_endian ? (uint32_t)read_32bitBE(offset,sf) : (uint32_t)read_32bitLE(offset,sf); break;
+                case 1: value = read_u8(offset,sf); break;
+                case 2: value = big_endian ? read_u16be(offset,sf) : read_u16le(offset,sf); break;
+                case 3: value = (big_endian ? read_u32be(offset,sf) : read_u32le(offset,sf)) & 0x00FFFFFF; break;
+                case 4: value = big_endian ? read_u32be(offset,sf) : read_u32le(offset,sf); break;
                 default: goto fail;
             }
             value_read = 1;
@@ -1747,7 +1778,7 @@ static int parse_num(STREAMFILE* sf, txth_header* txth, const char * val, uint32
         /* move to next field (if any) */
         val += n;
 
-        //;VGM_LOG("TXTH: val='%s', n=%i, brackets=%i, result=%i\n", val, n, brackets, result);
+        //;VGM_LOG("TXTH: val='%s', n=%i, brackets=%i, result=0x%x\n", val, n, brackets, result);
     }
 
     /* unbalanced brackets */
@@ -1769,6 +1800,7 @@ static int parse_num(STREAMFILE* sf, txth_header* txth, const char * val, uint32
     //;VGM_LOG("TXTH: final result %u (0x%x)\n", result, result);
     return 1;
 fail:
+    VGM_LOG("TXTH: error parsing num '%s'\n", val);
     return 0;
 }
 

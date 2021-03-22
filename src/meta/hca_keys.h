@@ -597,6 +597,15 @@ static const hcakey_info hcakey_list[] = {
         {0x94466db0d3c10f4b},
         {0x47f52330df2ead11},
         {0x33848be13a2884a3},
+        {0xc9f159f60b065f91},
+        {0xdd9ca800a7123d6f},
+        {0xa090c8ebf8463d05},
+        {0xa5c1adeb7919845f},
+        {0x58d97e6f3d1aee86},
+        {0x71b5fa3761d6726d},
+        {0x1980271cfe0da9bd},
+        {0x945cdb3cf1f29e52},
+        {0x7f0feac6be7def5b},
 
         /* Dragalia Lost (iOS/Android) */
         {2967411924141,         subkeys_dgl, sizeof(subkeys_dgl) / sizeof(subkeys_dgl[0]) },    // 000002B2E7889CAD
