@@ -71,7 +71,7 @@ static const REG_VF ANTIALIASING_TABLE[64/4] = {
 
 /* Seemingly scale factor table (needs an extra index, see end).
  * ELF seems to store only xy, zw is just mirrored. */
-static const REG_VF SCALE_TABLE[2048/4 + 4/4] = {
+static const REG_VF SCALE_TABLE[2048/4 + 4/4] = { //SacPass1TableVU?
     /* part 1 */
     { .i = {0x00000000,0x3F7F8000,0x00000000,0x3F7F8000} }, //+0.000000000f, +0.998046875f, +0.000000000f, +0.998046875f
     { .i = {0x3A000000,0x3F5744FD,0x3A000000,0x3F5744FD} }, //+0.000488281f, +0.840896428f, +0.000488281f, +0.840896428f
@@ -592,8 +592,8 @@ static const REG_VF SCALE_TABLE[2048/4 + 4/4] = {
     { .i = {0x00000000,0x00000000,0x00000000,0x00000000} }, //+0.000000000f, +0.000000000f, +0.000000000f, +0.000000000f
 };
 
-/* FFT?/DCT? table (Hanning window?) */
-static const REG_VF TRANSFORM_TABLE[1024/4] = {
+/* IDCT? table (Hanning window?) */
+static const REG_VF TRANSFORM_TABLE[1024/4] = { //SacIdctTableVU?
     { .i = {0x3F3504F3,0x3F7FB10F,0x3F7EC46D,0x3F7D3AAC} }, //+0.707106769f, +0.998795450f, +0.995184720f, +0.989176512f
     { .i = {0x3F7B14BE,0x3F7853F8,0x3F74FA0B,0x3F710908} }, //+0.980785251f, +0.970031261f, +0.956940353f, +0.941544056f
     { .i = {0x3F6C835E,0x3F676BD8,0x3F61C597,0x3F5B941A} }, //+0.923879504f, +0.903989315f, +0.881921232f, +0.857728601f
@@ -854,7 +854,7 @@ static const REG_VF TRANSFORM_TABLE[1024/4] = {
 
 /* standard MPEG1 filter bank (synth_window)
  * Seems divided into 2 parts, or at least loaded to VU1 memory in 2 steps */
-static const REG_VF WINDOW_TABLE[512/4] = {
+static const REG_VF WINDOW_TABLE[512/4] = { //SacPass3TableVU?
     /* part 1 */
     { .i = {0x00000000,0xB7800074,0xB7800074,0xB7800074} }, //+0.000000000f, -0.000015259f, -0.000015259f, -0.000015259f
     { .i = {0xB7800074,0xB7800074,0xB7800074,0xB8000074} }, //-0.000015259f, -0.000015259f, -0.000015259f, -0.000030518f

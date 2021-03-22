@@ -13,8 +13,8 @@
  * - https://github.com/PCSX2/pcsx2/blob/master/pcsx2/VUops.cpp
  *
  * Codec has no apparent name, but most functions mention "St" (stream?) and "Sac" (sound audio
- * container?) and handler lib may be "Csd". Looks inspired by MPEG (much simplified) with bits
- * from other codecs (per-file codebook and 1024 samples).
+ * compression?) and main lib is called "Sac" (Sac.cpp/Sac.dsm), also set in a "Csd" ELF. Looks inspired
+ * by MPEG (much simplified) with bits from other codecs (per-file codebook and 1024 samples).
  *
  * Original decoder is mainly implemented in the PS2's VU1, a coprocessor specialized in vector/SIMD
  * and parallel instructions. As VU1 works with many 128 bit registers (typically x4 floats) algorithm
@@ -134,7 +134,7 @@ static inline int16_t clamp_s16(int16_t value, int16_t min, int16_t max) {
 
 
 /* converts 4 huffman codes to 4 spectrums coefs */
-//SUB_1188
+//SUB_1188 (Pass1_Start?)
 static void unpack_code4(REG_VF* spectrum, const REG_VF* spc1, const REG_VF* spc2, const REG_VF* code, const REG_VF* idx, int out_pos) {
     const REG_VF* ST = SCALE_TABLE;
     REG_VF tbc1, tbc2, out;
@@ -282,8 +282,8 @@ static void transform_dot_product(REG_VF* mac, const REG_VF* spectrum, const REG
     MADD (_xyzw, mac, &spectrum[pos_i+7], &TT[pos_t+7]);
 }
 
-/* take spectrum coefs and, ahem, transform somehow, possibly using a SIMD'd FFT/DCT table. */
-//SUB_1410
+/* take spectrum coefs and, ahem, transform somehow, possibly using a SIMD'd DCT table. */
+//SUB_1410 (Idct_Start?)
 static void transform(REG_VF* wave, const REG_VF* spectrum) {
     const REG_VF* TT = TRANSFORM_TABLE;
     int i, j;
@@ -330,7 +330,7 @@ static void transform(REG_VF* wave, const REG_VF* spectrum) {
 
 
 /* process and apply window/overlap. Similar to MP3's synth granule function. */
-//SUB_1690
+//SUB_1690 (Pass3_Start?)
 static void process(REG_VF* wave, REG_VF* hist) {
     const REG_VF* ST = SYNTH_TABLE;
     int i, j;
@@ -918,7 +918,7 @@ static void finalize_output(tac_handle_t* h) {
         REG_VF* wave_l = h->wave[0];
         REG_VF* wave_r = h->wave[1];
 
-        /* Combine joint stereo channels that encode diffs in L/R. In pseudo-mono files R has */
+        /* Combine joint stereo channels that encode diffs in L/R ("MS stereo"). In pseudo-mono files R has */
         /* all samples as 0 (R only saves 28 huffman codes, signalling no coefs per 1+27 bands) */
         for (i = 0; i < TAC_TOTAL_POINTS * 8; i++) {
             REG_VF samples_l, samples_r;
