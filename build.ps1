@@ -39,10 +39,17 @@ function Init
     Download "https://www.nuget.org/api/v2/package/wtl/9.1.1" "dependencies\wtl.zip"
     Download "https://github.com/Microsoft/vswhere/releases/download/2.6.7/vswhere.exe" "dependencies\vswhere.exe"
 
+    # foobar anti-hotlink (random link) defeater
     #Download "https://www.foobar2000.org/SDK" "dependencies\SDK"
     #$key = (Select-String -Path dependencies\SDK -Pattern "\/([a-f0-9]+)\/SDK-2018-01-11\.zip").matches.groups[1]
     #Remove-Item -Path "dependencies\SDK"
-    Download "https://www.foobar2000.org/files/getfile/SDK-2018-01-11.zip" "dependencies\foobar.zip"
+    #Download "https://www.foobar2000.org/files/$key/SDK-2018-01-11.zip" "dependencies\foobar.zip"
+
+    # foobar direct link, but 2019< sdks gone ATM
+    #Download "https://www.foobar2000.org/files/SDK-2018-01-11.zip" "dependencies\foobar.zip"
+
+    # mirror
+    Download "https://github.com/vgmstream/vgmstream-deps/raw/master/foobar2000/SDK-2018-02-05.zip" "dependencies\foobar.zip"
 
     #Unzip "dependencies\fdk-aac.zip" "dependencies\fdk-aac_tmp"
     #Unzip "dependencies\qaac.zip" "dependencies\qaac_tmp"
