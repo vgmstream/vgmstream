@@ -1,7 +1,9 @@
 #include "../util.h"
 #include "coding.h"
 
+/* table values are interpreted as fixed point 8.8 signed values */ 
 
+/* AdaptionTable */
 static const int16_t msadpcm_steps[16] = {
     230, 230, 230, 230,
     307, 409, 512, 614,
@@ -9,6 +11,7 @@ static const int16_t msadpcm_steps[16] = {
     307, 230, 230, 230
 };
 
+/* aCoeff table, normally included with container and (in theory) encoder may add extra coefs but first 7 are preset coefs */
 static const int16_t msadpcm_coefs[7][2] = {
     { 256,    0 },
     { 512, -256 },
@@ -19,16 +22,23 @@ static const int16_t msadpcm_coefs[7][2] = {
     { 392, -232 }
 };
 
+
+/* Decodes MSADPCM as explained in the spec (RIFFNEW / msadpcm.c).
+ * Though RIFFNEW spec uses "predictor / 256", msadpcm.c uses "predictor >> 8" = diffs on negs (silly MS).
+ * SHR is also true in Windows msadp32.acm decoders (up to Win10), that seem to use same code.
+ * Some non-Windows implementations or engines (like UE4) use DIV though (more accurate).
+ * On invalid coef index, msadpcm.c returns 0 decoded samples but here we clamp and keep on trucking.
+ * In theory blocks may be 0-padded and should use samples_per_frame from header, in practice seems to
+ * decode up to block length or available data. */
 void decode_msadpcm_stereo(VGMSTREAM* vgmstream, sample_t* outbuf, int32_t first_sample, int32_t samples_to_do) {
-    VGMSTREAMCHANNEL *ch1,*ch2;
-    STREAMFILE *streamfile;
+    VGMSTREAMCHANNEL *stream1, *stream2;
+    uint8_t frame[MSADPCM_MAX_BLOCK_SIZE] = {0};
     int i, frames_in;
     size_t bytes_per_frame, samples_per_frame;
     off_t frame_offset;
 
-    ch1 = &vgmstream->ch[0];
-    ch2 = &vgmstream->ch[1];
-    streamfile = ch1->streamfile;
+    stream1 = &vgmstream->ch[0];
+    stream2 = &vgmstream->ch[1];
 
     /* external interleave (variable size), stereo */
     bytes_per_frame = vgmstream->frame_size;
@@ -36,61 +46,63 @@ void decode_msadpcm_stereo(VGMSTREAM* vgmstream, sample_t* outbuf, int32_t first
     frames_in = first_sample / samples_per_frame;
     first_sample = first_sample % samples_per_frame;
 
-    frame_offset = ch1->offset + frames_in*bytes_per_frame;
+    frame_offset = stream1->offset + frames_in * bytes_per_frame;
+    read_streamfile(frame, frame_offset, bytes_per_frame, stream1->streamfile); /* ignore EOF errors */
 
-    /* parse frame header */
+    /* parse frame header (ADPCMBLOCKHEADER) */
     if (first_sample == 0) {
-        ch1->adpcm_coef[0] = msadpcm_coefs[read_8bit(frame_offset+0x00,streamfile) & 0x07][0];
-        ch1->adpcm_coef[1] = msadpcm_coefs[read_8bit(frame_offset+0x00,streamfile) & 0x07][1];
-        ch2->adpcm_coef[0] = msadpcm_coefs[read_8bit(frame_offset+0x01,streamfile)][0];
-        ch2->adpcm_coef[1] = msadpcm_coefs[read_8bit(frame_offset+0x01,streamfile)][1];
-        ch1->adpcm_scale = read_16bitLE(frame_offset+0x02,streamfile);
-        ch2->adpcm_scale = read_16bitLE(frame_offset+0x04,streamfile);
-        ch1->adpcm_history1_16 = read_16bitLE(frame_offset+0x06,streamfile);
-        ch2->adpcm_history1_16 = read_16bitLE(frame_offset+0x08,streamfile);
-        ch1->adpcm_history2_16 = read_16bitLE(frame_offset+0x0a,streamfile);
-        ch2->adpcm_history2_16 = read_16bitLE(frame_offset+0x0c,streamfile);
+        stream1->adpcm_coef[0] = msadpcm_coefs[get_u8(frame+0x00) & 0x07][0]; /* bPredictor[0] index > iCoef1 */
+        stream1->adpcm_coef[1] = msadpcm_coefs[get_u8(frame+0x00) & 0x07][1]; /* bPredictor[0] index > iCoef2 */
+        stream2->adpcm_coef[0] = msadpcm_coefs[get_u8(frame+0x01) & 0x07][0]; /* bPredictor[1] index > iCoef1 */
+        stream2->adpcm_coef[1] = msadpcm_coefs[get_u8(frame+0x01) & 0x07][1]; /* bPredictor[1] index > iCoef2 */
+        stream1->adpcm_scale = get_s16le(frame+0x02); /* iDelta[0] */
+        stream2->adpcm_scale = get_s16le(frame+0x04); /* iDelta[0] */
+        stream1->adpcm_history1_16 = get_s16le(frame+0x06); /* iSamp1[0] */
+        stream2->adpcm_history1_16 = get_s16le(frame+0x08); /* iSamp1[0] */
+        stream1->adpcm_history2_16 = get_s16le(frame+0x0a); /* iSamp2[0] */
+        stream2->adpcm_history2_16 = get_s16le(frame+0x0c); /* iSamp2[1] */
     }
 
     /* write header samples (needed) */
     if (first_sample==0) {
-        outbuf[0] = ch1->adpcm_history2_16;
-        outbuf[1] = ch2->adpcm_history2_16;
+        outbuf[0] = stream1->adpcm_history2_16;
+        outbuf[1] = stream2->adpcm_history2_16;
         outbuf += 2;
         first_sample++;
         samples_to_do--;
     }
     if (first_sample == 1 && samples_to_do > 0) {
-        outbuf[0] = ch1->adpcm_history1_16;
-        outbuf[1] = ch2->adpcm_history1_16;
+        outbuf[0] = stream1->adpcm_history1_16;
+        outbuf[1] = stream2->adpcm_history1_16;
         outbuf += 2;
         first_sample++;
         samples_to_do--;
     }
 
     /* decode nibbles */
-    for (i = first_sample; i < first_sample+samples_to_do; i++) {
+    for (i = first_sample; i < first_sample + samples_to_do; i++) {
         int ch;
 
         for (ch = 0; ch < 2; ch++) {
-            VGMSTREAMCHANNEL *stream = &vgmstream->ch[ch];
-            int32_t hist1,hist2, predicted;
-            int sample_nibble = (ch == 0) ? /* L = high nibble first */
-                 get_high_nibble_signed(read_8bit(frame_offset+0x07*2+(i-2),streamfile)) :
-                 get_low_nibble_signed (read_8bit(frame_offset+0x07*2+(i-2),streamfile));
+            VGMSTREAMCHANNEL* stream = &vgmstream->ch[ch];
+            int32_t hist1, hist2, predicted;
+            uint8_t byte = get_u8(frame+0x07*2+(i-2));
+            int sample_nibble = (ch == 0) ? /* L = high nibble first (iErrorDelta) */
+                 get_high_nibble_signed(byte) :
+                 get_low_nibble_signed (byte);
 
             hist1 = stream->adpcm_history1_16;
             hist2 = stream->adpcm_history2_16;
-            predicted = hist1*stream->adpcm_coef[0] + hist2*stream->adpcm_coef[1];
-            predicted = predicted / 256;
-            predicted = predicted + sample_nibble*stream->adpcm_scale;
-            outbuf[0] = clamp16(predicted);
+            predicted = hist1 * stream->adpcm_coef[0] + hist2 * stream->adpcm_coef[1];
+            predicted = predicted / 256; /* 256 = FIXED_POINT_COEF_BASE (though MS code uses SHR) */
+            predicted = predicted + (sample_nibble * stream->adpcm_scale);
+            outbuf[0] = clamp16(predicted); /* lNewSample */
 
             stream->adpcm_history2_16 = stream->adpcm_history1_16;
             stream->adpcm_history1_16 = outbuf[0];
-            stream->adpcm_scale = (msadpcm_steps[sample_nibble & 0xf] * stream->adpcm_scale) / 256;
-            if (stream->adpcm_scale < 0x10)
-                stream->adpcm_scale = 0x10;
+            stream->adpcm_scale = (msadpcm_steps[sample_nibble & 0xf] * stream->adpcm_scale) / 256; /* 256 = FIXED_POINT_ADAPTION_BASE */
+            if (stream->adpcm_scale < 16) /* min delta */
+                stream->adpcm_scale = 16;
 
             outbuf++;
         }
@@ -98,7 +110,8 @@ void decode_msadpcm_stereo(VGMSTREAM* vgmstream, sample_t* outbuf, int32_t first
 }
 
 void decode_msadpcm_mono(VGMSTREAM* vgmstream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
-    VGMSTREAMCHANNEL *stream = &vgmstream->ch[channel];
+    VGMSTREAMCHANNEL* stream = &vgmstream->ch[channel];
+    uint8_t frame[MSADPCM_MAX_BLOCK_SIZE] = {0};
     int i, frames_in;
     size_t bytes_per_frame, samples_per_frame;
     off_t frame_offset;
@@ -109,15 +122,16 @@ void decode_msadpcm_mono(VGMSTREAM* vgmstream, sample_t* outbuf, int channelspac
     frames_in = first_sample / samples_per_frame;
     first_sample = first_sample % samples_per_frame;
 
-    frame_offset = stream->offset + frames_in*bytes_per_frame;
+    frame_offset = stream->offset + frames_in * bytes_per_frame;
+    read_streamfile(frame, frame_offset, bytes_per_frame, stream->streamfile); /* ignore EOF errors */
 
     /* parse frame header */
     if (first_sample == 0) {
-        stream->adpcm_coef[0] = msadpcm_coefs[read_8bit(frame_offset+0x00,stream->streamfile) & 0x07][0];
-        stream->adpcm_coef[1] = msadpcm_coefs[read_8bit(frame_offset+0x00,stream->streamfile) & 0x07][1];
-        stream->adpcm_scale = read_16bitLE(frame_offset+0x01,stream->streamfile);
-        stream->adpcm_history1_16 = read_16bitLE(frame_offset+0x03,stream->streamfile);
-        stream->adpcm_history2_16 = read_16bitLE(frame_offset+0x05,stream->streamfile);
+        stream->adpcm_coef[0] = msadpcm_coefs[get_u8(frame+0x00) & 0x07][0];
+        stream->adpcm_coef[1] = msadpcm_coefs[get_u8(frame+0x00) & 0x07][1];
+        stream->adpcm_scale = get_s16le(frame+0x01);
+        stream->adpcm_history1_16 = get_s16le(frame+0x03);
+        stream->adpcm_history2_16 = get_s16le(frame+0x05);
     }
 
     /* write header samples (needed) */
@@ -135,33 +149,35 @@ void decode_msadpcm_mono(VGMSTREAM* vgmstream, sample_t* outbuf, int channelspac
     }
 
     /* decode nibbles */
-    for (i = first_sample; i < first_sample+samples_to_do; i++) {
-        int32_t hist1,hist2, predicted;
+    for (i = first_sample; i < first_sample + samples_to_do; i++) {
+        int32_t hist1, hist2, predicted;
+        uint8_t byte = get_u8(frame+0x07+(i-2)/2);
         int sample_nibble = (i & 1) ? /* high nibble first */
-             get_low_nibble_signed (read_8bit(frame_offset+0x07+(i-2)/2,stream->streamfile)) :
-             get_high_nibble_signed(read_8bit(frame_offset+0x07+(i-2)/2,stream->streamfile));
+             get_low_nibble_signed (byte) :
+             get_high_nibble_signed(byte);
 
         hist1 = stream->adpcm_history1_16;
         hist2 = stream->adpcm_history2_16;
-        predicted = hist1*stream->adpcm_coef[0] + hist2*stream->adpcm_coef[1];
+        predicted = hist1 * stream->adpcm_coef[0] + hist2 * stream->adpcm_coef[1];
         predicted = predicted / 256;
-        predicted = predicted + sample_nibble*stream->adpcm_scale;
+        predicted = predicted + (sample_nibble * stream->adpcm_scale);
         outbuf[0] = clamp16(predicted);
 
         stream->adpcm_history2_16 = stream->adpcm_history1_16;
         stream->adpcm_history1_16 = outbuf[0];
         stream->adpcm_scale = (msadpcm_steps[sample_nibble & 0xf] * stream->adpcm_scale) / 256;
-        if (stream->adpcm_scale < 0x10)
-            stream->adpcm_scale = 0x10;
+        if (stream->adpcm_scale < 16) /* min delta */
+            stream->adpcm_scale = 16;
 
         outbuf += channelspacing;
     }
 }
 
-/* Cricket Audio's MSADPCM, same thing with reversed hist and nibble order
- * (their tools may convert to float/others but internally it's all PCM16, from debugging). */
+/* Cricket Audio's MSADPCM, same thing with reversed hist and nibble order, reverse engineered from the exe.
+ * (their tools may convert to float/others but internally it's all PCM16). */
 void decode_msadpcm_ck(VGMSTREAM* vgmstream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
-    VGMSTREAMCHANNEL *stream = &vgmstream->ch[channel];
+    VGMSTREAMCHANNEL* stream = &vgmstream->ch[channel];
+    uint8_t frame[MSADPCM_MAX_BLOCK_SIZE] = {0};
     int i, frames_in;
     size_t bytes_per_frame, samples_per_frame;
     off_t frame_offset;
@@ -172,15 +188,16 @@ void decode_msadpcm_ck(VGMSTREAM* vgmstream, sample_t* outbuf, int channelspacin
     frames_in = first_sample / samples_per_frame;
     first_sample = first_sample % samples_per_frame;
 
-    frame_offset = stream->offset + frames_in*bytes_per_frame;
+    frame_offset = stream->offset + frames_in * bytes_per_frame;
+    read_streamfile(frame, frame_offset, bytes_per_frame, stream->streamfile); /* ignore EOF errors */
 
     /* parse frame header */
     if (first_sample == 0) {
-        stream->adpcm_coef[0] = msadpcm_coefs[read_8bit(frame_offset+0x00,stream->streamfile) & 0x07][0];
-        stream->adpcm_coef[1] = msadpcm_coefs[read_8bit(frame_offset+0x00,stream->streamfile) & 0x07][1];
-        stream->adpcm_scale = read_16bitLE(frame_offset+0x01,stream->streamfile);
-        stream->adpcm_history2_16 = read_16bitLE(frame_offset+0x03,stream->streamfile); /* hist2 first, unlike normal MSADPCM */
-        stream->adpcm_history1_16 = read_16bitLE(frame_offset+0x05,stream->streamfile);
+        stream->adpcm_coef[0] = msadpcm_coefs[get_u8(frame+0x00) & 0x07][0];
+        stream->adpcm_coef[1] = msadpcm_coefs[get_u8(frame+0x00) & 0x07][1];
+        stream->adpcm_scale = get_s16le(frame+0x01);
+        stream->adpcm_history2_16 = get_s16le(frame+0x03); /* hist2 first, unlike normal MSADPCM */
+        stream->adpcm_history1_16 = get_s16le(frame+0x05);
     }
 
     /* write header samples (needed) */
@@ -200,22 +217,23 @@ void decode_msadpcm_ck(VGMSTREAM* vgmstream, sample_t* outbuf, int channelspacin
     /* decode nibbles */
     for (i = first_sample; i < first_sample+samples_to_do; i++) {
         int32_t hist1,hist2, predicted;
+        uint8_t byte = get_u8(frame+0x07+(i-2)/2);
         int sample_nibble = (i & 1) ? /* low nibble first, unlike normal MSADPCM */
-             get_high_nibble_signed (read_8bit(frame_offset+0x07+(i-2)/2,stream->streamfile)) :
-             get_low_nibble_signed(read_8bit(frame_offset+0x07+(i-2)/2,stream->streamfile));
+             get_high_nibble_signed(byte) :
+             get_low_nibble_signed (byte);
 
         hist1 = stream->adpcm_history1_16;
         hist2 = stream->adpcm_history2_16;
-        predicted = hist1*stream->adpcm_coef[0] + hist2*stream->adpcm_coef[1];
-        predicted = predicted >> 8; /* probably no difference vs MSADPCM */
-        predicted = predicted + sample_nibble*stream->adpcm_scale;
+        predicted = hist1 * stream->adpcm_coef[0] + hist2 *stream->adpcm_coef[1];
+        predicted = predicted >> 8; /* not DIV unlike spec */
+        predicted = predicted + (sample_nibble * stream->adpcm_scale);
         outbuf[0] = clamp16(predicted);
 
         stream->adpcm_history2_16 = stream->adpcm_history1_16;
         stream->adpcm_history1_16 = outbuf[0];
-        stream->adpcm_scale = (msadpcm_steps[sample_nibble & 0xf] * stream->adpcm_scale) >> 8;
-        if (stream->adpcm_scale < 0x10)
-            stream->adpcm_scale = 0x10;
+        stream->adpcm_scale = (msadpcm_steps[sample_nibble & 0xf] * stream->adpcm_scale) >> 8; /* not DIV but same here (always >=0) */
+        if (stream->adpcm_scale < 16)
+            stream->adpcm_scale = 16;
 
         outbuf += channelspacing;
     }
@@ -230,7 +248,7 @@ long msadpcm_bytes_to_samples(long bytes, int block_size, int channels) {
 /* test if MSADPCM coefs were re-defined (possible in theory but not used in practice) */
 int msadpcm_check_coefs(STREAMFILE* sf, off_t offset) {
     int i;
-    int count = read_16bitLE(offset, sf);
+    int count = read_u16le(offset, sf);
     if (count != 7) {
         VGM_LOG("MSADPCM: bad count %i at %lx\n", count, offset);
         goto fail;
@@ -238,8 +256,8 @@ int msadpcm_check_coefs(STREAMFILE* sf, off_t offset) {
 
     offset += 0x02;
     for (i = 0; i < 7; i++) {
-        int16_t coef1 = read_16bitLE(offset + 0x00, sf);
-        int16_t coef2 = read_16bitLE(offset + 0x02, sf);
+        int16_t coef1 = read_s16le(offset + 0x00, sf);
+        int16_t coef2 = read_s16le(offset + 0x02, sf);
 
         if (coef1 != msadpcm_coefs[i][0] || coef2 != msadpcm_coefs[i][1]) {
             VGM_LOG("MSADPCM: bad coef %i/%i vs %i/%i\n", coef1, coef2, msadpcm_coefs[i][0], msadpcm_coefs[i][1]);
