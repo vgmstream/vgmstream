@@ -147,6 +147,7 @@ class TxtpMaker(object):
         self.stream_count = self._get_value("stream count: ")
         self.stream_index = self._get_value("stream index: ")
         self.stream_name = self._get_text("stream name: ")
+        self.encoding = self._get_text("encoding: ")
 
         if self.channels <= 0 or self.sample_rate <= 0:
             raise ValueError('Incorrect command result')
@@ -204,6 +205,8 @@ class TxtpMaker(object):
             p = re.compile(cfg.include_regex)
             if p.match(self.stream_name) is None:
                 return True
+        if self.encoding.lower() == 'silence':
+            return True
         return False
 
     def _get_stream_mask(self, layer):
