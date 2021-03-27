@@ -1530,6 +1530,14 @@ int vgmstream_open_stream_bf(VGMSTREAM* vgmstream, STREAMFILE* sf, off_t start_o
         vgmstream->frame_size = vgmstream->interleave_block_size;
     }
 
+    if ((vgmstream->coding_type == coding_MSADPCM ||
+            vgmstream->coding_type == coding_MSADPCM_ck ||
+            vgmstream->coding_type == coding_MSADPCM_int) &&
+            (vgmstream->frame_size > MSADPCM_MAX_BLOCK_SIZE)) {
+        VGM_LOG("VGMSTREAM: MSADPCM decoder with wrong frame size %x\n", vgmstream->frame_size);
+        goto fail;
+    }
+
     /* big interleaved values for non-interleaved data may result in incorrect behavior,
      * quick fix for now since layouts are finicky, with 'interleave' left for meta info
      * (certain layouts+codecs combos results in funny output too, should rework the whole thing) */

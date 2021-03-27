@@ -156,6 +156,8 @@ void free_nwa(nwa_codec_data* data);
 STREAMFILE* nwa_get_streamfile(nwa_codec_data* data);
 
 /* msadpcm_decoder */
+#define MSADPCM_MAX_BLOCK_SIZE  0x800 /* known max and RIFF spec seems to concur, while MS's encoders may be lower (typical stereo: 0x8c, 0x2C, 0x48, 0x400) */
+
 void decode_msadpcm_stereo(VGMSTREAM* vgmstream, sample_t* outbuf, int32_t first_sample, int32_t samples_to_do);
 void decode_msadpcm_mono(VGMSTREAM* vgmstream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel);
 void decode_msadpcm_ck(VGMSTREAM* vgmstream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel);

@@ -333,7 +333,7 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
      * .adx: Remember11 (PC) sfx
      * .adp: Headhunter (DC)
      * .xss: Spider-Man The Movie (Xbox)
-     * .xsew: Mega Man X Legacy Collections (PC)
+     * .xsew: Mega Man X Legacy Collection (PC)
      * .adpcm: Angry Birds Transformers (Android)
      * .adw: Dead Rising 2 (PC)
      * .wd: Genma Onimusha (Xbox) voices
@@ -416,6 +416,9 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
 
         else if (codec == 0xFFFE && riff_size + 0x08 + 0x30 == file_size)
             riff_size += 0x30; /* [E.X. Troopers (PS3)] (adds "ver /eBIT/tIME/mrkr" empty chunks but RIFF size wasn't updated) */
+
+        else if (codec == 0x0002 && riff_size + 0x08 + 0x1c == file_size)
+            riff_size += 0x1c; /* [Mega Man X Legacy Collection (PC)] (adds "ver /tIME/ver " chunks but RIFF size wasn't updated) */
     }
 
     /* check for truncated RIFF */
