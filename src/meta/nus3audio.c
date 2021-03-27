@@ -3,7 +3,7 @@
 
 typedef enum { IDSP, OPUS, RIFF, } nus3audio_codec;
 
-/* .nus3audio - Namco's newest newest audio container [Super Smash Bros. Ultimate (Switch)] */
+/* .nus3audio - Namco's newest newest audio container [Super Smash Bros. Ultimate (Switch), Mobile Suit Gundam: Extreme Vs. Maxi Boost ON (PS4)] */
 VGMSTREAM* init_vgmstream_nus3audio(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     STREAMFILE* temp_sf = NULL;
@@ -11,7 +11,7 @@ VGMSTREAM* init_vgmstream_nus3audio(STREAMFILE* sf) {
     size_t subfile_size = 0;
     nus3audio_codec codec;
     const char* fake_ext = NULL;
-    int total_subsongs, target_subsong = sf->stream_index;
+    int total_subsongs, target_subsong = sf->stream_index, found = 0;
 
 
     /* checks */
@@ -51,6 +51,7 @@ VGMSTREAM* init_vgmstream_nus3audio(STREAMFILE* sf) {
                 case 0x41444F46: /* "ADOF": audio offsets (absolute, inside PACK) */
                     subfile_offset = read_u32le(offset+0x08 + 0x08*(target_subsong-1) + 0x00,sf);
                     subfile_size   = read_u32le(offset+0x08 + 0x08*(target_subsong-1) + 0x04,sf);
+                    found = 1;
                     break;
 
                 case 0x544E4944: /* "TNID": tone ids? */
@@ -64,10 +65,22 @@ VGMSTREAM* init_vgmstream_nus3audio(STREAMFILE* sf) {
             offset += 0x08 + chunk_size;
         }
 
-        if (total_subsongs == 0 || subfile_offset == 0 || subfile_size == 0) {
+        if (total_subsongs == 0 || !found) {
             VGM_LOG("NUS3AUDIO: subfile not found\n");
             goto fail;
         }
+
+        /* handle dummy entries, ex. Gundam EvM (PS4) */
+        if (subfile_offset == 0 && subfile_size == 0) {
+            vgmstream = init_vgmstream_silence(0, 0, 0);
+            if (!vgmstream) goto fail;
+
+            vgmstream->num_streams = total_subsongs;
+            snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%s", "dummy");
+
+            return vgmstream;
+        }
+        
 
         codec_id = read_u32be(subfile_offset, sf);
         switch(codec_id) {
