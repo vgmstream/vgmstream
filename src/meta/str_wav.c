@@ -362,6 +362,29 @@ static int parse_header(STREAMFILE* sf_h, strwav_header* strwav) {
         return 1;
     }
 
+    /* Zapper: One Wicked Cricket! Beta (PS2)[2005] */
+    if ( read_u32be(0x04,sf_h) == 0x00000900 &&
+         read_u32le(0x2c,sf_h) == 44100 && /* sample rate */
+         read_u32le(0x70,sf_h) == 0 && /* sample rate repeat? */
+         header_size == 0x78
+         ) {
+        strwav->num_samples = read_u32le(0x5c,sf_h);
+        strwav->sample_rate = read_u32le(0x2c,sf_h);
+        strwav->flags       = read_u32le(0x34,sf_h);
+        strwav->loop_start  = 0;
+        strwav->loop_end    = 0;
+
+        strwav->channels    = read_u32le(0x60,sf_h) * (strwav->flags & 0x02 ? 2 : 1); /* tracks of 2/1ch */
+        strwav->loop_flag   = strwav->flags & 0x01;
+        strwav->interleave  = strwav->channels > 2 ? 0x8000 : 0x8000;
+        //todo: tracks are stereo blocks of size 0x20000*tracks, containing 4 interleaves of 0x8000:
+        // | 1 2 1 2 | 3 4 3 4 | 5 6 5 6 | 1 2 1 2 | 3 4 3 4 | 5 6 5 6 | ...
+
+        strwav->codec = PSX;
+        ;VGM_LOG("STR+WAV: header Zapper Beta (PS2)\n");
+        return 1;
+    }
+
     /* Zapper: One Wicked Cricket! (PS2)[2005] */
     if ( read_32bitBE(0x04,sf_h) == 0x00000900 &&
          read_32bitLE(0x24,sf_h) == read_32bitLE(0x70,sf_h) && /* sample rate repeat */
