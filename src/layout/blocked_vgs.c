@@ -5,8 +5,8 @@
 
 
 /* VGS multistream frames */
-void block_update_vgs(off_t block_offset, VGMSTREAM * vgmstream) {
-    STREAMFILE* streamFile = vgmstream->ch[0].streamfile;
+void block_update_vgs(off_t block_offset, VGMSTREAM* vgmstream) {
+    STREAMFILE* sf = vgmstream->ch[0].streamfile;
     size_t file_size = get_streamfile_size(vgmstream->ch[0].streamfile);
     int i;
     size_t channel_size = 0x10;
@@ -23,8 +23,8 @@ void block_update_vgs(off_t block_offset, VGMSTREAM * vgmstream) {
 
     /* skip unhandled tracks: flag can be 0x0n per track, of 0x8x for last frame */
     while (vgmstream->next_block_offset < file_size) {
-        if ((read_8bit(vgmstream->next_block_offset + 0x01, streamFile) & 0x0F) == 0x00)
-                break;
+        if ((read_8bit(vgmstream->next_block_offset + 0x01, sf) & 0x0F) == 0x00)
+            break;
 
         vgmstream->next_block_offset += channel_size;
     }

@@ -3,7 +3,7 @@
 #include "../vgmstream.h"
 
 /* parse a XA AIFF block (CD sector without the 0x18 subheader) */
-void block_update_xa_aiff(off_t block_offset, VGMSTREAM * vgmstream) {
+void block_update_xa_aiff(off_t block_offset, VGMSTREAM* vgmstream) {
     int i;
     size_t block_samples;
 
