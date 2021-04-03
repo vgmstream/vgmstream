@@ -1344,6 +1344,7 @@ static const meta_info meta_info_list[] = {
         {meta_MJB_MJH,              "Sony MultiStream MJH+MJB header"},
         {meta_BSNF,                 "id Software BSNF header"},
         {meta_TAC,                  "tri-Ace Codec header"},
+        {meta_IDSP_TOSE,            "TOSE .idsp header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {
