@@ -758,6 +758,7 @@ typedef enum {
     meta_BSNF,
     meta_TAC,
     meta_IDSP_TOSE,
+    meta_DSP_KWA,
 } meta_t;
 
 /* standard WAVEFORMATEXTENSIBLE speaker positions */

@@ -149,6 +149,7 @@ static VGMSTREAM* init_vgmstream_dsp_common(STREAMFILE* sf, dsp_meta* dspm) {
                 ch_header[i].loop_flag != ch_header[i+1].loop_flag ||
                 ch_header[i].loop_start_offset != ch_header[i+1].loop_start_offset ||
                 ch_header[i].loop_end_offset != ch_header[i+1].loop_end_offset) {
+                //;VGM_LOG("DSP: bad header agreement\n");
                 goto fail;
             }
         }
@@ -1380,6 +1381,7 @@ fail:
     return NULL;
 }
 
+
 /* .idsp - interleaved dsp [Harvest Moon: Another Wonderful Life (GC)] */
 VGMSTREAM* init_vgmstream_idsp_tose(STREAMFILE* sf) {
     dsp_meta dspm = {0};
@@ -1406,6 +1408,38 @@ VGMSTREAM* init_vgmstream_idsp_tose(STREAMFILE* sf) {
         goto fail;
 
     dspm.meta_type = meta_IDSP_TOSE;
+    return init_vgmstream_dsp_common(sf, &dspm);
+fail:
+    return NULL;
+}
+
+
+/* .KWA - interleaved dsp [Knight Wars prototype (Wii)] */
+VGMSTREAM* init_vgmstream_dsp_kwa(STREAMFILE* sf) {
+    dsp_meta dspm = {0};
+
+    /* checks */
+    /* .dsp: assumed */
+    if (!check_extensions(sf, "kwa"))
+        goto fail;
+    if (read_u32be(0x00,sf) != 3)
+        goto fail;
+
+    dspm.max_channels   = 4;
+
+    dspm.channels       = read_u32be(0x04,sf);
+    dspm.interleave     = read_u32be(0x0c,sf);
+
+    dspm.header_offset  = 0x20;
+    dspm.header_spacing = dspm.interleave;
+    dspm.start_offset = dspm.header_offset + 0x60;
+
+    dspm.interleave_first_skip = 0x60;
+    dspm.interleave_first = dspm.interleave - dspm.interleave_first_skip;
+
+    dspm.ignore_header_agreement = 1; /* Reus_2.kwa has a few more samples in channels 3+4 */
+
+    dspm.meta_type = meta_DSP_KWA;
     return init_vgmstream_dsp_common(sf, &dspm);
 fail:
     return NULL;
