@@ -1154,8 +1154,8 @@ STREAMFILE* read_filemap_file(STREAMFILE* sf, int file_num) {
 
         txt_offset += bytes_read;
 
-        /* get key/val (ignores lead spaces, stops at space/comment/separator) */
-        ok = sscanf(line, " %[^ \t#:] : %[^\t#\r\n] ", key, val);
+        /* get key/val (ignores lead/trailing spaces, stops at comment/separator) */
+        ok = sscanf(line, " %[^\t#:] : %[^\t#\r\n] ", key, val);
         if (ok != 2) { /* ignore line if no key=val (comment or garbage) */
             continue;  
         }
