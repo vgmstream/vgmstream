@@ -3,8 +3,8 @@
 
 
 /* H4M video blocks with audio frames, based on h4m_audio_decode */
-void block_update_h4m(off_t block_offset, VGMSTREAM * vgmstream) {
-    STREAMFILE* streamFile = vgmstream->ch[0].streamfile;
+void block_update_h4m(off_t block_offset, VGMSTREAM* vgmstream) {
+    STREAMFILE* sf = vgmstream->ch[0].streamfile;
     int i;
     size_t block_size, block_samples;
 
@@ -13,7 +13,7 @@ void block_update_h4m(off_t block_offset, VGMSTREAM * vgmstream) {
     if (vgmstream->full_block_size <= 0) {
         /* new full block */
         /* 0x00: last_full_block_size */
-        uint32_t full_block_size      = read_32bitBE(block_offset+0x04, streamFile);
+        uint32_t full_block_size      = read_32bitBE(block_offset+0x04, sf);
         /* 0x08: vid_frame_count */
         /* 0x0c: aud_frame_count */
         /* 0x10: block_header_unk (0x01000000, except 0 in a couple of Bomberman Jetters files) */
@@ -24,14 +24,14 @@ void block_update_h4m(off_t block_offset, VGMSTREAM * vgmstream) {
     }
     else {
         /* new audio or video frames in the current full block */
-        uint16_t frame_type = read_16bitBE(block_offset+0x00, streamFile);
-        uint16_t frame_format = read_16bitBE(block_offset+0x02, streamFile);
-        uint32_t frame_size = read_32bitBE(block_offset+0x04, streamFile); /* not including 0x08 frame header */
+        uint16_t frame_type = read_16bitBE(block_offset+0x00, sf);
+        uint16_t frame_format = read_16bitBE(block_offset+0x02, sf);
+        uint32_t frame_size = read_32bitBE(block_offset+0x04, sf); /* not including 0x08 frame header */
 
 
         if (frame_type == 0x00) {
             /* HVQM4_AUDIO (there are more checks with frame_format but not too relevant for vgmstream) */
-            uint32_t frame_samples = read_32bitBE(block_offset+0x08, streamFile);
+            uint32_t frame_samples = read_32bitBE(block_offset+0x08, sf);
             size_t block_skip;
 
             if (vgmstream->codec_config & 0x80) {
@@ -66,13 +66,13 @@ void block_update_h4m(off_t block_offset, VGMSTREAM * vgmstream) {
     }
 
     /* EOF check, there is some footer/garbage at the end */
-    if (block_offset == get_streamfile_size(streamFile)
-            || block_offset + block_size > get_streamfile_size(streamFile)) {
+    if (block_offset == get_streamfile_size(sf)
+            || block_offset + block_size > get_streamfile_size(sf)) {
         //block_samples = -1; /* signal end block */
         vgmstream->full_block_size = 0;
         vgmstream->current_block_samples = 0;
-        vgmstream->current_block_offset = get_streamfile_size(streamFile);
-        vgmstream->next_block_offset = get_streamfile_size(streamFile);
+        vgmstream->current_block_offset = get_streamfile_size(sf);
+        vgmstream->next_block_offset = get_streamfile_size(sf);
         return;
     }
 

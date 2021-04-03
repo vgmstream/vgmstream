@@ -1552,7 +1552,7 @@ static int parse_name_table(txth_header* txth, char* name_list) {
         txt_offset = 0x03;
     }
 
-    /* in case of repeated name_lists */
+    /* in case of repeated name tables */
     memset(txth->name_values, 0, sizeof(txth->name_values));
     txth->name_values_count = 0;
 
@@ -1572,7 +1572,7 @@ static int parse_name_table(txth_header* txth, char* name_list) {
             txt_offset += bytes_read;
 
             /* get key/val (ignores lead spaces, stops at space/comment/separator) */
-            ok = sscanf(line, " %[^ \t#:] : %[^\t#\r\n] ", key,val);
+            ok = sscanf(line, " %[^\t#:] : %[^\t#\r\n] ", key,val);
             if (ok != 2) { /* ignore line if no key=val (comment or garbage) */
                 /* try again with " (empty): (val)) */
                 key[0] = '\0';

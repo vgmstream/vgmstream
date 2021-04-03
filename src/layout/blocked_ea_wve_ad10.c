@@ -3,14 +3,14 @@
 
 
 /* EA style blocks, one block per channel when stereo */
-void block_update_ea_wve_ad10(off_t block_offset, VGMSTREAM * vgmstream) {
-    STREAMFILE* streamFile = vgmstream->ch[0].streamfile;
+void block_update_ea_wve_ad10(off_t block_offset, VGMSTREAM* vgmstream) {
+    STREAMFILE* sf = vgmstream->ch[0].streamfile;
     int i;
     size_t block_size, channel_size = 0, interleave = 0;
     uint32_t block_id;
 
-    block_id   = read_32bitBE(block_offset+0x00, streamFile);
-    block_size = read_32bitBE(block_offset+0x04, streamFile);
+    block_id   = read_32bitBE(block_offset+0x00, sf);
+    block_size = read_32bitBE(block_offset+0x04, sf);
 
     /* accept "Ad10/Ad11" audio block/footer */
     if (block_id == 0x41643130 || block_id == 0x41643131) {

@@ -2,7 +2,7 @@
 #include "../vgmstream.h"
 
 /* a simple headerless block with padding; configured in the main header */
-void block_update_rws(off_t block_offset, VGMSTREAM * vgmstream) {
+void block_update_rws(off_t block_offset, VGMSTREAM* vgmstream) {
     int i;
     size_t block_size;
     size_t interleave;
@@ -12,10 +12,9 @@ void block_update_rws(off_t block_offset, VGMSTREAM * vgmstream) {
     interleave = vgmstream->interleave_block_size;
 
     vgmstream->current_block_offset = block_offset;
-    vgmstream->next_block_offset = block_offset
-              + block_size;
+    vgmstream->next_block_offset = block_offset + block_size;
 
-    for (i=0;i<vgmstream->channels;i++) {
-        vgmstream->ch[i].offset = block_offset + interleave*i;
+    for (i = 0; i < vgmstream->channels; i++) {
+        vgmstream->ch[i].offset = block_offset + interleave * i;
     }
 }

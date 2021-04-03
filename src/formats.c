@@ -259,6 +259,7 @@ static const char* extension_list[] = {
     "ktsl2asbin",
     "ktss", //fake extension/header id for .kns
     "kvs",
+    "kwa",
 
     "l",
     "l00", //txth/reserved [Disney's Dinosaur (PS2)]
@@ -1344,6 +1345,8 @@ static const meta_info meta_info_list[] = {
         {meta_MJB_MJH,              "Sony MultiStream MJH+MJB header"},
         {meta_BSNF,                 "id Software BSNF header"},
         {meta_TAC,                  "tri-Ace Codec header"},
+        {meta_IDSP_TOSE,            "TOSE .IDSP header"},
+        {meta_DSP_KWA,              "Kuju London .KWA header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {
