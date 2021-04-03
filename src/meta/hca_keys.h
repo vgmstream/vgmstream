@@ -392,6 +392,9 @@ static const hcakey_info hcakey_list[] = {
         /* Uma Musume (Android) */
         {75923756697503},           // 0000450D608C479F
 
+        /* Fantasia Re: Build (Android) */
+        {8430978314079461325},      // 7500DA1B7FBA5FCD
+
         /* D4DJ Groovy Mix (Android) [base files] */
         {393410674916959300},       // 0575ACECA945A444
         /* D4DJ Groovy Mix (Android) [music_* files, per-song later mixed with subkey] */
@@ -600,6 +603,15 @@ static const hcakey_info hcakey_list[] = {
         {0xc9f159f60b065f91},
         {0xdd9ca800a7123d6f},
         {0xa090c8ebf8463d05},
+        {0xa5c1adeb7919845f},
+        {0x58d97e6f3d1aee86},
+        {0x71b5fa3761d6726d},
+        {0x1980271cfe0da9bd},
+        {0x945cdb3cf1f29e52},
+        {0x7f0feac6be7def5b},
+        {0xc9f159f60b065f91},
+        {0xdd9ca800a7123d6f},
+        {0x0a90c8ebf8463d05},
         {0xa5c1adeb7919845f},
         {0x58d97e6f3d1aee86},
         {0x71b5fa3761d6726d},
