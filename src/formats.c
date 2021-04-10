@@ -369,6 +369,7 @@ static const char* extension_list[] = {
 
     //"ogg", //common
     "ogl",
+    "ogv",
     "oma", //FFmpeg/not parsed (ATRAC3/ATRAC3PLUS/MP3/LPCM/WMA)
     "omu",
     //"opus", //common
@@ -499,6 +500,7 @@ static const char* extension_list[] = {
     "stream",
     "strm",
     "sts",
+    "sts_cp3",
     "stx",
     "svag",
     "svs",
@@ -930,7 +932,7 @@ static const meta_info meta_info_list[] = {
         {meta_RAW_INT,              "PS2 .int raw header"},
         {meta_PS2_OMU,              "Alter Echo OMU Header"},
         {meta_DSP_STM,              "Intelligent Systems STM header"},
-        {meta_PS2_EXST,             "Sony EXST header"},
+        {meta_EXST,                 "Sony EXST header"},
         {meta_SVAG_KCET,            "Konami SVAG header"},
         {meta_PS_HEADERLESS,        "Headerless PS-ADPCM raw header"},
         {meta_MIB_MIH,              "Sony MultiStream MIH+MIB header"},
@@ -1093,7 +1095,7 @@ static const meta_info meta_info_list[] = {
         {meta_2DX9,                 "beatmania IIDX 2DX9 header"},
         {meta_DSP_YGO,              "Konami custom DSP Header"},
         {meta_PS2_VGV,              "Rune: Viking Warlord VGV Header"},
-        {meta_NGC_GCUB,             "GCub Header"},
+        {meta_GCUB,                 "Sega GCub header"},
         {meta_NGC_SCK_DSP,          "The Scorpion King SCK Header"},
         {meta_CAFF,                 "Apple Core Audio Format File header"},
         {meta_PC_MXST,              "Lego Island MxSt Header"},
@@ -1347,6 +1349,7 @@ static const meta_info meta_info_list[] = {
         {meta_TAC,                  "tri-Ace Codec header"},
         {meta_IDSP_TOSE,            "TOSE .IDSP header"},
         {meta_DSP_KWA,              "Kuju London .KWA header"},
+        {meta_OGV_3RDEYE,           "3rdEye .OGV header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {

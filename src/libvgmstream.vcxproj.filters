@@ -110,6 +110,9 @@
     <ClInclude Include="meta\ea_schl_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="meta\encrypted_bgm_streamfile">
+      <Filter>meta\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="meta\fsb_encrypted_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
@@ -697,7 +700,7 @@
     <ClCompile Include="meta\ngc_ffcc_str.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ngc_gcub.c">
+    <ClCompile Include="meta\gcub.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ngc_lps.c">
@@ -755,6 +758,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ogl.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\ogv_3rdeye.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\omu.c">
@@ -832,7 +838,7 @@
     <ClCompile Include="meta\ps2_enth.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ps2_exst.c">
+    <ClCompile Include="meta\exst.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ps2_filp.c">

@@ -115,6 +115,7 @@
     <ClInclude Include="meta\ea_eaac_streamfile.h" />
     <ClInclude Include="meta\ea_eaac_opus_streamfile.h" />
     <ClInclude Include="meta\ea_schl_streamfile.h" />
+    <ClInclude Include="meta\encrypted_bgm_streamfile.h" />
     <ClInclude Include="meta\fsb_encrypted_streamfile.h" />
     <ClInclude Include="meta\fsb_interleave_streamfile.h" />
     <ClInclude Include="meta\fsb5_streamfile.h" />
@@ -400,7 +401,7 @@
     <ClCompile Include="meta\ngc_dsp_std.c" />
     <ClCompile Include="meta\ngc_dsp_ygo.c" />
     <ClCompile Include="meta\ngc_ffcc_str.c" />
-    <ClCompile Include="meta\ngc_gcub.c" />
+    <ClCompile Include="meta\gcub.c" />
     <ClCompile Include="meta\ngc_lps.c" />
     <ClCompile Include="meta\ngc_nst_dsp.c" />
     <ClCompile Include="meta\ngc_pdt.c" />
@@ -420,6 +421,7 @@
     <ClCompile Include="meta\ogg_opus.c" />
     <ClCompile Include="meta\ogg_vorbis.c" />
     <ClCompile Include="meta\ogl.c" />
+    <ClCompile Include="meta\ogv_3rdeye.c" />
     <ClCompile Include="meta\omu.c" />
     <ClCompile Include="meta\otm.c" />
     <ClCompile Include="meta\p3d.c" />
@@ -445,7 +447,7 @@
     <ClCompile Include="meta\ps2_ccc.c" />
     <ClCompile Include="meta\ps2_dxh.c" />
     <ClCompile Include="meta\ps2_enth.c" />
-    <ClCompile Include="meta\ps2_exst.c" />
+    <ClCompile Include="meta\exst.c" />
     <ClCompile Include="meta\ps2_filp.c" />
     <ClCompile Include="meta\ps2_gbts.c" />
     <ClCompile Include="meta\ps2_gcm.c" />

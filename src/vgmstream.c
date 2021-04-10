@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
+#include <ctype.h>
 #include "vgmstream.h"
 #include "meta/meta.h"
 #include "layout/layout.h"
@@ -46,7 +47,7 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_ps2_rxws,
     init_vgmstream_ps2_rxw,
     init_vgmstream_ngc_dsp_stm,
-    init_vgmstream_ps2_exst,
+    init_vgmstream_exst,
     init_vgmstream_svag_kcet,
     init_vgmstream_mib_mih,
     init_vgmstream_ngc_mpdsp,
@@ -211,7 +212,7 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_2dx9,
     init_vgmstream_dsp_ygo,
     init_vgmstream_ps2_vgv,
-    init_vgmstream_ngc_gcub,
+    init_vgmstream_gcub,
     init_vgmstream_maxis_xa,
     init_vgmstream_ngc_sck_dsp,
     init_vgmstream_apple_caff,
@@ -525,6 +526,7 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_tac,
     init_vgmstream_idsp_tose,
     init_vgmstream_dsp_kwa,
+    init_vgmstream_ogv_3rdeye,
 
     /* lowest priority metas (should go after all metas, and TXTH should go before raw formats) */
     init_vgmstream_txth,            /* proper parsers should supersede TXTH, once added */
@@ -1330,6 +1332,33 @@ fail:
     return;
 }
 
+/*******************************************************************************/
+/* BITRATE                                                                     */
+/*******************************************************************************/
+#define BITRATE_FILES_MAX 128 /* arbitrary max, but +100 segments have been observed */
+typedef struct {
+    uint32_t hash[BITRATE_FILES_MAX]; /* already used streamfiles */
+    int subsong[BITRATE_FILES_MAX]; /* subsongs of those streamfiles (could be incorporated to the hash?) */
+    int count;
+    int count_max;
+} bitrate_info_t;
+
+static uint32_t hash_sf(STREAMFILE* sf) {
+    int i;
+    char path[PATH_LIMIT];
+    uint32_t hash = 2166136261;
+
+    get_streamfile_name(sf, path, sizeof(path));
+
+    /* our favorite garbo hash a.k.a FNV-1 32b */
+    for (i = 0; i < strlen(path); i++) {
+        char c = tolower(path[i]);
+        hash = (hash * 16777619) ^ (uint8_t)c;
+    }
+
+    return hash;
+}
+
 /* average bitrate helper to get STREAMFILE for a channel, since some codecs may use their own */
 static STREAMFILE* get_vgmstream_average_bitrate_channel_streamfile(VGMSTREAM* vgmstream, int channel) {
 
@@ -1368,18 +1397,18 @@ static STREAMFILE* get_vgmstream_average_bitrate_channel_streamfile(VGMSTREAM* v
     return vgmstream->ch[channel].streamfile;
 }
 
-static int get_vgmstream_file_bitrate_from_size(size_t size, int sample_rate, int length_samples) {
+static int get_vgmstream_file_bitrate_from_size(size_t size, int sample_rate, int32_t length_samples) {
     if (sample_rate == 0 || length_samples == 0) return 0;
     if (length_samples < 100) return 0; /* ignore stupid bitrates caused by some segments */
     return (int)((int64_t)size * 8 * sample_rate / length_samples);
 }
-static int get_vgmstream_file_bitrate_from_streamfile(STREAMFILE* streamfile, int sample_rate, int length_samples) {
-    if (streamfile == NULL) return 0;
-    return get_vgmstream_file_bitrate_from_size(get_streamfile_size(streamfile), sample_rate, length_samples);
+static int get_vgmstream_file_bitrate_from_streamfile(STREAMFILE* sf, int sample_rate, int32_t length_samples) {
+    if (sf == NULL) return 0;
+    return get_vgmstream_file_bitrate_from_size(get_streamfile_size(sf), sample_rate, length_samples);
 }
 
-static int get_vgmstream_file_bitrate_main(VGMSTREAM* vgmstream, STREAMFILE** streamfile_pointers, int *pointers_count, int pointers_max) {
-    int sub, ch;
+static int get_vgmstream_file_bitrate_main(VGMSTREAM* vgmstream, bitrate_info_t* br) {
+    int i, ch;
     int bitrate = 0;
 
     /* Recursively get bitrate and fill the list of streamfiles if needed (to filter),
@@ -1387,58 +1416,65 @@ static int get_vgmstream_file_bitrate_main(VGMSTREAM* vgmstream, STREAMFILE** st
      *
      * Because of how data, layers and segments can be combined it's possible to
      * fool this in various ways; metas should report stream_size in complex cases
-     * to get accurate bitrates (particularly for subsongs). */
+     * to get accurate bitrates (particularly for subsongs). An edge case is when
+     * segments use only a few samples from a full file (like Wwise transitions), bitrates
+     * become a bit high since its hard to detect only part of the file is needed. */
 
-    if (vgmstream->stream_size) {
-        bitrate = get_vgmstream_file_bitrate_from_size(vgmstream->stream_size, vgmstream->sample_rate, vgmstream->num_samples);
-    }
-    else if (vgmstream->layout_type == layout_segmented) {
+    if (vgmstream->layout_type == layout_segmented) {
         segmented_layout_data *data = (segmented_layout_data *) vgmstream->layout_data;
-        for (sub = 0; sub < data->segment_count; sub++) {
-            bitrate += get_vgmstream_file_bitrate_main(data->segments[sub], streamfile_pointers, pointers_count, pointers_max);
+        for (i = 0; i < data->segment_count; i++) {
+            bitrate += get_vgmstream_file_bitrate_main(data->segments[i], br);
         }
-        bitrate = bitrate / data->segment_count;
     }
     else if (vgmstream->layout_type == layout_layered) {
         layered_layout_data *data = vgmstream->layout_data;
-        for (sub = 0; sub < data->layer_count; sub++) {
-            bitrate += get_vgmstream_file_bitrate_main(data->layers[sub], streamfile_pointers, pointers_count, pointers_max);
+        for (i = 0; i < data->layer_count; i++) {
+            bitrate += get_vgmstream_file_bitrate_main(data->layers[i], br);
         }
-        bitrate = bitrate / data->layer_count;
     }
     else {
-        /* Add channel bitrate if streamfile hasn't been used before (comparing files
-         * by absolute paths), so bitrate doesn't multiply when the same STREAMFILE is
-         * reopened per channel, also skipping repeated pointers. */
-        char path_current[PATH_LIMIT];
-        char path_compare[PATH_LIMIT];
-        int is_unique = 1;
-
+        /* Add channel bitrate if streamfile hasn't been used before, so bitrate doesn't count repeats
+         * (like same STREAMFILE reopened per channel, also considering SFs may be wrapped). */
         for (ch = 0; ch < vgmstream->channels; ch++) {
-            STREAMFILE* sf_cur = get_vgmstream_average_bitrate_channel_streamfile(vgmstream, ch);
-            if (!sf_cur) continue;
-            get_streamfile_name(sf_cur, path_current, sizeof(path_current));
+            uint32_t hash_cur;
+            int subsong_cur;
+            STREAMFILE* sf_cur;
+            int is_unique = 1; /* default to "no other SFs exist" */
 
-            for (sub = 0; sub < *pointers_count; sub++) {
-                STREAMFILE* sf_cmp = streamfile_pointers[sub];
-                if (!sf_cmp) continue;
-                if (sf_cur == sf_cmp) {
-                    is_unique = 0;
-                    break;
-                }
-                get_streamfile_name(sf_cmp, path_compare, sizeof(path_compare));
-                if (strcmp(path_current, path_compare) == 0) {
+            /* compares paths (hashes for faster compares) + subsongs (same file + different subsong = "different" file) */
+            sf_cur = get_vgmstream_average_bitrate_channel_streamfile(vgmstream, ch);
+            if (!sf_cur) continue;
+
+            hash_cur = hash_sf(sf_cur);
+            subsong_cur = vgmstream->stream_index;
+
+            for (i = 0; i < br->count; i++) {
+                uint32_t hash_cmp = br->hash[i];
+                int subsong_cmp = br->subsong[i];
+
+                if (hash_cur == hash_cmp && subsong_cur == subsong_cmp) {
                     is_unique = 0;
                     break;
                 }
             }
 
             if (is_unique) {
-                if (*pointers_count >= pointers_max) goto fail;
-                streamfile_pointers[*pointers_count] = sf_cur;
-                (*pointers_count)++;
+                if (br->count >= br->count_max) goto fail;
 
-                bitrate += get_vgmstream_file_bitrate_from_streamfile(sf_cur, vgmstream->sample_rate, vgmstream->num_samples);
+                br->hash[br->count] = hash_cur;
+                br->subsong[br->count] = subsong_cur;
+
+                br->count++;
+
+                if (vgmstream->stream_size) {
+                    /* stream_size applies to both channels but should add once and detect repeats (for current subsong) */
+                    bitrate += get_vgmstream_file_bitrate_from_size(vgmstream->stream_size, vgmstream->sample_rate, vgmstream->num_samples);
+                }
+                else {
+                    bitrate += get_vgmstream_file_bitrate_from_streamfile(sf_cur, vgmstream->sample_rate, vgmstream->num_samples);
+                }
+
+                break;
             }
         }
     }
@@ -1453,11 +1489,10 @@ fail:
  * it counts extra data like block headers and padding. While this can be surprising
  * sometimes (as it's often higher than common codec bitrates) it isn't wrong per se. */
 int get_vgmstream_average_bitrate(VGMSTREAM* vgmstream) {
-    const size_t pointers_max = 128; /* arbitrary max, but +100 segments have been observed */
-    STREAMFILE* streamfile_pointers[128]; /* list already used streamfiles */
-    int pointers_count = 0;
+    bitrate_info_t br = {0};
+    br.count_max = BITRATE_FILES_MAX;
 
-    return get_vgmstream_file_bitrate_main(vgmstream, streamfile_pointers, &pointers_count, pointers_max);
+    return get_vgmstream_file_bitrate_main(vgmstream, &br);
 }
 
 

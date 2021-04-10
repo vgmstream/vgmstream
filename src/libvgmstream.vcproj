@@ -293,6 +293,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\encrypted_bgm_streamfile.h"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\fsb_encrypted_streamfile.h"
                     >
                 </File>
@@ -1063,7 +1067,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\ngc_gcub.c"
+					RelativePath=".\meta\gcub.c"
 					>
 				</File>
 				<File
@@ -1148,6 +1152,10 @@
 				</File>
                 <File
                     RelativePath=".\meta\ogl.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\ogv_3rdeye.c"
                     >
                 </File>
                 <File
@@ -1271,7 +1279,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\ps2_exst.c"
+					RelativePath=".\meta\exst.c"
 					>
 				</File>
 				<File

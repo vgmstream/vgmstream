@@ -544,14 +544,15 @@ VGMSTREAM* init_vgmstream_ogg_vorbis_callbacks(STREAMFILE* sf, ov_callbacks* cal
                 loop_start = atol(strrchr(comment,'=')+1) * sample_rate / 1000; /* ms to samples */
                 loop_flag = (loop_start >= 0);
             }
-            else if (strstr(comment,"COMMENT=- loopTime ") == comment) { /* Aristear Remain (PC) */
-                loop_start = atol(strrchr(comment,' ')+1) / 1000.0f * sample_rate; /* ms to samples */
+            else if (strstr(comment,"COMMENT=- loopTime ") == comment ||    /* Aristear Remain (PC) */
+                     strstr(comment,"COMMENT=-loopTime ") == comment) {     /* Hyakki Ryouran no Yakata x Kawarazaki-ke no Ichizoku (PC) */
+                loop_start = atol(strrchr(comment,'l')) / 1000.0f * sample_rate; /* ms to samples */
                 loop_flag = (loop_start >= 0);
 
                 /* files have all page granule positions -1 except a few close to loop. This throws off
                  * libvorbis seeking (that uses granules), so we need manual fix = slower. Could be detected
-                 * by checking granules in the first new OggS pages (other games from same dev don't use
-                 * loopTime not have wrong granules though) */
+                 * by checking granules in the first new OggS pages (other games from the same dev don't use
+                 * loopTime nor have wrong granules though) */
                 force_seek = 1;
             }
 
@@ -582,6 +583,8 @@ VGMSTREAM* init_vgmstream_ogg_vorbis_callbacks(STREAMFILE* sf, ov_callbacks* cal
     vgmstream->coding_type = coding_OGG_VORBIS;
     vgmstream->layout_type = layout_none;
     vgmstream->meta_type = ovmi->meta_type;
+    if (!vgmstream->meta_type)
+        vgmstream->meta_type = meta_OGG_VORBIS;
 
     vgmstream->sample_rate = sample_rate;
     vgmstream->stream_size = stream_size;
