@@ -110,6 +110,9 @@
     <ClInclude Include="meta\ea_schl_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="meta\encrypted_bgm_streamfile">
+      <Filter>meta\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="meta\fsb_encrypted_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
@@ -832,7 +835,7 @@
     <ClCompile Include="meta\ps2_enth.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ps2_exst.c">
+    <ClCompile Include="meta\exst.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ps2_filp.c">

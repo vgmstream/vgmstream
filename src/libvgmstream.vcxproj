@@ -115,6 +115,7 @@
     <ClInclude Include="meta\ea_eaac_streamfile.h" />
     <ClInclude Include="meta\ea_eaac_opus_streamfile.h" />
     <ClInclude Include="meta\ea_schl_streamfile.h" />
+    <ClInclude Include="meta\encrypted_bgm_streamfile.h" />
     <ClInclude Include="meta\fsb_encrypted_streamfile.h" />
     <ClInclude Include="meta\fsb_interleave_streamfile.h" />
     <ClInclude Include="meta\fsb5_streamfile.h" />
@@ -445,7 +446,7 @@
     <ClCompile Include="meta\ps2_ccc.c" />
     <ClCompile Include="meta\ps2_dxh.c" />
     <ClCompile Include="meta\ps2_enth.c" />
-    <ClCompile Include="meta\ps2_exst.c" />
+    <ClCompile Include="meta\exst.c" />
     <ClCompile Include="meta\ps2_filp.c" />
     <ClCompile Include="meta\ps2_gbts.c" />
     <ClCompile Include="meta\ps2_gcm.c" />
