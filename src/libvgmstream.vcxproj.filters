@@ -700,7 +700,7 @@
     <ClCompile Include="meta\ngc_ffcc_str.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ngc_gcub.c">
+    <ClCompile Include="meta\gcub.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ngc_lps.c">

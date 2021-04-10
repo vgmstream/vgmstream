@@ -401,7 +401,7 @@
     <ClCompile Include="meta\ngc_dsp_std.c" />
     <ClCompile Include="meta\ngc_dsp_ygo.c" />
     <ClCompile Include="meta\ngc_ffcc_str.c" />
-    <ClCompile Include="meta\ngc_gcub.c" />
+    <ClCompile Include="meta\gcub.c" />
     <ClCompile Include="meta\ngc_lps.c" />
     <ClCompile Include="meta\ngc_nst_dsp.c" />
     <ClCompile Include="meta\ngc_pdt.c" />

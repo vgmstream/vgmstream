@@ -1067,7 +1067,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\ngc_gcub.c"
+					RelativePath=".\meta\gcub.c"
 					>
 				</File>
 				<File
