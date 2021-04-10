@@ -212,7 +212,7 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_2dx9,
     init_vgmstream_dsp_ygo,
     init_vgmstream_ps2_vgv,
-    init_vgmstream_ngc_gcub,
+    init_vgmstream_gcub,
     init_vgmstream_maxis_xa,
     init_vgmstream_ngc_sck_dsp,
     init_vgmstream_apple_caff,

@@ -416,7 +416,7 @@ VGMSTREAM * init_vgmstream_dsp_ygo(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_ps2_vgv(STREAMFILE * streamFile);
 
-VGMSTREAM * init_vgmstream_ngc_gcub(STREAMFILE * streamFile);
+VGMSTREAM * init_vgmstream_gcub(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_maxis_xa(STREAMFILE * streamFile);
 

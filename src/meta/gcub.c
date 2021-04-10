@@ -1,103 +1,53 @@
 #include "meta.h"
-#include "../util.h"
+#include "../coding/coding.h"
 
-/* GCUB - found in 'Sega Soccer Slam' */
-VGMSTREAM * init_vgmstream_ngc_gcub(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
-	char filename[PATH_LIMIT];
-	off_t start_offset;
-	int loop_flag;
-	int channel_count;
+/* GCub - found in Sega Soccer Slam (GC) */
+VGMSTREAM* init_vgmstream_gcub(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
+    off_t start_offset;
+    int channels, loop_flag, sample_rate;
+    size_t data_size;
 
-    /* check extension, case insensitive */
-	streamFile->get_name(streamFile,filename,sizeof(filename));
-	if (strcasecmp("gcub",filename_extension(filename))) goto fail;
 
-    /* check header */
-	if (read_32bitBE(0x00,streamFile) != 0x47437562) /* "GCub" */
-		goto fail;
+    /* checks */
+    /* .wav: extension found in bigfile
+     * .gcub: header id */
+    if (!check_extensions(sf, "wav,lwav,gcub"))
+        goto fail;
+    if (!is_id32be(0x00,sf, "GCub"))
+        goto fail;
 
     loop_flag = 0;
-    channel_count = read_32bitBE(0x04,streamFile);
-    
-	/* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    channels = read_u32be(0x04,sf);
+    sample_rate = read_u32be(0x08,sf);
+    data_size = read_u32be(0x0c,sf);
+
+    if (is_id32be(0x60,sf, "GCxx")) /* seen in sfx */
+        start_offset = 0x88;
+    else
+        start_offset = 0x60;
+
+
+    /* build the VGMSTREAM */
+    vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
-	/* fill in the vital statistics */
-	if (read_32bitBE(0x60,streamFile) == 0x47437878) /* "GCxx" */
-	{
-		start_offset = 0x88;
-	}
-	else
-	{
-		start_offset = 0x60;
-	}
-
-	vgmstream->channels = channel_count;
-    vgmstream->sample_rate = read_32bitBE(0x08,streamFile);
+    vgmstream->meta_type = meta_GCUB;
+    vgmstream->sample_rate = sample_rate;
+    vgmstream->num_samples = dsp_bytes_to_samples(data_size, channels);
     vgmstream->coding_type = coding_NGC_DSP;
-    vgmstream->num_samples = (read_32bitBE(0x0C,streamFile)-start_offset)/8/channel_count*14;
-    if (loop_flag) {
-        vgmstream->loop_start_sample = 0;
-        vgmstream->loop_end_sample = (read_32bitBE(0x0C,streamFile)-start_offset)/8/channel_count*14;
-    }
+    vgmstream->layout_type = layout_interleave;
+    vgmstream->interleave_block_size = 0x8000;
 
+    dsp_read_coefs_be(vgmstream, sf, 0x10, 0x20);
+    /* 0x50: initial ps for ch1/2 (16b) */
+    /* 0x54: hist? (always blank) */
 
-	if (channel_count == 1)
-	{
-		vgmstream->layout_type = layout_none;
-	}
-	else
-	{
-		vgmstream->layout_type = layout_interleave;
-		vgmstream->interleave_block_size = 0x8000; // read_32bitBE(0x04,streamFile);
-	}
-
-    vgmstream->meta_type = meta_NGC_GCUB;
-
-
-    if (vgmstream->coding_type == coding_NGC_DSP) {
-        int i;
-        for (i=0;i<16;i++) {
-            vgmstream->ch[0].adpcm_coef[i] = read_16bitBE(0x10+i*2,streamFile);
-        }
-        if (vgmstream->channels == 2) {
-            for (i=0;i<16;i++) {
-                vgmstream->ch[1].adpcm_coef[i] = read_16bitBE(0x30+i*2,streamFile);
-            }
-        }
-    }
-
-    /* open the file for reading */
-    {
-        int i;
-        STREAMFILE * file;
-        file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (!file) goto fail;
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = file;
-
-	/* The first channel */
-    vgmstream->ch[0].channel_start_offset=
-        vgmstream->ch[0].offset=start_offset;
-
-	/* The second channel */
-    if (channel_count == 2) {
-        vgmstream->ch[1].streamfile = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-
-        if (!vgmstream->ch[1].streamfile) goto fail;
-
-        vgmstream->ch[1].channel_start_offset=
-            vgmstream->ch[1].offset=start_offset+vgmstream->interleave_block_size;
-	}
-		}
-	}
-
+    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
+        goto fail;
     return vgmstream;
 
-    /* clean up anything we may have opened */
 fail:
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_vgmstream(vgmstream);
     return NULL;
 }

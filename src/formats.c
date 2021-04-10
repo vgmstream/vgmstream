@@ -1095,7 +1095,7 @@ static const meta_info meta_info_list[] = {
         {meta_2DX9,                 "beatmania IIDX 2DX9 header"},
         {meta_DSP_YGO,              "Konami custom DSP Header"},
         {meta_PS2_VGV,              "Rune: Viking Warlord VGV Header"},
-        {meta_NGC_GCUB,             "GCub Header"},
+        {meta_GCUB,                 "Sega GCub header"},
         {meta_NGC_SCK_DSP,          "The Scorpion King SCK Header"},
         {meta_CAFF,                 "Apple Core Audio Format File header"},
         {meta_PC_MXST,              "Lego Island MxSt Header"},
