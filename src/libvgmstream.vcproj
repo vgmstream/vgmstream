@@ -1155,6 +1155,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\ogv_3rdeye.c"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\omu.c"
                     >
                 </File>

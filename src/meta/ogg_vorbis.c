@@ -583,6 +583,8 @@ VGMSTREAM* init_vgmstream_ogg_vorbis_callbacks(STREAMFILE* sf, ov_callbacks* cal
     vgmstream->coding_type = coding_OGG_VORBIS;
     vgmstream->layout_type = layout_none;
     vgmstream->meta_type = ovmi->meta_type;
+    if (!vgmstream->meta_type)
+        vgmstream->meta_type = meta_OGG_VORBIS;
 
     vgmstream->sample_rate = sample_rate;
     vgmstream->stream_size = stream_size;

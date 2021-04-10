@@ -369,6 +369,7 @@ static const char* extension_list[] = {
 
     //"ogg", //common
     "ogl",
+    "ogv",
     "oma", //FFmpeg/not parsed (ATRAC3/ATRAC3PLUS/MP3/LPCM/WMA)
     "omu",
     //"opus", //common
@@ -1348,6 +1349,7 @@ static const meta_info meta_info_list[] = {
         {meta_TAC,                  "tri-Ace Codec header"},
         {meta_IDSP_TOSE,            "TOSE .IDSP header"},
         {meta_DSP_KWA,              "Kuju London .KWA header"},
+        {meta_OGV_3RDEYE,           "3rdEye .OGV header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {
