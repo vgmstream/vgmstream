@@ -394,6 +394,9 @@ static const hcakey_info hcakey_list[] = {
 
         /* Fantasia Re: Build (Android) */
         {8430978314079461325},      // 7500DA1B7FBA5FCD
+		
+        /* SaGa Frontier Remastered */
+        {5935495141785029458},      // 525F1D6244274B52
 
         /* D4DJ Groovy Mix (Android) [base files] */
         {393410674916959300},       // 0575ACECA945A444
