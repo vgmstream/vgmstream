@@ -1,33 +1,7 @@
 /**
  * vgmstream for Winamp
  */
-
-/* Normally Winamp opens unicode files by their DOS 8.3 name. #define this to use wchar_t filenames,
- * which must be opened with _wfopen in a WINAMP_STREAMFILE (needed for dual files like .pos).
- * Only for Winamp paths, other parts would need #define UNICODE for Windows. */
-#ifdef VGM_WINAMP_UNICODE
-#define UNICODE_INPUT_PLUGIN
-#endif
-
-#ifdef _MSC_VER
-#define _CRT_SECURE_NO_DEPRECATE
-#endif
-
-#include <windows.h>
-#include <windowsx.h>
-#include <commctrl.h>
-#include <stdio.h>
-#include <io.h>
-#include <string.h>
-#include <ctype.h>
-
-#include "../src/vgmstream.h"
-#include "../src/plugins.h"
-#include "sdk/in2.h"
-#include "sdk/wa_ipc.h"
-#include "sdk/ipc_pe.h"
-#include "resource.h"
-
+#include "in_vgmstream.h"
 
 #ifndef VERSION
 #include "version.h"
@@ -39,7 +13,9 @@
 #define PLUGIN_DESCRIPTION "vgmstream plugin " VERSION " " __DATE__
 
 
-/* ************************************* */
+/* ***************************************** */
+/* IN_STATE                                  */
+/* ***************************************** */
 
 #define EXT_BUFFER_SIZE 200
 
@@ -52,34 +28,6 @@ DWORD WINAPI __stdcall decode(void *arg);
 /* fixed list to simplify but could also malloc/free on init/close */
 char working_extension_list[EXTENSION_LIST_SIZE] = {0};
 
-typedef enum {
-    REPLAYGAIN_NONE,
-    REPLAYGAIN_ALBUM,
-    REPLAYGAIN_TRACK
-} replay_gain_type_t;
-
-/* loaded settings */
-typedef struct {
-    int thread_priority;
-
-    double fade_time;
-    double fade_delay;
-    double loop_count;
-    int ignore_loop;
-    int loop_forever;
-
-    int disable_subsongs;
-    int downmix_channels;
-    int tagfile_disable;
-    int force_title;
-    int exts_unknown_on;
-    int exts_common_on;
-
-    replay_gain_type_t gain_type;
-    replay_gain_type_t clip_type;
-
-    int is_xmplay;
-} winamp_settings_t;
 
 /* current play state */
 typedef struct {
@@ -110,223 +58,9 @@ winamp_state_t state;
 short sample_buffer[SAMPLE_BUFFER_SIZE*2 * VGMSTREAM_MAX_CHANNELS]; //todo maybe should be dynamic
 
 
-/* ************************************* */
-/* IN_UNICODE                            */
-/* ************************************* */
-//todo safe ops
-//todo there must be a better way to handle unicode...
-#ifdef UNICODE_INPUT_PLUGIN
-#define wa_strcmp wcscmp
-#define wa_strcpy wcscpy
-#define wa_strncpy wcsncpy
-#define wa_strcat wcscat
-#define wa_strlen wcslen
-#define wa_strchr wcschr
-#define wa_sscanf swscanf
-#define wa_snprintf _snwprintf
-#define wa_strrchr wcsrchr
-#define wa_fileinfo fileinfoW
-#define wa_IPC_PE_INSERTFILENAME IPC_PE_INSERTFILENAMEW
-#define wa_L(x) L ##x
-#else
-#define wa_strcmp strcmp
-#define wa_strcpy strcpy
-#define wa_strncpy strncpy
-#define wa_strcat strcat
-#define wa_strlen strlen
-#define wa_strchr strchr
-#define wa_sscanf sscanf
-#define wa_snprintf snprintf
-#define wa_strrchr strrchr
-#define wa_fileinfo fileinfo
-#define wa_IPC_PE_INSERTFILENAME IPC_PE_INSERTFILENAME
-#define wa_L(x) x
-#endif
-
-/* converts from utf16 to utf8 (if unicode is on) */
-static void wa_ichar_to_char(char *dst, size_t dstsize, const in_char *wsrc) {
-#ifdef UNICODE_INPUT_PLUGIN
-    /* converto to UTF8 codepage, default separate bytes, source wstr, wstr length */
-    //int size_needed = WideCharToMultiByte(CP_UTF8,0, src,-1, NULL,0, NULL, NULL);
-    WideCharToMultiByte(CP_UTF8,0, wsrc,-1, dst,dstsize, NULL, NULL);
-#else
-    strncpy(dst, wsrc, dstsize);
-    dst[dstsize - 1] = '\0';
-#endif
-}
-
-/* converts from utf8 to utf16 (if unicode is on) */
-static void wa_char_to_ichar(in_char *wdst, size_t wdstsize, const char *src) {
-#ifdef UNICODE_INPUT_PLUGIN
-    //int size_needed = MultiByteToWideChar(CP_UTF8,0, src,-1, NULL,0);
-    MultiByteToWideChar(CP_UTF8,0, src,-1, wdst,wdstsize);
-#else
-    strncpy(wdst, src, wdstsize);
-    wdst[wdstsize - 1] = '\0';
-#endif
-}
-
-/* copies from utf16 to utf16 (if unicode is active) */
-static void wa_wchar_to_ichar(in_char *wdst, size_t wdstsize, const wchar_t *src) {
-#ifdef UNICODE_INPUT_PLUGIN
-    wcscpy(wdst,src);
-#else
-    strcpy(wdst,src); //todo ???
-#endif
-}
-
-/* copies from utf16 to utf16 */
-static void wa_char_to_wchar(wchar_t *wdst, size_t wdstsize, const char *src) {
-#ifdef UNICODE_INPUT_PLUGIN
-    MultiByteToWideChar(CP_UTF8,0, src,-1, wdst,wdstsize);
-#else
-    strcpy(wdst,src); //todo ???
-#endif
-}
-
-/* opens a utf16 (unicode) path */
-static FILE* wa_fopen(const in_char *wpath) {
-#ifdef UNICODE_INPUT_PLUGIN
-    return _wfopen(wpath,L"rb");
-#else
-    return fopen(wpath,"rb");
-#endif
-}
-
-/* dupes a utf16 (unicode) file */
-static FILE* wa_fdopen(int fd) {
-#ifdef UNICODE_INPUT_PLUGIN
-    return _wfdopen(fd,L"rb");
-#else
-    return fdopen(fd,"rb");
-#endif
-}
-
-/* ************************************* */
-/* IN_STREAMFILE                         */
-/* ************************************* */
-
-/* a STREAMFILE that operates via STDIOSTREAMFILE but handles Winamp's unicode (in_char) paths */
-typedef struct {
-    STREAMFILE sf;
-    STREAMFILE *stdiosf;
-    FILE *infile_ref; /* pointer to the infile in stdiosf (partially handled by stdiosf) */
-} WINAMP_STREAMFILE;
-
-static STREAMFILE *open_winamp_streamfile_by_file(FILE *infile, const char * path);
-static STREAMFILE *open_winamp_streamfile_by_ipath(const in_char *wpath);
-
-static size_t wasf_read(WINAMP_STREAMFILE* sf, uint8_t* dest, off_t offset, size_t length) {
-    return sf->stdiosf->read(sf->stdiosf, dest, offset, length);
-}
-
-static off_t wasf_get_size(WINAMP_STREAMFILE* sf) {
-    return sf->stdiosf->get_size(sf->stdiosf);
-}
-
-static off_t wasf_get_offset(WINAMP_STREAMFILE* sf) {
-    return sf->stdiosf->get_offset(sf->stdiosf);
-}
-
-static void wasf_get_name(WINAMP_STREAMFILE* sf, char* buffer, size_t length) {
-    sf->stdiosf->get_name(sf->stdiosf, buffer, length);
-}
-
-static STREAMFILE *wasf_open(WINAMP_STREAMFILE* sf, const char* const filename, size_t buffersize) {
-    in_char wpath[PATH_LIMIT];
-    char name[PATH_LIMIT];
-
-    if (!filename)
-        return NULL;
-
-#if !defined (__ANDROID__) && !defined (_MSC_VER)
-    /* When enabling this for MSVC it'll seemingly work, but there are issues possibly related to underlying
-     * IO buffers when using dup(), noticeable by re-opening the same streamfile with small buffer sizes
-     * (reads garbage). This reportedly causes issues in Android too */
-
-    sf->stdiosf->get_name(sf->stdiosf, name, PATH_LIMIT);
-    /* if same name, duplicate the file descriptor we already have open */ //unsure if all this is needed
-    if (sf->infile_ref && !strcmp(name,filename)) {
-        int new_fd;
-        FILE *new_file;
-
-        if (((new_fd = dup(fileno(sf->infile_ref))) >= 0) && (new_file = wa_fdopen(new_fd))) {
-            STREAMFILE *new_sf = open_winamp_streamfile_by_file(new_file, filename);
-            if (new_sf)
-                return new_sf;
-            fclose(new_file);
-        }
-        if (new_fd >= 0 && !new_file)
-            close(new_fd); /* fdopen may fail when opening too many files */
-
-        /* on failure just close and try the default path (which will probably fail a second time) */
-    }
-#endif
-
-    /* STREAMFILEs carry char/UTF8 names, convert to wchar for Winamp */
-    wa_char_to_ichar(wpath, PATH_LIMIT, filename);
-    return open_winamp_streamfile_by_ipath(wpath);
-}
-
-static void wasf_close(WINAMP_STREAMFILE* sf) {
-    /* closes infile_ref + frees in the internal STDIOSTREAMFILE (fclose for wchar is not needed) */
-    sf->stdiosf->close(sf->stdiosf);
-    free(sf); /* and the current struct */
-}
-
-static STREAMFILE *open_winamp_streamfile_by_file(FILE* file, const char* path) {
-    WINAMP_STREAMFILE* this_sf = NULL;
-    STREAMFILE* stdiosf = NULL;
-
-    this_sf = calloc(1,sizeof(WINAMP_STREAMFILE));
-    if (!this_sf) goto fail;
-
-    stdiosf = open_stdio_streamfile_by_file(file, path);
-    if (!stdiosf) goto fail;
-
-    this_sf->sf.read = (void*)wasf_read;
-    this_sf->sf.get_size = (void*)wasf_get_size;
-    this_sf->sf.get_offset = (void*)wasf_get_offset;
-    this_sf->sf.get_name = (void*)wasf_get_name;
-    this_sf->sf.open = (void*)wasf_open;
-    this_sf->sf.close = (void*)wasf_close;
-
-    this_sf->stdiosf = stdiosf;
-    this_sf->infile_ref = file;
-
-    return &this_sf->sf; /* pointer to STREAMFILE start = rest of the custom data follows */
-
-fail:
-    close_streamfile(stdiosf);
-    free(this_sf);
-    return NULL;
-}
-
-
-static STREAMFILE* open_winamp_streamfile_by_ipath(const in_char* wpath) {
-    FILE* infile = NULL;
-    STREAMFILE* sf;
-    char path[PATH_LIMIT];
-
-
-    /* convert to UTF-8 if needed for internal use */
-    wa_ichar_to_char(path,PATH_LIMIT, wpath);
-
-    /* open a FILE from a Winamp (possibly UTF-16) path */
-    infile = wa_fopen(wpath);
-    if (!infile) {
-        /* allow non-existing files in some cases */
-        if (!vgmstream_is_virtual_filename(path))
-            return NULL;
-    }
-
-    sf = open_winamp_streamfile_by_file(infile,path);
-    if (!sf) {
-        if (infile) fclose(infile);
-    }
-
-    return sf;
-}
+/* ***************************************** */
+/* IN_VGMSTREAM UTILS                        */
+/* ***************************************** */
 
 /* opens vgmstream for winamp */
 static VGMSTREAM* init_vgmstream_winamp(const in_char* fn, int stream_index) {
@@ -345,411 +79,15 @@ static VGMSTREAM* init_vgmstream_winamp(const in_char* fn, int stream_index) {
     return vgmstream;
 }
 
-
-/* ************************************* */
-/* IN_CONFIG                             */
-/* ************************************* */
-//todo snprintf
-/* Windows unicode, separate from Winamp's unicode flag */
-#ifdef UNICODE
-#define cfg_strncpy wcsncpy
-#define cfg_strncat wcsncat
-#define cfg_sprintf _swprintf
-#define cfg_sscanf swscanf
-#define cfg_strlen wcslen
-#define cfg_strrchr wcsrchr
-#else
-#define cfg_strncpy strncpy
-#define cfg_strncat strncat
-#define cfg_sprintf sprintf
-#define cfg_sscanf sscanf
-#define cfg_strlen strlen
-#define cfg_strrchr strrchr
-#endif
-
-/* converts from utf8 to utf16 (if unicode is active) */
-static void cfg_char_to_wchar(TCHAR *wdst, size_t wdstsize, const char *src) {
-#ifdef UNICODE
-    //int size_needed = MultiByteToWideChar(CP_UTF8,0, src,-1, NULL,0);
-    MultiByteToWideChar(CP_UTF8,0, src,-1, wdst,wdstsize);
-#else
-    strcpy(wdst,src);
-#endif
-}
-
-/* config */
-#define CONFIG_APP_NAME  TEXT("vgmstream plugin")
-#define CONFIG_INI_NAME  TEXT("plugin.ini")
-
-#define INI_FADE_TIME           TEXT("fade_seconds")
-#define INI_FADE_DELAY          TEXT("fade_delay")
-#define INI_LOOP_COUNT          TEXT("loop_count")
-#define INI_THREAD_PRIORITY     TEXT("thread_priority")
-#define INI_LOOP_FOREVER        TEXT("loop_forever")
-#define INI_IGNORE_LOOP         TEXT("ignore_loop")
-#define INI_DISABLE_SUBSONGS    TEXT("disable_subsongs")
-#define INI_DOWNMIX_CHANNELS    TEXT("downmix_channels")
-#define INI_TAGFILE_DISABLE     TEXT("tagfile_disable")
-#define INI_FORCE_TITLE         TEXT("force_title")
-#define INI_EXTS_UNKNOWN_ON     TEXT("exts_unknown_on")
-#define INI_EXTS_COMMON_ON      TEXT("exts_common_on")
-#define INI_GAIN_TYPE           TEXT("gain_type")
-#define INI_CLIP_TYPE           TEXT("clip_type")
-
-TCHAR *dlg_priority_strings[] = {
-        TEXT("Idle"),
-        TEXT("Lowest"),
-        TEXT("Below Normal"),
-        TEXT("Normal"),
-        TEXT("Above Normal"),
-        TEXT("Highest (not recommended)"),
-        TEXT("Time Critical (not recommended)")
-};
-TCHAR *dlg_replaygain_strings[] = {
-        TEXT("None"),
-        TEXT("Album"),
-        TEXT("Peak")
-};
-
-int priority_values[] = {
-        THREAD_PRIORITY_IDLE,
-        THREAD_PRIORITY_LOWEST,
-        THREAD_PRIORITY_BELOW_NORMAL,
-        THREAD_PRIORITY_NORMAL,
-        THREAD_PRIORITY_ABOVE_NORMAL,
-        THREAD_PRIORITY_HIGHEST,
-        THREAD_PRIORITY_TIME_CRITICAL
-};
-
-// todo finish UNICODE (requires IPC_GETINIDIRECTORYW from later SDKs to read the ini path properly)
-/* Winamp INI reader */
-static void ini_get_filename(TCHAR *inifile) {
-
-    if (IsWindow(input_module.hMainWindow) && SendMessage(input_module.hMainWindow, WM_WA_IPC,0,IPC_GETVERSION) >= 0x5000) {
-        /* newer Winamp with per-user settings */
-        TCHAR *ini_dir = (TCHAR *)SendMessage(input_module.hMainWindow, WM_WA_IPC, 0, IPC_GETINIDIRECTORY);
-        cfg_strncpy(inifile, ini_dir, PATH_LIMIT);
-
-        cfg_strncat(inifile, TEXT("\\Plugins\\"), PATH_LIMIT);
-
-        /* can't be certain that \Plugins already exists in the user dir */
-        CreateDirectory(inifile,NULL);
-
-        cfg_strncat(inifile, CONFIG_INI_NAME, PATH_LIMIT);
-    }
-    else {
-        /* older winamp with single settings */
-        TCHAR *lastSlash;
-
-        GetModuleFileName(NULL, inifile, PATH_LIMIT);
-        lastSlash = cfg_strrchr(inifile, TEXT('\\'));
-
-        *(lastSlash + 1) = 0;
-
-        /* XMPlay doesn't have a "plugins" subfolder */
-        if (settings.is_xmplay)
-            cfg_strncat(inifile, CONFIG_INI_NAME,PATH_LIMIT);
-        else
-            cfg_strncat(inifile, TEXT("Plugins\\") CONFIG_INI_NAME,PATH_LIMIT);
-        /* Maybe should query IPC_GETINIDIRECTORY and use that, not sure what ancient Winamps need.
-         * There must be some proper way to handle dirs since other Winamp plugins save config in 
-         * XMPlay correctly (this feels like archaeology, try later) */
-    }
-}
-
-
-static void ini_get_d(const char *inifile, const char *entry, double defval, double *p_val) {
-    TCHAR buf[256];
-    TCHAR defbuf[256];
-    int consumed, res;
-
-    cfg_sprintf(defbuf, TEXT("%.2lf"), defval);
-    GetPrivateProfileString(CONFIG_APP_NAME, entry, defbuf, buf, 256, inifile);
-    res = cfg_sscanf(buf, TEXT("%lf%n"), p_val, &consumed);
-    if (res < 1 || consumed != cfg_strlen(buf) || *p_val < 0) {
-        *p_val = defval;
-    }
-}
-static void ini_get_i(const char *inifile, const char *entry, int defval, int *p_val, int min, int max) {
-    *p_val = GetPrivateProfileInt(CONFIG_APP_NAME, entry, defval, inifile);
-    if (*p_val < min || *p_val > max) {
-        *p_val = defval;
-    }
-}
-static void ini_get_b(const char *inifile, const char *entry, int defval, int *p_val) {
-    ini_get_i(inifile, entry, defval, p_val, 0, 1);
-}
-
-static void ini_set_d(const char *inifile, const char *entry, double val) {
-    TCHAR buf[256];
-    cfg_sprintf(buf, TEXT("%.2lf"), val);
-    WritePrivateProfileString(CONFIG_APP_NAME, entry, buf, inifile);
-}
-static void ini_set_i(const char *inifile, const char *entry, int val) {
-    TCHAR buf[32];
-    cfg_sprintf(buf, TEXT("%d"), val);
-    WritePrivateProfileString(CONFIG_APP_NAME, entry, buf, inifile);
-}
-static void ini_set_b(const char *inifile, const char *entry, int val) {
-    ini_set_i(inifile, entry, val);
-}
-
-static void load_defaults(winamp_settings_t* defaults) {
-    defaults->thread_priority = 3;
-    defaults->fade_time = 10.0;
-    defaults->fade_delay = 0.0;
-    defaults->loop_count = 2.0;
-    defaults->loop_forever = 0;
-    defaults->ignore_loop = 0;
-    defaults->disable_subsongs = 0;
-    defaults->downmix_channels = 0;
-    defaults->tagfile_disable = 0;
-    defaults->force_title = 0;
-    defaults->exts_unknown_on = 0;
-    defaults->exts_common_on = 0;
-    defaults->gain_type = 1;
-    defaults->clip_type = 2;
-}
-
-static void load_config(winamp_settings_t* settings, winamp_settings_t* defaults) {
-    TCHAR inifile[PATH_LIMIT];
-
-    ini_get_filename(inifile);
-
-    ini_get_i(inifile, INI_THREAD_PRIORITY, defaults->thread_priority, &settings->thread_priority, 0, 6);
-
-    ini_get_d(inifile, INI_FADE_TIME, defaults->fade_time, &settings->fade_time);
-    ini_get_d(inifile, INI_FADE_DELAY, defaults->fade_delay, &settings->fade_delay);
-    ini_get_d(inifile, INI_LOOP_COUNT, defaults->loop_count, &settings->loop_count);
-
-    ini_get_b(inifile, INI_LOOP_FOREVER, defaults->loop_forever, &settings->loop_forever);
-    ini_get_b(inifile, INI_IGNORE_LOOP, defaults->ignore_loop, &settings->ignore_loop);
-
-    ini_get_b(inifile, INI_DISABLE_SUBSONGS, defaults->disable_subsongs, &settings->disable_subsongs);
-    ini_get_i(inifile, INI_DOWNMIX_CHANNELS, defaults->downmix_channels, &settings->downmix_channels, 0, 64);
-    ini_get_b(inifile, INI_TAGFILE_DISABLE, defaults->tagfile_disable, &settings->tagfile_disable);
-    ini_get_b(inifile, INI_FORCE_TITLE, defaults->force_title, &settings->force_title);
-    ini_get_b(inifile, INI_EXTS_UNKNOWN_ON, defaults->exts_unknown_on, &settings->exts_unknown_on);
-    ini_get_b(inifile, INI_EXTS_COMMON_ON, defaults->exts_common_on, &settings->exts_common_on);
-
-    ini_get_i(inifile, INI_GAIN_TYPE, defaults->gain_type, (int*)&settings->gain_type, 0, 3);
-    ini_get_i(inifile, INI_CLIP_TYPE, defaults->clip_type, (int*)&settings->clip_type, 0, 3);
-
-    if (settings->loop_forever && settings->ignore_loop)
-        settings->ignore_loop = 0;
-}
-
-static void save_config(winamp_settings_t* settings) {
-    TCHAR inifile[PATH_LIMIT];
-
-    ini_get_filename(inifile);
-
-    ini_set_i(inifile, INI_THREAD_PRIORITY, settings->thread_priority);
-
-    ini_set_d(inifile, INI_FADE_TIME, settings->fade_time);
-    ini_set_d(inifile, INI_FADE_DELAY, settings->fade_delay);
-    ini_set_d(inifile, INI_LOOP_COUNT, settings->loop_count);
-
-    ini_set_b(inifile, INI_LOOP_FOREVER, settings->loop_forever);
-    ini_set_b(inifile, INI_IGNORE_LOOP, settings->ignore_loop);
-
-    ini_set_b(inifile, INI_DISABLE_SUBSONGS, settings->disable_subsongs);
-    ini_set_i(inifile, INI_DOWNMIX_CHANNELS, settings->downmix_channels);
-    ini_set_b(inifile, INI_TAGFILE_DISABLE, settings->tagfile_disable);
-    ini_set_b(inifile, INI_FORCE_TITLE, settings->force_title);
-    ini_set_b(inifile, INI_EXTS_UNKNOWN_ON, settings->exts_unknown_on);
-    ini_set_b(inifile, INI_EXTS_COMMON_ON, settings->exts_common_on);
-
-    ini_set_i(inifile, INI_GAIN_TYPE, settings->gain_type);
-    ini_set_i(inifile, INI_CLIP_TYPE, settings->clip_type);
-}
-
-
-static void dlg_input_set_d(HWND hDlg, int idc, double val) {
-    TCHAR buf[256];
-    cfg_sprintf(buf, TEXT("%.2lf"), val);
-    SetDlgItemText(hDlg, idc, buf);
-}
-static void dlg_input_set_i(HWND hDlg, int idc, int val) {
-    TCHAR buf[32];
-    cfg_sprintf(buf, TEXT("%d"), val);
-    SetDlgItemText(hDlg, idc, buf);
-}
-static void dlg_check_set(HWND hDlg, int idc, int val) {
-    CheckDlgButton(hDlg, idc, val ? BST_CHECKED : BST_UNCHECKED);
-}
-static void cfg_combo_set(HWND hDlg, int idc, int val, TCHAR **list, int list_size) {
-    int i;
-    HANDLE hCombo = GetDlgItem(hDlg, idc);
-    for (i = 0; i < list_size; i++) {
-        SendMessage(hCombo, CB_ADDSTRING, 0, (LPARAM)list[i]);
-    }
-    SendMessage(hCombo, CB_SETCURSEL, val, 0);
-}
-static void cfg_slider_set(HWND hDlg, int idc1, int idc2, int val, int min, int max, TCHAR **list) {
-    HANDLE hSlider = GetDlgItem(hDlg, idc1);
-    SendMessage(hSlider, TBM_SETRANGE, (WPARAM)TRUE, (LPARAM)MAKELONG(min, max));
-    SendMessage(hSlider, TBM_SETPOS,   (WPARAM)TRUE, (LPARAM)val+1);
-    SetDlgItemText(hDlg, idc2, list[val]);
-}
-
-static void dlg_input_get_d(HWND hDlg, int idc, double *p_val, LPCTSTR error, int *p_err) {
-    TCHAR buf[256];
-    int res, consumed;
-    double defval = *p_val;
-
-    GetDlgItemText(hDlg, idc, buf, 256);
-    res = cfg_sscanf(buf, TEXT("%lf%n"), p_val, &consumed);
-    if (res < 1 || consumed != cfg_strlen(buf) || *p_val < 0) {
-        MessageBox(hDlg, error, NULL, MB_OK|MB_ICONERROR);
-        *p_val = defval;
-        *p_err = 1;
-    }
-}
-static void dlg_input_get_i(HWND hDlg, int idc, int *p_val, LPCTSTR error, int *p_err) {
-    TCHAR buf[32];
-    int res, consumed;
-    int defval = *p_val;
-
-    GetDlgItemText(hDlg, idc, buf, 32);
-    res = cfg_sscanf(buf, TEXT("%d%n"), p_val, &consumed);
-    if (res < 1 || consumed != cfg_strlen(buf) || *p_val < 0) {
-        MessageBox(hDlg, error, NULL, MB_OK|MB_ICONERROR);
-        *p_val = defval;
-        *p_err = 1;
-    }
-}
-static void dlg_check_get(HWND hDlg, int idc, int *p_val) {
-    *p_val = (IsDlgButtonChecked(hDlg, idc) == BST_CHECKED);
-}
-static void dlg_combo_get(HWND hDlg, int idc, int *p_val) {
-    *p_val = SendMessage(GetDlgItem(hDlg, idc), CB_GETCURSEL, 0, 0);
-}
-
-static int dlg_load_form(HWND hDlg, winamp_settings_t* settings) {
-    int err = 0;
-    dlg_input_get_d(hDlg, IDC_FADE_TIME, &settings->fade_time,  TEXT("Fade Length must be a positive number"), &err);
-    dlg_input_get_d(hDlg, IDC_FADE_DELAY, &settings->fade_delay, TEXT("Fade Delay must be a positive number"), &err);
-    dlg_input_get_d(hDlg, IDC_LOOP_COUNT, &settings->loop_count, TEXT("Loop Count must be a positive number"), &err);
-
-    dlg_check_get(hDlg, IDC_LOOP_FOREVER, &settings->loop_forever);
-    dlg_check_get(hDlg, IDC_IGNORE_LOOP, &settings->ignore_loop);
-
-    dlg_check_get(hDlg, IDC_DISABLE_SUBSONGS, &settings->disable_subsongs);
-    dlg_input_get_i(hDlg, IDC_DOWNMIX_CHANNELS, &settings->downmix_channels, TEXT("Downmix must be a positive integer number"), &err);
-    dlg_check_get(hDlg, IDC_TAGFILE_DISABLE, &settings->tagfile_disable);
-    dlg_check_get(hDlg, IDC_FORCE_TITLE, &settings->force_title);
-    dlg_check_get(hDlg, IDC_EXTS_UNKNOWN_ON, &settings->exts_unknown_on);
-    dlg_check_get(hDlg, IDC_EXTS_COMMON_ON, &settings->exts_common_on);
-
-    dlg_combo_get(hDlg, IDC_GAIN_TYPE, (int*)&settings->gain_type);
-    dlg_combo_get(hDlg, IDC_CLIP_TYPE, (int*)&settings->clip_type);
-
-    return err ? 0 : 1;
-}
-
-static void dlg_save_form(HWND hDlg, winamp_settings_t* settings, int reset) {
-    cfg_slider_set(hDlg, IDC_THREAD_PRIORITY_SLIDER, IDC_THREAD_PRIORITY_TEXT, settings->thread_priority, 1, 7, dlg_priority_strings);
-
-    dlg_input_set_d(hDlg, IDC_FADE_TIME, settings->fade_time);
-    dlg_input_set_d(hDlg, IDC_FADE_DELAY, settings->fade_delay);
-    dlg_input_set_d(hDlg, IDC_LOOP_COUNT, settings->loop_count);
-
-    dlg_check_set(hDlg, IDC_LOOP_FOREVER, settings->loop_forever);
-    dlg_check_set(hDlg, IDC_IGNORE_LOOP, settings->ignore_loop);
-    dlg_check_set(hDlg, IDC_LOOP_NORMALLY, (!settings->loop_forever && !settings->ignore_loop));
-
-    dlg_check_set(hDlg, IDC_DISABLE_SUBSONGS, settings->disable_subsongs);
-    dlg_input_set_i(hDlg, IDC_DOWNMIX_CHANNELS, settings->downmix_channels);
-    dlg_check_set(hDlg, IDC_TAGFILE_DISABLE, settings->tagfile_disable);
-    dlg_check_set(hDlg, IDC_FORCE_TITLE, settings->force_title);
-    dlg_check_set(hDlg, IDC_EXTS_UNKNOWN_ON, settings->exts_unknown_on);
-    dlg_check_set(hDlg, IDC_EXTS_COMMON_ON, settings->exts_common_on);
-
-    cfg_combo_set(hDlg, IDC_GAIN_TYPE, settings->gain_type, dlg_replaygain_strings, (reset ? 0 : 3));
-    cfg_combo_set(hDlg, IDC_CLIP_TYPE, settings->clip_type, dlg_replaygain_strings, (reset ? 0 : 3));
-
-}
-
-/* config dialog handler */
-INT_PTR CALLBACK configDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) {
-    static int priority;
-
-    switch (uMsg) {
-        case WM_CLOSE: /* hide dialog */
-            EndDialog(hDlg,TRUE);
-            return TRUE;
-
-        case WM_INITDIALOG: /* open dialog: load form with current settings */
-            priority = settings.thread_priority;
-            dlg_save_form(hDlg, &settings, 0);
-            break;
-
-        case WM_COMMAND: /* button presses */
-            switch (GET_WM_COMMAND_ID(wParam, lParam)) {
-                case IDOK: { /* read and verify new values, save and close */
-                    int ok;
-
-                    settings.thread_priority = priority;
-                    ok = dlg_load_form(hDlg, &settings);
-                    if (!ok) break; /* this leaves values changed though */
-
-                    save_config(&settings);
-
-                    EndDialog(hDlg,TRUE);
-                    break;
-                }
-
-                case IDCANCEL: /* cancel dialog */
-                    EndDialog(hDlg,TRUE);
-                    break;
-
-                case IDC_DEFAULT_BUTTON: { /* reset values */
-                    priority = defaults.thread_priority;
-                    dlg_save_form(hDlg, &defaults, 1);
-
-                    /* we don't save settings here as user can still cancel the dialog */
-                    break;
-                }
-
-                default:
-                    return FALSE;
-            }
-            return FALSE;
-
-        case WM_HSCROLL: /* priority scroll */
-            if ((struct HWND__*)lParam == GetDlgItem(hDlg, IDC_THREAD_PRIORITY_SLIDER)) {
-                if (LOWORD(wParam) == TB_THUMBPOSITION || LOWORD(wParam) == TB_THUMBTRACK) {
-                    priority = HIWORD(wParam)-1;
-                }
-                else {
-                    priority = SendMessage(GetDlgItem(hDlg,IDC_THREAD_PRIORITY_SLIDER),TBM_GETPOS,0,0)-1;
-                }
-                SetDlgItemText(hDlg, IDC_THREAD_PRIORITY_TEXT, dlg_priority_strings[priority]);
-            }
-            break;
-
-        default:
-            return FALSE;
-    }
-
-    return TRUE;
-}
-
-
-/* ***************************************** */
-/* IN_VGMSTREAM UTILS                        */
-/* ***************************************** */
-
 /* makes a modified filename, suitable to pass parameters around */
-static void make_fn_subsong(in_char * dst, int dst_size, const in_char * filename, int stream_index) {
+static void make_fn_subsong(in_char* dst, int dst_size, const in_char* filename, int stream_index) {
     /* Follows "(file)(config)(ext)". Winamp needs to "see" (ext) to validate, and file goes first so relative
      * files work in M3Us (path is added). Protocols a la "vgmstream://(config)(file)" work but don't get full paths. */
     wa_snprintf(dst,dst_size, wa_L("%s|$s=%i|.vgmstream"), filename, stream_index);
 }
 
 /* unpacks the subsongs by adding entries to the playlist */
-static int split_subsongs(const in_char * filename, int stream_index, VGMSTREAM *vgmstream) {
+static int split_subsongs(const in_char* filename, int stream_index, VGMSTREAM *vgmstream) {
     int i, playlist_index;
     HWND hPlaylistWindow;
 
@@ -796,8 +134,8 @@ static int split_subsongs(const in_char * filename, int stream_index, VGMSTREAM 
 }
 
 /* parses a modified filename ('fakename') extracting tags parameters (NULL tag for first = filename) */
-static int parse_fn_string(const in_char * fn, const in_char * tag, in_char * dst, int dst_size) {
-    const in_char *end = wa_strchr(fn,'|');
+static int parse_fn_string(const in_char* fn, const in_char* tag, in_char* dst, int dst_size) {
+    const in_char* end = wa_strchr(fn,'|');
 
     if (tag==NULL) {
         wa_strcpy(dst,fn);
@@ -809,8 +147,8 @@ static int parse_fn_string(const in_char * fn, const in_char * tag, in_char * ds
     dst[0] = '\0';
     return 0;
 }
-static int parse_fn_int(const in_char * fn, const in_char * tag, int * num) {
-    const in_char * start = wa_strchr(fn,'|');
+static int parse_fn_int(const in_char* fn, const in_char* tag, int* num) {
+    const in_char* start = wa_strchr(fn,'|');
 
     if (start > 0) {
         wa_sscanf(start+1, wa_L("$s=%i "), num);
@@ -834,7 +172,7 @@ static int is_xmplay() {
 }
 
 /* Adds ext to Winamp's extension list */
-static void add_extension(char *dst, int dst_len, const char *ext) {
+static void add_extension(char* dst, int dst_len, const char* ext) {
     char buf[EXT_BUFFER_SIZE];
     char ext_upp[EXT_BUFFER_SIZE];
     int ext_len, written;
@@ -876,17 +214,17 @@ static void add_extension(char *dst, int dst_len, const char *ext) {
  * Each extension must be in this format: "extension\0Description\0"
  * The list is used to accept extensions by default when IsOurFile returns 0, and to register file types.
  * It could be ignored/empty and just detect in IsOurFile instead. */
-static void build_extension_list(char *winamp_list, int winamp_list_size) {
-    const char ** ext_list;
+static void build_extension_list(char* winamp_list, int winamp_list_size) {
+    const char** ext_list;
     size_t ext_list_len;
     int i;
 
-    winamp_list[0]='\0';
-    winamp_list[1]='\0';
+    winamp_list[0] = '\0';
+    winamp_list[1] = '\0';
 
     ext_list = vgmstream_get_formats(&ext_list_len);
 
-    for (i=0; i < ext_list_len; i++) {
+    for (i = 0; i < ext_list_len; i++) {
         add_extension(winamp_list, winamp_list_size, ext_list[i]);
     }
 }
@@ -930,9 +268,9 @@ static void apply_config(VGMSTREAM* vgmstream, winamp_settings_t* settings) {
     vgmstream_apply_config(vgmstream, &vcfg);
 }
 
-static int winampGetExtendedFileInfo_common(in_char* filename, char *metadata, char* ret, int retlen);
+static int winampGetExtendedFileInfo_common(in_char* filename, char* metadata, char* ret, int retlen);
 
-static double get_album_gain_volume(const in_char *fn) {
+static double get_album_gain_volume(const in_char* fn) {
     char replaygain[64];
     double gain = 0.0;
     int had_replaygain = 0;
@@ -941,7 +279,7 @@ static double get_album_gain_volume(const in_char *fn) {
 
     replaygain[0] = '\0'; /* reset each time to make sure we read actual tags */
     if (settings.gain_type == REPLAYGAIN_ALBUM
-            && winampGetExtendedFileInfo_common((in_char *)fn, "replaygain_album_gain", replaygain, sizeof(replaygain))
+            && winampGetExtendedFileInfo_common((in_char*)fn, "replaygain_album_gain", replaygain, sizeof(replaygain))
             && replaygain[0] != '\0') {
         gain = atof(replaygain);
         had_replaygain = 1;
@@ -949,7 +287,7 @@ static double get_album_gain_volume(const in_char *fn) {
 
     replaygain[0] = '\0';
     if (!had_replaygain
-            && winampGetExtendedFileInfo_common((in_char *)fn, "replaygain_track_gain", replaygain, sizeof(replaygain))
+            && winampGetExtendedFileInfo_common((in_char*)fn, "replaygain_track_gain", replaygain, sizeof(replaygain))
             && replaygain[0] != '\0') {
         gain = atof(replaygain);
         had_replaygain = 1;
@@ -961,12 +299,12 @@ static double get_album_gain_volume(const in_char *fn) {
 
         replaygain[0] = '\0';
         if (settings.clip_type == REPLAYGAIN_ALBUM
-                && winampGetExtendedFileInfo_common((in_char *)fn, "replaygain_album_peak", replaygain, sizeof(replaygain))
+                && winampGetExtendedFileInfo_common((in_char*)fn, "replaygain_album_peak", replaygain, sizeof(replaygain))
                 && replaygain[0] != '\0') {
             peak = atof(replaygain);
         }
         else if (settings.clip_type != REPLAYGAIN_NONE
-                && winampGetExtendedFileInfo_common((in_char *)fn, "replaygain_track_peak", replaygain, sizeof(replaygain))
+                && winampGetExtendedFileInfo_common((in_char*)fn, "replaygain_track_peak", replaygain, sizeof(replaygain))
                 && replaygain[0] != '\0') {
             peak = atof(replaygain);
         }
@@ -983,7 +321,7 @@ static double get_album_gain_volume(const in_char *fn) {
 
 /* about dialog */
 void winamp_About(HWND hwndParent) {
-    const char *ABOUT_TEXT =
+    const char* ABOUT_TEXT =
             PLUGIN_DESCRIPTION "\n"
             "by hcs, FastElbja, manakoAT, bxaimc, snakemeat, soneek, kode54, bnnm and many others\n"
             "\n"
@@ -1008,7 +346,7 @@ void winamp_Init() {
 
     /* get ini config */
     load_defaults(&defaults);
-    load_config(&settings, &defaults);
+    load_config(&input_module, &settings, &defaults);
 
     /* XMPlay with in_vgmstream doesn't support most IPC_x messages so no playlist manipulation */
     if (settings.is_xmplay) {

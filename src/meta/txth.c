@@ -691,7 +691,7 @@ static STREAMFILE* open_txth(STREAMFILE* sf) {
     /* try "(path/)(.sub.ext).txth" */
     get_streamfile_basename(sf,basename,PATH_LIMIT);
     subext = filename_extension(basename);
-    if (subext != NULL) {
+    if (subext != NULL && subext[0] != '\0') {
         get_streamfile_path(sf,filename,PATH_LIMIT);
         get_streamfile_ext(sf,fileext,PATH_LIMIT);
         strcat(filename,".");
