@@ -126,12 +126,15 @@
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="in_vgmstream.h" />
     <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resource.rc" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="in_config.c" />
+    <ClCompile Include="in_streamfile.c" />
     <ClCompile Include="in_vgmstream.c" />
   </ItemGroup>
   <ItemGroup>
