@@ -1351,9 +1351,11 @@ static uint32_t hash_sf(STREAMFILE* sf) {
     get_streamfile_name(sf, path, sizeof(path));
 
     /* our favorite garbo hash a.k.a FNV-1 32b */
-    for (i = 0; i < strlen(path); i++) {
+    i = 0;
+    while (path[i] != '\0') {
         char c = tolower(path[i]);
         hash = (hash * 16777619) ^ (uint8_t)c;
+        i++;
     }
 
     return hash;
