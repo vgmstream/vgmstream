@@ -245,9 +245,13 @@ fail:
     return 0;
 }
 
-static int is_silent(txtp_entry* entry) {
+static int is_silent(const char* fn) {
     /* should also contain "." in the filename for commands with seconds ("1.0") to work */
-    return entry->filename[0] == '?';
+    return fn[0] == '?';
+}
+
+static int is_absolute(const char* fn) {
+    return fn[0] == '/' || fn[0] == '\\'  || fn[1] == ':';
 }
 
 /* open all entries and apply settings to resulting VGMSTREAMs */
@@ -268,17 +272,23 @@ static int parse_entries(txtp_header* txtp, STREAMFILE* sf) {
     /* open all entry files first as they'll be modified by modes */
     for (i = 0; i < txtp->vgmstream_count; i++) {
         STREAMFILE* temp_sf = NULL;
+        const char* filename = txtp->entry[i].filename;
 
         /* silent entry ignore */
-        if (is_silent(&txtp->entry[i])) {
+        if (is_silent(filename)) {
             txtp->entry[i].silent = 1;
             has_silents = 1;
             continue;
         }
 
-        temp_sf = open_streamfile_by_filename(sf, txtp->entry[i].filename);
+        /* absolute paths are detected for convenience, but since it's hard to unify all OSs
+         * and plugins, they aren't "officially" supported nor documented, thus may or may not work */
+        if (is_absolute(filename))
+            temp_sf = open_streamfile(sf, filename); /* from path as is */
+        else
+            temp_sf = open_streamfile_by_filename(sf, filename); /* from current path */
         if (!temp_sf) {
-            VGM_LOG("TXTP: cannot open streamfile for %s\n", txtp->entry[i].filename);
+            VGM_LOG("TXTP: cannot open streamfile for %s\n", filename);
             goto fail;
         }
         temp_sf->stream_index = txtp->entry[i].subsong;
@@ -286,7 +296,7 @@ static int parse_entries(txtp_header* txtp, STREAMFILE* sf) {
         txtp->vgmstream[i] = init_vgmstream_from_STREAMFILE(temp_sf);
         close_streamfile(temp_sf);
         if (!txtp->vgmstream[i]) {
-            VGM_LOG("TXTP: cannot open vgmstream for %s#%i\n", txtp->entry[i].filename, txtp->entry[i].subsong);
+            VGM_LOG("TXTP: cannot open vgmstream for %s#%i\n", filename, txtp->entry[i].subsong);
             goto fail;
         }
 
