@@ -195,31 +195,38 @@ fail:
     return NULL;
 }
 
-static STREAMFILE * open_foo_streamfile_buffer(const char * const filename, size_t buffersize, abort_callback * p_abort, t_filestats * stats) {
-    STREAMFILE *streamFile;
+static STREAMFILE* open_foo_streamfile_buffer(const char* const filename, size_t buffersize, abort_callback* p_abort, t_filestats* stats) {
+    STREAMFILE* sf = NULL;
     service_ptr_t<file> infile;
     bool infile_exists;
 
-    infile_exists = filesystem::g_exists(filename, *p_abort);
-    if(!infile_exists) {
-        /* allow non-existing files in some cases */
-        if (!vgmstream_is_virtual_filename(filename))
-            return NULL;
+    try {
+        infile_exists = filesystem::g_exists(filename, *p_abort);
+        if (!infile_exists) {
+            /* allow non-existing files in some cases */
+            if (!vgmstream_is_virtual_filename(filename))
+                return NULL;
+        }
+
+        if (infile_exists) {
+            filesystem::g_open_read(infile, filename, *p_abort);
+            if(stats) *stats = infile->get_stats(*p_abort);
+        }
+        
+        sf = open_foo_streamfile_buffer_by_file(infile, infile_exists, filename, buffersize, p_abort);
+        if (!sf) {
+            //m_file.release(); //refcounted and cleaned after it goes out of scope
+        }
+
+    } catch (...) {
+        /* somehow foobar2000 throws an exception on g_exists when filename has a double \
+         * (traditionally Windows treats that like a single slash and fopen handles it fine) */
+        return NULL;
     }
 
-    if (infile_exists) {
-        filesystem::g_open_read(infile,filename,*p_abort);
-        if(stats) *stats = infile->get_stats(*p_abort);
-    }
-
-    streamFile = open_foo_streamfile_buffer_by_file(infile, infile_exists, filename, buffersize, p_abort);
-    if (!streamFile) {
-        //m_file.release(); //refcounted and cleaned after it goes out of scope
-    }
-
-    return streamFile;
+    return sf;
 }
 
-STREAMFILE * open_foo_streamfile(const char * const filename, abort_callback * p_abort, t_filestats * stats) {
-    return open_foo_streamfile_buffer(filename,STREAMFILE_DEFAULT_BUFFER_SIZE, p_abort, stats);
+STREAMFILE* open_foo_streamfile(const char* const filename, abort_callback* p_abort, t_filestats* stats) {
+    return open_foo_streamfile_buffer(filename, STREAMFILE_DEFAULT_BUFFER_SIZE, p_abort, stats);
 }
