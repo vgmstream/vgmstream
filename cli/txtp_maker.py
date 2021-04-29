@@ -46,6 +46,7 @@ class Cli(object):
         p.add_argument('-m',  dest='mini_txtp', help="Create mini-txtp", action='store_true')
         p.add_argument('-o',  dest='overwrite', help="Overwrite existing .txtp\n(beware when using with internal names alone)", action='store_true')
         p.add_argument('-O',  dest='overwrite_rename', help="Rename rather than overwriting", action='store_true')
+        p.add_argument('-Os', dest='overwrite_suffix', help="Rename with a suffix")
         p.add_argument('-l',  dest='layers', help="Create .txtp per subsong layers, every N channels", type=int)
         p.add_argument('-fd', dest='test_dupes', help="Skip .txtp that point to duplicate streams (slower)", action='store_true')
         p.add_argument('-fcm', dest='min_channels', help="Filter by min channels", type=int)
@@ -254,13 +255,19 @@ class TxtpMaker(object):
         outname += '.txtp'
 
         cfg = self.cfg
-        if cfg.overwrite_rename and os.path.exists(outname):
-            if outname in self.rename_map:
-                rename_count = self.rename_map[outname]
-            else:
-                rename_count = 0
-            self.rename_map[outname] = rename_count + 1
-            outname = outname.replace(".txtp", "_%08i.txtp" % (rename_count))
+        if (cfg.overwrite_rename or cfg.overwrite_suffix) and os.path.exists(outname):
+            must_rename = True
+            if cfg.overwrite_suffix:
+                outname = outname.replace(".txtp", "%s.txtp" % (cfg.overwrite_suffix))
+                must_rename = os.path.exists(outname)
+
+            if must_rename:
+                if outname in self.rename_map:
+                    rename_count = self.rename_map[outname]
+                else:
+                    rename_count = 0
+                self.rename_map[outname] = rename_count + 1
+                outname = outname.replace(".txtp", "_%08i.txtp" % (rename_count))
 
         if not cfg.overwrite and os.path.exists(outname):
             raise ValueError('TXTP exists in path: ' + outname)

@@ -9,31 +9,54 @@ static VGMSTREAM* init_vgmstream_opus(STREAMFILE* sf, meta_t meta_type, off_t of
     VGMSTREAM* vgmstream = NULL;
     off_t start_offset;
     int loop_flag = 0, channel_count;
-    off_t data_offset, multichannel_offset = 0;
+    off_t data_offset, samples_offset, multichannel_offset = 0;
     size_t data_size, skip = 0;
 
-
+    /* header chunk */
     if (read_u32le(offset + 0x00,sf) != 0x80000001)
         goto fail;
+    /* 0x04: chunk size */
 
+    /* 0x08: null */
     channel_count = read_u8(offset + 0x09, sf);
     /* 0x0a: packet size if CBR, 0 if VBR */
-    data_offset = offset + read_u32le(offset + 0x10, sf);
+    data_offset = read_u32le(offset + 0x10, sf);
+    /* 0x14: null/reserved? */
+    samples_offset = read_u32le(offset + 0x18, sf);
     skip = read_u16le(offset + 0x1c, sf);
     /* 0x1e: ? (seen in Lego Movie 2 (Switch)) */
 
-    /* recent >2ch info [Clannad (Switch)] */
+    /* samples chunk, rare [Famicom Detective Club (Switch)] */
+    if (samples_offset && read_u32le(offset + samples_offset, sf) == 0x80000003) {
+        /* maybe should give priority to external info? */
+        samples_offset += offset;
+        /* 0x08: null*/
+        loop_flag   = read_u8   (samples_offset + 0x09, sf);
+        num_samples = read_s32le(samples_offset + 0x0c, sf); /* slightly smaller than manual count */
+        loop_start  = read_s32le(samples_offset + 0x10, sf);
+        loop_end    = read_s32le(samples_offset + 0x14, sf);
+        /* rest (~0x38) reserved/alignment? */
+        /* values seem to take encoder delay into account */
+    }
+    else {
+        loop_flag = (loop_end > 0); /* -1 when not set */
+    }
+
+
+    /* multichannel chunk, rare [Clannad (Switch)] */
     if (read_u32le(offset + 0x20, sf) == 0x80000005) {
         multichannel_offset = offset + 0x20;
     }
 
+
+    /* data chunk */
+    data_offset += offset;
     if (read_u32le(data_offset, sf) != 0x80000004)
         goto fail;
 
     data_size = read_u32le(data_offset + 0x04, sf);
 
     start_offset = data_offset + 0x08;
-    loop_flag = (loop_end > 0); /* -1 when not set */
 
 
     /* build the VGMSTREAM */
