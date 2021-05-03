@@ -537,11 +537,13 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
                     break;
 
                 case 0x63756520:    /* "cue " (used in Source Engine for storing loop points) */
-                    if (fmt.coding_type == coding_PCM16LE || fmt.coding_type == coding_MSADPCM) {
+                    if (fmt.coding_type == coding_PCM8_U ||
+                        fmt.coding_type == coding_PCM16LE ||
+                        fmt.coding_type == coding_MSADPCM) {
                         uint32_t num_cues = read_32bitLE(current_chunk + 0x08, sf);
 
                         if (num_cues > 0) {
-                            /* The second cue sets loop end point but it's not actually used by the engine. */
+                            /* the second cue sets loop end point but it's not actually used by the engine */
                             loop_flag = 1;
                             loop_start_cue = read_32bitLE(current_chunk + 0x20, sf);
                         }

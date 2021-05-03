@@ -23,7 +23,7 @@
 #define EA_PLATFORM_X360        0x09
 #define EA_PLATFORM_PSP         0x0A
 #define EA_PLATFORM_PS3         0x0E /* very rare [Need for Speed: Carbon (PS3)] */
-#define EA_PLATFORM_WII         0x10
+#define EA_PLATFORM_WII         0x10 /* not seen so far */
 #define EA_PLATFORM_3DS         0x14
 
 /* codec constants (undefined are probably reserved, ie.- sx.exe encodes PCM24/DVI but no platform decodes them) */
