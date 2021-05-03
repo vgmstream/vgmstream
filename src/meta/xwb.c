@@ -241,10 +241,16 @@ VGMSTREAM* init_vgmstream_xwb(STREAMFILE* sf) {
         uint32_t entry_info = read_u32(offset+0x00, sf);
         if (xwb.version <= XACT1_1_MAX) {
             xwb.entry_flags = entry_info;
-        } else {
+        }
+        else if (xwb.version == XACT_TECHLAND) { /*  Nail'd (X360) */
+            xwb.entry_flags = 0;
+            xwb.num_samples = 0;//(entry_info >> 1) & 0x7FFFFFFF; /* seems ok for music banks but not sfx, fixed later */
+        }
+        else {
             xwb.entry_flags = (entry_info) & 0xF; /*4b*/
             xwb.num_samples = (entry_info >> 4) & 0x0FFFFFFF; /*28b*/
         }
+
         xwb.format          = read_u32(offset+0x04, sf);
         xwb.stream_offset   = xwb.data_offset + read_u32(offset+0x08, sf);
         xwb.stream_size     = read_u32(offset+0x0c, sf);
@@ -397,7 +403,8 @@ VGMSTREAM* init_vgmstream_xwb(STREAMFILE* sf) {
         xwb.loop_start_sample = msadpcm_bytes_to_samples(xwb.loop_start, block_size, xwb.channels);
         xwb.loop_end_sample   = msadpcm_bytes_to_samples(xwb.loop_start + xwb.loop_end, block_size, xwb.channels);
     }
-    else if (xwb.version <= XACT2_1_MAX && (xwb.codec == XMA1 || xwb.codec == XMA2) && xwb.loop_flag) {
+    else if ((xwb.version <= XACT2_1_MAX && (xwb.codec == XMA1 || xwb.codec == XMA2) && xwb.loop_flag)
+                || (xwb.version == XACT_TECHLAND && xwb.codec == XMA2)) {
         /* v38: byte offset, v40+: sample offset, v39: ? */
         /* need to manually find sample offsets, thanks to Microsoft's dumb headers */
         ms_sample_data msd = {0};
@@ -421,7 +428,7 @@ VGMSTREAM* init_vgmstream_xwb(STREAMFILE* sf) {
         xwb.fix_xma_loop_samples = 1;
         xwb.fix_xma_num_samples = 0;
 
-        /* for XWB v22 (and below?) this seems normal [Project Gotham Racing (X360)] */
+        /* for XWB v22 (and below?) this seems normal, also techland [Project Gotham Racing (X360)] */
         if (xwb.num_samples == 0) {
             xwb.num_samples = msd.num_samples;
             xwb.fix_xma_num_samples = 1;
