@@ -12,7 +12,8 @@ VGMSTREAM* init_vgmstream_xma_ue3(STREAMFILE *sf) {
 
     /* checks */
     /* .xma: assumed */
-    if (!check_extensions(sf, "xma,"))
+    /* .x360audio: fake produced by UE Viewer */
+    if (!check_extensions(sf, "xma,x360audio,"))
         goto fail;
 
     /* UE3 uses class-like chunks called "SoundNodeWave" to store info and (rarely multi) raw audio data. Other
