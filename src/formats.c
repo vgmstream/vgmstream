@@ -595,6 +595,7 @@ static const char* extension_list[] = {
     "wvx",
 
     "x",
+    "x360audio", //fake extension for Unreal Engine 3 XMA (real extension unknown)
     "xa",
     "xa2",
     "xa30",
