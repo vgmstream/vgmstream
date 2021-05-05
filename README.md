@@ -466,7 +466,9 @@ a perfectly valid *!tags.m3u*:
 # @ARTIST   Various Artists
 ```
 
-### Non-English filenames and tags
+### Compatibility and non-English filenames and tags
+For best compatibility save `!tags.m3u` as *"ANSI"* or *"UTF-8" (with BOM)*.
+
 Tags and filenames using extended characters (like Japanese) should work, as long
 as `!tags.m3u` is saved as *"UTF-8 with BOM"* (UTF-8 is a way to define non-English
 characters, and BOM is a helper "byte-order" mark). Windows' *notepad* creates files
