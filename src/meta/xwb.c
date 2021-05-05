@@ -242,10 +242,6 @@ VGMSTREAM* init_vgmstream_xwb(STREAMFILE* sf) {
         if (xwb.version <= XACT1_1_MAX) {
             xwb.entry_flags = entry_info;
         }
-        else if (xwb.version == XACT_TECHLAND) { /*  Nail'd (X360) */
-            xwb.entry_flags = 0;
-            xwb.num_samples = 0;//(entry_info >> 1) & 0x7FFFFFFF; /* seems ok for music banks but not sfx, fixed later */
-        }
         else {
             xwb.entry_flags = (entry_info) & 0xF; /*4b*/
             xwb.num_samples = (entry_info >> 4) & 0x0FFFFFFF; /*28b*/
@@ -428,7 +424,13 @@ VGMSTREAM* init_vgmstream_xwb(STREAMFILE* sf) {
         xwb.fix_xma_loop_samples = 1;
         xwb.fix_xma_num_samples = 0;
 
-        /* for XWB v22 (and below?) this seems normal, also techland [Project Gotham Racing (X360)] */
+        /* Techland's XMA in tool_version 0x2a (not 0x2c?) seems to use (entry_info >> 1) num_samples 
+         * for music banks, but not sfx [Nail'd (X360)-0x2a, Dead Island (X360)-0x2c] */
+        if (xwb.version == XACT_TECHLAND) {
+            xwb.num_samples = 0;
+        }
+
+        /* for XWB v22 (and below?) this seems normal [Project Gotham Racing (X360)] */
         if (xwb.num_samples == 0) {
             xwb.num_samples = msd.num_samples;
             xwb.fix_xma_num_samples = 1;
