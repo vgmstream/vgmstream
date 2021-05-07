@@ -472,7 +472,7 @@ VGMSTREAM* init_vgmstream_ogg_vorbis_callbacks(STREAMFILE* sf, ov_callbacks* cal
                 strstr(comment,"LOOP_BEGIN=") == comment || /* Hatsune Miku: Project Diva F (PS3) */
                 strstr(comment,"LoopStart=") == comment ||  /* Devil May Cry 4 (PC) */
                 strstr(comment,"LOOP=") == comment || /* Duke Nukem 3D: 20th Anniversary World Tour */
-                strstr(comment,"XIPH_CUE_LOOPSTART=") == comment) {  /* Super Mario Run (Android) */
+                strstr(comment,"XIPH_CUE_LOOPSTART=") == comment) {  /* DeNa games [Super Mario Run (Android), FF Record Keeper (Android)] */
                 loop_start = atol(strrchr(comment,'=')+1);
                 loop_flag = (loop_start >= 0);
             }
@@ -546,7 +546,7 @@ VGMSTREAM* init_vgmstream_ogg_vorbis_callbacks(STREAMFILE* sf, ov_callbacks* cal
             }
             else if (strstr(comment,"COMMENT=- loopTime ") == comment ||    /* Aristear Remain (PC) */
                      strstr(comment,"COMMENT=-loopTime ") == comment) {     /* Hyakki Ryouran no Yakata x Kawarazaki-ke no Ichizoku (PC) */
-                loop_start = atol(strrchr(comment,'l')) / 1000.0f * sample_rate; /* ms to samples */
+                loop_start = atol(strrchr(comment,' ')) / 1000.0f * sample_rate; /* ms to samples */
                 loop_flag = (loop_start >= 0);
 
                 /* files have all page granule positions -1 except a few close to loop. This throws off
