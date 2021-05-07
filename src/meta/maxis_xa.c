@@ -12,9 +12,10 @@ VGMSTREAM * init_vgmstream_maxis_xa(STREAMFILE *streamFile) {
         goto fail;
 
     /* check header */
-    if ((read_32bitBE(0x00,streamFile) != 0x58414900) && /* "XAI\0" (sound/speech)*/
-        (read_32bitBE(0x00,streamFile) != 0x58414A00) && /* "XAJ\0" (music, no apparent diffs) */
-        (read_32bitBE(0x00,streamFile) != 0x58410000))   /* "XA\0\0" (used in The Sims 2, no apparent diffs) */
+    if ((read_32bitBE(0x00,streamFile) != 0x58414900) && /* "XAI\0"    (sound/speech) */
+        (read_32bitBE(0x00,streamFile) != 0x58414A00) && /* "XAJ\0"    (music, no apparent diffs) */
+        (read_32bitBE(0x00,streamFile) != 0x58410000) && /* "XA\0\0"   (sound/speech from The Sims 2, no apparent diffs) */
+        (read_32bitBE(0x00,streamFile) != 0x58411200))   /* "XA\x12\0" (music from The Sims 2, no apparent diffs) */
         goto fail;
 
     loop_flag = 0;
