@@ -9,18 +9,18 @@
 
 #define MPEG_DATA_BUFFER_SIZE 0x1000 /* at least one MPEG frame (max ~0x5A1 plus some more in case of free bitrate) */
 
-static mpg123_handle * init_mpg123_handle();
-static void decode_mpeg_standard(VGMSTREAMCHANNEL *stream, mpeg_codec_data * data, sample_t * outbuf, int32_t samples_to_do, int channels);
-static void decode_mpeg_custom(VGMSTREAM * vgmstream, mpeg_codec_data * data, sample_t * outbuf, int32_t samples_to_do, int channels);
-static void decode_mpeg_custom_stream(VGMSTREAMCHANNEL *stream, mpeg_codec_data * data, int num_stream);
+static mpg123_handle* init_mpg123_handle();
+static void decode_mpeg_standard(VGMSTREAMCHANNEL* stream, mpeg_codec_data* data, sample_t* outbuf, int32_t samples_to_do, int channels);
+static void decode_mpeg_custom(VGMSTREAM* vgmstream, mpeg_codec_data* data, sample_t* outbuf, int32_t samples_to_do, int channels);
+static void decode_mpeg_custom_stream(VGMSTREAMCHANNEL *stream, mpeg_codec_data* data, int num_stream);
 
 
 /* Inits regular MPEG */
-mpeg_codec_data *init_mpeg(STREAMFILE *streamfile, off_t start_offset, coding_t *coding_type, int channels) {
-    mpeg_codec_data *data = NULL;
+mpeg_codec_data* init_mpeg(STREAMFILE* sf, off_t start_offset, coding_t* coding_type, int channels) {
+    mpeg_codec_data* data = NULL;
 
     /* init codec */
-    data = calloc(1,sizeof(mpeg_codec_data));
+    data = calloc(1, sizeof(mpeg_codec_data));
     if (!data) goto fail;
 
     data->buffer_size = MPEG_DATA_BUFFER_SIZE;
@@ -41,14 +41,16 @@ mpeg_codec_data *init_mpeg(STREAMFILE *streamfile, off_t start_offset, coding_t 
         size_t samples_per_frame;
         struct mpg123_frameinfo mi;
 
+        //todo read single big buffer then add +1 up to a few max bytes, or just read once only
         /* read first frame(s) */
         do {
-            size_t bytes_done;
-            if (read_streamfile(data->buffer, start_offset+read_offset, data->buffer_size, streamfile) != data->buffer_size)
-                goto fail;
-            read_offset+=1;
+            size_t bytes_read, bytes_done;
 
-            rc = mpg123_decode(main_m, data->buffer,data->buffer_size, NULL,0, &bytes_done);
+            /* don't check max as sfx can be smaller than buffer */
+            bytes_read = read_streamfile(data->buffer, start_offset + read_offset, data->buffer_size, sf);
+            read_offset += 1;
+
+            rc = mpg123_decode(main_m, data->buffer, bytes_read, NULL,0, &bytes_done);
             if (rc != MPG123_OK && rc != MPG123_NEW_FORMAT && rc != MPG123_NEED_MORE) {
                 VGM_LOG("MPEG: unable to set up mpg123 at start offset\n");
                 goto fail; //handle MPG123_DONE?
@@ -111,12 +113,12 @@ fail:
 
 
 /* Init custom MPEG, with given type and config */
-mpeg_codec_data *init_mpeg_custom(STREAMFILE *streamFile, off_t start_offset, coding_t *coding_type, int channels, mpeg_custom_t type, mpeg_custom_config *config) {
-    mpeg_codec_data *data = NULL;
+mpeg_codec_data* init_mpeg_custom(STREAMFILE* sf, off_t start_offset, coding_t* coding_type, int channels, mpeg_custom_t type, mpeg_custom_config* config) {
+    mpeg_codec_data* data = NULL;
     int i, ok;
 
     /* init codec */
-    data = calloc(1,sizeof(mpeg_codec_data));
+    data = calloc(1, sizeof(mpeg_codec_data));
     if (!data) goto fail;
 
     /* keep around to decode */
@@ -132,10 +134,10 @@ mpeg_codec_data *init_mpeg_custom(STREAMFILE *streamFile, off_t start_offset, co
         case MPEG_EAL31:
         case MPEG_EAL31b:
         case MPEG_EAL32P:
-        case MPEG_EAL32S:   ok = mpeg_custom_setup_init_ealayer3(streamFile, start_offset, data, coding_type); break;
-        case MPEG_AWC:      ok = mpeg_custom_setup_init_awc(streamFile, start_offset, data, coding_type); break;
-        case MPEG_EAMP3:    ok = mpeg_custom_setup_init_eamp3(streamFile, start_offset, data, coding_type); break;
-        default:            ok = mpeg_custom_setup_init_default(streamFile, start_offset, data, coding_type); break;
+        case MPEG_EAL32S:   ok = mpeg_custom_setup_init_ealayer3(sf, start_offset, data, coding_type); break;
+        case MPEG_AWC:      ok = mpeg_custom_setup_init_awc(sf, start_offset, data, coding_type); break;
+        case MPEG_EAMP3:    ok = mpeg_custom_setup_init_eamp3(sf, start_offset, data, coding_type); break;
+        default:            ok = mpeg_custom_setup_init_default(sf, start_offset, data, coding_type); break;
     }
     if (!ok)
         goto fail;
@@ -183,12 +185,12 @@ fail:
 }
 
 
-static mpg123_handle * init_mpg123_handle() {
-    mpg123_handle *m = NULL;
+static mpg123_handle* init_mpg123_handle() {
+    mpg123_handle* m = NULL;
     int rc;
 
     /* inits a new mpg123 handle */
-    m = mpg123_new(NULL,&rc);
+    m = mpg123_new(NULL, &rc);
     if (rc == MPG123_NOT_INITIALIZED) {
         /* inits the library if needed */
         if (mpg123_init() != MPG123_OK)
@@ -218,8 +220,8 @@ fail:
 /* DECODERS */
 /************/
 
-void decode_mpeg(VGMSTREAM * vgmstream, sample_t * outbuf, int32_t samples_to_do, int channels) {
-    mpeg_codec_data * data = (mpeg_codec_data *) vgmstream->codec_data;
+void decode_mpeg(VGMSTREAM* vgmstream, sample_t* outbuf, int32_t samples_to_do, int channels) {
+    mpeg_codec_data* data = vgmstream->codec_data;
 
     if (!data->custom) {
         decode_mpeg_standard(&vgmstream->ch[0], data, outbuf, samples_to_do, channels);
@@ -232,7 +234,7 @@ void decode_mpeg(VGMSTREAM * vgmstream, sample_t * outbuf, int32_t samples_to_do
  * Decode anything mpg123 can.
  * Feeds raw data and extracts decoded samples as needed.
  */
-static void decode_mpeg_standard(VGMSTREAMCHANNEL *stream, mpeg_codec_data * data, sample_t * outbuf, int32_t samples_to_do, int channels) {
+static void decode_mpeg_standard(VGMSTREAMCHANNEL* stream, mpeg_codec_data* data, sample_t* outbuf, int32_t samples_to_do, int channels) {
     int samples_done = 0;
     unsigned char *outbytes = (unsigned char *)outbuf;
 
@@ -287,7 +289,7 @@ static void decode_mpeg_standard(VGMSTREAMCHANNEL *stream, mpeg_codec_data * dat
  * Copies to outbuf when there are samples in all streams and calls decode_mpeg_custom_stream to decode.
  . Depletes the stream's sample buffers before decoding more, so it doesn't run out of buffer space.
  */
-static void decode_mpeg_custom(VGMSTREAM * vgmstream, mpeg_codec_data * data, sample_t * outbuf, int32_t samples_to_do, int channels) {
+static void decode_mpeg_custom(VGMSTREAM* vgmstream, mpeg_codec_data* data, sample_t* outbuf, int32_t samples_to_do, int channels) {
     int i, samples_done = 0;
 
     while (samples_done < samples_to_do) {
@@ -366,7 +368,7 @@ static void decode_mpeg_custom(VGMSTREAM * vgmstream, mpeg_codec_data * data, sa
 
 /* Decodes frames from a stream into the stream's sample buffer, feeding mpg123 buffer data.
  * If not enough data to decode (as N data-frames = 1 full-frame) this will exit but be called again. */
-static void decode_mpeg_custom_stream(VGMSTREAMCHANNEL *stream, mpeg_codec_data * data, int num_stream) {
+static void decode_mpeg_custom_stream(VGMSTREAMCHANNEL* stream, mpeg_codec_data* data, int num_stream) {
     size_t bytes_done = 0, bytes_filled, samples_filled;
     size_t stream_size = get_streamfile_size(stream->streamfile);
     int rc, ok;
@@ -476,7 +478,7 @@ decode_fail:
 /* UTILS */
 /*********/
 
-void free_mpeg(mpeg_codec_data *data) {
+void free_mpeg(mpeg_codec_data* data) {
     if (!data)
         return;
 
@@ -528,8 +530,8 @@ void reset_mpeg(mpeg_codec_data* data) {
 }
 
 /* seeks to a point */
-void seek_mpeg(VGMSTREAM *vgmstream, int32_t num_sample) {
-    mpeg_codec_data *data = vgmstream->codec_data;
+void seek_mpeg(VGMSTREAM* vgmstream, int32_t num_sample) {
+    mpeg_codec_data* data = vgmstream->codec_data;
     if (!data) return;
 
 
@@ -561,7 +563,7 @@ void seek_mpeg(VGMSTREAM *vgmstream, int32_t num_sample) {
 }
 
 /* resets mpg123 decoder and its internals without seeking, useful when a new MPEG substream starts */
-void flush_mpeg(mpeg_codec_data * data) {
+void flush_mpeg(mpeg_codec_data* data) {
     if (!data)
         return;
 
@@ -596,7 +598,7 @@ int mpeg_get_sample_rate(mpeg_codec_data* data) {
     return data->sample_rate_per_frame;
 }
 
-long mpeg_bytes_to_samples(long bytes, const mpeg_codec_data *data) {
+long mpeg_bytes_to_samples(long bytes, const mpeg_codec_data* data) {
     /* if not found just return 0 and expect to fail (if used for num_samples) */
     if (!data->custom) {
         /* We would need to read all VBR frames headers to count samples */
@@ -619,7 +621,7 @@ long mpeg_bytes_to_samples(long bytes, const mpeg_codec_data *data) {
 
 #if 0
 /* disables/enables stderr output, for MPEG known to contain recoverable errors */
-void mpeg_set_error_logging(mpeg_codec_data * data, int enable) {
+void mpeg_set_error_logging(mpeg_codec_data* data, int enable) {
     if (!data->custom) {
         mpg123_param(data->m, MPG123_ADD_FLAGS, MPG123_QUIET, !enable);
     }
