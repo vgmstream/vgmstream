@@ -3366,12 +3366,14 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
     /* Splinter Cell: Pandora Tomorrow-online (2004)(PS2)-bank 0x000A0008 */
     /* Prince of Persia: Warrior Within (Demo)(2004)(PS2)-bank 0x00100000 */
     /* Prince of Persia: Warrior Within (2004)(PS2)-bank 0x00120009 */
+    /* Horsez / Champion Dreams: First to Ride / Pipa Funnell: Take the Reins (2006)(PS2)-bank 0x0012000c */
     if ((sb->version == 0x000A0002 && sb->platform == UBI_PS2) ||
         (sb->version == 0x000A0004 && sb->platform == UBI_PS2) ||
         (sb->version == 0x000A0007 && sb->platform == UBI_PS2 && !is_bia_ps2) ||
         (sb->version == 0x000A0008 && sb->platform == UBI_PS2) ||
         (sb->version == 0x00100000 && sb->platform == UBI_PS2) ||
-        (sb->version == 0x00120009 && sb->platform == UBI_PS2)) {
+        (sb->version == 0x00120009 && sb->platform == UBI_PS2) ||
+        (sb->version == 0x0012000c && sb->platform == UBI_PS2)) {
         config_sb_entry(sb, 0x48, 0x6c);
 
         config_sb_audio_fb(sb, 0x18, (1 << 2), (1 << 3), (1 << 4));
