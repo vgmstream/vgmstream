@@ -1101,7 +1101,7 @@ static const meta_info meta_info_list[] = {
         {meta_CAFF,                 "Apple Core Audio Format File header"},
         {meta_PC_MXST,              "Lego Island MxSt Header"},
         {meta_SAB,                  "Sensaura SAB header"},
-        {meta_MAXIS_XA,             "Maxis XAI/XAJ Header"},
+        {meta_MAXIS_XA,             "Maxis XA Header"},
         {meta_EXAKT_SC,             "assumed Activision / EXAKT SC by extension"},
         {meta_WII_BNS,              "Nintendo BNS header"},
         {meta_WII_WAS,              "Sumo Digital iSWS header"},
