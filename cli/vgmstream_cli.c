@@ -82,9 +82,15 @@ static void usage(const char* name, int is_full) {
 
 
 typedef struct {
-    char* infilename;
-    char* outfilename;
-    char* tag_filename;
+    char** infilenames;
+    int infilenames_count;
+    const char* infilename;
+
+    const char* outfilename_config;
+    const char* outfilename;
+
+    const char* tag_filename;
+
     int play_forever;
     int play_sdtout;
     int play_wreckless;
@@ -237,7 +243,7 @@ static int parse_config(cli_config* cfg, int argc, char** argv) {
                 break;
 #endif
             case '?':
-                fprintf(stderr, "Unknown option -%c found\n", optopt);
+                fprintf(stderr, "unknown option -%c found\n", optopt);
                 goto fail;
             default:
                 usage(argv[0], 0);
@@ -245,13 +251,30 @@ static int parse_config(cli_config* cfg, int argc, char** argv) {
         }
     }
 
-    /* filename goes last */
+    /* filenames go last */
     if (optind != argc - 1) {
-        usage(argv[0], 0);
+        int i;
+
+        /* check there aren't commands after filename */
+        for (i = optind; i < argc; i++) {
+            if (argv[i][0] == '-') {
+                fprintf(stderr, "input files must go after options\n");
+                goto fail;
+            }
+        }
+    }
+
+    cfg->infilenames = &argv[optind];
+    cfg->infilenames_count = argc - optind;
+    if (cfg->infilenames_count <= 0) {
+        fprintf(stderr, "missing input file\n");
         goto fail;
     }
-    cfg->infilename = argv[optind];
 
+    if (cfg->outfilename && strchr(cfg->outfilename, '?') != NULL) {
+        cfg->outfilename_config = cfg->outfilename;
+        cfg->outfilename = NULL;
+    }
 
     return 1;
 fail:
@@ -260,15 +283,15 @@ fail:
 
 static int validate_config(cli_config* cfg) {
     if (cfg->play_sdtout && (!cfg->play_wreckless && isatty(STDOUT_FILENO))) {
-        fprintf(stderr,"Are you sure you want to output wave data to the terminal?\nIf so use -P instead of -p.\n");
+        fprintf(stderr, "Are you sure you want to output wave data to the terminal?\nIf so use -P instead of -p.\n");
         goto fail;
     }
     if (cfg->play_forever && !cfg->play_sdtout) {
-        fprintf(stderr,"-c must use -p or -P\n");
+        fprintf(stderr, "-c must use -p or -P\n");
         goto fail;
     }
     if (cfg->play_sdtout && cfg->outfilename) {
-        fprintf(stderr,"use either -p or -o\n");
+        fprintf(stderr, "use either -p or -o\n");
         goto fail;
     }
 
@@ -287,20 +310,20 @@ static void print_info(VGMSTREAM* vgmstream, cli_config* cfg) {
             if (!cfg->print_metaonly)
                 printf(" \"%s\"",cfg->outfilename);
             if (vgmstream->loop_flag)
-                printf(" -lps%d -lpe%d",vgmstream->loop_start_sample,vgmstream->loop_end_sample);
+                printf(" -lps%d -lpe%d", vgmstream->loop_start_sample, vgmstream->loop_end_sample);
             printf("\n");
         }
         else if (cfg->print_oggenc) {
             printf("oggenc");
             if (!cfg->print_metaonly)
-                printf(" \"%s\"",cfg->outfilename);
+                printf(" \"%s\"", cfg->outfilename);
             if (vgmstream->loop_flag)
-                printf(" -c LOOPSTART=%d -c LOOPLENGTH=%d",vgmstream->loop_start_sample, vgmstream->loop_end_sample-vgmstream->loop_start_sample);
+                printf(" -c LOOPSTART=%d -c LOOPLENGTH=%d", vgmstream->loop_start_sample, vgmstream->loop_end_sample-vgmstream->loop_start_sample);
             printf("\n");
         }
         else if (cfg->print_batchvar) {
             if (!cfg->print_metaonly)
-                printf("set fname=\"%s\"\n",cfg->outfilename);
+                printf("set fname=\"%s\"\n", cfg->outfilename);
             printf("set tsamp=%d\nset chan=%d\n", vgmstream->num_samples, channels);
             if (vgmstream->loop_flag)
                 printf("set lstart=%d\nset lend=%d\nset loop=1\n", vgmstream->loop_start_sample, vgmstream->loop_end_sample);
@@ -308,10 +331,10 @@ static void print_info(VGMSTREAM* vgmstream, cli_config* cfg) {
                 printf("set loop=0\n");
         }
         else if (cfg->print_metaonly) {
-            printf("metadata for %s\n",cfg->infilename);
+            printf("metadata for %s\n", cfg->infilename);
         }
         else {
-            printf("decoding %s\n",cfg->infilename);
+            printf("decoding %s\n", cfg->infilename);
         }
     }
 
@@ -530,18 +553,11 @@ void replace_filename(char* dst, size_t dstsize, const char* outfilename, const 
 
 /* ************************************************************ */
 
+static int convert_file(cli_config* cfg);
+
 int main(int argc, char** argv) {
-    VGMSTREAM* vgmstream = NULL;
-    FILE* outfile = NULL;
-    char outfilename_temp[PATH_LIMIT];
-
-    sample_t* buf = NULL;
-    int channels, input_channels;
-    int32_t len_samples;
-    int i, j;
-
     cli_config cfg = {0};
-    int res;
+    int i, res;
 
 
     /* read args */
@@ -558,9 +574,34 @@ int main(int argc, char** argv) {
     res = validate_config(&cfg);
     if (!res) goto fail;
 
+    for (i = 0; i < cfg.infilenames_count; i++) {
+        /* current name, to avoid passing params all the time */
+        cfg.infilename = cfg.infilenames[i];
+        cfg.outfilename = NULL;
+
+        convert_file(&cfg);
+        //if (!res) goto fail; /* keep on truckin' */
+    }
+
+
+    return EXIT_SUCCESS;
+fail:
+    return EXIT_FAILURE;
+}
+
+static int convert_file(cli_config* cfg) {
+    VGMSTREAM* vgmstream = NULL;
+    FILE* outfile = NULL;
+    char outfilename_temp[PATH_LIMIT];
+
+    sample_t* buf = NULL;
+    int channels, input_channels;
+    int32_t len_samples;
+    int i, j;
+
 
     /* for plugin testing */
-    if (cfg.validate_extensions)  {
+    if (cfg->validate_extensions)  {
         int valid;
         vgmstream_ctx_valid_cfg vcfg = {0};
 
@@ -569,38 +610,38 @@ int main(int argc, char** argv) {
         vcfg.accept_unknown = 0;
         vcfg.accept_common = 0;
 
-        valid = vgmstream_ctx_is_valid(cfg.infilename, &vcfg);
+        valid = vgmstream_ctx_is_valid(cfg->infilename, &vcfg);
         if (!valid) goto fail;
     }
 
     /* open streamfile and pass subsong */
     {
-        STREAMFILE* sf = open_stdio_streamfile(cfg.infilename);
+        STREAMFILE* sf = open_stdio_streamfile(cfg->infilename);
         if (!sf) {
-            fprintf(stderr,"file %s not found\n",cfg.infilename);
+            fprintf(stderr, "file %s not found\n", cfg->infilename);
             goto fail;
         }
 
-        sf->stream_index = cfg.stream_index;
+        sf->stream_index = cfg->stream_index;
         vgmstream = init_vgmstream_from_STREAMFILE(sf);
         close_streamfile(sf);
 
         if (!vgmstream) {
-            fprintf(stderr,"failed opening %s\n",cfg.infilename);
+            fprintf(stderr, "failed opening %s\n", cfg->infilename);
             goto fail;
         }
     }
 
 
     /* modify the VGMSTREAM if needed (before printing file info) */
-    apply_config(vgmstream, &cfg);
+    apply_config(vgmstream, cfg);
 
     channels = vgmstream->channels;
     input_channels = vgmstream->channels;
 
     /* enable after config but before outbuf */
-    if (cfg.downmix_channels)
-        vgmstream_mixing_autodownmix(vgmstream, cfg.downmix_channels);
+    if (cfg->downmix_channels)
+        vgmstream_mixing_autodownmix(vgmstream, cfg->downmix_channels);
     vgmstream_mixing_enable(vgmstream, SAMPLE_BUFFER_SIZE, &input_channels, &channels);
 
     /* get final play config */
@@ -608,40 +649,40 @@ int main(int argc, char** argv) {
     if (len_samples <= 0)
         goto fail;
 
-    if (cfg.play_forever && !vgmstream_get_play_forever(vgmstream)) {
-        fprintf(stderr,"File can't be played forever");
+    if (cfg->play_forever && !vgmstream_get_play_forever(vgmstream)) {
+        fprintf(stderr, "file can't be played forever");
         goto fail;
     }
 
 
     /* prepare output */
-    if (cfg.play_sdtout) {
+    if (cfg->play_sdtout) {
         outfile = stdout;
     }
-    else if (!cfg.print_metaonly  && !cfg.decode_only) {
-        if (!cfg.outfilename) {
+    else if (!cfg->print_metaonly  && !cfg->decode_only) {
+        if (cfg->outfilename_config) {
+            /* special substitution */
+            replace_filename(outfilename_temp, sizeof(outfilename_temp), cfg->outfilename_config, cfg->infilename, vgmstream);
+            cfg->outfilename = outfilename_temp;
+        }
+        else if (!cfg->outfilename) {
             /* note that outfilename_temp must persist outside this block, hence the external array */
-            strcpy(outfilename_temp, cfg.infilename);
+            strcpy(outfilename_temp, cfg->infilename);
             strcat(outfilename_temp, ".wav");
-            cfg.outfilename = outfilename_temp;
+            cfg->outfilename = outfilename_temp;
             /* maybe should avoid overwriting with this auto-name, for the unlikely
              * case of file header-body pairs (file.ext+file.ext.wav) */
         }
-        else if (strchr(cfg.outfilename, '?') != NULL) {
-            /* special substitution */
-            replace_filename(outfilename_temp, sizeof(outfilename_temp), cfg.outfilename, cfg.infilename, vgmstream);
-            cfg.outfilename = outfilename_temp;
-        }
 
         /* don't overwrite itself! */
-        if (strcmp(cfg.outfilename, cfg.infilename) == 0) {
-            fprintf(stderr,"same infile and outfile name: %s\n", cfg.outfilename);
+        if (strcmp(cfg->outfilename, cfg->infilename) == 0) {
+            fprintf(stderr, "same infile and outfile name: %s\n", cfg->outfilename);
             goto fail;
         }
 
-        outfile = fopen(cfg.outfilename,"wb");
+        outfile = fopen(cfg->outfilename,"wb");
         if (!outfile) {
-            fprintf(stderr,"failed to open %s for output\n", cfg.outfilename);
+            fprintf(stderr, "failed to open %s for output\n", cfg->outfilename);
             goto fail;
         }
 
@@ -653,21 +694,21 @@ int main(int argc, char** argv) {
 
     /* prints */
 #ifdef HAVE_JSON
-    if (!cfg.print_metajson) {
+    if (!cfg->print_metajson) {
 #endif
-        print_info(vgmstream, &cfg);
-        print_tags(&cfg);
-        print_title(vgmstream, &cfg);
+        print_info(vgmstream, cfg);
+        print_tags(cfg);
+        print_title(vgmstream, cfg);
 #ifdef HAVE_JSON
     }
     else {
-        print_json_info(vgmstream, &cfg);
+        print_json_info(vgmstream, cfg);
     }
 #endif
 
     /* prints done */
-    if (cfg.print_metaonly) {
-        if (!cfg.play_sdtout) {
+    if (cfg->print_metaonly) {
+        if (!cfg->play_sdtout) {
             if (outfile != NULL)
                 fclose(outfile);
         }
@@ -675,36 +716,36 @@ int main(int argc, char** argv) {
         return EXIT_SUCCESS;
     }
 
-    if (cfg.seek_samples1 < -1) /* ex value for loop testing */
-        cfg.seek_samples1 = vgmstream->loop_start_sample;
-    if (cfg.seek_samples1 >= len_samples)
-        cfg.seek_samples1 = -1;
-    if (cfg.seek_samples2 >= len_samples)
-        cfg.seek_samples2 = -1;
+    if (cfg->seek_samples1 < -1) /* ex value for loop testing */
+        cfg->seek_samples1 = vgmstream->loop_start_sample;
+    if (cfg->seek_samples1 >= len_samples)
+        cfg->seek_samples1 = -1;
+    if (cfg->seek_samples2 >= len_samples)
+        cfg->seek_samples2 = -1;
 
-    if (cfg.seek_samples2 >= 0)
-        len_samples -= cfg.seek_samples2;
-    else if (cfg.seek_samples1 >= 0)
-        len_samples -= cfg.seek_samples1;
+    if (cfg->seek_samples2 >= 0)
+        len_samples -= cfg->seek_samples2;
+    else if (cfg->seek_samples1 >= 0)
+        len_samples -= cfg->seek_samples1;
 
 
     /* last init */
     buf = malloc(SAMPLE_BUFFER_SIZE * sizeof(sample_t) * input_channels);
     if (!buf) {
-        fprintf(stderr,"failed allocating output buffer\n");
+        fprintf(stderr, "failed allocating output buffer\n");
         goto fail;
     }
 
     /* decode forever */
-    while (cfg.play_forever) {
+    while (cfg->play_forever) {
         int to_get = SAMPLE_BUFFER_SIZE;
 
         render_vgmstream(buf, to_get, vgmstream);
 
         swap_samples_le(buf, channels * to_get); /* write PC endian */
-        if (cfg.only_stereo != -1) {
+        if (cfg->only_stereo != -1) {
             for (j = 0; j < to_get; j++) {
-                fwrite(buf + j*channels + (cfg.only_stereo*2), sizeof(sample_t), 2, outfile);
+                fwrite(buf + j*channels + (cfg->only_stereo*2), sizeof(sample_t), 2, outfile);
             }
         } else {
             fwrite(buf, sizeof(sample_t) * channels, to_get, outfile);
@@ -713,23 +754,23 @@ int main(int argc, char** argv) {
 
 
     /* slap on a .wav header */
-    if (!cfg.decode_only) {
+    if (!cfg->decode_only) {
         uint8_t wav_buf[0x100];
-        int channels_write = (cfg.only_stereo != -1) ? 2 : channels;
+        int channels_write = (cfg->only_stereo != -1) ? 2 : channels;
         size_t bytes_done;
 
         bytes_done = make_wav_header(wav_buf,0x100,
                 len_samples, vgmstream->sample_rate, channels_write,
-                cfg.write_lwav, cfg.lwav_loop_start, cfg.lwav_loop_end);
+                cfg->write_lwav, cfg->lwav_loop_start, cfg->lwav_loop_end);
 
         fwrite(wav_buf,sizeof(uint8_t),bytes_done,outfile);
     }
 
 
-    if (cfg.seek_samples1 >= 0)
-        seek_vgmstream(vgmstream, cfg.seek_samples1);
-    if (cfg.seek_samples2 >= 0)
-        seek_vgmstream(vgmstream, cfg.seek_samples2);
+    if (cfg->seek_samples1 >= 0)
+        seek_vgmstream(vgmstream, cfg->seek_samples1);
+    if (cfg->seek_samples2 >= 0)
+        seek_vgmstream(vgmstream, cfg->seek_samples2);
 
     /* decode */
     for (i = 0; i < len_samples; i += SAMPLE_BUFFER_SIZE) {
@@ -739,11 +780,11 @@ int main(int argc, char** argv) {
 
         render_vgmstream(buf, to_get, vgmstream);
 
-        if (!cfg.decode_only) {
+        if (!cfg->decode_only) {
             swap_samples_le(buf, channels * to_get); /* write PC endian */
-            if (cfg.only_stereo != -1) {
+            if (cfg->only_stereo != -1) {
                 for (j = 0; j < to_get; j++) {
-                    fwrite(buf + j*channels + (cfg.only_stereo*2), sizeof(sample_t), 2, outfile);
+                    fwrite(buf + j*channels + (cfg->only_stereo*2), sizeof(sample_t), 2, outfile);
                 }
             } else {
                 fwrite(buf, sizeof(sample_t), to_get * channels, outfile);
@@ -758,26 +799,26 @@ int main(int argc, char** argv) {
 
 
     /* try again with (for testing reset_vgmstream, simulates a seek to 0 after changing internal state) */
-    if (cfg.test_reset) {
+    if (cfg->test_reset) {
         char outfilename_reset[PATH_LIMIT];
-        strcpy(outfilename_reset, cfg.outfilename);
+        strcpy(outfilename_reset, cfg->outfilename);
         strcat(outfilename_reset, ".reset.wav");
 
         outfile = fopen(outfilename_reset,"wb");
         if (!outfile) {
-            fprintf(stderr,"failed to open %s for output\n",outfilename_reset);
+            fprintf(stderr, "failed to open %s for output\n", outfilename_reset);
             goto fail;
         }
 
         /* slap on a .wav header */
-        if (!cfg.decode_only) {
+        if (!cfg->decode_only) {
             uint8_t wav_buf[0x100];
-            int channels_write = (cfg.only_stereo != -1) ? 2 : channels;
+            int channels_write = (cfg->only_stereo != -1) ? 2 : channels;
             size_t bytes_done;
 
             bytes_done = make_wav_header(wav_buf,0x100,
                     len_samples, vgmstream->sample_rate, channels_write,
-                    cfg.write_lwav, cfg.lwav_loop_start, cfg.lwav_loop_end);
+                    cfg->write_lwav, cfg->lwav_loop_start, cfg->lwav_loop_end);
 
             fwrite(wav_buf,sizeof(uint8_t),bytes_done,outfile);
         }
@@ -785,10 +826,10 @@ int main(int argc, char** argv) {
 
         reset_vgmstream(vgmstream);
 
-        if (cfg.seek_samples1 >= 0)
-            seek_vgmstream(vgmstream, cfg.seek_samples1);
-        if (cfg.seek_samples2 >= 0)
-            seek_vgmstream(vgmstream, cfg.seek_samples2);
+        if (cfg->seek_samples1 >= 0)
+            seek_vgmstream(vgmstream, cfg->seek_samples1);
+        if (cfg->seek_samples2 >= 0)
+            seek_vgmstream(vgmstream, cfg->seek_samples2);
 
         /* decode */
         for (i = 0; i < len_samples; i += SAMPLE_BUFFER_SIZE) {
@@ -798,11 +839,11 @@ int main(int argc, char** argv) {
 
             render_vgmstream(buf, to_get, vgmstream);
 
-            if (!cfg.decode_only) {
+            if (!cfg->decode_only) {
                 swap_samples_le(buf, channels * to_get); /* write PC endian */
-                if (cfg.only_stereo != -1) {
+                if (cfg->only_stereo != -1) {
                     for (j = 0; j < to_get; j++) {
-                        fwrite(buf + j*channels + (cfg.only_stereo*2), sizeof(sample_t), 2, outfile);
+                        fwrite(buf + j*channels + (cfg->only_stereo*2), sizeof(sample_t), 2, outfile);
                     }
                 } else {
                     fwrite(buf, sizeof(sample_t) * channels, to_get, outfile);
@@ -819,16 +860,16 @@ int main(int argc, char** argv) {
     close_vgmstream(vgmstream);
     free(buf);
 
-    return EXIT_SUCCESS;
+    return 1;
 
 fail:
-    if (!cfg.play_sdtout) {
+    if (!cfg->play_sdtout) {
         if (outfile != NULL)
             fclose(outfile);
     }
     close_vgmstream(vgmstream);
     free(buf);
-    return EXIT_FAILURE;
+    return 0;
 }
 
 #ifdef HAVE_JSON
@@ -863,7 +904,7 @@ static void print_json_info(VGMSTREAM* vgm, cli_config* cfg) {
             "lastBlock", info.interleave_info.last_block
         );
     }
-    
+
     json_t* stream_info = json_pack("{sisssi}",
         "index", info.stream_info.current,
         "name", info.stream_info.name,
@@ -899,7 +940,7 @@ static void print_json_info(VGMSTREAM* vgm, cli_config* cfg) {
     if (info.channel_layout == 0) {
         json_object_set(final_object, "channelLayout", json_null());
     }
-    
+
     json_dumpf(final_object, stdout, JSON_COMPACT);
 
     json_decref(final_object);

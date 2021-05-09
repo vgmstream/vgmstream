@@ -70,14 +70,15 @@ the other files needed.
 Converts playable files to wav. Typical usage would be:
 - `test.exe -o happy.wav happy.adx` to decode `happy.adx` to `happy.wav`.
 
-If command-line isn't your thing you can also drag and drop files to the
-executable to decode them as `(filename).wav`.
+If command-line isn't your thing you can simply drag and drop one or multiple
+files to the executable to decode them as `(filename).wav`.
 
 There are multiple options that alter how the file is converted, for example:
-- `test.exe -m -o file.wav file.adx`: print info but don't decode
-- `test.exe -i -o file.wav file.hca`: convert without looping
-- `test.exe -s 2 -F -o file.wav file.fsb`: play 2nd subsong + ending after 2.0 loops
-- `test.exe -l 3.0 -f 5.0 -d 3.0 -o file.wav file.wem`: 3 loops, 3s delay, 5s fade
+- `test.exe -m file.adx`: print info but don't decode
+- `test.exe -i -o file_noloop.wav file.hca`: convert without looping
+- `test.exe -s 2 -F file.fsb`: play 2nd subsong + ending after 2.0 loops
+- `test.exe -l 3.0 -f 5.0 -d 3.0 file.wem`: 3 loops, 3s delay, 5s fade
+- `test.exe -o bgm_?f.wav file1.adx file2.adx`: convert multiple files to `bgm_(name).wav`
 
 Available commands are printed when run with no flags. Note that you can also
 achieve similar results for other plugins using TXTP, described later.
