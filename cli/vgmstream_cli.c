@@ -557,7 +557,7 @@ static int convert_file(cli_config* cfg);
 
 int main(int argc, char** argv) {
     cli_config cfg = {0};
-    int i, res;
+    int i, res, ok;
 
 
     /* read args */
@@ -574,15 +574,20 @@ int main(int argc, char** argv) {
     res = validate_config(&cfg);
     if (!res) goto fail;
 
+    ok = 0;
     for (i = 0; i < cfg.infilenames_count; i++) {
         /* current name, to avoid passing params all the time */
         cfg.infilename = cfg.infilenames[i];
-        cfg.outfilename = NULL;
+        if (cfg.outfilename_config)
+            cfg.outfilename = NULL;
 
-        convert_file(&cfg);
+        res = convert_file(&cfg);
         //if (!res) goto fail; /* keep on truckin' */
+        if (res) ok = 1; /* return ok if at least one succeeds, for programs that check result code */
     }
 
+    if (!ok)
+        goto fail;
 
     return EXIT_SUCCESS;
 fail:
@@ -713,7 +718,7 @@ static int convert_file(cli_config* cfg) {
                 fclose(outfile);
         }
         close_vgmstream(vgmstream);
-        return EXIT_SUCCESS;
+        return 1;
     }
 
     if (cfg->seek_samples1 < -1) /* ex value for loop testing */
