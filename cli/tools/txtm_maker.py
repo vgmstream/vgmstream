@@ -15,6 +15,13 @@ class Cli(object):
         )
         epilog = (
             "examples:\n"
+            "  %(prog)s *.fsb \n"
+            "  - make .txtp for subsongs in current dir\n\n"
+            "  %(prog)s bgm/*.fsb \n"
+            "  - make .txtp for subsongs in bgm subdir\n\n"
+            "  %(prog)s * -r -fss 1\n"
+            "  - make .txtp for all files in any subdirs with at least 1 subsong\n"
+            "    (ignores formats without subsongs)\n\n"
             "  %(prog)s bgm.fsb -in -fcm 2 -fms 5.0\n"
             "  - make .txtp for subsongs with at least 2 channels and 5 seconds\n\n"
             "  %(prog)s *.scd -r -fd -l 2\n"
@@ -23,9 +30,6 @@ class Cli(object):
             "  - make .txtp for all .sm1 excluding subsongs ending with 'STREAM.SS0..9'\n\n"
             "  %(prog)s samples.bnk -fni ^bgm.?\n"
             "  - make .txtp for in .bnk including only subsong names that start with 'bgm'\n\n"
-            "  %(prog)s * -r -fss 1\n"
-            "  - make .txtp for all files in subdirs with at least 1 subsong\n"
-            "    (ignores formats without subsongs)\n\n"
             "  %(prog)s *.fsb -n \"{fn}<__{ss}>< [{in}]>\" -z 4 -o\n"
             "  - make .txtp for all fsb, adding subsongs and stream name if they exist\n\n"
         )
@@ -45,8 +49,9 @@ class Cli(object):
         p.add_argument('-ie', dest='no_internal_ext', help="Remove internal name's extension if any", action='store_true')
         p.add_argument('-m',  dest='mini_txtp', help="Create mini-txtp", action='store_true')
         p.add_argument('-o',  dest='overwrite', help="Overwrite existing .txtp\n(beware when using with internal names alone)", action='store_true')
-        p.add_argument('-O',  dest='overwrite_rename', help="Rename rather than overwriting", action='store_true')
-        p.add_argument('-Os', dest='overwrite_suffix', help="Rename with a suffix")
+        p.add_argument('-oi', dest='overwrite_ignore', help="Ignore repeated rather than overwritting.txtp\n", action='store_true')
+        p.add_argument('-or', dest='overwrite_rename', help="Rename rather than overwriting", action='store_true')
+        p.add_argument('-os', dest='overwrite_suffix', help="Rename with a suffix")
         p.add_argument('-l',  dest='layers', help="Create .txtp per subsong layers, every N channels", type=int)
         p.add_argument('-fd', dest='test_dupes', help="Skip .txtp that point to duplicate streams (slower)", action='store_true')
         p.add_argument('-fcm', dest='min_channels', help="Filter by min channels", type=int)
@@ -150,8 +155,9 @@ class TxtpMaker(object):
         self.stream_name = self._get_text("stream name: ")
         self.encoding = self._get_text("encoding: ")
 
+        # in case vgmstream returns error, but output code wasn't EXIT_FAILURE
         if self.channels <= 0 or self.sample_rate <= 0:
-            raise ValueError('Incorrect command result')
+            raise ValueError('Incorrect vgmstream command')
 
         self.stream_seconds = self.num_samples / self.sample_rate
         self.ignorable = self._is_ignorable(cfg)
@@ -255,7 +261,8 @@ class TxtpMaker(object):
         outname += '.txtp'
 
         cfg = self.cfg
-        if (cfg.overwrite_rename or cfg.overwrite_suffix) and os.path.exists(outname):
+        exists = os.path.exists(outname)
+        if exists and (cfg.overwrite_rename or cfg.overwrite_suffix):
             must_rename = True
             if cfg.overwrite_suffix:
                 outname = outname.replace(".txtp", "%s.txtp" % (cfg.overwrite_suffix))
@@ -269,8 +276,14 @@ class TxtpMaker(object):
                 self.rename_map[outname] = rename_count + 1
                 outname = outname.replace(".txtp", "_%08i.txtp" % (rename_count))
 
-        if not cfg.overwrite and os.path.exists(outname):
-            raise ValueError('TXTP exists in path: ' + outname)
+        # decide action after (possible) renames above
+        if os.path.exists(outname):
+            if cfg.overwrite_ignore:
+                log.debug("ignored: " + outname)
+                return
+
+            if not cfg.overwrite:
+                raise ValueError('TXTP exists in path: ' + outname)
 
         ftxtp = open(outname,"w+")
         if line:
@@ -436,7 +449,14 @@ class App(object):
         if os.path.isdir(pattern):
             dir = pattern
             pattern = None
-    
+
+        for dirsep in '/\\':
+            if dirsep in pattern:
+                index = pattern.rfind(dirsep)
+                if index >= 0:
+                    dir = pattern[0:index]
+                    pattern = pattern[index+1:]
+
         files = []
         for root, dirnames, filenames in os.walk(dir):
             for filename in fnmatch.filter(filenames, pattern):
@@ -455,7 +475,6 @@ class App(object):
         filenames_in = []
         for filename in self.cfg.files:
             filenames_in += self._find_files('.', filename)
-
 
         rename_map = {}
 
@@ -480,18 +499,21 @@ class App(object):
             target_subsong = 1
             while True:
                 try:
+                    # main call to vgmstream
                     cmd = self._make_cmd(filename_in, filename_out, target_subsong)
                     log.debug("calling: %s", cmd)
                     output_b = subprocess.check_output(cmd, shell=False) #stderr=subprocess.STDOUT
-                except subprocess.CalledProcessError as e:
-                    log.debug("ignoring CLI error in %s #%s: %s", filename_in, target_subsong, str(e.output))
+
+                    # basic parse of vgmstream info
+                    maker = TxtpMaker(self.cfg, output_b, rename_map)
+
+                except (subprocess.CalledProcessError, ValueError) as e:
+                    log.debug("ignoring CLI error in %s #%s: %s", filename_in, target_subsong, str(e))
                     errors += 1
                     break
 
                 if target_subsong == 1:
                     log.debug("processing %s...", filename_in_clean)
-
-                maker = TxtpMaker(self.cfg, output_b, rename_map)
 
                 if not maker.is_ignorable():
                     self.crc32.update(filename_out)
