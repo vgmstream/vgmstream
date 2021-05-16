@@ -438,6 +438,7 @@ VGMSTREAM* init_vgmstream_ogg_vorbis_callbacks(STREAMFILE* sf, ov_callbacks* cal
     int32_t loop_length = ovmi->loop_length;
     int loop_end_found = ovmi->loop_end_found;
     int32_t loop_end = ovmi->loop_end;
+
     size_t stream_size = ovmi->stream_size ?
             ovmi->stream_size :
             get_streamfile_size(sf) - start;
@@ -463,14 +464,14 @@ VGMSTREAM* init_vgmstream_ogg_vorbis_callbacks(STREAMFILE* sf, ov_callbacks* cal
 
         while (ogg_vorbis_get_comment(data, &comment)) {
 
-            if (strstr(comment,"loop_start=") == comment || /* PSO4 */
-                strstr(comment,"LOOP_START=") == comment || /* PSO4 */
+            if (strstr(comment,"loop_start=") == comment || /* Phantasy Star Online: Blue Burst (PC) (no loop_end pair) */
+                strstr(comment,"LOOP_START=") == comment || /* Phantasy Star Online: Blue Burst (PC), common */
                 strstr(comment,"LOOPPOINT=") == comment || /* Sonic Robo Blast 2 */
                 strstr(comment,"COMMENT=LOOPPOINT=") == comment ||
                 strstr(comment,"LOOPSTART=") == comment ||
                 strstr(comment,"um3.stream.looppoint.start=") == comment ||
                 strstr(comment,"LOOP_BEGIN=") == comment || /* Hatsune Miku: Project Diva F (PS3) */
-                strstr(comment,"LoopStart=") == comment ||  /* Devil May Cry 4 (PC) */
+                strstr(comment,"LoopStart=") == comment ||  /* Capcom games [Devil May Cry 4 (PC)] */
                 strstr(comment,"LOOP=") == comment || /* Duke Nukem 3D: 20th Anniversary World Tour */
                 strstr(comment,"XIPH_CUE_LOOPSTART=") == comment) {  /* DeNa games [Super Mario Run (Android), FF Record Keeper (Android)] */
                 loop_start = atol(strrchr(comment,'=')+1);
@@ -486,25 +487,21 @@ VGMSTREAM* init_vgmstream_ogg_vorbis_callbacks(STREAMFILE* sf, ov_callbacks* cal
             }
             else if (strstr(comment,"album=-lpe") == comment) { /* (title=-lps pair) */
                 loop_end = atol(comment+10);
-                loop_flag = 1;
                 loop_end_found = 1;
+                loop_flag = 1;
             }
             else if (strstr(comment,"LoopEnd=") == comment) { /* (LoopStart pair) */
-                if(loop_flag) {
-                    loop_length = atol(strrchr(comment,'=')+1)-loop_start;
-                    loop_length_found = 1;
-                }
+                loop_end = atol(strrchr(comment,'=')+1);
+                loop_end_found = 1;
             }
-            else if (strstr(comment,"LOOP_END=") == comment) { /* (LOOP_BEGIN pair) */
-                if(loop_flag) {
-                    loop_length = atol(strrchr(comment,'=')+1)-loop_start;
-                    loop_length_found = 1;
-                }
+            else if (strstr(comment,"LOOP_END=") == comment) { /* (LOOP_START/LOOP_BEGIN pair) */
+                loop_end = atol(strrchr(comment,'=')+1);
+                loop_end_found = 1;
             }
             else if (strstr(comment,"lp=") == comment) {
                 sscanf(strrchr(comment,'=')+1,"%d,%d", &loop_start,&loop_end);
-                loop_flag = 1;
                 loop_end_found = 1;
+                loop_flag = 1;
             }
             else if (strstr(comment,"LOOPDEFS=") == comment) { /* Fairy Fencer F: Advent Dark Force */
                 sscanf(strrchr(comment,'=')+1,"%d,%d", &loop_start,&loop_end);
@@ -517,10 +514,8 @@ VGMSTREAM* init_vgmstream_ogg_vorbis_callbacks(STREAMFILE* sf, ov_callbacks* cal
                 loop_end_found = 1;
             }
             else if (strstr(comment, "XIPH_CUE_LOOPEND=") == comment) { /* (XIPH_CUE_LOOPSTART pair) */
-                if (loop_flag) {
-                    loop_length = atol(strrchr(comment, '=') + 1) - loop_start;
-                    loop_length_found = 1;
-                }
+                loop_end = atol(strrchr(comment, '=') + 1);
+                loop_end_found = 1;
             }
             else if (strstr(comment, "omment=") == comment) { /* Air (Android) */
                 sscanf(strstr(comment, "=LOOPSTART=") + 11, "%d,LOOPEND=%d", &loop_start, &loop_end);
