@@ -171,7 +171,7 @@ those files automatically into the playlist. For others without support, you can
 multiple .txtp (explained below) to select one of the subsongs (like `bgm.sxd#10.txtp`).
 
 You can use this python script to autogenerate one `.txtp` per subsong:
-https://github.com/vgmstream/vgmstream/tree/master/cli/txtp_maker.py
+https://github.com/vgmstream/vgmstream/tree/master/cli/tools/txtp_maker.py
 Put in the same dir as test.exe/vgmstream_cli, then to drag-and-drop files with
 subsongs to `txtp_maker.py` (it has CLI options to control output too).
 
@@ -619,6 +619,11 @@ test.exe -o btl_koopa1_44k_lp.wav "btl_koopa1_44k_lp.brstm  #h22050.txtp"
 Support for this feature is limited by player itself, as foobar and Winamp allow
 non-existant files referenced in a `.m3u`, while other players may filter them
 first.
+
+You can use this python script to autogenerate one `.txtp` per virtual-txtp:
+https://github.com/vgmstream/vgmstream/tree/master/cli/tools/txtp_dumper.py
+Drag and drop the `.m3u`, or any text file with .txtp  (it has CLI options
+to control output too).
 
 
 ## Supported codec types
