@@ -27,6 +27,8 @@ file#12     # set "subsong" command for single file
 sounds/bgm.fsb #s2 #i  #for file inside subdir: play subsong 2 + disable looping
 ```
 
+You can mix any kind of files (including different formats and codecs), as long as vgmstream plays them separatedly too. If you have problem getting a TXTP to play try playing file by file first and make a simpler TXTP then add more. There are technicals limits in total files (usually hundreds but varies per O.S.) and layered channels though. Also see explanations below for some per-mode limitations too.
+
 
 ### Segments mode
 Some games clumsily loop audio by using multiple full file "segments", so you can play separate intro + loop files together as a single track.
