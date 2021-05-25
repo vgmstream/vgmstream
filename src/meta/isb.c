@@ -3,10 +3,10 @@
 
 
 /* .ISB - Creative ISACT (Interactive Spatial Audio Composition Tools) middleware [Psychonauts (PC), Mass Effect (multi)] */
-VGMSTREAM * init_vgmstream_isb(STREAMFILE *sf) {
-    VGMSTREAM * vgmstream = NULL;
-    off_t start_offset = 0, name_offset = 0;
-    size_t stream_size = 0, name_size = 0;
+VGMSTREAM* init_vgmstream_isb(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
+    off_t start_offset = 0, name_offset = 0, nfld_offset = 0;
+    size_t stream_size = 0, name_size = 0, nfld_size = 0;
     int loop_flag = 0, channels = 0, sample_rate = 0, codec = 0, pcm_bytes = 0, bps = 0;
     int total_subsongs, target_subsong = sf->stream_index;
     uint32_t (*read_u32me)(off_t,STREAMFILE*);
@@ -50,9 +50,6 @@ VGMSTREAM * init_vgmstream_isb(STREAMFILE *sf) {
             uint32_t chunk_size = read_u32me(offset + 0x04,sf);
             offset += 0x08;
 
-            //VGM_LOG("offset=%lx, sub=%c%c%c%c\n", offset,(chunk_type>>24 & 0xFF), (chunk_type>>16 & 0xFF), (chunk_type>>8 & 0xFF), (chunk_type & 0xFF));
-
-
             switch(chunk_type) {
                 case 0x4C495354: /* "LIST" */
                     if (read_u32ce(offset, sf) == get_id32be("samp")) {
@@ -65,6 +62,8 @@ VGMSTREAM * init_vgmstream_isb(STREAMFILE *sf) {
                     }
                     else if (read_u32ce(offset, sf) == get_id32be("fldr")) {
                         /* subfolder with another LIST inside, for example "stingers" > N smpl (seen in some music_bank) */
+                        off_t current_nfld_offset = 0;
+                        size_t current_nfld_size = 0;
 
                         suboffset = offset + 0x04;
                         submax_offset = offset + chunk_size;
@@ -73,7 +72,12 @@ VGMSTREAM * init_vgmstream_isb(STREAMFILE *sf) {
                             uint32_t subchunk_size = read_u32me(suboffset + 0x04,sf);
                             suboffset += 0x08;
 
-                            if (subchunk_type == get_id32be("LIST")) {
+                            if (subchunk_type == get_id32be("titl")) {
+                                /* should go first in fldr*/
+                                current_nfld_offset = suboffset;
+                                current_nfld_size = subchunk_size;
+                            }
+                            else if (subchunk_type == get_id32be("LIST")) {
                                 uint32_t subsubchunk_type = read_u32ce(suboffset, sf);
 
                                 if (subsubchunk_type == get_id32be("samp")) {
@@ -81,6 +85,8 @@ VGMSTREAM * init_vgmstream_isb(STREAMFILE *sf) {
                                     if (target_subsong == total_subsongs && header_offset == 0) {
                                         header_offset = suboffset;
                                         header_size = chunk_size;
+                                        nfld_offset = current_nfld_offset;
+                                        nfld_size = current_nfld_size;
                                     }
                                 }
                                 else if (subsubchunk_type == get_id32be("fldr")) {
@@ -101,9 +107,7 @@ VGMSTREAM * init_vgmstream_isb(STREAMFILE *sf) {
                     break;
             }
 
-            //if (offset + chunk_size+0x01 <= max_offset && chunk_size % 0x02)
-            //    chunk_size += 0x01;
-            offset += chunk_size;
+            offset += chunk_size; /* no chunk 1-byte padding */
         }
 
         if (target_subsong < 0 || target_subsong > total_subsongs || total_subsongs < 1) goto fail;
@@ -157,8 +161,6 @@ VGMSTREAM * init_vgmstream_isb(STREAMFILE *sf) {
                     break;
             }
 
-            //if (offset + chunk_size+0x01 <= max_offset && chunk_size % 0x02)
-            //    chunk_size += 0x01;
             offset += chunk_size;
         }
 
@@ -180,10 +182,27 @@ VGMSTREAM * init_vgmstream_isb(STREAMFILE *sf) {
     vgmstream->num_streams = total_subsongs;
     vgmstream->stream_size = stream_size;
 
-    if (name_offset) { /* UTF16 but only uses lower bytes */
-        if (name_size > STREAM_NAME_SIZE)
-            name_size = STREAM_NAME_SIZE;
-        read_string_utf16(vgmstream->stream_name,name_size, name_offset, sf, big_endian);
+    if (name_offset) {
+        /* UTF16 but only uses lower bytes */
+        char name[256];
+        char nfld[256];
+        
+        /* should read string or set '\0' is no size is set/incorrect */
+        if (name_size >= sizeof(name))
+            name_size = sizeof(name) - 1;
+        read_string_utf16(name, name_size, name_offset, sf, big_endian);
+
+        if (nfld_size >= sizeof(nfld))
+            nfld_size = sizeof(nfld) - 1;
+        read_string_utf16(nfld, nfld_size, nfld_offset, sf, big_endian);
+
+        if (nfld[0] && name[0]) {
+            snprintf(vgmstream->stream_name,STREAM_NAME_SIZE, "%s/%s", nfld, name);
+        }
+        else if (name[0]) {
+            snprintf(vgmstream->stream_name,STREAM_NAME_SIZE, "%s", name);
+        }
+        /* there is also a "titl" for the bank, but it's just the filename so probably unwanted */
     }
 
     switch(codec) {
