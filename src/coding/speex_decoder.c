@@ -179,8 +179,10 @@ void free_speex(speex_codec_data* data) {
     if (!data)
         return;
 
-    speex_decoder_destroy(data->state);
-    speex_bits_destroy(&data->bits);
+    if (data->state) {
+        speex_decoder_destroy(data->state);
+        speex_bits_destroy(&data->bits);
+    }
 
     free(data->samples);
     free(data);
