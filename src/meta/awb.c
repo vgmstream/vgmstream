@@ -1,7 +1,7 @@
 #include "meta.h"
 #include "../coding/coding.h"
 
-typedef enum { ADX, HCA, VAG, RIFF, CWAV, DSP, CWAC } awb_type;
+typedef enum { ADX, HCA, VAG, RIFF, CWAV, DSP, CWAC, M4A } awb_type;
 
 static void load_awb_name(STREAMFILE* sf, STREAMFILE* sf_acb, VGMSTREAM* vgmstream, int waveid);
 
@@ -120,6 +120,11 @@ VGMSTREAM* init_vgmstream_awb_memory(STREAMFILE* sf, STREAMFILE* sf_acb) {
         type = CWAC;
         extension = "dsp";
     }
+    else if (read_u32be(subfile_offset+0x00,sf) == 0x00000018 && 
+             read_u32be(subfile_offset+0x04,sf) == 0x66747970) { /* chunk size + "ftyp" (type 19) */
+        type = M4A;
+        extension = "m4a";
+    }
     else {
         VGM_LOG("AWB: unknown codec\n");
         goto fail;
@@ -158,6 +163,12 @@ VGMSTREAM* init_vgmstream_awb_memory(STREAMFILE* sf, STREAMFILE* sf_acb) {
             vgmstream = init_vgmstream_dsp_cwac(temp_sf);
             if (!vgmstream) goto fail;
             break;
+#ifdef VGM_USE_FFMPEG
+        case M4A: /* Imperial SaGa Eclipse (Browser) */
+            vgmstream = init_vgmstream_mp4_aac_ffmpeg(temp_sf);
+            if (!vgmstream) goto fail;
+            break;
+#endif
         default:
             goto fail;
     }
