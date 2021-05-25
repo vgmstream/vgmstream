@@ -60,13 +60,13 @@ int mp4_file_close( void* handle )
 MP4FileProvider mp4_file_provider = { mp4_file_open, mp4_file_seek, mp4_file_read, mp4_file_write, mp4_file_close, mp4_file_get_size };
 
 #ifdef VGM_USE_FDKAAC
-VGMSTREAM * init_vgmstream_mp4_aac_offset(STREAMFILE *streamFile, uint64_t start, uint64_t size);
+VGMSTREAM * init_vgmstream_mp4_aac_offset(STREAMFILE *sf, uint64_t start, uint64_t size);
 
-VGMSTREAM * init_vgmstream_mp4_aac(STREAMFILE *streamFile) {
-	return init_vgmstream_mp4_aac_offset( streamFile, 0, streamFile->get_size(streamFile) );
+VGMSTREAM * init_vgmstream_mp4_aac(STREAMFILE *sf) {
+	return init_vgmstream_mp4_aac_offset( sf, 0, sf->get_size(sf) );
 }
 
-VGMSTREAM * init_vgmstream_mp4_aac_offset(STREAMFILE *streamFile, uint64_t start, uint64_t size) {
+VGMSTREAM * init_vgmstream_mp4_aac_offset(STREAMFILE *sf, uint64_t start, uint64_t size) {
 	VGMSTREAM * vgmstream = NULL;
 
 	char filename[PATH_LIMIT];
@@ -81,7 +81,7 @@ VGMSTREAM * init_vgmstream_mp4_aac_offset(STREAMFILE *streamFile, uint64_t start
 
 	if ( !aac_file ) goto fail;
 
-	aac_file->if_file.streamfile = streamFile;
+	aac_file->if_file.streamfile = sf;
 	aac_file->if_file.start = start;
 	aac_file->if_file.offset = start;
 	aac_file->if_file.size = size;
@@ -124,9 +124,9 @@ VGMSTREAM * init_vgmstream_mp4_aac_offset(STREAMFILE *streamFile, uint64_t start
 	aac_file->samples_per_frame = stream_info->frameSize;
 	aac_file->samples_discard = 0;
 
-	streamFile->get_name( streamFile, filename, sizeof(filename) );
+	sf->get_name( sf, filename, sizeof(filename) );
 
-	aac_file->if_file.streamfile = streamFile->open(streamFile, filename, STREAMFILE_DEFAULT_BUFFER_SIZE);
+	aac_file->if_file.streamfile = sf->open(sf, filename, STREAMFILE_DEFAULT_BUFFER_SIZE);
 	if (!aac_file->if_file.streamfile) goto fail;
 
 	vgmstream = allocate_vgmstream( stream_info->numChannels, 1 );
@@ -162,64 +162,64 @@ fail:
 
 #ifdef VGM_USE_FFMPEG
 
-static int find_atom_be(STREAMFILE *streamFile, uint32_t atom_id, off_t start_offset, off_t *out_atom_offset, size_t *out_atom_size);
+typedef struct {
+    int32_t num_samples;
+    int loop_flag;
+    int32_t loop_start;
+    int32_t loop_end;
+    int32_t encoder_delay;
+} mp4_header;
+
+static void parse_mp4(STREAMFILE* sf, mp4_header* mp4);
 
 
-VGMSTREAM * init_vgmstream_mp4_aac_ffmpeg(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
+VGMSTREAM* init_vgmstream_mp4_aac_ffmpeg(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
     off_t start_offset = 0;
-    int loop_flag = 0;
-    int32_t loop_start_sample = 0, loop_end_sample = 0;
-    size_t filesize;
-    off_t atom_offset;
-    size_t atom_size;
-
-    ffmpeg_codec_data *ffmpeg_data = NULL;
+    mp4_header mp4 = {0};
+    size_t file_size;
+    ffmpeg_codec_data* ffmpeg_data = NULL;
 
 
-    /* check extension, case insensitive */
-    /*  .bin: Final Fantasy Dimensions (iOS), Final Fantasy V (iOS)
-     *  .msd: UNO (iOS)  */
-    if (!check_extensions(streamFile,"mp4,m4a,m4v,lmp4,bin,msd"))
+    /* checks */
+    /* .bin: Final Fantasy Dimensions (iOS), Final Fantasy V (iOS)
+     * .msd: UNO (iOS) */
+    if (!check_extensions(sf,"mp4,m4a,m4v,lmp4,bin,lbin,msd"))
         goto fail;
 
-    filesize = streamFile->get_size(streamFile);
-
-    /* check header */
-    if ( read_32bitBE(start_offset+0x04,streamFile) != 0x66747970) /* atom size @0x00 + "ftyp" @0x04 */
+    if ((read_u32be(0x00,sf) & 0xFFFFFF00) != 0) /* first atom BE size (usually ~0x18) */
+        goto fail;
+    if (!is_id32be(0x04,sf, "ftyp"))
         goto fail;
 
-    ffmpeg_data = init_ffmpeg_offset(streamFile, start_offset, filesize);
-    if ( !ffmpeg_data ) goto fail;
+    file_size = get_streamfile_size(sf);
 
-    /* Tales of Hearts iOS has loop info in the first "free" atom */
-    if (find_atom_be(streamFile, 0x66726565, start_offset, &atom_offset, &atom_size)) { /* "free" */
-        if (read_32bitBE(atom_offset,streamFile) == 0x4F700002
-                && (atom_size == 0x38 || atom_size == 0x40)) { /* make sure it's ToHr "free" */
-            /* 0x00: id?  0x04/8: s_rate; 0x10: num_samples (without padding, same as FFmpeg's)  */
-            /* 0x14/18/1c: 0x238/250/278?  0x20: ?  0x24: start_pad */
-            loop_flag = read_32bitBE(atom_offset+0x28,streamFile);
-            if (loop_flag) { /* atom ends if no loop flag */
-                loop_start_sample = read_32bitBE(atom_offset+0x2c,streamFile);
-                loop_end_sample = read_32bitBE(atom_offset+0x30,streamFile);
-            }
-        }
-    }
+    ffmpeg_data = init_ffmpeg_offset(sf, start_offset, file_size);
+    if (!ffmpeg_data) goto fail;
+
+    parse_mp4(sf, &mp4);
+
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(ffmpeg_data->channels,loop_flag);
+    vgmstream = allocate_vgmstream(ffmpeg_data->channels, mp4.loop_flag);
     if (!vgmstream) goto fail;
+
+    vgmstream->meta_type = meta_MP4;
+    vgmstream->sample_rate = ffmpeg_data->sampleRate;
+    vgmstream->num_samples = mp4.num_samples;
+    if (vgmstream->num_samples == 0)
+        vgmstream->num_samples = ffmpeg_data->totalSamples;
+    vgmstream->loop_start_sample = mp4.loop_start;
+    vgmstream->loop_end_sample = mp4.loop_end;
+
     vgmstream->codec_data = ffmpeg_data;
     vgmstream->coding_type = coding_FFmpeg;
     vgmstream->layout_type = layout_none;
-    vgmstream->meta_type = meta_MP4;
-
-    vgmstream->sample_rate = ffmpeg_data->sampleRate;
-    vgmstream->num_samples = ffmpeg_data->totalSamples;
-    vgmstream->loop_start_sample = loop_start_sample;
-    vgmstream->loop_end_sample = loop_end_sample;
+    vgmstream->num_streams = ffmpeg_data->streamCount; /* may contain N tracks */
 
     vgmstream->channel_layout = ffmpeg_get_channel_layout(vgmstream->codec_data);
+    if (mp4.encoder_delay)
+        ffmpeg_set_skip_samples(vgmstream->codec_data, mp4.encoder_delay);
 
     return vgmstream;
 
@@ -232,31 +232,138 @@ fail:
     return NULL;
 }
 
-/* Almost the same as streamfile.c's find_chunk but for "atom" chunks, which have chunk_size first because Apple, returns 0 on failure */
-static int find_atom_be(STREAMFILE *streamFile, uint32_t atom_id, off_t start_offset, off_t *out_atom_offset, size_t *out_atom_size) {
-    size_t filesize;
-    off_t current_atom = start_offset;
-    int full_atom_size = 1;
-    int size_big_endian = 1;
+/* read useful MP4 chunks */
+static void parse_mp4(STREAMFILE* sf, mp4_header* mp4) {
+    off_t offset, suboffset, max_offset, max_suboffset;
 
-    filesize = get_streamfile_size(streamFile);
-    /* read chunks */
-    while (current_atom < filesize) {
-        off_t chunk_size = size_big_endian ?
-                read_32bitBE(current_atom+0,streamFile) :
-                read_32bitLE(current_atom+0,streamFile);
-        uint32_t chunk_type = read_32bitBE(current_atom+4,streamFile);
 
-        if (chunk_type == atom_id) {
-            if (out_atom_size) *out_atom_size = chunk_size;
-            if (out_atom_offset) *out_atom_offset = current_atom+8;
-            return 1;
+    /* MOV format chunks, called "atoms", size goes first because Apple */
+    offset = 0x00;
+    max_offset = get_streamfile_size(sf);
+    while (offset < max_offset) {
+        uint32_t size = read_u32be(offset + 0x00,sf);
+        uint32_t type = read_u32be(offset + 0x04,sf);
+        //offset += 0x08;
+
+        /* just in case */
+        if (size == 0)
+            break;
+
+        switch(type) {
+            case 0x66726565: /* "free" */
+                /* Tales of Hearts R (iOS) has loop info in the first "free" atom */
+                if (read_u32be(offset + 0x08,sf) == 0x4F700002 && (size == 0x38 || size == 0x40)) {
+                    /* 0x00: id / "Op" */
+                    /* 0x02: channels */
+                    /* 0x04/8: sample rate */
+                    /* 0x0c: null? */
+                    /* 0x10: num_samples (without padding, same as FFmpeg's) */
+                    /* 0x14/18/1c/20: offsets to stream info (stts/stsc/stsz/stco) */
+                    mp4->encoder_delay = read_u32be(offset + 0x08 + 0x24,sf); /* Apple's 2112 */
+                    mp4->loop_flag = read_u32be(offset + 0x08 + 0x28,sf);
+                    if (mp4->loop_flag) { /* atom ends if no loop flag */
+                        mp4->loop_start = read_u32be(offset + 0x08 + 0x2c,sf);
+                        mp4->loop_end = read_u32be(offset + 0x08 + 0x30,sf);
+                    }
+                    /* could stop reading since FFmpeg will too */
+                }
+                break;
+
+            case 0x6D6F6F76: { /* "moov" (header) */
+                suboffset = offset += 0x08;
+                max_suboffset = offset + size;
+                while (suboffset < max_suboffset) {
+                    uint32_t subsize = read_u32be(suboffset + 0x00,sf);
+                    uint32_t subtype = read_u32be(suboffset + 0x04,sf);
+
+                    /* padded in ToRR */
+                    if (subsize == 0)
+                        break;
+
+                    switch(subtype) {
+                        case 0x75647461: /* "udta" */
+                            /* CRI subchunk [Imperial SaGa Eclipse (Browser)]
+                             * incidentally "moov" header comes after data ("mdat") in CRI's files */
+                            if (subsize >= 0x28 && is_id32be(suboffset + 0x08 + 0x04,sf, "criw")) {
+                                off_t criw_offset = suboffset + 0x08 + 0x08;
+
+                                mp4->loop_start     = read_s32be(criw_offset + 0x00,sf);
+                                mp4->loop_end       = read_s32be(criw_offset + 0x04,sf);
+                                mp4->encoder_delay  = read_s32be(criw_offset + 0x08,sf); /* Apple's 2112 */
+                                mp4->num_samples    = read_s32be(criw_offset + 0x0c,sf);
+                                mp4->loop_flag = (mp4->loop_end > 0);
+                                /* next 2 fields are null */
+                            }
+                            break;
+
+                        default:
+                            break;
+                    }
+
+                    suboffset += subsize;
+                }
+
+                break;
+            }
+
+            default:
+                break;
         }
 
-        current_atom += full_atom_size ? chunk_size : 4+4+chunk_size;
+        offset += size; /* atoms don't seem to need to padding byte, unlike RIFF */
     }
-
-    return 0;
 }
+
+/* CRI's encryption info (for lack of a better place) [Final Fantasy Digital Card Game (Browser)]
+ * 
+ * Like other CRI stuff their MP4 can be encrypted, from file's beginning (including headers).
+ * This is more or less how data is decrypted (supposedly, from decompilations), for reference:
+ */
+#if 0
+void criAacCodec_SetDecryptionKey(uint64_t keycode, uint16_t* key) {
+    if (!keycode)
+        return;
+    uint16_t k0 = 4 * ((keycode >> 0)  & 0x0FFF) | 1;
+    uint16_t k1 = 2 * ((keycode >> 12) & 0x1FFF) | 1;
+    uint16_t k2 = 4 * ((keycode >> 25) & 0x1FFF) | 1;
+    uint16_t k3 = 2 * ((keycode >> 38) & 0x3FFF) | 1;
+
+    key[0] = k0 ^ k1;
+    key[1] = k1 ^ k2;
+    key[2] = k2 ^ k3;
+    key[3] = ~k3;
+
+    /* criatomexacb_generate_aac_decryption_key is slightly different, unsure which one is used: */
+  //key[0] = k0 ^ k3;
+  //key[1] = k2 ^ k3;
+  //key[2] = k2 ^ k3;
+  //key[3] = ~k3;
+}
+
+void criAacCodec_DecryptData(const uint16_t* key, uint8_t* data, uint32_t size) {
+    if (data_size)
+        return;
+    uint16_t seed0 = ~key[3];
+    uint16_t seed1 = seed0 ^ key[2];
+    uint16_t seed2 = seed1 ^ key[1];
+    uint16_t seed3 = seed2 ^ key[0];
+
+    uint16_t xor = 2 * seed0 | 1;
+    uint16_t add = 2 * seed0 | 1; /* not seed1 */
+    uint16_t mul = 4 * seed2 | 1;
+
+    for (int i = 0; i < data_size; i++) {
+
+        if (!(uint16_t)i) { /* every 0x10000, without modulo */
+            mul = (4 * seed2 + seed3 * (mul & 0xFFFC)) & 0xFFFD | 1;
+            add = (2 * seed0 + seed1 * (add & 0xFFFE)) | 1;
+        }
+        xor = xor * mul + add;
+
+        *data ^= (xor >> 8) & 0xFF;
+        ++data;
+    }
+}
+#endif
 
 #endif

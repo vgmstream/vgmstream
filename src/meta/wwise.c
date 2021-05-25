@@ -471,7 +471,7 @@ VGMSTREAM* init_vgmstream_wwise(STREAMFILE* sf) {
             break;
         }
 
-        case OPUS: { /* fully standard Ogg Opus [Girl Cafe Gun (Mobile)] */
+        case OPUS: { /* fully standard Ogg Opus [Girl Cafe Gun (Mobile), Gears 5 (PC)] */
             if (ww.block_align != 0 || ww.bits_per_sample != 0) goto fail;
 
             /* extra: size 0x12 */
@@ -484,6 +484,15 @@ VGMSTREAM* init_vgmstream_wwise(STREAMFILE* sf) {
                 vgmstream->num_samples = (int32_t)(vgmstream->num_samples *
                         (double)(ww.file_size - start_offset) / (double)ww.data_size);
                 ww.data_size = ww.file_size - start_offset;
+            }
+
+            /* mutant .wem with metadata (voice strings/etc) at data start [Gears 5 (PC)] */
+            if (ww.meta_offset) {
+                /* 0x00: original setup_offset? (0x00 for Opus) */
+                uint32_t meta_skip = read_u32(ww.meta_offset + 0x04, sf);
+
+                ww.data_offset += meta_skip;
+                ww.data_size -= meta_skip;
             }
 
             vgmstream->codec_data = init_ffmpeg_offset(sf, ww.data_offset, ww.data_size);

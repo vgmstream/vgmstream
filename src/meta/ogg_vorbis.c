@@ -137,8 +137,9 @@ VGMSTREAM* init_vgmstream_ogg_vorbis(STREAMFILE* sf) {
      * .rof: The Rhythm of Fighters (Mobile)
      * .acm: Planescape Torment Enhanced Edition (PC)
      * .sod: Zone 4 (PC)
+     * .msa: Metal Slug Attack (Mobile)
      * .aif/laif/aif-Loop: Psychonauts (PC) raw extractions (named) */
-    if (check_extensions(sf,"ogg,logg,adx,rof,acm,sod,aif,laif,aif-Loop")) {
+    if (check_extensions(sf,"ogg,logg,adx,rof,acm,sod,msa,aif,laif,aif-Loop")) {
         is_ogg = 1;
     } else if (check_extensions(sf,"um3")) {
         is_um3 = 1;
