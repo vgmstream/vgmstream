@@ -187,4 +187,24 @@ fail:
     return NULL;
 }
 
+ffmpeg_codec_data* init_ffmpeg_aac(STREAMFILE* sf, off_t offset, size_t size) {
+    ffmpeg_codec_data* data = NULL;
+
+    data = init_ffmpeg_offset(sf, offset, size);
+    if (!data) goto fail;
+
+    /* seeks to 0 eats first frame for whatever reason */
+    ffmpeg_set_force_seek(data);
+
+    /* raw AAC doesn't set this, while some decoders like FAAD remove 1024,
+     * but should be handled in container as each encoder uses its own value
+     * (Apple: 2112, FAAD: probably 1024, etc) */
+    //ffmpeg_set_skip_samples(data, 1024);
+
+    return data;
+fail:
+    free_ffmpeg(data);
+    return NULL;
+}
+
 #endif

@@ -570,6 +570,7 @@ STREAMFILE* ffmpeg_get_streamfile(ffmpeg_codec_data* data);
 /* ffmpeg_decoder_utils.c (helper-things) */
 ffmpeg_codec_data* init_ffmpeg_atrac3_raw(STREAMFILE* sf, off_t offset, size_t data_size, int sample_count, int channels, int sample_rate, int block_align, int encoder_delay);
 ffmpeg_codec_data* init_ffmpeg_atrac3_riff(STREAMFILE* sf, off_t offset, int* out_samples);
+ffmpeg_codec_data* init_ffmpeg_aac(STREAMFILE* sf, off_t offset, size_t size);
 
 
 /* ffmpeg_decoder_custom_opus.c (helper-things) */
@@ -655,6 +656,7 @@ size_t ac3_bytes_to_samples(size_t bytes, int full_block_align, int channels);
 size_t aac_get_samples(STREAMFILE* sf, off_t start_offset, size_t bytes);
 size_t mpeg_get_samples(STREAMFILE* sf, off_t start_offset, size_t bytes);
 int32_t mpeg_get_samples_clean(STREAMFILE* sf, off_t start, size_t size, size_t* p_loop_start, size_t* p_loop_end, int is_vbr);
+int mpc_get_samples(STREAMFILE* sf, off_t offset, int32_t* p_samples, int32_t* p_delay);
 
 
 /* helper to pass a wrapped, clamped, fake extension-ed, SF to another meta */

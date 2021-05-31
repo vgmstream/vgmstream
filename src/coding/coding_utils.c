@@ -1006,12 +1006,89 @@ size_t aac_get_samples(STREAMFILE* sf, off_t start_offset, size_t bytes) {
         if (frame_size <= 0x08)
             break;
 
+        //;VGM_LOG("AAC: %lx, %x\n", offset, frame_size);
         frames++;
         offset += frame_size;
     }
 
     return frames * samples_per_frame;
 }
+
+
+/* variable-sized var reader */
+static int mpc_get_size(uint8_t* header, int header_size, int pos, int32_t* p_size) {
+	uint8_t tmp;
+	int32_t size = 0;
+
+	do {
+        if (pos >= header_size)
+            return pos;
+
+		tmp = header[pos];
+		size = (size << 7) | (tmp & 0x7F);
+		pos++;
+	}
+    while((tmp & 0x80));
+
+	*p_size = size;
+	return pos;
+}
+
+int mpc_get_samples(STREAMFILE* sf, off_t offset, int32_t* p_samples, int32_t* p_delay) {
+    uint8_t header[0x20];
+    int pos, size;
+    int32_t samples = 0, delay = 0;
+    
+    if (read_streamfile(header, offset, sizeof(header), sf) != sizeof(header))
+        goto fail;;
+
+    if ((get_u32be(header) & 0xFFFFFF0F) == get_id32be("MP+\x07")) {
+        samples = get_u32le(header + 0x04) * 1152; /* total frames */
+        delay = 481; /* MPC_DECODER_SYNTH_DELAY */
+
+        samples -= delay;
+        /* in theory one header field can contain actual delay, not observed */
+    }
+    else if (get_u32be(header) == get_id32be("MPCK")) {
+        /* V8 header is made if mini chunks (16b type, 8b size including type+size):
+         * - SH: stream header
+         * - RG: replay gain
+         * - EI: encoder info
+         * - SO: seek?
+         * - ST: stream?
+         * - AP: audio part start */
+        if (get_u16be(header + 0x04) != 0x5348)
+            goto fail;
+        size = get_u8(header + 0x06);
+        if (0x04 + size > sizeof(header))
+            goto fail;
+        if (get_u8(header + 0x0b) != 0x08)
+            goto fail;
+        /* SH chunk: */
+        /* 0x00: CRC */
+        /* 0x04: header version (8) */
+        /* 0x05: samples (variable sized) */
+        /* 0xNN: "beginning silence" (variable sized) */
+        /* 0xNN: bitpacked channels/rate/etc */
+        pos = mpc_get_size(header, sizeof(header), 0x0C, &samples);
+        pos = mpc_get_size(header, sizeof(header), pos, &delay);
+
+        samples -= delay; /* original delay, not SYNTH_DELAY */
+        delay += 481; /* MPC_DECODER_SYNTH_DELAY */
+        /* SYNTH_DELAY seems to be forced, but official code isn't very clear (known samples set delay to 0 but need SYNTH DELAY) */
+    }
+    else {
+        goto fail;
+    }
+
+    if (p_samples) *p_samples = samples;
+    if (p_delay) *p_delay = delay;
+
+    return 1;
+fail:
+    return 0;
+}
+
 
 /* ******************************************** */
 /* CUSTOM STREAMFILES                           */

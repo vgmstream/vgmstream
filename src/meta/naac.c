@@ -42,15 +42,16 @@ VGMSTREAM* init_vgmstream_naac(STREAMFILE* sf) {
 
 #ifdef VGM_USE_FFMPEG
     {
-        vgmstream->codec_data = init_ffmpeg_offset(sf, start_offset, data_size);
+        vgmstream->codec_data = init_ffmpeg_aac(sf, start_offset, data_size);
         if (!vgmstream->codec_data) goto fail;
         vgmstream->coding_type = coding_FFmpeg;
         vgmstream->layout_type = layout_none;
 
         /* observed default, some files start without silence though seems correct when loop_start=0 */
         ffmpeg_set_skip_samples(vgmstream->codec_data, 1024); /* raw AAC doesn't set this */
-        vgmstream->num_samples -= 1024; /* may end with 1024 of silence? */
+        vgmstream->num_samples -= 1024;
         vgmstream->loop_end_sample -= 1024;
+        /* for some reason last frame is ignored/bugged in various decoders (gives EOF errors) */
     }
 #else
     goto fail;
