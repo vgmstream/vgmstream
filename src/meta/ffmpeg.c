@@ -8,7 +8,7 @@ static int find_meta_loops(ffmpeg_codec_data* data, int32_t* p_loop_start, int32
 
 /* parses any format supported by FFmpeg and not handled elsewhere:
  * - MP3 (.mp3, .mus): Marc Ecko's Getting Up (PC)
- * - MPC (.mpc): Moonshine Runners (PC), Asphalt 7 (PC)
+ * - MPC (.mpc, mp+): Moonshine Runners (PC), Asphalt 7 (PC)
  * - FLAC (.flac):  Warcraft 3 Reforged (PC), Call of Duty: Ghosts (PC)
  * - DUCK (.wav): Sonic Jam (SAT), Virtua Fighter 2 (SAT)
  * - ALAC/AAC (.caf): Chrono Trigger (iOS)
@@ -24,7 +24,7 @@ VGMSTREAM* init_vgmstream_ffmpeg(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     ffmpeg_codec_data* data = NULL;
     int loop_flag = 0;
-    int32_t loop_start = 0, loop_end = 0, num_samples = 0;
+    int32_t loop_start = 0, loop_end = 0, num_samples = 0, encoder_delay = 0;
     int total_subsongs, target_subsong = sf->stream_index;
 
     /* no checks */
@@ -76,10 +76,17 @@ VGMSTREAM* init_vgmstream_ffmpeg(STREAMFILE* sf) {
     }
 #endif
 
-    /* hack for MPC, that seeks/resets incorrectly due to seek table shenanigans */
-    if (read_u32be(0x00, sf) == 0x4D502B07 || /* "MP+\7" (Musepack V7) */
-        read_u32be(0x00, sf) == 0x4D50434B) { /* "MPCK" (Musepack V8) */
+    /* hack for MPC */
+    if (is_id32be(0x00, sf, "MP+\x07") ||   /* Musepack V7 */
+        is_id32be(0x00, sf, "MP+\x17") ||   /* Musepack V7 with flag (seen in FFmpeg) */
+        is_id32be(0x00, sf, "MPCK")) {      /* Musepack V8 */
+        /* FFmpeg seeks/resets incorrectly due to MPC seek table shenanigans */
         ffmpeg_set_force_seek(data);
+
+        /* FFmpeg gets this wrong as usual (specially V8 samples) */
+        mpc_get_samples(sf, 0x00, &num_samples, &encoder_delay);
+
+        ffmpeg_set_skip_samples(data, encoder_delay);
     }
 
     /* default but often inaccurate when calculated using bitrate (wrong for VBR) */
@@ -91,7 +98,7 @@ VGMSTREAM* init_vgmstream_ffmpeg(STREAMFILE* sf) {
     /* build VGMSTREAM */
     vgmstream = allocate_vgmstream(data->channels, loop_flag);
     if (!vgmstream) goto fail;
-    
+
     vgmstream->sample_rate = data->sampleRate;
     vgmstream->meta_type = meta_FFMPEG;
     vgmstream->coding_type = coding_FFmpeg;
@@ -104,14 +111,13 @@ VGMSTREAM* init_vgmstream_ffmpeg(STREAMFILE* sf) {
     vgmstream->channel_layout = ffmpeg_get_channel_layout(vgmstream->codec_data);
 
     return vgmstream;
-    
+
 fail:
     free_ffmpeg(data);
     if (vgmstream) {
         vgmstream->codec_data = NULL;
         close_vgmstream(vgmstream);
     }
-    
     return NULL;
 }
 
