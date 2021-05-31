@@ -11,7 +11,7 @@ typedef struct {
 
 
 /**
- * List of known keys, extracted from the game files (mostly found in 2ch.net).
+ * List of known keys, extracted from the game files (several found in 2ch.net, others from data analisys).
  * CRI's tools expect an unsigned 64 bit number string, but keys are commonly found online in hex form.
  * Keys only use 56 bits though, so the upper 8 bits can be ignored.
  *
@@ -401,6 +401,9 @@ static const hcakey_info hcakey_list[] = {
         /* Mushoku Tensei: Game ni Nattemo Honki Dasu (Android) */
         {12281329554827291428u},    // AA700C292CFCAB24
 
+        /* Dragalia Lost (iOS/Android) */
+        {2967411924141},            // 000002B2E7889CAD
+
         /* D4DJ Groovy Mix (Android) [base files] */
         {393410674916959300},       // 0575ACECA945A444
         /* D4DJ Groovy Mix (Android) [music_* files, per-song later mixed with subkey] */
@@ -626,9 +629,6 @@ static const hcakey_info hcakey_list[] = {
         {0x2e107d849959c430},
         {0xb96786621e27daf3},
         {0x1111d6c10e509824},
-
-        /* Dragalia Lost (iOS/Android) */
-        {2967411924141,         subkeys_dgl, sizeof(subkeys_dgl) / sizeof(subkeys_dgl[0]) },    // 000002B2E7889CAD
 
 };
 
