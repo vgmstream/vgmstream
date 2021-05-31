@@ -1,10 +1,11 @@
 #include "meta.h"
 #include "../coding/coding.h"
 
+
 /* VXN - from Gameloft mobile games */
 VGMSTREAM* init_vgmstream_vxn(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
-    int loop_flag = 0, channel_count, codec, sample_rate, block_align, bits, num_samples;
+    int loop_flag = 0, channels, codec, sample_rate, block_align, bits, num_samples, encoder_delay;
     off_t start_offset, stream_offset, chunk_offset, first_offset = 0x00;
     size_t stream_size;
     int total_subsongs, target_subsong = sf->stream_index;
@@ -13,22 +14,32 @@ VGMSTREAM* init_vgmstream_vxn(STREAMFILE* sf) {
     if (!check_extensions(sf,"vxn"))
         goto fail;
 
-    if (read_u32be(0x00,sf) != 0x566F784E) /* "VoxN" */
+    if (!is_id32be(0x00,sf, "VoxN"))
         goto fail;
+    /* 0x04: chunk size */
+    /* 0x08: ASCII version? ("0.0.1") */
     if (read_u32le(0x10,sf) != get_streamfile_size(sf))
         goto fail;
+    /* 0x14: first MPC data start */
 
     /* header is RIFF-like with many custom chunks */
     if (!find_chunk_le(sf, 0x41666D74,first_offset,0, &chunk_offset,NULL)) /* "Afmt" */
         goto fail;
     codec = read_u16le(chunk_offset+0x00, sf);
-    channel_count = read_u16le(chunk_offset+0x02, sf);
+    channels = read_u16le(chunk_offset+0x02, sf);
     sample_rate = read_u32le(chunk_offset+0x04, sf);
     block_align = read_u16le(chunk_offset+0x08, sf);
-    bits = read_16bitLE(chunk_offset+0x0a, sf);
+    bits = read_s16le(chunk_offset+0x0a, sf);
 
-    /* files are divided into segment subsongs, often a leadout and loop in that order
-     * (the "Plst" and "Rule" chunks may have order info) */
+    /* files are divided into segment subsongs, often a leadout and loop in that order,
+     * but may also have +15 [Asphalt 9]. Various chunks seem to define how they are used:
+     * - Rule: optional, not related to number of playlists
+     * - Plst: sets N playlists + some flags?
+     * - Stat: N entries (1 per playlist), start? + name (null-terminated, size 0x0C) + sample values?
+     * - Trsn: optional, transitions for playlists?
+     * - Grps: N entries (1 per playlist), 0x18 per entry, unknown
+     * - Gprs: playlist segments, 0x20 per entry, playlist id + segment + null + segment? + flags (0/1/-1)
+     */
     if (!find_chunk_le(sf, 0x5365676D,first_offset,0, &chunk_offset,NULL))  /* "Segm" */
         goto fail;
     total_subsongs = read_u32le(chunk_offset+0x00, sf);
@@ -45,7 +56,7 @@ VGMSTREAM* init_vgmstream_vxn(STREAMFILE* sf) {
 
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
     vgmstream->sample_rate = sample_rate;
@@ -85,16 +96,24 @@ VGMSTREAM* init_vgmstream_vxn(STREAMFILE* sf) {
             break;
 
 #ifdef VGM_USE_FFMPEG
-        case 0x0800:    /* Musepack (ex. Asphalt Xtreme) */
+        case 0x0800:    /* Musepack (ex. Asphalt Xtreme, Asphalt 9) */
             if (bits != -1) goto fail;
 
-            vgmstream->codec_data = init_ffmpeg_offset(sf, start_offset,stream_size);
+            vgmstream->codec_data = init_ffmpeg_offset(sf, start_offset, stream_size);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
 
             /* unlike standard .mpc, .vxn has no seek table so no need to fix */
             //ffmpeg_set_force_seek(vgmstream->codec_data);
+
+            encoder_delay = 0;
+            mpc_get_samples(sf, start_offset, NULL, &encoder_delay);
+            /* num_samples matches MPC samples */
+
+            /* FFmpeg doesn't set encoder delay */
+            ffmpeg_set_skip_samples(vgmstream->codec_data, encoder_delay);
+
             break;
 #endif
 
