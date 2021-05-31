@@ -570,6 +570,7 @@ STREAMFILE* ffmpeg_get_streamfile(ffmpeg_codec_data* data);
 /* ffmpeg_decoder_utils.c (helper-things) */
 ffmpeg_codec_data* init_ffmpeg_atrac3_raw(STREAMFILE* sf, off_t offset, size_t data_size, int sample_count, int channels, int sample_rate, int block_align, int encoder_delay);
 ffmpeg_codec_data* init_ffmpeg_atrac3_riff(STREAMFILE* sf, off_t offset, int* out_samples);
+ffmpeg_codec_data* init_ffmpeg_aac(STREAMFILE* sf, off_t offset, size_t size);
 
 
 /* ffmpeg_decoder_custom_opus.c (helper-things) */

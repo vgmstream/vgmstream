@@ -42,14 +42,14 @@ VGMSTREAM* init_vgmstream_strm_abylight(STREAMFILE* sf) {
 
 #ifdef VGM_USE_FFMPEG
     {
-        vgmstream->codec_data = init_ffmpeg_offset(sf, start_offset, data_size);
+        vgmstream->codec_data = init_ffmpeg_aac(sf, start_offset, data_size);
         if (!vgmstream->codec_data) goto fail;
         vgmstream->coding_type = coding_FFmpeg;
         vgmstream->layout_type = layout_none;
 
-        /* apparently none, or maybe ~600 */
-        //ffmpeg_set_skip_samples(ffmpeg_data, 1024);
-        //vgmstream->num_samples -= 1024;
+        /* assumed, maybe a bit more */
+        ffmpeg_set_skip_samples(vgmstream->codec_data, 1024);
+        vgmstream->num_samples -= 1024;
     }
 #else
     goto fail;

@@ -66,6 +66,11 @@ VGMSTREAM* init_vgmstream_ffmpeg(STREAMFILE* sf) {
     /* hack for AAC files (will return 0 samples if not an actual file) */
     if (!num_samples && check_extensions(sf, "aac,laac")) {
         num_samples = aac_get_samples(sf, 0x00, get_streamfile_size(sf));
+
+        if (num_samples > 0) {
+            /* FFmpeg seeks to 0 eats first frame for whatever reason */
+            ffmpeg_set_force_seek(data);
+        }
     }
 
 #ifdef VGM_USE_MPEG

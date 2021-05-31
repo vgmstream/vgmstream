@@ -1006,6 +1006,7 @@ size_t aac_get_samples(STREAMFILE* sf, off_t start_offset, size_t bytes) {
         if (frame_size <= 0x08)
             break;
 
+        //;VGM_LOG("AAC: %lx, %x\n", offset, frame_size);
         frames++;
         offset += frame_size;
     }
