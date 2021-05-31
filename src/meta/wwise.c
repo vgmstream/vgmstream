@@ -109,6 +109,10 @@ VGMSTREAM* init_vgmstream_wwise(STREAMFILE* sf) {
             }
 
             vgmstream->num_samples = pcm_bytes_to_samples(ww.data_size, ww.channels, ww.bits_per_sample);
+
+            /* truncated .bnk RIFFs that only have header and no data is possible [Metal Gear Solid V (PC)] */
+            if (ww.truncated && !vgmstream->num_samples)
+                vgmstream->num_samples = 1; /* force something to avoid broken subsongs */
             break;
 
         case IMA: /* common */
