@@ -404,6 +404,9 @@ static const hcakey_info hcakey_list[] = {
         /* Dragalia Lost (iOS/Android) */
         {2967411924141},            // 000002B2E7889CAD
 
+        /* maimai DX Splash (AC) */
+        {9170825592834449000},      // 7F4551499DF55E68
+
         /* D4DJ Groovy Mix (Android) [base files] */
         {393410674916959300},       // 0575ACECA945A444
         /* D4DJ Groovy Mix (Android) [music_* files, per-song later mixed with subkey] */
