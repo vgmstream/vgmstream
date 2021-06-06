@@ -16,6 +16,7 @@ static void block_callback(STREAMFILE *sf, deblock_io_data *data) {
         return;
 
     switch(data->cfg.codec) {
+        case 0x1a: /* ATRAC3 */
         case 0x1b: /* ATRAC3plus */
             data->data_size = read_32bitLE(data->physical_offset + 0x0c + 0x04 * data->cfg.channels, sf);
             data->skip_size = 0x0c + 0x04 * data->cfg.channels + 0x04;

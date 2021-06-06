@@ -4,7 +4,7 @@
 
 /* also see init_vgmstream_dsp_sps_n1 and init_vgmstream_opus_sps_n1 */
 
-/* Nippon Ichi SPS wrapper [ClaDun (PSP)] */
+/* Nippon Ichi SPS wrapper [ClaDun (PSP), Legasista (PS3)] */
 VGMSTREAM* init_vgmstream_sps_n1(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     STREAMFILE* temp_sf = NULL;
@@ -14,15 +14,24 @@ VGMSTREAM* init_vgmstream_sps_n1(STREAMFILE* sf) {
 
     VGMSTREAM* (*init_vgmstream_subfile)(STREAMFILE*) = NULL;
     const char* extension;
-
+    uint32_t (*read_u32)(off_t,STREAMFILE*);
+    uint16_t (*read_u16)(off_t,STREAMFILE*);
 
     /* checks */
     if (!check_extensions(sf,"sps"))
         goto fail;
 
-    type = read_u32le(0x00,sf);
-    subfile_size = read_u32le(0x04,sf);
-    sample_rate = read_u16le(0x08,sf);
+    if (guess_endianness32bit(0x00, sf)) { /* PS3 */
+        read_u32 = read_u32be;
+        read_u16 = read_u16be;
+    }
+    else {
+        read_u32 = read_u32le;
+        read_u16 = read_u16le;
+    }
+    type = read_u32(0x00,sf);
+    subfile_size = read_u32(0x04,sf);
+    sample_rate = read_u16(0x08,sf);
     /* 0x0a: flag? (stereo?) */
     /* 0x0b: flag? */
     /* 0x0c: num_samples */

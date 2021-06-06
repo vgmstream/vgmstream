@@ -252,6 +252,9 @@ static const adxkey_info adxkey9_list[] = {
         /* Assault Lily Last Bullet (Android) */
         {0x0000,0x0000,0x0000, NULL,6349046567469313},      // 00168E6C99510101 (+ AWB subkeys)
 
+        /* maimai DX Splash (AC) */
+        {0x0000,0x0000,0x0000, NULL,9170825592834449000},   // 7F4551499DF55E68
+
 };
 
 static const int adxkey8_list_count = sizeof(adxkey8_list) / sizeof(adxkey8_list[0]);
