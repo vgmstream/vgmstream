@@ -1100,3 +1100,24 @@ codec = XBOX
 num_samples = data_size
 #todo: there are dummy entries
 ```
+
+#### Machi-ing Maker 4 (X360) .xma.txth
+```
+codec = XMA2
+
+#00: id (0x819A584D)
+#04: null
+#08: fmt header offset
+#0c: fmt size
+start_offset = @0x10:BE
+data_size = @0x14:BE
+
+base_offset = @0x08:BE
+channels = @0x02:BE$2
+sample_rate = @0x04:BE
+
+num_samples = @0x24:BE
+loop_end = @0x24:BE #0x2c?
+loop_start = @0x28:BE
+loop_flag = @0x2c:BE
+```
