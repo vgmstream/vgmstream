@@ -841,7 +841,7 @@ VGMSTREAM* init_vgmstream_ea_mpf_mus(STREAMFILE* sf) {
     sub_version = read_u8(0x05, sf);
 
     if (version < 3 || version > 5) goto fail;
-    if (version == 5 && sub_version > 2) goto fail; /* newer version using SNR/SNS */
+    if (version == 5 && sub_version > 3) goto fail;
 
     num_tracks = read_u8(0x0d, sf);
     num_sections = read_u8(0x0e, sf);
