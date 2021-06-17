@@ -358,7 +358,7 @@ size_t ps_find_padding(STREAMFILE *streamFile, off_t start_offset, size_t data_s
     size_t interleave_consumed = 0;
 
 
-    if (data_size == 0 || channels == 0 || (channels > 0 && interleave == 0))
+    if (data_size == 0 || channels == 0 || (channels > 1 && interleave == 0))
         return 0;
 
     offset = start_offset + data_size;
@@ -405,7 +405,7 @@ size_t ps_find_padding(STREAMFILE *streamFile, off_t start_offset, size_t data_s
         interleave_consumed += 0x10;
         if (interleave_consumed == interleave) {
             interleave_consumed = 0;
-            offset -= interleave*(channels - 1);
+            offset -= interleave * (channels - 1);
         }
     }
 

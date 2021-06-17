@@ -8,7 +8,9 @@ VGMSTREAM* init_vgmstream_msb_msh(STREAMFILE* sf) {
     off_t start_offset, header_offset = 0;
     size_t stream_size;
     int loop_flag, channels, sample_rate;
+    int32_t  loop_start, loop_end;
     int total_subsongs, target_subsong = sf->stream_index;
+    uint32_t config;
 
 
     /* checks */
@@ -20,12 +22,12 @@ VGMSTREAM* init_vgmstream_msb_msh(STREAMFILE* sf) {
 
     if (read_u32le(0x00,sh) != get_streamfile_size(sh))
         goto fail;
-    /* 0x04: unknown */
+    /* 0x04: flags? (0x04/34*/
 
     /* parse entries */
     {
         int i;
-        int entries = read_s32le(0x08,sh);
+        int entries = read_s32le(0x08,sh); /* may be less than file size, or include dummies (all dummies is possible too) */
 
         total_subsongs = 0;
         if (target_subsong == 0) target_subsong = 1;
@@ -45,14 +47,19 @@ VGMSTREAM* init_vgmstream_msb_msh(STREAMFILE* sf) {
     }
 
 
-    loop_flag = 0;
-    channels = 1;
-
     stream_size  = read_u32le(header_offset+0x00, sh);
-    if (read_u32le(header_offset+0x04, sh) != 0) /* stereo flag? */
-        goto fail;
+    config       = read_u32le(header_offset+0x04, sh); /* volume (0~100), null, null, loop (0/1) */
     start_offset = read_u32le(header_offset+0x08, sh);
     sample_rate  = read_u32le(header_offset+0x0c, sh); /* Ace Combat 2 seems to set wrong values but probably their bug */
+
+    loop_flag = (config & 1);
+    channels = 1;
+
+    /* rare [Dr. Seuss Cat in the Hat (PS2)] */
+    if (loop_flag) {
+        /* when loop is set ADPCM has loop flags, but rarely appear too without loop set */
+        loop_flag = ps_find_loop_offsets(sf, start_offset, stream_size, channels, 0, &loop_start, &loop_end);
+    }
 
 
     /* build the VGMSTREAM */
@@ -62,6 +69,8 @@ VGMSTREAM* init_vgmstream_msb_msh(STREAMFILE* sf) {
     vgmstream->meta_type = meta_MSB_MSH;
     vgmstream->sample_rate = sample_rate;
     vgmstream->num_samples = ps_bytes_to_samples(stream_size, channels);
+    vgmstream->loop_start_sample = loop_start;
+    vgmstream->loop_end_sample = loop_end;
 
     vgmstream->num_streams = total_subsongs;
     vgmstream->stream_size = stream_size;
