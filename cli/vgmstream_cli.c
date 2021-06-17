@@ -554,6 +554,7 @@ void replace_filename(char* dst, size_t dstsize, const char* outfilename, const 
 /* ************************************************************ */
 
 static int convert_file(cli_config* cfg);
+static int write_file(VGMSTREAM* vgmstream, cli_config* cfg);
 
 int main(int argc, char** argv) {
     cli_config cfg = {0};
@@ -596,13 +597,8 @@ fail:
 
 static int convert_file(cli_config* cfg) {
     VGMSTREAM* vgmstream = NULL;
-    FILE* outfile = NULL;
     char outfilename_temp[PATH_LIMIT];
-
-    sample_t* buf = NULL;
-    int channels, input_channels;
     int32_t len_samples;
-    int i, j;
 
 
     /* for plugin testing */
@@ -641,18 +637,26 @@ static int convert_file(cli_config* cfg) {
     /* modify the VGMSTREAM if needed (before printing file info) */
     apply_config(vgmstream, cfg);
 
-    channels = vgmstream->channels;
-    input_channels = vgmstream->channels;
-
     /* enable after config but before outbuf */
-    if (cfg->downmix_channels)
+    if (cfg->downmix_channels) {
         vgmstream_mixing_autodownmix(vgmstream, cfg->downmix_channels);
-    vgmstream_mixing_enable(vgmstream, SAMPLE_BUFFER_SIZE, &input_channels, &channels);
+    }
+    else if (cfg->only_stereo >= 0) {
+        vgmstream_mixing_stereo_only(vgmstream, cfg->only_stereo);
+    }
+    vgmstream_mixing_enable(vgmstream, SAMPLE_BUFFER_SIZE, NULL, NULL);
 
     /* get final play config */
     len_samples = vgmstream_get_samples(vgmstream);
     if (len_samples <= 0)
         goto fail;
+
+    if (cfg->seek_samples1 < -1) /* ex value for loop testing */
+        cfg->seek_samples1 = vgmstream->loop_start_sample;
+    if (cfg->seek_samples1 >= len_samples)
+        cfg->seek_samples1 = -1;
+    if (cfg->seek_samples2 >= len_samples)
+        cfg->seek_samples2 = -1;
 
     if (cfg->play_forever && !vgmstream_get_play_forever(vgmstream)) {
         fprintf(stderr, "file can't be played forever");
@@ -661,10 +665,7 @@ static int convert_file(cli_config* cfg) {
 
 
     /* prepare output */
-    if (cfg->play_sdtout) {
-        outfile = stdout;
-    }
-    else if (!cfg->print_metaonly  && !cfg->decode_only) {
+    {
         if (cfg->outfilename_config) {
             /* special substitution */
             replace_filename(outfilename_temp, sizeof(outfilename_temp), cfg->outfilename_config, cfg->infilename, vgmstream);
@@ -684,16 +685,6 @@ static int convert_file(cli_config* cfg) {
             fprintf(stderr, "same infile and outfile name: %s\n", cfg->outfilename);
             goto fail;
         }
-
-        outfile = fopen(cfg->outfilename,"wb");
-        if (!outfile) {
-            fprintf(stderr, "failed to open %s for output\n", cfg->outfilename);
-            goto fail;
-        }
-
-        /* no improvement */
-        //setvbuf(outfile, NULL, _IOFBF, SAMPLE_BUFFER_SIZE * sizeof(sample_t) * input_channels);
-        //setvbuf(outfile, NULL, _IONBF, 0);
     }
 
 
@@ -713,26 +704,49 @@ static int convert_file(cli_config* cfg) {
 
     /* prints done */
     if (cfg->print_metaonly) {
-        if (!cfg->play_sdtout) {
-            if (outfile != NULL)
-                fclose(outfile);
-        }
         close_vgmstream(vgmstream);
         return 1;
     }
 
-    if (cfg->seek_samples1 < -1) /* ex value for loop testing */
-        cfg->seek_samples1 = vgmstream->loop_start_sample;
-    if (cfg->seek_samples1 >= len_samples)
-        cfg->seek_samples1 = -1;
-    if (cfg->seek_samples2 >= len_samples)
-        cfg->seek_samples2 = -1;
 
-    if (cfg->seek_samples2 >= 0)
-        len_samples -= cfg->seek_samples2;
-    else if (cfg->seek_samples1 >= 0)
-        len_samples -= cfg->seek_samples1;
+    /* main decode */
+    write_file(vgmstream, cfg);
 
+    /* try again with (for testing reset_vgmstream, simulates a seek to 0 after changing internal state)
+     * (could simulate by seeking to last sample then to 0, too */
+    if (cfg->test_reset) {
+        char outfilename_reset[PATH_LIMIT];
+        strcpy(outfilename_reset, cfg->outfilename);
+        strcat(outfilename_reset, ".reset.wav");
+
+        cfg->outfilename = outfilename_reset;
+
+        reset_vgmstream(vgmstream);
+
+        write_file(vgmstream, cfg);
+    }
+
+    close_vgmstream(vgmstream);
+    return 1;
+
+fail:
+    close_vgmstream(vgmstream);
+    return 0;
+}
+
+
+static int write_file(VGMSTREAM* vgmstream, cli_config* cfg) {
+    FILE* outfile = NULL;
+    int32_t len_samples;
+    sample_t* buf = NULL;
+    int i;
+    int channels, input_channels;
+
+
+    channels = vgmstream->channels;
+    input_channels = vgmstream->channels;
+
+    vgmstream_mixing_enable(vgmstream, 0, &input_channels, &channels);
 
     /* last init */
     buf = malloc(SAMPLE_BUFFER_SIZE * sizeof(sample_t) * input_channels);
@@ -741,6 +755,36 @@ static int convert_file(cli_config* cfg) {
         goto fail;
     }
 
+    /* simulate seek */
+    len_samples = vgmstream_get_samples(vgmstream);
+    if (cfg->seek_samples2 >= 0)
+        len_samples -= cfg->seek_samples2;
+    else if (cfg->seek_samples1 >= 0)
+        len_samples -= cfg->seek_samples1;
+
+    if (cfg->seek_samples1 >= 0)
+        seek_vgmstream(vgmstream, cfg->seek_samples1);
+    if (cfg->seek_samples2 >= 0)
+        seek_vgmstream(vgmstream, cfg->seek_samples2);
+
+
+    /* output file */
+    if (cfg->play_sdtout) {
+        outfile = stdout;
+    }
+    else if (!cfg->decode_only) {
+        outfile = fopen(cfg->outfilename, "wb");
+        if (!outfile) {
+            fprintf(stderr, "failed to open %s for output\n", cfg->outfilename);
+            goto fail;
+        }
+
+        /* no improvement */
+        //setvbuf(outfile, NULL, _IOFBF, SAMPLE_BUFFER_SIZE * sizeof(sample_t) * input_channels);
+        //setvbuf(outfile, NULL, _IONBF, 0);
+    }
+
+
     /* decode forever */
     while (cfg->play_forever) {
         int to_get = SAMPLE_BUFFER_SIZE;
@@ -748,34 +792,23 @@ static int convert_file(cli_config* cfg) {
         render_vgmstream(buf, to_get, vgmstream);
 
         swap_samples_le(buf, channels * to_get); /* write PC endian */
-        if (cfg->only_stereo != -1) {
-            for (j = 0; j < to_get; j++) {
-                fwrite(buf + j*channels + (cfg->only_stereo*2), sizeof(sample_t), 2, outfile);
-            }
-        } else {
-            fwrite(buf, sizeof(sample_t) * channels, to_get, outfile);
-        }
+        fwrite(buf, sizeof(sample_t) * channels, to_get, outfile);
+        /* should write infinitely until program kill */
     }
 
 
     /* slap on a .wav header */
     if (!cfg->decode_only) {
         uint8_t wav_buf[0x100];
-        int channels_write = (cfg->only_stereo != -1) ? 2 : channels;
         size_t bytes_done;
 
         bytes_done = make_wav_header(wav_buf,0x100,
-                len_samples, vgmstream->sample_rate, channels_write,
+                len_samples, vgmstream->sample_rate, channels,
                 cfg->write_lwav, cfg->lwav_loop_start, cfg->lwav_loop_end);
 
-        fwrite(wav_buf,sizeof(uint8_t),bytes_done,outfile);
+        fwrite(wav_buf, sizeof(uint8_t), bytes_done, outfile);
     }
 
-
-    if (cfg->seek_samples1 >= 0)
-        seek_vgmstream(vgmstream, cfg->seek_samples1);
-    if (cfg->seek_samples2 >= 0)
-        seek_vgmstream(vgmstream, cfg->seek_samples2);
 
     /* decode */
     for (i = 0; i < len_samples; i += SAMPLE_BUFFER_SIZE) {
@@ -787,95 +820,21 @@ static int convert_file(cli_config* cfg) {
 
         if (!cfg->decode_only) {
             swap_samples_le(buf, channels * to_get); /* write PC endian */
-            if (cfg->only_stereo != -1) {
-                for (j = 0; j < to_get; j++) {
-                    fwrite(buf + j*channels + (cfg->only_stereo*2), sizeof(sample_t), 2, outfile);
-                }
-            } else {
-                fwrite(buf, sizeof(sample_t), to_get * channels, outfile);
-            }
+            fwrite(buf, sizeof(sample_t) * channels, to_get, outfile);
         }
     }
 
-    if (outfile != NULL) {
+    if (outfile && !cfg->play_sdtout)
         fclose(outfile);
-        outfile = NULL;
-    }
-
-
-    /* try again with (for testing reset_vgmstream, simulates a seek to 0 after changing internal state) */
-    if (cfg->test_reset) {
-        char outfilename_reset[PATH_LIMIT];
-        strcpy(outfilename_reset, cfg->outfilename);
-        strcat(outfilename_reset, ".reset.wav");
-
-        outfile = fopen(outfilename_reset,"wb");
-        if (!outfile) {
-            fprintf(stderr, "failed to open %s for output\n", outfilename_reset);
-            goto fail;
-        }
-
-        /* slap on a .wav header */
-        if (!cfg->decode_only) {
-            uint8_t wav_buf[0x100];
-            int channels_write = (cfg->only_stereo != -1) ? 2 : channels;
-            size_t bytes_done;
-
-            bytes_done = make_wav_header(wav_buf,0x100,
-                    len_samples, vgmstream->sample_rate, channels_write,
-                    cfg->write_lwav, cfg->lwav_loop_start, cfg->lwav_loop_end);
-
-            fwrite(wav_buf,sizeof(uint8_t),bytes_done,outfile);
-        }
-
-
-        reset_vgmstream(vgmstream);
-
-        if (cfg->seek_samples1 >= 0)
-            seek_vgmstream(vgmstream, cfg->seek_samples1);
-        if (cfg->seek_samples2 >= 0)
-            seek_vgmstream(vgmstream, cfg->seek_samples2);
-
-        /* decode */
-        for (i = 0; i < len_samples; i += SAMPLE_BUFFER_SIZE) {
-            int to_get = SAMPLE_BUFFER_SIZE;
-            if (i + SAMPLE_BUFFER_SIZE > len_samples)
-                to_get = len_samples - i;
-
-            render_vgmstream(buf, to_get, vgmstream);
-
-            if (!cfg->decode_only) {
-                swap_samples_le(buf, channels * to_get); /* write PC endian */
-                if (cfg->only_stereo != -1) {
-                    for (j = 0; j < to_get; j++) {
-                        fwrite(buf + j*channels + (cfg->only_stereo*2), sizeof(sample_t), 2, outfile);
-                    }
-                } else {
-                    fwrite(buf, sizeof(sample_t) * channels, to_get, outfile);
-                }
-            }
-        }
-
-        if (outfile != NULL) {
-            fclose(outfile);
-            outfile = NULL;
-        }
-    }
-
-    close_vgmstream(vgmstream);
     free(buf);
-
     return 1;
-
 fail:
-    if (!cfg->play_sdtout) {
-        if (outfile != NULL)
-            fclose(outfile);
-    }
-    close_vgmstream(vgmstream);
+    if (outfile && !cfg->play_sdtout)
+        fclose(outfile);
     free(buf);
     return 0;
 }
+
 
 #ifdef HAVE_JSON
 static void print_json_info(VGMSTREAM* vgm, cli_config* cfg) {

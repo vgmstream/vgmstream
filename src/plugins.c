@@ -532,3 +532,17 @@ void vgmstream_mixing_autodownmix(VGMSTREAM *vgmstream, int max_channels) {
 
     return;
 }
+
+void vgmstream_mixing_stereo_only(VGMSTREAM *vgmstream, int start) {
+    if (start < 0)
+        return;
+    /* could check to avoid making mono files in edge cases but meh */
+
+    /* remove channels before start */
+    while (start) {
+        mixing_push_downmix(vgmstream, 0);
+        start--;
+    }
+    /* remove channels after stereo */
+    mixing_push_killmix(vgmstream, start + 2);
+}
