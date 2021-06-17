@@ -1409,7 +1409,7 @@ static int get_vgmstream_file_bitrate_from_streamfile(STREAMFILE* sf, int sample
     return get_vgmstream_file_bitrate_from_size(get_streamfile_size(sf), sample_rate, length_samples);
 }
 
-static int get_vgmstream_file_bitrate_main(VGMSTREAM* vgmstream, bitrate_info_t* br) {
+static int get_vgmstream_file_bitrate_main(VGMSTREAM* vgmstream, bitrate_info_t* br, int* p_uniques) {
     int i, ch;
     int bitrate = 0;
 
@@ -1423,15 +1423,18 @@ static int get_vgmstream_file_bitrate_main(VGMSTREAM* vgmstream, bitrate_info_t*
      * become a bit high since its hard to detect only part of the file is needed. */
 
     if (vgmstream->layout_type == layout_segmented) {
+        int uniques = 0;
         segmented_layout_data *data = (segmented_layout_data *) vgmstream->layout_data;
         for (i = 0; i < data->segment_count; i++) {
-            bitrate += get_vgmstream_file_bitrate_main(data->segments[i], br);
+            bitrate += get_vgmstream_file_bitrate_main(data->segments[i], br, &uniques);
         }
+        if (uniques)
+            bitrate /= uniques; /* average */
     }
     else if (vgmstream->layout_type == layout_layered) {
         layered_layout_data *data = vgmstream->layout_data;
         for (i = 0; i < data->layer_count; i++) {
-            bitrate += get_vgmstream_file_bitrate_main(data->layers[i], br);
+            bitrate += get_vgmstream_file_bitrate_main(data->layers[i], br, NULL);
         }
     }
     else {
@@ -1467,6 +1470,8 @@ static int get_vgmstream_file_bitrate_main(VGMSTREAM* vgmstream, bitrate_info_t*
                 br->subsong[br->count] = subsong_cur;
 
                 br->count++;
+                if (p_uniques)
+                    (*p_uniques)++;
 
                 if (vgmstream->stream_size) {
                     /* stream_size applies to both channels but should add once and detect repeats (for current subsong) */
@@ -1494,7 +1499,7 @@ int get_vgmstream_average_bitrate(VGMSTREAM* vgmstream) {
     bitrate_info_t br = {0};
     br.count_max = BITRATE_FILES_MAX;
 
-    return get_vgmstream_file_bitrate_main(vgmstream, &br);
+    return get_vgmstream_file_bitrate_main(vgmstream, &br, NULL);
 }
 
 

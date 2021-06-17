@@ -311,7 +311,7 @@ static const char* extension_list[] = {
     "mdsp",
     "med",
     "mjb",
-    "mi4",
+    "mi4", //fake extension for .mib (renamed, to be removed)
     "mib",
     "mic",
     "mihb",
@@ -581,7 +581,6 @@ static const char* extension_list[] = {
     "wii",
     "wip", //txth/reserved [Colin McRae DiRT (PC)]
     "wlv", //txth/reserved [ToeJam & Earl III: Mission to Earth (DC)]
-    "wma", //common
     "wmus",
     "wp2",
     "wpd",
@@ -658,6 +657,7 @@ static const char* common_extension_list[] = {
     "ogg", //common
     "opus", //common
     "wav", //common
+    "wma", //common
 };
 
 
