@@ -216,7 +216,15 @@ void decode_pcmfloat(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelsp
     }
 }
 
-size_t pcm_bytes_to_samples(size_t bytes, int channels, int bits_per_sample) {
+int32_t pcm_bytes_to_samples(size_t bytes, int channels, int bits_per_sample) {
     if (channels <= 0 || bits_per_sample <= 0) return 0;
     return ((int64_t)bytes * 8) / channels / bits_per_sample;
+}
+
+int32_t pcm16_bytes_to_samples(size_t bytes, int channels) {
+    return pcm_bytes_to_samples(bytes, channels, 16);
+}
+
+int32_t pcm8_bytes_to_samples(size_t bytes, int channels) {
+    return pcm_bytes_to_samples(bytes, channels, 8);
 }

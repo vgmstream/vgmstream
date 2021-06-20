@@ -90,7 +90,9 @@ void decode_ulaw(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing,
 void decode_ulaw_int(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
 void decode_alaw(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
 void decode_pcmfloat(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int big_endian);
-size_t pcm_bytes_to_samples(size_t bytes, int channels, int bits_per_sample);
+int32_t pcm_bytes_to_samples(size_t bytes, int channels, int bits_per_sample);
+int32_t pcm16_bytes_to_samples(size_t bytes, int channels);
+int32_t pcm8_bytes_to_samples(size_t bytes, int channels);
 
 
 /* psx_decoder */
