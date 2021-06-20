@@ -190,6 +190,7 @@ fail:
 
 static void load_awb_name(STREAMFILE* sf, STREAMFILE* sf_acb, VGMSTREAM* vgmstream, int waveid) {
     int is_memory = (sf_acb != NULL);
+    int port = 0;
 
     /* .acb is passed when loading memory .awb inside .acb */
     if (!is_memory) {
@@ -198,7 +199,7 @@ static void load_awb_name(STREAMFILE* sf, STREAMFILE* sf_acb, VGMSTREAM* vgmstre
         int len_name, len_cmp;
 
         /* try parsing TXTM if present */
-        sf_acb = read_filemap_file(sf, 0);
+        sf_acb = read_filemap_file_pos(sf, 0, &port);
 
         /* try (name).awb + (name).awb */
         if (!sf_acb) {
@@ -233,27 +234,12 @@ static void load_awb_name(STREAMFILE* sf, STREAMFILE* sf_acb, VGMSTREAM* vgmstre
             }
         }
 
-        /* try (name)_(name)_R001.awb + (name).acb [Sengoku Basara Battle Party (Mobile)] */
-        if (!sf_acb) {
-            char *cmp = "_R001";
-            get_streamfile_basename(sf, filename, sizeof(filename));
-            len_name = strlen(filename);
-            len_cmp = strlen(cmp);
-
-            if (len_name > len_cmp && strcmp(filename + len_name - len_cmp, cmp) == 0) {
-                filename[(len_name - len_cmp) / 2] = '\0';
-                strcat(filename, ".acb");
-                VGM_LOG("%s\n", filename);
-                sf_acb = open_streamfile_by_filename(sf, filename);
-            }
-        }
-
 		/* probably loaded */
-        load_acb_wave_name(sf_acb, vgmstream, waveid, is_memory);
+        load_acb_wave_name(sf_acb, vgmstream, waveid, port, is_memory);
 
         close_streamfile(sf_acb);
     }
     else {
-        load_acb_wave_name(sf_acb, vgmstream, waveid, is_memory);
+        load_acb_wave_name(sf_acb, vgmstream, waveid, port, is_memory);
     }
 }

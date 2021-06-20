@@ -1526,74 +1526,33 @@ fail:
     return NULL;
 }
 
-static size_t silence_io_read(STREAMFILE* sf, uint8_t *dest, off_t offset, size_t length, void* data) {
-    int i;
-    for (i = 0; i < length; i++) {
-        dest[i] = 0;
-    }
-    return length; /* pretend we read zeroes */
-}
-static size_t silence_io_size(STREAMFILE* sf, void* data) {
-    return 0x7FFFFFF; /* whatevs */
-}
-static STREAMFILE* setup_silence_streamfile(STREAMFILE* sf) {
-    STREAMFILE *temp_sf = NULL, *new_sf = NULL;
-
-    /* setup custom streamfile */
-    new_sf = open_wrap_streamfile(sf);
-    if (!new_sf) goto fail;
-    temp_sf = new_sf;
-
-    new_sf = open_io_streamfile(temp_sf, NULL,0, silence_io_read,silence_io_size);
-    if (!new_sf) goto fail;
-    temp_sf = new_sf;
-
-    return temp_sf;
-
-fail:
-    close_streamfile(temp_sf);
-    return NULL;
-}
 
 static VGMSTREAM* init_vgmstream_ubi_sb_silence(ubi_sb_header* sb, STREAMFILE* sf_index, STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
-    STREAMFILE* temp_sf = NULL;
-    int channel_count, sample_rate;
+    int channels, sample_rate;
+    int32_t num_samples;
 
-    channel_count = sb->channels;
+    /* by default silences don't have settings */
+    channels = sb->channels;
+    if (channels == 0)
+        channels = 2;
     sample_rate = sb->sample_rate;
-
-    /* by default silences don't have settings so let's pretend */
-    if (channel_count == 0)
-        channel_count = 2;
     if (sample_rate == 0)
         sample_rate = 48000;
+    num_samples = sb->duration * sample_rate;
 
 
-    /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count, 0);
+    /* init the VGMSTREAM */
+    vgmstream = init_vgmstream_silence(channels, sample_rate, num_samples);
     if (!vgmstream) goto fail;
 
     vgmstream->meta_type = meta_UBI_SB;
-    vgmstream->sample_rate = sample_rate;
-
-    vgmstream->num_samples = (int32_t)(sb->duration * (float)sample_rate);
     vgmstream->num_streams = sb->total_subsongs;
-    vgmstream->stream_size = vgmstream->num_samples * channel_count * 0x02; /* PCM size */
 
-    vgmstream->coding_type = coding_PCM16LE;
-    vgmstream->layout_type = layout_interleave;
-    vgmstream->interleave_block_size = 0x02;
-
-    temp_sf = setup_silence_streamfile(sf);
-    if ( !vgmstream_open_stream(vgmstream, temp_sf, 0x00) )
-        goto fail;
-    close_streamfile(temp_sf);
     return vgmstream;
 
 fail:
     close_vgmstream(vgmstream);
-    close_streamfile(temp_sf);
     return vgmstream;
 }
 

@@ -1123,9 +1123,14 @@ fail:
 }
 
 STREAMFILE* read_filemap_file(STREAMFILE* sf, int file_num) {
+    return read_filemap_file_pos(sf, file_num, NULL);
+}
+
+STREAMFILE* read_filemap_file_pos(STREAMFILE* sf, int file_num, int* p_pos) {
     char filename[PATH_LIMIT];
     off_t txt_offset, file_size;
     STREAMFILE* sf_map = NULL;
+    int file_pos = 0;
 
     sf_map = open_streamfile_by_filename(sf, ".txtm");
     if (!sf_map) goto fail;
@@ -1136,10 +1141,10 @@ STREAMFILE* read_filemap_file(STREAMFILE* sf, int file_num) {
     file_size = get_streamfile_size(sf_map);
 
     /* skip BOM if needed */
-    if ((uint16_t)read_16bitLE(0x00, sf_map) == 0xFFFE ||
-        (uint16_t)read_16bitLE(0x00, sf_map) == 0xFEFF) {
+    if (read_u16le(0x00, sf_map) == 0xFFFE ||
+        read_u16le(0x00, sf_map) == 0xFEFF) {
         txt_offset = 0x02;
-    } else if (((uint32_t)read_32bitBE(0x00, sf_map) & 0xFFFFFF00) == 0xEFBBBF00) {
+    } else if ((read_u32be(0x00, sf_map) & 0xFFFFFF00) == 0xEFBBBF00) {
         txt_offset = 0x03;
     }
 
@@ -1174,8 +1179,9 @@ STREAMFILE* read_filemap_file(STREAMFILE* sf, int file_num) {
                 if (ok != 1)
                     goto fail;
 
-                if (i == file_num)
-                {
+                if (i == file_num) {
+                    if (p_pos) *p_pos = file_pos;
+
                     close_streamfile(sf_map);
                     return open_streamfile_by_filename(sf, subval);
                 }
@@ -1185,6 +1191,7 @@ STREAMFILE* read_filemap_file(STREAMFILE* sf, int file_num) {
                     current++;
             }
         }
+        file_pos++;
     }
 
 fail:

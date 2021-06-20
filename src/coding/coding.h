@@ -90,7 +90,9 @@ void decode_ulaw(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing,
 void decode_ulaw_int(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
 void decode_alaw(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
 void decode_pcmfloat(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int big_endian);
-size_t pcm_bytes_to_samples(size_t bytes, int channels, int bits_per_sample);
+int32_t pcm_bytes_to_samples(size_t bytes, int channels, int bits_per_sample);
+int32_t pcm16_bytes_to_samples(size_t bytes, int channels);
+int32_t pcm8_bytes_to_samples(size_t bytes, int channels);
 
 
 /* psx_decoder */
@@ -159,7 +161,7 @@ STREAMFILE* nwa_get_streamfile(nwa_codec_data* data);
 #define MSADPCM_MAX_BLOCK_SIZE  0x800 /* known max and RIFF spec seems to concur, while MS's encoders may be lower (typical stereo: 0x8c, 0x2C, 0x48, 0x400) */
 
 void decode_msadpcm_stereo(VGMSTREAM* vgmstream, sample_t* outbuf, int32_t first_sample, int32_t samples_to_do);
-void decode_msadpcm_mono(VGMSTREAM* vgmstream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel);
+void decode_msadpcm_mono(VGMSTREAM* vgmstream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel, int config);
 void decode_msadpcm_ck(VGMSTREAM* vgmstream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel);
 long msadpcm_bytes_to_samples(long bytes, int block_size, int channels);
 int msadpcm_check_coefs(STREAMFILE* sf, off_t offset);

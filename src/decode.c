@@ -1290,7 +1290,8 @@ void decode_vgmstream(VGMSTREAM* vgmstream, int samples_written, int samples_to_
             if (vgmstream->channels == 1 || vgmstream->coding_type == coding_MSADPCM_int) {
                 for (ch = 0; ch < vgmstream->channels; ch++) {
                     decode_msadpcm_mono(vgmstream,buffer+ch,
-                            vgmstream->channels,vgmstream->samples_into_block, samples_to_do, ch);
+                            vgmstream->channels,vgmstream->samples_into_block, samples_to_do, ch,
+                            vgmstream->codec_config);
                 }
             }
             else if (vgmstream->channels == 2) {

@@ -222,6 +222,7 @@ fail:
 
 static void load_cpk_name(STREAMFILE* sf, STREAMFILE* sf_acb, VGMSTREAM* vgmstream, int waveid) {
     int is_memory = (sf_acb != NULL);
+    int port = -1; /* cpk has no port numbers */
 
     /* .acb is passed when loading memory .awb inside .acb */
     if (!is_memory) {
@@ -238,11 +239,11 @@ static void load_cpk_name(STREAMFILE* sf, STREAMFILE* sf_acb, VGMSTREAM* vgmstre
             return;
 
 		/* companion .acb probably loaded */
-        load_acb_wave_name(sf_acb, vgmstream, waveid, is_memory);
+        load_acb_wave_name(sf_acb, vgmstream, waveid, port, is_memory);
 
         close_streamfile(sf_acb);
     }
     else {
-        load_acb_wave_name(sf_acb, vgmstream, waveid, is_memory);
+        load_acb_wave_name(sf_acb, vgmstream, waveid, port, is_memory);
     }
 }

@@ -179,9 +179,6 @@
     <ClInclude Include="meta\sfh_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="meta\sqex_scd_streamfile.h">
-      <Filter>meta\Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="meta\sqex_sead_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
@@ -391,7 +388,7 @@
     <ClCompile Include="meta\adpcm_capcom.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ads.c">
+    <ClCompile Include="meta\ads_midway.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\adx.c">
@@ -916,7 +913,7 @@
     <ClCompile Include="meta\ps2_rstm.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ps2_rxws.c">
+    <ClCompile Include="meta\rxws.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ps2_sfs.c">
@@ -1583,9 +1580,6 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\silence.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="meta\ngca.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\opus.c">

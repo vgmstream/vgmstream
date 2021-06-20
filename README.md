@@ -8,7 +8,7 @@ Some of vgmstream's features:
   obscure single-game codecs, aiming for high accuracy and compatibility.
 - support for looped BGM, using file's internal metadata for smooth transitions,
   with accurate sample counts
-- subsongs, playing internal songs separatedly
+- subsongs, playing a format's multiple internal songs separatedly
 - encryption keys, audio split in multiple files, internal stream names, and many
   other unusual cases found in game audio
 - TXTH function, to support extra formats (including raw audio in many forms)
@@ -17,6 +17,16 @@ Some of vgmstream's features:
 - simple external tagging via .m3u files
 - plugins available for various common players and O.S.
 
+Latest development is here: https://github.com/vgmstream/vgmstream/
+
+Automated builds with the latest changes: https://vgmstream.org/downloads
+
+Help can be found here: https://www.hcs64.com/
+
+More technical docs: https://github.com/vgmstream/vgmstream/tree/master/doc
+
+
+## Usage
 There are multiple end-user bits:
 - a command line decoder called "test.exe/vgmstream-cli"
 - a Winamp plugin called "in_vgmstream"
@@ -25,24 +35,30 @@ There are multiple end-user bits:
 - an Audacious plugin called "libvgmstream"
 - a command line player called "vgmstream123"
 
-Help can be found here: https://www.hcs64.com/
+Main lib (plain vgmstream) is the code that handles internal conversion, while the
+above components are what you use to actually get sound. See *components* below for
+explanations about each one.
 
-Latest development is usually here: https://github.com/vgmstream/vgmstream/
+### Files
+On Windows, after compiling with the build scripts you should get `vgmstream-win.zip`
+(bundle of various components) and `foo_input_vgmstream.fb2k-component` (installable
+foobar2000 plugin).
 
-Automated builds with the latest changes: https://vgmstream.org/downloads
+For Linux and similar O.S., you need to build them manually.
 
-Releases are here: https://github.com/vgmstream/vgmstream/releases
+You can find automatically pre-built binaries in https://vgmstream.org/downloads
 
-You can find further info about other details in https://github.com/vgmstream/vgmstream/tree/master/doc
+If the above link fails you may find alt, recent-ish versions here:
+https://github.com/bnnm/vgmstream-builds/raw/master/bin/vgmstream-latest-test-u.zip
 
-
-## Needed extra files (for Windows)
-Support for some codecs (Ogg Vorbis, MPEG audio, etc) is done with external
+### Needed extra files (for Windows)
+On Windows support for some codecs (Ogg Vorbis, MPEG audio, etc) is done with external
 libraries, so you will need to have certain DLL files.
 
-In the case of the foobar2000 component they are all bundled for convenience,
-or you can get them here: https://github.com/vgmstream/vgmstream/tree/master/ext_libs
-(bundled here: https://f.losno.co/vgmstream-win32-deps.zip, may not be latest).
+In the case of components like foobar2000 they are all bundled for convenience,
+while other components include them but must be installed manually.
+You can also get them here: https://github.com/vgmstream/vgmstream/tree/master/ext_libs
+or compile them manually, even (see tech docs).
 
 Put the following files somewhere Windows can find them:
 - `libvorbis.dll`
@@ -57,21 +73,26 @@ Put the following files somewhere Windows can find them:
 - `libcelt-0110.dll`
 - `libspeex.dll`
 
-For Winamp/XMPlay/command line this means in the directory with the main .exe,
+For Winamp/XMPlay/command line (`test.exe`) this means in the directory with the main `.exe`,
 or in a system directory, or any other directory in the PATH variable.
+
+On other OSs like Linux/Mac, libs need to be installed before compiling, then should be used
+automatically, though not all may enabled at the moment due to build scripts issues.
 
 
 ## Components
 
-### test.exe/vgmstream-cli
-*Installation*: unzip the file and follow the above instructions for installing
-the other files needed.
+### test.exe/vgmstream-cli (command line decoder)
+*Windows*: unzip `test.exe` and follow the above instructions for installing needed extra files.
 
-Converts playable files to wav. Typical usage would be:
+*Others*: build instructions can be found in doc/BUILD.md document in vgmstream's source
+code (can be compiled with CMake/Make/autotools).
+
+Converts playable files to `.wav`. Typical usage would be:
 - `test.exe -o happy.wav happy.adx` to decode `happy.adx` to `happy.wav`.
 
 If command-line isn't your thing you can simply drag and drop one or multiple
-files to the executable to decode them as `(filename).wav`.
+files to the executable to decode them as `(filename.ext).wav`.
 
 There are multiple options that alter how the file is converted, for example:
 - `test.exe -m file.adx`: print info but don't decode
@@ -100,41 +121,55 @@ Output filename in `-o` may use multiple wildcards:
 For example `test.exe -s 2 -o ?04s_?n.wav file.fsb` could generate `0002_song1.wav`
 
 
-### in_vgmstream
-*Installation*: drop the `in_vgmstream.dll` in your Winamp plugins directory,
+### in_vgmstream (Winamp plugin)
+*Windows*: drop the `in_vgmstream.dll` in your Winamp plugins directory,
+and follow the above instructions for installing needed extra files.
+
+*Others*: may be possible to use through *Wine*
+
+Once installed, supported files should be playable. There is a simple config
+menu to tweak some options too.
+
+
+### xmp-vgmstream (XMPlay plugin)
+*Windows*: drop the `xmp-vgmstream.dll` in your XMPlay plugins directory,
 and follow the above instructions for installing the other files needed.
 
-Once installed supported files should be playable.
+*Others*: may be possible to use through *Wine*
 
-### xmp-vgmstream
-*Installation*: drop the `xmp-vgmstream.dll` in your XMPlay plugins directory,
-and follow the above instructions for installing the other files needed.
-
-Note that this has less features compared to in_vgmstream and has no configuration.
+Note that this has less features compared to *in_vgmstream* and has no config.
 Since XMPlay supports Winamp plugins you may also use `in_vgmstream.dll` instead.
 
 Because the XMPlay MP3 decoder incorrectly tries to play some vgmstream extensions,
 you need to manually fix it by going to **options > plugins > input > vgmstream**
 and in the "priority filetypes" put: `ahx,asf,awc,ckd,fsb,genh,msf,p3d,rak,scd,txth,xvag`
 
-XMPlay cannot support subsongs due to player limitations, try using *TXTP* instead
-(explained below).
+XMPlay cannot support subsongs due to player limitations (with any plugin), try
+using *TXTP* instead (explained below).
 
-### foo_input_vgmstream
-*Installation*: every file should be installed automatically by the `.fb2k-component`
-bundle.
+
+### foo_input_vgmstream (foobar2000 plugin)
+*Windows*: every file should be installed automatically when opening the `.fb2k-component`
+bundle
+
+*Others*: may be possible to use through *Wine*
 
 A known quirk is that when loop options or tags change, playlist info won't refresh
 automatically. You need to manually refresh it by selecting songs and doing
 **shift + right click > Tagging > Reload info from file(s)**.
 
+
 ### Audacious plugin
-*Installation*: needs to be manually built. Instructions can be found in doc/BUILD.md
+*Windows*: not possible at the moment.
+
+*Others*: needs to be manually built. Instructions can be found in doc/BUILD.md
 document in vgmstream's source code (can be done with CMake or autotools).
 
-### vgmstream123
-*Installation*: needs to be manually built. Instructions can be found in doc/BUILD.md
+
+### vgmstream123 (command line player)
+*Windows/Linux*: needs to be manually built. Instructions can be found in doc/BUILD.md
 document in vgmstream's source code (can be done with CMake or autotools).
+On Windows it needs `libao.dll` and appropriate includes.
 
 Usage: `vgmstream123 [options] INFILE ...`
 
@@ -312,16 +347,6 @@ hex-editting), though only a few formats do this, mainly *Ubisoft* banks.
 
 Regular formats without companion files should work fine in upper/lowercase.
 
-#### .pos looping
-`.pos` is a small file with 32 bit little endian values: loop start sample and
-loop end sample. This is a real format, but is sometimes reused to force loops.
-
-If you want to force looping consider using *TXTP* instead, as it's much simpler
-to make and cleaner (plus doesn't hijack a real format). For example, make a text
-file named `bgm01-loop.txtp` and inside write `bgm01.mp3 #I 10.0 90.0`. Open the
-`.txtp` and vgmstream will loop that `.mp3` from 10 to 90 seconds.
-
-
 ### Decryption keys
 Certain formats have encrypted data, and need a key to decrypt. vgmstream
 will try to find the correct key from a list, but it can be provided by
@@ -345,12 +370,18 @@ dynamically during gameplay, or looping metadata is stored externally.
 Cases like those can be supported using an artificial files with info vgmstream
 needs.
 
-**GENH**: a byte header placed right before the original data, modyfing it.
-The resulting file must be `(name).genh`. Contains static header data.
-Programs like VGMToolbox can help to create *GENH*, but consider using *TXTH*
-instead.
+Creation of these files is meant for advanced users, docs can be found in
+vgmstream source.
 
-**TXTH**: a text header placed in an external file. The TXTH must be named
+#### GENH
+A byte header placed right before the original data, modyfing it.
+The resulting file must be `(name).genh`. Contains static header data.
+
+Programs like VGMToolbox can help to create *GENH*, but consider using *TXTH*
+instead, *GENH* is mostly deprecated.
+
+#### TXTH
+A text header placed in an external file. The TXTH must be named
 `.txth` or `.(ext).txth` (for the whole folder), or `(name.ext).txth` (for a
 single file). Contains dynamic text commands to read data from the original
 file, or static values. This allows vgmstream to play unsupported formats.
@@ -358,20 +389,28 @@ file, or static values. This allows vgmstream to play unsupported formats.
 *TXTH* is recommended over *GENH* as it's far easier to create and has many
 more functions, plus doesn't modify original data.
 
-For files that already play, sometimes they are used by the game in various
-complex and non-standard ways, like playing multiple small songs as a single
+#### TXTP
+Text files with player configuration, named `(name).txtp`.
+
+For files that already play, sometimes games use them in various complex
+and non-standard ways, like playing multiple small songs as a single
 one, or using some channels as a section of the song. For those cases we
-can create a *TXTP* file.
+can create a *TXTP* file to customize how vgmstream handles songs.
 
-**TXTP**: text files with player configuration, named `(name).txtp`. Text inside
-can contain a list of filenames to play as one (ex. `intro.vag(line)loop.vag`),
-list of separate channel files to join as a single multichannel file,
-subsong index (ex. `bgm.sxd#10`), per-file configurations like number of
-loops, remove unneeded channels, make looping files, and many other features.
+Text inside `.txtp` can contain a list of filenames to play as one (ex.
+`intro.vag(line)loop.vag`), a list of single-channel files to join as a single
+multichannel file, subsong index (ex. `bgm.sxd#10`), per-file configurations like
+number of loops, remove unneeded channels, force looping, and many other features.
 
-**TXTM**: text file named `.txtm` for formats with companion files. It lists
+For example, to force looping `bgm01.mp3`, make `bgm01-loop.txtp` and inside
+write `bgm01.mp3 #I 10.0 90.0`. Open the `.txtp` and vgmstream will loop that
+`.mp3` from 10 to 90 seconds.
+
+#### TXTM
+A text file named `.txtm` for some formats with companion files. It lists
 name combos determining which companion files to load for each main file.
-It is useful for formats where name combos are hardcoded so vgmstream doesn't
+
+It is needed for formats where name combos are hardcoded, so vgmstream doesn't
 know which companion file(s) to load if its name doesn't match the main file.
 Note that companion file order is usually important.
 
@@ -385,9 +424,12 @@ willow.mpf:willow.mus,willow_o.mus
 # Metal Gear Solid: Snake Eater 3D (3DS) names for .awb
 bgm_2_streamfiles.awb: bgm_2.acb
 ```
+```
+# Snack World (Switch) names for .awb (single .acb for all .awb, order matters)
+bgm.awb: bgm.acb
+bgm_DLC1.awb: bgm.acb
+```
 
-Creation of those files is meant for advanced users, docs can be found in
-vgmstream source.
 
 ### Plugin conflicts
 Since vgmstream supports a huge amount of formats it's possibly that some of
@@ -947,10 +989,9 @@ This list is not complete and many other files are supported.
     - .txth (lots)
 - loop assists:
 	- .mus (playlist for .acm)
-	- .pos (loop info for .wav: 32 bit LE loop start sample + loop end sample)
+	- .pos (loop info for .wav)
 	- .sli (loop info for .ogg)
 	- .sfl (loop info for .ogg)
-	- .vgmstream + .vgmstream.pos (FFmpeg formats + loop assist)
 - other:
 	- .adxkey (decryption key for .adx)
 	- .ahxkey (decryption key for .ahx)

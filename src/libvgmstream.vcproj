@@ -385,10 +385,6 @@
                     >
                 </File>
                 <File
-                    RelativePath=".\meta\sqex_scd_streamfile.h"
-                    >
-                </File>
-                <File
                     RelativePath=".\meta\sqex_sead_streamfile.h"
                     >
                 </File>
@@ -517,7 +513,7 @@
                     >
                 </File>
 				<File
-					RelativePath=".\meta\ads.c"
+					RelativePath=".\meta\ads_midway.c"
 					>
 				</File>
 				<File
@@ -1110,10 +1106,6 @@
                     RelativePath=".\meta\vid1.c"
                     >
                 </File>
-				<File
-					RelativePath=".\meta\ngca.c"
-					>
-				</File>
                 <File
                     RelativePath=".\meta\opus.c"
                     >
@@ -1414,14 +1406,14 @@
 					RelativePath=".\meta\ps2_rnd.c"
 					>
 				</File>
-				<File
-					RelativePath=".\meta\ps2_rstm.c"
-					>
-				</File>
-				<File
-					RelativePath=".\meta\ps2_rxws.c"
-					>
-				</File>
+                <File
+                    RelativePath=".\meta\ps2_rstm.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\rxws.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\ps2_sfs.c"
 					>

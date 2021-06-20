@@ -22,14 +22,64 @@ static const int16_t msadpcm_coefs[7][2] = {
     { 392, -232 }
 };
 
-
-/* Decodes MSADPCM as explained in the spec (RIFFNEW / msadpcm.c).
- * Though RIFFNEW spec uses "predictor / 256", msadpcm.c uses "predictor >> 8" = diffs on negs (silly MS).
- * SHR is also true in Windows msadp32.acm decoders (up to Win10), that seem to use same code.
- * Some non-Windows implementations or engines (like UE4) use DIV though (more accurate).
+/* Decodes MSADPCM as explained in the spec (RIFFNEW doc + msadpcm.c).
+ * Though RIFFNEW writes "predictor / 256" (DIV), msadpcm.c uses "predictor >> 8" (SHR). They may seem the
+ * same but on negative values SHR gets different results (-128 / 256 = 0; -128 >> 8 = -1) = some output diffs.
+ * SHR is true in Windows msadp32.acm decoders (up to Win10), while some non-Windows implementations or
+ * engines (like UE4) may use DIV.
+ *
  * On invalid coef index, msadpcm.c returns 0 decoded samples but here we clamp and keep on trucking.
  * In theory blocks may be 0-padded and should use samples_per_frame from header, in practice seems to
  * decode up to block length or available data. */
+
+static int16_t msadpcm_adpcm_expand_nibble_shr(VGMSTREAMCHANNEL* stream, uint8_t byte, int shift) {
+    int32_t hist1, hist2, predicted;
+    int code = (shift) ?
+         get_high_nibble_signed(byte) :
+         get_low_nibble_signed (byte);
+
+    hist1 = stream->adpcm_history1_16;
+    hist2 = stream->adpcm_history2_16;
+    predicted = hist1 * stream->adpcm_coef[0] + hist2 * stream->adpcm_coef[1];
+    predicted = predicted >> 8; /* 256 = FIXED_POINT_COEF_BASE (uses SHR instead) */
+    predicted = predicted + (code * stream->adpcm_scale);
+    predicted = clamp16(predicted); /* lNewSample */
+
+    stream->adpcm_history2_16 = stream->adpcm_history1_16;
+    stream->adpcm_history1_16 = predicted;
+
+    stream->adpcm_scale = (msadpcm_steps[code & 0xf] * stream->adpcm_scale) >> 8; /* not diffs vs DIV here (always >=0) */
+    if (stream->adpcm_scale < 16) /* min delta */
+        stream->adpcm_scale = 16;
+
+    return predicted;
+}
+
+static int16_t msadpcm_adpcm_expand_nibble_div(VGMSTREAMCHANNEL* stream, uint8_t byte, int shift) {
+    int32_t hist1, hist2, predicted;
+
+    int code = (shift) ?
+         get_high_nibble_signed(byte) :
+         get_low_nibble_signed (byte);
+
+    hist1 = stream->adpcm_history1_16;
+    hist2 = stream->adpcm_history2_16;
+    predicted = hist1 * stream->adpcm_coef[0] + hist2 * stream->adpcm_coef[1];
+    predicted = predicted / 256; /* 256 = FIXED_POINT_COEF_BASE */
+    predicted = predicted + (code * stream->adpcm_scale);
+    predicted = clamp16(predicted); /* lNewSample */
+
+    stream->adpcm_history2_16 = stream->adpcm_history1_16;
+    stream->adpcm_history1_16 = predicted;
+
+    stream->adpcm_scale = (msadpcm_steps[code & 0xf] * stream->adpcm_scale) / 256; /* 256 = FIXED_POINT_ADAPTION_BASE */
+    if (stream->adpcm_scale < 16) /* min delta */
+        stream->adpcm_scale = 16;
+
+    return predicted;
+}
+
+
 void decode_msadpcm_stereo(VGMSTREAM* vgmstream, sample_t* outbuf, int32_t first_sample, int32_t samples_to_do) {
     VGMSTREAMCHANNEL *stream1, *stream2;
     uint8_t frame[MSADPCM_MAX_BLOCK_SIZE] = {0};
@@ -81,40 +131,20 @@ void decode_msadpcm_stereo(VGMSTREAM* vgmstream, sample_t* outbuf, int32_t first
 
     /* decode nibbles */
     for (i = first_sample; i < first_sample + samples_to_do; i++) {
-        int ch;
+        uint8_t byte = get_u8(frame+0x07*2+(i-2));
 
-        for (ch = 0; ch < 2; ch++) {
-            VGMSTREAMCHANNEL* stream = &vgmstream->ch[ch];
-            int32_t hist1, hist2, predicted;
-            uint8_t byte = get_u8(frame+0x07*2+(i-2));
-            int sample_nibble = (ch == 0) ? /* L = high nibble first (iErrorDelta) */
-                 get_high_nibble_signed(byte) :
-                 get_low_nibble_signed (byte);
-
-            hist1 = stream->adpcm_history1_16;
-            hist2 = stream->adpcm_history2_16;
-            predicted = hist1 * stream->adpcm_coef[0] + hist2 * stream->adpcm_coef[1];
-            predicted = predicted / 256; /* 256 = FIXED_POINT_COEF_BASE (though MS code uses SHR) */
-            predicted = predicted + (sample_nibble * stream->adpcm_scale);
-            outbuf[0] = clamp16(predicted); /* lNewSample */
-
-            stream->adpcm_history2_16 = stream->adpcm_history1_16;
-            stream->adpcm_history1_16 = outbuf[0];
-            stream->adpcm_scale = (msadpcm_steps[sample_nibble & 0xf] * stream->adpcm_scale) / 256; /* 256 = FIXED_POINT_ADAPTION_BASE */
-            if (stream->adpcm_scale < 16) /* min delta */
-                stream->adpcm_scale = 16;
-
-            outbuf++;
-        }
+        *outbuf++ = msadpcm_adpcm_expand_nibble_shr(&vgmstream->ch[0], byte, 1); /* L */
+        *outbuf++ = msadpcm_adpcm_expand_nibble_shr(&vgmstream->ch[1], byte, 0); /* R */
     }
 }
 
-void decode_msadpcm_mono(VGMSTREAM* vgmstream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
+void decode_msadpcm_mono(VGMSTREAM* vgmstream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel, int config) {
     VGMSTREAMCHANNEL* stream = &vgmstream->ch[channel];
     uint8_t frame[MSADPCM_MAX_BLOCK_SIZE] = {0};
     int i, frames_in;
     size_t bytes_per_frame, samples_per_frame;
     off_t frame_offset;
+    int is_shr = (config == 0);
 
     /* external interleave (variable size), mono */
     bytes_per_frame = vgmstream->frame_size;
@@ -150,25 +180,12 @@ void decode_msadpcm_mono(VGMSTREAM* vgmstream, sample_t* outbuf, int channelspac
 
     /* decode nibbles */
     for (i = first_sample; i < first_sample + samples_to_do; i++) {
-        int32_t hist1, hist2, predicted;
         uint8_t byte = get_u8(frame+0x07+(i-2)/2);
-        int sample_nibble = (i & 1) ? /* high nibble first */
-             get_low_nibble_signed (byte) :
-             get_high_nibble_signed(byte);
+        int shift = !(i & 1); /* high nibble first */
 
-        hist1 = stream->adpcm_history1_16;
-        hist2 = stream->adpcm_history2_16;
-        predicted = hist1 * stream->adpcm_coef[0] + hist2 * stream->adpcm_coef[1];
-        predicted = predicted / 256;
-        predicted = predicted + (sample_nibble * stream->adpcm_scale);
-        outbuf[0] = clamp16(predicted);
-
-        stream->adpcm_history2_16 = stream->adpcm_history1_16;
-        stream->adpcm_history1_16 = outbuf[0];
-        stream->adpcm_scale = (msadpcm_steps[sample_nibble & 0xf] * stream->adpcm_scale) / 256;
-        if (stream->adpcm_scale < 16) /* min delta */
-            stream->adpcm_scale = 16;
-
+        outbuf[0] = is_shr ?
+                msadpcm_adpcm_expand_nibble_shr(stream, byte, shift) :
+                msadpcm_adpcm_expand_nibble_div(stream, byte, shift);
         outbuf += channelspacing;
     }
 }
@@ -215,26 +232,11 @@ void decode_msadpcm_ck(VGMSTREAM* vgmstream, sample_t* outbuf, int channelspacin
     }
 
     /* decode nibbles */
-    for (i = first_sample; i < first_sample+samples_to_do; i++) {
-        int32_t hist1,hist2, predicted;
+    for (i = first_sample; i < first_sample + samples_to_do; i++) {
         uint8_t byte = get_u8(frame+0x07+(i-2)/2);
-        int sample_nibble = (i & 1) ? /* low nibble first, unlike normal MSADPCM */
-             get_high_nibble_signed(byte) :
-             get_low_nibble_signed (byte);
+        int shift = (i & 1); /* low nibble first, unlike normal MSADPCM */
 
-        hist1 = stream->adpcm_history1_16;
-        hist2 = stream->adpcm_history2_16;
-        predicted = hist1 * stream->adpcm_coef[0] + hist2 *stream->adpcm_coef[1];
-        predicted = predicted >> 8; /* not DIV unlike spec */
-        predicted = predicted + (sample_nibble * stream->adpcm_scale);
-        outbuf[0] = clamp16(predicted);
-
-        stream->adpcm_history2_16 = stream->adpcm_history1_16;
-        stream->adpcm_history1_16 = outbuf[0];
-        stream->adpcm_scale = (msadpcm_steps[sample_nibble & 0xf] * stream->adpcm_scale) >> 8; /* not DIV but same here (always >=0) */
-        if (stream->adpcm_scale < 16)
-            stream->adpcm_scale = 16;
-
+        outbuf[0] = msadpcm_adpcm_expand_nibble_shr(stream, byte, shift);
         outbuf += channelspacing;
     }
 }

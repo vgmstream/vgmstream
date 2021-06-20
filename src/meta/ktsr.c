@@ -53,7 +53,7 @@ VGMSTREAM* init_vgmstream_ktsr(STREAMFILE* sf) {
      * This accepts ktsl2asbin with internal data, or opening external streams as subsongs.
      * Some info from KTSR.bt */
 
-    if (read_u32be(0x00, sf) != 0x4B545352) /* "KTSR" */
+    if (!is_id32be(0x00, sf, "KTSR"))
         goto fail;
     if (read_u32be(0x04, sf) != 0x777B481A) /* hash(?) id: 0x777B481A=as, 0x0294DDFC=st, 0xC638E69E=gc */
         goto fail;
@@ -482,6 +482,7 @@ static int parse_ktsr(ktsr_header* ktsr, STREAMFILE* sf) {
             case 0xBD888C36: /* config (floats, stream id, etc, may have extended name) */
             case 0xC9C48EC1: /* unknown (has some string inside like "boss") */
             case 0xA9D23BF1: /* "state container", some kind of config/floats, witgh names like 'State_bgm01'..N */
+            case 0x836FBECA: /* unknown (~0x300, encrypted? table + data) */
                 break;
 
             case 0xC5CCCB70: /* sound (internal data or external stream) */
