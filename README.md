@@ -424,6 +424,11 @@ willow.mpf:willow.mus,willow_o.mus
 # Metal Gear Solid: Snake Eater 3D (3DS) names for .awb
 bgm_2_streamfiles.awb: bgm_2.acb
 ```
+```
+# Snack World (Switch) names for .awb (single .acb for all .awb, order matters)
+bgm.awb: bgm.acb
+bgm_DLC1.awb: bgm.acb
+```
 
 
 ### Plugin conflicts

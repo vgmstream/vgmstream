@@ -132,6 +132,7 @@ typedef struct {
     /* config */
     int is_memory;
     int target_waveid;
+    int target_port;
     int has_TrackEventTable;
     int has_CommandTable;
 
@@ -221,7 +222,7 @@ static void add_acb_name(acb_header* acb, int8_t Streaming) {
 /* OBJECT HANDLERS */
 
 static int load_acb_waveform(acb_header* acb, int16_t Index) {
-    uint16_t Id;
+    uint16_t Id, PortNo;
     uint8_t Streaming;
 
     /* read Waveform[Index] */
@@ -231,18 +232,30 @@ static int load_acb_waveform(acb_header* acb, int16_t Index) {
         if (acb->is_memory) {
             if (!utf_query_u16(acb->WaveformTable, Index, "MemoryAwbId", &Id))
                 goto fail;
+            PortNo = 0xFFFF;
         } else {
             if (!utf_query_u16(acb->WaveformTable, Index, "StreamAwbId", &Id))
                 goto fail;
+            if (!utf_query_u16(acb->WaveformTable, Index, "StreamAwbPortNo", &PortNo))
+                PortNo = 0; /* assumed */
         }
     }
+    else {
+        PortNo = 0xFFFF;
+    }
+
     if (!utf_query_u8(acb->WaveformTable, Index, "Streaming", &Streaming))
         goto fail;
-    //;VGM_LOG("ACB: Waveform[%i]: Id=%i, Streaming=%i\n", Index, Id, Streaming);
+    //;VGM_LOG("ACB: Waveform[%i]: Id=%i, PortNo=%i, Streaming=%i\n", Index, Id, PortNo, Streaming);
 
     /* not found but valid */
     if (Id != acb->target_waveid)
         return 1;
+
+    /* correct AWB port (check ignored if set to -1) */
+    if (acb->target_port >= 0 && PortNo != 0xFFFF && PortNo != acb->target_port)
+        return 1;
+
     /* must match our target's (0=memory, 1=streaming, 2=memory (prefetch)+stream) */
     if ((acb->is_memory && Streaming == 1) || (!acb->is_memory && Streaming == 0))
         return 1;
@@ -694,7 +707,7 @@ fail:
 }
 
 
-void load_acb_wave_name(STREAMFILE* sf, VGMSTREAM* vgmstream, int waveid, int is_memory) {
+void load_acb_wave_name(STREAMFILE* sf, VGMSTREAM* vgmstream, int waveid, int port, int is_memory) {
     acb_header acb = {0};
     int i, CueName_rows;
 
@@ -722,9 +735,12 @@ void load_acb_wave_name(STREAMFILE* sf, VGMSTREAM* vgmstream, int waveid, int is
      * Atom Craft may only target certain .acb versions so some links are later removed
      * Not all cues to point to Waveforms, some are just config events/commands.
      * .acb link to .awb by name (loaded manually), though they have a checksum/hash/header to validate.
+     *
+     * .acb can contain info for multiple .awb, that are loaded sequentially and assigned "port numbers" (0 to N).
+     * Both Wave ID and port number must be passed externally to find appropriate song name.
      */
 
-    //;VGM_LOG("ACB: find waveid=%i\n", waveid);
+    //;VGM_LOG("ACB: find waveid=%i, port=%i\n", waveid, port);
 
     acb.acbFile = sf;
 
@@ -732,6 +748,7 @@ void load_acb_wave_name(STREAMFILE* sf, VGMSTREAM* vgmstream, int waveid, int is
     if (!acb.Header) goto fail;
 
     acb.target_waveid = waveid;
+    acb.target_port = port;
     acb.is_memory = is_memory;
     acb.has_TrackEventTable = utf_query_data(acb.Header, 0, "TrackEventTable", NULL,NULL);
     acb.has_CommandTable = utf_query_data(acb.Header, 0, "CommandTable", NULL,NULL);
