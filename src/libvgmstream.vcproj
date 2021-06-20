@@ -1415,10 +1415,6 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\ps2_rxws.c"
-					>
-				</File>
-				<File
 					RelativePath=".\meta\ps2_sfs.c"
 					>
 				</File>

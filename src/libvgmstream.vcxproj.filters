@@ -913,9 +913,6 @@
     <ClCompile Include="meta\ps2_rstm.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ps2_rxws.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="meta\ps2_sfs.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
