@@ -138,7 +138,6 @@
     <ClInclude Include="meta\sab_streamfile.h" />
     <ClInclude Include="meta\riff_ogg_streamfile.h" />
     <ClInclude Include="meta\sfh_streamfile.h" />
-    <ClInclude Include="meta\sqex_scd_streamfile.h" />
     <ClInclude Include="meta\sqex_sead_streamfile.h" />
     <ClInclude Include="meta\txth_streamfile.h" />
     <ClInclude Include="meta\ubi_bao_streamfile.h" />
