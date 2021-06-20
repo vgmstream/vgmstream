@@ -35,6 +35,10 @@ VGMSTREAM* init_vgmstream_ffmpeg(STREAMFILE* sf) {
     if (get_streamfile_size(sf) <= 0x1000)
         goto fail;
 
+    /* reject some formats handled elsewhere (better fail and check there than let buggy FFmpeg take over) */
+    if (check_extensions(sf, "at3"))
+        goto fail;
+
     if (target_subsong == 0) target_subsong = 1;
 
     /* init ffmpeg */
