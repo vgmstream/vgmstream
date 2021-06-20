@@ -222,7 +222,6 @@
     <ClCompile Include="meta\msf_banpresto.c" />
     <ClCompile Include="meta\msf_konami.c" />
     <ClCompile Include="meta\msf_tamasoft.c" />
-    <ClCompile Include="meta\ngca.c" />
     <ClCompile Include="meta\opus.c" />
     <ClCompile Include="meta\pc_adp.c" />
     <ClCompile Include="meta\pc_adp_otns.c" />

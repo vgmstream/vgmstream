@@ -1106,10 +1106,6 @@
                     RelativePath=".\meta\vid1.c"
                     >
                 </File>
-				<File
-					RelativePath=".\meta\ngca.c"
-					>
-				</File>
                 <File
                     RelativePath=".\meta\opus.c"
                     >

@@ -353,7 +353,6 @@ static const char* extension_list[] = {
     "naac",
     "nds",
     "ndp", //fake extension/header id for .nds
-    "ngca",
     "nlsd",
     "nop",
     "nps",
@@ -1151,7 +1150,6 @@ static const meta_info meta_info_list[] = {
         {meta_MSF,                  "Sony MSF header"},
         {meta_PS3_PAST,             "SNDP header"},
         {meta_SGXD,                 "Sony SGXD header"},
-        {meta_NGCA,                 "NGCA header"},
         {meta_WII_RAS,              "RAS header"},
         {meta_PS2_SPM,              "SPM header"},
         {meta_X360_TRA,             "Terminal Reality .TRA raw header"},

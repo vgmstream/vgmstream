@@ -264,7 +264,6 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_msf,
     init_vgmstream_ps3_past,
     init_vgmstream_sgxd,
-    init_vgmstream_ngca,
     init_vgmstream_wii_ras,
     init_vgmstream_ps2_spm,
     init_vgmstream_x360_tra,
