@@ -1,7 +1,7 @@
 #include "meta.h"
 #include "../coding/coding.h"
 
-typedef enum { PCM16, MSADPCM, DSP_HEAD, DSP_BODY, AT9, MSF } kwb_codec;
+typedef enum { PCM16, MSADPCM, DSP_HEAD, DSP_BODY, AT9, MSF, XMA2 } kwb_codec;
 
 typedef struct {
     int big_endian;
@@ -187,6 +187,27 @@ static VGMSTREAM* init_vgmstream_koei_wavebank(kwb_header* kwb, STREAMFILE* sf_h
 
             break;
 
+#ifdef VGM_USE_FFMPEG
+        case XMA2: {
+            uint8_t buf[0x100];
+            size_t bytes, block_size, block_count;
+
+            if (kwb->channels > 1) goto fail;
+
+            block_size = 0x800; /* ? */
+            block_count = kwb->stream_size / block_size;
+
+            bytes = ffmpeg_make_riff_xma2(buf, sizeof(buf), vgmstream->num_samples, kwb->stream_size, kwb->channels, kwb->sample_rate, block_count, block_size);
+            vgmstream->codec_data = init_ffmpeg_header_offset(sf_b, buf,bytes, kwb->stream_offset, kwb->stream_size);
+            if (!vgmstream->codec_data) goto fail;
+            vgmstream->coding_type = coding_FFmpeg;
+            vgmstream->layout_type = layout_none;
+
+            xma_fix_raw_samples(vgmstream, sf_b, kwb->stream_offset, kwb->stream_size, 0, 0,0); /* assumed */
+            break;
+        }
+#endif
+
 #ifdef VGM_USE_ATRAC9
         case AT9: {
             atrac9_config cfg = {0};
@@ -357,7 +378,7 @@ static int parse_type_k4hd(kwb_header* kwb, off_t offset, off_t body_offset, STR
     ppva_offset += offset;
 
     /* PPVA table: */
-    if (read_u32be(ppva_offset + 0x00, sf_h) != 0x50505641) /* "PPVA" */
+    if (!is_id32be(ppva_offset + 0x00, sf_h, "PPVA"))
         goto fail;
 
     entry_size = read_u32le(ppva_offset + 0x08, sf_h);
@@ -403,8 +424,57 @@ fail:
 }
 
 static int parse_type_sdsd(kwb_header* kwb, off_t offset, off_t body_offset, STREAMFILE* sf_h) {
-    /* has Vers, Head, Prog, Smpl sections (like Sony VABs)
-    unknown codec, blocked with some common start, variable sized */
+    off_t smpl_offset, header_offset;
+    int entries, current_subsongs, relative_subsong;
+    size_t entry_size;
+
+
+    /* format somewhat similar to Sony VABs */
+    /* 00: SDsdVers */
+    /* 08: chunk size */
+    /* 0c: null */
+    /* 10: SDsdHead */
+    /* 18: chunk size */
+    /* 1c: ? size */
+    /* 20: null */
+    /* 24: SDsdProg offset ('program'? cues?) */
+    /* 28: SDsdSmpl offset ('samples'? waves?) */
+    /* rest: ? */
+    smpl_offset = read_u32le(offset + 0x28, sf_h);
+    smpl_offset += offset;
+
+    /* Smpl table: */
+    if (!is_id64be(smpl_offset + 0x00, sf_h, "SDsdSmpl"))
+        goto fail;
+
+    /* 0x08: ? */
+    entries = read_u32le(smpl_offset + 0x0c, sf_h);
+    entry_size = 0x9c;
+
+    current_subsongs = kwb->total_subsongs;
+    kwb->total_subsongs += entries;
+    if (kwb->target_subsong - 1 < current_subsongs || kwb->target_subsong > kwb->total_subsongs)
+        return 1;
+    kwb->found = 1;
+
+    relative_subsong = kwb->target_subsong - current_subsongs;
+    header_offset = smpl_offset + 0x10 + (relative_subsong-1) * entry_size;
+
+    kwb->stream_offset  = read_u32le(header_offset + 0x00, sf_h);
+    /* 08: ? + channels? */
+    /* 0c: bps? */
+    kwb->sample_rate    = read_u32le(header_offset + 0x0c, sf_h);
+    kwb->num_samples    = read_u32le(header_offset + 0x10, sf_h) / sizeof(int16_t); /* PCM */
+    /* rest: ? (flags, etc) */
+    kwb->stream_size    = read_u32le(header_offset + 0x44, sf_h);
+
+    kwb->codec = XMA2;
+    kwb->channels = 1;
+
+    kwb->stream_offset += body_offset;
+
+    return 1;
+fail:
     return 0;
 }
 
@@ -429,8 +499,7 @@ static int parse_type_sdwi(kwb_header* kwb, off_t offset, off_t body_offset, STR
     smpl_offset += offset;
 
     /* Smpl table: */
-    if (read_u32be(smpl_offset + 0x00, sf_h) != 0x53447364 &&   /* "SDsd" */
-        read_u32be(smpl_offset + 0x04, sf_h) != 0x536D706C)     /* "Smpl" */
+    if (!is_id64be(smpl_offset + 0x00, sf_h, "SDsdSmpl"))
         goto fail;
 
     /* 0x08: ? */
@@ -534,7 +603,7 @@ static int parse_kwb(kwb_header* kwb, STREAMFILE* sf_h, STREAMFILE* sf_b) {
                 goto fail;
             break;
 
-        case 0x53447364: /* "SDsd" (PS3? leftover files) */
+        case 0x53447364: /* "SDsd" [Bladestorm Nightmare (PC)-X360 leftover files] */
             if (!parse_type_sdsd(kwb, head_offset, body_offset, sf_h))
                 goto fail;
             break;
