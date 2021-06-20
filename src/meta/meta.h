@@ -66,8 +66,8 @@ VGMSTREAM * init_vgmstream_csmp(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_rfrm(STREAMFILE *streamFile);
 
-VGMSTREAM * init_vgmstream_ps2_ads(STREAMFILE *streamFile);
-VGMSTREAM * init_vgmstream_ps2_ads_container(STREAMFILE *streamFile);
+VGMSTREAM* init_vgmstream_ads(STREAMFILE* sf);
+VGMSTREAM* init_vgmstream_ads_container(STREAMFILE* sf);
 
 VGMSTREAM * init_vgmstream_nps(STREAMFILE *streamFile);
 
@@ -384,7 +384,7 @@ VGMSTREAM * init_vgmstream_ps2_tk1(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_ps2_vsf_tta(STREAMFILE *streamFile);
 
-VGMSTREAM * init_vgmstream_ads(STREAMFILE *streamFile);
+VGMSTREAM* init_vgmstream_ads_midway(STREAMFILE* sf);
 
 VGMSTREAM * init_vgmstream_ps2_mcg(STREAMFILE *streamFile);
 

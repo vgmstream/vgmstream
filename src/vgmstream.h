@@ -357,7 +357,7 @@ typedef enum {
     meta_BNSF,              /* Bandai Namco Sound Format */
 
     meta_XA,                /* CD-ROM XA */
-    meta_PS2_SShd,          /* .ADS with SShd header */
+    meta_ADS,
     meta_NPS,
     meta_RXWS,
     meta_RAW_INT,
@@ -455,7 +455,7 @@ typedef enum {
     meta_SAT_BAKA,          /* Crypt Killer */
     meta_VSF,
     meta_PS2_VSF_TTA,       /* Tiny Toon Adventures: Defenders of the Universe */
-    meta_ADS,               /* Gauntlet Dark Legends (GC) */
+    meta_ADS_MIDWAY,
     meta_PS2_SPS,           /* Ape Escape 2 */
     meta_PS2_XA2_RRP,       /* RC Revenge Pro */
     meta_NGC_DSP_KONAMI,    /* Konami DSP header, found in various games */
