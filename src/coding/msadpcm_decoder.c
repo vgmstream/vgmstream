@@ -24,9 +24,9 @@ static const int16_t msadpcm_coefs[7][2] = {
 
 /* Decodes MSADPCM as explained in the spec (RIFFNEW doc + msadpcm.c).
  * Though RIFFNEW writes "predictor / 256" (DIV), msadpcm.c uses "predictor >> 8" (SHR). They may seem the
- * same but on negative values SHR gets different results (-128 / 256 = 0; -128 >> 8 = 1) = some output diffs.
+ * same but on negative values SHR gets different results (-128 / 256 = 0; -128 >> 8 = -1) = some output diffs.
  * SHR is true in Windows msadp32.acm decoders (up to Win10), while some non-Windows implementations or
- * engines (like UE4) use DIV though (more accurate).
+ * engines (like UE4) may use DIV.
  *
  * On invalid coef index, msadpcm.c returns 0 decoded samples but here we clamp and keep on trucking.
  * In theory blocks may be 0-padded and should use samples_per_frame from header, in practice seems to
@@ -131,25 +131,20 @@ void decode_msadpcm_stereo(VGMSTREAM* vgmstream, sample_t* outbuf, int32_t first
 
     /* decode nibbles */
     for (i = first_sample; i < first_sample + samples_to_do; i++) {
-        int ch;
+        uint8_t byte = get_u8(frame+0x07*2+(i-2));
 
-        for (ch = 0; ch < 2; ch++) {
-            VGMSTREAMCHANNEL* stream = &vgmstream->ch[ch];
-            uint8_t byte = get_u8(frame+0x07*2+(i-2));
-            int shift = (ch == 0); /* L = high nibble first (iErrorDelta) */
-
-            outbuf[0] = msadpcm_adpcm_expand_nibble_div(stream, byte, shift);
-            outbuf++;
-        }
+        *outbuf++ = msadpcm_adpcm_expand_nibble_shr(&vgmstream->ch[0], byte, 1); /* L */
+        *outbuf++ = msadpcm_adpcm_expand_nibble_shr(&vgmstream->ch[1], byte, 0); /* R */
     }
 }
 
-void decode_msadpcm_mono(VGMSTREAM* vgmstream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
+void decode_msadpcm_mono(VGMSTREAM* vgmstream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel, int config) {
     VGMSTREAMCHANNEL* stream = &vgmstream->ch[channel];
     uint8_t frame[MSADPCM_MAX_BLOCK_SIZE] = {0};
     int i, frames_in;
     size_t bytes_per_frame, samples_per_frame;
     off_t frame_offset;
+    int is_shr = (config == 0);
 
     /* external interleave (variable size), mono */
     bytes_per_frame = vgmstream->frame_size;
@@ -188,7 +183,9 @@ void decode_msadpcm_mono(VGMSTREAM* vgmstream, sample_t* outbuf, int channelspac
         uint8_t byte = get_u8(frame+0x07+(i-2)/2);
         int shift = !(i & 1); /* high nibble first */
 
-        outbuf[0] = msadpcm_adpcm_expand_nibble_div(stream, byte, shift);
+        outbuf[0] = is_shr ?
+                msadpcm_adpcm_expand_nibble_shr(stream, byte, shift) :
+                msadpcm_adpcm_expand_nibble_div(stream, byte, shift);
         outbuf += channelspacing;
     }
 }
