@@ -44,8 +44,7 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_nps,
     init_vgmstream_rwsd,
     init_vgmstream_xa,
-    init_vgmstream_ps2_rxws,
-    init_vgmstream_ps2_rxw,
+    init_vgmstream_rxws,
     init_vgmstream_ngc_dsp_stm,
     init_vgmstream_exst,
     init_vgmstream_svag_kcet,
@@ -262,7 +261,6 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_sqex_scd,
     init_vgmstream_ngc_nst_dsp,
     init_vgmstream_baf,
-    init_vgmstream_baf_badrip,
     init_vgmstream_msf,
     init_vgmstream_ps3_past,
     init_vgmstream_sgxd,
@@ -539,6 +537,8 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_s14_sss,         /* .s14/sss raw siren14 */
     init_vgmstream_raw_al,          /* .al/al2 raw A-LAW */
     init_vgmstream_zwdsp,           /* fake format */
+    init_vgmstream_baf_badrip,      /* crap, to be removed */
+    init_vgmstream_rxws_badrip,     /* crap, to be removed */
 #ifdef VGM_USE_FFMPEG
     init_vgmstream_ffmpeg,          /* may play anything incorrectly, since FFmpeg doesn't check extensions */
 #endif

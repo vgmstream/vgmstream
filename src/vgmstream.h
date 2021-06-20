@@ -359,7 +359,7 @@ typedef enum {
     meta_XA,                /* CD-ROM XA */
     meta_PS2_SShd,          /* .ADS with SShd header */
     meta_NPS,
-    meta_PS2_RXWS,          /* Sony games (Genji, Okage Shadow King, Arc The Lad Twilight of Spirits) */
+    meta_RXWS,
     meta_RAW_INT,
     meta_EXST,
     meta_SVAG_KCET,
