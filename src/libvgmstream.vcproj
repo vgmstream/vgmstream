@@ -513,7 +513,7 @@
                     >
                 </File>
 				<File
-					RelativePath=".\meta\ads.c"
+					RelativePath=".\meta\ads_midway.c"
 					>
 				</File>
 				<File

@@ -388,7 +388,7 @@
     <ClCompile Include="meta\adpcm_capcom.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ads.c">
+    <ClCompile Include="meta\ads_midway.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\adx.c">

@@ -292,7 +292,7 @@
     <ClCompile Include="meta\acx.c" />
     <ClCompile Include="meta\adp_konami.c" />
     <ClCompile Include="meta\adpcm_capcom.c" />
-    <ClCompile Include="meta\ads.c" />
+    <ClCompile Include="meta\ads_midway.c" />
     <ClCompile Include="meta\adx.c" />
     <ClCompile Include="meta\afc.c" />
     <ClCompile Include="meta\agsc.c" />
