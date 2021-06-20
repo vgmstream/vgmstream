@@ -1406,10 +1406,14 @@
 					RelativePath=".\meta\ps2_rnd.c"
 					>
 				</File>
-				<File
-					RelativePath=".\meta\ps2_rstm.c"
-					>
-				</File>
+                <File
+                    RelativePath=".\meta\ps2_rstm.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\meta\rxws.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\ps2_sfs.c"
 					>
