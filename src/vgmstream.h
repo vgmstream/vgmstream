@@ -564,7 +564,7 @@ typedef enum {
     meta_PS3_PAST,          /* Bakugan Battle Brawlers (PS3) */
     meta_SGXD,              /* Sony: Folklore, Genji, Tokyo Jungle (PS3), Brave Story, Kurohyo (PSP) */
     meta_WII_RAS,           /* Donkey Kong Country Returns (Wii) */
-    meta_PS2_SPM,           /* Lethal Skies Elite Pilot: Team SW */
+    meta_SPM,
     meta_X360_TRA,          /* Def Jam Rapstar */
     meta_PS2_VGS,           /* Princess Soft PS2 games */
     meta_PS2_IAB,           /* Ueki no Housoku - Taosu ze Robert Juudan!! (PS2) */

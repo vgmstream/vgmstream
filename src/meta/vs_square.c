@@ -3,25 +3,25 @@
 #include "../coding/coding.h"
 
 
-/* VS - VagStream from Square games [Final Fantasy X (PS2) voices, Unlimited Saga (PS2) voices, All Star Pro-Wrestling 2/3 (PS2) music] */
-VGMSTREAM * init_vgmstream_vs_square(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
-    int channel_count, loop_flag, pitch, flags;
+/* VS - VagStream from Square Sounds Co. games [Final Fantasy X (PS2) voices, Unlimited Saga (PS2) voices, All Star Pro-Wrestling 2/3 (PS2) music] */
+VGMSTREAM* init_vgmstream_vs_square(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
+    int channels, loop_flag, pitch, flags;
     off_t start_offset;
 
 
     /* checks */
-    /* .vs: header id (probably ok like The Bouncer's .vs, very similar) */
-    if (!check_extensions(streamFile, "vs"))
+    /* .vs: extension from debug strings (probably like The Bouncer's .vs, very similar) */
+    if (!check_extensions(sf, "vs"))
         goto fail;
-    if (read_32bitBE(0x00,streamFile) != 0x56530000) /* "VS\0\0" */
+    if (!is_id32be(0x00,sf,"VS\0\0"))
         goto fail;
 
-    flags = read_32bitLE(0x04,streamFile);
+    flags = read_u32le(0x04,sf);
     /* 0x08: block number */
     /* 0x0c: blocks left in the subfile */
-    pitch = read_32bitLE(0x10,streamFile); /* usually 0x1000 = 48000 */
-    /* 0x14: volume, usually 0x64 = 100 but may be bigger/smaller (up to 128?) */
+    pitch = read_u32le(0x10,sf); /* usually 0x1000 = 48000 */
+    /* 0x14: volume, usually 0x64 = 100, up to 128 [Lethal Skies / Sidewinder F (PS2)] */
     /* 0x18: null */
     /* 0x1c: null */
 
@@ -31,12 +31,12 @@ VGMSTREAM * init_vgmstream_vs_square(STREAMFILE *streamFile) {
     }
 
     loop_flag = 0;
-    channel_count = (flags & 1) ? 2 : 1;
+    channels = (flags & 1) ? 2 : 1;
     start_offset = 0x00;
 
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    vgmstream = allocate_vgmstream(channels,loop_flag);
     if (!vgmstream) goto fail;
 
     vgmstream->meta_type = meta_VS_SQUARE;
@@ -44,7 +44,7 @@ VGMSTREAM * init_vgmstream_vs_square(STREAMFILE *streamFile) {
     vgmstream->coding_type = coding_PSX;
     vgmstream->layout_type = layout_blocked_vs_square;
 
-    if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
+    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
         goto fail;
 
     /* calc num_samples */
@@ -54,7 +54,7 @@ VGMSTREAM * init_vgmstream_vs_square(STREAMFILE *streamFile) {
             block_update(vgmstream->next_block_offset,vgmstream);
             vgmstream->num_samples += ps_bytes_to_samples(vgmstream->current_block_size, 1);
         }
-        while (vgmstream->next_block_offset < get_streamfile_size(streamFile));
+        while (vgmstream->next_block_offset < get_streamfile_size(sf));
         block_update(start_offset, vgmstream);
     }
 

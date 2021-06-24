@@ -510,7 +510,7 @@ VGMSTREAM * init_vgmstream_sgxd(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_wii_ras(STREAMFILE* streamFile);
 
-VGMSTREAM * init_vgmstream_ps2_spm(STREAMFILE* streamFile);
+VGMSTREAM * init_vgmstream_spm(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_x360_tra(STREAMFILE* streamFile);
 

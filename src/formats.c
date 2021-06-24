@@ -1151,7 +1151,7 @@ static const meta_info meta_info_list[] = {
         {meta_PS3_PAST,             "SNDP header"},
         {meta_SGXD,                 "Sony SGXD header"},
         {meta_WII_RAS,              "RAS header"},
-        {meta_PS2_SPM,              "SPM header"},
+        {meta_SPM,                  "Square SPM header"},
         {meta_X360_TRA,             "Terminal Reality .TRA raw header"},
         {meta_PS2_VGS,              "Princess Soft VGS header"},
         {meta_PS2_IAB,              "Runtime .IAB header"},
