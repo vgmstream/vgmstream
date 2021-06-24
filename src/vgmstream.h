@@ -566,7 +566,7 @@ typedef enum {
     meta_WII_RAS,           /* Donkey Kong Country Returns (Wii) */
     meta_SPM,
     meta_X360_TRA,          /* Def Jam Rapstar */
-    meta_PS2_VGS,           /* Princess Soft PS2 games */
+    meta_VGS_PS,
     meta_PS2_IAB,           /* Ueki no Housoku - Taosu ze Robert Juudan!! (PS2) */
     meta_VS_STR,            /* The Bouncer */
     meta_LSF_N1NJ4N,        /* .lsf n1nj4n Fastlane Street Racing (iPhone) */

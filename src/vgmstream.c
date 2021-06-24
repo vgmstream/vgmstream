@@ -196,7 +196,7 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_ads_midway,
     init_vgmstream_ps2_mcg,
     init_vgmstream_zsd,
-    init_vgmstream_ps2_vgs,
+    init_vgmstream_vgs_ps,
     init_vgmstream_redspark,
     init_vgmstream_ivaud,
     init_vgmstream_wii_wsd,

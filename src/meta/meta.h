@@ -390,7 +390,7 @@ VGMSTREAM * init_vgmstream_ps2_mcg(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_zsd(STREAMFILE *streamFile);
 
-VGMSTREAM * init_vgmstream_ps2_vgs(STREAMFILE *streamFile);
+VGMSTREAM * init_vgmstream_vgs_ps(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_redspark(STREAMFILE *streamFile);
 
