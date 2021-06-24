@@ -461,8 +461,7 @@ typedef enum {
     meta_NGC_DSP_KONAMI,    /* Konami DSP header, found in various games */
     meta_UBI_CKD,           /* Ubisoft CKD RIFF header (Rayman Origins Wii) */
     meta_RAW_WAVM,
-    meta_XBOX_WVS,          /* XBOX WVS */
-    meta_NGC_WVS,           /* Metal Arms - Glitch in the System */
+    meta_WVS,
     meta_XBOX_MATX,         /* XBOX MATX */
     meta_XMU,
     meta_XVAS,

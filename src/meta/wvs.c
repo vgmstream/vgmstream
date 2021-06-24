@@ -1,45 +1,52 @@
 #include "meta.h"
 #include "../coding/coding.h"
 
-/* WVS - found in Metal Arms - Glitch in the System (Xbox) */
-VGMSTREAM * init_vgmstream_xbox_wvs(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
+
+/* .WVS - found in Metal Arms - Glitch in the System (Xbox) */
+VGMSTREAM* init_vgmstream_wvs_xbox(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
     off_t start_offset;
-    int loop_flag, channel_count;
+    int loop_flag, channels, sample_rate;
     size_t data_size;
 
 
-    /* check extension */
-    if (!check_extensions(streamFile,"wvs"))
+    /* checks */
+    if (!check_extensions(sf,"wvs"))
         goto fail;
 
-    if (read_16bitLE(0x0C,streamFile) != 0x69 &&    /* codec */
-        read_16bitLE(0x08,streamFile) != 0x4400)
+    data_size = read_u32le(0x00,sf);
+    /* 0x04: float seconds (slightly bigger than max num_samples) */
+    sample_rate = read_f32le(0x08,sf);
+    if (read_u16le(0x0c,sf) != 0x0069)  /* codec */
         goto fail;
+    channels = read_s16le(0x0e,sf);
+    sample_rate = read_s32le(0x10,sf);
+    /* 0x10: sample rate (int) */
+    /* 0x14: bitrate */
+    /* 0x18: block size / bps */
+    /* 0x1c: size? / block samples */
 
+    loop_flag = (channels > 1 && sample_rate >= 44100); /* bgm full loops */
     start_offset = 0x20;
-    data_size = read_32bitLE(0x00,streamFile);
-    loop_flag = (read_16bitLE(0x0a,streamFile) == 0x472C); /* loop seems to be like this */
-    channel_count = read_16bitLE(0x0e,streamFile); /* always stereo files */
-    
-    if (data_size + start_offset != get_streamfile_size(streamFile))
+
+    if (data_size + start_offset != get_streamfile_size(sf))
         goto fail;
+
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->sample_rate = read_32bitLE(0x10,streamFile);
-    vgmstream->num_samples = xbox_ima_bytes_to_samples(data_size, vgmstream->channels);
+    vgmstream->meta_type = meta_WVS;
+    vgmstream->sample_rate = sample_rate;
+    vgmstream->num_samples = xbox_ima_bytes_to_samples(data_size, channels);
     vgmstream->loop_start_sample = 0;
     vgmstream->loop_end_sample = vgmstream->num_samples;
 
     vgmstream->coding_type = coding_XBOX_IMA;
     vgmstream->layout_type = layout_none;
-    vgmstream->meta_type = meta_XBOX_WVS;
 
-
-    if (!vgmstream_open_stream(vgmstream, streamFile, start_offset))
+    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
         goto fail;
     return vgmstream;
 
@@ -49,86 +56,55 @@ fail:
 }
 
 
-/* 
-       WVS (found in Metal Arms - Glitch in the System)
-*/
-VGMSTREAM * init_vgmstream_ngc_wvs(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
+/* .WVS - found in Metal Arms - Glitch in the System (GC) */
+VGMSTREAM* init_vgmstream_wvs_ngc(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
     off_t start_offset;
-    int loop_flag;
-    int channel_count;
+    int loop_flag, channels, sample_rate, interleave;
+    size_t data_size;
 
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("wvs",filename_extension(filename))) goto fail;
 
-    if ((read_32bitBE(0x14,streamFile)*read_32bitBE(0x00,streamFile)+0x60)
-        != (get_streamfile_size(streamFile)))
-        {
-            goto fail;
-        }
-    
-    loop_flag = read_32bitBE(0x10,streamFile);
-    channel_count = read_32bitBE(0x00,streamFile);
+    /* checks */
+    if (!check_extensions(sf,"wvs"))
+        goto fail;
 
-    /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
-    if (!vgmstream) goto fail;
+    channels = read_s32be(0x00,sf);
+    /* 0x04: float seconds (slightly bigger than max num_samples) */
+    sample_rate = read_f32be(0x08,sf);
+    interleave = read_u32be(0x0C,sf); /* even in mono */
+    /* 0x10: number of interleave blocks */
+    data_size  = read_s32be(0x14,sf) * channels;
 
-    /* fill in the vital statistics */
+    loop_flag = (channels > 1 && sample_rate >= 44100); /* bgm full loops */
     start_offset = 0x60;
 
-    if (channel_count == 1) {
-        vgmstream->sample_rate = 22050;
-    } else if (channel_count == 2) {
-        vgmstream->sample_rate = 44100;
-    }
+    if (data_size + start_offset != get_streamfile_size(sf))
+        goto fail;
 
-    vgmstream->channels = channel_count;
+    /* build the VGMSTREAM */
+    vgmstream = allocate_vgmstream(channels, loop_flag);
+    if (!vgmstream) goto fail;
+
+    vgmstream->meta_type = meta_WVS;
+    vgmstream->sample_rate = sample_rate;
+    vgmstream->num_samples = dsp_bytes_to_samples(data_size, channels);
+    vgmstream->loop_start_sample = 0;
+    vgmstream->loop_end_sample = vgmstream->num_samples;
 
     vgmstream->coding_type = coding_NGC_DSP;
-    vgmstream->num_samples = (get_streamfile_size(streamFile)-start_offset)/8/channel_count*14; //(read_32bitBE(0x0C,streamFile)-start_offset)/8/channel_count*14;
-    if (loop_flag) {
-        vgmstream->loop_start_sample = (read_32bitBE(0x10,streamFile)*2)/8/channel_count*14;
-        vgmstream->loop_end_sample = (read_32bitBE(0x14,streamFile)*2)/8/channel_count*14;
-    }
-
     vgmstream->layout_type = layout_interleave;
-    vgmstream->interleave_block_size = read_32bitBE(0x0C,streamFile);
-    vgmstream->meta_type = meta_NGC_WVS;
+    vgmstream->interleave_block_size = interleave;
+    if (interleave)
+        vgmstream->interleave_last_block_size = (data_size % (interleave * channels)) / channels;
 
+    dsp_read_coefs_be(vgmstream, sf, 0x18, 0x20);
+    //dsp_read_hist_be(vgmstream, sf, 0x18 + 0x20*channels, 0x04); /* not seen */
 
-    if (vgmstream->coding_type == coding_NGC_DSP) {
-        int i,c;
-        for (c=0;c<channel_count;c++) {
-            for (i=0;i<16;i++) {
-                vgmstream->ch[c].adpcm_coef[i] =
-                    read_16bitBE(0x18+c*0x20 +i*2,streamFile);
-            }
-        }
-    }
-
-    /* open the file for reading */
-    {
-        int i;
-        STREAMFILE * file;
-        file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (!file) goto fail;
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = file;
-
-            vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=start_offset+
-                vgmstream->interleave_block_size*i;
-
-        }
-    }
-
+    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
+        goto fail;
     return vgmstream;
 
-    /* clean up anything we may have opened */
 fail:
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_vgmstream(vgmstream);
     return NULL;
 }
