@@ -8,33 +8,37 @@
 static VGMSTREAM* init_vgmstream_opus(STREAMFILE* sf, meta_t meta_type, off_t offset, int32_t num_samples, int32_t loop_start, int32_t loop_end) {
     VGMSTREAM* vgmstream = NULL;
     off_t start_offset;
-    int loop_flag = 0, channel_count;
-    off_t data_offset, samples_offset, multichannel_offset = 0;
+    int loop_flag = 0, channels, sample_rate;
+    off_t data_offset, context_offset, multistream_offset = 0;
     size_t data_size, skip = 0;
 
     /* header chunk */
-    if (read_u32le(offset + 0x00,sf) != 0x80000001)
+    if (read_u32le(offset + 0x00,sf) != 0x80000001) /* 'basic info' chunk */
         goto fail;
-    /* 0x04: chunk size */
+    /* 0x04: chunk size (should be 0x24) */
 
-    /* 0x08: null */
-    channel_count = read_u8(offset + 0x09, sf);
-    /* 0x0a: packet size if CBR, 0 if VBR */
+    /* 0x08: version (0) */
+    channels = read_u8(offset + 0x09, sf);
+    /* 0x0a: frame size if CBR, 0 if VBR */
+    sample_rate = read_u32le(offset + 0x0c,sf);
     data_offset = read_u32le(offset + 0x10, sf);
-    /* 0x14: null/reserved? */
-    samples_offset = read_u32le(offset + 0x18, sf);
-    skip = read_u16le(offset + 0x1c, sf);
-    /* 0x1e: ? (seen in Lego Movie 2 (Switch)) */
+    /* 0x14: 'frame data offset' (seek table? not seen) */
+    context_offset = read_u32le(offset + 0x18, sf);
+    skip = read_u16le(offset + 0x1c, sf); /* pre-skip sample count */
+    /* 0x1e: officially padding (non-zero in Lego Movie 2 (Switch)) */
+    /* (no offset to multistream chunk, maybe meant to go after seek/context chunks?) */
 
-    /* samples chunk, rare [Famicom Detective Club (Switch)] */
-    if (samples_offset && read_u32le(offset + samples_offset, sf) == 0x80000003) {
+    /* 0x80000002: 'offset info' chunk (seek table?), not seen */
+
+    /* 'context info' chunk, rare [Famicom Detective Club (Switch)] */
+    if (context_offset && read_u32le(offset + context_offset, sf) == 0x80000003) {
         /* maybe should give priority to external info? */
-        samples_offset += offset;
+        context_offset += offset;
         /* 0x08: null*/
-        loop_flag   = read_u8   (samples_offset + 0x09, sf);
-        num_samples = read_s32le(samples_offset + 0x0c, sf); /* slightly smaller than manual count */
-        loop_start  = read_s32le(samples_offset + 0x10, sf);
-        loop_end    = read_s32le(samples_offset + 0x14, sf);
+        loop_flag   = read_u8   (context_offset + 0x09, sf);
+        num_samples = read_s32le(context_offset + 0x0c, sf); /* slightly smaller than manual count */
+        loop_start  = read_s32le(context_offset + 0x10, sf);
+        loop_end    = read_s32le(context_offset + 0x14, sf);
         /* rest (~0x38) reserved/alignment? */
         /* values seem to take encoder delay into account */
     }
@@ -43,13 +47,13 @@ static VGMSTREAM* init_vgmstream_opus(STREAMFILE* sf, meta_t meta_type, off_t of
     }
 
 
-    /* multichannel chunk, rare [Clannad (Switch)] */
+    /* 'multistream info' chunk, rare [Clannad (Switch)] */
     if (read_u32le(offset + 0x20, sf) == 0x80000005) {
-        multichannel_offset = offset + 0x20;
+        multistream_offset = offset + 0x20;
     }
 
 
-    /* data chunk */
+    /* 'data info' chunk */
     data_offset += offset;
     if (read_u32le(data_offset, sf) != 0x80000004)
         goto fail;
@@ -60,13 +64,13 @@ static VGMSTREAM* init_vgmstream_opus(STREAMFILE* sf, meta_t meta_type, off_t of
 
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    vgmstream = allocate_vgmstream(channels,loop_flag);
     if (!vgmstream) goto fail;
 
     vgmstream->meta_type = meta_type;
-    vgmstream->sample_rate = read_u32le(offset + 0x0c,sf);
+    vgmstream->sample_rate = sample_rate;
     if (vgmstream->sample_rate == 16000)
-	    vgmstream->sample_rate = 48000; // Grandia HD Collection contains a false sample_rate in header
+        vgmstream->sample_rate = 48000; // Grandia HD Collection contains a false sample_rate in header
     vgmstream->num_samples = num_samples;
     vgmstream->loop_start_sample = loop_start;
     vgmstream->loop_end_sample = loop_end;
@@ -80,12 +84,12 @@ static VGMSTREAM* init_vgmstream_opus(STREAMFILE* sf, meta_t meta_type, off_t of
         cfg.skip = skip;
         cfg.sample_rate = vgmstream->sample_rate;
 
-        if (multichannel_offset && vgmstream->channels <= 8) {
+        if (multistream_offset && vgmstream->channels <= 8) {
             int i;
-            cfg.stream_count = read_u8(multichannel_offset + 0x08,sf);
-            cfg.coupled_count = read_u8(multichannel_offset + 0x09,sf);
+            cfg.stream_count = read_u8(multistream_offset + 0x08,sf);
+            cfg.coupled_count = read_u8(multistream_offset + 0x09,sf); /* stereo streams */
             for (i = 0; i < vgmstream->channels; i++) {
-                cfg.channel_mapping[i] = read_u8(multichannel_offset + 0x0a + i,sf);
+                cfg.channel_mapping[i] = read_u8(multistream_offset + 0x0a + i,sf);
             }
         }
 
@@ -174,14 +178,14 @@ VGMSTREAM* init_vgmstream_opus_capcom(STREAMFILE* sf) {
     VGMSTREAM *vgmstream = NULL;
     off_t offset;
     int num_samples, loop_start, loop_end;
-    int channel_count;
+    int channels;
 
     /* checks */
     if ( !check_extensions(sf,"opus,lopus"))
         goto fail;
 
-    channel_count = read_32bitLE(0x04,sf);
-    if (channel_count != 1 && channel_count != 2 && channel_count != 6)
+    channels = read_32bitLE(0x04,sf);
+    if (channels != 1 && channels != 2 && channels != 6)
         goto fail; /* unknown stream layout */
 
     num_samples = read_32bitLE(0x00,sf);
@@ -196,17 +200,17 @@ VGMSTREAM* init_vgmstream_opus_capcom(STREAMFILE* sf) {
     /* 0x2c: some size? */
     /* 0x30+: extra chunks (0x00: 0x7f, 0x04: num_sample), alt loop starts/regions? */
 
-    if (channel_count == 6) {
+    if (channels == 6) {
         /* 2ch multistream hacky-hacks in RE:RE, don't try this at home. We'll end up with:
          * main vgmstream > N vgmstream layers > substream IO deinterleaver > opus meta > Opus IO transmogrifier (phew) */
         layered_layout_data* data = NULL;
-        int layers = channel_count / 2;
+        int layers = channels / 2;
         int i;
         int loop_flag = (loop_end > 0);
 
 
         /* build the VGMSTREAM */
-        vgmstream = allocate_vgmstream(channel_count,loop_flag);
+        vgmstream = allocate_vgmstream(channels,loop_flag);
         if (!vgmstream) goto fail;
 
         vgmstream->layout_type = layout_layered;

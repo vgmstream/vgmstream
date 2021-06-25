@@ -805,7 +805,7 @@
     <ClCompile Include="meta\ps2_adm.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ps2_ads.c">
+    <ClCompile Include="meta\ads.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ps2_ass.c">
@@ -955,7 +955,7 @@
     <ClCompile Include="meta\ps2_vbk.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ps2_vgs.c">
+    <ClCompile Include="meta\vgs_ps.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ps2_vgv.c">
@@ -1588,7 +1588,7 @@
     <ClCompile Include="meta\mtaf.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ps2_spm.c">
+    <ClCompile Include="meta\spm.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\vs_str.c">

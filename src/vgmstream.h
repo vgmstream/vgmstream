@@ -461,8 +461,7 @@ typedef enum {
     meta_NGC_DSP_KONAMI,    /* Konami DSP header, found in various games */
     meta_UBI_CKD,           /* Ubisoft CKD RIFF header (Rayman Origins Wii) */
     meta_RAW_WAVM,
-    meta_XBOX_WVS,          /* XBOX WVS */
-    meta_NGC_WVS,           /* Metal Arms - Glitch in the System */
+    meta_WVS,
     meta_XBOX_MATX,         /* XBOX MATX */
     meta_XMU,
     meta_XVAS,
@@ -564,9 +563,9 @@ typedef enum {
     meta_PS3_PAST,          /* Bakugan Battle Brawlers (PS3) */
     meta_SGXD,              /* Sony: Folklore, Genji, Tokyo Jungle (PS3), Brave Story, Kurohyo (PSP) */
     meta_WII_RAS,           /* Donkey Kong Country Returns (Wii) */
-    meta_PS2_SPM,           /* Lethal Skies Elite Pilot: Team SW */
+    meta_SPM,
     meta_X360_TRA,          /* Def Jam Rapstar */
-    meta_PS2_VGS,           /* Princess Soft PS2 games */
+    meta_VGS_PS,
     meta_PS2_IAB,           /* Ueki no Housoku - Taosu ze Robert Juudan!! (PS2) */
     meta_VS_STR,            /* The Bouncer */
     meta_LSF_N1NJ4N,        /* .lsf n1nj4n Fastlane Street Racing (iPhone) */

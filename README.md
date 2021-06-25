@@ -210,7 +210,7 @@ https://github.com/vgmstream/vgmstream/tree/master/cli/tools/txtp_maker.py
 Put in the same dir as test.exe/vgmstream_cli, then to drag-and-drop files with
 subsongs to `txtp_maker.py` (it has CLI options to control output too).
 
-### Renamed files
+### Common and unknown extensions
 A few extensions that vgmstream supports clash with common ones. Since players
 like foobar or Winamp don't react well to that, they may be renamed to make
 them playable through vgmstream.
@@ -219,7 +219,7 @@ them playable through vgmstream.
 - `.aif` to `.laif` (standard Mac AIF, Asobo AIF, Ogg)
 - `.aiff/aifc` to `.laiffl/laifc` (standard Mac AIF)
 - `.asf` to `.lasf` (EA games, Argonaut ASF)
-- `.bin` to `.lbin` (various)
+- `.bin` to `.lbin` (various formats)
 - `.flac` to `.lflac` (standard FLAC)
 - `.mp2` to `.lmp2` (standard MP2)
 - `.mp3` to `.lmp3` (standard MP3)
@@ -228,34 +228,41 @@ them playable through vgmstream.
 - `.ogg` to `.logg` (standard OGG)
 - `.opus` to `.lopus` (standard OPUS or Switch OPUS)
 - `.stm` to `.lstm` (Rockstar STM)
-- `.wav` to `.lwav` (standard WAV)
+- `.wav` to `.lwav` (standard WAV, various formats)
 - `.wma` to `.lwma` (standard WMA)
 - `.(any)` to `.vgmstream` (FFmpeg formats or TXTH)
 
 Command line tools don't have this restriction and will accept the original
 filename.
 
-The main advantage to rename them is that vgmstream may use the file's
-internal loop info, or apply subtle fixes, but is also limited in some ways
-(like standard/player's tagging). `.vgmstream` is a catch-all extension that
-may work as a last resort to make a file playable.
+The main advantage of renaming here is that vgmstream may use the file's internal
+loop info, or apply subtle fixes, but is also limited in some ways (like ignoring
+standard tags). `.vgmstream` is a catch-all extension that may work as a last resort
+to make a file playable.
 
-Some plugins have options that allow any extension (common or unknown) to be
-played, making renaming unnecessary. You may need to adjust plugin priority in
-player's options first.
+Some plugins have options that allow common extensions to be played, making any
+renaming unnecessary. You may need to adjust plugin priority in player's options
+first. Note that vgmstream also accepts certain extension-less files as-is too.
 
+Similarly, vgmstream has a curated list of known extensions, that plugins may take
+into account and ignore unknowns. Through *TXTH* you can make unknown files playable,
+but you also need to either rename or set plugin options to allow "unknown extensions"
+(or, preferably, report this new extension so it can be added to the known list).
+
+It's also possible to make a .txtp file that opens files with those common/unknown
+extensions as a way to force them into vgmstream without renaming.
+
+#### Related issues
 Also be aware that other plugins (not vgmstream's) can tell the player they
 handle some extension, then not actually play it. This makes the file unplayable
 as vgmstream doesn't even get the chance to parse that file, so you may need to
 disable the offending plugin or rename the file (for example this may happen with
-.asf and foobar2000).
+`.asf` in foobar2000).
 
-When extracting from a bigfile, sometimes internal files don't have an actual
-name+extension. Those should be renamed to its proper/common extension, as the
-extractor program may guess wrong (like .wav instead of .at3 or .wem). If
-there is no known extension, usually the header id string may be used instead.
-
-Note that vgmstream also accepts certain extension-less files too.
+When extracting from a bigfile, sometimes internal files don't have an proper
+extension. Those should be renamed to its correct one when possible, as the
+extractor program may guess wrong (like `.wav` instead of `.at3` or `.wem`).
+If there is no known extension, usually the header id/magic string may be used instead.
 
 ### Demuxed videos
 vgmstream also supports audio from videos, but usually must be demuxed (extracted
@@ -282,7 +289,6 @@ Some formats have companion files with external info, that should be left togeth
 - `.ogg.sfl` : loop info for `.ogg`
 - `.opus.sli`: loop info for `.opus`
 - `.pos`: loop info for .wav
-- `.vgmstream.pos`: loop info for FFmpeg formats
 - `.acb`: names for `.awb`
 - `.xsb`: names for `.xwb`
 
@@ -303,6 +309,7 @@ Similarly some formats split header+body data in separate files, examples:
 - `.wav.str`+`.wav`
 - `.wav`+`.dcs`
 - `.wbh`+`.wbd`
+
 Both are needed to play and must be together. The usual rule is you open the
 bigger file (body), save a few formats where the smaller (header) file is opened
 instead for technical reasons (mainly some bank formats).
@@ -370,7 +377,7 @@ dynamically during gameplay, or looping metadata is stored externally.
 Cases like those can be supported using an artificial files with info vgmstream
 needs.
 
-Creation of these files is meant for advanced users, docs can be found in
+Creation of these files is meant for advanced users, full docs can be found in
 vgmstream source.
 
 #### GENH
@@ -389,6 +396,17 @@ file, or static values. This allows vgmstream to play unsupported formats.
 *TXTH* is recommended over *GENH* as it's far easier to create and has many
 more functions, plus doesn't modify original data.
 
+Usage example (used when opening an unknown file named `bgm_01.pcm`):
+**.pcm.txth**
+```
+codec = PCM16LE
+channels = @0x04        #in the file, at offset 4
+sample_rate = 48000     #hardcoded
+start_offset = 0x10
+num_samples = data_size #auto
+```
+
+
 #### TXTP
 Text files with player configuration, named `(name).txtp`.
 
@@ -397,14 +415,38 @@ and non-standard ways, like playing multiple small songs as a single
 one, or using some channels as a section of the song. For those cases we
 can create a *TXTP* file to customize how vgmstream handles songs.
 
-Text inside `.txtp` can contain a list of filenames to play as one (ex.
-`intro.vag(line)loop.vag`), a list of single-channel files to join as a single
-multichannel file, subsong index (ex. `bgm.sxd#10`), per-file configurations like
-number of loops, remove unneeded channels, force looping, and many other features.
+Text inside `.txtp` can contain a list of filenames to play as one, a list of
+single-channel files to join as a single multichannel file, subsong index,
+per-file configurations like number of loops, remove unneeded channels,
+force looping, and many other features.
 
-For example, to force looping `bgm01.mp3`, make `bgm01-loop.txtp` and inside
-write `bgm01.mp3 #I 10.0 90.0`. Open the `.txtp` and vgmstream will loop that
-`.mp3` from 10 to 90 seconds.
+Usage examples (open directly, name can be set freely):
+**bgm01-full.txtp**
+```
+# plays 2 files as a single one
+bgm01_intro.vag
+bgm01_loop.vag
+loop_mode = auto
+```
+
+**bgm-subsong10.txtp**
+```
+# plays subsong number 10
+bgm.sxd#10
+```
+
+**song01-looped.txtp**
+```
+# force looping an .mp3 from 10 seconds up to file end
+song02.mp3 #I 10.0
+```
+
+**music01-demux2.txtp**
+```
+# plays channels 3 and 4 only, removes rest
+music01.bfstm #C3,4
+```
+
 
 #### TXTM
 A text file named `.txtm` for some formats with companion files. It lists
@@ -414,11 +456,11 @@ It is needed for formats where name combos are hardcoded, so vgmstream doesn't
 know which companion file(s) to load if its name doesn't match the main file.
 Note that companion file order is usually important.
 
-Usage example:
+Usage example (used when opening files in the left part of the list):
 ```
 # Harry Potter and the Chamber of Secrets (PS2)
-entrance.mpf:entrance.mus,entrance_o.mus
-willow.mpf:willow.mus,willow_o.mus
+entrance.mpf: entrance.mus,entrance_o.mus
+willow.mpf: willow.mus,willow_o.mus
 ```
 ```
 # Metal Gear Solid: Snake Eater 3D (3DS) names for .awb
