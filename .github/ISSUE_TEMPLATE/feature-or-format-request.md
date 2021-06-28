@@ -7,4 +7,4 @@ assignees: ''
 
 ---
 
-**READ THIS AND THEN DELETE IT. Do not submit issues related to converting audio to video game music formats. This goes beyond the scope of this project.**
+**READ THIS AND THEN DELETE IT. Do not submit issues related to converting audio _TO_ video game music formats. This goes beyond the scope of this project.**
