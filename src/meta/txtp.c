@@ -4,6 +4,8 @@
 #include "../mixing.h"
 #include "../plugins.h"
 
+#include <math.h>
+
 
 #define TXTP_LINE_MAX 1024
 #define TXTP_MIXING_MAX 512
