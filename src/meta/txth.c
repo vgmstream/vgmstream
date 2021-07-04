@@ -54,7 +54,7 @@ typedef struct {
     uint32_t value_sub;
 
     uint32_t id_value;
-    uint32_t id_offset;
+    uint32_t id_check;
 
     uint32_t interleave;
     uint32_t interleave_last;
@@ -121,6 +121,8 @@ typedef struct {
 
     uint32_t name_values[16];
     int name_values_count;
+
+    int is_multi_txth;
 
     /* original STREAMFILE and its type (may be an unsupported "base" file or a .txth) */
     STREAMFILE* sf;
@@ -571,7 +573,7 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
     vgmstream->allow_dual_stereo = 1;
 
 
-    if ( !vgmstream_open_stream(vgmstream,txth.sf_body,txth.start_offset) )
+    if (!vgmstream_open_stream(vgmstream, txth.sf_body, txth.start_offset))
         goto fail;
 
     clean_txth(&txth);
@@ -750,7 +752,7 @@ static void set_body_chunk(txth_header* txth) {
         return;
 
     /* treat chunks as subsongs */
-    if (txth->subsong_count > 1)
+    if (txth->subsong_count > 1 && txth->subsong_count == txth->chunk_count)
         txth->chunk_number = txth->target_subsong;
     if (txth->chunk_number == 0)
         txth->chunk_number = 1;
@@ -798,6 +800,7 @@ static int parse_num(STREAMFILE* sf, txth_header* txth, const char* val, uint32_
 static int parse_string(STREAMFILE* sf, txth_header* txth, const char* val, char* str);
 static int parse_coef_table(STREAMFILE* sf, txth_header* txth, const char* val, uint8_t* out_value, size_t out_size);
 static int parse_name_table(txth_header* txth, char* val);
+static int parse_multi_txth(txth_header* txth, char* val);
 static int is_string(const char* val, const char* cmp);
 static int get_bytes_to_samples(txth_header* txth, uint32_t bytes);
 static int get_padding_size(txth_header* txth, int discard_empty);
@@ -944,9 +947,9 @@ static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char* key, cha
     else if (is_string(key,"id_value")) {
         if (!parse_num(txth->sf_head,txth,val, &txth->id_value)) goto fail;
     }
-    else if (is_string(key,"id_offset")) {
-        if (!parse_num(txth->sf_head,txth,val, &txth->id_offset)) goto fail;
-        if (txth->id_value != txth->id_offset) /* evaluate current ID */
+    else if (is_string(key,"id_check") || is_string(key,"id_offset")) {
+        if (!parse_num(txth->sf_head,txth,val, &txth->id_check)) goto fail;
+        if (txth->id_value != txth->id_check) /* evaluate current ID */
             goto fail;
     }
 
@@ -1327,6 +1330,11 @@ static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char* key, cha
         if (!parse_name_table(txth,val)) goto fail;
     }
 
+    /* MULTI TXTH */
+    else if (is_string(key,"multi_txth")) {
+        if (!parse_multi_txth(txth,val)) goto fail;
+    }
+
 
     /* DEFAULT */
     else {
@@ -1511,8 +1519,52 @@ fail:
     return 0;
 }
 
+static int read_name_table_keyval(txth_header* txth, const char* line, char* key, char* val) {
+    int ok;
+    int subsong;
+
+    /* get key/val (ignores lead spaces, stops at space/comment/separator) */
+    //todo names with # and subsongs don't work
+
+    /* ignore comments (that aren't subsongs) */
+    if (line[0] == '#' && strchr(line,':') < 0)
+        return 0;
+
+    /* try "(name): (val))" */
+    ok = sscanf(line, " %[^\t#:] : %[^\t#\r\n] ", key, val);
+    if (ok == 2) {
+        ;VGM_LOG("TXTH: name %s get\n", key);
+        return 1;
+    }
+
+    /* try "(empty): (val))" */
+    key[0] = '\0';
+    ok = sscanf(line, " : %[^\t#\r\n] ", val);
+    if (ok == 1) {
+        ;VGM_LOG("TXTH: default get\n");
+        return 1;
+    }
+
+    /* try "(name)#subsong: (val))" */
+    ok = sscanf(line, " %[^\t#:]#%i : %[^\t#\r\n] ", key, &subsong, val);
+    if (ok == 3 && subsong == txth->target_subsong) {
+        VGM_LOG("TXTH: name %s + subsong %i get\n", key, subsong);
+        return 1;
+    }
+
+    /* try "(empty)#subsong: (val))" */
+    key[0] = '\0';
+    ok = sscanf(line, " #%i: %[^\t#\r\n] ", &subsong, val);
+    if (ok == 2 && subsong == txth->target_subsong) {
+        VGM_LOG("TXTH: default + subsong %i get\n", subsong);
+        return 1;
+    }
+
+    return 0;
+}
+
 static int parse_name_table(txth_header* txth, char* name_list) {
-    STREAMFILE* nameFile = NULL;
+    STREAMFILE* sf_names = NULL;
     off_t txt_offset, file_size;
     char fullname[PATH_LIMIT];
     char filename[PATH_LIMIT];
@@ -1536,8 +1588,8 @@ static int parse_name_table(txth_header* txth, char* name_list) {
     //;VGM_LOG("TXTH: name_list='%s'\n", name_list);
 
     /* open companion file near .txth */
-    nameFile = open_streamfile_by_filename(txth->sf_text, name_list);
-    if (!nameFile) goto fail;
+    sf_names = open_streamfile_by_filename(txth->sf_text, name_list);
+    if (!sf_names) goto fail;
 
     get_streamfile_name(txth->sf_body, fullname, sizeof(filename));
     get_streamfile_filename(txth->sf_body, filename, sizeof(filename));
@@ -1545,14 +1597,14 @@ static int parse_name_table(txth_header* txth, char* name_list) {
     //;VGM_LOG("TXTH: names full=%s, file=%s, base=%s\n", fullname, filename, basename);
 
     txt_offset = 0x00;
-    file_size = get_streamfile_size(nameFile);
+    file_size = get_streamfile_size(sf_names);
 
     /* skip BOM if needed */
-    if ((uint16_t)read_16bitLE(0x00, nameFile) == 0xFFFE ||
-        (uint16_t)read_16bitLE(0x00, nameFile) == 0xFEFF) {
+    if ((uint16_t)read_16bitLE(0x00, sf_names) == 0xFFFE ||
+        (uint16_t)read_16bitLE(0x00, sf_names) == 0xFEFF) {
         txt_offset = 0x02;
     }
-    else if (((uint32_t)read_32bitBE(0x00, nameFile) & 0xFFFFFF00) == 0xEFBBBF00) {
+    else if (((uint32_t)read_32bitBE(0x00, sf_names) & 0xFFFFFF00) == 0xEFBBBF00) {
         txt_offset = 0x03;
     }
 
@@ -1569,22 +1621,14 @@ static int parse_name_table(txth_header* txth, char* name_list) {
         while (txt_offset < file_size) {
             int ok, bytes_read, line_ok;
 
-            bytes_read = read_line(line, sizeof(line), txt_offset, nameFile, &line_ok);
+            bytes_read = read_line(line, sizeof(line), txt_offset, sf_names, &line_ok);
             if (!line_ok) goto fail;
             //;VGM_LOG("TXTH: line=%s\n",line);
 
             txt_offset += bytes_read;
 
-            /* get key/val (ignores lead spaces, stops at space/comment/separator) */
-            ok = sscanf(line, " %[^\t#:] : %[^\t#\r\n] ", key,val);
-            if (ok != 2) { /* ignore line if no key=val (comment or garbage) */
-                /* try again with " (empty): (val)) */
-                key[0] = '\0';
-                ok = sscanf(line, " : %[^\t#\r\n] ", val);
-                if (ok != 1)
-                    continue;
-            }
-
+            if (!read_name_table_keyval(txth, line, key, val))
+                continue;
 
             //;VGM_LOG("TXTH: compare name '%s'\n", key);
             /* parse values if key (name) matches default ("") or filename with/without extension */
@@ -1619,13 +1663,65 @@ static int parse_name_table(txth_header* txth, char* name_list) {
 
     /* ignore if name is not actually found (values will return 0) */
 
-    close_streamfile(nameFile);
+    close_streamfile(sf_names);
     return 1;
 fail:
-    close_streamfile(nameFile);
+    close_streamfile(sf_names);
     return 0;
 }
 
+
+static int parse_multi_txth(txth_header* txth, char* names) {
+    STREAMFILE* sf_text = NULL;
+    char name[PATH_LIMIT];
+    int n, ok;
+
+    /* temp save */
+    sf_text = txth->sf_text;
+    txth->sf_text = NULL;
+
+    /* to avoid potential infinite recursion plus stack overflows */
+    if (txth->is_multi_txth > 3)
+        goto fail;
+    txth->is_multi_txth++;
+
+    while (names[0] != '\0') {
+        STREAMFILE* sf_test = NULL;
+        int found;
+
+        ok = sscanf(names, " %[^\t#\r\n,]%n ", name, &n);
+        if (ok != 1)
+            goto fail;
+
+        //;VGM_LOG("TXTH: multi name %s\n", name);
+        sf_test = open_streamfile_by_filename(txth->sf, name);
+        if (!sf_test)
+            goto fail;
+
+        /* re-parse with current txth and hope */
+        txth->sf_text = sf_test;
+        found = parse_txth(txth);
+        close_streamfile(sf_test);
+        //todo may need to close header/body streamfiles?
+
+        if (found) {
+            //;VGM_LOG("TXTH: found valid multi txth %s\n", name);
+            break; /* found, otherwise keep trying */
+        }
+
+        names += n;
+        if (names[0] == ',')
+            names++;
+    }
+
+    txth->is_multi_txth--;
+    txth->sf_text = sf_text;
+    return 1;
+fail:
+    txth->is_multi_txth--;
+    txth->sf_text = sf_text;
+    return 0;
+}
 
 static int parse_num(STREAMFILE* sf, txth_header* txth, const char* val, uint32_t* out_value) {
     /* out_value can be these, save before modifying */
@@ -1734,6 +1830,7 @@ static int parse_num(STREAMFILE* sf, txth_header* txth, const char* val, uint32_
             else if ((n = is_string_field(val,"loop_start")))           value = txth->loop_start_sample;
             else if ((n = is_string_field(val,"loop_end_sample")))      value = txth->loop_end_sample;
             else if ((n = is_string_field(val,"loop_end")))             value = txth->loop_end_sample;
+            else if ((n = is_string_field(val,"subsong")))              value = txth->target_subsong;
             else if ((n = is_string_field(val,"subsong_count")))        value = txth->subsong_count;
             else if ((n = is_string_field(val,"subsong_spacing")))      value = txth->subsong_spacing;
             else if ((n = is_string_field(val,"subsong_offset")))       value = txth->subsong_spacing;

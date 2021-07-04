@@ -1,18 +1,13 @@
 # TXTH FORMAT
 
-TXTH is a simple text file that uses text commands to simulate a header for files unsupported by vgmstream, mainly headerless audio.
+TXTH is a simple text file with text commands to simulate a header for files unsupported by vgmstream, mainly headerless audio.
 
-When an unsupported file is loaded (for instance "bgm01.snd"), vgmstream tries to find a TXTH header in the same dir, in this order:
+When an unsupported file is loaded (for instance `bgm01.snd`), vgmstream tries to find a TXTH header in the same dir, in this order:
 - `(filename.ext).txth`
 - `.(ext).txth`
 - `.txth`
 
-If found and parsed correctly (the .txth may be rejected if incorrect commands are found) vgmstream will try to play the file as described. Extension must be accepted/added to vgmstream (plugins like foobar2000 only load extensions from a whitelist in formats.c), or one could rename to any supported extension (like .vgmstream), or leave the file extensionless.
-
-You can also use `.(sub).(ext).txth` (if the file is `filename.sub.ext`), to allow mixing slightly different files in the same folder. The `sub` part doesn't need to be an extension, for example:
-- `001.1ch.str`, `001.1ch.str` may use `.1ch.txth`
-- `003.2ch.str`, `003.2ch.str` may use `.2ch.txth`
-- etc
+If found and parsed correctly, vgmstream will play the file as described.
 
 ## Example of a TXTH file
 For an unsupported `bgm01.vag` this would be a simple TXTH for it:
@@ -29,10 +24,19 @@ A text file with the above commands must be saved as `.vag.txth` or `.txth` (pre
 
 While the main point is playing the file, many of TXTH's features are aimed towards keeping original data intact, for documentation and preservation purposes; try leaving data as untouched as possible and consider how the game plays the file, as there is a good chance some feature can mimic it.
 
+Also check the [examples](#examples) section for some quick recipes, of varying complexity.
+
+
+## Issues
+The `.txth` may be rejected if incorrect commands are found. Since at the moment vgmstream can't communicate why a file is rejected, try starting with a simple case (see examples) then add more complex commands until it fully works.
+
+Extension must be accepted/added to vgmstream (plugins like foobar2000 only load extensions from an accepted list in `formats.c`), or one could rename to any supported extension (like `.vgmstream`), or leave the file extensionless. Before renaming consider reporting the unknown extension so it can be added to the list (so similar games benefit, as long as the extension is a good fit). Some plugins allow playing unknown extensions too.
+
+Note that TXTH has *lower* priority than most (not all) vgmstream formats, by design. This means your `.txth` may be ignored if vgmstream thinks it can play your file better. If vgmstream plays your file somewhat off, rather renaming to force a `.txth`, report the bug so that and similar cases can be fixed. TXTH isn't meant to be a replacement of vgmstream's parsers, but a way to play cases that aren't a good fit be added directly to vgmstream.
+
 
 ## Available commands
-
-The file is made of lines with `key = value` commands describing a header. Commands are all case sensitive and spaces are optional: `key=value`, `key  =   value`, and so on are all ok. Comments start with # and can be inlined.
+The file is made of lines with `key = value` commands describing a header. Commands are all case sensitive and spaces are optional: `key=value`, `key  =   value`, and so on are all ok, while `Key = VaLuE` is not. Comments start with `#` and can be inlined.
 
 The parser is fairly simple and may be buggy or unexpected in some cases. The order of keys is variable but some things won't work if others aren't defined (ex. bytes-to-samples may not work without channels or interleave) or need to be done in a certain order (due to technical reasons) as explained below.
 
@@ -50,8 +54,8 @@ The following can be used in place of `(value)` for `(key) = (value)` commands.
   * Example: `@0x10:BE$2` means `get big endian 16b value at 0x10`
 - `(field)`: uses current value of some fields. Accepted strings:
   - `interleave, interleave_last, channels, sample_rate, start_offset, data_size, num_samples, loop_start_sample, loop_end_sample, subsong_count, subsong_spacing, subfile_offset, subfile_size, base_offset, name_valueX`
+  - `subsong` is a special field for current subsong
 - `(other)`: other special values for certain keys, described per key
-
 
 The above may be combined with math operations (+-*/&): `(key) = (number) (op) (offset) (op) (field) (...)`
 
@@ -201,12 +205,12 @@ interleave_last = (value)|auto
 ```
 
 #### ID VALUES
-Validates that `id_value` (normally set as constant value) matches value read at `id_offset`. The file will be rejected and won't play if values don't match.
+Validates that `id_value` (normally set as constant value) matches value read at `id_check`. The file will be rejected and won't play if values don't match.
 
-Can be redefined several times, it's checked whenever a new id_offset is found.
+Can be redefined several times, it's checked whenever a new id_offset is found. `id_offset` can be used as an alt for `id_check`
 ```
 id_value = (value)
-id_offset = (value)
+id_check = (value)
 ```
 
 #### NUMBER OF CHANNELS [REQUIRED]
@@ -262,7 +266,7 @@ Those tell vgmstream how long the song is. Define loop points for the track to r
 
 You can use `loop_start` and `loop_end` instead as aliases of `loop_start_sample` and `loop_end_sample` (no difference).
 
-To activate loops you need to define both `loop_start` and `loop_end` (rather than say, only defining `start`  and defaulting `end` to `num_samples`). This is to make the *.txtp* more descriptive, and avoid ambiguity in  cases where `start` value is 0. See loop settings below to fine tune when to loop.
+To activate loops you need to define both `loop_start` and `loop_end` (rather than say, only defining `start`  and defaulting `end` to `num_samples`). This is to make the *.txth* more descriptive, and avoid ambiguity in  cases where `start` value is 0. See loop settings below to fine tune when to loop.
 
 Special values:
 - `data_size`: automatically converts bytes-to-samples (a few codecs don't allow this)
@@ -397,7 +401,7 @@ File is first "dechunked" then played with using other settings (`start_offset` 
 You need to set:
 - `chunk_count`: total number of interleaved chunks (ex. 3=3 interleaved songs)
 - `chunk_number`: first chunk to start (ex. 1=0x00000, 2=0x10000, 3=0x20000...)
-  * If you set `subsong_count` first `chunk_number` will be auto-set per subsong (subsong 1 starts from chunk number 1, subsong 2 from chunk 2, etc)
+  * If you set `subsong_count` and `chunk_count` first, `chunk_number` will be auto-set per subsong (subsong 1 starts from chunk number 1, subsong 2 from chunk 2, etc)
 - `chunk_start`: absolute offset where chunks start (normally 0x00)
 - `chunk_size`: amount of data in a single chunk (ex. 0x10000)
 For fine-tuning you can optionally set (before `chunk_size`, for reasons):
@@ -442,6 +446,16 @@ bgm*: 2     # 2ch: all other files, notice order matters
 
 While you can put anything in the values, this feature is meant to be used to store some number that points to the actual data inside a real multi-header, that could be set with `header_file`. If you feel the need to store many constant values per file, there is good chance it can be done in some better, simpler way.
 
+This function also works with subsongs, with this syntax:
+```
+# for subsong 1 in filename
+(filename)#1: (value 1)
+# for any subsong 2
+#2: (value 2)
+...
+```
+Then subsong N would automatically use its own `name_value`.
+
 
 #### BASE OFFSET MODIFIER
 You can set a default offset that affects next `@(offset)` reads making them `@(offset + base_offset)`, for cleaner parsing.
@@ -450,9 +464,37 @@ This is particularly interesting when combined with offsets to some long value. 
 
 It also allows parsing formats that set offsets to another offset, by "chaining" `base_offset`. With `base_offset = @0x10` (pointing to `0x40`) then `base_offset = @0x20`, it reads value at `0x60`. Set to 0 when you want to disable/reset the chain: `base_offset = @0x10` then `base_offset = 0` then `base_offset = @0x20` reads value at `0x20`
 
-
 ```
 base_offset = (value)
+```
+
+
+#### MULTI-TXTH
+TXTH can't do conditions (`if`) but sometimes you have have variations of the same format in the same dir. You can set multiple `.txth` files to try until one works. Use `id_value/id_check` to reject wrong `.txth` (otherwise the first one will be selected).
+
+```
+multi_txth = (filename), (filename), ...
+```
+For example:
+```
+multi_txth = .2ch.txth, .4ch.txth
+```
+
+*.2ch.txth*
+```
+id_value = 2
+id_check = @0x00 # 2ch only
+
+... #some settings for stereo
+
+```
+*.4ch.txth*
+```
+id_value = 4
+id_check = @0x00 # 4ch only
+
+... #different settings for 4ch
+
 ```
 
 
@@ -701,39 +743,12 @@ sample_rate = @0x04                 #reads at 0x1204
 
 ## Examples
 
-#### Colin McRae DiRT (PC) .wip.txth
+#### Spy Hunter (GC) .pcm.txth
 ```
-id_value = 0x00000000   #check that value at 0x00 is really 0x00000000
-id_offset = @0x00:BE
-
-codec = PCM16LE
-channels = 2
+codec = PCM8
 sample_rate = 32000
-start_offset = 0x04
-num_samples = data_size
-loop_start_sample = 0
-loop_end_sample = data_size
-```
-
-#### Kim Possible: What's the Switch (PS2) .str.txth
-```
-codec = PSX
-interleave = 0x2000
-channels = 2
-sample_rate = 48000
-num_samples = data_size
-interleave_last = auto
-```
-
-#### Manhunt (Xbox) .rib.txth
-```
-codec = XBOX
-codec_mode = 1 #interleaved XBOX
-interleave = 0xD800
-
-channels = 12
-sample_rate = 44100
-start_offset = 0x00
+channels = 1
+start_offset = 0
 num_samples = data_size
 ```
 
@@ -747,12 +762,50 @@ sample_rate = 44100
 num_samples = data_size
 ```
 
-#### Spy Hunter (GC) .pcm.txth
+#### Aladdin in Nasira's Revenge (PS1) .cvs.txth
 ```
-codec = PCM8
-sample_rate = 32000
+codec = PSX
+interleave = 0x10
+sample_rate = 24000
 channels = 1
-start_offset = 0
+padding_size = auto-empty
+num_samples = data_size
+```
+
+#### Kim Possible: What's the Switch (PS2) .str.txth
+```
+codec = PSX
+interleave = 0x2000
+channels = 2
+sample_rate = 48000
+num_samples = data_size
+interleave_last = auto
+```
+
+#### Colin McRae DiRT (PC) .wip.txth
+```
+# first check that value at 0x00 is really 0x00000000 (rarely needed though)
+id_value = 0x00000000
+id_check = @0x00:BE
+
+codec = PCM16LE
+channels = 2
+sample_rate = 32000
+start_offset = 0x04
+num_samples = data_size
+loop_start_sample = 0
+loop_end_sample = data_size
+```
+
+#### Manhunt (Xbox) .rib.txth
+```
+codec = XBOX
+codec_mode = 1 #interleaved XBOX
+interleave = 0xD800
+
+channels = 12
+sample_rate = 44100
+start_offset = 0x00
 num_samples = data_size
 ```
 
@@ -774,16 +827,6 @@ loop_end_sample   = @0x14:BE
 coef_offset = 0x1c
 coef_spacing = 0x10000
 coef_endianness = BE
-```
-
-#### Aladdin in Nasira's Revenge (PS1) .cvs.txth
-```
-codec = PSX
-interleave = 0x10
-sample_rate = 24000
-channels = 1
-padding_size = auto-empty
-num_samples = data_size
 ```
 
 #### Shikigami no Shiro - Nanayozuki Gensoukyoku (PS2) bgm.txth
@@ -1120,4 +1163,73 @@ num_samples = @0x24:BE
 loop_end = @0x24:BE #0x2c?
 loop_start = @0x28:BE
 loop_flag = @0x2c:BE
+```
+
+#### Grand Theft Auto: San Andreas .vgmstream.txth
+```
+# once extracted from bigfiles there are 2 types of files with hardcoded settings,
+# so we need 2 .txth
+multi_txth = .type2.txth, .type4.txth
+```
+
+*.type2.txth*
+```
+id_value = 2
+id_check = @0x1f80
+
+codec = PSX
+channels = 2
+sample_rate = @0x1F44
+interleave = 0x10000
+start_offset = 0x00
+
+chunk_count = 1
+chunk_start = 0x1f84
+chunk_data_size = 0x20000
+chunk_size = 0x21000
+
+num_samples = data_size
+```
+
+*.type4.txth*
+```
+id_value = 4
+id_check = @0x1F80
+
+name_table = .names.txt
+
+subsong_count = 2
+
+base_offset = name_value1
+
+codec = PSX
+channels = 2
+sample_rate = @0x04
+interleave = name_value2
+start_offset = 0x00
+
+chunk_count = 1
+chunk_start = 0x1f84
+chunk_header_size = name_value3
+chunk_data_size = name_value4
+chunk_size = 0x21000
+
+num_samples = data_size
+
+# base_offset = 0x1F40
+# 00: stream size without padding
+# 04: stream 1 sample rate
+# 08: stream size without padding (same)
+# 0c: stream 2 sample rate (same)
+# repeat for stream 3 and 4 if any
+# 1/2 are mini streams (interleave 0x800, chunk size 0x1000, padding 0x20000)
+# 1/2 are standard streams (interleave 0x10000, padding 0x1000, chunk size 0x20000)
+#  (mini streams are muffled versions of the standard ones)
+```
+
+*.names.txt*
+```
+# base_offset, interleave, chunk_header_size, chunk_data_size
+#1: 0x1F40, 0x800,   0x00,   0x1000
+#2: 0x1F50, 0x10000, 0x1000, 0x20000
 ```
