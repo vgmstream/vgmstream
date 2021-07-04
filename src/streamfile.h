@@ -260,17 +260,24 @@ static inline float    read_f32be_m(off_t offset, STREAMFILE* sf) {
     return sample_float;
 }
 #endif
+
 #if 0
+
+// on GCC, this reader will be correctly optimized out (as long as it's static/inline), would be same as declaring:
+// uintXX_t (*read_uXX)(off_t,uint8_t*) = be ? get_uXXbe : get_uXXle;
+// only for the functions actually used in code, and inlined if possible (like big_endian param being a constant).
+// on MSVC seems all read_X in sf_reader are compiled and included in the translation unit, plus ignores constants
+// so may result on bloatness?
+// (from godbolt tests, test more real cases)
+
 /* collection of callbacks for quick access */
 typedef struct sf_reader {
-    int32_t (*read_s32)(off_t,STREAMFILE*); //maybe s32
+    int32_t (*read_s32)(off_t,STREAMFILE*); //maybe r.s32
     float (*read_f32)(off_t,STREAMFILE*);
     /* ... */
 } sf_reader;
 
-void init_reader(sf_reader *r, int big_endian);
-/* ... */
-void sf_reader_init(sf_reader *r, int big_endian) {
+static inline void sf_reader_init(sf_reader* r, int big_endian) {
     memset(r, 0, sizeof(sf_reader));
     if (big_endian) {
         r->read_s32 = read_s32be;
@@ -281,6 +288,7 @@ void sf_reader_init(sf_reader *r, int big_endian) {
         r->read_f32 = read_f32le;
     }
 }
+
 /* sf_reader r;
  * ...
  * sf_reader_init(&r, big_endian);
@@ -326,12 +334,12 @@ static inline /*const*/ int is_id64be(off_t offset, STREAMFILE* sf, const char* 
 static inline int guess_endianness16bit(off_t offset, STREAMFILE* sf) {
     uint8_t buf[0x02];
     if (read_streamfile(buf, offset, 0x02, sf) != 0x02) return -1; /* ? */
-    return (uint16_t)get_16bitLE(buf) > (uint16_t)get_16bitBE(buf) ? 1 : 0;
+    return get_u16le(buf) > get_u16be(buf) ? 1 : 0;
 }
 static inline int guess_endianness32bit(off_t offset, STREAMFILE* sf) {
     uint8_t buf[0x04];
     if (read_streamfile(buf, offset, 0x04, sf) != 0x04) return -1; /* ? */
-    return (uint32_t)get_32bitLE(buf) > (uint32_t)get_32bitBE(buf) ? 1 : 0;
+    return get_u32le(buf) > get_u32be(buf) ? 1 : 0;
 }
 
 static inline size_t align_size_to_block(size_t value, size_t block_align) {
