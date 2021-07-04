@@ -93,8 +93,20 @@ In Linux, Makefiles can be used to cross-compile with the MingW headers, but may
 *Autotools* should build and install it as `vgmstream-cli`, this is explained in detail in the Audacious section. It also build with (some) extra codecs. Some Linux distributions like Arch Linux include pre-patched vgmstream with most libraries, you may want that instead:
 https://aur.archlinux.org/packages/vgmstream-kode54-git/
 
-You may try CMake instead as it may be simpler and handle libs better.
+You may try CMake instead as it may be simpler and handle libs better. Some older distros may not work though (CMake version needs to recognize FILTER command). You may need to install resulting artifacts manually (check ./cli dir).
+```
+sudo apt-get update
+sudo apt-get install -y libmpg123-dev libvorbis-dev libspeex-dev
+sudo apt-get install -y libavformat-dev libavcodec-dev libavutil-dev libswresample-dev
+sudo apt-get install -y libao-dev audacious-dev
+sudo apt-get install -y cmake
 
+git clone https://github.com/vgmstream/vgmstream
+cd vgmstream
+
+cmake .
+make
+```
 
 Windows CMD example:
 ```
@@ -189,7 +201,7 @@ pkg-config --modversion audacious
 ```
 ```
 # base vgmstream build
-git clone https://github.com/losnoco/vgmstream
+git clone https://github.com/vgmstream/vgmstream
 cd vgmstream
 
 # main vgmstream build (if you get errors here please report)
@@ -224,13 +236,16 @@ git clean -fd
 ```
 To update vgmstream it's probably easiest to remove the `vgmstream` folder and start again from *base vgmstream build* step, since updates often require a full rebuild anyway.
 
-Instead of autotools you can try building with CMake. Some older distros may not work though (CMake version needs to recognize FILTER command). You may need to install resulting artifacts manually.
+Instead of autotools you can try building with CMake. Some older distros may not work though (CMake version needs to recognize FILTER command). You may need to install resulting artifacts manually (check ./audacious dir).
 ```
 sudo apt-get update
 sudo apt-get install -y libmpg123-dev libvorbis-dev libspeex-dev
 sudo apt-get install -y libavformat-dev libavcodec-dev libavutil-dev libswresample-dev
 sudo apt-get install -y libao-dev audacious-dev
 sudo apt-get install -y cmake
+
+git clone https://github.com/vgmstream/vgmstream
+cd vgmstream
 
 cmake .
 make
