@@ -1707,6 +1707,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\sspr.c"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\sthd.c"
                     >
                 </File>

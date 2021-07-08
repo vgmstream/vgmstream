@@ -184,7 +184,7 @@ void decode_psx_configurable(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int cha
 }
 
 /* PS-ADPCM from Pivotal games, exactly like psx_cfg but with float math (reverse engineered from the exe) */
-void decode_psx_pivotal(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int frame_size) {
+void decode_psx_pivotal(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int frame_size) {
     uint8_t frame[0x50] = {0};
     off_t frame_offset;
     int i, frames_in, sample_count = 0;
@@ -250,7 +250,7 @@ void decode_psx_pivotal(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channe
  * - 0x7 (0111): End marker and don't decode
  * - 0x8+(1NNN): Not valid
  */
-static int ps_find_loop_offsets_internal(STREAMFILE *sf, off_t start_offset, size_t data_size, int channels, size_t interleave, int32_t * p_loop_start, int32_t * p_loop_end, int config) {
+static int ps_find_loop_offsets_internal(STREAMFILE* sf, off_t start_offset, size_t data_size, int channels, size_t interleave, int32_t * p_loop_start, int32_t * p_loop_end, int config) {
     int num_samples = 0, loop_start = 0, loop_end = 0;
     int loop_start_found = 0, loop_end_found = 0;
     off_t offset = start_offset;
@@ -303,6 +303,7 @@ static int ps_find_loop_offsets_internal(STREAMFILE *sf, off_t start_offset, siz
                     && buf[0] != 0x00 /* ignore blank frame */
                     && buf[0] != 0x0c /* ignore silent frame */
                     && buf[0] != 0x3c /* ignore some L-R tracks with different end flags */
+                    && buf[0] != 0x1c /* ignore some L-R tracks with different end flags */
                     ) {
 
                 /* assume full loop with repeated frame header and null frame */
@@ -343,19 +344,22 @@ static int ps_find_loop_offsets_internal(STREAMFILE *sf, off_t start_offset, siz
     return 0; /* no loop */
 }
 
-int ps_find_loop_offsets(STREAMFILE *sf, off_t start_offset, size_t data_size, int channels, size_t interleave, int32_t *p_loop_start, int32_t *p_loop_end) {
+int ps_find_loop_offsets(STREAMFILE* sf, off_t start_offset, size_t data_size, int channels, size_t interleave, int32_t* p_loop_start, int32_t* p_loop_end) {
     return ps_find_loop_offsets_internal(sf, start_offset, data_size, channels, interleave, p_loop_start, p_loop_end, 0);
 }
 
-int ps_find_loop_offsets_full(STREAMFILE *sf, off_t start_offset, size_t data_size, int channels, size_t interleave, int32_t *p_loop_start, int32_t *p_loop_end) {
+int ps_find_loop_offsets_full(STREAMFILE* sf, off_t start_offset, size_t data_size, int channels, size_t interleave, int32_t* p_loop_start, int32_t* p_loop_end) {
     return ps_find_loop_offsets_internal(sf, start_offset, data_size, channels, interleave, p_loop_start, p_loop_end, 1);
 }
 
-size_t ps_find_padding(STREAMFILE *streamFile, off_t start_offset, size_t data_size, int channels, size_t interleave, int discard_empty) {
-    off_t min_offset, offset;
+size_t ps_find_padding(STREAMFILE* sf, off_t start_offset, size_t data_size, int channels, size_t interleave, int discard_empty) {
+    off_t min_offset, offset, read_offset = 0;
     size_t frame_size = 0x10;
     size_t padding_size = 0;
     size_t interleave_consumed = 0;
+    uint8_t buf[0x8000];
+    int buf_pos = 0;
+    int bytes;
 
 
     if (data_size == 0 || channels == 0 || (channels > 1 && interleave == 0))
@@ -374,12 +378,22 @@ size_t ps_find_padding(STREAMFILE *streamFile, off_t start_offset, size_t data_s
         uint8_t flag;
         int is_empty = 0;
 
+        /* read in chunks to optimize (less SF rebuffering since we go in reverse) */
+        if (offset < read_offset || buf_pos <= 0) {
+            read_offset = offset - sizeof(buf);
+            if (read_offset < 0)
+                read_offset = 0; //?
+            bytes = read_streamfile(buf, read_offset, sizeof(buf), sf);
+            buf_pos = (bytes / frame_size * frame_size);
+        }
+
+        buf_pos -= frame_size;
         offset -= frame_size;
 
-        f1 = read_32bitBE(offset+0x00,streamFile);
-        f2 = read_32bitBE(offset+0x04,streamFile);
-        f3 = read_32bitBE(offset+0x08,streamFile);
-        f4 = read_32bitBE(offset+0x0c,streamFile);
+        f1 = get_u32be(buf+buf_pos+0x00);
+        f2 = get_u32be(buf+buf_pos+0x04);
+        f3 = get_u32be(buf+buf_pos+0x08);
+        f4 = get_u32be(buf+buf_pos+0x0c);
         flag = (f1 >> 16) & 0xFF;
 
         if (f1 == 0 && f2 == 0 && f3 == 0 && f4 == 0)
@@ -406,9 +420,11 @@ size_t ps_find_padding(STREAMFILE *streamFile, off_t start_offset, size_t data_s
         if (interleave_consumed == interleave) {
             interleave_consumed = 0;
             offset -= interleave * (channels - 1);
+            buf_pos -= interleave * (channels - 1);
         }
     }
 
+    //;VGM_LOG("PSX PAD: total size %x\n", padding_size);
     return padding_size;
 }
 
@@ -424,14 +440,14 @@ size_t ps_cfg_bytes_to_samples(size_t bytes, size_t frame_size, int channels) {
 }
 
 /* test PS-ADPCM frames for correctness */
-int ps_check_format(STREAMFILE *streamFile, off_t offset, size_t max) {
+int ps_check_format(STREAMFILE* sf, off_t offset, size_t max) {
     off_t max_offset = offset + max;
-    if (max_offset > get_streamfile_size(streamFile))
-        max_offset = get_streamfile_size(streamFile);
+    if (max_offset > get_streamfile_size(sf))
+        max_offset = get_streamfile_size(sf);
 
     while (offset < max_offset) {
-        uint8_t predictor = (read_8bit(offset+0x00,streamFile) >> 4) & 0x0f;
-        uint8_t flags     =  read_8bit(offset+0x01,streamFile);
+        uint8_t predictor = (read_8bit(offset+0x00,sf) >> 4) & 0x0f;
+        uint8_t flags     =  read_8bit(offset+0x01,sf);
 
         if (predictor > 5 || flags > 7) {
             return 0;

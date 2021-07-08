@@ -949,4 +949,6 @@ VGMSTREAM* init_vgmstream_tac(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_ogv_3rdeye(STREAMFILE* sf);
 
+VGMSTREAM* init_vgmstream_sspr(STREAMFILE* sf);
+
 #endif /*_META_H*/

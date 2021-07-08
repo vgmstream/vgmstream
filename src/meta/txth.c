@@ -808,8 +808,7 @@ static int get_padding_size(txth_header* txth, int discard_empty);
 /* Simple text parser of "key = value" lines.
  * The code is meh and error handling not exactly the best. */
 static int parse_txth(txth_header* txth) {
-    off_t txt_offset = 0x00;
-    off_t file_size = get_streamfile_size(txth->sf_text);
+    off_t txt_offset, file_size;
 
     /* setup txth defaults */
     if (txth->sf_body)
@@ -818,14 +817,8 @@ static int parse_txth(txth_header* txth) {
     if (txth->target_subsong == 0) txth->target_subsong = 1;
 
 
-    /* skip BOM if needed */
-    if ((uint16_t)read_16bitLE(0x00, txth->sf_text) == 0xFFFE ||
-        (uint16_t)read_16bitLE(0x00, txth->sf_text) == 0xFEFF) {
-        txt_offset = 0x02;
-    }
-    else if (((uint32_t)read_32bitBE(0x00, txth->sf_text) & 0xFFFFFF00) == 0xEFBBBF00) {
-        txt_offset = 0x03;
-    }
+    txt_offset = read_bom(txth->sf_text);
+    file_size = get_streamfile_size(txth->sf_text);
 
     /* read lines */
     {
@@ -1533,7 +1526,7 @@ static int read_name_table_keyval(txth_header* txth, const char* line, char* key
     /* try "(name): (val))" */
     ok = sscanf(line, " %[^\t#:] : %[^\t#\r\n] ", key, val);
     if (ok == 2) {
-        ;VGM_LOG("TXTH: name %s get\n", key);
+        //;VGM_LOG("TXTH: name %s get\n", key);
         return 1;
     }
 
@@ -1541,14 +1534,14 @@ static int read_name_table_keyval(txth_header* txth, const char* line, char* key
     key[0] = '\0';
     ok = sscanf(line, " : %[^\t#\r\n] ", val);
     if (ok == 1) {
-        ;VGM_LOG("TXTH: default get\n");
+        //;VGM_LOG("TXTH: default get\n");
         return 1;
     }
 
     /* try "(name)#subsong: (val))" */
     ok = sscanf(line, " %[^\t#:]#%i : %[^\t#\r\n] ", key, &subsong, val);
     if (ok == 3 && subsong == txth->target_subsong) {
-        VGM_LOG("TXTH: name %s + subsong %i get\n", key, subsong);
+        //;VGM_LOG("TXTH: name %s + subsong %i get\n", key, subsong);
         return 1;
     }
 
@@ -1556,7 +1549,7 @@ static int read_name_table_keyval(txth_header* txth, const char* line, char* key
     key[0] = '\0';
     ok = sscanf(line, " #%i: %[^\t#\r\n] ", &subsong, val);
     if (ok == 2 && subsong == txth->target_subsong) {
-        VGM_LOG("TXTH: default + subsong %i get\n", subsong);
+        //;VGM_LOG("TXTH: default + subsong %i get\n", subsong);
         return 1;
     }
 
@@ -1596,17 +1589,8 @@ static int parse_name_table(txth_header* txth, char* name_list) {
     get_streamfile_basename(txth->sf_body, basename, sizeof(basename));
     //;VGM_LOG("TXTH: names full=%s, file=%s, base=%s\n", fullname, filename, basename);
 
-    txt_offset = 0x00;
+    txt_offset = read_bom(sf_names);
     file_size = get_streamfile_size(sf_names);
-
-    /* skip BOM if needed */
-    if ((uint16_t)read_16bitLE(0x00, sf_names) == 0xFFFE ||
-        (uint16_t)read_16bitLE(0x00, sf_names) == 0xFEFF) {
-        txt_offset = 0x02;
-    }
-    else if (((uint32_t)read_32bitBE(0x00, sf_names) & 0xFFFFFF00) == 0xEFBBBF00) {
-        txt_offset = 0x03;
-    }
 
     /* in case of repeated name tables */
     memset(txth->name_values, 0, sizeof(txth->name_values));

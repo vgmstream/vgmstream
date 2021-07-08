@@ -28,14 +28,14 @@ More technical docs: https://github.com/vgmstream/vgmstream/tree/master/doc
 
 ## Usage
 There are multiple end-user bits:
-- a command line decoder called "test.exe/vgmstream-cli"
-- a Winamp plugin called "in_vgmstream"
-- a foobar2000 component called "foo_input_vgmstream"
-- an XMPlay plugin called "xmp-vgmstream"
-- an Audacious plugin called "libvgmstream"
-- a command line player called "vgmstream123"
+- a command line decoder called *test.exe/vgmstream-cli*
+- a Winamp plugin called *in_vgmstream*
+- a foobar2000 component called *foo_input_vgmstream*
+- an XMPlay plugin called *xmp-vgmstream*
+- an Audacious plugin called *libvgmstream*
+- a command line player called *vgmstream123*
 
-Main lib (plain vgmstream) is the code that handles internal conversion, while the
+Main lib (plain *vgmstream*) is the code that handles internal conversion, while the
 above components are what you use to actually get sound. See *components* below for
 explanations about each one.
 
@@ -97,28 +97,31 @@ files to the executable to decode them as `(filename.ext).wav`.
 There are multiple options that alter how the file is converted, for example:
 - `test.exe -m file.adx`: print info but don't decode
 - `test.exe -i -o file_noloop.wav file.hca`: convert without looping
-- `test.exe -s 2 -F file.fsb`: play 2nd subsong + ending after 2.0 loops
+- `test.exe -s 2 -F file.fsb`: write 2nd subsong + ending after 2.0 loops
 - `test.exe -l 3.0 -f 5.0 -d 3.0 file.wem`: 3 loops, 3s delay, 5s fade
 - `test.exe -o bgm_?f.wav file1.adx file2.adx`: convert multiple files to `bgm_(name).wav`
 
 Available commands are printed when run with no flags. Note that you can also
 achieve similar results for other plugins using TXTP, described later.
 
-With files multiple subsongs you need to specify manually subsong (by design, to avoid
-massive data dumps since some formats have hundreds of subsongs), but you could do
-some command line tricks:
-```
-: REM extracts from subsong 5 to 10 in file.fsb
-for /L %A in (5,1,10) do test.exe -s %A -o file_%A.wav file.fsb
-```
-
-Output filename in `-o` may use multiple wildcards:
+Output filename in `-o` may use wildcards:
 - `?s`: sets current subsong (or 0 if format doesn't have subsongs)
 - `?0Ns`: same, but left pads subsong with up to `N` zeroes
 - `?n`: internal stream name, or input filename if format doesn't have name
 - `?f`: input filename
 
-For example `test.exe -s 2 -o ?04s_?n.wav file.fsb` could generate `0002_song1.wav`
+For example `test.exe -s 2 -o ?04s_?n.wav file.fsb` could generate `0002_song1.wav`.
+Default output filename is `?f.wav`, or `?f#?s.wav` if you set subsongs (`-s/S`).
+
+For files containing multiple subsongs, you can write them all using some flags.
+**WARNING, MAY TAKE A LOT OF SPACE!** Some files have been observed to contain +20000
+subsongs, so don't use this lightly. Remember to set an output name (`-o`) with subsong
+wilcards (or leave it alone for the defaults).
+- `test.exe -s 1 -S 100 file.bank`: writes from subsong 1 to subsong 100
+- `test.exe -s 101 -S 0 file.bank`: writes from subsong 101 to max subsong
+- `test.exe -S 0 file.bank`: writes from subsong 1 to max subsong (automatically changes 0 to max)
+- `test.exe -s 1 -S 5 -o bgm.wav file.bank`: writes 5 subsongs, but all overwrite the same file = wrong.
+- `test.exe -s 1 -S 5 -o bgm_?02s.wav file.bank`: writes 5 subsongs, each named differently = correct.
 
 
 ### in_vgmstream (Winamp plugin)
@@ -397,6 +400,7 @@ file, or static values. This allows vgmstream to play unsupported formats.
 more functions, plus doesn't modify original data.
 
 Usage example (used when opening an unknown file named `bgm_01.pcm`):
+
 **.pcm.txth**
 ```
 codec = PCM16LE
@@ -421,6 +425,7 @@ per-file configurations like number of loops, remove unneeded channels,
 force looping, and many other features.
 
 Usage examples (open directly, name can be set freely):
+
 **bgm01-full.txtp**
 ```
 # plays 2 files as a single one
@@ -599,6 +604,7 @@ enabled in preferences):
 ### TXTP matching
 To ease *TXTP* config, tags with plain files will match `.txtp` with config, and tags
 with `.txtp` config also match plain files:
+
 **!tags.m3u**
 ```
 # @TITLE    Title1
@@ -620,6 +626,7 @@ BGM01.adx #P 10.0.txtp
 
 Since it matches when a tag is found, some cases that depend on order won't work.
 You can disable this feature manually then:
+
 **!tags.m3u**
 ```
 # $EXACTMATCH

@@ -143,6 +143,7 @@ static const char* extension_list[] = {
     "cwav",
     "cxs",
 
+    "d2", //txth/reserved [Dodonpachi Dai-Ou-Jou (PS2)]
     "da",
     //"dat", //common
     "data",
@@ -437,6 +438,7 @@ static const char* extension_list[] = {
     "sb6",
     "sb7",
     "sbk",
+    "sbin",
     "sbr",
     "sbv",
     "sm0",
@@ -447,7 +449,6 @@ static const char* extension_list[] = {
     "sm5",
     "sm6",
     "sm7",
-    "sbin",
     "sc",
     "scd",
     "sch",
@@ -490,6 +491,7 @@ static const char* extension_list[] = {
     "ss2",
     "ssd", //txth/reserved [Zack & Wiki (Wii)]
     "ssm",
+    "sspr",
     "sss",
     "ster",
     "sth",
