@@ -1887,8 +1887,7 @@ fail:
 
 static txtp_header* parse_txtp(STREAMFILE* sf) {
     txtp_header* txtp = NULL;
-    off_t txt_offset = 0x00;
-    off_t file_size = get_streamfile_size(sf);
+    off_t txt_offset, file_size;
 
 
     txtp = calloc(1,sizeof(txtp_header));
@@ -1897,16 +1896,8 @@ static txtp_header* parse_txtp(STREAMFILE* sf) {
     /* defaults */
     txtp->is_segmented = 1;
 
-
-    /* skip BOM if needed */
-    if (file_size > 0 &&
-            (read_u16le(0x00, sf) == 0xFFFE || read_u16le(0x00, sf) == 0xFEFF)) {
-        txt_offset = 0x02;
-    }
-    else if ((read_u32be(0x00, sf) & 0xFFFFFF00) == 0xEFBBBF00) {
-        txt_offset = 0x03;
-    }
-
+    txt_offset = read_bom(sf);
+    file_size = get_streamfile_size(sf);
 
     /* read and parse lines */
     {

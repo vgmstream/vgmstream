@@ -1001,6 +1001,19 @@ size_t read_line(char* buf, int buf_size, off_t offset, STREAMFILE* sf, int* p_l
     return i + extra_bytes;
 }
 
+size_t read_bom(STREAMFILE* sf) {
+    if (read_u16le(0x00, sf) == 0xFFFE ||
+        read_u16le(0x00, sf) == 0xFEFF) {
+        return 0x02;
+    }
+
+    if ((read_u32be(0x00, sf) & 0xFFFFFF00) == 0xEFBBBF00) {
+        return 0x03;
+    }
+
+    return 0x00;
+}
+
 size_t read_string(char* buf, size_t buf_size, off_t offset, STREAMFILE* sf) {
     size_t pos;
 
@@ -1142,16 +1155,8 @@ STREAMFILE* read_filemap_file_pos(STREAMFILE* sf, int file_num, int* p_pos) {
 
     get_streamfile_filename(sf, filename, sizeof(filename));
 
-    txt_offset = 0x00;
+    txt_offset = read_bom(sf_map);
     file_size = get_streamfile_size(sf_map);
-
-    /* skip BOM if needed */
-    if (read_u16le(0x00, sf_map) == 0xFFFE ||
-        read_u16le(0x00, sf_map) == 0xFEFF) {
-        txt_offset = 0x02;
-    } else if ((read_u32be(0x00, sf_map) & 0xFFFFFF00) == 0xEFBBBF00) {
-        txt_offset = 0x03;
-    }
 
     /* read lines and find target filename, format is (filename): value1, ... valueN */
     while (txt_offset < file_size) {
