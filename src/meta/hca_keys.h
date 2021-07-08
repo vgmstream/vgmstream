@@ -407,6 +407,9 @@ static const hcakey_info hcakey_list[] = {
         /* maimai DX Splash (AC) */
         {9170825592834449000},      // 7F4551499DF55E68
 
+        /* Dragon Quest Tact (Android) */
+        {3234477171400153310},      // 2CE32BD9B36A98DE
+
         /* D4DJ Groovy Mix (Android) [base files] */
         {393410674916959300},       // 0575ACECA945A444
         /* D4DJ Groovy Mix (Android) [music_* files, per-song later mixed with subkey] */
