@@ -486,7 +486,6 @@ id_value = 2
 id_check = @0x00 # 2ch only
 
 ... #some settings for stereo
-
 ```
 *.4ch.txth*
 ```
@@ -494,16 +493,20 @@ id_value = 4
 id_check = @0x00 # 4ch only
 
 ... #different settings for 4ch
+```
 
+As an interesting side-effect, you can use this to force load `.txth` in other paths. For example it can be useful if you have files in subdirs and want to point to a base `.txtp` in root.
+```
+multi_txth = ../.main.txth
 ```
 
 
 ## Complex usages
 
-### Temporary values
+### Order and temporary values
 Most commands are evaluated and calculated immediatedly, every time they are found. This is by design, as it can be used to adjust and trick for certain calculations.
 
-It makes TXTHs a bit harder to follow, as they are order dependant, but otherwise it's hard to accomplish some things or others become ambiguous.
+It does make TXTHs a bit harder to follow, as they are order dependant, but otherwise it's hard to accomplish some things or others become ambiguous.
 
 
 For example, normally you are given a data_size in bytes, that can be used to calculate num_samples for all channels.
@@ -597,7 +600,7 @@ num_samples = @0x10 * channels  # byte-to-samples of channel_size
 `data_size` is a special value for `num_samples` and `loop_end_sample` and will always convert as bytes-to-samples, though.
 
 
-Priority is left-to-right. Do add brackets though, they are accounted for and if they are implemented in the future your .txth *will* break with impunity.
+Priority is left-to-right only, due to technical reasons it doesn't handle proper math priority. Do add brackets though, they are accounted for and if they are implemented in the future your .txth *will* break with impunity.
 ```
 # normal priority
 data_size = @0x10 * 0x800 + 0x800
@@ -731,7 +734,7 @@ num_samples = data_size
 ### Base offset chaining
 Some formats read an offset to another part of the file, then another offset, then other, etc.
 
-You can simulate this chaining multiple `base_offset`
+You can simulate this chaining multiple `base_offset`:
 ```
 base_offset = @0x10                 #sets current at 0x1000
 channels    = @0x04                 #reads at 0x1004 (base_offset + 0x04)
@@ -766,7 +769,7 @@ num_samples = data_size
 ```
 codec = PSX
 interleave = 0x10
-sample_rate = 24000
+sample_rate = 22050
 channels = 1
 padding_size = auto-empty
 num_samples = data_size
@@ -1188,6 +1191,7 @@ chunk_start = 0x1f84
 chunk_data_size = 0x20000
 chunk_size = 0x21000
 
+padding_size = auto
 num_samples = data_size
 ```
 
@@ -1214,6 +1218,7 @@ chunk_header_size = name_value3
 chunk_data_size = name_value4
 chunk_size = 0x21000
 
+padding_size = auto
 num_samples = data_size
 
 # base_offset = 0x1F40
