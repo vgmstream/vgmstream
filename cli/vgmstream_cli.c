@@ -50,6 +50,7 @@ static void usage(const char* name, int is_full) {
             "    -e: force end-to-end looping\n"
             "    -E: force end-to-end looping even if file has real loop points\n"
             "    -s N: select subsong N, if the format supports multiple subsongs\n"
+            "    -S N: select end subsong (set 0 for 'all')\n"
             "    -m: print metadata only, don't decode\n"
             "    -L: append a smpl chunk and create a looping wav\n"
             "    -2 N: only output the Nth (first is 0) set of stereo channels\n"
@@ -103,7 +104,8 @@ typedef struct {
     int print_batchvar;
     int write_lwav;
     int only_stereo;
-    int stream_index;
+    int subsong_index;
+    int subsong_end;
 
     double loop_count;
     double fade_time;
@@ -145,7 +147,7 @@ static int parse_config(cli_config* cfg, int argc, char** argv) {
     opterr = 0;
 
     /* read config */
-    while ((opt = getopt(argc, argv, "o:l:f:d:ipPcmxeLEFrgb2:s:t:Tk:K:hOvD:"
+    while ((opt = getopt(argc, argv, "o:l:f:d:ipPcmxeLEFrgb2:s:t:Tk:K:hOvD:S:"
 #ifdef HAVE_JSON
         "VI"
 #endif
@@ -207,10 +209,17 @@ static int parse_config(cli_config* cfg, int argc, char** argv) {
                 cfg->ignore_fade = 1;
                 break;
             case 's':
-                cfg->stream_index = atoi(optarg);
+                cfg->subsong_index = atoi(optarg);
+                break;
+            case 'S':
+                cfg->subsong_end = atoi(optarg);
+                if (!cfg->subsong_end)
+                    cfg->subsong_end = -1; /* signal up to end (otherwise 0 = not set) */
+                if (!cfg->subsong_index)
+                    cfg->subsong_index = 1;
                 break;
             case 't':
-                cfg->tag_filename= optarg;
+                cfg->tag_filename = optarg;
                 break;
             case 'T':
                 cfg->show_title = 1;
@@ -554,7 +563,9 @@ void replace_filename(char* dst, size_t dstsize, const char* outfilename, const 
 /* ************************************************************ */
 
 static int convert_file(cli_config* cfg);
+static int convert_subsongs(cli_config* cfg);
 static int write_file(VGMSTREAM* vgmstream, cli_config* cfg);
+
 
 int main(int argc, char** argv) {
     cli_config cfg = {0};
@@ -582,11 +593,19 @@ int main(int argc, char** argv) {
         if (cfg.outfilename_config)
             cfg.outfilename = NULL;
 
-        res = convert_file(&cfg);
-        //if (!res) goto fail; /* keep on truckin' */
-        if (res) ok = 1; /* return ok if at least one succeeds, for programs that check result code */
+        if (cfg.subsong_index > 0 && cfg.subsong_end != 0) {
+            res = convert_subsongs(&cfg);
+            //if (!res) goto fail;
+            if (res) ok = 1;
+        }
+        else {
+            res = convert_file(&cfg);
+            //if (!res) goto fail;
+            if (res) ok = 1;
+        }
     }
 
+    /* ok if at least one succeeds, for programs that check result code */
     if (!ok)
         goto fail;
 
@@ -594,6 +613,40 @@ int main(int argc, char** argv) {
 fail:
     return EXIT_FAILURE;
 }
+
+static int convert_subsongs(cli_config* cfg) {
+    int res;
+    int subsong;
+    /* restore original values in case of multiple parsed files */
+    int start_temp = cfg->subsong_index;
+    int end_temp = cfg->subsong_end;
+
+    /* first call should force load max subsongs */
+    if (cfg->subsong_end == -1) {
+        res = convert_file(cfg);
+        if (!res) goto fail;
+    }
+
+
+    //;VGM_LOG("CLI: subsongs %i to %i\n", cfg->subsong_index, cfg->subsong_end + 1);
+
+    /* convert subsong range */
+    for (subsong = cfg->subsong_index; subsong < cfg->subsong_end + 1; subsong++) {
+        cfg->subsong_index = subsong; 
+
+        res = convert_file(cfg);
+        if (!res) goto fail;
+    }
+
+    cfg->subsong_index = start_temp;
+    cfg->subsong_end = end_temp;
+    return 1;
+fail:
+    cfg->subsong_index = start_temp;
+    cfg->subsong_end = end_temp;
+    return 0;
+}
+
 
 static int convert_file(cli_config* cfg) {
     VGMSTREAM* vgmstream = NULL;
@@ -623,13 +676,20 @@ static int convert_file(cli_config* cfg) {
             goto fail;
         }
 
-        sf->stream_index = cfg->stream_index;
+        sf->stream_index = cfg->subsong_index;
         vgmstream = init_vgmstream_from_STREAMFILE(sf);
         close_streamfile(sf);
 
         if (!vgmstream) {
             fprintf(stderr, "failed opening %s\n", cfg->infilename);
             goto fail;
+        }
+
+        /* force load total subsongs if signalled */
+        if (cfg->subsong_end == -1) {
+            cfg->subsong_end = vgmstream->num_streams;
+            close_vgmstream(vgmstream);
+            return 1;
         }
     }
 
@@ -666,19 +726,25 @@ static int convert_file(cli_config* cfg) {
 
     /* prepare output */
     {
+        /* note that outfilename_temp must persist outside this block, hence the external array */
+
+        if (!cfg->outfilename_config && !cfg->outfilename) {
+            /* defaults */
+            cfg->outfilename_config = (cfg->subsong_index >= 1) ? 
+                "?f#?s.wav" :
+                "?f.wav";
+            /* maybe should avoid overwriting with this auto-name, for the unlikely
+             * case of file header-body pairs (file.ext+file.ext.wav) */
+        }
+
         if (cfg->outfilename_config) {
             /* special substitution */
             replace_filename(outfilename_temp, sizeof(outfilename_temp), cfg->outfilename_config, cfg->infilename, vgmstream);
             cfg->outfilename = outfilename_temp;
         }
-        else if (!cfg->outfilename) {
-            /* note that outfilename_temp must persist outside this block, hence the external array */
-            strcpy(outfilename_temp, cfg->infilename);
-            strcat(outfilename_temp, ".wav");
-            cfg->outfilename = outfilename_temp;
-            /* maybe should avoid overwriting with this auto-name, for the unlikely
-             * case of file header-body pairs (file.ext+file.ext.wav) */
-        }
+
+        if (!cfg->outfilename) 
+            goto fail;
 
         /* don't overwrite itself! */
         if (strcmp(cfg->outfilename, cfg->infilename) == 0) {
