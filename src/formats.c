@@ -143,6 +143,7 @@ static const char* extension_list[] = {
     "cwav",
     "cxs",
 
+    "d2", //txth/reserved [Dodonpachi Dai-Ou-Jou (PS2)]
     "da",
     //"dat", //common
     "data",
