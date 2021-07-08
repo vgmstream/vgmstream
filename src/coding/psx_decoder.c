@@ -303,6 +303,7 @@ static int ps_find_loop_offsets_internal(STREAMFILE* sf, off_t start_offset, siz
                     && buf[0] != 0x00 /* ignore blank frame */
                     && buf[0] != 0x0c /* ignore silent frame */
                     && buf[0] != 0x3c /* ignore some L-R tracks with different end flags */
+                    && buf[0] != 0x1c /* ignore some L-R tracks with different end flags */
                     ) {
 
                 /* assume full loop with repeated frame header and null frame */
