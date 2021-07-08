@@ -250,6 +250,7 @@
     <ClCompile Include="meta\sqex_scd.c" />
     <ClCompile Include="meta\sqex_scd_sscf.c" />
     <ClCompile Include="meta\sqex_sead.c" />
+    <ClCompile Include="meta\sspr.c" />
     <ClCompile Include="meta\sthd.c" />
     <ClCompile Include="meta\tun.c" />
     <ClCompile Include="meta\txth.c" />
