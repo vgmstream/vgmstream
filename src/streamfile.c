@@ -895,12 +895,17 @@ STREAMFILE* open_streamfile_by_filename(STREAMFILE* sf, const char* filename) {
     sf->get_name(sf, fullname, sizeof(fullname));
 
     //todo normalize separators in a better way, safeops, improve copying
-    path = strrchr(fullname,DIR_SEPARATOR);
+
+    /* check for non-normalized paths first (ex. txth) */
+    path = strrchr(fullname, '/');
+    if (!path)
+        path = strrchr(fullname,'\\');
+
     if (path) {
         path[1] = '\0'; /* remove name after separator */
 
         strcpy(partname, filename);
-        fix_dir_separators(partname);
+        fix_dir_separators(partname); /* normalize to DIR_SEPARATOR */
 
         /* normalize relative paths as don't work ok in some plugins */
         if (partname[0] == '.' && partname[1] == DIR_SEPARATOR) { /* './name' */
