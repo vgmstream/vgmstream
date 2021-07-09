@@ -888,7 +888,7 @@ STREAMFILE* open_streamfile_by_ext(STREAMFILE* sf, const char* ext) {
 STREAMFILE* open_streamfile_by_filename(STREAMFILE* sf, const char* filename) {
     char fullname[PATH_LIMIT];
     char partname[PATH_LIMIT];
-    char *path, *name;
+    char *path, *name, *otherpath;
 
     if (!sf || !filename || !filename[0]) return NULL;
 
@@ -898,8 +898,9 @@ STREAMFILE* open_streamfile_by_filename(STREAMFILE* sf, const char* filename) {
 
     /* check for non-normalized paths first (ex. txth) */
     path = strrchr(fullname, '/');
-    if (!path)
-        path = strrchr(fullname,'\\');
+    otherpath = strrchr(fullname, '\\');
+    if (otherpath > path)
+        path = otherpath;
 
     if (path) {
         path[1] = '\0'; /* remove name after separator */
