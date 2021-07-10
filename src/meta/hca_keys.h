@@ -413,229 +413,304 @@ static const hcakey_info hcakey_list[] = {
         /* D4DJ Groovy Mix (Android) [base files] */
         {393410674916959300},       // 0575ACECA945A444
         /* D4DJ Groovy Mix (Android) [music_* files, per-song later mixed with subkey] */
-        {0x59f449354d063308},
-        {0x33848be13a2884a3},
-        {0xf7e53533d82d48dd},
-        {0x244a92885ab77b7c},
-        {0xce0796d2a956dc5a},
-        {0x73667711348f833f},
-        {0x8032f83cbf0076a1},
-        {0x7a708e291692abb9},
-        {0x9ebb560685327081},
-        {0x065c2f8500bc12c8},
-        {0x73621a0d321e60c2},
-        {0xfcce3164db70522d},
-        {0xf4093992cadd3708},
-        {0xf965a1086b3179c3},
-        {0x54aaada4a1b8deef},
-        {0xd4d2a706a06377ef},
-        {0x0de4959221bc2675},
-        {0x2ecdf66c680f3a45},
-        {0x24c0b49097e9ebff},
-        {0xc28331aab2612584},
-        {0x6750f4d05183bc01},
-        {0xda65af760e02c6ee},
-        {0x217782495c8b2972},
-        {0xbf7712e175c0b265},
-        {0x3804d53c43293080},
-        {0xd0ed8e940d8ed705},
-        {0xf74cf8d4a5d008ce},
-        {0xeb8aac34dc178f65},
-        {0xbf5902d516db6ed5},
-        {0xad071dce0c070e65},
-        {0x56ecfc7ef4c65be8},
-        {0xf42d31b5ecd1aec1},
-        {0x0a8ee7a3a20ce822},
-        {0xb9cedc6d6738d481},
-        {0xdc2680acfd1b9b64},
-        {0x9fbd8a172d5ba3e3},
-        {0xb65d86624a857788},
-        {0x8f5f05c835f7280e},
-        {0x55912db4388961ac},
-        {0x4ba9a9471f49b74e},
-        {0x6ba36cadf1e045cf},
-        {0x230c9509bbc3df0d},
-        {0x7148dda3afa76439},
-        {0xa6cefd4472568948},
-        {0xfe31517282d40690},
-        {0x0a6a15cc9722257d},
-        {0x447d08ca3148599d},
-        {0xb30acd0a43754e5c},
-        {0xc05f8e4ea8c3e487},
-        {0x8463554672bfb716},
-        {0x0d40ccba5e10385a},
-        {0xeeaf8d2458ccdb36},
-        {0x0d80d3dcc7c75cea},
-        {0x8efa09c6df3991a4},
-        {0x6867cc75639ee0c3},
-        {0xdf30ed86c3d00ffb},
-        {0xf7e11ec9c94402f1},
-        {0xdb03ecca6a0151e2},
-        {0x212bbee264be5b06},
-        {0x87025d78a57af15b},
-        {0x6139edfb8889032d},
-        {0xe67f4da6012c5d24},
-        {0x05e3eba376e0b3dd},
-        {0xf7edc5d72fdd6ceb},
-        {0x031e072678ad18a3},
-        {0x290fbc93e184af1e},
-        {0xfd3ea450350d666f},
-        {0x037d1452c192b1e6},
-        {0x15f82c1617013c36},
-        {0x5d1f3fdbbb036f8d},
-        {0x5089e16d7a676ab1},
-        {0x15bb78c31db0a0b6},
-        {0xe4a1737fa3d34ccb},
-        {0xd2cb7692d690b3a7},
-        {0x1bbad843d5971358},
-        {0x7ed1fa0b6ec8f9b3},
-        {0x529969b7e1e9ac18},
-        {0x2f3528a4b9eaa0f7},
-        {0x90fefcd350bd2cb8},
-        {0xee8da2806a13eecf},
-        {0xcd3fb92065d9f373},
-        {0x67b89634319c1d36},
-        {0x114245b98dcb75bf},
-        {0xaff9df030e63e5ba},
-        {0x0aebfdf85aae4424},
-        {0x4a4462cb0375001e},
-        {0xfd9fa5bcb347c01b},
-        {0x7ce69eed81f01019},
-        {0xcb3d9329d40490b2},
-        {0xe0b8bb03c74bb3d0},
-        {0xd9a00c9bc93014a8},
-        {0x84dc42f5a05f77cf},
-        {0x420d4dd413053980},
-        {0xff7640b46d72b337},
-        {0x711ef85045b8c26e},
-        {0xe553dba6592293d8},
-        {0x9ebbaf63ffe9d9ef},
-        {0x00e978d394512cfd},
-        {0x6f9735c02faf6aae},
-        {0x8258ddd6a1d0849b},
-        {0xe5e83d31e64273f8},
-        {0x35128087963cd5be},
-        {0x9de6ace9a0e62f44},
-        {0xd4c36ab962153420},
-        {0xe77aa2f3c90a4e84},
-        {0x9f6881f6d7a91658},
-        {0x6c6c1fd51e28a1e7},
-        {0x867d47a7d8376402},
-        {0x79c5f00d243e3097},
-        {0x8f0e96b4f71f724f},
-        {0xcccb5077d978def4},
-        {0x8ad213dddedc9022},
-        {0x6aa0ff881da270e7},
-        {0xf616642579ba5850},
-        {0x5205a666f976d42f},
-        {0xa139c29e97fcefb4},
-        {0xdb402bd08d522f34},
-        {0x2f2c0ff3ff235bd6},
-        {0xa0316b536c8b7540},
-        {0x260a354b925afeaf},
-        {0x567d295828f1b08a},
-        {0xc24049b9f7ed3105},
-        {0x8815d2dffd77a71e},
-        {0x2b4a83e7d54d0554},
-        {0xf6b0dc07ea8ebeb7},
-        {0xbb7be9c7c620f504},
-        {0x7465c7c473e53a40},
-        {0xa4481f97a8d4d01c},
-        {0x0046fd87a21859ac},
-        {0xf1db3c1d9542063a},
-        {0xaba147637d52efbe},
-        {0x298a0fa05c3f355f},
-        {0x465e30321a4091f2},
-        {0xc40c398f7e80d184},
-        {0xa76262c2557be76f},
-        {0xaef2954dc3657336},
-        {0xa3711cc06f9b86c2},
-        {0xcb60232f2f27ace5},
-        {0x4c7d7c251c6bfa95},
-        {0xf877dea1180b9b90},
-        {0x9ce13dcb2fb389cc},
-        {0xcbf4f1324081e0a6},
-        {0x444dda6d55d76095},
-        {0xb2bd99fa559b9062},
-        {0x1ed521f6dd691255},
-        {0xdfad847a86a126bb},
-        {0x2a47feac8dc3ca9c},
-        {0xc352bbf3d519256e},
-        {0xfdec74b23d8b494b},
-        {0x1dd21a1244ca12f1},
-        {0xaf9d7a05b0fc3d9e},
-        {0xa662be1601e49476},
-        {0xd2ce91dbfc209b10},
-        {0x57bdc58e4c06fc76},
-        {0xe350bffcdc9cb686},
-        {0xc7da8e6f0e2fe399},
-        {0x984363837811b08a},
-        {0xdcd2a403fb01e164},
-        {0xb2770dced3cfd9a7},
-        {0x0df31e26a7b036a2},
-        {0x3f25fe3395b3154c},
-        {0x889d47adc9595ffa},
-        {0xc04264e8f34ad5c0},
-        {0xc222e70e4a79f7c3},
-        {0x7c7dd6d9f3761102},
-        {0x904f50c5ce8ec6e4},
-        {0xb7bff4fbf66be43f},
-        {0x776c4aded0bca5d1},
-        {0x38ad99a045dc971f},
-        {0xb921c3992807dadd},
-        {0x68d576c631e61265},
-        {0xcede847721873fc2},
-        {0x40443974a0a86b8b},
-        {0x57111c24801b44a1},
-        {0x6a15a9610d10d210},
-        {0xb18fb83ee356fb94},
-        {0x59b1257242c40109},
-        {0x22ef086d7d6ce520},
-        {0x76254d1ef50c004c},
-        {0x7678588b0adf59df},
-        {0x4fffee4065d22bec},
-        {0x0dc128f2fd48bf4b},
-        {0xfb647d074e53fab6},
-        {0x55b7b25821375a02},
-        {0x5b877af6e52af19b},
-        {0xba26e58923a5da5d},
-        {0x52d065d9ccdb8696},
-        {0xf0c624dc0385adae},
-        {0xb7a5297198a73155},
-        {0xda08e9d3961c93f2},
-        {0x8328668369631cc1},
-        {0xb140168a47d55b92},
-        {0x6699616be2c50115},
-        {0xcee66d585d689851},
-        {0x5771a2c76f36c898},
-        {0x5e91a3790c32e2b3},
-        {0xe4e11a71fe620e3a},
-        {0x1bb363adcf4eb3f8},
-        {0xa691936caf4d91d0},
-        {0x94466db0d3c10f4b},
-        {0x47f52330df2ead11},
-        {0xc9f159f60b065f91},
-        {0xdd9ca800a7123d6f},
-        {0xa090c8ebf8463d05},
-        {0xa5c1adeb7919845f},
-        {0x58d97e6f3d1aee86},
-        {0x71b5fa3761d6726d},
-        {0x1980271cfe0da9bd},
-        {0x945cdb3cf1f29e52},
-        {0x7f0feac6be7def5b},
-        {0xe35d52b6d2c094fb},
-        {0xd45e8ba374b45ff7},
-        {0x09e68da734cc472f},
-        {0xfc3fa77fc33460d4},
-        {0xa2c543b227b8e5e2},
-        {0xe6d1fd6effa46736},
-        {0x75859a7a2b1ed37d},
-        {0x358adfd1bbd3a95e},
-        {0xc86f8564e0b9078c},
-        {0x2e107d849959c430},
-        {0xb96786621e27daf3},
-        {0x1111d6c10e509824},
-
+        {0x59f449354d063308},	//music_0000001
+        {0x52d065d9ccdb8696},	//music_0110001
+        {0xba26e58923a5da5d},	//music_0110002
+        {0x5b877af6e52af19b},	//music_0110003
+        {0x55b7b25821375a02},	//music_0110004
+        {0x87025d78a57af15b},	//music_0110005
+        {0x8815d2dffd77a71e},	//music_0110006
+        {0xb9cedc6d6738d481},	//music_0110008
+        {0x8efa09c6df3991a4},	//music_0110009
+        {0xc05f8e4ea8c3e487},	//music_0110010
+        {0xbf7712e175c0b265},	//music_0110011
+        {0xf74cf8d4a5d008ce},	//music_0110012
+        {0xfcce3164db70522d},	//music_0110013
+        {0x47f52330df2ead11},	//music_0110014
+        {0x2f778c736a8a4597},	//music_0110015
+        {0xa90c8ebf8463d05},	//music_0110016
+        {0x750beaf22ddc700b},	//music_0110018
+        {0xfb647d074e53fab6},	//music_0120001
+        {0xc24049b9f7ed3105},	//music_0120002
+        {0xdc128f2fd48bf4b},	//music_0120003
+        {0xaef2954dc3657336},	//music_0120004
+        {0x567d295828f1b08a},	//music_0120005
+        {0x1bbad843d5971358},	//music_0120006
+        {0xf6b0dc07ea8ebeb7},	//music_0120007
+        {0xdb03ecca6a0151e2},	//music_0120008
+        {0x260a354b925afeaf},	//music_0120009
+        {0x8032f83cbf0076a1},	//music_0120010
+        {0xe4a1737fa3d34ccb},	//music_0120011
+        {0xd0ed8e940d8ed705},	//music_0120012
+        {0x6ba36cadf1e045cf},	//music_0120013
+        {0xb96786621e27daf3},	//music_0120014
+        {0xa2c543b227b8e5e2},	//music_0120015
+        {0x3674aba8da7bc84b},	//music_0120018
+        {0x4fffee4065d22bec},	//music_0210001
+        {0x7678588b0adf59df},	//music_0210002
+        {0xa0316b536c8b7540},	//music_0210003
+        {0x76254d1ef50c004c},	//music_0210004
+        {0x22ef086d7d6ce520},	//music_0210005
+        {0x2f2c0ff3ff235bd6},	//music_0210006
+        {0x6867cc75639ee0c3},	//music_0210007
+        {0x73621a0d321e60c2},	//music_0210008
+        {0xff04547fe629c8bf},	//music_0210009
+        {0x5ef795cdbcdcba91},	//music_0210010
+        {0x15bb78c31db0a0b6},	//music_0220001
+        {0x59b1257242c40109},	//music_0220002
+        {0xdb402bd08d522f34},	//music_0220003
+        {0xa76262c2557be76f},	//music_0220004
+        {0xa139c29e97fcefb4},	//music_0220005
+        {0xb18fb83ee356fb94},	//music_0220006
+        {0xd2cb7692d690b3a7},	//music_0220007
+        {0x2b4a83e7d54d0554},	//music_0220008
+        {0xa691936caf4d91d0},	//music_0220009
+        {0xd40ccba5e10385a},	//music_0220010
+        {0xf0c624dc0385adae},	//music_0220011
+        {0xce0796d2a956dc5a},	//music_0220012
+        {0xf9d6fb07c0b4e967},	//music_0220013
+        {0x94466db0d3c10f4b},	//music_0220015
+        {0xe6d1fd6effa46736},	//music_0220017
+        {0x6a15a9610d10d210},	//music_0310001
+        {0x57111c24801b44a1},	//music_0310002
+        {0x40443974a0a86b8b},	//music_0310003
+        {0xcede847721873fc2},	//music_0310004
+        {0xc40c398f7e80d184},	//music_0310005
+        {0x68d576c631e61265},	//music_0310006
+        {0x217782495c8b2972},	//music_0310007
+        {0x6699616be2c50115},	//music_0310008
+        {0xb7a5297198a73155},	//music_0310009
+        {0xdd9ca800a7123d6f},	//music_0310010
+        {0xc86f8564e0b9078c},	//music_0310011
+        {0xcc5610c09f472ce9},	//music_0310012
+        {0xb921c3992807dadd},	//music_0320001
+        {0x38ad99a045dc971f},	//music_0320002
+        {0xf616642579ba5850},	//music_0320003
+        {0x6aa0ff881da270e7},	//music_0320004
+        {0x5089e16d7a676ab1},	//music_0320005
+        {0x8ad213dddedc9022},	//music_0320006
+        {0x5205a666f976d42f},	//music_0320007
+        {0xcccb5077d978def4},	//music_0320008
+        {0x290fbc93e184af1e},	//music_0320009
+        {0x230c9509bbc3df0d},	//music_0320010
+        {0x5771a2c76f36c898},	//music_0320011
+        {0x244a92885ab77b7c},	//music_0320012
+        {0xfc3fa77fc33460d4},	//music_0320013
+        {0x26ee13598091b548},	//music_0320014
+        {0x776c4aded0bca5d1},	//music_0410001
+        {0xb7bff4fbf66be43f},	//music_0410002
+        {0x904f50c5ce8ec6e4},	//music_0410003
+        {0x465e30321a4091f2},	//music_0410004
+        {0x7c7dd6d9f3761102},	//music_0410005
+        {0xc222e70e4a79f7c3},	//music_0410006
+        {0x8463554672bfb716},	//music_0410007
+        {0x1111d6c10e509824},	//music_0410008
+        {0x2e107d849959c430},	//music_0410009
+        {0x75859a7a2b1ed37d},	//music_0410010
+        {0x2e5f57a6c6e9c97f},	//music_0410011
+        {0x5d1f3fdbbb036f8d},	//music_0420001
+        {0xc04264e8f34ad5c0},	//music_0420002
+        {0x8f0e96b4f71f724f},	//music_0420003
+        {0x79c5f00d243e3097},	//music_0420004
+        {0x889d47adc9595ffa},	//music_0420005
+        {0x3f25fe3395b3154c},	//music_0420006
+        {0x212bbee264be5b06},	//music_0420007
+        {0x867d47a7d8376402},	//music_0420008
+        {0xf7e11ec9c94402f1},	//music_0420009
+        {0x1bb363adcf4eb3f8},	//music_0420010
+        {0xd80d3dcc7c75cea},	//music_0420011
+        {0x52723f026d5238e8},	//music_0420012
+        {0xd13a315c0005f0},	//music_0420013
+        {0x35f2d3cec84aba1},	//music_0420014
+        {0xdf31e26a7b036a2},	//music_0510001
+        {0xb2770dced3cfd9a7},	//music_0510002
+        {0x6c6c1fd51e28a1e7},	//music_0510003
+        {0xdcd2a403fb01e164},	//music_0510004
+        {0x984363837811b08a},	//music_0510005
+        {0x9f6881f6d7a91658},	//music_0510006
+        {0x3804d53c43293080},	//music_0510007
+        {0x298a0fa05c3f355f},	//music_0510008
+        {0x9ebb560685327081},	//music_0510009
+        {0xd45e8ba374b45ff7},	//music_0510010
+        {0xc5c9bf138c9e28ce},	//music_0510011
+        {0x1980271cfe0da9bd},	//music_0510012
+        {0x75c5bd4e3a01a8a4},	//music_0510013
+        {0x15f82c1617013c36},	//music_0520001
+        {0xc7da8e6f0e2fe399},	//music_0520002
+        {0xe350bffcdc9cb686},	//music_0520003
+        {0xe77aa2f3c90a4e84},	//music_0520004
+        {0x57bdc58e4c06fc76},	//music_0520005
+        {0xd4c36ab962153420},	//music_0520006
+        {0x9de6ace9a0e62f44},	//music_0520007
+        {0x35128087963cd5be},	//music_0520008
+        {0xdf30ed86c3d00ffb},	//music_0520009
+        {0xde4959221bc2675},	//music_0520010
+        {0xeeaf8d2458ccdb36},	//music_0520011
+        {0xb140168a47d55b92},	//music_0520012
+        {0xd2ce91dbfc209b10},	//music_0610001
+        {0xa662be1601e49476},	//music_0610002
+        {0xe5e83d31e64273f8},	//music_0610003
+        {0xaf9d7a05b0fc3d9e},	//music_0610004
+        {0xcee66d585d689851},	//music_0610005
+        {0x65c2f8500bc12c8},	//music_0610006
+        {0x7148dda3afa76439},	//music_0610007
+        {0x42548fe4544c2ed7},	//music_0610008
+        {0x9e68da734cc472f},	//music_0610009
+        {0xa01c597d1aa13358},	//music_0610010
+        {0x6492e7708204838},	//music_0610011
+        {0x8258ddd6a1d0849b},	//music_0620001
+        {0x1dd21a1244ca12f1},	//music_0620002
+        {0xfdec74b23d8b494b},	//music_0620003
+        {0x6f9735c02faf6aae},	//music_0620004
+        {0xe978d394512cfd},	//music_0620005
+        {0xaba147637d52efbe},	//music_0620006
+        {0xe67f4da6012c5d24},	//music_0620007
+        {0xc352bbf3d519256e},	//music_0620008
+        {0x37d1452c192b1e6},	//music_0620009
+        {0xf7e53533d82d48dd},	//music_0620010
+        {0x33848be13a2884a3},	//music_0620011
+        {0xfab3596f11cc4d7a},	//music_0620012
+        {0xe35d52b6d2c094fb},	//music_0620013
+        {0x2a47feac8dc3ca9c},	//music_3010001
+        {0x9ebbaf63ffe9d9ef},	//music_3010002
+        {0xe553dba6592293d8},	//music_3010003
+        {0x31e072678ad18a3},	//music_3010004
+        {0x4ba9a9471f49b74e},	//music_3010005
+        {0xc917cb864231982},	//music_3010006
+        {0x7a708e291692abb9},	//music_3010007
+        {0x1ab266a4cbb5133a},	//music_3010008
+        {0x7d4719615fbb2f4d},	//music_3010009
+        {0x28aa75a01f26a853},	//music_3010010
+        {0xa42de67a89fb3175},	//music_3010012
+        {0xfd3ea450350d666f},	//music_3020001
+        {0x5e91a3790c32e2b3},	//music_3020002
+        {0x358adfd1bbd3a95e},	//music_3020003
+        {0x1948edf7ff41e79b},	//music_3020004
+        {0x100293729f35b4de},	//music_3020005
+        {0xdfad847a86a126bb},	//music_5030001
+        {0x711ef85045b8c26e},	//music_5030002
+        {0xff7640b46d72b337},	//music_5030003
+        {0x420d4dd413053980},	//music_5030004
+        {0x84dc42f5a05f77cf},	//music_5030005
+        {0xcb60232f2f27ace5},	//music_5030006
+        {0xd9a00c9bc93014a8},	//music_5030007
+        {0xe0b8bb03c74bb3d0},	//music_5030008
+        {0xcb3d9329d40490b2},	//music_5030009
+        {0x7ce69eed81f01019},	//music_5030010
+        {0xfd9fa5bcb347c01b},	//music_5030011
+        {0x4a4462cb0375001e},	//music_5030012
+        {0xa3711cc06f9b86c2},	//music_5030013
+        {0xaebfdf85aae4424},	//music_5030014
+        {0x1ed521f6dd691255},	//music_5030015
+        {0xb2bd99fa559b9062},	//music_5030016
+        {0xaff9df030e63e5ba},	//music_5030017
+        {0xb30acd0a43754e5c},	//music_5030018
+        {0xa6cefd4472568948},	//music_5030019
+        {0x447d08ca3148599d},	//music_5030020
+        {0xfe31517282d40690},	//music_5030021
+        {0xa6a15cc9722257d},	//music_5030022
+        {0x55912db4388961ac},	//music_5030023
+        {0x8f5f05c835f7280e},	//music_5030024
+        {0x6750f4d05183bc01},	//music_5030025
+        {0xda65af760e02c6ee},	//music_5030026
+        {0xf4093992cadd3708},	//music_5030027
+        {0xf965a1086b3179c3},	//music_5030028
+        {0x24c0b49097e9ebff},	//music_5030029
+        {0x2ecdf66c680f3a45},	//music_5030030
+        {0x54aaada4a1b8deef},	//music_5030031
+        {0x8328668369631cc1},	//music_5030034
+        {0xa5c1adeb7919845f},	//music_5030035
+        {0x8e35d68632fc0d77},	//music_5030036
+        {0x4fbc9cabd12f75a1},	//music_5030037
+        {0xd27146e6de40209a},	//music_5030038
+        {0x6abcc90be62f2cec},	//music_5030039
+        {0x7f617e396e9a1e5c},	//music_5030040
+        {0xd0471c163265ca1b},	//music_5030041
+        {0x444dda6d55d76095},	//music_5040001
+        {0xcbf4f1324081e0a6},	//music_5040002
+        {0xf1db3c1d9542063a},	//music_5040003
+        {0x114245b98dcb75bf},	//music_5040004
+        {0x6139edfb8889032d},	//music_5040005
+        {0x9ce13dcb2fb389cc},	//music_5040006
+        {0x67b89634319c1d36},	//music_5040007
+        {0xf877dea1180b9b90},	//music_5040008
+        {0xcd3fb92065d9f373},	//music_5040009
+        {0xee8da2806a13eecf},	//music_5040010
+        {0x46fd87a21859ac},	//music_5040011
+        {0x90fefcd350bd2cb8},	//music_5040012
+        {0xf7edc5d72fdd6ceb},	//music_5040013
+        {0x4c7d7c251c6bfa95},	//music_5040014
+        {0x2f3528a4b9eaa0f7},	//music_5040015
+        {0x529969b7e1e9ac18},	//music_5040016
+        {0xbb7be9c7c620f504},	//music_5040018
+        {0x7ed1fa0b6ec8f9b3},	//music_5040020
+        {0xa4481f97a8d4d01c},	//music_5040021
+        {0x7465c7c473e53a40},	//music_5040022
+        {0xfadb1b0f28e951e1},	//music_5040023
+        {0x5e3eba376e0b3dd},	//music_5050001
+        {0xa8ee7a3a20ce822},	//music_5050002
+        {0xf42d31b5ecd1aec1},	//music_5050003
+        {0x56ecfc7ef4c65be8},	//music_5050004
+        {0xad071dce0c070e65},	//music_5050005
+        {0x98178a7b6ac7327b},	//music_5050006
+        {0xb65d86624a857788},	//music_5050007
+        {0x9fbd8a172d5ba3e3},	//music_5050008
+        {0xdc2680acfd1b9b64},	//music_5050009
+        {0xd0d8557c8ef44dd4},	//music_5050010
+        {0x945cdb3cf1f29e52},	//music_5050011
+        {0x6461fe08c7744918},	//music_5050012
+        {0xe27f90cf77f17dec},	//music_5050013
+        {0xbf5902d516db6ed5},	//music_5050015
+        {0xeb8aac34dc178f65},	//music_5050016
+        {0xd4d2a706a06377ef},	//music_5050017
+        {0xdce3cd3ffe2d4144},	//music_5050018
+        {0xdaaa3a987e3aa3ca},	//music_5050019
+        {0x6cd32143f1a4a2aa},	//music_5050020
+        {0x5b92c17283e2b9a0},	//music_5050021
+        {0x141e0174df535976},	//music_5050022
+        {0x73667711348f833f},	//music_5050023
+        {0xc9f159f60b065f91},	//music_5050024
+        {0x2638971e9d063b5f},	//music_5050025
+        {0x6bdf5832eb19fcdf},	//music_5050026
+        {0x7f0feac6be7def5b},	//music_5050027
+        {0x8cc0aa89c75bb821},	//music_5050028
+        {0x917e7dd2c5287edd},	//music_5050029
+        {0x71b5fa3761d6726d},	//music_5050030
+        {0xe4e11a71fe620e3a},	//music_5050031
+        {0xc28331aab2612584},	//music_5050032
+        {0xff05b24da2980c99},	//music_5050033
+        {0xa7ce246e536b0941},	//music_5050034
+        {0xfa842bc07360137d},	//music_5050035
+        {0xf8d72c405d3f0456},	//music_5050036
+        {0xd4d5fa6c87342e6b},	//music_5050037
+        {0xe278eccf08eb2565},	//music_5050044
+        {0x1cf133b26d8160d1},	//music_5050045
+        {0xda08e9d3961c93f2},	//music_5050046
+        {0x58d97e6f3d1aee86},	//music_5050047
+        {0x57353b771188635e},	//music_5050048
+        {0xeb9ad1180d7e1b53},	//music_5050049
+        {0xaec8dbd5f5337a9e},	//music_5050050
+        {0x49d08922136334ce},	//music_5050051
+        {0x138df0b866e902e0},	//music_5050052
+        {0xc076e8604740ff5f},	//music_5050053
+        {0x69fe38ae5970d450},	//music_5050054
+        {0xbce9e85d31089fb2},	//music_5050056
+        {0x817b919679c96d7},	//music_5050057
+        {0x3e0e51043bd7d5e5},	//music_5050058
+        {0x115f906b6b7fb845},	//music_5050060
+        {0xa8d5e9b1c6cf1505},	//music_5050061
+        {0x69ffd3fefdf7ee71},	//music_5050062
+        {0x571e646778541f4d},	//music_5050063
+        {0xe8b5323ec07608e7},	//music_5050064
+        {0x27992dd621b8a07e},	//music_5050065
+        {0x8e2a8439f5628513},	//music_5050066
+        {0x8b5be21e70a84eed},	//music_5050067
+        {0xb544dc8524419109},	//music_5050069
+        {0x6c2d9160672cbf95},	//music_5050070
+        {0x7ff6630286d2d93b},	//music_5050071
+        {0x78bec41dd27d8788},	//music_5050074
+        {0x52c250eade92393b},	//music_9010001
+        {0xfea0d6adff136868},	//music_9050001
 };
 
 #endif/*_HCA_KEYS_H_*/
