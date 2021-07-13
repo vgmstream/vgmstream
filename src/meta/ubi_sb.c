@@ -30,6 +30,7 @@ typedef struct {
     off_t audio_stream_offset;
     off_t audio_stream_type;
     off_t audio_subblock_flag;
+    off_t audio_subblock2_flag;
     off_t audio_streamed_flag;
     off_t audio_cd_streamed_flag;
     off_t audio_loop_flag;
@@ -49,6 +50,7 @@ typedef struct {
     int audio_cd_streamed_and;
     int audio_loop_and;
     int audio_subblock_and;
+    int audio_subblock2_and;
     int audio_loc_and;
     int audio_stereo_and;
     int audio_ram_streamed_and;
@@ -1846,11 +1848,17 @@ static int parse_type_audio(ubi_sb_header* sb, off_t offset, STREAMFILE* sf) {
         sb->is_external = (int)!(read_32bit(offset + sb->cfg.audio_internal_flag, sf));
     }
 
-    /* apparently, there may also be other subblocks based on various flags but they were not seen so far */
     if (sb->cfg.audio_subblock_flag && sb->cfg.audio_subblock_and) {
         /* flag probably means "software decoded" */
         int subblock_flag = read_32bit(offset + sb->cfg.audio_subblock_flag, sf) & sb->cfg.audio_subblock_and;
         sb->subblock_id = (!subblock_flag) ? 0 : 1;
+
+        if (sb->platform == UBI_PS2) {
+            int subblock2_flag = read_32bit(offset + sb->cfg.audio_subblock2_flag, sf) & sb->cfg.audio_subblock2_and;
+            sb->subblock_id = (!subblock_flag) ? ((!subblock2_flag) ? 0 : 3) : 1;
+        }
+
+        /* PC can have subblock 2 based on two fields near the end but it wasn't seen so far */
 
         /* stream_type field is not used if the flag is not set (it even contains garbage in some versions)
          * except for PS3 which has two hardware codecs (PSX and AT3) */
@@ -2664,6 +2672,17 @@ static void config_sb_audio_he(ubi_sb_header* sb, off_t channels, off_t sample_r
     sb->cfg.audio_extra_name        = extra_name;
     sb->cfg.audio_stream_type       = stream_type;
 }
+static void config_sb_audio_fb_ps2(ubi_sb_header* sb, off_t flag_bits, int streamed_and, int subblock_and, int loop_and, int subblock2_and) {
+    /* audio header with bit flags */
+    sb->cfg.audio_streamed_flag     = flag_bits;
+    sb->cfg.audio_subblock_flag     = flag_bits;
+    sb->cfg.audio_loop_flag         = flag_bits;
+    sb->cfg.audio_subblock2_flag    = flag_bits;
+    sb->cfg.audio_streamed_and      = streamed_and;
+    sb->cfg.audio_subblock_and      = subblock_and;
+    sb->cfg.audio_loop_and          = loop_and;
+    sb->cfg.audio_subblock2_and     = subblock2_and;
+}
 static void config_sb_audio_ps2_bnm(ubi_sb_header *sb, off_t flag_bits, int streamed_and, int cd_streamed_and, int loop_and, off_t channels, off_t sample_rate) {
     /* bit flags, channels and sample rate */
     sb->cfg.audio_streamed_flag = flag_bits;
@@ -3335,7 +3354,7 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
         (sb->version == 0x0012000c && sb->platform == UBI_PS2)) {
         config_sb_entry(sb, 0x48, 0x6c);
 
-        config_sb_audio_fb(sb, 0x18, (1 << 2), (1 << 3), (1 << 4));
+        config_sb_audio_fb_ps2(sb, 0x18, (1 << 2), (1 << 3), (1 << 4), (1 << 5));
         config_sb_audio_hs(sb, 0x20, 0x24, 0x30, 0x38, 0x40, 0x68); /* num_samples may be null */
 
         config_sb_sequence(sb, 0x28, 0x10);
@@ -3352,7 +3371,7 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
     if (sb->version == 0x000A0007 && sb->platform == UBI_PS2 && is_bia_ps2) {
         config_sb_entry(sb, 0x5c, 0x14c);
 
-        config_sb_audio_fb(sb, 0x18, (1 << 2), (1 << 3), (1 << 4));
+        config_sb_audio_fb_ps2(sb, 0x18, (1 << 2), (1 << 3), (1 << 4), (1 << 5));
         config_sb_audio_hs(sb, 0x20, 0x24, 0x30, 0x38, 0x40, 0x148); /* num_samples may be null */
 
         config_sb_sequence(sb, 0x28, 0x10);
@@ -3547,7 +3566,7 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
     if (sb->version == 0x00130001 && sb->platform == UBI_PS2) {
         config_sb_entry(sb, 0x48, 0x4c);
 
-        config_sb_audio_fb(sb, 0x18, (1 << 2), (1 << 3), (1 << 4));
+        config_sb_audio_fb_ps2(sb, 0x18, (1 << 2), (1 << 3), (1 << 4), (1 << 5));
         config_sb_audio_he(sb, 0x20, 0x24, 0x30, 0x38, 0x40, 0x44);
 
         config_sb_sequence(sb, 0x28, 0x10);
@@ -3589,7 +3608,7 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
     if (sb->version == 0x00130004 && sb->platform == UBI_PS2) {
         config_sb_entry(sb, 0x48, 0x50);
 
-        config_sb_audio_fb(sb, 0x18, (1 << 2), (1 << 3), (1 << 4));
+        config_sb_audio_fb_ps2(sb, 0x18, (1 << 2), (1 << 3), (1 << 4), (1 << 5));
         config_sb_audio_he(sb, 0x20, 0x24, 0x30, 0x38, 0x40, 0x4c);
         sb->cfg.audio_interleave = 0x8000;
 
@@ -3626,7 +3645,7 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
     if (sb->version == 0x00150000 && sb->platform == UBI_PS2) {
         config_sb_entry(sb, 0x48, 0x5c);
 
-        config_sb_audio_fb(sb, 0x20, (1 << 2), (1 << 3), (1 << 4));
+        config_sb_audio_fb_ps2(sb, 0x20, (1 << 2), (1 << 3), (1 << 4), (1 << 5));
         config_sb_audio_he(sb, 0x2c, 0x30, 0x3c, 0x44, 0x4c, 0x50);
 
         config_sb_sequence(sb, 0x2c, 0x10);
@@ -3683,7 +3702,7 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
         (sb->version == 0x00180007 && sb->platform == UBI_PSP)) {
         config_sb_entry(sb, 0x48, 0x54);
 
-        config_sb_audio_fb(sb, 0x20, (1 << 2), (1 << 3), (1 << 4));
+        config_sb_audio_fb_ps2(sb, 0x20, (1 << 2), (1 << 3), (1 << 4), (1 << 5));
         config_sb_audio_he(sb, 0x28, 0x2c, 0x34, 0x3c, 0x44, 0x48);
 
         config_sb_sequence(sb, 0x2c, 0x10);
@@ -3852,7 +3871,7 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
     if (sb->version == 0x00190002 && sb->platform == UBI_PS2) {
         config_sb_entry(sb, 0x48, 0x5c);
 
-        config_sb_audio_fb(sb, 0x20, (1 << 2), (1 << 3), (1 << 4)); /* assumed subblock_flag */
+        config_sb_audio_fb_ps2(sb, 0x20, (1 << 2), (1 << 3), (1 << 4), (1 << 5)); /* assumed subblock_flag */
         config_sb_audio_he(sb, 0x28, 0x2c, 0x34, 0x3c, 0x44, 0x48);
 
         config_sb_sequence(sb, 0x2c, 0x10);
