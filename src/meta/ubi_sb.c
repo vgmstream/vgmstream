@@ -29,8 +29,8 @@ typedef struct {
     off_t audio_stream_size;
     off_t audio_stream_offset;
     off_t audio_stream_type;
-    off_t audio_subblock_flag;
-    off_t audio_subblock2_flag;
+    off_t audio_software_flag;
+    off_t audio_hwmodule_flag;
     off_t audio_streamed_flag;
     off_t audio_cd_streamed_flag;
     off_t audio_loop_flag;
@@ -49,8 +49,8 @@ typedef struct {
     int audio_streamed_and;
     int audio_cd_streamed_and;
     int audio_loop_and;
-    int audio_subblock_and;
-    int audio_subblock2_and;
+    int audio_software_and;
+    int audio_hwmodule_and;
     int audio_loc_and;
     int audio_stereo_and;
     int audio_ram_streamed_and;
@@ -1848,21 +1848,22 @@ static int parse_type_audio(ubi_sb_header* sb, off_t offset, STREAMFILE* sf) {
         sb->is_external = (int)!(read_32bit(offset + sb->cfg.audio_internal_flag, sf));
     }
 
-    if (sb->cfg.audio_subblock_flag && sb->cfg.audio_subblock_and) {
-        /* flag probably means "software decoded" */
-        int subblock_flag = read_32bit(offset + sb->cfg.audio_subblock_flag, sf) & sb->cfg.audio_subblock_and;
-        sb->subblock_id = (!subblock_flag) ? 0 : 1;
+    if (sb->cfg.audio_software_flag && sb->cfg.audio_software_and) {
+        /* software decoded and hardware decoded sounds are stored in separate subblocks */
+        int software_flag = read_32bit(offset + sb->cfg.audio_software_flag, sf) & sb->cfg.audio_software_and;
+        sb->subblock_id = (!software_flag) ? 0 : 1;
 
         if (sb->platform == UBI_PS2) {
-            int subblock2_flag = read_32bit(offset + sb->cfg.audio_subblock2_flag, sf) & sb->cfg.audio_subblock2_and;
-            sb->subblock_id = (!subblock_flag) ? ((!subblock2_flag) ? 0 : 3) : 1;
+            /* flag appears to mean "load into IOP memory instead of SPU" */
+            int hwmodule_flag = read_32bit(offset + sb->cfg.audio_hwmodule_flag, sf) & sb->cfg.audio_hwmodule_and;
+            sb->subblock_id = (!software_flag) ? ((!hwmodule_flag) ? 0 : 3) : 1;
         }
 
         /* PC can have subblock 2 based on two fields near the end but it wasn't seen so far */
 
         /* stream_type field is not used if the flag is not set (it even contains garbage in some versions)
          * except for PS3 which has two hardware codecs (PSX and AT3) */
-        if (!subblock_flag && sb->platform != UBI_PS3)
+        if (!software_flag && sb->platform != UBI_PS3)
             sb->stream_type = 0x00;
     } else {
         sb->subblock_id = (sb->stream_type == 0x01) ? 0 : 1;
@@ -2636,22 +2637,22 @@ static void config_sb_entry(ubi_sb_header* sb, size_t section1_size_entry, size_
     sb->cfg.section2_entry_size     = section2_size_entry;
     sb->cfg.section3_entry_size     = 0x08;
 }
-static void config_sb_audio_fs(ubi_sb_header* sb, off_t streamed_flag, off_t subblock_flag, off_t loop_flag) {
+static void config_sb_audio_fs(ubi_sb_header* sb, off_t streamed_flag, off_t software_flag, off_t loop_flag) {
     /* audio header with standard flags */
     sb->cfg.audio_streamed_flag     = streamed_flag;
-    sb->cfg.audio_subblock_flag     = subblock_flag;
+    sb->cfg.audio_software_flag     = software_flag;
     sb->cfg.audio_loop_flag         = loop_flag;
     sb->cfg.audio_streamed_and      = 1;
-    sb->cfg.audio_subblock_and      = 1;
+    sb->cfg.audio_software_and      = 1;
     sb->cfg.audio_loop_and          = 1;
 }
-static void config_sb_audio_fb(ubi_sb_header* sb, off_t flag_bits, int streamed_and, int subblock_and, int loop_and) {
+static void config_sb_audio_fb(ubi_sb_header* sb, off_t flag_bits, int streamed_and, int software_and, int loop_and) {
     /* audio header with bit flags */
     sb->cfg.audio_streamed_flag     = flag_bits;
-    sb->cfg.audio_subblock_flag     = flag_bits;
+    sb->cfg.audio_software_flag     = flag_bits;
     sb->cfg.audio_loop_flag         = flag_bits;
     sb->cfg.audio_streamed_and      = streamed_and;
-    sb->cfg.audio_subblock_and      = subblock_and;
+    sb->cfg.audio_software_and      = software_and;
     sb->cfg.audio_loop_and          = loop_and;
 }
 static void config_sb_audio_hs(ubi_sb_header* sb, off_t channels, off_t sample_rate, off_t num_samples, off_t num_samples2, off_t stream_name, off_t stream_type) {
@@ -2672,40 +2673,40 @@ static void config_sb_audio_he(ubi_sb_header* sb, off_t channels, off_t sample_r
     sb->cfg.audio_extra_name        = extra_name;
     sb->cfg.audio_stream_type       = stream_type;
 }
-static void config_sb_audio_fb_ps2(ubi_sb_header* sb, off_t flag_bits, int streamed_and, int subblock_and, int loop_and, int subblock2_and) {
+static void config_sb_audio_fb_ps2(ubi_sb_header* sb, off_t flag_bits, int streamed_and, int software_and, int loop_and, int hwmodule_and) {
     /* audio header with bit flags */
     sb->cfg.audio_streamed_flag     = flag_bits;
-    sb->cfg.audio_subblock_flag     = flag_bits;
+    sb->cfg.audio_software_flag     = flag_bits;
     sb->cfg.audio_loop_flag         = flag_bits;
-    sb->cfg.audio_subblock2_flag    = flag_bits;
+    sb->cfg.audio_hwmodule_flag     = flag_bits;
     sb->cfg.audio_streamed_and      = streamed_and;
-    sb->cfg.audio_subblock_and      = subblock_and;
+    sb->cfg.audio_software_and      = software_and;
     sb->cfg.audio_loop_and          = loop_and;
-    sb->cfg.audio_subblock2_and     = subblock2_and;
+    sb->cfg.audio_hwmodule_and      = hwmodule_and;
 }
 static void config_sb_audio_ps2_bnm(ubi_sb_header *sb, off_t flag_bits, int streamed_and, int cd_streamed_and, int loop_and, off_t channels, off_t sample_rate) {
     /* bit flags, channels and sample rate */
-    sb->cfg.audio_streamed_flag = flag_bits;
-    sb->cfg.audio_cd_streamed_flag = flag_bits;
-    sb->cfg.audio_loop_flag = flag_bits;
-    sb->cfg.audio_streamed_and = streamed_and;
-    sb->cfg.audio_cd_streamed_and = cd_streamed_and;
-    sb->cfg.audio_loop_and = loop_and;
-    sb->cfg.audio_channels = channels;
-    sb->cfg.audio_sample_rate = sample_rate;
+    sb->cfg.audio_streamed_flag     = flag_bits;
+    sb->cfg.audio_cd_streamed_flag  = flag_bits;
+    sb->cfg.audio_loop_flag         = flag_bits;
+    sb->cfg.audio_streamed_and      = streamed_and;
+    sb->cfg.audio_cd_streamed_and   = cd_streamed_and;
+    sb->cfg.audio_loop_and          = loop_and;
+    sb->cfg.audio_channels          = channels;
+    sb->cfg.audio_sample_rate       = sample_rate;
 }
 static void config_sb_audio_ps2_old(ubi_sb_header *sb, off_t flag_bits, int streamed_and, int loop_and, int loc_and, int stereo_and, off_t pitch, off_t sample_rate) {
     /* bit flags, sample rate only */
-    sb->cfg.audio_streamed_flag = flag_bits;
-    sb->cfg.audio_loop_flag = flag_bits;
-    sb->cfg.audio_loc_flag = flag_bits;
-    sb->cfg.audio_stereo_flag = flag_bits;
-    sb->cfg.audio_streamed_and = streamed_and;
-    sb->cfg.audio_loop_and = loop_and;
-    sb->cfg.audio_loc_and = loc_and;
-    sb->cfg.audio_stereo_and = stereo_and;
-    sb->cfg.audio_pitch = pitch;
-    sb->cfg.audio_sample_rate = sample_rate;
+    sb->cfg.audio_streamed_flag     = flag_bits;
+    sb->cfg.audio_loop_flag         = flag_bits;
+    sb->cfg.audio_loc_flag          = flag_bits;
+    sb->cfg.audio_stereo_flag       = flag_bits;
+    sb->cfg.audio_streamed_and      = streamed_and;
+    sb->cfg.audio_loop_and          = loop_and;
+    sb->cfg.audio_loc_and           = loc_and;
+    sb->cfg.audio_stereo_and        = stereo_and;
+    sb->cfg.audio_pitch             = pitch;
+    sb->cfg.audio_sample_rate       = sample_rate;
 }
 static void config_sb_sequence(ubi_sb_header* sb, off_t sequence_count, off_t entry_size) {
     /* sequence header and chain table */
@@ -3857,7 +3858,7 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
         (sb->version == 0x00190005 && sb->platform == UBI_PSP)) {
         config_sb_entry(sb, 0x48, 0x58);
 
-        config_sb_audio_fb(sb, 0x20, (1 << 2), (1 << 3), (1 << 4)); /* assumed subblock_flag */
+        config_sb_audio_fb(sb, 0x20, (1 << 2), (1 << 3), (1 << 4)); /* assumed software_flag */
         config_sb_audio_he(sb, 0x28, 0x2c, 0x34, 0x3c, 0x44, 0x48);
 
         config_sb_sequence(sb, 0x2c, 0x10);
@@ -3871,7 +3872,7 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
     if (sb->version == 0x00190002 && sb->platform == UBI_PS2) {
         config_sb_entry(sb, 0x48, 0x5c);
 
-        config_sb_audio_fb_ps2(sb, 0x20, (1 << 2), (1 << 3), (1 << 4), (1 << 5)); /* assumed subblock_flag */
+        config_sb_audio_fb_ps2(sb, 0x20, (1 << 2), (1 << 3), (1 << 4), (1 << 5)); /* assumed software_flag */
         config_sb_audio_he(sb, 0x28, 0x2c, 0x34, 0x3c, 0x44, 0x48);
 
         config_sb_sequence(sb, 0x2c, 0x10);
@@ -3994,7 +3995,7 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
     if (sb->version == 0x001D0000 && sb->platform == UBI_PSP) {
         config_sb_entry(sb, 0x40, 0x60);
 
-        config_sb_audio_fb(sb, 0x20, (1 << 2), (1 << 3), (1 << 5)); /* assumed subblock_flag */
+        config_sb_audio_fb(sb, 0x20, (1 << 2), (1 << 3), (1 << 5)); /* assumed software_flag */
         config_sb_audio_he(sb, 0x28, 0x30, 0x38, 0x40, 0x48, 0x4c);
         return 1;
     }
