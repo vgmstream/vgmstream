@@ -22,6 +22,9 @@
 #define EAAC_CODEC_EATRAX               0x0a
 #define EAAC_CODEC_EAMP3                0x0b
 #define EAAC_CODEC_EAOPUS               0x0c
+#define EAAC_CODEC_EAATRAC9             0x0d
+#define EAAC_CODEC_EAOPUSM              0x0e
+#define EAAC_CODEC_EAOPUSMU             0x0f
 
 #define EAAC_TYPE_RAM                   0x00
 #define EAAC_TYPE_STREAM                0x01
@@ -34,12 +37,12 @@
 #define EAAC_BLOCKID1_DATA              0x44 /* 'D' */
 #define EAAC_BLOCKID1_END               0x45 /* 'E' */
 
-static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE* sf_head, STREAMFILE* sf_data, off_t header_offset, off_t start_offset, meta_t meta_type, int standalone);
-static VGMSTREAM *parse_s10a_header(STREAMFILE* sf, off_t offset, uint16_t target_index, off_t ast_offset);
+static VGMSTREAM* init_vgmstream_eaaudiocore_header(STREAMFILE* sf_head, STREAMFILE* sf_data, off_t header_offset, off_t start_offset, meta_t meta_type, int standalone);
+static VGMSTREAM* parse_s10a_header(STREAMFILE* sf, off_t offset, uint16_t target_index, off_t ast_offset);
 
 
 /* .SNR+SNS - from EA latest games (~2005-2010), v0 header */
-VGMSTREAM * init_vgmstream_ea_snr_sns(STREAMFILE* sf) {
+VGMSTREAM* init_vgmstream_ea_snr_sns(STREAMFILE* sf) {
     /* check extension, case insensitive */
     if (!check_extensions(sf,"snr"))
         goto fail;
@@ -51,7 +54,7 @@ fail:
 }
 
 /* .SPS - from EA latest games (~2010~present), v1 header */
-VGMSTREAM * init_vgmstream_ea_sps(STREAMFILE* sf) {
+VGMSTREAM* init_vgmstream_ea_sps(STREAMFILE* sf) {
     /* check extension, case insensitive */
     if (!check_extensions(sf,"sps"))
         goto fail;
@@ -63,8 +66,8 @@ fail:
 }
 
 /* .SNU - from EA Redwood Shores/Visceral games (Dead Space, Dante's Inferno, The Godfather 2), v0 header */
-VGMSTREAM * init_vgmstream_ea_snu(STREAMFILE *sf) {
-    VGMSTREAM * vgmstream = NULL;
+VGMSTREAM* init_vgmstream_ea_snu(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
     off_t start_offset, header_offset;
     int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
 
@@ -102,7 +105,7 @@ fail:
 }
 
 /* EA ABK - ABK header seems to be same as in the old games but the sound table is different and it contains SNR/SNS sounds instead */
-VGMSTREAM * init_vgmstream_ea_abk_eaac(STREAMFILE* sf) {
+VGMSTREAM* init_vgmstream_ea_abk_eaac(STREAMFILE* sf) {
     int is_dupe, total_sounds = 0, target_stream = sf->stream_index;
     off_t bnk_offset, modules_table, module_data, player_offset, samples_table, entry_offset, ast_offset;
     off_t cfg_num_players_off, cfg_module_data_off, cfg_module_entry_size, cfg_samples_table_off;
@@ -110,7 +113,7 @@ VGMSTREAM * init_vgmstream_ea_abk_eaac(STREAMFILE* sf) {
     uint16_t num_modules, bnk_index, bnk_target_index;
     uint8_t num_players;
     off_t sample_tables[0x400];
-    VGMSTREAM *vgmstream;
+    VGMSTREAM* vgmstream;
     int32_t(*read_32bit)(off_t, STREAMFILE*);
     int16_t(*read_16bit)(off_t, STREAMFILE*);
 
@@ -226,11 +229,11 @@ fail:
 }
 
 /* EA S10A header - seen inside new ABK files. Putting it here in case it's encountered stand-alone. */
-static VGMSTREAM * parse_s10a_header(STREAMFILE* sf, off_t offset, uint16_t target_index, off_t sns_offset) {
+static VGMSTREAM* parse_s10a_header(STREAMFILE* sf, off_t offset, uint16_t target_index, off_t sns_offset) {
     uint32_t num_sounds;
     off_t snr_offset;
     STREAMFILE *astFile = NULL;
-    VGMSTREAM *vgmstream;
+    VGMSTREAM* vgmstream;
 
     /* header is always big endian */
     /* 0x00: header magic */
@@ -279,12 +282,12 @@ fail:
 }
 
 /* EA SBR/SBS - used in older 7th gen games for storing SFX */
-VGMSTREAM * init_vgmstream_ea_sbr(STREAMFILE* sf) {
+VGMSTREAM* init_vgmstream_ea_sbr(STREAMFILE* sf) {
     uint32_t i, num_sounds, type_desc;
     uint16_t num_metas, meta_type;
     off_t table_offset, types_offset, entry_offset, metas_offset, data_offset, snr_offset, sns_offset;
     STREAMFILE *sbsFile = NULL;
-    VGMSTREAM *vgmstream = NULL;
+    VGMSTREAM* vgmstream = NULL;
     int target_stream = sf->stream_index;
 
     if (!check_extensions(sf, "sbr"))
@@ -372,14 +375,14 @@ fail:
 }
 
 /* EA HDR/STH/DAT - seen in older 7th gen games, used for storing speech */
-VGMSTREAM * init_vgmstream_ea_hdr_sth_dat(STREAMFILE* sf) {
+VGMSTREAM* init_vgmstream_ea_hdr_sth_dat(STREAMFILE* sf) {
     int target_stream = sf->stream_index;
     uint32_t snr_offset, sns_offset, block_size;
     uint16_t sth_offset, sth_offset2;
     uint8_t userdata_size, total_sounds, block_id;
     size_t dat_size;
     STREAMFILE *sf_dat = NULL, *sf_sth = NULL;
-    VGMSTREAM *vgmstream;
+    VGMSTREAM* vgmstream;
     uint32_t(*read_u32)(off_t, STREAMFILE*);
 
     /* 0x00: ID */
@@ -606,13 +609,13 @@ static STREAMFILE *open_mapfile_pair(STREAMFILE* sf, int track, int num_tracks) 
 }
 
 /* EA MPF/MUS combo - used in older 7th gen games for storing interactive music */
-VGMSTREAM * init_vgmstream_ea_mpf_mus_eaac(STREAMFILE* sf) {
+VGMSTREAM* init_vgmstream_ea_mpf_mus_eaac(STREAMFILE* sf) {
     uint32_t num_tracks, track_start, track_checksum = 0, mus_sounds, mus_stream = 0;
     uint32_t tracks_table, samples_table, eof_offset, table_offset, entry_offset, snr_offset, sns_offset;
     uint16_t num_subbanks;
     uint8_t version, sub_version;
     STREAMFILE *musFile = NULL;
-    VGMSTREAM *vgmstream = NULL;
+    VGMSTREAM* vgmstream = NULL;
     int i;
     int target_stream = sf->stream_index, total_streams, is_ram = 0;
     uint32_t(*read_u32)(off_t, STREAMFILE *);
@@ -749,10 +752,10 @@ fail:
 }
 
 /* EA TMX - used for engine sounds in NFS games (2007-2011) */
-VGMSTREAM * init_vgmstream_ea_tmx(STREAMFILE* sf) {
+VGMSTREAM* init_vgmstream_ea_tmx(STREAMFILE* sf) {
     uint32_t num_sounds, sound_type, table_offset, data_offset, entry_offset, sound_offset;
-    VGMSTREAM *vgmstream = NULL;
-    STREAMFILE *temp_sf = NULL;
+    VGMSTREAM* vgmstream = NULL;
+    STREAMFILE* temp_sf = NULL;
     int target_stream = sf->stream_index;
     uint32_t(*read_u32)(off_t, STREAMFILE *);
 
@@ -805,7 +808,7 @@ fail:
 }
 
 /* EA Harmony Sample Bank - used in 8th gen EA Sports games */
-VGMSTREAM * init_vgmstream_ea_sbr_harmony(STREAMFILE *sf) {
+VGMSTREAM* init_vgmstream_ea_sbr_harmony(STREAMFILE* sf) {
     uint64_t set_sounds, base_offset, sound_offset;
     uint32_t chunk_id, data_offset, table_offset, dset_offset, sound_table_offset;
     uint16_t num_dsets;
@@ -813,7 +816,7 @@ VGMSTREAM * init_vgmstream_ea_sbr_harmony(STREAMFILE *sf) {
     uint32_t i, j;
     char sound_name[STREAM_NAME_SIZE];
     STREAMFILE *sf_sbs = NULL, *sf_data = NULL;
-    VGMSTREAM *vgmstream = NULL;
+    VGMSTREAM* vgmstream = NULL;
     int target_stream = sf->stream_index, total_sounds, local_target, is_streamed = 0;
     uint64_t(*read_u64)(off_t, STREAMFILE *);
     uint32_t(*read_u32)(off_t, STREAMFILE*);
@@ -1031,8 +1034,8 @@ static size_t calculate_eaac_size(STREAMFILE* sf, eaac_header *ea, uint32_t num_
  * Audio "assets" come in separate RAM headers (.SNR/SPH) and raw blocked streams (.SNS/SPS),
  * or together in pseudoformats (.SNU, .SBR+.SBS banks, .AEMS, .MUS, etc).
  * Some .SNR include stream data, while .SPS have headers so .SPH is optional. */
-static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE* sf_head, STREAMFILE* sf_data, off_t header_offset, off_t start_offset, meta_t meta_type, int standalone) {
-    VGMSTREAM * vgmstream = NULL;
+static VGMSTREAM* init_vgmstream_eaaudiocore_header(STREAMFILE* sf_head, STREAMFILE* sf_data, off_t header_offset, off_t start_offset, meta_t meta_type, int standalone) {
+    VGMSTREAM* vgmstream = NULL;
     STREAMFILE *temp_sf = NULL, *sf = NULL, *snsFile = NULL;
     uint32_t header1, header2, header_block_size = 0, header_size;
     uint8_t header_block_id;
@@ -1294,6 +1297,23 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE* sf_head, STREAM
             /* DSP coefs are read in the blocks */
             break;
 
+#ifdef VGM_USE_SPEEX
+        case EAAC_CODEC_EASPEEX: { /* "Esp0": EASpeex (libspeex variant, base versions vary: 1.0.5, 1.2beta3) [FIFA 14 (PS4), FIFA 2020 (Switch)] */
+            /* EASpeex looks normal but simplify with custom IO to avoid worrying about blocks.
+             * First block samples count frames' samples subtracting encoder delay. */
+
+            vgmstream->codec_data = init_speex_ea(eaac.channels);
+            if (!vgmstream->codec_data) goto fail;
+            vgmstream->coding_type = coding_SPEEX;
+            vgmstream->layout_type = layout_none;
+
+            temp_sf = setup_eaac_audio_streamfile(sf, eaac.version, eaac.codec, eaac.streamed,0,0, 0x00);
+            if (!temp_sf) goto fail;
+
+            break;
+        }
+#endif
+
 #ifdef VGM_USE_ATRAC9
         case EAAC_CODEC_EATRAX: { /* EATrax (unknown FourCC) [Need for Speed: Most Wanted (Vita)] */
             atrac9_config cfg = {0};
@@ -1320,7 +1340,7 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE* sf_head, STREAM
 
 
 #ifdef VGM_USE_MPEG
-        case EAAC_CODEC_EAMP3: { /* "EM30"?: EAMP3 [Need for Speed 2015 (PS4)] */
+        case EAAC_CODEC_EAMP3: { /* "EM30": EA-MP3 [Need for Speed 2015 (PS4)] */
             mpeg_custom_config cfg = {0};
 
             temp_sf = setup_eaac_audio_streamfile(sf, eaac.version, eaac.codec, eaac.streamed,0,0, 0x00);
@@ -1335,7 +1355,7 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE* sf_head, STREAM
 #endif
 
 #ifdef VGM_USE_FFMPEG
-        case EAAC_CODEC_EAOPUS: { /* "Eop0"? : EAOpus [FIFA 17 (PC), FIFA 19 (Switch)]*/
+        case EAAC_CODEC_EAOPUS: { /* "Eop0": EAOpus [FIFA 17 (PC), FIFA 19 (Switch)]*/
             vgmstream->layout_data = build_layered_eaaudiocore(sf, &eaac, 0x00);
             if (!vgmstream->layout_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
@@ -1343,24 +1363,57 @@ static VGMSTREAM * init_vgmstream_eaaudiocore_header(STREAMFILE* sf_head, STREAM
             break;
         }
 #endif
+#ifdef VGM_USE_FFMPEG
+      //case EAAC_CODEC_EAOPUSMU:  /* "MSU0": Multi-Stream Opus Uncoupled (not seen) */
+        case EAAC_CODEC_EAOPUSM: { /* "MSO0": Multi-Stream Opus */
+            off_t offset = 0x00; // eaac.stream_offset;
+            off_t data_size = get_streamfile_size(sf);
+            opus_config cfg = {0};
 
-#ifdef VGM_USE_SPEEX
-        case EAAC_CODEC_EASPEEX: { /* "Esp0"?: EASpeex (libspeex variant, base versions vary: 1.0.5, 1.2beta3) [FIFA 14 (PS4), FIFA 2020 (Switch)] */
-            /* EASpeex looks normal but simplify with custom IO to avoid worrying about blocks.
-             * First block samples count frames' samples subtracting encoder delay. */
+            cfg.channels = eaac.channels;
+            {
+                uint32_t block_size = read_u32be(offset + 0x00, sf) & 0x00FFFFFF;
+                uint32_t curr_samples = read_u32be(offset + 0x04, sf);
+                uint32_t next_samples = read_u32be(offset + block_size + 0x04, sf);
 
-            vgmstream->codec_data = init_speex_ea(eaac.channels);
+                cfg.skip = next_samples - curr_samples;
+                /* maybe should check if next block exists, but files of single packet? */
+            }
+
+            /* find coupled OPUS streams (internal streams using 2ch) */
+            if (eaac.codec == EAAC_CODEC_EAOPUSMU) {
+                cfg.coupled_count = 0;
+            }
+            else {
+                switch(eaac.channels) {
+                  //case 8:  cfg.coupled_count = 3; break;   /* 2ch+2ch+2ch+1ch+1ch, 5 streams */
+                  //case 6:                                  /* 2ch+2ch+1ch+1ch, 4 streams */
+                    case 4:  cfg.coupled_count = 2; break;   /* 2ch+2ch, 2 streams */
+                  //case 3:                                  /* 2ch+1ch, 2 streams */
+                    case 2:  cfg.coupled_count = 1; break;   /* 2ch, 1 stream */
+                  //case 1:  cfg.coupled_count = 0; break;   /* 1ch, 1 stream */
+                    default: goto fail;
+                }
+            }
+
+            /* total number internal OPUS streams (should be >0) */
+            cfg.stream_count = cfg.channels - cfg.coupled_count;
+
+            /* We *don't* remove EA blocks b/c in Multi Opus 1 block = 1 Opus packet
+             * Regular EAOPUS uses layers to fake multichannel, this is normal multichannel Opus.
+             * This can be used for stereo too, so probably replaces EAOPUS. */
+            //temp_sf = setup_eaac_audio_streamfile(sf_data, eaac->version, eaac->codec, eaac->streamed,0,0, 0x00);
+            //if (!temp_sf) goto fail;
+
+            vgmstream->codec_data = init_ffmpeg_ea_opusm(sf, offset, data_size, &cfg);
             if (!vgmstream->codec_data) goto fail;
-            vgmstream->coding_type = coding_SPEEX;
+            vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
-
-            temp_sf = setup_eaac_audio_streamfile(sf, eaac.version, eaac.codec, eaac.streamed,0,0, 0x00);
-            if (!temp_sf) goto fail;
-
             break;
         }
 #endif
 
+        case EAAC_CODEC_EAATRAC9: /* "AT90" (possibly ATRAC9 with a saner layout than EATRAX) */
         default:
             VGM_LOG("EA EAAC: unknown codec 0x%02x\n", eaac.codec);
             goto fail;
@@ -1696,7 +1749,7 @@ static layered_layout_data* build_layered_eaaudiocore(STREAMFILE *sf_data, eaac_
         goto fail;
 #endif
 
-        if ( !vgmstream_open_stream(data->layers[i], temp_sf, 0x00) ) {
+        if (!vgmstream_open_stream(data->layers[i], temp_sf, 0x00)) {
             goto fail;
         }
 

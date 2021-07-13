@@ -360,12 +360,12 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
     }
 
     /* check header */
-    if (read_32bitBE(0x00,sf) != 0x52494646) /* "RIFF" */
+    if (!is_id32be(0x00,sf,"RIFF"))
         goto fail;
-    if (read_32bitBE(0x08,sf) != 0x57415645) /* "WAVE" */
+    if (!is_id32be(0x08,sf, "WAVE"))
         goto fail;
 
-    riff_size = read_32bitLE(0x04,sf);
+    riff_size = read_u32le(0x04,sf);
     file_size = get_streamfile_size(sf);
 
     /* some games have wonky sizes, selectively fix to catch bad rips and new mutations */
@@ -416,6 +416,9 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
 
         else if (codec == 0xFFFE && riff_size + 0x08 + 0x30 == file_size)
             riff_size += 0x30; /* [E.X. Troopers (PS3)] (adds "ver /eBIT/tIME/mrkr" empty chunks but RIFF size wasn't updated) */
+
+        else if (codec == 0xFFFE && riff_size + 0x08 + 0x38 == file_size)
+            riff_size += 0x38; /* [Sengoku Basara 4 (PS3)] (adds "ver /eBIT/tIME/mrkr" chunks but RIFF size wasn't updated) */
 
         else if (codec == 0x0002 && riff_size + 0x08 + 0x1c == file_size)
             riff_size += 0x1c; /* [Mega Man X Legacy Collection (PC)] (adds "ver /tIME/ver " chunks but RIFF size wasn't updated) */
@@ -982,16 +985,16 @@ VGMSTREAM* init_vgmstream_rifx(STREAMFILE* sf) {
 
 
     /* check extension, case insensitive */
-    if ( !check_extensions(sf, "wav,lwav") )
+    if (!check_extensions(sf, "wav,lwav"))
         goto fail;
 
     /* check header */
-    if (read_32bitBE(0x00,sf) != 0x52494658) /* "RIFX" */
+    if (!is_id32be(0x00,sf, "RIFX"))
         goto fail;
-    if (read_32bitBE(0x08,sf) != 0x57415645) /* "WAVE" */
+    if (!is_id32be(0x08,sf, "WAVE"))
         goto fail;
 
-    riff_size = read_32bitBE(0x04,sf);
+    riff_size = read_u32be(0x04,sf);
     file_size = get_streamfile_size(sf);
 
     /* check for truncated RIFF */

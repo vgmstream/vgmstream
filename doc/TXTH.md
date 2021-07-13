@@ -495,7 +495,7 @@ id_check = @0x00 # 4ch only
 ... #different settings for 4ch
 ```
 
-As an interesting side-effect, you can use this to force load `.txth` in other paths. For example it can be useful if you have files in subdirs and want to point to a base `.txtp` in root.
+As an interesting side-effect, you can use this to force load `.txth` in other paths. For example it can be useful if you have files in subdirs and want to point to a base `.txth` in root.
 ```
 multi_txth = ../.main.txth
 ```
