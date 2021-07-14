@@ -3783,6 +3783,22 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
         return 1;
     }
 
+    /* Open Season (2006)(X360)-map */
+    if (sb->version == 0x00180003 && sb->platform == UBI_X360) {
+        config_sb_entry(sb, 0x68, 0x74);
+
+        config_sb_audio_fs(sb, 0x2c, 0x30, 0x34);
+        config_sb_audio_he(sb, 0x5c, 0x54, 0x40, 0x48, 0x64, 0x60);
+        sb->cfg.audio_xma_offset = 0x70;
+
+        config_sb_sequence(sb, 0x2c, 0x14);
+
+        config_sb_layer_he(sb, 0x20, 0x38, 0x3c, 0x44);
+        config_sb_layer_sh(sb, 0x34, 0x00, 0x08, 0x0c, 0x14);
+
+        config_sb_silence_f(sb, 0x1c);
+        return 1;
+    }
 
     /* two configs with same id; use project file as identifier */
     if (sb->version == 0x00180006 && sb->platform == UBI_PC) {
@@ -3868,6 +3884,24 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
         return 1;
     }
 
+    /* TMNT (2007)(PC)-bank 0x00190002 */
+    /* Surf's Up (2007)(PC)-bank 0x00190005 */
+    if ((sb->version == 0x00190002 && sb->platform == UBI_PC) ||
+        (sb->version == 0x00190005 && sb->platform == UBI_PC)) {
+        config_sb_entry(sb, 0x68, 0x74);
+
+        config_sb_audio_fs(sb, 0x28, 0x2c, 0x30);
+        config_sb_audio_he(sb, 0x3c, 0x40, 0x48, 0x50, 0x58, 0x5c);
+
+        config_sb_sequence(sb, 0x2c, 0x14);
+
+        config_sb_layer_he(sb, 0x20, 0x34, 0x38, 0x40);
+        config_sb_layer_sh(sb, 0x30, 0x00, 0x04, 0x08, 0x10);
+
+        config_sb_silence_f(sb, 0x1c);
+        return 1;
+    }
+
     /* TMNT (2007)(PS2)-bank */
     if (sb->version == 0x00190002 && sb->platform == UBI_PS2) {
         config_sb_entry(sb, 0x48, 0x5c);
@@ -3928,24 +3962,6 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
 
         config_sb_layer_he(sb, 0x20, 0x34, 0x38, 0x40);
         config_sb_layer_sh(sb, 0x30, 0x00, 0x04, 0x08, 0x10);
-        return 1;
-    }
-
-    /* TMNT (2007)(PC)-bank 0x00190002 */
-    /* Surf's Up (2007)(PC)-bank 0x00190005 */
-    if ((sb->version == 0x00190002 && sb->platform == UBI_PC) ||
-        (sb->version == 0x00190005 && sb->platform == UBI_PC)) {
-        config_sb_entry(sb, 0x68, 0x74);
-
-        config_sb_audio_fs(sb, 0x28, 0x2c, 0x30);
-        config_sb_audio_he(sb, 0x3c, 0x40, 0x48, 0x50, 0x58, 0x5c);
-
-        config_sb_sequence(sb, 0x2c, 0x14);
-
-        config_sb_layer_he(sb, 0x20, 0x34, 0x38, 0x40);
-        config_sb_layer_sh(sb, 0x30, 0x00, 0x04, 0x08, 0x10);
-
-        config_sb_silence_f(sb, 0x1c);
         return 1;
     }
 
