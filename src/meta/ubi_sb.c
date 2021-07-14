@@ -2189,7 +2189,7 @@ static int set_hardware_codec_for_platform(ubi_sb_header *sb) {
 /* find actual codec from type (as different games' stream_type can overlap) */
 static int parse_stream_codec(ubi_sb_header* sb) {
 
-    if (sb->type == UBI_SEQUENCE)
+    if (sb->type != UBI_AUDIO && sb->type != UBI_LAYER)
         return 1;
 
     if (sb->is_dat) {
@@ -2346,7 +2346,7 @@ static int parse_offsets(ubi_sb_header* sb, STREAMFILE* sf) {
     int32_t (*read_32bit)(off_t,STREAMFILE*) = sb->big_endian ? read_32bitBE : read_32bitLE;
     uint32_t i, j, k;
 
-    if (sb->type == UBI_SEQUENCE)
+    if (sb->type != UBI_AUDIO && sb->type != UBI_LAYER)
         return 1;
 
     if (sb->is_bnm)
