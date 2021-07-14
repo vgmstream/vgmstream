@@ -2455,6 +2455,11 @@ static int parse_offsets(ubi_sb_header* sb, STREAMFILE* sf) {
                 break;
             sb->stream_offset += read_32bit(offset + 0x04, sf);
         }
+
+        if (i == sb->section3_num) {
+            VGM_LOG("UBI SB: Failed to find subblock %d\n", sb->subblock_id);
+            goto fail;
+        }
     }
 
     return 1;
