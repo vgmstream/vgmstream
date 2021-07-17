@@ -58,6 +58,8 @@ typedef struct {
 
     uint32_t interleave;
     uint32_t interleave_last;
+    uint32_t interleave_first;
+    uint32_t interleave_first_skip;
     uint32_t channels;
     uint32_t sample_rate;
 
@@ -330,6 +332,8 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
                 /* high nibble or low nibble first */
                 vgmstream->codec_config = txth.codec_mode;
             }
+
+            vgmstream->allow_dual_stereo = 1; /* AICA and PSX */
             break;
 
         case coding_PCFX:
@@ -369,6 +373,8 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
 
             vgmstream->interleave_block_size = txth.interleave;
             vgmstream->layout_type = layout_none;
+
+            vgmstream->allow_dual_stereo = 1; //???
             break;
 
         case coding_MSADPCM:
@@ -456,6 +462,7 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
                 }
             }
 
+            vgmstream->allow_dual_stereo = 1;
             break;
 
 #ifdef VGM_USE_MPEG
@@ -568,9 +575,19 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
     }
 #endif
 
+    if (vgmstream->interleave_block_size) {
+        if (txth.interleave_first_skip && !txth.interleave_first)
+            txth.interleave_first = txth.interleave;
+        if (txth.interleave_first > txth.interleave_first_skip)
+            txth.interleave_first -= txth.interleave_first_skip;
+        vgmstream->interleave_first_block_size = txth.interleave_first;
+        vgmstream->interleave_first_skip = txth.interleave_first_skip;
+        txth.start_offset += txth.interleave_first_skip;
+    }
+
+
     vgmstream->coding_type = coding;
     vgmstream->meta_type = meta_TXTH;
-    vgmstream->allow_dual_stereo = 1;
 
 
     if (!vgmstream_open_stream(vgmstream, txth.sf_body, txth.start_offset))
@@ -648,6 +665,10 @@ static VGMSTREAM* init_subfile(txth_header* txth) {
         txth->interleave = vgmstream->interleave_block_size;
     if (!txth->interleave_last)
         txth->interleave_last = vgmstream->interleave_last_block_size;
+    if (!txth->interleave_first)
+        txth->interleave_first = vgmstream->interleave_first_block_size;
+    if (!txth->interleave_first_skip)
+        txth->interleave_first_skip = vgmstream->interleave_first_skip;
     //if (!txth->loop_flag) //?
     //    txth->loop_flag = vgmstream->loop_flag;
     /* sometimes headers set loop start but getting loop_end before subfile init is hard */
@@ -965,6 +986,19 @@ static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char* key, cha
             if (!parse_num(txth->sf_head,txth,val, &txth->interleave_last)) goto fail;
         }
     }
+    else if (is_string(key,"interleave_first")) {
+        if (!parse_num(txth->sf_head,txth,val, &txth->interleave_first)) goto fail;
+    }
+    else if (is_string(key,"interleave_first_skip")) {
+        if (!parse_num(txth->sf_head,txth,val, &txth->interleave_first_skip)) goto fail;
+
+        /* apply */
+        if (!txth->data_size_set) {
+            int skip = txth->interleave_first_skip * txth->channels;
+            if (txth->data_size && txth->data_size > skip)
+                txth->data_size -= skip;
+        }
+    }
 
     /* BASE CONFIG */
     else if (is_string(key,"channels")) {
@@ -977,7 +1011,6 @@ static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char* key, cha
     /* DATA CONFIG */
     else if (is_string(key,"start_offset")) {
         if (!parse_num(txth->sf_head,txth,val, &txth->start_offset)) goto fail;
-
 
         /* apply */
         if (!txth->data_size_set) {
@@ -1805,6 +1838,8 @@ static int parse_num(STREAMFILE* sf, txth_header* txth, const char* val, uint32_
         else { /* known field */
             if      ((n = is_string_field(val,"interleave")))           value = txth->interleave;
             else if ((n = is_string_field(val,"interleave_last")))      value = txth->interleave_last;
+            else if ((n = is_string_field(val,"interleave_first")))     value = txth->interleave_first;
+            else if ((n = is_string_field(val,"interleave_first_skip")))value = txth->interleave_first_skip;
             else if ((n = is_string_field(val,"channels")))             value = txth->channels;
             else if ((n = is_string_field(val,"sample_rate")))          value = txth->sample_rate;
             else if ((n = is_string_field(val,"start_offset")))         value = txth->start_offset;

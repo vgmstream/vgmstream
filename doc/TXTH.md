@@ -204,6 +204,20 @@ Special values:
 interleave_last = (value)|auto
 ```
 
+#### INTERLEAVE IN THE FIRST BLOCK
+Similar to the above, in rare cases the file starts with a different interleave (bigger or smaller), then uses another value.
+
+For example, file has `start_offset` at 0x100, first `interleave_first` of 0x800 then `interleave` of 0x400.
+
+In trickier cases, file at 0x100 has 0x10 garbage (before each channel data), then data up to 0x800, then interleave of 0x800. So interleave sizes are consistent, but first block has less data. Here we need to set `interleave_first_skip = 0x10` so block sizes can be properly calculated and garbage skipped. Notice that if file was 4ch this means total garbage of 0x40 (`(0x10 garbage + 0x7F0 data) * 4`).
+
+Be aware that certain features like autodetecting PS-ADPCM loop points may not handle interleave_first at the moment.
+
+```
+interleave_first = (value)
+interleave_first_skip = (value)
+```
+
 #### ID VALUES
 Validates that `id_value` (normally set as constant value) matches value read at `id_check`. The file will be rejected and won't play if values don't match.
 
@@ -783,6 +797,24 @@ channels = 2
 sample_rate = 48000
 num_samples = data_size
 interleave_last = auto
+```
+
+#### Kaiketsu Zorori: Mezase! Itazura King (PS2) .txth
+```
+codec = PSX
+
+channels = @0x8 + 1
+sample_rate = 48000
+
+interleave = 0x1000
+interleave_first = 0x2000
+interleave_first_skip = 0x10
+
+padding_size = auto-empty
+num_samples = data_size
+
+#@0x00 interleave?
+#@0x04 number of 0x800 sectors
 ```
 
 #### Colin McRae DiRT (PC) .wip.txth
