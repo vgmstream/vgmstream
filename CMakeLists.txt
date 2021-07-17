@@ -117,6 +117,8 @@ else()
 		endif()
 	endif()
 
+	find_package(PkgConfig REQUIRED)
+
 	# Only build JSON dumping capabilities on Linux
 	pkg_check_modules(JANSSON jansson>=2.3)
 	if (JANSSON_FOUND)
@@ -130,7 +132,6 @@ else()
 
 	# If building Audacious, we need to make sure we can find its pkg-config module as well as GTK's
 	if(BUILD_AUDACIOUS)
-		include(FindPkgConfig)
 		pkg_search_module(AUDACIOUS REQUIRED audacious>=3.6)
 		pkg_get_variable(AUDACIOUS_PLUGIN_DIR audacious plugin_dir)
 		pkg_search_module(GTK REQUIRED gtk+-3.0 gtk+-2.0)
