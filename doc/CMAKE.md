@@ -95,7 +95,7 @@ All of these options are of type BOOL and can be set to either `ON` or `OFF`. Mo
 - **USE_FDKAAC**: Chooses if you wish to use FDK-AAC/QAAC for support of MP4 AAC. Note that this requires `QAAC_PATH` and `FDK_AAC_PATH` to also be given if the option is `ON`. The default for is `ON`. See the foobar2000 plugin section of [BUILD.md](BUILD.md) for more information on this.
 - **USE_MPEG**: Chooses if you wish to use libmpg123 for support of MP1/MP2/MP3. The default is `ON`.
 - **USE_VORBIS**: Chooses if you wish to use libvorbis for support of Vorbis. The default is `ON`.
-- **USE_FFMPEG**: Chooses if you wish to use FFmpeg for support of many codecs. The default is `ON`.
+- **USE_FFMPEG**: Chooses if you wish to use FFmpeg for support of many codecs. The default is `ON`. `FFMPEG_PATH` can also be given, so it can use official/external SDK instead of the one used in vgmstream project.
 - **USE_MAIATRAC3PLUS**: Chooses if you wish to use MAIATRAC3+ for support of ATRAC3+. The default is `OFF`. It is not recommended to enable.
 - **USE_G7221**: Chooses if you wish to use G7221 for support of ITU-T G.722.1 annex C. The default is `ON`.
 

@@ -37,7 +37,7 @@ if(MSVC)
 			SOURCES ${VGM_SOURCE_DIR}/ext_includes/g719.h)
 	endif()
 
-	if(USE_FFMPEG)
+	if(USE_FFMPEG AND NOT FFMPEG_LIBRARIES)
 		add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/avcodec.lib ${CMAKE_CURRENT_BINARY_DIR}/avcodec.exp
 			COMMAND lib
 			ARGS /def:${CMAKE_CURRENT_SOURCE_DIR}/avcodec-vgmstream-58.def /machine:x86 /out:${CMAKE_CURRENT_BINARY_DIR}/avcodec.lib
@@ -144,7 +144,7 @@ elseif(MINGW)
 			DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/libg719_decode.lib)
 	endif()
 
-	if(USE_FFMPEG)
+	if(USE_FFMPEG AND NOT FFMPEG_LIBRARIES)
 		add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/avcodec.lib
 			COMMAND ${DLLTOOL}
 			ARGS -d ${CMAKE_CURRENT_SOURCE_DIR}/avcodec-vgmstream-58.def -l ${CMAKE_CURRENT_BINARY_DIR}/avcodec.lib -D avcodec-vgmstream-58.dll
