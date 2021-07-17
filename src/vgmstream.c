@@ -1648,9 +1648,12 @@ int vgmstream_open_stream_bf(VGMSTREAM* vgmstream, STREAMFILE* sf, off_t start_o
                 offset = start_offset;
             } else if (is_stereo_codec) {
                 int ch_mod = (ch & 1) ? ch - 1 : ch; /* adjust odd channels (ch 0,1,2,3,4,5 > ch 0,0,2,2,4,4) */
-                offset = start_offset + vgmstream->interleave_block_size*ch_mod;
+                offset = start_offset + vgmstream->interleave_block_size * ch_mod;
+            } else if (vgmstream->interleave_first_block_size) {
+                /* start_offset assumes + vgmstream->interleave_first_block_size, maybe should do it here */
+                offset = start_offset + (vgmstream->interleave_first_block_size +  vgmstream->interleave_first_skip) * ch;
             } else {
-                offset = start_offset + vgmstream->interleave_block_size*ch;
+                offset = start_offset + vgmstream->interleave_block_size * ch;
             }
 
             /* open new one if needed, useful to avoid jumping around when each channel data is too apart
