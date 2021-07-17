@@ -54,10 +54,10 @@ if(MSVC)
 			COMMAND lib
 			ARGS /def:${CMAKE_CURRENT_SOURCE_DIR}/swresample-vgmstream-3.def /machine:x86 /out:${CMAKE_CURRENT_BINARY_DIR}/swresample.lib
 			DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/swresample-vgmstream-3.def)
-		file(GLOB AVCODEC_HEADERS "${VGM_SOURCE_DIR}/ext_includes/libavcodec/*.h")
-		file(GLOB AVFORMAT_HEADERS "${VGM_SOURCE_DIR}/ext_includes/libavformat/*.h")
-		file(GLOB AVUTIL_HEADERS "${VGM_SOURCE_DIR}/ext_includes/libavutil/*.h")
-		file(GLOB SWRESAMPLE_HEADERS "${VGM_SOURCE_DIR}/ext_includes/libswresample/*.h")
+		file(GLOB AVCODEC_HEADERS "${VGM_SOURCE_DIR}/ext_includes/ffmpeg/libavcodec/*.h")
+		file(GLOB AVFORMAT_HEADERS "${VGM_SOURCE_DIR}/ext_includes/ffmpeg/libavformat/*.h")
+		file(GLOB AVUTIL_HEADERS "${VGM_SOURCE_DIR}/ext_includes/ffmpeg/libavutil/*.h")
+		file(GLOB SWRESAMPLE_HEADERS "${VGM_SOURCE_DIR}/ext_includes/ffmpeg/libswresample/*.h")
 		add_custom_target(ffmpeg
 			DEPENDS
 				${CMAKE_CURRENT_BINARY_DIR}/avcodec.lib
@@ -69,10 +69,10 @@ if(MSVC)
 				${AVFORMAT_HEADERS}
 				${AVUTIL_HEADERS}
 				${SWRESAMPLE_HEADERS})
-		source_group("Header Files\\libavcodec" FILES ${AVCODEC_HEADERS})
-		source_group("Header Files\\libavformat" FILES ${AVFORMAT_HEADERS})
-		source_group("Header Files\\libavutil" FILES ${AVUTIL_HEADERS})
-		source_group("Header Files\\libswresample" FILES ${SWRESAMPLE_HEADERS})
+		source_group("Header Files\\ffmpeg\\libavcodec" FILES ${AVCODEC_HEADERS})
+		source_group("Header Files\\ffmpeg\\libavformat" FILES ${AVFORMAT_HEADERS})
+		source_group("Header Files\\ffmpeg\\libavutil" FILES ${AVUTIL_HEADERS})
+		source_group("Header Files\\ffmpeg\\libswresample" FILES ${SWRESAMPLE_HEADERS})
 	endif()
 
 	if(USE_ATRAC9)

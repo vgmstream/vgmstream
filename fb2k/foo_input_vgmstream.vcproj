@@ -41,7 +41,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="../ext_includes"
+				AdditionalIncludeDirectories="../ext_includes;../ext_includes/ffmpeg;"
 				PreprocessorDefinitions="WIN32;VGM_USE_VORBIS;VGM_USE_MPEG;VGM_USE_FFMPEG;VGM_USE_G719;VGM_USE_G7221;_DEBUG;_WINDOWS;_USRDLL;IN_VGMSTREAM_EXPORTS;"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -119,7 +119,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="../ext_includes"
+				AdditionalIncludeDirectories="../ext_includes;../ext_includes/ffmpeg;"
 				PreprocessorDefinitions="WIN32;VGM_USE_VORBIS;VGM_USE_MPEG;VGM_USE_FFMPEG;VGM_USE_G719;VGM_USE_G7221;NDEBUG;_WINDOWS;_USRDLL;IN_VGMSTREAM_EXPORTS"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"

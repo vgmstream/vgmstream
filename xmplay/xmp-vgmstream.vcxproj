@@ -61,7 +61,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..;../ext_includes;$(DependenciesDir)/qaac/mp4v2/include;$(DependenciesDir)/fdk-aac/libSYS/include;$(DependenciesDir)/fdk-aac/libAACdec/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..;../ext_includes;../ext_includes/ffmpeg;$(DependenciesDir)/qaac/mp4v2/include;$(DependenciesDir)/fdk-aac/libSYS/include;$(DependenciesDir)/fdk-aac/libAACdec/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;VGM_USE_VORBIS;VGM_USE_MPEG;VGM_USE_FFMPEG;VGM_USE_G7221;VGM_USE_ATRAC9;VGM_USE_CELT;VGM_USE_SPEEX;_DEBUG;_WINDOWS;_USRDLL;IN_VGMSTREAM_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -85,7 +85,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>..;../ext_includes;$(DependenciesDir)/qaac/mp4v2/include;$(DependenciesDir)/fdk-aac/libSYS/include;$(DependenciesDir)/fdk-aac/libAACdec/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..;../ext_includes;../ext_includes/ffmpeg;$(DependenciesDir)/qaac/mp4v2/include;$(DependenciesDir)/fdk-aac/libSYS/include;$(DependenciesDir)/fdk-aac/libAACdec/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_WIN32_WINNT=0x501;WIN32;VGM_USE_VORBIS;VGM_USE_MPEG;VGM_USE_FFMPEG;VGM_USE_G7221;VGM_USE_ATRAC9;VGM_USE_CELT;VGM_USE_SPEEX;NDEBUG;_WINDOWS;_USRDLL;IN_VGMSTREAM_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
