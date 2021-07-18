@@ -56,7 +56,8 @@ macro(setup_target TARGET)
 
 	if(USE_FFMPEG)
 		target_compile_definitions(${TARGET} PRIVATE VGM_USE_FFMPEG)
-		if(WIN32)
+		if(WIN32 AND NOT FFMPEG_LIBRARIES)
+			target_include_directories(${TARGET} PRIVATE ${VGM_SOURCE_DIR}/ext_includes/ffmpeg)
 			if(LINK)
 				add_dependencies(${TARGET} ffmpeg)
 				target_link_libraries(${TARGET}

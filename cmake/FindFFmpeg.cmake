@@ -72,15 +72,23 @@ macro(find_component _component _pkgconfig _library _header)
 		HINTS
 			${PC_LIB${_component}_INCLUDEDIR}
 			${PC_LIB${_component}_INCLUDE_DIRS}
+			${FFMPEG_PATH}/include
 		PATH_SUFFIXES ffmpeg)
 
 	find_library(${_component}_LIBRARIES NAMES ${_library}
 		HINTS
 			${PC_LIB${_component}_LIBDIR}
-			${PC_LIB${_component}_LIBRARY_DIRS})
+			${PC_LIB${_component}_LIBRARY_DIRS}
+			${FFMPEG_PATH}/lib)
 
 	set(${_component}_DEFINITIONS  ${PC_${_component}_CFLAGS_OTHER} CACHE STRING "The ${_component} CFLAGS.")
 	set(${_component}_VERSION ${PC_${_component}_VERSION} CACHE STRING "The ${_component} version number.")
+
+	if(WIN32 AND NOT ${_component}_VERSION)
+		file(GLOB FOUND_DLL_ ${FFMPEG_PATH}/bin/${_library}*.dll)
+		string(REGEX MATCH ".*${_library}-(.+).dll" FOUND_DLL_ ${FOUND_DLL_})
+		set(${_component}_VERSION ${CMAKE_MATCH_1} CACHE STRING "The ${_component} version number." FORCE)
+	endif()
 
 	set_component_found(${_component})
 

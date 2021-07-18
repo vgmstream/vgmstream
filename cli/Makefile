@@ -15,7 +15,7 @@ endif
 
 # -DUSE_ALLOCA
 ifeq ($(TARGET_OS),Windows_NT)
-  CFLAGS += -DWIN32
+  CFLAGS += -DWIN32 -I../ext_includes/ffmpeg
 endif
 
 CFLAGS += $(DEF_CFLAGS) -DVAR_ARRAYS -I../ext_includes $(EXTRA_CFLAGS)
