@@ -433,8 +433,8 @@ STREAMFILE* open_wrap_streamfile(STREAMFILE *streamfile) {
 
     return &this_sf->sf;
 }
-STREAMFILE* open_wrap_streamfile_f(STREAMFILE *streamfile) {
-    STREAMFILE *new_sf = open_wrap_streamfile(streamfile);
+STREAMFILE* open_wrap_streamfile_f(STREAMFILE* streamfile) {
+    STREAMFILE* new_sf = open_wrap_streamfile(streamfile);
     if (!new_sf)
         close_streamfile(streamfile);
     return new_sf;
@@ -445,28 +445,36 @@ STREAMFILE* open_wrap_streamfile_f(STREAMFILE *streamfile) {
 typedef struct {
     STREAMFILE sf;
 
-    STREAMFILE *inner_sf;
+    STREAMFILE* inner_sf;
     off_t start;
     size_t size;
 } CLAMP_STREAMFILE;
 
-static size_t clamp_read(CLAMP_STREAMFILE *streamfile, uint8_t *dst, off_t offset, size_t length) {
+static size_t clamp_read(CLAMP_STREAMFILE* streamfile, uint8_t* dst, off_t offset, size_t length) {
     off_t inner_offset = streamfile->start + offset;
-    size_t clamp_length = length > (streamfile->size - offset) ? (streamfile->size - offset) : length;
+    size_t clamp_length = length;
+
+    if (offset + length > streamfile->size) {
+        if (offset >= streamfile->size)
+            clamp_length = 0;
+        else
+            clamp_length = streamfile->size - offset;
+    }
+
     return streamfile->inner_sf->read(streamfile->inner_sf, dst, inner_offset, clamp_length);
 }
-static size_t clamp_get_size(CLAMP_STREAMFILE *streamfile) {
+static size_t clamp_get_size(CLAMP_STREAMFILE* streamfile) {
     return streamfile->size;
 }
-static off_t clamp_get_offset(CLAMP_STREAMFILE *streamfile) {
+static off_t clamp_get_offset(CLAMP_STREAMFILE* streamfile) {
     return streamfile->inner_sf->get_offset(streamfile->inner_sf) - streamfile->start;
 }
-static void clamp_get_name(CLAMP_STREAMFILE *streamfile, char *buffer, size_t length) {
+static void clamp_get_name(CLAMP_STREAMFILE* streamfile, char* buffer, size_t length) {
     streamfile->inner_sf->get_name(streamfile->inner_sf, buffer, length); /* default */
 }
-static STREAMFILE *clamp_open(CLAMP_STREAMFILE *streamfile, const char * const filename, size_t buffersize) {
+static STREAMFILE* clamp_open(CLAMP_STREAMFILE* streamfile, const char* const filename, size_t buffersize) {
     char original_filename[PATH_LIMIT];
-    STREAMFILE *new_inner_sf = NULL;
+    STREAMFILE* new_inner_sf = NULL;
 
     new_inner_sf = streamfile->inner_sf->open(streamfile->inner_sf,filename,buffersize);
     streamfile->inner_sf->get_name(streamfile->inner_sf, original_filename, PATH_LIMIT);
@@ -478,13 +486,13 @@ static STREAMFILE *clamp_open(CLAMP_STREAMFILE *streamfile, const char * const f
         return new_inner_sf;
     }
 }
-static void clamp_close(CLAMP_STREAMFILE *streamfile) {
+static void clamp_close(CLAMP_STREAMFILE* streamfile) {
     streamfile->inner_sf->close(streamfile->inner_sf);
     free(streamfile);
 }
 
-STREAMFILE* open_clamp_streamfile(STREAMFILE *streamfile, off_t start, size_t size) {
-    CLAMP_STREAMFILE *this_sf = NULL;
+STREAMFILE* open_clamp_streamfile(STREAMFILE* streamfile, off_t start, size_t size) {
+    CLAMP_STREAMFILE* this_sf = NULL;
 
     if (!streamfile || size == 0) return NULL;
     if (start + size > get_streamfile_size(streamfile)) return NULL;
@@ -507,8 +515,8 @@ STREAMFILE* open_clamp_streamfile(STREAMFILE *streamfile, off_t start, size_t si
 
     return &this_sf->sf;
 }
-STREAMFILE* open_clamp_streamfile_f(STREAMFILE *streamfile, off_t start, size_t size) {
-    STREAMFILE *new_sf = open_clamp_streamfile(streamfile, start, size);
+STREAMFILE* open_clamp_streamfile_f(STREAMFILE* streamfile, off_t start, size_t size) {
+    STREAMFILE* new_sf = open_clamp_streamfile(streamfile, start, size);
     if (!new_sf)
         close_streamfile(streamfile);
     return new_sf;
@@ -899,8 +907,12 @@ STREAMFILE* open_streamfile_by_filename(STREAMFILE* sf, const char* filename) {
     /* check for non-normalized paths first (ex. txth) */
     path = strrchr(fullname, '/');
     otherpath = strrchr(fullname, '\\');
-    if (otherpath > path)
+    if (otherpath > path) { //todo cast to ptr?
+        /* foobar makes paths like "(fake protocol)://(windows path with \)".
+         * Hack to work around both separators, though probably foo_streamfile
+         * should just return and handle normalized paths without protocol. */
         path = otherpath;
+    }
 
     if (path) {
         path[1] = '\0'; /* remove name after separator */
