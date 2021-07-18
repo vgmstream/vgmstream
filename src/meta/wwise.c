@@ -603,9 +603,9 @@ VGMSTREAM* init_vgmstream_wwise(STREAMFILE* sf) {
             if (ww.fmt_size != 0x18) goto fail;
             if (ww.big_endian) goto fail;
 
-            /* extra_data (size 0x06)
+            /* extra data (size 0x06)
              * 0x00: samples per block (0x1c)
-             * 0x04: channel config (again?) */
+             * 0x02: channel config (again?) */
 
             vgmstream->coding_type = coding_HEVAG;
             vgmstream->layout_type = layout_interleave;
@@ -621,9 +621,19 @@ VGMSTREAM* init_vgmstream_wwise(STREAMFILE* sf) {
             if (ww.fmt_size != 0x24) goto fail;
             if (ww.extra_size != 0x12) goto fail;
 
+            /* extra data
+             * 0x00: samples per subframe?
+             * 0x02: channel config (again?)
+             * 0x06: config
+             * 0x0a: samples
+             * 0x0e: encoder delay? (same as samples per subframe?)
+             * 0x10: decoder delay? (PS4 only, 0 on Vita?) */
+
             cfg.channels = ww.channels;
             cfg.config_data = read_u32be(ww.fmt_offset + 0x18,sf);
-            cfg.encoder_delay = read_u32(ww.fmt_offset + 0x20,sf);
+            cfg.encoder_delay = read_u16(ww.fmt_offset + 0x20,sf);
+            /* PS4 value at 0x22 looks like encoder delay, but using it removes too many
+             * samples [DmC: Definitive Edition (PS4)] */
 
             vgmstream->codec_data = init_atrac9(&cfg);
             if (!vgmstream->codec_data) goto fail;
