@@ -84,7 +84,7 @@ macro(find_component _component _pkgconfig _library _header)
 	set(${_component}_DEFINITIONS  ${PC_${_component}_CFLAGS_OTHER} CACHE STRING "The ${_component} CFLAGS.")
 	set(${_component}_VERSION ${PC_${_component}_VERSION} CACHE STRING "The ${_component} version number.")
 
-	if(WIN32 AND NOT ${_component}_VERSION)
+	if(WIN32 AND FFMPEG_PATH AND NOT ${_component}_VERSION)
 		file(GLOB FOUND_DLL_ ${FFMPEG_PATH}/bin/${_library}*.dll)
 		string(REGEX MATCH ".*${_library}-(.+).dll" FOUND_DLL_ ${FOUND_DLL_})
 		set(${_component}_VERSION ${CMAKE_MATCH_1} CACHE STRING "The ${_component} version number." FORCE)
