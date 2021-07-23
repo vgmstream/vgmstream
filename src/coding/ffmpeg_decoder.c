@@ -329,10 +329,15 @@ ffmpeg_codec_data* init_ffmpeg_header_offset_subsong(STREAMFILE* sf, uint8_t* he
 
         /* expose start samples to be skipped (encoder delay, usually added by MDCT-based encoders like AAC/MP3/ATRAC3/XMA/etc)
          * get after init_seek because some demuxers like AAC only fill skip_samples for the first packet */
+#if LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(58, 64, 100)
         if (stream->start_skip_samples) /* samples to skip in the first packet */
             data->skipSamples = stream->start_skip_samples;
         else if (stream->skip_samples) /* samples to skip in any packet (first in this case), used sometimes instead (ex. AAC) */
             data->skipSamples = stream->skip_samples;
+#else
+        if (stream->start_time)
+            data->skipSamples = av_rescale_q(stream->start_time, stream->time_base, tb);
+#endif
 
         /* check ways to skip encoder delay/padding, for debugging purposes (some may be old/unused/encoder only/etc) */
         VGM_ASSERT(data->codecCtx->delay > 0, "FFMPEG: delay %i\n", (int)data->codecCtx->delay);//delay: OPUS
@@ -340,8 +345,12 @@ ffmpeg_codec_data* init_ffmpeg_header_offset_subsong(STREAMFILE* sf, uint8_t* he
         VGM_ASSERT(stream->codecpar->initial_padding > 0, "FFMPEG: initial_padding %i\n", (int)stream->codecpar->initial_padding);//delay: OPUS
         VGM_ASSERT(stream->codecpar->trailing_padding > 0, "FFMPEG: trailing_padding %i\n", (int)stream->codecpar->trailing_padding);
         VGM_ASSERT(stream->codecpar->seek_preroll > 0, "FFMPEG: seek_preroll %i\n", (int)stream->codecpar->seek_preroll);//seek delay: OPUS
+#if LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(58, 64, 100)
         VGM_ASSERT(stream->skip_samples > 0, "FFMPEG: skip_samples %i\n", (int)stream->skip_samples); //delay: MP4
         VGM_ASSERT(stream->start_skip_samples > 0, "FFMPEG: start_skip_samples %i\n", (int)stream->start_skip_samples); //delay: MP3
+#else
+        VGM_ASSERT(stream->start_time > 0, "FFMPEG: start_time %i\n", (int)stream->start_time); //delay
+#endif
         VGM_ASSERT(stream->first_discard_sample > 0, "FFMPEG: first_discard_sample %i\n", (int)stream->first_discard_sample); //padding: MP3
         VGM_ASSERT(stream->last_discard_sample > 0, "FFMPEG: last_discard_sample %i\n", (int)stream->last_discard_sample); //padding: MP3
         /* also negative timestamp for formats like OGG/OPUS */
@@ -795,8 +804,12 @@ void seek_ffmpeg(ffmpeg_codec_data* data, int32_t num_sample) {
     if (data->skip_samples_set) {
         AVStream *stream = data->formatCtx->streams[data->streamIndex];
         /* sometimes (ex. AAC) after seeking to the first packet skip_samples is restored, but we want our value */
+#if LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(58, 64, 100)
         stream->skip_samples = 0;
         stream->start_skip_samples = 0;
+#else
+        stream->start_time = 0;
+#endif
 
         data->samples_discard += data->skipSamples;
     }
@@ -880,8 +893,12 @@ void ffmpeg_set_skip_samples(ffmpeg_codec_data* data, int skip_samples) {
 
     /* overwrite FFmpeg's skip samples */
     stream = data->formatCtx->streams[data->streamIndex];
+#if LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(58, 64, 100)
     stream->start_skip_samples = 0; /* used for the first packet *if* pts=0 */
     stream->skip_samples = 0; /* skip_samples can be used for any packet */
+#else
+    stream->start_time = 0;
+#endif
 
     /* set skip samples with our internal discard */
     data->skip_samples_set = 1;
