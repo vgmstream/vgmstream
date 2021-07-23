@@ -1464,7 +1464,21 @@ static int get_vgmstream_file_bitrate_main(VGMSTREAM* vgmstream, bitrate_info_t*
             }
 
             if (is_unique) {
+                size_t stream_size;
+                
                 if (br->count >= br->count_max) goto fail;
+                
+                if (vgmstream->stream_size) {
+                    /* stream_size applies to both channels but should add once and detect repeats (for current subsong) */
+                    stream_size = get_vgmstream_file_bitrate_from_size(vgmstream->stream_size, vgmstream->sample_rate, vgmstream->num_samples);
+                }
+                else {
+                    stream_size = get_vgmstream_file_bitrate_from_streamfile(sf_cur, vgmstream->sample_rate, vgmstream->num_samples);
+                }
+
+                /* possible in cases like using silence codec */
+                if (!stream_size)
+                    break;
 
                 br->hash[br->count] = hash_cur;
                 br->subsong[br->count] = subsong_cur;
@@ -1473,13 +1487,7 @@ static int get_vgmstream_file_bitrate_main(VGMSTREAM* vgmstream, bitrate_info_t*
                 if (p_uniques)
                     (*p_uniques)++;
 
-                if (vgmstream->stream_size) {
-                    /* stream_size applies to both channels but should add once and detect repeats (for current subsong) */
-                    bitrate += get_vgmstream_file_bitrate_from_size(vgmstream->stream_size, vgmstream->sample_rate, vgmstream->num_samples);
-                }
-                else {
-                    bitrate += get_vgmstream_file_bitrate_from_streamfile(sf_cur, vgmstream->sample_rate, vgmstream->num_samples);
-                }
+                bitrate += stream_size;
 
                 break;
             }
