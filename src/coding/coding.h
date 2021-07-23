@@ -552,6 +552,8 @@ void free_speex(speex_codec_data* data);
 
 #ifdef VGM_USE_FFMPEG
 /* ffmpeg_decoder */
+typedef struct ffmpeg_codec_data ffmpeg_codec_data;
+
 ffmpeg_codec_data* init_ffmpeg_offset(STREAMFILE* sf, uint64_t start, uint64_t size);
 ffmpeg_codec_data* init_ffmpeg_header_offset(STREAMFILE* sf, uint8_t* header, uint64_t header_size, uint64_t start, uint64_t size);
 ffmpeg_codec_data* init_ffmpeg_header_offset_subsong(STREAMFILE* sf, uint8_t* header, uint64_t header_size, uint64_t start, uint64_t size, int target_subsong);
@@ -566,7 +568,14 @@ uint32_t ffmpeg_get_channel_layout(ffmpeg_codec_data* data);
 void ffmpeg_set_channel_remapping(ffmpeg_codec_data* data, int* channels_remap);
 const char* ffmpeg_get_codec_name(ffmpeg_codec_data* data);
 void ffmpeg_set_force_seek(ffmpeg_codec_data* data);
+void ffmpeg_set_invert_floats(ffmpeg_codec_data* data);
 const char* ffmpeg_get_metadata_value(ffmpeg_codec_data* data, const char* key);
+
+int32_t ffmpeg_get_samples(ffmpeg_codec_data* data);
+int ffmpeg_get_sample_rate(ffmpeg_codec_data* data);
+int ffmpeg_get_channels(ffmpeg_codec_data* data);
+int ffmpeg_get_subsong_count(ffmpeg_codec_data* data);
+
 STREAMFILE* ffmpeg_get_streamfile(ffmpeg_codec_data* data);
 
 /* ffmpeg_decoder_utils.c (helper-things) */

@@ -530,7 +530,7 @@ VGMSTREAM* init_vgmstream_xwb(STREAMFILE* sf) {
 
             /* no wma_bytes_to_samples, this should be ok */
             if (!vgmstream->num_samples)
-                vgmstream->num_samples = (int32_t)ffmpeg_data->totalSamples;
+                vgmstream->num_samples = ffmpeg_get_samples(ffmpeg_data);
             break;
         }
 

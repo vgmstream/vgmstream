@@ -606,9 +606,9 @@ static VGMSTREAM* init_vgmstream_internal(STREAMFILE* sf) {
 #ifdef VGM_USE_FFMPEG
         /* check FFmpeg streams here, for lack of a better place */
         if (vgmstream->coding_type == coding_FFmpeg) {
-            ffmpeg_codec_data *data = vgmstream->codec_data;
-            if (data && data->streamCount && !vgmstream->num_streams) {
-                vgmstream->num_streams = data->streamCount;
+            int ffmpeg_subsongs = ffmpeg_get_subsong_count(vgmstream->codec_data);
+            if (ffmpeg_subsongs && !vgmstream->num_streams) {
+                vgmstream->num_streams = ffmpeg_subsongs;
             }
         }
 #endif

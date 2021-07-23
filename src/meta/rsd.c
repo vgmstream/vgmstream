@@ -151,7 +151,7 @@ VGMSTREAM * init_vgmstream_rsd(STREAMFILE *sf) {
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
 
-            vgmstream->num_samples = (int32_t)ffmpeg_data->totalSamples; /* an estimation, sometimes cuts files a bit early */
+            vgmstream->num_samples = ffmpeg_get_samples(ffmpeg_data); /* an estimation, sometimes cuts files a bit early */
           //vgmstream->num_samples = read_32bitLE(start_offset + 0x00, sf) / channel_count / 2; /* may be PCM data size, but not exact */
             vgmstream->sample_rate = read_32bitLE(start_offset + 0x04, sf);
             break;
