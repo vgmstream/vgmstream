@@ -164,6 +164,7 @@ typedef enum {
     coding_ASF,             /* Argonaut ASF 4-bit ADPCM */
     coding_DSA,             /* Ocean DSA 4-bit ADPCM */
     coding_XMD,             /* Konami XMD 4-bit ADPCM */
+    coding_TANTALUS,        /* Tantalus 4-bit ADPCM */
     coding_PCFX,            /* PC-FX 4-bit ADPCM */
     coding_OKI16,           /* OKI 4-bit ADPCM with 16-bit output and modified expand */
     coding_OKI4S,           /* OKI 4-bit ADPCM with 16-bit output and cuadruple step */
@@ -752,6 +753,7 @@ typedef enum {
     meta_IDSP_TOSE,
     meta_DSP_KWA,
     meta_OGV_3RDEYE,
+    meta_PIFF_TPCM,
 } meta_t;
 
 /* standard WAVEFORMATEXTENSIBLE speaker positions */

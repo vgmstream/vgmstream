@@ -224,6 +224,11 @@ void decode_dsa(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, 
 void decode_xmd(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, size_t frame_size);
 
 
+/* tantalus_decoder */
+void decode_tantalus(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
+int32_t tantalus_bytes_to_samples(size_t bytes, int channels);
+
+
 /* derf_decoder */
 void decode_derf(VGMSTREAMCHANNEL* stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
 

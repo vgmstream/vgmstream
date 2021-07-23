@@ -751,6 +751,7 @@ are used in few games.
 - Konami XMD 4-bit ADPCM
 - Platinum 4-bit ADPCM
 - Argonaut ASF 4-bit ADPCM
+- Tantalus 4-bit ADPCM
 - Ocean DSA 4-bit ADPCM
 - Circus XPCM ADPCM
 - Circus XPCM VQ

@@ -515,6 +515,7 @@ static const char* extension_list[] = {
     "sxd2",
     "sxd3",
 
+    "tad",
     "tec",
     "tgq",
     "thp",
@@ -787,6 +788,7 @@ static const coding_info coding_info_list[] = {
         {coding_MC3,                "Paradigm MC3 3-bit ADPCM"},
         {coding_FADPCM,             "FMOD FADPCM 4-bit ADPCM"},
         {coding_ASF,                "Argonaut ASF 4-bit ADPCM"},
+        {coding_TANTALUS,           "Tantalus 4-bit ADPCM"},
         {coding_DSA,                "Ocean DSA 4-bit ADPCM"},
         {coding_XMD,                "Konami XMD 4-bit ADPCM"},
         {coding_PCFX,               "PC-FX 4-bit ADPCM"},
@@ -1350,6 +1352,7 @@ static const meta_info meta_info_list[] = {
         {meta_IDSP_TOSE,            "TOSE .IDSP header"},
         {meta_DSP_KWA,              "Kuju London .KWA header"},
         {meta_OGV_3RDEYE,           "3rdEye .OGV header"},
+        {meta_PIFF_TPCM,            "Tantalus PIFF TPCM header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {
