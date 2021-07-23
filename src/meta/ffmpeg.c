@@ -82,6 +82,9 @@ VGMSTREAM* init_vgmstream_ffmpeg(STREAMFILE* sf) {
      *  .mus: Marc Ecko's Getting Up (PC) */
     if (!num_samples && check_extensions(sf, "mp3,lmp3,mus")) {
         num_samples = mpeg_get_samples(sf, 0x00, get_streamfile_size(sf));
+
+        /* this seems correct thankfully */
+        //ffmpeg_set_skip_samples(data, encoder_delay);
     }
 #endif
 

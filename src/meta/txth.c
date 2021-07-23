@@ -486,7 +486,7 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
                     vgmstream->num_samples = ffmpeg_data->totalSamples; /* sometimes works */
             }
             else if (txth.codec == AAC) {
-                ffmpeg_data = init_ffmpeg_aac(txth.sf_body, txth.start_offset, txth.data_size);
+                ffmpeg_data = init_ffmpeg_aac(txth.sf_body, txth.start_offset, txth.data_size, 0);
                 if (!ffmpeg_data) goto fail;
             }
             else {
