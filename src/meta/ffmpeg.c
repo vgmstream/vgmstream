@@ -35,9 +35,12 @@ VGMSTREAM* init_vgmstream_ffmpeg(STREAMFILE* sf) {
     if (get_streamfile_size(sf) <= 0x1000)
         goto fail;
 
+    // many PSP rips have poorly demuxed videos with a failty RIFF, allow for now
+#if 0
     /* reject some formats handled elsewhere (better fail and check there than let buggy FFmpeg take over) */
     if (check_extensions(sf, "at3"))
         goto fail;
+#endif
 
     if (target_subsong == 0) target_subsong = 1;
 
