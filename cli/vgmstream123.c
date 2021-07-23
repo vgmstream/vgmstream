@@ -264,7 +264,7 @@ static int play_vgmstream(const char *filename, song_settings_t *cfg) {
     size_t buffer_size;
     int32_t max_buffer_samples;
     int i;
-    int output_channels;
+    int output_channels, input_channels;
 
 
     sf = open_stdio_streamfile(filename);
@@ -328,8 +328,9 @@ static int play_vgmstream(const char *filename, song_settings_t *cfg) {
      */
     apply_config(vgmstream, cfg);
 
+    input_channels = vgmstream->channels;
     output_channels = vgmstream->channels;
-    vgmstream_mixing_enable(vgmstream, 0, NULL, &output_channels); /* query */
+    vgmstream_mixing_enable(vgmstream, 0, &input_channels, &output_channels); /* query */
 
 
     /* Buffer size in bytes (after getting channels)
@@ -345,7 +346,7 @@ static int play_vgmstream(const char *filename, song_settings_t *cfg) {
         if (!buffer) goto fail;
     }
 
-    max_buffer_samples = buffer_size / (output_channels * sizeof(sample));
+    max_buffer_samples = buffer_size / (input_channels * sizeof(sample));
 
     vgmstream_mixing_enable(vgmstream, max_buffer_samples, NULL, NULL); /* enable */
 
@@ -362,16 +363,15 @@ static int play_vgmstream(const char *filename, song_settings_t *cfg) {
         int time_total_min;
         double time_total_sec;
         int play_forever = vgmstream_get_play_forever(vgmstream);
+        int32_t decode_pos_samples = 0;
+        int32_t length_samples = vgmstream_get_samples(vgmstream);
+        if (length_samples <= 0) goto fail;
 
         if (out_filename && play_forever) {
             fprintf(stderr, "%s: cannot play forever and use output filename\n", filename);
             ret = -1;
             goto fail;
         }
-
-        int32_t decode_pos_samples = 0;
-        int32_t length_samples = vgmstream_get_samples(vgmstream);
-        if (length_samples <= 0) goto fail;
 
         total = (double)length_samples / vgmstream->sample_rate;
         time_total_min = (int)total / 60;
