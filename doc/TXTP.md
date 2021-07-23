@@ -2,7 +2,30 @@
 
 TXTP is a text file with commands, to improve support for games using audio in certain uncommon or undesirable ways. It's in the form of a mini-playlist or a wrapper with play settings, meant to do post-processing over playable files.
 
-Simply create a file named `(filename).txtp`, and inside write the commands described below.
+Simply create a file named `(filename).txtp`, and inside write the song name and commands described below. Then open the new file directly and vgmstream should play it.
+
+Common case examples:
+
+**stage01-intro+loop.txtp**
+```
+stage01_intro.vag
+stage01_loop.vag
+```
+
+**bgm01-subsong2.txtp**
+```
+bgm01.fsb #2
+```
+
+**sfx01-22khz.txtp**
+```
+sfx01.wav #h22050
+```
+
+**field-remove-first-channels.txtp**
+```
+field.bfstm #C3,4
+```
 
 
 ## TXTP MODES
