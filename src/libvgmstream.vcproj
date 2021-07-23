@@ -1202,6 +1202,10 @@
                     RelativePath=".\meta\pcm_success.c"
                     >
                 </File>
+                <File
+                    RelativePath=".\meta\piff_tpcm.c"
+                    >
+                </File>
 				<File
 					RelativePath=".\meta\scd_pcm.c"
 					>
@@ -2352,6 +2356,10 @@
                 </File>
                 <File
                     RelativePath=".\coding\tac_decoder_lib.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\coding\tantalus_decoder.c"
                     >
                 </File>
                 <File

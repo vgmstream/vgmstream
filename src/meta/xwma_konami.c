@@ -68,7 +68,7 @@ VGMSTREAM * init_vgmstream_xwma_konami(STREAMFILE *streamFile) {
 
             vgmstream->num_samples = msd.num_samples;
             if (vgmstream->num_samples == 0)
-                vgmstream->num_samples = (int32_t)((ffmpeg_codec_data*)vgmstream->codec_data)->totalSamples; /* from avg-br */
+                vgmstream->num_samples = ffmpeg_get_samples(vgmstream->codec_data); /* from avg-br */
             //num_samples seem to be found in the last "seek" table entry too, as: entry / channels / 2
         }
     }

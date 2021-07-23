@@ -240,6 +240,7 @@ VGMSTREAM* allocate_layered_vgmstream(layered_layout_data* data) {
     int i, channels, loop_flag, sample_rate, external_looping;
     int32_t num_samples, loop_start, loop_end;
     int delta = 1024;
+    coding_t coding_type = data->layers[0]->coding_type;
 
     /* get data */
     channels = data->output_channels;
@@ -250,6 +251,7 @@ VGMSTREAM* allocate_layered_vgmstream(layered_layout_data* data) {
     loop_end = data->layers[0]->loop_end_sample;
     external_looping = 0;
     sample_rate = 0;
+
     for (i = 0; i < data->layer_count; i++) {
         int32_t layer_samples = vgmstream_get_samples(data->layers[i]);
         int layer_loop = data->layers[i]->loop_flag;
@@ -280,6 +282,9 @@ VGMSTREAM* allocate_layered_vgmstream(layered_layout_data* data) {
 
         if (sample_rate < layer_rate)
             sample_rate = layer_rate;
+
+        if (coding_type == coding_SILENCE)
+            coding_type = data->layers[i]->coding_type;
     }
 
     data->external_looping = external_looping;
@@ -289,12 +294,12 @@ VGMSTREAM* allocate_layered_vgmstream(layered_layout_data* data) {
     vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
+    vgmstream->meta_type = data->layers[0]->meta_type;
     vgmstream->sample_rate = sample_rate;
     vgmstream->num_samples = num_samples;
     vgmstream->loop_start_sample = loop_start;
     vgmstream->loop_end_sample = loop_end;
-    vgmstream->meta_type = data->layers[0]->meta_type; /* info */
-    vgmstream->coding_type = data->layers[0]->coding_type; /* info */
+    vgmstream->coding_type = coding_type;
 
     vgmstream->layout_type = layout_layered;
     vgmstream->layout_data = data;

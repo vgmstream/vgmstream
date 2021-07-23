@@ -296,6 +296,7 @@ VGMSTREAM* allocate_segmented_vgmstream(segmented_layout_data* data, int loop_fl
     int channel_layout;
     int i, sample_rate;
     int32_t num_samples, loop_start, loop_end;
+    coding_t coding_type = data->segments[0]->coding_type;
 
     /* save data */
     channel_layout = data->segments[0]->channel_layout;
@@ -322,9 +323,13 @@ VGMSTREAM* allocate_segmented_vgmstream(segmented_layout_data* data, int loop_fl
 
         if (sample_rate < segment_rate)
             sample_rate = segment_rate;
+
+        if (coding_type == coding_SILENCE)
+            coding_type = data->segments[i]->coding_type;
     }
 
     /* respect loop_flag even when no loop_end found as it's possible file loops are set outside */
+
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(data->output_channels, loop_flag);
@@ -335,7 +340,7 @@ VGMSTREAM* allocate_segmented_vgmstream(segmented_layout_data* data, int loop_fl
     vgmstream->num_samples = num_samples;
     vgmstream->loop_start_sample = loop_start;
     vgmstream->loop_end_sample = loop_end;
-    vgmstream->coding_type = data->segments[0]->coding_type;
+    vgmstream->coding_type = coding_type;
     vgmstream->channel_layout = channel_layout;
 
     vgmstream->layout_type = layout_segmented;

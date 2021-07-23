@@ -224,6 +224,11 @@ void decode_dsa(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, 
 void decode_xmd(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, size_t frame_size);
 
 
+/* tantalus_decoder */
+void decode_tantalus(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
+int32_t tantalus_bytes_to_samples(size_t bytes, int channels);
+
+
 /* derf_decoder */
 void decode_derf(VGMSTREAMCHANNEL* stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
 
@@ -552,6 +557,8 @@ void free_speex(speex_codec_data* data);
 
 #ifdef VGM_USE_FFMPEG
 /* ffmpeg_decoder */
+typedef struct ffmpeg_codec_data ffmpeg_codec_data;
+
 ffmpeg_codec_data* init_ffmpeg_offset(STREAMFILE* sf, uint64_t start, uint64_t size);
 ffmpeg_codec_data* init_ffmpeg_header_offset(STREAMFILE* sf, uint8_t* header, uint64_t header_size, uint64_t start, uint64_t size);
 ffmpeg_codec_data* init_ffmpeg_header_offset_subsong(STREAMFILE* sf, uint8_t* header, uint64_t header_size, uint64_t start, uint64_t size, int target_subsong);
@@ -566,13 +573,20 @@ uint32_t ffmpeg_get_channel_layout(ffmpeg_codec_data* data);
 void ffmpeg_set_channel_remapping(ffmpeg_codec_data* data, int* channels_remap);
 const char* ffmpeg_get_codec_name(ffmpeg_codec_data* data);
 void ffmpeg_set_force_seek(ffmpeg_codec_data* data);
+void ffmpeg_set_invert_floats(ffmpeg_codec_data* data);
 const char* ffmpeg_get_metadata_value(ffmpeg_codec_data* data, const char* key);
+
+int32_t ffmpeg_get_samples(ffmpeg_codec_data* data);
+int ffmpeg_get_sample_rate(ffmpeg_codec_data* data);
+int ffmpeg_get_channels(ffmpeg_codec_data* data);
+int ffmpeg_get_subsong_count(ffmpeg_codec_data* data);
+
 STREAMFILE* ffmpeg_get_streamfile(ffmpeg_codec_data* data);
 
 /* ffmpeg_decoder_utils.c (helper-things) */
 ffmpeg_codec_data* init_ffmpeg_atrac3_raw(STREAMFILE* sf, off_t offset, size_t data_size, int sample_count, int channels, int sample_rate, int block_align, int encoder_delay);
 ffmpeg_codec_data* init_ffmpeg_atrac3_riff(STREAMFILE* sf, off_t offset, int* out_samples);
-ffmpeg_codec_data* init_ffmpeg_aac(STREAMFILE* sf, off_t offset, size_t size);
+ffmpeg_codec_data* init_ffmpeg_aac(STREAMFILE* sf, off_t offset, size_t size, int skip_samples);
 
 
 /* ffmpeg_decoder_custom_opus.c (helper-things) */

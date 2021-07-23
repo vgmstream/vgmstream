@@ -829,9 +829,7 @@ void xma_fix_raw_samples_ch(VGMSTREAM* vgmstream, STREAMFILE* sf, off_t stream_o
          * Somehow also needs to skip 64 extra samples (looks like another FFmpeg bug
          * where XMA outputs half a subframe samples late, WMAPRO isn't affected),
          * which sometimes makes FFmpeg complain (=reads after end) but doesn't seem audible. */
-        if (data->skipSamples == 0) {
-            ffmpeg_set_skip_samples(data, start_skip+64);
-        }
+        ffmpeg_set_skip_samples(data, start_skip+64);
     }
 #endif
 }

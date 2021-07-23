@@ -163,11 +163,14 @@ fail:
 #ifdef VGM_USE_FFMPEG
 
 typedef struct {
+    int channels;
+    int sample_rate;
     int32_t num_samples;
     int loop_flag;
     int32_t loop_start;
     int32_t loop_end;
     int32_t encoder_delay;
+    int subsongs;
 } mp4_header;
 
 static void parse_mp4(STREAMFILE* sf, mp4_header* mp4);
@@ -199,36 +202,45 @@ VGMSTREAM* init_vgmstream_mp4_aac_ffmpeg(STREAMFILE* sf) {
 
     parse_mp4(sf, &mp4);
 
+    /* most values aren't read directly and use FFmpeg b/c MP4 makes things hard */
+    if (!mp4.num_samples)
+        mp4.num_samples = ffmpeg_get_samples(ffmpeg_data);  /* does this take into account encoder delay? see FFV */
+    if (!mp4.channels)
+        mp4.channels = ffmpeg_get_channels(ffmpeg_data);
+    if (!mp4.sample_rate)
+        mp4.sample_rate = ffmpeg_get_sample_rate(ffmpeg_data);
+    if (!mp4.subsongs)
+        mp4.subsongs = ffmpeg_get_subsong_count(ffmpeg_data); /* may contain N tracks */
+
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(ffmpeg_data->channels, mp4.loop_flag);
+    vgmstream = allocate_vgmstream(mp4.channels, mp4.loop_flag);
     if (!vgmstream) goto fail;
 
     vgmstream->meta_type = meta_MP4;
-    vgmstream->sample_rate = ffmpeg_data->sampleRate;
+    vgmstream->sample_rate = mp4.sample_rate;
     vgmstream->num_samples = mp4.num_samples;
-    if (vgmstream->num_samples == 0)
-        vgmstream->num_samples = ffmpeg_data->totalSamples;
     vgmstream->loop_start_sample = mp4.loop_start;
     vgmstream->loop_end_sample = mp4.loop_end;
 
     vgmstream->codec_data = ffmpeg_data;
     vgmstream->coding_type = coding_FFmpeg;
     vgmstream->layout_type = layout_none;
-    vgmstream->num_streams = ffmpeg_data->streamCount; /* may contain N tracks */
+    vgmstream->num_streams = mp4.subsongs;
 
-    vgmstream->channel_layout = ffmpeg_get_channel_layout(vgmstream->codec_data);
-    if (mp4.encoder_delay)
-        ffmpeg_set_skip_samples(vgmstream->codec_data, mp4.encoder_delay);
+    vgmstream->channel_layout = ffmpeg_get_channel_layout(ffmpeg_data);
+
+    /* needed for CRI MP4, otherwise FFmpeg usually reads standard delay */
+    ffmpeg_set_skip_samples(vgmstream->codec_data, mp4.encoder_delay);
 
     return vgmstream;
 
 fail:
-    if (ffmpeg_data) {
-        free_ffmpeg(ffmpeg_data);
-        if (vgmstream) vgmstream->codec_data = NULL;
+    free_ffmpeg(ffmpeg_data);
+    if (vgmstream) {
+        vgmstream->codec_data = NULL;
+        close_vgmstream(vgmstream);
     }
-    if (vgmstream) close_vgmstream(vgmstream);
     return NULL;
 }
 

@@ -150,8 +150,8 @@ VGMSTREAM* init_vgmstream_str_wav(STREAMFILE* sf) {
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
 
-            vgmstream->num_samples = ffmpeg_data->totalSamples;
-            if (vgmstream->channels != ffmpeg_data->channels)
+            vgmstream->num_samples = ffmpeg_get_samples(ffmpeg_data);
+            if (vgmstream->channels != ffmpeg_get_channels(ffmpeg_data))
                 goto fail;
 
             break;

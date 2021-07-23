@@ -787,6 +787,9 @@
     <ClCompile Include="meta\pcm_success.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\piff_tpcm.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\scd_pcm.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -1406,6 +1409,9 @@
       <Filter>coding\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\tac_decoder.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\tantalus_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\tac_decoder_lib.c">

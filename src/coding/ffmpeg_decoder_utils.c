@@ -2,7 +2,7 @@
 
 #ifdef VGM_USE_FFMPEG
 
-static int ffmpeg_make_riff_atrac3(uint8_t * buf, size_t buf_size, size_t sample_count, size_t data_size, int channels, int sample_rate, int block_align, int joint_stereo, int encoder_delay) {
+static int ffmpeg_make_riff_atrac3(uint8_t* buf, size_t buf_size, size_t sample_count, size_t data_size, int channels, int sample_rate, int block_align, int joint_stereo, int encoder_delay) {
     uint16_t codec_ATRAC3 = 0x0270;
     size_t riff_size = 4+4+ 4 + 0x28 + 0x10 + 4+4;
 
@@ -41,7 +41,7 @@ static int ffmpeg_make_riff_atrac3(uint8_t * buf, size_t buf_size, size_t sample
     return riff_size;
 }
 
-ffmpeg_codec_data * init_ffmpeg_atrac3_raw(STREAMFILE *sf, off_t offset, size_t data_size, int sample_count, int channels, int sample_rate, int block_align, int encoder_delay) {
+ffmpeg_codec_data* init_ffmpeg_atrac3_raw(STREAMFILE* sf, off_t offset, size_t data_size, int sample_count, int channels, int sample_rate, int block_align, int encoder_delay) {
     ffmpeg_codec_data *ffmpeg_data = NULL;
     uint8_t buf[0x100];
     int bytes;
@@ -57,16 +57,14 @@ ffmpeg_codec_data * init_ffmpeg_atrac3_raw(STREAMFILE *sf, off_t offset, size_t 
      * in offsets, so calcs are expected to be handled externally (presumably the game would call raw decoding API
      * and any skips would be handled manually) */
 
-    /* FFmpeg reads this but just in case they fiddle with it in the future */
-    ffmpeg_data->totalSamples = sample_count;
-
     /* encoder delay: encoder introduces some garbage (not always silent) samples to skip at the beginning (at least 1 frame)
      * FFmpeg doesn't set this, and even if it ever does it's probably better to force it for the implicit skip. */
     ffmpeg_set_skip_samples(ffmpeg_data, encoder_delay);
+    //ffmpeg_set_samples(sample_count); /* useful? */
 
     /* invert ATRAC3: waveform is inverted vs official tools (not noticeable but for accuracy) */
     if (is_at3) {
-        ffmpeg_data->invert_floats_set = 1;
+        ffmpeg_set_invert_floats(ffmpeg_data);
     }
 
     return ffmpeg_data;
@@ -76,7 +74,7 @@ fail:
 }
 
 /* init ATRAC3/plus while adding some fixes */
-ffmpeg_codec_data * init_ffmpeg_atrac3_riff(STREAMFILE *sf, off_t offset, int* out_samples) {
+ffmpeg_codec_data* init_ffmpeg_atrac3_riff(STREAMFILE* sf, off_t offset, int* p_samples) {
     ffmpeg_codec_data *ffmpeg_data = NULL;
     int is_at3 = 0, is_at3p = 0, codec;
     size_t riff_size;
@@ -151,35 +149,33 @@ ffmpeg_codec_data * init_ffmpeg_atrac3_riff(STREAMFILE *sf, off_t offset, int* o
         implicit_skip = 0;
     }
 
-    /* FFmpeg reads this but just in case they fiddle with it in the future */
-    ffmpeg_data->totalSamples = fact_samples;
-
     /* encoder delay: encoder introduces some garbage (not always silent) samples to skip at the beginning (at least 1 frame)
      * FFmpeg doesn't set this, and even if it ever does it's probably better to force it for the implicit skip. */
     ffmpeg_set_skip_samples(ffmpeg_data, skip_samples + implicit_skip);
+    //ffmpeg_set_samples(sample_count); /* useful? */
 
     /* invert ATRAC3: waveform is inverted vs official tools (not noticeable but for accuracy) */
     if (is_at3) {
-        ffmpeg_data->invert_floats_set = 1;
+        ffmpeg_set_invert_floats(ffmpeg_data);
     }
 
     /* multichannel fix: LFE channel should be reordered on decode (ATRAC3Plus only, only 1/2/6/8ch exist):
      * - 6ch: FL FR FC BL BR LFE > FL FR FC LFE BL BR
      * - 8ch: FL FR FC BL BR SL SR LFE > FL FR FC LFE BL BR SL SR */
-    if (is_at3p && ffmpeg_data->channels == 6) {
+    if (is_at3p && ffmpeg_get_channels(ffmpeg_data) == 6) {
         /* LFE BR BL > LFE BL BR > same */
         int channel_remap[] = { 0, 1, 2, 5, 5, 5, };
         ffmpeg_set_channel_remapping(ffmpeg_data, channel_remap);
     }
-    else if (is_at3p && ffmpeg_data->channels == 8) {
+    else if (is_at3p && ffmpeg_get_channels(ffmpeg_data) == 8) {
         /* LFE BR SL SR BL > LFE BL SL SR BR > LFE BL BR SR SL > LFE BL BR SL SR > same */
         int channel_remap[] = { 0, 1, 2, 7, 7, 7, 7, 7};
         ffmpeg_set_channel_remapping(ffmpeg_data, channel_remap);
     }
 
 
-    if (out_samples)
-        *out_samples = fact_samples;
+    if (p_samples)
+        *p_samples = fact_samples;
 
     return ffmpeg_data;
 fail:
@@ -187,7 +183,7 @@ fail:
     return NULL;
 }
 
-ffmpeg_codec_data* init_ffmpeg_aac(STREAMFILE* sf, off_t offset, size_t size) {
+ffmpeg_codec_data* init_ffmpeg_aac(STREAMFILE* sf, off_t offset, size_t size, int skip_samples) {
     ffmpeg_codec_data* data = NULL;
 
     data = init_ffmpeg_offset(sf, offset, size);
@@ -199,7 +195,7 @@ ffmpeg_codec_data* init_ffmpeg_aac(STREAMFILE* sf, off_t offset, size_t size) {
     /* raw AAC doesn't set this, while some decoders like FAAD remove 1024,
      * but should be handled in container as each encoder uses its own value
      * (Apple: 2112, FAAD: probably 1024, etc) */
-    //ffmpeg_set_skip_samples(data, 1024);
+    ffmpeg_set_skip_samples(data, skip_samples);
 
     return data;
 fail:

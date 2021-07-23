@@ -525,6 +525,7 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_dsp_kwa,
     init_vgmstream_ogv_3rdeye,
     init_vgmstream_sspr,
+    init_vgmstream_piff_tpcm,
 
     /* lowest priority metas (should go after all metas, and TXTH should go before raw formats) */
     init_vgmstream_txth,            /* proper parsers should supersede TXTH, once added */
@@ -606,9 +607,9 @@ static VGMSTREAM* init_vgmstream_internal(STREAMFILE* sf) {
 #ifdef VGM_USE_FFMPEG
         /* check FFmpeg streams here, for lack of a better place */
         if (vgmstream->coding_type == coding_FFmpeg) {
-            ffmpeg_codec_data *data = vgmstream->codec_data;
-            if (data && data->streamCount && !vgmstream->num_streams) {
-                vgmstream->num_streams = data->streamCount;
+            int ffmpeg_subsongs = ffmpeg_get_subsong_count(vgmstream->codec_data);
+            if (ffmpeg_subsongs && !vgmstream->num_streams) {
+                vgmstream->num_streams = ffmpeg_subsongs;
             }
         }
 #endif
@@ -1464,7 +1465,21 @@ static int get_vgmstream_file_bitrate_main(VGMSTREAM* vgmstream, bitrate_info_t*
             }
 
             if (is_unique) {
+                size_t stream_size;
+                
                 if (br->count >= br->count_max) goto fail;
+                
+                if (vgmstream->stream_size) {
+                    /* stream_size applies to both channels but should add once and detect repeats (for current subsong) */
+                    stream_size = get_vgmstream_file_bitrate_from_size(vgmstream->stream_size, vgmstream->sample_rate, vgmstream->num_samples);
+                }
+                else {
+                    stream_size = get_vgmstream_file_bitrate_from_streamfile(sf_cur, vgmstream->sample_rate, vgmstream->num_samples);
+                }
+
+                /* possible in cases like using silence codec */
+                if (!stream_size)
+                    break;
 
                 br->hash[br->count] = hash_cur;
                 br->subsong[br->count] = subsong_cur;
@@ -1473,13 +1488,7 @@ static int get_vgmstream_file_bitrate_main(VGMSTREAM* vgmstream, bitrate_info_t*
                 if (p_uniques)
                     (*p_uniques)++;
 
-                if (vgmstream->stream_size) {
-                    /* stream_size applies to both channels but should add once and detect repeats (for current subsong) */
-                    bitrate += get_vgmstream_file_bitrate_from_size(vgmstream->stream_size, vgmstream->sample_rate, vgmstream->num_samples);
-                }
-                else {
-                    bitrate += get_vgmstream_file_bitrate_from_streamfile(sf_cur, vgmstream->sample_rate, vgmstream->num_samples);
-                }
+                bitrate += stream_size;
 
                 break;
             }

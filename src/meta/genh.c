@@ -307,7 +307,7 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
                 if ( !ffmpeg_data ) goto fail;
 
                 //if (vgmstream->num_samples == 0)
-                //    vgmstream->num_samples = ffmpeg_data->totalSamples; /* sometimes works */
+                //    vgmstream->num_samples = ffmpeg_get_samples(ffmpeg_data); /* sometimes works */
             }
             else {
                 /* fake header FFmpeg */

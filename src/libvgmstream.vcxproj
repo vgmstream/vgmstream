@@ -430,6 +430,7 @@
     <ClCompile Include="meta\xa_xa30.c" />
     <ClCompile Include="meta\pcm_sre.c" />
     <ClCompile Include="meta\pcm_success.c" />
+    <ClCompile Include="meta\piff_tpcm.c" />
     <ClCompile Include="meta\scd_pcm.c" />
     <ClCompile Include="meta\pona.c" />
     <ClCompile Include="meta\pos.c" />
@@ -646,6 +647,7 @@
     <ClCompile Include="coding\speex_decoder.c" />
     <ClCompile Include="coding\tac_decoder.c" />
     <ClCompile Include="coding\tac_decoder_lib.c" />
+    <ClCompile Include="coding\tantalus_decoder.c" />
     <ClCompile Include="coding\ubi_adpcm_decoder.c" />
     <ClCompile Include="coding\vadpcm_decoder.c" />
     <ClCompile Include="coding\vorbis_custom_decoder.c" />

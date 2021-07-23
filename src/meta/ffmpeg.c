@@ -23,7 +23,7 @@ static int find_meta_loops(ffmpeg_codec_data* data, int32_t* p_loop_start, int32
 VGMSTREAM* init_vgmstream_ffmpeg(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     ffmpeg_codec_data* data = NULL;
-    int loop_flag = 0;
+    int loop_flag = 0, channels, sample_rate;
     int32_t loop_start = 0, loop_end = 0, num_samples = 0, encoder_delay = 0;
     int total_subsongs, target_subsong = sf->stream_index;
 
@@ -35,9 +35,12 @@ VGMSTREAM* init_vgmstream_ffmpeg(STREAMFILE* sf) {
     if (get_streamfile_size(sf) <= 0x1000)
         goto fail;
 
+    // many PSP rips have poorly demuxed videos with a failty RIFF, allow for now
+#if 0
     /* reject some formats handled elsewhere (better fail and check there than let buggy FFmpeg take over) */
     if (check_extensions(sf, "at3"))
         goto fail;
+#endif
 
     if (target_subsong == 0) target_subsong = 1;
 
@@ -45,18 +48,18 @@ VGMSTREAM* init_vgmstream_ffmpeg(STREAMFILE* sf) {
     data = init_ffmpeg_header_offset_subsong(sf, NULL, 0, 0, get_streamfile_size(sf), target_subsong);
     if (!data) return NULL;
 
-    total_subsongs = data->streamCount; /* uncommon, ex. wmv [Lost Odyssey (X360)] */
+    total_subsongs = ffmpeg_get_subsong_count(data); /* uncommon, ex. wmv [Lost Odyssey (X360)] */
     if (target_subsong < 0 || target_subsong > total_subsongs || total_subsongs < 1) goto fail;
 
     /* try to get .pos data */
     {
-        uint8_t posbuf[4+4+4];
+        uint8_t posbuf[0x04*3];
 
-        if (read_pos_file(posbuf, 4+4+4, sf)) {
-            loop_start = get_s32le(posbuf+0);
-            loop_end = get_s32le(posbuf+4);
+        if (read_pos_file(posbuf, sizeof(posbuf), sf)) {
+            loop_start = get_s32le(posbuf+0x00);
+            loop_end = get_s32le(posbuf+0x04);
             loop_flag = 1; /* incorrect looping will be validated outside */
-            /* FFmpeg can't always determine totalSamples correctly so optionally load it (can be 0/NULL)
+            /* FFmpeg can't always determine samples correctly so optionally load it (can be 0/NULL)
              * won't crash and will output silence if no loop points and bigger than actual stream's samples */
             num_samples = get_s32le(posbuf+8);
         }
@@ -82,6 +85,9 @@ VGMSTREAM* init_vgmstream_ffmpeg(STREAMFILE* sf) {
      *  .mus: Marc Ecko's Getting Up (PC) */
     if (!num_samples && check_extensions(sf, "mp3,lmp3,mus")) {
         num_samples = mpeg_get_samples(sf, 0x00, get_streamfile_size(sf));
+
+        /* this seems correct thankfully */
+        //ffmpeg_set_skip_samples(data, encoder_delay);
     }
 #endif
 
@@ -100,18 +106,22 @@ VGMSTREAM* init_vgmstream_ffmpeg(STREAMFILE* sf) {
 
     /* default but often inaccurate when calculated using bitrate (wrong for VBR) */
     if (!num_samples) {
-        num_samples = data->totalSamples; /* may be 0 if FFmpeg can't precalculate it */
+        num_samples = ffmpeg_get_samples(data); /* may be 0 if FFmpeg can't precalculate it */
     }
+
+    channels = ffmpeg_get_channels(data);
+    sample_rate = ffmpeg_get_sample_rate(data);
 
 
     /* build VGMSTREAM */
-    vgmstream = allocate_vgmstream(data->channels, loop_flag);
+    vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->sample_rate = data->sampleRate;
     vgmstream->meta_type = meta_FFMPEG;
-    vgmstream->coding_type = coding_FFmpeg;
+    vgmstream->sample_rate = sample_rate;
+
     vgmstream->codec_data = data;
+    vgmstream->coding_type = coding_FFmpeg;
     vgmstream->layout_type = layout_none;
 
     vgmstream->num_samples = num_samples;
@@ -211,7 +221,7 @@ static int find_meta_loops(ffmpeg_codec_data* data, int32_t* p_loop_start, int32
 
         if (loop_end <= 0) {
             // Looks a calculation was not possible, or tag value is wrongly set. Use the end of track as end value
-            loop_end = data->totalSamples;
+            loop_end = ffmpeg_get_samples(data);
         }
 
         if (loop_start <= 0) {
