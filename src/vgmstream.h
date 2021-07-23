@@ -1063,7 +1063,7 @@ typedef struct {
     int bitrate;
     // extra info: 0 if unknown or not fixed
     int64_t totalSamples; // estimated count (may not be accurate for some demuxers)
-    int64_t skipSamples; // number of start samples that will be skipped (encoder delay), for looping adjustments
+    int64_t skip_samples;       /* number of start samples that will be skipped (encoder delay) */
     int streamCount; // number of FFmpeg audio streams
 
     /*** internal state ***/

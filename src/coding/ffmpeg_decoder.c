@@ -310,6 +310,8 @@ ffmpeg_codec_data* init_ffmpeg_header_offset_subsong(STREAMFILE* sf, uint8_t* he
         AVStream *stream = data->formatCtx->streams[data->streamIndex];
         AVRational tb = {0};
 
+        tb.num = 1; tb.den = data->codecCtx->sample_rate;
+
         /* derive info */
         data->sampleRate = data->codecCtx->sample_rate;
         data->channels = data->codecCtx->channels;
@@ -322,40 +324,38 @@ ffmpeg_codec_data* init_ffmpeg_header_offset_subsong(STREAMFILE* sf, uint8_t* he
 #endif
 
         /* try to guess frames/samples (duration isn't always set) */
-        tb.num = 1; tb.den = data->codecCtx->sample_rate;
         data->totalSamples = av_rescale_q(stream->duration, stream->time_base, tb);
         if (data->totalSamples < 0)
             data->totalSamples = 0; /* caller must consider this */
 
-        /* expose start samples to be skipped (encoder delay, usually added by MDCT-based encoders like AAC/MP3/ATRAC3/XMA/etc)
-         * get after init_seek because some demuxers like AAC only fill skip_samples for the first packet */
-#if LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(58, 64, 100)
-        if (stream->start_skip_samples) /* samples to skip in the first packet */
-            data->skipSamples = stream->start_skip_samples;
+        /* read start samples to be skipped (encoder delay), info only.
+         * Not too reliable though, see ffmpeg_set_skip_samples */
+        if (stream->start_time > 0 && stream->start_time != AV_NOPTS_VALUE)
+            data->skip_samples = av_rescale_q(stream->start_time, stream->time_base, tb);
+
+#if 0 //LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(58, 64, 100)
+        /* exposed before but not too reliable either */
+        else if (stream->start_skip_samples) /* samples to skip in the first packet */
+            data->skip_samples = stream->start_skip_samples;
         else if (stream->skip_samples) /* samples to skip in any packet (first in this case), used sometimes instead (ex. AAC) */
-            data->skipSamples = stream->skip_samples;
-#else
-        if (stream->start_time)
-            data->skipSamples = av_rescale_q(stream->start_time, stream->time_base, tb);
+            data->skip_samples = stream->skip_samples;
 #endif
 
         /* check ways to skip encoder delay/padding, for debugging purposes (some may be old/unused/encoder only/etc) */
-        VGM_ASSERT(data->codecCtx->delay > 0, "FFMPEG: delay %i\n", (int)data->codecCtx->delay);//delay: OPUS
         //VGM_ASSERT(data->codecCtx->internal->skip_samples > 0, ...); /* for codec use, not accessible */
+        VGM_ASSERT(data->codecCtx->delay > 0, "FFMPEG: delay %i\n", (int)data->codecCtx->delay);//delay: OPUS
         VGM_ASSERT(stream->codecpar->initial_padding > 0, "FFMPEG: initial_padding %i\n", (int)stream->codecpar->initial_padding);//delay: OPUS
         VGM_ASSERT(stream->codecpar->trailing_padding > 0, "FFMPEG: trailing_padding %i\n", (int)stream->codecpar->trailing_padding);
         VGM_ASSERT(stream->codecpar->seek_preroll > 0, "FFMPEG: seek_preroll %i\n", (int)stream->codecpar->seek_preroll);//seek delay: OPUS
+        VGM_ASSERT(stream->start_time > 0, "FFMPEG: start_time %i\n", (int)stream->start_time); //delay
+        VGM_ASSERT(stream->first_discard_sample > 0, "FFMPEG: first_discard_sample %i\n", (int)stream->first_discard_sample); //padding: MP3
+        VGM_ASSERT(stream->last_discard_sample > 0, "FFMPEG: last_discard_sample %i\n", (int)stream->last_discard_sample); //padding: MP3
 #if LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(58, 64, 100)
         VGM_ASSERT(stream->skip_samples > 0, "FFMPEG: skip_samples %i\n", (int)stream->skip_samples); //delay: MP4
         VGM_ASSERT(stream->start_skip_samples > 0, "FFMPEG: start_skip_samples %i\n", (int)stream->start_skip_samples); //delay: MP3
-#else
-        VGM_ASSERT(stream->start_time > 0, "FFMPEG: start_time %i\n", (int)stream->start_time); //delay
 #endif
-        VGM_ASSERT(stream->first_discard_sample > 0, "FFMPEG: first_discard_sample %i\n", (int)stream->first_discard_sample); //padding: MP3
-        VGM_ASSERT(stream->last_discard_sample > 0, "FFMPEG: last_discard_sample %i\n", (int)stream->last_discard_sample); //padding: MP3
         /* also negative timestamp for formats like OGG/OPUS */
         /* not using it: BINK, FLAC, ATRAC3, XMA, MPC, WMA (may use internal skip samples) */
-        //todo: double check Opus behavior
     }
 
 
@@ -800,18 +800,10 @@ void seek_ffmpeg(ffmpeg_codec_data* data, int32_t num_sample) {
     data->end_of_stream = 0;
     data->end_of_audio = 0;
 
-    /* consider skip samples (encoder delay), if manually set (otherwise let FFmpeg handle it) */
+    /* consider skip samples (encoder delay), if manually set */
     if (data->skip_samples_set) {
-        AVStream *stream = data->formatCtx->streams[data->streamIndex];
-        /* sometimes (ex. AAC) after seeking to the first packet skip_samples is restored, but we want our value */
-#if LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(58, 64, 100)
-        stream->skip_samples = 0;
-        stream->start_skip_samples = 0;
-#else
-        stream->start_time = 0;
-#endif
-
-        data->samples_discard += data->skipSamples;
+        data->samples_discard += data->skip_samples;
+        /* internally FFmpeg may skip (skip_samples/start_skip_samples) too */
     }
 
     return;
@@ -878,34 +870,47 @@ void free_ffmpeg(ffmpeg_codec_data* data) {
 
 
 /**
- * Sets the number of samples to skip at the beginning of the stream, needed by some "gapless" formats.
- *  (encoder delay, usually added by MDCT-based encoders like AAC/MP3/ATRAC3/XMA/etc to "set up" the decoder).
+ * Sets the number of samples to skip at the beginning of the stream (encoder delay), needed by some "gapless" formats.
  * - should be used at the beginning of the stream
- * - should check if there are data->skipSamples before using this, to avoid overwritting FFmpeg's value (ex. AAC).
+ * - should use only if/when FFmpeg's format is known to botch encoder delay.
  *
- * This could be added per format in FFmpeg directly, but it's here for flexibility and due to bugs
- *  (FFmpeg's stream->(start_)skip_samples causes glitches in XMA).
+ * encoder delay in FFmpeg is handled in multiple ways:
+ * - avstream/internal->start_skip_samples: skip in the first packet *if* pts=0 (set in MP3 only?)
+ * - avstream/internal->skip_samples: skip in any packet (set in AAC encoded by libfaac, OPUS, MP3 in SWF, MOV/MP4)
+ * - avstream->start_time: usually set same as skip_samples but in pts, info only (most of the above but OPUS)
+ * - codecCtx->delay: seems equivalent to skip_samples, info only (OPUS)
+ * - negative timestamp: Xiph style (Ogg Vorbis/Opus only?).
+ * First two are only exposed in FFmpeg v4.4<, meaning you can't override buggy values after that.
+ * But since FFmpeg only does encoder delay for a handful of formats, shouldn't matter much.
+ * May need to detect exact versions if they start fixing formats.
  */
 void ffmpeg_set_skip_samples(ffmpeg_codec_data* data, int skip_samples) {
-    AVStream *stream = NULL;
-    if (!data || !data->formatCtx)
+    if (!data || !data->formatCtx || !skip_samples)
         return;
 
-    /* overwrite FFmpeg's skip samples */
-    stream = data->formatCtx->streams[data->streamIndex];
+    /* let FFmpeg handle (may need an option to force override?) */
+    if (data->skip_samples) {
+        VGM_ASSERT(data->skip_samples != skip_samples,
+                "FMPEG: ignored skip_samples %i, already set %i\n", skip_samples, (int)data->skip_samples);
+        return;
+    }
+
+#if 0
+    {
+        AVStream* stream = data->formatCtx->streams[data->streamIndex];
 #if LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(58, 64, 100)
-    stream->start_skip_samples = 0; /* used for the first packet *if* pts=0 */
-    stream->skip_samples = 0; /* skip_samples can be used for any packet */
+        stream->start_skip_samples = 0;
+        stream->skip_samples = 0;
 #else
-    stream->start_time = 0;
+        //stream->start_time = 0; /* info only = useless */
+#endif
+    }
 #endif
 
     /* set skip samples with our internal discard */
     data->skip_samples_set = 1;
     data->samples_discard = skip_samples;
-
-    /* expose (info only) */
-    data->skipSamples = skip_samples;
+    data->skip_samples = skip_samples;
 }
 
 /* returns channel layout if set */

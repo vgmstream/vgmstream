@@ -207,7 +207,7 @@ VGMSTREAM* init_vgmstream_mp4_aac_ffmpeg(STREAMFILE* sf) {
     vgmstream->meta_type = meta_MP4;
     vgmstream->sample_rate = ffmpeg_data->sampleRate;
     vgmstream->num_samples = mp4.num_samples;
-    if (vgmstream->num_samples == 0)
+    if (vgmstream->num_samples == 0) /* does this take into account encoder delay? see FFV */
         vgmstream->num_samples = ffmpeg_data->totalSamples;
     vgmstream->loop_start_sample = mp4.loop_start;
     vgmstream->loop_end_sample = mp4.loop_end;
@@ -218,8 +218,9 @@ VGMSTREAM* init_vgmstream_mp4_aac_ffmpeg(STREAMFILE* sf) {
     vgmstream->num_streams = ffmpeg_data->streamCount; /* may contain N tracks */
 
     vgmstream->channel_layout = ffmpeg_get_channel_layout(vgmstream->codec_data);
-    if (mp4.encoder_delay)
-        ffmpeg_set_skip_samples(vgmstream->codec_data, mp4.encoder_delay);
+
+    /* needed for CRI MP4, otherwise FFmpeg usually reads standard delay */
+    ffmpeg_set_skip_samples(vgmstream->codec_data, mp4.encoder_delay);
 
     return vgmstream;
 
