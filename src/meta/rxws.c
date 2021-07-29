@@ -192,7 +192,7 @@ VGMSTREAM* init_vgmstream_rxws_badrip(STREAMFILE* sf) {
           (read_32bitBE(0x10,sf) == 0x464F524D)))
         goto fail;
 
-    loop_flag = (read_32bitLE(0x3C,sf)!=0xFFFFFFFF);
+    loop_flag = (read_u32le(0x3C,sf)!=0xFFFFFFFF);
     channels=2; /* Always stereo files */
     
     /* build the VGMSTREAM */

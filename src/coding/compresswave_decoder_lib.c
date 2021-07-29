@@ -867,8 +867,8 @@ void TCompressWaveData_SetVolume(TCompressWaveData* this, float vol, float fade)
         this->FSetVolume = this->FVolume;
     }
     else {              //without fade value
-        this->Ffade = round(PW_MAXVOLUME / fade / 44100);
-        this->FSetVolume = round(aaa * PW_MAXVOLUME);
+        this->Ffade = round((double)PW_MAXVOLUME / fade / 44100);
+        this->FSetVolume = round(aaa * (double)PW_MAXVOLUME);
     }
 }
 

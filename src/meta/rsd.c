@@ -3,11 +3,11 @@
 
 
 /* RSD - from Radical Entertainment games */
-VGMSTREAM * init_vgmstream_rsd(STREAMFILE *sf) {
-    VGMSTREAM * vgmstream = NULL;
+VGMSTREAM* init_vgmstream_rsd(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
     off_t start_offset, name_offset;
     size_t data_size;
-    int loop_flag, channel_count, sample_rate, interleave;
+    int loop_flag, channels, sample_rate, interleave;
     uint32_t codec;
     uint8_t version;
 
@@ -15,22 +15,22 @@ VGMSTREAM * init_vgmstream_rsd(STREAMFILE *sf) {
     /* checks */
     if (!check_extensions(sf,"rsd,rsp"))
         goto fail;
-    if ((read_32bitBE(0x00,sf) & 0xFFFFFF00) != 0x52534400) /* "RSD\00" */
+    if ((read_u32be(0x00,sf) & 0xFFFFFF00) != 0x52534400) /* "RSD\00" */
         goto fail;
 
     loop_flag = 0;
 
-    codec = (uint32_t)read_32bitBE(0x04,sf);
-    channel_count = read_32bitLE(0x08, sf);
+    codec = read_u32be(0x04,sf);
+    channels = read_s32le(0x08, sf);
     /* 0x0c: always 16? */
-    sample_rate = read_32bitLE(0x10, sf);
+    sample_rate = read_s32le(0x10, sf);
 
     version = read_8bit(0x03, sf);
     switch(version) {
         case '2': /* known codecs: VAG/XADP/PCMB [The Simpsons: Road Rage] */
         case '3': /* known codecs: VAG/PCM/PCMB/GADP? [Dark Summit] */
-            interleave   = read_32bitLE(0x14,sf); /* VAG only, 0x04 otherwise */
-            start_offset = read_32bitLE(0x18,sf);
+            interleave   = read_u32le(0x14,sf); /* VAG only, 0x04 otherwise */
+            start_offset = read_u32le(0x18,sf);
             name_offset  = 0;
             break;
 
@@ -42,8 +42,8 @@ VGMSTREAM * init_vgmstream_rsd(STREAMFILE *sf) {
             name_offset  = 0;
 
             /* PCMB/PCM/GADP normally start early but sometimes have padding [The Simpsons: Hit & Run (GC/Xbox)] */
-            if ((codec == 0x50434D20 || codec == 0x550434D42 || codec == 0x47414450)
-                    && read_32bitLE(0x80,sf) != 0x2D2D2D2D)
+            if ((codec == get_id32be("PCM ") || codec == get_id32be("PCMB") || codec == get_id32be("GADP"))
+                    && read_u32le(0x80,sf) != 0x2D2D2D2D)
                 start_offset = 0x80;
             break;
 
@@ -62,7 +62,7 @@ VGMSTREAM * init_vgmstream_rsd(STREAMFILE *sf) {
 
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    vgmstream = allocate_vgmstream(channels,loop_flag);
     if (!vgmstream) goto fail;
 
     vgmstream->meta_type = meta_RSD;
@@ -74,7 +74,7 @@ VGMSTREAM * init_vgmstream_rsd(STREAMFILE *sf) {
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = 0x2;
 
-            vgmstream->num_samples = pcm_bytes_to_samples(data_size, channel_count, 16);
+            vgmstream->num_samples = pcm_bytes_to_samples(data_size, channels, 16);
             break;
 
         case 0x50434D42:   /* "PCMB" [The Simpsons: Road Rage (GC), Dark Summit (GC)] */
@@ -82,7 +82,7 @@ VGMSTREAM * init_vgmstream_rsd(STREAMFILE *sf) {
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = 0x2;
 
-            vgmstream->num_samples = pcm_bytes_to_samples(data_size, channel_count, 16);
+            vgmstream->num_samples = pcm_bytes_to_samples(data_size, channels, 16);
             break;
 
         case 0x56414720:   /* "VAG " [The Simpsons: Road Rage (PS2), Crash Tag Team Racing (PSP)] */
@@ -90,11 +90,11 @@ VGMSTREAM * init_vgmstream_rsd(STREAMFILE *sf) {
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = (interleave == 0) ? 0x10 : interleave;
 
-            vgmstream->num_samples = ps_bytes_to_samples(data_size, channel_count);
+            vgmstream->num_samples = ps_bytes_to_samples(data_size, channels);
             break;
 
         case 0x58414450:   /* "XADP" [The Simpsons: Road Rage (Xbox)], Crash Tag Team Racing (Xbox)] */
-            vgmstream->coding_type = (channel_count > 2) ? coding_XBOX_IMA_mch : coding_XBOX_IMA;
+            vgmstream->coding_type = (channels > 2) ? coding_XBOX_IMA_mch : coding_XBOX_IMA;
             vgmstream->layout_type = layout_none;
 
             vgmstream->num_samples = xbox_ima_bytes_to_samples(data_size, vgmstream->channels);
@@ -107,7 +107,7 @@ VGMSTREAM * init_vgmstream_rsd(STREAMFILE *sf) {
             dsp_read_coefs_le(vgmstream,sf,0x14,0x2e); /* LE! */
             dsp_read_hist_le (vgmstream,sf,0x38,0x2e);
 
-            vgmstream->num_samples = dsp_bytes_to_samples(data_size, channel_count);
+            vgmstream->num_samples = dsp_bytes_to_samples(data_size, channels);
             break;
 
         case 0x57414450:   /* "WADP" [Crash: Mind Over Mutant (Wii)] */
@@ -117,15 +117,15 @@ VGMSTREAM * init_vgmstream_rsd(STREAMFILE *sf) {
             dsp_read_coefs_be(vgmstream,sf,0x1a4,0x28);
             dsp_read_hist_be (vgmstream,sf,0x1c8,0x28);
 
-            vgmstream->num_samples = dsp_bytes_to_samples(data_size, channel_count);
+            vgmstream->num_samples = dsp_bytes_to_samples(data_size, channels);
             break;
 
         case 0x52414450:   /* "RADP" [The Simpsons: Hit & Run (GC), Scarface (Wii)] */
             vgmstream->coding_type = coding_RAD_IMA;
             vgmstream->layout_type = layout_none;
-            vgmstream->interleave_block_size = 0x14*channel_count;
+            vgmstream->interleave_block_size = 0x14*channels;
 
-            vgmstream->num_samples = data_size / 0x14 / channel_count * 32; /* bytes-to-samples */
+            vgmstream->num_samples = data_size / 0x14 / channels * 32; /* bytes-to-samples */
             break;
 
 #ifdef VGM_USE_VORBIS
@@ -142,17 +142,15 @@ VGMSTREAM * init_vgmstream_rsd(STREAMFILE *sf) {
 
 #ifdef VGM_USE_FFMPEG
         case 0x574D4120: { /* "WMA " [Scarface (Xbox)] */
-            ffmpeg_codec_data *ffmpeg_data = NULL;
 
             /* mini header + WMA header at start_offset */
-            ffmpeg_data = init_ffmpeg_offset(sf, start_offset+0x08,data_size);
-            if (!ffmpeg_data) goto fail;
-            vgmstream->codec_data = ffmpeg_data;
+            vgmstream->codec_data = init_ffmpeg_offset(sf, start_offset+0x08,data_size);
+            if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
 
-            vgmstream->num_samples = ffmpeg_get_samples(ffmpeg_data); /* an estimation, sometimes cuts files a bit early */
-          //vgmstream->num_samples = read_32bitLE(start_offset + 0x00, sf) / channel_count / 2; /* may be PCM data size, but not exact */
+            vgmstream->num_samples = ffmpeg_get_samples(vgmstream->codec_data); /* an estimation, sometimes cuts files a bit early */
+          //vgmstream->num_samples = read_32bitLE(start_offset + 0x00, sf) / channels / 2; /* may be PCM data size, but not exact */
             vgmstream->sample_rate = read_32bitLE(start_offset + 0x04, sf);
             break;
         }
@@ -170,7 +168,6 @@ VGMSTREAM * init_vgmstream_rsd(STREAMFILE *sf) {
         }
 
         case 0x584D4120: { /* "XMA " [Crash of the Titans (X360)-v1, Crash: Mind over Mutant (X360)-v2] */
-            ffmpeg_codec_data *ffmpeg_data = NULL;
             uint8_t buf[0x100];
             size_t bytes, xma_size, block_size, block_count;
             int xma_version;
@@ -199,15 +196,14 @@ VGMSTREAM * init_vgmstream_rsd(STREAMFILE *sf) {
             }
 
             bytes = ffmpeg_make_riff_xma2(buf,sizeof(buf), vgmstream->num_samples, xma_size, vgmstream->channels, vgmstream->sample_rate, block_count, block_size);
-            ffmpeg_data = init_ffmpeg_header_offset(sf, buf, bytes, start_offset, xma_size);
-            if (!ffmpeg_data) goto fail;
-            vgmstream->codec_data = ffmpeg_data;
+            vgmstream->codec_data = init_ffmpeg_header_offset(sf, buf, bytes, start_offset, xma_size);
+            if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
 
             /* for some reason (dev trickery?) .rsd don't set skip in the bitstream, though they should */
             //xma_fix_raw_samples(vgmstream, sf, start_offset,xma_size, 0, 0,0);
-            ffmpeg_set_skip_samples(ffmpeg_data, 512+64);
+            ffmpeg_set_skip_samples(vgmstream->codec_data, 512+64);
             break;
         }
 #endif

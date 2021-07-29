@@ -604,10 +604,10 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
 
     /* ignore Beyond Good & Evil HD PS3 evil reuse of PCM codec */
     if (fmt.coding_type == coding_PCM16LE &&
-            read_32bitBE(start_offset+0x00, sf) == 0x4D534643 && /* "MSF\43" */
-            read_32bitBE(start_offset+0x34, sf) == 0xFFFFFFFF && /* always */
-            read_32bitBE(start_offset+0x38, sf) == 0xFFFFFFFF &&
-            read_32bitBE(start_offset+0x3c, sf) == 0xFFFFFFFF)
+            read_u32be(start_offset+0x00, sf) == 0x4D534643 && /* "MSF\43" */
+            read_u32be(start_offset+0x34, sf) == 0xFFFFFFFF && /* always */
+            read_u32be(start_offset+0x38, sf) == 0xFFFFFFFF &&
+            read_u32be(start_offset+0x3c, sf) == 0xFFFFFFFF)
         goto fail;
 
     /* ignore Gitaroo Man Live! (PSP) multi-RIFF (to allow chunked TXTH) */
@@ -849,6 +849,8 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
                 case coding_PCM16LE:
                     vgmstream->loop_start_sample = pcm_bytes_to_samples(loop_start_nxbf, vgmstream->channels, 16);
                     vgmstream->loop_end_sample = vgmstream->num_samples;
+                    break;
+                default:
                     break;
             }
         }

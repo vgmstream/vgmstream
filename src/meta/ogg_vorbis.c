@@ -367,7 +367,7 @@ VGMSTREAM* init_vgmstream_ogg_vorbis(STREAMFILE* sf) {
     }
 
     if (is_lse) { /* [Nippon Ichi PC games] */
-        if (read_32bitBE(0x00,sf) == 0xFFFFFFFF) { /* [Operation Abyss: New Tokyo Legacy (PC)] */
+        if (read_u32be(0x00,sf) == 0xFFFFFFFF) { /* [Operation Abyss: New Tokyo Legacy (PC)] */
             cfg.key[0] = 0xFF;
             cfg.key_len = 1;
             cfg.is_header_swap = 1;

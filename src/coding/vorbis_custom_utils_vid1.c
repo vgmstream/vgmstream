@@ -77,7 +77,7 @@ int vorbis_custom_parse_packet_vid1(VGMSTREAMCHANNEL* stream, vorbis_custom_code
 
 
     /* get packet info the VID1 header */
-    get_packet_header(stream->streamfile, &stream->offset, (uint32_t*)&data->op.bytes);
+    get_packet_header(stream->streamfile, &stream->offset, (size_t*)&data->op.bytes);
     if (data->op.bytes == 0 || data->op.bytes > data->buffer_size) goto fail; /* EOF or end padding */
 
     /* read raw block */

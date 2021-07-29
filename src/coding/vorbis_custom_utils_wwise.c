@@ -365,11 +365,6 @@ static int ww2ogg_generate_vorbis_packet(bitstream_t* ow, bitstream_t* iw, wpack
         /* rebuild first bits of packet type and window info (for the i-MDCT) */
         uint32_t packet_type = 0, mode_number = 0, remainder = 0;
 
-        if (!data->mode_blockflag) { /* config error */
-            VGM_LOG("Wwise Vorbis: didn't load mode_blockflag\n");
-            goto fail;
-        }
-
         /* audio packet type */
         packet_type = 0;
         wv_bits(ow,  1, packet_type);
@@ -434,8 +429,8 @@ static int ww2ogg_generate_vorbis_packet(bitstream_t* ow, bitstream_t* iw, wpack
 
 
     return 1;
-fail:
-    return 0;
+//fail:
+//    return 0;
 }
 
 /*******************************************************************************/

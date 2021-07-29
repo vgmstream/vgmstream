@@ -16,8 +16,10 @@
 #include <windows.h>
 #include <windowsx.h>
 #include <commctrl.h>
+
 #include <string.h>
 #include <ctype.h>
+#include <math.h>
 
 #include "../src/vgmstream.h"
 #include "../src/plugins.h"

@@ -266,6 +266,9 @@ static int64_t ffmpeg_seek(void* opaque, int64_t offset, int whence) {
         case SEEK_END: /* relative to file end (should be negative) */
             offset += data->logical_size;
             break;
+
+        default:
+            break;
     }
 
     /* clamp offset; fseek does this too */
