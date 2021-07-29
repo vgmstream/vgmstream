@@ -9,21 +9,21 @@ Because each module has different quirks one can't use a single tool for everyth
 
 64-bit support may work but has been minimally tested, since main use of vgmstream is plugins for 32-bit players (should work but extra codec libs are included for 32-bit only ATM).
 
-
 ### GCC / Make
 Common C compiler, most development is done with this.
 
-On Windows you need one of these two somewhere in PATH:
+On Windows you need one of these somewhere in PATH:
 - MinGW-w64 (32bit version): https://sourceforge.net/projects/mingw-w64/
   - Use this for easier standalone executables
   - Latest online installer with any config should work (for example: gcc-8.1.0, i686, win32, sjlj).
-    https://sourceforge.net/projects/mingw-w64/files/Toolchains%20targetting%20Win32/Personal%20Builds/mingw-builds/installer/mingw-w64-install.exe
-  - Or simply download and unzip portable package:
-    https://sourceforge.net/projects/mingw-w64/files/Toolchains%20targetting%20Win64/Personal%20Builds/mingw-builds/8.1.0/threads-win32/sjlj/x86_64-8.1.0-release-win32-sjlj-rt_v6-rev0.7z
+    https://sourceforge.net/projects/mingw-w64/files/Toolchains%20targetting%20Win32/Personal%20Builds/mingw-builds/installer/mingw-w64-install.exe/download
+    - Get from sourceforge page > "files" tab > scroll below > MingGW-W64-install.exe
+  - Or download and unzip portable package:
+    https://sourceforge.net/projects/mingw-w64/files/Toolchains%20targetting%20Win32/Personal%20Builds/mingw-builds/8.1.0/threads-win32/sjlj/i686-8.1.0-release-win32-sjlj-rt_v6-rev0.7z/download
+    - Get from sourceforge page > "files" tab > Toolchains targetting Win32 > Personal Builds > mingw-builds > some version zip
 - MSYS2 with the MinGW-w64_shell (32bit) package: https://msys2.github.io/
 
 On Linux it should be included by default in the distribution, or can be easily installed using the distro's package manager (for example `sudo apt-get install gcc g++ make`).
-
 
 ### Microsoft's Visual C++ (MSVC) / Visual Studio / MSBuild
 Alt C compiler, auto-generated builds for Windows use this.
@@ -31,25 +31,29 @@ Alt C compiler, auto-generated builds for Windows use this.
 Bundled in either:
 - Visual Studio (2015/2017/latest): https://www.visualstudio.com/downloads/
 
-Visual Studio Community should work (free), but must register after trial period. Even after trial you can still use MSBuild, command-line tool that actually does all the building. You can also find and install "Visual C++ Build Tools" without Visual Studio IDE (link tend to move around).
+Visual Studio Community should work (free), but must register after trial period. Even after trial you can still use MSBuild, command-line tool that actually does all the building. You can also find and install "Visual C++ Build Tools" without Visual Studio IDE (try google as MS's links tend to move around).
 
 Older versions of MSVC (2010 and before) have limited C support, while reportedly beta/new versions aren't always very stable. Some very odd issues affecting only MSVC have been found and fixed before. Keep in mind if you run into problems.
 
 ### Clang
 Reportedly works fine on Mac and may used as a replacement for GCC without issues.
 
+Should be usable on Linux and possibly Windows with CMake.
+- https://releases.llvm.org/download.html
+
+For other makefiles may work, though may need to set compiler vars appropriately (CC=clang AR=llvm-ar).
 
 ### Git
 Optional, used to generate version numbers:
 - Git for Windows: https://git-scm.com/download/win
 
+Git also comes with typical Linux utils compiled for Windows (in the usr\bin dir), that can help when compiling some extra components on Windows.
 
 ### CMake
 Optional, can be used to compile vgmstream's modules instead of regular scripts. Needs v3.6 or later:
 - https://cmake.org/download/
 
 If you wish to use CMake, see [CMAKE.md](CMAKE.md). Some extra info is only mentioned in this doc though.
-
 
 ### autotools
 Optional, used by some modules (mainly Audacious for Linux, and external libs).
@@ -72,7 +76,6 @@ Typical usage involves `./configure` (creates makefiles) + `Make` (compiles) + `
 
 External libs using autotools can be compiled on Windows too, try using `sh.exe ./configure`, `mingw32-make.exe`, `mingw32-make.exe install` instead. Also for older libs, call `sh.exe ./configure` with either  `--build=mingw32`, `--host=mingw32` or `--target-os=mingw32` (varies) for older configure. You may also need to use `mingw32-make.exe LDFLAGS="-no-undefined -static-libgcc" MAKE=mingw32-make.exe` so that `.dll` are correctly generated.
 
-
 ### Extra libs
 Optional, add codec or extra functionalities. See *External libraries* for full info.
 
@@ -81,19 +84,22 @@ On Windows most libs are pre-compiled and included to simplify building (since t
 On Linux you usually need dev packages of each (for example `libao-dev` for vgmstream123, `audacious-dev` for Audacious, and so on) and they should be picked by CMake/autotool scripts.
 
 
-
 ## Compiling modules
 
 ### CLI (test.exe/vgmstream-cli) / Winamp plugin (in_vgmstream) / XMPlay plugin (xmp-vgmstream)
 
-**With GCC**: use the *./Makefile* in the root folder, see inside for options. For compilation flags check the *Makefile* in each folder. You may need to manually rebuild if you change a *.h* file (use *make clean*).
+**With GCC/Clang**: there are various ways to build it, each with some differences; you probably want CMake described below.
 
-In Linux, Makefiles can be used to cross-compile with the MingW headers, but may not be updated to generate native code at the moment. It should be fixable with some effort. 
+Simplest way is using the *./Makefile* in the root folder, see inside for options. For compilation flags check the *Makefile* in each folder. You may need to manually rebuild if you change a *.h* file (use *make clean*). On Windows this will build with external libs enabled, but Linux can't ATM.
 
-*Autotools* should build and install it as `vgmstream-cli`, this is explained in detail in the Audacious section. It also build with (some) extra codecs. Some Linux distributions like Arch Linux include pre-patched vgmstream with most libraries, you may want that instead:
+Also, on Linux you can't build *in_vgmstream* and *xmp-vgmstream* (given they are Windows DLLs...). Makefiles have been used in the past to cross-compile from Linux with MingW headers though, but can't generate native Win code at the moment (should be fixable with some effort).
+
+*Autotools* should build and install it as `vgmstream-cli`, this is explained in detail in the Audacious section. It enables (some) extra codecs. Some Linux distributions like Arch Linux include pre-patched vgmstream with most libraries, you may want that instead:
 https://aur.archlinux.org/packages/vgmstream-kode54-git/
 
-You may try CMake instead as it may be simpler and handle libs better. Some older distros may not work though (CMake version needs to recognize FILTER command). You may need to install resulting artifacts manually (check ./cli dir).
+If you use Mac (or Linux), there is a *Homebrew* script that may automate the process (uses CMake): https://formulae.brew.sh/formula/vgmstream
+
+You may try CMake instead as it may be simpler and handle libs better. Some older distros may not work though (CMake version needs to recognize FILTER command). You may also need to install resulting artifacts manually (check ./cli dir). Check the *CMAKE.md* doc for some extra info too.
 ```
 sudo apt-get update
 sudo apt-get install -y libmpg123-dev libvorbis-dev libspeex-dev
@@ -108,7 +114,7 @@ cmake .
 make
 ```
 
-Windows CMD example:
+Windows CMD example (with some debugging on):
 ```
 prompt $P$G$_$S
 set PATH=C:\Program Files (x86)\Git\usr\bin;%PATH%
@@ -117,15 +123,23 @@ set PATH=C:\Program Files (x86)\mingw-w64\i686-5.4.0-win32-sjlj-rt_v5-rev0\mingw
 cd vgmstream
 
 mingw32-make.exe vgmstream_cli -f Makefile ^
- VGM_ENABLE_FFMPEG=1 ^
- SHELL=sh.exe CC=gcc.exe AR=ar.exe STRIP=strip.exe DLLTOOL=dlltool.exe WINDRES=windres.exe
+ VGM_ENABLE_MAIATRAC3PLUS=0 ^
+ EXTRA_CFLAGS="-DVGM_DEBUG_OUTPUT -g -Wimplicit-function-declaration" ^
+ SHELL=sh.exe CC=gcc.exe AR=ar.exe STRIP=strip.exe DLLTOOL=dlltool.exe WINDRES=windres.exe ^
+ STRIP=echo ^
+ 1> ../vgmstream-stdout.txt 2> ../vgmstream-stderr.txt
 ```
+
 
 **With MSVC**: To build in Visual Studio, run *./init-build.bat*, open *./vgmstream_full.sln* and compile. To build from the command line, run *./build.bat*.
 
 The build script will automatically handle obtaining dependencies and making the project changes listed in the foobar2000 section (you may need to get some PowerShell .NET packages).
 
 You can also call MSBuild directly in the command line (see the foobar2000 section for dependencies and examples)
+
+#### notes
+While the official name for the CLI tool is `vgmstream-cli`, `test.exe` is used on Windows for historical reasons. If you want to reuse it for your own project it's probably better renaming to `vgmstream-cli.exe`.
+
 
 ### foobar2000 plugin (foo\_input\_vgmstream)
 Requires MSVC (foobar/SDK only links to MSVC C++ DLLs) and these dependencies:
@@ -138,7 +152,7 @@ Requires MSVC (foobar/SDK only links to MSVC C++ DLLs) and these dependencies:
 The following project modifications are required:
 - For *foobar2000_ATL_helpers* add *../../../WTL/Include* to the compilers's *additional includes*
 
-FDK-AAC/QAAC can be enabled adding *VGM_USE_MP4V2* and *VGM_USE_FDKAAC* in the compiler/linker options and the project dependencies, otherwise FFmpeg is used instead to support .mp4. Support is limited so FFmpeg is recommended.
+FDK-AAC/QAAC can be enabled adding *VGM_USE_MP4V2* and *VGM_USE_FDKAAC* in the compiler/linker options and the project dependencies, otherwise FFmpeg is used instead to support .mp4. FDK-AAC Support is limited so FFmpeg is recommended.
 
 You can also manually use the command line to compile with MSBuild, if you don't want to touch the .vcxproj files, register VS after trial, get PowerShell dependencies for the build script, or only have VC++/MSBuild tools.
 
@@ -252,7 +266,7 @@ make
 ```
 
 ### vgmstream123 player
-Should be buildable with Autotools by following the same steps as listen in the Audacious section (requires libao-dev).
+Should be buildable with Autotools/CMake by following the same steps as listen in the Audacious section (requires libao-dev).
 
 Windows builds are possible with `libao.dll` and `libao` includes (found elsewhere) through the `Makefile`, but some features are disabled.
 
@@ -261,17 +275,17 @@ libao is licensed under the GPL v2 or later.
 
 ## External libraries
 Support for some codecs is done with external libs, instead of copying their code in vgmstream. There are various reasons for this:
-- each lib may have complex or conflicting ways to compile that aren't simple to duplicate
+- each lib may have complex or conflicting ways to compile that aren't simple to replicate
 - their sources can be quite big and undesirable to include in full
-- libs usually only compile with either GCC or MSVC, while vgmstream supports both compilers, so linking to the generated binary is much easier
+- libs usually only compile with either GCC or MSVC, while vgmstream supports both compilers, so linking to the generated binary (compatible) is much easier
 - not all licenses used by libs may allow to copy their code
 - simplifies maintenance and updating
 
 They are compiled in their own sources, and the resulting binary is linked by vgmstream using a few of their symbols.
 
-Currently only Windows builds can use external libraries, as vgmstream only includes generated 32-bit DLLs, but it should be fixable for others systems with some effort (libs are enabled on compile time). Ideally vgmstream could use libs compiled as static code (thus eliminating the need of DLLs), but involves a bunch of changes.
+Currently repo contains pre-compiled external libraries for Windows (32-bit Windows DLLs), while other systems link to system libraries. Ideally vgmstream could use libs compiled as static code (thus eliminating the need of DLLs), but involves a bunch of changes.
 
-Below is a quick explanation of each library and how to compile binaries from them (for Windows, for Linux modules should include them automatically). Unless mentioned, their latest version should be ok to use, though included DLLs may be a bit older.
+Below is a quick explanation of each library and how to compile binaries from them (for Windows). Unless mentioned, their latest version should be ok to use, though included DLLs may be a bit older.
 
 MSVC needs a .lib helper to link .dll files, but libs below usually only create .dll (and maybe .def). Instead, those .lib are automatically generated during build step in `ext_libs.vcxproj` from .dll+.def, using lib.exe tool.
 
@@ -394,7 +408,7 @@ If all goes well, use generated .DLL in ./bin/bin (may need to rename to libspee
 ### maiatrac3plus
 This lib was used as an alternate for ATRAC3PLUS decoding. Now this is handled by FFmpeg, though some code remains for now.
 
-It was a straight-up decompilation from Sony's libs, without any clean-up or actual reverse engineering, thus legally and morally dubious.
+It was a straight-up decompilation from Sony's libs (presumably those found in SoundForge), without any clean-up or actual reverse engineering, thus legally and morally dubious.
 
 It doesn't do encoder delay properly, but on the other hand decoding is 100% accurate unlike FFmpeg (probably inaudible though).
 
