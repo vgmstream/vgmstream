@@ -4,7 +4,7 @@
 
 
 /* XVAG with subsongs layers, interleaves chunks of each subsong (a hack to support them) */
-void block_update_xvag_subsong(off_t block_offset, VGMSTREAM * vgmstream) {
+void block_update_xvag_subsong(off_t block_offset, VGMSTREAM* vgmstream) {
     int i;
     size_t channel_size = 0x10;
 

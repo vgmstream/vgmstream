@@ -153,7 +153,7 @@ static inline void test_key(hca_codec_data* hca_data, uint64_t key, uint16_t sub
 static void find_hca_key(hca_codec_data* hca_data, uint64_t* p_keycode, uint16_t subkey) {
     const size_t keys_length = sizeof(hcakey_list) / sizeof(hcakey_info);
     int best_score = -1;
-    int i,j;
+    int i;
 
     *p_keycode = 0xCC55463930DBE1AB; /* defaults to PSO2 key, most common */
 
@@ -166,6 +166,8 @@ static void find_hca_key(hca_codec_data* hca_data, uint64_t* p_keycode, uint16_t
 
 #if 0
         {
+            int j;
+
             size_t subkeys_size = hcakey_list[i].subkeys_size;
             const uint16_t *subkeys = hcakey_list[i].subkeys;
             if (subkeys_size > 0 && subkey == 0) {
