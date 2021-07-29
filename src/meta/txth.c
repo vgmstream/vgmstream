@@ -1553,7 +1553,7 @@ static int read_name_table_keyval(txth_header* txth, const char* line, char* key
     //todo names with # and subsongs don't work
 
     /* ignore comments (that aren't subsongs) */
-    if (line[0] == '#' && strchr(line,':') < 0)
+    if (line[0] == '#' && strchr(line,':') == NULL)
         return 0;
 
     /* try "(name): (val))" */

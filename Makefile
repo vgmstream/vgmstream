@@ -50,11 +50,26 @@ export RMF SHELL CC AR STRIP WINDRES DLLTOOL
 ###############################################################################
 ### build defs
 
-DEF_CFLAGS = -ffast-math -O3 -Wall -Werror=format-security -Wdeclaration-after-statement -Wvla -Wimplicit-function-declaration -Wignored-qualifiers
-#ifdef VGM_DEBUG
-#  CFLAGS += -DVGM_DEBUG_OUTPUT -O0
-#  CFLAGS += -Wold-style-definition -Woverflow -Wpointer-arith -Wstrict-prototypes -pedantic -std=gnu90 -fstack-protector -Wformat
-#endif
+DEF_CFLAGS = -ffast-math -O3 -Wall -Werror=format-security -Wlogical-op -Wdeclaration-after-statement -Wvla -Wimplicit-function-declaration -Wignored-qualifiers
+
+VGM_DEBUG_FLAGS = 0
+ifeq ($(VGM_DEBUG_FLAGS),1)
+  #DEF_CFLAGS += -O0
+  DEF_CFLAGS += -g -DVGM_DEBUG_OUTPUT
+  DEF_CFLAGS += -Wall
+  DEF_CFLAGS += -Wextra
+  DEF_CFLAGS += -Wno-sign-compare
+  #DEF_CFLAGS += -pedantic -Wconversion -std=gnu90
+  #DEF_CFLAGS += -Wfloat-equal
+  DEF_CFLAGS += -Wdisabled-optimization -Wunsafe-loop-optimizations -Wswitch-default
+  DEF_CFLAGS +=  -Wcast-qual -Wpointer-arith
+  DEF_CFLAGS += -Wcast-align=strict -Wduplicated-cond -Wjump-misses-init -Wnull-dereference
+  DEF_CFLAGS += -Wold-style-definition -Wstrict-prototypes
+  DEF_CFLAGS += -Wmultistatement-macros -Wstringop-truncation
+  DEF_CFLAGS += -Wredundant-decls -Wmissing-include-dirs -Wmissing-declarations
+  #DEF_CFLAGS += -Wshadow
+  #DEF_CFLAGS += -Wstack-protector -fstack-protector
+endif
 
 LIBS_CFLAGS=
 LIBS_LDFLAGS=

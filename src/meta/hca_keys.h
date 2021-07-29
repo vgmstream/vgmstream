@@ -5,8 +5,10 @@
 
 typedef struct {
     uint64_t key;               /* hca key or seed ('user') key */
-    const uint16_t *subkeys;    /* scramble subkey table for seed key */
+#if 0
+    const uint16_t* subkeys;    /* scramble subkey table for seed key */
     size_t subkeys_size;        /* size of the derivation subkey table */
+#endif
 } hcakey_info;
 
 
@@ -409,6 +411,9 @@ static const hcakey_info hcakey_list[] = {
 
         /* Dragon Quest Tact (Android) */
         {3234477171400153310},      // 2CE32BD9B36A98DE
+
+        /* Alchemy Stars (Android) */
+        {1564789515523},            // 0000016C54B92503
 
         /* D4DJ Groovy Mix (Android) [base files] */
         {393410674916959300},       // 0575ACECA945A444

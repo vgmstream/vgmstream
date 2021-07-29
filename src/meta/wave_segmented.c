@@ -5,7 +5,7 @@
 #define MAX_SEGMENTS 4
 
 /* .WAVE - "EngineBlack" games, segmented [Shantae and the Pirate's Curse (PC/3DS), TMNT: Danger of the Ooze (PS3/3DS)] */
-VGMSTREAM * init_vgmstream_wave_segmented(STREAMFILE *streamFile) {
+VGMSTREAM * init_vgmstream_wave_segmented(STREAMFILE *sf) {
     VGMSTREAM * vgmstream = NULL;
     off_t segments_offset;
     int loop_flag = 0, channel_count, sample_rate;
@@ -20,17 +20,17 @@ VGMSTREAM * init_vgmstream_wave_segmented(STREAMFILE *streamFile) {
 
 
     /* checks */
-    if (!check_extensions(streamFile, "wave"))
+    if (!check_extensions(sf, "wave"))
         goto fail;
 
-    if (read_32bitLE(0x00,streamFile) != 0x4DF72D4A &&  /* header id */
-        read_32bitBE(0x00,streamFile) != 0x4DF72D4A)
+    if (read_32bitLE(0x00,sf) != 0x4DF72D4A &&  /* header id */
+        read_32bitBE(0x00,sf) != 0x4DF72D4A)
         goto fail;
-    if (read_8bit(0x04,streamFile) != 0x01) /* version? */
+    if (read_8bit(0x04,sf) != 0x01) /* version? */
         goto fail;
 
     /* PS3/X360 games */
-    big_endian = read_32bitBE(0x00,streamFile) == 0x4DF72D4A;
+    big_endian = read_32bitBE(0x00,sf) == 0x4DF72D4A;
     if (big_endian) {
         read_32bit = read_32bitBE;
         read_16bit = read_16bitBE;
@@ -39,16 +39,16 @@ VGMSTREAM * init_vgmstream_wave_segmented(STREAMFILE *streamFile) {
         read_16bit = read_16bitLE;
     }
 
-    channel_count = read_8bit(0x05,streamFile);
-    segment_count = read_16bit(0x06,streamFile);
+    channel_count = read_8bit(0x05,sf);
+    segment_count = read_16bit(0x06,sf);
     if (segment_count > MAX_SEGMENTS || segment_count <= 0) goto fail;
 
-    loop_start_segment = read_16bit(0x08, streamFile);
-    loop_end_segment   = read_16bit(0x0a, streamFile);
-    segments_offset = read_32bit(0x0c, streamFile);
+    loop_start_segment = read_16bit(0x08, sf);
+    loop_end_segment   = read_16bit(0x0a, sf);
+    segments_offset = read_32bit(0x0c, sf);
 
-    sample_rate = read_32bit(0x10, streamFile);
-    num_samples = read_32bit(0x14, streamFile);
+    sample_rate = read_32bit(0x10, sf);
+    num_samples = read_32bit(0x14, sf);
     /* 0x18: unknown (usually 0, maybe some count) */
 
 
@@ -67,17 +67,17 @@ VGMSTREAM * init_vgmstream_wave_segmented(STREAMFILE *streamFile) {
 
         /* open each segment subfile */
         for (i = 0; i < segment_count; i++) {
-            codec = read_8bit(segments_offset+0x10*i+0x00, streamFile);
+            codec = read_8bit(segments_offset+0x10*i+0x00, sf);
             /* 0x01(1): unknown (flag? usually 0x00/0x01/0x02) */
-            if (read_8bit(segments_offset+0x10*i+0x02, streamFile) != 0x01) goto fail; /* unknown */
-            if (read_8bit(segments_offset+0x10*i+0x03, streamFile) != 0x00) goto fail; /* unknown */
+            if (read_8bit(segments_offset+0x10*i+0x02, sf) != 0x01) goto fail; /* unknown */
+            if (read_8bit(segments_offset+0x10*i+0x03, sf) != 0x00) goto fail; /* unknown */
 
-            segment_samples  = read_32bit(segments_offset+0x10*i+0x04, streamFile);
-            extradata_offset = read_32bit(segments_offset+0x10*i+0x08, streamFile);
-            table_offset     = read_32bit(segments_offset+0x10*i+0x0c, streamFile);
+            segment_samples  = read_32bit(segments_offset+0x10*i+0x04, sf);
+            extradata_offset = read_32bit(segments_offset+0x10*i+0x08, sf);
+            table_offset     = read_32bit(segments_offset+0x10*i+0x0c, sf);
 
             /* create a sub-VGMSTREAM per segment
-             * (we'll reopen this streamFile as needed, so each sub-VGMSTREAM is fully independent) */
+             * (we'll reopen this sf as needed, so each sub-VGMSTREAM is fully independent) */
             switch(codec) {
                 case 0x02: { /* "adpcm" */
                     data->segments[i] = allocate_vgmstream(channel_count, 0);
@@ -89,18 +89,18 @@ VGMSTREAM * init_vgmstream_wave_segmented(STREAMFILE *streamFile) {
                     data->segments[i]->layout_type = layout_none;
                     data->segments[i]->num_samples = segment_samples;
 
-                    if (!vgmstream_open_stream(data->segments[i],streamFile,0x00))
+                    if (!vgmstream_open_stream(data->segments[i],sf,0x00))
                         goto fail;
 
                     /* bizarrely enough channel data isn't sequential (segment0 ch1+ may go after all other segments) */
                     for (ch = 0; ch < channel_count; ch++) {
-                        segment_offset = read_32bit(table_offset + 0x04*ch, streamFile);
+                        segment_offset = read_32bit(table_offset + 0x04*ch, sf);
                         data->segments[i]->ch[ch].channel_start_offset =
                                 data->segments[i]->ch[ch].offset = segment_offset;
 
                         /* ADPCM setup */
-                        data->segments[i]->ch[ch].adpcm_history1_32 = read_16bit(extradata_offset+0x04*ch+0x00, streamFile);
-                        data->segments[i]->ch[ch].adpcm_step_index  = read_8bit(extradata_offset+0x04*ch+0x02, streamFile);
+                        data->segments[i]->ch[ch].adpcm_history1_32 = read_16bit(extradata_offset+0x04*ch+0x00, sf);
+                        data->segments[i]->ch[ch].adpcm_step_index  = read_8bit(extradata_offset+0x04*ch+0x02, sf);
                         /* 0x03: reserved */
                     }
 
@@ -117,19 +117,19 @@ VGMSTREAM * init_vgmstream_wave_segmented(STREAMFILE *streamFile) {
                     data->segments[i]->layout_type = layout_none;
                     data->segments[i]->num_samples = segment_samples;
 
-                    if (!vgmstream_open_stream(data->segments[i],streamFile,0x00))
+                    if (!vgmstream_open_stream(data->segments[i],sf,0x00))
                         goto fail;
 
                     /* bizarrely enough channel data isn't sequential (segment0 ch1+ may go after all other segments) */
                     for (ch = 0; ch < channel_count; ch++) {
-                        segment_offset = read_32bit(table_offset + 0x04*ch, streamFile);
+                        segment_offset = read_32bit(table_offset + 0x04*ch, sf);
                         data->segments[i]->ch[ch].channel_start_offset =
                                 data->segments[i]->ch[ch].offset = segment_offset;
                     }
 
                     /* ADPCM setup: 0x06 initial ps/hist1/hist2 (per channel) + 0x20 coefs (per channel) */
-                    dsp_read_hist(data->segments[i], streamFile, extradata_offset+0x02, 0x06, big_endian);
-                    dsp_read_coefs(data->segments[i], streamFile, extradata_offset+0x06*channel_count+0x00, 0x20, big_endian);
+                    dsp_read_hist(data->segments[i], sf, extradata_offset+0x02, 0x06, big_endian);
+                    dsp_read_coefs(data->segments[i], sf, extradata_offset+0x06*channel_count+0x00, 0x20, big_endian);
 
                     break;
                 }
@@ -138,13 +138,13 @@ VGMSTREAM * init_vgmstream_wave_segmented(STREAMFILE *streamFile) {
                 case 0x04: { /* "vorbis" */
                     ogg_vorbis_meta_info_t ovmi = {0};
 
-                    segment_offset = read_32bit(table_offset, streamFile);
-                    segment_size = read_32bitBE(segment_offset, streamFile); /* always BE */
+                    segment_offset = read_32bit(table_offset, sf);
+                    segment_size = read_32bitBE(segment_offset, sf); /* always BE */
 
                     ovmi.meta_type = meta_WAVE;
                     ovmi.stream_size = segment_size;
 
-                    data->segments[i] = init_vgmstream_ogg_vorbis_callbacks(streamFile, NULL, segment_offset+0x04, &ovmi);
+                    data->segments[i] = init_vgmstream_ogg_vorbis_config(sf, segment_offset+0x04, &ovmi);
                     if (!data->segments[i]) goto fail;
 
                     if (data->segments[i]->num_samples != segment_samples) {
@@ -204,7 +204,7 @@ VGMSTREAM * init_vgmstream_wave_segmented(STREAMFILE *streamFile) {
     vgmstream->loop_end_sample = loop_end_sample;
 
     vgmstream->meta_type = meta_WAVE_segmented;
-    vgmstream->stream_size = get_streamfile_size(streamFile); /* wrong kbps otherwise */
+    vgmstream->stream_size = get_streamfile_size(sf); /* wrong kbps otherwise */
 
     /* .wave can mix codecs, usually first segment is a small ADPCM section) */
     vgmstream->coding_type = (segment_count == 1 ? data->segments[0]->coding_type : data->segments[1]->coding_type);

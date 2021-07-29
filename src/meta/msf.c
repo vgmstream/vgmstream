@@ -108,7 +108,7 @@ VGMSTREAM* init_vgmstream_msf(STREAMFILE* sf) {
             encoder_delay = 1024 + 69*2;
             block_align   = (codec==4 ? 0x60 : (codec==5 ? 0x98 : 0xC0)) * vgmstream->channels;
             vgmstream->num_samples = atrac3_bytes_to_samples(data_size, block_align) - encoder_delay;
-            if (vgmstream->sample_rate == 0xFFFFFFFF) /* some MSFv1 (Digi World SP) */
+            if (vgmstream->sample_rate == -1) /* some MSFv1 (Digi World SP) */
                 vgmstream->sample_rate = 44100; /* voice tracks seems to use 44khz, not sure about other tracks */
 
             vgmstream->codec_data = init_ffmpeg_atrac3_raw(sf, start_offset,data_size, vgmstream->num_samples,vgmstream->channels,vgmstream->sample_rate, block_align, encoder_delay);

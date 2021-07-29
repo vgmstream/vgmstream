@@ -135,6 +135,8 @@ void decode_ws(VGMSTREAM * vgmstream, int channel, sample * outbuf, int channels
                             samples_left_in_frame--) {          /* done with reading a sample */
                         outbuf[sample_count]=(hist-0x80)*0x100;
                     }
+                default:
+                    break;
             }
         }
     }

@@ -27,7 +27,7 @@ VGMSTREAM* init_vgmstream_ogv_3rdeye(STREAMFILE* sf) {
         ovmi.meta_type = meta_OGV_3RDEYE;
         ovmi.stream_size = subfile_size;
 
-        vgmstream = init_vgmstream_ogg_vorbis_callbacks(sf, NULL, subfile_offset, &ovmi);
+        vgmstream = init_vgmstream_ogg_vorbis_config(sf, subfile_offset, &ovmi);
     }
 #else
     goto fail;

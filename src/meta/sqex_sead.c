@@ -172,7 +172,7 @@ VGMSTREAM* init_vgmstream_sqex_sead(STREAMFILE* sf) {
             /* 0x18: reserved x2 */
             /* 0x20: seek table */
 
-            ogg_vgmstream = init_vgmstream_ogg_vorbis_callbacks(sf, NULL, subfile_offset, &ovmi);
+            ogg_vgmstream = init_vgmstream_ogg_vorbis_config(sf, subfile_offset, &ovmi);
             if (ogg_vgmstream) {
                 ogg_vgmstream->num_streams = vgmstream->num_streams;
                 ogg_vgmstream->stream_size = vgmstream->stream_size;

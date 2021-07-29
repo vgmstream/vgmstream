@@ -6,7 +6,7 @@
 typedef struct s14aes_handle s14aes_handle;
 
 /* init/close handle (AES-192 in ECB mode) */
-s14aes_handle* s14aes_init();
+s14aes_handle* s14aes_init(void);
 
 void s14aes_close(s14aes_handle* ctx);
 

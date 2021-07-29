@@ -455,7 +455,7 @@ static void decode_subframe_stereo(ubi_adpcm_channel_data* ch0_state, ubi_adpcm_
  *    0xA82557DB LE = 1010 100000 100101 010101 111101 1011 ... (where last 00 | first 1010 = 001010), etc
  * Codes aren't signed but rather have a particular meaning (see decoding).
  */
-void unpack_codes(uint8_t* data, uint8_t* codes, int code_count, int bps) {
+static void unpack_codes(uint8_t* data, uint8_t* codes, int code_count, int bps) {
     int i;
     size_t pos = 0;
     uint64_t bits = 0, input = 0;

@@ -1,11 +1,11 @@
 #include "meta.h"
 #include "../coding/coding.h"
 
-static int get_loop_points(STREAMFILE *streamFile, int *out_loop_start, int *out_loop_end);
+static int get_loop_points(STREAMFILE* sf, int* p_loop_start, int* p_loop_end);
 
 /* Jade RIFF - from Ubisoft Jade engine games [Beyond Good & Evil (multi), Rayman Raving Rabbids 1/2 (multi)] */
-VGMSTREAM * init_vgmstream_ubi_jade(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
+VGMSTREAM* init_vgmstream_ubi_jade(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
     off_t start_offset, first_offset = 0xc;
     off_t fmt_offset, data_offset;
     size_t fmt_size, data_size;
@@ -16,27 +16,29 @@ VGMSTREAM * init_vgmstream_ubi_jade(STREAMFILE *streamFile) {
 
     /* checks */
     /* .waa: ambiances, .wam: music, .wac: sfx, .wad: dialogs (usually)
-     * .wav: Beyond Good & Evil HD (PS3), .psw: fake/badly extracted names [ex. Rayman Raving Rabbids (PS2)] */
-    if (!check_extensions(streamFile,"waa,wac,wad,wam,wav,lwav,psw"))
+     * .wav: Beyond Good & Evil HD (PS3)
+     * .psw: fake/badly extracted names [ex. Rayman Raving Rabbids (PS2)] */
+    if (!check_extensions(sf,"waa,wac,wad,wam,wav,lwav,psw"))
         goto fail;
 
     /* a slightly twisted RIFF with custom codecs */
-    if (read_32bitBE(0x00,streamFile) != 0x52494646 ||  /* "RIFF" */
-        read_32bitBE(0x08,streamFile) != 0x57415645)    /* "WAVE" */
+    if (!is_id32be(0x00,sf, "RIFF") ||
+        !is_id32be(0x08,sf, "WAVE"))
         goto fail;
 
-    if (check_extensions(streamFile,"psw")) {  /* .psw are incorrectly extracted missing 0x04 at the end */
-        if (read_32bitLE(0x04,streamFile)+0x04 != get_streamfile_size(streamFile))
+
+    if (check_extensions(sf,"psw")) {  /* .psw are incorrectly extracted missing 0x04 at the end */
+        if (read_32bitLE(0x04,sf)+0x04 != get_streamfile_size(sf))
             goto fail;
     }
     else {
-        if (read_32bitLE(0x04,streamFile)+0x04+0x04 != get_streamfile_size(streamFile))
+        if (read_32bitLE(0x04,sf)+0x04+0x04 != get_streamfile_size(sf))
         goto fail;
     }
 
-    if (!find_chunk(streamFile, 0x666d7420,first_offset,0, &fmt_offset,&fmt_size, 0, 0))   /* "fmt " */
+    if (!find_chunk(sf, 0x666d7420,first_offset,0, &fmt_offset,&fmt_size, 0, 0))   /* "fmt " */
         goto fail;
-    if (!find_chunk(streamFile, 0x64617461,first_offset,0, &data_offset,&data_size, 0, 0)) /* "data" */
+    if (!find_chunk(sf, 0x64617461,first_offset,0, &data_offset,&data_size, 0, 0)) /* "data" */
         goto fail;
 
     /* ignore LyN RIFF (needed as codec 0xFFFE is reused) */
@@ -44,8 +46,8 @@ VGMSTREAM * init_vgmstream_ubi_jade(STREAMFILE *streamFile) {
         off_t fact_offset;
         size_t fact_size;
 
-        if (find_chunk(streamFile, 0x66616374,first_offset,0, &fact_offset,&fact_size, 0, 0)) { /* "fact" */
-            if (fact_size == 0x10 && read_32bitBE(fact_offset+0x04, streamFile) == 0x4C794E20) /* "LyN " */
+        if (find_chunk(sf, 0x66616374,first_offset,0, &fact_offset,&fact_size, 0, 0)) { /* "fact" */
+            if (fact_size == 0x10 && read_32bitBE(fact_offset+0x04, sf) == 0x4C794E20) /* "LyN " */
                 goto fail; /* parsed elsewhere */
             /* Jade doesn't use "fact", though */
         }
@@ -56,10 +58,10 @@ VGMSTREAM * init_vgmstream_ubi_jade(STREAMFILE *streamFile) {
     {
         if (fmt_size < 0x10)
             goto fail;
-        codec      = (uint16_t)read_16bitLE(fmt_offset+0x00,streamFile);
-        channel_count        = read_16bitLE(fmt_offset+0x02,streamFile);
-        sample_rate          = read_32bitLE(fmt_offset+0x04,streamFile);
-        block_size = (uint16_t)read_16bitLE(fmt_offset+0x0c,streamFile);
+        codec      = (uint16_t)read_16bitLE(fmt_offset+0x00,sf);
+        channel_count        = read_16bitLE(fmt_offset+0x02,sf);
+        sample_rate          = read_32bitLE(fmt_offset+0x04,sf);
+        block_size = (uint16_t)read_16bitLE(fmt_offset+0x0c,sf);
         /* 0x08: average bytes, 0x0e: bps, etc */
 
         /* autodetect Jade "v2", uses a different interleave [Rayman Raving Rabbids (PS2/Wii)] */
@@ -70,10 +72,10 @@ VGMSTREAM * init_vgmstream_ubi_jade(STREAMFILE *streamFile) {
                 /* half interleave check as there is no flag (ends with the PS-ADPCM stop frame) */
                 for (i = 0; i < channel_count; i++) {
                     off_t end_frame = data_offset + (data_size / channel_count) * (i+1) - 0x10;
-                    if (read_32bitBE(end_frame+0x00,streamFile) != 0x07007777 ||
-                        read_32bitBE(end_frame+0x04,streamFile) != 0x77777777 ||
-                        read_32bitBE(end_frame+0x08,streamFile) != 0x77777777 ||
-                        read_32bitBE(end_frame+0x0c,streamFile) != 0x77777777) {
+                    if (read_32bitBE(end_frame+0x00,sf) != 0x07007777 ||
+                        read_32bitBE(end_frame+0x04,sf) != 0x77777777 ||
+                        read_32bitBE(end_frame+0x08,sf) != 0x77777777 ||
+                        read_32bitBE(end_frame+0x0c,sf) != 0x77777777) {
                         is_jade_v2 = 1;
                         break;
                     }
@@ -82,12 +84,15 @@ VGMSTREAM * init_vgmstream_ubi_jade(STREAMFILE *streamFile) {
             }
 
             case 0xFFFE: /* GC/Wii */
-                is_jade_v2 = (read_16bitLE(fmt_offset+0x10,streamFile) == 0); /* extra data size (0x2e*channels) */
+                is_jade_v2 = (read_16bitLE(fmt_offset+0x10,sf) == 0); /* extra data size (0x2e*channels) */
+                break;
+
+            default:
                 break;
         }
 
         /* hopefully catches PC Rabbids */
-        if (find_chunk(streamFile, 0x63756520,first_offset,0, NULL,NULL, 0, 0)) { /* "cue " */
+        if (find_chunk(sf, 0x63756520,first_offset,0, NULL,NULL, 0, 0)) { /* "cue " */
             is_jade_v2 = 1;
         }
     }
@@ -95,13 +100,13 @@ VGMSTREAM * init_vgmstream_ubi_jade(STREAMFILE *streamFile) {
 
     /* get loop points */
     if (is_jade_v2) {
-        loop_flag = get_loop_points(streamFile, &loop_start, &loop_end); /* loops in "LIST" */
+        loop_flag = get_loop_points(sf, &loop_start, &loop_end); /* loops in "LIST" */
     }
     else {
         /* BG&E files don't contain looping information, so the looping is done by extension.
          * wam and waa contain ambient sounds and music, so often they contain looped music.
          * Later, if the file is too short looping will be disabled. */
-        loop_flag = check_extensions(streamFile,"waa,wam");
+        loop_flag = check_extensions(sf,"waa,wam");
     }
 
     start_offset = data_offset;
@@ -197,8 +202,8 @@ VGMSTREAM * init_vgmstream_ubi_jade(STREAMFILE *streamFile) {
                 /* has extra 0x2e coefs before each channel, not counted in data_size */
                 vgmstream->interleave_block_size = (data_size + 0x2e*channel_count) / channel_count;
 
-                dsp_read_coefs_be(vgmstream, streamFile, start_offset+0x00, vgmstream->interleave_block_size);
-                dsp_read_hist_be (vgmstream, streamFile, start_offset+0x20, vgmstream->interleave_block_size);
+                dsp_read_coefs_be(vgmstream, sf, start_offset+0x00, vgmstream->interleave_block_size);
+                dsp_read_hist_be (vgmstream, sf, start_offset+0x20, vgmstream->interleave_block_size);
                 start_offset += 0x2e;
             }
             break;
@@ -227,10 +232,10 @@ VGMSTREAM * init_vgmstream_ubi_jade(STREAMFILE *streamFile) {
             if (block_size != 0x02*channel_count) goto fail;
 
             /* a MSF (usually ATRAC3) masquerading as PCM */
-            if (read_32bitBE(start_offset, streamFile) != 0x4D534643) /* "MSF\43" */
+            if (read_32bitBE(start_offset, sf) != 0x4D534643) /* "MSF\43" */
                 goto fail;
 
-            temp_sf = setup_subfile_streamfile(streamFile, start_offset, data_size, "msf");
+            temp_sf = setup_subfile_streamfile(sf, start_offset, data_size, "msf");
             if (!temp_sf) goto fail;
 
             temp_vgmstream = init_vgmstream_msf(temp_sf);
@@ -255,7 +260,7 @@ VGMSTREAM * init_vgmstream_ubi_jade(STREAMFILE *streamFile) {
     }
 
 
-    if ( !vgmstream_open_stream(vgmstream,streamFile,start_offset) )
+    if (!vgmstream_open_stream(vgmstream, sf,start_offset))
         goto fail;
     return vgmstream;
 
@@ -265,7 +270,7 @@ fail:
 }
 
 /* extract loops from "cue /LIST", returns if loops (info from Droolie) */
-static int get_loop_points(STREAMFILE *streamFile, int *out_loop_start, int *out_loop_end) {
+static int get_loop_points(STREAMFILE *sf, int *out_loop_start, int *out_loop_end) {
     off_t cue_offset, list_offset;
     size_t cue_size, list_size;
     off_t offset, first_offset = 0x0c;
@@ -273,26 +278,26 @@ static int get_loop_points(STREAMFILE *streamFile, int *out_loop_start, int *out
 
 
     /* unlooped files may contain LIST, but also may not */
-    if (!find_chunk(streamFile, 0x63756520,first_offset,0, &cue_offset,&cue_size, 0, 0)) /* "cue " */
+    if (!find_chunk(sf, 0x63756520,first_offset,0, &cue_offset,&cue_size, 0, 0)) /* "cue " */
         goto fail;
-    if (!find_chunk(streamFile, 0x4C495354,first_offset,0, &list_offset,&list_size, 0, 0)) /* "LIST" */
+    if (!find_chunk(sf, 0x4C495354,first_offset,0, &list_offset,&list_size, 0, 0)) /* "LIST" */
         goto fail;
 
     offset = list_offset + 0x04;
     while (offset < list_offset + list_size) {
-        uint32_t chunk_id   = read_32bitBE(offset+0x00, streamFile);
-        uint32_t chunk_size = read_32bitLE(offset+0x04, streamFile);
+        uint32_t chunk_id   = read_32bitBE(offset+0x00, sf);
+        uint32_t chunk_size = read_32bitLE(offset+0x04, sf);
         offset += 0x08;
 
         switch(chunk_id) {
             case 0x6C61626C: /* "labl" */
-                if (read_32bitBE(offset+0x04, streamFile) == 0x6C6F6F70) /* "loop", actually an string tho */
-                    loop_id = read_32bitLE(offset+0x00, streamFile);
+                if (read_32bitBE(offset+0x04, sf) == 0x6C6F6F70) /* "loop", actually an string tho */
+                    loop_id = read_32bitLE(offset+0x00, sf);
                 chunk_size += (chunk_size % 2) ? 1 : 0; /* string is even-padded after size */
                 break;
             case 0x6C747874: /* "ltxt" */
-                if (loop_id == read_32bitLE(offset+0x00, streamFile))
-                    loop_end = read_32bitLE(offset+0x04, streamFile);
+                if (loop_id == read_32bitLE(offset+0x00, sf))
+                    loop_end = read_32bitLE(offset+0x04, sf);
                 break;
 
             default:
@@ -306,10 +311,10 @@ static int get_loop_points(STREAMFILE *streamFile, int *out_loop_start, int *out
     if (!loop_end)
         return 0;
 
-    cue_count = read_32bitLE(cue_offset+0x00, streamFile);
+    cue_count = read_32bitLE(cue_offset+0x00, sf);
     for (i = 0; i < cue_count; i++) {
-        if (loop_id == read_32bitLE(cue_offset+0x04 + i*0x18 + 0x00, streamFile)) {
-            loop_start = read_32bitLE(cue_offset+0x04 + i*0x18 + 0x04, streamFile);
+        if (loop_id == read_32bitLE(cue_offset+0x04 + i*0x18 + 0x00, sf)) {
+            loop_start = read_32bitLE(cue_offset+0x04 + i*0x18 + 0x04, sf);
             loop_end += loop_start;
             break;
         }
@@ -325,9 +330,9 @@ fail:
 
 
 /* Jade RIFF in containers */
-VGMSTREAM * init_vgmstream_ubi_jade_container(STREAMFILE *streamFile) {
+VGMSTREAM* init_vgmstream_ubi_jade_container(STREAMFILE* sf) {
     VGMSTREAM *vgmstream = NULL;
-    STREAMFILE *temp_streamFile = NULL;
+    STREAMFILE *temp_sf = NULL;
     off_t subfile_offset;
     size_t subfile_size;
 
@@ -336,22 +341,22 @@ VGMSTREAM * init_vgmstream_ubi_jade_container(STREAMFILE *streamFile) {
 
     /* checks */
     /* standard Jade exts + .xma for padded XMA used in Beyond Good & Evil HD (X360) */
-    if (!check_extensions(streamFile,"waa,wac,wad,wam,wav,lwav,xma"))
+    if (!check_extensions(sf,"waa,wac,wad,wam,wav,lwav,xma"))
         goto fail;
 
-    if (read_32bitBE(0x04,streamFile) == 0x52494646 &&
-            read_32bitLE(0x00,streamFile)+0x04 == get_streamfile_size(streamFile)) {
+    if (read_32bitBE(0x04,sf) == 0x52494646 &&
+            read_32bitLE(0x00,sf)+0x04 == get_streamfile_size(sf)) {
         /* data size + RIFF + padding */
         subfile_offset = 0x04;
     }
-    else if (read_32bitBE(0x00,streamFile) == 0x52494646 &&
-            read_32bitLE(0x04,streamFile)+0x04+0x04 < get_streamfile_size(streamFile) &&
-            (get_streamfile_size(streamFile) + 0x04) % 0x800 == 0) {
+    else if (read_32bitBE(0x00,sf) == 0x52494646 &&
+            read_32bitLE(0x04,sf)+0x04+0x04 < get_streamfile_size(sf) &&
+            (get_streamfile_size(sf) + 0x04) % 0x800 == 0) {
         /* RIFF + padding with data size removed (bad extraction) */
         subfile_offset = 0x00;
     }
-    else if (read_32bitBE(0x04,streamFile) == 0x52494646 &&
-            read_32bitLE(0x00,streamFile) == get_streamfile_size(streamFile)) {
+    else if (read_32bitBE(0x04,sf) == 0x52494646 &&
+            read_32bitLE(0x00,sf) == get_streamfile_size(sf)) {
         /* data_size + RIFF + padding - 0x04 (bad extraction) */
         subfile_offset = 0x04;
     }
@@ -359,22 +364,22 @@ VGMSTREAM * init_vgmstream_ubi_jade_container(STREAMFILE *streamFile) {
         goto fail;
     }
 
-    subfile_size = read_32bitLE(subfile_offset+0x04,streamFile) + 0x04+0x04;
+    subfile_size = read_32bitLE(subfile_offset+0x04,sf) + 0x04+0x04;
 
-    temp_streamFile = setup_subfile_streamfile(streamFile, subfile_offset,subfile_size, NULL);
-    if (!temp_streamFile) goto fail;
+    temp_sf = setup_subfile_streamfile(sf, subfile_offset,subfile_size, NULL);
+    if (!temp_sf) goto fail;
 
-    if (check_extensions(streamFile,"xma")) {
-        vgmstream = init_vgmstream_xma(temp_streamFile);
+    if (check_extensions(sf,"xma")) {
+        vgmstream = init_vgmstream_xma(temp_sf);
     } else {
-        vgmstream = init_vgmstream_ubi_jade(temp_streamFile);
+        vgmstream = init_vgmstream_ubi_jade(temp_sf);
     }
 
-    close_streamfile(temp_streamFile);
+    close_streamfile(temp_sf);
     return vgmstream;
 
 fail:
-    close_streamfile(temp_streamFile);
+    close_streamfile(temp_sf);
     close_vgmstream(vgmstream);
     return NULL;
 }

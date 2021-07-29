@@ -14,12 +14,12 @@ int clHCA_isOurFile(const void *data, unsigned int size);
 typedef struct clHCA clHCA;
 
 /* In case you wish to allocate and reset the structure on your own. */
-int clHCA_sizeof();
+int clHCA_sizeof(void);
 void clHCA_clear(clHCA *);
 void clHCA_done(clHCA *);
 
 /* Or you could let the library allocate it. */
-clHCA * clHCA_new();
+clHCA * clHCA_new(void);
 void clHCA_delete(clHCA *);
 
 /* Parses the HCA header. Must be called before any decoding may be performed,

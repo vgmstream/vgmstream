@@ -62,10 +62,10 @@ VGMSTREAM* init_vgmstream_xnb(STREAMFILE* sf) {
         char reader_name[255+1];
         size_t string_len;
         uint8_t type_count;
-        const static char* type_sound =  "Microsoft.Xna.Framework.Content.SoundEffectReader"; /* partial "fmt" chunk or XMA */
-        const static char* type_ogg = "SoundEffectFromOggReader"; /* has extra text info after base part */
-        const static char* type_song = "Microsoft.Xna.Framework.Content.SongReader"; /* references a companion .wma */
-        const static char* type_int32 = "Microsoft.Xna.Framework.Content.Int32Reader"; /* extra crap */
+        static const char* type_sound =  "Microsoft.Xna.Framework.Content.SoundEffectReader"; /* partial "fmt" chunk or XMA */
+        static const char* type_ogg = "SoundEffectFromOggReader"; /* has extra text info after base part */
+        static const char* type_song = "Microsoft.Xna.Framework.Content.SongReader"; /* references a companion .wma */
+        static const char* type_int32 = "Microsoft.Xna.Framework.Content.Int32Reader"; /* extra crap */
 
         type_count = read_u8(offset++, sf_h);
 

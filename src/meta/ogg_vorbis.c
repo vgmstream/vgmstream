@@ -286,21 +286,21 @@ VGMSTREAM* init_vgmstream_ogg_vorbis(STREAMFILE* sf) {
          *   0x0c(2): PCM block size, 0x0e(2): PCM bps, 0x10: null, 0x18: samples (in PCM bytes)
          * - .isl: looping table (encrypted like the files) */
         if (isl_name) {
-            STREAMFILE* islFile = NULL;
+            STREAMFILE* sf_isl = NULL;
 
-            islFile = open_streamfile_by_filename(sf, isl_name);
+            sf_isl = open_streamfile_by_filename(sf, isl_name);
 
-            if (!islFile) {
+            if (!sf_isl) {
                 /* try in ../(file) too since that's how the .isl is stored on disc */
                 char isl_path[PATH_LIMIT];
                 snprintf(isl_path, sizeof(isl_path), "../%s", isl_name);
-                islFile = open_streamfile_by_filename(sf, isl_path);
+                sf_isl = open_streamfile_by_filename(sf, isl_path);
             }
 
-            if (islFile) {
+            if (sf_isl) {
                 STREAMFILE* dec_sf = NULL;
 
-                dec_sf = setup_ogg_vorbis_streamfile(islFile, cfg);
+                dec_sf = setup_ogg_vorbis_streamfile(sf_isl, cfg);
                 if (dec_sf) {
                     off_t loop_offset;
                     char basename[PATH_LIMIT];
@@ -327,7 +327,7 @@ VGMSTREAM* init_vgmstream_ogg_vorbis(STREAMFILE* sf) {
                     close_streamfile(dec_sf);
                 }
 
-                close_streamfile(islFile);
+                close_streamfile(sf_isl);
             }
         }
     }
@@ -367,7 +367,7 @@ VGMSTREAM* init_vgmstream_ogg_vorbis(STREAMFILE* sf) {
     }
 
     if (is_lse) { /* [Nippon Ichi PC games] */
-        if (read_32bitBE(0x00,sf) == 0xFFFFFFFF) { /* [Operation Abyss: New Tokyo Legacy (PC)] */
+        if (read_u32be(0x00,sf) == 0xFFFFFFFF) { /* [Operation Abyss: New Tokyo Legacy (PC)] */
             cfg.key[0] = 0xFF;
             cfg.key_len = 1;
             cfg.is_header_swap = 1;
@@ -416,7 +416,7 @@ VGMSTREAM* init_vgmstream_ogg_vorbis(STREAMFILE* sf) {
             ovmi.meta_type = meta_OGG_VORBIS;
     }
 
-    vgmstream = init_vgmstream_ogg_vorbis_callbacks(temp_sf != NULL ? temp_sf : sf, NULL, start_offset, &ovmi);
+    vgmstream = init_vgmstream_ogg_vorbis_config(temp_sf != NULL ? temp_sf : sf, start_offset, &ovmi);
 
     close_streamfile(temp_sf);
     return vgmstream;
@@ -426,7 +426,7 @@ fail:
     return NULL;
 }
 
-VGMSTREAM* init_vgmstream_ogg_vorbis_callbacks(STREAMFILE* sf, ov_callbacks* callbacks, off_t start, const ogg_vorbis_meta_info_t *ovmi) {
+VGMSTREAM* init_vgmstream_ogg_vorbis_config(STREAMFILE* sf, off_t start, const ogg_vorbis_meta_info_t* ovmi) {
     VGMSTREAM* vgmstream = NULL;
     ogg_vorbis_codec_data* data = NULL;
     ogg_vorbis_io io = {0};

@@ -983,7 +983,7 @@ void decode_fsb_ima(VGMSTREAM * vgmstream, VGMSTREAMCHANNEL * stream, sample_t *
 }
 
 /* mono XBOX-IMA with header endianness and alt nibble expand (verified vs AK test demos) */
-void decode_wwise_ima(VGMSTREAM * vgmstream, VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
+void decode_wwise_ima(VGMSTREAM* vgmstream, VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
     int i, sample_count = 0, num_frame;
     int32_t hist1 = stream->adpcm_history1_32;
     int step_index = stream->adpcm_step_index;
@@ -1242,7 +1242,7 @@ static inline int _clamp_s32(int value, int min, int max) {
 
 /* Crystal Dynamics IMA. Original code uses mind-bending intrinsics, so this may not be fully accurate.
  * Has another table with delta_table MMX combos, and uses header sample (first nibble is always 0). */
-void decode_cd_ima(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
+void decode_cd_ima(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
     uint8_t frame[0x24] = {0};
     int i, frames_in, sample_pos = 0, block_samples, frame_size;
     int32_t hist1 = stream->adpcm_history1_32;

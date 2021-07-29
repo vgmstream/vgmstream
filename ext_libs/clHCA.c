@@ -364,7 +364,7 @@ static void clHCA_destructor(clHCA* hca) {
     hca->is_valid = 0;
 }
 
-int clHCA_sizeof() {
+int clHCA_sizeof(void) {
     return sizeof(clHCA);
 }
 
@@ -376,7 +376,7 @@ void clHCA_done(clHCA* hca) {
     clHCA_destructor(hca);
 }
 
-clHCA* clHCA_new() {
+clHCA* clHCA_new(void) {
     clHCA* hca = malloc(clHCA_sizeof());
     if (hca) {
         clHCA_constructor(hca);
@@ -1941,7 +1941,6 @@ static void imdct_transform(stChannel* ch, int subframe) {
 
     /* update output/imdct with overlapped window (lib fuses this with the above) */
     {
-        unsigned int i;
         const float* dct = ch->spectra; //ch->dct;
         const float* prev = ch->imdct_previous;
 

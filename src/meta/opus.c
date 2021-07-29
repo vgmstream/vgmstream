@@ -157,16 +157,16 @@ VGMSTREAM* init_vgmstream_opus_n1(STREAMFILE* sf) {
     int num_samples, loop_start, loop_end;
 
     /* checks */
-    if ( !check_extensions(sf,"opus,lopus"))
+    if (!check_extensions(sf,"opus,lopus"))
         goto fail;
-    if (!((read_32bitBE(0x04,sf) == 0x00000000 && read_32bitBE(0x0c,sf) == 0x00000000) ||
-          (read_32bitBE(0x04,sf) == 0xFFFFFFFF && read_32bitBE(0x0c,sf) == 0xFFFFFFFF)))
+    if (!((read_u32be(0x04,sf) == 0x00000000 && read_u32be(0x0c,sf) == 0x00000000) ||
+          (read_u32be(0x04,sf) == 0xFFFFFFFF && read_u32be(0x0c,sf) == 0xFFFFFFFF)))
         goto fail;
 
     offset = 0x10;
     num_samples = 0;
-    loop_start = read_32bitLE(0x00,sf);
-    loop_end = read_32bitLE(0x08,sf);
+    loop_start = read_s32le(0x00,sf);
+    loop_end = read_s32le(0x08,sf);
 
     return init_vgmstream_opus(sf, meta_OPUS, offset, num_samples,loop_start,loop_end);
 fail:

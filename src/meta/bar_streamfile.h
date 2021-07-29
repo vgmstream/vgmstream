@@ -44,7 +44,7 @@ static void get_name_bar(BARSTREAMFILE *streamFile, char *name, size_t length) {
     streamFile->real_file->get_name(streamFile->real_file, name, length);
 }
 
-STREAMFILE *open_bar(BARSTREAMFILE *streamFile, const char * const filename, size_t buffersize) {
+static STREAMFILE *open_bar(BARSTREAMFILE *streamFile, const char * const filename, size_t buffersize) {
     STREAMFILE *newfile = streamFile->real_file->open(streamFile->real_file,filename,buffersize);
     if (!newfile)
         return NULL;

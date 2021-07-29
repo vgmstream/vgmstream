@@ -67,7 +67,7 @@ static int init_ffmpeg_config(ffmpeg_codec_data* data, int target_subsong, int r
 /* ******************************************** */
 
 /* Global FFmpeg init */
-static void g_init_ffmpeg() {
+static void g_init_ffmpeg(void) {
     if (g_ffmpeg_initialized == 1) {
         while (g_ffmpeg_initialized < 2); /* active wait for lack of a better way */
     }
@@ -265,6 +265,9 @@ static int64_t ffmpeg_seek(void* opaque, int64_t offset, int whence) {
 
         case SEEK_END: /* relative to file end (should be negative) */
             offset += data->logical_size;
+            break;
+
+        default:
             break;
     }
 

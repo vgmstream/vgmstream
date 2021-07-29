@@ -999,7 +999,7 @@ static const meta_info meta_info_list[] = {
         {meta_LEG,                  "Legaia 2 - Duel Saga LEG Header"},
         {meta_FILP,                 "Bio Hazard - Gun Survivor FILp Header"},
         {meta_IKM,                  "MiCROViSiON IKM header"},
-        {meta_SFS,                  "Baroque SFS Header"},
+        {meta_SFS,                  "String .SFS header"},
         {meta_SAT_DVI,              "Konami KCEN DVI. header"},
         {meta_DC_KCEY,              "Konami KCEY KCEYCOMP header"},
         {meta_BG00,                 "Falcom BG00 Header"},

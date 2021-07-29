@@ -91,7 +91,7 @@ fail:
 #define ACB_MAX_NAME 1024 /* even more is possible in rare cases [Senran Kagura Burst Re:Newal (PC)] */
 
 
-STREAMFILE* setup_acb_streamfile(STREAMFILE* sf, size_t buffer_size) {
+static STREAMFILE* setup_acb_streamfile(STREAMFILE* sf, size_t buffer_size) {
     STREAMFILE* new_sf = NULL;
 
     /* buffer seems better than reopening when opening multiple subsongs at the same time with STDIO,

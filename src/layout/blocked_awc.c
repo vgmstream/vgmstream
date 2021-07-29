@@ -4,7 +4,7 @@
 #include "../vgmstream.h"
 
 
-static size_t get_channel_header_size(STREAMFILE* sf, off_t offset, int channels, int big_endian);
+static size_t get_channel_header_size(STREAMFILE* sf, off_t offset, int big_endian);
 static size_t get_block_header_size(STREAMFILE* sf, off_t offset, size_t channel_header_size, int channels, int big_endian);
 
 /* AWC music chunks  */
@@ -38,7 +38,7 @@ void block_update_awc(off_t block_offset, VGMSTREAM * vgmstream) {
      *   32b * entries = global samples per frame in each block (for MPEG probably per full frame)
      */
 
-    channel_header_size = get_channel_header_size(sf, block_offset, vgmstream->channels, vgmstream->codec_endian);
+    channel_header_size = get_channel_header_size(sf, block_offset, vgmstream->codec_endian);
     header_size = get_block_header_size(sf, block_offset, channel_header_size, vgmstream->channels, vgmstream->codec_endian);
     for (i = 0; i < vgmstream->channels; i++) {
         vgmstream->ch[i].offset = block_offset + header_size + 0x800*entries*i;
@@ -47,7 +47,7 @@ void block_update_awc(off_t block_offset, VGMSTREAM * vgmstream) {
 
 }
 
-static size_t get_channel_header_size(STREAMFILE* sf, off_t offset, int channels, int big_endian) {
+static size_t get_channel_header_size(STREAMFILE* sf, off_t offset, int big_endian) {
     int32_t (*read_32bit)(off_t,STREAMFILE*) = big_endian ? read_32bitBE : read_32bitLE;
 
     /* later games have an smaller channel header, try to detect using

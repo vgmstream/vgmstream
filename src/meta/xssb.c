@@ -128,6 +128,9 @@ VGMSTREAM* init_vgmstream_xssb(STREAMFILE *sf) {
 
             vgmstream->num_samples = xbox_ima_bytes_to_samples(h.stream_size, h.channels);
             break;
+
+        default:
+            goto fail;
     }
 
     if (!vgmstream_open_stream(vgmstream, sf, h.stream_start))

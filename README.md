@@ -73,8 +73,11 @@ Put the following files somewhere Windows can find them:
 - `libcelt-0110.dll`
 - `libspeex.dll`
 
-For Winamp/XMPlay/command line (`test.exe`) this means in the directory with the main `.exe`,
-or in a system directory, or any other directory in the PATH variable.
+For command line (`test.exe`) and XMPlay this means in the directory with the main `.exe`,
+or possibly a directory in the PATH variable.
+
+For Winamp, the above `.dll` also go near main `winamp.exe`, but note that `in_vgmstream.dll`
+plugin itself goes in `Plugins`.
 
 On other OSs like Linux/Mac, libs need to be installed before compiling, then should be used
 automatically, though not all may enabled at the moment due to build scripts issues.
@@ -84,6 +87,7 @@ automatically, though not all may enabled at the moment due to build scripts iss
 
 ### test.exe/vgmstream-cli (command line decoder)
 *Windows*: unzip `test.exe` and follow the above instructions for installing needed extra files.
+(`test.exe` is used for historical reasons, but you can call it `vgmstream-cli` anyway).
 
 *Others*: build instructions can be found in doc/BUILD.md document in vgmstream's source
 code (can be compiled with CMake/Make/autotools).
@@ -125,7 +129,7 @@ wilcards (or leave it alone for the defaults).
 
 
 ### in_vgmstream (Winamp plugin)
-*Windows*: drop the `in_vgmstream.dll` in your Winamp plugins directory,
+*Windows*: drop the `in_vgmstream.dll` in your Winamp Plugins directory,
 and follow the above instructions for installing needed extra files.
 
 *Others*: may be possible to use through *Wine*

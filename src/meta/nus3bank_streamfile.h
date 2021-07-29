@@ -62,6 +62,7 @@ static STREAMFILE* setup_nus3bank_streamfile(STREAMFILE *sf, off_t start) {
 
         /* find "data" */
         pos = 0x0c;
+        data_pos = 0;
         while(pos < sizeof(buf)) {
             chunk_type = get_u32be(buf + pos + 0x00) ^ chunk_key;
             chunk_size = get_u32be(buf + pos + 0x04) ^ chunk_key;

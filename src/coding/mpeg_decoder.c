@@ -3,13 +3,12 @@
 #include "../vgmstream.h"
 
 #ifdef VGM_USE_MPEG
-#include <mpg123.h>
 #include "mpeg_decoder.h"
 
 
 #define MPEG_DATA_BUFFER_SIZE 0x1000 /* at least one MPEG frame (max ~0x5A1 plus some more in case of free bitrate) */
 
-static mpg123_handle* init_mpg123_handle();
+static mpg123_handle* init_mpg123_handle(void);
 static void decode_mpeg_standard(VGMSTREAMCHANNEL* stream, mpeg_codec_data* data, sample_t* outbuf, int32_t samples_to_do, int channels);
 static void decode_mpeg_custom(VGMSTREAM* vgmstream, mpeg_codec_data* data, sample_t* outbuf, int32_t samples_to_do, int channels);
 static void decode_mpeg_custom_stream(VGMSTREAMCHANNEL *stream, mpeg_codec_data* data, int num_stream);
@@ -185,7 +184,7 @@ fail:
 }
 
 
-static mpg123_handle* init_mpg123_handle() {
+static mpg123_handle* init_mpg123_handle(void) {
     mpg123_handle* m = NULL;
     int rc;
 

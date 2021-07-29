@@ -294,7 +294,7 @@ fail:
     return 0;
 }
 
-static int is_ue4_msadpcm(VGMSTREAM* vgmstream, STREAMFILE* sf, riff_fmt_chunk* fmt, int fact_sample_count, off_t start_offset);
+static int is_ue4_msadpcm(STREAMFILE* sf, riff_fmt_chunk* fmt, int fact_sample_count, off_t start_offset);
 static size_t get_ue4_msadpcm_interleave(STREAMFILE* sf, riff_fmt_chunk* fmt, off_t start, size_t size);
 
 
@@ -604,10 +604,10 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
 
     /* ignore Beyond Good & Evil HD PS3 evil reuse of PCM codec */
     if (fmt.coding_type == coding_PCM16LE &&
-            read_32bitBE(start_offset+0x00, sf) == 0x4D534643 && /* "MSF\43" */
-            read_32bitBE(start_offset+0x34, sf) == 0xFFFFFFFF && /* always */
-            read_32bitBE(start_offset+0x38, sf) == 0xFFFFFFFF &&
-            read_32bitBE(start_offset+0x3c, sf) == 0xFFFFFFFF)
+            read_u32be(start_offset+0x00, sf) == 0x4D534643 && /* "MSF\43" */
+            read_u32be(start_offset+0x34, sf) == 0xFFFFFFFF && /* always */
+            read_u32be(start_offset+0x38, sf) == 0xFFFFFFFF &&
+            read_u32be(start_offset+0x3c, sf) == 0xFFFFFFFF)
         goto fail;
 
     /* ignore Gitaroo Man Live! (PSP) multi-RIFF (to allow chunked TXTH) */
@@ -795,7 +795,7 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
     }
 
     /* UE4 uses interleaved mono MSADPCM, try to autodetect without breaking normal MSADPCM */
-    if (fmt.coding_type == coding_MSADPCM && is_ue4_msadpcm(vgmstream, sf, &fmt, fact_sample_count, start_offset)) {
+    if (fmt.coding_type == coding_MSADPCM && is_ue4_msadpcm(sf, &fmt, fact_sample_count, start_offset)) {
         vgmstream->coding_type = coding_MSADPCM_int;
         vgmstream->codec_config = 1; /* mark as UE4 MSADPCM */
         vgmstream->frame_size = fmt.block_size;
@@ -850,6 +850,8 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
                     vgmstream->loop_start_sample = pcm_bytes_to_samples(loop_start_nxbf, vgmstream->channels, 16);
                     vgmstream->loop_end_sample = vgmstream->num_samples;
                     break;
+                default:
+                    break;
             }
         }
     }
@@ -868,7 +870,7 @@ fail:
 }
 
 /* UE4 MSADPCM is quite normal but has a few minor quirks we can use to detect it */
-static int is_ue4_msadpcm(VGMSTREAM* vgmstream, STREAMFILE* sf, riff_fmt_chunk* fmt, int fact_sample_count, off_t start) {
+static int is_ue4_msadpcm(STREAMFILE* sf, riff_fmt_chunk* fmt, int fact_sample_count, off_t start) {
 
     /* multichannel ok */
     if (fmt->channel_count < 2)

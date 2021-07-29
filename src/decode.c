@@ -1012,7 +1012,7 @@ void decode_vgmstream(VGMSTREAM* vgmstream, int samples_written, int samples_to_
         case coding_EA_XA_V2:
             for (ch = 0; ch < vgmstream->channels; ch++) {
                 decode_ea_xa_v2(&vgmstream->ch[ch], buffer+ch,
-                        vgmstream->channels, vgmstream->samples_into_block, samples_to_do, ch);
+                        vgmstream->channels, vgmstream->samples_into_block, samples_to_do);
             }
             break;
         case coding_MAXIS_XA:
@@ -1024,7 +1024,7 @@ void decode_vgmstream(VGMSTREAM* vgmstream, int samples_written, int samples_to_
         case coding_EA_XAS_V0:
             for (ch = 0; ch < vgmstream->channels; ch++) {
                 decode_ea_xas_v0(&vgmstream->ch[ch], buffer+ch,
-                        vgmstream->channels, vgmstream->samples_into_block, samples_to_do, ch);
+                        vgmstream->channels, vgmstream->samples_into_block, samples_to_do);
             }
             break;
         case coding_EA_XAS_V1:
@@ -1188,7 +1188,7 @@ void decode_vgmstream(VGMSTREAM* vgmstream, int samples_written, int samples_to_
         case coding_WWISE_IMA:
             for (ch = 0; ch < vgmstream->channels; ch++) {
                 decode_wwise_ima(vgmstream,&vgmstream->ch[ch], buffer+ch,
-                        vgmstream->channels, vgmstream->samples_into_block, samples_to_do, ch);
+                        vgmstream->channels, vgmstream->samples_into_block, samples_to_do);
             }
             break;
         case coding_REF_IMA:
@@ -1227,7 +1227,7 @@ void decode_vgmstream(VGMSTREAM* vgmstream, int samples_written, int samples_to_
         case coding_CD_IMA:
             for (ch = 0; ch < vgmstream->channels; ch++) {
                 decode_cd_ima(&vgmstream->ch[ch], buffer+ch,
-                        vgmstream->channels, vgmstream->samples_into_block, samples_to_do, ch);
+                        vgmstream->channels, vgmstream->samples_into_block, samples_to_do);
             }
             break;
 

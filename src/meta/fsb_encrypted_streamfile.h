@@ -1,5 +1,5 @@
 #ifndef _FSB_ENCRYPTED_STREAMFILE_H_
-#define _FSB_ENCRYPTED_H_
+#define _FSB_ENCRYPTED_STREAMFILE_H_
 
 #define FSB_KEY_MAX 0x10000 //0x168
 
@@ -71,4 +71,4 @@ static STREAMFILE* setup_fsb_streamfile(STREAMFILE* sf, const uint8_t* key, size
     return new_sf;
 }
 
-#endif /* _FSB5_STREAMFILE_H_ */
+#endif /* _FSB_ENCRYPTED_STREAMFILE_H_ */

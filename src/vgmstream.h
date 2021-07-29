@@ -31,14 +31,6 @@ enum { VGMSTREAM_MAX_NUM_SAMPLES = 1000000000 }; /* no ~5h vgm hopefully */
 //#define VGM_USE_SPEEX
 
 
-#ifdef VGM_USE_VORBIS
-#include <vorbis/vorbisfile.h>
-#endif
-
-#ifdef VGM_USE_MPEG
-#include <mpg123.h>
-#endif
-
 #ifdef VGM_USE_MP4V2
 #define MP4V2_NO_STDINT_DEFS
 #include <mp4v2/mp4v2.h>
@@ -48,14 +40,9 @@ enum { VGMSTREAM_MAX_NUM_SAMPLES = 1000000000 }; /* no ~5h vgm hopefully */
 #include <aacdecoder_lib.h>
 #endif
 
-#ifdef VGM_USE_MAIATRAC3PLUS
-#include <maiatrac3plus.h>
-#endif
-
 #include <clHCA.h>
 
 #include "coding/g72x_state.h"
-#include "coding/nwa_decoder.h"
 
 
 /* The encoding type specifies the format the sound data itself takes */

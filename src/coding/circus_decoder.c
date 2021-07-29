@@ -90,7 +90,7 @@ void decode_circus_adpcm(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channel
 
 
     for (i = first_sample; i < first_sample + samples_to_do; i++) {
-        int8_t code = read_8bit(frame_offset+i,stream->streamfile);
+        int8_t code = read_u8(frame_offset+i,stream->streamfile);
 
         hist += code << scale;
         if (code == 0) {
@@ -102,6 +102,7 @@ void decode_circus_adpcm(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channel
                 scale++;
         }
         outbuf[sample_pos] = hist;
+        sample_pos += channelspacing;
     }
 
     stream->adpcm_history1_32 = hist;

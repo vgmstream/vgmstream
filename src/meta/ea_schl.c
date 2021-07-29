@@ -637,7 +637,7 @@ fail:
 
 
 /* open map/mpf+mus pairs that aren't exact pairs, since EA's games can load any combo */
-static STREAMFILE* open_mapfile_pair(STREAMFILE* sf, int track, int num_tracks) {
+static STREAMFILE* open_mapfile_pair(STREAMFILE* sf, int track /*, int num_tracks*/) {
     static const char *const mapfile_pairs[][2] = {
         /* standard cases, replace map part with mus part (from the end to preserve prefixes) */
         {"MUS_CTRL.MPF",    "MUS_STR.MUS"}, /* GoldenEye - Rogue Agent (PS2) */
@@ -760,7 +760,7 @@ VGMSTREAM* init_vgmstream_ea_map_mus(STREAMFILE* sf) {
     version = read_8bit(0x04, sf);
     if (version > 1) goto fail;
 
-    sf_mus = open_mapfile_pair(sf, 0, 1);
+    sf_mus = open_mapfile_pair(sf, 0); //, 1
     if (!sf_mus) goto fail;
 
     /*
@@ -994,7 +994,7 @@ VGMSTREAM* init_vgmstream_ea_mpf_mus(STREAMFILE* sf) {
         goto fail;
 
     /* open MUS file that matches this track */
-    sf_mus = open_mapfile_pair(sf, i, num_tracks);
+    sf_mus = open_mapfile_pair(sf, i); //, num_tracks
     if (!sf_mus)
         goto fail;
 
