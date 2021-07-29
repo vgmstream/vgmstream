@@ -3,7 +3,6 @@
 #include "../vgmstream.h"
 
 #ifdef VGM_USE_MPEG
-#include <mpg123.h>
 #include "mpeg_decoder.h"
 
 

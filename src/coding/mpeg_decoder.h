@@ -1,5 +1,6 @@
 #ifndef _MPEG_DECODER_H_
 #define _MPEG_DECODER_H_
+#include <mpg123.h>
 
 #include "../vgmstream.h"
 #include "../coding/coding.h"

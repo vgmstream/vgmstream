@@ -1,4 +1,5 @@
 #include "coding.h"
+#include <clHCA.h>
 
 
 struct hca_codec_data {
