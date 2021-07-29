@@ -784,7 +784,7 @@ static ffmpeg_codec_data* init_ffmpeg_custom_opus(STREAMFILE* sf, off_t start_of
     return init_ffmpeg_custom_opus_config(sf, start_offset, data_size, &cfg, type);
 }
 
-ffmpeg_codec_data* init_ffmpeg_custom_table_opus(STREAMFILE* sf, off_t table_offset, int table_count, off_t data_offset, size_t data_size, int channels, int skip, int sample_rate, opus_type_t type) {
+static ffmpeg_codec_data* init_ffmpeg_custom_table_opus(STREAMFILE* sf, off_t table_offset, int table_count, off_t data_offset, size_t data_size, int channels, int skip, int sample_rate, opus_type_t type) {
     opus_config cfg = {0};
     cfg.channels = channels;
     cfg.skip = skip;

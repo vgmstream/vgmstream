@@ -35,12 +35,12 @@ void decode_rad_ima(VGMSTREAM* vgmstream, VGMSTREAMCHANNEL* stream, sample_t* ou
 void decode_rad_ima_mono(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
 void decode_apple_ima4(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
 void decode_fsb_ima(VGMSTREAM* vgmstream, VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel);
-void decode_wwise_ima(VGMSTREAM* vgmstream, VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel);
+void decode_wwise_ima(VGMSTREAM* vgmstream, VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
 void decode_awc_ima(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
 void decode_ubi_ima(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel);
 void decode_ubi_sce_ima(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel);
 void decode_h4m_ima(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel, uint16_t frame_format);
-void decode_cd_ima(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel);
+void decode_cd_ima(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
 size_t ima_bytes_to_samples(size_t bytes, int channels);
 size_t ms_ima_bytes_to_samples(size_t bytes, int block_align, int channels);
 size_t xbox_ima_bytes_to_samples(size_t bytes, int channels);
@@ -118,13 +118,13 @@ size_t xa_bytes_to_samples(size_t bytes, int channels, int is_blocked, int is_fo
 
 /* ea_xa_decoder */
 void decode_ea_xa(VGMSTREAMCHANNEL* stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel, int is_stereo);
-void decode_ea_xa_v2(VGMSTREAMCHANNEL* stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do,int channel);
+void decode_ea_xa_v2(VGMSTREAMCHANNEL* stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
 void decode_maxis_xa(VGMSTREAMCHANNEL* stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel);
 int32_t ea_xa_bytes_to_samples(size_t bytes, int channels);
 
 
 /* ea_xas_decoder */
-void decode_ea_xas_v0(VGMSTREAMCHANNEL* stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel);
+void decode_ea_xas_v0(VGMSTREAMCHANNEL* stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
 void decode_ea_xas_v1(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel);
 
 

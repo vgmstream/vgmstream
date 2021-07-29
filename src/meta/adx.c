@@ -274,7 +274,7 @@ static int find_adx_key(STREAMFILE* sf, uint8_t type, uint16_t *xor_start, uint1
         key_size = read_key_file(keybuf, sizeof(keybuf), sf);
 
         if (key_size > 0) {
-            int i, is_ascii = 0;
+            int is_ascii = 0;
 
             /* keystrings should be ASCII, also needed to tell apart 0x06 strings from derived keys */
             if (type == 8) {

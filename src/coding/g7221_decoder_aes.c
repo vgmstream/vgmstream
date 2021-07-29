@@ -302,7 +302,7 @@ static void aes_decrypt_block(s14aes_handle* ctx, uint8_t* buf) {
 
 /* **************************** */
 
-s14aes_handle* s14aes_init() {
+s14aes_handle* s14aes_init(void) {
     s14aes_handle* ctx = malloc(sizeof(s14aes_handle));
     if (!ctx) goto fail;
 

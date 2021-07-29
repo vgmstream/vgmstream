@@ -207,7 +207,7 @@ static int parse_dat_header(ubi_sb_header *sb, STREAMFILE *sf);
 static int parse_header(ubi_sb_header* sb, STREAMFILE* sf, off_t offset, int index);
 static int parse_sb(ubi_sb_header* sb, STREAMFILE* sf, int target_subsong);
 static VGMSTREAM* init_vgmstream_ubi_sb_header(ubi_sb_header* sb, STREAMFILE* sf_index, STREAMFILE* sf);
-static VGMSTREAM *init_vgmstream_ubi_sb_silence(ubi_sb_header *sb, STREAMFILE *sf_index, STREAMFILE *sf);
+static VGMSTREAM *init_vgmstream_ubi_sb_silence(ubi_sb_header *sb);
 static int config_sb_platform(ubi_sb_header* sb, STREAMFILE* sf);
 static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf);
 
@@ -542,7 +542,7 @@ static int parse_ubi_bank_header(ubi_sb_header *sb, ubi_sb_header *sb_other, STR
     return 0;
 }
 
-static void get_ubi_bank_name(ubi_sb_header *sb, STREAMFILE *sf, int bank_number, char *bank_name) {
+static void get_ubi_bank_name(ubi_sb_header *sb, int bank_number, char *bank_name) {
     if (sb->is_bnm) {
         sprintf(bank_name, "Bnk_%d.bnm", bank_number);
     } else if (sb->is_dat) {
@@ -559,7 +559,7 @@ static int is_other_bank(ubi_sb_header *sb, STREAMFILE *sf, int bank_number) {
     char bank_name[255];
 
     get_streamfile_filename(sf, current_name, PATH_LIMIT);
-    get_ubi_bank_name(sb, sf, bank_number, bank_name);
+    get_ubi_bank_name(sb, bank_number, bank_name);
 
     return strcmp(current_name, bank_name) != 0;
 }
@@ -647,7 +647,7 @@ static VGMSTREAM *init_vgmstream_ubi_dat_main(ubi_sb_header *sb, STREAMFILE *sf_
             VGM_LOG("UBI DAT: external stream '%s' not found\n", sb->resource_name);
             strncat(sb->readable_name, " (missing)", sizeof(sb->readable_name));
             sb->duration = (float)pcm_bytes_to_samples(sb->stream_size, sb->channels, 16) / (float)sb->sample_rate;
-            return init_vgmstream_ubi_sb_silence(sb, sf_index, sf);
+            return init_vgmstream_ubi_sb_silence(sb);
         }
     }
 
@@ -1438,7 +1438,7 @@ static VGMSTREAM* init_vgmstream_ubi_sb_sequence(ubi_sb_header* sb, STREAMFILE* 
                 if (sf_bank != sf_index)
                     close_streamfile(sf_bank);
 
-                get_ubi_bank_name(sb, sf, sb->sequence_banks[i], bank_name);
+                get_ubi_bank_name(sb, sb->sequence_banks[i], bank_name);
                 sf_bank = open_streamfile_by_filename(sf, bank_name);
 
                 /* may be worth trying in localized folder? */
@@ -1529,7 +1529,7 @@ fail:
 }
 
 
-static VGMSTREAM* init_vgmstream_ubi_sb_silence(ubi_sb_header* sb, STREAMFILE* sf_index, STREAMFILE* sf) {
+static VGMSTREAM* init_vgmstream_ubi_sb_silence(ubi_sb_header* sb) {
     VGMSTREAM* vgmstream = NULL;
     int channels, sample_rate;
     int32_t num_samples;
@@ -1585,7 +1585,7 @@ static VGMSTREAM* init_vgmstream_ubi_sb_header(ubi_sb_header* sb, STREAMFILE* sf
             break;
 
         case UBI_SILENCE:
-            vgmstream = init_vgmstream_ubi_sb_silence(sb, sf_index, sf);
+            vgmstream = init_vgmstream_ubi_sb_silence(sb);
             break;
 
         case UBI_NONE:

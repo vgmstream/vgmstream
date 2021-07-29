@@ -30,7 +30,7 @@ static const int EA_XA_TABLE[20] = {
 };
 
 /* EA XA v2 (always mono); like v1 but with "PCM samples" flag and doesn't add 128 on expand or clamp (pre-adjusted by the encoder?) */
-void decode_ea_xa_v2(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
+void decode_ea_xa_v2(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
     uint8_t frame_info;
     int32_t coef1, coef2;
     int i, sample_count, shift;
@@ -60,7 +60,7 @@ void decode_ea_xa_v2(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspac
         coef2 = EA_XA_TABLE[(frame_info >> 4) + 4];
         shift = (frame_info & 0x0F) + 8;
 
-        for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
+        for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++, sample_count += channelspacing) {
             uint8_t sample_byte, sample_nibble;
             int32_t new_sample;
             off_t byte_offset = (stream->offset + 0x01 + i/2);
@@ -84,7 +84,7 @@ void decode_ea_xa_v2(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspac
 }
 
 #if 0
-/* later PC games use float math, though in the end sounds basically the same (decompiled from various exes) */
+/* later PC games and EAAC use float math, though in the end sounds basically the same (decompiled from various exes) */
 static const double XA_K0[16] = { 0.0, 0.9375, 1.796875,  1.53125 };
 static const double XA_K1[16] = { 0.0,    0.0,  -0.8125, -0.859375 };
 /* code uses look-up table but it's equivalent to:
@@ -125,7 +125,7 @@ static const uint32_t FLOAT_TABLE_INT[256] = {
 };
 static const float* FLOAT_TABLE = (const float *)FLOAT_TABLE_INT;
 
-void decode_ea_xa_v2(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
+void decode_ea_xa_v2_f32(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
     uint8_t frame_info;
     int i, sample_count, shift;
 

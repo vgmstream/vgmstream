@@ -7,7 +7,7 @@ typedef struct TCompressWaveData TCompressWaveData;
 void TCompressWaveData_GetLoopState(TCompressWaveData* this);
 void TCompressWaveData_SetLoopState(TCompressWaveData* this);
 
-TCompressWaveData* TCompressWaveData_Create();
+TCompressWaveData* TCompressWaveData_Create(void);
 void TCompressWaveData_Free(TCompressWaveData* this);
 int TCompressWaveData_Rendering(TCompressWaveData* this, int16_t* buf, uint32_t Len);
 int TCompressWaveData_LoadFromStream(TCompressWaveData* this, STREAMFILE* ss);

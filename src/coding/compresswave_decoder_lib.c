@@ -557,7 +557,7 @@ struct TCompressWaveData {
 
 //-----------------------------------------------------------
 //create
-TCompressWaveData* TCompressWaveData_Create() {
+TCompressWaveData* TCompressWaveData_Create(void) {
     TCompressWaveData* this = malloc(sizeof(TCompressWaveData));
     if (!this) return NULL;
 #if 0
@@ -604,7 +604,7 @@ void TCompressWaveData_Free(TCompressWaveData* this) {
 //-----------------------------------------------------------
 //outpus 44100/16bit/stereo waveform to designed buffer
 
-void TCompressWaveData_Rendering_ReadPress(TCompressWaveData* this, int32_t* RFlg, int32_t* LFlg) {
+static void TCompressWaveData_Rendering_ReadPress(TCompressWaveData* this, int32_t* RFlg, int32_t* LFlg) {
     if (this->Hed.Channel == 2) {
         *RFlg = THuff_Read(this->RH);          //STEREO
         *LFlg = THuff_Read(this->RH);
@@ -615,7 +615,7 @@ void TCompressWaveData_Rendering_ReadPress(TCompressWaveData* this, int32_t* RFl
     }
 }
 
-void TCompressWaveData_Rendering_WriteWave(TCompressWaveData* this, int16_t** buf1, int32_t RVol, int32_t LVol) {
+static void TCompressWaveData_Rendering_WriteWave(TCompressWaveData* this, int16_t** buf1, int32_t RVol, int32_t LVol) {
     TLRWRITEBUFFER bbb = {0};
 
     if (this->Hed.Sample == 44100) {        //44100 STEREO/MONO
