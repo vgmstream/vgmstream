@@ -294,7 +294,7 @@ fail:
     return 0;
 }
 
-static int is_ue4_msadpcm(VGMSTREAM* vgmstream, STREAMFILE* sf, riff_fmt_chunk* fmt, int fact_sample_count, off_t start_offset);
+static int is_ue4_msadpcm(STREAMFILE* sf, riff_fmt_chunk* fmt, int fact_sample_count, off_t start_offset);
 static size_t get_ue4_msadpcm_interleave(STREAMFILE* sf, riff_fmt_chunk* fmt, off_t start, size_t size);
 
 
@@ -795,7 +795,7 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
     }
 
     /* UE4 uses interleaved mono MSADPCM, try to autodetect without breaking normal MSADPCM */
-    if (fmt.coding_type == coding_MSADPCM && is_ue4_msadpcm(vgmstream, sf, &fmt, fact_sample_count, start_offset)) {
+    if (fmt.coding_type == coding_MSADPCM && is_ue4_msadpcm(sf, &fmt, fact_sample_count, start_offset)) {
         vgmstream->coding_type = coding_MSADPCM_int;
         vgmstream->codec_config = 1; /* mark as UE4 MSADPCM */
         vgmstream->frame_size = fmt.block_size;
@@ -870,7 +870,7 @@ fail:
 }
 
 /* UE4 MSADPCM is quite normal but has a few minor quirks we can use to detect it */
-static int is_ue4_msadpcm(VGMSTREAM* vgmstream, STREAMFILE* sf, riff_fmt_chunk* fmt, int fact_sample_count, off_t start) {
+static int is_ue4_msadpcm(STREAMFILE* sf, riff_fmt_chunk* fmt, int fact_sample_count, off_t start) {
 
     /* multichannel ok */
     if (fmt->channel_count < 2)

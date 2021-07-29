@@ -599,7 +599,7 @@ fail:
 }
 
 
-static VGMSTREAM* init_vgmstream_ubi_bao_silence(ubi_bao_header* bao, STREAMFILE* sf) {
+static VGMSTREAM* init_vgmstream_ubi_bao_silence(ubi_bao_header* bao) {
     VGMSTREAM* vgmstream = NULL;
     int channels, sample_rate;
     int32_t num_samples;
@@ -660,7 +660,7 @@ static VGMSTREAM* init_vgmstream_ubi_bao_header(ubi_bao_header* bao, STREAMFILE*
             break;
 
         case UBI_SILENCE:
-            vgmstream = init_vgmstream_ubi_bao_silence(bao, sf);
+            vgmstream = init_vgmstream_ubi_bao_silence(bao);
             break;
 
         default:
@@ -990,7 +990,7 @@ fail:
 }
 
 /* adjust some common values */
-static int parse_values(ubi_bao_header* bao, STREAMFILE* sf) {
+static int parse_values(ubi_bao_header* bao) {
 
     if (bao->type == UBI_SEQUENCE || bao->type == UBI_SILENCE)
         return 1;
@@ -1228,7 +1228,7 @@ static int parse_header(ubi_bao_header* bao, STREAMFILE* sf, off_t offset) {
             goto fail;
     }
 
-    if (!parse_values(bao, sf))
+    if (!parse_values(bao))
         goto fail;
 
     if (!parse_offsets(bao, sf))
