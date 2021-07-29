@@ -16,7 +16,11 @@ endif
 ### main defs
 OUTPUT_WINAMP = in_vgmstream.dll
 
-CFLAGS += $(DEF_CFLAGS) -DUSE_ALLOCA -DWIN32 -I../ext_includes $(EXTRA_CFLAGS)
+ifeq ($(TARGET_OS),Windows_NT)
+  CFLAGS += -m32 -DUSE_ALLOCA -DWIN32 -I../ext_includes/ffmpeg
+endif
+
+CFLAGS += $(DEF_CFLAGS) -I../ext_includes $(EXTRA_CFLAGS)
 LDFLAGS += -L../src -L../ext_libs -lm -lvgmstream $(EXTRA_LDFLAGS)
 TARGET_EXT_LIBS = 
 
