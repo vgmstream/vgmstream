@@ -680,6 +680,7 @@ void mixing_push_fade(VGMSTREAM* vgmstream, int ch_dst, double vol_start, double
     }
     else if (mix_prev->time_post < 0 || mix.time_pre < 0) {
         int is_prev = 1;
+        /* test if prev is really cancelled by this */
         if ((mix_prev->time_end > mix.time_start) ||
             (mix_prev->time_post >= 0 && mix_prev->time_post > mix.time_start) ||
             (mix.time_pre >= 0 && mix.time_pre < mix_prev->time_end))
@@ -687,12 +688,12 @@ void mixing_push_fade(VGMSTREAM* vgmstream, int ch_dst, double vol_start, double
 
         if (is_prev) {
             /* change negative values to actual points */
-            if (mix_prev->time_post < 0 && mix_prev->time_post < 0) {
+            if (mix_prev->time_post < 0 && mix.time_pre < 0) {
                 mix_prev->time_post = mix_prev->time_end;
                 mix.time_pre = mix_prev->time_post;
             }
-            if (mix_prev->time_post >= 0 && mix.time_pre < 0) {
 
+            if (mix_prev->time_post >= 0 && mix.time_pre < 0) {
                 mix.time_pre = mix_prev->time_post;
             }
             else if (mix_prev->time_post < 0 && mix.time_pre >= 0) {
