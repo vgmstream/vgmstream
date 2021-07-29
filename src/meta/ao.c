@@ -27,7 +27,7 @@ VGMSTREAM* init_vgmstream_ao(STREAMFILE *sf) {
         /* AlphaOgg defines up to 16 loop points for some reason */
 
         start_offset = 0xc8;
-        vgmstream = init_vgmstream_ogg_vorbis_callbacks(sf, NULL, start_offset, &ovmi);
+        vgmstream = init_vgmstream_ogg_vorbis_config(sf, start_offset, &ovmi);
     }
 #else
     goto fail;

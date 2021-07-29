@@ -134,7 +134,7 @@ VGMSTREAM* init_vgmstream_rsd(STREAMFILE* sf) {
 
             ovmi.meta_type = meta_RSD;
             close_vgmstream(vgmstream);
-            vgmstream = init_vgmstream_ogg_vorbis_callbacks(sf, NULL, start_offset, &ovmi);
+            vgmstream = init_vgmstream_ogg_vorbis_config(sf, start_offset, &ovmi);
             if (!vgmstream) goto fail;
             break;
         }

@@ -341,12 +341,12 @@ void free_tac(tac_codec_data* data);
 typedef struct ogg_vorbis_codec_data ogg_vorbis_codec_data;
 typedef struct { //todo simplify
     STREAMFILE *streamfile;
-    ogg_int64_t start; /* file offset where the Ogg starts */
-    ogg_int64_t offset; /* virtual offset, from 0 to size */
-    ogg_int64_t size; /* virtual size of the Ogg */
+    int64_t start; /* file offset where the Ogg starts */
+    int64_t offset; /* virtual offset, from 0 to size */
+    int64_t size; /* virtual size of the Ogg */
 
     /* decryption setup */
-    void (*decryption_callback)(void *ptr, size_t size, size_t nmemb, void *datasource);
+    void (*decryption_callback)(void* ptr, size_t size, size_t nmemb, void* datasource);
     uint8_t scd_xor;
     off_t scd_xor_length;
     uint32_t xor_value;

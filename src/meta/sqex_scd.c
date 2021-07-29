@@ -192,7 +192,7 @@ VGMSTREAM* init_vgmstream_sqex_scd(STREAMFILE* sf) {
         }
 
         /* actual Ogg init */
-        ogg_vgmstream = init_vgmstream_ogg_vorbis_callbacks(sf, NULL, start_offset, &ovmi);
+        ogg_vgmstream = init_vgmstream_ogg_vorbis_config(sf, start_offset, &ovmi);
         if (ogg_vgmstream && name_offset)
             read_string(ogg_vgmstream->stream_name, PATH_LIMIT, name_offset, sf);
         return ogg_vgmstream;

@@ -6,6 +6,7 @@
 
 /* used by vorbis_custom_decoder.c, but scattered in other .c files */
 #ifdef VGM_USE_VORBIS
+#include <vorbis/codec.h>
 
 /* custom Vorbis without Ogg layer */
 struct vorbis_custom_codec_data {

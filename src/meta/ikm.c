@@ -80,7 +80,7 @@ VGMSTREAM* init_vgmstream_ikm_pc(STREAMFILE* sf) {
         ovmi.loop_flag      = ovmi.loop_end > 0;
         ovmi.stream_size    = read_s32le(0x24, sf);
 
-        vgmstream = init_vgmstream_ogg_vorbis_callbacks(sf, NULL, start_offset, &ovmi);
+        vgmstream = init_vgmstream_ogg_vorbis_config(sf, start_offset, &ovmi);
     }
 #else
     goto fail;

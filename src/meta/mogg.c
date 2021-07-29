@@ -10,12 +10,12 @@
 #include "../coding/coding.h"
 
 /* MOGG - Harmonix Music Systems (Guitar Hero)[Unencrypted Type] */
-VGMSTREAM * init_vgmstream_mogg(STREAMFILE *streamFile) {
+VGMSTREAM* init_vgmstream_mogg(STREAMFILE *sf) {
 #ifdef VGM_USE_VORBIS
     off_t start_offset;
 
     /* checks */
-    if (!check_extensions(streamFile, "mogg"))
+    if (!check_extensions(sf, "mogg"))
         goto fail;
 
     {
@@ -24,8 +24,8 @@ VGMSTREAM * init_vgmstream_mogg(STREAMFILE *streamFile) {
 
         ovmi.meta_type = meta_MOGG;
 
-        start_offset = read_32bitLE(0x04, streamFile);
-        result = init_vgmstream_ogg_vorbis_callbacks(streamFile, NULL, start_offset, &ovmi);
+        start_offset = read_32bitLE(0x04, sf);
+        result = init_vgmstream_ogg_vorbis_config(sf, start_offset, &ovmi);
 
         if (result != NULL) {
             return result;

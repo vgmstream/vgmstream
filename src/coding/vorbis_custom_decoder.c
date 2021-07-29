@@ -3,7 +3,6 @@
 #include "vorbis_custom_decoder.h"
 
 #ifdef VGM_USE_VORBIS
-#include <vorbis/codec.h>
 
 #define VORBIS_DEFAULT_BUFFER_SIZE 0x8000 /* should be at least the size of the setup header, ~0x2000 */
 

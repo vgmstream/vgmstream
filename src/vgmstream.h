@@ -31,10 +31,6 @@ enum { VGMSTREAM_MAX_NUM_SAMPLES = 1000000000 }; /* no ~5h vgm hopefully */
 //#define VGM_USE_SPEEX
 
 
-#ifdef VGM_USE_VORBIS
-#include <vorbis/vorbisfile.h>
-#endif
-
 #ifdef VGM_USE_MP4V2
 #define MP4V2_NO_STDINT_DEFS
 #include <mp4v2/mp4v2.h>

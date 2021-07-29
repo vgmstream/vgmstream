@@ -137,9 +137,11 @@ typedef struct {
     off_t scd_xor_length;
     uint32_t xor_value;
 
+    //ov_callbacks *callbacks
+
 } ogg_vorbis_meta_info_t;
 
-VGMSTREAM * init_vgmstream_ogg_vorbis_callbacks(STREAMFILE *streamFile, ov_callbacks *callbacks, off_t start, const ogg_vorbis_meta_info_t *ovmi);
+VGMSTREAM* init_vgmstream_ogg_vorbis_config(STREAMFILE *sf, off_t start, const ogg_vorbis_meta_info_t* ovmi);
 #endif
 
 VGMSTREAM * init_vgmstream_hca(STREAMFILE *streamFile);
