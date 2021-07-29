@@ -420,7 +420,7 @@ static void decode_vima1(sbuf_t* sbuf, uint8_t* buf, size_t data_left, int block
     sbuf->filled += data_left / sizeof(int16_t) / chs;
 }
 
-static int decode_block1(STREAMFILE* sf, imuse_codec_data* data, uint8_t* block, size_t data_left) {
+static int decode_block1(imuse_codec_data* data, uint8_t* block, size_t data_left) {
     int block_num = data->current_block;
 
     switch(data->block_table[block_num].flags) {
@@ -554,7 +554,7 @@ static void decode_vima2(sbuf_t* sbuf, uint8_t* buf, size_t data_left, uint16_t*
     sbuf->filled += data_left / sizeof(int16_t) / chs;
 }
 
-static int decode_block2(STREAMFILE* sf, imuse_codec_data* data, uint8_t* block, size_t data_left) {
+static int decode_block2(imuse_codec_data* data, uint8_t* block, size_t data_left) {
     int block_num = data->current_block;
 
     switch(data->block_table[block_num].flags) {
@@ -597,11 +597,11 @@ static int decode_block(STREAMFILE* sf, imuse_codec_data* data) {
 
     switch(data->type) {
         case COMP:
-            ok = decode_block1(sf, data, block, data_left);
+            ok = decode_block1(data, block, data_left);
             break;
 
         case MCMP:
-            ok = decode_block2(sf, data, block, data_left);
+            ok = decode_block2(data, block, data_left);
             break;
 
         default:
