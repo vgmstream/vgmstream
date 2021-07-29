@@ -5,8 +5,10 @@
 
 typedef struct {
     uint64_t key;               /* hca key or seed ('user') key */
+#if 0
     const uint16_t* subkeys;    /* scramble subkey table for seed key */
     size_t subkeys_size;        /* size of the derivation subkey table */
+#endif
 } hcakey_info;
 
 

@@ -1,6 +1,7 @@
 #include "meta.h"
 #include "hca_keys.h"
 #include "../coding/coding.h"
+#include <clHCA.h>
 
 //#define HCA_BRUTEFORCE
 #ifdef HCA_BRUTEFORCE
@@ -15,7 +16,7 @@ VGMSTREAM* init_vgmstream_hca(STREAMFILE* sf) {
 }
 
 VGMSTREAM* init_vgmstream_hca_subkey(STREAMFILE* sf, uint16_t subkey) {
-    VGMSTREAM * vgmstream = NULL;
+    VGMSTREAM* vgmstream = NULL;
     hca_codec_data* hca_data = NULL;
     clHCA_stInfo* hca_info;
 
@@ -158,20 +159,24 @@ static void find_hca_key(hca_codec_data* hca_data, uint64_t* p_keycode, uint16_t
 
     for (i = 0; i < keys_length; i++) {
         uint64_t key = hcakey_list[i].key;
-        size_t subkeys_size = hcakey_list[i].subkeys_size;
-        const uint16_t *subkeys = hcakey_list[i].subkeys;
 
         test_key(hca_data, key, subkey, &best_score, p_keycode);
         if (best_score == 1)
             goto done;
 
-        if (subkeys_size > 0 && subkey == 0) {
-            for (j = 0; j < subkeys_size; j++) {
-                test_key(hca_data, key, subkeys[j], &best_score, p_keycode);
-                if (best_score == 1)
-                    goto done;
+#if 0
+        {
+            size_t subkeys_size = hcakey_list[i].subkeys_size;
+            const uint16_t *subkeys = hcakey_list[i].subkeys;
+            if (subkeys_size > 0 && subkey == 0) {
+                for (j = 0; j < subkeys_size; j++) {
+                    test_key(hca_data, key, subkeys[j], &best_score, p_keycode);
+                    if (best_score == 1)
+                        goto done;
+                }
             }
         }
+#endif
     }
 
 done:
