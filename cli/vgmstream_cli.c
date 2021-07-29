@@ -1,8 +1,10 @@
 #define POSIXLY_CORRECT
+
 #include <getopt.h>
 #include "../src/vgmstream.h"
 #include "../src/plugins.h"
 #include "../src/util.h"
+
 #ifdef WIN32
 #include <io.h>
 #include <fcntl.h>
@@ -29,9 +31,9 @@
  * may improve write I/O in some systems as this*channels doubles as output buffer */
 #define SAMPLE_BUFFER_SIZE  32768
 
-/* getopt globals (the horror...) */
-extern char* optarg;
-extern int optind, opterr, optopt;
+/* getopt globals from .h, for reference (the horror...) */
+//extern char* optarg;
+//extern int optind, opterr, optopt;
 
 
 static size_t make_wav_header(uint8_t* buf, size_t buf_size, int32_t sample_count, int32_t sample_rate, int channels, int smpl_chunk, int32_t loop_start, int32_t loop_end);
@@ -482,7 +484,7 @@ static void clean_filename(char* dst, int clean_paths) {
 
 /* replaces a filename with "?n" (stream name), "?f" (infilename) or "?s" (subsong) wildcards
  * ("?" was chosen since it's not a valid Windows filename char and hopefully nobody uses it on Linux) */
-void replace_filename(char* dst, size_t dstsize, const char* outfilename, const char* infilename, VGMSTREAM* vgmstream) {
+static void replace_filename(char* dst, size_t dstsize, const char* outfilename, const char* infilename, VGMSTREAM* vgmstream) {
     int subsong;
     char stream_name[PATH_LIMIT];
     char buf[PATH_LIMIT];
