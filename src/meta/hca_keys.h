@@ -716,6 +716,9 @@ static const hcakey_info hcakey_list[] = {
         {0x78bec41dd27d8788},	//music_5050074
         {0x52c250eade92393b},	//music_9010001
         {0xfea0d6adff136868},	//music_9050001
+
+        // Mini 4WD Hyper Dash Grand Prix (Android)
+        {7957824642808300098},    // 6E6FDF59AB704242
 };
 
 #endif/*_HCA_KEYS_H_*/
