@@ -224,8 +224,8 @@
     <ClCompile Include="meta\msf_konami.c" />
     <ClCompile Include="meta\msf_tamasoft.c" />
     <ClCompile Include="meta\opus.c" />
-    <ClCompile Include="meta\pc_adp.c" />
-    <ClCompile Include="meta\pc_adp_otns.c" />
+    <ClCompile Include="meta\adp_bos.c" />
+    <ClCompile Include="meta\adp_qd.c" />
     <ClCompile Include="meta\pc_ast.c" />
     <ClCompile Include="meta\raw_snds.c" />
     <ClCompile Include="meta\ps2_2pfs.c" />

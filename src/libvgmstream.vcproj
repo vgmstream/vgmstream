@@ -1163,11 +1163,11 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\pc_adp.c"
+					RelativePath=".\meta\adp_bos.c"
 					>
 				</File>
                 <File
-                    RelativePath=".\meta\pc_adp_otns.c"
+                    RelativePath=".\meta\adp_qd.c"
                     >
                 </File>
                 <File

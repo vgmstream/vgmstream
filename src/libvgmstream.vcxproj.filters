@@ -1675,10 +1675,10 @@
     <ClCompile Include="meta\imuse.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\pc_adp.c">
+    <ClCompile Include="meta\adp_bos.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\pc_adp_otns.c">
+    <ClCompile Include="meta\adp_qd.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\excitebots.c">
