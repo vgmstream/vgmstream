@@ -218,6 +218,7 @@
     <ClCompile Include="meta\mn_str.c" />
     <ClCompile Include="meta\mogg.c" />
     <ClCompile Include="meta\mp4.c" />
+    <ClCompile Include="meta\mp4_faac.c" />
     <ClCompile Include="meta\msb_msh.c" />
     <ClCompile Include="meta\msf_banpresto.c" />
     <ClCompile Include="meta\msf_konami.c" />

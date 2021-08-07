@@ -6,13 +6,15 @@
 #define _VGMSTREAM_H
 
 /* reasonable limits */
-enum { PATH_LIMIT = 32768 };
-enum { STREAM_NAME_SIZE = 255 };
-enum { VGMSTREAM_MAX_CHANNELS = 64 };
-enum { VGMSTREAM_MIN_SAMPLE_RATE = 300 }; /* 300 is Wwise min */
-enum { VGMSTREAM_MAX_SAMPLE_RATE = 192000 }; /* found in some FSB5 */
-enum { VGMSTREAM_MAX_SUBSONGS = 65535 };
-enum { VGMSTREAM_MAX_NUM_SAMPLES = 1000000000 }; /* no ~5h vgm hopefully */
+enum { 
+    PATH_LIMIT = 32768,
+    STREAM_NAME_SIZE = 255,
+    VGMSTREAM_MAX_CHANNELS = 64,
+    VGMSTREAM_MIN_SAMPLE_RATE = 300, /* 300 is Wwise min */
+    VGMSTREAM_MAX_SAMPLE_RATE = 192000, /* found in some FSB5 */
+    VGMSTREAM_MAX_SUBSONGS = 65535, /* +20000 isn't that uncommon */
+    VGMSTREAM_MAX_NUM_SAMPLES = 1000000000, /* no ~5h vgm hopefully */
+};
 
 #include "streamfile.h"
 
@@ -1027,7 +1029,7 @@ typedef struct {
 } acm_codec_data;
 
 
-#ifdef VGM_USE_MP4V2
+#if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
 typedef struct {
     STREAMFILE* streamfile;
     uint64_t start;
@@ -1035,7 +1037,6 @@ typedef struct {
     uint64_t size;
 } mp4_streamfile;
 
-#ifdef VGM_USE_FDKAAC
 typedef struct {
     mp4_streamfile if_file;
     MP4FileHandle h_mp4file;
@@ -1047,7 +1048,6 @@ typedef struct {
     INT_PCM sample_buffer[( (6) * (2048)*4 )];
 } mp4_aac_codec_data;
 #endif
-#endif //VGM_USE_MP4V2
 
 // VGMStream description in structure format
 typedef struct {

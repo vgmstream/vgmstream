@@ -1363,6 +1363,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\meta\mp4_faac.c"
+                    >
+                </File>
+                <File
                     RelativePath=".\meta\msb_msh.c"
                     >
                 </File>
