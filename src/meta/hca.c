@@ -5,7 +5,7 @@
 
 //#define HCA_BRUTEFORCE
 #ifdef HCA_BRUTEFORCE
-static void bruteforce_hca_key(STREAMFILE* sf, hca_codec_data* hca_data, unsigned long long* out_keycode, uint16_t subkey);
+static void bruteforce_hca_key(STREAMFILE* sf, hca_codec_data* hca_data, unsigned long long* p_keycode, uint16_t subkey);
 #endif
 static void find_hca_key(hca_codec_data* hca_data, uint64_t* p_keycode, uint16_t subkey);
 
@@ -191,7 +191,7 @@ done:
 /* Bruteforce binary keys in executables and similar files, mainly for some mobile games.
  * Kinda slow but acceptable for ~20MB exes, not very optimized. Unity usually has keys
  * in plaintext (inside levelX or other base files) instead though. */
-static void bruteforce_hca_key(STREAMFILE* sf, hca_codec_data* hca_data, unsigned long long* out_keycode, uint16_t subkey) {
+static void bruteforce_hca_key_bin(STREAMFILE* sf, hca_codec_data* hca_data, unsigned long long* p_keycode, uint16_t subkey) {
     STREAMFILE* sf_keys = NULL;
     uint8_t* buf = NULL;
     int best_score = 0xFFFFFF, cur_score;
@@ -200,9 +200,9 @@ static void bruteforce_hca_key(STREAMFILE* sf, hca_codec_data* hca_data, unsigne
     uint64_t old_key = 0;
 
 
-    VGM_LOG("HCA: test keys\n");
+    VGM_LOG("HCA: test keys.bin\n");
 
-    *out_keycode = 0;
+    *p_keycode = 0;
 
     /* load whole file in memory for performance (exes with keys shouldn't be too big) */
     sf_keys = open_streamfile_by_filename(sf, "keys.bin");
@@ -232,14 +232,15 @@ static void bruteforce_hca_key(STREAMFILE* sf, hca_codec_data* hca_data, unsigne
       //key = ((uint64_t)get_u32be(buf + pos + 0x00) << 0 ) | 0; /* upper bytes not set, ex. P5 */
 
         /* observed files have aligned keys, change if needed */
-        pos += 0x04; //pos++;
+        pos += 0x04;
+        //pos++;
 
         if (key == 0 || key == old_key)
             continue;
         old_key = key;
 
         cur_score = 0;
-        test_key(hca_data, key, subkey, &cur_score, out_keycode);
+        test_key(hca_data, key, subkey, &cur_score, p_keycode);
         if (cur_score == 1)
             goto done;
 
@@ -253,10 +254,98 @@ static void bruteforce_hca_key(STREAMFILE* sf, hca_codec_data* hca_data, unsigne
 
 done:
     VGM_ASSERT(best_score > 0, "HCA: best key=%08x%08x (score=%i)\n",
-            (uint32_t)((*out_keycode >> 32) & 0xFFFFFFFF), (uint32_t)(*out_keycode & 0xFFFFFFFF), best_score);
+            (uint32_t)((*p_keycode >> 32) & 0xFFFFFFFF), (uint32_t)(*p_keycode & 0xFFFFFFFF), best_score);
     VGM_ASSERT(best_score < 0, "HCA: key not found\n");
+    if (best_score < 0 || best_score > 10000)
+        *p_keycode = 0;
 
     close_streamfile(sf_keys);
     free(buf);
 }
+
+#include <inttypes.h>
+//#include <stdio.h>
+
+/* same as the above but for txt lines. */
+static void bruteforce_hca_key_txt(STREAMFILE* sf, hca_codec_data* hca_data, unsigned long long* p_keycode, uint16_t subkey) {
+    STREAMFILE* sf_keys = NULL;
+    uint8_t* buf = NULL;
+    int best_score = 0xFFFFFF, cur_score;
+    off_t keys_size, bytes;
+    int i = 0, pos;
+    char line[1024];
+
+
+    VGM_LOG("HCA: test keys.txt\n");
+
+    *p_keycode = 0;
+
+    /* load whole file in memory for performance (exes with keys shouldn't be too big) */
+    sf_keys = open_streamfile_by_filename(sf, "keys.txt");
+    if (!sf_keys) goto done;
+
+    keys_size = get_streamfile_size(sf_keys);
+
+    buf = malloc(keys_size);
+    if (!buf) goto done;
+
+    bytes = read_streamfile(buf, 0, keys_size, sf_keys);
+    if (bytes != keys_size) goto done;
+
+    VGM_LOG("HCA: start\n");
+
+    pos = 0;
+    while (pos < keys_size) {
+        int bytes_read, line_ok, count;
+        uint64_t key = 0;
+
+        bytes_read = read_line(line, sizeof(line), pos, sf_keys, &line_ok);
+        if (!line_ok) continue; //???
+
+        pos += bytes_read;
+
+        count = sscanf(line, "%" SCNd64, &key);
+        if (count != 1) continue;
+
+        VGM_ASSERT(pos % 100000 == 0, "HCA: count %i...\n", i);
+
+        if (key == 0)
+            continue;
+        i++;
+
+        cur_score = 0;
+        test_key(hca_data, key, subkey, &cur_score, p_keycode);
+        if (cur_score == 1)
+            goto done;
+
+        if (cur_score > 0 && cur_score <= 500) {
+            VGM_LOG("HCA: possible key=%08x%08x (score=%i) at %x\n",
+                (uint32_t)((key >> 32) & 0xFFFFFFFF), (uint32_t)(key & 0xFFFFFFFF), cur_score, pos-0x04);
+            if (best_score > cur_score)
+                best_score = cur_score;
+        }
+    }
+
+done:
+    VGM_LOG("HCA: done %i keys.txt\n", i);
+    VGM_ASSERT(best_score > 0, "HCA: best key=%08x%08x (score=%i)\n",
+            (uint32_t)((*p_keycode >> 32) & 0xFFFFFFFF), (uint32_t)(*p_keycode & 0xFFFFFFFF), best_score);
+    VGM_ASSERT(best_score < 0, "HCA: key not found\n");
+    if (best_score < 0 || best_score > 10000)
+        *p_keycode = 0;
+
+    close_streamfile(sf_keys);
+    free(buf);
+}
+
+static void bruteforce_hca_key(STREAMFILE* sf, hca_codec_data* hca_data, unsigned long long* p_keycode, uint16_t subkey) {
+    bruteforce_hca_key_bin(sf, hca_data, p_keycode, subkey);
+    if (*p_keycode != 0)
+        return;
+
+    bruteforce_hca_key_txt(sf, hca_data, p_keycode, subkey);
+    if (*p_keycode != 0)
+        return;
+}
+
 #endif
