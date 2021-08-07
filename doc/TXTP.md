@@ -50,7 +50,7 @@ file#12     # set "subsong" command for single file
 sounds/bgm.fsb #s2 #i  #for file inside subdir: play subsong 2 + disable looping
 ```
 
-You can mix any kind of files (including different formats and codecs), as long as vgmstream plays them separatedly too. If you have problem getting a TXTP to play try playing file by file first and make a simpler TXTP then add more. There are technicals limits in total files (usually hundreds but varies per O.S.) and layered channels though. Also see explanations below for some per-mode limitations too.
+You can mix any kind of files (including different formats and codecs), as long as vgmstream plays them separately too. If you have problem getting a TXTP to play try playing file by file first and make a simpler TXTP then add more. There are technical limits in total files (usually hundreds but varies per O.S.) and layered channels though. Also see explanations below for some per-mode limitations too.
 
 
 ### Segments mode
@@ -218,7 +218,7 @@ group = -S2  #segment prev 2 (will start from pos.1 = bgm1+2, makes group of bgm
 ```
 
 ### Pseudo-random groups
-Group `R` is meant to help with games that randomly select a file in a group. You can set with `>N` which file will be selected. This way you can quickly edit the TXTP and change the file (you could just comment files too, this is just for convenience in complex cases and testing). You can also set `>-`, meaning "play all", basically turning `R` into `S` (this can be ommited, but it's clearer). Files do need to exist and are parsed before being selected, and it can select groups too.
+Group `R` is meant to help with games that randomly select a file in a group. You can set with `>N` which file will be selected. This way you can quickly edit the TXTP and change the file (you could just comment files too, this is just for convenience in complex cases and testing). You can also set `>-`, meaning "play all", basically turning `R` into `S` (this can be omitted, but it's clearer). Files do need to exist and are parsed before being selected, and it can select groups too.
 ```
  bgm1.adx
  bgm2.adx
@@ -279,7 +279,7 @@ mainB_2ch.at3
 group = -L2 #@layer-v
 
 # finally resulting layers are played as segments (2ch, 2ch)
-# (could set a group = S and ommit mode here, too)
+# (could set a group = S and omit mode here, too)
 mode = segments
 
 # if the last group joins all as segments you can use loop_start
@@ -392,7 +392,7 @@ Usage details:
 Processing goes like this:
 - order: `pad-begin > trim-begin > body > (trim-end) > (fade-delay) > fade-period > pad-end`
 - `pad-begin` adds silence before anything else
-- `trim-begin` gets audio from `body`, but immediately removes it (substracts time from body)
+- `trim-begin` gets audio from `body`, but immediately removes it (subtracts time from body)
 - `body` is the main audio decode, possibly including N loops or silence
 - `fade-delay` waits after body (decode actually continues so it's an extension of `body`)
 - `fade-period` fades-out last decoded part
@@ -452,7 +452,7 @@ boss2_3ningumi_ver6.adx  #b 100.0s  #f 10.0     #plays for 100s + 10s seconds
 
 
 ### Trim file
-**`#t(time)`**: trims the file so base sample duration (before applying loops/fades/etc) is `(time)`. If value is negative substracts `(time)` to duration. 
+**`#t(time)`**: trims the file so base sample duration (before applying loops/fades/etc) is `(time)`. If value is negative subtracts `(time)` to duration. 
 
 *(time)* can be `M:S(.n)` (minutes and seconds), `S.n` (seconds with dot), `0xN` (samples in hex format) or `N` (samples). Beware of 10.0 (ten seconds) vs 10 (ten samples).
 
@@ -485,7 +485,7 @@ If you need to remove very few samples (like 1) to get smooth transitions it may
 
 
 ### Install loops
-**`#I(loop start time) [loop end time]`**: force/override looping values (same as .pos but nicer). Loop end is optional and defaults to total samples.
+**`#I(loop start time) [loop end time]`**: force/override looping values. Loop end is optional and defaults to total samples.
 
 *(time)* can be `M:S(.n)` (minutes and seconds), `S.n` (seconds with dot), `0xN` (samples in hex format) or `N` (samples). Beware of 10.0 (ten seconds) vs 10 (ten samples).
 
@@ -609,7 +609,7 @@ Possible operations:
   * between `(time-pre)` and `(time-start)` song uses `(volume-start)`
   * between `(time-start)` and `(time-end)` song gradually changes `(volume-start)` to `(volume-end)` (depending on `(shape)`)
   * between `(time-end)` and `(time-post)` song uses `(volume-end)`
-  * `time-pre/post` may be -1 to set "file start" and "file end", cancelled by next fade
+  * `time-pre/post` may be -1 to set "file start" and "file end", canceled by next fade
 
 Considering:
 - `N` and `M` are channels (*current* value after previous operators are applied)
@@ -664,7 +664,7 @@ Manually setting values gets old, so TXTP supports a bunch of simple macros. The
 - `crosslayer-v/b/e N`: crossfades Nch layers to the main track after every loop (loop count is adjusted as needed)
 - `downmix`: downmixes up to 8 channels (7.1, 5.1, etc) to stereo, using standard downmixing formulas.
 
-`channels` can be multiple comma-separated channels or N~M ranges and may be ommited were applicable to mean "all channels" (channel order doesn't matter but it's internally fixed).
+`channels` can be multiple comma-separated channels or N~M ranges and may be omitted were applicable to mean "all channels" (channel order doesn't matter but it's internally fixed).
 
 Examples: 
 ```
@@ -868,7 +868,7 @@ To simplify TXTP creation, if the .txtp doesn't set a name inside then its filen
 
 
 ## MIXING
-Sometimes games use multiple channels in uncommon ways, for example as layered tracks for dynamic music (like main+vocals), or crossfading a stereo song to another stereo song. In those cases we normally would want a stereo track, but vgmstream can't guess how channels are used (since it's game-dependant). To solve this via TXTP you can set mixing output and volumes manually.
+Sometimes games use multiple channels in uncommon ways, for example as layered tracks for dynamic music (like main+vocals), or crossfading a stereo song to another stereo song. In those cases we normally would want a stereo track, but vgmstream can't guess how channels are used (since it's game-dependent). To solve this via TXTP you can set mixing output and volumes manually.
 
 A song file is just data that can contain a (sometimes unlimited) number of channels, that must play in physical speakers. Standard audio formats define how to "map" known channels to speakers:
 - `1.0: FC`
@@ -1026,7 +1026,7 @@ song#m1d,0*0.5
 
 
 ## UNDERSTANDING PLAY CONFIG AND FINAL TIME
-When handling a new file, vgmstream reads its loop points and total samples. Based on that and player/TXTP's config it decides actual "final time" that is used to play it. "internal file's samples" and "external play duration" are treated separatedly, so a non-looping 100s file could be forced to play for 200s (100s of audio then 100s of silence), or a looping 100s file could be set to play 310s (so 3 loops + 10s fade).
+When handling a new file, vgmstream reads its loop points and total samples. Based on that and player/TXTP's config it decides actual "final time" that is used to play it. "internal file's samples" and "external play duration" are treated separately, so a non-looping 100s file could be forced to play for 200s (100s of audio then 100s of silence), or a looping 100s file could be set to play 310s (so 3 loops + 10s fade).
 
 For example, with a 100s file that loops from 5..90s, `file.adx #p 5.0  #r 10.0  #l 2.0  #f 10.0  #P 2.0` means:
 - pad with 5s of silence first

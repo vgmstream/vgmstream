@@ -388,7 +388,7 @@ Sets the name of the stream, most useful when used with subsongs. TXTH will read
 
 `name_size` defaults to 0, which reads until null-terminator or a non-ascii character is found.
 
-`name_offset` can be a (number) value, but being an offset it's also adjusted by `subsong_spacing`. If you need to point to some absolute offset (for example a subsong pointings to name in another table) that doesn't depend on subsong (must not be changed by `subsong_spacing`), use `name_offset_absolute`.
+`name_offset` can be a (number) value, but being an offset it's also adjusted by `subsong_spacing`. If you need to point to some absolute offset (for example a subsong pointing to name in another table) that doesn't depend on subsong (must not be changed by `subsong_spacing`), use `name_offset_absolute`.
 ```
 name_offset = (value)
 name_size = (value)
@@ -518,9 +518,9 @@ multi_txth = ../.main.txth
 ## Complex usages
 
 ### Order and temporary values
-Most commands are evaluated and calculated immediatedly, every time they are found. This is by design, as it can be used to adjust and trick for certain calculations.
+Most commands are evaluated and calculated immediately, every time they are found. This is by design, as it can be used to adjust and trick for certain calculations.
 
-It does make TXTHs a bit harder to follow, as they are order dependant, but otherwise it's hard to accomplish some things or others become ambiguous.
+It does make TXTHs a bit harder to follow, as they are order dependent, but otherwise it's hard to accomplish some things or others become ambiguous.
 
 
 For example, normally you are given a data_size in bytes, that can be used to calculate num_samples for all channels.
@@ -547,7 +547,7 @@ num_samples = @0x10 * channels  # resulting bytes is transformed to samples
 Do note when using special values/strings like `data_size` in `num_samples` and `loop_end_samples` they must be alone to trigger.
 ```
 data_size = @0x100
-num_samples = data_size * 2 # doesn't tranform bytes-to-samples (do it before? after?)
+num_samples = data_size * 2 # doesn't transform bytes-to-samples (do it before? after?)
 ```
 ```
 data_size = @0x100 * 2
@@ -665,7 +665,7 @@ Sometimes a file is just a wrapper for another common format. In those cases you
 ```
 subfile_offset = 0x20   # tell TXTH to parse a full file (ex. .ogg) at this offset
 subfile_size = @0x10    # defaults to (file size - subfile_offset) if not set
-subfile_extension = ogg # may be ommited if subfile extension is the same
+subfile_extension = ogg # may be omitted if subfile extension is the same
 
 # many fields are ignored
 codec = PCM16LE

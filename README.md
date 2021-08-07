@@ -1,5 +1,4 @@
 # vgmstream
-
 This is vgmstream, a library for playing streamed (pre-recorded) audio from
 video games.
 
@@ -8,7 +7,7 @@ Some of vgmstream's features:
   obscure single-game codecs, aiming for high accuracy and compatibility.
 - support for looped BGM, using file's internal metadata for smooth transitions,
   with accurate sample counts
-- subsongs, playing a format's multiple internal songs separatedly
+- subsongs, playing a format's multiple internal songs separately
 - encryption keys, audio split in multiple files, internal stream names, and many
   other unusual cases found in game audio
 - TXTH function, to support extra formats (including raw audio in many forms)
@@ -40,24 +39,24 @@ above components are what you use to actually get sound. See *components* below 
 explanations about each one.
 
 ### Files
-On Windows, after compiling with the build scripts you should get `vgmstream-win.zip`
-(bundle of various components) and `foo_input_vgmstream.fb2k-component` (installable
-foobar2000 plugin).
-
-For Linux and similar O.S., you need to build them manually.
-
-You can find automatically pre-built binaries in https://vgmstream.org/downloads
+On Windows, you should get `vgmstream-win.zip` (bundle of various components) or
+`foo_input_vgmstream.fb2k-component` (installable foobar2000 plugin) from the
+pre-built binaries: https://vgmstream.org/downloads
 
 If the above link fails you may find alt, recent-ish versions here:
 https://github.com/bnnm/vgmstream-builds/raw/master/bin/vgmstream-latest-test-u.zip
+You may compile them from source as well.
+
+For Linux and other O.S., you need to build vgmstream manually (see *vgmstream/doc/BUILD.md*
+in source).
 
 ### Needed extra files (for Windows)
-On Windows support for some codecs (Ogg Vorbis, MPEG audio, etc) is done with external
+On Windows support for some codecs (Ogg Vorbis, MPEG audio, etc.) is done with external
 libraries, so you will need to have certain DLL files.
 
 In the case of components like foobar2000 they are all bundled for convenience,
-while other components include them but must be installed manually.
-You can also get them here: https://github.com/vgmstream/vgmstream/tree/master/ext_libs
+while other components include them but must be installed manually. You can also
+get them here: https://github.com/vgmstream/vgmstream/tree/master/ext_libs
 or compile them manually, even (see tech docs).
 
 Put the following files somewhere Windows can find them:
@@ -87,7 +86,7 @@ automatically, though not all may enabled at the moment due to build scripts iss
 
 ### test.exe/vgmstream-cli (command line decoder)
 *Windows*: unzip `test.exe` and follow the above instructions for installing needed extra files.
-(`test.exe` is used for historical reasons, but you can call it `vgmstream-cli` anyway).
+`test.exe` is used for historical reasons, but you can call it `vgmstream-cli.exe`, anyway.
 
 *Others*: build instructions can be found in doc/BUILD.md document in vgmstream's source
 code (can be compiled with CMake/Make/autotools).
@@ -120,10 +119,10 @@ Default output filename is `?f.wav`, or `?f#?s.wav` if you set subsongs (`-s/S`)
 For files containing multiple subsongs, you can write them all using some flags.
 **WARNING, MAY TAKE A LOT OF SPACE!** Some files have been observed to contain +20000
 subsongs, so don't use this lightly. Remember to set an output name (`-o`) with subsong
-wilcards (or leave it alone for the defaults).
+wildcards (or leave it alone for the defaults).
 - `test.exe -s 1 -S 100 file.bank`: writes from subsong 1 to subsong 100
-- `test.exe -s 101 -S 0 file.bank`: writes from subsong 101 to max subsong
-- `test.exe -S 0 file.bank`: writes from subsong 1 to max subsong (automatically changes 0 to max)
+- `test.exe -s 101 -S 0 file.bank`: writes from subsong 101 to max subsong (automatically changes 0 to max)
+- `test.exe -S 0 file.bank`: writes from subsong 1 to max subsong
 - `test.exe -s 1 -S 5 -o bgm.wav file.bank`: writes 5 subsongs, but all overwrite the same file = wrong.
 - `test.exe -s 1 -S 5 -o bgm_?02s.wav file.bank`: writes 5 subsongs, each named differently = correct.
 
@@ -135,7 +134,9 @@ and follow the above instructions for installing needed extra files.
 *Others*: may be possible to use through *Wine*
 
 Once installed, supported files should be playable. There is a simple config
-menu to tweak some options too.
+menu to tweak some options too. If the *Preferences... > Plug-ins > Input* shows
+vgmstream as *"NOT LOADED"* that means extra DLL files aren't in the correct
+place.
 
 
 ### xmp-vgmstream (XMPlay plugin)
@@ -174,14 +175,14 @@ document in vgmstream's source code (can be done with CMake or autotools).
 
 
 ### vgmstream123 (command line player)
-*Windows/Linux*: needs to be manually built. Instructions can be found in doc/BUILD.md
-document in vgmstream's source code (can be done with CMake or autotools).
-On Windows it needs `libao.dll` and appropriate includes.
+*Windows/Linux*: needs to be manually built. Instructions can be found in the
+*doc/BUILD.md* document in vgmstream's source code. On Windows it needs `libao.dll`
+and appropriate includes.
 
 Usage: `vgmstream123 [options] INFILE ...`
 
-The program is meant to be a simple stand-alone player, supporting playback
-of vgmstream files through libao. Files compressed with gzip/bzip2/xz also
+The program is meant to be a simple stand-alone player, supporting playback of
+vgmstream files through libao. On Linux, files compressed with gzip/bzip2/xz also
 work, as identified by a `.gz/.bz2/.xz` extension. The file will be decompressed
 to a temp dir using the respective utility program (which must be installed
 and accessible) and then loaded.
@@ -219,8 +220,8 @@ subsongs to `txtp_maker.py` (it has CLI options to control output too).
 
 ### Common and unknown extensions
 A few extensions that vgmstream supports clash with common ones. Since players
-like foobar or Winamp don't react well to that, they may be renamed to make
-them playable through vgmstream.
+like foobar or Winamp don't react well to that, they may be renamed to these
+"designated fake extensions" to make them playable through vgmstream.
 - `.aac` to `.laac` (tri-Ace games)
 - `.ac3` to `.lac3` (standard AC3)
 - `.aif` to `.laif` (standard Mac AIF, Asobo AIF, Ogg)
@@ -260,13 +261,13 @@ It's also possible to make a .txtp file that opens files with those common/unkno
 extensions as a way to force them into vgmstream without renaming.
 
 #### Related issues
-Also be aware that other plugins (not vgmstream's) can tell the player they
-handle some extension, then not actually play it. This makes the file unplayable
-as vgmstream doesn't even get the chance to parse that file, so you may need to
+Also be aware that other plugins (not vgmstream) can tell the player they handle
+some extension, then not actually play it. This makes the file unplayable as
+vgmstream doesn't even get the chance to parse that file, so you may need to
 disable the offending plugin or rename the file (for example this may happen with
 `.asf` in foobar2000).
 
-When extracting from a bigfile, sometimes internal files don't have an proper
+When extracting from a bigfile, sometimes internal files don't have a proper
 extension. Those should be renamed to its correct one when possible, as the
 extractor program may guess wrong (like `.wav` instead of `.at3` or `.wem`).
 If there is no known extension, usually the header id/magic string may be used instead.
@@ -388,7 +389,7 @@ Creation of these files is meant for advanced users, full docs can be found in
 vgmstream source.
 
 #### GENH
-A byte header placed right before the original data, modyfing it.
+A byte header placed right before the original data, modifying it.
 The resulting file must be `(name).genh`. Contains static header data.
 
 Programs like VGMToolbox can help to create *GENH*, but consider using *TXTH*
@@ -413,7 +414,6 @@ sample_rate = 48000     #hardcoded
 start_offset = 0x10
 num_samples = data_size #auto
 ```
-
 
 #### TXTP
 Text files with player configuration, named `(name).txtp`.
@@ -456,7 +456,6 @@ song02.mp3 #I 10.0
 music01.bfstm #C3,4
 ```
 
-
 #### TXTM
 A text file named `.txtm` for some formats with companion files. It lists
 name combos determining which companion files to load for each main file.
@@ -480,7 +479,6 @@ bgm_2_streamfiles.awb: bgm_2.acb
 bgm.awb: bgm.acb
 bgm_DLC1.awb: bgm.acb
 ```
-
 
 ### Plugin conflicts
 Since vgmstream supports a huge amount of formats it's possibly that some of
@@ -537,7 +535,7 @@ filename1
 # %LOCAL_TAG text (applies to next track only)
 filename2
 ```
-Accepted tags depend on the player (foobar: any; winamp: see ATF config, Audacious:
+Accepted tags depend on the player (foobar: any; Winamp: see ATF config, Audacious:
 few standard ones), typically *ALBUM/ARTIST/TITLE/DISC/TRACK/COMPOSER/etc*, lower
 or uppercase, separated by one or multiple spaces. Repeated tags overwrite previous
 (ex.- may define *@COMPOSER* multiple times for "sections"). It only reads up to
@@ -655,18 +653,18 @@ to make sure *options > titles > advanced title formatting* checkbox is set and
 the format defined.
 
 When tags change behavior varies depending on player:
-- *Winamp*: should refresh tags when file is played again.
+- *Winamp*: should refresh tags when a different file is played.
 - *foobar2000*: needs to force refresh (for reasons outside vgmstream's control)
   - **select songs > shift + right click > Tagging > Reload info from file(s)**.
-- *Audacious*: files need to be readded to the playlist
+- *Audacious*: files need to be re-added to the playlist
 
 Currently there is no tool to aid in the creation of these tags, but you can create
 a base `.m3u` and edit as a text file. You may try this python script to make the
-base file: https://pastebin.com/Sdu82SAp
+base file: https://raw.githubusercontent.com/bnnm/vgm-tools/master/py/tags-maker.py
 
 vgmstream's "m3u tagging" is meant to be simple to make and share (just a text
 file), easier to support in multiple players (rather than needing a custom plugin),
-allow OST-like ordering but also combinable with other `.m3u`, and be flexible enough
+allow OST-like ordering but also mixable with other `.m3u`, and be flexible enough
 to have commands. If you are not satisfied with vgmstream's tagging format,
 foobar2000 has other plugins (with write support) that may be of use:
 - m-TAGS: http://www.m-tags.org/
@@ -712,7 +710,7 @@ test.exe -o btl_koopa1_44k_lp.wav "btl_koopa1_44k_lp.brstm  #h22050.txtp"
 ```
 
 Support for this feature is limited by player itself, as foobar and Winamp allow
-non-existant files referenced in a `.m3u`, while other players may filter them
+non-existent files referenced in a `.m3u`, while other players may filter them
 first.
 
 You can use this python script to autogenerate one `.txtp` per virtual-txtp:
@@ -722,7 +720,7 @@ to control output too).
 
 
 ## Supported codec types
-Quick list of codecs vgmstream supports, including many obscure ones that
+Quick list of most codecs vgmstream supports, including many obscure ones that
 are used in few games.
 
 - PCM 16-bit
@@ -740,7 +738,7 @@ are used in few games.
 - Sony HEVAG
 - Electronic Arts EA-XA (stereo, mono, Maxis)
 - Electronic Arts EA-XAS (v0, v1)
-- DVI/IMA ADPCM (stereo/mono + high/low nibble, 3DS, Omikron, SNDS, etc)
+- DVI/IMA ADPCM (stereo/mono + high/low nibble, 3DS, Quantic Dream, SNDS, etc)
 - Microsoft MS IMA ADPCM (standard, Xbox, NDS, Radical, Wwise, FSB, WV6, etc)
 - Microsoft MS ADPCM (standard, Cricket Audio)
 - Westwood VBR ADPCM
@@ -1052,6 +1050,6 @@ This list is not complete and many other files are supported.
     - .hcakey (decryption key for .hca)
     - .fsbkey (decryption key for .fsb)
     - .bnsfkey (decryption key for .bnsf)
-    - .txtp (per song segment/layer handler and player configurator)
+    - .txtp (per song segment/layer handler and player configuration)
 
 Enjoy! *hcs*
