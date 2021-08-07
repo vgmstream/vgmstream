@@ -1,39 +1,42 @@
 #include "meta.h"
 
 /* ADP - from Omikron: The Nomad Soul (PC/DC) */
-VGMSTREAM * init_vgmstream_pc_adp_otns(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
-    off_t start_offset, datasize;
-    int loop_flag = 0, channel_count, stereo_flag;
+VGMSTREAM* init_vgmstream_adp_qd(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
+    off_t start_offset, data_size;
+    int loop_flag = 0, channels, stereo_flag;
 
-    if (!check_extensions(streamFile,"adp")) goto fail;
 
-    /* no ID, only a basic 0x10 header with filesize and nulls; do some extra checks */
-    datasize = read_32bitLE(0x00,streamFile) & 0x00FFFFFF; /*24 bit*/
-    if (datasize + 0x10 != streamFile->get_size(streamFile)
-            || read_32bitLE(0x04,streamFile) != 0
-            || read_32bitLE(0x08,streamFile) != 0
-            || read_32bitLE(0x0c,streamFile) != 0)
+    /* checks */
+    if (!check_extensions(sf,"adp"))
         goto fail;
 
-    stereo_flag = read_8bit(0x03, streamFile);
+    /* no ID, only a basic 0x10 header with filesize and nulls; do some extra checks */
+    data_size = read_u32le(0x00,sf) & 0x00FFFFFF; /*24 bit*/
+    if (data_size + 0x10 != sf->get_size(sf)
+            || read_u32le(0x04,sf) != 0
+            || read_u32le(0x08,sf) != 0
+            || read_u32le(0x0c,sf) != 0)
+        goto fail;
+
+    stereo_flag = read_u8(0x03, sf);
     if (stereo_flag > 1 || stereo_flag < 0) goto fail;
-    channel_count = stereo_flag ? 2 : 1;
+    channels = stereo_flag ? 2 : 1;
+    start_offset = 0x10;
+
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
-    start_offset = 0x10;
-    vgmstream->channels = channel_count;
+    vgmstream->meta_type = meta_QD_ADP;
     vgmstream->sample_rate = 22050;
-    vgmstream->num_samples = channel_count== 1 ? datasize*2 : datasize;
+    vgmstream->num_samples = data_size * 2 / channels;
 
-    vgmstream->coding_type = coding_OTNS_IMA;
+    vgmstream->coding_type = coding_QD_IMA;
     vgmstream->layout_type = layout_none;
-    vgmstream->meta_type = meta_OTNS_ADP;
 
-    if (!vgmstream_open_stream(vgmstream, streamFile, start_offset))
+    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
         goto fail;
     return vgmstream;
 

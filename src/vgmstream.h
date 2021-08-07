@@ -106,7 +106,7 @@ typedef enum {
     coding_DVI_IMA_int,     /* DVI IMA ADPCM (mono/interleave, high nibble first) */
     coding_3DS_IMA,         /* 3DS IMA ADPCM */
     coding_SNDS_IMA,        /* Heavy Iron Studios .snds IMA ADPCM */
-    coding_OTNS_IMA,        /* Omikron The Nomad Soul IMA ADPCM */
+    coding_QD_IMA,
     coding_WV6_IMA,         /* Gorilla Systems WV6 4-bit IMA ADPCM */
     coding_ALP_IMA,         /* High Voltage ALP 4-bit IMA ADPCM */
     coding_FFTA2_IMA,       /* Final Fantasy Tactics A2 4-bit IMA ADPCM */
@@ -558,8 +558,8 @@ typedef enum {
     meta_PS2_WMUS,          /* The Warriors (PS2) */
     meta_HYPERSCAN_KVAG,    /* Hyperscan KVAG/BVG */
     meta_IOS_PSND,          /* Crash Bandicoot Nitro Kart 2 (iOS) */
-    meta_BOS_ADP,           /* ADP! (Balls of Steel, PC) */
-    meta_OTNS_ADP,          /* Omikron: The Nomad Soul .adp (PC/DC) */
+    meta_BOS_ADP,
+    meta_QD_ADP,
     meta_EB_SFX,            /* Excitebots .sfx */
     meta_EB_SF0,            /* Excitebots .sf0 */
     meta_MTAF,

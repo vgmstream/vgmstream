@@ -395,7 +395,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM* vgmstream) {
         case coding_IMA:
         case coding_DVI_IMA:
         case coding_SNDS_IMA:
-        case coding_OTNS_IMA:
+        case coding_QD_IMA:
         case coding_UBI_IMA:
         case coding_UBI_SCE_IMA:
         case coding_OKI16:
@@ -631,7 +631,7 @@ int get_vgmstream_frame_size(VGMSTREAM* vgmstream) {
         case coding_RAD_IMA_mono:
             return 0x14;
         case coding_SNDS_IMA:
-        case coding_OTNS_IMA:
+        case coding_QD_IMA:
             return 0; //todo: 0x01?
         case coding_UBI_IMA: /* variable (PCM then IMA) */
             return 0;
@@ -1173,7 +1173,7 @@ void decode_vgmstream(VGMSTREAM* vgmstream, int samples_written, int samples_to_
                         vgmstream->channels, vgmstream->samples_into_block, samples_to_do, ch);
             }
             break;
-        case coding_OTNS_IMA:
+        case coding_QD_IMA:
             for (ch = 0; ch < vgmstream->channels; ch++) {
                 decode_otns_ima(vgmstream, &vgmstream->ch[ch], buffer+ch,
                         vgmstream->channels, vgmstream->samples_into_block, samples_to_do, ch);
