@@ -278,7 +278,8 @@ static int parse_config(cli_config* cfg, int argc, char** argv) {
     cfg->infilenames = &argv[optind];
     cfg->infilenames_count = argc - optind;
     if (cfg->infilenames_count <= 0) {
-        fprintf(stderr, "missing input file\n");
+        usage(argv[0], 0);
+        //fprintf(stderr, "missing input file\n");
         goto fail;
     }
 
@@ -617,7 +618,7 @@ fail:
 }
 
 static int convert_subsongs(cli_config* cfg) {
-    int res;
+    int res, oks, kos;
     int subsong;
     /* restore original values in case of multiple parsed files */
     int start_temp = cfg->subsong_index;
@@ -633,11 +634,17 @@ static int convert_subsongs(cli_config* cfg) {
     //;VGM_LOG("CLI: subsongs %i to %i\n", cfg->subsong_index, cfg->subsong_end + 1);
 
     /* convert subsong range */
+    oks = 0;
+    kos = 0 ;
     for (subsong = cfg->subsong_index; subsong < cfg->subsong_end + 1; subsong++) {
         cfg->subsong_index = subsong; 
 
         res = convert_file(cfg);
-        if (!res) goto fail;
+        if (!res) kos++;
+    }
+
+    if (kos) {
+        fprintf(stderr, "failed %i of %i subsongs\n", kos, oks);
     }
 
     cfg->subsong_index = start_temp;
