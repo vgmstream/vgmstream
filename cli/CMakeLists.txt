@@ -31,7 +31,7 @@ if(WIN32)
 		add_dependencies(vgmstream_cli version_h)
 	elseif(MINGW)
 		if(VGMSTREAM_VERSION)
-			target_compile_definitions(vgmstream_cli PRIVATE VERSION="${VGMSTREAM_VERSION}")
+			target_compile_definitions(vgmstream_cli PRIVATE VGMSTREAM_VERSION="${VGMSTREAM_VERSION}")
 		endif()
 
 		# Also, on MinGW when using GCC, these flags need to be included to prevent requiring MinGW's runtime DLLs from being included, which does unfortunately increase the size of the EXE
@@ -45,7 +45,7 @@ if(WIN32)
 	install_dlls(${CMAKE_INSTALL_PREFIX}/bin)
 elseif(VGMSTREAM_VERSION)
 	# Include the version string
-	target_compile_definitions(vgmstream_cli PRIVATE VERSION="${VGMSTREAM_VERSION}")
+	target_compile_definitions(vgmstream_cli PRIVATE VGMSTREAM_VERSION="${VGMSTREAM_VERSION}")
 endif()
 
 
@@ -74,7 +74,7 @@ if(NOT WIN32)
 		${AO_INCLUDE_DIR})
 
 	# Include the version string
-	target_compile_definitions(vgmstream123 PRIVATE VERSION="${VGMSTREAM_VERSION}")
+	target_compile_definitions(vgmstream123 PRIVATE VGMSTREAM_VERSION="${VGMSTREAM_VERSION}")
 
 	
 

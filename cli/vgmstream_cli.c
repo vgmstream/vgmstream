@@ -16,11 +16,11 @@
 #define STDOUT_FILENO 1
 #endif
 
-#ifndef VERSION
-#include "version.h"
+#ifndef VGMSTREAM_VERSION
+#include "../version.h"
 #endif
-#ifndef VERSION
-#define VERSION "(unknown version)"
+#ifndef VGMSTREAM_VERSION
+#define VGMSTREAM_VERSION "(unknown version)"
 #endif
 
 #ifdef HAVE_JSON
@@ -39,7 +39,7 @@
 static size_t make_wav_header(uint8_t* buf, size_t buf_size, int32_t sample_count, int32_t sample_rate, int channels, int smpl_chunk, int32_t loop_start, int32_t loop_end);
 
 static void usage(const char* name, int is_full) {
-    fprintf(stderr,"vgmstream CLI decoder " VERSION " " __DATE__ "\n"
+    fprintf(stderr,"vgmstream CLI decoder " VGMSTREAM_VERSION " " __DATE__ "\n"
             "Usage: %s [-o <outfile.wav>] [options] <infile>\n"
             "Options:\n"
             "    -o <outfile.wav>: name of output .wav file, default <infile>.wav\n"
@@ -457,7 +457,7 @@ void print_json_version() {
         json_array_append(cext_list, cext);
     }
 
-    json_t* version_string = json_string(VERSION);
+    json_t* version_string = json_string(VGMSTREAM_VERSION);
 
     json_t* final_object = json_object();
     json_object_set(final_object, "version", version_string);
@@ -913,7 +913,7 @@ fail:
 
 #ifdef HAVE_JSON
 static void print_json_info(VGMSTREAM* vgm, cli_config* cfg) {
-    json_t* version_string = json_string(VERSION);
+    json_t* version_string = json_string(VGMSTREAM_VERSION);
     vgmstream_info info;
     describe_vgmstream_info(vgm, &info);
 

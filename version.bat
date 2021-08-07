@@ -1,7 +1,7 @@
 @echo off
 
 REM creates or updates version.h
-REM params: $1=filename (usually version.h), $2=VARNAME (usually VERSION)
+REM params (optional): $1=filename (usually [relpath]/version.h), $2=VARNAME (usually VGMSTREAM_VERSION)
 
 setlocal enableextensions enabledelayedexpansion
 
@@ -10,7 +10,7 @@ set VERSION_DEFAULT=unknown
 set VERSION_FILE=%1
 set VERSION_NAME=%2
 if "%~1" == "" set VERSION_FILE=version.h
-if "%~2" == "" set VERSION_NAME=VERSION
+if "%~2" == "" set VERSION_NAME=VGMSTREAM_VERSION
 
 if not "%version%"=="" set version=!version:^:=_!
 

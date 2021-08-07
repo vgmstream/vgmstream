@@ -22,11 +22,11 @@ extern "C" {
 #include "vfs.h"
 
 
-#ifndef VERSION
-#include "version.h"
+#ifndef VGMSTREAM_VERSION
+#include "../version.h"
 #endif
-#ifndef VERSION
-#define VERSION "(unknown version)"
+#ifndef VGMSTREAM_VERSION
+#define VGMSTREAM_VERSION "(unknown-version)"
 #endif
 
 #define CFG_ID "vgmstream" // ID for storing in audacious
@@ -64,7 +64,7 @@ const char *const VgmstreamPlugin::defaults[] = {
 
 // N_(...) for i18n but not much point here
 const char VgmstreamPlugin::about[] =
-    "vgmstream plugin " VERSION " " __DATE__ "\n"
+    "vgmstream plugin " VGMSTREAM_VERSION " " __DATE__ "\n"
     "by hcs, FastElbja, manakoAT, bxaimc, snakemeat, soneek, kode54, bnnm and many others\n"
     "\n"
     "Audacious plugin:\n"

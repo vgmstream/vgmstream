@@ -36,7 +36,7 @@ export CFLAGS LDFLAGS
 ### targets
 
 xmp_vgmstream: libvgmstream.a $(TARGET_EXT_LIBS)
-	$(CC) -shared -static-libgcc $(CFLAGS) "-DVERSION=\"`../version.sh`\"" xmp_vgmstream.c $(LDFLAGS) -o $(OUTPUT_XMPLAY) xmpin.def
+	$(CC) -shared -static-libgcc $(CFLAGS) "-DVGMSTREAM_VERSION=\"$(VGMSTREAM_VERSION_PREV)\"" xmp_vgmstream.c $(LDFLAGS) -o $(OUTPUT_XMPLAY) xmpin.def
 	$(STRIP) $(OUTPUT_XMPLAY)
 
 libvgmstream.a:

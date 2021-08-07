@@ -12,7 +12,7 @@ fi
 
 # ignore git stderr "fatal: 
 if case $VERSION in fatal*) ;; *) false;; esac; then
-    echo ""
+    echo "unknown"
 else
     echo "$VERSION"
 fi;

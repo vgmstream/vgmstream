@@ -3,14 +3,14 @@
  */
 #include "in_vgmstream.h"
 
-#ifndef VERSION
-#include "version.h"
+#ifndef VGMSTREAM_VERSION
+#include "../version.h"
 #endif
-#ifndef VERSION
-#define VERSION "(unknown version)"
+#ifndef VGMSTREAM_VERSION
+#define VGMSTREAM_VERSION "(unknown version)"
 #endif
 
-#define PLUGIN_DESCRIPTION "vgmstream plugin " VERSION " " __DATE__
+#define PLUGIN_DESCRIPTION "vgmstream plugin " VGMSTREAM_VERSION " " __DATE__
 
 
 /* ***************************************** */

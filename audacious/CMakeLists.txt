@@ -40,7 +40,7 @@ extract_non_defines(GTK_CFLAGS_OTHER GTK_CFLAGS_OTHER)
 target_compile_definitions(audacious_vgmstream PRIVATE
 	${AUDACIOUS_DEFINES}
 	${GTK_DEFINES}
-	VERSION="${VGMSTREAM_VERSION}")
+	VGMSTREAM_VERSION="${VGMSTREAM_VERSION}")
 
 # Include compile flags for Audacious and GTK
 set_target_properties(audacious_vgmstream PROPERTIES

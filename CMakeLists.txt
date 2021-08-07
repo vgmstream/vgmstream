@@ -97,7 +97,7 @@ if(WIN32)
 		file(TO_NATIVE_PATH "${VGM_BINARY_DIR}/version.h" VERSION_H_PATH)
 		add_custom_command(OUTPUT ${VGM_BINARY_DIR}/version.h
 			COMMAND "${VGM_SOURCE_DIR}/version.bat"
-			ARGS ${VERSION_H_PATH} VERSION
+			ARGS ${VERSION_H_PATH}
 			DEPENDS ${VGM_SOURCE_DIR}/version.bat)
 		add_custom_target(version_h DEPENDS ${VGM_BINARY_DIR}/version.h)
 	else()

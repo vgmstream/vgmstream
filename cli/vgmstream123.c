@@ -39,11 +39,11 @@
 #include "../src/vgmstream.h"
 #include "../src/plugins.h"
 
-#ifndef VERSION
-# include "version.h"
+#ifndef VGMSTREAM_VERSION
+# include "../version.h"
 #endif
-#ifndef VERSION
-# define VERSION "(unknown version)"
+#ifndef VGMSTREAM_VERSION
+# define VGMSTREAM_VERSION "(unknown version)"
 #endif
 
 
@@ -134,7 +134,7 @@ static void usage(const char *progname) {
             default_driver = info->short_name;
     }
 
-    printf("vgmstream123 " VERSION ", built " __DATE__ "\n"
+    printf("vgmstream123 " VGMSTREAM_VERSION ", built " __DATE__ "\n"
         "\n"
         "Usage: %s [options] INFILE ...\n"
         "Play streamed audio from video games.\n"

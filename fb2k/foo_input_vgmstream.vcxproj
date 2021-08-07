@@ -88,10 +88,10 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PreBuildEvent>
-      <Command>"$(ProjectDir)..\version.bat" "$(ProjectDir)..\version.h" VERSION</Command>
+      <Command>"$(ProjectDir)..\version.bat"</Command>
     </PreBuildEvent>
     <PreBuildEvent>
-      <Message>Generating version.h</Message>
+      <Message>Generating version</Message>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -118,10 +118,10 @@
       <SubSystem>Windows</SubSystem>
     </Link>
     <PreBuildEvent>
-      <Command>"$(ProjectDir)..\version.bat" "$(ProjectDir)..\version.h" VERSION</Command>
+      <Command>"$(ProjectDir)..\version.bat"</Command>
     </PreBuildEvent>
     <PreBuildEvent>
-      <Message>Generating version.h</Message>
+      <Message>Generating version</Message>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>

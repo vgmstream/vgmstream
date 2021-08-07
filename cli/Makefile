@@ -37,11 +37,11 @@ export CFLAGS LDFLAGS
 ### targets
 
 vgmstream_cli: libvgmstream.a $(TARGET_EXT_LIBS)
-	$(CC) $(CFLAGS) "-DVERSION=\"`../version.sh`\"" vgmstream_cli.c $(LDFLAGS) -o $(OUTPUT_CLI)
+	$(CC) $(CFLAGS) "-DVGMSTREAM_VERSION=\"$(VGMSTREAM_VERSION_PREV)\"" vgmstream_cli.c $(LDFLAGS) -o $(OUTPUT_CLI)
 	$(STRIP) $(OUTPUT_CLI)
 
 vgmstream123: libvgmstream.a $(TARGET_EXT_LIBS)
-	$(CC) $(CFLAGS) -I$(LIBAO_INC_PATH) "-DVERSION=\"`../version.sh`\"" vgmstream123.c $(LDFLAGS) -L$(LIBAO_LIB_PATH) -lao -o $(OUTPUT_123)
+	$(CC) $(CFLAGS) -I$(LIBAO_INC_PATH) "-DVGMSTREAM_VERSION=\"$(VGMSTREAM_VERSION_PREV)\"" vgmstream123.c $(LDFLAGS) -L$(LIBAO_LIB_PATH) -lao -o $(OUTPUT_123)
 	$(STRIP) $(OUTPUT_123)
 
 libvgmstream.a:
