@@ -2095,6 +2095,10 @@
                     >
                 </File>
                 <File
+                    RelativePath=".\coding\relic_decoder_lib.h"
+                    >
+                </File>
+                <File
                     RelativePath=".\coding\tac_decoder_lib.h"
                     >
                 </File>
@@ -2336,6 +2340,10 @@
                 </File>
                 <File
                     RelativePath=".\coding\relic_decoder.c"
+                    >
+                </File>
+                <File
+                    RelativePath=".\coding\relic_decoder_lib.c"
                     >
                 </File>
                 <File

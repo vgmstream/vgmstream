@@ -251,6 +251,9 @@
     <ClInclude Include="coding\nwa_decoder.h">
       <Filter>coding\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="coding\relic_decoder_lib.h">
+      <Filter>coding\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="coding\tac_decoder_lib.h">
       <Filter>coding\Header Files</Filter>
     </ClInclude>
@@ -1397,6 +1400,9 @@
       <Filter>coding\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\relic_decoder.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\relic_decoder_lib.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\relic_decoder_mixfft.c">

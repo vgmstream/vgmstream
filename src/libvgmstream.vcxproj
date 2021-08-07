@@ -163,6 +163,7 @@
     <ClInclude Include="coding\fsb_vorbis_data.h" />
     <ClInclude Include="coding\g72x_state.h" />
     <ClInclude Include="coding\nwa_decoder.h" />
+    <ClInclude Include="coding\relic_decoder_lib.h" />
     <ClInclude Include="coding\tac_decoder_lib.h" />
     <ClInclude Include="coding\tac_decoder_lib_data.h" />
     <ClInclude Include="coding\tac_decoder_lib_ops.h" />
@@ -644,6 +645,7 @@
     <ClCompile Include="coding\psx_decoder.c" />
     <ClCompile Include="coding\ptadpcm_decoder.c" />
     <ClCompile Include="coding\relic_decoder.c" />
+    <ClCompile Include="coding\relic_decoder_lib.c" />
     <ClCompile Include="coding\relic_decoder_mixfft.c" />
     <ClCompile Include="coding\sassc_decoder.c" />
     <ClCompile Include="coding\sdx2_decoder.c" />
