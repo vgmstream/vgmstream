@@ -19,7 +19,7 @@ ifeq ($(TARGET_OS),Windows_NT)
 endif
 
 CFLAGS += $(DEF_CFLAGS) -DVAR_ARRAYS -I../ext_includes $(EXTRA_CFLAGS)
-LDFLAGS += -L../src -L../ext_libs -lm -lvgmstream $(EXTRA_LDFLAGS)
+LDFLAGS += -L../src -L../ext_libs -lvgmstream -lm $(EXTRA_LDFLAGS)
 TARGET_EXT_LIBS = 
 
 CFLAGS += $(LIBS_CFLAGS)
