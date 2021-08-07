@@ -594,6 +594,7 @@ static const char* extension_list[] = {
     "wve",
     "wvs",
     "wvx",
+    "wxd",
 
     "x",
     "x360audio", //fake extension for Unreal Engine 3 XMA (real extension unknown)
@@ -1353,6 +1354,8 @@ static const meta_info meta_info_list[] = {
         {meta_DSP_KWA,              "Kuju London .KWA header"},
         {meta_OGV_3RDEYE,           "3rdEye .OGV header"},
         {meta_PIFF_TPCM,            "Tantalus PIFF TPCM header"},
+        {meta_WXD_WXH,              "Relic WXD+WXH header"},
+        {meta_BNK_RELIC,            "Relic BNK header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {

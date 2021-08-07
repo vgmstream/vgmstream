@@ -309,6 +309,7 @@
     <ClCompile Include="meta\bik.c" />
     <ClCompile Include="meta\bkhd.c" />
     <ClCompile Include="meta\bmp_konami.c" />
+    <ClCompile Include="meta\bnk_relic.c" />
     <ClCompile Include="meta\bnk_sony.c" />
     <ClCompile Include="meta\bnsf.c" />
     <ClCompile Include="meta\brstm.c" />
@@ -570,6 +571,7 @@
     <ClCompile Include="meta\wsi.c" />
     <ClCompile Include="meta\wv6.c" />
     <ClCompile Include="meta\wvs.c" />
+    <ClCompile Include="meta\wxd_wxh.c" />
     <ClCompile Include="meta\wwise.c" />
     <ClCompile Include="meta\xau.c" />
     <ClCompile Include="meta\xavs.c" />

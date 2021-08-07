@@ -741,6 +741,8 @@ typedef enum {
     meta_DSP_KWA,
     meta_OGV_3RDEYE,
     meta_PIFF_TPCM,
+    meta_WXD_WXH,
+    meta_BNK_RELIC,
 } meta_t;
 
 /* standard WAVEFORMATEXTENSIBLE speaker positions */
