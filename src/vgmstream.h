@@ -483,7 +483,7 @@ typedef enum {
     meta_VS,                /* Men in Black .vs */
     meta_FFXI_BGW,          /* FFXI (PC) BGW */
     meta_FFXI_SPW,          /* FFXI (PC) SPW */
-    meta_STS_WII,           /* Shikigami No Shiro 3 STS Audio File */
+    meta_STS,
     meta_PS2_P2BT,          /* Pop'n'Music 7 Audio File */
     meta_PS2_GBTS,          /* Pop'n'Music 9 Audio File */
     meta_NGC_DSP_IADP,      /* Gamecube Interleave DSP */

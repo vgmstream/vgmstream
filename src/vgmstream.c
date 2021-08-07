@@ -179,7 +179,7 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_dcs_wav,
     init_vgmstream_mul,
     init_vgmstream_thp,
-    init_vgmstream_wii_sts,
+    init_vgmstream_sts,
     init_vgmstream_ps2_p2bt,
     init_vgmstream_ps2_gbts,
     init_vgmstream_wii_sng,

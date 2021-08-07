@@ -1,87 +1,55 @@
 #include "meta.h"
-#include "../util.h"
+#include "../coding/coding.h"
 
-/* STS
+/* .STS - from Alfa System games [Shikigami no Shiro 3 (Wii)] */
+VGMSTREAM* init_vgmstream_sts(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
+    uint32_t start_offset, data_size, channel_size;
+    int loop_flag, channels, sample_rate;
 
-   STS (found in Shikigami No Shiro 3)
-   Don't confuse with ps2 .STS (EXST) format, this one is for WII
-*/
 
-VGMSTREAM * init_vgmstream_wii_sts(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
+    /* checks */
+    if (!check_extensions(sf, "sts"))
+        goto fail;
 
-    int loop_flag=0;
-	int channel_count;
-    int i,j;
-	off_t	start_offset;
+    data_size = read_u32be(0x00,sf);
+    if (data_size + 0x04 != get_streamfile_size(sf))
+        goto fail;
 
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("sts",filename_extension(filename))) goto fail;
+    channels = read_u8(0x08,sf) + 1;
+	sample_rate = read_u16be(0x0c,sf);
+	/* 0x10: dsp related? */
+	/* 0x16: usable size */
+	channel_size = read_u32be(0x1a,sf);
 
-	/* First bytes contain the size of the file (-4) */
-	if(read_32bitBE(0x0,streamFile)!=get_streamfile_size(streamFile)-4)
-		goto fail;
+    loop_flag = 0; //(read_s32be(0x4C,sf) != -1); /* not seen */
 
-	loop_flag = (read_32bitLE(0x4C,streamFile)!=0xFFFFFFFF);
-	channel_count=read_8bit(0x8,streamFile)+1;
-    
-	/* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    start_offset = (channels == 1) ? 0x70 : 0x50;
+
+
+    /* build the VGMSTREAM */
+    vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
-	/* fill in the vital statistics */
-	vgmstream->channels = channel_count;
-    vgmstream->sample_rate = read_32bitBE(0x0A,streamFile);
-	vgmstream->coding_type = coding_NGC_DSP;
+    vgmstream->meta_type = meta_STS;
+    vgmstream->sample_rate = sample_rate;
 
-	if(vgmstream->channels==1) 
-		vgmstream->num_samples = (read_32bitBE(0x0,streamFile)+4-0x70)/8*14;
-	else
-		vgmstream->num_samples = (read_32bitBE(0x0,streamFile)+4-0x50-0x26)/8*14/2;
+	vgmstream->num_samples = dsp_bytes_to_samples(channel_size, 1);
+    vgmstream->loop_start_sample = 0;
+    vgmstream->loop_end_sample = vgmstream->num_samples;
 
-    vgmstream->layout_type = layout_none;
-    vgmstream->meta_type = meta_STS_WII;
+    vgmstream->coding_type = coding_NGC_DSP;
+    vgmstream->layout_type = layout_interleave;
+	vgmstream->interleave_block_size = channel_size + 0x2e;
 
-	if(loop_flag) {
-		vgmstream->loop_start_sample=read_32bitLE(0x24,streamFile);
-		vgmstream->loop_end_sample=vgmstream->num_samples;
-	}
+	dsp_read_coefs_be(vgmstream, sf, 0x1e, start_offset - 0x1e + channel_size);
+	dsp_read_hist_be(vgmstream, sf, 0x1e + 0x24, start_offset - 0x1e + channel_size);
 
-	/* setting coef tables */
-	if(vgmstream->channels==1) 
-		start_offset = 0x70;
-	else
-		start_offset = 0x50;
-
-	// First channel
-	for(j=0;j<16;j++) {
-		vgmstream->ch[0].adpcm_coef[j]=read_16bitBE(0x1E + (j*2),streamFile);
-	}
-	
-	// Second channel ?
-	if(vgmstream->channels==2) {
-		start_offset+=read_32bitBE(0x1a,streamFile);
-		for(j=0;j<16;j++) {
-			vgmstream->ch[1].adpcm_coef[j]=read_16bitBE(start_offset+(j*2),streamFile);
-		}
-	}
-
-    /* open the file for reading by each channel */
-    {
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-            vgmstream->ch[i].offset = 0x50+(i*(start_offset+0x26-0x50));
-
-            if (!vgmstream->ch[i].streamfile) goto fail;
-        }
-    }
-
+    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
+        goto fail;
     return vgmstream;
 
-    /* clean up anything we may have opened */
 fail:
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_vgmstream(vgmstream);
     return NULL;
 }

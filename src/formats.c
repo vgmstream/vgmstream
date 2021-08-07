@@ -1069,7 +1069,7 @@ static const meta_info meta_info_list[] = {
         {meta_SMP,                  "Infernal Engine .smp header"},
         {meta_MUL,                  "Crystal Dynamics .MUL header"},
         {meta_THP,                  "Nintendo THP header"},
-        {meta_STS_WII,              "Shikigami no Shiro (WII) Header"},
+        {meta_STS,                  "Alfa System .STS header"},
         {meta_PS2_P2BT,             "Pop'n'Music 7 Header"},
         {meta_PS2_GBTS,             "Pop'n'Music 9 Header"},
         {meta_NGC_DSP_IADP,         "IADP Header"},
