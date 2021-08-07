@@ -29,6 +29,9 @@ OBJECTS += $(EXT_LIBS_OBJS)
 libvgmstream.a: $(OBJECTS)
 	$(AR) crs libvgmstream.a $(OBJECTS)
 
+libvgmstream.so: $(OBJECTS)
+	$(LD) -shared -o libvgmstream.so $(OBJECTS)
+
 #vgmstream-deps:
 #	$(CC) $(CFLAGS) -M -o vgmstream-deps
 
