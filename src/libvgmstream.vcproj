@@ -1871,7 +1871,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\meta\wii_sts.c"
+					RelativePath=".\meta\sts.c"
 					>
 				</File>
 				<File

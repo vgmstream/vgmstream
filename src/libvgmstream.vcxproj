@@ -567,7 +567,7 @@
     <ClCompile Include="meta\wii_bns.c" />
     <ClCompile Include="meta\wii_mus.c" />
     <ClCompile Include="meta\wii_sng.c" />
-    <ClCompile Include="meta\wii_sts.c" />
+    <ClCompile Include="meta\sts.c" />
     <ClCompile Include="meta\ws_aud.c" />
     <ClCompile Include="meta\wsi.c" />
     <ClCompile Include="meta\wv6.c" />

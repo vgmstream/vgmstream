@@ -1192,7 +1192,7 @@
     <ClCompile Include="meta\wii_sng.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\wii_sts.c">
+    <ClCompile Include="meta\sts.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ws_aud.c">
