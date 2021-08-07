@@ -5,49 +5,56 @@ REM params: $1=filename (usually version.h), $2=VARNAME (usually VERSION)
 
 setlocal enableextensions enabledelayedexpansion
 
-cd /d "%~dp0"
-
-for /f %%v in ('git describe --always') do set version=%%v
+REM defaults
+set VERSION_DEFAULT=unknown
+set VERSION_FILE=%1
+set VERSION_NAME=%2
+if "%~1" == "" set VERSION_FILE=version.h
+if "%~2" == "" set VERSION_NAME=VERSION
 
 if not "%version%"=="" set version=!version:^:=_!
 
-if not "%version%"=="" goto :gotversion
+cd /d "%~dp0"
 
-if exist "version.mk" goto :getversion
 
-echo Git cannot be found, nor can version.mk. Generating unknown version.
+REM try dynamic version from git
+for /f %%v in ('git describe --always') do set version=%%v
 
-set version=unknown
+if not "%version%"=="" set version=!version:^:=_!
+if not "%version%"=="" goto :got_version
+if exist "version.mk" goto :mk_version
 
-goto :gotversion
+echo Git version cannot be found, nor can version.mk. Generating unknown version.
+set version=%VERSION_DEFAULT%
+goto :got_version
 
-:getversion
 
+REM try static version from .mk file
+:mk_version
 for /f "delims== tokens=2" %%v in (version.mk) do set version=%%v
-
 set version=!version:^"=!
 set version=!version: =!
 
-:gotversion
 
-set version_out=#define %2 "%version%"
-set version_mk=%2 = "%version%"
+REM version found, create version.h and update .mk
+:got_version
+set version_out=#define %VERSION_NAME% "%version%"
+set version_mk=%VERSION_NAME% = "%version%"
 
-echo %version_out%> %1_temp
+echo %version_out%> %VERSION_FILE%_temp
 
-if %version%==unknown goto :skipgenerate
-
+if %version%==%VERSION_DEFAULT% goto :skip_generate
 echo # static version string; update manually before and after every release.> "version.mk"
 echo %version_mk%>> "version.mk"
 
-:skipgenerate
 
-echo n | comp %1_temp %1 > NUL 2> NUL
+:skip_generate
+echo n | comp %VERSION_FILE%_temp %VERSION_FILE% > NUL 2> NUL
 
 if not errorlevel 1 goto exit
 
-copy /y %1_temp %1 > NUL 2> NUL
+copy /y %VERSION_FILE%_temp %VERSION_FILE% > NUL 2> NUL
 
 :exit
 
-del %1_temp
+del %VERSION_FILE%_temp
