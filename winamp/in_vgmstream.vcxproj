@@ -89,7 +89,7 @@
       <TargetMachine>MachineX86</TargetMachine>
     </Link>
     <PreBuildEvent>
-      <Command>"$(ProjectDir)..\version.bat"</Command>
+      <Command>"$(ProjectDir)..\version-make.bat"</Command>
     </PreBuildEvent>
     <PreBuildEvent>
       <Message>Generating version</Message>
@@ -119,7 +119,7 @@
       <TargetMachine>MachineX86</TargetMachine>
     </Link>
     <PreBuildEvent>
-      <Command>"$(ProjectDir)..\version.bat"</Command>
+      <Command>"$(ProjectDir)..\version-make.bat"</Command>
     </PreBuildEvent>
     <PreBuildEvent>
       <Message>Generating version</Message>

@@ -4,9 +4,9 @@
 
 ifeq ($(VGMSTREAM_VERSION),)
   # for current dir (expanded later)
-  VGMSTREAM_VERSION_CURR=`./version.sh`
+  VGMSTREAM_VERSION_CURR=`./version-get.sh`
   # for subdirs (expanded later)
-  VGMSTREAM_VERSION_PREV=`../version.sh`
+  VGMSTREAM_VERSION_PREV=`../version-get.sh`
 else
   VGMSTREAM_VERSION_CURR=$(VGMSTREAM_VERSION)
   VGMSTREAM_VERSION_PREV=$(VGMSTREAM_VERSION)
@@ -183,8 +183,8 @@ sourceball:
 	rm -rf vgmstream-$(VGMSTREAM_VERSION_CURR)
 	git checkout-index -f -a --prefix=vgmstream-$(VGMSTREAM_VERSION_CURR)/
 #	git archive --format zip --output vgmstream-$(VGMSTREAM_VERSION_CURR).zip master
-	echo "#!/bin/sh" > vgmstream-$(VGMSTREAM_VERSION_CURR)/version.sh
-	echo "echo \"$(VGMSTREAM_VERSION_CURR)\"" >> vgmstream-$(VGMSTREAM_VERSION_CURR)/version.sh
+	echo "#!/bin/sh" > vgmstream-$(VGMSTREAM_VERSION_CURR)/version-get.sh
+	echo "echo \"$(VGMSTREAM_VERSION_CURR)\"" >> vgmstream-$(VGMSTREAM_VERSION_CURR)/version-get.sh
 	tar cvzf "vgmstream-$(VGMSTREAM_VERSION_CURR).tar.gz" vgmstream-$(VGMSTREAM_VERSION_CURR)/*
 	rm -rf vgmstream-$(VGMSTREAM_VERSION_CURR)
 

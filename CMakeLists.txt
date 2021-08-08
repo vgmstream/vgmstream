@@ -96,9 +96,9 @@ if(WIN32)
 	if(MSVC)
 		file(TO_NATIVE_PATH "${VGM_BINARY_DIR}/version.h" VERSION_H_PATH)
 		add_custom_command(OUTPUT ${VGM_BINARY_DIR}/version.h
-			COMMAND "${VGM_SOURCE_DIR}/version.bat"
+			COMMAND "${VGM_SOURCE_DIR}/version-make.bat"
 			ARGS ${VERSION_H_PATH}
-			DEPENDS ${VGM_SOURCE_DIR}/version.bat)
+			DEPENDS ${VGM_SOURCE_DIR}/version-make.bat)
 		add_custom_target(version_h DEPENDS ${VGM_BINARY_DIR}/version.h)
 	else()
 		find_package(Git)

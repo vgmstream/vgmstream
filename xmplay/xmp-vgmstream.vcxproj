@@ -77,7 +77,7 @@
       <ModuleDefinitionFile>xmpin.def</ModuleDefinitionFile>
     </Link>
     <PreBuildEvent>
-      <Command>"$(ProjectDir)..\version.bat"</Command>
+      <Command>"$(ProjectDir)..\version-make.bat"</Command>
     </PreBuildEvent>
     <PreBuildEvent>
       <Message>Generating version</Message>
@@ -107,7 +107,7 @@
       <ModuleDefinitionFile>xmpin.def</ModuleDefinitionFile>
     </Link>
     <PreBuildEvent>
-      <Command>"$(ProjectDir)..\version.bat"</Command>
+      <Command>"$(ProjectDir)..\version-make.bat"</Command>
     </PreBuildEvent>
     <PreBuildEvent>
       <Message>Generating version</Message>

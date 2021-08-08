@@ -23,7 +23,7 @@ for /f %%v in ('git describe --always') do set version=%%v
 if not "%version%"=="" set version=!version:^:=_!
 if not "%version%"=="" goto :got_version
 
-echo Git version cannot be found, can't autogenerate version.h
+echo Git version not found, can't autogenerate version.h
 goto :exit
 
 
