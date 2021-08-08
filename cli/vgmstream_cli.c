@@ -485,7 +485,7 @@ static void clean_filename(char* dst, int clean_paths) {
 
 /* replaces a filename with "?n" (stream name), "?f" (infilename) or "?s" (subsong) wildcards
  * ("?" was chosen since it's not a valid Windows filename char and hopefully nobody uses it on Linux) */
-static void replace_filename(char* dst, size_t dstsize, const char* outfilename, const char* infilename, VGMSTREAM* vgmstream) {
+static void replace_filename(char* dst, size_t dstsize, cli_config* cfg, VGMSTREAM* vgmstream) {
     int subsong;
     char stream_name[PATH_LIMIT];
     char buf[PATH_LIMIT];
@@ -494,7 +494,7 @@ static void replace_filename(char* dst, size_t dstsize, const char* outfilename,
 
 
     /* file has a "%" > temp replace for sprintf */
-    strcpy(buf, outfilename);
+    strcpy(buf, cfg->outfilename_config);
     for (i = 0; i < strlen(buf); i++) {
         if (buf[i] == '%')
             buf[i] = '|'; /* non-valid filename, not used in format */
@@ -502,8 +502,8 @@ static void replace_filename(char* dst, size_t dstsize, const char* outfilename,
 
     /* init config */
     subsong = vgmstream->stream_index;
-    if (subsong > vgmstream->num_streams) {
-        subsong = 0; /* for games without subsongs */
+    if (subsong > vgmstream->num_streams || subsong != cfg->subsong_index) {
+        subsong = 0; /* for games without subsongs / bad config */
     }
 
     if (vgmstream->stream_name && vgmstream->stream_name[0] != '\0') {
@@ -511,7 +511,7 @@ static void replace_filename(char* dst, size_t dstsize, const char* outfilename,
         clean_filename(stream_name, 1); /* clean subsong name's subdirs */
     }
     else {
-        snprintf(stream_name, sizeof(stream_name), "%s", infilename);
+        snprintf(stream_name, sizeof(stream_name), "%s", cfg->infilename);
         clean_filename(stream_name, 0); /* don't clean user's subdirs */
     }
 
@@ -530,7 +530,7 @@ static void replace_filename(char* dst, size_t dstsize, const char* outfilename,
         else if (pos[1] == 'f') {
             pos[0] = '%';
             pos[1] = 's'; /* use %s */
-            snprintf(tmp, sizeof(tmp), buf, infilename);
+            snprintf(tmp, sizeof(tmp), buf, cfg->infilename);
         }
         else if (pos[1] == 's') {
             pos[0] = '%';
@@ -739,7 +739,9 @@ static int convert_file(cli_config* cfg) {
 
         if (!cfg->outfilename_config && !cfg->outfilename) {
             /* defaults */
-            cfg->outfilename_config = (cfg->subsong_index >= 1) ? 
+            int has_subsongs = (cfg->subsong_index >= 1 && vgmstream->num_streams >= 1);
+
+            cfg->outfilename_config = has_subsongs ? 
                 "?f#?s.wav" :
                 "?f.wav";
             /* maybe should avoid overwriting with this auto-name, for the unlikely
@@ -748,7 +750,7 @@ static int convert_file(cli_config* cfg) {
 
         if (cfg->outfilename_config) {
             /* special substitution */
-            replace_filename(outfilename_temp, sizeof(outfilename_temp), cfg->outfilename_config, cfg->infilename, vgmstream);
+            replace_filename(outfilename_temp, sizeof(outfilename_temp), cfg, vgmstream);
             cfg->outfilename = outfilename_temp;
         }
 

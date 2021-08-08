@@ -119,5 +119,5 @@ void free_relic(relic_codec_data* data) {
 }
 
 int32_t relic_bytes_to_samples(size_t bytes, int channels, int bitrate) {
-    return bytes / channels / (bitrate / 8) * 512;
+    return bytes / channels / (bitrate / 8) * RELIC_SAMPLES_PER_FRAME;
 }
