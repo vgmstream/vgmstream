@@ -2,6 +2,7 @@
 #* text=auto
 #*.c text=auto
 #*.h text=auto
+* -text
 
 *.sh text eol=lf
 *.bat text eol=crlf
