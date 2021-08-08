@@ -2,6 +2,19 @@
 # vgmstream makefile
 ###############################
 
+ifeq ($(VGMSTREAM_VERSION),)
+  # for current dir (expanded later)
+  VGMSTREAM_VERSION_CURR=`./version-get.sh`
+  # for subdirs (expanded later)
+  VGMSTREAM_VERSION_PREV=`../version-get.sh`
+else
+  VGMSTREAM_VERSION_CURR=$(VGMSTREAM_VERSION)
+  VGMSTREAM_VERSION_PREV=$(VGMSTREAM_VERSION)
+endif
+
+export VGMSTREAM_VERSION_PREV
+
+
 ###############################################################################
 ### external defs
 # currently aimed to WIN32 builds but vgmstream_cli should work for others (or use autotools instead)
@@ -50,7 +63,7 @@ export RMF SHELL CC AR STRIP WINDRES DLLTOOL
 ###############################################################################
 ### build defs
 
-DEF_CFLAGS = -ffast-math -O3 -Wall -Werror=format-security -Wlogical-op -Wdeclaration-after-statement -Wvla -Wimplicit-function-declaration -Wignored-qualifiers
+DEF_CFLAGS += -ffast-math -O3 -Wall -Werror=format-security -Wlogical-op -Wdeclaration-after-statement -Wvla -Wimplicit-function-declaration -Wignored-qualifiers
 
 VGM_DEBUG_FLAGS = 0
 ifeq ($(VGM_DEBUG_FLAGS),1)
@@ -167,20 +180,20 @@ buildrelease-ex: clean bin-ex
 buildfullrelease: clean sourceball bin
 
 sourceball:
-	rm -rf vgmstream-`./version.sh`
-	git checkout-index -f -a --prefix=vgmstream-`./version.sh`/
-#	git archive --format zip --output vgmstream-`./version.sh`.zip master
-	echo "#!/bin/sh" > vgmstream-`./version.sh`/version.sh
-	echo "echo \"`./version.sh`\"" >> vgmstream-`./version.sh`/version.sh
-	tar cvzf "vgmstream-`./version.sh`.tar.gz" vgmstream-`./version.sh`/*
-	rm -rf vgmstream-`./version.sh`
+	rm -rf vgmstream-$(VGMSTREAM_VERSION_CURR)
+	git checkout-index -f -a --prefix=vgmstream-$(VGMSTREAM_VERSION_CURR)/
+#	git archive --format zip --output vgmstream-$(VGMSTREAM_VERSION_CURR).zip master
+	echo "#!/bin/sh" > vgmstream-$(VGMSTREAM_VERSION_CURR)/version-get.sh
+	echo "echo \"$(VGMSTREAM_VERSION_CURR)\"" >> vgmstream-$(VGMSTREAM_VERSION_CURR)/version-get.sh
+	tar cvzf "vgmstream-$(VGMSTREAM_VERSION_CURR).tar.gz" vgmstream-$(VGMSTREAM_VERSION_CURR)/*
+	rm -rf vgmstream-$(VGMSTREAM_VERSION_CURR)
 
 bin mingwbin: vgmstream_cli winamp xmplay
-	zip -FS -j "vgmstream-`./version.sh`-test.zip" $(ZIP_FILES)
+	zip -FS -j "vgmstream-$(VGMSTREAM_VERSION_CURR)-test.zip" $(ZIP_FILES)
 
 #separate since vgmstream123 is kinda untested
 bin-ex mingwbin-ex: vgmstream_cli winamp xmplay vgmstream123
-	zip -FS -j "vgmstream-`./version.sh`-test.zip" $(ZIP_FILES) $(ZIP_FILES_AO)
+	zip -FS -j "vgmstream-$(VGMSTREAM_VERSION_CURR)-test.zip" $(ZIP_FILES) $(ZIP_FILES_AO)
 
 vgmstream_cli mingw_test:
 	$(MAKE) -C cli vgmstream_cli

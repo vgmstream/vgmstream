@@ -38,7 +38,7 @@ if(MSVC)
 	add_dependencies(in_vgmstream version_h)
 elseif(MINGW)
 	if(VGMSTREAM_VERSION)
-		target_compile_definitions(in_vgmstream PRIVATE VERSION="${VGMSTREAM_VERSION}")
+		target_compile_definitions(in_vgmstream PRIVATE VGMSTREAM_VERSION="${VGMSTREAM_VERSION}")
 	endif()
 
 	# Also, on MinGW when using GCC, these flags need to be included to prevent requiring MinGW's runtime DLLs from being included, which does unfortunately increase the size of the DLL

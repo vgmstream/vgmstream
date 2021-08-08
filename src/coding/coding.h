@@ -310,6 +310,7 @@ void decode_relic(VGMSTREAMCHANNEL* stream, relic_codec_data* data, sample_t* ou
 void reset_relic(relic_codec_data* data);
 void seek_relic(relic_codec_data* data, int32_t num_sample);
 void free_relic(relic_codec_data* data);
+int32_t relic_bytes_to_samples(size_t bytes, int channels, int bitrate);
 
 
 /* hca_decoder */

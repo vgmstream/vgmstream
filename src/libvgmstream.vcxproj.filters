@@ -251,6 +251,9 @@
     <ClInclude Include="coding\nwa_decoder.h">
       <Filter>coding\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="coding\relic_decoder_lib.h">
+      <Filter>coding\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="coding\tac_decoder_lib.h">
       <Filter>coding\Header Files</Filter>
     </ClInclude>
@@ -1192,7 +1195,7 @@
     <ClCompile Include="meta\wii_sng.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\wii_sts.c">
+    <ClCompile Include="meta\sts.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ws_aud.c">
@@ -1205,6 +1208,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\wvs.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\wxd_wxh.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\wwise.c">
@@ -1394,6 +1400,9 @@
       <Filter>coding\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\relic_decoder.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\relic_decoder_lib.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\relic_decoder_mixfft.c">
@@ -1672,10 +1681,10 @@
     <ClCompile Include="meta\imuse.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\pc_adp.c">
+    <ClCompile Include="meta\adp_bos.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\pc_adp_otns.c">
+    <ClCompile Include="meta\adp_qd.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\excitebots.c">
@@ -1724,6 +1733,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\mp4.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\mp4_faac.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\msb_msh.c">
@@ -1829,6 +1841,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\bmp_konami.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\bnk_relic.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\bnk_sony.c">

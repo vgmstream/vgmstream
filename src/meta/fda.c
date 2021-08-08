@@ -1,22 +1,19 @@
 #include "meta.h"
 #include "../coding/coding.h"
 
-
 /* FDA - from Relic Entertainment games [Warhammer 4000: Dawn of War (PC)] */
-VGMSTREAM * init_vgmstream_fda(STREAMFILE *sf) {
-    VGMSTREAM * vgmstream = NULL;
+VGMSTREAM* init_vgmstream_fda(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
     off_t start_offset;
-    int loop_flag, channel_count, bitrate, sample_rate, num_samples;
+    int loop_flag, channels, bitrate, sample_rate, num_samples;
 
 
     /* checks */
     if (!check_extensions(sf, "fda"))
         goto fail;
 
-    if (read_u32be(0x00, sf) != 0x52656C69 ||   /* "Reli" */
-        read_u32be(0x04, sf) != 0x63204368 ||   /* "c Ch" */
-        read_u32be(0x08, sf) != 0x756E6B79 ||   /* "unky" */
-        read_u32be(0x0c, sf) != 0x0D0A1A00)     /* "\r\n\1a\00"*/
+    if (!is_id64be(0x00, sf, "Relic Ch") ||
+        !is_id64be(0x08, sf, "unky\r\n\x1a\x00"))
         goto fail;
 
     /* version? (later .fda change this) */
@@ -38,18 +35,18 @@ VGMSTREAM * init_vgmstream_fda(STREAMFILE *sf) {
         offset += 0x14 + name_size + chunk_size;
 
         /* FOLD-FDA (folder of chunks) */
-        if (read_u32be(offset + 0x04, sf) != 0x46444120) /* "FDA " */
+        if (!is_id32be(offset + 0x04, sf, "FDA "))
             goto fail;
         offset += 0x14;
 
         /* DATA-INFO (header) */
-        if (read_u32be(offset + 0x04, sf) != 0x494E464F) /* "INFO" */
+        if (!is_id32be(offset + 0x04, sf, "INFO"))
             goto fail;
         chunk_size = read_u32le(offset + 0x0c, sf);
         name_size  = read_u32le(offset + 0x10, sf);
         offset += 0x14 + name_size;
 
-        channel_count   = read_s32le(offset + 0x00, sf);
+        channels   = read_s32le(offset + 0x00, sf);
         /* 0x04: bps */
         bitrate         = read_s32le(offset + 0x08, sf);
         sample_rate     = read_s32le(offset + 0x0c, sf);
@@ -60,28 +57,28 @@ VGMSTREAM * init_vgmstream_fda(STREAMFILE *sf) {
         offset += chunk_size;
 
         /* DATA-DATA (data) */
-        if (read_u32be(offset + 0x04, sf) != 0x44415441) /* "DATA" */
+        if (!is_id32be(offset + 0x04, sf, "DATA"))
             goto fail;
         chunk_size = read_u32le(offset + 0x0c, sf);
         name_size  = read_u32le(offset + 0x10, sf);
         offset += 0x14 + name_size;
 
-        data_size = read_s32le(offset + 0x00, sf);
+        data_size = read_u32le(offset + 0x00, sf);
 
         start_offset = offset + 0x04;
-        num_samples = data_size / channel_count / (bitrate / 8) * 512;
+        num_samples = relic_bytes_to_samples(data_size, channels, bitrate);
     }
 
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count, loop_flag);
+    vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
     vgmstream->meta_type = meta_FDA;
     vgmstream->sample_rate = 44100; /* fixed output */
     vgmstream->num_samples = num_samples;
 
-    vgmstream->codec_data = init_relic(channel_count, bitrate, sample_rate);
+    vgmstream->codec_data = init_relic(channels, bitrate, sample_rate);
     if (!vgmstream->codec_data) goto fail;
     vgmstream->coding_type = coding_RELIC;
     vgmstream->layout_type = layout_none;

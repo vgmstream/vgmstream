@@ -16,11 +16,11 @@
 #define STDOUT_FILENO 1
 #endif
 
-#ifndef VERSION
-#include "version.h"
+#ifndef VGMSTREAM_VERSION
+#include "../version.h"
 #endif
-#ifndef VERSION
-#define VERSION "(unknown version)"
+#ifndef VGMSTREAM_VERSION
+#define VGMSTREAM_VERSION "(unknown version)"
 #endif
 
 #ifdef HAVE_JSON
@@ -39,7 +39,7 @@
 static size_t make_wav_header(uint8_t* buf, size_t buf_size, int32_t sample_count, int32_t sample_rate, int channels, int smpl_chunk, int32_t loop_start, int32_t loop_end);
 
 static void usage(const char* name, int is_full) {
-    fprintf(stderr,"vgmstream CLI decoder " VERSION " " __DATE__ "\n"
+    fprintf(stderr,"vgmstream CLI decoder " VGMSTREAM_VERSION " " __DATE__ "\n"
             "Usage: %s [-o <outfile.wav>] [options] <infile>\n"
             "Options:\n"
             "    -o <outfile.wav>: name of output .wav file, default <infile>.wav\n"
@@ -278,7 +278,8 @@ static int parse_config(cli_config* cfg, int argc, char** argv) {
     cfg->infilenames = &argv[optind];
     cfg->infilenames_count = argc - optind;
     if (cfg->infilenames_count <= 0) {
-        fprintf(stderr, "missing input file\n");
+        usage(argv[0], 0);
+        //fprintf(stderr, "missing input file\n");
         goto fail;
     }
 
@@ -456,7 +457,7 @@ void print_json_version() {
         json_array_append(cext_list, cext);
     }
 
-    json_t* version_string = json_string(VERSION);
+    json_t* version_string = json_string(VGMSTREAM_VERSION);
 
     json_t* final_object = json_object();
     json_object_set(final_object, "version", version_string);
@@ -484,7 +485,7 @@ static void clean_filename(char* dst, int clean_paths) {
 
 /* replaces a filename with "?n" (stream name), "?f" (infilename) or "?s" (subsong) wildcards
  * ("?" was chosen since it's not a valid Windows filename char and hopefully nobody uses it on Linux) */
-static void replace_filename(char* dst, size_t dstsize, const char* outfilename, const char* infilename, VGMSTREAM* vgmstream) {
+static void replace_filename(char* dst, size_t dstsize, cli_config* cfg, VGMSTREAM* vgmstream) {
     int subsong;
     char stream_name[PATH_LIMIT];
     char buf[PATH_LIMIT];
@@ -493,7 +494,7 @@ static void replace_filename(char* dst, size_t dstsize, const char* outfilename,
 
 
     /* file has a "%" > temp replace for sprintf */
-    strcpy(buf, outfilename);
+    strcpy(buf, cfg->outfilename_config);
     for (i = 0; i < strlen(buf); i++) {
         if (buf[i] == '%')
             buf[i] = '|'; /* non-valid filename, not used in format */
@@ -501,8 +502,8 @@ static void replace_filename(char* dst, size_t dstsize, const char* outfilename,
 
     /* init config */
     subsong = vgmstream->stream_index;
-    if (subsong > vgmstream->num_streams) {
-        subsong = 0; /* for games without subsongs */
+    if (subsong > vgmstream->num_streams || subsong != cfg->subsong_index) {
+        subsong = 0; /* for games without subsongs / bad config */
     }
 
     if (vgmstream->stream_name && vgmstream->stream_name[0] != '\0') {
@@ -510,7 +511,7 @@ static void replace_filename(char* dst, size_t dstsize, const char* outfilename,
         clean_filename(stream_name, 1); /* clean subsong name's subdirs */
     }
     else {
-        snprintf(stream_name, sizeof(stream_name), "%s", infilename);
+        snprintf(stream_name, sizeof(stream_name), "%s", cfg->infilename);
         clean_filename(stream_name, 0); /* don't clean user's subdirs */
     }
 
@@ -529,7 +530,7 @@ static void replace_filename(char* dst, size_t dstsize, const char* outfilename,
         else if (pos[1] == 'f') {
             pos[0] = '%';
             pos[1] = 's'; /* use %s */
-            snprintf(tmp, sizeof(tmp), buf, infilename);
+            snprintf(tmp, sizeof(tmp), buf, cfg->infilename);
         }
         else if (pos[1] == 's') {
             pos[0] = '%';
@@ -617,7 +618,7 @@ fail:
 }
 
 static int convert_subsongs(cli_config* cfg) {
-    int res;
+    int res, oks, kos;
     int subsong;
     /* restore original values in case of multiple parsed files */
     int start_temp = cfg->subsong_index;
@@ -633,11 +634,17 @@ static int convert_subsongs(cli_config* cfg) {
     //;VGM_LOG("CLI: subsongs %i to %i\n", cfg->subsong_index, cfg->subsong_end + 1);
 
     /* convert subsong range */
+    oks = 0;
+    kos = 0 ;
     for (subsong = cfg->subsong_index; subsong < cfg->subsong_end + 1; subsong++) {
         cfg->subsong_index = subsong; 
 
         res = convert_file(cfg);
-        if (!res) goto fail;
+        if (!res) kos++;
+    }
+
+    if (kos) {
+        fprintf(stderr, "failed %i of %i subsongs\n", kos, oks);
     }
 
     cfg->subsong_index = start_temp;
@@ -732,7 +739,9 @@ static int convert_file(cli_config* cfg) {
 
         if (!cfg->outfilename_config && !cfg->outfilename) {
             /* defaults */
-            cfg->outfilename_config = (cfg->subsong_index >= 1) ? 
+            int has_subsongs = (cfg->subsong_index >= 1 && vgmstream->num_streams >= 1);
+
+            cfg->outfilename_config = has_subsongs ? 
                 "?f#?s.wav" :
                 "?f.wav";
             /* maybe should avoid overwriting with this auto-name, for the unlikely
@@ -741,7 +750,7 @@ static int convert_file(cli_config* cfg) {
 
         if (cfg->outfilename_config) {
             /* special substitution */
-            replace_filename(outfilename_temp, sizeof(outfilename_temp), cfg->outfilename_config, cfg->infilename, vgmstream);
+            replace_filename(outfilename_temp, sizeof(outfilename_temp), cfg, vgmstream);
             cfg->outfilename = outfilename_temp;
         }
 
@@ -906,7 +915,7 @@ fail:
 
 #ifdef HAVE_JSON
 static void print_json_info(VGMSTREAM* vgm, cli_config* cfg) {
-    json_t* version_string = json_string(VERSION);
+    json_t* version_string = json_string(VGMSTREAM_VERSION);
     vgmstream_info info;
     describe_vgmstream_info(vgm, &info);
 

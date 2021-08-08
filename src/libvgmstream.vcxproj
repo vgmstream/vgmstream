@@ -163,6 +163,7 @@
     <ClInclude Include="coding\fsb_vorbis_data.h" />
     <ClInclude Include="coding\g72x_state.h" />
     <ClInclude Include="coding\nwa_decoder.h" />
+    <ClInclude Include="coding\relic_decoder_lib.h" />
     <ClInclude Include="coding\tac_decoder_lib.h" />
     <ClInclude Include="coding\tac_decoder_lib_data.h" />
     <ClInclude Include="coding\tac_decoder_lib_ops.h" />
@@ -218,13 +219,14 @@
     <ClCompile Include="meta\mn_str.c" />
     <ClCompile Include="meta\mogg.c" />
     <ClCompile Include="meta\mp4.c" />
+    <ClCompile Include="meta\mp4_faac.c" />
     <ClCompile Include="meta\msb_msh.c" />
     <ClCompile Include="meta\msf_banpresto.c" />
     <ClCompile Include="meta\msf_konami.c" />
     <ClCompile Include="meta\msf_tamasoft.c" />
     <ClCompile Include="meta\opus.c" />
-    <ClCompile Include="meta\pc_adp.c" />
-    <ClCompile Include="meta\pc_adp_otns.c" />
+    <ClCompile Include="meta\adp_bos.c" />
+    <ClCompile Include="meta\adp_qd.c" />
     <ClCompile Include="meta\pc_ast.c" />
     <ClCompile Include="meta\raw_snds.c" />
     <ClCompile Include="meta\ps2_2pfs.c" />
@@ -309,6 +311,7 @@
     <ClCompile Include="meta\bik.c" />
     <ClCompile Include="meta\bkhd.c" />
     <ClCompile Include="meta\bmp_konami.c" />
+    <ClCompile Include="meta\bnk_relic.c" />
     <ClCompile Include="meta\bnk_sony.c" />
     <ClCompile Include="meta\bnsf.c" />
     <ClCompile Include="meta\brstm.c" />
@@ -565,11 +568,12 @@
     <ClCompile Include="meta\wii_bns.c" />
     <ClCompile Include="meta\wii_mus.c" />
     <ClCompile Include="meta\wii_sng.c" />
-    <ClCompile Include="meta\wii_sts.c" />
+    <ClCompile Include="meta\sts.c" />
     <ClCompile Include="meta\ws_aud.c" />
     <ClCompile Include="meta\wsi.c" />
     <ClCompile Include="meta\wv6.c" />
     <ClCompile Include="meta\wvs.c" />
+    <ClCompile Include="meta\wxd_wxh.c" />
     <ClCompile Include="meta\wwise.c" />
     <ClCompile Include="meta\xau.c" />
     <ClCompile Include="meta\xavs.c" />
@@ -641,6 +645,7 @@
     <ClCompile Include="coding\psx_decoder.c" />
     <ClCompile Include="coding\ptadpcm_decoder.c" />
     <ClCompile Include="coding\relic_decoder.c" />
+    <ClCompile Include="coding\relic_decoder_lib.c" />
     <ClCompile Include="coding\relic_decoder_mixfft.c" />
     <ClCompile Include="coding\sassc_decoder.c" />
     <ClCompile Include="coding\sdx2_decoder.c" />

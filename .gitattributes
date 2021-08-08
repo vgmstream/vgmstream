@@ -1,0 +1,10 @@
+# don't set for now (too many fixes at once)
+#* text=auto
+#*.c text=auto
+#*.h text=auto
+* -text
+
+*.sh text eol=lf
+*.bat text eol=crlf
+*.vcxproj text eol=crlf
+*.vcxproj.filters text eol=crlf

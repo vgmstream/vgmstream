@@ -16,11 +16,11 @@
 #include "../src/plugins.h"
 
 
-#ifndef VERSION
-#include "version.h"
+#ifndef VGMSTREAM_VERSION
+#include "../version.h"
 #endif
-#ifndef VERSION
-#define VERSION "(unknown version)"
+#ifndef VGMSTREAM_VERSION
+#define VGMSTREAM_VERSION "(unknown version)"
 #endif
 
 /* ************************************* */
@@ -435,7 +435,7 @@ static void build_extension_list() {
 /* info for the "about" button in plugin options */
 void WINAPI xmplay_About(HWND win) {
     MessageBox(win,
-            "vgmstream plugin " VERSION " " __DATE__ "\n"
+            "vgmstream plugin " VGMSTREAM_VERSION " " __DATE__ "\n"
             "by hcs, FastElbja, manakoAT, bxaimc, snakemeat, soneek, kode54, bnnm and many others\n"
             "\n"
             "XMPlay plugin by unknownfile, PSXGamerPro1, kode54\n"

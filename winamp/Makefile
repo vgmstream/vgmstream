@@ -21,7 +21,7 @@ ifeq ($(TARGET_OS),Windows_NT)
 endif
 
 CFLAGS += $(DEF_CFLAGS) -I../ext_includes $(EXTRA_CFLAGS)
-LDFLAGS += -L../src -L../ext_libs -lm -lvgmstream $(EXTRA_LDFLAGS)
+LDFLAGS += -L../src -L../ext_libs -lvgmstream -lm $(EXTRA_LDFLAGS)
 TARGET_EXT_LIBS = 
 
 CFLAGS += $(LIBS_CFLAGS)
@@ -38,7 +38,7 @@ SRC_SRCS = in_vgmstream.c in_streamfile.c in_config.c
 ### targets
 
 in_vgmstream: libvgmstream.a $(TARGET_EXT_LIBS) resource.o
-	$(CC) -shared -static-libgcc $(CFLAGS) "-DVERSION=\"`../version.sh`\"" $(SRC_SRCS) resource.o $(LDFLAGS) -o $(OUTPUT_WINAMP)
+	$(CC) -shared -static-libgcc $(CFLAGS) "-DVGMSTREAM_VERSION=\"$(VGMSTREAM_VERSION_PREV)\"" $(SRC_SRCS) resource.o $(LDFLAGS) -o $(OUTPUT_WINAMP)
 	$(STRIP) $(OUTPUT_WINAMP)
 
 resource.o: resource.rc resource.h

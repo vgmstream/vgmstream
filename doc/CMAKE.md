@@ -15,11 +15,9 @@
 - Windows: https://www.visualstudio.com/downloads/
 
 If building the CLI for *nix-based OSes, vgmstream123 also needs the following:
-
 - **LibAO**
 
 If building for *nix-based OSes, the following libraries are optional:
-
 - **libmpg123**
 - **libvorbis** (really libvorbisfile, though)
 - **FFmpeg**
@@ -37,7 +35,7 @@ First you will need to run CMake to generate the build setup. You can use either
 
 ### CMake GUI
 
-If you have access to the CMake GUI, you can use that to create your build setup. Select where the source code is (that should be the directory just above this one) and where you wish to build to.
+If you have access to the CMake GUI, you can use that to create your build setup. Select where the source code is (that should be the directory just above this one) and where you wish to build to (preferably a directory outside source).
 
 You may have to add some entries before configuring will succeed. See the [CMake Cache Entries](#cmake-cache-entries) section for details on the entries.
 
@@ -50,6 +48,8 @@ Generating done
 
 Before that you'll see what options are enabled and disabled, what is going to be built and where they will be installed to.
 
+You may need to select a Generator first, depending on your installed tools (for example, Visual Studio 16 2019 or MingW Make on Windows). If you need to change it later, select *File > Delete Cache*.
+
 If you decided to build for a project-based GUI, you can click on Open Project to open that. (NOTE: Only Visual Studio has been tested as a project-based GUI.) If you decided to build for a command line build system, you can open up the command line for the build directory and run your build system.
 
 ### CMake command line
@@ -60,11 +60,31 @@ If you don't have access to the CMake GUI or would prefer to only use the comman
 cmake -G "<generator>" <options> <path to source code>
 ```
 
-Replace `<generator>` with the CMake generator you wish to use as your build system. Make note of the quotes, and use `cmake -h` to get a list of generators for your system.
+Replace `<generator>` with the CMake generator you wish to use as your build system (for example `Unix Makefiles`, or don't set for default). Make note of the quotes, and use `cmake -h` to get a list of generators for your system.
 
 You may have to add some entries before configuring will success. See the [CMake Cache Entries](#cmake-cache-entries) section for details on the entries.
 
-Place your entries in the `<options>` section of the above command, with each option in the form of `-D<optionname>:<type>=<value>`. Replace `<path to source code>` with the path where the source code is (that should be the directory just above this one).
+Place your entries in the `<options>` section of the above command, with each option in the form of `-D<optionname>:<type>=<value>`. Replace `<path to source code>` with the path where the source code is (that should be the directory just above this one), may need to se `-S <path to source> -B <output dir>` instead. Example:
+```
+git clone https://github.com/vgmstream/vgmstream.git
+cd vgmstream
+cmake -DUSE_FFMPEG=ON -DBUILD_AUDACIOUS=OFF -S . -B build
+```
+
+You may need to install appropriate packages first (see [BUILD.md)(BUILD.md) for more info), for example:
+```
+sudo apt-get update
+# basic compilation
+sudo apt-get install -y gcc g++ make build-essential 
+# extra libs
+sudo apt-get install -y libmpg123-dev libvorbis-dev libspeex-dev
+# extra libs
+sudo apt-get install -y libavformat-dev libavcodec-dev libavutil-dev libswresample-dev
+# for vgmstream123 and audacious
+sudo apt-get install -y libao-dev audacious-dev
+# actual cmake
+sudo apt-get install -y cmake
+```
 
 Once you have run the command, as long as there are no errors, you should see the following at the bottom of the window:
 
@@ -92,7 +112,6 @@ If not using a project-based GUI, then you will also need to set what build type
 
 All of these options are of type BOOL and can be set to either `ON` or `OFF`. Most of the details on these libraries can be found in the [External Libraries section of BUILD.md](BUILD.md#external-libraries).
 
-- **USE_FDKAAC**: Chooses if you wish to use FDK-AAC/QAAC for support of MP4 AAC. Note that this requires `QAAC_PATH` and `FDK_AAC_PATH` to also be given if the option is `ON`. The default for is `ON`. See the foobar2000 plugin section of [BUILD.md](BUILD.md) for more information on this.
 - **USE_MPEG**: Chooses if you wish to use libmpg123 for support of MP1/MP2/MP3. The default is `ON`.
 - **USE_VORBIS**: Chooses if you wish to use libvorbis for support of Vorbis. The default is `ON`.
 - **USE_FFMPEG**: Chooses if you wish to use FFmpeg for support of many codecs. The default is `ON`. `FFMPEG_PATH` can also be given, so it can use official/external SDK instead of the one used in vgmstream project.

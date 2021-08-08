@@ -594,6 +594,7 @@ static const char* extension_list[] = {
     "wve",
     "wvs",
     "wvx",
+    "wxd",
 
     "x",
     "x360audio", //fake extension for Unreal Engine 3 XMA (real extension unknown)
@@ -746,7 +747,7 @@ static const coding_info coding_info_list[] = {
         {coding_DVI_IMA_int,        "Intel DVI 4-bit IMA ADPCM (mono/interleave)"},
         {coding_3DS_IMA,            "3DS IMA 4-bit ADPCM"},
         {coding_SNDS_IMA,           "Heavy Iron .snds 4-bit IMA ADPCM"},
-        {coding_OTNS_IMA,           "Omikron: The Nomad Soul 4-bit IMA ADPCM"},
+        {coding_QD_IMA,             "Quantic Dream 4-bit IMA ADPCM"},
         {coding_WV6_IMA,            "Gorilla Systems WV6 4-bit IMA ADPCM"},
         {coding_ALP_IMA,            "High Voltage ALP 4-bit IMA ADPCM"},
         {coding_FFTA2_IMA,          "Final Fantasy Tactics A2 4-bit IMA ADPCM"},
@@ -1068,7 +1069,7 @@ static const meta_info meta_info_list[] = {
         {meta_SMP,                  "Infernal Engine .smp header"},
         {meta_MUL,                  "Crystal Dynamics .MUL header"},
         {meta_THP,                  "Nintendo THP header"},
-        {meta_STS_WII,              "Shikigami no Shiro (WII) Header"},
+        {meta_STS,                  "Alfa System .STS header"},
         {meta_PS2_P2BT,             "Pop'n'Music 7 Header"},
         {meta_PS2_GBTS,             "Pop'n'Music 9 Header"},
         {meta_NGC_DSP_IADP,         "IADP Header"},
@@ -1166,7 +1167,7 @@ static const meta_info meta_info_list[] = {
         {meta_HYPERSCAN_KVAG,       "Mattel Hyperscan KVAG"},
         {meta_IOS_PSND,             "PSND Header"},
         {meta_BOS_ADP,              "ADP! header"},
-        {meta_OTNS_ADP,             "Omikron: The Nomad Soul ADP header"},
+        {meta_QD_ADP,               "Quantic Dream .ADP header"},
         {meta_EB_SFX,               "Excitebots .sfx header"},
         {meta_EB_SF0,               "assumed Excitebots .sf0 by extension"},
         {meta_MTAF,                 "Konami MTAF header"},
@@ -1353,6 +1354,8 @@ static const meta_info meta_info_list[] = {
         {meta_DSP_KWA,              "Kuju London .KWA header"},
         {meta_OGV_3RDEYE,           "3rdEye .OGV header"},
         {meta_PIFF_TPCM,            "Tantalus PIFF TPCM header"},
+        {meta_WXD_WXH,              "Relic WXD+WXH header"},
+        {meta_BNK_RELIC,            "Relic BNK header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {

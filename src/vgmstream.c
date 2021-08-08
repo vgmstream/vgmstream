@@ -179,7 +179,7 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_dcs_wav,
     init_vgmstream_mul,
     init_vgmstream_thp,
-    init_vgmstream_wii_sts,
+    init_vgmstream_sts,
     init_vgmstream_ps2_p2bt,
     init_vgmstream_ps2_gbts,
     init_vgmstream_wii_sng,
@@ -275,8 +275,8 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_ps2_wmus,
     init_vgmstream_hyperscan_kvag,
     init_vgmstream_ios_psnd,
-    init_vgmstream_pc_adp_bos,
-    init_vgmstream_pc_adp_otns,
+    init_vgmstream_adp_bos,
+    init_vgmstream_adp_qd,
     init_vgmstream_eb_sfx,
     init_vgmstream_eb_sf0,
     init_vgmstream_mtaf,
@@ -526,6 +526,8 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_ogv_3rdeye,
     init_vgmstream_sspr,
     init_vgmstream_piff_tpcm,
+    init_vgmstream_wxd_wxh,
+    init_vgmstream_bnk_relic,
 
     /* lowest priority metas (should go after all metas, and TXTH should go before raw formats) */
     init_vgmstream_txth,            /* proper parsers should supersede TXTH, once added */

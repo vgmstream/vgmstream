@@ -45,7 +45,7 @@ Release
 /xmplay/*.dll
 /dependencies
 /version.h
-/version.mk
+/msvc-build.config.ps1
 
 /**/vgmstream-win.zip
 /**/foo_input_vgmstream.fb2k-component

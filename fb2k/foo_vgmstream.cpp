@@ -19,18 +19,17 @@ extern "C" {
 #include "foo_vgmstream.h"
 #include "foo_filetypes.h"
 
-#ifndef VERSION
-#include "version.h"
+#ifndef VGMSTREAM_VERSION
+#include "../version.h"
 #endif
-
-#ifndef VERSION
+#ifndef VGMSTREAM_VERSION
 #define PLUGIN_VERSION  __DATE__
 #else
-#define PLUGIN_VERSION  VERSION
+#define PLUGIN_VERSION  VGMSTREAM_VERSION
 #endif
 
 #define APP_NAME "vgmstream plugin"
-#define PLUGIN_DESCRIPTION "vgmstream plugin " VERSION " " __DATE__ "\n" \
+#define PLUGIN_DESCRIPTION "vgmstream plugin " VGMSTREAM_VERSION " " __DATE__ "\n" \
             "by hcs, FastElbja, manakoAT, bxaimc, snakemeat, soneek, kode54, bnnm and many others\n" \
             "\n" \
             "foobar2000 plugin by Josh W, kode54\n" \

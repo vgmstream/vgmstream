@@ -11,7 +11,7 @@ jobs:
   # This workflow contains a single job called "build"
   build:
     name: VS 2017
-    
+
     # The type of runner that the job will run on
     runs-on: windows-2016
 
@@ -23,16 +23,16 @@ jobs:
       - name: Fetch Git tags
         shell: cmd
         run: git fetch --prune --unshallow --tags
-        
+
       - name: Initialize Build Environment
         shell: cmd
-        run: powershell -ExecutionPolicy Bypass -NoProfile -File .\build.ps1 Init
+        run: powershell -ExecutionPolicy Bypass -NoProfile -File .\msvc-build.ps1 Init
 
       # Runs a single command using the runners shell
       - name: Build
         shell: cmd
-        run: powershell -ExecutionPolicy Bypass -NoProfile -File .\build.ps1 Build
-      
+        run: powershell -ExecutionPolicy Bypass -NoProfile -File .\msvc-build.ps1 Build
+
       - name: Prepare Files For Packaging
         shell: powershell
         run: |
@@ -62,47 +62,47 @@ jobs:
               "Release/test.pdb",
               "Release/xmp-vgmstream.pdb"
           )
-          
+
           Compress-Archive $cliFiles Release/vgmstream-win.zip -Force
           Compress-Archive $fb2kFiles Release/foo_input_vgmstream.zip -Force
           Move-Item Release/foo_input_vgmstream.zip Release/foo_input_vgmstream.fb2k-component -Force
           Compress-Archive $cliPdbFiles Release/test.pdb.zip -Force
           Compress-Archive $fb2kPdbFiles Release/foo_input_vgmstream.pdb.zip -Force
-          
+
           mkdir tmp/cli
           mkdir tmp/fb2k
           mkdir tmp/cli-p
           mkdir tmp/fb2k-p
-          
+
           Copy-Item $cliFiles tmp/cli/ -Recurse -Force
           Copy-Item $fb2kFiles tmp/fb2k/ -Recurse -Force
           Copy-Item $cliPdbFiles tmp/cli-p/ -Recurse -Force
           Copy-Item $fb2kPdbFiles tmp/fb2k-p/ -Recurse -Force
-        
+
       - name: Upload foobar2000 Component Artifact
         uses: actions/upload-artifact@v2
         with:
           name: foo_input_vgmstream.fb2k-component
           path: ${{github.workspace}}\tmp\fb2k
-            
+
       - name: Upload CLI Tools Artifact
         uses: actions/upload-artifact@v2
         with:
           name: test
           path: ${{github.workspace}}\tmp\cli
-            
+
       - name: Upload foobar2000 Component Debug Symbols Artifact
         uses: actions/upload-artifact@v2
         with:
           name: foo_input_vgmstream.pdb
           path: ${{github.workspace}}\tmp\fb2k-p
-            
+
       - name: Upload CLI Tools Debug Symbols Artifact
         uses: actions/upload-artifact@v2
         with:
           name: test.pdb
           path: ${{github.workspace}}\tmp\cli-p
-          
+
       - name: Upload Artifacts to S3
         if: github.event_name != 'pull_request' 
         working-directory: ${{github.workspace}}
@@ -120,7 +120,7 @@ jobs:
           git describe --always | tee latest_ver
           aws s3 cp latest_id s3://vgmstream-builds/ --acl public-read
           aws s3 cp latest_ver s3://vgmstream-builds/ --acl public-read
-          
+
       - name: Web Request Action
         uses: Satak/webrequest-action@v1.2.3
         if: github.event_name != 'pull_request'

@@ -43,8 +43,7 @@ VGMSTREAM * init_vgmstream_akb(STREAMFILE *sf) {
 
 
     /* checks */
-    /* .akb.bytes is the usual extension in later games */
-    if ( !check_extensions(sf, "akb,bytes") )
+    if ( !check_extensions(sf, "akb") )
         goto fail;
     if (read_32bitBE(0x00,sf) != 0x414B4220) /* "AKB " */
         goto fail;
@@ -188,8 +187,7 @@ VGMSTREAM * init_vgmstream_akb2(STREAMFILE *sf) {
     int total_subsongs, target_subsong = sf->stream_index;
 
     /* check extensions */
-    /* .akb.bytes is the usual extension in later games */
-    if ( !check_extensions(sf, "akb,bytes") )
+    if ( !check_extensions(sf, "akb") )
         goto fail;
 
     /* checks */

@@ -6,13 +6,15 @@
 #define _VGMSTREAM_H
 
 /* reasonable limits */
-enum { PATH_LIMIT = 32768 };
-enum { STREAM_NAME_SIZE = 255 };
-enum { VGMSTREAM_MAX_CHANNELS = 64 };
-enum { VGMSTREAM_MIN_SAMPLE_RATE = 300 }; /* 300 is Wwise min */
-enum { VGMSTREAM_MAX_SAMPLE_RATE = 192000 }; /* found in some FSB5 */
-enum { VGMSTREAM_MAX_SUBSONGS = 65535 };
-enum { VGMSTREAM_MAX_NUM_SAMPLES = 1000000000 }; /* no ~5h vgm hopefully */
+enum { 
+    PATH_LIMIT = 32768,
+    STREAM_NAME_SIZE = 255,
+    VGMSTREAM_MAX_CHANNELS = 64,
+    VGMSTREAM_MIN_SAMPLE_RATE = 300, /* 300 is Wwise min */
+    VGMSTREAM_MAX_SAMPLE_RATE = 192000, /* found in some FSB5 */
+    VGMSTREAM_MAX_SUBSONGS = 65535, /* +20000 isn't that uncommon */
+    VGMSTREAM_MAX_NUM_SAMPLES = 1000000000, /* no ~5h vgm hopefully */
+};
 
 #include "streamfile.h"
 
@@ -104,7 +106,7 @@ typedef enum {
     coding_DVI_IMA_int,     /* DVI IMA ADPCM (mono/interleave, high nibble first) */
     coding_3DS_IMA,         /* 3DS IMA ADPCM */
     coding_SNDS_IMA,        /* Heavy Iron Studios .snds IMA ADPCM */
-    coding_OTNS_IMA,        /* Omikron The Nomad Soul IMA ADPCM */
+    coding_QD_IMA,
     coding_WV6_IMA,         /* Gorilla Systems WV6 4-bit IMA ADPCM */
     coding_ALP_IMA,         /* High Voltage ALP 4-bit IMA ADPCM */
     coding_FFTA2_IMA,       /* Final Fantasy Tactics A2 4-bit IMA ADPCM */
@@ -481,7 +483,7 @@ typedef enum {
     meta_VS,                /* Men in Black .vs */
     meta_FFXI_BGW,          /* FFXI (PC) BGW */
     meta_FFXI_SPW,          /* FFXI (PC) SPW */
-    meta_STS_WII,           /* Shikigami No Shiro 3 STS Audio File */
+    meta_STS,
     meta_PS2_P2BT,          /* Pop'n'Music 7 Audio File */
     meta_PS2_GBTS,          /* Pop'n'Music 9 Audio File */
     meta_NGC_DSP_IADP,      /* Gamecube Interleave DSP */
@@ -556,8 +558,8 @@ typedef enum {
     meta_PS2_WMUS,          /* The Warriors (PS2) */
     meta_HYPERSCAN_KVAG,    /* Hyperscan KVAG/BVG */
     meta_IOS_PSND,          /* Crash Bandicoot Nitro Kart 2 (iOS) */
-    meta_BOS_ADP,           /* ADP! (Balls of Steel, PC) */
-    meta_OTNS_ADP,          /* Omikron: The Nomad Soul .adp (PC/DC) */
+    meta_BOS_ADP,
+    meta_QD_ADP,
     meta_EB_SFX,            /* Excitebots .sfx */
     meta_EB_SF0,            /* Excitebots .sf0 */
     meta_MTAF,
@@ -741,6 +743,8 @@ typedef enum {
     meta_DSP_KWA,
     meta_OGV_3RDEYE,
     meta_PIFF_TPCM,
+    meta_WXD_WXH,
+    meta_BNK_RELIC,
 } meta_t;
 
 /* standard WAVEFORMATEXTENSIBLE speaker positions */
@@ -1025,7 +1029,7 @@ typedef struct {
 } acm_codec_data;
 
 
-#ifdef VGM_USE_MP4V2
+#if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
 typedef struct {
     STREAMFILE* streamfile;
     uint64_t start;
@@ -1033,7 +1037,6 @@ typedef struct {
     uint64_t size;
 } mp4_streamfile;
 
-#ifdef VGM_USE_FDKAAC
 typedef struct {
     mp4_streamfile if_file;
     MP4FileHandle h_mp4file;
@@ -1045,7 +1048,6 @@ typedef struct {
     INT_PCM sample_buffer[( (6) * (2048)*4 )];
 } mp4_aac_codec_data;
 #endif
-#endif //VGM_USE_MP4V2
 
 // VGMStream description in structure format
 typedef struct {

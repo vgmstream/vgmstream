@@ -26,6 +26,11 @@ class Cli(object):
             "  - make full txtp rather than mini-txtp\n    (may overwrite files when using subsongs)\n\n"
             "  %(prog)s lines.txt -s sound \n"
             "  - make .txtp per line, setting a subdir\n\n"
+            "text file example:\n"
+            " # creates a mini txtp as-is\n"
+            " bgm.fsb #1 .txtp\n"
+            " # creates a txtp using the name after ':' with the body before it\n"
+            " bgm.fsb #2 : bgm_field.txtp\n"
         )
 
         p = argparse.ArgumentParser(description=description, epilog=epilog, formatter_class=argparse.RawTextHelpFormatter)
@@ -50,6 +55,7 @@ class App(object):
         self.args = args
 
     def start(self):
+        print("TXTP dumper start")
         filenames = []
         for filename in self.args.files:
             filenames += glob.glob(filename)
@@ -61,8 +67,9 @@ class App(object):
                     os.makedirs(self.args.output)
                 except OSError:
                     pass
-            
-            with open(filename) as fi:
+
+            count = 0
+            with open(filename,'r', encoding='utf-8-sig') as fi:
                 for line in fi:
                     line = line.strip()
                     line = line.rstrip()
@@ -77,8 +84,15 @@ class App(object):
 
                     line.replace('\\', '/')
 
+
                     subdir = self.args.subdir
-                    if self.args.maxitxtp or subdir:
+                    if ':' in line:
+                        index = line.find(':') #internal txtp : txtp name
+
+                        text = line[0:index].strip()
+                        name = line[index+1:].strip()
+
+                    elif self.args.maxitxtp or subdir:
                         index = line.find('.') #first extension
 
                         if line[index:].startswith('.txtp'): #???
@@ -102,6 +116,12 @@ class App(object):
                         if text:
                             fo.write(text)
                         pass
+                    count += 1
+
+                if not count:
+                    print("%s: no .txtp found" % (filename, count))
+                else:
+                    print("%s: total %i .txtp" % (filename, count))
 
 if __name__ == "__main__":
     Cli().start()

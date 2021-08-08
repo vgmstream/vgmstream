@@ -89,10 +89,10 @@
       <TargetMachine>MachineX86</TargetMachine>
     </Link>
     <PreBuildEvent>
-      <Command>"$(ProjectDir)..\version.bat" "$(ProjectDir)..\version.h" VERSION</Command>
+      <Command>"$(ProjectDir)..\version-make.bat"</Command>
     </PreBuildEvent>
     <PreBuildEvent>
-      <Message>Generating version.h</Message>
+      <Message>Generating version</Message>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -119,10 +119,10 @@
       <TargetMachine>MachineX86</TargetMachine>
     </Link>
     <PreBuildEvent>
-      <Command>"$(ProjectDir)..\version.bat" "$(ProjectDir)..\version.h" VERSION</Command>
+      <Command>"$(ProjectDir)..\version-make.bat"</Command>
     </PreBuildEvent>
     <PreBuildEvent>
-      <Message>Generating version.h</Message>
+      <Message>Generating version</Message>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
