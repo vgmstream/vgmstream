@@ -56,7 +56,7 @@ install(TARGETS vgmstream_cli
 
 # TODO: Make it so vgmstream123 can build with Windows (this probably needs a libao.dll included with vgmstream, though)
 
-if(NOT WIN32)
+if(NOT WIN32 AND AO_FOUND)
 	# vgmstream123
 
 	add_executable(vgmstream123
