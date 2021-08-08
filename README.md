@@ -265,7 +265,7 @@ Also be aware that other plugins (not vgmstream) can tell the player they handle
 some extension, then not actually play it. This makes the file unplayable as
 vgmstream doesn't even get the chance to parse that file, so you may need to
 disable the offending plugin or rename the file (for example this may happen with
-`.asf` in foobar2000).
+`.asf` in foobar2000/Winamp, may be fixed in newer versions).
 
 When extracting from a bigfile, sometimes internal files don't have a proper
 extension. Those should be renamed to its correct one when possible, as the
