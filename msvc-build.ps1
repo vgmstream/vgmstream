@@ -8,13 +8,17 @@ Param(
 ###############################################################################
 # CONFIG 
 # set these vars to override project defaults
+# can also create a mssvc-build.config.ps1 with those
 ###############################################################################
-# - values: "" (p), "v140" (MSVC 2015), "v141" (MSVC 2017), "v141_xp" (XP support), "v142" (MSVC 2019), etc
-$toolset = ""
-# - values: "" (default), "7.0" (Win7 SDK), "8.1" (Win8 SDK), "10.0" (Win10 SDK), etc
-$sdk = ""
-# - values: "" (default), "Win32"
-$platform = ""
+$config_file = ".\msvc-build.config.ps1"
+if((Test-Path $config_file)) { . $config_file }
+
+# - toolsets: "" (default), "v140" (MSVC 2015), "v141" (MSVC 2017), "v141_xp" (XP support), "v142" (MSVC 2019), etc
+if (!$toolset) { $toolset = "" }
+# - sdks: "" (default), "7.0" (Win7 SDK), "8.1" (Win8 SDK), "10.0" (Win10 SDK), etc
+if (!$sdk) { $sdk = "" }
+# - platforms: "" (default), "Win32"
+if (!$platform) { $platform = "" }
 ###############################################################################
 
 $solution = "vgmstream_full.sln"
