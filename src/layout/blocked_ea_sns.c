@@ -42,6 +42,11 @@ void block_update_ea_sns(off_t block_offset, VGMSTREAM* vgmstream) {
         return;
 
     switch (vgmstream->coding_type) {
+        case coding_PCM16_int:
+            channel_start = 0x00;
+            channel_interleave = 0x02;
+            break;
+
         case coding_NGC_DSP:
             /* 0x04: unknown (0x00/02), 0x08: some size?, 0x34: null? */
             channel_start = read_32bitBE(block_offset + 0x08 + 0x00, sf);

@@ -110,9 +110,6 @@
     <ClInclude Include="meta\ea_schl_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="meta\encrypted_bgm_streamfile">
-      <Filter>meta\Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="meta\fsb_encrypted_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
@@ -300,6 +297,9 @@
       <Filter>meta\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="coding\g7221_decoder_lib.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="meta\encrypted_bgm_streamfile.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
