@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# echo current git version (doesn't make version.h)
+# echo current git version (doesn't make version_auto.h)
 
 # test if git exists
 if ! command -v git > /dev/null

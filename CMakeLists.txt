@@ -88,10 +88,10 @@ if(MSVC)
 else()
 	set(VGM_VERSION_GENERATOR version-make.sh)
 endif()
-add_custom_command(OUTPUT ${VGM_SOURCE_DIR}/version.h
+add_custom_command(OUTPUT ${VGM_SOURCE_DIR}/version_auto.h
 	COMMAND "${VGM_SOURCE_DIR}/${VGM_VERSION_GENERATOR}"
 	DEPENDS ${VGM_SOURCE_DIR}/${VGM_VERSION_GENERATOR})
-add_custom_target(version_h ALL DEPENDS ${VGM_SOURCE_DIR}/version.h)
+add_custom_target(version_h ALL DEPENDS ${VGM_SOURCE_DIR}/version_auto.h)
 
 # FFmpeg detection
 if(USE_FFMPEG)
