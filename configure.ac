@@ -42,9 +42,9 @@ PKG_CHECK_MODULES(SPEEX, [speex], have_libspeex=yes,
 AM_CONDITIONAL(HAVE_LIBSPEEX, test "$have_libspeex" = yes)
 
 have_ffmpeg=no
-#PKG_CHECK_MODULES(FFMPEG, [libavformat libavcodec libavutil libswresample], have_ffmpeg=yes,
-#        [AC_MSG_WARN([Cannot find ffmpeg - will not enable FFmpeg formats])]
-#)
+PKG_CHECK_MODULES(FFMPEG, [libavformat libavcodec libavutil libswresample], have_ffmpeg=yes,
+        [AC_MSG_WARN([Cannot find ffmpeg - will not enable FFmpeg formats])]
+)
 AM_CONDITIONAL(HAVE_FFMPEG, test "$have_ffmpeg" = yes)
 
 have_audacious=no
