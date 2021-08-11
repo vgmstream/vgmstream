@@ -4,6 +4,9 @@
 #*.h text=auto
 #* -text
 
+*.cpp text eol=lf
+*.cc text eol=lf
+
 *.sh text eol=lf
 *.bat text eol=crlf
 *.vcxproj text eol=crlf
