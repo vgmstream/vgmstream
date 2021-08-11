@@ -19,9 +19,7 @@ extern "C" {
 #include "foo_vgmstream.h"
 #include "foo_filetypes.h"
 
-#ifndef VGMSTREAM_VERSION
 #include "../version.h"
-#endif
 #ifndef VGMSTREAM_VERSION
 #define PLUGIN_VERSION  __DATE__
 #else
