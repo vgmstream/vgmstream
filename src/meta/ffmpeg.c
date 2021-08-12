@@ -80,7 +80,6 @@ VGMSTREAM* init_vgmstream_ffmpeg(STREAMFILE* sf) {
         }
     }
 
-#ifdef VGM_USE_MPEG
     /* hack for MP3 files (will return 0 samples if not an actual file) 
      *  .mus: Marc Ecko's Getting Up (PC) */
     if (!num_samples && check_extensions(sf, "mp3,lmp3,mus")) {
@@ -89,7 +88,6 @@ VGMSTREAM* init_vgmstream_ffmpeg(STREAMFILE* sf) {
         /* this seems correct thankfully */
         //ffmpeg_set_skip_samples(data, encoder_delay);
     }
-#endif
 
     /* hack for MPC */
     if (is_id32be(0x00, sf, "MP+\x07") ||   /* Musepack V7 */
