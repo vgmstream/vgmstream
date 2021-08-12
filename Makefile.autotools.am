@@ -9,4 +9,4 @@ if HAVE_AUDACIOUS
 SUBDIRS += audacious
 endif
 
-EXTRA_DIST = version.h
+EXTRA_DIST = version_auto.h

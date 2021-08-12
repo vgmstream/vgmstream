@@ -16,9 +16,7 @@
 #define STDOUT_FILENO 1
 #endif
 
-#ifndef VGMSTREAM_VERSION
 #include "../version.h"
-#endif
 #ifndef VGMSTREAM_VERSION
 #define VGMSTREAM_VERSION "(unknown version)"
 #endif

@@ -232,7 +232,9 @@ int mpeg_custom_parse_frame_default(VGMSTREAMCHANNEL* stream, mpeg_codec_data* d
 fail:
     return 0;
 }
+#endif
 
+//TODO: move to a better place
 
 /*****************/
 /* FRAME HELPERS */
@@ -475,5 +477,3 @@ fail:
     VGM_LOG("MPEG: sample reader failed at %lx\n", offset);
     return 0;
 }
-
-#endif

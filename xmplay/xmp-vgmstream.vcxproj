@@ -62,7 +62,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>..;../ext_includes;../ext_includes/ffmpeg;$(DependenciesDir)/qaac/mp4v2/include;$(DependenciesDir)/fdk-aac/libSYS/include;$(DependenciesDir)/fdk-aac/libAACdec/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;VGM_USE_VORBIS;VGM_USE_MPEG;VGM_USE_FFMPEG;VGM_USE_G7221;VGM_USE_ATRAC9;VGM_USE_CELT;VGM_USE_SPEEX;_DEBUG;_WINDOWS;_USRDLL;IN_VGMSTREAM_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;VGMSTREAM_VERSION_AUTO;VGM_USE_VORBIS;VGM_USE_MPEG;VGM_USE_FFMPEG;VGM_USE_G7221;VGM_USE_ATRAC9;VGM_USE_CELT;VGM_USE_SPEEX;_DEBUG;_WINDOWS;_USRDLL;IN_VGMSTREAM_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
@@ -86,7 +86,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <AdditionalIncludeDirectories>..;../ext_includes;../ext_includes/ffmpeg;$(DependenciesDir)/qaac/mp4v2/include;$(DependenciesDir)/fdk-aac/libSYS/include;$(DependenciesDir)/fdk-aac/libAACdec/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_WIN32_WINNT=0x501;WIN32;VGM_USE_VORBIS;VGM_USE_MPEG;VGM_USE_FFMPEG;VGM_USE_G7221;VGM_USE_ATRAC9;VGM_USE_CELT;VGM_USE_SPEEX;NDEBUG;_WINDOWS;_USRDLL;IN_VGMSTREAM_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_WIN32_WINNT=0x501;WIN32;VGMSTREAM_VERSION_AUTO;VGM_USE_VORBIS;VGM_USE_MPEG;VGM_USE_FFMPEG;VGM_USE_G7221;VGM_USE_ATRAC9;VGM_USE_CELT;VGM_USE_SPEEX;NDEBUG;_WINDOWS;_USRDLL;IN_VGMSTREAM_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
@@ -124,12 +124,12 @@
     <None Include="xmpin.def" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="$(DependenciesDir)/fdk-aac/msvc/fdk-aac.vcxproj">
+    <!--<ProjectReference Include="$(DependenciesDir)/fdk-aac/msvc/fdk-aac.vcxproj">
       <Project>{308e2ad5-be31-4770-9441-a8d50f56895c}</Project>
     </ProjectReference>
     <ProjectReference Include="$(DependenciesDir)/qaac/vcproject/mp4v2/mp4v2.vcxproj">
       <Project>{86a064e2-c81b-4eee-8be0-a39a2e7c7c76}</Project>
-    </ProjectReference>
+    </ProjectReference>-->
     <ProjectReference Include="..\ext_libs\ext_libs.vcxproj">
       <Project>{10e6bfc6-1e5b-46e4-ba42-f04dfbd0abff}</Project>
     </ProjectReference>

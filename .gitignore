@@ -44,7 +44,7 @@ Release
 /xmplay/Release
 /xmplay/*.dll
 /dependencies
-/version.h
+/version_auto.h
 /msvc-build.config.ps1
 
 /**/vgmstream-win.zip

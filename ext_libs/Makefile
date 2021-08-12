@@ -2,10 +2,10 @@
 # external libs
 #
 
-# needed?
-ifneq ($(TARGET_OS),Windows_NT)
-$(error option must be built with TARGET_OS = Windows_NT)
-endif
+# don't barf in case it's target "clean"
+#ifneq ($(TARGET_OS),Windows_NT)
+#$(error option must be built with TARGET_OS = Windows_NT)
+#endif
 
 
 libvorbis.a: libvorbis.def

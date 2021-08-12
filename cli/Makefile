@@ -5,29 +5,37 @@
 ###############################################################################
 ### main defs
 
+LIBAO_IPATH = ../../libao/include
+LIBAO_LPATH = ../../libao/bin
+
+
+CFLAGS += $(DEF_CFLAGS) -DVAR_ARRAYS $(EXTRA_CFLAGS)
+LDFLAGS += -L../src -lvgmstream -lm $(EXTRA_LDFLAGS)
+TARGET_EXT_LIBS = 
+
 ifeq ($(TARGET_OS),Windows_NT)
   OUTPUT_CLI = test.exe
   OUTPUT_123 = vgmstream123.exe
+
+  # -DUSE_ALLOCA
+  CFLAGS += -DWIN32 -I../ext_includes -I../ext_libs/Getopt -I../ext_includes/ffmpeg
+  LDFLAGS += -L../ext_libs
+
+  LIBAO_INC = -I$(LIBAO_IPATH)
+  LIBAO_LIB = -L$(LIBAO_LPATH) -lao
 else
   OUTPUT_CLI = vgmstream-cli
   OUTPUT_123 = vgmstream123
-endif
 
-# -DUSE_ALLOCA
-ifeq ($(TARGET_OS),Windows_NT)
-  CFLAGS += -DWIN32 -I../ext_libs/Getopt -I../ext_includes/ffmpeg
-endif
+  #todo move clhca/etc and remove
+  CFLAGS += -I../ext_includes
 
-CFLAGS += $(DEF_CFLAGS) -DVAR_ARRAYS -I../ext_includes $(EXTRA_CFLAGS)
-LDFLAGS += -L../src -L../ext_libs -lvgmstream -lm $(EXTRA_LDFLAGS)
-TARGET_EXT_LIBS = 
+  LIBAO_LIB = -lao
+endif
 
 CFLAGS += $(LIBS_CFLAGS)
 LDFLAGS += $(LIBS_LDFLAGS)
 TARGET_EXT_LIBS += $(LIBS_TARGET_EXT_LIBS)
-
-LIBAO_INC_PATH = ../../libao/include
-LIBAO_LIB_PATH = ../../libao/bin
 
 
 export CFLAGS LDFLAGS
@@ -41,7 +49,7 @@ vgmstream_cli: libvgmstream.a $(TARGET_EXT_LIBS)
 	$(STRIP) $(OUTPUT_CLI)
 
 vgmstream123: libvgmstream.a $(TARGET_EXT_LIBS)
-	$(CC) $(CFLAGS) -I$(LIBAO_INC_PATH) "-DVGMSTREAM_VERSION=\"$(VGMSTREAM_VERSION_PREV)\"" vgmstream123.c $(LDFLAGS) -L$(LIBAO_LIB_PATH) -lao -o $(OUTPUT_123)
+	$(CC) $(CFLAGS) $(LIBAO_INC) "-DVGMSTREAM_VERSION=\"$(VGMSTREAM_VERSION_PREV)\"" vgmstream123.c $(LDFLAGS) $(LIBAO_LIB) -o $(OUTPUT_123)
 	$(STRIP) $(OUTPUT_123)
 
 libvgmstream.a:

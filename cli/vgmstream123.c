@@ -39,9 +39,7 @@
 #include "../src/vgmstream.h"
 #include "../src/plugins.h"
 
-#ifndef VGMSTREAM_VERSION
-# include "../version.h"
-#endif
+#include "../version.h"
 #ifndef VGMSTREAM_VERSION
 # define VGMSTREAM_VERSION "(unknown version)"
 #endif

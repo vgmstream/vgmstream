@@ -89,81 +89,141 @@ LIBS_LDFLAGS=
 LIBS_TARGET_EXT_LIBS=
 
 # config libs
-VGM_ENABLE_G7221 = 1
-ifeq ($(VGM_ENABLE_G7221),1) 
+VGM_G7221 = 1
+ifneq ($(VGM_G7221),0)
   LIBS_CFLAGS  += -DVGM_USE_G7221
 endif
 
 
 ### external libs
+# (call "make VGM_xxx = 0/1" to override 0/1 defaults, as Make does)
 ifeq ($(TARGET_OS),Windows_NT)
+  # enabled by default on Windows
+  VGM_VORBIS = 1
+  ifneq ($(VGM_VORBIS),0)
+    LIBS_CFLAGS  += -DVGM_USE_VORBIS
+    LIBS_LDFLAGS += -lvorbis
+    LIBS_TARGET_EXT_LIBS += libvorbis.a
+  endif
 
-VGM_ENABLE_VORBIS = 1
-ifeq ($(VGM_ENABLE_VORBIS),1)
-  LIBS_CFLAGS  += -DVGM_USE_VORBIS
-  LIBS_LDFLAGS += -lvorbis
-  LIBS_TARGET_EXT_LIBS += libvorbis.a
+  VGM_MPEG = 1
+  ifneq ($(VGM_MPEG),0)
+    LIBS_CFLAGS  += -DVGM_USE_MPEG
+    LIBS_LDFLAGS += -lmpg123-0
+    LIBS_TARGET_EXT_LIBS += libmpg123-0.a
+  endif
+
+  VGM_G719 = 1
+  ifneq ($(VGM_G719),0)
+    LIBS_CFLAGS  += -DVGM_USE_G719
+    LIBS_LDFLAGS += -lg719_decode
+    LIBS_TARGET_EXT_LIBS += libg719_decode.a
+  endif
+
+  VGM_MAT3P = 0
+  ifneq ($(VGM_MAT3P),0)
+    LIBS_CFLAGS  += -DVGM_USE_MAIATRAC3PLUS
+    LIBS_LDFLAGS += -lat3plusdecoder
+    LIBS_TARGET_EXT_LIBS += libat3plusdecoder.a
+  endif
+
+  VGM_FFMPEG = 1
+  ifneq ($(VGM_FFMPEG),0)
+    LIBS_CFLAGS  += -DVGM_USE_FFMPEG
+    LIBS_LDFLAGS += -lavcodec -lavformat -lavutil -lswresample
+    LIBS_TARGET_EXT_LIBS += libavcodec.a libavformat.a libavutil.a libswresample.a
+  endif
+
+  VGM_ATRAC9 = 1
+  ifneq ($(VGM_ATRAC9),0)
+    LIBS_CFLAGS  += -DVGM_USE_ATRAC9
+    LIBS_LDFLAGS += -latrac9
+    LIBS_TARGET_EXT_LIBS += libatrac9.a
+  endif
+
+  VGM_CELT = 1
+  ifneq ($(VGM_CELT),0)
+    LIBS_CFLAGS  += -DVGM_USE_CELT
+    LIBS_LDFLAGS += -lcelt-0061 -lcelt-0110
+    LIBS_TARGET_EXT_LIBS += libcelt-0061.a libcelt-0110.a
+  endif
+
+  VGM_SPEEX = 1
+  ifneq ($(VGM_SPEEX),0)
+    LIBS_CFLAGS  += -DVGM_USE_SPEEX
+    LIBS_LDFLAGS +=  -L../ext_libs/libspeex -lspeex
+    LIBS_TARGET_EXT_LIBS += libspeex/libspeex.a
+  endif
+
+else
+
+  # must install system libs and enable manually on Linux
+  VGM_VORBIS = 0
+  ifneq ($(VGM_VORBIS),0)
+    LIBS_CFLAGS  += -DVGM_USE_VORBIS
+    LIBS_LDFLAGS += -lvorbis -lvorbisfile
+  endif
+
+  VGM_MPEG = 0
+  ifneq ($(VGM_MPEG),0)
+    LIBS_CFLAGS  += -DVGM_USE_MPEG
+    LIBS_LDFLAGS += -lmpg123
+  endif
+
+  VGM_G719 = 0
+  ifneq ($(VGM_G719),0)
+    LIBS_CFLAGS  += -DVGM_USE_G719
+    LIBS_LDFLAGS += -lg719_decode
+  endif
+
+  VGM_MAT3P = 0
+  ifneq ($(VGM_MAT3P),0)
+    LIBS_CFLAGS  += -DVGM_USE_MAIATRAC3PLUS
+    LIBS_LDFLAGS += -lat3plusdecoder
+  endif
+
+  VGM_FFMPEG = 0
+  ifneq ($(VGM_FFMPEG),0)
+    LIBS_CFLAGS  += -DVGM_USE_FFMPEG
+    LIBS_LDFLAGS += -lavcodec -lavformat -lavutil -lswresample
+  endif
+
+  VGM_ATRAC9 = 0
+  ifneq ($(VGM_ATRAC9),0)
+    LIBS_CFLAGS  += -DVGM_USE_ATRAC9
+    ifeq ($(VGM_ATRAC9),1)
+      LIBS_LDFLAGS += -latrac9
+    endif
+    ifeq ($(VGM_ATRAC9),2)
+      LIBS_LDFLAGS += -l:libatrac9.a
+    endif
+  endif
+
+  VGM_CELT = 0
+  ifneq ($(VGM_CELT),0)
+    LIBS_CFLAGS  += -DVGM_USE_CELT
+    ifeq ($(VGM_CELT),1)
+      LIBS_LDFLAGS += -lcelt-0061 -lcelt-0110
+    endif
+    ifeq ($(VGM_CELT),2)
+      LIBS_LDFLAGS += -l:libcelt-0061.a -l:libcelt-0110.a
+    endif
+  endif
+
+  VGM_SPEEX = 0
+  ifneq ($(VGM_SPEEX),0)
+    LIBS_CFLAGS  += -DVGM_USE_SPEEX
+    LIBS_LDFLAGS +=  -lspeex
+  endif
 endif
-
-VGM_ENABLE_MPEG = 1
-ifeq ($(VGM_ENABLE_MPEG),1)
-  LIBS_CFLAGS  += -DVGM_USE_MPEG
-  LIBS_LDFLAGS += -lmpg123-0
-  LIBS_TARGET_EXT_LIBS += libmpg123-0.a
-endif
-
-VGM_ENABLE_G719 = 1
-ifeq ($(VGM_ENABLE_G719),1) 
-  LIBS_CFLAGS  += -DVGM_USE_G719
-  LIBS_LDFLAGS += -lg719_decode
-  LIBS_TARGET_EXT_LIBS += libg719_decode.a
-endif
-
-VGM_ENABLE_MAIATRAC3PLUS = 0
-ifeq ($(VGM_ENABLE_MAIATRAC3PLUS),1) 
-  LIBS_CFLAGS  += -DVGM_USE_MAIATRAC3PLUS
-  LIBS_LDFLAGS += -lat3plusdecoder
-  LIBS_TARGET_EXT_LIBS += libat3plusdecoder.a
-endif
-
-VGM_ENABLE_FFMPEG = 1
-ifeq ($(VGM_ENABLE_FFMPEG),1)
-  LIBS_CFLAGS  += -DVGM_USE_FFMPEG
-  LIBS_LDFLAGS += -lavcodec -lavformat -lavutil -lswresample
-  LIBS_TARGET_EXT_LIBS += libavcodec.a libavformat.a libavutil.a libswresample.a
-endif
-
-VGM_ENABLE_ATRAC9 = 1
-ifeq ($(VGM_ENABLE_ATRAC9),1) 
-  LIBS_CFLAGS  += -DVGM_USE_ATRAC9
-  LIBS_LDFLAGS += -latrac9
-  LIBS_TARGET_EXT_LIBS += libatrac9.a
-endif
-
-VGM_ENABLE_CELT = 1
-ifeq ($(VGM_ENABLE_CELT),1) 
-  LIBS_CFLAGS  += -DVGM_USE_CELT
-  LIBS_LDFLAGS += -lcelt-0061 -lcelt-0110
-  LIBS_TARGET_EXT_LIBS += libcelt-0061.a libcelt-0110.a
-endif
-
-VGM_ENABLE_SPEEX = 1
-ifeq ($(VGM_ENABLE_SPEEX),1) 
-  LIBS_CFLAGS  += -DVGM_USE_SPEEX
-  LIBS_LDFLAGS +=  -L../ext_libs/libspeex -lspeex
-  LIBS_TARGET_EXT_LIBS += libspeex/libspeex.a
-endif
-
-endif #if WIN32
-
 
 export DEF_CFLAGS LIBS_CFLAGS LIBS_LDFLAGS LIBS_TARGET_EXT_LIBS
 
 
 ###############################################################################
 ### internal defs
-ZIP_FILES = COPYING 
-ZIP_FILES+= README.md 
+ZIP_FILES = COPYING
+ZIP_FILES+= README.md
 ZIP_FILES+= cli/test.exe
 ZIP_FILES+= winamp/in_vgmstream.dll
 ZIP_FILES+= xmplay/xmp-vgmstream.dll
