@@ -45,11 +45,17 @@ Release
 /xmplay/*.dll
 /dependencies
 /version_auto.h
+
 /msvc-build.config.ps1
 /msvc-build.log
+# for test batchs, note that already tracked files are never ignored
+/msvc-build-*.bat
 
+/bin/**/*
+/tmp/**/*
 /**/vgmstream-win.zip
 /**/foo_input_vgmstream.fb2k-component
 
+# cmake stuff
 /build
 /cmake-build*
