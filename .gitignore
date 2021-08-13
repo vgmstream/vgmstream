@@ -46,6 +46,7 @@ Release
 /dependencies
 /version_auto.h
 /msvc-build.config.ps1
+/msvc-build.log
 
 /**/vgmstream-win.zip
 /**/foo_input_vgmstream.fb2k-component

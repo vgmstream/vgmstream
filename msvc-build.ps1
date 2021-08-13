@@ -19,6 +19,8 @@ if (!$toolset) { $toolset = "" }
 if (!$sdk) { $sdk = "" }
 # - platforms: "" (default), "Win32"
 if (!$platform) { $platform = "" }
+# print compilation log
+#$log = 1
 ###############################################################################
 
 $solution = "vgmstream_full.sln"
@@ -126,7 +128,12 @@ function CallMsbuild
     }
 
     # main build (pass config separate and not as a single string)
-    & $msbuild $solution $config $platform $toolset $sdk $target /m
+    if (!$log) {
+        & $msbuild $solution $config $platform $toolset $sdk $target /m
+    }
+    else {
+        & $msbuild $solution $config $platform $toolset $sdk $target /m > "msvc-build.log"
+    }
 }
 
 function Build
