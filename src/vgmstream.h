@@ -42,8 +42,6 @@ enum {
 #include <aacdecoder_lib.h>
 #endif
 
-#include <clHCA.h>
-
 #include "coding/g72x_state.h"
 
 

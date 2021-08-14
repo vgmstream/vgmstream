@@ -2,6 +2,8 @@
 #define _CODING_H
 
 #include "../vgmstream.h"
+//todo remove
+#include "hca_decoder_clhca.h"
 
 /* adx_decoder */
 void decode_adx(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int32_t frame_bytes, coding_t coding_type);

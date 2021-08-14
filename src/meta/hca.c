@@ -1,7 +1,7 @@
 #include "meta.h"
 #include "hca_keys.h"
 #include "../coding/coding.h"
-#include <clHCA.h>
+#include "../coding/hca_decoder_clhca.h"
 
 //#define HCA_BRUTEFORCE
 #ifdef HCA_BRUTEFORCE
