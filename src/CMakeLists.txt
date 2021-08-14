@@ -5,10 +5,7 @@ file(GLOB LAYOUT_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/layout/*.c")
 file(GLOB META_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/meta/*.h")
 file(GLOB META_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/meta/*.c")
 set(EXT_HEADERS
-	${VGM_SOURCE_DIR}/ext_includes/clHCA.h
 	${VGM_SOURCE_DIR}/ext_includes/pstdint.h)
-set(EXT_SOURCES
-	${VGM_SOURCE_DIR}/ext_libs/clHCA.c)
 file(GLOB MAIN_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/*.h")
 file(GLOB MAIN_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/*.c")
 
@@ -23,7 +20,6 @@ source_group("Header Files\\ext" FILES ${EXT_HEADERS})
 source_group("Source Files\\coding" FILES ${CODING_SOURCES})
 source_group("Source Files\\layout" FILES ${LAYOUT_SOURCES})
 source_group("Source Files\\meta" FILES ${META_SOURCES})
-source_group("Source Files\\ext" FILES ${EXT_SOURCES})
 
 add_library(libvgmstream STATIC
 	${CODING_HEADERS}
@@ -33,7 +29,6 @@ add_library(libvgmstream STATIC
 	${META_HEADERS}
 	${META_SOURCES}
 	${EXT_HEADERS}
-	${EXT_SOURCES}
 	${MAIN_HEADERS}
 	${MAIN_SOURCES})
 
