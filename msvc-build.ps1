@@ -1,7 +1,7 @@
 [CmdletBinding()]
 Param(
     [Parameter(Position=0, mandatory=$true)]
-    [ValidateSet("Init", "Build", "Rebuild", "Clean")]
+    [ValidateSet("Init", "Build", "Rebuild", "Clean", "Package", "PackageTmp")]
     [string]$Task
 )
 
@@ -19,6 +19,8 @@ if (!$toolset) { $toolset = "" }
 if (!$sdk) { $sdk = "" }
 # - platforms: "" (default), "Win32"
 if (!$platform) { $platform = "" }
+# print compilation log
+#$log = 1
 ###############################################################################
 
 $solution = "vgmstream_full.sln"
@@ -126,7 +128,12 @@ function CallMsbuild
     }
 
     # main build (pass config separate and not as a single string)
-    & $msbuild $solution $config $platform $toolset $sdk $target /m
+    if (!$log) {
+        & $msbuild $solution $config $platform $toolset $sdk $target /m
+    }
+    else {
+        & $msbuild $solution $config $platform $toolset $sdk $target /m > "msvc-build.log"
+    }
 }
 
 function Build
@@ -138,6 +145,7 @@ function Rebuild
 {
     CallMsbuild "Rebuild"
 }
+
 function Clean
 {
     CallMsbuild "Clean"
@@ -159,7 +167,74 @@ function Clean
     Remove-Item -Path "xmplay/Release" -Recurse -ErrorAction Ignore
     Remove-Item -Path "Debug" -Recurse -ErrorAction Ignore
     Remove-Item -Path "Release" -Recurse -ErrorAction Ignore
+    Remove-Item -Path "bin" -Recurse -ErrorAction Ignore
+    Remove-Item -Path "tmp" -Recurse -ErrorAction Ignore
 }
+
+$fb2kFiles = @(
+    "ext_libs/*.dll",
+    "ext_libs/libspeex/*.dll",
+    "Release/foo_input_vgmstream.dll",
+    "README.md"
+)
+
+$cliFiles = @(
+    "ext_libs/*.dll",
+    "ext_libs/libspeex/*.dll",
+    "Release/in_vgmstream.dll",
+    "Release/test.exe",
+    "Release/xmp-vgmstream.dll",
+    "COPYING",
+    "README.md"
+)
+
+$fb2kPdbFiles = @(
+    "Release/foo_input_vgmstream.pdb"
+)
+
+$cliPdbFiles = @(
+    "Release/in_vgmstream.pdb",
+    "Release/test.pdb",
+    "Release/xmp-vgmstream.pdb"
+)
+
+function Package
+{
+    if(!(Test-Path "Release/test.exe")) { Build }
+
+    if(!(Test-Path "Release/test.exe")) {
+        Write-Error "Unable to find binaries, check for compilation errors"
+    }
+
+    Compress-Archive $cliFiles Release/vgmstream-win.zip -Force
+    Compress-Archive $fb2kFiles Release/foo_input_vgmstream.zip -Force
+    Compress-Archive $cliPdbFiles Release/vgmstream-win.pdb.zip -Force
+    Compress-Archive $fb2kPdbFiles Release/foo_input_vgmstream.pdb.zip -Force
+
+    md -Force bin
+    Move-Item Release/vgmstream-win.zip bin/vgmstream-win.zip -Force
+    Move-Item Release/foo_input_vgmstream.zip bin/foo_input_vgmstream.fb2k-component -Force
+    Move-Item Release/vgmstream-win.pdb.zip bin/vgmstream-win.pdb.zip -Force
+    Move-Item Release/foo_input_vgmstream.pdb.zip bin/foo_input_vgmstream.pdb.zip -Force
+}
+
+
+# for github actions/artifact uploads, that use a dir with files
+function PackageTmp
+{
+    Package
+
+    md -Force tmp/cli
+    md -Force tmp/fb2k
+    md -Force tmp/cli-p
+    md -Force tmp/fb2k-p
+
+    Copy-Item $cliFiles tmp/cli/ -Recurse -Force
+    Copy-Item $fb2kFiles tmp/fb2k/ -Recurse -Force
+    Copy-Item $cliPdbFiles tmp/cli-p/ -Recurse -Force
+    Copy-Item $fb2kPdbFiles tmp/fb2k-p/ -Recurse -Force
+}
+
 
 switch ($Task)
 {
@@ -167,4 +242,6 @@ switch ($Task)
     "Build" { Build }
     "Rebuild" { Rebuild }
     "Clean" { Clean }
+    "Package" { Package }
+    "PackageTmp" { PackageTmp }
 }

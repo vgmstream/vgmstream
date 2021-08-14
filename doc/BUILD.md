@@ -199,9 +199,9 @@ Requires MSVC (foobar/SDK only links to MSVC C++ DLLs). To build in Visual Studi
 
 foobar has multiple dependencies. Build script downloads them automatically, but here they are:
 - foobar2000 SDK (2018), in *(vgmstream)/dependencies/foobar/*: http://www.foobar2000.org/SDK
-- (optional) FDK-AAC, in *(vgmstream)/dependencies/fdk-aac/*: https://github.com/kode54/fdk-aac
-- (optional) QAAC, in *(vgmstream)/dependencies/qaac/*: https://github.com/kode54/qaac
 - WTL (if needed), in *(vgmstream)/dependencies/WTL/*: http://wtl.sourceforge.net/
+- (optional/disabled) FDK-AAC, in *(vgmstream)/dependencies/fdk-aac/*: https://github.com/kode54/fdk-aac
+- (optional/disabled) QAAC, in *(vgmstream)/dependencies/qaac/*: https://github.com/kode54/qaac
 - may need to install ATL and MFC libraries if not included by default (can be added from the Visual Studio installer)
 
 The following project modifications are required:
@@ -209,7 +209,7 @@ The following project modifications are required:
 
 FDK-AAC/QAAC can be enabled adding *VGM_USE_MP4V2* and *VGM_USE_FDKAAC* in the compiler/linker options and the project dependencies, otherwise FFmpeg is used instead to support .mp4. FDK-AAC Support is limited so FFmpeg is recommended.
 
-In theory any foobar SDK should work, but there may be issues when using versions past `2018-02-05`. Mirror in case official site is down: https://github.com/vgmstream/vgmstream-deps/raw/master/foobar2000/SDK-2018-02-05.zip
+In theory any foobar SDK should work, but there may be issues when using versions past *2018-02-05*. For those you need to change *RuntimeLibrary* from *MultiThreadedDebug* and *MultiThreaded* to *MultiThreadedDebugDLL* and *MultiThreadedDLL* (to match newer SDK settings). Mirror in case official site is down: https://github.com/vgmstream/vgmstream-deps/raw/master/foobar2000/SDK-2018-02-05.zip
 
 You can also manually use the command line to compile with MSBuild, if you don't want to touch the `.vcxproj` files, register VS after trial, get PowerShell dependencies for the build script, or only have VC++/MSBuild tools.
 

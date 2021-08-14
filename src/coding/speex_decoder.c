@@ -100,7 +100,7 @@ fail:
 
 /* for simple style speex (seen in EA-Speex and libspeex's sampledec.c) */
 static int read_frame(speex_codec_data* data, VGMSTREAMCHANNEL* stream) {
-    uint8_t bytes;
+    size_t bytes;
 
     data->frame_size = read_u8(stream->offset, stream->streamfile);
     stream->offset += 0x01;

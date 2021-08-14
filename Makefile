@@ -129,7 +129,7 @@ ifeq ($(TARGET_OS),Windows_NT)
 
   VGM_FFMPEG = 1
   ifneq ($(VGM_FFMPEG),0)
-    LIBS_CFLAGS  += -DVGM_USE_FFMPEG
+    LIBS_CFLAGS  += -DVGM_USE_FFMPEG -I../ext_includes/ffmpeg
     LIBS_LDFLAGS += -lavcodec -lavformat -lavutil -lswresample
     LIBS_TARGET_EXT_LIBS += libavcodec.a libavformat.a libavutil.a libswresample.a
   endif

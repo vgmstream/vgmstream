@@ -263,8 +263,8 @@
     <ClInclude Include="layout\layout.h">
       <Filter>layout\Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\ext_includes\clHCA.h">
-      <Filter>ext_libs\Header Files</Filter>
+    <ClInclude Include="coding\hca_decoder_clhca.h">
+      <Filter>coding\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="coding\mpeg_bitreader.h">
       <Filter>coding\Header Files</Filter>
@@ -1333,6 +1333,9 @@
     <ClCompile Include="coding\hca_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="coding\hca_decoder_clhca.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="coding\ima_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
@@ -1788,9 +1791,6 @@
     </ClCompile>
     <ClCompile Include="coding\g719_decoder.c">
       <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\ext_libs\clHCA.c">
-      <Filter>ext_libs\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ffmpeg.c">
       <Filter>meta\Source Files</Filter>

@@ -131,7 +131,7 @@ static void transform(int32_t* invbuf, int32_t* tmpbuf) {
     for (lpc1 = 0; lpc1 < 12 - 2; lpc1++) {
         int sub1, sub2;
         int i1, i2, i3, i4;
-        int64_t cos1, sin1, cos2, sin2; /* needs i64 to force 64b ops (avoid overflows) */
+        int64_t cos1, sin1, cos2, sin2; /* needs i64 to force 64b ops (avoid overflows) then converted to i32 */
 
         cos1 = (int64_t)sincos_table[sc1 + 1024];
         sin1 = (int64_t)sincos_table[sc1 + 0];
@@ -153,8 +153,8 @@ static void transform(int32_t* invbuf, int32_t* tmpbuf) {
             sub2 = tmpbuf[i1 + 1] - tmpbuf[i2 + 1];
             invbuf[i1 + 1] += invbuf[i2 + 1];
             tmpbuf[i1 + 1] += tmpbuf[i2 + 1];
-            invbuf[i2 + 1] = ((sub1 * cos1) >> 12) + ((sub2 * sin1) >> 12);
-            tmpbuf[i2 + 1] = ((sub2 * cos1) >> 12) - ((sub1 * sin1) >> 12);
+            invbuf[i2 + 1] = (int32_t)( ((sub1 * cos1) >> 12) + ((sub2 * sin1) >> 12) );
+            tmpbuf[i2 + 1] = (int32_t)( ((sub2 * cos1) >> 12) - ((sub1 * sin1) >> 12) );
 
             sub1 = invbuf[i3 + 0] - invbuf[i4 + 0];
             sub2 = tmpbuf[i3 + 0] - tmpbuf[i4 + 0];
@@ -167,8 +167,8 @@ static void transform(int32_t* invbuf, int32_t* tmpbuf) {
             sub2 = tmpbuf[i3 + 1] - tmpbuf[i4 + 1];
             invbuf[i3 + 1] += invbuf[i4 + 1];
             tmpbuf[i3 + 1] += tmpbuf[i4 + 1];
-            invbuf[i4 + 1] =   ((sub2 * cos1) >> 12) - ((sub1 * sin1) >> 12);
-            tmpbuf[i4 + 1] = -(((sub1 * cos1) >> 12) + ((sub2 * sin1) >> 12));
+            invbuf[i4 + 1] = (int32_t)(   ((sub2 * cos1) >> 12) - ((sub1 * sin1) >> 12) );
+            tmpbuf[i4 + 1] = (int32_t)( -(((sub1 * cos1) >> 12) + ((sub2 * sin1) >> 12)) );
 
             i1 += step1;
             i2 += step1;
@@ -194,15 +194,15 @@ static void transform(int32_t* invbuf, int32_t* tmpbuf) {
                     sub2 = tmpbuf[i1] - tmpbuf[i2];
                     invbuf[i1] += invbuf[i2];
                     tmpbuf[i1] += tmpbuf[i2];
-                    invbuf[i2] = ((sub1 * cos2) >> 12) + ((sub2 * sin2) >> 12);
-                    tmpbuf[i2] = ((sub2 * cos2) >> 12) - ((sub1 * sin2) >> 12);
+                    invbuf[i2] = (int32_t)( ((sub1 * cos2) >> 12) + ((sub2 * sin2) >> 12) );
+                    tmpbuf[i2] = (int32_t)( ((sub2 * cos2) >> 12) - ((sub1 * sin2) >> 12) );
 
                     sub1 = invbuf[i3] - invbuf[i4];
                     sub2 = tmpbuf[i3] - tmpbuf[i4];
                     invbuf[i3] += invbuf[i4];
                     tmpbuf[i3] += tmpbuf[i4];
-                    invbuf[i4] =   ((sub2 * cos2) >> 12) - ((sub1 * sin2) >> 12);
-                    tmpbuf[i4] = -(((sub1 * cos2) >> 12) + ((sub2 * sin2) >> 12));
+                    invbuf[i4] = (int32_t)(  ((sub2 * cos2) >> 12) - ((sub1 * sin2) >> 12) );
+                    tmpbuf[i4] = (int32_t)( -(((sub1 * cos2) >> 12) + ((sub2 * sin2) >> 12)) );
 
                     i1 += step1;
                     i2 += step1;

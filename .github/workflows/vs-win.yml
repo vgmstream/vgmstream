@@ -24,7 +24,7 @@ jobs:
         shell: cmd
         run: git fetch --prune --unshallow --tags
 
-      - name: Initialize Build Environment
+      - name: Initialize build environment
         shell: cmd
         run: powershell -ExecutionPolicy Bypass -NoProfile -File .\msvc-build.ps1 Init
 
@@ -33,77 +33,35 @@ jobs:
         shell: cmd
         run: powershell -ExecutionPolicy Bypass -NoProfile -File .\msvc-build.ps1 Build
 
-      - name: Prepare Files For Packaging
+      - name: Prepare files for packaging
         shell: powershell
-        run: |
-          $fb2kFiles = @(
-              "ext_libs/*.dll",
-              "ext_libs/libspeex/*.dll",
-              "Release/foo_input_vgmstream.dll",
-              "README.md"
-          )
+        run: powershell -ExecutionPolicy Bypass -NoProfile -File .\msvc-build.ps1 PackageTmp
 
-          $cliFiles = @(
-              "ext_libs/*.dll",
-              "ext_libs/libspeex/*.dll",
-              "Release/in_vgmstream.dll",
-              "Release/test.exe",
-              "Release/xmp-vgmstream.dll",
-              "COPYING",
-              "README.md"
-          )
-
-          $fb2kPdbFiles = @(
-              "Release/foo_input_vgmstream.pdb"
-          )
-
-          $cliPdbFiles = @(
-              "Release/in_vgmstream.pdb",
-              "Release/test.pdb",
-              "Release/xmp-vgmstream.pdb"
-          )
-
-          Compress-Archive $cliFiles Release/vgmstream-win.zip -Force
-          Compress-Archive $fb2kFiles Release/foo_input_vgmstream.zip -Force
-          Move-Item Release/foo_input_vgmstream.zip Release/foo_input_vgmstream.fb2k-component -Force
-          Compress-Archive $cliPdbFiles Release/test.pdb.zip -Force
-          Compress-Archive $fb2kPdbFiles Release/foo_input_vgmstream.pdb.zip -Force
-
-          mkdir tmp/cli
-          mkdir tmp/fb2k
-          mkdir tmp/cli-p
-          mkdir tmp/fb2k-p
-
-          Copy-Item $cliFiles tmp/cli/ -Recurse -Force
-          Copy-Item $fb2kFiles tmp/fb2k/ -Recurse -Force
-          Copy-Item $cliPdbFiles tmp/cli-p/ -Recurse -Force
-          Copy-Item $fb2kPdbFiles tmp/fb2k-p/ -Recurse -Force
-
-      - name: Upload foobar2000 Component Artifact
+      - name: Upload foobar2000 component artifact
         uses: actions/upload-artifact@v2
         with:
           name: foo_input_vgmstream.fb2k-component
           path: ${{github.workspace}}\tmp\fb2k
 
-      - name: Upload CLI Tools Artifact
+      - name: Upload CLI tools artifact
         uses: actions/upload-artifact@v2
         with:
-          name: test
+          name: vgmstream-win
           path: ${{github.workspace}}\tmp\cli
 
-      - name: Upload foobar2000 Component Debug Symbols Artifact
+      - name: Upload foobar2000 component debug symbols artifact
         uses: actions/upload-artifact@v2
         with:
           name: foo_input_vgmstream.pdb
           path: ${{github.workspace}}\tmp\fb2k-p
 
-      - name: Upload CLI Tools Debug Symbols Artifact
+      - name: Upload CLI tools debug symbols artifact
         uses: actions/upload-artifact@v2
         with:
-          name: test.pdb
+          name: vgmstream-win.pdb
           path: ${{github.workspace}}\tmp\cli-p
 
-      - name: Upload Artifacts to S3
+      - name: Upload artifacts to S3
         if: github.event_name != 'pull_request' 
         working-directory: ${{github.workspace}}
         shell: powershell
@@ -112,18 +70,17 @@ jobs:
             AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY_ID}}
             AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
         run: |
-          aws s3 cp Release\vgmstream-win.zip s3://vgmstream-builds/${{github.sha}}/windows/ --acl public-read 
-          aws s3 cp Release\foo_input_vgmstream.fb2k-component s3://vgmstream-builds/${{github.sha}}/windows/ --acl public-read 
-          aws s3 cp Release\test.pdb.zip s3://vgmstream-builds/${{github.sha}}/windows/ --acl public-read 
-          aws s3 cp Release\foo_input_vgmstream.pdb.zip s3://vgmstream-builds/${{github.sha}}/windows/ --acl public-read 
+          aws s3 cp bin\vgmstream-win.zip s3://vgmstream-builds/${{github.sha}}/windows/ --acl public-read 
+          aws s3 cp bin\foo_input_vgmstream.fb2k-component s3://vgmstream-builds/${{github.sha}}/windows/ --acl public-read 
+          aws s3 cp bin\vgmstream-win.pdb.zip s3://vgmstream-builds/${{github.sha}}/windows/ --acl public-read 
+          aws s3 cp bin\foo_input_vgmstream.pdb.zip s3://vgmstream-builds/${{github.sha}}/windows/ --acl public-read 
           echo ${{github.sha}} | tee latest_id
           git describe --always | tee latest_ver
           aws s3 cp latest_id s3://vgmstream-builds/ --acl public-read
           aws s3 cp latest_ver s3://vgmstream-builds/ --acl public-read
 
-      - name: Web Request Action
+      - name: Web request action
         uses: Satak/webrequest-action@v1.2.3
         if: github.event_name != 'pull_request'
         with:
           url: https://vgmstream-builds.losno.co/callFupa?secret=${{ secrets.FUPA_UPDATER_SECRET }}
-

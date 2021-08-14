@@ -629,7 +629,7 @@ double WINAPI xmplay_GetGranularity() {
 /* seek to a position (in granularity units), return new position or -1 = failed */
 double WINAPI xmplay_SetPosition(DWORD pos) {
     double cpos;
-    int seek_sample = pos * xmplay_GetGranularity() * vgmstream->sample_rate;
+    int32_t seek_sample = (int32_t)(pos * xmplay_GetGranularity() * vgmstream->sample_rate);
 
     if (pos == XMPIN_POS_AUTOLOOP || pos == XMPIN_POS_LOOP)
         xmplay_doneloop = 1;
@@ -714,10 +714,9 @@ static DWORD WINAPI xmplay_GetSubSongs(float *length) {
     /* get times for all subsongs */
     //todo request updating playlist update every subsong change instead?
     {
-        int stream_length_samples;
-
         /* not good for vgmstream as would mean re-parsing many times */
         //int i;
+        //*length = 0;
         //for (i = 0; i < subsong_count; i++) {
         //    float subsong_length = ...
         //    *length += subsong_length;

@@ -60,7 +60,6 @@ static void wasf_get_name(WINAMP_STREAMFILE* sf, char* buffer, size_t length) {
 
 static STREAMFILE *wasf_open(WINAMP_STREAMFILE* sf, const char* const filename, size_t buffersize) {
     in_char wpath[PATH_LIMIT];
-    char name[PATH_LIMIT];
 
     if (!filename)
         return NULL;
@@ -69,23 +68,25 @@ static STREAMFILE *wasf_open(WINAMP_STREAMFILE* sf, const char* const filename, 
     /* When enabling this for MSVC it'll seemingly work, but there are issues possibly related to underlying
      * IO buffers when using dup(), noticeable by re-opening the same streamfile with small buffer sizes
      * (reads garbage). This reportedly causes issues in Android too */
+    {
+        char name[PATH_LIMIT];
+        sf->stdiosf->get_name(sf->stdiosf, name, PATH_LIMIT);
+        /* if same name, duplicate the file descriptor we already have open */ //unsure if all this is needed
+        if (sf->infile_ref && !strcmp(name,filename)) {
+            int new_fd;
+            FILE *new_file;
 
-    sf->stdiosf->get_name(sf->stdiosf, name, PATH_LIMIT);
-    /* if same name, duplicate the file descriptor we already have open */ //unsure if all this is needed
-    if (sf->infile_ref && !strcmp(name,filename)) {
-        int new_fd;
-        FILE *new_file;
+            if (((new_fd = dup(fileno(sf->infile_ref))) >= 0) && (new_file = wa_fdopen(new_fd))) {
+                STREAMFILE *new_sf = open_winamp_streamfile_by_file(new_file, filename);
+                if (new_sf)
+                    return new_sf;
+                fclose(new_file);
+            }
+            if (new_fd >= 0 && !new_file)
+                close(new_fd); /* fdopen may fail when opening too many files */
 
-        if (((new_fd = dup(fileno(sf->infile_ref))) >= 0) && (new_file = wa_fdopen(new_fd))) {
-            STREAMFILE *new_sf = open_winamp_streamfile_by_file(new_file, filename);
-            if (new_sf)
-                return new_sf;
-            fclose(new_file);
+            /* on failure just close and try the default path (which will probably fail a second time) */
         }
-        if (new_fd >= 0 && !new_file)
-            close(new_fd); /* fdopen may fail when opening too many files */
-
-        /* on failure just close and try the default path (which will probably fail a second time) */
     }
 #endif
 
