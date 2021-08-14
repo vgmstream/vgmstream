@@ -30,11 +30,11 @@
 /* CODEC1 values were used early, then they migrated to CODEC2 values */
 #define EA_CODEC1_NONE          -1
 #define EA_CODEC1_PCM           0x00
-#define EA_CODEC1_VAG           0x01 /* unsure */
+//#define EA_CODEC1_IMA         0x02 /* not used (sx.exe internal defs) */
+#define EA_CODEC1_N64           0x05
+#define EA_CODEC1_VAG           0x06
 #define EA_CODEC1_EAXA          0x07
 #define EA_CODEC1_MT10          0x09
-#define EA_CODEC1_N64           0x64 /* unknown but probably before MT10 */
-
 
 #define EA_CODEC2_NONE          -1
 #define EA_CODEC2_S16LE_INT     0x00
@@ -1809,6 +1809,7 @@ static int parse_variable_header(STREAMFILE* sf, ea_header* ea, off_t begin_offs
                 else
                     ea->codec2 = ea->bps==8 ? EA_CODEC2_S8 : (ea->big_endian ? EA_CODEC2_S16BE : EA_CODEC2_S16LE);
                 break;
+            case EA_CODEC1_N64:         ea->codec2 = EA_CODEC2_N64; break;
             case EA_CODEC1_VAG:         ea->codec2 = EA_CODEC2_VAG; break;
             case EA_CODEC1_EAXA:
                 if (ea->platform == EA_PLATFORM_PC || ea->platform == EA_PLATFORM_MAC)
@@ -1817,7 +1818,6 @@ static int parse_variable_header(STREAMFILE* sf, ea_header* ea, off_t begin_offs
                     ea->codec2 = EA_CODEC2_EAXA;
                 break;
             case EA_CODEC1_MT10:        ea->codec2 = EA_CODEC2_MT10; break;
-            case EA_CODEC1_N64:         ea->codec2 = EA_CODEC2_N64; break;
             default:
                 VGM_LOG("EA SCHl: unknown codec1 0x%02x\n", ea->codec1);
                 goto fail;
@@ -1830,6 +1830,7 @@ static int parse_variable_header(STREAMFILE* sf, ea_header* ea, off_t begin_offs
             case EA_PLATFORM_GENERIC:   ea->codec2 = EA_CODEC2_EAXA; break;
             case EA_PLATFORM_PC:        ea->codec2 = EA_CODEC2_EAXA; break;
             case EA_PLATFORM_PSX:       ea->codec2 = EA_CODEC2_VAG; break;
+            case EA_PLATFORM_N64:       ea->codec2 = EA_CODEC2_N64; break;
             case EA_PLATFORM_MAC:       ea->codec2 = EA_CODEC2_EAXA; break;
             case EA_PLATFORM_PS2:       ea->codec2 = EA_CODEC2_VAG; break;
             case EA_PLATFORM_GC:        ea->codec2 = EA_CODEC2_S16BE; break;
@@ -1837,7 +1838,7 @@ static int parse_variable_header(STREAMFILE* sf, ea_header* ea, off_t begin_offs
             case EA_PLATFORM_X360:      ea->codec2 = EA_CODEC2_EAXA; break;
             case EA_PLATFORM_PSP:       ea->codec2 = EA_CODEC2_EAXA; break;
             case EA_PLATFORM_PS3:       ea->codec2 = EA_CODEC2_EAXA; break;
-            //case EA_PLATFORM_WII:       ea->codec2 = EA_CODEC2_EAXA; break; /* not set? */
+            case EA_PLATFORM_WII:       ea->codec2 = EA_CODEC2_GCADPCM; break;
             case EA_PLATFORM_3DS:       ea->codec2 = EA_CODEC2_GCADPCM; break;
             default:
                 VGM_LOG("EA SCHl: unknown default codec2 for platform 0x%02x\n", ea->platform);
