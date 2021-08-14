@@ -55,7 +55,7 @@ jobs:
           name: foo_input_vgmstream.pdb
           path: ${{github.workspace}}\tmp\fb2k-p
 
-      - name: Upload CLI tools bebug symbols artifact
+      - name: Upload CLI tools debug symbols artifact
         uses: actions/upload-artifact@v2
         with:
           name: vgmstream-win.pdb
@@ -79,7 +79,7 @@ jobs:
           aws s3 cp latest_id s3://vgmstream-builds/ --acl public-read
           aws s3 cp latest_ver s3://vgmstream-builds/ --acl public-read
 
-      - name: Web Request Action
+      - name: Web request action
         uses: Satak/webrequest-action@v1.2.3
         if: github.event_name != 'pull_request'
         with:
