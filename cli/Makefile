@@ -2,12 +2,11 @@
 # CLI tools
 ###############################
 
-###############################################################################
-### main defs
-
 LIBAO_IPATH = ../../libao/include
 LIBAO_LPATH = ../../libao/bin
 
+###############################################################################
+### main defs
 
 CFLAGS += $(DEF_CFLAGS) -DVAR_ARRAYS $(EXTRA_CFLAGS)
 LDFLAGS += -L../src -lvgmstream -lm $(EXTRA_LDFLAGS)
@@ -18,7 +17,7 @@ ifeq ($(TARGET_OS),Windows_NT)
   OUTPUT_123 = vgmstream123.exe
 
   # -DUSE_ALLOCA
-  CFLAGS += -DWIN32 -I../ext_includes -I../ext_libs/Getopt -I../ext_includes/ffmpeg
+  CFLAGS += -DWIN32 -I../ext_includes -I../ext_libs/Getopt
   LDFLAGS += -L../ext_libs
 
   LIBAO_INC = -I$(LIBAO_IPATH)
@@ -27,7 +26,7 @@ else
   OUTPUT_CLI = vgmstream-cli
   OUTPUT_123 = vgmstream123
 
-  #todo move clhca/etc and remove
+  #todo move to subfolders and remove
   CFLAGS += -I../ext_includes
 
   LIBAO_LIB = -lao

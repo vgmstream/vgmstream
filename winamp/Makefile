@@ -14,15 +14,17 @@ endif
 
 ###############################################################################
 ### main defs
+
+CFLAGS += $(DEF_CFLAGS) $(EXTRA_CFLAGS)
+LDFLAGS += -L../src -lvgmstream -lm $(EXTRA_LDFLAGS)
+TARGET_EXT_LIBS = 
+
 OUTPUT_WINAMP = in_vgmstream.dll
 
 ifeq ($(TARGET_OS),Windows_NT)
-  CFLAGS += -m32 -DUSE_ALLOCA -DWIN32 -I../ext_includes/ffmpeg
+  CFLAGS += -DWIN32 -m32 -DUSE_ALLOCA -I../ext_includes
+  LDFLAGS += -L../ext_libs
 endif
-
-CFLAGS += $(DEF_CFLAGS) -I../ext_includes $(EXTRA_CFLAGS)
-LDFLAGS += -L../src -L../ext_libs -lvgmstream -lm $(EXTRA_LDFLAGS)
-TARGET_EXT_LIBS = 
 
 CFLAGS += $(LIBS_CFLAGS)
 LDFLAGS += $(LIBS_LDFLAGS)
