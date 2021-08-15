@@ -4,16 +4,11 @@
 
 ifeq ($(VGMSTREAM_VERSION),)
   # for current dir (expanded later)
-  VGMSTREAM_VERSION_CURR=`./version-get.sh`
-  # for subdirs (expanded later)
-  VGMSTREAM_VERSION_PREV=`../version-get.sh`
+  VGMSTREAM_VERSION=`sh ./version-get.sh`
 else
-  VGMSTREAM_VERSION_CURR=$(VGMSTREAM_VERSION)
-  VGMSTREAM_VERSION_PREV=$(VGMSTREAM_VERSION)
+  VGMSTREAM_VERSION=$(VGMSTREAM_VERSION)
 endif
-
-export VGMSTREAM_VERSION_PREV
-
+DEF_CFLAGS += -DVGMSTREAM_VERSION_AUTO
 
 ###############################################################################
 ### external defs
@@ -98,6 +93,7 @@ endif
 ### external libs
 # (call "make VGM_xxx = 0/1" to override 0/1 defaults, as Make does)
 ifeq ($(TARGET_OS),Windows_NT)
+
   # enabled by default on Windows
   VGM_VORBIS = 1
   ifneq ($(VGM_VORBIS),0)
@@ -222,14 +218,22 @@ export DEF_CFLAGS LIBS_CFLAGS LIBS_LDFLAGS LIBS_TARGET_EXT_LIBS
 
 ###############################################################################
 ### internal defs
-ZIP_FILES = COPYING
-ZIP_FILES+= README.md
-ZIP_FILES+= cli/test.exe
-ZIP_FILES+= winamp/in_vgmstream.dll
-ZIP_FILES+= xmplay/xmp-vgmstream.dll
-ZIP_FILES+= ext_libs/*.dll
-ZIP_FILES+= ext_libs/libspeex/*.dll
-ZIP_FILES_AO = $(LIBAO_DLL_PATH)/*.dll
+ifeq ($(TARGET_OS),Windows_NT)
+  ZIP_FILES  = COPYING
+  ZIP_FILES += README.md
+  ZIP_FILES += cli/test.exe
+  ZIP_FILES += winamp/in_vgmstream.dll
+  ZIP_FILES += xmplay/xmp-vgmstream.dll
+  ZIP_FILES += ext_libs/*.dll
+  ZIP_FILES += ext_libs/libspeex/*.dll
+  ZIP_FILES_AO  = cli/vgmstream123.exe
+  ZIP_FILES_AO += $(LIBAO_DLL_PATH)/*.dll
+else
+  ZIP_FILES  = COPYING
+  ZIP_FILES += README.md
+  ZIP_FILES += cli/vgmstream-cli
+  ZIP_FILES_AO  = cli/vgmstream123
+endif
 
 ###############################################################################
 ### targets
@@ -240,32 +244,37 @@ buildrelease-ex: clean bin-ex
 buildfullrelease: clean sourceball bin
 
 sourceball:
-	rm -rf vgmstream-$(VGMSTREAM_VERSION_CURR)
-	git checkout-index -f -a --prefix=vgmstream-$(VGMSTREAM_VERSION_CURR)/
-#	git archive --format zip --output vgmstream-$(VGMSTREAM_VERSION_CURR).zip master
-	echo "#!/bin/sh" > vgmstream-$(VGMSTREAM_VERSION_CURR)/version-get.sh
-	echo "echo \"$(VGMSTREAM_VERSION_CURR)\"" >> vgmstream-$(VGMSTREAM_VERSION_CURR)/version-get.sh
-	tar cvzf "vgmstream-$(VGMSTREAM_VERSION_CURR).tar.gz" vgmstream-$(VGMSTREAM_VERSION_CURR)/*
-	rm -rf vgmstream-$(VGMSTREAM_VERSION_CURR)
+	rm -rf vgmstream-$(VGMSTREAM_VERSION)
+	git checkout-index -f -a --prefix=vgmstream-$(VGMSTREAM_VERSION)/
+#	git archive --format zip --output vgmstream-$(VGMSTREAM_VERSION).zip master
+	echo "#!/bin/sh" > vgmstream-$(VGMSTREAM_VERSION)/version-get.sh
+	echo "echo \"$(VGMSTREAM_VERSION)\"" >> vgmstream-$(VGMSTREAM_VERSION)/version-get.sh
+	tar cvzf "vgmstream-$(VGMSTREAM_VERSION)-src.tar.gz" vgmstream-$(VGMSTREAM_VERSION)/*
+	rm -rf vgmstream-$(VGMSTREAM_VERSION)
 
-bin mingwbin: vgmstream_cli winamp xmplay
-	zip -FS -j "vgmstream-$(VGMSTREAM_VERSION_CURR)-test.zip" $(ZIP_FILES)
+bin: vgmstream_cli winamp xmplay
+	mkdir -p bin
+	zip -FS -j "bin/vgmstream-$(VGMSTREAM_VERSION).zip" $(ZIP_FILES)
 
 #separate since vgmstream123 is kinda untested
-bin-ex mingwbin-ex: vgmstream_cli winamp xmplay vgmstream123
-	zip -FS -j "vgmstream-$(VGMSTREAM_VERSION_CURR)-test.zip" $(ZIP_FILES) $(ZIP_FILES_AO)
+bin-ex: vgmstream_cli winamp xmplay vgmstream123
+	mkdir -p bin
+	zip -FS -j "bin/vgmstream-$(VGMSTREAM_VERSION).zip" $(ZIP_FILES) $(ZIP_FILES_AO)
 
-vgmstream_cli mingw_test:
+vgmstream_cli: version
 	$(MAKE) -C cli vgmstream_cli
 
-vgmstream123:
+vgmstream123: version
 	$(MAKE) -C cli vgmstream123
 
-winamp mingw_winamp:
+winamp: version
 	$(MAKE) -C winamp in_vgmstream
 
-xmplay mingw_xmplay:
+xmplay: version
 	$(MAKE) -C xmplay xmp_vgmstream
+
+version:
+	sh version-make.sh
 
 clean:
 	$(RMF) vgmstream-*.zip
@@ -275,6 +284,4 @@ clean:
 	$(MAKE) -C xmplay clean
 	$(MAKE) -C ext_libs clean
 
-.PHONY: clean buildfullrelease buildrelease sourceball bin vgmstream_cli winamp xmplay mingwbin mingw_test mingw_winamp mingw_xmplay
-
-#deprecated: buildfullrelease sourceball mingwbin mingw_test mingw_winamp mingw_xmplay
+.PHONY: clean buildfullrelease buildrelease sourceball bin vgmstream_cli winamp   
