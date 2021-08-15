@@ -19,20 +19,21 @@ extern "C" {
 #include "foo_vgmstream.h"
 #include "foo_filetypes.h"
 
+
 #include "../version.h"
 #ifndef VGMSTREAM_VERSION
-#define PLUGIN_VERSION  __DATE__
-#else
-#define PLUGIN_VERSION  VGMSTREAM_VERSION
+#define VGMSTREAM_VERSION "unknown version " __DATE__
 #endif
 
-#define APP_NAME "vgmstream plugin"
-#define PLUGIN_DESCRIPTION "vgmstream plugin " VGMSTREAM_VERSION " " __DATE__ "\n" \
-            "by hcs, FastElbja, manakoAT, bxaimc, snakemeat, soneek, kode54, bnnm and many others\n" \
+#define PLUGIN_NAME  "vgmstream plugin"
+#define PLUGIN_VERSION  VGMSTREAM_VERSION
+#define PLUGIN_INFO  PLUGIN_NAME " " PLUGIN_VERSION " (" __DATE__ ")"
+#define PLUGIN_DESCRIPTION  PLUGIN_INFO "\n" \
+            "by hcs, FastElbja, manakoAT, bxaimc, snakemeat, soneek, kode54, bnnm, Nicknine, Thealexbarney, CyberBotX, and many others\n" \
             "\n" \
-            "foobar2000 plugin by Josh W, kode54\n" \
+            "foobar2000 plugin by Josh W, kode54, others\n" \
             "\n" \
-            "https://github.com/kode54/vgmstream/\n" \
+            "https://github.com/vgmstream/vgmstream/\n" \
             "https://sourceforge.net/projects/vgmstream/ (original)"
 
 #define PLUGIN_FILENAME "foo_input_vgmstream.dll"
@@ -499,5 +500,5 @@ bool input_vgmstream::g_is_low_merit() {
 // foobar plugin defs
 static input_factory_t<input_vgmstream> g_input_vgmstream_factory;
 
-DECLARE_COMPONENT_VERSION(APP_NAME, PLUGIN_VERSION, PLUGIN_DESCRIPTION);
+DECLARE_COMPONENT_VERSION(PLUGIN_NAME, PLUGIN_VERSION, PLUGIN_DESCRIPTION);
 VALIDATE_COMPONENT_FILENAME(PLUGIN_FILENAME);

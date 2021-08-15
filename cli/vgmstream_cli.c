@@ -1,9 +1,16 @@
+/**
+ * vgmstream CLI decoder
+ */
 #define POSIXLY_CORRECT
 
 #include <getopt.h>
 #include "../src/vgmstream.h"
 #include "../src/plugins.h"
 #include "../src/util.h"
+//todo use <>?
+#ifdef HAVE_JSON
+#include "jansson/jansson.h"
+#endif
 
 #ifdef WIN32
 #include <io.h>
@@ -16,14 +23,14 @@
 #define STDOUT_FILENO 1
 #endif
 
+
 #include "../version.h"
 #ifndef VGMSTREAM_VERSION
-#define VGMSTREAM_VERSION "(unknown version)"
+#define VGMSTREAM_VERSION "unknown version " __DATE__
 #endif
+#define APP_NAME  "vgmstream CLI decoder " VGMSTREAM_VERSION
+#define APP_INFO  APP_NAME " (" __DATE__ ")"
 
-#ifdef HAVE_JSON
-#include "jansson/jansson.h"
-#endif
 
 /* low values are ok as there is very little performance difference, but higher
  * may improve write I/O in some systems as this*channels doubles as output buffer */
@@ -37,8 +44,8 @@
 static size_t make_wav_header(uint8_t* buf, size_t buf_size, int32_t sample_count, int32_t sample_rate, int channels, int smpl_chunk, int32_t loop_start, int32_t loop_end);
 
 static void usage(const char* name, int is_full) {
-    fprintf(stderr,"vgmstream CLI decoder " VGMSTREAM_VERSION " " __DATE__ "\n"
-            "Usage: %s [-o <outfile.wav>] [options] <infile>\n"
+    fprintf(stderr, APP_INFO "\n"
+            "Usage: %s [-o <outfile.wav>] [options] <infile> ...\n"
             "Options:\n"
             "    -o <outfile.wav>: name of output .wav file, default <infile>.wav\n"
             "       <outfile> wildcards can be ?s=subsong, ?n=stream name, ?f=infile\n"

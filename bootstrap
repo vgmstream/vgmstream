@@ -25,11 +25,9 @@ sed -i -e "s/EXTRA_DIST =.*/EXTRA_DIST = $META_HDRS/g" ./src/meta/Makefile.autot
 sed -i -e "s/libvgmstream_la_SOURCES =.*/libvgmstream_la_SOURCES = $AUDACIOUS_SRCS/g" ./audacious/Makefile.autotools.am
 sed -i -e "s/EXTRA_DIST =.*/EXTRA_DIST = $AUDACIOUS_HDRS/g" ./audacious/Makefile.autotools.am
 
-# get version to show in about dialogs
+# make version to show in about dialogs
 # again, not very pretty
-VGMSTREAM_VERSION=`./version-get.sh`
-sed -i -e "s/VGMSTREAM_VERSION/$VGMSTREAM_VERSION/g" ./audacious/Makefile.autotools.am
-sed -i -e "s/VGMSTREAM_VERSION/$VGMSTREAM_VERSION/g" ./cli/Makefile.autotools.am
+sh version-make.sh
 
 # create fake files expected by automake and process
 touch README AUTHORS NEWS ChangeLog

@@ -40,7 +40,7 @@ SRC_SRCS = in_vgmstream.c in_streamfile.c in_config.c
 ### targets
 
 in_vgmstream: libvgmstream.a $(TARGET_EXT_LIBS) resource.o
-	$(CC) -shared -static-libgcc $(CFLAGS) "-DVGMSTREAM_VERSION=\"$(VGMSTREAM_VERSION_PREV)\"" $(SRC_SRCS) resource.o $(LDFLAGS) -o $(OUTPUT_WINAMP)
+	$(CC) -shared -static-libgcc $(CFLAGS) $(SRC_SRCS) resource.o $(LDFLAGS) -o $(OUTPUT_WINAMP)
 	$(STRIP) $(OUTPUT_WINAMP)
 
 resource.o: resource.rc resource.h

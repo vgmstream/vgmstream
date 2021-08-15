@@ -48,7 +48,7 @@ Generating done
 
 Before that you'll see what options are enabled and disabled, what is going to be built and where they will be installed to.
 
-You may need to select a Generator first, depending on your installed tools (for example, Visual Studio 16 2019 or MingW Make on Windows). If you need to change it later, select *File > Delete Cache*.
+You may need to select a Generator first, depending on your installed tools (for example, Visual Studio 16 2019 or MingW Make on Windows). If you need to change it later, select *File > Delete Cache*. You may need to include those tools in the *Path* variable, inside *Environment...* options.
 
 If you decided to build for a project-based GUI, you can click on Open Project to open that. (NOTE: Only Visual Studio has been tested as a project-based GUI.) If you decided to build for a command line build system, you can open up the command line for the build directory and run your build system.
 

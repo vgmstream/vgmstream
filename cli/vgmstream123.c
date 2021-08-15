@@ -39,12 +39,15 @@
 #include "../src/vgmstream.h"
 #include "../src/plugins.h"
 
+
 #include "../version.h"
 #ifndef VGMSTREAM_VERSION
-# define VGMSTREAM_VERSION "(unknown version)"
+#define VGMSTREAM_VERSION "unknown version " __DATE__
 #endif
+#define APP_NAME  "vgmstream123 player " VGMSTREAM_VERSION
+#define APP_INFO  APP_NAME " (" __DATE__ ")"
 
-
+ 
 //TODO: improve WIN32 builds (some features/behaviors are missing but works)
 #ifdef WIN32
 #define getline(line, line_mem, f)  0
@@ -122,9 +125,9 @@ static int record_interrupt(void) {
     return ret;
 }
 
-static void usage(const char *progname) {
+static void usage(const char* progname) {
     song_settings_t default_par = DEFAULT_PARAMS;
-    const char *default_driver = "???";
+    const char* default_driver = "???";
 
     {
         ao_info *info = ao_driver_info(driver_id);
@@ -132,10 +135,8 @@ static void usage(const char *progname) {
             default_driver = info->short_name;
     }
 
-    printf("vgmstream123 " VGMSTREAM_VERSION ", built " __DATE__ "\n"
-        "\n"
-        "Usage: %s [options] INFILE ...\n"
-        "Play streamed audio from video games.\n"
+    printf(APP_INFO "\n"
+        "Usage: %s [options] <infile> ...\n"
         "\n"
         "Options:\n"
         "    -d DRV      Use output driver DRV [%s]; available drivers:\n"
@@ -175,7 +176,7 @@ static void usage(const char *progname) {
         "    -E          Really force loop (repeat file)\n"
         "    -p          Play forever (loops file until stopped)\n"
         "\n"
-        "INFILE can be any stream file type supported by vgmstream, or an .m3u/.m3u8\n"
+        "<infile> can be any stream file type supported by vgmstream, or an .m3u/.m3u8\n"
         "playlist referring to same. This program supports the \"EXT-X-VGMSTREAM\" tag\n"
         "in playlists, and files compressed with gzip/bzip2/xz.\n",
         buffer_size_kb,
@@ -254,11 +255,11 @@ static void apply_config(VGMSTREAM* vgmstream, song_settings_t* cfg) {
     vgmstream_apply_config(vgmstream, &vcfg);
 }
 
-static int play_vgmstream(const char *filename, song_settings_t *cfg) {
+static int play_vgmstream(const char* filename, song_settings_t* cfg) {
     int ret = 0;
     STREAMFILE* sf;
-    VGMSTREAM *vgmstream;
-    FILE *save_fps[4];
+    VGMSTREAM* vgmstream;
+    FILE* save_fps[4];
     size_t buffer_size;
     int32_t max_buffer_samples;
     int i;

@@ -3,12 +3,14 @@
  */
 #include "in_vgmstream.h"
 
+
 #include "../version.h"
 #ifndef VGMSTREAM_VERSION
-#define VGMSTREAM_VERSION "(unknown version)"
+#define VGMSTREAM_VERSION "unknown version " __DATE__
 #endif
 
-#define PLUGIN_DESCRIPTION "vgmstream plugin " VGMSTREAM_VERSION " " __DATE__
+#define PLUGIN_NAME  "vgmstream plugin " VGMSTREAM_VERSION
+#define PLUGIN_INFO  PLUGIN_NAME " (" __DATE__ ")"
 
 
 /* ***************************************** */
@@ -320,12 +322,12 @@ static double get_album_gain_volume(const in_char* fn) {
 /* about dialog */
 void winamp_About(HWND hwndParent) {
     const char* ABOUT_TEXT =
-            PLUGIN_DESCRIPTION "\n"
-            "by hcs, FastElbja, manakoAT, bxaimc, snakemeat, soneek, kode54, bnnm and many others\n"
+            PLUGIN_INFO "\n"
+            "by hcs, FastElbja, manakoAT, bxaimc, snakemeat, soneek, kode54, bnnm, Nicknine, Thealexbarney, CyberBotX, and many others\n"
             "\n"
             "Winamp plugin by hcs, others\n"
             "\n"
-            "https://github.com/kode54/vgmstream/\n"
+            "https://github.com/vgmstream/vgmstream/\n"
             "https://sourceforge.net/projects/vgmstream/ (original)";
 
     {
@@ -536,7 +538,7 @@ int winamp_InfoBox(const in_char *fn, HWND hwnd) {
     size_t description_size = 1024;
     double tmpVolume = 1.0;
 
-    concatn(description_size,description,PLUGIN_DESCRIPTION "\n\n");
+    concatn(description_size,description,PLUGIN_INFO "\n\n");
 
     if (!fn || !*fn) {
         /* no filename = current playing file */
@@ -759,7 +761,7 @@ void winamp_Config(HWND hwndParent) {
 /* main plugin def */
 In_Module input_module = {
     IN_VER,
-    PLUGIN_DESCRIPTION,
+    PLUGIN_NAME,
     0,  /* hMainWindow (filled in by Winamp) */
     0,  /* hDllInstance (filled in by Winamp) */
     working_extension_list,

@@ -6,7 +6,7 @@ inputplugindir = $(plugindir)/$(INPUT_PLUGIN_DIR)
 inputplugin_LTLIBRARIES = libvgmstream.la
 
 AM_MAKEFLAGS=-f Makefile.autotools
-AM_CXXFLAGS = -DVGMSTREAM_VERSION=\"VGMSTREAM_VERSION\" -Wall -std=c++11 -fpermissive -I$(top_builddir) -I$(top_srcdir) -I$(top_srcdir)/ext_includes/ $(AUDACIOUS_CFLAGS) $(GTK_CFLAGS)
+AM_CXXFLAGS = -DVGMSTREAM_VERSION_AUTO -Wall -std=c++11 -fpermissive -I$(top_builddir) -I$(top_srcdir) -I$(top_srcdir)/ext_includes/ $(AUDACIOUS_CFLAGS) $(GTK_CFLAGS)
 AM_LIBS =
 
 # sources/headers are updated automatically by ./bootstrap script (not all headers are needed though)
