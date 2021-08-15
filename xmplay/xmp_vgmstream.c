@@ -18,8 +18,11 @@
 
 #include "../version.h"
 #ifndef VGMSTREAM_VERSION
-#define VGMSTREAM_VERSION "(unknown version)"
+#define VGMSTREAM_VERSION "unknown version " __DATE__
 #endif
+#define PLUGIN_NAME  "vgmstream plugin " VGMSTREAM_VERSION
+#define PLUGIN_INFO  PLUGIN_NAME " (" __DATE__ ")"
+
 
 /* ************************************* */
 
@@ -433,12 +436,12 @@ static void build_extension_list() {
 /* info for the "about" button in plugin options */
 void WINAPI xmplay_About(HWND win) {
     MessageBox(win,
-            "vgmstream plugin " VGMSTREAM_VERSION " " __DATE__ "\n"
-            "by hcs, FastElbja, manakoAT, bxaimc, snakemeat, soneek, kode54, bnnm and many others\n"
+            PLUGIN_INFO "\n"
+            "by hcs, FastElbja, manakoAT, bxaimc, snakemeat, soneek, kode54, bnnm, Nicknine, Thealexbarney, CyberBotX, and many others\n"
             "\n"
-            "XMPlay plugin by unknownfile, PSXGamerPro1, kode54\n"
+            "XMPlay plugin by unknownfile, PSXGamerPro1, kode54, others\n"
             "\n"
-            "https://github.com/kode54/vgmstream/\n"
+            "https://github.com/vgmstream/vgmstream/\n"
             "https://sourceforge.net/projects/vgmstream/ (original)"
             ,"about xmp-vgmstream",MB_OK);
 }

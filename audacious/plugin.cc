@@ -24,8 +24,12 @@ extern "C" {
 
 #include "../version.h"
 #ifndef VGMSTREAM_VERSION
-#define VGMSTREAM_VERSION "(unknown-version)"
+#define VGMSTREAM_VERSION "unknown version " __DATE__
 #endif
+
+#define PLUGIN_NAME  "vgmstream plugin " VGMSTREAM_VERSION
+#define PLUGIN_INFO  PLUGIN_NAME " (" __DATE__ ")"
+
 
 #define CFG_ID "vgmstream" // ID for storing in audacious
 #define MIN_BUFFER_SIZE 576
@@ -62,15 +66,15 @@ const char *const VgmstreamPlugin::defaults[] = {
 
 // N_(...) for i18n but not much point here
 const char VgmstreamPlugin::about[] =
-    "vgmstream plugin " VGMSTREAM_VERSION " " __DATE__ "\n"
-    "by hcs, FastElbja, manakoAT, bxaimc, snakemeat, soneek, kode54, bnnm and many others\n"
+    PLUGIN_INFO "\n"
+    "by hcs, FastElbja, manakoAT, bxaimc, snakemeat, soneek, kode54, bnnm, Nicknine, Thealexbarney, CyberBotX, and many others\n"
     "\n"
     "Audacious plugin:\n"
-    "ported to Audacious 3.6 by Brandon Whitehead\n"
-    "adopted from Audacious 3 port by Thomas Eppers\n"
-    "originally written by Todd Jeffreys (http://voidpointer.org/)\n"
+    "- ported to Audacious 3.6 by Brandon Whitehead\n"
+    "- adopted from Audacious 3 port by Thomas Eppers\n"
+    "- originally written by Todd Jeffreys (http://voidpointer.org/)\n"
     "\n"
-    "https://github.com/kode54/vgmstream/\n"
+    "https://github.com/vgmstream/vgmstream/\n"
     "https://sourceforge.net/projects/vgmstream/ (original)";
 
 /* widget config: {min, max, step} */
