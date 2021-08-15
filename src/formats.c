@@ -518,6 +518,7 @@ static const char* extension_list[] = {
     "tad",
     "tec",
     "tgq",
+    "tgv",
     "thp",
     "tk5",
     "tmx",
