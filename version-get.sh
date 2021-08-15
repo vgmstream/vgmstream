@@ -1,10 +1,13 @@
 #!/bin/sh
 
 # echo current git version (doesn't make version_auto.h)
+VERSION_EMPTY=$1
+#VERSION_FILE=--
+VERSION_NAME=$2
+if [ -z "$VERSION_EMPTY" ]; then VERSION_EMPTY=false; fi
+#if [ -z "$VERSION_FILE" ]; then VERSION_FILE=version_auto.h; fi
+if [ -z "$VERSION_NAME" ]; then VERSION_NAME=VGMSTREAM_VERSION; fi
 VERSION_DEFAULT=unknown
-VERSION_NAME=VGMSTREAM_VERSION
-#VERSION_FILE=version_auto.h
-
 
 # try get version from Git (dynamic), including lightweight tags
 if ! command -v git > /dev/null ; then
@@ -19,18 +22,24 @@ if  [[ $VERSION != fatal* ]] && [ ! -z "$VERSION" ] ; then
 else
     # try to get version from version.h (static)
     #echo "Git version not found, can't autogenerate version (using default)"
-    LINE="$VERSION_DEFAULT"
 
-    while IFS= read -r -u3 item; do
-        COMP="#define $VERSION_NAME*"
-        if [[ $item == $COMP ]] ; then
-            STR_REM1="*$VERSION_NAME \""
-            STR_REM2="\"*"
-            LINE=$item
-            LINE=${LINE/$STR_REM1/}
-            LINE=${LINE/$STR_REM2/}
-        fi
-    done 3< "version.h"
+    # option to output empty line instead of default version, so plugins can detect git-less builds
+    if [ "$VERSION_EMPTY" == "true" ]; then 
+        LINE="/* ignored */"
+    else
+        LINE="$VERSION_DEFAULT"
+        while IFS= read -r -u3 item; do
+            COMP="#define $VERSION_NAME*"
+            if [[ $item == $COMP ]] ; then
+                # clean "#define ..." leaving rXXXX only
+                STR_REMOVE1="*$VERSION_NAME \""
+                STR_REMOVE2="\"*"
+                LINE=$item
+                LINE=${LINE/$STR_REMOVE1/}
+                LINE=${LINE/$STR_REMOVE2/}
+            fi
+        done 3< "version.h"
+    fi
 fi
 
 
