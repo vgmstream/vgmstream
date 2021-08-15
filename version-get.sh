@@ -2,12 +2,12 @@
 
 # echo current git version (doesn't make version_auto.h)
 
-# test if git exists
+# try get version from Git (dynamic), including lightweight tags
 if ! command -v git > /dev/null
 then
     VERSION="unknown"
 else
-    VERSION=$(git describe --always 2>&1 | tr : _ )
+    VERSION=$(git describe --tags --always 2>&1 | tr : _ )
 fi
 
 # ignore git stderr "fatal: 
