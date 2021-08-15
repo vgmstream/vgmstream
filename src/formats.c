@@ -580,6 +580,8 @@ static const char* extension_list[] = {
     "wbd",
     "wd",
     "wem",
+    "wwem", //fake extension for Glacier Engine 2 WEM [HITMAN 1, 2 and 3]
+    "wwes", //fake extension for Glacier Engine 2 WEM [HITMAN 3]
     "wii",
     "wip", //txth/reserved [Colin McRae DiRT (PC)]
     "wlv", //txth/reserved [ToeJam & Earl III: Mission to Earth (DC)]
