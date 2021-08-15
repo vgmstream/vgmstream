@@ -67,11 +67,13 @@ VGMSTREAM* init_vgmstream_wwise(STREAMFILE* sf) {
 
     /* checks */
     /* .wem: newer "Wwise Encoded Media" used after the 2011.2 SDK (~july 2011)
+     * .wwem: Same as .wem but with a different file extension [HITMAN 1, 2 and 3]
+     * .wwes: Same as .wem but with a different file extension [HITMAN 3]
      * .wav: older PCM/ADPCM files [Spider-Man: Web of Shadows (PC), Punch Out!! (Wii)]
      * .xma: older XMA files [Too Human (X360), Tron Evolution (X360)]
      * .ogg: older Vorbis files [The King of Fighters XII (X360)]
      * .bnk: Wwise banks for memory .wem detection */
-    if (!check_extensions(sf,"wem,wav,lwav,ogg,logg,xma,bnk"))
+    if (!check_extensions(sf,"wem,wav,wwem,wwes,lwav,ogg,logg,xma,bnk"))
         goto fail;
 
     if (!parse_wwise(sf, &ww))
