@@ -14,29 +14,32 @@ if ! command -v git > /dev/null ; then
     VERSION=""
 else
     VERSION=$(git describe --tags --always 2>&1 | tr : _ )
+    if case "$VERSION" in fatal*) true;; *) false;; esac; then
+        VERSION=""
+    fi
 fi
 
-# ignore git stderr "fatal:*" or blank
-if  [[ $VERSION != fatal* ]] && [ ! -z "$VERSION" ] ; then
+
+if [ ! -z "$VERSION" ]; then
     LINE="$VERSION"
 else
     # try to get version from version.h (static)
     #echo "Git version not found, can't autogenerate version (using default)"
 
     # option to output empty line instead of default version, so plugins can detect git-less builds
-    if [ "$VERSION_EMPTY" == "true" ]; then 
+    if [ "$VERSION_EMPTY" = "true" ]; then
         LINE="/* ignored */"
     else
         LINE="$VERSION_DEFAULT"
-        while IFS= read -r -u3 item; do
-            COMP="#define $VERSION_NAME*"
-            if [[ $item == $COMP ]] ; then
+        while IFS= read -r <&3 ITEM; do
+            COMP="#define $VERSION_NAME"
+            if case "$ITEM" in *"$COMP"*) true;; *) false;; esac; then
                 # clean "#define ..." leaving rXXXX only
-                STR_REMOVE1="*$VERSION_NAME \""
-                STR_REMOVE2="\"*"
-                LINE=$item
-                LINE=${LINE/$STR_REMOVE1/}
-                LINE=${LINE/$STR_REMOVE2/}
+                REGEX_REMOVE1="#define $VERSION_NAME \""
+                REGEX_REMOVE2="\".*"
+                LINE="$ITEM"
+                LINE=$(echo $LINE | sed "s/$REGEX_REMOVE1//")
+                LINE=$(echo $LINE | sed "s/$REGEX_REMOVE2//")
             fi
         done 3< "version.h"
     fi
