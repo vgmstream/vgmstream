@@ -16,9 +16,9 @@ if not "%VERSION%"=="" set VERSION=!VERSION:^:=_!
 cd /d "%~dp0"
 
 
-REM try get version from Git (dynamic)
+REM try get version from Git (dynamic), including lightweight tags
 :get_version_git
-for /f %%v in ('git describe --always') do set VERSION=%%v
+for /f %%v in ('git describe --tags --always') do set VERSION=%%v
 if not "%VERSION%"=="" set VERSION=!VERSION:^:=_!
 if "%VERSION%"=="" goto :get_version_h
 if %VERSION%==%VERSION_DEFAULT% goto :get_version_h

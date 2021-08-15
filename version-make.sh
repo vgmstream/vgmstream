@@ -6,11 +6,11 @@ VERSION_NAME=VGMSTREAM_VERSION
 VERSION_FILE=version_auto.h
 
 
-# try get version from Git (dynamic)
+# try get version from Git (dynamic), including lightweight tags
 if ! command -v git > /dev/null ; then
     VERSION=""
 else
-    VERSION=$(git describe --always 2>&1 | tr : _ )
+    VERSION=$(git describe --tags --always 2>&1 | tr : _ )
 fi
 
 
