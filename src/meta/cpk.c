@@ -3,7 +3,7 @@
 #include "cri_utf.h"
 
 
-typedef enum { HCA, CWAV, } cpk_type_t;
+typedef enum { HCA, CWAV, ADX } cpk_type_t;
 
 static void load_cpk_name(STREAMFILE* sf, STREAMFILE* sf_acb, VGMSTREAM* vgmstream, int waveid);
 
@@ -184,8 +184,14 @@ VGMSTREAM* init_vgmstream_cpk_memory(STREAMFILE* sf, STREAMFILE* sf_acb) {
         type = CWAV;
         extension = "bcwav";
     }
-    else {
-        goto fail;
+    else if (read_u16be(subfile_offset, sf) == 0x8000) {
+        off_t test_offset = subfile_offset + read_u16be(subfile_offset + 0x02, sf) + 0x04;
+        if (read_u16be(test_offset - 0x06, sf) != 0x2863 ||   /* "(c" */
+            read_u32be(test_offset - 0x04, sf) != 0x29435249) /* ")CRI" */
+            goto fail;
+
+        type = ADX;
+        extension = "adx";
     }
 
     temp_sf = setup_subfile_streamfile(sf, subfile_offset, subfile_size, extension);
@@ -198,6 +204,10 @@ VGMSTREAM* init_vgmstream_cpk_memory(STREAMFILE* sf, STREAMFILE* sf_acb) {
             break;
         case CWAV: /* Metal Gear Solid: Snake Eater 3D (3DS) */
             vgmstream = init_vgmstream_rwsd(temp_sf);
+            if (!vgmstream) goto fail;
+            break;
+        case ADX: /* Sonic Generations (3DS) */
+            vgmstream = init_vgmstream_adx(temp_sf);
             if (!vgmstream) goto fail;
             break;
         default:
