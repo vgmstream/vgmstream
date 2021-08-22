@@ -27,8 +27,8 @@ static void parse_adtl(off_t adtl_offset, off_t adtl_length, STREAMFILE* sf, lon
     off_t current_chunk = adtl_offset+0x04;
 
     while (current_chunk < adtl_offset + adtl_length) {
-        uint32_t chunk_type = read_32bitBE(current_chunk+0x00,sf);
-        off_t chunk_size    = read_32bitLE(current_chunk+0x04,sf);
+        uint32_t chunk_type = read_u32be(current_chunk+0x00,sf);
+        uint32_t chunk_size = read_u32le(current_chunk+0x04,sf);
 
         if (current_chunk+0x08+chunk_size > adtl_offset+adtl_length)
             return;
@@ -81,7 +81,7 @@ typedef struct {
     off_t size;
     uint32_t codec;
     int sample_rate;
-    int channel_count;
+    int channels;
     uint32_t block_size;
     int bps;
     off_t extra_size;
@@ -95,38 +95,38 @@ typedef struct {
     int is_at9;
 } riff_fmt_chunk;
 
-static int read_fmt(int big_endian, STREAMFILE* sf, off_t current_chunk, riff_fmt_chunk* fmt, int mwv) {
-    int32_t (*read_32bit)(off_t,STREAMFILE*) = big_endian ? read_32bitBE : read_32bitLE;
-    int16_t (*read_16bit)(off_t,STREAMFILE*) = big_endian ? read_16bitBE : read_16bitLE;
+static int read_fmt(int big_endian, STREAMFILE* sf, off_t offset, riff_fmt_chunk* fmt, int mwv) {
+    uint32_t (*read_u32)(off_t,STREAMFILE*) = big_endian ? read_u32be : read_u32le;
+    uint16_t (*read_u16)(off_t,STREAMFILE*) = big_endian ? read_u16be : read_u16le;
 
-    fmt->offset = current_chunk;
-    fmt->size = read_32bit(current_chunk+0x04,sf);
+    fmt->offset = offset;
+    fmt->size = read_u32(offset+0x04,sf);
 
     /* WAVEFORMAT */
-    fmt->codec    = (uint16_t)read_16bit(current_chunk+0x08,sf);
-    fmt->channel_count      = read_16bit(current_chunk+0x0a,sf);
-    fmt->sample_rate        = read_32bit(current_chunk+0x0c,sf);
-  //fmt->avg_bps            = read_32bit(current_chunk+0x10,sf);
-    fmt->block_size         = read_16bit(current_chunk+0x14,sf);
-    fmt->bps                = read_16bit(current_chunk+0x16,sf);
+    fmt->codec          = read_u16(offset+0x08,sf);
+    fmt->channels       = read_u16(offset+0x0a,sf);
+    fmt->sample_rate    = read_u32(offset+0x0c,sf);
+  //fmt->avg_bps        = read_u32(offset+0x10,sf);
+    fmt->block_size     = read_u16(offset+0x14,sf);
+    fmt->bps            = read_u16(offset+0x16,sf);
     /* WAVEFORMATEX */
     if (fmt->size >= 0x10) {
-        fmt->extra_size     = read_16bit(current_chunk+0x18,sf);
+        fmt->extra_size = read_u16(offset+0x18,sf);
         /* 0x1a+ depends on codec (ex. coef table for MSADPCM, samples_per_frame in MS-IMA, etc) */
     }
     /* WAVEFORMATEXTENSIBLE */
     if (fmt->codec == 0xFFFE && fmt->extra_size >= 0x16) {
-      //fmt->extra_samples  = read_16bit(current_chunk+0x1a,sf); /* valid_bits_per_sample or samples_per_block */
-        fmt->channel_layout = read_32bit(current_chunk+0x1c,sf);
+      //fmt->extra_samples  = read_u16(offset+0x1a,sf); /* valid_bits_per_sample or samples_per_block */
+        fmt->channel_layout = read_u32(offset+0x1c,sf);
         /* 0x10 guid at 0x20 */
 
         /* happens in various .at3/at9, may be a bug in their encoder b/c MS's defs set mono as FC */
-        if (fmt->channel_count == 1 && fmt->channel_layout == speaker_FL) { /* other channels are fine */
+        if (fmt->channels == 1 && fmt->channel_layout == speaker_FL) { /* other channels are fine */
             fmt->channel_layout = speaker_FC;
         }
 
         /* happens in few at3p, may be a bug in older tools as other games have ok flags [Ridge Racer 7 (PS3)] */
-        if (fmt->channel_count == 6 && fmt->channel_layout == 0x013f) {
+        if (fmt->channels == 6 && fmt->channel_layout == 0x013f) {
             fmt->channel_layout = 0x3f;
         }
     }
@@ -134,8 +134,8 @@ static int read_fmt(int big_endian, STREAMFILE* sf, off_t current_chunk, riff_fm
     switch (fmt->codec) {
         case 0x00:  /* Yamaha AICA ADPCM [Headhunter (DC), Bomber hehhe (DC), Rayman 2 (DC)] (unofficial) */
             if (fmt->bps != 4) goto fail;
-            if (fmt->block_size != 0x02*fmt->channel_count &&
-                fmt->block_size != 0x01*fmt->channel_count) goto fail;
+            if (fmt->block_size != 0x02*fmt->channels &&
+                fmt->block_size != 0x01*fmt->channels) goto fail;
             fmt->coding_type = coding_AICA_int;
             fmt->interleave = 0x01;
             break;
@@ -161,7 +161,7 @@ static int read_fmt(int big_endian, STREAMFILE* sf, off_t current_chunk, riff_fm
                 if (!msadpcm_check_coefs(sf, fmt->offset + 0x08 + 0x14))
                     goto fail;
             }
-            else if (fmt->bps == 16 && fmt->block_size == 0x02 * fmt->channel_count && fmt->size == 0x14) {
+            else if (fmt->bps == 16 && fmt->block_size == 0x02 * fmt->channels && fmt->size == 0x14) {
                 fmt->coding_type = coding_IMA; /* MX vs ATV Unleashed (PC) codec hijack */
             }
             else {
@@ -201,9 +201,9 @@ static int read_fmt(int big_endian, STREAMFILE* sf, off_t current_chunk, riff_fm
 
         case 0x0300:  /* IMA ADPCM [Chrono Ma:gia (Android)] (unofficial) */
             if (fmt->bps != 4) goto fail;
-            if (fmt->block_size != 0x0400*fmt->channel_count) goto fail;
+            if (fmt->block_size != 0x0400*fmt->channels) goto fail;
             if (fmt->size != 0x14) goto fail;
-            if (fmt->channel_count != 1) goto fail; /* not seen */
+            if (fmt->channels != 1) goto fail; /* not seen */
             fmt->coding_type = coding_DVI_IMA;
             /* real 0x300 is "Fujitsu FM Towns SND" with block align 0x01 */
             break;
@@ -218,25 +218,21 @@ static int read_fmt(int big_endian, STREAMFILE* sf, off_t current_chunk, riff_fm
         case 0x6771: /* Ogg Vorbis (mode 3+) */
             fmt->coding_type = coding_OGG_VORBIS;
             break;
-#else
-            goto fail;
 #endif
 
-        case 0x0270: /* ATRAC3 */
 #ifdef VGM_USE_FFMPEG
+        case 0x0270: /* ATRAC3 */
             fmt->coding_type = coding_FFmpeg;
             fmt->is_at3 = 1;
             break;
-#else
-            goto fail;
 #endif
 
         case 0xFFFE: { /* WAVEFORMATEXTENSIBLE (see ksmedia.h for known GUIDs) */
-            uint32_t guid1 = (uint32_t)read_32bit  (current_chunk+0x20,sf);
-            uint32_t guid2 = ((uint16_t)read_16bit (current_chunk+0x24,sf) << 16u) |
-                             ((uint16_t)read_16bit (current_chunk+0x26,sf));
-            uint32_t guid3 = (uint32_t)read_32bitBE(current_chunk+0x28,sf);
-            uint32_t guid4 = (uint32_t)read_32bitBE(current_chunk+0x2c,sf);
+            uint32_t guid1 = read_u32  (offset+0x20,sf);
+            uint32_t guid2 = (read_u16 (offset+0x24,sf) << 16u) |
+                             (read_u16 (offset+0x26,sf));
+            uint32_t guid3 = read_u32be(offset+0x28,sf);
+            uint32_t guid4 = read_u32be(offset+0x2c,sf);
             //;VGM_LOG("RIFF: guid %08x %08x %08x %08x\n", guid1, guid2, guid3, guid4);
 
             /* PCM GUID (0x00000001,0000,0010,80,00,00,AA,00,38,9B,71) */
@@ -254,15 +250,15 @@ static int read_fmt(int big_endian, STREAMFILE* sf, off_t current_chunk, riff_fm
 
             /* ATRAC3plus GUID (0xE923AABF,CB58,4471,A1,19,FF,FA,01,E4,CE,62) */
             if (guid1 == 0xE923AABF && guid2 == 0xCB584471 && guid3 == 0xA119FFFA && guid4 == 0x01E4CE62) {
-#ifdef VGM_USE_MAIATRAC3PLUS
-                uint16_t bztmp = read_16bit(current_chunk+0x32,sf);
+#ifdef VGM_USE_FFMPEG
+                fmt->coding_type = coding_FFmpeg;
+                fmt->is_at3p = 1;
+                break;
+#elif defined(VGM_USE_MAIATRAC3PLUS)
+                uint16_t bztmp = read_u16(offset+0x32,sf);
                 bztmp = (bztmp >> 8) | (bztmp << 8);
                 fmt->coding_type = coding_AT3plus;
                 fmt->block_size = (bztmp & 0x3FF) * 8 + 8; /* should match fmt->block_size */
-                fmt->is_at3p = 1;
-                break;
-#elif defined(VGM_USE_FFMPEG)
-                fmt->coding_type = coding_FFmpeg;
                 fmt->is_at3p = 1;
                 break;
 #else
@@ -270,16 +266,14 @@ static int read_fmt(int big_endian, STREAMFILE* sf, off_t current_chunk, riff_fm
 #endif
             }
 
+#ifdef VGM_USE_ATRAC9
             /* ATRAC9 GUID (0x47E142D2,36BA,4D8D,88,FC,61,65,4F,8C,83,6C) */
             if (guid1 == 0x47E142D2 && guid2 == 0x36BA4D8D && guid3 == 0x88FC6165 && guid4 == 0x4F8C836C) {
-#ifdef VGM_USE_ATRAC9
                 fmt->coding_type = coding_ATRAC9;
                 fmt->is_at9 = 1;
                 break;
-#else
-                goto fail;
-#endif
             }
+#endif
 
             goto fail; /* unknown GUID */
         }
@@ -370,7 +364,7 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
 
     /* some games have wonky sizes, selectively fix to catch bad rips and new mutations */
     if (file_size != riff_size + 0x08) {
-        uint16_t codec = read_16bitLE(0x14,sf);
+        uint16_t codec = read_u16le(0x14,sf);
 
         if      (codec == 0x6771 && riff_size + 0x08 + 0x01 == file_size)
             riff_size += 0x01; /* [Shikkoku no Sharnoth (PC)] (Sony Sound Forge?) */
@@ -397,11 +391,10 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
             riff_size += 0x18; /* [F1 2011 (Vita)] (adds a "pada" chunk but RIFF size wasn't updated) */
 
         else if (mwv) {
-            int channels = read_16bitLE(0x16, sf); /* [Dragon Quest VIII (PS2), Rogue Galaxy (PS2)] */
+            int channels = read_u16le(0x16, sf); /* [Dragon Quest VIII (PS2), Rogue Galaxy (PS2)] */
             size_t file_size_fixed = riff_size + 0x08 + 0x04 * (channels - 1);
 
-            if (file_size_fixed <= file_size && file_size - file_size_fixed < 0x10)
-            {
+            if (file_size_fixed <= file_size && file_size - file_size_fixed < 0x10) {
                 /* files inside HD6/DAT are also padded to 0x10 so need to fix file_size */
                 file_size = file_size_fixed;
                 riff_size = file_size - 0x08;
@@ -617,7 +610,7 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
 
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(fmt.channel_count,loop_flag);
+    vgmstream = allocate_vgmstream(fmt.channels,loop_flag);
     if (!vgmstream) goto fail;
 
     vgmstream->sample_rate = fmt.sample_rate;
@@ -661,7 +654,7 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
     /* samples, codec init (after setting coding to ensure proper close on failure) */
     switch (fmt.coding_type) {
         case coding_PCM16LE:
-            vgmstream->num_samples = pcm_bytes_to_samples(data_size, fmt.channel_count, 16);
+            vgmstream->num_samples = pcm_bytes_to_samples(data_size, fmt.channels, 16);
             break;
 
         case coding_PCM8_U:
@@ -670,7 +663,7 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
 
         case coding_L5_555:
             if (!mwv) goto fail;
-            vgmstream->num_samples = data_size / 0x12 / fmt.channel_count * 32;
+            vgmstream->num_samples = data_size / 0x12 / fmt.channels * 32;
 
             /* coefs */
             {
@@ -684,7 +677,7 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
                         read_32bitLE(mwv_pflt_offset+0x04, sf) < 8 + filter_count * 4 * filter_order)
                     goto fail;
 
-                for (ch = 0; ch < fmt.channel_count; ch++) {
+                for (ch = 0; ch < fmt.channels; ch++) {
                     for (i = 0; i < filter_count * filter_order; i++) {
                         int coef = read_32bitLE(mwv_pflt_offset+0x10+i*0x04, sf);
                         vgmstream->ch[ch].adpcm_coef_3by32[i] = coef;
@@ -695,31 +688,31 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
             break;
 
         case coding_MSADPCM:
-            vgmstream->num_samples = msadpcm_bytes_to_samples(data_size, fmt.block_size, fmt.channel_count);
+            vgmstream->num_samples = msadpcm_bytes_to_samples(data_size, fmt.block_size, fmt.channels);
             if (fact_sample_count && fact_sample_count < vgmstream->num_samples)
                 vgmstream->num_samples = fact_sample_count;
             break;
 
         case coding_MS_IMA:
-            vgmstream->num_samples = ms_ima_bytes_to_samples(data_size, fmt.block_size, fmt.channel_count);
+            vgmstream->num_samples = ms_ima_bytes_to_samples(data_size, fmt.block_size, fmt.channels);
             if (fact_sample_count && fact_sample_count < vgmstream->num_samples)
                 vgmstream->num_samples = fact_sample_count;
             break;
 
         case coding_AICA:
         case coding_AICA_int:
-            vgmstream->num_samples = yamaha_bytes_to_samples(data_size, fmt.channel_count);
+            vgmstream->num_samples = yamaha_bytes_to_samples(data_size, fmt.channels);
             break;
 
         case coding_XBOX_IMA:
-            vgmstream->num_samples = xbox_ima_bytes_to_samples(data_size, fmt.channel_count);
+            vgmstream->num_samples = xbox_ima_bytes_to_samples(data_size, fmt.channels);
             if (fact_sample_count && fact_sample_count < vgmstream->num_samples)
                 vgmstream->num_samples = fact_sample_count; /* some (converted?) Xbox games have bigger fact_samples */
             break;
 
         case coding_IMA:
         case coding_DVI_IMA:
-            vgmstream->num_samples = ima_bytes_to_samples(data_size, fmt.channel_count);
+            vgmstream->num_samples = ima_bytes_to_samples(data_size, fmt.channels);
             break;
 
 #ifdef VGM_USE_FFMPEG
@@ -873,7 +866,7 @@ fail:
 static int is_ue4_msadpcm(STREAMFILE* sf, riff_fmt_chunk* fmt, int fact_sample_count, off_t start) {
 
     /* multichannel ok */
-    if (fmt->channel_count < 2)
+    if (fmt->channels < 2)
         goto fail;
 
     /* UE4 class is "ADPCM", assume it's the extension too */
@@ -902,7 +895,7 @@ static int is_ue4_msadpcm(STREAMFILE* sf, riff_fmt_chunk* fmt, int fact_sample_c
         /* their encoder doesn't calculate optimal coefs and uses fixed values every frame
          * (could do it for fmt size 0x36 too but maybe they'll fix it in the future) */
         while (offset <= max_offset) {
-            if (read_8bit(offset+0x00, sf) != 0 || read_16bitLE(offset+0x01, sf) != 0x00E6)
+            if (read_u8(offset+0x00, sf) != 0 || read_u16le(offset+0x01, sf) != 0x00E6)
                 goto fail;
             offset += fmt->block_size;
         }
@@ -916,7 +909,7 @@ fail:
 /* for maximum annoyance later UE4 versions (~v4.2x?) interleave single frames instead of
  * half interleave, but don't have flags to detect so we need some heuristics */
 static size_t get_ue4_msadpcm_interleave(STREAMFILE* sf, riff_fmt_chunk* fmt, off_t start, size_t size) {
-    size_t v1_interleave = size / fmt->channel_count;
+    size_t v1_interleave = size / fmt->channels;
     size_t v2_interleave = fmt->block_size;
     uint8_t nibbles1[0x08] = {0};
     uint8_t nibbles2[0x08] = {0};
@@ -927,7 +920,7 @@ static size_t get_ue4_msadpcm_interleave(STREAMFILE* sf, riff_fmt_chunk* fmt, of
         return v1_interleave;
 
     /* 6ch only observed in later versions [Fortnite (PC)], not padded */
-    if (fmt->channel_count > 2)
+    if (fmt->channels > 2)
         return v2_interleave;
 
     read_streamfile(nibbles1, start + size - 0x08, sizeof(nibbles2), sf);
@@ -1053,7 +1046,7 @@ VGMSTREAM* init_vgmstream_rifx(STREAMFILE* sf) {
 
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(fmt.channel_count,loop_flag);
+    vgmstream = allocate_vgmstream(fmt.channels,loop_flag);
     if (!vgmstream) goto fail;
 
     vgmstream->sample_rate = fmt.sample_rate;
