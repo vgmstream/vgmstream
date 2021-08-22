@@ -4,6 +4,7 @@
 #include "../vgmstream.h"
 
 VGMSTREAM* init_vgmstream_silence(int channels, int sample_rate, int32_t num_samples);
+VGMSTREAM* init_vgmstream_silence_container(int total_subsongs);
 
 
 VGMSTREAM* init_vgmstream_adx(STREAMFILE* sf);
@@ -958,5 +959,7 @@ VGMSTREAM* init_vgmstream_piff_tpcm(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_wxd_wxh(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_bnk_relic(STREAMFILE* sf);
+
+VGMSTREAM* init_vgmstream_xsh_xsd_xss(STREAMFILE* sf);
 
 #endif /*_META_H*/

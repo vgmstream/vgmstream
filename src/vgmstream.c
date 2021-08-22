@@ -528,6 +528,7 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_piff_tpcm,
     init_vgmstream_wxd_wxh,
     init_vgmstream_bnk_relic,
+    init_vgmstream_xsh_xsd_xss,
 
     /* lowest priority metas (should go after all metas, and TXTH should go before raw formats) */
     init_vgmstream_txth,            /* proper parsers should supersede TXTH, once added */
@@ -819,7 +820,7 @@ void close_vgmstream(VGMSTREAM* vgmstream) {
 void vgmstream_force_loop(VGMSTREAM* vgmstream, int loop_flag, int loop_start_sample, int loop_end_sample) {
     if (!vgmstream) return;
 
-	/* ignore bad values (may happen with layers + TXTP loop install) */
+    /* ignore bad values (may happen with layers + TXTP loop install) */
     if (loop_flag && (loop_start_sample < 0 ||
             loop_start_sample > loop_end_sample ||
             loop_end_sample > vgmstream->num_samples))

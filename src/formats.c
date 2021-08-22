@@ -612,6 +612,7 @@ static const char* extension_list[] = {
     "xma2",
     "xmu",
     "xnb",
+    "xsh",
     "xsf",
     "xse",
     "xsew",
@@ -1358,6 +1359,7 @@ static const meta_info meta_info_list[] = {
         {meta_PIFF_TPCM,            "Tantalus PIFF TPCM header"},
         {meta_WXD_WXH,              "Relic WXD+WXH header"},
         {meta_BNK_RELIC,            "Relic BNK header"},
+        {meta_XSH_XSD_XSS,          "Treyarch XSH+XSD/XSS header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {
