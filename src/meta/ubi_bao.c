@@ -35,6 +35,7 @@ typedef struct {
     int audio_fix_psx_samples;
     int audio_external_and;
     int audio_loop_and;
+    int audio_ignore_resource_size;
 
     off_t sequence_sequence_loop;
     off_t sequence_sequence_single;
@@ -1116,9 +1117,12 @@ static int parse_offsets(ubi_bao_header* bao, STREAMFILE* sf) {
                     read_string(bao->resource_name,255, resources_offset + 0x04+0x04 + name_offset, sf);
 
                     if (bao->stream_size != resource_size - bao->stream_skip + bao->prefetch_size) {
-                        VGM_ASSERT(bao->stream_size != resource_size - bao->stream_skip + bao->prefetch_size,
-                                "UBI BAO: stream vs resource size mismatch at %lx\n", offset+0x10*i);
-                        goto fail;
+                        VGM_LOG("UBI BAO: stream vs resource size mismatch at %lx (%x vs %x, %x, %x)\n", offset+0x10*i, bao->stream_size, resource_size, bao->stream_skip, bao->prefetch_size);
+
+                        /* rarely resource has more data than stream (sometimes a few bytes, others +0x100000)
+                         * sometimes short song versions, but not accessed? no samples/sizes/cues/etc in header seem to refer to that [Just Dance (Wii)] */
+                        if (!bao->cfg.audio_ignore_resource_size || bao->prefetch_size)
+                            goto fail;
                     }
                     break;
                 }
@@ -1755,6 +1759,9 @@ static int config_bao_version(ubi_bao_header* bao, STREAMFILE* sf) {
             bao->cfg.codec_map[0x09] = RAW_DSP;
 
             bao->cfg.file_type = UBI_FORGE_b;
+
+            if (version == 0x0022000D) /* Just Dance (Wii) oddity */
+                bao->cfg.audio_ignore_resource_size = 1;
             return 1;
 
         case 0x00220015: /* James Cameron's Avatar: The Game (PSP)-package */
