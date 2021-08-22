@@ -444,8 +444,10 @@ typedef struct {
     int channels; /* max channels */
     int fsb_padding; /* fsb padding mode */
     int chunk_size; /* size of a data portion */
+    int max_chunks;
     int data_size; /* playable size */
     int interleave; /* size of stream interleave */
+    int interleave_last;
     int encryption; /* encryption mode */
     int big_endian;
     int skip_samples;

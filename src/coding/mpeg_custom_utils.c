@@ -51,6 +51,7 @@ int mpeg_custom_setup_init_default(STREAMFILE* sf, off_t start_offset, mpeg_code
             }
             break;
 
+        //todo simplify/unify XVAG/P3D/SCD/LYN and just feed arbitrary chunks to the decoder
         case MPEG_P3D:
         case MPEG_SCD:
             if (data->config.interleave <= 0)
@@ -61,7 +62,8 @@ int mpeg_custom_setup_init_default(STREAMFILE* sf, off_t start_offset, mpeg_code
             if (data->config.interleave <= 0)
                 goto fail; /* needs external fixed size */
             data->default_buffer_size = data->config.interleave;
-            //todo simplify/unify XVAG/P3D/SCD/LYN and just feed arbitrary chunks to the decoder
+            if (data->default_buffer_size < data->config.interleave_last)
+                data->default_buffer_size = data->config.interleave_last;
             break;
 
         case MPEG_STANDARD:
@@ -179,7 +181,6 @@ int mpeg_custom_parse_frame_default(VGMSTREAMCHANNEL* stream, mpeg_codec_data* d
 
         case MPEG_P3D: /* fixed interleave, not frame-aligned (ie. blocks may end/start in part of a frame) */
         case MPEG_SCD:
-        case MPEG_LYN:
             current_interleave = data->config.interleave;
 
             /* check if current interleave block is short */
@@ -195,6 +196,23 @@ int mpeg_custom_parse_frame_default(VGMSTREAMCHANNEL* stream, mpeg_codec_data* d
             current_interleave_post = current_interleave*(data->streams_size-1) - current_interleave_pre;
 
             current_data_size = current_interleave;
+            break;
+
+        case MPEG_LYN:
+            /* after N interleaves last block is bigger */
+            if (ms->current_size_count < data->config.max_chunks)
+                current_interleave = data->config.interleave;
+            else if (ms->current_size_count == data->config.max_chunks)
+                current_interleave = data->config.interleave_last;
+            else
+                goto fail;
+
+            current_interleave_pre  = current_interleave*num_stream;
+            current_interleave_post = current_interleave*(data->streams_size-1) - current_interleave_pre;
+            //VGM_LOG("o=%lx, %i: %x, %x, %x, %x\n", stream->offset, num_stream, ms->current_size_count, current_interleave, current_interleave_pre, current_interleave_post );
+
+            current_data_size = current_interleave;
+            ms->current_size_count++;
             break;
 
         default: /* standard frames (CBR or VBR) */
