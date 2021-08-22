@@ -150,7 +150,7 @@ Since XMPlay supports Winamp plugins you may also use `in_vgmstream.dll` instead
 
 Because the XMPlay MP3 decoder incorrectly tries to play some vgmstream extensions,
 you need to manually fix it by going to **options > plugins > input > vgmstream**
-and in the "priority filetypes" put: `ahx,asf,awc,ckd,fsb,genh,msf,p3d,rak,scd,txth,xvag`
+and in the "priority filetypes" put: `ahx,asf,awc,ckd,fsb,genh,lwav,msf,p3d,rak,scd,txth,xvag`
 
 XMPlay cannot support subsongs due to player limitations (with any plugin), try
 using *TXTP* instead (explained below).

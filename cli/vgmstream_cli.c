@@ -377,7 +377,11 @@ static void apply_config(VGMSTREAM* vgmstream, cli_config* cfg) {
             cfg->lwav_loop_end = vgmstream->loop_end_sample;
             cfg->lwav_loop_end--; /* from spec, +1 is added when reading "smpl" */
         }
-
+        else {
+            /* reset for subsongs */
+            cfg->lwav_loop_start = 0;
+            cfg->lwav_loop_end = 0;
+        }
     }
     /* only allowed if manually active */
     if (cfg->play_forever) {

@@ -155,7 +155,7 @@ static const char* extension_list[] = {
     "de2",
     "dec",
     "diva",
-    "dmsg",
+    "dmsg", //fake extension/header id for .sgt (to be removed)
     "ds2", //txth/reserved [Star Wars Bounty Hunter (GC)]
     "dsb",
     "dsf",
@@ -402,7 +402,7 @@ static const char* extension_list[] = {
     "rad",
     "rak",
     "ras",
-    "raw",
+    "raw", //txth/reserved [Madden NHL 97 (PC)-pcm8u]
     "rda", //FFmpeg/reserved [Rhythm Destruction (PC)]
     "rkv",
     "rnd",
@@ -464,6 +464,7 @@ static const char* extension_list[] = {
     "sfx",
     "sgb",
     "sgd",
+    "sgt",
     "sgx",
     "sl3",
     "slb", //txth/reserved [THE Nekomura no Hitobito (PS2)]
@@ -611,6 +612,7 @@ static const char* extension_list[] = {
     "xma2",
     "xmu",
     "xnb",
+    "xsh",
     "xsf",
     "xse",
     "xsew",
@@ -1114,7 +1116,7 @@ static const meta_info meta_info_list[] = {
         {meta_HIS,                  "Her Interactive HIS header"},
         {meta_PS2_AST,              "KOEI AST header"},
         {meta_CAPDSP,               "Capcom DSP header"},
-        {meta_DMSG,                 "RIFF/DMSGsegh header"},
+        {meta_DMSG,                 "Microsoft RIFF DMSG header"},
         {meta_PONA_3DO,             "Policenauts BGM header"},
         {meta_PONA_PSX,             "Policenauts BGM header"},
         {meta_NGC_DSP_AAAP,         "Acclaim Austin AAAp DSP header"},
@@ -1357,6 +1359,7 @@ static const meta_info meta_info_list[] = {
         {meta_PIFF_TPCM,            "Tantalus PIFF TPCM header"},
         {meta_WXD_WXH,              "Relic WXD+WXH header"},
         {meta_BNK_RELIC,            "Relic BNK header"},
+        {meta_XSH_XSD_XSS,          "Treyarch XSH+XSD/XSS header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {

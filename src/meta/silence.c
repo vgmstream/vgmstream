@@ -27,3 +27,19 @@ fail:
     close_vgmstream(vgmstream);
     return NULL;
 }
+
+/* silent stream - for containers that have dummy streams but it's a hassle to detect/filter out */
+VGMSTREAM* init_vgmstream_silence_container(int total_subsongs) {
+    VGMSTREAM* vgmstream = NULL;
+
+    vgmstream = init_vgmstream_silence(0, 0, 0);
+    if (!vgmstream) goto fail;
+
+    vgmstream->num_streams = total_subsongs;
+    snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%s", "dummy");
+
+    return vgmstream;
+fail:
+    close_vgmstream(vgmstream);
+    return NULL;
+}

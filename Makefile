@@ -58,7 +58,7 @@ export RMF SHELL CC AR STRIP WINDRES DLLTOOL
 ###############################################################################
 ### build defs
 
-DEF_CFLAGS += -ffast-math -O3 -Wall -Werror=format-security -Wlogical-op -Wdeclaration-after-statement -Wvla -Wimplicit-function-declaration -Wignored-qualifiers
+DEF_CFLAGS += -ffast-math -O3 -Wall -Werror=format-security -Wdeclaration-after-statement -Wvla -Wimplicit-function-declaration -Wignored-qualifiers
 
 VGM_DEBUG_FLAGS = 0
 ifeq ($(VGM_DEBUG_FLAGS),1)
@@ -67,6 +67,7 @@ ifeq ($(VGM_DEBUG_FLAGS),1)
   DEF_CFLAGS += -Wall
   DEF_CFLAGS += -Wextra
   DEF_CFLAGS += -Wno-sign-compare
+  DEF_CFLAGS += -Wlogical-op
   #DEF_CFLAGS += -pedantic -Wconversion -std=gnu90
   #DEF_CFLAGS += -Wfloat-equal
   DEF_CFLAGS += -Wdisabled-optimization -Wunsafe-loop-optimizations -Wswitch-default
@@ -77,6 +78,7 @@ ifeq ($(VGM_DEBUG_FLAGS),1)
   DEF_CFLAGS += -Wredundant-decls -Wmissing-include-dirs -Wmissing-declarations
   #DEF_CFLAGS += -Wshadow
   #DEF_CFLAGS += -Wstack-protector -fstack-protector
+  STRIP = echo
 endif
 
 LIBS_CFLAGS=

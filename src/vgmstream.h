@@ -743,6 +743,8 @@ typedef enum {
     meta_PIFF_TPCM,
     meta_WXD_WXH,
     meta_BNK_RELIC,
+    meta_XSH_XSD_XSS,
+
 } meta_t;
 
 /* standard WAVEFORMATEXTENSIBLE speaker positions */

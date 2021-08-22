@@ -238,9 +238,9 @@ static void init_dequantization(float* scales) {
 
 static int unpack_frame(uint8_t* buf, int buf_size, float* freq1, float* freq2, const float* scales, uint8_t* exponents, int freq_size) {
     uint8_t flags, cb_bits, ev_bits, ei_bits, qv_bits;
-    int qv;
+    int qv, pos;
     uint8_t ev;
-    uint8_t move, pos;
+    uint8_t move;
     uint32_t bit_offset, max_offset;
     int i, j;
     int freq_half = freq_size >> 1;

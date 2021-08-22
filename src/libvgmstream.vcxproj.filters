@@ -1828,6 +1828,9 @@
     <ClCompile Include="meta\xse.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\xsh_xsd_xss.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\x360_cxs.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>

@@ -589,6 +589,7 @@
     <ClCompile Include="meta\xpcm.c" />
     <ClCompile Include="meta\xps.c" />
     <ClCompile Include="meta\xse.c" />
+    <ClCompile Include="meta\xsh_xsd_xss.c" />
     <ClCompile Include="meta\xss.c" />
     <ClCompile Include="meta\xssb.c" />
     <ClCompile Include="meta\xvag.c" />
