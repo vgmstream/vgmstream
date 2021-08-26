@@ -168,6 +168,8 @@
     <ClInclude Include="coding\tac_decoder_lib_data.h" />
     <ClInclude Include="coding\tac_decoder_lib_ops.h" />
     <ClInclude Include="layout\layout.h" />
+    <ClInclude Include="util\chunks.h" />
+    <ClInclude Include="util\log.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="coding\at3plus_decoder.c" />
@@ -708,6 +710,7 @@
     <ClCompile Include="layout\blocked_xa.c" />
     <ClCompile Include="layout\blocked_xa_aiff.c" />
     <ClCompile Include="layout\blocked_xvas.c" />
+    <ClCompile Include="util\chunks.c" />
     <ClCompile Include="util\log.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

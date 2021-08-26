@@ -302,6 +302,12 @@
     <ClInclude Include="meta\encrypted_bgm_streamfile.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="util\chunks.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="util\log.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="formats.c">
@@ -1917,6 +1923,9 @@
     </ClCompile>
     <ClCompile Include="meta\sbk.c">
       <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="util\chunks.c">
+      <Filter>util\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="util\log.c">
       <Filter>util\Source Files</Filter>
