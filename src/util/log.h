@@ -20,17 +20,21 @@ void vgm_log_set_callback(void* ctx_p, int level, int type, void* callback);
 
 #if defined(VGM_LOG_OUTPUT) || defined(VGM_DEBUG_OUTPUT)
     void vgm_logi(/*void* ctx,*/ const char* fmt, ...);
+    void vgm_asserti(/*void* ctx,*/ int condition, const char* fmt, ...);
     //void vgm_logi_once(/*void* ctx, int* once_flag, */ const char* fmt, ...);
 #else
     #define vgm_logi(...) /* nothing */
+    #define vgm_asserti(...) /* nothing */
 #endif
 
 #ifdef VGM_DEBUG_OUTPUT
     void vgm_logd(/*void* ctx,*/ const char* fmt, ...);
     #define VGM_LOG(...) do { vgm_logd(__VA_ARGS__); } while (0)
+    #define VGM_ASSERT(condition, ...)  do { if (condition) {vgm_logd(__VA_ARGS__);} } while (0)
 #else
     #define vgm_logd(...) /* nothing */
     #define VGM_LOG(...) /* nothing */
+    #define VGM_ASSERT(condition, ...) /* nothing */
 #endif
 
 
@@ -38,47 +42,37 @@ void vgm_log_set_callback(void* ctx_p, int level, int type, void* callback);
  * Needs C99 variadic macros, uses do..while to force ";" as statement */
 #ifdef VGM_DEBUG_OUTPUT
 
-/* equivalent to printf when condition is true */
-#define VGM_ASSERT(condition, ...) \
-    do { if (condition) {printf(__VA_ARGS__);} } while (0)
+    #define VGM_LOG_ONCE(...) \
+        do { static int written; if (!written) { printf(__VA_ARGS__); written = 1; } } while (0)
 
-#define VGM_ASSERT_ONCE(condition, ...) \
-    do { static int written; if (!written) { if (condition) {printf(__VA_ARGS__); written = 1;} }  } while (0)
+    #define VGM_ASSERT_ONCE(condition, ...) \
+        do { static int written; if (!written) { if (condition) {printf(__VA_ARGS__); written = 1;} }  } while (0)
 
-/* equivalent to printf */
-//#define VGM_LOG(...) do { printf(__VA_ARGS__); } while (0)
+    /* prints to a file */
+    #define VGM_LOGT(txt, ...) \
+        do { FILE *fl = fopen(txt,"a+"); if(fl){fprintf(fl,__VA_ARGS__); fflush(fl);} fclose(fl); } while(0)
 
-#define VGM_LOG_ONCE(...) \
-    do { static int written; if (!written) { printf(__VA_ARGS__); written = 1; } } while (0)
+    /* prints a buffer/array */
+    #define VGM_LOGB(buf, buf_size, bytes_per_line) \
+        do { \
+            int i; \
+            for (i=0; i < buf_size; i++) { \
+                printf("%02x",buf[i]); \
+                if (bytes_per_line && (i+1) % bytes_per_line == 0) printf("\n"); \
+            } \
+            printf("\n"); \
+        } while (0)
 
-/* prints file/line/func */
-//#define VGM_LOGF()  do { printf("%s:%i '%s'\n",  __FILE__, __LINE__, __func__); } while (0)
+#else /* VGM_DEBUG_OUTPUT */
 
-/* prints to a file */
-#define VGM_LOGT(txt, ...) \
-    do { FILE *fl = fopen(txt,"a+"); if(fl){fprintf(fl,__VA_ARGS__); fflush(fl);} fclose(fl); } while(0)
+    #define VGM_LOG_ONCE(...) /* nothing */
 
-/* prints a buffer/array */
-#define VGM_LOGB(buf, buf_size, bytes_per_line) \
-    do { \
-        int i; \
-        for (i=0; i < buf_size; i++) { \
-            printf("%02x",buf[i]); \
-            if (bytes_per_line && (i+1) % bytes_per_line == 0) printf("\n"); \
-        } \
-        printf("\n"); \
-    } while (0)
+    #define VGM_ASSERT_ONCE(condition, ...) /* nothing */
 
-#else/*VGM_DEBUG_OUTPUT*/
+    #define VGM_LOGT() /* nothing */
 
-#define VGM_ASSERT(condition, ...) /* nothing */
-#define VGM_ASSERT_ONCE(condition, ...) /* nothing */
-//#define VGM_LOG(...) /* nothing */
-#define VGM_LOG_ONCE(...) /* nothing */
-//#define VGM_LOGF() /* nothing */
-#define VGM_LOGT() /* nothing */
-#define VGM_LOGB(buf, buf_size, bytes_per_line) /* nothing */
+    #define VGM_LOGB(buf, buf_size, bytes_per_line) /* nothing */
 
-#endif/*VGM_DEBUG_OUTPUT*/
+#endif /*VGM_DEBUG_OUTPUT*/
 
 #endif

@@ -96,7 +96,7 @@ VGMSTREAM* init_vgmstream_xsh_xsd_xss(STREAMFILE* sf) {
 
                 sf_body = open_streamfile_by_filename(sf,filename);
                 if (!sf_body) {
-                    VGM_LOG("XSH: can't find %s\n", filename);
+                    vgm_logi("XSH: external file '%s' not found (put together)\n", filename);
                     goto fail;
                 }
 
@@ -116,7 +116,7 @@ VGMSTREAM* init_vgmstream_xsh_xsd_xss(STREAMFILE* sf) {
                 snprintf(filename, sizeof(filename), "%s", "STREAMS.XSS");
                 sf_body = open_streamfile_by_filename(sf,filename);
                 if (!sf_body) {
-                    VGM_LOG("XSH: can't find %s\n", filename);
+                    vgm_logi("XSH: external file '%s' not found (put together)\n", filename);
                     goto fail;
                 }
                 break;

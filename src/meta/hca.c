@@ -30,7 +30,10 @@ VGMSTREAM* init_vgmstream_hca_subkey(STREAMFILE* sf, uint16_t subkey) {
 
     /* init vgmstream and library's context, will validate the HCA */
     hca_data = init_hca(sf);
-    if (!hca_data) goto fail;
+    if (!hca_data) {
+        vgm_logi("HCA: unknown format (report)\n");
+        goto fail;
+    }
 
     hca_info = hca_get_info(hca_data);
 
@@ -184,7 +187,7 @@ static void find_hca_key(hca_codec_data* hca_data, uint64_t* p_keycode, uint16_t
 done:
     VGM_ASSERT(best_score > 1, "HCA: best key=%08x%08x (score=%i)\n",
             (uint32_t)((*p_keycode >> 32) & 0xFFFFFFFF), (uint32_t)(*p_keycode & 0xFFFFFFFF), best_score);
-    VGM_ASSERT(best_score < 0, "HCA: key not found\n");
+    vgm_asserti(best_score < 0, "HCA: decryption key not found\n");
 }
 
 #ifdef HCA_BRUTEFORCE

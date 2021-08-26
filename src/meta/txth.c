@@ -1391,7 +1391,7 @@ static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char* key, cha
 
     return 1;
 fail:
-    VGM_LOG("TXTH: error parsing key=%s, val=%s\n", key, val);
+    vgm_logi("TXTH: error parsing key=%s, val=%s\n", key, val);
     return 0;
 }
 
@@ -1843,7 +1843,7 @@ static int parse_num(STREAMFILE* sf, txth_header* txth, const char* val, uint32_
             offset += txth->base_offset;
 
             if (/*offset < 0 ||*/ offset > get_streamfile_size(sf)) {
-                VGM_LOG("TXTH: wrong offset %x + %x\n", offset - txth->base_offset, txth->base_offset);
+                vgm_logi("TXTH: wrong offset over file size (%x + %x)\n", offset - txth->base_offset, txth->base_offset);
                 goto fail;
             }
 

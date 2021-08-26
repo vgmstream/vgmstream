@@ -166,7 +166,7 @@ static void find_bnsf_key(STREAMFILE* sf, off_t start, g7221_codec_data* data, u
     }
 
     VGM_ASSERT(best_score > 0, "BNSF: best key=%.24s (score=%i)\n", best_key, best_score);
-    VGM_ASSERT(best_score < 0, "BNSF: key not found\n");
+    vgm_asserti(best_score < 0 , "BNSF: decryption key not found\n");
 }
 
 #define BNSF_MIN_KEY_LEN 3

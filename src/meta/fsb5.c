@@ -72,7 +72,7 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
     fsb5.base_header_size   = (fsb5.version==0x00) ? 0x40 : 0x3C;
 
     if ((fsb5.sample_header_size + fsb5.name_table_size + fsb5.sample_data_size + fsb5.base_header_size) != get_streamfile_size(sf)) {
-        VGM_LOG("FSB5: bad size (%x + %x + %x + %x != %x)\n", fsb5.sample_header_size, fsb5.name_table_size, fsb5.sample_data_size, fsb5.base_header_size, get_streamfile_size(sf));
+        vgm_logi("FSB5: wrong size, expected %x + %x + %x + %x vs %x (re-rip)\n", fsb5.sample_header_size, fsb5.name_table_size, fsb5.sample_data_size, fsb5.base_header_size, get_streamfile_size(sf));
         goto fail;
     }
 
@@ -217,7 +217,7 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
                             fsb5.channels = fsb5.channels * fsb5.layers;
                             break;
                         default:
-                            VGM_LOG("FSB5: stream %i unknown flag 0x%x at %x + 0x04 (size 0x%x)\n", i, extraflag_type, (uint32_t)extraflag_offset, extraflag_size);
+                            vgm_logi("FSB5: stream %i unknown flag 0x%x at %x + 0x04 + 0x%x (report)\n", i, extraflag_type, (uint32_t)extraflag_offset, extraflag_size);
                             break;
                     }
                 }
@@ -301,11 +301,11 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
             break;
 
         case 0x03:  /* FMOD_SOUND_FORMAT_PCM24 */
-            VGM_LOG("FSB5: FMOD_SOUND_FORMAT_PCM24 found\n");
+            vgm_logi("FSB5: FMOD_SOUND_FORMAT_PCM24 found (report)\n");
             goto fail;
 
         case 0x04:  /* FMOD_SOUND_FORMAT_PCM32 */
-            VGM_LOG("FSB5: FMOD_SOUND_FORMAT_PCM32 found\n");
+            vgm_logi("FSB5: FMOD_SOUND_FORMAT_PCM32 found (report)\n");
             goto fail;
 
         case 0x05:  /* FMOD_SOUND_FORMAT_PCMFLOAT  [Anima: Gate of Memories (PC)] */
@@ -494,7 +494,7 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
 #endif
 #endif
         default:
-            VGM_LOG("FSB5: unknown codec %x found\n", fsb5.codec);
+            vgm_logi("FSB5: unknown codec 0x%x (report)\n", fsb5.codec);
             goto fail;
     }
 

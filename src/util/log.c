@@ -75,3 +75,16 @@ void vgm_logi(const char* fmt, ...) {
     log_internal(NULL, LOG_LEVEL_INFO, fmt, args);
     va_end(args);
 }
+
+void vgm_asserti(int condition, const char* fmt, ...) {
+    if (!condition)
+        return;
+
+    {
+        va_list args;
+
+        va_start(args, fmt);
+        log_internal(NULL, LOG_LEVEL_INFO, fmt, args);
+        va_end(args);
+    }
+}
