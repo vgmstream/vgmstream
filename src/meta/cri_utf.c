@@ -1,4 +1,5 @@
 #include "cri_utf.h"
+#include "../util/log.h"
 
 #define COLUMN_BITMASK_FLAG       0xf0
 #define COLUMN_BITMASK_TYPE       0x0f
@@ -113,7 +114,7 @@ utf_context* utf_open(STREAMFILE* sf, uint32_t table_offset, int* p_rows, const 
 
     /* 00: early (32b rows_offset?), 01: +2017 (no apparent differences) */
     if (utf->version != 0x00 && utf->version != 0x01) {
-        VGM_LOG("@UTF: unknown version\n");
+        vgm_logi("@UTF: unknown version\n");
     }
     if (utf->table_offset + utf->table_size > get_streamfile_size(sf))
         goto fail;
@@ -169,7 +170,7 @@ utf_context* utf_open(STREAMFILE* sf, uint32_t table_offset, int* p_rows, const 
                 !(utf->schema[i].flag & COLUMN_FLAG_NAME) ||
                 ((utf->schema[i].flag & COLUMN_FLAG_DEFAULT) && (utf->schema[i].flag & COLUMN_FLAG_ROW)) ||
                  (utf->schema[i].flag & COLUMN_FLAG_UNDEFINED) ) {
-                VGM_LOG("@UTF: unknown column flag combo found\n");
+                vgm_logi("@UTF: unknown column flag combo found\n");
                 goto fail;
             }
 
@@ -197,7 +198,7 @@ utf_context* utf_open(STREAMFILE* sf, uint32_t table_offset, int* p_rows, const 
               //case COLUMN_TYPE_UINT128:
               //    value_size = 0x16;
                 default:
-                    VGM_LOG("@UTF: unknown column type\n");
+                    vgm_logi("@UTF: unknown column type\n");
                     goto fail;
             }
 
@@ -228,7 +229,7 @@ utf_context* utf_open(STREAMFILE* sf, uint32_t table_offset, int* p_rows, const 
     return utf;
 fail:
     utf_close(utf);
-    VGM_LOG("@UTF: fail\n");
+    vgm_logi("@UTF: init failure\n");
     return NULL;
 }
 

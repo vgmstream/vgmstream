@@ -77,6 +77,14 @@ typedef struct {
 /* get a simple title for plugins */
 void vgmstream_get_title(char* buf, int buf_len, const char* filename, VGMSTREAM* vgmstream, vgmstream_title_t* cfg);
 
+enum {
+    VGM_LOG_LEVEL_INFO = 1,
+    VGM_LOG_LEVEL_DEBUG = 2,
+    VGM_LOG_LEVEL_ALL = 100,
+};
+// CB: void (*callback)(int level, const char* str)
+void vgmstream_set_log_callback(int level, void* callback);
+void vgmstream_set_log_stdout(int level);
 
 
 #if 0

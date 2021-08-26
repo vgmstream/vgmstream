@@ -40,12 +40,14 @@ typedef enum {
     ASF = 30,           /* Argonaut ASF 4-bit ADPCM */
     EAXA = 31,          /* Electronic Arts EA-XA 4-bit ADPCM v1 */
     OKI4S = 32,         /* OKI ADPCM with 16-bit output (unlike OKI/VOX/Dialogic ADPCM's 12-bit) */
-} txth_type;
+
+    UNKNOWN = 99,
+} txth_codec_t;
 
 typedef enum { DEFAULT, NEGATIVE, POSITIVE, INVERTED } txth_loop_t;
 
 typedef struct {
-    txth_type codec;
+    txth_codec_t codec;
     uint32_t codec_mode;
 
     uint32_t value_mul;
@@ -193,6 +195,25 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
         VGMSTREAM* subfile_vgmstream = init_subfile(&txth);
         clean_txth(&txth);
         return subfile_vgmstream;
+    }
+
+
+    /* set common interleaves to simplify usage
+        * (maybe should ignore if manually overwritten, possibly with 0 on purpose?) */
+    if (txth.interleave == 0) {
+        uint32_t interleave  = 0;
+        switch(txth.codec) {
+            case PSX:       interleave = 0x10; break;
+            case PSX_bf:    interleave = 0x10; break;
+            case NGC_DSP:   interleave = 0x08; break;
+            case PCM16LE:   interleave = 0x02; break;
+            case PCM16BE:   interleave = 0x02; break;
+            case PCM8:      interleave = 0x01; break;
+            case PCM8_U:    interleave = 0x01; break;
+            default:
+                 break;
+        }
+        txth.interleave = interleave;
     }
 
 
@@ -881,63 +902,61 @@ fail:
     return 0;
 }
 
+static txth_codec_t parse_codec(txth_header* txth, const char* val) {
+    if      (is_string(val,"PSX"))          return PSX;
+    else if (is_string(val,"XBOX"))         return XBOX;
+    else if (is_string(val,"NGC_DTK"))      return NGC_DTK;
+    else if (is_string(val,"DTK"))          return NGC_DTK;
+    else if (is_string(val,"PCM16BE"))      return PCM16BE;
+    else if (is_string(val,"PCM16LE"))      return PCM16LE;
+    else if (is_string(val,"PCM8"))         return PCM8;
+    else if (is_string(val,"SDX2"))         return SDX2;
+    else if (is_string(val,"DVI_IMA"))      return DVI_IMA;
+    else if (is_string(val,"MPEG"))         return MPEG;
+    else if (is_string(val,"IMA"))          return IMA;
+    else if (is_string(val,"AICA"))         return AICA;
+    else if (is_string(val,"MSADPCM"))      return MSADPCM;
+    else if (is_string(val,"NGC_DSP"))      return NGC_DSP;
+    else if (is_string(val,"DSP"))          return NGC_DSP;
+    else if (is_string(val,"PCM8_U_int"))   return PCM8_U_int;
+    else if (is_string(val,"PSX_bf"))       return PSX_bf;
+    else if (is_string(val,"MS_IMA"))       return MS_IMA;
+    else if (is_string(val,"PCM8_U"))       return PCM8_U;
+    else if (is_string(val,"APPLE_IMA4"))   return APPLE_IMA4;
+    else if (is_string(val,"ATRAC3"))       return ATRAC3;
+    else if (is_string(val,"ATRAC3PLUS"))   return ATRAC3PLUS;
+    else if (is_string(val,"XMA1"))         return XMA1;
+    else if (is_string(val,"XMA2"))         return XMA2;
+    else if (is_string(val,"FFMPEG"))       return FFMPEG;
+    else if (is_string(val,"AC3"))          return AC3;
+    else if (is_string(val,"PCFX"))         return PCFX;
+    else if (is_string(val,"PCM4"))         return PCM4;
+    else if (is_string(val,"PCM4_U"))       return PCM4_U;
+    else if (is_string(val,"OKI16"))        return OKI16;
+    else if (is_string(val,"OKI4S"))        return OKI4S;
+    else if (is_string(val,"AAC"))          return AAC;
+    else if (is_string(val,"TGC"))          return TGC;
+    else if (is_string(val,"GCOM_ADPCM"))   return TGC;
+    else if (is_string(val,"ASF"))          return ASF;
+    else if (is_string(val,"EAXA"))         return EAXA;
+    /* special handling */
+    else if (is_string(val,"name_value"))   return txth->name_values[0];
+    else if (is_string(val,"name_value1"))  return txth->name_values[0];
+    else if (is_string(val,"name_value2"))  return txth->name_values[1];
+    else if (is_string(val,"name_value3"))  return txth->name_values[2];
+    //todo rest (handle in function)
+
+    return UNKNOWN;
+}
+
 static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char* key, char* val) {
     //;VGM_LOG("TXTH: key=%s, val=%s\n", key, val);
 
     /* CODEC */
     if (is_string(key,"codec")) {
-        if      (is_string(val,"PSX"))          txth->codec = PSX;
-        else if (is_string(val,"XBOX"))         txth->codec = XBOX;
-        else if (is_string(val,"NGC_DTK"))      txth->codec = NGC_DTK;
-        else if (is_string(val,"DTK"))          txth->codec = NGC_DTK;
-        else if (is_string(val,"PCM16BE"))      txth->codec = PCM16BE;
-        else if (is_string(val,"PCM16LE"))      txth->codec = PCM16LE;
-        else if (is_string(val,"PCM8"))         txth->codec = PCM8;
-        else if (is_string(val,"SDX2"))         txth->codec = SDX2;
-        else if (is_string(val,"DVI_IMA"))      txth->codec = DVI_IMA;
-        else if (is_string(val,"MPEG"))         txth->codec = MPEG;
-        else if (is_string(val,"IMA"))          txth->codec = IMA;
-        else if (is_string(val,"AICA"))         txth->codec = AICA;
-        else if (is_string(val,"MSADPCM"))      txth->codec = MSADPCM;
-        else if (is_string(val,"NGC_DSP"))      txth->codec = NGC_DSP;
-        else if (is_string(val,"DSP"))          txth->codec = NGC_DSP;
-        else if (is_string(val,"PCM8_U_int"))   txth->codec = PCM8_U_int;
-        else if (is_string(val,"PSX_bf"))       txth->codec = PSX_bf;
-        else if (is_string(val,"MS_IMA"))       txth->codec = MS_IMA;
-        else if (is_string(val,"PCM8_U"))       txth->codec = PCM8_U;
-        else if (is_string(val,"APPLE_IMA4"))   txth->codec = APPLE_IMA4;
-        else if (is_string(val,"ATRAC3"))       txth->codec = ATRAC3;
-        else if (is_string(val,"ATRAC3PLUS"))   txth->codec = ATRAC3PLUS;
-        else if (is_string(val,"XMA1"))         txth->codec = XMA1;
-        else if (is_string(val,"XMA2"))         txth->codec = XMA2;
-        else if (is_string(val,"FFMPEG"))       txth->codec = FFMPEG;
-        else if (is_string(val,"AC3"))          txth->codec = AC3;
-        else if (is_string(val,"PCFX"))         txth->codec = PCFX;
-        else if (is_string(val,"PCM4"))         txth->codec = PCM4;
-        else if (is_string(val,"PCM4_U"))       txth->codec = PCM4_U;
-        else if (is_string(val,"OKI16"))        txth->codec = OKI16;
-        else if (is_string(val,"OKI4S"))        txth->codec = OKI4S;
-        else if (is_string(val,"AAC"))          txth->codec = AAC;
-        else if (is_string(val,"TGC"))          txth->codec = TGC;
-        else if (is_string(val,"GCOM_ADPCM"))   txth->codec = TGC;
-        else if (is_string(val,"ASF"))          txth->codec = ASF;
-        else if (is_string(val,"EAXA"))         txth->codec = EAXA;
-        else goto fail;
-
-        /* set common interleaves to simplify usage
-         * (do it here to in case it's overwritten later, possibly with 0 on purpose) */
-        if (txth->interleave == 0) {
-            switch(txth->codec) {
-                case PSX:       txth->interleave = 0x10; break;
-                case PSX_bf:    txth->interleave = 0x10; break;
-                case NGC_DSP:   txth->interleave = 0x08; break;
-                case PCM16LE:   txth->interleave = 0x02; break;
-                case PCM16BE:   txth->interleave = 0x02; break;
-                case PCM8:      txth->interleave = 0x01; break;
-                case PCM8_U:    txth->interleave = 0x01; break;
-                default: break;
-            }
-        }
+        txth->codec = parse_codec(txth, val);
+        if (txth->codec == UNKNOWN)
+            goto fail;
     }
     else if (is_string(key,"codec_mode")) {
         if (!parse_num(txth->sf_head,txth,val, &txth->codec_mode)) goto fail;
@@ -1372,7 +1391,7 @@ static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char* key, cha
 
     return 1;
 fail:
-    VGM_LOG("TXTH: error parsing key=%s, val=%s\n", key, val);
+    vgm_logi("TXTH: error parsing key=%s, val=%s\n", key, val);
     return 0;
 }
 
@@ -1589,6 +1608,26 @@ static int read_name_table_keyval(txth_header* txth, const char* line, char* key
     return 0;
 }
 
+static int parse_name_val(txth_header* txth, char* subval) {
+    int ok;
+
+    ok = parse_num(txth->sf_head, txth, subval, &txth->name_values[txth->name_values_count]);
+    if (!ok) {
+        /* in rare cases may set codec */
+        txth_codec_t codec = parse_codec(txth, subval);
+        if (codec == UNKNOWN)
+            goto fail;
+        txth->name_values[txth->name_values_count] = codec;
+    }
+    txth->name_values_count++;
+    if (txth->name_values_count >= 16) /* surely nobody needs that many */
+        goto fail;
+
+    return 1;
+fail:
+    return 0;
+}
+
 static int parse_name_table(txth_header* txth, char* name_list) {
     STREAMFILE* sf_names = NULL;
     off_t txt_offset, file_size;
@@ -1666,9 +1705,7 @@ static int parse_name_table(txth_header* txth, char* name_list) {
                     if (current[0] == ',')
                         current++;
 
-                    if (!parse_num(txth->sf_head,txth,subval, &txth->name_values[txth->name_values_count])) goto fail;
-                    txth->name_values_count++;
-                    if (txth->name_values_count >= 16) /* surely nobody needs that many */
+                    if (!parse_name_val(txth, subval))
                         goto fail;
                 }
 
@@ -1806,7 +1843,7 @@ static int parse_num(STREAMFILE* sf, txth_header* txth, const char* val, uint32_
             offset += txth->base_offset;
 
             if (/*offset < 0 ||*/ offset > get_streamfile_size(sf)) {
-                VGM_LOG("TXTH: wrong offset %x + %x\n", offset - txth->base_offset, txth->base_offset);
+                vgm_logi("TXTH: wrong offset over file size (%x + %x)\n", offset - txth->base_offset, txth->base_offset);
                 goto fail;
             }
 
@@ -1920,7 +1957,7 @@ static int parse_num(STREAMFILE* sf, txth_header* txth, const char* val, uint32_
     //;VGM_LOG("TXTH: final result %u (0x%x)\n", result, result);
     return 1;
 fail:
-    VGM_LOG("TXTH: error parsing num '%s'\n", val);
+    //VGM_LOG("TXTH: error parsing num '%s'\n", val);
     return 0;
 }
 

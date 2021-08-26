@@ -765,7 +765,7 @@ static void parse_sead_sab_name(sead_header *sead, STREAMFILE *sf) {
 }
 
 
-static int parse_sead(sead_header *sead, STREAMFILE *sf) {
+static int parse_sead(sead_header* sead, STREAMFILE* sf) {
     uint32_t (*read_u32)(off_t,STREAMFILE*) = sead->big_endian ? read_u32be : read_u32le;
     uint16_t (*read_u16)(off_t,STREAMFILE*) = sead->big_endian ? read_u16be : read_u16le;
 
@@ -856,8 +856,10 @@ static int parse_sead(sead_header *sead, STREAMFILE *sf) {
         }
 
         /* SAB can contain 0 entries too */
-        if (sead->mtrl_offset == 0)
+        if (sead->mtrl_offset == 0) {
+            vgm_logi("SQEX SEAD: bank has no subsongs (ignore)\n");
             goto fail;
+        }
     }
 
     /** stream header **/

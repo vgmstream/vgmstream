@@ -193,13 +193,14 @@ VGMSTREAM* init_vgmstream_ea_schl_video(STREAMFILE* sf) {
     /* check extension */
     /* .uv: early */
     /* .dct: early-mid [ex. Need for Speed II SE (PC), FIFA 98 (PC)] */
+    /* .wve: early-mid [Madden NFL 99 (PC)] */
     /* .mad: mid */
     /* .vp6: late */
     if (check_extensions(sf, "uv,dct")) {
         /* starts with audio header block */
         if (read_32bitBE(0x00, sf) != EA_BLOCKID_HEADER) /* "SCHl" */
             goto fail;
-    } else if (check_extensions(sf, "mad")) {
+    } else if (check_extensions(sf, "mad,wve")) {
         /* check initial movie block id */
         if (read_32bitBE(0x00, sf) != 0x4D41446B) /* "MADk" */
             goto fail;

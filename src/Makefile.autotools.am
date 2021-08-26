@@ -1,17 +1,20 @@
 ## vgmstream autotools script
 
+#noinst_LTLIBRARIES = libvgmstream.la
 lib_LTLIBRARIES = libvgmstream.la
 
 AM_CFLAGS = -I$(top_builddir) -I$(top_srcdir) -I$(top_srcdir)/ext_includes/
 AM_MAKEFLAGS=-f Makefile.autotools
 
-SUBDIRS = coding layout meta
+SUBDIRS = 
 
 # sources/headers are updated automatically by ./bootstrap script (not all headers are needed though)
-libvgmstream_la_LDFLAGS = coding/libcoding.la layout/liblayout.la meta/libmeta.la
+libvgmstream_la_LDFLAGS = 
 libvgmstream_la_SOURCES = (auto-updated)
 libvgmstream_la_LIBADD = -lm
 EXTRA_DIST = (auto-updated)
+
+AM_CFLAGS += -DVGM_LOG_OUTPUT
 
 AM_CFLAGS += -DVGM_USE_G7221
 

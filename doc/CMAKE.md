@@ -117,10 +117,10 @@ All of these options are of type BOOL and can be set to either `ON` or `OFF`. Mo
 - **USE_FFMPEG**: Chooses if you wish to use FFmpeg for support of many codecs. The default is `ON`. `FFMPEG_PATH` can also be given, so it can use official/external SDK instead of the one used in vgmstream project.
 - **USE_MAIATRAC3PLUS**: Chooses if you wish to use MAIATRAC3+ for support of ATRAC3+. The default is `OFF`. It is not recommended to enable.
 - **USE_G7221**: Chooses if you wish to use G7221 for support of ITU-T G.722.1 annex C. The default is `ON`.
+- **USE_G719**: Chooses if you wish to use libg719_decode for support ITU-T G.719. The default is `ON`.
 
 The following options are currently only available for Windows:
 
-- **USE_G719**: Chooses if you wish to use libg719_decode for support ITU-T G.719. The default is `ON`.
 - **USE_ATRAC9**: Chooses if you wish to use LibAtrac9 for support of ATRAC9. The default is `ON`.
 - **USE_CELT**: Chooses if you wish to use libcelt for support of FSB CELT versions 0.6.1 and 0.11.0. The default is `ON`.
 - **USE_SPEEX**: Chooses if you wish to use libspeex for support of SPEEX. The default is `ON`.

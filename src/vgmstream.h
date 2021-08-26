@@ -17,6 +17,7 @@ enum {
 };
 
 #include "streamfile.h"
+#include "util/log.h"
 
 /* Due mostly to licensing issues, Vorbis, MPEG, G.722.1, etc decoding is done by external libraries.
  * Libs are disabled by default, defined on compile-time for builds that support it */

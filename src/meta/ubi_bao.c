@@ -634,7 +634,7 @@ static VGMSTREAM* init_vgmstream_ubi_bao_header(ubi_bao_header* bao, STREAMFILE*
     VGMSTREAM* vgmstream = NULL;
 
     if (bao->total_subsongs <= 0) {
-        VGM_LOG("UBI BAO: no subsongs\n");
+        vgm_logi("UBI BAO: bank has no subsongs (ignore)\n");
         goto fail; /* not uncommon */
     }
 
@@ -1473,7 +1473,10 @@ static STREAMFILE* setup_bao_streamfile(ubi_bao_header* bao, STREAMFILE* sf) {
 
             if (bao->stream_size - bao->prefetch_size != 0) {
                 new_sf = open_streamfile_by_filename(sf, bao->resource_name);
-                if (!new_sf) { VGM_LOG("UBI BAO: external stream '%s' not found\n", bao->resource_name); goto fail; }
+                if (!new_sf) {
+                    vgm_logi("UBI BAO: external file '%s' not found (put together)\n", bao->resource_name); 
+                    goto fail; 
+                }
                 stream_segments[1] = new_sf;
 
                 new_sf = open_clamp_streamfile(stream_segments[1], bao->stream_offset, (bao->stream_size - bao->prefetch_size));
@@ -1495,7 +1498,10 @@ static STREAMFILE* setup_bao_streamfile(ubi_bao_header* bao, STREAMFILE* sf) {
         }
         else if (bao->is_external) {
             new_sf = open_streamfile_by_filename(sf, bao->resource_name);
-            if (!new_sf) { VGM_LOG("UBI BAO: external stream '%s' not found\n", bao->resource_name); goto fail; }
+            if (!new_sf) {
+                vgm_logi("UBI BAO: external file '%s' not found (put together)\n", bao->resource_name);
+                goto fail;
+            }
             temp_sf = new_sf;
 
             new_sf = open_clamp_streamfile(temp_sf, bao->stream_offset, bao->stream_size);
@@ -1884,11 +1890,10 @@ static int config_bao_version(ubi_bao_header* bao, STREAMFILE* sf) {
              * - 0x94: stream id? 0x9C: extra size */
         case 0x002A0300: /* Watch Dogs (Wii U) */
             /* similar to SC:B */
-        default: /* others possibly using BAO: Just Dance, Watch_Dogs, Far Cry Primal, Far Cry 4 */
-            VGM_LOG("UBI BAO: unknown BAO version %08x\n", bao->version);
+        default: /* others possibly using BAO: Watch_Dogs, Far Cry Primal, Far Cry 4 */
+            vgm_logi("UBI BAO: unknown BAO version %08x\n", bao->version);
             return 0;
     }
 
-    VGM_LOG("UBI BAO: unknown BAO version %08x\n", bao->version);
     return 0;
 }

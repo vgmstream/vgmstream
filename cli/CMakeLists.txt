@@ -3,6 +3,16 @@
 add_executable(vgmstream_cli
 	vgmstream_cli.c)
 
+if(WIN32)
+	set_target_properties(vgmstream_cli PROPERTIES
+		PREFIX ""
+		OUTPUT_NAME "test")
+else()
+	set_target_properties(vgmstream_cli PROPERTIES
+		PREFIX ""
+		OUTPUT_NAME "vgmstream-cli")
+endif()
+
 # Link to the vgmstream library
 target_link_libraries(vgmstream_cli libvgmstream)
 

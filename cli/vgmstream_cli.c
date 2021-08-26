@@ -694,6 +694,8 @@ static int convert_file(cli_config* cfg) {
             goto fail;
         }
 
+        vgmstream_set_log_stdout(VGM_LOG_LEVEL_ALL);
+
         sf->stream_index = cfg->subsong_index;
         vgmstream = init_vgmstream_from_STREAMFILE(sf);
         close_streamfile(sf);

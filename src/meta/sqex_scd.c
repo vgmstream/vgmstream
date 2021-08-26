@@ -100,8 +100,12 @@ VGMSTREAM* init_vgmstream_sqex_scd(STREAMFILE* sf) {
                 target_entry = i;
             }
         }
-        if (meta_offset == 0) goto fail;
+
         /* SCD can contain 0 entries too */
+        if (meta_offset == 0) {
+            vgm_logi("SQEX SCD: bank has no subsongs (ignore)\n");
+            goto fail;
+        }
     }
 
     /** stream header **/

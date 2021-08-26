@@ -449,7 +449,7 @@ Inside the table you define lines mapping a filename to a bunch of values, in th
 # put no name before the : to set default values
  : (value1), (...), (valueN)
 ```
-Then I'll find your current file name, and you can then reference its numbers from the list as a `name_value` field, like `base_offset = name_value`, `start_offset = 0x1000 + name_value1`, `interleave = name_value5`, etc. `(filename)` can be with or without extension (like `bgm01.vag` or just `bgm01`), and if the file's name isn't found it'll use default values, and if those aren't defined you'll get 0 instead. Being "values" they can use math or offsets too (`bgm05: 5*0x010`).
+Then I'll find your current file name, and you can then reference its numbers from the list as a `name_value` field, like `base_offset = name_value`, `start_offset = 0x1000 + name_value1`, `interleave = name_value5`, etc. `(filename)` can be with or without extension (like `bgm01.vag` or just `bgm01`), and if the file's name isn't found it'll use default values, and if those aren't defined you'll get 0 instead. Being "values" they can use math or offsets too (`bgm05: 5*0x010`). You can also set a codec string too (`bgm01: PCM16LE`; `codec = name_value`).
 
 You can use wildcards to match multiple names too (it stops on first name that matches), and UTF-8 names should work, case insensitive even.
 ```

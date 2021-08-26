@@ -88,9 +88,6 @@ AC_PATH_XTRA
 AC_OUTPUT([
   Makefile.autotools
   src/Makefile.autotools
-  src/coding/Makefile.autotools
-  src/layout/Makefile.autotools
-  src/meta/Makefile.autotools
   audacious/Makefile.autotools
   cli/Makefile.autotools
 ])

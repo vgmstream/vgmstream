@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.18)
+cmake_minimum_required(VERSION 3.5)
 project(libg719_decode)
 
 file(GLOB_RECURSE SOURCES "reference_code/*.c")

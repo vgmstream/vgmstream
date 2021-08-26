@@ -279,6 +279,8 @@ static int read_fmt(int big_endian, STREAMFILE* sf, off_t offset, riff_fmt_chunk
         }
 
         default:
+            /* FFmpeg may play it */
+            //vgm_logi("WWISE: unknown codec 0x%04x (report)\n", fmt->format);
             goto fail;
     }
 
@@ -418,8 +420,10 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
     }
 
     /* check for truncated RIFF */
-    if (file_size != riff_size + 0x08)
+    if (file_size != riff_size + 0x08) {
+        vgm_logi("RIFF: wrong expected size (report/re-rip?)\n");
         goto fail;
+    }
 
     /* read through chunks to verify format and find metadata */
     {

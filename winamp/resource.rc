@@ -4,7 +4,7 @@
 #define IDC_STATIC -1
 
 //elements: text, id, x, y, width, height [, style [, extended-style]]
-IDD_CONFIG DIALOGEX 0, 0, 187, 196
+IDD_CONFIG DIALOGEX 0, 0, 188, 220
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "in_vgmstream configuration"
 FONT 8, "MS Sans Serif", 0, 0, 0x0
@@ -44,12 +44,14 @@ BEGIN
     LTEXT           "Downmix",IDC_STATIC,7,115,48,12
     EDITTEXT        IDC_DOWNMIX_CHANNELS,52,112,37,14,ES_AUTOHSCROLL
 
-    CONTROL         "Disable tagfile",IDC_TAGFILE_DISABLE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,131,87,10
+    CONTROL         "Disable tagfile",IDC_TAGFILE_DISABLE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,132,87,10
 
-    CONTROL         "Force internal title",IDC_FORCE_TITLE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,147,87,10
+    CONTROL         "Force internal title",IDC_FORCE_TITLE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,148,87,10
 
-    CONTROL         "Enable unknown exts",IDC_EXTS_UNKNOWN_ON,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,163,87,10
+    CONTROL         "Enable unknown exts",IDC_EXTS_UNKNOWN_ON,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,164,87,10
 
-    CONTROL         "Enable common exts",IDC_EXTS_COMMON_ON,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,179,87,10
+    CONTROL         "Enable common exts",IDC_EXTS_COMMON_ON,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,180,87,10
+
+    PUSHBUTTON      "Open Log",IDC_LOG_BUTTON,7,196,50,14
 
 END

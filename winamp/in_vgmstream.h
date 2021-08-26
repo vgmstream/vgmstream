@@ -74,6 +74,16 @@ void load_config(In_Module* input_module, winamp_settings_t* settings, winamp_se
 INT_PTR CALLBACK configDlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 
+/* logger */
+typedef struct winamp_log_t winamp_log_t;
+void logger_init();
+void logger_free();
+void logger_callback(int level, const char* str);
+const char** logger_get_lines(int* p_max);
+
+extern winamp_log_t* walog;
+
+
 /* ************************************* */
 /* IN_UNICODE                            */
 /* ************************************* */
