@@ -148,7 +148,7 @@ bool VgmstreamPlugin::init() {
 
     vgmstream_settings_load();
 
-    vgmstream_set_log_callback(VGM_LOG_LEVEL_ALL, &log_callback);
+    vgmstream_set_log_callback(VGM_LOG_LEVEL_ALL, &vgmstream_log);
 
     return true;
 }
