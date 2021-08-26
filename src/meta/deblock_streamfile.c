@@ -1,4 +1,5 @@
 #include "deblock_streamfile.h"
+#include "../util/log.h"
 
 //todo move to utils or something
 

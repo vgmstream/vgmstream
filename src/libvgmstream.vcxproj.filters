@@ -1918,5 +1918,8 @@
     <ClCompile Include="meta\sbk.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="util\log.c">
+      <Filter>util\Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

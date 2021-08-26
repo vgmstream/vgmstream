@@ -16,10 +16,12 @@ list(REMOVE_ITEM MAIN_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/stack_alloc.h)
 source_group("Header Files\\coding" FILES ${CODING_HEADERS})
 source_group("Header Files\\layout" FILES ${LAYOUT_HEADERS})
 source_group("Header Files\\meta" FILES ${META_HEADERS})
+source_group("Header Files\\util" FILES ${UTIL_HEADERS})
 source_group("Header Files\\ext" FILES ${EXT_HEADERS})
 source_group("Source Files\\coding" FILES ${CODING_SOURCES})
 source_group("Source Files\\layout" FILES ${LAYOUT_SOURCES})
 source_group("Source Files\\meta" FILES ${META_SOURCES})
+source_group("Source Files\\util" FILES ${UTIL_SOURCES})
 
 add_library(libvgmstream STATIC
 	${CODING_HEADERS}
@@ -28,6 +30,8 @@ add_library(libvgmstream STATIC
 	${LAYOUT_SOURCES}
 	${META_HEADERS}
 	${META_SOURCES}
+	${UTIL_HEADERS}
+	${UTIL_SOURCES}
 	${EXT_HEADERS}
 	${MAIN_HEADERS}
 	${MAIN_SOURCES})
@@ -39,4 +43,5 @@ target_include_directories(libvgmstream PRIVATE
 	${VGM_SOURCE_DIR}/ext_includes
 	coding
 	layout
-	meta)
+	meta
+	util)

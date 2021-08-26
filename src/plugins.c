@@ -1,6 +1,7 @@
 #include "vgmstream.h"
 #include "plugins.h"
 #include "mixing.h"
+#include "util/log.h"
 
 
 /* ****************************************** */
@@ -545,4 +546,17 @@ void vgmstream_mixing_stereo_only(VGMSTREAM *vgmstream, int start) {
     }
     /* remove channels after stereo */
     mixing_push_killmix(vgmstream, start + 2);
+}
+
+
+/* ****************************************** */
+/* LOG: log                                   */
+/* ****************************************** */
+
+void vgmstream_set_log_callback(int level, void* callback) {
+    vgm_log_set_callback(NULL, level, 0, callback);
+}
+
+void vgmstream_set_log_stdout(int level) {
+    vgm_log_set_callback(NULL, level, 1, NULL);
 }

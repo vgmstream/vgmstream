@@ -21,9 +21,9 @@ META_SRCS = $(wildcard meta/*.c)
 META_OBJS = $(patsubst %.c,%.o,$(META_SRCS))
 OBJECTS += $(META_OBJS)
 
-EXT_LIBS_SRCS = $(wildcard ../ext_libs/*.c)
-EXT_LIBS_OBJS = $(patsubst %.c,%.o,$(EXT_LIBS_SRCS))
-OBJECTS += $(EXT_LIBS_OBJS)
+UTIL_SRCS = $(wildcard util/*.c)
+UTIL_OBJS = $(patsubst %.c,%.o,$(UTIL_SRCS))
+OBJECTS += $(UTIL_OBJS)
 
 
 libvgmstream.a: $(OBJECTS)
