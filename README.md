@@ -248,13 +248,13 @@ loop info, or apply subtle fixes, but is also limited in some ways (like ignorin
 standard tags). `.vgmstream` is a catch-all extension that may work as a last resort
 to make a file playable.
 
-Some plugins have options that allow common extensions to be played, making any
+Some plugins have options that allow "*common extensions*" to be played, making any
 renaming unnecessary. You may need to adjust plugin priority in player's options
 first. Note that vgmstream also accepts certain extension-less files as-is too.
 
 Similarly, vgmstream has a curated list of known extensions, that plugins may take
 into account and ignore unknowns. Through *TXTH* you can make unknown files playable,
-but you also need to either rename or set plugin options to allow "unknown extensions"
+but you also need to either rename or set plugin options to allow "*unknown extensions*"
 (or, preferably, report this new extension so it can be added to the known list).
 
 It's also possible to make a .txtp file that opens files with those common/unknown
@@ -356,9 +356,8 @@ the only option is renaming the companion extension to lowercase.
 A particularly nasty variation of that is that some formats load files by full
 name (e.g. `STREAM.SS0`), but sometimes the actual filename is in other case
 (`Stream.ss0`), and some files could even point to that with yet another case.
-You could try adding *symlinks* in various upper/lower/mixed cases to handle this.
-Currently there isn't any way to know what exact name is needed (other than
-hex-editting), though only a few formats do this, mainly *Ubisoft* banks.
+You could try adding *symlinks* in various upper/lower/mixed cases to handle this,
+though only a few formats do this, mainly *Ubisoft* banks.
 
 Regular formats without companion files should work fine in upper/lowercase.
 
@@ -514,6 +513,20 @@ You can also choose which channels to play using *TXTP*. For example, create
 a file named `song.adx#C1,2.txtp` to play only channels 1 and 2 from `song.adx`.
 *TXTP* also has command to set how files are downmixed.
 
+### Logged errors and unplayable supported files
+Some formats should normally play, but somehow don't. In those cases plugins
+can print vgmstream's error info to console (for example, `.fsb` with an unknown
+codec, `.hca/awb` with missing decryption key, bank has no audio, `.txth` is
+malformed, or `.wav` has an incorrectly ripped size).
+
+Console location and format depends on plugin:
+- *foobar2000*: found in *View menu > Console*
+- *Winamp*: open vgmstream's config (*Preferences... > Plug-ins > vgmstream* + *Configure*
+  button) then press "Open Log"
+- *Audacious*: start with `audacious -V` from terminal
+- CLI utils: printed to stdout directly
+
+Only a few errors are printed ATM but may be helpful for more common cases.
 
 ## Tagging
 Some of vgmstream's plugins support simple read-only tagging via external files.
