@@ -232,16 +232,21 @@ if(NOT WIN32 AND USE_G719)
 		COPYONLY)
 		add_subdirectory(${G719_PATH})
 	else()
-		include(FetchContent)
-		FetchContent_Populate(libg719_decode
-			GIT_REPOSITORY https://github.com/kode54/libg719_decode.git
-			SOURCE_DIR ${VGM_SOURCE_DIR}/dependencies/libg719_decode
-		)
-		configure_file(
-			${VGM_SOURCE_DIR}/ext_libs/libg719_decode/CMakeLists.txt
-			${VGM_SOURCE_DIR}/dependencies/libg719_decode/CMakeLists.txt
-		COPYONLY)
-		add_subdirectory(${libg719_decode_SOURCE_DIR})
+		find_package(Git QUIET)
+		if(Git_FOUND)
+			include(FetchContent)
+			FetchContent_Populate(libg719_decode
+				GIT_REPOSITORY https://github.com/kode54/libg719_decode.git
+				SOURCE_DIR ${VGM_SOURCE_DIR}/dependencies/libg719_decode
+			)
+			configure_file(
+				${VGM_SOURCE_DIR}/ext_libs/libg719_decode/CMakeLists.txt
+				${VGM_SOURCE_DIR}/dependencies/libg719_decode/CMakeLists.txt
+			COPYONLY)
+			add_subdirectory(${libg719_decode_SOURCE_DIR})
+		else()
+			set(USE_G719 OFF)
+		endif()
 	endif()
 endif()
 add_subdirectory(src)
