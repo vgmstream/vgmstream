@@ -59,3 +59,11 @@ Release
 # cmake stuff
 /build
 /cmake-build*
+CMakeCache.txt
+CMakeFiles
+/lib
+/cli/vgmstream_cli
+/cli/vgmstream123
+/audacious/vgmstream.so
+/audacious/Makefile
+cmake_install.cmake

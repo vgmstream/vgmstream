@@ -79,9 +79,12 @@ macro(setup_target TARGET)
 
 	if(USE_G719)
 		target_compile_definitions(${TARGET} PRIVATE VGM_USE_G719)
-		if(LINK)
+		if(WIN32 AND LINK)
 			add_dependencies(${TARGET} libg719_decode)
 			target_link_libraries(${TARGET} ${VGM_BINARY_DIR}/ext_libs/libg719_decode.lib)
+		endif()
+		if(NOT WIN32 AND LINK)
+			target_link_libraries(${TARGET} g719_decode)
 		endif()
 	endif()
 
