@@ -24,6 +24,8 @@ macro(setup_target TARGET)
 		target_link_libraries(${TARGET} m)
 	endif()
 
+	target_compile_definitions(${TARGET} PRIVATE VGM_LOG_OUTPUT)
+
 	if(USE_MPEG)
 		target_compile_definitions(${TARGET} PRIVATE VGM_USE_MPEG)
 		if(WIN32)

@@ -272,6 +272,8 @@ static int play_vgmstream(const char* filename, song_settings_t* cfg) {
         return -1;
     }
 
+    vgmstream_set_log_stdout(VGM_LOG_LEVEL_ALL);
+
     sf->stream_index = cfg->stream_index;
     vgmstream = init_vgmstream_from_STREAMFILE(sf);
     close_streamfile(sf);

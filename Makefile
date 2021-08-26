@@ -8,7 +8,7 @@ ifeq ($(VGMSTREAM_VERSION),)
 else
   VGMSTREAM_VERSION=$(VGMSTREAM_VERSION)
 endif
-DEF_CFLAGS += -DVGMSTREAM_VERSION_AUTO
+DEF_CFLAGS += -DVGMSTREAM_VERSION_AUTO -DVGM_LOG_OUTPUT
 
 ###############################################################################
 ### external defs

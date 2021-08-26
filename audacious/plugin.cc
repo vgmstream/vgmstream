@@ -133,18 +133,27 @@ bool VgmstreamPlugin::is_our_file(const char * filename, VFSFile & file) {
     return vgmstream_ctx_is_valid(filename, &cfg) > 0 ? true : false;
 }
 
+static void log_callback(int level, const char* str) {
+    if (level == VGM_LOG_LEVEL_DEBUG)
+        AUDDBG("vgmstream: %s", str);
+    else
+        AUDINFO("vgmstream: %s", str);
+}
+
 // called on startup (main thread)
 bool VgmstreamPlugin::init() {
-    AUDINFO("plugin start\n");
+    AUDINFO("vgmstream plugin start\n");
 
     vgmstream_settings_load();
+
+    vgmstream_set_log_callback(VGM_LOG_LEVEL_ALL, log_callback);
 
     return true;
 }
 
 // called on stop (main thread)
 void VgmstreamPlugin::cleanup() {
-    AUDINFO("plugin end\n");
+    AUDINFO("vgmstream plugin end\n");
 
     vgmstream_settings_save();
 }

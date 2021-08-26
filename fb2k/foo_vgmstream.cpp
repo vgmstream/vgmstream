@@ -39,6 +39,10 @@ extern "C" {
 #define PLUGIN_FILENAME "foo_input_vgmstream.dll"
 
 
+static void log_callback(int level, const char* str) {
+    console::formatter() /*<< "vgmstream: "*/ << str;
+}
+
 // called every time a file is added to the playlist (to get info) or when playing
 input_vgmstream::input_vgmstream() {
     vgmstream = NULL;
@@ -64,6 +68,8 @@ input_vgmstream::input_vgmstream() {
     override_title = false;
 
     load_settings();
+
+    vgmstream_set_log_callback(VGM_LOG_LEVEL_ALL, &log_callback);
 }
 
 // called on stop or when playlist info has been read
