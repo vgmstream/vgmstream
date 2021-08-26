@@ -344,6 +344,9 @@ void winamp_Init() {
 
     settings.is_xmplay = is_xmplay();
 
+    logger_init();
+    vgmstream_set_log_callback(VGM_LOG_LEVEL_ALL, logger_callback);
+
     /* get ini config */
     load_defaults(&defaults);
     load_config(&input_module, &settings, &defaults);
@@ -359,6 +362,7 @@ void winamp_Init() {
 
 /* called at program quit */
 void winamp_Quit() {
+    logger_free();
 }
 
 /* called before extension checks, to allow detection of mms://, etc */
