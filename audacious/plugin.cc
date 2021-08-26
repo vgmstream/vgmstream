@@ -133,11 +133,13 @@ bool VgmstreamPlugin::is_our_file(const char * filename, VFSFile & file) {
     return vgmstream_ctx_is_valid(filename, &cfg) > 0 ? true : false;
 }
 
-static void log_callback(int level, const char* str) {
+
+/* default output in audacious is: "INFO/DEBUG plugin.cc:xxx [(fn name)]: (msg)" */
+static void vgmstream_log(int level, const char* str) {
     if (level == VGM_LOG_LEVEL_DEBUG)
-        AUDDBG("vgmstream: %s", str);
+        AUDDBG("%s", str);
     else
-        AUDINFO("vgmstream: %s", str);
+        AUDINFO("%s", str);
 }
 
 // called on startup (main thread)
@@ -146,7 +148,7 @@ bool VgmstreamPlugin::init() {
 
     vgmstream_settings_load();
 
-    vgmstream_set_log_callback(VGM_LOG_LEVEL_ALL, log_callback);
+    vgmstream_set_log_callback(VGM_LOG_LEVEL_ALL, &log_callback);
 
     return true;
 }
