@@ -200,7 +200,7 @@ $cliPdbFiles = @(
 
 function Package
 {
-    if(!(Test-Path "Release/test.exe")) { Build }
+    Build
 
     if(!(Test-Path "Release/test.exe")) {
         Write-Error "Unable to find binaries, check for compilation errors"
