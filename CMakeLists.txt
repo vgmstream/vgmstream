@@ -53,12 +53,15 @@ option(USE_G719 "Use libg719_decode for support ITU-T G.719" ON)
 if(NOT WIN32)
 	set(G719_PATH CACHE PATH "Path to G.719 decoder")
 endif()
+option(USE_ATRAC9 "Use LibAtrac9 for support of ATRAC9" ON)
+if(NOT WIN32)
+	set(ATRAC9_PATH CACHE PATH "Path to LibAtrac9")
+endif()
 if(WIN32)
 	# May need to see if it is possible to get these to work on non-Windows systems too
-	option(USE_ATRAC9 "Use LibAtrac9 for support of ATRAC9" ON)
-    option(USE_CELT "Use libcelt for support of FSB CELT versions 0.6.1 and 0.11.0" ON)
-    option(USE_SPEEX "Use libspeex for support of SPEEX" ON)
+	option(USE_CELT "Use libcelt for support of FSB CELT versions 0.6.1 and 0.11.0" ON)
 endif()
+option(USE_SPEEX "Use libspeex for support of SPEEX" ON)
 
 # Build choices
 option(BUILD_CLI "Build vgmstream CLI" ON)
@@ -224,28 +227,62 @@ if(USE_MAIATRAC3PLUS)
 		message(FATAL_ERROR "Path to MAIATRAC3+ must be set. (Use MAIATRAC3PLUS_PATH)")
 	endif()
 endif()
-if(NOT WIN32 AND USE_G719)
-	if(G719_PATH)
-		configure_file(
-			${VGM_SOURCE_DIR}/ext_libs/libg719_decode/CMakeLists.txt
-			${G719_PATH}/CMakeLists.txt
-		COPYONLY)
-		add_subdirectory(${G719_PATH})
-	else()
-		find_package(Git QUIET)
-		if(Git_FOUND)
-			include(FetchContent)
-			FetchContent_Populate(libg719_decode
-				GIT_REPOSITORY https://github.com/kode54/libg719_decode.git
-				SOURCE_DIR ${VGM_SOURCE_DIR}/dependencies/libg719_decode
-			)
+if(NOT WIN32)
+	find_package(Git QUIET)
+	if(Git_FOUND)
+		include(FetchContent)
+	endif()
+	if(USE_G719)
+		if(NOT G719_PATH)
+			if(Git_FOUND)
+				set(G719_PATH ${VGM_SOURCE_DIR}/dependencies/libg719_decode)
+				FetchContent_Populate(libg719_decode
+					GIT_REPOSITORY https://github.com/kode54/libg719_decode
+					SOURCE_DIR ${G719_PATH}
+					BINARY_DIR ${G719_PATH}-build
+					SUBBUILD_DIR ${G719_PATH}-subbuild
+				)
+			else()
+				set(USE_G719 OFF)
+			endif()
+		endif()
+		if(G719_PATH)
 			configure_file(
 				${VGM_SOURCE_DIR}/ext_libs/libg719_decode/CMakeLists.txt
-				${VGM_SOURCE_DIR}/dependencies/libg719_decode/CMakeLists.txt
+				${G719_PATH}/
 			COPYONLY)
-			add_subdirectory(${libg719_decode_SOURCE_DIR})
-		else()
-			set(USE_G719 OFF)
+			add_subdirectory(${G719_PATH})
+		endif()
+	endif()
+	if(USE_ATRAC9)
+		if(NOT ATRAC9_PATH)
+			if(Git_FOUND)
+				set(ATRAC9_PATH ${VGM_SOURCE_DIR}/dependencies/LibAtrac9)
+				FetchContent_Populate(ATRAC9_FETCH
+					GIT_REPOSITORY https://github.com/Thealexbarney/LibAtrac9
+					SOURCE_DIR ${ATRAC9_PATH}
+					BINARY_DIR ${ATRAC9_PATH}-build
+					SUBBUILD_DIR ${ATRAC9_PATH}-subbuild
+				)
+			else()
+				set(USE_ATRAC9 OFF)
+			endif()
+		endif()
+		if(ATRAC9_PATH)
+			add_custom_target(ATRAC9_MAKE ALL
+				COMMAND make static CFLAGS="-fPIC"
+				WORKING_DIRECTORY ${ATRAC9_PATH}/C
+			)
+			add_library(atrac9 STATIC IMPORTED)
+			set_target_properties(atrac9 PROPERTIES
+				IMPORTED_LOCATION ${ATRAC9_PATH}/C/bin/libatrac9.a
+			)
+		endif()
+	endif()
+	if(USE_SPEEX)
+		find_package(Speex)
+		if(NOT Speex_FOUND)
+			set(USE_SPEEX OFF)
 		endif()
 	endif()
 endif()
@@ -302,11 +339,11 @@ message(STATUS "      FFmpeg: ${USE_FFMPEG}")
 message(STATUS "  MAIATRAC3+: ${USE_MAIATRAC3PLUS}")
 message(STATUS "     G.722.1: ${USE_G7221}")
 message(STATUS "       G.719: ${USE_G719}")
+message(STATUS "      ATRAC9: ${USE_ATRAC9}")
 if(WIN32)
-	message(STATUS "      ATRAC9: ${USE_ATRAC9}")
     message(STATUS "    FSB CELT: ${USE_CELT}")
-    message(STATUS "       SPEEX: ${USE_SPEEX}")
 endif()
+message(STATUS "       SPEEX: ${USE_SPEEX}")
 message(STATUS "")
 
 # Build Summary
