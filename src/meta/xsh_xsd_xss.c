@@ -2,7 +2,7 @@
 #include "../coding/coding.h"
 
 
-/* XSH+XSD/XSS - from Treyarch games [Spider-Man 2002 (Xbox), Kelly Slater's Pro Surfer (Xbox)] */
+/* XSH+XSD/XSS - from Treyarch games */
 VGMSTREAM* init_vgmstream_xsh_xsd_xss(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     STREAMFILE* sf_body = NULL;
@@ -30,34 +30,47 @@ VGMSTREAM* init_vgmstream_xsh_xsd_xss(STREAMFILE* sf) {
     if (target_subsong < 0 || target_subsong > total_subsongs || total_subsongs < 1) goto fail;
 
     switch(version) {
-        case 0x009D:
+        case 0x009D: /* Spider-Man 2002 (Xbox) */
             offset = 0x0c + (target_subsong-1) * 0x60;
 
             name_offset = offset + 0x00;
             name_size = 0x20;
-            stream_type = read_u32le(offset + 0x20,sf);
-            stream_offset = read_u32le(offset + 0x24,sf);
-            stream_size = read_u32le(offset + 0x28,sf);
-            flags = read_u32le(offset + 0x34,sf);
-            /* 0x38: flags? */
+            offset += 0x20;
+
+            stream_type = read_u32le(offset + 0x00,sf);
+            stream_offset = read_u32le(offset + 0x04,sf);
+            stream_size = read_u32le(offset + 0x08,sf);
+            flags = read_u32le(offset + 0x14,sf);
+            /* 0x18: flags? */
             num_samples = 0;
 
-            offset = offset + 0x3c;
+            offset += 0x1c;
             break;
 
-        case 0x0100:
-            offset = 0x0c + (target_subsong-1) * 0x64;
+        case 0x0100: /* Kelly Slater's Pro Surfer (Xbox) */
+        case 0x0101: /* Minority Report: Everybody Runs (Xbox), NHL 2K3 (Xbox) */
+            /* NHL has stream IDs instead of names */
+            if (read_u32le(0x0c,sf) > 0x1000) {
+                offset = 0x0c + (target_subsong-1) * 0x64;
+                name_offset = offset + 0x00;
+                name_size = 0x20;
+                offset += 0x20;
+            }
+            else {
+                offset = 0x0c + (target_subsong-1) * 0x48;
+                name_offset = offset + 0x00;
+                name_size = 0x00;
+                offset += 0x04;
+            }
 
-            name_offset = offset + 0x00;
-            name_size = 0x20;
-            stream_type = read_u32le(offset + 0x20,sf);
-            stream_offset = read_u32le(offset + 0x24,sf);
-            stream_size = read_u32le(offset + 0x28,sf);
-            flags = read_u32le(offset + 0x34,sf);
-            num_samples = read_u32le(offset + 0x38,sf);
-            /* 0x3c: flags? */
+            stream_type = read_u32le(offset + 0x00,sf);
+            stream_offset = read_u32le(offset + 0x04,sf);
+            stream_size = read_u32le(offset + 0x08,sf);
+            flags = read_u32le(offset + 0x14,sf);
+            num_samples = read_u32le(offset + 0x18,sf);
+            /* 0x1c: flags? */
 
-            offset = offset + 0x40;
+            offset += 0x20;
             break;
 
         default:
@@ -90,7 +103,7 @@ VGMSTREAM* init_vgmstream_xsh_xsd_xss(STREAMFILE* sf) {
         char filename[255];
         switch (version) {
             case 0x009D:
-                /* stream is a named .xss, with stream_offset/size = 0 (Spider-Man) */
+                /* stream is a named .xss, with stream_offset/size = 0 */
                 read_string(filename, name_size, name_offset,sf);
                 strcat(filename, ".xss");
 
@@ -112,7 +125,8 @@ VGMSTREAM* init_vgmstream_xsh_xsd_xss(STREAMFILE* sf) {
                 //break;
 
             case 0x0100:
-                /* bigfile with all streams (Kelly Slater) */
+            case 0x0101:
+                /* bigfile with all streams */
                 snprintf(filename, sizeof(filename), "%s", "STREAMS.XSS");
                 sf_body = open_streamfile_by_filename(sf,filename);
                 if (!sf_body) {
