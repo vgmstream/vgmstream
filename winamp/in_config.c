@@ -169,6 +169,10 @@ static void ini_set_b(const char *inifile, const char *entry, int val) {
 
     if (settings->loop_forever && settings->ignore_loop)
         settings->ignore_loop = 0;
+
+    /* exact 0 was allowed before (AKA "intro only") but confuses people and may result in unplayable files */
+    if (settings->loop_count <= 0)
+        settings->loop_count = 1;
 }
 
 static void save_config(In_Module* input_module, winamp_settings_t* settings) {
@@ -276,6 +280,10 @@ static int dlg_load_form(HWND hDlg, winamp_settings_t* settings) {
 
     dlg_combo_get(hDlg, IDC_GAIN_TYPE, (int*)&settings->gain_type);
     dlg_combo_get(hDlg, IDC_CLIP_TYPE, (int*)&settings->clip_type);
+
+    /* exact 0 was allowed before (AKA "intro only") but confuses people and may result in unplayable files */
+    if (settings->loop_count <= 0)
+        settings->loop_count = 1;
 
     return err ? 0 : 1;
 }

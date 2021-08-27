@@ -40,6 +40,10 @@ void input_vgmstream::load_settings() {
     override_title = cfg_OverrideTitle;
   //exts_unknown_on = cfg_ExtsUnknownOn;
   //exts_common_on = cfg_ExtsCommonOn;
+
+    /* exact 0 was allowed before (AKA "intro only") but confuses people and may result in unplayable files */
+    if (loop_count <= 0)
+        loop_count = 1;
 }
 void input_vgmstream::g_load_cfg(int *accept_unknown, int *accept_common) {
     //todo improve
