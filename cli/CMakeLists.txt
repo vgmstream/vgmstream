@@ -66,7 +66,7 @@ install(TARGETS vgmstream_cli
 
 # TODO: Make it so vgmstream123 can build with Windows (this probably needs a libao.dll included with vgmstream, though)
 
-if(NOT WIN32 AND AO_FOUND)
+if(NOT WIN32 AND USE_V123)
 	# vgmstream123
 
 	add_executable(vgmstream123
@@ -75,13 +75,13 @@ if(NOT WIN32 AND AO_FOUND)
 	# Link to the vgmstream library as well as libao
 	target_link_libraries(vgmstream123
 		libvgmstream
-		${AO_LIBRARY})
+		ao dl)
 
 	setup_target(vgmstream123 TRUE)
 
 	# Add AO include directory
 	target_include_directories(vgmstream123 PRIVATE
-		${AO_INCLUDE_DIR})
+		${LIBAO_PATH})
 
 	# Include the version string
 	target_compile_definitions(vgmstream123 PRIVATE VGMSTREAM_VERSION="${VGMSTREAM_VERSION}")
