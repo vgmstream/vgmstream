@@ -298,6 +298,10 @@ static int play_vgmstream(const char* filename, song_settings_t* cfg) {
      */
     if (!device) {
         ao_info *info = ao_driver_info(driver_id);
+        if (!info) {
+            printf("Cannot find audio device\n");
+            goto fail;
+        }
         printf("Audio device: %s\n", info->name);
         printf("Comment: %s\n", info->comment);
         putchar('\n');
@@ -452,7 +456,9 @@ fail:
     close_vgmstream(vgmstream);
 
     for (i = 0; i < 4; i++)
-        fclose(save_fps[i]);
+        if (save_fps[i]) {
+            fclose(save_fps[i]);
+        }
 
     return ret;
 }
