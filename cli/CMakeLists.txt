@@ -81,7 +81,7 @@ if(NOT WIN32 AND USE_V123)
 
 	# Add AO include directory
 	target_include_directories(vgmstream123 PRIVATE
-		${LIBAO_PATH})
+		${LIBAO_INCLUDE})
 
 	# Include the version string
 	target_compile_definitions(vgmstream123 PRIVATE VGMSTREAM_VERSION="${VGMSTREAM_VERSION}")
