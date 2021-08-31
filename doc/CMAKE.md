@@ -82,6 +82,10 @@ sudo apt-get install -y libmpg123-dev libvorbis-dev libspeex-dev
 sudo apt-get install -y libavformat-dev libavcodec-dev libavutil-dev libswresample-dev
 # for vgmstream123 and audacious
 sudo apt-get install -y libao-dev audacious-dev
+# for JSON dumping
+sudo apt-get install -y libjansson-dev
+# for static builds
+sudo apt-get install -y yasm libopus-dev
 # actual cmake
 sudo apt-get install -y cmake
 ```
@@ -118,12 +122,16 @@ All of these options are of type BOOL and can be set to either `ON` or `OFF`. Mo
 - **USE_MAIATRAC3PLUS**: Chooses if you wish to use MAIATRAC3+ for support of ATRAC3+. The default is `OFF`. It is not recommended to enable.
 - **USE_G7221**: Chooses if you wish to use G7221 for support of ITU-T G.722.1 annex C. The default is `ON`.
 - **USE_G719**: Chooses if you wish to use libg719_decode for support ITU-T G.719. The default is `ON`.
-
-The following options are currently only available for Windows:
-
 - **USE_ATRAC9**: Chooses if you wish to use LibAtrac9 for support of ATRAC9. The default is `ON`.
-- **USE_CELT**: Chooses if you wish to use libcelt for support of FSB CELT versions 0.6.1 and 0.11.0. The default is `ON`.
 - **USE_SPEEX**: Chooses if you wish to use libspeex for support of SPEEX. The default is `ON`.
+
+The following option is currently only available for Windows:
+
+- **USE_CELT**: Chooses if you wish to use libcelt for support of FSB CELT versions 0.6.1 and 0.11.0. The default is `ON`.
+
+The following option is only available for *nix-based OSes:
+
+- **USE_JANSSON**: Chooses if you wish to use libjansson for support of JSON dumping capabilities. The default is `ON`.
 
 #### Build Options
 
@@ -139,7 +147,9 @@ The following options are only available for Windows:
 
 The following option is only available for *nix-based OSes:
 
+- **BUILD_V123**: Chooses if you wih to build the vgmstream123 player. The default is `ON`.
 - **BUILD_AUDACIOUS**: Chooses if you wish to build the Audacious plugin. The default is `ON`.
+- **BUILD_STATIC**: Chooses if you wish to build the vgmstream CLI program, statically linking every dependency. Enabling this currently disables building vgmstream123 and the Audacious plugin. The default is `OFF`.
 
 #### Paths
 
@@ -149,10 +159,12 @@ If FDK-AAC/QAAC support is enabled, the following paths are required (with more 
 
 - **QAAC_PATH**: The path to the QAAC library. It can be obtained at https://github.com/kode54/qaac
 - **FDK_AAC_PATH**: The path to the FDK-AAC library. It can be obtained at https://github.com/kode54/fdk-aac
-
-If MAIATRAC3+ support is enabled, the following path is required:
-
-- **MAIATRAC3PLUS_PATH**: The path to the MAIATRAC3+ library. It is not recommended to use.
+- **MAIATRAC3PLUS_PATH**: The path to the MAIATRAC3+ library. If MAIATRAC3+ support is enabled, providing this path is required. It is not recommended to use.
+- **MPEG_PATH**: The path to the mpg123 library. It can be obtained from [the mpg123 project on SourceForge.net](https://sourceforge.net/projects/mpg123/files/mpg123/1.25.10/). If not set and static building is enabled, this will be downloaded automatically.
+- **FFMPEG_PATH**: The path to the FFmpeg source directory. It can be obtained at https://git.ffmpeg.org/ffmpeg.git If not set and static building is enabled, this will be downloaded automatically.
+- **G719_PATH**: The path to the G.719 decoder library. It can be obtained at https://github.com/kode54/libg719_decode If not set, it is downloaded automatically on Linux.
+- **ATRAC9_PATH**: The path to the Atrac9 library. It can be obtained at https://github.com/Thealexbarney/LibAtrac9 If not set, it is downloaded automatically on Linux.
+- **LIBAO_PATH**: The path to the AO library. If static building is enabled and you chose to build the vgmstream123 player, providing this path is required. It is not recommended to use.
 
 The CLI/vgmstream123 programs are normally installed to `CMAKE_INSTALL_PREFIX`, changing this will change where those are installed.
 
