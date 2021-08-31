@@ -911,6 +911,8 @@ void describe_vgmstream(VGMSTREAM* vgmstream, char* desc, int length) {
     char temp[TEMPSIZE];
     double time_mm, time_ss;
 
+    desc[0] = '\0';
+
     if (!vgmstream) {
         snprintf(temp,TEMPSIZE, "NULL VGMSTREAM");
         concatn(length,desc,temp);
