@@ -28,7 +28,7 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y libmpg123-dev libvorbis-dev libavformat-dev libavcodec-dev libavutil-dev libswresample-dev
-        sudo apt-get install -y libao-dev audacious-dev libjansson-dev
+        sudo apt-get install -y libao-dev audacious-dev libjansson-dev yasm libopus-dev
 
     - name: Create build environment
       # Some projects don't allow in-source building, so create a separate build directory
@@ -43,7 +43,7 @@ jobs:
       # Note the current convention is to use the -S and -B options here to specify source 
       # and build directories, but this is only available with CMake 3.13 and higher.  
       # The CMake binaries on the Github Actions machines are (as of this writing) 3.12
-      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE
+      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_STATIC=ON
 
     - name: Build
       working-directory: ${{runner.workspace}}/build
@@ -51,14 +51,13 @@ jobs:
       # Execute the build.  You can specify a specific target with "--target <NAME>"
       run: cmake --build . --config $BUILD_TYPE
 
-    # not useful since sharing artifacts between Linux distros ain't fun
-    #- name: Upload CLI tools artifact
-    #  uses: actions/upload-artifact@v2
-    #  with:
-    #      path: |
-    #        ${{runner.workspace}}/build/cli/vgmstream-cli
-    #        ${{runner.workspace}}/build/cli/vgmstream123      
-    #      name: vgmstream-cli
+    - name: Upload CLI tools artifact
+      uses: actions/upload-artifact@v2
+      with:
+          path: |
+            ${{runner.workspace}}/build/cli/vgmstream-cli
+          # ${{runner.workspace}}/build/cli/vgmstream123
+          name: vgmstream-cli
 
     #- name: Upload Audacious plugin artifact
     #  uses: actions/upload-artifact@v2
@@ -66,19 +65,21 @@ jobs:
     #      path: ${{runner.workspace}}/build/audacious/vgmstream.so
     #      name: vgmstream-audacious
 
-    #- name: Upload artifacts to S3
-    #  if: github.event_name != 'pull_request'
-    #  working-directory: ${{runner.workspace}}/build
-    #  shell: bash
-    #  env:
-    #      AWS_DEFAULT_REGION: us-west-1
-    #      AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY_ID}}
-    #      AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
-    #  run: |
-    #    cd cli
-    #    tar cvfz vgmstream-cli.tar.gz vgmstream-cli vgmstream123
-    #    cd ../audacious
-    #    tar cvfz vgmstream-audacious.tar.gz vgmstream.so
-    #    cd ..
-    #    aws s3 cp cli/vgmstream-cli.tar.gz s3://vgmstream-builds/${{github.sha}}/linux/vgmstream-cli.tar.gz --acl public-read 
-    #    aws s3 cp audacious/vgmstream-audacious.tar.gz s3://vgmstream-builds/${{github.sha}}/linux/vgmstream-audacious.tar.gz --acl public-read
+    - name: Upload artifacts to S3
+      if: github.event_name != 'pull_request'
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      env:
+          AWS_DEFAULT_REGION: us-west-1
+          AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY_ID}}
+          AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
+      # TODO: Add vgmstream123 to the archive and upload the Audacious plugin when it is supported
+      run: |
+        cd cli
+        tar cvfz vgmstream-cli.tar.gz vgmstream-cli
+        cd ..
+        aws s3 cp cli/vgmstream-cli.tar.gz s3://vgmstream-builds/${{github.sha}}/linux/vgmstream-cli.tar.gz --acl public-read
+      # cd audacious
+      # tar cvfz vgmstream-audacious.tar.gz vgmstream.so
+      # cd ..
+      # aws s3 cp audacious/vgmstream-audacious.tar.gz s3://vgmstream-builds/${{github.sha}}/linux/vgmstream-audacious.tar.gz --acl public-read
