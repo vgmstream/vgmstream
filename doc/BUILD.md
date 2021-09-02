@@ -157,6 +157,7 @@ sudo apt-get install -y gcc g++ make build-essential git
 sudo apt-get install -y libmpg123-dev libvorbis-dev libspeex-dev
 sudo apt-get install -y libavformat-dev libavcodec-dev libavutil-dev libswresample-dev
 sudo apt-get install -y libao-dev audacious-dev
+sudo apt-get install -y yasm libopus-dev
 sudo apt-get install -y cmake
 
 git clone https://github.com/vgmstream/vgmstream
@@ -404,7 +405,7 @@ Adds support for ITU-T G.719 (standardization of Polycom Siren 22), used in a fe
 - lib: ---
 - unknown license (possibly invalid and Polycom's)
 
-Use MSVC (use `g719.sln`). It can be built with GCC too, but you'll need to manually create scripts/makefiles.
+Use MSVC (use `g719.sln`). It can be built with GCC too, for example, using [the CMake script from this repository](../ext_libs/libg719_decode/CMakeLists.txt).
 
 
 ### FFmpeg

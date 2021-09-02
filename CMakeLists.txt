@@ -104,6 +104,9 @@ if(BUILD_STATIC)
 	set(BUILD_SHARED_LIBS OFF)
 	set(CMAKE_EXE_LINKER_FLAGS "-static-libgcc -static-libstdc++ -static")
 	
+	find_package(PkgConfig REQUIRED)
+	pkg_check_modules(PC_OPUS REQUIRED opus>=1.1)
+	
 	# Incompatible with static builds
 	set(BUILD_AUDACIOUS OFF)
 endif()

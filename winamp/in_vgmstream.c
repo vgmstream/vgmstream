@@ -539,17 +539,15 @@ void winamp_SetPan(int pan) {
 /* display info box (ALT+3) */
 int winamp_InfoBox(const in_char *fn, HWND hwnd) {
     char description[1024] = {0}, tmp[1024] = {0};
-    size_t description_size = 1024;
+    TCHAR tbuf[1024] = {0};
     double tmpVolume = 1.0;
-
-    concatn(description_size,description,PLUGIN_INFO "\n\n");
 
     if (!fn || !*fn) {
         /* no filename = current playing file */
         if (!vgmstream)
             return 0;
 
-        describe_vgmstream(vgmstream,description,description_size);
+        describe_vgmstream(vgmstream,description,sizeof(description));
     }
     else {
         /* some other file in playlist given by filename */
@@ -569,24 +567,21 @@ int winamp_InfoBox(const in_char *fn, HWND hwnd) {
         vgmstream_mixing_autodownmix(infostream, settings.downmix_channels);
         vgmstream_mixing_enable(infostream, 0, NULL, NULL);
 
-        describe_vgmstream(infostream,description,description_size);
+        describe_vgmstream(infostream,description,sizeof(description));
 
         close_vgmstream(infostream);
         infostream = NULL;
         tmpVolume = get_album_gain_volume(fn);
     }
 
+    snprintf(tmp, sizeof(tmp), "\nvolume: %.6f\n", tmpVolume);
+    concatn(sizeof(description), description, tmp);
 
-    {
-        TCHAR buf[1024] = {0};
-        size_t buf_size = 1024;
+    concatn(sizeof(description), description, "\n" PLUGIN_INFO);
 
-        snprintf(tmp, sizeof(tmp), "\nvolume: %.6f", tmpVolume);
-        concatn(description_size, description, tmp);
+    cfg_char_to_wchar(tbuf, sizeof(tbuf) / sizeof(TCHAR), description);
+    MessageBox(hwnd, tbuf, TEXT("Stream info"), MB_OK);
 
-        cfg_char_to_wchar(buf, buf_size, description);
-        MessageBox(hwnd,buf,TEXT("Stream info"),MB_OK);
-    }
     return 0;
 }
 

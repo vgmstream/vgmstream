@@ -1863,8 +1863,8 @@ static int parse_type_audio(ubi_sb_header* sb, off_t offset, STREAMFILE* sf) {
         /* PC can have subblock 2 based on two fields near the end but it wasn't seen so far */
 
         /* stream_type field is not used if the flag is not set (it even contains garbage in some versions)
-         * except for PS3 which has two hardware codecs (PSX and AT3) */
-        if (!software_flag && sb->platform != UBI_PS3)
+         * except for PS3 and new PSP which have two hardware codecs (PSX and AT3) */
+        if (!software_flag && sb->platform != UBI_PS3 && !(sb->platform == UBI_PSP && !sb->is_psp_old))
             sb->stream_type = 0x00;
     } else {
         sb->subblock_id = (sb->stream_type == 0x01) ? 0 : 1;
