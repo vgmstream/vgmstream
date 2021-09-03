@@ -722,6 +722,9 @@ static const hcakey_info hcakey_list[] = {
 
         // m HOLD'EM (Android)
         {369211553984367},      // 00014FCBC385AF6F
+		
+        // Sonic Colors Ultimate (multi)
+        {1991062320101111},     // 000712DC5250B6F7
 };
 
 #endif/*_HCA_KEYS_H_*/
