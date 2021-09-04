@@ -221,6 +221,7 @@ export DEF_CFLAGS LIBS_CFLAGS LIBS_LDFLAGS LIBS_TARGET_EXT_LIBS
 ###############################################################################
 ### internal defs
 ifeq ($(TARGET_OS),Windows_NT)
+  BIN_FILE = vgmstream-$(VGMSTREAM_VERSION)-win.zip
   ZIP_FILES  = COPYING
   ZIP_FILES += README.md
   ZIP_FILES += cli/test.exe
@@ -231,6 +232,7 @@ ifeq ($(TARGET_OS),Windows_NT)
   ZIP_FILES_AO  = cli/vgmstream123.exe
   ZIP_FILES_AO += $(LIBAO_DLL_PATH)/*.dll
 else
+  BIN_FILE = vgmstream-$(VGMSTREAM_VERSION)-bin.zip
   ZIP_FILES  = COPYING
   ZIP_FILES += README.md
   ZIP_FILES += cli/vgmstream-cli
@@ -245,23 +247,24 @@ buildrelease-ex: clean bin-ex
 
 buildfullrelease: clean sourceball bin
 
+# make a tmp copy of git's index to avoid including dev stuff
 sourceball:
 	rm -rf vgmstream-$(VGMSTREAM_VERSION)
 	git checkout-index -f -a --prefix=vgmstream-$(VGMSTREAM_VERSION)/
-#	git archive --format zip --output vgmstream-$(VGMSTREAM_VERSION).zip master
-	echo "#!/bin/sh" > vgmstream-$(VGMSTREAM_VERSION)/version-get.sh
-	echo "echo \"$(VGMSTREAM_VERSION)\"" >> vgmstream-$(VGMSTREAM_VERSION)/version-get.sh
-	tar cvzf "vgmstream-$(VGMSTREAM_VERSION)-src.tar.gz" vgmstream-$(VGMSTREAM_VERSION)/*
+#	echo "#!/bin/sh" > vgmstream-$(VGMSTREAM_VERSION)/version-get.sh
+#	echo "echo \"$(VGMSTREAM_VERSION)\"" >> vgmstream-$(VGMSTREAM_VERSION)/version-get.sh
+	tar cvzf "bin/vgmstream-$(VGMSTREAM_VERSION)-src.tar.gz" vgmstream-$(VGMSTREAM_VERSION)/*
+#	git archive --format zip --output bin/vgmstream-$(VGMSTREAM_VERSION)-src.zip master
 	rm -rf vgmstream-$(VGMSTREAM_VERSION)
 
 bin: vgmstream_cli winamp xmplay
 	mkdir -p bin
-	zip -FS -j "bin/vgmstream-$(VGMSTREAM_VERSION).zip" $(ZIP_FILES)
+	zip -FS -j "bin/$(BIN_FILE).zip" $(ZIP_FILES)
 
 #separate since vgmstream123 is kinda untested
 bin-ex: vgmstream_cli winamp xmplay vgmstream123
 	mkdir -p bin
-	zip -FS -j "bin/vgmstream-$(VGMSTREAM_VERSION).zip" $(ZIP_FILES) $(ZIP_FILES_AO)
+	zip -FS -j "bin/$(BIN_FILE).zip" $(ZIP_FILES) $(ZIP_FILES_AO)
 
 vgmstream_cli: version
 	$(MAKE) -C cli vgmstream_cli
