@@ -15,18 +15,25 @@ if((Test-Path $config_file)) { . $config_file }
 
 # - toolsets: "" (default), "v140" (MSVC 2015), "v141" (MSVC 2017), "v141_xp" (XP support), "v142" (MSVC 2019), etc
 if (!$toolset) { $toolset = "" }
+
 # - sdks: "" (default), "7.0" (Win7 SDK), "8.1" (Win8 SDK), "10.0" (Win10 SDK), etc
 if (!$sdk) { $sdk = "" }
+
 # - platforms: "" (default), "Win32"
 if (!$platform) { $platform = "" }
+
 # print compilation log
 #$log = 1
+
+# Debug or Release, usually
+if (!$configuration) { $configuration = "Release" }
+
 ###############################################################################
 
 $solution = "vgmstream_full.sln"
 $dependencies = "dependencies"
 $vswhere = "$dependencies/vswhere.exe"
-$config = "/p:Configuration=Release"
+$config = "/p:Configuration=" + $configuration
 # not used ATM
 $enable_aac = 0
 
@@ -155,7 +162,7 @@ function Clean
     Remove-Item -Path "cli/Release" -Recurse -ErrorAction Ignore
     Remove-Item -Path "ext_libs/Debug" -Recurse -ErrorAction Ignore
     Remove-Item -Path "ext_libs/Release" -Recurse -ErrorAction Ignore
-    Remove-Item -Path "ext_libs/Getopt/Release" -Recurse -ErrorAction Ignore
+    Remove-Item -Path "ext_libs/Getopt/Debug" -Recurse -ErrorAction Ignore
     Remove-Item -Path "ext_libs/Getopt/Release" -Recurse -ErrorAction Ignore
     Remove-Item -Path "fb2k/Debug" -Recurse -ErrorAction Ignore
     Remove-Item -Path "fb2k/Release" -Recurse -ErrorAction Ignore
@@ -174,48 +181,48 @@ function Clean
 $fb2kFiles = @(
     "ext_libs/*.dll",
     "ext_libs/libspeex/*.dll",
-    "Release/foo_input_vgmstream.dll",
+    "$configuration/foo_input_vgmstream.dll",
     "README.md"
 )
 
 $cliFiles = @(
     "ext_libs/*.dll",
     "ext_libs/libspeex/*.dll",
-    "Release/in_vgmstream.dll",
-    "Release/test.exe",
-    "Release/xmp-vgmstream.dll",
+    "$configuration/in_vgmstream.dll",
+    "$configuration/test.exe",
+    "$configuration/xmp-vgmstream.dll",
     "COPYING",
     "README.md"
 )
 
 $fb2kPdbFiles = @(
-    "Release/foo_input_vgmstream.pdb"
+    "$configuration/foo_input_vgmstream.pdb"
 )
 
 $cliPdbFiles = @(
-    "Release/in_vgmstream.pdb",
-    "Release/test.pdb",
-    "Release/xmp-vgmstream.pdb"
+    "$configuration/in_vgmstream.pdb",
+    "$configuration/test.pdb",
+    "$configuration/xmp-vgmstream.pdb"
 )
 
 function Package
 {
     Build
 
-    if(!(Test-Path "Release/test.exe")) {
+    if(!(Test-Path "$configuration/test.exe")) {
         Write-Error "Unable to find binaries, check for compilation errors"
     }
 
-    Compress-Archive $cliFiles Release/vgmstream-win.zip -Force
-    Compress-Archive $fb2kFiles Release/foo_input_vgmstream.zip -Force
-    Compress-Archive $cliPdbFiles Release/vgmstream-win.pdb.zip -Force
-    Compress-Archive $fb2kPdbFiles Release/foo_input_vgmstream.pdb.zip -Force
+    Compress-Archive $cliFiles $configuration/vgmstream-win.zip -Force
+    Compress-Archive $fb2kFiles $configuration/foo_input_vgmstream.zip -Force
+    Compress-Archive $cliPdbFiles $configuration/vgmstream-win.pdb.zip -Force
+    Compress-Archive $fb2kPdbFiles $configuration/foo_input_vgmstream.pdb.zip -Force
 
     md -Force bin
-    Move-Item Release/vgmstream-win.zip bin/vgmstream-win.zip -Force
-    Move-Item Release/foo_input_vgmstream.zip bin/foo_input_vgmstream.fb2k-component -Force
-    Move-Item Release/vgmstream-win.pdb.zip bin/vgmstream-win.pdb.zip -Force
-    Move-Item Release/foo_input_vgmstream.pdb.zip bin/foo_input_vgmstream.pdb.zip -Force
+    Move-Item $configuration/vgmstream-win.zip bin/vgmstream-win.zip -Force
+    Move-Item $configuration/foo_input_vgmstream.zip bin/foo_input_vgmstream.fb2k-component -Force
+    Move-Item $configuration/vgmstream-win.pdb.zip bin/vgmstream-win.pdb.zip -Force
+    Move-Item $configuration/foo_input_vgmstream.pdb.zip bin/foo_input_vgmstream.pdb.zip -Force
 }
 
 
