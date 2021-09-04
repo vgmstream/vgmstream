@@ -6,15 +6,51 @@
 #include "vgmstream.h"
 
 
+/* MSVC fixes (though mingw uses MSVCRT but not MSC_VER, maybe use AND?) */
+#if defined(__MSVCRT__) || defined(_MSC_VER)
+    #include <io.h>
+
+    #define fseek_v _fseeki64  //fseek
+    #define ftell_v _ftelli64  //ftell
+
+/*
+    #ifndef fseeko
+        #define fseeko fseek
+    #endif
+    #ifndef ftello
+        #define ftello ftell
+    #endif
+*/
+
+    #ifdef fileno
+        #undef fileno
+    #endif
+    #define fileno _fileno
+    #define fdopen _fdopen
+    #define dup _dup
+
+    #ifndef off64_t
+        #define off_t __int64
+    #endif
+
+#elif defined(XBMC)
+    #define fseek_v fseek
+    #define ftell_v ftell
+#else
+    #define fseek_v fseeko64  //fseeko
+    #define ftell_v ftello64  //ftelloo
+#endif
+
+
 /* a STREAMFILE that operates via standard IO using a buffer */
 typedef struct {
     STREAMFILE sf;          /* callbacks */
 
     FILE * infile;          /* actual FILE */
     char name[PATH_LIMIT];  /* FILE filename */
-    off_t offset;           /* last read offset (info) */
-    off_t buffer_offset;    /* current buffer data start */
-    uint8_t * buffer;       /* data buffer */
+    offv_t offset;           /* last read offset (info) */
+    offv_t buffer_offset;    /* current buffer data start */
+    uint8_t* buffer;       /* data buffer */
     size_t buffersize;      /* max buffer size */
     size_t validsize;       /* current buffer size */
     size_t filesize;        /* buffered file size */
@@ -23,7 +59,7 @@ typedef struct {
 static STREAMFILE* open_stdio_streamfile_buffer(const char * const filename, size_t buffersize);
 static STREAMFILE* open_stdio_streamfile_buffer_by_file(FILE *infile, const char * const filename, size_t buffersize);
 
-static size_t read_stdio(STDIO_STREAMFILE *streamfile, uint8_t *dst, off_t offset, size_t length) {
+static size_t read_stdio(STDIO_STREAMFILE *streamfile, uint8_t *dst, offv_t offset, size_t length) {
     size_t length_read_total = 0;
 
     if (!streamfile->infile || !dst || length <= 0 || offset < 0)
@@ -34,7 +70,7 @@ static size_t read_stdio(STDIO_STREAMFILE *streamfile, uint8_t *dst, off_t offse
     /* is the part of the requested length in the buffer? */
     if (offset >= streamfile->buffer_offset && offset < streamfile->buffer_offset + streamfile->validsize) {
         size_t length_to_read;
-        off_t offset_into_buffer = offset - streamfile->buffer_offset;
+        int offset_into_buffer = (offset - streamfile->buffer_offset);
 
         length_to_read = streamfile->validsize - offset_into_buffer;
         if (length_to_read > length)
@@ -69,7 +105,7 @@ static size_t read_stdio(STDIO_STREAMFILE *streamfile, uint8_t *dst, off_t offse
         }
 
         /* position to new offset */
-        if (fseeko(streamfile->infile,offset,SEEK_SET)) {
+        if (fseek_v(streamfile->infile, offset, SEEK_SET)) {
             break; /* this shouldn't happen in our code */
         }
 
@@ -78,8 +114,8 @@ static size_t read_stdio(STDIO_STREAMFILE *streamfile, uint8_t *dst, off_t offse
          * This bug is deterministic and seemingly appears randomly after seeking.
          * It results in fread returning data from the wrong area of the file.
          * HPS is one format that is almost always affected by this.
-         * May be related/same as open_stdio's bug when using dup() */
-        fseek(streamfile->infile, ftell(streamfile->infile), SEEK_SET);
+         * May be related/same as open_stdio's fixed bug when using dup(), try disabling */
+        fseek_v(streamfile->infile, ftell_v(streamfile->infile), SEEK_SET);
 #endif
 
         /* fill the buffer (offset now is beyond buffer_offset) */
@@ -115,7 +151,7 @@ static size_t read_stdio(STDIO_STREAMFILE *streamfile, uint8_t *dst, off_t offse
 static size_t get_size_stdio(STDIO_STREAMFILE *streamfile) {
     return streamfile->filesize;
 }
-static off_t get_offset_stdio(STDIO_STREAMFILE *streamfile) {
+static offv_t get_offset_stdio(STDIO_STREAMFILE *streamfile) {
     return streamfile->offset;
 }
 static void get_name_stdio(STDIO_STREAMFILE *streamfile, char *buffer, size_t length) {
@@ -186,18 +222,18 @@ static STREAMFILE* open_stdio_streamfile_buffer_by_file(FILE *infile, const char
 
     /* cache filesize */
     if (infile) {
-        fseeko(streamfile->infile,0,SEEK_END);
-        streamfile->filesize = ftello(streamfile->infile);
+        fseek_v(streamfile->infile, 0x00, SEEK_END);
+        streamfile->filesize = ftell_v(streamfile->infile);
+        fseek_v(streamfile->infile, 0x00, SEEK_SET);
     }
     else {
         streamfile->filesize = 0; /* allow virtual, non-existing files */
     }
 
     /* Typically fseek(o)/ftell(o) may only handle up to ~2.14GB, signed 32b = 0x7FFFFFFF
-     * (happens in banks like FSB, though rarely). Can be remedied with the
-     * preprocessor (-D_FILE_OFFSET_BITS=64 in GCC) but it's not well tested. */
+     * (happens in banks like FSB, though rarely). Should work if configured properly, log otherwise. */
     if (streamfile->filesize == 0xFFFFFFFF) { /* -1 on error */
-        VGM_LOG("STREAMFILE: ftell error\n");
+        vgm_logi("STREAMFILE: file size too big (report)\n");
         goto fail; /* can be ignored but may result in strange/unexpected behaviors */
     }
 
@@ -242,16 +278,16 @@ typedef struct {
     STREAMFILE sf;
 
     STREAMFILE *inner_sf;
-    off_t offset;           /* last read offset (info) */
-    off_t buffer_offset;    /* current buffer data start */
-    uint8_t * buffer;       /* data buffer */
+    offv_t offset;           /* last read offset (info) */
+    offv_t buffer_offset;    /* current buffer data start */
+    uint8_t* buffer;       /* data buffer */
     size_t buffersize;      /* max buffer size */
     size_t validsize;       /* current buffer size */
     size_t filesize;        /* buffered file size */
 } BUFFER_STREAMFILE;
 
 
-static size_t buffer_read(BUFFER_STREAMFILE *streamfile, uint8_t *dst, off_t offset, size_t length) {
+static size_t buffer_read(BUFFER_STREAMFILE *streamfile, uint8_t *dst, offv_t offset, size_t length) {
     size_t length_read_total = 0;
 
     if (!dst || length <= 0 || offset < 0)
@@ -260,7 +296,7 @@ static size_t buffer_read(BUFFER_STREAMFILE *streamfile, uint8_t *dst, off_t off
     /* is the part of the requested length in the buffer? */
     if (offset >= streamfile->buffer_offset && offset < streamfile->buffer_offset + streamfile->validsize) {
         size_t length_to_read;
-        off_t offset_into_buffer = offset - streamfile->buffer_offset;
+        int offset_into_buffer = (offset - streamfile->buffer_offset);
 
         length_to_read = streamfile->validsize - offset_into_buffer;
         if (length_to_read > length)
@@ -322,7 +358,7 @@ static size_t buffer_read(BUFFER_STREAMFILE *streamfile, uint8_t *dst, off_t off
 static size_t buffer_get_size(BUFFER_STREAMFILE *streamfile) {
     return streamfile->filesize; /* cache */
 }
-static size_t buffer_get_offset(BUFFER_STREAMFILE *streamfile) {
+static offv_t buffer_get_offset(BUFFER_STREAMFILE *streamfile) {
     return streamfile->offset; /* cache */
 }
 static void buffer_get_name(BUFFER_STREAMFILE *streamfile, char *buffer, size_t length) {
@@ -392,13 +428,13 @@ typedef struct {
     STREAMFILE *inner_sf;
 } WRAP_STREAMFILE;
 
-static size_t wrap_read(WRAP_STREAMFILE *streamfile, uint8_t *dst, off_t offset, size_t length) {
+static size_t wrap_read(WRAP_STREAMFILE *streamfile, uint8_t *dst, offv_t offset, size_t length) {
     return streamfile->inner_sf->read(streamfile->inner_sf, dst, offset, length); /* default */
 }
 static size_t wrap_get_size(WRAP_STREAMFILE *streamfile) {
     return streamfile->inner_sf->get_size(streamfile->inner_sf); /* default */
 }
-static size_t wrap_get_offset(WRAP_STREAMFILE *streamfile) {
+static offv_t wrap_get_offset(WRAP_STREAMFILE *streamfile) {
     return streamfile->inner_sf->get_offset(streamfile->inner_sf); /* default */
 }
 static void wrap_get_name(WRAP_STREAMFILE *streamfile, char *buffer, size_t length) {
@@ -446,12 +482,12 @@ typedef struct {
     STREAMFILE sf;
 
     STREAMFILE* inner_sf;
-    off_t start;
+    offv_t start;
     size_t size;
 } CLAMP_STREAMFILE;
 
-static size_t clamp_read(CLAMP_STREAMFILE* streamfile, uint8_t* dst, off_t offset, size_t length) {
-    off_t inner_offset = streamfile->start + offset;
+static size_t clamp_read(CLAMP_STREAMFILE* streamfile, uint8_t* dst, offv_t offset, size_t length) {
+    offv_t inner_offset = streamfile->start + offset;
     size_t clamp_length = length;
 
     if (offset + length > streamfile->size) {
@@ -466,7 +502,7 @@ static size_t clamp_read(CLAMP_STREAMFILE* streamfile, uint8_t* dst, off_t offse
 static size_t clamp_get_size(CLAMP_STREAMFILE* streamfile) {
     return streamfile->size;
 }
-static off_t clamp_get_offset(CLAMP_STREAMFILE* streamfile) {
+static offv_t clamp_get_offset(CLAMP_STREAMFILE* streamfile) {
     return streamfile->inner_sf->get_offset(streamfile->inner_sf) - streamfile->start;
 }
 static void clamp_get_name(CLAMP_STREAMFILE* streamfile, char* buffer, size_t length) {
@@ -491,7 +527,7 @@ static void clamp_close(CLAMP_STREAMFILE* streamfile) {
     free(streamfile);
 }
 
-STREAMFILE* open_clamp_streamfile(STREAMFILE* streamfile, off_t start, size_t size) {
+STREAMFILE* open_clamp_streamfile(STREAMFILE* streamfile, offv_t start, size_t size) {
     CLAMP_STREAMFILE* this_sf = NULL;
 
     if (!streamfile || size == 0) return NULL;
@@ -515,7 +551,7 @@ STREAMFILE* open_clamp_streamfile(STREAMFILE* streamfile, off_t start, size_t si
 
     return &this_sf->sf;
 }
-STREAMFILE* open_clamp_streamfile_f(STREAMFILE* streamfile, off_t start, size_t size) {
+STREAMFILE* open_clamp_streamfile_f(STREAMFILE* streamfile, offv_t start, size_t size) {
     STREAMFILE* new_sf = open_clamp_streamfile(streamfile, start, size);
     if (!new_sf)
         close_streamfile(streamfile);
@@ -530,13 +566,13 @@ typedef struct {
     STREAMFILE *inner_sf;
     void* data; /* state for custom reads, malloc'ed + copied on open (to re-open streamfiles cleanly) */
     size_t data_size;
-    size_t (*read_callback)(STREAMFILE *, uint8_t *, off_t, size_t, void*); /* custom read to modify data before copying into buffer */
+    size_t (*read_callback)(STREAMFILE *, uint8_t *, offv_t, size_t, void*); /* custom read to modify data before copying into buffer */
     size_t (*size_callback)(STREAMFILE *, void*); /* size when custom reads make data smaller/bigger than underlying streamfile */
     int (*init_callback)(STREAMFILE*, void*); /* init the data struct members somehow, return >= 0 if ok */
     void (*close_callback)(STREAMFILE*, void*); /* close the data struct members somehow */
 } IO_STREAMFILE;
 
-static size_t io_read(IO_STREAMFILE *streamfile, uint8_t *dst, off_t offset, size_t length) {
+static size_t io_read(IO_STREAMFILE *streamfile, uint8_t *dst, offv_t offset, size_t length) {
     return streamfile->read_callback(streamfile->inner_sf, dst, offset, length, streamfile->data);
 }
 static size_t io_get_size(IO_STREAMFILE *streamfile) {
@@ -545,7 +581,7 @@ static size_t io_get_size(IO_STREAMFILE *streamfile) {
     else
         return streamfile->inner_sf->get_size(streamfile->inner_sf); /* default */
 }
-static off_t io_get_offset(IO_STREAMFILE *streamfile) {
+static offv_t io_get_offset(IO_STREAMFILE *streamfile) {
     return streamfile->inner_sf->get_offset(streamfile->inner_sf);  /* default */
 }
 static void io_get_name(IO_STREAMFILE *streamfile, char *buffer, size_t length) {
@@ -629,13 +665,13 @@ typedef struct {
     char fakename[PATH_LIMIT];
 } FAKENAME_STREAMFILE;
 
-static size_t fakename_read(FAKENAME_STREAMFILE *streamfile, uint8_t *dst, off_t offset, size_t length) {
+static size_t fakename_read(FAKENAME_STREAMFILE *streamfile, uint8_t *dst, offv_t offset, size_t length) {
     return streamfile->inner_sf->read(streamfile->inner_sf, dst, offset, length); /* default */
 }
 static size_t fakename_get_size(FAKENAME_STREAMFILE *streamfile) {
     return streamfile->inner_sf->get_size(streamfile->inner_sf); /* default */
 }
-static size_t fakename_get_offset(FAKENAME_STREAMFILE *streamfile) {
+static offv_t fakename_get_offset(FAKENAME_STREAMFILE *streamfile) {
     return streamfile->inner_sf->get_offset(streamfile->inner_sf); /* default */
 }
 static void fakename_get_name(FAKENAME_STREAMFILE *streamfile, char *buffer, size_t length) {
@@ -714,13 +750,13 @@ typedef struct {
     STREAMFILE **inner_sfs;
     size_t inner_sfs_size;
     size_t *sizes;
-    off_t size;
-    off_t offset;
+    offv_t size;
+    offv_t offset;
 } MULTIFILE_STREAMFILE;
 
-static size_t multifile_read(MULTIFILE_STREAMFILE *streamfile, uint8_t *dst, off_t offset, size_t length) {
+static size_t multifile_read(MULTIFILE_STREAMFILE *streamfile, uint8_t *dst, offv_t offset, size_t length) {
     int i, segment = 0;
-    off_t segment_offset = 0;
+    offv_t segment_offset = 0;
     size_t done = 0;
 
     if (offset > streamfile->size) {
@@ -757,7 +793,7 @@ static size_t multifile_read(MULTIFILE_STREAMFILE *streamfile, uint8_t *dst, off
 static size_t multifile_get_size(MULTIFILE_STREAMFILE *streamfile) {
     return streamfile->size;
 }
-static size_t multifile_get_offset(MULTIFILE_STREAMFILE * streamfile) {
+static offv_t multifile_get_offset(MULTIFILE_STREAMFILE * streamfile) {
     return streamfile->offset;
 }
 static void multifile_get_name(MULTIFILE_STREAMFILE *streamfile, char *buffer, size_t length) {
@@ -1410,15 +1446,15 @@ void get_streamfile_ext(STREAMFILE* sf, char* buffer, size_t size) {
 /* debug util, mainly for custom IO testing */
 void dump_streamfile(STREAMFILE* sf, int num) {
 #ifdef VGM_DEBUG_OUTPUT
-    off_t offset = 0;
+    offv_t offset = 0;
     FILE* f = NULL;
 
     if (num >= 0) {
         char filename[PATH_LIMIT];
         char dumpname[PATH_LIMIT];
 
-        get_streamfile_filename(sf, filename, PATH_LIMIT);
-        snprintf(dumpname,PATH_LIMIT, "%s_%02i.dump", filename, num);
+        get_streamfile_filename(sf, filename, sizeof(filename));
+        snprintf(dumpname, sizeof(dumpname), "%s_%02i.dump", filename, num);
 
         f = fopen(dumpname,"wb");
         if (!f) return;
@@ -1426,20 +1462,20 @@ void dump_streamfile(STREAMFILE* sf, int num) {
 
     VGM_LOG("dump streamfile: size %x\n", get_streamfile_size(sf));
     while (offset < get_streamfile_size(sf)) {
-        uint8_t buffer[0x8000];
-        size_t read;
+        uint8_t buf[0x8000];
+        size_t bytes;
 
-        read = read_streamfile(buffer,offset,0x8000,sf);
-        if(!read) {
+        bytes = read_streamfile(buf, offset, sizeof(buf), sf);
+        if(!bytes) {
             VGM_LOG("dump streamfile: can't read at %lx\n", offset);
             break;
         }
 
         if (f)
-            fwrite(buffer,sizeof(uint8_t),read, f);
+            fwrite(buf, sizeof(uint8_t), bytes, f);
         else
-            VGM_LOGB(buffer,read,0);
-        offset += read;
+            VGM_LOGB(buf, bytes, 0);
+        offset += bytes;
     }
 
     if (f) {

@@ -682,6 +682,6 @@ int mpc_get_samples(STREAMFILE* sf, off_t offset, int32_t* p_samples, int32_t* p
 
 
 /* helper to pass a wrapped, clamped, fake extension-ed, SF to another meta */
-STREAMFILE* setup_subfile_streamfile(STREAMFILE* sf, off_t subfile_offset, size_t subfile_size, const char* extension);
+STREAMFILE* setup_subfile_streamfile(STREAMFILE* sf, offv_t subfile_offset, size_t subfile_size, const char* extension);
 
 #endif /*_CODING_H*/

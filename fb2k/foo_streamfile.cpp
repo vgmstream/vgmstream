@@ -24,8 +24,8 @@ typedef struct {
     service_ptr_t<file> m_file; /* foobar IO service */
     abort_callback * p_abort;   /* foobar error stuff */
     char * name;                /* IO filename */
-    off_t offset;           /* last read offset (info) */
-    off_t buffer_offset;    /* current buffer data start */
+    offv_t offset;           /* last read offset (info) */
+    offv_t buffer_offset;    /* current buffer data start */
     uint8_t * buffer;       /* data buffer */
     size_t buffersize;      /* max buffer size */
     size_t validsize;       /* current buffer size */
@@ -35,7 +35,7 @@ typedef struct {
 static STREAMFILE * open_foo_streamfile_buffer(const char * const filename, size_t buffersize, abort_callback * p_abort, t_filestats * stats);
 static STREAMFILE * open_foo_streamfile_buffer_by_file(service_ptr_t<file> m_file, bool m_file_opened, const char * const filename, size_t buffersize, abort_callback * p_abort);
 
-static size_t read_foo(FOO_STREAMFILE *streamfile, uint8_t * dest, off_t offset, size_t length) {
+static size_t read_foo(FOO_STREAMFILE *streamfile, uint8_t * dest, offv_t offset, size_t length) {
     size_t length_read_total = 0;
 
     if (!streamfile || !streamfile->m_file_opened || !dest || length <= 0 || offset < 0)
@@ -44,13 +44,13 @@ static size_t read_foo(FOO_STREAMFILE *streamfile, uint8_t * dest, off_t offset,
     /* is the part of the requested length in the buffer? */
     if (offset >= streamfile->buffer_offset && offset < streamfile->buffer_offset + streamfile->validsize) {
         size_t length_to_read;
-        off_t offset_into_buffer = offset - streamfile->buffer_offset;
+        int offset_into_buffer = (offset - streamfile->buffer_offset);
 
         length_to_read = streamfile->validsize - offset_into_buffer;
         if (length_to_read > length)
             length_to_read = length;
 
-        memcpy(dest,streamfile->buffer + offset_into_buffer,length_to_read);
+        memcpy(dest, streamfile->buffer + offset_into_buffer, length_to_read);
         length_read_total += length_to_read;
         length -= length_to_read;
         offset += length_to_read;
@@ -112,7 +112,7 @@ static size_t read_foo(FOO_STREAMFILE *streamfile, uint8_t * dest, off_t offset,
 static size_t get_size_foo(FOO_STREAMFILE * streamfile) {
     return streamfile->filesize;
 }
-static off_t get_offset_foo(FOO_STREAMFILE *streamfile) {
+static offv_t get_offset_foo(FOO_STREAMFILE *streamfile) {
     return streamfile->offset;
 }
 static void get_name_foo(FOO_STREAMFILE *streamfile,char *buffer,size_t length) {
@@ -165,9 +165,9 @@ static STREAMFILE * open_foo_streamfile_buffer_by_file(service_ptr_t<file> m_fil
     streamfile = (FOO_STREAMFILE *) calloc(1,sizeof(FOO_STREAMFILE));
     if (!streamfile) goto fail;
 
-    streamfile->sf.read = (size_t (__cdecl *)(_STREAMFILE *,uint8_t *,off_t,size_t)) read_foo;
+    streamfile->sf.read = (size_t (__cdecl *)(_STREAMFILE *,uint8_t *,offv_t,size_t)) read_foo;
     streamfile->sf.get_size = (size_t (__cdecl *)(_STREAMFILE *)) get_size_foo;
-    streamfile->sf.get_offset = (off_t (__cdecl *)(_STREAMFILE *)) get_offset_foo;
+    streamfile->sf.get_offset = (offv_t (__cdecl *)(_STREAMFILE *)) get_offset_foo;
     streamfile->sf.get_name = (void (__cdecl *)(_STREAMFILE *,char *,size_t)) get_name_foo;
     streamfile->sf.open = (_STREAMFILE *(__cdecl *)(_STREAMFILE *,const char *const ,size_t)) open_foo;
     streamfile->sf.close = (void (__cdecl *)(_STREAMFILE *)) close_foo;

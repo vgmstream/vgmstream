@@ -42,15 +42,15 @@ typedef struct {
 static STREAMFILE *open_winamp_streamfile_by_file(FILE *infile, const char * path);
 //static STREAMFILE *open_winamp_streamfile_by_ipath(const in_char *wpath);
 
-static size_t wasf_read(WINAMP_STREAMFILE* sf, uint8_t* dest, off_t offset, size_t length) {
+static size_t wasf_read(WINAMP_STREAMFILE* sf, uint8_t* dest, offv_t offset, size_t length) {
     return sf->stdiosf->read(sf->stdiosf, dest, offset, length);
 }
 
-static off_t wasf_get_size(WINAMP_STREAMFILE* sf) {
+static size_t wasf_get_size(WINAMP_STREAMFILE* sf) {
     return sf->stdiosf->get_size(sf->stdiosf);
 }
 
-static off_t wasf_get_offset(WINAMP_STREAMFILE* sf) {
+static offv_t wasf_get_offset(WINAMP_STREAMFILE* sf) {
     return sf->stdiosf->get_offset(sf->stdiosf);
 }
 
