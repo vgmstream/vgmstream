@@ -23,8 +23,8 @@ typedef struct {
     uint32_t channel_layout;
 
     int is_external;
-    off_t stream_offsets[MAX_CHANNELS];
-    size_t stream_sizes[MAX_CHANNELS];
+    uint32_t stream_offsets[MAX_CHANNELS];
+    uint32_t stream_sizes[MAX_CHANNELS];
 
     off_t sound_name_offset;
     off_t config_name_offset;
