@@ -48,7 +48,8 @@ https://github.com/bnnm/vgmstream-builds/raw/master/bin/vgmstream-latest-test-u.
 You may compile them from source as well.
 
 For Linux and other O.S., you need to build vgmstream manually (see *vgmstream/doc/BUILD.md*
-in source).
+in source). For a quick build call `/make-build-cmake.sh` (for Debian/Ubuntu-style distros,
+installs various deps first so you may prefer to call commands manually).
 
 ### Needed extra files (for Windows)
 On Windows support for some codecs (Ogg Vorbis, MPEG audio, etc.) is done with external
