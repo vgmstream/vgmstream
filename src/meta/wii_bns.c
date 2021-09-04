@@ -8,7 +8,7 @@ VGMSTREAM* init_vgmstream_wii_bns(STREAMFILE* sf) {
     off_t bns_offset;
     uint32_t info_offset = 0, data_offset = 0;
     uint32_t channel_info_offset_list_offset;
-	int channels, loop_flag, sample_rate;
+    int channels, loop_flag, sample_rate;
     uint32_t sample_count, loop_start;
 
     /* checks */
@@ -106,7 +106,7 @@ VGMSTREAM* init_vgmstream_wii_bns(STREAMFILE* sf) {
         channel_info_offset_list_offset = info_offset + read_u32be(info_offset+0x10,sf);
     }
 
-	/* build the VGMSTREAM */
+    /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 

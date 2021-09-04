@@ -5,7 +5,7 @@ VGMSTREAM* init_vgmstream_adp_bos(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     off_t start_offset;
     int loop_flag = 0;
-	int channels;
+    int channels;
 
     /* checks */
     if (!check_extensions(sf,"adp"))
@@ -19,7 +19,7 @@ VGMSTREAM* init_vgmstream_adp_bos(STREAMFILE* sf) {
     start_offset = 0x18;
 
 
-	/* build the VGMSTREAM */
+    /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 

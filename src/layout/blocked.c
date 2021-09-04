@@ -239,7 +239,7 @@ void blocked_count_samples(VGMSTREAM* vgmstream, STREAMFILE* sf, off_t offset) {
                 case coding_PCM8_U_int: block_samples = pcm8_bytes_to_samples(vgmstream->current_block_size, 1); break;
                 case coding_XBOX_IMA:   block_samples = xbox_ima_bytes_to_samples(vgmstream->current_block_size, 1); break;
                 case coding_NGC_DSP:    block_samples = dsp_bytes_to_samples(vgmstream->current_block_size, 1); break;
-                case coding_PSX:     	block_samples = ps_bytes_to_samples(vgmstream->current_block_size,1); break;
+                case coding_PSX:        block_samples = ps_bytes_to_samples(vgmstream->current_block_size,1); break;
                 default:
                     VGM_LOG("BLOCKED: missing codec\n");
                     return;

@@ -1015,21 +1015,21 @@ size_t aac_get_samples(STREAMFILE* sf, off_t start_offset, size_t bytes) {
 
 /* variable-sized var reader */
 static int mpc_get_size(uint8_t* header, int header_size, int pos, int32_t* p_size) {
-	uint8_t tmp;
-	int32_t size = 0;
+    uint8_t tmp;
+    int32_t size = 0;
 
-	do {
+    do {
         if (pos >= header_size)
             return pos;
 
-		tmp = header[pos];
-		size = (size << 7) | (tmp & 0x7F);
-		pos++;
-	}
+        tmp = header[pos];
+        size = (size << 7) | (tmp & 0x7F);
+        pos++;
+    }
     while((tmp & 0x80));
 
-	*p_size = size;
-	return pos;
+    *p_size = size;
+    return pos;
 }
 
 int mpc_get_samples(STREAMFILE* sf, off_t offset, int32_t* p_samples, int32_t* p_delay) {

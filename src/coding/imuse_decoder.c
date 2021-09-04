@@ -289,8 +289,8 @@ imuse_codec_data* init_imuse(STREAMFILE* sf, int channels) {
             while (counter > 0) {
                 if (counter & i)
                     value += step;
-				step >>= 1;
-				counter >>= 1;
+                step >>= 1;
+                counter >>= 1;
             }
 
             data->adpcm_table[i + j * 64] = value; /* non sequential: all 64 [0]s, [1]s ... [88]s */

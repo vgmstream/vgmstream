@@ -26,8 +26,8 @@ extern void fft(int n, float* xRe, float* xIm, float* yRe, float* yIm);
 #define RELIC_MAX_SIZE  RELIC_SIZE_HIGH
 #define RELIC_MAX_FREQ  (RELIC_MAX_SIZE / 2)
 #define RELIC_MAX_FFT   (RELIC_MAX_SIZE / 4)
-#define	RELIC_MIN_BITRATE  256
-#define	RELIC_MAX_BITRATE  2048
+#define RELIC_MIN_BITRATE  256
+#define RELIC_MAX_BITRATE  2048
 //#define RELIC_MAX_FRAME_SIZE  ((RELIC_MAX_BITRATE / 8) + 0x04) /* extra 0x04 for the bitreader */
 
 

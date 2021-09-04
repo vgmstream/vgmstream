@@ -234,7 +234,7 @@ static void load_awb_name(STREAMFILE* sf, STREAMFILE* sf_acb, VGMSTREAM* vgmstre
             }
         }
 
-		/* probably loaded */
+        /* probably loaded */
         load_acb_wave_name(sf_acb, vgmstream, waveid, port, is_memory);
 
         close_streamfile(sf_acb);

@@ -5,10 +5,10 @@
 #define COLUMN_BITMASK_TYPE       0x0f
 
 enum columna_flag_t {
-	COLUMN_FLAG_NAME            = 0x10,
-	COLUMN_FLAG_DEFAULT         = 0x20,
-	COLUMN_FLAG_ROW             = 0x40,
-	COLUMN_FLAG_UNDEFINED       = 0x80 /* shouldn't exist */
+    COLUMN_FLAG_NAME            = 0x10,
+    COLUMN_FLAG_DEFAULT         = 0x20,
+    COLUMN_FLAG_ROW             = 0x40,
+    COLUMN_FLAG_UNDEFINED       = 0x80 /* shouldn't exist */
 };
 
 enum column_type_t {

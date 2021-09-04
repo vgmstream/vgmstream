@@ -30,25 +30,25 @@ void clHCA_delete(clHCA *);
 int clHCA_DecodeHeader(clHCA *, const void *data, unsigned int size);
 
 typedef struct clHCA_stInfo {
-	unsigned int version;
-	unsigned int headerSize;
-	unsigned int samplingRate;
-	unsigned int channelCount;
-	unsigned int blockSize;
-	unsigned int blockCount;
+    unsigned int version;
+    unsigned int headerSize;
+    unsigned int samplingRate;
+    unsigned int channelCount;
+    unsigned int blockSize;
+    unsigned int blockCount;
     unsigned int encoderDelay;      /* samples appended to the beginning */
     unsigned int encoderPadding;    /* samples appended to the end */
-	unsigned int loopEnabled;
-	unsigned int loopStartBlock;
-	unsigned int loopEndBlock;
+    unsigned int loopEnabled;
+    unsigned int loopStartBlock;
+    unsigned int loopEndBlock;
     unsigned int loopStartDelay;    /* samples in block before loop starts */
     unsigned int loopEndPadding;    /* samples in block after loop ends */
     unsigned int samplesPerBlock;   /* should be 1024 */
-	const char *comment;
-	unsigned int encryptionEnabled; /* requires keycode */
+    const char *comment;
+    unsigned int encryptionEnabled; /* requires keycode */
 
-	/* Derived sample formulas:
-	 * - sample count: blockCount*samplesPerBlock - encoderDelay - encoderPadding;
+    /* Derived sample formulas:
+     * - sample count: blockCount*samplesPerBlock - encoderDelay - encoderPadding;
      * - loop start sample = loopStartBlock*samplesPerBlock - encoderDelay + loopStartDelay
      * - loop end sample = loopEndBlock*samplesPerBlock - encoderDelay + (samplesPerBlock - info.loopEndPadding)
      */

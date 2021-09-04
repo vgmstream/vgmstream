@@ -26,8 +26,8 @@ typedef struct {
     off_t stream_offset;
 } xvag_header;
 
-static int init_xvag_atrac9(STREAMFILE* sf, VGMSTREAM* vgmstream, xvag_header * xvag, off_t chunk_offset);
-static layered_layout_data* build_layered_xvag(STREAMFILE* sf, xvag_header * xvag, off_t chunk_offset, off_t start_offset);
+static int init_xvag_atrac9(STREAMFILE* sf, VGMSTREAM* vgmstream, xvag_header* xvag, off_t chunk_offset);
+static layered_layout_data* build_layered_xvag(STREAMFILE* sf, xvag_header* xvag, off_t chunk_offset, off_t start_offset);
 
 /* XVAG - Sony's Scream Tool/Stream Creator format (God of War III, Ratchet & Clank Future, The Last of Us, Uncharted) */
 VGMSTREAM* init_vgmstream_xvag(STREAMFILE* sf) {
@@ -42,7 +42,7 @@ VGMSTREAM* init_vgmstream_xvag(STREAMFILE* sf) {
 
     /* checks */
     /* .xvag: standard
-     * (extensionless): The Last Of Us (PS3) speech files */
+     * (extensionless): The Last of Us (PS3) speech files */
     if (!check_extensions(sf,"xvag,"))
         goto fail;
     if (!is_id32be(0x00,sf, "XVAG"))
@@ -254,7 +254,7 @@ fail:
 }
 
 #ifdef VGM_USE_ATRAC9
-static int init_xvag_atrac9(STREAMFILE* sf, VGMSTREAM* vgmstream, xvag_header * xvag, off_t chunk_offset) {
+static int init_xvag_atrac9(STREAMFILE* sf, VGMSTREAM* vgmstream, xvag_header* xvag, off_t chunk_offset) {
     int32_t (*read_32bit)(off_t,STREAMFILE*) = xvag->big_endian ? read_32bitBE : read_32bitLE;
     atrac9_config cfg = {0};
 
@@ -265,7 +265,7 @@ static int init_xvag_atrac9(STREAMFILE* sf, VGMSTREAM* vgmstream, xvag_header * 
     /* 0x08: data size (layer only) */
     /* 0x10: decoder delay? */
     cfg.encoder_delay = read_32bit(chunk_offset+0x14,sf);
-	/* sometimes ATRAC9 data starts with a fake RIFF, that has total channels rather than layer channels */
+    /* sometimes ATRAC9 data starts with a fake RIFF, that has total channels rather than layer channels */
 
     vgmstream->codec_data = init_atrac9(&cfg);
     if (!vgmstream->codec_data) goto fail;
@@ -278,7 +278,7 @@ fail:
 }
 #endif
 
-static layered_layout_data* build_layered_xvag(STREAMFILE* sf, xvag_header * xvag, off_t chunk_offset, off_t start_offset) {
+static layered_layout_data* build_layered_xvag(STREAMFILE* sf, xvag_header* xvag, off_t chunk_offset, off_t start_offset) {
     layered_layout_data* data = NULL;
     STREAMFILE* temp_sf = NULL;
     int32_t (*read_32bit)(off_t,STREAMFILE*) = xvag->big_endian ? read_32bitBE : read_32bitLE;
@@ -309,7 +309,7 @@ static layered_layout_data* build_layered_xvag(STREAMFILE* sf, xvag_header * xva
                 if (!init_xvag_atrac9(sf, data->layers[i], xvag, chunk_offset))
                     goto fail;
 
-                /* interleaves N layers for custom multichannel, may rarely use subsongs [Days Gone (PS4) multilayer test] 
+                /* interleaves N layers for custom multichannel, may rarely use subsongs [Days Gone (PS4) multilayer test]
                  * ex. 2 layers, 1 subsong : [L1][L2][L1][L2]
                  * ex. 2 layers, 2 subsongs: [L1S1][L2S1][L1S2][L2S2] (assumed, could be [L1S1][L1S2][L2S1][L2S2]) */
                 chunk = i + xvag->subsongs * (xvag->target_subsong - 1); /* [L1S1][L2S1][L1S2][L2S2] */

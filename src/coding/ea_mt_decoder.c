@@ -115,9 +115,9 @@ void decode_ea_mt(VGMSTREAM* vgmstream, sample_t* outbuf, int channelspacing, in
              * notify the decoder when a new substream begins (even with looping disabled). */
             if (ch_data->loop_sample > 0 && ch_data->samples_done == ch_data->loop_sample) {
                 ch_data->samples_filled = 0;
-				ch_data->samples_discard = 0;
+                ch_data->samples_discard = 0;
 
-				/* offset is usually at loop_offset here, but not always (ex. loop_sample < 432) */
+                /* offset is usually at loop_offset here, but not always (ex. loop_sample < 432) */
                 ch_data->offset = ch_data->loop_offset;
                 utk_set_ptr(ctx, 0, 0); /* reset the buffer reader */
                 utk_reset(ctx); /* decoder init (all fields must be reset, for some edge cases) */
