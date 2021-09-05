@@ -190,7 +190,7 @@ static int lz4mg_decompress(lz4mg_stream_t* strm) {
             default:
                 goto fail;
         }
-	}
+    }
 
 buffer_end:
     strm->next_out  += dst_pos;
@@ -208,16 +208,16 @@ fail:
 #if 0
 /* non-streamed form for reference, assumes buffers are big enough */
 static void decompress_lz4mg(uint8_t* dst, size_t dst_size, const uint8_t* src, size_t src_size) {
-	size_t src_pos = 0;
-	size_t dst_pos = 0;
+    size_t src_pos = 0;
+    size_t dst_pos = 0;
     uint8_t token;
     int literal_len, match_len, next_len;
     int match_pos, match_offset;
     int i;
 
-	while (src_pos < src_size && dst_pos < dst_size) {
+    while (src_pos < src_size && dst_pos < dst_size) {
 
-		token = src[src_pos++];
+        token = src[src_pos++];
         if (src_pos > src_size)
             break;
 
@@ -259,7 +259,7 @@ static void decompress_lz4mg(uint8_t* dst, size_t dst_size, const uint8_t* src, 
         for(i = 0; i < match_len; i++) {
             dst[dst_pos++] = dst[match_pos++]; /* note RLE with short offsets */
         }
-	}
+    }
 }
 #endif
 

@@ -128,7 +128,7 @@ VGMSTREAM* init_vgmstream_fsb5_fev_bank(STREAMFILE* sf) {
         }
     }
 
-	//;VGM_LOG("FSB5 FEV: offset=%lx, size=%x\n", subfile_offset,subfile_size);
+    //;VGM_LOG("FSB5 FEV: offset=%lx, size=%x\n", subfile_offset,subfile_size);
 
     temp_sf = setup_subfile_streamfile(sf, subfile_offset,subfile_size, "fsb");
     if (!temp_sf) goto fail;

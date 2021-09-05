@@ -164,6 +164,7 @@ static const char* extension_list[] = {
     "dtk",
     "dvi",
     "dxh",
+    "dyx", //txth/reserved [Shrek 4 (iOS)]
 
     "e4x",
     "eam",
@@ -392,6 +393,7 @@ static const char* extension_list[] = {
     "pona",
     "pos",
     "ps2stm", //fake extension for .stm (renamed? to be removed?)
+    "psb", //txth/reserved [Legend of Mana (Switch), Senxin Aleste (AC)]
     "psf",
     "psh", //fake extension for .vsv (to be removed)
     "psnd",
@@ -853,7 +855,7 @@ static const coding_info coding_info_list[] = {
         {coding_FFmpeg,             "FFmpeg"},
 #endif
 #ifdef VGM_USE_FDKAAC
-		{coding_MP4_AAC,            "MPEG-4 AAC"},
+        {coding_MP4_AAC,            "MPEG-4 AAC"},
 #endif
 };
 

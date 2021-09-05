@@ -2,46 +2,47 @@
 #include "../coding/coding.h"
 #include "../util.h"
 
-static int smacker_get_info(STREAMFILE *streamFile, int target_subsong, int * out_total_streams, size_t *out_stream_size, int * out_channel_count, int * out_sample_rate, int * out_num_samples);
+static int smacker_get_info(STREAMFILE* sf, int target_subsong, int* p_total_subsongs, size_t* p_stream_size, int* p_channels, int* p_sample_rate, int* p_num_samples);
 
-/* SMK - RAD Game Tools Smacker movies (audio/video format) */
-VGMSTREAM * init_vgmstream_smk(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
-    int channel_count = 0, loop_flag = 0, sample_rate = 0, num_samples = 0;
-    int total_subsongs = 0, target_subsong = streamFile->stream_index;
+/* SMK - RAD Game Tools older Smacker movies (audio/video format) */
+VGMSTREAM* init_vgmstream_smk(STREAMFILE *sf) {
+    VGMSTREAM* vgmstream = NULL;
+    int channels = 0, loop_flag = 0, sample_rate = 0, num_samples = 0;
+    int total_subsongs = 0, target_subsong = sf->stream_index;
     size_t stream_size;
 
 
     /* checks */
-    if (!check_extensions(streamFile,"smk"))
+    if (!check_extensions(sf,"smk"))
         goto fail;
 
-    if (read_32bitBE(0x00,streamFile) != 0x534D4B32 &&  /* "SMK2" */
-        read_32bitBE(0x00,streamFile) != 0x534D4B34)    /* "SMK4" */
+    if (!is_id32be(0x00,sf, "SMK2") &&
+        !is_id32be(0x00,sf, "SMK4"))
         goto fail;
 
     /* find target stream info */
-    if (!smacker_get_info(streamFile, target_subsong, &total_subsongs, &stream_size, &channel_count, &sample_rate, &num_samples))
+    if (!smacker_get_info(sf, target_subsong, &total_subsongs, &stream_size, &channels, &sample_rate, &num_samples))
         goto fail;
 
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count, loop_flag);
+    vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->layout_type = layout_none;
+    vgmstream->meta_type = meta_SMACKER;
     vgmstream->sample_rate = sample_rate;
     vgmstream->num_samples = num_samples;
+
     vgmstream->num_streams = total_subsongs;
     vgmstream->stream_size = stream_size;
-    vgmstream->meta_type = meta_SMACKER;
 
     {
 #ifdef VGM_USE_FFMPEG
         /* target_subsong should be passed manually */
-        vgmstream->codec_data = init_ffmpeg_header_offset_subsong(streamFile, NULL,0, 0x0,get_streamfile_size(streamFile), target_subsong);
+        vgmstream->codec_data = init_ffmpeg_header_offset_subsong(sf, NULL,0, 0x00, 0, target_subsong);
         if (!vgmstream->codec_data) goto fail;
         vgmstream->coding_type = coding_FFmpeg;
+        vgmstream->layout_type = layout_none;
 #else
         goto fail;
 #endif
@@ -68,11 +69,11 @@ typedef enum {
 //todo test multilang streams and codecs other than SMACKAUD
 /* Gets stream info, and number of samples in a file by reading frames
  * info: https://wiki.multimedia.cx/index.php/Smacker */
-static int smacker_get_info(STREAMFILE *sf, int target_subsong, int * out_total_subsongs, size_t * out_stream_size, int * out_channel_count, int * out_sample_rate, int * out_num_samples) {
-    STREAMFILE *sf_index = NULL;
+static int smacker_get_info(STREAMFILE* sf, int target_subsong, int* out_total_subsongs, size_t* p_stream_size, int* p_channels, int* p_sample_rate, int* p_num_samples) {
+    STREAMFILE* sf_index = NULL;
     uint32_t flags, total_frames, trees_sizes;
     off_t size_offset, type_offset, data_offset;
-    int i, j, sample_rate = 0, channel_count = 0, num_samples = 0;
+    int i, j, sample_rate = 0, channels = 0, num_samples = 0;
     int total_subsongs, target_stream = 0;
     size_t stream_size = 0;
     uint8_t stream_flags = 0;
@@ -109,13 +110,17 @@ static int smacker_get_info(STREAMFILE *sf, int target_subsong, int * out_total_
             if (target_subsong == total_subsongs) {
                 target_stream = i;
                 sample_rate = audio_rate & 0x00FFFFFF;
-                channel_count = (audio_flags & SMK_AUDIO_STEREO) ? 2 : 1;
+                channels = (audio_flags & SMK_AUDIO_STEREO) ? 2 : 1;
                 stream_flags = audio_flags;
             }
         }
     }
-    if (target_subsong < 0 || target_subsong > total_subsongs || total_subsongs < 1) goto fail;
-    if (sample_rate == 0 || channel_count == 0) goto fail;
+    if (total_subsongs < 1) {
+        vgm_logi("SMK: no audio in movie (ignore)\n");
+        goto fail;
+    }
+    if (target_subsong < 0 || target_subsong > total_subsongs) goto fail;
+    if (sample_rate == 0 || channels == 0) goto fail;
 
     /* read size and type tables into buffer */
     sf_index = reopen_streamfile(sf, total_frames*0x04 + total_frames*0x01);
@@ -125,7 +130,7 @@ static int smacker_get_info(STREAMFILE *sf, int target_subsong, int * out_total_
     size_offset = 0x68;
     type_offset = size_offset + total_frames*0x04;
     data_offset = type_offset + total_frames*0x01 + trees_sizes;
-    for (i=0; i < total_frames; i++) {
+    for (i = 0; i < total_frames; i++) {
         uint32_t frame_size = read_u32le(size_offset,sf_index) & 0xFFFFFFFC; /* last 2 bits are keyframe flags */
         uint8_t  frame_type = read_u8   (type_offset,sf_index); /* 0: has palette, 1..7: has stream N) */
         off_t offset = data_offset;
@@ -151,13 +156,13 @@ static int smacker_get_info(STREAMFILE *sf, int target_subsong, int * out_total_
                 /* resulting PCM bytes to samples */
                 if (stream_flags & SMK_AUDIO_PACKED) { /* Smacker and maybe Bink codecs */
                     uint32_t unpacked_size = read_u32le(offset+0x04,sf);
-                    num_samples += unpacked_size / (0x02 * channel_count);
+                    num_samples += unpacked_size / (0x02 * channels);
                 }
                 else if (stream_flags & SMK_AUDIO_16BITS) { /* PCM16 */
-                    num_samples += (audio_size - 0x04) / (0x02 * channel_count);
+                    num_samples += (audio_size - 0x04) / (0x02 * channels);
                 }
                 else { /* PCM8 */
-                    num_samples += (audio_size - 0x04) / (0x01 * channel_count);
+                    num_samples += (audio_size - 0x04) / (0x01 * channels);
                 }
             }
 
@@ -173,10 +178,10 @@ static int smacker_get_info(STREAMFILE *sf, int target_subsong, int * out_total_
     }
 
     if (out_total_subsongs) *out_total_subsongs = total_subsongs;
-    if (out_stream_size)    *out_stream_size = stream_size;
-    if (out_sample_rate)    *out_sample_rate = sample_rate;
-    if (out_channel_count)  *out_channel_count = channel_count;
-    if (out_num_samples)    *out_num_samples = num_samples;
+    if (p_stream_size)      *p_stream_size = stream_size;
+    if (p_sample_rate)      *p_sample_rate = sample_rate;
+    if (p_channels)         *p_channels = channels;
+    if (p_num_samples)      *p_num_samples = num_samples;
 
     close_streamfile(sf_index);
     return 1;

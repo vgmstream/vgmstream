@@ -72,7 +72,7 @@ fail:
 }
 
 void decode_hca(hca_codec_data* data, sample_t* outbuf, int32_t samples_to_do) {
-	int samples_done = 0;
+    int samples_done = 0;
     const unsigned int channels = data->info.channelCount;
     const unsigned int blockSize = data->info.blockSize;
 

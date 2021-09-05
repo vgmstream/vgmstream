@@ -18,28 +18,29 @@ typedef struct {
     int32_t loop_end;
     int loop_flag;
 
-    off_t sample_header_offset;
     size_t sample_header_size;
     size_t name_table_size;
     size_t sample_data_size;
     size_t base_header_size;
 
-    off_t extradata_offset;
-    size_t extradata_size;
+    uint32_t extradata_offset;
+    uint32_t extradata_size;
 
-    off_t stream_offset;
-    size_t stream_size;
-    off_t name_offset;
+    uint32_t stream_offset;
+    uint32_t stream_size;
+    uint32_t name_offset;
 } fsb5_header;
 
 /* ********************************************************************************** */
 
-static layered_layout_data* build_layered_fsb5(STREAMFILE* sf, fsb5_header* fsb5);
+static layered_layout_data* build_layered_fsb5(STREAMFILE* sf, STREAMFILE* sb, fsb5_header* fsb5);
 
 /* FSB5 - Firelight's FMOD Studio SoundBank format */
 VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
+    STREAMFILE* sb = NULL;
     fsb5_header fsb5 = {0};
+    uint32_t offset;
     int target_subsong = sf->stream_index;
     int i;
 
@@ -53,7 +54,7 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
     if (!is_id32be(0x00,sf, "FSB5"))
         goto fail;
 
-    /* 0x00 is rare (seen in Tales from Space Vita) */
+    /* v0 is rare (seen in Tales from Space Vita) */
     fsb5.version = read_u32le(0x04,sf);
     if (fsb5.version != 0x00 && fsb5.version != 0x01)
         goto fail;
@@ -63,13 +64,20 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
     fsb5.name_table_size    = read_u32le(0x10,sf);
     fsb5.sample_data_size   = read_u32le(0x14,sf);
     fsb5.codec              = read_u32le(0x18,sf);
-    /* version 0x01 - 0x1c(4): zero,  0x24(16): hash,  0x34(8): unk
-     * version 0x00 has an extra field (always 0?) at 0x1c */
+    /* 0x1c: zero */
     if (fsb5.version == 0x01) {
-        /* found by tests and assumed to be flags, no games known */
-        fsb5.flags = read_u32le(0x20,sf);
+        fsb5.flags = read_u32le(0x20,sf); /* found by tests and assumed to be flags, no games known */
+        /* 0x24: 128-bit hash */
+        /* 0x34: unknown (64-bit sub-hash?) */
+        fsb5.base_header_size = 0x3c;
     }
-    fsb5.base_header_size   = (fsb5.version==0x00) ? 0x40 : 0x3C;
+    else {
+        /* 0x20: zero/flags? */
+        /* 0x24: zero/flags? */
+        /* 0x28: 128-bit hash */
+        /* 0x38: unknown (64-bit sub-hash?) */
+        fsb5.base_header_size = 0x40;
+    }
 
     if ((fsb5.sample_header_size + fsb5.name_table_size + fsb5.sample_data_size + fsb5.base_header_size) != get_streamfile_size(sf)) {
         vgm_logi("FSB5: wrong size, expected %x + %x + %x + %x vs %x (re-rip)\n", fsb5.sample_header_size, fsb5.name_table_size, fsb5.sample_data_size, fsb5.base_header_size, get_streamfile_size(sf));
@@ -79,28 +87,25 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
     if (target_subsong == 0) target_subsong = 1;
     if (target_subsong > fsb5.total_subsongs || fsb5.total_subsongs <= 0) goto fail;
 
-    fsb5.sample_header_offset = fsb5.base_header_size;
-
     /* find target stream header and data offset, and read all needed values for later use
      *  (reads one by one as the size of a single stream header is variable) */
+    offset = fsb5.base_header_size;
     for (i = 0; i < fsb5.total_subsongs; i++) {
-        size_t stream_header_size = 0;
-        off_t data_offset = 0;
-        uint32_t sample_mode1, sample_mode2; /* maybe one uint64? */
+        uint32_t stream_header_size = 0;
+        uint32_t data_offset = 0;
+        uint64_t sample_mode;
 
-        sample_mode1 = read_u32le(fsb5.sample_header_offset+0x00,sf);
-        sample_mode2 = read_u32le(fsb5.sample_header_offset+0x04,sf);
+        sample_mode = read_u64le(offset+0x00,sf);
         stream_header_size += 0x08;
 
         /* get samples */
-        fsb5.num_samples  = ((sample_mode2 >> 2) & 0x3FFFFFFF); /* bits2: 31..2 (30) */
+        fsb5.num_samples  = ((sample_mode >> 34) & 0x3FFFFFFF); /* bits: 63..34 (30) */
 
-        /* get offset inside data section */
-        /* up to 0x07FFFFFF * 0x20 = full 32b offset 0xFFFFFFE0 */
-        data_offset   = (((sample_mode2 & 0x03) << 25) | ((sample_mode1 >> 7) & 0x1FFFFFF)) << 5; /* bits2: 1..0 (2) | bits1: 31..8 (25) */
+        /* get offset inside data section (max 32b offset 0xFFFFFFE0) */
+        data_offset   =  ((sample_mode >> 7) & 0x07FFFFFF) << 5; /* bits: 33..8 (25) */
 
         /* get channels */
-        switch ((sample_mode1 >> 5) & 0x03) { /* bits1: 7..6 (2) */
+        switch ((sample_mode >> 5) & 0x03) { /* bits: 7..6 (2) */
             case 0:  fsb5.channels = 1; break;
             case 1:  fsb5.channels = 2; break;
             case 2:  fsb5.channels = 6; break; /* some Dark Souls 2 MPEG; some IMA ADPCM */
@@ -111,7 +116,7 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
         }
 
         /* get sample rate  */
-        switch ((sample_mode1 >> 1) & 0x0f) { /* bits1: 5..1 (4) */
+        switch ((sample_mode >> 1) & 0x0f) { /* bits: 5..1 (4) */
             case 0:  fsb5.sample_rate = 4000;  break;
             case 1:  fsb5.sample_rate = 8000;  break;
             case 2:  fsb5.sample_rate = 11000; break;
@@ -129,8 +134,8 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
         }
 
         /* get extra flags */
-        if (sample_mode1 & 0x01) { /* bits1: 0 (1) */
-            off_t extraflag_offset = fsb5.sample_header_offset+0x08;
+        if (sample_mode & 0x01) { /* bits: 0 (1) */
+            uint32_t extraflag_offset = offset + 0x08;
             uint32_t extraflag, extraflag_type, extraflag_size, extraflag_end;
 
             do {
@@ -217,7 +222,7 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
                             fsb5.channels = fsb5.channels * fsb5.layers;
                             break;
                         default:
-                            vgm_logi("FSB5: stream %i unknown flag 0x%x at %x + 0x04 + 0x%x (report)\n", i, extraflag_type, (uint32_t)extraflag_offset, extraflag_size);
+                            vgm_logi("FSB5: stream %i unknown flag 0x%x at %x + 0x04 + 0x%x (report)\n", i, extraflag_type, extraflag_offset, extraflag_size);
                             break;
                     }
                 }
@@ -242,11 +247,10 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
                 fsb5.stream_size = fsb5.sample_data_size - data_offset;
             }
             else {
-                off_t next_data_offset;
-                uint32_t next_sample_mode1, next_sample_mode2;
-                next_sample_mode1 = read_u32le(fsb5.sample_header_offset+stream_header_size+0x00,sf);
-                next_sample_mode2 = read_u32le(fsb5.sample_header_offset+stream_header_size+0x04,sf);
-                next_data_offset = (((next_sample_mode2 & 0x03) << 25) | ((next_sample_mode1 >> 7) & 0x1FFFFFF)) << 5;
+                uint32_t next_data_offset;
+                uint64_t next_sample_mode;
+                next_sample_mode = read_u64le(offset+stream_header_size+0x00,sf);
+                next_data_offset   =  ((next_sample_mode >> 7) & 0x07FFFFFF) << 5;
 
                 fsb5.stream_size = next_data_offset - data_offset;
             }
@@ -255,9 +259,9 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
         }
 
         /* continue searching target */
-        fsb5.sample_header_offset += stream_header_size;
+        offset += stream_header_size;
     }
-    /* target stream not found*/
+
     if (!fsb5.stream_offset || !fsb5.stream_size)
         goto fail;
 
@@ -265,6 +269,17 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
     if (fsb5.name_table_size) {
         off_t name_suboffset = fsb5.base_header_size + fsb5.sample_header_size + 0x04*(target_subsong-1);
         fsb5.name_offset = fsb5.base_header_size + fsb5.sample_header_size + read_u32le(name_suboffset,sf);
+    }
+
+
+    /* FSB5 can hit +2GB offsets, but since decoders aren't ready to handle that use a subfile to hide big offsets
+     * (some FSB5 CLI versions make buggy offsets = bad output but this was fixed later) */
+    if (fsb5.stream_offset > 0x7FFFFFFF) {
+        sb = setup_subfile_streamfile(sf, fsb5.stream_offset, fsb5.stream_size, NULL);
+        fsb5.stream_offset = 0x00;
+    }
+    else {
+        sb = sf;
     }
 
 
@@ -282,7 +297,7 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
     vgmstream->stream_size = fsb5.stream_size;
     vgmstream->meta_type = meta_FSB5;
     if (fsb5.name_offset)
-        read_string(vgmstream->stream_name,STREAM_NAME_SIZE, fsb5.name_offset,sf);
+        read_string(vgmstream->stream_name,STREAM_NAME_SIZE, fsb5.name_offset, sf);
 
     switch (fsb5.codec) {
         case 0x00:  /* FMOD_SOUND_FORMAT_NONE */
@@ -325,7 +340,7 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
                 vgmstream->layout_type = layout_none;
                 vgmstream->interleave_block_size = 0x02;
             }
-	        dsp_read_coefs_be(vgmstream,sf,fsb5.extradata_offset,0x2E);
+            dsp_read_coefs_be(vgmstream, sf, fsb5.extradata_offset, 0x2E);
             break;
 
         case 0x07:  /* FMOD_SOUND_FORMAT_IMAADPCM  [Skylanders] */
@@ -359,12 +374,12 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
             block_count = fsb5.stream_size / block_size + (fsb5.stream_size % block_size ? 1 : 0);
 
             bytes = ffmpeg_make_riff_xma2(buf, 0x100, vgmstream->num_samples, fsb5.stream_size, vgmstream->channels, vgmstream->sample_rate, block_count, block_size);
-            vgmstream->codec_data = init_ffmpeg_header_offset(sf, buf,bytes, fsb5.stream_offset,fsb5.stream_size);
+            vgmstream->codec_data = init_ffmpeg_header_offset(sb, buf,bytes, fsb5.stream_offset, fsb5.stream_size);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
 
-            xma_fix_raw_samples(vgmstream, sf, fsb5.stream_offset,fsb5.stream_size, 0, 0,0); /* samples look ok */
+            xma_fix_raw_samples(vgmstream, sb, fsb5.stream_offset, fsb5.stream_size, 0, 0,0); /* samples look ok */
             break;
         }
 #endif
@@ -375,7 +390,7 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
 
             cfg.fsb_padding = (vgmstream->channels > 2 ? 16 : 4); /* observed default */
 
-            vgmstream->codec_data = init_mpeg_custom(sf, fsb5.stream_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_FSB, &cfg);
+            vgmstream->codec_data = init_mpeg_custom(sb, fsb5.stream_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_FSB, &cfg);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->layout_type = layout_none;
             break;
@@ -387,7 +402,7 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
             fsb5.layers = (fsb5.channels <= 2) ? 1 : (fsb5.channels+1) / 2;
 
             if (fsb5.layers > 1) {
-                vgmstream->layout_data = build_layered_fsb5(sf, &fsb5);
+                vgmstream->layout_data = build_layered_fsb5(sf, sb, &fsb5);
                 if (!vgmstream->layout_data) goto fail;
                 vgmstream->coding_type = coding_CELT_FSB;
                 vgmstream->layout_type = layout_layered;
@@ -415,7 +430,7 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
 
             if (fsb5.layers > 1) {
                 /* multichannel made of various layers [Little Big Planet (Vita)] */
-                vgmstream->layout_data = build_layered_fsb5(sf, &fsb5);
+                vgmstream->layout_data = build_layered_fsb5(sf, sb, &fsb5);
                 if (!vgmstream->layout_data) goto fail;
                 vgmstream->coding_type = coding_ATRAC9;
                 vgmstream->layout_type = layout_layered;
@@ -449,7 +464,7 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
             /* XWMA encoder only does up to 6ch (doesn't use FSB multistreams for more) */
 
             bytes = ffmpeg_make_riff_xwma(buf,0x100, format, fsb5.stream_size, vgmstream->channels, vgmstream->sample_rate, average_bps, block_align);
-            vgmstream->codec_data = init_ffmpeg_header_offset(sf, buf,bytes, fsb5.stream_offset,fsb5.stream_size);
+            vgmstream->codec_data = init_ffmpeg_header_offset(sb, buf,bytes, fsb5.stream_offset, fsb5.stream_size);
             if ( !vgmstream->codec_data ) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
@@ -465,7 +480,7 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
             cfg.sample_rate = fsb5.sample_rate;
             cfg.setup_id = read_u32le(fsb5.extradata_offset,sf);
 
-            vgmstream->codec_data = init_vorbis_custom(sf, fsb5.stream_offset, VORBIS_FSB, &cfg);
+            vgmstream->codec_data = init_vorbis_custom(sb, fsb5.stream_offset, VORBIS_FSB, &cfg);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_VORBIS_custom;
             vgmstream->layout_type = layout_none;
@@ -479,13 +494,13 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
             vgmstream->interleave_block_size = 0x8c;
             break;
 
-#if 0 		//disabled until some game is found, can be created in the GUI tool
+#if 0 //disabled until some game is found, can be created in the GUI tool
 #ifdef VGM_USE_FFMPEG
         case 0x11: { /* FMOD_SOUND_FORMAT_OPUS */
-            int skip = 312; //fsb_opus_get_encoder_delay(fsb5.stream_offset, sf); /* returns 120 but this seems correct */
+            int skip = 312; //fsb_opus_get_encoder_delay(fsb5.stream_offset, sb); /* returns 120 but this seems correct */
             //vgmstream->num_samples -= skip;
 
-            vgmstream->codec_data = init_ffmpeg_fsb_opus(sf, fsb5.stream_offset, fsb5.stream_size, vgmstream->channels, skip, vgmstream->sample_rate);
+            vgmstream->codec_data = init_ffmpeg_fsb_opus(sb, fsb5.stream_offset, fsb5.stream_size, vgmstream->channels, skip, vgmstream->sample_rate);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
@@ -498,18 +513,20 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
             goto fail;
     }
 
-    if (!vgmstream_open_stream(vgmstream,sf,fsb5.stream_offset))
+    if (!vgmstream_open_stream(vgmstream, sb, fsb5.stream_offset))
         goto fail;
 
+    if (sb != sf) close_streamfile(sb);
     return vgmstream;
 
 fail:
+    if (sb != sf) close_streamfile(sb);
     close_vgmstream(vgmstream);
     return NULL;
 }
 
 
-static layered_layout_data* build_layered_fsb5(STREAMFILE* sf, fsb5_header* fsb5) {
+static layered_layout_data* build_layered_fsb5(STREAMFILE* sf, STREAMFILE* sb, fsb5_header* fsb5) {
     layered_layout_data* data = NULL;
     STREAMFILE* temp_sf = NULL;
     size_t interleave, config = 0;
@@ -526,9 +543,9 @@ static layered_layout_data* build_layered_fsb5(STREAMFILE* sf, fsb5_header* fsb5
                 /* 2ch+2ch..+1ch or 2ch+2ch..+2ch = check last layer */
                 layer_channels = (i+1 == fsb5->layers && fsb5->channels % 2 == 1) ? 1 : 2;
 
-                if (read_u32be(fsb5->stream_offset+0x00,sf) != 0x17C30DF3) /* FSB CELT frame ID */
+                if (read_u32be(fsb5->stream_offset+0x00,sb) != 0x17C30DF3) /* FSB CELT frame ID */
                     goto fail;
-                interleave = 0x04+0x04+read_u32le(fsb5->stream_offset+0x04,sf); /* frame size */
+                interleave = 0x04+0x04+read_u32le(fsb5->stream_offset+0x04,sb); /* frame size */
 
                 //todo unknown interleave for max quality odd channel streams (found in test files)
                 /* FSB5 odd channels use 2ch+2ch...+1ch streams, and the last only goes up to 0x17a, and other
@@ -609,7 +626,7 @@ static layered_layout_data* build_layered_fsb5(STREAMFILE* sf, fsb5_header* fsb5
         }
 
 
-        temp_sf = setup_fsb5_streamfile(sf, fsb5->stream_offset, fsb5->stream_size, fsb5->layers, i, interleave);
+        temp_sf = setup_fsb5_streamfile(sb, fsb5->stream_offset, fsb5->stream_size, fsb5->layers, i, interleave);
         if (!temp_sf) goto fail;
 
         if (!vgmstream_open_stream(data->layers[i], temp_sf, 0x00))

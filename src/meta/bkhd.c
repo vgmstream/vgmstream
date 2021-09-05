@@ -1,5 +1,6 @@
 #include "meta.h"
 #include "../coding/coding.h"
+#include "../util/chunks.h"
 
 
 /* BKHD - Wwise soundbank container */
@@ -19,9 +20,9 @@ VGMSTREAM* init_vgmstream_bkhd(STREAMFILE* sf) {
     if (!check_extensions(sf,"bnk"))
         goto fail;
 
-    if (read_u32be(0x00, sf) == 0x414B424B) /* "AKBK" [Shadowrun (X360)] */
+    if (is_id32be(0x00, sf, "AKBK")) /* [Shadowrun (X360)] */
         base_offset = 0x0c;
-    if (read_u32be(base_offset + 0x00, sf) != 0x424B4844) /* "BKHD" */
+    if (!is_id32be(base_offset + 0x00, sf, "BKHD"))
         goto fail;
     big_endian = guess_endianness32bit(base_offset + 0x04, sf);
     read_u32 = big_endian ? read_u32be : read_u32le;
@@ -77,16 +78,41 @@ VGMSTREAM* init_vgmstream_bkhd(STREAMFILE* sf) {
         subfile_size    = read_u32(offset + 0x14, sf);
     }
     else {
-        off_t didx_offset, data_offset, offset;
-        size_t didx_size;
-        if (!find_chunk(sf, 0x44494458, 0x00,0, &didx_offset, &didx_size, big_endian, 0)) /* "DIDX" */
-            goto fail;
-        if (!find_chunk(sf, 0x44415441, 0x00,0, &data_offset, NULL, big_endian, 0)) /* "DATA" */
+        enum { 
+            CHUNK_DIDX = 0x44494458, /* "DIDX" */
+            CHUNK_DATA = 0x44415441, /* "DATA" */
+        };
+        off_t didx_offset = 0, data_offset = 0, didx_size = 0, offset;
+        chunk_t rc = {0};
+
+        rc.be_size = big_endian;
+        rc.current = 0x00;
+        while (next_chunk(&rc, sf)) {
+            switch(rc.type) {
+
+                case CHUNK_DIDX:
+                    didx_offset = rc.offset;
+                    didx_size = rc.size;
+                    break;
+
+                case CHUNK_DATA:
+                    data_offset = rc.offset;
+                    break;
+
+                default:
+                    break;
+            }
+        }
+        if (!didx_offset || !data_offset)
             goto fail;
 
         total_subsongs = didx_size / 0x0c;
+        if (total_subsongs < 1) {
+            vgm_logi("BKHD: bank has no subsongs (ignore)\n");
+            goto fail;
+        }
         if (target_subsong == 0) target_subsong = 1;
-        if (target_subsong < 0 || target_subsong > total_subsongs || total_subsongs < 1) goto fail;
+        if (target_subsong > total_subsongs) goto fail;
 
         offset = didx_offset + (target_subsong - 1) * 0x0c;
         subfile_id      = read_u32(offset + 0x00, sf);

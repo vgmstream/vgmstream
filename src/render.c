@@ -518,7 +518,7 @@ static void seek_force_loop(VGMSTREAM* vgmstream, int loop_count) {
         return;
 
     /* pretend decoder reached loop end so state is set to loop start */
-    vgmstream->loop_count = loop_count - 1; /* seeking to first loop musy become ++ > 0 */
+    vgmstream->loop_count = loop_count - 1; /* seeking to first loop must become ++ > 0 */
     vgmstream->current_sample = vgmstream->loop_end_sample;
     vgmstream_do_loop(vgmstream);
 }

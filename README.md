@@ -20,6 +20,8 @@ Latest development is here: https://github.com/vgmstream/vgmstream/
 
 Automated builds with the latest changes: https://vgmstream.org/downloads
 
+Common releases: https://github.com/vgmstream/vgmstream/releases
+
 Help can be found here: https://www.hcs64.com/
 
 More technical docs: https://github.com/vgmstream/vgmstream/tree/master/doc
@@ -47,8 +49,11 @@ If the above link fails you may find alt, recent-ish versions here:
 https://github.com/bnnm/vgmstream-builds/raw/master/bin/vgmstream-latest-test-u.zip
 You may compile them from source as well.
 
-For Linux and other O.S., you need to build vgmstream manually (see *vgmstream/doc/BUILD.md*
-in source).
+For Linux and other O.S., generally you need to build vgmstream manually (see
+*vgmstream/doc/BUILD.md* in source). For a quick build call `/make-build-cmake.sh`
+(for Debian/Ubuntu-style distros, installs various deps first so you may prefer to call
+commands manually). Links above also distribute a static version of the CLI tool
+(kernel v3.2+).
 
 ### Needed extra files (for Windows)
 On Windows support for some codecs (Ogg Vorbis, MPEG audio, etc.) is done with external
@@ -685,8 +690,8 @@ foobar2000 has other plugins (with write support) that may be of use:
 
 
 ## Virtual TXTP files
-Some of vgmstream's plugins allow you to use virtual `.txtp` files, that combined
-with playlists let you make quick song configs.
+Some of vgmstream's plugins (and CLI) allow you to use virtual `.txtp` files, that
+combined with playlists let you make quick song configs.
 
 Normally you can create a physical .txtp file that points to another file with
 config, and `.txtp` have a "mini-txtp" mode that configures files with only the

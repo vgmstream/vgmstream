@@ -250,11 +250,11 @@ static void decode_mpeg_standard(VGMSTREAMCHANNEL* stream, mpeg_codec_data* data
             data->bytes_in_buffer = read_streamfile(data->buffer,stream->offset,data->buffer_size,stream->streamfile);
 
             /* end of stream, fill rest with 0s */
-			if (data->bytes_in_buffer <= 0) {
-			    VGM_ASSERT(samples_to_do < samples_done, "MPEG: end of stream, filling %i\n", (samples_to_do - samples_done));
-				memset(outbuf + samples_done * channels, 0, (samples_to_do - samples_done) * channels * sizeof(sample));
-				break;
-			}
+            if (data->bytes_in_buffer <= 0) {
+                VGM_ASSERT(samples_to_do < samples_done, "MPEG: end of stream, filling %i\n", (samples_to_do - samples_done));
+                memset(outbuf + samples_done * channels, 0, (samples_to_do - samples_done) * channels * sizeof(sample));
+                break;
+            }
 
             data->buffer_full = 1;
             data->buffer_used = 0;

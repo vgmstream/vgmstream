@@ -12,13 +12,13 @@ extern "C" {
 typedef struct {
     STREAMFILE sf;
     VFSFile *vfsFile;
-    off_t offset;
+    offv_t offset;
     char name[32768];
 } VFS_STREAMFILE;
 
 static STREAMFILE *open_vfs_by_VFSFILE(VFSFile *file, const char *path);
 
-static size_t read_vfs(VFS_STREAMFILE *streamfile, uint8_t *dest, off_t offset, size_t length) {
+static size_t read_vfs(VFS_STREAMFILE *streamfile, uint8_t *dest, offv_t offset, size_t length) {
     size_t bytes_read;
 
     if (/*!streamfile->vfsFile ||*/ !dest || length <= 0 || offset < 0)
@@ -73,9 +73,9 @@ STREAMFILE *open_vfs_by_VFSFILE(VFSFile *file, const char *path) {
     // success, set our pointers
     memset(streamfile, 0, sizeof(VFS_STREAMFILE));
 
-    streamfile->sf.read = (size_t (*)(STREAMFILE *, uint8_t *, off_t, size_t))read_vfs;
+    streamfile->sf.read = (size_t (*)(STREAMFILE *, uint8_t *, offv_t, size_t))read_vfs;
     streamfile->sf.get_size = (size_t (*)(STREAMFILE *))get_size_vfs;
-    streamfile->sf.get_offset = (off_t (*)(STREAMFILE *))get_offset_vfs;
+    streamfile->sf.get_offset = (offv_t (*)(STREAMFILE *))get_offset_vfs;
     streamfile->sf.get_name = (void (*)(STREAMFILE *, char *, size_t))get_name_vfs;
     streamfile->sf.open = (STREAMFILE *(*)(STREAMFILE *, const char *, size_t))open_vfs_impl;
     streamfile->sf.close = (void (*)(STREAMFILE *))close_vfs;

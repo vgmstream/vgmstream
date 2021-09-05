@@ -6,24 +6,22 @@
 
 /* Based on Valery V. Anisimovsky's WS-AUD.txt */
 
-static char WSTable2bit[4]={-2,-1,0,1};
-static char WSTable4bit[16]={-9,-8,-6,-5,-4,-3,-2,-1,
-                              0, 1, 2, 3, 4, 5 ,6, 8};
+static char WSTable2bit[4] = { -2,-1,0,1 };
+static char WSTable4bit[16] = { -9,-8,-6,-5,-4,-3,-2,-1, 0, 1, 2, 3, 4, 5 ,6, 8 };
 
 /* We pass in the VGMSTREAM here, unlike in other codings, because
    the decoder has to know about the block structure. */
 void decode_ws(VGMSTREAM * vgmstream, int channel, sample * outbuf, int channelspacing, int32_t first_sample,
         int32_t samples_to_do) {
-
     VGMSTREAMCHANNEL * stream = &(vgmstream->ch[channel]);
-	int16_t hist = stream->adpcm_history1_16;
+    int16_t hist = stream->adpcm_history1_16;
     off_t offset = stream->offset;
     int samples_left_in_frame = stream->samples_left_in_frame;
     off_t header_off = stream->frame_header_offset;
 
-	int i;
-	int32_t sample_count;
-	
+    int i;
+    int32_t sample_count;
+
     if (vgmstream->ws_output_size == vgmstream->current_block_size) {
         /* uncompressed, we just need to convert to 16-bit */
         for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing,offset++) {

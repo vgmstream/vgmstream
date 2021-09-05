@@ -285,7 +285,7 @@ sudo apt-get install gcc g++ make git
 sudo apt-get install autoconf automake libtool
 # vgmstream dependencies
 sudo apt-get install libmpg123-dev libvorbis-dev libspeex-dev
-#sudo apt-get install libavformat-dev libavcodec-dev libavutil-dev libswresample-dev
+sudo apt-get install libavformat-dev libavcodec-dev libavutil-dev libswresample-dev
 # Audacious player and dependencies
 sudo apt-get install audacious
 sudo apt-get install audacious-dev libglib2.0-dev libgtk2.0-dev libpango1.0-dev

@@ -19,39 +19,33 @@
 
 /* MSVC fixes (though mingw uses MSVCRT but not MSC_VER, maybe use AND?) */
 #if defined(__MSVCRT__) || defined(_MSC_VER)
-  #include <io.h>
+    #include <io.h>
 
-  #ifndef fseeko
-    #define fseeko fseek
-  #endif
-  #ifndef ftello
-    #define ftello ftell
-  #endif
-
-  #define dup _dup
-
-  #ifdef fileno
-  #undef fileno
-  #endif
-  #define fileno _fileno
-  #define fdopen _fdopen
-
-//  #ifndef off64_t
-//    #define off_t __int64
-//  #endif
-#endif
-
-#if defined(XBMC)
-#define fseeko fseek
+    #ifndef off64_t
+        #define off_t __int64
+    #endif
 #endif
 
 #ifndef DIR_SEPARATOR
-#if defined (_WIN32) || defined (WIN32)
-#define DIR_SEPARATOR '\\'
-#else
-#define DIR_SEPARATOR '/'
+    #if defined (_WIN32) || defined (WIN32)
+        #define DIR_SEPARATOR '\\'
+    #else
+        #define DIR_SEPARATOR '/'
+    #endif
 #endif
-#endif
+
+/* 64-bit offset is needed for banks that hit +2.5GB (like .fsb or .ktsl2stbin).
+ * Leave as typedef to toggle since it's theoretically slower when compiled as 32-bit.
+ * ATM it's only used in choice places until more performance tests are done.
+ * uint32_t could be an option but needs to test when/how neg offsets are used.
+ *
+ * On POSIX 32-bit off_t can become off64_t by passing -D_FILE_OFFSET_BITS=64,
+ * but not on MSVC as it doesn't have proper POSIX support, so a custom type is needed.
+ * fseeks/tells also need to be adjusted for 64-bit support.
+ */
+typedef int64_t offv_t; //off64_t
+//typedef int64_t sizev_t; // size_t int64_t off64_t
+
 
 /* Streamfiles normally use an internal buffer to increase performance, configurable
  * but usually of this size. Lower increases the number of freads/system calls (slower).
@@ -65,17 +59,26 @@
  * to do file operations, as plugins may need to provide their own callbacks.
  * Reads from arbitrary offsets, meaning internally may need fseek equivalents during reads. */
 typedef struct _STREAMFILE {
-    size_t (*read)(struct _STREAMFILE*, uint8_t* dst, off_t offset, size_t length);
-    size_t (*get_size)(struct _STREAMFILE*);
-    off_t (*get_offset)(struct _STREAMFILE*);   //todo: DO NOT USE, NOT RESET PROPERLY (remove?)
-    /* for dual-file support */
-    void (*get_name)(struct _STREAMFILE*, char* name, size_t length);
-    struct _STREAMFILE* (*open)(struct _STREAMFILE*, const char* const filename, size_t buffersize);
+    /* read 'length' data at 'offset' to 'dst' */
+    size_t (*read)(struct _STREAMFILE* sf, uint8_t* dst, offv_t offset, size_t length);
+
+    /* get max offset */
+    size_t (*get_size)(struct _STREAMFILE* sf);
+
+    //todo: DO NOT USE, NOT RESET PROPERLY (remove?)
+    offv_t (*get_offset)(struct _STREAMFILE*);
+
+    /* copy current filename to name buf */
+    void (*get_name)(struct _STREAMFILE* sf, char* name, size_t name_size);
+
+    /* open another streamfile from filename */
+    struct _STREAMFILE* (*open)(struct _STREAMFILE* sf, const char* const filename, size_t buffer_size);
+
+    /* free current STREAMFILE */
     void (*close)(struct _STREAMFILE*);
 
-
-    /* Substream selection for files with subsongs. Manually used in metas if supported.
-     * Not ideal here, but it's the simplest way to pass to all init_vgmstream_x functions. */
+    /* Substream selection for formats with subsongs.
+     * Not ideal here, but it was the simplest way to pass to all init_vgmstream_x functions. */
     int stream_index; /* 0=default/auto (first), 1=first, N=Nth */
 
 } STREAMFILE;
@@ -105,8 +108,8 @@ STREAMFILE* open_wrap_streamfile_f(STREAMFILE* sf);
 
 /* Opens a STREAMFILE that clamps reads to a section of a larger streamfile.
  * Can be used with subfiles inside a bigger file (to fool metas, or to simplify custom IO). */
-STREAMFILE* open_clamp_streamfile(STREAMFILE* sf, off_t start, size_t size);
-STREAMFILE* open_clamp_streamfile_f(STREAMFILE* sf, off_t start, size_t size);
+STREAMFILE* open_clamp_streamfile(STREAMFILE* sf, offv_t start, size_t size);
+STREAMFILE* open_clamp_streamfile_f(STREAMFILE* sf, offv_t start, size_t size);
 
 /* Opens a STREAMFILE that uses custom IO for streamfile reads.
  * Can be used to modify data on the fly (ex. decryption), or even transform it from a format to another. 
@@ -156,8 +159,8 @@ static inline void close_streamfile(STREAMFILE* sf) {
 }
 
 /* read from a file, returns number of bytes read */
-static inline size_t read_streamfile(uint8_t *dst, off_t offset, size_t length, STREAMFILE* sf) {
-    return sf->read(sf, dst, offset,length);
+static inline size_t read_streamfile(uint8_t* dst, offv_t offset, size_t length, STREAMFILE* sf) {
+    return sf->read(sf, dst, offset, length);
 }
 
 /* return file size */
