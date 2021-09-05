@@ -11,7 +11,7 @@
 /* ************************************* */
 
 /* opens a utf16 (unicode) path */
-static FILE* wa_fopen(const in_char *wpath) {
+static FILE* wa_fopen(const in_char* wpath) {
 #ifdef UNICODE_INPUT_PLUGIN
     return _wfopen(wpath,L"rb");
 #else
@@ -34,16 +34,16 @@ static FILE* wa_fdopen(int fd) {
 
 /* a STREAMFILE that operates via STDIOSTREAMFILE but handles Winamp's unicode (in_char) paths */
 typedef struct {
-    STREAMFILE sf;
-    STREAMFILE *stdiosf;
-    FILE *infile_ref; /* pointer to the infile in stdiosf (partially handled by stdiosf) */
+    STREAMFILE vt;
+    STREAMFILE* stdiosf;
+    FILE* infile_ref; /* pointer to the infile in stdiosf (partially handled by stdiosf) */
 } WINAMP_STREAMFILE;
 
-static STREAMFILE *open_winamp_streamfile_by_file(FILE *infile, const char * path);
-//static STREAMFILE *open_winamp_streamfile_by_ipath(const in_char *wpath);
+static STREAMFILE* open_winamp_streamfile_by_file(FILE* infile, const char* path);
+//static STREAMFILE* open_winamp_streamfile_by_ipath(const in_char* wpath);
 
-static size_t wasf_read(WINAMP_STREAMFILE* sf, uint8_t* dest, offv_t offset, size_t length) {
-    return sf->stdiosf->read(sf->stdiosf, dest, offset, length);
+static size_t wasf_read(WINAMP_STREAMFILE* sf, uint8_t* dst, offv_t offset, size_t length) {
+    return sf->stdiosf->read(sf->stdiosf, dst, offset, length);
 }
 
 static size_t wasf_get_size(WINAMP_STREAMFILE* sf) {
@@ -58,7 +58,7 @@ static void wasf_get_name(WINAMP_STREAMFILE* sf, char* buffer, size_t length) {
     sf->stdiosf->get_name(sf->stdiosf, buffer, length);
 }
 
-static STREAMFILE *wasf_open(WINAMP_STREAMFILE* sf, const char* const filename, size_t buffersize) {
+static STREAMFILE* wasf_open(WINAMP_STREAMFILE* sf, const char* const filename, size_t buffersize) {
     in_char wpath[PATH_LIMIT];
 
     if (!filename)
@@ -77,7 +77,7 @@ static STREAMFILE *wasf_open(WINAMP_STREAMFILE* sf, const char* const filename, 
             FILE *new_file;
 
             if (((new_fd = dup(fileno(sf->infile_ref))) >= 0) && (new_file = wa_fdopen(new_fd))) {
-                STREAMFILE *new_sf = open_winamp_streamfile_by_file(new_file, filename);
+                STREAMFILE* new_sf = open_winamp_streamfile_by_file(new_file, filename);
                 if (new_sf)
                     return new_sf;
                 fclose(new_file);
@@ -101,7 +101,7 @@ static void wasf_close(WINAMP_STREAMFILE* sf) {
     free(sf); /* and the current struct */
 }
 
-static STREAMFILE *open_winamp_streamfile_by_file(FILE* file, const char* path) {
+static STREAMFILE* open_winamp_streamfile_by_file(FILE* file, const char* path) {
     WINAMP_STREAMFILE* this_sf = NULL;
     STREAMFILE* stdiosf = NULL;
 
@@ -111,17 +111,17 @@ static STREAMFILE *open_winamp_streamfile_by_file(FILE* file, const char* path) 
     stdiosf = open_stdio_streamfile_by_file(file, path);
     if (!stdiosf) goto fail;
 
-    this_sf->sf.read = (void*)wasf_read;
-    this_sf->sf.get_size = (void*)wasf_get_size;
-    this_sf->sf.get_offset = (void*)wasf_get_offset;
-    this_sf->sf.get_name = (void*)wasf_get_name;
-    this_sf->sf.open = (void*)wasf_open;
-    this_sf->sf.close = (void*)wasf_close;
+    this_sf->vt.read = (void*)wasf_read;
+    this_sf->vt.get_size = (void*)wasf_get_size;
+    this_sf->vt.get_offset = (void*)wasf_get_offset;
+    this_sf->vt.get_name = (void*)wasf_get_name;
+    this_sf->vt.open = (void*)wasf_open;
+    this_sf->vt.close = (void*)wasf_close;
 
     this_sf->stdiosf = stdiosf;
     this_sf->infile_ref = file;
 
-    return &this_sf->sf; /* pointer to STREAMFILE start = rest of the custom data follows */
+    return &this_sf->vt;
 
 fail:
     close_streamfile(stdiosf);

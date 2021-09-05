@@ -257,16 +257,18 @@ sourceball:
 #	git archive --format zip --output bin/vgmstream-$(VGMSTREAM_VERSION)-src.zip master
 	rm -rf vgmstream-$(VGMSTREAM_VERSION)
 
-bin: vgmstream_cli winamp xmplay
+bin: vgmstream-cli winamp xmplay
 	mkdir -p bin
 	zip -FS -j "bin/$(BIN_FILE).zip" $(ZIP_FILES)
 
 #separate since vgmstream123 is kinda untested
-bin-ex: vgmstream_cli winamp xmplay vgmstream123
+bin-ex: vgmstream-cli winamp xmplay vgmstream123
 	mkdir -p bin
 	zip -FS -j "bin/$(BIN_FILE).zip" $(ZIP_FILES) $(ZIP_FILES_AO)
 
-vgmstream_cli: version
+vgmstream_cli: vgmstream-cli
+
+vgmstream-cli: version
 	$(MAKE) -C cli vgmstream_cli
 
 vgmstream123: version
@@ -289,4 +291,4 @@ clean:
 	$(MAKE) -C xmplay clean
 	$(MAKE) -C ext_libs clean
 
-.PHONY: clean buildfullrelease buildrelease sourceball bin vgmstream_cli winamp   
+.PHONY: clean buildfullrelease buildrelease sourceball bin vgmstream-cli vgmstream_cli vgmstream123 winamp xmplay version
