@@ -8,8 +8,8 @@ Some of vgmstream's features:
 - support for looped BGM, using file's internal metadata for smooth transitions,
   with accurate sample counts
 - subsongs, playing a format's multiple internal songs separately
-- encryption keys, audio split in multiple files, internal stream names, and many
-  other unusual cases found in game audio
+- many types of companion files (data split in multiple files) and custom containers
+- encryption keys, internal stream names, and many other unusual cases found in game audio
 - TXTH function, to support extra formats (including raw audio in many forms)
 - TXTP function, for real-time and per-file config (like forced looping, removing
   channels, playing certain subsong, or fusing together multiple files as a single one)
@@ -26,8 +26,7 @@ Help can be found here: https://www.hcs64.com/
 
 More technical docs: https://github.com/vgmstream/vgmstream/tree/master/doc
 
-
-## Usage
+## Getting vgmstream
 There are multiple end-user bits:
 - a command line decoder called *test.exe/vgmstream-cli*
 - a Winamp plugin called *in_vgmstream*
@@ -37,15 +36,23 @@ There are multiple end-user bits:
 - a command line player called *vgmstream123*
 
 Main lib (plain *vgmstream*) is the code that handles internal conversion, while the
-above components are what you use to actually get sound. See *components* below for
-explanations about each one.
+above components are what you use to actually get sound.
 
-### Files
+See *components* below for install instructions and explanations. The aim is feature
+parity, but there are a few differences between them (due to missing implementation
+in vgmstream's side, or lack of support in target player/API/etc).
+
+
+## Files
 On Windows, you should get `vgmstream-win.zip` (bundle of various components) or
 `foo_input_vgmstream.fb2k-component` (installable foobar2000 plugin) from the
-pre-built binaries: https://vgmstream.org/downloads
+latest pre-built binaries:
+https://vgmstream.org/downloads
 
-If the above link fails you may find alt, recent-ish versions here:
+You can also try getting them from the (infrequently updated) releases:
+https://github.com/vgmstream/vgmstream/releases
+
+If the above links fail you may try alt, recent-ish versions here:
 https://github.com/bnnm/vgmstream-builds/raw/master/bin/vgmstream-latest-test-u.zip
 You may compile them from source as well.
 
@@ -55,9 +62,11 @@ For Linux and other O.S., generally you need to build vgmstream manually (see
 commands manually). Links above also distribute a static version of the CLI tool
 (kernel v3.2+).
 
-### Needed extra files (for Windows)
+## Usage
+
+### Needed extra files
 On Windows support for some codecs (Ogg Vorbis, MPEG audio, etc.) is done with external
-libraries, so you will need to have certain DLL files.
+libraries, so you will need to put certain DLL files together.
 
 In the case of components like foobar2000 they are all bundled for convenience,
 while other components include them but must be installed manually. You can also

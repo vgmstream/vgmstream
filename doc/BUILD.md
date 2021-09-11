@@ -357,6 +357,8 @@ May also need to take `vgmstream.h`, `streamfile.h` and `plugins.h`, and trim th
 
 For MSVC, you could add `__declspec(dllexport)` to exported functions in the "public" API of the above `.h`, and set `<ConfigurationType>DynamicLibrary</ConfigurationType>` in `libvgmstream.vcxproj`, plus add a `<Link>` under `<ClCompile>` to those libs (copy from `vgmstream_cli.vcxproj`).
 
+For integration and "API" usage, easiest would be checking how `vgmstream_cli.c` works.
+
 A cleaner API/.h and build methods is planned for the future (low priority though).
 
 
