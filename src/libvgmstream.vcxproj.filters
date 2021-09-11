@@ -308,6 +308,9 @@
     <ClInclude Include="util\log.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="util\m2_psb.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="formats.c">
@@ -1597,6 +1600,9 @@
     <ClCompile Include="meta\ps3_past.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\psb.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\psf.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -1928,6 +1934,9 @@
       <Filter>util\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="util\log.c">
+      <Filter>util\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="util\m2_psb.c">
       <Filter>util\Source Files</Filter>
     </ClCompile>
   </ItemGroup>

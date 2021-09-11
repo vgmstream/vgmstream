@@ -393,7 +393,7 @@ static const char* extension_list[] = {
     "pona",
     "pos",
     "ps2stm", //fake extension for .stm (renamed? to be removed?)
-    "psb", //txth/reserved [Legend of Mana (Switch), Senxin Aleste (AC)]
+    "psb",
     "psf",
     "psh", //fake extension for .vsv (to be removed)
     "psnd",
@@ -716,6 +716,7 @@ static const coding_info coding_info_list[] = {
         {coding_ULAW_int,           "8-bit u-Law with 1 byte interleave (block)"},
         {coding_ALAW,               "8-bit a-Law"},
         {coding_PCMFLOAT,           "32-bit float PCM"},
+        {coding_PCM24LE,            "24-bit Little Endian PCM"},
 
         {coding_CRI_ADX,            "CRI ADX 4-bit ADPCM"},
         {coding_CRI_ADX_fixed,      "CRI ADX 4-bit ADPCM (fixed coefficients)"},
@@ -1362,6 +1363,7 @@ static const meta_info meta_info_list[] = {
         {meta_WXD_WXH,              "Relic WXD+WXH header"},
         {meta_BNK_RELIC,            "Relic BNK header"},
         {meta_XSH_XSD_XSS,          "Treyarch XSH+XSD/XSS header"},
+        {meta_PSB,                  "M2 PSB header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {

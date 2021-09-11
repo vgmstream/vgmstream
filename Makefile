@@ -224,6 +224,7 @@ ifeq ($(TARGET_OS),Windows_NT)
   BIN_FILE = vgmstream-$(VGMSTREAM_VERSION)-win.zip
   ZIP_FILES  = COPYING
   ZIP_FILES += README.md
+  ZIP_FILES += doc/USAGE.md
   ZIP_FILES += cli/test.exe
   ZIP_FILES += winamp/in_vgmstream.dll
   ZIP_FILES += xmplay/xmp-vgmstream.dll
@@ -235,6 +236,7 @@ else
   BIN_FILE = vgmstream-$(VGMSTREAM_VERSION)-bin.zip
   ZIP_FILES  = COPYING
   ZIP_FILES += README.md
+  ZIP_FILES += doc/USAGE.md
   ZIP_FILES += cli/vgmstream-cli
   ZIP_FILES_AO  = cli/vgmstream123
 endif

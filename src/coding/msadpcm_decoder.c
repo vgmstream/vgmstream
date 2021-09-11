@@ -252,7 +252,7 @@ int msadpcm_check_coefs(STREAMFILE* sf, off_t offset) {
     int i;
     int count = read_u16le(offset, sf);
     if (count != 7) {
-        VGM_LOG("MSADPCM: bad count %i at %lx\n", count, offset);
+        vgm_logi("MSADPCM: bad count %i at %lx (report)\n", count, offset);
         goto fail;
     }
 
@@ -262,7 +262,7 @@ int msadpcm_check_coefs(STREAMFILE* sf, off_t offset) {
         int16_t coef2 = read_s16le(offset + 0x02, sf);
 
         if (coef1 != msadpcm_coefs[i][0] || coef2 != msadpcm_coefs[i][1]) {
-            VGM_LOG("MSADPCM: bad coef %i/%i vs %i/%i\n", coef1, coef2, msadpcm_coefs[i][0], msadpcm_coefs[i][1]);
+            vgm_logi("MSADPCM: bad coef %i/%i vs %i/%i (report)\n", coef1, coef2, msadpcm_coefs[i][0], msadpcm_coefs[i][1]);
             goto fail;
         }
         offset += 0x02 + 0x02;

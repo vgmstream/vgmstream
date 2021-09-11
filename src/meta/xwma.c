@@ -1,79 +1,101 @@
 #include "meta.h"
 #include "../coding/coding.h"
+#include "../util/chunks.h"
+
+typedef struct {
+    uint32_t data_offset;
+    uint32_t data_size;
+    uint32_t dpds_offset;
+    uint32_t dpds_size;
+
+    int loop_flag;
+
+    int format;
+    int channels;
+    int sample_rate;
+    int bytes;
+    int avg_bitrate;
+    int block_size;
+} xwma_header_t;
+
 
 /* XWMA - Microsoft WMA container [The Elder Scrolls: Skyrim (PC/X360), Hydrophobia (PC)]  */
-VGMSTREAM * init_vgmstream_xwma(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
-    off_t fmt_offset, data_offset, first_offset = 0xc;
-    size_t fmt_size, data_size;
-    int loop_flag, channel_count;
+VGMSTREAM* init_vgmstream_xwma(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
+    xwma_header_t xwma = {0};
 
 
     /* checks */
+    if (!is_id32be(0x00,sf, "RIFF"))
+        goto fail;
+    if (!is_id32be(0x08,sf, "XWMA"))
+        goto fail;
     /* .xwma: standard
      * .xwm: The Elder Scrolls: Skyrim (PC), Blade Arcus from Shining (PC) */
-    if (!check_extensions(streamFile, "xwma,xwm"))
-        goto fail;
-    if (read_32bitBE(0x00,streamFile) != 0x52494646) /* "RIFF" */
-        goto fail;
-    if (read_32bitBE(0x08,streamFile) != 0x58574D41) /* "XWMA" */
+    if (!check_extensions(sf, "xwma,xwm"))
         goto fail;
 
-    if ( !find_chunk_le(streamFile, 0x666d7420,first_offset,0, &fmt_offset,&fmt_size) ) /* "fmt "*/
-        goto fail;
-    if ( !find_chunk_le(streamFile, 0x64617461,first_offset,0, &data_offset,&data_size) ) /* "data"*/
-        goto fail;
+    {
+        enum { 
+            CHUNK_fmt  = 0x666d7420, /* "fmt " */
+            CHUNK_data = 0x64617461, /* "data" */
+            CHUNK_dpds = 0x64706473, /* "dpds" */
+        };
+        chunk_t rc = {0};
 
-    channel_count = read_16bitLE(fmt_offset+0x02,streamFile);
-    loop_flag  = 0;
+        rc.current = 0x0c;
+        while (next_chunk(&rc, sf)) {
+            switch(rc.type) {
+                case CHUNK_fmt:
+                    xwma.format      = read_u16le(rc.offset+0x00, sf);
+                    xwma.channels    = read_u16le(rc.offset+0x02, sf);
+                    xwma.sample_rate = read_u32le(rc.offset+0x04, sf);
+                    xwma.avg_bitrate = read_u32le(rc.offset+0x08, sf);
+                    xwma.block_size  = read_u16le(rc.offset+0x0c, sf);
+                    break;
+
+                case CHUNK_data:
+                    xwma.data_offset = rc.offset;
+                    xwma.data_size = rc.size;
+                    break;
+
+                case CHUNK_dpds:
+                    xwma.dpds_offset = rc.offset;
+                    xwma.dpds_size = rc.size;
+                    break;
+
+                default:
+                    break;
+            }
+        }
+        if (!xwma.format || !xwma.data_offset)
+            goto fail;
+    }
 
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count, loop_flag);
+    vgmstream = allocate_vgmstream(xwma.channels, xwma.loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->sample_rate = read_32bitLE(fmt_offset+0x04, streamFile);
     vgmstream->meta_type = meta_XWMA;
+    vgmstream->sample_rate = xwma.sample_rate;
 
     /* the main purpose of this meta is redoing the XWMA header to:
-     * - redo header to fix XWMA with buggy bit rates so FFmpeg can play them ok
-     * - skip seek table to fix FFmpeg buggy XWMA seeking (see init_seek)
+     * - fix XWMA with buggy bit rates so FFmpeg can play them ok
+     * - remove seek table to fix FFmpeg buggy XWMA seeking (see init_seek)
      * - read num_samples correctly
      */
-
 #ifdef VGM_USE_FFMPEG
     {
-        uint8_t buf[0x100];
-        int bytes, avg_bps, block_align, wma_codec;
-
-        avg_bps = read_32bitLE(fmt_offset+0x08, streamFile);
-        block_align = (uint16_t)read_16bitLE(fmt_offset+0x0c, streamFile);
-        wma_codec = (uint16_t)read_16bitLE(fmt_offset+0x00, streamFile);
-
-        bytes = ffmpeg_make_riff_xwma(buf,0x100, wma_codec, data_size, vgmstream->channels, vgmstream->sample_rate, avg_bps, block_align);
-        vgmstream->codec_data = init_ffmpeg_header_offset(streamFile, buf,bytes, data_offset,data_size);
+        vgmstream->codec_data = init_ffmpeg_xwma(sf, xwma.data_offset, xwma.data_size, xwma.format, xwma.channels, xwma.sample_rate, xwma.avg_bitrate, xwma.block_size);
         if (!vgmstream->codec_data) goto fail;
         vgmstream->coding_type = coding_FFmpeg;
         vgmstream->layout_type = layout_none;
 
-        /* manually find total samples, why don't they put this in the header is beyond me */
-        {
-            ms_sample_data msd = {0};
-
-            msd.channels = vgmstream->channels;
-            msd.data_offset = data_offset;
-            msd.data_size = data_size;
-
-            if (wma_codec == 0x0162)
-                wmapro_get_samples(&msd, streamFile, block_align, vgmstream->sample_rate,0x00E0);
-            else
-                wma_get_samples(&msd, streamFile, block_align, vgmstream->sample_rate,0x001F);
-
-            vgmstream->num_samples = msd.num_samples;
-            if (vgmstream->num_samples == 0)
-                vgmstream->num_samples = ffmpeg_get_samples(vgmstream->codec_data); /* from avg-br */
-            //num_samples seem to be found in the last "seek" table entry too, as: entry / channels / 2
-        }
+        /* try from (optional) seek table, or (less accurate) manual count */
+        vgmstream->num_samples = xwma_dpds_get_samples(sf, xwma.dpds_offset, xwma.dpds_size, xwma.channels, 0);
+        if (!vgmstream->num_samples)
+            vgmstream->num_samples = xwma_get_samples(sf, xwma.data_offset, xwma.data_size, xwma.format, xwma.channels, xwma.sample_rate, xwma.block_size);
     }
 #else
     goto fail;

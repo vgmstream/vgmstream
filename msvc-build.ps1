@@ -183,6 +183,7 @@ $fb2kFiles = @(
     "ext_libs/libspeex/*.dll",
     "$configuration/foo_input_vgmstream.dll",
     "README.md"
+    "doc/USAGE.md"
 )
 
 $cliFiles = @(
@@ -193,6 +194,7 @@ $cliFiles = @(
     "$configuration/xmp-vgmstream.dll",
     "COPYING",
     "README.md"
+    "doc/USAGE.md"
 )
 
 $fb2kPdbFiles = @(

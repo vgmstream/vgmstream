@@ -68,7 +68,7 @@ $sdk = "10.0"
 ```
 It's also possible to call MSBuild and pass those values from the CMD, see foobar section for an example.
 
-Once finished resulting binaries are in the *./Release* folder. Remember you need to copy extra `.dll` to run them (see [README.md](../README.md)). 
+Once finished resulting binaries are in the *./Release* folder. Remember you need to copy extra `.dll` to run them (see [USAGE.md](USAGE.md)).
 
 **For GCC/CLang**: there are basic Makefiles that work like usual with *make* (like `make vgmstream_cli EXTRA_CFLAGS="-DVGM_DEBUG_OUTPUT`). Artifacts are usually in their subdir (*./cli*, *./winamp*, etc).
 
@@ -356,6 +356,8 @@ make -C src libvgmstream.so
 May also need to take `vgmstream.h`, `streamfile.h` and `plugins.h`, and trim them somewhat to use as includes for the `.so`.
 
 For MSVC, you could add `__declspec(dllexport)` to exported functions in the "public" API of the above `.h`, and set `<ConfigurationType>DynamicLibrary</ConfigurationType>` in `libvgmstream.vcxproj`, plus add a `<Link>` under `<ClCompile>` to those libs (copy from `vgmstream_cli.vcxproj`).
+
+For integration and "API" usage, easiest would be checking how `vgmstream_cli.c` works.
 
 A cleaner API/.h and build methods is planned for the future (low priority though).
 

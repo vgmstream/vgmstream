@@ -92,6 +92,7 @@ void decode_ulaw(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing,
 void decode_ulaw_int(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
 void decode_alaw(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
 void decode_pcmfloat(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int big_endian);
+void decode_pcm24le(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
 int32_t pcm_bytes_to_samples(size_t bytes, int channels, int bits_per_sample);
 int32_t pcm16_bytes_to_samples(size_t bytes, int channels);
 int32_t pcm8_bytes_to_samples(size_t bytes, int channels);
@@ -592,7 +593,7 @@ STREAMFILE* ffmpeg_get_streamfile(ffmpeg_codec_data* data);
 ffmpeg_codec_data* init_ffmpeg_atrac3_raw(STREAMFILE* sf, off_t offset, size_t data_size, int sample_count, int channels, int sample_rate, int block_align, int encoder_delay);
 ffmpeg_codec_data* init_ffmpeg_atrac3_riff(STREAMFILE* sf, off_t offset, int* out_samples);
 ffmpeg_codec_data* init_ffmpeg_aac(STREAMFILE* sf, off_t offset, size_t size, int skip_samples);
-
+ffmpeg_codec_data* init_ffmpeg_xwma(STREAMFILE* sf, uint32_t data_offset, uint32_t data_size, int format, int channels, int sample_rate, int avg_bitrate, int block_size);
 
 /* ffmpeg_decoder_custom_opus.c (helper-things) */
 typedef struct {
@@ -663,6 +664,8 @@ typedef struct {
 void xma_get_samples(ms_sample_data* msd, STREAMFILE* sf);
 void wmapro_get_samples(ms_sample_data* msd, STREAMFILE* sf, int block_align, int sample_rate, uint32_t decode_flags);
 void wma_get_samples(ms_sample_data* msd, STREAMFILE* sf, int block_align, int sample_rate, uint32_t decode_flags);
+int32_t xwma_get_samples(STREAMFILE* sf, uint32_t data_offset, uint32_t data_size, int format, int channels, int sample_rate, int block_size);
+int32_t xwma_dpds_get_samples(STREAMFILE* sf, uint32_t dpds_offset, uint32_t dpds_size, int channels, int be);
 
 void xma1_parse_fmt_chunk(STREAMFILE* sf, off_t chunk_offset, int* channels, int* sample_rate, int* loop_flag, int32_t* loop_start_b, int32_t* loop_end_b, int32_t* loop_subframe, int be);
 void xma2_parse_fmt_chunk_extra(STREAMFILE* sf, off_t chunk_offset, int* loop_flag, int32_t* out_num_samples, int32_t* out_loop_start_sample, int32_t* out_loop_end_sample, int be);

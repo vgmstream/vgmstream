@@ -170,6 +170,7 @@
     <ClInclude Include="layout\layout.h" />
     <ClInclude Include="util\chunks.h" />
     <ClInclude Include="util\log.h" />
+    <ClInclude Include="util\m2_psb.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="coding\at3plus_decoder.c" />
@@ -244,6 +245,7 @@
     <ClCompile Include="meta\ps2_wmus.c" />
     <ClCompile Include="meta\ivag.c" />
     <ClCompile Include="meta\ps3_past.c" />
+    <ClCompile Include="meta\psb.c" />
     <ClCompile Include="meta\psf.c" />
     <ClCompile Include="meta\sgxd.c" />
     <ClCompile Include="meta\silence.c" />
@@ -712,6 +714,7 @@
     <ClCompile Include="layout\blocked_xvas.c" />
     <ClCompile Include="util\chunks.c" />
     <ClCompile Include="util\log.c" />
+    <ClCompile Include="util\m2_psb.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

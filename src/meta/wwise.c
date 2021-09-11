@@ -38,8 +38,8 @@ typedef struct {
     int format;
     int channels;
     int sample_rate;
-    int block_align;
-    int average_bps;
+    int block_size;
+    int avg_bitrate;
     int bits_per_sample;
     uint8_t channel_type;
     uint32_t channel_layout;
@@ -121,11 +121,11 @@ VGMSTREAM* init_vgmstream_wwise(STREAMFILE* sf) {
 
             if (ww.fmt_size != 0x14 && ww.fmt_size != 0x28 && ww.fmt_size != 0x18) goto fail; /* oldest, old, new */
             if (ww.bits_per_sample != 4) goto fail;
-            if (ww.block_align != 0x24 * ww.channels) goto fail;
+            if (ww.block_size != 0x24 * ww.channels) goto fail;
 
             vgmstream->coding_type = coding_WWISE_IMA;
             vgmstream->layout_type = layout_interleave;
-            vgmstream->interleave_block_size = ww.block_align / ww.channels;
+            vgmstream->interleave_block_size = ww.block_size / ww.channels;
             vgmstream->codec_endian = ww.big_endian;
 
             /* oldest version uses regular XBOX IMA with stereo mode [Shadowrun (PC)] */
@@ -155,7 +155,7 @@ VGMSTREAM* init_vgmstream_wwise(STREAMFILE* sf) {
             cfg.sample_rate = ww.sample_rate;
             cfg.big_endian = ww.big_endian;
 
-            if (ww.block_align != 0 || ww.bits_per_sample != 0) goto fail; /* always 0 for Worbis */
+            if (ww.block_size != 0 || ww.bits_per_sample != 0) goto fail; /* always 0 for Worbis */
 
             /* autodetect format (fields are mostly common, see the end of the file) */
             if (ww.vorb_offset) {
@@ -305,7 +305,7 @@ VGMSTREAM* init_vgmstream_wwise(STREAMFILE* sf) {
 
             vgmstream->coding_type = coding_NGC_DSP;
             vgmstream->layout_type = layout_interleave;
-            vgmstream->interleave_block_size = 0x08; /* ww.block_align = 0x8 in older Wwise, samples per block in newer Wwise */
+            vgmstream->interleave_block_size = 0x08; /* ww.block_size = 0x8 in older Wwise, samples per block in newer Wwise */
 
             /* find coef position */
             if (ww.wiih_offset) { /* older */
@@ -382,40 +382,18 @@ VGMSTREAM* init_vgmstream_wwise(STREAMFILE* sf) {
         }
 
         case XWMA: { /* X360 */
-            ffmpeg_codec_data *ffmpeg_data = NULL;
-            uint8_t buf[0x100];
-            int bytes;
-
             if (ww.fmt_size != 0x18) goto fail;
             if (!ww.big_endian) goto fail; /* must be from Wwise X360 (PC LE XWMA is parsed elsewhere) */
 
-            bytes = ffmpeg_make_riff_xwma(buf, sizeof(buf), ww.format, ww.data_size, ww.channels, ww.sample_rate, ww.average_bps, ww.block_align);
-            ffmpeg_data = init_ffmpeg_header_offset(sf, buf,bytes, ww.data_offset, ww.data_size);
-            if ( !ffmpeg_data ) goto fail;
-            vgmstream->codec_data = ffmpeg_data;
+            vgmstream->codec_data = init_ffmpeg_xwma(sf, ww.data_offset, ww.data_size, ww.format, ww.channels, ww.sample_rate, ww.avg_bitrate, ww.block_size);
+            if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
 
-
-            /* manually find total samples, why don't they put this in the header is beyond me */
-            {
-                ms_sample_data msd = {0};
-
-                msd.channels = ww.channels;
-                msd.data_offset = ww.data_offset;
-                msd.data_size = ww.data_size;
-
-                if (ww.format == 0x0162)
-                    wmapro_get_samples(&msd, sf, ww.block_align, ww.sample_rate, 0x00E0);
-                else
-                    wma_get_samples(&msd, sf, ww.block_align, ww.sample_rate, 0x001F);
-
-                vgmstream->num_samples = msd.num_samples;
-                if (!vgmstream->num_samples)
-                    vgmstream->num_samples = ffmpeg_get_samples(ffmpeg_data); /* very wrong, from avg-br */
-                //num_samples seem to be found in the last "seek" table entry too, as: entry / channels / 2
-            }
-
+            /* seek table seems BE dpds */
+            vgmstream->num_samples = xwma_dpds_get_samples(sf, ww.seek_offset, ww.seek_size, ww.channels, ww.big_endian);
+            if (!vgmstream->num_samples)
+                vgmstream->num_samples = xwma_get_samples(sf, ww.data_offset, ww.data_size, ww.format, ww.channels, ww.sample_rate, ww.block_size);
             break;
         }
 
@@ -423,7 +401,7 @@ VGMSTREAM* init_vgmstream_wwise(STREAMFILE* sf) {
             ffmpeg_codec_data * ffmpeg_data = NULL;
 
             if (ww.fmt_size != 0x24) goto fail;
-            if (ww.block_align != 0 || ww.bits_per_sample != 0) goto fail;
+            if (ww.block_size != 0 || ww.bits_per_sample != 0) goto fail;
 
             /* extra: size 0x12, unknown values */
 
@@ -442,7 +420,7 @@ VGMSTREAM* init_vgmstream_wwise(STREAMFILE* sf) {
             size_t seek_size;
 
             if (ww.fmt_size != 0x28) goto fail;
-            /* values up to 0x14 seem fixed and similar to HEVAG's (block_align 0x02/04, bits_per_sample 0x10) */
+            /* values up to 0x14 seem fixed and similar to HEVAG's (block_size 0x02/04, bits_per_sample 0x10) */
 
             vgmstream->num_samples = read_s32(ww.fmt_offset + 0x18, sf);
             /* 0x1c: null?
@@ -476,7 +454,7 @@ VGMSTREAM* init_vgmstream_wwise(STREAMFILE* sf) {
         }
 
         case OPUS: { /* fully standard Ogg Opus [Girl Cafe Gun (Mobile), Gears 5 (PC)] */
-            if (ww.block_align != 0 || ww.bits_per_sample != 0) goto fail;
+            if (ww.block_size != 0 || ww.bits_per_sample != 0) goto fail;
 
             /* extra: size 0x12 */
             vgmstream->num_samples = read_s32(ww.fmt_offset + 0x18, sf);
@@ -526,7 +504,7 @@ VGMSTREAM* init_vgmstream_wwise(STREAMFILE* sf) {
             int mapping;
             opus_config cfg = {0};
 
-            if (ww.block_align != 0 || ww.bits_per_sample != 0) goto fail;
+            if (ww.block_size != 0 || ww.bits_per_sample != 0) goto fail;
             if (!ww.seek_offset) goto fail;
             if (ww.channels > 8) goto fail; /* mapping not defined */
 
@@ -596,7 +574,7 @@ VGMSTREAM* init_vgmstream_wwise(STREAMFILE* sf) {
 
         case HEVAG: /* PSV */
             /* changed values, another bizarre Wwise quirk */
-            //ww.block_align /* unknown (1ch=2, 2ch=4) */
+            //ww.block_size /* unknown (1ch=2, 2ch=4) */
             //ww.bits_per_sample; /* unknown (0x10) */
             //if (ww.bits_per_sample != 4) goto fail;
 
@@ -647,11 +625,11 @@ VGMSTREAM* init_vgmstream_wwise(STREAMFILE* sf) {
 
         case PTADPCM: /* newer ADPCM [Bayonetta 2 (Switch), Genshin Impact (PC)]  */
             if (ww.bits_per_sample != 4) goto fail;
-            if (ww.block_align != 0x24 * ww.channels && ww.block_align != 0x104 * ww.channels) goto fail;
+            if (ww.block_size != 0x24 * ww.channels && ww.block_size != 0x104 * ww.channels) goto fail;
 
             vgmstream->coding_type = coding_PTADPCM;
             vgmstream->layout_type = layout_interleave;
-            vgmstream->interleave_block_size = ww.block_align / ww.channels;
+            vgmstream->interleave_block_size = ww.block_size / ww.channels;
           //vgmstream->codec_endian = ww.big_endian; //?
 
             if (ww.truncated) {
@@ -827,8 +805,8 @@ static int parse_wwise(STREAMFILE* sf, wwise_header* ww) {
         ww->format           = read_u16(ww->fmt_offset + 0x00,sf);
         ww->channels         = read_u16(ww->fmt_offset + 0x02,sf);
         ww->sample_rate      = read_u32(ww->fmt_offset + 0x04,sf);
-        ww->average_bps      = read_u32(ww->fmt_offset + 0x08,sf);
-        ww->block_align      = read_u16(ww->fmt_offset + 0x0c,sf);
+        ww->avg_bitrate      = read_u32(ww->fmt_offset + 0x08,sf);
+        ww->block_size      = read_u16(ww->fmt_offset + 0x0c,sf);
         ww->bits_per_sample  = read_u16(ww->fmt_offset + 0x0e,sf);
         if (ww->fmt_size > 0x10 && ww->format != 0x0165 && ww->format != 0x0166) /* ignore XMAWAVEFORMAT */
             ww->extra_size   = read_u16(ww->fmt_offset + 0x10,sf);
@@ -900,7 +878,7 @@ static int parse_wwise(STREAMFILE* sf, wwise_header* ww) {
             /* few older Wwise DSP with num_samples in extra_size [Tony Hawk: Shred (Wii)] */
             ww->codec = DSP;
         }
-        else if (ww->block_align == 0x104 * ww->channels) {
+        else if (ww->block_size == 0x104 * ww->channels) {
             /* Bayonetta 2 (Switch) */
             ww->codec = PTADPCM;
         }
