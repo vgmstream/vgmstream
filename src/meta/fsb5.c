@@ -454,18 +454,16 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
 
 #ifdef VGM_USE_FFMPEG
         case 0x0E: { /* FMOD_SOUND_FORMAT_XWMA  [from fsbankex tests, no known games] */
-            uint8_t buf[0x100];
-            int bytes, format, average_bps, block_align;
+            int format,avg_bitrate, block_size;
 
-            format = read_u16be(fsb5.extradata_offset+0x00,sf);
-            block_align = read_u16be(fsb5.extradata_offset+0x02,sf);
-            average_bps = read_u32be(fsb5.extradata_offset+0x04,sf);
+            format      = read_u16be(fsb5.extradata_offset+0x00,sf);
+            block_size  = read_u16be(fsb5.extradata_offset+0x02,sf);
+            avg_bitrate = read_u32be(fsb5.extradata_offset+0x04,sf);
             /* rest: seek entries + mini seek table? */
             /* XWMA encoder only does up to 6ch (doesn't use FSB multistreams for more) */
 
-            bytes = ffmpeg_make_riff_xwma(buf,0x100, format, fsb5.stream_size, vgmstream->channels, vgmstream->sample_rate, average_bps, block_align);
-            vgmstream->codec_data = init_ffmpeg_header_offset(sb, buf,bytes, fsb5.stream_offset, fsb5.stream_size);
-            if ( !vgmstream->codec_data ) goto fail;
+            vgmstream->codec_data = init_ffmpeg_xwma(sf, fsb5.stream_offset, fsb5.stream_size, format, fsb5.channels, fsb5.sample_rate, avg_bitrate, block_size);
+            if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
             break;

@@ -203,4 +203,39 @@ fail:
     return NULL;
 }
 
+//TODO: make init_ffmpeg_xwma_fmt(be) too to pass fmt chunk
+
+ffmpeg_codec_data* init_ffmpeg_xwma(STREAMFILE* sf, uint32_t data_offset, uint32_t data_size, int format, int channels, int sample_rate, int avg_bitrate, int block_size) {
+    ffmpeg_codec_data* data = NULL;
+    uint8_t buf[0x100];
+    int bytes;
+
+    bytes = ffmpeg_make_riff_xwma(buf, sizeof(buf), format, data_size, channels, sample_rate, avg_bitrate, block_size);
+    data = init_ffmpeg_header_offset(sf, buf,bytes, data_offset, data_size);
+    if (!data) goto fail;
+
+    if (format == 0x161) {
+        int skip_samples = 0;
+
+        /* Skip WMA encoder delay, not specified in the flags or containers (ASF/XWMA),
+         * but verified compared to Microsoft's output. Seems to match frame_samples * 2 */
+        if (sample_rate >= 32000)
+            skip_samples = 4096;
+        else if (sample_rate >= 22050)
+            skip_samples = 2048;
+        else if (sample_rate >= 8000)
+            skip_samples = 1024;
+
+        ffmpeg_set_skip_samples(data, skip_samples);
+    }
+
+    //TODO WMAPro uses variable skips and is more complex
+    //TODO ffmpeg's WMA doesn't properly output trailing samples (ignored patch...)
+
+    return data;
+fail:
+    free_ffmpeg(data);
+    return NULL;
+}
+
 #endif

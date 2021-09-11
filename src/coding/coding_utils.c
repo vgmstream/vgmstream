@@ -760,6 +760,34 @@ void wma_get_samples(ms_sample_data* msd, STREAMFILE* sf, int block_align, int s
 #endif
 }
 
+int32_t xwma_get_samples(STREAMFILE* sf, uint32_t data_offset, uint32_t data_size, int format, int channels, int sample_rate, int block_size) {
+    /* manually find total samples, why don't they put this in the header is beyond me */
+    ms_sample_data msd = {0};
+
+    msd.channels = channels;
+    msd.data_offset = data_offset;
+    msd.data_size = data_size;
+
+    if (format == 0x0162)
+        wmapro_get_samples(&msd, sf, block_size, sample_rate, 0x00E0);
+    else
+        wma_get_samples(&msd, sf, block_size, sample_rate, 0x001F);
+
+    return msd.num_samples;
+}
+
+int32_t xwma_dpds_get_samples(STREAMFILE* sf, uint32_t dpds_offset, uint32_t dpds_size, int channels, int be) {
+    int32_t (*read_s32)(off_t,STREAMFILE*) = be ? read_s32be : read_s32le;
+    uint32_t offset;
+    if (!dpds_offset || !dpds_size || !channels)
+        return 0;
+
+    offset = dpds_offset + (dpds_size - 0x04); /* last entry */
+    /* XWMA's seek table ("dpds") contains max decoded bytes (after encoder delay), checked vs xWMAEncode.
+     * WMAPRO usually encodes a few more tail samples though (see xwma_get_samples). */
+    return read_s32(offset, sf) / channels / sizeof(int16_t); /* in PCM16 bytes */
+}
+
 
 /* XMA hell for precise looping and gapless support, fixes raw sample values from headers
  * that don't count XMA's final subframe/encoder delay/encoder padding, and FFmpeg stuff.
