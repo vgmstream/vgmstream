@@ -68,7 +68,7 @@ $sdk = "10.0"
 ```
 It's also possible to call MSBuild and pass those values from the CMD, see foobar section for an example.
 
-Once finished resulting binaries are in the *./Release* folder. Remember you need to copy extra `.dll` to run them (see [README.md](../README.md)). 
+Once finished resulting binaries are in the *./Release* folder. Remember you need to copy extra `.dll` to run them (see [USAGE.md](USAGE.md)).
 
 **For GCC/CLang**: there are basic Makefiles that work like usual with *make* (like `make vgmstream_cli EXTRA_CFLAGS="-DVGM_DEBUG_OUTPUT`). Artifacts are usually in their subdir (*./cli*, *./winamp*, etc).
 
