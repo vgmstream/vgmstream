@@ -962,4 +962,6 @@ VGMSTREAM* init_vgmstream_bnk_relic(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_xsh_xsd_xss(STREAMFILE* sf);
 
+VGMSTREAM* init_vgmstream_psb(STREAMFILE* sf);
+
 #endif /*_META_H*/
