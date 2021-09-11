@@ -67,7 +67,8 @@ typedef enum {
     coding_ULAW_int,        /* 8-bit u-Law (non-linear PCM) with sample-level interleave (for blocks) */
     coding_ALAW,            /* 8-bit a-Law (non-linear PCM) */
 
-    coding_PCMFLOAT,        /* 32 bit float PCM */
+    coding_PCMFLOAT,        /* 32-bit float PCM */
+    coding_PCM24LE,         /* 24-bit PCM */
 
     /* ADPCM */
     coding_CRI_ADX,         /* CRI ADX */

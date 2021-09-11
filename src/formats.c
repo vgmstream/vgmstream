@@ -716,6 +716,7 @@ static const coding_info coding_info_list[] = {
         {coding_ULAW_int,           "8-bit u-Law with 1 byte interleave (block)"},
         {coding_ALAW,               "8-bit a-Law"},
         {coding_PCMFLOAT,           "32-bit float PCM"},
+        {coding_PCM24LE,            "24-bit Little Endian PCM"},
 
         {coding_CRI_ADX,            "CRI ADX 4-bit ADPCM"},
         {coding_CRI_ADX_fixed,      "CRI ADX 4-bit ADPCM (fixed coefficients)"},
