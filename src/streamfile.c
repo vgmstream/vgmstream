@@ -2,6 +2,22 @@
 #include "util.h"
 #include "vgmstream.h"
 
+/* for dup/fdopen in some systems */
+#ifndef _MSC_VER
+    #include <unistd.h>
+#endif
+
+/* For (rarely needed) +2GB file support we use fseek64/ftell64. Those are usually available
+ * but may depend on compiler.
+ * - MSVC: +VS2008 should work
+ * - GCC/MingW: should be available
+ * - GCC/Linux: should be available but some systems may need __USE_FILE_OFFSET64,
+ *   that we (probably) don't want since that turns off_t to off64_t
+ * - Clang: seems only defined on Linux/GNU environments, somehow emscripten is out
+ *   (unsure about Clang Win since apparently they define _MSC_VER)
+ * - Android: API +24 if not using __USE_FILE_OFFSET64
+ * Not sure if fopen64 is needed in some cases. May be work adding some compiler flag to control this manually.
+ */
 
 /* MSVC fixes (though mingw uses MSVCRT but not MSC_VER, maybe use AND?) */
 #if defined(__MSVCRT__) || defined(_MSC_VER)
@@ -15,8 +31,15 @@
         #define ftello ftell
     #endif
 */
-    #define fseek_v _fseeki64  //fseek/fseeko
-    #define ftell_v _ftelli64  //ftell/ftello
+
+    #define fopen_v fopen
+    #if (_MSC_VER >= 1400)
+        #define fseek_v _fseeki64
+        #define ftell_v _ftelli64
+    #else
+        #define fseek_v fseek
+        #define ftell_v ftell
+    #endif
 
     #ifdef fileno
         #undef fileno
@@ -29,12 +52,15 @@
         #define off_t __int64
     #endif
 
-#elif defined(XBMC)
+#elif defined(XBMC) || defined(__EMSCRIPTEN__) || defined (__ANDROID__)
+    #define fopen_v fopen
     #define fseek_v fseek
     #define ftell_v ftell
+
 #else
+    #define fopen_v fopen
     #define fseek_v fseeko64  //fseeko
-    #define ftell_v ftello64  //ftelloo
+    #define ftell_v ftello64  //ftello
 #endif
 
 
@@ -48,7 +74,7 @@ typedef struct {
     offv_t buf_offset;      /* current buffer data start */
     uint8_t* buf;           /* data buffer */
     size_t buf_size;        /* max buffer size */
-    size_t valid_size;       /* current buffer size */
+    size_t valid_size;      /* current buffer size */
     size_t file_size;       /* buffered file size */
 } STDIO_STREAMFILE;
 
@@ -154,12 +180,6 @@ static void stdio_get_name(STDIO_STREAMFILE* sf, char* name, size_t name_size) {
     strncpy(name, sf->name, name_size);
     name[name_size - 1] = '\0';
 }
-static void stdio_close(STDIO_STREAMFILE* sf) {
-    if (sf->infile)
-        fclose(sf->infile);
-    free(sf->buf);
-    free(sf);
-}
 
 static STREAMFILE* stdio_open(STDIO_STREAMFILE* sf, const char* const filename, size_t buf_size) {
     if (!filename)
@@ -187,10 +207,18 @@ static STREAMFILE* stdio_open(STDIO_STREAMFILE* sf, const char* const filename, 
 
         /* on failure just close and try the default path (which will probably fail a second time) */
     }
-#endif    
+#endif
     // a normal open, open a new file
     return open_stdio_streamfile_buffer(filename, buf_size);
 }
+
+static void stdio_close(STDIO_STREAMFILE* sf) {
+    if (sf->infile)
+        fclose(sf->infile);
+    free(sf->buf);
+    free(sf);
+}
+
 
 static STREAMFILE* open_stdio_streamfile_buffer_by_file(FILE* infile, const char* const filename, size_t buf_size) {
     uint8_t* buf = NULL;
@@ -245,7 +273,7 @@ static STREAMFILE* open_stdio_streamfile_buffer(const char* const filename, size
     FILE* infile = NULL;
     STREAMFILE* sf = NULL;
 
-    infile = fopen(filename,"rb");
+    infile = fopen_v(filename,"rb");
     if (!infile) {
         /* allow non-existing files in some cases */
         if (!vgmstream_is_virtual_filename(filename))
@@ -360,10 +388,12 @@ static offv_t buffer_get_offset(BUFFER_STREAMFILE* sf) {
 static void buffer_get_name(BUFFER_STREAMFILE* sf, char* name, size_t name_size) {
     sf->inner_sf->get_name(sf->inner_sf, name, name_size); /* default */
 }
+
 static STREAMFILE* buffer_open(BUFFER_STREAMFILE* sf, const char* const filename, size_t buf_size) {
     STREAMFILE* new_inner_sf = sf->inner_sf->open(sf->inner_sf,filename,buf_size);
     return open_buffer_streamfile(new_inner_sf, buf_size); /* original buffer size is preferable? */
 }
+
 static void buffer_close(BUFFER_STREAMFILE* sf) {
     sf->inner_sf->close(sf->inner_sf);
     free(sf->buf);
@@ -435,12 +465,14 @@ static size_t wrap_get_size(WRAP_STREAMFILE* sf) {
 static offv_t wrap_get_offset(WRAP_STREAMFILE* sf) {
     return sf->inner_sf->get_offset(sf->inner_sf); /* default */
 }
-static void wrap_get_name(WRAP_STREAMFILE* sf, char* name, size_t name_len) {
-    sf->inner_sf->get_name(sf->inner_sf, name, name_len); /* default */
+static void wrap_get_name(WRAP_STREAMFILE* sf, char* name, size_t name_size) {
+    sf->inner_sf->get_name(sf->inner_sf, name, name_size); /* default */
 }
-static void wrap_open(WRAP_STREAMFILE* sf, const char* const filename, size_t buf_size) {
-    sf->inner_sf->open(sf->inner_sf, filename, buf_size); /* default (don't wrap) */
+
+static STREAMFILE* wrap_open(WRAP_STREAMFILE* sf, const char* const filename, size_t buf_size) {
+    return sf->inner_sf->open(sf->inner_sf, filename, buf_size); /* default (don't call open_wrap_streamfile) */
 }
+
 static void wrap_close(WRAP_STREAMFILE* sf) {
     //sf->inner_sf->close(sf->inner_sf); /* don't close */
     free(sf);
@@ -503,9 +535,10 @@ static size_t clamp_get_size(CLAMP_STREAMFILE* sf) {
 static offv_t clamp_get_offset(CLAMP_STREAMFILE* sf) {
     return sf->inner_sf->get_offset(sf->inner_sf) - sf->start;
 }
-static void clamp_get_name(CLAMP_STREAMFILE* sf, char* name, size_t name_len) {
-    sf->inner_sf->get_name(sf->inner_sf, name, name_len); /* default */
+static void clamp_get_name(CLAMP_STREAMFILE* sf, char* name, size_t name_size) {
+    sf->inner_sf->get_name(sf->inner_sf, name, name_size); /* default */
 }
+
 static STREAMFILE* clamp_open(CLAMP_STREAMFILE* sf, const char* const filename, size_t buf_size) {
     char original_filename[PATH_LIMIT];
     STREAMFILE* new_inner_sf = NULL;
@@ -520,6 +553,7 @@ static STREAMFILE* clamp_open(CLAMP_STREAMFILE* sf, const char* const filename, 
         return new_inner_sf;
     }
 }
+
 static void clamp_close(CLAMP_STREAMFILE* sf) {
     sf->inner_sf->close(sf->inner_sf);
     free(sf);
@@ -582,13 +616,15 @@ static size_t io_get_size(IO_STREAMFILE* sf) {
 static offv_t io_get_offset(IO_STREAMFILE* sf) {
     return sf->inner_sf->get_offset(sf->inner_sf);  /* default */
 }
-static void io_get_name(IO_STREAMFILE* sf, char* name, size_t name_len) {
-    sf->inner_sf->get_name(sf->inner_sf, name, name_len); /* default */
+static void io_get_name(IO_STREAMFILE* sf, char* name, size_t name_size) {
+    sf->inner_sf->get_name(sf->inner_sf, name, name_size); /* default */
 }
+
 static STREAMFILE* io_open(IO_STREAMFILE* sf, const char* const filename, size_t buf_size) {
     STREAMFILE* new_inner_sf = sf->inner_sf->open(sf->inner_sf,filename,buf_size);
     return open_io_streamfile_ex(new_inner_sf, sf->data, sf->data_size, sf->read_callback, sf->size_callback, sf->init_callback, sf->close_callback);
 }
+
 static void io_close(IO_STREAMFILE* sf) {
     if (sf->close_callback)
         sf->close_callback(sf->inner_sf, sf->data);
@@ -633,7 +669,7 @@ STREAMFILE* open_io_streamfile_ex(STREAMFILE* sf, void* data, size_t data_size, 
     }
 
     return &this_sf->vt;
-    
+
 fail:
     if (this_sf) free(this_sf->data);
     free(this_sf);
@@ -676,6 +712,7 @@ static void fakename_get_name(FAKENAME_STREAMFILE* sf, char* name, size_t name_s
     strncpy(name,sf->fakename, name_size);
     name[name_size - 1] = '\0';
 }
+
 static STREAMFILE* fakename_open(FAKENAME_STREAMFILE* sf, const char* const filename, size_t buf_size) {
     /* detect re-opening the file */
     if (strcmp(filename, sf->fakename) == 0) {
@@ -797,6 +834,7 @@ static offv_t multifile_get_offset(MULTIFILE_STREAMFILE* sf) {
 static void multifile_get_name(MULTIFILE_STREAMFILE* sf, char* name, size_t name_size) {
     sf->inner_sfs[0]->get_name(sf->inner_sfs[0], name, name_size);
 }
+
 static STREAMFILE* multifile_open(MULTIFILE_STREAMFILE* sf, const char* const filename, size_t buf_size) {
     char original_filename[PATH_LIMIT];
     STREAMFILE* new_sf = NULL;
@@ -1219,7 +1257,7 @@ STREAMFILE* read_filemap_file_pos(STREAMFILE* sf, int file_num, int* p_pos) {
         /* get key/val (ignores lead/trailing spaces, stops at comment/separator) */
         ok = sscanf(line, " %[^\t#:] : %[^\t#\r\n] ", key, val);
         if (ok != 2) { /* ignore line if no key=val (comment or garbage) */
-            continue;  
+            continue;
         }
 
         if (strcmp(key, filename) == 0) {
@@ -1454,7 +1492,7 @@ void dump_streamfile(STREAMFILE* sf, int num) {
         get_streamfile_filename(sf, filename, sizeof(filename));
         snprintf(dumpname, sizeof(dumpname), "%s_%02i.dump", filename, num);
 
-        f = fopen(dumpname,"wb");
+        f = fopen_v(dumpname,"wb");
         if (!f) return;
     }
 

@@ -1,34 +1,35 @@
 #include "meta.h"
 #include "../coding/coding.h"
 
-typedef enum { ATRAC3, ATRAC9, KOVS, KTSS, KTAC } atsl_codec;
 
 /* .ATSL - Koei Tecmo audio container [One Piece Pirate Warriors (PS3), Warriors All-Stars (PC)] */
-VGMSTREAM * init_vgmstream_atsl(STREAMFILE *streamFile) {
-    VGMSTREAM *vgmstream = NULL;
-    STREAMFILE *temp_streamFile = NULL;
-    int total_subsongs, target_subsong = streamFile->stream_index;
+VGMSTREAM* init_vgmstream_atsl(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
+    STREAMFILE* temp_sf = NULL;
+    int total_subsongs, target_subsong = sf->stream_index;
     int type, big_endian = 0, entries;
-    atsl_codec codec;
+    uint32_t subfile_offset = 0, subfile_size = 0, header_size, entry_size;
+
+    VGMSTREAM* (*init_vgmstream)(STREAMFILE* sf) = NULL;
     const char* fake_ext;
-    off_t subfile_offset = 0;
-    size_t subfile_size = 0, header_size, entry_size;
-    int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
 
 
     /* checks */
-    /* .atsl: header id (for G1L extractions), .atsl3: PS3 games, .atsl4: PS4 games */
-    if ( !check_extensions(streamFile,"atsl,atsl3,atsl4"))
+    if (!is_id32be(0x00,sf, "ATSL"))
         goto fail;
-    if (read_32bitBE(0x00,streamFile) != 0x4154534C) /* "ATSL" */
+    /* .atsl: header id (for G1L extractions), .atsl3: PS3 games, .atsl4: PS4 games */
+    if (!check_extensions(sf,"atsl,atsl3,atsl4"))
         goto fail;
 
     /* main header (LE) */
-    header_size = read_32bitLE(0x04,streamFile);
-    /* 0x08/0c: flags?, 0x10: fixed? (0x03E8) */
-    entries = read_32bitLE(0x14,streamFile);
+    header_size = read_u32le(0x04,sf);
+    /* 0x08/0c: flags? */
+    /* 0x10: volume? (always 1000) */
+    entries = read_u32le(0x14,sf);
     /* 0x18: 0x28, or 0x30 (rarer) */
-    /* 0x1c: null, 0x20: subheader size, 0x24/28: null */
+    /* 0x1c: null */
+    /* 0x20: subheader size */
+    /* 0x24/28: null */
 
     /* Type byte may be wrong (could need header id tests instead). Example flags at 0x08/0x0c:
      * - 00010101 00020001  .atsl3 from One Piece Pirate Warriors (PS3)[ATRAC3]
@@ -40,43 +41,55 @@ VGMSTREAM * init_vgmstream_atsl(STREAMFILE *streamFile) {
      * - 000A0301 00010501  atsl in G1L from Warriors All-Stars (PC)[KOVS]
      * - 000B0301 00080601  atsl in G1l from Sengoku Musou Sanada Maru (Switch)[KTSS]
      * - 010C0301 01060601  .atsl from Dynasty Warriors 9 (PS4)[KTAC]
+     * - 01000000 01010501  .atsl from Nioh (PC)[KOVS]
+     * - 01000000 00010501  .atsl from Nioh (PC)[KOVS]
      */
-    entry_size = 0x28;
-    type = read_16bitLE(0x0c, streamFile);
+
+    type = read_u16le(0x0c, sf);
     switch(type) {
-        case 0x0100:
-            codec = KOVS;
+#ifdef VGM_USE_VORBIS
+        case 0x0100: /* KOVS */
+            init_vgmstream = init_vgmstream_ogg_vorbis;
             fake_ext = "kvs";
+            entry_size = 0x28;
             break;
-        case 0x0200:
-            codec = ATRAC3;
+        case 0x0101:
+            init_vgmstream = init_vgmstream_ogg_vorbis;
+            fake_ext = "kvs";
+            entry_size = 0x3c;
+            break;
+#endif
+        case 0x0200: /* ATRAC3 */
+            init_vgmstream = init_vgmstream_riff;
             fake_ext = "at3";
+            entry_size = 0x28;
             big_endian = 1;
             break;
         case 0x0400:
-        case 0x0600:
-            codec = ATRAC9;
+        case 0x0600: /* ATRAC9 */
+            init_vgmstream = init_vgmstream_riff;
             fake_ext = "at9";
+            entry_size = 0x28;
             break;
-        case 0x0601:
-            codec = KTAC;
+        case 0x0601: /* KTAC */
+            init_vgmstream = init_vgmstream_ktac;
             fake_ext = "ktac";
             entry_size = 0x3c;
             break;
-        case 0x0800:
-            codec = KTSS;
+        case 0x0800: /* KTSS */
+            init_vgmstream = init_vgmstream_ktss;
             fake_ext = "ktss";
+            entry_size = 0x28;
             break;
         default:
-            VGM_LOG("ATSL: unknown type %x\n", type);
+            vgm_logi("ATSL: unknown type %x (report)\n", type);
             goto fail;
     }
-    read_32bit = big_endian ? read_32bitBE : read_32bitLE;
-
 
     /* entries can point to the same file, count unique only */
     {
-        int i,j;
+        int i, j;
+        uint32_t (*read_u32)(off_t,STREAMFILE*) = big_endian ? read_u32be : read_u32le;
 
         total_subsongs = 0;
         if (target_subsong == 0) target_subsong = 1;
@@ -86,13 +99,13 @@ VGMSTREAM * init_vgmstream_atsl(STREAMFILE *streamFile) {
             int is_unique = 1;
 
             /* 0x00: id */
-            off_t entry_subfile_offset = read_32bit(header_size + i*entry_size + 0x04,streamFile);
-            size_t entry_subfile_size  = read_32bit(header_size + i*entry_size + 0x08,streamFile);
+            uint32_t entry_subfile_offset = read_u32(header_size + i*entry_size + 0x04,sf);
+            uint32_t entry_subfile_size  = read_u32(header_size + i*entry_size + 0x08,sf);
             /* 0x08+: channels/sample rate/num_samples/loop_start/etc (match subfile header) */
 
             /* check if current entry was repeated in a prev entry */
             for (j = 0; j < i; j++)  {
-                off_t prev_offset = read_32bit(header_size + j*entry_size + 0x04,streamFile);
+                off_t prev_offset = read_u32(header_size + j*entry_size + 0x04,sf);
                 if (prev_offset == entry_subfile_offset) {
                     is_unique = 0;
                     break;
@@ -113,45 +126,22 @@ VGMSTREAM * init_vgmstream_atsl(STREAMFILE *streamFile) {
     if (target_subsong > total_subsongs || total_subsongs <= 0) goto fail;
     if (!subfile_offset || !subfile_size) goto fail;
 
-
     /* some kind of seek/switch table may follow (optional, found in .atsl3) */
 
-
-    temp_streamFile = setup_subfile_streamfile(streamFile, subfile_offset,subfile_size, fake_ext);
-    if (!temp_streamFile) goto fail;
+    temp_sf = setup_subfile_streamfile(sf, subfile_offset, subfile_size, fake_ext);
+    if (!temp_sf) goto fail;
 
     /* init the VGMSTREAM */
-    switch(codec) {
-        case ATRAC3:
-        case ATRAC9:
-            vgmstream = init_vgmstream_riff(temp_streamFile);
-            if (!vgmstream) goto fail;
-            break;
-#ifdef VGM_USE_VORBIS
-        case KOVS:
-            vgmstream = init_vgmstream_ogg_vorbis(temp_streamFile);
-            if (!vgmstream) goto fail;
-            break;
-#endif
-        case KTSS:
-            vgmstream = init_vgmstream_ktss(temp_streamFile);
-            if (!vgmstream) goto fail;
-            break;
-        case KTAC:
-            //vgmstream = init_vgmstream_ktac(temp_streamFile); //Koei Tecto VBR-like ATRAC9
-            //if (!vgmstream) goto fail;
-            //break;
-        default:
-            goto fail;
-    }
+    vgmstream = init_vgmstream(temp_sf);
+    if (!vgmstream) goto fail;
 
     vgmstream->num_streams = total_subsongs;
 
-    close_streamfile(temp_streamFile);
+    close_streamfile(temp_sf);
     return vgmstream;
 
 fail:
-    close_streamfile(temp_streamFile);
+    close_streamfile(temp_sf);
     close_vgmstream(vgmstream);
     return NULL;
 }

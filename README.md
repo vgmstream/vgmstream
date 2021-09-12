@@ -58,7 +58,7 @@ You may compile them from source as well (see *build guide*).
 
 ### Linux
 Generally you need to build vgmstream's components manually (see *build guide*). For
-a quick build call `/make-build-cmake.sh` (for Debian/Ubuntu-style distros, installs
+a quick build call `./make-build-cmake.sh` (for Debian/Ubuntu-style distros, installs
 various deps first so you may prefer to call commands manually).
 
 Releases also distribute a static version of the CLI tool (kernel v3.2+).

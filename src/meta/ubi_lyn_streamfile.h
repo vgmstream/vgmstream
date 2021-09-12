@@ -6,7 +6,7 @@
 static STREAMFILE* setup_ubi_lyn_streamfile(STREAMFILE* sf, off_t stream_offset, size_t interleave_size, int stream_number, int stream_count, size_t logical_size) {
     STREAMFILE *new_sf = NULL;
     deblock_config_t cfg = {0};
-VGM_LOG("so=%lx, chu=%x, n=%i, c=%i, lo=%x\n", stream_offset, interleave_size, stream_number, stream_count, logical_size);
+
     cfg.stream_start = stream_offset;
     cfg.chunk_size = interleave_size;
     cfg.step_start = stream_number;

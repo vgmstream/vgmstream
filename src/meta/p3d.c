@@ -1,139 +1,152 @@
 #include "meta.h"
 #include "../coding/coding.h"
 
-/* P3D - from Radical's Prototype 1/2 (PC/PS3/X360) */
-VGMSTREAM * init_vgmstream_p3d(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
-    off_t start_offset, parse_offset, name_offset = 0;
+/* P3D - from Radical's Prototype 1/2 (PC/PS3/X360), Spider-Man 4 Beta (X360) */
+VGMSTREAM* init_vgmstream_p3d(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
+    off_t start_offset, offset, name_offset = 0;
     size_t header_size, file_size, data_size;
-    int loop_flag = 0, channel_count, sample_rate, codec;
-    int i, name_count, text_len, block_size = 0, block_count = 0, num_samples;
-    int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
+    uint32_t xma2_offset = 0, xma2_size = 0;
+    int loop_flag, channels, sample_rate, codec;
+    int i, name_count, text_len, block_size = 0, num_samples;
+    uint32_t (*read_u32)(off_t,STREAMFILE*) = NULL;
 
 
     /* checks */
-    if (!check_extensions(streamFile,"p3d"))
+    if (!is_id32be(0x00,sf, "P3D\xFF") &&   /* LE: PC */
+        !is_id32le(0x00,sf, "P3D\xFF"))     /* BE: PS3, X360 */
         goto fail;
-    if (read_32bitBE(0x0,streamFile) != 0x503344FF &&  /* "P3D"\FF (LE: PC) */
-        read_32bitBE(0x0,streamFile) != 0xFF443350)    /* \FF"D3P" (BE: PS3, X360) */
+    if (!check_extensions(sf,"p3d"))
         goto fail;
 
-    read_32bit = read_32bitBE(0x0,streamFile) == 0xFF443350 ? read_32bitBE : read_32bitLE;
-    file_size = get_streamfile_size(streamFile);
+    read_u32 = guess_endianness32bit(0x04,sf) ? read_u32be : read_u32le;
+    file_size = get_streamfile_size(sf);
 
     /* base header */
-    header_size = read_32bit(0x4,streamFile);
-    if (0x0C != header_size) goto fail;
-    if (read_32bit(0x08,streamFile) != file_size) goto fail;
-    if (read_32bit(0x0C,streamFile) != 0xFE000000) goto fail; /* fixed */
-    if (read_32bit(0x10,streamFile) + header_size != file_size) goto fail;
-    if (read_32bit(0x14,streamFile) + header_size != file_size) goto fail; /* body size again */
-    if (read_32bit(0x18,streamFile) != 0x0000000A) goto fail; /* fixed */
+    header_size = read_u32(0x04,sf);
+    if (header_size != 0x0C) goto fail;
+    if (read_u32(0x08,sf) != file_size) goto fail;
+    if (read_u32(0x0C,sf) != 0xFE000000) goto fail; /* fixed */
+    if (read_u32(0x10,sf) + header_size != file_size) goto fail;
+    if (read_u32(0x14,sf) + header_size != file_size) goto fail; /* body size again */
+    if (read_u32(0x18,sf) != 0x0000000A) goto fail; /* fixed */
 
     /* header text */
-    parse_offset = 0x1C;
-    text_len = read_32bit(parse_offset,streamFile);
-    if (9 != text_len) goto fail;
-    parse_offset += 4;
+    offset = 0x1C;
+    text_len = read_u32(offset,sf);
+    if (text_len != 9) goto fail;
+    offset += 0x04;
 
     /* check the type as P3D is just a generic container used in Radical's games */
-    if (read_32bitBE(parse_offset+0x00,streamFile) != 0x41756469 ||
-        read_32bitBE(parse_offset+0x04,streamFile) != 0x6F46696C ||
-        read_16bitBE(parse_offset+0x08,streamFile) != 0x6500) goto fail; /* "AudioFile\0" */
-    parse_offset += text_len + 1;
+    if (!is_id64be(offset+0x00,sf, "AudioFil") || read_u16be(offset+0x08,sf) != 0x6500) /* "AudioFile\0" */
+        goto fail;
+    offset += text_len + 0x01;
 
     /* file names: always 2 (repeated); but if it's 3 there is an extra string later */
-    name_count = read_32bit(parse_offset,streamFile);
+    name_count = read_u32(offset,sf);
     if (name_count != 2 && name_count != 3) goto fail; /* 2: Prototype1, 3: Prototype2 */
-    parse_offset += 4;
+    offset += 0x04;
 
     /* skip names */
     for (i = 0; i < 2; i++) {
         if (!name_offset)
-            name_offset = parse_offset + 4;
-        text_len = read_32bit(parse_offset,streamFile) + 1; /* null-terminated */
-        parse_offset += 4 + text_len;
+            name_offset = offset + 0x04;
+        text_len = read_u32(offset,sf) + 1; /* null-terminated */
+        offset += 0x04 + text_len;
     }
 
     /* info count? */
-    if (0x01 != read_32bit(parse_offset,streamFile)) goto fail;
-    parse_offset += 4;
+    if (0x01 != read_u32(offset,sf)) goto fail;
+    offset += 0x04;
 
     /* next string can be used as a codec id */
-    text_len = read_32bit(parse_offset,streamFile);
-    codec = read_32bitBE(parse_offset+4,streamFile);
-    parse_offset += 4 + text_len + 1;
+    text_len = read_u32(offset,sf);
+    codec = read_u32be(offset+0x04,sf);
+    offset += 0x04 + text_len + 0x01;
 
     /* extra "Music" string in Prototype 2 */
     if (name_count == 3) {
-        text_len = read_32bit(parse_offset,streamFile) + 1; /* null-terminated */
-        parse_offset += 4 + text_len;
+        text_len = read_u32(offset,sf) + 1; /* null-terminated */
+        offset += 0x04 + text_len;
     }
 
+    loop_flag = 0;
 
     /* sub-header per codec */
     switch(codec) {
         case 0x72616470:    /* "radp" (PC) */
-            if (read_32bitBE(parse_offset,streamFile) != 0x52414450) goto fail; /* "RADP" */
-            parse_offset += 0x04;
-            channel_count = read_32bit(parse_offset+0x00,streamFile);
-            sample_rate   = read_32bit(parse_offset+0x04,streamFile);
+            if (!is_id32be(offset,sf, "RADP"))
+                goto fail;
+            offset += 0x04;
+
+            channels        = read_u32(offset+0x00,sf);
+            sample_rate     = read_u32(offset+0x04,sf);
             /* 0x08: ? (0x0F) */
-            data_size     = read_32bit(parse_offset+0x0c,streamFile);
-            block_size    = 0x14;
-            num_samples   = data_size / block_size / channel_count * 32;
-            start_offset  = parse_offset+0x10;
+            data_size       = read_u32(offset+0x0c,sf);
+            block_size      = 0x14;
+
+            num_samples     = data_size / block_size / channels * 32;
+            start_offset    = offset + 0x10;
             break;
 
         case 0x6D703300:    /* "mp3\0" (PS3) */
-            if ((read_32bitBE(parse_offset,streamFile) & 0xFFFFFF00) != 0x6D703300) goto fail; /* "mp3" */
-            parse_offset += 0x03;
+            if ((read_u32be(offset,sf) & 0xFFFFFF00) != get_id32be("mp3\0"))
+                goto fail;
+            offset += 0x03;
+
             /* all fields LE even though the prev parts were BE */
-            sample_rate   = read_32bitLE(parse_offset+0x00,streamFile);
+            sample_rate     = read_s32le(offset+0x00,sf);
             /* 0x04: mp3 sample rate (ex. @0x00 is 47999 and @0x04 is 48000) */
-            num_samples   = read_32bitLE(parse_offset+0x08,streamFile);
-            data_size     = read_32bitLE(parse_offset+0x0c,streamFile);
-            channel_count = read_32bitLE(parse_offset+0x10,streamFile);
-            block_size    = read_32bitLE(parse_offset+0x14,streamFile);
-            num_samples   = num_samples / channel_count; /* total samples */
-            start_offset  = parse_offset+0x18;
+            num_samples     = read_s32le(offset+0x08,sf);
+            data_size       = read_u32le(offset+0x0c,sf);
+            channels        = read_s32le(offset+0x10,sf);
+            block_size      = read_u32le(offset+0x14,sf);
+
+            num_samples     = num_samples / channels; /* total samples */
+            start_offset    = offset + 0x18;
             break;
 
-        case 0x786D6100:    /* "xma\0" (X360) */
-            if (read_32bitBE(parse_offset,streamFile) != 0x584D4132) goto fail; /* "XMA2" */
-            parse_offset += 0x04;
-            /* 0x00: subheader size? (0x2c),  0x04: seek table size */
-            data_size     = read_32bitBE(parse_offset+0x08,streamFile);
-            /* 0x0c: ?,  0x10: ?, 0x14/18: 0x0 */
-            sample_rate   = read_32bitBE(parse_offset+0x1c,streamFile);
-            /* 0x20: XMA decoder params,  0x24: abr */
-            block_size    = read_32bitBE(parse_offset+0x28,streamFile);
-            num_samples   = read_32bitBE(parse_offset+0x2c,streamFile);
-            /* 0x30: original file's samples */
-            block_count   = read_32bitBE(parse_offset+0x34,streamFile);
-            channel_count =    read_8bit(parse_offset+0x38,streamFile);
-            /* 0x39: channel related? (stream config? channel layout?) */
-            start_offset  = parse_offset + 0x3c + read_32bitBE(parse_offset+0x04,streamFile);
+        case 0x786D6100: {  /* "xma\0" (X360) */
+            uint32_t seek_size;
+
+            if (!is_id32be(offset,sf, "XMA2"))
+                goto fail;
+            offset += 0x04;
+
+            xma2_size       = read_u32be(offset+0x00,sf);
+            seek_size       = read_u32be(offset+0x04,sf);
+            data_size       = read_u32be(offset+0x08,sf);
+            /* 0x0c: ? */
+            xma2_offset = offset+0x10;
+            if (!read_u8(xma2_offset+0x00, sf))  /* needs "xma2" chunk (Spider-Man 4 beta has multi-streams) */
+                goto fail;
+
+            /* loops never set */
+            xma2_parse_xma2_chunk(sf, xma2_offset, &channels, &sample_rate, &loop_flag, &num_samples, NULL, NULL);
+
+            start_offset  = offset + 0x10 + xma2_size + seek_size;
             break;
+        }
 
         default:
-            VGM_LOG("P3D: unknown codec 0x%04x\n", codec);
+            vgm_logi("P3D: unknown codec 0x%04x\n", codec);
             goto fail;
     }
 
-    if (start_offset + data_size != file_size) goto fail;
+    if (start_offset + data_size != file_size)
+        goto fail;
+
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
+    vgmstream->meta_type = meta_P3D;
     vgmstream->sample_rate = sample_rate;
     vgmstream->num_samples = num_samples;
-    vgmstream->meta_type = meta_P3D;
     if (name_offset)
-        read_string(vgmstream->stream_name,STREAM_NAME_SIZE, name_offset,streamFile);
+        read_string(vgmstream->stream_name,STREAM_NAME_SIZE, name_offset,sf);
 
-    /* codec init */
     switch(codec) {
         case 0x72616470:    /* "radp" (PC) */
             vgmstream->coding_type = coding_RAD_IMA_mono;
@@ -149,7 +162,7 @@ VGMSTREAM * init_vgmstream_p3d(STREAMFILE *streamFile) {
             cfg.data_size = data_size;
             /* block_size * 3 = frame size (0x60*3=0x120 or 0x40*3=0xC0) but doesn't seem to have any significance) */
 
-            vgmstream->codec_data = init_mpeg_custom(streamFile, start_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_P3D, &cfg);
+            vgmstream->codec_data = init_mpeg_custom(sf, start_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_P3D, &cfg);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->layout_type = layout_none;
             break;
@@ -161,23 +174,24 @@ VGMSTREAM * init_vgmstream_p3d(STREAMFILE *streamFile) {
             uint8_t buf[0x100];
             size_t bytes;
 
-            bytes = ffmpeg_make_riff_xma2(buf,0x100, vgmstream->num_samples, data_size, vgmstream->channels, vgmstream->sample_rate, block_count, block_size);
-            vgmstream->codec_data = init_ffmpeg_header_offset(streamFile, buf,bytes, start_offset,data_size);
-            if ( !vgmstream->codec_data ) goto fail;
+            //TODO: some in Spider-Man 4 beta use 18ch but ffmpeg supports max 16ch XMA2
+            bytes = ffmpeg_make_riff_xma2_from_xma2_chunk(buf, sizeof(buf), xma2_offset, xma2_size, data_size, sf);
+            vgmstream->codec_data = init_ffmpeg_header_offset(sf, buf,bytes, start_offset,data_size);
+            if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
 
-            xma_fix_raw_samples(vgmstream, streamFile, start_offset, data_size, 0, 1,1); /* samples needs adjustment */
+            xma_fix_raw_samples(vgmstream, sf, start_offset, data_size, 0, 1,1); /* samples needs adjustment */
             break;
         }
 #endif
 
         default:
-            VGM_LOG("P3D: unknown codec 0x%04x\n", codec);
+            vgm_logi("P3D: unknown codec 0x%04x\n", codec);
             goto fail;
     }
 
-    if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
+    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
         goto fail;
 
     return vgmstream;

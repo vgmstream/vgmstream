@@ -38,25 +38,24 @@ static layered_layout_data* build_layered_atrac9(ktsr_header* ktsr, STREAMFILE *
 /* KTSR - Koei Tecmo sound resource countainer */
 VGMSTREAM* init_vgmstream_ktsr(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
-    STREAMFILE *sf_b = NULL;
+    STREAMFILE* sf_b = NULL;
     ktsr_header ktsr = {0};
     int target_subsong = sf->stream_index;
     int separate_offsets = 0;
 
 
     /* checks */
+    if (!is_id32be(0x00, sf, "KTSR"))
+        goto fail;
+    if (read_u32be(0x04, sf) != 0x777B481A) /* hash(?) id: 0x777B481A=as, 0x0294DDFC=st, 0xC638E69E=gc */
+        goto fail;
     /* .ktsl2asbin: common [Atelier Ryza (PC/Switch), Nioh (PC)] */
     if (!check_extensions(sf, "ktsl2asbin"))
         goto fail;
 
     /* KTSR can be a memory file (ktsl2asbin), streams (ktsl2stbin) and global config (ktsl2gcbin)
-     * This accepts ktsl2asbin with internal data, or opening external streams as subsongs.
+     * This accepts .ktsl2asbin with internal data or external streams as subsongs.
      * Some info from KTSR.bt */
-
-    if (!is_id32be(0x00, sf, "KTSR"))
-        goto fail;
-    if (read_u32be(0x04, sf) != 0x777B481A) /* hash(?) id: 0x777B481A=as, 0x0294DDFC=st, 0xC638E69E=gc */
-        goto fail;
 
     if (target_subsong == 0) target_subsong = 1;
     ktsr.target_subsong = target_subsong;
@@ -68,7 +67,7 @@ VGMSTREAM* init_vgmstream_ktsr(STREAMFILE* sf) {
     if (ktsr.is_external) {
         sf_b = open_streamfile_by_ext(sf, "ktsl2stbin");
         if (!sf_b) {
-            VGM_LOG("KTSR: companion file not found\n");
+            vgm_logi("KTSR: companion file '*.ktsl2stbin' not found\n");
             goto fail;
         }
     }
@@ -129,35 +128,29 @@ VGMSTREAM* init_vgmstream_ktsr(STREAMFILE* sf) {
 
 #ifdef VGM_USE_VORBIS
         case KVS: {
-            VGMSTREAM *ogg_vgmstream = NULL; //TODO: meh
-            STREAMFILE *sf_kvs = setup_subfile_streamfile(sf_b, ktsr.stream_offsets[0], ktsr.stream_sizes[0], "kvs");
-            if (!sf_kvs) goto fail;
+            VGMSTREAM* ogg_vgmstream = NULL; //TODO: meh
+            STREAMFILE* temp_sf = setup_subfile_streamfile(sf_b, ktsr.stream_offsets[0], ktsr.stream_sizes[0], "kvs");
+            if (!temp_sf) goto fail;
 
-            ogg_vgmstream = init_vgmstream_ogg_vorbis(sf_kvs);
-            close_streamfile(sf_kvs);
-            if (ogg_vgmstream) {
-                ogg_vgmstream->stream_size = vgmstream->stream_size;
-                ogg_vgmstream->num_streams = vgmstream->num_streams;
-                ogg_vgmstream->channel_layout = vgmstream->channel_layout;
-                /* loops look shared */
-                strcpy(ogg_vgmstream->stream_name, vgmstream->stream_name);
+            ogg_vgmstream = init_vgmstream_ogg_vorbis(temp_sf);
+            close_streamfile(temp_sf);
+            if (!ogg_vgmstream) goto fail;
 
-                close_vgmstream(vgmstream);
-                if (sf_b != sf) close_streamfile(sf_b);
-                return ogg_vgmstream;
-            }
-            else {
-                goto fail;
-            }
+            ogg_vgmstream->stream_size = vgmstream->stream_size;
+            ogg_vgmstream->num_streams = vgmstream->num_streams;
+            ogg_vgmstream->channel_layout = vgmstream->channel_layout;
+            /* loops look shared */
+            strcpy(ogg_vgmstream->stream_name, vgmstream->stream_name);
 
-            break;
+            close_vgmstream(vgmstream);
+            if (sf_b != sf) close_streamfile(sf_b);
+            return ogg_vgmstream;
         }
 #endif
 
         default:
             goto fail;
     }
-
 
     if (!vgmstream_open_stream_bf(vgmstream, sf_b, ktsr.stream_offsets[0], 1))
         goto fail;
@@ -282,13 +275,14 @@ static int parse_ktsr_subfile(ktsr_header* ktsr, STREAMFILE* sf, off_t offset) {
     int i;
     uint32_t type;
 
-    type = read_u32be(offset + 0x00, sf);
+    type = read_u32be(offset + 0x00, sf); /* hash-id? */
   //size = read_u32le(offset + 0x04, sf);
 
     /* probably could check the flag in sound header, but the format is kinda messy */
-    switch(type) { /* hash-id? */
+    switch(type) {
 
         case 0x38D0437D: /* external [Nioh (PC), Atelier Ryza (PC)] */
+        case 0x3DEA478D: /* external [Nioh (PC)] */
         case 0xDF92529F: /* external [Atelier Ryza (PC)] */
         case 0x6422007C: /* external [Atelier Ryza (PC)] */
             /* 08 subtype? (ex. 0x522B86B9)
@@ -311,10 +305,16 @@ static int parse_ktsr_subfile(ktsr_header* ktsr, STREAMFILE* sf, off_t offset) {
             ktsr->format    = read_u32le(offset + 0x14, sf);
             /* other fields will be read in the external stream */
 
-            ktsr->channel_layout= read_u32le(offset + 0x28, sf);
+            ktsr->channel_layout = read_u32le(offset + 0x28, sf);
 
-            ktsr->stream_offsets[0] = read_u32le(offset + 0x34, sf);
-            ktsr->stream_sizes[0]   = read_u32le(offset + 0x38, sf);
+            if (type == 0x3DEA478D) { /* Nioh (PC) has one less field, some files only [ABS.ktsl2asbin] */
+                ktsr->stream_offsets[0] = read_u32le(offset + 0x30, sf);
+                ktsr->stream_sizes[0]   = read_u32le(offset + 0x34, sf);
+            }
+            else {
+                ktsr->stream_offsets[0] = read_u32le(offset + 0x34, sf);
+                ktsr->stream_sizes[0]   = read_u32le(offset + 0x38, sf);
+            }
             ktsr->is_external = 1;
 
             if (ktsr->format != 0x05) {
