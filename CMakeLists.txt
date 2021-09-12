@@ -107,6 +107,8 @@ if(EMSCRIPTEN)
 	set(USE_MPEG OFF)
 	set(USE_FFMPEG OFF)
 	set(USE_JANSSON OFF)
+	set(BUILD_V123 OFF)
+	set(BUILD_AUDACIOUS OFF)
 endif()
 
 # Static builds will link all libraries statically
