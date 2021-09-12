@@ -47,6 +47,7 @@ VGMSTREAM* init_vgmstream_atsl(STREAMFILE* sf) {
 
     type = read_u16le(0x0c, sf);
     switch(type) {
+#ifdef VGM_USE_VORBIS
         case 0x0100: /* KOVS */
             init_vgmstream = init_vgmstream_ogg_vorbis;
             fake_ext = "kvs";
@@ -57,6 +58,7 @@ VGMSTREAM* init_vgmstream_atsl(STREAMFILE* sf) {
             fake_ext = "kvs";
             entry_size = 0x3c;
             break;
+#endif
         case 0x0200: /* ATRAC3 */
             init_vgmstream = init_vgmstream_riff;
             fake_ext = "at3";
