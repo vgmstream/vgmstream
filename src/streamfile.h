@@ -66,16 +66,16 @@ typedef struct _STREAMFILE {
     size_t (*get_size)(struct _STREAMFILE* sf);
 
     //todo: DO NOT USE, NOT RESET PROPERLY (remove?)
-    offv_t (*get_offset)(struct _STREAMFILE*);
+    offv_t (*get_offset)(struct _STREAMFILE* sf);
 
     /* copy current filename to name buf */
     void (*get_name)(struct _STREAMFILE* sf, char* name, size_t name_size);
 
     /* open another streamfile from filename */
-    struct _STREAMFILE* (*open)(struct _STREAMFILE* sf, const char* const filename, size_t buffer_size);
+    struct _STREAMFILE* (*open)(struct _STREAMFILE* sf, const char* const filename, size_t buf_size);
 
     /* free current STREAMFILE */
-    void (*close)(struct _STREAMFILE*);
+    void (*close)(struct _STREAMFILE* sf);
 
     /* Substream selection for formats with subsongs.
      * Not ideal here, but it was the simplest way to pass to all init_vgmstream_x functions. */
