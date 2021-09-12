@@ -362,6 +362,31 @@ For integration and "API" usage, easiest would be checking how `vgmstream_cli.c`
 A cleaner API/.h and build methods is planned for the future (low priority though).
 
 
+# emscripten / wasm
+It's possible to build vgmstream components with emscripten (in-browser support).
+
+Follow emscripten's installation instructions:
+- https://emscripten.org/docs/getting_started/downloads.html
+- https://emscripten.org/docs/compiling/Building-Projects.html#building-projects
+
+Then should be buildable on Linux (Windows should be possible too but has some issues at the moment), for example:
+```
+git clone https://github.com/vgmstream/vgmstream
+cd vgmstream
+mkdir -p build && cd build
+
+# quickest example, some can be enabled
+emcmake cmake -DBUILD_STATIC=ON -DUSE_JANSSON=OFF -DUSE_FFMPEG=OFF -DUSE_VORBIS=OFF -DUSE_MPEG=OFF -DUSE_G7221=OFF -DUSE_G719=OFF -DUSE_ATRAC9=OFF -DUSE_SPEEX=OFF -DUSE_MPEG=OFF -S .. -B .
+emmake make
+```
+Or with the base makefiles (may need to rename output to .js ATM):
+```
+git clone https://github.com/vgmstream/vgmstream
+cd vgmstream
+make vgmstream-cli CC=emcc AR=emar strip=echo
+```
+
+
 ## External libraries
 Support for some codecs is done with external libs, instead of copying their code in vgmstream. There are various reasons for this:
 - each lib may have complex or conflicting ways to compile that aren't simple to replicate

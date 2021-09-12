@@ -7,6 +7,18 @@
     #include <unistd.h>
 #endif
 
+/* For (rarely needed) +2GB file support we use fseek64/ftell64. Those are usually available
+ * but may depend on compiler.
+ * - MSVC: +VS2008 should work
+ * - GCC/MingW: should be available
+ * - GCC/Linux: should be available but some systems may need __USE_FILE_OFFSET64,
+ *   that we (probably) don't want since that turns off_t to off64_t
+ * - Clang: seems only defined on Linux/GNU environments, somehow emscripten is out
+ *   (unsure about Clang Win since apparently they define _MSC_VER)
+ * - Android: API +24 if not using __USE_FILE_OFFSET64
+ * Not sure if fopen64 is needed in some cases. May be work adding some compiler flag to control this manually.
+ */
+
 /* MSVC fixes (though mingw uses MSVCRT but not MSC_VER, maybe use AND?) */
 #if defined(__MSVCRT__) || defined(_MSC_VER)
     #include <io.h>
@@ -20,8 +32,14 @@
     #endif
 */
 
-    #define fseek_v _fseeki64  //fseek/fseeko
-    #define ftell_v _ftelli64  //ftell/ftello
+    #define fopen_v fopen
+    #if (_MSC_VER >= 1400)
+        #define fseek_v _fseeki64
+        #define ftell_v _ftelli64
+    #else
+        #define fseek_v fseek
+        #define ftell_v ftell
+    #endif
 
     #ifdef fileno
         #undef fileno
@@ -34,10 +52,13 @@
         #define off_t __int64
     #endif
 
-#elif defined(XBMC)
+#elif defined(XBMC) || defined(__EMSCRIPTEN__) || defined (__ANDROID__)
+    #define fopen_v fopen
     #define fseek_v fseek
     #define ftell_v ftell
+
 #else
+    #define fopen_v fopen
     #define fseek_v fseeko64  //fseeko
     #define ftell_v ftello64  //ftello
 #endif
@@ -252,7 +273,7 @@ static STREAMFILE* open_stdio_streamfile_buffer(const char* const filename, size
     FILE* infile = NULL;
     STREAMFILE* sf = NULL;
 
-    infile = fopen(filename,"rb");
+    infile = fopen_v(filename,"rb");
     if (!infile) {
         /* allow non-existing files in some cases */
         if (!vgmstream_is_virtual_filename(filename))
@@ -1471,7 +1492,7 @@ void dump_streamfile(STREAMFILE* sf, int num) {
         get_streamfile_filename(sf, filename, sizeof(filename));
         snprintf(dumpname, sizeof(dumpname), "%s_%02i.dump", filename, num);
 
-        f = fopen(dumpname,"wb");
+        f = fopen_v(dumpname,"wb");
         if (!f) return;
     }
 
