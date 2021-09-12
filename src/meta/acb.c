@@ -7,15 +7,15 @@
 VGMSTREAM* init_vgmstream_acb(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     STREAMFILE* temp_sf = NULL;
-    off_t subfile_offset;
-    size_t subfile_size;
-    utf_context *utf = NULL;
+    uint32_t subfile_offset;
+    uint32_t subfile_size;
+    utf_context* utf = NULL;
 
 
     /* checks */
-    if (!check_extensions(sf, "acb"))
+    if (!is_id32be(0x00,sf, "@UTF"))
         goto fail;
-    if (read_u32be(0x00,sf) != 0x40555446) /* "@UTF" */
+    if (!check_extensions(sf, "acb"))
         goto fail;
 
     /* .acb is a cue sheet that uses @UTF (CRI's generic table format) to store row/columns
@@ -41,8 +41,10 @@ VGMSTREAM* init_vgmstream_acb(STREAMFILE* sf) {
         subfile_size = size;
 
         /* column exists but can be empty */
-        if (subfile_size == 0)
+        if (subfile_size == 0) {
+            vgm_logi("ACB: bank has no subsongs (ignore)\n");
             goto fail;
+        }
     }
 
     //;VGM_LOG("ACB: subfile offset=%lx + %x\n", subfile_offset, subfile_size);
@@ -50,7 +52,7 @@ VGMSTREAM* init_vgmstream_acb(STREAMFILE* sf) {
     temp_sf = setup_subfile_streamfile(sf, subfile_offset,subfile_size, "awb");
     if (!temp_sf) goto fail;
 
-    if (read_u32be(0x00, temp_sf) == 0x43504B20) { /* "CPK " */
+    if (is_id32be(0x00, temp_sf, "CPK ")) {
         vgmstream = init_vgmstream_cpk_memory(temp_sf, sf); /* older */
         if (!vgmstream) goto fail;
     }
@@ -107,17 +109,17 @@ typedef struct {
     STREAMFILE* acbFile; /* original reference, don't close */
 
     /* keep track of these tables so they can be closed when done */
-    utf_context *Header;
+    utf_context* Header;
 
-    utf_context *CueNameTable;
-    utf_context *CueTable;
-    utf_context *BlockSequenceTable;
-    utf_context *BlockTable;
-    utf_context *SequenceTable;
-    utf_context *TrackTable;
-    utf_context *TrackCommandTable;
-    utf_context *SynthTable;
-    utf_context *WaveformTable;
+    utf_context* CueNameTable;
+    utf_context* CueTable;
+    utf_context* BlockSequenceTable;
+    utf_context* BlockTable;
+    utf_context* SequenceTable;
+    utf_context* TrackTable;
+    utf_context* TrackCommandTable;
+    utf_context* SynthTable;
+    utf_context* WaveformTable;
 
     STREAMFILE* CueNameSf;
     STREAMFILE* CueSf;
@@ -142,7 +144,7 @@ typedef struct {
 
     /* name stuff */
     int16_t cuename_index;
-    const char * cuename_name;
+    const char* cuename_name;
     int awbname_count;
     int16_t awbname_list[ACB_MAX_NAMELIST];
     char name[ACB_MAX_NAME];
