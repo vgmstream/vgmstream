@@ -73,6 +73,7 @@ if(NOT WIN32)
 	set(FFMPEG_PATH CACHE PATH "Path to FFmpeg")
 	set(G719_PATH CACHE PATH "Path to G.719 decoder")
 	set(ATRAC9_PATH CACHE PATH "Path to LibAtrac9")
+	set(SPEEX_PATH CACHE PATH "Path to SPEEX")
 	set(LIBAO_PATH CACHE PATH "Path to libao")
 endif()
 
@@ -438,12 +439,12 @@ if(NOT WIN32)
 			if(NOT EXISTS ${ATRAC9_LINK_PATH})
 				if(EMSCRIPTEN)
 					add_custom_target(ATRAC9_MAKE ALL
-						COMMAND emmake make static CFLAGS="-fPIC" CC=emcc AR=emar BINDIR=embin
+						COMMAND make clean && emmake make static CFLAGS="-fPIC" CC=emcc AR=emar BINDIR=embin
 						WORKING_DIRECTORY ${ATRAC9_PATH}/C
 					)
 				else()
 					add_custom_target(ATRAC9_MAKE ALL
-						COMMAND make static CFLAGS="-fPIC"
+						COMMAND make clean && make static CFLAGS="-fPIC"
 						WORKING_DIRECTORY ${ATRAC9_PATH}/C
 					)
 				endif()
@@ -455,9 +456,52 @@ if(NOT WIN32)
 		endif()
 	endif()
 	if(USE_SPEEX)
-		find_package(Speex)
-		if(NOT Speex_FOUND)
-			set(USE_SPEEX OFF)
+		if(NOT SPEEX_PATH)
+			find_package(Speex QUIET)
+		endif()
+		if(SPEEX_PATH OR NOT Speex_FOUND)
+			if(NOT SPEEX_PATH)
+				if(Git_FOUND)
+					set(SPEEX_PATH ${VGM_SOURCE_DIR}/dependencies/speex)
+					FetchContent_Declare(SPEEX_FETCH
+						GIT_REPOSITORY https://gitlab.xiph.org/xiph/speex
+						SOURCE_DIR ${SPEEX_PATH}
+						BINARY_DIR ${SPEEX_PATH}-build
+						SUBBUILD_DIR ${SPEEX_PATH}-subbuild
+						GIT_SHALLOW ON
+					)
+					FetchContent_GetProperties(SPEEX_FETCH)
+					if(NOT SPEEX_FETCH_POPULATED)
+						FetchContent_Populate(SPEEX_FETCH)
+					endif()
+				endif()
+			endif()
+			if(SPEEX_PATH)
+				if(EMSCRIPTEN)
+					set(SPEEX_LINK_PATH ${SPEEX_PATH}/embin/usr/local/lib/libspeex.a)
+				else()
+					set(SPEEX_LINK_PATH ${SPEEX_PATH}/bin/usr/local/lib/libspeex.a)
+				endif()
+				if(NOT EXISTS ${SPEEX_LINK_PATH})
+					if(EMSCRIPTEN)
+						add_custom_target(SPEEX_MAKE ALL
+							COMMAND emconfigure ./autogen.sh && emconfigure ./configure --enable-static=yes --enable-shared=no && make clean && emmake make && make install DESTDIR="${SPEEX_PATH}/embin"
+							WORKING_DIRECTORY ${SPEEX_PATH}
+						)
+					else()
+						add_custom_target(SPEEX_MAKE ALL
+							COMMAND ./autogen.sh && ./configure --enable-static=yes --enable-shared=no && make clean && make && make install DESTDIR="${SPEEX_PATH}/bin"
+							WORKING_DIRECTORY ${SPEEX_PATH}
+						)
+					endif()
+				endif()
+				add_library(speex STATIC IMPORTED)
+				set_target_properties(speex PROPERTIES
+					IMPORTED_LOCATION ${SPEEX_LINK_PATH}
+				)
+			else()
+				set(USE_SPEEX OFF)
+			endif()
 		endif()
 	endif()
 endif()
