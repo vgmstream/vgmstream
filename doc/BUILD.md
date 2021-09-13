@@ -369,16 +369,17 @@ Follow emscripten's installation instructions:
 - https://emscripten.org/docs/getting_started/downloads.html
 - https://emscripten.org/docs/compiling/Building-Projects.html#building-projects
 
-Then should be buildable on Linux (Windows should be possible too but has some issues at the moment), for example:
+Then you should be able to build it on Linux (Windows would be possible too, but it has some issues at the moment), for example:
 ```
 git clone https://github.com/vgmstream/vgmstream
 cd vgmstream
-mkdir -p build && cd build
+mkdir -p embuild && cd embuild
 
-# quickest example, some can be enabled
-emcmake cmake -DBUILD_STATIC=ON -DUSE_JANSSON=OFF -DUSE_FFMPEG=OFF -DUSE_VORBIS=OFF -DUSE_MPEG=OFF -DUSE_G7221=OFF -DUSE_G719=OFF -DUSE_ATRAC9=OFF -DUSE_SPEEX=OFF -DUSE_MPEG=OFF -S .. -B .
+emcmake cmake -S .. -B .
 emmake make
 ```
+The output files `vgmstream-cli.wasm` and `vgmstream-cli.js` will be located in the `embuild/cli` directory.
+
 Or with the base makefiles (may need to rename output to .js ATM):
 ```
 git clone https://github.com/vgmstream/vgmstream
