@@ -1,0 +1,50 @@
+# github workflow to automate builds
+
+name: WebAssembly build
+
+on: [push, pull_request]
+
+env:
+  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
+  BUILD_TYPE: Release
+  EM_VERSION: 2.0.29
+  EM_CACHE_FOLDER: 'emsdk-cache'
+
+jobs:
+  build:
+    name: CMake, WebAssembly
+    runs-on: ubuntu-18.04
+
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Fetch Git tags
+      run: |
+        git fetch --prune --unshallow --tags
+
+    - name: Setup emsdk
+      uses: mymindstorm/setup-emsdk@v10
+      with:
+          version: ${{env.EM_VERSION}}
+          actions-cache-folder: ${{env.EM_CACHE_FOLDER}}
+
+    - name: Create build environment
+      run: cmake -E make_directory ${{runner.workspace}}/embuild
+
+    - name: Configure CMake
+      shell: bash
+      working-directory: ${{runner.workspace}}/embuild
+      run: emcmake cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE
+
+    - name: Build
+      working-directory: ${{runner.workspace}}/embuild
+      shell: bash
+      run: emmake make
+
+    - name: Upload WebAssembly artifact
+      uses: actions/upload-artifact@v2
+      with:
+          path: |
+            ${{runner.workspace}}/embuild/cli/vgmstream-cli.js
+            ${{runner.workspace}}/embuild/cli/vgmstream-cli.wasm
+          name: vgmstream-wasm

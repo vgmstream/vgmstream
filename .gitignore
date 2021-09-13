@@ -58,6 +58,7 @@ Release
 
 # cmake stuff
 /build
+/embuild
 /cmake-build*
 CMakeCache.txt
 CMakeFiles

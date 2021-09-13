@@ -90,24 +90,37 @@ if(WIN32)
 	option(BUILD_XMPLAY "Build XMPlay plugin" ON)
 	set(XMPLAY_INSTALL_PREFIX CACHE PATH "Path to XMPlay installation directory")
 else()
-	option(BUILD_STATIC "Build statically linked binary" OFF)
-	if(BUILD_STATIC)
-		option(BUILD_V123 "Build vgmstream123 player" OFF)
+	if(EMSCRIPTEN)
+		set(BUILD_STATIC ON)
 	else()
-		option(BUILD_V123 "Build vgmstream123 player" ON)
+		option(BUILD_STATIC "Build statically linked binary" OFF)
+		if(BUILD_STATIC)
+			option(BUILD_V123 "Build vgmstream123 player" OFF)
+		else()
+			option(BUILD_V123 "Build vgmstream123 player" ON)
+		endif()
+		option(BUILD_AUDACIOUS "Build Audacious plugin" ON)
 	endif()
-	option(BUILD_AUDACIOUS "Build Audacious plugin" ON)
+endif()
+
+if(EMSCRIPTEN)
+	set(USE_MPEG OFF)
+	set(USE_FFMPEG OFF)
+	set(USE_JANSSON OFF)
+	set(BUILD_V123 OFF)
+	set(BUILD_AUDACIOUS OFF)
 endif()
 
 # Static builds will link all libraries statically
 if(BUILD_STATIC)
 	set(BUILD_SHARED_LIBS OFF)
 	set(CMAKE_EXE_LINKER_FLAGS "-static-libgcc -static-libstdc++ -static")
-
-	#  it is already kind of obvious when you do not have it, and just prevents you from building without ffmpeg
-	#find_package(PkgConfig REQUIRED)
-	#pkg_check_modules(PC_OPUS REQUIRED opus>=1.1)
-
+	
+	if(USE_FFMPEG)
+		find_package(PkgConfig REQUIRED)
+		pkg_check_modules(PC_OPUS REQUIRED opus>=1.1)
+	endif()
+	
 	# Incompatible with static builds
 	set(BUILD_AUDACIOUS OFF)
 endif()
@@ -417,15 +430,27 @@ if(NOT WIN32)
 			endif()
 		endif()
 		if(ATRAC9_PATH)
-			if(NOT EXISTS ${ATRAC9_PATH}/C/bin/libatrac9.a)
-				add_custom_target(ATRAC9_MAKE ALL
-					COMMAND make static CFLAGS="-fPIC"
-					WORKING_DIRECTORY ${ATRAC9_PATH}/C
-				)
+			if(EMSCRIPTEN)
+				set(ATRAC9_LINK_PATH ${ATRAC9_PATH}/C/embin/libatrac9.a)
+			else()
+				set(ATRAC9_LINK_PATH ${ATRAC9_PATH}/C/bin/libatrac9.a)
+			endif()
+			if(NOT EXISTS ${ATRAC9_LINK_PATH})
+				if(EMSCRIPTEN)
+					add_custom_target(ATRAC9_MAKE ALL
+						COMMAND emmake make static CFLAGS="-fPIC" CC=emcc AR=emar BINDIR=embin
+						WORKING_DIRECTORY ${ATRAC9_PATH}/C
+					)
+				else()
+					add_custom_target(ATRAC9_MAKE ALL
+						COMMAND make static CFLAGS="-fPIC"
+						WORKING_DIRECTORY ${ATRAC9_PATH}/C
+					)
+				endif()
 			endif()
 			add_library(atrac9 STATIC IMPORTED)
 			set_target_properties(atrac9 PROPERTIES
-				IMPORTED_LOCATION ${ATRAC9_PATH}/C/bin/libatrac9.a
+				IMPORTED_LOCATION ${ATRAC9_LINK_PATH}
 			)
 		endif()
 	endif()
