@@ -255,6 +255,9 @@ static const adxkey_info adxkey9_list[] = {
         /* maimai DX Splash (AC) */
         {0x0000,0x0000,0x0000, NULL,9170825592834449000},   // 7F4551499DF55E68
 
+        /* Sonic Colors Ultimate (multi) */
+        {0x0000,0x0000,0x0000, NULL,1991062320101111},      // 000712DC5250B6F7
+
 };
 
 static const int adxkey8_list_count = sizeof(adxkey8_list) / sizeof(adxkey8_list[0]);
