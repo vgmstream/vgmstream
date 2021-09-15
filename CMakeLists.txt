@@ -70,6 +70,7 @@ if(NOT WIN32)
 	option(USE_JANSSON "Use jansson for JSON dumping" ON)
 	
 	set(MPEG_PATH CACHE PATH "Path to mpg123")
+	set(VORBIS_PATH CACHE PATH "Path to Vorbis")
 	set(FFMPEG_PATH CACHE PATH "Path to FFmpeg")
 	set(G719_PATH CACHE PATH "Path to G.719 decoder")
 	set(ATRAC9_PATH CACHE PATH "Path to LibAtrac9")
@@ -273,9 +274,55 @@ else()
 		endif()
 	endif()
 	if(USE_VORBIS)
-		find_package(VorbisFile)
-		if(NOT VORBISFILE_FOUND)
-			set_vorbis(OFF TRUE)
+		if(NOT VORBIS_PATH)
+			find_package(VorbisFile QUIET)
+			if(NOT VORBISFILE_FOUND)
+				if(Git_FOUND)
+					set(OGG_PATH ${VGM_SOURCE_DIR}/dependencies/ogg)
+					FetchContent_Declare(libogg
+						GIT_REPOSITORY https://gitlab.xiph.org/xiph/ogg
+						SOURCE_DIR ${OGG_PATH}
+						BINARY_DIR ${OGG_PATH}-build
+						SUBBUILD_DIR ${OGG_PATH}-subbuild
+						GIT_TAG v1.3.5
+						GIT_SHALLOW ON
+					)
+					FetchContent_GetProperties(libogg)
+					if(NOT libogg_POPULATED)
+						FetchContent_Populate(libogg)
+					endif()
+					if(NOT VORBIS_PATH)
+						set(VORBIS_PATH ${VGM_SOURCE_DIR}/dependencies/vorbis)
+						FetchContent_Declare(libvorbis
+							GIT_REPOSITORY https://gitlab.xiph.org/xiph/vorbis
+							SOURCE_DIR ${VORBIS_PATH}
+							BINARY_DIR ${VORBIS_PATH}-build
+							SUBBUILD_DIR ${VORBIS_PATH}-subbuild
+							GIT_TAG v1.3.7
+							GIT_SHALLOW ON
+						)
+						FetchContent_GetProperties(libvorbis)
+						if(NOT libvorbis_POPULATED)
+							FetchContent_Populate(libvorbis)
+						endif()
+					endif()
+				else()
+					unset(VORBIS_PATH)
+				endif()
+				if(VORBIS_PATH)
+					add_subdirectory(${OGG_PATH})
+					set(OGG_INCLUDE_DIR ${OGG_PATH}/include ${VGM_BINARY_DIR}/dependencies/ogg/include)
+					set(OGG_LIBRARY ogg)
+					
+					add_subdirectory(${VORBIS_PATH})
+					set(OGG_VORBIS_INCLUDE_DIR ${VORBIS_PATH}/include)
+					set(OGG_VORBIS_LIBRARY vorbis)
+					
+					set(VORBISFILE_INCLUDE_DIRS ${OGG_INCLUDE_DIR} ${OGG_VORBIS_INCLUDE_DIR})
+				else()
+					set_vorbis(OFF TRUE)
+				endif()
+			endif()
 		endif()
 	endif()
 
