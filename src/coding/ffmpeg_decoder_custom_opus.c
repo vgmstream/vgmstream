@@ -456,7 +456,7 @@ static size_t make_oggs_page(uint8_t* buf, int buf_size, size_t data_size, int p
     }
 
     segment_count = (int)(data_size / 0xFF + 1);
-    put_u32be(buf+0x00, 0x4F676753); /* capture pattern ("OggS") */
+    put_u32be(buf+0x00, get_id32be("OggS")); /* capture pattern */
     put_u8   (buf+0x04, 0); /* stream structure version, fixed */
     put_u8   (buf+0x05, header_type_flag); /* bitflags (0: normal, continued = 1, first = 2, last = 4) */
     put_u32le(buf+0x06, (uint32_t)(absolute_granule >>  0 & 0xFFFFFFFF)); /* lower */
@@ -517,8 +517,8 @@ static size_t make_opus_header(uint8_t* buf, int buf_size, opus_config *cfg) {
         goto fail;
     }
 
-    put_u32be(buf+0x00, 0x4F707573); /* "Opus" header magic */
-    put_u32be(buf+0x04, 0x48656164); /* "Head" header magic */
+    put_u32be(buf+0x00, get_id32be("Opus"));
+    put_u32be(buf+0x04, get_id32be("Head"));
     put_u8   (buf+0x08, 1); /* version */
     put_u8   (buf+0x09, cfg->channels);
     put_s16le(buf+0x0A, cfg->skip);
@@ -575,19 +575,23 @@ fail:
 static size_t make_oggs_first(uint8_t* buf, int buf_size, opus_config* cfg) {
     int buf_done = 0;
     size_t bytes;
+    size_t page_size = 0x1c; /* fixed for header page */
 
     if (buf_size < 0x100) /* approx */
         goto fail;
 
-    /* make header */
-    bytes = make_opus_header(buf+buf_done + 0x1c,buf_size, cfg);
-    make_oggs_page(buf+buf_done + 0x00,buf_size, bytes, 0, 0);
-    buf_done += 0x1c + bytes;
+    /* make header (first data, then page for checksum) */
+    bytes = make_opus_header(buf + page_size, buf_size - page_size, cfg);
+    make_oggs_page(buf, buf_size, bytes, 0, 0);
+    buf_done += (page_size + bytes);
+
+    buf += buf_done;
+    buf_size -= buf_done;
 
     /* make comment */
-    bytes = make_opus_comment(buf+buf_done + 0x1c,buf_size);
-    make_oggs_page(buf+buf_done + 0x00,buf_size, bytes, 1, 0);
-    buf_done += 0x1c + bytes;
+    bytes = make_opus_comment(buf + page_size, buf_size - page_size);
+    make_oggs_page(buf, buf_size, bytes, 1, 0);
+    buf_done += (page_size + bytes);
 
     return buf_done;
 fail:
