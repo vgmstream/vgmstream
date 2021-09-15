@@ -23,8 +23,9 @@ typedef struct {
 
     bool m_file_opened;         /* if foobar IO service opened the file */
     service_ptr_t<file> m_file; /* foobar IO service */
-    abort_callback * p_abort;   /* foobar error stuff */
-    char* name;                 /* IO filename */
+    abort_callback* p_abort;    /* foobar error stuff */
+    /*const*/ char* name;       /* IO filename */
+    int name_len;               /* cache */
     offv_t offset;              /* last read offset (info) */
     offv_t buf_offset;          /* current buffer data start */
     uint8_t* buf;               /* data buffer */
@@ -117,14 +118,21 @@ static offv_t foo_get_offset(FOO_STREAMFILE* sf) {
     return sf->offset;
 }
 static void foo_get_name(FOO_STREAMFILE* sf, char* name, size_t name_size) {
-    /* Most crap only cares about the filename itself */
-    size_t ourlen = strlen(sf->name);
-    if (ourlen > name_size) {
-        if (name_size) strcpy(name, sf->name + ourlen - name_size + 1);
-    }
-    else {
+    int copy_size = sf->name_len + 1;
+    if (copy_size > name_size)
+        copy_size = name_size;
+
+    memcpy(name, sf->name, copy_size);
+    name[copy_size - 1] = '\0';
+
+    /*
+    //TODO: check again (looks like a truncate-from-the-end copy, probably a useless remnant of olden times)
+    if (sf->name_len > name_size) {
+        strcpy(name, sf->name + sf->name_len - name_size + 1);
+    } else {
         strcpy(name, sf->name);
     }
+    */
 }
 static void foo_close(FOO_STREAMFILE* sf) {
     sf->m_file.release(); //release alloc'ed ptr
@@ -178,8 +186,11 @@ static STREAMFILE* open_foo_streamfile_buffer_by_file(service_ptr_t<file> m_file
     this_sf->buf_size = buf_size;
     this_sf->buf = buf;
 
+    //TODO: foobar filenames look like "file://C:\path\to\file.adx"
+    // maybe should hide the internal protocol and restore on open?
     this_sf->name = strdup(filename);
     if (!this_sf->name)  goto fail;
+    this_sf->name_len = strlen(this_sf->name);
 
     /* cache file_size */
     if (this_sf->m_file_opened)

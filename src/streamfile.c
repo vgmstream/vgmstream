@@ -61,6 +61,7 @@ typedef struct {
 
     FILE* infile;           /* actual FILE */
     char name[PATH_LIMIT];  /* FILE filename */
+    int name_len;           /* cache */
     offv_t offset;          /* last read offset (info) */
     offv_t buf_offset;      /* current buffer data start */
     uint8_t* buf;           /* data buffer */
@@ -168,8 +169,12 @@ static offv_t stdio_get_offset(STDIO_STREAMFILE* sf) {
     return sf->offset;
 }
 static void stdio_get_name(STDIO_STREAMFILE* sf, char* name, size_t name_size) {
-    strncpy(name, sf->name, name_size);
-    name[name_size - 1] = '\0';
+    int copy_size = sf->name_len + 1;
+    if (copy_size > name_size)
+        copy_size = name_size;
+
+    memcpy(name, sf->name, copy_size);
+    name[copy_size - 1] = '\0';
 }
 
 static STREAMFILE* stdio_open(STDIO_STREAMFILE* sf, const char* const filename, size_t buf_size) {
@@ -232,8 +237,11 @@ static STREAMFILE* open_stdio_streamfile_buffer_by_file(FILE* infile, const char
     this_sf->buf_size = buf_size;
     this_sf->buf = buf;
 
-    strncpy(this_sf->name, filename, sizeof(this_sf->name));
-    this_sf->name[sizeof(this_sf->name)-1] = '\0';
+    this_sf->name_len = strlen(filename);
+    if (this_sf->name_len >= sizeof(this_sf->name))
+        goto fail;
+    memcpy(this_sf->name, filename, this_sf->name_len);
+    this_sf->name[this_sf->name_len] = '\0';
 
     /* cache file_size */
     if (infile) {
@@ -689,6 +697,7 @@ typedef struct {
 
     STREAMFILE* inner_sf;
     char fakename[PATH_LIMIT];
+    int fakename_len;
 } FAKENAME_STREAMFILE;
 
 static size_t fakename_read(FAKENAME_STREAMFILE* sf, uint8_t* dst, offv_t offset, size_t length) {
@@ -701,8 +710,11 @@ static offv_t fakename_get_offset(FAKENAME_STREAMFILE* sf) {
     return sf->inner_sf->get_offset(sf->inner_sf); /* default */
 }
 static void fakename_get_name(FAKENAME_STREAMFILE* sf, char* name, size_t name_size) {
-    strncpy(name,sf->fakename, name_size);
-    name[name_size - 1] = '\0';
+    int copy_size = sf->fakename_len + 1;
+    if (copy_size > name_size)
+        copy_size = name_size;
+    memcpy(name, sf->fakename, copy_size);
+    name[copy_size - 1] = '\0';
 }
 
 static STREAMFILE* fakename_open(FAKENAME_STREAMFILE* sf, const char* const filename, size_t buf_size) {
@@ -745,7 +757,7 @@ STREAMFILE* open_fakename_streamfile(STREAMFILE* sf, const char* fakename, const
 
     /* copy passed name or retain current, and swap extension if expected */
     if (fakename) {
-        strcpy(this_sf->fakename,fakename);
+        strcpy(this_sf->fakename, fakename);
     } else {
         sf->get_name(sf, this_sf->fakename, PATH_LIMIT);
     }
@@ -759,6 +771,8 @@ STREAMFILE* open_fakename_streamfile(STREAMFILE* sf, const char* fakename, const
         }
         strcat(this_sf->fakename, fakeext);
     }
+
+    this_sf->fakename_len = strlen(this_sf->fakename);
 
     return &this_sf->vt;
 }
