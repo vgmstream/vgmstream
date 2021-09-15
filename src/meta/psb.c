@@ -249,7 +249,8 @@ static segmented_layout_data* build_segmented_psb_opus(STREAMFILE* sf, psb_heade
     for (i = 0; i < max_count; i++) {
         if (!offsets[i] || !samples[i])
             continue;
-        {
+#ifdef VGM_USE_FFMPEG
+       {
             int start = read_u32le(offsets[i] + 0x10, sf) + 0x08;
             int skip = read_s16le(offsets[i] + 0x1c, sf);
 
@@ -259,12 +260,14 @@ static segmented_layout_data* build_segmented_psb_opus(STREAMFILE* sf, psb_heade
             data->segments[pos++] = v;
             v->sample_rate = psb->sample_rate;
             v->num_samples = samples[i];
-
             v->codec_data = init_ffmpeg_switch_opus(sf, offsets[i] + start, sizes[i] - start, psb->channels, skips[i] + skip, psb->sample_rate);
             if (!v->codec_data) goto fail;
             v->coding_type = coding_FFmpeg;
             v->layout_type = layout_none;
         }
+#else
+        goto fail;
+#endif
     }
 
     if (!setup_layout_segmented(data))
