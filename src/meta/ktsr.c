@@ -19,15 +19,15 @@ typedef struct {
     int32_t num_samples;
     int32_t loop_start;
     int loop_flag;
-    off_t extra_offset;
+    uint32_t extra_offset;
     uint32_t channel_layout;
 
     int is_external;
     uint32_t stream_offsets[MAX_CHANNELS];
     uint32_t stream_sizes[MAX_CHANNELS];
 
-    off_t sound_name_offset;
-    off_t config_name_offset;
+    uint32_t sound_name_offset;
+    uint32_t config_name_offset;
     char name[255+1];
 } ktsr_header;
 
@@ -266,12 +266,12 @@ static int parse_codec(ktsr_header* ktsr) {
 
     return 1;
 fail:
-    VGM_LOG("KTSR: unknown codec combo: ext=%x, fmt=%x, ptf=%x\n", ktsr->is_external, ktsr->format, ktsr->platform);
+    VGM_LOG("ktsr: unknown codec combo: ext=%x, fmt=%x, ptf=%x\n", ktsr->is_external, ktsr->format, ktsr->platform);
     return 0;
 }
 
-static int parse_ktsr_subfile(ktsr_header* ktsr, STREAMFILE* sf, off_t offset) {
-    off_t suboffset, starts_offset, sizes_offset;
+static int parse_ktsr_subfile(ktsr_header* ktsr, STREAMFILE* sf, uint32_t offset) {
+    uint32_t suboffset, starts_offset, sizes_offset;
     int i;
     uint32_t type;
 
@@ -318,7 +318,7 @@ static int parse_ktsr_subfile(ktsr_header* ktsr, STREAMFILE* sf, off_t offset) {
             ktsr->is_external = 1;
 
             if (ktsr->format != 0x05) {
-                VGM_LOG("KTSR: unknown subcodec at %lx\n", offset);
+                VGM_LOG("ktsr: unknown subcodec at %x\n", offset);
                 goto fail;
             }
 
@@ -362,7 +362,7 @@ static int parse_ktsr_subfile(ktsr_header* ktsr, STREAMFILE* sf, off_t offset) {
                 suboffset = offset + 0x30;
 
             if (ktsr->channels > MAX_CHANNELS) {
-                VGM_LOG("KTSR: max channels found\n");
+                VGM_LOG("ktsr: max channels found\n");
                 goto fail;
             }
 
@@ -379,7 +379,7 @@ static int parse_ktsr_subfile(ktsr_header* ktsr, STREAMFILE* sf, off_t offset) {
 
         default:
             /* streams also have their own chunks like 0x09D4F415, not needed here */
-            VGM_LOG("KTSR: unknown subheader at %lx\n", offset);
+            VGM_LOG("ktsr: unknown subheader at %x\n", offset);
             goto fail;
     }
 
@@ -388,7 +388,7 @@ static int parse_ktsr_subfile(ktsr_header* ktsr, STREAMFILE* sf, off_t offset) {
 
     return 1;
 fail:
-    VGM_LOG("KTSR: error parsing subheader\n");
+    VGM_LOG("ktsr: error parsing subheader\n");
     return 0;
 }
 
@@ -419,7 +419,7 @@ static void build_name(ktsr_header* ktsr, STREAMFILE* sf) {
 
 static void parse_longname(ktsr_header* ktsr, STREAMFILE* sf, uint32_t target_id) {
     /* more configs than sounds is possible so we need target_id first */
-    off_t offset, end, name_offset;
+    uint32_t offset, end, name_offset;
     uint32_t stream_id;
 
     offset = 0x40;
@@ -447,7 +447,7 @@ static void parse_longname(ktsr_header* ktsr, STREAMFILE* sf, uint32_t target_id
 }
 
 static int parse_ktsr(ktsr_header* ktsr, STREAMFILE* sf) {
-    off_t offset, end, header_offset, name_offset;
+    uint32_t offset, end, header_offset, name_offset;
     uint32_t stream_id = 0, stream_count;
 
     /* 00: KTSR
@@ -486,7 +486,6 @@ static int parse_ktsr(ktsr_header* ktsr, STREAMFILE* sf) {
                 break;
 
             case 0xC5CCCB70: /* sound (internal data or external stream) */
-                //VGM_LOG("info at %lx\n", offset);
                 ktsr->total_subsongs++;
 
                 /* sound table:
@@ -503,13 +502,12 @@ static int parse_ktsr(ktsr_header* ktsr, STREAMFILE* sf) {
 
 
                 if (ktsr->total_subsongs == ktsr->target_subsong) {
-                    //;VGM_LOG("KTSR: target at %lx\n", offset);
 
                     stream_id = read_u32be(offset + 0x08,sf);
                     //ktsr->is_external = read_u16le(offset + 0x0e,sf);
                     stream_count = read_u32le(offset + 0x10,sf);
                     if (stream_count != 1) {
-                        VGM_LOG("KTSR: unknown stream count\n");
+                        VGM_LOG("ktsr: unknown stream count\n");
                         goto fail;
                     }
 
@@ -527,7 +525,7 @@ static int parse_ktsr(ktsr_header* ktsr, STREAMFILE* sf) {
 
             default:
                 /* streams also have their own chunks like 0x09D4F415, not needed here */  
-                VGM_LOG("KTSR: unknown chunk at %lx\n", offset);
+                VGM_LOG("ktsr: unknown chunk at %x\n", offset);
                 goto fail;
         }
 
@@ -542,5 +540,6 @@ static int parse_ktsr(ktsr_header* ktsr, STREAMFILE* sf) {
 
     return 1;
 fail:
+    vgm_logi("KTSR: unknown variation (report)\n");
     return 0;
 }

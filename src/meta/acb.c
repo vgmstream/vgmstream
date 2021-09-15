@@ -79,30 +79,93 @@ fail:
 /* extra config for .acb with lots of sounds, since there is a lot of IO back and forth,
  * ex. +7000 acb+awb subsongs in Ultra Despair Girls (PC) */
 //TODO: could pre-load all sections first, but needs cache for multiple subsongs (+semaphs, if multiple read the same thing)
-#define ACB_TABLE_BUFFER_CUENAME 0x8000
-#define ACB_TABLE_BUFFER_CUE 0x40000
+#define ACB_TABLE_BUFFER_CUENAME 0x4000
+#define ACB_TABLE_BUFFER_CUE 0x2000
 #define ACB_TABLE_BUFFER_BLOCKSEQUENCE 0x8000
 #define ACB_TABLE_BUFFER_BLOCK 0x8000
-#define ACB_TABLE_BUFFER_SEQUENCE 0x40000
-#define ACB_TABLE_BUFFER_TRACK 0x10000
-#define ACB_TABLE_BUFFER_TRACKCOMMAND 0x20000
-#define ACB_TABLE_BUFFER_SYNTH 0x40000
-#define ACB_TABLE_BUFFER_WAVEFORM 0x20000
+#define ACB_TABLE_BUFFER_SEQUENCE 0x4000
+#define ACB_TABLE_BUFFER_TRACK 0x1000
+#define ACB_TABLE_BUFFER_TRACKCOMMAND 0x2000
+#define ACB_TABLE_BUFFER_SYNTH 0x4000
+#define ACB_TABLE_BUFFER_WAVEFORM 0x4000
 
 #define ACB_MAX_NAMELIST 255
 #define ACB_MAX_NAME 1024 /* even more is possible in rare cases [Senran Kagura Burst Re:Newal (PC)] */
 
+#define ACB_MAX_BUFFER 0x8000
+#define ACB_PRELOAD 1 //todo: remove non-preloading code
 
 static STREAMFILE* setup_acb_streamfile(STREAMFILE* sf, size_t buffer_size) {
     STREAMFILE* new_sf = NULL;
 
+#ifndef ACB_PRELOAD
     /* buffer seems better than reopening when opening multiple subsongs at the same time with STDIO,
      * even though there is more buffer trashing, maybe concurrent IO is slower */
     new_sf = open_wrap_streamfile(sf);
     new_sf = open_buffer_streamfile_f(new_sf, buffer_size);
-    //new_sf = reopen_streamfile(sf, buffer_size);
+#else
+    new_sf = reopen_streamfile(sf, buffer_size);
+#endif
     return new_sf;
 }
+
+
+typedef struct  {
+    uint16_t CueIndex;
+    const char* CueName;
+} CueName_t;
+
+typedef struct  {
+    uint8_t ReferenceType;
+    uint16_t ReferenceIndex;
+} Cue_t;
+
+typedef struct  {
+    uint16_t NumTracks;
+    uint32_t TrackIndex_offset;
+    uint32_t TrackIndex_size;
+    uint16_t NumBlocks;
+    uint32_t BlockIndex_offset;
+    uint32_t BlockIndex_size;
+} BlockSequence_t;
+
+typedef struct  {
+    uint16_t NumTracks;
+    uint32_t TrackIndex_offset;
+    uint32_t TrackIndex_size;
+} Block_t;
+
+typedef struct  {
+    uint16_t NumTracks;
+    uint32_t TrackIndex_offset;
+    uint32_t TrackIndex_size;
+    uint16_t ActionTrackStartIndex;
+    uint16_t NumActionTracks;
+    uint32_t TrackValues_offset;
+    uint32_t TrackValues_size;
+    uint8_t Type;
+} Sequence_t;
+
+typedef struct  {
+    uint16_t EventIndex;
+} Track_t;
+
+typedef struct  {
+    uint32_t Command_offset;
+    uint32_t Command_size;
+} TrackCommand_t;
+
+typedef struct  {
+    uint8_t Type;
+    uint32_t ReferenceItems_offset;
+    uint32_t ReferenceItems_size;
+} Synth_t;
+
+typedef struct  {
+    uint16_t Id;
+    uint16_t PortNo;
+    uint8_t Streaming;
+} Waveform_t;
 
 
 typedef struct {
@@ -110,6 +173,7 @@ typedef struct {
 
     /* keep track of these tables so they can be closed when done */
     utf_context* Header;
+    utf_context* TempTable;
 
     utf_context* CueNameTable;
     utf_context* CueTable;
@@ -121,6 +185,7 @@ typedef struct {
     utf_context* SynthTable;
     utf_context* WaveformTable;
 
+    STREAMFILE* TempSf;
     STREAMFILE* CueNameSf;
     STREAMFILE* CueSf;
     STREAMFILE* BlockSequenceSf;
@@ -131,12 +196,37 @@ typedef struct {
     STREAMFILE* SynthSf;
     STREAMFILE* WaveformSf;
 
+    Cue_t* Cue;
+    CueName_t* CueName;
+    BlockSequence_t* BlockSequence;
+    Block_t* Block;
+    Sequence_t* Sequence;
+    Track_t* Track;
+    TrackCommand_t* TrackCommand;
+    Synth_t* Synth;
+    Waveform_t* Waveform;
+
+    int Cue_rows;
+    int CueName_rows;
+    int BlockSequence_rows;
+    int Block_rows;
+    int Sequence_rows;
+    int Track_rows;
+    int TrackCommand_rows;
+    int Synth_rows;
+    int Waveform_rows;
+
+    uint8_t* buf;
+    int buf_size;
+
     /* config */
     int is_memory;
     int target_waveid;
     int target_port;
+    //todo remove
     int has_TrackEventTable;
     int has_CommandTable;
+    int is_preload;
 
     /* to avoid infinite/circular references (AtomViewer crashes otherwise) */
     int synth_depth;
@@ -149,7 +239,33 @@ typedef struct {
     int16_t awbname_list[ACB_MAX_NAMELIST];
     char name[ACB_MAX_NAME];
 
+
 } acb_header;
+
+
+static int read_buffer(acb_header* acb, uint32_t offset, uint32_t size, STREAMFILE* sf) {
+    int bytes;
+
+    if (acb->buf_size < size) {
+        if (size > ACB_MAX_BUFFER) {
+            VGM_LOG("ACB: buffer too big: %x\n", size);
+            goto fail;
+        }
+        /* could realloc and stuff but... */
+        acb->buf_size = ACB_MAX_BUFFER;
+        acb->buf = malloc(acb->buf_size * sizeof(uint8_t));
+        if (!acb->buf) goto fail;
+    }
+
+
+    bytes = read_streamfile(acb->buf, offset, size, sf);
+    if (bytes != size) goto fail;
+
+    return 1;
+fail:
+    VGM_LOG("ACB: failed buffer");
+    return 0;
+}
 
 static int open_utf_subtable(acb_header* acb, STREAMFILE* *TableSf, utf_context* *Table, const char* TableName, int* rows, int buffer) {
     uint32_t offset = 0;
@@ -189,6 +305,10 @@ static void acb_cpy(char* dst, int dst_max, const char* src) {
 }
 
 static void add_acb_name(acb_header* acb, int8_t Streaming) {
+    if (!acb->cuename_name) {
+        VGM_LOG("ACB: no name\n");
+        return;
+    }
 
     /* ignore name repeats */
     if (acb->awbname_count) {
@@ -220,73 +340,175 @@ static void add_acb_name(acb_header* acb, int8_t Streaming) {
 }
 
 
-/*******************************************************************************/
+/*****************************************************************************/
 /* OBJECT HANDLERS */
 
-static int load_acb_waveform(acb_header* acb, int16_t Index) {
-    uint16_t Id, PortNo;
-    uint8_t Streaming;
+static int preload_acb_waveform(acb_header* acb) {
+    utf_context* Table = acb->WaveformTable;
+    int* p_rows = &acb->Waveform_rows;
+    int i, c_Id, c_MemoryAwbId, c_StreamAwbId, c_StreamAwbPortNo, c_Streaming;
 
-    /* read Waveform[Index] */
-    if (!open_utf_subtable(acb, &acb->WaveformSf, &acb->WaveformTable, "WaveformTable", NULL, ACB_TABLE_BUFFER_WAVEFORM))
+    if (*p_rows)
+        return 1;
+    if (!open_utf_subtable(acb, &acb->WaveformSf, &Table, "WaveformTable", p_rows, ACB_TABLE_BUFFER_WAVEFORM))
         goto fail;
-    if (!utf_query_u16(acb->WaveformTable, Index, "Id", &Id)) { /* older versions use Id */
-        if (acb->is_memory) {
-            if (!utf_query_u16(acb->WaveformTable, Index, "MemoryAwbId", &Id))
-                goto fail;
-            PortNo = 0xFFFF;
-        } else {
-            if (!utf_query_u16(acb->WaveformTable, Index, "StreamAwbId", &Id))
-                goto fail;
-            if (!utf_query_u16(acb->WaveformTable, Index, "StreamAwbPortNo", &PortNo))
-                PortNo = 0; /* assumed */
+    if (!*p_rows)
+        return 1;
+    ;VGM_LOG("acb: preload Waveform=%i\n", *p_rows);
+
+    acb->Waveform = malloc(*p_rows * sizeof(Waveform_t));
+    if (!acb->Waveform) goto fail;
+
+    c_Id = utf_get_column(Table, "Id");
+    c_MemoryAwbId = utf_get_column(Table, "MemoryAwbId");
+    c_StreamAwbId = utf_get_column(Table, "StreamAwbId");
+    c_StreamAwbPortNo = utf_get_column(Table, "StreamAwbPortNo");
+    c_Streaming = utf_get_column(Table, "Streaming");
+
+    for (i = 0; i < *p_rows; i++) {
+        Waveform_t* r = &acb->Waveform[i];
+
+        if (!utf_query_col_u16(Table, i, c_Id, &r->Id)) { /* older versions use Id */
+            if (acb->is_memory) {
+                utf_query_col_u16(Table, i, c_MemoryAwbId, &r->Id);
+                r->PortNo = 0xFFFF;
+            } else {
+                utf_query_col_u16(Table, i, c_StreamAwbId, &r->Id);
+                utf_query_col_u16(Table, i, c_StreamAwbPortNo, &r->PortNo); /* assumed default 0 if doesn't exist */
+            }
         }
+        else {
+            r->PortNo = 0xFFFF;
+        }
+        utf_query_col_u8(Table, i, c_Streaming, &r->Streaming);
     }
-    else {
-        PortNo = 0xFFFF;
-    }
 
-    if (!utf_query_u8(acb->WaveformTable, Index, "Streaming", &Streaming))
-        goto fail;
-    //;VGM_LOG("ACB: Waveform[%i]: Id=%i, PortNo=%i, Streaming=%i\n", Index, Id, PortNo, Streaming);
-
-    /* not found but valid */
-    if (Id != acb->target_waveid)
-        return 1;
-
-    /* correct AWB port (check ignored if set to -1) */
-    if (acb->target_port >= 0 && PortNo != 0xFFFF && PortNo != acb->target_port)
-        return 1;
-
-    /* must match our target's (0=memory, 1=streaming, 2=memory (prefetch)+stream) */
-    if ((acb->is_memory && Streaming == 1) || (!acb->is_memory && Streaming == 0))
-        return 1;
-
-    /* aaand finally get name (phew) */
-    add_acb_name(acb, Streaming);
-
+    ;VGM_LOG("acb: preload Waveform done\n");
     return 1;
 fail:
+    VGM_LOG("ACB: failed Waveform preload\n");
     return 0;
 }
 
-/* define here for Synths pointing to Sequences */
-static int load_acb_sequence(acb_header* acb, int16_t Index);
+static int load_acb_waveform(acb_header* acb, uint16_t Index) {
+    Waveform_t* r;
+    Waveform_t tmp;
 
-static int load_acb_synth(acb_header* acb, int16_t Index) {
+    /* read Waveform[Index] */
+    if (acb->is_preload) {
+        if (!preload_acb_waveform(acb)) goto fail;
+        if (Index > acb->Waveform_rows) goto fail;
+        r = &acb->Waveform[Index];
+    }
+    else {
+        r = &tmp;
+        if (!open_utf_subtable(acb, &acb->WaveformSf, &acb->WaveformTable, "WaveformTable", NULL, ACB_TABLE_BUFFER_WAVEFORM))
+            goto fail;
+
+        if (!utf_query_u16(acb->WaveformTable, Index, "Id", &r->Id)) { /* older versions use Id */
+            if (acb->is_memory) {
+                if (!utf_query_u16(acb->WaveformTable, Index, "MemoryAwbId", &r->Id))
+                    goto fail;
+                r->PortNo = 0xFFFF;
+            } else {
+                if (!utf_query_u16(acb->WaveformTable, Index, "StreamAwbId", &r->Id))
+                    goto fail;
+                if (!utf_query_u16(acb->WaveformTable, Index, "StreamAwbPortNo", &r->PortNo))
+                    r->PortNo = 0; /* assumed */
+            }
+        }
+        else {
+            r->PortNo = 0xFFFF;
+        }
+        if (!utf_query_u8(acb->WaveformTable, Index, "Streaming", &r->Streaming))
+            goto fail;
+        //;VGM_LOG("ACB: Waveform[%i]: Id=%i, PortNo=%i, Streaming=%i\n", Index, r->Id, r->PortNo, r->Streaming);
+    }
+
+    /* not found but valid */
+    if (r->Id != acb->target_waveid)
+        return 1;
+
+    /* correct AWB port (check ignored if set to -1) */
+    if (acb->target_port >= 0 && r->PortNo != 0xFFFF && r->PortNo != acb->target_port)
+        return 1;
+
+    /* must match our target's (0=memory, 1=streaming, 2=memory (prefetch)+stream) */
+    if ((acb->is_memory && r->Streaming == 1) || (!acb->is_memory && r->Streaming == 0))
+        return 1;
+
+    /* aaand finally get name (phew) */
+    add_acb_name(acb, r->Streaming);
+
+    return 1;
+fail:
+    VGM_LOG("ACB: failed Waveform %i\n", Index);
+    return 0;
+}
+
+/*****************************************************************************/
+
+/* define here for Synths pointing to Sequences */
+static int load_acb_sequence(acb_header* acb, uint16_t Index);
+
+static int preload_acb_synth(acb_header* acb) {
+    utf_context* Table = acb->SynthTable;
+    int* p_rows = &acb->Synth_rows;
+    int i, c_Type, c_ReferenceItems;
+
+    if (*p_rows)
+        return 1;
+    if (!open_utf_subtable(acb, &acb->SynthSf, &Table, "SynthTable", p_rows, ACB_TABLE_BUFFER_SYNTH))
+        goto fail;
+    if (!*p_rows)
+        return 1;
+    ;VGM_LOG("acb: preload Synth=%i\n", *p_rows);
+
+    acb->Synth = malloc(*p_rows * sizeof(Synth_t));
+    if (!acb->Synth) goto fail;
+
+    c_Type = utf_get_column(Table, "Type");
+    c_ReferenceItems = utf_get_column(Table, "ReferenceItems");
+
+    for (i = 0; i < *p_rows; i++) {
+        Synth_t* r = &acb->Synth[i];
+
+        utf_query_col_u8(Table, i, c_Type, &r->Type);
+        utf_query_col_data(Table, i, c_ReferenceItems, &r->ReferenceItems_offset, &r->ReferenceItems_size);
+        //;VGM_LOG("ACB: Synth[%i]: Type=%x, ReferenceItems={%x,%x}\n", Index, r->Type, r->ReferenceItems_offset, r->ReferenceItems_size);
+    }
+
+    ;VGM_LOG("acb: preload Synth done\n");
+    return 1;
+fail:
+    VGM_LOG("ACB: failed Synth preload\n");
+    return 0;
+}
+
+
+static int load_acb_synth(acb_header* acb, uint16_t Index) {
     int i, count;
-    uint8_t Type;
-    uint32_t ReferenceItems_offset, ReferenceItems_size;
+    Synth_t* r;
+    Synth_t tmp;
 
 
     /* read Synth[Index] */
-    if (!open_utf_subtable(acb, &acb->SynthSf, &acb->SynthTable, "SynthTable", NULL, ACB_TABLE_BUFFER_SYNTH))
-        goto fail;
-    if (!utf_query_u8(acb->SynthTable, Index, "Type", &Type))
-        goto fail;
-    if (!utf_query_data(acb->SynthTable, Index, "ReferenceItems", &ReferenceItems_offset, &ReferenceItems_size))
-        goto fail;
-    //;VGM_LOG("ACB: Synth[%i]: Type=%x, ReferenceItems={%x,%x}\n", Index, Type, ReferenceItems_offset, ReferenceItems_size);
+    if (acb->is_preload) {
+        if (!preload_acb_synth(acb)) goto fail;
+        if (Index > acb->Synth_rows) goto fail;
+        r = &acb->Synth[Index];
+    }
+    else {
+        r = &tmp;
+        if (!open_utf_subtable(acb, &acb->SynthSf, &acb->SynthTable, "SynthTable", NULL, ACB_TABLE_BUFFER_SYNTH))
+            goto fail;
+
+        if (!utf_query_u8(acb->SynthTable, Index, "Type", &r->Type))
+            goto fail;
+        if (!utf_query_data(acb->SynthTable, Index, "ReferenceItems", &r->ReferenceItems_offset, &r->ReferenceItems_size))
+            goto fail;
+        //;VGM_LOG("ACB: Synth[%i]: Type=%x, ReferenceItems={%x,%x}\n", Index, r->Type, r->ReferenceItems_offset, r->ReferenceItems_size);
+    }
 
     acb->synth_depth++;
 
@@ -314,10 +536,13 @@ static int load_acb_synth(acb_header* acb, int16_t Index) {
      * Since we want to find all possible Waveforms that could match our id, we ignore Type and just parse all ReferenceItems.
      */
 
-    count = ReferenceItems_size / 0x04;
+    if (!read_buffer(acb, r->ReferenceItems_offset, r->ReferenceItems_size, acb->SynthSf))
+        goto fail;
+
+    count = r->ReferenceItems_size / 0x04;
     for (i = 0; i < count; i++) {
-        uint16_t item_type  = read_u16be(ReferenceItems_offset + i*0x04 + 0x00, acb->SynthSf);
-        uint16_t item_index = read_u16be(ReferenceItems_offset + i*0x04 + 0x02, acb->SynthSf);
+        uint16_t item_type  = get_u16be(acb->buf + i*0x04 + 0x00);
+        uint16_t item_index = get_u16be(acb->buf + i*0x04 + 0x02);
         //;VGM_LOG("ACB: Synth.ReferenceItem: type=%x, index=%x\n", item_type, item_index);
 
         switch(item_type) {
@@ -344,7 +569,7 @@ static int load_acb_synth(acb_header* acb, int16_t Index) {
 
             case 0x06:  /* this seems to point to Synth but results don't make sense (rare, from Sonic Lost World) */
             default: /* undefined/crashes AtomViewer */
-                VGM_LOG("ACB: unknown Synth.ReferenceItem type %x at %x + %x\n", item_type, ReferenceItems_offset, ReferenceItems_size);
+                VGM_LOG("ACB: unknown Synth.ReferenceItem type %x at %x + %x\n", item_type, r->ReferenceItems_offset, r->ReferenceItems_size);
                 count = 0; /* force end without failing */
                 break;
         }
@@ -354,23 +579,26 @@ static int load_acb_synth(acb_header* acb, int16_t Index) {
 
     return 1;
 fail:
+    VGM_LOG("ACB: failed Synth %i\n", Index);
     return 0;
 }
 
+/*****************************************************************************/
 
 static int load_acb_command_tlvs(acb_header* acb, STREAMFILE* sf, uint32_t Command_offset, uint32_t Command_size) {
-    uint32_t offset = Command_offset;
-    uint32_t max_offset = Command_offset + Command_size;
     uint16_t tlv_code, tlv_type, tlv_index;
     uint8_t tlv_size;
+    uint32_t pos = 0;
+    uint32_t max_pos = Command_size;
 
-    //todo read full offsets
+    if (!read_buffer(acb, Command_offset, Command_size, sf))
+        goto fail;
 
     /* read a (name)Command multiple TLV data */
-    while (offset < max_offset) {
-        tlv_code = read_u16be(offset + 0x00, sf);
-        tlv_size = read_u8   (offset + 0x02, sf);
-        offset += 0x03;
+    while (pos < max_pos) {
+        tlv_code = get_u16be(acb->buf + pos + 0x00);
+        tlv_size = get_u8   (acb->buf + pos + 0x02);
+        pos  += 0x03;
 
         /* There are around 160 codes (some unused), with things like set volume, pan, stop, mute, and so on.
          * Multiple commands are linked and only "note on" seems to point so other objects, so maybe others
@@ -383,8 +611,8 @@ static int load_acb_command_tlvs(acb_header* acb, STREAMFILE* sf, uint32_t Comma
                     break;
                 }
 
-                tlv_type = read_u16be(offset + 0x00, sf); /* ReferenceItem */
-                tlv_index = read_u16be(offset + 0x02, sf);
+                tlv_type = get_u16be(acb->buf + pos + 0x00); /* ReferenceItem */
+                tlv_index = get_u16be(acb->buf + pos + 0x02);
                 //;VGM_LOG("ACB: TLV at %x: type %x, index=%x\n", offset, tlv_type, tlv_index);
 
                 /* same as Synth's ReferenceItem type? */
@@ -400,8 +628,8 @@ static int load_acb_command_tlvs(acb_header* acb, STREAMFILE* sf, uint32_t Comma
                         break;
 
                     default:
-                        VGM_LOG("ACB: unknown TLV type %x at %x + %x\n", tlv_type, offset, tlv_size);
-                        max_offset = 0; /* force end without failing */
+                        VGM_LOG("ACB: unknown TLV type %x at %x + %x\n", tlv_type, Command_offset + pos, tlv_size);
+                        max_pos = 0; /* force end without failing */
                         break;
                 }
                 break;
@@ -433,79 +661,232 @@ static int load_acb_command_tlvs(acb_header* acb, STREAMFILE* sf, uint32_t Comma
                 break;
         }
 
-        offset += tlv_size;
+        pos += tlv_size;
     }
 
     return 1;
 fail:
+    VGM_LOG("ACB: failed Command TLVs\n");
     return 0;
 }
 
-static int load_acb_track_event_command(acb_header* acb, int16_t Index) {
-    uint16_t EventIndex;
-    uint32_t Command_offset, Command_size;
+/*****************************************************************************/
+
+static int preload_acb_trackcommand(acb_header* acb) {
+    utf_context* Table = acb->TrackCommandTable;
+    int* p_rows = &acb->TrackCommand_rows;
+    int i, c_Command;
+
+
+    if (*p_rows)
+        return 1;
+    /* load either TrackEvent (>=v1.28) or Command () <=v1.27 */
+    if (!open_utf_subtable(acb, &acb->TrackCommandSf, &Table, "TrackEventTable", p_rows, ACB_TABLE_BUFFER_TRACKCOMMAND)) {
+        if (!open_utf_subtable(acb, &acb->TrackCommandSf, &Table, "CommandTable", p_rows, ACB_TABLE_BUFFER_TRACKCOMMAND))
+            goto fail;
+    }
+    if (!*p_rows)
+        return 1;
+    ;VGM_LOG("acb: preload TrackEvent/Command=%i\n", *p_rows);
+
+    acb->TrackCommand = malloc(*p_rows * sizeof(TrackCommand_t));
+    if (!acb->TrackCommand) goto fail;
+
+    c_Command = utf_get_column(Table, "Command");
+
+    for (i = 0; i < *p_rows; i++) {
+        TrackCommand_t* r = &acb->TrackCommand[i];
+
+        utf_query_col_data(Table, i, c_Command, &r->Command_offset, &r->Command_size);
+        //;VGM_LOG("ACB: TrackEvent/Command[%i]: Command={%x,%x}\n", i, r->Command_offset, r->Command_size);
+    }
+
+    ;VGM_LOG("acb: preload TrackEvent/Command done\n");
+    return 1;
+fail:
+    VGM_LOG("ACB: failed TrackEvent/Command preload\n");
+    return 0;
+}
+
+static int load_acb_trackcommand(acb_header* acb, uint16_t Index) {
+    TrackCommand_t* r;
+    TrackCommand_t tmp;
+
+
+    /* read TrackEvent/Command[Index] */
+    if (acb->is_preload) {
+        if (!preload_acb_trackcommand(acb)) goto fail;
+        if (Index > acb->TrackCommand_rows) goto fail;
+        r = &acb->TrackCommand[Index];
+    }
+    else {
+        r = &tmp;
+        if (acb->has_CommandTable) { /* <=v1.27 */
+            if (!open_utf_subtable(acb, &acb->TrackCommandSf, &acb->TrackCommandTable, "CommandTable", NULL, ACB_TABLE_BUFFER_TRACKCOMMAND))
+                goto fail;
+        }
+        else if (acb->has_TrackEventTable) { /* >=v1.28 */
+            if (!open_utf_subtable(acb, &acb->TrackCommandSf, &acb->TrackCommandTable, "TrackEventTable", NULL, ACB_TABLE_BUFFER_TRACKCOMMAND))
+                goto fail;
+        }
+        else {
+            VGM_LOG("ACB: unknown command table\n");
+            goto fail;
+        }
+        if (!utf_query_data(acb->TrackCommandTable, Index, "Command", &r->Command_offset, &r->Command_size))
+            goto fail;
+        //;VGM_LOG("ACB: TrackEvent/Command[%i]: Command={%x,%x}\n", Index, r->Command_offset, r->Command_size);
+    }
+
+
+    /* read Command's TLVs */
+    if (!load_acb_command_tlvs(acb, acb->TrackCommandSf, r->Command_offset, r->Command_size))
+        goto fail;
+
+    return 1;
+fail:
+    VGM_LOG("ACB: failed TrackCommand %i\n", Index);
+    return 0;
+}
+
+/*****************************************************************************/
+
+static int preload_acb_track(acb_header* acb) {
+    utf_context* Table = acb->TrackTable;
+    int* p_rows = &acb->Track_rows;
+    int i, c_EventIndex;
+
+    if (*p_rows)
+        return 1;
+    if (!open_utf_subtable(acb, &acb->TrackSf, &Table, "TrackTable", p_rows, ACB_TABLE_BUFFER_CUE))
+        goto fail;
+    if (!*p_rows)
+        return 1;
+    ;VGM_LOG("acb: preload Track=%i\n", *p_rows);
+
+    acb->Track = malloc(*p_rows * sizeof(Track_t));
+    if (!acb->Track) goto fail;
+
+    c_EventIndex = utf_get_column(Table, "EventIndex");
+
+    for (i = 0; i < *p_rows; i++) {
+        Track_t* r = &acb->Track[i];
+
+        if (!utf_query_col_u16(Table, i, c_EventIndex, &r->EventIndex))
+            goto fail;
+        //;VGM_LOG("ACB: Track[%i]: EventIndex=%i\n", i, r->EventIndex);
+    }
+
+    ;VGM_LOG("acb: preload Track done\n");
+    return 1;
+fail:
+    VGM_LOG("ACB: failed Track preload\n");
+    return 0;
+}
+
+static int load_acb_track(acb_header* acb, uint16_t Index) {
+    Track_t* r;
+    Track_t tmp;
 
 
     /* read Track[Index] */
-    if (!open_utf_subtable(acb, &acb->TrackSf, &acb->TrackTable, "TrackTable", NULL, ACB_TABLE_BUFFER_TRACK ))
-        goto fail;
-    if (!utf_query_u16(acb->TrackTable, Index, "EventIndex", &EventIndex))
-        goto fail;
-    //;VGM_LOG("ACB: Track[%i]: EventIndex=%i\n", Index, EventIndex);
+    if (acb->is_preload) {
+        if (!preload_acb_track(acb)) goto fail;
+        if (Index > acb->Track_rows) goto fail;
+        r = &acb->Track[Index];
+    }
+    else {
+        r = &tmp;
+        if (!open_utf_subtable(acb, &acb->TrackSf, &acb->TrackTable, "TrackTable", NULL, ACB_TABLE_BUFFER_TRACK))
+            goto fail;
+        if (!utf_query_u16(acb->TrackTable, Index, "EventIndex", &r->EventIndex))
+            goto fail;
+    }
 
     //todo CommandIndex?
 
     /* happens with some odd track without anything useful */
-    if (EventIndex == 65535)
+    if (r->EventIndex == 65535)
         return 1;
 
-    /* next link varies with version, check by table existence */
-    if (acb->has_CommandTable) { /* <=v1.27 */
-        /* read Command[EventIndex] */
-        if (!open_utf_subtable(acb, &acb->TrackCommandSf, &acb->TrackCommandTable, "CommandTable", NULL, ACB_TABLE_BUFFER_TRACKCOMMAND))
-            goto fail;
-        if (!utf_query_data(acb->TrackCommandTable, EventIndex, "Command", &Command_offset, &Command_size))
-            goto fail;
-        //;VGM_LOG("ACB: Command[%i]: Command={%x,%x}\n", EventIndex, Command_offset,Command_size);
-    }
-    else if (acb->has_TrackEventTable) { /* >=v1.28 */
-        /* read TrackEvent[EventIndex] */
-        if (!open_utf_subtable(acb, &acb->TrackCommandSf, &acb->TrackCommandTable, "TrackEventTable", NULL, ACB_TABLE_BUFFER_TRACKCOMMAND))
-            goto fail;
-        if (!utf_query_data(acb->TrackCommandTable, EventIndex, "Command", &Command_offset, &Command_size))
-            goto fail;
-        //;VGM_LOG("ACB: TrackEvent[%i]: Command={%x,%x}\n", EventIndex, Command_offset,Command_size);
-    }
-    else {
-        VGM_LOG("ACB: unknown command table\n");
-        goto fail;
-    }
-
-    /* read Command's TLVs */
-    if (!load_acb_command_tlvs(acb, acb->TrackCommandSf, Command_offset, Command_size))
+    if (!load_acb_trackcommand(acb, r->EventIndex))
         goto fail;
 
     return 1;
 fail:
+    VGM_LOG("ACB: failed Track %i\n", Index);
     return 0;
 }
 
-static int load_acb_sequence(acb_header* acb, int16_t Index) {
+/*****************************************************************************/
+
+static int preload_acb_sequence(acb_header* acb) {
+    utf_context* Table = acb->SequenceTable;
+    int* p_rows = &acb->Sequence_rows;
+    int i, c_NumTracks, c_TrackIndex, c_ActionTrackStartIndex, c_NumActionTracks, c_TrackValues, c_Type;
+
+    if (*p_rows)
+        return 1;
+    if (!open_utf_subtable(acb, &acb->SequenceSf, &Table, "SequenceTable", p_rows, ACB_TABLE_BUFFER_SEQUENCE))
+        goto fail;
+    if (!*p_rows)
+        return 1;
+    ;VGM_LOG("acb: preload Sequence=%i\n", *p_rows);
+
+    acb->Sequence = malloc(*p_rows * sizeof(Sequence_t));
+    if (!acb->Sequence) goto fail;
+
+    c_NumTracks = utf_get_column(Table, "NumTracks");
+    c_TrackIndex = utf_get_column(Table, "TrackIndex");
+    c_ActionTrackStartIndex = utf_get_column(Table, "ActionTrackStartIndex");
+    c_NumActionTracks = utf_get_column(Table, "NumActionTracks");
+    c_TrackValues = utf_get_column(Table, "TrackValues");
+    c_Type = utf_get_column(Table, "Type");
+
+    for (i = 0; i < *p_rows; i++) {
+        Sequence_t* r = &acb->Sequence[i];
+
+        utf_query_col_u16(Table, i, c_NumTracks, &r->NumTracks);
+        utf_query_col_data(Table, i, c_TrackIndex, &r->TrackIndex_offset, &r->TrackIndex_size);
+        utf_query_col_u16(Table, i, c_ActionTrackStartIndex, &r->ActionTrackStartIndex);
+        utf_query_col_u16(Table, i, c_NumActionTracks, &r->NumActionTracks);
+        utf_query_col_data(Table, i, c_TrackValues, &r->TrackValues_offset, &r->TrackValues_size);
+        utf_query_col_u8(Table, i, c_Type, &r->Type);
+        //;VGM_LOG("ACB: Sequence[%i]: NumTracks=%i, TrackIndex={%x, %x}, TrackIndex={%x, %x}, Type=%x\n", i, r->NumTracks, r->TrackIndex_offset, r->TrackIndex_size, r->TrackValues_offset, r->TrackValues_size, r->Type);
+    }
+
+    ;VGM_LOG("acb: preload Sequence done\n");
+    return 1;
+fail:
+    VGM_LOG("ACB: failed Sequence preload\n");
+    return 0;
+}
+
+static int load_acb_sequence(acb_header* acb, uint16_t Index) {
     int i;
-    uint16_t NumTracks;
-    uint32_t TrackIndex_offset, TrackIndex_size;
+    Sequence_t* r;
+    Sequence_t tmp;
 
 
     /* read Sequence[Index] */
-    if (!open_utf_subtable(acb, &acb->SequenceSf, &acb->SequenceTable, "SequenceTable", NULL, ACB_TABLE_BUFFER_SEQUENCE))
-        goto fail;
-    if (!utf_query_u16(acb->SequenceTable, Index, "NumTracks", &NumTracks))
-        goto fail;
-    if (!utf_query_data(acb->SequenceTable, Index, "TrackIndex", &TrackIndex_offset, &TrackIndex_size))
-        goto fail;
-    //;VGM_LOG("ACB: Sequence[%i]: NumTracks=%i, TrackIndex={%x, %x}\n", Index, NumTracks, TrackIndex_offset,TrackIndex_size);
+    if (acb->is_preload) {
+        if (!preload_acb_sequence(acb)) goto fail;
+        if (Index > acb->Sequence_rows) goto fail;
+        r = &acb->Sequence[Index];
+    }
+    else {
+        r = &tmp;
+        if (!open_utf_subtable(acb, &acb->SequenceSf, &acb->SequenceTable, "SequenceTable", NULL, ACB_TABLE_BUFFER_SEQUENCE))
+            goto fail;
+
+        if (!utf_query_u16(acb->SequenceTable, Index, "NumTracks", &r->NumTracks))
+            goto fail;
+        if (!utf_query_data(acb->SequenceTable, Index, "TrackIndex", &r->TrackIndex_offset, &r->TrackIndex_size))
+            goto fail;
+    }
 
     //todo .CommandIndex > SequenceCommand?
+    // most unknown types can be found in Ultra Despair Girls (PC)
 
     acb->sequence_depth++;
 
@@ -514,106 +895,227 @@ static int load_acb_sequence(acb_header* acb, int16_t Index) {
         goto fail; /* max Sequence > Sequence > Sequence > Synth > Waveform (ex. Yakuza 6) */
     }
 
-    if (NumTracks * 0x02 > TrackIndex_size) { /* padding may exist */
-        VGM_LOG("ACB: wrong Sequence.TrackIndex size\n");
-        goto fail;
-    }
 
     /* read Tracks inside Sequence */
-    for (i = 0; i < NumTracks; i++) {
-        int16_t TrackIndex_index = read_s16be(TrackIndex_offset + i*0x02, acb->SequenceSf);
-
-        if (!load_acb_track_event_command(acb, TrackIndex_index))
+    if (r->NumActionTracks) {
+        VGM_LOG_ONCE("ACB: ignored ActionTrack[%i~%i]\n", r->ActionTrackStartIndex, r->NumActionTracks);
+    }
+    else {
+        if (r->NumTracks * 0x02 > r->TrackIndex_size) { /* padding may exist */
+            VGM_LOG("ACB: wrong Sequence.TrackIndex size\n");
             goto fail;
+        }
+
+        switch(r->Type) {
+            case 0: /* common */
+                if (!read_buffer(acb, r->TrackIndex_offset, r->TrackIndex_size, acb->SequenceSf))
+                    goto fail;
+
+                for (i = 0; i < r->NumTracks; i++) {
+                    int16_t TrackIndex_index = get_s16be(acb->buf + i*0x02);
+
+                    if (!load_acb_track(acb, TrackIndex_index))
+                        goto fail;
+                }
+                break;
+
+            case 1: /* TrackIndex only, similar to 0? (rare) */
+                VGM_LOG_ONCE("ACB: unknown Sequence.Type=%x\n", r->Type);
+                break;
+            case 3: /* TrackIndex + TrackValues */
+            case 4: /* same */
+            default:
+                VGM_LOG_ONCE("ACB: unknown Sequence.Type=%x\n", r->Type);
+                break;
+        }
     }
 
     acb->sequence_depth--;
 
     return 1;
 fail:
+    VGM_LOG("ACB: failed Sequence %i\n", Index);
     return 0;
 }
 
-static int load_acb_block(acb_header* acb, int16_t Index) {
+/*****************************************************************************/
+
+static int preload_acb_block(acb_header* acb) {
+    utf_context* Table = acb->BlockTable;
+    int* p_rows = &acb->Block_rows;
+    int i, c_NumTracks, c_TrackIndex;
+
+    if (*p_rows)
+        return 1;
+    if (!open_utf_subtable(acb, &acb->BlockSf, &Table, "BlockTable", p_rows, ACB_TABLE_BUFFER_BLOCK))
+        goto fail;
+    if (!*p_rows)
+        return 1;
+    ;VGM_LOG("acb: preload Block=%i\n", *p_rows);
+
+    acb->Block = malloc(*p_rows * sizeof(Block_t));
+    if (!acb->Block) goto fail;
+
+    c_NumTracks = utf_get_column(Table, "NumTracks");
+    c_TrackIndex = utf_get_column(Table, "TrackIndex");
+
+    for (i = 0; i < *p_rows; i++) {
+        Block_t* r = &acb->Block[i];
+
+        utf_query_col_u16(Table, i, c_NumTracks, &r->NumTracks);
+        utf_query_col_data(Table, i, c_TrackIndex, &r->TrackIndex_offset, &r->TrackIndex_size);
+        //;VGM_LOG("ACB: Block[%i]: NumTracks=%i, TrackIndex={%x, %x}\n", i, r->NumTracks, r->TrackIndex_offset, r->TrackIndex_size);
+    }
+
+    ;VGM_LOG("acb: preload Block done\n");
+    return 1;
+fail:
+    VGM_LOG("ACB: failed Block preload\n");
+    return 0;
+}
+
+static int load_acb_block(acb_header* acb, uint16_t Index) {
     int i;
-    uint16_t NumTracks;
-    uint32_t TrackIndex_offset, TrackIndex_size;
+    Block_t* r;
+    Block_t tmp;
 
 
     /* read Block[Index] */
-    if (!open_utf_subtable(acb, &acb->BlockSf, &acb->BlockTable, "BlockTable", NULL, ACB_TABLE_BUFFER_BLOCK))
-        goto fail;
-    if (!utf_query_u16(acb->BlockTable, Index, "NumTracks", &NumTracks))
-        goto fail;
-    if (!utf_query_data(acb->BlockTable, Index, "TrackIndex", &TrackIndex_offset, &TrackIndex_size))
-        goto fail;
-    //;VGM_LOG("ACB: Block[%i]: NumTracks=%i, TrackIndex={%x, %x}\n", Index, NumTracks, TrackIndex_offset,TrackIndex_size);
+    if (acb->is_preload) {
+        if (!preload_acb_block(acb)) goto fail;
+        if (Index > acb->Block_rows) goto fail;
+        r = &acb->Block[Index];
+    }
+    else {
+        r = &tmp;
+        if (!open_utf_subtable(acb, &acb->BlockSf, &acb->BlockTable, "BlockTable", NULL, ACB_TABLE_BUFFER_BLOCK))
+            goto fail;
 
-    if (NumTracks * 0x02 > TrackIndex_size) { /* padding may exist */
+        if (!utf_query_u16(acb->BlockTable, Index, "NumTracks", &r->NumTracks))
+            goto fail;
+        if (!utf_query_data(acb->BlockTable, Index, "TrackIndex", &r->TrackIndex_offset, &r->TrackIndex_size))
+            goto fail;
+    }
+
+    if (r->NumTracks * 0x02 > r->TrackIndex_size) { /* padding may exist */
         VGM_LOG("ACB: wrong Block.TrackIndex size\n");
         goto fail;
     }
 
     //todo .ActionTrackStartIndex/NumActionTracks > ?
 
-    /* read Tracks inside Block */
-    for (i = 0; i < NumTracks; i++) {
-        int16_t TrackIndex_index = read_s16be(TrackIndex_offset + i*0x02, acb->BlockSf);
+    if (!read_buffer(acb, r->TrackIndex_offset, r->TrackIndex_size, acb->BlockSf))
+        goto fail;
 
-        if (!load_acb_track_event_command(acb, TrackIndex_index))
+    /* read Tracks inside Block */
+    for (i = 0; i < r->NumTracks; i++) {
+        int16_t TrackIndex_index = get_s16be(acb->buf + i*0x02);
+
+        if (!load_acb_track(acb, TrackIndex_index))
             goto fail;
     }
 
     return 1;
 fail:
+    VGM_LOG("ACB: failed Block %i\n", Index);
     return 0;
 }
 
-static int load_acb_blocksequence(acb_header* acb, int16_t Index) {
-    int i;
+/*****************************************************************************/
 
-    uint16_t NumTracks;
-    uint32_t TrackIndex_offset, TrackIndex_size;
-    uint16_t NumBlocks;
-    uint32_t BlockIndex_offset, BlockIndex_size;
+static int preload_acb_blocksequence(acb_header* acb) {
+    utf_context* Table = acb->BlockSequenceTable;
+    int* p_rows = &acb->BlockSequence_rows;
+    int i, c_NumTracks, c_TrackIndex, c_NumBlocks, c_BlockIndex;
+
+    if (*p_rows)
+        return 1;
+    if (!open_utf_subtable(acb, &acb->BlockSequenceSf, &Table, "BlockSequenceTable", p_rows, ACB_TABLE_BUFFER_BLOCKSEQUENCE))
+        goto fail;
+    if (!*p_rows)
+        return 1;
+    ;VGM_LOG("acb: preload BlockSequence=%i\n", *p_rows);
+
+    acb->BlockSequence = malloc(*p_rows * sizeof(BlockSequence_t));
+    if (!acb->BlockSequence) goto fail;
+
+    c_NumTracks = utf_get_column(Table, "NumTracks");
+    c_TrackIndex = utf_get_column(Table, "TrackIndex");
+    c_NumBlocks = utf_get_column(Table, "NumBlocks");
+    c_BlockIndex = utf_get_column(Table, "BlockIndex");
+
+    for (i = 0; i < *p_rows; i++) {
+        BlockSequence_t* r = &acb->BlockSequence[i];
+
+        utf_query_col_u16(Table, i, c_NumTracks, &r->NumTracks);
+        utf_query_col_data(Table, i, c_TrackIndex, &r->TrackIndex_offset, &r->TrackIndex_size);
+        utf_query_col_u16(Table, i, c_NumBlocks, &r->NumBlocks);
+        utf_query_col_data(Table, i, c_BlockIndex, &r->BlockIndex_offset, &r->BlockIndex_size);
+    }
+
+    ;VGM_LOG("acb: preload BlockSequence done\n");
+    return 1;
+fail:
+    VGM_LOG("ACB: failed BlockSequence preload\n");
+    return 0;
+}
+
+static int load_acb_blocksequence(acb_header* acb, uint16_t Index) {
+    int i;
+    BlockSequence_t* r;
+    BlockSequence_t tmp;
 
 
     /* read BlockSequence[Index] */
-    if (!open_utf_subtable(acb, &acb->BlockSequenceSf, &acb->BlockSequenceTable, "BlockSequenceTable", NULL, ACB_TABLE_BUFFER_BLOCKSEQUENCE))
-        goto fail;
+    if (acb->is_preload) {
+        if (!preload_acb_blocksequence(acb)) goto fail;
+        if (Index > acb->BlockSequence_rows) goto fail;
+        r = &acb->BlockSequence[Index];
+    }
+    else {
+        r = &tmp;
+        if (!open_utf_subtable(acb, &acb->BlockSequenceSf, &acb->BlockSequenceTable, "BlockSequenceTable", NULL, ACB_TABLE_BUFFER_BLOCKSEQUENCE))
+            goto fail;
 
-    if (!utf_query_u16(acb->BlockSequenceTable, Index, "NumTracks", &NumTracks))
-        goto fail;
-    if (!utf_query_data(acb->BlockSequenceTable, Index, "TrackIndex", &TrackIndex_offset, &TrackIndex_size))
-        goto fail;
-    if (!utf_query_u16(acb->BlockSequenceTable, Index, "NumBlocks", &NumBlocks))
-        goto fail;
-    if (!utf_query_data(acb->BlockSequenceTable, Index, "BlockIndex", &BlockIndex_offset, &BlockIndex_size))
-        goto fail;
-    //;VGM_LOG("ACB: BlockSequence[%i]: NumTracks=%i, TrackIndex={%x, %x}, NumBlocks=%i, BlockIndex={%x, %x}\n", Index, NumTracks, TrackIndex_offset,TrackIndex_size, NumBlocks, BlockIndex_offset,BlockIndex_size);
+        if (!utf_query_u16(acb->BlockSequenceTable, Index, "NumTracks", &r->NumTracks))
+            goto fail;
+        if (!utf_query_data(acb->BlockSequenceTable, Index, "TrackIndex", &r->TrackIndex_offset, &r->TrackIndex_size))
+            goto fail;
+        if (!utf_query_u16(acb->BlockSequenceTable, Index, "NumBlocks", &r->NumBlocks))
+            goto fail;
+        if (!utf_query_data(acb->BlockSequenceTable, Index, "BlockIndex", &r->BlockIndex_offset, &r->BlockIndex_size))
+            goto fail;
+        //;VGM_LOG("ACB: BlockSequence[%i]: NumTracks=%i, TrackIndex={%x, %x}, NumBlocks=%i, BlockIndex={%x, %x}\n", Index, r->NumTracks, r->TrackIndex_offset,TrackIndex_size, r->NumBlocks, r->BlockIndex_offset, r->BlockIndex_size);
+    }
 
 
-    if (NumTracks * 0x02 > TrackIndex_size) { /* padding may exist */
+    if (r->NumTracks * 0x02 > r->TrackIndex_size) { /* padding may exist */
         VGM_LOG("ACB: wrong BlockSequence.TrackIndex size\n");
         goto fail;
     }
 
-    /* read Tracks inside BlockSequence */
-    for (i = 0; i < NumTracks; i++) {
-        int16_t TrackIndex_index = read_s16be(TrackIndex_offset + i*0x02, acb->BlockSequenceSf);
+    if (!read_buffer(acb, r->TrackIndex_offset, r->TrackIndex_size, acb->BlockSequenceSf))
+        goto fail;
 
-        if (!load_acb_track_event_command(acb, TrackIndex_index))
+    /* read Tracks inside BlockSequence */
+    for (i = 0; i < r->NumTracks; i++) {
+        int16_t TrackIndex_index = get_s16be(acb->buf + i*0x02);
+
+        if (!load_acb_track(acb, TrackIndex_index))
             goto fail;
     }
 
-    if (NumBlocks * 0x02 > BlockIndex_size) {
+    if (r->NumBlocks * 0x02 > r->BlockIndex_size) {
         VGM_LOG("ACB: wrong BlockSequence.BlockIndex size\n");
         goto fail;
     }
 
+    if (!read_buffer(acb, r->BlockIndex_offset, r->BlockIndex_size, acb->BlockSequenceSf))
+        goto fail;
+
     /* read Blocks inside BlockSequence */
-    for (i = 0; i < NumBlocks; i++) {
-        int16_t BlockIndex_index = read_s16be(BlockIndex_offset + i*0x02, acb->BlockSequenceSf);
+    for (i = 0; i < r->NumBlocks; i++) {
+        int16_t BlockIndex_index = get_s16be(acb->buf + i*0x02);
 
         if (!load_acb_block(acb, BlockIndex_index))
             goto fail;
@@ -621,44 +1123,87 @@ static int load_acb_blocksequence(acb_header* acb, int16_t Index) {
 
     return 1;
 fail:
+    VGM_LOG("ACB: failed BlockSequence %i\n", Index);
     return 0;
 }
 
-static int load_acb_cue(acb_header* acb, int16_t Index) {
-    uint8_t ReferenceType;
-    uint16_t ReferenceIndex;
+/*****************************************************************************/
 
+static int preload_acb_cue(acb_header* acb) {
+    utf_context* Table = acb->CueTable;
+    int* p_rows = &acb->Cue_rows;
+    int i, c_ReferenceType, c_ReferenceIndex;
+
+    if (*p_rows)
+        return 1;
+    if (!open_utf_subtable(acb, &acb->CueSf, &Table, "CueTable", p_rows, ACB_TABLE_BUFFER_CUE))
+        goto fail;
+    if (!*p_rows)
+        return 1;
+    ;VGM_LOG("acb: preload Cue=%i\n", *p_rows);
+
+    acb->Cue = malloc(*p_rows * sizeof(Cue_t));
+    if (!acb->Cue) goto fail;
+
+    c_ReferenceType = utf_get_column(Table, "ReferenceType");
+    c_ReferenceIndex = utf_get_column(Table, "ReferenceIndex");
+
+    for (i = 0; i < *p_rows; i++) {
+        Cue_t* r = &acb->Cue[i];
+
+        utf_query_col_u8(Table, i, c_ReferenceType, &r->ReferenceType);
+        utf_query_col_u16(Table, i, c_ReferenceIndex, &r->ReferenceIndex);
+        //;VGM_LOG("ACB: Cue[%i]: ReferenceType=%i, ReferenceIndex=%i\n", i, r->ReferenceType, r->ReferenceIndex);
+    }
+
+    ;VGM_LOG("acb: preload Cue done\n");
+    return 1;
+fail:
+    VGM_LOG("ACB: failed Cue preload\n");
+    return 0;
+}
+
+static int load_acb_cue(acb_header* acb, uint16_t Index) {
+    Cue_t* r;
+    Cue_t tmp;
 
     /* read Cue[Index] */
-    if (!open_utf_subtable(acb, &acb->CueSf, &acb->CueTable, "CueTable", NULL, ACB_TABLE_BUFFER_CUE))
-        goto fail;
-    if (!utf_query_u8(acb->CueTable, Index, "ReferenceType", &ReferenceType))
-        goto fail;
-    if (!utf_query_u16(acb->CueTable, Index, "ReferenceIndex", &ReferenceIndex))
-        goto fail;
-    //;VGM_LOG("ACB: Cue[%i]: ReferenceType=%i, ReferenceIndex=%i\n", Index, ReferenceType, ReferenceIndex);
+    if (acb->is_preload) {
+        if (!preload_acb_cue(acb)) goto fail;
+        if (Index > acb->Cue_rows) goto fail;
+        r = &acb->Cue[Index];
+    }
+    else {
+        if (!open_utf_subtable(acb, &acb->CueSf, &acb->CueTable, "CueTable", NULL, ACB_TABLE_BUFFER_CUE))
+            goto fail;
+        r = &tmp;
+        if (!utf_query_u8(acb->CueTable, Index, "ReferenceType", &r->ReferenceType))
+            goto fail;
+        if (!utf_query_u16(acb->CueTable, Index, "ReferenceIndex", &r->ReferenceIndex))
+            goto fail;
+    }
 
 
     /* usually older games use older references but not necessarily */
-    switch(ReferenceType) {
+    switch(r->ReferenceType) {
 
         case 0x01: /* Cue > Waveform (ex. PES 2015) */
-            if (!load_acb_waveform(acb, ReferenceIndex))
+            if (!load_acb_waveform(acb, r->ReferenceIndex))
                 goto fail;
             break;
 
         case 0x02: /* Cue > Synth > Waveform (ex. Ukiyo no Roushi) */
-            if (!load_acb_synth(acb, ReferenceIndex))
+            if (!load_acb_synth(acb, r->ReferenceIndex))
                 goto fail;
             break;
 
         case 0x03: /* Cue > Sequence > Track > Command > Synth > Waveform (ex. Valkyrie Profile anatomia, Yakuza Kiwami 2) */
-            if (!load_acb_sequence(acb, ReferenceIndex))
+            if (!load_acb_sequence(acb, r->ReferenceIndex))
                 goto fail;
             break;
 
         case 0x08: /* Cue > BlockSequence > Track / Block > Track > Command > Synth > Waveform (ex. Sonic Lost World, Kandagawa Jet Girls, rare) */
-            if (!load_acb_blocksequence(acb, ReferenceIndex))
+            if (!load_acb_blocksequence(acb, r->ReferenceIndex))
                 goto fail;
             break;
 
@@ -671,43 +1216,89 @@ static int load_acb_cue(acb_header* acb, int16_t Index) {
         case 0x0a: /* "eventCue_UnUse" */
         case 0x0b: /* "soundGenerator" */
         default:
-            VGM_LOG("ACB: unknown Cue.ReferenceType=%x, Cue.ReferenceIndex=%x\n", ReferenceType, ReferenceIndex);
+            VGM_LOG_ONCE("ACB: unknown Cue.ReferenceType=%x, Cue.ReferenceIndex=%x\n", r->ReferenceType, r->ReferenceIndex);
             break; /* ignore and continue */
     }
 
 
     return 1;
 fail:
+    VGM_LOG("ACB: failed Cue %i\n", Index);
     return 0;
 }
 
-static int load_acb_cuename(acb_header* acb, int16_t Index) {
-    uint16_t CueIndex;
-    const char* CueName;
+/*****************************************************************************/
 
+static int preload_acb_cuename(acb_header* acb) {
+    utf_context* Table = acb->CueNameTable;
+    int* p_rows = &acb->CueName_rows;
+    int i, c_CueIndex, c_CueName;
+
+
+    if (*p_rows) 
+        return 1;
+    if (!open_utf_subtable(acb, &acb->CueNameSf, &Table, "CueNameTable", p_rows, ACB_TABLE_BUFFER_CUENAME))
+        goto fail;
+    if (!*p_rows)
+        return 1;
+    ;VGM_LOG("acb: preload CueName=%i\n", *p_rows);
+
+    acb->CueName = malloc(*p_rows * sizeof(CueName_t));
+    if (!acb->CueName) goto fail;
+
+    c_CueIndex = utf_get_column(Table, "CueIndex");
+    c_CueName = utf_get_column(Table, "CueName");
+
+    for (i = 0; i < *p_rows; i++) {
+        CueName_t* r = &acb->CueName[i];
+
+        utf_query_col_u16(Table, i, c_CueIndex, &r->CueIndex);
+        utf_query_col_string(Table, i, c_CueName, &r->CueName);
+        //;VGM_LOG("ACB: CueName[%i]: CueIndex=%i, CueName=%s\n", i, r->CueIndex, r->CueName);
+    }
+
+    ;VGM_LOG("acb: preload CueName done\n");
+    return 1;
+fail:
+    VGM_LOG("ACB: failed CueName preload\n");
+    return 0;
+}
+
+static int load_acb_cuename(acb_header* acb, uint16_t Index) {
+    CueName_t* r;
+    CueName_t tmp;
 
     /* read CueName[Index] */
-    if (!open_utf_subtable(acb, &acb->CueNameSf, &acb->CueNameTable, "CueNameTable", NULL, ACB_TABLE_BUFFER_CUENAME))
-        goto fail;
-    if (!utf_query_u16(acb->CueNameTable, Index, "CueIndex", &CueIndex))
-        goto fail;
-    if (!utf_query_string(acb->CueNameTable, Index, "CueName", &CueName))
-        goto fail;
-    //;VGM_LOG("ACB: CueName[%i]: CueIndex=%i, CueName=%s\n", Index, CueIndex, CueName);
+    if (acb->is_preload) {
+        if (!preload_acb_cuename(acb)) goto fail;
+        if (Index > acb->CueName_rows) goto fail;
+        r = &acb->CueName[Index];
+    }
+    else {
+        if (!open_utf_subtable(acb, &acb->CueNameSf, &acb->CueNameTable, "CueNameTable", NULL, ACB_TABLE_BUFFER_CUENAME))
+            goto fail;
+        r = &tmp;
+        if (!utf_query_u16(acb->CueNameTable, Index, "CueIndex", &r->CueIndex))
+            goto fail;
+        if (!utf_query_string(acb->CueNameTable, Index, "CueName", &r->CueName))
+            goto fail;
+    }
 
 
     /* save as will be needed if references waveform */
     acb->cuename_index = Index;
-    acb->cuename_name = CueName;
+    acb->cuename_name = r->CueName;
 
-    if (!load_acb_cue(acb, CueIndex))
+    if (!load_acb_cue(acb, r->CueIndex))
         goto fail;
 
     return 1;
 fail:
+    VGM_LOG("ACB: failed CueName %i\n", Index);
     return 0;
 }
 
+/*****************************************************************************/
 
 void load_acb_wave_name(STREAMFILE* sf, VGMSTREAM* vgmstream, int waveid, int port, int is_memory) {
     acb_header acb = {0};
@@ -740,6 +1331,9 @@ void load_acb_wave_name(STREAMFILE* sf, VGMSTREAM* vgmstream, int waveid, int po
      *
      * .acb can contain info for multiple .awb, that are loaded sequentially and assigned "port numbers" (0 to N).
      * Both Wave ID and port number must be passed externally to find appropriate song name.
+     * 
+     * To improve performance we pre-read each table objects's useful fields. Extra complex files may include +8000 objects,
+     * per table, meaning it uses a decent chunk of memory, but  having to re-read with streamfiles is much slower.
      */
 
     //;VGM_LOG("ACB: find waveid=%i, port=%i\n", waveid, port);
@@ -752,15 +1346,20 @@ void load_acb_wave_name(STREAMFILE* sf, VGMSTREAM* vgmstream, int waveid, int po
     acb.target_waveid = waveid;
     acb.target_port = port;
     acb.is_memory = is_memory;
+
+
+#ifdef ACB_PRELOAD
+    acb.is_preload = 1;
+#else
     acb.has_TrackEventTable = utf_query_data(acb.Header, 0, "TrackEventTable", NULL,NULL);
     acb.has_CommandTable = utf_query_data(acb.Header, 0, "CommandTable", NULL,NULL);
+#endif
 
-
+    //todo preload cuename table
     /* read all possible cue names and find which waveids are referenced by it */
-    if (!open_utf_subtable(&acb, &acb.CueNameSf, &acb.CueNameTable, "CueNameTable", &CueName_rows, ACB_TABLE_BUFFER_CUENAME))
+    if (!open_utf_subtable(&acb, &acb.TempSf, &acb.TempTable, "CueNameTable", &CueName_rows, ACB_TABLE_BUFFER_CUENAME))
         goto fail;
     for (i = 0; i < CueName_rows; i++) {
-
         if (!load_acb_cuename(&acb, i))
             goto fail;
     }
@@ -773,6 +1372,9 @@ void load_acb_wave_name(STREAMFILE* sf, VGMSTREAM* vgmstream, int waveid, int po
 
 fail:
     utf_close(acb.Header);
+
+    utf_close(acb.TempTable);
+    close_streamfile(acb.TempSf);
 
     utf_close(acb.CueNameTable);
     utf_close(acb.CueTable);
@@ -793,4 +1395,16 @@ fail:
     close_streamfile(acb.TrackCommandSf);
     close_streamfile(acb.SynthSf);
     close_streamfile(acb.WaveformSf);
+
+    free(acb.buf);
+
+    free(acb.CueName);
+    free(acb.Cue);
+    free(acb.BlockSequence);
+    free(acb.Block);
+    free(acb.Sequence);
+    free(acb.Track);
+    free(acb.TrackCommand);
+    free(acb.Synth);
+    free(acb.Waveform);
 }

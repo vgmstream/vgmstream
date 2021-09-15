@@ -177,9 +177,6 @@ int setup_layout_segmented(segmented_layout_data* data) {
     for (i = 0; i < data->segment_count; i++) {
         int segment_input_channels, segment_output_channels;
 
-        /* allow config if set for fine-tuned parts (usually TXTP only) */
-        data->segments[i]->config_enabled = data->segments[i]->config.config_set;
-
         if (data->segments[i] == NULL) {
             VGM_LOG("SEGMENTED: no vgmstream in segment %i\n", i);
             goto fail;
@@ -189,6 +186,9 @@ int setup_layout_segmented(segmented_layout_data* data) {
             VGM_LOG("SEGMENTED: no samples in segment %i\n", i);
             goto fail;
         }
+
+        /* allow config if set for fine-tuned parts (usually TXTP only) */
+        data->segments[i]->config_enabled = data->segments[i]->config.config_set;
 
         /* disable so that looping is controlled by render_vgmstream_segmented */
         if (data->segments[i]->loop_flag != 0) {

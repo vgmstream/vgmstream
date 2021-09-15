@@ -1,7 +1,7 @@
 #include "meta.h"
 #include "../coding/coding.h"
 
-typedef enum { ADX, HCA, VAG, RIFF, CWAV, DSP, CWAC, M4A } awb_type;
+//typedef enum { ADX, HCA, VAG, RIFF, CWAV, DSP, CWAC, M4A } awb_type_t;
 
 static void load_awb_name(STREAMFILE* sf, STREAMFILE* sf_acb, VGMSTREAM* vgmstream, int waveid);
 
@@ -13,26 +13,21 @@ VGMSTREAM* init_vgmstream_awb(STREAMFILE* sf) {
 VGMSTREAM* init_vgmstream_awb_memory(STREAMFILE* sf, STREAMFILE* sf_acb) {
     VGMSTREAM* vgmstream = NULL;
     STREAMFILE* temp_sf = NULL;
-    off_t offset, subfile_offset, subfile_next;
-    size_t subfile_size;
+    uint32_t offset, subfile_offset, subfile_next, subfile_size;
     int total_subsongs, target_subsong = sf->stream_index;
-    //uint32_t flags;
     uint8_t offset_size;
     uint16_t alignment, subkey;
-    awb_type type;
-    const char* extension = NULL;
     int waveid;
 
 
-    /* checks
-     * .awb: standard
+    /* checks */
+    if (!is_id32be(0x00,sf, "AFS2"))
+        goto fail;
+    /* .awb: standard
      * .afs2: sometimes [Okami HD (PS4)] */
     if (!check_extensions(sf, "awb,afs2"))
         goto fail;
-    if (read_u32be(0x00,sf) != 0x41465332) /* "AFS2" */
-        goto fail;
 
-    //flags = read_32bitLE(0x08,sf);
     /* 0x04(1): version? 0x01=common, 0x02=2018+ (no apparent differences) */
     offset_size = read_u8(0x05,sf);
     /* 0x06(2): always 0x0002? */
@@ -45,9 +40,9 @@ VGMSTREAM* init_vgmstream_awb_memory(STREAMFILE* sf, STREAMFILE* sf_acb) {
 
     offset = 0x10;
 
-    /* id(?) table: read target */
+    /* id table: read target */
     {
-        off_t waveid_offset = offset + (target_subsong-1) * 0x02;
+        uint32_t waveid_offset = offset + (target_subsong-1) * 0x02;
 
         waveid = read_u16le(waveid_offset,sf);
 
@@ -56,7 +51,7 @@ VGMSTREAM* init_vgmstream_awb_memory(STREAMFILE* sf, STREAMFILE* sf_acb) {
 
     /* offset table: find target */
     {
-        off_t file_size = get_streamfile_size(sf);
+        uint32_t file_size = get_streamfile_size(sf);
 
         /* last sub-offset is always file end, so table entries = total_subsongs+1 */
         offset += (target_subsong-1) * offset_size;
@@ -71,7 +66,7 @@ VGMSTREAM* init_vgmstream_awb_memory(STREAMFILE* sf, STREAMFILE* sf_acb) {
                 subfile_next    = read_u16le(offset+0x02,sf);
                 break;
             default:
-                VGM_LOG("AWB: unknown offset size\n");
+                vgm_logi("AWB: unknown offset size (report)\n");
                 goto fail;
         }
 
@@ -83,97 +78,70 @@ VGMSTREAM* init_vgmstream_awb_memory(STREAMFILE* sf, STREAMFILE* sf_acb) {
         subfile_size = subfile_next - subfile_offset;
     }
 
-    //;VGM_LOG("AWB: subfile offset=%lx + %x\n", subfile_offset, subfile_size);
+    //;VGM_LOG("awb: subfile offset=%x + %x\n", subfile_offset, subfile_size);
 
     /* autodetect as there isn't anything, plus can mix types
      * (waveid<>codec info is usually in the companion .acb) */
-    if (read_u16be(subfile_offset, sf) == 0x8000) { /* ADX id (type 0) */
-        type = ADX;
-        extension = "adx";
-    }
-    else if ((read_u32be(subfile_offset,sf) & 0x7f7f7f7f) == 0x48434100) { /* "HCA\0" (type 2=HCA, 6=HCA-MX) */
-        type = HCA;
-        extension = "hca";
-    }
-    else if (read_u32be(subfile_offset,sf) == 0x56414770) { /* "VAGp" (type 7=VAG, 10=HEVAG) */
-        type = VAG;
-        extension = "vag";
-    }
-    else if (read_u32be(subfile_offset,sf) == 0x52494646) { /* "RIFF" (type 8=ATRAC3, 11=ATRAC9) */
-        type = RIFF;
-        extension = "wav";
-        subfile_size = read_u32le(subfile_offset + 0x04,sf) + 0x08; /* rough size, use RIFF's */
-    }
-    else if (read_u32be(subfile_offset,sf) == 0x43574156) { /* "CWAV" (type 9) */
-        type = CWAV;
-        extension = "bcwav";
-    }
-    else if (read_u32be(subfile_offset + 0x08,sf) >= 8000 &&
-             read_u32be(subfile_offset + 0x08,sf) <= 48000 &&
-             read_u16be(subfile_offset + 0x0e,sf) == 0 &&
-             read_u32be(subfile_offset + 0x18,sf) == 2 &&
-             read_u32be(subfile_offset + 0x50,sf) == 0) { /*  probably should call some check function (type 13) */
-        type = DSP;
-        extension = "dsp";
-    }
-    else if (is_id32be(subfile_offset,sf, "CWAC")) { /* type 13 again */
-        type = CWAC;
-        extension = "dsp";
-    }
-    else if (read_u32be(subfile_offset+0x00,sf) == 0x00000018 && 
-             read_u32be(subfile_offset+0x04,sf) == 0x66747970) { /* chunk size + "ftyp" (type 19) */
-        type = M4A;
-        extension = "m4a";
-    }
-    else {
-        VGM_LOG("AWB: unknown codec\n");
-        goto fail;
-    }
+    {
+        VGMSTREAM* (*init_vgmstream)(STREAMFILE* sf) = NULL;
+        VGMSTREAM* (*init_vgmstream_subkey)(STREAMFILE* sf, uint16_t subkey) = NULL;
+        const char* extension = NULL;
 
-
-    temp_sf = setup_subfile_streamfile(sf, subfile_offset, subfile_size, extension);
-    if (!temp_sf) goto fail;
-
-    switch(type) {
-        case HCA: /* most common */
-            vgmstream = init_vgmstream_hca_subkey(temp_sf, subkey);
-            if (!vgmstream) goto fail;
-            break;
-        case ADX: /* Okami HD (PS4) */
-            vgmstream = init_vgmstream_adx_subkey(temp_sf, subkey);
-            if (!vgmstream) goto fail;
-            break;
-        case VAG: /* Ukiyo no Roushi (Vita) */
-            vgmstream = init_vgmstream_vag(temp_sf);
-            if (!vgmstream) goto fail;
-            break;
-        case RIFF: /* Ukiyo no Roushi (Vita) */
-            vgmstream = init_vgmstream_riff(temp_sf);
-            if (!vgmstream) goto fail;
-            break;
-        case CWAV: /* Sonic: Lost World (3DS) */
-            vgmstream = init_vgmstream_rwsd(temp_sf);
-            if (!vgmstream) goto fail;
-            break;
-        case DSP: /* Sonic: Lost World (WiiU) */
-            vgmstream = init_vgmstream_ngc_dsp_std(temp_sf);
-            if (!vgmstream) goto fail;
-            break;
-        case CWAC: /* Mario & Sonic at the Rio 2016 Olympic Games (WiiU) */
-            vgmstream = init_vgmstream_dsp_cwac(temp_sf);
-            if (!vgmstream) goto fail;
-            break;
+        if (read_u16be(subfile_offset, sf) == 0x8000) { /* (type 0=ADX) */
+            init_vgmstream_subkey = init_vgmstream_adx_subkey; /* Okami HD (PS4) */
+            extension = "adx";
+        }
+        else if ((read_u32be(subfile_offset,sf) & 0x7f7f7f7f) == get_id32be("HCA\0")) { /* (type 2=HCA, 6=HCA-MX) */
+            init_vgmstream_subkey = init_vgmstream_hca_subkey; /* most common */
+            extension = "hca";
+        }
+        else if (is_id32be(subfile_offset,sf, "VAGp") == 0x56414770) { /* (type 7=VAG, 10=HEVAG) */
+            init_vgmstream = init_vgmstream_vag; /* Ukiyo no Roushi (Vita) */
+            extension = "vag";
+        }
+        else if (is_id32be(subfile_offset,sf, "RIFF")) { /* (type 8=ATRAC3, 11=ATRAC9) */
+            init_vgmstream = init_vgmstream_riff; /* Ukiyo no Roushi (Vita) */
+            extension = "wav";
+            subfile_size = read_u32le(subfile_offset + 0x04,sf) + 0x08; /* padded size, use RIFF's */
+        }
+        else if (is_id32be(subfile_offset,sf, "CWAV")) { /* (type 9=CWAV) */
+            init_vgmstream = init_vgmstream_rwsd; /* Sonic: Lost World (3DS) */
+            extension = "bcwav";
+        }
+        else if (read_u32be(subfile_offset + 0x08,sf) >= 8000 && read_u32be(subfile_offset + 0x08,sf) <= 48000 &&
+                 read_u16be(subfile_offset + 0x0e,sf) == 0 &&
+                 read_u32be(subfile_offset + 0x18,sf) == 2 &&
+                 read_u32be(subfile_offset + 0x50,sf) == 0) { /*  (type 13=DSP), probably should call some check function */
+            init_vgmstream = init_vgmstream_ngc_dsp_std; /* Sonic: Lost World (WiiU) */
+            extension = "dsp";
+        }
+        else if (is_id32be(subfile_offset,sf, "CWAC")) { /* (type 13=DSP, again) */
+            init_vgmstream = init_vgmstream_dsp_cwac;  /* Mario & Sonic at the Rio 2016 Olympic Games (WiiU) */
+            extension = "dsp";
+        }
 #ifdef VGM_USE_FFMPEG
-        case M4A: /* Imperial SaGa Eclipse (Browser) */
-            vgmstream = init_vgmstream_mp4_aac_ffmpeg(temp_sf);
-            if (!vgmstream) goto fail;
-            break;
+        else if (read_u32be(subfile_offset+0x00,sf) == 0x00000018 && is_id32be(subfile_offset+0x04,sf, "ftyp")) { /* (type 19=M4A) */
+            init_vgmstream = init_vgmstream_mp4_aac_ffmpeg; /* Imperial SaGa Eclipse (Browser) */
+            extension = "m4a";
+        }
 #endif
-        default:
+        else {
+            vgm_logi("AWB: unknown codec (report)\n");
             goto fail;
-    }
+        }
 
-    vgmstream->num_streams = total_subsongs;
+
+        temp_sf = setup_subfile_streamfile(sf, subfile_offset, subfile_size, extension);
+        if (!temp_sf) goto fail;
+
+        if (init_vgmstream_subkey)
+            vgmstream = init_vgmstream_subkey(temp_sf, subkey);
+        else
+            vgmstream = init_vgmstream(temp_sf);
+        if (!vgmstream) goto fail;
+
+        vgmstream->num_streams = total_subsongs;
+    }
 
     /* try to load cue names */
     load_awb_name(sf, sf_acb, vgmstream,  waveid);

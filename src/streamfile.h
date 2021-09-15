@@ -20,10 +20,6 @@
 /* MSVC fixes (though mingw uses MSVCRT but not MSC_VER, maybe use AND?) */
 #if defined(__MSVCRT__) || defined(_MSC_VER)
     #include <io.h>
-
-    #ifndef off64_t
-        #define off_t __int64
-    #endif
 #endif
 
 #ifndef DIR_SEPARATOR

@@ -16,21 +16,12 @@
  * - Clang: seems only defined on Linux/GNU environments, somehow emscripten is out
  *   (unsure about Clang Win since apparently they define _MSC_VER)
  * - Android: API +24 if not using __USE_FILE_OFFSET64
- * Not sure if fopen64 is needed in some cases. May be work adding some compiler flag to control this manually.
+ * Not sure if fopen64 is needed in some cases. May be worth adding some compiler flag to enable 64 versions manually.
  */
 
 /* MSVC fixes (though mingw uses MSVCRT but not MSC_VER, maybe use AND?) */
 #if defined(__MSVCRT__) || defined(_MSC_VER)
     #include <io.h>
-
-/*
-    #ifndef fseeko
-        #define fseeko fseek
-    #endif
-    #ifndef ftello
-        #define ftello ftell
-    #endif
-*/
 
     #define fopen_v fopen
     #if (_MSC_VER >= 1400)
@@ -48,9 +39,9 @@
     #define fdopen _fdopen
     #define dup _dup
 
-    #ifndef off64_t
-        #define off_t __int64
-    #endif
+    //#ifndef off64_t
+    //    #define off_t/off64_t __int64
+    //#endif
 
 #elif defined(XBMC) || defined(__EMSCRIPTEN__) || defined (__ANDROID__)
     #define fopen_v fopen
@@ -70,6 +61,7 @@ typedef struct {
 
     FILE* infile;           /* actual FILE */
     char name[PATH_LIMIT];  /* FILE filename */
+    int name_len;           /* cache */
     offv_t offset;          /* last read offset (info) */
     offv_t buf_offset;      /* current buffer data start */
     uint8_t* buf;           /* data buffer */
@@ -87,7 +79,7 @@ static size_t stdio_read(STDIO_STREAMFILE* sf, uint8_t* dst, offv_t offset, size
     if (!sf->infile || !dst || length <= 0 || offset < 0)
         return 0;
 
-    //;VGM_LOG("STDIO: read %lx + %x (buf %lx + %x)\n", offset, length, sf->buf_offset, sf->valid_size);
+    //;VGM_LOG("stdio: read %lx + %x (buf %lx + %x)\n", offset, length, sf->buf_offset, sf->valid_size);
 
     /* is the part of the requested length in the buffer? */
     if (offset >= sf->buf_offset && offset < sf->buf_offset + sf->valid_size) {
@@ -98,7 +90,7 @@ static size_t stdio_read(STDIO_STREAMFILE* sf, uint8_t* dst, offv_t offset, size
         if (buf_limit > length)
             buf_limit = length;
 
-        //;VGM_LOG("STDIO: copy buf %lx + %x (+ %x) (buf %lx + %x)\n", offset, length_to_read, (length - length_to_read), sf->buf_offset, sf->valid_size);
+        //;VGM_LOG("stdio: copy buf %lx + %x (+ %x) (buf %lx + %x)\n", offset, length_to_read, (length - length_to_read), sf->buf_offset, sf->valid_size);
 
         memcpy(dst, sf->buf + buf_into, buf_limit);
         read_total += buf_limit;
@@ -109,7 +101,7 @@ static size_t stdio_read(STDIO_STREAMFILE* sf, uint8_t* dst, offv_t offset, size
 
 #ifdef VGM_DEBUG_OUTPUT
     if (offset < sf->buf_offset && length > 0) {
-        VGM_LOG("STDIO: rebuffer, requested %lx vs %lx (sf %x)\n", offset, sf->buf_offset, (uint32_t)sf);
+        VGM_LOG("stdio: rebuffer, requested %x vs %x (sf %x)\n", (uint32_t)offset, (uint32_t)sf->buf_offset, (uint32_t)sf);
         //sf->rebuffer++;
         //if (rebuffer > N) ...
     }
@@ -143,7 +135,7 @@ static size_t stdio_read(STDIO_STREAMFILE* sf, uint8_t* dst, offv_t offset, size
         /* fill the buffer (offset now is beyond buf_offset) */
         sf->buf_offset = offset;
         sf->valid_size = fread(sf->buf, sizeof(uint8_t), sf->buf_size, sf->infile);
-        //;VGM_LOG("STDIO: read buf %lx + %x\n", sf->buf_offset, sf->valid_size);
+        //;VGM_LOG("stdio: read buf %lx + %x\n", sf->buf_offset, sf->valid_size);
 
         /* decide how much must be read this time */
         if (length > sf->buf_size)
@@ -177,8 +169,12 @@ static offv_t stdio_get_offset(STDIO_STREAMFILE* sf) {
     return sf->offset;
 }
 static void stdio_get_name(STDIO_STREAMFILE* sf, char* name, size_t name_size) {
-    strncpy(name, sf->name, name_size);
-    name[name_size - 1] = '\0';
+    int copy_size = sf->name_len + 1;
+    if (copy_size > name_size)
+        copy_size = name_size;
+
+    memcpy(name, sf->name, copy_size);
+    name[copy_size - 1] = '\0';
 }
 
 static STREAMFILE* stdio_open(STDIO_STREAMFILE* sf, const char* const filename, size_t buf_size) {
@@ -241,8 +237,11 @@ static STREAMFILE* open_stdio_streamfile_buffer_by_file(FILE* infile, const char
     this_sf->buf_size = buf_size;
     this_sf->buf = buf;
 
-    strncpy(this_sf->name, filename, sizeof(this_sf->name));
-    this_sf->name[sizeof(this_sf->name)-1] = '\0';
+    this_sf->name_len = strlen(filename);
+    if (this_sf->name_len >= sizeof(this_sf->name))
+        goto fail;
+    memcpy(this_sf->name, filename, this_sf->name_len);
+    this_sf->name[this_sf->name_len] = '\0';
 
     /* cache file_size */
     if (infile) {
@@ -335,7 +334,7 @@ static size_t buffer_read(BUFFER_STREAMFILE* sf, uint8_t* dst, offv_t offset, si
 
 #ifdef VGM_DEBUG_OUTPUT
     if (offset < sf->buf_offset) {
-        VGM_LOG("BUFFER: rebuffer, requested %lx vs %lx (sf %x)\n", offset, sf->buf_offset, (uint32_t)sf);
+        VGM_LOG("buffer: rebuffer, requested %x vs %x (sf %x)\n", (uint32_t)offset, (uint32_t)sf->buf_offset, (uint32_t)sf);
     }
 #endif
 
@@ -346,7 +345,7 @@ static size_t buffer_read(BUFFER_STREAMFILE* sf, uint8_t* dst, offv_t offset, si
         /* ignore requests at EOF */
         if (offset >= sf->file_size) {
             //offset = sf->file_size; /* seems fseek doesn't clamp offset */
-            VGM_ASSERT_ONCE(offset > sf->file_size, "BUFFER: reading over file_size 0x%x @ 0x%x + 0x%x\n", sf->file_size, (uint32_t)offset, length);
+            VGM_ASSERT_ONCE(offset > sf->file_size, "buffer: reading over file_size 0x%x @ 0x%x + 0x%x\n", sf->file_size, (uint32_t)offset, length);
             break;
         }
 
@@ -598,14 +597,15 @@ typedef struct {
     STREAMFILE* inner_sf;
     void* data; /* state for custom reads, malloc'ed + copied on open (to re-open streamfiles cleanly) */
     size_t data_size;
-    size_t (*read_callback)(STREAMFILE*, uint8_t*, offv_t, size_t, void*); /* custom read to modify data before copying into buffer */
+    size_t (*read_callback)(STREAMFILE*, uint8_t*, off_t, size_t, void*); /* custom read to modify data before copying into buffer */
     size_t (*size_callback)(STREAMFILE*, void*); /* size when custom reads make data smaller/bigger than underlying streamfile */
     int (*init_callback)(STREAMFILE*, void*); /* init the data struct members somehow, return >= 0 if ok */
     void (*close_callback)(STREAMFILE*, void*); /* close the data struct members somehow */
+    /* read doesn't use offv_t since callbacks would need to be modified */
 } IO_STREAMFILE;
 
 static size_t io_read(IO_STREAMFILE* sf, uint8_t* dst, offv_t offset, size_t length) {
-    return sf->read_callback(sf->inner_sf, dst, offset, length, sf->data);
+    return sf->read_callback(sf->inner_sf, dst, (off_t)offset, length, sf->data);
 }
 static size_t io_get_size(IO_STREAMFILE* sf) {
     if (sf->size_callback)
@@ -697,6 +697,7 @@ typedef struct {
 
     STREAMFILE* inner_sf;
     char fakename[PATH_LIMIT];
+    int fakename_len;
 } FAKENAME_STREAMFILE;
 
 static size_t fakename_read(FAKENAME_STREAMFILE* sf, uint8_t* dst, offv_t offset, size_t length) {
@@ -709,8 +710,11 @@ static offv_t fakename_get_offset(FAKENAME_STREAMFILE* sf) {
     return sf->inner_sf->get_offset(sf->inner_sf); /* default */
 }
 static void fakename_get_name(FAKENAME_STREAMFILE* sf, char* name, size_t name_size) {
-    strncpy(name,sf->fakename, name_size);
-    name[name_size - 1] = '\0';
+    int copy_size = sf->fakename_len + 1;
+    if (copy_size > name_size)
+        copy_size = name_size;
+    memcpy(name, sf->fakename, copy_size);
+    name[copy_size - 1] = '\0';
 }
 
 static STREAMFILE* fakename_open(FAKENAME_STREAMFILE* sf, const char* const filename, size_t buf_size) {
@@ -753,7 +757,7 @@ STREAMFILE* open_fakename_streamfile(STREAMFILE* sf, const char* fakename, const
 
     /* copy passed name or retain current, and swap extension if expected */
     if (fakename) {
-        strcpy(this_sf->fakename,fakename);
+        strcpy(this_sf->fakename, fakename);
     } else {
         sf->get_name(sf, this_sf->fakename, PATH_LIMIT);
     }
@@ -767,6 +771,8 @@ STREAMFILE* open_fakename_streamfile(STREAMFILE* sf, const char* fakename, const
         }
         strcat(this_sf->fakename, fakeext);
     }
+
+    this_sf->fakename_len = strlen(this_sf->fakename);
 
     return &this_sf->vt;
 }
@@ -1365,7 +1371,6 @@ static int find_chunk_internal(STREAMFILE* sf, uint32_t chunk_id, off_t start_of
     while (offset < max_offset) {
         uint32_t chunk_type = read_32bit_type(offset + 0x00,sf);
         uint32_t chunk_size = read_32bit_size(offset + 0x04,sf);
-        //;VGM_LOG("CHUNK: type=%x, size=%x at %lx\n", chunk_type, chunk_size, offset);
 
         if (chunk_type == 0xFFFFFFFF || chunk_size == 0xFFFFFFFF)
             return 0;
@@ -1503,7 +1508,7 @@ void dump_streamfile(STREAMFILE* sf, int num) {
 
         bytes = read_streamfile(buf, offset, sizeof(buf), sf);
         if(!bytes) {
-            VGM_LOG("dump streamfile: can't read at %lx\n", offset);
+            VGM_LOG("dump streamfile: can't read at %x\n", (uint32_t)offset);
             break;
         }
 

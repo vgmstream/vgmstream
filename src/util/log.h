@@ -15,12 +15,22 @@
  * - still WIP, some stuff not working ATM or may change
  */
 
+/* compiler hints to force printf-style checks, butt-ugly but so useful... */
+/* supposedly MSCV has _Printf_format_string_ with /analyze but I can't get it to work */
+#if defined(__GNUC__) /* clang too */
+    #define GNUC_LOG_ATRIB  __attribute__ ((format(printf, 1, 2))) /* only with -Wformat (1=format param, 2=other params) */
+    #define GNUC_ASR_ATRIB  __attribute__ ((format(printf, 2, 3)))
+#else 
+    #define GNUC_LOG_ATRIB /* none */
+    #define GNUC_ASR_ATRIB /* none */
+#endif
+
 // void (*callback)(int level, const char* str);
 void vgm_log_set_callback(void* ctx_p, int level, int type, void* callback);
 
 #if defined(VGM_LOG_OUTPUT) || defined(VGM_DEBUG_OUTPUT)
-    void vgm_logi(/*void* ctx,*/ const char* fmt, ...);
-    void vgm_asserti(/*void* ctx,*/ int condition, const char* fmt, ...);
+    void vgm_logi(/*void* ctx,*/ const char* fmt, ...)  GNUC_LOG_ATRIB;
+    void vgm_asserti(/*void* ctx,*/ int condition, const char* fmt, ...)  GNUC_ASR_ATRIB;
     //void vgm_logi_once(/*void* ctx, int* once_flag, */ const char* fmt, ...);
 #else
     #define vgm_logi(...) /* nothing */
@@ -28,7 +38,7 @@ void vgm_log_set_callback(void* ctx_p, int level, int type, void* callback);
 #endif
 
 #ifdef VGM_DEBUG_OUTPUT
-    void vgm_logd(/*void* ctx,*/ const char* fmt, ...);
+    void vgm_logd(/*void* ctx,*/ const char* fmt, ...)  GNUC_LOG_ATRIB;
     #define VGM_LOG(...) do { vgm_logd(__VA_ARGS__); } while (0)
     #define VGM_ASSERT(condition, ...)  do { if (condition) {vgm_logd(__VA_ARGS__);} } while (0)
 #else

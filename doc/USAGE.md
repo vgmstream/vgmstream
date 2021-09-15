@@ -463,7 +463,7 @@ You can also choose which channels to play using *TXTP*. For example, create
 a file named `song.adx#C1,2.txtp` to play only channels 1 and 2 from `song.adx`.
 *TXTP* also has command to set how files are downmixed.
 
-### Logged errors and unplayable supported files
+## Logged errors and unplayable supported files
 Some formats should normally play, but somehow don't. In those cases plugins
 can print vgmstream's error info to console (for example, `.fsb` with an unknown
 codec, `.hca/awb` with missing decryption key, bank has no audio, `.txth` is

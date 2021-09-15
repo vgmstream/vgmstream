@@ -70,7 +70,15 @@ static inline float get_f32le(const uint8_t* p) {
     temp.u32 = get_u32le(p);
     return temp.f32;
 }
-static inline float get_d64le(const uint8_t* p) {
+static inline double get_d64be(const uint8_t* p) {
+    union {
+        uint64_t u64;
+        double d64;
+    } temp;
+    temp.u64 = get_u64be(p);
+    return temp.d64;
+}
+static inline double get_d64le(const uint8_t* p) {
     union {
         uint64_t u64;
         double d64;
