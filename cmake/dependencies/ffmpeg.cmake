@@ -43,8 +43,14 @@ if(USE_FFMPEG)
 		endif()
 	endif()
 	if(USE_FFMPEG AND NOT WIN32 AND (NOT FFmpeg_FOUND OR FFMPEG_PATH OR BUILD_STATIC))
-		find_package(PkgConfig REQUIRED)
-		pkg_check_modules(PC_OPUS REQUIRED opus>=1.1)
+		set(USE_FFMPEG_LIBOPUS OFF)
+		if(NOT EMSCRIPTEN)
+			find_package(PkgConfig REQUIRED)
+			pkg_check_modules(PC_OPUS QUIET opus>=1.1)
+			if(PC_OPUS_FOUND)
+				set(USE_FFMPEG_LIBOPUS ON)
+			endif()
+		endif()
 		
 		FetchDependency(FFMPEG
 			DIR ffmpeg
@@ -60,8 +66,13 @@ if(USE_FFMPEG)
 				ac3 asf xwma mov oma ogg tak dsf wav aac dts dtshd mp3 bink flac msf xmv caf ape smacker pcm_s8 spdif mpc mpc8
 			)
 			set(FFMPEG_CONF_DECODER
-				ac3 wmapro wmav1 wmav2 wmavoice wmalossless xma1 xma2 dca tak dsd_lsbf dsd_lsbf_planar dsd_mbf dsd_msbf_planar aac atrac3 atrac3p mp1float mp2float mp3float binkaudio_dct binkaudio_rdft flac pcm_s16be pcm_s16be_planar pcm_s16le pcm_s16le_planar vorbis ape adpcm_ima_qt smackaud libopus pcm_s8 pcm_s8_planar mpc7 mpc8 alac adpcm_ima_dk3 adpcm_ima_dk4
+				ac3 wmapro wmav1 wmav2 wmavoice wmalossless xma1 xma2 dca tak dsd_lsbf dsd_lsbf_planar dsd_mbf dsd_msbf_planar aac atrac3 atrac3p mp1float mp2float mp3float binkaudio_dct binkaudio_rdft flac pcm_s16be pcm_s16be_planar pcm_s16le pcm_s16le_planar vorbis ape adpcm_ima_qt smackaud pcm_s8 pcm_s8_planar mpc7 mpc8 alac adpcm_ima_dk3 adpcm_ima_dk4
 			)
+			if(USE_FFMPEG_LIBOPUS)
+				list(APPEND FFMPEG_CONF_DECODER libopus)
+			else()
+				list(APPEND FFMPEG_CONF_DECODER opus)
+			endif()
 			set(FFMPEG_CONF_DISABLE_PARSER
 				mpeg4video h263
 			)
@@ -101,7 +112,6 @@ if(USE_FFMPEG)
 				--disable-everything
 				--enable-hwaccels
 				--enable-swresample
-				--enable-libopus
 				--enable-parser=${FFMPEG_CONF_PARSER}
 				--enable-demuxer=${FFMPEG_CONF_DEMUXER}
 				--enable-decoder=${FFMPEG_CONF_DECODER}
@@ -113,14 +123,45 @@ if(USE_FFMPEG)
 				--extra-cflags=--static
 				--pkg-config-flags=--static
 			)
+			if(USE_FFMPEG_LIBOPUS)
+				list(APPEND FFMPEG_CONF_ARGS
+					--enable-libopus
+				)
+			endif()
+			if(EMSCRIPTEN)
+				list(APPEND FFMPEG_CONF_ARGS
+					--cc=emcc
+					--ranlib=emranlib
+					--enable-cross-compile
+					--target-os=none
+					--arch=x86
+					--disable-runtime-cpudetect
+					--disable-asm
+					--disable-fast-unaligned
+					--disable-pthreads
+					--disable-w32threads
+					--disable-os2threads
+					--disable-debug
+					--disable-stripping
+					--disable-safe-bitstream-reader
+				)
+			endif()
 			
 			set(FFMPEG_LINK_PATH ${FFMPEG_BIN}/bin/usr/local/lib)
+			set(FFMPEG_INCLUDE_DIRS ${FFMPEG_BIN}/bin/usr/local/include)
 			
 			if(NOT EXISTS ${FFMPEG_LINK_PATH}/libavutil.a)
-				add_custom_target(FFMPEG_MAKE ALL
-					COMMAND ./configure ${FFMPEG_CONF_ARGS} && make && make install DESTDIR="${FFMPEG_BIN}/bin" && make clean
-					WORKING_DIRECTORY ${FFMPEG_PATH}
-				)
+				if(EMSCRIPTEN)
+					add_custom_target(FFMPEG_MAKE ALL
+						COMMAND emconfigure ./configure ${FFMPEG_CONF_ARGS} && emmake make && make install DESTDIR="${FFMPEG_BIN}/bin" && make clean
+						WORKING_DIRECTORY ${FFMPEG_PATH}
+					)
+				else()
+					add_custom_target(FFMPEG_MAKE ALL
+						COMMAND ./configure ${FFMPEG_CONF_ARGS} && make && make install DESTDIR="${FFMPEG_BIN}/bin" && make clean
+						WORKING_DIRECTORY ${FFMPEG_PATH}
+					)
+				endif()
 			endif()
 			
 			foreach(LIB avutil avformat swresample avcodec)
@@ -129,6 +170,25 @@ if(USE_FFMPEG)
 					IMPORTED_LOCATION ${FFMPEG_LINK_PATH}/lib${LIB}.a
 				)
 			endforeach()
+			
+			if(EMSCRIPTEN)
+				FetchDependency(ZLIB
+					DIR zlib
+					DOWNLOAD https://zlib.net/zlib-1.2.11.tar.xz
+					SUBDIR zlib-1.2.11
+				)
+				
+				add_subdirectory(${ZLIB_PATH} ${ZLIB_BIN})
+				target_include_directories(example PRIVATE ${ZLIB_PATH})
+				target_include_directories(minigzip PRIVATE ${ZLIB_PATH})
+				target_include_directories(example64 PRIVATE ${ZLIB_PATH})
+				target_include_directories(minigzip64 PRIVATE ${ZLIB_PATH})
+				
+				add_library(z STATIC IMPORTED)
+				set_target_properties(z PROPERTIES
+					IMPORTED_LOCATION ${ZLIB_BIN}/libz.a
+				)
+			endif()
 		endif()
 	endif()
 endif()

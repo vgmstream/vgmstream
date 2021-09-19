@@ -7,29 +7,11 @@ if(NOT WIN32 AND USE_MPEG)
 		endif()
 	endif()
 	if(MPEG_PATH OR BUILD_STATIC OR NOT MPG123_FOUND)
-		set(MPEG_BIN ${VGM_BINARY_DIR}/dependencies/mpg123)
-		
-		if(MPEG_PATH)
-			set(MPEG_SOURCE "(local path)")
-		else()
-			set(MPEG_PATH ${VGM_SOURCE_DIR}/dependencies/mgp123)
-			set(MPEG_FILE ${MPEG_PATH}/mpg123-1.28.2.tar.bz2)
-			set(MPEG_SOURCE "(download)")
-			
-			if(NOT EXISTS ${MPEG_FILE})
-				
-				file(DOWNLOAD
-					https://downloads.sourceforge.net/mpg123/mpg123-1.28.2.tar.bz2
-					${MPEG_FILE}
-				)
-				file(ARCHIVE_EXTRACT
-					INPUT ${MPEG_FILE}
-					DESTINATION ${MPEG_PATH}
-				)
-			endif()
-			
-			set(MPEG_PATH ${MPEG_PATH}/mpg123-1.28.2)
-		endif()
+		FetchDependency(MPEG
+			DIR mpg123
+			DOWNLOAD https://downloads.sourceforge.net/mpg123/mpg123-1.28.2.tar.bz2
+			SUBDIR mpg123-1.28.2
+		)
 		
 		set(MPEG_LINK_PATH ${MPEG_BIN}/bin/usr/local/lib/libmpg123.a)
 		
