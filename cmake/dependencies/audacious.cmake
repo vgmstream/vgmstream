@@ -1,0 +1,10 @@
+if(NOT WIN32 AND BUILD_AUDACIOUS)
+	set(AUDACIOUS_SOURCE "(system)")
+	
+	pkg_search_module(AUDACIOUS REQUIRED audacious>=3.6)
+	pkg_get_variable(AUDACIOUS_PLUGIN_DIR audacious plugin_dir)
+	pkg_search_module(GTK REQUIRED gtk+-3.0 gtk+-2.0)
+endif()
+if(NOT BUILD_AUDACIOUS)
+	unset(AUDACIOUS_SOURCE)
+endif()

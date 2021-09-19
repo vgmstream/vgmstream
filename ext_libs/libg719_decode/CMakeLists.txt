@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.5)
 project(libg719_decode)
 
+if(CMAKE_CXX_COMPILER_ID MATCHES Clang OR CMAKE_CXX_COMPILER_ID MATCHES GNU)
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-comment -Wno-missing-braces")
+endif()
+
 file(GLOB_RECURSE SOURCES "reference_code/*.c")
 
 add_library(g719_decode STATIC g719.c ${SOURCES})
