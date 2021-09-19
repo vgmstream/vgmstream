@@ -11,7 +11,7 @@
 #define ADX_KEY_MAX_TEST_FRAMES 32768
 #define ADX_KEY_TEST_BUFFER_SIZE 0x8000
 
-static int find_adx_key(STREAMFILE *sf, uint8_t type, uint16_t *xor_start, uint16_t *xor_mult, uint16_t *xor_add, uint16_t subkey);
+static int find_adx_key(STREAMFILE* sf, uint8_t type, uint16_t* xor_start, uint16_t* xor_mult, uint16_t* xor_add, uint16_t subkey);
 
 VGMSTREAM* init_vgmstream_adx(STREAMFILE* sf) {
     return init_vgmstream_adx_subkey(sf, 0);
@@ -34,12 +34,12 @@ VGMSTREAM* init_vgmstream_adx_subkey(STREAMFILE* sf, uint16_t subkey) {
 
 
     /* checks*/
+    if (read_u16be(0x00,sf) != 0x8000)
+        goto fail;
+
     /* .adx: standard
      * .adp: Headhunter (DC) */
     if (!check_extensions(sf,"adx,adp"))
-        goto fail;
-
-    if (read_u16be(0x00,sf) != 0x8000)
         goto fail;
 
     start_offset = read_u16be(0x02,sf) + 0x04;
@@ -79,18 +79,19 @@ VGMSTREAM* init_vgmstream_adx_subkey(STREAMFILE* sf, uint16_t subkey) {
 
     /* encryption */
     if (version == 0x0408) {
+
         if (find_adx_key(sf, 8, &xor_start, &xor_mult, &xor_add, 0)) {
-            coding_type = coding_CRI_ADX_enc_8;
-            version = 0x0400;
+            vgm_logi("ADX: decryption keystring not found\n");
         }
-        vgm_asserti(version != 0x0400, "ADX: decryption keystring not found\n");
+        coding_type = coding_CRI_ADX_enc_8;
+        version = 0x0400;
     }
     else if (version == 0x0409) {
         if (find_adx_key(sf, 9, &xor_start, &xor_mult, &xor_add, subkey)) {
-            coding_type = coding_CRI_ADX_enc_9;
-            version = 0x0400;
+            vgm_logi("ADX: decryption keycode not found\n");
         }
-        vgm_asserti(version != 0x0400, "ADX: decryption keycode not found\n");
+        coding_type = coding_CRI_ADX_enc_9;
+        version = 0x0400;
     }
 
     /* version + extra data */
