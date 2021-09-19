@@ -32,6 +32,8 @@ class Cli(object):
             "  - make .txtp for in .bnk including only subsong names that start with 'bgm'\n\n"
             "  %(prog)s *.fsb -n \"{fn}<__{ss}>< [{in}]>\" -z 4 -o\n"
             "  - make .txtp for all fsb, adding subsongs and stream name if they exist\n\n"
+            "  %(prog)s bgm.awb -or -os \"[alt%%%%i]\"\n"
+            "  - make .txtp and rename repeated names with a custom suffix per repeat 'i'\n\n"
         )
 
         p = argparse.ArgumentParser(description=description, epilog=epilog, formatter_class=argparse.RawTextHelpFormatter)
@@ -48,6 +50,8 @@ class Cli(object):
         p.add_argument('-z',  dest='zero_fill', help="Zero-fill subsong number (default: auto per subsongs)", type=int)
         p.add_argument('-ie', dest='no_internal_ext', help="Remove internal name's extension if any", action='store_true')
         p.add_argument('-m',  dest='mini_txtp', help="Create mini-txtp", action='store_true')
+        p.add_argument('-s',  dest='subsong_start', help="Start subsong", type=int)
+        p.add_argument('-S',  dest='subsong_end', help="End subsong", type=int)
         p.add_argument('-o',  dest='overwrite', help="Overwrite existing .txtp\n(beware when using with internal names alone)", action='store_true')
         p.add_argument('-oi', dest='overwrite_ignore', help="Ignore repeated rather than overwritting.txtp\n", action='store_true')
         p.add_argument('-or', dest='overwrite_rename', help="Rename rather than overwriting", action='store_true')
@@ -264,8 +268,22 @@ class TxtpMaker(object):
         exists = os.path.exists(outname)
         if exists and (cfg.overwrite_rename or cfg.overwrite_suffix):
             must_rename = True
-            if cfg.overwrite_suffix:
-                outname = outname.replace(".txtp", "%s.txtp" % (cfg.overwrite_suffix))
+
+            suffix = cfg.overwrite_suffix
+            if suffix:
+                outname = outname.replace(".txtp", "%s.txtp" % (suffix))
+                if '%' in suffix:
+                    if outname in self.rename_map:
+                        rename_count = self.rename_map[outname]
+                    else:
+                        rename_count = 0
+                    self.rename_map[outname] = rename_count + 1
+                    if rename_count:
+                        outname = outname % (rename_count)
+                    else:
+                        #outname = outname.replace("%i", "")
+                        outname = re.sub(r"\%[0-9]*i", "", outname)
+
                 must_rename = os.path.exists(outname)
 
             if must_rename:
@@ -459,8 +477,10 @@ class App(object):
 
         files = []
         for root, dirnames, filenames in os.walk(dir):
-            for filename in fnmatch.filter(filenames, pattern):
-                files.append(os.path.join(root, filename))
+            # manually test name as is too, as filter wouldn't handle stuff like "bgm[us].wav"
+            for filename in filenames:
+                if filename == pattern or fnmatch.fnmatch(filename, pattern):
+                    files.append(os.path.join(root, filename))
 
             if not self.cfg.recursive:
                 break
@@ -496,7 +516,13 @@ class App(object):
             created = 0
             dupes = 0
             errors = 0
-            target_subsong = 1
+
+            subsong_start = self.cfg.subsong_start
+            subsong_end = self.cfg.subsong_end
+            if not subsong_start:
+                subsong_start = 1
+            target_subsong = subsong_start
+
             while True:
                 try:
                     # main call to vgmstream
@@ -512,7 +538,7 @@ class App(object):
                     errors += 1
                     break
 
-                if target_subsong == 1:
+                if target_subsong == subsong_start:
                     log.debug("processing %s...", filename_in_clean)
 
                 if not maker.is_ignorable():
@@ -525,6 +551,8 @@ class App(object):
                     log.debug("dupe subsong %s", target_subsong)
 
                 if not maker.has_more_subsongs(target_subsong):
+                    break
+                if target_subsong >= subsong_end:
                     break
                 target_subsong += 1
 
