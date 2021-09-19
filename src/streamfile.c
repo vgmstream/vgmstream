@@ -953,22 +953,12 @@ STREAMFILE* open_streamfile(STREAMFILE* sf, const char* pathname) {
 
 STREAMFILE* open_streamfile_by_ext(STREAMFILE* sf, const char* ext) {
     char filename[PATH_LIMIT];
-    int filename_len, fileext_len;
 
-    sf->get_name(sf, filename, sizeof(filename));
+    get_streamfile_name(sf, filename, sizeof(filename));
 
-    filename_len = strlen(filename);
-    fileext_len = strlen(filename_extension(filename));
+    swap_extension(filename, sizeof(filename), ext);
 
-    if (fileext_len == 0) {/* extensionless */
-        strcat(filename,".");
-        strcat(filename,ext);
-    }
-    else {
-        strcpy(filename + filename_len - fileext_len, ext);
-    }
-
-    return sf->open(sf, filename, STREAMFILE_DEFAULT_BUFFER_SIZE);
+    return open_streamfile(sf, filename);
 }
 
 STREAMFILE* open_streamfile_by_filename(STREAMFILE* sf, const char* filename) {
@@ -978,7 +968,7 @@ STREAMFILE* open_streamfile_by_filename(STREAMFILE* sf, const char* filename) {
 
     if (!sf || !filename || !filename[0]) return NULL;
 
-    sf->get_name(sf, fullname, sizeof(fullname));
+    get_streamfile_name(sf, fullname, sizeof(fullname));
 
     //todo normalize separators in a better way, safeops, improve copying
 
@@ -1027,7 +1017,7 @@ STREAMFILE* open_streamfile_by_filename(STREAMFILE* sf, const char* filename) {
         strcpy(fullname, filename);
     }
 
-    return sf->open(sf, fullname, STREAMFILE_DEFAULT_BUFFER_SIZE);
+    return open_streamfile(sf, fullname);
 }
 
 STREAMFILE* reopen_streamfile(STREAMFILE* sf, size_t buffer_size) {
@@ -1037,7 +1027,7 @@ STREAMFILE* reopen_streamfile(STREAMFILE* sf, size_t buffer_size) {
 
     if (buffer_size == 0)
         buffer_size = STREAMFILE_DEFAULT_BUFFER_SIZE;
-    sf->get_name(sf, pathname,sizeof(pathname));
+    get_streamfile_name(sf, pathname, sizeof(pathname));
     return sf->open(sf, pathname, buffer_size);
 }
 
