@@ -215,7 +215,13 @@ static int read_fmt(int big_endian, STREAMFILE* sf, off_t offset, riff_fmt_chunk
             break;
 
 #ifdef VGM_USE_VORBIS
-        case 0x6771: /* Ogg Vorbis (mode 3+) */
+      //case 0x674f: /* Ogg Vorbis (mode 1) */
+      //case 0x6750: /* Ogg Vorbis (mode 2) */
+      //case 0x6751: /* Ogg Vorbis (mode 3) */
+        case 0x676f: /* Ogg Vorbis (mode 1+) [Only One 2 (PC)] */
+      //case 0x6770: /* Ogg Vorbis (mode 2+) */
+        case 0x6771: /* Ogg Vorbis (mode 3+) [Liar-soft games] */
+            /* vorbis.acm codecs (official-ish, "+" = CBR-style modes?) */
             fmt->coding_type = coding_OGG_VORBIS;
             break;
 #endif
@@ -233,7 +239,7 @@ static int read_fmt(int big_endian, STREAMFILE* sf, off_t offset, riff_fmt_chunk
                              (read_u16 (offset+0x26,sf));
             uint32_t guid3 = read_u32be(offset+0x28,sf);
             uint32_t guid4 = read_u32be(offset+0x2c,sf);
-            //;VGM_LOG("RIFF: guid %08x %08x %08x %08x\n", guid1, guid2, guid3, guid4);
+            //;VGM_LOG("riff: guid %08x %08x %08x %08x\n", guid1, guid2, guid3, guid4);
 
             /* PCM GUID (0x00000001,0000,0010,80,00,00,AA,00,38,9B,71) */
             if (guid1 == 0x00000001 && guid2 == 0x00000010 && guid3 == 0x800000AA && guid4 == 0x00389B71) {
@@ -280,7 +286,7 @@ static int read_fmt(int big_endian, STREAMFILE* sf, off_t offset, riff_fmt_chunk
 
         default:
             /* FFmpeg may play it */
-            //vgm_logi("WWISE: unknown codec 0x%04x (report)\n", fmt->format);
+            //vgm_logi("RIFF: unknown codec 0x%04x (report)\n", fmt->format);
             goto fail;
     }
 
@@ -318,7 +324,10 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
     off_t mwv_ctrl_offset = -1;
 
 
-    /* check extension */
+    /* checks*/
+    if (!is_id32be(0x00,sf,"RIFF"))
+        goto fail;
+
     /* .lwav: to avoid hijacking .wav
      * .xwav: fake for Xbox games (not needed anymore)
      * .da: The Great Battle VI (PS1)
@@ -355,21 +364,19 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
         goto fail;
     }
 
-    /* check header */
-    if (!is_id32be(0x00,sf,"RIFF"))
-        goto fail;
+    riff_size = read_u32le(0x04,sf);
+
     if (!is_id32be(0x08,sf, "WAVE"))
         goto fail;
 
-    riff_size = read_u32le(0x04,sf);
     file_size = get_streamfile_size(sf);
 
     /* some games have wonky sizes, selectively fix to catch bad rips and new mutations */
     if (file_size != riff_size + 0x08) {
         uint16_t codec = read_u16le(0x14,sf);
 
-        if      (codec == 0x6771 && riff_size + 0x08 + 0x01 == file_size)
-            riff_size += 0x01; /* [Shikkoku no Sharnoth (PC)] (Sony Sound Forge?) */
+        if      ((codec & 0xFF00) == 0x6700 && riff_size + 0x08 + 0x01 == file_size)
+            riff_size += 0x01; /* [Shikkoku no Sharnoth (PC), Only One 2 (PC)] (Sony Sound Forge?) */
 
         else if (codec == 0x0069 && riff_size == file_size)
             riff_size -= 0x08; /* [Dynasty Warriors 3 (Xbox), BloodRayne (Xbox)] */
@@ -422,6 +429,7 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
     /* check for truncated RIFF */
     if (file_size != riff_size + 0x08) {
         vgm_logi("RIFF: wrong expected size (report/re-rip?)\n");
+        VGM_LOG("riff: file_size = %x, riff_size+8 = %x\n", file_size, riff_size + 0x08); /* don't log to user */
         goto fail;
     }
 
@@ -774,8 +782,9 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
 #endif
 #ifdef VGM_USE_VORBIS
         case coding_OGG_VORBIS: {
-            /* special handling of Liar-soft's buggy RIFF+Ogg made with Soundforge [Shikkoku no Sharnoth (PC)] */
-            STREAMFILE *temp_sf = setup_riff_ogg_streamfile(sf, start_offset, data_size);
+            /* special handling of Liar-soft's buggy RIFF+Ogg made with Soundforge/vorbis.acm [Shikkoku no Sharnoth (PC)],
+             * and rarely other devs, not always buggy [Kirara Kirara NTR (PC), No One 2 (PC)] */
+            STREAMFILE* temp_sf = setup_riff_ogg_streamfile(sf, start_offset, data_size);
             if (!temp_sf) goto fail;
 
             vgmstream->codec_data = init_ogg_vorbis(temp_sf, 0x00, get_streamfile_size(temp_sf), NULL);
@@ -983,13 +992,13 @@ VGMSTREAM* init_vgmstream_rifx(STREAMFILE* sf) {
     int FormatChunkFound = 0, DataChunkFound = 0;
 
 
-    /* check extension, case insensitive */
+    /* checks */
+    if (!is_id32be(0x00,sf, "RIFX"))
+        goto fail;
+
     if (!check_extensions(sf, "wav,lwav"))
         goto fail;
 
-    /* check header */
-    if (!is_id32be(0x00,sf, "RIFX"))
-        goto fail;
     if (!is_id32be(0x08,sf, "WAVE"))
         goto fail;
 

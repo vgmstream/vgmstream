@@ -13,6 +13,7 @@ typedef struct {
     int le_type;        /* read type as LE instead of more common BE */
     int be_size;        /* read type as BE instead of more common LE */
     int full_size;      /* chunk size includes type+size */
+    int alignment;      /* chunks with odd size need to be aligned to even, per RIFF spec */
 } chunk_t;
 
 int next_chunk(chunk_t* chunk, STREAMFILE* sf);

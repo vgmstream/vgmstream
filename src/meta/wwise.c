@@ -1,6 +1,7 @@
 #include "meta.h"
 #include "../util.h"
 #include "../coding/coding.h"
+#include "../util/chunks.h"
 
 
 /* Wwise uses a custom RIFF/RIFX header, non-standard enough that it's parsed it here.
@@ -14,6 +15,7 @@ typedef struct {
     int big_endian;
     size_t file_size;
     int truncated;
+    int is_wem;
 
     /* chunks references */
     off_t  fmt_offset;
@@ -55,7 +57,7 @@ static int parse_wwise(STREAMFILE* sf, wwise_header* ww);
 static int is_dsp_full_interleave(STREAMFILE* sf, wwise_header* ww, off_t coef_offset);
 
 
-/* Wwise - Audiokinetic Wwise (Wave Works Interactive Sound Engine) middleware */
+/* Wwise - Audiokinetic Wwise (WaveWorks Interactive Sound Engine) middleware */
 VGMSTREAM* init_vgmstream_wwise(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     wwise_header ww = {0};
@@ -66,11 +68,16 @@ VGMSTREAM* init_vgmstream_wwise(STREAMFILE* sf) {
 
 
     /* checks */
-    /* .wem: newer "Wwise Encoded Media" used after the 2011.2 SDK (~july 2011)
+    if (!is_id32be(0x00,sf, "RIFF") &&  /* LE */
+        !is_id32be(0x00,sf, "RIFX"))    /* BE */
+        goto fail;
+
+    /* note that Wwise allows those extensions only, so custom engine exts shouldn't be added
+     * .wem: newer "Wwise Encoded Media" used after the 2011.2 SDK (~july 2011)
      * .wav: older PCM/ADPCM files [Spider-Man: Web of Shadows (PC), Punch Out!! (Wii)]
      * .xma: older XMA files [Too Human (X360), Tron Evolution (X360)]
      * .ogg: older Vorbis files [The King of Fighters XII (X360)]
-     * .bnk: Wwise banks for memory .wem detection */
+     * .bnk: Wwise banks for memory .wem detection (hack) */
     if (!check_extensions(sf,"wem,wav,lwav,ogg,logg,xma,bnk"))
         goto fail;
 
@@ -234,7 +241,6 @@ VGMSTREAM* init_vgmstream_wwise(STREAMFILE* sf) {
             else {
                 /* newer Wwise (>2012) */
                 off_t extra_offset = ww.fmt_offset + 0x18; /* after flag + channels */
-                int is_wem = check_extensions(sf,"wem,bnk"); /* use extension as a guide for faster vorbis inits */
 
                 switch(ww.extra_size) {
                     case 0x30:
@@ -246,7 +252,7 @@ VGMSTREAM* init_vgmstream_wwise(STREAMFILE* sf) {
                         /* setup not detectable by header, so we'll try both; libvorbis should reject wrong codebooks
                          * - standard: early (<2012), ex. The King of Fighters XIII (X360)-2011/11, .ogg (cbs are from aoTuV, too)
                          * - aoTuV603: later (>2012), ex. Sonic & All-Stars Racing Transformed (PC)-2012/11, .wem */
-                        cfg.setup_type  = is_wem ? WWV_AOTUV603_CODEBOOKS : WWV_EXTERNAL_CODEBOOKS; /* aoTuV came along .wem */
+                        cfg.setup_type  = ww.is_wem ? WWV_AOTUV603_CODEBOOKS : WWV_EXTERNAL_CODEBOOKS; /* aoTuV came along .wem */
                         break;
 
                     default:
@@ -278,7 +284,7 @@ VGMSTREAM* init_vgmstream_wwise(STREAMFILE* sf) {
                 vgmstream->codec_data = init_vorbis_custom(sf, start_offset + setup_offset, VORBIS_WWISE, &cfg);
                 if (!vgmstream->codec_data) {
                     /* codebooks failed: try again with the other type */
-                    cfg.setup_type  = is_wem ? WWV_EXTERNAL_CODEBOOKS : WWV_AOTUV603_CODEBOOKS;
+                    cfg.setup_type  = ww.is_wem ? WWV_EXTERNAL_CODEBOOKS : WWV_AOTUV603_CODEBOOKS;
                     vgmstream->codec_data = init_vorbis_custom(sf, start_offset + setup_offset, VORBIS_WWISE, &cfg);
                     if (!vgmstream->codec_data) goto fail;
                 }
@@ -693,14 +699,7 @@ static int parse_wwise(STREAMFILE* sf, wwise_header* ww) {
     uint32_t (*read_u32)(off_t,STREAMFILE*) = NULL;
     uint16_t (*read_u16)(off_t,STREAMFILE*) = NULL;
 
-    if (read_u32be(0x00,sf) != 0x52494646 &&  /* "RIFF" (LE) */
-        read_u32be(0x00,sf) != 0x52494658)    /* "RIFX" (BE) */
-        goto fail;
-    if (read_u32be(0x08,sf) != 0x57415645 &&  /* "WAVE" */
-        read_u32be(0x08,sf) != 0x58574D41)    /* "XWMA" */
-        goto fail;
-
-    ww->big_endian = read_u32be(0x00,sf) == 0x52494658; /* RIFX */
+    ww->big_endian = is_id32be(0x00,sf, "RIFX");
     if (ww->big_endian) { /* Wwise honors machine's endianness (PC=RIFF, X360=RIFX --unlike XMA) */
         read_u32 = read_u32be;
         read_u16 = read_u16be;
@@ -727,50 +726,56 @@ static int parse_wwise(STREAMFILE* sf, wwise_header* ww) {
     }
 #endif
 
+    if (!is_id32be(0x08,sf, "WAVE") &&
+        !is_id32be(0x08,sf, "XWMA"))
+        goto fail;
+
+
     /* parse chunks (reads once linearly) */
     {
-        off_t offset = 0x0c;
-        while (offset < ww->file_size) {
-            uint32_t type = read_u32be(offset + 0x00,sf);
-            uint32_t size = read_u32  (offset + 0x04,sf);
-            offset += 0x08;
+        chunk_t rc = {0};
 
-            switch(type) {
+        /* chunks are even-aligned and don't need to add padding byte, unlike real RIFFs */
+        rc.be_size = ww->big_endian;
+        rc.current = 0x0c;
+        while (next_chunk(&rc, sf)) {
+
+            switch(rc.type) {
                 case 0x666d7420: /* "fmt " */
-                    ww->fmt_offset = offset;
-                    ww->fmt_size = size;
+                    ww->fmt_offset = rc.offset;
+                    ww->fmt_size = rc.size;
                     break;
                 case 0x584D4132: /* "XMA2" */
-                    ww->xma2_offset = offset;
-                    ww->xma2_size = size;
+                    ww->xma2_offset = rc.offset;
+                    ww->xma2_size = rc.size;
                     break;
                 case 0x64617461: /* "data" */
-                    ww->data_offset = offset;
-                    ww->data_size = size;
+                    ww->data_offset = rc.offset;
+                    ww->data_size = rc.size;
                     break;
                 case 0x766F7262: /* "vorb" */
-                    ww->vorb_offset = offset;
-                    ww->vorb_size = size;
+                    ww->vorb_offset = rc.offset;
+                    ww->vorb_size = rc.size;
                     break;
                 case 0x57696948: /* "WiiH" */
-                    ww->wiih_offset = offset;
-                    ww->wiih_size = size;
+                    ww->wiih_offset = rc.offset;
+                    ww->wiih_size = rc.size;
                     break;
                 case 0x7365656B: /* "seek" */
-                    ww->seek_offset = offset;
-                    ww->seek_size = size;
+                    ww->seek_offset = rc.offset;
+                    ww->seek_size = rc.size;
                     break;
                 case 0x736D706C: /* "smpl" */
-                    ww->smpl_offset = offset;
-                    ww->smpl_size = size;
+                    ww->smpl_offset = rc.offset;
+                    ww->smpl_size = rc.size;
                     break;
                 case 0x6D657461: /* "meta" */
-                    ww->meta_offset = offset;
-                    ww->meta_size = size;
+                    ww->meta_offset = rc.offset;
+                    ww->meta_size = rc.size;
                     break;
 
                 case 0x66616374: /* "fact" */
-                    /* Wwise shouldn't use fact, but if somehow some file does uncomment the following: */
+                    /* Wwise never uses fact, but if somehow some file does uncomment the following: */
                     //if (size == 0x10 && read_u32be(offset + 0x04, sf) == 0x4C794E20) /* "LyN " */
                     //    goto fail; /* ignore LyN RIFF */
                     goto fail;
@@ -783,12 +788,11 @@ static int parse_wwise(STREAMFILE* sf, wwise_header* ww) {
                 default:
                     break;
             }
-
-            /* chunks are even-aligned and don't need to add padding byte, unlike real RIFFs */
-            offset += size;
         }
     }
 
+    /* use extension as a guide for certain cases */
+    ww->is_wem = check_extensions(sf,"wem,bnk");
 
     /* parse format (roughly spec-compliant but some massaging is needed) */
     if (ww->xma2_offset) {
@@ -806,7 +810,7 @@ static int parse_wwise(STREAMFILE* sf, wwise_header* ww) {
         ww->channels         = read_u16(ww->fmt_offset + 0x02,sf);
         ww->sample_rate      = read_u32(ww->fmt_offset + 0x04,sf);
         ww->avg_bitrate      = read_u32(ww->fmt_offset + 0x08,sf);
-        ww->block_size      = read_u16(ww->fmt_offset + 0x0c,sf);
+        ww->block_size       = read_u16(ww->fmt_offset + 0x0c,sf);
         ww->bits_per_sample  = read_u16(ww->fmt_offset + 0x0e,sf);
         if (ww->fmt_size > 0x10 && ww->format != 0x0165 && ww->format != 0x0166) /* ignore XMAWAVEFORMAT */
             ww->extra_size   = read_u16(ww->fmt_offset + 0x10,sf);
@@ -864,7 +868,9 @@ static int parse_wwise(STREAMFILE* sf, wwise_header* ww) {
         case 0x3041: ww->codec = OPUSWW; break; /* "OPUS_WEM", added on Wwise 2019.2.3, replaces OPUS */
         case 0x8311: ww->codec = PTADPCM; break; /* added on Wwise 2019.1, replaces IMA */
         default:
-            vgm_logi("WWISE: unknown codec 0x%04x (report)\n", ww->format);
+            /* some .wav may end up here, only report in .wem cases (newer codecs) */
+            if (ww->is_wem)
+                vgm_logi("WWISE: unknown codec 0x%04x (report)\n", ww->format);
             goto fail;
     }
 

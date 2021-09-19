@@ -175,7 +175,10 @@ int round10(int val);
 
 /* return a file's extension (a pointer to the first character of the
  * extension in the original filename or the ending null byte if no extension */
-const char * filename_extension(const char * filename);
+const char* filename_extension(const char* pathname);
+
+/* change pathname's extension to another (or add it if extensionless) */
+void swap_extension(char* pathname, /*size_t*/ int pathname_len, const char* swap);
 
 /* swap samples in machine endianness to little endian (useful to write .wav) */
 void swap_samples_le(sample_t *buf, int count);

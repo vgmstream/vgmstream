@@ -2,33 +2,39 @@
 #include "util.h"
 #include "streamtypes.h"
 
-const char * filename_extension(const char * pathname) {
-    const char * filename;
-    const char * extension;
+const char* filename_extension(const char* pathname) {
+    const char* extension;
 
     /* favor strrchr (optimized/aligned) rather than homemade loops */
+    extension = strrchr(pathname,'.');
 
-    /* find possible separator first to avoid misdetecting folders with dots + extensionless files
-     * (allow both slashes as plugin could pass normalized '/') */
-    filename = strrchr(pathname, '/');
-    if (filename != NULL)
-        filename++; /* skip separator */
-    else {
-        filename = strrchr(pathname, '\\');
-        if (filename != NULL)
-            filename++; /* skip separator */
-        else
-            filename = pathname; /* pathname has no separators (single filename) */
+    if (extension != NULL) {
+        /* probably has extension */
+        extension++; /* skip dot */
+
+        /* find possible separators to avoid misdetecting folders with dots + extensionless files
+         * (after the above to reduce search space, allows both slashes in case of non-normalized names) */
+        if (strchr(extension, '/') == NULL && strchr(extension, '\\') == NULL)
+            return extension; /* no slashes = really has extension */
     }
 
-    extension = strrchr(filename,'.');
-    if (extension != NULL)
-        extension++; /* skip dot */
-    else
-        extension = filename + strlen(filename); /* point to null (empty "" string for extensionless files) */
-
-    return extension;
+    /* extensionless: point to null after current name 
+     * (could return NULL but prev code expects with to return an actual c-string) */
+    return pathname + strlen(pathname);
 }
+
+void swap_extension(char* pathname, int pathname_len, const char* swap) {
+    char* extension = (char*)filename_extension(pathname);
+    //todo safeops
+    if (extension[0] == '\0') {
+        strcat(pathname, ".");
+        strcat(pathname, swap);
+    }
+    else {
+        strcpy(extension, swap);
+    }
+}
+
 
 /* unused */
 /*

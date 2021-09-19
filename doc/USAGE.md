@@ -213,14 +213,28 @@ extensions as a way to force them into vgmstream without renaming.
 #### Related issues
 Also be aware that other plugins (not vgmstream) can tell the player they handle
 some extension, then not actually play it. This makes the file unplayable as
-vgmstream doesn't even get the chance to parse that file, so you may need to
-disable the offending plugin or rename the file (for example this may happen with
-`.asf` in foobar2000/Winamp, may be fixed in newer versions).
+vgmstream doesn't even get the chance to parse it, so you may need to disable
+the offending plugin or rename the file to the fake extension shown above (for
+example this may happen with `.asf` in foobar2000/Winamp, may be fixed in newer
+versions).
 
 When extracting from a bigfile, sometimes internal files don't have a proper
 extension. Those should be renamed to its correct one when possible, as the
 extractor program may guess wrong (like `.wav` instead of `.at3` or `.wem`).
 If there is no known extension, usually the header id/magic string may be used instead.
+
+#### Windows 10 folder bugs
+Windows 10's *Web Media Extensions* is a pre-installed package seems to read metadata
+from files like `.ogg`, `.opus`, `.flac` and so on when opening a folder. However
+it tends to noticeably slow down opening folders, also seems to crash and leave files
+unusable when reading unsupported formats like Switch Opus (rather than Ogg Opus).
+
+Renaming extensions should prevent those issues, or just uninstall those *Web
+Media Extension* better experience anyway.
+
+#### Fallout SFX .ACM
+Due to technical limitations, to play Fallout 1 SFX you need to rename them from
+`.acm` to `.wavc` (forces mono).
 
 ### Demuxed videos
 vgmstream also supports audio from videos, but usually must be demuxed (extracted
