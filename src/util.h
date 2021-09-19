@@ -178,7 +178,7 @@ int round10(int val);
 const char* filename_extension(const char* pathname);
 
 /* change pathname's extension to another (or add it if extensionless) */
-void swap_extension(char* pathname, size_t pathname_len, const char* swap);
+void swap_extension(char* pathname, /*size_t*/ int pathname_len, const char* swap);
 
 /* swap samples in machine endianness to little endian (useful to write .wav) */
 void swap_samples_le(sample_t *buf, int count);

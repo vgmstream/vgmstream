@@ -23,7 +23,7 @@ const char* filename_extension(const char* pathname) {
     return pathname + strlen(pathname);
 }
 
-void swap_extension(char* pathname, size_t pathname_len, const char* swap) {
+void swap_extension(char* pathname, int pathname_len, const char* swap) {
     char* extension = (char*)filename_extension(pathname);
     //todo safeops
     if (extension[0] == '\0') {
