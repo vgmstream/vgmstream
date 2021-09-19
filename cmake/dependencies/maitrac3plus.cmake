@@ -1,8 +1,6 @@
 if(USE_MAIATRAC3PLUS)
 	FetchDependency(MAIATRAC3PLUS
 		DIR maiatrac3plus
-		GIT_REPOSITORY https://github.com/emulibraries/maiatrac3plus
-		GIT_TAG 95c34f2651b0988a8ed762692925eb22700e9b42
 	)
 	
 	if(MAIATRAC3PLUS_PATH)
@@ -19,6 +17,8 @@ if(USE_MAIATRAC3PLUS)
 			${MAIATRAC3PLUS_PATH}/MaiAT3PlusDecoder/src/base/Mai_Mem.cc
 		COPYONLY)
 		add_subdirectory(${MAIATRAC3PLUS_PATH}/MaiAT3PlusDecoder ${MAIATRAC3PLUS_BIN})
+	else()
+		message(FATAL_ERROR "Path to MAIATRAC3+ must be set. (Use MAIATRAC3PLUS_PATH)")
 	endif()
 endif()
 if(NOT USE_MAIATRAC3PLUS)
