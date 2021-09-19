@@ -2,41 +2,43 @@
 #include "../util.h"
 
 /* STRM - common Nintendo NDS streaming format */
-VGMSTREAM * init_vgmstream_nds_strm(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
+VGMSTREAM* init_vgmstream_nds_strm(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
     off_t start_offset;
-    int channel_count, loop_flag, codec;
+    int channels, loop_flag, codec, sample_rate;
 
 
     /* checks */
-    if (!check_extensions(streamFile, "strm"))
+    if (!is_id32be(0x00,sf, "STRM"))
         goto fail;
 
-    if (read_32bitBE(0x00,streamFile) != 0x5354524D)    /* "STRM" */
-        goto fail;
-    if (read_32bitBE(0x04,streamFile) != 0xFFFE0001 &&  /* Old Header Check */
-       (read_32bitBE(0x04,streamFile) != 0xFEFF0001))   /* Some newer games have a new flag */
+    if (!check_extensions(sf, "strm"))
         goto fail;
 
-    if (read_32bitBE(0x10,streamFile) != 0x48454144 && /* "HEAD" */
-        read_32bitLE(0x14,streamFile) != 0x50) /* 0x50-sized head is all I've seen */
+    /* BOM check? */
+    if (read_u32be(0x04,sf) != 0xFFFE0001 &&
+        read_u32be(0x04,sf) != 0xFEFF0001) /* newer games? */
         goto fail;
 
-    codec = read_8bit(0x18,streamFile);
-    loop_flag = read_8bit(0x19,streamFile);
-    channel_count = read_8bit(0x1a,streamFile);
-    if (channel_count > 2) goto fail;
+    if (!is_id32be(0x10,sf, "HEAD") &&
+        read_u32le(0x14,sf) != 0x50)
+        goto fail;
 
-    start_offset = read_32bitLE(0x28,streamFile);
+    codec = read_u8(0x18,sf);
+    loop_flag = read_u8(0x19,sf);
+    sample_rate = read_u16le(0x1c,sf);
+    channels = read_u8(0x1a,sf);
+    if (channels > 2) goto fail;
 
+    start_offset = read_u32le(0x28,sf);
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->sample_rate = (uint16_t)read_16bitLE(0x1c,streamFile);
-    vgmstream->num_samples = read_32bitLE(0x24,streamFile);
-    vgmstream->loop_start_sample = read_32bitLE(0x20,streamFile);
+    vgmstream->sample_rate = sample_rate;
+    vgmstream->num_samples = read_32bitLE(0x24,sf);
+    vgmstream->loop_start_sample = read_32bitLE(0x20,sf);
     vgmstream->loop_end_sample = vgmstream->num_samples;
 
     vgmstream->meta_type = meta_STRM;
@@ -55,11 +57,11 @@ VGMSTREAM * init_vgmstream_nds_strm(STREAMFILE *streamFile) {
             goto fail;
     }
     vgmstream->layout_type = layout_interleave;
-    vgmstream->interleave_block_size = read_32bitLE(0x30,streamFile);
-    vgmstream->interleave_last_block_size = read_32bitLE(0x38,streamFile);
+    vgmstream->interleave_block_size = read_32bitLE(0x30,sf);
+    vgmstream->interleave_last_block_size = read_32bitLE(0x38,sf);
 
 
-    if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
+    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
         goto fail;
     return vgmstream;
 

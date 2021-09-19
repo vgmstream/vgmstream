@@ -87,7 +87,7 @@ VGMSTREAM* init_vgmstream_awb_memory(STREAMFILE* sf, STREAMFILE* sf_acb) {
         VGMSTREAM* (*init_vgmstream_subkey)(STREAMFILE* sf, uint16_t subkey) = NULL;
         const char* extension = NULL;
 
-        if (read_u16be(subfile_offset, sf) == 0x8000) { /* (type 0=ADX) */
+        if (read_u16be(subfile_offset, sf) == 0x8000) { /* (type 0=ADX, also 3?) */
             init_vgmstream_subkey = init_vgmstream_adx_subkey; /* Okami HD (PS4) */
             extension = "adx";
         }
@@ -99,7 +99,7 @@ VGMSTREAM* init_vgmstream_awb_memory(STREAMFILE* sf, STREAMFILE* sf_acb) {
             init_vgmstream = init_vgmstream_vag; /* Ukiyo no Roushi (Vita) */
             extension = "vag";
         }
-        else if (is_id32be(subfile_offset,sf, "RIFF")) { /* (type 8=ATRAC3, 11=ATRAC9) */
+        else if (is_id32be(subfile_offset,sf, "RIFF")) { /* (type 8=ATRAC3, 11=ATRAC9, also 18=ATRAC9?) */
             init_vgmstream = init_vgmstream_riff; /* Ukiyo no Roushi (Vita) */
             extension = "wav";
             subfile_size = read_u32le(subfile_offset + 0x04,sf) + 0x08; /* padded size, use RIFF's */
@@ -111,7 +111,7 @@ VGMSTREAM* init_vgmstream_awb_memory(STREAMFILE* sf, STREAMFILE* sf_acb) {
         else if (read_u32be(subfile_offset + 0x08,sf) >= 8000 && read_u32be(subfile_offset + 0x08,sf) <= 48000 &&
                  read_u16be(subfile_offset + 0x0e,sf) == 0 &&
                  read_u32be(subfile_offset + 0x18,sf) == 2 &&
-                 read_u32be(subfile_offset + 0x50,sf) == 0) { /*  (type 13=DSP), probably should call some check function */
+                 read_u32be(subfile_offset + 0x50,sf) == 0) { /*  (type 13=DSP, also 4=Wii?, 5=NDS?), probably should call some check function */
             init_vgmstream = init_vgmstream_ngc_dsp_std; /* Sonic: Lost World (WiiU) */
             extension = "dsp";
         }
@@ -125,7 +125,7 @@ VGMSTREAM* init_vgmstream_awb_memory(STREAMFILE* sf, STREAMFILE* sf_acb) {
             extension = "m4a";
         }
 #endif
-        else {
+        else { /* 12=XMA? */
             vgm_logi("AWB: unknown codec (report)\n");
             goto fail;
         }

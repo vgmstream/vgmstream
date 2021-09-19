@@ -22,8 +22,6 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_adx,
     init_vgmstream_brstm,
     init_vgmstream_bfwav,
-    init_vgmstream_bfstm,
-    init_vgmstream_mca,
     init_vgmstream_nds_strm,
     init_vgmstream_agsc,
     init_vgmstream_ngc_adpdtk,
@@ -66,12 +64,6 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
 #endif
     init_vgmstream_sli_ogg,
     init_vgmstream_sfl_ogg,
-#if 0
-    init_vgmstream_mp4_aac,
-#endif
-#if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
-    init_vgmstream_akb_mp4,
-#endif
     init_vgmstream_sadb,
     init_vgmstream_ps2_bmdx,
     init_vgmstream_wsi,
@@ -294,6 +286,14 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_idsp_namco,
     init_vgmstream_kt_g1l,
     init_vgmstream_kt_wiibgm,
+    init_vgmstream_bfstm,
+    init_vgmstream_mca,
+#if 0
+    init_vgmstream_mp4_aac,
+#endif
+#if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
+    init_vgmstream_akb_mp4,
+#endif
     init_vgmstream_ktss,
     init_vgmstream_hca,
     init_vgmstream_svag_snk,

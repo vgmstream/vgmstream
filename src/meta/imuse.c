@@ -2,13 +2,6 @@
 #include "../coding/coding.h"
 
 
-static int is_id4(const char* test, off_t offset, STREAMFILE* sf) {
-    uint8_t buf[4];
-    if (read_streamfile(buf, offset, sizeof(buf), sf) != sizeof(buf))
-        return 0;
-    return memcmp(buf, test, sizeof(buf)) == 0; /* memcmp to allow "AB\0\0" */
-}
-
 /* LucasArts iMUSE (Interactive Music Streaming Engine) formats */
 VGMSTREAM* init_vgmstream_imuse(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
@@ -19,19 +12,13 @@ VGMSTREAM* init_vgmstream_imuse(STREAMFILE* sf) {
 
 
     /* checks */
-    /* .imx: The Curse of Monkey Island (PC) 
-     * .imc: Grim Fandango (multi)
-     * .wav: Grim Fandango (multi) RIFF sfx */
-    if (!check_extensions(sf, "imx,imc,wav,lwav"))
-        goto fail;
-
 
     /* base decoder block table */
-    if (is_id4("COMP", 0x00, sf)) { /* The Curse of Monkey Island (PC), The Dig (PC) */
+    if (is_id32be(0x00, sf, "COMP")) { /* The Curse of Monkey Island (PC), The Dig (PC) */
         int entries = read_u32be(0x04,sf);
         head_offset = 0x10 + entries * 0x10 + 0x02; /* base header + table + header size */
     }
-    else if (is_id4("MCMP", 0x00, sf)) { /* Grim Fandango (multi), Star Wars: X-Wing Alliance (PC) */
+    else if (is_id32be(0x00, sf, "MCMP")) { /* Grim Fandango (multi), Star Wars: X-Wing Alliance (PC) */
         int entries = read_u16be(0x04,sf);
         head_offset = 0x06 + entries * 0x09; /* base header + table */
         head_offset += 0x02 + read_u16be(head_offset, sf); /* + mini text header */
@@ -40,17 +27,23 @@ VGMSTREAM* init_vgmstream_imuse(STREAMFILE* sf) {
         goto fail;
     }
 
+    /* .imx: The Curse of Monkey Island (PC) 
+     * .imc: Grim Fandango (multi)
+     * .wav: Grim Fandango (multi) RIFF sfx */
+    if (!check_extensions(sf, "imx,imc,wav,lwav"))
+        goto fail;
+
 
     /* "offsets" below seem to count decoded data. Data is divided into variable-sized blocks that usually
      * return 0x2000 bytes (starting from and including header). File starts with a block table to make
      * this manageable. Most offsets don't seem to match block or data boundaries so not really sure. */
 
     /* main header after table */
-    if (is_id4("iMUS", head_offset, sf)) { /* COMP/MCMP */
+    if (is_id32be(head_offset, sf, "iMUS")) { /* COMP/MCMP */
         int header_found = 0;
 
         /* 0x04: decompressed size (header size + pcm bytes) */
-        if (!is_id4("MAP ", head_offset + 0x08, sf))
+        if (!is_id32be(head_offset + 0x08, sf, "MAP "))
             goto fail;
         map_size = read_u32be(head_offset + 0x0c, sf);
         map_offset = head_offset + 0x10;
@@ -105,12 +98,12 @@ VGMSTREAM* init_vgmstream_imuse(STREAMFILE* sf) {
         if (!header_found)
             goto fail;
 
-        if (!is_id4("DATA", head_offset + 0x10 + map_size + 0x00, sf))
+        if (!is_id32be(head_offset + 0x10 + map_size + 0x00, sf, "DATA"))
             goto fail;
         data_bytes = read_u32be(head_offset + 0x10 + map_size + 0x04, sf);
         num_samples = data_bytes / channels / sizeof(int16_t);
     }
-    else if (is_id4("RIFF", head_offset, sf)) { /* MCMP voices */
+    else if (is_id32be(head_offset, sf, "RIFF")) { /* MCMP voices */
         /* standard (LE), with fake codec 1 and sizes also in decoded bytes (see above),
          * has standard RIFF chunks (may include extra), start offset in MCSC */
 
@@ -124,7 +117,8 @@ VGMSTREAM* init_vgmstream_imuse(STREAMFILE* sf) {
         num_samples = data_bytes / channels / sizeof(int16_t);
     }
     else {
-        goto fail; /* The Dig (PC) has no header, detect? */
+        vgm_logi("IMUSE: unsupported format\n");
+        goto fail; /* The Dig (PC) has no header, detect? (needs a bunch of sub-codecs) */
     }
 
     loop_flag = 0;

@@ -191,10 +191,21 @@ done:
 }
 
 #ifdef HCA_BRUTEFORCE
+typedef enum {
+    HBF_TYPE_64LE_1,
+    HBF_TYPE_64BE_1,
+    HBF_TYPE_32LE_1,
+    HBF_TYPE_32BE_1,
+    HBF_TYPE_64LE_4,
+    HBF_TYPE_64BE_4,
+    HBF_TYPE_32LE_4,
+    HBF_TYPE_32BE_4,
+} HBF_type_t;
+
 /* Bruteforce binary keys in executables and similar files, mainly for some mobile games.
  * Kinda slow but acceptable for ~20MB exes, not very optimized. Unity usually has keys
  * in plaintext (inside levelX or other base files) instead though. */
-static void bruteforce_hca_key_bin(STREAMFILE* sf, hca_codec_data* hca_data, unsigned long long* p_keycode, uint16_t subkey) {
+static void bruteforce_hca_key_bin_type(STREAMFILE* sf, hca_codec_data* hca_data, unsigned long long* p_keycode, uint16_t subkey, HBF_type_t type) {
     STREAMFILE* sf_keys = NULL;
     uint8_t* buf = NULL;
     int best_score = 0xFFFFFF, cur_score;
@@ -203,7 +214,7 @@ static void bruteforce_hca_key_bin(STREAMFILE* sf, hca_codec_data* hca_data, uns
     uint64_t old_key = 0;
 
 
-    VGM_LOG("HCA: test keys.bin\n");
+    VGM_LOG("HCA: test keys.bin (type %i)\n", type);
 
     *p_keycode = 0;
 
@@ -226,17 +237,18 @@ static void bruteforce_hca_key_bin(STREAMFILE* sf, hca_codec_data* hca_data, uns
         uint64_t key;
         VGM_ASSERT(pos % 0x1000000 == 0, "HCA: pos %x...\n", pos);
 
-        /* keys are usually u32le lower, u32le upper (u64le) but other orders may exist */
-        key = ((uint64_t)get_u32le(buf + pos + 0x00) << 0 ) | ((uint64_t)get_u32le(buf + pos + 0x04) << 32);
-      //key = ((uint64_t)get_u32le(buf + pos + 0x00) << 32) | ((uint64_t)get_u32le(buf + pos + 0x04) << 0);
-      //key = ((uint64_t)get_u32be(buf + pos + 0x00) << 0 ) | ((uint64_t)get_u32be(buf + pos + 0x04) << 32);
-      //key = ((uint64_t)get_u32be(buf + pos + 0x00) << 32) | ((uint64_t)get_u32be(buf + pos + 0x04) << 0);
-      //key = ((uint64_t)get_u32le(buf + pos + 0x00) << 0 ) | 0; /* upper bytes not set, ex. P5 */
-      //key = ((uint64_t)get_u32be(buf + pos + 0x00) << 0 ) | 0; /* upper bytes not set, ex. P5 */
-
-        /* observed files have aligned keys, change if needed */
-        pos += 0x04;
-        //pos++;
+        /* keys are usually u64le but other orders may exist */
+        switch(type) {
+            case HBF_TYPE_64LE_1: key = get_u64le(buf + pos);  pos += 0x01; break;
+            case HBF_TYPE_64BE_1: key = get_u64be(buf + pos);  pos += 0x01; break;
+            case HBF_TYPE_32LE_1: key = get_u32le(buf + pos);  pos += 0x01; break;
+            case HBF_TYPE_32BE_1: key = get_u32be(buf + pos);  pos += 0x01; break;
+            case HBF_TYPE_64LE_4: key = get_u64le(buf + pos);  pos += 0x04; break;
+            case HBF_TYPE_64BE_4: key = get_u64be(buf + pos);  pos += 0x04; break;
+            case HBF_TYPE_32LE_4: key = get_u32le(buf + pos);  pos += 0x04; break;
+            case HBF_TYPE_32BE_4: key = get_u32be(buf + pos);  pos += 0x04; break;
+            default: key = 0; pos = keys_size; break;
+        }
 
         if (key == 0 || key == old_key)
             continue;
@@ -265,6 +277,18 @@ done:
     close_streamfile(sf_keys);
     free(buf);
 }
+
+static void bruteforce_hca_key_bin(STREAMFILE* sf, hca_codec_data* hca_data, unsigned long long* p_keycode, uint16_t subkey) {
+    bruteforce_hca_key_bin_type(sf, hca_data, p_keycode, subkey, HBF_TYPE_64LE_4);
+    bruteforce_hca_key_bin_type(sf, hca_data, p_keycode, subkey, HBF_TYPE_64BE_4);
+    bruteforce_hca_key_bin_type(sf, hca_data, p_keycode, subkey, HBF_TYPE_32LE_4);
+    bruteforce_hca_key_bin_type(sf, hca_data, p_keycode, subkey, HBF_TYPE_32BE_4);
+    bruteforce_hca_key_bin_type(sf, hca_data, p_keycode, subkey, HBF_TYPE_64LE_1);
+    bruteforce_hca_key_bin_type(sf, hca_data, p_keycode, subkey, HBF_TYPE_64BE_1);
+    bruteforce_hca_key_bin_type(sf, hca_data, p_keycode, subkey, HBF_TYPE_32LE_1);
+    bruteforce_hca_key_bin_type(sf, hca_data, p_keycode, subkey, HBF_TYPE_32BE_1);
+}
+
 
 #include <inttypes.h>
 //#include <stdio.h>
@@ -303,14 +327,13 @@ static void bruteforce_hca_key_txt(STREAMFILE* sf, hca_codec_data* hca_data, uns
         uint64_t key = 0;
 
         bytes_read = read_line(line, sizeof(line), pos, sf_keys, &line_ok);
-        if (!line_ok) continue; //???
-
         pos += bytes_read;
+        if (!line_ok) continue; /* line too long */
 
         count = sscanf(line, "%" SCNd64, &key);
         if (count != 1) continue;
 
-        VGM_ASSERT(pos % 100000 == 0, "HCA: count %i...\n", i);
+        VGM_ASSERT(pos % 10000 == 0, "HCA: count %i...\n", i);
 
         if (key == 0)
             continue;
