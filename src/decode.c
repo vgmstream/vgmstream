@@ -4,6 +4,9 @@
 #include "coding/coding.h"
 #include "mixing.h"
 #include "plugins.h"
+#ifdef VGM_USE_MAIATRAC3PLUS
+#include "at3plus_decoder.h"
+#endif
 
 /* custom codec handling, not exactly "decode" stuff but here to simplify adding new codecs */
 

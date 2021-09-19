@@ -3,14 +3,7 @@
 
 #ifdef VGM_USE_MAIATRAC3PLUS
 #include "maiatrac3plus.h"
-
-struct maiatrac3plus_codec_data {
-    sample_t* buffer;
-    int channels;
-    int samples_discard;
-    void* handle;
-};
-
+#include "at3plus_decoder.h"
 
 maiatrac3plus_codec_data *init_at3plus() {
 

@@ -1,0 +1,17 @@
+if(NOT WIN32 AND USE_JANSSON)
+	find_package(PkgConfig REQUIRED)
+	pkg_check_modules(JANSSON jansson>=2.3)
+	
+	if(JANSSON_FOUND)
+		set(JANSSON_SOURCE "(system)")
+		set(JANSSON_PKG libjansson)
+		
+		include_directories(${JANSSON_INCLUDE_DIRS})
+		link_directories(${JANSSON_LIBRARY_DIRS})
+	else()
+		set(USE_JANSSON OFF)
+	endif()
+endif()
+if(NOT USE_JANSSON)
+	unset(JANSSON_SOURCE)
+endif()
