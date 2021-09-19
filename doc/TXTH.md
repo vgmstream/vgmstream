@@ -28,7 +28,7 @@ Also check the [examples](#examples) section for some quick recipes, of varying 
 
 
 ## Issues
-The `.txth` may be rejected if incorrect commands are found. Since at the moment vgmstream can't communicate why a file is rejected, try starting with a simple case (see examples) then add more complex commands until it fully works.
+The `.txth` may be rejected if incorrect commands are found. Errors are shown in the console log (see *USAGE* guide), better try starting with a simple case (see examples) then add more complex commands until it fully works.
 
 Extension must be accepted/added to vgmstream (plugins like foobar2000 only load extensions from an accepted list in `formats.c`), or one could rename to any supported extension (like `.vgmstream`), or leave the file extensionless. Before renaming consider reporting the unknown extension so it can be added to the list (so similar games benefit, as long as the extension is a good fit). Some plugins allow playing unknown extensions too.
 
@@ -221,7 +221,7 @@ interleave_first_skip = (value)
 #### ID VALUES
 Validates that `id_value` (normally set as constant value) matches value read at `id_check`. The file will be rejected and won't play if values don't match.
 
-Can be redefined several times, it's checked whenever a new id_offset is found. `id_offset` can be used as an alt for `id_check`
+Can be redefined several times, it's checked whenever a new id_check is found. `id_offset` can be used as an alt for `id_check`
 ```
 id_value = (value)
 id_check = (value)

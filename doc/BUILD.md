@@ -445,6 +445,8 @@ Adds support for multiple codecs: ATRAC3 (`.at3`), ATRAC3plus (`.at3`), XMA1/2 (
 
 vgmstream's FFmpeg builds for Windows remove many unnecessary parts of FFmpeg to trim down its gigantic size, and are also built with the "vgmstream-" prefix to avoid clashing with other plugins. Current options can be seen in `ffmpeg_options.txt`. Linux usually links to the system's FFmpeg without issues.
 
+Note that the options above use *libopus*, but you can use FFmpeg's *Opus* by removing `--enable-libopus` and changing `--enable-decoder`'s `libopus` to `opus`. libopus is preferable since FFmpeg's Opus decoding is buggy in some files.
+
 For GCC simply use autotools (configure, make, make install), passing to `configure` the above options.
 
 For MSCV it can be done through a helper: https://github.com/jb-alvarado/media-autobuild_suite
