@@ -1,7 +1,7 @@
 #include "vorbis_custom_decoder.h"
-#include "vorbis_bitreader.h"
 
 #ifdef VGM_USE_VORBIS
+#include "vorbis_bitreader.h"
 #include <vorbis/codec.h>
 
 #define WWISE_VORBIS_USE_PRECOMPILED_WVC 1 /* if enabled vgmstream weights ~150kb more but doesn't need external .wvc packets */

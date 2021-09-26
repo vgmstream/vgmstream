@@ -3,6 +3,8 @@
 
 #include "../vgmstream.h"
 
+typedef VGMSTREAM* (*init_vgmstream_t)(STREAMFILE* sf);
+
 VGMSTREAM* init_vgmstream_silence(int channels, int sample_rate, int32_t num_samples);
 VGMSTREAM* init_vgmstream_silence_container(int total_subsongs);
 
@@ -116,8 +118,7 @@ VGMSTREAM * init_vgmstream_vpk(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile);
 
-#ifdef VGM_USE_VORBIS
-VGMSTREAM * init_vgmstream_ogg_vorbis(STREAMFILE *streamFile);
+VGMSTREAM* init_vgmstream_ogg_vorbis(STREAMFILE* sf);
 
 typedef struct {
     int loop_flag;
@@ -142,16 +143,15 @@ typedef struct {
 
 } ogg_vorbis_meta_info_t;
 
-VGMSTREAM* init_vgmstream_ogg_vorbis_config(STREAMFILE *sf, off_t start, const ogg_vorbis_meta_info_t* ovmi);
-#endif
+VGMSTREAM* init_vgmstream_ogg_vorbis_config(STREAMFILE* sf, off_t start, const ogg_vorbis_meta_info_t* ovmi);
 
-VGMSTREAM * init_vgmstream_hca(STREAMFILE *streamFile);
-VGMSTREAM * init_vgmstream_hca_subkey(STREAMFILE *streamFile, uint16_t subkey);
+VGMSTREAM* init_vgmstream_hca(STREAMFILE* sf);
+VGMSTREAM* init_vgmstream_hca_subkey(STREAMFILE* sf, uint16_t subkey);
 
 #ifdef VGM_USE_FFMPEG
-VGMSTREAM * init_vgmstream_ffmpeg(STREAMFILE *streamFile);
+VGMSTREAM* init_vgmstream_ffmpeg(STREAMFILE* sf);
 
-VGMSTREAM * init_vgmstream_mp4_aac_ffmpeg(STREAMFILE * streamFile);
+VGMSTREAM* init_vgmstream_mp4_aac_ffmpeg(STREAMFILE* sf);
 #endif
 
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)

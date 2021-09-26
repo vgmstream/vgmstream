@@ -552,7 +552,7 @@ class App(object):
 
                 if not maker.has_more_subsongs(target_subsong):
                     break
-                if target_subsong >= subsong_end:
+                if subsong_end and target_subsong >= subsong_end:
                     break
                 target_subsong += 1
 

@@ -132,15 +132,27 @@ VGMSTREAM* init_vgmstream_psb(STREAMFILE* sf) {
 
     switch(psb.codec) {
         case PCM:
+            if (psb.layers > 1) {
+                /* somehow R offset can go before L, use layered */
+                vgmstream->layout_data = build_layered_psb(sf, &psb);
+                if (!vgmstream->layout_data) goto fail;
+                vgmstream->layout_type = layout_layered;
+
+                if (!vgmstream->num_samples)
+                    vgmstream->num_samples = pcm_bytes_to_samples(psb.stream_size[0], 1, psb.bps);
+            }
+            else {
+                vgmstream->layout_type = layout_interleave;
+                vgmstream->interleave_block_size = psb.block_size / psb.channels;
+                if (!vgmstream->num_samples)
+                    vgmstream->num_samples = pcm_bytes_to_samples(psb.stream_size[0], psb.channels, psb.bps);
+            }
+
             switch(psb.bps) {
                 case 16: vgmstream->coding_type = coding_PCM16LE; break; /* Legend of Mana (PC), Namco Museum Archives Vol.1 (PC) */
                 case 24: vgmstream->coding_type = coding_PCM24LE; break; /* Legend of Mana (PC) */
                 default: goto fail;
             }
-            vgmstream->layout_type = layout_interleave;
-            vgmstream->interleave_block_size = psb.block_size / psb.channels;
-            if (!vgmstream->num_samples)
-                vgmstream->num_samples = pcm_bytes_to_samples(psb.stream_size[0], psb.channels, psb.bps);
             break;
 
         case MSADPCM: /* [Senxin Aleste (AC)] */
@@ -235,7 +247,7 @@ static segmented_layout_data* build_segmented_psb_opus(STREAMFILE* sf, psb_heade
     uint32_t samples[] = {psb->intro_samples, psb->body_samples};
     uint32_t skips[] = {0, psb->skip_samples};
 
-    /* intro + body (looped songs) or just body (standard songs) 
+    /* intro + body (looped songs) or just body (standard songs)
        in full loops intro is 0 samples with a micro 1-frame opus [Nekopara (Switch)] */
     if (offsets[0] && samples[0])
         segment_count++;
@@ -279,6 +291,21 @@ fail:
     return NULL;
 }
 
+
+static VGMSTREAM* try_init_vgmstream(STREAMFILE* sf, init_vgmstream_t init_vgmstream, const char* extension, uint32_t offset, uint32_t size) {
+    STREAMFILE* temp_sf = NULL;
+    VGMSTREAM* v = NULL;
+
+    temp_sf = setup_subfile_streamfile(sf, offset, size, extension);
+    if (!temp_sf) goto fail;
+
+    v = init_vgmstream(temp_sf);
+    close_streamfile(temp_sf);
+    return v;
+fail:
+    return NULL;
+}
+
 static layered_layout_data* build_layered_psb(STREAMFILE* sf, psb_header_t* psb) {
     layered_layout_data* data = NULL;
     int i;
@@ -289,25 +316,39 @@ static layered_layout_data* build_layered_psb(STREAMFILE* sf, psb_header_t* psb)
     if (!data) goto fail;
 
     for (i = 0; i < psb->layers; i++) {
-        STREAMFILE* temp_sf = NULL;
-        VGMSTREAM* (*init_vgmstream)(STREAMFILE* sf) = NULL;
-        const char* extension = NULL;
-
         switch (psb->codec) {
-            case DSP:
-                extension = "adpcm";
-                init_vgmstream = init_vgmstream_ngc_dsp_std_le;
+            case PCM: {
+                VGMSTREAM* v = allocate_vgmstream(1, 0);
+                if (!v) goto fail;
+
+                data->layers[i] = v;
+
+                v->sample_rate = psb->sample_rate;
+                v->num_samples = psb->num_samples;
+
+                switch(psb->bps) {
+                    case 16: v->coding_type = coding_PCM16LE; break;
+                    case 24: v->coding_type = coding_PCM24LE; break;
+                    default: goto fail;
+                }
+                v->layout_type = layout_none;
+                if (!v->num_samples)
+                    v->num_samples = pcm_bytes_to_samples(psb->stream_size[i], 1, psb->bps);
+
+                if (!vgmstream_open_stream(v, sf, psb->stream_offset[i]))
+                    goto fail;
                 break;
+            }
+
+            case DSP:
+                data->layers[i] = try_init_vgmstream(sf, init_vgmstream_ngc_dsp_std_le, "adpcm", psb->stream_offset[i], psb->stream_size[i]);
+                if (!data->layers[i]) goto fail;
+                break;
+
             default:
+                VGM_LOG("psb: layer not implemented\n");
                 goto fail;
         }
-
-        temp_sf = setup_subfile_streamfile(sf, psb->stream_offset[i], psb->stream_size[i], extension);
-        if (!temp_sf) goto fail;
-
-        data->layers[i] = init_vgmstream(temp_sf);
-        close_streamfile(temp_sf);
-        if (!data->layers[i]) goto fail;
     }
 
     /* setup layered VGMSTREAMs */
@@ -332,9 +373,9 @@ static int prepare_fmt(STREAMFILE* sf, psb_header_t* psb) {
         psb->format         = read_u16be(offset + 0x00,sf);
         psb->channels       = read_u16be(offset + 0x02,sf);
         psb->sample_rate    = read_u32be(offset + 0x04,sf);
-        xma2_parse_fmt_chunk_extra(sf, 
-            offset, 
-            &psb->loop_flag, 
+        xma2_parse_fmt_chunk_extra(sf,
+            offset,
+            &psb->loop_flag,
             &psb->num_samples,
             &psb->loop_start,
             &psb->loop_end,
@@ -347,7 +388,7 @@ static int prepare_fmt(STREAMFILE* sf, psb_header_t* psb) {
         psb->block_size     = read_u16le(offset + 0x0c,sf);
         psb->bps            = read_u16le(offset + 0x0e,sf);
         /* 0x10+ varies */
-        
+
         switch(psb->format) {
             case 0x0002:
                 if (!msadpcm_check_coefs(sf, offset + 0x14))
@@ -356,7 +397,7 @@ static int prepare_fmt(STREAMFILE* sf, psb_header_t* psb) {
             default:
                 break;
         }
-        
+
     }
 
     return 1;
@@ -392,11 +433,12 @@ static int prepare_codec(STREAMFILE* sf, psb_header_t* psb) {
     /* try console strings */
     if (!spec)
         goto fail;
-    
+
     if (strcmp(spec, "nx") == 0) {
         if (!ext)
             goto fail;
-        
+
+        /* common, multichannel */
         if (strcmp(ext, ".opus") == 0) {
             psb->codec = OPUSNX;
 
@@ -409,8 +451,18 @@ static int prepare_codec(STREAMFILE* sf, psb_header_t* psb) {
             return 1;
         }
 
+        /* Legend of Mana (Switch), layered */
         if (strcmp(ext, ".adpcm") == 0) {
             psb->codec = DSP;
+
+            psb->channels = psb->layers;
+            return 1;
+        }
+
+        /* Castlevania Advance Collection (Switch), layered */
+        if (strcmp(ext, ".p16") == 0) {
+            psb->codec = PCM;
+            psb->bps = 16;
 
             psb->channels = psb->layers;
             return 1;
@@ -477,7 +529,7 @@ static int prepare_psb_extra(STREAMFILE* sf, psb_header_t* psb) {
         goto fail;
     return 1;
 fail:
-    return 0;    
+    return 0;
 }
 
 
@@ -488,7 +540,7 @@ fail:
  *   - body/channelCount/ext/intro/loop/samprate [Legend of Mana (Switch)]
  *     - body: data/sampleCount/skipSampleCount, intro: data/sampleCount
  *   - data/dpds/fmt/wav/loop
- * - pan: array [N.0 .. 0.N] (when N layers, in practice just a wonky L/R definition) 
+ * - pan: array [N.0 .. 0.N] (when N layers, in practice just a wonky L/R definition)
  */
 static int parse_psb_channels(psb_header_t* psb, psb_node_t* nchans) {
     int i;
@@ -584,7 +636,7 @@ static int parse_psb_channels(psb_header_t* psb, psb_node_t* nchans) {
                     };
                 }
 
-                /* background: false? 
+                /* background: false?
                  */
                 break;
 
@@ -659,7 +711,7 @@ fail:
  *          - "archData": (main audio part, varies per game/platform/codec)
  *          - "device": ?
  *     ...
- *     - (voice name N): ... 
+ *     - (voice name N): ...
  * From decompilations, audio code reads common keys up to "archData", then depends on game (not unified).
  * Keys are (seemingly) stored in text order.
  */

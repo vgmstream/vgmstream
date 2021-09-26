@@ -176,6 +176,8 @@ function Clean
     Remove-Item -Path "Release" -Recurse -ErrorAction Ignore
     Remove-Item -Path "bin" -Recurse -ErrorAction Ignore
     Remove-Item -Path "tmp" -Recurse -ErrorAction Ignore
+
+    Remove-Item "msvc-build.log" -ErrorAction Ignore
 }
 
 $fb2kFiles = @(
@@ -207,7 +209,7 @@ $cliPdbFiles = @(
     "$configuration/xmp-vgmstream.pdb"
 )
 
-function Package
+function MakePackage
 {
     Build
 
@@ -229,9 +231,9 @@ function Package
 
 
 # for github actions/artifact uploads, that use a dir with files
-function PackageTmp
+function MakePackageTmp
 {
-    Package
+    MakePackage
 
     md -Force tmp/cli
     md -Force tmp/fb2k
@@ -251,6 +253,6 @@ switch ($Task)
     "Build" { Build }
     "Rebuild" { Rebuild }
     "Clean" { Clean }
-    "Package" { Package }
-    "PackageTmp" { PackageTmp }
+    "Package" { MakePackage }
+    "PackageTmp" { MakePackageTmp }
 }

@@ -18,10 +18,10 @@ typedef struct {
     int32_t loop_end;
     int loop_flag;
 
-    size_t sample_header_size;
-    size_t name_table_size;
-    size_t sample_data_size;
-    size_t base_header_size;
+    uint32_t sample_header_size;
+    uint32_t name_table_size;
+    uint32_t sample_data_size;
+    uint32_t base_header_size;
 
     uint32_t extradata_offset;
     uint32_t extradata_size;
@@ -46,15 +46,15 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
 
 
     /* checks */
+    if (!is_id32be(0x00,sf, "FSB5"))
+        goto fail;
+
     /* .fsb: standard
      * .snd: Alchemy engine (also Unity) */
     if (!check_extensions(sf,"fsb,snd"))
         goto fail;
 
-    if (!is_id32be(0x00,sf, "FSB5"))
-        goto fail;
-
-    /* v0 is rare (seen in Tales from Space Vita) */
+    /* v0 is rare, seen in Tales from Space (Vita) */
     fsb5.version = read_u32le(0x04,sf);
     if (fsb5.version != 0x00 && fsb5.version != 0x01)
         goto fail;
@@ -80,7 +80,7 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
     }
 
     if ((fsb5.sample_header_size + fsb5.name_table_size + fsb5.sample_data_size + fsb5.base_header_size) != get_streamfile_size(sf)) {
-        vgm_logi("FSB5: wrong size, expected %x + %x + %x + %x vs %x (re-rip)\n", fsb5.sample_header_size, fsb5.name_table_size, fsb5.sample_data_size, fsb5.base_header_size, get_streamfile_size(sf));
+        vgm_logi("FSB5: wrong size, expected %x + %x + %x + %x vs %x (re-rip)\n", fsb5.sample_header_size, fsb5.name_table_size, fsb5.sample_data_size, fsb5.base_header_size, (uint32_t)get_streamfile_size(sf));
         goto fail;
     }
 

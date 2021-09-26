@@ -55,7 +55,7 @@ struct ffmpeg_codec_data {
 };
 
 
-#define FFMPEG_DEFAULT_IO_BUFFER_SIZE 128 * 1024
+#define FFMPEG_DEFAULT_IO_BUFFER_SIZE  STREAMFILE_DEFAULT_BUFFER_SIZE
 
 static volatile int g_ffmpeg_initialized = 0;
 
@@ -322,7 +322,7 @@ ffmpeg_codec_data* init_ffmpeg_header_offset_subsong(STREAMFILE* sf, uint8_t* he
         goto fail;
 
     if (size == 0 || start + size > get_streamfile_size(sf)) {
-        vgm_asserti(size != 0, "FFMPEG: wrong start+size found: %x + %x > %x \n", (uint32_t)start, (uint32_t)size, get_streamfile_size(sf));
+        vgm_asserti(size != 0, "FFMPEG: wrong start+size found: %x + %x > %x \n", (uint32_t)start, (uint32_t)size, (uint32_t)get_streamfile_size(sf));
         size = get_streamfile_size(sf) - start;
     }
 
