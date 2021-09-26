@@ -38,9 +38,8 @@ VGMSTREAM* init_vgmstream_encrypted(STREAMFILE* sf) {
 
         temp_sf = setup_ogg_vorbis_streamfile(sf, cfg);
         if (!temp_sf) goto fail;
-#ifdef VGM_USE_VORBIS
+
         vgmstream = init_vgmstream_ogg_vorbis(temp_sf);
-#endif
         close_streamfile(temp_sf);
         return vgmstream;
     }

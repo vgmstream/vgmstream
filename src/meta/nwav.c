@@ -2,37 +2,35 @@
 #include "../coding/coding.h"
 
 /* NWAV - from Chunsoft games [Fuurai no Shiren Gaiden: Onnakenshi Asuka Kenzan! (PC)] */
-VGMSTREAM * init_vgmstream_nwav(STREAMFILE *sf) {
-    VGMSTREAM * vgmstream = NULL;
+VGMSTREAM* init_vgmstream_nwav(STREAMFILE* sf) {
     off_t start_offset;
 
 
     /* checks */
+    if (!is_id32be(0x00,sf, "NWAV"))
+        goto fail;
     /* .nwav: header id (no filenames in bigfiles) */
-    if ( !check_extensions(sf,"nwav") )
-        goto fail;
-    if (read_32bitBE(0x00,sf) != 0x4E574156) /* "NWAV" */
+    if (!check_extensions(sf,"nwav,") )
         goto fail;
 
 
-#ifdef VGM_USE_VORBIS
     {
         ogg_vorbis_meta_info_t ovmi = {0};
         int channels;
 
         /* 0x04: version? */
         /* 0x08: crc? */
-        ovmi.stream_size = read_32bitLE(0x0c, sf);
-        ovmi.loop_end = read_32bitLE(0x10, sf); /* num_samples, actually */
+        ovmi.stream_size = read_u32le(0x0c, sf);
+        ovmi.loop_end = read_u32le(0x10, sf); /* num_samples, actually */
         /* 0x14: sample rate */
         /* 0x18: bps? (16) */
-        channels = read_8bit(0x19, sf);
-        start_offset = read_16bitLE(0x1a, sf);
+        channels = read_u8(0x19, sf);
+        start_offset = read_u16le(0x1a, sf);
 
-        ovmi.loop_flag = read_16bitLE(0x1c, sf) != 0; /* loop count? -1 = loops */
+        ovmi.loop_flag = read_u16le(0x1c, sf) != 0; /* loop count? -1 = loops */
         /* 0x1e: always 2? */
         /* 0x20: always 1? */
-        ovmi.loop_start = read_32bitLE(0x24, sf);
+        ovmi.loop_start = read_u32le(0x24, sf);
         /* 0x28: always 1? */
         /* 0x2a: always 1? */
         /* 0x2c: always null? */
@@ -43,15 +41,9 @@ VGMSTREAM * init_vgmstream_nwav(STREAMFILE *sf) {
         ovmi.loop_start = ovmi.loop_start / sizeof(int16_t) / channels;
         ovmi.loop_end = ovmi.loop_end / sizeof(int16_t) / channels;
 
-        vgmstream = init_vgmstream_ogg_vorbis_config(sf, start_offset, &ovmi);
+        return init_vgmstream_ogg_vorbis_config(sf, start_offset, &ovmi);
     }
-#else
-    goto fail;
-#endif
-
-    return vgmstream;
 
 fail:
-    close_vgmstream(vgmstream);
     return NULL;
 }

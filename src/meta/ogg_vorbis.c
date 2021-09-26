@@ -1,4 +1,3 @@
-#ifdef VGM_USE_VORBIS
 #include <stdio.h>
 #include <string.h>
 #include "meta.h"
@@ -6,6 +5,28 @@
 #include "ogg_vorbis_streamfile.h"
 
 
+#ifdef VGM_USE_VORBIS
+static VGMSTREAM* _init_vgmstream_ogg_vorbis(STREAMFILE* sf);
+static VGMSTREAM* _init_vgmstream_ogg_vorbis_config(STREAMFILE* sf, off_t start, const ogg_vorbis_meta_info_t* ovmi);
+#endif
+
+VGMSTREAM* init_vgmstream_ogg_vorbis(STREAMFILE* sf) {
+#ifdef VGM_USE_VORBIS
+    return _init_vgmstream_ogg_vorbis(sf);
+#else
+    return NULL;
+#endif
+}
+
+VGMSTREAM* init_vgmstream_ogg_vorbis_config(STREAMFILE* sf, off_t start, const ogg_vorbis_meta_info_t* ovmi) {
+#ifdef VGM_USE_VORBIS
+    return _init_vgmstream_ogg_vorbis_config(sf, start, ovmi);
+#else
+    return NULL;
+#endif
+}
+
+#ifdef VGM_USE_VORBIS
 static void um3_ogg_decryption_callback(void* ptr, size_t size, size_t nmemb, void* datasource) {
     uint8_t *ptr8 = ptr;
     size_t bytes_read = size * nmemb;
@@ -110,8 +131,8 @@ static const uint32_t xiph_mappings[] = {
 };
 
 
-/* Ogg Vorbis,  may contain loop comments */
-VGMSTREAM* init_vgmstream_ogg_vorbis(STREAMFILE* sf) {
+/* Ogg Vorbis - standard .ogg with (possibly) loop comments/metadata */
+static VGMSTREAM* _init_vgmstream_ogg_vorbis(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     STREAMFILE* temp_sf = NULL;
     ogg_vorbis_io_config_data cfg = {0};
@@ -416,7 +437,7 @@ VGMSTREAM* init_vgmstream_ogg_vorbis(STREAMFILE* sf) {
             ovmi.meta_type = meta_OGG_VORBIS;
     }
 
-    vgmstream = init_vgmstream_ogg_vorbis_config(temp_sf != NULL ? temp_sf : sf, start_offset, &ovmi);
+    vgmstream = _init_vgmstream_ogg_vorbis_config(temp_sf != NULL ? temp_sf : sf, start_offset, &ovmi);
 
     close_streamfile(temp_sf);
     return vgmstream;
@@ -426,7 +447,7 @@ fail:
     return NULL;
 }
 
-VGMSTREAM* init_vgmstream_ogg_vorbis_config(STREAMFILE* sf, off_t start, const ogg_vorbis_meta_info_t* ovmi) {
+static VGMSTREAM* _init_vgmstream_ogg_vorbis_config(STREAMFILE* sf, off_t start, const ogg_vorbis_meta_info_t* ovmi) {
     VGMSTREAM* vgmstream = NULL;
     ogg_vorbis_codec_data* data = NULL;
     ogg_vorbis_io io = {0};

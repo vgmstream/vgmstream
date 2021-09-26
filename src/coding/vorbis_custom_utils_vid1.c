@@ -1,9 +1,9 @@
 #include "vorbis_custom_decoder.h"
 
+#ifdef VGM_USE_VORBIS
 #define BITSTREAM_READ_ONLY /* config */
 #include "vorbis_bitreader.h"
 
-#ifdef VGM_USE_VORBIS
 #include <vorbis/codec.h>
 
 

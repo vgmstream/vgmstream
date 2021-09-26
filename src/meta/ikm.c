@@ -10,14 +10,14 @@ VGMSTREAM* init_vgmstream_ikm_ps2(STREAMFILE* sf) {
 
 
     /* checks */
-    if ( !check_extensions(sf,"ikm") )
+    if (!is_id32be(0x00,sf, "IKM\0"))
         goto fail;
-    if (read_u32be(0x00,sf) != 0x494B4D00) /* "IKM\0" */
+    if (!check_extensions(sf,"ikm"))
         goto fail;
 
-    if (read_u32be(0x40,sf) != 0x41535400) /* "AST\0" */
-        goto fail;
     /* 0x20: type 03? */
+    if (!is_id32be(0x40,sf, "AST\0"))
+        goto fail;
 
     loop_flag = (read_s32le(0x14, sf) > 0);
     channel_count = read_s32le(0x50, sf);
@@ -53,23 +53,24 @@ VGMSTREAM* init_vgmstream_ikm_pc(STREAMFILE* sf) {
 
 
     /* checks */
-    if ( !check_extensions(sf,"ikm") )
+    if (!is_id32be(0x00,sf, "IKM\0"))
         goto fail;
-    if (read_u32be(0x00,sf) != 0x494B4D00) /* "IKM\0" */
+    if (!check_extensions(sf,"ikm"))
         goto fail;
     /* 0x20: type 01? */
 
     /* find "OggS" start */
-    if (read_u32be(0x30,sf) == 0x4F676753) {
+    if (is_id32be(0x30,sf, "OggS")) {
         start_offset = 0x30; /* Chaos Legion (PC) */
-    } else if (read_u32be(0x800,sf) == 0x4F676753) {
+    }
+    else if (is_id32be(0x800,sf, "OggS")) {
         start_offset = 0x800; /* Legend of Galactic Heroes (PC) */
-    } else {
+    }
+    else {
         goto fail;
     }
 
 
-#ifdef VGM_USE_VORBIS
     {
         ogg_vorbis_meta_info_t ovmi = {0};
 
@@ -82,9 +83,6 @@ VGMSTREAM* init_vgmstream_ikm_pc(STREAMFILE* sf) {
 
         vgmstream = init_vgmstream_ogg_vorbis_config(sf, start_offset, &ovmi);
     }
-#else
-    goto fail;
-#endif
 
     return vgmstream;
 
@@ -102,13 +100,14 @@ VGMSTREAM* init_vgmstream_ikm_psp(STREAMFILE* sf) {
 
 
     /* checks */
+    if (!is_id32be(0x00,sf, "IKM\0"))
+        goto fail;
     if (!check_extensions(sf,"ikm"))
         goto fail;
-    if (read_u32be(0x00,sf) != 0x494B4D00) /* "IKM\0" */
-        goto fail;
-    if (read_u32be(0x800,sf) != 0x52494646) /* "RIFF" */
-        goto fail;
+
     /* 0x20: type 00? */
+    if (!is_id32be(0x800,sf, "RIFF"))
+        goto fail;
 
     /* loop values (pre-adjusted without encoder delay) at 0x14/18 are found in the RIFF too */
     data_size = read_s32le(0x24, sf);

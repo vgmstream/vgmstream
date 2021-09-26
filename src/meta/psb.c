@@ -292,8 +292,6 @@ fail:
 }
 
 
-typedef VGMSTREAM* (*init_vgmstream_t)(STREAMFILE* sf);
-
 static VGMSTREAM* try_init_vgmstream(STREAMFILE* sf, init_vgmstream_t init_vgmstream, const char* extension, uint32_t offset, uint32_t size) {
     STREAMFILE* temp_sf = NULL;
     VGMSTREAM* v = NULL;

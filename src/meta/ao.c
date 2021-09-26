@@ -2,18 +2,17 @@
 #include "../coding/coding.h"
 
 /* .AO - from AlphaOgg lib [Cloudphobia (PC), GEO ~The Sword Millennia~ Kasumi no Tani no Kaibutsu (PC)] */
-VGMSTREAM* init_vgmstream_ao(STREAMFILE *sf) {
+VGMSTREAM* init_vgmstream_ao(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     off_t start_offset;
 
 
     /* checks */
-    if (!check_extensions(sf,"ao"))
-        goto fail;
     if (!is_id64be(0x00,sf, "ALPHAOGG"))
         goto fail;
+    if (!check_extensions(sf,"ao"))
+        goto fail;
 
-#ifdef VGM_USE_VORBIS
     {
         ogg_vorbis_meta_info_t ovmi = {0};
         int sample_rate = read_u32le(0xF0, sf); /* Ogg header */
@@ -29,9 +28,6 @@ VGMSTREAM* init_vgmstream_ao(STREAMFILE *sf) {
         start_offset = 0xc8;
         vgmstream = init_vgmstream_ogg_vorbis_config(sf, start_offset, &ovmi);
     }
-#else
-    goto fail;
-#endif
 
     return vgmstream;
 fail:

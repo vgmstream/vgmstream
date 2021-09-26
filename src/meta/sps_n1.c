@@ -12,8 +12,8 @@ VGMSTREAM* init_vgmstream_sps_n1(STREAMFILE* sf) {
     off_t subfile_offset;
     size_t subfile_size;
 
-    VGMSTREAM* (*init_vgmstream_subfile)(STREAMFILE*) = NULL;
-    const char* extension;
+    init_vgmstream_t init_vgmstream = NULL;
+    const char* extension = NULL;
     uint32_t (*read_u32)(off_t,STREAMFILE*);
     uint16_t (*read_u16)(off_t,STREAMFILE*);
 
@@ -38,12 +38,12 @@ VGMSTREAM* init_vgmstream_sps_n1(STREAMFILE* sf) {
 
     switch(type) {
         case 1:
-            init_vgmstream_subfile = init_vgmstream_vag;
+            init_vgmstream = init_vgmstream_vag;
             extension = "vag";
             break;
 
         case 2:
-            init_vgmstream_subfile = init_vgmstream_riff;
+            init_vgmstream = init_vgmstream_riff;
             extension = "at3";
             break;
 
@@ -59,7 +59,7 @@ VGMSTREAM* init_vgmstream_sps_n1(STREAMFILE* sf) {
     temp_sf = setup_subfile_streamfile(sf, subfile_offset, subfile_size, extension);
     if (!temp_sf) goto fail;
 
-    vgmstream = init_vgmstream_subfile(temp_sf);
+    vgmstream = init_vgmstream(temp_sf);
     if (!vgmstream) goto fail;
 
     vgmstream->sample_rate = sample_rate; /* .vag header doesn't match */
@@ -81,7 +81,7 @@ VGMSTREAM* init_vgmstream_sps_n1_segmented(STREAMFILE* sf) {
     int loop_flag, type, sample_rate;
     int i, segment;
 
-    VGMSTREAM* (*init_vgmstream_subfile)(STREAMFILE*) = NULL;
+    init_vgmstream_t init_vgmstream = NULL;
     const char* extension;
     segmented_layout_data* data = NULL;
     int segment_count, loop_start_segment, loop_end_segment;
@@ -101,15 +101,13 @@ VGMSTREAM* init_vgmstream_sps_n1_segmented(STREAMFILE* sf) {
     /* 0x0c: num_samples (slightly smaller than added samples?) */
 
     switch(type) {
-    #ifdef VGM_USE_VORBIS
         case 7:
-            init_vgmstream_subfile = init_vgmstream_ogg_vorbis;
+            init_vgmstream = init_vgmstream_ogg_vorbis;
             extension = "ogg";
             break;
-    #endif
 
         case 9:
-            init_vgmstream_subfile = init_vgmstream_opus_std;
+            init_vgmstream = init_vgmstream_opus_std;
             extension = "opus";
             break;
 
@@ -155,7 +153,7 @@ VGMSTREAM* init_vgmstream_sps_n1_segmented(STREAMFILE* sf) {
         temp_sf = setup_subfile_streamfile(sf, segment_offset,segment_size, extension);
         if (!temp_sf) goto fail;
 
-        data->segments[segment] = init_vgmstream_subfile(temp_sf);
+        data->segments[segment] = init_vgmstream(temp_sf);
         close_streamfile(temp_sf);
         if (!data->segments[segment]) goto fail;
 

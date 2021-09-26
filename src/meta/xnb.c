@@ -17,9 +17,9 @@ VGMSTREAM* init_vgmstream_xnb(STREAMFILE* sf) {
 
 
     /* checks */
-    if (!check_extensions(sf,"xnb"))
-        goto fail;
     if ((read_u32be(0x00, sf) & 0xFFFFFF00) != get_id32be("XNB\0"))
+        goto fail;
+    if (!check_extensions(sf,"xnb"))
         goto fail;
 
     /* XNA Studio platforms: 'w' = Windows, 'm' = Windows Phone 7, 'x' = X360
@@ -184,10 +184,9 @@ VGMSTREAM* init_vgmstream_xnb(STREAMFILE* sf) {
         if (!temp_sf) goto fail;
 
         if (is_ogg) {
-#ifdef VGM_USE_VORBIS
             vgmstream = init_vgmstream_ogg_vorbis(temp_sf);
-#endif
-        } else {
+        }
+        else {
             vgmstream = init_vgmstream_riff(temp_sf);
         }
         close_streamfile(temp_sf);

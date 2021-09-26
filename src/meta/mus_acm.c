@@ -11,11 +11,11 @@
 #endif
 
 
-static char** parse_mus(STREAMFILE *streamFile, int *out_file_count, int *out_loop_flag, int *out_loop_start_index, int *out_loop_end_index);
+static char** parse_mus(STREAMFILE* sf, int *out_file_count, int *out_loop_flag, int *out_loop_start_index, int *out_loop_end_index);
 static void clean_mus(char** mus_filenames, int file_count);
 
 /* .MUS - playlist for InterPlay games [Planescape: Torment (PC), Baldur's Gate Enhanced Edition (PC)] */
-VGMSTREAM * init_vgmstream_mus_acm(STREAMFILE *streamFile) {
+VGMSTREAM* init_vgmstream_mus_acm(STREAMFILE* sf) {
     VGMSTREAM * vgmstream = NULL;
     segmented_layout_data *data = NULL;
 
@@ -27,11 +27,11 @@ VGMSTREAM * init_vgmstream_mus_acm(STREAMFILE *streamFile) {
 
 
     /* checks */
-    if (!check_extensions(streamFile, "mus"))
+    if (!check_extensions(sf, "mus"))
         goto fail;
 
     /* get file paths from the .MUS text file */
-    mus_filenames = parse_mus(streamFile, &segment_count, &loop_flag, &loop_start_index, &loop_end_index);
+    mus_filenames = parse_mus(sf, &segment_count, &loop_flag, &loop_start_index, &loop_end_index);
     if (!mus_filenames) goto fail;
 
     /* init layout */
@@ -40,24 +40,22 @@ VGMSTREAM * init_vgmstream_mus_acm(STREAMFILE *streamFile) {
 
     /* open each segment subfile */
     for (i = 0; i < segment_count; i++) {
-        STREAMFILE* temp_streamFile = streamFile->open(streamFile, mus_filenames[i], STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (!temp_streamFile) goto fail;
+        STREAMFILE* temp_sf = sf->open(sf, mus_filenames[i], STREAMFILE_DEFAULT_BUFFER_SIZE);
+        if (!temp_sf) goto fail;
 
         /* find .ACM type */
-        switch(read_32bitBE(0x00,temp_streamFile)) {
+        switch(read_32bitBE(0x00,temp_sf)) {
             case 0x97280301: /* ACM header id [Planescape: Torment (PC)]  */
-                data->segments[i] = init_vgmstream_acm(temp_streamFile);
+                data->segments[i] = init_vgmstream_acm(temp_sf);
                 break;
-#ifdef VGM_USE_VORBIS
             case 0x4F676753: /* "OggS" [Planescape: Torment Enhanced Edition (PC)] */
-                data->segments[i] = init_vgmstream_ogg_vorbis(temp_streamFile);
+                data->segments[i] = init_vgmstream_ogg_vorbis(temp_sf);
                 break;
-#endif
             default:
                 data->segments[i] = NULL;
                 break;
         }
-        close_streamfile(temp_streamFile);
+        close_streamfile(temp_sf);
 
         if (!data->segments[i]) goto fail;
 
@@ -184,7 +182,7 @@ fail:
     return 1;
 }
 
-static char** parse_mus(STREAMFILE *streamFile, int *out_file_count, int *out_loop_flag, int *out_loop_start_index, int *out_loop_end_index) {
+static char** parse_mus(STREAMFILE *sf, int *out_file_count, int *out_loop_flag, int *out_loop_start_index, int *out_loop_end_index) {
     char** names = NULL;
 
     char filename[NAME_LENGTH];
@@ -204,7 +202,7 @@ static char** parse_mus(STREAMFILE *streamFile, int *out_file_count, int *out_lo
 
 
     /* read file name base */
-    bytes_read = read_line(line, sizeof(line), mus_offset, streamFile, &line_ok);
+    bytes_read = read_line(line, sizeof(line), mus_offset, sf, &line_ok);
     if (!line_ok) goto fail;
     mus_offset += bytes_read;
     memcpy(name_base,line,sizeof(name_base));
@@ -217,7 +215,7 @@ static char** parse_mus(STREAMFILE *streamFile, int *out_file_count, int *out_lo
     }
 
     /* read track entry count */
-    bytes_read = read_line(line, sizeof(line), mus_offset, streamFile, &line_ok);
+    bytes_read = read_line(line, sizeof(line), mus_offset, sf, &line_ok);
     if (!line_ok) goto fail;
     if (line[0] == '\0') goto fail;
     mus_offset += bytes_read;
@@ -235,7 +233,7 @@ static char** parse_mus(STREAMFILE *streamFile, int *out_file_count, int *out_lo
     }
 
     dir_name[0]='\0';
-    streamFile->get_name(streamFile,filename,sizeof(filename));
+    sf->get_name(sf,filename,sizeof(filename));
     concatn(sizeof(dir_name),dir_name,filename);
 
     /* find directory name for the directory contianing the MUS */
@@ -262,7 +260,7 @@ static char** parse_mus(STREAMFILE *streamFile, int *out_file_count, int *out_lo
         for (i = 0; i < file_count; i++)
         {
             int fields_matched;
-            bytes_read = read_line(line,sizeof(line), mus_offset, streamFile, &line_ok);
+            bytes_read = read_line(line,sizeof(line), mus_offset, sf, &line_ok);
             if (!line_ok) goto fail;
             mus_offset += bytes_read;
 
@@ -308,13 +306,13 @@ static char** parse_mus(STREAMFILE *streamFile, int *out_file_count, int *out_lo
             concatn(NAME_LENGTH,names[i],name);
             concatn(NAME_LENGTH,names[i],".ACM");
 
-            if (!exists(names[i],streamFile)) {
+            if (!exists(names[i],sf)) {
 
                 /* We can't test for the directory until we have a file name
                  * to look for, so we do it here with the first file that seems to
                  * be in a subdirectory */
                 if (subdir_name[0]=='\0') {
-                    if (find_directory_name(name_base, dir_name, sizeof(subdir_name), subdir_name, name, filename, streamFile))
+                    if (find_directory_name(name_base, dir_name, sizeof(subdir_name), subdir_name, name, filename, sf))
                         goto fail;
                 }
 
@@ -325,7 +323,7 @@ static char** parse_mus(STREAMFILE *streamFile, int *out_file_count, int *out_lo
                 concatn(NAME_LENGTH,names[i],name);
                 concatn(NAME_LENGTH,names[i],".ACM");
 
-                if (!exists(names[i],streamFile)) goto fail;
+                if (!exists(names[i],sf)) goto fail;
             }
         }
 

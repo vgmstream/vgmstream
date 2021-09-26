@@ -3,9 +3,9 @@
 
 
 /* FFDL - Matrix Software wrapper [Final Fantasy Dimensions (Android/iOS)] */
-VGMSTREAM * init_vgmstream_ffdl(STREAMFILE *sf) {
-    VGMSTREAM * vgmstream = NULL;
-    STREAMFILE *temp_sf = NULL;
+VGMSTREAM* init_vgmstream_ffdl(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
+    STREAMFILE* temp_sf = NULL;
     int loop_flag = 0, is_ffdl = 0;
     int32_t num_samples = 0, loop_start_sample = 0, loop_end_sample = 0;
     off_t start_offset;
@@ -13,6 +13,10 @@ VGMSTREAM * init_vgmstream_ffdl(STREAMFILE *sf) {
 
 
     /* checks */
+    if (!is_id32be(0x00,sf, "FFDL") &&
+        !is_id32be(0x00,sf, "mtxs"))
+        goto fail;
+
     /* .ogg/logg: probable extension for Android
      * .mp4/lmp4: probable extension for iOS
      * .bin: iOS FFDL extension
@@ -24,16 +28,15 @@ VGMSTREAM * init_vgmstream_ffdl(STREAMFILE *sf) {
      * Ogg/MP4 or "mtxs" w/ loops + Ogg/MP4, and may concatenate multiple of them
      * (without size in sight), so they should be split externally first. */
 
-    start_offset = 0x00;
-
     /* may start with wrapper (not split) */
-    if (read_u32be(0x00,sf) == 0x4646444C) { /* "FFDL" */
+    start_offset = 0x00;
+    if (is_id32be(0x00,sf, "FFDL")) {
         is_ffdl = 1;
         start_offset += 0x04;
     }
 
     /* may start with sample info (split) or after "FFDL" */
-    if (read_u32be(start_offset+0x00,sf) == 0x6D747873) { /* "mtxs" */
+    if (is_id32be(start_offset+0x00,sf, "mtxs")) {
         is_ffdl = 1;
 
         num_samples       = read_s32le(start_offset + 0x04,sf);
@@ -51,15 +54,11 @@ VGMSTREAM * init_vgmstream_ffdl(STREAMFILE *sf) {
     file_size = get_streamfile_size(sf) - start_offset;
 
     if (read_u32be(start_offset + 0x00,sf) == 0x4F676753) { /* "OggS" */
-#ifdef VGM_USE_VORBIS
         temp_sf = setup_subfile_streamfile(sf, start_offset, file_size, "ogg");
         if (!temp_sf) goto fail;
 
         vgmstream = init_vgmstream_ogg_vorbis(temp_sf);
         if (!vgmstream) goto fail;
-#else
-    goto fail;
-#endif
     }
     else if (read_u32be(start_offset + 0x04,sf) == 0x66747970) { /* "ftyp" after atom size */
 #ifdef VGM_USE_FFMPEG
