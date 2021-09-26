@@ -16,11 +16,11 @@
  * - Clang: seems only defined on Linux/GNU environments, somehow emscripten is out
  *   (unsure about Clang Win since apparently they define _MSC_VER)
  * - Android: API +24 if not using __USE_FILE_OFFSET64
- * Not sure if fopen64 is needed in some cases. May be worth adding some compiler flag to enable 64 versions manually.
+ * Not sure if fopen64 is needed in some cases.
  */
 
-/* MSVC fixes (though mingw uses MSVCRT but not MSC_VER, maybe use AND?) */
-#if defined(__MSVCRT__) || defined(_MSC_VER)
+#if defined(_MSC_VER) //&& defined(__MSVCRT__)
+    /* MSVC fixes (MinG64 seems to set MSVCRT too, but we want it below) */
     #include <io.h>
 
     #define fopen_v fopen
@@ -43,15 +43,23 @@
     //    #define off_t/off64_t __int64
     //#endif
 
+#elif defined(VGMSTREAM_USE_IO64) || defined(__MINGW32__) || defined(__MINGW64__)
+    /* force, or known to work */
+    #define fopen_v fopen
+    #define fseek_v fseeko64  //fseeko
+    #define ftell_v ftello64  //ftello
+
 #elif defined(XBMC) || defined(__EMSCRIPTEN__) || defined (__ANDROID__)
+    /* may depend on version */
     #define fopen_v fopen
     #define fseek_v fseek
     #define ftell_v ftell
 
 #else
+    /* other Linux systems may already use off64_t in fseeko/ftello? */
     #define fopen_v fopen
-    #define fseek_v fseeko64  //fseeko
-    #define ftell_v ftello64  //ftello
+    #define fseek_v fseeko
+    #define ftell_v ftello
 #endif
 
 
