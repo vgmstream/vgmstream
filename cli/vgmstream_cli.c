@@ -32,9 +32,15 @@
 #define APP_INFO  APP_NAME " (" __DATE__ ")"
 
 
-/* low values are ok as there is very little performance difference, but higher
- * may improve write I/O in some systems as this*channels doubles as output buffer */
-#define SAMPLE_BUFFER_SIZE  32768
+/* Low values are ok as there is very little performance difference, but higher
+ * may improve write I/O in some systems as this*channels doubles as output buffer
+ * For systems with less memory (like wasm without -s ALLOW_MEMORY_GROWTH) lower helps a bit. */
+//TODO: make it selectable with -n? in the future may just use internal bufs for min memory
+#ifdef __EMSCRIPTEN__
+    #define SAMPLE_BUFFER_SIZE  1024
+#else
+    #define SAMPLE_BUFFER_SIZE  32768
+#endif
 
 /* getopt globals from .h, for reference (the horror...) */
 //extern char* optarg;
@@ -150,8 +156,8 @@ static int parse_config(cli_config* cfg, int argc, char** argv) {
     cfg->seek_samples1 = -1;
     cfg->seek_samples2 = -1;
 
-    /* don't let getopt print errors to stdout automatically */
-    opterr = 0;
+    opterr = 0; /* don't let getopt print errors to stdout automatically */
+    optind = 1; /* reset getopt's ugly globals (needed in wasm that may call same main() multiple times) */
 
     /* read config */
     while ((opt = getopt(argc, argv, "o:l:f:d:ipPcmxeLEFrgb2:s:t:Tk:K:hOvD:S:"
