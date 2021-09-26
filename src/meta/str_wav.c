@@ -213,11 +213,6 @@ static int parse_header(STREAMFILE* sf_h, STREAMFILE* sf_b, strwav_header* strwa
      * table entries don't need to match (table2 may be slightly bigger)
     */
 
-//breaking ta rules full test again, fuse with Pac-Man World 3 
-//same on xbox and pc
-//same with zapper + pw3 gc
-
-
     //todo loop start/end values may be off for some headers
 
     /* Fuzion Frenzy (Xbox)[2001] wma */
@@ -251,7 +246,7 @@ static int parse_header(STREAMFILE* sf_h, STREAMFILE* sf_b, strwav_header* strwa
     /* Cubix Robots for Everyone: Showdown (GC)[2003] */
     if ( read_u32be(0x04,sf_h) == 0x00000900 &&
          read_u32be(0x0c,sf_h) != header_size &&
-         read_u32le(0x24,sf_h) != 0 &&
+         read_u32be(0x24,sf_h) != 0 &&
          read_u32be(0x24,sf_h) == read_u32be(0x90,sf_h) && /* sample rate repeat */
          read_u32be(0xa0,sf_h) == header_size /* ~0x3C0 */
          ) {
@@ -367,9 +362,11 @@ static int parse_header(STREAMFILE* sf_h, STREAMFILE* sf_b, strwav_header* strwa
         return 1;
     }
 
-    /* Zapper: One Wicked Cricket! (GC)[2005] */
+    /* Zapper: One Wicked Cricket! Beta (GC)[2002] */
+    /* Zapper: One Wicked Cricket! (GC)[2002] */
     if ( read_u32be(0x04,sf_h) == 0x00000900 &&
          read_u32be(0x24,sf_h) == read_u32be(0xB0,sf_h) && /* sample rate repeat */
+         read_u32be(0x88,sf_h) != 0 &&
          read_u32le(0xc0,sf_h) == header_size /* LE! */
          ) {
         /* 0x08: null */
@@ -399,10 +396,36 @@ static int parse_header(STREAMFILE* sf_h, STREAMFILE* sf_b, strwav_header* strwa
         return 1;
     }
 
+    /* Zapper: One Wicked Cricket! Beta (PS2)[2002] */
+    if ( read_u32be(0x04,sf_h) == 0x00000900 &&
+         read_u32le(0x2c,sf_h) == 44100 && /* sample rate */
+         read_u32le(0x70,sf_h) == 0 && /* sample rate repeat? */
+         header_size == 0x78
+         ) {
+        /* 0x08: null */
+        /* 0x0c: hashname */
+        /* 0x28: loop start? */
+        strwav->sample_rate = read_s32le(0x2c,sf_h);
+        /* 0x30: number of 0x800 sectors */
+        strwav->flags       = read_u32le(0x34,sf_h);
+        strwav->num_samples = read_s32le(0x5c,sf_h);
+        strwav->tracks      = read_s32le(0x60,sf_h);
+
+        strwav->loop_start  = 0;
+        strwav->loop_end    = 0;
+
+        strwav->codec = PSX;
+        strwav->interleave  = strwav->tracks > 1 ? 0x8000 : 0x8000;
+        //todo: tracks are stereo blocks of size 0x20000*tracks, containing 4 interleaves of 0x8000:
+        // | 1 2 1 2 | 3 4 3 4 | 5 6 5 6 | 1 2 1 2 | 3 4 3 4 | 5 6 5 6 | ...
+        ;VGM_LOG("STR+WAV: header ZPb (PS2)\n");
+        return 1;
+    }
+
+    /* Zapper: One Wicked Cricket! (PS2)[2002] */
     /* The Fairly OddParents - Breakin' da Rules (PS2)[2003] */
     /* The Fairly OddParents! - Shadow Showdown (PS2)[2004] */
     /* Bad Boys II (PS2)[2004] */
-    /* Zapper: One Wicked Cricket! (PS2)[2005] */
     if ((read_u32be(0x04,sf_h) == 0x00000800 ||   /* BB2 */
          read_u32be(0x04,sf_h) == 0x00000900) &&  /* FOP, ZP */
          read_u32le(0x24,sf_h) == read_u32le(0x70,sf_h) && /* sample rate repeat */
@@ -456,7 +479,62 @@ static int parse_header(STREAMFILE* sf_h, STREAMFILE* sf_b, strwav_header* strwa
         return 1;
     }
 
-    /* Zapper: One Wicked Cricket! (PC)[2005] */
+    /* Zapper: One Wicked Cricket! Beta (Xbox)[2002] */
+    if ( read_u32be(0x04,sf_h) == 0x00000900 &&
+         read_u32le(0x0c,sf_h) != header_size &&
+         read_u32le(0x24,sf_h) != 0 &&
+         read_u32le(0x24,sf_h) == read_u32le(0x90,sf_h) && /* sample rate repeat */
+         read_u32le(0xa0,sf_h) == header_size /* ~0xC0 */
+         ) {
+        /* 0x08: null */
+        /* 0x0c: hashname */
+        strwav->num_samples = read_s32le(0x20,sf_h);
+        strwav->sample_rate = read_s32le(0x24,sf_h);
+        /* 0x28: 16 bps */
+        strwav->flags       = read_u32le(0x2c,sf_h);
+        strwav->loop_start  = read_s32le(0x38,sf_h);
+        strwav->tracks      = read_s32le(0x50,sf_h);
+        /* 0x58: number of chunks? */
+        /* 0x90: sample rate 2 */
+        /* 0xb8: total frames? */
+
+        strwav->loop_end    = strwav->num_samples;
+
+        strwav->codec = XBOX;
+        strwav->interleave  = strwav->tracks > 1 ? 0xD800/2 : 0xD800;
+        ;VGM_LOG("STR+WAV: header ZPb (Xbox)\n");
+        return 1;
+    }
+
+    /* Zapper: One Wicked Cricket! (Xbox)[2002] */
+    if ( read_u32be(0x04,sf_h) == 0x00000900 &&
+         read_u32le(0x0c,sf_h) != header_size &&
+         read_u32le(0x24,sf_h) != 0 &&
+         read_u32le(0x24,sf_h) == read_u32le(0xb0,sf_h) && /* sample rate repeat */
+         read_u32le(0xc0,sf_h) == header_size
+         ) {
+        /* 0x08: null */
+        /* 0x0c: hashname */
+        strwav->num_samples = read_s32le(0x20,sf_h);
+        strwav->sample_rate = read_s32le(0x24,sf_h);
+        /* 0x28: 16 bps */
+        strwav->flags       = read_u32le(0x2c,sf_h);
+        strwav->loop_start  = read_s32le(0x38,sf_h);
+        strwav->tracks      = read_s32le(0x70,sf_h);
+        /* 0x78: number of chunks? */
+        /* 0xb0: sample rate 2 */
+        /* 0xc0: header size*/
+        /* 0xd8: total frames? */
+
+        strwav->loop_end    = strwav->num_samples;
+
+        strwav->codec = XBOX;
+        strwav->interleave  = strwav->tracks > 1 ? 0xD800/2 : 0xD800;
+        ;VGM_LOG("STR+WAV: header ZP (Xbox)\n");
+        return 1;
+    }
+
+    /* Zapper: One Wicked Cricket! (PC)[2002] */
     if ( read_u32be(0x04,sf_h) == 0x00000900 &&
          read_u32le(0x24,sf_h) == read_u32le(0x114,sf_h) && /* sample rate repeat */
          read_u32le(0x12c,sf_h) == header_size /* ~0x130 */
@@ -511,32 +589,6 @@ static int parse_header(STREAMFILE* sf_h, STREAMFILE* sf_b, strwav_header* strwa
         strwav->codec = IMA;
         strwav->interleave  = strwav->tracks > 1 ? 0x8000 : 0x10000;
         ;VGM_LOG("STR+WAV: PW3 (PC)\n");
-        return 1;
-    }
-
-    /* Zapper: One Wicked Cricket! Beta (PS2)[2005] */
-    if ( read_u32be(0x04,sf_h) == 0x00000900 &&
-         read_u32le(0x2c,sf_h) == 44100 && /* sample rate */
-         read_u32le(0x70,sf_h) == 0 && /* sample rate repeat? */
-         header_size == 0x78
-         ) {
-        /* 0x08: null */
-        /* 0x0c: hashname */
-        /* 0x28: loop start? */
-        strwav->sample_rate = read_s32le(0x2c,sf_h);
-        /* 0x30: number of 0x800 sectors */
-        strwav->flags       = read_u32le(0x34,sf_h);
-        strwav->num_samples = read_s32le(0x5c,sf_h);
-        strwav->tracks      = read_s32le(0x60,sf_h);
-
-        strwav->loop_start  = 0;
-        strwav->loop_end    = 0;
-
-        strwav->codec = PSX;
-        strwav->interleave  = strwav->tracks > 1 ? 0x8000 : 0x8000;
-        //todo: tracks are stereo blocks of size 0x20000*tracks, containing 4 interleaves of 0x8000:
-        // | 1 2 1 2 | 3 4 3 4 | 5 6 5 6 | 1 2 1 2 | 3 4 3 4 | 5 6 5 6 | ...
-        ;VGM_LOG("STR+WAV: header ZPb (PS2)\n");
         return 1;
     }
 
