@@ -323,7 +323,8 @@ name (e.g. `STREAM.SS0`), but sometimes the actual filename is in other case
 You could try adding *symlinks* in various upper/lower/mixed cases to handle this,
 though only a few formats do this, mainly *Ubisoft* banks.
 
-Regular formats without companion files should work fine in upper/lowercase.
+Regular formats without companion files should work fine in upper/lowercase. For
+`.(ext).txth` files make sure `(ext)` matches case too.
 
 ### Decryption keys
 Certain formats have encrypted data, and need a key to decrypt. vgmstream
@@ -476,6 +477,26 @@ adjusted. Most likely it will sound a bit quieter than usual.
 You can also choose which channels to play using *TXTP*. For example, create
 a file named `song.adx#C1,2.txtp` to play only channels 1 and 2 from `song.adx`.
 *TXTP* also has command to set how files are downmixed.
+
+### Average bitrate
+Note that vgmstream shows the "file bitrate" (counts all data) as opposed to
+"codec bitrate" (counts pure audio-only parts). This means bitrate may be
+slightly higher (or much higher, if file is bloated) than what encoder
+tools or other players may report.
+
+Calculating 100% correct codec bitrate usually needs manual reading of the whole
+file, slowing down opening files and needing extra effort by devs for minimal
+benefit, so it's not done.
+
+In some cases it's debatable what the codec bitrate is. Unlike MP3/AAC, 48kbps
+of raw Vorbis/Opus is unplayable/unusable unless it's packed into .ogg/wem/etc
+with extra data, that does increase final file size (thus bitrate) by some percent.
+
+Also, keep in mind video game audio bitrate isn't always a great indicator of quality.
+There are many factors in play like encoder, type of codec, sample rate and so on.
+A higher bitrate `.wav` can sound worse than a lower `.ogg` (like mono 22050hz `.wav`
+vs stereo 48000hz `.ogg`).
+
 
 ## Logged errors and unplayable supported files
 Some formats should normally play, but somehow don't. In those cases plugins

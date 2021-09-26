@@ -369,6 +369,15 @@ Follow emscripten's installation instructions:
 - https://emscripten.org/docs/getting_started/downloads.html
 - https://emscripten.org/docs/compiling/Building-Projects.html#building-projects
 
+Though basically:
+```
+git clone https://github.com/emscripten-core/emsdk
+cd emsdk
+./emsdk install latest
+./emsdk activate latest
+source ./emsdk_env.sh
+```
+
 Then you should be able to build it on Linux (Windows would be possible too, but it has some issues at the moment), for example:
 ```
 git clone https://github.com/vgmstream/vgmstream

@@ -136,104 +136,68 @@ loop_mode = auto
 Note that the number of channels is the sum of all layers so three 2ch layers play as a 6ch file (you can manually downmix using mixing commands, described later, since vgmstream can't guess if the result should be stereo or 5.1 audio).
 
 
-### Mixed groups
-You can set "groups" to 'fold' various files into one, as layers or segments, to allow complex cases. This is an advanced setting for complex cases, so read this after understanding other features first.
+### Mixed group mode
+You can set "groups" to 'fold' various files into one, as layers or segments, to allow complex mix of segments and layers in the same file. This is a rather advanced setting, so it's explained in detail later (also read other sections first). Most common usage would be:
 ```
-# commands to make two 6ch segments with layered intro + layered loop:
+  # 1st segment: file of 2ch
+  # group isn't needed here
+  bgm1_intro.fsb
 
-# - set introA+B+C as layer (this group becomes position 1, and loopA_2ch position 2)
-introA_2ch.at3  #position 1
-introB_2ch.at3
-introC_2ch.at3
-group = 1L3
+  # 2nd segment: layer 2 files ("L") and keep it 2ch
+  # equivalent to including a separate .txtp of "mode = layers" with downmixing info (layer-v)
+  # note that after the internal bgm1_music/vocal aren't "visible" below
+    bgm1_music.fsb
+    bgm1_vocal.fsb
+  group = -L2  #@layer-v
 
-# - set loopA+B+C as layer (this group becomes position 2)
-loopA_2ch.at3   #position 4
-loopB_2ch.at3
-loopC_2ch.at3
-group = 2L3
+# final result: groups of 2 segments ("S") above
+# like making a .txtp of "mode = segments" with 1st .fsb and 2nd .txtp
+# b/c "mode = segments" is the default, this last group can be ommited (it's here for clarity)
+group = -S2
 
-# - play both as segments (this step is optional if using mode = segments)
-group = S2
+# loop last segment
+loop_mode = auto
+# same thing, points to 2nd segment in "final group", but not that clear with groups
+#loop_start_segment = 2
+```
 
-# - set loop start loopA+B+C (new position 2, not original position 4)
-loop_start_segment = 2
+```
+  # group segment of 3, note that in groups you always need to set number of items
+    bgm2_main_a.fsb
+    bgm2_main_b.fsb
+    bgm2_main_c.fsb
+  group = -S3
 
-# optional, to avoid "segments" default (for debugging)
+  # another group segment of 3
+    bgm2_vocal_a.fsb
+    bgm2_vocal_b.fsb
+    bgm2_vocal_c.fsb
+  group = -S3
+
+# final result: layer of 2 groups above
+group = -L2 #@layer-v
+
+# optional to avoid "segments" default (for debugging, errors if files don't group correctly)
 mode = mixed
 ```
 
-From TXTP's perspective, it starts with N separate files and every command joins some files to make a single new "file", so positions are reassigned. End result after all grouping will be a single, final "file" that may contain groups within groups. It's pretty flexible so you can express similar things in various ways:
 ```
-# commands to make a 6ch with segmented intro + loop:
-introA_2ch.at3
-mainA_2ch.at3
+# "selectable" (pseudo-random) group, plays 1st internal file only (change to >2 to play 2nd and so on)
+  bgm2_intro_a.fsb
+  bgm2_intro_b.fsb
+group = -R2>1
 
-introB_2ch.at3
-mainB_2ch.at3
+# main bgm, also sets this point as loop start
+bgm3_main.fsb #@loop
 
-introC_2ch.at3
-mainC_2ch.at3
+# implicitly loop end
+bgm3_outro.fsb
 
-# - group intro/main pairs as segments, starting from 1 and repeating for A/B/C
-group = S2R
-
-# - play all as layer (can't set loop_start_segment in this case)
-mode = layers
-
-# you could also set: group = L and mode = mixed, same thing
+# defaults to segments one of the intros with main bgm
 ```
 
-### Group definition
-`group` can go anywhere in the .txtp, as many times as needed (groups are read and kept in an list that is applied in order at the end). Format is `(position)(type)(count)(repeat)`:
-- `position`: file start (optional, default is 1 = first, or set `-` for auto from prev N files)
-- `type`: group as `S`=segments, `L`=layers, or `R`=pseudo-random
-- `count`: number of files in group (optional, default is all)
-- `repeat`: R=repeat group of `count` files until end (optional, default is no repeat)
-- `>file`: select file (for pseudo-random groups)
+You mix group and groups just like you would mix .txtp with .txtp, resulting in files any combo of single files, layers and segments. Indentation is optional for clarity.
 
-Examples:
-- `L`: take all files as layers (equivalent to `mode = layers`)
-- `S`: take all files as segments (equivalent to `mode = segments`)
-- `3L2`: layer 2 files starting from file 3
-- `2L3R`: group every 3 files from position 2 as layers
-- `1S1`: segment of one file (mostly useless but allowed as internal file may have play config)
-- `1L1`: layer of one file (same)
-- `9999L`: absurd values are ignored
-
-`position` may be `-` = automatic, meaning "start from position in previous `count` before current". If `repeat` is set it's ignored though (assumes first).
-```
-bgm1.adx
-bgm2.adx
-group = -L2  #layer prev 2 (will start from pos.1 = bgm1, makes group of bgm1+2 = pos.1)
-
-bgm3.adx
-bgm4.adx
-group = -L2  #layer prev 2 (will start from pos.2 = bgm3, makes group of bgm3+4 = pos.2)
-
-group = -S2  #segment prev 2 (will start from pos.1 = bgm1+2, makes group of bgm1+2 + bgm3+4)
-
-# uses "previous" because "next files" often creates ambiguous cases
-# may mix groups of auto and manual positions too, but results are harder to predict
-```
-
-### Pseudo-random groups
-Group `R` is meant to help with games that randomly select a file in a group. You can set with `>N` which file will be selected. This way you can quickly edit the TXTP and change the file (you could just comment files too, this is just for convenience in complex cases and testing). You can also set `>-`, meaning "play all", basically turning `R` into `S` (this can be omitted, but it's clearer). Files do need to exist and are parsed before being selected, and it can select groups too.
-```
- bgm1.adx
- bgm2.adx
- bgm3.adx
-group = -R3>1  #first file, change to >2 for second
-```
-```
-  bgm1a.adx
-  bgm1b.adx
- group = -S2
-  bgm2a.adx
-  bgm2b.adx
- group = -S2
-group = -R2>2  #select either group >1 or >2
-```
 
 ### Silent files
 You can put `?.` in an entry to make a silent (non-existing) file. By default takes channels and sample rate of nearby files, can be combined with regular commands to configure.
@@ -243,7 +207,7 @@ intro.adx
 loop.adx
 ```
 
-It also doubles as a quick "silence this file" while keeping the same structure, for complex cases. The `.` can actually be anywhere after `?`, but must appear before commands to function correctly.
+It also doubles as a quick "silence this file" while keeping the same structure, for complex cases. The `.` can actually be anywhere after `?`, but must exists before commands to function correctly (basically, don't silence extension-less files).
 ```
   layer1a.adx
  ?layer1b.adx
@@ -257,36 +221,6 @@ group = -S2
 ```
 
 Most of the time you can do the same with `#p`/`#P` padding commands or `#@volume 0.0`. This is mainly for complex engines that combine silent entries in twisted ways. You can't silence `group` with `?group` though since they aren't considered "entries".
-
-### Other considerations
-Internally, `mode = segment/layers` are treated basically as a (default, at the end) group. You can apply commands to the resulting group (rather than the individual files) too. `commands` would be applied to this final group.
-```
-mainA_2ch.at3
-mainB_2ch.at3
-group = L #h44100
-commands = #h48000 #overwrites
-```
-
-Segments and layer settings and rules still apply when making groups, so you may need to adjust groups a bit with commands:
-```
-# this doesn't need to be grouped
-intro_2ch.at3
-
-# this is grouped into a single 4ch file, then auto-downmixed to stereo
-# (without downmixing may sound a bit strange since channels from mainB wouldn't mix with intro)
-mainA_2ch.at3
-mainB_2ch.at3
-group = -L2 #@layer-v
-
-# finally resulting layers are played as segments (2ch, 2ch)
-# (could set a group = S and omit mode here, too)
-mode = segments
-
-# if the last group joins all as segments you can use loop_start
-loop_start_segment = 3 #refers to final group at position 2
-loop_mode = keep
-```
-Also see loop anchors to handle looping in some cases.
 
 
 ## TXTP COMMANDS
@@ -865,6 +799,135 @@ To simplify TXTP creation, if the .txtp doesn't set a name inside then its filen
 - *Ryoshima Coast 1 & 2.aix#C1,2.txtp*: channel downmix
 - *boss2_3ningumi_ver6.adx#l2#F.txtp*: loop twice then play song end file normally
 - etc
+
+
+## GROUPS
+Groups can be used to achieve complex .txtp in the same file, but can be a bit hard to understand. 
+
+### Group definition
+`group` can go anywhere in the .txtp, as many times as needed (groups are read and kept in an list that is applied in order at the end). Format is `(position)(type)(count)(repeat)`:
+- `position`: file start (optional, default is 1 = first, or set `-` for 'auto from prev N' files)
+- `type`: group as `S`=segments, `L`=layers, or `R`=pseudo-random
+- `count`: number of files in group (optional, default is all)
+- `repeat`: R=repeat group of `count` files until end (optional, default is no repeat)
+- `>file`: select file (for pseudo-random groups)
+
+Examples:
+- `L`: take all files as layers (equivalent to `mode = layers`)
+- `S`: take all files as segments (equivalent to `mode = segments`)
+- `-S2`: segment prev 2 files (start is automatically set)
+- `-L2`: layer prev 2 files (start is automatically set)
+- `3L2`: layer 2 files starting from file 3
+- `2L3R`: group every 3 files from position 2 as layers
+- `1S1`: segment of one file (mostly useless but allowed as internal file may have play config)
+- `1L1`: layer of one file (same)
+- `9999L`: absurd values are ignored
+
+### Usage
+`position` may be `-` = automatic, meaning "start from position in previous `count` before current". If `repeat` is set it's ignored though (assumes first).
+```
+  bgm1.adx
+  bgm2.adx
+ group = -L2  #layer prev 2 (will start from pos.1 = bgm1, makes group of bgm1+2 = pos.1)
+
+  bgm3.adx
+  bgm4.adx
+ group = -L2  #layer prev 2 (will start from pos.2 = bgm3, makes group of bgm3+4 = pos.2)
+
+group = -S2  #segment prev 2 (will start from pos.1 = bgm1+2, makes group of bgm1+2 + bgm3+4)
+
+# uses "previous" because "next files" often creates ambiguous cases
+```
+
+Usually you want automatic positions, but setting them manually may help understanding what's is going on:
+```
+ # - set introA+B+C as layer (this group becomes position 1, and loopA_2ch position 2)
+  introA_2ch.at3  #position 1
+  introB_2ch.at3
+  introC_2ch.at3
+ group = 1L3
+
+ # - set loopA+B+C as layer (this group becomes position 2)
+  loopA_2ch.at3   #position 4 > becomes position 2 once prev group is applied
+  loopB_2ch.at3
+  loopC_2ch.at3
+ group = 2L3
+
+# - play both as segments (this step is optional if using mode = segments)
+group = S2
+
+# one may mix groups of auto and manual positions too, but results are harder to predict
+```
+
+From TXTP's perspective, it starts with N separate files and every command joins some to make a single new "file", so positions are reassigned. End result after all grouping must be a single, final "file" that may contain groups within groups.
+
+That also means you don't need to put groups next to files, if you keep virtual positions in mind. It's pretty flexible so you can express similar things in various ways:
+```
+introA_2ch.at3
+mainA_2ch.at3
+
+introB_2ch.at3
+mainB_2ch.at3
+
+introC_2ch.at3
+mainC_2ch.at3
+
+# - group intro/main pairs as segments, starting from 1 and repeating for A/B/C
+# same as writting "group = -S2" x3
+group = S2R
+
+# - play all as layer (can't set loop_start_segment in this case)
+# you could also set: group = L and mode = mixed, same thing
+mode = layers
+```
+
+### Pseudo-random groups
+Group `R` is meant to help with games that randomly select a file in a group (like some intro or outro). You can set with `>N` which file will be selected. This way you can quickly edit the TXTP and change the file (you could just comment files too, this is just for convenience in complex cases and testing). You can also set `>-`, meaning "play all", basically turning `R` into `S` (this can be omitted, but it's clearer). Files do need to exist and are parsed before being selected, and it can select groups too.
+```
+ bgm1.adx
+ bgm2.adx
+ bgm3.adx
+group = -R3>1  #first file, change to >2 for second
+```
+```
+  bgm1a.adx
+  bgm1b.adx
+ group = -S2
+  bgm2a.adx
+  bgm2b.adx
+ group = -S2
+group = -R2>2  #select either group >1 or >2
+```
+
+### Other considerations
+Internally, `mode = segment/layers` are treated basically as a (default, at the end) group. You can apply commands to the resulting group (rather than the individual files) too. `commands` would be applied to this final group.
+```
+ mainA_2ch.at3
+ mainB_2ch.at3
+group = L #h44100
+commands = #h48000 #overwrites
+```
+
+Segments and layer settings and rules still apply when making groups, so you may need to adjust groups a bit with commands:
+```
+# this doesn't need to be grouped
+intro_2ch.at3
+
+# this is grouped into a single 4ch file, then auto-downmixed to stereo
+# (without downmixing may sound a bit strange since channels from mainB wouldn't mix with intro)
+mainA_2ch.at3
+mainB_2ch.at3
+group = -L2 #@layer-v
+
+# finally resulting layers are played as segments (2ch, 2ch)
+# (could set a group = S and omit mode here, too)
+mode = segments
+
+# if the last group joins all as segments you can use loop_start
+loop_start_segment = 3 #refers to final group at position 2
+loop_mode = keep
+```
+Also see loop anchors to handle looping in some cases.
 
 
 ## MIXING
