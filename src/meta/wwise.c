@@ -56,15 +56,19 @@ typedef struct {
 static int parse_wwise(STREAMFILE* sf, wwise_header* ww);
 static int is_dsp_full_interleave(STREAMFILE* sf, wwise_header* ww, off_t coef_offset);
 
+typedef uint32_t (*read_u32_t)(off_t, STREAMFILE*);
+typedef  int32_t (*read_s32_t)(off_t, STREAMFILE*);
+typedef uint16_t (*read_u16_t)(off_t, STREAMFILE*);
+
 
 /* Wwise - Audiokinetic Wwise (WaveWorks Interactive Sound Engine) middleware */
 VGMSTREAM* init_vgmstream_wwise(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     wwise_header ww = {0};
     off_t start_offset;
-    uint32_t (*read_u32)(off_t,STREAMFILE*) = NULL;
-     int32_t (*read_s32)(off_t,STREAMFILE*) = NULL;
-    uint16_t (*read_u16)(off_t,STREAMFILE*) = NULL;
+    read_u32_t read_u32 = NULL;
+    read_s32_t read_s32 = NULL;
+    read_u16_t read_u16 = NULL;
 
 
     /* checks */
@@ -99,6 +103,7 @@ VGMSTREAM* init_vgmstream_wwise(STREAMFILE* sf) {
     vgmstream->loop_start_sample = ww.loop_start_sample;
     vgmstream->loop_end_sample = ww.loop_end_sample;
     vgmstream->channel_layout = ww.channel_layout;
+    vgmstream->stream_size = ww.data_size;
 
     switch(ww.codec) {
         case PCM: /* common */
@@ -696,11 +701,12 @@ static int is_dsp_full_interleave(STREAMFILE* sf, wwise_header* ww, off_t coef_o
 
 
 static int parse_wwise(STREAMFILE* sf, wwise_header* ww) {
-    uint32_t (*read_u32)(off_t,STREAMFILE*) = NULL;
-    uint16_t (*read_u16)(off_t,STREAMFILE*) = NULL;
+    read_u32_t read_u32;
+    read_u16_t read_u16;
 
-    ww->big_endian = is_id32be(0x00,sf, "RIFX");
-    if (ww->big_endian) { /* Wwise honors machine's endianness (PC=RIFF, X360=RIFX --unlike XMA) */
+    /* Wwise honors machine's endianness (PC=RIFF, X360=RIFX --unlike XMA) */
+    ww->big_endian = is_id32be(0x00,sf, "RIFX"); /* RIFF size not useful to detect, see below */
+    if (ww->big_endian) {
         read_u32 = read_u32be;
         read_u16 = read_u16be;
     } else {

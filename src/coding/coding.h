@@ -680,7 +680,7 @@ size_t atrac3plus_bytes_to_samples(size_t bytes, int full_block_align);
 size_t ac3_bytes_to_samples(size_t bytes, int full_block_align, int channels);
 size_t aac_get_samples(STREAMFILE* sf, off_t start_offset, size_t bytes);
 size_t mpeg_get_samples(STREAMFILE* sf, off_t start_offset, size_t bytes);
-int32_t mpeg_get_samples_clean(STREAMFILE* sf, off_t start, size_t size, size_t* p_loop_start, size_t* p_loop_end, int is_vbr);
+int32_t mpeg_get_samples_clean(STREAMFILE* sf, off_t start, size_t size, uint32_t* p_loop_start, uint32_t* p_loop_end, int is_vbr);
 int mpc_get_samples(STREAMFILE* sf, off_t offset, int32_t* p_samples, int32_t* p_delay);
 
 

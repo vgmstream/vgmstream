@@ -451,7 +451,7 @@ size_t mpeg_get_samples(STREAMFILE* sf, off_t start_offset, size_t bytes) {
 
 /* variation of the above, for clean streams = no ID3/VBR headers
  * (maybe should be fused in a single thing with config, API is kinda messy too) */
-int32_t mpeg_get_samples_clean(STREAMFILE *sf, off_t start, size_t size, size_t* p_loop_start, size_t* p_loop_end, int is_vbr) {
+int32_t mpeg_get_samples_clean(STREAMFILE* sf, off_t start, size_t size, uint32_t* p_loop_start, uint32_t* p_loop_end, int is_vbr) {
     mpeg_frame_info info;
     off_t offset = start;
     int32_t num_samples = 0, loop_start = 0, loop_end = 0;
