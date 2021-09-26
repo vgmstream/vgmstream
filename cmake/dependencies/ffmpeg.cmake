@@ -178,16 +178,18 @@ if(USE_FFMPEG)
 					SUBDIR zlib-1.2.11
 				)
 				
-				add_subdirectory(${ZLIB_PATH} ${ZLIB_BIN})
-				target_include_directories(example PRIVATE ${ZLIB_PATH})
-				target_include_directories(minigzip PRIVATE ${ZLIB_PATH})
-				target_include_directories(example64 PRIVATE ${ZLIB_PATH})
-				target_include_directories(minigzip64 PRIVATE ${ZLIB_PATH})
-				
-				add_library(z STATIC IMPORTED)
-				set_target_properties(z PROPERTIES
-					IMPORTED_LOCATION ${ZLIB_BIN}/libz.a
-				)
+				if(ZLIB_PATH)
+					add_subdirectory(${ZLIB_PATH} ${ZLIB_BIN})
+					set_target_properties(zlib example minigzip example64 minigzip64 PROPERTIES
+						EXCLUDE_FROM_ALL TRUE
+						EXCLUDE_FROM_DEFAULT_BUILD TRUE
+					)
+					
+					add_library(z STATIC IMPORTED)
+					set_target_properties(z PROPERTIES
+						IMPORTED_LOCATION ${ZLIB_BIN}/libz.a
+					)
+				endif()
 			endif()
 		endif()
 	endif()

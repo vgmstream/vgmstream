@@ -70,6 +70,9 @@ if(NOT WIN32)
 	set(ATRAC9_PATH CACHE PATH "Path to LibAtrac9")
 	set(SPEEX_PATH CACHE PATH "Path to SPEEX")
 	set(LIBAO_PATH CACHE PATH "Path to libao")
+	if(EMSCRIPTEN)
+		set(ZLIB_PATH CACHE PATH "Path to zlib")
+	endif()
 endif()
 
 # Build choices
@@ -104,12 +107,14 @@ if(EMSCRIPTEN)
 	set(USE_JANSSON OFF)
 	set(BUILD_V123 OFF)
 	set(BUILD_AUDACIOUS OFF)
+	
+	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lworkerfs.js -s CASE_INSENSITIVE_FS -s ALLOW_MEMORY_GROWTH")
 endif()
 
 # Static builds will link all libraries statically
 if(BUILD_STATIC)
 	set(BUILD_SHARED_LIBS OFF)
-	set(CMAKE_EXE_LINKER_FLAGS "-static-libgcc -static-libstdc++ -static")
+	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libgcc -static-libstdc++ -static")
 	
 	# Incompatible with static builds
 	set(BUILD_AUDACIOUS OFF)
