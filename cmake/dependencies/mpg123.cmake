@@ -13,19 +13,22 @@ if(NOT WIN32 AND USE_MPEG)
 			SUBDIR mpg123-1.28.2
 		)
 		
-		set(MPEG_LINK_PATH ${MPEG_BIN}/bin/usr/local/lib/libmpg123.a)
-		
-		if(NOT EXISTS ${MPEG_LINK_PATH})
-			add_custom_target(MPEG_MAKE ALL
-				COMMAND ./configure --enable-static=yes --enable-shared=no && make && make install DESTDIR="${MPEG_BIN}/bin" && make clean
-				WORKING_DIRECTORY ${MPEG_PATH}
+		if(MPEG_PATH)
+			set(MPEG_LINK_PATH ${MPEG_BIN}/bin/usr/local/lib/libmpg123.a)
+			set(MPG123_INCLUDE_DIR ${MPEG_BIN}/bin/usr/local/include)
+			
+			if(NOT EXISTS ${MPEG_LINK_PATH})
+				add_custom_target(MPEG_MAKE ALL
+					COMMAND ./configure --enable-static=yes --enable-shared=no && make && make install DESTDIR="${MPEG_BIN}/bin" && make clean
+					WORKING_DIRECTORY ${MPEG_PATH}
+				)
+			endif()
+			
+			add_library(mpg123 STATIC IMPORTED)
+			set_target_properties(mpg123 PROPERTIES
+				IMPORTED_LOCATION ${MPEG_LINK_PATH}
 			)
 		endif()
-		
-		add_library(mpg123 STATIC IMPORTED)
-		set_target_properties(mpg123 PROPERTIES
-			IMPORTED_LOCATION ${MPEG_LINK_PATH}
-		)
 	endif()
 endif()
 if(NOT USE_MPEG)
