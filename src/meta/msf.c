@@ -144,14 +144,12 @@ VGMSTREAM* init_vgmstream_msf(STREAMFILE* sf) {
         }
 #elif defined(VGM_USE_FFMPEG)
         case 0x07: { /* MPEG (LAME MP3) [Dengeki Bunko Fighting Climax (PS3), Asura's Wrath (PS3)-vbr] */
-            int is_vbr = (flags & 0x20); /* must calc samples/loop offsets manually */
-
             vgmstream->codec_data = init_ffmpeg_offset(sf, start_offset, 0);;
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
 
-            vgmstream->num_samples = mpeg_get_samples_clean(sf, start_offset, data_size, &loop_start, &loop_end, is_vbr);
+            vgmstream->num_samples = ffmpeg_get_samples(vgmstream->codec_data);
             vgmstream->loop_start_sample = loop_start;
             vgmstream->loop_end_sample = loop_end;
             break;
