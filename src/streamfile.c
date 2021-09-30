@@ -1261,6 +1261,11 @@ STREAMFILE* read_filemap_file_pos(STREAMFILE* sf, int file_num, int* p_pos) {
         /* get key/val (ignores lead/trailing spaces, stops at comment/separator) */
         ok = sscanf(line, " %[^\t#:] : %[^\t#\r\n] ", key, val);
         if (ok != 2) { /* ignore line if no key=val (comment or garbage) */
+            /* better way? */
+            if (strcmp(line, "#@reset-pos") == 0) {
+                file_pos = 0;
+                VGM_LOG("pos =%i\n", file_pos);
+            }
             continue;
         }
 
