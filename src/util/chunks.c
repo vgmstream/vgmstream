@@ -26,8 +26,8 @@ int next_chunk(chunk_t* chunk, STREAMFILE* sf) {
     if (chunk->type == 0xFFFFFFFF || chunk->size == 0xFFFFFFFF)
         return 0;
 
-    /* empty chunk with 0 size, seen in some formats (XVAG uses it as end marker, Wwise doesn't) */
-    if (chunk->type == 0 || chunk->size == 0)
+    /* empty chunk with 0 size is ok, seen in some formats (XVAG uses it as end marker, Wwise in JUNK) */
+    if (chunk->type == 0 /*|| chunk->size == 0*/)
         return 0;
 
     /* more chunks remain */
