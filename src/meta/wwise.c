@@ -2,7 +2,7 @@
 #include "../util.h"
 #include "../coding/coding.h"
 #include "../util/chunks.h"
-#include "../util/endian.h"
+#include "../util/endianness.h"
 
 
 /* Wwise uses a custom RIFF/RIFX header, non-standard enough that it's parsed it here.

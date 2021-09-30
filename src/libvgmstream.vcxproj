@@ -169,7 +169,7 @@
     <ClInclude Include="coding\tac_decoder_lib_ops.h" />
     <ClInclude Include="layout\layout.h" />
     <ClInclude Include="util\chunks.h" />
-    <ClInclude Include="util\endian.h" />
+    <ClInclude Include="util\endianness.h" />
     <ClInclude Include="util\log.h" />
     <ClInclude Include="util\m2_psb.h" />
   </ItemGroup>
