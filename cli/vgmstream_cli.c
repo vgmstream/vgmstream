@@ -50,30 +50,27 @@
 static size_t make_wav_header(uint8_t* buf, size_t buf_size, int32_t sample_count, int32_t sample_rate, int channels, int smpl_chunk, int32_t loop_start, int32_t loop_end);
 
 static void usage(const char* name, int is_full) {
-    fprintf(stderr, APP_INFO "\n"
+
+    fprintf(is_full ? stdout : stderr, APP_INFO "\n"
             "Usage: %s [-o <outfile.wav>] [options] <infile> ...\n"
             "Options:\n"
             "    -o <outfile.wav>: name of output .wav file, default <infile>.wav\n"
             "       <outfile> wildcards can be ?s=subsong, ?n=stream name, ?f=infile\n"
-            "    -l loop count: loop count, default 2.0\n"
-            "    -f fade time: fade time in seconds after N loops, default 10.0\n"
-            "    -d fade delay: fade delay in seconds, default 0.0\n"
-            "    -F: don't fade after N loops and play the rest of the stream\n"
+            "    -m: print metadata only, don't decode\n"
             "    -i: ignore looping information and play the whole stream once\n"
-            "    -e: force end-to-end looping\n"
+            "    -l N.n: loop count, default 2.0\n"
+            "    -f N.n: fade time in seconds after N loops, default 10.0\n"
+            "    -d N.n: fade delay in seconds, default 0.0\n"
+            "    -F: don't fade after N loops and play the rest of the stream\n"
+            "    -e: set end-to-end looping (if file has no loop points)\n"
             "    -E: force end-to-end looping even if file has real loop points\n"
             "    -s N: select subsong N, if the format supports multiple subsongs\n"
-            "    -S N: select end subsong (set 0 for 'all')\n"
-            "    -m: print metadata only, don't decode\n"
+            "    -S N: select end subsong N (set 0 for 'all')\n"
             "    -L: append a smpl chunk and create a looping wav\n"
-            "    -2 N: only output the Nth (first is 0) set of stereo channels\n"
             "    -p: output to stdout (for piping into another program)\n"
             "    -P: output to stdout even if stdout is a terminal\n"
             "    -c: loop forever (continuously) to stdout\n"
-            "    -x: decode and print adxencd command line to encode as ADX\n"
-            "    -g: decode and print oggenc command line to encode as OGG\n"
-            "    -b: decode and print batch variable commands\n"
-            "    -h: print extra commands (for testing)\n"
+            "    -h: print all commands\n"
 #ifdef HAVE_JSON
             "    -V: print version info and supported extensions as JSON\n"
             "    -I: print requested file info as JSON\n"
@@ -81,11 +78,15 @@ static void usage(const char* name, int is_full) {
             , name);
     if (!is_full)
         return;
-    fprintf(stderr,
+    fprintf(is_full ? stdout : stderr,
+            "    -2 N: only output the Nth (first is 0) set of stereo channels\n"
+            "    -x: decode and print adxencd command line to encode as ADX\n"
+            "    -g: decode and print oggenc command line to encode as OGG\n"
+            "    -b: decode and print batch variable commands\n"
             "    -v: validate extensions (for extension testing)\n"
-            "    -r: output a second file after resetting (for reset testing)\n"
-            "    -k N: seeks to N samples before decoding (for seek testing)\n"
-            "    -K N: seeks again to N samples before decoding (for seek testing)\n"
+            "    -r: reset and output a second file (for reset testing)\n"
+            "    -k N: kills (seeks) N samples before decoding (for seek testing)\n"
+            "    -K N: kills (seeks) again to N samples before decoding (for seek testing)\n"
             "    -t file: print tags found in file (for tag testing)\n"
             "    -T: print title (for title testing)\n"
             "    -D <max channels>: downmix to <max channels> (for plugin downmix testing)\n"
@@ -170,6 +171,8 @@ static int parse_config(cli_config* cfg, int argc, char** argv) {
                 cfg->outfilename = optarg;
                 break;
             case 'l':
+                //cfg->loop_count = strtod(optarg, &end); //C99, allow?
+                //if (*end != '\0') goto fail_arg;
                 cfg->loop_count = atof(optarg);
                 break;
             case 'f':
@@ -265,7 +268,7 @@ static int parse_config(cli_config* cfg, int argc, char** argv) {
                 break;
 #endif
             case '?':
-                fprintf(stderr, "unknown option -%c found\n", optopt);
+                fprintf(stderr, "missing argument or unknown option -%c\n", optopt);
                 goto fail;
             default:
                 usage(argv[0], 0);
@@ -273,7 +276,7 @@ static int parse_config(cli_config* cfg, int argc, char** argv) {
         }
     }
 
-    /* filenames go last */
+    /* filenames go last in POSIX getopt, not so in glibc getopt */ //TODO unify
     if (optind != argc - 1) {
         int i;
 
@@ -289,8 +292,8 @@ static int parse_config(cli_config* cfg, int argc, char** argv) {
     cfg->infilenames = &argv[optind];
     cfg->infilenames_count = argc - optind;
     if (cfg->infilenames_count <= 0) {
+        fprintf(stderr, "missing input file\n");
         usage(argv[0], 0);
-        //fprintf(stderr, "missing input file\n");
         goto fail;
     }
 
