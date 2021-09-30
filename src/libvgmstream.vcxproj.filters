@@ -305,6 +305,9 @@
     <ClInclude Include="util\chunks.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="util\endianness.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="util\log.h">
       <Filter>Header Files</Filter>
     </ClInclude>

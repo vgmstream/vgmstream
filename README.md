@@ -10,7 +10,7 @@ Some of vgmstream's features:
 - subsongs, playing a format's multiple internal songs separately
 - many types of companion files (data split in multiple files) and custom containers
 - encryption keys, internal stream names, and many other unusual cases found in game audio
-- TXTH function, to support extra formats (including raw audio in many forms)
+- TXTH function, to add external support for extra formats (including raw audio in many forms)
 - TXTP function, for real-time and per-file config (like forced looping, removing
   channels, playing certain subsong, or fusing together multiple files as a single one)
 - simple external tagging via .m3u files

@@ -443,6 +443,18 @@ bgm_2_streamfiles.awb: bgm_2.acb
 bgm.awb: bgm.acb
 bgm_DLC1.awb: bgm.acb
 ```
+In rare cases you need to setup some extra flags
+```
+event_stream2.awb: event_stream2.acb
+event_stream2_dlc1.awb: event_stream2.acb
+event_stream2_dlc2.awb: event_stream2.acb
+event_stream2_dlc3.awb: event_stream2.acb
+# next "flag" allows both effect.acb and even_stream2.acb in the same file
+#@reset-pos
+effect.awb: effect.acb
+effect_dlc2.awb: effect.acb
+effect_dlc3.awb: effect.acb
+```
 
 ### Plugin conflicts
 Since vgmstream supports a huge amount of formats it's possibly that some of

@@ -1,6 +1,7 @@
 #include "meta.h"
 #include "../layout/layout.h"
 #include "../coding/coding.h"
+#include "../util/endianness.h"
 
 
 typedef enum { PCM, UBI, PSX, DSP, XIMA, ATRAC3, XMA2, MP3 } ubi_hx_codec;
@@ -12,14 +13,14 @@ typedef struct {
     int codec_id;
     ubi_hx_codec codec;         /* unified codec */
     int header_index;           /* entry number within section2 */
-    off_t header_offset;        /* entry offset within internal .HXx */
-    size_t header_size;         /* entry offset within internal .HXx */
+    uint32_t header_offset;     /* entry offset within internal .HXx */
+    uint32_t header_size;       /* entry offset within internal .HXx */
     char class_name[255];
     size_t class_size;
     size_t stream_mode;
 
-    off_t stream_offset;        /* data offset within external stream */
-    size_t stream_size;         /* data size within external stream */
+    uint32_t stream_offset;     /* data offset within external stream */
+    uint32_t stream_size;       /* data size within external stream */
     uint32_t cuuid1;            /* usually "Res" id1: class (1=Event, 3=Wave), id2: group id+sound id, */
     uint32_t cuuid2;            /* others have some complex id (not hash), id1: parent id?, id2: file id? */
 
@@ -47,6 +48,12 @@ VGMSTREAM* init_vgmstream_ubi_hx(STREAMFILE* sf) {
 
 
     /* checks */
+    {
+        uint32_t name_size = read_u32be(0x04, sf); /* BE/LE, should always be < 0xFF */
+        if (name_size == 0 || (name_size & 0x00FFFF00) != 0)
+            goto fail;
+    }
+
     /* .hxd: Rayman M/Arena (all), PK: Out of Shadows (all)
      * .hxc: Rayman 3 (PC), XIII (PC)
      * .hx2: Rayman 3 (PS2), XIII (PS2)
@@ -60,10 +67,8 @@ VGMSTREAM* init_vgmstream_ubi_hx(STREAMFILE* sf) {
      * then an index to those types. Some games leave a companion .bnh with text info, probably leftover from their tools.
      * Game seems to play files by calling linked ids: EventResData (play/stop/etc) > Random/Program/Wav ResData (1..N refs) > FileIdObj */
 
-    /* HX CONFIG */
-    hx.big_endian = guess_endianness32bit(0x00, sf);
-
     /* HX HEADER */
+    hx.big_endian = guess_endianness32bit(0x00, sf);
     if (!parse_hx(&hx, sf, target_subsong))
         goto fail;
 
@@ -133,8 +138,8 @@ fail:
 
 /* get referenced name from WavRes, using the index again (abridged) */
 static int parse_name(ubi_hx_header* hx, STREAMFILE* sf) {
-    uint32_t (*read_u32)(off_t,STREAMFILE*) = hx->big_endian ? read_u32be : read_u32le;
-    int32_t (*read_s32)(off_t,STREAMFILE*) = hx->big_endian ? read_s32be : read_s32le;
+    read_u32_t read_u32 = hx->big_endian ? read_u32be : read_u32le;
+    read_s32_t read_s32 = hx->big_endian ? read_s32be : read_s32le;
     off_t index_offset, offset;
     int i, index_entries;
     char class_name[255];
@@ -228,17 +233,17 @@ fail:
 
 
 /* parse a single known header resource at offset */
-static int parse_header(ubi_hx_header* hx, STREAMFILE* sf, off_t offset, size_t size, int index)  {
-    uint32_t (*read_u32)(off_t,STREAMFILE*) = hx->big_endian ? read_u32be : read_u32le;
-    int32_t (*read_s32)(off_t,STREAMFILE*) = hx->big_endian ? read_s32be : read_s32le;
-    uint16_t (*read_u16)(off_t,STREAMFILE*) = hx->big_endian ? read_u16be : read_u16le;
+static int parse_header(ubi_hx_header* hx, STREAMFILE* sf, uint32_t offset, uint32_t size, int index)  {
+    read_u32_t read_u32 = hx->big_endian ? read_u32be : read_u32le;
+    read_s32_t read_s32 = hx->big_endian ? read_s32be : read_s32le;
+    read_u16_t read_u16 = hx->big_endian ? read_u16be : read_u16le;
     off_t riff_offset, riff_size, chunk_offset, stream_adjust = 0, resource_size;
     size_t chunk_size;
     int cue_flag = 0;
 
     //todo cleanup/unify common readings
 
-    //;VGM_LOG("UBI HX: header o=%lx, s=%x\n\n", offset, size);
+    //;VGM_LOG("ubi hx: header o=%x, s=%x\n\n", offset, size);
 
     hx->header_index    = index;
     hx->header_offset   = offset;
@@ -284,7 +289,7 @@ static int parse_header(ubi_hx_header* hx, STREAMFILE* sf, off_t offset, size_t 
             }
         }
         else {
-            VGM_LOG("UBI HX: unknown flag-type\n");
+            VGM_LOG("ubi hx: unknown flag-type\n");
             goto fail;
         }
 
@@ -316,7 +321,7 @@ static int parse_header(ubi_hx_header* hx, STREAMFILE* sf, off_t offset, size_t 
                 break;
 
             default:
-                VGM_LOG("UBI HX: %x\n", hx->stream_mode);
+                VGM_LOG("ubi hx: %x\n", hx->stream_mode);
                 goto fail;
         }
 
@@ -333,7 +338,7 @@ static int parse_header(ubi_hx_header* hx, STREAMFILE* sf, off_t offset, size_t 
             case 0x05: hx->codec = XIMA; break;
             case 0x55: hx->codec = MP3; break;  /* Largo Winch: Empire Under Threat (PC) */
             default: 
-                VGM_LOG("UBI HX: unknown codec %x\n", hx->codec_id);
+                VGM_LOG("ubi hx: unknown codec %x\n", hx->codec_id);
                 goto fail;
         }
         hx->channels    = read_u16(riff_offset + 0x16, sf);
@@ -383,21 +388,22 @@ static int parse_header(ubi_hx_header* hx, STREAMFILE* sf, off_t offset, size_t 
         /* 0x04: some kind of parent id shared by multiple Waves, or 0 */
         offset += 0x08;
 
-        hx->stream_mode = read_8bit(offset, sf);
+        hx->stream_mode = read_u8(offset, sf);
         offset += 0x01;
 
         if ((strcmp(hx->class_name, "CXBoxStaticHWWaveFileIdObj") == 0 ||
              strcmp(hx->class_name, "CXBoxStreamHWWaveFileIdObj") == 0) && !hx->big_endian) {
             /* micro header: some mix of channels + block size + sample rate + flags, unsure of which bits */
             hx->codec       = XIMA;
-            hx->channels    = (uint8_t)read_8bit(offset + 0x01, sf);
-            switch(hx->channels) { /* upper 2 bits? */
+            /* 0x00: ? */
+            hx->channels    = read_u8(offset + 0x01, sf); /* upper 2 bits? */
+            switch(hx->channels) { 
                 case 0x48: hx->channels = 1; break;
                 case 0x90: hx->channels = 2; break;
                 default: goto fail;
             }
             hx->sample_rate = (read_u16(offset + 0x02, sf) & 0x7FFFu) << 1u;  /* ??? */
-            cue_flag        = read_u8(offset + 0x03, sf) & (1<<7);
+            cue_flag        = read_u8(offset + 0x03, sf) & (1 << 7);
             offset += 0x04;
         }
         else if ((strcmp(hx->class_name, "CXBoxStaticHWWaveFileIdObj") == 0 ||
@@ -435,6 +441,10 @@ static int parse_header(ubi_hx_header* hx, STREAMFILE* sf, off_t offset, size_t 
 
 
         switch(hx->stream_mode) {
+            case 0x00: /* static (smaller internal file) [XIII (Xbox)] */
+                hx->stream_offset += offset;
+                break;
+
             case 0x01: /* static (smaller external file) */
             case 0x03: /* stream (bigger external file) */
             case 0x07: /* stream? */
@@ -446,6 +456,7 @@ static int parse_header(ubi_hx_header* hx, STREAMFILE* sf, off_t offset, size_t 
                 break;
 
             default:
+                VGM_LOG("ubi hx: unknown stream mode %x\n", hx->stream_mode);
                 goto fail;
         }
     }
@@ -455,22 +466,22 @@ static int parse_header(ubi_hx_header* hx, STREAMFILE* sf, off_t offset, size_t 
 
     return 1;
 fail:
-    VGM_LOG("UBI HX: error parsing header at %lx\n", hx->header_offset);
+    vgm_logi("UBI HX: error parsing header at %x (report)\n", hx->header_offset);
     return 0;
 }
 
 
 /* parse a bank index and its possible audio headers (some info from Droolie's .bms) */
 static int parse_hx(ubi_hx_header* hx, STREAMFILE* sf, int target_subsong) {
-    uint32_t (*read_u32)(off_t,STREAMFILE*) = hx->big_endian ? read_u32be : read_u32le;
-    int32_t (*read_s32)(off_t,STREAMFILE*) = hx->big_endian ? read_s32be : read_s32le;
-    off_t index_offset, offset;
+    read_u32_t read_u32 = hx->big_endian ? read_u32be : read_u32le;
+    read_s32_t read_s32 = hx->big_endian ? read_s32be : read_s32le;
+    uint32_t index_offset, offset;
     int i, index_entries;
     char class_name[255];
 
 
     index_offset = read_u32(0x00, sf);
-    if (read_u32(index_offset + 0x00, sf) != 0x58444E49) /* "XDNI" (INDX in given endianness) */
+    if (read_u32(index_offset + 0x00, sf) != get_id32be("XDNI")) /* (INDX in given endianness) */
         goto fail;
     if (read_u32(index_offset + 0x04, sf) != 0x02) /* type? */
         goto fail;
@@ -480,11 +491,10 @@ static int parse_hx(ubi_hx_header* hx, STREAMFILE* sf, int target_subsong) {
     index_entries = read_s32(index_offset + 0x08, sf);
     offset = index_offset + 0x0c;
     for (i = 0; i < index_entries; i++) {
-        off_t header_offset;
-        size_t class_size, header_size;
+        uint32_t header_offset, class_size, header_size;
         int j, unknown_count, link_count, language_count;
 
-        //;VGM_LOG("UBI HX: index %i at %lx\n", i, offset);
+        //;VGM_LOG("ubi hx: index %i at %x\n", i, offset);
 
         /* parse index entries: offset to actual header plus some extra info also in the header */
 
@@ -502,7 +512,7 @@ static int parse_hx(ubi_hx_header* hx, STREAMFILE* sf, int target_subsong) {
         /* not seen */
         unknown_count = read_s32(offset + 0x00, sf);
         if (unknown_count != 0) {
-            VGM_LOG("UBI HX: found unknown near %lx\n", offset);
+            VGM_LOG("ubi hx: found unknown near %x\n", offset);
             goto fail;
         }
         offset += 0x04;
@@ -520,7 +530,7 @@ static int parse_hx(ubi_hx_header* hx, STREAMFILE* sf, int target_subsong) {
             /* 0x08: id1+2 */
 
             if (read_u32(offset + 0x04, sf) != 1) {
-                VGM_LOG("UBI HX: wrong lang count near %lx\n", offset);
+                VGM_LOG("ubi hx: wrong lang count near %x\n", offset);
                 goto fail; /* WavRes doesn't have this field */
             }
             offset += 0x10;
@@ -557,12 +567,12 @@ static int parse_hx(ubi_hx_header* hx, STREAMFILE* sf, int target_subsong) {
             ;
         }
         else {
-            VGM_LOG("UBI HX: unknown type: %s\n", class_name);
+            vgm_logi("UBI HX: unknown type: %s (report)\n", class_name);
             goto fail;
         }
 
         if (link_count != 0) {
-            VGM_LOG("UBI HX: found links in wav object\n");
+            vgm_logi("UBI HX: found links in wav object (report)\n");
             goto fail;
         }
 
@@ -596,7 +606,7 @@ static STREAMFILE* open_hx_streamfile(ubi_hx_header* hx, STREAMFILE* sf) {
 
     sb = open_streamfile_by_filename(sf, hx->resource_name);
     if (sb == NULL) {
-        VGM_LOG("UBI HX: external stream '%s' not found\n", hx->resource_name);
+        vgm_logi("UBI HX: external file '%s' not found (put together)\n", hx->resource_name);
         goto fail;
     }
 
