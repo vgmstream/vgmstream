@@ -2,6 +2,7 @@
 #include "../util.h"
 #include "../coding/coding.h"
 #include "../util/chunks.h"
+#include "../util/endian.h"
 
 
 /* Wwise uses a custom RIFF/RIFX header, non-standard enough that it's parsed it here.
@@ -56,9 +57,6 @@ typedef struct {
 static int parse_wwise(STREAMFILE* sf, wwise_header* ww);
 static int is_dsp_full_interleave(STREAMFILE* sf, wwise_header* ww, off_t coef_offset);
 
-typedef uint32_t (*read_u32_t)(off_t, STREAMFILE*);
-typedef  int32_t (*read_s32_t)(off_t, STREAMFILE*);
-typedef uint16_t (*read_u16_t)(off_t, STREAMFILE*);
 
 
 /* Wwise - Audiokinetic Wwise (WaveWorks Interactive Sound Engine) middleware */

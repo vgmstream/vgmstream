@@ -148,7 +148,7 @@ as explained below, but often will use default values. Accepted codec strings:
 #   * For later Konami rhythm games
 # - AAC            Advanced Audio Coding (raw without .mp4)
 #   * For some 3DS games and many iOS games
-#   * Should set skip_samples (around 1024 but varies)
+#   * Should set skip_samples (typically 1024 but varies, 2112 is also common)
 # - TGC            Tiger Game.com 4-bit ADPCM
 #   * For Tiger Game.com
 # - ASF            Argonaut ASF ADPCM
