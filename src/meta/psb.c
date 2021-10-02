@@ -51,6 +51,7 @@ typedef struct {
     int loop_flag;
     int32_t loop_start;
     int32_t loop_end;
+    int duration_test;
 
 } psb_header_t;
 
@@ -153,6 +154,9 @@ VGMSTREAM* init_vgmstream_psb(STREAMFILE* sf) {
                 case 24: vgmstream->coding_type = coding_PCM24LE; break; /* Legend of Mana (PC) */
                 default: goto fail;
             }
+
+            if (psb.duration_test && psb.loop_start + psb.loop_end < vgmstream->num_samples)
+                vgmstream->loop_end_sample += psb.loop_start;
             break;
 
         case MSADPCM: /* [Senxin Aleste (AC)] */
@@ -218,6 +222,8 @@ VGMSTREAM* init_vgmstream_psb(STREAMFILE* sf) {
             }
 
             vgmstream->num_samples = read_u32le(psb.stream_offset[0] + 0x00, sf);
+            if (psb.duration_test && psb.loop_start + psb.loop_end < vgmstream->num_samples)
+                vgmstream->loop_end_sample += psb.loop_start;
             break;
 
         default:
@@ -592,7 +598,9 @@ static int parse_psb_channels(psb_header_t* psb, psb_node_t* nchans) {
                         psb->loop_start = psb_node_get_result(&nsub).num;
 
                         psb_node_by_index(&node, 1, &nsub);
-                        psb->loop_end = psb_node_get_result(&nsub).num + psb->loop_start; /* duration */
+                        psb->loop_end = psb_node_get_result(&nsub).num + 1; /* assumed, matches num_samples */
+                        /* duration [LoM (PC), Namco Museum V1 (PC)] or standard [G-Darius (Sw)] (no apparent flags) */
+                        psb->duration_test = 1;
                     }
                 }
 
