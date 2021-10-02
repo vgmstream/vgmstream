@@ -14,26 +14,34 @@ if(NOT WIN32 AND USE_SPEEX)
 		)
 		
 		if(SPEEX_PATH)
-			if(EMSCRIPTEN)
-				set(SPEEX_LINK_PATH ${SPEEX_BIN}/embin/usr/local/lib/libspeex.a)
-			else()
-				set(SPEEX_LINK_PATH ${SPEEX_BIN}/bin/usr/local/lib/libspeex.a)
-			endif()
-			if(NOT EXISTS ${SPEEX_LINK_PATH})
-				if(EMSCRIPTEN)
-					add_custom_target(SPEEX_MAKE ALL
-						COMMAND emconfigure ./autogen.sh && emconfigure ./configure --enable-static=yes --enable-shared=no && emmake make && make install DESTDIR="${SPEEX_BIN}/embin" && make clean
-						WORKING_DIRECTORY ${SPEEX_PATH}
-					)
-				else()
-					add_custom_target(SPEEX_MAKE ALL
-						COMMAND ./autogen.sh && ./configure --enable-static=yes --enable-shared=no && make && make install DESTDIR="${SPEEX_BIN}/bin" && make clean
-						WORKING_DIRECTORY ${SPEEX_PATH}
-					)
-				endif()
+			set(SPEEX_LINK_PATH ${SPEEX_BIN}/libspeex/.libs/libspeex.a)
+			
+			if(NOT EXISTS ${SPEEX_PATH}/configure)
+				add_custom_target(SPEEX_AUTORECONF
+					COMMAND ./autogen.sh
+					BYPRODUCTS ${SPEEX_PATH}/configure
+					WORKING_DIRECTORY ${SPEEX_PATH}
+				)
 			endif()
 			
+			file(MAKE_DIRECTORY ${SPEEX_BIN})
+			add_custom_target(SPEEX_CONFIGURE
+				COMMAND "${SPEEX_PATH}/configure" --enable-static --disable-shared --disable-binaries CC="${CMAKE_C_COMPILER}" AR="${CMAKE_AR}"
+				DEPENDS ${SPEEX_PATH}/configure
+				BYPRODUCTS ${SPEEX_BIN}/Makefile
+				WORKING_DIRECTORY ${SPEEX_BIN}
+			)
+			add_custom_target(SPEEX_MAKE
+				COMMAND make
+				DEPENDS ${SPEEX_BIN}/Makefile
+				BYPRODUCTS ${SPEEX_LINK_PATH} ${SPEEX_BIN}
+				WORKING_DIRECTORY ${SPEEX_BIN}
+			)
+			
 			add_library(speex STATIC IMPORTED)
+			if(NOT EXISTS ${SPEEX_LINK_PATH})
+				add_dependencies(speex SPEEX_MAKE)
+			endif()
 			set_target_properties(speex PROPERTIES
 				IMPORTED_LOCATION ${SPEEX_LINK_PATH}
 			)
