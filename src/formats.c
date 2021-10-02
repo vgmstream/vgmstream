@@ -289,7 +289,7 @@ static const char* extension_list[] = {
     "lmp4", //fake extension for .mp4
     "lmpc", //fake extension for .mpc, FFmpeg/not parsed
     "logg", //fake extension for .ogg
-    "lopus", //fake extension for .opus
+    "lopus", //fake extension for .opus, used by LOPU too
     "lp",
     "lpcm",
     "lpk",
@@ -1364,6 +1364,7 @@ static const meta_info meta_info_list[] = {
         {meta_BNK_RELIC,            "Relic BNK header"},
         {meta_XSH_XSD_XSS,          "Treyarch XSH+XSD/XSS header"},
         {meta_PSB,                  "M2 PSB header"},
+        {meta_LOPU,                 "French-Break LOPU header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {

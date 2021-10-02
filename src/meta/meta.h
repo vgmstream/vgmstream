@@ -964,4 +964,6 @@ VGMSTREAM* init_vgmstream_xsh_xsd_xss(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_psb(STREAMFILE* sf);
 
+VGMSTREAM* init_vgmstream_lopu(STREAMFILE* sf);
+
 #endif /*_META_H*/

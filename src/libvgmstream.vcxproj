@@ -215,6 +215,7 @@
     <ClCompile Include="meta\ktsr.c" />
     <ClCompile Include="meta\ktss.c" />
     <ClCompile Include="meta\kwb.c" />
+    <ClCompile Include="meta\lopu.c" />
     <ClCompile Include="meta\lrmd.c" />
     <ClCompile Include="meta\lsf.c" />
     <ClCompile Include="meta\mattel_hyperscan.c" />
