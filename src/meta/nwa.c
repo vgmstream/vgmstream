@@ -200,9 +200,19 @@ static int get_loops_gameexe_ini(STREAMFILE* sf, int* p_loop_flag, int32_t* p_lo
     length = ext-1-namebase;
     file_size = get_streamfile_size(sf_loop);
 
-    /* format of line is:
-     * #DSTRACK = 00000000 - eeeeeeee - ssssssss = "name"    = "name2?"
-     *                       ^22        ^33         ^45         ^57
+    /* According to the official documentation of RealLiveMax (the public version of RealLive), format of line is:
+     * #DSTRACK = 00000000 - eeeeeeee - ssssssss = "filename" = "alias for game script"
+     *                       ^22        ^33         ^45          ^57?
+     *
+     * Original text from the documentation (written in Japanese) is:
+     * ; ■ＢＧＭの登録：ＤｉｒｅｃｔＳｏｕｎｄ
+     * ;（※必要ない場合は登録しないで下さい。）
+     * ;   終了位置の設定が 99999999 なら最後まで演奏します。
+     * ;   ※設定値はサンプル数で指定して下さい。（旧システムではバイト指定でしたので注意してください。）
+     * ;=========================================================================================================
+     * ;          開始位置 - 終了位置 - リピート = ﾌｧｲﾙ名     = 登録名
+     * #DSTRACK = 00000000 - 01896330 - 00088270 = "b_manuke"			= "b_manuke"
+     * #DSTRACK = 00000000 - 01918487 - 00132385 = "c_happy"			= "c_happy"
      */
 
     for (found = 0, offset = 0; !found && offset<file_size; offset++) {
