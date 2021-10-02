@@ -70,9 +70,6 @@ if(NOT WIN32)
 	set(ATRAC9_PATH CACHE PATH "Path to LibAtrac9")
 	set(SPEEX_PATH CACHE PATH "Path to SPEEX")
 	set(LIBAO_PATH CACHE PATH "Path to libao")
-	if(EMSCRIPTEN)
-		set(ZLIB_PATH CACHE PATH "Path to zlib")
-	endif()
 endif()
 
 # Build choices

@@ -59,6 +59,8 @@ if(USE_FFMPEG)
 		)
 		
 		if(FFMPEG_PATH)
+			set(FFMPEG_COMPILE YES)
+			
 			set(FFMPEG_CONF_PARSER
 				ac3 mpegaudio xma vorbis opus
 			)
@@ -119,6 +121,7 @@ if(USE_FFMPEG)
 				--disable-decoder=${FFMPEG_CONF_DISABLE_DECODER}
 				--disable-cuvid
 				--disable-version3
+				--disable-zlib
 				--extra-libs=-static
 				--extra-cflags=--static
 				--pkg-config-flags=--static
@@ -130,8 +133,8 @@ if(USE_FFMPEG)
 			endif()
 			if(EMSCRIPTEN)
 				list(APPEND FFMPEG_CONF_ARGS
-					--cc=emcc
-					--ranlib=emranlib
+					--cc=${CMAKE_C_COMPILER}
+					--ranlib=${CMAKE_RANLIB}
 					--enable-cross-compile
 					--target-os=none
 					--arch=x86
@@ -150,47 +153,28 @@ if(USE_FFMPEG)
 			set(FFMPEG_LINK_PATH ${FFMPEG_BIN}/bin/usr/local/lib)
 			set(FFMPEG_INCLUDE_DIRS ${FFMPEG_BIN}/bin/usr/local/include)
 			
-			if(NOT EXISTS ${FFMPEG_LINK_PATH}/libavutil.a)
-				if(EMSCRIPTEN)
-					add_custom_target(FFMPEG_MAKE ALL
-						COMMAND emconfigure ./configure ${FFMPEG_CONF_ARGS} && emmake make && make install DESTDIR="${FFMPEG_BIN}/bin" && make clean
-						WORKING_DIRECTORY ${FFMPEG_PATH}
-					)
-				else()
-					add_custom_target(FFMPEG_MAKE ALL
-						COMMAND ./configure ${FFMPEG_CONF_ARGS} && make && make install DESTDIR="${FFMPEG_BIN}/bin" && make clean
-						WORKING_DIRECTORY ${FFMPEG_PATH}
-					)
-				endif()
-			endif()
+			file(MAKE_DIRECTORY ${FFMPEG_BIN})
+			add_custom_target(FFMPEG_CONFIGURE
+				COMMAND "${FFMPEG_PATH}/configure" ${FFMPEG_CONF_ARGS}
+				BYPRODUCTS ${FFMPEG_BIN}/Makefile
+				WORKING_DIRECTORY ${FFMPEG_BIN}
+			)
+			add_custom_target(FFMPEG_MAKE
+				COMMAND make && make install DESTDIR="${FFMPEG_BIN}/bin"
+				DEPENDS ${FFMPEG_BIN}/Makefile
+				BYPRODUCTS ${FFMPEG_BIN}
+				WORKING_DIRECTORY ${FFMPEG_BIN}
+			)
 			
 			foreach(LIB avutil avformat swresample avcodec)
 				add_library(${LIB} STATIC IMPORTED)
+				if(NOT EXISTS ${FFMPEG_LINK_PATH}/lib${LIB}.a)
+					add_dependencies(${LIB} FFMPEG_MAKE)
+				endif()
 				set_target_properties(${LIB} PROPERTIES
 					IMPORTED_LOCATION ${FFMPEG_LINK_PATH}/lib${LIB}.a
 				)
 			endforeach()
-			
-			if(EMSCRIPTEN)
-				FetchDependency(ZLIB
-					DIR zlib
-					DOWNLOAD https://zlib.net/zlib-1.2.11.tar.xz
-					SUBDIR zlib-1.2.11
-				)
-				
-				if(ZLIB_PATH)
-					add_subdirectory(${ZLIB_PATH} ${ZLIB_BIN})
-					set_target_properties(zlib example minigzip example64 minigzip64 PROPERTIES
-						EXCLUDE_FROM_ALL TRUE
-						EXCLUDE_FROM_DEFAULT_BUILD TRUE
-					)
-					
-					add_library(z STATIC IMPORTED)
-					set_target_properties(z PROPERTIES
-						IMPORTED_LOCATION ${ZLIB_BIN}/libz.a
-					)
-				endif()
-			endif()
 		endif()
 	endif()
 endif()

@@ -37,6 +37,11 @@ add_library(libvgmstream STATIC
 	${EXT_HEADERS}
 	${MAIN_HEADERS}
 	${MAIN_SOURCES})
+set_target_properties(libvgmstream PROPERTIES PREFIX "")
+
+if(USE_FFMPEG)
+	add_dependencies(libvgmstream avcodec)
+endif()
 
 setup_target(libvgmstream)
 

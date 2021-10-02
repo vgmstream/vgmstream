@@ -6,26 +6,18 @@ if(NOT WIN32 AND USE_ATRAC9)
 	)
 	
 	if(ATRAC9_PATH)
-		if(EMSCRIPTEN)
-			set(ATRAC9_LINK_PATH ${ATRAC9_BIN}/embin/libatrac9.a)
-		else()
-			set(ATRAC9_LINK_PATH ${ATRAC9_BIN}/bin/libatrac9.a)
-		endif()
-		if(NOT EXISTS ${ATRAC9_LINK_PATH})
-			if(EMSCRIPTEN)
-				add_custom_target(ATRAC9_MAKE ALL
-					COMMAND emmake make static CFLAGS="-fPIC" CC=emcc AR=emar BINDIR="${ATRAC9_BIN}/embin" && make clean
-					WORKING_DIRECTORY ${ATRAC9_PATH}/C
-				)
-			else()
-				add_custom_target(ATRAC9_MAKE ALL
-					COMMAND make static CFLAGS="-fPIC" BINDIR="${ATRAC9_BIN}/bin" && make clean
-					WORKING_DIRECTORY ${ATRAC9_PATH}/C
-				)
-			endif()
-		endif()
+		set(ATRAC9_LINK_PATH ${ATRAC9_BIN}/bin/libatrac9.a)
+		
+		add_custom_target(ATRAC9_MAKE
+			COMMAND make static CFLAGS="-fPIC" OBJDIR="${ATRAC9_BIN}/obj" BINDIR="${ATRAC9_BIN}/bin" CC="${CMAKE_C_COMPILER}" AR="${CMAKE_AR}"
+			WORKING_DIRECTORY ${ATRAC9_PATH}/C
+			BYPRODUCTS ${ATRAC9_LINK_PATH} ${ATRAC9_BIN}
+		)
 		
 		add_library(atrac9 STATIC IMPORTED)
+		if(NOT EXISTS ${ATRAC9_LINK_PATH})
+			add_dependencies(atrac9 ATRAC9_MAKE)
+		endif()
 		set_target_properties(atrac9 PROPERTIES
 			IMPORTED_LOCATION ${ATRAC9_LINK_PATH}
 		)
