@@ -25,7 +25,7 @@ source_group("Source Files\\layout" FILES ${LAYOUT_SOURCES})
 source_group("Source Files\\meta" FILES ${META_SOURCES})
 source_group("Source Files\\util" FILES ${UTIL_SOURCES})
 
-add_library(libvgmstream STATIC
+set(libvgmstream_sources
 	${CODING_HEADERS}
 	${CODING_SOURCES}
 	${LAYOUT_HEADERS}
@@ -36,19 +36,40 @@ add_library(libvgmstream STATIC
 	${UTIL_SOURCES}
 	${EXT_HEADERS}
 	${MAIN_HEADERS}
-	${MAIN_SOURCES})
+	${MAIN_SOURCES}
+)
+# Set up the proper include directories
+set(libvgmstream_includes
+	${VGM_SOURCE_DIR}/ext_includes
+	coding
+	layout
+	meta
+	util
+)
+
+# libvgmstream.a
+add_library(libvgmstream STATIC ${libvgmstream_sources})
 set_target_properties(libvgmstream PROPERTIES PREFIX "")
 
-if(USE_FFMPEG)
+if(USE_FFMPEG AND FFMPEG_COMPILE)
 	add_dependencies(libvgmstream avcodec)
 endif()
 
 setup_target(libvgmstream)
 
-# Set up the proper include directories
-target_include_directories(libvgmstream PRIVATE
-	${VGM_SOURCE_DIR}/ext_includes
-	coding
-	layout
-	meta
-	util)
+target_include_directories(libvgmstream PRIVATE ${libvgmstream_includes})
+
+# libvgmstream.so
+add_library(libvgmstream_shared SHARED EXCLUDE_FROM_ALL ${libvgmstream_sources})
+set_target_properties(libvgmstream_shared PROPERTIES
+	PREFIX ""
+	OUTPUT_NAME "libvgmstream"
+)
+
+if(USE_FFMPEG AND FFMPEG_COMPILE)
+	add_dependencies(libvgmstream_shared avcodec)
+endif()
+
+setup_target(libvgmstream_shared TRUE)
+
+target_include_directories(libvgmstream_shared PRIVATE ${libvgmstream_includes})
