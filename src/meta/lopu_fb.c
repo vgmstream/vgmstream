@@ -2,11 +2,11 @@
 #include "../coding/coding.h"
 
 
-/*  LOPU - French-Bread's Opus [Melty Blood: Type Lumina (Switch)] */
-VGMSTREAM* init_vgmstream_lopu(STREAMFILE* sf) {
+/* LOPU - French-Bread's Opus [Melty Blood: Type Lumina (Switch)] */
+VGMSTREAM* init_vgmstream_lopu_fb(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
-    int loop_flag, channels, sample_rate;
     uint32_t start_offset, data_size;
+    int loop_flag, channels, sample_rate;
     int32_t num_samples, loop_start, loop_end, skip;
 
     /* checks */
@@ -18,7 +18,7 @@ VGMSTREAM* init_vgmstream_lopu(STREAMFILE* sf) {
         goto fail;
 
     start_offset    = read_u32le(0x04, sf);
-    sample_rate     = read_u32le(0x08, sf);
+    sample_rate     = read_s32le(0x08, sf);
     channels        = read_s16le(0x0c, sf);
     /* 0x10: ? (1984) */
     num_samples     = read_s32le(0x14, sf);
@@ -37,7 +37,7 @@ VGMSTREAM* init_vgmstream_lopu(STREAMFILE* sf) {
     vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->meta_type = meta_LOPU;
+    vgmstream->meta_type = meta_LOPU_FB;
     vgmstream->sample_rate = sample_rate;
     vgmstream->num_samples = num_samples;
     vgmstream->loop_start_sample = loop_start;

@@ -747,7 +747,8 @@ typedef enum {
     meta_BNK_RELIC,
     meta_XSH_XSD_XSS,
     meta_PSB,
-    meta_LOPU,
+    meta_LOPU_FB,
+    meta_LPCM_FB,
 
 } meta_t;
 
