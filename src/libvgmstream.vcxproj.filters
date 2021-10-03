@@ -1903,6 +1903,12 @@
     <ClCompile Include="meta\kwb.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\lopu_fb.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\lpcm_fb.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\lrmd.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>

@@ -349,7 +349,7 @@ static STREAMFILE* setup_opus_streamfile(STREAMFILE* sf, opus_config* cfg, off_t
     /* setup subfile */
     new_sf = open_wrap_streamfile(sf);
     new_sf = open_io_streamfile_ex_f(new_sf, &io_data, sizeof(opus_io_data), opus_io_read, opus_io_size, opus_io_init, opus_io_close);
-    new_sf = open_buffer_streamfile_f(new_sf, 0);
+    //new_sf = open_buffer_streamfile_f(new_sf, 0); /* seems slightly slower on typical files */
     return new_sf;
 fail:
     return NULL;

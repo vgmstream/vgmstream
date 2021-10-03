@@ -25,14 +25,14 @@ VGMSTREAM* init_vgmstream_mp4_aac_ffmpeg(STREAMFILE* sf) {
 
 
     /* checks */
-    /* .bin: Final Fantasy Dimensions (iOS), Final Fantasy V (iOS)
-     * .msd: UNO (iOS) */
-    if (!check_extensions(sf,"mp4,m4a,m4v,lmp4,bin,lbin,msd"))
-        goto fail;
-
     if ((read_u32be(0x00,sf) & 0xFFFFFF00) != 0) /* first atom BE size (usually ~0x18) */
         goto fail;
     if (!is_id32be(0x04,sf, "ftyp"))
+        goto fail;
+
+    /* .bin: Final Fantasy Dimensions (iOS), Final Fantasy V (iOS)
+     * .msd: UNO (iOS) */
+    if (!check_extensions(sf,"mp4,m4a,m4v,lmp4,bin,lbin,msd"))
         goto fail;
 
     file_size = get_streamfile_size(sf);
@@ -86,7 +86,7 @@ fail:
 
 /* read useful MP4 chunks */
 static void parse_mp4(STREAMFILE* sf, mp4_header* mp4) {
-    off_t offset, suboffset, max_offset, max_suboffset;
+    uint32_t offset, suboffset, max_offset, max_suboffset;
 
 
     /* MOV format chunks, called "atoms", size goes first because Apple */
@@ -117,12 +117,25 @@ static void parse_mp4(STREAMFILE* sf, mp4_header* mp4) {
                         mp4->loop_start = read_u32be(offset + 0x08 + 0x2c,sf);
                         mp4->loop_end = read_u32be(offset + 0x08 + 0x30,sf);
                     }
-                    /* could stop reading since FFmpeg will too */
+                    max_offset = 0;
+                }
+                /* M2 emu's .m4a (codename zoom) */
+                else if (is_id32be(offset + 0x08 + 0x00,sf, "ZOOM")) {
+                    /* 0x00: id */
+                    mp4->encoder_delay  = read_s32be(offset + 0x08 + 0x04,sf); /* Apple's 2112, also in iTunes tag */
+                    /* 0x08: end padding */
+                    mp4->num_samples    = read_s32be(offset + 0x08 + 0x0c,sf);
+                    mp4->loop_start     = read_s32be(offset + 0x08 + 0x10,sf);
+                    mp4->loop_end       = read_s32be(offset + 0x08 + 0x14,sf);
+                    mp4->loop_flag = (mp4->loop_end != 0);
+                    if (mp4->loop_flag)
+                        mp4->loop_end++; /* assumed, matches num_samples this way */
+                    max_offset = 0;
                 }
                 break;
 
             case 0x6D6F6F76: { /* "moov" (header) */
-                suboffset = offset += 0x08;
+                suboffset = offset + 0x08;
                 max_suboffset = offset + size;
                 while (suboffset < max_suboffset) {
                     uint32_t subsize = read_u32be(suboffset + 0x00,sf);
@@ -145,6 +158,7 @@ static void parse_mp4(STREAMFILE* sf, mp4_header* mp4) {
                                 mp4->num_samples    = read_s32be(criw_offset + 0x0c,sf);
                                 mp4->loop_flag = (mp4->loop_end > 0);
                                 /* next 2 fields are null */
+                                max_offset = 0;
                             }
                             break;
 
