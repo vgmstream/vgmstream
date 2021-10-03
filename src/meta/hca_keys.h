@@ -758,9 +758,24 @@ static const hcakey_info hcakey_list[] = {
 
         // m HOLD'EM (Android)
         {369211553984367},      // 00014FCBC385AF6F
-		
+
         // Sonic Colors Ultimate (multi)
         {1991062320101111},     // 000712DC5250B6F7
+
+        // ALTDEUS: Beyond Chronos (PC) [base-string 14238637353525924 + mods)]
+        {14238637353525934},    // 003295F7198AE2AE - bgm
+        {14238637353525954},    // 003295F7198AE2C2 - se
+        {14238637353525944},    // 003295F7198AE2B8 - voice
+
+        // SHOW BY ROCK!! Fes A Live (Android)
+        {54605542411982574},    // 00C1FF73963BD6EE
+
+        // Touhou Danmaku Kagura (Android)
+        {5654863921795627},     // 001417119B4FD22B
+
+        // Nogizaka 46 Fractal (Android)
+        {984635491346198130},   // 0DAA20C336EEAE72
+        
 };
 
 #endif/*_HCA_KEYS_H_*/
