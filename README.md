@@ -6,14 +6,14 @@ Some of vgmstream's features:
   to obscure single-game codecs, aiming for high accuracy and compatibility.
 - Support for looped BGM, using file's internal metadata for smooth transitions, with accurate
   sample counts.
-- [Subsongs](USAGE.md#subsongs), playing a format's multiple internal songs separately.
+- [Subsongs](doc/USAGE.md#subsongs), playing a format's multiple internal songs separately.
 - Many types of companion files (data split into multiple files) and custom containers.
 - Encryption keys, internal stream names, and many other unusual cases found in game audio.
 - [TXTH](doc/TXTH.md) function, to add external support for extra formats, including raw audio in
   many forms.
 - [TXTP](doc/TXTP.md) function, for real-time and per-file config, like forced looping, removing
   channels, playing certain subsong, or fusing multiple files into a single one.
-- Simple [external tagging](USAGE.md#tagging) via .m3u files.
+- Simple [external tagging](doc/USAGE.md#tagging) via .m3u files.
 - [Plugins](#getting-vgmstream) are available for various media player software and operating systems.
 
 The main development repository: https://github.com/vgmstream/vgmstream/
@@ -28,12 +28,12 @@ More documentation: https://github.com/vgmstream/vgmstream/tree/master/doc
 
 ## Getting vgmstream
 There are multiple end-user components:
-- [test.exe/vgmstream-cli](USAGE.md#testexevgmstream-cli-command-line-decoder): A command-line decoder.
-- [in_vgmstream](USAGE.md#in_vgmstream-winamp-plugin): A Winamp plugin.
-- [foo_input_vgmstream](USAGE.md#foo_input_vgmstream-foobar2000-plugin): A foobar2000 component.
-- [xmp-vgmstream](USAGE.md#xmp-vgmstream-xmplay-plugin): An XMPlay plugin.
-- [vgmstream.so](USAGE.md#audacious-plugin): An Audacious plugin.
-- [vgmstream123](USAGE.md#vgmstream123-command-line-player): A command-line player.
+- [test.exe/vgmstream-cli](doc/USAGE.md#testexevgmstream-cli-command-line-decoder): A command-line decoder.
+- [in_vgmstream](doc/USAGE.md#in_vgmstream-winamp-plugin): A Winamp plugin.
+- [foo_input_vgmstream](doc/USAGE.md#foo_input_vgmstream-foobar2000-plugin): A foobar2000 component.
+- [xmp-vgmstream](doc/USAGE.md#xmp-vgmstream-xmplay-plugin): An XMPlay plugin.
+- [vgmstream.so](doc/USAGE.md#audacious-plugin): An Audacious plugin.
+- [vgmstream123](doc/USAGE.md#vgmstream123-command-line-player): A command-line player.
 
 The main library (plain *vgmstream*) is the code that handles the internal conversion, while the
 above components are what you use to get sound.
