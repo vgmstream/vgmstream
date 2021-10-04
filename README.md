@@ -64,9 +64,6 @@ statically linked and should work on all systems running Linux kernel v3.2 and a
 - https://vgmstream.org/downloads
 - https://github.com/vgmstream/vgmstream/releases
 
-For Arch Linux users, the `vgmstream-git` package is available in AUR:
-- https://aur.archlinux.org/packages/vgmstream-git/
-
 Building from source will also give you *vgmstream.so*, an Audacious plugin, and *vgmstream123*,
 a command-line player.
 
@@ -76,11 +73,7 @@ Ubuntu-style distributions, run `./make-build-cmake.sh`. The script will be inst
 dependencies, so you may prefer to copy the commands from the file and run them one by one.
 
 ### macOS
-Install using [Homebrew](https://brew.sh/):
-- https://formulae.brew.sh/formula/vgmstream
-
-Or follow the [build guide](doc/BUILD.md) to build it yourself. You could also probably use the
-Linux script above with some tweaks.
+Please follow the [build guide](doc/BUILD.md).
 
 
 ## More info
