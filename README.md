@@ -1,22 +1,22 @@
 # vgmstream
-This is vgmstream, a library for playing streamed (pre-recorded) audio from
-video games.
+This is vgmstream, a library for playing streamed (prerecorded) video game audio.
 
 Some of vgmstream's features:
-- hundreds of video game music formats and codecs, from typical game engine files to 
-  obscure single-game codecs, aiming for high accuracy and compatibility.
-- support for looped BGM, using file's internal metadata for smooth transitions,
-  with accurate sample counts
-- subsongs, playing a format's multiple internal songs separately
-- many types of companion files (data split in multiple files) and custom containers
-- encryption keys, internal stream names, and many other unusual cases found in game audio
-- TXTH function, to add external support for extra formats (including raw audio in many forms)
-- TXTP function, for real-time and per-file config (like forced looping, removing
-  channels, playing certain subsong, or fusing together multiple files as a single one)
-- simple external tagging via .m3u files
-- plugins available for various common players and O.S.
+- [Hundreds of video game music formats and codecs](doc/FORMATS.md), from typical game engine files
+  to obscure single-game codecs, aiming for high accuracy and compatibility.
+- Support for looped BGM, using file's internal metadata for smooth transitions, with accurate
+  sample counts.
+- [Subsongs](USAGE.md#subsongs), playing a format's multiple internal songs separately.
+- Many types of companion files (data split into multiple files) and custom containers.
+- Encryption keys, internal stream names, and many other unusual cases found in game audio.
+- [TXTH](doc/TXTH.md) function, to add external support for extra formats, including raw audio in
+  many forms.
+- [TXTP](doc/TXTP.md) function, for real-time and per-file config, like forced looping, removing
+  channels, playing certain subsong, or fusing multiple files into a single one.
+- Simple [external tagging](USAGE.md#tagging) via .m3u files.
+- [Plugins](#getting-vgmstream) are available for various media player software and operating systems.
 
-Latest development is here: https://github.com/vgmstream/vgmstream/
+The main development repository: https://github.com/vgmstream/vgmstream/
 
 Automated builds with the latest changes: https://vgmstream.org/downloads
 
@@ -24,57 +24,71 @@ Common releases: https://github.com/vgmstream/vgmstream/releases
 
 Help can be found here: https://www.hcs64.com/
 
-More docs: https://github.com/vgmstream/vgmstream/tree/master/doc
+More documentation: https://github.com/vgmstream/vgmstream/tree/master/doc
 
 ## Getting vgmstream
-There are multiple end-user bits:
-- a command line decoder called *test.exe/vgmstream-cli*
-- a Winamp plugin called *in_vgmstream*
-- a foobar2000 component called *foo_input_vgmstream*
-- an XMPlay plugin called *xmp-vgmstream*
-- an Audacious plugin called *libvgmstream*
-- a command line player called *vgmstream123*
+There are multiple end-user components:
+- [test.exe/vgmstream-cli](USAGE.md#testexevgmstream-cli-command-line-decoder): A command-line decoder.
+- [in_vgmstream](USAGE.md#in_vgmstream-winamp-plugin): A Winamp plugin.
+- [foo_input_vgmstream](USAGE.md#foo_input_vgmstream-foobar2000-plugin): A foobar2000 component.
+- [xmp-vgmstream](USAGE.md#xmp-vgmstream-xmplay-plugin): An XMPlay plugin.
+- [vgmstream.so](USAGE.md#audacious-plugin): An Audacious plugin.
+- [vgmstream123](USAGE.md#vgmstream123-command-line-player): A command-line player.
 
-Main lib (plain *vgmstream*) is the code that handles internal conversion, while the
-above components are what you use to actually get sound.
+The main library (plain *vgmstream*) is the code that handles the internal conversion, while the
+above components are what you use to get sound.
 
-See *components* in *usage guide* for install instructions and explanations. The aim
-is feature parity, but there are a few differences between them (due to missing
-implementation in vgmstream's side, or lack of support in target player/API/etc).
+See [components](doc/USAGE.md#components) in the *usage guide* for install instructions and
+explanations. The aim is feature parity, but there are a few differences between them due to
+missing implementation on vgmstream's side or lack of support in target player or API.
 
 ### Windows
-You should get `vgmstream-win.zip` (bundle of various components) or
-`foo_input_vgmstream.fb2k-component` (installable foobar2000 plugin) from the
-latest pre-built binaries:
-https://vgmstream.org/downloads
+You should get `vgmstream-win.zip`, which also bundles various components, or
+`foo_input_vgmstream.fb2k-component` for the installable foobar2000 plugin from the
+latest prebuilt binaries on our website:
+- https://vgmstream.org/downloads
 
-You can also try getting them from the (infrequently updated) releases:
-https://github.com/vgmstream/vgmstream/releases
+You can also get them from the less frequently updated releases on GitHub:
+- https://github.com/vgmstream/vgmstream/releases
 
-If the above links fail you may try alt, recent-ish versions here:
-https://github.com/bnnm/vgmstream-builds/raw/master/bin/vgmstream-latest-test-u.zip
+If the above links fail, you may also try the alternative, somewhat recent versions built by
+[bnnm](https://github.com/bnnm):
+- https://github.com/bnnm/vgmstream-builds/raw/master/bin/vgmstream-latest-test-u.zip
 
-You may compile them from source as well (see *build guide*).
+If you prefer, you may compile the components from source as well, see the
+[build guide](doc/BUILD.md) for more information.
 
 ### Linux
-Generally you need to build vgmstream's components manually (see *build guide*). For
-a quick build call `./make-build-cmake.sh` (for Debian/Ubuntu-style distros, installs
-various deps first so you may prefer to call commands manually).
+For convenience, releases distribute a command-line decoder in `vgmstream-cli.zip`. It is
+statically linked and should work on all systems running Linux kernel v3.2 and above.
+- https://vgmstream.org/downloads
+- https://github.com/vgmstream/vgmstream/releases
 
-Releases also distribute a static version of the CLI tool (kernel v3.2+).
-https://vgmstream.org/downloads
-https://github.com/vgmstream/vgmstream/releases
+For Arch Linux users, the `vgmstream-git` package is available in AUR:
+- https://aur.archlinux.org/packages/vgmstream-git/
 
-### Mac
-Follow the *build guide* instructions. You can probably use Linux's script above with
-some tweaks.
+Building from source will also give you *vgmstream.so*, an Audacious plugin, and *vgmstream123*,
+a command-line player.
+
+When building from source code, many components have to be installed or compiled separately. The
+[build guide](doc/BUILD.md) describes this process in more detail. For a quick build on Debian and
+Ubuntu-style distributions, run `./make-build-cmake.sh`. The script will be installing various
+dependencies, so you may prefer to copy the commands from the file and run them one by one.
+
+### macOS
+Install using [Homebrew](https://brew.sh/):
+- https://formulae.brew.sh/formula/vgmstream
+
+Or follow the [build guide](doc/BUILD.md) to build it yourself. You could also probably use the
+Linux script above with some tweaks.
 
 
 ## More info
 - [Usage guide](doc/USAGE.md)
+- [List of supported audio formats](doc/FORMATS.md)
 - [Build guide](doc/BUILD.md)
-- [TXTH info](doc/TXTH.md)
-- [TXTP info](doc/TXTP.md)
+- [TXTH file format](doc/TXTH.md)
+- [TXTP file format](doc/TXTP.md)
 
 
 Enjoy! *hcs*
