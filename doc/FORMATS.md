@@ -1,0 +1,332 @@
+## Supported file types
+As manakoAT likes to say, the extension doesn't really mean anything, but it's
+the most obvious way to identify files.
+
+This list is not complete and many other files are supported.
+
+- PS2/PSX ADPCM:
+	- .ads/.ss2
+	- .ass
+	- .ast
+	- .bg00
+	- .bmdx
+	- .ccc
+	- .cnk
+	- .dxh
+	- .enth
+	- .fag
+	- .filp
+	- .gcm
+	- .gms
+	- .hgc1
+	- .ikm
+	- .ild
+	- .ivb
+	- .joe
+	- .kces
+	- .khv
+	- .leg
+	- .mcg
+	- .mib, .mi4 (w/ or w/o .mih)
+	- .mic
+	- .mihb (merged mih+mib)
+	- .msa
+	- .msvp
+	- .musc
+	- .npsf
+	- .pnb
+	- .psh
+	- .rkv
+	- .rnd
+	- .rstm
+	- .rws
+	- .rxw
+	- .snd
+	- .sfs
+	- .sl3
+	- .smpl (w/ bad flags)
+	- .ster
+	- .str+.sth
+	- .str (MGAV blocked)
+	- .sts
+	- .svag
+	- .svs
+	- .tec (w/ bad flags)
+	- .tk5 (w/ bad flags)
+	- .vas
+	- .vag
+	- .vgs (w/ bad flags)
+	- .vig
+	- .vpk
+	- .vs
+	- .vsf
+	- .wp2
+	- .xa2
+	- .xa30
+	- .xwb+xwh
+- GC/Wii/3DS DSP ADPCM:
+	- .aaap
+	- .agsc
+	- .asr
+	- .bns
+	- .bo2
+	- .capdsp
+	- .cfn
+	- .ddsp
+	- .dsp
+		- standard, optional dual file stereo
+		- RS03
+		- Cstr
+		- _lr.dsp
+		- MPDS
+	- .gca
+	- .gcm
+	- .gsp+.gsp
+	- .hps
+	- .idsp
+	- .ish+.isd
+	- .lps
+	- .mca
+	- .mpdsp
+	- .mss
+	- .mus (not quite right)
+	- .ndp
+	- .pdt
+	- .sdt
+	- .smp
+	- .sns
+	- .spt+.spd
+	- .ssm
+	- .stm/.dsp
+	- .str
+	- .str+.sth
+	- .sts
+	- .swd
+	- .thp, .dsp
+	- .tydsp
+	- .vjdsp
+	- .waa, .wac, .wad, .wam
+	- .was
+	- .wsd
+	- .wsi
+	- .ydsp
+	- .ymf
+	- .zwdsp
+- PCM:
+	- .aiff (8 bit, 16 bit)
+	- .asd (16 bit)
+	- .baka (16 bit)
+	- .bh2pcm (16 bit)
+	- .dmsg (16 bit)
+	- .gcsw (16 bit)
+	- .gcw (16 bit)
+	- .his (8 bit)
+	- .int (16 bit)
+	- .pcm (8 bit, 16 bit)
+	- .kraw (16 bit)
+	- .raw (16 bit)
+	- .rwx (16 bit)
+	- .sap (16 bit)
+	- .snd (16 bit)
+	- .sps (16 bit)
+	- .str (16 bit)
+	- .xss (16 bit)
+	- .voi (16 bit)
+	- .wb (16 bit)
+	- .zsd (8 bit)
+- Xbox IMA ADPCM:
+	- .matx
+	- .wavm
+	- .wvs
+	- .xmu
+	- .xvas
+	- .xwav
+- Yamaha AICA ADPCM:
+	- .adpcm
+	- .dcs+.dcsw
+	- .str
+	- .spsd
+- IMA ADPCM:
+	- .bar (IMA ADPCM)
+	- .pcm/dvi (DVI IMA ADPCM)
+	- .hwas (IMA ADPCM)
+	- .dvi/idvi (DVI IMA ADPCM)
+	- .ivaud (IMA ADPCM)
+	- .myspd (IMA ADPCM)
+	- .strm (IMA ADPCM)
+- multi:
+	- .aifc (SDX2 DPCM, DVI IMA ADPCM)
+	- .asf/as4 (8/16 bit PCM, DVI IMA ADPCM)
+	- .ast (GC AFC ADPCM, 16 bit PCM)
+	- .aud (IMA ADPCM, WS DPCM)
+	- .aus (PSX ADPCM, Xbox IMA ADPCM)
+	- .brstm (GC DSP ADPCM, 8/16 bit PCM)
+	- .emff (PSX APDCM, GC DSP ADPCM)
+	- .fsb/wii (PSX ADPCM, GC DSP ADPCM, Xbox IMA ADPCM, MPEG audio, FSB Vorbis, MS XMA)
+	- .msf (PCM, PSX ADPCM, ATRAC3, MP3)
+	- .musx (PSX ADPCM, Xbox IMA ADPCM, DAT4 IMA ADPCM)
+	- .nwa (16 bit PCM, NWA DPCM)
+	- .p3d (Radical ADPCM, Radical MP3, XMA2)
+	- .psw (PSX ADPCM, GC DSP ADPCM)
+	- .rwar, .rwav (GC DSP ADPCM, 8/16 bit PCM)
+	- .rws (PSX ADPCM, XBOX IMA ADPCM, GC DSP ADPCM, 16 bit PCM)
+	- .rwsd (GC DSP ADPCM, 8/16 bit PCM)
+	- .rsd (PSX ADPCM, 16 bit PCM, GC DSP ADPCM, Xbox IMA ADPCM, Radical ADPCM)
+	- .rrds (NDS IMA ADPCM)
+	- .sad (GC DSP ADPCM, NDS IMA ADPCM, Procyon Studios NDS ADPCM)
+	- .sgd/sgb+sgh/sgx (PSX ADPCM, ATRAC3plus, AC3)
+	- .seg (Xbox IMA ADPCM, PS2 ADPCM)
+	- .sng/asf/str/eam/aud (8/16 bit PCM, EA-XA ADPCM, PSX ADPCM, GC DSP ADPCM, XBOX IMA ADPCM, MPEG audio, EALayer3)
+	- .strm (NDS IMA ADPCM, 8/16 bit PCM)
+	- .sb0..7 (Ubi IMA ADPCM, GC DSP ADPCM, PSX ADPCM, Xbox IMA ADPCM, ATRAC3)
+	- .swav (NDS IMA ADPCM, 8/16 bit PCM)
+	- .xwb (PCM, Xbox IMA ADPCM, MS ADPCM, XMA, XWMA, ATRAC3)
+	- .xwb+xwh (PCM, PSX ADPCM, ATRAC3)
+	- .wav/lwav (unsigned 8 bit PCM, 16 bit PCM, GC DSP ADPCM, MS IMA ADPCM, XBOX IMA ADPCM)
+	- .wem [lwav/logg/xma] (PCM, Wwise Vorbis, Wwise IMA ADPCM, XMA, XWMA, GC DSP ADPCM, Wwise Opus)
+- etc:
+	- .2dx9 (MS ADPCM)
+	- .aax (CRI ADX ADPCM)
+	- .acm (InterPlay ACM)
+	- .adp (GC DTK ADPCM)
+	- .adx (CRI ADX ADPCM)
+	- .afc (GC AFC ADPCM)
+	- .ahx (MPEG-2 Layer II)
+	- .aix (CRI ADX ADPCM)
+	- .at3 (Sony ATRAC3 / ATRAC3plus)
+	- .aud (Silicon Knights Vorbis)
+	- .baf (PSX configurable ADPCM)
+	- .bgw (PSX configurable ADPCM)
+	- .bnsf (G.722.1)
+	- .caf (Apple IMA4 ADPCM, others)
+	- .dec/de2 (MS ADPCM)
+	- .hca (CRI High Compression Audio)
+	- .pcm/kcey (DVI IMA ADPCM)
+	- .lsf (LSF ADPCM)
+	- .mc3 (Paradigm MC3 ADPCM)
+	- .mp4/lmp4 (AAC)
+	- .msf (PCM, PSX ADPCM, ATRAC3, MP3)
+	- .mtaf (Konami ADPCM)
+	- .mta2 (Konami XAS-like ADPCM)
+	- .mwv (Level-5 0x555 ADPCM)
+	- .ogg/logg (Ogg Vorbis)
+	- .ogl (Shin'en Vorbis)
+	- .rsf (CCITT G.721 ADPCM)
+	- .sab (Worms 4 soundpacks)
+	- .s14/sss (G.722.1)
+	- .sc (Activision EXAKT SASSC DPCM)
+	- .scd (MS ADPCM, MPEG Audio, 16 bit PCM)
+	- .sd9 (MS ADPCM)
+	- .smp (MS ADPCM)
+	- .spw (PSX configurable ADPCM)
+	- .stm/lstm [amts/ps2stm/stma] (16 bit PCM, DVI IMA ADPCM, GC DSP ADPCM)
+	- .str (SDX2 DPCM)
+	- .stx (GC AFC ADPCM)
+	- .ulw (u-Law PCM)
+	- .um3 (Ogg Vorbis)
+	- .xa (CD-ROM XA audio)
+	- .xma (MS XMA/XMA2)
+	- .sb0/sb1/sb2/sb3/sb4/sb5/sb6/sb7 (many)
+	- .sm0/sm1/sm2/sm3/sm4/sm5/sm6/sm7 (many)
+	- .bao/pk (many)
+- artificial/generic headers:
+	- .genh (lots)
+	- .txth (lots)
+- loop assists:
+	- .mus (playlist for .acm)
+	- .pos (loop info for .wav)
+	- .sli (loop info for .ogg)
+	- .sfl (loop info for .ogg)
+- other:
+	- .adxkey (decryption key for .adx)
+	- .ahxkey (decryption key for .ahx)
+	- .hcakey (decryption key for .hca)
+	- .fsbkey (decryption key for .fsb)
+	- .bnsfkey (decryption key for .bnsf)
+	- .txtp (per song segment/layer handler and player configuration)
+
+
+## Supported codec types
+Quick list of most codecs vgmstream supports, including many obscure ones that
+are used in few games.
+
+- PCM 16-bit
+- PCM 8-bit (signed, unsigned)
+- PCM 4-bit (signed, unsigned)
+- PCM 32-bit float
+- u-Law/a-LAW
+- CRI ADX (standard, fixed, exponential, encrypted)
+- Nintendo DSP ADPCM a.k.a GC ADPCM
+- Nintendo DTK ADPCM
+- Nintendo AFC ADPCM
+- ITU-T G.721
+- CD-ROM XA ADPCM
+- Sony PSX ADPCM a.k.a VAG (standard, badflags, configurable, extended)
+- Sony HEVAG
+- Electronic Arts EA-XA (stereo, mono, Maxis)
+- Electronic Arts EA-XAS (v0, v1)
+- DVI/IMA ADPCM (stereo/mono + high/low nibble, 3DS, Quantic Dream, SNDS, etc)
+- Microsoft MS IMA ADPCM (standard, Xbox, NDS, Radical, Wwise, FSB, WV6, etc)
+- Microsoft MS ADPCM (standard, Cricket Audio)
+- Westwood VBR ADPCM
+- Yamaha ADPCM (AICA, Aska)
+- Procyon Studio ADPCM
+- Level-5 0x555 ADPCM
+- lsf ADPCM
+- Konami MTAF ADPCM
+- Konami MTA2 ADPCM
+- Paradigm MC3 ADPCM
+- FMOD FADPCM 4-bit ADPCM
+- Konami XMD 4-bit ADPCM
+- Platinum 4-bit ADPCM
+- Argonaut ASF 4-bit ADPCM
+- Tantalus 4-bit ADPCM
+- Ocean DSA 4-bit ADPCM
+- Circus XPCM ADPCM
+- Circus XPCM VQ
+- OKI 4-bit ADPCM (16-bit output, 4-shift, PC-FX)
+- Ubisoft 4/6-bit ADPCM
+- Tiger Game.com ADPCM
+- LucasArts iMUSE VBR ADPCM
+- CompressWave (CWav) Huffman ADPCM
+- SDX2 2:1 Squareroot-Delta-Exact compression DPCM
+- CBD2 2:1 Cuberoot-Delta-Exact compression DPCM
+- Activision EXAKT SASSC DPCM
+- Xilam DERF DPCM
+- InterPlay ACM
+- VisualArt's NWA
+- Electronic Arts MicroTalk a.k.a. UTK or UMT
+- Relic Codec
+- CRI HCA
+- tri-Ace PS2 Codec
+- Xiph Vorbis (Ogg, FSB5, Wwise, OGL, Silicon Knights)
+- MPEG MP1/2/3 (standard, AHX, XVAG, FSB, AWC, P3D, EA, etc)
+- ITU-T G.722.1 annex C a.k.a. Polycom Siren 14 (Namco)
+- ITU-T G.719 annex B a.k.a. Polycom Siren 22
+- Electronic Arts EASpeex
+- Electronic Arts EALayer3
+- Electronic Arts EA-XMA
+- Sony ATRAC3, ATRAC3plus
+- Sony ATRAC9
+- Microsoft XMA1/2
+- Microsoft WMA v1, WMA v2, WMAPro
+- AAC
+- Bink
+- AC3/SPDIF
+- Xiph Opus (Ogg, Switch, EA, UE4, Exient)
+- Xiph CELT (FSB)
+- Musepack
+- FLAC
+- Others
+
+Sometimes standard codecs come in non-standard layouts that aren't normally
+supported by other players (like multiple `.ogg` or `.mp3` files chunked and
+interleaved together in custom ways).
+
+Some codecs are not fully correct compared to the games due to minor bugs, but
+in most cases it isn't audible, and general accuracy is high, with emphasis in
+proper support of encoder delay, accurate sample counts and seeking that other
+plugins may lack.
+
+Note that vgmstream doesn't (can't) reproduce in-game music 1:1, as internal
+resampling, filters, volume, etc, are not replicated.

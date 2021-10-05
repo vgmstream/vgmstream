@@ -29,7 +29,9 @@ See [BUILD.md](BUILD.md)'s *Compilation requirements* for more info about variou
 
 It is recommended to do out-of-source builds as opposed to in-source builds. Out-of-source builds have been tested to work, while in-source builds have not been tested at all.
 
-***NOTE:*** The CMake scripts attempt to collect all the source files are configuration time. If you are following vgmstream development through git or adding your own source files, you **MUST** re-run CMake manually to regenerate the files. Failure to do so can result in either missing functionality or compile errors.
+Create a directory called `build` and run cmake commands from there.
+
+***NOTE:*** The CMake scripts attempt to collect all the source files at configuration time. If you are following vgmstream development through git or adding your own source files, you **MUST** re-run CMake manually to regenerate the files. Failure to do so can result in either missing functionality or compile errors.
 
 First you will need to run CMake to generate the build setup. You can use either the CMake GUI or run CMake from the command line.
 
@@ -71,7 +73,7 @@ cd vgmstream
 cmake -DUSE_FFMPEG=ON -DBUILD_AUDACIOUS=OFF -S . -B build
 ```
 
-You may need to install appropriate packages first (see [BUILD.md)(BUILD.md) for more info), for example:
+You may need to install appropriate packages first (see [BUILD.md](BUILD.md) for more info), for example:
 ```
 sudo apt-get update
 # basic compilation
@@ -88,6 +90,10 @@ sudo apt-get install -y libjansson-dev
 sudo apt-get install -y yasm libopus-dev
 # actual cmake
 sudo apt-get install -y cmake
+
+mkdir -p build
+cd build
+cmake ..
 ```
 
 Once you have run the command, as long as there are no errors, you should see the following at the bottom of the window:
@@ -112,6 +118,8 @@ If not using a project-based GUI, then you will also need to set what build type
 - **RelWithDebInfo**: Like Release but with debugging information included
 - **MinSizeRel**: Like Release but aims for minimum size
 
+For example: `cmake .. -DCMAKE_BUILD_TYPE=Release`
+
 #### Library Options
 
 All of these options are of type BOOL and can be set to either `ON` or `OFF`. Most of the details on these libraries can be found in the [External Libraries section of BUILD.md](BUILD.md#external-libraries).
@@ -125,19 +133,19 @@ All of these options are of type BOOL and can be set to either `ON` or `OFF`. Mo
 - **USE_ATRAC9**: Chooses if you wish to use LibAtrac9 for support of ATRAC9. The default is `ON`.
 - **USE_SPEEX**: Chooses if you wish to use libspeex for support of SPEEX. The default is `ON`.
 
-The following option is currently only available for Windows:
+The following option is currently only available for **Windows**:
 
 - **USE_CELT**: Chooses if you wish to use libcelt for support of FSB CELT versions 0.6.1 and 0.11.0. The default is `ON`.
 
-The following option is only available for *nix-based OSes:
+The following option is only available for **\*nix-based OSes**:
 
 - **USE_JANSSON**: Chooses if you wish to use libjansson for support of JSON dumping capabilities. The default is `ON`.
 
 #### Build Options
 
-All of these options are of type BOOL and can be set to either `ON` or `OFF`.
+All of these options are of type BOOL and can be set to either `ON` or `OFF`. Example usage: `cmake .. -DBUILD_CLI=ON`
 
-- **BUILD_CLI**: Chooses if you wish to build the vgmstream CLI program (as well as vgmstream123 on *nix-based OSes). The default is `ON`.
+- **BUILD_CLI**: Chooses if you wish to build the vgmstream CLI program. The default is `ON`.
 
 The following options are only available for Windows:
 
@@ -153,7 +161,7 @@ The following option is only available for *nix-based OSes:
 
 #### Paths
 
-All of these paths are of type PATH.
+These options are for setting the path to the library source code. The CMake script will then configure and build each library. All of these paths are of type PATH. Example usage: `cmake .. -DMPEG_PATH=~/source_code/mpg123`
 
 If FDK-AAC/QAAC support is enabled, the following paths are required (with more details in the foobar2000 plugin section of [BUILD.md](BUILD.md)):
 
@@ -164,9 +172,10 @@ If FDK-AAC/QAAC support is enabled, the following paths are required (with more 
 - **FFMPEG_PATH**: The path to the FFmpeg source directory. It can be obtained at https://git.ffmpeg.org/ffmpeg.git If not set and static building is enabled, this will be downloaded automatically.
 - **G719_PATH**: The path to the G.719 decoder library. It can be obtained at https://github.com/kode54/libg719_decode If not set, it is downloaded automatically on Linux.
 - **ATRAC9_PATH**: The path to the Atrac9 library. It can be obtained at https://github.com/Thealexbarney/LibAtrac9 If not set, it is downloaded automatically on Linux.
+- **SPEEX_PATH**: The path to the SPEEX library. It can be obtained at https://gitlab.xiph.org/xiph/speex If not set, it is downloaded automatically when building with Emscripten.
 - **LIBAO_PATH**: The path to the AO library. If static building is enabled and you chose to build the vgmstream123 player, providing this path is required. It is not recommended to use.
 
-The CLI/vgmstream123 programs are normally installed to `CMAKE_INSTALL_PREFIX`, changing this will change where those are installed.
+The CLI/vgmstream123 programs are normally installed to `CMAKE_INSTALL_PREFIX`, changing this will change where those are installed: `cmake .. -DCMAKE_INSTALL_PREFIX=/custom/path`
 
 If building the foobar2000 component, the following paths are required:
 
