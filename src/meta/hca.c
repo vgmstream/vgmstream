@@ -3,7 +3,7 @@
 #include "../coding/coding.h"
 #include "../coding/hca_decoder_clhca.h"
 
-#define HCA_BRUTEFORCE
+//#define HCA_BRUTEFORCE
 #ifdef HCA_BRUTEFORCE
 static void bruteforce_hca_key(STREAMFILE* sf, hca_codec_data* hca_data, unsigned long long* p_keycode, uint16_t subkey);
 #endif
