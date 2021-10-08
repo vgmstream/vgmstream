@@ -119,7 +119,7 @@ class App(object):
                     count += 1
 
                 if not count:
-                    print("%s: no .txtp found" % (filename, count))
+                    print("%s: no .txtp found" % (filename))
                 else:
                     print("%s: total %i .txtp" % (filename, count))
 
