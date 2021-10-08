@@ -103,8 +103,8 @@ Because the XMPlay MP3 decoder incorrectly tries to play some vgmstream extensio
 you need to manually fix it by going to **options > plugins > input > vgmstream**
 and in the "priority filetypes" put: `ahx,asf,awc,ckd,fsb,genh,lwav,msf,p3d,rak,scd,txth,xvag`
 
-XMPlay cannot support subsongs due to player limitations (with any plugin), try
-using *TXTP* instead (explained below).
+XMPlay cannot support vgmstream's type of mixed subsongs due to player limitations
+(with neither *xmp-vgmstream* nor *in_vgmstream* plugins), try using *TXTP* instead (explained below).
 
 
 ### Audacious plugin
