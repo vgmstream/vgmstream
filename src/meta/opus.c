@@ -30,7 +30,7 @@ static VGMSTREAM* init_vgmstream_opus(STREAMFILE* sf, meta_t meta_type, off_t of
 
     /* 0x80000002: 'offset info' chunk (seek table?), not seen */
 
-    /* 'context info' chunk, rare [Famicom Detective Club (Switch)] */
+    /* 'context info' chunk, rare [Famicom Detective Club (Switch), SINce Memories (Switch)] */
     if (context_offset && read_u32le(offset + context_offset, sf) == 0x80000003) {
         /* maybe should give priority to external info? */
         context_offset += offset;
@@ -52,6 +52,12 @@ static VGMSTREAM* init_vgmstream_opus(STREAMFILE* sf, meta_t meta_type, off_t of
         multistream_offset = offset + 0x20;
     }
 
+    /* Opus can only do 48000 but some games store original rate [Grandia HD Collection, Lego Marvel] */
+    if (sample_rate != 48000) {
+        VGM_LOG("OPUS: ignored non-standard sample rate of %i\n", sample_rate);
+        sample_rate = 48000;
+    }
+
 
     /* 'data info' chunk */
     data_offset += offset;
@@ -69,8 +75,6 @@ static VGMSTREAM* init_vgmstream_opus(STREAMFILE* sf, meta_t meta_type, off_t of
 
     vgmstream->meta_type = meta_type;
     vgmstream->sample_rate = sample_rate;
-    if (vgmstream->sample_rate == 16000)
-        vgmstream->sample_rate = 48000; // Grandia HD Collection contains a false sample_rate in header
     vgmstream->num_samples = num_samples;
     vgmstream->loop_start_sample = loop_start;
     vgmstream->loop_end_sample = loop_end;
@@ -124,6 +128,9 @@ VGMSTREAM* init_vgmstream_opus_std(STREAMFILE* sf) {
     int num_samples, loop_start, loop_end;
 
     /* checks */
+    if (read_u32le(0x00,sf) != 0x80000001) /* 'basic info' chunk */
+        goto fail;
+
     /* .opus: standard
      * .bgm: Cotton Reboot (Switch) */
     if (!check_extensions(sf,"opus,lopus,bgm"))
@@ -157,10 +164,10 @@ VGMSTREAM* init_vgmstream_opus_n1(STREAMFILE* sf) {
     int num_samples, loop_start, loop_end;
 
     /* checks */
-    if (!check_extensions(sf,"opus,lopus"))
-        goto fail;
     if (!((read_u32be(0x04,sf) == 0x00000000 && read_u32be(0x0c,sf) == 0x00000000) ||
           (read_u32be(0x04,sf) == 0xFFFFFFFF && read_u32be(0x0c,sf) == 0xFFFFFFFF)))
+        goto fail;
+    if (!check_extensions(sf,"opus,lopus"))
         goto fail;
 
     offset = 0x10;
@@ -181,7 +188,7 @@ VGMSTREAM* init_vgmstream_opus_capcom(STREAMFILE* sf) {
     int channels;
 
     /* checks */
-    if ( !check_extensions(sf,"opus,lopus"))
+    if (!check_extensions(sf,"opus,lopus"))
         goto fail;
 
     channels = read_32bitLE(0x04,sf);
@@ -259,10 +266,10 @@ VGMSTREAM* init_vgmstream_opus_nop(STREAMFILE* sf) {
     int num_samples, loop_start = 0, loop_end = 0, loop_flag;
 
     /* checks */
-    if (!check_extensions(sf,"nop"))
+    if (!is_id32be(0x00, sf, "sadf") ||
+        !is_id32be(0x08, sf, "opus"))
         goto fail;
-    if (read_32bitBE(0x00, sf) != 0x73616466 || /* "sadf" */
-        read_32bitBE(0x08, sf) != 0x6f707573)   /* "opus" */
+    if (!check_extensions(sf,"nop"))
         goto fail;
 
     offset = read_32bitLE(0x1c, sf);
@@ -284,9 +291,9 @@ VGMSTREAM* init_vgmstream_opus_shinen(STREAMFILE* sf) {
     int num_samples, loop_start, loop_end;
 
     /* checks */
-    if ( !check_extensions(sf,"opus,lopus"))
+    if (read_u32be(0x08,sf) != 0x01000080)
         goto fail;
-    if (read_32bitBE(0x08,sf) != 0x01000080)
+    if ( !check_extensions(sf,"opus,lopus"))
         goto fail;
 
     offset = 0x08;
@@ -308,10 +315,11 @@ VGMSTREAM* init_vgmstream_opus_nus3(STREAMFILE* sf) {
     int num_samples = 0, loop_start = 0, loop_end = 0, loop_flag;
 
     /* checks */
+    if (!is_id32be(0x00, sf, "OPUS"))
+        goto fail;
+
     /* .opus: header ID (they only exist inside .nus3bank) */
     if (!check_extensions(sf, "opus,lopus"))
-        goto fail;
-    if (read_32bitBE(0x00, sf) != 0x4F505553) /* "OPUS" */
         goto fail;
 
     /* Here's an interesting quirk, OPUS header contains big endian values
@@ -337,12 +345,12 @@ VGMSTREAM* init_vgmstream_opus_sps_n1(STREAMFILE* sf) {
     int num_samples, loop_start = 0, loop_end = 0, loop_flag;
 
     /* checks */
+    if (read_u32be(0x00, sf) != 0x09000000) /* file type (see other N1 SPS) */
+        goto fail;
     /* .sps: Labyrinth of Refrain: Coven of Dusk (Switch)
      * .nlsd: Disgaea Refine (Switch), Ys VIII (Switch)
      * .at9: void tRrLM(); //Void Terrarium (Switch) */
     if (!check_extensions(sf, "sps,nlsd,at9"))
-        goto fail;
-    if (read_32bitBE(0x00, sf) != 0x09000000) /* file type (see other N1 SPS) */
         goto fail;
 
     num_samples = read_32bitLE(0x0C, sf);
@@ -382,9 +390,9 @@ VGMSTREAM* init_vgmstream_opus_opusx(STREAMFILE* sf) {
     float modifier;
 
     /* checks */
-    if (!check_extensions(sf, "opusx"))
+    if (!is_id32be(0x00, sf, "OPUS"))
         goto fail;
-    if (read_32bitBE(0x00, sf) != 0x4F505553) /* "OPUS" */
+    if (!check_extensions(sf, "opusx"))
         goto fail;
 
     offset = 0x10;
@@ -414,10 +422,11 @@ VGMSTREAM* init_vgmstream_opus_prototype(STREAMFILE* sf) {
     int num_samples = 0, loop_start = 0, loop_end = 0, loop_flag;
 
     /* checks */
+    if (!is_id32be(0x00, sf, "OPUS"))
+        goto fail;
     if (!check_extensions(sf, "opus,lopus"))
         goto fail;
-    if (read_32bitBE(0x00, sf) != 0x4F505553 || /* "OPUS" */
-        read_32bitBE(0x18, sf) != 0x01000080)
+    if (read_32bitBE(0x18, sf) != 0x01000080)
         goto fail;
 
     offset = 0x18;
@@ -441,9 +450,9 @@ VGMSTREAM* init_vgmstream_opus_opusnx(STREAMFILE* sf) {
     int num_samples = 0, loop_start = 0, loop_end = 0;
 
     /* checks */
-    if (!check_extensions(sf, "opus,lopus"))
+    if (!is_id64be(0x00, sf,"OPUSNX\0\0"))
         goto fail;
-    if (read_64bitBE(0x00, sf) != 0x4F5055534E580000) /* "OPUSNX\0\0" */
+    if (!check_extensions(sf, "opus,lopus"))
         goto fail;
 
     offset = 0x10;
@@ -462,9 +471,9 @@ VGMSTREAM* init_vgmstream_opus_nsopus(STREAMFILE* sf) {
     int num_samples = 0, loop_start = 0, loop_end = 0;
 
     /* checks */
-    if (!check_extensions(sf, "nsopus"))
+    if (!is_id32be(0x00, sf,"EWNO"))
         goto fail;
-    if (read_u32be(0x00, sf) != 0x45574E4F) /* "EWNO" */
+    if (!check_extensions(sf, "nsopus"))
         goto fail;
 
     offset = 0x08;
@@ -481,11 +490,11 @@ VGMSTREAM* init_vgmstream_opus_sqex(STREAMFILE* sf) {
     int num_samples = 0, loop_start = 0, loop_end = 0, loop_flag;
 
     /* checks */
-    /* .wav: default
-     * .opus: fake? */
-    if (!check_extensions(sf, "wav,lwav,opus,lopus"))
-        goto fail;
     if (read_u32be(0x00, sf) != 0x01000000)
+        goto fail;
+
+    /* .wav: original */
+    if (!check_extensions(sf, "wav,lwav"))
         goto fail;
     /* 0x04: channels */
     /* 0x08: data_size */
