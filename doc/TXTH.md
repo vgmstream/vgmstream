@@ -1,4 +1,4 @@
-# TXTH FORMAT
+# TXTH format
 
 TXTH is a simple text file with text commands to simulate a header for files unsupported by vgmstream, mainly headerless audio.
 
@@ -28,7 +28,7 @@ Also check the [examples](#examples) section for some quick recipes, of varying 
 
 
 ## Issues
-The `.txth` may be rejected if incorrect commands are found. Errors are shown in the console log (see *USAGE* guide), better try starting with a simple case (see examples) then add more complex commands until it fully works.
+The `.txth` may be rejected if incorrect commands are found. Errors are shown in the console log (see *USAGE* guide), better try starting with a simple case from examples then add more complex commands until it fully works.
 
 Extension must be accepted/added to vgmstream (plugins like foobar2000 only load extensions from an accepted list in `formats.c`), or one could rename to any supported extension (like `.vgmstream`), or leave the file extensionless. Before renaming consider reporting the unknown extension so it can be added to the list (so similar games benefit, as long as the extension is a good fit). Some plugins allow playing unknown extensions too.
 
@@ -74,7 +74,7 @@ as explained below, but often will use default values. Accepted codec strings:
 #   * For many XBOX games, and some PC games
 #   * Special interleave is multiple of 0x24 (mono) or 0x48 (stereo)
 # - DSP|NGC_DSP    Nintendo GameCube ADPCM
-#   * For many GC/Wii/3DS games
+#   * For many GC/Wii/3DS/Switch games
 #   * Interleave is multiple of 0x08 (default), often +0x1000
 #   * Must set decoding coefficients (coef_offset/spacing/etc)
 #   * Should set ADPCM state (hist_offset/spacing/etc)
@@ -84,7 +84,7 @@ as explained below, but often will use default values. Accepted codec strings:
 #   * For many games (usually on PC)
 #   * Interleave is multiple of 0x2 (default)
 # - PCM16BE        PCM 16-bit big endian
-#   * Variation for certain consoles (GC/Wii/PS3/X360/etc)
+#   * Variation for certain consoles (GC/Wii/PS3/X360)
 # - PCM8           PCM 8-bit signed
 #   * For some games (usually on PC)
 #   * Interleave is multiple of 0x1 (default)
@@ -116,14 +116,14 @@ as explained below, but often will use default values. Accepted codec strings:
 # - ATRAC3         Sony ATRAC3
 #   * For some PS2 and PS3 games
 #   * Interleave (frame size) can be 0x60/0x98/0xC0 * channels [required]
-#   * Should set skip_samples (more than 1024+69 but varies)
+#   * Should set skip_samples (around 1024+69 but varies)
 # - ATRAC3PLUS     Sony ATRAC3plus
 #   * For many PSP games and rare PS3 games
 #   * Interleave (frame size) can be: [required]
 #     Mono: 0x0118|0178|0230|02E8
 #     Stereo: 0x0118|0178|0230|02E8|03A8|0460|05D0|0748|0800
 #     6/8 channels: multiple of one of the above
-#   * Should set skip_samples (more than 2048+184 but varies)
+#   * Should set skip_samples (around 2048+184 but varies)
 # - XMA1           Microsoft XMA1
 #   * For early X360 games
 # - XMA2           Microsoft XMA2
@@ -143,18 +143,20 @@ as explained below, but often will use default values. Accepted codec strings:
 # - PCM4_U         PCM 4-bit unsigned
 #   * Variation with modified encoding
 # - OKI16          OKI ADPCM with 16-bit output (not VOX/Dialogic 12-bit)
-#   * For rare PS2 games (Sweet Legacy, Hooligan)
+#   * For rare PS2 games [Sweet Legacy (PS2), Hooligan (PS2)]
 # - OKI4S          OKI ADPCM with 16-bit output and adjusted tables
 #   * For later Konami rhythm games
-# - AAC            Advanced Audio Coding (raw without .mp4)
+# - AAC            Advanced Audio Coding (raw outside .mp4)
 #   * For some 3DS games and many iOS games
 #   * Should set skip_samples (typically 1024 but varies, 2112 is also common)
 # - TGC            Tiger Game.com 4-bit ADPCM
-#   * For Tiger Game.com
+#   * For Tiger Game.com games
 # - ASF            Argonaut ASF ADPCM
 #   * For rare Argonaut games [Croc (SAT)]
 # - EAXA           Electronic Arts EA-XA ADPCM
 #   * For rare EA games [Harry Potter and the Chamber of Secrets (PC)]
+# - XA             CD-XA ADPCM (ISO 2048 mode1/data streams without subchannels)
+#   * For rare Saturn and PS2 games [Phantasy Star Collection (SAT), Fantavision (PS2), EA SAT videos]
 codec = (codec string)
 ```
 

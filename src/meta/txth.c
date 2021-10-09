@@ -40,6 +40,7 @@ typedef enum {
     ASF = 30,           /* Argonaut ASF 4-bit ADPCM */
     EAXA = 31,          /* Electronic Arts EA-XA 4-bit ADPCM v1 */
     OKI4S = 32,         /* OKI ADPCM with 16-bit output (unlike OKI/VOX/Dialogic ADPCM's 12-bit) */
+    XA = 33,
 
     UNKNOWN = 99,
 } txth_codec_t;
@@ -256,6 +257,7 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
         case TGC:        coding = coding_TGC; break;
         case ASF:        coding = coding_ASF; break;
         case EAXA:       coding = coding_EA_XA; break;
+        case XA:         coding = coding_XA; break;
         default:
             goto fail;
     }
@@ -367,6 +369,7 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
 
         case coding_OKI16:
         case coding_OKI4S:
+        case coding_XA:
             vgmstream->layout_type = layout_none;
             break;
 
@@ -939,6 +942,7 @@ static txth_codec_t parse_codec(txth_header* txth, const char* val) {
     else if (is_string(val,"GCOM_ADPCM"))   return TGC;
     else if (is_string(val,"ASF"))          return ASF;
     else if (is_string(val,"EAXA"))         return EAXA;
+    else if (is_string(val,"XA"))           return XA;
     /* special handling */
     else if (is_string(val,"name_value"))   return txth->name_values[0];
     else if (is_string(val,"name_value1"))  return txth->name_values[0];
@@ -2001,6 +2005,8 @@ static int get_bytes_to_samples(txth_header* txth, uint32_t bytes) {
             return asf_bytes_to_samples(bytes, txth->channels);
         case EAXA:
             return ea_xa_bytes_to_samples(bytes, txth->channels);
+        case XA:
+            return xa_bytes_to_samples(bytes, txth->channels, 0, 0, 4);
 
         /* XMA bytes-to-samples is done at the end as the value meanings are a bit different */
         case XMA1:
