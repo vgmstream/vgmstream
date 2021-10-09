@@ -449,7 +449,8 @@
     <ClCompile Include="meta\ps2_adm.c" />
     <ClCompile Include="meta\ads.c" />
     <ClCompile Include="meta\ps2_ass.c" />
-    <ClCompile Include="meta\ps2_ast.c" />
+    <ClCompile Include="meta\ast_mv.c" />
+    <ClCompile Include="meta\ast_mmv.c" />
     <ClCompile Include="meta\aus.c" />
     <ClCompile Include="meta\ps2_b1s.c" />
     <ClCompile Include="meta\ps2_bg00.c" />
@@ -470,7 +471,7 @@
     <ClCompile Include="meta\jstm.c" />
     <ClCompile Include="meta\ps2_kces.c" />
     <ClCompile Include="meta\ps2_leg.c" />
-    <ClCompile Include="meta\ps2_lpcm.c" />
+    <ClCompile Include="meta\lpcm_shade.c" />
     <ClCompile Include="meta\ps2_mcg.c" />
     <ClCompile Include="meta\ps_headerless.c" />
     <ClCompile Include="meta\ps2_mic.c" />

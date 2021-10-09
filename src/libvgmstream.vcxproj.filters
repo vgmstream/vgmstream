@@ -829,7 +829,10 @@
     <ClCompile Include="meta\ps2_ass.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ps2_ast.c">
+    <ClCompile Include="meta\ast_mv.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\ast_mmv.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\aus.c">
@@ -892,7 +895,7 @@
     <ClCompile Include="meta\ps2_leg.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ps2_lpcm.c">
+    <ClCompile Include="meta\lpcm_shade.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ps2_mcg.c">
