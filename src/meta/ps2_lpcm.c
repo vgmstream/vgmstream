@@ -1,64 +1,51 @@
 #include "meta.h"
-#include "../util.h"
 
-/* LPCM (from Ah! My Goddess (PS2)) */
-VGMSTREAM * init_vgmstream_ps2_lpcm(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
+/* LPCM - from Shade's 'Shade game library' (ShdLib) [Ah! My Goddess (PS2), Warship Gunner (PS2)] */
+VGMSTREAM* init_vgmstream_lpcm_shade(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
     off_t start_offset;
+    uint32_t loop_flag, channels;
 
-    int loop_flag;
-    int channel_count;
-
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("lpcm",filename_extension(filename))) goto fail;
-
-    /* check header */
-    if (read_32bitBE(0,streamFile) != 0x4C50434D) /* LPCM */
+    /* checks */
+    if (!is_id32be(0x00, sf, "LPCM"))
         goto fail;
-	    
-    loop_flag = read_32bitLE(0x8,streamFile);
-    channel_count = 2;
+
+    /* .w: real extension
+     * .lpcm: fake (header id) */
+    if (!check_extensions(sf, "w,lpcm"))
+        goto fail;
+
+    /* extra checks since header is kind of simple */
+    if (read_s32le(0x04,sf) * 0x02 * 2 > get_streamfile_size(sf)) /* data size is less than total samples */
+        goto fail;
+    if (read_u32le(0x10,sf) != 0) /* just in case */
+        goto fail;
+
+    start_offset = 0x800; /* assumed, closer to num_samples */
+
+    loop_flag = read_s32le(0x8,sf) != 0;
+    channels = 2;
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
-    /* fill in the vital statistics */
-    start_offset = 0x10;
-    vgmstream->channels = channel_count;
+    vgmstream->meta_type = meta_LPCM_SHADE;
     vgmstream->sample_rate = 48000;
+
+    vgmstream->num_samples = read_s32le(0x4,sf);
+    vgmstream->loop_start_sample = read_s32le(0x8,sf);
+    vgmstream->loop_end_sample = read_s32le(0xc,sf);
+
     vgmstream->coding_type = coding_PCM16LE;
-    vgmstream->num_samples = read_32bitLE(0x4,streamFile);
-    if (loop_flag) {
-       vgmstream->loop_start_sample = read_32bitLE(0x8,streamFile);
-       vgmstream->loop_end_sample = read_32bitLE(0xc,streamFile);
-    }
     vgmstream->layout_type = layout_interleave;
-    vgmstream->interleave_block_size = 2;
-    vgmstream->meta_type = meta_PS2_LPCM;
-   
-    /* open the file for reading */
-    {
-        int i;
-        STREAMFILE * file;
-        file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (!file) goto fail;
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = file;
+    vgmstream->interleave_block_size = 0x02;
 
-            vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=start_offset+
-                vgmstream->interleave_block_size*i;
 
-        }
-    }
-
+    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
+        goto fail;
     return vgmstream;
-
 fail:
-    /* clean up anything we may have opened */
     if (vgmstream) close_vgmstream(vgmstream);
     return NULL;
 }
