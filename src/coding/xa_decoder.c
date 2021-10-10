@@ -6,13 +6,20 @@
 // May be implemented like the SNES/SPC700 BRR.
 
 /* XA ADPCM gain values */
-#if 0
+//#define XA_FLOAT 1
+//#define XA_INTB 1
+#if XA_FLOAT
 static const float K0[4] = { 0.0, 0.9375, 1.796875, 1.53125 };
 static const float K1[4] = { 0.0,    0.0,  -0.8125, -0.859375 };
-#endif
+#elif XA_INTB
 /* K0/1 floats to int, -K*2^10 = -K*(1<<10) = -K*1024 */
-static const int IK0[4] = {  0, -960, -1840, -1568 };
-static const int IK1[4] = {  0,    0,   832,   880 };
+static const int K0[4] = {  0,   60,  115,  98 };
+static const int K1[4] = {  0,    0,  -52, -55 };
+#else
+/* K0/1 floats to int, -K*2^10 = -K*(1<<10) = -K*1024 */
+static const int K0[4] = {  0, -960, -1840, -1568 };
+static const int K1[4] = {  0,    0,   832,   880 };
+#endif
 
 /* Sony XA ADPCM, defined for CD-DA/CD-i in the "Red Book" (private) or "Green Book" (public) specs.
  * The algorithm basically is BRR (Bit Rate Reduction) from the SNES SPC700, while the data layout is new.
@@ -74,6 +81,9 @@ static const int IK1[4] = {  0,    0,   832,   880 };
  *   subframe 1: header @ 0x01 or 0x05/09/0d, 28 bytes    @ 0x11,16,19,1d,21 ... 7d
  *   ...
  *   subframe 3: header @ 0x03 or 0x07/0b/0f, 28 bytes    @ 0x13,17,1b,1f,23 ... 7f
+ * 
+ * Raw XA found in EA SAT games set subframes header like: 0..3 null + 0..3 ok + 4..7 ok + 4..7 null
+ * (maybe first/last are CD-error correction only?) so decoder only reads those.
  */
 
 void decode_xa(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel, int is_xa8) {
@@ -96,30 +106,34 @@ void decode_xa(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, i
     frame_offset = stream->offset + bytes_per_frame * frames_in;
     read_streamfile(frame, frame_offset, bytes_per_frame, stream->streamfile); /* ignore EOF errors */
 
-    VGM_ASSERT(get_u32be(frame+0x0) != get_u32be(frame+0x4) || get_u32be(frame+0x8) != get_u32be(frame+0xC),
+    VGM_ASSERT_ONCE(get_u32be(frame+0x0) != get_u32be(frame+0x4) || get_u32be(frame+0x8) != get_u32be(frame+0xC),
                "bad frames at %x\n", (uint32_t)frame_offset);
 
     /* decode subframes */
     for (i = 0; i < subframes / channelspacing; i++) {
+#if XA_FLOAT
+        float coef1, coef2;
+#else
         int32_t coef1, coef2;
+#endif
         uint8_t coef_index, shift_factor;
 
         /* parse current subframe (sound unit)'s header (sound parameters) */
         sp_pos = is_xa8 ?
-            i*channelspacing + channel:
+            i*channelspacing + channel :
             0x04 + i*channelspacing + channel;
         coef_index   = (frame[sp_pos] >> 4) & 0xf;
         shift_factor = (frame[sp_pos] >> 0) & 0xf;
 
         /* mastered values like 0xFF exist [Micro Machines (CDi), demo and release] */
-        VGM_ASSERT(coef_index > 4 || shift_factor > (is_xa8 ? 8 : 12), "XA: incorrect coefs/shift at %x\n", (uint32_t)frame_offset + sp_pos);
+        VGM_ASSERT_ONCE(coef_index > 4 || shift_factor > (is_xa8 ? 8 : 12), "XA: incorrect coefs/shift at %x\n", (uint32_t)frame_offset + sp_pos);
         if (coef_index > 4)
             coef_index = 0; /* only 4 filters are used, rest is apparently 0 */
         if (shift_factor > (is_xa8 ? 8 : 12))
             shift_factor = (is_xa8 ? 8 : 9); /* supposedly, from Nocash PSX docs (in 8-bit mode max range should be 8 though) */
 
-        coef1 = IK0[coef_index];
-        coef2 = IK1[coef_index];
+        coef1 = K0[coef_index];
+        coef2 = K1[coef_index];
 
 
         /* decode subframe nibbles */
@@ -156,8 +170,14 @@ void decode_xa(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, i
                 sample = (int16_t)((sample << 12) & 0xf000) >> shift_factor; /* 16b sign extend + scale */
             }
 
-            sample = sample << 4; /* scale for current IK */
-            sample = sample - ((coef1*hist1 + coef2*hist2) >> 10);
+            sample = sample << 4; /* scale for K */
+#if XA_FLOAT
+            sample = sample + (coef1 * hist1 + coef2 * hist2);
+#elif XA_INTB
+            sample = sample + ((coef1 * hist1 + coef2 * hist2) >> 6);
+#else
+            sample = sample - ((coef1 * hist1 + coef2 * hist2) >> 10);
+#endif
 
             hist2 = hist1;
             hist1 = sample; /* must go before clamp, somehow */
