@@ -30,7 +30,13 @@ VGMSTREAM* init_vgmstream_lopu_fb(STREAMFILE* sf) {
     /* rest: null */
 
     loop_flag = (loop_end > 0); /* -1 if no loop */
+
+    /* Must remove skip or some files decode past limit. loop_end equals to PC (.ogg) version's max
+     * samples, but in some case (stage_park) goes slightly past max but is still valid.
+     * (loops shouldn't remove skip as they wouldn't match PC/bgm.txt loop times) */
     num_samples -= skip;
+    if (num_samples < loop_end)
+        num_samples = loop_end;
 
 
     /* build the VGMSTREAM */

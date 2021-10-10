@@ -40,6 +40,7 @@ typedef enum {
     ASF = 30,           /* Argonaut ASF 4-bit ADPCM */
     EAXA = 31,          /* Electronic Arts EA-XA 4-bit ADPCM v1 */
     OKI4S = 32,         /* OKI ADPCM with 16-bit output (unlike OKI/VOX/Dialogic ADPCM's 12-bit) */
+    XA = 33,
 
     UNKNOWN = 99,
 } txth_codec_t;
@@ -117,6 +118,9 @@ typedef struct {
     uint32_t chunk_count;
     uint32_t chunk_header_size;
     uint32_t chunk_data_size;
+    uint32_t chunk_value;
+    uint32_t chunk_size_offset;
+    uint32_t chunk_be;
     int chunk_start_set;
     int chunk_size_set;
     int chunk_count_set;
@@ -256,6 +260,7 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
         case TGC:        coding = coding_TGC; break;
         case ASF:        coding = coding_ASF; break;
         case EAXA:       coding = coding_EA_XA; break;
+        case XA:         coding = coding_XA; break;
         default:
             goto fail;
     }
@@ -367,6 +372,7 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
 
         case coding_OKI16:
         case coding_OKI4S:
+        case coding_XA:
             vgmstream->layout_type = layout_none;
             break;
 
@@ -648,7 +654,7 @@ static VGMSTREAM* init_subfile(txth_header* txth) {
      * - etc
      * to avoid it we set a particular fake extension and detect it when reading .txth
      */
-    strcpy(extension, "subfile_txth.");
+    strcpy(extension, ".subfile_txth.");
     strcat(extension, txth->subfile_extension);
 
     sf_sub = setup_subfile_streamfile(txth->sf_body, txth->subfile_offset, txth->subfile_size, extension);
@@ -722,50 +728,43 @@ fail:
 
 
 static STREAMFILE* open_txth(STREAMFILE* sf) {
-    char basename[PATH_LIMIT];
     char filename[PATH_LIMIT];
-    char fileext[PATH_LIMIT];
-    const char *subext;
+    const char* base_ext;
+    const char* txth_ext;
     STREAMFILE* sf_text;
 
-    /* try "(path/)(name.ext).txth" */
-    get_streamfile_name(sf,filename,PATH_LIMIT);
-    if (strstr(filename, "subfile_txth") != NULL)
+
+    get_streamfile_name(sf, filename, sizeof(filename));
+    if (strstr(filename, ".subfile_txth") != NULL)
         return NULL; /* detect special case of subfile-within-subfile */
-    strcat(filename, ".txth");
-    sf_text = open_streamfile(sf,filename);
-    if (sf_text) return sf_text;
 
-    /* try "(path/)(.sub.ext).txth" */
-    get_streamfile_basename(sf,basename,PATH_LIMIT);
-    subext = filename_extension(basename);
-    if (subext != NULL && subext[0] != '\0') {
-        get_streamfile_path(sf,filename,PATH_LIMIT);
-        get_streamfile_ext(sf,fileext,PATH_LIMIT);
-        strcat(filename,".");
-        strcat(filename, subext);
-        strcat(filename,".");
-        strcat(filename, fileext);
-        strcat(filename, ".txth");
+    base_ext = filename_extension(filename);
+    concatn(sizeof(filename), filename, ".txth");
+    txth_ext = filename_extension(filename);
 
-        sf_text = open_streamfile(sf,filename);
+    /* try "(path/)(name.ext).txth" */
+    {
+        /* full filename, already prepared */
+
+        sf_text = open_streamfile(sf, filename);
         if (sf_text) return sf_text;
     }
 
     /* try "(path/)(.ext).txth" */
-    get_streamfile_path(sf,filename,PATH_LIMIT);
-    get_streamfile_ext(sf,fileext,PATH_LIMIT);
-    strcat(filename,".");
-    strcat(filename, fileext);
-    strcat(filename, ".txth");
-    sf_text = open_streamfile(sf,filename);
-    if (sf_text) return sf_text;
+    if (base_ext) {
+        base_ext--; //get_streamfile_path(sf, filename, sizeof(filename));
+
+        sf_text = open_streamfile_by_filename(sf, base_ext);
+        if (sf_text) return sf_text;
+    }
 
     /* try "(path/).txth" */
-    get_streamfile_path(sf,filename,PATH_LIMIT);
-    strcat(filename, ".txth");
-    sf_text = open_streamfile(sf,filename);
-    if (sf_text) return sf_text;
+    if (txth_ext) {
+        txth_ext--; /* points to "txth" due to the concat */
+
+        sf_text = open_streamfile_by_filename(sf, txth_ext);
+        if (sf_text) return sf_text;
+    }
 
     /* not found */
     return NULL;
@@ -788,7 +787,9 @@ static void set_body_chunk(txth_header* txth) {
     //todo maybe should only be done once, or have some count to retrigger to simplify?
     if (!txth->chunk_start_set || !txth->chunk_size_set || !txth->chunk_count_set)
         return;
-    if (txth->chunk_size == 0 || txth->chunk_start > txth->data_size || txth->chunk_count == 0)
+    if ((txth->chunk_size == 0 && ! txth->chunk_size_offset) ||
+         txth->chunk_start > txth->data_size ||
+         txth->chunk_count == 0)
         return;
     if (!txth->sf_body)
         return;
@@ -804,17 +805,21 @@ static void set_body_chunk(txth_header* txth) {
     {
         txth_io_config_data cfg = {0};
 
-        cfg.chunk_start = txth->chunk_start;
+        cfg.chunk_number = txth->chunk_number - 1; /* 1-index to 0-index */
         cfg.chunk_header_size = txth->chunk_header_size;
         cfg.chunk_data_size = txth->chunk_data_size;
+
+        cfg.chunk_value = txth->chunk_value;
+        cfg.chunk_size_offset = txth->chunk_size_offset;
+        cfg.chunk_be = txth->chunk_be;
+
+        cfg.chunk_start = txth->chunk_start;
         cfg.chunk_size = txth->chunk_size;
         cfg.chunk_count = txth->chunk_count;
-        cfg.chunk_number = txth->chunk_number - 1; /* 1-index to 0-index */
 
         temp_sf = setup_txth_streamfile(txth->sf_body, cfg, txth->sf_body_opened);
         if (!temp_sf) return;
     }
-
 
     /* closing is handled by temp_sf */
     //if (txth->sf_body_opened) {
@@ -939,6 +944,7 @@ static txth_codec_t parse_codec(txth_header* txth, const char* val) {
     else if (is_string(val,"GCOM_ADPCM"))   return TGC;
     else if (is_string(val,"ASF"))          return ASF;
     else if (is_string(val,"EAXA"))         return EAXA;
+    else if (is_string(val,"XA"))           return XA;
     /* special handling */
     else if (is_string(val,"name_value"))   return txth->name_values[0];
     else if (is_string(val,"name_value1"))  return txth->name_values[0];
@@ -947,6 +953,19 @@ static txth_codec_t parse_codec(txth_header* txth, const char* val) {
     //todo rest (handle in function)
 
     return UNKNOWN;
+}
+
+static int parse_be(txth_header* txth, const char* val, uint32_t* p_value) {
+    if (is_string(val, "BE"))
+        *p_value = 1;
+    else if (is_string(val, "LE"))
+        *p_value = 0;
+    else
+        if (!parse_num(txth->sf_head,txth,val, p_value))
+             goto fail;
+    return 1;
+fail:
+    return 0;
 }
 
 static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char* key, char* val) {
@@ -1181,11 +1200,7 @@ static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char* key, cha
         if (!parse_num(txth->sf_head,txth,val, &txth->coef_spacing)) goto fail;
     }
     else if (is_string(key,"coef_endianness")) {
-        if (is_string(val, "BE"))
-            txth->coef_big_endian = 1;
-        else if (is_string(val, "LE"))
-            txth->coef_big_endian = 0;
-        else if (!parse_num(txth->sf_head,txth,val, &txth->coef_big_endian)) goto fail;
+        if (!parse_be(txth, val, &txth->coef_big_endian)) goto fail;
     }
     else if (is_string(key,"coef_mode")) {
         if (!parse_num(txth->sf_head,txth,val, &txth->coef_mode)) goto fail;
@@ -1208,11 +1223,7 @@ static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char* key, cha
         if (!parse_num(txth->sf_head,txth,val, &txth->hist_spacing)) goto fail;
     }
     else if (is_string(key,"hist_endianness")) {
-        if (is_string(val, "BE"))
-            txth->hist_big_endian = 1;
-        else if (is_string(val, "LE"))
-            txth->hist_big_endian = 0;
-        else if (!parse_num(txth->sf_head,txth,val, &txth->hist_big_endian)) goto fail;
+        if (!parse_be(txth, val, &txth->hist_big_endian)) goto fail;
     }
 
     /* SUBSONGS */
@@ -1336,34 +1347,41 @@ static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char* key, cha
     }
 
     /* CHUNKS */
-    else if (is_string(key,"chunk_number")) {
-        if (!parse_num(txth->sf_head,txth,val, &txth->chunk_number)) goto fail;
+    else if (is_string(key,"chunk_count")) {
+        if (!parse_num(txth->sf_head,txth,val, &txth->chunk_count)) goto fail;
+        txth->chunk_count_set = 1;
+        set_body_chunk(txth);
     }
     else if (is_string(key,"chunk_start")) {
         if (!parse_num(txth->sf_head,txth,val, &txth->chunk_start)) goto fail;
         txth->chunk_start_set = 1;
         set_body_chunk(txth);
     }
-    else if (is_string(key,"chunk_header_size")) {
-        if (!parse_num(txth->sf_head,txth,val, &txth->chunk_header_size)) goto fail;
-        //txth->chunk_header_size_set = 1;
-        //set_body_chunk(txth); /* optional and should go before chunk_size */
-    }
-    else if (is_string(key,"chunk_data_size")) {
-        if (!parse_num(txth->sf_head,txth,val, &txth->chunk_data_size)) goto fail;
-        //txth->chunk_data_size_set = 1;
-        //set_body_chunk(txth); /* optional and should go before chunk_size */
-    }
     else if (is_string(key,"chunk_size")) {
         if (!parse_num(txth->sf_head,txth,val, &txth->chunk_size)) goto fail;
         txth->chunk_size_set = 1;
         set_body_chunk(txth);
     }
-    else if (is_string(key,"chunk_count")) {
-        if (!parse_num(txth->sf_head,txth,val, &txth->chunk_count)) goto fail;
-        txth->chunk_count_set = 1;
-        set_body_chunk(txth);
+    /* optional and should go before the above */
+    else if (is_string(key,"chunk_number")) {
+        if (!parse_num(txth->sf_head,txth,val, &txth->chunk_number)) goto fail;
     }
+    else if (is_string(key,"chunk_header_size")) {
+        if (!parse_num(txth->sf_head,txth,val, &txth->chunk_header_size)) goto fail;
+    }
+    else if (is_string(key,"chunk_data_size")) {
+        if (!parse_num(txth->sf_head,txth,val, &txth->chunk_data_size)) goto fail;
+    }
+    else if (is_string(key,"chunk_value")) {
+        if (!parse_num(txth->sf_head,txth,val, &txth->chunk_value)) goto fail;
+    }
+    else if (is_string(key,"chunk_size_offset")) {
+        if (!parse_num(txth->sf_head,txth,val, &txth->chunk_size_offset)) goto fail;
+    }
+    else if (is_string(key,"chunk_endianness")) {
+        if (!parse_be(txth, val, &txth->chunk_be)) goto fail;
+    }
+
 
     /* BASE OFFSET */
     else if (is_string(key,"base_offset")) {
@@ -2001,6 +2019,8 @@ static int get_bytes_to_samples(txth_header* txth, uint32_t bytes) {
             return asf_bytes_to_samples(bytes, txth->channels);
         case EAXA:
             return ea_xa_bytes_to_samples(bytes, txth->channels);
+        case XA:
+            return xa_bytes_to_samples(bytes, txth->channels, 0, 0, 4);
 
         /* XMA bytes-to-samples is done at the end as the value meanings are a bit different */
         case XMA1:

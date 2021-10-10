@@ -1,7 +1,6 @@
 /*
 * streamfile.h - definitions for buffered file reading with STREAMFILE
 */
-
 #ifndef _STREAMFILE_H
 #define _STREAMFILE_H
 
@@ -9,9 +8,14 @@
 #define _CRT_SECURE_NO_DEPRECATE
 #endif
 
+//TODO cleanup
+//NULL, allocs
 #include <stdlib.h>
+//FILE
 #include <stdio.h>
+//string functions in meta and so on
 #include <string.h>
+//off_t
 #include <sys/types.h>
 #include "streamtypes.h"
 #include "util.h"
@@ -20,14 +24,6 @@
 /* MSVC fixes (though mingw uses MSVCRT but not MSC_VER, maybe use AND?) */
 #if defined(__MSVCRT__) || defined(_MSC_VER)
     #include <io.h>
-#endif
-
-#ifndef DIR_SEPARATOR
-    #if defined (_WIN32) || defined (WIN32)
-        #define DIR_SEPARATOR '\\'
-    #else
-        #define DIR_SEPARATOR '/'
-    #endif
 #endif
 
 /* 64-bit offset is needed for banks that hit +2.5GB (like .fsb or .ktsl2stbin).

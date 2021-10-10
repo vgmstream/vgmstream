@@ -507,7 +507,8 @@ typedef enum {
     meta_PONA_3DO,          /* Policenauts (3DO) */
     meta_PONA_PSX,          /* Policenauts (PSX) */
     meta_XBOX_HLWAV,        /* Half Life 2 (XBOX) */
-    meta_PS2_AST,           /* Some KOEI game (PS2) */
+    meta_AST_MV,
+    meta_AST_MMV,
     meta_DMSG,              /* Nightcaster II - Equinox (XBOX) */
     meta_NGC_DSP_AAAP,      /* Turok: Evolution (NGC), Vexx (NGC) */
     meta_PS2_STER,          /* Juuni Kokuki: Kakukaku Taru Ou Michi Beni Midori no Uka */
@@ -530,7 +531,7 @@ typedef enum {
     meta_DSP_XIII,          /* XIII, possibly more (Ubisoft header???) */
     meta_DSP_CABELAS,       /* Cabelas games */
     meta_PS2_ADM,           /* Dragon Quest V (PS2) */
-    meta_PS2_LPCM,          /* Ah! My Goddess */
+    meta_LPCM_SHADE,
     meta_DSP_BDSP,          /* Ah! My Goddess */
     meta_PS2_VMS,           /* Autobahn Raser - Police Madness */
     meta_XAU,               /* XPEC Entertainment (Beat Down (PS2 Xbox), Spectral Force Chronicle (PS2)) */

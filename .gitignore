@@ -5,6 +5,11 @@
 *.o
 *.a
 
+# gcc (-MMD -save-temps)
+*.d
+*.i
+*.s
+
 # VS stuff
 ipch
 .vs
@@ -43,14 +48,18 @@ Release
 /xmplay/Debug
 /xmplay/Release
 /xmplay/*.dll
-/dependencies
-/version_auto.h
 
 /msvc-build.config.ps1
 /msvc-build.log
 # for test batchs, note that already tracked files are never ignored
 /msvc-build-*.bat
 
+# vscode
+.vscode
+
+# build
+/version_auto.h
+/dependencies
 /bin/**/*
 /tmp/**/*
 /**/vgmstream-win.zip

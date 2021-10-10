@@ -1,4 +1,4 @@
-# TXTH FORMAT
+# TXTH format
 
 TXTH is a simple text file with text commands to simulate a header for files unsupported by vgmstream, mainly headerless audio.
 
@@ -28,7 +28,7 @@ Also check the [examples](#examples) section for some quick recipes, of varying 
 
 
 ## Issues
-The `.txth` may be rejected if incorrect commands are found. Errors are shown in the console log (see *USAGE* guide), better try starting with a simple case (see examples) then add more complex commands until it fully works.
+The `.txth` may be rejected if incorrect commands are found. Errors are shown in the console log (see *USAGE* guide), better try starting with a simple case from examples then add more complex commands until it fully works.
 
 Extension must be accepted/added to vgmstream (plugins like foobar2000 only load extensions from an accepted list in `formats.c`), or one could rename to any supported extension (like `.vgmstream`), or leave the file extensionless. Before renaming consider reporting the unknown extension so it can be added to the list (so similar games benefit, as long as the extension is a good fit). Some plugins allow playing unknown extensions too.
 
@@ -74,7 +74,7 @@ as explained below, but often will use default values. Accepted codec strings:
 #   * For many XBOX games, and some PC games
 #   * Special interleave is multiple of 0x24 (mono) or 0x48 (stereo)
 # - DSP|NGC_DSP    Nintendo GameCube ADPCM
-#   * For many GC/Wii/3DS games
+#   * For many GC/Wii/3DS/Switch games
 #   * Interleave is multiple of 0x08 (default), often +0x1000
 #   * Must set decoding coefficients (coef_offset/spacing/etc)
 #   * Should set ADPCM state (hist_offset/spacing/etc)
@@ -84,7 +84,7 @@ as explained below, but often will use default values. Accepted codec strings:
 #   * For many games (usually on PC)
 #   * Interleave is multiple of 0x2 (default)
 # - PCM16BE        PCM 16-bit big endian
-#   * Variation for certain consoles (GC/Wii/PS3/X360/etc)
+#   * Variation for certain consoles (GC/Wii/PS3/X360)
 # - PCM8           PCM 8-bit signed
 #   * For some games (usually on PC)
 #   * Interleave is multiple of 0x1 (default)
@@ -116,14 +116,14 @@ as explained below, but often will use default values. Accepted codec strings:
 # - ATRAC3         Sony ATRAC3
 #   * For some PS2 and PS3 games
 #   * Interleave (frame size) can be 0x60/0x98/0xC0 * channels [required]
-#   * Should set skip_samples (more than 1024+69 but varies)
+#   * Should set skip_samples (around 1024+69 but varies)
 # - ATRAC3PLUS     Sony ATRAC3plus
 #   * For many PSP games and rare PS3 games
 #   * Interleave (frame size) can be: [required]
 #     Mono: 0x0118|0178|0230|02E8
 #     Stereo: 0x0118|0178|0230|02E8|03A8|0460|05D0|0748|0800
 #     6/8 channels: multiple of one of the above
-#   * Should set skip_samples (more than 2048+184 but varies)
+#   * Should set skip_samples (around 2048+184 but varies)
 # - XMA1           Microsoft XMA1
 #   * For early X360 games
 # - XMA2           Microsoft XMA2
@@ -143,18 +143,20 @@ as explained below, but often will use default values. Accepted codec strings:
 # - PCM4_U         PCM 4-bit unsigned
 #   * Variation with modified encoding
 # - OKI16          OKI ADPCM with 16-bit output (not VOX/Dialogic 12-bit)
-#   * For rare PS2 games (Sweet Legacy, Hooligan)
+#   * For rare PS2 games [Sweet Legacy (PS2), Hooligan (PS2)]
 # - OKI4S          OKI ADPCM with 16-bit output and adjusted tables
 #   * For later Konami rhythm games
-# - AAC            Advanced Audio Coding (raw without .mp4)
+# - AAC            Advanced Audio Coding (raw outside .mp4)
 #   * For some 3DS games and many iOS games
 #   * Should set skip_samples (typically 1024 but varies, 2112 is also common)
 # - TGC            Tiger Game.com 4-bit ADPCM
-#   * For Tiger Game.com
+#   * For Tiger Game.com games
 # - ASF            Argonaut ASF ADPCM
 #   * For rare Argonaut games [Croc (SAT)]
 # - EAXA           Electronic Arts EA-XA ADPCM
 #   * For rare EA games [Harry Potter and the Chamber of Secrets (PC)]
+# - XA             CD-XA ADPCM (ISO 2048 mode1/data streams without subchannels)
+#   * For rare Saturn and PS2 games [Phantasy Star Collection (SAT), Fantavision (PS2), EA SAT videos]
 codec = (codec string)
 ```
 
@@ -408,28 +410,42 @@ subfile_extension = (string)
 ```
 
 #### CHUNK DEINTERLEAVING
-Some files interleave data chunks, for example 3 stereo songs pasted together, alternating 0x10000 bytes of data each. These settings allow vgmstream to play one of the chunks while ignoring the rest (read 0x10000 data, skip 0x10000*2).
-File is first "dechunked" then played with using other settings (`start_offset` would point within the internal  dechunked" file). It can be used to remove garbage data that affects decoding, too.
+Some files interleave data chunks, for example 3 stereo songs pasted together, alternating 0x10000 bytes of data each. Or maybe 0x100 of useless header + 0x10000 of valid data. Chunk settings allow vgmstream to play valid chunks while ignoring the rest (read 0x10000 data, skip rest).
 
+File is first "dechunked" before being played, so other settings work over this final file (`start_offset` would be a point within the internal dechunked" file). Use combinations of chunk settings to make vgmstream "see" only actual codec data.
 
-You need to set:
+Main settings:
 - `chunk_count`: total number of interleaved chunks (ex. 3=3 interleaved songs)
-- `chunk_number`: first chunk to start (ex. 1=0x00000, 2=0x10000, 3=0x20000...)
-  * If you set `subsong_count` and `chunk_count` first, `chunk_number` will be auto-set per subsong (subsong 1 starts from chunk number 1, subsong 2 from chunk 2, etc)
 - `chunk_start`: absolute offset where chunks start (normally 0x00)
 - `chunk_size`: amount of data in a single chunk (ex. 0x10000)
-For fine-tuning you can optionally set (before `chunk_size`, for reasons):
-- `chunk_header_size`: header to skip before chunk data (part of chunk_size)
-- `chunk_data_size`: actual data size (part of chunk_size, rest is header/padding)
 
-So, if you set size to 0x1000, header_size 0x100, data_size is implicitly 0xF00, or if size is 0x1000 and data_size 0x800 last 0x200 is ignored padding. Use combinations of the above to make vgmstream "see" only actual codec data.
+Optional settings (set before main):
+- `chunk_number`: first chunk to start (ex. 1=0x00000, 2=0x10000, 3=0x20000...)
+  - If you set `subsong_count` and `chunk_count` first, `chunk_number` will be auto-set per subsong (subsong 1 starts from chunk number 1, subsong 2 from chunk 2, etc)
+- `chunk_header_size`: header to skip before chunk data (part of chunk_size)
+  - If size is 0x1000 and header_size 0x100, data_size is implicitly set to 0xF00
+- `chunk_data_size`: actual data size (part of chunk_size, rest is header/padding)
+  - If size is 0x1000 and data_size 0x800 last 0x200 is ignored padding. 
+
+Dynamic settings (set before main, requires `chunk_header_size`):
+- `chunk_value`: ignores chunks that don't match this value at chunk offset 0x00 (32-bit, in `chunk_endianness`)
+- `chunk_size_offset`: reads chunk size at this offset, in header (32-bit in `chunk_endianness`). 
+- `chunk_endianness`: sets endianness of the above values
+
+For technical reasons, "dechunking" activates when setting all main settings, so set optional config first. Note that config is static (not per-chunk), so `chunk_size = @0x10` is read from the beginning of the file once, not every time a new chunk is found.
+
 ```
 chunk_count = (value)
-chunk_number = (value)
 chunk_start = (value)
+chunk_size = (value)
+
+chunk_number = (value)
 chunk_header_size = (value)
 chunk_data_size = (value)
-chunk_size = (value)
+
+chunk_value = (value)
+chunk_size_offset = (value)
+chunk_endian = LE|BE
 ```
 
 #### NAME TABLE

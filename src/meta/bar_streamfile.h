@@ -21,7 +21,7 @@ typedef struct _BARSTREAMFILE {
 /*static*/ STREAMFILE *wrap_bar_STREAMFILE(STREAMFILE *file);
 
 
-static size_t read_bar(BARSTREAMFILE *streamFile, uint8_t *dest, off_t offset, size_t length) {
+static size_t read_bar(BARSTREAMFILE *streamFile, uint8_t *dest, offv_t offset, size_t length) {
     off_t i;
     size_t read_length = streamFile->real_file->read(streamFile->real_file, dest, offset, length);
 
@@ -36,7 +36,7 @@ static size_t get_size_bar(BARSTREAMFILE *streamFile) {
     return streamFile->real_file->get_size(streamFile->real_file);
 }
 
-static size_t get_offset_bar(BARSTREAMFILE *streamFile) {
+static offv_t get_offset_bar(BARSTREAMFILE *streamFile) {
     return streamFile->real_file->get_offset(streamFile->real_file);
 }
 

@@ -10,9 +10,7 @@ REM # extensions found unless specified (except a few).
 REM #
 REM # Options: see below.
 REM #-------------------------------------------------------------------------
-REM #TODO: escape & ! % in file/folder names
 
-setlocal enableDelayedExpansion
 
 REM #-------------------------------------------------------------------------
 REM #options
@@ -35,7 +33,8 @@ REM # -Po: performance test old (same but also don't write file)
 REM # -Pm: performance test new (only parse meta)
 REM # -Pmo: performance test old (only parse meta)
 set OP_PERFORMANCE=
-REM # -fc <exe>: file comparer (Windows's FC is slow)
+REM # -fc <exe>: file comparer
+REM # Windows's FC is slow, try -fc ffc.exe (https://github.com/bnnm/vgm-tools/tree/master/misc/ffc)
 set OP_CMD_FC=fc /a /b
 
 
@@ -60,9 +59,9 @@ goto set_options
 :end_options
 
 REM # output color defs
-set C_W=0e
-set C_E=0c
-set C_O=0f
+set COLOR_WN=0e
+set COLOR_ER=0c
+set COLOR_OK=0f
 
 REM # remove command options and possibly "
 for /f "tokens=1-1 delims= "    %%A in ("%OP_CMD_OLD%") do set CHECK_OLD=%%A
@@ -97,11 +96,17 @@ REM # process files
 for /f "delims=" %%x in ('%CMD_DIR% ^| %CMD_FIND%') do (
     set CMD_FILE=%%x
 
+    REM # must enable/disable after setting CMD as ! & in dir names would become expanded/removed otherwise
+    setlocal EnableDelayedExpansion
+
     if "%OP_PERFORMANCE%" == "" (
         call :process_file "!CMD_FILE!"
     ) else (
         call :performance_file "!CMD_FILE!"
     )
+
+    endlocal
+
 )
 
 REM # find time elapsed
@@ -131,58 +136,59 @@ REM # ########################################################################
     set CMD_SHORTNAME=%~n1
     if "%CMD_SHORTNAME%" == "" goto process_file_continue
 
-    REM # get file
-    set CMD_FILE=%1
-    set CMD_FILE=%CMD_FILE:"=%
-    REM echo VTRS: file %CMD_FILE%
+
+    REM # get file (not from arg %1)
+    set CMD_FILE=!CMD_FILE!
+    set CMD_FILE=!CMD_FILE:"=!
+    REM echo VTRS: file !CMD_FILE!
 
     REM # old/new temp output
-    set WAV_OLD=%CMD_FILE%.old.wav
-    set TXT_OLD=%CMD_FILE%.old.txt
-    set CMD_VGM_OLD="%OP_CMD_OLD%" -o "%WAV_OLD%" "%CMD_FILE%"
-    %CMD_VGM_OLD% 1> "%TXT_OLD%" 2>&1  & REM || goto error
+    set WAV_OLD=!CMD_FILE!.old.wav
+    set TXT_OLD=!CMD_FILE!.old.txt
+    set CMD_VGM_OLD="%OP_CMD_OLD%" -o "!WAV_OLD!" "!CMD_FILE!"
+    !CMD_VGM_OLD! 1> "!TXT_OLD!" 2>&1  & REM || goto error
 
-    set WAV_NEW=%CMD_FILE%.new.wav
-    set TXT_NEW=%CMD_FILE%.new.txt
-    set CMD_VGM_NEW="%OP_CMD_NEW%" -o "%WAV_NEW%" "%CMD_FILE%"
-    %CMD_VGM_NEW% 1> "%TXT_NEW%" 2>&1  & REM || goto error
+    set WAV_NEW=!CMD_FILE!.new.wav
+    set TXT_NEW=!CMD_FILE!.new.txt
+    set CMD_VGM_NEW="%OP_CMD_NEW%" -o "!WAV_NEW!" "!CMD_FILE!"
+    !CMD_VGM_NEW! 1> "!TXT_NEW!" 2>&1  & REM || goto error
 
     REM # ignore if no files are created (unsupported formats)
-    if not exist "%WAV_NEW%" (
-        if not exist "%WAV_OLD%" (
-            REM echo VRTS: nothing created for file %CMD_FILE%
-            if exist "%TXT_NEW%"  del /a:a "%TXT_NEW%"
-            if exist "%TXT_OLD%"  del /a:a "%TXT_OLD%"
+    if not exist "!WAV_NEW!" (
+        if not exist "!WAV_OLD!" (
+            REM echo VRTS: nothing created for file !CMD_FILE!
+            if exist "!TXT_NEW!"  del /a:a "!TXT_NEW!"
+            if exist "!TXT_OLD!"  del /a:a "!TXT_OLD!"
             goto process_file_continue
         )
     )
 
     REM # compare files (without /b may to be faster for small files?)
-    set CMP_WAV=%OP_CMD_FC% "%WAV_OLD%" "%WAV_NEW%"
-    set CMP_TXT=%OP_CMD_FC% "%TXT_OLD%" "%TXT_NEW%"
+    set CMP_WAV=%OP_CMD_FC% "!WAV_OLD!" "!WAV_NEW!"
+    set CMP_TXT=%OP_CMD_FC% "!TXT_OLD!" "!TXT_NEW!"
 
-    %CMP_WAV% 1> nul 2>&1
+    !CMP_WAV! 1> nul 2>&1
     set CMP_WAV_ERROR=0
     if %ERRORLEVEL% NEQ 0  set CMP_WAV_ERROR=1
 
-    %CMP_TXT% 1> nul 2>&1
+    !CMP_TXT! 1> nul 2>&1
     set CMP_TXT_ERROR=0
     if %ERRORLEVEL% NEQ 0  set CMP_TXT_ERROR=1
 
     REM # print output
     if %CMP_WAV_ERROR% EQU 1 (
         if %CMP_TXT_ERROR% EQU 1  ( 
-            call :echo_color %C_E% "%CMD_FILE%" "wav and txt diffs"
+            call :echo_color %COLOR_ER% "!CMD_FILE!" "wav and txt diffs"
         ) else (
-            call :echo_color %C_E% "%CMD_FILE%" "wav diffs"
+            call :echo_color %COLOR_ER% "!CMD_FILE!" "wav diffs"
         )
         set /a "FILES_KO+=1"
     ) else (
         if %CMP_TXT_ERROR% EQU 1 (
-            call :echo_color %C_W% "%CMD_FILE%" "txt diffs"
+            call :echo_color %COLOR_WN% "!CMD_FILE!" "txt diffs"
         ) else (
             if "%OP_NOCORRECT%" == "" (
-                call :echo_color %C_O% "%CMD_FILE%" "no diffs"
+                call :echo_color %COLOR_OK% "!CMD_FILE!" "no diffs"
             )
         )
         set /a "FILES_OK+=1"
@@ -190,10 +196,10 @@ REM # ########################################################################
 
     REM # delete temp files
     if "%OP_NODELETE%" == "" (
-        if exist "%WAV_OLD%"  del /a:a "%WAV_OLD%"
-        if exist "%TXT_OLD%"  del /a:a "%TXT_OLD%"
-        if exist "%WAV_NEW%"  del /a:a "%WAV_NEW%"
-        if exist "%TXT_NEW%"  del /a:a "%TXT_NEW%"
+        if exist "!WAV_OLD!"  del /a:a "!WAV_OLD!"
+        if exist "!TXT_OLD!"  del /a:a "!TXT_OLD!"
+        if exist "!WAV_NEW!"  del /a:a "!WAV_NEW!"
+        if exist "!TXT_NEW!"  del /a:a "!TXT_NEW!"
     )
 
 :process_file_continue
@@ -209,39 +215,39 @@ REM # ########################################################################
     set CMD_SHORTNAME=%~n1
     if "%CMD_SHORTNAME%" == "" goto performance_file_continue
 
-    REM # get file
-    set CMD_FILE=%1
-    set CMD_FILE=%CMD_FILE:"=%
-    REM echo VTRS: file %CMD_FILE%
+    REM # get file (not from arg %1)
+    set CMD_FILE=!CMD_FILE!
+    set CMD_FILE=!CMD_FILE:"=!
+    REM echo VTRS: file !CMD_FILE!
 
-    set WAV_NEW=%CMD_FILE%.test.wav
+    set WAV_NEW=!CMD_FILE!.test.wav
     if "%OP_PERFORMANCE%" == "1" (
-        set CMD_VGM="%OP_CMD_NEW%" -o "%WAV_NEW%" "%CMD_FILE%"
+        set CMD_VGM="%OP_CMD_NEW%" -o "!WAV_NEW!" "!CMD_FILE!"
     )
     if "%OP_PERFORMANCE%" == "2" (
-        set CMD_VGM="%OP_CMD_NEW%" -O "%CMD_FILE%"
+        set CMD_VGM="%OP_CMD_NEW%" -O "!CMD_FILE!"
     )
     if "%OP_PERFORMANCE%" == "3" (
-        set CMD_VGM="%OP_CMD_OLD%" -o "%WAV_OLD%" "%CMD_FILE%"
+        set CMD_VGM="%OP_CMD_OLD%" -o "!WAV_OLD!" "!CMD_FILE!"
     )
     if "%OP_PERFORMANCE%" == "4" (
-        set CMD_VGM="%OP_CMD_OLD%" -O "%CMD_FILE%"
+        set CMD_VGM="%OP_CMD_OLD%" -O "!CMD_FILE!"
     )
     if "%OP_PERFORMANCE%" == "5" (
-        set CMD_VGM="%OP_CMD_NEW%" -m "%CMD_FILE%"
+        set CMD_VGM="%OP_CMD_NEW%" -m "!CMD_FILE!"
     )
     if "%OP_PERFORMANCE%" == "6" (
-        set CMD_VGM="%OP_CMD_OLD%" -m "%CMD_FILE%"
+        set CMD_VGM="%OP_CMD_OLD%" -m "!CMD_FILE!"
     )
 
-    %CMD_VGM% 1> nul 2>&1  & REM || goto error
+    !CMD_VGM! 1> nul 2>&1  & REM || goto error
     set CMP_WAV_ERROR=0
     if %ERRORLEVEL% NEQ 0  set CMP_WAV_ERROR=1
 
-    call :echo_color %C_O% "%CMD_FILE%" "done"
+    call :echo_color %COLOR_OK% "!CMD_FILE!" "done"
 
     REM # ignore output
-    if exist "%WAV_NEW%"  del /a:a "%WAV_NEW%"   
+    if exist "!WAV_NEW!"  del /a:a "!WAV_NEW!"   
 
 :performance_file_continue
 exit /B
@@ -252,14 +258,17 @@ REM # ########################################################################
 REM # hack to get colored output in Windows CMD using findstr + temp file
 REM # ########################################################################
 :echo_color
-set TEMP_FILE=%2-result
-set TEMP_FILE=%TEMP_FILE:"=%
+REM # don't use %2 but !CMD_FILE!
+set TEMP_FILE=!CMD_FILE!-result
+set TEMP_FILE=!TEMP_FILE:"=!
 set TEMP_TEXT=%3
-set TEMP_TEXT=%TEMP_TEXT:"=%
-echo  %TEMP_TEXT% > "%TEMP_FILE%"
+set TEMP_TEXT=!TEMP_TEXT:"=!
+echo  !TEMP_TEXT! > "!TEMP_FILE!"
+
 REM # show colored filename + any text in temp file
-findstr /v /a:%1 /r "^$" "%TEMP_FILE%" nul
-del "%TEMP_FILE%"
+findstr /a:%1 /r ".*" "!TEMP_FILE!" nul
+del "!TEMP_FILE!"
+
 exit /B
 REM :echo_color end, continue from last call
 

@@ -3,32 +3,33 @@ This document explains how to build each of vgmstream's components and libraries
 
 
 ## Compilation requirements
-vgmstream can be compiled using one of many build scripts that are available in this repository. Components are detailed below, but if you are new to development you probably want one of these:
+vgmstream can be compiled using one of several build scripts that are available in this repository. Components are detailed below, but if you are new to development you probably want one of these:
 - **Windows**: [simple scripts](#simple-scripts-builds) + [Visual Studio](#microsofts-visual-c-msvc--visual-studio--msbuild-compiler)
-- **Linux**: [Cmake](#cmake-builds) + [GCC](#gcc--make-compiler)
-- **macOS**: [Cmake](#cmake-builds) + [Clang](#clang-compiler)
-- **Web**: [Cmake](#cmake-builds) + [Emscripten](#emscripten-compiler)
+- **Linux**: [CMake](#cmake-builds) + [GCC](#gcc--make-compiler)
+- **macOS**: [CMake](#cmake-builds) + [Clang](#clang-compiler)
+- **Web**: [CMake](#cmake-builds) + [Emscripten](#emscripten-compiler)
 
 Because each module has different quirks one can't use a single tool for everything. You should be able to build most using a standard *compiler* (GCC/MSVC/Clang) using common *build systems* (scripts/CMake/autotools) in any typical *OS* (Windows/Linux/macOS).
 
-On **Windows**, 64-bit support may work but has been minimally tested, since the main use of vgmstream is plugins for 32-bit players. Windows libraries for extra codecs are included for 32-bit only at the moment, and there may be bugs in some codecs and formats.
+64-bit support should work but hasn't been throughly tested (may have subtle decoding bugs in some codecs), since most used components are plugins for 32-bit players. Windows libraries for extra codecs are included for 32-bit only at the moment.
 
 Though it's rather flexible (like using Windows with GCC and autotools), some combos may be a bit more complex to get working depending on your system and other factors.
 
 
-### CMake (builds)
-A tool used to generate common build files (for *make*, *VS/MSBuild*, etc), that in turn can be used to compile vgmstream's modules instead of using the existing scripts and files. Needs v3.6 or later:
-- https://cmake.org/download/
+## Quick guide
 
-On **Linux**, the CMake script can automatically download and build the source code for dependencies that it requires. It is also capable of creating a statically linked binary for distribution purposes. The build steps with CMake are as follows:
+### Linux
+- Use these commands to install dependencies and compile with CMake + make
 ```sh
 sudo apt-get update
-sudo apt-get install -y gcc g++ make build-essential git
+# base deps
+sudo apt-get install -y gcc g++ make cmake build-essential git
+# optional: for extra formats (can be ommited to build with static libs)
 sudo apt-get install -y libmpg123-dev libvorbis-dev libspeex-dev
 sudo apt-get install -y libavformat-dev libavcodec-dev libavutil-dev libswresample-dev
-sudo apt-get install -y libao-dev audacious-dev
 sudo apt-get install -y yasm libopus-dev
-sudo apt-get install -y cmake
+# optional: for vgmstream 123 and audacious
+sudo apt-get install -y libao-dev audacious-dev
 
 git clone https://github.com/vgmstream/vgmstream
 cd vgmstream
@@ -38,13 +39,108 @@ cd build
 cmake ..
 make
 ```
+- Output files are located in `./build` and subdirs
+- May use `./make-build-cmake.sh` instead (same thing)
+  - autotools and simple makefiles also work (less libs)
+
+### macOS
+- *Should* work with CMake + make, like the above example
+  - Replace `apt-get intall` with manual installation of those deps
+  - Or with *Homebrew*: `brew install cmake mpg123 libvorbis ffmpeg libao`
+- May try https://formulae.brew.sh/formula/vgmstream instead (not part of this project)
+
+### Windows
+- Install Visual Studio: https://www.visualstudio.com/downloads/ (for C/C++, with "MFC support" and "ATL support)
+- Make a file called `msvc-build.config.ps1` in vgmstream's root, with your installed toolset and SDK:
+```ps1
+# - toolsets: "" (default), "v140" (VS 2015), "v141" (VS 2017), "v141_xp" (XP support), "v142" (VS 2019), etc
+# - sdks: "" (default), "7.0" (Win7 SDK), "8.1" (Win8 SDK), "10.0" (Win10 SDK), etc
+$toolset = "142"
+$sdk = "10.0"
+```
+- Execute file `msvc-build-package.bat` to compile
+- Output files are located in `./bin`
+
+
+## Full guide
+This guide is mainly geared towards beginner devs, introducing concepts in steps. Many things may be obvious to experienced devs, so feel free to skim or skip sections.
+
+### GCC / Make (compiler)
+Common C compiler, most development is done with this.
+
+On **Windows** you need one of these somewhere in PATH:
+- MinGW-w64 (32bit version): https://sourceforge.net/projects/mingw-w64/
+  - Use this for easier standalone executables
+  - [Latest online MinGW installer](https://sourceforge.net/projects/mingw-w64/files/Toolchains%20targetting%20Win32/Personal%20Builds/mingw-builds/installer/mingw-w64-install.exe/download) with any config should work (for example: gcc-8.1.0, i686, win32, sjlj).
+  - Or download and unzip the [portable MinGW package](https://sourceforge.net/projects/mingw-w64/files/Toolchains%20targetting%20Win32/Personal%20Builds/mingw-builds/8.1.0/threads-win32/sjlj/i686-8.1.0-release-win32-sjlj-rt_v6-rev0.7z/download)
+- MSYS2 with the MinGW-w64_shell (32bit) package: https://msys2.github.io/
+  - Resulting binaries may depend on `msys*.dll`.
+
+On **Linux** it should be included by default in the distribution, or can be easily installed using the distro's package manager (for example `sudo apt-get install gcc g++ make`).
+
+On **macOS** may be installed with a package manager like *Homebrew*, but using *Clang* is probably easier.
+
+Any versions that are not too ancient should work, since vgmstream uses standard C. GCC usually comes with *Make*, a program that can be used to build vgmstream.
+
+### Microsoft's Visual C++ (MSVC) / Visual Studio / MSBuild (compiler)
+Alt C compiler (**Windows** only), auto-generated builds for Windows use this. Bundled in:
+- Visual Studio (2015/2017/2019/latest): https://www.visualstudio.com/downloads/
+
+Visual Studio Community (free) should work, but you may need to register after a trial period. Even after trial you can still use *MSBuild*, command-line tool that actually does all the building, calling the *MSVC* compiler (Visual Studio itself is just an IDE for development and not actually needed).
+
+Instead of the full (usually huge) Visual Studio, you can also get "Build Tools for Visual Studio", variation that only installs *MSBuild* and necessary files without the IDE. Usually found in the above link, under "Tools for Visual Studio" (or google as MS's links tend to move around).
+
+When installing check the "Desktop development with C++" group, and optionally select "MFC support" and "ATL support" sub-options to build foobar2000 plugin (you can modify that or re-install IDE later, by running installed "Visual Studio Installer"). You could include MSVC v141 (2017) compatibility too just in case, since it's mainly tested with that.
+
+Older versions of MSVC (2010 and earlier) have limited C support and may not work with latest commits, while reportedly beta/new versions aren't always very stable. Also, only projects (`.vcxproj`) for VS2015+ are included (CMake may be able to generate older `.vcproj` if you really need them). Some very odd issues affecting MSVC only have been found and fixed before. Keep in mind all of this if you run into problems.
+
+### Clang (compiler)
+Alt C compiler, reportedly works fine on **macOS** and may used as a replacement of GCC without issues.
+- https://releases.llvm.org/download.html
+
+Should be usable on **Linux** and possibly **Windows** with CMake. For default Makefiles may need to set compiler vars appropriately (`CC=clang`, `AR=llvm-ar` and so on).
+
+### Emscripten (compiler)
+C compiler that generates *WebAssembly* (custom Javascript), to build vgmstream's components with in-browser support.
+
+First, follow the *Emscripten* installation instructions:
+- https://emscripten.org/docs/getting_started/downloads.html
+- https://emscripten.org/docs/compiling/Building-Projects.html#building-projects
+
+Though basically:
+```sh
+git clone https://github.com/emscripten-core/emsdk
+cd emsdk
+./emsdk install latest
+./emsdk activate latest
+source ./emsdk_env.sh
+```
+
+Then you should be able to build it on **Linux** (**Windows** should be possible too, but has some issues at the moment), for example with CMake:
+```sh
+git clone https://github.com/vgmstream/vgmstream
+cd vgmstream
+
+mkdir -p embuild
+cd embuild
+emcmake cmake ..
+make
+```
 You can compile faster using `make -j 5` instead of the last `make` command (replace `5` with the number of cores your CPU has plus one), but please note that, with multiple jobs, in case any issues occur the output will become useless.
 
-The output files are `build/cli/vgmstream-cli` (CLI decoder), `build/cli/vgmstream123` (CLI player), and `build/audacious/vgmstream.so` (Audacious plugin).
+The output files `vgmstream-cli.wasm` and `vgmstream-cli.js` will be located in the `embuild/cli` directory.
 
-For more information and options see the full guide in the [CMAKE.md](CMAKE.md) file.
+Or with the base makefiles (the output may need to be renamed to .js):
+```sh
+git clone https://github.com/vgmstream/vgmstream
+cd vgmstream
+make vgmstream-cli CC=emcc AR=emar strip=echo
+```
 
-Note that doing in-source builds of CMake (`cmake .`) is not recommended, as that may clobber default build files.
+Load `vgmstream-cli.js` in a web page, you will be able to call the `callMain()` function from the browser developer console. Parameters to vgmstream can be passed in an array: `callMain(["-i", "input_file.pcm"])`. Files can be accessed through Emscripten [File System API](https://emscripten.org/docs/api_reference/Filesystem-API.html) (`FS`).
+
+For a fully-featured player see:
+- https://github.com/KatieFrogs/vgmstream-web
 
 ### Simple scripts (builds)
 Default build scripts are included in the source that can compile vgmstream, though limited in some ways.
@@ -53,7 +149,7 @@ Default build scripts are included in the source that can compile vgmstream, tho
 
 First, you may need to either open the `.sln` and change project compiler (*PlatformToolset*) and SDK (*WindowsTargetPlatformVersion*) to your installed version, or edit `msvc-build.ps1` and set the variables near *CONFIG*. To avoid modifying files, you can also create a file named `msvc-build.config.ps1` with:
 ```ps1
-# - toolsets: "" (p), "v140" (MSVC 2015), "v141" (MSVC 2017), "v141_xp" (XP support), "v142" (MSVC 2019), etc
+# - toolsets: "" (default), "v140" (VS 2015), "v141" (VS 2017), "v141_xp" (XP support), "v142" (VS 2019), etc
 # - sdks: "" (default), "7.0" (Win7 SDK), "8.1" (Win8 SDK), "10.0" (Win10 SDK), etc
 $toolset = "142"
 $sdk = "10.0"
@@ -80,6 +176,22 @@ chmod +x version-get.sh version-make.sh make-build.sh
 # warning: installs stuff, check all "apt install"
 ./make-build.sh
 ```
+
+### CMake (builds)
+A tool used to generate common build files (for *make*, *VS/MSBuild*, etc), that in turn can be used to compile vgmstream's modules instead of using the existing scripts and files. Needs v3.6 or later:
+- https://cmake.org/download/
+
+On **Windows** you can use *cmake-gui*, that should be mostly self-explanatory. You need to set the *source dir*, *build dir*, *config options*, then hit *Configure* to set save options and build type (for example *Visual Studio* project files), then *Generate* to actually create files. If you want to change options, hit *Configure* and *Generate* again.
+
+On **Linux**, the CMake script can automatically download and build the source code for dependencies that it requires. It is also capable of creating a statically linked binary for distribution purposes. See `./make-build-cmake.sh` (basically install desired deps then `mkdir -p build && cd build`, `cmake ..`, `make`).
+
+You can compile faster using `make -j 5` instead of the last `make` command (replace `5` with the number of cores your CPU has plus one), but please note that, with multiple jobs, in case any issues occur the output will become useless.
+
+The output files are `build/cli/vgmstream-cli` (CLI decoder), `build/cli/vgmstream123` (CLI player), and `build/audacious/vgmstream.so` (Audacious plugin).
+
+For more information and options see the full guide in the [CMAKE.md](CMAKE.md) file.
+
+Note that doing in-source builds of CMake (`cmake .` in vgmstream's root dir) is not recommended, as that may clobber default build files (try `cmake -S . -B build` or building some `./build` subfolder).
 
 ### autotools (builds)
 Autogenerated *make* scripts, used by some modules (mainly Audacious for **Linux**, and external libs).
@@ -121,93 +233,16 @@ Also for older libs, call `sh.exe ./configure` with either  `--build=mingw32`, `
 mingw32-make.exe -f Makefile.autotools LDFLAGS="-no-undefined -static-libgcc" MAKE=mingw32-make.exe
 ```
 
-
-### GCC / Make (compiler)
-Common C compiler, most development is done with this.
-
-On **Windows** you need one of these somewhere in PATH:
-- MinGW-w64 (32bit version): https://sourceforge.net/projects/mingw-w64/
-  - Use this for easier standalone executables
-  - [Latest online MinGW installer](https://sourceforge.net/projects/mingw-w64/files/Toolchains%20targetting%20Win32/Personal%20Builds/mingw-builds/installer/mingw-w64-install.exe/download) with any config should work (for example: gcc-8.1.0, i686, win32, sjlj).
-  - Or download and unzip the [portable MinGW package](https://sourceforge.net/projects/mingw-w64/files/Toolchains%20targetting%20Win32/Personal%20Builds/mingw-builds/8.1.0/threads-win32/sjlj/i686-8.1.0-release-win32-sjlj-rt_v6-rev0.7z/download)
-- MSYS2 with the MinGW-w64_shell (32bit) package: https://msys2.github.io/
-  - Resulting binaries may depend on `msys*.dll`.
-
-On **Linux** it should be included by default in the distribution, or can be easily installed using the distro's package manager (for example `sudo apt-get install gcc g++ make`).
-
-On **macOS** may be installed with a package manager like *Homebrew*, but using *Clang* is probably easier.
-
-Any versions that are not too ancient should work, since vgmstream uses standard C. GCC usually comes with *Make*, a program that can be used to build vgmstream.
-
-### Microsoft's Visual C++ (MSVC) / Visual Studio / MSBuild (compiler)
-Alt C compiler (**Windows** only), auto-generated builds for Windows use this. Bundled in:
-- Visual Studio (2015/2017/2019/latest): https://www.visualstudio.com/downloads/
-
-Visual Studio Community (free) should work, but you may need to register after a trial period. Even after trial you can still use *MSBuild*, command-line tool that actually does all the building, calling the *MSVC* compiler (Visual Studio itself is just an IDE for development and not actually needed).
-
-Instead of the full (usually huge) Visual Studio, you can also get "Build Tools for Visual Studio", variation that only installs *MSBuild* and necessary files without the IDE. Usually found in the above link, under "Tools for Visual Studio" (or google as MS's links tend to move around).
-
-When installing check the "Desktop development with C++" group, and optionally select "MFC support" and "ATL support" sub-options to build foobar2000 plugin (you can modify that or re-install IDE later, by running installed "Visual Studio Installer"). You could include MSVC v141 (2017) compatibility too just in case, since it's mainly tested with that.
-
-Older versions of MSVC (2010 and earlier) have limited C support and may not work with latest commits, while reportedly beta/new versions aren't always very stable. Also, only projects (`.vcxproj`) for VS2015+ are included (CMake may be able to generate older `.vcproj` if you really need them). Some very odd issues affecting MSVC only have been found and fixed before. Keep in mind all of this if you run into problems.
-
-### Clang (compiler)
-Alt C compiler, reportedly works fine on **macOS** and may used as a replacement of GCC without issues.
-- https://releases.llvm.org/download.html
-
-Should be usable on **Linux** and possibly **Windows** with CMake. For default Makefiles may need to set compiler vars appropriately (`CC=clang`, `AR=llvm-ar` and so on).
-
-
-### Emscripten (compiler)
-It's possible to build vgmstream components with Emscripten for in-browser support.
-
-Follow Emscripten installation instructions:
-- https://emscripten.org/docs/getting_started/downloads.html
-- https://emscripten.org/docs/compiling/Building-Projects.html#building-projects
-
-Though basically:
-```sh
-git clone https://github.com/emscripten-core/emsdk
-cd emsdk
-./emsdk install latest
-./emsdk activate latest
-source ./emsdk_env.sh
-```
-
-Then you should be able to build it on **Linux** (**Windows** would be possible too, but it has some issues at the moment), for example with CMake:
-```sh
-git clone https://github.com/vgmstream/vgmstream
-cd vgmstream
-
-mkdir -p embuild
-cd embuild
-emcmake cmake ..
-make
-```
-You can compile faster using `make -j 5` instead of the last `make` command (replace `5` with the number of cores your CPU has plus one), but please note that, with multiple jobs, in case any issues occur the output will become useless.
-
-The output files `vgmstream-cli.wasm` and `vgmstream-cli.js` will be located in the `embuild/cli` directory.
-
-Or with the base makefiles (the output may need to be renamed to .js):
-```sh
-git clone https://github.com/vgmstream/vgmstream
-cd vgmstream
-make vgmstream-cli CC=emcc AR=emar strip=echo
-```
-
-Load `vgmstream-cli.js` in a web page, you will be able to call the `callMain()` function from the browser developer console. Parameters to vgmstream can be passed in an array: `callMain(["-i", "input_file.pcm"])`. Files can be accessed through Emscripten [File System API](https://emscripten.org/docs/api_reference/Filesystem-API.html) (`FS`).
-
-
 ### Git (extras)
 Code version control for development. Optional, used to auto-generate version numbers:
 - https://git-scm.com/download
 
-Remember Git can only be used if you clone the vgmstream repo (not with `.zip` sources).
+Remember Git can only be used if you clone the vgmstream repo (not with source downloaded in `.zip`).
 
 On **Windows**, Git also comes with typical Linux utils (in the usr\bin dir), that can help when compiling some extra components.
 
 ### Extra libs (extras)
-Optional codec. See *External libraries* for full info.
+Optional codecs. See *External libraries* for full info.
 
 On **Windows** most libs are pre-compiled and included to simplify building (since they can be quite involved to compile).
 
@@ -226,10 +261,10 @@ Simplest way is using the *./Makefile* in the root folder, see inside for option
 
 Also, on **Linux** you can't build *in_vgmstream* and *xmp-vgmstream* (given they are Windows DLLs...). Makefiles have been used in the past to cross-compile from Linux with MingW headers though, but can't generate native Win code at the moment (should be fixable with some effort).
 
-*Autotools* should build and install it as `vgmstream-cli`, this is explained in detail in the Audacious section. It enables (some) extra codecs. Some Linux distributions like **Arch Linux** include pre-patched vgmstream with most libraries, you may want that instead:
+*Autotools* should build and install it as `vgmstream-cli`, this is explained in detail in the Audacious section. It enables (some) extra codecs. Some Linux distributions like **Arch Linux** include pre-patched vgmstream with most libraries, you may want that instead (not part of this project):
 - https://aur.archlinux.org/packages/vgmstream-git/
 
-If you use **macOS or Linux**, there is a *Homebrew* script that may automate the process (uses CMake):
+If you use **macOS or Linux**, there is a *Homebrew* script that may automate the process (uses CMake, also not part of this project):
 - https://formulae.brew.sh/formula/vgmstream
 
 You may try CMake instead as it may be simpler and handle libs better. See the build steps in the [Cmake section](#cmake-builds). Some older distros may not work though (CMake version needs to recognize FILTER command). You may also need to install resulting artifacts manually. Check the *CMAKE.md* doc for some extra info too.

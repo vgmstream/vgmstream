@@ -48,7 +48,7 @@ static const hcakey_info hcakey_list[] = {
         // - Ro-Kyu-Bu! Naisho no Shutter Chance (PSVita)
         {1234253142},               // 0000000049913556
 
-        // Idolm@ster Cinderella Stage (iOS/Android)
+        // THE iDOLM@STER Cinderella Girls: Starlight Stage (iOS/Android)
         // Shadowverse (iOS/Android)
         {59751358413602},           // 00003657F27E3B22
 
@@ -76,7 +76,8 @@ static const hcakey_info hcakey_list[] = {
         // Raramagi (iOS/Android)
         {45719322},                 // 0000000002B99F1A
 
-        // Idolm@ster Million Live (iOS/Android)
+        // THE iDOLM@STER Million Live! (iOS/Android)
+        // THE iDOLM@STER SideM GROWING STARS (Android)
         {765765765765765},          // 0002B875BC731A85
 
         // Kurokishi to Shiro no Maou (iOS/Android)
@@ -775,7 +776,7 @@ static const hcakey_info hcakey_list[] = {
 
         // Nogizaka 46 Fractal (Android)
         {984635491346198130},   // 0DAA20C336EEAE72
-        
+
 };
 
 #endif/*_HCA_KEYS_H_*/

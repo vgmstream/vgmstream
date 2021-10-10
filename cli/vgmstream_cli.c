@@ -49,9 +49,9 @@
 
 static size_t make_wav_header(uint8_t* buf, size_t buf_size, int32_t sample_count, int32_t sample_rate, int channels, int smpl_chunk, int32_t loop_start, int32_t loop_end);
 
-static void usage(const char* name, int is_full) {
+static void usage(const char* progname, int is_help) {
 
-    fprintf(is_full ? stdout : stderr, APP_INFO "\n"
+    fprintf(is_help ? stdout : stderr, APP_INFO "\n"
             "Usage: %s [-o <outfile.wav>] [options] <infile> ...\n"
             "Options:\n"
             "    -o <outfile.wav>: name of output .wav file, default <infile>.wav\n"
@@ -75,10 +75,10 @@ static void usage(const char* name, int is_full) {
             "    -V: print version info and supported extensions as JSON\n"
             "    -I: print requested file info as JSON\n"
 #endif
-            , name);
-    if (!is_full)
+            , progname);
+    if (!is_help)
         return;
-    fprintf(is_full ? stdout : stderr,
+    fprintf(is_help ? stdout : stderr,
             "    -2 N: only output the Nth (first is 0) set of stereo channels\n"
             "    -x: decode and print adxencd command line to encode as ADX\n"
             "    -g: decode and print oggenc command line to encode as OGG\n"

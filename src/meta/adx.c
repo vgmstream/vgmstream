@@ -80,14 +80,14 @@ VGMSTREAM* init_vgmstream_adx_subkey(STREAMFILE* sf, uint16_t subkey) {
     /* encryption */
     if (version == 0x0408) {
 
-        if (find_adx_key(sf, 8, &xor_start, &xor_mult, &xor_add, 0)) {
+        if (!find_adx_key(sf, 8, &xor_start, &xor_mult, &xor_add, 0)) {
             vgm_logi("ADX: decryption keystring not found\n");
         }
         coding_type = coding_CRI_ADX_enc_8;
         version = 0x0400;
     }
     else if (version == 0x0409) {
-        if (find_adx_key(sf, 9, &xor_start, &xor_mult, &xor_add, subkey)) {
+        if (!find_adx_key(sf, 9, &xor_start, &xor_mult, &xor_add, subkey)) {
             vgm_logi("ADX: decryption keycode not found\n");
         }
         coding_type = coding_CRI_ADX_enc_9;

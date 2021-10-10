@@ -1,10 +1,20 @@
 #include "streamfile.h"
 #include "util.h"
 #include "vgmstream.h"
+#include <string.h>
 
 /* for dup/fdopen in some systems */
 #ifndef _MSC_VER
     #include <unistd.h>
+#endif
+
+//TODO: move
+#ifndef DIR_SEPARATOR
+    #if defined (_WIN32) || defined (WIN32)
+        #define DIR_SEPARATOR '\\'
+    #else
+        #define DIR_SEPARATOR '/'
+    #endif
 #endif
 
 /* For (rarely needed) +2GB file support we use fseek64/ftell64. Those are usually available

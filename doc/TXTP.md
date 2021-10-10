@@ -1,4 +1,4 @@
-# TXTP FORMAT
+# TXTP format
 
 TXTP is a text file with commands, to improve support for games using audio in certain uncommon or undesirable ways. It's in the form of a mini-playlist or a wrapper with play settings, meant to do post-processing over playable files.
 
