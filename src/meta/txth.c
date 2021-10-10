@@ -654,7 +654,7 @@ static VGMSTREAM* init_subfile(txth_header* txth) {
      * - etc
      * to avoid it we set a particular fake extension and detect it when reading .txth
      */
-    strcpy(extension, "subfile_txth.");
+    strcpy(extension, ".subfile_txth.");
     strcat(extension, txth->subfile_extension);
 
     sf_sub = setup_subfile_streamfile(txth->sf_body, txth->subfile_offset, txth->subfile_size, extension);
@@ -728,50 +728,43 @@ fail:
 
 
 static STREAMFILE* open_txth(STREAMFILE* sf) {
-    char basename[PATH_LIMIT];
     char filename[PATH_LIMIT];
-    char fileext[PATH_LIMIT];
-    const char *subext;
+    const char* base_ext;
+    const char* txth_ext;
     STREAMFILE* sf_text;
 
-    /* try "(path/)(name.ext).txth" */
-    get_streamfile_name(sf,filename,PATH_LIMIT);
-    if (strstr(filename, "subfile_txth") != NULL)
+
+    get_streamfile_name(sf, filename, sizeof(filename));
+    if (strstr(filename, ".subfile_txth") != NULL)
         return NULL; /* detect special case of subfile-within-subfile */
-    strcat(filename, ".txth");
-    sf_text = open_streamfile(sf,filename);
-    if (sf_text) return sf_text;
 
-    /* try "(path/)(.sub.ext).txth" */
-    get_streamfile_basename(sf,basename,PATH_LIMIT);
-    subext = filename_extension(basename);
-    if (subext != NULL && subext[0] != '\0') {
-        get_streamfile_path(sf,filename,PATH_LIMIT);
-        get_streamfile_ext(sf,fileext,PATH_LIMIT);
-        strcat(filename,".");
-        strcat(filename, subext);
-        strcat(filename,".");
-        strcat(filename, fileext);
-        strcat(filename, ".txth");
+    base_ext = filename_extension(filename);
+    concatn(sizeof(filename), filename, ".txth");
+    txth_ext = filename_extension(filename);
 
-        sf_text = open_streamfile(sf,filename);
+    /* try "(path/)(name.ext).txth" */
+    {
+        /* full filename, already prepared */
+
+        sf_text = open_streamfile(sf, filename);
         if (sf_text) return sf_text;
     }
 
     /* try "(path/)(.ext).txth" */
-    get_streamfile_path(sf,filename,PATH_LIMIT);
-    get_streamfile_ext(sf,fileext,PATH_LIMIT);
-    strcat(filename,".");
-    strcat(filename, fileext);
-    strcat(filename, ".txth");
-    sf_text = open_streamfile(sf,filename);
-    if (sf_text) return sf_text;
+    if (base_ext) {
+        base_ext--; //get_streamfile_path(sf, filename, sizeof(filename));
+
+        sf_text = open_streamfile_by_filename(sf, base_ext);
+        if (sf_text) return sf_text;
+    }
 
     /* try "(path/).txth" */
-    get_streamfile_path(sf,filename,PATH_LIMIT);
-    strcat(filename, ".txth");
-    sf_text = open_streamfile(sf,filename);
-    if (sf_text) return sf_text;
+    if (txth_ext) {
+        txth_ext--; /* points to "txth" due to the concat */
+
+        sf_text = open_streamfile_by_filename(sf, txth_ext);
+        if (sf_text) return sf_text;
+    }
 
     /* not found */
     return NULL;
@@ -795,7 +788,7 @@ static void set_body_chunk(txth_header* txth) {
     if (!txth->chunk_start_set || !txth->chunk_size_set || !txth->chunk_count_set)
         return;
     if ((txth->chunk_size == 0 && ! txth->chunk_size_offset) ||
-         txth->chunk_start > txth->data_size || 
+         txth->chunk_start > txth->data_size ||
          txth->chunk_count == 0)
         return;
     if (!txth->sf_body)
@@ -967,7 +960,7 @@ static int parse_be(txth_header* txth, const char* val, uint32_t* p_value) {
         *p_value = 1;
     else if (is_string(val, "LE"))
         *p_value = 0;
-    else 
+    else
         if (!parse_num(txth->sf_head,txth,val, p_value))
              goto fail;
     return 1;
