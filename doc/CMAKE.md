@@ -1,4 +1,4 @@
-# CMake Build Instructions
+# CMake build help
 
 ## Build requirements
 

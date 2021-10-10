@@ -148,12 +148,16 @@ handling.
 
 ### Subsongs
 Certain container formats have multiple audio files, usually called "subsongs", often
-not meant to be extracted (no simple separation).
+not meant to be extracted (no simple separation from container).
 
-With CLI tools, you can select a subsong using the `-s` flag followed by a number, for example:
-`text.exe -s 5 file.bank`.
+By default vgmstream plays first subsong and reports total subsongs, if the format
+is able to contain them. Easiest to use would be the *foobar/winamp/Audacious*
+plugins, that are able to "unpack" those subsongs automatically into the playlist.
 
-For files containing multiple subsongs, you can write them all using some flags.
+With CLI tools, you can select a subsong using the `-s` flag followed by a number,
+for example: `text.exe -s 5 file.bank` or `vgmstream123 -s 5 file.bank`.
+
+Using *vgmstream-cli* you can convert multiple subsongs at once using the `-S` flag.
 **WARNING, MAY TAKE A LOT OF SPACE!** Some files have been observed to contain +20000
 subsongs, so don't use this lightly. Remember to set an output name (`-o`) with subsong
 wildcards (or leave it alone for the defaults).
@@ -163,9 +167,9 @@ wildcards (or leave it alone for the defaults).
 - `test.exe -s 1 -S 5 -o bgm.wav file.bank`: writes 5 subsongs, but all overwrite the same file = wrong.
 - `test.exe -s 1 -S 5 -o bgm_?02s.wav file.bank`: writes 5 subsongs, each named differently = correct.
 
-Some plugins are able to "unpack" those files automatically into the playlist. For others without
-support, you can create multiple .txtp (explained below) to select one of the subsongs (like
-`bgm.sxd#10.txtp`).
+For other players without support, or to play only a few choice subsongs, you
+can create multiple `.txtp` (explained later) to select one, like `bgm.sxd#10.txtp`
+(plays subsong 10 in `bgm.sxd`).
 
 You can use this python script to autogenerate one `.txtp` per subsong:
 https://github.com/vgmstream/vgmstream/tree/master/cli/tools/txtp_maker.py
