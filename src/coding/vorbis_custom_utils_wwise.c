@@ -1144,27 +1144,18 @@ static int load_wvc(uint8_t* ibuf, size_t ibufsize, uint32_t codebook_id, wwise_
 }
 
 static int load_wvc_file(uint8_t* buf, size_t bufsize, uint32_t codebook_id, STREAMFILE* sf) {
-    STREAMFILE* sfWvc = NULL;
+    STREAMFILE* sf_setup = NULL;
     size_t wvc_size = 0;
 
+    /* get from artificial external file (used if compiled without codebooks) */
     {
-        char setupname[PATH_LIMIT];
-        char pathname[PATH_LIMIT];
-        char *path;
+        char setupname[0x20];
 
-        /* read "(dir/).wvc" */
-        sf->get_name(sf,pathname,sizeof(pathname));
-        path = strrchr(pathname,DIR_SEPARATOR);
-        if (path)
-            *(path+1) = '\0';
-        else
-            pathname[0] = '\0';
+        snprintf(setupname, sizeof(setupname), ".wvc");
+        sf_setup = open_streamfile_by_filename(sf, setupname);
+        if (!sf_setup) goto fail;
 
-        snprintf(setupname,PATH_LIMIT,"%s.wvc", pathname);
-        sfWvc = sf->open(sf,setupname,STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (!sfWvc) goto fail;
-
-        wvc_size = sfWvc->get_size(sfWvc);
+        wvc_size = get_streamfile_size(sf_setup);
     }
 
     /* find codebook and copy to buffer */
@@ -1174,24 +1165,24 @@ static int load_wvc_file(uint8_t* buf, size_t bufsize, uint32_t codebook_id, STR
         int codebook_count;
 
         /* at the end of the WVC is an offset table, and we need to find codebook id (number) offset */
-        table_start = read_u32le(wvc_size - 4, sfWvc); /* last offset */
+        table_start = read_u32le(wvc_size - 4, sf_setup); /* last offset */
         codebook_count = ((wvc_size - table_start) / 4) - 1;
         if (table_start > wvc_size || codebook_id >= codebook_count) goto fail;
 
-        codebook_offset = read_u32le(table_start + codebook_id*4, sfWvc);
-        codebook_size   = read_u32le(table_start + codebook_id*4 + 4, sfWvc) - codebook_offset;
+        codebook_offset = read_u32le(table_start + codebook_id*4, sf_setup);
+        codebook_size   = read_u32le(table_start + codebook_id*4 + 4, sf_setup) - codebook_offset;
         if (codebook_size > bufsize) goto fail;
 
-        if (read_streamfile(buf, codebook_offset, codebook_size, sfWvc) != codebook_size)
+        if (read_streamfile(buf, codebook_offset, codebook_size, sf_setup) != codebook_size)
             goto fail;
-        sfWvc->close(sfWvc);
 
+        close_streamfile(sf_setup);
         return codebook_size;
     }
 
 
 fail:
-    if (sfWvc) sfWvc->close(sfWvc);
+    close_streamfile(sf_setup);
     return 0;
 }
 

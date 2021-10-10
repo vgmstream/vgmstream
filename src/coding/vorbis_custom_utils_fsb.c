@@ -162,73 +162,57 @@ static int build_header_setup(uint8_t* buf, size_t bufsize, uint32_t setup_id, S
 static int load_fvs_file_single(uint8_t* buf, size_t bufsize, uint32_t setup_id, STREAMFILE* sf) {
     STREAMFILE* sf_setup = NULL;
 
+    /* get from artificial external file (used if compiled without codebooks) */
     {
-        char setupname[PATH_LIMIT];
-        char pathname[PATH_LIMIT];
-        char *path;
+        char setupname[0x20];
 
-        /* read "(dir/).fvs_{setup_id}" */
-        sf->get_name(sf,pathname,sizeof(pathname));
-        path = strrchr(pathname,DIR_SEPARATOR);
-        if (path)
-            *(path+1) = '\0';
-        else
-            pathname[0] = '\0';
-
-        snprintf(setupname,PATH_LIMIT,"%s.fvs_%08x", pathname, setup_id);
-        sf_setup = sf->open(sf,setupname,STREAMFILE_DEFAULT_BUFFER_SIZE);
+        snprintf(setupname, sizeof(setupname), ".fvs_%08x", setup_id);
+        sf_setup = open_streamfile_by_filename(sf, setupname);
     }
 
+    /* get codebook and copy to buffer */
     if (sf_setup) {
-        /* file found, get contents into the buffer */
         size_t bytes = sf_setup->get_size(sf_setup);
         if (bytes > bufsize) goto fail;
 
         if (read_streamfile(buf, 0, bytes, sf_setup) != bytes)
             goto fail;
 
-        sf_setup->close(sf_setup);
+        close_streamfile(sf_setup);
         return bytes;
     }
 
 fail:
-    if (sf_setup) sf_setup->close(sf_setup);
+    close_streamfile(sf_setup);
     return 0;
 }
 
 static int load_fvs_file_multi(uint8_t* buf, size_t bufsize, uint32_t setup_id, STREAMFILE* sf) {
     STREAMFILE* sf_setup = NULL;
 
+    /* from to get from artificial external file (used if compiled without codebooks) */
     {
-        char setupname[PATH_LIMIT];
-        char pathname[PATH_LIMIT];
-        char* path;
+        char setupname[0x20];
 
-        /* read "(dir/).fvs" */
-        sf->get_name(sf,pathname,sizeof(pathname));
-        path = strrchr(pathname,DIR_SEPARATOR);
-        if (path)
-            *(path+1) = '\0';
-        else
-            pathname[0] = '\0';
-
-        snprintf(setupname,PATH_LIMIT,"%s.fvs", pathname);
-        sf_setup = sf->open(sf,setupname,STREAMFILE_DEFAULT_BUFFER_SIZE);
+        snprintf(setupname, sizeof(setupname), ".fvs");
+        sf_setup = open_streamfile_by_filename(sf, setupname);
     }
 
+    /* find codebook in mini-header (format by bnnm, feel free to change) */
     if (sf_setup) {
-        /* file found: read mini-header (format by bnnm, feel free to change) and locate FVS */
         int entries, i;
         uint32_t offset = 0, size = 0;
 
-        if (read_32bitBE(0x0, sf_setup) != 0x56465653) goto fail; /* "VFVS" */
-        entries = read_32bitLE(0x08, sf_setup); /* 0x04=v0, 0x0c-0x20: reserved */
+        if (!is_id32be(0x00, sf_setup, "VFVS"))
+            goto fail;
+
+        entries = read_u32le(0x08, sf_setup); /* 0x04=v0, 0x0c-0x20: reserved */
         if (entries <= 0) goto fail;
 
-        for (i=0; i < entries; i++) {  /* entry = id, offset, size, reserved */
-            if ((uint32_t)read_32bitLE(0x20 + i*0x10, sf_setup) == setup_id) {
-                offset = read_32bitLE(0x24 + i*0x10, sf_setup);
-                size = read_32bitLE(0x28 + i*0x10, sf_setup);
+        for (i = 0; i < entries; i++) {  /* entry = id, offset, size, reserved */
+            if (read_u32le(0x20 + i*0x10, sf_setup) == setup_id) {
+                offset = read_u32le(0x24 + i*0x10, sf_setup);
+                size = read_u32le(0x28 + i*0x10, sf_setup);
                 break;
             }
         }
