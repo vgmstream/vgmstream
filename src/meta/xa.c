@@ -6,52 +6,44 @@
 static int xa_read_subsongs(STREAMFILE* sf, int target_subsong, off_t start, uint16_t* p_stream_config, off_t* p_stream_offset, size_t* p_stream_size, int* p_form2);
 static int xa_check_format(STREAMFILE* sf, off_t offset, int is_blocked);
 
-/* XA - from Sony PS1 and Philips CD-i CD audio, also Saturn streams */
+/* XA - from Sony PS1 and Philips CD-i CD audio */
 VGMSTREAM* init_vgmstream_xa(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     off_t start_offset;
     int loop_flag = 0, channels, sample_rate, bps;
-    int is_riff = 0, is_blocked = 0, is_form2 = 0;
+    int is_riff = 0, is_form2 = 0, is_blocked;
     size_t stream_size = 0;
     int total_subsongs = 0, target_subsong = sf->stream_index;
     uint16_t target_config = 0;
 
 
-
     /* checks */
-    /* .xa: common
-     * .str: often videos and sometimes speech/music
-     * .adp: Phantasy Star Collection (SAT) raw XA
-     * .pxa: Mortal Kombat 4 (PS1)
-     * .grn: Micro Machines (CDi)
-     * (extensionless): bigfiles [Castlevania: Symphony of the Night (PS1)] */
-    if (!check_extensions(sf,"xa,str,adp,pxa,grn,"))
-        goto fail;
-
-    /* Proper XA comes in raw (BIN 2352 mode2/form2) CD sectors, that contain XA subheaders.
-     * Also has minimal support for headerless (ISO 2048 mode1/data) mode. */
-
-    /* check RIFF header = raw (optional, added when ripping and not part of the CD data) */
-    if (read_u32be(0x00,sf) == 0x52494646 &&  /* "RIFF" */
-        read_u32be(0x08,sf) == 0x43445841 &&  /* "CDXA" */
-        read_u32be(0x0C,sf) == 0x666D7420) {  /* "fmt " */
+    if (read_u32be(0x00,sf) == 0x00FFFFFF && read_u32be(0x04,sf) == 0xFFFFFFFF && read_u32be(0x08,sf) == 0xFFFFFF00) {
+        /* sector sync word = raw data */
+        is_blocked = 1;
+        start_offset = 0x00;
+    }
+    else if (is_id32be(0x00,sf, "RIFF") && is_id32be(0x08,sf, "CDXA") && is_id32be(0x0C,sf, "fmt ")) {
+        /* RIFF header = raw with header (optional, added by CD drivers when copying and not part of the CD data) */
         is_blocked = 1;
         is_riff = 1;
         start_offset = 0x2c; /* after "data", ignore RIFF values as often are wrong */
     }
     else {
-        /* sector sync word = raw */
-        if (read_u32be(0x00,sf) == 0x00FFFFFF &&
-            read_u32be(0x04,sf) == 0xFFFFFFFF &&
-            read_u32be(0x08,sf) == 0xFFFFFF00) {
-            is_blocked = 1;
-            start_offset = 0x00;
-        }
-        else {
-            /* headerless or possibly incorrectly ripped */
-            start_offset = 0x00;
-        }
+        /* non-blocked (ISO 2048 mode1/data) or incorrectly ripped: use TXTH */
+        goto fail;
     }
+
+    /* .xa: common
+     * .str: often videos and sometimes speech/music
+     * .pxa: Mortal Kombat 4 (PS1)
+     * .grn: Micro Machines (CDi)
+     * (extensionless): bigfiles [Castlevania: Symphony of the Night (PS1)] */
+    if (!check_extensions(sf,"xa,str,pxa,grn,"))
+        goto fail;
+
+    /* Proper XA comes in raw (BIN 2352 mode2/form2) CD sectors, that contain XA subheaders.
+     * For headerless XA (ISO 2048 mode1/data) mode use TXTH. */
 
     /* test for XA data, since format is raw-ish (with RIFF it's assumed to be ok) */
     if (!is_riff && !xa_check_format(sf, start_offset, is_blocked))
@@ -89,42 +81,18 @@ VGMSTREAM* init_vgmstream_xa(STREAMFILE* sf) {
         switch((xa_header >> 6) & 1) { /* 6: emphasis (applies a filter) */
             case 0: break;
             default: /*  shouldn't be used by games */
-                VGM_LOG("XA: unknown emphasis found\n");
-                break;
+                vgm_logi("XA: unknown emphasis found\n");
+                goto fail;
         }
         switch((xa_header >> 7) & 1) { /* 7: reserved */
             case 0: break;
             default:
-                VGM_LOG("XA: unknown reserved bit found\n");
-                break;
+                vgm_logi("XA: unknown reserved bit found\n");
+                goto fail;
         }
     }
     else {
-        /* headerless */
-        if (check_extensions(sf,"adp")) {
-            /* Phantasy Star Collection (SAT) raw files */
-            /* most are stereo, though a few (mainly sfx banks, sometimes using .bin) are mono */
-
-            char filename[PATH_LIMIT] = {0};
-            get_streamfile_filename(sf, filename,PATH_LIMIT);
-
-            /* detect PS1 mono files, very lame but whatevs, no way to detect XA mono/stereo */
-            if (filename[0]=='P' && filename[1]=='S' && filename[2]=='1' && filename[3]=='S') {
-                channels = 1;
-                sample_rate = 22050;
-            }
-            else {
-                channels = 2;
-                sample_rate = 44100;
-            }
-            bps = 4;
-        }
-        else {
-            /* incorrectly ripped standard XA */
-            channels = 2;
-            sample_rate = 37800;
-            bps = 4;
-        }
+        goto fail;
     }
 
     /* untested */
@@ -161,7 +129,9 @@ fail:
     return NULL;
 }
 
+
 static int xa_check_format(STREAMFILE *sf, off_t offset, int is_blocked) {
+    uint8_t frame_hdr[0x10];
     int i, j, sector = 0, skip = 0;
     off_t test_offset = offset;
     const size_t sector_size = (is_blocked ? 0x900 : 0x800);
@@ -172,23 +142,27 @@ static int xa_check_format(STREAMFILE *sf, off_t offset, int is_blocked) {
 
     /* test frames inside CD sectors */
     while (sector < sector_max) {
-        uint8_t xa_submode = read_u8(test_offset + 0x12, sf);
-        int is_audio = !(xa_submode & 0x08) && (xa_submode & 0x04) && !(xa_submode & 0x02);
+        if (is_blocked) {
+            uint8_t xa_submode = read_u8(test_offset + 0x12, sf);
+            int is_audio = !(xa_submode & 0x08) && (xa_submode & 0x04) && !(xa_submode & 0x02);
 
-        if (is_blocked && !is_audio) {
-            skip++;
-            if (sector == 0 && skip > skip_max) /* no a single audio sector found */
-                goto fail;
-            test_offset += sector_size + extra_size + extra_size;
-            continue;
+            if (is_blocked && !is_audio) {
+                skip++;
+                if (sector == 0 && skip > skip_max) /* no a single audio sector found */
+                    goto fail;
+                test_offset += sector_size + extra_size + extra_size;
+                continue;
+            }
         }
 
         test_offset += extra_size; /* header */
 
         for (i = 0; i < (sector_size / frame_size); i++) {
+            read_streamfile(frame_hdr, test_offset, sizeof(frame_hdr), sf);
+
             /* XA frame checks: filter indexes should be 0..3, and shifts 0..C */
             for (j = 0; j < 16; j++) {
-                uint8_t header = read_u8(test_offset + j, sf);
+                uint8_t header = get_u8(frame_hdr + j);
                 if (((header >> 4) & 0xF) > 0x03)
                     goto fail;
                 if (((header >> 0) & 0xF) > 0x0c)
@@ -196,14 +170,14 @@ static int xa_check_format(STREAMFILE *sf, off_t offset, int is_blocked) {
             }
 
             /* XA headers pairs are repeated */
-            if (read_u32be(test_offset+0x00, sf) != read_u32be(test_offset+0x04, sf) ||
-                read_u32be(test_offset+0x08, sf) != read_u32be(test_offset+0x0c, sf))
+            if (get_u32be(frame_hdr+0x00) != get_u32be(frame_hdr+0x04) ||
+                get_u32be(frame_hdr+0x08) != get_u32be(frame_hdr+0x0c))
                 goto fail;
             /* blank frames should always use 0x0c0c0c0c (due to how shift works) */
-            if (read_u32be(test_offset+0x00, sf) == 0 &&
-                read_u32be(test_offset+0x04, sf) == 0 &&
-                read_u32be(test_offset+0x08, sf) == 0 &&
-                read_u32be(test_offset+0x0c, sf) == 0)
+            if (get_u32be(frame_hdr+0x00) == 0 &&
+                get_u32be(frame_hdr+0x04) == 0 &&
+                get_u32be(frame_hdr+0x08) == 0 &&
+                get_u32be(frame_hdr+0x0c) == 0)
                 goto fail;
 
             test_offset += 0x80;
