@@ -118,6 +118,9 @@ typedef struct {
     uint32_t chunk_count;
     uint32_t chunk_header_size;
     uint32_t chunk_data_size;
+    uint32_t chunk_value;
+    uint32_t chunk_size_offset;
+    uint32_t chunk_be;
     int chunk_start_set;
     int chunk_size_set;
     int chunk_count_set;
@@ -791,7 +794,9 @@ static void set_body_chunk(txth_header* txth) {
     //todo maybe should only be done once, or have some count to retrigger to simplify?
     if (!txth->chunk_start_set || !txth->chunk_size_set || !txth->chunk_count_set)
         return;
-    if (txth->chunk_size == 0 || txth->chunk_start > txth->data_size || txth->chunk_count == 0)
+    if ((txth->chunk_size == 0 && ! txth->chunk_size_offset) ||
+         txth->chunk_start > txth->data_size || 
+         txth->chunk_count == 0)
         return;
     if (!txth->sf_body)
         return;
@@ -807,17 +812,21 @@ static void set_body_chunk(txth_header* txth) {
     {
         txth_io_config_data cfg = {0};
 
-        cfg.chunk_start = txth->chunk_start;
+        cfg.chunk_number = txth->chunk_number - 1; /* 1-index to 0-index */
         cfg.chunk_header_size = txth->chunk_header_size;
         cfg.chunk_data_size = txth->chunk_data_size;
+
+        cfg.chunk_value = txth->chunk_value;
+        cfg.chunk_size_offset = txth->chunk_size_offset;
+        cfg.chunk_be = txth->chunk_be;
+
+        cfg.chunk_start = txth->chunk_start;
         cfg.chunk_size = txth->chunk_size;
         cfg.chunk_count = txth->chunk_count;
-        cfg.chunk_number = txth->chunk_number - 1; /* 1-index to 0-index */
 
         temp_sf = setup_txth_streamfile(txth->sf_body, cfg, txth->sf_body_opened);
         if (!temp_sf) return;
     }
-
 
     /* closing is handled by temp_sf */
     //if (txth->sf_body_opened) {
@@ -951,6 +960,19 @@ static txth_codec_t parse_codec(txth_header* txth, const char* val) {
     //todo rest (handle in function)
 
     return UNKNOWN;
+}
+
+static int parse_be(txth_header* txth, const char* val, uint32_t* p_value) {
+    if (is_string(val, "BE"))
+        *p_value = 1;
+    else if (is_string(val, "LE"))
+        *p_value = 0;
+    else 
+        if (!parse_num(txth->sf_head,txth,val, p_value))
+             goto fail;
+    return 1;
+fail:
+    return 0;
 }
 
 static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char* key, char* val) {
@@ -1185,11 +1207,7 @@ static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char* key, cha
         if (!parse_num(txth->sf_head,txth,val, &txth->coef_spacing)) goto fail;
     }
     else if (is_string(key,"coef_endianness")) {
-        if (is_string(val, "BE"))
-            txth->coef_big_endian = 1;
-        else if (is_string(val, "LE"))
-            txth->coef_big_endian = 0;
-        else if (!parse_num(txth->sf_head,txth,val, &txth->coef_big_endian)) goto fail;
+        if (!parse_be(txth, val, &txth->coef_big_endian)) goto fail;
     }
     else if (is_string(key,"coef_mode")) {
         if (!parse_num(txth->sf_head,txth,val, &txth->coef_mode)) goto fail;
@@ -1212,11 +1230,7 @@ static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char* key, cha
         if (!parse_num(txth->sf_head,txth,val, &txth->hist_spacing)) goto fail;
     }
     else if (is_string(key,"hist_endianness")) {
-        if (is_string(val, "BE"))
-            txth->hist_big_endian = 1;
-        else if (is_string(val, "LE"))
-            txth->hist_big_endian = 0;
-        else if (!parse_num(txth->sf_head,txth,val, &txth->hist_big_endian)) goto fail;
+        if (!parse_be(txth, val, &txth->hist_big_endian)) goto fail;
     }
 
     /* SUBSONGS */
@@ -1340,34 +1354,41 @@ static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char* key, cha
     }
 
     /* CHUNKS */
-    else if (is_string(key,"chunk_number")) {
-        if (!parse_num(txth->sf_head,txth,val, &txth->chunk_number)) goto fail;
+    else if (is_string(key,"chunk_count")) {
+        if (!parse_num(txth->sf_head,txth,val, &txth->chunk_count)) goto fail;
+        txth->chunk_count_set = 1;
+        set_body_chunk(txth);
     }
     else if (is_string(key,"chunk_start")) {
         if (!parse_num(txth->sf_head,txth,val, &txth->chunk_start)) goto fail;
         txth->chunk_start_set = 1;
         set_body_chunk(txth);
     }
-    else if (is_string(key,"chunk_header_size")) {
-        if (!parse_num(txth->sf_head,txth,val, &txth->chunk_header_size)) goto fail;
-        //txth->chunk_header_size_set = 1;
-        //set_body_chunk(txth); /* optional and should go before chunk_size */
-    }
-    else if (is_string(key,"chunk_data_size")) {
-        if (!parse_num(txth->sf_head,txth,val, &txth->chunk_data_size)) goto fail;
-        //txth->chunk_data_size_set = 1;
-        //set_body_chunk(txth); /* optional and should go before chunk_size */
-    }
     else if (is_string(key,"chunk_size")) {
         if (!parse_num(txth->sf_head,txth,val, &txth->chunk_size)) goto fail;
         txth->chunk_size_set = 1;
         set_body_chunk(txth);
     }
-    else if (is_string(key,"chunk_count")) {
-        if (!parse_num(txth->sf_head,txth,val, &txth->chunk_count)) goto fail;
-        txth->chunk_count_set = 1;
-        set_body_chunk(txth);
+    /* optional and should go before the above */
+    else if (is_string(key,"chunk_number")) {
+        if (!parse_num(txth->sf_head,txth,val, &txth->chunk_number)) goto fail;
     }
+    else if (is_string(key,"chunk_header_size")) {
+        if (!parse_num(txth->sf_head,txth,val, &txth->chunk_header_size)) goto fail;
+    }
+    else if (is_string(key,"chunk_data_size")) {
+        if (!parse_num(txth->sf_head,txth,val, &txth->chunk_data_size)) goto fail;
+    }
+    else if (is_string(key,"chunk_value")) {
+        if (!parse_num(txth->sf_head,txth,val, &txth->chunk_value)) goto fail;
+    }
+    else if (is_string(key,"chunk_size_offset")) {
+        if (!parse_num(txth->sf_head,txth,val, &txth->chunk_size_offset)) goto fail;
+    }
+    else if (is_string(key,"chunk_endianness")) {
+        if (!parse_be(txth, val, &txth->chunk_be)) goto fail;
+    }
+
 
     /* BASE OFFSET */
     else if (is_string(key,"base_offset")) {

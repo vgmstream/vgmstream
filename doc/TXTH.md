@@ -410,28 +410,42 @@ subfile_extension = (string)
 ```
 
 #### CHUNK DEINTERLEAVING
-Some files interleave data chunks, for example 3 stereo songs pasted together, alternating 0x10000 bytes of data each. These settings allow vgmstream to play one of the chunks while ignoring the rest (read 0x10000 data, skip 0x10000*2).
-File is first "dechunked" then played with using other settings (`start_offset` would point within the internal  dechunked" file). It can be used to remove garbage data that affects decoding, too.
+Some files interleave data chunks, for example 3 stereo songs pasted together, alternating 0x10000 bytes of data each. Or maybe 0x100 of useless header + 0x10000 of valid data. Chunk settings allow vgmstream to play valid chunks while ignoring the rest (read 0x10000 data, skip rest).
 
+File is first "dechunked" before being played, so other settings work over this final file (`start_offset` would be a point within the internal dechunked" file). Use combinations of chunk settings to make vgmstream "see" only actual codec data.
 
-You need to set:
+Main settings:
 - `chunk_count`: total number of interleaved chunks (ex. 3=3 interleaved songs)
-- `chunk_number`: first chunk to start (ex. 1=0x00000, 2=0x10000, 3=0x20000...)
-  * If you set `subsong_count` and `chunk_count` first, `chunk_number` will be auto-set per subsong (subsong 1 starts from chunk number 1, subsong 2 from chunk 2, etc)
 - `chunk_start`: absolute offset where chunks start (normally 0x00)
 - `chunk_size`: amount of data in a single chunk (ex. 0x10000)
-For fine-tuning you can optionally set (before `chunk_size`, for reasons):
-- `chunk_header_size`: header to skip before chunk data (part of chunk_size)
-- `chunk_data_size`: actual data size (part of chunk_size, rest is header/padding)
 
-So, if you set size to 0x1000, header_size 0x100, data_size is implicitly 0xF00, or if size is 0x1000 and data_size 0x800 last 0x200 is ignored padding. Use combinations of the above to make vgmstream "see" only actual codec data.
+Optional settings (set before main):
+- `chunk_number`: first chunk to start (ex. 1=0x00000, 2=0x10000, 3=0x20000...)
+  - If you set `subsong_count` and `chunk_count` first, `chunk_number` will be auto-set per subsong (subsong 1 starts from chunk number 1, subsong 2 from chunk 2, etc)
+- `chunk_header_size`: header to skip before chunk data (part of chunk_size)
+  - If size is 0x1000 and header_size 0x100, data_size is implicitly set to 0xF00
+- `chunk_data_size`: actual data size (part of chunk_size, rest is header/padding)
+  - If size is 0x1000 and data_size 0x800 last 0x200 is ignored padding. 
+
+Dynamic settings (set before main, requires `chunk_header_size`):
+- `chunk_value`: ignores chunks that don't match this value at chunk offset 0x00 (32-bit, in `chunk_endianness`)
+- `chunk_size_offset`: reads chunk size at this offset, in header (32-bit in `chunk_endianness`). 
+- `chunk_endianness`: sets endianness of the above values
+
+For technical reasons, "dechunking" activates when setting all main settings, so set optional config first. Note that config is static (not per-chunk), so `chunk_size = @0x10` is read from the beginning of the file once, not every time a new chunk is found.
+
 ```
 chunk_count = (value)
-chunk_number = (value)
 chunk_start = (value)
+chunk_size = (value)
+
+chunk_number = (value)
 chunk_header_size = (value)
 chunk_data_size = (value)
-chunk_size = (value)
+
+chunk_value = (value)
+chunk_size_offset = (value)
+chunk_endian = LE|BE
 ```
 
 #### NAME TABLE

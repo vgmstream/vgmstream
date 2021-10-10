@@ -1,30 +1,36 @@
 #ifndef _TXTH_STREAMFILE_H_
 #define _TXTH_STREAMFILE_H_
 #include "../streamfile.h"
+#include "../util/endianness.h"
 
 
 typedef struct {
-    off_t chunk_start;
-    size_t chunk_size;
-    size_t chunk_header_size;
-    size_t chunk_data_size;
+    uint32_t chunk_start;
+    uint32_t chunk_size;
+    uint32_t chunk_header_size;
+    uint32_t chunk_data_size;
+
     int chunk_count;
     int chunk_number;
+
+    uint32_t chunk_value;
+    uint32_t chunk_size_offset;
+    int chunk_be;
 } txth_io_config_data;
 
 typedef struct {
     /* config */
     txth_io_config_data cfg;
-    size_t stream_size;
+    uint32_t stream_size;
 
     /* state */
-    off_t logical_offset;       /* fake offset */
-    off_t physical_offset;      /* actual offset */
-    size_t block_size;          /* current size */
-    size_t skip_size;           /* size from block start to reach data */
-    size_t data_size;           /* usable size in a block */
+    uint32_t logical_offset;       /* fake offset */
+    uint32_t physical_offset;      /* actual offset */
+    uint32_t block_size;          /* current size */
+    uint32_t skip_size;           /* size from block start to reach data */
+    uint32_t data_size;           /* usable size in a block */
 
-    size_t logical_size;
+    uint32_t logical_size;
 } txth_io_data;
 
 
@@ -62,6 +68,27 @@ static size_t txth_io_read(STREAMFILE* sf, uint8_t* dest, off_t offset, size_t l
             }
             if (data->cfg.chunk_data_size) {
                 data->data_size = data->cfg.chunk_data_size;
+            }
+
+            /* chunk size reader (overwrites the above) */
+            if (data->cfg.chunk_header_size && data->cfg.chunk_size_offset) {
+                read_u32_t read_u32 = data->cfg.chunk_be ? read_u32be : read_u32le;
+
+                data->block_size = read_u32(data->physical_offset + data->cfg.chunk_size_offset, sf);
+                data->data_size = data->block_size - data->cfg.chunk_header_size;
+                VGM_LOG("bs %x = %x\n", data->physical_offset, data->block_size);
+
+                /* skip chunk if doesn't match expected header value */
+                if (data->cfg.chunk_value) {
+                    uint32_t value = read_u32(data->physical_offset + 0x00, sf);
+                    if (value != data->cfg.chunk_value) {
+                        VGM_LOG("skip %x vs %x at %x\n", value, data->cfg.chunk_value, data->physical_offset);
+                        data->data_size = 0;
+                    }
+                }
+                else {
+                    VGM_LOG("not skip at %x\n", data->physical_offset) ;
+                }
             }
 
             /* clamp for games where last block is smaller */ //todo not correct for all cases
