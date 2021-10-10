@@ -125,66 +125,6 @@ static int record_interrupt(void) {
     return ret;
 }
 
-static void usage(const char* progname) {
-    song_settings_t default_par = DEFAULT_PARAMS;
-    const char* default_driver = "???";
-
-    {
-        ao_info *info = ao_driver_info(driver_id);
-        if (info)
-            default_driver = info->short_name;
-    }
-
-    printf(APP_INFO "\n"
-        "Usage: %s [options] <infile> ...\n"
-        "\n"
-        "Options:\n"
-        "    -d DRV      Use output driver DRV [%s]; available drivers:\n"
-        "                ",
-        progname,
-        default_driver);
-
-    {
-        ao_info **info_list;
-        int driver_count = 0;
-        int i;
-
-        info_list = ao_driver_info_list(&driver_count);
-
-        for (i = 0; i < driver_count; i++)
-            printf("%s ", info_list[i]->short_name);
-    }
-
-    printf("\n"
-        "    -f OUTFILE  Set output filename for a file driver specified with -d\n"
-        "    -o KEY:VAL  Pass option KEY with value VAL to the output driver\n"
-        "                (see https://www.xiph.org/ao/doc/drivers.html)\n"
-        "    -b N        Use an audio buffer of N kilobytes [%d]\n"
-        "    -@ LSTFILE  Read playlist from LSTFILE\n"
-        "    -h          Print this help\n"
-        "    -r          Repeat playback again (with fade, use -p for infinite loops)\n"
-        "    -v          Display stream metadata and playback progress\n"
-        "    -S N        Play substream with index N\n"
-        "\n"
-        "Looping options:\n"
-        "    -M MINTIME  Loop for a playback time of at least MINTIME seconds\n"
-        "    -L N        Loop N times [%.1f]\n"
-        "    -F FTIME    End playback with a fade-out of FTIME seconds [%.1f]\n"
-        "    -D FDELAY   Delay fade-out for an additional FDELAY seconds [%.1f]\n"
-        "    -i          Ignore loop\n"
-        "    -e          Force loop (loop only if file doesn't have loop points)\n"
-        "    -E          Really force loop (repeat file)\n"
-        "    -p          Play forever (loops file until stopped)\n"
-        "\n"
-        "<infile> can be any stream file type supported by vgmstream, or an .m3u/.m3u8\n"
-        "playlist referring to same. This program supports the \"EXT-X-VGMSTREAM\" tag\n"
-        "in playlists, and files compressed with gzip/bzip2/xz.\n",
-        buffer_size_kb,
-        default_par.loop_count,
-        default_par.fade_time,
-        default_par.fade_delay
-    );
-}
 
 /* Opens the audio device with the appropriate parameters
  */
@@ -657,6 +597,70 @@ static void add_driver_option(const char *key_value) {
     ao_append_option(&device_options, buf, value);
 }
 
+
+static void usage(const char* progname, int is_help) {
+    song_settings_t default_par = DEFAULT_PARAMS;
+    const char* default_driver = "???";
+
+    {
+        ao_info* info = ao_driver_info(driver_id);
+        if (info)
+            default_driver = info->short_name;
+    }
+
+    fprintf(is_help ? stdout : stderr, APP_INFO "\n"
+        "Usage: %s [options] <infile> ...\n"
+        "Options:\n"
+        "    -D DRV      Use output driver DRV [%s]; available drivers:\n"
+        "                ",
+        progname,
+        default_driver);
+
+    {
+        ao_info** info_list;
+        int driver_count = 0;
+        int i;
+
+        info_list = ao_driver_info_list(&driver_count);
+
+        for (i = 0; i < driver_count; i++) {
+            fprintf(is_help ? stdout : stderr, "%s ", info_list[i]->short_name);
+        }
+    }
+
+    fprintf(is_help ? stdout : stderr, "\n"
+        "    -P KEY:VAL  Pass parameter KEY with value VAL to the output driver\n"
+        "                (see https://www.xiph.org/ao/doc/drivers.html)\n"
+        "    -B N        Use an audio buffer of N kilobytes [%d]\n"
+        "    -@ LSTFILE  Read playlist from LSTFILE\n"
+        "\n"
+        "    -o OUTFILE  Set output filename for a file driver specified with -D\n"
+        "    -m          Display stream metadata and playback progress\n"
+        "    -s N        Play subsong index N\n"
+        "    -h          Print this help\n"
+        "\n"
+        "Looping options:\n"
+        "    -M MINTIME  Loop for a playback time of at least MINTIME seconds\n"
+        "    -l FLOOPS   Loop N times [%.1f]\n"
+        "    -f FTIME    End playback with a fade-out of FTIME seconds [%.1f]\n"
+        "    -d FDELAY   Delay fade-out for an additional FDELAY seconds [%.1f]\n"
+        "    -i          Ignore loop\n"
+        "    -e          Force loop (loop only if file doesn't have loop points)\n"
+        "    -E          Really force loop (repeat file)\n"
+        "    -c          Play forever (continuously), looping file until stopped\n"
+        "    -r          Repeat playback again (with fade, use -c for infinite loops)\n"
+        "\n"
+        "<infile> can be any stream file type supported by vgmstream, or an .m3u/.m3u8\n"
+        "playlist referring to same. This program supports the \"EXT-X-VGMSTREAM\" tag\n"
+        "in playlists, and files compressed with gzip/bzip2/xz.\n",
+        buffer_size_kb,
+        default_par.loop_count,
+        default_par.fade_time,
+        default_par.fade_delay
+    );
+}
+
+
 int main(int argc, char **argv) {
     int error = 0;
     int opt;
@@ -673,7 +677,7 @@ int main(int argc, char **argv) {
 
     if (argc == 1) {
         /* We were invoked with no arguments */
-        usage(argv[0]);
+        usage(argv[0], 0);
         goto done;
     }
 
@@ -683,7 +687,7 @@ again_opts:
         cfg = default_par;
     }
 
-    while ((opt = getopt(argc, argv, "-D:F:L:M:S:b:d:f:o:@:hrvieEp")) != -1) {
+    while ((opt = getopt(argc, argv, "-D:f:l:M:s:B:d:o:P:@:hrmieEc")) != -1) {
         switch (opt) {
             case 1:
                 /* glibc getopt extension
@@ -701,20 +705,20 @@ again_opts:
                 }
                 break;
 
-            case 'D':
+            case 'd':
                 cfg.fade_delay = atof(optarg);
                 break;
-            case 'F':
+            case 'f':
                 cfg.fade_time = atof(optarg);
                 break;
-            case 'L':
+            case 'l':
                 cfg.loop_count = atof(optarg);
                 break;
             case 'M':
                 cfg.min_time = atof(optarg);
                 cfg.loop_count = -1.0;
                 break;
-            case 'S':
+            case 's':
                 cfg.stream_index = atoi(optarg);
                 break;
             case 'i':
@@ -726,15 +730,15 @@ again_opts:
             case 'E':
                 cfg.really_force_loop = 1;
                 break;
-            case 'p':
+            case 'c':
                 cfg.play_forever = 1;
                 break;
 
-            case 'b':
+            case 'B':
                 if (!buffer)
                     buffer_size_kb = atoi(optarg);
                 break;
-            case 'd':
+            case 'D':
                 driver_id = ao_driver_id(optarg);
                 if (driver_id < 0) {
                     fprintf(stderr, "Invalid output driver \"%s\"\n", optarg);
@@ -742,19 +746,19 @@ again_opts:
                     goto done;
                 }
                 break;
-            case 'f':
+            case 'o':
                 out_filename = optarg;
                 break;
             case 'h':
-                usage(argv[0]);
+                usage(argv[0], 1);
                 goto done;
-            case 'o':
+            case 'P':
                 add_driver_option(optarg);
                 break;
             case 'r':
                 repeat = 1;
                 break;
-            case 'v':
+            case 'm':
                 verbose = 1;
                 break;
             default:
