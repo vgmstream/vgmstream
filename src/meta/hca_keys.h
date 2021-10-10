@@ -777,6 +777,9 @@ static const hcakey_info hcakey_list[] = {
         // Nogizaka 46 Fractal (Android)
         {984635491346198130},   // 0DAA20C336EEAE72
 
+        // NEO: The World Ends With You (PC)
+        {53346933792338754},    // 00BD86C0EE8C7342
+
 };
 
 #endif/*_HCA_KEYS_H_*/
