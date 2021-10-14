@@ -171,7 +171,8 @@ static VGMSTREAM* _init_vgmstream_ogg_vorbis(STREAMFILE* sf) {
         is_sngw = 1;
     } else if (check_extensions(sf,"isd")) { /* .isd: Inti Creates PC games */
         is_isd = 1;
-    } else if (check_extensions(sf,"rpgmvo")) { /* .rpgmvo: RPG Maker MV games (PC) */
+    } else if (check_extensions(sf,"rpgmvo,ogg_")) {
+        /* .rpgmvo: RPG Maker MV games (PC), .ogg_: RPG Maker MZ games (PC) */
         is_rpgmvo = 1;
     } else if (check_extensions(sf,"eno")) { /* .eno: Metronomicon (PC) */
         is_eno = 1;
@@ -353,7 +354,7 @@ static VGMSTREAM* _init_vgmstream_ogg_vorbis(STREAMFILE* sf) {
         }
     }
 
-    if (is_rpgmvo) { /* [RPG Maker MV (PC)] */
+    if (is_rpgmvo) { /* [RPG Maker MV (PC), RPG Maker MZ (PC)] */
         if (read_32bitBE(0x00,sf) != 0x5250474D &&  /* "RPGM" */
             read_32bitBE(0x00,sf) != 0x56000000) {  /* "V\0\0\0" */
             goto fail;
