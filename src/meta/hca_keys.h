@@ -780,6 +780,9 @@ static const hcakey_info hcakey_list[] = {
         // NEO: The World Ends With You (PC)
         {53346933792338754},    // 00BD86C0EE8C7342
 
+        // THE iDOLM@STER Starlit Season (PS4/PC)
+        {7865357762459531720},  // 6d275d3666c2f9c8
+
 };
 
 #endif/*_HCA_KEYS_H_*/
