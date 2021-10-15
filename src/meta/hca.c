@@ -10,7 +10,7 @@
 #ifdef HCA_BRUTEFORCE
 static void bruteforce_hca_key(STREAMFILE* sf, hca_codec_data* hca_data, unsigned long long* p_keycode, uint16_t subkey);
 #endif
-static void find_hca_key(hca_codec_data* hca_data, uint64_t* p_keycode, uint16_t subkey);
+static int find_hca_key(hca_codec_data* hca_data, uint64_t* p_keycode, uint16_t subkey);
 
 
 /* CRI HCA - streamed audio from CRI ADX2/Atom middleware */
@@ -60,7 +60,9 @@ VGMSTREAM* init_vgmstream_hca_subkey(STREAMFILE* sf, uint16_t subkey) {
         }
 #ifdef HCA_BRUTEFORCE
         else if (1) {
-            bruteforce_hca_key(sf, hca_data, &keycode, subkey);
+            int ok = find_hca_key(hca_data, &keycode, subkey);
+            if (!ok)
+                bruteforce_hca_key(sf, hca_data, &keycode, subkey);
         }
 #endif
         else {
@@ -156,7 +158,7 @@ static inline void test_key(hca_codec_data* hca_data, uint64_t key, uint16_t sub
 }
 
 /* try to find the decryption key from a list. */
-static void find_hca_key(hca_codec_data* hca_data, uint64_t* p_keycode, uint16_t subkey) {
+static int find_hca_key(hca_codec_data* hca_data, uint64_t* p_keycode, uint16_t subkey) {
     const size_t keys_length = sizeof(hcakey_list) / sizeof(hcakey_info);
     int best_score = -1;
     int i;
@@ -191,6 +193,7 @@ done:
     VGM_ASSERT(best_score > 1, "HCA: best key=%08x%08x (score=%i)\n",
             (uint32_t)((*p_keycode >> 32) & 0xFFFFFFFF), (uint32_t)(*p_keycode & 0xFFFFFFFF), best_score);
     vgm_asserti(best_score < 0, "HCA: decryption key not found\n");
+    return best_score > 0;
 }
 
 #ifdef HCA_BRUTEFORCE
@@ -213,16 +216,17 @@ static void bruteforce_hca_key_bin_type(STREAMFILE* sf, hca_codec_data* hca_data
     uint8_t* buf = NULL;
     int best_score = 0xFFFFFF, cur_score;
     off_t keys_size, bytes;
-    int pos;
+    int pos, step;
     uint64_t old_key = 0;
     uint64_t key = 0;
+    uint64_t best_key = 0;
 
 
     /* load whole file in memory for performance (exes with keys shouldn't be too big) */
     sf_keys = open_streamfile_by_filename(sf, "keys.bin");
     if (!sf_keys) return;
 
-    VGM_LOG("HCA: test keys.bin (type %i)\n", type);
+    VGM_LOG("HCA BF: test keys.bin (type %i)\n", type);
     *p_keycode = 0;
 
     keys_size = get_streamfile_size(sf_keys);
@@ -233,24 +237,37 @@ static void bruteforce_hca_key_bin_type(STREAMFILE* sf, hca_codec_data* hca_data
     bytes = read_streamfile(buf, 0, keys_size, sf_keys);
     if (bytes != keys_size) goto done;
 
-    VGM_LOG("HCA: start\n");
+    VGM_LOG("HCA BF: start .bin\n");
+
+    switch(type) {
+        case HBF_TYPE_64LE_1:
+        case HBF_TYPE_64BE_1:
+        case HBF_TYPE_32LE_1:
+        case HBF_TYPE_32BE_1: step = 0x01; break;
+        case HBF_TYPE_64LE_4:
+        case HBF_TYPE_64BE_4:
+        case HBF_TYPE_32LE_4:
+        case HBF_TYPE_32BE_4: step = 0x04; break;
+        default: goto done;
+    }
 
     pos = 0;
-    while (pos < keys_size - 4) {
+    while (pos < keys_size - 8) {
         VGM_ASSERT(pos % 0x1000000 == 0, "HCA: pos %x...\n", pos);
 
         /* keys are usually u64le but other orders may exist */
         switch(type) {
-            case HBF_TYPE_64LE_1: key = get_u64le(buf + pos);  pos += 0x01; break;
-            case HBF_TYPE_64BE_1: key = get_u64be(buf + pos);  pos += 0x01; break;
-            case HBF_TYPE_32LE_1: key = get_u32le(buf + pos);  pos += 0x01; break;
-            case HBF_TYPE_32BE_1: key = get_u32be(buf + pos);  pos += 0x01; break;
-            case HBF_TYPE_64LE_4: key = get_u64le(buf + pos);  pos += 0x04; break;
-            case HBF_TYPE_64BE_4: key = get_u64be(buf + pos);  pos += 0x04; break;
-            case HBF_TYPE_32LE_4: key = get_u32le(buf + pos);  pos += 0x04; break;
-            case HBF_TYPE_32BE_4: key = get_u32be(buf + pos);  pos += 0x04; break;
-            default: key = 0; pos = keys_size; break;
+            case HBF_TYPE_64LE_1: key = get_u64le(buf + pos); break;
+            case HBF_TYPE_64BE_1: key = get_u64be(buf + pos); break;
+            case HBF_TYPE_32LE_1: key = get_u32le(buf + pos); break;
+            case HBF_TYPE_32BE_1: key = get_u32be(buf + pos); break;
+            case HBF_TYPE_64LE_4: key = get_u64le(buf + pos); break;
+            case HBF_TYPE_64BE_4: key = get_u64be(buf + pos); break;
+            case HBF_TYPE_32LE_4: key = get_u32le(buf + pos); break;
+            case HBF_TYPE_32BE_4: key = get_u32be(buf + pos); break;
+            default: goto done;
         }
+        pos += step;
 
         if (key == 0 || key == old_key)
             continue;
@@ -259,27 +276,30 @@ static void bruteforce_hca_key_bin_type(STREAMFILE* sf, hca_codec_data* hca_data
         cur_score = 0;
         test_key(hca_data, key, subkey, &cur_score, p_keycode);
         if (cur_score == 1) {
+            best_key = key;
             best_score = cur_score;
             goto done;
         }
 
         if (cur_score > 0 && cur_score <= 500) {
-            VGM_LOG("HCA: possible key=%08x%08x (score=%i) at %x\n",
-                (uint32_t)((key >> 32) & 0xFFFFFFFF), (uint32_t)(key & 0xFFFFFFFF), cur_score, pos-0x04);
-            if (best_score > cur_score)
+            VGM_LOG("HCA BF: possible key=%08x%08x (score=%i) at offset %x\n",
+                (uint32_t)((key >> 32) & 0xFFFFFFFF), (uint32_t)(key & 0xFFFFFFFF), cur_score, pos - step);
+            if (best_score > cur_score) {
+                best_key = key;
                 best_score = cur_score;
+            }
         }
     }
 
 done:
     if (best_score < 0 || best_score > 10000) {
         *p_keycode = 0;
-        VGM_LOG("HCA: good key not found\n");
+        VGM_LOG("HCA BF: no good key found\n");
     }
     else {
-        /* print key as p_keycode includes subkey */
-        VGM_LOG("HCA: best key=%08x%08x (score=%i)\n",
-                (uint32_t)((key >> 32) & 0xFFFFFFFF), (uint32_t)(key & 0xFFFFFFFF), best_score);
+        /* print best_key as p_keycode includes subkey */
+        VGM_LOG("HCA BF: best key=%08x%08x (score=%i)\n",
+                (uint32_t)((best_key >> 32) & 0xFFFFFFFF), (uint32_t)(best_key & 0xFFFFFFFF), best_score);
     }
 
     close_streamfile(sf_keys);
@@ -319,7 +339,7 @@ static void bruteforce_hca_key_txt(STREAMFILE* sf, hca_codec_data* hca_data, uns
     sf_keys = open_streamfile_by_filename(sf, "keys.txt");
     if (!sf_keys) return;
 
-    VGM_LOG("HCA: test keys.txt\n");
+    VGM_LOG("HCA BF: test keys.txt\n");
     *p_keycode = 0;
 
     keys_size = get_streamfile_size(sf_keys);
@@ -330,7 +350,7 @@ static void bruteforce_hca_key_txt(STREAMFILE* sf, hca_codec_data* hca_data, uns
     bytes = read_streamfile(buf, 0, keys_size, sf_keys);
     if (bytes != keys_size) goto done;
 
-    VGM_LOG("HCA: start\n");
+    VGM_LOG("HCA BF: start .txt\n");
 
     pos = 0;
     while (pos < keys_size) {
@@ -356,18 +376,18 @@ static void bruteforce_hca_key_txt(STREAMFILE* sf, hca_codec_data* hca_data, uns
             goto done;
 
         if (cur_score > 0 && cur_score <= 500) {
-            VGM_LOG("HCA: possible key=%08x%08x (score=%i) at %x\n",
-                (uint32_t)((key >> 32) & 0xFFFFFFFF), (uint32_t)(key & 0xFFFFFFFF), cur_score, pos-0x04);
+            VGM_LOG("HCA BF: possible key=%08x%08x (score=%i) at %x\n",
+                (uint32_t)((key >> 32) & 0xFFFFFFFF), (uint32_t)(key & 0xFFFFFFFF), cur_score, pos - bytes_read);
             if (best_score > cur_score)
                 best_score = cur_score;
         }
     }
 
 done:
-    VGM_LOG("HCA: done %i keys.txt\n", i);
-    VGM_ASSERT(best_score > 0, "HCA: best key=%08x%08x (score=%i)\n",
+    VGM_LOG("HCA BF: done %i keys.txt\n", i);
+    VGM_ASSERT(best_score > 0, "HCA BF: best key=%08x%08x (score=%i)\n",
             (uint32_t)((*p_keycode >> 32) & 0xFFFFFFFF), (uint32_t)(*p_keycode & 0xFFFFFFFF), best_score);
-    VGM_ASSERT(best_score < 0, "HCA: key not found\n");
+    VGM_ASSERT(best_score < 0, "HCA BF: no good key found\n");
     if (best_score < 0 || best_score > 10000)
         *p_keycode = 0;
 
