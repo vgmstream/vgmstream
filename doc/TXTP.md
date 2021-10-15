@@ -27,6 +27,12 @@ sfx01.wav #h22050
 field.bfstm #C3,4
 ```
 
+**bgm01.flac #I 10.0 .txtp**
+```
+# (empty)
+# this is a "mini-txtp" that sets loop start to 10 seconds
+# notice it has the original filename + extension, then commands, then .txtp
+```
 
 ## TXTP MODES
 TXTP can join and play together multiple songs in various ways by setting a file list and mode:
