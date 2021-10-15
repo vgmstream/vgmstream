@@ -344,6 +344,8 @@ static int play_vgmstream(const char* filename, song_settings_t* cfg) {
             if (verbose && !out_filename) {
                 double played = (double)decode_pos_samples / vgmstream->sample_rate;
                 double remain = (double)(length_samples - decode_pos_samples) / vgmstream->sample_rate;
+                if (remain < 0)
+                    remain = 0; /* possible if play forever is set */
 
                 int time_played_min = (int)played / 60;
                 double time_played_sec = played - 60 * time_played_min;

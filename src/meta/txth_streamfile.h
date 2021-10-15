@@ -76,18 +76,13 @@ static size_t txth_io_read(STREAMFILE* sf, uint8_t* dest, off_t offset, size_t l
 
                 data->block_size = read_u32(data->physical_offset + data->cfg.chunk_size_offset, sf);
                 data->data_size = data->block_size - data->cfg.chunk_header_size;
-                VGM_LOG("bs %x = %x\n", data->physical_offset, data->block_size);
 
                 /* skip chunk if doesn't match expected header value */
                 if (data->cfg.chunk_value) {
                     uint32_t value = read_u32(data->physical_offset + 0x00, sf);
                     if (value != data->cfg.chunk_value) {
-                        VGM_LOG("skip %x vs %x at %x\n", value, data->cfg.chunk_value, data->physical_offset);
                         data->data_size = 0;
                     }
-                }
-                else {
-                    VGM_LOG("not skip at %x\n", data->physical_offset) ;
                 }
             }
 

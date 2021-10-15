@@ -933,7 +933,7 @@ codec = PSX
 interleave = @0x10
 sample_rate = @0x0A$2 * 48000 / 4096  #pitch value
 channels = @0x0D$1
-loop_start_sample = @0x0E$1 * interleave / 2 / 0x10 * 28
+loop_start_sample = (((@0x0F$1 & 0x7F) * 256) + @0x0E$1) * interleave / channels / 0x10 * 28
 loop_flag = @0x0F$1
 
 padding_size = auto-empty
