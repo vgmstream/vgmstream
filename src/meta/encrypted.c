@@ -80,12 +80,13 @@ VGMSTREAM* init_vgmstream_encrypted(STREAMFILE* sf) {
         return vgmstream;
     }
 
-    if (check_extensions(sf,"bgm")) {
+    if (check_extensions(sf,"bgm,mse,koe")) {
+        /* Studio Ring games [Nanami to Konomi no Oshiete ABC (PC), Oyatsu no Jikan (PC)]
+         * .bgm: BGM, .mse: SE, .koe: Voice */
         uint8_t keybuf[0x100];
         size_t key_size;
         off_t start;
 
-        /* Studio Ring games [Nanami to Konomi no Oshiete ABC (PC), Oyatsu no Jikan (PC)] */
         if (id != get_id32be("RIFF"))
             goto fail;
 
