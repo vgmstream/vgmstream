@@ -34,6 +34,7 @@
 # include <signal.h>
 # include <unistd.h>
 # include <sys/wait.h>
+# include <termios.h>
 #endif
 
 #include "../src/vgmstream.h"
@@ -195,6 +196,31 @@ static void apply_config(VGMSTREAM* vgmstream, song_settings_t* cfg) {
     vgmstream_apply_config(vgmstream, &vcfg);
 }
 
+#ifndef WIN32
+static int getkey() {
+    int character;
+    struct termios orig_term_attr;
+    struct termios new_term_attr;
+
+    /* set the terminal to raw mode */
+    tcgetattr(fileno(stdin), &orig_term_attr);
+    memcpy(&new_term_attr, &orig_term_attr, sizeof(struct termios));
+    new_term_attr.c_lflag &= ~(ECHO|ICANON);
+    new_term_attr.c_cc[VTIME] = 0;
+    new_term_attr.c_cc[VMIN] = 0;
+    tcsetattr(fileno(stdin), TCSANOW, &new_term_attr);
+
+    /* read a character from the stdin stream without blocking */
+    /*   returns EOF (-1) if no character is available */
+    character = fgetc(stdin);
+
+    /* restore the original terminal attributes */
+    tcsetattr(fileno(stdin), TCSANOW, &orig_term_attr);
+
+    return character;
+}
+#endif
+
 static int play_vgmstream(const char* filename, song_settings_t* cfg) {
     int ret = 0;
     STREAMFILE* sf;
@@ -325,6 +351,17 @@ static int play_vgmstream(const char* filename, song_settings_t* cfg) {
 
         while (!interrupted) {
             int to_do;
+#ifndef WIN32
+            int key = getkey();
+            if (key < 0) {
+                clearerr(stdin);
+            }
+            /* interrupt when Q (0x71) is pressed */
+            if (key == 0x71) {
+                interrupted = 1;
+                break;
+            }
+#endif
 
             if (decode_pos_samples + max_buffer_samples > length_samples && !play_forever)
                 to_do = length_samples - decode_pos_samples;
