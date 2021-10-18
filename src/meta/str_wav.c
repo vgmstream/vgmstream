@@ -612,7 +612,7 @@ static int parse_header(STREAMFILE* sf_h, STREAMFILE* sf_b, strwav_header* strwa
 
         strwav->codec = DSP;
         strwav->dsps_table = 0xf0;
-        strwav->interleave  = strwav->tracks > 2 ? 0x8000 : 0x10000;
+        strwav->interleave  = strwav->tracks >= 2 ? 0x8000 : 0x10000;
         ;VGM_LOG("STR+WAV: header SBCKK (GC)\n");
         return 1;
     }

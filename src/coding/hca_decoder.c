@@ -3,7 +3,7 @@
 
 
 struct hca_codec_data {
-    STREAMFILE* streamfile;
+    STREAMFILE* sf;
     clHCA_stInfo info;
 
     signed short* sample_buffer;
@@ -58,8 +58,8 @@ hca_codec_data* init_hca(STREAMFILE* sf) {
     if (!data->sample_buffer) goto fail;
 
     /* load streamfile for reads */
-    data->streamfile = reopen_streamfile(sf, 0);
-    if (!data->streamfile) goto fail;
+    data->sf = reopen_streamfile(sf, 0);
+    if (!data->sf) goto fail;
 
     /* set initial values */
     reset_hca(data);
@@ -115,7 +115,7 @@ void decode_hca(hca_codec_data* data, sample_t* outbuf, int32_t samples_to_do) {
             }
 
             /* read frame */
-            bytes = read_streamfile(data->data_buffer, offset, blockSize, data->streamfile);
+            bytes = read_streamfile(data->data_buffer, offset, blockSize, data->sf);
             if (bytes != blockSize) {
                 VGM_LOG("HCA: read %x vs expected %x bytes at %x\n", bytes, blockSize, (uint32_t)offset);
                 break;
@@ -171,7 +171,7 @@ void loop_hca(hca_codec_data* data, int32_t num_sample) {
 void free_hca(hca_codec_data* data) {
     if (!data) return;
 
-    close_streamfile(data->streamfile);
+    close_streamfile(data->sf);
     clHCA_done(data->handle);
     free(data->handle);
     free(data->data_buffer);
@@ -179,6 +179,14 @@ void free_hca(hca_codec_data* data) {
     free(data);
 }
 
+clHCA_stInfo* hca_get_info(hca_codec_data* data) {
+    return &data->info;
+}
+
+STREAMFILE* hca_get_streamfile(hca_codec_data* data) {
+    if (!data) return NULL;
+    return data->sf;
+}
 
 /* ************************************************************************* */
 
@@ -192,19 +200,25 @@ void free_hca(hca_codec_data* data) {
 /* ignores beginning frames (~10 is not uncommon, Dragalia Lost vocal layers have lots) */
 #define HCA_KEY_MAX_SKIP_BLANKS  1200
 /* 5~15 should be enough, but almost silent or badly mastered files may need tweaks
- * (ex. newer Tales of the Rays files clip a lot and need +6 as some keys give almost-ok results) */
-#define HCA_KEY_MIN_TEST_FRAMES  7
-#define HCA_KEY_MAX_TEST_FRAMES  12
+ * (ex. newer Tales of the Rays files clip a lot) */
+#define HCA_KEY_MIN_TEST_FRAMES  3 //7
+#define HCA_KEY_MAX_TEST_FRAMES  7 //12
 /* score of 10~30 isn't uncommon in a single frame, too many frames over that is unlikely */
 #define HCA_KEY_MAX_FRAME_SCORE  150
 #define HCA_KEY_MAX_TOTAL_SCORE  (HCA_KEY_MAX_TEST_FRAMES * 50*HCA_KEY_SCORE_SCALE)
 
 /* Test a number of frames if key decrypts correctly.
  * Returns score: <0: error/wrong, 0: unknown/silent file, >0: good (the closest to 1 the better). */
-int test_hca_key(hca_codec_data* data, unsigned long long keycode) {
+static int test_hca_score(hca_codec_data* data, hca_keytest_t* hk, unsigned long long keycode) {
     size_t test_frames = 0, current_frame = 0, blank_frames = 0;
-    int total_score = 0, found_regular_frame = 0;
-    const unsigned int blockSize = data->info.blockSize;
+    int total_score = 0;
+    const unsigned int block_size = data->info.blockSize;
+    uint32_t offset = hk->start_offset;
+
+    if (!offset)
+        offset = data->info.headerSize;
+
+//VGM_LOG("test=k\n");
 
     /* Due to the potentially large number of keys this must be tuned for speed.
      * Buffered IO seems fast enough (not very different reading a large block once vs frame by frame).
@@ -216,19 +230,25 @@ int test_hca_key(hca_codec_data* data, unsigned long long keycode) {
     /* A final score of 0 (=silent) is only possible for short files with all blank frames */
 
     while (test_frames < HCA_KEY_MAX_TEST_FRAMES && current_frame < data->info.blockCount) {
-        off_t offset = data->info.headerSize + current_frame * blockSize;
         int score;
         size_t bytes;
-
+//VGM_LOG(" *frame\n");
         /* read and test frame */
-        bytes = read_streamfile(data->data_buffer, offset, blockSize, data->streamfile);
-        if (bytes != blockSize) {
+        bytes = read_streamfile(data->data_buffer, offset, block_size, data->sf);
+        if (bytes != block_size) {
             /* normally this shouldn't happen, but pre-fetch ACB stop with frames in half, so just keep score */
             //total_score = -1; 
             break;
         }
 
-        score = clHCA_TestBlock(data->handle, (void*)(data->data_buffer), blockSize);
+        score = clHCA_TestBlock(data->handle, data->data_buffer, block_size);
+
+        /* get first non-blank frame */
+        if (!hk->start_offset && score != 0) {
+            hk->start_offset = offset;
+        }
+        offset += bytes;
+
         if (score < 0 || score > HCA_KEY_MAX_FRAME_SCORE) {
             total_score = -1;
             break;
@@ -236,13 +256,12 @@ int test_hca_key(hca_codec_data* data, unsigned long long keycode) {
 
         current_frame++;
 
-        /* ignore silent frames at the beginning, up to a point */
-        if (score == 0 && blank_frames < HCA_KEY_MAX_SKIP_BLANKS && !found_regular_frame) {
+        /* ignore silent frames at the beginning, up to a point and first non-blank  */
+        if (score == 0 && blank_frames < HCA_KEY_MAX_SKIP_BLANKS && !hk->start_offset) {
             blank_frames++;
             continue;
         }
 
-        found_regular_frame = 1;
         test_frames++;
 
         /* scale values to make scores of perfect frames more detectable */
@@ -254,7 +273,6 @@ int test_hca_key(hca_codec_data* data, unsigned long long keycode) {
 
         total_score += score;
 
-
         /* don't bother checking more frames, other keys will get better scores */
         if (total_score > HCA_KEY_MAX_TOTAL_SCORE)
             break;
@@ -265,20 +283,42 @@ int test_hca_key(hca_codec_data* data, unsigned long long keycode) {
     if (test_frames > HCA_KEY_MIN_TEST_FRAMES && total_score > 0 && total_score <= test_frames) {
         total_score = 1;
     }
-
+//VGM_LOG("test=%i\n", total_score);
     clHCA_DecodeReset(data->handle);
     return total_score;
 }
 
+void test_hca_key(hca_codec_data* data, hca_keytest_t* hk) {
+    int score;
+    uint64_t key = hk->key;
+    uint16_t subkey = hk->subkey;
+
+    //;VGM_LOG("HCA: test key=%08x%08x, subkey=%04x\n",
+    //        (uint32_t)((key >> 32) & 0xFFFFFFFF), (uint32_t)(key & 0xFFFFFFFF), subkey);
+
+    if (subkey) {
+        key = key * ( ((uint64_t)subkey << 16u) | ((uint16_t)~subkey + 2u) );
+    }
+
+    score = test_hca_score(data, hk, (unsigned long long)key);
+
+    //;VGM_LOG("HCA: test key=%08x%08x, subkey=%04x, score=%i\n",
+    //        (uint32_t)((key >> 32) & 0xFFFFFFFF), (uint32_t)(key & 0xFFFFFFFF), subkey, score);
+
+    /* wrong key */
+    if (score < 0)
+        return;
+
+    //;VGM_LOG("HCA: ok key=%08x%08x, subkey=%04x, score=%i\n",
+    //        (uint32_t)((key >> 32) & 0xFFFFFFFF), (uint32_t)(key & 0xFFFFFFFF), subkey, score);
+
+    /* update if something better is found */
+    if (hk->best_score <= 0 || (score < hk->best_score && score > 0)) {
+        hk->best_score = score;
+        hk->best_key = key;
+    }
+}
+
 void hca_set_encryption_key(hca_codec_data* data, uint64_t keycode) {
     clHCA_SetKey(data->handle, (unsigned long long)keycode);
-}
-
-clHCA_stInfo* hca_get_info(hca_codec_data* data) {
-    return &data->info;
-}
-
-STREAMFILE* hca_get_streamfile(hca_codec_data* data) {
-    if (!data) return NULL;
-    return data->streamfile;
 }

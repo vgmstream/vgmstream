@@ -324,9 +324,21 @@ void decode_hca(hca_codec_data* data, sample_t* outbuf, int32_t samples_to_do);
 void reset_hca(hca_codec_data* data);
 void loop_hca(hca_codec_data* data, int32_t num_sample);
 void free_hca(hca_codec_data* data);
-int test_hca_key(hca_codec_data* data, unsigned long long keycode);
-void hca_set_encryption_key(hca_codec_data* data, uint64_t keycode);
 clHCA_stInfo* hca_get_info(hca_codec_data* data);
+
+typedef struct {
+    /* config + output */
+    uint64_t key;
+    uint16_t subkey;
+    uint64_t best_key;
+    int best_score;
+    /* internals */
+    uint32_t start_offset;
+} hca_keytest_t;
+
+void test_hca_key(hca_codec_data* data, hca_keytest_t* hk);
+void hca_set_encryption_key(hca_codec_data* data, uint64_t keycode);
+
 STREAMFILE* hca_get_streamfile(hca_codec_data* data);
 
 
