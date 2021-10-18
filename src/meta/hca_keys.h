@@ -67,11 +67,9 @@ static const hcakey_info hcakey_list[] = {
         // Sonic Runners (iOS/Android)
         {19910623},                 // 00000000012FCFDF
 
-        // Fate/Grand Order (iOS/Android) base assets
-        {12345},                    // 0000000000003039
-
-        // Fate/Grand Order (iOS/Android) download assets *unconfirmed
-        {9117927877783581796},      // 7E89631892EBF464
+        // Fate/Grand Order (iOS/Android)
+        {12345},                    // 0000000000003039 - base assets
+        {9117927877783581796},      // 7E89631892EBF464 - downloaded assets *unconfirmed
 
         // Raramagi (iOS/Android)
         {45719322},                 // 0000000002B99F1A
@@ -808,6 +806,12 @@ static const hcakey_info hcakey_list[] = {
         {0x2284fd5ca82c78f4},   // Sng027
         {0x178a76b6436d20f0},   // Sng028
         {0x3ff99f2fed65a1ed},   // Sng030
+
+        // Ulala: Idle Adventure (Android)
+        {20191022},             // 000000000134172E
+
+        // Girls' Frontline: Project Neural Cloud (Android)
+        {210222522032314},      // 0000BF323EBFE0BA
 
 };
 
