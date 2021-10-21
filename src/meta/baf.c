@@ -1,35 +1,34 @@
 #include "meta.h"
 #include "../coding/coding.h"
 
-
 /* .BAF - Bizarre Creations bank file [Blur (PS3), Project Gotham Racing 4 (X360), Geometry Wars (PC)] */
-VGMSTREAM * init_vgmstream_baf(STREAMFILE *streamFile) {
+VGMSTREAM * init_vgmstream_baf(STREAMFILE *sf) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset, header_offset, name_offset;
     size_t stream_size;
-    int loop_flag, channel_count, sample_rate, version, codec, tracks;
-    int total_subsongs, target_subsong = streamFile->stream_index;
-    int32_t (*read_32bit)(off_t,STREAMFILE*);
-
+    uint32_t channel_count, sample_rate, num_samples, version, codec, tracks;
+    int loop_flag, total_subsongs, target_subsong = sf->stream_index;
+    uint32_t (*read_u32)(off_t,STREAMFILE*);
 
     /* checks */
-    if (!check_extensions(streamFile, "baf"))
+    if (!is_id32be(0x00, sf, "BANK"))
         goto fail;
-    if (read_32bitBE(0x00,streamFile) != 0x42414E4B) /* "BANK" */
+
+    if (!check_extensions(sf, "baf"))
         goto fail;
 
     /* use BANK size to check endianness */
-    if (guess_endianness32bit(0x04,streamFile)) {
-        read_32bit = read_32bitBE;
+    if (guess_endianness32bit(0x04,sf)) {
+        read_u32 = read_u32be;
     } else {
-        read_32bit = read_32bitLE;
+        read_u32 = read_u32le;
     }
 
     /* 0x04: bank size */
-    version = read_32bit(0x08,streamFile);
+    version = read_u32(0x08,sf);
     if (version != 0x03 && version != 0x04 && version != 0x05)
         goto fail;
-    total_subsongs = read_32bit(0x0c,streamFile);
+    total_subsongs = read_u32(0x0c,sf);
     if (target_subsong == 0) target_subsong = 1;
     if (target_subsong < 0 || target_subsong > total_subsongs || total_subsongs < 1) goto fail;
     /* - in v3 */
@@ -43,83 +42,96 @@ VGMSTREAM * init_vgmstream_baf(STREAMFILE *streamFile) {
     /* find target WAVE chunk */
     {
         int i;
-        off_t offset = read_32bit(0x04, streamFile);
+        off_t offset = read_u32(0x04, sf);
 
         for (i = 0; i < total_subsongs; i++) {
             if (i+1 == target_subsong)
                 break;
-            offset += read_32bit(offset+0x04, streamFile); /* WAVE size, variable per codec */
+            offset += read_u32(offset+0x04, sf); /* WAVE size, variable per codec */
 
             /* skip companion "CUE " (found in 007: Blood Stone, contains segment cues) */
-            if (read_32bitBE(offset+0x00, streamFile) == 0x43554520) {
-                offset += read_32bit(offset+0x04, streamFile); /* CUE size */
+            if (is_id32be(offset+0x00, sf, "CUE ")) {
+                offset += read_u32(offset+0x04, sf); /* CUE size */
             }
         }
         header_offset = offset;
     }
 
     /* parse header */
-    if (read_32bitBE(header_offset+0x00, streamFile) != 0x57415645) /* "WAVE" */
+    if (!is_id32be(header_offset+0x00, sf, "WAVE"))
         goto fail;
-    codec        = read_32bit(header_offset+0x08, streamFile);
+    codec        = read_u32(header_offset+0x08, sf);
     name_offset  = header_offset + 0x0c;
-    start_offset = read_32bit(header_offset+0x2c, streamFile);
-    stream_size    = read_32bit(header_offset+0x30, streamFile);
+    start_offset = read_u32(header_offset+0x2c, sf);
+    stream_size  = read_u32(header_offset+0x30, sf);
     tracks = 0;
 
     switch(codec) {
-        case 0x03:
+        case 0x03: /* PCM16LE */
             switch(version) {
                 case 0x03: /* Geometry Wars (PC) */
-                    sample_rate     = read_32bit(header_offset+0x38, streamFile);
-                    channel_count   = read_32bit(header_offset+0x40, streamFile);
+                    sample_rate     = read_u32(header_offset+0x38, sf);
+                    channel_count   = read_u32(header_offset+0x40, sf);
                     /* no actual flag, just loop +15sec songs */
                     loop_flag = (pcm_bytes_to_samples(stream_size, channel_count, 16) > 15*sample_rate);
                     break;
 
                 case 0x04: /* Project Gotham Racing 4 (X360) */
-                    sample_rate     = read_32bit(header_offset+0x3c, streamFile);
-                    channel_count   = read_32bit(header_offset+0x44, streamFile);
-                    loop_flag        = read_8bit(header_offset+0x4b, streamFile);
+                    sample_rate     = read_u32(header_offset+0x3c, sf);
+                    channel_count   = read_u32(header_offset+0x44, sf);
+                    loop_flag       = read_u8(header_offset+0x4b, sf);
                     break;
 
                 default:
                     goto fail;
             }
+
+            num_samples = pcm_bytes_to_samples(stream_size, channel_count, 16);
             break;
 
-        case 0x07:
-            switch(version) {
+        case 0x07: /* PSX ADPCM (0x21 frame size) */
+            if (version == 0x04 && read_u32(header_offset + 0x3c, sf) != 0) {
+                /* Blur (Prototype) (PS3) */
+                sample_rate     = read_u32(header_offset+0x3c, sf);
+                channel_count   = read_u32(header_offset+0x44, sf);
+                loop_flag       =  read_u8(header_offset+0x4b, sf);
+
+                /* mini-header at the start of the stream */
+                num_samples     = read_u32le(start_offset+0x04, sf) / 0x02; /* PCM size? */
+                start_offset   += read_u32le(start_offset+0x00, sf);
+                break;
+            }
+
+            switch (version) {
                 case 0x04: /* Blur (PS3) */
                 case 0x05: /* James Bond 007: Blood Stone (X360) */
-                    sample_rate     = read_32bit(header_offset+0x40, streamFile);
-                    loop_flag        = read_8bit(header_offset+0x48, streamFile);
-                    tracks           = read_8bit(header_offset+0x49, streamFile);
-                    channel_count    = read_8bit(header_offset+0x4b, streamFile);
+                    sample_rate     = read_u32(header_offset+0x40, sf);
+                    num_samples     = read_u32(header_offset+0x44, sf);
+                    loop_flag       =  read_u8(header_offset+0x48, sf);
+                    tracks          =  read_u8(header_offset+0x49, sf);
+                    channel_count   =  read_u8(header_offset+0x4b, sf);
 
                     if (tracks) {
                         channel_count = channel_count * tracks;
                     }
                     break;
-
                 default:
                     goto fail;
             }
             break;
 
-
-        case 0x08:
+        case 0x08: /* XMA1 */
             switch(version) {
                 case 0x04: /* Project Gotham Racing (X360) */
-                    sample_rate     = read_32bit(header_offset+0x3c, streamFile);
-                    channel_count   = read_32bit(header_offset+0x44, streamFile);
-                    loop_flag        = read_8bit(header_offset+0x54, streamFile) != 0;
+                    sample_rate     = read_u32(header_offset+0x3c, sf);
+                    channel_count   = read_u32(header_offset+0x44, sf);
+                    loop_flag       =  read_u8(header_offset+0x54, sf) != 0;
                     break;
 
                 case 0x05: /* James Bond 007: Blood Stone (X360) */
-                    sample_rate     = read_32bit(header_offset+0x40, streamFile);
-                    channel_count   = read_32bit(header_offset+0x48, streamFile);
-                    loop_flag        = read_8bit(header_offset+0x58, streamFile) != 0;
+                    sample_rate     = read_u32(header_offset+0x40, sf);
+                    channel_count   = read_u32(header_offset+0x48, sf);
+                    loop_flag       =  read_u8(header_offset+0x58, sf) != 0;
                     break;
 
                 default:
@@ -150,9 +162,9 @@ VGMSTREAM * init_vgmstream_baf(STREAMFILE *streamFile) {
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = 0x02;
 
-            vgmstream->num_samples = pcm_bytes_to_samples(stream_size, channel_count, 16);
+            vgmstream->num_samples = num_samples;
             vgmstream->loop_start_sample = 0;
-            vgmstream->loop_end_sample = vgmstream->num_samples;
+            vgmstream->loop_end_sample = num_samples;
             break;
 
         case 0x07:
@@ -160,9 +172,9 @@ VGMSTREAM * init_vgmstream_baf(STREAMFILE *streamFile) {
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = 0x21;
 
-            vgmstream->num_samples = read_32bit(header_offset+0x44, streamFile);
+            vgmstream->num_samples = num_samples;
             vgmstream->loop_start_sample = 0;
-            vgmstream->loop_end_sample = vgmstream->num_samples;
+            vgmstream->loop_end_sample = num_samples;
             break;
 
     #ifdef VGM_USE_FFMPEG
@@ -170,8 +182,8 @@ VGMSTREAM * init_vgmstream_baf(STREAMFILE *streamFile) {
             uint8_t buf[0x100];
             int bytes;
 
-            bytes = ffmpeg_make_riff_xma1(buf,0x100, vgmstream->num_samples, stream_size, vgmstream->channels, vgmstream->sample_rate, 0);
-            vgmstream->codec_data = init_ffmpeg_header_offset(streamFile, buf,bytes, start_offset,stream_size);
+            bytes = ffmpeg_make_riff_xma1(buf,0x100, 0, stream_size, vgmstream->channels, vgmstream->sample_rate, 0);
+            vgmstream->codec_data = init_ffmpeg_header_offset(sf, buf,bytes, start_offset,stream_size);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
@@ -185,18 +197,18 @@ VGMSTREAM * init_vgmstream_baf(STREAMFILE *streamFile) {
                 msd.data_offset  = start_offset;
                 msd.data_size    = stream_size;
                 msd.loop_flag    = loop_flag;
-                msd.loop_start_b = read_32bit(header_offset+0x4c, streamFile);
-                msd.loop_end_b   = read_32bit(header_offset+0x50, streamFile);
-                msd.loop_start_subframe  = (read_8bit(header_offset+0x55, streamFile) >> 0) & 0x0f;
-                msd.loop_end_subframe    = (read_8bit(header_offset+0x55, streamFile) >> 4) & 0x0f;
-                xma_get_samples(&msd, streamFile);
+                msd.loop_start_b = read_u32(header_offset+0x4c, sf);
+                msd.loop_end_b   = read_u32(header_offset+0x50, sf);
+                msd.loop_start_subframe  = (read_u8(header_offset+0x55, sf) >> 0) & 0x0f;
+                msd.loop_end_subframe    = (read_u8(header_offset+0x55, sf) >> 4) & 0x0f;
+                xma_get_samples(&msd, sf);
 
                 vgmstream->num_samples = msd.num_samples; /* also at 0x58, but unreliable? */
                 vgmstream->loop_start_sample = msd.loop_start_sample;
                 vgmstream->loop_end_sample = msd.loop_end_sample;
             }
 
-            xma_fix_raw_samples_ch(vgmstream, streamFile, start_offset, stream_size, channel_count, 1,1);
+            xma_fix_raw_samples_ch(vgmstream, sf, start_offset, stream_size, channel_count, 1,1);
             break;
         }
     #endif
@@ -206,10 +218,10 @@ VGMSTREAM * init_vgmstream_baf(STREAMFILE *streamFile) {
             goto fail;
     }
 
-    read_string(vgmstream->stream_name,0x20+1, name_offset,streamFile);
+    read_string(vgmstream->stream_name,0x20+1, name_offset,sf);
 
 
-    if ( !vgmstream_open_stream(vgmstream, streamFile, start_offset) )
+    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
         goto fail;
     return vgmstream;
 
@@ -264,7 +276,7 @@ VGMSTREAM * init_vgmstream_baf_badrip(STREAMFILE *streamFile) {
     vgmstream->interleave_block_size = frame_size;
     vgmstream->meta_type = meta_BAF;
 
-    if ( !vgmstream_open_stream(vgmstream, streamFile, start_offset) )
+    if (!vgmstream_open_stream(vgmstream, streamFile, start_offset))
         goto fail;
     return vgmstream;
 
