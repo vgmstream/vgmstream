@@ -10,11 +10,11 @@ VGMSTREAM * init_vgmstream_baf(STREAMFILE *sf) {
     int loop_flag, total_subsongs, target_subsong = sf->stream_index;
     uint32_t (*read_u32)(off_t,STREAMFILE*);
 
-
     /* checks */
-    if (!check_extensions(sf, "baf"))
+    if (!is_id32be(0x00, sf, "BANK"))
         goto fail;
-    if (!is_id32be(0x00,sf, "BANK"))
+
+    if (!check_extensions(sf, "baf"))
         goto fail;
 
     /* use BANK size to check endianness */
