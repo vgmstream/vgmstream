@@ -1,4 +1,4 @@
-if(NOT WIN32 AND (USE_VORBIS OR USE_CELT))
+if(NOT WIN32 AND USE_VORBIS)
 	if(NOT OGG_PATH)
 		find_package(Ogg QUIET)
 		

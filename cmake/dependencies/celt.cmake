@@ -19,7 +19,7 @@ if(NOT WIN32 AND USE_CELT)
 		GIT_REPOSITORY https://gitlab.xiph.org/xiph/celt
 		GIT_TAG 0b405d1170122c859faab435405666506d52fa2e
 	)
-	if(CELT_0061_PATH AND CELT_0110_PATH AND (OGG_PATH OR OGG_FOUND))
+	if(CELT_0061_PATH AND CELT_0110_PATH)
 		set(CELT_0061_LINK_PATH ${CELT_0061_BIN}/libcelt/.libs/libcelt.a)
 		set(CELT_0110_LINK_PATH ${CELT_0110_BIN}/libcelt/.libs/libcelt0.a)
 		
@@ -106,9 +106,6 @@ if(NOT WIN32 AND USE_CELT)
 				endif()
 				list(APPEND CELT_${ver}_CFLAGS "-D${source}=${target}")
 			endforeach()
-			if(ver STREQUAL "0110")
-				list(APPEND CELT_${ver}_CFLAGS "-DCUSTOM_MODES=1")
-			endif()
 			list(APPEND CELT_${ver}_CFLAGS "-fPIC")
 			
 			set(CELT_${ver}_CONF
@@ -119,14 +116,8 @@ if(NOT WIN32 AND USE_CELT)
 				AR="${CMAKE_AR}"
 				CFLAGS="${CELT_${ver}_CFLAGS}"
 			)
-			if(OGG_PATH)
-				foreach(ogg_include ${OGG_INCLUDE_DIR})
-					list(APPEND OGG_INCLUDES -I${ogg_include})
-				endforeach()
-				list(APPEND CELT_${ver}_CONF
-					LDFLAGS="-L${OGG_BIN}"
-					CPPFLAGS="${OGG_INCLUDES}"
-				)
+			if(ver STREQUAL "0110")
+				list(APPEND CELT_${ver}_CONF --enable-custom-modes)
 			endif()
 			
 			if(NOT EXISTS ${CELT_${ver}_PATH}/configure)
@@ -144,11 +135,8 @@ if(NOT WIN32 AND USE_CELT)
 				BYPRODUCTS ${CELT_${ver}_BIN}/Makefile
 				WORKING_DIRECTORY ${CELT_${ver}_BIN}
 			)
-			if(OGG_PATH)
-				add_dependencies(CELT_${ver}_CONFIGURE ogg)
-			endif()
 			add_custom_target(CELT_${ver}_MAKE
-				COMMAND make
+				COMMAND make SUBDIRS=libcelt DIST_SUBDIRS=libcelt
 				DEPENDS ${CELT_${ver}_BIN}/Makefile
 				BYPRODUCTS ${CELT_${ver}_LINK_PATH} ${CELT_${ver}_BIN}
 				WORKING_DIRECTORY ${CELT_${ver}_BIN}
