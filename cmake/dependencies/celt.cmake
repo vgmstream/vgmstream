@@ -53,11 +53,37 @@ if(NOT WIN32 AND USE_CELT)
 			unquant_coarse_energy
 			unquant_energy_finalise
 			unquant_fine_energy
+			eMeans
+			encode_pulses
+			decode_pulses
+			ec_laplace_encode
+			ec_laplace_decode
+			celt_decoder_get_size
+			celt_decoder_init
+			ec_dec_bit_logp
+			ec_dec_icdf
+			ec_enc_bit_logp
+			ec_enc_icdf
+			ec_enc_shrink
+			_celt_lpc
+			_celt_autocorr
+			amp2Log2
+			stereo_itheta
+			anti_collapse
+			spreading_decision
+			haar1
+			quant_all_bands
+			log2_frac
+			icwrs
+			get_required_bits
 		)
 		
 		foreach(ver 0061 0110)
 			foreach(source ${CELT_CONF})
 				string(REGEX REPLACE "^([^_]+)" "\\1_${ver}" target ${source})
+				if(source STREQUAL ${target})
+					set(target "${source}_${ver}")
+				endif()
 				list(APPEND CELT_${ver}_CONF "-D${source}=${target}")
 			endforeach()
 			if(ver STREQUAL "0110")
