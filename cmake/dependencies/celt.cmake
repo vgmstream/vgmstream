@@ -1,11 +1,21 @@
 if(NOT WIN32 AND USE_CELT)
 	FetchDependency(CELT_0061
 		DIR celt-0061
+		FETCH_PRIORITY file git
+		
+		FILE_DOWNLOAD https://downloads.xiph.org/releases/celt/celt-0.6.1.tar.gz
+		FILE_SUBDIR celt-0.6.1
+		
 		GIT_REPOSITORY https://gitlab.xiph.org/xiph/celt
 		GIT_TAG 8ccf148573277b983692e15d5f0753081f806bea
 	)
 	FetchDependency(CELT_0110
 		DIR celt-0110
+		FETCH_PRIORITY file git
+		
+		FILE_DOWNLOAD https://downloads.xiph.org/releases/celt/celt-0.11.0.tar.gz
+		FILE_SUBDIR celt-0.11.0
+		
 		GIT_REPOSITORY https://gitlab.xiph.org/xiph/celt
 		GIT_TAG 0b405d1170122c859faab435405666506d52fa2e
 	)
@@ -104,12 +114,10 @@ if(NOT WIN32 AND USE_CELT)
 			set(CELT_${ver}_CONF
 				--enable-static
 				--disable-shared
+				--disable-oggtest
 				CC="${CMAKE_C_COMPILER}"
 				AR="${CMAKE_AR}"
 				CFLAGS="${CELT_${ver}_CFLAGS}"
-			)
-			set(CELT_${ver}_CONFIGURE_DEPENDS
-				
 			)
 			if(OGG_PATH)
 				foreach(ogg_include ${OGG_INCLUDE_DIR})
