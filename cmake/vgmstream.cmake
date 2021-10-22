@@ -121,11 +121,14 @@ macro(setup_target TARGET)
 
 	if(USE_CELT)
 		target_compile_definitions(${TARGET} PRIVATE VGM_USE_CELT)
-		if(LINK)
+		if(WIN32 AND LINK)
 			add_dependencies(${TARGET} libcelt)
 			target_link_libraries(${TARGET}
 				${VGM_BINARY_DIR}/ext_libs/libcelt-0061.lib
 				${VGM_BINARY_DIR}/ext_libs/libcelt-0110.lib)
+		endif()
+		if(NOT WIN32 AND LINK)
+			target_link_libraries(${TARGET} celt0061 celt0110 m)
 		endif()
 	endif()
 
