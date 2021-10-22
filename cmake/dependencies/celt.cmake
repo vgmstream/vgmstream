@@ -109,7 +109,7 @@ if(NOT WIN32 AND USE_CELT)
 				CFLAGS="${CELT_${ver}_CFLAGS}"
 			)
 			set(CELT_${ver}_CONFIGURE_DEPENDS
-				${CELT_${ver}_PATH}/configure
+				
 			)
 			if(OGG_PATH)
 				foreach(ogg_include ${OGG_INCLUDE_DIR})
@@ -118,9 +118,6 @@ if(NOT WIN32 AND USE_CELT)
 				list(APPEND CELT_${ver}_CONF
 					LDFLAGS="-L${OGG_BIN}"
 					CPPFLAGS="${OGG_INCLUDES}"
-				)
-				list(APPEND CELT_${ver}_CONFIGURE_DEPENDS
-					${OGG_BIN}/libogg.a
 				)
 			endif()
 			
@@ -135,10 +132,13 @@ if(NOT WIN32 AND USE_CELT)
 			file(MAKE_DIRECTORY ${CELT_${ver}_BIN})
 			add_custom_target(CELT_${ver}_CONFIGURE
 				COMMAND "${CELT_${ver}_PATH}/configure" ${CELT_${ver}_CONF}
-				DEPENDS ${CELT_${ver}_CONFIGURE_DEPENDS}
+				DEPENDS ${CELT_${ver}_PATH}/configure
 				BYPRODUCTS ${CELT_${ver}_BIN}/Makefile
 				WORKING_DIRECTORY ${CELT_${ver}_BIN}
 			)
+			if(OGG_PATH)
+				add_dependencies(CELT_${ver}_CONFIGURE ogg)
+			endif()
 			add_custom_target(CELT_${ver}_MAKE
 				COMMAND make
 				DEPENDS ${CELT_${ver}_BIN}/Makefile
