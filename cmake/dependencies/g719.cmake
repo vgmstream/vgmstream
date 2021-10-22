@@ -10,7 +10,7 @@ if(NOT WIN32 AND USE_G719)
 			${VGM_SOURCE_DIR}/ext_libs/libg719_decode/CMakeLists.txt
 			${G719_PATH}/CMakeLists.txt
 		COPYONLY)
-		add_subdirectory(${G719_PATH} ${G719_BIN})
+		add_subdirectory(${G719_PATH} ${G719_BIN} EXCLUDE_FROM_ALL)
 	endif()
 endif()
 if(NOT USE_G719)

@@ -16,7 +16,7 @@ if(USE_MAIATRAC3PLUS)
 			${MAIATRAC3PLUS_PATH}/MaiAT3PlusDecoder/src/base/Mai_mem.cc
 			${MAIATRAC3PLUS_PATH}/MaiAT3PlusDecoder/src/base/Mai_Mem.cc
 		COPYONLY)
-		add_subdirectory(${MAIATRAC3PLUS_PATH}/MaiAT3PlusDecoder ${MAIATRAC3PLUS_BIN})
+		add_subdirectory(${MAIATRAC3PLUS_PATH}/MaiAT3PlusDecoder ${MAIATRAC3PLUS_BIN} EXCLUDE_FROM_ALL)
 	else()
 		message(FATAL_ERROR "Path to MAIATRAC3+ must be set. (Use MAIATRAC3PLUS_PATH)")
 	endif()

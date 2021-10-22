@@ -9,11 +9,16 @@ if(NOT WIN32 AND USE_CELT)
 		GIT_REPOSITORY https://gitlab.xiph.org/xiph/celt
 		GIT_TAG 0b405d1170122c859faab435405666506d52fa2e
 	)
-	if(CELT_0061_PATH AND CELT_0110_PATH)
+	if(CELT_0061_PATH AND CELT_0110_PATH AND (OGG_PATH OR OGG_FOUND))
 		set(CELT_0061_LINK_PATH ${CELT_0061_BIN}/libcelt/.libs/libcelt.a)
 		set(CELT_0110_LINK_PATH ${CELT_0110_BIN}/libcelt/.libs/libcelt0.a)
 		
-		set(CELT_CONF
+		configure_file(
+			${VGM_SOURCE_DIR}/ext_libs/celt-0110/ecintrin.h
+			${CELT_0110_PATH}/libcelt/ecintrin.h
+		COPYONLY)
+		
+		set(CELT_CFLAGS
 			alg_quant
 			alg_unquant
 			celt_decode
@@ -76,20 +81,48 @@ if(NOT WIN32 AND USE_CELT)
 			log2_frac
 			icwrs
 			get_required_bits
+			ec_ilog
+			mdct_forward
+			mdct_backward
+			mdct_init
+			mdct_clear
 		)
 		
 		foreach(ver 0061 0110)
-			foreach(source ${CELT_CONF})
+			foreach(source ${CELT_CFLAGS})
 				string(REGEX REPLACE "^([^_]+)" "\\1_${ver}" target ${source})
 				if(source STREQUAL ${target})
 					set(target "${source}_${ver}")
 				endif()
-				list(APPEND CELT_${ver}_CONF "-D${source}=${target}")
+				list(APPEND CELT_${ver}_CFLAGS "-D${source}=${target}")
 			endforeach()
 			if(ver STREQUAL "0110")
-				list(APPEND CELT_${ver}_CONF "-DCUSTOM_MODES=1")
+				list(APPEND CELT_${ver}_CFLAGS "-DCUSTOM_MODES=1")
 			endif()
-			list(APPEND CELT_${ver}_CONF "-fPIC")
+			list(APPEND CELT_${ver}_CFLAGS "-fPIC")
+			
+			set(CELT_${ver}_CONF
+				--enable-static
+				--disable-shared
+				CC="${CMAKE_C_COMPILER}"
+				AR="${CMAKE_AR}"
+				CFLAGS="${CELT_${ver}_CFLAGS}"
+			)
+			set(CELT_${ver}_CONFIGURE_DEPENDS
+				${CELT_${ver}_PATH}/configure
+			)
+			if(OGG_PATH)
+				foreach(ogg_include ${OGG_INCLUDE_DIR})
+					list(APPEND OGG_INCLUDES -I${ogg_include})
+				endforeach()
+				list(APPEND CELT_${ver}_CONF
+					LDFLAGS="-L${OGG_BIN}"
+					CPPFLAGS="${OGG_INCLUDES}"
+				)
+				list(APPEND CELT_${ver}_CONFIGURE_DEPENDS
+					${OGG_BIN}/libogg.a
+				)
+			endif()
 			
 			if(NOT EXISTS ${CELT_${ver}_PATH}/configure)
 				add_custom_target(CELT_${ver}_AUTOGEN
@@ -101,8 +134,8 @@ if(NOT WIN32 AND USE_CELT)
 			
 			file(MAKE_DIRECTORY ${CELT_${ver}_BIN})
 			add_custom_target(CELT_${ver}_CONFIGURE
-				COMMAND "${CELT_${ver}_PATH}/configure" --enable-static --disable-shared CC="${CMAKE_C_COMPILER}" AR="${CMAKE_AR}" CFLAGS="${CELT_${ver}_CONF}"
-				DEPENDS ${CELT_${ver}_PATH}/configure
+				COMMAND "${CELT_${ver}_PATH}/configure" ${CELT_${ver}_CONF}
+				DEPENDS ${CELT_${ver}_CONFIGURE_DEPENDS}
 				BYPRODUCTS ${CELT_${ver}_BIN}/Makefile
 				WORKING_DIRECTORY ${CELT_${ver}_BIN}
 			)
