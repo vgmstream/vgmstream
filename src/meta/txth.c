@@ -1662,24 +1662,27 @@ fail:
     return 0;
 }
 
-static int parse_name_table(txth_header* txth, char* name_list) {
+static int parse_name_table(txth_header* txth, char* set_name) {
     STREAMFILE* sf_names = NULL;
     off_t txt_offset, file_size;
     char fullname[PATH_LIMIT];
     char filename[PATH_LIMIT];
     char basename[PATH_LIMIT];
+    const char* table_name;
 
     /* just in case */
     if (!txth->sf_text || !txth->sf_body)
         goto fail;
 
-    /* trim name_list just in case */
-    string_trim(name_list);
-
-    //;VGM_LOG("TXTH: name_list='%s'\n", name_list);
+    /* trim just in case */
+    string_trim(set_name);
+    if (is_string(set_name,"*"))
+        table_name = ".names.txt";
+    else
+        table_name = set_name;
 
     /* open companion file near .txth */
-    sf_names = open_streamfile_by_filename(txth->sf_text, name_list);
+    sf_names = open_streamfile_by_filename(txth->sf_text, table_name);
     if (!sf_names) goto fail;
 
     get_streamfile_name(txth->sf_body, fullname, sizeof(filename));

@@ -455,6 +455,7 @@ Some games have headers for all files pasted together separate from the actual d
 ```
 name_table = (filename)
 ```
+If you set `name_table = *` it'll default to `.names.txt` (most common).
 
 Inside the table you define lines mapping a filename to a bunch of values, in this format:
 ```
