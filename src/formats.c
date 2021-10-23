@@ -58,9 +58,7 @@ static const char* extension_list[] = {
     //"aif", //common
     "aif-Loop",
     "aifc", //common?
-    "aifcl", //fake extension for .aif???
     //"aiff", //common
-    "aiffl", //fake extension for .aif???
     "aix",
     "akb",
     "al",
