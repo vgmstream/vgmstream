@@ -14,7 +14,17 @@ if(NOT WIN32 AND USE_VORBIS)
 		)
 		
 		if(OGG_PATH)
-			add_subdirectory(${OGG_PATH} ${OGG_BIN} EXCLUDE_FROM_ALL)
+			set(OGG_LINK_PATH ${OGG_BIN}/libogg.a)
+			
+			if(EXISTS ${OGG_LINK_PATH} AND EXISTS ${OGG_BIN}/include)
+				add_library(ogg STATIC IMPORTED)
+				set_target_properties(ogg PROPERTIES
+					IMPORTED_LOCATION ${OGG_LINK_PATH}
+				)
+			else()
+				add_subdirectory(${OGG_PATH} ${OGG_BIN} EXCLUDE_FROM_ALL)
+			endif()
+			
 			set(OGG_INCLUDE_DIR ${OGG_PATH}/include ${OGG_BIN}/include)
 			set(OGG_LIBRARY ogg)
 		endif()

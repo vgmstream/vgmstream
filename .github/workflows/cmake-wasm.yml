@@ -31,6 +31,60 @@ jobs:
     - name: Create build environment
       run: cmake -E make_directory ${{runner.workspace}}/embuild
 
+    - name: Cache celt
+      uses: actions/cache@v2
+      with:
+        path: |
+          ${{runner.workspace}}/dependencies/celt-0061
+          ${{runner.workspace}}/dependencies/celt-0110
+          ${{runner.workspace}}/embuild/dependencies/celt-0061/libcelt/.libs
+          ${{runner.workspace}}/embuild/dependencies/celt-0110/libcelt/.libs
+        key: wasm-celt-${{ hashFiles('cmake/dependencies/celt.cmake') }}
+
+    - name: Cache ffmpeg
+      uses: actions/cache@v2
+      with:
+        path: |
+          ${{runner.workspace}}/embuild/dependencies/ffmpeg/bin/usr/local/include
+          ${{runner.workspace}}/embuild/dependencies/ffmpeg/bin/usr/local/lib
+        key: wasm-ffmpeg-${{ hashFiles('cmake/dependencies/ffmpeg.cmake') }}
+
+    - name: Cache atrac9
+      uses: actions/cache@v2
+      with:
+        path: |
+          ${{runner.workspace}}/embuild/dependencies/LibAtrac9/bin
+        key: wasm-atrac9-${{ hashFiles('cmake/dependencies/atrac9.cmake') }}
+
+    - name: Cache g719
+      uses: actions/cache@v2
+      with:
+        path: |
+          ${{runner.workspace}}/embuild/dependencies/libg719_decode/libg719_decode.a
+        key: wasm-g719-${{ hashFiles('cmake/dependencies/g719.cmake') }}
+
+    - name: Cache speex
+      uses: actions/cache@v2
+      with:
+        path: |
+          ${{runner.workspace}}/embuild/dependencies/speex/libspeex/.libs
+        key: wasm-speex-${{ hashFiles('cmake/dependencies/speex.cmake') }}
+
+    - name: Cache ogg
+      uses: actions/cache@v2
+      with:
+        path: |
+          ${{runner.workspace}}/embuild/dependencies/ogg/libogg.a
+          ${{runner.workspace}}/embuild/dependencies/ogg/include
+        key: wasm-ogg-${{ hashFiles('cmake/dependencies/ogg.cmake') }}
+
+    - name: Cache vorbis
+      uses: actions/cache@v2
+      with:
+        path: |
+          ${{runner.workspace}}/embuild/dependencies/vorbis/lib/*.a
+        key: wasm-vorbis-${{ hashFiles('cmake/dependencies/vorbis.cmake') }}
+
     - name: Configure CMake
       shell: bash
       working-directory: ${{runner.workspace}}/embuild

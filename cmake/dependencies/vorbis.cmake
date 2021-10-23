@@ -14,7 +14,22 @@ if(NOT WIN32 AND USE_VORBIS)
 		)
 		
 		if(VORBIS_PATH)
-			add_subdirectory(${VORBIS_PATH} ${VORBIS_BIN} EXCLUDE_FROM_ALL)
+			set(VORBIS_LINK_PATH ${VORBIS_BIN}/lib/libvorbis.a)
+			set(VORBISFILE_LINK_PATH ${VORBIS_BIN}/lib/libvorbisfile.a)
+			
+			if(EXISTS ${VORBIS_LINK_PATH} AND EXISTS ${VORBISFILE_LINK_PATH})
+				add_library(vorbis STATIC IMPORTED)
+				set_target_properties(vorbis PROPERTIES
+					IMPORTED_LOCATION ${VORBIS_LINK_PATH}
+				)
+				add_library(vorbisfile STATIC IMPORTED)
+				set_target_properties(vorbisfile PROPERTIES
+					IMPORTED_LOCATION ${VORBISFILE_LINK_PATH}
+				)
+			else()
+				add_subdirectory(${VORBIS_PATH} ${VORBIS_BIN} EXCLUDE_FROM_ALL)
+			endif()
+			
 			set(OGG_VORBIS_INCLUDE_DIR ${VORBIS_PATH}/include)
 			set(OGG_VORBIS_LIBRARY vorbis)
 			
