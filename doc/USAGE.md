@@ -183,7 +183,7 @@ like foobar or Winamp don't react well to that, they may be renamed to these
 - `.aac` to `.laac` (tri-Ace games)
 - `.ac3` to `.lac3` (standard AC3)
 - `.aif` to `.laif` (standard Mac AIF, Asobo AIF, Ogg)
-- `.aiff/aifc` to `.laiffl/laifc` (standard Mac AIF)
+- `.aiff/aifc` to `.laiff/laifc` (standard Mac AIF)
 - `.asf` to `.lasf` (EA games, Argonaut ASF)
 - `.bin` to `.lbin` (various formats)
 - `.flac` to `.lflac` (standard FLAC)

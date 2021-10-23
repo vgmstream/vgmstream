@@ -40,7 +40,8 @@ typedef enum {
     ASF = 30,           /* Argonaut ASF 4-bit ADPCM */
     EAXA = 31,          /* Electronic Arts EA-XA 4-bit ADPCM v1 */
     OKI4S = 32,         /* OKI ADPCM with 16-bit output (unlike OKI/VOX/Dialogic ADPCM's 12-bit) */
-    XA = 33,
+    XA,
+    CP_YM,
 
     UNKNOWN = 99,
 } txth_codec_t;
@@ -261,6 +262,7 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
         case ASF:        coding = coding_ASF; break;
         case EAXA:       coding = coding_EA_XA; break;
         case XA:         coding = coding_XA; break;
+        case CP_YM:      coding = coding_CP_YM; break;
         default:
             goto fail;
     }
@@ -373,6 +375,7 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
         case coding_OKI16:
         case coding_OKI4S:
         case coding_XA:
+        case coding_CP_YM:
             vgmstream->layout_type = layout_none;
             break;
 
@@ -945,6 +948,7 @@ static txth_codec_t parse_codec(txth_header* txth, const char* val) {
     else if (is_string(val,"ASF"))          return ASF;
     else if (is_string(val,"EAXA"))         return EAXA;
     else if (is_string(val,"XA"))           return XA;
+    else if (is_string(val,"CP_YM"))        return CP_YM;
     /* special handling */
     else if (is_string(val,"name_value"))   return txth->name_values[0];
     else if (is_string(val,"name_value1"))  return txth->name_values[0];
@@ -1582,6 +1586,16 @@ fail:
     return 0;
 }
 
+static void string_trim(char* str) {
+    int str_len = strlen(str);
+    int i;
+    for (i = str_len - 1; i >= 0; i--) {
+        if (str[i] != ' ')
+            break;
+        str[i] = '\0';
+    }
+}
+
 static int read_name_table_keyval(txth_header* txth, const char* line, char* key, char* val) {
     int ok;
     int subsong;
@@ -1594,8 +1608,10 @@ static int read_name_table_keyval(txth_header* txth, const char* line, char* key
         return 0;
 
     /* try "(name): (val))" */
+    
     ok = sscanf(line, " %[^\t#:] : %[^\t#\r\n] ", key, val);
     if (ok == 2) {
+        string_trim(key); /* otherwise includes end spaces before : */
         //;VGM_LOG("TXTH: name %s get\n", key);
         return 1;
     }
@@ -1658,15 +1674,7 @@ static int parse_name_table(txth_header* txth, char* name_list) {
         goto fail;
 
     /* trim name_list just in case */
-    {
-        int name_list_len = strlen(name_list);
-        int i;
-        for (i = name_list_len - 1; i >= 0; i--) {
-            if (name_list[i] != ' ')
-                break;
-            name_list[i] = '\0';
-        }
-    }
+    string_trim(name_list);
 
     //;VGM_LOG("TXTH: name_list='%s'\n", name_list);
 
@@ -2031,6 +2039,7 @@ static int get_bytes_to_samples(txth_header* txth, uint32_t bytes) {
         case DVI_IMA:
             return ima_bytes_to_samples(bytes, txth->channels);
         case AICA:
+        case CP_YM:
             return yamaha_bytes_to_samples(bytes, txth->channels);
         case PCFX:
         case OKI16:

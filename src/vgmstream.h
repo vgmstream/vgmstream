@@ -138,6 +138,7 @@ typedef enum {
 
     coding_AICA,            /* Yamaha AICA ADPCM (stereo) */
     coding_AICA_int,        /* Yamaha AICA ADPCM (mono/interleave) */
+    coding_CP_YM,           /* Capcom's Yamaha ADPCM (stereo/mono) */
     coding_ASKA,            /* Aska ADPCM */
     coding_NXAP,            /* NXAP ADPCM */
 

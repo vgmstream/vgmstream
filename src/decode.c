@@ -471,6 +471,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM* vgmstream) {
         case coding_WS: /* only works if output sample size is 8 bit, which always is for WS ADPCM */
             return vgmstream->ws_output_size;
         case coding_AICA:
+        case coding_CP_YM:
             return 1;
         case coding_AICA_int:
             return 2;
@@ -690,6 +691,7 @@ int get_vgmstream_frame_size(VGMSTREAM* vgmstream) {
             return vgmstream->current_block_size;
         case coding_AICA:
         case coding_AICA_int:
+        case coding_CP_YM:
             return 0x01;
         case coding_ASKA:
             return vgmstream->frame_size;
@@ -1326,6 +1328,15 @@ void decode_vgmstream(VGMSTREAM* vgmstream, int samples_written, int samples_to_
             int is_stereo = (vgmstream->channels > 1 && vgmstream->coding_type == coding_AICA);
             for (ch = 0; ch < vgmstream->channels; ch++) {
                 decode_aica(&vgmstream->ch[ch], buffer+ch,
+                        vgmstream->channels, vgmstream->samples_into_block, samples_to_do, ch,
+                        is_stereo);
+            }
+            break;
+        }
+        case coding_CP_YM: {
+            int is_stereo = (vgmstream->channels > 1);
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_cp_ym(&vgmstream->ch[ch], buffer+ch,
                         vgmstream->channels, vgmstream->samples_into_block, samples_to_do, ch,
                         is_stereo);
             }

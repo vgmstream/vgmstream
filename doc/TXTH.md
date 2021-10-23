@@ -157,6 +157,8 @@ as explained below, but often will use default values. Accepted codec strings:
 #   * For rare EA games [Harry Potter and the Chamber of Secrets (PC)]
 # - XA             CD-XA ADPCM (ISO 2048 mode1/data streams without subchannels)
 #   * For rare Saturn and PS2 games [Phantasy Star Collection (SAT), Fantavision (PS2), EA SAT videos]
+# - CP_YM          Capcom's Yamaha ADPCM
+#   * For rare Saturn games [Marvel Super Heroes vs Street Fighter (SAT)]
 codec = (codec string)
 ```
 
@@ -1050,6 +1052,15 @@ codec = ASF
 sample_rate = 22050
 channels = 2
 num_samples = data_size
+```
+
+#### Marvel Super Heroes vs Street Fighter (SAT) .ADP.txth
+```
+codec = CP_YM
+sample_rate = 24000
+channels = 2
+
+#loops are in MM.BIN, table at 0x80700 + id*4 - 0x06018B00
 ```
 
 #### Sega Rally 3 (SAT) ALL_SOUND.txth

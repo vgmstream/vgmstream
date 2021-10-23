@@ -788,6 +788,7 @@ static const coding_info coding_info_list[] = {
         {coding_WS,                 "Westwood Studios VBR ADPCM"},
         {coding_AICA,               "Yamaha AICA 4-bit ADPCM"},
         {coding_AICA_int,           "Yamaha AICA 4-bit ADPCM (mono/interleave)"},
+        {coding_CP_YM,              "Capcom Yamaha 4-bit ADPCM"},
         {coding_ASKA,               "tri-Ace Aska 4-bit ADPCM"},
         {coding_NXAP,               "Nex NXAP 4-bit ADPCM"},
         {coding_TGC,                "Tiger Game.com 4-bit ADPCM"},
