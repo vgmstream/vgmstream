@@ -87,7 +87,7 @@ static void usage(const char* progname, int is_help) {
             "    -r: reset and output a second file (for reset testing)\n"
             "    -k N: kills (seeks) N samples before decoding (for seek testing)\n"
             "    -K N: kills (seeks) again to N samples before decoding (for seek testing)\n"
-            "    -t file: print tags found in file (for tag testing)\n"
+            "    -t: print !tags found in !tags.m3u (for tag testing)\n"
             "    -T: print title (for title testing)\n"
             "    -D <max channels>: downmix to <max channels> (for plugin downmix testing)\n"
             "    -O: decode but don't write to file (for performance testing)\n"
@@ -161,7 +161,7 @@ static int parse_config(cli_config* cfg, int argc, char** argv) {
     optind = 1; /* reset getopt's ugly globals (needed in wasm that may call same main() multiple times) */
 
     /* read config */
-    while ((opt = getopt(argc, argv, "o:l:f:d:ipPcmxeLEFrgb2:s:t:Tk:K:hOvD:S:"
+    while ((opt = getopt(argc, argv, "o:l:f:d:ipPcmxeLEFrgb2:s:tTk:K:hOvD:S:"
 #ifdef HAVE_JSON
         "VI"
 #endif
@@ -235,7 +235,7 @@ static int parse_config(cli_config* cfg, int argc, char** argv) {
                     cfg->subsong_index = 1;
                 break;
             case 't':
-                cfg->tag_filename = optarg;
+                cfg->tag_filename = "!tags.m3u";
                 break;
             case 'T':
                 cfg->show_title = 1;
