@@ -338,10 +338,11 @@ Regular formats without companion files should work fine in upper/lowercase. For
 Certain formats have encrypted data, and need a key to decrypt. vgmstream
 will try to find the correct key from a list, but it can be provided by
 a companion file:
-- `.adx`: `.adxkey` (keystring, 8 byte keycode, or derived 6 byte start/mult/add key)
-- `.ahx`: `.ahxkey` (derived 6 byte start/mult/add key)
-- `.hca`: `.hcakey` (8 byte decryption key, a 64-bit number)
-  - May be followed by 2 byte AWB scramble key for newer HCA
+- `.adx`: `.adxkey` (keystring, 8-byte keycode, or derived 6 byte start/mult/add key)
+- `.ahx`: `.ahxkey` (derived 6-byte start/mult/add key)
+- `.hca`: `.hcakey` (8-byte decryption key, a 64-bit number)
+  - `.awb`/`.acb` also may use `.hcakey`, and will combine with an internal AWB subkey
+  - May set a 8-byte key followed a 2-byte AWB subkey for newer HCA
 - `.fsb`: `.fsbkey` (decryption key in hex, usually between 8-32 bytes) 
 - `.bnsf`: `.bnsfkey` (decryption key, a string up to 24 chars)
 
@@ -360,21 +361,11 @@ needs.
 Creation of these files is meant for advanced users, full docs can be found in
 vgmstream source.
 
-#### GENH
-A byte header placed right before the original data, modifying it.
-The resulting file must be `(name).genh`. Contains static header data.
-
-Programs like VGMToolbox can help to create *GENH*, but consider using *TXTH*
-instead, *GENH* is mostly deprecated.
-
 #### TXTH
 A text header placed in an external file. The TXTH must be named
 `.txth` or `.(ext).txth` (for the whole folder), or `(name.ext).txth` (for a
 single file). Contains dynamic text commands to read data from the original
 file, or static values. This allows vgmstream to play unsupported formats.
-
-*TXTH* is recommended over *GENH* as it's far easier to create and has many
-more functions, plus doesn't modify original data.
 
 Usage example (used when opening an unknown file named `bgm_01.pcm`):
 
@@ -464,6 +455,16 @@ effect_dlc2.awb: effect.acb
 effect_dlc3.awb: effect.acb
 ```
 
+#### GENH
+A byte header placed right before the original data, modifying it.
+The resulting file must be `(name).genh`. Contains static header data.
+
+Programs like VGMToolbox can help to create *GENH*, but consider using *TXTH*
+instead, *GENH* is mostly deprecated. *TXTH* is recommended over *GENH* as
+it's far easier to create and has many more functions, plus doesn't modify
+original data.
+
+
 ### Plugin conflicts
 Since vgmstream supports a huge amount of formats it's possibly that some of
 them are also supported in other plugins, and this sometimes causes conflicts.
@@ -496,7 +497,8 @@ adjusted. Most likely it will sound a bit quieter than usual.
 
 You can also choose which channels to play using *TXTP*. For example, create
 a file named `song.adx#C1,2.txtp` to play only channels 1 and 2 from `song.adx`.
-*TXTP* also has command to set how files are downmixed.
+*TXTP* also has command to set how files are downmixed, like `song.adx #@downmix.txtp`
+for standard 5.1/4.0/etc audio to stereo, or manual (per-channel) mixing.
 
 ### Average bitrate
 Note that vgmstream shows the "file bitrate" (counts all data) as opposed to
@@ -516,6 +518,35 @@ Also, keep in mind video game audio bitrate isn't always a great indicator of qu
 There are many factors in play like encoder, type of codec, sample rate and so on.
 A higher bitrate `.wav` can sound worse than a lower `.ogg` (like mono 22050hz `.wav`
 vs stereo 48000hz `.ogg`).
+
+### Containers
+Some formats are *audio containers* of other common audio formats. For example
+`.acb`/`.awb` may contain standard `.hca` inside. Rather than extracting the
+internal "files", it's recommended that you keep data unmodified for preservation
+purposes. Sometimes containers have useful data (like loop info or names), that
+you may be unknowingly throwing away if you extract internal files.
+
+It's a good practice (and simpler) to just let containers be and play them
+directly with vgmstream. Newer `.acb`/`.awb` have extra data needed to decrypt
+the `.hca`, so if you are already used to those containers you don't need to
+worry about extracted `.hca` not working later. Plus you can use TXTH's "subfile"
+function to make unsupported containers playable:
+```
+# Simple container with an Ogg inside. Maybe values 0x00..0x10 could contain
+# loops or other useful info, that other users are able to figure out:
+subfile_extension = ogg
+subfile_offset = 0x10
+```
+With unmodified data, you can always extract the internal files later if you
+change your mind, but you can't get the (potentially useful) container data back
+once extracted.
+
+However, if your file is a *generic container* (like a `.zip`, that could hold
+graphics or audio) you may safely extract the internal files without worry.
+
+Note that some formats are *audio banks* rather than *containers* (like `.fsb`),
+in that info for playing the audio is part of the bank header, and extracting
+internal files as-is isn't really possible.
 
 
 ## Logged errors and unplayable supported files
