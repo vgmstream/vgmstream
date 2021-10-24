@@ -5,13 +5,35 @@
 //#define XA_FLOAT 1
 #if XA_FLOAT
 /* floats as defined by the spec, but PS1's SPU would use int math */
-static const float K0[4] = { 0.0, 0.9375, 1.796875, 1.53125 };
-static const float K1[4] = { 0.0,    0.0,  -0.8125, -0.859375 };
+static const float K0[4+12] = { 0.0, 0.9375, 1.796875, 1.53125 };
+static const float K1[4+12] = { 0.0,    0.0,  -0.8125, -0.859375 };
 #else
-/* K0/1 floats to int with N=6: K*2^6 = K*(1<<6) = K*64 */
-static const int K0[4] = {  0,   60,  115,  98 };
-static const int K1[4] = {  0,    0,  -52, -55 };
+/* K0/1 floats to int with N=6: K*2^6 = K*(1<<6) = K*64 (upper ranges are supposedly 0)*/
+static const int K0[4+12] = {  0,   60,  115,  98 };
+static const int K1[4+12] = {  0,    0,  -52, -55 };
 #endif
+
+/* EA's extended XA (N=8), reverse engineered from SAT exes. Basically the same with minor
+ * diffs and extra steps probably for the SH2 CPU (only does 1/2/8 shifts) */
+static const int16_t EA_TABLE[16][2] = {
+    {   0,    0 },
+    { 240,    0 },
+    { 460, -208 },
+    { 392, -220 },
+    { 488, -240 },
+    { 328, -208 },
+    { 440, -168 },
+    { 420, -188 },
+    { 432, -176 },
+    { 240,  -16 },
+    { 416, -192 },
+    { 424, -160 },
+    { 288,   -8 },
+    { 436, -188 },
+    { 224,   -1 },
+    { 272,  -16 },
+};
+
 
 /* Sony XA ADPCM, defined for CD-DA/CD-i in the "Red Book" (private) or "Green Book" (public) specs.
  * The algorithm basically is BRR (Bit Rate Reduction) from the SNES SPC700, while the data layout is new.
@@ -26,6 +48,7 @@ typedef struct {
     int32_t hist2;
     int subframes;
     int is_xa8;
+    int is_ea;
 } xa_t;
 
 static void decode_xa_frame(xa_t* xa, int32_t first_sample, int32_t samples_to_do, int channel) {
@@ -37,7 +60,7 @@ static void decode_xa_frame(xa_t* xa, int32_t first_sample, int32_t samples_to_d
     for (i = 0; i < xa->subframes / xa->channels; i++) {
         uint8_t sp;
         int index, shift, sp_pos;
-#if XA_FLOAT
+#ifdef XA_FLOAT
         float coef1, coef2;
 #else
         int32_t coef1, coef2;
@@ -52,14 +75,19 @@ static void decode_xa_frame(xa_t* xa, int32_t first_sample, int32_t samples_to_d
         shift = (sp >> 0) & 0xf;
 
         /* mastered values like 0xFF exist [Micro Machines (CDi), demo and release] */
-        VGM_ASSERT_ONCE(index > 4 || shift > shift_max, "XA: incorrect coefs/shift %x\n", sp);
-        if (index > 4)
-            index = 0; /* only 4 filters are used, rest is apparently 0 */
+        VGM_ASSERT_ONCE(shift > shift_max, "XA: incorrect shift %x\n", sp);
         if (shift > shift_max)
             shift = shift_limit;
 
-        coef1 = K0[index];
-        coef2 = K1[index];
+        if (xa->is_ea) {
+            coef1 = EA_TABLE[index][0];
+            coef2 = EA_TABLE[index][1];
+        }
+        else {
+            VGM_ASSERT_ONCE(index > 4, "XA: incorrect coefs %x\n", sp);
+            coef1 = K0[index];
+            coef2 = K1[index];
+        }
 
 
         /* decode subframe nibbles */
@@ -99,12 +127,19 @@ static void decode_xa_frame(xa_t* xa, int32_t first_sample, int32_t samples_to_d
 #if XA_FLOAT
             sample = sample + (coef1 * xa->hist1 + coef2 * xa->hist2);
 #else
-            sample = sample + ((coef1 * xa->hist1 + coef2 * xa->hist2 + 32) >> 6);
+            if (xa->is_ea) /* sample << 8 actually but UB on negatives */
+                sample = (sample * 256 + coef1 * xa->hist1 + coef2 * xa->hist2) >> 8;
+            else
+                sample = sample + ((coef1 * xa->hist1 + coef2 * xa->hist2 + 32) >> 6);
 #endif
 
             xa->hist2 = xa->hist1;
             xa->hist1 = sample;
-            xa->sbuf[samples_done * xa->channels] = clamp16(sample); /* don't clamp hist */
+            sample = clamp16(sample); /* don't clamp hist */
+            if (xa->is_ea)
+                xa->hist1 = sample; /* do clamp hist */
+
+            xa->sbuf[samples_done * xa->channels] = sample;
             samples_done++;
 
             sample_count++;
@@ -123,8 +158,9 @@ void decode_xa(VGMSTREAM* v, sample_t* outbuf, int32_t samples_to_do) {
     int32_t first_sample = v->samples_into_block;
     xa_t xa;
 
-    xa.channels = v->channels;
+    xa.channels = v->channels > 1 ? 2 : 1; /* only stereo/mono modes */
     xa.is_xa8 = (v->coding_type == coding_XA8);
+    xa.is_ea = (v->coding_type == coding_XA_EA);
     xa.subframes = (xa.is_xa8) ? 4 : 8;
 
     /* external interleave (fixed size), mono/stereo */
@@ -139,8 +175,10 @@ void decode_xa(VGMSTREAM* v, sample_t* outbuf, int32_t samples_to_do) {
     if (bytes != sizeof(xa.frame)) /* ignore EOF errors */
         memset(xa.frame + bytes, 0, bytes_per_frame - bytes);
 
-    VGM_ASSERT_ONCE(get_u32be(xa.frame+0x0) != get_u32be(xa.frame+0x4) || get_u32be(xa.frame+0x8) != get_u32be(xa.frame+0xC),
-               "bad frames at %x\n", frame_offset);
+    /* headers should repeat in pairs, except in EA's modified XA */
+    VGM_ASSERT_ONCE(!xa.is_ea &&
+            (get_u32be(xa.frame+0x0) != get_u32be(xa.frame+0x4) || get_u32be(xa.frame+0x8) != get_u32be(xa.frame+0xC)),
+            "bad frames at %x\n", frame_offset);
 
     for (ch = 0; ch < xa.channels; ch++) {
         VGMSTREAMCHANNEL* stream = &v->ch[ch];
@@ -212,10 +250,11 @@ size_t xa_bytes_to_samples(size_t bytes, int channels, int is_blocked, int is_fo
  * Info (Green Book): https://www.lscdweb.com/data/downloadables/2/8/cdi_may94_r2.pdf
  * BRR info (no$sns): http://problemkaputt.de/fullsnes.htm#snesapudspbrrsamples
  *           (bsnes): https://github.com/byuu/bsnes/blob/master/bsnes/sfc/dsp/SPC_DSP.cpp#L316
+ * Note that this is just called "ADPCM" in the "CD-ROM XA" spec (rather than "XA ADPCM" being the actual name).
  */ 
 
 /* data layout (mono):
- * - CD-XA audio is divided into sectors ("audio blocks"), each with 18*0x80 frames
+ * - CD XA audio is divided into sectors ("audio blocks"), each with 18*0x80 frames
  *   (sectors are handled externally, this decoder only sees 0x80 frames)
  * - each frame ("sound group") is divided into 8 interleaved subframes ("sound unit"), with
  *   8*0x01 subframe headers x2 ("sound parameters") first then 28*0x04 subframe nibbles ("sound data")

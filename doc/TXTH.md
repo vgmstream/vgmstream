@@ -157,6 +157,8 @@ as explained below, but often will use default values. Accepted codec strings:
 #   * For rare EA games [Harry Potter and the Chamber of Secrets (PC)]
 # - XA             CD-XA ADPCM (ISO 2048 mode1/data streams without subchannels)
 #   * For rare Saturn and PS2 games [Phantasy Star Collection (SAT), Fantavision (PS2), EA SAT videos]
+# - XA_EA         Electronic Arts XA ADPCM variation
+#   * For rare Saturn games [EA SAT videos]
 # - CP_YM          Capcom's Yamaha ADPCM
 #   * For rare Saturn games [Marvel Super Heroes vs Street Fighter (SAT)]
 codec = (codec string)

@@ -442,6 +442,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM* vgmstream) {
             return 0; /* variable (block-controlled) */
 
         case coding_XA:
+        case coding_XA_EA:
             return 28*8 / vgmstream->channels; /* 8 subframes per frame, mono/stereo */
         case coding_XA8:
             return 28*4 / vgmstream->channels; /* 4 subframes per frame, mono/stereo */
@@ -660,6 +661,7 @@ int get_vgmstream_frame_size(VGMSTREAM* vgmstream) {
             return 0x00; /* variable (block-controlled) */
 
         case coding_XA:
+        case coding_XA_EA:
         case coding_XA8:
             return 0x80;
         case coding_PSX:
@@ -1007,6 +1009,7 @@ void decode_vgmstream(VGMSTREAM* vgmstream, int samples_written, int samples_to_
             }
             break;
         case coding_XA:
+        case coding_XA_EA:
         case coding_XA8: {
             decode_xa(vgmstream, buffer, samples_to_do);
             break;
