@@ -1008,11 +1008,7 @@ void decode_vgmstream(VGMSTREAM* vgmstream, int samples_written, int samples_to_
             break;
         case coding_XA:
         case coding_XA8: {
-            int is_xa8 = (vgmstream->coding_type == coding_XA8);
-            for (ch = 0; ch < vgmstream->channels; ch++) {
-                decode_xa(&vgmstream->ch[ch], buffer+ch,
-                        vgmstream->channels, vgmstream->samples_into_block, samples_to_do, ch, is_xa8);
-            }
+            decode_xa(vgmstream, buffer, samples_to_do);
             break;
         }
         case coding_EA_XA:
