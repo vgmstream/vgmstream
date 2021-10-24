@@ -105,7 +105,10 @@ for /f "delims=" %%x in ('%CMD_DIR% ^| %CMD_FIND%') do (
         call :performance_file "!CMD_FILE!"
     )
 
-    setlocal DisableDelayedExpansion
+    REM this doesn't seem to properly disable it and will error out after N files
+    REM but using endlocal will remove vars and counters won't work
+    REM setlocal DisableDelayedExpansion
+    endlocal
 )
 
 REM # find time elapsed
