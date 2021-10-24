@@ -128,6 +128,7 @@ typedef struct {
     int chunk_count_set;
 
     uint32_t base_offset;
+    uint32_t is_offset_absolute;
 
     uint32_t name_values[16];
     int name_values_count;
@@ -460,7 +461,7 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
             {
                 int16_t (*read_16bit)(off_t, STREAMFILE*) = txth.coef_big_endian ? read_16bitBE : read_16bitLE;
                 int16_t (*get_16bit)(const uint8_t* p) = txth.coef_big_endian ? get_16bitBE : get_16bitLE;
-
+VGM_LOG("coef=%x\n",txth.coef_offset );
                 for (i = 0; i < vgmstream->channels; i++) {
                     if (txth.coef_mode == 0) { /* normal coefs */
                         for (j = 0; j < 16; j++) {
@@ -1196,13 +1197,20 @@ static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char* key, cha
             goto fail;
     }
 
+    else if (is_string(key,"offset_absolute")) {
+        if (!parse_num(txth->sf_head,txth,val, &txth->is_offset_absolute)) goto fail;
+    }
+
     /* COEFS */
     else if (is_string(key,"coef_offset")) {
         if (!parse_num(txth->sf_head,txth,val, &txth->coef_offset)) goto fail;
         /* special adjustments */
+        VGM_LOG("coef norm=%x\n",txth->coef_offset );
         txth->coef_offset += txth->base_offset;
-        if (txth->subsong_spacing)
+        VGM_LOG("coef+base=%x\n",txth->coef_offset );
+        if (txth->subsong_spacing && !txth->is_offset_absolute)
             txth->coef_offset += txth->subsong_spacing * (txth->target_subsong - 1);
+        VGM_LOG("coef+spac=%x\n",txth->coef_offset );
     }
     else if (is_string(key,"coef_spacing")) {
         if (!parse_num(txth->sf_head,txth,val, &txth->coef_spacing)) goto fail;
@@ -1224,7 +1232,7 @@ static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char* key, cha
         txth->hist_set = 1;
         /* special adjustment */
         txth->hist_offset += txth->hist_offset;
-        if (txth->subsong_spacing)
+        if (txth->subsong_spacing && !txth->is_offset_absolute)
             txth->hist_offset += txth->subsong_spacing * (txth->target_subsong - 1);
     }
     else if (is_string(key,"hist_spacing")) {
@@ -1246,10 +1254,10 @@ static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char* key, cha
         txth->name_offset_set = 1;
         /* special adjustment */
         txth->name_offset += txth->base_offset;
-        if (txth->subsong_spacing)
+        if (txth->subsong_spacing && !txth->is_offset_absolute)
             txth->name_offset += txth->subsong_spacing * (txth->target_subsong - 1);
     }
-    else if (is_string(key,"name_offset_absolute")) {
+    else if (is_string(key,"name_offset_absolute")) { //TODO: remove
         if (!parse_num(txth->sf_head,txth,val, &txth->name_offset)) goto fail;
         txth->name_offset_set = 1;
         /* special adjustment */
@@ -1926,6 +1934,8 @@ static int parse_num(STREAMFILE* sf, txth_header* txth, const char* val, uint32_
             else if ((n = is_string_field(val,"subfile_offset")))       value = txth->subfile_offset;
             else if ((n = is_string_field(val,"subfile_size")))         value = txth->subfile_size;
             else if ((n = is_string_field(val,"base_offset")))          value = txth->base_offset;
+            else if ((n = is_string_field(val,"coef_offset")))          value = txth->coef_offset;
+            else if ((n = is_string_field(val,"hist_offset")))          value = txth->hist_offset;
             //todo whatever, improve
             else if ((n = is_string_field(val,"name_value")))           value = txth->name_values[0];
             else if ((n = is_string_field(val,"name_value1")))          value = txth->name_values[0];

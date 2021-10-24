@@ -338,6 +338,8 @@ Usually each channel uses its own list, so we may need to set separation per cha
 Those 16-bit coefs can be little or big endian (usually BE), set `coef_endianness` directly or in an offset value where `0=LE, >0=BE`.
 
 While the coef table is almost always included per-file, some games have their coef table in the executable or precalculated somehow. You can set inline coefs instead of coef_offset. Format is a long string of bytes (optionally space-separated) like `coef_table = 0x1E02DE01 3C0C0EFA ...`. You still need to set `coef_spacing` and `coef_endianness` though.
+
+`coef_offset` is adjusted by `base_offset` and `subsong_spacing`. If offset points to some absolute offset that doesn't depend on subsong, set first `offset_absolute = 1`.
 ```
 coef_offset = (value)
 coef_spacing = (value)
@@ -394,7 +396,7 @@ Sets the name of the stream, most useful when used with subsongs. TXTH will read
 
 `name_size` defaults to 0, which reads until null-terminator or a non-ascii character is found.
 
-`name_offset` can be a (number) value, but being an offset it's also adjusted by `subsong_spacing`. If you need to point to some absolute offset (for example a subsong pointing to name in another table) that doesn't depend on subsong (must not be changed by `subsong_spacing`), use `name_offset_absolute`.
+`name_offset` is adjusted by `base_offset` and `subsong_spacing`. If offset points to some absolute offset that doesn't depend on subsong, set first `offset_absolute = 1`.
 ```
 name_offset = (value)
 name_size = (value)
