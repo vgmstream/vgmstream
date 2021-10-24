@@ -1,25 +1,16 @@
 #include "coding.h"
 #include "../util.h"
 
-// todo this is based on Kazzuya's old code; different emus (PCSX, Mame, Mednafen, etc) do
-//  XA coefs int math in different ways (see comments below), not 100% accurate.
-// May be implemented like the SNES/SPC700 BRR.
-
 /* XA ADPCM gain values */
 //#define XA_FLOAT 1
-//#define XA_INTB 1
 #if XA_FLOAT
 /* floats as defined by the spec, but PS1's SPU would use int math */
 static const float K0[4] = { 0.0, 0.9375, 1.796875, 1.53125 };
 static const float K1[4] = { 0.0,    0.0,  -0.8125, -0.859375 };
-#elif XA_INTB
-/* K0/1 floats to int, -K*2^6 = -K*(1<<6) = -K*64 */
+#else
+/* K0/1 floats to int with N=6: K*2^6 = K*(1<<6) = K*64 */
 static const int K0[4] = {  0,   60,  115,  98 };
 static const int K1[4] = {  0,    0,  -52, -55 };
-#else
-/* K0/1 floats to int, -K*2^10 = -K*(1<<10) = -K*1024 */
-static const int K0[4] = {  0, -960, -1840, -1568 };
-static const int K1[4] = {  0,    0,   832,   880 };
 #endif
 
 /* Sony XA ADPCM, defined for CD-DA/CD-i in the "Red Book" (private) or "Green Book" (public) specs.
@@ -105,21 +96,15 @@ static void decode_xa_frame(xa_t* xa, int32_t first_sample, int32_t samples_to_d
                 sample = (int16_t)((su << 12) & 0xf000) >> shift; /* 16b sign extend + scale */
             }
 
-            sample = sample << 4; /* scale for K */ //todo bad
 #if XA_FLOAT
-            sample = sample + (coef1 * hist1 + coef2 * hist2);
-#elif XA_INTB
-            sample = sample + ((coef1 * hist1 + coef2 * hist2) >> 6);
+            sample = sample + (coef1 * xa->hist1 + coef2 * xa->hist2);
 #else
-            sample = sample - ((coef1 * xa->hist1 + coef2 * xa->hist2) >> 10);
+            sample = sample + ((coef1 * xa->hist1 + coef2 * xa->hist2 + 32) >> 6);
 #endif
 
             xa->hist2 = xa->hist1;
-            xa->hist1 = sample; /* must go before clamp, somehow */
-            sample = sample >> 4;
-            sample = clamp16(sample);
-
-            xa->sbuf[samples_done * xa->channels] = sample;
+            xa->hist1 = sample;
+            xa->sbuf[samples_done * xa->channels] = clamp16(sample); /* don't clamp hist */
             samples_done++;
 
             sample_count++;
