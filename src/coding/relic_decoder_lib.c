@@ -206,7 +206,7 @@ static uint32_t read_ubits(uint8_t bits, uint32_t offset, uint8_t* buf) {
     shift = offset - 8 * (offset / 8);
     mask = (1 << bits) - 1;
     pos = offset / 8;
-    val = (buf[pos+0]) | (buf[pos+1]<<8) | (buf[pos+2]<<16) | (buf[pos+3]<<24);
+    val = ((uint32_t)buf[pos+0]) | ((uint32_t)buf[pos+1]<<8) | ((uint32_t)buf[pos+2]<<16) | ((uint32_t)buf[pos+3]<<24);
     return (val >> shift) & mask;
 }
 
