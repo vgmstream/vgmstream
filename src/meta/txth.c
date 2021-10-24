@@ -40,7 +40,9 @@ typedef enum {
     ASF = 30,           /* Argonaut ASF 4-bit ADPCM */
     EAXA = 31,          /* Electronic Arts EA-XA 4-bit ADPCM v1 */
     OKI4S = 32,         /* OKI ADPCM with 16-bit output (unlike OKI/VOX/Dialogic ADPCM's 12-bit) */
-    XA = 33,
+    XA,
+    XA_EA,
+    CP_YM,
 
     UNKNOWN = 99,
 } txth_codec_t;
@@ -126,6 +128,7 @@ typedef struct {
     int chunk_count_set;
 
     uint32_t base_offset;
+    uint32_t is_offset_absolute;
 
     uint32_t name_values[16];
     int name_values_count;
@@ -261,6 +264,8 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
         case ASF:        coding = coding_ASF; break;
         case EAXA:       coding = coding_EA_XA; break;
         case XA:         coding = coding_XA; break;
+        case XA_EA:      coding = coding_XA_EA; break;
+        case CP_YM:      coding = coding_CP_YM; break;
         default:
             goto fail;
     }
@@ -373,6 +378,8 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
         case coding_OKI16:
         case coding_OKI4S:
         case coding_XA:
+        case coding_XA_EA:
+        case coding_CP_YM:
             vgmstream->layout_type = layout_none;
             break;
 
@@ -454,7 +461,7 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
             {
                 int16_t (*read_16bit)(off_t, STREAMFILE*) = txth.coef_big_endian ? read_16bitBE : read_16bitLE;
                 int16_t (*get_16bit)(const uint8_t* p) = txth.coef_big_endian ? get_16bitBE : get_16bitLE;
-
+VGM_LOG("coef=%x\n",txth.coef_offset );
                 for (i = 0; i < vgmstream->channels; i++) {
                     if (txth.coef_mode == 0) { /* normal coefs */
                         for (j = 0; j < 16; j++) {
@@ -945,6 +952,8 @@ static txth_codec_t parse_codec(txth_header* txth, const char* val) {
     else if (is_string(val,"ASF"))          return ASF;
     else if (is_string(val,"EAXA"))         return EAXA;
     else if (is_string(val,"XA"))           return XA;
+    else if (is_string(val,"XA_EA"))        return XA_EA;
+    else if (is_string(val,"CP_YM"))        return CP_YM;
     /* special handling */
     else if (is_string(val,"name_value"))   return txth->name_values[0];
     else if (is_string(val,"name_value1"))  return txth->name_values[0];
@@ -1188,13 +1197,20 @@ static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char* key, cha
             goto fail;
     }
 
+    else if (is_string(key,"offset_absolute")) {
+        if (!parse_num(txth->sf_head,txth,val, &txth->is_offset_absolute)) goto fail;
+    }
+
     /* COEFS */
     else if (is_string(key,"coef_offset")) {
         if (!parse_num(txth->sf_head,txth,val, &txth->coef_offset)) goto fail;
         /* special adjustments */
+        VGM_LOG("coef norm=%x\n",txth->coef_offset );
         txth->coef_offset += txth->base_offset;
-        if (txth->subsong_spacing)
+        VGM_LOG("coef+base=%x\n",txth->coef_offset );
+        if (txth->subsong_spacing && !txth->is_offset_absolute)
             txth->coef_offset += txth->subsong_spacing * (txth->target_subsong - 1);
+        VGM_LOG("coef+spac=%x\n",txth->coef_offset );
     }
     else if (is_string(key,"coef_spacing")) {
         if (!parse_num(txth->sf_head,txth,val, &txth->coef_spacing)) goto fail;
@@ -1216,7 +1232,7 @@ static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char* key, cha
         txth->hist_set = 1;
         /* special adjustment */
         txth->hist_offset += txth->hist_offset;
-        if (txth->subsong_spacing)
+        if (txth->subsong_spacing && !txth->is_offset_absolute)
             txth->hist_offset += txth->subsong_spacing * (txth->target_subsong - 1);
     }
     else if (is_string(key,"hist_spacing")) {
@@ -1238,10 +1254,10 @@ static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char* key, cha
         txth->name_offset_set = 1;
         /* special adjustment */
         txth->name_offset += txth->base_offset;
-        if (txth->subsong_spacing)
+        if (txth->subsong_spacing && !txth->is_offset_absolute)
             txth->name_offset += txth->subsong_spacing * (txth->target_subsong - 1);
     }
-    else if (is_string(key,"name_offset_absolute")) {
+    else if (is_string(key,"name_offset_absolute")) { //TODO: remove
         if (!parse_num(txth->sf_head,txth,val, &txth->name_offset)) goto fail;
         txth->name_offset_set = 1;
         /* special adjustment */
@@ -1582,6 +1598,16 @@ fail:
     return 0;
 }
 
+static void string_trim(char* str) {
+    int str_len = strlen(str);
+    int i;
+    for (i = str_len - 1; i >= 0; i--) {
+        if (str[i] != ' ')
+            break;
+        str[i] = '\0';
+    }
+}
+
 static int read_name_table_keyval(txth_header* txth, const char* line, char* key, char* val) {
     int ok;
     int subsong;
@@ -1594,8 +1620,10 @@ static int read_name_table_keyval(txth_header* txth, const char* line, char* key
         return 0;
 
     /* try "(name): (val))" */
+    
     ok = sscanf(line, " %[^\t#:] : %[^\t#\r\n] ", key, val);
     if (ok == 2) {
+        string_trim(key); /* otherwise includes end spaces before : */
         //;VGM_LOG("TXTH: name %s get\n", key);
         return 1;
     }
@@ -1646,32 +1674,27 @@ fail:
     return 0;
 }
 
-static int parse_name_table(txth_header* txth, char* name_list) {
+static int parse_name_table(txth_header* txth, char* set_name) {
     STREAMFILE* sf_names = NULL;
     off_t txt_offset, file_size;
     char fullname[PATH_LIMIT];
     char filename[PATH_LIMIT];
     char basename[PATH_LIMIT];
+    const char* table_name;
 
     /* just in case */
     if (!txth->sf_text || !txth->sf_body)
         goto fail;
 
-    /* trim name_list just in case */
-    {
-        int name_list_len = strlen(name_list);
-        int i;
-        for (i = name_list_len - 1; i >= 0; i--) {
-            if (name_list[i] != ' ')
-                break;
-            name_list[i] = '\0';
-        }
-    }
-
-    //;VGM_LOG("TXTH: name_list='%s'\n", name_list);
+    /* trim just in case */
+    string_trim(set_name);
+    if (is_string(set_name,"*"))
+        table_name = ".names.txt";
+    else
+        table_name = set_name;
 
     /* open companion file near .txth */
-    sf_names = open_streamfile_by_filename(txth->sf_text, name_list);
+    sf_names = open_streamfile_by_filename(txth->sf_text, table_name);
     if (!sf_names) goto fail;
 
     get_streamfile_name(txth->sf_body, fullname, sizeof(filename));
@@ -1911,6 +1934,8 @@ static int parse_num(STREAMFILE* sf, txth_header* txth, const char* val, uint32_
             else if ((n = is_string_field(val,"subfile_offset")))       value = txth->subfile_offset;
             else if ((n = is_string_field(val,"subfile_size")))         value = txth->subfile_size;
             else if ((n = is_string_field(val,"base_offset")))          value = txth->base_offset;
+            else if ((n = is_string_field(val,"coef_offset")))          value = txth->coef_offset;
+            else if ((n = is_string_field(val,"hist_offset")))          value = txth->hist_offset;
             //todo whatever, improve
             else if ((n = is_string_field(val,"name_value")))           value = txth->name_values[0];
             else if ((n = is_string_field(val,"name_value1")))          value = txth->name_values[0];
@@ -2020,6 +2045,7 @@ static int get_bytes_to_samples(txth_header* txth, uint32_t bytes) {
         case EAXA:
             return ea_xa_bytes_to_samples(bytes, txth->channels);
         case XA:
+        case XA_EA:
             return xa_bytes_to_samples(bytes, txth->channels, 0, 0, 4);
 
         /* XMA bytes-to-samples is done at the end as the value meanings are a bit different */
@@ -2031,6 +2057,7 @@ static int get_bytes_to_samples(txth_header* txth, uint32_t bytes) {
         case DVI_IMA:
             return ima_bytes_to_samples(bytes, txth->channels);
         case AICA:
+        case CP_YM:
             return yamaha_bytes_to_samples(bytes, txth->channels);
         case PCFX:
         case OKI16:

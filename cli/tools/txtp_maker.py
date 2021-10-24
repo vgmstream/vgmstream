@@ -32,15 +32,17 @@ class Cli(object):
             "  - make .txtp for in .bnk including only subsong names that start with 'bgm'\n\n"
             "  %(prog)s *.fsb -n \"{fn}<__{ss}>< [{in}]>\" -z 4 -o\n"
             "  - make .txtp for all fsb, adding subsongs and stream name if they exist\n\n"
-            "  %(prog)s bgm.awb -or -os \"[alt%%%%i]\"\n"
-            "  - make .txtp and rename repeated names with a custom suffix per repeat 'i'\n\n"
+            "  %(prog)s bgm.awb -or -os \"[%%%%s]\"\n"
+            "  - make .txtp and rename repeated names with a custom [a/b/c...] suffix per repeated file\n\n"
+            "  %(prog)s bgm.awb -or -os \"[alt%%%%i]\" -os2\n"
+            "  - make .txtp and rename repeated names with a custom suffix [alt 1/2/3...], not including first\n\n"
         )
 
         p = argparse.ArgumentParser(description=description, epilog=epilog, formatter_class=argparse.RawTextHelpFormatter)
         p.add_argument('files', help="Files to get (wildcards work)", nargs='+')
         p.add_argument('-r',  dest='recursive', help="Create .txtp in base folder from data in subfolders", action='store_true')
         p.add_argument('-c',  dest='cli', help="Set path to CLI (default: auto)")
-        p.add_argument('-d',  dest='subdir', help="Set subdir inside .txtp (where file will reside)")
+        p.add_argument('-d',  dest='subdir', help="Set subdir inside .txtp (default: auto)")
         p.add_argument('-n',  dest='base_name', help=("Define (name).txtp, that can be formatted using:\n"
                                                       "- {filename}|{fn}=filename without extension\n"
                                                       "- {subsong}|{ss}=subsong number)\n"
@@ -53,9 +55,10 @@ class Cli(object):
         p.add_argument('-s',  dest='subsong_start', help="Start subsong", type=int)
         p.add_argument('-S',  dest='subsong_end', help="End subsong", type=int)
         p.add_argument('-o',  dest='overwrite', help="Overwrite existing .txtp\n(beware when using with internal names alone)", action='store_true')
-        p.add_argument('-oi', dest='overwrite_ignore', help="Ignore repeated rather than overwritting.txtp\n", action='store_true')
+        p.add_argument('-oi', dest='overwrite_ignore', help="Ignore repeated rather than overwritting .txtp\n", action='store_true')
         p.add_argument('-or', dest='overwrite_rename', help="Rename rather than overwriting", action='store_true')
         p.add_argument('-os', dest='overwrite_suffix', help="Rename with a suffix")
+        p.add_argument('-os2', dest='overwrite_suffix_2nd', help="Rename with a suffix not including first", action='store_true')
         p.add_argument('-l',  dest='layers', help="Create .txtp per subsong layers, every N channels", type=int)
         p.add_argument('-fd', dest='test_dupes', help="Skip .txtp that point to duplicate streams (slower)", action='store_true')
         p.add_argument('-fcm', dest='min_channels', help="Filter by min channels", type=int)
@@ -144,12 +147,8 @@ class Cr32Helper(object):
 
 #******************************************************************************
 
-# Makes .txtp (usually 1 but may do N) from a CLI output + subsong
-class TxtpMaker(object):
-
-    def __init__(self, cfg, output_b, rename_map):
-        self.cfg = cfg
-
+class TxtpInfo(object):
+    def __init__(self, output_b):
         self.output = str(output_b).replace("\\r","").replace("\\n","\n")
         self.channels = self._get_value("channels: ")
         self.sample_rate = self._get_value("sample rate: ")
@@ -164,11 +163,6 @@ class TxtpMaker(object):
             raise ValueError('Incorrect vgmstream command')
 
         self.stream_seconds = self.num_samples / self.sample_rate
-        self.ignorable = self._is_ignorable(cfg)
-        self.rename_map = rename_map
-
-    def __str__(self):
-        return str(self.__dict__)
 
     def _get_string(self, str, full=False):
         find_pos = self.output.find(str)
@@ -190,39 +184,63 @@ class TxtpMaker(object):
            return 0
         return int(res)
 
+# Saves .txtp (usually 1 but may do N) to make from CLI outputs
+class TxtpMaker(object):
+
+    def __init__(self, cfg):
+        self.cfg = cfg
+
+        self.rename_map = {}
+        self._items = []
+        return
+
+    def __str__(self):
+        return str(self.__dict__)
+
+    def parse(self, output_b):
+        self.info = TxtpInfo(output_b)
+        self.ignorable = self._is_ignorable(self.cfg)
+
+    def reset(self):
+        self._items = []
+
     def is_ignorable(self):
         return self.ignorable
 
     def _is_ignorable(self, cfg):
-        if cfg.min_channels and self.channels < cfg.min_channels:
+        if cfg.min_channels and self.info.channels < cfg.min_channels:
             return True
-        if cfg.max_channels and self.channels > cfg.max_channels:
+        if cfg.max_channels and self.info.channels > cfg.max_channels:
             return True
-        if cfg.min_sample_rate and self.sample_rate < cfg.min_sample_rate:
+        if cfg.min_sample_rate and self.info.sample_rate < cfg.min_sample_rate:
             return True
-        if cfg.max_sample_rate and self.sample_rate > cfg.max_sample_rate:
+        if cfg.max_sample_rate and self.info.sample_rate > cfg.max_sample_rate:
             return True
-        if cfg.min_seconds and self.stream_seconds < cfg.min_seconds:
+        if cfg.min_seconds and self.info.stream_seconds < cfg.min_seconds:
             return True
-        if cfg.max_seconds and self.stream_seconds > cfg.max_seconds:
+        if cfg.max_seconds and self.info.stream_seconds > cfg.max_seconds:
             return True
-        if cfg.min_subsongs and self.stream_count < cfg.min_subsongs:
+        if cfg.min_subsongs and self.info.stream_count < cfg.min_subsongs:
             return True
-        if cfg.exclude_regex and self.stream_name:
+
+        if cfg.exclude_regex and self.info.stream_name:
             p = re.compile(cfg.exclude_regex)
-            if p.match(self.stream_name) is not None:
+            if p.match(self.info.stream_name) is not None:
                 return True
-        if cfg.include_regex and self.stream_name:
+
+        if cfg.include_regex and self.info.stream_name:
             p = re.compile(cfg.include_regex)
-            if p.match(self.stream_name) is None:
+            if p.match(self.info.stream_name) is None:
                 return True
-        if self.encoding.lower() == 'silence':
+
+        if self.info.encoding.lower() == 'silence':
             return True
+
         return False
 
     def _get_stream_mask(self, layer):
-        if layer + self.cfg.layers > self.channels:
-            loops = self.channels - self.cfg.layers
+        if layer + self.cfg.layers > self.info.channels:
+            loops = self.info.channels - self.cfg.layers
         else:
             loops = self.cfg.layers + 1
 
@@ -232,10 +250,10 @@ class TxtpMaker(object):
         return mask[:-1]
 
     def _clean_stream_name(self):
-        if not self.stream_name:
+        if not self.info.stream_name:
             return None
 
-        txt = self.stream_name
+        txt = self.info.stream_name
         # remove paths #todo maybe config/replace?
         pos = txt.rfind('\\')
         if pos >= 0:
@@ -261,6 +279,10 @@ class TxtpMaker(object):
 
         return txt
 
+    def _add(self, outname, line):
+        self._items.append( (outname, line) )
+        return
+
     def _write(self, outname, line):
         outname += '.txtp'
 
@@ -268,24 +290,6 @@ class TxtpMaker(object):
         exists = os.path.exists(outname)
         if exists and (cfg.overwrite_rename or cfg.overwrite_suffix):
             must_rename = True
-
-            suffix = cfg.overwrite_suffix
-            if suffix:
-                outname = outname.replace(".txtp", "%s.txtp" % (suffix))
-                if '%' in suffix:
-                    if outname in self.rename_map:
-                        rename_count = self.rename_map[outname]
-                    else:
-                        rename_count = 0
-                    self.rename_map[outname] = rename_count + 1
-                    if rename_count:
-                        outname = outname % (rename_count)
-                    else:
-                        #outname = outname.replace("%i", "")
-                        outname = re.sub(r"\%[0-9]*i", "", outname)
-
-                must_rename = os.path.exists(outname)
-
             if must_rename:
                 if outname in self.rename_map:
                     rename_count = self.rename_map[outname]
@@ -311,7 +315,7 @@ class TxtpMaker(object):
         log.debug("created: " + outname)
         return
         
-    def make(self, filename_path, filename_clean):
+    def include(self, filename_path, filename_clean):
         cfg = self.cfg
         total_done = 0
 
@@ -319,12 +323,12 @@ class TxtpMaker(object):
             return total_done
 
         # write plain (name).txtp when no subsongs
-        if self.stream_count <= 1:
+        if self.info.stream_count <= 1:
             index = None
         else:
-            index = str(self.stream_index) #str to avoid falsy 0
+            index = str(self.info.stream_index) #str to avoid falsy 0
             if cfg.zero_fill is None or cfg.zero_fill < 0:
-                index = index.zfill(len(str(self.stream_count)))
+                index = index.zfill(len(str(self.info.stream_count)))
             else:
                 index = index.zfill(cfg.zero_fill)
 
@@ -333,13 +337,13 @@ class TxtpMaker(object):
             if index:
                 outname += "#" + index
 
-            if cfg.layers and cfg.layers < self.channels:
-                for layer in range(0, self.channels, cfg.layers):
+            if cfg.layers and cfg.layers < self.info.channels:
+                for layer in range(0, self.info.channels, cfg.layers):
                     mask = self._get_stream_mask(layer)
-                    self._write(outname + mask, '')
+                    self._add(outname + mask, '')
                     total_done += 1
             else:
-                self._write(outname, '')
+                self._add(outname, '')
                 total_done += 1
 
         else:
@@ -406,21 +410,77 @@ class TxtpMaker(object):
             if index:
                 line += "#" + index
 
-            if cfg.layers and cfg.layers < self.channels:
+            if cfg.layers and cfg.layers < self.info.channels:
                 done = 0
-                for layer in range(0, self.channels, cfg.layers):
+                for layer in range(0, self.info.channels, cfg.layers):
                     sub = chr(ord('a') + done)
                     done += 1
                     mask = self._get_stream_mask(layer)
-                    self._write(outname + sub, line + mask)
+                    self._add(outname + sub, line + mask)
                     total_done += 1
             else:
-                self._write(outname, line)
+                self._add(outname, line)
                 total_done += 1
         return total_done
 
+    def _rename(self):
+        cfg = self.cfg
+        suffix = cfg.overwrite_suffix
+
+        repeated = {}
+        for outname, _ in self._items:
+            if outname not in repeated:
+                repeated[outname] = 0
+            else:
+                repeated[outname] += 1
+
+        done = {}
+        for i in range(len(self._items)):
+            item = self._items[i]
+            outname = item[0]
+
+            if repeated.get(outname) <= 0:
+                continue
+
+            if outname not in done:
+                done[outname] = 0
+            done_count = done[outname]
+            done[outname] += 1
+
+            if suffix:
+                repl_value = None
+                repl_regex = None
+
+                if '%s' in suffix:
+                    if done_count >= 0 and done_count < 28:
+                        repl_value = chr(done_count + 97)
+                    else:
+                        repl_value = str(done_count)
+                    repl_regex = r"\%s"
+
+                elif '%' in suffix:
+                    repl_regex = r"\%[0-9]*i"
+                    repl_value = done_count
+
+                new_suffix = suffix
+                if repl_value is not None:
+                    if cfg.overwrite_suffix_2nd and repl_regex and done_count == 0:
+                        new_suffix = re.sub(repl_regex, "", suffix)
+                    else:
+                        new_suffix = suffix % (repl_value)
+
+            self._items[i] = (outname + new_suffix, item[1])
+        return
+
+    def write(self):
+        if self.cfg.overwrite_suffix:
+            self._rename()
+
+        for outname, line in self._items:
+            self._write(outname, line)
+
     def has_more_subsongs(self, target_subsong):
-        return target_subsong < self.stream_count
+        return target_subsong < self.info.stream_count
 
 #******************************************************************************
 
@@ -496,11 +556,12 @@ class App(object):
         for filename in self.cfg.files:
             filenames_in += self._find_files('.', filename)
 
-        rename_map = {}
+        maker = TxtpMaker(self.cfg)
 
         total_created = 0
         total_dupes = 0
         total_errors = 0
+
         for filename_in in filenames_in:
             filename_in_clean = filename_in.replace("\\", "/")
             if filename_in_clean.startswith("./"):
@@ -523,6 +584,9 @@ class App(object):
                 subsong_start = 1
             target_subsong = subsong_start
 
+            # subsongs should treat repeat names separately? pass flag?
+            #maker.reset(rename_map)
+
             while True:
                 try:
                     # main call to vgmstream
@@ -531,7 +595,7 @@ class App(object):
                     output_b = subprocess.check_output(cmd, shell=False) #stderr=subprocess.STDOUT
 
                     # basic parse of vgmstream info
-                    maker = TxtpMaker(self.cfg, output_b, rename_map)
+                    maker.parse(output_b)
 
                 except (subprocess.CalledProcessError, ValueError) as e:
                     log.debug("ignoring CLI error in %s #%s: %s", filename_in, target_subsong, str(e))
@@ -545,7 +609,7 @@ class App(object):
                     self.crc32.update(filename_out)
 
                 if not self.crc32.is_last_dupe():
-                    created += maker.make(filename_in_base, filename_in_clean)
+                    created += maker.include(filename_in_base, filename_in_clean)
                 else:
                     dupes += 1
                     log.debug("dupe subsong %s", target_subsong)
@@ -557,7 +621,7 @@ class App(object):
                 target_subsong += 1
 
                 if target_subsong % 200 == 0:
-                    log.info("%s/%s subsongs... (%s dupes, %s errors)", target_subsong, maker.stream_count, dupes, errors)
+                    log.info("%s/%s subsongs... (%s dupes, %s errors)", target_subsong, maker.info.stream_count, dupes, errors)
 
             if os.path.exists(filename_out):
                 os.remove(filename_out)
@@ -565,6 +629,8 @@ class App(object):
             total_created += created
             total_dupes += dupes
             total_errors += errors
+
+        maker.write()
 
         log.info("done! (%s done, %s dupes, %s errors)", total_created, total_dupes, total_errors)
 
