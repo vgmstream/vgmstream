@@ -115,7 +115,7 @@ void decode_hevag(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing
 
 
 /* xa_decoder */
-void decode_xa(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel, int is_xa8);
+void decode_xa(VGMSTREAM* v, sample_t* outbuf, int32_t samples_to_do);
 size_t xa_bytes_to_samples(size_t bytes, int channels, int is_blocked, int is_form2, int bps);
 
 
@@ -172,6 +172,7 @@ int msadpcm_check_coefs(STREAMFILE* sf, off_t offset);
 
 /* yamaha_decoder */
 void decode_aica(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel, int is_stereo);
+void decode_cp_ym(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel, int is_stereo);
 void decode_aska(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel, size_t frame_size);
 void decode_nxap(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);
 size_t yamaha_bytes_to_samples(size_t bytes, int channels);

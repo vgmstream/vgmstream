@@ -105,8 +105,10 @@ for /f "delims=" %%x in ('%CMD_DIR% ^| %CMD_FIND%') do (
         call :performance_file "!CMD_FILE!"
     )
 
+    REM this doesn't seem to properly disable it and will error out after N files
+    REM but using endlocal will remove vars and counters won't work
+    REM setlocal DisableDelayedExpansion
     endlocal
-
 )
 
 REM # find time elapsed
@@ -123,7 +125,7 @@ set /A TIME_ELAPSED_C=(TIME_END_S-TIME_START_S)%%100
 
 REM # process end (ok)
 echo VRTS: done @%TIME_END% (%TIME_ELAPSED_S%,%TIME_ELAPSED_C%s)
-echo VRTS: ok=%FILES_OK%, ko=%FILES_KO% 
+echo VRTS: ok=%FILES_OK%, ko=%FILES_KO%
 
 goto exit
 
@@ -177,12 +179,12 @@ REM # ########################################################################
 
     REM # print output
     if %CMP_WAV_ERROR% EQU 1 (
-        if %CMP_TXT_ERROR% EQU 1  ( 
+        if %CMP_TXT_ERROR% EQU 1  (
             call :echo_color %COLOR_ER% "!CMD_FILE!" "wav and txt diffs"
         ) else (
             call :echo_color %COLOR_ER% "!CMD_FILE!" "wav diffs"
         )
-        set /a "FILES_KO+=1"
+        set /a FILES_KO=FILES_KO + 1
     ) else (
         if %CMP_TXT_ERROR% EQU 1 (
             call :echo_color %COLOR_WN% "!CMD_FILE!" "txt diffs"
@@ -191,7 +193,8 @@ REM # ########################################################################
                 call :echo_color %COLOR_OK% "!CMD_FILE!" "no diffs"
             )
         )
-        set /a "FILES_OK+=1"
+        
+        set /a FILES_OK=FILES_OK + 1
     )
 
     REM # delete temp files
@@ -247,7 +250,7 @@ REM # ########################################################################
     call :echo_color %COLOR_OK% "!CMD_FILE!" "done"
 
     REM # ignore output
-    if exist "!WAV_NEW!"  del /a:a "!WAV_NEW!"   
+    if exist "!WAV_NEW!"  del /a:a "!WAV_NEW!"
 
 :performance_file_continue
 exit /B

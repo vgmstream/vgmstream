@@ -12,19 +12,19 @@
 /* host endian independent multi-byte integer reading */
 
 static inline int16_t get_16bitBE(const uint8_t* p) {
-    return (p[0]<<8) | (p[1]);
+    return ((uint16_t)p[0]<<8) | ((uint16_t)p[1]);
 }
 
 static inline int16_t get_16bitLE(const uint8_t* p) {
-    return (p[0]) | (p[1]<<8);
+    return ((uint16_t)p[0]) | ((uint16_t)p[1]<<8);
 }
 
 static inline int32_t get_32bitBE(const uint8_t* p) {
-    return (p[0]<<24) | (p[1]<<16) | (p[2]<<8) | (p[3]);
+    return ((uint32_t)p[0]<<24) | ((uint32_t)p[1]<<16) | ((uint32_t)p[2]<<8) | ((uint32_t)p[3]);
 }
 
 static inline int32_t get_32bitLE(const uint8_t* p) {
-    return (p[0]) | (p[1]<<8) | (p[2]<<16) | (p[3]<<24);
+    return ((uint32_t)p[0]) | ((uint32_t)p[1]<<8) | ((uint32_t)p[2]<<16) | ((uint32_t)p[3]<<24);
 }
 
 static inline int64_t get_64bitBE(const uint8_t* p) {

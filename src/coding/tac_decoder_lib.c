@@ -1037,15 +1037,15 @@ static uint16_t crc16(const uint8_t* data, int length) {
 /* ************************************************************************* */
 
 static uint32_t get_u32be(const uint8_t* mem) {
-    return (mem[0] << 24) | (mem[1] << 16) | (mem[2] << 8) | mem[3];
+    return ((uint32_t)mem[0] << 24) | ((uint32_t)mem[1] << 16) | ((uint32_t)mem[2] << 8) | (uint32_t)mem[3];
 }
 
 static uint32_t get_u32le(const uint8_t* mem) {
-    return (mem[3] << 24) | (mem[2] << 16) | (mem[1] << 8) | mem[0];
+    return ((uint32_t)mem[3] << 24) | ((uint32_t)mem[2] << 16) | ((uint32_t)mem[1] << 8) | (uint32_t)mem[0];
 }
 
 static uint16_t get_u16le(const uint8_t* mem) {
-    return (mem[1] << 8) | mem[0];
+    return ((uint16_t)mem[1] << 8) | (uint16_t)mem[0];
 }
 
 static int init_header(tac_header_t* header, const uint8_t* buf) {

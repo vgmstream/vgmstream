@@ -157,6 +157,10 @@ as explained below, but often will use default values. Accepted codec strings:
 #   * For rare EA games [Harry Potter and the Chamber of Secrets (PC)]
 # - XA             CD-XA ADPCM (ISO 2048 mode1/data streams without subchannels)
 #   * For rare Saturn and PS2 games [Phantasy Star Collection (SAT), Fantavision (PS2), EA SAT videos]
+# - XA_EA         Electronic Arts XA ADPCM variation
+#   * For rare Saturn games [EA SAT videos]
+# - CP_YM          Capcom's Yamaha ADPCM
+#   * For rare Saturn games [Marvel Super Heroes vs Street Fighter (SAT)]
 codec = (codec string)
 ```
 
@@ -334,6 +338,8 @@ Usually each channel uses its own list, so we may need to set separation per cha
 Those 16-bit coefs can be little or big endian (usually BE), set `coef_endianness` directly or in an offset value where `0=LE, >0=BE`.
 
 While the coef table is almost always included per-file, some games have their coef table in the executable or precalculated somehow. You can set inline coefs instead of coef_offset. Format is a long string of bytes (optionally space-separated) like `coef_table = 0x1E02DE01 3C0C0EFA ...`. You still need to set `coef_spacing` and `coef_endianness` though.
+
+`coef_offset` is adjusted by `base_offset` and `subsong_spacing`. If offset points to some absolute offset that doesn't depend on subsong, set first `offset_absolute = 1`.
 ```
 coef_offset = (value)
 coef_spacing = (value)
@@ -390,7 +396,7 @@ Sets the name of the stream, most useful when used with subsongs. TXTH will read
 
 `name_size` defaults to 0, which reads until null-terminator or a non-ascii character is found.
 
-`name_offset` can be a (number) value, but being an offset it's also adjusted by `subsong_spacing`. If you need to point to some absolute offset (for example a subsong pointing to name in another table) that doesn't depend on subsong (must not be changed by `subsong_spacing`), use `name_offset_absolute`.
+`name_offset` is adjusted by `base_offset` and `subsong_spacing`. If offset points to some absolute offset that doesn't depend on subsong, set first `offset_absolute = 1`.
 ```
 name_offset = (value)
 name_size = (value)
@@ -453,6 +459,7 @@ Some games have headers for all files pasted together separate from the actual d
 ```
 name_table = (filename)
 ```
+If you set `name_table = *` it'll default to `.names.txt` (most common).
 
 Inside the table you define lines mapping a filename to a bunch of values, in this format:
 ```
@@ -1050,6 +1057,15 @@ codec = ASF
 sample_rate = 22050
 channels = 2
 num_samples = data_size
+```
+
+#### Marvel Super Heroes vs Street Fighter (SAT) .ADP.txth
+```
+codec = CP_YM
+sample_rate = 24000
+channels = 2
+
+#loops are in MM.BIN, table at 0x80700 + id*4 - 0x06018B00
 ```
 
 #### Sega Rally 3 (SAT) ALL_SOUND.txth

@@ -87,6 +87,7 @@ typedef enum {
 
     coding_XA,              /* CD-ROM XA 4-bit */
     coding_XA8,             /* CD-ROM XA 8-bit */
+    coding_XA_EA,           /* EA's Saturn XA (not to be confused with EA-XA) */
     coding_PSX,             /* Sony PS ADPCM (VAG) */
     coding_PSX_badflags,    /* Sony PS ADPCM with custom flag byte */
     coding_PSX_cfg,         /* Sony PS ADPCM with configurable frame size (int math) */
@@ -138,6 +139,7 @@ typedef enum {
 
     coding_AICA,            /* Yamaha AICA ADPCM (stereo) */
     coding_AICA_int,        /* Yamaha AICA ADPCM (mono/interleave) */
+    coding_CP_YM,           /* Capcom's Yamaha ADPCM (stereo/mono) */
     coding_ASKA,            /* Aska ADPCM */
     coding_NXAP,            /* NXAP ADPCM */
 

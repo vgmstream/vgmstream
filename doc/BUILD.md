@@ -553,7 +553,7 @@ To compile we'll use autotools with GCC preprocessor renaming:
   # creates Makefiles with Automake
   sh.exe ./configure --build=mingw32 --prefix=/c/celt0.6.1/bin/  --exec-prefix=/c/celt-0.6.1/bin/
 
-  # LDFLAGS are needed to create the .dll (Automake whinning)
+  # LDFLAGS are needed to create the .dll (Automake whining)
   # CFLAGS rename a few CELT functions (we don't import the rest so they won't clash)
   mingw32-make.exe clean
   mingw32-make.exe LDFLAGS="-no-undefined" AM_CFLAGS="-Dcelt_decode=celt_0061_decode -Dcelt_decoder_create=celt_0061_decoder_create -Dcelt_decoder_destroy=celt_0061_decoder_destroy -Dcelt_mode_create=celt_0061_mode_create -Dcelt_mode_destroy=celt_0061_mode_destroy -Dcelt_mode_info=celt_0061_mode_info"
@@ -563,7 +563,7 @@ To compile we'll use autotools with GCC preprocessor renaming:
   # creates Makefiles with Automake
   sh.exe ./configure --build=mingw32 --prefix=/c/celt-0.11.0/bin/  --exec-prefix=/c/celt-0.11.0/bin/
 
-  # LDFLAGS are needed to create the .dll (Automake whinning)
+  # LDFLAGS are needed to create the .dll (Automake whining)
   # CFLAGS rename a few CELT functions (notice one is different vs 0.6.1), CUSTOM_MODES is also a must.
   mingw32-make.exe clean
   mingw32-make.exe LDFLAGS="-no-undefined" AM_CFLAGS="-DCUSTOM_MODES=1 -Dcelt_decode=celt_0110_decode -Dcelt_decoder_create_custom=celt_0110_decoder_create_custom -Dcelt_decoder_destroy=celt_0110_decoder_destroy -Dcelt_mode_create=celt_0110_mode_create -Dcelt_mode_destroy=celt_0110_mode_destroy -Dcelt_mode_info=celt_0110_mode_info"
@@ -572,9 +572,11 @@ To compile we'll use autotools with GCC preprocessor renaming:
 - you need to create a .def file for those DLL with the renamed simbol names above
 - finally the includes. libcelt gives "celt.h" "celt_types.h" "celt_header.h", but since we renamed a few functions we have a simpler custom .h with minimal renamed symbols.
 
-For **Linux**, an option is using AUR's scripts (https://aur.archlinux.org/packages/vgmstream-git/) that similarly patch celt libs in PKGBUILD.
+For **Linux**, you can use CMake that similarly patch celt libs automatically.
 
 You can also get them from the official git (https://gitlab.xiph.org/xiph/celt) call `./autogen.sh` first, then pass call configure/make with renames (see `./make-build.sh`).
+
+Instead of passing `-DCUSTOM_MODES=1` to `make` you can pass `--enable-custom-codes` to *./configure*. There is also `--disable-oggtests`, `--disable-static/shared` and typical config. Note that if *./configure* finds Ogg in your system it'll try to build encoder/decoder test `tools` (that depend on libogg). There is no official way disable that or compile `libcelt` only, but you can force it by calling `make SUBDIRS=libcelt DIST_SUBDIRS=libcelt`, in case you have dependency issues.
 
 ### libspeex
 Adds support for Speex (inside custom containers), used in a few *EA* formats (`.sns`, `.sps`) for voices.

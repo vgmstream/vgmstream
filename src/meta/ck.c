@@ -2,42 +2,43 @@
 
 
 /* .cks - Cricket Audio stream [Part Time UFO (Android), Mega Man 1-6 (Android)]  */
-VGMSTREAM * init_vgmstream_cks(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
+VGMSTREAM* init_vgmstream_cks(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
     off_t start_offset;
-    int loop_flag, channel_count, codec, sample_rate;
+    int loop_flag, channels, codec, sample_rate;
     int32_t num_samples, loop_start, loop_end;
     size_t block_size;
 
 
     /* checks */
-    if (!check_extensions(streamFile, "cks"))
+    if (!is_id32be(0x00,sf, "ckmk"))
         goto fail;
-    if (read_32bitBE(0x00,streamFile) != 0x636B6D6B) /* "ckmk" */
-        goto fail;
-    /* 0x04(4): platform bitflags (from LSB: iOS, Android, OS X, Windows, WP8, Linux, tvOS, undefined/ignored) */
-    if (read_32bitLE(0x08,streamFile) != 0x00) /* expected file type (0x00: stream, 0x01: bank, 0x02+: unknown) */
-        goto fail;
-    if (read_32bitLE(0x0c,streamFile) != 0x02) /* file version (always 0x02) */
+    if (!check_extensions(sf, "cks"))
         goto fail;
 
-    codec = read_8bit(0x10,streamFile);
-    channel_count = read_8bit(0x11,streamFile);
-    sample_rate = (uint16_t)read_16bitLE(0x12,streamFile);
-    num_samples = read_32bitLE(0x14,streamFile) * read_16bitLE(0x1a,streamFile); /* number_of_blocks * samples_per_frame */
-    block_size = read_16bitLE(0x18,streamFile);
+    /* 0x04(4): platform bitflags (from LSB: iOS, Android, OS X, Windows, WP8, Linux, tvOS, undefined/ignored) */
+    if (read_u32le(0x08,sf) != 0x00) /* expected file type (0x00: stream, 0x01: bank, 0x02+: unknown) */
+        goto fail;
+    if (read_u32le(0x0c,sf) != 0x02) /* file version (always 0x02) */
+        goto fail;
+
+    codec = read_u8(0x10,sf);
+    channels = read_u8(0x11,sf);
+    sample_rate = read_u16le(0x12,sf);
+    num_samples = read_s32le(0x14,sf) * read_u16le(0x1a,sf); /* number_of_blocks * samples_per_frame */
+    block_size = read_u16le(0x18,sf);
     /* 0x1c(2): volume */
     /* 0x1e(2): pan */
-    loop_start = read_32bitLE(0x20,streamFile);
-    loop_end = read_32bitLE(0x24,streamFile);
-    loop_flag = read_16bitLE(0x28,streamFile) != 0; /* loop count (-1 = forever) */
+    loop_start = read_s32le(0x20,sf);
+    loop_end = read_s32le(0x24,sf);
+    loop_flag = read_s16le(0x28,sf) != 0; /* loop count (-1 = forever) */
     /* 0x2a(2): unused? */
 
     start_offset = 0x2c;
 
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count, loop_flag);
+    vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
     vgmstream->sample_rate = sample_rate;
@@ -56,15 +57,15 @@ VGMSTREAM * init_vgmstream_cks(STREAMFILE *streamFile) {
             break;
         case 0x02: /* adpcm [Part Time UFO (Android), Mega Man 1-6 (Android)] */
             vgmstream->coding_type = coding_MSADPCM_ck;
-            vgmstream->frame_size = block_size / channel_count; /* always 0x18 */
+            vgmstream->frame_size = block_size / channels; /* always 0x18 */
             break;
         default:
             goto fail;
     }
     vgmstream->layout_type = layout_interleave;
-    vgmstream->interleave_block_size = block_size / channel_count;
+    vgmstream->interleave_block_size = block_size / channels;
 
-    if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
+    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
         goto fail;
     return vgmstream;
 
@@ -75,29 +76,30 @@ fail:
 
 
 /* .ckb - Cricket Audio bank [Fire Emblem Heroes (Android), Mega Man 1-6 (Android)]  */
-VGMSTREAM * init_vgmstream_ckb(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
+VGMSTREAM* init_vgmstream_ckb(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
     off_t start_offset, name_offset = 0;
-    int loop_flag, channel_count, codec, sample_rate;
-    int32_t num_samples, loop_start, loop_end;
-    size_t block_size, stream_size;
-    int total_subsongs, target_subsong = streamFile->stream_index;
+    int loop_flag = 0, channels = 0, codec = 0, sample_rate = 0;
+    int32_t num_samples = 0, loop_start = 0, loop_end = 0;
+    size_t block_size = 0, stream_size = 0;
+    int total_subsongs, target_subsong = sf->stream_index;
 
 
     /* checks */
-    if (!check_extensions(streamFile, "ckb"))
+    if (!is_id32be(0x00,sf, "ckmk"))
         goto fail;
-    if (read_32bitBE(0x00,streamFile) != 0x636B6D6B) /* "ckmk" */
+    if (!check_extensions(sf, "ckb"))
         goto fail;
+
     /* 0x04(4): platform bitflags (from LSB: iOS, Android, OS X, Windows, WP8, Linux, tvOS, undefined/ignored) */
-    if (read_32bitLE(0x08,streamFile) != 0x01) /* expected file type (0x00: stream, 0x01: bank, 0x02+: unknown) */
+    if (read_u32le(0x08,sf) != 0x01) /* expected file type (0x00: stream, 0x01: bank, 0x02+: unknown) */
         goto fail;
-    if (read_32bitLE(0x0c,streamFile) != 0x02) /* file version (always 0x02) */
+    if (read_u32le(0x0c,sf) != 0x02) /* file version (always 0x02) */
         goto fail;
 
     /* 0x10: bank name (size 0x1c+1) */
     /* 0x30/34: reserved? */
-    total_subsongs = read_32bitLE(0x38,streamFile);
+    total_subsongs = read_u32le(0x38,sf);
     if (target_subsong == 0) target_subsong = 1;
     if (target_subsong < 0 || target_subsong > total_subsongs || total_subsongs < 1) goto fail;
     /* 0x3c: total_subsongs again? (ignored) */
@@ -111,18 +113,18 @@ VGMSTREAM * init_vgmstream_ckb(STREAMFILE *streamFile) {
 
         for (i = 0; i < total_subsongs; i++) {
             name_offset = header_offset+0x00; /* stream name (size 0x1c+1) */
-            codec = read_8bit(header_offset+0x20,streamFile);
-            channel_count = read_8bit(header_offset+0x21,streamFile);
-            sample_rate = (uint16_t)read_16bitLE(header_offset+0x22,streamFile);
-            num_samples = read_32bitLE(header_offset+0x24,streamFile) * read_16bitLE(header_offset+0x2a,streamFile); /* number_of_blocks * samples_per_frame */
-            block_size = read_16bitLE(header_offset+0x28,streamFile);
+            codec = read_8bit(header_offset+0x20,sf);
+            channels = read_8bit(header_offset+0x21,sf);
+            sample_rate = (uint16_t)read_16bitLE(header_offset+0x22,sf);
+            num_samples = read_32bitLE(header_offset+0x24,sf) * read_16bitLE(header_offset+0x2a,sf); /* number_of_blocks * samples_per_frame */
+            block_size = read_16bitLE(header_offset+0x28,sf);
             /* 0x2c(2): volume */
             /* 0x2e(2): pan */
-            loop_start = read_32bitLE(header_offset+0x30,streamFile);
-            loop_end = read_32bitLE(header_offset+0x34,streamFile);
-            loop_flag = read_16bitLE(header_offset+0x38,streamFile) != 0; /* loop count (-1 = forever) */
+            loop_start = read_32bitLE(header_offset+0x30,sf);
+            loop_end = read_32bitLE(header_offset+0x34,sf);
+            loop_flag = read_16bitLE(header_offset+0x38,sf) != 0; /* loop count (-1 = forever) */
             /* 0x3a(2): unused? */
-            stream_size = read_32bitLE(header_offset+0x3c,streamFile);
+            stream_size = read_32bitLE(header_offset+0x3c,sf);
             /* 0x40/44(4): unused? */
 
             if (target_subsong == (i+1))
@@ -136,7 +138,7 @@ VGMSTREAM * init_vgmstream_ckb(STREAMFILE *streamFile) {
 
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count, loop_flag);
+    vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
     vgmstream->sample_rate = sample_rate;
@@ -146,7 +148,7 @@ VGMSTREAM * init_vgmstream_ckb(STREAMFILE *streamFile) {
 
     vgmstream->num_streams = total_subsongs;
     vgmstream->stream_size = stream_size;
-    read_string(vgmstream->stream_name,0x1c+1, name_offset,streamFile);
+    read_string(vgmstream->stream_name,0x1c+1, name_offset,sf);
 
     vgmstream->meta_type = meta_CKB;
 
@@ -165,9 +167,9 @@ VGMSTREAM * init_vgmstream_ckb(STREAMFILE *streamFile) {
             goto fail;
     }
     vgmstream->layout_type = layout_interleave;
-    vgmstream->interleave_block_size = block_size / channel_count;
+    vgmstream->interleave_block_size = block_size / channels;
 
-    if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
+    if (!vgmstream_open_stream(vgmstream,sf,start_offset))
         goto fail;
     return vgmstream;
 

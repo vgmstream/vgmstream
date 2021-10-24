@@ -81,9 +81,11 @@ VGMSTREAM* init_vgmstream_aifc(STREAMFILE* sf) {
 
 
     /* checks */
+    if (!is_id32be(0x00,sf, "FORM"))
+        goto fail;
+
     /* .aif: common (AIFF or AIFC), .aiff: common AIFF, .aifc: common AIFC
-     * .laif/laifc/laiff: for plugins
-     * .aifcl/aiffl: for plugins?
+     * .laif/laiff/laifc: for plugins
      * .cbd2: M2 games
      * .bgm: Super Street Fighter II Turbo (3DO)
      * .acm: Crusader - No Remorse (SAT)
@@ -91,15 +93,17 @@ VGMSTREAM* init_vgmstream_aifc(STREAMFILE* sf) {
      * .ai: Dragon Force (SAT)
      * (extensionless: Doom (3DO)
      * .fda: Homeworld 2 (PC)
-     * .n64: Turok (N64) src */
+     * .n64: Turok (N64) src
+     * .pcm: Road Rash (SAT)
+     */
     if (check_extensions(sf, "aif,laif,")) {
         is_aifc_ext = 1;
         is_aiff_ext = 1;
     }
-    else if (check_extensions(sf, "aifc,laifc,aifcl,afc,cbd2,bgm,fda,n64")) {
+    else if (check_extensions(sf, "aifc,laifc,afc,cbd2,bgm,fda,n64")) {
         is_aifc_ext = 1;
     }
-    else if (check_extensions(sf, "aiff,laiff,acm,adp,ai,aiffl")) {
+    else if (check_extensions(sf, "aiff,laiff,acm,adp,ai,pcm")) {
         is_aiff_ext = 1;
     }
     else {
@@ -107,17 +111,16 @@ VGMSTREAM* init_vgmstream_aifc(STREAMFILE* sf) {
     }
 
     file_size = get_streamfile_size(sf);
-    if (read_u32be(0x00,sf) != 0x464F524D &&  /* "FORM" */
-        read_u32be(0x04,sf)+0x08 != file_size)
+    if (read_u32be(0x04,sf) + 0x08 != file_size)
         goto fail;
 
     /* AIFF originally allowed only PCM (non-compressed) audio, so newer AIFC was added,
      * though some AIFF with other codecs exist */
-    if (read_u32be(0x08,sf) == 0x41494643) { /* "AIFC" */
+    if (is_id32be(0x08,sf, "AIFC")) {
         if (!is_aifc_ext) goto fail;
         is_aifc = 1;
     }
-    else if (read_u32be(0x08,sf) == 0x41494646) { /* "AIFF" */
+    else if (is_id32be(0x08,sf, "AIFF")) {
         if (!is_aiff_ext) goto fail;
         is_aiff = 1;
     }
@@ -160,9 +163,7 @@ VGMSTREAM* init_vgmstream_aifc(STREAMFILE* sf) {
                     if (comm_found) goto fail;
                     comm_found = 1;
 
-                    channels = read_u16be(offset + 0x00,sf);
-                    if (channels <= 0) goto fail;
-
+                    channels     = read_u16be(offset + 0x00,sf);
                     sample_count = read_u32be(offset + 0x02,sf); /* sample_frames in theory, depends on codec */
                     sample_size  = read_u16be(offset + 0x06,sf);
                     sample_rate  = read_f80be(offset + 0x08,sf);
@@ -233,7 +234,7 @@ VGMSTREAM* init_vgmstream_aifc(STREAMFILE* sf) {
                                 coding_type = coding_PCM16BE;
                                 interleave = 2;
                                 break;
-                            case 4: /* Crusader: No Remorse (SAT), Road Rash (3DO) */
+                            case 4: /* Crusader: No Remorse (SAT), Road Rash (3DO/SAT) */
                                 coding_type = coding_XA;
                                 break;
                             default:

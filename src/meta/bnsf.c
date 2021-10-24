@@ -1,6 +1,6 @@
 #include "meta.h"
 #include "../coding/coding.h"
-#include "../util.h"
+#include "../util/chunks.h"
 #include "bnsf_keys.h"
 
 
@@ -13,55 +13,76 @@ static void find_bnsf_key(STREAMFILE *sf, off_t start, g7221_codec_data *data, u
 #endif
 
 /* BNSF - Bandai Namco Sound Format/File [Tales of Graces (Wii), Tales of Berseria (PS4)] */
-VGMSTREAM * init_vgmstream_bnsf(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
-    off_t start_offset = 0, first_offset = 0x0C;
-    int loop_flag = 0, channel_count = 0, sample_rate;
-    int num_samples, loop_start = 0, loop_end = 0, loop_adjust, block_samples;
+VGMSTREAM* init_vgmstream_bnsf(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
+    off_t start_offset = 0;
+    int loop_flag = 0, channels = 0, sample_rate = 0;
+    uint32_t num_samples = 0, loop_start = 0, loop_end = 0, loop_adjust = 0, block_samples = 0;
     uint32_t codec, flags = 0;
-    size_t bnsf_size, sdat_size, block_size;
-    off_t loop_chunk = 0, sfmt_chunk, sdat_chunk;
+    size_t bnsf_size, block_size = 0;
 
 
     /* checks */
-    if (!check_extensions(streamFile,"bnsf"))
+    if (!is_id32be(0x00,sf, "BNSF"))
         goto fail;
-    if (read_32bitBE(0,streamFile) != 0x424E5346) /* "BNSF" */
-        goto fail;
-
-    bnsf_size = read_32bitBE(0x04,streamFile);
-    codec = read_32bitBE(0x08,streamFile);
-
-    if (bnsf_size + (codec == 0x49533232 ? 0x00 : 0x08) != get_streamfile_size(streamFile)) /* IS22 uses full size */
+    if (!check_extensions(sf,"bnsf"))
         goto fail;
 
-    if (!find_chunk_be(streamFile, 0x73666d74,first_offset,0, &sfmt_chunk,NULL)) /* "sfmt" */
+    bnsf_size = read_u32be(0x04,sf);
+    codec = read_u32be(0x08,sf);
+
+    if (codec != get_id32be("IS22")) /* uses full size */
+        bnsf_size += 0x08;
+    if (bnsf_size != get_streamfile_size(sf))
         goto fail;
-    if (!find_chunk_be(streamFile, 0x73646174,first_offset,0, &sdat_chunk,&sdat_size)) /* "sdat" */
-        goto fail;
-    if ( find_chunk_be(streamFile, 0x6C6F6F70,first_offset,0, &loop_chunk,NULL)) { /* "loop" */
-        loop_flag = 1;
-        loop_start = read_32bitBE(loop_chunk+0x00,streamFile); /* block-aligned */
-        loop_end   = read_32bitBE(loop_chunk+0x04,streamFile) + 1;
+
+    {
+        enum {
+            CHUNK_sfmt = 0x73666d74,
+            CHUNK_sdat = 0x73646174,
+            CHUNK_loop = 0x6C6F6F70,
+        };
+        chunk_t rc = {0};
+
+        rc.be_size = 1;
+        rc.current = 0x0C;
+        while (next_chunk(&rc, sf)) {
+            switch(rc.type) {
+                case CHUNK_sfmt:
+                    flags         = read_u16be(rc.offset+0x00,sf);
+                    channels      = read_u16be(rc.offset+0x02,sf);
+                    sample_rate   = read_s32be(rc.offset+0x04,sf);
+                    num_samples   = read_s32be(rc.offset+0x08,sf);
+                    loop_adjust   = read_s32be(rc.offset+0x0c,sf); /* 0 when no loop */
+                    block_size    = read_u16be(rc.offset+0x10,sf);
+                    block_samples = read_u16be(rc.offset+0x12,sf);
+                    //max_samples = sdat_size / block_size * block_samples;
+                    break;
+
+                case CHUNK_loop:
+                    loop_flag = 1;
+                    loop_start = read_s32be(rc.offset+0x00,sf); /* block-aligned */
+                    loop_end   = read_s32be(rc.offset+0x04,sf) + 1;
+                    break;
+
+                case CHUNK_sdat:
+                    start_offset = rc.offset;
+                    break;
+
+                default:
+                    break;
+            }
+        }
     }
 
-    flags         = read_16bitBE(sfmt_chunk+0x00,streamFile);
-    channel_count = read_16bitBE(sfmt_chunk+0x02,streamFile);
-    sample_rate   = read_32bitBE(sfmt_chunk+0x04,streamFile);
-    num_samples   = read_32bitBE(sfmt_chunk+0x08,streamFile);
-    loop_adjust   = read_32bitBE(sfmt_chunk+0x0c,streamFile); /* 0 when no loop */
-    block_size    = read_16bitBE(sfmt_chunk+0x10,streamFile);
-    block_samples = read_16bitBE(sfmt_chunk+0x12,streamFile);
-    //max_samples = sdat_size / block_size * block_samples;
-
-    start_offset = sdat_chunk;
-
     if (loop_adjust >= block_samples) /* decoder can't handle this */
+        goto fail;
+    if (!start_offset)
         goto fail;
 
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count, loop_flag);
+    vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
     vgmstream->sample_rate = sample_rate;
@@ -71,7 +92,7 @@ VGMSTREAM * init_vgmstream_bnsf(STREAMFILE *streamFile) {
 
     vgmstream->meta_type = meta_BNSF;
     vgmstream->layout_type = layout_interleave;
-    vgmstream->interleave_block_size = block_size / channel_count;
+    vgmstream->interleave_block_size = block_size / channels;
 
     switch (codec) {
 #ifdef VGM_USE_G7221
@@ -80,20 +101,20 @@ VGMSTREAM * init_vgmstream_bnsf(STREAMFILE *streamFile) {
             vgmstream->codec_data = init_g7221(vgmstream->channels, vgmstream->interleave_block_size);
             if (!vgmstream->codec_data) goto fail;
 
-            /* get decryption key in .bnsfkey file or list, for later games' voices
-             * [The Idolm@ster 2 (PS3/X360), Tales of Zestiria (PS3/PC)] */
+            /* get decryption key in .bnsfkey file or list, for later games' voices and some odd BGM
+             * [THE iDOL@STER 2 (PS3/X360), Tales of Zestiria (PS3/PC)] */
             if (flags != 0) { /* only known value is 0x02 though */
                 size_t keysize;
                 uint8_t key[24] = {0}; /* keystring 0-padded to 192-bit */
 
-                keysize = read_key_file(key, sizeof(key), streamFile);
+                keysize = read_key_file(key, sizeof(key), sf);
 #ifdef BNSF_BRUTEFORCE
                 if (1) {
-                    bruteforce_bnsf_key(streamFile, start_offset, vgmstream->codec_data, key);
+                    bruteforce_bnsf_key(sf, start_offset, vgmstream->codec_data, key);
                 } else
 #endif
                 if (keysize <= 0 || keysize > sizeof(key)) {
-                    find_bnsf_key(streamFile, start_offset, vgmstream->codec_data, key);
+                    find_bnsf_key(sf, start_offset, vgmstream->codec_data, key);
                 }
                 set_key_g7221(vgmstream->codec_data, key);
             }
@@ -118,10 +139,9 @@ VGMSTREAM * init_vgmstream_bnsf(STREAMFILE *streamFile) {
     }
 
 
-    if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
+    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
         goto fail;
     return vgmstream;
-
 fail:
     close_vgmstream(vgmstream);
     return NULL;
@@ -187,9 +207,9 @@ static void bruteforce_bnsf_key(STREAMFILE* sf, off_t start, g7221_codec_data* d
 
     sf_keys = open_streamfile_by_filename(sf, "keys.txt");
     if (!sf_keys) goto done;
-    
+
     keys_size = get_streamfile_size(sf_keys);
-    
+
     offset = 0x00;
     while (offset < keys_size) {
         int line_len;
@@ -204,7 +224,7 @@ static void bruteforce_bnsf_key(STREAMFILE* sf, off_t start, g7221_codec_data* d
             for (j = i + BNSF_MIN_KEY_LEN; j <= line_len; j++) {
                 int keylen = j - i;
                 const char* key = &line[i];
-                
+
                 test_key(sf, start, data, key, keylen, &best_score, best_key);
                 if (best_score == 1) {
                     VGM_ASSERT(best_score > 0, "BNSF: good key=%.24s (score=%i)\n", best_key, best_score);

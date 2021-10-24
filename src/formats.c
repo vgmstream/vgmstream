@@ -58,9 +58,7 @@ static const char* extension_list[] = {
     //"aif", //common
     "aif-Loop",
     "aifc", //common?
-    "aifcl", //fake extension for .aif???
     //"aiff", //common
-    "aiffl", //fake extension for .aif???
     "aix",
     "akb",
     "al",
@@ -435,6 +433,7 @@ static const char* extension_list[] = {
     "sab",
     "sad",
     "saf",
+    "sam", //txth/reserved [Lost Kingdoms 2 (GC)]
     "sap",
     "sb0",
     "sb1",
@@ -591,6 +590,7 @@ static const char* extension_list[] = {
     "wd",
     "wem",
     "wii",
+    "wic", //txth/reserved [Road Rash (SAT)-videos]
     "wip", //txth/reserved [Colin McRae DiRT (PC)]
     "wlv", //txth/reserved [ToeJam & Earl III: Mission to Earth (DC)]
     "wmus",
@@ -740,6 +740,7 @@ static const coding_info coding_info_list[] = {
 
         {coding_XA,                 "CD-ROM XA 4-bit ADPCM"},
         {coding_XA8,                "CD-ROM XA 8-bit ADPCM"},
+        {coding_XA_EA,              "Electronic Arts XA 4-bit ADPCM"},
         {coding_PSX,                "Playstation 4-bit ADPCM"},
         {coding_PSX_badflags,       "Playstation 4-bit ADPCM (bad flags)"},
         {coding_PSX_cfg,            "Playstation 4-bit ADPCM (configurable)"},
@@ -790,6 +791,7 @@ static const coding_info coding_info_list[] = {
         {coding_WS,                 "Westwood Studios VBR ADPCM"},
         {coding_AICA,               "Yamaha AICA 4-bit ADPCM"},
         {coding_AICA_int,           "Yamaha AICA 4-bit ADPCM (mono/interleave)"},
+        {coding_CP_YM,              "Capcom Yamaha 4-bit ADPCM"},
         {coding_ASKA,               "tri-Ace Aska 4-bit ADPCM"},
         {coding_NXAP,               "Nex NXAP 4-bit ADPCM"},
         {coding_TGC,                "Tiger Game.com 4-bit ADPCM"},
