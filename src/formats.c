@@ -598,6 +598,7 @@ static const char* extension_list[] = {
     "wpd",
     "wsd",
     "wsi",
+    "wst", //txth/reserved [3jigen Shoujo o Hogo Shimashita (PC)]
     "wua",
     "wv2",
     "wv6",
