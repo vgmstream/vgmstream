@@ -49,6 +49,13 @@ jobs:
           ${{runner.workspace}}/embuild/dependencies/ffmpeg/bin/usr/local/lib
         key: wasm-ffmpeg-${{ hashFiles('cmake/dependencies/ffmpeg.cmake') }}
 
+    - name: Cache jansson
+      uses: actions/cache@v2
+      with:
+        path: |
+          ${{runner.workspace}}/embuild/dependencies/jansson/src/.libs
+        key: wasm-jansson-${{ hashFiles('cmake/dependencies/jansson.cmake') }}
+
     - name: Cache atrac9
       uses: actions/cache@v2
       with:
@@ -62,6 +69,14 @@ jobs:
         path: |
           ${{runner.workspace}}/embuild/dependencies/libg719_decode/libg719_decode.a
         key: wasm-g719-${{ hashFiles('cmake/dependencies/g719.cmake') }}
+
+    - name: Cache mpg123
+      uses: actions/cache@v2
+      with:
+        path: |
+          ${{runner.workspace}}/dependencies/mpg123
+          ${{runner.workspace}}/embuild/dependencies/mpg123/src/libmpg123/.libs
+        key: wasm-mpg123-${{ hashFiles('cmake/dependencies/mpg123.cmake') }}
 
     - name: Cache speex
       uses: actions/cache@v2

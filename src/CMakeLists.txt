@@ -60,16 +60,18 @@ setup_target(libvgmstream)
 target_include_directories(libvgmstream PRIVATE ${libvgmstream_includes})
 
 # libvgmstream.so
-add_library(libvgmstream_shared SHARED EXCLUDE_FROM_ALL ${libvgmstream_sources})
-set_target_properties(libvgmstream_shared PROPERTIES
-	PREFIX ""
-	OUTPUT_NAME "libvgmstream"
-)
-
-if(USE_FFMPEG AND FFMPEG_COMPILE)
-	add_dependencies(libvgmstream_shared avcodec)
+if(NOT EMSCRIPTEN)
+	add_library(libvgmstream_shared SHARED EXCLUDE_FROM_ALL ${libvgmstream_sources})
+	set_target_properties(libvgmstream_shared PROPERTIES
+		PREFIX ""
+		OUTPUT_NAME "libvgmstream"
+	)
+	
+	if(USE_FFMPEG AND FFMPEG_COMPILE)
+		add_dependencies(libvgmstream_shared avcodec)
+	endif()
+	
+	setup_target(libvgmstream_shared TRUE)
+	
+	target_include_directories(libvgmstream_shared PRIVATE ${libvgmstream_includes})
 endif()
-
-setup_target(libvgmstream_shared TRUE)
-
-target_include_directories(libvgmstream_shared PRIVATE ${libvgmstream_includes})

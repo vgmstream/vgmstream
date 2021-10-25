@@ -36,9 +36,22 @@ if(NOT WIN32 AND USE_MPEG)
 				)
 			endif()
 			
+			set(MPEG_CONFIGURE
+				--enable-static
+				--disable-shared
+				CC="${CMAKE_C_COMPILER}"
+				AR="${CMAKE_AR}"
+				RANLIB="${CMAKE_RANLIB}"
+			)
+			if(EMSCRIPTEN)
+				list(APPEND MPEG_CONFIGURE
+					--with-cpu=generic_fpu
+				)
+			endif()
+			
 			file(MAKE_DIRECTORY ${MPEG_BIN})
 			add_custom_target(MPEG_CONFIGURE
-				COMMAND "${MPEG_PATH}/configure" --enable-static --disable-shared CC="${CMAKE_C_COMPILER}" AR="${CMAKE_AR}"
+				COMMAND "${MPEG_PATH}/configure" ${MPEG_CONFIGURE}
 				DEPENDS ${MPEG_PATH}/configure
 				BYPRODUCTS ${MPEG_BIN}/Makefile
 				WORKING_DIRECTORY ${MPEG_BIN}
