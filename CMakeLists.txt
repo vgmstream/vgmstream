@@ -69,6 +69,7 @@ if(NOT WIN32)
 	set(CELT0061_PATH CACHE PATH "Path to CELT version 0.6.1")
 	set(CELT0110_PATH CACHE PATH "Path to CELT version 0.11.0")
 	set(LIBAO_PATH CACHE PATH "Path to libao")
+	set(JANSSON_PATH CACHE PATH "Path to jansson")
 endif()
 
 # Build choices
@@ -99,8 +100,6 @@ else()
 endif()
 
 if(EMSCRIPTEN)
-	set(USE_MPEG OFF)
-	set(USE_JANSSON OFF)
 	set(BUILD_V123 OFF)
 	set(BUILD_AUDACIOUS OFF)
 	

@@ -19,6 +19,7 @@ target_link_libraries(vgmstream_cli libvgmstream)
 # Link to Jansson, if we have it
 if (USE_JANSSON AND JANSSON_FOUND)
     target_compile_definitions(vgmstream_cli PRIVATE HAVE_JSON)
+	target_include_directories(vgmstream_cli PRIVATE ${JANSSON_INCLUDE_DIRS})
 	target_link_libraries(vgmstream_cli jansson)
 endif()
 
