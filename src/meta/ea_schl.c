@@ -428,8 +428,10 @@ VGMSTREAM* init_vgmstream_ea_abk(STREAMFILE* sf) {
 
         case 0x02:
             astData = open_streamfile_by_ext(sf, "ast");
-            if (!astData)
+            if (!astData) {
+                vgm_logi("EA ABK: .ast file not found (find and put together)\n");
                 goto fail;
+            }
 
             /* looped sounds basically consist of two independent segments
              * the first one is loop start, the second one is loop body */
@@ -737,7 +739,7 @@ static STREAMFILE* open_mapfile_pair(STREAMFILE* sf, int track /*, int num_track
         }
     }
 
-    VGM_LOG("No MPF/MUS pair specified for %s.\n", file_name);
+    vgm_logi("EA MPF: .mus file not found (find and put together)\n");
     return NULL;
 }
 
