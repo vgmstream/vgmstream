@@ -6,7 +6,6 @@ if(NOT WIN32 AND USE_JANSSON)
 		if(JANSSON_FOUND)
 			set(JANSSON_SOURCE "(system)")
 			set(JANSSON_PKG libjansson)
-			
 			link_directories(${JANSSON_LIBRARY_DIRS})
 		endif()
 	endif()
