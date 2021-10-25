@@ -44,36 +44,9 @@ void block_update_ea_schl(off_t block_offset, VGMSTREAM * vgmstream) {
             block_samples = 0; /* layout ignores this */
         }
 
-#ifdef VGM_USE_MPEG
-        /* "SCHl" start block, when decoding multi files pasted together */
-        if (block_id == 0x5343486C) {
-            switch(vgmstream->coding_type) {
-                case coding_MPEG_custom:
-                case coding_MPEG_layer1:
-                case coding_MPEG_layer2:
-                case coding_MPEG_layer3:
-                case coding_MPEG_ealayer3:
-                    /* need to reset MPEG decoder to reset discards and trailing samples in the buffers */
-                    flush_mpeg(vgmstream->codec_data);
-                    break;
-                default:
-                    break;
-            }
-        }
-#endif
-        /* padding between "SCEl" and next "SCHl" (when subfiles exist) */
-        if (block_id == 0x00000000)
-            block_size = 0x04;
-
-        /* guard against errors (happens in bad rips/endianness, observed max is vid ~0x20000) */
-        if (block_size == 0x00 || block_size > 0xFFFFF || block_samples > 0xFFFF) {
-            block_size = 0x04;
-            block_samples = 0;
-        }
-
-        /* "SCEl" end chunk should be 32b-aligned, fixes some multi-SCHl [ex. Need for Speed 2 (PC) .eam] */
-        if (((block_offset + block_size) % 0x04) && block_id == 0x5343456C) {
-            block_size += 0x04 - ((block_offset + block_size) % 0x04);
+        if (block_id == 0x00000000 || block_id == 0xFFFFFFFF || block_id == 0x5343456C) { /* EOF */
+            vgmstream->current_block_samples = -1;
+            return;
         }
     }
 
