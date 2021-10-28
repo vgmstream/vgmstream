@@ -554,6 +554,7 @@ static const char* extension_list[] = {
     "vbx", //txth/reserved [THE Taxi 2 (PS2)]
     "vds",
     "vdm",
+    "vgi", //txth/reserved [Time Crisis II (PS2)]
     "vgm", //txth/reserved [Maximo (PS2)]
     "vgs",
     "vgv",
