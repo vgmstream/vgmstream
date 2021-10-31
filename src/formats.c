@@ -535,6 +535,7 @@ static const char* extension_list[] = {
     "txtp",
     "tydsp",
 
+    "u0",
     "ue4opus",
     "ulw",
     "um3",
