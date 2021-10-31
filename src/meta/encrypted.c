@@ -36,7 +36,7 @@ VGMSTREAM* init_vgmstream_encrypted(STREAMFILE* sf) {
             goto fail;
         }
 
-        temp_sf = setup_ogg_vorbis_streamfile(sf, cfg);
+        temp_sf = setup_ogg_vorbis_streamfile(sf, &cfg);
         if (!temp_sf) goto fail;
 
         vgmstream = init_vgmstream_ogg_vorbis(temp_sf);
@@ -53,7 +53,7 @@ VGMSTREAM* init_vgmstream_encrypted(STREAMFILE* sf) {
             goto fail;
         }
 
-        temp_sf = setup_ogg_vorbis_streamfile(sf, cfg);
+        temp_sf = setup_ogg_vorbis_streamfile(sf, &cfg);
         if (!temp_sf) goto fail;
 
 #ifdef VGM_USE_FFMPEG //TODO: allow MP3 without FFmpeg
@@ -72,7 +72,7 @@ VGMSTREAM* init_vgmstream_encrypted(STREAMFILE* sf) {
             goto fail;
         }
 
-        temp_sf = setup_ogg_vorbis_streamfile(sf, cfg);
+        temp_sf = setup_ogg_vorbis_streamfile(sf, &cfg);
         if (!temp_sf) goto fail;
 
         vgmstream = init_vgmstream_riff(temp_sf);

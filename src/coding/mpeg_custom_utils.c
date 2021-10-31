@@ -87,8 +87,10 @@ int mpeg_custom_setup_init_default(STREAMFILE* sf, off_t start_offset, mpeg_code
         //case MPEG_P3D: data->skip_samples = info.frame_samples; break; /* matches Radical ADPCM (PC) output */
 
         /* FSBs (with FMOD DLLs) don't seem to need it. Particularly a few games (all from Wayforward?)
-         * contain audible garbage at the beginning, but it's actually there in-game too */
-        //case MPEG_FSB: data->skip_samples = 0; break;
+         * contain audible garbage at the beginning, but it's actually there in-game too.
+         * Games doing full loops also must not have delay (reuses mpeg state on loop) */
+        case MPEG_FSB:
+            data->skip_samples = 0; break;
 
         case MPEG_XVAG: /* set in header and needed for gapless looping */
             data->skip_samples = data->config.skip_samples; break;

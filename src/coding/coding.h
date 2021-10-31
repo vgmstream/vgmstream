@@ -478,7 +478,6 @@ void decode_mpeg(VGMSTREAM* vgmstream, sample_t* outbuf, int32_t samples_to_do, 
 void reset_mpeg(mpeg_codec_data* data);
 void seek_mpeg(VGMSTREAM* vgmstream, int32_t num_sample);
 void free_mpeg(mpeg_codec_data* data);
-void flush_mpeg(mpeg_codec_data* data);
 
 int mpeg_get_sample_rate(mpeg_codec_data* data);
 long mpeg_bytes_to_samples(long bytes, const mpeg_codec_data* data);
