@@ -481,6 +481,8 @@ decode_fail:
 /* UTILS */
 /*********/
 
+static void flush_mpeg(mpeg_codec_data* data, int is_loop);
+
 void free_mpeg(mpeg_codec_data* data) {
     if (!data)
         return;
@@ -513,7 +515,7 @@ void free_mpeg(mpeg_codec_data* data) {
 void reset_mpeg(mpeg_codec_data* data) {
     if (!data) return;
 
-    flush_mpeg(data);
+    flush_mpeg(data, 0);
 
 #if 0
     /* flush_mpeg properly resets mpg123 with mpg123_open_feed, and
@@ -550,7 +552,7 @@ void seek_mpeg(VGMSTREAM* vgmstream, int32_t num_sample) {
     else {
         int i;
 
-        flush_mpeg(data);
+        flush_mpeg(data, 1);
 
         /* restart from 0 and manually discard samples, since we don't really know the correct offset */
         for (i = 0; i < data->streams_size; i++) {
@@ -566,7 +568,7 @@ void seek_mpeg(VGMSTREAM* vgmstream, int32_t num_sample) {
 }
 
 /* resets mpg123 decoder and its internals without seeking, useful when a new MPEG substream starts */
-void flush_mpeg(mpeg_codec_data* data) {
+static void flush_mpeg(mpeg_codec_data* data, int is_loop) {
     if (!data)
         return;
 
@@ -578,7 +580,10 @@ void flush_mpeg(mpeg_codec_data* data) {
         int i;
         /* re-start from 0 */
         for (i=0; i < data->streams_size; i++) {
-            mpg123_open_feed(data->streams[i]->m);
+            /* On loop FSB retains MDCT state so it mixes with next/loop frame (confirmed with recordings).
+             * This only matters on full loops and if there is no encoder delay (since loops use discard right now) */
+            if (is_loop && data->custom && !(data->type == MPEG_FSB))
+                mpg123_open_feed(data->streams[i]->m);
             data->streams[i]->bytes_in_buffer = 0;
             data->streams[i]->buffer_full = 0;
             data->streams[i]->buffer_used = 0;
