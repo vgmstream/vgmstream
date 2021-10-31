@@ -14,6 +14,9 @@ VGMSTREAM* init_vgmstream_ads(STREAMFILE* sf) {
 
 
     /* checks */
+    if (!is_id32be(0x00,sf,"SShd"))
+        goto fail;
+
     /* .ads: actual extension
      * .ss2: demuxed videos (fake?)
      * .pcm: Taisho Mononoke Ibunroku (PS2)
@@ -23,20 +26,20 @@ VGMSTREAM* init_vgmstream_ads(STREAMFILE* sf) {
     if (!check_extensions(sf, "ads,ss2,pcm,adx,,800"))
         goto fail;
 
-    if (!is_id32be(0x00,sf,"SShd") &&
-        !is_id32be(0x20,sf,"SSbd"))
-        goto fail;
-    if (read_32bitLE(0x04,sf) != 0x18 && /* standard header size */
-        read_32bitLE(0x04,sf) != 0x20)   /* True Fortune (PS2) */
+    if (read_u32le(0x04,sf) != 0x18 &&  /* standard header size */
+        read_u32le(0x04,sf) != 0x20 &&  /* True Fortune (PS2) */
+        read_u32le(0x04,sf) != get_streamfile_size(sf) - 0x08) /* Katamari Damacy videos */
         goto fail;
 
+    if (!is_id32be(0x20,sf,"SSbd"))
+        goto fail;
 
     /* base values (a bit unorderly since devs hack ADS too much and detection is messy) */
     {
-        codec = read_32bitLE(0x08,sf);
-        sample_rate = read_32bitLE(0x0C,sf);
-        channels = read_32bitLE(0x10,sf); /* up to 4 [Eve of Extinction (PS2)] */
-        interleave = read_32bitLE(0x14,sf); /* set even when mono */
+        codec = read_u32le(0x08,sf);
+        sample_rate = read_s32le(0x0C,sf);
+        channels = read_s32le(0x10,sf); /* up to 4 [Eve of Extinction (PS2)] */
+        interleave = read_s32le(0x14,sf); /* set even when mono */
 
 
         switch(codec) {
@@ -61,7 +64,7 @@ VGMSTREAM* init_vgmstream_ads(STREAMFILE* sf) {
 
             case 0x00: /* PCM16BE from official docs, probably never used */
             default:
-                VGM_LOG("ADS: unknown codec\n");
+                vgm_logi("ADS: unknown codec\n");
                 goto fail;
         }
     }
@@ -127,8 +130,8 @@ VGMSTREAM* init_vgmstream_ads(STREAMFILE* sf) {
     {
         uint32_t loop_start, loop_end;
 
-        loop_start = read_32bitLE(0x18,sf);
-        loop_end = read_32bitLE(0x1C,sf);
+        loop_start = read_u32le(0x18,sf);
+        loop_end = read_u32le(0x1C,sf);
 
         loop_flag = 0;
 
@@ -144,7 +147,7 @@ VGMSTREAM* init_vgmstream_ads(STREAMFILE* sf) {
                 loop_start_offset = loop_start * 0x10;
                 ignore_silent_frame_capcom = 1;
             }
-            else if (read_32bitBE(0x28,sf) == 0x50414421) { /* "PAD!" padding until 0x800 */
+            else if (is_id32be(0x28,sf, "PAD!")) { /* padding until 0x800 */
                 /* Super Galdelic Hour: loop_start is PCM bytes */
                 loop_flag = 1;
                 loop_start_sample = loop_start / 2 / channels;
