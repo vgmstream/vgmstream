@@ -221,7 +221,7 @@ VGMSTREAM* init_vgmstream_fsb(STREAMFILE* sf) {
                 }
                 else {
                     /* subsong header for normal files */
-                    stream_header_size = (uint16_t)read_16bitLE(header_offset+0x00,sf);
+                    stream_header_size = read_u16le(header_offset+0x00,sf);
                     fsb.name_offset = header_offset+0x02;
                     fsb.name_size   = 0x20-0x02;
                     fsb.num_samples = read_32bitLE(header_offset+0x20,sf);
@@ -231,7 +231,7 @@ VGMSTREAM* init_vgmstream_fsb(STREAMFILE* sf) {
                     fsb.mode        = read_32bitLE(header_offset+0x30,sf);
                     fsb.sample_rate = read_32bitLE(header_offset+0x34,sf);
                     /* 0x38: defvol, 0x3a: defpan, 0x3c: defpri */
-                    fsb.channels = read_16bitLE(header_offset+0x3e,sf);
+                    fsb.channels = read_u16le(header_offset+0x3e,sf);
                     /* FSB3.1/4:
                      *   0x40: mindistance, 0x44: maxdistance, 0x48: varfreq/size_32bits
                      *   0x4c: varvol, 0x4e: fsb.varpan */
@@ -287,9 +287,9 @@ VGMSTREAM* init_vgmstream_fsb(STREAMFILE* sf) {
     //;VGM_ASSERT(fsb.flags & FMOD_FSB_SOURCE_ENCRYPTED, "FSB ENCRYPTED found\n");
 
     /* sometimes there is garbage at the end or missing bytes due to improper ripping */
-    VGM_ASSERT(fsb.base_header_size + fsb.sample_headers_size + fsb.sample_data_size != sf->get_size(sf),
+    vgm_asserti(fsb.base_header_size + fsb.sample_headers_size + fsb.sample_data_size != get_streamfile_size(sf),
                "FSB wrong head/data_size found (expected 0x%x vs 0x%x)\n",
-               fsb.base_header_size + fsb.sample_headers_size + fsb.sample_data_size, sf->get_size(sf));
+               fsb.base_header_size + fsb.sample_headers_size + fsb.sample_data_size, get_streamfile_size(sf));
 
     /* autodetect unwanted loops */
     {
@@ -319,7 +319,7 @@ VGMSTREAM* init_vgmstream_fsb(STREAMFILE* sf) {
 
         fsb.loop_flag = !(fsb.mode & FSOUND_LOOP_OFF); /* disabled manually */
         if (fsb.loop_flag && !enable_loop && full_loop && is_small) {
-            VGM_LOG("FSB: disable unwanted loop\n");
+            VGM_LOG("FSB: disabled unwanted loop\n");
             fsb.loop_flag = 0;
         }
     }
@@ -426,8 +426,8 @@ VGMSTREAM* init_vgmstream_fsb(STREAMFILE* sf) {
             /* get libcelt version (set in the first subsong only, but try all extradata just in case) */
             if (fsb.first_extradata_offset || fsb.extradata_offset) {
                 uint32_t lib = fsb.first_extradata_offset ?
-                        (uint32_t)read_32bitLE(fsb.first_extradata_offset, sf) :
-                        (uint32_t)read_32bitLE(fsb.extradata_offset, sf);;
+                        read_u32le(fsb.first_extradata_offset, sf) :
+                        read_u32le(fsb.extradata_offset, sf);
                 switch(lib) {
                     case 0x80000009: is_new_lib = 0; break; /* War Thunder (PC) */
                     case 0x80000010: is_new_lib = 1; break; /* Vessel (PC) */
@@ -436,7 +436,7 @@ VGMSTREAM* init_vgmstream_fsb(STREAMFILE* sf) {
             }
             else {
                 /* split FSBs? try to guess from observed bitstreams */
-                uint16_t frame = (uint16_t)read_16bitBE(fsb.stream_offset+0x04+0x04,sf);
+                uint16_t frame = read_u16be(fsb.stream_offset+0x04+0x04,sf);
                 if ((frame & 0xF000) == 0x6000 || frame == 0xFFFE) {
                     is_new_lib = 1;
                 } else {
