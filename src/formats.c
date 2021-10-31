@@ -83,6 +83,7 @@ static const char* extension_list[] = {
     "aud",
     "audio", //txth/reserved [Grimm Echoes (Android)]
     "aus",
+    "awa", //txth/reserved [Missing Parts Side A (PS2)]
     "awb",
     "awc",
 
