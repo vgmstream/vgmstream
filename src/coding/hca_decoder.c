@@ -218,8 +218,6 @@ static int test_hca_score(hca_codec_data* data, hca_keytest_t* hk, unsigned long
     if (!offset)
         offset = data->info.headerSize;
 
-//VGM_LOG("test=k\n");
-
     /* Due to the potentially large number of keys this must be tuned for speed.
      * Buffered IO seems fast enough (not very different reading a large block once vs frame by frame).
      * clHCA_TestBlock could be optimized a bit more. */
@@ -232,7 +230,7 @@ static int test_hca_score(hca_codec_data* data, hca_keytest_t* hk, unsigned long
     while (test_frames < HCA_KEY_MAX_TEST_FRAMES && current_frame < data->info.blockCount) {
         int score;
         size_t bytes;
-//VGM_LOG(" *frame\n");
+
         /* read and test frame */
         bytes = read_streamfile(data->data_buffer, offset, block_size, data->sf);
         if (bytes != block_size) {
@@ -256,8 +254,9 @@ static int test_hca_score(hca_codec_data* data, hca_keytest_t* hk, unsigned long
 
         current_frame++;
 
-        /* ignore silent frames at the beginning, up to a point and first non-blank  */
-        if (score == 0 && blank_frames < HCA_KEY_MAX_SKIP_BLANKS && !hk->start_offset) {
+        /* ignore silent frames at the beginning, up to a point (keep skipping as
+         * in rare cases there are one non-blank frame then a bunch, that skew results) */
+        if (score == 0 && blank_frames < HCA_KEY_MAX_SKIP_BLANKS /*&& !hk->start_offset*/) {
             blank_frames++;
             continue;
         }
@@ -283,7 +282,7 @@ static int test_hca_score(hca_codec_data* data, hca_keytest_t* hk, unsigned long
     if (test_frames > HCA_KEY_MIN_TEST_FRAMES && total_score > 0 && total_score <= test_frames) {
         total_score = 1;
     }
-//VGM_LOG("test=%i\n", total_score);
+
     clHCA_DecodeReset(data->handle);
     return total_score;
 }
