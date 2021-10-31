@@ -272,6 +272,31 @@ static int parse_header(STREAMFILE* sf_h, STREAMFILE* sf_b, strwav_header* strwa
         return 1;
     }
 
+    /* Taz Wanted demo (PC)[2003] */
+    if ( read_u32be(0x04,sf_h) == 0x00000900 &&
+         read_u32le(0x24,sf_h) == read_u32le(0xfc,sf_h) && /* sample rate repeat */
+         read_u32le(0x10c,sf_h) ==  header_size
+         ) {
+        /* 0x08: null */
+        /* 0x0c: hashname */
+        strwav->num_samples = read_s32le(0x20,sf_h);
+        strwav->sample_rate = read_s32le(0x24,sf_h);
+        /* 0x28: 16 bps */
+        strwav->flags       = read_u32le(0x2c,sf_h);
+        strwav->loop_end    = read_s32le(0x30,sf_h);
+        strwav->loop_start  = read_s32le(0x38,sf_h);
+        /* 0x58: number of chunks */
+        strwav->tracks      = read_s32le(0xD8,sf_h);
+        /* 0xfc: sample rate 2 */
+        /* 0x100: ? */
+        /* 0x10c: header size */
+
+        strwav->codec = IMA;
+        strwav->interleave  = strwav->tracks > 1 ? 0x8000 : 0x10000;
+        ;VGM_LOG("STR+WAV: header TAZd (PC)\n");
+        return 1;
+    }
+
     /* The Fairly OddParents - Breakin' da Rules (Xbox)[2003] */
     if ( read_u32be(0x04,sf_h) == 0x00000900 &&
          read_u32le(0x24,sf_h) == read_u32le(0xb0,sf_h) && /* sample rate repeat */
@@ -479,12 +504,14 @@ static int parse_header(STREAMFILE* sf_h, STREAMFILE* sf_b, strwav_header* strwa
         return 1;
     }
 
+    /* Taz Wanted (PC)[2002] */
     /* Zapper: One Wicked Cricket! Beta (Xbox)[2002] */
     if ( read_u32be(0x04,sf_h) == 0x00000900 &&
          read_u32le(0x0c,sf_h) != header_size &&
          read_u32le(0x24,sf_h) != 0 &&
          read_u32le(0x24,sf_h) == read_u32le(0x90,sf_h) && /* sample rate repeat */
-         read_u32le(0xa0,sf_h) == header_size /* ~0xC0 */
+         (read_u32le(0xa0,sf_h) == header_size ||   /* Zapper */
+          read_u32le(0xa0,sf_h) + 0x50 == header_size) /* Taz */
          ) {
         /* 0x08: null */
         /* 0x0c: hashname */
