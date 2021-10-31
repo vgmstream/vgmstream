@@ -813,6 +813,9 @@ static const hcakey_info hcakey_list[] = {
         // Girls' Frontline: Project Neural Cloud (Android)
         {210222522032314},      // 0000BF323EBFE0BA
 
+        // Super Robot Wars 30 (PC)
+        {6734488621090458},     // 0017ECFB5201069A
+
 };
 
 #endif/*_HCA_KEYS_H_*/
