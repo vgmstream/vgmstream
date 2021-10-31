@@ -260,8 +260,10 @@ static VGMSTREAM* parse_s10a_header(STREAMFILE* sf, off_t offset, uint16_t targe
     } else {
         /* streamed asset */
         astFile = open_streamfile_by_ext(sf, "ast");
-        if (!astFile)
+        if (!astFile) {
+            vgm_logi("EA ABK: .ast file not found (find and put together)\n");
             goto fail;
+        }
 
         if (read_32bitBE(0x00, astFile) != 0x53313053) /* "S10S" */
             goto fail;
@@ -604,7 +606,7 @@ static STREAMFILE *open_mapfile_pair(STREAMFILE* sf, int track /*, int num_track
         }
     }
 
-    VGM_LOG("No MPF/MUS pair specified for %s.\n", file_name);
+    vgm_logi("EA MPF: .mus file not found (find and put together)\n");
     return NULL;
 }
 

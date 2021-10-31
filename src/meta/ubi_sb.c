@@ -645,7 +645,7 @@ static VGMSTREAM *init_vgmstream_ubi_dat_main(ubi_sb_header *sb, STREAMFILE *sf_
         if (!sf_data) {
             /* play silence if external file is not found since Rayman 2 seems to rely on this behavior */
             vgm_logi("UBI DAT: external file '%s' not found (put together)\n", sb->resource_name);
-            strncat(sb->readable_name, " (missing)", sizeof(sb->readable_name));
+            concatn(sizeof(sb->readable_name), sb->readable_name, " (missing)");
             sb->duration = (float)pcm_bytes_to_samples(sb->stream_size, sb->channels, 16) / (float)sb->sample_rate;
             return init_vgmstream_ubi_sb_silence(sb);
         }
@@ -1301,8 +1301,11 @@ static VGMSTREAM* init_vgmstream_ubi_sb_audio(ubi_sb_header* sb, STREAMFILE* sf_
     if (sb->is_external) {
         sf_data = open_streamfile_by_filename(sf, sb->resource_name);
         if (sf_data == NULL) {
+            /* play silence if external file is not found  */
             vgm_logi("UBI SB: external file '%s' not found (put together)\n", sb->resource_name);
-            goto fail;
+            concatn(sizeof(sb->readable_name), sb->readable_name, " (missing)");
+            sb->duration = 1.0f;
+            return init_vgmstream_ubi_sb_silence(sb);
         }
     }
     else {
@@ -1342,8 +1345,11 @@ static VGMSTREAM* init_vgmstream_ubi_sb_layer(ubi_sb_header* sb, STREAMFILE* sf_
     if (sb->is_external) {
         sf_data = open_streamfile_by_filename(sf,sb->resource_name);
         if (sf_data == NULL) {
+            /* play silence if external file is not found  */
             vgm_logi("UBI SB: external file '%s' not found (put together)\n", sb->resource_name);
-            goto fail;
+            concatn(sizeof(sb->readable_name), sb->readable_name, " (missing)");
+            sb->duration = 1.0f;
+            return init_vgmstream_ubi_sb_silence(sb);
         }
     }
     else {
