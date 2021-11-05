@@ -263,7 +263,6 @@ static int parse_config(cli_config* cfg, int argc, char** argv) {
                 print_json_version();
                 goto fail;
             case 'I':
-                cfg->print_metaonly = 1;
                 cfg->print_metajson = 1;
                 break;
 #endif
@@ -796,6 +795,7 @@ static int convert_file(cli_config* cfg) {
     }
     else {
         print_json_info(vgmstream, cfg);
+        printf("\n");
     }
 #endif
 
