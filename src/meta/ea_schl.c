@@ -122,8 +122,8 @@ typedef struct {
     size_t stream_size;
 } ea_header;
 
-static VGMSTREAM * parse_schl_block(STREAMFILE* sf, off_t offset, int standalone);
-static VGMSTREAM * parse_bnk_header(STREAMFILE* sf, off_t offset, int target_stream, int is_embedded);
+static VGMSTREAM* parse_schl_block(STREAMFILE* sf, off_t offset, int standalone);
+static VGMSTREAM* parse_bnk_header(STREAMFILE* sf, off_t offset, int target_stream, int is_embedded);
 static int parse_variable_header(STREAMFILE* sf, ea_header* ea, off_t begin_offset, int max_length, int bnk_version);
 static uint32_t read_patch(STREAMFILE* sf, off_t* offset);
 static off_t get_ea_stream_mpeg_start_offset(STREAMFILE* sf, off_t start_offset, const ea_header* ea);
@@ -1538,17 +1538,18 @@ static int parse_variable_header(STREAMFILE* sf, ea_header* ea, off_t begin_offs
     ea->codec2 = EA_CODEC2_NONE;
 
     /* get platform info */
-    platform_id = read_32bitBE(offset, sf);
-    if (platform_id != 0x47535452 && (platform_id & 0xFFFF0000) != 0x50540000) {
+    platform_id = read_u32be(offset, sf);
+    if (platform_id != get_id32be("GSTR") && (platform_id & 0xFFFF0000) != get_id32be("PT\0\0")) {
         offset += 4; /* skip unknown field (related to blocks/size?) in "nbapsstream" (NBA2000 PS, FIFA2001 PS) */
-        platform_id = read_32bitBE(offset, sf);
+        platform_id = read_u32be(offset, sf);
     }
-    if (platform_id == 0x47535452) { /* "GSTR" = Generic STReam */
+
+    if (platform_id == get_id32be("GSTR")) { /* Generic STReam */
         ea->platform = EA_PLATFORM_GENERIC;
         offset += 4 + 4; /* GSTRs have an extra field (config?): ex. 0x01000000, 0x010000D8 BE */
     }
-    else if ((platform_id & 0xFFFF0000) == 0x50540000) { /* "PT" = PlaTform */
-        ea->platform = (uint16_t)read_16bitLE(offset + 2,sf);
+    else if ((platform_id & 0xFFFF0000) == get_id32be("PT\0\0")) { /* PlaTform */
+        ea->platform = read_u16le(offset + 2,sf);
         offset += 4;
     }
     else {
@@ -1558,7 +1559,7 @@ static int parse_variable_header(STREAMFILE* sf, ea_header* ea, off_t begin_offs
 
     /* parse mini-chunks/tags (variable, ommited if default exists; some are removed in later versions of sx.exe) */
     while (!is_header_end && offset - begin_offset < max_length) {
-        uint8_t patch_type = read_8bit(offset,sf);
+        uint8_t patch_type = read_u8(offset,sf);
         offset++;
 
         //;{ off_t test = offset; VGM_LOG("EA SCHl: patch=%02x at %lx, value=%x\n", patch_type, offset-1, read_patch(sf, &test)); }
@@ -1568,6 +1569,8 @@ static int parse_variable_header(STREAMFILE* sf, ea_header* ea, off_t begin_offs
                     read_patch(sf, &offset);
                 break;
 
+            case 0x03: /* unknown (0x3c, rare: Madden NFL 2001 PS1) */
+            case 0x04: /* unknown (0x3c, rare: Madden NFL 2001 PS1) */
             case 0x05: /* unknown (usually 0x50 except Madden NFL 3DS: 0x3e800) */
             case 0x06: /* priority (0..100, always 0x65 for streams, others for BNKs; rarely ommited) */
             case 0x07: /* unknown (BNK only: 36|3A|40) */
@@ -1734,7 +1737,7 @@ static int parse_variable_header(STREAMFILE* sf, ea_header* ea, off_t begin_offs
                 break;
 
             default:
-                VGM_LOG("EA SCHl: unknown patch 0x%02x\n", patch_type);
+                VGM_LOG("EA SCHl: unknown patch 0x%02x at %x\n", patch_type, (uint32_t)offset);
                 goto fail;
         }
     }
@@ -1901,7 +1904,7 @@ fail:
     return 0;
 }
 
-static void update_ea_stream_size(STREAMFILE* sf, off_t start_offset, VGMSTREAM *vgmstream) {
+static void update_ea_stream_size(STREAMFILE* sf, off_t start_offset, VGMSTREAM* vgmstream) {
     uint32_t block_id;
     size_t stream_size = 0, file_size;
 
