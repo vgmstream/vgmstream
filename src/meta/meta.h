@@ -594,7 +594,8 @@ VGMSTREAM * init_vgmstream_akb2(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_x360_ast(STREAMFILE *streamFile);
 
-VGMSTREAM * init_vgmstream_wwise(STREAMFILE *streamFile);
+VGMSTREAM* init_vgmstream_wwise(STREAMFILE* sf);
+VGMSTREAM* init_vgmstream_wwise_bnk(STREAMFILE* sf, int* p_prefetch);
 
 VGMSTREAM * init_vgmstream_ubi_raki(STREAMFILE* streamFile);
 

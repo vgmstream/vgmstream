@@ -14,6 +14,7 @@ VGMSTREAM* init_vgmstream_bkhd(STREAMFILE* sf) {
     uint32_t (*read_u32)(off_t,STREAMFILE*);
     float (*read_f32)(off_t,STREAMFILE*);
     int total_subsongs, target_subsong = sf->stream_index;
+    int prefetch = 0;
 
 
     /* checks */
@@ -120,7 +121,7 @@ VGMSTREAM* init_vgmstream_bkhd(STREAMFILE* sf) {
         subfile_size    = read_u32(offset + 0x08, sf);
     }
     
-    //;VGM_LOG("BKHD: %lx, %x\n", subfile_offset, subfile_size);
+    ;VGM_LOG("BKHD: %lx, %x\n", subfile_offset, subfile_size);
 
     /* detect format */
     if (subfile_offset <= 0 || subfile_size <= 0) {
@@ -151,7 +152,7 @@ VGMSTREAM* init_vgmstream_bkhd(STREAMFILE* sf) {
         if (!temp_sf) goto fail;
 
         if (is_riff) {
-            vgmstream = init_vgmstream_wwise(temp_sf);
+            vgmstream = init_vgmstream_wwise_bnk(temp_sf, &prefetch);
             if (!vgmstream) goto fail;
         }
         else {
@@ -178,6 +179,8 @@ VGMSTREAM* init_vgmstream_bkhd(STREAMFILE* sf) {
             snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%u/%s", subfile_id, info);
         else
             snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%u", subfile_id);
+        if (prefetch)
+            concatn(STREAM_NAME_SIZE, vgmstream->stream_name, " [pre]");
     }
 
     close_streamfile(temp_sf);
