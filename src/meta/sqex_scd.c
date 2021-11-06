@@ -110,7 +110,7 @@ VGMSTREAM* init_vgmstream_sqex_scd(STREAMFILE* sf) {
 
     /** stream header **/
     stream_size     = read_32bit(meta_offset+0x00,sf);
-    channels   = read_32bit(meta_offset+0x04,sf);
+    channels        = read_32bit(meta_offset+0x04,sf);
     sample_rate     = read_32bit(meta_offset+0x08,sf);
     codec           = read_32bit(meta_offset+0x0c,sf);
 
@@ -270,6 +270,7 @@ VGMSTREAM* init_vgmstream_sqex_scd(STREAMFILE* sf) {
         }
 #endif
         case 0x0C:      /* MS ADPCM [Final Fantasy XIV (PC) sfx] */
+        case 0x17:      /* MS ADPCM [Dragon Quest X (Switch)] (no diffs except frame size?) */
             vgmstream->coding_type = coding_MSADPCM;
             vgmstream->layout_type = layout_none;
             vgmstream->frame_size = read_16bit(extradata_offset + 0x0c, sf);

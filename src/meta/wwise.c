@@ -15,8 +15,9 @@ typedef enum { PCM, IMA, VORBIS, DSP, XMA2, XWMA, AAC, HEVAG, ATRAC9, OPUSNX, OP
 typedef struct {
     int big_endian;
     size_t file_size;
-    int truncated;
+    int prefetch;
     int is_wem;
+    int is_bnk;
 
     /* chunks references */
     off_t  fmt_offset;
@@ -57,10 +58,13 @@ typedef struct {
 static int parse_wwise(STREAMFILE* sf, wwise_header* ww);
 static int is_dsp_full_interleave(STREAMFILE* sf, wwise_header* ww, off_t coef_offset);
 
-
-
 /* Wwise - Audiokinetic Wwise (WaveWorks Interactive Sound Engine) middleware */
 VGMSTREAM* init_vgmstream_wwise(STREAMFILE* sf) {
+    return init_vgmstream_wwise_bnk(sf, NULL);
+}
+
+/* used in .bnk */
+VGMSTREAM* init_vgmstream_wwise_bnk(STREAMFILE* sf, int* p_prefetch) {
     VGMSTREAM* vgmstream = NULL;
     wwise_header ww = {0};
     off_t start_offset;
@@ -83,8 +87,12 @@ VGMSTREAM* init_vgmstream_wwise(STREAMFILE* sf) {
     if (!check_extensions(sf,"wem,wav,lwav,ogg,logg,xma,bnk"))
         goto fail;
 
+    ww.is_bnk = (p_prefetch != NULL);
     if (!parse_wwise(sf, &ww))
         goto fail;
+
+    if (p_prefetch)
+        *p_prefetch = ww.prefetch;
 
     read_u32 = ww.big_endian ? read_u32be : read_u32le;
     read_s32 = ww.big_endian ? read_s32be : read_s32le;
@@ -114,14 +122,14 @@ VGMSTREAM* init_vgmstream_wwise(STREAMFILE* sf) {
             vgmstream->layout_type = ww.channels > 1 ? layout_interleave : layout_none;
             vgmstream->interleave_block_size = 0x02;
 
-            if (ww.truncated) {
+            if (ww.prefetch) {
                 ww.data_size = ww.file_size - ww.data_offset;
             }
 
             vgmstream->num_samples = pcm_bytes_to_samples(ww.data_size, ww.channels, ww.bits_per_sample);
 
-            /* truncated .bnk RIFFs that only have header and no data is possible [Metal Gear Solid V (PC)] */
-            if (ww.truncated && !vgmstream->num_samples)
+            /* prefetch .bnk RIFFs that only have header and no data is possible [Metal Gear Solid V (PC)] */
+            if (ww.prefetch && !vgmstream->num_samples)
                 vgmstream->num_samples = 1; /* force something to avoid broken subsongs */
             break;
 
@@ -147,7 +155,7 @@ VGMSTREAM* init_vgmstream_wwise(STREAMFILE* sf) {
                 vgmstream->interleave_block_size = 0;
             }
 
-            if (ww.truncated) {
+            if (ww.prefetch) {
                 ww.data_size = ww.file_size - ww.data_offset;
             }
 
@@ -299,7 +307,7 @@ VGMSTREAM* init_vgmstream_wwise(STREAMFILE* sf) {
             start_offset += audio_offset;
 
             /* Vorbis is VBR so this is very approximate percent, meh */
-            if (ww.truncated) {
+            if (ww.prefetch) {
                 vgmstream->num_samples = (int32_t)(vgmstream->num_samples *
                         (double)(ww.file_size - start_offset) / (double)ww.data_size);
             }
@@ -333,7 +341,7 @@ VGMSTREAM* init_vgmstream_wwise(STREAMFILE* sf) {
                 goto fail;
             }
 
-            if (ww.truncated) {
+            if (ww.prefetch) {
                 ww.data_size = ww.file_size - ww.data_offset;
                 vgmstream->num_samples = dsp_bytes_to_samples(ww.data_size, ww.channels);
             }
@@ -381,7 +389,7 @@ VGMSTREAM* init_vgmstream_wwise(STREAMFILE* sf) {
             xma_fix_raw_samples(vgmstream, sf, ww.data_offset, ww.data_size, ww.xma2_offset ? ww.xma2_offset : ww.fmt_offset, 1,0);
 
             /* XMA is VBR so this is very approximate percent, meh */
-            if (ww.truncated) {
+            if (ww.prefetch) {
                 vgmstream->num_samples = (int32_t)(vgmstream->num_samples *
                         (double)(ww.file_size - start_offset) / (double)ww.data_size);
                 //todo data size, call function
@@ -449,7 +457,7 @@ VGMSTREAM* init_vgmstream_wwise(STREAMFILE* sf) {
             }
 
             /* OPUS is VBR so this is very approximate percent, meh */
-            if (ww.truncated) {
+            if (ww.prefetch) {
                 vgmstream->num_samples = (int32_t)(vgmstream->num_samples *
                         (double)(ww.file_size - start_offset) / (double)ww.data_size);
                 ww.data_size = ww.file_size - start_offset;
@@ -471,7 +479,7 @@ VGMSTREAM* init_vgmstream_wwise(STREAMFILE* sf) {
             /* 0x20: full samples (without encoder delay) */
 
             /* OPUS is VBR so this is very approximate percent, meh */
-            if (ww.truncated) {
+            if (ww.prefetch) {
                 vgmstream->num_samples = (int32_t)(vgmstream->num_samples *
                         (double)(ww.file_size - start_offset) / (double)ww.data_size);
                 ww.data_size = ww.file_size - start_offset;
@@ -532,7 +540,7 @@ VGMSTREAM* init_vgmstream_wwise(STREAMFILE* sf) {
                 goto fail;
 
             /* OPUS is VBR so this is very approximate percent, meh */
-            if (ww.truncated) {
+            if (ww.prefetch) {
                 vgmstream->num_samples = (int32_t)(vgmstream->num_samples *
                         (double)(ww.file_size - start_offset) / (double)ww.data_size);
                 ww.data_size = ww.file_size - start_offset;
@@ -641,7 +649,7 @@ VGMSTREAM* init_vgmstream_wwise(STREAMFILE* sf) {
             vgmstream->interleave_block_size = ww.block_size / ww.channels;
           //vgmstream->codec_endian = ww.big_endian; //?
 
-            if (ww.truncated) {
+            if (ww.prefetch) {
                 ww.data_size = ww.file_size - ww.data_offset;
             }
 
@@ -665,20 +673,20 @@ fail:
 static int is_dsp_full_interleave(STREAMFILE* sf, wwise_header* ww, off_t coef_offset) {
     /* older (only?) Wwise use full interleave for memory (in .bnk) files, but
      * detection from the .wem side is problematic [Punch Out!! (Wii)]
-     * - truncated point to streams = normal
+     * - prefetch point to streams = normal
      * - .bnk would be memory banks = full
      * - otherwise small-ish sizes, stereo, with initial predictors for the
      *   second channel matching half size = full
      * some files aren't detectable like this though, when predictors are 0
      * (but since memory wem aren't that used this shouldn't be too common) */
 
-    if (ww->truncated)
+    if (ww->prefetch)
         return 0;
 
     if (ww->channels == 1)
         return 0;
 
-    if (check_extensions(sf,"bnk"))
+    if (ww->is_bnk)
         return 1;
 
     if (ww->data_size > 0x30000)
@@ -910,9 +918,9 @@ static int parse_wwise(STREAMFILE* sf, wwise_header* ww) {
 
         if (ww->codec == PCM || ww->codec == IMA || ww->codec == VORBIS || ww->codec == DSP || ww->codec == XMA2 ||
             ww->codec == OPUSNX || ww->codec == OPUS || ww->codec == OPUSWW || ww->codec == PTADPCM) {
-            ww->truncated = 1; /* only seen those, probably all exist (XWMA, AAC, HEVAG, ATRAC9?) */
+            ww->prefetch = 1; /* only seen those, probably all exist (XWMA, AAC, HEVAG, ATRAC9?) */
         } else {
-            vgm_logi("WWISE: wrong expected size, maybe truncated (report)\n");
+            vgm_logi("WWISE: wrong expected size, maybe prefetch (report)\n");
             goto fail;
         }
     }
@@ -921,7 +929,7 @@ static int parse_wwise(STREAMFILE* sf, wwise_header* ww) {
     /* Cyberpunk 2077 has some mutant .wem, with proper Wwise header and PCMEX but data is standard OPUS.
      * From init bank and CAkSound's sources, those may be piped through their plugins. They come in
      * .opuspak (no names), have wrong riff/data sizes and only seem used for sfx (other audio is Vorbis). */
-    if (ww->format == 0xFFFE && ww->truncated) {
+    if (ww->format == 0xFFFE && ww->prefetch) {
         if (read_u32be(ww->data_offset + 0x00, sf) == 0x4F676753) {
             ww->codec = OPUSCPR;
         }
