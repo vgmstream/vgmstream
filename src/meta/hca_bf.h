@@ -40,14 +40,13 @@ static void bruteforce_hca_key_bin_type(STREAMFILE* sf, hca_codec_data* hca_data
     hca_keytest_t hk = {0};
 
     hk.subkey = subkey;
-
+    *p_keycode = 0;
 
     /* load whole file in memory for performance (exes with keys shouldn't be too big) */
     sf_keys = open_streamfile_by_filename(sf, "keys.bin");
     if (!sf_keys) return;
 
     VGM_LOG("HCA BF: test keys.bin (type %i)\n", type);
-    *p_keycode = 0;
 
     keys_size = get_streamfile_size(sf_keys);
 
@@ -110,16 +109,14 @@ done:
 
 static void bruteforce_hca_key_bin(STREAMFILE* sf, hca_codec_data* hca_data, unsigned long long* p_keycode, uint16_t subkey) {
     bruteforce_hca_key_bin_type(sf, hca_data, p_keycode, subkey, HBF_TYPE_64LE_1);
-/*
-    bruteforce_hca_key_bin_type(sf, hca_data, p_keycode, subkey, HBF_TYPE_32LE_1);
-    bruteforce_hca_key_bin_type(sf, hca_data, p_keycode, subkey, HBF_TYPE_64BE_1);
-    bruteforce_hca_key_bin_type(sf, hca_data, p_keycode, subkey, HBF_TYPE_32BE_1);
+    //bruteforce_hca_key_bin_type(sf, hca_data, p_keycode, subkey, HBF_TYPE_32LE_1);
+    //bruteforce_hca_key_bin_type(sf, hca_data, p_keycode, subkey, HBF_TYPE_64BE_1);
+    //bruteforce_hca_key_bin_type(sf, hca_data, p_keycode, subkey, HBF_TYPE_32BE_1);
 
-    bruteforce_hca_key_bin_type(sf, hca_data, p_keycode, subkey, HBF_TYPE_64LE_4);
-    bruteforce_hca_key_bin_type(sf, hca_data, p_keycode, subkey, HBF_TYPE_32LE_4);
-    bruteforce_hca_key_bin_type(sf, hca_data, p_keycode, subkey, HBF_TYPE_64BE_4);
-    bruteforce_hca_key_bin_type(sf, hca_data, p_keycode, subkey, HBF_TYPE_32BE_4);
-*/
+    //bruteforce_hca_key_bin_type(sf, hca_data, p_keycode, subkey, HBF_TYPE_64LE_4);
+    //bruteforce_hca_key_bin_type(sf, hca_data, p_keycode, subkey, HBF_TYPE_32LE_4);
+    //bruteforce_hca_key_bin_type(sf, hca_data, p_keycode, subkey, HBF_TYPE_64BE_4);
+    //bruteforce_hca_key_bin_type(sf, hca_data, p_keycode, subkey, HBF_TYPE_32BE_4);
 }
 
 
@@ -137,14 +134,13 @@ static void bruteforce_hca_key_txt(STREAMFILE* sf, hca_codec_data* hca_data, uns
     hca_keytest_t hk = {0};
 
     hk.subkey = subkey;
-
+    *p_keycode = 0;
 
     /* load whole file in memory for performance (exes with keys shouldn't be too big) */
     sf_keys = open_streamfile_by_filename(sf, "keys.txt");
     if (!sf_keys) return;
 
     VGM_LOG("HCA BF: test keys.txt\n");
-    *p_keycode = 0;
 
     keys_size = get_streamfile_size(sf_keys);
 
@@ -198,14 +194,13 @@ static void bruteforce_hca_key_num(STREAMFILE* sf, hca_codec_data* hca_data, uns
     hca_keytest_t hk = {0};
 
     hk.subkey = subkey;
-
+    *p_keycode = 0;
 
     /* load whole file in memory for performance (exes with keys shouldn't be too big) */
     sf_keys = open_streamfile_by_filename(sf, "keys.num");
     if (!sf_keys) return;
 
     VGM_LOG("HCA BF: test keys.num\n");
-    *p_keycode = 0;
 
     keys_size = get_streamfile_size(sf_keys);
 
