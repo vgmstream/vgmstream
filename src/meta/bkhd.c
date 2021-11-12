@@ -121,7 +121,7 @@ VGMSTREAM* init_vgmstream_bkhd(STREAMFILE* sf) {
         subfile_size    = read_u32(offset + 0x08, sf);
     }
     
-    ;VGM_LOG("BKHD: %lx, %x\n", subfile_offset, subfile_size);
+    //;VGM_LOG("BKHD: %lx, %x\n", subfile_offset, subfile_size);
 
     /* detect format */
     if (subfile_offset <= 0 || subfile_size <= 0) {
