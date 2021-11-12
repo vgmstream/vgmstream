@@ -131,6 +131,9 @@ static int read_fmt(int big_endian, STREAMFILE* sf, off_t offset, riff_fmt_chunk
         }
     }
 
+    if (!fmt->channels)
+        goto fail;
+
     switch (fmt->codec) {
         case 0x00:  /* Yamaha AICA ADPCM [Headhunter (DC), Bomber hehhe (DC), Rayman 2 (DC)] (unofficial) */
             if (fmt->bps != 4) goto fail;
@@ -142,17 +145,19 @@ static int read_fmt(int big_endian, STREAMFILE* sf, off_t offset, riff_fmt_chunk
 
         case 0x01: /* PCM */
             switch (fmt->bps) {
+                case 24: /* Omori (PC) */
+                    fmt->coding_type = coding_PCM24LE;
+                    break;
                 case 16:
                     fmt->coding_type = big_endian ? coding_PCM16BE : coding_PCM16LE;
-                    fmt->interleave = 0x02;
                     break;
                 case 8:
                     fmt->coding_type = coding_PCM8_U;
-                    fmt->interleave = 0x01;
                     break;
                 default:
                     goto fail;
             }
+            fmt->interleave = fmt->block_size / fmt->channels;
             break;
 
         case 0x02: /* MSADPCM */
@@ -666,12 +671,10 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
 
     /* samples, codec init (after setting coding to ensure proper close on failure) */
     switch (fmt.coding_type) {
+        case coding_PCM24LE:
         case coding_PCM16LE:
-            vgmstream->num_samples = pcm_bytes_to_samples(data_size, fmt.channels, 16);
-            break;
-
         case coding_PCM8_U:
-            vgmstream->num_samples = pcm_bytes_to_samples(data_size, vgmstream->channels, 8);
+            vgmstream->num_samples = pcm_bytes_to_samples(data_size, fmt.channels, fmt.bps);
             break;
 
         case coding_L5_555:
@@ -1068,10 +1071,8 @@ VGMSTREAM* init_vgmstream_rifx(STREAMFILE* sf) {
     /* init, samples */
     switch (fmt.coding_type) {
         case coding_PCM16BE:
-            vgmstream->num_samples = pcm_bytes_to_samples(data_size, vgmstream->channels, 16);
-            break;
         case coding_PCM8_U:
-            vgmstream->num_samples = pcm_bytes_to_samples(data_size, vgmstream->channels, 8);
+            vgmstream->num_samples = pcm_bytes_to_samples(data_size, vgmstream->channels, fmt.bps);
             break;
         default:
             goto fail;
