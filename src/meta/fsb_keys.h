@@ -83,6 +83,9 @@ static const uint8_t key_wrb[] = { 0x46,0x58,0x6E,0x54,0x66,0x66,0x47,0x4A,0x39,
 /* Bubble Fighter (PC) */ //"qjvkeoqkrdhkdckd"
 static const uint8_t key_bbf[] = { 0x71,0x6A,0x76,0x6B,0x65,0x6F,0x71,0x6B,0x72,0x64,0x68,0x6B,0x64,0x63,0x6B,0x64 };
 
+/* Fall Guys (PC)-update */ //"p@4_ih*srN:UJk&8"
+static const uint8_t key_fgs[] = { 0x70,0x40,0x34,0x5F,0x69,0x68,0x2A,0x73,0x72,0x4E,0x3A,0x55,0x4A,0x6B,0x26,0x38 };
+
 // Unknown:
 // - Battle: Los Angeles
 // - Guitar Hero: Warriors of Rock, DJ hero FSB
@@ -156,6 +159,7 @@ static const fsbkey_info fsbkey_list[] = {
         { 0,1, sizeof(key_ghm),key_ghm },// FSB4
         { 1,0, sizeof(key_wrb),key_wrb },// FSB5
         { 0,0, sizeof(key_bbf),key_bbf },// FSB4
+        { 1,0, sizeof(key_fgs),key_fgs },// FSB5
 };
 static const int fsbkey_list_count = sizeof(fsbkey_list) / sizeof(fsbkey_list[0]);
 
