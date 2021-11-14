@@ -465,6 +465,7 @@ static const char* extension_list[] = {
     "seb",
     "sed",
     "seg",
+    "sem", //txth/reserved [Oretachi Game Center Zoku: Sonic Wings (PS2)]
     "sf0",
     "sfl",
     "sfs",
