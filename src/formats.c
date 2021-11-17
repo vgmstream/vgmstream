@@ -410,6 +410,7 @@ static const char* extension_list[] = {
     "ras",
     "raw", //txth/reserved [Madden NHL 97 (PC)-pcm8u]
     "rda", //FFmpeg/reserved [Rhythm Destruction (PC)]
+    "res", //txth/reserved [Spider-Man: Web of Shadows (PSP)]
     "rkv",
     "rnd",
     "rof",
