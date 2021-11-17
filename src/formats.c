@@ -410,6 +410,7 @@ static const char* extension_list[] = {
     "ras",
     "raw", //txth/reserved [Madden NHL 97 (PC)-pcm8u]
     "rda", //FFmpeg/reserved [Rhythm Destruction (PC)]
+    "res", //txth/reserved [Spider-Man: Web of Shadows (PSP)]
     "rkv",
     "rnd",
     "rof",
@@ -1073,7 +1074,7 @@ static const meta_info meta_info_list[] = {
         {meta_UBI_JADE,             "Ubisoft Jade RIFF header"},
         {meta_SEG,                  "Stormfront SEG header"},
         {meta_NDS_STRM_FFTA2,       "Final Fantasy Tactics A2 RIFF Header"},
-        {meta_STR_ASR,              "Donkey Kong Jet Race KNON/WII Header"},
+        {meta_KNON,                 "Paon KNON header"},
         {meta_ZWDSP,                "Zack and Wiki custom DSP Header"},
         {meta_GCA,                  "GCA DSP Header"},
         {meta_SPT_SPD,              "SPT+SPD DSP Header"},
@@ -1095,7 +1096,7 @@ static const meta_info meta_info_list[] = {
         {meta_RSTM_shrunken,        "Nintendo RSTM header, corrupted by Atlus"},
         {meta_RIFF_WAVE_MWV,        "RIFF WAVE header with .mwv flavoring"},
         {meta_FFCC_STR,             "Final Fantasy: Crystal Chronicles STR header"},
-        {meta_SAT_BAKA,             "BAKA header from Crypt Killer"},
+        {meta_SAT_BAKA,             "Konami BAKA header"},
         {meta_SWAV,                 "Nintendo SWAV header"},
         {meta_VSF,                  "Square-Enix VSF header"},
         {meta_NDS_RRDS,             "Ridger Racer DS Header"},

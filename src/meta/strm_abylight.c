@@ -11,11 +11,12 @@ VGMSTREAM* init_vgmstream_strm_abylight(STREAMFILE* sf) {
 
 
     /* checks */
-    if ( !check_extensions(sf,"strm") )
+    if (!is_id32be(0x00,sf, "STRM"))
         goto fail;
 
-    if (read_32bitBE(0x00,sf) != 0x5354524D) /* "STRM" */
+    if (!check_extensions(sf,"strm"))
         goto fail;
+
     if (read_32bitLE(0x04,sf) != 0x03E8) /* version 1000? */
         goto fail;
 

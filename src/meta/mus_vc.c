@@ -11,11 +11,15 @@ VGMSTREAM* init_vgmstream_mus_vc(STREAMFILE* sf) {
 
 
     /* checks */
+    if (read_u32be(0x00,sf) != 0xFBBFFBBF &&    /* BE */
+        read_u32le(0x00,sf) != 0xFBBFFBBF)      /* LE */
+        goto fail;
+
     if (!check_extensions(sf, "mus"))
         goto fail;
 
-    if (read_u32be(0x08,sf) != 0xBBBBBBBB &&
-        read_u32be(0x14,sf) != 0xBBBBBBBB &&
+    if (read_u32be(0x08,sf) != 0xBBBBBBBB ||
+        read_u32be(0x14,sf) != 0xBBBBBBBB ||
         read_u32be(0x2c,sf) != 0xBEBEBEBE)
         goto fail;
 

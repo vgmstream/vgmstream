@@ -153,7 +153,7 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_ubi_jade_container,
     init_vgmstream_seg,
     init_vgmstream_nds_strm_ffta2,
-    init_vgmstream_str_asr,
+    init_vgmstream_knon,
     init_vgmstream_gca,
     init_vgmstream_spt_spd,
     init_vgmstream_ish_isd,
@@ -204,7 +204,6 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_apple_caff,
     init_vgmstream_pc_mxst,
     init_vgmstream_sab,
-    init_vgmstream_exakt_sc,
     init_vgmstream_wii_bns,
     init_vgmstream_wii_was,
     init_vgmstream_pona_3do,
@@ -235,7 +234,6 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_ps2_wad,
     init_vgmstream_dsp_xiii,
     init_vgmstream_dsp_cabelas,
-    init_vgmstream_ps2_adm,
     init_vgmstream_lpcm_shade,
     init_vgmstream_dsp_bdsp,
     init_vgmstream_ps2_vms,
@@ -316,7 +314,6 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_va3,
     init_vgmstream_mta2,
     init_vgmstream_mta2_container,
-    init_vgmstream_ngc_ulw,
     init_vgmstream_xa_xa30,
     init_vgmstream_xa_04sw,
     init_vgmstream_ea_bnk,
@@ -540,7 +537,10 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_raw_pcm,         /* .raw raw PCM */
     init_vgmstream_s14_sss,         /* .s14/sss raw siren14 */
     init_vgmstream_raw_al,          /* .al/al2 raw A-LAW */
+    init_vgmstream_ngc_ulw,         /* .ulw raw u-Law */
+    init_vgmstream_exakt_sc,        /* .sc raw PCM */
     init_vgmstream_zwdsp,           /* fake format */
+    init_vgmstream_ps2_adm,         /* weird non-constant PSX blocks */
     init_vgmstream_baf_badrip,      /* crap, to be removed */
     init_vgmstream_rxws_badrip,     /* crap, to be removed */
 #ifdef VGM_USE_FFMPEG

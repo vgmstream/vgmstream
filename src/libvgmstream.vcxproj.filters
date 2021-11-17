@@ -1117,7 +1117,7 @@
     <ClCompile Include="meta\stm.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\str_asr.c">
+    <ClCompile Include="meta\knon.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\str_snds.c">

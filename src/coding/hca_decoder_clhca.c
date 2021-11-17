@@ -49,7 +49,7 @@
 #define HCA_VERSION_V102 0x0102 /* V1.2+ [Gekka Ryouran Romance (PSP)] */
 #define HCA_VERSION_V103 0x0103 /* V1.4+ [Phantasy Star Online 2 (PC), Binary Domain (PS3)] */
 #define HCA_VERSION_V200 0x0200 /* V2.0+ [Yakuza 5 (PS3)] */
-#define HCA_VERSION_V300 0x0300 /* V3.0+ [Uma Musume (Android)] */
+#define HCA_VERSION_V300 0x0300 /* V3.0+ [Uma Musume (Android), Megaton Musashi (Switch)-sfx-hfrgroups] */
 
 /* maxs depend on encoder quality settings (for example, stereo has:
  * highest=0x400, high=0x2AA, medium=0x200, low=0x155, lowest=0x100) */
@@ -965,8 +965,6 @@ int clHCA_DecodeHeader(clHCA* hca, const void *data, unsigned int size) {
 
     //TODO: should work but untested
     if (hca->ms_stereo)
-        return HCA_ERROR_HEADER;
-    if (hca->hfr_group_count > 0 && hca->version == HCA_VERSION_V300)
         return HCA_ERROR_HEADER;
 
     /* clHCA is correctly initialized and decoder state reset
