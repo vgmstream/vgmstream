@@ -431,7 +431,7 @@ typedef enum {
     meta_PS2_ASS,           /* ASS */
     meta_SEG,               /* Eragon */
     meta_NDS_STRM_FFTA2,    /* Final Fantasy Tactics A2 */
-    meta_STR_ASR,           /* Donkey Kong Jet Race */
+    meta_KNON,
     meta_ZWDSP,             /* Zack and Wiki */
     meta_VGS,               /* Guitar Hero Encore - Rocks the 80s */
     meta_DCS_WAV,

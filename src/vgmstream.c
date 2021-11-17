@@ -153,7 +153,7 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_ubi_jade_container,
     init_vgmstream_seg,
     init_vgmstream_nds_strm_ffta2,
-    init_vgmstream_str_asr,
+    init_vgmstream_knon,
     init_vgmstream_gca,
     init_vgmstream_spt_spd,
     init_vgmstream_ish_isd,
