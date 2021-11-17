@@ -380,10 +380,9 @@ static VGMSTREAM* _init_vgmstream_ogg_vorbis_common(STREAMFILE* sf) {
     }
 
     if (is_rpgmvo) { /* [RPG Maker MV (PC), RPG Maker MZ (PC)] */
-        if (read_32bitBE(0x00,sf) != 0x5250474D &&  /* "RPGM" */
-            read_32bitBE(0x00,sf) != 0x56000000) {  /* "V\0\0\0" */
+        if (!is_id64be(0x00,sf, "RPGMV\0\0\0"))
             goto fail;
-        }
+
         ovmi.decryption_callback = rpgmvo_ogg_decryption_callback;
 
         cfg.start = 0x10;

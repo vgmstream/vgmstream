@@ -1,31 +1,32 @@
 #include "meta.h"
 
 /* IMU - found in Alter Echo (PS2) */
-VGMSTREAM * init_vgmstream_ps2_omu(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
+VGMSTREAM* init_vgmstream_ps2_omu(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
     off_t start_offset;
-    int loop_flag, channel_count;
+    int loop_flag, channels;
 
 
-    /* check extension */
-    if ( !check_extensions(streamFile,"omu") )
+    /* checks */
+    if (!is_id32be(0x00,sf, "OMU "))
         goto fail;
 
-    /* check header */
-    if (read_32bitBE(0x00,streamFile) != 0x4F4D5520 &&  /* "OMU " */
-        read_32bitBE(0x08,streamFile) != 0x46524D54)    /* "FRMT" */
+    if (!check_extensions(sf,"omu"))
+        goto fail;
+
+    if (!is_id32be(0x08,sf, "FRMT"))
         goto fail;
 
     loop_flag = 1;
-    channel_count = (int)read_8bit(0x14,streamFile);
+    channels = read_u8(0x14,sf);
     start_offset = 0x40;
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    vgmstream = allocate_vgmstream(channels,loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->sample_rate = read_32bitLE(0x10,streamFile);
-    vgmstream->num_samples = (int32_t)(read_32bitLE(0x3C,streamFile)/(vgmstream->channels*2));
+    vgmstream->sample_rate = read_s32le(0x10,sf);
+    vgmstream->num_samples = (read_u32le(0x3C,sf) / (vgmstream->channels*2));
     vgmstream->loop_start_sample = 0;
     vgmstream->loop_end_sample = vgmstream->num_samples;
 
@@ -34,8 +35,7 @@ VGMSTREAM * init_vgmstream_ps2_omu(STREAMFILE *streamFile) {
     vgmstream->interleave_block_size = 0x200;
     vgmstream->meta_type = meta_PS2_OMU;
 
-    /* open the file for reading */
-    if ( !vgmstream_open_stream(vgmstream, streamFile, start_offset) )
+    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
         goto fail;
     return vgmstream;
 
