@@ -258,6 +258,9 @@ static const adxkey_info adxkey9_list[] = {
         /* Sonic Colors Ultimate (multi) */
         {0x0000,0x0000,0x0000, NULL,1991062320101111},      // 000712DC5250B6F7
 
+        /* Shin Megami Tensei V (Switch) */
+        {0x000c,0x13b5,0x1fdb, NULL,0},                     // guessed with VGAudio (possible key: 613B4FEE / 1631277038) 
+
 };
 
 static const int adxkey8_list_count = sizeof(adxkey8_list) / sizeof(adxkey8_list[0]);
@@ -360,12 +363,16 @@ end:
 }
 
 
-static void derive_adx_key9(uint64_t key9, uint16_t * out_start, uint16_t * out_mult, uint16_t * out_add) {
+static void derive_adx_key9(uint64_t key9, uint16_t subkey, uint16_t* p_start, uint16_t* p_mult, uint16_t* p_add) {
     uint16_t start = 0, mult = 0, add = 0;
 
     /* 0 is ignored by CRI's encoder, only from 1..18446744073709551615 */
     if (key9 == 0)
         goto end;
+
+    if (subkey) {
+        key9 = key9 * ( ((uint64_t)subkey << 16u) | ((uint16_t)~subkey + 2u) );
+    }
 
     key9--;
     start = (int)(((key9 >> 27) & 0x7fff));
@@ -379,9 +386,9 @@ static void derive_adx_key9(uint64_t key9, uint16_t * out_start, uint16_t * out_
     //mult |= add << 16;
 
 end:
-    *out_start = start;
-    *out_mult  = mult;
-    *out_add   = add;
+    *p_start = start;
+    *p_mult  = mult;
+    *p_add   = add;
 }
 
 #endif/*_ADX_KEYS_H_*/
