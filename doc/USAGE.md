@@ -238,7 +238,7 @@ it tends to noticeably slow down opening folders, also seems to crash and leave 
 unusable when reading unsupported formats like Switch Opus (rather than Ogg Opus).
 
 Renaming extensions should prevent those issues, or just uninstall those *Web
-Media Extension* better experience anyway.
+Media Extension* for better experience anyway.
 
 #### Fallout SFX .ACM
 Due to technical limitations, to play Fallout 1 SFX you need to rename them from
