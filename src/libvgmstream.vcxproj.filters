@@ -1946,13 +1946,16 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="util\chunks.c">
-      <Filter>util\Source Files</Filter>
+      <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="util\log.c">
-      <Filter>util\Source Files</Filter>
+      <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="util\m2_psb.c">
-      <Filter>util\Source Files</Filter>
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\wbk.c">
+      <Filter>meta\Source Files</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
