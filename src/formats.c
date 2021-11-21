@@ -592,6 +592,7 @@ static const char* extension_list[] = {
     "wb",
     "wb2",
     "wbd",
+    "wbk",
     "wd",
     "wem",
     "wii",
@@ -1381,6 +1382,7 @@ static const meta_info meta_info_list[] = {
         {meta_PSB,                  "M2 PSB header"},
         {meta_LOPU_FB,              "French-Bread LOPU header"},
         {meta_LPCM_FB,              "French-Bread LPCM header"},
+        {meta_WBK,                  "Treyarch WBK header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {
