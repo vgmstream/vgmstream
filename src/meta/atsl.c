@@ -36,16 +36,18 @@ VGMSTREAM* init_vgmstream_atsl(STREAMFILE* sf) {
      * - 00000201 00020001  .atsl3 from Fist of North Star: Ken's Rage 2 (PS3)[ATRAC3]
      *   00000301 00020101  (same)
      * - 01040301 00060301  .atsl4 from Nobunaga's Ambition: Sphere of Influence (PS4)[ATRAC9]
-     * - 00060301 00040301  atsl in G1L from One Piece Pirate Warriors 3 (Vita)[ATRAC9]
-     * - 00060301 00010301  atsl in G1L from One Piece Pirate Warriors 3 (PC)[KOVS]
-     * - 000A0301 00010501  atsl in G1L from Warriors All-Stars (PC)[KOVS]
-     * - 000B0301 00080601  atsl in G1l from Sengoku Musou Sanada Maru (Switch)[KTSS]
+     * - 00060301 00040301  .atsl in G1L from One Piece Pirate Warriors 3 (Vita)[ATRAC9]
+     * - 00060301 00010301  .atsl in G1L from One Piece Pirate Warriors 3 (PC)[KOVS]
+     * - 000A0301 00010501  .atsl in G1L from Warriors All-Stars (PC)[KOVS] 2017-09
+     * - 01000000 01010501  .atsl from Nioh (PC)[KOVS] 2017-11
+     * - 01000000 00010501  .atsl from Nioh (PC)[KOVS] 2017-11
+     * - 000B0301 00080601  .atsl in G1l from Sengoku Musou Sanada Maru (Switch)[KTSS] 2017-09
      * - 010C0301 01060601  .atsl from Dynasty Warriors 9 (PS4)[KTAC]
-     * - 01000000 01010501  .atsl from Nioh (PC)[KOVS]
-     * - 01000000 00010501  .atsl from Nioh (PC)[KOVS]
+     * - 010D0301 01010601  .atsl from Dynasty Warriors 9 DLC (PC)[KOVS]
      */
 
     type = read_u16le(0x0c, sf);
+    //version = read_u16le(0x0e, sf);
     switch(type) {
         case 0x0100: /* KOVS */
             init_vgmstream = init_vgmstream_ogg_vorbis;
@@ -95,11 +97,16 @@ VGMSTREAM* init_vgmstream_atsl(STREAMFILE* sf) {
         /* parse entry header (in machine endianness) */
         for (i = 0; i < entries; i++) {
             int is_unique = 1;
+            uint32_t entry_subfile_offset, entry_subfile_size;
 
             /* 0x00: id */
-            uint32_t entry_subfile_offset = read_u32(header_size + i*entry_size + 0x04,sf);
-            uint32_t entry_subfile_size  = read_u32(header_size + i*entry_size + 0x08,sf);
-            /* 0x08+: channels/sample rate/num_samples/loop_start/etc (match subfile header) */
+            entry_subfile_offset = read_u32(header_size + i*entry_size + 0x04,sf);
+            entry_subfile_size  = read_u32(header_size + i*entry_size + 0x08,sf);
+            /* 0x10+: config, channels/sample rate/num_samples/loop_start/channel layout/etc (matches subfile header) */
+
+            /* dummy entry, seen in DW9 DLC (has unique config though) */
+            if (!entry_subfile_offset && !entry_subfile_size)
+                continue;
 
             /* check if current entry was repeated in a prev entry */
             for (j = 0; j < i; j++)  {
