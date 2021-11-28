@@ -1,7 +1,7 @@
 #include "meta.h"
 #include "../coding/coding.h"
 
-typedef enum { PCM16, MSADPCM, DSP_HEAD, DSP_BODY, AT9, MSF, XMA2 } kwb_codec;
+typedef enum { PCM16, MSADPCM, DSP_HEAD, DSP_BODY, AT9, MSF_APEX, XMA2 } kwb_codec;
 
 typedef struct {
     int big_endian;
@@ -18,8 +18,8 @@ typedef struct {
     int loop_flag;
     int block_size;
 
-    off_t stream_offset;
-    size_t stream_size;
+    uint32_t stream_offset;
+    uint32_t stream_size;
 
     off_t dsp_offset;
     //off_t name_offset;
@@ -121,20 +121,38 @@ static VGMSTREAM* init_vgmstream_koei_wavebank(kwb_header* kwb, STREAMFILE* sf_h
     read_s32 = kwb->big_endian ? read_s32be : read_s32le;
 
     /* container */
-    if (kwb->codec == MSF) {
+    if (kwb->codec == MSF_APEX) {
         if (kwb->stream_offset == 0) {
             vgmstream = init_vgmstream_silence(0,0,0); /* dummy, whatevs */
             if (!vgmstream) goto fail;
         }
         else {
             STREAMFILE* temp_sf = NULL;
+            init_vgmstream_t init_vgmstream = NULL;
+            const char* fake_ext;
+            uint32_t id;
+            
+            
+            id = read_u32be(kwb->stream_offset, sf_h);
+            if ((id & 0xFFFFFF00) == get_id32be("MSF\0")) { /* PS3 */
+                kwb->stream_size = read_u32(kwb->stream_offset + 0x0c, sf_h) + 0x40;
+                fake_ext = "msf";
+                init_vgmstream = init_vgmstream_msf;
+            }
+            else if (id == get_id32be("APEX")) { /* WiiU */
+                kwb->stream_size = read_u32(kwb->stream_offset + 0x04, sf_h); /* not padded */
+                fake_ext = "dsp";
+                init_vgmstream = init_vgmstream_dsp_apex;
+            }
+            else {
+                vgm_logi("KWB: unknown type %x at %x\n", id, kwb->stream_offset);
+                goto fail;
+            }
 
-            kwb->stream_size = read_u32(kwb->stream_offset + 0x0c, sf_h) + 0x40;
-
-            temp_sf = setup_subfile_streamfile(sf_h, kwb->stream_offset, kwb->stream_size, "msf");
+            temp_sf = setup_subfile_streamfile(sf_h, kwb->stream_offset, kwb->stream_size, fake_ext);
             if (!temp_sf) goto fail;
 
-            vgmstream = init_vgmstream_msf(temp_sf);
+            vgmstream = init_vgmstream(temp_sf);
             close_streamfile(temp_sf);
             if (!vgmstream) goto fail;
         }
@@ -641,9 +659,9 @@ static int parse_type_msfbank(kwb_header* kwb, off_t offset, STREAMFILE* sf) {
     relative_subsong = kwb->target_subsong - current_subsongs;
     header_offset = offset + 0x30 + (relative_subsong-1) * 0x04;
 
-    /* just a dumb table pointing to MSF, entries can be dummy */
+    /* just a dumb table pointing to MSF/APEX, entries can be dummy */
     kwb->stream_offset = read_u32be(header_offset, sf);
-    kwb->codec = MSF;
+    kwb->codec = MSF_APEX;
 
     kwb->stream_offset += offset;
 
@@ -728,7 +746,7 @@ static int parse_type_xwsfile(kwb_header* kwb, off_t offset, STREAMFILE* sf) {
                 goto fail;
         }
         else {
-            VGM_LOG("XWS: unknown type %x at head=%x, body=%x\n", entry_type, head_offset, body_offset);
+            vgm_logi("XWS: unknown type %x at head=%x, body=%x\n", entry_type, head_offset, body_offset);
             goto fail;
         }
     }

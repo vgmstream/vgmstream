@@ -1461,7 +1461,6 @@ VGMSTREAM* init_vgmstream_dsp_kwa(STREAMFILE* sf) {
     if (read_u32be(0x00,sf) != 3)
         goto fail;
 
-    /* .dsp: assumed */
     if (!check_extensions(sf, "kwa"))
         goto fail;
 
@@ -1480,6 +1479,40 @@ VGMSTREAM* init_vgmstream_dsp_kwa(STREAMFILE* sf) {
     dspm.ignore_header_agreement = 1; /* Reus_2.kwa has a few more samples in channels 3+4 */
 
     dspm.meta_type = meta_DSP_KWA;
+    return init_vgmstream_dsp_common(sf, &dspm);
+fail:
+    return NULL;
+}
+
+
+/* APEX - interleaved dsp [Ninja Gaiden 3 Razor's Edge (WiiU)] */
+VGMSTREAM* init_vgmstream_dsp_apex(STREAMFILE* sf) {
+    dsp_meta dspm = {0};
+    uint32_t stream_size;
+
+    /* checks */
+    if (!is_id32be(0x00,sf, "APEX"))
+        goto fail;
+
+    /* .dsp: assumed */
+    if (!check_extensions(sf, "dsp"))
+        goto fail;
+
+    dspm.max_channels   = 2;
+    stream_size         = read_u32be(0x04,sf);
+    /* 0x08: 1? */
+    dspm.channels       = read_u16be(0x0a,sf);
+    /* 0x0c: channel size? */
+
+    dspm.interleave     = 0x08;
+    dspm.header_offset  = 0x20;
+    dspm.header_spacing = 0x60;
+    dspm.start_offset = dspm.header_offset + dspm.header_spacing * 2;
+    /* second DSP header exists even for mono files, but has no coefs */
+
+    dspm.interleave_last = (stream_size / dspm.channels) % dspm.interleave;
+
+    dspm.meta_type = meta_DSP_APEX;
     return init_vgmstream_dsp_common(sf, &dspm);
 fail:
     return NULL;

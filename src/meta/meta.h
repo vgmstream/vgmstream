@@ -64,6 +64,7 @@ VGMSTREAM* init_vgmstream_dsp_wiiadpcm(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_dsp_cwac(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_idsp_tose(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_dsp_kwa(STREAMFILE* sf);
+VGMSTREAM* init_vgmstream_dsp_apex(STREAMFILE* sf);
 
 VGMSTREAM * init_vgmstream_csmp(STREAMFILE *streamFile);
 
