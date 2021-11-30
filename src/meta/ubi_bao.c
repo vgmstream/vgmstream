@@ -1742,7 +1742,7 @@ static int config_bao_version(ubi_bao_header* bao, STREAMFILE* sf) {
         case 0x001F0010: /* Prince of Persia 2008 (PC/PS3/X360)-atomic-forge, Far Cry 2 (PS3)-atomic-dunia? */
         case 0x001F0011: /* Naruto: The Broken Bond (X360)-package */
         case 0x0021000C: /* Splinter Cell: Conviction (E3 2009 Demo)(X360)-package */
-        case 0x0022000D: /* Just Dance (Wii)-package */
+        case 0x0022000D: /* Just Dance (Wii)-package, We Dare (PS3/Wii)-package */
         case 0x0022FF15: /* James Cameron's Avatar: The Game (Wii)-package */
         case 0x0022001B: /* Prince of Persia: The Forgotten Sands (Wii)-package */
             config_bao_entry(bao, 0xA4, 0x28); /* PC/Wii: 0xA8 */
