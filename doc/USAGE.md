@@ -121,10 +121,13 @@ document in vgmstream's source code (can be done with CMake or autotools).
 Usage: `vgmstream123 [options] INFILE ...`
 
 The program is meant to be a simple stand-alone player, supporting playback of
-vgmstream files through libao. On Linux, files compressed with gzip/bzip2/xz also
-work, as identified by a `.gz/.bz2/.xz` extension. The file will be decompressed
-to a temp dir using the respective utility program (which must be installed
-and accessible) and then loaded.
+vgmstream files through libao. Most options should be similar to CLI's
+(`-m`, `-i`, `-s N` and so on, though not fully equivalent), use `-h` for full info.
+
+On Linux, files compressed with gzip/bzip2/xz also work, as identified by a
+`.gz/.bz2/.xz` extension. The file will be decompressed to a temp dir using the
+respective utility program (which must be installed and accessible) and then
+loaded.
 
 It also supports playlists, and will recognize a special extended-M3U tag
 specific to vgmstream of the following form:

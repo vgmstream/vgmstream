@@ -69,9 +69,10 @@
 #define LITTLE_ENDIAN_OUTPUT 1 /* untested in BE */
 
 
-#define DEFAULT_PARAMS { 0, -1, 2.0, 10.0, 0.0,   0, 0, 0, 0 }
+#define DEFAULT_PARAMS { 0, 0, -1, 2.0, 10.0, 0.0,   0, 0, 0, 0 }
 typedef struct {
-    int stream_index;
+    int subsong_index;
+    int subsong_end;
 
     double min_time;
     double loop_count;
@@ -240,7 +241,7 @@ static int play_vgmstream(const char* filename, song_settings_t* cfg) {
 
     vgmstream_set_log_stdout(VGM_LOG_LEVEL_ALL);
 
-    sf->stream_index = cfg->stream_index;
+    sf->stream_index = cfg->subsong_index;
     vgmstream = init_vgmstream_from_STREAMFILE(sf);
     close_streamfile(sf);
 
@@ -249,15 +250,11 @@ static int play_vgmstream(const char* filename, song_settings_t* cfg) {
         return -1;
     }
 
-    printf("Playing stream: %s\n", filename);
-
-    /* Print metadata in verbose mode
-     */
-    if (verbose) {
-        char description[4096] = { '\0' };
-        describe_vgmstream(vgmstream, description, sizeof(description));
-        puts(description);
-        putchar('\n');
+    /* force load total subsongs if signalled */
+    if (cfg->subsong_end == -1) {
+        cfg->subsong_end = vgmstream->num_streams;
+        close_vgmstream(vgmstream);
+        return 0;
     }
 
     /* If the audio device hasn't been opened yet, then describe it
@@ -272,6 +269,27 @@ static int play_vgmstream(const char* filename, song_settings_t* cfg) {
         printf("Comment: %s\n", info->comment);
         putchar('\n');
     }
+
+    if (vgmstream->num_streams > 0) {
+        int subsong = vgmstream->stream_index;
+        if (!subsong)
+            subsong = 1;
+        printf("Playing stream: %s [%i/%i]\n", filename, subsong, vgmstream->num_streams);
+    }
+    else {
+        printf("Playing stream: %s\n", filename);
+
+    }
+
+    /* Print metadata in verbose mode
+     */
+    if (verbose) {
+        char description[4096] = { '\0' };
+        describe_vgmstream(vgmstream, description, sizeof(description));
+        puts(description);
+        putchar('\n');
+    }
+
 
     /* Stupid hack to hang onto a few low-numbered file descriptors
      * so that play_compressed_file() doesn't break, due to POSIX
@@ -494,7 +512,7 @@ static int play_playlist(const char *filename, song_settings_t *default_par) {
                 else if (PARAM_MATCHES("LOOPCOUNT"))
                     par.loop_count = atof(arg);
                 else if (PARAM_MATCHES("STREAMINDEX"))
-                    par.stream_index = atoi(arg);
+                    par.subsong_index = atoi(arg);
 
                 param = strtok(NULL, ",");
             }
@@ -600,23 +618,49 @@ fail:
     return ret;
 }
 
-static int play_file(const char *filename, song_settings_t *par) {
-    size_t len = strlen(filename);
-
 #define ENDS_IN(EXT) !strcasecmp(EXT, filename + len - sizeof(EXT) + 1)
 
+static int play_standard(const char* filename, song_settings_t* cfg) {
+    int ret, subsong;
+
+    /* standard */
+    if (cfg->subsong_end == 0) {
+        return play_vgmstream(filename, cfg);
+    }
+
+    /* N subsongs */
+
+    /* first call should force load max subsongs */
+    if (cfg->subsong_end == -1) {
+        ret = play_vgmstream(filename, cfg);
+        if (ret) return ret;
+    }
+
+    for (subsong = cfg->subsong_index; subsong < cfg->subsong_end + 1; subsong++) {
+        cfg->subsong_index = subsong; 
+
+        ret = play_vgmstream(filename, cfg);
+        if (ret) return ret;
+    }
+
+    return 0;
+}
+
+static int play_file(const char* filename, song_settings_t* cfg) {
+    size_t len = strlen(filename);
+
     if (ENDS_IN(".m3u") || ENDS_IN(".m3u8"))
-        return play_playlist(filename, par);
+        return play_playlist(filename, cfg);
     else if (ENDS_IN(".bz2"))
-        return play_compressed_file(filename, par, "bzip2 -cd");
+        return play_compressed_file(filename, cfg, "bzip2 -cd");
     else if (ENDS_IN(".gz"))
-        return play_compressed_file(filename, par, "gzip -cd");
+        return play_compressed_file(filename, cfg, "gzip -cd");
     else if (ENDS_IN(".lzma"))
-        return play_compressed_file(filename, par, "lzma -cd");
+        return play_compressed_file(filename, cfg, "lzma -cd");
     else if (ENDS_IN(".xz"))
-        return play_compressed_file(filename, par, "xz -cd");
+        return play_compressed_file(filename, cfg, "xz -cd");
     else
-        return play_vgmstream(filename, par);
+        return play_standard(filename, cfg);
 }
 
 static void add_driver_option(const char *key_value) {
@@ -674,8 +718,9 @@ static void usage(const char* progname, int is_help) {
         "    -@ LSTFILE  Read playlist from LSTFILE\n"
         "\n"
         "    -o OUTFILE  Set output filename for a file driver specified with -D\n"
-        "    -m          Display stream metadata and playback progress\n"
-        "    -s N        Play subsong index N\n"
+        "    -m          Print metadata and playback progress\n"
+        "    -s N        Play subsong N, if the format supports multiple subsongs\n"
+        "    -S N        Play up to end subsong N (set 0 for 'all')\n"
         "    -h          Print this help\n"
         "\n"
         "Looping options:\n"
@@ -726,7 +771,7 @@ again_opts:
         cfg = default_par;
     }
 
-    while ((opt = getopt(argc, argv, "-D:f:l:M:s:B:d:o:P:@:hrmieEc")) != -1) {
+    while ((opt = getopt(argc, argv, "-D:f:l:M:s:B:d:o:P:@:hrmieEcS:")) != -1) {
         switch (opt) {
             case 1:
                 /* glibc getopt extension
@@ -758,7 +803,14 @@ again_opts:
                 cfg.loop_count = -1.0;
                 break;
             case 's':
-                cfg.stream_index = atoi(optarg);
+                cfg.subsong_index = atoi(optarg);
+                break;
+            case 'S':
+                cfg.subsong_end = atoi(optarg);
+                if (!cfg.subsong_end)
+                    cfg.subsong_end = -1; /* signal up to end (otherwise 0 = not set) */
+                if (!cfg.subsong_index)
+                    cfg.subsong_index = 1;
                 break;
             case 'i':
                 cfg.ignore_loop = 1;
