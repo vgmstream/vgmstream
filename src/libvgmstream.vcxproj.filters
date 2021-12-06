@@ -940,7 +940,7 @@
     <ClCompile Include="meta\rxws.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ps2_sfs.c">
+    <ClCompile Include="meta\ster.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ps2_sl3.c">
