@@ -261,12 +261,12 @@ sourceball:
 
 bin: vgmstream-cli winamp xmplay
 	mkdir -p bin
-	zip -FS -j "bin/$(BIN_FILE).zip" $(ZIP_FILES)
+	zip -FS -j "bin/$(BIN_FILE)" $(ZIP_FILES)
 
 #separate since vgmstream123 is kinda untested
 bin-ex: vgmstream-cli winamp xmplay vgmstream123
 	mkdir -p bin
-	zip -FS -j "bin/$(BIN_FILE).zip" $(ZIP_FILES) $(ZIP_FILES_AO)
+	zip -FS -j "bin/$(BIN_FILE)" $(ZIP_FILES) $(ZIP_FILES_AO)
 
 vgmstream_cli: vgmstream-cli
 
