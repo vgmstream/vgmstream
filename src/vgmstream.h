@@ -383,7 +383,7 @@ typedef enum {
     meta_LEG,               /* Legaia 2 [no header_id] */
     meta_FILP,              /* Resident Evil - Dead Aim */
     meta_IKM,
-    meta_SFS,               /* Baroque */
+    meta_STER,
     meta_BG00,              /* Ibara, Mushihimesama */
     meta_PS2_RSTM,          /* Midnight Club 3 */
     meta_PS2_KCES,          /* Dance Dance Revolution */
@@ -513,7 +513,6 @@ typedef enum {
     meta_AST_MMV,
     meta_DMSG,              /* Nightcaster II - Equinox (XBOX) */
     meta_NGC_DSP_AAAP,      /* Turok: Evolution (NGC), Vexx (NGC) */
-    meta_PS2_STER,          /* Juuni Kokuki: Kakukaku Taru Ou Michi Beni Midori no Uka */
     meta_PS2_WB,            /* Shooting Love. ~TRIZEAL~ */
     meta_S14,               /* raw Siren 14, 24kbit mono */
     meta_SSS,               /* raw Siren 14, 48kbit stereo */

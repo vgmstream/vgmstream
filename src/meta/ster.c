@@ -1,8 +1,8 @@
 #include "meta.h"
 #include "../coding/coding.h"
 
-/* SFS - from Sting games [Baroque (PS2)] */
-VGMSTREAM* init_vgmstream_sfs(STREAMFILE* sf) {
+/* STER - from Silicon Studios/Vicarious Visions's ALCHEMY middleware [Baroque (PS2), Star Soldier (PS2)] */
+VGMSTREAM* init_vgmstream_ster(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     off_t start_offset;
     int loop_flag, channels, sample_rate;
@@ -10,8 +10,9 @@ VGMSTREAM* init_vgmstream_sfs(STREAMFILE* sf) {
 
 
     /* checks */
-    /* .sfs: bigfile extension (no apparent names) */
-    if (!check_extensions(sf, "sfs"))
+    /* .ster: header id (no apparent names/extensions)
+     * .sfs: generic bigfile extension (to be removed?)*/
+    if (!check_extensions(sf, "ster,sfs"))
         goto fail;
 
     if (!is_id32be(0x00,sf, "STER"))
@@ -20,9 +21,10 @@ VGMSTREAM* init_vgmstream_sfs(STREAMFILE* sf) {
     loop_start = read_u32le(0x08, sf); /* absolute (ex. offset 0x50 for full loops) */
     /* 0x0c: data size BE */
     sample_rate = read_s32be(0x10,sf);
+    /* 0x14~20: null */
 
     loop_flag = loop_start != 0xFFFFFFFF;
-    channels = 2;
+    channels = 2; /* mono files are simply .VAG */
     start_offset = 0x30;
 
 
@@ -30,7 +32,7 @@ VGMSTREAM* init_vgmstream_sfs(STREAMFILE* sf) {
     vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->meta_type = meta_SFS;
+    vgmstream->meta_type = meta_STER;
     vgmstream->sample_rate = sample_rate;
 
     vgmstream->num_samples = ps_bytes_to_samples(channel_size, 1);

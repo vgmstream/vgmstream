@@ -32,6 +32,8 @@ typedef struct {
     off_t audio_stream_type;
     off_t audio_prefetch_size;
     size_t audio_interleave;
+    off_t audio_cue_count;
+    off_t audio_cue_size;
     int audio_fix_psx_samples;
     int audio_external_and;
     int audio_loop_and;
@@ -79,21 +81,21 @@ typedef struct {
     ubi_bao_config cfg;
 
     /* header info */
-    off_t header_offset;
+    uint32_t header_offset;
     uint8_t header_format;
     uint32_t header_version;
     uint32_t header_id;
     uint32_t header_type;
-    size_t header_skip;     /* common sub-header size */
-    size_t header_size;     /* normal base size (not counting extra tables) */
-    size_t extra_size;      /* extra tables size */
+    uint32_t header_skip;     /* common sub-header size */
+    uint32_t header_size;     /* normal base size (not counting extra tables) */
+    uint32_t extra_size;      /* extra tables size */
 
     uint32_t stream_id;
-    size_t stream_size;
-    off_t stream_offset;
+    uint32_t stream_size;
+    uint32_t stream_offset;
     uint32_t prefetch_id;
-    size_t prefetch_size;
-    off_t prefetch_offset;
+    uint32_t prefetch_size;
+    uint32_t prefetch_offset;
 
     size_t memory_skip;
     size_t stream_skip;
@@ -265,10 +267,10 @@ static VGMSTREAM* init_vgmstream_ubi_bao_base(ubi_bao_header* bao, STREAMFILE* s
             vgmstream->coding_type = coding_NGC_DSP;
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = bao->stream_size / bao->channels;
-
+VGM_LOG("dsp=%x, %x, %x\n", bao->header_offset, bao->header_size, bao->extra_size);
             /* mini DSP header (first 0x10 seem to contain DSP header fields like nibbles and format) */
-            dsp_read_coefs_be(vgmstream, streamHead, bao->header_offset + bao->header_size + 0x10, 0x40);
-            dsp_read_hist_be (vgmstream, streamHead, bao->header_offset + bao->header_size + 0x34, 0x40); /* after gain/initial ps */
+            dsp_read_coefs_be(vgmstream, streamHead, bao->header_offset + bao->header_size + bao->extra_size + 0x10, 0x40);
+            dsp_read_hist_be (vgmstream, streamHead, bao->header_offset + bao->header_size + bao->extra_size + 0x34, 0x40); /* after gain/initial ps */
             break;
 
 #ifdef VGM_USE_FFMPEG
@@ -638,12 +640,12 @@ static VGMSTREAM* init_vgmstream_ubi_bao_header(ubi_bao_header* bao, STREAMFILE*
         goto fail; /* not uncommon */
     }
 
-    //;VGM_LOG("UBI BAO: target at %x, h_id=%08x, s_id=%08x, p_id=%08x\n",
-    //    (uint32_t)bao->header_offset, bao->header_id, bao->stream_id, bao->prefetch_id);
-    //;VGM_LOG("UBI BAO: stream=%x, size=%x, res=%s\n",
-    //        (uint32_t)bao->stream_offset, bao->stream_size, (bao->is_external ? bao->resource_name : "internal"));
-    //;VGM_LOG("UBI BAO: type=%i, header=%x, extra=%x, prefetch=%x, size=%x\n",
-    //        bao->header_type, bao->header_size, bao->extra_size, (uint32_t)bao->prefetch_offset, bao->prefetch_size);
+    ;VGM_LOG("UBI BAO: target at %x, h_id=%08x, s_id=%08x, p_id=%08x\n",
+        (uint32_t)bao->header_offset, bao->header_id, bao->stream_id, bao->prefetch_id);
+    ;VGM_LOG("UBI BAO: stream=%x, size=%x, res=%s\n",
+            (uint32_t)bao->stream_offset, bao->stream_size, (bao->is_external ? bao->resource_name : "internal"));
+    ;VGM_LOG("UBI BAO: type=%i, header=%x, extra=%x, prefetch=%x, size=%x\n",
+            bao->header_type, bao->header_size, bao->extra_size, (uint32_t)bao->prefetch_offset, bao->prefetch_size);
 
 
     switch(bao->type) {
@@ -829,6 +831,12 @@ static int parse_type_audio(ubi_bao_header* bao, off_t offset, STREAMFILE* sf) {
     bao->loop_flag   = read_32bit(h_offset + bao->cfg.audio_loop_flag, sf) & bao->cfg.audio_loop_and;
     bao->channels    = read_32bit(h_offset + bao->cfg.audio_channels, sf);
     bao->sample_rate = read_32bit(h_offset + bao->cfg.audio_sample_rate, sf);
+
+    /* extra cue table, rare (found with DSP) [We Dare (Wii)] */
+    if (bao->cfg.audio_cue_size) {
+        //bao->cfg.audio_cue_count //not needed?
+        bao->extra_size = read_32bit(h_offset + bao->cfg.audio_cue_size, sf);
+    }
 
     /* prefetch data is in another internal BAO right after the base header */
     if (bao->cfg.audio_prefetch_size) {
@@ -1570,6 +1578,12 @@ static void config_bao_audio_m(ubi_bao_header* bao, off_t channels, off_t sample
     bao->cfg.audio_prefetch_size    = prefetch_size;
 }
 
+static void config_bao_audio_c(ubi_bao_header* bao, off_t cue_count, off_t cue_size) {
+    /* audio header extra */
+    bao->cfg.audio_cue_count        = cue_count;
+    bao->cfg.audio_cue_size         = cue_size;
+}
+
 static void config_bao_sequence(ubi_bao_header* bao, off_t sequence_count, off_t sequence_single, off_t sequence_loop, off_t entry_size) {
     /* sequence header and chain table */
     bao->cfg.sequence_sequence_count    = sequence_count;
@@ -1768,6 +1782,9 @@ static int config_bao_version(ubi_bao_header* bao, STREAMFILE* sf) {
 
             if (version == 0x0022000D) /* Just Dance (Wii) oddity */
                 bao->cfg.audio_ignore_resource_size = 1;
+            if (version == 0x0022000D) /* We Dare (Wii) */
+                config_bao_audio_c(bao, 0x68, 0x78);
+
             return 1;
 
         case 0x00220015: /* James Cameron's Avatar: The Game (PSP)-package */
