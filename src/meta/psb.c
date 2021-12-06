@@ -155,7 +155,7 @@ VGMSTREAM* init_vgmstream_psb(STREAMFILE* sf) {
                 default: goto fail;
             }
 
-            if (psb.duration_test && psb.loop_start + psb.loop_end < vgmstream->num_samples)
+            if (psb.duration_test && psb.loop_start + psb.loop_end <= vgmstream->num_samples)
                 vgmstream->loop_end_sample += psb.loop_start;
             break;
 
