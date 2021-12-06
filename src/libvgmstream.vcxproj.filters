@@ -955,9 +955,6 @@
     <ClCompile Include="meta\ps2_sps.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ps2_ster.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="meta\svag_kcet.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>

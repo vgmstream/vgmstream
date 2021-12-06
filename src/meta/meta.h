@@ -225,7 +225,7 @@ VGMSTREAM * init_vgmstream_filp(STREAMFILE * streamFile);
 
 VGMSTREAM* init_vgmstream_ikm(STREAMFILE* sf);
 
-VGMSTREAM * init_vgmstream_sfs(STREAMFILE * streamFile);
+VGMSTREAM* init_vgmstream_ster(STREAMFILE* sf);
 
 VGMSTREAM * init_vgmstream_sat_dvi(STREAMFILE * streamFile);
 
@@ -450,8 +450,6 @@ VGMSTREAM* init_vgmstream_ast_mmv(STREAMFILE* sf);
 VGMSTREAM * init_vgmstream_dmsg(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_ngc_dsp_konami(STREAMFILE* streamFile);
-
-VGMSTREAM * init_vgmstream_ps2_ster(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_bnsf(STREAMFILE* streamFile);
 
