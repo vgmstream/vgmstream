@@ -525,6 +525,7 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_lopu_fb,
     init_vgmstream_lpcm_fb,
     init_vgmstream_wbk,
+    init_vgmstream_wbk_nslb,
     init_vgmstream_dsp_apex,
 
     /* lowest priority metas (should go after all metas, and TXTH should go before raw formats) */

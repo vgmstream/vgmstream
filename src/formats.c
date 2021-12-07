@@ -1382,6 +1382,7 @@ static const meta_info meta_info_list[] = {
         {meta_LOPU_FB,              "French-Bread LOPU header"},
         {meta_LPCM_FB,              "French-Bread LPCM header"},
         {meta_WBK,                  "Treyarch WBK header"},
+        {meta_WBK_NSLB,             "Treyarch NSLB header"},
         {meta_DSP_APEX,             "Koei Tecmo APEX header"},
 };
 
