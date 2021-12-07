@@ -10,10 +10,10 @@ on: [push, pull_request]
 jobs:
   # This workflow contains a single job called "build"
   build:
-    name: VS 2017
+    name: Visual Studio
 
     # The type of runner that the job will run on
-    runs-on: windows-2016
+    runs-on: windows-latest
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
