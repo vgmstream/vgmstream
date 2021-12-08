@@ -4,96 +4,106 @@
 #include "ea_schl_streamfile.h"
 
 /* header version */
-#define EA_VERSION_NONE         -1
-#define EA_VERSION_V0           0x00 /* ~early PC (when codec1 was used) */
-#define EA_VERSION_V1           0x01 /* ~PC */
-#define EA_VERSION_V2           0x02 /* ~PS1 */
-#define EA_VERSION_V3           0x03 /* ~PS2 */
+#define EA_VERSION_NONE             -1
+#define EA_VERSION_V0               0x00 /* ~early PC (when codec1 was used) */
+#define EA_VERSION_V1               0x01 /* ~PC */
+#define EA_VERSION_V2               0x02 /* ~PS1 */
+#define EA_VERSION_V3               0x03 /* ~PS2 */
 
 /* platform constants (unassigned values seem internal only) */
-#define EA_PLATFORM_PC          0x00
-#define EA_PLATFORM_PSX         0x01
-#define EA_PLATFORM_N64         0x02
-#define EA_PLATFORM_MAC         0x03
-#define EA_PLATFORM_SAT         0x04
-#define EA_PLATFORM_PS2         0x05
-#define EA_PLATFORM_GC          0x06 /* also used on Wii */
-#define EA_PLATFORM_XBOX        0x07
-#define EA_PLATFORM_GENERIC     0x08 /* typically Wii/X360/PS3/videos */
-#define EA_PLATFORM_X360        0x09
-#define EA_PLATFORM_PSP         0x0A
-#define EA_PLATFORM_PS3         0x0E /* very rare [Need for Speed: Carbon (PS3)] */
-#define EA_PLATFORM_WII         0x10 /* not seen so far (sx.exe samples ok) */
-#define EA_PLATFORM_3DS         0x14
+#define EA_PLATFORM_PC              0x00
+#define EA_PLATFORM_PSX             0x01
+#define EA_PLATFORM_N64             0x02
+#define EA_PLATFORM_MAC             0x03
+#define EA_PLATFORM_SAT             0x04
+#define EA_PLATFORM_PS2             0x05
+#define EA_PLATFORM_GC              0x06 /* also used on Wii */
+#define EA_PLATFORM_XBOX            0x07
+#define EA_PLATFORM_GENERIC         0x08 /* typically Wii/X360/PS3/videos */
+#define EA_PLATFORM_X360            0x09
+#define EA_PLATFORM_PSP             0x0A
+//#define EA_PLATFORM_PC_EAAC       0x0B /* not used (sx.exe internal defs) */
+//#define EA_PLATFORM_X360_EAAC     0x0C /* not used (sx.exe internal defs) */
+//#define EA_PLATFORM_PSP_EAAC      0x0D /* not used (sx.exe internal defs) */
+#define EA_PLATFORM_PS3             0x0E /* very rare [Need for Speed: Carbon (PS3)] */
+//#define EA_PLATFORM_PS3_EAAC      0x0F
+#define EA_PLATFORM_WII             0x10 /* not seen so far (sx.exe samples ok) */
+//#define EA_PLATFORM_WII_EAAC      0x11 /* not used (sx.exe internal defs) */
+//#define EA_PLATFORM_PC64_EAAC     0x12 /* not used (sx.exe internal defs) */
+//#define EA_PLATFORM_MOBILE_EAAC   0x13 /* not used (sx.exe internal defs) */
+#define EA_PLATFORM_3DS             0x14
 
 /* codec constants (undefined are probably reserved, ie.- sx.exe encodes PCM24/DVI but no platform decodes them) */
 /* CODEC1 values were used early, then they migrated to CODEC2 values */
-#define EA_CODEC1_NONE          -1
-#define EA_CODEC1_PCM           0x00
-//#define EA_CODEC1_IMA         0x02 /* not used (sx.exe internal defs) */
-#define EA_CODEC1_N64           0x05
-#define EA_CODEC1_VAG           0x06
-#define EA_CODEC1_EAXA          0x07
-#define EA_CODEC1_MT10          0x09
+#define EA_CODEC1_NONE              -1
+#define EA_CODEC1_PCM               0x00
+//#define EA_CODEC1_IMA             0x02 /* not used (sx.exe internal defs) */
+#define EA_CODEC1_N64               0x05
+#define EA_CODEC1_VAG               0x06
+#define EA_CODEC1_EAXA              0x07
+#define EA_CODEC1_MT10              0x09
 
-#define EA_CODEC2_NONE          -1
-#define EA_CODEC2_S16LE_INT     0x00
-#define EA_CODEC2_S16BE_INT     0x01
-#define EA_CODEC2_S8_INT        0x02
-#define EA_CODEC2_EAXA_INT      0x03
-#define EA_CODEC2_MT10          0x04
-#define EA_CODEC2_VAG           0x05
-#define EA_CODEC2_N64           0x06
-#define EA_CODEC2_S16BE         0x07
-#define EA_CODEC2_S16LE         0x08
-#define EA_CODEC2_S8            0x09
-#define EA_CODEC2_EAXA          0x0A
-//#define EA_CODEC2_U8_INT      0x0B /* not used (sx.exe internal defs) */
-//#define EA_CODEC2_CDXA        0x0C /* not used (sx.exe internal defs) */
-//#define EA_CODEC2_IMA         0x0D /* not used (sx.exe internal defs) */
-//#define EA_CODEC2_LAYER1      0x0E /* not used (sx.exe internal defs) */
-#define EA_CODEC2_LAYER2        0x0F
-#define EA_CODEC2_LAYER3        0x10 /* not seen so far but may be used somewhere */
-#define EA_CODEC2_GCADPCM       0x12
-//#define EA_CODEC2_S24LE_INT   0x13 /* not used (sx.exe internal defs) */
-#define EA_CODEC2_XBOXADPCM     0x14
-//#define EA_CODEC2_S24BE_INT   0x15 /* not used (sx.exe internal defs) */
-#define EA_CODEC2_MT5           0x16
-#define EA_CODEC2_EALAYER3      0x17
-#define EA_CODEC2_ATRAC3        0x1A /* not seen so far (sx.exe samples ok) */
-#define EA_CODEC2_ATRAC3PLUS    0x1B
+#define EA_CODEC2_NONE              -1
+#define EA_CODEC2_S16LE_INT         0x00
+#define EA_CODEC2_S16BE_INT         0x01
+#define EA_CODEC2_S8_INT            0x02
+#define EA_CODEC2_EAXA_INT          0x03
+#define EA_CODEC2_MT10              0x04
+#define EA_CODEC2_VAG               0x05
+#define EA_CODEC2_N64               0x06
+#define EA_CODEC2_S16BE             0x07
+#define EA_CODEC2_S16LE             0x08
+#define EA_CODEC2_S8                0x09
+#define EA_CODEC2_EAXA              0x0A
+//#define EA_CODEC2_U8_INT          0x0B /* not used (sx.exe internal defs) */
+//#define EA_CODEC2_CDXA            0x0C /* not used (sx.exe internal defs) */
+//#define EA_CODEC2_IMA_INT         0x0D /* not used (sx.exe internal defs) */
+//#define EA_CODEC2_LAYER1          0x0E /* not used (sx.exe internal defs) */
+#define EA_CODEC2_LAYER2            0x0F
+#define EA_CODEC2_LAYER3            0x10 /* not seen so far but may be used somewhere */
+#define EA_CODEC2_GCADPCM           0x12
+//#define EA_CODEC2_S24LE_INT       0x13 /* not used (sx.exe internal defs) */
+#define EA_CODEC2_XBOXADPCM         0x14
+//#define EA_CODEC2_S24BE_INT       0x15 /* not used (sx.exe internal defs) */
+#define EA_CODEC2_MT5               0x16
+#define EA_CODEC2_EALAYER3          0x17
+//#define EA_CODEC2_XAS0_INT        0x18 /* not used (sx.exe internal defs) */
+//#define EA_CODEC2_EALAYER3_INT    0x19 /* not used (sx.exe internal defs) */
+#define EA_CODEC2_ATRAC3            0x1A /* not seen so far (sx.exe samples ok) */
+#define EA_CODEC2_ATRAC3PLUS        0x1B
+/* EAAC (SND10) codecs begin after this point */
 
 /* Block headers, SCxy - where x is block ID and y is endianness flag (always 'l'?) */
-#define EA_BLOCKID_HEADER       0x5343486C /* "SCHl" */
-#define EA_BLOCKID_COUNT        0x5343436C /* "SCCl" */
-#define EA_BLOCKID_DATA         0x5343446C /* "SCDl" */
-#define EA_BLOCKID_LOOP         0x53434C6C /* "SCLl */
-#define EA_BLOCKID_END          0x5343456C /* "SCEl" */
+#define EA_BLOCKID_HEADER           0x5343486C /* "SCHl" */
+#define EA_BLOCKID_COUNT            0x5343436C /* "SCCl" */
+#define EA_BLOCKID_DATA             0x5343446C /* "SCDl" */
+#define EA_BLOCKID_LOOP             0x53434C6C /* "SCLl */
+#define EA_BLOCKID_END              0x5343456C /* "SCEl" */
 
 /* Localized block headers, Sxyy - where x is block ID and yy is lang code (e.g. "SHEN"), used in videos */
-#define EA_BLOCKID_LOC_HEADER   0x53480000 /* "SH" */
-#define EA_BLOCKID_LOC_COUNT    0x53430000 /* "SC" */
-#define EA_BLOCKID_LOC_DATA     0x53440000 /* "SD" */
-#define EA_BLOCKID_LOC_END      0x53450000 /* "SE" */
+#define EA_BLOCKID_LOC_HEADER       0x53480000 /* "SH" */
+#define EA_BLOCKID_LOC_COUNT        0x53430000 /* "SC" */
+#define EA_BLOCKID_LOC_DATA         0x53440000 /* "SD" */
+#define EA_BLOCKID_LOC_END          0x53450000 /* "SE" */
 
-#define EA_BLOCKID_LOC_EN       0x0000454E /* English */
-#define EA_BLOCKID_LOC_FR       0x00004652 /* French */
-#define EA_BLOCKID_LOC_GE       0x00004745 /* German, older */
-#define EA_BLOCKID_LOC_DE       0x00004445 /* German, newer */
-#define EA_BLOCKID_LOC_IT       0x00004954 /* Italian */
-#define EA_BLOCKID_LOC_SP       0x00005350 /* Castilian Spanish, older */
-#define EA_BLOCKID_LOC_ES       0x00004553 /* Castilian Spanish, newer */
-#define EA_BLOCKID_LOC_MX       0x00004D58 /* Mexican Spanish */
-#define EA_BLOCKID_LOC_RU       0x00005255 /* Russian */
-#define EA_BLOCKID_LOC_JA       0x00004A41 /* Japanese, older */
-#define EA_BLOCKID_LOC_JP       0x00004A50 /* Japanese, newer */
-#define EA_BLOCKID_LOC_PL       0x0000504C /* Polish */
-#define EA_BLOCKID_LOC_BR       0x00004252 /* Brazilian Portuguese */
+#define EA_BLOCKID_LOC_EN           0x0000454E /* English */
+#define EA_BLOCKID_LOC_FR           0x00004652 /* French */
+#define EA_BLOCKID_LOC_GE           0x00004745 /* German, older */
+#define EA_BLOCKID_LOC_DE           0x00004445 /* German, newer */
+#define EA_BLOCKID_LOC_IT           0x00004954 /* Italian */
+#define EA_BLOCKID_LOC_SP           0x00005350 /* Castilian Spanish, older */
+#define EA_BLOCKID_LOC_ES           0x00004553 /* Castilian Spanish, newer */
+#define EA_BLOCKID_LOC_MX           0x00004D58 /* Mexican Spanish */
+#define EA_BLOCKID_LOC_RU           0x00005255 /* Russian */
+#define EA_BLOCKID_LOC_JA           0x00004A41 /* Japanese, older */
+#define EA_BLOCKID_LOC_JP           0x00004A50 /* Japanese, newer */
+#define EA_BLOCKID_LOC_PL           0x0000504C /* Polish */
+#define EA_BLOCKID_LOC_BR           0x00004252 /* Brazilian Portuguese */
 
-#define EA_BNK_HEADER_LE        0x424E4B6C /* "BNKl" */
-#define EA_BNK_HEADER_BE        0x424E4B62 /* "BNKb" */
+#define EA_BNK_HEADER_LE            0x424E4B6C /* "BNKl" */
+#define EA_BNK_HEADER_BE            0x424E4B62 /* "BNKb" */
 
-#define EA_MAX_CHANNELS         6
+#define EA_MAX_CHANNELS             6
 
 typedef struct {
     int32_t num_samples;
