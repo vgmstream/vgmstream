@@ -159,7 +159,7 @@ void block_update_ea_schl(off_t block_offset, VGMSTREAM * vgmstream) {
                 flush_ea_mt(vgmstream);
                 break;
 
-    #ifdef VGM_USE_MPEG
+#ifdef VGM_USE_MPEG
             /* id, size, samples, offsets, unknown (null for MP2, some size/config for EALayer3; only if not >2ch) */
             case coding_MPEG_custom:
             case coding_MPEG_layer1:
@@ -179,7 +179,7 @@ void block_update_ea_schl(off_t block_offset, VGMSTREAM * vgmstream) {
                     vgmstream->ch[i].offset = block_offset + 0x0C + (0x04*vgmstream->channels) + channel_start;
                 }
                 break;
-    #endif
+#endif
             /* id, size, samples, offsets-per-channel, interleaved data (w/ optional hist per channel) */
             default:
                 for (i = 0; i < vgmstream->channels; i++) {

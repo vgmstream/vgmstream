@@ -59,7 +59,7 @@ VGMSTREAM* init_vgmstream_wbk(STREAMFILE* sf) {
      * 0x1c: sound offset
      * 0x20: sample rate
      * 0x24: always 0?
-     * 
+     *
      * struct slightly changed in Call of Duty 2 but still compatible
      */
     entry_offset = table_offset + (target_subsong - 1) * 0x28;
@@ -254,7 +254,7 @@ VGMSTREAM* init_vgmstream_wbk_nslb(STREAMFILE* sf) {
             break;
         }
 
-        case 0x25: /* FSB IMA */ {
+        case 0x25: { /* FSB IMA */
             VGMSTREAM* fsb_vgmstream;
             STREAMFILE* temp_sf;
 
