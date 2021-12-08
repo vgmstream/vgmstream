@@ -1479,6 +1479,8 @@ static size_t calculate_eaac_size(STREAMFILE *sf, eaac_header *ea, uint32_t num_
     while (block_offset < file_size) {
         block_id = read_8bit(block_offset, sf);
         block_size = read_32bitBE(block_offset, sf) & 0x00FFFFFF;
+        if (block_size == 0 || block_size == 0x00FFFFFF)
+            goto fail;
 
         /* stop when we reach the end marker */
         if (ea->version == EAAC_VERSION_V0) {
