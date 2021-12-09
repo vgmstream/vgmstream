@@ -41,6 +41,7 @@ VGMSTREAM * init_vgmstream_bwav(STREAMFILE *streamFile) {
     vgmstream->loop_start_sample = read_32bitLE(0x50, streamFile);
     vgmstream->loop_end_sample = read_32bitLE(0x4C, streamFile);
     vgmstream->meta_type = meta_BWAV;
+    vgmstream->allow_dual_stereo = 1;
 
     switch(codec) {
         case 0x0000:
