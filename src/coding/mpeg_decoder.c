@@ -62,10 +62,10 @@ mpeg_codec_data* init_mpeg(STREAMFILE* sf, off_t start_offset, coding_t* coding_
         } while (rc != MPG123_NEW_FORMAT);
 
         /* check first frame header and validate */
-        rc = mpg123_getformat(main_m,&sample_rate_per_frame,&channels_per_frame,&encoding);
+        rc = mpg123_getformat(main_m, &sample_rate_per_frame, &channels_per_frame, &encoding);
         if (rc != MPG123_OK) goto fail;
 
-        mpg123_info(main_m,&mi);
+        mpg123_info(main_m, &mi);
 
         if (encoding != MPG123_ENC_SIGNED_16)
             goto fail;
@@ -89,12 +89,11 @@ mpeg_codec_data* init_mpeg(STREAMFILE* sf, off_t start_offset, coding_t* coding_
             samples_per_frame = 1152;
         else if (mi.layer == 3)
             samples_per_frame = 576;
-        else goto fail;
+        else
+            goto fail;
 
         data->channels_per_frame = channels_per_frame;
         data->samples_per_frame = samples_per_frame;
-        if (channels_per_frame != channels)
-            goto fail;
 
         /* copy current as open_feed may invalidate until data is fed */
         memcpy(&data->mi, &mi, sizeof(struct mpg123_frameinfo));
