@@ -1,69 +1,58 @@
 #include "meta.h"
-#include "../util.h"
+#include "../coding/coding.h"
 
-/* ILD */
-
-VGMSTREAM * init_vgmstream_ps2_ild(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
-    int loop_flag=0;
-    int channel_count;
+/* ILD - from Tose(?) games [Battle of Sunrise (PS2), Nightmare Before Christmas: Oogie's Revenge (PS2)] */
+VGMSTREAM* init_vgmstream_ild(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
+    int channels, loop_flag;
+    uint32_t data_size;
     off_t start_offset;
-    int i;
-
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("ild",filename_extension(filename))) goto fail;
 
     /* check ILD Header */
-    if (read_32bitBE(0x00,streamFile) != 0x494C4400)
+    if (!is_id32be(0x00,sf, "ILD\0"))
         goto fail;
 
-    /* check loop */
-    loop_flag = (read_32bitLE(0x2C,streamFile)!=0);
-    channel_count=read_32bitLE(0x04,streamFile);
-    
+    if (!check_extensions(sf, "ild"))
+        goto fail;
+
+    channels = read_u32le(0x04,sf); /* tracks (seen 2 and 4) */
+    start_offset = read_u32le(0x08,sf);
+    data_size = read_u32le(0x0C,sf);
+    /* 0x10: headers size / 2? */
+    /* 0x14: header per channel */
+    /* - 0x00: null */
+    /* - 0x04: header size? (always 0x20) */
+    /* - 0x08: size (may vary a bit between channel pairs) */
+    /* - 0x0c: interleave? */
+    /* - 0x10: channels per track (1) */
+    /* - 0x14: sample rate */
+    /* - 0x18: loop start */
+    /* - 0x1c: loop end (also varies) */
+
+
+    loop_flag = (read_s32le(0x2C,sf) > 0);
+
+
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
-    /* fill in the vital statistics */
-    vgmstream->channels = read_32bitLE(0x04,streamFile);
-    vgmstream->sample_rate = read_32bitLE(0x28,streamFile);
+    vgmstream->meta_type = meta_ILD;
 
-    /* Check for Compression Scheme */
+    vgmstream->num_samples = ps_bytes_to_samples(data_size, channels);
+    vgmstream->interleave_block_size = read_u32le(0x14 + 0x0c,sf);
+    vgmstream->sample_rate = read_u32le(0x14 + 0x14,sf);
+    vgmstream->loop_start_sample = ps_bytes_to_samples(read_u32le(0x14 + 0x18,sf), 1);
+    vgmstream->loop_end_sample = ps_bytes_to_samples(read_u32le(0x14 + 0x1c,sf), 1);
+
     vgmstream->coding_type = coding_PSX;
-    vgmstream->num_samples = read_32bitLE(0x0C,streamFile)/16*28/vgmstream->channels;
-
-    /* Get loop point values */
-    if(vgmstream->loop_flag) {
-        vgmstream->loop_start_sample = read_32bitLE(0x2C,streamFile)/16*28;
-        vgmstream->loop_end_sample = read_32bitLE(0x30,streamFile)/16*28;
-    }
-
-    vgmstream->interleave_block_size = read_32bitLE(0x18,streamFile)/2;
     vgmstream->layout_type = layout_interleave;
-    vgmstream->meta_type = meta_PS2_ILD;
 
-    start_offset = (off_t)read_32bitLE(0x08,streamFile);
-
-    /* open the file for reading by each channel */
-    {
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-
-            if (!vgmstream->ch[i].streamfile) goto fail;
-
-            vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=
-                (off_t)(start_offset+vgmstream->interleave_block_size*i);
-        }
-    }
-
+    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
+        goto fail;
     return vgmstream;
 
-    /* clean up anything we may have opened */
 fail:
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_vgmstream(vgmstream);
     return NULL;
 }

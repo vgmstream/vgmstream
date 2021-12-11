@@ -333,8 +333,8 @@ typedef enum {
     meta_AAX,               /* CRI AAX */
     meta_UTF_DSP,           /* CRI ADPCM_WII, like AAX with DSP */
 
-    meta_NGC_ADPDTK,        /* NGC DTK/ADP (.adp/dkt DTK) [no header_id] */
-    meta_RSF,               /* Retro Studios RSF (Metroid Prime .rsf) [no header_id] */
+    meta_DTK,
+    meta_RSF,
     meta_HALPST,            /* HAL Labs HALPST */
     meta_GCSW,              /* GCSW (PCM) */
     meta_CAF,               /* tri-Crescendo CAF */
@@ -358,7 +358,7 @@ typedef enum {
     meta_PS2_VAGp_AAAP,     /* Acclaim Austin Audio VAG header */
     meta_SEB,
     meta_STR_WAV,           /* Blitz Games STR+WAV files */
-    meta_PS2_ILD,           /* ILD File */
+    meta_ILD,
     meta_PS2_PNB,           /* PsychoNauts Bgm File */
     meta_VPK,               /* VPK Audio File */
     meta_PS2_BMDX,          /* Beatmania thing */

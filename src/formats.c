@@ -138,7 +138,7 @@ static const char* extension_list[] = {
     "cps",
     "csa", //txth/reserved [LEGO Racers 2 (PS2)]
     "csmp",
-    "cvs",
+    "cvs", //txth/reserved [Aladdin in Nasira's Revenge (PS1)]
     "cwav",
     "cxs",
 
@@ -599,7 +599,7 @@ static const char* extension_list[] = {
     "wic", //txth/reserved [Road Rash (SAT)-videos]
     "wip", //txth/reserved [Colin McRae DiRT (PC)]
     "wlv", //txth/reserved [ToeJam & Earl III: Mission to Earth (DC)]
-    "wmus",
+    "wmus", //fake extension (to be removed)
     "wp2",
     "wpd",
     "wsd",
@@ -618,7 +618,7 @@ static const char* extension_list[] = {
     "xa",
     "xa2",
     "xa30",
-    "xag",
+    "xag", //txth/reserved [Tamsoft's PS2 games]
     "xau",
     "xav",
     "xb", //txth/reserved [Scooby-Doo! Unmasked (Xbox)]
@@ -937,7 +937,7 @@ static const meta_info meta_info_list[] = {
         {meta_AGSC,                 "Retro Studios AGSC header"},
         {meta_CSMP,                 "Retro Studios CSMP header"},
         {meta_RFRM,                 "Retro Studios RFRM header"},
-        {meta_NGC_ADPDTK,           "Nintendo ADP raw header"},
+        {meta_DTK,                  "Nintendo DTK raw header"},
         {meta_RSF,                  "Retro Studios RSF raw header"},
         {meta_AFC,                  "Nintendo .AFC header"},
         {meta_AST,                  "Nintendo AST header"},
@@ -976,7 +976,7 @@ static const meta_info meta_info_list[] = {
         {meta_PS2_VAGp_AAAP,        "Acclaim Austin AAAp VAG header"},
         {meta_SEB,                  "Game Arts .SEB header"},
         {meta_STR_WAV,              "Blitz Games .STR+WAV header"},
-        {meta_PS2_ILD,              "ILD header"},
+        {meta_ILD,                  "Tose ILD header"},
         {meta_PS2_PNB,              "assumed PNB (PsychoNauts Bgm File) by .pnb extension"},
         {meta_RAW_WAVM,             "Xbox .wavm raw header"},
         {meta_DSP_STR,              "assumed Conan Gamecube STR File by .str extension"},
