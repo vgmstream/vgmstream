@@ -338,7 +338,7 @@ typedef struct {
 } hca_keytest_t;
 
 void test_hca_key(hca_codec_data* data, hca_keytest_t* hk);
-void hca_set_encryption_key(hca_codec_data* data, uint64_t keycode);
+void hca_set_encryption_key(hca_codec_data* data, uint64_t keycode, uint64_t subkey);
 
 STREAMFILE* hca_get_streamfile(hca_codec_data* data);
 

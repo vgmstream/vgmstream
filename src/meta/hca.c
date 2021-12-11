@@ -49,14 +49,10 @@ VGMSTREAM* init_vgmstream_hca_subkey(STREAMFILE* sf, uint16_t subkey) {
         keysize = read_key_file(keybuf, 0x08+0x04, sf);
         if (keysize == 0x08) { /* standard */
             keycode = get_u64be(keybuf+0x00);
-            if (subkey) {
-                keycode = keycode * ( ((uint64_t)subkey << 16u) | ((uint16_t)~subkey + 2u) );
-            }
         }
         else if (keysize == 0x08+0x02) { /* seed key + AWB subkey */
-            uint64_t file_key = get_u64be(keybuf+0x00);
-            uint16_t file_sub = get_u16be(keybuf+0x08);
-            keycode = file_key * ( ((uint64_t)file_sub << 16u) | ((uint16_t)~file_sub + 2u) );
+            keycode = get_u64be(keybuf+0x00);
+            subkey  = get_u16be(keybuf+0x08);
         }
 #ifdef HCA_BRUTEFORCE
         else if (1) {
@@ -69,7 +65,7 @@ VGMSTREAM* init_vgmstream_hca_subkey(STREAMFILE* sf, uint16_t subkey) {
             find_hca_key(hca_data, &keycode, subkey);
         }
 
-        hca_set_encryption_key(hca_data, keycode);
+        hca_set_encryption_key(hca_data, keycode, subkey);
     }
 
 
