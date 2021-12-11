@@ -518,10 +518,10 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
                     break;
 
                 case 0x66616374:    /* "fact" */
-                    if (chunk_size == 0x04) { /* standard (usually for ADPCM, MS recommends to set for non-PCM codecs) */
+                    if (chunk_size == 0x04) { /* standard (usually for ADPCM, MS recommends setting for non-PCM codecs but optional) */
                         fact_sample_count = read_32bitLE(current_chunk+0x08, sf);
                     }
-                    else if (chunk_size == 0x10 && read_32bitBE(current_chunk+0x08+0x04, sf) == 0x4C794E20) { /* "LyN " */
+                    else if (chunk_size == 0x10 && is_id32be(current_chunk+0x08+0x04, sf, "LyN ")) {
                         goto fail; /* parsed elsewhere */
                     }
                     else if ((fmt.is_at3 || fmt.is_at3p) && chunk_size == 0x08) { /* early AT3 (mainly PSP games) */
@@ -539,6 +539,9 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
                         fact_sample_skip  = read_32bitLE(current_chunk+0x10, sf);
                     }
                     break;
+
+                case 0x4C795345:    /* "LySE" */
+                    goto fail; /* parsed elsewhere */
 
                 case 0x70666c74:    /* "pflt" (.mwv extension) */
                     if (!mwv) break;    /* ignore if not in an mwv */
