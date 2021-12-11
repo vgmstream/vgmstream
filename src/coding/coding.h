@@ -657,6 +657,7 @@ typedef struct {
 } mp4_custom_t;
 
 ffmpeg_codec_data* init_ffmpeg_mp4_custom_std(STREAMFILE* sf, mp4_custom_t* mp4);
+ffmpeg_codec_data* init_ffmpeg_mp4_custom_lyn(STREAMFILE* sf, mp4_custom_t* mp4);
 
 #endif
 

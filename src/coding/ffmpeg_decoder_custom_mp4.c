@@ -1,14 +1,16 @@
 #include "coding.h"
 #include "../streamfile.h"
-#include <string.h>
+#include "../meta/deblock_streamfile.h"
 
 #ifdef VGM_USE_FFMPEG
+
+typedef enum { MP4_STD, MP4_LYN } mp4_type_t;
 
 /**
  * Makes a MP4 header for MP4 raw data with a separate frame table, simulating a real MP4 that
  * also has such table embedded in their custom chunks.
  */
-//TODO: segfautls with certain audio files (ffmpeg buf?)
+//TODO: segfaults with certain audio files (ffmpeg?)
 
 /* *********************************************************** */
 
@@ -26,6 +28,8 @@ typedef struct {
 typedef struct {
     STREAMFILE* sf;
     mp4_custom_t* mp4;      /* config */
+    mp4_type_t type;
+
     uint8_t* out;           /* current position */
     int bytes;              /* written bytes */
     m4a_state_t chunks;     /* chunks offsets are absolute, save position until we know header size */
@@ -115,9 +119,36 @@ static void add_stsz(m4a_header_t* h) {
     add_u32b(h, 0);                         /* Sample size (CBR) */
     add_u32b(h, h->mp4->table_entries);     /* Number of entries (VBR) */
 
-    for (i = 0; i < h->mp4->table_entries; i++) { 
-        size = read_u32le(h->mp4->table_offset + i * 0x04, h->sf);
-        add_u32b(h, size);                  /* Sample N */
+    switch(h->type) {
+        case MP4_LYN: {
+            uint32_t curr_size, next_size;
+
+            /* LyN has a seek table with every frame, and frames are preprended by a 0x02
+             * frame header with frame size, so we can reconstruct a frame table */
+            for (i = 0; i < h->mp4->table_entries - 1; i++) { 
+                curr_size = read_u32le(h->mp4->table_offset + (i + 0) * 0x04, h->sf);
+                next_size = read_u32le(h->mp4->table_offset + (i + 1) * 0x04, h->sf);
+
+                size = next_size - curr_size - 0x02;
+                add_u32b(h, size);          /* Sample N */
+                //;VGM_LOG("%i: %x (%x: %x - %x - 0x02)\n", i, size, h->mp4->table_offset + (i + 1) * 0x04, next_size, curr_size);
+            }
+            curr_size = read_u32le(h->mp4->table_offset + (i + 0) * 0x04, h->sf);
+            next_size = h->mp4->stream_size; /* no last offset */
+
+            size = next_size - curr_size - 0x02;
+            add_u32b(h, size);              /* Sample N */
+            //;VGM_LOG("%i: %x\n", i, size);
+            break;
+        }
+
+        default: {
+            for (i = 0; i < h->mp4->table_entries; i++) { 
+                size = read_u32le(h->mp4->table_offset + i * 0x04, h->sf);
+                add_u32b(h, size);          /* Sample N */
+            }
+            break;
+        }
     }
 }
 
@@ -390,7 +421,7 @@ static void add_moov(m4a_header_t* h) {
 
 /* *** */
 
-static int make_m4a_header(uint8_t* buf, int buf_len, mp4_custom_t* mp4, STREAMFILE* sf) {
+static int make_m4a_header(uint8_t* buf, int buf_len, mp4_custom_t* mp4, STREAMFILE* sf, mp4_type_t type) {
     m4a_header_t h = {0};
 
     if (buf_len < 0x400 + mp4->table_entries * 0x4) /* approx */
@@ -398,6 +429,7 @@ static int make_m4a_header(uint8_t* buf, int buf_len, mp4_custom_t* mp4, STREAMF
 
     h.sf = sf;
     h.mp4 = mp4;
+    h.type = type;
     h.out = buf;
 
     add_ftyp(&h);
@@ -416,8 +448,40 @@ fail:
 
 /* ************************************************************************* */
 
-ffmpeg_codec_data* init_ffmpeg_mp4_custom_std(STREAMFILE* sf, mp4_custom_t* mp4) {
+static void block_callback(STREAMFILE* sf, deblock_io_data* data) {
+    data->data_size = read_u16be(data->physical_offset, sf);
+    data->skip_size = 0x02;
+    data->block_size = data->skip_size + data->data_size;
+}
+
+static STREAMFILE* setup_mp4_streamfile(STREAMFILE* sf, mp4_custom_t* mp4, mp4_type_t type) {
+    STREAMFILE* new_sf = NULL;
+    deblock_config_t cfg = {0};
+
+    cfg.stream_start = mp4->stream_offset;
+    cfg.stream_size = mp4->stream_size;
+    cfg.block_callback = block_callback;
+
+    switch(type) {
+        case MP4_LYN: /* each frame has a 0x02 header */
+            cfg.logical_size = mp4->stream_size - (mp4->table_entries * 0x02);
+            break;
+        default:
+            return NULL;
+    }
+
+    /* setup sf */
+    new_sf = open_wrap_streamfile(sf);
+    new_sf = open_io_deblock_streamfile_f(new_sf, &cfg);
+    //new_sf = open_clamp_streamfile_f(new_sf, 0x00, clean_size);
+    return new_sf;
+}
+
+/* ************************************************************************* */
+
+static ffmpeg_codec_data* init_ffmpeg_mp4_custom(STREAMFILE* sf, mp4_custom_t* mp4, mp4_type_t type) {
     ffmpeg_codec_data* ffmpeg_data = NULL;
+    STREAMFILE* temp_sf = NULL;
     int bytes;
     uint8_t* buf = NULL;
     int buf_len = 0x800 + mp4->table_entries * 0x4; /* approx max sum of atom chunks is ~0x400 */
@@ -427,20 +491,48 @@ ffmpeg_codec_data* init_ffmpeg_mp4_custom_std(STREAMFILE* sf, mp4_custom_t* mp4)
 
     buf = malloc(buf_len);
     if (!buf) goto fail;
+    bytes = make_m4a_header(buf, buf_len, mp4, sf, type); /* before changing stream_offset/size */
 
-    bytes = make_m4a_header(buf, buf_len, mp4, sf);
-    ffmpeg_data = init_ffmpeg_header_offset(sf, buf, bytes, mp4->stream_offset, mp4->stream_size);
+    switch(type) {
+        case MP4_STD: /* regular raw data */
+            temp_sf = sf;
+            break;
+        case MP4_LYN: /* frames have size before them, but also a seek table */
+            temp_sf = setup_mp4_streamfile(sf, mp4, type);
+            mp4->stream_offset = 0;
+            mp4->stream_size = get_streamfile_size(temp_sf);
+            break;
+        default:
+            goto fail;
+    }
+    if (!temp_sf) goto fail;
+
+    ffmpeg_data = init_ffmpeg_header_offset(temp_sf, buf, bytes, mp4->stream_offset, mp4->stream_size);
     if (!ffmpeg_data) goto fail;
 
     /* not part of fake header since it's kinda complex to add (iTunes string comment) */
     ffmpeg_set_skip_samples(ffmpeg_data, mp4->encoder_delay);
 
     free(buf);
+    if (sf != temp_sf) close_streamfile(temp_sf);
     return ffmpeg_data;
 fail:
     free(buf);
+    if (sf != temp_sf) close_streamfile(temp_sf);
     free_ffmpeg(ffmpeg_data);
     return NULL;
+}
+
+ffmpeg_codec_data* init_ffmpeg_mp4_custom_std(STREAMFILE* sf, mp4_custom_t* mp4) {
+    return init_ffmpeg_mp4_custom(sf, mp4, MP4_STD);
+}
+
+ffmpeg_codec_data* init_ffmpeg_mp4_custom_lyn(STREAMFILE* sf, mp4_custom_t* mp4) {
+    //TODO: most LyN files seem to give FFmpeg error in some frame, mono or stereo files,
+    // seek table correct and complete, no observed frame size/format/etc oddities.
+    // No audible issues though so maybe it's must some FFmpeg issue to be fixed there.
+    // (ex. frame 272 of 1162 in VO_ACT2_M12_FD_54_GILLI_PLS_0008479.Cafe_00000006.son)
+    return init_ffmpeg_mp4_custom(sf, mp4, MP4_LYN);
 }
 
 #endif
