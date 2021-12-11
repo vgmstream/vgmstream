@@ -639,6 +639,25 @@ size_t switch_opus_get_encoder_delay(off_t offset, STREAMFILE* sf);
 size_t ue4_opus_get_encoder_delay(off_t offset, STREAMFILE* sf);
 size_t ea_opus_get_encoder_delay(off_t offset, STREAMFILE* sf);
 size_t fsb_opus_get_encoder_delay(off_t offset, STREAMFILE* sf);
+
+/* ffmpeg_decoder_custom_mp4.c*/
+typedef struct {
+    int channels;
+    int sample_rate;
+    int32_t num_samples;
+
+    uint32_t stream_offset;
+    uint32_t stream_size;
+    uint32_t table_offset;
+    uint32_t table_entries;
+
+    int encoder_delay;
+    int end_padding;
+    int frame_samples;
+} mp4_custom_t;
+
+ffmpeg_codec_data* init_ffmpeg_mp4_custom_std(STREAMFILE* sf, mp4_custom_t* mp4);
+
 #endif
 
 
