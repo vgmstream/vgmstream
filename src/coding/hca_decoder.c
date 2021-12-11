@@ -209,7 +209,7 @@ STREAMFILE* hca_get_streamfile(hca_codec_data* data) {
 
 /* Test a number of frames if key decrypts correctly.
  * Returns score: <0: error/wrong, 0: unknown/silent file, >0: good (the closest to 1 the better). */
-static int test_hca_score(hca_codec_data* data, hca_keytest_t* hk, unsigned long long keycode) {
+static int test_hca_score(hca_codec_data* data, hca_keytest_t* hk) {
     size_t test_frames = 0, current_frame = 0, blank_frames = 0;
     int total_score = 0;
     const unsigned int block_size = data->info.blockSize;
@@ -222,7 +222,7 @@ static int test_hca_score(hca_codec_data* data, hca_keytest_t* hk, unsigned long
      * Buffered IO seems fast enough (not very different reading a large block once vs frame by frame).
      * clHCA_TestBlock could be optimized a bit more. */
 
-    clHCA_SetKey(data->handle, keycode);
+    hca_set_encryption_key(data, hk->key, hk->subkey);
 
     /* Test up to N non-blank frames or until total frames. */
     /* A final score of 0 (=silent) is only possible for short files with all blank frames */
@@ -289,35 +289,26 @@ static int test_hca_score(hca_codec_data* data, hca_keytest_t* hk, unsigned long
 
 void test_hca_key(hca_codec_data* data, hca_keytest_t* hk) {
     int score;
-    uint64_t key = hk->key;
-    uint16_t subkey = hk->subkey;
 
-    //;VGM_LOG("HCA: test key=%08x%08x, subkey=%04x\n",
-    //        (uint32_t)((key >> 32) & 0xFFFFFFFF), (uint32_t)(key & 0xFFFFFFFF), subkey);
-
-    if (subkey) {
-        key = key * ( ((uint64_t)subkey << 16u) | ((uint16_t)~subkey + 2u) );
-    }
-
-    score = test_hca_score(data, hk, (unsigned long long)key);
+    score = test_hca_score(data, hk);
 
     //;VGM_LOG("HCA: test key=%08x%08x, subkey=%04x, score=%i\n",
-    //        (uint32_t)((key >> 32) & 0xFFFFFFFF), (uint32_t)(key & 0xFFFFFFFF), subkey, score);
+    //        (uint32_t)((hk->key >> 32) & 0xFFFFFFFF), (uint32_t)(hk->key & 0xFFFFFFFF), hk->subkey, score);
 
     /* wrong key */
     if (score < 0)
         return;
 
-    //;VGM_LOG("HCA: ok key=%08x%08x, subkey=%04x, score=%i\n",
-    //        (uint32_t)((key >> 32) & 0xFFFFFFFF), (uint32_t)(key & 0xFFFFFFFF), subkey, score);
-
     /* update if something better is found */
     if (hk->best_score <= 0 || (score < hk->best_score && score > 0)) {
         hk->best_score = score;
-        hk->best_key = key;
+        hk->best_key = hk->key; /* base */
     }
 }
 
-void hca_set_encryption_key(hca_codec_data* data, uint64_t keycode) {
+void hca_set_encryption_key(hca_codec_data* data, uint64_t keycode, uint64_t subkey) {
+    if (subkey) {
+        keycode = keycode * ( ((uint64_t)subkey << 16u) | ((uint16_t)~subkey + 2u) );
+    }
     clHCA_SetKey(data->handle, (unsigned long long)keycode);
 }

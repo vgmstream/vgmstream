@@ -338,7 +338,7 @@ typedef struct {
 } hca_keytest_t;
 
 void test_hca_key(hca_codec_data* data, hca_keytest_t* hk);
-void hca_set_encryption_key(hca_codec_data* data, uint64_t keycode);
+void hca_set_encryption_key(hca_codec_data* data, uint64_t keycode, uint64_t subkey);
 
 STREAMFILE* hca_get_streamfile(hca_codec_data* data);
 
@@ -639,6 +639,26 @@ size_t switch_opus_get_encoder_delay(off_t offset, STREAMFILE* sf);
 size_t ue4_opus_get_encoder_delay(off_t offset, STREAMFILE* sf);
 size_t ea_opus_get_encoder_delay(off_t offset, STREAMFILE* sf);
 size_t fsb_opus_get_encoder_delay(off_t offset, STREAMFILE* sf);
+
+/* ffmpeg_decoder_custom_mp4.c*/
+typedef struct {
+    int channels;
+    int sample_rate;
+    int32_t num_samples;
+
+    uint32_t stream_offset;
+    uint32_t stream_size;
+    uint32_t table_offset;
+    uint32_t table_entries;
+
+    int encoder_delay;
+    int end_padding;
+    int frame_samples;
+} mp4_custom_t;
+
+ffmpeg_codec_data* init_ffmpeg_mp4_custom_std(STREAMFILE* sf, mp4_custom_t* mp4);
+ffmpeg_codec_data* init_ffmpeg_mp4_custom_lyn(STREAMFILE* sf, mp4_custom_t* mp4);
+
 #endif
 
 

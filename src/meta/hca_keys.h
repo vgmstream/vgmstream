@@ -843,6 +843,8 @@ static const hcakey_info hcakey_list[] = {
         {0x0a5d0fc8cc5c4502},   // Sng018
         {0x198ea1a17416050b},   // Sng019
         {0x2aa3b8abad207a1e},   // Sng020
+        {0x1175edbbacc1fc18},   // Sng024
+        {0x0e14d06d7f7a6c8c},   // Sng025
         {0x33d98a3a9f9bfdef},   // Sng026
         {0x2284fd5ca82c78f4},   // Sng027
         {0x178a76b6436d20f0},   // Sng028

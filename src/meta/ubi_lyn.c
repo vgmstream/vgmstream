@@ -1,69 +1,97 @@
 #include "meta.h"
 #include "../layout/layout.h"
 #include "../coding/coding.h"
+#include "../util/chunks.h"
 #include "ubi_lyn_streamfile.h"
 
 
 /* LyN RIFF - from Ubisoft LyN engine games [Red Steel 2 (Wii), Adventures of Tintin (Multi), From Dust (Multi), Just Dance 3/4 (multi)] */
 VGMSTREAM* init_vgmstream_ubi_lyn(STREAMFILE* sf) {
-    VGMSTREAM * vgmstream = NULL;
-    off_t start_offset, first_offset = 0xc;
-    off_t fmt_offset, data_offset, fact_offset;
-    size_t fmt_size, data_size, fact_size;
-    int loop_flag, channels, sample_rate, codec;
-    int num_samples;
+    VGMSTREAM* vgmstream = NULL;
+    off_t start_offset;
+    uint32_t fmt_offset = 0, fmt_size = 0, data_offset = 0, data_size = 0, fact_offset = 0, fact_size = 0;
+    int loop_flag = 0, channels = 0, sample_rate = 0, codec = 0;
+    int32_t num_samples = 0;
 
 
     /* checks */
+    if (!is_id32be(0x00,sf, "RIFF"))
+        goto fail;
+    if (read_u32le(0x04,sf) + 0x04 + 0x04 != get_streamfile_size(sf))
+        goto fail;
+    if (!is_id32be(0x08,sf, "WAVE"))
+        goto fail;
+
     /* .sns: Red Steel 2
      * .wav: Tintin, Just Dance
-     * .son: From Dust */
+     * .son: From Dust, ZombieU */
     if (!check_extensions(sf,"sns,wav,lwav,son"))
         goto fail;
 
     /* a slightly eccentric RIFF with custom codecs */
-    if (!is_id32be(0x00,sf, "RIFF") ||
-        !is_id32be(0x08,sf, "WAVE"))
-        goto fail;
-    if (read_32bitLE(0x04,sf) + 0x04 + 0x04 != get_streamfile_size(sf))
-        goto fail;
 
-    if (!find_chunk(sf, 0x666d7420,first_offset,0, &fmt_offset,&fmt_size, 0, 0))   /* "fmt " */
-        goto fail;
-    if (!find_chunk(sf, 0x64617461,first_offset,0, &data_offset,&data_size, 0, 0)) /* "data" */
-        goto fail;
-
-    /* always found, even with PCM (LyN subchunk seems to contain the engine version, ex. 0x0d/10) */
-    if (!find_chunk(sf, 0x66616374,first_offset,0, &fact_offset,&fact_size, 0, 0)) /* "fact" */
-        goto fail;
-    if (fact_size != 0x10 || read_32bitBE(fact_offset+0x04, sf) != 0x4C794E20) /* "LyN " */
-        goto fail;
-    num_samples = read_32bitLE(fact_offset+0x00, sf);
-    /* sometimes there is a LySE chunk */
-
-
-    /* parse format */
+    /* parse chunks (reads once linearly) */
     {
-        if (fmt_size < 0x12)
-            goto fail;
-        codec       = read_u16le(fmt_offset+0x00,sf);
-        channels    = read_u16le(fmt_offset+0x02,sf);
-        sample_rate = read_s32le(fmt_offset+0x04,sf);
-        /* 0x08: average bytes, 0x0c: block align, 0x0e: bps, etc */
+        chunk_t rc = {0};
 
-        /* fake WAVEFORMATEX, used with > 2ch */
-        if (codec == 0xFFFE) {
-            if (fmt_size < 0x28)
-                goto fail;
-            /* fake GUID with first value doubling as codec */
-            codec = read_32bitLE(fmt_offset+0x18,sf);
-            if (read_32bitBE(fmt_offset+0x1c,sf) != 0x00001000 &&
-                read_32bitBE(fmt_offset+0x20,sf) != 0x800000AA &&
-                read_32bitBE(fmt_offset+0x24,sf) != 0x00389B71) {
-                goto fail;
+        rc.current = 0x0c;
+        while (next_chunk(&rc, sf)) {
+
+            switch(rc.type) {
+                case 0x666d7420: /* "fmt " */
+                    fmt_offset = rc.offset;
+                    fmt_size = rc.size;
+
+                    if (fmt_size < 0x12)
+                        goto fail;
+                    codec       = read_u16le(fmt_offset+0x00,sf);
+                    channels    = read_u16le(fmt_offset+0x02,sf);
+                    sample_rate = read_s32le(fmt_offset+0x04,sf);
+                    /* 0x08: average bytes, 0x0c: block align, 0x0e: bps, etc */
+
+                    /* fake WAVEFORMATEX, used with > 2ch */
+                    if (codec == 0xFFFE) {
+                        if (fmt_size < 0x28)
+                            goto fail;
+                        /* fake GUID with first value doubling as codec */
+                        codec = read_u32le(fmt_offset+0x18,sf);
+                        if (read_u32be(fmt_offset+0x1c,sf) != 0x00001000 &&
+                            read_u32be(fmt_offset+0x20,sf) != 0x800000AA &&
+                            read_u32be(fmt_offset+0x24,sf) != 0x00389B71) {
+                            goto fail;
+                        }
+                    }
+                    break;
+
+                case 0x64617461: /* "data" */
+                    data_offset = rc.offset;
+                    data_size = rc.size;
+                    break;
+
+                case 0x66616374: /* "fact" */
+                    /* always found, even with PCM (LyN subchunk seems to contain the engine version, ex. 0x0d/10) */
+                    fact_offset = rc.offset;
+                    fact_size = rc.size;
+
+                    if (fact_size != 0x10 || !is_id32be(fact_offset+0x04, sf, "LyN "))
+                        goto fail;
+                    num_samples = read_s32le(fact_offset+0x00, sf);
+                    break;
+
+                case 0x4C795345: /* "LySE": optional, config? */
+                case 0x63756520: /* "cue ": total size cue? (rare) */
+                case 0x4C495354: /* "LIST": labels (rare) */
+                    break;
+
+                default:
+                    /* unknown chunk: must be another RIFF */
+                    goto fail;
             }
         }
     }
+
+    if (!fmt_offset || !fmt_size || !data_offset || !data_size || !fact_offset || !fact_size)
+        goto fail;
 
     /* most songs simply repeat; loop if it looks long enough,
      * but not too long (ex. Michael Jackson The Experience songs) */
@@ -116,10 +144,10 @@ VGMSTREAM* init_vgmstream_ubi_lyn(STREAMFILE* sf) {
             layered_layout_data* data = NULL;
             int i;
 
-            if (read_32bitLE(start_offset+0x00,sf) != 1) /* id? */
+            if (read_u32le(start_offset+0x00,sf) != 1) /* id? */
                goto fail;
 
-            interleave_size = read_32bitLE(start_offset+0x04,sf);
+            interleave_size = read_u32le(start_offset+0x04,sf);
             /* interleave is adjusted so there is no smaller last block, it seems */
 
             vgmstream->coding_type = coding_OGG_VORBIS;
@@ -133,7 +161,7 @@ VGMSTREAM* init_vgmstream_ubi_lyn(STREAMFILE* sf) {
             /* open each layer subfile */
             for (i = 0; i < channels; i++) {
                 STREAMFILE* temp_sf = NULL;
-                size_t logical_size = read_32bitLE(start_offset+0x08 + 0x04*i,sf);
+                size_t logical_size = read_u32le(start_offset+0x08 + 0x04*i,sf);
                 off_t layer_offset = start_offset + 0x08  + 0x04*channels; //+ interleave_size*i;
 
                 temp_sf = setup_ubi_lyn_streamfile(sf, layer_offset, interleave_size, i, channels, logical_size);
@@ -208,6 +236,38 @@ VGMSTREAM* init_vgmstream_ubi_lyn(STREAMFILE* sf) {
 #endif
 
 #ifdef VGM_USE_FFMPEG
+        case 0x5052: { /* MP4 AAC (WiiU), custom  */
+            mp4_custom_t mp4 = {0};
+            int entries;
+
+            /* 0x00: null? */
+            /* 0x04: fact samples again */
+            entries = read_s32le(start_offset + 0x08, sf);
+
+            /* has a seek/frame table then raw (non-header) AAC data */
+            mp4.channels = channels;
+            mp4.sample_rate = sample_rate;
+            mp4.num_samples = num_samples;
+            mp4.stream_offset = data_offset + (0x0c + entries * 0x04);
+            mp4.stream_size = data_size - (0x0c + entries * 0x04);
+            mp4.table_offset = data_offset + 0x0c;
+            mp4.table_entries = entries;
+
+            /* assumed (not in fmt's block size, fact, LyN, etc) */
+            mp4.encoder_delay = 1024; /* observed, uses libaac */
+            mp4.end_padding = 0;
+            mp4.frame_samples = 1024;
+
+            vgmstream->num_samples -= mp4.encoder_delay;
+            vgmstream->loop_end_sample -= mp4.encoder_delay;
+
+            vgmstream->codec_data = init_ffmpeg_mp4_custom_lyn(sf, &mp4);
+            if (!vgmstream->codec_data) goto fail;
+            vgmstream->coding_type = coding_FFmpeg;
+            vgmstream->layout_type = layout_none;
+            break;
+        }
+
         case 0x0166: { /* XMA (X360), standard */
             uint8_t buf[0x100];
             int bytes;
@@ -217,8 +277,8 @@ VGMSTREAM* init_vgmstream_ubi_lyn(STREAMFILE* sf) {
             /* skip standard XMA header + seek table */
             /* 0x00: version? no apparent differences (0x1=Just Dance 4, 0x3=others) */
             chunk_offset = start_offset + 0x04 + 0x04;
-            chunk_size = read_32bitLE(start_offset + 0x04, sf);
-            seek_size = read_32bitLE(chunk_offset+chunk_size, sf);
+            chunk_size = read_u32le(start_offset + 0x04, sf);
+            seek_size = read_u32le(chunk_offset+chunk_size, sf);
             start_offset += (0x04 + 0x04 + chunk_size + 0x04 + seek_size);
             data_size    -= (0x04 + 0x04 + chunk_size + 0x04 + seek_size);
 
@@ -248,9 +308,9 @@ fail:
 
 
 /* LyN RIFF in containers */
-VGMSTREAM * init_vgmstream_ubi_lyn_container(STREAMFILE *sf) {
-    VGMSTREAM *vgmstream = NULL;
-    STREAMFILE *temp_sf = NULL;
+VGMSTREAM* init_vgmstream_ubi_lyn_container(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
+    STREAMFILE* temp_sf = NULL;
     off_t subfile_offset;
     size_t subfile_size;
 
@@ -262,29 +322,30 @@ VGMSTREAM * init_vgmstream_ubi_lyn_container(STREAMFILE *sf) {
         goto fail;
 
     /* find "RIFF" position */
-    if (read_32bitBE(0x00,sf) == 0x4C795345 && /* "LySE" */
-        read_32bitBE(0x14,sf) == 0x52494646) { /* "RIFF" */
+    if (is_id32be(0x00,sf, "LySE") &&
+        is_id32be(0x14,sf, "RIFF")) {
         subfile_offset = 0x14; /* Adventures of Tintin */
     }
-    else if (read_32bitBE(0x20,sf) == 0x4C795345 && /* "LySE" */
-             read_32bitBE(0x34,sf) == 0x52494646) { /* "RIFF" */
+    else if (read_u32le(0x00,sf) + 0x22 == get_streamfile_size(sf) &&
+             is_id32be(0x20,sf, "LySE") &&
+             is_id32be(0x34,sf, "RIFF")) {
         subfile_offset = 0x34; /* Michael Jackson The Experience (Wii) */
     }
-    else if (read_32bitLE(0x00,sf)+0x20 == get_streamfile_size(sf) &&
-             read_32bitBE(0x20,sf) == 0x52494646) { /* "RIFF" */
-        subfile_offset = 0x20; /* Red Steel 2, From Dust */
+    else if (read_u32le(0x00,sf)+0x20 == get_streamfile_size(sf) &&
+             is_id32be(0x20,sf, "RIFF")) {
+        subfile_offset = 0x20; /* Red Steel 2, From Dust, ZombieU (also has "SON\0" at 0x18) */
     }
     else {
         goto fail;
     }
-    
-    subfile_size = read_32bitLE(subfile_offset+0x04,sf) + 0x04+0x04;
+
+    subfile_size = read_u32le(subfile_offset+0x04,sf) + 0x04 + 0x04;
 
     temp_sf = setup_subfile_streamfile(sf, subfile_offset, subfile_size, NULL);
     if (!temp_sf) goto fail;
 
     vgmstream = init_vgmstream_ubi_lyn(temp_sf);
-    
+
     close_streamfile(temp_sf);
     return vgmstream;
 

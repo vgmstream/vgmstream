@@ -3,7 +3,7 @@
 #include "../util.h"
 
 /* DTK - headerless Nintendo GC DTK file [Harvest Moon: Another Wonderful Life (GC), XGRA (GC)] */
-VGMSTREAM* init_vgmstream_ngc_adpdtk(STREAMFILE* sf) {
+VGMSTREAM* init_vgmstream_dtk(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     off_t start_offset;
     int channels, loop_flag;
@@ -22,12 +22,12 @@ VGMSTREAM* init_vgmstream_ngc_adpdtk(STREAMFILE* sf) {
         for (i = 0; i < 10; i++) { /* try a bunch of frames */
             /* header 0x00/01 are repeated in 0x02/03 (for error correction?),
              * could also test header values (upper nibble should be 0..3, and lower nibble 0..C) */
-            if (read_8bit(0x00 + i*0x20,sf) != read_8bit(0x02 + i*0x20,sf) ||
-                read_8bit(0x01 + i*0x20,sf) != read_8bit(0x03 + i*0x20,sf))
+            if (read_u8(0x00 + i*0x20,sf) != read_u8(0x02 + i*0x20,sf) ||
+                read_u8(0x01 + i*0x20,sf) != read_u8(0x03 + i*0x20,sf))
                 goto fail;
 
             /* frame headers for silent frames are 0x0C, never null */
-            if (read_8bit(0x00 + i*0x20,sf) == 0x00)
+            if (read_u8(0x00 + i*0x20,sf) == 0x00)
                 goto fail;
         }
     }
@@ -48,13 +48,11 @@ VGMSTREAM* init_vgmstream_ngc_adpdtk(STREAMFILE* sf) {
     vgmstream->sample_rate = 48000; /* due to a GC hardware defect this may be closer to 48043 */
     vgmstream->coding_type = coding_NGC_DTK;
     vgmstream->layout_type = layout_none;
-    vgmstream->meta_type = meta_NGC_ADPDTK;
+    vgmstream->meta_type = meta_DTK;
 
-    if ( !vgmstream_open_stream(vgmstream, sf, start_offset) )
+    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
         goto fail;
-
     return vgmstream;
-
 fail:
     close_vgmstream(vgmstream);
     return NULL;

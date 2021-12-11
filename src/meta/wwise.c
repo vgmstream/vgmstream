@@ -56,7 +56,7 @@ typedef struct {
 } wwise_header;
 
 static int parse_wwise(STREAMFILE* sf, wwise_header* ww);
-static int is_dsp_full_interleave(STREAMFILE* sf, wwise_header* ww, off_t coef_offset);
+static int is_dsp_full_interleave(STREAMFILE* sf, wwise_header* ww, off_t coef_offset, int full_detection);
 
 /* Wwise - Audiokinetic Wwise (WaveWorks Interactive Sound Engine) middleware */
 VGMSTREAM* init_vgmstream_wwise(STREAMFILE* sf) {
@@ -329,13 +329,16 @@ VGMSTREAM* init_vgmstream_wwise_bnk(STREAMFILE* sf, int* p_prefetch) {
                 vgmstream->num_samples = dsp_bytes_to_samples(ww.data_size, ww.channels);
                 if (ww.wiih_size != 0x2e * ww.channels) goto fail;
 
-                if (is_dsp_full_interleave(sf, &ww, ww.wiih_offset))
+                if (is_dsp_full_interleave(sf, &ww, ww.wiih_offset, 1))
                     vgmstream->interleave_block_size = ww.data_size / 2;
             }
             else if (ww.extra_size == 0x0c + ww.channels * 0x2e) { /* newer */
                 vgmstream->num_samples = read_s32(ww.fmt_offset + 0x18, sf);
                 ww.wiih_offset = ww.fmt_offset + 0x1c;
                 ww.wiih_size = 0x2e * ww.channels;
+
+                if (is_dsp_full_interleave(sf, &ww, ww.wiih_offset, 0)) /* less common */
+                    vgmstream->interleave_block_size = ww.data_size / 2;
             }
             else {
                 goto fail;
@@ -670,9 +673,9 @@ fail:
     return NULL;
 }
 
-static int is_dsp_full_interleave(STREAMFILE* sf, wwise_header* ww, off_t coef_offset) {
-    /* older (only?) Wwise use full interleave for memory (in .bnk) files, but
-     * detection from the .wem side is problematic [Punch Out!! (Wii)]
+static int is_dsp_full_interleave(STREAMFILE* sf, wwise_header* ww, off_t coef_offset, int full_detection) {
+    /* older (bank ~v48) Wwise use full interleave for memory (in .bnk) files, but
+     * detection from the .wem side is problematic [Punch Out!! (Wii)-old, Luigi's Mansion 2 (3DS)-new]
      * - prefetch point to streams = normal
      * - .bnk would be memory banks = full
      * - otherwise small-ish sizes, stereo, with initial predictors for the
@@ -692,7 +695,8 @@ static int is_dsp_full_interleave(STREAMFILE* sf, wwise_header* ww, off_t coef_o
     if (ww->data_size > 0x30000)
         return 0;
 
-    {
+    /* skip reading data if possible */
+    if (full_detection) {
         uint16_t head_ps2 = read_u16be(coef_offset + 1 * 0x2e + 0x22, sf); /* ch2's initial predictor */
         uint16_t init_ps2 = read_u8(ww->data_offset + 0x08, sf); /* at normal interleave */
         uint16_t half_ps2 = read_u8(ww->data_offset + ww->data_size / 2, sf); /* at full interleave */

@@ -6,13 +6,14 @@ Simply create a file named `(filename).txtp`, and inside write the song name and
 
 Common case examples:
 
-**stage01-intro+loop.txtp**
+**stage01_intro+loop.txtp**
 ```
 stage01_intro.vag
 stage01_loop.vag
+loop_mode = auto
 ```
 
-**bgm01-subsong2.txtp**
+**bgm01_subsong2.txtp**
 ```
 bgm01.fsb #2
 ```
@@ -22,7 +23,7 @@ bgm01.fsb #2
 sfx01.wav #h22050
 ```
 
-**field-remove-first-channels.txtp**
+**field_channels3+4.txtp**
 ```
 field.bfstm #C3,4
 ```
@@ -239,10 +240,10 @@ You can set file commands by adding multiple `#(command)` after the name. `#(spa
 ```
 # select subsong 12
 bgm.sxd2#12
-
-#bgm.sxd2#s12 # "sN" is alt for subsong
-
 # single files loop normally by default (see below to force looping)
+```
+```
+#bgm.sxd2 #s12  #"sN" is alt for subsong
 ```
 
 ### Play segmented subsong ranges as one
@@ -254,7 +255,7 @@ amb_fx.sb0#254
 amb_fx.sb0#122~144
 amb_fx.sb0#121
 
-#3rd segment = subsong 123, not 3rd subsong
+# 3rd segment = subsong 123, not 3rd subsong
 loop_start_segment = 3
 ```
 This is just a shorthand, so `song#1~3#h22050` is equivalent to:

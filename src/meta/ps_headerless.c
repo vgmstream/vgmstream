@@ -2,9 +2,9 @@
 #include "../coding/coding.h"
 
 
-/* headerless PS-ADPCM - from Katamary Damacy (PS2), Air (PS2), Aladdin: Nasira's Revenge (PS1)
- * (guesses interleave and channels by testing data and using the file extension, and finds
- * loops in PS-ADPCM flags; this is a crutch for convenience, consider using GENH/TXTH instead). */
+/* Headerless PS-ADPCM
+ * Guesses interleave/channels/loops by testing data and using the file extension for sample rate.
+ * This is an ugly crutch for older sets, use TXTH to properly play headerless data instead. */
 VGMSTREAM * init_vgmstream_ps_headerless(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset = 0x00;
@@ -34,18 +34,12 @@ VGMSTREAM * init_vgmstream_ps_headerless(STREAMFILE *streamFile) {
     /* checks
      * .mib: common, but many ext-less files are renamed to this.
      * .mi4: fake .mib to force another sample rate
-     * .cvs: Aladdin - Nasira's Revenge (PS1)
-     * .snds: The Incredibles (PS2)
      * .vb: Tantei Jinguuji Saburo - Mikan no Rupo (PS1)
-     * .xag: Hagane no Renkinjutsushi - Dream Carnival (PS2)
      * */
     streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("cvs",filename_extension(filename)) &&
-        strcasecmp("mib",filename_extension(filename)) && 
+    if (strcasecmp("mib",filename_extension(filename)) && 
         strcasecmp("mi4",filename_extension(filename)) &&
-        strcasecmp("snds",filename_extension(filename))&&
-        strcasecmp("vb",filename_extension(filename))  &&
-        strcasecmp("xag",filename_extension(filename)))
+        strcasecmp("vb",filename_extension(filename)))
         goto fail;
 
     /* test if raw PS-ADPCM */
@@ -136,9 +130,6 @@ VGMSTREAM * init_vgmstream_ps_headerless(STREAMFILE *streamFile) {
     if(!strcasecmp("vb",filename_extension(filename)))
         loopStart=0;
 
-    if(!strcasecmp("xag",filename_extension(filename)))
-        channel_count=2;
-
     // Calc Loop Points & Interleave ...
     if(loopStartPointsCount>=2) {
         // can't get more then 0x10 loop point !
@@ -200,8 +191,7 @@ VGMSTREAM * init_vgmstream_ps_headerless(STREAMFILE *streamFile) {
             channel_count=newChannelCount;
     }
 
-    if (!strcasecmp("cvs", filename_extension(filename)) ||
-        !strcasecmp("vb",filename_extension(filename)))
+    if (!strcasecmp("vb",filename_extension(filename)))
         channel_count=1;
 
 
@@ -220,14 +210,7 @@ VGMSTREAM * init_vgmstream_ps_headerless(STREAMFILE *streamFile) {
     if(!strcasecmp("mi4",filename_extension(filename)))
         vgmstream->sample_rate = 48000;
 
-    if(!strcasecmp("snds", filename_extension(filename)))
-        vgmstream->sample_rate = 48000;
-
-    if(!strcasecmp("xag",filename_extension(filename)))
-        vgmstream->sample_rate = 44100;
-
-    if (!strcasecmp("cvs", filename_extension(filename)) ||
-        !strcasecmp("vb",filename_extension(filename)))
+    if (!strcasecmp("vb",filename_extension(filename)))
         vgmstream->sample_rate = 22050;
 
     vgmstream->num_samples = (int32_t)(fileLength/16/channel_count*28);

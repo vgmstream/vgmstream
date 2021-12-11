@@ -4,7 +4,7 @@
 /* .WBK - seen in some Treyarch games [Spider-Man 2, Ultimate Spider-Man, Call of Duty 2: Big Red One] */
 VGMSTREAM* init_vgmstream_wbk(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
-    uint32_t table_offset, entry_offset, data_offset, streams_offset, strings_offset, strings_size, coefsec_offset,
+    uint32_t table_offset, entry_offset, data_offset, strings_offset, coefsec_offset,
         name_offset, codec, flags, channels, sound_offset, sound_size, num_samples, sample_rate;
     int target_subsong = sf->stream_index, total_subsongs, loop_flag, has_names, i;
 
@@ -19,7 +19,7 @@ VGMSTREAM* init_vgmstream_wbk(STREAMFILE* sf) {
     /* always little endian, even on GC */
     data_offset = read_u32le(0x10, sf);
     //data_size = read_u32le(0x14, sf);
-    streams_offset = read_u32le(0x18, sf);
+    //streams_offset = read_u32le(0x18, sf);
     //streams_size = read_u32le(0x1c, sf);
 
     total_subsongs = read_u32le(0x40, sf);
@@ -33,7 +33,7 @@ VGMSTREAM* init_vgmstream_wbk(STREAMFILE* sf) {
     //paramsec_offset = read_u32le(0x54, sf);
     //coefsec_size = read_u32le(0x58, sf);
     coefsec_offset = read_u32le(0x5c, sf);
-    strings_size = read_u32le(0x60, sf);
+    //strings_size = read_u32le(0x60, sf);
     strings_offset = read_u32le(0x64, sf);
 
     /* Ultimate Spider-Man has no names, only name hashes */
