@@ -418,6 +418,7 @@ static const hcakey_info hcakey_list[] = {
         {393410674916959300},       // 0575ACECA945A444
         /* D4DJ Groovy Mix (Android) [music_* files, per-song later mixed with subkey] */
         {0x59f449354d063308},	//music_0000001
+        {0xf19d4cb84172f7ab},	//music_0000004
         {0x52d065d9ccdb8696},	//music_0110001
         {0xba26e58923a5da5d},	//music_0110002
         {0x5b877af6e52af19b},	//music_0110003
@@ -454,6 +455,7 @@ static const hcakey_info hcakey_list[] = {
         {0xb96786621e27daf3},	//music_0120014
         {0xa2c543b227b8e5e2},	//music_0120015
         {0x845437ec4e367a13},	//music_0120016
+        {0xadfecfaf25cfe2ce},	//music_0120017
         {0x3674aba8da7bc84b},	//music_0120018
         {0xfd61f2c3b89f3888},	//music_0120019
         {0x4fffee4065d22bec},	//music_0210001
@@ -484,6 +486,7 @@ static const hcakey_info hcakey_list[] = {
         {0x4aa31e0c4f787a8},	//music_0220014
         {0x94466db0d3c10f4b},	//music_0220015
         {0xe6d1fd6effa46736},	//music_0220017
+        {0xd23bdacd616fc4c9},	//music_0220018
         {0xfceaa73248868ec5},	//music_0220019
         {0x6a15a9610d10d210},	//music_0310001
         {0x57111c24801b44a1},	//music_0310002
@@ -498,6 +501,7 @@ static const hcakey_info hcakey_list[] = {
         {0xc86f8564e0b9078c},	//music_0310011
         {0xcc5610c09f472ce9},	//music_0310012
         {0xd447a497c5547a1c},	//music_0310013
+        {0x227b85948bb3d899},	//music_0310014
         {0xb921c3992807dadd},	//music_0320001
         {0x38ad99a045dc971f},	//music_0320002
         {0xf616642579ba5850},	//music_0320003
@@ -512,6 +516,7 @@ static const hcakey_info hcakey_list[] = {
         {0x244a92885ab77b7c},	//music_0320012
         {0xfc3fa77fc33460d4},	//music_0320013
         {0x26ee13598091b548},	//music_0320014
+        {0xf06a6bfdd00c8286},	//music_0320015
         {0x2df608ef06aca41c},	//music_0320016
         {0x776c4aded0bca5d1},	//music_0410001
         {0xb7bff4fbf66be43f},	//music_0410002
@@ -583,6 +588,7 @@ static const hcakey_info hcakey_list[] = {
         {0xa01c597d1aa13358},	//music_0610010
         {0x6492e7708204838},	//music_0610011
         {0x957e4d3948427952},	//music_0610012
+        {0x7081f083ac3d6f0a},	//music_0610013
         {0x8258ddd6a1d0849b},	//music_0620001
         {0x1dd21a1244ca12f1},	//music_0620002
         {0xfdec74b23d8b494b},	//music_0620003
@@ -663,7 +669,10 @@ static const hcakey_info hcakey_list[] = {
         {0xd0471c163265ca1b},	//music_5030041
         {0xd689966609595d7d},	//music_5030042
         {0x172171a4ff10fdc1},	//music_5030043
+        {0x53c2bddb0a15d322},	//music_5030044
         {0xcb2c44d594252491},	//music_5030045
+        {0xbdc220ba31087591},	//music_5030046
+        {0xe2346e5f5d18228e},	//music_5030047
         {0x458b73844ed5219e},	//music_5030048
         {0x7d83b8da9023ef26},	//music_5030049
         {0x32cb728ddab4d956},	//music_5030050
@@ -746,6 +755,7 @@ static const hcakey_info hcakey_list[] = {
         {0x138df0b866e902e0},	//music_5050052
         {0xc076e8604740ff5f},	//music_5050053
         {0x69fe38ae5970d450},	//music_5050054
+        {0x414200bd8ac11b40},	//music_5050055
         {0xbce9e85d31089fb2},	//music_5050056
         {0x817b919679c96d7},	//music_5050057
         {0x3e0e51043bd7d5e5},	//music_5050058
@@ -789,6 +799,11 @@ static const hcakey_info hcakey_list[] = {
         {0xba4484d824fb61af},	//music_5050099
         {0xb70fe5c5e12c7a1c},	//music_5050100
         {0x7f5d26ba72161054},	//music_5050101
+        {0x79c1f27fa0f8c937},	//music_5050103
+        {0xe1e4f9125646aa8a},	//music_5050104
+        {0xd5cf3ce581c59e40},	//music_5050105
+        {0x5ecb21ac94aa4b8f},	//music_5050107
+        {0x3786b3940e98628a},	//music_5050108
         {0x52c250eade92393b},	//music_9010001
         {0xf66e6bb5b0599b07},	//music_9010002
         {0xfea0d6adff136868},	//music_9050001
