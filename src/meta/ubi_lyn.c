@@ -139,15 +139,19 @@ VGMSTREAM* init_vgmstream_ubi_lyn(STREAMFILE* sf) {
             break;
 
 #ifdef VGM_USE_VORBIS
-        case 0x3157: { /* Ogg (PC), interleaved 1ch */
+        case 0x3156:    /* Ogg (PC), interleaved 1ch (older version) [Rabbids Go Home (PC)] */
+        case 0x3157: {  /* Ogg (PC), interleaved 1ch (newer version) [Adventures of Tintin (PC)] */
             size_t interleave_size;
             layered_layout_data* data = NULL;
             int i;
 
-            if (read_u32le(start_offset+0x00,sf) != 1) /* id? */
-               goto fail;
+            if (codec == 0x3157) {
+                if (read_u32le(start_offset+0x00,sf) != 1) /* id? */
+                    goto fail;
+                start_offset += 0x04;
+            }
 
-            interleave_size = read_u32le(start_offset+0x04,sf);
+            interleave_size = read_u32le(start_offset+0x00,sf);
             /* interleave is adjusted so there is no smaller last block, it seems */
 
             vgmstream->coding_type = coding_OGG_VORBIS;
@@ -161,8 +165,8 @@ VGMSTREAM* init_vgmstream_ubi_lyn(STREAMFILE* sf) {
             /* open each layer subfile */
             for (i = 0; i < channels; i++) {
                 STREAMFILE* temp_sf = NULL;
-                size_t logical_size = read_u32le(start_offset+0x08 + 0x04*i,sf);
-                off_t layer_offset = start_offset + 0x08  + 0x04*channels; //+ interleave_size*i;
+                size_t logical_size = read_u32le(start_offset+0x04 + 0x04*i,sf);
+                off_t layer_offset = start_offset + 0x04 + 0x04*channels;
 
                 temp_sf = setup_ubi_lyn_streamfile(sf, layer_offset, interleave_size, i, channels, logical_size);
                 if (!temp_sf) goto fail;

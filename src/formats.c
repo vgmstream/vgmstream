@@ -401,7 +401,6 @@ static const char* extension_list[] = {
     "psf",
     "psh", //fake extension for .vsv (to be removed)
     "psnd",
-    "psw", //fake extension for .wam (renamed, to be removed)
 
     "r",
     "rac", //txth/reserved [Manhunt (Xbox)]
