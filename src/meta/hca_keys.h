@@ -874,6 +874,9 @@ static const hcakey_info hcakey_list[] = {
         // Super Robot Wars 30 (PC)
         {6734488621090458},     // 0017ECFB5201069A
 
+		// CHUNITHM NEW (AC)
+		{32931609366120192},	// 0074FF1FCE264700
+
 };
 
 #endif/*_HCA_KEYS_H_*/
