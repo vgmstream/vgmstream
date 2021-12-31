@@ -874,8 +874,11 @@ static const hcakey_info hcakey_list[] = {
         // Super Robot Wars 30 (PC)
         {6734488621090458},     // 0017ECFB5201069A
 
-		// CHUNITHM NEW (AC)
-		{32931609366120192},	// 0074FF1FCE264700
+        // CHUNITHM NEW (AC)
+        {32931609366120192},	// 0074FF1FCE264700
+
+        // Shaman King: Funbari Chronicle (Android)
+        {1620612098671},        // 0000017954022A6F
 
 };
 
