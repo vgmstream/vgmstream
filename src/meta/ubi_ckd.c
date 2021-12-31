@@ -1,5 +1,6 @@
 #include "meta.h"
 #include "../coding/coding.h"
+#include "../coding/coding.h"
 
 
 typedef enum { MSADPCM, DSP, MP3, XMA2 } ckd_codec;
@@ -9,31 +10,36 @@ VGMSTREAM* init_vgmstream_ubi_ckd(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     off_t start_offset, first_offset = 0x0c, chunk_offset;
     size_t chunk_size, data_size;
-    int loop_flag, channel_count, interleave = 0, format;
+    int loop_flag, channels, interleave = 0, format;
     ckd_codec codec;
     int big_endian;
     uint32_t (*read_u32)(off_t,STREAMFILE*);
     uint16_t (*read_u16)(off_t,STREAMFILE*);
 
     /* checks */
+    if (!is_id32be(0x00,sf, "RIFF"))
+        goto fail;
+    if (!is_id32be(0x08,sf, "WAVE"))
+        goto fail;
+
     /* .wav.ckd: main (other files are called .xxx.ckd too) */
     if (!check_extensions(sf,"ckd"))
         goto fail;
 
-    /* another slighly funny RIFF */
-    if (read_u32be(0x00,sf) != 0x52494646) /* "RIFF" */
+    /* another slighly funny RIFF, mostly standard except machine endian and minor oddities */
+    if (!is_id32be(0x0c,sf, "fmt "))
         goto fail;
-    if (read_u32be(0x08,sf) != 0x57415645) /* "WAVE" */
-        goto fail;
-    /* RIFF size is normal */
 
     big_endian = guess_endianness32bit(0x04, sf);
     read_u32 = big_endian ? read_u32be : read_u32le;
     read_u16 = big_endian ? read_u16be : read_u16le;
 
+    if (read_u32(0x04, sf) + 0x04 + 0x04 != get_streamfile_size(sf))
+        goto fail;
+
     loop_flag = 0;
     format = read_u16(0x14,sf);
-    channel_count = read_u16(0x16,sf);
+    channels = read_u16(0x16,sf);
 
     switch(format) {
         case 0x0002:
@@ -50,7 +56,7 @@ VGMSTREAM* init_vgmstream_ubi_ckd(STREAMFILE* sf) {
                 } else if (find_chunk_be(sf, 0x6461744C,first_offset,0, &chunk_offset,&chunk_size)) { /* "datL" */
                     /* mono "datL" or full interleave with a "datR" after the "datL" (no check, pretend it exists) */
                     start_offset = chunk_offset;
-                    data_size = chunk_size * channel_count;
+                    data_size = chunk_size * channels;
                     interleave = (0x4+0x4) + chunk_size; /* don't forget to skip the "datR"+size chunk */
                 } else {
                     goto fail;
@@ -107,11 +113,11 @@ VGMSTREAM* init_vgmstream_ubi_ckd(STREAMFILE* sf) {
 
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    vgmstream = allocate_vgmstream(channels,loop_flag);
     if (!vgmstream) goto fail;
 
     vgmstream->sample_rate = read_u32(0x18,sf);
-    vgmstream->num_samples = dsp_bytes_to_samples(data_size, channel_count);
+    vgmstream->num_samples = dsp_bytes_to_samples(data_size, channels);
 
     vgmstream->coding_type = coding_NGC_DSP;
     vgmstream->meta_type = meta_UBI_CKD;
@@ -170,4 +176,3 @@ fail:
     close_vgmstream(vgmstream);
     return NULL;
 }
-
