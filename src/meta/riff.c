@@ -355,13 +355,14 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
      * .rws: Climax ATRAC3 [Silent Hill Origins (PSP), Oblivion (PSP)]
      * .aud: EA Replay ATRAC3
      * .at9: standard ATRAC9
+     * .ckd: renamed ATRAC9 [Rayman Origins (Vita)]
      * .saf: Whacked! (Xbox)
      * .mwv: Level-5 games [Dragon Quest VIII (PS2), Rogue Galaxy (PS2)]
      * .ima: Baja: Edge of Control (PS3/X360)
      * .nsa: Studio Ring games that uses NScripter [Hajimete no Otetsudai (PC)]
      * .pcm: Silent Hill Arcade (PC)
      */
-    if ( check_extensions(sf, "wav,lwav,xwav,da,dax,cd,med,snd,adx,adp,xss,xsew,adpcm,adw,wd,,sbv,wvx,str,at3,rws,aud,at9,saf,ima,nsa,pcm") ) {
+    if ( check_extensions(sf, "wav,lwav,xwav,da,dax,cd,med,snd,adx,adp,xss,xsew,adpcm,adw,wd,,sbv,wvx,str,at3,rws,aud,at9,ckd,saf,ima,nsa,pcm") ) {
         ;
     }
     else if ( check_extensions(sf, "mwv") ) {
@@ -590,6 +591,11 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
                     JunkFound = 1;
                     break;
 
+
+                case 0x64737068: /* "dsph" */
+                case 0x63776176: /* "cwav" */
+                    goto fail; /* parse elsewhere */
+
                 default:
                     /* ignorance is bliss */
                     break;
@@ -623,6 +629,10 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
             read_u32be(start_offset+0x34, sf) == 0xFFFFFFFF && /* always */
             read_u32be(start_offset+0x38, sf) == 0xFFFFFFFF &&
             read_u32be(start_offset+0x3c, sf) == 0xFFFFFFFF)
+        goto fail;
+
+    ///* MSADPCM .ckd are parsed elsewhere, though they are valid so no big deal if parsed here (just that loops should be ignored) */
+    if (!fmt.is_at9 && check_extensions(sf, "ckd"))
         goto fail;
 
     /* ignore Gitaroo Man Live! (PSP) multi-RIFF (to allow chunked TXTH) */

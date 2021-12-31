@@ -144,6 +144,7 @@
     <ClInclude Include="meta\ubi_sb_streamfile.h" />
     <ClInclude Include="meta\ubi_sb_garbage_streamfile.h" />
     <ClInclude Include="meta\ubi_lyn_streamfile.h" />
+    <ClInclude Include="meta\ubi_ckd_cwav_streamfile.h" />
     <ClInclude Include="meta\meta.h" />
     <ClInclude Include="meta\hca_bf.h" />
     <ClInclude Include="meta\hca_keys.h" />
@@ -558,6 +559,7 @@
     <ClCompile Include="meta\vgs.c" />
     <ClCompile Include="meta\ubi_bao.c" />
     <ClCompile Include="meta\ubi_ckd.c" />
+    <ClCompile Include="meta\ubi_ckd_cwav.c" />
     <ClCompile Include="meta\ubi_hx.c" />
     <ClCompile Include="meta\ubi_lyn.c" />
     <ClCompile Include="meta\ubi_raki.c" />

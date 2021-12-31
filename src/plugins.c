@@ -65,7 +65,7 @@ int vgmstream_ctx_is_valid(const char* filename, vgmstream_ctx_valid_cfg *cfg) {
 }
 
 void vgmstream_get_title(char* buf, int buf_len, const char* filename, VGMSTREAM* vgmstream, vgmstream_title_t* cfg) {
-    const char *pos;
+    const char* pos;
     char* pos2;
     char temp[1024];
 
@@ -79,6 +79,13 @@ void vgmstream_get_title(char* buf, int buf_len, const char* filename, VGMSTREAM
         pos = filename;
     else
         pos++;
+
+    /* special case for foobar that uses a (archive)|(subfile) notation when opening a 7z/zip/etc directly */
+    if (cfg && cfg->remove_archive) {
+        const char* subpos = strchr(pos, '|');
+        if (subpos)
+            pos = subpos + 1;
+    }
     strncpy(buf, pos, buf_len);
 
     /* name without extension */

@@ -38,9 +38,19 @@ There are multiple end-user components:
 The main library (plain *vgmstream*) is the code that handles the internal conversion, while the
 above components are what you use to get sound.
 
-See [components](doc/USAGE.md#components) in the *usage guide* for install instructions and
+If you just want to convert game audio to `.wav`, easiest would be getting *test.exe/vgmstream-cli* (see
+below) then drag-and-drop one or more files to the executable. This should create `(file.extension).wav`,
+if the format is supported. More usable would be installing a music player like *foobar2000* (for
+Windows) or *Audacious* (for Linux) then the appropriate component, so you can listen to VGM without
+converting and set options like infinite looping.
+
+See [components](doc/USAGE.md#components) in the *usage guide* for full install instructions and
 explanations. The aim is feature parity, but there are a few differences between them due to
 missing implementation on vgmstream's side or lack of support in target player or API.
+
+Note vgmstream cannot *encode* (convert from `.wav` to some video game format), it only *decodes*
+(plays game audio).
+
 
 ### Windows
 You should get `vgmstream-win.zip`, which also bundles various components, or
