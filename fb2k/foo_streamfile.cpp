@@ -26,6 +26,12 @@ typedef struct {
     abort_callback* p_abort;    /* foobar error stuff */
     /*const*/ char* name;       /* IO filename */
     int name_len;               /* cache */
+
+    char* archname;             /* for foobar's foo_unpack archives */
+    int archname_len;           /* cache */
+    int archpath_end;           /* where the last \ ends before archive name */
+    int archfile_end;           /* where the last | ends before file name */
+
     offv_t offset;              /* last read offset (info) */
     offv_t buf_offset;          /* current buffer data start */
     uint8_t* buf;               /* data buffer */
@@ -137,18 +143,55 @@ static void foo_get_name(FOO_STREAMFILE* sf, char* name, size_t name_size) {
 static void foo_close(FOO_STREAMFILE* sf) {
     sf->m_file.release(); //release alloc'ed ptr
     free(sf->name);
+    free(sf->archname);
     free(sf->buf);
     free(sf);
 }
 
-static STREAMFILE* foo_open(FOO_STREAMFILE* sf, const char* const filename,size_t buf_size) {
+static STREAMFILE* foo_open(FOO_STREAMFILE* sf, const char* const filename, size_t buf_size) {
     service_ptr_t<file> m_file;
 
     if (!filename)
         return NULL;
 
+    // vgmstream may need to open "files based on another" (like a changing extension) and "files in the same subdir" (like .txth)
+    // or read "base filename" to do comparison. When dealing with archives (foo_unpack plugin) the later two cases would fail, since
+    // vgmstream doesn't separate the  "|" special notation foo_unpack adds.
+    // To fix this, when this SF is part of an archive we give vgmstream the name without | and restore the archive on open
+    // - get name:      "unpack://zip|23|file://C:\file.zip|subfile.adpcm"
+    // > returns:       "unpack://zip|23|file://C:\subfile.adpcm" (otherwise base name would be "file.zip|subfile.adpcm")
+    // - try opening    "unpack://zip|23|file://C:\.txth
+    // > opens:         "unpack://zip|23|file://C:\file.zip|.txth
+    // (assumes archives won't need to open files outside archives, and goes before filedup trick)
+    if (sf->archname) {
+        char finalname[PATH_LIMIT];
+        const char* dirsep = NULL; 
+
+        // newly open files should be "(current-path)\newfile" or "(current-path)\folder\newfile", so we need to make
+        // (archive-path = current-path)\(rest = newfile plus new folders)
+        int filename_len = strlen(filename);
+
+        if (filename_len > sf->archpath_end) {
+            dirsep = &filename[sf->archpath_end];
+        } else  {
+            dirsep = strrchr(filename, '\\'); // vgmstream shouldn't remove paths though
+            if (!dirsep)
+                dirsep = filename;
+            else
+                dirsep += 1;
+        }
+
+        //TODO improve strops
+        memcpy(finalname, sf->archname, sf->archfile_end); //copy current path+archive
+        finalname[sf->archfile_end] = '\0';
+        concatn(sizeof(finalname), finalname, dirsep); //paste possible extra dirs and filename
+
+        //console::formatter() << "finalname: " << finalname; 
+        return open_foo_streamfile_buffer(finalname, buf_size, sf->p_abort, NULL);
+    }
+
     // if same name, duplicate the file pointer we already have open
-    if (sf->m_file_opened && !strcmp(sf->name,filename)) {
+    if (sf->m_file_opened && !strcmp(sf->name, filename)) {
         m_file = sf->m_file; //copy?
         {
             STREAMFILE* new_sf = open_foo_streamfile_buffer_by_file(m_file, sf->m_file_opened, filename, buf_size, sf->p_abort);
@@ -160,7 +203,7 @@ static STREAMFILE* foo_open(FOO_STREAMFILE* sf, const char* const filename,size_
     }
 
     // a normal open, open a new file
-    return open_foo_streamfile_buffer(filename,buf_size,sf->p_abort,NULL);
+    return open_foo_streamfile_buffer(filename, buf_size, sf->p_abort, NULL);
 }
 
 static STREAMFILE* open_foo_streamfile_buffer_by_file(service_ptr_t<file> m_file, bool m_file_opened, const char* const filename, size_t buf_size, abort_callback* p_abort) {
@@ -191,6 +234,32 @@ static STREAMFILE* open_foo_streamfile_buffer_by_file(service_ptr_t<file> m_file
     this_sf->name = strdup(filename);
     if (!this_sf->name)  goto fail;
     this_sf->name_len = strlen(this_sf->name);
+
+    // foobar supports .zip/7z/etc archives directly, in this format: "unpack://zip|(number))|file://C:\path\to\file.zip|subfile.adx"
+    // detect if current is inside archive, so when trying to get filename or open companion files it's handled correctly    
+    if (strncmp(filename, "unpack", 6) == 0) {
+        const char* filepath_end = strrchr(this_sf->name, '\\');
+        const char* filearch_end = strrchr(this_sf->name, '|');
+
+        this_sf->archpath_end = (intptr_t)filepath_end + 1 - (intptr_t)this_sf->name; // after "\\"
+        this_sf->archfile_end = (intptr_t)filearch_end + 1 - (intptr_t)this_sf->name; // after "|""
+
+        if (this_sf->archpath_end < 0 || this_sf->archfile_end < 0 || this_sf->archpath_end > this_sf->archfile_end || 
+                this_sf->archfile_end > this_sf->name_len || this_sf->archfile_end >= PATH_LIMIT) {
+            // ???
+            this_sf->archpath_end = 0;
+            this_sf->archfile_end = 0;
+        }
+        else {
+            this_sf->archname = strdup(filename);
+            if (!this_sf->archname)  goto fail;
+            this_sf->archname_len = this_sf->name_len;
+
+            // change from "(path)\\(archive)|(filename)" to "(path)\\filename)"
+            this_sf->name[this_sf->archpath_end] = '\0';
+            concatn(this_sf->name_len, this_sf->name, &this_sf->archname[this_sf->archfile_end]);
+        }
+    }
 
     /* cache file_size */
     if (this_sf->m_file_opened)

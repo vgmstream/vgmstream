@@ -443,6 +443,7 @@ void input_vgmstream::get_subsong_info(t_uint32 p_subsong, pfc::string_base & ti
     if (infostream && title) {
         vgmstream_title_t tcfg = {0};
         tcfg.remove_extension = 1;
+        tcfg.remove_archive = 1;
 
         const char* filename_str = filename;
         vgmstream_get_title(temp, sizeof(temp), filename_str, infostream, &tcfg);
