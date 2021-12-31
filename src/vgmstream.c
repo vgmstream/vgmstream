@@ -53,7 +53,6 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_vpk,
     init_vgmstream_genh,
     init_vgmstream_ogg_vorbis,
-    init_vgmstream_sli_ogg,
     init_vgmstream_sfl_ogg,
     init_vgmstream_sadb,
     init_vgmstream_ps2_bmdx,
@@ -529,6 +528,7 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_mic_koei,
     init_vgmstream_seb,
     init_vgmstream_ps2_pnb,
+    init_vgmstream_sli_ogg,
 
     /* lowest priority metas (should go after all metas, and TXTH should go before raw formats) */
     init_vgmstream_txth,            /* proper parsers should supersede TXTH, once added */
