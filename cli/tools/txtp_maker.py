@@ -8,6 +8,8 @@ import argparse, subprocess, zlib, os, re, sys, fnmatch, logging as log
 # Creates .txtp from lists of files, mainly one .txtp per subsong
 #******************************************************************************
 
+PATH_LIMIT = 240
+
 class Cli(object):
     def _parse(self):
         description = (
@@ -72,7 +74,12 @@ class Cli(object):
         p.add_argument('-fne', dest='exclude_regex', help="Filter by REGEX excluding matches of subsong name")
         p.add_argument('-nsc',dest='no_semicolon', help="Remove semicolon names (for songs with multinames)", action='store_true')
         p.add_argument('-v', dest='log_level', help="Verbose log level (off|debug|info, default: info)", default='info')
-        return p.parse_args()
+        args = p.parse_args()
+
+        # defauls to rename (easier to use with drag-and-drop)
+        if not all([args.overwrite, args.overwrite_ignore, args.overwrite_rename]):
+            args.overwrite_rename = True
+        return args
 
     def start(self):
         args = self._parse()
@@ -286,6 +293,9 @@ class TxtpMaker(object):
     def _write(self, outname, line):
         outname += '.txtp'
 
+        if len(outname) > PATH_LIMIT:
+            outname = outname[0:PATH_LIMIT] + '[...].txtp'
+
         cfg = self.cfg
         exists = os.path.exists(outname)
         if exists and (cfg.overwrite_rename or cfg.overwrite_suffix):
@@ -307,10 +317,9 @@ class TxtpMaker(object):
             if not cfg.overwrite:
                 raise ValueError('TXTP exists in path: ' + outname)
 
-        ftxtp = open(outname,"w+")
-        if line:
-            ftxtp.write(line)
-        ftxtp.close()
+        with open(outname,"w+", encoding='utf-8') as ftxtp:
+            if line:
+                ftxtp.write(line)
 
         log.debug("created: " + outname)
         return
