@@ -186,7 +186,15 @@ static STREAMFILE* foo_open(FOO_STREAMFILE* sf, const char* const filename, size
         finalname[sf->archfile_end] = '\0';
         concatn(sizeof(finalname), finalname, dirsep); //paste possible extra dirs and filename
 
-        //console::formatter() << "finalname: " << finalname; 
+        // subfolders inside archives use "/" (path\archive.ext|subfolder/file.ext)
+        for (int i = sf->archfile_end; i < sizeof(finalname); i++) {
+            if (finalname[i] == '\0')
+                break;
+            if (finalname[i] == '\\')
+                finalname[i] = '/';
+        }
+
+        //console::formatter() << "finalname: " << finalname;
         return open_foo_streamfile_buffer(finalname, buf_size, sf->p_abort, NULL);
     }
 
@@ -236,15 +244,18 @@ static STREAMFILE* open_foo_streamfile_buffer_by_file(service_ptr_t<file> m_file
     this_sf->name_len = strlen(this_sf->name);
 
     // foobar supports .zip/7z/etc archives directly, in this format: "unpack://zip|(number))|file://C:\path\to\file.zip|subfile.adx"
-    // detect if current is inside archive, so when trying to get filename or open companion files it's handled correctly    
+    // Detect if current is inside archive, so when trying to get filename or open companion files it's handled correctly    
+    // Subfolders have inside the archive use / instead or / (path\archive.zip|subfolder/file)
     if (strncmp(filename, "unpack", 6) == 0) {
-        const char* filepath_end = strrchr(this_sf->name, '\\');
-        const char* filearch_end = strrchr(this_sf->name, '|');
+        const char* archfile_ptr = strrchr(this_sf->name, '|');
+        if (archfile_ptr)
+            this_sf->archfile_end = (intptr_t)archfile_ptr + 1 - (intptr_t)this_sf->name; // after "|""
 
-        this_sf->archpath_end = (intptr_t)filepath_end + 1 - (intptr_t)this_sf->name; // after "\\"
-        this_sf->archfile_end = (intptr_t)filearch_end + 1 - (intptr_t)this_sf->name; // after "|""
+        const char* archpath_ptr = strrchr(this_sf->name, '\\');
+        if (archpath_ptr)
+            this_sf->archpath_end = (intptr_t)archpath_ptr + 1 - (intptr_t)this_sf->name; // after "\\"
 
-        if (this_sf->archpath_end < 0 || this_sf->archfile_end < 0 || this_sf->archpath_end > this_sf->archfile_end || 
+        if (this_sf->archpath_end <= 0 || this_sf->archfile_end <= 0 || this_sf->archpath_end > this_sf->archfile_end || 
                 this_sf->archfile_end > this_sf->name_len || this_sf->archfile_end >= PATH_LIMIT) {
             // ???
             this_sf->archpath_end = 0;
