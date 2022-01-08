@@ -13,12 +13,14 @@
 /* opens a utf16 (unicode) path */
 static FILE* wa_fopen(const in_char* wpath) {
 #ifdef UNICODE_INPUT_PLUGIN
-    return _wfopen(wpath,L"rb");
+    return _wfopen(wpath, L"rb");
 #else
-    return fopen(wpath,"rb");
+    return fopen(wpath, "rb");
 #endif
 }
 
+/* in theory fdopen and _wfdopen are the same, except flags is a wchar */
+#if 0
 /* dupes a utf16 (unicode) file */
 static FILE* wa_fdopen(int fd) {
 #ifdef UNICODE_INPUT_PLUGIN
@@ -27,6 +29,7 @@ static FILE* wa_fdopen(int fd) {
     return fdopen(fd,"rb");
 #endif
 }
+#endif
 
 /* ************************************* */
 /* IN_STREAMFILE                         */
@@ -36,7 +39,6 @@ static FILE* wa_fdopen(int fd) {
 typedef struct {
     STREAMFILE vt;
     STREAMFILE* stdiosf;
-    FILE* infile_ref; /* pointer to the infile in stdiosf (partially handled by stdiosf) */
 } WINAMP_STREAMFILE;
 
 static STREAMFILE* open_winamp_streamfile_by_file(FILE* infile, const char* path);
@@ -64,32 +66,7 @@ static STREAMFILE* wasf_open(WINAMP_STREAMFILE* sf, const char* const filename, 
     if (!filename)
         return NULL;
 
-#if !defined (__ANDROID__) && !defined (_MSC_VER)
-    /* When enabling this for MSVC it'll seemingly work, but there are issues possibly related to underlying
-     * IO buffers when using dup(), noticeable by re-opening the same streamfile with small buffer sizes
-     * (reads garbage). This reportedly causes issues in Android too */
-    {
-        char name[PATH_LIMIT];
-        sf->stdiosf->get_name(sf->stdiosf, name, PATH_LIMIT);
-        /* if same name, duplicate the file descriptor we already have open */ //unsure if all this is needed
-        if (sf->infile_ref && !strcmp(name,filename)) {
-            int new_fd;
-            FILE *new_file;
-
-            if (((new_fd = dup(fileno(sf->infile_ref))) >= 0) && (new_file = wa_fdopen(new_fd))) {
-                STREAMFILE* new_sf = open_winamp_streamfile_by_file(new_file, filename);
-                if (new_sf)
-                    return new_sf;
-                fclose(new_file);
-            }
-            if (new_fd >= 0 && !new_file)
-                close(new_fd); /* fdopen may fail when opening too many files */
-
-            /* on failure just close and try the default path (which will probably fail a second time) */
-        }
-    }
-#endif
-
+    /* no need to wfdopen here, may use standard IO */
     /* STREAMFILEs carry char/UTF8 names, convert to wchar for Winamp */
     wa_char_to_ichar(wpath, PATH_LIMIT, filename);
     return open_winamp_streamfile_by_ipath(wpath);
@@ -119,7 +96,6 @@ static STREAMFILE* open_winamp_streamfile_by_file(FILE* file, const char* path) 
     this_sf->vt.close = (void*)wasf_close;
 
     this_sf->stdiosf = stdiosf;
-    this_sf->infile_ref = file;
 
     return &this_sf->vt;
 
@@ -147,7 +123,7 @@ STREAMFILE* open_winamp_streamfile_by_ipath(const in_char* wpath) {
             return NULL;
     }
 
-    sf = open_winamp_streamfile_by_file(infile,path);
+    sf = open_winamp_streamfile_by_file(infile, path);
     if (!sf) {
         if (infile) fclose(infile);
     }

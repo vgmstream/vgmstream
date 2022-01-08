@@ -278,6 +278,9 @@ static STREAMFILE* open_foo_streamfile_buffer_by_file(service_ptr_t<file> m_file
     else
         this_sf->file_size = 0;
 
+    /* STDIO has an optimization to close unneeded FDs if file size is less than buffer,
+     * but seems foobar doesn't need this (reuses FDs?) */
+
     return &this_sf->vt;
 
 fail:
