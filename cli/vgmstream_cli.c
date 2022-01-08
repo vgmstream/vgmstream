@@ -694,6 +694,8 @@ static int convert_file(cli_config* cfg) {
         if (!valid) goto fail;
     }
 
+    vgmstream_set_log_stdout(VGM_LOG_LEVEL_ALL);
+
     /* open streamfile and pass subsong */
     {
         STREAMFILE* sf = open_stdio_streamfile(cfg->infilename);
@@ -701,8 +703,6 @@ static int convert_file(cli_config* cfg) {
             fprintf(stderr, "file %s not found\n", cfg->infilename);
             goto fail;
         }
-
-        vgmstream_set_log_stdout(VGM_LOG_LEVEL_ALL);
 
         sf->stream_index = cfg->subsong_index;
         vgmstream = init_vgmstream_from_STREAMFILE(sf);
