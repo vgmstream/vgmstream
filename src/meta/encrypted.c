@@ -2,6 +2,7 @@
 #include "../coding/coding.h"
 #include "ogg_vorbis_streamfile.h"
 #include "encrypted_bgm_streamfile.h"
+#include "encrypted_mc161_streamfile.h"
 
 //todo fuse ogg encryptions and use generic names
 
@@ -158,7 +159,7 @@ static VGMSTREAM* init_vgmstream_encrypted_rpgmvo_riff(STREAMFILE* sf) {
 
     e.new_sf = setup_subfile_streamfile(e.temp_sf, 0x10, riff_size, "wav");
     if (!e.new_sf) goto fail;
-dump_streamfile(e.new_sf, 0);
+
     e.vgmstream = init_vgmstream_riff(e.new_sf);
     close_streamfile(e.temp_sf);
     close_streamfile(e.new_sf);
@@ -167,6 +168,26 @@ dump_streamfile(e.new_sf, 0);
 fail:
     close_streamfile(e.temp_sf);
     close_streamfile(e.new_sf);
+    return NULL;
+}
+
+
+/* Minecraft (PC) before v1.6.1 (Java version) */
+static VGMSTREAM* init_vgmstream_encrypted_mc161(STREAMFILE* sf) {
+    encrypted_t e = {0};
+
+    if (!check_extensions(sf,"mus"))
+        goto fail;
+
+    /* all files use a different key so just fail on meta init */
+
+    e.temp_sf = setup_mc161_streamfile(sf);
+    if (!e.temp_sf) goto fail;
+
+    e.vgmstream = init_vgmstream_ogg_vorbis(e.temp_sf);
+    close_streamfile(e.temp_sf);
+    return e.vgmstream;
+fail:
     return NULL;
 }
 
@@ -185,6 +206,9 @@ VGMSTREAM* init_vgmstream_encrypted(STREAMFILE* sf) {
     if (v) return v;
 
     v = init_vgmstream_encrypted_rpgmvo_riff(sf);
+    if (v) return v;
+
+    v = init_vgmstream_encrypted_mc161(sf);
     if (v) return v;
 
     return NULL;
