@@ -103,21 +103,21 @@ static int read_fmt(int big_endian, STREAMFILE* sf, off_t offset, riff_fmt_chunk
     fmt->size = read_u32(offset+0x04,sf);
 
     /* WAVEFORMAT */
-    fmt->codec          = read_u16(offset+0x08,sf);
-    fmt->channels       = read_u16(offset+0x0a,sf);
-    fmt->sample_rate    = read_u32(offset+0x0c,sf);
-  //fmt->avg_bps        = read_u32(offset+0x10,sf);
-    fmt->block_size     = read_u16(offset+0x14,sf);
-    fmt->bps            = read_u16(offset+0x16,sf);
+    fmt->codec          = read_u16(offset+0x08+0x00,sf);
+    fmt->channels       = read_u16(offset+0x08+0x02,sf);
+    fmt->sample_rate    = read_u32(offset+0x08+0x04,sf);
+  //fmt->avg_bps        = read_u32(offset+0x08+0x08,sf);
+    fmt->block_size     = read_u16(offset+0x08+0x0c,sf);
+    fmt->bps            = read_u16(offset+0x08+0x0e,sf);
     /* WAVEFORMATEX */
     if (fmt->size >= 0x10) {
-        fmt->extra_size = read_u16(offset+0x18,sf);
+        fmt->extra_size = read_u16(offset+0x08+0x10,sf);
         /* 0x1a+ depends on codec (ex. coef table for MSADPCM, samples_per_frame in MS-IMA, etc) */
     }
     /* WAVEFORMATEXTENSIBLE */
     if (fmt->codec == 0xFFFE && fmt->extra_size >= 0x16) {
-      //fmt->extra_samples  = read_u16(offset+0x1a,sf); /* valid_bits_per_sample or samples_per_block */
-        fmt->channel_layout = read_u32(offset+0x1c,sf);
+      //fmt->extra_samples  = read_u16(offset+0x08+0x12,sf); /* valid_bits_per_sample or samples_per_block */
+        fmt->channel_layout = read_u32(offset+0x08+0x14,sf);
         /* 0x10 guid at 0x20 */
 
         /* happens in various .at3/at9, may be a bug in their encoder b/c MS's defs set mono as FC */
@@ -135,7 +135,7 @@ static int read_fmt(int big_endian, STREAMFILE* sf, off_t offset, riff_fmt_chunk
         goto fail;
 
     switch (fmt->codec) {
-        case 0x00:  /* Yamaha AICA ADPCM [Headhunter (DC), Bomber hehhe (DC), Rayman 2 (DC)] (unofficial) */
+        case 0x0000:  /* Yamaha AICA ADPCM [Headhunter (DC), Bomber hehhe (DC), Rayman 2 (DC)] (unofficial) */
             if (fmt->bps != 4) goto fail;
             if (fmt->block_size != 0x02*fmt->channels &&
                 fmt->block_size != 0x01*fmt->channels) goto fail;
@@ -143,7 +143,7 @@ static int read_fmt(int big_endian, STREAMFILE* sf, off_t offset, riff_fmt_chunk
             fmt->interleave = 0x01;
             break;
 
-        case 0x01: /* PCM */
+        case 0x0001: /* PCM */
             switch (fmt->bps) {
                 case 24: /* Omori (PC) */
                     fmt->coding_type = coding_PCM24LE;
@@ -160,7 +160,7 @@ static int read_fmt(int big_endian, STREAMFILE* sf, off_t offset, riff_fmt_chunk
             fmt->interleave = fmt->block_size / fmt->channels;
             break;
 
-        case 0x02: /* MSADPCM */
+        case 0x0002: /* MSADPCM */
             if (fmt->bps == 4) {
                 fmt->coding_type = coding_MSADPCM;
                 if (!msadpcm_check_coefs(sf, fmt->offset + 0x08 + 0x14))
@@ -174,19 +174,29 @@ static int read_fmt(int big_endian, STREAMFILE* sf, off_t offset, riff_fmt_chunk
             }
             break;
 
-        case 0x11:  /* MS-IMA ADPCM [Layton Brothers: Mystery Room (iOS/Android)] */
+        case 0x0011:  /* MS-IMA ADPCM [Layton Brothers: Mystery Room (iOS/Android)] */
             if (fmt->bps != 4) goto fail;
             fmt->coding_type = coding_MS_IMA;
             break;
 
-        case 0x20:  /* Yamaha AICA ADPCM [Takuyo/Dynamix/etc DC games] */
+        case 0x0020:  /* Yamaha AICA ADPCM [Takuyo/Dynamix/etc DC games] (official-ish) */
             if (fmt->bps != 4) goto fail;
             fmt->coding_type = coding_AICA;
             /* official RIFF spec has 0x20 as 'Yamaha ADPCM', but data is probably not pure AICA
              * (maybe with headered frames and would need extra detection?) */
             break;
 
-        case 0x69:  /* XBOX IMA ADPCM [Dynasty Warriors 5 (Xbox)] */
+#ifdef VGM_USE_MPEG
+        case 0x0055: /* MP3 [Bear in the Big Blue House: Bear's Imagine That! (PC)] (official) */
+            fmt->coding_type = coding_MPEG_custom;
+            /* some oddities, unsure if part of standard: 
+             * - block size is 1 (in mono)
+             * - bps is 16
+             * - extra size 0x0c, has channels? and (possibly) approx frame size */
+            break;
+#endif
+
+        case 0x0069:  /* XBOX IMA ADPCM [Dynasty Warriors 5 (Xbox)] */
             if (fmt->bps != 4) goto fail;
             fmt->coding_type = coding_XBOX_IMA;
             break;
@@ -671,7 +681,11 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
             vgmstream->layout_type = layout_none;
             vgmstream->interleave_block_size = fmt.block_size;
             break;
-
+#ifdef VGM_USE_MPEG
+        case coding_MPEG_custom:
+            vgmstream->layout_type = layout_none;
+            break;
+#endif
         case coding_MSADPCM:
             vgmstream->layout_type = layout_none;
             vgmstream->frame_size = fmt.block_size;
@@ -812,6 +826,21 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
             vgmstream->num_samples = fact_sample_count;
             break;
         }
+#endif
+
+#ifdef VGM_USE_MPEG
+        case coding_MPEG_custom: {
+            mpeg_custom_config cfg = {0};
+
+            vgmstream->codec_data = init_mpeg_custom(sf, start_offset, &vgmstream->coding_type, fmt.channels, MPEG_STANDARD, &cfg);
+            if (!vgmstream->codec_data) goto fail;
+
+            /* should provide "fact" but it's optional (some game files don't include it) */
+            if (!fact_sample_count)
+                fact_sample_count = mpeg_get_samples(sf, start_offset, data_size);
+            vgmstream->num_samples = fact_sample_count;
+        }
+        break;
 #endif
 
         default:

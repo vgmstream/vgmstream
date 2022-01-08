@@ -308,6 +308,9 @@
     <ClInclude Include="meta\encrypted_bgm_streamfile.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="meta\encrypted_mc161_streamfile.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="util\chunks.h">
       <Filter>Header Files</Filter>
     </ClInclude>

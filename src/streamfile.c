@@ -94,10 +94,10 @@ static STREAMFILE* open_stdio_streamfile_buffer_by_file(FILE *infile, const char
 static size_t stdio_read(STDIO_STREAMFILE* sf, uint8_t* dst, offv_t offset, size_t length) {
     size_t read_total = 0;
 
-    if (!sf->infile || !dst || length <= 0 || offset < 0)
+    if (/*!sf->infile ||*/ !dst || length <= 0 || offset < 0)
         return 0;
 
-    //;VGM_LOG("stdio: read %lx + %x (buf %lx + %x)\n", offset, length, sf->buf_offset, sf->valid_size);
+    //;VGM_LOG("stdio: read %lx + %x (buf %lx + %x)\n", offset, length, sf->buf_offset, sf->valid_size, sf->buf_size);
 
     /* is the part of the requested length in the buffer? */
     if (offset >= sf->buf_offset && offset < sf->buf_offset + sf->valid_size) {
@@ -124,6 +124,10 @@ static size_t stdio_read(STDIO_STREAMFILE* sf, uint8_t* dst, offv_t offset, size
         //if (rebuffer > N) ...
     }
 #endif
+
+    /* possible if all data was copied to buf and FD closed */
+    if (!sf->infile)
+        return read_total;
 
     /* read the rest of the requested length */
     while (length > 0) {
@@ -180,12 +184,15 @@ static size_t stdio_read(STDIO_STREAMFILE* sf, uint8_t* dst, offv_t offset, size
     sf->offset = offset; /* last fread offset */
     return read_total;
 }
+
 static size_t stdio_get_size(STDIO_STREAMFILE* sf) {
     return sf->file_size;
 }
+
 static offv_t stdio_get_offset(STDIO_STREAMFILE* sf) {
     return sf->offset;
 }
+
 static void stdio_get_name(STDIO_STREAMFILE* sf, char* name, size_t name_size) {
     int copy_size = sf->name_len + 1;
     if (copy_size > name_size)
@@ -222,7 +229,7 @@ static STREAMFILE* stdio_open(STDIO_STREAMFILE* sf, const char* const filename, 
         /* on failure just close and try the default path (which will probably fail a second time) */
     }
 #endif
-    // a normal open, open a new file
+
     return open_stdio_streamfile_buffer(filename, buf_size);
 }
 
@@ -271,11 +278,27 @@ static STREAMFILE* open_stdio_streamfile_buffer_by_file(FILE* infile, const char
         this_sf->file_size = 0; /* allow virtual, non-existing files */
     }
 
-    /* Typically fseek(o)/ftell(o) may only handle up to ~2.14GB, signed 32b = 0x7FFFFFFF
-     * (happens in banks like FSB, though rarely). Should work if configured properly, log otherwise. */
+    /* Typically fseek(o)/ftell(o) may only handle up to ~2.14GB, signed 32b = 0x7FFFFFFF (rarely
+     * happens in giant banks like FSB/KTSR). Should work if configured properly using ftell_v, log otherwise. */
     if (this_sf->file_size == 0xFFFFFFFF) { /* -1 on error */
         vgm_logi("STREAMFILE: file size too big (report)\n");
         goto fail; /* can be ignored but may result in strange/unexpected behaviors */
+    }
+
+    /* Rarely a TXTP needs to open *many* streamfiles = many file descriptors = reaches OS limit = error.
+     * Ideally should detect better and open/close as needed or reuse FDs for files that don't play at
+     * the same time, but it's complex since every SF is separate (would need some kind of FD manager).
+     * For the time being, if the file is smaller that buffer we can just read it fully and close the FD,
+     * that should help since big TXTP usually just need many small files.
+     * Doubles as an optimization as most files given will be read fully into buf on first read. */
+    if (this_sf->file_size && this_sf->file_size < this_sf->buf_size && this_sf->infile) {
+        //;VGM_LOG("stdio: fit filesize %x into buf %x\n", sf->file_size, sf->buf_size);
+
+        this_sf->buf_offset = 0;
+        this_sf->valid_size = fread(this_sf->buf, sizeof(uint8_t), this_sf->file_size, this_sf->infile);
+
+        fclose(this_sf->infile);
+        this_sf->infile = NULL;
     }
 
     return &this_sf->vt;
