@@ -1,17 +1,20 @@
 #include "meta.h"
 #include "../coding/coding.h"
 #include "../layout/layout.h"
+#include "../util/endianness.h"
 
 
-static off_t get_rws_string_size(off_t offset, STREAMFILE *streamFile);
+static off_t get_rws_string_size(off_t offset, STREAMFILE* sf);
 
 
 typedef struct {
     int big_endian;
 
     uint32_t codec;
-    int channel_count;
+    int channels;
     int sample_rate;
+    int interleave;
+    int frame_size;
 
     off_t file_name_offset;
 
@@ -43,50 +46,52 @@ typedef struct {
 
 
 /* RWS - RenderWare Stream (from games using RenderWare Audio middleware) */
-VGMSTREAM * init_vgmstream_rws(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
+VGMSTREAM* init_vgmstream_rws(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
     off_t start_offset, offset;
     size_t stream_size;
     int loop_flag;
     int i;
-    int total_subsongs, target_subsong = streamFile->stream_index;
+    int total_subsongs, target_subsong = sf->stream_index;
     rws_header rws = {0};
-    int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
+    read_u32_t read_u32;
+    read_u16_t read_u16;
 
+
+    if (read_u32le(0x00,sf) != 0x0000080d) /* audio file id */
+        goto fail;
+    rws.file_size = read_u32le(0x04, sf); /* audio file size */
+    if (rws.file_size + 0x0c != get_streamfile_size(sf))
+        goto fail;
 
     /* checks */
-    if (!check_extensions(streamFile,"rws"))
+    if (!check_extensions(sf,"rws"))
         goto fail;
 
     /* Audio .RWS is made of file + header + data chunks (non-audio .RWS with other chunks exist).
-     * Chunk format (LE): id, size, RW version, data of size (version is repeated but same for all chunks).
+     * Chunk format (LE): id, size, RW version, then data (version is repeated but same for all chunks).
      * Version is 16b main + 16b build (possibly shifted), no known differences between versions,
      * and can vary between files of a game. ex: 0c02, 1003, 1400 = 3.5, 1803 = 3.6, 1C02 = 3.7. */
 
     /* parse audio chunks */
-    if (read_32bitLE(0x00,streamFile) != 0x0000080d) /* audio file id */
+    if (read_u32le(0x0c,sf) != 0x0000080e) /* header id */
         goto fail;
-    rws.file_size = read_32bitLE(0x04, streamFile); /* audio file size */
-    if (rws.file_size + 0x0c != get_streamfile_size(streamFile))
-        goto fail;
-
-    if (read_32bitLE(0x0c,streamFile) != 0x0000080e) /* header id */
-        goto fail;
-    rws.header_size = read_32bitLE(0x10, streamFile); /* header size */
+    rws.header_size = read_u32le(0x10, sf); /* header size */
 
     rws.data_offset = 0x0c + 0x0c + rws.header_size; /* usually 0x800 but not always */
-    if (read_32bitLE(rws.data_offset + 0x00, streamFile) != 0x0000080f) /* data chunk id */
+    if (read_u32le(rws.data_offset + 0x00, sf) != 0x0000080f) /* data chunk id */
         goto fail;
-    rws.data_size = read_32bitLE(rws.data_offset + 0x04, streamFile); /* data chunk size */
-    if (rws.data_size+0x0c + rws.data_offset != get_streamfile_size(streamFile))
+    rws.data_size = read_u32le(rws.data_offset + 0x04, sf); /* data chunk size */
+    if (rws.data_size+0x0c + rws.data_offset != get_streamfile_size(sf))
         goto fail;
 
     /* inside header chunk (many unknown fields are probably IDs/config/garbage,
      * as two files of the same size vary a lot) */
     offset = 0x0c + 0x0c;
 
-    rws.big_endian = guess_endianness32bit(offset + 0x00, streamFile); /* GC/Wii/X360 */
-    read_32bit = rws.big_endian ? read_32bitBE : read_32bitLE;
+    rws.big_endian = guess_endian32(offset + 0x00, sf); /* GC/Wii/X360 */
+    read_u32 = rws.big_endian ? read_u32be : read_u32le;
+    read_u16 = rws.big_endian ? read_u16be : read_u16le;
 
     /* base header */
     {
@@ -94,9 +99,9 @@ VGMSTREAM * init_vgmstream_rws(STREAMFILE *streamFile) {
         /* 0x04/08/10: sizes of various sections? */
         /* 0x14/18: config? */
         /* 0x1c: null? */
-        rws.total_segments = read_32bit(offset + 0x20, streamFile);
+        rws.total_segments = read_u32(offset + 0x20, sf);
         /* 0x24: config? */
-        rws.total_layers   = read_32bit(offset + 0x28, streamFile);
+        rws.total_layers   = read_u32(offset + 0x28, sf);
         /* 0x2c: config? */
         /* 0x30: 0x800? */
         /* 0x34: block_layers_size? */
@@ -109,7 +114,7 @@ VGMSTREAM * init_vgmstream_rws(STREAMFILE *streamFile) {
     /* audio file name */
     {
         rws.file_name_offset = offset;
-        offset += get_rws_string_size(offset, streamFile);
+        offset += get_rws_string_size(offset, sf);
     }
 
     /* RWS data can be divided in two ways:
@@ -144,15 +149,15 @@ VGMSTREAM * init_vgmstream_rws(STREAMFILE *streamFile) {
         if (i+1 == rws.target_segment) {
             /* 0x00/04/0c: config? */
             /* others: ? */
-            rws.segment_layers_size = read_32bit(offset + 0x18, streamFile); /* sum of all including padding */
-            rws.segment_offset = read_32bit(offset + 0x1c, streamFile);
+            rws.segment_layers_size = read_u32(offset + 0x18, sf); /* sum of all including padding */
+            rws.segment_offset = read_u32(offset + 0x1c, sf);
         }
         offset += 0x20;
     }
 
     /* usable layer sizes per segment */
     for (i = 0; i < (rws.total_segments * rws.total_layers); i++) {
-        size_t usable_size = read_32bit(offset, streamFile); /* without padding */
+        size_t usable_size = read_u32(offset, sf); /* without padding */
         /* size order: segment1 layer1 size, ..., segment1 layerN size, segment2 layer1 size, etc */
         if (i+1 == target_subsong) { /* order matches our subsong order */
             rws.usable_size = usable_size;
@@ -170,7 +175,7 @@ VGMSTREAM * init_vgmstream_rws(STREAMFILE *streamFile) {
         if (i+1 == rws.target_segment) {
             rws.segment_name_offset = offset;
         }
-        offset += get_rws_string_size(offset, streamFile);
+        offset += get_rws_string_size(offset, sf);
     }
 
     /* layer info */
@@ -179,13 +184,15 @@ VGMSTREAM * init_vgmstream_rws(STREAMFILE *streamFile) {
             /* 0x00/04: config? */
             /* 0x08: null? */
             /* 0x0c: related to samples per frame? (XBOX-IMA=07, PSX=1C, DSP=0E, PCM=01) */
-          //block_size_pad  = read_32bit(offset + 0x10, streamFile); /* with padding, can be different per layer */
-            /* 0x14/18: ? */
+          //block_size_pad  = read_u32(offset + 0x10, sf); /* with padding, can be different per layer */
+            /* 0x14: config? */
+            rws.interleave  = read_u16(offset + 0x18, sf); /* wrong values in Burnout 2 Xbox, otherwise correct */
+            rws.frame_size  = read_u16(offset + 0x1a, sf); /* same */
             /* 0x1c: codec related? */
-            rws.block_size  = read_32bit(offset + 0x20, streamFile); /* without padding */
-            rws.layer_start = read_32bit(offset + 0x24, streamFile); /* skip data */
+            rws.block_size  = read_u32(offset + 0x20, sf); /* without padding */
+            rws.layer_start = read_u32(offset + 0x24, sf); /* skip data */
         }
-        rws.block_layers_size += read_32bit(offset + 0x10, streamFile); /* needed to skip during decode */
+        rws.block_layers_size += read_u32(offset + 0x10, sf); /* needed to skip during decode */
         offset += 0x28;
     }
 
@@ -193,15 +200,17 @@ VGMSTREAM * init_vgmstream_rws(STREAMFILE *streamFile) {
     for (i = 0; i < rws.total_layers; i++) {
         uint32_t layer_codec = 0;
         if (i+1 == rws.target_layer) {
-            rws.sample_rate     = read_32bit(offset + 0x00, streamFile);
+            rws.sample_rate     = read_u32(offset + 0x00, sf);
             /* 0x04: config? */
-          //rws.layer_size      = read_32bit(offset + 0x08, streamFile); /* same or close to usable size */
+          //rws.layer_size  = read_u32(offset + 0x08, sf); /* same or close to usable size */
             /* 0x0c: bits per sample */
-            rws.channel_count   =  read_8bit(offset + 0x0d, streamFile);
-            /* others: ? */
-            rws.codec = (uint32_t)read_32bit(offset + 0x1c, streamFile); /* 128b uuid (32b-16b-16b-8b*8) but first 32b is enough */
+            rws.channels    =  read_u8(offset + 0x0d, sf);
+            /* 0x0e: null or some value ? */
+            /* 0x10/0x14: null? */
+            /* 0x18: null or some size? */
+            rws.codec       = read_u32(offset + 0x1c, sf); /* 128b uuid (32b-16b-16b-8b*8) but first 32b is enough */
         }
-        layer_codec   = (uint32_t)read_32bit(offset + 0x1c, streamFile);
+        layer_codec   = read_u32(offset + 0x1c, sf);
         offset += 0x2c;
 
         /* DSP has an extra field per layer */
@@ -226,7 +235,7 @@ VGMSTREAM * init_vgmstream_rws(STREAMFILE *streamFile) {
         if (i+1 == rws.target_layer) {
             rws.layer_name_offset = offset;
         }
-        offset += get_rws_string_size(offset, streamFile);
+        offset += get_rws_string_size(offset, sf);
     }
 
     /* rest is padding/garbage until chunk end (may contain strings and uninitialized memory) */
@@ -249,11 +258,11 @@ VGMSTREAM * init_vgmstream_rws(STREAMFILE *streamFile) {
     {
         char base_name[STREAM_NAME_SIZE], file_name[STREAM_NAME_SIZE], segment_name[STREAM_NAME_SIZE], layer_name[STREAM_NAME_SIZE];
 
-        get_streamfile_basename(streamFile, base_name, sizeof(base_name));
+        get_streamfile_basename(sf, base_name, sizeof(base_name));
         /* null terminated */
-        read_string(file_name,STREAM_NAME_SIZE, rws.file_name_offset, streamFile);
-        read_string(segment_name,STREAM_NAME_SIZE, rws.segment_name_offset, streamFile);
-        read_string(layer_name,STREAM_NAME_SIZE, rws.layer_name_offset, streamFile);
+        read_string(file_name,STREAM_NAME_SIZE, rws.file_name_offset, sf);
+        read_string(segment_name,STREAM_NAME_SIZE, rws.segment_name_offset, sf);
+        read_string(layer_name,STREAM_NAME_SIZE, rws.layer_name_offset, sf);
 
         /* some internal names aren't very interesting and are stuff like "SubStream" */
         if (strcmp(base_name, file_name) == 0) {
@@ -275,7 +284,7 @@ VGMSTREAM * init_vgmstream_rws(STREAMFILE *streamFile) {
 
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(rws.channel_count,loop_flag);
+    vgmstream = allocate_vgmstream(rws.channels, loop_flag);
     if (!vgmstream) goto fail;
 
     vgmstream->meta_type = meta_RWS;
@@ -289,41 +298,47 @@ VGMSTREAM * init_vgmstream_rws(STREAMFILE *streamFile) {
     vgmstream->full_block_size = rws.block_layers_size;
 
     switch(rws.codec) {
-        case 0xD01BD217: /* {D01BD217,3587,4EED,B9,D9,B8,E8,6E,A9,B9,95} PCM PC/X360 */
-            /* ex. D.i.R.T.: Origin of the Species (PC), The Legend of Spyro (X360) */
-            vgmstream->coding_type = coding_PCM16_int;
-            vgmstream->codec_endian = (rws.big_endian);
-            vgmstream->interleave_block_size = 0x02; /* only to setup channels */
+        case 0xD01BD217: /* {D01BD217,3587,4EED,B9,D9,B8,E8,6E,A9,B9,95} PCM PC/X360/PS2 */
+            /* D.i.R.T.: Origin of the Species (PC), The Legend of Spyro (X360), kill.switch (PS2) */
+            if (rws.interleave == 0x02) { /* PC, X360 */
+                vgmstream->coding_type = coding_PCM16_int;
+                vgmstream->codec_endian = (rws.big_endian);
+                vgmstream->interleave_block_size = rws.interleave; /* only to setup channels */
+            }
+            else { /* PS2 */
+                vgmstream->coding_type = rws.big_endian ? coding_PCM16BE : coding_PCM16LE;
+                vgmstream->interleave_block_size = rws.interleave; /* only to setup channels */
+            }
 
-            vgmstream->num_samples = pcm_bytes_to_samples(stream_size, rws.channel_count, 16);
+            vgmstream->num_samples = pcm16_bytes_to_samples(stream_size, rws.channels);
             break;
 
         case 0xD9EA9798: /* {D9EA9798,BBBC,447B,96,B2,65,47,59,10,2E,16} PS-ADPCM PS2 */
-            /* ex. Silent Hill Origins (PS2), Ghost Rider (PS2), Max Payne 2 (PS2), Nana (PS2) */
+            /* Silent Hill Origins (PS2), Ghost Rider (PS2), Max Payne 2 (PS2), Nana (PS2) */
             vgmstream->coding_type = coding_PSX;
             vgmstream->interleave_block_size = rws.block_size / 2;
 
-            vgmstream->num_samples = ps_bytes_to_samples(stream_size, rws.channel_count);
+            vgmstream->num_samples = ps_bytes_to_samples(stream_size, rws.channels);
             break;
 
         case 0xF86215B0: /* {F86215B0,31D5,4C29,BD,37,CD,BF,9B,D1,0C,53} DSP GC/Wii */
-            /* ex. Burnout 2 (GC), Alice in Wonderland (Wii) */
+            /* Burnout 2 (GC), Alice in Wonderland (Wii) */
             vgmstream->coding_type = coding_NGC_DSP;
             vgmstream->interleave_block_size = rws.block_size / 2;
 
             /* get coefs (all channels share them; also seem fixed for all RWS) */
-            dsp_read_coefs_be(vgmstream, streamFile, rws.coefs_offset, 0);
+            dsp_read_coefs_be(vgmstream, sf, rws.coefs_offset, 0);
 
-            vgmstream->num_samples = dsp_bytes_to_samples(stream_size, rws.channel_count);
+            vgmstream->num_samples = dsp_bytes_to_samples(stream_size, rws.channels);
             break;
 
         case 0xEF386593: /* {EF386593,B611,432D,95,7F,A7,1A,DE,44,22,7A} XBOX-IMA PC */
         case 0x632FA22B: /* {632FA22B,11DD,458F,AA,27,A5,C3,46,E9,79,0E} XBOX-IMA Xbox */
-            /* ex. Broken Sword 3 (PC), Jacked (PC/Xbox), Burnout 2 (Xbox) */
+            /* Broken Sword 3 (PC), Jacked (PC/Xbox), Burnout 2 (Xbox) */
             vgmstream->coding_type = coding_XBOX_IMA; /* same data though different uuid */
             vgmstream->interleave_block_size = 0;
 
-            vgmstream->num_samples = xbox_ima_bytes_to_samples(stream_size, rws.channel_count);
+            vgmstream->num_samples = xbox_ima_bytes_to_samples(stream_size, rws.channels);
             break;
 
         default:
@@ -332,7 +347,7 @@ VGMSTREAM * init_vgmstream_rws(STREAMFILE *streamFile) {
     }
 
 
-    if (!vgmstream_open_stream(vgmstream, streamFile, start_offset))
+    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
         goto fail;
     return vgmstream;
 
@@ -343,10 +358,10 @@ fail:
 
 
 /* rws-strings are null-terminated then padded to 0x10 (weirdly enough the padding contains garbage) */
-static off_t get_rws_string_size(off_t offset, STREAMFILE *streamFile) {
+static off_t get_rws_string_size(off_t offset, STREAMFILE* sf) {
     int i;
     for (i = 0; i < 255; i++) { /* arbitrary max */
-        if (read_8bit(offset+i, streamFile) == 0) { /* null terminator */
+        if (read_u8(offset+i, sf) == 0) { /* null terminator */
             return i + (0x10 - (i % 0x10)); /* size is padded */
         }
     }
