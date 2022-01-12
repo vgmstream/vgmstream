@@ -151,7 +151,6 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_ish_isd,
     init_vgmstream_gsp_gsb,
     init_vgmstream_ydsp,
-    init_vgmstream_msvp,
     init_vgmstream_ngc_ssm,
     init_vgmstream_ps2_joe,
     init_vgmstream_vgs,
