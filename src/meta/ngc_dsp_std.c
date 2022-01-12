@@ -1364,7 +1364,7 @@ fail:
 }
 
 
-/* WIIADPCM - Exient wrapper [Need for Speed: Hot Pursuit (Wii)] */
+/* WIIADPCM - Exient wrapper [Need for Speed: Hot Pursuit (Wii), Angry Birds: Star Wars (WiiU)] */
 VGMSTREAM* init_vgmstream_dsp_wiiadpcm(STREAMFILE* sf) {
     dsp_meta dspm = {0};
 
@@ -1375,18 +1375,28 @@ VGMSTREAM* init_vgmstream_dsp_wiiadpcm(STREAMFILE* sf) {
         goto fail;
 
     dspm.interleave = read_u32be(0x08,sf); /* interleave offset */
-    if (dspm.interleave) {
-        dspm.interleave -= 0x10;
-    }
-    /* 0x0c: 0 when RAM (2 DSP headers), interleave size when stream (2 WIIADPCM headers) */
+    /* 0x0c: NFS = 0 when RAM (2 DSP headers), interleave size when stream (2 WIIADPCM headers) 
+     *       AB = 0 (2 WIIADPCM headers) */
 
     dspm.channels = (dspm.interleave ? 2 : 1);
     dspm.max_channels = 2;
 
-    dspm.header_offset = 0x10;
+    if (read_u32be(0x10,sf) != 0)
+        dspm.header_offset = 0x10; /* NFSHP */
+    else
+        dspm.header_offset = 0x20; /* ABSW */
+
+    if (dspm.interleave)
+        dspm.interleave -= dspm.header_offset;
+    dspm.interleave_first_skip = 0x60 + dspm.header_offset;
+    dspm.interleave_first = dspm.interleave - dspm.interleave_first_skip;
+
     dspm.header_spacing = dspm.interleave;
     dspm.start_offset = dspm.header_offset + 0x60;
+    //
 
+VGM_LOG("%lx, %x\n", dspm.header_offset, dspm.interleave);
+VGM_LOG("%x, %x\n", dspm.interleave_first_skip, dspm.interleave_first);
     dspm.meta_type = meta_DSP_WIIADPCM;
     return init_vgmstream_dsp_common(sf, &dspm);
 fail:
