@@ -1,39 +1,43 @@
 #include "meta.h"
 #include "../coding/coding.h"
 
-/* MSV - from Sony MultiStream format [Fight Club  (PS2)] */
-VGMSTREAM * init_vgmstream_msv(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
+
+/* MSV - from Sony MultiStream format [Fight Club (PS2), PoPcap Hits Vol. 1 (PS2)] */
+VGMSTREAM* init_vgmstream_msv(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
     off_t start_offset;
     size_t channel_size;
-    int loop_flag, channel_count;
+    int loop_flag, channels;
 
+
+    if (!is_id32be(0x00,sf, "MSVp"))
+        goto fail;
 
     /* checks */
-    if ( !check_extensions(streamFile,"msv") )
-        goto fail;
-    if (read_32bitBE(0x00,streamFile) != 0x4D535670) /* "MSVp" */
+    /* .msv: actual extension
+     * .msvp: header ID */
+    if (!check_extensions(sf,"msv,msvp"))
         goto fail;
 
-    start_offset = 0x30;
-    channel_count = 1;
-    channel_size = read_32bitBE(0x0c,streamFile);
+    channels = 1;
+    channel_size = read_u32be(0x0c,sf);
     loop_flag = 0; /* no looping and last 16 bytes (end frame) are removed, from Sony's docs */
+    start_offset = 0x30;
 
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
     vgmstream->meta_type = meta_MSV;
-    vgmstream->sample_rate = read_32bitBE(0x10,streamFile);
-    vgmstream->num_samples = ps_bytes_to_samples(channel_size,1);
+    vgmstream->sample_rate = read_u32be(0x10,sf);
+    vgmstream->num_samples = ps_bytes_to_samples(channel_size, 1);
 
     vgmstream->coding_type = coding_PSX;
     vgmstream->layout_type = layout_none;
-    read_string(vgmstream->stream_name,0x10+1, 0x20,streamFile);
+    read_string(vgmstream->stream_name,0x10+1, 0x20,sf);
 
-    if ( !vgmstream_open_stream(vgmstream, streamFile, start_offset) )
+    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
         goto fail;
     return vgmstream;
 

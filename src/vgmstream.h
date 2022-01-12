@@ -416,7 +416,6 @@ typedef enum {
     meta_FFCC_STR,          /* Final Fantasy: Crystal Chronicles */
     meta_UBI_JADE,          /* Beyond Good & Evil, Rayman Raving Rabbids */
     meta_GCA,               /* Metal Slug Anthology */
-    meta_MSVP,              /* Popcap Hits */
     meta_NGC_SSM,           /* Golden Gashbell Full Power */
     meta_PS2_JOE,           /* Wall-E / Pixar games */
     meta_NGC_YMF,           /* WWE WrestleMania X8 */
@@ -665,7 +664,7 @@ typedef enum {
     meta_DSP_ITL,           /* Charinko Hero (GC) */
     meta_A2M,               /* Scooby-Doo! Unmasked (PS2) */
     meta_AHV,               /* Headhunter (PS2) */
-    meta_MSV,               /* Fight Club (PS2) */
+    meta_MSV,
     meta_SDF,
     meta_SVG,               /* Hunter - The Reckoning - Wayward (PS2) */
     meta_VIS,               /* AirForce Delta Strike (PS2) */

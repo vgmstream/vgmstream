@@ -390,7 +390,6 @@
     <ClCompile Include="meta\maxis_xa.c" />
     <ClCompile Include="meta\mc3.c" />
     <ClCompile Include="meta\mca.c" />
-    <ClCompile Include="meta\msvp.c" />
     <ClCompile Include="meta\mus_vc.c" />
     <ClCompile Include="meta\mus_acm.c" />
     <ClCompile Include="meta\musc.c" />

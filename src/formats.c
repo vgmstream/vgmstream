@@ -339,7 +339,7 @@ static const char* extension_list[] = {
     "msf",
     "mss",
     "msv",
-    "msvp",
+    "msvp", //fake extension/header id for .msv
     "mta2",
     "mtaf",
     "mul",
@@ -1081,7 +1081,6 @@ static const meta_info meta_info_list[] = {
         {meta_ISH_ISD,              "ISH+ISD DSP Header"},
         {meta_GSP_GSB,              "Tecmo GSP+GSB Header"},
         {meta_YDSP,                 "Yuke's DSP (YDSP) Header"},
-        {meta_MSVP,                 "MSVP Header"},
         {meta_NGC_SSM,              "SSM DSP Header"},
         {meta_PS2_JOE,              "Asobo Studio .JOE header"},
         {meta_VGS,                  "Guitar Hero VGS Header"},
