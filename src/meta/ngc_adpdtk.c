@@ -18,7 +18,7 @@ VGMSTREAM* init_vgmstream_dtk(STREAMFILE* sf) {
 
     /* check valid frames as files have no header, and .adp/wav are common */
     {
-        int i;
+        int i, blanks = 0;
         for (i = 0; i < 10; i++) { /* try a bunch of frames */
             /* header 0x00/01 are repeated in 0x02/03 (for error correction?),
              * could also test header values (upper nibble should be 0..3, and lower nibble 0..C) */
@@ -26,10 +26,13 @@ VGMSTREAM* init_vgmstream_dtk(STREAMFILE* sf) {
                 read_u8(0x01 + i*0x20,sf) != read_u8(0x03 + i*0x20,sf))
                 goto fail;
 
-            /* frame headers for silent frames are 0x0C, never null */
-            if (read_u8(0x00 + i*0x20,sf) == 0x00)
-                goto fail;
+            /* silent frame headers are almost always 0x0C, save a few uncommon tracks [Wave Race Blue Storm (GC), 1080 Silver Storm (GC)] */
+            if (read_u16be(0x00 + i*0x20,sf) == 0x00) 
+                blanks++;
         }
+
+        if (blanks > 3)
+            goto fail;
     }
 
     /* DTK (Disc Track) are DVD hardware-decoded streams, always stereo and no loop.
