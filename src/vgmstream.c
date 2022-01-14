@@ -1070,6 +1070,8 @@ static void try_dual_file_stereo(VGMSTREAM* opened_vgmstream, STREAMFILE* sf, VG
 
         /* stereo! */
         opened_vgmstream->channels = 2;
+        if (opened_vgmstream->layout_type == layout_interleave)
+            opened_vgmstream->layout_type = layout_none; /* fixes some odd cases */
 
         /* discard the second VGMSTREAM */
         mixing_close(new_vgmstream);
