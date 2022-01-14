@@ -17,8 +17,7 @@ VGMSTREAM* init_vgmstream_bfwav(STREAMFILE* sf) {
 
     /* .bfwav: used?
      * .fwav: header id */
-    /* .bfwavnsmbu: fake extension to detect New Super Mario Bros U files with weird sample rate */
-    if (!check_extensions(sf, "bfwav,fwav,bfwavnsmbu"))
+    if (!check_extensions(sf, "bfwav,fwav"))
         goto fail;
 
     return init_vgmstream_bxwav(sf, FWAV);
@@ -118,10 +117,6 @@ static VGMSTREAM* init_vgmstream_bxwav(STREAMFILE* sf, bxwav_type_t type) {
     /* DATA section */
     if (!is_id32be(data_offset + 0x00, sf, "DATA"))
         goto fail;
-
-    //TODO remove
-    if (check_extensions(sf, "bfwavnsmbu"))
-        sample_rate = 16000;
 
 
     /* build the VGMSTREAM */

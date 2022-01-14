@@ -98,7 +98,6 @@ static const char* extension_list[] = {
     "bdsp",
     "bfstm",
     "bfwav",
-    "bfwavnsmbu", //fake extension for New Super Smash Bros U (renamed to fix bug)
     "bg00",
     "bgm",
     "bgw",
