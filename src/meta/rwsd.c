@@ -2,13 +2,12 @@
 #include "../coding/coding.h"
 #include "../util.h"
 
-/* Wii RWAV, 3DS CWAV */
+/* Wii RWAV */
 
-struct rwav_data {
+typedef struct {
     // in
     off_t offset;
-    STREAMFILE *streamFile;
-    int big_endian;
+    STREAMFILE *sf;
     int32_t (*read_32bit)(off_t,STREAMFILE*);
 
     // out
@@ -16,71 +15,45 @@ struct rwav_data {
     off_t start_offset;
     off_t info_chunk;
     off_t wave_offset;
-};
+}  rwav_data_t;
 
-static void read_rwav(struct rwav_data * rd)
-{
+static void read_rwav(rwav_data_t* rd) {
     off_t chunk_table_offset;
     off_t chunk_table_step;
     off_t info_chunk;
     off_t data_chunk;
 
-    if (rd->big_endian)
-    {
-        /* "RWAV" */
-        if ((uint32_t)read_32bitBE(rd->offset,rd->streamFile)!=0x52574156)
-            return;
-
-        /* big endian, version 2 */
-        if ((uint32_t)read_32bitBE(rd->offset+4,rd->streamFile)!=0xFEFF0102)
-            return;
-
-        chunk_table_offset = rd->offset+0x10;
-        chunk_table_step = 8;
-    }
-    else
-    {
-        /* "CWAV" */
-        if ((uint32_t)read_32bitBE(rd->offset,rd->streamFile)!=0x43574156) 
-            return;
-
-        /* little endian, version 2 */
-        if ((uint32_t)read_32bitBE(rd->offset+4,rd->streamFile)!=0xFFFE4000 ||
-            (
-             (uint32_t)read_32bitBE(rd->offset+8,rd->streamFile)!=0x00000002 && /* Kirby's Adventure */
-             (uint32_t)read_32bitBE(rd->offset+8,rd->streamFile)!=0x00000102 && /* common */
-             (uint32_t)read_32bitBE(rd->offset+8,rd->streamFile)!=0x00010102
-            )
-           )
-            return;
-
-        chunk_table_offset = rd->offset+0x18;
-        chunk_table_step = 0xc;
-    }
-
-    info_chunk = rd->offset+rd->read_32bit(chunk_table_offset,rd->streamFile);
-    /* "INFO" */
-    if ((uint32_t)read_32bitBE(info_chunk,rd->streamFile)!=0x494e464f)
+    if (!is_id32be(rd->offset, rd->sf, "RWAV")) 
         return;
 
-    data_chunk = rd->offset+rd->read_32bit(chunk_table_offset+chunk_table_step,rd->streamFile);
-    /* "DATA" */
-    if ((uint32_t)read_32bitBE(data_chunk,rd->streamFile)!=0x44415441)
+    /* big endian, version 2 */
+    if (read_u32be(rd->offset+4,rd->sf) != 0xFEFF0102)
         return;
 
-    rd->start_offset = data_chunk + 8;
-    rd->info_chunk = info_chunk + 8;
+    chunk_table_offset = rd->offset + 0x10;
+    chunk_table_step = 0x08;
+
+    info_chunk = rd->offset + rd->read_32bit(chunk_table_offset, rd->sf);
+    if (!is_id32be(info_chunk, rd->sf, "INFO")) 
+        return;
+
+    data_chunk = rd->offset + rd->read_32bit(chunk_table_offset + chunk_table_step, rd->sf);
+    if (!is_id32be(data_chunk, rd->sf, "DATA")) 
+        return;
+
+    rd->start_offset = data_chunk + 0x08;
+    rd->info_chunk = info_chunk + 0x08;
     rd->version = 2;
-    rd->wave_offset = info_chunk - 8;   // pretend to have a WAVE
+    rd->wave_offset = info_chunk - 0x08;   /* pretend to have a WAVE */
 
     return;
 }
 
-static void read_rwar(struct rwav_data * rd)
-{
-    if ((uint32_t)read_32bitBE(rd->offset,rd->streamFile)!=0x52574152) /* "RWAR" */
+static void read_rwar(rwav_data_t* rd) {
+    if (!is_id32be(rd->offset, rd->sf, "RWAR")) 
         return;
-    if ((uint32_t)read_32bitBE(rd->offset+4,rd->streamFile)!=0xFEFF0100) /* version 0 */
+
+    if (read_u32be(rd->offset + 0x04, rd->sf) != 0xFEFF0100) /* version 0 */
         return;
 
     rd->offset += 0x60;
@@ -92,23 +65,20 @@ static void read_rwar(struct rwav_data * rd)
 /* RWSD is quite similar to BRSTM, but can contain several streams.
  * Still, some games use it for single streams. We only support the
  * single stream form here */
-VGMSTREAM * init_vgmstream_rwsd(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
+VGMSTREAM* init_vgmstream_rwsd(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
     char filename[PATH_LIMIT];
-
-    coding_t coding_type;
 
     size_t wave_length;
     int codec;
-    int channel_count;
+    int channels;
     int loop_flag;
     int rwar = 0;
     int rwav = 0;
-    struct rwav_data rwav_data;
+    rwav_data_t rwav_data;
 
     size_t stream_size;
 
-    int big_endian = 1;
     int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
     int16_t (*read_16bit)(off_t,STREAMFILE*) = NULL;
 
@@ -118,44 +88,29 @@ VGMSTREAM * init_vgmstream_rwsd(STREAMFILE *streamFile) {
     rwav_data.wave_offset = -1;
 
     /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
+    sf->get_name(sf,filename,sizeof(filename));
 
-    if (check_extensions(streamFile, "rwsd")) {
+    if (check_extensions(sf, "rwsd")) {
         ;
     }
-    else if (check_extensions(streamFile, "rwar")) {
+    else if (check_extensions(sf, "rwar")) {
         rwar = 1;
     }
-    else if (check_extensions(streamFile, "rwav")) {
+    else if (check_extensions(sf, "rwav")) {
         rwav = 1;
-    }
-    /* .bcwav: standard 3DS
-     * .bms: 3D Classics Kirby's Adventure (3DS)
-     * .sfx: Wizdom (3DS)
-     * .str: Pac-Man and the Ghostly Adventures 2 (3DS)
-     * .zic: Wizdom (3DS) */
-    else if (check_extensions(streamFile, "bcwav,bms,sfx,str,zic")) {
-        rwav = 1; // cwav, similar to little endian rwav
-        big_endian = 0;
     }
     else {
         goto fail;
     }
 
-    if (big_endian) {
-        read_16bit = read_16bitBE;
-        read_32bit = read_32bitBE;
-    }
-    else {
-        read_16bit = read_16bitLE;
-        read_32bit = read_32bitLE;
-    }
+    read_16bit = read_16bitBE;
+    read_32bit = read_32bitBE;
+
 
     /* check header */
     if (rwar || rwav) {
         rwav_data.offset = 0;
-        rwav_data.streamFile = streamFile;
-        rwav_data.big_endian = big_endian;
+        rwav_data.sf = sf;
         rwav_data.read_32bit = read_32bit;
 
         if (rwar) read_rwar(&rwav_data);
@@ -163,33 +118,34 @@ VGMSTREAM * init_vgmstream_rwsd(STREAMFILE *streamFile) {
         if (rwav_data.wave_offset < 0) goto fail;
     }
     else {
-        if ((uint32_t)read_32bitBE(0,streamFile)!=0x52575344) /* "RWSD" */
+        if (!is_id32be(0x00, sf, "RWSD")) 
             goto fail;
 
-        switch (read_32bitBE(4,streamFile)) {
+        switch (read_u32be(0x04, sf)) {
             case 0xFEFF0102:
                 /* ideally we would look through the chunk list for a WAVE chunk,
                  * but it's always in the same order */
+
                 /* get WAVE offset, check */
-                rwav_data.wave_offset = read_32bit(0x18,streamFile);
-                if ((uint32_t)read_32bitBE(rwav_data.wave_offset,streamFile)!=0x57415645) /* "WAVE" */
+                rwav_data.wave_offset = read_32bit(0x18,sf);
+                if (!is_id32be(0x00, sf, "WAVE")) 
                     goto fail;
+
                 /* get WAVE size, check */
-                wave_length = read_32bit(0x1c,streamFile);
-                if (read_32bit(rwav_data.wave_offset+4,streamFile)!=wave_length)
+                wave_length = read_32bit(0x1c,sf);
+                if (read_32bit(rwav_data.wave_offset + 0x04,sf) != wave_length)
                     goto fail;
 
                 /* check wave count */
-                if (read_32bit(rwav_data.wave_offset+8,streamFile) != 1)
+                if (read_32bit(rwav_data.wave_offset + 0x08,sf) != 1)
                     goto fail; /* only support 1 */
 
                 rwav_data.version = 2;
-
                 break;
+
             case 0xFEFF0103:
                 rwav_data.offset = 0xe0;
-                rwav_data.streamFile = streamFile;
-                rwav_data.big_endian = big_endian;
+                rwav_data.sf = sf;
                 rwav_data.read_32bit = read_32bit;
 
                 read_rwar(&rwav_data);
@@ -204,126 +160,87 @@ VGMSTREAM * init_vgmstream_rwsd(STREAMFILE *streamFile) {
     }
 
     /* get type details */
-    codec = read_8bit(rwav_data.wave_offset+0x10,streamFile);
-    loop_flag = read_8bit(rwav_data.wave_offset+0x11,streamFile);
-    if (big_endian)
-        channel_count = read_8bit(rwav_data.wave_offset+0x12,streamFile);
-    else
-        channel_count = read_32bit(rwav_data.wave_offset+0x24,streamFile);
+    codec = read_u8(rwav_data.wave_offset+0x10,sf);
+    loop_flag = read_u8(rwav_data.wave_offset+0x11,sf);
+    channels = read_u8(rwav_data.wave_offset+0x12,sf);
+
+
+    /* build the VGMSTREAM */
+    vgmstream = allocate_vgmstream(channels,loop_flag);
+    if (!vgmstream) goto fail;
+
+    vgmstream->num_samples = dsp_nibbles_to_samples(read_32bit(rwav_data.wave_offset+0x1c,sf));
+    vgmstream->loop_start_sample = dsp_nibbles_to_samples(read_32bit(rwav_data.wave_offset+0x18,sf));
+
+    vgmstream->sample_rate = (uint16_t)read_16bit(rwav_data.wave_offset + 0x14,sf);
+    vgmstream->loop_end_sample = vgmstream->num_samples;
 
     switch (codec) {
         case 0:
-            coding_type = coding_PCM8;
+            vgmstream->coding_type = coding_PCM8;
             break;
         case 1:
-            if (big_endian)
-                coding_type = coding_PCM16BE;
-            else
-                coding_type = coding_PCM16LE;
+            vgmstream->coding_type = coding_PCM16BE;
             break;
         case 2:
-            coding_type = coding_NGC_DSP;
-            break;
-        case 3:
-            coding_type = coding_3DS_IMA;
+            vgmstream->coding_type = coding_NGC_DSP;
             break;
         default:
             goto fail;
     }
 
-    if (channel_count < 1) goto fail;
-
-    /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
-    if (!vgmstream) goto fail;
-
-    if (big_endian) {
-        vgmstream->num_samples = dsp_nibbles_to_samples(read_32bit(rwav_data.wave_offset+0x1c,streamFile));
-        vgmstream->loop_start_sample = dsp_nibbles_to_samples(read_32bit(rwav_data.wave_offset+0x18,streamFile));
-    }
-    else {
-        vgmstream->num_samples = read_32bit(rwav_data.wave_offset+0x1c,streamFile);
-        vgmstream->loop_start_sample = read_32bit(rwav_data.wave_offset+0x18,streamFile);
-    }
-
-    vgmstream->sample_rate = (uint16_t)read_16bit(rwav_data.wave_offset+0x14,streamFile);
-    vgmstream->loop_end_sample = vgmstream->num_samples;
-
-    vgmstream->coding_type = coding_type;
     vgmstream->layout_type = layout_none;
 
-    if (rwar)
+    if (rwar) {
         vgmstream->meta_type = meta_RWAR;
-    else if (rwav) {
-        if (big_endian) {
-            vgmstream->meta_type = meta_RWAV;
-        }
-        else {
-            vgmstream->meta_type = meta_CWAV;
-            vgmstream->allow_dual_stereo = 1; /* LEGO 3DS games */
-        }
     }
-    else
+    else if (rwav) {
+        vgmstream->meta_type = meta_RWAV;
+    }
+    else {
         vgmstream->meta_type = meta_RWSD;
+    }
 
     {
         off_t data_start_offset;
         off_t codec_info_offset;
-        int i,j;
+        int i, j;
 
-        for (j=0;j<vgmstream->channels;j++) {
-            if (rwar || rwav)
-            {
-                if (big_endian)
-                {
+        for (j = 0 ; j < vgmstream->channels; j++) {
+            if (rwar || rwav) {
                 /* This is pretty nasty, so an explaination is in order.
-                 * At 0x10 in the info_chunk is the offset of a table with
-                 * one entry per channel. Each entry in this table is itself
-                 * an offset to a set of information for the channel. The
-                 * first element in the set is the offset into DATA of the
-                 * channel. 
-                 * The second element is the
-                 * offset of the codec-specific setup for the channel. */
+                * At 0x10 in the info_chunk is the offset of a table with
+                * one entry per channel. Each entry in this table is itself
+                * an offset to a set of information for the channel. The
+                * first element in the set is the offset into DATA of the channel. 
+                * The second element is the offset of the codec-specific setup for the channel. */
 
-                off_t channel_info_offset;
-                channel_info_offset = rwav_data.info_chunk +
-                    read_32bit(rwav_data.info_chunk+
-                    read_32bit(rwav_data.info_chunk+0x10,streamFile)+j*4,
-                        streamFile);
+                off_t channel_info_offset = rwav_data.info_chunk +
+                    read_32bit(rwav_data.info_chunk +
+                        read_32bit(rwav_data.info_chunk + 0x10,sf) + j*0x04, sf);
 
                 data_start_offset = rwav_data.start_offset +
-                    read_32bit(channel_info_offset+0, streamFile);
+                    read_32bit(channel_info_offset + 0x00, sf);
                 codec_info_offset = rwav_data.info_chunk + 
-                    read_32bit(channel_info_offset+4, streamFile);
-                }
+                    read_32bit(channel_info_offset + 0x04, sf);
 
-                else
-                {
-                // CWAV uses some relative offsets
-                off_t cur_pos = rwav_data.info_chunk + 0x14; // channel count
-                cur_pos = cur_pos + read_32bit(cur_pos + 4 + j*8 + 4,streamFile);
+                vgmstream->ch[j].channel_start_offset =
+                    vgmstream->ch[j].offset = data_start_offset;
 
-                // size is at cur_pos + 4
-                data_start_offset = rwav_data.start_offset + read_32bit(cur_pos + 4, streamFile);
-                // codec-specific info is at cur_pos + 0xC
-                codec_info_offset = cur_pos + read_32bit(cur_pos + 0xC,streamFile);
-                }
-                vgmstream->ch[j].channel_start_offset=
-                    vgmstream->ch[j].offset=data_start_offset;
             } else {
                 // dummy for RWSD, must be a proper way to work this out
-                codec_info_offset=rwav_data.wave_offset+0x6c+j*0x30;
+                codec_info_offset = rwav_data.wave_offset + 0x6c + j*0x30;
             }
 
             if (vgmstream->coding_type == coding_NGC_DSP) {
-                for (i=0;i<16;i++) {
-                    vgmstream->ch[j].adpcm_coef[i]=read_16bit(codec_info_offset+i*2,streamFile);
+                for (i = 0; i < 16; i++) {
+                    vgmstream->ch[j].adpcm_coef[i] = read_16bit(codec_info_offset + i*0x2, sf);
                 }
             }
 
             if (vgmstream->coding_type == coding_3DS_IMA) {
-                vgmstream->ch[j].adpcm_history1_16 = read_16bit(codec_info_offset,streamFile);
-                vgmstream->ch[j].adpcm_step_index = read_16bit(codec_info_offset+2,streamFile);
+                vgmstream->ch[j].adpcm_history1_16 = read_16bit(codec_info_offset + 0x00,sf);
+                vgmstream->ch[j].adpcm_step_index = read_16bit(codec_info_offset + 0x02,sf);
             }
         }
     }
@@ -333,15 +250,16 @@ VGMSTREAM * init_vgmstream_rwsd(STREAMFILE *streamFile) {
     }
     else {
         if (rwav_data.version == 2)
-            rwav_data.start_offset = read_32bit(8,streamFile);
+            rwav_data.start_offset = read_32bit(0x08, sf);
     }
-    stream_size = read_32bit(rwav_data.wave_offset+0x50,streamFile);
+
+    stream_size = read_32bit(rwav_data.wave_offset + 0x50,sf);
 
     /* open the file for reading by each channel */
     {
         int i;
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
+        for (i=0;i<channels;i++) {
+            vgmstream->ch[i].streamfile = sf->open(sf,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
 
             if (!vgmstream->ch[i].streamfile) goto fail;
 
@@ -356,8 +274,7 @@ VGMSTREAM * init_vgmstream_rwsd(STREAMFILE *streamFile) {
 
     return vgmstream;
 
-    /* clean up anything we may have opened */
 fail:
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_vgmstream(vgmstream);
     return NULL;
 }

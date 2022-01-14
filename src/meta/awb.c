@@ -105,7 +105,7 @@ VGMSTREAM* init_vgmstream_awb_memory(STREAMFILE* sf, STREAMFILE* sf_acb) {
             subfile_size = read_u32le(subfile_offset + 0x04,sf) + 0x08; /* padded size, use RIFF's */
         }
         else if (is_id32be(subfile_offset,sf, "CWAV")) { /* (type 9=CWAV) */
-            init_vgmstream = init_vgmstream_rwsd; /* Sonic: Lost World (3DS) */
+            init_vgmstream = init_vgmstream_bcwav; /* Sonic: Lost World (3DS) */
             extension = "bcwav";
         }
         else if (read_u32be(subfile_offset + 0x08,sf) >= 8000 && read_u32be(subfile_offset + 0x08,sf) <= 48000 &&

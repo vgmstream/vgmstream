@@ -21,6 +21,7 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_adx,
     init_vgmstream_brstm,
     init_vgmstream_bfwav,
+    init_vgmstream_bcwav,
     init_vgmstream_nds_strm,
     init_vgmstream_afc,
     init_vgmstream_ast,

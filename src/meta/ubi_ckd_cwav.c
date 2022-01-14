@@ -26,7 +26,7 @@ VGMSTREAM* init_vgmstream_ubi_ckd_cwav(STREAMFILE* sf) {
     temp_sf = setup_ubi_ckd_cwav_streamfile(sf);
     if (!temp_sf) goto fail;
 
-    vgmstream = init_vgmstream_rwsd(temp_sf);
+    vgmstream = init_vgmstream_bcwav(temp_sf);
     if (!vgmstream) goto fail;
 
     return vgmstream;
