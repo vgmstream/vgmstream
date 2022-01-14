@@ -331,6 +331,12 @@
     <ClCompile Include="decode.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="info.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="seek.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="render.c">
       <Filter>Source Files</Filter>
     </ClCompile>

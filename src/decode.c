@@ -1546,7 +1546,13 @@ int vgmstream_do_loop(VGMSTREAM* vgmstream) {
             }
         }
 
-        /* loop codecs */
+        //TODO: improve
+        /* loop codecs that need special handling, usually:
+         * - on hit_loop, current offset is copied to loop_ch[].offset
+         * - some codecs will overwrite loop_ch[].offset with a custom value
+         * - loop_ch[] is copied to ch[] (with custom value)
+         * - then codec will use ch[]'s offset
+         * regular codecs may use copied loop_ch[] offset without issue */
         seek_codec(vgmstream);
 
         /* restore! */
