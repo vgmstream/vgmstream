@@ -277,6 +277,8 @@
     <ClCompile Include="formats.c" />
     <ClCompile Include="meta\xmv_valve.c" />
     <ClCompile Include="decode.c" />
+    <ClCompile Include="info.c" />
+    <ClCompile Include="seek.c" />
     <ClCompile Include="render.c" />
     <ClCompile Include="mixing.c" />
     <ClCompile Include="plugins.c" />

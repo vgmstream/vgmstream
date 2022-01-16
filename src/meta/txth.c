@@ -461,7 +461,7 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
             {
                 int16_t (*read_16bit)(off_t, STREAMFILE*) = txth.coef_big_endian ? read_16bitBE : read_16bitLE;
                 int16_t (*get_16bit)(const uint8_t* p) = txth.coef_big_endian ? get_16bitBE : get_16bitLE;
-VGM_LOG("coef=%x\n",txth.coef_offset );
+
                 for (i = 0; i < vgmstream->channels; i++) {
                     if (txth.coef_mode == 0) { /* normal coefs */
                         for (j = 0; j < 16; j++) {

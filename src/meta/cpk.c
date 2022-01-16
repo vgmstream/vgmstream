@@ -201,7 +201,7 @@ VGMSTREAM* init_vgmstream_cpk_memory(STREAMFILE* sf, STREAMFILE* sf_acb) {
             if (!vgmstream) goto fail;
             break;
         case CWAV: /* Metal Gear Solid: Snake Eater 3D (3DS) */
-            vgmstream = init_vgmstream_rwsd(temp_sf);
+            vgmstream = init_vgmstream_bcwav(temp_sf);
             if (!vgmstream) goto fail;
             break;
         case ADX: /* Sonic Generations (3DS) */

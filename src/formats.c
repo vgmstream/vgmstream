@@ -65,6 +65,7 @@ static const char* extension_list[] = {
     "al2",
     "ams", //txth/reserved [Super Dragon Ball Z (PS2) ELF names]
     "amts", //fake extension/header id for .stm (renamed? to be removed?)
+    "an2",
     "ao",
     "ap",
     "apc",
@@ -98,7 +99,6 @@ static const char* extension_list[] = {
     "bdsp",
     "bfstm",
     "bfwav",
-    "bfwavnsmbu", //fake extension for New Super Smash Bros U (renamed to fix bug)
     "bg00",
     "bgm",
     "bgw",
