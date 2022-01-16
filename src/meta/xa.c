@@ -38,8 +38,9 @@ VGMSTREAM* init_vgmstream_xa(STREAMFILE* sf) {
      * .str: often videos and sometimes speech/music
      * .pxa: Mortal Kombat 4 (PS1)
      * .grn: Micro Machines (CDi)
+     * .an2: Croc (PS1) movies
      * (extensionless): bigfiles [Castlevania: Symphony of the Night (PS1)] */
-    if (!check_extensions(sf,"xa,str,pxa,grn,"))
+    if (!check_extensions(sf,"xa,str,pxa,grn,an2,"))
         goto fail;
 
     /* Proper XA comes in raw (BIN 2352 mode2/form2) CD sectors, that contain XA subheaders.
@@ -78,11 +79,11 @@ VGMSTREAM* init_vgmstream_xa(STREAMFILE* sf) {
             case 1: bps = 8; break; /* Micro Machines (CDi) */
             default: goto fail;
         }
-        switch((xa_header >> 6) & 1) { /* 6: emphasis (applies a filter) */
+        switch((xa_header >> 6) & 1) { /* 6: emphasis flag (should apply a de-emphasis filter) */
             case 0: break;
-            default: /*  shouldn't be used by games */
-                vgm_logi("XA: unknown emphasis found\n");
-                goto fail;
+            default: /* very rare, waveform looks ok so maybe not needed [Croc (PS1) PACKx.str] */
+                vgm_logi("XA: emphasis found\n");
+                break;
         }
         switch((xa_header >> 7) & 1) { /* 7: reserved */
             case 0: break;
