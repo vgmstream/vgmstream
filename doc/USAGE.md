@@ -551,7 +551,7 @@ Note that some formats are *audio banks* rather than *containers* (like `.fsb`),
 in that info for playing the audio is part of the bank header, and extracting
 internal files as-is isn't really possible. Or, perhaps you could to transmogrify
 the original header into something else, but for data preservation purposes
-it's (plus can use TXTH to play for unsupported data).
+it's preferable to leave it as-is (plus can use TXTH to play unsupported formats).
 
 If your main motivation for extracting is to rename or have loose files, remember
 you can simply use TXTP to point to a subsong, and name that `.txtp` whatever you
