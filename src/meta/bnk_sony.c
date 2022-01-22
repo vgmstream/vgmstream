@@ -5,7 +5,7 @@
 
 typedef enum { PSX, PCM16, ATRAC9, HEVAG } bnk_codec;
 
-/* .BNK - Sony's Scream Tool bank format [Puyo Puyo Tetris (PS4), NekoBuro: Cats Block (Vita)] */
+/* .BNK - Sony's SCREAM bank format [The Sly Collection (PS3), Puyo Puyo Tetris (PS4), NekoBuro: Cats Block (Vita)] */
 VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     uint32_t start_offset, stream_offset, name_offset = 0;
@@ -13,7 +13,7 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
     uint32_t stream_size, data_size, interleave = 0;
     int channels = 0, loop_flag, sample_rate, parts, sblk_version, big_endian;
     int loop_start = 0, loop_end = 0;
-    uint32_t pitch, flags;
+    uint32_t center_note, center_fine, flags;
     uint32_t atrac9_info = 0;
 
     int total_subsongs, target_subsong = sf->stream_index;
@@ -23,7 +23,7 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
     bnk_codec codec;
 
 
-    /* bnk version */
+    /* bnk/SCREAM tool version */
     if (read_u32be(0x00,sf) == 0x03) { /* PS3 */
         read_u32 = read_u32be;
         read_u16 = read_u16be;
@@ -47,9 +47,10 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
 
     parts = read_u32(0x04,sf);
     if (parts < 2 || parts > 3) goto fail;
+    /* in theory a bank can contain multiple blocks */
 
     sblk_offset = read_u32(0x08,sf);
-    /* 0x0c: sklb size */
+    /* 0x0c: sblk size */
     data_offset = read_u32(0x10,sf);
     data_size = read_u32(0x14,sf);
     /* when sblk_offset >= 0x20: */
@@ -62,10 +63,17 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
 
 
     /* SBlk part: parse header */
-    if (read_u32(sblk_offset+0x00,sf) != get_id32be("klBS")) /* SBlk = sample block? */
+    if (read_u32(sblk_offset+0x00,sf) != get_id32be("klBS")) /* SBlk = SFX block */
         goto fail;
     sblk_version = read_u32(sblk_offset+0x04,sf);
-    /* 0x08: possibly when sblk_version=0x0d, 0x03=Vita, 0x06=PS4 */
+    /* 0x08: flags? (sblk_version>=0x0d?, 0x03=Vita, 0x06=PS4)
+     * - 04: non-fixed bank?
+     * - 100: has names
+     * - 200: has user data
+     */
+    /* 0x0c: block id */
+    /* 0x10: block number */
+    /* 0x11: padding */
     //;VGM_LOG("BNK: sblk_offset=%lx, data_offset=%lx, sblk_version %x\n", sblk_offset, data_offset, sblk_version);
 
     {
@@ -99,13 +107,18 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
             case 0x05: /* Ratchet & Clank (PS3) */
             case 0x08: /* Playstation Home Arcade (Vita) */
             case 0x09: /* Puyo Puyo Tetris (PS4) */
-                section_entries  = read_u16(sblk_offset+0x16,sf); /* entry size: ~0x0c */
-                material_entries = read_u16(sblk_offset+0x18,sf); /* entry size: ~0x08 */
-                stream_entries   = read_u16(sblk_offset+0x1a,sf); /* entry size: ~0x18 + variable */
-                table1_offset    = sblk_offset + read_u32(sblk_offset+0x1c,sf);
-                table2_offset    = sblk_offset + read_u32(sblk_offset+0x20,sf);
-                table3_offset    = sblk_offset + read_u32(sblk_offset+0x34,sf);
-                table4_offset    = sblk_offset + read_u32(sblk_offset+0x38,sf);
+                section_entries  = read_u16(sblk_offset+0x16,sf); /* entry size: ~0x0c (NumSounds)*/
+                material_entries = read_u16(sblk_offset+0x18,sf); /* entry size: ~0x08 (NumGrains) */
+                stream_entries   = read_u16(sblk_offset+0x1a,sf); /* entry size: ~0x18 + variable (NumWaveforms) */
+                table1_offset    = sblk_offset + read_u32(sblk_offset+0x1c,sf); /* sound offset */
+                table2_offset    = sblk_offset + read_u32(sblk_offset+0x20,sf); /* grain offset */
+                /* 0x24: VAG address? */
+                /* 0x28: data size */
+                /* 0x2c: RAM size */
+                /* 0x30: next block offset */
+                table3_offset    = sblk_offset + read_u32(sblk_offset+0x34,sf); /* grain data? */
+                table4_offset    = sblk_offset + read_u32(sblk_offset+0x38,sf); /* block names */
+                /*0x3c: SFXUD? */
 
                 table1_entry_size = 0x0c;
                 table1_suboffset = 0x08;
@@ -138,8 +151,11 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
 
         /* table defs:
          * - table1: sections, point to some materials (may be less than streams/materials)
+         *           (a "sound" that has N grains, and is triggered by games like a cue) 
          * - table2: materials, point to all sounds or others subtypes (may be more than sounds)
+         *           (a "grain" that does actions like play or changes volume)
          * - table3: sounds, point to streams (multiple sounds can repeat stream)
+         *           (a "waveform" being the actual stream)
          * - table4: names define section names (not all sounds may have a name)
          *
          * approximate table parsing
@@ -185,8 +201,8 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
                     table2_value = read_u32(table2_offset+(i*0x08)+table2_suboffset+0x00,sf);
                     table2_subinfo = (table2_value >>  0) & 0xFFFF;
                     table2_subtype = (table2_value >> 16) & 0xFFFF;
-                    if (table2_subtype != 0x100)
-                        continue; /* not sounds */
+                    if (table2_subtype != 0x0100)
+                        continue; /* not sounds (ex. 1: waveform, 42: silence, 25: random, etc) */
 
                     total_subsongs++;
                     if (total_subsongs == target_subsong) {
@@ -205,8 +221,8 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
         if (target_subsong < 0 || target_subsong > total_subsongs || total_subsongs < 1) goto fail;
         /* this means some subsongs repeat streams, that can happen in some sfx banks, whatevs */
         if (total_subsongs != stream_entries) {
-            VGM_LOG("BNK: subsongs %i vs table3 %i don't match\n", total_subsongs, stream_entries);
-            /* find_dupes...? */
+            VGM_LOG("BNK: subsongs %i vs table3 %i don't match (repeated streams?)\n", total_subsongs, stream_entries);
+            /* TODO: find dupes?  */
         }
 
         //;VGM_LOG("BNK: header entry at %lx\n", table3_offset+table3_entry_offset);
@@ -219,21 +235,64 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
             case 0x05:
             case 0x08:
             case 0x09:
-                pitch   = read_u8(table3_offset+table3_entry_offset+0x02,sf);
-                flags   = read_u8(table3_offset+table3_entry_offset+0x0f,sf);
+                /* "tone" */
+                /* 0x00: priority */
+                /* 0x01: volume */
+                center_note     = read_u8 (table3_offset+table3_entry_offset+0x02,sf);
+                center_fine     = read_u8 (table3_offset+table3_entry_offset+0x03,sf);
+                /* 0x04: pan */
+                /* 0x06: map low */
+                /* 0x07: map high */
+                /* 0x08: pitch bend low */
+                /* 0x09: pitch bend high */
+                /* 0x0a: ADSR1 */
+                /* 0x0c: ADSR2 */
+                flags           = read_u16(table3_offset+table3_entry_offset+0x0e,sf);
                 stream_offset   = read_u32(table3_offset+table3_entry_offset+0x10,sf);
                 stream_size     = read_u32(table3_offset+table3_entry_offset+0x14,sf);
 
-                switch(pitch) {
-                    case 0xC4: sample_rate = 48000; break;
-                    case 0xC2: sample_rate = 44100; break;
-                    case 0xB6: sample_rate = 22050; break;
-                    case 0xAA: sample_rate = 11025; break;
-                    default:
-                        /* approximate note-to-hz, not sure about real formula (observed from 0x9a to 0xc6)
-                         * using (rate) * 2 ^ ((pitch - note) / 12) but not correct? (may be rounded) */
-                        sample_rate = 614.0 * pow(2.0, (float)(pitch - 0x70) / 12.0);
-                        break;
+                /* "base" sample rates, allowed by the tool (for other rates must use base + semitones, but aren't exact) */
+                if (center_note == 0xC4 && center_fine == 0x00)
+                    sample_rate = 48000;
+                else if (center_note == 0xC2 && center_fine == 0x42)
+                    sample_rate = 44100;
+                else if (center_note == 0xb6 && center_fine == 0x42)
+                    sample_rate = 22050;
+                else if (center_note == 0xaa && center_fine == 0x42)
+                    sample_rate = 11025;
+                else if (center_note == 0xa4 && center_fine == 0x7c)
+                    sample_rate = 8000;
+                else {
+                    /* rough ("center") sample rates using semitone-to-hz formula: (rate) * 2 ^ ((pitch - base) / 12) */
+                    double curr_rate = 48000 * pow(2.0, (double)((int)center_note - 0xc4) / 12.0);
+                    double prev_rate = 48000 * pow(2.0, (double)(((int)center_note - 1) - 0xc4) / 12.0);
+                    /* partial semitone, from 0x00 = 0.0 to 0x7f = 1.0 of a semitone for current rate */
+                    float fine_pct = center_fine / 127.0f;
+
+                    //TODO improve (fine seems approximate and not sure how to calc current semitone hz value, so needs prev_rate)
+                    sample_rate =  curr_rate + (curr_rate - prev_rate) * fine_pct;
+
+                    /* some odd "beep" sfx in Sly 2/3 seems to go slightly higher after applying fine_pct, probably should resample */
+                    if (sample_rate > VGMSTREAM_MAX_SAMPLE_RATE)
+                        sample_rate = VGMSTREAM_MAX_SAMPLE_RATE;
+
+                    /* waves can set base sample rate (48/44/22/11/8khz) + pitch in semitones, then converted to center+fine
+                     * 48000 + pitch 0.0  > center=0xc4, fine=0x00
+                     * 48000 + pitch 0.10 > center=0xc4, fine=0x0c
+                     * 48000 + pitch 0.50 > center=0xc4, fine=0x3f
+                     * 48000 + pitch 0.99 > center=0xc4, fine=0x7d
+                     * 48000 + pitch 1.00 > center=0xc5, fine=0x00
+                     * 48000 + pitch 12.0 > center=0xd0, fine=0x00
+                     * 48000 + pitch 24.0 > center=0xdc, fine=0x00
+                     * 48000 + pitch 56.0 > center=0xfc, fine=0x00
+                     * 48000 + pitch 68.0 > center=0x08, fine=0x00 > ?
+                     * 48000 + pitch -12.0 > center=0xb8, fine=0x00
+                     * 48000 + pitch -0.10 > center=0xc3, fine=0x72
+                     * 48000 + pitch -0.001 > not allowed
+                     * 8000  + pitch 1.00  > center=0xa4, fine=0x7c
+                     * 8000  + pitch -12.00 > center=0x98, fine=0x7c
+                     * 8000  + pitch -48.00 > center=0x74, fine=0x7c
+                     */
                 }
                 break;
 
@@ -343,12 +402,26 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
                 }
                 interleave = stream_size / channels;
 
-                if ((flags & 0x80) && sblk_version <= 3) { /* PS Home Arcade has other flags? */
+                /* PS Home Arcade has other flags? supposedly:
+                 *  01 = reverb
+                 *  02 = vol scale 20
+                 *  04 = vol scale 50
+                 *  06 = vol scale 100
+                 *  08 = noise
+                 *  10 = no dry
+                 *  20 = no steal
+                 *  40 = loop VAG
+                 *  80 = PCM
+                 *  100 = has advanced packets
+                 *  200 = send LFE
+                 *  400 = send center
+                 */
+                if ((flags & 0x80) && sblk_version <= 3) { 
                     codec = PCM16; /* rare [Wipeout HD (PS3)]-v3 */
                 }
                 else {
                     loop_flag = ps_find_loop_offsets(sf, start_offset, stream_size, channels, interleave, &loop_start, &loop_end);
-                    loop_flag = (flags & 0x40); /* no loops values in sight so may only apply to PS-ADPCM flags */
+                    loop_flag = (flags & 0x40); /* only applies to PS-ADPCM flags */
 
                     codec = PSX;
                 }
