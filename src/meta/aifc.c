@@ -68,7 +68,7 @@ static int is_str(const char* str, int len, off_t offset, STREAMFILE* sf) {
 VGMSTREAM* init_vgmstream_aifc(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     off_t start_offset = 0, coef_offset = 0;
-    size_t file_size;
+    uint32_t aifx_size, file_size;
     coding_t coding_type = 0;
     int channels = 0, sample_count = 0, sample_size = 0, sample_rate = 0;
     int interleave = 0;
@@ -111,8 +111,7 @@ VGMSTREAM* init_vgmstream_aifc(STREAMFILE* sf) {
     }
 
     file_size = get_streamfile_size(sf);
-    if (read_u32be(0x04,sf) + 0x08 != file_size)
-        goto fail;
+    aifx_size = read_u32be(0x04,sf);
 
     /* AIFF originally allowed only PCM (non-compressed) audio, so newer AIFC was added,
      * though some AIFF with other codecs exist */
@@ -127,6 +126,15 @@ VGMSTREAM* init_vgmstream_aifc(STREAMFILE* sf) {
     else {
         goto fail;
     }
+
+    /* some games have wonky sizes, selectively fix to catch bad rips and new mutations */
+    if (file_size != aifx_size + 0x08) {
+        if (is_aiff && file_size == aifx_size + 0x08 + 0x08)
+            aifx_size += 0x08; /* [Psychic Force Puzzle Taisen CD2 (PS1)] */
+    }
+
+    if (aifx_size + 0x08 != file_size)
+        goto fail;
 
 
     /* read through chunks to verify format and find metadata */
