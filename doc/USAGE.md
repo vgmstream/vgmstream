@@ -533,7 +533,7 @@ It's a good practice (and simpler) to just let containers be and play them
 directly with vgmstream. Newer `.acb`/`.awb` have extra data needed to decrypt
 the `.hca`, so if you are already used to those containers you don't need to
 worry about extracted `.hca` not working later. Plus you can use TXTH's "subfile"
-function to make unsupported containers playable:
+function to easily make unsupported containers playable:
 ```
 # Simple container with an Ogg inside. Maybe values 0x00..0x10 could contain
 # loops or other useful info, that other users are able to figure out:
@@ -549,8 +549,13 @@ graphics or audio) you may safely extract the internal files without worry.
 
 Note that some formats are *audio banks* rather than *containers* (like `.fsb`),
 in that info for playing the audio is part of the bank header, and extracting
-internal files as-is isn't really possible.
+internal files as-is isn't really possible. Or, perhaps you could to transmogrify
+the original header into something else, but for data preservation purposes
+it's (plus can use TXTH to play for unsupported data).
 
+If your main motivation for extracting is to rename or have loose files, remember
+you can simply use TXTP to point to a subsong, and name that `.txtp` whatever you
+want, without having to touch original data or needing custom extractors.
 
 ## Logged errors and unplayable supported files
 Some formats should normally play, but somehow don't. In those cases plugins
