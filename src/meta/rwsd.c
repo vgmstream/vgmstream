@@ -128,7 +128,7 @@ VGMSTREAM* init_vgmstream_rwsd(STREAMFILE* sf) {
 
                 /* get WAVE offset, check */
                 rwav_data.wave_offset = read_32bit(0x18,sf);
-                if (!is_id32be(0x00, sf, "WAVE")) 
+                if (!is_id32be(rwav_data.wave_offset + 0x00, sf, "WAVE")) 
                     goto fail;
 
                 /* get WAVE size, check */
@@ -237,11 +237,6 @@ VGMSTREAM* init_vgmstream_rwsd(STREAMFILE* sf) {
                     vgmstream->ch[j].adpcm_coef[i] = read_16bit(codec_info_offset + i*0x2, sf);
                 }
             }
-
-            if (vgmstream->coding_type == coding_3DS_IMA) {
-                vgmstream->ch[j].adpcm_history1_16 = read_16bit(codec_info_offset + 0x00,sf);
-                vgmstream->ch[j].adpcm_step_index = read_16bit(codec_info_offset + 0x02,sf);
-            }
         }
     }
 
@@ -263,8 +258,7 @@ VGMSTREAM* init_vgmstream_rwsd(STREAMFILE* sf) {
 
             if (!vgmstream->ch[i].streamfile) goto fail;
 
-            if (!(rwar || rwav))
-            {
+            if (!(rwar || rwav)) {
                 vgmstream->ch[i].channel_start_offset=
                     vgmstream->ch[i].offset=
                     rwav_data.start_offset + i*stream_size;
