@@ -218,7 +218,7 @@ static int ffmpeg_read(void* opaque, uint8_t* buf, int read_size) {
     if (data->logical_offset + read_size > data->logical_size)
         read_size = data->logical_size - data->logical_offset;
     if (read_size == 0)
-        return bytes;
+        return AVERROR_EOF;
 
     /* handle reads on inserted header */
     if (data->header_size && data->logical_offset < data->header_size) {
@@ -232,7 +232,7 @@ static int ffmpeg_read(void* opaque, uint8_t* buf, int read_size) {
         data->logical_offset += max_to_copy;
 
         if (read_size == 0) {
-            return max_to_copy; /* offset still in header */
+            return max_to_copy ? max_to_copy : AVERROR_EOF; /* offset still in header */
         }
     }
 
