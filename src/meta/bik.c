@@ -12,14 +12,15 @@ VGMSTREAM* init_vgmstream_bik(STREAMFILE* sf) {
     size_t stream_size;
 
     /* checks */
-    /* .bik/bik2/bk2: standard
-     * .bika: fake extension for demuxed audio */
-    if (!check_extensions(sf,"bik,bik2,bk2,bika"))
+    /* bink1/2 header, followed by version-char (audio is the same) */
+    if ((read_u32be(0x00,sf) & 0xffffff00) != get_id32be("BIK\0") &&
+        (read_u32be(0x00,sf) & 0xffffff00) != get_id32be("KB2\0"))
         goto fail;
 
-    /* check bink1/2 header, followed by version-char (audio is the same) */
-    if ((read_32bitBE(0x00,sf) & 0xffffff00) != get_id32be("BIK\0") &&
-        (read_32bitBE(0x00,sf) & 0xffffff00) != get_id32be("KB2\0"))
+    /* .bik/bik2/bk2: standard
+     * .xmv: Reflections games [Driver: Parallel Lines (Wii), Emergency Heroes (Wii)]
+     * .bika: fake extension for demuxed audio */
+    if (!check_extensions(sf,"bik,bik2,bk2,xmv,bika"))
         goto fail;
 
     /* find target stream info and samples */

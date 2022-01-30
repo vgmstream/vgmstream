@@ -20,8 +20,10 @@ static void try_dual_file_stereo(VGMSTREAM* opened_vgmstream, STREAMFILE* sf, VG
 VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_adx,
     init_vgmstream_brstm,
+    init_vgmstream_brwav,
     init_vgmstream_bfwav,
     init_vgmstream_bcwav,
+    init_vgmstream_brwar,
     init_vgmstream_nds_strm,
     init_vgmstream_afc,
     init_vgmstream_ast,

@@ -1,57 +1,63 @@
 #include "meta.h"
 #include "../coding/coding.h"
 
-/* 04SW - found in Driver: Parallel Lines (Wii) */
-VGMSTREAM * init_vgmstream_xa_04sw(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
+/* 04SW - Reflections games [Driver: Parallel Lines (Wii), Emergency Heroes (Wii)] */
+VGMSTREAM* init_vgmstream_xa_04sw(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
     off_t start_offset;
-    int loop_flag, channel_count;
-    size_t file_size, data_size;
+    int loop_flag, channels, sample_rate;
+    int32_t num_samples;
+    uint32_t data_size;
 
 
     /* checks */
-    /* ".04sw" is just the ID, the real filename inside the file uses .XA */
-    if (!check_extensions(streamFile,"xa,04sw"))
-        goto fail;
-    if (read_32bitBE(0x00,streamFile) != 0x30345357) /* "04SW" */
+    if (!is_id32be(0x00,sf, "04SW"))
         goto fail;
 
-    /* after the ID goes a semi-standard DSP header */
-    if (read_32bitBE(0x10,streamFile) != 0) goto fail; /* should be non looping */
+    if (!check_extensions(sf,"xa"))
+        goto fail;
+
+    /* after the ID goes a modified DSP header x2 */
+    if (read_u32be(0x04 + 0x0c,sf) != 0) /* should be non looping */
+        goto fail;
     loop_flag = 0;
-    /* not in header it seems so just dual header check */
-    channel_count = (read_32bitBE(0x04,streamFile) == read_32bitBE(0x64,streamFile)) ? 2 : 1;
+    /* not in header it seems, so just dual header check */
+    
+    num_samples = read_s32be(0x04 + 0x00,sf);
+    data_size = read_u32be(0x04 + 0x04,sf);
+    sample_rate = read_u32be(0x0c,sf);
 
-    start_offset = read_32bitBE(0x04 + 0x60*channel_count,streamFile);
+    channels = (read_u32be(0x04 + 0x00,sf) == read_u32be(0x04 + 0x60,sf)) ? 2 : 1; /* some voice .xa */
 
-    file_size = get_streamfile_size(streamFile);
-    data_size = read_32bitBE(0x04 + 0x60*channel_count + 0x04,streamFile);
-    if (data_size+start_offset != file_size) goto fail;
+    /* After DSP header goes a base header with mostly unknown values (several repeats) and the filename.
+     * Emergency Heroes has extra 0x10 at 0x10. */
+    start_offset = read_u32be(0x04 + 0x60 * 2 + 0x00, sf);
+    /* 0x04: data size (includes padding after DSP data in Driver, doesn't in Emergency Heroes */
+    /* 0x1c/2c: channels LE? */
+    /* 0x74/84: utf-16 path+filename */
 
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->sample_rate = read_32bitBE(0x0c,streamFile);
-    vgmstream->num_samples = read_32bitBE(0x04,streamFile);
+    vgmstream->sample_rate = sample_rate;
+    vgmstream->num_samples = num_samples;
 
     vgmstream->coding_type = coding_NGC_DSP;
-    vgmstream->layout_type = channel_count == 1 ? layout_none : layout_interleave;
+    vgmstream->layout_type = channels == 1 ? layout_none : layout_interleave;
     vgmstream->interleave_block_size = 0x8000;
-    vgmstream->interleave_last_block_size = (read_32bitBE(0x08,streamFile) / 2 % vgmstream->interleave_block_size + 7) / 8 * 8;
+    vgmstream->interleave_last_block_size = (data_size / 2 % vgmstream->interleave_block_size + 7) / 8 * 8;
 
-    dsp_read_coefs_be(vgmstream,streamFile,0x20, 0x60);
-    /* the initial history offset seems different thatn standard DSP and possibly always zero */
+    dsp_read_coefs_be(vgmstream, sf, 0x04 + 0x1c, 0x60);
+    /* initial history offset seems different than standard DSP and possibly fixed/invalid */
 
     vgmstream->meta_type = meta_XA_04SW;
-    /* the rest of the header has unknown values (several repeats) and the filename */
 
 
-    if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
+    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
         goto fail;
     return vgmstream;
-
 fail:
     close_vgmstream(vgmstream);
     return NULL;

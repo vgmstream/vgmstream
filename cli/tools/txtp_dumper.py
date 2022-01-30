@@ -107,8 +107,17 @@ class App(object):
                                 subdir = subdir + '/'
                             text = subdir + text
                     else:
+                        # should be a mini-txtp, but if name isn't "file.ext.txtp" and just "file.txtp",
+                        # probably means proper txtp exists and should't be created (when generating from !tags.m3u)
                         name = line
                         text = ''
+
+                        basename = os.path.basename(name)
+                        subname, _ = os.path.splitext(basename)
+                        _, subext = os.path.splitext(subname)
+                        if not subext:
+                            print("ignored pre-txtp: %s" % (basename))
+                            continue
 
                     outpath = os.path.join(path, name)
 

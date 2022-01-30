@@ -1072,12 +1072,13 @@ static int unpack_frame(int bit_rate, const uint8_t* data, int frame_size, /*int
 
     /* test for errors (in refdec but not Namco's, useful to detect decryption) */
     if (test_errors) {
+        int max_pad_bytes = 0x7; /* usually 0x04 and rarely ~0x07 */
         int bits_left = 8 * expected_frame_size - bitpos;
         int i, endpos, test_bits;
 
         if (bits_left > 0) {
 
-            /* frame must be padded with 1s */
+            /* frame must be padded with 1s after regular data */
             endpos = bitpos;
             for (i = 0; i < bits_left; i++) {
                 int bit = (data_u32[endpos >> 5] >> (31 - (endpos & 0x1F))) & 1;
@@ -1087,19 +1088,21 @@ static int unpack_frame(int bit_rate, const uint8_t* data, int frame_size, /*int
                     return -1;
             }
 
-            /* extra: test we aren't in the middle of padding (happens with bad keys) */
+            /* extra: test we aren't in the middle of padding (happens with bad keys)
+             * After reading the whole frame, last bit position should land near last useful
+             * data, a few bytes into padding, so check there aren't too many padding bits. */
             endpos = bitpos;
-            test_bits = 8 * 0x04;
+            test_bits = 8 * max_pad_bytes;
             if (test_bits > bitpos)
                 test_bits = bitpos;
             for (i = 0; i < test_bits; i++) {
                 int bit = (data_u32[endpos >> 5] >> (31 - (endpos & 0x1F))) & 1;
-                endpos--;
+                endpos--; /* from last position towards valid data */
 
                 if (bit != 1)
                     break;
             }
-            /* so many 1s isn't very normal */
+
             if (i == test_bits)
                 return -8;
 
@@ -1186,10 +1189,9 @@ int g7221_decode_frame(g7221_handle* handle, uint8_t* data, int16_t* out_samples
     /* Namco also sets number of codes/samples done from unpack_frame/rmlt (ptr arg),
      * but they seem unused */
 
-    return 1;
-fail:
-    //;printf("S14: fail %i\n", res);
     return 0;
+fail:
+    return res;
 }
 
 #if 0
@@ -1271,7 +1273,7 @@ int g7221_set_key(g7221_handle* handle, const uint8_t* key) {
     /* reset new key */
     s14aes_set_key(handle->aes, temp_key);
 
-    return 1;
-fail:
     return 0;
+fail:
+    return -1;
 }

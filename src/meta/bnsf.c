@@ -234,7 +234,7 @@ static void bruteforce_bnsf_key(STREAMFILE* sf, off_t start, g7221_codec_data* d
         }
     }
 
-//done:
+done:
     VGM_ASSERT(best_score > 0, "BNSF: best key=%.24s (score=%i)\n", best_key, best_score);
     VGM_ASSERT(best_score < 0, "BNSF: key not found\n");
 

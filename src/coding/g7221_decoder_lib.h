@@ -12,7 +12,7 @@ typedef struct g7221_handle g7221_handle;
 /* return a handle for decoding on successful init, NULL on failure */
 g7221_handle* g7221_init(int bytes_per_frame);
 
-/* decode a frame, at code_words, into 16-bit PCM in sample_buffer */
+/* decode a frame, at code_words, into 16-bit PCM in sample_buffer. returns <0 on error */
 int g7221_decode_frame(g7221_handle* handle, uint8_t* data, int16_t* out_samples);
 
 #if 0
@@ -26,7 +26,7 @@ void g7221_reset(g7221_handle* handle);
 /* free resources */
 void g7221_free(g7221_handle* handle);
 
-/* set new key (ignores key on failure) */
+/* set new key (ignores key on failure). returns <0 on error */
 int g7221_set_key(g7221_handle* handle, const uint8_t* key);
 
 #endif

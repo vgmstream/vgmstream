@@ -1393,10 +1393,8 @@ VGMSTREAM* init_vgmstream_dsp_wiiadpcm(STREAMFILE* sf) {
 
     dspm.header_spacing = dspm.interleave;
     dspm.start_offset = dspm.header_offset + 0x60;
-    //
 
-VGM_LOG("%lx, %x\n", dspm.header_offset, dspm.interleave);
-VGM_LOG("%x, %x\n", dspm.interleave_first_skip, dspm.interleave_first);
+
     dspm.meta_type = meta_DSP_WIIADPCM;
     return init_vgmstream_dsp_common(sf, &dspm);
 fail:

@@ -410,10 +410,21 @@ VGMSTREAM* init_vgmstream_wwise_bnk(STREAMFILE* sf, int* p_prefetch) {
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
 
+            //if (ww.prefetch) {
+            //    ww.data_size = ww.file_size - ww.data_offset;
+            //}
+
             /* seek table seems BE dpds */
             vgmstream->num_samples = xwma_dpds_get_samples(sf, ww.seek_offset, ww.seek_size, ww.channels, ww.big_endian);
             if (!vgmstream->num_samples)
                 vgmstream->num_samples = xwma_get_samples(sf, ww.data_offset, ww.data_size, ww.format, ww.channels, ww.sample_rate, ww.block_size);
+
+            /* XWMA is VBR so this is very approximate percent, meh */
+            if (ww.prefetch) { /* Guardians of Middle Earth (X360) */
+                vgmstream->num_samples = (int32_t)(vgmstream->num_samples *
+                        (double)(ww.file_size - start_offset) / (double)ww.data_size);
+            }
+
             break;
         }
 
@@ -921,7 +932,7 @@ static int parse_wwise(STREAMFILE* sf, wwise_header* ww) {
         }
 
         if (ww->codec == PCM || ww->codec == IMA || ww->codec == VORBIS || ww->codec == DSP || ww->codec == XMA2 ||
-            ww->codec == OPUSNX || ww->codec == OPUS || ww->codec == OPUSWW || ww->codec == PTADPCM) {
+            ww->codec == OPUSNX || ww->codec == OPUS || ww->codec == OPUSWW || ww->codec == PTADPCM || ww->codec == XWMA) {
             ww->prefetch = 1; /* only seen those, probably all exist (XWMA, AAC, HEVAG, ATRAC9?) */
         } else {
             vgm_logi("WWISE: wrong expected size, maybe prefetch (report)\n");
