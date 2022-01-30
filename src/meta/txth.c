@@ -1205,12 +1205,9 @@ static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char* key, cha
     else if (is_string(key,"coef_offset")) {
         if (!parse_num(txth->sf_head,txth,val, &txth->coef_offset)) goto fail;
         /* special adjustments */
-        VGM_LOG("coef norm=%x\n",txth->coef_offset );
         txth->coef_offset += txth->base_offset;
-        VGM_LOG("coef+base=%x\n",txth->coef_offset );
         if (txth->subsong_spacing && !txth->is_offset_absolute)
             txth->coef_offset += txth->subsong_spacing * (txth->target_subsong - 1);
-        VGM_LOG("coef+spac=%x\n",txth->coef_offset );
     }
     else if (is_string(key,"coef_spacing")) {
         if (!parse_num(txth->sf_head,txth,val, &txth->coef_spacing)) goto fail;
