@@ -116,7 +116,7 @@ int test_key_g7221(g7221_codec_data* data, off_t start, STREAMFILE* sf) {
     /* assumes key was set before this call */
 
     while (test_frames < S14_KEY_MAX_TEST_FRAMES && current_frame < max_frames) {
-        int score, ok;
+        int score, res;
         size_t bytes;
         uint8_t buf[G7221_MAX_FRAME_SIZE];
 
@@ -127,8 +127,8 @@ int test_key_g7221(g7221_codec_data* data, off_t start, STREAMFILE* sf) {
             break;
         }
 
-        ok = g7221_decode_frame(data->ch[cur_ch].handle, buf, data->ch[cur_ch].buffer);
-        if (!ok) {
+        res = g7221_decode_frame(data->ch[cur_ch].handle, buf, data->ch[cur_ch].buffer);
+        if (res < 0) {
             total_score = -1;
             break;
         }
