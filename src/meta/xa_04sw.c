@@ -14,9 +14,7 @@ VGMSTREAM* init_vgmstream_xa_04sw(STREAMFILE* sf) {
     if (!is_id32be(0x00,sf, "04SW"))
         goto fail;
 
-    /* .xa: standard
-     * .04sw: header ID / renamed */
-    if (!check_extensions(sf,"xa,04sw"))
+    if (!check_extensions(sf,"xa"))
         goto fail;
 
     /* after the ID goes a modified DSP header x2 */
