@@ -1359,6 +1359,15 @@ static STREAMFILE* open_atomic_bao(ubi_bao_file file_type, uint32_t file_id, int
                         if (sf_bao) return sf_bao;
                     }
                 }
+				
+				/* If all else fails, try %08x.bao/%08x.sbao nomenclature. */
+                snprintf(buf,buf_size, "%08x.bao", file_id);
+                sf_bao = open_streamfile_by_filename(sf, buf);
+                if (sf_bao) return sf_bao;
+                
+				snprintf(buf,buf_size, "%08x.sbao", file_id);
+                sf_bao = open_streamfile_by_filename(sf, buf);
+                if (sf_bao) return sf_bao;
             }
             else {
                 snprintf(buf,buf_size, "BAO_0x%08x", file_id);
@@ -1366,6 +1375,11 @@ static STREAMFILE* open_atomic_bao(ubi_bao_file file_type, uint32_t file_id, int
                 if (sf_bao) return sf_bao;
 
                 strcat(buf,".bao");
+                sf_bao = open_streamfile_by_filename(sf, buf);
+                if (sf_bao) return sf_bao;
+				
+				/* Ditto. */
+                snprintf(buf,buf_size, "%08x.bao", file_id);
                 sf_bao = open_streamfile_by_filename(sf, buf);
                 if (sf_bao) return sf_bao;
             }
