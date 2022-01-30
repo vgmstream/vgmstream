@@ -3,6 +3,8 @@
 #include "../coding/coding.h"
 #include "ubi_bao_streamfile.h"
 
+#define BAO_MIN_VERSION 0x1B
+#define BAO_MAX_VERSION 0x2A
 
 #define BAO_MAX_LAYER_COUNT 16  /* arbitrary max */
 #define BAO_MAX_CHAIN_COUNT 128 /* POP:TFS goes up to ~100 */
@@ -145,6 +147,11 @@ VGMSTREAM* init_vgmstream_ubi_bao_pk(STREAMFILE* sf) {
     ubi_bao_header bao = { 0 };
 
     /* checks */
+    if (read_u8(0x00, sf) != 0x01)
+        goto fail;
+    if (read_u8(0x01, sf) < BAO_MIN_VERSION || read_u8(0x01, sf) > BAO_MAX_VERSION)
+        goto fail;
+
     if (!check_extensions(sf, "pk,lpk,cpk"))
         goto fail;
 
@@ -167,6 +174,11 @@ VGMSTREAM* init_vgmstream_ubi_bao_atomic(STREAMFILE* sf) {
     STREAMFILE* streamData = NULL;
 
     /* checks */
+    if (read_u8(0x00, sf) != 0x01 && read_u8(0x00, sf) != 0x02) /* 0x01=AC1, 0x02=POP2008 */
+        goto fail;
+    if (read_u8(0x01, sf) < BAO_MIN_VERSION || read_u8(0x01, sf) > BAO_MAX_VERSION)
+        goto fail;
+
     if (!check_extensions(sf, "bao,"))
         goto fail;
 
@@ -174,13 +186,9 @@ VGMSTREAM* init_vgmstream_ubi_bao_atomic(STREAMFILE* sf) {
      * since BAOs reference each other by id and are named by it (though the internal BAO id may
      * be other) we can simulate it. Extension is .bao/sbao or extensionaless in some games. */
 
-    /* format: 0x01=AC1, 0x02=POP2008 */
-    if (read_8bit(0x00, sf) != 0x01 && read_8bit(0x00, sf) != 0x02)
-        goto fail;
-
     bao.is_atomic = 1;
 
-    bao.version = read_32bitBE(0x00, sf) & 0x00FFFFFF;
+    bao.version = read_u32be(0x00, sf) & 0x00FFFFFF;
     if (!config_bao_version(&bao, sf))
         goto fail;
 
@@ -644,7 +652,7 @@ static VGMSTREAM* init_vgmstream_ubi_bao_header(ubi_bao_header* bao, STREAMFILE*
         (uint32_t)bao->header_offset, bao->header_id, bao->stream_id, bao->prefetch_id);
     ;VGM_LOG("UBI BAO: stream=%x, size=%x, res=%s\n",
             (uint32_t)bao->stream_offset, bao->stream_size, (bao->is_external ? bao->resource_name : "internal"));
-    ;VGM_LOG("UBI BAO: type=%i, header=%x, extra=%x, prefetch=%x, size=%x\n",
+    ;VGM_LOG("UBI BAO: type=%i, header=%x, extra=%x, pre.of=%x, pre.sz=%x\n",
             bao->header_type, bao->header_size, bao->extra_size, (uint32_t)bao->prefetch_offset, bao->prefetch_size);
 
 
@@ -703,8 +711,8 @@ static int parse_pk(ubi_bao_header* bao, STREAMFILE* sf) {
 
     if (target_subsong <= 0) target_subsong = 1;
 
-    bao->version = read_32bitBE(0x00, sf) & 0x00FFFFFF;
-    index_size = read_32bitLE(0x04, sf); /* can be 0, not including  */
+    bao->version = read_u32be(0x00, sf) & 0x00FFFFFF;
+    index_size = read_u32le(0x04, sf); /* can be 0, not including  */
     /* 0x08: resource table offset, always found even if not used */
     /* 0x0c: always 0? */
     /* 0x10: unknown, null if no entries */
@@ -1125,11 +1133,12 @@ static int parse_offsets(ubi_bao_header* bao, STREAMFILE* sf) {
                     read_string(bao->resource_name,255, resources_offset + 0x04+0x04 + name_offset, sf);
 
                     if (bao->stream_size != resource_size - bao->stream_skip + bao->prefetch_size) {
-                        VGM_LOG("UBI BAO: stream vs resource size mismatch at %lx (%x vs %x, %x, %x)\n", offset+0x10*i, bao->stream_size, resource_size, bao->stream_skip, bao->prefetch_size);
+                        VGM_LOG("UBI BAO: stream vs resource size mismatch at %lx (res %x vs str=%x, skip=%x, pre=%x)\n", offset+0x10*i, resource_size, bao->stream_size, bao->stream_skip, bao->prefetch_size);
 
                         /* rarely resource has more data than stream (sometimes a few bytes, others +0x100000)
-                         * sometimes short song versions, but not accessed? no samples/sizes/cues/etc in header seem to refer to that [Just Dance (Wii)] */
-                        if (!bao->cfg.audio_ignore_resource_size || bao->prefetch_size)
+                         * sometimes short song versions, but not accessed? no samples/sizes/cues/etc in header seem to refer to that [Just Dance (Wii)]
+                         * Michael Jackson the experiende also uses prefetch size + bad size (ignored) */
+                        if (!bao->cfg.audio_ignore_resource_size && bao->prefetch_size)
                             goto fail;
                     }
                     break;
@@ -1853,6 +1862,22 @@ static int config_bao_version(ubi_bao_header* bao, STREAMFILE* sf) {
                 bao->cfg.codec_map[0x06] = RAW_AT3_105;
 
             bao->cfg.file_type = UBI_FORGE_b;
+            return 1;
+
+        case 0x00260000: /* <michael Jackson: The Experience (X360)-package */
+            config_bao_entry(bao, 0xB8, 0x28);
+
+            config_bao_audio_b(bao, 0x08, 0x28, 0x30, 0x3c, 1, 1); //loop?
+            config_bao_audio_m(bao, 0x4c, 0x54, 0x5c, 0x64, 0x6c, 0x7c);
+
+            config_bao_layer_m(bao, 0x00, 0x2c, 0x34,  0x4c, 0x54, 0x58,  0x00, 0x00, 1);
+            config_bao_layer_e(bao, 0x34, 0x00, 0x04, 0x08, 0x1c);
+
+            bao->cfg.codec_map[0x03] = FMT_OGG;
+            bao->cfg.codec_map[0x04] = RAW_XMA2_NEW;
+
+            bao->cfg.audio_ignore_resource_size = 1; /* leave_me_alone.pk */
+
             return 1;
 
         case 0x00270102: /* Drawsome (Wii)-package */
