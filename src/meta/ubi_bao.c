@@ -1360,11 +1360,16 @@ static STREAMFILE* open_atomic_bao(ubi_bao_file file_type, uint32_t file_id, int
                     }
                 }
                 
-                /* If all else fails, try %08x.bao/%08x.sbao nomenclature. */
+                /* If all else fails, try %08x.bao/%08x.sbao nomenclature. 
+                 * (id).bao is for mimicking engine loading files by internal ID,
+                 * original names (like Common_BAO_0x5NNNNNNN, French_BAO_0x5NNNNNNN and the like) are OK too. */
+                
+                /* %08x.bao nomenclature present in Assassin's Creed (Windows Vista) exe. */
                 snprintf(buf,buf_size, "%08x.bao", file_id);
                 sf_bao = open_streamfile_by_filename(sf, buf);
                 if (sf_bao) return sf_bao;
                 
+                /* %08x.sbao nomenclature (in addition to %08x.bao) present in Shaun White Snowboarding (Windows Vista) exe. */
                 snprintf(buf,buf_size, "%08x.sbao", file_id);
                 sf_bao = open_streamfile_by_filename(sf, buf);
                 if (sf_bao) return sf_bao;
