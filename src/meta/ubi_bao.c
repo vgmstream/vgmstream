@@ -62,7 +62,7 @@ typedef struct {
     size_t layer_entry_size;
     int layer_external_and;
     int layer_ignore_error;
-    int switch_to_sbao_if_bao_is_stream;
+    int switch_to_sbao_if_bao_is_streamed;
 
     off_t silence_duration_float;
 
@@ -1364,7 +1364,7 @@ static STREAMFILE* open_atomic_bao(ubi_bao_file file_type, uint32_t file_id, int
                 /* If all else fails, try %08x.bao/%08x.sbao nomenclature. 
                  * (id).bao is for mimicking engine loading files by internal ID,
                  * original names (like Common_BAO_0x5NNNNNNN, French_BAO_0x5NNNNNNN and the like) are OK too. */
-                if (!bao->cfg.switch_to_sbao_if_bao_is_stream) {
+                if (!bao->cfg.switch_to_sbao_if_bao_is_streamed) {
                     /* %08x.bao nomenclature present in Assassin's Creed (Windows Vista) exe. */
                     snprintf(buf,buf_size, "%08x.bao", file_id);
                     sf_bao = open_streamfile_by_filename(sf, buf);
@@ -1815,7 +1815,7 @@ static int config_bao_version(ubi_bao_header* bao, STREAMFILE* sf) {
             if (version == 0x0022000D) /* We Dare (Wii) */
                 config_bao_audio_c(bao, 0x68, 0x78);
             if (version == 0x001F0010) /* Shaun White Snowboarding (Vista/PS3/X360), Prince of Persia 2008 (Vista/PS3/X360) */
-                bao->cfg.switch_to_sbao_if_bao_is_stream = 1;
+                bao->cfg.switch_to_sbao_if_bao_is_streamed = 1;
 
             return 1;
 
