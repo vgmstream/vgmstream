@@ -530,7 +530,7 @@ static VGMSTREAM* init_vgmstream_ubi_bao_sequence(ubi_bao_header* bao, STREAMFIL
 
         if (bao->is_atomic) {
             /* open memory audio BAO */
-            streamChain = open_atomic_bao(bao->cfg.file_type, entry_id, 0, bao->cfg.switch_to_sbao_if_bao_is_streamed, sf);
+            streamChain = open_atomic_bao(bao->cfg.file_type, entry_id, 0, 0, sf);
             if (!streamChain) {
                 VGM_LOG("UBI BAO: chain BAO %08x not found\n", entry_id);
                 goto fail;
@@ -1462,7 +1462,7 @@ static STREAMFILE* setup_bao_streamfile(ubi_bao_header* bao, STREAMFILE* sf) {
     if (bao->is_atomic) {
         /* file BAOs re-open new STREAMFILEs so no need to wrap them */
         if (bao->is_prefetched) {
-            new_sf = open_atomic_bao(bao->cfg.file_type, bao->prefetch_id, 0, bao->cfg.switch_to_sbao_if_bao_is_streamed, sf);
+            new_sf = open_atomic_bao(bao->cfg.file_type, bao->prefetch_id, 0, 0, sf);
             if (!new_sf) goto fail;
             stream_segments[0] = new_sf;
 
