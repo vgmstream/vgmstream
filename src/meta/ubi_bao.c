@@ -1340,7 +1340,6 @@ static STREAMFILE* open_atomic_bao(ubi_bao_file file_type, uint32_t file_id, int
             /* Try default extensionless (as extracted from .forge bigfile) and with common extension.
              * .forge data can be uncompressed (stream BAOs) and compressed (subfiles per area with memory BAOs). */
             if (is_stream) {
-				/* (todo) optimize all of this (in bnnm's words, "open_streamfile attempts add up extra time") */
                 snprintf(buf,buf_size, "Common_BAO_0x%08x", file_id);
                 sf_bao = open_streamfile_by_filename(sf, buf);
                 if (sf_bao) return sf_bao;
