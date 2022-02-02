@@ -62,7 +62,6 @@ typedef struct {
     size_t layer_entry_size;
     int layer_external_and;
     int layer_ignore_error;
-    int switch_to_sbao_if_bao_is_streamed;
 
     off_t silence_duration_float;
 
@@ -135,7 +134,7 @@ static int parse_bao(ubi_bao_header* bao, STREAMFILE* sf, off_t offset, int targ
 static int parse_pk(ubi_bao_header* bao, STREAMFILE* sf);
 static VGMSTREAM* init_vgmstream_ubi_bao_header(ubi_bao_header* bao, STREAMFILE* sf);
 static STREAMFILE* setup_bao_streamfile(ubi_bao_header* bao, STREAMFILE* sf);
-static STREAMFILE* open_atomic_bao(ubi_bao_file file_type, uint32_t file_id, int is_stream, int stream_is_sbao, STREAMFILE* sf);
+static STREAMFILE* open_atomic_bao(ubi_bao_file file_type, uint32_t file_id, int is_stream, STREAMFILE* sf);
 static int find_package_bao(uint32_t target_id, STREAMFILE* sf, off_t* p_offset, size_t* p_size);
 
 static int config_bao_version(ubi_bao_header* bao, STREAMFILE* sf);
@@ -530,7 +529,7 @@ static VGMSTREAM* init_vgmstream_ubi_bao_sequence(ubi_bao_header* bao, STREAMFIL
 
         if (bao->is_atomic) {
             /* open memory audio BAO */
-            streamChain = open_atomic_bao(bao->cfg.file_type, entry_id, 0, 0, sf);
+            streamChain = open_atomic_bao(bao->cfg.file_type, entry_id, 0, sf);
             if (!streamChain) {
                 VGM_LOG("UBI BAO: chain BAO %08x not found\n", entry_id);
                 goto fail;
@@ -1328,7 +1327,7 @@ static const char* language_bao_formats[] = {
 };
 
 /* opens a file BAO's companion BAO (memory or stream) */
-static STREAMFILE* open_atomic_bao(ubi_bao_file file_type, uint32_t file_id, int is_stream, int stream_is_sbao, STREAMFILE* sf) {
+static STREAMFILE* open_atomic_bao(ubi_bao_file file_type, uint32_t file_id, int is_stream, STREAMFILE* sf) {
     STREAMFILE* sf_bao = NULL;
     char buf[255];
     size_t buf_size = 255;
@@ -1365,7 +1364,7 @@ static STREAMFILE* open_atomic_bao(ubi_bao_file file_type, uint32_t file_id, int
                 /* If all else fails, try %08x.bao/%08x.sbao nomenclature. 
                  * (id).bao is for mimicking engine loading files by internal ID,
                  * original names (like Common_BAO_0x5NNNNNNN, French_BAO_0x5NNNNNNN and the like) are OK too. */
-                if (!stream_is_sbao) {
+                if (file_type != UBI_FORGE_b) {
                     /* %08x.bao nomenclature present in Assassin's Creed (Windows Vista) exe. */
                     snprintf(buf,buf_size, "%08x.bao", file_id);
                     sf_bao = open_streamfile_by_filename(sf, buf);
@@ -1462,7 +1461,7 @@ static STREAMFILE* setup_bao_streamfile(ubi_bao_header* bao, STREAMFILE* sf) {
     if (bao->is_atomic) {
         /* file BAOs re-open new STREAMFILEs so no need to wrap them */
         if (bao->is_prefetched) {
-            new_sf = open_atomic_bao(bao->cfg.file_type, bao->prefetch_id, 0, 0, sf);
+            new_sf = open_atomic_bao(bao->cfg.file_type, bao->prefetch_id, 0, sf);
             if (!new_sf) goto fail;
             stream_segments[0] = new_sf;
 
@@ -1471,7 +1470,7 @@ static STREAMFILE* setup_bao_streamfile(ubi_bao_header* bao, STREAMFILE* sf) {
             stream_segments[0] = new_sf;
 
             if (bao->stream_size - bao->prefetch_size != 0) {
-                new_sf = open_atomic_bao(bao->cfg.file_type, bao->stream_id, 1, bao->cfg.switch_to_sbao_if_bao_is_streamed, sf);
+                new_sf = open_atomic_bao(bao->cfg.file_type, bao->stream_id, 1, sf);
                 if (!new_sf) goto fail;
                 stream_segments[1] = new_sf;
 
@@ -1492,7 +1491,7 @@ static STREAMFILE* setup_bao_streamfile(ubi_bao_header* bao, STREAMFILE* sf) {
             }
         }
         else {
-            new_sf = open_atomic_bao(bao->cfg.file_type, bao->stream_id, bao->is_external, bao->cfg.switch_to_sbao_if_bao_is_streamed, sf);
+            new_sf = open_atomic_bao(bao->cfg.file_type, bao->stream_id, bao->is_external, sf);
             if (!new_sf) goto fail;
             temp_sf = new_sf;
 
@@ -1812,8 +1811,6 @@ static int config_bao_version(ubi_bao_header* bao, STREAMFILE* sf) {
 
             bao->cfg.file_type = UBI_FORGE_b;
 
-            if (version == 0x001F0010) /* Shaun White Snowboarding (Vista/PS3/X360), Prince of Persia 2008 (Vista/PS3/X360) */
-                bao->cfg.switch_to_sbao_if_bao_is_streamed = 1;
             if (version == 0x0022000D) /* Just Dance (Wii) oddity */
                 bao->cfg.audio_ignore_resource_size = 1;
             if (version == 0x0022000D) /* We Dare (Wii) */
