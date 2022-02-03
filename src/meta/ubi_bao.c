@@ -168,7 +168,7 @@ fail:
     return NULL;
 }
 
-/* .BAO - single BAO files from Ubisoft's sound engine ("DARE") games in 2008+ */
+/* .BAO - single BAO files from Ubisoft's sound engine ("DARE") games in 2007+ */
 VGMSTREAM* init_vgmstream_ubi_bao_atomic(STREAMFILE* sf) {
     ubi_bao_header bao = { 0 };
     STREAMFILE* streamData = NULL;
@@ -1137,7 +1137,7 @@ static int parse_offsets(ubi_bao_header* bao, STREAMFILE* sf) {
 
                         /* rarely resource has more data than stream (sometimes a few bytes, others +0x100000)
                          * sometimes short song versions, but not accessed? no samples/sizes/cues/etc in header seem to refer to that [Just Dance (Wii)]
-                         * Michael Jackson the experiende also uses prefetch size + bad size (ignored) */
+                         * Michael Jackson The Experience also uses prefetch size + bad size (ignored) */
                         if (!bao->cfg.audio_ignore_resource_size && bao->prefetch_size)
                             goto fail;
                     }
@@ -1359,6 +1359,22 @@ static STREAMFILE* open_atomic_bao(ubi_bao_file file_type, uint32_t file_id, int
                         if (sf_bao) return sf_bao;
                     }
                 }
+                
+                /* If all else fails, try %08x.bao/%08x.sbao nomenclature. 
+                 * (id).bao is for mimicking engine loading files by internal ID,
+                 * original names (like Common_BAO_0x5NNNNNNN, French_BAO_0x5NNNNNNN and the like) are OK too. */
+                if (file_type != UBI_FORGE_b) {
+                    /* %08x.bao nomenclature present in Assassin's Creed (Windows Vista) exe. */
+                    snprintf(buf,buf_size, "%08x.bao", file_id);
+                    sf_bao = open_streamfile_by_filename(sf, buf);
+                    if (sf_bao) return sf_bao;
+				}
+                else {
+                    /* %08x.sbao nomenclature (in addition to %08x.bao) present in Shaun White Snowboarding (Windows Vista) exe. */
+                    snprintf(buf,buf_size, "%08x.sbao", file_id);
+                    sf_bao = open_streamfile_by_filename(sf, buf);
+                    if (sf_bao) return sf_bao;
+                }
             }
             else {
                 snprintf(buf,buf_size, "BAO_0x%08x", file_id);
@@ -1366,6 +1382,11 @@ static STREAMFILE* open_atomic_bao(ubi_bao_file file_type, uint32_t file_id, int
                 if (sf_bao) return sf_bao;
 
                 strcat(buf,".bao");
+                sf_bao = open_streamfile_by_filename(sf, buf);
+                if (sf_bao) return sf_bao;
+                
+                /* Ditto. */
+                snprintf(buf,buf_size, "%08x.bao", file_id);
                 sf_bao = open_streamfile_by_filename(sf, buf);
                 if (sf_bao) return sf_bao;
             }
@@ -1862,9 +1883,10 @@ static int config_bao_version(ubi_bao_header* bao, STREAMFILE* sf) {
                 bao->cfg.codec_map[0x06] = RAW_AT3_105;
 
             bao->cfg.file_type = UBI_FORGE_b;
+            
             return 1;
 
-        case 0x00260000: /* <michael Jackson: The Experience (X360)-package */
+        case 0x00260000: /* Michael Jackson: The Experience (X360)-package */
             config_bao_entry(bao, 0xB8, 0x28);
 
             config_bao_audio_b(bao, 0x08, 0x28, 0x30, 0x3c, 1, 1); //loop?
