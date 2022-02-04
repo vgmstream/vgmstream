@@ -31,6 +31,7 @@ function(FetchDependency name)
 	if(NOT ARGS_FETCH_PRIORITY)
 		set(ARGS_FETCH_PRIORITY git svn file)
 	endif()
+	list(APPEND ARGS_FETCH_PRIORITY none)
 	
 	set(${name}_BIN ${VGM_BINARY_DIR}/dependencies/${ARGS_DIR})
 	set(${name}_BIN ${${name}_BIN} PARENT_SCOPE)
@@ -92,6 +93,11 @@ function(FetchDependency name)
 						${ARGS_FILE_DOWNLOAD}
 						${${name}_PATH}/${FILE}
 					)
+					file(SIZE ${${name}_PATH}/${FILE} FILE_SIZE)
+					if(FILE_SIZE EQUAL 0)
+						message("The download of ${ARGS_DIR} (file) failed")
+						continue()
+					endif()
 					file(ARCHIVE_EXTRACT
 						INPUT ${${name}_PATH}/${FILE}
 						DESTINATION ${${name}_PATH}
@@ -101,6 +107,9 @@ function(FetchDependency name)
 					set(${name}_PATH ${${name}_PATH}/${ARGS_FILE_SUBDIR} PARENT_SCOPE)
 				endif()
 				break()
+			elseif(CURRENT_FETCH STREQUAL "none")
+				set(${name}_PATH "" PARENT_SCOPE)
+				set(USE_${name} OFF PARENT_SCOPE)
 			endif()
 		endforeach()
 	else()
