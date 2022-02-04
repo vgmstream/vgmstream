@@ -234,7 +234,7 @@ static int read_fmt(int big_endian, STREAMFILE* sf, off_t offset, riff_fmt_chunk
       //case 0x6750: /* Ogg Vorbis (mode 2) */
       //case 0x6751: /* Ogg Vorbis (mode 3) */
         case 0x676f: /* Ogg Vorbis (mode 1+) [Only One 2 (PC)] */
-      //case 0x6770: /* Ogg Vorbis (mode 2+) */
+        case 0x6770: /* Ogg Vorbis (mode 2+) [Only One (PC)]*/
         case 0x6771: /* Ogg Vorbis (mode 3+) [Liar-soft games] */
             /* vorbis.acm codecs (official-ish, "+" = CBR-style modes?) */
             fmt->coding_type = coding_OGG_VORBIS;
