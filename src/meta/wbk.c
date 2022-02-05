@@ -170,7 +170,7 @@ VGMSTREAM* init_vgmstream_wbk_nslb(STREAMFILE* sf) {
         goto fail;
 
     /* always little endian, even on PS3/X360 */
-    if (read_u32le(0x04, sf) != 0x01)
+    if (read_u16le(0x04, sf) != 0x01)
         goto fail;
 
     total_subsongs = read_u32le(0x10, sf);
