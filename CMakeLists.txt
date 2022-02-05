@@ -1,5 +1,16 @@
 cmake_minimum_required(VERSION 3.6)
-project(vgmstream C)
+project(vgmstream NONE)
+
+if(CMAKE_SYSTEM_NAME MATCHES Darwin)
+    if ( (NOT DEFINED CMAKE_C_COMPILER) AND (NOT DEFINED ENV{CC}) AND (EXISTS /usr/bin/cc))
+        set(CMAKE_C_COMPILER /usr/bin/cc)
+    endif()
+    if ( (NOT DEFINED CMAKE_CXX_COMPILER) AND (NOT DEFINED ENV{CXX}) AND (EXISTS /usr/bin/c++))
+        set(CMAKE_CXX_COMPILER /usr/bin/c++)
+    endif()
+endif()
+
+enable_language(C)
 enable_language(CXX)
 
 # TODO defautl out-of-source-builds not working properly?
