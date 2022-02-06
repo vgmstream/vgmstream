@@ -4,6 +4,7 @@
 
 /* MPEG - standard MP1/2/3 audio MP3 */
 VGMSTREAM* init_vgmstream_mpeg(STREAMFILE* sf) {
+#ifdef VGM_USE_MPEG
     VGMSTREAM* vgmstream = NULL;
     int loop_flag = 0;
     mpeg_frame_info info = {0};
@@ -29,7 +30,6 @@ VGMSTREAM* init_vgmstream_mpeg(STREAMFILE* sf) {
     vgmstream->meta_type = meta_MPEG;
     vgmstream->sample_rate = info.sample_rate;
 
-#ifdef VGM_USE_MPEG
     /* more strict, use? */
     //mpeg_custom_config cfg = {0};
     //cfg.skip_samples = ...
@@ -38,9 +38,6 @@ VGMSTREAM* init_vgmstream_mpeg(STREAMFILE* sf) {
     vgmstream->codec_data = init_mpeg(sf, 0x00, &vgmstream->coding_type, info.channels);
     if (!vgmstream->codec_data) goto fail;
     vgmstream->layout_type = layout_none;
-#else
-    goto fail;
-#endif
 
     //vgmstream->num_samples = mpeg_bytes_to_samples(data_size, vgmstream->codec_data);
     vgmstream->num_samples = mpeg_get_samples(sf, 0x00, get_streamfile_size(sf));
@@ -52,4 +49,7 @@ VGMSTREAM* init_vgmstream_mpeg(STREAMFILE* sf) {
 fail:
     close_vgmstream(vgmstream);
     return NULL;
+#else
+    return NULL;
+#endif
 }
