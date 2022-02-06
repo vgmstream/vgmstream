@@ -150,6 +150,9 @@ static int read_fmt(int big_endian, STREAMFILE* sf, off_t offset, riff_fmt_chunk
                     break;
                 case 16:
                     fmt->coding_type = big_endian ? coding_PCM16BE : coding_PCM16LE;
+                    /* broken block size [Rayman 2 (DC)] */
+                    if (fmt->block_size == 0x02 && fmt->channels > 1)
+                        fmt->block_size = 0x02 * fmt->channels;
                     break;
                 case 8:
                     fmt->coding_type = coding_PCM8_U;
