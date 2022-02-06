@@ -1072,7 +1072,7 @@ static int unpack_frame(int bit_rate, const uint8_t* data, int frame_size, /*int
 
     /* test for errors (in refdec but not Namco's, useful to detect decryption) */
     if (test_errors) {
-        int max_pad_bytes = 0x7; /* usually 0x04 and rarely ~0x07 */
+        int max_pad_bytes = 0x8; /* usually 0x04 and rarely ~0x08 */
         int bits_left = 8 * expected_frame_size - bitpos;
         int i, endpos, test_bits;
 
@@ -1088,7 +1088,7 @@ static int unpack_frame(int bit_rate, const uint8_t* data, int frame_size, /*int
                     return -1;
             }
 
-            /* extra: test we aren't in the middle of padding (happens with bad keys)
+            /* extra: test we aren't in the middle of padding (happens with bad keys, this test catches most)
              * After reading the whole frame, last bit position should land near last useful
              * data, a few bytes into padding, so check there aren't too many padding bits. */
             endpos = bitpos;

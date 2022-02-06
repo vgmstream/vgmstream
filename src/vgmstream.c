@@ -521,6 +521,7 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_ubi_ckd_cwav,
 
     /* lower priority metas (no clean header identity, somewhat ambiguous, or need extension/companion file to identify) */
+    init_vgmstream_mpeg,
     init_vgmstream_agsc,
     init_vgmstream_dtk,
     init_vgmstream_rsf,

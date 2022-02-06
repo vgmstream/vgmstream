@@ -75,7 +75,7 @@ typedef struct _XMPLAY_STREAMFILE {
 
 static STREAMFILE* open_xmplay_streamfile_by_xmpfile(XMPFILE file, const char* path, int internal);
 
-static size_t xmpsf_read(XMPLAY_STREAMFILE* sf, uint8_t* dest, off_t offset, size_t length) {
+static size_t xmpsf_read(XMPLAY_STREAMFILE* sf, uint8_t* dst, offv_t offset, size_t length) {
     size_t read;
 
     if (sf->offset != offset) {
@@ -85,7 +85,7 @@ static size_t xmpsf_read(XMPLAY_STREAMFILE* sf, uint8_t* dest, off_t offset, siz
             sf->offset = xmpffile->Tell(sf->infile);
     }
 
-    read = xmpffile->Read(sf->infile, dest, length);
+    read = xmpffile->Read(sf->infile, dst, length);
     if (read > 0)
         sf->offset += read;
 
@@ -105,7 +105,7 @@ static void xmpsf_get_name(XMPLAY_STREAMFILE* sf, char* buffer, size_t length) {
     buffer[length-1] = '\0';
 }
 
-static STREAMFILE *xmpsf_open(XMPLAY_STREAMFILE* sf, const char* const filename, size_t buffersize) {
+static STREAMFILE* xmpsf_open(XMPLAY_STREAMFILE* sf, const char* const filename, size_t buffersize) {
     XMPFILE newfile;
 
     if (!filename)
@@ -130,30 +130,30 @@ static void xmpsf_close(XMPLAY_STREAMFILE* sf) {
     free(sf);
 }
 
-static STREAMFILE *open_xmplay_streamfile_by_xmpfile(XMPFILE infile, const char* path, int internal) {
-    XMPLAY_STREAMFILE* sf = calloc(1, sizeof(XMPLAY_STREAMFILE));
-    if (!sf) return NULL;
+static STREAMFILE* open_xmplay_streamfile_by_xmpfile(XMPFILE infile, const char* path, int internal) {
+    XMPLAY_STREAMFILE* this_sf = calloc(1, sizeof(XMPLAY_STREAMFILE));
+    if (!this_sf) return NULL;
 
-    sf->sf.read = (void*)xmpsf_read;
-    sf->sf.get_size = (void*)xmpsf_get_size;
-    sf->sf.get_offset = (void*)xmpsf_get_offset;
-    sf->sf.get_name = (void*)xmpsf_get_name;
-    sf->sf.open = (void*)xmpsf_open;
-    sf->sf.close = (void*)xmpsf_close;
-    sf->infile = infile;
-    sf->offset = 0;
-    strncpy(sf->name, path, sizeof(sf->name));
+    this_sf->sf.read = (void*)xmpsf_read;
+    this_sf->sf.get_size = (void*)xmpsf_get_size;
+    this_sf->sf.get_offset = (void*)xmpsf_get_offset;
+    this_sf->sf.get_name = (void*)xmpsf_get_name;
+    this_sf->sf.open = (void*)xmpsf_open;
+    this_sf->sf.close = (void*)xmpsf_close;
+    this_sf->infile = infile;
+    this_sf->offset = 0;
+    strncpy(this_sf->name, path, sizeof(this_sf->name));
 
-    sf->internal_xmpfile = internal;
+    this_sf->internal_xmpfile = internal;
 
-    return &sf->sf; /* pointer to STREAMFILE start = rest of the custom data follows */
+    return &this_sf->sf; /* pointer to STREAMFILE start = rest of the custom data follows */
 }
 
-VGMSTREAM* init_vgmstream_xmplay(XMPFILE file, const char *path, int subsong) {
+VGMSTREAM* init_vgmstream_xmplay(XMPFILE infile, const char* path, int subsong) {
     STREAMFILE* sf = NULL;
     VGMSTREAM* vgmstream = NULL;
 
-    sf = open_xmplay_streamfile_by_xmpfile(file, path, 0); /* external XMPFILE */
+    sf = open_xmplay_streamfile_by_xmpfile(infile, path, 0); /* external XMPFILE */
     if (!sf) return NULL;
 
     sf->stream_index = subsong;

@@ -1050,7 +1050,7 @@ typedef struct {
     off_t prefetch_offset;
 } eaac_header;
 
-static segmented_layout_data* build_segmented_eaaudiocore_looping(STREAMFILE *sf_data, eaac_header *eaac);
+static segmented_layout_data* build_segmented_eaaudiocore_looping(STREAMFILE* sf_head, STREAMFILE* sf_data, eaac_header* eaac);
 static layered_layout_data* build_layered_eaaudiocore(STREAMFILE* sf, eaac_header *eaac, off_t start_offset);
 static STREAMFILE *setup_eaac_streamfile(eaac_header *ea, STREAMFILE* sf_head, STREAMFILE* sf_data);
 static size_t calculate_eaac_size(STREAMFILE* sf, eaac_header *ea, uint32_t num_samples, off_t start_offset, int is_ram);
@@ -1137,8 +1137,9 @@ static VGMSTREAM* init_vgmstream_eaaudiocore_header(STREAMFILE* sf_head, STREAMF
             eaac.codec == EAAC_CODEC_EALAYER3_V2_PCM ||
             eaac.codec == EAAC_CODEC_EALAYER3_V2_SPIKE ||
             eaac.codec == EAAC_CODEC_EAXMA ||
-            eaac.codec == EAAC_CODEC_XAS1)) {
-            VGM_LOG("EA EAAC: unknown actual looping for codec %x\n", eaac.codec);
+            eaac.codec == EAAC_CODEC_XAS1 ||
+            eaac.codec == EAAC_CODEC_EATRAX)) {
+            VGM_LOG("EA EAAC: unknown actual looping %i for codec %x\n", eaac.loop_start, eaac.codec);
             goto fail;
         }
     }
@@ -1220,7 +1221,7 @@ static VGMSTREAM* init_vgmstream_eaaudiocore_header(STREAMFILE* sf_head, STREAMF
     if (eaac.version == EAAC_VERSION_V0 && eaac.streamed) {
         /* open SNS file if needed */
         if (standalone) {
-            snsFile = open_streamfile_by_ext(sf_head, "sns");
+            snsFile = open_streamfile_by_ext(sf_head, "sns"); //todo clean
             sf_data = snsFile;
         }
         if (!sf_data) goto fail;
@@ -1255,7 +1256,7 @@ static VGMSTREAM* init_vgmstream_eaaudiocore_header(STREAMFILE* sf_head, STREAMF
 
             /* special (if hacky) loop handling, see comments */
             if (eaac.loop_start > 0) {
-                segmented_layout_data *data = build_segmented_eaaudiocore_looping(sf, &eaac);
+                segmented_layout_data *data = build_segmented_eaaudiocore_looping(sf, sf, &eaac);
                 if (!data) goto fail;
                 vgmstream->layout_data = data;
                 vgmstream->coding_type = data->segments[0]->coding_type;
@@ -1276,7 +1277,7 @@ static VGMSTREAM* init_vgmstream_eaaudiocore_header(STREAMFILE* sf_head, STREAMF
 
             /* special (if hacky) loop handling, see comments */
             if (eaac.loop_start > 0) {
-                segmented_layout_data *data = build_segmented_eaaudiocore_looping(sf, &eaac);
+                segmented_layout_data *data = build_segmented_eaaudiocore_looping(sf, sf, &eaac);
                 if (!data) goto fail;
                 vgmstream->layout_data = data;
                 vgmstream->coding_type = data->segments[0]->coding_type;
@@ -1301,14 +1302,14 @@ static VGMSTREAM* init_vgmstream_eaaudiocore_header(STREAMFILE* sf_head, STREAMF
 
             /* special (if hacky) loop handling, see comments */
             if (eaac.loop_start > 0) {
-                segmented_layout_data *data = build_segmented_eaaudiocore_looping(sf, &eaac);
+                segmented_layout_data *data = build_segmented_eaaudiocore_looping(sf, sf, &eaac);
                 if (!data) goto fail;
                 vgmstream->layout_data = data;
                 vgmstream->coding_type = data->segments[0]->coding_type;
                 vgmstream->layout_type = layout_segmented;
             }
             else {
-                temp_sf = setup_eaac_audio_streamfile(sf, eaac.version, eaac.codec, eaac.streamed,0,0, 0x00);
+                temp_sf = setup_eaac_audio_streamfile(sf, eaac.version, eaac.codec, eaac.streamed,0,0, 0x00, 0);
                 if (!temp_sf) goto fail;
 
                 vgmstream->codec_data = init_mpeg_custom(temp_sf, 0x00, &vgmstream->coding_type, vgmstream->channels, type, &cfg);
@@ -1336,7 +1337,7 @@ static VGMSTREAM* init_vgmstream_eaaudiocore_header(STREAMFILE* sf_head, STREAMF
             vgmstream->coding_type = coding_SPEEX;
             vgmstream->layout_type = layout_none;
 
-            temp_sf = setup_eaac_audio_streamfile(sf, eaac.version, eaac.codec, eaac.streamed,0,0, 0x00);
+            temp_sf = setup_eaac_audio_streamfile(sf, eaac.version, eaac.codec, eaac.streamed,0,0, 0x00, 0);
             if (!temp_sf) goto fail;
 
             break;
@@ -1349,9 +1350,21 @@ static VGMSTREAM* init_vgmstream_eaaudiocore_header(STREAMFILE* sf_head, STREAMF
 
             /* EATrax is "buffered" ATRAC9, uses custom IO since it's kind of complex to add to the decoder */
 
+#if 0
+            /* For looped EATRAX, since we are using a deblocker SF no need to make segmented looping, though it works [Madden NFL 13 Demo (Vita)]
+             * An issue with segmented is that AT9 state is probably not reset between loops, which segmented can't simulate */
+            if (eaac.loop_start > 0) {
+                segmented_layout_data *data = build_segmented_eaaudiocore_looping(sf_head, sf, &eaac);
+                if (!data) goto fail;
+                vgmstream->layout_data = data;
+                vgmstream->coding_type = data->segments[0]->coding_type;
+                vgmstream->layout_type = layout_segmented;
+            }
+#endif
+
             cfg.channels = eaac.channels;
             /* sub-header after normal header */
-            cfg.config_data = read_32bitBE(header_offset + header_size + 0x00,sf_head);
+            cfg.config_data = read_u32be(header_offset + header_size + 0x00,sf_head);
             /* 0x04: data size without blocks, LE b/c why make sense (but don't use it in case of truncated files) */
             /* 0x08: 16b frame size (same as config data) */
 
@@ -1360,7 +1373,7 @@ static VGMSTREAM* init_vgmstream_eaaudiocore_header(STREAMFILE* sf_head, STREAMF
             vgmstream->coding_type = coding_ATRAC9;
             vgmstream->layout_type = layout_none;
 
-            temp_sf = setup_eaac_audio_streamfile(sf, eaac.version, eaac.codec, eaac.streamed,0,0, 0x00);
+            temp_sf = setup_eaac_audio_streamfile(sf, eaac.version, eaac.codec, eaac.streamed,0,0, 0x00, 0);
             if (!temp_sf) goto fail;
 
             break;
@@ -1372,7 +1385,7 @@ static VGMSTREAM* init_vgmstream_eaaudiocore_header(STREAMFILE* sf_head, STREAMF
         case EAAC_CODEC_EAMP3: { /* "EM30": EA-MP3 [Need for Speed 2015 (PS4), FIFA 2021 (PC)] */
             mpeg_custom_config cfg = {0};
 
-            temp_sf = setup_eaac_audio_streamfile(sf, eaac.version, eaac.codec, eaac.streamed,0,0, 0x00);
+            temp_sf = setup_eaac_audio_streamfile(sf, eaac.version, eaac.codec, eaac.streamed,0,0, 0x00, 0);
             if (!temp_sf) goto fail;
 
             vgmstream->codec_data = init_mpeg_custom(temp_sf, 0x00, &vgmstream->coding_type, vgmstream->channels, MPEG_EAMP3, &cfg);
@@ -1420,7 +1433,7 @@ static VGMSTREAM* init_vgmstream_eaaudiocore_header(STREAMFILE* sf_head, STREAMF
                     case 4:  cfg.coupled_count = 2; break;   /* 2ch+2ch, 2 streams */
                   //case 3:                                  /* 2ch+1ch, 2 streams */
                     case 2:  cfg.coupled_count = 1; break;   /* 2ch, 1 stream */
-                  //case 1:  cfg.coupled_count = 0; break;   /* 1ch, 1 stream */
+                    case 1:  cfg.coupled_count = 0; break;   /* 1ch, 1 stream [Madden 22 (PC)] */
                     default: goto fail;
                 }
             }
@@ -1431,7 +1444,7 @@ static VGMSTREAM* init_vgmstream_eaaudiocore_header(STREAMFILE* sf_head, STREAMF
             /* We *don't* remove EA blocks b/c in Multi Opus 1 block = 1 Opus packet
              * Regular EAOPUS uses layers to fake multichannel, this is normal multichannel Opus.
              * This can be used for stereo too, so probably replaces EAOPUS. */
-            //temp_sf = setup_eaac_audio_streamfile(sf_data, eaac->version, eaac->codec, eaac->streamed,0,0, 0x00);
+            //temp_sf = setup_eaac_audio_streamfile(sf_data, eaac->version, eaac->codec, eaac->streamed,0,0, 0x00, 0);
             //if (!temp_sf) goto fail;
 
             vgmstream->codec_data = init_ffmpeg_ea_opusm(sf, offset, data_size, &cfg);
@@ -1613,10 +1626,12 @@ fail:
  * We use the segmented layout, since the eaac_streamfile doesn't handle padding,
  * and the segments seem fully separate (so even skipping would probably decode wrong). */
 // todo reorganize code for more standard init
-static segmented_layout_data* build_segmented_eaaudiocore_looping(STREAMFILE *sf_data, eaac_header *eaac) {
+static segmented_layout_data* build_segmented_eaaudiocore_looping(STREAMFILE *sf_head, STREAMFILE *sf_data, eaac_header *eaac) {
     segmented_layout_data *data = NULL;
     STREAMFILE* temp_sf = NULL;
+    uint32_t data_size = get_streamfile_size(sf_data);
     off_t offsets[2] = { 0x00, eaac->loop_offset };
+    uint32_t sizes[2] = { eaac->loop_offset, data_size - eaac->loop_offset };
     off_t start_offset;
     int num_samples[2] = { eaac->loop_start, eaac->num_samples - eaac->loop_start};
     int segment_count = 2; /* intro/loop */
@@ -1628,8 +1643,11 @@ static segmented_layout_data* build_segmented_eaaudiocore_looping(STREAMFILE *sf
     if (!data) goto fail;
 
     for (i = 0; i < segment_count; i++) {
-        data->segments[i] = allocate_vgmstream(eaac->channels, 0);
-        if (!data->segments[i]) goto fail;
+        VGMSTREAM* vgmstream = allocate_vgmstream(eaac->channels, 0);
+
+        if (!vgmstream) goto fail;
+        data->segments[i] = vgmstream;
+
         data->segments[i]->sample_rate = eaac->sample_rate;
         data->segments[i]->num_samples = num_samples[i];
         //data->segments[i]->meta_type = eaac->meta_type; /* bleh */
@@ -1669,7 +1687,7 @@ static segmented_layout_data* build_segmented_eaaudiocore_looping(STREAMFILE *sf
 
                 start_offset = 0x00; /* must point to the custom streamfile's beginning */
 
-                temp_sf = setup_eaac_audio_streamfile(sf_data, eaac->version,eaac->codec,eaac->streamed,0,0, offsets[i]);
+                temp_sf = setup_eaac_audio_streamfile(sf_data, eaac->version,eaac->codec,eaac->streamed,0,0, offsets[i], sizes[i]);
                 if (!temp_sf) goto fail;
 
                 data->segments[i]->codec_data = init_mpeg_custom(temp_sf, 0x00, &data->segments[i]->coding_type, eaac->channels, type, &cfg);
@@ -1678,11 +1696,37 @@ static segmented_layout_data* build_segmented_eaaudiocore_looping(STREAMFILE *sf
                 break;
             }
 #endif
+#ifdef VGM_USE_ATRAC9
+            case EAAC_CODEC_EATRAX: { /* EATrax (unknown FourCC) [Need for Speed: Most Wanted (Vita)] */
+                atrac9_config cfg = {0};
+
+                /* EATrax is "buffered" ATRAC9, uses custom IO since it's kind of complex to add to the decoder */
+
+                cfg.channels = eaac->channels;
+                /* sub-header after normal header */
+                cfg.config_data = read_u32be(0x14 + 0x00, sf_head); //todo pass header offset
+                /* 0x04: data size without blocks, LE b/c why make sense (but don't use it in case of truncated files) */
+                /* 0x08: 16b frame size (same as config data) */
+
+                vgmstream->codec_data = init_atrac9(&cfg);
+                if (!vgmstream->codec_data) goto fail;
+                vgmstream->coding_type = coding_ATRAC9;
+                vgmstream->layout_type = layout_none;
+
+                start_offset = 0x00; /* must point to the custom streamfile's beginning */
+
+                //todo should make sizes
+                temp_sf = setup_eaac_audio_streamfile(sf_data, eaac->version, eaac->codec, eaac->streamed,0,0, offsets[i], sizes[i]);
+                if (!temp_sf) goto fail;
+
+                break;
+            }
+#endif
             default:
                 goto fail;
         }
 
-        if (!vgmstream_open_stream(data->segments[i],temp_sf == NULL ? sf_data : temp_sf, start_offset))
+        if (!vgmstream_open_stream(data->segments[i], temp_sf == NULL ? sf_data : temp_sf, start_offset))
             goto fail;
 
         close_streamfile(temp_sf);
@@ -1732,7 +1776,7 @@ static layered_layout_data* build_layered_eaaudiocore(STREAMFILE *sf_data, eaac_
                 size_t stream_size;
                 int is_xma1;
 
-                temp_sf = setup_eaac_audio_streamfile(sf_data, eaac->version, eaac->codec, eaac->streamed,i,layers, start_offset);
+                temp_sf = setup_eaac_audio_streamfile(sf_data, eaac->version, eaac->codec, eaac->streamed,i,layers, start_offset, 0);
                 if (!temp_sf) goto fail;
 
                 stream_size = get_streamfile_size(temp_sf);
@@ -1764,7 +1808,7 @@ static layered_layout_data* build_layered_eaaudiocore(STREAMFILE *sf_data, eaac_
                 size_t data_size;
 
                 /* We'll remove EA blocks and pass raw data to FFmpeg Opus decoder */
-                temp_sf = setup_eaac_audio_streamfile(sf_data, eaac->version, eaac->codec, eaac->streamed,i,layers, start_offset);
+                temp_sf = setup_eaac_audio_streamfile(sf_data, eaac->version, eaac->codec, eaac->streamed,i,layers, start_offset, 0);
                 if (!temp_sf) goto fail;
 
                 skip = ea_opus_get_encoder_delay(0x00, temp_sf);
