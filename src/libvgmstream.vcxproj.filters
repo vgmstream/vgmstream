@@ -652,6 +652,9 @@
     <ClCompile Include="meta\mca.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\mpeg.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\mus_acm.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>

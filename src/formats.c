@@ -1382,6 +1382,7 @@ static const meta_info meta_info_list[] = {
         {meta_WBK,                  "Treyarch WBK header"},
         {meta_WBK_NSLB,             "Treyarch NSLB header"},
         {meta_DSP_APEX,             "Koei Tecmo APEX header"},
+        {meta_MPEG,                 "MPEG header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {

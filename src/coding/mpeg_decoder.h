@@ -75,16 +75,4 @@ int mpeg_custom_parse_frame_eamp3(VGMSTREAMCHANNEL* stream, mpeg_codec_data* dat
 #endif/* VGM_USE_MPEG */
 
 
-typedef struct {
-    int version;
-    int layer;
-    int bit_rate;
-    int sample_rate;
-    int frame_samples;
-    int frame_size; /* bytes */
-    int channels;
-} mpeg_frame_info;
-
-int mpeg_get_frame_info(STREAMFILE* sf, off_t offset, mpeg_frame_info* info);
-
 #endif/*_MPEG_DECODER_H_ */
