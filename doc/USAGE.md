@@ -244,7 +244,7 @@ Renaming extensions should prevent those issues, or just uninstall those *Web
 Media Extension* for better experience anyway.
 
 #### Fallout SFX .ACM
-Due to technical limitations, to play Fallout 1 SFX you need to rename them from
+Due to technical limitations, to play Fallout 1/2 SFX you need to rename them from
 `.acm` to `.wavc` (forces mono).
 
 ### Demuxed videos
