@@ -237,15 +237,22 @@ VGMSTREAM* init_vgmstream_wbk_nslb(STREAMFILE* sf) {
 
         case 0x22: { /* DSP */
             int i, j;
+            off_t table_offset;
 
             vgmstream->coding_type = coding_NGC_DSP;
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = (flags & 0x01) ? 0x8000 : sound_size / channels;
 
+            /* check info entry variation */
+            if (read_u32le(info_entry_offset + 0x44 + 0x30*channels, sf) != 0x00)
+                table_offset = 0x4c; /* Call of Duty 3 */
+            else
+                table_offset = 0x44; /* Kung Fu Panda */
+
             /* It looks like the table is re-interpreted as 8 32-bit integers and stored with little endian byte order
              * like the rest of the data. Fun times. */
             for (i = 0; i < vgmstream->channels; i++) {
-                off_t coef_offset = info_entry_offset + 0x4c + 0x30*i;
+                off_t coef_offset = info_entry_offset + table_offset + 0x30*i;
                 for (j = 0; j < 8; j++) {
                     vgmstream->ch[i].adpcm_coef[j*2]   = read_s16le(coef_offset + j*0x04 + 0x02, sf);
                     vgmstream->ch[i].adpcm_coef[j*2+1] = read_s16le(coef_offset + j*0x04 + 0x00, sf);
