@@ -112,15 +112,18 @@ VGMSTREAM* init_vgmstream_fsb(STREAMFILE* sf) {
     fsb_header fsb = {0};
 
 
-    /* checks
-     * .fsb: standard
-     * .bnk: Hard Corps Uprising (PS3) */
-    if ( !check_extensions(sf, "fsb,bnk") )
+    /* checks */
+    if ((read_u32be(0x00,sf) & 0xFFFFFF00) != get_id32be("FSB\0"))
         goto fail;
 
-    /* check header */
-    fsb.id = read_32bitBE(0x00,sf);
-    if (fsb.id == 0x46534231) { /* "FSB1" (somewhat different from other fsbs) */
+    /* .fsb: standard
+     * .bnk: Hard Corps Uprising (PS3)
+     * .sfx: Geon Cube (Wii) */
+    if ( !check_extensions(sf, "fsb,bnk,sfx") )
+        goto fail;
+
+    fsb.id = read_u32be(0x00,sf);
+    if (fsb.id == get_id32be("FSB1")) {
         fsb.meta_type = meta_FSB1;
         fsb.base_header_size = 0x10;
         fsb.sample_header_min = 0x40;
@@ -132,7 +135,8 @@ VGMSTREAM* init_vgmstream_fsb(STREAMFILE* sf) {
         fsb.version = 0;
         fsb.flags = 0;
 
-        if (fsb.total_subsongs > 1) goto fail;
+        if (fsb.total_subsongs > 1)
+            goto fail;
 
         /* sample header (first stream only, not sure if there are multi-FSB1) */
         {
@@ -159,16 +163,16 @@ VGMSTREAM* init_vgmstream_fsb(STREAMFILE* sf) {
             fsb.stream_offset = fsb.base_header_size + fsb.sample_headers_size;
         }
     }
-    else { /* other FSBs (common/extended format) */
-        if (fsb.id == 0x46534232) { /* "FSB2" */
+    else {
+        if (fsb.id == get_id32be("FSB2")) {
             fsb.meta_type = meta_FSB2;
             fsb.base_header_size  = 0x10;
             fsb.sample_header_min = 0x40; /* guessed */
-        } else if (fsb.id == 0x46534233) { /* "FSB3" */
+        } else if (fsb.id == get_id32be("FSB3")) {
             fsb.meta_type = meta_FSB3;
             fsb.base_header_size  = 0x18;
             fsb.sample_header_min = 0x40;
-        } else if (fsb.id == 0x46534234) { /* "FSB4" */
+        } else if (fsb.id == get_id32be("FSB4")) {
             fsb.meta_type = meta_FSB4;
             fsb.base_header_size  = 0x30;
             fsb.sample_header_min = 0x50;
@@ -183,7 +187,7 @@ VGMSTREAM* init_vgmstream_fsb(STREAMFILE* sf) {
         if (fsb.base_header_size > 0x10) {
             fsb.version = read_32bitLE(0x10,sf);
             fsb.flags   = read_32bitLE(0x14,sf);
-            /* FSB4: 0x18(8):hash  0x20(10):guid */
+            /* FSB4: 0x18(8):hash, 0x20(10):guid */
         } else {
             fsb.version = 0;
             fsb.flags   = 0;
