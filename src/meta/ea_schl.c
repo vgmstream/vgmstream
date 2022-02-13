@@ -1483,7 +1483,7 @@ static VGMSTREAM* init_vgmstream_ea_variable_header(STREAMFILE* sf, ea_header* e
         } else if (vgmstream->coding_type == coding_NGC_DSP && vgmstream->channels > 1 && ea->offsets[0] == ea->offsets[1]) {
             /* pcstream+gcadpcm with sx.exe v2, not in flag_value, probably a bug (even with this parts of the wave are off) */
             int interleave = (ea->num_samples / 14 * 8); /* full interleave */
-            for (i = 0; i < ea->channels; i++) {
+            for (i = 0; i < vgmstream->channels; i++) {
                 vgmstream->ch[i].offset = ea->offsets[0] + interleave*i;
             }
         } else if (ea->platform == EA_PLATFORM_PS2 && (ea->flag_value & 0x100)) {
