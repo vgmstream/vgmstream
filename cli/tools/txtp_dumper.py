@@ -11,6 +11,9 @@ import os, glob, argparse
 # bgm.awb#1 .txtp
 # >> creates bgm.awb#1 .txtp
 #
+# data/bgm.fsb #2 : bgm_field.txtp
+# >> creates bgm_field.txtp full txtp, with data/bgm.fsb #2 inside
+#
 #******************************************************************************
 
 class Cli(object):
