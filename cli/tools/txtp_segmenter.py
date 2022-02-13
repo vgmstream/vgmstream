@@ -21,7 +21,7 @@ def parse():
         '- find all .ogg in files including those that end with 0.ogg or 1.ogg\n'
         '%(prog)s files/*.ogg -fe .+(a|all)[.]ogg$\n'
         '- find all .ogg in files excluding those that end with a.ogg or all.ogg\n'
-        '%(prog)s files/*.* -fi "(.+)(_intro|_loop)([.].+)$" -n "\\1)_full" -cfa\n'
+        '%(prog)s files/*.* -fi "(.+)(_intro|_loop)([.].+)$" -n "\\1_full" -cla\n'
         '- makes intro+loop .txtp named (first part without _intro/_loop)_full.txtp + loops\n'
         '%(prog)s files/*.* -fe "(.+)(_intro|_loop)([.].+)$" -s\n'
         '- makes single .txtp for files that don\'t have intro+loop pairs\n'
@@ -96,9 +96,9 @@ def main():
     args = parse()
 
     if args.filter_include:
-        args.p_include = re.compile(args.filter_include)
+        args.p_include = re.compile(args.filter_include, re.IGNORECASE)
     if args.filter_exclude:
-        args.p_exclude = re.compile(args.filter_exclude)
+        args.p_exclude = re.compile(args.filter_exclude, re.IGNORECASE)
 
     # get target files
     files = glob.glob(args.files)
