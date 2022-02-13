@@ -291,14 +291,18 @@ VGMSTREAM* init_vgmstream_wbk_nslb(STREAMFILE* sf) {
             off_t riff_fmt_offset, riff_data_offset;
             size_t bytes, riff_fmt_size, riff_data_size;
 
+            sound_offset += 0x0c;
+            sound_size -= 0x0c;
+
             /* find "fmt" chunk */
-            if (!find_chunk_riff_le(sf, 0x666d7420, sound_offset + 0x0c, sound_size - 0x0c, &riff_fmt_offset, &riff_fmt_size))
+            if (!find_chunk_riff_le(sf, 0x666d7420, sound_offset, sound_size, &riff_fmt_offset, &riff_fmt_size))
                 goto fail;
 
             /* find "data" chunk */
-            if (!find_chunk_riff_le(sf, 0x64617461, sound_offset + 0x0c, sound_size - 0x0c, &riff_data_offset, &riff_data_size))
+            if (!find_chunk_riff_le(sf, 0x64617461, sound_offset, sound_size, &riff_data_offset, &riff_data_size))
                 goto fail;
 
+            sound_offset = riff_data_offset;
             bytes = ffmpeg_make_riff_xma_from_fmt_chunk(buf, 0x100, riff_fmt_offset, riff_fmt_size, riff_data_size, sf, 0);
 
             vgmstream->codec_data = init_ffmpeg_header_offset(sf, buf, bytes, riff_data_offset, riff_data_size);
