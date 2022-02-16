@@ -430,6 +430,15 @@ void seek_vorbis_custom(VGMSTREAM* vgmstream, int32_t num_sample);
 void free_vorbis_custom(vorbis_custom_codec_data* data);
 #endif
 
+typedef struct {
+    int version;
+    int layer;
+    int bit_rate;
+    int sample_rate;
+    int frame_samples;
+    int frame_size; /* bytes */
+    int channels;
+} mpeg_frame_info;
 
 #ifdef VGM_USE_MPEG
 /* mpeg_decoder */
@@ -481,16 +490,6 @@ void free_mpeg(mpeg_codec_data* data);
 
 int mpeg_get_sample_rate(mpeg_codec_data* data);
 long mpeg_bytes_to_samples(long bytes, const mpeg_codec_data* data);
-
-typedef struct {
-    int version;
-    int layer;
-    int bit_rate;
-    int sample_rate;
-    int frame_samples;
-    int frame_size; /* bytes */
-    int channels;
-} mpeg_frame_info;
 
 int mpeg_get_frame_info(STREAMFILE* sf, off_t offset, mpeg_frame_info* info);
 #endif
