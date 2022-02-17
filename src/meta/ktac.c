@@ -1,7 +1,6 @@
 #include "meta.h"
 #include "../coding/coding.h"
 
-
 typedef struct {
     int loop_flag;
     int32_t loop_start;
@@ -15,9 +14,9 @@ typedef struct {
 
 /* KTAC - Koei Tecmo custom AAC [Kin'iro no Corda 3 (Vita), Shingeki no Kyojin: Shichi kara no Dasshutsu (3DS), Dynasty Warriors (PS4)] */
 VGMSTREAM* init_vgmstream_ktac(STREAMFILE* sf) {
+#ifdef VGM_USE_FFMPEG
     VGMSTREAM* vgmstream = NULL;
     ktac_header_t ktac = {0};
-
 
     /* checks */
     /* .ktac: header id */
@@ -53,7 +52,6 @@ VGMSTREAM* init_vgmstream_ktac(STREAMFILE* sf) {
     if (ktac.type == 1)
         goto fail;
 
-
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(ktac.mp4.channels, ktac.loop_flag);
     if (!vgmstream) goto fail;
@@ -66,19 +64,14 @@ VGMSTREAM* init_vgmstream_ktac(STREAMFILE* sf) {
 
     /* KTAC uses AAC, but not type found in .aac (that has headered frames, like mp3) but raw
      * packets + frame size table (similar to .mp4/m4a). We set config for FFmpeg's fake M4A header */
-#ifdef VGM_USE_FFMPEG
-    {
-        vgmstream->codec_data = init_ffmpeg_mp4_custom_std(sf, &ktac.mp4);
-        if (!vgmstream->codec_data) goto fail;
-        vgmstream->coding_type = coding_FFmpeg;
-        vgmstream->layout_type = layout_none;
-    }
-#else
-    goto fail;
-#endif
+    vgmstream->codec_data = init_ffmpeg_mp4_custom_std(sf, &ktac.mp4);
+    if (!vgmstream->codec_data) goto fail;
+    vgmstream->coding_type = coding_FFmpeg;
+    vgmstream->layout_type = layout_none;
 
     return vgmstream;
 fail:
     close_vgmstream(vgmstream);
+#endif
     return NULL;
 }
