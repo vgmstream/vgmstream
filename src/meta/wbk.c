@@ -1,5 +1,6 @@
 #include "meta.h"
 #include "../coding/coding.h"
+//#include <ctype.h>
 
 /* .WBK - seen in some Treyarch games [Spider-Man 2, Ultimate Spider-Man, Call of Duty 2: Big Red One] */
 VGMSTREAM* init_vgmstream_wbk(STREAMFILE* sf) {
@@ -153,6 +154,19 @@ fail:
     close_vgmstream(vgmstream);
     return NULL;
 }
+
+/* Ultimate Spider-Man string hashing algorithm, for reference */
+#if 0
+static uint32_t wbk_hasher(const char* input) {
+    uint32_t hash = 0;
+
+    for (const char* ch = input; *ch; ch++) {
+        hash += hash*32 + tolower(*ch);
+    }
+
+    return hash;
+}
+#endif
 
 /* .WBK - evolution of the above Treyarch bank format [Call of Duty 3] */
 VGMSTREAM* init_vgmstream_wbk_nslb(STREAMFILE* sf) {
