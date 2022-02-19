@@ -48,7 +48,7 @@ size_t ms_ima_bytes_to_samples(size_t bytes, int block_align, int channels);
 size_t xbox_ima_bytes_to_samples(size_t bytes, int channels);
 size_t dat4_ima_bytes_to_samples(size_t bytes, int channels);
 size_t apple_ima4_bytes_to_samples(size_t bytes, int channels);
-
+int xbox_check_format(STREAMFILE* sf, uint32_t offset, uint32_t max, int channels);
 
 /* ngc_dsp_decoder */
 void decode_ngc_dsp(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do);

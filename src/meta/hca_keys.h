@@ -882,6 +882,9 @@ static const hcakey_info hcakey_list[] = {
         // Shaman King: Funbari Chronicle (Android)
         {1620612098671},        // 0000017954022A6F
 
+        // Heaven Burns Red (Android)
+        {7355875239102698567},  // 6615518E8ECED447
+
 };
 
 #endif/*_HCA_KEYS_H_*/
