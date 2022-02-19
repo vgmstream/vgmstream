@@ -192,7 +192,7 @@ void block_update_ea_schl(off_t block_offset, VGMSTREAM * vgmstream) {
                     for (i = 0; i < vgmstream->channels; i++) {
                         //vgmstream->ch[i].adpcm_history1_32 = read_16bit(vgmstream->ch[i].offset+0x00,streamFile);
                         //vgmstream->ch[i].adpcm_history3_32 = read_16bit(vgmstream->ch[i].offset+0x02,streamFile);
-                        vgmstream->ch[i].offset += 4;
+                        vgmstream->ch[i].offset += 0x04;
                     }
                 }
 

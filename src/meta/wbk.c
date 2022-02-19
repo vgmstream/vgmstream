@@ -1,5 +1,6 @@
 #include "meta.h"
 #include "../coding/coding.h"
+//#include <ctype.h>
 
 /* .WBK - seen in some Treyarch games [Spider-Man 2, Ultimate Spider-Man, Call of Duty 2: Big Red One] */
 VGMSTREAM* init_vgmstream_wbk(STREAMFILE* sf) {
@@ -154,6 +155,19 @@ fail:
     return NULL;
 }
 
+/* Ultimate Spider-Man string hashing algorithm, for reference */
+#if 0
+static uint32_t wbk_hasher(const char* input) {
+    uint32_t hash = 0;
+
+    for (const char* ch = input; *ch; ch++) {
+        hash += hash*32 + tolower(*ch);
+    }
+
+    return hash;
+}
+#endif
+
 /* .WBK - evolution of the above Treyarch bank format [Call of Duty 3] */
 VGMSTREAM* init_vgmstream_wbk_nslb(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
@@ -291,14 +305,18 @@ VGMSTREAM* init_vgmstream_wbk_nslb(STREAMFILE* sf) {
             off_t riff_fmt_offset, riff_data_offset;
             size_t bytes, riff_fmt_size, riff_data_size;
 
+            sound_offset += 0x0c;
+            sound_size -= 0x0c;
+
             /* find "fmt" chunk */
-            if (!find_chunk_riff_le(sf, 0x666d7420, sound_offset + 0x0c, sound_size - 0x0c, &riff_fmt_offset, &riff_fmt_size))
+            if (!find_chunk_riff_le(sf, 0x666d7420, sound_offset, sound_size, &riff_fmt_offset, &riff_fmt_size))
                 goto fail;
 
             /* find "data" chunk */
-            if (!find_chunk_riff_le(sf, 0x64617461, sound_offset + 0x0c, sound_size - 0x0c, &riff_data_offset, &riff_data_size))
+            if (!find_chunk_riff_le(sf, 0x64617461, sound_offset, sound_size, &riff_data_offset, &riff_data_size))
                 goto fail;
 
+            sound_offset = riff_data_offset;
             bytes = ffmpeg_make_riff_xma_from_fmt_chunk(buf, 0x100, riff_fmt_offset, riff_fmt_size, riff_data_size, sf, 0);
 
             vgmstream->codec_data = init_ffmpeg_header_offset(sf, buf, bytes, riff_data_offset, riff_data_size);
