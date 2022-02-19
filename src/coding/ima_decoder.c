@@ -1326,3 +1326,27 @@ size_t apple_ima4_bytes_to_samples(size_t bytes, int channels) {
     return (bytes / block_align) * (block_align - 0x02*channels) * 2 / channels
             + ((bytes % block_align) ? ((bytes % block_align) - 0x02*channels) * 2 / channels : 0);
 }
+
+
+/* test XBOX-ADPCM frames for correctness */
+int xbox_check_format(STREAMFILE* sf, uint32_t offset, uint32_t max, int channels) {
+    off_t max_offset = offset + max;
+    int ch;
+
+    if (max_offset > get_streamfile_size(sf))
+        max_offset = get_streamfile_size(sf);
+    if (!channels)
+        return 0;
+
+    while (offset < max_offset) {
+        for (ch = 0; ch < channels; ch++) {
+            uint16_t step = read_u16le(offset + 0x04 * ch + 0x02,sf);
+            if (step > 88)
+                return 0;
+        }
+
+        offset += 0x24 * channels;
+    }
+
+    return 1;
+}
