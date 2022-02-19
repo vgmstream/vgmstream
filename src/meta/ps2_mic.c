@@ -18,12 +18,12 @@ VGMSTREAM* init_vgmstream_mic_koei(STREAMFILE* sf) {
     if (start_offset != 0x800) goto fail;
     sample_rate     = read_u32le(0x04,sf);
     channels        = read_u32le(0x08,sf);
-    if (channels > 2) goto fail;
+    if (channels > 4) goto fail; /* 1/2/4 are known */
     interleave      = read_u32le(0x0c,sf);
     if (interleave != 0x10) goto fail;
 
-    loop_end        = read_32bitLE(0x10,sf);
-    loop_start      = read_32bitLE(0x14,sf);
+    loop_end        = read_s32le(0x10,sf);
+    loop_start      = read_s32le(0x14,sf);
     if (read_u32le(0x18,sf) != 0) goto fail;
     if (read_u32le(0x1c,sf) != 0) goto fail;
 
