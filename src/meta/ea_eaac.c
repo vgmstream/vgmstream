@@ -285,48 +285,49 @@ fail:
 
 /* EA SBR/SBS - used in older 7th gen games for storing SFX */
 VGMSTREAM* init_vgmstream_ea_sbr(STREAMFILE* sf) {
-    uint32_t i, num_sounds, type_desc;
-    uint16_t num_metas, meta_type;
-    off_t table_offset, types_offset, entry_offset, metas_offset, data_offset, snr_offset, sns_offset;
-    STREAMFILE *sbsFile = NULL;
+    uint32_t num_sounds, sound_id, type_desc, num_items, item_type,
+        table_offset, types_offset, entry_offset, items_offset, data_offset, snr_offset, sns_offset;
+    uint32_t i;
+    STREAMFILE *sf_sbs = NULL;
     VGMSTREAM* vgmstream = NULL;
     int target_stream = sf->stream_index;
 
     if (!check_extensions(sf, "sbr"))
         goto fail;
 
-    if (read_32bitBE(0x00, sf) != 0x53424B52) /* "SBKR" */
+    if (read_u32be(0x00, sf) != 0x53424B52) /* "SBKR" */
         goto fail;
 
     /* SBR files are always big endian */
-    num_sounds = read_32bitBE(0x1c, sf);
-    table_offset = read_32bitBE(0x24, sf);
-    types_offset = read_32bitBE(0x28, sf);
+    num_sounds = read_u32be(0x1c, sf);
+    table_offset = read_u32be(0x24, sf);
+    types_offset = read_u32be(0x28, sf);
 
     if (target_stream == 0) target_stream = 1;
     if (target_stream < 0 || num_sounds == 0 || target_stream > num_sounds)
         goto fail;
 
     entry_offset = table_offset + 0x0a * (target_stream - 1);
-    num_metas = read_16bitBE(entry_offset + 0x04, sf);
-    metas_offset = read_32bitBE(entry_offset + 0x06, sf);
+    sound_id = read_u32be(entry_offset + 0x00, sf);
+    num_items = read_u16be(entry_offset + 0x04, sf);
+    items_offset = read_u32be(entry_offset + 0x06, sf);
 
     snr_offset = 0;
     sns_offset = 0;
 
-    for (i = 0; i < num_metas; i++) {
-        entry_offset = metas_offset + 0x06 * i;
-        meta_type = read_16bitBE(entry_offset + 0x00, sf);
-        data_offset = read_32bitBE(entry_offset + 0x02, sf);
+    for (i = 0; i < num_items; i++) {
+        entry_offset = items_offset + 0x06 * i;
+        item_type = read_u16be(entry_offset + 0x00, sf);
+        data_offset = read_u32be(entry_offset + 0x02, sf);
 
-        type_desc = read_32bitBE(types_offset + 0x06 * meta_type, sf);
+        type_desc = read_u32be(types_offset + 0x06 * item_type, sf);
 
         switch (type_desc) {
             case 0x534E5231: /* "SNR1" */
                 snr_offset = data_offset;
                 break;
             case 0x534E5331: /* "SNS1" */
-                sns_offset = read_32bitBE(data_offset, sf);
+                sns_offset = read_u32be(data_offset, sf);
                 break;
             default:
                 break;
@@ -336,43 +337,40 @@ VGMSTREAM* init_vgmstream_ea_sbr(STREAMFILE* sf) {
     if (snr_offset == 0 && sns_offset == 0)
         goto fail;
 
-    if (snr_offset == 0) {
-        /* SPS file */
-        sbsFile = open_streamfile_by_ext(sf, "sbs");
-        if (!sbsFile)
-            goto fail;
-
-        if (read_32bitBE(0x00, sbsFile) != 0x53424B53) /* "SBKS" */
-            goto fail;
-
-        vgmstream = init_vgmstream_eaaudiocore_header(sbsFile, NULL, sns_offset, 0x00, meta_EA_SPS, 0);
-        if (!vgmstream)
-            goto fail;
-    } else if (sns_offset == 0) {
+    if (sns_offset == 0) {
         /* RAM asset */
-        vgmstream = init_vgmstream_eaaudiocore_header(sf, NULL, snr_offset, 0x00, meta_EA_SNR_SNS, 0);
-        if (!vgmstream)
-            goto fail;
+        meta_t meta_type = (read_u8(snr_offset, sf) == 0x48) ? meta_EA_SPS : meta_EA_SNR_SNS;
+        vgmstream = init_vgmstream_eaaudiocore_header(sf, NULL, snr_offset, 0x00, meta_type, 0);
+        if (!vgmstream) goto fail;
     } else {
         /* streamed asset */
-        sbsFile = open_streamfile_by_ext(sf, "sbs");
-        if (!sbsFile)
+        sf_sbs = open_streamfile_by_ext(sf, "sbs");
+        if (!sf_sbs) goto fail;
+
+        if (read_u32be(0x00, sf_sbs) != 0x53424B53) /* "SBKS" */
             goto fail;
 
-        if (read_32bitBE(0x00, sbsFile) != 0x53424B53) /* "SBKS" */
-            goto fail;
+        if (read_u8(sns_offset, sf_sbs) == 0x48) {
+            /* SPS */
+            vgmstream = init_vgmstream_eaaudiocore_header(sf_sbs, NULL, sns_offset, 0x00, meta_EA_SPS, 0);
+            if (!vgmstream) goto fail;
+        } else {
+            /* SNR/SNS */
+            if (snr_offset == 0)
+                goto fail;
 
-        vgmstream = init_vgmstream_eaaudiocore_header(sf, sbsFile, snr_offset, sns_offset, meta_EA_SNR_SNS, 0);
-        if (!vgmstream)
-            goto fail;
+            vgmstream = init_vgmstream_eaaudiocore_header(sf, sf_sbs, snr_offset, sns_offset, meta_EA_SNR_SNS, 0);
+            if (!vgmstream) goto fail;
+        }
     }
 
+    snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%08x", sound_id);
     vgmstream->num_streams = num_sounds;
-    close_streamfile(sbsFile);
+    close_streamfile(sf_sbs);
     return vgmstream;
 
 fail:
-    close_streamfile(sbsFile);
+    close_streamfile(sf_sbs);
     return NULL;
 }
 
@@ -813,7 +811,7 @@ fail:
 VGMSTREAM* init_vgmstream_ea_sbr_harmony(STREAMFILE* sf) {
     uint64_t base_offset, sound_offset, offset, prev_offset;
     uint32_t chunk_id, data_offset, table_offset, dset_offset, set_values, set_sounds, sound_table_offset;
-    int32_t flag;
+    int16_t flag;
     uint16_t num_dsets;
     uint8_t set_type, offset_size;
     uint32_t i, j;
@@ -1090,7 +1088,7 @@ static VGMSTREAM* init_vgmstream_eaaudiocore_header(STREAMFILE* sf_head, STREAMF
     /* common channel configs are mono/stereo/quad/5.1/7.1 (from debug strings), while others are quite rare
      * [Battlefield 4 (X360)-EAXMA: 3/5/7ch, Army of Two: The Devil's Cartel (PS3)-EALayer3v2P: 11ch] */
     eaac.channels = eaac.channel_config + 1;
-    /* EA 6ch channel mapping is L C R BL BR LFE, but may use stereo layers for dynamic music
+    /* EA 6ch channel mapping is FL FC FR BL BR LFE, but may use stereo layers for dynamic music
      * instead, so we can't re-map automatically (use TXTP) */
 
     /* V0: SNR+SNS, V1: SPH+SPS (no apparent differences, other than block flags) */
@@ -1111,8 +1109,8 @@ static VGMSTREAM* init_vgmstream_eaaudiocore_header(STREAMFILE* sf_head, STREAMF
         goto fail;
     }
 
-    if (eaac.version == EAAC_VERSION_V1 && eaac.type != EAAC_TYPE_STREAM) {
-        /* should never happen */
+    if (eaac.version == EAAC_VERSION_V1 && eaac.type == EAAC_TYPE_GIGASAMPLE) {
+        /* probably does not exist */
         VGM_LOG("EA EAAC: bad stream type for version %x\n", eaac.version);
         goto fail;
     }
