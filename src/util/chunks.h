@@ -7,8 +7,8 @@ typedef struct {
     uint32_t type;      /* chunk id/fourcc */
     uint32_t size;      /* chunk size */
     uint32_t offset;    /* chunk offset (after type/size) */
-    off_t current;      /* start position, or next chunk after size (set to -1 to break) */
-    off_t max;          /* max offset, or filesize if not set */
+    uint32_t current;   /* start position, or next chunk after size (set to -1 to break) */
+    uint32_t max;       /* max offset, or filesize if not set */
 
     int le_type;        /* read type as LE instead of more common BE */
     int be_size;        /* read type as BE instead of more common LE */
