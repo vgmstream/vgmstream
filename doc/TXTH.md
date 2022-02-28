@@ -112,7 +112,7 @@ as explained below, but often will use default values. Accepted codec strings:
 #   * For many 3DO games
 # - MPEG           MPEG Audio Layer file (MP1/2/3)
 #   * For some games (usually PC/PS3)
-#   * May set skip_samples
+#   * May set skip_samples (MP2: around 240 or 480, MP3: around 1152)
 # - ATRAC3         Sony ATRAC3
 #   * For some PS2 and PS3 games
 #   * Interleave (frame size) can be 0x60/0x98/0xC0 * channels [required]
