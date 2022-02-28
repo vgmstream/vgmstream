@@ -375,8 +375,9 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
      * .ima: Baja: Edge of Control (PS3/X360)
      * .nsa: Studio Ring games that uses NScripter [Hajimete no Otetsudai (PC)]
      * .pcm: Silent Hill Arcade (PC)
+     * .xvag: Uncharted Golden Abyss (Vita)[ATRAC9]
      */
-    if ( check_extensions(sf, "wav,lwav,xwav,da,dax,cd,med,snd,adx,adp,xss,xsew,adpcm,adw,wd,,sbv,wvx,str,at3,rws,aud,at9,ckd,saf,ima,nsa,pcm") ) {
+    if ( check_extensions(sf, "wav,lwav,xwav,da,dax,cd,med,snd,adx,adp,xss,xsew,adpcm,adw,wd,,sbv,wvx,str,at3,rws,aud,at9,ckd,saf,ima,nsa,pcm,xvag") ) {
         ;
     }
     else if ( check_extensions(sf, "mwv") ) {
