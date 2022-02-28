@@ -264,6 +264,7 @@ song#1#h22050
 song#2#h22050
 song#3#h22050
 ```
+For technical reasons ranges that include hundreds of files may not work.
 
 ### Channel removing/masking for channel subsongs/layers
 **`C(number)`** (single) or **`#C(number)~(number)`** (range), **`#c(number)`**: set number of channels to play. You can add multiple comma-separated numbers, or use ` ` space or `-` as separator and combine multiple ranges with single channels too.

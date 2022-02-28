@@ -7,10 +7,9 @@
 VGMSTREAM* init_vgmstream_bkhd(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     STREAMFILE* temp_sf = NULL;
-    off_t subfile_offset, base_offset = 0;
-    size_t subfile_size;
+    uint32_t subfile_offset, subfile_size, base_offset = 0;
     uint32_t subfile_id;
-    int big_endian, version, is_riff = 0, is_dummy = 0, is_wmid = 0;
+    int big_endian, version, is_dummy = 0, is_wmid = 0;
     uint32_t (*read_u32)(off_t,STREAMFILE*);
     float (*read_f32)(off_t,STREAMFILE*);
     int total_subsongs, target_subsong = sf->stream_index;
@@ -43,9 +42,11 @@ VGMSTREAM* init_vgmstream_bkhd(STREAMFILE* sf) {
 
     /* first chunk also follows standard chunk sizes unlike RIFF */
     if (version <= 26) {
-        off_t data_offset, data_start, offset;
-        if (!find_chunk(sf, 0x44415441, base_offset, 0, &data_offset, NULL, big_endian, 0)) /* "DATA" */
+        off_t data_offset_off;
+        uint32_t data_offset, data_start, offset;
+        if (!find_chunk(sf, 0x44415441, base_offset, 0, &data_offset_off, NULL, big_endian, 0)) /* "DATA" */
             goto fail;
+        data_offset = data_offset_off;
 
         /* index:
          * 00: entries
@@ -79,11 +80,11 @@ VGMSTREAM* init_vgmstream_bkhd(STREAMFILE* sf) {
         subfile_size    = read_u32(offset + 0x14, sf);
     }
     else {
-        enum { 
+        enum {
             CHUNK_DIDX = 0x44494458, /* "DIDX" */
             CHUNK_DATA = 0x44415441, /* "DATA" */
         };
-        off_t didx_offset = 0, data_offset = 0, didx_size = 0, offset;
+        uint32_t didx_offset = 0, data_offset = 0, didx_size = 0, offset;
         chunk_t rc = {0};
 
         rc.be_size = big_endian;
@@ -120,25 +121,21 @@ VGMSTREAM* init_vgmstream_bkhd(STREAMFILE* sf) {
         subfile_offset  = read_u32(offset + 0x04, sf) + data_offset;
         subfile_size    = read_u32(offset + 0x08, sf);
     }
-    
-    //;VGM_LOG("BKHD: %lx, %x\n", subfile_offset, subfile_size);
+
+    //;VGM_LOG("BKHD: %x, %x\n", subfile_offset, subfile_size);
 
     /* detect format */
     if (subfile_offset <= 0 || subfile_size <= 0) {
         /* some indexes don't have data */
         is_dummy = 1;
     }
-    else if (read_u32be(subfile_offset + 0x00, sf) == 0x52494646 || /* "RIFF" */
-             read_u32be(subfile_offset + 0x00, sf) == 0x52494658) { /* "RIFX" */
-        is_riff = 1;
-    }
-    else if (read_f32(subfile_offset + 0x02, sf) >= 30.0 && 
+    else if (read_f32(subfile_offset + 0x02, sf) >= 30.0 &&
              read_f32(subfile_offset + 0x02, sf) <= 250.0) {
         /* ignore Wwise's custom .wmid (similar to a regular midi but with simplified
          *  chunks and custom fields: 0x00=MThd's division, 0x02: bpm (new), etc) */
         is_wmid = 1;
     }
-    /* default is sfx */
+    /* default is riff/sfx */
 
 
     if (is_dummy || is_wmid) {
@@ -151,7 +148,8 @@ VGMSTREAM* init_vgmstream_bkhd(STREAMFILE* sf) {
         temp_sf = setup_subfile_streamfile(sf, subfile_offset, subfile_size, NULL);
         if (!temp_sf) goto fail;
 
-        if (is_riff) {
+        /* read using temp_sf in case of >2GB .bnk */
+        if (is_id32be(0x00, temp_sf, "RIFF") || is_id32be(0x00, temp_sf, "RIFX")) {
             vgmstream = init_vgmstream_wwise_bnk(temp_sf, &prefetch);
             if (!vgmstream) goto fail;
         }
@@ -196,7 +194,7 @@ fail:
 /* BKHD mini format, for FX plugins [Borderlands 2 (X360), Warhammer 40000 (PC)] */
 VGMSTREAM* init_vgmstream_bkhd_fx(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
-    off_t start_offset, data_size;
+    uint32_t start_offset, data_size;
     int big_endian, loop_flag, channels, sample_rate, entries;
     uint32_t (*read_u32)(off_t,STREAMFILE*);
 

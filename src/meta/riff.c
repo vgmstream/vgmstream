@@ -340,6 +340,7 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
     int mwv = 0;
     off_t mwv_pflt_offset = -1;
     off_t mwv_ctrl_offset = -1;
+    int ignore_riff_size = 0;
 
 
     /* checks*/
@@ -374,8 +375,9 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
      * .ima: Baja: Edge of Control (PS3/X360)
      * .nsa: Studio Ring games that uses NScripter [Hajimete no Otetsudai (PC)]
      * .pcm: Silent Hill Arcade (PC)
+     * .xvag: Uncharted Golden Abyss (Vita)[ATRAC9]
      */
-    if ( check_extensions(sf, "wav,lwav,xwav,da,dax,cd,med,snd,adx,adp,xss,xsew,adpcm,adw,wd,,sbv,wvx,str,at3,rws,aud,at9,ckd,saf,ima,nsa,pcm") ) {
+    if ( check_extensions(sf, "wav,lwav,xwav,da,dax,cd,med,snd,adx,adp,xss,xsew,adpcm,adw,wd,,sbv,wvx,str,at3,rws,aud,at9,ckd,saf,ima,nsa,pcm,xvag") ) {
         ;
     }
     else if ( check_extensions(sf, "mwv") ) {
@@ -445,10 +447,15 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
 
         else if (codec == 0x0002 && riff_size + 0x08 + 0x1c == file_size)
             riff_size += 0x1c; /* [Mega Man X Legacy Collection (PC)] (adds "ver /tIME/ver " chunks but RIFF size wasn't updated) */
+
+        else if (codec == 0x0001 && (
+                    riff_size + 0x08 + 0x08 == file_size || riff_size + 0x08 + 0x09 == file_size ||
+                    riff_size + 0x08 - 0x3E == file_size || riff_size + 0x08 - 0x02 == file_size))
+            ignore_riff_size = 1; /* [Cross Gate (PC)] (last info LIST chunk has wrong size) */
     }
 
     /* check for truncated RIFF */
-    if (file_size != riff_size + 0x08) {
+    if (file_size != riff_size + 0x08 && !ignore_riff_size) {
         vgm_logi("RIFF: wrong expected size (report/re-rip?)\n");
         VGM_LOG("riff: file_size = %x, riff_size+8 = %x\n", file_size, riff_size + 0x08); /* don't log to user */
         goto fail;
@@ -456,14 +463,17 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
 
     /* read through chunks to verify format and find metadata */
     {
-        off_t current_chunk = 0x0c; /* start with first chunk */
+        uint32_t current_chunk = 0x0c; /* start with first chunk */
 
         while (current_chunk < file_size) {
-            uint32_t chunk_id = read_32bitBE(current_chunk + 0x00,sf); /* FOURCC */
-            size_t chunk_size = read_32bitLE(current_chunk + 0x04,sf);
+            uint32_t chunk_id = read_u32be(current_chunk + 0x00,sf); /* FOURCC */
+            uint32_t chunk_size = read_u32le(current_chunk + 0x04,sf);
 
-            if (current_chunk + 0x08 + chunk_size > file_size)
-                goto fail;
+            /* allow broken last chunk [Cross Gate (PC)] */
+            if (current_chunk + 0x08 + chunk_size > file_size) {
+                VGM_LOG("RIFF: broken chunk at %x + 0x08 + %x > %x\n", current_chunk, chunk_size, file_size);
+                break; /* truncated */
+            }
 
             switch(chunk_id) {
                 case 0x666d7420:    /* "fmt " */
@@ -490,7 +500,7 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
                     switch (read_32bitBE(current_chunk+0x08, sf)) {
                         case 0x6164746C:    /* "adtl" */
                             /* yay, atdl is its own little world */
-                            parse_adtl(current_chunk + 8, chunk_size,
+                            parse_adtl(current_chunk + 0x8, chunk_size,
                                     sf,
                                     &loop_start_ms,&loop_end_ms,&loop_flag);
                             break;
