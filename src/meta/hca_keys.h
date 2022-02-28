@@ -885,6 +885,9 @@ static const hcakey_info hcakey_list[] = {
         // Heaven Burns Red (Android)
         {7355875239102698567},  // 6615518E8ECED447
 
+        // Digimon ReArise (Android)
+        {34810080072368384},    // 007BAB9559510100
+
 };
 
 #endif/*_HCA_KEYS_H_*/
