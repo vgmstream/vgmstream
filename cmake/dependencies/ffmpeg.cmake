@@ -2,11 +2,11 @@ if(USE_FFMPEG)
 	if(NOT FFMPEG_PATH AND NOT BUILD_STATIC)
 		# FFmpeg detection
 		if(WIN32)
-			find_package(FFmpeg)
+			find_package(FFmpeg COMPONENTS AVFORMAT AVUTIL AVCODEC SWRESAMPLE)
 		else()
-			find_package(FFmpeg QUIET)
+			find_package(FFmpeg QUIET COMPONENTS AVFORMAT AVUTIL AVCODEC SWRESAMPLE)
 		endif()
-		
+
 		if(NOT FFMPEG_LIBRARIES)
 			if(WIN32)
 				set_ffmpeg(OFF TRUE)
@@ -15,29 +15,36 @@ if(USE_FFMPEG)
 			endif()
 		else()
 			if(${AVCODEC_VERSION} VERSION_LESS 57)
+				message("libavcodec version mismatch ${AVCODEC_VERSION} expected >=57")
 				if(WIN32)
 					set_ffmpeg(OFF TRUE)
-					message("libavcodec version mismatch ${AVCODEC_VERSION} expected >=57")
 				else()
 					set(FFmpeg_FOUND NO)
 				endif()
 			elseif(${AVUTIL_VERSION} VERSION_LESS 55)
+				message("libavutil version mismatch ${AVUTIL_VERSION} expected >=55")
 				if(WIN32)
 					set_ffmpeg(OFF TRUE)
-					message("libavutil version mismatch ${AVUTIL_VERSION} expected >=55")
 				else()
 					set(FFmpeg_FOUND NO)
 				endif()
 			elseif(${SWRESAMPLE_VERSION} VERSION_LESS 2)
+				message("libswresample version mismatch ${SWRESAMPLE_VERSION} expected >=2")
 				if(WIN32)
 					set_ffmpeg(OFF TRUE)
-					message("libswresample version mismatch ${SWRESAMPLE_VERSION} expected >=2")
+				else()
+					set(FFmpeg_FOUND NO)
+				endif()
+			elseif(${AVFORMAT_VERSION} VERSION_LESS 57)
+				message("libavformat version mismatch ${AVFORMAT_VERSION} expected >=57")
+				if(WIN32)
+					set_ffmpeg(OFF TRUE)
 				else()
 					set(FFmpeg_FOUND NO)
 				endif()
 			endif()
 		endif()
-		
+
 		if(FFmpeg_FOUND)
 			set(FFMPEG_SOURCE "(system)")
 		endif()
@@ -51,16 +58,16 @@ if(USE_FFMPEG)
 				set(USE_FFMPEG_LIBOPUS ON)
 			endif()
 		endif()
-		
+
 		FetchDependency(FFMPEG
 			DIR ffmpeg
 			GIT_REPOSITORY https://git.ffmpeg.org/ffmpeg.git
 			GIT_TAG n4.4
 		)
-		
+
 		if(FFMPEG_PATH)
 			set(FFMPEG_COMPILE YES)
-			
+
 			set(FFMPEG_CONF_PARSER
 				ac3 mpegaudio xma vorbis opus
 			)
@@ -149,10 +156,10 @@ if(USE_FFMPEG)
 					--disable-safe-bitstream-reader
 				)
 			endif()
-			
+
 			set(FFMPEG_LINK_PATH ${FFMPEG_BIN}/bin/usr/local/lib)
 			set(FFMPEG_INCLUDE_DIRS ${FFMPEG_BIN}/bin/usr/local/include)
-			
+
 			file(MAKE_DIRECTORY ${FFMPEG_BIN})
 			add_custom_target(FFMPEG_CONFIGURE
 				COMMAND "${FFMPEG_PATH}/configure" ${FFMPEG_CONF_ARGS}
@@ -165,7 +172,7 @@ if(USE_FFMPEG)
 				BYPRODUCTS ${FFMPEG_BIN}
 				WORKING_DIRECTORY ${FFMPEG_BIN}
 			)
-			
+
 			foreach(LIB avutil avformat swresample avcodec)
 				add_library(${LIB} STATIC IMPORTED)
 				if(NOT EXISTS ${FFMPEG_LINK_PATH}/lib${LIB}.a)
