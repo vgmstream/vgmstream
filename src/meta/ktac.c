@@ -1,6 +1,7 @@
 #include "meta.h"
 #include "../coding/coding.h"
 
+#ifdef VGM_USE_FFMPEG
 typedef struct {
     int loop_flag;
     int32_t loop_start;
@@ -10,6 +11,7 @@ typedef struct {
     mp4_custom_t mp4;
     int type;
 } ktac_header_t;
+#endif
 
 
 /* KTAC - Koei Tecmo custom AAC [Kin'iro no Corda 3 (Vita), Shingeki no Kyojin: Shichi kara no Dasshutsu (3DS), Dynasty Warriors (PS4)] */
