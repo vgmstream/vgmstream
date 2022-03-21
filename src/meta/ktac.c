@@ -6,8 +6,9 @@ typedef struct {
     int32_t loop_start;
     int32_t loop_end;
     uint32_t file_size;
-
+#ifdef VGM_USE_FFMPEG
     mp4_custom_t mp4;
+#endif
     int type;
 } ktac_header_t;
 
