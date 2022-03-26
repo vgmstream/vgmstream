@@ -887,6 +887,9 @@ static const hcakey_info hcakey_list[] = {
 
         // Digimon ReArise (Android)
         {34810080072368384},    // 007BAB9559510100
+    
+        // ANNO: Mutationem (PC)
+        {351185040111633400},    // 04DFA8EEEE4903F8
 
 };
 
