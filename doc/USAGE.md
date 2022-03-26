@@ -365,34 +365,43 @@ Creation of these files is meant for advanced users, full docs can be found in
 vgmstream source.
 
 #### TXTH
-A text header placed in an external file. The TXTH must be named
-`.txth` or `.(ext).txth` (for the whole folder), or `(name.ext).txth` (for a
-single file). Contains dynamic text commands to read data from the original
-file, or static values. This allows vgmstream to play unsupported formats.
+Text files describing a format's header, to make unsupported files playable
+(helps vgmstream understand the file you are trying to open).
+
+Must be named `.txth` or `.(ext).txth` (used for the whole folder), or 
+`(name.ext).txth` (used for a single file). `.txth` are indirectly used when
+a `(file.ext)` is opened but vgmstream can't play it by default.
+
+`.txth` contains static values, or dynamic text commands to read data from the
+original file, serving as a fake header of sorts.
 
 Usage example (used when opening an unknown file named `bgm_01.pcm`):
 
 **.pcm.txth**
 ```
-codec = PCM16LE
-channels = @0x04        #in the file, at offset 4
+codec = PCM16LE         #standard PCM wave data
+channels = @0x04        #read in the file, at offset 4
 sample_rate = 48000     #hardcoded
-start_offset = 0x10
+start_offset = 0x10     #first 0x10 bytes are the header
 num_samples = data_size #auto
 ```
 
 #### TXTP
-Text files with player configuration, named `(name).txtp`.
+Text files that apply playback parameters, to customize how other files are
+played.
 
-For files that already play, sometimes games use them in various complex
-and non-standard ways, like playing multiple small songs as a single
-one, or using some channels as a section of the song. For those cases we
-can create a *TXTP* file to customize how vgmstream handles songs.
+Must be named `(any name).txtp` and opened directly. Useful when games play songs
+in various non-standard ways, so we can tell vgmstream to handle files differently.
 
-Text inside `.txtp` can contain a list of filenames to play as one, a list of
-single-channel files to join as a single multichannel file, subsong index,
-per-file configurations like number of loops, remove unneeded channels,
-force looping, and many other features.
+`.txtp` can do multiple things (can be combined, too):
+- join a playlist of files (for separate intro + loop songs)
+- play a list of single-channel files as a single multichannel file
+- install looping to any file (for files with looping done in code)
+- remove unwanted channels (for layered exploration + action songs)
+- select a subsong in an audio bank
+- playback config such as volume or max playable time
+- apply complex real-time mixing
+- many other features
 
 Usage examples (open directly, name can be set freely):
 
