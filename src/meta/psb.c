@@ -51,7 +51,7 @@ typedef struct {
     int loop_flag;
     int32_t loop_start;
     int32_t loop_end;
-    int duration_test;
+    int loop_test;
 
 } psb_header_t;
 
@@ -155,8 +155,6 @@ VGMSTREAM* init_vgmstream_psb(STREAMFILE* sf) {
                 default: goto fail;
             }
 
-            if (psb.duration_test && psb.loop_start + psb.loop_end <= vgmstream->num_samples)
-                vgmstream->loop_end_sample += psb.loop_start;
             break;
 
         case MSADPCM: /* [Senxin Aleste (AC)] */
@@ -222,12 +220,23 @@ VGMSTREAM* init_vgmstream_psb(STREAMFILE* sf) {
             }
 
             vgmstream->num_samples = read_u32le(psb.stream_offset[0] + 0x00, sf);
-            if (psb.duration_test && psb.loop_start + psb.loop_end < vgmstream->num_samples)
-                vgmstream->loop_end_sample += psb.loop_start;
             break;
 
         default:
             goto fail;
+    }
+
+    /* loop meaning varies, no apparent flags, seen in PCM/DSP/MSADPCM/WMAv2:
+     * - loop_start + loop_length [LoM (PC), Namco Museum V1 (PC), Senxin Aleste (PC)]
+     * - loop_start + loop_end [G-Darius (Sw)]
+     * (only in some cases of "loop" field so shouldn't happen to often) */
+    if (psb.loop_test) {
+        if (psb.loop_start + psb.loop_end <= vgmstream->num_samples) {
+            vgmstream->loop_end_sample += psb.loop_start;
+            /* assumed, matches num_samples in LoM and Namco but not in Senjin Aleste (unknown in G-Darius) */
+            if (vgmstream->loop_end_sample < vgmstream->num_samples)
+                vgmstream->loop_end_sample += 1;
+        }
     }
 
     strncpy(vgmstream->stream_name, psb.readable_name, STREAM_NAME_SIZE);
@@ -598,9 +607,9 @@ static int parse_psb_channels(psb_header_t* psb, psb_node_t* nchans) {
                         psb->loop_start = psb_node_get_result(&nsub).num;
 
                         psb_node_by_index(&node, 1, &nsub);
-                        psb->loop_end = psb_node_get_result(&nsub).num + 1; /* assumed, matches num_samples */
-                        /* duration [LoM (PC), Namco Museum V1 (PC)] or standard [G-Darius (Sw)] (no apparent flags) */
-                        psb->duration_test = 1;
+                        psb->loop_end = psb_node_get_result(&nsub).num;
+
+                        psb->loop_test = 1; /* loop end meaning varies*/
                     }
                 }
 
