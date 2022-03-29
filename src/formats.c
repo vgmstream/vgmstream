@@ -563,6 +563,7 @@ static const char* extension_list[] = {
     "vid",
     "vig",
     "vis",
+    "vm4", //txth/reserved [Elder Gate (PS1)]
     "vms",
     "vmu", //txth/reserved [Red Faction (PS2)]
     "voi",
