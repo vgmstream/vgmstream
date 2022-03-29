@@ -244,7 +244,7 @@ static int xa_read_subsongs(STREAMFILE* sf, int target_subsong, off_t start, uin
         is_audio = !(xa_submode & 0x08) && (xa_submode & 0x04) && !(xa_submode & 0x02);
         is_eof = (xa_submode & 0x80);
 
-        VGM_ASSERT((xa_submode & 0x01), "XA: end of audio at %lx\n", offset); /* used? */
+        VGM_ASSERT((xa_submode & 0x01), "XA: end of audio at %lx\n", offset); /* rare, signals last sector [Tetris (CD-i)] */
         //;VGM_ASSERT(is_eof, "XA: eof at %lx\n", offset);
         //;VGM_ASSERT(!is_audio, "XA: not audio at %lx\n", offset);
 
