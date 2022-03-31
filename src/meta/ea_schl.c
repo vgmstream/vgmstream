@@ -1086,7 +1086,7 @@ VGMSTREAM* init_vgmstream_ea_mpf_mus(STREAMFILE* sf) {
         if (!vgmstream)
             goto fail;
     } else {
-        if (version == 5 && read_u32be(0x00, sf_mus) != track_checksum)
+        if (version == 5 && track_checksum && read_u32be(0x00, sf_mus) != track_checksum)
             goto fail;
 
         sound_offset *= off_mult;;
