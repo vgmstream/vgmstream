@@ -947,7 +947,10 @@ static const hcakey_info hcakey_list[] = {
         {34810080072368384},    // 007BAB9559510100
     
         // ANNO: Mutationem (PC)
-        {351185040111633400},    // 04DFA8EEEE4903F8
+        {351185040111633400},   // 04DFA8EEEE4903F8
+    
+        // Priconne! Grand Masters (iOS/Android)
+        {185705658241},         // 0000002B3CEB7781
 
 };
 
