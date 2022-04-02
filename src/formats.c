@@ -229,6 +229,7 @@ static const char* extension_list[] = {
     "ifs",
     "ikm",
     "ild",
+    "ilf", //txth/reserved [Madden NFL 98 (PS1)]
     "ilv", //txth/reserved [Star Wars Episode III (PS2)]
     "ima",
     "imc",
