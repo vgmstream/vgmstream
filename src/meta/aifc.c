@@ -106,7 +106,7 @@ VGMSTREAM* init_vgmstream_aifc(STREAMFILE* sf) {
     else if (check_extensions(sf, "aifc,laifc,afc,cbd2,bgm,fda,n64,wav,lwav,xa")) {
         is_aifc_ext = 1;
     }
-    else if (check_extensions(sf, "aiff,laiff,acm,adp,ai,pcm")) {
+    else if (check_extensions(sf, "aiff,laiff,acm,adp,ai,pcm,wav")) {
         is_aiff_ext = 1;
     }
     else {
