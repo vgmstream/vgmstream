@@ -418,6 +418,7 @@ static const char* extension_list[] = {
     "rsd",
     "rsf",
     "rsm",
+    "rsnd", //txth/reserved [Birushana: Ichijuu no Kaze (Switch)]
     "rsp",
     "rstm", //fake extension/header id for .rstm (in bigfiles)
     "rvws",
