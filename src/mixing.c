@@ -1283,7 +1283,57 @@ void mixing_macro_downmix(VGMSTREAM* vgmstream, int max /*, mapping_t output_map
 
 /* ******************************************************************* */
 
-void mixing_setup(VGMSTREAM * vgmstream, int32_t max_sample_count) {
+static int fix_layered_channel_layout(VGMSTREAM* vgmstream) {
+    int i;
+    mixing_data* data = vgmstream->mixing_data;
+    layered_layout_data* layout_data;
+    uint32_t prev_cl;
+
+    if (vgmstream->channel_layout || vgmstream->layout_type != layout_layered)
+        return 0;
+  
+    layout_data = vgmstream->layout_data;
+
+    /* mainly layer-v (in cases of layers-within-layers should cascade) */
+    if (data->output_channels != layout_data->layers[0]->channels)
+        return 0;
+
+    /* check all layers share layout (implicitly works as a channel check, if not 0) */
+    prev_cl = layout_data->layers[0]->channel_layout;
+    if (prev_cl == 0)
+        return 0;
+
+    for (i = 1; i < layout_data->layer_count; i++) {
+        uint32_t layer_cl = layout_data->layers[i]->channel_layout;
+        if (prev_cl != layer_cl)
+            return 0;
+        
+        prev_cl = layer_cl;
+    }
+
+    vgmstream->channel_layout = prev_cl;
+    return 1;
+}
+
+/* channel layout + down/upmixing = ?, salvage what we can */
+static void fix_channel_layout(VGMSTREAM* vgmstream) {
+    mixing_data* data = vgmstream->mixing_data;
+
+    if (fix_layered_channel_layout(vgmstream))
+        goto done;
+
+    /* segments should share channel layout automatically */
+
+    /* a bit wonky but eh... */
+    if (vgmstream->channel_layout && vgmstream->channels != data->output_channels) {
+        vgmstream->channel_layout = 0;
+    }
+
+done:
+    ((VGMSTREAM*)vgmstream->start_vgmstream)->channel_layout = vgmstream->channel_layout;
+}
+
+void mixing_setup(VGMSTREAM* vgmstream, int32_t max_sample_count) {
     mixing_data *data = vgmstream->mixing_data;
     float *mixbuf_re = NULL;
 
@@ -1300,11 +1350,7 @@ void mixing_setup(VGMSTREAM * vgmstream, int32_t max_sample_count) {
     data->mixbuf = mixbuf_re;
     data->mixing_on = 1;
 
-    /* a bit wonky but eh... */
-    if (vgmstream->channel_layout && vgmstream->channels != data->output_channels) {
-        vgmstream->channel_layout = 0;
-        ((VGMSTREAM*)vgmstream->start_vgmstream)->channel_layout = 0;
-    }
+    fix_channel_layout(vgmstream);
 
     /* since data exists on its own memory and pointer is already set
      * there is no need to propagate to start_vgmstream */

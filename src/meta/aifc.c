@@ -83,6 +83,7 @@ VGMSTREAM* init_vgmstream_aifc(STREAMFILE* sf) {
     /* checks */
     if (!is_id32be(0x00,sf, "FORM"))
         goto fail;
+VGM_LOG("1\n");
 
     /* .aif: common (AIFF or AIFC), .aiff: common AIFF, .aifc: common AIFC
      * .laif/laiff/laifc: for plugins
@@ -95,18 +96,18 @@ VGMSTREAM* init_vgmstream_aifc(STREAMFILE* sf) {
      * .fda: Homeworld 2 (PC)
      * .n64: Turok (N64) src
      * .pcm: Road Rash (SAT)
-     * .wav: SimCity 3000 (Mac)
+     * .wav: SimCity 3000 (Mac) (both AIFC and AIFF)
      * .lwav: for media players that may confuse this format with the usual RIFF WAVE file.
      * .xa: SimCity 3000 (Mac)
      */
-    if (check_extensions(sf, "aif,laif,")) {
+    if (check_extensions(sf, "aif,laif,wav,lwav,")) {
         is_aifc_ext = 1;
         is_aiff_ext = 1;
     }
-    else if (check_extensions(sf, "aifc,laifc,afc,cbd2,bgm,fda,n64,wav,lwav,xa")) {
+    else if (check_extensions(sf, "aifc,laifc,afc,cbd2,bgm,fda,n64,xa")) {
         is_aifc_ext = 1;
     }
-    else if (check_extensions(sf, "aiff,laiff,acm,adp,ai,pcm,wav")) {
+    else if (check_extensions(sf, "aiff,laiff,acm,adp,ai,pcm")) {
         is_aiff_ext = 1;
     }
     else {
@@ -136,8 +137,10 @@ VGMSTREAM* init_vgmstream_aifc(STREAMFILE* sf) {
             aifx_size += 0x08; /* [Psychic Force Puzzle Taisen CD2 (PS1)] */
     }
 
-    if (aifx_size + 0x08 != file_size)
+    if (aifx_size + 0x08 != file_size) {
+        vgm_logi("AIFF: wrong reported size %x + 0x8 vs file size %x\n", aifx_size, file_size);
         goto fail;
+    }
 
 
     /* read through chunks to verify format and find metadata */

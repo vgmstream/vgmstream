@@ -635,7 +635,7 @@ fail:
 }
 
 static int convert_subsongs(cli_config* cfg) {
-    int res, oks, kos;
+    int res, kos;
     int subsong;
     /* restore original values in case of multiple parsed files */
     int start_temp = cfg->subsong_index;
@@ -651,7 +651,6 @@ static int convert_subsongs(cli_config* cfg) {
     //;VGM_LOG("CLI: subsongs %i to %i\n", cfg->subsong_index, cfg->subsong_end + 1);
 
     /* convert subsong range */
-    oks = 0;
     kos = 0 ;
     for (subsong = cfg->subsong_index; subsong < cfg->subsong_end + 1; subsong++) {
         cfg->subsong_index = subsong; 
@@ -661,7 +660,7 @@ static int convert_subsongs(cli_config* cfg) {
     }
 
     if (kos) {
-        fprintf(stderr, "failed %i of %i subsongs\n", kos, oks);
+        fprintf(stderr, "failed %i subsongs\n", kos);
     }
 
     cfg->subsong_index = start_temp;

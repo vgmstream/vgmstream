@@ -7,6 +7,7 @@ typedef VGMSTREAM* (*init_vgmstream_t)(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_silence(int channels, int sample_rate, int32_t num_samples);
 VGMSTREAM* init_vgmstream_silence_container(int total_subsongs);
+VGMSTREAM* init_vgmstream_silence_base(VGMSTREAM* vgmstream);
 
 
 VGMSTREAM* init_vgmstream_adx(STREAMFILE* sf);
@@ -654,6 +655,7 @@ VGMSTREAM* init_vgmstream_opus_prototype(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_opus_opusnx(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_opus_nsopus(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_opus_sqex(STREAMFILE* sf);
+VGMSTREAM* init_vgmstream_opus_rsnd(STREAMFILE* sf);
 
 VGMSTREAM * init_vgmstream_raw_al(STREAMFILE * streamFile);
 
@@ -975,5 +977,7 @@ VGMSTREAM* init_vgmstream_wbk_nslb(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_ubi_ckd_cwav(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_mpeg(STREAMFILE* sf);
+
+VGMSTREAM* init_vgmstream_sspf(STREAMFILE* sf);
 
 #endif /*_META_H*/

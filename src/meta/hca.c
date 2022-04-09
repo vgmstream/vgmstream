@@ -46,7 +46,7 @@ VGMSTREAM* init_vgmstream_hca_subkey(STREAMFILE* sf, uint16_t subkey) {
         uint8_t keybuf[0x08+0x02];
         size_t keysize;
 
-        keysize = read_key_file(keybuf, 0x08+0x04, sf);
+        keysize = read_key_file(keybuf, sizeof(keybuf), sf);
         if (keysize == 0x08) { /* standard */
             keycode = get_u64be(keybuf+0x00);
         }

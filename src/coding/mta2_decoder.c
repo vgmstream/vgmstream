@@ -38,66 +38,86 @@ static const int mta2_scales[32] = {
 };
 
 /* decodes a block for a channel */
-void decode_mta2(VGMSTREAMCHANNEL *stream, sample_t *outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
+void decode_mta2(VGMSTREAMCHANNEL *stream, sample_t *outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel, int config) {
     uint8_t frame[0x10 + 0x90*8] = {0};
     int samples_done = 0, sample_count = 0, channel_block_samples, channel_first_sample, frame_size = 0;
     int i, group, row, col;
-    int track_channels = 0, track_channel;
+    int track_channel;
+    uint32_t frame_offset = stream->offset;
+    uint32_t head_size;
 
 
-    /* track skip */
-    do {
-        int num_track = 0, channel_layout;
-
-        /* parse track header (0x10) and skip tracks that our current channel doesn't belong to */
-        read_streamfile(frame, stream->offset, 0x10, stream->streamfile); /* ignore EOF errors */
-        num_track      = get_u8   (frame + 0x00); /* 0=first */
-        /* 0x01(3): num_frame (0=first) */
-        /* 0x04(1): 0? */
-        channel_layout = get_u8   (frame + 0x05); /* bitmask, see mta2.c */
-        frame_size     = get_u16be(frame + 0x06); /* not including this header */
-        /* 0x08(8): null */
-
-        VGM_ASSERT(frame_size == 0, "MTA2: empty frame at %x\n", (uint32_t)stream->offset);
-        /* frame_size 0 means silent/empty frame (rarely found near EOF for one track but not others)
-         * negative track only happens for truncated files (EOF) */
-        if (frame_size == 0 || num_track < 0) {
-            for (i = 0; i < samples_to_do; i++)
-                outbuf[i * channelspacing] = 0;
-            stream->offset += 0x10;
-            return;
-        }
-
-        track_channels = 0;
-        for (i = 0; i < 8; i++) { /* max 8ch */
-            if ((channel_layout >> i) & 0x01)
-                track_channels++;
-        }
-
-        if (track_channels == 0) { /* bad data, avoid div by 0 */
-            VGM_LOG("MTA2: track_channels 0 at %x\n", (uint32_t)stream->offset);
-            return;
-        }
-
-        /* assumes tracks channels are divided evenly in all tracks (ex. not 2ch + 1ch + 1ch) */
-        if (channel / track_channels == num_track)
-            break; /* channel belongs to this track */
-
-        /* keep looping for our track */
-        stream->offset += 0x10 + frame_size;
+    if (config == 1) {
+        /* regular frames (sfx) */
+        frame_size = 0x90 * channelspacing;
+        track_channel = channel;
+        head_size = 0x00;
     }
-    while (1);
+    else {
+        /* track info (bgm): parse header and skip tracks that our current channel doesn't belong to */
+        int track_channels;
+
+        head_size = 0x10;
+        do {
+            int num_track = 0, channel_layout;
+
+            read_streamfile(frame, frame_offset, head_size, stream->streamfile); /* ignore EOF errors */
+            num_track      = get_u8   (frame + 0x00); /* 0=first */
+            /* 0x01(3): num_frame (0=first) */
+            /* 0x04(1): 0? */
+            channel_layout = get_u8   (frame + 0x05); /* bitmask, see mta2.c */
+            frame_size     = get_u16be(frame + 0x06); /* not including this header */
+            /* 0x08(8): null */
+
+            VGM_ASSERT(frame_size == 0, "MTA2: empty frame at %x\n", frame_offset);
+            /* frame_size 0 means silent/empty frame (rarely found near EOF for one track but not others)
+             * negative track only happens for truncated files (EOF) */
+            if (frame_size == 0 || num_track < 0) {
+                for (i = 0; i < samples_to_do; i++)
+                    outbuf[i * channelspacing] = 0;
+                stream->offset += 0x10;
+                return;
+            }
+
+
+            track_channels = 0;
+            for (i = 0; i < 8; i++) { /* max 8ch */
+                if ((channel_layout >> i) & 0x01)
+                    track_channels++;
+            }
+
+            if (track_channels == 0) { /* bad data, avoid div by 0 */
+                VGM_LOG("MTA2: track_channels 0 at %x\n", frame_offset);
+                return;
+            }
+
+            /* assumes tracks channels are divided evenly in all tracks (ex. not 2ch + 1ch + 1ch) */
+            if (channel / track_channels == num_track)
+                break; /* channel belongs to this track */
+
+            /* keep looping for our track */
+            stream->offset += head_size + frame_size;
+            frame_offset = stream->offset;
+        }
+        while (1);
+
+        frame_offset += head_size; /* point to actual data */
+        track_channel = channel % track_channels;
+        if (frame_size > sizeof(frame))
+            return;
+    }
+
 
     /* parse stuff */
-    read_streamfile(frame + 0x10, stream->offset + 0x10, frame_size, stream->streamfile); /* ignore EOF errors */
-    track_channel = channel % track_channels;
+    read_streamfile(frame, frame_offset, frame_size, stream->streamfile); /* ignore EOF errors */
     channel_block_samples = (0x80*2);
     channel_first_sample = first_sample % (0x80*2);
+
 
     /* parse channel frame (header 0x04*4 + data 0x20*4) */
     for (group = 0; group < 4; group++) {
         short hist2, hist1, coefs, scale;
-        uint32_t group_header = get_u32be(frame + 0x10 + track_channel*0x90 + group*0x4);
+        uint32_t group_header = get_u32be(frame + track_channel*0x90 + group*0x4);
         hist2 = (short) ((group_header >> 16) & 0xfff0); /* upper 16b discarding 4b */
         hist1 = (short) ((group_header >>  4) & 0xfff0); /* lower 16b discarding 4b */
         coefs = (group_header >> 5) & 0x7; /* mid 3b */
@@ -118,7 +138,7 @@ void decode_mta2(VGMSTREAMCHANNEL *stream, sample_t *outbuf, int channelspacing,
 
         /* decode nibbles */
         for (row = 0; row < 8; row++) {
-            int pos = 0x10 + track_channel*0x90 + 0x10 + group*0x4 + row*0x10;
+            int pos = track_channel*0x90 + 0x10 + group*0x4 + row*0x10;
             for (col = 0; col < 4*2; col++) {
                 uint8_t nibbles = frame[pos + col/2];
                 int32_t sample;
@@ -148,6 +168,6 @@ void decode_mta2(VGMSTREAMCHANNEL *stream, sample_t *outbuf, int channelspacing,
 
     /* block fully done */
     if (channel_first_sample + samples_done == channel_block_samples)  {
-        stream->offset += 0x10 + frame_size;
+        stream->offset += head_size + frame_size;
     }
 }

@@ -502,6 +502,7 @@ static const char* extension_list[] = {
     "ssd", //txth/reserved [Zack & Wiki (Wii)]
     "ssm",
     "sspr",
+    "ssp",
     "sss",
     "ster",
     "sth",
@@ -1386,6 +1387,7 @@ static const meta_info meta_info_list[] = {
         {meta_WBK_NSLB,             "Treyarch NSLB header"},
         {meta_DSP_APEX,             "Koei Tecmo APEX header"},
         {meta_MPEG,                 "MPEG header"},
+        {meta_SSPF,                 "Konami SSPF header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {
