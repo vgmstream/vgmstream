@@ -1687,6 +1687,9 @@
     <ClCompile Include="meta\sqex_sead.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\sspc.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\sspr.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>

@@ -977,4 +977,6 @@ VGMSTREAM* init_vgmstream_ubi_ckd_cwav(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_mpeg(STREAMFILE* sf);
 
+VGMSTREAM* init_vgmstream_sspf(STREAMFILE* sf);
+
 #endif /*_META_H*/

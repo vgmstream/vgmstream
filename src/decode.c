@@ -1392,7 +1392,7 @@ void decode_vgmstream(VGMSTREAM* vgmstream, int samples_written, int samples_to_
         case coding_MTA2:
             for (ch = 0; ch < vgmstream->channels; ch++) {
                 decode_mta2(&vgmstream->ch[ch], buffer+ch,
-                        vgmstream->channels, vgmstream->samples_into_block, samples_to_do, ch);
+                        vgmstream->channels, vgmstream->samples_into_block, samples_to_do, ch, vgmstream->codec_config);
             }
             break;
         case coding_MC3:
