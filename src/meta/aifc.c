@@ -95,15 +95,18 @@ VGMSTREAM* init_vgmstream_aifc(STREAMFILE* sf) {
      * .fda: Homeworld 2 (PC)
      * .n64: Turok (N64) src
      * .pcm: Road Rash (SAT)
+     * .wav: SimCity 3000 (Mac)
+     * .lwav: for media players that may confuse this format with the usual RIFF WAVE file.
+     * .xa: SimCity 3000 (Mac)
      */
     if (check_extensions(sf, "aif,laif,")) {
         is_aifc_ext = 1;
         is_aiff_ext = 1;
     }
-    else if (check_extensions(sf, "aifc,laifc,afc,cbd2,bgm,fda,n64")) {
+    else if (check_extensions(sf, "aifc,laifc,afc,cbd2,bgm,fda,n64,wav,lwav,xa")) {
         is_aifc_ext = 1;
     }
-    else if (check_extensions(sf, "aiff,laiff,acm,adp,ai,pcm")) {
+    else if (check_extensions(sf, "aiff,laiff,acm,adp,ai,pcm,wav")) {
         is_aiff_ext = 1;
     }
     else {
