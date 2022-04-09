@@ -247,6 +247,7 @@
     <ClCompile Include="meta\spm.c" />
     <ClCompile Include="meta\rad.c" />
     <ClCompile Include="meta\sbk.c" />
+    <ClCompile Include="meta\sspf.c" />
     <ClCompile Include="meta\tgc.c" />
     <ClCompile Include="meta\vs_str.c" />
     <ClCompile Include="meta\ps2_wmus.c" />
@@ -264,7 +265,6 @@
     <ClCompile Include="meta\sqex_scd.c" />
     <ClCompile Include="meta\sqex_scd_sscf.c" />
     <ClCompile Include="meta\sqex_sead.c" />
-    <ClCompile Include="meta\sspc.c" />
     <ClCompile Include="meta\sspr.c" />
     <ClCompile Include="meta\sthd.c" />
     <ClCompile Include="meta\tun.c" />
