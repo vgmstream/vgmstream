@@ -235,10 +235,14 @@ static int parse_header(STREAMFILE* sf, eacs_header* ea, uint32_t offset) {
         ea->num_samples = read_s32(offset+0x0c, sf);
         ea->loop_start  = read_s32(offset+0x10, sf);
         ea->loop_end    = read_s32(offset+0x14, sf) + ea->loop_start; /* loop length */
-        ea->data_offset = read_s32(offset+0x18, sf); /* 0 when blocked */
+        ea->data_offset = read_s32(offset+0x18, sf); /* 0 when blocked, usually */
         /* 0x1c: pan/volume/etc? (0x7F)
          * rest may be padding/garbage */
         //VGM_ASSERT(ea->type != 0, "EA EACS: unknown type %i\n", ea->type);
+
+        /* blocked should set 0 but in rare cases points to data start [NBA Live 95 (MS-DOS)] */
+        if (!ea->is_bank)
+            ea->data_offset = 0;
 
         if (ea->codec == EA_CODEC_IMA)
             ea->codec_config = get_ea_1snh_ima_version(sf, 0x00, ea);
