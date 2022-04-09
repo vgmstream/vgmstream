@@ -511,3 +511,32 @@ VGMSTREAM* init_vgmstream_opus_sqex(STREAMFILE* sf) {
 fail:
     return NULL;
 }
+
+
+/* Idea Factory(?) variation [Birushana: Ichijuu no Kaze (Switch)] */
+VGMSTREAM* init_vgmstream_opus_rsnd(STREAMFILE* sf) {
+    off_t offset = 0;
+    int num_samples = 0, loop_start = 0, loop_end = 0, loop_flag;
+
+    /* checks */
+    if (!is_id32be(0x00, sf,"RSND"))
+        goto fail;
+    if (!check_extensions(sf, "rsnd"))
+        goto fail;
+    /* 0x04: 00? (16b)*/
+    /* 0x06: 00? (8b)*/
+    loop_flag = read_u8(0x07, sf);
+    if (loop_flag) { /* not really needed as both will be 0 */
+        loop_start = read_s32le(0x08, sf);
+        loop_end = read_s32le(0x0c, sf);
+    }
+    offset = read_u32le(0x10, sf); /* always 0x40 */
+    /* 0x14: offset again? */
+    /* 0x18+: null? (unknown numbers in bgm050) */
+    num_samples = 0; /* not loop_end as it isn't set when looping is disabled */
+
+
+    return init_vgmstream_opus(sf, meta_OPUS, offset, num_samples, loop_start, loop_end);
+fail:
+    return NULL;
+}
