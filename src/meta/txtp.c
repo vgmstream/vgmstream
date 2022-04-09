@@ -218,15 +218,12 @@ static void clean_txtp(txtp_header* txtp, int fail) {
 
 static int parse_silents(txtp_header* txtp) {
     int i;
-    int channels = 0;
-    int sample_rate = 0;
-    int32_t num_samples = 0;
+    VGMSTREAM* v_base = NULL;
 
     /* silents use same channels as close files */
     for (i = 0; i < txtp->vgmstream_count; i++) {
         if (!txtp->entry[i].silent) {
-            channels = txtp->vgmstream[i]->channels;
-            sample_rate = txtp->vgmstream[i]->sample_rate;
+            v_base = txtp->vgmstream[i];
             break;
         }
     }
@@ -236,7 +233,7 @@ static int parse_silents(txtp_header* txtp) {
         if (!txtp->entry[i].silent)
             continue;
 
-        txtp->vgmstream[i] = init_vgmstream_silence(channels, sample_rate, num_samples);
+        txtp->vgmstream[i] = init_vgmstream_silence_base(v_base);
         if (!txtp->vgmstream[i]) goto fail;
 
         apply_settings(txtp->vgmstream[i], &txtp->entry[i]);
