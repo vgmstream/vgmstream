@@ -69,10 +69,11 @@
 #define LITTLE_ENDIAN_OUTPUT 1 /* untested in BE */
 
 
-#define DEFAULT_PARAMS { 0, 0, -1, 2.0, 10.0, 0.0,   0, 0, 0, 0 }
+#define DEFAULT_PARAMS { 0, 0, -1, -1, 2.0, 10.0, 0.0,   0, 0, 0, 0 }
 typedef struct {
     int subsong_index;
     int subsong_end;
+    int only_stereo;
 
     double min_time;
     double loop_count;
@@ -317,6 +318,9 @@ static int play_vgmstream(const char* filename, song_settings_t* cfg) {
      */
     apply_config(vgmstream, cfg);
 
+    if (cfg->only_stereo >= 0) {
+        vgmstream_mixing_stereo_only(vgmstream, cfg->only_stereo);
+    }
     input_channels = vgmstream->channels;
     output_channels = vgmstream->channels;
     vgmstream_mixing_enable(vgmstream, 0, &input_channels, &output_channels); /* query */
@@ -721,6 +725,7 @@ static void usage(const char* progname, int is_help) {
         "    -m          Print metadata and playback progress\n"
         "    -s N        Play subsong N, if the format supports multiple subsongs\n"
         "    -S N        Play up to end subsong N (set 0 for 'all')\n"
+        "    -2 N        Play the Nth (first is 0) set of stereo channels\n"
         "    -h          Print this help\n"
         "\n"
         "Looping options:\n"
@@ -771,7 +776,7 @@ again_opts:
         cfg = default_par;
     }
 
-    while ((opt = getopt(argc, argv, "-D:f:l:M:s:B:d:o:P:@:hrmieEcS:")) != -1) {
+    while ((opt = getopt(argc, argv, "-D:f:l:M:s:2:B:d:o:P:@:hrmieEcS:")) != -1) {
         switch (opt) {
             case 1:
                 /* glibc getopt extension
@@ -811,6 +816,9 @@ again_opts:
                     cfg.subsong_end = -1; /* signal up to end (otherwise 0 = not set) */
                 if (!cfg.subsong_index)
                     cfg.subsong_index = 1;
+                break;
+            case '2':
+                cfg.only_stereo = atoi(optarg);
                 break;
             case 'i':
                 cfg.ignore_loop = 1;
