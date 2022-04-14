@@ -10,7 +10,7 @@ if(NOT WIN32 AND USE_SPEEX)
 		FetchDependency(SPEEX
 			DIR speex
 			GIT_REPOSITORY https://gitlab.xiph.org/xiph/speex
-			GIT_TAG 870ff845b32f314aec0036641ffe18aba4916887
+			GIT_TAG Speex-1.2.0
 		)
 		
 		if(SPEEX_PATH)
