@@ -79,9 +79,14 @@ VGMSTREAM* init_vgmstream_sqex_sead(STREAMFILE* sf) {
         goto fail;
     }
 
-    /* SEAD handles both sab/mab in the same lib, and other similar files (config, engine, etc).
+    /* SEAD handles both sab/mab in the same lib (libsead), and other similar files (config, engine, etc).
      * Has some chunks pointing to sections, and each section entry (usually starting with section
-     * version/reserved/size) is always padded to 0x10. Most values are unsigned. */
+     * version/reserved/size) is always padded to 0x10. Most values are unsigned. 
+     * 
+     * "SEAD Engine" (Square Enix Application on Demand Engine) is/was SQEX's internal middleware (~2006),
+     * so it's possible SEAD refers to the whole thing rather than audio, but since .sab/mab audio lib typically goes
+     * with other engines it's hard to say if "libsead" is the whole engine but trimmed with only audio functions,
+     * or is a separate audio lib derived from this "SEAD Engine". */
 
 
     sead.big_endian = guess_endianness16bit(0x06, sf); /* no flag, use size */
