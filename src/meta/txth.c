@@ -2,8 +2,11 @@
 #include "../coding/coding.h"
 #include "../layout/layout.h"
 #include "txth_streamfile.h"
+#include "../util/text_reader.h"
 
-#define TXT_LINE_MAX 0x2000
+#define TXT_LINE_MAX 2048 /* probably ~1000 would be ok */
+#define TXT_LINE_KEY_MAX 128
+#define TXT_LINE_VAL_MAX (TXT_LINE_MAX - TXT_LINE_KEY_MAX)
 
 /* known TXTH types */
 typedef enum {
@@ -862,7 +865,7 @@ static int get_padding_size(txth_header* txth, int discard_empty);
 /* Simple text parser of "key = value" lines.
  * The code is meh and error handling not exactly the best. */
 static int parse_txth(txth_header* txth) {
-    off_t txt_offset, file_size;
+    uint32_t txt_offset;
 
     /* setup txth defaults */
     if (txth->sf_body)
@@ -872,23 +875,28 @@ static int parse_txth(txth_header* txth) {
 
 
     txt_offset = read_bom(txth->sf_text);
-    file_size = get_streamfile_size(txth->sf_text);
 
     /* read lines */
     {
-        char line[TXT_LINE_MAX];
-        char key[TXT_LINE_MAX];
-        char val[TXT_LINE_MAX];
-        /* at least as big as a line to avoid overflows (I hope) */
+        text_reader_t tr;
+        uint8_t buf[TXT_LINE_MAX + 1];
+        char key[TXT_LINE_KEY_MAX];
+        char val[TXT_LINE_VAL_MAX];
+        int ok, line_len;
+        char* line;
 
-        while (txt_offset < file_size) {
-            int ok, bytes_read, line_ok;
+        if (!text_reader_init(&tr, buf, sizeof(buf), txth->sf_text, txt_offset, 0))
+            goto fail;
 
-            bytes_read = read_line(line, sizeof(line), txt_offset, txth->sf_text, &line_ok);
-            if (!line_ok) goto fail;
-            //;VGM_LOG("TXTH: line=%s\n",line);
+        do {
+            line_len = text_reader_get_line(&tr, &line);
+            if (line_len < 0) goto fail; /* too big for buf (maybe not text)) */
 
-            txt_offset += bytes_read;
+            if (line == NULL) /* EOF */
+                break;
+
+            if (line_len == 0) /* empty */
+                continue;
 
             /* get key/val (ignores lead spaces, stops at space/comment/separator) */
             ok = sscanf(line, " %[^ \t#=] = %[^\t#\r\n] ", key,val);
@@ -897,7 +905,8 @@ static int parse_txth(txth_header* txth) {
 
             if (!parse_keyval(txth->sf, txth, key, val)) /* read key/val */
                 goto fail;
-        }
+
+        } while (line_len >= 0);
     }
 
     if (!txth->loop_flag_set)
