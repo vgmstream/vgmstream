@@ -175,6 +175,7 @@
     <ClInclude Include="util\endianness.h" />
     <ClInclude Include="util\log.h" />
     <ClInclude Include="util\m2_psb.h" />
+    <ClInclude Include="util\text_reader.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="coding\at3plus_decoder.c" />
@@ -727,6 +728,7 @@
     <ClCompile Include="util\chunks.c" />
     <ClCompile Include="util\log.c" />
     <ClCompile Include="util\m2_psb.c" />
+    <ClCompile Include="util\text_reader.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
