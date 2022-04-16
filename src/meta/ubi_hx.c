@@ -4,11 +4,12 @@
 #include "../util/endianness.h"
 
 
-typedef enum { PCM, UBI, PSX, DSP, XIMA, ATRAC3, XMA2, MP3 } ubi_hx_codec;
+typedef enum { PCM, UBI, PSX, DSP, XIMA, ATRAC3, XMA2, MP3, SILENCE } ubi_hx_codec;
 
 typedef struct {
     int big_endian;
     int total_subsongs;
+    int is_riff;
 
     int codec_id;
     ubi_hx_codec codec;         /* unified codec */
@@ -68,7 +69,7 @@ VGMSTREAM* init_vgmstream_ubi_hx(STREAMFILE* sf) {
      * Game seems to play files by calling linked ids: EventResData (play/stop/etc) > Random/Program/Wav ResData (1..N refs) > FileIdObj */
 
     /* HX HEADER */
-    hx.big_endian = guess_endianness32bit(0x00, sf);
+    hx.big_endian = guess_endian32(0x00, sf);
     if (!parse_hx(&hx, sf, target_subsong))
         goto fail;
 
@@ -140,13 +141,19 @@ fail:
 static int parse_name(ubi_hx_header* hx, STREAMFILE* sf) {
     read_u32_t read_u32 = hx->big_endian ? read_u32be : read_u32le;
     read_s32_t read_s32 = hx->big_endian ? read_s32be : read_s32le;
-    off_t index_offset, offset;
+    uint32_t index_type, index_offset, offset;
     int i, index_entries;
     char class_name[255];
 
 
     index_offset = read_u32(0x00, sf);
+    index_type = read_u32(index_offset + 0x04, sf);
     index_entries = read_s32(index_offset + 0x08, sf);
+
+    /* doesn't seem to have names (no way to link) */
+    if (index_type == 0x01)
+        return 1;
+
     offset = index_offset + 0x0c;
     for (i = 0; i < index_entries; i++) {
         off_t header_offset;
@@ -169,29 +176,34 @@ static int parse_name(ubi_hx_header* hx, STREAMFILE* sf) {
         //unknown_count = read_s32(offset + 0x00, sf);
         offset += 0x04;
 
-        link_count = read_s32(offset + 0x00, sf);
-        offset += 0x04;
-        for (j = 0; j < link_count; j++) {
-            uint32_t link_id1 = read_u32(offset + 0x00, sf);
-            uint32_t link_id2 = read_u32(offset + 0x04, sf);
-
-            if (link_id1 == hx->cuuid1 && link_id2 == hx->cuuid2) {
-                is_found = 1;
-            }
-            offset += 0x08;
+        if (index_type == 0x01) {
+            goto fail;
         }
+        else {
+            link_count = read_s32(offset + 0x00, sf);
+            offset += 0x04;
+            for (j = 0; j < link_count; j++) {
+                uint32_t link_id1 = read_u32(offset + 0x00, sf);
+                uint32_t link_id2 = read_u32(offset + 0x04, sf);
 
-        language_count = read_s32(offset + 0x00, sf);
-        offset += 0x04;
-        for (j = 0; j < language_count; j++) {
-            uint32_t link_id1 = read_u32(offset + 0x08, sf);
-            uint32_t link_id2 = read_u32(offset + 0x0c, sf);
-
-            if (link_id1 == hx->cuuid1 && link_id2 == hx->cuuid2) {
-                is_found = 1;
+                if (link_id1 == hx->cuuid1 && link_id2 == hx->cuuid2) {
+                    is_found = 1;
+                }
+                offset += 0x08;
             }
 
-            offset += 0x10;
+            language_count = read_s32(offset + 0x00, sf);
+            offset += 0x04;
+            for (j = 0; j < language_count; j++) {
+                uint32_t link_id1 = read_u32(offset + 0x08, sf);
+                uint32_t link_id2 = read_u32(offset + 0x0c, sf);
+
+                if (link_id1 == hx->cuuid1 && link_id2 == hx->cuuid2) {
+                    is_found = 1;
+                }
+
+                offset += 0x10;
+            }
         }
 
         /* identify all possible names so unknown platforms fail */
@@ -228,6 +240,7 @@ static int parse_name(ubi_hx_header* hx, STREAMFILE* sf) {
     }
 
 fail:
+    vgm_logi("UBI HX: error parsing name at %x (report)\n", index_offset);
     return 0;
 }
 
@@ -265,11 +278,14 @@ static int parse_header(ubi_hx_header* hx, STREAMFILE* sf, uint32_t offset, uint
         uint32_t flag_type = read_u32(offset + 0x00, sf);
 
         if (flag_type == 0x01 || flag_type == 0x02) { /* Rayman Arena */
-            uint32_t unk_value = read_u32(offset + 0x04, sf);
-            if (unk_value != 0x00 &&        /* common */
-                unk_value != 0xbe570a3d &&  /* Largo Winch: Empire Under Threat (PC)-most */
-                unk_value != 0xbf8e147b)    /* Largo Winch: Empire Under Threat (PC)-few */
+            uint32_t unk_value = read_u32(offset + 0x04, sf); /* float? */
+            if (unk_value != 0x00 &&            /* common */
+                unk_value != 0xbe570a3d &&      /* Largo Winch: Empire Under Threat (PC)-most */
+                unk_value != 0xbf8e147b) {      /* Largo Winch: Empire Under Threat (PC)-few */
+                VGM_LOG("ubi hx: unknown flag\n");
                 goto fail;
+            }
+
             hx->stream_mode = read_u32(offset + 0x08, sf); /* flag: 0=internal, 1=external */
             /* 0x0c: flag: 0=static, 1=stream */
             offset += 0x10;
@@ -279,7 +295,8 @@ static int parse_header(ubi_hx_header* hx, STREAMFILE* sf, uint32_t offset, uint
             offset += 0x08;
 
             if (strcmp(hx->class_name, "CGCWaveFileIdObj") == 0) {
-                if (read_u32(offset + 0x00, sf) != read_u32(offset + 0x04, sf)) goto fail; /* meaning? */
+                if (read_u32(offset + 0x00, sf) != read_u32(offset + 0x04, sf))
+                    goto fail; /* meaning? */
                 hx->stream_mode = read_u32(offset + 0x04, sf);
                 offset += 0x08;
             }
@@ -302,6 +319,7 @@ static int parse_header(ubi_hx_header* hx, STREAMFILE* sf, uint32_t offset, uint
         //todo probably a flag: &1=external, &2=stream, &8=has adjust (XIII), &4=??? (XIII PS2, small, mono)
         switch(hx->stream_mode) {
             case 0x00: /* memory (internal file) */
+            case 0x02: /* same (no diffs in size/channels/etc?) [Rayman 3 demo (PC)] */
                 riff_offset = offset;
                 riff_size   = read_u32(riff_offset + 0x04, sf) + 0x08;
                 break;
@@ -321,13 +339,17 @@ static int parse_header(ubi_hx_header* hx, STREAMFILE* sf, uint32_t offset, uint
                 break;
 
             default:
-                VGM_LOG("ubi hx: %x\n", hx->stream_mode);
+                VGM_LOG("ubi hx: unknown stream mode %x\n", hx->stream_mode);
                 goto fail;
         }
 
         /* parse pseudo-RIFF "fmt" */
-        if (read_u32(riff_offset, sf) != 0x46464952) /* "RIFF" in machine endianness */
+        if (read_u32(riff_offset, sf) != 0x46464952) { /* "RIFF" in machine endianness */
+            VGM_LOG("ubi hx: unknown RIFF\n");
             goto fail;
+        }
+
+        hx->is_riff = 1;
 
         hx->codec_id = read_u16(riff_offset + 0x14 , sf);
         switch(hx->codec_id) {
@@ -357,12 +379,15 @@ static int parse_header(ubi_hx_header* hx, STREAMFILE* sf, uint32_t offset, uint
                 hx->stream_offset   = read_u32(chunk_offset + 0x00, sf) + stream_adjust;
             }
             else {
+                VGM_LOG("ubi hx: unknown chunk\n");
                 goto fail;
             }
         }
         else {
-            if (!find_chunk_riff_ve(sf, 0x61746164,riff_offset + 0x0c,riff_size - 0x0c, &chunk_offset,&chunk_size, hx->big_endian))
+            if (!find_chunk_riff_ve(sf, 0x61746164,riff_offset + 0x0c,riff_size - 0x0c, &chunk_offset,&chunk_size, hx->big_endian)) {
+                VGM_LOG("ubi hx: unknown chunk RIFF\n");
                 goto fail;
+            }
             hx->stream_offset   = chunk_offset;
 
             if (chunk_size >  riff_size - (chunk_offset - riff_offset) || !chunk_size)
@@ -384,7 +409,11 @@ static int parse_header(ubi_hx_header* hx, STREAMFILE* sf, uint32_t offset, uint
 
         //todo some dummy files have 0 size
 
-        if (read_u32(offset + 0x00, sf) != 0x01) goto fail;
+        if (read_u32(offset + 0x00, sf) != 0x01) {
+            VGM_LOG("ubi hx: unknown flag non 0x01\n");
+            goto fail;
+        }
+
         /* 0x04: some kind of parent id shared by multiple Waves, or 0 */
         offset += 0x08;
 
@@ -400,7 +429,9 @@ static int parse_header(ubi_hx_header* hx, STREAMFILE* sf, uint32_t offset, uint
             switch(hx->channels) { 
                 case 0x48: hx->channels = 1; break;
                 case 0x90: hx->channels = 2; break;
-                default: goto fail;
+                default:
+                    VGM_LOG("ubi hx: channel type %x\n", hx->channels);
+                    goto fail;
             }
             hx->sample_rate = (read_u16(offset + 0x02, sf) & 0x7FFFu) << 1u;  /* ??? */
             cue_flag        = read_u8(offset + 0x03, sf) & (1 << 7);
@@ -461,6 +492,7 @@ static int parse_header(ubi_hx_header* hx, STREAMFILE* sf, uint32_t offset, uint
         }
     }
     else {
+        VGM_LOG("ubi hx: unknown type\n");
         goto fail;
     }
 
@@ -478,13 +510,21 @@ static int parse_hx(ubi_hx_header* hx, STREAMFILE* sf, int target_subsong) {
     uint32_t index_offset, offset;
     int i, index_entries;
     char class_name[255];
+    uint32_t index_type;
 
 
     index_offset = read_u32(0x00, sf);
-    if (read_u32(index_offset + 0x00, sf) != get_id32be("XDNI")) /* (INDX in given endianness) */
+    if (read_u32(index_offset + 0x00, sf) != get_id32be("XDNI")) { /* (INDX in given endianness) */
+        VGM_LOG("ubi hx: unknown index\n");
         goto fail;
-    if (read_u32(index_offset + 0x04, sf) != 0x02) /* type? */
+    }
+
+    /* usually 0x02, rarely 0x01 [Rayman M demo (PS2)] */
+    index_type = read_u32(index_offset + 0x04, sf);
+    if (index_type != 0x01 && index_type != 0x02) {
+        VGM_LOG("ubi hx: unknown index type\n");
         goto fail;
+    }
 
     if (target_subsong == 0) target_subsong = 1;
 
@@ -517,23 +557,29 @@ static int parse_hx(ubi_hx_header* hx, STREAMFILE* sf, int target_subsong) {
         }
         offset += 0x04;
 
-        /* ids that this object directly points to (ex. Event > Random) */
-        link_count = read_s32(offset + 0x00, sf);
-        offset += 0x04 + 0x08 * link_count;
+        if (index_type == 0x01) {
+            link_count = 0;
+            language_count = 0;
+        }
+        else {
+            /* ids that this object directly points to (ex. Event > Random) */
+            link_count = read_s32(offset + 0x00, sf);
+            offset += 0x04 + 0x08 * link_count;
 
-        /* localized id list of WavRes (can use this list instead of the prev one) */
-        language_count = read_s32(offset + 0x00, sf);
-        offset += 0x04;
-        for (j = 0; j < language_count; j++) {
-            /* 0x00: lang code, in reverse endianness: "en  ", "fr  ", etc */
-            /* 0x04: possibly count of ids for this lang */
-            /* 0x08: id1+2 */
+            /* localized id list of WavRes (can use this list instead of the prev one) */
+            language_count = read_s32(offset + 0x00, sf);
+            offset += 0x04;
+            for (j = 0; j < language_count; j++) {
+                /* 0x00: lang code, in reverse endianness: "en  ", "fr  ", etc */
+                /* 0x04: possibly count of ids for this lang */
+                /* 0x08: id1+2 */
 
-            if (read_u32(offset + 0x04, sf) != 1) {
-                VGM_LOG("ubi hx: wrong lang count near %x\n", offset);
-                goto fail; /* WavRes doesn't have this field */
+                if (read_u32(offset + 0x04, sf) != 1) {
+                    VGM_LOG("ubi hx: wrong lang count near %x\n", offset);
+                    goto fail; /* WavRes doesn't have this field */
+                }
+                offset += 0x10;
             }
-            offset += 0x10;
         }
 
         //todo figure out CProgramResData sequences
@@ -571,6 +617,7 @@ static int parse_hx(ubi_hx_header* hx, STREAMFILE* sf, int target_subsong) {
             goto fail;
         }
 
+        /* should only exist on non-wave objects (like CProgramResData) */
         if (link_count != 0) {
             vgm_logi("UBI HX: found links in wav object (report)\n");
             goto fail;
@@ -632,6 +679,12 @@ static VGMSTREAM* init_vgmstream_ubi_hx_header(ubi_hx_header* hx, STREAMFILE* sf
         sb = sf;
     }
 
+    /* very rarely a game uses Ubi ADPCM, but data is empty and has missing header [Rayman 3 demo 3 (PC) fixe.hxc#84] */ 
+    if (hx->is_riff && hx->codec == UBI) { //todo improve
+        if (read_u32le(hx->stream_offset, sb) == 0x02) {
+            hx->codec = SILENCE;
+        }
+    }
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(hx->channels, hx->loop_flag);
@@ -658,6 +711,12 @@ static VGMSTREAM* init_vgmstream_ubi_hx_header(ubi_hx_header* hx, STREAMFILE* sf
             vgmstream->layout_type = layout_none;
 
             vgmstream->num_samples = ubi_adpcm_get_samples(vgmstream->codec_data);
+
+            /* some kind of internal bug I guess, seen in a few subsongs in Rayman 3 PC demo, other values are also buggy */
+            if (vgmstream->num_samples == 0x77E7A374) {
+                vgmstream->num_samples = ubi_adpcm_bytes_to_samples(vgmstream->codec_data, hx->stream_size);
+            }
+
             /* XIII has 6-bit stereo music, Rayman 3 4-bit music, both use 6-bit mono) */
             break;
 
@@ -745,6 +804,13 @@ static VGMSTREAM* init_vgmstream_ubi_hx_header(ubi_hx_header* hx, STREAMFILE* sf
             break;
         }
 #endif
+
+        case SILENCE: /* special hack */
+            vgmstream->coding_type = coding_SILENCE;
+            vgmstream->layout_type = layout_none;
+
+            vgmstream->num_samples = ps_bytes_to_samples(hx->stream_size, hx->channels);
+            break;
         default:
             goto fail;
     }
