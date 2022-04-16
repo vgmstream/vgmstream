@@ -126,25 +126,14 @@ VGMSTREAM* init_vgmstream_bkhd(STREAMFILE* sf) {
 
     /* detect format */
     if (subfile_offset <= 0 || subfile_size <= 0) {
-        /* some indexes don't have data */
         is_dummy = 1;
-    }
-    else if (read_f32(subfile_offset + 0x02, sf) >= 30.0 &&
-             read_f32(subfile_offset + 0x02, sf) <= 250.0) {
-        /* ignore Wwise's custom .wmid (similar to a regular midi but with simplified
-         *  chunks and custom fields: 0x00=MThd's division, 0x02: bpm (new), etc) */
-        is_wmid = 1;
-    }
-    /* default is riff/sfx */
-
-
-    if (is_dummy || is_wmid) {
-        /* for now leave a dummy song for easier .bnk index-to-subsong mapping */
+        /* rarely some indexes don't have data (early bnk)
+         * for now leave a dummy song for easier .bnk index-to-subsong mapping */
         vgmstream = init_vgmstream_silence(0, 0, 0);
         if (!vgmstream) goto fail;
     }
     else {
-        /* could pass .wem but few files need memory .wem detection */
+        /* could pass .wem extension but few files need memory .wem detection */
         temp_sf = setup_subfile_streamfile(sf, subfile_offset, subfile_size, NULL);
         if (!temp_sf) goto fail;
 
@@ -153,12 +142,20 @@ VGMSTREAM* init_vgmstream_bkhd(STREAMFILE* sf) {
             vgmstream = init_vgmstream_wwise_bnk(temp_sf, &prefetch);
             if (!vgmstream) goto fail;
         }
+        else if (read_f32(subfile_offset + 0x02, temp_sf) >= 30.0 &&
+                 read_f32(subfile_offset + 0x02, temp_sf) <= 250.0) {
+            is_wmid = 1;
+            /* ignore Wwise's custom .wmid (similar to a regular midi but with simplified
+             *  chunks and custom fields: 0x00=MThd's division, 0x02: bpm (new), etc) */
+            vgmstream = init_vgmstream_silence(0, 0, 0);
+            if (!vgmstream) goto fail;
+        }
         else {
+            /* may fail if not an actual wfx */
             vgmstream = init_vgmstream_bkhd_fx(temp_sf);
             if (!vgmstream) goto fail;
         }
     }
-
 
     vgmstream->num_streams = total_subsongs;
 

@@ -270,7 +270,8 @@ void decode_ubi_adpcm(VGMSTREAM* vgmstream, sample_t* outbuf, int32_t samples_to
 void reset_ubi_adpcm(ubi_adpcm_codec_data* data);
 void seek_ubi_adpcm(ubi_adpcm_codec_data* data, int32_t num_sample);
 void free_ubi_adpcm(ubi_adpcm_codec_data* data);
-int ubi_adpcm_get_samples(ubi_adpcm_codec_data* data);
+int32_t ubi_adpcm_get_samples(ubi_adpcm_codec_data* data);
+int32_t ubi_adpcm_bytes_to_samples(ubi_adpcm_codec_data* data, uint32_t size);
 
 
 /* imuse_decoder */

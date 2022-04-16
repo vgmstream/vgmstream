@@ -1,6 +1,8 @@
 #include "meta.h"
 
 
+static int freq_to_rate(int freq);
+
 /* SSPF - Konami/KCET banks [Metal Gear Solid 4 (PS3)] */
 VGMSTREAM* init_vgmstream_sspf(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
@@ -8,7 +10,7 @@ VGMSTREAM* init_vgmstream_sspf(STREAMFILE* sf) {
     int loop_flag, channels, sample_rate;
     int32_t num_samples, loop_start;
     int total_subsongs, target_subsong = sf->stream_index;
-    uint32_t file_size, pad_size, offset, bwav_offset, iwav_offset, ssw2_offset, stream_size;
+    uint32_t file_size, pad_size, offset, bwav_offset, iwav_offset, wave_offset, stream_size;
     uint32_t codec;
 
 
@@ -45,42 +47,43 @@ VGMSTREAM* init_vgmstream_sspf(STREAMFILE* sf) {
     offset = iwav_offset + 0x10 + (target_subsong - 1) * 0x20;
 
     /* IWAV entry supposedly contains more info but seems only offset and some ID at 0x14, rest is 0 */
-    ssw2_offset = read_u32be(offset + 0x00,sf) + bwav_offset;
-    if (is_id32be(ssw2_offset,sf, "SSWF")) {
-        /* 
-        04 kType (always 0x01)
-        05 nChannels
-        06 freq
-        08 lpStart
-        0C nSamples
-        */
+    wave_offset = read_u32be(offset + 0x00,sf) + bwav_offset;
+    if (is_id32be(wave_offset,sf, "SSWF")) {
+        codec = read_u8(wave_offset + 0x04,sf); /* kType (always 0x01) */
+        if (read_u8(wave_offset + 0x05,sf) != 0x01) /* nChannels? */
+            goto fail;
+        sample_rate = read_u16be(wave_offset + 0x06,sf); /* not freq (ex. 48000 is used) */
+        loop_start = read_s32be(wave_offset + 0x08,sf);
+        num_samples = read_s32be(wave_offset + 0x0c,sf);
 
-        /* data is some unknown codec that seems to be ADPCM header + byte (simplified MTA2 with only 1 group?) */
-        vgm_logi("SSPF: unsupported SSWF variant at %x\n", ssw2_offset);
-        goto fail;
+        channels = 1;
+        loop_flag = loop_start != 0x7FFFFFFF;
+        start_offset = wave_offset + 0x10;
+
+        stream_size = 0x10 + (num_samples * channels * 0x02); /* implicit */
     }
-    else if (is_id32be(ssw2_offset,sf, "SSW2")) {
-        stream_size = read_u32be(ssw2_offset + 0x04,sf);
+    else if (is_id32be(wave_offset,sf, "SSW2")) {
+        stream_size = read_u32be(wave_offset + 0x04,sf);
         /* 08 version? (always 0) */
-        num_samples = read_s32be(ssw2_offset + 0x0c,sf);
-        codec = read_u32be(ssw2_offset + 0x10,sf); /* kType (always 0x21) */
-        if (read_u32be(ssw2_offset + 0x10,sf) != 0x21)
+        num_samples = read_s32be(wave_offset + 0x0c,sf);
+        codec = read_u32be(wave_offset + 0x10,sf); /* kType (always 0x21) */
+        if (read_u32be(wave_offset + 0x10,sf) != 0x21)
             goto fail;
-        if (read_u8(ssw2_offset + 0x14,sf) != 0x08) /* nBlocks? */
+        if (read_u8(wave_offset + 0x14,sf) != 0x08) /* nBlocks? */
             goto fail;
-        if (read_u8(ssw2_offset + 0x15,sf) != 0x01) /* nChannels? */
+        if (read_u8(wave_offset + 0x15,sf) != 0x01) /* nChannels? */
             goto fail;
 
         channels = 1;
-        sample_rate = read_u16be(ssw2_offset + 0x16,sf);
-        loop_start = read_s32be(ssw2_offset + 0x18,sf);
+        sample_rate = freq_to_rate(read_u16be(wave_offset + 0x16,sf)); /* freq value */
+        loop_start = read_s32be(wave_offset + 0x18,sf);
         /* 0x1c: lpStartAddr (0xFFFFFFFF is none) */
 
         loop_flag = loop_start != 0x7FFFFFFF;
-        start_offset = ssw2_offset + 0x20;
+        start_offset = wave_offset + 0x20;
     }
     else {
-        vgm_logi("SSPF: unknown variant at %x\n", ssw2_offset);
+        vgm_logi("SSPF: unknown variant at %x\n", wave_offset);
         goto fail;
     }
 
@@ -99,6 +102,12 @@ VGMSTREAM* init_vgmstream_sspf(STREAMFILE* sf) {
     vgmstream->stream_size = stream_size;
 
     switch (codec) {
+        case 0x01:
+            vgmstream->coding_type = coding_PCM16BE;
+            vgmstream->layout_type = layout_interleave;
+            vgmstream->interleave_block_size = 0x02;
+            break;
+
         case 0x21:
             vgmstream->coding_type = coding_MTA2;
             vgmstream->codec_config = 1;
@@ -117,4 +126,34 @@ VGMSTREAM* init_vgmstream_sspf(STREAMFILE* sf) {
 fail:
     close_vgmstream(vgmstream);
     return NULL;
+}
+
+/* transforms internal freq to sample rate */
+static int freq_to_rate(int freq) {
+    /* from PowerPC code seems like it's trying something like this, but not quite (PPC is complex):
+        if ((freq & 0xFF) != 0)
+            return powf(10.0, 0.0117647 * (freq & 0xFF))) * 20.0;
+        return powf(10.0, 0.0117647 * 2048)) * 20.0; //???
+     */
+
+    //TODO improve, for now fake it
+    switch(freq) {
+        case 0x9000: return 24000; /* most voices, sounds right */
+        case 0xA200: return 48000; /* most sfx */
+        /* rest is rarely used for some sfx, so it's hard to guess actual frequency and this is just approximate */
+        case 0x9fcd: return 44100;
+        case 0x9c9c: return 39000;
+        case 0x9b79: return 38000;
+        case 0x9b13: return 37000;
+        case 0x9a88: return 36000;
+        case 0x9778: return 32000;
+        case 0x9401: return 28000;
+        case 0x8578: return 16000;
+        case 0x7e00: return 11050;
+        default:
+            VGM_LOG("SSPF: unknown freq %x\n", freq);
+            break;
+    }
+
+    return freq;
 }

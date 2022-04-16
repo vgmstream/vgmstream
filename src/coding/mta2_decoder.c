@@ -4,30 +4,37 @@
 /* MTA2 decoder based on:
  * - MGS Developer Wiki: https://www.mgsdevwiki.com/wiki/index.php/MTA2_(Codec) [codec by daemon1]
  * - Solid4 tools: https://github.com/GHzGangster/Drebin
- * (PS3 probably uses floats, so this may not be 100% accurate)
+ * - Partially reverse engineered to fix tables
+ * - Internal codec name may be "vax2", with Mta2 being the file format.
  *
  * MTA2 layout:
  * - data is divided into N tracks of 0x10 header + 0x90 frame per track channel, forming N streams
  *   ex: 8ch: track0 4ch + track1 4ch + track0 4ch + track1 4ch ...; or 2ch = 1ch track0 + 1ch track1
  *   * up to 16 possible tracks, but max seen is 3 (ex. track0=sneaking, track1=action, track2=ambience)
  * - each ch frame is divided into 4 headers + 4 vertical groups with nibbles (0x4*4 + 0x20*4)
- *   ex. group1 is 0x04(4) + 0x14(4) + 0x24(4) + 0x34(4) ... (vertically maybe for paralelism?)
+ *   ex. group1 is 0x04(4) + 0x14(4) + 0x24(4) + 0x34(4) ... (seemingly for vector paralelism)
  *
  * Due to this vertical layout and multiple hist/indexes, it decodes everything in a block between calls
  * but discards unwanted data, instead of trying to skip to the target nibble. Meaning no need to save hist, and
  * expects samples_to_do to be block_samples at most (could be simplified, I guess).
  */
 
-/* tweaked XA/PSX coefs << 8 */
+/* tblSsw2Vax2K0 / K1 (extended from classic XA's K0/K1 */
+static const float VAX2_K0[8] = { 0.0, 0.9375, 1.796875, 1.53125, 1.90625, 1.796875, 1.796875, 0.9375 };
+static const float VAX2_K1[8] = { -0.0, -0.0, -0.8125, -0.859375, -0.9375, -0.9375, -0.859375, -0.40625 };
+/* tblSsw2Vax2Rng */
+static const float VAX2_RANGES[32] = { 
+       1.0,   1.3125,    1.6875,     2.25,   2.9375,   3.8125,       5.0,   6.5625, 
+    8.5625,  11.1875,    14.625,   19.125,     25.0,    32.75,   42.8125,  55.9375,
+   73.1875,  95.6875,  125.1875, 163.6875, 214.0625, 279.9375,   366.125, 478.8125,
+   626.125, 818.8125, 1070.8125, 1400.375, 1831.375,   2395.0, 3132.0625,   4096.0
+};
+
+/* somewhat equivalent tables K*2^8 (as found elsewhere): */
+# if 0
 static const int16_t mta2_coefs[8][2] = {
-    {   0,    0 },
-    { 240,    0 },
-    { 460, -208 },
-    { 392, -220 },
-    { 488, -240 },
-    { 460, -240 },
-    { 460, -220 },
-    { 240, -104 }
+    {   0,    0 }, { 240,    0 }, { 460, -208 }, { 392, -220 },
+    { 488, -240 }, { 460, -240 }, { 460, -220 }, { 240, -104 }
 };
 
 static const int mta2_scales[32] = {
@@ -36,6 +43,7 @@ static const int mta2_scales[32] = {
      18736,  24503,  32043,  41905,  54802,  71668,  93724,  122568,
     160290, 209620, 274133, 358500, 468831, 613119, 801811, 1048576
 };
+#endif
 
 /* decodes a block for a channel */
 void decode_mta2(VGMSTREAMCHANNEL *stream, sample_t *outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel, int config) {
@@ -120,8 +128,8 @@ void decode_mta2(VGMSTREAMCHANNEL *stream, sample_t *outbuf, int channelspacing,
         uint32_t group_header = get_u32be(frame + track_channel*0x90 + group*0x4);
         hist2 = (short) ((group_header >> 16) & 0xfff0); /* upper 16b discarding 4b */
         hist1 = (short) ((group_header >>  4) & 0xfff0); /* lower 16b discarding 4b */
-        coefs = (group_header >> 5) & 0x7; /* mid 3b */
-        scale = group_header & 0x1f; /* lower 5b */
+        coefs = (group_header >> 5) & 0x07; /* mid 3b */
+        scale = (group_header >> 0) & 0x1f; /* lower 5b */
 
         /* write header samples (skips the last 2 group nibbles), like Drebin's decoder
          * last 2 nibbles and next 2 header hist should match though */
@@ -146,8 +154,11 @@ void decode_mta2(VGMSTREAMCHANNEL *stream, sample_t *outbuf, int channelspacing,
                 sample = col&1 ? /* high nibble first */
                         get_low_nibble_signed(nibbles) :
                         get_high_nibble_signed(nibbles);
+#if 0
                 sample = sample * mta2_scales[scale];
                 sample = (sample + hist1 * mta2_coefs[coefs][0] + hist2 * mta2_coefs[coefs][1] + 128) >> 8;
+#endif
+                sample = (sample * VAX2_RANGES[scale] + hist1 * VAX2_K0[coefs] + hist2 * VAX2_K1[coefs]); /* f32 sample to int */
                 sample = clamp16(sample);
 
                 /* ignore last 2 nibbles (uses first 2 header samples) */

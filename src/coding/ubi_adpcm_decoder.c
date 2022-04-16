@@ -29,7 +29,7 @@ typedef struct {
     uint32_t codes_per_subframe_last;
     uint32_t codes_per_subframe;
     uint32_t subframes_per_frame;
-    uint32_t sample_rate;
+    uint32_t unknown18;
     uint32_t unknown1c;
     uint32_t unknown20;
     uint32_t bits_per_sample;
@@ -179,18 +179,18 @@ void free_ubi_adpcm(ubi_adpcm_codec_data *data) {
 /* ************************************************************************ */
 
 static void read_header_state(uint8_t* data, ubi_adpcm_header_data* header) {
-    header->signature              = get_32bitLE(data + 0x00);
-    header->sample_count           = get_32bitLE(data + 0x04);
-    header->subframe_count         = get_32bitLE(data + 0x08);
-    header->codes_per_subframe_last= get_32bitLE(data + 0x0c);
-    header->codes_per_subframe     = get_32bitLE(data + 0x10);
-    header->subframes_per_frame    = get_32bitLE(data + 0x14);
-    header->sample_rate            = get_32bitLE(data + 0x18); /* optional? */
-    header->unknown1c              = get_32bitLE(data + 0x1c); /* variable */
-    header->unknown20              = get_32bitLE(data + 0x20); /* null? */
-    header->bits_per_sample        = get_32bitLE(data + 0x24);
-    header->unknown28              = get_32bitLE(data + 0x28); /* 1~3? */
-    header->channels               = get_32bitLE(data + 0x2c);
+    header->signature              = get_u32le(data + 0x00);
+    header->sample_count           = get_u32le(data + 0x04);
+    header->subframe_count         = get_u32le(data + 0x08);
+    header->codes_per_subframe_last= get_u32le(data + 0x0c);
+    header->codes_per_subframe     = get_u32le(data + 0x10);
+    header->subframes_per_frame    = get_u32le(data + 0x14);
+    header->unknown18              = get_u32le(data + 0x18); /* sometimes sample rate but algo other values (garbage?) */
+    header->unknown1c              = get_u32le(data + 0x1c); /* variable */
+    header->unknown20              = get_u32le(data + 0x20); /* null? */
+    header->bits_per_sample        = get_u32le(data + 0x24);
+    header->unknown28              = get_u32le(data + 0x28); /* 1~3? */
+    header->channels               = get_u32le(data + 0x2c);
 }
 
 static int parse_header(STREAMFILE* sf, ubi_adpcm_codec_data* data, off_t offset) {
@@ -463,7 +463,7 @@ static void unpack_codes(uint8_t* data, uint8_t* codes, int code_count, int bps)
 
     for (i = 0; i < code_count; i++) {
         if (bits < bps) {
-            uint32_t source32le = (uint32_t)get_32bitLE(data + pos);
+            uint32_t source32le = get_u32le(data + pos);
             pos += 0x04;
 
             input = (input << 32) | (uint64_t)source32le;
@@ -480,31 +480,31 @@ static void read_channel_state(uint8_t* data, ubi_adpcm_channel_data* ch) {
      * probably exist for padding (original code uses MMX to operate in multiple 16b at the same time)
      * or reserved for other bit modes */
 
-    ch->signature   = get_32bitLE(data + 0x00);
-    ch->step1       = get_32bitLE(data + 0x04);
-    ch->next1       = get_32bitLE(data + 0x08);
-    ch->next2       = get_32bitLE(data + 0x0c);
+    ch->signature   = get_u32le(data + 0x00);
+    ch->step1       = get_s32le(data + 0x04);
+    ch->next1       = get_s32le(data + 0x08);
+    ch->next2       = get_s32le(data + 0x0c);
 
-    ch->coef1       = get_16bitLE(data + 0x10);
-    ch->coef2       = get_16bitLE(data + 0x12);
-    ch->unused1     = get_16bitLE(data + 0x14);
-    ch->unused2     = get_16bitLE(data + 0x16);
-    ch->mod1        = get_16bitLE(data + 0x18);
-    ch->mod2        = get_16bitLE(data + 0x1a);
-    ch->mod3        = get_16bitLE(data + 0x1c);
-    ch->mod4        = get_16bitLE(data + 0x1e);
+    ch->coef1       = get_s16le(data + 0x10);
+    ch->coef2       = get_s16le(data + 0x12);
+    ch->unused1     = get_s16le(data + 0x14);
+    ch->unused2     = get_s16le(data + 0x16);
+    ch->mod1        = get_s16le(data + 0x18);
+    ch->mod2        = get_s16le(data + 0x1a);
+    ch->mod3        = get_s16le(data + 0x1c);
+    ch->mod4        = get_s16le(data + 0x1e);
 
-    ch->hist1       = get_16bitLE(data + 0x20);
-    ch->hist2       = get_16bitLE(data + 0x22);
-    ch->unused3     = get_16bitLE(data + 0x24);
-    ch->unused4     = get_16bitLE(data + 0x26);
-    ch->delta1      = get_16bitLE(data + 0x28);
-    ch->delta2      = get_16bitLE(data + 0x2a);
-    ch->delta3      = get_16bitLE(data + 0x2c);
-    ch->delta4      = get_16bitLE(data + 0x2e);
+    ch->hist1       = get_s16le(data + 0x20);
+    ch->hist2       = get_s16le(data + 0x22);
+    ch->unused3     = get_s16le(data + 0x24);
+    ch->unused4     = get_s16le(data + 0x26);
+    ch->delta1      = get_s16le(data + 0x28);
+    ch->delta2      = get_s16le(data + 0x2a);
+    ch->delta3      = get_s16le(data + 0x2c);
+    ch->delta4      = get_s16le(data + 0x2e);
 
-    ch->delta5      = get_16bitLE(data + 0x30);
-    ch->unused5     = get_16bitLE(data + 0x32);
+    ch->delta5      = get_s16le(data + 0x30);
+    ch->unused5     = get_s16le(data + 0x32);
 
     VGM_ASSERT(ch->signature != 0x02,  "UBI ADPCM: incorrect channel header\n");
     VGM_ASSERT(ch->unused3 != 0x00,    "UBI ADPCM: found unused3 used\n");
@@ -580,9 +580,28 @@ static void decode_frame(STREAMFILE* sf, ubi_adpcm_codec_data* data) {
 }
 
 
-int ubi_adpcm_get_samples(ubi_adpcm_codec_data* data) {
+int32_t ubi_adpcm_get_samples(ubi_adpcm_codec_data* data) {
     if (!data)
         return 0;
 
     return data->header.sample_count / data->header.channels;
+}
+
+int32_t ubi_adpcm_bytes_to_samples(ubi_adpcm_codec_data* data, uint32_t size) {
+    uint32_t frame_size;
+
+    if (!data || !data->header.channels || !data->header.subframes_per_frame)
+        return 0;
+
+    /* don't trust subframe count */
+
+    size -= 0x30; /* header */
+
+    frame_size = 0x34 * data->header.channels; /* setup per channel */
+    frame_size += (data->header.codes_per_subframe * data->header.bits_per_sample /*+ 8*/) * data->header.subframes_per_frame / 8;
+    frame_size += data->header.subframes_per_frame * 0x01; /* padding byte */
+
+    return ((size - 0x01) / frame_size) * /* force smaller size so last frame isn't used */
+        data->header.codes_per_subframe * data->header.subframes_per_frame + 
+        data->header.codes_per_subframe_last * data->header.subframes_per_frame;
 }

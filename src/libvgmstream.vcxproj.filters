@@ -323,6 +323,9 @@
     <ClInclude Include="util\m2_psb.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="util\text_reader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="formats.c">
@@ -1967,6 +1970,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="util\m2_psb.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="util\text_reader.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\wbk.c">
