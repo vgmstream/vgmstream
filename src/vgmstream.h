@@ -755,6 +755,7 @@ typedef enum {
     meta_DSP_APEX,
     meta_MPEG,
     meta_SSPF,
+    meta_S3V,
 
 } meta_t;
 
