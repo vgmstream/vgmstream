@@ -431,7 +431,7 @@ static const char* extension_list[] = {
     "rxx", //txth/reserved [Full Auto (X360)]
 
     "s14",
-    "s3v", //txth/reserved [Sound Voltex 5 (AC)]
+    "s3v", //Sound Voltex (AC)
     "sab",
     "sad",
     "saf",
@@ -1388,6 +1388,7 @@ static const meta_info meta_info_list[] = {
         {meta_DSP_APEX,             "Koei Tecmo APEX header"},
         {meta_MPEG,                 "MPEG header"},
         {meta_SSPF,                 "Konami SSPF header"},
+        {meta_S3V,                  "Konami S3V header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {

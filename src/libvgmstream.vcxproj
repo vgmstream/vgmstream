@@ -245,6 +245,7 @@
     <ClCompile Include="meta\ps2_iab.c" />
     <ClCompile Include="meta\mss.c" />
     <ClCompile Include="meta\mtaf.c" />
+    <ClCompile Include="meta\s3v.c" />
     <ClCompile Include="meta\spm.c" />
     <ClCompile Include="meta\rad.c" />
     <ClCompile Include="meta\sbk.c" />
