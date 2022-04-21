@@ -24,7 +24,8 @@ VGMSTREAM * init_vgmstream_2dx9(STREAMFILE *streamFile) {
     if (read_32bitBE(0x6a,streamFile) != 0x64617461) /* data */
         goto fail;
 
-    loop_flag = (read_16bitLE(0x0e,streamFile) > 0);
+    /* IIDX 13 has a false flag for looping files. Konami, pls. */
+    loop_flag = (read_16bitLE(0x0e,streamFile) > -1);
     channel_count = read_16bitLE(0x2e,streamFile);
     start_offset = 0x72;
     
