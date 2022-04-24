@@ -251,8 +251,6 @@ static int test_hca_score(hca_codec_data* data, hca_keytest_t* hk) {
         offset += bytes;
 
         if (score < 0 || score > HCA_KEY_MAX_FRAME_SCORE) {
-            if (score > 0)
-            VGM_LOG("s=%i\n", score);
             total_score = -1;
             break;
         }
@@ -297,7 +295,7 @@ void test_hca_key(hca_codec_data* data, hca_keytest_t* hk) {
 
     score = test_hca_score(data, hk);
 
-    //;VGM_LOG("HCA:+ test key=%08x%08x, subkey=%04x, score=%i\n",
+    //;VGM_LOG("HCA: test key=%08x%08x, subkey=%04x, score=%i\n",
     //        (uint32_t)((hk->key >> 32) & 0xFFFFFFFF), (uint32_t)(hk->key & 0xFFFFFFFF), hk->subkey, score);
 
     /* wrong key */
