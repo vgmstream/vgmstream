@@ -203,8 +203,11 @@ STREAMFILE* hca_get_streamfile(hca_codec_data* data) {
  * (ex. newer Tales of the Rays files clip a lot) */
 #define HCA_KEY_MIN_TEST_FRAMES  3 //7
 #define HCA_KEY_MAX_TEST_FRAMES  7 //12
-/* score of 10~30 isn't uncommon in a single frame, too many frames over that is unlikely */
-#define HCA_KEY_MAX_FRAME_SCORE  150
+/* score of 10~30 isn't uncommon in a single frame, too many frames over that is unlikely
+ * In rare cases of badly mastered frames there are +580. [Iris Mysteria! (Android)]
+ * Lesser is preferable (faster skips) but high scores are less common in the current detection. */
+//TODO: may need to improve detection by counting silent (0) vs valid samples, as bad keys give lots of 0s
+#define HCA_KEY_MAX_FRAME_SCORE  600
 #define HCA_KEY_MAX_TOTAL_SCORE  (HCA_KEY_MAX_TEST_FRAMES * 50*HCA_KEY_SCORE_SCALE)
 
 /* Test a number of frames if key decrypts correctly.
@@ -248,6 +251,8 @@ static int test_hca_score(hca_codec_data* data, hca_keytest_t* hk) {
         offset += bytes;
 
         if (score < 0 || score > HCA_KEY_MAX_FRAME_SCORE) {
+            if (score > 0)
+            VGM_LOG("s=%i\n", score);
             total_score = -1;
             break;
         }
@@ -267,7 +272,7 @@ static int test_hca_score(hca_codec_data* data, hca_keytest_t* hk) {
         switch(score) {
             case 1:  score = 1; break;
             case 0:  score = 3*HCA_KEY_SCORE_SCALE; break; /* blanks after non-blacks aren't very trustable */
-            default: score = score*HCA_KEY_SCORE_SCALE;
+            default: score = score * HCA_KEY_SCORE_SCALE;
         }
 
         total_score += score;
@@ -292,7 +297,7 @@ void test_hca_key(hca_codec_data* data, hca_keytest_t* hk) {
 
     score = test_hca_score(data, hk);
 
-    //;VGM_LOG("HCA: test key=%08x%08x, subkey=%04x, score=%i\n",
+    //;VGM_LOG("HCA:+ test key=%08x%08x, subkey=%04x, score=%i\n",
     //        (uint32_t)((hk->key >> 32) & 0xFFFFFFFF), (uint32_t)(hk->key & 0xFFFFFFFF), hk->subkey, score);
 
     /* wrong key */
