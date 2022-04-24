@@ -1,15 +1,17 @@
 #include "meta.h"
 #include "../coding/coding.h"
+#include "../util/endianness.h"
+
 
 /* P3D - from Radical's Prototype 1/2 (PC/PS3/X360), Spider-Man 4 Beta (X360) */
 VGMSTREAM* init_vgmstream_p3d(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
-    off_t start_offset, offset, name_offset = 0;
+    uint32_t start_offset, offset, name_offset = 0;
     size_t header_size, file_size, data_size;
     uint32_t xma2_offset = 0, xma2_size = 0;
     int loop_flag, channels, sample_rate, codec;
-    int i, name_count, text_len, block_size = 0, num_samples;
-    uint32_t (*read_u32)(off_t,STREAMFILE*) = NULL;
+    int i, name_count, unk_count, text_len, block_size = 0, num_samples;
+    read_u32_t read_u32;
 
 
     /* checks */
@@ -19,30 +21,36 @@ VGMSTREAM* init_vgmstream_p3d(STREAMFILE* sf) {
     if (!check_extensions(sf,"p3d"))
         goto fail;
 
-    read_u32 = guess_endianness32bit(0x04,sf) ? read_u32be : read_u32le;
+    read_u32 = guess_endian32(0x04,sf) ? read_u32be : read_u32le;
     file_size = get_streamfile_size(sf);
 
     /* base header */
     header_size = read_u32(0x04,sf);
-    if (header_size != 0x0C) goto fail;
+    if (header_size != 0x0c) goto fail;
     if (read_u32(0x08,sf) != file_size) goto fail;
-    if (read_u32(0x0C,sf) != 0xFE000000) goto fail; /* fixed */
-    if (read_u32(0x10,sf) + header_size != file_size) goto fail;
-    if (read_u32(0x14,sf) + header_size != file_size) goto fail; /* body size again */
-    if (read_u32(0x18,sf) != 0x0000000A) goto fail; /* fixed */
+    offset = 0x0c; 
 
-    /* header text */
-    offset = 0x1C;
-    text_len = read_u32(offset,sf);
+    /* P3D is just a generic container used in Radical's games, so we only want "AudioFile".
+     * Rarely some voice files start with a "AudioDialogueSubtitle" section, so skip that first */
+    if (is_id64be(offset+0x14,sf, "AudioDia")) {
+        offset += read_u32(offset + 0x04,sf); /* section size */
+    }
+
+    /* AudioFile section */
+    if (read_u32(offset + 0x00,sf) != 0xFE000000) goto fail; /* section marker */
+    if (read_u32(offset + 0x04,sf) + offset != file_size) goto fail; /* AudioFile size */
+    if (read_u32(offset + 0x08,sf) + offset != file_size) goto fail; /* again */
+    if (read_u32(offset + 0x0c,sf) != 0x0000000A) goto fail; /* fixed */
+
+    text_len = read_u32(offset + 0x10,sf);
     if (text_len != 9) goto fail;
-    offset += 0x04;
+    offset += 0x14;
 
-    /* check the type as P3D is just a generic container used in Radical's games */
     if (!is_id64be(offset+0x00,sf, "AudioFil") || read_u16be(offset+0x08,sf) != 0x6500) /* "AudioFile\0" */
         goto fail;
     offset += text_len + 0x01;
 
-    /* file names: always 2 (repeated); but if it's 3 there is an extra string later */
+    /* file names: 1 internal stream name + 1 external filename (usually repeated) + 1 an extra string later (P2) */
     name_count = read_u32(offset,sf);
     if (name_count != 2 && name_count != 3) goto fail; /* 2: Prototype1, 3: Prototype2 */
     offset += 0x04;
@@ -55,8 +63,9 @@ VGMSTREAM* init_vgmstream_p3d(STREAMFILE* sf) {
         offset += 0x04 + text_len;
     }
 
-    /* info count? */
-    if (0x01 != read_u32(offset,sf)) goto fail;
+    /* 1=music, 0=dialogues */
+    unk_count = read_u32(offset,sf);
+    if (unk_count != 0x00 && unk_count != 0x01) goto fail;
     offset += 0x04;
 
     /* next string can be used as a codec id */
@@ -64,8 +73,8 @@ VGMSTREAM* init_vgmstream_p3d(STREAMFILE* sf) {
     codec = read_u32be(offset+0x04,sf);
     offset += 0x04 + text_len + 0x01;
 
-    /* extra "Music" string in Prototype 2 */
-    if (name_count == 3) {
+    /* extra "Music" or "Dialogue" string in Prototype 2 */
+    if (name_count >= 3) {
         text_len = read_u32(offset,sf) + 1; /* null-terminated */
         offset += 0x04 + text_len;
     }

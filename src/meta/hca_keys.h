@@ -952,6 +952,9 @@ static const hcakey_info hcakey_list[] = {
         // Priconne! Grand Masters (iOS/Android)
         {185705658241},         // 0000002B3CEB7781
 
+        // Iris Mysteria (Android)
+        {62049655719861786},    // 00DC71D5479E1E1A
+
 };
 
 #endif/*_HCA_KEYS_H_*/

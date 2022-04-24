@@ -705,17 +705,12 @@ static VGMSTREAM* init_vgmstream_ubi_hx_header(ubi_hx_header* hx, STREAMFILE* sf
             break;
 
         case UBI:
-            vgmstream->codec_data = init_ubi_adpcm(sb, hx->stream_offset, vgmstream->channels);
+            vgmstream->codec_data = init_ubi_adpcm(sb, hx->stream_offset, hx->stream_size, vgmstream->channels);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_UBI_ADPCM;
             vgmstream->layout_type = layout_none;
 
             vgmstream->num_samples = ubi_adpcm_get_samples(vgmstream->codec_data);
-
-            /* some kind of internal bug I guess, seen in a few subsongs in Rayman 3 PC demo, other values are also buggy */
-            if (vgmstream->num_samples == 0x77E7A374) {
-                vgmstream->num_samples = ubi_adpcm_bytes_to_samples(vgmstream->codec_data, hx->stream_size);
-            }
 
             /* XIII has 6-bit stereo music, Rayman 3 4-bit music, both use 6-bit mono) */
             break;
