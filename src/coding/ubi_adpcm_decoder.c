@@ -71,8 +71,8 @@ struct ubi_adpcm_codec_data {
     ubi_adpcm_header_data header;
     ubi_adpcm_channel_data ch[UBI_CHANNELS_MAX];
 
-    off_t start_offset;
-    off_t offset;
+    uint32_t start_offset;
+    uint32_t offset;
     int subframe_number;
 
     uint8_t frame[UBI_FRAME_SIZE_MAX];
@@ -86,16 +86,17 @@ struct ubi_adpcm_codec_data {
 
 /* *********************************************************************** */
 
-static int parse_header(STREAMFILE* sf, ubi_adpcm_codec_data* data, off_t offset);
+static int parse_header(STREAMFILE* sf, ubi_adpcm_codec_data* data, uint32_t offset, uint32_t size);
 static void decode_frame(STREAMFILE* sf, ubi_adpcm_codec_data* data);
+static void fix_samples(ubi_adpcm_codec_data* data, uint32_t size);
 
-ubi_adpcm_codec_data* init_ubi_adpcm(STREAMFILE* sf, off_t offset, int channels) {
+ubi_adpcm_codec_data* init_ubi_adpcm(STREAMFILE* sf, uint32_t offset, uint32_t size, int channels) {
     ubi_adpcm_codec_data* data = NULL;
 
     data = calloc(1, sizeof(ubi_adpcm_codec_data));
     if (!data) goto fail;
 
-    if (!parse_header(sf, data, offset)) {
+    if (!parse_header(sf, data, offset, size)) {
         VGM_LOG("UBI ADPCM: wrong header\n");
         goto fail;
     }
@@ -193,7 +194,7 @@ static void read_header_state(uint8_t* data, ubi_adpcm_header_data* header) {
     header->channels               = get_u32le(data + 0x2c);
 }
 
-static int parse_header(STREAMFILE* sf, ubi_adpcm_codec_data* data, off_t offset) {
+static int parse_header(STREAMFILE* sf, ubi_adpcm_codec_data* data, uint32_t offset, uint32_t size) {
     uint8_t buf[0x30];
     size_t bytes;
 
@@ -213,6 +214,11 @@ static int parse_header(STREAMFILE* sf, ubi_adpcm_codec_data* data, off_t offset
         goto fail;
     if (data->header.channels > UBI_CHANNELS_MAX || data->header.channels < UBI_CHANNELS_MIN)
         goto fail;
+
+    /* some kind of internal bug I guess, seen in a few subsongs in Rayman 3 PC demo */
+    if (data->header.sample_count == 0x77E7A374 * data->header.channels) {
+        fix_samples(data, size);
+    }
 
     return 1;
 fail:
@@ -548,8 +554,8 @@ static void decode_frame(STREAMFILE* sf, ubi_adpcm_codec_data* data) {
 
     bytes = read_streamfile(data->frame, data->offset, frame_size, sf);
     if (bytes != frame_size) {
-        VGM_LOG("UBI ADPCM: wrong bytes read %x vs %x at %lx\n", bytes, frame_size, data->offset);
-        //goto fail; //?
+        VGM_LOG("UBI ADPCM: wrong bytes read %x vs %x at %x\n", bytes, frame_size, data->offset);
+        //goto fail; //may reach EOF earlier
     }
 
     if (channels == 1) {
@@ -587,21 +593,37 @@ int32_t ubi_adpcm_get_samples(ubi_adpcm_codec_data* data) {
     return data->header.sample_count / data->header.channels;
 }
 
-int32_t ubi_adpcm_bytes_to_samples(ubi_adpcm_codec_data* data, uint32_t size) {
-    uint32_t frame_size;
+static void fix_samples(ubi_adpcm_codec_data* data, uint32_t size) {
+    uint32_t frame_size, setup_size, subframe_size, base_frames, last_size;
+    int subframes;
+    int32_t samples;
 
-    if (!data || !data->header.channels || !data->header.subframes_per_frame)
-        return 0;
+    if (!data || !data->header.channels || !data->header.subframes_per_frame || !size)
+        return;
+
+    size -= 0x30; /* ignore header */
+
+    setup_size = 0x34 * data->header.channels; /* setup per channel */
+    subframe_size = (data->header.codes_per_subframe * data->header.bits_per_sample /*+ 8*/) / 8 + 0x01; /* padding byte */
+    frame_size = setup_size + subframe_size * data->header.subframes_per_frame;
 
     /* don't trust subframe count */
+    base_frames = ((size - 0x01) / frame_size); /* force smaller size just in case so last frame isn't used */
+    last_size = size - (base_frames * frame_size);
+    subframes = base_frames * data->header.subframes_per_frame;
 
-    size -= 0x30; /* header */
+    samples = base_frames * (data->header.codes_per_subframe * data->header.subframes_per_frame);
 
-    frame_size = 0x34 * data->header.channels; /* setup per channel */
-    frame_size += (data->header.codes_per_subframe * data->header.bits_per_sample /*+ 8*/) * data->header.subframes_per_frame / 8;
-    frame_size += data->header.subframes_per_frame * 0x01; /* padding byte */
+    /* last subframe is shorter (and may contain padding after codes_per_subframe_last), and last frame may not contain all subframes */
+    if (last_size > setup_size + subframe_size) {
+        samples += data->header.codes_per_subframe * (data->header.subframes_per_frame - 1);
+        subframes += (data->header.subframes_per_frame - 1);
+    }
 
-    return ((size - 0x01) / frame_size) * /* force smaller size so last frame isn't used */
-        data->header.codes_per_subframe * data->header.subframes_per_frame + 
-        data->header.codes_per_subframe_last * data->header.subframes_per_frame;
+    /* for some reason several files that need fixing seem to have garbage in the 2nd half of last codes */
+    samples += data->header.codes_per_subframe_last / 2;
+    subframes += 1;
+
+    data->header.sample_count = samples; /* for all channels */
+    data->header.subframe_count = subframes;
 }

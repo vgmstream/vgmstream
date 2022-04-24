@@ -1018,7 +1018,7 @@ static VGMSTREAM* init_vgmstream_ubi_sb_base(ubi_sb_header* sb, STREAMFILE* sf_h
                 sb->stream_size -= 0x08;
             }
 
-            vgmstream->codec_data = init_ubi_adpcm(sf_data, start_offset, vgmstream->channels);
+            vgmstream->codec_data = init_ubi_adpcm(sf_data, start_offset, 0, vgmstream->channels);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_UBI_ADPCM;
             vgmstream->layout_type = layout_none;
