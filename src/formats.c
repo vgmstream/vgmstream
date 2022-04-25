@@ -431,6 +431,7 @@ static const char* extension_list[] = {
     "rxx", //txth/reserved [Full Auto (X360)]
 
     "s14",
+    "s3s", //txth/reserved [DT Racer (PS2)]
     "s3v", //Sound Voltex (AC)
     "sab",
     "sad",
