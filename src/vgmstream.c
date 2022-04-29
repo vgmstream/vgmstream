@@ -522,6 +522,7 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_sspf,
     init_vgmstream_opus_rsnd,
     init_vgmstream_s3v,
+    init_vgmstream_esf,
 
     /* lower priority metas (no clean header identity, somewhat ambiguous, or need extension/companion file to identify) */
     init_vgmstream_mpeg,
