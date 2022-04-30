@@ -756,6 +756,7 @@ typedef enum {
     meta_MPEG,
     meta_SSPF,
     meta_S3V,
+    meta_ESF,
 
 } meta_t;
 

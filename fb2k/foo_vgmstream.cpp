@@ -223,7 +223,7 @@ void input_vgmstream::get_info(t_uint32 p_subsong, file_info & p_info, abort_cal
     if (total_samples > 0)
         p_info.info_set_int("stream_total_samples", total_samples);
     if (loop_start >= 0 && loop_end > loop_start) {
-        if (loop_flag <= 0) p_info.info_set("looping", "disabled");
+        if (!loop_flag) p_info.info_set("looping", "disabled");
         p_info.info_set_int("loop_start", loop_start);
         p_info.info_set_int("loop_end", loop_end);
     }
