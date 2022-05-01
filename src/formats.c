@@ -1393,6 +1393,7 @@ static const meta_info meta_info_list[] = {
         {meta_SSPF,                 "Konami SSPF header"},
         {meta_S3V,                  "Konami S3V header"},
         {meta_ESF,                  "Eurocom ESF header"},
+        {meta_ADM3,                 "Crankcase ADM3 header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {
