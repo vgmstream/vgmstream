@@ -340,6 +340,37 @@ int mpeg_get_frame_info(STREAMFILE* sf, off_t offset, mpeg_frame_info* info) {
     return mpeg_get_frame_info_h(header, info);
 }
 
+
+uint32_t mpeg_get_tag_size(STREAMFILE* sf, uint32_t offset, uint32_t header) {
+    if (!header)
+        header = read_u32be(offset+0x00, sf);
+
+    /* skip ID3v2 */
+    if ((header & 0xFFFFFF00) == get_id32be("ID3\0")) {
+        size_t frame_size = 0;
+        uint8_t flags = read_u8(offset+0x05, sf);
+        /* this is how it's officially read :/ */
+        frame_size += read_u8(offset+0x06, sf) << 21;
+        frame_size += read_u8(offset+0x07, sf) << 14;
+        frame_size += read_u8(offset+0x08, sf) << 7;
+        frame_size += read_u8(offset+0x09, sf) << 0;
+        frame_size += 0x0a;
+        if (flags & 0x10) /* footer? */
+            frame_size += 0x0a;
+
+        return frame_size;
+        
+    }
+
+    /* skip ID3v1 */
+    if ((header & 0xFFFFFF00) == get_id32be("TAG\0")) {
+        ;VGM_LOG("MPEG: ID3v1 at %x\n", offset);
+        return 0x80;
+    }
+
+    return 0;
+}
+
 size_t mpeg_get_samples(STREAMFILE* sf, off_t start_offset, size_t bytes) {
     off_t offset = start_offset;
     off_t max_offset = start_offset + bytes;
@@ -355,32 +386,13 @@ size_t mpeg_get_samples(STREAMFILE* sf, off_t start_offset, size_t bytes) {
     /* MPEG may use VBR so must read all frames */
     while (offset < max_offset) {
         uint32_t header = read_u32be(offset+0x00, sf);
-
-        /* skip ID3v2 */
-        if ((header & 0xFFFFFF00) == 0x49443300) { /* "ID3\0" */
-            size_t frame_size = 0;
-            uint8_t flags = read_u8(offset+0x05, sf);
-            /* this is how it's officially read :/ */
-            frame_size += read_u8(offset+0x06, sf) << 21;
-            frame_size += read_u8(offset+0x07, sf) << 14;
-            frame_size += read_u8(offset+0x08, sf) << 7;
-            frame_size += read_u8(offset+0x09, sf) << 0;
-            frame_size += 0x0a;
-            if (flags & 0x10) /* footer? */
-                frame_size += 0x0a;
-
-            offset += frame_size;
+        size_t tag_size = mpeg_get_tag_size(sf, offset, header);
+        if (tag_size) {
+            offset += tag_size;
             continue;
         }
 
-        /* skip ID3v1 */
-        if ((header & 0xFFFFFF00) == 0x54414700) { /* "TAG\0" */
-            ;VGM_LOG("MPEG: ID3v1 at %lx\n", offset);
-            offset += 0x80;
-            continue;
-        }
-
-        /* regular frame */
+        /* regular frame (assumed) */
         if (!mpeg_get_frame_info_h(header, &info)) {
             VGM_LOG("MPEG: unknown frame at %lx\n", offset);
             break;
@@ -407,28 +419,31 @@ size_t mpeg_get_samples(STREAMFILE* sf, off_t start_offset, size_t bytes) {
                 }
                 /* other flags indicate seek table and stuff */
 
-                /* vendor specific */
-                if (info.frame_size > xing_offset + 0x78 + 0x24 &&
-                        read_u32be(offset + xing_offset + 0x78, sf) == 0x4C414D45) { /* "LAME" */
-                    if (info.layer == 3) {
-                        uint32_t delays = read_u32be(offset + xing_offset + 0x8C, sf);
-                        encoder_delay   = ((delays >> 12) & 0xFFF);
-                        encoder_padding =  ((delays >> 0) & 0xFFF);
+                ;VGM_LOG("MPEG: found Xing header\n");
 
-                        encoder_delay += (528 + 1); /* implicit MDCT decoder delay (seen in LAME source) */
-                        if (encoder_padding > 528 + 1)
-                            encoder_padding -= (528 + 1);
-                    }
-                    else {
-                        encoder_delay = 240 + 1;
+                /* vendor specific */
+                if (info.frame_size > xing_offset + 0x78 + 0x24) {
+                    uint32_t sub_id = read_u32be(offset + xing_offset + 0x78, sf);
+                    if (sub_id == get_id32be("LAME") || /* LAME */
+                        sub_id == get_id32be("Lavc")) { /* FFmpeg */
+                        if (info.layer == 3) {
+                            uint32_t delays = read_u32be(offset + xing_offset + 0x8C, sf);
+                            encoder_delay   = ((delays >> 12) & 0xFFF);
+                            encoder_padding =  ((delays >> 0) & 0xFFF);
+
+                            encoder_delay += (528 + 1); /* implicit MDCT decoder delay (seen in LAME source) */
+                            if (encoder_padding > 528 + 1)
+                                encoder_padding -= (528 + 1);
+                        }
+                        else {
+                            encoder_delay = 240 + 1;
+                        }
                     }
 
                     /* replay gain and stuff */
                 }
 
                 /* there is also "iTunes" vendor with no apparent extra info, iTunes delays are in "iTunSMPB" ID3 tag */
-
-                ;VGM_LOG("MPEG: found Xing header\n");
                 break; /* we got samples */
              }
         }

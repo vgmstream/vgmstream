@@ -491,6 +491,7 @@ void free_mpeg(mpeg_codec_data* data);
 int mpeg_get_sample_rate(mpeg_codec_data* data);
 long mpeg_bytes_to_samples(long bytes, const mpeg_codec_data* data);
 
+uint32_t mpeg_get_tag_size(STREAMFILE* sf, uint32_t offset, uint32_t header);
 int mpeg_get_frame_info(STREAMFILE* sf, off_t offset, mpeg_frame_info* info);
 #endif
 
