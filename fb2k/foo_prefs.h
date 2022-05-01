@@ -3,10 +3,8 @@
 #ifndef _FOO_PREFS_H
 #define _FOO_PREFS_H
 
-#include <foobar2000.h>
-#include <shared.h>
-#include <ATLHelpers/ATLHelpersLean.h>
-#include <ATLHelpers/misc.h>
+#include <foobar2000/helpers/foobar2000+atl.h>
+#include <foobar2000/helpers/atl-misc.h>
 #include "resource.h"
 
 #define DEFAULT_FADE_SECONDS "10.00"

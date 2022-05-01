@@ -6,7 +6,7 @@ Param(
 )
 
 ###############################################################################
-# CONFIG 
+# CONFIG
 # set these vars to override project defaults
 # can also create a mssvc-build.config.ps1 with those
 ###############################################################################
@@ -75,7 +75,7 @@ function Init
     Download "https://github.com/Microsoft/vswhere/releases/download/2.6.7/vswhere.exe" "$dependencies\vswhere.exe"
 
     # foobar: wtl
-    Download "https://www.nuget.org/api/v2/package/wtl/9.1.1" "$dependencies\wtl.zip"
+    Download "https://www.nuget.org/api/v2/package/wtl/10.0.10320" "$dependencies\wtl.zip"
     Unzip "$dependencies\wtl.zip" "$dependencies\wtl_tmp"
     Move-Item "$dependencies\wtl_tmp\lib\native" "$dependencies\wtl"
     Remove-Item -Path "$dependencies\wtl_tmp" -Recurse
@@ -90,7 +90,7 @@ function Init
     #Download "https://www.foobar2000.org/files/SDK-2018-01-11.zip" "$dependencies\foobar.zip"
 
     # foobar: sdk static mirror
-    Download "https://github.com/vgmstream/vgmstream-deps/raw/master/foobar2000/SDK-2018-02-05.zip" "$dependencies\foobar.zip"
+    Download "https://github.com/vgmstream/vgmstream-deps/raw/master/foobar2000/SDK-2022-01-04.zip" "$dependencies\foobar.zip"
     Unzip "$dependencies\foobar.zip" "$dependencies\foobar"
 
     # foobar: aac (not used ATM)
@@ -108,13 +108,17 @@ function Init
 
     # open foobar sdk project and modify WTL path
     # (maybe should just pass include to CL envvar: set CL=/I"(path)\WTL\Include")
-    [xml]$proj = Get-Content $dependencies\foobar\foobar2000\ATLHelpers\foobar2000_ATL_helpers.vcxproj
+    [xml]$proj = Get-Content $dependencies\foobar\foobar2000\helpers\foobar2000_sdk_helpers.vcxproj
     $proj.project.ItemDefinitionGroup | ForEach-Object {
-        $includes = $proj.CreateElement("AdditionalIncludeDirectories", $proj.project.NamespaceURI)
-        $includes.InnerText = "../../../wtl/include"
-        $_.ClCompile.AppendChild($includes)
+        $_.ClCompile.AdditionalIncludeDirectories += ";../../../wtl/include"
     }
-    $proj.Save("$dependencies\foobar\foobar2000\ATLHelpers\foobar2000_ATL_helpers.vcxproj")
+    $proj.Save("$dependencies\foobar\foobar2000\helpers\foobar2000_sdk_helpers.vcxproj")
+
+    [xml]$proj = Get-Content $dependencies\foobar\libPPUI\libPPUI.vcxproj
+    $proj.project.ItemDefinitionGroup | ForEach-Object {
+        $_.ClCompile.AdditionalIncludeDirectories += ";../../wtl/include"
+    }
+    $proj.Save("$dependencies\foobar\libPPUI\libPPUI.vcxproj")
 }
 
 # main build
