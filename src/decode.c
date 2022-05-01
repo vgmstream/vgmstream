@@ -428,7 +428,9 @@ int get_vgmstream_samples_per_frame(VGMSTREAM* vgmstream) {
             return 64;
         case coding_MS_IMA:
         case coding_REF_IMA:
-            return ((vgmstream->interleave_block_size - 0x04*vgmstream->channels) * 2 / vgmstream->channels) + 1;
+            return ((vgmstream->interleave_block_size - 0x04*vgmstream->channels) * 2 / vgmstream->channels) + 1;/* +1 from header sample */
+        case coding_MS_IMA_mono:
+            return ((vgmstream->frame_size - 0x04) * 2) + 1; /* +1 from header sample */
         case coding_RAD_IMA:
             return (vgmstream->interleave_block_size - 0x04*vgmstream->channels) * 2 / vgmstream->channels;
         case coding_NDS_IMA:
@@ -628,12 +630,14 @@ int get_vgmstream_frame_size(VGMSTREAM* vgmstream) {
         case coding_OKI4S:
         case coding_MTF_IMA:
             return 0x01;
-        case coding_MS_IMA:
         case coding_RAD_IMA:
         case coding_NDS_IMA:
         case coding_DAT4_IMA:
         case coding_REF_IMA:
             return vgmstream->interleave_block_size;
+        case coding_MS_IMA:
+        case coding_MS_IMA_mono:
+            return vgmstream->frame_size;
         case coding_AWC_IMA:
             return 0x800;
         case coding_RAD_IMA_mono:
@@ -931,6 +935,9 @@ void decode_vgmstream(VGMSTREAM* vgmstream, int samples_written, int samples_to_
             }
             break;
         case coding_MS_IMA:
+        case coding_MS_IMA_mono:
+            //TODO: improve
+            vgmstream->codec_config = (vgmstream->coding_type == coding_MS_IMA_mono) || vgmstream->channels == 1; /* mono mode */
             for (ch = 0; ch < vgmstream->channels; ch++) {
                 decode_ms_ima(vgmstream,&vgmstream->ch[ch], buffer+ch,
                         vgmstream->channels, vgmstream->samples_into_block, samples_to_do, ch);

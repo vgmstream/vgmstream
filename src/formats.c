@@ -82,6 +82,7 @@ static const char* extension_list[] = {
     "atx",
     "aud",
     "audio", //txth/reserved [Grimm Echoes (Android)]
+    "audio_data",
     "aus",
     "awa", //txth/reserved [Missing Parts Side A (PS2)]
     "awb",
@@ -781,6 +782,7 @@ static const coding_info coding_info_list[] = {
         {coding_MTF_IMA,            "MT Framework 4-bit IMA ADPCM"},
 
         {coding_MS_IMA,             "Microsoft 4-bit IMA ADPCM"},
+        {coding_MS_IMA_mono,        "Microsoft 4-bit IMA ADPCM (mono/interleave)"},
         {coding_XBOX_IMA,           "XBOX 4-bit IMA ADPCM"},
         {coding_XBOX_IMA_mch,       "XBOX 4-bit IMA ADPCM (multichannel)"},
         {coding_XBOX_IMA_int,       "XBOX 4-bit IMA ADPCM (mono/interleave)"},
@@ -928,6 +930,7 @@ static const layout_info layout_info_list[] = {
         {layout_blocked_vs_square,      "blocked (Square VS)"},
         {layout_blocked_vid1,           "blocked (VID1)"},
         {layout_blocked_ubi_sce,        "blocked (Ubi SCE)"},
+        {layout_blocked_tt_ad,          "blocked (TT AD)"},
 };
 
 static const meta_info meta_info_list[] = {
@@ -1394,6 +1397,7 @@ static const meta_info meta_info_list[] = {
         {meta_S3V,                  "Konami S3V header"},
         {meta_ESF,                  "Eurocom ESF header"},
         {meta_ADM3,                 "Crankcase ADM3 header"},
+        {meta_TT_AD,                "Traveller's Tales AUDIO_DATA header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {

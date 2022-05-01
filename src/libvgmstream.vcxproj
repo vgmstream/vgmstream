@@ -564,6 +564,7 @@
     <ClCompile Include="meta\ta_aac.c" />
     <ClCompile Include="meta\tac.c" />
     <ClCompile Include="meta\thp.c" />
+    <ClCompile Include="meta\tt_ad.c" />
     <ClCompile Include="meta\vgs.c" />
     <ClCompile Include="meta\ubi_bao.c" />
     <ClCompile Include="meta\ubi_ckd.c" />
@@ -722,6 +723,7 @@
     <ClCompile Include="layout\blocked_hwas.c" />
     <ClCompile Include="layout\blocked_str_snds.c" />
     <ClCompile Include="layout\blocked_thp.c" />
+    <ClCompile Include="layout\blocked_tt_ad.c" />
     <ClCompile Include="layout\blocked_vs.c" />
     <ClCompile Include="layout\blocked_ws_aud.c" />
     <ClCompile Include="layout\blocked_wsi.c" />

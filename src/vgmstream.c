@@ -524,6 +524,7 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_s3v,
     init_vgmstream_esf,
     init_vgmstream_adm3,
+    init_vgmstream_tt_ad,
 
     /* lower priority metas (no clean header identity, somewhat ambiguous, or need extension/companion file to identify) */
     init_vgmstream_mpeg,
@@ -1161,9 +1162,10 @@ int vgmstream_open_stream_bf(VGMSTREAM* vgmstream, STREAMFILE* sf, off_t start_o
         goto fail;
     }
 
-    if ((vgmstream->coding_type == coding_MSADPCM ||
-            vgmstream->coding_type == coding_MSADPCM_ck ||
-            vgmstream->coding_type == coding_MSADPCM_int) &&
+    if ((vgmstream->coding_type == coding_MSADPCM || vgmstream->coding_type == coding_MSADPCM_ck ||
+            vgmstream->coding_type == coding_MSADPCM_int ||
+            vgmstream->coding_type == coding_MS_IMA || vgmstream->coding_type == coding_MS_IMA_mono
+            ) &&
             vgmstream->frame_size == 0) {
         vgmstream->frame_size = vgmstream->interleave_block_size;
     }
