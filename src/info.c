@@ -358,7 +358,13 @@ static int get_vgmstream_file_bitrate_main(VGMSTREAM* vgmstream, bitrate_info_t*
      * segments use only a few samples from a full file (like Wwise transitions), bitrates
      * become a bit high since its hard to detect only part of the file is needed. */
 
-    if (vgmstream->layout_type == layout_segmented) {
+    if (vgmstream->stream_size != 0) {
+        /* format may report full size for custom layouts that otherwise get odd values */
+        bitrate += get_vgmstream_file_bitrate_from_size(vgmstream->stream_size, vgmstream->sample_rate, vgmstream->num_samples);
+        if (p_uniques)
+            (*p_uniques)++;
+    }
+    else if (vgmstream->layout_type == layout_segmented) {
         int uniques = 0;
         segmented_layout_data *data = (segmented_layout_data *) vgmstream->layout_data;
         for (i = 0; i < data->segment_count; i++) {
@@ -400,20 +406,20 @@ static int get_vgmstream_file_bitrate_main(VGMSTREAM* vgmstream, bitrate_info_t*
             }
 
             if (is_unique) {
-                size_t stream_size;
-                
+                size_t file_bitrate;
+
                 if (br->count >= br->count_max) goto fail;
                 
                 if (vgmstream->stream_size) {
                     /* stream_size applies to both channels but should add once and detect repeats (for current subsong) */
-                    stream_size = get_vgmstream_file_bitrate_from_size(vgmstream->stream_size, vgmstream->sample_rate, vgmstream->num_samples);
+                    file_bitrate = get_vgmstream_file_bitrate_from_size(vgmstream->stream_size, vgmstream->sample_rate, vgmstream->num_samples);
                 }
                 else {
-                    stream_size = get_vgmstream_file_bitrate_from_streamfile(sf_cur, vgmstream->sample_rate, vgmstream->num_samples);
+                    file_bitrate = get_vgmstream_file_bitrate_from_streamfile(sf_cur, vgmstream->sample_rate, vgmstream->num_samples);
                 }
 
                 /* possible in cases like using silence codec */
-                if (!stream_size)
+                if (!file_bitrate)
                     break;
 
                 br->hash[br->count] = hash_cur;
@@ -423,7 +429,7 @@ static int get_vgmstream_file_bitrate_main(VGMSTREAM* vgmstream, bitrate_info_t*
                 if (p_uniques)
                     (*p_uniques)++;
 
-                bitrate += stream_size;
+                bitrate += file_bitrate;
 
                 break;
             }
