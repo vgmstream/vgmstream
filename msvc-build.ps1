@@ -135,7 +135,7 @@ function CallMsbuild
     $msbuild = & $vswhere -latest -products * -requires Microsoft.Component.MSBuild -find MSBuild\**\Bin\MSBuild.exe
 
     if(!($msbuild -and $(Test-Path $msbuild))) {
-        Write-Error "Unable to find MSBuild. Is Visual Studio installed?"
+        throw "Unable to find MSBuild. Is Visual Studio installed?"
     }
 
     # main build (pass config separate and not as a single string)
@@ -144,6 +144,10 @@ function CallMsbuild
     }
     else {
         & $msbuild $solution $config $platform $toolset $sdk $target /m > "msvc-build.log"
+    }
+
+    if ($LASTEXITCODE -ne 0) {
+        throw "MSBuild failed with error code $LASTEXITCODE"
     }
 }
 
@@ -219,6 +223,7 @@ function MakePackage
 
     if(!(Test-Path "$configuration/test.exe")) {
         Write-Error "Unable to find binaries, check for compilation errors"
+        return
     }
 
     Compress-Archive $cliFiles $configuration/vgmstream-win.zip -Force
