@@ -654,8 +654,8 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
             read_u32be(start_offset+0x3c, sf) == 0xFFFFFFFF)
         goto fail;
 
-    ///* MSADPCM .ckd are parsed elsewhere, though they are valid so no big deal if parsed here (just that loops should be ignored) */
-    if (!fmt.is_at9 && check_extensions(sf, "ckd"))
+    /* MSADPCM .ckd are parsed elsewhere, though they are valid so no big deal if parsed here (just that loops should be ignored) */
+    if (fmt.codec == 0x0002 && check_extensions(sf, "ckd"))
         goto fail;
 
     /* ignore Gitaroo Man Live! (PSP) multi-RIFF (to allow chunked TXTH) */
