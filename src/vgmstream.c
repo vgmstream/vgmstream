@@ -470,7 +470,6 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_csb,
     init_vgmstream_fwse,
     init_vgmstream_fda,
-    init_vgmstream_tgc,
     init_vgmstream_kwb,
     init_vgmstream_lrmd,
     init_vgmstream_bkhd,
@@ -523,6 +522,8 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_opus_rsnd,
     init_vgmstream_s3v,
     init_vgmstream_esf,
+    init_vgmstream_adm3,
+    init_vgmstream_tt_ad,
 
     /* lower priority metas (no clean header identity, somewhat ambiguous, or need extension/companion file to identify) */
     init_vgmstream_mpeg,
@@ -536,6 +537,7 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_seb,
     init_vgmstream_ps2_pnb,
     init_vgmstream_sli_ogg,
+    init_vgmstream_tgc,
 
     /* lowest priority metas (should go after all metas, and TXTH should go before raw formats) */
     init_vgmstream_txth,            /* proper parsers should supersede TXTH, once added */
@@ -1160,9 +1162,10 @@ int vgmstream_open_stream_bf(VGMSTREAM* vgmstream, STREAMFILE* sf, off_t start_o
         goto fail;
     }
 
-    if ((vgmstream->coding_type == coding_MSADPCM ||
-            vgmstream->coding_type == coding_MSADPCM_ck ||
-            vgmstream->coding_type == coding_MSADPCM_int) &&
+    if ((vgmstream->coding_type == coding_MSADPCM || vgmstream->coding_type == coding_MSADPCM_ck ||
+            vgmstream->coding_type == coding_MSADPCM_int ||
+            vgmstream->coding_type == coding_MS_IMA || vgmstream->coding_type == coding_MS_IMA_mono
+            ) &&
             vgmstream->frame_size == 0) {
         vgmstream->frame_size = vgmstream->interleave_block_size;
     }

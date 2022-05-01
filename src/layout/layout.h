@@ -49,6 +49,7 @@ void block_update_xa_aiff(off_t block_offset, VGMSTREAM* vgmstream);
 void block_update_vs_square(off_t block_offset, VGMSTREAM* vgmstream);
 void block_update_vid1(off_t block_offset, VGMSTREAM* vgmstream);
 void block_update_ubi_sce(off_t block_offset, VGMSTREAM* vgmstream);
+void block_update_tt_ad(off_t block_offset, VGMSTREAM* vgmstream);
 
 /* other layouts */
 void render_vgmstream_interleave(sample_t* buffer, int32_t sample_count, VGMSTREAM* vgmstream);

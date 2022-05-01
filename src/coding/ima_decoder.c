@@ -563,21 +563,23 @@ void decode_blitz_ima(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channels
 /* IMA with custom frame sizes, header and nibble layout. Outputs an odd number of samples per frame,
  * so to simplify calcs this decodes full frames, thus hist doesn't need to be mantained.
  * Officially defined in "Microsoft Multimedia Standards Update" doc (RIFFNEW.pdf). */
-void decode_ms_ima(VGMSTREAM * vgmstream, VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
+void decode_ms_ima(VGMSTREAM* vgmstream, VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
     int i, samples_read = 0, samples_done = 0, max_samples;
     int32_t hist1;// = stream->adpcm_history1_32;
     int step_index;// = stream->adpcm_step_index;
+    int frame_channels = vgmstream->codec_config ? 1 : vgmstream->channels; /* mono or mch modes */
+    int frame_channel =  vgmstream->codec_config ? 0 : channel;
 
     /* internal interleave (configurable size), mixed channels */
-    int block_samples = ((vgmstream->interleave_block_size - 0x04*vgmstream->channels) * 2 / vgmstream->channels) + 1;
+    int block_samples = ((vgmstream->frame_size - 0x04*frame_channels) * 2 / frame_channels) + 1;
     first_sample = first_sample % block_samples;
 
     /* normal header (hist+step+reserved), per channel */
     { //if (first_sample == 0) {
-        off_t header_offset = stream->offset + 0x04*channel;
+        off_t header_offset = stream->offset + 0x04*frame_channel;
 
-        hist1 =   read_16bitLE(header_offset+0x00,stream->streamfile);
-        step_index = read_8bit(header_offset+0x02,stream->streamfile); /* 0x03: reserved */
+        hist1 =   read_s16le(header_offset+0x00,stream->streamfile);
+        step_index = read_u8(header_offset+0x02,stream->streamfile); /* 0x03: reserved */
         if (step_index < 0) step_index = 0;
         if (step_index > 88) step_index = 88;
 
@@ -595,7 +597,7 @@ void decode_ms_ima(VGMSTREAM * vgmstream, VGMSTREAMCHANNEL * stream, sample_t * 
 
     /* decode nibbles (layout: alternates 4 bytes/4*2 nibbles per channel) */
     for (i = 0; i < max_samples; i++) {
-        off_t byte_offset = stream->offset + 0x04*vgmstream->channels + 0x04*channel + 0x04*vgmstream->channels*(i/8) + (i%8)/2;
+        off_t byte_offset = stream->offset + 0x04*frame_channels + 0x04*frame_channel + 0x04*frame_channels*(i/8) + (i%8)/2;
         int nibble_shift = (i&1?4:0); /* low nibble first */
 
         std_ima_expand_nibble(stream, byte_offset,nibble_shift, &hist1, &step_index); /* original expand */
@@ -609,7 +611,7 @@ void decode_ms_ima(VGMSTREAM * vgmstream, VGMSTREAMCHANNEL * stream, sample_t * 
 
     /* internal interleave: increment offset on complete frame */
     if (first_sample + samples_done == block_samples)  {
-        stream->offset += vgmstream->interleave_block_size;
+        stream->offset += vgmstream->frame_size;
     }
 
     //stream->adpcm_history1_32 = hist1;

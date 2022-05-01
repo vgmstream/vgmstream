@@ -2,16 +2,33 @@
 #include "../coding/coding.h"
 
 
-/* MPEG - standard MP1/2/3 audio MP3 */
+/* MPEG - standard MP1/2/3 audio */
 VGMSTREAM* init_vgmstream_mpeg(STREAMFILE* sf) {
 #ifdef VGM_USE_MPEG
     VGMSTREAM* vgmstream = NULL;
+    uint32_t start_offset;
     int loop_flag = 0;
     mpeg_frame_info info = {0};
+    uint32_t header_id;
 
 
     /* checks */
-    if (!mpeg_get_frame_info(sf, 0x00, &info))
+    header_id = read_u32be(0x00, sf);
+    if ((header_id & 0xFFF00000) != 0xFFF00000 &&
+        (header_id & 0xFFFFFF00) != get_id32be("ID3\0") &&
+        (header_id & 0xFFFFFF00) != get_id32be("TAG\0"))
+        goto fail;
+
+    //TODO: may try init_mpeg as-is, already skips tags
+    start_offset = 0x00;
+    while (start_offset < get_streamfile_size(sf)) {
+        uint32_t tag_size = mpeg_get_tag_size(sf, start_offset, 0);
+        if (tag_size == 0)
+            break;
+        start_offset += tag_size;
+    }
+
+    if (!mpeg_get_frame_info(sf, start_offset, &info))
         goto fail;
 
     /*  .mp3/mp2: standard (is .mp1 ever used in games?)

@@ -21,7 +21,7 @@ VGMSTREAM* init_vgmstream_sspf(STREAMFILE* sf) {
         goto fail;
 
     /* extra check to ignore .spc, that are a RAM pack of .ssp with a ~0x800 table at the end */
-    file_size = read_u32be(0x08, sf) + 0x08; /* without padding */
+    file_size = read_u32be(0x08, sf); /* without padding */
     pad_size = 0;
     if (file_size % 0x800) /* add padding */
         pad_size = 0x800 - (file_size % 0x800);

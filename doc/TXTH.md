@@ -92,6 +92,9 @@ as explained below, but often will use default values. Accepted codec strings:
 #   * Variation with modified encoding
 # - PCM8_U_int     PCM 8-bit unsigned (interleave block)
 #   * Variation with modified encoding
+# - PCM_FLOAT_LE   PCM 32-bit float little endian
+#   * For few rare games [Ikinari Maou (Switch)]
+#   * Interleave is multiple of 0x4 (default)
 # - IMA            IMA ADPCM (mono/stereo)
 #   * For some PC games, and rarely consoles
 #   * Special interleave is multiple of 0x1, often +0x80

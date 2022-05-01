@@ -1,6 +1,6 @@
 #include "meta.h"
 #include "../coding/coding.h"
-#include "cri_utf.h"
+#include "../util/cri_utf.h"
 
 
 typedef enum { HCA, CWAV, ADX } cpk_type_t;
@@ -26,10 +26,11 @@ VGMSTREAM* init_vgmstream_cpk_memory(STREAMFILE* sf, STREAMFILE* sf_acb) {
 
 
     /* checks */
-    if (!check_extensions(sf, "awb"))
-        goto fail;
     if (!is_id32be(0x00,sf, "CPK "))
         goto fail;
+    if (!check_extensions(sf, "awb"))
+        goto fail;
+
     if (!is_id32be(0x10,sf, "@UTF"))
         goto fail;
     /* 04: 0xFF? */

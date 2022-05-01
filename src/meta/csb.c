@@ -1,6 +1,6 @@
 #include "meta.h"
 #include "../coding/coding.h"
-#include "cri_utf.h"
+#include "../util/cri_utf.h"
 
 
 /* CSB (Cue Sheet Binary?) - CRI container of memory audio, often together with a .cpk wave bank */
@@ -9,8 +9,8 @@ VGMSTREAM* init_vgmstream_csb(STREAMFILE* sf) {
     STREAMFILE* temp_sf = NULL;
     off_t subfile_offset;
     size_t subfile_size;
-    utf_context *utf = NULL;
-    utf_context *utf_sdl = NULL;
+    utf_context* utf = NULL;
+    utf_context* utf_sdl = NULL;
     int total_subsongs, target_subsong = sf->stream_index;
     uint8_t fmt = 0;
     const char* stream_name = NULL;

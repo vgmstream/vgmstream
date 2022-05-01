@@ -95,9 +95,6 @@
     <ClInclude Include="meta\bnsf_keys.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="meta\cri_utf.h">
-      <Filter>meta\Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="meta\deblock_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
@@ -314,6 +311,9 @@
     <ClInclude Include="util\chunks.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="util\cri_utf.h">
+      <Filter>meta\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="util\endianness.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -415,6 +415,9 @@
     <ClCompile Include="meta\acx.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\adm3.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\adp_konami.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -485,9 +488,6 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\cpk.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="meta\cri_utf.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\csb.c">
@@ -1156,6 +1156,9 @@
     <ClCompile Include="meta\thp.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\tt_ad.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\vgs.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -1603,6 +1606,9 @@
     <ClCompile Include="layout\blocked_thp.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="layout\blocked_tt_ad.c">
+      <Filter>layout\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="layout\blocked_vs.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
@@ -1965,6 +1971,9 @@
     </ClCompile>
     <ClCompile Include="util\chunks.c">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="util\cri_utf.c">
+      <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="util\log.c">
       <Filter>Source Files</Filter>

@@ -304,6 +304,7 @@ int render_layout(sample_t* buf, int32_t sample_count, VGMSTREAM* vgmstream) {
         case layout_blocked_vs_square:
         case layout_blocked_vid1:
         case layout_blocked_ubi_sce:
+        case layout_blocked_tt_ad:
             render_vgmstream_blocked(buf, sample_count, vgmstream);
             break;
         case layout_segmented:
