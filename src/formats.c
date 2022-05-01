@@ -522,6 +522,7 @@ static const char* extension_list[] = {
     "swag",
     "swav",
     "swd",
+    "switch", //txth/reserved (.m4a-x.switch) [Ikinari Maou (Switch)]
     "switch_audio",
     "sx",
     "sxd",
