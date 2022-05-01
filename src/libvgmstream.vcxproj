@@ -110,7 +110,6 @@
     <ClInclude Include="meta\bar_streamfile.h" />
     <ClInclude Include="meta\bgw_streamfile.h" />
     <ClInclude Include="meta\bnsf_keys.h" />
-    <ClInclude Include="meta\cri_utf.h" />
     <ClInclude Include="meta\deblock_streamfile.h" />
     <ClInclude Include="meta\ea_eaac_streamfile.h" />
     <ClInclude Include="meta\ea_eaac_opus_streamfile.h" />
@@ -172,6 +171,7 @@
     <ClInclude Include="coding\tac_decoder_lib_ops.h" />
     <ClInclude Include="layout\layout.h" />
     <ClInclude Include="util\chunks.h" />
+    <ClInclude Include="util\cri_utf.h" />
     <ClInclude Include="util\endianness.h" />
     <ClInclude Include="util\log.h" />
     <ClInclude Include="util\m2_psb.h" />
@@ -340,7 +340,6 @@
     <ClCompile Include="meta\ck.c" />
     <ClCompile Include="meta\compresswave.c" />
     <ClCompile Include="meta\cpk.c" />
-    <ClCompile Include="meta\cri_utf.c" />
     <ClCompile Include="meta\csb.c" />
     <ClCompile Include="meta\csmp.c" />
     <ClCompile Include="meta\cstr.c" />
@@ -731,6 +730,7 @@
     <ClCompile Include="layout\blocked_xa_aiff.c" />
     <ClCompile Include="layout\blocked_xvas.c" />
     <ClCompile Include="util\chunks.c" />
+    <ClCompile Include="util\cri_utf.c" />
     <ClCompile Include="util\log.c" />
     <ClCompile Include="util\m2_psb.c" />
     <ClCompile Include="util\text_reader.c" />

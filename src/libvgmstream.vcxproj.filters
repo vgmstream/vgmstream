@@ -95,9 +95,6 @@
     <ClInclude Include="meta\bnsf_keys.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="meta\cri_utf.h">
-      <Filter>meta\Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="meta\deblock_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
@@ -314,6 +311,9 @@
     <ClInclude Include="util\chunks.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="util\cri_utf.h">
+      <Filter>meta\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="util\endianness.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -488,9 +488,6 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\cpk.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="meta\cri_utf.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\csb.c">
@@ -1974,6 +1971,9 @@
     </ClCompile>
     <ClCompile Include="util\chunks.c">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="util\cri_utf.c">
+      <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="util\log.c">
       <Filter>Source Files</Filter>
