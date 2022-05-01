@@ -4,8 +4,6 @@
 #include <stdio.h>
 #include <io.h>
 
-#include <foobar2000.h>
-#include <shared.h>
 #include "foo_prefs.h"
 extern "C" {
 #include "../src/vgmstream.h"

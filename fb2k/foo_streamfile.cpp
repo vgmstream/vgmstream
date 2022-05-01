@@ -5,9 +5,7 @@
 #include <stdio.h>
 #include <io.h>
 
-#include <foobar2000.h>
-#include <ATLHelpers/ATLHelpersLean.h>
-#include <shared.h>
+#include <foobar2000/SDK/foobar2000.h>
 
 extern "C" {
 #include "../src/streamfile.h"

@@ -30,6 +30,7 @@ class input_vgmstream : public input_stubs {
 
         void retag_set_info(t_uint32 p_subsong, const file_info & p_info, abort_callback & p_abort);
         void retag_commit(abort_callback & p_abort);
+        void remove_tags(abort_callback & p_abort);
 
         static bool g_is_our_content_type(const char * p_content_type);
         static bool g_is_our_path(const char * p_path, const char * p_extension);

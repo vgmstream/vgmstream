@@ -20,16 +20,15 @@
     </SccLocalPath>
     <SccProvider>
     </SccProvider>
-    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Utility</ConfigurationType>
-    <PlatformToolset>v141_xp</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Utility</ConfigurationType>
-    <PlatformToolset>v141_xp</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -109,7 +108,7 @@
       <Command>lib /def:libspeex/libspeex.def /machine:x86 /out:libspeex/libspeex.lib</Command>
       <Outputs>libspeex/libspeex.lib;libspeex/libspeex.exp;%(Outputs)</Outputs>
     </CustomBuild>
-	<CustomBuild Include="jansson.def">
+    <CustomBuild Include="jansson.def">
       <Message>Building library stub</Message>
       <Command>lib /def:jansson.def /machine:x86 /out:jansson.lib</Command>
       <Outputs>jansson.lib;jansson.exp;%(Outputs)</Outputs>

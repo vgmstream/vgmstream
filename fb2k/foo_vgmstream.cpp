@@ -8,9 +8,7 @@
 #include <stdio.h>
 #include <io.h>
 
-#include <foobar2000.h>
-#include <ATLHelpers/ATLHelpersLean.h>
-#include <shared.h>
+#include <foobar2000/SDK/foobar2000.h>
 
 extern "C" {
 #include "../src/vgmstream.h"
@@ -329,6 +327,7 @@ void input_vgmstream::decode_on_idle(abort_callback & p_abort) {/*m_file->on_idl
 
 void input_vgmstream::retag_set_info(t_uint32 p_subsong, const file_info & p_info, abort_callback & p_abort) { /*throw exception_io_data();*/ }
 void input_vgmstream::retag_commit(abort_callback & p_abort) { /*throw exception_io_data();*/ }
+void input_vgmstream::remove_tags(abort_callback & p_abort) { /*throw exception_io_data();*/ }
 
 bool input_vgmstream::g_is_our_content_type(const char * p_content_type) { return false; }
 
