@@ -118,6 +118,8 @@ static const char* extension_list[] = {
     "bo2",
     "brstm",
     "brstmspm",
+    "brwav",
+    "brwsd",
     "bsnd",
     "btsnd",
     "bvg",
