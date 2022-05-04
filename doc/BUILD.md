@@ -4,7 +4,7 @@ This document explains how to build each of vgmstream's components and libraries
 
 ## Compilation requirements
 vgmstream can be compiled using one of several build scripts that are available in this repository. Components are detailed below, but if you are new to development you probably want one of these:
-- **Windows**: [simple scripts](#simple-scripts-builds) + [Visual Studio](#microsofts-visual-c-msvc--visual-studio--msbuild-compiler)
+- **Windows**: [simple scripts](#simple-scripts-builds) + [Visual Studio 2019](#microsofts-visual-c-msvc--visual-studio--msbuild-compiler)
 - **Linux**: [CMake](#cmake-builds) + [GCC](#gcc--make-compiler)
 - **macOS**: [CMake](#cmake-builds) + [Clang](#clang-compiler)
 - **Web**: [CMake](#cmake-builds) + [Emscripten](#emscripten-compiler)
@@ -50,7 +50,7 @@ make
 - May try https://formulae.brew.sh/formula/vgmstream instead (not part of this project)
 
 ### Windows
-- Install Visual Studio: https://www.visualstudio.com/downloads/ (for C/C++, with "MFC support" and "ATL support)
+- Install Visual Studio: https://www.visualstudio.com/downloads/ (for C/C++, with "MFC support" and "ATL support")
 - Make a file called `msvc-build.config.ps1` in vgmstream's root, with your installed toolset and SDK:
 ```ps1
 # - toolsets: "" (default), "v140" (VS 2015), "v141" (VS 2017), "v141_xp" (XP support), "v142" (VS 2019), etc
@@ -90,7 +90,7 @@ Visual Studio Community (free) should work, but you may need to register after a
 
 Instead of the full (usually huge) Visual Studio, you can also get "Build Tools for Visual Studio", variation that only installs *MSBuild* and necessary files without the IDE. Usually found in the above link, under "Tools for Visual Studio" (or google as MS's links tend to move around).
 
-When installing check the "Desktop development with C++" group, and optionally select "MFC support" and "ATL support" sub-options to build foobar2000 plugin (you can modify that or re-install IDE later, by running installed "Visual Studio Installer"). You could include MSVC v141 (2017) compatibility too just in case, since it's mainly tested with that.
+When installing check the "Desktop development with C++" group, and optionally select "MFC support" and "ATL support" sub-options to build foobar2000 plugin (you can modify that or re-install IDE later, by running installed "Visual Studio Installer"). You can include MSVC v142 (2019) toolset, too, just in case, since it's mainly tested with that.
 
 Older versions of MSVC (2010 and earlier) have limited C support and may not work with latest commits, while reportedly beta/new versions aren't always very stable. Also, only projects (`.vcxproj`) for VS2015+ are included (CMake may be able to generate older `.vcproj` if you really need them). Some very odd issues affecting MSVC only have been found and fixed before. Keep in mind all of this if you run into problems.
 
@@ -300,18 +300,16 @@ While the official name for the CLI tool is `vgmstream-cli`, on **Windows**, `te
 Requires MSVC (foobar/SDK only links to MSVC C++ DLLs). To build in Visual Studio, run `./msvc-build-init.bat`, open `vgmstream_full.sln` and compile. To build from the command line, just run `./msvc-build.bat`.
 
 foobar has multiple dependencies. Build script downloads them automatically, but here they are:
-- foobar2000 SDK (2018), in *(vgmstream)/dependencies/foobar/*: http://www.foobar2000.org/SDK
+- foobar2000 SDK (2022-01-04), in *(vgmstream)/dependencies/foobar/*: http://www.foobar2000.org/SDK
 - WTL (if needed), in *(vgmstream)/dependencies/WTL/*: http://wtl.sourceforge.net/
 - (optional/disabled) FDK-AAC, in *(vgmstream)/dependencies/fdk-aac/*: https://github.com/kode54/fdk-aac
 - (optional/disabled) QAAC, in *(vgmstream)/dependencies/qaac/*: https://github.com/kode54/qaac
 - may need to install ATL and MFC libraries if not included by default (can be added from the Visual Studio installer)
 
 The following project modifications are required:
-- For *foobar2000_ATL_helpers* add *../../../WTL/Include* to the compilers's *additional includes*
+- For *foobar2000_sdk_helpers* and *libPPUI* add *../../../wtl/include* to the compilers's *additional includes*
 
 FDK-AAC/QAAC can be enabled adding *VGM_USE_MP4V2* and *VGM_USE_FDKAAC* in the compiler/linker options and the project dependencies, otherwise FFmpeg is used instead to support .mp4. FDK-AAC Support is limited so FFmpeg is recommended.
-
-In theory any foobar SDK should work, but there may be issues when using versions past *2018-02-05*. For those you need to change *RuntimeLibrary* from *MultiThreadedDebug* and *MultiThreaded* to *MultiThreadedDebugDLL* and *MultiThreadedDLL* (to match newer SDK settings). Mirror in case official site is down: https://github.com/vgmstream/vgmstream-deps/raw/master/foobar2000/SDK-2018-02-05.zip
 
 You can also manually use the command line to compile with MSBuild, if you don't want to touch the `.vcxproj` files, register VS after trial, get PowerShell dependencies for the build script, or only have VC++/MSBuild tools.
 
@@ -326,7 +324,7 @@ set PATH=%PATH%;C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\M
 
 cd vgmstream
 
-set CL=/I"C:\projects\WTL\Include"
+set CL=/I"C:\projects\wtl\include"
 set LINK="C:\projects\foobar\foobar2000\shared\shared.lib"
 
 msbuild fb2k/foo_input_vgmstream.vcxproj ^
