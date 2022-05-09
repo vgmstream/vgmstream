@@ -445,6 +445,9 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
         else if (codec == 0xFFFE && riff_size + 0x08 + 0x38 == file_size)
             riff_size += 0x38; /* [Sengoku Basara 4 (PS3)] (adds "ver /eBIT/tIME/mrkr" chunks but RIFF size wasn't updated) */
 
+        else if (codec == 0xFFFE && riff_size + 0x08 + 0x08 == file_size)
+            riff_size += 0x08; /* [Tales of Xillia (PS3)] */
+
         else if (codec == 0x0002 && riff_size + 0x08 + 0x1c == file_size)
             riff_size += 0x1c; /* [Mega Man X Legacy Collection (PC)] (adds "ver /tIME/ver " chunks but RIFF size wasn't updated) */
 
