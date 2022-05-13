@@ -7,7 +7,7 @@ VGMSTREAM* init_vgmstream_atsl(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     STREAMFILE* temp_sf = NULL;
     int total_subsongs, target_subsong = sf->stream_index;
-    int type, big_endian = 0, entries;
+    int type, version, big_endian = 0, entries;
     uint32_t subfile_offset = 0, subfile_size = 0, header_size, entry_size;
 
     init_vgmstream_t init_vgmstream = NULL;
@@ -42,12 +42,14 @@ VGMSTREAM* init_vgmstream_atsl(STREAMFILE* sf) {
      * - 01000000 01010501  .atsl from Nioh (PC)[KOVS] 2017-11
      * - 01000000 00010501  .atsl from Nioh (PC)[KOVS] 2017-11
      * - 000B0301 00080601  .atsl in G1l from Sengoku Musou Sanada Maru (Switch)[KTSS] 2017-09
+     * - 03070301 01060301  .atsl from Nioh (PS4)[ATRAC9]
+     * - 00090301 01060501  .atsl from Nioh (PS4)[ATRAC9]-bigger header
      * - 010C0301 01060601  .atsl from Dynasty Warriors 9 (PS4)[KTAC]
      * - 010D0301 01010601  .atsl from Dynasty Warriors 9 DLC (PC)[KOVS]
      */
 
     type = read_u16le(0x0c, sf);
-    //version = read_u16le(0x0e, sf);
+    version = read_u16le(0x0e, sf);
     switch(type) {
         case 0x0100: /* KOVS */
             init_vgmstream = init_vgmstream_ogg_vorbis;
@@ -71,10 +73,17 @@ VGMSTREAM* init_vgmstream_atsl(STREAMFILE* sf) {
             fake_ext = "at9";
             entry_size = 0x28;
             break;
-        case 0x0601: /* KTAC */
-            init_vgmstream = init_vgmstream_ktac;
-            fake_ext = "ktac";
-            entry_size = 0x3c;
+        case 0x0601: /* KTAC / ATRAC9 */
+            if (version == 0x0103 || version == 0x0105) {
+                init_vgmstream = init_vgmstream_riff;
+                fake_ext = "at9";
+                entry_size = 0x3c;
+            }
+            else {
+                init_vgmstream = init_vgmstream_ktac;
+                fake_ext = "ktac";
+                entry_size = 0x3c;
+            }
             break;
         case 0x0800: /* KTSS */
             init_vgmstream = init_vgmstream_ktss;
