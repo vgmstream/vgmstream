@@ -16,6 +16,7 @@ typedef struct {
     int segment_count;
     int layer_count;
 
+    int force_disable_loop;
 } aix_header_t;
 
 static VGMSTREAM* build_segmented_vgmstream(STREAMFILE* sf, aix_header_t* aix);
@@ -74,13 +75,14 @@ VGMSTREAM* init_vgmstream_aix(STREAMFILE* sf) {
             goto fail;
 
         /* Metroid: Other M (Wii)'s bgm_m_stage_06_02 is truncated on disc, seemingly not an extraction error.
-         * Playing expected samples aligns to bgm_m_stage_06, so not sure how the game would actually play it,
-         * tweaking samples to max size sounds a bit abrupt. */
+         * Playing expected samples aligns to bgm_m_stage_06, but from tests seems the song stops once reaching
+         * the missing audio (doesn't loop). */
         if (aix.segment_count == 3 && aix.segment_offsets[1] + aix.segment_sizes[1] > get_streamfile_size(sf)) {
             aix.segment_count = 2;
 
             aix.segment_sizes[1] = get_streamfile_size(sf) - aix.segment_offsets[1];
             //aix.segment_samples[1] = 0;
+            aix.force_disable_loop = 1; /* force */
             vgm_logi("AIX: missing data, parts will be silent\n");
         }
     }
@@ -209,7 +211,7 @@ static VGMSTREAM* build_segmented_vgmstream(STREAMFILE* sf, aix_header_t* aix) {
     if (!setup_layout_segmented(data))
         goto fail;
 
-    /* known loop cases:
+    /* known loop cases (no info on header, controlled by game?):
      * - 1 segment: main/no loop [Hatsune Miku: Project Diva (PSP)]
      * - 2 segments: intro + loop [SoulCalibur IV (PS3)]
      * - 3 segments: intro + loop + end [Dragon Ball Z: Burst Limit (PS3), Metroid: Other M (Wii)]
@@ -218,6 +220,8 @@ static VGMSTREAM* build_segmented_vgmstream(STREAMFILE* sf, aix_header_t* aix) {
     loop_flag = (aix->segment_count > 0 && aix->segment_count <= 5);
     loop_start_segment = (aix->segment_count > 3) ? 2 : 1;
     loop_end_segment = (aix->segment_count > 3) ? (aix->segment_count - 2) : 1;
+    if (aix->force_disable_loop)
+        loop_flag = 0;
 
     /* build the segmented VGMSTREAM */
     vgmstream = allocate_segmented_vgmstream(data, loop_flag, loop_start_segment, loop_end_segment);
