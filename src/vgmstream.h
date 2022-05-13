@@ -587,7 +587,8 @@ typedef enum {
     meta_HCA,               /* CRI HCA */
     meta_SVAG_SNK,
     meta_PS2_VDS_VDM,       /* Graffiti Kingdom */
-    meta_FFMPEG,            /* any file supported by FFmpeg */
+    meta_FFMPEG,
+    meta_FFMPEG_faulty,
     meta_X360_CXS,          /* Eternal Sonata (Xbox 360) */
     meta_AKB,               /* SQEX iOS */
     meta_X360_PASX,         /* Namco PASX (Soul Calibur II HD X360) */

@@ -119,7 +119,7 @@ static const char* extension_list[] = {
     "brstm",
     "brstmspm",
     "brwav",
-    "brwsd",
+    "brwsd", //fake extension for RWSD (non-format)
     "bsnd",
     "btsnd",
     "bvg",
@@ -1225,7 +1225,8 @@ static const meta_info meta_info_list[] = {
         {meta_HCA,                  "CRI HCA header"},
         {meta_SVAG_SNK,             "SNK SVAG header"},
         {meta_PS2_VDS_VDM,          "Procyon Studio VDS/VDM header"},
-        {meta_FFMPEG,               "FFmpeg supported file format"},
+        {meta_FFMPEG,               "FFmpeg supported format"},
+        {meta_FFMPEG_faulty,        "FFmpeg supported format (check log)"},
         {meta_X360_CXS,             "tri-Crescendo CXS header"},
         {meta_AKB,                  "Square-Enix AKB header"},
         {meta_X360_PASX,            "Premium Agency PASX header"},

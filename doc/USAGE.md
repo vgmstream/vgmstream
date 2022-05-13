@@ -579,7 +579,7 @@ Console location and format depends on plugin:
 - *Audacious*: start with `audacious -V` from terminal
 - CLI utils: printed to stdout directly
 
-Only a few errors are printed ATM but may be helpful for more common cases.
+Only a few errors types are printed but may be helpful for more common cases.
 
 ## Tagging
 Some of vgmstream's plugins support simple read-only tagging via external files.

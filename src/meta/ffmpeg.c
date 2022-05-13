@@ -7,7 +7,6 @@ static int read_pos_file(uint8_t* buf, size_t bufsize, STREAMFILE* sf);
 static int find_meta_loops(ffmpeg_codec_data* data, int32_t* p_loop_start, int32_t* p_loop_end);
 
 /* parses any format supported by FFmpeg and not handled elsewhere:
- * - MP3 (.mp3, .mus): Marc Ecko's Getting Up (PC)
  * - MPC (.mpc, mp+): Moonshine Runners (PC), Asphalt 7 (PC)
  * - FLAC (.flac):  Warcraft 3 Reforged (PC), Call of Duty: Ghosts (PC)
  * - DUCK (.wav): Sonic Jam (SAT), Virtua Fighter 2 (SAT)
@@ -26,6 +25,7 @@ VGMSTREAM* init_vgmstream_ffmpeg(STREAMFILE* sf) {
     int loop_flag = 0, channels, sample_rate;
     int32_t loop_start = 0, loop_end = 0, num_samples = 0, encoder_delay = 0;
     int total_subsongs, target_subsong = sf->stream_index;
+    int faulty = 0; /* mark wonky rips in hopes people may fix them */
 
     /* no checks */
     //if (!check_extensions(sf, "..."))
@@ -102,6 +102,21 @@ VGMSTREAM* init_vgmstream_ffmpeg(STREAMFILE* sf) {
         ffmpeg_set_skip_samples(data, encoder_delay);
     }
 
+    /* detect broken RIFFs */
+    if (is_id32be(0x00, sf, "RIFF")) {
+        uint32_t size = read_u32le(0x04, sf);
+        /* There is a log in RIFF too but to be extra sure and sometimes FFmpeg don't handle it (this is mainly for wrong AT3).
+         * Some proper RIFF can be parsed here too (like DUCK). */
+        if (size + 0x08 > get_streamfile_size(sf)) {
+            vgm_logi("RIFF/FFmpeg: incorrect size, file may have missing data\n");
+            faulty = 1;
+        }
+        else if (size + 0x08 < get_streamfile_size(sf)) {
+            vgm_logi("RIFF/FFmpeg: incorrect size, file may have padded data\n");
+            faulty = 1;
+        }
+    }
+
     /* default but often inaccurate when calculated using bitrate (wrong for VBR) */
     if (!num_samples) {
         num_samples = ffmpeg_get_samples(data); /* may be 0 if FFmpeg can't precalculate it */
@@ -115,7 +130,7 @@ VGMSTREAM* init_vgmstream_ffmpeg(STREAMFILE* sf) {
     vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->meta_type = meta_FFMPEG;
+    vgmstream->meta_type = faulty ? meta_FFMPEG_faulty : meta_FFMPEG;
     vgmstream->sample_rate = sample_rate;
 
     vgmstream->codec_data = data;
