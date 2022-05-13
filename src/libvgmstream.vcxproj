@@ -203,6 +203,7 @@
     <ClCompile Include="meta\bcstm.c" />
     <ClCompile Include="meta\bfstm.c" />
     <ClCompile Include="meta\bfwav.c" />
+    <ClCompile Include="meta\bw_mp3_riff.c" />
     <ClCompile Include="meta\bwav.c" />
     <ClCompile Include="meta\esf.c" />
     <ClCompile Include="meta\excitebots.c" />

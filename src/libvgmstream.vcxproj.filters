@@ -1948,6 +1948,9 @@
     <ClCompile Include="meta\bwav.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\bw_mp3_riff.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\rad.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
