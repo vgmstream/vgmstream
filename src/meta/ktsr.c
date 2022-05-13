@@ -2,7 +2,7 @@
 #include "../coding/coding.h"
 #include "../layout/layout.h"
 
-typedef enum { NONE, MSADPCM, DSP, GCADPCM, ATRAC9, KVS, /*KNS*/ } ktsr_codec;
+typedef enum { NONE, MSADPCM, DSP, GCADPCM, ATRAC9, RIFF_ATRAC9, KOVS, /*KNS*/ } ktsr_codec;
 
 #define MAX_CHANNELS 8
 
@@ -126,8 +126,28 @@ VGMSTREAM* init_vgmstream_ktsr(STREAMFILE* sf) {
         }
 #endif
 
+        case RIFF_ATRAC9: {
+            VGMSTREAM* riff_vgmstream = NULL; //TODO: meh
+            STREAMFILE* temp_sf = setup_subfile_streamfile(sf_b, ktsr.stream_offsets[0], ktsr.stream_sizes[0], "at9");
+            if (!temp_sf) goto fail;
+
+            riff_vgmstream = init_vgmstream_riff(temp_sf);
+            close_streamfile(temp_sf);
+            if (!riff_vgmstream) goto fail;
+
+            riff_vgmstream->stream_size = vgmstream->stream_size;
+            riff_vgmstream->num_streams = vgmstream->num_streams;
+            riff_vgmstream->channel_layout = vgmstream->channel_layout;
+
+            strcpy(riff_vgmstream->stream_name, vgmstream->stream_name);
+
+            close_vgmstream(vgmstream);
+            if (sf_b != sf) close_streamfile(sf_b);
+            return riff_vgmstream;
+        }
+
 #ifdef VGM_USE_VORBIS
-        case KVS: {
+        case KOVS: {
             VGMSTREAM* ogg_vgmstream = NULL; //TODO: meh
             STREAMFILE* temp_sf = setup_subfile_streamfile(sf_b, ktsr.stream_offsets[0], ktsr.stream_sizes[0], "kvs");
             if (!temp_sf) goto fail;
@@ -234,18 +254,28 @@ static int parse_codec(ktsr_header* ktsr) {
     /* platform + format to codec, simplified until more codec combos are found */
     switch(ktsr->platform) {
         case 0x01: /* PC */
-            if (ktsr->is_external)
-                ktsr->codec = KVS;
-            else if (ktsr->format == 0x00)
+            if (ktsr->is_external) {
+                if (ktsr->format == 0x0005)
+                    ktsr->codec = KOVS;
+                else
+                    goto fail;
+            }
+            else if (ktsr->format == 0x0000) {
                 ktsr->codec = MSADPCM;
-            else
+            }
+            else {
                 goto fail;
+            }
             break;
 
-        case 0x03: /* VITA */
-            if (ktsr->is_external)
-                goto fail;
-            else if (ktsr->format == 0x01)
+        case 0x03: /* PS4/VITA */
+            if (ktsr->is_external) {
+                if (ktsr->format == 0x1001)
+                    ktsr->codec = RIFF_ATRAC9;
+                else
+                    goto fail;
+            }
+            else if (ktsr->format == 0x0001)
                 ktsr->codec = ATRAC9;
             else
                 goto fail;
@@ -254,7 +284,7 @@ static int parse_codec(ktsr_header* ktsr) {
         case 0x04: /* Switch */
             if (ktsr->is_external)
                 goto fail; /* KTSS? */
-            else if (ktsr->format == 0x00)
+            else if (ktsr->format == 0x0000)
                 ktsr->codec = DSP;
             else
                 goto fail;
@@ -281,14 +311,14 @@ static int parse_ktsr_subfile(ktsr_header* ktsr, STREAMFILE* sf, uint32_t offset
     /* probably could check the flag in sound header, but the format is kinda messy */
     switch(type) {
 
-        case 0x38D0437D: /* external [Nioh (PC), Atelier Ryza (PC)] */
-        case 0x3DEA478D: /* external [Nioh (PC)] */
+        case 0x38D0437D: /* external [Nioh (PC/PS4), Atelier Ryza (PC)] */
+        case 0x3DEA478D: /* external [Nioh (PC)] (smaller) */
         case 0xDF92529F: /* external [Atelier Ryza (PC)] */
         case 0x6422007C: /* external [Atelier Ryza (PC)] */
             /* 08 subtype? (ex. 0x522B86B9)
              * 0c channels
              * 10 ? (always 0x002706B8)
-             * 14 codec? (05=KVS)
+             * 14 external codec
              * 18 sample rate
              * 1c num samples
              * 20 null?
@@ -316,11 +346,6 @@ static int parse_ktsr_subfile(ktsr_header* ktsr, STREAMFILE* sf, uint32_t offset
                 ktsr->stream_sizes[0]   = read_u32le(offset + 0x38, sf);
             }
             ktsr->is_external = 1;
-
-            if (ktsr->format != 0x05) {
-                VGM_LOG("ktsr: unknown subcodec at %x\n", offset);
-                goto fail;
-            }
 
             break;
 
