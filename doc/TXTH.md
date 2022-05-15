@@ -164,6 +164,8 @@ as explained below, but often will use default values. Accepted codec strings:
 #   * For rare Saturn games [EA SAT videos]
 # - CP_YM          Capcom's Yamaha ADPCM
 #   * For rare Saturn games [Marvel Super Heroes vs Street Fighter (SAT)]
+# - IMA_HV         High Voltage's IMA ADPCM
+#   * For some High Voltage Software PC games [NBA Hangtime (PC), NHL Open Ice (PC)]
 codec = (codec string)
 ```
 

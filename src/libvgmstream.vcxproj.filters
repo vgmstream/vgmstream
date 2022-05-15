@@ -1741,7 +1741,7 @@
     <ClCompile Include="coding\mta2_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\tun.c">
+    <ClCompile Include="meta\alp.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\txth.c">

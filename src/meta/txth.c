@@ -47,6 +47,7 @@ typedef enum {
     XA_EA,
     CP_YM,
     PCM_FLOAT_LE,
+    IMA_HV,
 
     UNKNOWN = 99,
 } txth_codec_t;
@@ -240,6 +241,7 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
         case PCM_FLOAT_LE:  coding = coding_PCMFLOAT; break;
         case SDX2:          coding = coding_SDX2; break;
         case DVI_IMA:       coding = coding_DVI_IMA; break;
+        case IMA_HV:        coding = coding_HV_IMA; break;
 #ifdef VGM_USE_MPEG
         case MPEG:          coding = coding_MPEG_layer3; break; /* we later find out exactly which */
 #endif
@@ -316,6 +318,7 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
         case coding_PSX_badflags:
         case coding_DVI_IMA:
         case coding_IMA:
+        case coding_HV_IMA:
         case coding_AICA:
         case coding_APPLE_IMA4:
         case coding_TGC:
@@ -968,6 +971,7 @@ static txth_codec_t parse_codec(txth_header* txth, const char* val) {
     else if (is_string(val,"XA_EA"))        return XA_EA;
     else if (is_string(val,"CP_YM"))        return CP_YM;
     else if (is_string(val,"PCM_FLOAT_LE")) return PCM_FLOAT_LE;
+    else if (is_string(val,"IMA_HV"))       return IMA_HV;
     /* special handling */
     else if (is_string(val,"name_value"))   return txth->name_values[0];
     else if (is_string(val,"name_value1"))  return txth->name_values[0];
@@ -2079,6 +2083,7 @@ static int get_bytes_to_samples(txth_header* txth, uint32_t bytes) {
 
         case IMA:
         case DVI_IMA:
+        case IMA_HV:
             return ima_bytes_to_samples(bytes, txth->channels);
         case AICA:
         case CP_YM:

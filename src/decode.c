@@ -412,7 +412,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM* vgmstream) {
         case coding_DVI_IMA_int:
         case coding_3DS_IMA:
         case coding_WV6_IMA:
-        case coding_ALP_IMA:
+        case coding_HV_IMA:
         case coding_FFTA2_IMA:
         case coding_BLITZ_IMA:
         case coding_PCFX:
@@ -622,7 +622,7 @@ int get_vgmstream_frame_size(VGMSTREAM* vgmstream) {
         case coding_DVI_IMA_int:
         case coding_3DS_IMA:
         case coding_WV6_IMA:
-        case coding_ALP_IMA:
+        case coding_HV_IMA:
         case coding_FFTA2_IMA:
         case coding_BLITZ_IMA:
         case coding_PCFX:
@@ -1163,9 +1163,9 @@ void decode_vgmstream(VGMSTREAM* vgmstream, int samples_written, int samples_to_
                         vgmstream->channels, vgmstream->samples_into_block, samples_to_do);
             }
             break;
-        case coding_ALP_IMA:
+        case coding_HV_IMA:
             for (ch = 0; ch < vgmstream->channels; ch++) {
-                decode_alp_ima(&vgmstream->ch[ch], buffer+ch,
+                decode_hv_ima(&vgmstream->ch[ch], buffer+ch,
                         vgmstream->channels, vgmstream->samples_into_block, samples_to_do);
             }
             break;
