@@ -779,7 +779,7 @@ static const coding_info coding_info_list[] = {
         {coding_SNDS_IMA,           "Heavy Iron .snds 4-bit IMA ADPCM"},
         {coding_QD_IMA,             "Quantic Dream 4-bit IMA ADPCM"},
         {coding_WV6_IMA,            "Gorilla Systems WV6 4-bit IMA ADPCM"},
-        {coding_ALP_IMA,            "High Voltage ALP 4-bit IMA ADPCM"},
+        {coding_HV_IMA,             "High Voltage 4-bit IMA ADPCM"},
         {coding_FFTA2_IMA,          "Final Fantasy Tactics A2 4-bit IMA ADPCM"},
         {coding_BLITZ_IMA,          "Blitz Games 4-bit IMA ADPCM"},
         {coding_MTF_IMA,            "MT Framework 4-bit IMA ADPCM"},

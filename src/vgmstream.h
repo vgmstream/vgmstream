@@ -109,7 +109,7 @@ typedef enum {
     coding_SNDS_IMA,        /* Heavy Iron Studios .snds IMA ADPCM */
     coding_QD_IMA,
     coding_WV6_IMA,         /* Gorilla Systems WV6 4-bit IMA ADPCM */
-    coding_ALP_IMA,         /* High Voltage ALP 4-bit IMA ADPCM */
+    coding_HV_IMA,          /* High Voltage 4-bit IMA ADPCM */
     coding_FFTA2_IMA,       /* Final Fantasy Tactics A2 4-bit IMA ADPCM */
     coding_BLITZ_IMA,       /* Blitz Games 4-bit IMA ADPCM */
 

@@ -2,36 +2,36 @@
 #include "../coding/coding.h"
 
 /* ALP - from LEGO Racers (PC) */
-VGMSTREAM * init_vgmstream_tun(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
+VGMSTREAM* init_vgmstream_tun(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
     off_t start_offset;
-    int loop_flag, channel_count;
+    int loop_flag, channels;
 
     /* checks */
-    if ( !check_extensions(streamFile,"tun") )
+    if (!is_id32be(0x00,sf, "ALP "))
         goto fail;
-    if (read_32bitBE(0x00,streamFile) != 0x414C5020) /* "ALP " */
+    if (!check_extensions(sf,"tun"))
         goto fail;
-
-    channel_count = 2; /* probably at 0x0F */
-    loop_flag = 0;
-    start_offset = 0x10;
     /* also "ADPCM" at 0x08 */
 
+    channels = 2; /* probably at 0x0F */
+    loop_flag = 0;
+    start_offset = 0x10;
+
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    vgmstream = allocate_vgmstream(channels,loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->channels = channel_count;
+    vgmstream->meta_type = meta_TUN;
+    vgmstream->channels = channels;
     vgmstream->sample_rate = 22050;
-    vgmstream->num_samples = ima_bytes_to_samples(get_streamfile_size(streamFile) - 0x10, channel_count);
+    vgmstream->num_samples = ima_bytes_to_samples(get_streamfile_size(sf) - 0x10, channels);
 
-    vgmstream->coding_type = coding_ALP_IMA;
+    vgmstream->coding_type = coding_HV_IMA;
     vgmstream->layout_type = layout_interleave;
     vgmstream->interleave_block_size = 0x01;
-    vgmstream->meta_type = meta_TUN;
 
-    if ( !vgmstream_open_stream(vgmstream, streamFile, start_offset) )
+    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
         goto fail;
     return vgmstream;
 
