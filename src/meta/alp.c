@@ -7,10 +7,13 @@ VGMSTREAM* init_vgmstream_alp(STREAMFILE* sf) {
     off_t start_offset;
     int loop_flag, channels, sample_rate;
 
+
     /* checks */
     if (!is_id32be(0x00,sf, "ALP "))
         goto fail;
-    if (!check_extensions(sf,"tun"))
+    /* .tun: stereo 
+     * .pcm: mono */
+    if (!check_extensions(sf,"tun,pcm"))
         goto fail;
 
     start_offset = read_u32le(0x04, sf) + 0x08;
@@ -18,12 +21,10 @@ VGMSTREAM* init_vgmstream_alp(STREAMFILE* sf) {
         goto fail;
     /* 0x0c: "M\0\0" */
     channels = read_u8(0x0f, sf);
-    if (channels != 2) /* not seen though mono should work (raw IMA_HV in NBA Hangtime uses it) */
-        goto fail;
 
-    /* NBA Inside Drive (PC) */
+    /* NBA Inside Drive 2000 (PC) */
     if (start_offset >= 0x14)
-        sample_rate = read_s32le(0x10, sf); /* still 22050 thogh */
+        sample_rate = read_s32le(0x10, sf); /* still 22050 though */
     else
         sample_rate = 22050;
 
