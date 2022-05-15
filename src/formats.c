@@ -1205,7 +1205,7 @@ static const meta_info meta_info_list[] = {
         {meta_MTAF,                 "Konami MTAF header"},
         {meta_PS2_VAG1,             "Konami VAG1 header"},
         {meta_PS2_VAG2,             "Konami VAG2 header"},
-        {meta_TUN,                  "Lego Racers ALP header"},
+        {meta_ALP,                  "High Voltage ALP header"},
         {meta_WPD,                  "WPD 'DPW' header"},
         {meta_MN_STR,               "Mini Ninjas 'STR' header"},
         {meta_MSS,                  "Guerilla MCSS header"},

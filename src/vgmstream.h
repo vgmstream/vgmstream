@@ -568,7 +568,7 @@ typedef enum {
     meta_MTAF,
     meta_PS2_VAG1,          /* Metal Gear Solid 3 VAG1 */
     meta_PS2_VAG2,          /* Metal Gear Solid 3 VAG2 */
-    meta_TUN,               /* LEGO Racers (PC) */
+    meta_ALP,
     meta_WPD,               /* Shuffle! (PC) */
     meta_MN_STR,            /* Mini Ninjas (PC/PS3/WII) */
     meta_MSS,               /* Guerilla: ShellShock Nam '67 (PS2/Xbox), Killzone (PS2) */
