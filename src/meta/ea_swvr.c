@@ -122,7 +122,7 @@ VGMSTREAM* init_vgmstream_ea_swvr(STREAMFILE* sf) {
                     goto fail;
                 coding = coding_PCM8_U_int;
                 channels = 1;
-                sample_rate = 16000; /* assumed */
+                sample_rate = 22050; /* assumed */
             }
             else {
                 //todo
