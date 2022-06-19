@@ -336,7 +336,7 @@ VGMSTREAM* allocate_segmented_vgmstream(segmented_layout_data* data, int loop_fl
     if (!vgmstream) goto fail;
 
     vgmstream->meta_type = data->segments[0]->meta_type;
-    vgmstream->sample_rate = data->segments[0]->sample_rate;
+    vgmstream->sample_rate = sample_rate;
     vgmstream->num_samples = num_samples;
     vgmstream->loop_start_sample = loop_start;
     vgmstream->loop_end_sample = loop_end;
