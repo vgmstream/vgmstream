@@ -3,73 +3,73 @@
 
 
 /* SXD - Sony/SCE's SNDX lib format (cousin of SGXD) [Gravity Rush, Freedom Wars, Soul Sacrifice PSV] */
-VGMSTREAM * init_vgmstream_sxd(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
-    STREAMFILE *streamHeader = NULL, *streamExternal = NULL, *streamData = NULL, *streamHead = NULL, *streamBody = NULL;
+VGMSTREAM* init_vgmstream_sxd(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
+    STREAMFILE* sf_sxd1 = NULL, *sf_sxd2 = NULL, *sf_data = NULL, *sf_h = NULL, *sf_b = NULL;
     off_t start_offset, chunk_offset, first_offset = 0x60, name_offset = 0;
     size_t chunk_size, stream_size = 0;
 
     int is_dual, is_external;
-    int loop_flag, channels, codec, flags;
-    int sample_rate, num_samples, loop_start_sample, loop_end_sample;
-    uint32_t at9_config_data = 0;
-    int total_subsongs, target_subsong = streamFile->stream_index;
+    int loop_flag, channels, codec, sample_rate;
+    int32_t num_samples, loop_start_sample, loop_end_sample;
+    uint32_t flags, at9_config_data = 0;
+    int total_subsongs, target_subsong = sf->stream_index;
 
 
     /* checks */
     /* .sxd: header+data (SXDF)
      * .sxd1: header (SXDF) + .sxd2 = data (SXDS)
      * .sxd3: sxd1 + sxd2 pasted together (found in some PS4 games, ex. Fate Extella)*/
-    if (!check_extensions(streamFile,"sxd,sxd2,sxd3"))
+    if (!check_extensions(sf,"sxd,sxd2,sxd3"))
         goto fail;
 
     /* setup head/body variations */
-    if (check_extensions(streamFile,"sxd2")) {
+    if (check_extensions(sf,"sxd2")) {
         /* sxd1+sxd2: open sxd1 as header */
 
-        streamHead = open_streamfile_by_ext(streamFile, "sxd1");
-        if (!streamHead) goto fail;
+        sf_h = open_streamfile_by_ext(sf, "sxd1");
+        if (!sf_h) goto fail;
 
-        streamHeader = streamHead;
-        streamExternal = streamFile;
+        sf_sxd1 = sf_h;
+        sf_sxd2 = sf;
         is_dual = 1;
     }
-    else if (check_extensions(streamFile,"sxd3")) {
+    else if (check_extensions(sf,"sxd3")) {
         /* sxd3: make subfiles for head and body to simplify parsing */
         off_t  sxd1_offset  = 0x00;
-        size_t sxd1_size    = read_32bitLE(0x08, streamFile);
+        size_t sxd1_size    = read_u32le(0x08, sf);
         off_t  sxd2_offset  = sxd1_size;
-        size_t sxd2_size    = get_streamfile_size(streamFile) - sxd1_size;
+        size_t sxd2_size    = get_streamfile_size(sf) - sxd1_size;
 
-        streamHead = setup_subfile_streamfile(streamFile, sxd1_offset, sxd1_size, "sxd1");
-        if (!streamHead) goto fail;
+        sf_h = setup_subfile_streamfile(sf, sxd1_offset, sxd1_size, "sxd1");
+        if (!sf_h) goto fail;
 
-        streamBody = setup_subfile_streamfile(streamFile, sxd2_offset, sxd2_size, "sxd2");
-        if (!streamBody) goto fail;
+        sf_b = setup_subfile_streamfile(sf, sxd2_offset, sxd2_size, "sxd2");
+        if (!sf_b) goto fail;
 
-        streamHeader = streamHead;
-        streamExternal = streamBody;
+        sf_sxd1 = sf_h;
+        sf_sxd2 = sf_b;
         is_dual = 1;
     }
     else {
         /* sxd: use the current file as header */
-        streamHeader = streamFile;
-        streamExternal = NULL;
+        sf_sxd1 = sf;
+        sf_sxd2 = NULL;
         is_dual = 0;
     }
 
-    if (streamHeader && read_32bitBE(0x00,streamHeader) != 0x53584446) /* "SXDF" */
+    if (sf_sxd1 && !is_id32be(0x00, sf_sxd1, "SXDF"))
         goto fail;
-    if (streamExternal && read_32bitBE(0x00,streamExternal) != 0x53584453) /* "SXDS" */
+    if (sf_sxd2 && !is_id32be(0x00, sf_sxd2, "SXDS"))
         goto fail;
 
 
     /* typical chunks: NAME, WAVE and many control chunks (SXDs don't need to contain any sound data) */
-    if (!find_chunk_le(streamHeader, 0x57415645,first_offset,0, &chunk_offset,&chunk_size)) /* "WAVE" */
+    if (!find_chunk_le(sf_sxd1, get_id32be("WAVE"),first_offset,0, &chunk_offset,&chunk_size))
         goto fail;
 
     /* check multi-streams (usually only in SFX containers) */
-    total_subsongs = read_32bitLE(chunk_offset+0x04,streamHeader);
+    total_subsongs = read_s32le(chunk_offset + 0x04,sf_sxd1);
     if (target_subsong == 0) target_subsong = 1;
     if (target_subsong < 0 || target_subsong > total_subsongs || total_subsongs < 1) goto fail;
     // todo rarely a WAVE subsong may point to a repeated data offset, with different tags only
@@ -77,24 +77,24 @@ VGMSTREAM * init_vgmstream_sxd(STREAMFILE *streamFile) {
 
     /* read stream header */
     {
-        off_t table_offset, header_offset, stream_offset;
+        uint32_t table_offset, header_offset, stream_offset;
 
         /* get target offset using table of relative offsets within WAVE */
-        table_offset  = chunk_offset + 0x08 + 4*(target_subsong-1);
-        header_offset = table_offset + read_32bitLE(table_offset,streamHeader);
+        table_offset  = chunk_offset + 0x08 + 4 * (target_subsong - 1);
+        header_offset = table_offset + read_32bitLE(table_offset,sf_sxd1);
 
-        flags       = read_32bitLE(header_offset+0x00,streamHeader);
-        codec       = read_8bit   (header_offset+0x04,streamHeader);
-        channels    = read_8bit   (header_offset+0x05,streamHeader);
+        flags               = read_u32le(header_offset+0x00,sf_sxd1);
+        codec               = read_u8   (header_offset+0x04,sf_sxd1);
+        channels            = read_u8   (header_offset+0x05,sf_sxd1);
         /* 0x06(2): unknown, rarely 0xFF */
-        sample_rate = read_32bitLE(header_offset+0x08,streamHeader);
+        sample_rate         = read_s32le(header_offset+0x08,sf_sxd1);
         /* 0x0c(4): unknown size? (0x4000/0x3999/0x3333/etc, not related to extra data) */
         /* 0x10(4): ? + volume? + pan? (can be 0 for music) */
-        num_samples       = read_32bitLE(header_offset+0x14,streamHeader);
-        loop_start_sample = read_32bitLE(header_offset+0x18,streamHeader);
-        loop_end_sample   = read_32bitLE(header_offset+0x1c,streamHeader);
-        stream_size       = read_32bitLE(header_offset+0x20,streamHeader);
-        stream_offset     = read_32bitLE(header_offset+0x24,streamHeader);
+        num_samples         = read_s32le(header_offset+0x14,sf_sxd1);
+        loop_start_sample   = read_s32le(header_offset+0x18,sf_sxd1);
+        loop_end_sample     = read_s32le(header_offset+0x1c,sf_sxd1);
+        stream_size         = read_u32le(header_offset+0x20,sf_sxd1);
+        stream_offset       = read_u32le(header_offset+0x24,sf_sxd1);
 
         loop_flag = loop_start_sample != -1 && loop_end_sample != -1;
 
@@ -116,16 +116,16 @@ VGMSTREAM * init_vgmstream_sxd(STREAMFILE *streamFile) {
 
         /* manually try to find ATRAC9 tag */
         if (codec == 0x42) {
-            off_t extra_offset = header_offset+0x28;
+            off_t extra_offset = header_offset + 0x28;
             off_t max_offset = chunk_offset + chunk_size;
 
             if (!(flags & 1))
                 goto fail;
 
             while (extra_offset < max_offset) {
-                uint32_t tag = read_32bitBE(extra_offset, streamHeader);
+                uint32_t tag = read_u32be(extra_offset, sf_sxd1);
                 if (tag == 0x0A010000 || tag == 0x0A010600) {
-                    at9_config_data = read_32bitLE(extra_offset+0x04,streamHeader); /* yes, LE */
+                    at9_config_data = read_u32le(extra_offset+0x04, sf_sxd1); /* yes, LE */
                     break;
                 }
 
@@ -139,19 +139,19 @@ VGMSTREAM * init_vgmstream_sxd(STREAMFILE *streamFile) {
         if (is_external) {
             start_offset = stream_offset; /* absolute if external */
         } else {
-            start_offset = header_offset+0x24 + stream_offset; /* from current entry offset if internal */
+            start_offset = header_offset + 0x24 + stream_offset; /* from current entry offset if internal */
         }
     }
 
     /* get stream name (NAME is tied to REQD/cues, and SFX cues repeat WAVEs, but should work ok for streams) */
-    if (is_dual && find_chunk_le(streamHeader, 0x4E414D45,first_offset,0, &chunk_offset,NULL)) { /* "NAME" */
+    if (is_dual && find_chunk_le(sf_sxd1, get_id32be("NAME"),first_offset,0, &chunk_offset,NULL)) {
         /* table: relative offset (32b) + hash? (32b) + cue index (32b) */
         int i;
-        int num_entries = read_16bitLE(chunk_offset+0x04,streamHeader); /* can be bigger than streams */
+        int num_entries = read_s16le(chunk_offset + 0x04, sf_sxd1); /* can be bigger than streams */
         for (i = 0; i < num_entries; i++) {
-            uint32_t index = (uint32_t)read_32bitLE(chunk_offset+0x08 + 0x08 + i*0x0c,streamHeader);
+            uint32_t index = read_u32le(chunk_offset + 0x08 + 0x08 + i * 0x0c,sf_sxd1);
             if (index+1 == target_subsong) {
-                name_offset = chunk_offset+0x08 + 0x00 + i*0x0c + read_32bitLE(chunk_offset+0x08 + 0x00 + i*0x0c,streamHeader);
+                name_offset = chunk_offset + 0x08 + 0x00 + i*0x0c + read_u32le(chunk_offset + 0x08 + 0x00 + i * 0x0c, sf_sxd1);
                 break;
             }
         }
@@ -164,30 +164,32 @@ VGMSTREAM * init_vgmstream_sxd(STREAMFILE *streamFile) {
 
     /* even dual files may have some non-external streams */
     if (is_external) {
-        streamData = streamExternal;
+        sf_data = sf_sxd2;
     } else {
-        streamData = streamHeader;
+        sf_data = sf_sxd1;
     }
 
-    if (start_offset > get_streamfile_size(streamData)) {
+    if (start_offset > get_streamfile_size(sf_data)) {
         VGM_LOG("SXD: wrong location?\n");
         goto fail;
     }
 
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channels,loop_flag);
+    vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
+    vgmstream->meta_type = meta_SXD;
     vgmstream->sample_rate = sample_rate;
+
     vgmstream->num_samples = num_samples;
     vgmstream->loop_start_sample = loop_start_sample;
     vgmstream->loop_end_sample = loop_end_sample;
+
     vgmstream->num_streams = total_subsongs;
     vgmstream->stream_size = stream_size;
-    vgmstream->meta_type = meta_SXD;
     if (name_offset)
-        read_string(vgmstream->stream_name,STREAM_NAME_SIZE, name_offset,streamHeader);
+        read_string(vgmstream->stream_name,STREAM_NAME_SIZE, name_offset,sf_sxd1);
 
     switch (codec) {
         case 0x20:      /* PS-ADPCM [Hot Shots Golf: World Invitational (Vita) sfx] */
@@ -224,16 +226,16 @@ VGMSTREAM * init_vgmstream_sxd(STREAMFILE *streamFile) {
 
 
     /* open the file for reading */
-    if (!vgmstream_open_stream(vgmstream,streamData,start_offset))
+    if (!vgmstream_open_stream(vgmstream, sf_data, start_offset))
         goto fail;
 
-    if (streamHead) close_streamfile(streamHead);
-    if (streamBody) close_streamfile(streamBody);
+    if (sf_h) close_streamfile(sf_h);
+    if (sf_b) close_streamfile(sf_b);
     return vgmstream;
 
 fail:
-    if (streamHead) close_streamfile(streamHead);
-    if (streamBody) close_streamfile(streamBody);
+    if (sf_h) close_streamfile(sf_h);
+    if (sf_b) close_streamfile(sf_b);
     close_vgmstream(vgmstream);
     return NULL;
 }
