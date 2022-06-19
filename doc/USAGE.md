@@ -783,3 +783,20 @@ You can use this python script to autogenerate one `.txtp` per virtual-txtp:
 https://github.com/vgmstream/vgmstream/tree/master/cli/tools/txtp_dumper.py
 Drag and drop the `.m3u`, or any text file with .txtp  (it has CLI options
 to control output too).
+
+
+## Sequences and streams
+Roughly, there are two types of game audio:
+- streams: prerecorded audio where all instruments are pre-mixed into a single
+  file, often compressed with some custom format.
+- sequences: series of instrument notes, typically in MIDI-like formats with
+  a bank of instrument sounds.
+
+As the name implies, vgmstream plays "streams". Old games mainly use sequences
+(very small and more dynamic), while other games use streams (easier to handle
+but lot bigger and sometimes CPU-intensive).
+
+vgmstream's internals are tailored to play streams so, in other words, it's not
+possible to add support for sequenced audio unless massive changes were done,
+basically becoming another program entirely. There are other projects better
+suited for playing sequences.

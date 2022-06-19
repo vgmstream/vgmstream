@@ -290,7 +290,7 @@ static int parse_entries(txtp_header* txtp, STREAMFILE* sf) {
         else
             temp_sf = open_streamfile_by_filename(sf, filename); /* from current path */
         if (!temp_sf) {
-            VGM_LOG("TXTP: cannot open streamfile for %s\n", filename);
+            vgm_logi("TXTP: cannot open %s\n", filename);
             goto fail;
         }
         temp_sf->stream_index = txtp->entry[i].subsong;
@@ -298,7 +298,7 @@ static int parse_entries(txtp_header* txtp, STREAMFILE* sf) {
         txtp->vgmstream[i] = init_vgmstream_from_STREAMFILE(temp_sf);
         close_streamfile(temp_sf);
         if (!txtp->vgmstream[i]) {
-            VGM_LOG("TXTP: cannot open vgmstream for %s#%i\n", filename, txtp->entry[i].subsong);
+            vgm_logi("TXTP: cannot parse %s#%i\n", filename, txtp->entry[i].subsong);
             goto fail;
         }
 

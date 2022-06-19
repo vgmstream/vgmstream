@@ -2,11 +2,13 @@
 #include "meta.h"
 #include "../layout/layout.h"
 #include "../coding/coding.h"
+#include "../util/endianness.h"
 #include "ubi_sb_streamfile.h"
 
 
 #define SB_MAX_LAYER_COUNT 16  /* arbitrary max */
 #define SB_MAX_CHAIN_COUNT 256 /* +150 exist in Tonic Trouble */
+#define SB_MAX_SUBSONGS 128000 /* arbitrary max to detect incorrect reads */
 
 #define LAYER_HIJACK_GRAW_X360  1
 #define LAYER_HIJACK_SCPT_PS2   2
@@ -130,24 +132,26 @@ typedef struct {
     int is_ps2_bnm;
     int is_blk;
     int has_numbered_banks;
+
+    int header_init;
     STREAMFILE* sf_header;
     uint32_t version;           /* 16b+16b major+minor version */
     uint32_t version_empty;     /* map sbX versions are empty */
     /* events (often share header_id/type with some descriptors,
      * but may exist without headers or header exist without them) */
-    size_t section1_num;
+    uint32_t section1_num;
     off_t section1_offset;
     /* descriptors, audio header or other config types */
-    size_t section2_num;
+    uint32_t section2_num;
     off_t section2_offset;
     /* internal streams table, referenced by each header */
-    size_t section3_num;
+    uint32_t section3_num;
     off_t section3_offset;
     /* section with sounds in some map versions */
-    size_t section4_num;
+    uint32_t section4_num;
     off_t section4_offset;
     /* extra table, config for certain types (DSP coefs, external resources, layer headers, etc) */
-    size_t sectionX_size;
+    uint32_t sectionX_size;
     off_t sectionX_offset;
     /* sound bank size */
     size_t bank_size;
@@ -210,6 +214,7 @@ static VGMSTREAM* init_vgmstream_ubi_sb_header(ubi_sb_header* sb, STREAMFILE* sf
 static VGMSTREAM *init_vgmstream_ubi_sb_silence(ubi_sb_header *sb);
 static int config_sb_platform(ubi_sb_header* sb, STREAMFILE* sf);
 static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf);
+static int init_sb_header(ubi_sb_header* sb, STREAMFILE* sf);
 
 
 /* .SBx - banks from Ubisoft's DARE (Digital Audio Rendering Engine) engine games in ~2000-2008+ */
@@ -249,32 +254,9 @@ VGMSTREAM* init_vgmstream_ubi_sb(STREAMFILE* sf) {
 
     if (!config_sb_version(&sb, sf))
         goto fail;
+    if (!init_sb_header(&sb, sf))
+        goto fail;
 
-    if (sb.version <= 0x0000000B) {
-        sb.section1_num  = read_32bit(0x04, sf);
-        sb.section2_num  = read_32bit(0x0c, sf);
-        sb.section3_num  = read_32bit(0x14, sf);
-        sb.sectionX_size = read_32bit(0x1c, sf);
-
-        sb.section1_offset = 0x20;
-    } else if (sb.version <= 0x000A0000) {
-        sb.section1_num  = read_32bit(0x04, sf);
-        sb.section2_num  = read_32bit(0x08, sf);
-        sb.section3_num  = read_32bit(0x0c, sf);
-        sb.sectionX_size = read_32bit(0x10, sf);
-        sb.flag1         = read_32bit(0x14, sf);
-
-        sb.section1_offset = 0x18;
-    } else {
-        sb.section1_num  = read_32bit(0x04, sf);
-        sb.section2_num  = read_32bit(0x08, sf);
-        sb.section3_num  = read_32bit(0x0c, sf);
-        sb.sectionX_size = read_32bit(0x10, sf);
-        sb.flag1         = read_32bit(0x14, sf);
-        sb.flag2         = read_32bit(0x18, sf);
-
-        sb.section1_offset = 0x1c;
-    }
 
     if (sb.cfg.is_padded_section1_offset)
         sb.section1_offset = align_size_to_block(sb.section1_offset, 0x10);
@@ -2798,6 +2780,102 @@ static int check_project_file(STREAMFILE *sf_header, const char *name, int has_l
     return 0;
 }
 
+
+/* Each entry in section1/2 has a type of 16b+16b group+sound identifier. May start from 0 (rarely) but
+ * always are low-ish numbers, so can be used to a point to detect if entries are correct with some entry_size. */
+static int test_version_sb_entry(ubi_sb_header* sb, STREAMFILE* sf, uint32_t offset, int count, uint32_t entry_size) {
+    read_u32_t read_u32 = sb->big_endian ? read_u32be : read_u32le;
+    uint32_t prev_group = 0;
+    int i;
+
+    prev_group = 0;
+    for (i = 0; i < count; i++) {
+        uint32_t curr = read_u32(offset, sf);
+        uint16_t group, sound;
+
+        if (i > 1 && curr == 0)
+            return 0;
+
+        /* max seen in ~0x0200 */
+        group = (curr >> 16) & 0xFFFF;
+        sound = (curr >>  0) & 0xFFFF;
+        if (group > 0x1000 || sound > 0x1000)
+            return 0;
+
+        /* sounds aren't always ordered, but seems groups are */
+        if (prev_group && group < prev_group)
+            return 0;
+
+        prev_group = group;
+        offset += entry_size;
+    }
+
+    return 1;
+}
+
+/* Checks if matches entry sizes, for cases where same ID is reused. Only for SB fow now. */
+static int test_version_sb(ubi_sb_header* sb, STREAMFILE* sf, uint32_t section1_size_entry, uint32_t section2_size_entry) {
+    uint32_t offset;
+
+    if (!init_sb_header(sb, sf))
+        return 0;
+
+    if (sb->section2_num == 0) /* no waves = no point to detect */
+        return 0;
+
+    offset = sb->section1_offset;
+    if (!test_version_sb_entry(sb, sf, offset, sb->section1_num, section1_size_entry))
+        return 0;
+
+    offset = sb->section1_offset + sb->section1_num * section1_size_entry;
+    if (!test_version_sb_entry(sb, sf, offset, sb->section2_num, section2_size_entry))
+        return 0;
+
+    return 1;
+}
+
+static int init_sb_header(ubi_sb_header* sb, STREAMFILE* sf) {
+    read_u32_t read_u32 = sb->big_endian ? read_u32be : read_u32le;
+
+    if (sb->header_init)
+        return 1;
+
+    if (sb->version <= 0x0000000B) {
+        sb->section1_num  = read_u32(0x04, sf);
+        sb->section2_num  = read_u32(0x0c, sf);
+        sb->section3_num  = read_u32(0x14, sf);
+        sb->sectionX_size = read_u32(0x1c, sf);
+
+        sb->section1_offset = 0x20;
+    }
+    else if (sb->version <= 0x000A0000) {
+        sb->section1_num  = read_u32(0x04, sf);
+        sb->section2_num  = read_u32(0x08, sf);
+        sb->section3_num  = read_u32(0x0c, sf);
+        sb->sectionX_size = read_u32(0x10, sf);
+        sb->flag1         = read_u32(0x14, sf);
+
+        sb->section1_offset = 0x18;
+    }
+    else {
+        sb->section1_num  = read_u32(0x04, sf);
+        sb->section2_num  = read_u32(0x08, sf);
+        sb->section3_num  = read_u32(0x0c, sf);
+        sb->sectionX_size = read_u32(0x10, sf);
+        sb->flag1         = read_u32(0x14, sf);
+        sb->flag2         = read_u32(0x18, sf);
+
+        sb->section1_offset = 0x1c;
+    }
+
+    if (sb->section1_num > SB_MAX_SUBSONGS || sb->section2_num > SB_MAX_SUBSONGS || sb->section3_num > SB_MAX_SUBSONGS)
+        return 0;
+
+    sb->header_init = 1;
+    return 1;
+}
+
+
 static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
     int is_ttse_pc = 0;
     int is_bia_ps2 = 0, is_biadd_psp = 0;
@@ -3478,9 +3556,9 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
         return 1;
     }
 
-    /* two configs with same id; use project file as identifier */
+    /* two configs with same id; try to autodetect or use project file as identifier */
     if (sb->version == 0x00120006 && sb->platform == UBI_PC) {
-        if (check_project_file(sf, "gamesnd_myst4.sp0", 1)) {
+        if (test_version_sb(sb, sf, 0x6c, 0xa4) || check_project_file(sf, "gamesnd_myst4.sp0", 1)) {
             is_myst4_pc = 1;
         }
     }

@@ -452,6 +452,9 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
                     riff_size + 0x08 + 0x08 == file_size || riff_size + 0x08 + 0x09 == file_size ||
                     riff_size + 0x08 - 0x3E == file_size || riff_size + 0x08 - 0x02 == file_size))
             ignore_riff_size = 1; /* [Cross Gate (PC)] (last info LIST chunk has wrong size) */
+
+        else if (codec == 0xFFFE && riff_size + 0x08 + 0x40 == file_size)
+            file_size -= 0x40; /* [Megami no Etsubo (PSP)] (has extra padding in all files) */
     }
 
     /* check for truncated RIFF */
