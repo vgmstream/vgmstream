@@ -952,6 +952,9 @@ static const hcakey_info hcakey_list[] = {
         // Priconne! Grand Masters (iOS/Android)
         {185705658241},         // 0000002B3CEB7781
 
+        // Sonic Origins
+        {1991062320220623},     // 000712DC525289CF
+
 };
 
 #endif/*_HCA_KEYS_H_*/
