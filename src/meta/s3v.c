@@ -19,8 +19,10 @@ VGMSTREAM * init_vgmstream_s3v(STREAMFILE *sf) {
     /* No discernible loop_flag so we'll just use signatures.
        Might have to update on a per game basis. */
 	switch (read_32bitBE(0x14, sf)) {
-        case 0x82FA0000: // SOUND VOLTEX EXCEED GEAR ver5
-        case 0x1BFD0000: // SOUND VOLTEX EXCEED GEAR ver6
+        case 0x82FA0000: // SOUND VOLTEX EXCEED GEAR ver5 Theme BGM
+        case 0x1BFD0000: // SOUND VOLTEX EXCEED GEAR ver6 Theme BGM
+        case 0x9AFD0000: // SOUND VOLTEX Custom song selection BGM TypeA
+        case 0x9BFD0000: // SOUND VOLTEX Custom song selection BGM TypeB
             loop_flag = 1;
             break;
 
