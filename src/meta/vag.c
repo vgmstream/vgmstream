@@ -52,12 +52,16 @@ VGMSTREAM* init_vgmstream_vag(STREAMFILE* sf) {
     /* check variation */
     switch(vag_id) {
 
-        case 0x56414731: /* "VAG1" (1 channel) [Metal Gear Solid 3 (PS2)] */
-            meta_type = meta_PS2_VAG1;
+        case 0x56414731: /* "VAG1" [Metal Gear Solid 3 (PS2), Cabela's African Safari (PSP)] */
+            meta_type = meta_PS2_VAG1; //TODO not always Konami
             start_offset = 0x40; /* 0x30 is extra data in VAG1 */
-            channels = 1;
-            interleave = 0;
+            interleave = 0x10;
             loop_flag = 0;
+
+            /* MGS3 is 0 while Cabela's has this, plus description is 0x10 " " then 0x10 "-" */
+            channels = read_u8(0x1e, sf);
+            if (channels == 0)
+                channels = 1;
             break;
 
         case 0x56414732: /* "VAG2" (2 channels) [Metal Gear Solid 3 (PS2)] */
