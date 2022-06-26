@@ -1120,6 +1120,9 @@
     <ClCompile Include="meta\smv.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\sndz.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\sps_n1.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>

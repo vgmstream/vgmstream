@@ -92,6 +92,9 @@ as explained below, but often will use default values. Accepted codec strings:
 #   * Variation with modified encoding
 # - PCM8_U_int     PCM 8-bit unsigned (interleave block)
 #   * Variation with modified encoding
+# - PCM8_SB        PCM 8-bit with sign bit
+#   * Variation with modified encoding
+#   * For few rare games [Sonic CD (SCD)]
 # - PCM_FLOAT_LE   PCM 32-bit float little endian
 #   * For few rare games [Ikinari Maou (Switch)]
 #   * Interleave is multiple of 0x4 (default)
@@ -1071,6 +1074,21 @@ sample_rate = 24000
 channels = 2
 
 #loops are in MM.BIN, table at 0x80700 + id*4 - 0x06018B00
+```
+
+#### Sonic CD (SCD) .stm.txth
+```
+#-- for files with video, remove if demuxed
+chunk_count     = 1
+chunk_start     = 0x00
+chunk_data_size = 0x8000
+chunk_size      = 0x25800
+#--
+
+codec = PCM8_SB
+channels = 1
+sample_rate = 32768 #32500?
+num_samples = data_size
 ```
 
 #### Sega Rally 3 (SAT) ALL_SOUND.txth

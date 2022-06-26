@@ -551,6 +551,7 @@
     <ClCompile Include="meta\smk.c" />
     <ClCompile Include="meta\smp.c" />
     <ClCompile Include="meta\smv.c" />
+    <ClCompile Include="meta\sndz.c" />
     <ClCompile Include="meta\sps_n1.c" />
     <ClCompile Include="meta\spt_spd.c" />
     <ClCompile Include="meta\stm.c" />
