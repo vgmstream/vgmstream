@@ -48,6 +48,7 @@ typedef enum {
     CP_YM,
     PCM_FLOAT_LE,
     IMA_HV,
+    PCM8_SB,
 
     UNKNOWN = 99,
 } txth_codec_t;
@@ -215,13 +216,14 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
     if (txth.interleave == 0) {
         uint32_t interleave  = 0;
         switch(txth.codec) {
-            case PSX:           interleave = 0x10; break;
+            case PSX:
             case PSX_bf:        interleave = 0x10; break;
             case NGC_DSP:       interleave = 0x08; break;
-            case PCM16LE:       interleave = 0x02; break;
+            case PCM16LE:
             case PCM16BE:       interleave = 0x02; break;
-            case PCM8:          interleave = 0x01; break;
-            case PCM8_U:        interleave = 0x01; break;
+            case PCM8:
+            case PCM8_U:
+            case PCM8_SB:       interleave = 0x01; break;
             case PCM_FLOAT_LE:  interleave = 0x04; break;
             default:
                  break;
@@ -235,9 +237,12 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
         case PSX:           coding = coding_PSX; break;
         case XBOX:          coding = coding_XBOX_IMA; break;
         case NGC_DTK:       coding = coding_NGC_DTK; break;
-        case PCM16BE:       coding = coding_PCM16BE; break;
         case PCM16LE:       coding = coding_PCM16LE; break;
+        case PCM16BE:       coding = coding_PCM16BE; break;
         case PCM8:          coding = coding_PCM8; break;
+        case PCM8_U:        coding = coding_PCM8_U; break;
+        case PCM8_U_int:    coding = coding_PCM8_U_int; break;
+        case PCM8_SB:       coding = coding_PCM8_SB; break;
         case PCM_FLOAT_LE:  coding = coding_PCMFLOAT; break;
         case SDX2:          coding = coding_SDX2; break;
         case DVI_IMA:       coding = coding_DVI_IMA; break;
@@ -249,10 +254,8 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
         case AICA:          coding = coding_AICA; break;
         case MSADPCM:       coding = coding_MSADPCM; break;
         case NGC_DSP:       coding = coding_NGC_DSP; break;
-        case PCM8_U_int:    coding = coding_PCM8_U_int; break;
         case PSX_bf:        coding = coding_PSX_badflags; break;
         case MS_IMA:        coding = coding_MS_IMA; break;
-        case PCM8_U:        coding = coding_PCM8_U; break;
         case APPLE_IMA4:    coding = coding_APPLE_IMA4; break;
 #ifdef VGM_USE_FFMPEG
         case ATRAC3:
@@ -310,6 +313,7 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
         case coding_PCM16BE:
         case coding_PCM8:
         case coding_PCM8_U:
+        case coding_PCM8_SB:
         case coding_PCMFLOAT:
         case coding_PCM4:
         case coding_PCM4_U:
@@ -938,6 +942,9 @@ static txth_codec_t parse_codec(txth_header* txth, const char* val) {
     else if (is_string(val,"PCM16BE"))      return PCM16BE;
     else if (is_string(val,"PCM16LE"))      return PCM16LE;
     else if (is_string(val,"PCM8"))         return PCM8;
+    else if (is_string(val,"PCM8_U"))       return PCM8_U;
+    else if (is_string(val,"PCM8_U_int"))   return PCM8_U_int;
+    else if (is_string(val,"PCM8_SB"))      return PCM8_SB;
     else if (is_string(val,"SDX2"))         return SDX2;
     else if (is_string(val,"DVI_IMA"))      return DVI_IMA;
     else if (is_string(val,"MPEG"))         return MPEG;
@@ -946,10 +953,8 @@ static txth_codec_t parse_codec(txth_header* txth, const char* val) {
     else if (is_string(val,"MSADPCM"))      return MSADPCM;
     else if (is_string(val,"NGC_DSP"))      return NGC_DSP;
     else if (is_string(val,"DSP"))          return NGC_DSP;
-    else if (is_string(val,"PCM8_U_int"))   return PCM8_U_int;
     else if (is_string(val,"PSX_bf"))       return PSX_bf;
     else if (is_string(val,"MS_IMA"))       return MS_IMA;
-    else if (is_string(val,"PCM8_U"))       return PCM8_U;
     else if (is_string(val,"APPLE_IMA4"))   return APPLE_IMA4;
     else if (is_string(val,"ATRAC3"))       return ATRAC3;
     else if (is_string(val,"ATRAC3PLUS"))   return ATRAC3PLUS;
@@ -2043,11 +2048,12 @@ static int get_bytes_to_samples(txth_header* txth, uint32_t bytes) {
             return ps_bytes_to_samples(bytes, txth->channels);
         case PCM16BE:
         case PCM16LE:
-            return pcm_bytes_to_samples(bytes, txth->channels, 16);
+            return pcm16_bytes_to_samples(bytes, txth->channels);
         case PCM8:
         case PCM8_U_int:
         case PCM8_U:
-            return pcm_bytes_to_samples(bytes, txth->channels, 8);
+        case PCM8_SB:
+            return pcm8_bytes_to_samples(bytes, txth->channels);
         case PCM_FLOAT_LE:
             return pcm_bytes_to_samples(bytes, txth->channels, 32);
         case PCM4:
