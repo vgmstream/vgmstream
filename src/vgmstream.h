@@ -762,6 +762,7 @@ typedef enum {
     meta_ESF,
     meta_ADM3,
     meta_TT_AD,
+    meta_SNDZ,
 
 } meta_t;
 

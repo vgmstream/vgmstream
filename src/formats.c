@@ -532,6 +532,8 @@ static const char* extension_list[] = {
     "sxd",
     "sxd2",
     "sxd3",
+    "szd1",
+    "szd3",
 
     "tad",
     "tec",
@@ -1402,6 +1404,7 @@ static const meta_info meta_info_list[] = {
         {meta_ESF,                  "Eurocom ESF header"},
         {meta_ADM3,                 "Crankcase ADM3 header"},
         {meta_TT_AD,                "Traveller's Tales AUDIO_DATA header"},
+        {meta_SNDZ,                 "Sony SNDZ header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {
