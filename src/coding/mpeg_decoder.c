@@ -29,43 +29,45 @@ mpeg_codec_data* init_mpeg(STREAMFILE* sf, off_t start_offset, coding_t* coding_
     data->m = init_mpg123_handle();
     if (!data->m) goto fail;
 
+
     /* check format */
     {
-        mpg123_handle *main_m = data->m;
-        off_t read_offset = 0;
-        int rc;
+        int rc, pos, bytes_read;
+        size_t bytes_done;
 
-        long sample_rate_per_frame;
-        int channels_per_frame, encoding;
-        size_t samples_per_frame;
-        struct mpg123_frameinfo mi;
+        bytes_read = read_streamfile(data->buffer, start_offset, data->buffer_size, sf);
+        /* don't check max as sfx can be smaller than buffer */
 
-        //todo read single big buffer then add +1 up to a few max bytes, or just read once only
-        /* read first frame(s) */
+        /* start_offset should be correct but just in case, read first frame(s) */
+        pos = 0;
         do {
-            size_t bytes_read, bytes_done;
-
-            /* don't check max as sfx can be smaller than buffer */
-            bytes_read = read_streamfile(data->buffer, start_offset + read_offset, data->buffer_size, sf);
-            read_offset += 1;
-
-            rc = mpg123_decode(main_m, data->buffer, bytes_read, NULL,0, &bytes_done);
+            rc = mpg123_decode(data->m, data->buffer + pos, bytes_read, NULL,0, &bytes_done);
             if (rc != MPG123_OK && rc != MPG123_NEW_FORMAT && rc != MPG123_NEED_MORE) {
                 VGM_LOG("MPEG: unable to set up mpg123 at start offset\n");
                 goto fail; //handle MPG123_DONE?
             }
-            if (read_offset > 0x5000) { /* don't hang in some incorrectly detected formats */
+            if (bytes_read <= 0x10) { /* don't hang in some incorrectly detected formats */
                 VGM_LOG("MPEG: unable to find mpeg data at start offset\n");
                 goto fail;
             }
 
+            pos++;
+            bytes_read--;
         } while (rc != MPG123_NEW_FORMAT);
+    }
+
+    {
+        size_t samples_per_frame;
+        long sample_rate_per_frame;
+        int channels_per_frame, encoding;
+        int rc;
+        struct mpg123_frameinfo mi;
 
         /* check first frame header and validate */
-        rc = mpg123_getformat(main_m, &sample_rate_per_frame, &channels_per_frame, &encoding);
+        rc = mpg123_getformat(data->m, &sample_rate_per_frame, &channels_per_frame, &encoding);
         if (rc != MPG123_OK) goto fail;
 
-        mpg123_info(main_m, &mi);
+        mpg123_info(data->m, &mi);
 
         if (encoding != MPG123_ENC_SIGNED_16)
             goto fail;
@@ -99,7 +101,7 @@ mpeg_codec_data* init_mpeg(STREAMFILE* sf, off_t start_offset, coding_t* coding_
         memcpy(&data->mi, &mi, sizeof(struct mpg123_frameinfo));
 
         /* reinit, to ignore the reading done */
-        mpg123_open_feed(main_m);
+        mpg123_open_feed(data->m);
     }
 
     return data;

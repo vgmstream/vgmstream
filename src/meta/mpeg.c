@@ -19,7 +19,8 @@ VGMSTREAM* init_vgmstream_mpeg(STREAMFILE* sf) {
         (header_id & 0xFFFFFF00) != get_id32be("TAG\0"))
         goto fail;
 
-    //TODO: may try init_mpeg as-is, already skips tags
+    /* detect base offset, since some tags with images are big
+     * (init_mpeg only skips tags in a small-ish buffer) */
     start_offset = 0x00;
     while (start_offset < get_streamfile_size(sf)) {
         uint32_t tag_size = mpeg_get_tag_size(sf, start_offset, 0);
@@ -52,15 +53,15 @@ VGMSTREAM* init_vgmstream_mpeg(STREAMFILE* sf) {
     //cfg.skip_samples = ...
     //vgmstream->codec_data = init_mpeg_custom(sf, start_offset, &vgmstream->coding_type, fmt.channels, MPEG_STANDARD, &cfg);
 
-    vgmstream->codec_data = init_mpeg(sf, 0x00, &vgmstream->coding_type, info.channels);
+    vgmstream->codec_data = init_mpeg(sf, start_offset, &vgmstream->coding_type, info.channels);
     if (!vgmstream->codec_data) goto fail;
     vgmstream->layout_type = layout_none;
 
     //vgmstream->num_samples = mpeg_bytes_to_samples(data_size, vgmstream->codec_data);
-    vgmstream->num_samples = mpeg_get_samples(sf, 0x00, get_streamfile_size(sf));
+    vgmstream->num_samples = mpeg_get_samples(sf, start_offset, get_streamfile_size(sf));
 
 
-    if (!vgmstream_open_stream(vgmstream, sf, 0x00))
+    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
         goto fail;
     return vgmstream;
 fail:
