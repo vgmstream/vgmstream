@@ -26,7 +26,7 @@ if(NOT WIN32 AND USE_SPEEX)
 			
 			file(MAKE_DIRECTORY ${SPEEX_BIN})
 			add_custom_target(SPEEX_CONFIGURE
-				COMMAND "${SPEEX_PATH}/configure" --enable-static --disable-shared --disable-binaries CC="${CMAKE_C_COMPILER}" AR="${CMAKE_AR}" RANLIB="${CMAKE_RANLIB}"
+				COMMAND "${SPEEX_PATH}/configure" --enable-static --disable-shared --disable-binaries --with-pic CC="${CMAKE_C_COMPILER}" AR="${CMAKE_AR}" RANLIB="${CMAKE_RANLIB}"
 				DEPENDS ${SPEEX_PATH}/configure
 				BYPRODUCTS ${SPEEX_BIN}/Makefile
 				WORKING_DIRECTORY ${SPEEX_BIN}
