@@ -19,7 +19,7 @@ VGMSTREAM* init_vgmstream_ps2_gcm(STREAMFILE* sf) {
         goto fail;
 
     /* GCM format as Namco outlined it is a hacked VAGp stereo format that can hold 6-channel audio at will.
-     * so, first step is to let's deal with whatever quirks the format might have */
+     * so, first step is to deal with whatever quirks the format might have. */
     vagp_l_offset = read_u32le(0x04, sf); /* "left" VAGp header pointer. */
     if (vagp_l_offset != 0x20)
         goto fail;
@@ -29,10 +29,10 @@ VGMSTREAM* init_vgmstream_ps2_gcm(STREAMFILE* sf) {
     start_offset = read_u32le(0x0c, sf); /* raw "stereo VAG" data pointer. */
     if (start_offset != 0x80)
         goto fail;
-    gcm_samples = read_u32le(0x10, sf); /* size of raw "stereo VAG" data, not correct for multi - channel files as we'll see below. */
+    gcm_samples = read_u32le(0x10, sf); /* size of raw "stereo VAG" data, not exactly correct for multi-channel files as we'll see below. */
 
-    /* second step is to check actual GCM size and decide channels value from there.
-     * not helping matters is there's nothing in the GCM header that indicates that this file is multi-channel or not.
+    /* second step is to check actual GCM size and decide the "channels" value from there.
+     * not helping matters is there's nothing in the GCM header that indicates whether or not this GCM is actually multi-channel in any way.
      * meaning we have to manually support those Klonoa multi-channel files (KLN3182M.GCM, KLN3191M.GCM, etc). */
     data_size = get_streamfile_size(sf) - start_offset;
     if (data_size == (gcm_samples * 3)) {
@@ -47,56 +47,56 @@ VGMSTREAM* init_vgmstream_ps2_gcm(STREAMFILE* sf) {
         /* there is only one known GCM "multi-channel" setup and it's hacky. */
         goto fail;
     }
-    /* what follows are two VAGp headers and raw data, check VAGp header values and see if they match */
+    /* what follows are two VAGp headers and raw data, third and final step is to perform sanity checks on them (except the data itself) and go from there. */
 
-    /* VAGp signature field, always present */
+    /* VAGp signature field, always present. */
     uint32_t vagp_l_sig, vagp_r_sig, vagp_sig;
     vagp_l_sig = read_u32be(vagp_l_offset, sf);
     vagp_r_sig = read_u32be(vagp_r_offset, sf);
     if (vagp_l_sig != vagp_r_sig) {
-        /* check two identical values against each other */
+        /* check two identical values against each other. */
         goto fail;
     }
     else {
-        /* check for "VAGp" value */
+        /* check for "VAGp" value. */
         vagp_sig = vagp_r_sig;
         if (vagp_sig != 0x56414770) goto fail; /* "VAGp" */
     }
-    /* VAGp version field, always 4 */
+    /* VAGp version field, always 4. */
     uint32_t vagp_l_ver, vagp_r_ver, vagp_ver;
     vagp_l_ver = read_u32be(vagp_l_offset + 4, sf);
     vagp_r_ver = read_u32be(vagp_r_offset + 4, sf);
     if (vagp_l_ver != vagp_r_ver) {
-        /* check two identical values against each other */
+        /* check two identical values against each other. */
         goto fail;
     }
     else {
-        /* check for "version 4" value */
+        /* check for "version 4" value. */
         vagp_ver = vagp_r_ver;
         if (vagp_ver != 4) goto fail;
     }
-    /* VAGp size field, usually separate per channel and does not cover blank frames at all */
+    /* VAGp size field, usually separate per channel and does not cover blank frames at all. */
     uint32_t vagp_l_size, vagp_r_size, vagp_samples;
     vagp_l_size = read_u32be(vagp_l_offset + 12, sf);
     vagp_r_size = read_u32be(vagp_r_offset + 12, sf);
     if (vagp_l_size != vagp_r_size) {
-        /* check two identical values against each other */
+        /* check two identical values against each other. */
         goto fail;
     }
     else {
-        /* assign one of the two existing "vag size" values to an entirely new "vag size" variable to be used later */
+        /* assign one of the two existing "vag size" values to an entirely new "vag size" variable to be used later. */
         vagp_samples = vagp_r_size;
     }
-    /* VAGp sample rate field, usually separate per channel */
+    /* VAGp sample rate field, usually separate per channel. */
     uint32_t vagp_l_sample_rate, vagp_r_sample_rate;
     vagp_l_sample_rate = read_u32be(vagp_l_offset + 16, sf);
     vagp_r_sample_rate = read_u32be(vagp_r_offset + 16, sf);
     if (vagp_l_sample_rate != vagp_r_sample_rate) {
-        /* check two identical values against each other */
+        /* check two identical values against each other. */
         goto fail;
     }
     else {
-        /* assign one of the two existing sample rate values to an entirely new sample rate variable to be used later */
+        /* assign one of the two existing "sample rate" values to an entirely new "sample rate" variable to be used later. */
         gcm_sample_rate = vagp_r_sample_rate;
     }
     
@@ -105,7 +105,7 @@ VGMSTREAM* init_vgmstream_ps2_gcm(STREAMFILE* sf) {
     vgmstream = allocate_vgmstream(gcm_channels,0);
     if (!vgmstream) goto fail;
 
-    /* fill in the vital statistics */
+    /* fill in the vital statistics. */
     vgmstream->meta_type = meta_PS2_GCM;
     vgmstream->sample_rate = gcm_sample_rate;
     vgmstream->num_samples = ps_bytes_to_samples(vagp_samples, 1);
@@ -113,12 +113,12 @@ VGMSTREAM* init_vgmstream_ps2_gcm(STREAMFILE* sf) {
     vgmstream->layout_type = layout_interleave;
     vgmstream->interleave_block_size = read_u32le(0x14, sf);
 
-    /* open the file for reading */
+    /* open the file for reading. */
     if (!vgmstream_open_stream(vgmstream, sf, start_offset))
         goto fail;
     return vgmstream;
 
-    /* clean up anything we may have opened */
+    /* clean up anything we may have opened. */
 fail:
     close_vgmstream(vgmstream);
     return NULL;
