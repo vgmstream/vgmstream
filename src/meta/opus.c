@@ -347,10 +347,12 @@ VGMSTREAM* init_vgmstream_opus_sps_n1(STREAMFILE* sf) {
     /* checks */
     if (read_u32be(0x00, sf) != 0x09000000) /* file type (see other N1 SPS) */
         goto fail;
+
     /* .sps: Labyrinth of Refrain: Coven of Dusk (Switch)
      * .nlsd: Disgaea Refine (Switch), Ys VIII (Switch)
-     * .at9: void tRrLM(); //Void Terrarium (Switch) */
-    if (!check_extensions(sf, "sps,nlsd,at9"))
+     * .at9: void tRrLM(); //Void Terrarium (Switch)
+     * .opus: Asatsugutori (Switch) */
+    if (!check_extensions(sf, "sps,nlsd,at9,opus,lopus"))
         goto fail;
 
     num_samples = read_32bitLE(0x0C, sf);

@@ -99,18 +99,19 @@ VGMSTREAM* init_vgmstream_hca_subkey(STREAMFILE* sf, uint16_t subkey) {
     vgmstream->layout_type = layout_none;
     vgmstream->codec_data = hca_data;
 
-    /* assumed mappings */
+    /* Assumed mappings; seems correct vs Atom Viewer, that lists L/R/C/LFE/LS/RS and downmixes HCAs like that.
+     * USM HCA's seem to be L/R/SL/SR/C/LFE though (probably reordered at USM level, no detection done in Atom Viewer). */
     {
         static const uint32_t hca_mappings[] = {
                 0,
                 mapping_MONO,
                 mapping_STEREO,
                 mapping_2POINT1,
-                mapping_QUAD,
+                mapping_QUAD_side,
                 mapping_5POINT0,
-                mapping_5POINT1,
+                mapping_5POINT1_surround,
                 mapping_7POINT0,
-                mapping_7POINT1,
+                mapping_7POINT1_surround,
         };
 
         vgmstream->channel_layout = hca_mappings[vgmstream->channels];
