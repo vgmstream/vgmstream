@@ -1157,7 +1157,7 @@ static const meta_info meta_info_list[] = {
         {meta_PS2_WB,               "Shooting Love. ~TRIZEAL~ WB header"},
         {meta_S14,                  "Namco .S14 raw header"},
         {meta_SSS,                  "Namco .SSS raw header"},
-        {meta_PS2_GCM,              "GCM 'MCG' Header"},
+        {meta_PS2_GCM,              "Namco GCM header"},
         {meta_PS2_SMPL,             "Homura SMPL header"},
         {meta_PS2_MSA,              "Success .MSA header"},
         {meta_NGC_PDT,              "Hudson .PDT header"},
