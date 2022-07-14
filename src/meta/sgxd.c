@@ -73,7 +73,30 @@ VGMSTREAM* init_vgmstream_sgxd(STREAMFILE* sf) {
     }
 
 
-    /* typical chunks: WAVE, RGND, NAME (strings for WAVE or RGND), SEQD (related to SFX), WSUR, WMKR, BUSS */
+    /* Format per chunk:
+     * - 0x00: id
+     * - 0x04: SGX: unknown; SGD/SGH: chunk length
+     * - 0x08: null
+     * - 0x0c: entries */
+
+    /* typical chunks (with some entry info):
+     * - WAVE: wave data (see below)
+     * - RGND: programs info, notably:
+     *   - 0x18: min note range
+     *   - 0x19: max note range
+     *   - 0x1C: root note 
+     *   - 0x34: WAVE id
+     *   > sample_rate = wave_sample_rate * (2 ^ (1/12)) ^ (target_note - root_note)
+     * - NAME: strings for other chunks
+     *   - 0x00: sub-id?
+     *   - 0x02: type? (possibly: 0000=bank, 0x2xxx=SEQD/WAVE, 0x3xxx=WSUR, 0x4xxx=BUSS, 0x6xxx=CONF)
+     *   - 0x04: absolute offset
+     * - SEQD: related to SFX (sequences?), entries seem to be offsets to name offset + seq (ps1?) offset
+     * - WSUR: ?
+     * - WMKR: ?
+     * - CONF: ? (name offset + config offset)
+     * - BUSS: bus config? 
+
     /* WAVE chunk (size 0x10 + files * 0x38 + optional padding) */
     if (is_sgx) { /* position after chunk+size */
         if (!is_id32be(0x10,sf_head, "WAVE"))
@@ -83,7 +106,6 @@ VGMSTREAM* init_vgmstream_sgxd(STREAMFILE* sf) {
         if (!find_chunk_le(sf_head, get_id32be("WAVE"),0x10,0, &chunk_offset, NULL))
             goto fail;
     }
-    /* 0x04  SGX: unknown; SGD/SGH: chunk length,  0x08  null */
 
     /* check multi-streams (usually only SE containers; Puppeteer) */
     total_subsongs = read_s32le(chunk_offset+0x04,sf_head);
@@ -95,18 +117,18 @@ VGMSTREAM* init_vgmstream_sgxd(STREAMFILE* sf) {
         uint32_t stream_offset;
         chunk_offset += 0x08 + 0x38 * (target_subsong-1); /* position in target header*/
 
-        /* 0x00  ? (00/01/02) */
+        /* 0x00: ? (00/01/02) */
         if (!is_sgx) /* meaning unknown in .sgx; offset 0 = not a stream (a RGND sample) */
             name_offset = read_u32le(chunk_offset+0x04,sf_head);
         codec = read_u8(chunk_offset+0x08,sf_head);
         channels = read_u8(chunk_offset+0x09,sf_head);
-        /* 0x0a  null */
+        /* 0x0a: null */
         sample_rate = read_s32le(chunk_offset+0x0c,sf_head);
 
         /* 0x10: info_type, meaning of the next value
          *       (00=null, 30/40=data size without padding (ADPCM, ATRAC3plus), 80/A0=block size (AC3) */
         /* 0x14: info_value (see above) */
-        /* 0x18: unknown (ex. 0x0008/0010/3307/CC02/etc)x2 */
+        /* 0x18: unknown (ex. 0x0008/0010/3307/CC02/etc, RGND related?) x2 */
         /* 0x1c: null */
 
         num_samples = read_s32le(chunk_offset+0x20,sf_head);
