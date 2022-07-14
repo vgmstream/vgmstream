@@ -409,6 +409,7 @@ typedef struct {
 
     uint32_t setup_id; /* external setup */
     int big_endian; /* flag */
+    uint32_t stream_end; /* optional, to avoid overreading into next subsong or chunk */
 
     /* Wwise Vorbis config */
     wwise_setup_t setup_type;

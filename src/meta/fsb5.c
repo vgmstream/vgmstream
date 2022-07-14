@@ -477,6 +477,7 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
             cfg.channels = fsb5.channels;
             cfg.sample_rate = fsb5.sample_rate;
             cfg.setup_id = read_u32le(fsb5.extradata_offset,sf);
+            cfg.stream_end = fsb5.stream_offset + fsb5.stream_size;
 
             vgmstream->codec_data = init_vorbis_custom(sb, fsb5.stream_offset, VORBIS_FSB, &cfg);
             if (!vgmstream->codec_data) goto fail;
