@@ -65,6 +65,9 @@ vorbis_custom_codec_data* init_vorbis_custom(STREAMFILE* sf, off_t start_offset,
     /* write output */
     config->data_start_offset = data->config.data_start_offset;
 
+    if (!data->config.stream_end) {
+        data->config.stream_end = get_streamfile_size(sf);
+    }
 
     return data;
 
@@ -78,18 +81,10 @@ fail:
 void decode_vorbis_custom(VGMSTREAM* vgmstream, sample_t* outbuf, int32_t samples_to_do, int channels) {
     VGMSTREAMCHANNEL *stream = &vgmstream->ch[0];
     vorbis_custom_codec_data* data = vgmstream->codec_data;
-    size_t stream_size =  get_streamfile_size(stream->streamfile);
     //data->op.packet = data->buffer;/* implicit from init */
     int samples_done = 0;
 
     while (samples_done < samples_to_do) {
-
-        /* extra EOF check for edge cases */
-        if (stream->offset >= stream_size) {
-            memset(outbuf + samples_done * channels, 0, (samples_to_do - samples_done) * sizeof(sample) * channels);
-            break;
-        }
-
 
         if (data->samples_full) {  /* read more samples */
             int samples_to_get;
@@ -122,6 +117,12 @@ void decode_vorbis_custom(VGMSTREAM* vgmstream, sample_t* outbuf, int32_t sample
         }
         else { /* read more data */
             int ok, rc;
+
+            /* extra EOF check */
+            if (stream->offset >= data->config.stream_end) {
+                /* may need to drain samples? (not a thing in vorbis due to packet types?) */
+                goto decode_fail;
+            }
 
             /* not actually needed, but feels nicer */
             data->op.granulepos += samples_to_do; /* can be changed next if desired */

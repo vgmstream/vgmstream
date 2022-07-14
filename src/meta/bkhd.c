@@ -206,10 +206,13 @@ VGMSTREAM* init_vgmstream_bkhd_fx(STREAMFILE* sf) {
     /* Not an actual stream but typically convolution reverb models and other FX plugin helpers.
      * Useless but to avoid "subsong not playing" complaints. */
 
-    if (read_u32(0x00, sf) == 0x0400 &&
+    /* Wwise Convolution Reverb */
+    if ((read_u32(0x00, sf) == 0x00000400 ||    /* common */
+         read_u32(0x00, sf) == 0x00020400 ) &&  /* Elden Ring */
         read_u32(0x04, sf) == 0x0800) {
         sample_rate = read_u32(0x08, sf);
         channels    = read_u32(0x0c, sf) & 0xFF; /* 0x31 at 0x0d in PC, field is 32b vs X360 */
+
         /* 0x10: some id or small size? (related to entries?) */
         /* 0x14/18: some float? */
         entries     = read_u32(0x1c, sf);

@@ -172,6 +172,7 @@ VGMSTREAM* init_vgmstream_wwise_bnk(STREAMFILE* sf, int* p_prefetch) {
             cfg.channels = ww.channels;
             cfg.sample_rate = ww.sample_rate;
             cfg.big_endian = ww.big_endian;
+            cfg.stream_end = ww.data_offset + ww.data_size;
 
             if (ww.block_size != 0 || ww.bits_per_sample != 0) goto fail; /* always 0 for Worbis */
 
@@ -237,7 +238,7 @@ VGMSTREAM* init_vgmstream_wwise_bnk(STREAMFILE* sf, int* p_prefetch) {
                     uint32_t setup_id = read_u32be(start_offset + setup_offset + 0x06, sf);
 
                     /* if the setup after header starts with "(data)BCV" it's an inline codebook) */
-                    if ((setup_id & 0x00FFFFFF) == 0x00424356) { /* 0"BCV" */
+                    if ((setup_id & 0x00FFFFFF) == get_id32be("\0BCV")) {
                         cfg.setup_type = WWV_FULL_SETUP;
                     }
                     /* if the setup is suspiciously big it's probably trimmed inline codebooks */
@@ -582,7 +583,7 @@ VGMSTREAM* init_vgmstream_wwise_bnk(STREAMFILE* sf, int* p_prefetch) {
                     case mapping_2POINT1_xiph:                                      /* 2ch+1ch, 2 streams */
                     case mapping_STEREO:            cfg.coupled_count = 1; break;   /* 2ch, 1 stream */
                     default:                        cfg.coupled_count = 0; break;   /* 1ch, 1 stream */
-                    //TODO: AK OPUS doesn't seem to handles others mappings, though AK's .h imply they exist (uses 0 coupleds?)
+                    //TODO: AK OPUS doesn't seem to handle others mappings, though AK's .h imply they exist (uses 0 coupleds?)
                 }
 
                 /* total number internal OPUS streams (should be >0) */
@@ -650,6 +651,11 @@ VGMSTREAM* init_vgmstream_wwise_bnk(STREAMFILE* sf, int* p_prefetch) {
             vgmstream->layout_type = layout_none;
 
             vgmstream->num_samples = read_s32(ww.fmt_offset + 0x1c, sf);
+
+            if (ww.prefetch) {
+                vgmstream->num_samples = atrac9_bytes_to_samples_cfg(ww.file_size - start_offset, cfg.config_data);
+            }
+
             break;
         }
 #endif
@@ -932,8 +938,8 @@ static int parse_wwise(STREAMFILE* sf, wwise_header* ww) {
         }
 
         if (ww->codec == PCM || ww->codec == IMA || ww->codec == VORBIS || ww->codec == DSP || ww->codec == XMA2 ||
-            ww->codec == OPUSNX || ww->codec == OPUS || ww->codec == OPUSWW || ww->codec == PTADPCM || ww->codec == XWMA) {
-            ww->prefetch = 1; /* only seen those, probably all exist (XWMA, AAC, HEVAG, ATRAC9?) */
+            ww->codec == OPUSNX || ww->codec == OPUS || ww->codec == OPUSWW || ww->codec == PTADPCM || ww->codec == XWMA || ww->codec == ATRAC9) {
+            ww->prefetch = 1; /* only seen those, probably all exist (missing XWMA, AAC, HEVAG) */
         } else {
             vgm_logi("WWISE: wrong expected size, maybe prefetch (report)\n");
             goto fail;
@@ -945,7 +951,7 @@ static int parse_wwise(STREAMFILE* sf, wwise_header* ww) {
      * From init bank and CAkSound's sources, those may be piped through their plugins. They come in
      * .opuspak (no names), have wrong riff/data sizes and only seem used for sfx (other audio is Vorbis). */
     if (ww->format == 0xFFFE && ww->prefetch) {
-        if (read_u32be(ww->data_offset + 0x00, sf) == 0x4F676753) {
+        if (is_id32be(ww->data_offset + 0x00, sf, "OggS")) {
             ww->codec = OPUSCPR;
         }
     }
