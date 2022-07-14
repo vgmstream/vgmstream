@@ -26,8 +26,8 @@ VGMSTREAM* init_vgmstream_sndz(STREAMFILE* sf) {
 
 
     /* .szd1: header + .szd2 = data
-     * .szd3: szd1 + szd2 */
-    if (!check_extensions(sf, "szd1,szd3"))
+     * .szd/szd3: szd1 + szd2 */
+    if (!check_extensions(sf, "szd1,szd,szd3"))
         goto fail;
 
     /* parse chunk table and WAVS with offset to offset to WAVD */
