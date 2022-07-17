@@ -988,6 +988,9 @@ static const hcakey_info hcakey_list[] = {
         // Sonic Origins
         {1991062320220623},     // 000712DC525289CF
 
+        // Pachislot Gyakuten Saiban (iOS/Android)
+        {2220022040477322},     // 0007E319291DBE8A
+
 };
 
 #endif/*_HCA_KEYS_H_*/
