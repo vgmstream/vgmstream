@@ -1,6 +1,6 @@
 #include "meta.h"
 #include "../coding/coding.h"
-#include "sqex_sead_streamfile.h"
+#include "sqex_streamfile.h"
 
 
 typedef struct {
@@ -278,7 +278,7 @@ VGMSTREAM* init_vgmstream_sqex_sead(STREAMFILE* sf) {
             /* 0x0e: reserved x2 */
             /* 0x10+ HCA header */
 
-            temp_sf = setup_sqex_sead_streamfile(sf, subfile_offset, subfile_size, encryption, header_size, key_start);
+            temp_sf = setup_sqex_streamfile(sf, subfile_offset, subfile_size, encryption, header_size, key_start, "hca");
             if (!temp_sf) goto fail;
 
             temp_vgmstream = init_vgmstream_hca(temp_sf);

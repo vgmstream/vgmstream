@@ -6,11 +6,11 @@
 typedef struct {
     size_t start;
     size_t key_start;
-} sqex_sead_io_data;
+} sqex_io_data;
 
 
-static size_t sqex_sead_io_read(STREAMFILE *sf, uint8_t *dest, off_t offset, size_t length, sqex_sead_io_data* data) {
-    /* Found in FFXII_TZA.exe (same key in SCD Ogg V3) */
+static size_t sqex_io_read(STREAMFILE *sf, uint8_t *dest, off_t offset, size_t length, sqex_io_data* data) {
+    /* Found in FFXII_TZA.exe (same key in SCD Ogg V3), also in AKB's sdlib as "EncKey" */
     static const uint8_t key[0x100] = {
         0x3A,0x32,0x32,0x32,0x03,0x7E,0x12,0xF7,0xB2,0xE2,0xA2,0x67,0x32,0x32,0x22,0x32, // 00-0F
         0x32,0x52,0x16,0x1B,0x3C,0xA1,0x54,0x7B,0x1B,0x97,0xA6,0x93,0x1A,0x4B,0xAA,0xA6, // 10-1F
@@ -45,22 +45,22 @@ static size_t sqex_sead_io_read(STREAMFILE *sf, uint8_t *dest, off_t offset, siz
 }
 
 /* decrypts subfile if needed */
-static STREAMFILE* setup_sqex_sead_streamfile(STREAMFILE* sf, off_t subfile_offset, size_t subfile_size, int encryption, size_t header_size, size_t key_start) {
+static STREAMFILE* setup_sqex_streamfile(STREAMFILE* sf, off_t subfile_offset, size_t subfile_size, int encryption, size_t header_size, size_t key_start, const char* ext) {
     STREAMFILE* new_sf = NULL;
 
     /* setup sf */
     new_sf = open_wrap_streamfile(sf);
     new_sf = open_clamp_streamfile_f(new_sf, subfile_offset, subfile_size);
     if (encryption) {
-        sqex_sead_io_data io_data = {0};
+        sqex_io_data io_data = {0};
 
         io_data.start = header_size;
         io_data.key_start = key_start;
 
-        new_sf = open_io_streamfile_f(new_sf, &io_data, sizeof(sqex_sead_io_data), sqex_sead_io_read, NULL);
+        new_sf = open_io_streamfile_f(new_sf, &io_data, sizeof(sqex_io_data), sqex_io_read, NULL);
     }
 
-    new_sf = open_fakename_streamfile_f(new_sf, NULL, "hca");
+    new_sf = open_fakename_streamfile_f(new_sf, NULL, ext);
     return new_sf;
 }
 

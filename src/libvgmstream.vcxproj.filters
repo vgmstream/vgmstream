@@ -173,7 +173,7 @@
     <ClInclude Include="meta\sfh_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="meta\sqex_sead_streamfile.h">
+    <ClInclude Include="meta\sqex_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="meta\txth_streamfile.h">
