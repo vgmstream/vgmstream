@@ -57,10 +57,44 @@ winamp_settings_t settings;
 winamp_state_t state;
 short sample_buffer[SAMPLE_BUFFER_SIZE*2 * VGMSTREAM_MAX_CHANNELS]; //todo maybe should be dynamic
 
+/* info cache (optimization) */
+in_char info_fn[PATH_LIMIT] = {0};
+in_char info_title[GETFILEINFO_TITLE_LENGTH];
+int info_time;
+int info_valid;
+
 
 /* ***************************************** */
 /* IN_VGMSTREAM UTILS                        */
 /* ***************************************** */
+
+/* parses a modified filename ('fakename') extracting tags parameters (NULL tag for first = filename) */
+static int parse_fn_string(const in_char* fn, const in_char* tag, in_char* dst, int dst_size) {
+    const in_char* end = wa_strchr(fn,'|');
+
+    if (tag==NULL) {
+        wa_strcpy(dst,fn);
+        if (end)
+            dst[end - fn] = '\0';
+        return 1;
+    }
+
+    dst[0] = '\0';
+    return 0;
+}
+
+static int parse_fn_int(const in_char* fn, const in_char* tag, int* num) {
+    const in_char* start = wa_strchr(fn,'|');
+
+    if (start > 0) {
+        wa_sscanf(start+1, wa_L("$s=%i "), num);
+        return 1;
+    } else {
+        *num = 0;
+        return 0;
+    }
+}
+
 
 /* opens vgmstream for winamp */
 static VGMSTREAM* init_vgmstream_winamp(const in_char* fn, int stream_index) {
@@ -78,6 +112,19 @@ static VGMSTREAM* init_vgmstream_winamp(const in_char* fn, int stream_index) {
 
     return vgmstream;
 }
+
+/* opens vgmstream with (possibly) an index */
+static VGMSTREAM* init_vgmstream_winamp_fileinfo(const in_char* fn) {
+    in_char filename[PATH_LIMIT];
+    int stream_index = 0;
+
+    /* check for info encoded in the filename */
+    parse_fn_string(fn, NULL, filename,PATH_LIMIT);
+    parse_fn_int(fn, wa_L("$s"), &stream_index);
+
+    return init_vgmstream_winamp(filename, stream_index);
+}
+
 
 /* makes a modified filename, suitable to pass parameters around */
 static void make_fn_subsong(in_char* dst, int dst_size, const in_char* filename, int stream_index) {
@@ -133,31 +180,6 @@ static int split_subsongs(const in_char* filename, int stream_index, VGMSTREAM *
     return 1;
 }
 
-/* parses a modified filename ('fakename') extracting tags parameters (NULL tag for first = filename) */
-static int parse_fn_string(const in_char* fn, const in_char* tag, in_char* dst, int dst_size) {
-    const in_char* end = wa_strchr(fn,'|');
-
-    if (tag==NULL) {
-        wa_strcpy(dst,fn);
-        if (end)
-            dst[end - fn] = '\0';
-        return 1;
-    }
-
-    dst[0] = '\0';
-    return 0;
-}
-static int parse_fn_int(const in_char* fn, const in_char* tag, int* num) {
-    const in_char* start = wa_strchr(fn,'|');
-
-    if (start > 0) {
-        wa_sscanf(start+1, wa_L("$s=%i "), num);
-        return 1;
-    } else {
-        *num = 0;
-        return 0;
-    }
-}
 
 /* try to detect XMPlay, which can't interact with the playlist = no splitting */
 static int is_xmplay() {
@@ -367,21 +389,88 @@ void winamp_Quit() {
 
 /* called before extension checks, to allow detection of mms://, etc */
 int winamp_IsOurFile(const in_char *fn) {
+    VGMSTREAM* infostream;
     vgmstream_ctx_valid_cfg cfg = {0};
     char filename_utf8[PATH_LIMIT];
+    int valid;
 
-    wa_ichar_to_char(filename_utf8, PATH_LIMIT, fn);
+
+    /* Winamp has a bizarre behavior that seemingly retries files twice (not when subsongs are added to the playlist?).
+     * Then passes "hi.mp3" (no path) as a last resort if no plugin plays the file. This makes non-playable files
+     * show time 0:00 and use Winamp's dialog (kinda annoying). Subsongs' fake filenames that remain blank (good).
+     *
+     * When allowing common_exts pretend to accept that fake mp3, so later fails on winamp_open/getfileinfo. Worked like
+     * this before when infostream wasn't tested, by mistake though, but who wants unplayable files reporting 0:00. */
+    //TODO may need to check file size to invalidate cache
+    if (wa_strcmp(fn, info_fn) == 0) {
+        //;vgm_logi("winamp_IsOurFile: repeated call\n");
+        return info_valid;
+    }
+
+    if (settings.exts_common_on && wa_strcmp(fn, wa_L("hi.mp3")) == 0) {
+        //vgm_logi("winamp_IsOurFile: ignored fakefile\n");
+        return 1;
+    }
+
 
     cfg.skip_standard = 1; /* validated by Winamp */
     cfg.accept_unknown = settings.exts_unknown_on;
     cfg.accept_common = settings.exts_common_on;
 
-    /* Winamp seem to have bizarre handling of MP3 without standard names (ex song.mp3a),
-     * in that it'll try to open normally, rejected if unknown_exts_on is not set, and
-     * finally retry with "hi.mp3", accepted if exts_common_on is set. */
+    wa_ichar_to_char(filename_utf8, PATH_LIMIT, fn);
 
-    /* returning 0 here means it only accepts the extensions in working_extension_list */
-    return vgmstream_ctx_is_valid(filename_utf8, &cfg);
+    //;vgm_logi("winamp_IsOurFile: %s\n", filename_utf8);
+
+    /* Returning 1 here means we'll handle the format (even if getinfo/play fail later), while 0
+     * means "default", that being: let other plugins check the file; if no plugin claims it by
+     * returning 1 Winamp will try to match file<>plugin via extension_list. So it's common for
+     * other plugins to just return 0 here (a few do check the file's header, like in_vgm).
+     *
+     * This generally works but plugins may hijack one of vgmstream's extensions (.wav would never
+     * be playable even with exts_common_on). Also, we can't just check the extension, to avoid
+     * hijacking stuff like in_vgm's *.vgm. So, vgmstream should try to check the file's format (slower).
+     *
+     * Somehow Winamp calls with "cda://" protocol on init, but should be ignored by is_valid */
+
+    info_valid = 0; /* may not be playable */
+    wa_strncpy(info_fn, fn, PATH_LIMIT); /* copy now for repeat calls */
+
+    /* basic extension check */
+    valid = vgmstream_ctx_is_valid(filename_utf8, &cfg);
+    if (!valid) {
+        //;vgm_logi("winamp_IsOurFile: invalid extension\n");
+        return 0;
+    }
+
+
+    /* format check */
+    infostream = init_vgmstream_winamp_fileinfo(fn);
+    if (!infostream) {
+        //;vgm_logi("winamp_IsOurFile: invalid infostream\n");
+        return 0;
+    }
+
+    //TODO simplify, variations used in other places (or rather, fix the API)
+
+    /* first thing winamp does after accepting a file is asking for time/title, so keep those around to avoid re-parsing the file */
+    {
+        int32_t num_samples;
+
+        apply_config(infostream, &settings);
+
+        vgmstream_mixing_autodownmix(infostream, settings.downmix_channels);
+        vgmstream_mixing_enable(infostream, 0, NULL, NULL);
+
+        num_samples = vgmstream_get_samples(infostream);
+        info_time = num_samples * 1000LL /infostream->sample_rate;
+
+        get_title(info_title,GETFILEINFO_TITLE_LENGTH, fn, infostream);
+    }
+
+    info_valid = 1;
+    close_vgmstream(infostream);
+
+    return 1;
 }
 
 
@@ -390,6 +479,8 @@ int winamp_Play(const in_char *fn) {
     int max_latency;
     in_char filename[PATH_LIMIT];
     int stream_index = 0;
+
+    //;{ char f8[PATH_LIMIT]; wa_ichar_to_char(f8,PATH_LIMIT,fn); vgm_logi("winamp_Play: file %s\n", f8); }
 
     /* shouldn't happen */
     if (vgmstream)
@@ -400,7 +491,7 @@ int winamp_Play(const in_char *fn) {
     parse_fn_int(fn, wa_L("$s"), &stream_index);
 
     /* open the stream */
-    vgmstream = init_vgmstream_winamp(filename,stream_index);
+    vgmstream = init_vgmstream_winamp(filename, stream_index);
     if (!vgmstream)
         return 1;
 
@@ -552,14 +643,8 @@ int winamp_InfoBox(const in_char *fn, HWND hwnd) {
     else {
         /* some other file in playlist given by filename */
         VGMSTREAM* infostream = NULL;
-        in_char filename[PATH_LIMIT];
-        int stream_index = 0;
 
-        /* check for info encoded in the filename */
-        parse_fn_string(fn, NULL, filename,PATH_LIMIT);
-        parse_fn_int(fn, wa_L("$s"), &stream_index);
-
-        infostream = init_vgmstream_winamp(filename, stream_index);
+        infostream = init_vgmstream_winamp_fileinfo(fn);
         if (!infostream) return 0;
 
         apply_config(infostream, &settings);
@@ -590,9 +675,17 @@ void winamp_GetFileInfo(const in_char *fn, in_char *title, int *length_in_ms) {
 
     if (!fn || !*fn) {
         /* no filename = current playing file */
+        //;vgm_logi("winamp_GetFileInfo: current\n");
 
-        if (!vgmstream)
+        /* Sometimes called even if no file is playing (usually when hovering "O" > preferences... submenu).
+         * No idea what's that about so try to reuse last info */
+        if (!vgmstream) {
+            if (info_valid) {
+                if (title) wa_strncpy(title, info_title, GETFILEINFO_TITLE_LENGTH);
+                if (length_in_ms) *length_in_ms = info_time;
+            }
             return;
+        }
 
         if (title) {
             get_title(title,GETFILEINFO_TITLE_LENGTH, lastfn, vgmstream);
@@ -603,16 +696,18 @@ void winamp_GetFileInfo(const in_char *fn, in_char *title, int *length_in_ms) {
         }
     }
     else {
-        /* some other file in playlist given by filename */
         VGMSTREAM* infostream = NULL;
-        in_char filename[PATH_LIMIT];
-        int stream_index = 0;
+        //;{ char f8[PATH_LIMIT]; wa_ichar_to_char(f8,PATH_LIMIT,fn); vgm_logi("winamp_GetFileInfo: file %s\n", f8); }
 
-        /* check for info encoded in the filename */
-        parse_fn_string(fn, NULL, filename,PATH_LIMIT);
-        parse_fn_int(fn, wa_L("$s"), &stream_index);
+        /* not changed from last IsOurFile (most common) */
+        if (info_valid && wa_strcmp(fn, info_fn) == 0) {
+            if (title) wa_strncpy(title, info_title, GETFILEINFO_TITLE_LENGTH);
+            if (length_in_ms) *length_in_ms = info_time;
+            return;
+        }
 
-        infostream = init_vgmstream_winamp(filename, stream_index);
+        /* some other file in playlist given by filename */
+        infostream = init_vgmstream_winamp_fileinfo(fn);
         if (!infostream) return;
 
         apply_config(infostream, &settings);
@@ -1021,16 +1116,12 @@ short xsample_buffer[SAMPLE_BUFFER_SIZE*2 * VGMSTREAM_MAX_CHANNELS];
 
 /* open the file and prepares to decode */
 static void *winampGetExtendedRead_open_common(in_char *fn, int *size, int *bps, int *nch, int *srate) {
-    VGMSTREAM *xvgmstream = NULL;
-    in_char filename[PATH_LIMIT];
-    int stream_index = 0;
+    VGMSTREAM* xvgmstream = NULL;
 
-    /* check for info encoded in the filename */
-    parse_fn_string(fn, NULL, filename, PATH_LIMIT);
-    parse_fn_int(fn, wa_L("$s"), &stream_index);
+    //;{ char f8[PATH_LIMIT]; wa_ichar_to_char(f8,PATH_LIMIT,fn); vgm_logi("Winamp: open common file %s\n", f8); }
 
     /* open the stream */
-    xvgmstream = init_vgmstream_winamp(filename, stream_index);
+    xvgmstream = init_vgmstream_winamp_fileinfo(fn);
     if (!xvgmstream) {
         return NULL;
     }
