@@ -259,7 +259,7 @@ static const adxkey_info adxkey9_list[] = {
         {0x0000,0x0000,0x0000, NULL,1991062320101111},      // 000712DC5250B6F7
 
         /* Shin Megami Tensei V (Switch) */
-        {0x000c,0x13b5,0x1fdb, NULL,0},                     // guessed with VGAudio (possible key: 613B4FEE / 1631277038) 
+        {0x0000,0x0000,0x0000, NULL,1731948526},            // 00000000673B6FEE
 
 };
 
