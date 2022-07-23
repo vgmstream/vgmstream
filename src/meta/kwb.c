@@ -39,7 +39,13 @@ VGMSTREAM* init_vgmstream_kwb(STREAMFILE* sf) {
 
 
     /* checks */
+    if (!is_id32be(0x00, sf, "WBD_") &&
+        !is_id32le(0x00, sf, "WBD_") &&
+        !is_id32be(0x00, sf, "WHD1"))
+        goto fail;
+
     /* .wbd+wbh: common [Bladestorm Nightmare (PC)]
+     * .wbd+whd: uncommon [Nights of Azure 2 (PS4)]
      * .wb2+wh2: newer [Nights of Azure 2 (PC)]
      * .sed: mixed header+data [Dissidia NT (PC)] */
     if (!check_extensions(sf, "wbd,wb2,sed"))
@@ -47,16 +53,18 @@ VGMSTREAM* init_vgmstream_kwb(STREAMFILE* sf) {
 
 
     /* open companion header */
-    if (check_extensions(sf, "wbd")) {
+    if (is_id32be(0x00, sf, "WHD1")) { /* .sed */
+        sf_h = sf;
+        sf_b = sf;
+    }
+    else if (check_extensions(sf, "wbd")) {
         sf_h = open_streamfile_by_ext(sf, "wbh");
+        if (!sf_h)
+            sf_h = open_streamfile_by_ext(sf, "whd");
         sf_b = sf;
     }
     else if (check_extensions(sf, "wb2")) {
         sf_h = open_streamfile_by_ext(sf, "wh2");
-        sf_b = sf;
-    }
-    else if (check_extensions(sf, "sed")) {
-        sf_h = sf;
         sf_b = sf;
     }
     else {
@@ -378,14 +386,14 @@ fail:
     return 0;
 }
 
-static int parse_type_k4hd(kwb_header* kwb, off_t offset, off_t body_offset, STREAMFILE* sf_h) {
+static int parse_type_k4hd_pvhd(kwb_header* kwb, off_t offset, off_t body_offset, STREAMFILE* sf_h) {
     off_t ppva_offset, header_offset;
     int entries, current_subsongs, relative_subsong;
     size_t entry_size;
 
 
     /* a format mimicking PSVita's hd4+bd4 format */
-    /* 00: K4HD id */
+    /* 00: K4HD/PVHD id */
     /* 04: chunk size */
     /* 08: ? */
     /* 0c: ? */
@@ -565,7 +573,7 @@ static int parse_kwb(kwb_header* kwb, STREAMFILE* sf_h, STREAMFILE* sf_b) {
     uint32_t (*read_u32)(off_t,STREAMFILE*) = NULL;
 
 
-    if (read_u32be(0x00, sf_h) == 0x57484431) { /* "WHD1" */
+    if (is_id32be(0x00, sf_h, "WHD1")) {
         /* container of fused .wbh+wbd */
         /* 0x04: fixed value? */
         kwb->big_endian = read_u8(0x08, sf_h) == 0xFF;
@@ -617,7 +625,8 @@ static int parse_kwb(kwb_header* kwb, STREAMFILE* sf_h, STREAMFILE* sf_b) {
             break;
 
         case 0x4B344844: /* "K4HD" [Dissidia NT (PS4), (Vita) */
-            if (!parse_type_k4hd(kwb, head_offset, body_offset, sf_h))
+        case 0x50564844: /* "PVHD" [Nights of Azure 2 (PS4)] */
+            if (!parse_type_k4hd_pvhd(kwb, head_offset, body_offset, sf_h))
                 goto fail;
             break;
 
@@ -632,6 +641,7 @@ static int parse_kwb(kwb_header* kwb, STREAMFILE* sf_h, STREAMFILE* sf_b) {
             break;
 
         default:
+            vgm_logi("KWB: unknown type\n");
             goto fail;
     }
 
