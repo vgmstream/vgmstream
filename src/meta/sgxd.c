@@ -32,7 +32,7 @@ VGMSTREAM* init_vgmstream_sgxd(STREAMFILE* sf) {
     /* checks */
     /* .sgx: header+data (Genji)
      * .sgd: header+data (common)
-     * .sgh+sgd: header+data */
+     * .sgh+sgd: header+data (streams) */
     if (!check_extensions(sf,"sgx,sgd,sgb"))
         goto fail;
 
@@ -91,7 +91,9 @@ VGMSTREAM* init_vgmstream_sgxd(STREAMFILE* sf) {
      *   - 0x00: sub-id?
      *   - 0x02: type? (possibly: 0000=bank, 0x2xxx=SEQD/WAVE, 0x3xxx=WSUR, 0x4xxx=BUSS, 0x6xxx=CONF)
      *   - 0x04: absolute offset
-     * - SEQD: related to SFX (sequences?), entries seem to be offsets to name offset + seq (ps1?) offset
+     * - SEQD: related to SFX (sequences?), entries seem to be offsets to name offset + sequence offset
+     *   > sequence format seems to be 1 byte type (0=sfx, 1=music) + midi without header
+     *     (default tick resolution of 960 pulses per quarter note)
      * - WSUR: ?
      * - WMKR: ?
      * - CONF: ? (name offset + config offset)

@@ -1,5 +1,7 @@
 #include "meta.h"
 #include "../coding/coding.h"
+#include "sqex_streamfile.h"
+
 
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
 /* AKB (AAC only) - found in SQEX iOS games */
@@ -11,8 +13,8 @@ VGMSTREAM * init_vgmstream_akb_mp4(STREAMFILE *sf) {
 
 	if ((uint32_t)read_32bitBE(0, sf) != 0x414b4220) goto fail;
 
-	loop_start = read_32bitLE(0x14, sf);
-	loop_end = read_32bitLE(0x18, sf);
+	loop_start = read_s32le(0x14, sf);
+	loop_end = read_s32le(0x18, sf);
 
 	filesize = get_streamfile_size( sf );
 
@@ -33,40 +35,59 @@ fail:
 #endif
 
 
-/* AKB - found in SQEX iOS games */
-VGMSTREAM * init_vgmstream_akb(STREAMFILE *sf) {
-    VGMSTREAM * vgmstream = NULL;
+/* AKB - found in SQEX 'sdlib' iOS/Android games */
+VGMSTREAM* init_vgmstream_akb(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
     off_t start_offset, extradata_offset = 0;
     size_t stream_size, header_size, subheader_size = 0, extradata_size = 0;
-    int loop_flag = 0, channel_count, codec, sample_rate;
+    int loop_flag = 0, channels, codec, sample_rate, version, flags = 0;
     int num_samples, loop_start, loop_end;
 
 
     /* checks */
-    if ( !check_extensions(sf, "akb") )
-        goto fail;
-    if (read_32bitBE(0x00,sf) != 0x414B4220) /* "AKB " */
-        goto fail;
-    if (read_32bitLE(0x08,sf) != get_streamfile_size(sf))
+    if (!is_id32be(0x00,sf, "AKB "))
         goto fail;
 
-    /* 0x04(1): version */
-    header_size = read_16bitLE(0x06,sf);
+    if (!check_extensions(sf, "akb"))
+        goto fail;
 
-    codec         =  read_8bit(0x0c,sf);
-    channel_count =  read_8bit(0x0d,sf);
-    sample_rate = (uint16_t)read_16bitLE(0x0e,sf);
-    num_samples = read_32bitLE(0x10,sf);
-    loop_start  = read_32bitLE(0x14,sf);
-    loop_end    = read_32bitLE(0x18,sf);
+    version = read_u8(0x04,sf); /* 00=TWEWY, 02=DQs, 03=FFAgito */
+    /* 0x05(1); unused? */
+    header_size = read_u16le(0x06,sf);
+    if (read_u32le(0x08,sf) != get_streamfile_size(sf))
+        goto fail;
+
+    /* material info, though can only hold 1 */
+    codec       =    read_u8(0x0c,sf);
+    channels    =    read_u8(0x0d,sf);
+    sample_rate = read_u16le(0x0e,sf);
+    num_samples = read_s32le(0x10,sf);
+    loop_start  = read_s32le(0x14,sf);
+    loop_end    = read_s32le(0x18,sf);
 
     /* possibly more complex, see AKB2 */
     if (header_size >= 0x44) { /* v2+ */
-        extradata_size = read_16bitLE(0x1c,sf);
+        extradata_size = read_u16le(0x1c,sf);
         /* 0x20+: config? (pan, volume) */
-        subheader_size = read_16bitLE(0x28,sf);
+        subheader_size = read_u16le(0x28,sf);
         /* 0x24: file_id? */
-        /* 0x2b: encryption bitflag if version > 2? */
+        /* 0x28: */
+        /* 0x29: */
+        /* 0x2a: */
+
+        /* flags:
+         * 1: (v2+) enable random volume
+         * 2: (v2+) enable random pitch
+         * 4: (v2+) enable random pan
+         * 8: (v3+) encryption (for MS-ADPCM / Ogg) [Final Fantasy Agito (Android)-ogg bgm only, other sounds don't use AKB] */
+        flags = read_u8(0x2B,sf);
+        /* 0x2c: max random volume */
+        /* 0x30: min random volume */
+        /* 0x34: max random pitch */
+        /* 0x38: min random pitch */
+        /* 0x3c: max random pan */
+        /* 0x40: min random pan */
+
         extradata_offset = header_size + subheader_size;
         start_offset = extradata_offset + extradata_size;
     }
@@ -79,30 +100,34 @@ VGMSTREAM * init_vgmstream_akb(STREAMFILE *sf) {
 
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->sample_rate = sample_rate;
     vgmstream->meta_type = meta_AKB;
-
+    vgmstream->sample_rate = sample_rate;
 
     switch (codec) {
         case 0x02: { /* MSADPCM [Dragon Quest II (iOS) sfx] */
             vgmstream->coding_type = coding_MSADPCM;
             vgmstream->layout_type = layout_none;
-            vgmstream->frame_size = read_16bitLE(extradata_offset + 0x02,sf);
+            vgmstream->frame_size = read_u16le(extradata_offset + 0x02,sf);
+
+            /* encryption, untested but should be the same as Ogg */
+            if (version >= 3 && (flags & 8))
+                goto fail;
 
             /* adjusted samples; bigger or smaller than base samples, akb lib uses these fields instead
              * (base samples may have more than possible and read over file size otherwise, very strange)
              * loop_end seems to exist even with loop disabled */
-            vgmstream->num_samples       = read_32bitLE(extradata_offset + 0x04, sf);
-            vgmstream->loop_start_sample = read_32bitLE(extradata_offset + 0x08, sf);
-            vgmstream->loop_end_sample   = read_32bitLE(extradata_offset + 0x0c, sf);
+            vgmstream->num_samples       = read_s32le(extradata_offset + 0x04, sf);
+            vgmstream->loop_start_sample = read_s32le(extradata_offset + 0x08, sf);
+            vgmstream->loop_end_sample   = read_s32le(extradata_offset + 0x0c, sf);
             break;
         }
 
 #ifdef VGM_USE_VORBIS
         case 0x05: { /* Ogg Vorbis [Final Fantasy VI (iOS), Dragon Quest II-VI (iOS)] */
+            STREAMFILE* temp_sf;
             VGMSTREAM *ogg_vgmstream = NULL;
             ogg_vorbis_meta_info_t ovmi = {0};
 
@@ -111,7 +136,20 @@ VGMSTREAM * init_vgmstream_akb(STREAMFILE *sf) {
             /* extradata + 0x04: Ogg loop start offset */
             /* oggs have loop info in the comments */
 
-            ogg_vgmstream = init_vgmstream_ogg_vorbis_config(sf, start_offset, &ovmi);
+            /* enable encryption */
+            if (version >= 3 && (flags & 8)) {
+                VGM_LOG("temp1\n");
+                temp_sf = setup_sqex_streamfile(sf, start_offset, stream_size, 1, 0x00, 0x00, "ogg");
+                if (!temp_sf) goto fail;
+                VGM_LOG("temp2\n");
+
+                ogg_vgmstream = init_vgmstream_ogg_vorbis_config(temp_sf, 0x00, &ovmi);
+                close_streamfile(temp_sf);
+            }
+            else {
+                ogg_vgmstream = init_vgmstream_ogg_vorbis_config(sf, start_offset, &ovmi);
+            }
+
             if (ogg_vgmstream) {
                 close_vgmstream(vgmstream);
                 return ogg_vgmstream;
@@ -161,13 +199,13 @@ VGMSTREAM * init_vgmstream_akb(STREAMFILE *sf) {
         }
 #endif
 
-        case 0x01: /* PCM16LE */
+        case 0x01: /* PCM16LE (from debugging, not seen) */
         default:
             goto fail;
     }
 
     /* open the file for reading */
-    if ( !vgmstream_open_stream(vgmstream, sf, start_offset) )
+    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
         goto fail;
 
     return vgmstream;
@@ -178,67 +216,69 @@ fail:
 }
 
 
-/* AKB2 - found in later SQEX iOS games */
-VGMSTREAM * init_vgmstream_akb2(STREAMFILE *sf) {
-    VGMSTREAM * vgmstream = NULL;
+/* AKB2 - found in later SQEX 'sdlib' iOS/Android games */
+VGMSTREAM* init_vgmstream_akb2(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
     off_t start_offset, material_offset, extradata_offset;
     size_t material_size, extradata_size, stream_size;
-    int loop_flag = 0, channel_count, encryption_flag, codec, sample_rate, num_samples, loop_start, loop_end;
+    int loop_flag = 0, channel_count, flags, codec, sample_rate, num_samples, loop_start, loop_end;
     int total_subsongs, target_subsong = sf->stream_index;
 
-    /* check extensions */
-    if ( !check_extensions(sf, "akb") )
-        goto fail;
 
     /* checks */
-    if (read_32bitBE(0x00,sf) != 0x414B4232) /* "AKB2" */
+    if (!is_id32be(0x00,sf, "AKB2"))
         goto fail;
-    if (read_32bitLE(0x08,sf) != get_streamfile_size(sf))
+
+    if (!check_extensions(sf, "akb"))
         goto fail;
+
     /* 0x04: version */
+    if (read_u32le(0x08,sf) != get_streamfile_size(sf))
+        goto fail;
 
     /* parse tables */
     {
         off_t table_offset;
         size_t table_size, entry_size;
-        off_t akb_header_size = read_16bitLE(0x06, sf);
-        int table_count = read_8bit(0x0c, sf);
+        off_t akb_header_size = read_u16le(0x06, sf);
+        int table_count = read_u8(0x0c, sf);
 
         /* probably each table has its type somewhere, but only seen last table = sound table */
         if (table_count > 2) /* 2 only seen in some Mobius FF sound banks */
             goto fail;
         entry_size = 0x10; /* technically every entry/table has its own size but to simplify... */
 
-        table_offset = read_32bitLE(akb_header_size + (table_count-1)*entry_size + 0x04, sf);
-        table_size = read_16bitLE(table_offset + 0x02, sf);
+        table_offset = read_u32le(akb_header_size + (table_count-1)*entry_size + 0x04, sf);
+        table_size = read_u16le(table_offset + 0x02, sf);
 
-        total_subsongs = read_8bit(table_offset + 0x0f, sf); /* can contain 0 entries too */
+        total_subsongs = read_u8(table_offset + 0x0f, sf); /* can contain 0 entries too */
         if (target_subsong == 0) target_subsong = 1;
         if (target_subsong < 0 || target_subsong > total_subsongs || total_subsongs < 1) goto fail;
 
-        material_offset = table_offset + read_32bitLE(table_offset + table_size + (target_subsong-1)*entry_size + 0x04, sf);
+        material_offset = table_offset + read_u32le(table_offset + table_size + (target_subsong-1)*entry_size + 0x04, sf);
     }
 
     /** stream header (material) **/
     /* 0x00: 0? */
-    codec           =    read_8bit(material_offset+0x01,sf);
-    channel_count   =    read_8bit(material_offset+0x02,sf);
-    encryption_flag =    read_8bit(material_offset+0x03,sf);
-    material_size   = read_16bitLE(material_offset+0x04,sf);
-    sample_rate     = (uint16_t)read_16bitLE(material_offset+0x06,sf);
-    stream_size     = read_32bitLE(material_offset+0x08,sf);
-    num_samples     = read_32bitLE(material_offset+0x0c,sf);
+    codec           =    read_u8(material_offset+0x01,sf);
+    channel_count   =    read_u8(material_offset+0x02,sf);
+    flags           =    read_u8(material_offset+0x03,sf);
+    material_size   = read_u16le(material_offset+0x04,sf);
+    sample_rate     = read_u16le(material_offset+0x06,sf);
+    stream_size     = read_u32le(material_offset+0x08,sf);
+    num_samples     = read_s32le(material_offset+0x0c,sf);
 
-    loop_start      = read_32bitLE(material_offset+0x10,sf);
-    loop_end        = read_32bitLE(material_offset+0x14,sf);
-    extradata_size  = read_32bitLE(material_offset+0x18,sf);
-    /* rest: ? (empty or 0x3f80) */
+    loop_start      = read_s32le(material_offset+0x10,sf);
+    loop_end        = read_s32le(material_offset+0x14,sf);
+    extradata_size  = read_u32le(material_offset+0x18,sf);
+    /* rest: ? (empty, floats or 0x3f80) */
 
     loop_flag = (loop_end > loop_start);
     extradata_offset = material_offset + material_size;
     start_offset = material_offset +  material_size + extradata_size;
 
-    if (encryption_flag & 0x08)
+    /* encrypted, not seen (see AKB flags) */
+    if (flags & 0x08)
         goto fail;
 
 
@@ -267,14 +307,14 @@ VGMSTREAM * init_vgmstream_akb2(STREAMFILE *sf) {
         case 0x02: { /* MSADPCM [The Irregular at Magic High School Lost Zero (Android)] */
             vgmstream->coding_type = coding_MSADPCM;
             vgmstream->layout_type = layout_none;
-            vgmstream->frame_size = read_16bitLE(extradata_offset + 0x02, sf);
+            vgmstream->frame_size = read_u16le(extradata_offset + 0x02, sf);
 
             /* adjusted samples; bigger or smaller than base samples, akb lib uses these fields instead
              * (base samples may have more than possible and read over file size otherwise, very strange)
              * loop_end seems to exist even with loop disabled */
-            vgmstream->num_samples       = read_32bitLE(extradata_offset + 0x04, sf);
-            vgmstream->loop_start_sample = read_32bitLE(extradata_offset + 0x08, sf);
-            vgmstream->loop_end_sample   = read_32bitLE(extradata_offset + 0x0c, sf);
+            vgmstream->num_samples       = read_s32le(extradata_offset + 0x04, sf);
+            vgmstream->loop_start_sample = read_s32le(extradata_offset + 0x08, sf);
+            vgmstream->loop_end_sample   = read_s32le(extradata_offset + 0x0c, sf);
             break;
         }
 
@@ -317,8 +357,8 @@ VGMSTREAM * init_vgmstream_akb2(STREAMFILE *sf) {
 
             /* When loop_flag num_samples may be much larger than real num_samples (it's fine when looping is off)
              * Actual num_samples would be loop_end_sample+1, but more testing is needed */
-            vgmstream->num_samples       = read_32bitLE(material_offset+0x0c,sf);//num_samples;
-            vgmstream->loop_start_sample = read_32bitLE(material_offset+0x10,sf);//loop_start;
+            vgmstream->num_samples       = read_s32le(material_offset+0x0c,sf);//num_samples;
+            vgmstream->loop_start_sample = read_s32le(material_offset+0x10,sf);//loop_start;
             vgmstream->loop_end_sample   = loop_end;
             break;
         }

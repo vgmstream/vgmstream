@@ -2,31 +2,36 @@
 #include "../coding/coding.h"
 
 /* ASF - Argonaut PC games [Croc 2 (PC), Aladdin: Nasira's Revenge (PC)] */
-VGMSTREAM * init_vgmstream_asf(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
-    off_t start_offset;
-    int loop_flag, channel_count, version;
+VGMSTREAM* init_vgmstream_asf(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
+    uint32_t start_offset;
+    int loop_flag, channels, type, sample_rate;
 
 
     /* checks */
+    if (!is_id32be(0x00,sf, "ASF\0"))
+        goto fail;
+
     /* .asf: original
      * .lasf: fake for plugins */
-    if (!check_extensions(streamFile, "asf,lasf"))
+    if (!check_extensions(sf, "asf,lasf"))
         goto fail;
 
-    if (read_32bitBE(0x00,streamFile) != 0x41534600) /* "ASF\0" */
+    if (read_u32le(0x04,sf) != 0x00010002) /* v1.002? */
         goto fail;
-    if (read_32bitBE(0x04,streamFile) != 0x02000100)
+    if (read_u32le(0x08,sf) != 0x01 &&
+        read_u32le(0x0c,sf) != 0x18)
         goto fail;
-    if (read_32bitLE(0x08,streamFile) != 0x01 &&
-        read_32bitLE(0x0c,streamFile) != 0x18 &&
-        read_32bitLE(0x1c,streamFile) != 0x20)
+    /* 0x10~18: stream name (same as filename) */
+    /* 0x18: non-full size? */
+    if (read_u32le(0x1c,sf) != 0x20) /* samples per frame? */
         goto fail;
+    sample_rate = read_u16le(0x24, sf);
 
-    version = read_32bitLE(0x28,streamFile); /* assumed? */
-    switch(version){
-        case 0x0d: channel_count = 1; break; /* Aladdin: Nasira's Revenge (PC) */
-        case 0x0f: channel_count = 2; break; /* Croc 2 (PC), The Emperor's New Groove (PC) */
+    type = read_u32le(0x28,sf); /* assumed? */
+    switch(type){
+        case 0x0d: channels = 1; break; /* Aladdin: Nasira's Revenge (PC) */
+        case 0x0f: channels = 2; break; /* Croc 2 (PC), The Emperor's New Groove (PC) */
         default: goto fail;
     }
 
@@ -34,21 +39,21 @@ VGMSTREAM * init_vgmstream_asf(STREAMFILE *streamFile) {
     start_offset = 0x2c;
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count, loop_flag);
+    vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->sample_rate = (uint16_t)read_16bitLE(0x24, streamFile);
+    vgmstream->sample_rate = sample_rate;
     vgmstream->meta_type = meta_ASF;
     vgmstream->coding_type = coding_ASF;
     vgmstream->layout_type = layout_interleave;
     vgmstream->interleave_block_size = 0x11;
-    vgmstream->num_samples = (get_streamfile_size(streamFile)-start_offset)/(0x11*channel_count)*32; /* bytes_to_samples */
-    //vgmstream->num_samples = read_32bitLE(0x18,streamFile) * (0x20<<channel_count); /* something like this? */
+    vgmstream->num_samples = (get_streamfile_size(sf) - start_offset) / (0x11 * channels) * 32; /* bytes_to_samples */
+    //vgmstream->num_samples = read_32bitLE(0x18,sf) * (32 << channels); /* something like this? */
 
-    read_string(vgmstream->stream_name,0x10, 0x08+1,streamFile);
+    read_string(vgmstream->stream_name,0x10, 0x08+1,sf);
 
 
-    if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
+    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
         goto fail;
     return vgmstream;
 

@@ -21,8 +21,13 @@ int vgmstream_ctx_is_valid(const char* filename, vgmstream_ctx_valid_cfg *cfg) {
         extension = filename_extension(filename);
     }
 
-    /* some metas accept extensionless files */
+    /* some metas accept extensionless files, but make sure it's not a path */
     if (strlen(extension) <= 0) {
+        int len = strlen(filename);
+        if (len <= 0)
+            return 0;
+        if (filename[len - 1] == '/' || filename[len - 1] == '\\')
+            return 0;
         return !cfg->reject_extensionless;
     }
 

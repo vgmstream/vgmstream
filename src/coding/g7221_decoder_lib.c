@@ -1132,6 +1132,7 @@ struct g7221_handle {
     /* control */
     int bit_rate;
     int frame_size;
+    int test_errors;
     /* AES setup/state */
     s14aes_handle* aes;
     /* state */
@@ -1179,7 +1180,7 @@ int g7221_decode_frame(g7221_handle* handle, uint8_t* data, int16_t* out_samples
      * so we could avoid one extra buffer, but for clarity we'll leave as is */
 
     /* unpack data into MLT spectrum coefs */
-    res = unpack_frame(handle->bit_rate, data, handle->frame_size, &mag_shift, handle->mlt_coefs, &handle->random_value, encrypted);
+    res = unpack_frame(handle->bit_rate, data, handle->frame_size, &mag_shift, handle->mlt_coefs, &handle->random_value, handle->test_errors);
     if (res < 0) goto fail;
 
     /* convert coefs to samples using reverse (inverse) MLT */
@@ -1254,6 +1255,7 @@ int g7221_set_key(g7221_handle* handle, const uint8_t* key) {
     if (key == NULL) {
         s14aes_close(handle->aes);
         handle->aes = NULL;
+        handle->test_errors = 1; /* force? */
         return 1;
     }
 
@@ -1262,6 +1264,8 @@ int g7221_set_key(g7221_handle* handle, const uint8_t* key) {
         handle->aes = s14aes_init();
         if (!handle->aes) goto fail;
     }
+
+    handle->test_errors = 1;
 
     /* Base key is XORed probably against memdumps, as plain key would be part of the final AES key. However
      * roundkey is still in memdumps near AES state (~0x1310 from sbox table, that starts with 0x63,0x7c,0x77,0x7b...)

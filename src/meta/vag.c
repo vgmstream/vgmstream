@@ -52,8 +52,8 @@ VGMSTREAM* init_vgmstream_vag(STREAMFILE* sf) {
     /* check variation */
     switch(vag_id) {
 
-        case 0x56414731: /* "VAG1" [Metal Gear Solid 3 (PS2), Cabela's African Safari (PSP)] */
-            meta_type = meta_PS2_VAG1; //TODO not always Konami
+        case 0x56414731: /* "VAG1" [Metal Gear Solid 3 (PS2), Cabela's African Safari (PSP), Shamu's Deep Sea Adventures (PS2)] */
+            meta_type = meta_PS2_VAG1; //TODO not always Konami (Sand Grain Studios)
             start_offset = 0x40; /* 0x30 is extra data in VAG1 */
             interleave = 0x10;
             loop_flag = 0;

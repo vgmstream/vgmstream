@@ -6,7 +6,7 @@
 VGMSTREAM* init_vgmstream_sndz(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     STREAMFILE* sf_b = NULL;
-    uint32_t stream_offset, stream_size, name_offset, head_size, data_size;
+    uint32_t stream_offset, stream_size, name_offset, data_size;
     int channels, loop_flag, sample_rate, codec, streamed;
     int32_t num_samples, loop_start, loop_end;
     uint32_t at9_config;
@@ -16,7 +16,7 @@ VGMSTREAM* init_vgmstream_sndz(STREAMFILE* sf) {
 
     if (!is_id32be(0x00, sf, "SNDZ"))
         goto fail;
-    head_size = read_u32le(0x04, sf);
+  //head_size = read_u32le(0x04, sf);
     data_size = read_u32le(0x08, sf);
     /* 0x0c: version? (0x00010001) */
     /* 0x10: size size? */
@@ -95,7 +95,6 @@ VGMSTREAM* init_vgmstream_sndz(STREAMFILE* sf) {
         loop_flag = loop_end > 0;
     }
 
-VGM_LOG("%i, %x, %x, %x\n", streamed, head_size, data_size, get_streamfile_size(sf));
     /* szd3 is streamed but has header+data together, with padding between (data_size is the same as file size)*/
     if (streamed && get_streamfile_size(sf) < data_size) {
         sf_b = open_streamfile_by_ext(sf, "szd2");

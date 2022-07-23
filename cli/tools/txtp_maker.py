@@ -183,7 +183,11 @@ class TxtpInfo(object):
             return str_cut.split()[0].strip()
 
     def _get_text(self, str):
-        return self._get_string(str, full=True)
+        text = self._get_string(str, full=True)
+        # stream names in CLI is printed as UTF-8 using '\xNN', so detect and transform
+        if text and '\\' in text:
+            return text.encode('ascii').decode('unicode-escape').encode('iso-8859-1').decode('utf-8')
+        return text
 
     def _get_value(self, str):
         res = self._get_string(str)
