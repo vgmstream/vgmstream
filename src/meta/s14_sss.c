@@ -3,48 +3,45 @@
 #include "../coding/coding.h"
 #include <string.h>
 
-/* .s14 and .sss - headerless siren14 stream (The Idolm@ster DS, Korogashi Puzzle Katamari Damacy DS) */
-VGMSTREAM * init_vgmstream_s14_sss(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
+static int test_interleave(STREAMFILE* sf, int channels, int interleave);
+
+/* .s14/.sss - headerless siren14 stream [The Idolm@ster (DS), Korogashi Puzzle Katamari Damacy (DS), Taiko no Tatsujin DS 1/2 (DS)] */
+VGMSTREAM* init_vgmstream_s14_sss(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
     off_t start_offset = 0;
-    int channel_count, loop_flag = 0, interleave;
+    int channels, loop_flag = 0, interleave;
 
 
     /* check extension */
-    if (check_extensions(streamFile,"sss")) {
-        channel_count = 2;
-    } else if (check_extensions(streamFile,"s14")) {
-        channel_count = 1; //todo missing dual _0ch.s14 _1ch.s14, but dual_ext thing doesn't work properly with siren14 decoder
+    if (check_extensions(sf,"sss")) {
+        channels = 2;
+    } else if (check_extensions(sf,"s14")) {
+        channels = 1; /* may have dual _0ch.s14 + _1ch.s14, needs .txtp */
     } else {
         goto fail;
     }
 
-    /* raw siren comes in 3 frame sizes, try to guess the correct one
-     * (should try to decode and check the error flag but it isn't currently reported) */
+    /* raw siren comes in 3 frame sizes, try to guess the correct one */
     {
-        char filename[PATH_LIMIT];
-        streamFile->get_name(streamFile,filename,sizeof(filename));
-
-        /* horrid but I ain't losing sleep over it (besides the header is often incrusted in-code as some tracks loop) */
-        if (strstr(filename,"S037")==filename || strstr(filename,"b06")==filename || /* Korogashi Puzzle Katamari Damacy */
-            strstr(filename,"_48kbps")!=NULL) /* Taiko no Tatsujin DS 1/2 */
+        /* horrid but ain't losing sleep over it (besides the header is often incrusted in-code as some tracks loop)
+         * Katamari, Taiko = 0x78/0x50, idolmaster=0x3c (usually but can be any) */
+        if (test_interleave(sf, channels, 0x78))
             interleave = 0x78;
-        else if (strstr(filename,"32700")==filename || /* Hottarake no Shima - Kanata to Nijiiro no Kagami */
-                 strstr(filename,"b0")==filename || strstr(filename,"puzzle")==filename || strstr(filename,"M09")==filename || /* Korogashi Puzzle Katamari Damacy */
-                 strstr(filename,"_32kbps")!=NULL) /* Taiko no Tatsujin DS 1/2 */
-            interleave = 0x50;
+        else if (test_interleave(sf, channels, 0x50))
+            interleave = 0x50; 
+        else if (test_interleave(sf, channels, 0x3c))
+            interleave = 0x3c;
         else
-            interleave = 0x3c; /* The Idolm@ster - Dearly Stars */
+            goto fail;
     }
 
-
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    vgmstream = allocate_vgmstream(channels,loop_flag);
     if (!vgmstream) goto fail;
-    vgmstream->num_samples = get_streamfile_size(streamFile) / (interleave * channel_count) * (32000/50);
-    vgmstream->sample_rate = 32768; /* maybe 32700? */
+    vgmstream->num_samples = get_streamfile_size(sf) / (interleave * channels) * (32000/50);
+    vgmstream->sample_rate = 32768;
 
-    vgmstream->meta_type = channel_count==1 ? meta_S14 : meta_SSS;
+    vgmstream->meta_type = channels==1 ? meta_S14 : meta_SSS;
     vgmstream->layout_type = layout_interleave;
     vgmstream->interleave_block_size = interleave;
 
@@ -58,11 +55,35 @@ VGMSTREAM * init_vgmstream_s14_sss(STREAMFILE *streamFile) {
 #endif
     }
 
-    if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
+    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
         goto fail;
     return vgmstream;
 
 fail:
     close_vgmstream(vgmstream);
     return NULL;
+}
+
+/* pretty gross (should use TXTH), but codec info seems to be in hard-to-locate places/exe
+ * and varies per file, so for now autodetect possible types. could also check if data_size matches interleave */
+static int test_interleave(STREAMFILE* sf, int channels, int interleave) {
+#ifdef VGM_USE_G7221
+    int res;
+    g7221_codec_data* data = init_g7221(channels, interleave);
+    if (!data) goto fail;
+
+    set_key_g7221(data, NULL); /* force test key */
+
+    /* though this is mainly for key testing, with no key can be used to test frames too */
+    res = test_key_g7221(data, 0x00, sf);
+    if (res <= 0) goto fail;
+
+    free_g7221(data);
+    return 1;
+fail:
+    free_g7221(data);
+    return 0;
+#else
+    return 0;
+#endif
 }
