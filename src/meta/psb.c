@@ -16,6 +16,7 @@ typedef struct {
     const char* uniq; /* unique name, typically same as file without extension (optional)  */
     const char* wav; /* same as file (optional) */
 } psb_temp_t;
+
 typedef struct {
     psb_temp_t* tmp;
     psb_codec_t codec;
@@ -504,25 +505,29 @@ fail:
 
 
 static int prepare_name(psb_header_t* psb) {
-    char* buf = psb->readable_name;
-    int buf_size = sizeof(psb->readable_name);
     const char* main_name = psb->tmp->voice;
     const char* sub_name = psb->tmp->uniq;
-    int main_len;
+    char* buf = psb->readable_name;
+    int buf_size = sizeof(psb->readable_name);
+
+    if (!main_name) /* shouldn't happen */
+        return 1;
 
     if (!sub_name)
         sub_name = psb->tmp->wav;
     if (!sub_name)
         sub_name = psb->tmp->file;
 
-    if (!main_name) /* shouldn't happen */
-        return 1;
 
     /* sometimes we have main="bgm01", sub="bgm01.wav" = detect and ignore */
-    main_len = strlen(main_name);
-    if (sub_name && strncmp(main_name, sub_name, main_len) == 0) {
-        if (sub_name[main_len] == '\0' || strcmp(sub_name + main_len, ".wav") == 0)
-            sub_name = NULL;
+    if (sub_name) {
+        int main_len = strlen(main_name);
+        int sub_len = strlen(sub_name);
+
+        if (main_len > sub_len && strncmp(main_name, sub_name, main_len) == 0) {
+            if (sub_name[main_len] == '\0' || strcmp(sub_name + main_len, ".wav") == 0)
+                sub_name = NULL;
+        }
     }
 
     if (sub_name) {
@@ -733,7 +738,7 @@ fail:
  * Keys are (seemingly) stored in text order.
  */
 static int parse_psb(STREAMFILE* sf, psb_header_t* psb) {
-    psb_temp_t tmp;
+    psb_temp_t tmp = {0};
     psb_context_t* ctx = NULL;
     psb_node_t nroot, nvoice;
     float version;
