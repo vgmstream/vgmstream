@@ -767,6 +767,7 @@ static int parse_wwise(STREAMFILE* sf, wwise_header* ww) {
     /* parse chunks (reads once linearly) */
     {
         chunk_t rc = {0};
+        uint32_t file_size = get_streamfile_size(sf);;
 
         /* chunks are even-aligned and don't need to add padding byte, unlike real RIFFs */
         rc.be_size = ww->big_endian;
@@ -819,6 +820,13 @@ static int parse_wwise(STREAMFILE* sf, wwise_header* ww) {
                 /* "JUNK": optional padding for aligment (0-size JUNK exists too) */
                 /* "akd ": extra info for Wwise? (wave peaks/loudness/HDR envelope?) */
                 default:
+                    /* mainly for incorrectly ripped wems, but should allow truncated wems
+                     * (could also check that fourcc is ASCII)  */
+                    if (rc.offset + rc.size > file_size) {
+                        vgm_logi("WWISE: broken .wem (bad extract?)\n");
+                        goto fail;
+                    }
+
                     break;
             }
         }
