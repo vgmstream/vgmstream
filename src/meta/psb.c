@@ -50,6 +50,7 @@ typedef struct {
     int32_t intro_samples;
     int32_t skip_samples;
     int loop_flag;
+    int loop_range;
     int32_t loop_start;
     int32_t loop_end;
     int loop_test;
@@ -264,7 +265,7 @@ static segmented_layout_data* build_segmented_psb_opus(STREAMFILE* sf, psb_heade
     uint32_t skips[] = {0, psb->skip_samples};
 
     /* intro + body (looped songs) or just body (standard songs)
-       in full loops intro is 0 samples with a micro 1-frame opus [Nekopara (Switch)] */
+     * In full loops intro is 0 samples with a micro 1-frame opus [Nekopara (Switch)] */
     if (offsets[0] && samples[0])
         segment_count++;
     if (offsets[1] && samples[1])
@@ -459,6 +460,16 @@ static int prepare_codec(STREAMFILE* sf, psb_header_t* psb) {
             psb->codec = OPUSNX;
 
             psb->body_samples -= psb->skip_samples;
+
+            /* When setting loopstr="range:N,M", doesn't seem to transition properly (clicks) unless aligned (not always?)
+             * > N=intro's sampleCount, M=intro+body's sampleCount - skipSamples - default_skip, but not always
+             * [Anonymous;Code (Switch)-bgm08, B-Project: Ryuusei Fantasia (Switch)-bgm27] */
+            if (psb->loop_range) {
+                //TODO read actual default skip
+                psb->intro_samples -= 120;
+                psb->body_samples -= 120; 
+            }
+
             if (!psb->loop_flag)
                 psb->loop_flag = psb->intro_samples > 0;
             psb->loop_start = psb->intro_samples;
@@ -623,7 +634,7 @@ static int parse_psb_channels(psb_header_t* psb, psb_node_t* nchans) {
                     psb->body_offset = data.offset;
                     psb->body_size = data.size;
                     psb->body_samples = psb_node_get_integer(&node, "sampleCount");
-                    psb->skip_samples = psb_node_get_integer(&node, "skipSampleCount");
+                    psb->skip_samples = psb_node_get_integer(&node, "skipSampleCount"); /* fixed to seek_preroll? (80ms) */
                 }
 
                 if (psb_node_by_key(&narch, "intro", &node)) {
@@ -703,9 +714,14 @@ static int parse_psb_voice(psb_header_t* psb, psb_node_t* nvoice) {
 
     /* optional loop flag (loop points go in channels, or implicit in fmt/RIFF) */
     if (!psb->loop_flag) {
+        const char* loopstr = psb_node_get_string(&nsong, "loopstr");
         psb->loop_flag = psb_node_get_integer(&nsong, "loop") > 1;
-        /* There is also loopstr/loopStr = "all" when "loop"=2 and "none" when "loop"=0
-         * SFX set loop=0, and sometimes songs that look like they could do full loops do too */
+
+        /* loopstr values:
+         * - "none", w/ loop=0
+         * - "all", w/ loop = 2 [Legend of Mana (multi)]
+         * - "range:N,M", w/ loop = 2 [Anonymous;Code (Switch)] */
+        psb->loop_range = loopstr && strncmp(loopstr, "range:", 6) == 0; /* slightly different in rare cases */
     }
 
     /* other optional keys:
