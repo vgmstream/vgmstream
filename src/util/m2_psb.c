@@ -11,32 +11,34 @@
  * also https://github.com/number201724/psbfile and https://github.com/UlyssesWu/FreeMote
  *
  * PSB defines a header with offsets to sections within the header, binary format being type-value (where type could be
- * int8/int16/float/array/object/etc). Example:
- *   21                             // object: root (x2 info lists + items)
- *     0D 04 0D 06,0B,0D,0E         //   list8[4]: key indexes ("id/spec/version/voice")
+ * int8/int16/float/list/object/etc). Example:
+ *   21                             // object: root (x2 listN + other data)
+ *     0D 04 0D 06,0B,0D,0E         //   list8[4]: key indexes (#0 "id", #1 "spec", #2 "version", #3 "voice"; found in a separate "key names" table)
  *     0D 04 0D 00,02,04,09         //   list8[4]: byte offsets of next 4 items
- *     15 02		                //   0 string8: string#2 ("spec")
- *     1E 5C8F823F                  //   1 float32: 1.02
- *     05 02                        //   2 int8: 2
- *     21                           //   3 object
+ *     15 02		                //   #0 string8: string key #2 ("pc")
+ *     1E 5C8F823F                  //   #1 float32: 1.02
+ *     05 02                        //   #2 int8: 2
+ *     21                           //   #3 object
  *       0D 02 0D 02,05             //     list8[2]: key indexes
  *       0D 02 0D 00,02             //     list8[2]: byte offsets
- *       19 00                      //     0 resource8: resource#0 (subfile)
- *       20                         //     1 array: loops
+ *       19 00                      //     #0 resource8: resource #0 (offset/size found in a separate "data resource" table)
+ *       20                         //     #1 array: loops
  *          0D 02 0D 00,04          //       list8[2]
- *          07 D69107               //       0 int24 
- *          07 31A45C               //       1 int24
+ *          07 D69107               //       #0 int24
+ *          07 31A45C               //       #1 int24
+ * 
+ * A game would then position on root object (offset in header) and ask for key "version". 
+ * M2 lib finds the index for that key (#2), skips to that offset (0x04), reads type float32, returns 1.02
  */
-//TODO: som
-//TODO: add validations on buf over max size
-//TODO: validate strings table ends with null (buf[max - 1] = '\0')
+//TODO: add validations on buf over max size (like reading u32 on edge buf[len-1])
+
 
 /******************************************************************************/
 /* DEFS */
 
 #define PSB_VERSION2  2  /* older (x360/ps3) games */
 #define PSB_VERSION3  3  /* current games */
-#define PSB_MAX_HEADER  0x40000  /* max seen ~0x1000 */
+#define PSB_MAX_HEADER  0x40000  /* max seen ~0x1000 (alloc'd) */
 
 
 /* Internal type used in binary data, that defines bytes used to store value.
@@ -94,10 +96,10 @@ typedef enum {
 
 
 typedef struct {
-    int bytes;      /* total bytes (including headers) to skip this list */
-    int count;      /* number of entries */
-    int esize;       /* size per entry */
-    uint8_t* edata;  /* start of entries */
+    int bytes;          /* total bytes (including headers) to skip this list */
+    int count;          /* number of entries */
+    int esize;          /* size per entry */
+    uint8_t* edata;     /* start of entries */
 } list_t;
 
 struct psb_context_t {
@@ -109,21 +111,22 @@ struct psb_context_t {
 
 	uint32_t strings_list_offset;
 	uint32_t strings_data_offset;
-	uint32_t data_offsets_offset; //todo resources
+	uint32_t data_offsets_offset;
 	uint32_t data_sizes_offset;
 
-	uint32_t data_offset; //todo resources
-	uint32_t root_offset;
+	uint32_t data_offset; /* also "resources" */
+	uint32_t root_offset; /* initial node */
 	uint32_t unknown; /* hash/crc? (v3) */
 
-    /* main buf and derived stuff*/
+    /* main buf and derived stuff */
     uint8_t* buf;
+    int buf_len;
     list_t strings_list;
     uint8_t* strings_data;
-    
+    int strings_data_len;
     list_t data_offsets_list;
     list_t data_sizes_list;
-    
+
     /* keys buf */
     char* keys;
     int* keys_pos;
@@ -189,7 +192,7 @@ static int list_init(list_t* lst, uint8_t* buf) {
         default:
             goto fail;
     }
-    
+
     /* get entry info (0D + 00,01,02,03) */
     entry_itype = buf[1 + count_size];
     switch (entry_itype) {
@@ -318,7 +321,6 @@ psb_context_t* psb_init(STREAMFILE* sf) {
     psb_context_t* ctx;
     uint8_t header[0x2c];
     int bytes;
-    uint32_t buf_len;
 
     ctx = calloc(1, sizeof(psb_context_t));
     if (!ctx) goto fail;
@@ -364,26 +366,38 @@ psb_context_t* psb_init(STREAMFILE* sf) {
         ctx->root_offset >= ctx->data_offset)
         goto fail;
 
+
     /* copy data for easier access */
-    buf_len = ctx->data_offset;
-    if (buf_len > PSB_MAX_HEADER)
+    ctx->buf_len = (int)ctx->data_offset;
+    if (ctx->buf_len < 0 || ctx->buf_len > PSB_MAX_HEADER)
         goto fail;
 
-    ctx->buf = malloc(buf_len);
+    ctx->buf = malloc(ctx->buf_len);
     if (!ctx->buf) goto fail;
 
-    bytes = read_streamfile(ctx->buf, 0x00, buf_len, sf);
-    if (bytes != buf_len) goto fail;
+    bytes = read_streamfile(ctx->buf, 0x00, ctx->buf_len, sf);
+    if (bytes != ctx->buf_len) goto fail;
 
+
+    /* lists pointing to string block */
     if (!list_init(&ctx->strings_list, &ctx->buf[ctx->strings_list_offset]))
         goto fail;
-    ctx->strings_data = &ctx->buf[ctx->strings_data_offset];
 
+    /* block of plain c-strings (all null-terminated, including last) */
+    ctx->strings_data = &ctx->buf[ctx->strings_data_offset];
+    ctx->strings_data_len = ctx->data_offsets_offset - ctx->strings_data_offset;
+    if (ctx->strings_data_len < 0 || ctx->strings_data[ctx->strings_data_len - 1] != '\0') /* just in case to avoid overruns */
+        goto fail;
+
+
+    /* lists to access resources */
     if (!list_init(&ctx->data_offsets_list, &ctx->buf[ctx->data_offsets_offset]))
         goto fail;
     if (!list_init(&ctx->data_sizes_list, &ctx->buf[ctx->data_sizes_offset]))
         goto fail;
 
+
+    /* prepare key strings for easier handling */
     if (!init_keys(ctx))
         goto fail;
 
@@ -397,7 +411,7 @@ fail:
 void psb_close(psb_context_t* ctx) {
     if (!ctx)
         return;
-    
+
     free(ctx->keys_pos);
     free(ctx->keys);
     free(ctx->buf);
@@ -532,7 +546,7 @@ int psb_node_by_index(const psb_node_t* node, int index, psb_node_t* p_out) {
             p_out->data = &buf[1 + keys.bytes + offsets.bytes + skip];
             return 1;
         }
-            
+
         default:
             goto fail;
     }
@@ -574,7 +588,7 @@ fail:
 const char* psb_node_get_key(const psb_node_t* node, int index) {
     uint8_t* buf;
     int pos;
-    
+
     if (!node || !node->ctx || !node->data)
         goto fail;
 
@@ -592,7 +606,7 @@ const char* psb_node_get_key(const psb_node_t* node, int index) {
             pos = node->ctx->keys_pos[keys_index];
             return &node->ctx->keys[pos];
         }
-            
+
         default:
             goto fail;
     }
@@ -651,8 +665,11 @@ psb_result_t psb_node_get_result(psb_node_t* node) {
             index = item_get_int(size, &buf[1]);
             skip = list_get_entry(&node->ctx->strings_list, index);
 
-            res.str = (const char*)&node->ctx->strings_data[skip]; /* null-terminated */
-            //todo test max strlen to see if it's null-terminated
+            res.str = (const char*)&node->ctx->strings_data[skip]; /* null-terminated (validated on open) */
+            if (skip >= node->ctx->strings_data_len) { /* shouldn't happen */
+                vgm_logi("PSBLIB: bad skip over strings\n");
+                res.str = "";
+            }
             break;
         }
 
@@ -665,7 +682,7 @@ psb_result_t psb_node_get_result(psb_node_t* node) {
 
             res.data.offset = list_get_entry(&node->ctx->data_offsets_list, index);
             res.data.size = list_get_entry(&node->ctx->data_sizes_list, index);
-            
+
             res.data.offset += node->ctx->data_offset;
             break;
 
@@ -754,8 +771,8 @@ psb_data_t  psb_node_get_data(const psb_node_t* node, const char* key) {
         return data;
     }
     return psb_node_get_result(&out).data;
-    
 }
+
 int psb_node_exists(const psb_node_t* node, const char* key) {
     psb_node_t out;
     if (!psb_node_by_key(node, key, &out))

@@ -16,6 +16,7 @@ typedef struct {
     int alignment;      /* chunks with odd size need to be aligned to even, per RIFF spec */
 } chunk_t;
 
+/* reads from current offset and updates chunk_t */
 int next_chunk(chunk_t* chunk, STREAMFILE* sf);
 
 #if 0

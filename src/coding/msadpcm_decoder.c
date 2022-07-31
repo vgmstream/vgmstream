@@ -248,11 +248,11 @@ long msadpcm_bytes_to_samples(long bytes, int block_size, int channels) {
 }
 
 /* test if MSADPCM coefs were re-defined (possible in theory but not used in practice) */
-int msadpcm_check_coefs(STREAMFILE* sf, off_t offset) {
+int msadpcm_check_coefs(STREAMFILE* sf, uint32_t offset) {
     int i;
     int count = read_u16le(offset, sf);
     if (count != 7) {
-        vgm_logi("MSADPCM: bad count %i at %lx (report)\n", count, offset);
+        vgm_logi("MSADPCM: bad count %i at %x (report)\n", count, offset);
         goto fail;
     }
 

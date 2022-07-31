@@ -97,7 +97,7 @@ VGMSTREAM* init_vgmstream_sgxd(STREAMFILE* sf) {
      * - WSUR: ?
      * - WMKR: ?
      * - CONF: ? (name offset + config offset)
-     * - BUSS: bus config? 
+     * - BUSS: bus config? */
 
     /* WAVE chunk (size 0x10 + files * 0x38 + optional padding) */
     if (is_sgx) { /* position after chunk+size */

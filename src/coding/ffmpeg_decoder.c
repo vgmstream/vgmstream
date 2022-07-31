@@ -34,7 +34,7 @@ struct ffmpeg_codec_data {
     int bad_init;
 
     // FFmpeg context used for metadata
-    AVCodec* codec;
+    const AVCodec* codec;
 
     /* FFmpeg decoder state */
     unsigned char* buffer;

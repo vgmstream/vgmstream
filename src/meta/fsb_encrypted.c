@@ -7,14 +7,14 @@
 VGMSTREAM* init_vgmstream_fsb_encrypted(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
 
+    /* ignore non-encrypted FSB */
+    if ((read_u32be(0x00,sf) & 0xFFFFFF00) == get_id32be("FSB\0"))
+        goto fail;
+
     /* checks */
     /* .fsb: standard
      * .fsb.xen: various Guitar Hero (X360/PC) */
     if (!check_extensions(sf, "fsb,xen"))
-        goto fail;
-
-    /* ignore non-encrypted FSB */
-    if ((read_u32be(0x00,sf) & 0xFFFFFF00) == 0x46534200) /* "FSB\0" */
         goto fail;
 
 
