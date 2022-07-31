@@ -91,7 +91,7 @@ static int read_dsp_header_endian(struct dsp_header *header, off_t offset, STREA
 
     if (header->channels > 64) /* arbitrary max */
         header->channels = 0;
-    if (header->block_size > 0x100000)
+    if (header->block_size >= 0xF000) /* same, 16b (usually 0) */
         header->block_size = 0;
 
     return 1;

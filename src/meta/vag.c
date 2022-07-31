@@ -15,17 +15,17 @@ VGMSTREAM* init_vgmstream_vag(STREAMFILE* sf) {
 
 
     /* checks */
+    if (((read_u32be(0x00,sf) & 0xFFFFFF00) != get_id32be("VAG\0")) &&
+        ((read_u32le(0x00,sf) & 0xFFFFFF00) != get_id32be("VAG\0")))
+        goto fail;
+
     /* .vag: standard
      * .swag: Frantix (PSP)
      * .str: Ben10 Galactic Racing
      * .vig: MX vs. ATV Untamed (PS2)
      * .l/r: Crash Nitro Kart (PS2), Gradius V (PS2)
      * .vas: Kingdom Hearts II (PS2) */
-    if ( !check_extensions(sf,"vag,swag,str,vig,l,r,vas") )
-        goto fail;
-
-    if (((read_u32be(0x00,sf) & 0xFFFFFF00) != 0x56414700) && /* "VAG" */
-        ((read_u32le(0x00,sf) & 0xFFFFFF00) != 0x56414700))
+    if (!check_extensions(sf,"vag,swag,str,vig,l,r,vas"))
         goto fail;
 
     file_size = get_streamfile_size(sf);

@@ -293,7 +293,7 @@ VGMSTREAM* init_vgmstream_fsb(STREAMFILE* sf) {
     /* sometimes there is garbage at the end or missing bytes due to improper ripping */
     vgm_asserti(fsb.base_header_size + fsb.sample_headers_size + fsb.sample_data_size != get_streamfile_size(sf),
                "FSB wrong head/data_size found (expected 0x%x vs 0x%x)\n",
-               fsb.base_header_size + fsb.sample_headers_size + fsb.sample_data_size, get_streamfile_size(sf));
+               fsb.base_header_size + fsb.sample_headers_size + fsb.sample_data_size, (uint32_t)get_streamfile_size(sf));
 
     /* autodetect unwanted loops */
     {
