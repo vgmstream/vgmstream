@@ -560,6 +560,7 @@ static const char* extension_list[] = {
     "v0",
     //"v1", //dual channel with v0
     "va3",
+    "vab",
     "vag",
     "vai",
     "vam", //txth/reserved [Rocket Power: Beach Bandits (PS2)]
@@ -574,6 +575,7 @@ static const char* extension_list[] = {
     "vgm", //txth/reserved [Maximo (PS2)]
     "vgs",
     "vgv",
+    "vh",
     "vid",
     "vig",
     "vis",
@@ -1407,6 +1409,7 @@ static const meta_info meta_info_list[] = {
         {meta_ADM3,                 "Crankcase ADM3 header"},
         {meta_TT_AD,                "Traveller's Tales AUDIO_DATA header"},
         {meta_SNDZ,                 "Sony SNDZ header"},
+        {meta_VAB,                  "Sony VAB header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {

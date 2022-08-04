@@ -2002,5 +2002,8 @@
     <ClCompile Include="meta\esf.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\vab.c">
+      <Filter>meta</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
