@@ -151,7 +151,7 @@ as explained below, but often will use default values. Accepted codec strings:
 # - OKI16          OKI ADPCM with 16-bit output (not VOX/Dialogic 12-bit)
 #   * For rare PS2 games [Sweet Legacy (PS2), Hooligan (PS2)]
 # - OKI4S          OKI ADPCM with 16-bit output and adjusted tables
-#   * For later Konami rhythm games
+#   * For later Konami arcade games [Gitadora (AC), Metal Gear Arcade (AC)]
 # - AAC            Advanced Audio Coding (raw outside .mp4)
 #   * For some 3DS games and many iOS games
 #   * Should set skip_samples (typically 1024 but varies, 2112 is also common)
@@ -313,7 +313,7 @@ Special values:
 Sometimes games give loop flags different meaning, so behavior can be tweaked by defining `loop_behavior` before `loop_flag`:
 - `default`: values 0 or 0xFFFF/0xFFFFFFFF (-1) disable looping, but not 0xFF (loop endlessly)
 - `negative`: values 0xFF/0xFFFF/0xFFFFFFFF (-1) enable looping
-- `positive`: values 0xFF/0xFFFF/0xFFFFFFFF (-1) disable looping
+- `positive`: values 0xFF/0xFFFF/0xFFFFFFFF (-1) disable looping (0 also enables it)
 - `inverted`: values not 0 disable looping
 
 ```
@@ -595,10 +595,10 @@ data_size = @0x100          # useless as num_samples is already transformed
 ### Redefining values
 Some commands alter the function of all next commands and can be redefined as needed:
 ```
-samples_type = bytes
+sample_type = bytes
 num_samples = @0x10
 
-samples_type = sample
+sample_type = sample
 loop_end_sample = @0x14
 ```
 
