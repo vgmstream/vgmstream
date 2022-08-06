@@ -1202,6 +1202,8 @@ static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char* key, cha
             else if (txth->loop_behavior == POSITIVE) {
                 if (txth->loop_flag == 0xFF || txth->loop_flag == 0xFFFF || txth->loop_flag == 0xFFFFFFFF)
                     txth->loop_flag = 0;
+                else if (txth->loop_flag == 0)
+                    txth->loop_flag = 1;
             }
             else if (txth->loop_behavior == INVERTED) {
                 txth->loop_flag = (txth->loop_flag == 0);
