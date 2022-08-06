@@ -1,6 +1,6 @@
 ---
 name: Feature or format request
-about: Suggest a feature or a new format that you think vgmstream should play (please include multiple samples and which game is affected).
+about: Suggest a feature or a new format that you think vgmstream should play. **Please include multiple samples and which game is affected**.
 title: "[Request]"
 labels: enhancement
 assignees: ''

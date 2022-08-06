@@ -130,7 +130,24 @@ bool VgmstreamPlugin::is_our_file(const char * filename, VFSFile & file) {
 
     cfg.accept_unknown = settings.exts_unknown_on;
     cfg.accept_common = settings.exts_common_on;
-    return vgmstream_ctx_is_valid(filename, &cfg) > 0 ? true : false;
+
+    int ok = vgmstream_ctx_is_valid(filename, &cfg);
+    if (!ok) {
+        return false;
+    }
+
+    // just in case reject non-supported files, to avoid hijacking certain files like .vgm
+    // (other plugins should have higher priority though)
+    STREAMFILE* sf = open_vfs(filename);
+    if (!sf) return false;
+
+    VGMSTREAM* infostream = init_vgmstream_from_STREAMFILE(sf);
+    if (!infostream) {
+        close_streamfile(sf);
+        return false;
+    }
+
+    return true;
 }
 
 

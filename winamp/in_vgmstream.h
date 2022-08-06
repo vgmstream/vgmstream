@@ -91,6 +91,7 @@ extern winamp_log_t* walog;
 //todo there must be a better way to handle unicode...
 #ifdef UNICODE_INPUT_PLUGIN
 #define wa_strcmp wcscmp
+#define wa_strncmp wcsncmp
 #define wa_strcpy wcscpy
 #define wa_strncpy wcsncpy
 #define wa_strcat wcscat
@@ -104,6 +105,7 @@ extern winamp_log_t* walog;
 #define wa_L(x) L ##x
 #else
 #define wa_strcmp strcmp
+#define wa_strncmp strncmp
 #define wa_strcpy strcpy
 #define wa_strncpy strncpy
 #define wa_strcat strcat

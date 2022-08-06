@@ -32,13 +32,13 @@ static const uint8_t key_mkx[] = { 0x39,0x39,0x36,0x31,0x36,0x34,0x42,0x35,0x46,
 /* Xian Xia Chuan (PC) */ //"gat@tcqs2010"
 static const uint8_t key_xxc[] = { 0x67,0x61,0x74,0x40,0x74,0x63,0x71,0x73,0x32,0x30,0x31,0x30 };
 
-/* Mirror War Reincarnation of Holiness (PC) */ //"logicsounddesignmwsdev"
+/* Mirror War: Reincarnation of Holiness (PC) */ //"logicsounddesignmwsdev"
 static const uint8_t key_mwr[] = { 0x6C,0x6F,0x67,0x69,0x63,0x73,0x6F,0x75,0x6E,0x64,0x64,0x65,0x73,0x69,0x67,0x6E,0x6D,0x77,0x73,0x64,0x65,0x76 };
 
 /* Need for Speed Shift 2 Unleashed (PC demo?) */ //"p&oACY^c4LK5C2v^x5nIO6kg5vNH$tlj"
 static const uint8_t key_n2u[] = { 0x70,0x26,0x6F,0x41,0x43,0x59,0x5E,0x63,0x34,0x4C,0x4B,0x35,0x43,0x32,0x76,0x5E,0x78,0x35,0x6E,0x49,0x4F,0x36,0x6B,0x67,0x35,0x76,0x4E,0x48,0x24,0x74,0x6C,0x6A };
 
-/* Critter Crunch, Superbrothers: Sword & Sworcery */ //"j1$Mk0Libg3#apEr42mo"
+/* Critter Crunch (PC), Superbrothers: Sword & Sworcery (PC) */ //"j1$Mk0Libg3#apEr42mo"
 static const uint8_t key_ccr[] = { 0x6A,0x31,0x24,0x4D,0x6B,0x30,0x4C,0x69,0x62,0x67,0x33,0x23,0x61,0x70,0x45,0x72,0x34,0x32,0x6D,0x6F };
 
 /* Cyphers */ //"@kdj43nKDN^k*kj3ndf02hd95nsl(NJG"
@@ -50,7 +50,7 @@ static const uint8_t key_xdz[] = { 0x58,0x69,0x61,0x79,0x75,0x77,0x75,0x36,0x39,
 /* Ji Feng Zhi Ren / Kritika Online */ //"kri_tika_5050_"
 static const uint8_t key_jzz[] = { 0x6B,0x72,0x69,0x5F,0x74,0x69,0x6B,0x61,0x5F,0x35,0x30,0x35,0x30,0x5F };
 
-/* Invisible Inc. */ //"mint78run52"
+/* Invisible Inc. (PC?) */ //"mint78run52"
 static const uint8_t key_inv[] = { 0x6D,0x69,0x6E,0x74,0x37,0x38,0x72,0x75,0x6E,0x35,0x32 };
 
 /* Guitar Hero 3 */ //"5atu6w4zaw"
@@ -92,6 +92,9 @@ static const uint8_t key_fg2[] = { 0x2c,0x26,0x2e,0x58,0x5a,0x38,0x5d,0x66,0x4c,
 /* Achilles: Legends Untold (PC) */ //"Achilles_0_15_DpG"
 static const uint8_t key_alu[] = { 0x41,0x63,0x68,0x69,0x6C,0x6C,0x65,0x73,0x5F,0x30,0x5F,0x31,0x35,0x5F,0x44,0x70,0x47 };
 
+/* Cult of the Lamb Demo (PC) */ //"4FB8CC894515617939F4E1B7D50972D27213B8E6"
+static const uint8_t key_col[] = { 0x34,0x46,0x42,0x38,0x43,0x43,0x38,0x39,0x34,0x35,0x31,0x35,0x36,0x31,0x37,0x39,0x33,0x39,0x46,0x34,0x45,0x31,0x42,0x37,0x44,0x35,0x30,0x39,0x37,0x32,0x44,0x32,0x37,0x32,0x31,0x33,0x42,0x38,0x45,0x36 };
+
 // Unknown:
 // - Battle: Los Angeles
 // - Guitar Hero: Warriors of Rock, DJ hero FSB
@@ -108,8 +111,7 @@ typedef struct {
 static const fsbkey_info fsbkey_list[] = {
         { 0,0, sizeof(key_dj2),key_dj2 },
         { 0,0, sizeof(key_dfp),key_dfp },//FSB4
-        { 1,0, sizeof(key_dfp),key_dfp },//untested
-        { 1,1, sizeof(key_dfp),key_dfp },//untested
+        { 1,0, sizeof(key_dfp),key_dfp },//FSB5
         { 1,0, sizeof(key_npp),key_npp },//FSB5
         { 1,0, sizeof(key_sms),key_sms },//FSB5
         { 1,0, sizeof(key_gfs),key_gfs },//FSB5
@@ -121,14 +123,9 @@ static const fsbkey_info fsbkey_list[] = {
         { 0,1, sizeof(key_xxc),key_xxc },//untested
         { 1,0, sizeof(key_xxc),key_xxc },//untested
         { 1,1, sizeof(key_xxc),key_xxc },//untested
-        { 0,0, sizeof(key_mwr),key_mwr },//untested
-        { 0,1, sizeof(key_mwr),key_mwr },//untested
-        { 1,0, sizeof(key_mwr),key_mwr },//untested
-        { 1,1, sizeof(key_mwr),key_mwr },//untested
+        { 1,0, sizeof(key_mwr),key_mwr },//FSB5
         { 0,0, sizeof(key_n2u),key_n2u },//untested
         { 0,1, sizeof(key_n2u),key_n2u },//untested
-        { 1,0, sizeof(key_n2u),key_n2u },//untested
-        { 1,1, sizeof(key_n2u),key_n2u },//untested
         { 0,0, sizeof(key_ccr),key_ccr },//untested
         { 0,1, sizeof(key_ccr),key_ccr },//untested
         { 1,0, sizeof(key_ccr),key_ccr },//untested
@@ -168,6 +165,7 @@ static const fsbkey_info fsbkey_list[] = {
         { 1,0, sizeof(key_fg1),key_fg1 },// FSB5
         { 1,0, sizeof(key_fg2),key_fg2 },// FSB5
         { 1,0, sizeof(key_alu),key_alu },// FSB5
+        { 1,0, sizeof(key_col),key_col },// FSB5
 };
 static const int fsbkey_list_count = sizeof(fsbkey_list) / sizeof(fsbkey_list[0]);
 

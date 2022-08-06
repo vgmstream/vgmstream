@@ -49,6 +49,7 @@ typedef enum {
     PCM_FLOAT_LE,
     IMA_HV,
     PCM8_SB,
+    HEVAG,
 
     UNKNOWN = 99,
 } txth_codec_t;
@@ -217,7 +218,8 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
         uint32_t interleave  = 0;
         switch(txth.codec) {
             case PSX:
-            case PSX_bf:        interleave = 0x10; break;
+            case PSX_bf:        
+            case HEVAG:         interleave = 0x10; break;
             case NGC_DSP:       interleave = 0x08; break;
             case PCM16LE:
             case PCM16BE:       interleave = 0x02; break;
@@ -235,6 +237,8 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
     /* type to coding conversion */
     switch (txth.codec) {
         case PSX:           coding = coding_PSX; break;
+        case PSX_bf:        coding = coding_PSX_badflags; break;
+        case HEVAG:         coding = coding_HEVAG; break;
         case XBOX:          coding = coding_XBOX_IMA; break;
         case NGC_DTK:       coding = coding_NGC_DTK; break;
         case PCM16LE:       coding = coding_PCM16LE; break;
@@ -254,7 +258,6 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
         case AICA:          coding = coding_AICA; break;
         case MSADPCM:       coding = coding_MSADPCM; break;
         case NGC_DSP:       coding = coding_NGC_DSP; break;
-        case PSX_bf:        coding = coding_PSX_badflags; break;
         case MS_IMA:        coding = coding_MS_IMA; break;
         case APPLE_IMA4:    coding = coding_APPLE_IMA4; break;
 #ifdef VGM_USE_FFMPEG
@@ -320,6 +323,7 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
         case coding_SDX2:
         case coding_PSX:
         case coding_PSX_badflags:
+        case coding_HEVAG:
         case coding_DVI_IMA:
         case coding_IMA:
         case coding_HV_IMA:
@@ -351,6 +355,7 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
                 if (!txth.interleave && (
                         coding == coding_PSX ||
                         coding == coding_PSX_badflags ||
+                        coding == coding_HEVAG ||
                         coding == coding_IMA_int ||
                         coding == coding_DVI_IMA_int ||
                         coding == coding_SDX2_int ||
@@ -977,6 +982,7 @@ static txth_codec_t parse_codec(txth_header* txth, const char* val) {
     else if (is_string(val,"CP_YM"))        return CP_YM;
     else if (is_string(val,"PCM_FLOAT_LE")) return PCM_FLOAT_LE;
     else if (is_string(val,"IMA_HV"))       return IMA_HV;
+    else if (is_string(val,"HEVAG"))        return HEVAG;
     /* special handling */
     else if (is_string(val,"name_value"))   return txth->name_values[0];
     else if (is_string(val,"name_value1"))  return txth->name_values[0];
@@ -1202,6 +1208,8 @@ static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char* key, cha
             else if (txth->loop_behavior == POSITIVE) {
                 if (txth->loop_flag == 0xFF || txth->loop_flag == 0xFFFF || txth->loop_flag == 0xFFFFFFFF)
                     txth->loop_flag = 0;
+                else if (txth->loop_flag == 0)
+                    txth->loop_flag = 1;
             }
             else if (txth->loop_behavior == INVERTED) {
                 txth->loop_flag = (txth->loop_flag == 0);
@@ -2045,6 +2053,7 @@ static int get_bytes_to_samples(txth_header* txth, uint32_t bytes) {
             return dsp_bytes_to_samples(bytes, txth->channels);
         case PSX:
         case PSX_bf:
+        case HEVAG:
             return ps_bytes_to_samples(bytes, txth->channels);
         case PCM16BE:
         case PCM16LE:

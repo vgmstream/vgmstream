@@ -71,22 +71,62 @@ Default output filename is `?f.wav`, or `?f#?s.wav` if you set subsongs (`-s/-S`
 *Windows*: drop the `in_vgmstream.dll` in your Winamp Plugins directory,
 and follow the above instructions for installing needed extra files.
 
-*Others*: may be possible to use through *Wine*
+*Others*: may be possible to use through *Wine*.
 
 Once installed, supported files should be playable. There is a simple config
 menu to tweak some options too. If the *Preferences... > Plug-ins > Input* shows
 vgmstream as *"NOT LOADED"* that means extra DLL files aren't in the correct
 place.
 
+#### Plugin priority
+An (uncommon) issue is clashing extensions. When opening a file, Winamp first
+asks all plugins if they support the file. Here vgmstream accepts files it can
+play and rejects anything it can't, but if no plugin "claims" the file (and most
+don't), Winamp will just pass it to the *first* `.dll` in the plugin folder that
+reports the extension. Since vgmstream supports tons of extensions sometimes it
+may receive files it can't play (even after rejecting them before). This oddness
+can be solved by renaming the plugins' `.dll` so vgmstream goes *last*.
+
+For example, vgmstream ignores sequenced `.vgm` but supports streamed `.vgm` (another
+format). If your *in_vgm* plugin version doesn't "claim" sequenced `.vgm` Winamp
+may send it to vgmstream by mistake (so won't be playable), depending on how it's
+named. Here vgmstream has higher priority and fail:
+```
+in_vgmstream.dll
+in_vgmW.dll
+```
+And here has lower and will be playable:
+```
+in_vgm.dll
+in_vgmstream.dll
+```
+
+Note the above is also affected by vgmstream's options *Enable common exts* (vgmstream
+will accept and play common files like `.wav` or `.ogg`), and *Enable unknown exts* (will
+try to play files outside the known extension list, which is often possible through *TXTH*).
+
 
 ### foo_input_vgmstream (foobar2000 plugin)
 *Windows*: every file should be installed automatically when opening the `.fb2k-component`
-bundle
+bundle.
 
-*Others*: may be possible to use through *Wine*
+*Others*: may be possible to use through *Wine*.
 
-A known quirk is that when loop options or tags change, playlist info won't refresh
-automatically. You need to manually refresh it by selecting songs and doing
+Note that vgmstream currently requires at least foobar v1.5 to run.
+
+#### Plugin priority
+If multiple plugins supports the same format, which plugin is used depends on config.
+You can change plugin's priority in **options > Playback > Decoding**. Due to the
+huge amount of supported formats, you may want to set it low enough.
+
+Note the above is also affected by vgmstream's options *Enable common exts* (vgmstream
+will accept and play common files like `.wav` or `.ogg`), and *Enable unknown exts* (will
+try to play files outside the known extension list, which is often possible through *TXTH*).
+
+
+#### Playlist issues
+A known quirk is that when loop options or tags change, playlist time/info won't
+update automatically. You need to manually refresh it by selecting songs and doing
 **shift + right click > Tagging > Reload info from file(s)**.
 
 
@@ -94,17 +134,21 @@ automatically. You need to manually refresh it by selecting songs and doing
 *Windows*: drop the `xmp-vgmstream.dll` in your XMPlay plugins directory,
 and follow the above instructions for installing the other files needed.
 
-*Others*: may be possible to use through *Wine*
+*Others*: may be possible to use through *Wine*.
 
 Note that this has less features compared to *in_vgmstream* and has no config.
 Since XMPlay supports Winamp plugins you may also use `in_vgmstream.dll` instead.
 
+#### Plugin priority
 Because the XMPlay MP3 decoder incorrectly tries to play some vgmstream extensions,
 you need to manually fix it by going to **options > plugins > input > vgmstream**
 and in the "priority filetypes" put: `ahx,asf,awc,ckd,fsb,genh,lwav,msf,p3d,rak,scd,txth,xvag`
+(or any other similar case).
 
+#### Missing subsongs
 XMPlay cannot support vgmstream's type of mixed subsongs due to player limitations
-(with neither *xmp-vgmstream* nor *in_vgmstream* plugins), try using *TXTP* instead (explained below).
+(with neither *xmp-vgmstream* nor *in_vgmstream* plugins). You can make one *TXTP*
+per subsong to play them instead (explained below).
 
 
 ### Audacious plugin
@@ -112,6 +156,10 @@ XMPlay cannot support vgmstream's type of mixed subsongs due to player limitatio
 
 *Others*: needs to be manually built. Instructions can be found in [BUILD.md](BUILD.md)
 document in vgmstream's source code (can be done with CMake or autotools).
+
+#### Plugin priority
+vgmstream sets its priority on compile time, low enough for most other plugins to
+go first (but not all). Can be changed with `AUDACIOUS_VGMSTREAM_PRIORITY`.
 
 
 ### vgmstream123 (command line player)
@@ -124,6 +172,7 @@ The program is meant to be a simple stand-alone player, supporting playback of
 vgmstream files through libao. Most options should be similar to CLI's
 (`-m`, `-i`, `-s N` and so on, though not fully equivalent), use `-h` for full info.
 
+#### Extra features
 On Linux, files compressed with gzip/bzip2/xz also work, as identified by a
 `.gz/.bz2/.xz` extension. The file will be decompressed to a temp dir using the
 respective utility program (which must be installed and accessible) and then
