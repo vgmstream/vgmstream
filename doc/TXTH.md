@@ -70,6 +70,9 @@ as explained below, but often will use default values. Accepted codec strings:
 #   * Interleave is multiple of 0x10 (default), often +0x1000
 # - PSX_bf         PlayStation ADPCM with bad flags
 #   * Variation with garbage data, for rare PS2 games
+# - HEVAG          Vita/PS4 ADPCM
+#   * For some Vita/PS4 games
+#   * Interleave is multiple of 0x10 (default)
 # - XBOX           Xbox IMA ADPCM (mono/stereo)
 #   * For many XBOX games, and some PC games
 #   * Special interleave is multiple of 0x24 (mono) or 0x48 (stereo)
