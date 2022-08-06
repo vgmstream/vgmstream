@@ -40,6 +40,7 @@ def parse():
     parser.add_argument("-cle","--command-loop-end", help="sets loop end segment")
     parser.add_argument("-cv","--command-volume", help="sets volume")
     parser.add_argument("-c","--command", help="sets any command (free text)")
+    parser.add_argument("-ci","--command-inline", help="sets any inline command (free text)")
 
     return parser.parse_args()
 
@@ -134,10 +135,15 @@ def main():
         len_segments = len(segments)
         with open(name,"w+") as ftxtp:
             for i, segment in enumerate(segments):
+                command_inline = ''
+                if args.command_inline:
+                    command_inline = args.command_inline.replace("\\n", "\n")
+            
                 if args.command_loop_force and len_segments == 1:
-                    ftxtp.write(segment + " #e\n")
+                    txtp_line = "%s #e%s\n" % (segment, command_inline)
                 else:
-                    ftxtp.write(segment + "\n")
+                    txtp_line = "%s%s\n" % (segment, command_inline)
+                ftxtp.write(txtp_line)
 
             if args.command_loop_auto or args.command_loop_force and len_segments > 1:
                 ftxtp.write("loop_mode = auto\n")
