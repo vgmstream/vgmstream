@@ -1,17 +1,17 @@
 #include "meta.h"
 #include "../coding/coding.h"
 
-static int16_t SsPitchFromNote(int16_t note, int16_t fine, uint8_t center, uint8_t shift);
+static uint16_t SsPitchFromNote(int16_t note, int16_t fine, uint8_t center, uint8_t shift);
 
 /* .VAB - standard PS1 bank format */
 VGMSTREAM* init_vgmstream_vab(STREAMFILE* sf) {
-    uint16_t programs, tones, wave_num;
-    int16_t pitch;
+    uint16_t programs, wave_num, pitch;
     uint8_t center, shift;
     off_t programs_off, tones_off, waves_off, entry_off, data_offset;
     size_t data_size;
-    int target_subsong = sf->stream_index, is_vh = 0, tone_num, tones_parsed;
-    int i, j;
+    int target_subsong = sf->stream_index, is_vh = 0, program_num, tone_num, total_subsongs,
+        channels, loop_flag, loop_start = 0, loop_end = 0;
+    int i;
     STREAMFILE* sf_data = NULL;
     VGMSTREAM* vgmstream = NULL;
 
@@ -34,7 +34,7 @@ VGMSTREAM* init_vgmstream_vab(STREAMFILE* sf) {
     }
 
     programs = read_u16le(0x12, sf);
-    tones = read_u16le(0x14, sf);
+    //tones = read_u16le(0x14, sf);
     //waves = read_u16le(0x16, sf);
 
     programs_off = 0x20;
@@ -42,24 +42,30 @@ VGMSTREAM* init_vgmstream_vab(STREAMFILE* sf) {
     waves_off = tones_off + programs * 16 * 0x20;
 
     if (target_subsong == 0) target_subsong = 1;
-    if (target_subsong < 0 || target_subsong > tones || tones < 1)
+    if (target_subsong < 0)
         goto fail;
 
-    tones_parsed = 0;
-    tone_num = target_subsong - 1;
+    total_subsongs = 0;
+    program_num = -1;
     for (i = 0; i < programs; i++) {
         uint8_t program_tones;
+        int local_target;
 
+        local_target = target_subsong - total_subsongs - 1;
         entry_off = programs_off + i * 0x10;
         program_tones = read_u8(entry_off + 0x00, sf);
-        tones_parsed += program_tones;
-        if (target_subsong - 1 < tones_parsed)
-            break;
+        total_subsongs += program_tones;
 
-        tone_num -= program_tones;
+        if (local_target >= 0 && local_target < program_tones) {
+            program_num = i;
+            tone_num = local_target;
+        }
     }
 
-    entry_off = tones_off + i * 16 * 0x20 + tone_num * 0x20;
+    if (program_num == -1)
+        goto fail;
+
+    entry_off = tones_off + program_num * 16 * 0x20 + tone_num * 0x20;
     center = read_u8(entry_off + 0x04, sf);
     shift = read_u8(entry_off + 0x05, sf);
     wave_num = read_u16le(entry_off + 0x16, sf);
@@ -68,24 +74,29 @@ VGMSTREAM* init_vgmstream_vab(STREAMFILE* sf) {
     pitch = SsPitchFromNote(60, 0, center, shift);
 
     data_offset = is_vh ? 0x00 : (waves_off + 256 * 0x02);
-    for (j = 0; j < wave_num; j++) {
-        data_offset += read_u16le(waves_off + j * 0x02, sf) << 3;
+    for (i = 0; i < wave_num; i++) {
+        data_offset += read_u16le(waves_off + i * 0x02, sf) << 3;
     }
 
-    data_size = read_u16le(waves_off + j * 0x02, sf) << 3;
+    data_size = read_u16le(waves_off + i * 0x02, sf) << 3;
+
+    channels = 1;
+    loop_flag = ps_find_loop_offsets(sf_data, data_offset, data_size, channels, 0, &loop_start, &loop_end);
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(1, 0);
+    vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
     vgmstream->meta_type = meta_VAB;
     vgmstream->coding_type = coding_PSX;
     vgmstream->layout_type = layout_none;
     vgmstream->sample_rate = (pitch * 44100) / 4096; // FIXME: Maybe use actual pitching if implemented.
-    vgmstream->num_samples = ps_bytes_to_samples(data_size, 1);
+    vgmstream->num_samples = ps_bytes_to_samples(data_size, channels);
+    vgmstream->loop_start_sample = loop_start;
+    vgmstream->loop_end_sample = loop_end;
     vgmstream->stream_size = data_size;
-    vgmstream->num_streams = tones;
-    snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%02d/%02d", i, tone_num);
+    vgmstream->num_streams = total_subsongs;
+    snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%02d/%02d", program_num, tone_num);
 
     if (!vgmstream_open_stream(vgmstream, sf_data, data_offset))
         goto fail;
@@ -130,7 +141,7 @@ static uint16_t _svm_ptable[] =
     8192
 };
 
-static int16_t SsPitchFromNote(int16_t note, int16_t fine, uint8_t center, uint8_t shift) {
+static uint16_t SsPitchFromNote(int16_t note, int16_t fine, uint8_t center, uint8_t shift) {
 
     uint32_t pitch;
     int16_t calc, type;
