@@ -198,6 +198,9 @@ static const adxkey_info adxkey8_list[] = {
 
         /* Mirai Nikki: 13-ninme no Nikki Shoyuusha Re-Write (PSP) */
         {0x58a3,0x66f5,0x599f, "FDRW17th",0},
+    
+        /* Shoujo Yoshitsune-den Ni - Toki wo Koeru Chigiri (PS2) */
+        {0x62d7,0x483d,0x4fb7, "YOSHI2",0},
 
 };
 
