@@ -2003,7 +2003,7 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\vab.c">
-      <Filter>meta</Filter>
+      <Filter>meta\Source Files</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

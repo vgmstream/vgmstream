@@ -80,6 +80,19 @@ VGMSTREAM* init_vgmstream_vab(STREAMFILE* sf) {
 
     data_size = read_u16le(waves_off + i * 0x02, sf) << 3;
 
+    if (data_size == 0 && center == 0 && shift == 0) {
+        // hack for empty sounds in Critical Depth
+        vgmstream = init_vgmstream_silence(1, 44100, 44100);
+        if (!vgmstream) goto fail;
+
+        vgmstream->meta_type = meta_VAB;
+        vgmstream->num_streams = total_subsongs;
+        snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%02d/%02d (empty)", program_num, tone_num);
+
+        if (is_vh) close_streamfile(sf_data);
+        return vgmstream;
+    }
+
     channels = 1;
     loop_flag = ps_find_loop_offsets(sf_data, data_offset, data_size, channels, 0, &loop_start, &loop_end);
 
