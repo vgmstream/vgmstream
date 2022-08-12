@@ -3,10 +3,14 @@
 
 static uint16_t SsPitchFromNote(int16_t note, int16_t fine, uint8_t center, uint8_t shift);
 
+#define VAB_MIN(x,y) ((x)<(y)?(x):(y))
+#define VAB_MAX(x,y) ((x)>(y)?(x):(y))
+#define VAB_CLAMP(x,min,max) VAB_MIN(VAB_MAX(x,min),max)
+
 /* .VAB - standard PS1 bank format */
 VGMSTREAM* init_vgmstream_vab(STREAMFILE* sf) {
     uint16_t programs, wave_num, pitch;
-    uint8_t center, shift;
+    uint8_t center, shift, min_note, max_note;
     off_t programs_off, tones_off, waves_off, entry_off, data_offset;
     size_t data_size;
     int target_subsong = sf->stream_index, is_vh = 0, program_num, tone_num, total_subsongs,
@@ -68,10 +72,12 @@ VGMSTREAM* init_vgmstream_vab(STREAMFILE* sf) {
     entry_off = tones_off + program_num * 16 * 0x20 + tone_num * 0x20;
     center = read_u8(entry_off + 0x04, sf);
     shift = read_u8(entry_off + 0x05, sf);
+    min_note = read_u8(entry_off + 0x06, sf);
+    max_note = read_u8(entry_off + 0x07, sf);
     wave_num = read_u16le(entry_off + 0x16, sf);
 
     /* play default note */
-    pitch = SsPitchFromNote(60, 0, center, shift);
+    pitch = SsPitchFromNote(VAB_CLAMP(60, min_note, max_note), 0, center, shift);
 
     data_offset = is_vh ? 0x00 : (waves_off + 256 * 0x02);
     for (i = 0; i < wave_num; i++) {
