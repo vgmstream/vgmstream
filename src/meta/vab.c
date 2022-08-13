@@ -3,13 +3,85 @@
 
 static uint16_t SsPitchFromNote(int16_t note, int16_t fine, uint8_t center, uint8_t shift);
 
+#define VAB_MIN(x,y) ((x)<(y)?(x):(y))
+#define VAB_MAX(x,y) ((x)>(y)?(x):(y))
+#define VAB_CLAMP(x,min,max) VAB_MIN(VAB_MAX(x,min),max)
+
+static int read_vabcfg_file(STREAMFILE* sf, int program, int tone, int* note, int* fine, int* uselimits) {
+    char filename[PATH_LIMIT];
+    off_t txt_offset, file_size;
+    STREAMFILE* sf_cfg = NULL;
+    size_t file_len, key_len;
+
+    sf_cfg = open_streamfile_by_filename(sf, ".vab_config");
+    if (!sf_cfg) goto fail;
+
+    get_streamfile_filename(sf, filename, sizeof(filename));
+
+    txt_offset = read_bom(sf_cfg);
+    file_size = get_streamfile_size(sf_cfg);
+    file_len = strlen(filename);
+
+    /* read lines and find target filename, format is (filename): value1, ... valueN */
+    while (txt_offset < file_size) {
+        char line[0x2000];
+        char key[PATH_LIMIT] = { 0 }, val[0x2000] = { 0 };
+        int ok, bytes_read, line_ok;
+        int cfg_program, cfg_tone, cfg_note, cfg_fine, cfg_limits;
+
+        bytes_read = read_line(line, sizeof(line), txt_offset, sf_cfg, &line_ok);
+        if (!line_ok) goto fail;
+
+        txt_offset += bytes_read;
+
+        /* get key/val (ignores lead/trailing spaces, stops at comment/separator) */
+        ok = sscanf(line, " %[^\t#:] : %[^\t#\r\n] ", key, val);
+        if (ok != 2) /* ignore line if no key=val (comment or garbage) */
+            continue;
+
+        if (key[0] == '*') {
+            key_len = strlen(key);
+            if (file_len < key_len)
+                continue;
+
+            if (strcmp(filename + (file_len - key_len + 1), key + 1) != 0)
+                continue;
+        } else {
+            if (strcmp(filename, key) != 0)
+                continue;
+        }
+
+        ok = sscanf(val, "%d , %d , %d , %d , %d", &cfg_program, &cfg_tone, &cfg_note, &cfg_fine, &cfg_limits);
+        if (ok != 5)
+            continue;
+
+        if (cfg_program >= 0 && program != cfg_program)
+            continue;
+
+        if (cfg_tone >= 0 && tone != cfg_tone)
+            continue;
+
+        *note = cfg_note;
+        *fine = cfg_fine;
+        *uselimits = cfg_limits;
+
+        close_streamfile(sf_cfg);
+        return 1;
+    }
+
+fail:
+    close_streamfile(sf_cfg);
+    return 0;
+}
+
 /* .VAB - standard PS1 bank format */
 VGMSTREAM* init_vgmstream_vab(STREAMFILE* sf) {
     uint16_t programs, wave_num, pitch;
-    uint8_t center, shift;
+    uint8_t center, shift, min_note, max_note;
     off_t programs_off, tones_off, waves_off, entry_off, data_offset;
     size_t data_size;
     int target_subsong = sf->stream_index, is_vh = 0, program_num, tone_num, total_subsongs,
+        note, fine, uselimits,
         channels, loop_flag, loop_start = 0, loop_end = 0;
     int i;
     STREAMFILE* sf_data = NULL;
@@ -68,10 +140,20 @@ VGMSTREAM* init_vgmstream_vab(STREAMFILE* sf) {
     entry_off = tones_off + program_num * 16 * 0x20 + tone_num * 0x20;
     center = read_u8(entry_off + 0x04, sf);
     shift = read_u8(entry_off + 0x05, sf);
+    min_note = read_u8(entry_off + 0x06, sf);
+    max_note = read_u8(entry_off + 0x07, sf);
     wave_num = read_u16le(entry_off + 0x16, sf);
 
+    if (read_vabcfg_file(sf, program_num, tone_num, &note, &fine, &uselimits)) {
+        if (uselimits)
+            note = VAB_CLAMP(note, min_note, max_note);
+    } else {
+        note = VAB_CLAMP(60, min_note, max_note);
+        fine = 0;
+    }
+
     /* play default note */
-    pitch = SsPitchFromNote(60, 0, center, shift);
+    pitch = SsPitchFromNote(note, fine, center, shift);
 
     data_offset = is_vh ? 0x00 : (waves_off + 256 * 0x02);
     for (i = 0; i < wave_num; i++) {
