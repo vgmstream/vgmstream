@@ -442,6 +442,7 @@ static const char* extension_list[] = {
     "sab",
     "sad",
     "saf",
+    "sag",
     "sam", //txth/reserved [Lost Kingdoms 2 (GC)]
     "sap",
     "sb0",
@@ -456,6 +457,7 @@ static const char* extension_list[] = {
     "sbin",
     "sbr",
     "sbv",
+    "sig",
     "sm0",
     "sm1",
     "sm2",
