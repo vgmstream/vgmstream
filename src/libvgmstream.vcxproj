@@ -468,7 +468,7 @@
     <ClCompile Include="meta\ps2_bg00.c" />
     <ClCompile Include="meta\ps2_bmdx.c" />
     <ClCompile Include="meta\ps2_ccc.c" />
-    <ClCompile Include="meta\ps2_dxh.c" />
+    <ClCompile Include="meta\hxd.c" />
     <ClCompile Include="meta\ps2_enth.c" />
     <ClCompile Include="meta\exst.c" />
     <ClCompile Include="meta\ps2_filp.c" />
