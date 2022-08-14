@@ -1020,6 +1020,9 @@ static const hcakey_info hcakey_list[] = {
         // Pachislot Gyakuten Saiban (iOS/Android)
         {2220022040477322},     // 0007E319291DBE8A
 
+        // Alice Fiction (Android)
+        {112089817},            // 0000000006AE5AD9
+    
 };
 
 #endif/*_HCA_KEYS_H_*/
