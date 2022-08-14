@@ -166,7 +166,6 @@ static const char* extension_list[] = {
     "dspw",
     "dtk",
     "dvi",
-    "dxh",
     "dyx", //txth/reserved [Shrek 4 (iOS)]
 
     "e4x",

@@ -12,7 +12,6 @@ This list is not complete and many other files are supported.
 	- .bmdx
 	- .ccc
 	- .cnk
-	- .dxh
 	- .enth
 	- .fag
 	- .filp
