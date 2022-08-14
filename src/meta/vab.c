@@ -80,7 +80,7 @@ VGMSTREAM* init_vgmstream_vab(STREAMFILE* sf) {
     uint8_t center, shift, min_note, max_note;
     off_t programs_off, tones_off, waves_off, entry_off, data_offset;
     size_t data_size;
-    int target_subsong = sf->stream_index, is_vh = 0, program_num, tone_num, total_subsongs,
+    int target_subsong = sf->stream_index, is_vh = 0, program_num, tone_num = 0, total_subsongs,
         note, fine, uselimits,
         channels, loop_flag, loop_start = 0, loop_end = 0;
     int i;

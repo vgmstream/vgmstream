@@ -679,6 +679,8 @@ static int convert_file(cli_config* cfg) {
     int32_t len_samples;
 
 
+    vgmstream_set_log_stdout(VGM_LOG_LEVEL_ALL);
+
     /* for plugin testing */
     if (cfg->validate_extensions)  {
         int valid;
@@ -692,8 +694,6 @@ static int convert_file(cli_config* cfg) {
         valid = vgmstream_ctx_is_valid(cfg->infilename, &vcfg);
         if (!valid) goto fail;
     }
-
-    vgmstream_set_log_stdout(VGM_LOG_LEVEL_ALL);
 
     /* open streamfile and pass subsong */
     {

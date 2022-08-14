@@ -89,16 +89,18 @@ VGMSTREAM* init_vgmstream_xwb(STREAMFILE* sf) {
 
 
     /* checks */
-    /* .xwb: standard
-     * .xna: Touhou Makukasai ~ Fantasy Danmaku Festival (PC)
-     * (extensionless): Ikaruga (X360/PC), Grabbed by the Ghoulies (Xbox) */
-    if (!check_extensions(sf,"xwb,xna,"))
-        goto fail;
-    if ((read_u32be(0x00,sf) != 0x57424E44) &&    /* "WBND" (LE) */
-        (read_u32be(0x00,sf) != 0x444E4257))      /* "DNBW" (BE) */
+    if (!is_id32be(0x00,sf, "WBND") &&
+        !is_id32le(0x00,sf, "WBND")) /* X360 */
         goto fail;
 
-    xwb.little_endian = read_u32be(0x00,sf) == 0x57424E44; /* WBND */
+    /* .xwb: standard
+     * .xna: Touhou Makukasai ~ Fantasy Danmaku Festival (PC)
+     * (extensionless): Ikaruga (X360/PC), Grabbed by the Ghoulies (Xbox) 
+     * .bd: Fatal Frame 2 (Xbox) */
+    if (!check_extensions(sf,"xwb,xna,bd"))
+        goto fail;
+
+    xwb.little_endian = is_id32be(0x00,sf, "WBND"); /* Xbox/PC */
     if (xwb.little_endian) {
         read_u32 = read_u32le;
         read_s32 = read_s32le;

@@ -166,7 +166,6 @@ static const char* extension_list[] = {
     "dspw",
     "dtk",
     "dvi",
-    "dxh",
     "dyx", //txth/reserved [Shrek 4 (iOS)]
 
     "e4x",
@@ -442,6 +441,7 @@ static const char* extension_list[] = {
     "sab",
     "sad",
     "saf",
+    "sag",
     "sam", //txth/reserved [Lost Kingdoms 2 (GC)]
     "sap",
     "sb0",
@@ -456,6 +456,7 @@ static const char* extension_list[] = {
     "sbin",
     "sbr",
     "sbv",
+    "sig",
     "sm0",
     "sm1",
     "sm2",
@@ -539,7 +540,6 @@ static const char* extension_list[] = {
     "szd3",
 
     "tad",
-    "tec",
     "tgq",
     "tgv",
     "thp",
@@ -567,7 +567,7 @@ static const char* extension_list[] = {
     "vam", //txth/reserved [Rocket Power: Beach Bandits (PS2)]
     "vas",
     "vawx",
-    "vb",
+    "vb", //txth/reserved [Tantei Jinguji Saburo: Mikan no Rupo (PS1)]
     "vbk",
     "vbx", //txth/reserved [THE Taxi 2 (PS2)]
     "vds",
@@ -1048,7 +1048,7 @@ static const meta_info meta_info_list[] = {
         {meta_ACM,                  "InterPlay ACM Header"},
         {meta_MUS_ACM,              "InterPlay MUS ACM header"},
         {meta_PS2_KCES,             "Konami KCES Header"},
-        {meta_PS2_DXH,              "Tokobot Plus DXH Header"},
+        {meta_HXD,                  "Tecmo HXD Header"},
         {meta_VSV,                  "Square Enix .vsv Header"},
         {meta_RIFF_WAVE_labl,       "RIFF WAVE header with loop markers"},
         {meta_RIFF_WAVE_smpl,       "RIFF WAVE header with sample looping info"},
@@ -1060,7 +1060,6 @@ static const meta_info meta_info_list[] = {
         {meta_PS2_PCM,              "Konami KCEJ East .PCM header"},
         {meta_PS2_RKV,              "Legacy of Kain - Blood Omen 2 RKV PS2 header"},
         {meta_PS2_VAS,              "Konami .VAS header"},
-        {meta_PS2_TEC,              "assumed TECMO badflagged stream by .tec extension"},
         {meta_PS2_ENTH,             ".enth Header"},
         {meta_SDT,                  "High Voltage .sdt header"},
         {meta_NGC_TYDSP,            ".tydsp Header"},

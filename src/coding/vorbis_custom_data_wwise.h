@@ -6,12 +6,15 @@
  * They are Wwise Vorbis codebook binaries converted to c-arrays.
  * Extracted from Wwise SDK by ww2ogg. The originals have all codebooks together with an index table at the end.
  * Here each codebook is an array instead, and the index is converted to a list.
+ *
+ * aoTuV_603 codebooks were introduced in later versions, very similar with reordered standard ones and
+ * a few new ones (reused here to save some kbs).
  */
 
 typedef struct {
-    uint32_t id; /*1: standard, 2: aoTuV_603 */
+    uint32_t id; /* 1: standard, 2: aoTuV_603 */
     uint32_t size;
-    const uint8_t *codebook;
+    const uint8_t* codebook;
 } wvc_info;
 
 /* ******************************************** */
@@ -5182,4 +5185,4 @@ static const wvc_info wvc_list_aotuv603[] = {
     {0x0255,0x0036,wvc_standard_00cb},
 };
 
-#endif/*_WWISE_VORBIS_DATA_H_ */
+#endif /* _WWISE_VORBIS_DATA_H_ */

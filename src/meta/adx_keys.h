@@ -101,7 +101,7 @@ static const adxkey_info adxkey8_list[] = {
         {0x5f5d,0x552b,0x5507, "DATAM-KK2",0},
 
         /* Sakura Taisen: Atsuki Chishio ni (PS2) [Sega] */
-        {0x645d,0x6011,0x5c29, NULL,0}, // keystring may be printf'd "%08X" + number (unlikely key: "[Seq][ADX] illegal cri or libsd status.")
+        {0x645d,0x6011,0x5c29, "[Seq][ADX] illegal cri or libsd status.",0}, // actual keystring (obfuscation probably)
 
         /* Sakura Taisen Monogatari: Mysterious Paris (PS2) [Sega] */
         {0x62ad,0x4b13,0x5957, "inoue4126",0},

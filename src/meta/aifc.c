@@ -83,7 +83,6 @@ VGMSTREAM* init_vgmstream_aifc(STREAMFILE* sf) {
     /* checks */
     if (!is_id32be(0x00,sf, "FORM"))
         goto fail;
-VGM_LOG("1\n");
 
     /* .aif: common (AIFF or AIFC), .aiff: common AIFF, .aifc: common AIFC
      * .laif/laiff/laifc: for plugins
