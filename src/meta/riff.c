@@ -984,12 +984,16 @@ fail:
 }
 
 /* for maximum annoyance later UE4 versions (~v4.2x?) interleave single frames instead of
- * half interleave, but don't have flags to detect so we need some heuristics */
+ * half interleave, but don't have flags to detect so we need some heuristics. Most later
+ * games with 0x36 chunk size use v2_interleave but notably Travis Strikes Again doesn't  */
 static size_t get_ue4_msadpcm_interleave(STREAMFILE* sf, riff_fmt_chunk* fmt, off_t start, size_t size) {
     size_t v1_interleave = size / fmt->channels;
     size_t v2_interleave = fmt->block_size;
-    uint8_t nibbles1[0x08] = {0};
-    uint8_t nibbles2[0x08] = {0};
+    uint8_t nibbles_half[0x20] = {0};
+    uint8_t nibbles_full[0x20] = {0};
+    int nibbles_size = sizeof(nibbles_full);
+    uint8_t empty[0x20] = {0};
+    int is_blank_half, is_blank_full;
 
 
     /* old versions */
@@ -997,43 +1001,56 @@ static size_t get_ue4_msadpcm_interleave(STREAMFILE* sf, riff_fmt_chunk* fmt, of
         return v1_interleave;
 
     /* 6ch only observed in later versions [Fortnite (PC)], not padded */
-    if (fmt->channels > 2)
+    if (fmt->channels > 2 || fmt->channels < 2)
         return v2_interleave;
 
-    read_streamfile(nibbles1, start + size - 0x08, sizeof(nibbles2), sf);
-    read_streamfile(nibbles2, start + v1_interleave - 0x08, sizeof(nibbles2), sf);
+    read_streamfile(nibbles_half, start + v1_interleave - nibbles_size, nibbles_size, sf);
+    is_blank_half = memcmp(nibbles_half, empty, nibbles_size) == 0;
+
+    read_streamfile(nibbles_full, start + size - nibbles_size, nibbles_size, sf);
+    is_blank_full = memcmp(nibbles_full, empty, nibbles_size) == 0;
 
     /* last frame is almost always padded, so should at half interleave */
-    if (get_u64be(nibbles1) == 0 && get_u64be(nibbles2) == 0)
+    if (!is_blank_half && !is_blank_full) {
+        VGM_LOG("v1 a\n");
         return v1_interleave;
+    }
 
+    /* last frame is padded, and half interleave is not: should be regular interleave*/
+    if (!is_blank_half && is_blank_full) {
+        VGM_LOG("v2 a\n");
+        return v2_interleave;
+    }
+VGM_LOG("i=%i, i=%i\n", is_blank_half, is_blank_full);
     /* last frame is silent-ish, so should at half interleave (TSA's SML_DarknessLoop_01, TSA_CAD_YAKATA)
      * this doesn't work too well b/c num_samples at 0x36 uses all data, may need adjustment */
     {
 
         int i;
-        int empty_nibbles1 = 1, empty_nibbles2 = 1;
+        int empty_nibbles_full = 1, empty_nibbles_half = 1;
 
-        for (i = 0; i < sizeof(nibbles1); i++) {
-            uint8_t n1 = ((nibbles1[i] >> 0) & 0x0f);
-            uint8_t n2 = ((nibbles1[i] >> 4) & 0x0f);
+        for (i = 0; i < sizeof(nibbles_full); i++) {
+            uint8_t n1 = ((nibbles_full[i] >> 0) & 0x0f);
+            uint8_t n2 = ((nibbles_full[i] >> 4) & 0x0f);
             if ((n1 != 0x0 && n1 != 0xf && n1 != 0x1) || (n2 != 0x0 && n2 != 0xf && n2 != 0x1)) {
-                empty_nibbles1 = 0;
+                empty_nibbles_full = 0;
                 break;
             }
         }
 
-        for (i = 0; i < sizeof(nibbles2); i++) {
-            uint8_t n1 = ((nibbles2[i] >> 0) & 0x0f);
-            uint8_t n2 = ((nibbles2[i] >> 4) & 0x0f);
+        for (i = 0; i < sizeof(nibbles_half); i++) {
+            uint8_t n1 = ((nibbles_half[i] >> 0) & 0x0f);
+            uint8_t n2 = ((nibbles_half[i] >> 4) & 0x0f);
             if ((n1 != 0x0 && n1 != 0xf && n1 != 0x1) || (n2 != 0x0 && n2 != 0xf && n2 != 0x1)) {
-                empty_nibbles2 = 0;
+                empty_nibbles_half = 0;
                 break;
             }
         }
 
-        if (empty_nibbles1 && empty_nibbles2)
+        if (empty_nibbles_full && empty_nibbles_half){
+            VGM_LOG("v1 b\n");
             return v1_interleave;
+        }
     }
 
     /* other tests? */
