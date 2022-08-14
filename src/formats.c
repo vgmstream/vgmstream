@@ -1049,7 +1049,7 @@ static const meta_info meta_info_list[] = {
         {meta_ACM,                  "InterPlay ACM Header"},
         {meta_MUS_ACM,              "InterPlay MUS ACM header"},
         {meta_PS2_KCES,             "Konami KCES Header"},
-        {meta_PS2_DXH,              "Tokobot Plus DXH Header"},
+        {meta_HXD,                  "Tecmo HXD Header"},
         {meta_VSV,                  "Square Enix .vsv Header"},
         {meta_RIFF_WAVE_labl,       "RIFF WAVE header with loop markers"},
         {meta_RIFF_WAVE_smpl,       "RIFF WAVE header with sample looping info"},

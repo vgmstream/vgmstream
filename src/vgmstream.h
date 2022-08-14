@@ -389,7 +389,7 @@ typedef enum {
     meta_BG00,              /* Ibara, Mushihimesama */
     meta_PS2_RSTM,          /* Midnight Club 3 */
     meta_PS2_KCES,          /* Dance Dance Revolution */
-    meta_PS2_DXH,           /* Tokobot Plus - Myteries of the Karakuri */
+    meta_HXD,
     meta_VSV,
     meta_SCD_PCM,           /* Lunar - Eternal Blue */
     meta_PS2_PCM,           /* Konami KCEJ East: Ephemeral Fantasia, Yu-Gi-Oh! The Duelists of the Roses, 7 Blades */

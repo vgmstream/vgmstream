@@ -240,7 +240,7 @@ VGMSTREAM * init_vgmstream_acm(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_ps2_kces(STREAMFILE * streamFile);
 
-VGMSTREAM * init_vgmstream_ps2_dxh(STREAMFILE * streamFile);
+VGMSTREAM* init_vgmstream_hxd(STREAMFILE* sf);
 
 VGMSTREAM * init_vgmstream_vsv(STREAMFILE * streamFile);
 
