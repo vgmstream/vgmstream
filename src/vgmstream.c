@@ -102,7 +102,6 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_ps2_rkv,
     init_vgmstream_ps2_vas,
     init_vgmstream_ps2_vas_container,
-    init_vgmstream_ps2_tec,
     init_vgmstream_ps2_enth,
     init_vgmstream_sdt,
     init_vgmstream_aix,

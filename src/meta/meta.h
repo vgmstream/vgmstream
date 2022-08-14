@@ -255,8 +255,6 @@ VGMSTREAM * init_vgmstream_ps2_rkv(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_ps2_vas(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_ps2_vas_container(STREAMFILE * streamFile);
 
-VGMSTREAM * init_vgmstream_ps2_tec(STREAMFILE * streamFile);
-
 VGMSTREAM * init_vgmstream_ps2_enth(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_sdt(STREAMFILE * streamFile);

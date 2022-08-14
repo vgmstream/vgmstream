@@ -976,9 +976,6 @@
     <ClCompile Include="meta\svag_snk.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ps2_tec.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="meta\ps2_tk5.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
