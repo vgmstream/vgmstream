@@ -33,13 +33,10 @@ VGMSTREAM * init_vgmstream_ps_headerless(STREAMFILE *streamFile) {
 
     /* checks
      * .mib: common, but many ext-less files are renamed to this.
-     * .mi4: fake .mib to force another sample rate
-     * .vb: Tantei Jinguuji Saburo - Mikan no Rupo (PS1)
-     * */
+     * .mi4: fake .mib to force another sample rate */
     streamFile->get_name(streamFile,filename,sizeof(filename));
     if (strcasecmp("mib",filename_extension(filename)) && 
-        strcasecmp("mi4",filename_extension(filename)) &&
-        strcasecmp("vb",filename_extension(filename)))
+        strcasecmp("mi4",filename_extension(filename)))
         goto fail;
 
     /* test if raw PS-ADPCM */
@@ -126,10 +123,6 @@ VGMSTREAM * init_vgmstream_ps_headerless(STREAMFILE *streamFile) {
     if(channel_count==0)
         channel_count=1;
 
-    // force no loop
-    if(!strcasecmp("vb",filename_extension(filename)))
-        loopStart=0;
-
     // Calc Loop Points & Interleave ...
     if(loopStartPointsCount>=2) {
         // can't get more then 0x10 loop point !
@@ -191,9 +184,6 @@ VGMSTREAM * init_vgmstream_ps_headerless(STREAMFILE *streamFile) {
             channel_count=newChannelCount;
     }
 
-    if (!strcasecmp("vb",filename_extension(filename)))
-        channel_count=1;
-
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,(loopEnd!=0));
@@ -209,9 +199,6 @@ VGMSTREAM * init_vgmstream_ps_headerless(STREAMFILE *streamFile) {
 
     if(!strcasecmp("mi4",filename_extension(filename)))
         vgmstream->sample_rate = 48000;
-
-    if (!strcasecmp("vb",filename_extension(filename)))
-        vgmstream->sample_rate = 22050;
 
     vgmstream->num_samples = (int32_t)(fileLength/16/channel_count*28);
 
