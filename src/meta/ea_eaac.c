@@ -881,7 +881,8 @@ fail:
 /* EA Harmony Sample Bank - used in 8th gen EA Sports games */
 VGMSTREAM* init_vgmstream_ea_sbr_harmony(STREAMFILE* sf) {
     uint64_t base_offset, sound_offset, offset, prev_offset;
-    uint32_t chunk_id, data_offset, table_offset, dset_offset, set_values, set_sounds, sound_table_offset;
+    uint32_t dset_id, dset_offset, num_values, num_fields, field_id,
+        data_offset, table_offset, set_sounds, sound_table_offset;
     int16_t flag;
     uint16_t num_dsets;
     uint8_t set_type, offset_size;
@@ -928,26 +929,25 @@ VGMSTREAM* init_vgmstream_ea_sbr_harmony(STREAMFILE* sf) {
         if (read_u32(dset_offset, sf) != 0x44534554) /* "DSET" */
             goto fail;
 
-        set_values = read_u32(dset_offset + 0x38, sf);
+        dset_id = read_u32(dset_offset + 0x08, sf);
+        num_values = read_u32(dset_offset + 0x38, sf);
+        num_fields = read_u32(dset_offset + 0x3c, sf);
         local_target = target_stream - total_sounds - 1;
         dset_offset += 0x48;
 
-        /* Find RAM or OFF chunk */
-        while(1) {
-            chunk_id = read_u32(dset_offset, sf);
-            if (chunk_id == 0x2E52414D) { /* ".RAM" */
+        /* find RAM or OFF field */
+        for (j = 0; j < num_fields; j++) {
+            field_id = read_u32(dset_offset, sf);
+            if (field_id == 0x2E52414D || /* ".RAM" */
+                field_id == 0x2E4F4646) { /* ".OFF" */
                 break;
-            } else if (chunk_id == 0x2E4F4646) { /* ".OFF" */
-                break;
-            } else if (chunk_id == 0x2E4C4452 || /* ".LDR" */
-                chunk_id == 0x2E4F424A || /* ".OBJ" */
-                chunk_id == 0x2E445552 || /* ".DUR" */
-                (chunk_id & 0xFF00FFFF) == 0x2E00534C) { /* ".?SL */
-                dset_offset += 0x18;
-            } else {
-                goto fail;
             }
+
+            dset_offset += 0x18;
         }
+
+        if (j == num_fields)
+            goto fail;
 
         /* different set types store offsets differently */
         set_type = read_u8(dset_offset + 0x05, sf);
@@ -965,7 +965,7 @@ VGMSTREAM* init_vgmstream_ea_sbr_harmony(STREAMFILE* sf) {
             flag = (int16_t)read_u16(dset_offset + 0x06, sf);
             base_offset = read_u64(dset_offset + 0x08, sf);
 
-            set_sounds = set_values;
+            set_sounds = num_values;
             total_sounds += set_sounds;
             if (local_target < 0 || local_target >= set_sounds)
                 continue;
@@ -979,7 +979,7 @@ VGMSTREAM* init_vgmstream_ea_sbr_harmony(STREAMFILE* sf) {
 
             set_sounds = 0;
             prev_offset = UINT64_MAX;
-            for (j = 0; j < set_values; j++) {
+            for (j = 0; j < num_values; j++) {
                 if (offset_size == 0x01) {
                     offset = read_u8(sound_table_offset + 0x01 * j, sf);
                 } else if (offset_size == 0x02) {
@@ -1026,7 +1026,7 @@ VGMSTREAM* init_vgmstream_ea_sbr_harmony(STREAMFILE* sf) {
 
             set_sounds = 0;
             prev_offset = UINT64_MAX;
-            for (j = 0; j < set_values; j++) {
+            for (j = 0; j < num_values; j++) {
                 offset = read_u64(sound_table_offset + 0x08 * j, sf);
 
                 if (sound_offset != prev_offset) {
@@ -1044,11 +1044,11 @@ VGMSTREAM* init_vgmstream_ea_sbr_harmony(STREAMFILE* sf) {
             goto fail;
         }
 
-        snprintf(sound_name, STREAM_NAME_SIZE, "DSET %02d/%04d", i, local_target);
+        snprintf(sound_name, STREAM_NAME_SIZE, "DSET %08x/%04d", dset_id, local_target);
 
-        if (chunk_id == 0x2E52414D) { /* ".RAM" */
+        if (field_id == 0x2E52414D) { /* ".RAM" */
             is_streamed = 0;
-        } else if (chunk_id == 0x2E4F4646) { /* ".OFF" */
+        } else if (field_id == 0x2E4F4646) { /* ".OFF" */
             is_streamed = 1;
         }
     }
