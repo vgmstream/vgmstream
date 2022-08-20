@@ -827,7 +827,7 @@ VGMSTREAM* init_vgmstream_ea_mpf_mus(STREAMFILE* sf) {
     uint16_t num_nodes, num_subbanks = 0;
     uint8_t version, sub_version, num_tracks, num_sections, num_events, num_routers, num_vars, subentry_num = 0;
     int i;
-    int target_stream = sf->stream_index, total_streams, big_endian, is_bnk = 0;
+    int target_stream = sf->stream_index, total_streams, big_endian, is_ram = 0;
     uint32_t(*read_u32)(off_t, STREAMFILE *);
     uint16_t(*read_u16)(off_t, STREAMFILE *);
 
@@ -984,10 +984,10 @@ VGMSTREAM* init_vgmstream_ea_mpf_mus(STREAMFILE* sf) {
             if (track_start <= target_stream - 1) {
                 num_subbanks = read_u16(entry_offset + 0x04, sf);
                 track_checksum = read_u32be(entry_offset + 0x08, sf);
-                is_bnk = (num_subbanks != 0);
+                is_ram = (num_subbanks != 0);
 
                 /* checks to distinguish it from SNR/SNS version */
-                if (is_bnk) {
+                if (is_ram) {
                     if (read_u32(entry_offset + 0x0c, sf) == 0x00)
                         goto fail;
                 } else {
@@ -1010,13 +1010,13 @@ VGMSTREAM* init_vgmstream_ea_mpf_mus(STREAMFILE* sf) {
         goto fail;
 
     if (version < 5) {
-        is_bnk = (read_u32be(0x00, sf_mus) == (big_endian ? EA_BNK_HEADER_BE : EA_BNK_HEADER_LE));
+        is_ram = (read_u32be(0x00, sf_mus) == (big_endian ? EA_BNK_HEADER_BE : EA_BNK_HEADER_LE));
     }
 
     /* 0x00 - offset/BNK index, 0x04 - duration (in milliseconds) */
     sound_offset = read_u32(samples_table + (target_stream - 1) * 0x08 + 0x00, sf);
 
-    if (is_bnk) {
+    if (is_ram) {
         /* for some reason, RAM segments are almost always split into multiple sounds (usually 4) */
         off_t bnk_offset = version < 5 ? 0x00 : 0x100;
         uint32_t bnk_sound_index = (sound_offset & 0x0000FFFF);
@@ -1024,12 +1024,12 @@ VGMSTREAM* init_vgmstream_ea_mpf_mus(STREAMFILE* sf) {
         uint32_t next_entry;
         uint32_t bnk_total_sounds = read_u16(bnk_offset + 0x06, sf_mus);
         int bnk_segments;
-        STREAMFILE *sf_bnk = sf_mus;
 
         if (version == 5 && bnk_index != 0) {
             /* HACK: open proper .mus now since open_mapfile_pair doesn't let us adjust the name */
             char filename[PATH_LIMIT], basename[PATH_LIMIT], ext[32];
             int basename_len;
+            STREAMFILE* sf_temp;
 
             get_streamfile_basename(sf_mus, basename, PATH_LIMIT);
             basename_len = strlen(basename);
@@ -1039,13 +1039,13 @@ VGMSTREAM* init_vgmstream_ea_mpf_mus(STREAMFILE* sf) {
             basename[basename_len - 1] = '\0';
 
             /* append bank index to the name */
-            snprintf(filename, PATH_LIMIT, "%s%d.%s", basename, bnk_index, ext);
+            snprintf(filename, PATH_LIMIT, "%s%u.%s", basename, bnk_index, ext);
 
-            sf_bnk = open_streamfile_by_filename(sf_mus, filename);
-            if (!sf_bnk) goto fail;
-            bnk_total_sounds = read_u16(bnk_offset + 0x06, sf_bnk);
+            sf_temp = open_streamfile_by_filename(sf_mus, filename);
+            if (!sf_temp) goto fail;
+            bnk_total_sounds = read_u16(bnk_offset + 0x06, sf_temp);
             close_streamfile(sf_mus);
-            sf_mus = sf_bnk;
+            sf_mus = sf_temp;
         }
 
         if (version == 5) {
@@ -1081,10 +1081,7 @@ VGMSTREAM* init_vgmstream_ea_mpf_mus(STREAMFILE* sf) {
 
         /* setup segmented VGMSTREAMs */
         if (!setup_layout_segmented(data_s)) goto fail;
-
         vgmstream = allocate_segmented_vgmstream(data_s, 0, 0, 0);
-        if (!vgmstream)
-            goto fail;
     } else {
         if (version == 5 && track_checksum && read_u32be(0x00, sf_mus) != track_checksum)
             goto fail;
@@ -1094,9 +1091,10 @@ VGMSTREAM* init_vgmstream_ea_mpf_mus(STREAMFILE* sf) {
             goto fail;
 
         vgmstream = parse_schl_block(sf_mus, sound_offset, 0);
-        if (!vgmstream)
-            goto fail;
     }
+
+    if (!vgmstream)
+        goto fail;
 
     vgmstream->num_streams = total_streams;
     get_streamfile_filename(sf_mus, vgmstream->stream_name, STREAM_NAME_SIZE);
