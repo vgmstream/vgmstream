@@ -491,7 +491,7 @@ Note that companion file order is usually important.
 Usage example (used when opening files in the left part of the list):
 ```
 # Harry Potter and the Chamber of Secrets (PS2)
-entrance.mpf: entrance.mus,entrance_o.mus
+exterior.mpf: exterior.mus,ext_o.mus
 willow.mpf: willow.mus,willow_o.mus
 ```
 ```
