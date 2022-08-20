@@ -1712,7 +1712,7 @@ fail:
 }
 
 static uint32_t ubi_ps2_pitch_to_freq(uint32_t pitch) {
-    /* old PS2 games store sample rate in a weird range of 0-0x10000 remapped from 0-48000 */
+    /* old PS2 games store sample rate in a weird range of 0-65536 remapped from 0-48000 */
     /* strangely, audio res type does have sample rate value but it's unused */
     double sample_rate = (((double)pitch / 65536) * 48000);
     return (uint32_t)ceil(sample_rate);
@@ -1850,7 +1850,7 @@ static int parse_type_audio(ubi_sb_header* sb, off_t offset, STREAMFILE* sf) {
 
         /* PC can have subblock 2 based on two fields near the end but it wasn't seen so far */
 
-        /* stream_type field is not used if the flag is not set (it even contains garbage in some versions)
+        /* stream_type field is not used for HW sounds and may contain garbage
          * except for PS3 and new PSP which have two hardware codecs (PSX and AT3) */
         if (!software_flag && sb->platform != UBI_PS3 && !(sb->platform == UBI_PSP && !sb->is_psp_old))
             sb->stream_type = 0x00;
@@ -2491,6 +2491,13 @@ static int parse_header(ubi_sb_header* sb, STREAMFILE* sf, off_t offset, int ind
             if (!parse_type_random(sb, offset, sf))
                 goto fail;
             break;
+        case 0x00:
+            if (sb->is_dat) {
+                /* weird dummy entries in Donald Duck: Goin' Quackers (DC) */
+                sb->type = UBI_SILENCE;
+                sb->duration = 1.0f;
+                break;
+            }
         default:
             VGM_LOG("UBI SB: unknown header type %x at %x\n", sb->header_type, (uint32_t)offset);
             goto fail;
