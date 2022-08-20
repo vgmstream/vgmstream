@@ -885,11 +885,11 @@ VGMSTREAM* init_vgmstream_ea_sbr_harmony(STREAMFILE* sf) {
     int16_t flag;
     uint16_t num_dsets;
     uint8_t set_type, offset_size;
-    uint32_t i, j;
     char sound_name[STREAM_NAME_SIZE];
     STREAMFILE *sf_sbs = NULL, *sf_data = NULL;
     VGMSTREAM* vgmstream = NULL;
     int target_stream = sf->stream_index, total_sounds, local_target, is_streamed = 0;
+    int i, j;
     uint64_t(*read_u64)(off_t, STREAMFILE *);
     uint32_t(*read_u32)(off_t, STREAMFILE*);
     uint16_t(*read_u16)(off_t, STREAMFILE*);
@@ -1224,7 +1224,7 @@ static VGMSTREAM* init_vgmstream_eaaudiocore_header(STREAMFILE* sf_head, STREAMF
             break;
         case EAAC_TYPE_GIGASAMPLE: /* rarely seen [Def Jam Icon (X360)] */
             header_size += 0x04;
-            eaac.prefetch_samples = read_32bitBE(header_offset + eaac.loop_flag ? 0x0c : 0x08, sf_head);
+            eaac.prefetch_samples = read_32bitBE(header_offset + (eaac.loop_flag ? 0x0c : 0x08), sf_head);
 
             if (eaac.loop_flag && eaac.loop_start >= eaac.prefetch_samples) {
                 header_size += 0x04;
@@ -1850,7 +1850,7 @@ static layered_layout_data* build_layered_eaaudiocore(STREAMFILE *sf_data, eaac_
 
                 stream_size = get_streamfile_size(temp_sf);
                 block_size = 0x10000; /* unused */
-                block_count = stream_size / block_size + (stream_size % block_size ? 1 : 0);
+                block_count = stream_size / block_size + ((stream_size % block_size) ? 1 : 0);
 
                 /* EA adopted XMA2 when it appeared around 2006, but detection isn't so easy
                  * (SNS with XMA2 do exist). Decoder should work when playing XMA1 as XMA2, but
