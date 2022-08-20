@@ -610,12 +610,13 @@ static STREAMFILE *open_mapfile_pair(STREAMFILE* sf, int track /*, int num_track
 
 /* EA MPF/MUS combo - used in older 7th gen games for storing interactive music */
 VGMSTREAM* init_vgmstream_ea_mpf_mus_eaac(STREAMFILE* sf) {
-    uint32_t num_tracks, track_start, track_checksum = 0, mus_sounds, mus_stream = 0;
+    uint32_t num_tracks, track_start, track_checksum = 0, mus_sounds, mus_stream = 0, bnk_index = 0, bnk_sound_index = 0;
     uint32_t tracks_table, samples_table, eof_offset, table_offset, entry_offset, snr_offset, sns_offset;
-    uint16_t num_subbanks;
+    uint16_t num_subbanks, index, sub_index;
     uint8_t version, sub_version;
-    STREAMFILE *musFile = NULL;
+    STREAMFILE *sf_mus = NULL;
     VGMSTREAM* vgmstream = NULL;
+    segmented_layout_data* data_s = NULL;
     int i;
     int target_stream = sf->stream_index, total_streams, is_ram = 0;
     uint32_t(*read_u32)(off_t, STREAMFILE *);
@@ -663,20 +664,8 @@ VGMSTREAM* init_vgmstream_ea_mpf_mus_eaac(STREAMFILE* sf) {
             track_checksum = read_u32be(entry_offset + 0x08, sf);
             is_ram = (num_subbanks != 0);
 
-            if (num_subbanks > 1) {
-                VGM_LOG("EA MPF: Found EAAC MPF with more than 1 RAM sub-bank.\n");
-                goto fail;
-            }
-
-            /* checks to distinguish it from older versions */
             if (is_ram) {
-                if (read_u32(entry_offset + 0x0c, sf) != 0x00)
-                    goto fail;
-
                 track_checksum = read_u32be(entry_offset + 0x14, sf);
-            } else {
-                if (read_u32(entry_offset + 0x0c, sf) == 0x00)
-                    goto fail;
             }
 
             mus_stream = target_stream - 1 - track_start;
@@ -685,37 +674,115 @@ VGMSTREAM* init_vgmstream_ea_mpf_mus_eaac(STREAMFILE* sf) {
     }
 
     /* open MUS file that matches this track */
-    musFile = open_mapfile_pair(sf, i);//, num_tracks
-    if (!musFile)
+    sf_mus = open_mapfile_pair(sf, i);//, num_tracks
+    if (!sf_mus)
         goto fail;
 
-    if (read_u32be(0x00, musFile) != track_checksum)
-        goto fail;
+    /* sample offsets table is still there but it just holds SNS offsets, we only need it for RAM sound indexes */
+    /* 0x00 - offset/index, 0x04 - duration (in milliseconds) */
+    sns_offset = read_u32(samples_table + (target_stream - 1) * 0x08 + 0x00, sf);
 
-    /* sample offsets table is still there but it just holds SNS offsets, it's of little use to us */
+    if (is_ram) {
+        bnk_sound_index = (sns_offset & 0x0000FFFF);
+        bnk_index = (sns_offset & 0xFFFF0000) >> 16;
+
+        if (bnk_index != 0) {
+            /* HACK: open proper .mus now since open_mapfile_pair doesn't let us adjust the name */
+            char filename[PATH_LIMIT], basename[PATH_LIMIT], ext[32];
+            int basename_len;
+            STREAMFILE* sf_temp;
+
+            get_streamfile_basename(sf_mus, basename, PATH_LIMIT);
+            basename_len = strlen(basename);
+            get_streamfile_ext(sf_mus, ext, sizeof(ext));
+
+            /* strip off 0 at the end */
+            basename[basename_len - 1] = '\0';
+
+            /* append bank index to the name */
+            snprintf(filename, PATH_LIMIT, "%s%u.%s", basename, bnk_index, ext);
+
+            sf_temp = open_streamfile_by_filename(sf_mus, filename);
+            if (!sf_temp) goto fail;
+            close_streamfile(sf_mus);
+            sf_mus = sf_temp;
+        }
+
+        track_checksum = read_u32be(entry_offset + 0x14 + bnk_index * 0x10, sf);
+        if (track_checksum && read_u32be(0x00, sf_mus) != track_checksum)
+            goto fail;
+    } else {
+        if (track_checksum && read_u32be(0x00, sf_mus) != track_checksum)
+            goto fail;
+    }
+
     /* MUS file has a header, however */
     if (sub_version == 2) {
-        if (read_u32(0x04, musFile) != 0x00)
+        if (read_u32(0x04, sf_mus) != 0x00)
             goto fail;
 
         /*
-         * 0x00: flags? index?
+         * 0x00: index
+         * 0x02: sub-index
          * 0x04: SNR offset
          * 0x08: SNS offset (contains garbage for RAM sounds)
          */
         table_offset = 0x08;
-        entry_offset = table_offset + mus_stream * 0x0c;
-        snr_offset = read_u32(entry_offset + 0x04, musFile);
-        sns_offset = read_u32(entry_offset + 0x08, musFile);
+
+        if (is_ram) {
+            int ram_segments;
+
+            /* find number of parts for this node */
+            for (i = 0; ; i++) {
+                entry_offset = table_offset + (bnk_sound_index + i) * 0x0c;
+                index = read_u16(entry_offset + 0x00, sf_mus);
+                sub_index = read_u16(entry_offset + 0x02, sf_mus);
+
+                if (index == 0xffff) /* EOF check */
+                    goto fail;
+                
+                entry_offset += 0x0c;
+                if (read_u16(entry_offset + 0x00, sf_mus) != index ||
+                    read_u16(entry_offset + 0x02, sf_mus) != sub_index + 1)
+                    break;
+            }
+
+            ram_segments = i + 1;
+
+            /* init layout */
+            data_s = init_layout_segmented(ram_segments);
+            if (!data_s) goto fail;
+
+            for (i = 0; i < ram_segments; i++) {
+                entry_offset = table_offset + (bnk_sound_index + i) * 0x0c;
+                snr_offset = read_u32(entry_offset + 0x04, sf_mus);
+                data_s->segments[i] = init_vgmstream_eaaudiocore_header(sf_mus, sf_mus,
+                    snr_offset, 0,
+                    meta_EA_SNR_SNS, 0);
+                if (!data_s->segments[i]) goto fail;
+            }
+
+            /* setup segmented VGMSTREAMs */
+            if (!setup_layout_segmented(data_s)) goto fail;
+            vgmstream = allocate_segmented_vgmstream(data_s, 0, 0, 0);
+        } else {
+            entry_offset = table_offset + mus_stream * 0x0c;
+            snr_offset = read_u32(entry_offset + 0x04, sf_mus);
+            sns_offset = read_u32(entry_offset + 0x08, sf_mus);
+
+            vgmstream = init_vgmstream_eaaudiocore_header(sf_mus, sf_mus,
+                snr_offset, sns_offset,
+                meta_EA_SNR_SNS, 0);
+        }
     } else if (sub_version == 3) {
         /* number of samples is always little endian */
-        mus_sounds = read_u32le(0x04, musFile);
+        mus_sounds = read_u32le(0x04, sf_mus);
         if (mus_stream >= mus_sounds)
             goto fail;
 
         if (is_ram) {
             /* not seen so far */
-            VGM_LOG("Found RAM SNR in MPF v5.3.\n");
+            VGM_LOG("Found RAM track in MPF v5.3.\n");
             goto fail;
         }
 
@@ -731,23 +798,27 @@ VGMSTREAM* init_vgmstream_ea_mpf_mus_eaac(STREAMFILE* sf) {
          */
         table_offset = 0x28;
         entry_offset = table_offset + mus_stream * 0x1c;
-        snr_offset = read_u32(entry_offset + 0x08, musFile) * 0x10;
-        sns_offset = read_u32(entry_offset + 0x0c, musFile) * 0x80;
+        snr_offset = read_u32(entry_offset + 0x08, sf_mus) * 0x10;
+        sns_offset = read_u32(entry_offset + 0x0c, sf_mus) * 0x80;
+
+        vgmstream = init_vgmstream_eaaudiocore_header(sf_mus, sf_mus,
+            snr_offset, sns_offset,
+            meta_EA_SNR_SNS, 0);
     } else {
         goto fail;
     }
 
-    vgmstream = init_vgmstream_eaaudiocore_header(musFile, musFile, snr_offset, sns_offset, meta_EA_SNR_SNS, 0);
     if (!vgmstream)
         goto fail;
 
     vgmstream->num_streams = total_streams;
-    get_streamfile_filename(musFile, vgmstream->stream_name, STREAM_NAME_SIZE);
-    close_streamfile(musFile);
+    get_streamfile_filename(sf_mus, vgmstream->stream_name, STREAM_NAME_SIZE);
+    close_streamfile(sf_mus);
     return vgmstream;
 
 fail:
-    close_streamfile(musFile);
+    close_streamfile(sf_mus);
+    free_layout_segmented(data_s);
     return NULL;
 }
 
