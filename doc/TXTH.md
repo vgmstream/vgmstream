@@ -34,6 +34,7 @@ Extension must be accepted/added to vgmstream (plugins like foobar2000 only load
 
 Note that TXTH has *lower* priority than most (not all) vgmstream formats, by design. This means your `.txth` may be ignored if vgmstream thinks it can play your file better. If vgmstream plays your file somewhat off, rather renaming to force a `.txth`, report the bug so that and similar cases can be fixed. TXTH isn't meant to be a replacement of vgmstream's parsers, but a way to play cases that aren't a good fit be added directly to vgmstream.
 
+If you put `debug = 1` on top of the TXTP, vgmstream will ouput to the plugin/CLI's console some info about values being read, useful while testing more complex cases.
 
 ## Available commands
 The file is made of lines with `key = value` commands describing a header. Commands are all case sensitive and spaces are optional: `key=value`, `key  =   value`, and so on are all ok, while `Key = VaLuE` is not. Comments start with `#` and can be inlined.
@@ -344,9 +345,10 @@ skip_samples = (value)
 #### DSP DECODING COEFFICIENTS [REQUIRED for DSP]
 DSP needs a "coefs" list to decode correctly. These are 8*2 16-bit values per channel, starting from `coef_offset`.
 
-Usually each channel uses its own list, so we may need to set separation per channel, usually 0x20 (16 values * 2 bytes). So channel N coefs are read at `coef_offset + coef_spacing * N`
 
-Those 16-bit coefs can be little or big endian (usually BE), set `coef_endianness` directly or in an offset value where `0=LE, >0=BE`.
+They typically look like positive-negative values one after other (0x0nnn 0xFnnn 0x...). Usually each channel uses its own list, so we may need to set `coef_spacing` (separation per channel), often 0x20 (16 values * 2 bytes). Channel N coefs are read at offset `coef_offset + coef_spacing * ch`.
+
+Those 16-bit coefs can be little or big endian (BE in GC/Wii, LE in 3DS/Switch). Set `coef_endianness` directly or in an offset value where `0=LE, >0=BE`. This also allows adding a `_split` suffix, that means coefs are divided into 8 positive then 8 negatives (instead of the usual 1 positive, 1 negative up to 16), as found in a few Capcom games.
 
 While the coef table is almost always included per-file, some games have their coef table in the executable or precalculated somehow. You can set inline coefs instead of coef_offset. Format is a long string of bytes (optionally space-separated) like `coef_table = 0x1E02DE01 3C0C0EFA ...`. You still need to set `coef_spacing` and `coef_endianness` though.
 
@@ -354,7 +356,7 @@ While the coef table is almost always included per-file, some games have their c
 ```
 coef_offset = (value)
 coef_spacing = (value)
-coef_endianness = BE|LE|(value)
+coef_endianness = BE|LE|BE_split|LE_split\(value)
 coef_table = (string)
 ```
 

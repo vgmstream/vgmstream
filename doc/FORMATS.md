@@ -69,7 +69,6 @@ This list is not complete and many other files are supported.
 	- .asr
 	- .bns
 	- .bo2
-	- .capdsp
 	- .cfn
 	- .ddsp
 	- .dsp

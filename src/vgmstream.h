@@ -398,7 +398,6 @@ typedef enum {
     meta_PS2_ENTH,          /* Enthusia */
     meta_SDT,               /* Baldur's Gate - Dark Alliance */
     meta_NGC_TYDSP,         /* Ty - The Tasmanian Tiger */
-    meta_CAPDSP,            /* Capcom DSP Header [no header_id] */
     meta_DC_STR,            /* SEGA Stream Asset Builder */
     meta_DC_STR_V2,         /* variant of SEGA Stream Asset Builder */
     meta_NGC_BH2PCM,        /* Bio Hazard 2 */

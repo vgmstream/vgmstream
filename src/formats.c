@@ -110,6 +110,7 @@ static const char* extension_list[] = {
     "bik2",
     //"bin", //common
     "bk2",
+    "bkr",  //txth/reserved [P.N.03 (GC), Viewtiful Joe (GC)]
     "blk",
     "bmdx",
     "bms",
@@ -128,7 +129,6 @@ static const char* extension_list[] = {
     "bwav",
 
     "caf",
-    "capdsp",
     "cbd2",
     "ccc",
     "cd",
@@ -257,6 +257,7 @@ static const char* extension_list[] = {
     "kces",
     "kcey", //fake extension/header id for .pcm (renamed, to be removed)
     "km9",
+    "kmx",
     "kovs", //fake extension/header id for .kvs
     "kno",
     "kns",
@@ -1151,7 +1152,6 @@ static const meta_info meta_info_list[] = {
         {meta_HIS,                  "Her Interactive HIS header"},
         {meta_AST_MV,               "MicroVision AST header"},
         {meta_AST_MMV,              "Marvelous AST header"},
-        {meta_CAPDSP,               "Capcom DSP header"},
         {meta_DMSG,                 "Microsoft RIFF DMSG header"},
         {meta_PONA_3DO,             "Policenauts BGM header"},
         {meta_PONA_PSX,             "Policenauts BGM header"},

@@ -666,7 +666,32 @@ Playlist title formatting (how tags are shown) should follow player's config, as
 vgmstream simply passes tags to the player. It's better to name the file lowercase
 `!tags.m3u` rather than `!Tags.m3u` (Windows accepts both but Linux is case sensitive).
 
-Note that with global tags you don't need to put all files inside. This would be
+Example:
+```
+# @ALBUM    God Hand
+# @ARTIST   Masafumi Takada, Jun Fukuda
+# * Global tags apply to all songs, unless overwritten
+#   Better use ARTIST instead of ALBUMARTIST (more compatible)
+#   Tags usually go in CAPS for readability but no differences
+
+# $AUTOTRACK
+# * This adds TRACK tags automatically from 1 to N
+
+# %ARTIST   Masafumi Takada
+# %TITLE    Be ready for it
+godhand_ver1.adx
+
+#... (more songs)
+
+# %ARTIST   Jun Fukuda
+# %TITLE    Duel Storm
+Boss8_DevilHandHONKI_Ver9.adx
+
+#... (more songs)
+
+```
+
+Note that with global tags you don't need to put all files or info inside. This would be
 a perfectly valid *!tags.m3u*:
 ```
 # @ALBUM    Game
@@ -706,7 +731,8 @@ filename1
 ```
 As a side effect if text has @/% inside you also need them: `# @ALBUMARTIST@ Tom-H@ck`
 
-For interoperability with other plugins, consider using only common tags without spaces.
+For interoperability with other plugins, consider using only common tags without spaces,
+and tags that are commonly accepted in all players like ARTIST instead of ALBUMARTIST.
 
 ### ReplayGain
 foobar2000/Winamp can apply the following replaygain tags (if ReplayGain is
