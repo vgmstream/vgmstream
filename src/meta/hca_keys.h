@@ -1023,6 +1023,8 @@ static const hcakey_info hcakey_list[] = {
         // Alice Fiction (Android)
         {112089817},            // 0000000006AE5AD9
     
+        // Taiko no Tatsujin: Rhythm Festival Demo (Switch)
+        {52539816150204134},    // 00baa8af36327ee6
 };
 
 #endif/*_HCA_KEYS_H_*/
