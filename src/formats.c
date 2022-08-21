@@ -110,6 +110,7 @@ static const char* extension_list[] = {
     "bik2",
     //"bin", //common
     "bk2",
+    "bkr",  //txth/reserved [P.N.03 (GC), Viewtiful Joe (GC)]
     "blk",
     "bmdx",
     "bms",
