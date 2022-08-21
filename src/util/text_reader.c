@@ -4,7 +4,7 @@
 
 
 /* convenience function to init the above struct */
-int text_reader_init(text_reader_t* tr, uint8_t* buf, int buf_size, STREAMFILE* sf, uint32_t offset, uint32_t max) {
+int text_reader_init(text_reader_t* tr, uint8_t* buf, int buf_size, STREAMFILE* sf, uint32_t offset, uint32_t max_offset) {
     memset(tr, 0, sizeof(text_reader_t));
 
     if (buf_size <= 1 || !buf || !sf)
@@ -15,9 +15,9 @@ int text_reader_init(text_reader_t* tr, uint8_t* buf, int buf_size, STREAMFILE* 
     tr->sf = sf;
     tr->offset = offset;
 
-    if (!max)
-        max = get_streamfile_size(sf) - offset;
-    tr->max_offset = max;
+    if (!max_offset)
+        max_offset = get_streamfile_size(sf);
+    tr->max_offset = max_offset;
 
     return 1;
 }
