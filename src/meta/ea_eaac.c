@@ -1301,7 +1301,7 @@ static VGMSTREAM* init_vgmstream_eaaudiocore_header(STREAMFILE* sf_head, STREAMF
     if (!sf) goto fail;
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(eaac.channels,eaac.loop_flag);
+    vgmstream = allocate_vgmstream(eaac.channels, eaac.loop_flag);
     if (!vgmstream) goto fail;
 
     vgmstream->sample_rate = eaac.sample_rate;
@@ -1475,8 +1475,8 @@ static VGMSTREAM* init_vgmstream_eaaudiocore_header(STREAMFILE* sf_head, STREAMF
         }
 #endif
 #ifdef VGM_USE_FFMPEG
-      //case EAAC_CODEC_EAOPUSMU:  /* "MSU0": Multi-Stream Opus Uncoupled (not seen) */
-        case EAAC_CODEC_EAOPUSM: { /* "MSO0": Multi-Stream Opus */
+        case EAAC_CODEC_EAOPUSM: /* "MSO0": Multi-Stream Opus [FIFA 2021 (PC)] */
+        case EAAC_CODEC_EAOPUSMU: { /* "MSU0": Multi-Stream Opus Uncoupled [FIFA 2022 (PC)] */
             off_t offset = 0x00; // eaac.stream_offset;
             off_t data_size = get_streamfile_size(sf);
             opus_config cfg = {0};
@@ -1498,12 +1498,11 @@ static VGMSTREAM* init_vgmstream_eaaudiocore_header(STREAMFILE* sf_head, STREAMF
             else {
                 switch(eaac.channels) {
                   //case 8:  cfg.coupled_count = 3; break;   /* 2ch+2ch+2ch+1ch+1ch, 5 streams */
-                  //case 6:                                  /* 2ch+2ch+1ch+1ch, 4 streams */
+                  //case 6:  cfg.coupled_count = 2; break;   /* 2ch+2ch+1ch+1ch, 4 streams */
                     case 4:  cfg.coupled_count = 2; break;   /* 2ch+2ch, 2 streams */
-                  //case 3:                                  /* 2ch+1ch, 2 streams */
                     case 2:  cfg.coupled_count = 1; break;   /* 2ch, 1 stream */
                     case 1:  cfg.coupled_count = 0; break;   /* 1ch, 1 stream [Madden 22 (PC)] */
-                    default: goto fail;
+                    default: goto fail;                      /* possibly: streams = Nch / 2, coupled = Nch % 2 */
                 }
             }
 

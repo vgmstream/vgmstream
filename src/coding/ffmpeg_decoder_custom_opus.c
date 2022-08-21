@@ -501,7 +501,7 @@ static size_t make_opus_header(uint8_t* buf, int buf_size, opus_config *cfg) {
     int mapping_family = 0;
 
     /* special multichannel config */
-    if (cfg->channels > 2) {
+    if (cfg->channels > 2 || cfg->stream_count > 1) {
         /* channel config: 0=standard (single stream mono/stereo), 1=vorbis, 255: not defined */
         mapping_family = 1;
         header_size += 0x01+0x01+cfg->channels;
