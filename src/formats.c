@@ -258,6 +258,7 @@ static const char* extension_list[] = {
     "kces",
     "kcey", //fake extension/header id for .pcm (renamed, to be removed)
     "km9",
+    "kmx",
     "kovs", //fake extension/header id for .kvs
     "kno",
     "kns",
