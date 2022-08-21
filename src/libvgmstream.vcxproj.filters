@@ -478,9 +478,6 @@
     <ClCompile Include="meta\bsf.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\capdsp.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="meta\ck.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>

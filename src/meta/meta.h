@@ -263,8 +263,6 @@ VGMSTREAM * init_vgmstream_aix(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_ngc_tydsp(STREAMFILE * streamFile);
 
-VGMSTREAM * init_vgmstream_capdsp(STREAMFILE * streamFile);
-
 VGMSTREAM* init_vgmstream_wvs_xbox(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_wvs_ngc(STREAMFILE* sf);
 

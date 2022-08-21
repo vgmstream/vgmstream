@@ -106,7 +106,6 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_sdt,
     init_vgmstream_aix,
     init_vgmstream_ngc_tydsp,
-    init_vgmstream_capdsp,
     init_vgmstream_wvs_xbox,
     init_vgmstream_wvs_ngc,
     init_vgmstream_dc_str,
