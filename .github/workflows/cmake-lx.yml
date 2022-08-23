@@ -129,3 +129,9 @@ jobs:
       # tar cvfz vgmstream-audacious.tar.gz vgmstream.so
       # cd ..
       # aws s3 cp audacious/vgmstream-audacious.tar.gz s3://vgmstream-builds/${{github.sha}}/linux/vgmstream-audacious.tar.gz --acl public-read
+
+    - name: Send webhook to Netlify for updating the website
+      if: github.event_name != 'pull_request' 
+      uses: distributhor/workflow-webhook@v2.0.4
+      with:
+        webhook_url: ${{secrets.NETLIFY_WEBHOOK}}
