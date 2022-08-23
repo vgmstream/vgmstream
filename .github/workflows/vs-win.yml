@@ -78,3 +78,9 @@ jobs:
           git describe --always | tee latest_ver
           aws s3 cp latest_id s3://vgmstream-builds/ --acl public-read
           aws s3 cp latest_ver s3://vgmstream-builds/ --acl public-read
+          
+      - name: Send webhook to Netlify for updating the website
+        if: github.event_name != 'pull_request' 
+        uses: distributhor/workflow-webhook@v2.0.4
+        with:
+          webhook_url: ${{secrets.NETLIFY_WEBHOOK}}
