@@ -74,7 +74,7 @@ jobs:
           aws s3 cp bin\foo_input_vgmstream.fb2k-component s3://vgmstream-builds/${{github.sha}}/windows/ --acl public-read 
           aws s3 cp bin\vgmstream-win.pdb.zip s3://vgmstream-builds/${{github.sha}}/windows/ --acl public-read 
           aws s3 cp bin\foo_input_vgmstream.pdb.zip s3://vgmstream-builds/${{github.sha}}/windows/ --acl public-read 
-          echo ${{github.sha}} | tee latest_id
-          git describe --always | tee latest_ver
-          aws s3 cp latest_id s3://vgmstream-builds/ --acl public-read
-          aws s3 cp latest_ver s3://vgmstream-builds/ --acl public-read
+          echo ${{github.sha}} | tee latest_id_win
+          git describe --always | tee latest_ver_win
+          aws s3 cp latest_id_win s3://vgmstream-builds/ --acl public-read
+          aws s3 cp latest_ver_win s3://vgmstream-builds/ --acl public-read
