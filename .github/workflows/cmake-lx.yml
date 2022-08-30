@@ -125,6 +125,7 @@ jobs:
         tar cvfz vgmstream-cli.tar.gz vgmstream-cli
         cd ..
         aws s3 cp cli/vgmstream-cli.tar.gz s3://vgmstream-builds/${{github.sha}}/linux/vgmstream-cli.tar.gz --acl public-read
+        cd ${{runner.workspace}}
         echo ${{github.sha}} | tee latest_id_lx
         git describe --always | tee latest_ver_lx
         aws s3 cp latest_id_lx s3://vgmstream-builds/ --acl public-read
