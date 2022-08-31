@@ -20,3 +20,4 @@ help:
 	cp ../README.md INFO.md
 	sed -i 's/doc\///g' INFO.md
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+	cp netlify_redirects _build/html/_redirects
