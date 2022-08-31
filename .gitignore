@@ -78,3 +78,7 @@ CMakeFiles
 /audacious/vgmstream.so
 /audacious/Makefile
 cmake_install.cmake
+
+#doc build
+doc/INFO.md
+doc/_build
