@@ -943,10 +943,8 @@ VGMSTREAM* init_vgmstream_ea_mpf_mus(STREAMFILE* sf) {
         }
         section_offset = entry_offset + 0x10 + subentry_num * 0x10;
 
-        /* TODO: verify this */
-        section_offset = read_u32(section_offset, sf) * 0x04;
         section_offset += num_routers * 0x04;
-        section_offset += num_vars * 0x04;
+        section_offset = read_u32(section_offset, sf) * 0x04;
 
         tracks_table = section_offset;
         samples_table = tracks_table + (num_tracks + 1) * 0x04;
