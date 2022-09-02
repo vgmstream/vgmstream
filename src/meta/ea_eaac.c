@@ -756,7 +756,7 @@ VGMSTREAM* init_vgmstream_ea_mpf_mus_eaac(STREAMFILE* sf) {
             for (i = 0; i < ram_segments; i++) {
                 entry_offset = table_offset + (bnk_sound_index + i) * 0x0c;
                 snr_offset = read_u32(entry_offset + 0x04, sf_mus);
-                data_s->segments[i] = init_vgmstream_eaaudiocore_header(sf_mus, sf_mus,
+                data_s->segments[i] = init_vgmstream_eaaudiocore_header(sf_mus, NULL,
                     snr_offset, 0,
                     meta_EA_SNR_SNS, 0);
                 if (!data_s->segments[i]) goto fail;
