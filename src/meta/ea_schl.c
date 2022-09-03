@@ -756,8 +756,9 @@ static STREAMFILE* open_mapfile_pair(STREAMFILE* sf, int track /*, int num_track
 VGMSTREAM* init_vgmstream_ea_map_mus(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     STREAMFILE* sf_mus = NULL;
+    uint32_t schl_offset;
     uint8_t version, num_sounds, num_events, num_sections;
-    off_t section_offset, schl_offset;
+    off_t section_offset;
     int target_stream = sf->stream_index;
 
     /* check extension */
@@ -765,10 +766,10 @@ VGMSTREAM* init_vgmstream_ea_map_mus(STREAMFILE* sf) {
         goto fail;
 
     /* always big endian */
-    if (read_32bitBE(0x00, sf) != 0x50464478) /* "PFDx" */
+    if (!is_id32be(0x00, sf, "PFDx"))
         goto fail;
 
-    version = read_8bit(0x04, sf);
+    version = read_u8(0x04, sf);
     if (version > 1) goto fail;
 
     sf_mus = open_mapfile_pair(sf, 0); //, 1
@@ -783,9 +784,9 @@ VGMSTREAM* init_vgmstream_ea_map_mus(STREAMFILE* sf) {
      * 0x0b: number of sections
      * 0x0c: data start
      */
-    num_sounds = read_8bit(0x06, sf);
-    num_events = read_8bit(0x07, sf);
-    num_sections = read_8bit(0x0b, sf);
+    num_sounds = read_u8(0x06, sf);
+    num_events = read_u8(0x07, sf);
+    num_sections = read_u8(0x0b, sf);
     section_offset = 0x0c;
 
     /* section 1: nodes, contains information about segment playback order */
@@ -799,8 +800,8 @@ VGMSTREAM* init_vgmstream_ea_map_mus(STREAMFILE* sf) {
         goto fail;
 
     /* section 3: samples */
-    schl_offset = read_32bitBE(section_offset + (target_stream - 1) * 0x04, sf);
-    if (read_32bitBE(schl_offset, sf_mus) != EA_BLOCKID_HEADER)
+    schl_offset = read_u32be(section_offset + (target_stream - 1) * 0x04, sf);
+    if (read_u32be(schl_offset, sf_mus) != EA_BLOCKID_HEADER)
         goto fail;
 
     vgmstream = parse_schl_block(sf_mus, schl_offset);
@@ -822,8 +823,8 @@ VGMSTREAM* init_vgmstream_ea_mpf_mus(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     STREAMFILE* sf_mus = NULL;
     segmented_layout_data *data_s = NULL;
-    uint32_t track_start, track_end = 0, track_checksum = 0;
-    uint32_t tracks_table, samples_table = 0, section_offset, entry_offset = 0, eof_offset = 0, off_mult, sound_offset;
+    uint32_t tracks_table, tracks_data, samples_table = 0, section_offset, entry_offset = 0, eof_offset = 0, sound_offset,
+        off_mult = 0, track_start, track_end = 0, track_checksum = 0;
     uint16_t num_nodes, num_subbanks = 0;
     uint8_t version, sub_version, num_tracks, num_sections, num_events, num_routers, num_vars, subentry_num = 0;
     int i;
@@ -836,11 +837,11 @@ VGMSTREAM* init_vgmstream_ea_mpf_mus(STREAMFILE* sf) {
         goto fail;
 
     /* detect endianness */
-    if (read_u32be(0x00, sf) == 0x50464478) { /* "PFDx" */
+    if (is_id32be(0x00, sf, "PFDx")) {
         read_u32 = read_u32be;
         read_u16 = read_u16be;
         big_endian = 1;
-    } else if (read_u32le(0x00, sf) == 0x50464478) { /* "xDFP" */
+    } else if (is_id32le(0x00, sf, "PFDx")) {
         read_u32 = read_u32le;
         read_u16 = read_u16le;
         big_endian = 0;
@@ -964,10 +965,15 @@ VGMSTREAM* init_vgmstream_ea_mpf_mus(STREAMFILE* sf) {
     } else if (version == 5) {
         /* Need for Speed: Most Wanted, Need for Speed: Carbon, SSX on Tour */
         tracks_table = read_u32(0x2c, sf);
+        tracks_data = read_u32(0x30, sf);
         samples_table = read_u32(0x34, sf);
         eof_offset = read_u32(0x38, sf);
         total_streams = (eof_offset - samples_table) / 0x08;
         off_mult = 0x80;
+
+        /* check to distinguish it from SNR/SNS version (first streamed sample is always at 0x100) */
+        if (read_u16(tracks_data + 0x04, sf) == 0 && read_u32(samples_table + 0x00, sf) != 0x02)
+            goto fail;
 
         track_start = total_streams;
 
@@ -983,15 +989,6 @@ VGMSTREAM* init_vgmstream_ea_mpf_mus(STREAMFILE* sf) {
                 num_subbanks = read_u16(entry_offset + 0x04, sf);
                 track_checksum = read_u32be(entry_offset + 0x08, sf);
                 is_ram = (num_subbanks != 0);
-
-                /* checks to distinguish it from SNR/SNS version */
-                if (is_ram) {
-                    if (read_u32(entry_offset + 0x0c, sf) == 0x00)
-                        goto fail;
-                } else {
-                    if (read_u32(entry_offset + 0x0c, sf) != 0x00)
-                        goto fail;
-                }
                 break;
             }
         }
@@ -1052,8 +1049,7 @@ VGMSTREAM* init_vgmstream_ea_mpf_mus(STREAMFILE* sf) {
                 goto fail;
         }
 
-        if (read_u32be(bnk_offset, sf_mus) != EA_BNK_HEADER_LE &&
-            read_u32be(bnk_offset, sf_mus) != EA_BNK_HEADER_BE)
+        if (read_u32be(bnk_offset, sf_mus) != (big_endian ? EA_BNK_HEADER_BE : EA_BNK_HEADER_LE))
             goto fail;
 
         /* play until the next entry in MPF track or the end of BNK */

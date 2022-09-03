@@ -610,8 +610,8 @@ static STREAMFILE *open_mapfile_pair(STREAMFILE* sf, int track /*, int num_track
 
 /* EA MPF/MUS combo - used in older 7th gen games for storing interactive music */
 VGMSTREAM* init_vgmstream_ea_mpf_mus_eaac(STREAMFILE* sf) {
-    uint32_t num_tracks, track_start, track_checksum = 0, mus_sounds, mus_stream = 0, bnk_index = 0, bnk_sound_index = 0;
-    uint32_t tracks_table, samples_table, eof_offset, table_offset, entry_offset, snr_offset, sns_offset;
+    uint32_t num_tracks, track_start, track_checksum = 0, mus_sounds, mus_stream = 0, bnk_index = 0, bnk_sound_index = 0,
+        tracks_table, samples_table, eof_offset, table_offset, entry_offset = 0, snr_offset, sns_offset;
     uint16_t num_subbanks, index, sub_index;
     uint8_t version, sub_version;
     STREAMFILE *sf_mus = NULL;
@@ -627,10 +627,10 @@ VGMSTREAM* init_vgmstream_ea_mpf_mus_eaac(STREAMFILE* sf) {
         goto fail;
 
     /* detect endianness */
-    if (read_u32be(0x00, sf) == 0x50464478) { /* "PFDx" */
+    if (is_id32be(0x00, sf, "PFDx")) {
         read_u32 = read_u32be;
         read_u16 = read_u16be;
-    } else if (read_u32le(0x00, sf) == 0x50464478) { /* "xDFP" */
+    } else if (is_id32le(0x00, sf, "PFDx")) {
         read_u32 = read_u32le;
         read_u16 = read_u16le;
     } else {
@@ -663,11 +663,6 @@ VGMSTREAM* init_vgmstream_ea_mpf_mus_eaac(STREAMFILE* sf) {
             num_subbanks = read_u16(entry_offset + 0x04, sf);
             track_checksum = read_u32be(entry_offset + 0x08, sf);
             is_ram = (num_subbanks != 0);
-
-            if (is_ram) {
-                track_checksum = read_u32be(entry_offset + 0x14, sf);
-            }
-
             mus_stream = target_stream - 1 - track_start;
             break;
         }
