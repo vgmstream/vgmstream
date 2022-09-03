@@ -120,7 +120,7 @@ jobs:
 
     - name: Upload artifacts to S3
       if: github.event_name != 'pull_request'
-      working-directory: ${{runner.workspace}}/build
+      working-directory: ${{runner.workspace}}/embuild/cli
       shell: bash
       env:
           AWS_DEFAULT_REGION: us-west-1
