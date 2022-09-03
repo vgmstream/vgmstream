@@ -2,7 +2,7 @@
 
 name: WebAssembly build
 
-on: [push, pull_request]
+on: [push, pull_request, workflow_dispatch]
 
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
@@ -117,3 +117,15 @@ jobs:
             ${{runner.workspace}}/embuild/cli/vgmstream-cli.js
             ${{runner.workspace}}/embuild/cli/vgmstream-cli.wasm
           name: vgmstream-wasm
+
+    - name: Upload artifacts to S3
+      if: github.event_name != 'pull_request'
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      env:
+          AWS_DEFAULT_REGION: us-west-1
+          AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY_ID}}
+          AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
+      run: |
+        aws s3 cp ${{runner.workspace}}/embuild/cli/vgmstream-cli.js s3://vgmstream-builds/js/vgmstream-cli.js --acl public-read
+        aws s3 cp ${{runner.workspace}}/embuild/cli/vgmstream-cli.wasm s3://vgmstream-builds/js/vgmstream-cli.wasm --acl public-read

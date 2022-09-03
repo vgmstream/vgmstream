@@ -8,6 +8,7 @@
 
     self
     Download<https://dl.vgmstream.org>
+    Web version<https://katiefrogs.github.io/vgmstream-web/>
     USAGE
     FORMATS
     BUILD
