@@ -85,6 +85,7 @@ VGMSTREAM* init_vgmstream_sgxd(STREAMFILE* sf) {
      *   - 0x18: min note range
      *   - 0x19: max note range
      *   - 0x1C: root note 
+     *   - 0x1d: fine tuning
      *   - 0x34: WAVE id
      *   > sample_rate = wave_sample_rate * (2 ^ (1/12)) ^ (target_note - root_note)
      * - NAME: strings for other chunks
@@ -93,7 +94,8 @@ VGMSTREAM* init_vgmstream_sgxd(STREAMFILE* sf) {
      *   - 0x04: absolute offset
      * - SEQD: related to SFX (sequences?), entries seem to be offsets to name offset + sequence offset
      *   > sequence format seems to be 1 byte type (0=sfx, 1=music) + midi without header
-     *     (default tick resolution of 960 pulses per quarter note)
+     *     (default tick resolution of 960 pulses per quarter note). They use Midi Time Code
+     *     (like 30fps with around 196 ticks per frame), and same controller event for looping as old SEQs (CC 99).
      * - WSUR: ?
      * - WMKR: ?
      * - CONF: ? (name offset + config offset)
