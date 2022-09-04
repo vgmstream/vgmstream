@@ -95,7 +95,7 @@ VGMSTREAM* init_vgmstream_awb_memory(STREAMFILE* sf, STREAMFILE* sf_acb) {
             init_vgmstream_subkey = init_vgmstream_hca_subkey; /* most common */
             extension = "hca";
         }
-        else if (is_id32be(subfile_offset,sf, "VAGp") == 0x56414770) { /* (type 7=VAG, 10=HEVAG) */
+        else if (is_id32be(subfile_offset,sf, "VAGp")) { /* (type 7=VAG, 10=HEVAG) */
             init_vgmstream = init_vgmstream_vag; /* Ukiyo no Roushi (Vita) */
             extension = "vag";
         }
