@@ -133,6 +133,7 @@ static const char* extension_list[] = {
     "ccc",
     "cd",
     "cfn", //fake extension for CAF (renamed, to be removed?)
+    "chd", //txth/reserved [Donkey Konga (GC), Star Fox Assault (GC)]
     "chk",
     "ckb",
     "ckd",
