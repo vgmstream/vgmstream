@@ -24,8 +24,10 @@ VGMSTREAM* init_vgmstream_vag(STREAMFILE* sf) {
      * .str: Ben10 Galactic Racing
      * .vig: MX vs. ATV Untamed (PS2)
      * .l/r: Crash Nitro Kart (PS2), Gradius V (PS2)
-     * .vas: Kingdom Hearts II (PS2) */
-    if (!check_extensions(sf,"vag,swag,str,vig,l,r,vas"))
+     * .vas: Kingdom Hearts II (PS2)
+     * .xa2: Shikigami no Shiro (PS2)
+     * .snd: Alien Breed (Vita) */
+    if (!check_extensions(sf,"vag,swag,str,vig,l,r,vas,xa2,snd"))
         goto fail;
 
     file_size = get_streamfile_size(sf);
