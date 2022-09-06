@@ -118,8 +118,9 @@ VGMSTREAM* init_vgmstream_fsb(STREAMFILE* sf) {
 
     /* .fsb: standard
      * .bnk: Hard Corps Uprising (PS3)
-     * .sfx: Geon Cube (Wii) */
-    if ( !check_extensions(sf, "fsb,bnk,sfx") )
+     * .sfx: Geon Cube (Wii)	 
+     * .xen: Guitar Hero: World Tour (PC) */
+    if ( !check_extensions(sf, "fsb,bnk,sfx,xen") )
         goto fail;
 
     fsb.id = read_u32be(0x00,sf);
