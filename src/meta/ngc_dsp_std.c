@@ -572,13 +572,14 @@ fail:
     return NULL;
 }
 
-/* .(mp)dsp - single header + interleaved dsp [Monopoly Party! (GC)] */
+/* .STE - single header + interleaved dsp [Monopoly Party! (GC)] */
 VGMSTREAM* init_vgmstream_ngc_mpdsp(STREAMFILE* sf) {
     dsp_meta dspm = {0};
 
     /* checks */
-    /* .mpdsp: renamed since standard .dsp would catch it otherwise */
-    if (!check_extensions(sf, "mpdsp"))
+    /* .STE: real extension */
+    /* .mpdsp: fake/renamed since standard .dsp would catch it otherwise */
+    if (!check_extensions(sf, "mpdsp,ste"))
         goto fail;
 
     /* at 0x48 is extra data that could help differenciating these DSPs, but seems like
@@ -757,7 +758,7 @@ fail:
     return NULL;
 }
 
-/* IDSP - from Next Level games [Super Mario Strikers (GC), Mario Strikers: Charged (Wii)] */
+/* IDSP - from Next Level games [Super Mario Strikers (GC), Spider-Man: Friend or Foe (Wii)] */
 VGMSTREAM* init_vgmstream_idsp_nl(STREAMFILE* sf) {
     dsp_meta dspm = {0};
 
@@ -826,7 +827,10 @@ VGMSTREAM* init_vgmstream_dsp_ddsp(STREAMFILE* sf) {
     dsp_meta dspm = {0};
 
     /* checks */
-    if (!check_extensions(sf, "ddsp"))
+    /* .ddsp: assumed?
+     * .wav/lwav: Wacky Races
+     * .adp: The Tale of Despereaux */    
+    if (!check_extensions(sf, "ddsp,adp,wav,lwav"))
         goto fail;
 
     dspm.channels = 2;
