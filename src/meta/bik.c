@@ -19,8 +19,9 @@ VGMSTREAM* init_vgmstream_bik(STREAMFILE* sf) {
 
     /* .bik/bik2/bk2: standard
      * .xmv: Reflections games [Driver: Parallel Lines (Wii), Emergency Heroes (Wii)]
+     * .xen: Neversoft games [Guitar Hero III: Legends of Rock]     
      * .bika: fake extension for demuxed audio */
-    if (!check_extensions(sf,"bik,bik2,bk2,xmv,bika"))
+    if (!check_extensions(sf,"bik,bik2,bk2,xmv,xen,bika"))
         goto fail;
 
     /* find target stream info and samples */
