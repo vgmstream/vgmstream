@@ -13,8 +13,9 @@ VGMSTREAM* init_vgmstream_fsb_encrypted(STREAMFILE* sf) {
 
     /* checks */
     /* .fsb: standard
+     * .fsb.ps3: various Guitar Hero (PS3)
      * .fsb.xen: various Guitar Hero (X360/PC) */
-    if (!check_extensions(sf, "fsb,xen"))
+    if (!check_extensions(sf, "fsb,ps3,xen"))
         goto fail;
 
 
