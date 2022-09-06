@@ -577,8 +577,8 @@ VGMSTREAM* init_vgmstream_ngc_mpdsp(STREAMFILE* sf) {
     dsp_meta dspm = {0};
 
     /* checks */
-    /* .STE: real extension */
-    /* .mpdsp: fake/renamed since standard .dsp would catch it otherwise */
+    /* .ste: real extension
+     * .mpdsp: fake/renamed since standard .dsp would catch it otherwise */
     if (!check_extensions(sf, "mpdsp,ste"))
         goto fail;
 
@@ -758,7 +758,7 @@ fail:
     return NULL;
 }
 
-/* IDSP - from Next Level games [Super Mario Strikers (GC), Spider-Man: Friend or Foe (Wii)] */
+/* IDSP - from Next Level games [Super Mario Strikers (GC), Mario Strikers Charged (Wii), Spider-Man: Friend or Foe (Wii)] */
 VGMSTREAM* init_vgmstream_idsp_nl(STREAMFILE* sf) {
     dsp_meta dspm = {0};
 
@@ -822,15 +822,14 @@ fail:
     return NULL;
 }
 
-/* .ddsp - full interleaved dsp [The Sims 2: Pets (Wii)] */
+/* .ddsp - full interleaved dsp [Shark Tale, (GC), The Sims 2: Pets (Wii), Wacky Races: Crash & Dash (Wii)] */
 VGMSTREAM* init_vgmstream_dsp_ddsp(STREAMFILE* sf) {
     dsp_meta dspm = {0};
 
     /* checks */
     /* .ddsp: assumed?
-     * .wav/lwav: Wacky Races
-     * .adp: The Tale of Despereaux */    
-    if (!check_extensions(sf, "ddsp,adp,wav,lwav"))
+     * .wav: Wacky Races: Crash & Dash (Wii) */    
+    if (!check_extensions(sf, "ddsp,wav,lwav"))
         goto fail;
 
     dspm.channels = 2;
