@@ -19,7 +19,10 @@ VGMSTREAM* init_vgmstream_h4m(STREAMFILE* sf) {
         !is_id32be(0x08,sf, "5\0\0\0"))
         goto fail;
 
-    if (!check_extensions(sf, "h4m"))
+    /* checks */
+    /* .h4m: common
+     * .hvqm: Shrek: Extra Large (GC) */
+    if (!check_extensions(sf, "h4m,hvqm"))
         goto fail;
 
     /* header */
