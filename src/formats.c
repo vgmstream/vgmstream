@@ -215,6 +215,7 @@ static const char* extension_list[] = {
     "his",
     "hps",
     "hsf",
+    "hvqm",
     "hwx", //txth/reserved [Star Wars Episode III (Xbox)]
     "hx2",
     "hx3",
@@ -403,6 +404,7 @@ static const char* extension_list[] = {
     "pnb",
     "pona",
     "pos",
+    "ps3",
     "ps2stm", //fake extension for .stm (renamed? to be removed?)
     "psb",
     "psf",

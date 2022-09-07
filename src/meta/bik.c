@@ -19,8 +19,11 @@ VGMSTREAM* init_vgmstream_bik(STREAMFILE* sf) {
 
     /* .bik/bik2/bk2: standard
      * .xmv: Reflections games [Driver: Parallel Lines (Wii), Emergency Heroes (Wii)]
+     * .bik.ps3: Neversoft games [Guitar Hero: Warriors of Rock (PS3)]
+     * .bik.xen: Neversoft games [various Guitar Hero (PC/PS3/X360)]
+     * .vid: Etrange Libellules games [Alice in Wonderland (PC)] 
      * .bika: fake extension for demuxed audio */
-    if (!check_extensions(sf,"bik,bik2,bk2,xmv,bika"))
+    if (!check_extensions(sf,"bik,bik2,bk2,ps3,xmv,xen,vid,bika"))
         goto fail;
 
     /* find target stream info and samples */
