@@ -80,7 +80,7 @@ VGMSTREAM* init_vgmstream_vab(STREAMFILE* sf) {
     uint8_t center, shift, min_note, max_note;
     off_t programs_off, tones_off, waves_off, entry_off, data_offset;
     size_t data_size;
-    int target_subsong = sf->stream_index, is_vh = 0, program_num, tone_num = 0, total_subsongs,
+    int target_subsong = sf->stream_index, is_vh = 0, program_num, tone_num, total_subsongs,
         note, fine, uselimits,
         channels, loop_flag, loop_start = 0, loop_end = 0;
     int i;
@@ -119,6 +119,7 @@ VGMSTREAM* init_vgmstream_vab(STREAMFILE* sf) {
 
     total_subsongs = 0;
     program_num = -1;
+    tone_num = -1;
     for (i = 0; i < programs; i++) {
         uint8_t program_tones;
         int local_target;
@@ -145,6 +146,10 @@ VGMSTREAM* init_vgmstream_vab(STREAMFILE* sf) {
     wave_num = read_u16le(entry_off + 0x16, sf);
 
     if (read_vabcfg_file(sf, program_num, tone_num, &note, &fine, &uselimits)) {
+        if (note == -1)
+            note = center;
+        if (shift == -1)
+            fine = shift;
         if (uselimits)
             note = VAB_CLAMP(note, min_note, max_note);
     } else {

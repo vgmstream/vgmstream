@@ -491,7 +491,7 @@ VGMSTREAM *init_vgmstream_ea_hdr_dat(STREAMFILE *sf) {
     STREAMFILE *sf_dat = NULL, *temp_sf = NULL;
     int target_stream = sf->stream_index;
     uint32_t offset_mult, sound_offset, sound_size;
-    uint8_t userdata_size, total_sounds;
+    uint8_t num_params, num_sounds;
     size_t dat_size;
 
     /* checks */
@@ -500,10 +500,10 @@ VGMSTREAM *init_vgmstream_ea_hdr_dat(STREAMFILE *sf) {
 
     /* main header is machine endian but it's not important here */
     /* 0x00: ID */
-    /* 0x02: sub-ID (used for different police voices in NFS games) */
-    /* 0x04: parameters (userdata size, ...) */
-    /* 0x05: number of files */
-    /* 0x06: sample repeat (alt number of files?) */
+    /* 0x02: speaker ID (used for different police voices in NFS games) */
+    /* 0x04: number of parameters */
+    /* 0x05: number of samples */
+    /* 0x06: sample repeat (alt number of samples?) */
     /* 0x07: block size (offset multiplier) */
     /* 0x08: number of blocks (DAT size divided by block size) */
     /* 0x0a: number of sub-banks */
@@ -526,11 +526,11 @@ VGMSTREAM *init_vgmstream_ea_hdr_dat(STREAMFILE *sf) {
         read_u32be(0x00, sf_dat) != 0x56414770)
         goto fail;
 
-    userdata_size = read_u8(0x04, sf) & 0x0F;
-    total_sounds = read_u8(0x05, sf);
+    num_params = read_u8(0x04, sf) & 0x7F;
+    num_sounds = read_u8(0x05, sf);
     offset_mult = read_u8(0x07, sf) * 0x0100 + 0x0100;
 
-    if (read_u8(0x06, sf) > total_sounds)
+    if (read_u8(0x06, sf) > num_sounds)
         goto fail;
 
     dat_size = get_streamfile_size(sf_dat);
@@ -539,11 +539,11 @@ VGMSTREAM *init_vgmstream_ea_hdr_dat(STREAMFILE *sf) {
         goto fail;
 
     if (target_stream == 0) target_stream = 1;
-    if (target_stream < 0 || total_sounds == 0 || target_stream > total_sounds)
+    if (target_stream < 0 || num_sounds == 0 || target_stream > num_sounds)
         goto fail;
 
     /* offsets are always big endian */
-    sound_offset = read_u16be(0x0C + (0x02 + userdata_size) * (target_stream - 1), sf) * offset_mult;
+    sound_offset = read_u16be(0x0C + (0x02 + num_params) * (target_stream - 1), sf) * offset_mult;
     if (read_u32be(sound_offset, sf_dat) == EA_BLOCKID_HEADER) { /* "SCHl" */
         vgmstream = parse_schl_block(sf_dat, sound_offset);
         if (!vgmstream)
@@ -561,7 +561,20 @@ VGMSTREAM *init_vgmstream_ea_hdr_dat(STREAMFILE *sf) {
         goto fail;
     }
 
-    vgmstream->num_streams = total_sounds;
+    if (num_params != 0) {
+        uint8_t val;
+        char buf[8];
+        int i;
+        for (i = 0; i < num_params; i++) {
+            val = read_u8(0x0C + (0x02 + num_params) * (target_stream - 1) + 0x02 + i, sf);
+            snprintf(buf, sizeof(buf), "%u", val);
+            concatn(STREAM_NAME_SIZE, vgmstream->stream_name, buf);
+            if (i != num_params - 1)
+                concatn(STREAM_NAME_SIZE, vgmstream->stream_name, ", ");
+        }
+    }
+
+    vgmstream->num_streams = num_sounds;
     close_streamfile(sf_dat);
     return vgmstream;
 
@@ -577,7 +590,7 @@ VGMSTREAM* init_vgmstream_ea_hdr_dat_v2(STREAMFILE* sf) {
     STREAMFILE *sf_dat = NULL;
     int target_stream = sf->stream_index;
     uint32_t offset_mult, sound_offset;
-    uint8_t userdata_size, total_sounds;
+    uint8_t num_params, num_sounds;
     size_t dat_size;
 
     /* checks */
@@ -586,10 +599,10 @@ VGMSTREAM* init_vgmstream_ea_hdr_dat_v2(STREAMFILE* sf) {
 
     /* main header is machine endian but it's not important here */
     /* 0x00: ID */
-    /* 0x02: parameters (userdata size, ...) */
-    /* 0x03: number of files */
-    /* 0x04: sub-ID (used for different police voices in NFS games) */
-    /* 0x08: sample repeat (alt number of files?) */
+    /* 0x02: number of parameters */
+    /* 0x03: number of samples */
+    /* 0x04: speaker ID (used for different police voices in NFS games) */
+    /* 0x08: sample repeat (alt number of samples?) */
     /* 0x09: block size (offset multiplier) */
     /* 0x0a: number of blocks (DAT size divided by block size) */
     /* 0x0c: number of sub-banks (always zero?) */
@@ -612,11 +625,11 @@ VGMSTREAM* init_vgmstream_ea_hdr_dat_v2(STREAMFILE* sf) {
     if (read_u32be(0x00, sf_dat) != EA_BLOCKID_HEADER)
         goto fail;
 
-    userdata_size = read_u8(0x02, sf) & 0x0F;
-    total_sounds = read_u8(0x03, sf);
+    num_params = read_u8(0x02, sf) & 0x7F;
+    num_sounds = read_u8(0x03, sf);
     offset_mult = read_u8(0x09, sf) * 0x0100 + 0x0100;
 
-    if (read_u8(0x08, sf) > total_sounds)
+    if (read_u8(0x08, sf) > num_sounds)
         goto fail;
 
     dat_size = get_streamfile_size(sf_dat);
@@ -625,11 +638,11 @@ VGMSTREAM* init_vgmstream_ea_hdr_dat_v2(STREAMFILE* sf) {
         goto fail;
 
     if (target_stream == 0) target_stream = 1;
-    if (target_stream < 0 || total_sounds == 0 || target_stream > total_sounds)
+    if (target_stream < 0 || num_sounds == 0 || target_stream > num_sounds)
         goto fail;
 
     /* offsets are always big endian */
-    sound_offset = read_u16be(0x10 + (0x02 + userdata_size) * (target_stream - 1), sf) * offset_mult;
+    sound_offset = read_u16be(0x10 + (0x02 + num_params) * (target_stream - 1), sf) * offset_mult;
     if (read_u32be(sound_offset, sf_dat) != EA_BLOCKID_HEADER)
         goto fail;
 
@@ -637,7 +650,20 @@ VGMSTREAM* init_vgmstream_ea_hdr_dat_v2(STREAMFILE* sf) {
     if (!vgmstream)
         goto fail;
 
-    vgmstream->num_streams = total_sounds;
+    if (num_params != 0) {
+        uint8_t val;
+        char buf[8];
+        int i;
+        for (i = 0; i < num_params; i++) {
+            val = read_u8(0x10 + (0x02 + num_params) * (target_stream - 1) + 0x02 + i, sf);
+            snprintf(buf, sizeof(buf), "%u", val);
+            concatn(STREAM_NAME_SIZE, vgmstream->stream_name, buf);
+            if (i != num_params - 1)
+                concatn(STREAM_NAME_SIZE, vgmstream->stream_name, ", ");
+        }
+    }
+
+    vgmstream->num_streams = num_sounds;
     close_streamfile(sf_dat);
     return vgmstream;
 
@@ -756,8 +782,9 @@ static STREAMFILE* open_mapfile_pair(STREAMFILE* sf, int track /*, int num_track
 VGMSTREAM* init_vgmstream_ea_map_mus(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     STREAMFILE* sf_mus = NULL;
+    uint32_t schl_offset;
     uint8_t version, num_sounds, num_events, num_sections;
-    off_t section_offset, schl_offset;
+    off_t section_offset;
     int target_stream = sf->stream_index;
 
     /* check extension */
@@ -765,10 +792,10 @@ VGMSTREAM* init_vgmstream_ea_map_mus(STREAMFILE* sf) {
         goto fail;
 
     /* always big endian */
-    if (read_32bitBE(0x00, sf) != 0x50464478) /* "PFDx" */
+    if (!is_id32be(0x00, sf, "PFDx"))
         goto fail;
 
-    version = read_8bit(0x04, sf);
+    version = read_u8(0x04, sf);
     if (version > 1) goto fail;
 
     sf_mus = open_mapfile_pair(sf, 0); //, 1
@@ -783,9 +810,9 @@ VGMSTREAM* init_vgmstream_ea_map_mus(STREAMFILE* sf) {
      * 0x0b: number of sections
      * 0x0c: data start
      */
-    num_sounds = read_8bit(0x06, sf);
-    num_events = read_8bit(0x07, sf);
-    num_sections = read_8bit(0x0b, sf);
+    num_sounds = read_u8(0x06, sf);
+    num_events = read_u8(0x07, sf);
+    num_sections = read_u8(0x0b, sf);
     section_offset = 0x0c;
 
     /* section 1: nodes, contains information about segment playback order */
@@ -799,8 +826,8 @@ VGMSTREAM* init_vgmstream_ea_map_mus(STREAMFILE* sf) {
         goto fail;
 
     /* section 3: samples */
-    schl_offset = read_32bitBE(section_offset + (target_stream - 1) * 0x04, sf);
-    if (read_32bitBE(schl_offset, sf_mus) != EA_BLOCKID_HEADER)
+    schl_offset = read_u32be(section_offset + (target_stream - 1) * 0x04, sf);
+    if (read_u32be(schl_offset, sf_mus) != EA_BLOCKID_HEADER)
         goto fail;
 
     vgmstream = parse_schl_block(sf_mus, schl_offset);
@@ -822,8 +849,8 @@ VGMSTREAM* init_vgmstream_ea_mpf_mus(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     STREAMFILE* sf_mus = NULL;
     segmented_layout_data *data_s = NULL;
-    uint32_t track_start, track_end = 0, track_checksum = 0;
-    uint32_t tracks_table, samples_table = 0, section_offset, entry_offset = 0, eof_offset = 0, off_mult, sound_offset;
+    uint32_t tracks_table, tracks_data, samples_table = 0, section_offset, entry_offset = 0, eof_offset = 0, sound_offset,
+        off_mult = 0, track_start, track_end = 0, track_checksum = 0;
     uint16_t num_nodes, num_subbanks = 0;
     uint8_t version, sub_version, num_tracks, num_sections, num_events, num_routers, num_vars, subentry_num = 0;
     int i;
@@ -836,11 +863,11 @@ VGMSTREAM* init_vgmstream_ea_mpf_mus(STREAMFILE* sf) {
         goto fail;
 
     /* detect endianness */
-    if (read_u32be(0x00, sf) == 0x50464478) { /* "PFDx" */
+    if (is_id32be(0x00, sf, "PFDx")) {
         read_u32 = read_u32be;
         read_u16 = read_u16be;
         big_endian = 1;
-    } else if (read_u32le(0x00, sf) == 0x50464478) { /* "xDFP" */
+    } else if (is_id32le(0x00, sf, "PFDx")) {
         read_u32 = read_u32le;
         read_u16 = read_u16le;
         big_endian = 0;
@@ -964,10 +991,15 @@ VGMSTREAM* init_vgmstream_ea_mpf_mus(STREAMFILE* sf) {
     } else if (version == 5) {
         /* Need for Speed: Most Wanted, Need for Speed: Carbon, SSX on Tour */
         tracks_table = read_u32(0x2c, sf);
+        tracks_data = read_u32(0x30, sf);
         samples_table = read_u32(0x34, sf);
         eof_offset = read_u32(0x38, sf);
         total_streams = (eof_offset - samples_table) / 0x08;
         off_mult = 0x80;
+
+        /* check to distinguish it from SNR/SNS version (first streamed sample is always at 0x100) */
+        if (read_u16(tracks_data + 0x04, sf) == 0 && read_u32(samples_table + 0x00, sf) != 0x02)
+            goto fail;
 
         track_start = total_streams;
 
@@ -983,15 +1015,6 @@ VGMSTREAM* init_vgmstream_ea_mpf_mus(STREAMFILE* sf) {
                 num_subbanks = read_u16(entry_offset + 0x04, sf);
                 track_checksum = read_u32be(entry_offset + 0x08, sf);
                 is_ram = (num_subbanks != 0);
-
-                /* checks to distinguish it from SNR/SNS version */
-                if (is_ram) {
-                    if (read_u32(entry_offset + 0x0c, sf) == 0x00)
-                        goto fail;
-                } else {
-                    if (read_u32(entry_offset + 0x0c, sf) != 0x00)
-                        goto fail;
-                }
                 break;
             }
         }
@@ -1052,8 +1075,7 @@ VGMSTREAM* init_vgmstream_ea_mpf_mus(STREAMFILE* sf) {
                 goto fail;
         }
 
-        if (read_u32be(bnk_offset, sf_mus) != EA_BNK_HEADER_LE &&
-            read_u32be(bnk_offset, sf_mus) != EA_BNK_HEADER_BE)
+        if (read_u32be(bnk_offset, sf_mus) != (big_endian ? EA_BNK_HEADER_BE : EA_BNK_HEADER_LE))
             goto fail;
 
         /* play until the next entry in MPF track or the end of BNK */
