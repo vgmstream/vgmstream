@@ -148,7 +148,7 @@ VGMSTREAM* init_vgmstream_vab(STREAMFILE* sf) {
     if (read_vabcfg_file(sf, program_num, tone_num, &note, &fine, &uselimits)) {
         if (note == -1)
             note = center;
-        if (shift == -1)
+        if (fine == -1)
             fine = shift;
         if (uselimits)
             note = VAB_CLAMP(note, min_note, max_note);
