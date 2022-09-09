@@ -141,7 +141,7 @@ VGMSTREAM* init_vgmstream_vab(STREAMFILE* sf) {
     entry_off = tones_off + program_num * 16 * 0x20 + tone_num * 0x20;
     center = read_u8(entry_off + 0x04, sf);
     shift = read_u8(entry_off + 0x05, sf);
-    min_note = read_u8(entry_off + 0x06, sf);
+    min_note = read_u8(entry_off + 0x06, sf); /* these two may contain garbage */
     max_note = read_u8(entry_off + 0x07, sf);
     wave_num = read_u16le(entry_off + 0x16, sf);
 
@@ -153,11 +153,11 @@ VGMSTREAM* init_vgmstream_vab(STREAMFILE* sf) {
         if (uselimits)
             note = VAB_CLAMP(note, min_note, max_note);
     } else {
-        note = VAB_CLAMP(60, min_note, max_note);
+        /* play default note */
+        note = 60;
         fine = 0;
     }
 
-    /* play default note */
     pitch = SsPitchFromNote(note, fine, center, shift);
 
     data_offset = is_vh ? 0x00 : (waves_off + 256 * 0x02);
