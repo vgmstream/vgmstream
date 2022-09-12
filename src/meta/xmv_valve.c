@@ -2,31 +2,31 @@
 #include "../coding/coding.h"
 
 /* .WAV - from Half-Life 2 (Xbox) */
-VGMSTREAM *init_vgmstream_xbox_hlwav(STREAMFILE *streamFile) {
-    VGMSTREAM *vgmstream = NULL;
+VGMSTREAM* init_vgmstream_xbox_hlwav(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
     uint32_t header_size, data_size, start_offset, sample_rate;
     int32_t loop_start;
     uint8_t format, freq_mode, channels;
     int loop_flag;
 
     /* checks */
-    if (!check_extensions(streamFile, "wav,lwav"))
+    if (!check_extensions(sf, "wav,lwav"))
         goto fail;
 
     /* check header and size */
-    header_size = read_u32le(0x00, streamFile);
+    header_size = read_u32le(0x00, sf);
     if (header_size != 0x14)
         goto fail;
 
-    data_size = read_u32le(0x04, streamFile);
-    start_offset = read_u32le(0x08, streamFile);
-    if (data_size != get_streamfile_size(streamFile) - start_offset)
+    data_size = read_u32le(0x04, sf);
+    start_offset = read_u32le(0x08, sf);
+    if (data_size != get_streamfile_size(sf) - start_offset)
         goto fail;
 
-    loop_start = read_s32le(0x0c, streamFile);
-    format = read_u8(0x12, streamFile);
-    freq_mode = read_u8(0x13, streamFile) & 0x0F;
-    channels = (read_u8(0x13, streamFile) >> 4) & 0x0F;
+    loop_start = read_s32le(0x0c, sf);
+    format = read_u8(0x12, sf);
+    freq_mode = read_u8(0x13, sf) & 0x0F;
+    channels = (read_u8(0x13, sf) >> 4) & 0x0F;
 
     switch (freq_mode) {
         case 0x00: sample_rate = 11025; break;
@@ -67,7 +67,7 @@ VGMSTREAM *init_vgmstream_xbox_hlwav(STREAMFILE *streamFile) {
             goto fail;
     }
 
-    if (!vgmstream_open_stream(vgmstream, streamFile, start_offset))
+    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
         goto fail;
     return vgmstream;
 
@@ -78,8 +78,8 @@ fail:
 
 /* .360.WAV, .PS3.WAV - from Valve games running on Source Engine, evolution of Xbox .WAV format seen above */
 /* [The Orange Box (X360), Portal 2 (PS3/X360), Counter-Strike: Global Offensive (PS3/X360)] */
-VGMSTREAM *init_vgmstream_xmv_valve(STREAMFILE *streamFile) {
-    VGMSTREAM *vgmstream = NULL;
+VGMSTREAM* init_vgmstream_xmv_valve(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
     int32_t loop_start;
     uint32_t start_offset, data_size, sample_rate, num_samples;
     uint16_t /*loop_block, loop_start_skip,*/ loop_end_skip;
@@ -87,30 +87,29 @@ VGMSTREAM *init_vgmstream_xmv_valve(STREAMFILE *streamFile) {
     int loop_flag;
 
     /* checks */
-    if (!check_extensions(streamFile, "wav,lwav"))
+    if (!is_id32be(0x00, sf, "XMV "))
         goto fail;
 
-    /* check header magic */
-    if (read_u32be(0x00, streamFile) != 0x58575620) /* "XMV " */
+    if (!check_extensions(sf, "wav,lwav"))
         goto fail;
 
     /* only version 4 is known */
-    if (read_u32be(0x04, streamFile) != 0x04)
+    if (read_u32be(0x04, sf) != 0x04)
         goto fail;
 
-    start_offset = read_u32be(0x10, streamFile);
-    data_size = read_u32be(0x14, streamFile);
-    num_samples = read_u32be(0x18, streamFile);
-    loop_start = read_s32be(0x1c, streamFile);
+    start_offset = read_u32be(0x10, sf);
+    data_size = read_u32be(0x14, sf);
+    num_samples = read_u32be(0x18, sf);
+    loop_start = read_s32be(0x1c, sf);
 
     /* XMA only */
-  //loop_block = read_u16be(0x20, streamFile);
-  //loop_start_skip = read_u16be(0x22, streamFile);
-    loop_end_skip = read_u16be(0x24, streamFile);
+  //loop_block = read_u16be(0x20, sf);
+  //loop_start_skip = read_u16be(0x22, sf);
+    loop_end_skip = read_u16be(0x24, sf);
 
-    format = read_u8(0x28, streamFile);
-    freq_mode = read_u8(0x2a, streamFile);
-    channels = read_u8(0x2b, streamFile);
+    format = read_u8(0x28, sf);
+    freq_mode = read_u8(0x2a, sf);
+    channels = read_u8(0x2b, sf);
 
     switch (freq_mode) {
         case 0x00: sample_rate = 11025; break;
@@ -151,13 +150,13 @@ VGMSTREAM *init_vgmstream_xmv_valve(STREAMFILE *streamFile) {
 
             bytes = ffmpeg_make_riff_xma2(buf, 0x100, num_samples, data_size, channels, sample_rate, block_count, block_size);
 
-            vgmstream->codec_data = init_ffmpeg_header_offset(streamFile, buf, bytes, start_offset, data_size);
+            vgmstream->codec_data = init_ffmpeg_header_offset(sf, buf, bytes, start_offset, data_size);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
             vgmstream->loop_end_sample -= loop_end_skip;
 
-            xma_fix_raw_samples(vgmstream, streamFile, start_offset, data_size, 0, 1, 1);
+            xma_fix_raw_samples(vgmstream, sf, start_offset, data_size, 0, 1, 1);
             break;
         }
 #endif
@@ -168,7 +167,7 @@ VGMSTREAM *init_vgmstream_xmv_valve(STREAMFILE *streamFile) {
             if (loop_flag) /* should never happen, Source cannot loop MP3 */
                 goto fail;
 
-            vgmstream->codec_data = init_mpeg(streamFile, start_offset, &mpeg_coding, channels);
+            vgmstream->codec_data = init_mpeg(sf, start_offset, &mpeg_coding, channels);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = mpeg_coding;
             vgmstream->layout_type = layout_none;
@@ -183,7 +182,7 @@ VGMSTREAM *init_vgmstream_xmv_valve(STREAMFILE *streamFile) {
             goto fail;
     }
 
-    if (!vgmstream_open_stream(vgmstream, streamFile, start_offset))
+    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
         goto fail;
     return vgmstream;
 
