@@ -20,15 +20,14 @@ VGMSTREAM* init_vgmstream_bwav(STREAMFILE* sf) {
     /* 0x04: BOM (always 0xFEFF = LE) */
     /* 0x06: version? (0x0001) */
     /* 0x08: crc32? (supposedly from all channel data without padding) */
-    if (read_u16le(0x0c, sf) != 0x00) /* supposedly prefetch flag */
-        goto fail;
+    /* 0x0c: prefetch flag */
     channels = read_u16le(0x0e, sf);
 
     /* - per channel (size 0x4c) */
     codec           = read_u16le(0x10 + 0x00, sf);
     /* 0x02: channel layout (0=L, 1=R, 2=C) */
     sample_rate     = read_s32le(0x10 + 0x04, sf);
-    /* 0x08: num_samples for full (non-prefetch) file? */
+    /* 0x08: num_samples for full (non-prefetch) file, same as below if not prefetch */
     num_samples     = read_s32le(0x10 + 0x0c, sf);
     /* 0x10: coefs */
     /* 0x30: offset for full (non-prefetch) file? */
@@ -36,9 +35,9 @@ VGMSTREAM* init_vgmstream_bwav(STREAMFILE* sf) {
     /* 0x38: flag? (always 1) */
     loop_end        = read_s32le(0x10 + 0x3C, sf);
     loop_start      = read_s32le(0x10 + 0x40, sf);
-    /* 0x44: start predictor? */
-    /* 0x46: hist1 sample? */
-    /* 0x48: hist2 sample? */
+    /* 0x44: start predictor */
+    /* 0x46: hist1 sample */
+    /* 0x48: hist2 sample */
     /* 0x4a: null? */
 
     loop_flag = (loop_end != -1);
@@ -70,7 +69,8 @@ VGMSTREAM* init_vgmstream_bwav(STREAMFILE* sf) {
             vgmstream->coding_type = coding_NGC_DSP;
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = interleave;
-            dsp_read_coefs_le(vgmstream, sf, 0x20, 0x4C);
+            dsp_read_coefs_le(vgmstream, sf, 0x10 + 0x10, 0x4C);
+            dsp_read_hist_le(vgmstream, sf,  0x10 + 0x46, 0x4C);
             break;
 
         default:
