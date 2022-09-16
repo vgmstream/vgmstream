@@ -21,7 +21,7 @@
 
 /* use miniz (API-compatible) to avoid adding external zlib just for this codec
  * - https://github.com/richgel999/miniz */
-#include "circus_decoder_miniz.h" 
+#include "../util/miniz.h"
 //#include "zlib.h"
 
 

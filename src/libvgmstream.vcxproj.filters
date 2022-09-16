@@ -221,9 +221,6 @@
     <ClInclude Include="coding\circus_decoder_lzxpcm.h">
       <Filter>coding\Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="coding\circus_decoder_miniz.h">
-      <Filter>coding\Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="coding\coding.h">
       <Filter>coding\Header Files</Filter>
     </ClInclude>
@@ -312,7 +309,7 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="util\cri_utf.h">
-      <Filter>meta\Header Files</Filter>
+      <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="util\endianness.h">
       <Filter>Header Files</Filter>
@@ -321,6 +318,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="util\m2_psb.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="coding\miniz.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="util\text_reader.h">
@@ -1813,9 +1813,6 @@
     <ClCompile Include="coding\circus_decoder_lib.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="coding\circus_decoder_miniz.c">
-      <Filter>coding\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="meta\bcstm.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -1979,6 +1976,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="util\m2_psb.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="util\miniz.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="util\text_reader.c">
