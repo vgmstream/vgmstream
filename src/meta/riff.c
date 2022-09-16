@@ -377,8 +377,9 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
      * .pcm: Silent Hill Arcade (PC)
      * .xvag: Uncharted Golden Abyss (Vita)[ATRAC9]
      * .ogg/logg: Luftrausers (Vita)[ATRAC9]
+     * .p1d: Farming Simulator 15 (Vita)[ATRAC9]
      */
-    if ( check_extensions(sf, "wav,lwav,xwav,da,dax,cd,med,snd,adx,adp,xss,xsew,adpcm,adw,wd,,sbv,wvx,str,at3,rws,aud,at9,ckd,saf,ima,nsa,pcm,xvag,ogg,logg") ) {
+    if ( check_extensions(sf, "wav,lwav,xwav,da,dax,cd,med,snd,adx,adp,xss,xsew,adpcm,adw,wd,,sbv,wvx,str,at3,rws,aud,at9,ckd,saf,ima,nsa,pcm,xvag,ogg,logg,p1d") ) {
         ;
     }
     else if ( check_extensions(sf, "mwv") ) {
@@ -1012,16 +1013,14 @@ static size_t get_ue4_msadpcm_interleave(STREAMFILE* sf, riff_fmt_chunk* fmt, of
 
     /* last frame is almost always padded, so should at half interleave */
     if (!is_blank_half && !is_blank_full) {
-        VGM_LOG("v1 a\n");
         return v1_interleave;
     }
 
     /* last frame is padded, and half interleave is not: should be regular interleave*/
     if (!is_blank_half && is_blank_full) {
-        VGM_LOG("v2 a\n");
         return v2_interleave;
     }
-VGM_LOG("i=%i, i=%i\n", is_blank_half, is_blank_full);
+
     /* last frame is silent-ish, so should at half interleave (TSA's SML_DarknessLoop_01, TSA_CAD_YAKATA)
      * this doesn't work too well b/c num_samples at 0x36 uses all data, may need adjustment */
     {

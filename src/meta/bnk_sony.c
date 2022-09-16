@@ -127,6 +127,7 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
 
             case 0x0d: /* Polara (Vita), Crypt of the Necrodancer (Vita) */
             case 0x0e: /* Yakuza 6's Puyo Puyo (PS4) */
+            case 0x0f: /* Ikaruga (PS4) */
                 table1_offset    = sblk_offset + read_u32(sblk_offset+0x18,sf);
                 table2_offset    = sblk_offset + read_u32(sblk_offset+0x1c,sf);
                 table3_offset    = sblk_offset + read_u32(sblk_offset+0x2c,sf);
@@ -298,6 +299,7 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
 
             case 0x0d:
             case 0x0e:
+            case 0x0f:
                 flags           = read_u8   (table3_offset+table3_entry_offset+0x12,sf);
                 stream_offset   = read_u32(table3_offset+table3_entry_offset+0x44,sf);
                 stream_size     = read_u32(table3_offset+table3_entry_offset+0x48,sf);
@@ -471,6 +473,7 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
 
             case 0x0d:
             case 0x0e:
+            case 0x0f:
                 type = read_u16(start_offset+0x00,sf);
                 if (read_u32(start_offset+0x04,sf) != 0x01) /* type? */
                     goto fail;
@@ -509,16 +512,18 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
                         codec = PCM16;
                         break;
 
-                    case 0x00: /* PS-ADPCM (test banks) */
+                    case 0x00: /* HEVAG (test banks) */
+                    case 0x03: /* HEVAG (Ikaruga) */
                         /* 0x10: null? */
                         channels = read_u32(start_offset+0x14,sf);
-                        interleave = 0x02;
+                        interleave = 0x10;
 
                         loop_start = read_u32(start_offset+0x18,sf);
                         loop_length = read_u32(start_offset+0x1c,sf);
                         loop_end = loop_start + loop_length; /* loop_start is -1 if not set */
 
                         codec = HEVAG;
+                        //TODO: in v0x0f right before start_offset is the .vag filename, see if offset can be found
                         break;
 
                     default:

@@ -16,7 +16,7 @@ VGMSTREAM* init_vgmstream_awb_memory(STREAMFILE* sf, STREAMFILE* sf_acb) {
     uint32_t offset, subfile_offset, subfile_next, subfile_size;
     int total_subsongs, target_subsong = sf->stream_index;
     uint8_t offset_size;
-    uint16_t alignment, subkey;
+    uint16_t waveid_alignment, offset_alignment, subkey;
     int waveid;
 
 
@@ -29,11 +29,11 @@ VGMSTREAM* init_vgmstream_awb_memory(STREAMFILE* sf, STREAMFILE* sf_acb) {
         goto fail;
 
     /* 0x04(1): version? 0x01=common, 0x02=2018+ (no apparent differences) */
-    offset_size = read_u8(0x05,sf);
-    /* 0x06(2): always 0x0002? */
-    total_subsongs = read_s32le(0x08,sf);
-    alignment = read_u16le(0x0c,sf);
-    subkey    = read_u16le(0x0e,sf);
+    offset_size         = read_u8   (0x05,sf);
+    waveid_alignment    = read_u16le(0x06,sf); /* usually 0x02, rarely 0x04 [Voice of Cards: The Beasts of Burden (Switch)]*/
+    total_subsongs      = read_s32le(0x08,sf);
+    offset_alignment    = read_u16le(0x0c,sf);
+    subkey              = read_u16le(0x0e,sf);
 
     if (target_subsong == 0) target_subsong = 1;
     if (target_subsong > total_subsongs || total_subsongs <= 0) goto fail;
@@ -42,11 +42,11 @@ VGMSTREAM* init_vgmstream_awb_memory(STREAMFILE* sf, STREAMFILE* sf_acb) {
 
     /* id table: read target */
     {
-        uint32_t waveid_offset = offset + (target_subsong-1) * 0x02;
+        uint32_t waveid_offset = offset + (target_subsong-1) * waveid_alignment;
 
         waveid = read_u16le(waveid_offset,sf);
 
-        offset += total_subsongs * 0x02;
+        offset += total_subsongs * waveid_alignment;
     }
 
     /* offset table: find target */
@@ -71,14 +71,14 @@ VGMSTREAM* init_vgmstream_awb_memory(STREAMFILE* sf, STREAMFILE* sf_acb) {
         }
 
         /* offset are absolute but sometimes misaligned (specially first that just points to offset table end) */
-        subfile_offset += (subfile_offset % alignment) ?
-                alignment - (subfile_offset % alignment) : 0;
-        subfile_next   += (subfile_next % alignment) && subfile_next < file_size ?
-                alignment - (subfile_next % alignment) : 0;
+        subfile_offset += (subfile_offset % offset_alignment) ?
+                offset_alignment - (subfile_offset % offset_alignment) : 0;
+        subfile_next   += (subfile_next % offset_alignment) && subfile_next < file_size ?
+                offset_alignment - (subfile_next % offset_alignment) : 0;
         subfile_size = subfile_next - subfile_offset;
     }
 
-    //;VGM_LOG("awb: subfile offset=%x + %x\n", subfile_offset, subfile_size);
+    ;VGM_LOG("awb: subfile offset=%x + %x\n", subfile_offset, subfile_size);
 
     /* autodetect as there isn't anything, plus can mix types
      * (waveid<>codec info is usually in the companion .acb) */
