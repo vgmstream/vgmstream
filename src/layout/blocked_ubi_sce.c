@@ -45,7 +45,7 @@ void block_update_ubi_sce(off_t block_offset, VGMSTREAM* vgmstream) {
 
             /* First step is always 0x500, not sure if it's a bug or a feature but the game just takes it as is and
              * ends up reading 0 from out-of-bounds memory area which causes a pop at the start. Yikes.
-             * It gets clampled later so the rest of the sound plays ok.
+             * It gets clamped later so the rest of the sound plays ok.
              * We put 89 here as our special index which contains 0 to simulate this.
              */
             if (vgmstream->ch[i].adpcm_step_index == 0x500) {

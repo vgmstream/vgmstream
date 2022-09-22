@@ -8,7 +8,7 @@ VGMSTREAM* init_vgmstream_esf(STREAMFILE* sf) {
     uint8_t version;
     off_t start_offset;
     int loop_flag = 0, bps_flag = 0, hq_flag = 0, codec_flag = 0,
-        sample_rate = 0, channels, bps;
+        sample_rate, channels, bps;
 
     /* checks */
     if (!is_id32be(0x00, sf, "ESF\x03") &&
