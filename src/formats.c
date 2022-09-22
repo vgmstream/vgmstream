@@ -574,6 +574,8 @@ static const char* extension_list[] = {
     "vb", //txth/reserved [Tantei Jinguji Saburo: Mikan no Rupo (PS1)]
     "vbk",
     "vbx", //txth/reserved [THE Taxi 2 (PS2)]
+    "vca", //txth/reserved [Pac-Man World (PS1)]
+    "vcb", //txth/reserved [Pac-Man World (PS1)]
     "vds",
     "vdm",
     "vgi", //txth/reserved [Time Crisis II (PS2)]
