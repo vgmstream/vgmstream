@@ -406,7 +406,6 @@ int vgmstream_tags_next_tag(VGMSTREAM_TAGS* tags, STREAMFILE* tagfile) {
                     }
                     else if (strncasecmp(tags->key, "EXACTMATCH", key_len) == 0) {
                         tags->exact_match = 1;
-                        VGM_LOG("exact\n");
                     }
 
                     continue; /* not an actual tag */

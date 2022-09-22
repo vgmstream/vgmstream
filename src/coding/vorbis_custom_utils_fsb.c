@@ -17,8 +17,9 @@ static int build_header_identification(uint8_t* buf, size_t bufsize, int channel
 static int build_header_comment(uint8_t* buf, size_t bufsize);
 static int build_header_setup(uint8_t* buf, size_t bufsize, uint32_t setup_id, STREAMFILE* sf);
 
-static int load_fvs_file_single(uint8_t* buf, size_t bufsize, uint32_t setup_id, STREAMFILE* sf);
-static int load_fvs_file_multi(uint8_t* buf, size_t bufsize, uint32_t setup_id, STREAMFILE* sf);
+#if !(FSB_VORBIS_USE_PRECOMPILED_FVS)
+static int load_fvs_file(uint8_t* buf, size_t bufsize, uint32_t setup_id, STREAMFILE* sf);
+#endif
 static int load_fvs_array(uint8_t* buf, size_t bufsize, uint32_t setup_id, STREAMFILE* sf);
 
 
@@ -58,7 +59,7 @@ int vorbis_custom_parse_packet_fsb(VGMSTREAMCHANNEL* stream, vorbis_custom_codec
     size_t bytes;
 
     /* get next packet size from the FSB 16b header (doesn't count this 16b) */
-    data->op.bytes = (uint16_t)read_16bitLE(stream->offset, stream->streamfile);
+    data->op.bytes = read_u16le(stream->offset, stream->streamfile);
     stream->offset += 2;
     if (data->op.bytes == 0 || data->op.bytes == 0xFFFF || data->op.bytes > data->buffer_size) goto fail; /* EOF or end padding */
 
@@ -108,16 +109,16 @@ static int build_header_identification(uint8_t* buf, size_t bufsize, int channel
     }
     blocksizes = (exp_blocksize_0 << 4) | (exp_blocksize_1);
 
-    put_8bit   (buf+0x00, 0x01);            /* packet_type (id) */
+    put_u8   (buf+0x00, 0x01);              /* packet_type (id) */
     memcpy     (buf+0x01, "vorbis", 6);     /* id */
-    put_32bitLE(buf+0x07, 0x00);            /* vorbis_version (fixed) */
-    put_8bit   (buf+0x0b, channels);        /* audio_channels */
-    put_32bitLE(buf+0x0c, sample_rate);     /* audio_sample_rate */
-    put_32bitLE(buf+0x10, 0x00);            /* bitrate_maximum (optional hint) */
-    put_32bitLE(buf+0x14, 0x00);            /* bitrate_nominal (optional hint) */
-    put_32bitLE(buf+0x18, 0x00);            /* bitrate_minimum (optional hint) */
-    put_8bit   (buf+0x1c, blocksizes);      /* blocksize_0 + blocksize_1 nibbles */
-    put_8bit   (buf+0x1d, 0x01);            /* framing_flag (fixed) */
+    put_u32le(buf+0x07, 0x00);              /* vorbis_version (fixed) */
+    put_u8   (buf+0x0b, channels);          /* audio_channels */
+    put_s32le(buf+0x0c, sample_rate);       /* audio_sample_rate */
+    put_u32le(buf+0x10, 0x00);              /* bitrate_maximum (optional hint) */
+    put_u32le(buf+0x14, 0x00);              /* bitrate_nominal (optional hint) */
+    put_u32le(buf+0x18, 0x00);              /* bitrate_minimum (optional hint) */
+    put_u8   (buf+0x1c, blocksizes);        /* blocksize_0 + blocksize_1 nibbles */
+    put_u8   (buf+0x1d, 0x01);              /* framing_flag (fixed) */
 
     return bytes;
 }
@@ -127,12 +128,12 @@ static int build_header_comment(uint8_t* buf, size_t bufsize) {
 
     if (bytes > bufsize) return 0;
 
-    put_8bit   (buf+0x00, 0x03);            /* packet_type (comments) */
-    memcpy     (buf+0x01, "vorbis", 6);     /* id */
-    put_32bitLE(buf+0x07, 0x09);            /* vendor_length */
-    memcpy     (buf+0x0b, "vgmstream", 9);  /* vendor_string */
-    put_32bitLE(buf+0x14, 0x00);            /* user_comment_list_length */
-    put_8bit   (buf+0x18, 0x01);            /* framing_flag (fixed) */
+    put_u8   (buf+0x00, 0x03);              /* packet_type (comments) */
+    memcpy   (buf+0x01, "vorbis", 6);       /* id */
+    put_u32le(buf+0x07, 0x09);              /* vendor_length */
+    memcpy   (buf+0x0b, "vgmstream", 9);    /* vendor_string */
+    put_u32le(buf+0x14, 0x00);              /* user_comment_list_length */
+    put_u8   (buf+0x18, 0x01);              /* framing_flag (fixed) */
 
     return bytes;
 }
@@ -145,49 +146,20 @@ static int build_header_setup(uint8_t* buf, size_t bufsize, uint32_t setup_id, S
     if (bytes)
         return bytes;
 
+#if !(FSB_VORBIS_USE_PRECOMPILED_FVS)
     /* try to load from external files */
-    bytes = load_fvs_file_single(buf, bufsize, setup_id, sf);
+    bytes = load_fvs_file(buf, bufsize, setup_id, sf);
     if (bytes)
         return bytes;
-
-    bytes = load_fvs_file_multi(buf, bufsize, setup_id, sf);
-    if (bytes)
-        return bytes;
+#endif
 
     /* not found */
     VGM_LOG("FSB Vorbis: setup_id %08x not found\n", setup_id);
     return 0;
 }
 
-static int load_fvs_file_single(uint8_t* buf, size_t bufsize, uint32_t setup_id, STREAMFILE* sf) {
-    STREAMFILE* sf_setup = NULL;
-
-    /* get from artificial external file (used if compiled without codebooks) */
-    {
-        char setupname[0x20];
-
-        snprintf(setupname, sizeof(setupname), ".fvs_%08x", setup_id);
-        sf_setup = open_streamfile_by_filename(sf, setupname);
-    }
-
-    /* get codebook and copy to buffer */
-    if (sf_setup) {
-        size_t bytes = sf_setup->get_size(sf_setup);
-        if (bytes > bufsize) goto fail;
-
-        if (read_streamfile(buf, 0, bytes, sf_setup) != bytes)
-            goto fail;
-
-        close_streamfile(sf_setup);
-        return bytes;
-    }
-
-fail:
-    close_streamfile(sf_setup);
-    return 0;
-}
-
-static int load_fvs_file_multi(uint8_t* buf, size_t bufsize, uint32_t setup_id, STREAMFILE* sf) {
+#if !(FSB_VORBIS_USE_PRECOMPILED_FVS)
+static int load_fvs_file(uint8_t* buf, size_t bufsize, uint32_t setup_id, STREAMFILE* sf) {
     STREAMFILE* sf_setup = NULL;
 
     /* from to get from artificial external file (used if compiled without codebooks) */
@@ -230,6 +202,7 @@ fail:
     if (sf_setup) sf_setup->close(sf_setup);
     return 0;
 }
+#endif
 
 static int load_fvs_array(uint8_t* buf, size_t bufsize, uint32_t setup_id, STREAMFILE* sf) {
 #if FSB_VORBIS_USE_PRECOMPILED_FVS

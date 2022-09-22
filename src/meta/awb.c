@@ -78,7 +78,7 @@ VGMSTREAM* init_vgmstream_awb_memory(STREAMFILE* sf, STREAMFILE* sf_acb) {
         subfile_size = subfile_next - subfile_offset;
     }
 
-    ;VGM_LOG("awb: subfile offset=%x + %x\n", subfile_offset, subfile_size);
+    //;VGM_LOG("awb: subfile offset=%x + %x\n", subfile_offset, subfile_size);
 
     /* autodetect as there isn't anything, plus can mix types
      * (waveid<>codec info is usually in the companion .acb) */

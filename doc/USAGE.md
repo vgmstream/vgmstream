@@ -630,6 +630,25 @@ If your main motivation for extracting is to rename or have loose files, remembe
 you can simply use TXTP to point to a subsong, and name that `.txtp` whatever you
 want, without having to touch original data or needing custom extractors.
 
+### Cue formats
+Some formats that vgmstream supports (SQEX's .sab, CRI's .acb+awb, Wwise's .bnk+wem,
+Microsoft's .xss+.xwb....) are "cue" formats. The way these work is (more or less),
+they have a bunch of named audio "cues"/"events" in a section of the file, that are
+called to play one or multiple audio "waves"/"materials" in another section.
+
+Rather than handling cues, vgmstream shows and plays waves, then assigns cue names
+that point to the wave if possible, since vgmstream mainly deals with streamed/wave
+audio and simulating cues is out of scope. Figuring out a whole cue format can be a
+*huge* time investment, so handling waves only is often enough.
+
+Cues can be *very* complex, like N cues pointing to 1 wave with varying pitch, or
+1 cue playing one random wave out of 3. Sometimes not all waves are referenced by
+cues, or cues do undesirable effects that make only playing waves a good compromise.
+Simulating cues is better handled with external tools that allow more flexibility
+(for example, this project simulates Wwise's extremely complex cues/events by creating
+.TXTP telling vgmstream which config and waves to play, and one can filter desired
+cues/TXTP: https://github.com/bnnm/wwiser).
+
 ## Logged errors and unplayable supported files
 Some formats should normally play, but somehow don't. In those cases plugins
 can print vgmstream's error info to console (for example, `.fsb` with an unknown
