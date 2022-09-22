@@ -129,7 +129,6 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_idsp_ie,
     init_vgmstream_ngc_ymf,
     init_vgmstream_sadl,
-    init_vgmstream_ps2_ccc,
     init_vgmstream_fag,
     init_vgmstream_ps2_mihb,
     init_vgmstream_ngc_pdt_split,
@@ -555,6 +554,7 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_ngc_ulw,         /* .ulw raw u-Law */
     init_vgmstream_exakt_sc,        /* .sc raw PCM */
     init_vgmstream_zwdsp,           /* fake format */
+    init_vgmstream_ps2_ccc,         /* fake format, to be removed */
     init_vgmstream_ps2_adm,         /* weird non-constant PSX blocks */
     init_vgmstream_baf_badrip,      /* crap, to be removed */
     init_vgmstream_rxws_badrip,     /* crap, to be removed */
