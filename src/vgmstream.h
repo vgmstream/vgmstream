@@ -185,6 +185,8 @@ typedef enum {
     coding_RELIC,           /* Relic Codec (DCT-based) */
     coding_CRI_HCA,         /* CRI High Compression Audio (MDCT-based) */
     coding_TAC,             /* tri-Ace Codec (MDCT-based) */
+    coding_ICE_RANGE,       /* Inti Creates "range" codec */
+    coding_ICE_DCT,         /* Inti Creates "DCT" codec */
 
 #ifdef VGM_USE_VORBIS
     coding_OGG_VORBIS,      /* Xiph Vorbis with Ogg layer (MDCT-based) */
@@ -765,6 +767,7 @@ typedef enum {
     meta_TT_AD,
     meta_SNDZ,
     meta_VAB,
+    meta_BIGRP,
 
 } meta_t;
 

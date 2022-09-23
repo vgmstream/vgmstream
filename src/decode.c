@@ -39,6 +39,11 @@ void free_codec(VGMSTREAM* vgmstream) {
         free_tac(vgmstream->codec_data);
     }
 
+    if (vgmstream->coding_type == coding_ICE_RANGE ||
+        vgmstream->coding_type == coding_ICE_DCT) {
+        free_ice(vgmstream->codec_data);
+    }
+
     if (vgmstream->coding_type == coding_UBI_ADPCM) {
         free_ubi_adpcm(vgmstream->codec_data);
     }
@@ -138,6 +143,11 @@ void seek_codec(VGMSTREAM* vgmstream) {
 
     if (vgmstream->coding_type == coding_TAC) {
         seek_tac(vgmstream->codec_data, vgmstream->loop_current_sample);
+    }
+
+    if (vgmstream->coding_type == coding_ICE_RANGE ||
+        vgmstream->coding_type == coding_ICE_DCT) {
+        seek_ice(vgmstream->codec_data, vgmstream->loop_current_sample);
     }
 
     if (vgmstream->coding_type == coding_UBI_ADPCM) {
@@ -244,6 +254,11 @@ void reset_codec(VGMSTREAM* vgmstream) {
 
     if (vgmstream->coding_type == coding_TAC) {
         reset_tac(vgmstream->codec_data);
+    }
+
+    if (vgmstream->coding_type == coding_ICE_RANGE ||
+        vgmstream->coding_type == coding_ICE_DCT) {
+        reset_ice(vgmstream->codec_data);
     }
 
     if (vgmstream->coding_type == coding_UBI_ADPCM) {
@@ -535,6 +550,9 @@ int get_vgmstream_samples_per_frame(VGMSTREAM* vgmstream) {
             return 0; /* 1024 - delay/padding (which can be bigger than 1024) */
         case coding_TAC:
             return 0; /* 1024 - delay/padding */
+        case coding_ICE_RANGE:
+        case coding_ICE_DCT:
+            return 0; /* ~100 (range), ~16 (DCT) */
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
         case coding_MP4_AAC:
             return ((mp4_aac_codec_data*)vgmstream->codec_data)->samples_per_frame;
@@ -1074,6 +1092,10 @@ void decode_vgmstream(VGMSTREAM* vgmstream, int samples_written, int samples_to_
             break;
         case coding_TAC:
             decode_tac(vgmstream, buffer, samples_to_do);
+            break;
+        case coding_ICE_RANGE:
+        case coding_ICE_DCT:
+            decode_ice(vgmstream->codec_data, buffer, samples_to_do);
             break;
 #ifdef VGM_USE_FFMPEG
         case coding_FFmpeg:

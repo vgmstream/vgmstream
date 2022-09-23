@@ -266,6 +266,9 @@
     <ClInclude Include="coding\hca_decoder_clhca.h">
       <Filter>coding\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="coding\hca_decoder_icelib.h">
+      <Filter>coding\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="coding\mpeg_bitreader.h">
       <Filter>coding\Header Files</Filter>
     </ClInclude>
@@ -1369,6 +1372,12 @@
     <ClCompile Include="coding\hca_decoder_clhca.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="coding\ice_decoder.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\ice_decoder_icelib.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="coding\ima_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
@@ -1877,6 +1886,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\bik.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\bigrp.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\bkhd.c">

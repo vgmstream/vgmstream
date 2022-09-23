@@ -353,6 +353,16 @@ void seek_tac(tac_codec_data* data, int32_t num_sample);
 void free_tac(tac_codec_data* data);
 
 
+/* ice_decoder */
+typedef struct ice_codec_data ice_codec_data;
+
+ice_codec_data* init_ice(STREAMFILE* sf, int subsong);
+void decode_ice(ice_codec_data* data, sample_t* outbuf, int32_t samples_to_do);
+void reset_ice(ice_codec_data* data);
+void seek_ice(ice_codec_data* data, int32_t num_sample);
+void free_ice(ice_codec_data* data);
+
+
 #ifdef VGM_USE_VORBIS
 /* ogg_vorbis_decoder */
 typedef struct ogg_vorbis_codec_data ogg_vorbis_codec_data;

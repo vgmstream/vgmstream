@@ -315,6 +315,7 @@ are used in few games.
 - Xiph CELT (FSB)
 - Musepack
 - FLAC
+- Inti Creates' Range / DCT codecs
 - Others
 
 Sometimes standard codecs come in non-standard layouts that aren't normally

@@ -525,6 +525,7 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_bw_riff_mp3,
     init_vgmstream_sndz,
     init_vgmstream_vab,
+    init_vgmstream_bigrp,
 
     /* lower priority metas (no clean header identity, somewhat ambiguous, or need extension/companion file to identify) */
     init_vgmstream_agsc,
