@@ -83,6 +83,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="coding\hca_decoder_clhca.h" />
+    <ClInclude Include="coding\ice_decoder_icelib.h" />
     <ClInclude Include="coding\mpeg_bitreader.h" />
     <ClInclude Include="coding\mpeg_decoder.h" />
     <ClInclude Include="coding\vorbis_bitreader.h" />
@@ -328,6 +329,7 @@
     <ClCompile Include="meta\baf.c" />
     <ClCompile Include="meta\bgw.c" />
     <ClCompile Include="meta\bik.c" />
+    <ClCompile Include="meta\bigrp.c" />
     <ClCompile Include="meta\bkhd.c" />
     <ClCompile Include="meta\bmp_konami.c" />
     <ClCompile Include="meta\bnk_relic.c" />
@@ -643,6 +645,8 @@
     <ClCompile Include="coding\g7221_decoder_lib.c" />
     <ClCompile Include="coding\hca_decoder.c" />
     <ClCompile Include="coding\hca_decoder_clhca.c" />
+    <ClCompile Include="coding\ice_decoder.c" />
+    <ClCompile Include="coding\ice_decoder_icelib.c" />
     <ClCompile Include="coding\ima_decoder.c" />
     <ClCompile Include="coding\imuse_decoder.c" />
     <ClCompile Include="coding\l5_555_decoder.c" />

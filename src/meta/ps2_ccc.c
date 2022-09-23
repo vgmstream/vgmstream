@@ -33,10 +33,10 @@ VGMSTREAM * init_vgmstream_ps2_ccc(STREAMFILE *streamFile) {
 	vgmstream->channels = channel_count;
     vgmstream->sample_rate = read_32bitLE(0x04,streamFile);
     vgmstream->coding_type = coding_PSX;
-    vgmstream->num_samples = (read_32bitLE(0x08,streamFile))/channel_count/32*28;
+    vgmstream->num_samples = (read_32bitLE(0x08,streamFile))/channel_count/0x10*28;
     if (loop_flag) {
         vgmstream->loop_start_sample = 0;
-        vgmstream->loop_end_sample = (read_32bitLE(0x08,streamFile))/channel_count/32*28;
+        vgmstream->loop_end_sample = (read_32bitLE(0x08,streamFile))/channel_count/0x10*28;
     }
 
     vgmstream->layout_type = layout_interleave;

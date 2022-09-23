@@ -105,6 +105,7 @@ static const char* extension_list[] = {
     "bgm",
     "bgw",
     "bh2pcm",
+    "bigrp",
     "bik",
     "bika", //fake extension for .bik (to be removed)
     "bik2",
@@ -130,7 +131,7 @@ static const char* extension_list[] = {
 
     "caf",
     "cbd2",
-    "ccc",
+    "ccc", //fake extension (to be removed)
     "cd",
     "cfn", //fake extension for CAF (renamed, to be removed?)
     "chd", //txth/reserved [Donkey Konga (GC), Star Fox Assault (GC)]
@@ -861,6 +862,8 @@ static const coding_info coding_info_list[] = {
         {coding_RELIC,              "Relic Codec"},
         {coding_CRI_HCA,            "CRI HCA"},
         {coding_TAC,                "tri-Ace Codec"},
+        {coding_ICE_RANGE,          "Inti Creates Range Codec"},
+        {coding_ICE_DCT,            "Inti Creates DCT Codec"},
 
 #ifdef VGM_USE_VORBIS
         {coding_OGG_VORBIS,         "Ogg Vorbis"},
@@ -1415,6 +1418,7 @@ static const meta_info meta_info_list[] = {
         {meta_TT_AD,                "Traveller's Tales AUDIO_DATA header"},
         {meta_SNDZ,                 "Sony SNDZ header"},
         {meta_VAB,                  "Sony VAB header"},
+        {meta_BIGRP,                "Inti Creates .BIGRP header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {

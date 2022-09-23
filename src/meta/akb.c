@@ -138,10 +138,8 @@ VGMSTREAM* init_vgmstream_akb(STREAMFILE* sf) {
 
             /* enable encryption */
             if (version >= 3 && (flags & 8)) {
-                VGM_LOG("temp1\n");
                 temp_sf = setup_sqex_streamfile(sf, start_offset, stream_size, 1, 0x00, 0x00, "ogg");
                 if (!temp_sf) goto fail;
-                VGM_LOG("temp2\n");
 
                 ogg_vgmstream = init_vgmstream_ogg_vorbis_config(temp_sf, 0x00, &ovmi);
                 close_streamfile(temp_sf);
