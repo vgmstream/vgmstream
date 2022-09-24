@@ -50,8 +50,10 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
         goto fail;
 
     /* .fsb: standard
-     * .snd: Alchemy engine (also Unity) */
-    if (!check_extensions(sf,"fsb,snd"))
+     * .snd: Alchemy engine (also Unity) 
+     * .wav: some recent versions of the Telltale Tool engine [The Walking Dead: The Telltale Definitive Series (Windows 7 x64 SP1)]
+     * .lwav: to avoid hijacking .wav */
+    if (!check_extensions(sf,"fsb,snd,wav,lwav"))
         goto fail;
 
     /* v0 is rare, seen in Tales from Space (Vita) */
