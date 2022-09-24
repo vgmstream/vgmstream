@@ -266,9 +266,6 @@
     <ClInclude Include="coding\hca_decoder_clhca.h">
       <Filter>coding\Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="coding\hca_decoder_icelib.h">
-      <Filter>coding\Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="coding\mpeg_bitreader.h">
       <Filter>coding\Header Files</Filter>
     </ClInclude>
@@ -323,10 +320,13 @@
     <ClInclude Include="util\m2_psb.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="coding\miniz.h">
+    <ClInclude Include="util\text_reader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="util\text_reader.h">
+    <ClInclude Include="coding\ice_decoder_icelib.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="util\miniz.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -2009,6 +2009,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\vab.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\xbb_xsb.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
   </ItemGroup>

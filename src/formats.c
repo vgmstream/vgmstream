@@ -645,6 +645,7 @@ static const char* extension_list[] = {
     "xau",
     "xav",
     "xb", //txth/reserved [Scooby-Doo! Unmasked (Xbox)]
+    "xbb",
     "xen",
     "xma",
     "xma2",
@@ -1049,7 +1050,7 @@ static const meta_info meta_info_list[] = {
         {meta_LEG,                  "Legaia 2 - Duel Saga LEG Header"},
         {meta_FILP,                 "Bio Hazard - Gun Survivor FILp Header"},
         {meta_IKM,                  "MiCROViSiON IKM header"},
-        {meta_STER,                  "ALCHEMY STER header"},
+        {meta_STER,                 "ALCHEMY STER header"},
         {meta_SAT_DVI,              "Konami KCEN DVI. header"},
         {meta_DC_KCEY,              "Konami KCEY KCEYCOMP header"},
         {meta_BG00,                 "Falcom BG00 Header"},
@@ -1419,6 +1420,7 @@ static const meta_info meta_info_list[] = {
         {meta_SNDZ,                 "Sony SNDZ header"},
         {meta_VAB,                  "Sony VAB header"},
         {meta_BIGRP,                "Inti Creates .BIGRP header"},
+        {meta_XBB_XSB,              "LicasArts XBB+XSB header" },
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {

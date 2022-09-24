@@ -263,6 +263,7 @@
     <ClCompile Include="meta\silence.c" />
     <ClCompile Include="meta\sk_aud.c" />
     <ClCompile Include="meta\wbk.c" />
+    <ClCompile Include="meta\xbb_xsb.c" />
     <ClCompile Include="meta\xwav.c" />
     <ClCompile Include="meta\seg.c" />
     <ClCompile Include="meta\sfh.c" />

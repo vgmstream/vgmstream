@@ -993,4 +993,6 @@ VGMSTREAM* init_vgmstream_vab(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_bigrp(STREAMFILE* sf);
 
+VGMSTREAM* init_vgmstream_xbb_xsb(STREAMFILE* sf);
+
 #endif /*_META_H*/

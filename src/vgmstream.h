@@ -768,6 +768,7 @@ typedef enum {
     meta_SNDZ,
     meta_VAB,
     meta_BIGRP,
+    meta_XBB_XSB,
 
 } meta_t;
 
