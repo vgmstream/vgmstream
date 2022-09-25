@@ -53,7 +53,7 @@ typedef struct {
     uint32_t is_wave; // if chunk is a "WAVE" one.
 } xbb_header;
 
-/* .xbb+.xsb - from Gladius [Xbox] */
+/* .xbb+.xsb - "sound bundle" format from Gladius [Xbox] */
 VGMSTREAM* init_vgmstream_xbb_xsb(STREAMFILE* sf)
 {
     VGMSTREAM* vgmstream = NULL;
