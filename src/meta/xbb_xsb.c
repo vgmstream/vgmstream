@@ -13,44 +13,44 @@
 
 typedef struct {
     /* xbb format stuff */
-    uint32_t xbb_whole_size;
-    uint32_t xbb_real_size;
-    uint32_t entries;
-    uint32_t entry_offset;
+    uint32_t xbb_whole_size; // size of XBB file in itself, minus 4.
+    uint32_t entries; // how many sounds an XBB file can have.
+    uint32_t entry_offset; // XBB sound entry info offset.
 
     /* RIFF chunks */
-    uint32_t chunk_type;
-    uint32_t chunk_size;
-    uint32_t riff_offset;
-    uint32_t riff_size;
-    uint32_t fmt_offset;
-    uint32_t fmt_size;
-    uint32_t data_offset;
-    uint32_t data_size;
-    uint32_t smpl_offset;
-    uint32_t smpl_size;
+    uint32_t chunk_type; // RIFF chunk type.
+    uint32_t chunk_size; // RIFF chunk size (if chunk type wills it into existence).
+    uint32_t riff_offset; // "RIFF" offset pointer.
+    uint32_t riff_size; // "RIFF" chunk size (in itself).
+    uint32_t fmt_offset; // "fmt " offset pointer.
+    uint32_t fmt_size; // "fmt " chunk size.
+    uint32_t data_offset; // "data" offset pointer.
+    uint32_t data_size; // "data" chunk size, doesn't always cover whole sound. in which case it's set to 0xfffffff8 alongside two fields (see below.)
+    uint32_t smpl_offset; // "smpl" offset pointer.
+    uint32_t smpl_size; // "smpl" chunk size.
 
     /* RIFF WAVE format header */
-    uint16_t codec;
-    uint16_t channels;
-    uint32_t sample_rate;
-    uint32_t avg_bps; // "average_bytes_per_second"
-    uint16_t blkalgn; // "block_align"
-    uint16_t bit_depth; // "bit_depth"
-    uint16_t out_bps_pch; // "out_bytes_per_second_per_channel"
-    uint16_t out_blkalgn_pch; // "out_block_align_per_channel"
+    uint16_t codec; // RIFF WAVE format tag, usually an audio codec of some sort.
+    uint16_t channels; // total number of channels that this sound has.
+    uint32_t sample_rate; // sample rate, in samples per second. most common ones are 8000, 11025, 22050 and 44100.
+    uint32_t avg_bps; // Xbox IMA ADPCM average data transfer rate, in bytes per second.
+    uint16_t blkalgn; // Xbox IMA ADPCM block alignment, set to either 0x24 or 0x48 depending on how mono (1 channel) or stereo (2 channels) an sound file can be.
+    uint16_t bit_depth; // Xbox IMA ADPCM bit depth, set to 4.
+    uint16_t extra_size; // extra size field for RIFF WAVE sound files using the Xbox IMA ADPCM codec.
+    uint16_t blksmpl; // Xbox IMA ADPCM block samples.
 
-    /* RIFF WAVE data header */
-    uint32_t external_data_offset;
-    uint32_t external_data_size;
+    /* RIFF WAVE data header, in case some sound entry needs an XSB file to be played back in-game */
+    uint32_t external_data_offset; // offset pointing to external sound data.
+    uint32_t external_data_size; // size of external sound data.
 
     /* other stuff */
-    uint8_t xbb_flags;
-    uint32_t stream_offset;
-    uint32_t stream_size;
-    uint32_t riff_size_from_zero;
-    uint32_t is_riff;
-    uint32_t is_wave;
+    uint32_t xbb_real_size; // size of XBB file in itself.
+    uint8_t xbb_flags; // config var meant to tell which sound is which.
+    uint32_t stream_offset; // offset of streamed sound entry, meant to be used into vgmstream.
+    uint32_t stream_size; // size of streamed sound entry, meant to be used into vgmstream.
+    uint32_t riff_size_from_zero; // counter meant to cover the entire sound entry based on info from XBB file.
+    uint32_t is_riff; // if chunk is a "RIFF" one.
+    uint32_t is_wave; // if chunk is a "WAVE" one.
 } xbb_header;
 
 /* .xbb+.xsb - from Gladius [Xbox] */
@@ -162,13 +162,15 @@ VGMSTREAM* init_vgmstream_xbb_xsb(STREAMFILE* sf)
                     xbb.avg_bps = read_u32le(xbb.fmt_offset + 8, sf_h);
                     xbb.blkalgn = read_u16le(xbb.fmt_offset + 12, sf_h);
                     xbb.bit_depth = read_u16le(xbb.fmt_offset + 14, sf_h);
-                    xbb.out_bps_pch = read_u16le(xbb.fmt_offset + 16, sf_h);
-                    xbb.out_blkalgn_pch = read_u16le(xbb.fmt_offset + 18, sf_h);
+                    xbb.extra_size = read_u16le(xbb.fmt_offset + 16, sf_h);
+                    if (xbb.extra_size > 0) {
+                        xbb.blksmpl = read_u16le(xbb.fmt_offset + 18, sf_h);
+                    }
                     /* do some checks against existing fmt values */
-                    if (xbb.blkalgn != (0x24 * xbb.channels)) goto fail;
-                    if (xbb.bit_depth != 4) goto fail;
-                    if (xbb.out_bps_pch != 2) goto fail;
-                    if (xbb.out_blkalgn_pch != 0x40) goto fail;
+                    if (xbb.blkalgn != (0x24 * xbb.channels)) goto fail; // Xbox IMA ADPCM frame size, in theory 
+                    if (xbb.bit_depth != 4) goto fail; // Xbox IMA ADPCM bit depth
+                    if (xbb.extra_size != 2) goto fail; // cbSize for Xbox IMA ADPCM
+                    if (xbb.blksmpl != 0x40) goto fail; // Xbox IMA ADPCM output block samples
                 } else {
                     goto fail;
                 }
