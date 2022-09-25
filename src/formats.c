@@ -1420,7 +1420,7 @@ static const meta_info meta_info_list[] = {
         {meta_SNDZ,                 "Sony SNDZ header"},
         {meta_VAB,                  "Sony VAB header"},
         {meta_BIGRP,                "Inti Creates .BIGRP header"},
-        {meta_XBB_XSB,              "LicasArts XBB+XSB header" },
+        {meta_XBB_XSB,              "LucasArts XBB+XSB header" },
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {
