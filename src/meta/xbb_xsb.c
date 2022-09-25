@@ -46,9 +46,9 @@ VGMSTREAM* init_vgmstream_xbb_xsb(STREAMFILE* sf)
 	//STREAMFILE* sf_xbb = NULL, *sf_xsb = NULL, *sf_h = NULL, *sf_b = NULL;
 	STREAMFILE* sf_h = NULL, *sf_b = NULL, *sf_data = NULL;
 	xbb_header xbb = { 0 };
-	uint32_t xbb_size, xbb_entry_offset, xbb_entries;
+	uint32_t xbb_size, xbb_entry_offset;
 	uint32_t xbb_entry;
-	int target_subsong = sf->stream_index;
+	int total_subsongs, target_subsong = sf->stream_index;
 	int xbb_real_size;
 
 	/* checks */
@@ -61,9 +61,9 @@ VGMSTREAM* init_vgmstream_xbb_xsb(STREAMFILE* sf)
 	xbb_real_size = get_streamfile_size(sf_h);
 	if (xbb_real_size != (xbb_size + 4)) goto fail;
 
-	xbb_entries = read_u32le(4, sf_h);
+	total_subsongs = read_u32le(4, sf_h);
 	if (target_subsong == 0) target_subsong = 1;
-	if (target_subsong < 0 || target_subsong > xbb_entries || xbb_entries < 1) goto fail;
+	if (target_subsong < 0 || target_subsong > total_subsongs || total_subsongs < 1) goto fail;
 
 	xbb_entry_offset = 8;
 	xbb_entry = 0;
@@ -73,7 +73,7 @@ VGMSTREAM* init_vgmstream_xbb_xsb(STREAMFILE* sf)
 		
 		if (xbb_entry != (target_subsong - 1)) goto fail;
 		if ((xbb_entry + 1) != target_subsong) goto fail;
-		if (xbb_entry > xbb_entries) goto fail;
+		if (xbb_entry > total_subsongs) goto fail;
 
 		xbb.xbb_flags = 0;
 		while (next_chunk(&rc, sf_h))
@@ -164,7 +164,7 @@ VGMSTREAM* init_vgmstream_xbb_xsb(STREAMFILE* sf)
 
 	vgmstream->meta_type = meta_XBB_XSB;
 	vgmstream->sample_rate = xbb.sample_rate;
-	vgmstream->num_streams = xbb_entries;
+	vgmstream->num_streams = total_subsongs;
 	vgmstream->stream_size = xbb.stream_size;
 
 	switch (xbb.codec) {
