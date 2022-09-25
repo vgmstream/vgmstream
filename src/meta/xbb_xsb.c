@@ -47,6 +47,7 @@ VGMSTREAM* init_vgmstream_xbb_xsb(STREAMFILE* sf)
 	STREAMFILE* sf_h = NULL, *sf_b = NULL, *sf_data = NULL;
 	xbb_header xbb = { 0 };
 	uint32_t xbb_size, xbb_entry_offset, xbb_entries;
+	uint32_t xbb_entry;
 	int target_subsong = sf->stream_index;
 	int xbb_real_size;
 
@@ -65,10 +66,13 @@ VGMSTREAM* init_vgmstream_xbb_xsb(STREAMFILE* sf)
 	if (target_subsong < 0 || target_subsong > xbb_entries || xbb_entries < 1) goto fail;
 
 	xbb_entry_offset = 8;
+	xbb_entry = 0;
 	{
 		chunk_t rc = { 0 };
 		rc.current = xbb_entry_offset;
 		
+		if (xbb_entry != (target_subsong - 1)) goto fail;
+
 		xbb.xbb_flags = 0;
 		while (next_chunk(&rc, sf_h))
 		{
@@ -100,6 +104,8 @@ VGMSTREAM* init_vgmstream_xbb_xsb(STREAMFILE* sf)
 					break;
 			}
 		}
+
+		xbb_entry += 1;
 		xbb_entry_offset += 8;
 		xbb_entry_offset += xbb.riff_size;
 	}
@@ -134,6 +140,7 @@ VGMSTREAM* init_vgmstream_xbb_xsb(STREAMFILE* sf)
 	if (!(xbb.xbb_flags & xbb_has_data_chunk)) goto fail;
 	/* read all "data" info there is. */
 	if (xbb.xbb_flags & xbb_has_external_data) {
+		/* if some sound has external data, read offset and size values from internal XBB entry info */
 		xbb.external_data_offset = read_u32le(xbb.data_offset + 0, sf);
 		xbb.external_data_size = read_u32le(xbb.data_offset + 4, sf);
 		xbb.stream_offset = xbb.external_data_offset;
@@ -168,12 +175,12 @@ VGMSTREAM* init_vgmstream_xbb_xsb(STREAMFILE* sf)
 
 	/* open the file for reading */
 	if (!vgmstream_open_stream(vgmstream,sf_data,xbb.stream_offset)) goto fail;
-	if (sf_h) close_vgmstream(sf_h);
-	if (sf_b) close_vgmstream(sf_b);
+	if (sf_h) close_streamfile(sf_h);
+	if (sf_b) close_streamfile(sf_b);
 	return vgmstream;
 fail:
-	if (sf_h) close_vgmstream(sf_h);
-	if (sf_b) close_vgmstream(sf_b);
+	if (sf_h) close_streamfile(sf_h);
+	if (sf_b) close_streamfile(sf_b);
 	close_vgmstream(vgmstream);
 	return NULL;
 }
