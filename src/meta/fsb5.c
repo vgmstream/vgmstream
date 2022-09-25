@@ -49,10 +49,20 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
 
     /* .fsb: standard
      * .snd: Alchemy engine (also Unity) 
-     * .wav: some recent versions of the Telltale Tool engine [The Walking Dead: The Telltale Definitive Series (Windows 7 x64 SP1)]
-     * .lwav: to avoid hijacking .wav */
+     * .wav: some recent games using the Telltale Tool engine
+     *       [The Walking Dead: The Telltale Definitive Series (Windows 7 x64 SP1)] 
+     * .lwav: to avoid hijacking wav */
     if (!check_extensions(sf,"fsb,snd,wav,lwav"))
         goto fail;
+
+    /* do extra checks to ensure some players don't accidentally throw out 
+     * .wav files at the mere sight on one. */
+    if (check_extensions(sf, "wav,lwav")) {
+        if (!is_id32be(0x00, sf, "RIFF"))
+            goto fail;
+        if (!is_id32le(0x00, sf, "RIFF"))
+            goto fail;
+    }
 
     /* v0 is rare, seen in Tales from Space (Vita) */
     fsb5.version = read_u32le(0x04,sf);
@@ -368,7 +378,7 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
             int bytes, block_size, block_count;
 
             block_size = 0x8000; /* FSB default */
-            block_count = fsb5.stream_size / block_size + (fsb5.stream_size % block_size ? 1 : 0);
+            block_count = fsb5.stream_size / block_size + ((fsb5.stream_size % block_size) ? 1 : 0);
 
             bytes = ffmpeg_make_riff_xma2(buf, 0x100, vgmstream->num_samples, fsb5.stream_size, vgmstream->channels, vgmstream->sample_rate, block_count, block_size);
             vgmstream->codec_data = init_ffmpeg_header_offset(sb, buf,bytes, fsb5.stream_offset, fsb5.stream_size);

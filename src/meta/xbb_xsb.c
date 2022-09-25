@@ -197,6 +197,7 @@ VGMSTREAM* init_vgmstream_xbb_xsb(STREAMFILE* sf)
 			sf_data = sf_b;
 		}
 		else {
+			/* if some sound has internal data, get offset and size values from other vars */
 			xbb.stream_offset = xbb.data_offset;
 			xbb.stream_size = xbb.data_size;
 			sf_data = sf_h;
