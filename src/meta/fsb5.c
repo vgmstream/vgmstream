@@ -47,6 +47,15 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
     if (!is_id32be(0x00,sf, "FSB5"))
         goto fail;
 
+    /* do extra checks to ensure some players don't accidentally throw out
+     * .wav files at the mere sight on one. */
+    if (check_extensions(sf, "wav,lwav")) {
+        if (is_id32be(0x00, sf, "RIFF"))
+            goto fail;
+        if (is_id32le(0x00, sf, "RIFF"))
+            goto fail;
+    }
+
     /* .fsb: standard
      * .snd: Alchemy engine (also Unity) 
      * .wav: some recent games using the Telltale Tool engine
@@ -54,15 +63,6 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
      * .lwav: to avoid hijacking wav */
     if (!check_extensions(sf,"fsb,snd,wav,lwav"))
         goto fail;
-
-    /* do extra checks to ensure some players don't accidentally throw out 
-     * .wav files at the mere sight on one. */
-    if (check_extensions(sf, "wav,lwav")) {
-        if (!is_id32be(0x00, sf, "RIFF"))
-            goto fail;
-        if (!is_id32le(0x00, sf, "RIFF"))
-            goto fail;
-    }
 
     /* v0 is rare, seen in Tales from Space (Vita) */
     fsb5.version = read_u32le(0x04,sf);
