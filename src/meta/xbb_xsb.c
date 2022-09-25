@@ -72,6 +72,8 @@ VGMSTREAM* init_vgmstream_xbb_xsb(STREAMFILE* sf)
 		rc.current = xbb_entry_offset;
 		
 		if (xbb_entry != (target_subsong - 1)) goto fail;
+		if ((xbb_entry + 1) != target_subsong) goto fail;
+		if (xbb_entry > xbb_entries) goto fail;
 
 		xbb.xbb_flags = 0;
 		while (next_chunk(&rc, sf_h))
