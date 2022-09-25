@@ -43,19 +43,24 @@ typedef struct {
 VGMSTREAM* init_vgmstream_xbb_xsb(STREAMFILE* sf)
 {
 	VGMSTREAM* vgmstream = NULL;
-	STREAMFILE* sf_body = NULL;
+	//STREAMFILE* sf_xbb = NULL, *sf_xsb = NULL, *sf_h = NULL, *sf_b = NULL;
+	STREAMFILE* sf_h = NULL, *sf_b = NULL, *sf_data = NULL;
 	xbb_header xbb = { 0 };
 	uint32_t xbb_size, xbb_entry_offset, xbb_entries;
 	int target_subsong = sf->stream_index;
+	int xbb_real_size;
 
 	/* checks */
 	if (!check_extensions(sf, "xbb")) goto fail;
 
-	xbb_size = read_u32le(0, sf);
-	if (xbb_size < 4) goto fail;
-	if (get_streamfile_size(sf) != xbb_size + 4) goto fail;
+	sf_h = sf;
 
-	xbb_entries = read_u32le(4, sf);
+	xbb_size = read_u32le(0, sf_h);
+	if (xbb_size < 4) goto fail;
+	xbb_real_size = get_streamfile_size(sf_h);
+	if (xbb_real_size != (xbb_size + 4)) goto fail;
+
+	xbb_entries = read_u32le(4, sf_h);
 	if (target_subsong == 0) target_subsong = 1;
 	if (target_subsong < 0 || target_subsong > xbb_entries || xbb_entries < 1) goto fail;
 
@@ -65,7 +70,7 @@ VGMSTREAM* init_vgmstream_xbb_xsb(STREAMFILE* sf)
 		rc.current = xbb_entry_offset;
 		
 		xbb.xbb_flags = 0;
-		while (next_chunk(&rc, sf))
+		while (next_chunk(&rc, sf_h))
 		{
 			switch (rc.type) {
 				case 0x52494646: /* "RIFF" */
@@ -108,14 +113,14 @@ VGMSTREAM* init_vgmstream_xbb_xsb(STREAMFILE* sf)
 	/* read all "fmt " info there is. */
 	if (xbb.fmt_size == 0x14) {
 		/* usual Xbox IMA ADPCM codec header data */
-		xbb.codec = read_u16le(xbb.fmt_offset + 0, sf);
-		xbb.channels = read_u16le(xbb.fmt_offset + 2, sf);
-		xbb.sample_rate = read_u32le(xbb.fmt_offset + 4, sf);
-		xbb.avg_bps = read_u32le(xbb.fmt_offset + 8, sf);
-		xbb.blkalgn = read_u16le(xbb.fmt_offset + 12, sf);
-		xbb.bps = read_u16le(xbb.fmt_offset + 14, sf);
-		xbb.out_bps_pch = read_u16le(xbb.fmt_offset + 16, sf);
-		xbb.out_blkalgn_pch = read_u16le(xbb.fmt_offset + 18, sf);
+		xbb.codec = read_u16le(xbb.fmt_offset + 0, sf_h);
+		xbb.channels = read_u16le(xbb.fmt_offset + 2, sf_h);
+		xbb.sample_rate = read_u32le(xbb.fmt_offset + 4, sf_h);
+		xbb.avg_bps = read_u32le(xbb.fmt_offset + 8, sf_h);
+		xbb.blkalgn = read_u16le(xbb.fmt_offset + 12, sf_h);
+		xbb.bps = read_u16le(xbb.fmt_offset + 14, sf_h);
+		xbb.out_bps_pch = read_u16le(xbb.fmt_offset + 16, sf_h);
+		xbb.out_blkalgn_pch = read_u16le(xbb.fmt_offset + 18, sf_h);
 		/* do some checks against existing fmt values */
 		if (xbb.blkalgn != (0x24 * xbb.channels)) goto fail;
 		if (xbb.bps != 4) goto fail;
@@ -134,13 +139,14 @@ VGMSTREAM* init_vgmstream_xbb_xsb(STREAMFILE* sf)
 		xbb.stream_offset = xbb.external_data_offset;
 		xbb.stream_size = xbb.external_data_size;
 		/* open external .xsb file */
-		sf_body = open_streamfile_by_ext(sf, "xsb");
-		if (!sf_body) goto fail;
+		sf_b = open_streamfile_by_ext(sf, "xsb");
+		if (!sf_b) goto fail;
+		sf_data = sf_b;
 	}
 	else {
 		xbb.stream_offset = xbb.data_offset;
 		xbb.stream_size = xbb.data_size;
-		sf_body = sf;
+		sf_data = sf_h;
 	}
 
 	/* build and allocate the vgmstream */
@@ -160,11 +166,14 @@ VGMSTREAM* init_vgmstream_xbb_xsb(STREAMFILE* sf)
 			break;
 	}
 
-	if (!vgmstream_open_stream(vgmstream,sf_body,xbb.stream_offset)) goto fail;
-	close_streamfile(sf_body);
+	/* open the file for reading */
+	if (!vgmstream_open_stream(vgmstream,sf_data,xbb.stream_offset)) goto fail;
+	if (sf_h) close_vgmstream(sf_h);
+	if (sf_b) close_vgmstream(sf_b);
 	return vgmstream;
 fail:
-	close_streamfile(sf_body);
+	if (sf_h) close_vgmstream(sf_h);
+	if (sf_b) close_vgmstream(sf_b);
 	close_vgmstream(vgmstream);
 	return NULL;
 }
