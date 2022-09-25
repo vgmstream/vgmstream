@@ -3,7 +3,6 @@
 #include "../layout/layout.h"
 #include "fsb5_streamfile.h"
 
-
 typedef struct {
     int total_subsongs;
     int version;
@@ -43,7 +42,6 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
     uint32_t offset;
     int target_subsong = sf->stream_index;
     int i;
-
 
     /* checks */
     if (!is_id32be(0x00,sf, "FSB5"))
@@ -243,7 +241,6 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
             if (fsb5.stream_offset > get_streamfile_size(sf))
                 goto fail;
 
-
             /* get stream size from next stream offset or full size if there is only one */
             if (i + 1 == fsb5.total_subsongs) {
                 fsb5.stream_size = fsb5.sample_data_size - data_offset;
@@ -273,7 +270,6 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
         fsb5.name_offset = fsb5.base_header_size + fsb5.sample_header_size + read_u32le(name_suboffset,sf);
     }
 
-
     /* FSB5 can hit +2GB offsets, but since decoders aren't ready to handle that use a subfile to hide big offsets
      * (some FSB5 CLI versions make buggy offsets = bad output but this was fixed later) */
     if (fsb5.stream_offset > 0x7FFFFFFF) {
@@ -283,7 +279,6 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
     else {
         sb = sf;
     }
-
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(fsb5.channels, fsb5.loop_flag);
@@ -533,7 +528,6 @@ static layered_layout_data* build_layered_fsb5(STREAMFILE* sf, STREAMFILE* sb, f
     size_t interleave, config = 0;
     int i, layer_channels;
 
-
     /* init layout */
     data = init_layout_layered(fsb5->layers);
     if (!data) goto fail;
@@ -594,7 +588,6 @@ static layered_layout_data* build_layered_fsb5(STREAMFILE* sf, STREAMFILE* sb, f
         data->layers[i]->loop_start_sample = fsb5->loop_start;
         data->layers[i]->loop_end_sample = fsb5->loop_end;
 
-
         switch (fsb5->codec) {
 #ifdef VGM_USE_CELT
             case 0x0C: { /* CELT */
@@ -626,7 +619,6 @@ static layered_layout_data* build_layered_fsb5(STREAMFILE* sf, STREAMFILE* sb, f
                 goto fail;
         }
 
-
         temp_sf = setup_fsb5_streamfile(sb, fsb5->stream_offset, fsb5->stream_size, fsb5->layers, i, interleave);
         if (!temp_sf) goto fail;
 
@@ -641,7 +633,6 @@ static layered_layout_data* build_layered_fsb5(STREAMFILE* sf, STREAMFILE* sb, f
     if (!setup_layout_layered(data))
         goto fail;
     return data;
-
 fail:
     close_streamfile(temp_sf);
     free_layout_layered(data);
