@@ -567,7 +567,7 @@ static const hcakey_info hcakey_list[] = {
         {0x1bb363adcf4eb3f8},	//music_0420010
         {0xd80d3dcc7c75cea},	//music_0420011
         {0x52723f026d5238e8},	//music_0420012
-        {0xd13a315c0005f0},	//music_0420013
+        {0xd13a315c0005f0},     //music_0420013
         {0x35f2d3cec84aba1},	//music_0420014
         {0xdad11fe0e397ede},	//music_0420015
         {0xc94236c936f50cc},	//music_0420016
@@ -632,7 +632,7 @@ static const hcakey_info hcakey_list[] = {
         {0x1dd21a1244ca12f1},	//music_0620002
         {0xfdec74b23d8b494b},	//music_0620003
         {0x6f9735c02faf6aae},	//music_0620004
-        {0xe978d394512cfd},	//music_0620005
+        {0xe978d394512cfd},	    //music_0620005
         {0xaba147637d52efbe},	//music_0620006
         {0xe67f4da6012c5d24},	//music_0620007
         {0xc352bbf3d519256e},	//music_0620008
@@ -774,7 +774,7 @@ static const hcakey_info hcakey_list[] = {
         {0xf877dea1180b9b90},	//music_5040008
         {0xcd3fb92065d9f373},	//music_5040009
         {0xee8da2806a13eecf},	//music_5040010
-        {0x46fd87a21859ac},	//music_5040011
+        {0x46fd87a21859ac},	    //music_5040011
         {0x90fefcd350bd2cb8},	//music_5040012
         {0xf7edc5d72fdd6ceb},	//music_5040013
         {0x4c7d7c251c6bfa95},	//music_5040014
@@ -1037,7 +1037,7 @@ static const hcakey_info hcakey_list[] = {
         // Priconne! Grand Masters (iOS/Android)
         {185705658241},         // 0000002B3CEB7781
 
-        // Sonic Origins
+        // Sonic Origins (multi)
         {1991062320220623},     // 000712DC525289CF
 
         // Pachislot Gyakuten Saiban (iOS/Android)
@@ -1046,8 +1046,11 @@ static const hcakey_info hcakey_list[] = {
         // Alice Fiction (Android)
         {112089817},            // 0000000006AE5AD9
     
-        // Taiko no Tatsujin: Rhythm Festival Demo (Switch)
+        // Taiko no Tatsujin: Rhythm Festival (Switch)
         {52539816150204134},    // 00baa8af36327ee6
+
+        // Fairy Fencer F: Refrain Chord (multi)
+        {348693553056839375},   // 04D6CEF0656BF6CF
 };
 
 #endif/*_HCA_KEYS_H_*/
