@@ -8,8 +8,8 @@ VGMSTREAM* init_vgmstream_bkhd(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     STREAMFILE* temp_sf = NULL;
     uint32_t subfile_offset, subfile_size, base_offset = 0;
-    uint32_t subfile_id;
-    int big_endian, version, is_dummy = 0, is_wmid = 0;
+    uint32_t subfile_id, version;
+    int big_endian, is_dummy = 0, is_wmid = 0;
     uint32_t (*read_u32)(off_t,STREAMFILE*);
     float (*read_f32)(off_t,STREAMFILE*);
     int total_subsongs, target_subsong = sf->stream_index;
@@ -35,7 +35,7 @@ VGMSTREAM* init_vgmstream_bkhd(STREAMFILE* sf) {
      * complex and better handled with TXTP (some info from Nicknine's script).
      * Use this to explore HIRC and covert to .txtp: https://github.com/bnnm/wwiser */
 
-    version = read_u32(base_offset + 0x08, sf);
+    version = read_u32(base_offset + 0x08, sf); /* rarely version can be encrypted, but ok as u32 [Tamarin (PC)] */
     if (version == 0 || version == 1) { /* early games */
         version = read_u32(base_offset + 0x10, sf);
     }
