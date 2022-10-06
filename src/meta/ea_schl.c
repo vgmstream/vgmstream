@@ -997,8 +997,8 @@ VGMSTREAM* init_vgmstream_ea_mpf_mus(STREAMFILE* sf) {
         total_streams = (eof_offset - samples_table) / 0x08;
         off_mult = 0x80;
 
-        /* check to distinguish it from SNR/SNS version (first streamed sample is always at 0x100) */
-        if (read_u16(tracks_data + 0x04, sf) == 0 && read_u32(samples_table + 0x00, sf) != 0x02)
+        /* check to distinguish it from SNR/SNS version (first streamed sample is always at 0x00 or 0x100) */
+        if (read_u16(tracks_data + 0x04, sf) == 0 && read_u32(samples_table + 0x00, sf) > 0x02)
             goto fail;
 
         track_start = total_streams;
