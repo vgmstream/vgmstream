@@ -44,12 +44,12 @@ static void yamaha_adpcmb_expand_nibble(uint8_t byte, int shift, int32_t* hist1,
 
 /* Yamaha AICA expand, slightly filtered vs "ACM" Yamaha ADPCM, same as Creative ADPCM
  * (some info from https://github.com/vgmrips/vgmplay, https://wiki.multimedia.cx/index.php/Creative_ADPCM) */
-static void yamaha_aica_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset, int nibble_shift, int32_t* hist1, int32_t* step_size, int16_t *out_sample) {
+static void yamaha_aica_expand_nibble(uint8_t byte, int shift, int32_t* hist1, int32_t* step_size, int16_t *out_sample) {
     int code, delta, sample;
 
     *hist1 = *hist1 * 254 / 256; /* hist filter is vital to get correct waveform but not done in many emus */
 
-    code = ((read_8bit(byte_offset,stream->streamfile) >> nibble_shift))&0xf;
+    code = (byte >> shift) & 0xf;
     delta = (*step_size * scale_delta[code]) / 8; /* 'mul' IMA with table (not sure if part of encoder) */
     sample = *hist1 + delta;
 
@@ -108,8 +108,8 @@ static void yamaha_capcom_expand_nibble(uint8_t byte, int shift, int32_t* hist1,
  */
 
 
-/* Yamaha AICA ADPCM (also used in YMZ280B with high nibble first) */
-void decode_aica(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel, int is_stereo) {
+/* Yamaha AICA ADPCM (also used in YMZ263B/YMZ280B with high nibble first) */
+void decode_aica(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel, int is_stereo, int is_high_first) {
     int i, sample_count = 0;
     int16_t out_sample;
     int32_t hist1 = stream->adpcm_history1_16;
@@ -120,14 +120,16 @@ void decode_aica(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacin
     if (step_size > 0x6000) step_size = 0x6000;
 
     for (i = first_sample; i < first_sample + samples_to_do; i++) {
-        off_t byte_offset = is_stereo ?
+        uint8_t byte;
+        off_t offset = is_stereo ?
                 stream->offset + i :    /* stereo: one nibble per channel */
                 stream->offset + i/2;   /* mono: consecutive nibbles */
-        int nibble_shift = is_stereo ?
-                (!(channel&1) ? 0:4) :  /* even = low/L, odd = high/R */
-                (!(i&1) ? 0:4);         /* low nibble first */
+        int shift = is_high_first ?
+                is_stereo ? (!(channel&1) ? 4:0) : (!(i&1) ? 4:0) : /* even = high/L, odd = low/R */
+                is_stereo ? (!(channel&1) ? 0:4) : (!(i&1) ? 0:4);  /* even = low/L, odd = high/L */
 
-        yamaha_aica_expand_nibble(stream, byte_offset, nibble_shift, &hist1, &step_size, &out_sample);
+        byte = read_u8(offset, stream->streamfile);
+        yamaha_aica_expand_nibble(byte, shift, &hist1, &step_size, &out_sample);
         outbuf[sample_count] = out_sample;
         sample_count += channelspacing;
     }

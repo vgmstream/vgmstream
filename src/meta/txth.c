@@ -51,6 +51,7 @@ typedef enum {
     IMA_HV,
     PCM8_SB,
     HEVAG,
+    YMZ,
 
     UNKNOWN = 99,
 } txth_codec_t;
@@ -258,6 +259,7 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
         case MPEG:          coding = coding_MPEG_layer3; break; /* we later find out exactly which */
 #endif
         case IMA:           coding = coding_IMA; break;
+        case YMZ:
         case AICA:          coding = coding_AICA; break;
         case MSADPCM:       coding = coding_MSADPCM; break;
         case NGC_DSP:       coding = coding_NGC_DSP; break;
@@ -386,7 +388,12 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
                 vgmstream->codec_config = txth.codec_mode;
             }
 
-            vgmstream->allow_dual_stereo = 1; /* AICA and PSX */
+            if (txth.codec == YMZ) {
+                vgmstream->codec_config = 1; /* CONFIG_HIGH_NIBBLE */
+            }
+
+            //TODO recheck and use only for needed cases
+            vgmstream->allow_dual_stereo = 1; /* known to be used in: PSX, AICA, YMZ */
             break;
 
         case coding_PCFX:
@@ -955,6 +962,7 @@ static txth_codec_t parse_codec(txth_header* txth, const char* val) {
     else if (is_string(val,"MPEG"))         return MPEG;
     else if (is_string(val,"IMA"))          return IMA;
     else if (is_string(val,"AICA"))         return AICA;
+    else if (is_string(val,"YMZ"))          return YMZ;
     else if (is_string(val,"MSADPCM"))      return MSADPCM;
     else if (is_string(val,"NGC_DSP"))      return NGC_DSP;
     else if (is_string(val,"DSP"))          return NGC_DSP;
@@ -2129,6 +2137,7 @@ static int get_bytes_to_samples(txth_header* txth, uint32_t bytes) {
         case IMA_HV:
             return ima_bytes_to_samples(bytes, txth->channels);
         case AICA:
+        case YMZ:
         case CP_YM:
             return yamaha_bytes_to_samples(bytes, txth->channels);
         case PCFX:

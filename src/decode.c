@@ -1354,10 +1354,11 @@ void decode_vgmstream(VGMSTREAM* vgmstream, int samples_written, int samples_to_
         case coding_AICA:
         case coding_AICA_int: {
             int is_stereo = (vgmstream->channels > 1 && vgmstream->coding_type == coding_AICA);
+            int is_high_first = vgmstream->codec_config == 1;
             for (ch = 0; ch < vgmstream->channels; ch++) {
                 decode_aica(&vgmstream->ch[ch], buffer+ch,
                         vgmstream->channels, vgmstream->samples_into_block, samples_to_do, ch,
-                        is_stereo);
+                        is_stereo, is_high_first);
             }
             break;
         }
