@@ -523,7 +523,7 @@ static void replace_filename(char* dst, size_t dstsize, cli_config* cfg, VGMSTRE
         subsong = 0; /* for games without subsongs / bad config */
     }
 
-    if (vgmstream->stream_name && vgmstream->stream_name[0] != '\0') {
+    if (vgmstream->stream_name[0] != '\0') {
         snprintf(stream_name, sizeof(stream_name), "%s", vgmstream->stream_name);
         clean_filename(stream_name, 1); /* clean subsong name's subdirs */
     }

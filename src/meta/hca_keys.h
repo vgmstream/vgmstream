@@ -1051,6 +1051,9 @@ static const hcakey_info hcakey_list[] = {
 
         // Fairy Fencer F: Refrain Chord (multi)
         {348693553056839375},   // 04D6CEF0656BF6CF
+
+        // Echoes of Mana (Android)
+        {1090221945250803295},  // 0F213F153D026E5F
 };
 
 #endif/*_HCA_KEYS_H_*/

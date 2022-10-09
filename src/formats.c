@@ -129,6 +129,7 @@ static const char* extension_list[] = {
     "bvg",
     "bwav",
 
+    "cads",
     "caf",
     "cbd2",
     "ccc", //fake extension (to be removed)

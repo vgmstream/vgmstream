@@ -69,10 +69,12 @@ This guide is mainly geared towards beginner devs, introducing concepts in steps
 Common C compiler, most development is done with this.
 
 On **Windows** you need one of these somewhere in PATH:
-- MinGW-w64 (32bit version): https://sourceforge.net/projects/mingw-w64/
+- MinGW-w64 (32bit version), in any config (for example: gcc-8.1.0, i686, win32, sjlj)
   - Use this for easier standalone executables
-  - [Latest online MinGW installer](https://sourceforge.net/projects/mingw-w64/files/Toolchains%20targetting%20Win32/Personal%20Builds/mingw-builds/installer/mingw-w64-install.exe/download) with any config should work (for example: gcc-8.1.0, i686, win32, sjlj).
+  - [Sourceforce project](https://sourceforge.net/projects/mingw-w64/)
+  - [Latest online MinGW installer](https://sourceforge.net/projects/mingw-w64/files/Toolchains%20targetting%20Win32/Personal%20Builds/mingw-builds/installer/mingw-w64-install.exe/download).
   - Or download and unzip the [portable MinGW package](https://sourceforge.net/projects/mingw-w64/files/Toolchains%20targetting%20Win32/Personal%20Builds/mingw-builds/8.1.0/threads-win32/sjlj/i686-8.1.0-release-win32-sjlj-rt_v6-rev0.7z/download)
+  - Or get from [alt builds](https://github.com/niXman/mingw-builds-binaries/releases/) (may be more recent versions)
 - MSYS2 with the MinGW-w64_shell (32bit) package: https://msys2.github.io/
   - Resulting binaries may depend on `msys*.dll`.
 

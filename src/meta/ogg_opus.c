@@ -91,6 +91,13 @@ VGMSTREAM* init_vgmstream_ogg_opus(STREAMFILE* sf) {
                 sscanf(strrchr(user_comment, '=') + 1, "%d-%d", &loop_start, &loop_end);
                 loop_flag = 1;
             }
+            else if (strstr(user_comment,"loopstart=")==user_comment) { /* The Legend of Heroes: Kuro no Kiseki (PC) */
+                loop_start= atol(strrchr(user_comment,'=')+1);
+                loop_flag = (loop_start >= 0);
+            }
+            else if (strstr(user_comment,"loopend=")==user_comment) { /* LoopStart pair */
+                loop_end = atol(strrchr(user_comment,'=')+1);
+            }
 
             //;VGM_LOG("OggOpus: user_comment=%s\n", user_comment);
             offset += 0x04 + user_comment_size;

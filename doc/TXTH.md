@@ -74,9 +74,7 @@ as explained below, but often will use default values. Accepted codec strings:
 # - HEVAG          Vita/PS4 ADPCM
 #   * For some Vita/PS4 games
 #   * Interleave is multiple of 0x10 (default)
-# - XBOX           Xbox IMA ADPCM (mono/stereo)
-#   * For many XBOX games, and some PC games
-#   * Special interleave is multiple of 0x24 (mono) or 0x48 (stereo)
+#
 # - DSP|NGC_DSP    Nintendo GameCube ADPCM
 #   * For many GC/Wii/3DS/Switch games
 #   * Interleave is multiple of 0x08 (default), often +0x1000
@@ -84,6 +82,7 @@ as explained below, but often will use default values. Accepted codec strings:
 #   * Should set ADPCM state (hist_offset/spacing/etc)
 # - DTK|NGC_DTK    Nintendo ADP/DTK ADPCM
 #   * For rare GC games
+#
 # - PCM16LE        PCM 16-bit little endian
 #   * For many games (usually on PC)
 #   * Interleave is multiple of 0x2 (default)
@@ -102,27 +101,43 @@ as explained below, but often will use default values. Accepted codec strings:
 # - PCM_FLOAT_LE   PCM 32-bit float little endian
 #   * For few rare games [Ikinari Maou (Switch)]
 #   * Interleave is multiple of 0x4 (default)
+#
 # - IMA            IMA ADPCM (mono/stereo)
 #   * For some PC games, and rarely consoles
 #   * Special interleave is multiple of 0x1, often +0x80
 # - DVI_IMA        IMA ADPCM (DVI order)
 #   * Variation with modified encoding
-# - AICA           Yamaha AICA ADPCM (mono/stereo)
-#   * For some Dreamcast games, and some arcade (Naomi) games
-#   * Special interleave is multiple of 0x1
-# - APPLE_IMA4     Apple Quicktime IMA ADPCM
-#   * For some Mac/iOS games
+# - XBOX           Xbox IMA ADPCM (mono/stereo)
+#   * For many XBOX games, and some PC games
+#   * Special interleave is multiple of 0x24 (mono) or 0x48 (stereo)
 # - MS_IMA         Microsoft IMA ADPCM
 #   * For some PC games
 #   * Interleave (frame size) varies, often multiple of 0x100 [required]
+# - APPLE_IMA4     Apple Quicktime IMA ADPCM
+#   * For some Mac/iOS games
+# - IMA_HV         High Voltage's IMA ADPCM
+#   * For some High Voltage Software PC games [NBA Hangtime (PC), NHL Open Ice (PC)]
+#
 # - MSADPCM        Microsoft ADPCM (mono/stereo)
 #   * For some PC games
 #   * Interleave (frame size) varies, often multiple of 0x100 [required]
+#
+# - AICA           Yamaha AICA ADPCM (mono/stereo)
+#   * For some Dreamcast games, and some arcade (Naomi) games
+#   * Special interleave is multiple of 0x1
+# - YMZ           Yamaha YMZ263B/YMZ280B ADPCM (mono/stereo)
+#   * Variation of AICA
+#   * For rare arcade games [VJ: Visual & Music Slap (AC)]
+# - CP_YM          Capcom's Yamaha ADPCM
+#   * For rare Saturn games [Marvel Super Heroes vs Street Fighter (SAT)]
+#
 # - SDX2           Squareroot-delta-exact 8-bit DPCM
 #   * For many 3DO games
+#
 # - MPEG           MPEG Audio Layer file (MP1/2/3)
 #   * For some games (usually PC/PS3)
 #   * May set skip_samples (MP2: around 240 or 480, MP3: around 1152)
+#
 # - ATRAC3         Sony ATRAC3
 #   * For some PS2 and PS3 games
 #   * Interleave (frame size) can be 0x60/0x98/0xC0 * channels [required]
@@ -134,45 +149,45 @@ as explained below, but often will use default values. Accepted codec strings:
 #     Stereo: 0x0118|0178|0230|02E8|03A8|0460|05D0|0748|0800
 #     6/8 channels: multiple of one of the above
 #   * Should set skip_samples (around 2048+184 but varies)
+#
 # - XMA1           Microsoft XMA1
 #   * For early X360 games
 # - XMA2           Microsoft XMA2
 #   * For later X360 games
-# - FFMPEG         Any headered FFmpeg format
-#   * For uncommon games
-#   * May set skip_samples
+#
 # - AC3            AC3/SPDIF
 #   * For few PS2 games
 #   * Should set skip_samples (around 256 but varies)
-# - PCFX           PC-FX ADPCM
-#   * For many PC-FX games
-#   * Interleave is multiple of 0x1, often +0x8000
-#   * Sample rate may be ~31468/~15734/~10489/~7867
-# - PCM4           PCM 4-bit signed
-#   * For early consoles
-# - PCM4_U         PCM 4-bit unsigned
-#   * Variation with modified encoding
+# - AAC            Advanced Audio Coding (raw outside .mp4)
+#   * For some 3DS games and many iOS games
+#   * Should set skip_samples (typically 1024 but varies, 2112 is also common)
+# - FFMPEG         Any headered FFmpeg format
+#   * For uncommon games
+#   * May set skip_samples
+#
 # - OKI16          OKI ADPCM with 16-bit output (not VOX/Dialogic 12-bit)
 #   * For rare PS2 games [Sweet Legacy (PS2), Hooligan (PS2)]
 # - OKI4S          OKI ADPCM with 16-bit output and adjusted tables
 #   * For later Konami arcade games [Gitadora (AC), Metal Gear Arcade (AC)]
-# - AAC            Advanced Audio Coding (raw outside .mp4)
-#   * For some 3DS games and many iOS games
-#   * Should set skip_samples (typically 1024 but varies, 2112 is also common)
+# - PCFX           PC-FX ADPCM
+#   * For many PC-FX games
+#   * Interleave is multiple of 0x1, often +0x8000
+#   * Sample rate may be ~31468/~15734/~10489/~7867
+#
+# - PCM4           PCM 4-bit signed
+#   * For early consoles
+# - PCM4_U         PCM 4-bit unsigned
+#   * Variation with modified encoding
 # - TGC            Tiger Game.com 4-bit ADPCM
 #   * For Tiger Game.com games
 # - ASF            Argonaut ASF ADPCM
 #   * For rare Argonaut games [Croc (SAT)]
 # - EAXA           Electronic Arts EA-XA ADPCM
 #   * For rare EA games [Harry Potter and the Chamber of Secrets (PC)]
-# - XA             CD-XA ADPCM (ISO 2048 mode1/data streams without subchannels)
+# - XA             CD-XA ADPCM (ISO 2048 mode1 streams without subchannel data)
 #   * For rare Saturn and PS2 games [Phantasy Star Collection (SAT), Fantavision (PS2), EA SAT videos]
 # - XA_EA         Electronic Arts XA ADPCM variation
 #   * For rare Saturn games [EA SAT videos]
-# - CP_YM          Capcom's Yamaha ADPCM
-#   * For rare Saturn games [Marvel Super Heroes vs Street Fighter (SAT)]
-# - IMA_HV         High Voltage's IMA ADPCM
-#   * For some High Voltage Software PC games [NBA Hangtime (PC), NHL Open Ice (PC)]
 codec = (codec string)
 ```
 
