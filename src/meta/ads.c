@@ -336,19 +336,26 @@ VGMSTREAM* init_vgmstream_ads_container(STREAMFILE* sf) {
     size_t subfile_size;
 
     /* checks */
-    if (!check_extensions(sf, "ads"))
-        goto fail;
-
-    if (read_32bitBE(0x00,sf) == 0x41445343 &&  /* "ADSC" */
-        read_32bitBE(0x04,sf) == 0x01000000) {
+    if (is_id32be(0x00,sf, "ADSC")) {
         /* Kenka Bancho 2, Kamen Rider Hibiki/Kabuto, Shinjuku no Okami */
+        if (read_u32le(0x04,sf) != 0x01)
+            goto fail;
+
+        if (!check_extensions(sf, "ads"))
+            goto fail;
+
         subfile_offset = 0x08;
     }
-    else if (read_32bitBE(0x00,sf) == 0x63617669 && /* "cavi" */
-             read_32bitBE(0x04,sf) == 0x61207374 && /* "a st" */
-             read_32bitBE(0x08,sf) == 0x7265616D) { /* "ream" */
+    else if (is_id32be(0x00,sf, "cavi") &&
+             is_id32be(0x04,sf, "a st") &&
+             is_id32be(0x08,sf, "ream")) {
         /* cavia games: Drakengard 1/2, Dragon Quest Yangus, GITS: Stand Alone Complex */
         subfile_offset = 0x7d8;
+
+        /* .ads: assumed
+         * .cads: probable extension (found in bigfiles as LE field) */
+        if (!check_extensions(sf, "ads,cads"))
+            goto fail;
     }
     else {
         goto fail;
