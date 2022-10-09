@@ -529,7 +529,6 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
 
     /* lower priority metas (no clean header identity, somewhat ambiguous, or need extension/companion file to identify) */
     init_vgmstream_agsc,
-    init_vgmstream_dtk,
     init_vgmstream_rsf,
     init_vgmstream_ps2_wmus,
     init_vgmstream_mib_mih,
@@ -542,6 +541,7 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
 
     /* lowest priority metas (should go after all metas, and TXTH should go before raw formats) */
     init_vgmstream_txth,            /* proper parsers should supersede TXTH, once added */
+    init_vgmstream_dtk,
     init_vgmstream_mpeg,            /* semi-raw MP3 */
     init_vgmstream_encrypted,       /* encrypted stuff */
     init_vgmstream_btsnd,           /* semi-headerless */
