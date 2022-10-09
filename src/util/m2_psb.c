@@ -788,7 +788,7 @@ int psb_node_exists(const psb_node_t* node, const char* key) {
 
 static void print_internal(psb_node_t* curr, int depth) {
     int i;
-    psb_node_t node;
+    psb_node_t node = { 0 };
     const char* key;
     psb_type_t type;
     psb_result_t res;
@@ -857,7 +857,7 @@ static void print_internal(psb_node_t* curr, int depth) {
 }
 
 void psb_print(psb_context_t* ctx) {
-    psb_node_t node;
+    psb_node_t node = { 0 };
 
     psb_get_root(ctx, &node);
     print_internal(&node, 0);
