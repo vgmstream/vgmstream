@@ -1054,6 +1054,9 @@ static const hcakey_info hcakey_list[] = {
 
         // Echoes of Mana (Android)
         {1090221945250803295},  // 0F213F153D026E5F
+
+        // Persona 5 Royal (multi)
+        {9923540143823782},     // 002341683D2FDBA6
 };
 
 #endif/*_HCA_KEYS_H_*/
