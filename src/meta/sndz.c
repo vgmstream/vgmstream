@@ -2,7 +2,7 @@
 #include "../coding/coding.h"
 
 
-/* SNDZ - Sony/SCE's lib? (cousin of SXD) [Gran Turismo 7 (PS4)] */
+/* SNDZ - Sony/SCE's lib? (cousin of SXD) [Gran Turismo 7 (PS4), Astro's Playroom (PS5)] */
 VGMSTREAM* init_vgmstream_sndz(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     STREAMFILE* sf_b = NULL;
@@ -85,7 +85,7 @@ VGMSTREAM* init_vgmstream_sndz(STREAMFILE* sf) {
         /* 12: null */
         sample_rate = read_u32le(offset + 0x14, sf);
         num_samples = read_s32le(offset + 0x18, sf);
-        at9_config = read_u32le(offset + 0x1c, sf);
+        at9_config = read_u32le(offset + 0x1c, sf); /* null for other codecs */
         loop_start = read_s32le(offset + 0x20, sf);
         loop_end = read_s32le(offset + 0x24, sf);
         stream_size = read_u32le(offset + 0x28, sf); /* from data start in szd2 or absolute in szd3 */
@@ -131,6 +131,24 @@ VGMSTREAM* init_vgmstream_sndz(STREAMFILE* sf) {
         read_string(vgmstream->stream_name,STREAM_NAME_SIZE, name_offset, sf);
 
     switch (codec) {
+        case 0x02:
+            vgmstream->coding_type = coding_PCM16LE;
+            vgmstream->layout_type = layout_interleave;
+            vgmstream->interleave_block_size = 0x02;
+            break;
+
+        case 0x04:
+            vgmstream->coding_type = coding_PCM24LE;
+            vgmstream->layout_type = layout_interleave;
+            vgmstream->interleave_block_size = 0x02;
+            break;
+
+        case 0x08:
+            vgmstream->coding_type = coding_PCMFLOAT;
+            vgmstream->layout_type = layout_interleave;
+            vgmstream->interleave_block_size = 0x04;
+            break;
+
         case 0x20:
             vgmstream->coding_type = coding_HEVAG;
             vgmstream->layout_type = layout_interleave;
