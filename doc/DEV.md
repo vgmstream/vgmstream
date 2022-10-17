@@ -3,32 +3,55 @@
 ## Code
 vgmstream uses C (C89 when possible), and C++ for the foobar2000 and Audacious plugins.
 
-C should be restricted to features VS2010 understands. This mainly means declaring variables at the start of a { .. } block (declare+initialize is fine, as long as it doesn't reference variables declared in the same block) and avoiding C99 features like variable-length arrays (but certain others like // comments are fine).
+C should be restricted to features most compilers understand (including not-too-recent versions of VS/GCC/Clang), avoiding some less useful C99 features like variable-length arrays (certain others like // comments are fine).
 
-There are no hard coding rules but for consistency one could follow the style used in most files:
+There are no hard coding rules but for consistency one should follow the style used in most files:
 - general C conventions
 - 4 spaces instead of tabs
-- underscore_and_lowercase_names instead of CamelCase
-- /* C89 comments */ for general comments, //C99 comments for special comments (like disabling code but leaving it there for visibility)
-- brackets starting in the same line 
-  - ex. `if (..) { CRLF ... }`
+- `\n` breaks (LF, Linux style), instead of `\r\n` (CRLF, Windows style)
+- `underscore_and_lowercase_names` instead of `CamelCase`
+- `/* C89 comments */` for general comments, `//C99 comments` for special comments (like disabling code but leaving it there for visibility)
+- brackets starting in the same line
+  - ex. `if (..) { LF ... LF }`
 - line length ~100, more is ok for 'noise code' (uninteresting calcs or function defs)
 - offsets/sizes in hex, counts/numbers in decimal
-- test functions may return 1=ok, 0=ko for simplicity.
-- free(ptr) no need to NULL-check per standard, close_stuff(ptr) should follow when possible
-- lowercase_helper_structs, UPPERCASE_MAIN_STRUCTS
+- test functions may return 1=ok, 0=ko for simplicity
+- `free(ptr)` no need to NULL-check per standard, `close_stuff(ptr)` should follow when possible
+- `lowercase_helper_structs_t`, `UPPERCASE_MAIN_STRUCTS`
 - spaces in calcs/ifs/etc may be added as desired for clarity
   - ex. `if (simple_check)` or `if ( complex_and_important_stuff(weird + weird) )`
-- goto are used to abort and reach "fail" sections (typical C cleanup style)
+- `goto` are used to abort and reach "fail" sections (typical C cleanup style), beware vars should be defined first
 - pointer definitions should keep the `*` together for consistency 
   - ex. `VGMSTREAM* init_x() { ... }` `STREAMFILE* sf = ...`
 
 But other styles may be found, this isn't very important as most files are isolated. When modifying a file or section of the code just try to follow the style set there so code doesn't clash too much.
 
-### Code quality
-There is quite a bit of code that could be improved overall, but given how niche the project is priority is given to adding and improving formats. Parts may segfault or even cause infinite loops on bad data, but it's fixed as encountered rather than worrying too much about improbable cases. There isn't an automated test suite at the moment, so tests are manually done as needed.
+If you aren't sure you can use this `.clang-format` file as an starting point (put in source root), that IDEs like VS can use to reformat code. This doesn't fully mimic common style though.
+```
+# see: https://clang.llvm.org/docs/ClangFormatStyleOptions.html
+BasedOnStyle: Google
 
-For regression testing there is a simple script that compares output of a previous version of vgmstream_cli with current. Some bugs may drastically change output when fixed (for example adjusting loops or decoding) so it could be hard to automate and maintain.
+IndentWidth: 4
+ColumnLimit: 150
+
+BreakBeforeBraces: Custom
+BraceWrapping:
+  BeforeElse: true
+
+DerivePointerAlignment: false
+PointerAlignment: Left
+SpaceBeforeParens: ControlStatements
+
+AccessModifierOffset: -2
+AllowShortBlocksOnASingleLine: Never
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: Never
+```
+
+### Code quality
+There is quite a bit of code that could be improved overall, and parts can feel a bit hacked together and brittle. But given how niche the project is and how few contributors there are, priority is given to adding and improving formats.
+
+For regression testing there is a simple script that compares output of a previous version of vgmstream_cli with current. Some bugs may drastically change output when fixed (for example adjusting loops or decoding) so it could be hard to automate and maintain. There isn't an automated test suite at the moment, so tests are manually done as needed.
 
 Code is checked for leaks from time to time using detection tools, but most of vgmstream formats are quite simple and don't need to manage memory. It's mainly useful for files using external decoders or complex segmented/layered layout combos.
 ```
@@ -38,6 +61,8 @@ make vgmstream_cli EXTRA_CFLAGS="-g" STRIP=echo
 # find leaks
 drmemory -- vgmstream_cli -o file.ext
 ```
+
+Code is reasonably secure: some parts like IO are designed in a way should avoid segfaults, memory allocation is kept to minimum, and buffer handling is often very limited and simple making overflows unlikely. However, parts may cause division-by-zero or even infinite loops on bad data (fixed as known), no fuzz testing is done (some segfaults may remain, specially for complex codecs), and since vgmstream uses some external libraries/codecs there may be issues with old versions (updated at times).
 
 Some of the code can be inefficient or duplicated at places, but it isn't that much of a problem if gives clarity. vgmstream's performance is fast enough (as it mainly deals with playing songs in real time) so that favors clarity over optimization. Performance bottlenecks are mainly:
 - I/O: since I/O is buffered it's possible to needlessly trash the buffers when reading previous/next offsets back and forth. It's better to read linearly using big enough data chunks and cache values.
@@ -54,10 +79,11 @@ Some of the code can be inefficient or duplicated at places, but it isn't that m
 ./ext_includes/      external includes for compiling
 ./ext_libs/          external libs/DLLs for linking
 ./fb2k/              foobar2000 plugin
-./src/               main vgmstream code and helpers
+./src/               main vgmstream code
 ./src/coding/        format data decoders
 ./src/layout/        format data demuxers
 ./src/meta/          format header parsers
+./src/util/          helpers
 ./winamp/            Winamp plugin
 ./xmplay/            XMPlay plugin
 ```
