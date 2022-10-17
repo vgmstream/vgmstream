@@ -1057,6 +1057,9 @@ static const hcakey_info hcakey_list[] = {
 
         // Persona 5 Royal (multi)
         {9923540143823782},     // 002341683D2FDBA6
+
+        // P Sengoku Otome 6 ~Akatsuki no Sekigahahara~ (Android)
+        {97648135},             // 0000000005d1fe07
 };
 
 #endif/*_HCA_KEYS_H_*/
