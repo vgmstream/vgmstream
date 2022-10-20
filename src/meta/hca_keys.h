@@ -1060,6 +1060,9 @@ static const hcakey_info hcakey_list[] = {
 
         // P Sengoku Otome 6 ~Akatsuki no Sekigahahara~ (Android)
         {97648135},             // 0000000005d1fe07
+    
+        // CHUNITHM International Version (AC)
+        {33426922444908636},   // 0076C19BDE43685C
 };
 
 #endif/*_HCA_KEYS_H_*/
