@@ -264,6 +264,9 @@ static const adxkey_info adxkey9_list[] = {
         /* Shin Megami Tensei V (Switch) */
         {0x0000,0x0000,0x0000, NULL,1731948526},            // 00000000673B6FEE
 
+        /* Persona 5 Royal (multi) */
+        {0x0000,0x0000,0x0000, NULL,9923540143823782},      // 002341683D2FDBA6
+
 };
 
 static const int adxkey8_list_count = sizeof(adxkey8_list) / sizeof(adxkey8_list[0]);
