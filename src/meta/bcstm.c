@@ -104,7 +104,7 @@ VGMSTREAM * init_vgmstream_bcstm(STREAMFILE *streamFile) {
             vgmstream->coding_type = coding_NGC_DSP;
 
             if (is_camelot_ima) {
-                vgmstream->coding_type = coding_3DS_IMA;
+                vgmstream->coding_type = coding_NW_IMA;
             }
             else {
                 int i, c;

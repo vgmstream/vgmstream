@@ -227,7 +227,7 @@ static VGMSTREAM* init_vgmstream_bxwav(STREAMFILE* sf, bxwav_type_t type) {
             break;
 
         case 0x03:
-            vgmstream->coding_type = coding_3DS_IMA;
+            vgmstream->coding_type = coding_NW_IMA;
             /* hist is read below */
             break;
 
