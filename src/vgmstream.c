@@ -97,7 +97,6 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_ps2_kces,
     init_vgmstream_hxd,
     init_vgmstream_vsv,
-    init_vgmstream_scd_pcm,
     init_vgmstream_ps2_pcm,
     init_vgmstream_ps2_rkv,
     init_vgmstream_ps2_vas,
@@ -528,6 +527,7 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_bigrp,
 
     /* lower priority metas (no clean header identity, somewhat ambiguous, or need extension/companion file to identify) */
+    init_vgmstream_scd_pcm,
     init_vgmstream_agsc,
     init_vgmstream_rsf,
     init_vgmstream_ps2_wmus,
