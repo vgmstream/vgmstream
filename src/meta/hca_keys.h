@@ -1055,10 +1055,10 @@ static const hcakey_info hcakey_list[] = {
         // Echoes of Mana (Android)
         {1090221945250803295},  // 0F213F153D026E5F
 
-        // Persona 5 Royal (multi)
+        // Persona 5 Royal (Switch)
         {9923540143823782},     // 002341683D2FDBA6
 
-        // P Sengoku Otome 6 ~Akatsuki no Sekigahahara~ (Android)
+        // P Sengoku Otome 6 ~Akatsuki no Sekigahara~ (Android)
         {97648135},             // 0000000005d1fe07
     
         // CHUNITHM International Version (AC)
