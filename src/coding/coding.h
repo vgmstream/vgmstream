@@ -638,7 +638,7 @@ typedef struct {
     /* multichannel-only */
     int coupled_count;
     int stream_count;
-    int channel_mapping[8];
+    int channel_mapping[255];
     /* frame table */
     off_t table_offset;
     int table_count;
