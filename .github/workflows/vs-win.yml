@@ -18,7 +18,7 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Fetch Git tags
         shell: cmd
@@ -38,25 +38,25 @@ jobs:
         run: powershell -ExecutionPolicy Bypass -NoProfile -File .\msvc-build.ps1 PackageTmp
 
       - name: Upload foobar2000 component artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: foo_input_vgmstream.fb2k-component
           path: ${{github.workspace}}\tmp\fb2k
 
       - name: Upload CLI tools artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: vgmstream-win
           path: ${{github.workspace}}\tmp\cli
 
       - name: Upload foobar2000 component debug symbols artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: foo_input_vgmstream.pdb
           path: ${{github.workspace}}\tmp\fb2k-p
 
       - name: Upload CLI tools debug symbols artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: vgmstream-win.pdb
           path: ${{github.workspace}}\tmp\cli-p
