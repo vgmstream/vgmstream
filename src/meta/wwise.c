@@ -538,7 +538,7 @@ VGMSTREAM* init_vgmstream_wwise_bnk(STREAMFILE* sf, int* p_prefetch) {
 
             if (ww.block_size != 0 || ww.bits_per_sample != 0) goto fail;
             if (!ww.seek_offset) goto fail;
-            if (ww.channels > 8) goto fail; /* mapping not defined */
+            if (ww.channels > 255) goto fail; /* opus limit */
 
             cfg.channels = ww.channels;
             cfg.table_offset = ww.seek_offset;
@@ -550,6 +550,7 @@ VGMSTREAM* init_vgmstream_wwise_bnk(STREAMFILE* sf, int* p_prefetch) {
             cfg.skip = read_u16(ww.fmt_offset + 0x20, sf);
             /* 0x22: codec version */
             mapping = read_u8(ww.fmt_offset + 0x23, sf);
+            if (mapping == 1 && ww.channels > 8) goto fail; /* mapping not defined */
 
             if (read_u8(ww.fmt_offset + 0x22, sf) != 1)
                 goto fail;
@@ -562,7 +563,7 @@ VGMSTREAM* init_vgmstream_wwise_bnk(STREAMFILE* sf, int* p_prefetch) {
             }
 
             /* AK does some wonky implicit config for multichannel */
-            if (mapping == 1 && ww.channel_type == 1) { /* only allowed values ATM, set when >2ch */
+            if (mapping > 0 && ww.channel_type == 1) { /* only allowed values ATM, set when >2ch */
                 static const int8_t mapping_matrix[8][8] = {
                     { 0, 0, 0, 0, 0, 0, 0, 0, },
                     { 0, 1, 0, 0, 0, 0, 0, 0, },
@@ -589,9 +590,15 @@ VGMSTREAM* init_vgmstream_wwise_bnk(STREAMFILE* sf, int* p_prefetch) {
                 /* total number internal OPUS streams (should be >0) */
                 cfg.stream_count = ww.channels - cfg.coupled_count;
 
-                /* channel assignments */
-                for (i = 0; i < ww.channels; i++) {
-                    cfg.channel_mapping[i] = mapping_matrix[ww.channels - 1][i];
+                if (mapping == 1) { // ak remapping
+                    /* channel assignments */
+                    for (i = 0; i < ww.channels; i++) {
+                        cfg.channel_mapping[i] = mapping_matrix[ww.channels - 1][i];
+                    }
+                } else { // linear
+                    for (i = 0; i < ww.channels; i++) {
+                        cfg.channel_mapping[i] = i;
+                    }
                 }
             }
 
