@@ -448,6 +448,7 @@ static const hcakey_info hcakey_list[] = {
         {0x120db58e6c835175},	//music_0110026
         {0x3613e2a7fdfc0784},	//music_0110027
         {0xc239d244b6d3b722},	//music_0110028
+        {0x2575c136a260e723},	//music_0110029
         {0xfb647d074e53fab6},	//music_0120001
         {0xc24049b9f7ed3105},	//music_0120002
         {0xdc128f2fd48bf4b},	//music_0120003
@@ -468,6 +469,7 @@ static const hcakey_info hcakey_list[] = {
         {0x3674aba8da7bc84b},	//music_0120018
         {0xfd61f2c3b89f3888},	//music_0120019
         {0x514fa9879fd07278},	//music_0120021
+        {0x3841dd3467659916},	//music_0120022
         {0x4fffee4065d22bec},	//music_0210001
         {0x7678588b0adf59df},	//music_0210002
         {0xa0316b536c8b7540},	//music_0210003
@@ -484,6 +486,7 @@ static const hcakey_info hcakey_list[] = {
         {0xaecee65d0f181d3b},	//music_0210014
         {0x2822bba0a5c4f18c},	//music_0210015
         {0xff579d3fcfa8453a},	//music_0210016
+        {0x3caa61e8b958f6d8},	//music_0210017
         {0x15bb78c31db0a0b6},	//music_0220001
         {0x59b1257242c40109},	//music_0220002
         {0xdb402bd08d522f34},	//music_0220003
@@ -504,6 +507,7 @@ static const hcakey_info hcakey_list[] = {
         {0xfceaa73248868ec5},	//music_0220019
         {0x3b6b0023a2dd8c3d},	//music_0220020
         {0x318f65f564daa549},	//music_0220021
+        {0x3dac12b26997f628},	//music_0220022
         {0x6a15a9610d10d210},	//music_0310001
         {0x57111c24801b44a1},	//music_0310002
         {0x40443974a0a86b8b},	//music_0310003
@@ -555,6 +559,7 @@ static const hcakey_info hcakey_list[] = {
         {0x1da4370c9c20319c},	//music_0410013
         {0xd8cdd53589ad3634},	//music_0410014
         {0x88007190e0bfa1ce},	//music_0410015
+        {0x6fccdd5c3d0d6e3e},	//music_0410016
         {0x5d1f3fdbbb036f8d},	//music_0420001
         {0xc04264e8f34ad5c0},	//music_0420002
         {0x8f0e96b4f71f724f},	//music_0420003
@@ -567,7 +572,7 @@ static const hcakey_info hcakey_list[] = {
         {0x1bb363adcf4eb3f8},	//music_0420010
         {0xd80d3dcc7c75cea},	//music_0420011
         {0x52723f026d5238e8},	//music_0420012
-        {0xd13a315c0005f0},     //music_0420013
+        {0xd13a315c0005f0},	//music_0420013
         {0x35f2d3cec84aba1},	//music_0420014
         {0xdad11fe0e397ede},	//music_0420015
         {0xc94236c936f50cc},	//music_0420016
@@ -632,7 +637,7 @@ static const hcakey_info hcakey_list[] = {
         {0x1dd21a1244ca12f1},	//music_0620002
         {0xfdec74b23d8b494b},	//music_0620003
         {0x6f9735c02faf6aae},	//music_0620004
-        {0xe978d394512cfd},	    //music_0620005
+        {0xe978d394512cfd},	//music_0620005
         {0xaba147637d52efbe},	//music_0620006
         {0xe67f4da6012c5d24},	//music_0620007
         {0xc352bbf3d519256e},	//music_0620008
@@ -647,6 +652,7 @@ static const hcakey_info hcakey_list[] = {
         {0x5c1195d8afcb1901},	//music_0620017
         {0x1ad8db767d9ba4a7},	//music_0620018
         {0x9bc820aa161b0f08},	//music_0620019
+        {0x972b52f3dfaa387a},	//music_0910001
         {0x2a47feac8dc3ca9c},	//music_3010001
         {0x9ebbaf63ffe9d9ef},	//music_3010002
         {0xe553dba6592293d8},	//music_3010003
@@ -673,6 +679,10 @@ static const hcakey_info hcakey_list[] = {
         {0x729efd67aede1a40},	//music_3020008
         {0xb7b9a143742fa51e},	//music_3020009
         {0xc7750328bcd329f},	//music_3020010
+        {0x5761fe7462b17a3b},	//music_3020012
+        {0x98c7a1d1c45df640},	//music_3020013
+        {0x3d01826fe053ddda},	//music_3020014
+        {0xa6a6426caed68f7c},	//music_3020015
         {0xdfad847a86a126bb},	//music_5030001
         {0x711ef85045b8c26e},	//music_5030002
         {0xff7640b46d72b337},	//music_5030003
@@ -764,6 +774,14 @@ static const hcakey_info hcakey_list[] = {
         {0xd51e8d88fff1aa5c},	//music_5030089
         {0xa2ea81812297bf73},	//music_5030090
         {0x276f1e23c97cf8d},	//music_5030091
+        {0xb59a0df1213c36c9},	//music_5030092
+        {0xebf7bfebb82a4411},	//music_5030093
+        {0xb991fcb8b74f46d7},	//music_5030094
+        {0x435e2e064bd48ad5},	//music_5030095
+        {0xa9824e9baaa354e2},	//music_5030096
+        {0xc3a72539b831ea6e},	//music_5030097
+        {0x8bc6b7b7a2d2bba3},	//music_5030098
+        {0xdbb0f41e90b30452},	//music_5030099
         {0x444dda6d55d76095},	//music_5040001
         {0xcbf4f1324081e0a6},	//music_5040002
         {0xf1db3c1d9542063a},	//music_5040003
@@ -774,7 +792,7 @@ static const hcakey_info hcakey_list[] = {
         {0xf877dea1180b9b90},	//music_5040008
         {0xcd3fb92065d9f373},	//music_5040009
         {0xee8da2806a13eecf},	//music_5040010
-        {0x46fd87a21859ac},	    //music_5040011
+        {0x46fd87a21859ac},	//music_5040011
         {0x90fefcd350bd2cb8},	//music_5040012
         {0xf7edc5d72fdd6ceb},	//music_5040013
         {0x4c7d7c251c6bfa95},	//music_5040014
@@ -942,8 +960,21 @@ static const hcakey_info hcakey_list[] = {
         {0x6f321adde08396e3},	//music_5050163
         {0x58afa6381eeb1425},	//music_5050164
         {0x751daf7d1a5401cb},	//music_5050165
+        {0xbd6b66823f854f68},	//music_5050167
+        {0xceb902b93eba45d8},	//music_5050168
         {0x2550e145b93723ae},	//music_5050169
+        {0xb512188a55b8b698},	//music_5050170
         {0x26e5bf2c66a9898d},	//music_5050171
+        {0xd93d0a1764e85d4d},	//music_5050176
+        {0x59efd868058a402e},	//music_5050178
+        {0x93075c0fbb31f463},	//music_5050179
+        {0xdedb6ae518faac3d},	//music_5050180
+        {0xe997edae32a5fa3d},	//music_5050181
+        {0xe19e00aebc8b309b},	//music_5050182
+        {0x10574a2abfe8ab99},	//music_5050183
+        {0xbd2f4b5ab481d300},	//music_5050184
+        {0x1a253c2f40a38917},	//music_5050185
+        {0xc735e9f28243ea8a},	//music_5050186
         {0x52c250eade92393b},	//music_9010001
         {0xf66e6bb5b0599b07},	//music_9010002
         {0x8582b5a60dbbf948},	//music_9010003
