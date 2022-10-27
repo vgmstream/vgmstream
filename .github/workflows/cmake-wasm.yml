@@ -7,23 +7,23 @@ on: [push, pull_request, workflow_dispatch]
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
   BUILD_TYPE: Release
-  EM_VERSION: 2.0.29
+  EM_VERSION: 3.1.24
   EM_CACHE_FOLDER: 'emsdk-cache'
 
 jobs:
   build:
     name: CMake, WebAssembly
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     
     - name: Fetch Git tags
       run: |
         git fetch --prune --unshallow --tags
 
     - name: Setup emsdk
-      uses: mymindstorm/setup-emsdk@v10
+      uses: mymindstorm/setup-emsdk@v11
       with:
           version: ${{env.EM_VERSION}}
           actions-cache-folder: ${{env.EM_CACHE_FOLDER}}
@@ -32,7 +32,7 @@ jobs:
       run: cmake -E make_directory ${{runner.workspace}}/embuild
 
     - name: Cache celt
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: |
           ${{runner.workspace}}/dependencies/celt-0061
@@ -42,7 +42,7 @@ jobs:
         key: wasm-celt-${{ hashFiles('cmake/dependencies/celt.cmake') }}
 
     - name: Cache ffmpeg
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: |
           ${{runner.workspace}}/embuild/dependencies/ffmpeg/bin/usr/local/include
@@ -50,28 +50,28 @@ jobs:
         key: wasm-ffmpeg-${{ hashFiles('cmake/dependencies/ffmpeg.cmake') }}
 
     - name: Cache jansson
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: |
           ${{runner.workspace}}/embuild/dependencies/jansson/src/.libs
         key: wasm-jansson-${{ hashFiles('cmake/dependencies/jansson.cmake') }}
 
     - name: Cache atrac9
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: |
           ${{runner.workspace}}/embuild/dependencies/LibAtrac9/bin
         key: wasm-atrac9-${{ hashFiles('cmake/dependencies/atrac9.cmake') }}
 
     - name: Cache g719
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: |
           ${{runner.workspace}}/embuild/dependencies/libg719_decode/libg719_decode.a
         key: wasm-g719-${{ hashFiles('cmake/dependencies/g719.cmake') }}
 
     - name: Cache mpg123
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: |
           ${{runner.workspace}}/dependencies/mpg123
@@ -79,14 +79,14 @@ jobs:
         key: wasm-mpg123-${{ hashFiles('cmake/dependencies/mpg123.cmake') }}
 
     - name: Cache speex
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: |
           ${{runner.workspace}}/embuild/dependencies/speex/libspeex/.libs
         key: wasm-speex-${{ hashFiles('cmake/dependencies/speex.cmake') }}
 
     - name: Cache ogg
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: |
           ${{runner.workspace}}/embuild/dependencies/ogg/libogg.a
@@ -94,7 +94,7 @@ jobs:
         key: wasm-ogg-${{ hashFiles('cmake/dependencies/ogg.cmake') }}
 
     - name: Cache vorbis
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: |
           ${{runner.workspace}}/embuild/dependencies/vorbis/lib/*.a
@@ -111,7 +111,7 @@ jobs:
       run: emmake make
 
     - name: Upload WebAssembly artifact
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
           path: |
             ${{runner.workspace}}/embuild/cli/vgmstream-cli.js

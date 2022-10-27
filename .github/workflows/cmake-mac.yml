@@ -11,7 +11,7 @@ jobs:
     name: CMake, macOS
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
@@ -19,7 +19,7 @@ jobs:
         run: brew install autoconf automake cmake ffmpeg jansson libao libvorbis mpg123
 
       - name: Cache celt
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: |
             ${{ github.workspace }}/dependencies/celt-0061
@@ -29,13 +29,13 @@ jobs:
           key: mac-celt-${{ hashFiles('cmake/dependencies/celt.cmake') }}
 
       - name: Cache atrac9
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ${{ github.workspace }}/build/dependencies/LibAtrac9/bin
           key: mac-atrac9-${{ hashFiles('cmake/dependencies/atrac9.cmake') }}
 
       - name: Cache g719
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ${{ github.workspace }}/build/dependencies/libg719_decode/libg719_decode.a
           key: mac-g719-${{ hashFiles('cmake/dependencies/g719.cmake') }}
@@ -47,7 +47,7 @@ jobs:
           cmake --build build
 
       - name: Upload CLI tools artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           path: ${{ github.workspace }}/build/cli/vgmstream-cli
           name: vgmstream-mac

@@ -27,7 +27,7 @@ sudo apt-get install -y gcc g++ make cmake build-essential git
 # optional: for extra formats (can be ommited to build with static libs)
 sudo apt-get install -y libmpg123-dev libvorbis-dev libspeex-dev
 sudo apt-get install -y libavformat-dev libavcodec-dev libavutil-dev libswresample-dev
-sudo apt-get install -y yasm libopus-dev
+sudo apt-get install -y yasm libopus-dev pkg-config autoconf libtool-bin
 # optional: for vgmstream 123 and audacious
 sudo apt-get install -y libao-dev audacious-dev
 

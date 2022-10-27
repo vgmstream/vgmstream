@@ -15,10 +15,10 @@ jobs:
     # cross-platform coverage.
     # See: https://docs.github.com/en/actions/configuring-and-managing-workflows/configuring-a-workflow#configuring-a-build-matrix
     name: CMake, Ubuntu
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     
     - name: Fetch Git tags
       run: |
@@ -27,59 +27,76 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y libvorbis-dev libjansson-dev yasm libopus-dev
+        sudo apt-get install -y libjansson-dev yasm libopus-dev
 
     - name: Create build environment
       # Some projects don't allow in-source building, so create a separate build directory
       # We'll use this as our working directory for all subsequent commands
-      run: cmake -E make_directory ${{runner.workspace}}/build
+      run: |
+        cmake -E make_directory ${{runner.workspace}}/build
+        echo "RELEASE=$(lsb_release -sr)" >> $GITHUB_ENV
 
     - name: Cache celt
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: |
           ${{runner.workspace}}/dependencies/celt-0061
           ${{runner.workspace}}/dependencies/celt-0110
           ${{runner.workspace}}/build/dependencies/celt-0061/libcelt/.libs
           ${{runner.workspace}}/build/dependencies/celt-0110/libcelt/.libs
-        key: linux-celt-${{ hashFiles('cmake/dependencies/celt.cmake') }}
+        key: linux-${{ env.RELEASE }}-celt-${{ hashFiles('cmake/dependencies/celt.cmake') }}
 
     - name: Cache ffmpeg
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: |
           ${{runner.workspace}}/build/dependencies/ffmpeg/bin/usr/local/include
           ${{runner.workspace}}/build/dependencies/ffmpeg/bin/usr/local/lib
-        key: linux-ffmpeg-${{ hashFiles('cmake/dependencies/ffmpeg.cmake') }}
+        key: linux-${{ env.RELEASE }}-ffmpeg-${{ hashFiles('cmake/dependencies/ffmpeg.cmake') }}
 
     - name: Cache atrac9
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: |
           ${{runner.workspace}}/build/dependencies/LibAtrac9/bin
-        key: linux-atrac9-${{ hashFiles('cmake/dependencies/atrac9.cmake') }}
+        key: linux-${{ env.RELEASE }}-atrac9-${{ hashFiles('cmake/dependencies/atrac9.cmake') }}
 
     - name: Cache g719
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: |
           ${{runner.workspace}}/build/dependencies/libg719_decode/libg719_decode.a
-        key: linux-g719-${{ hashFiles('cmake/dependencies/g719.cmake') }}
+        key: linux-${{ env.RELEASE }}-g719-${{ hashFiles('cmake/dependencies/g719.cmake') }}
 
     - name: Cache mpg123
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: |
           ${{runner.workspace}}/dependencies/mpg123
           ${{runner.workspace}}/build/dependencies/mpg123/src/libmpg123/.libs
-        key: linux-mpg123-${{ hashFiles('cmake/dependencies/mpg123.cmake') }}
+        key: linux-${{ env.RELEASE }}-mpg123-${{ hashFiles('cmake/dependencies/mpg123.cmake') }}
 
     - name: Cache speex
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
         path: |
           ${{runner.workspace}}/build/dependencies/speex/libspeex/.libs
-        key: linux-speex-${{ hashFiles('cmake/dependencies/speex.cmake') }}
+        key: linux-${{ env.RELEASE }}-speex-${{ hashFiles('cmake/dependencies/speex.cmake') }}
+
+    - name: Cache ogg
+      uses: actions/cache@v3
+      with:
+        path: |
+          ${{runner.workspace}}/build/dependencies/ogg/libogg.a
+          ${{runner.workspace}}/build/dependencies/ogg/include
+        key: linux-${{ env.RELEASE }}-ogg-${{ hashFiles('cmake/dependencies/ogg.cmake') }}
+
+    - name: Cache vorbis
+      uses: actions/cache@v3
+      with:
+        path: |
+          ${{runner.workspace}}/build/dependencies/vorbis/lib/*.a
+        key: linux-${{ env.RELEASE }}-vorbis-${{ hashFiles('cmake/dependencies/vorbis.cmake') }}
 
     - name: Configure CMake
       # Use a bash shell so we can use the same syntax for environment variable
@@ -98,7 +115,7 @@ jobs:
       run: cmake --build . --config $BUILD_TYPE
 
     - name: Upload CLI tools artifact
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
           path: |
             ${{runner.workspace}}/build/cli/vgmstream-cli
@@ -106,7 +123,7 @@ jobs:
           name: vgmstream-cli
 
     #- name: Upload Audacious plugin artifact
-    #  uses: actions/upload-artifact@v2
+    #  uses: actions/upload-artifact@v3
     #  with:
     #      path: ${{runner.workspace}}/build/audacious/vgmstream.so
     #      name: vgmstream-audacious
