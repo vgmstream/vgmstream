@@ -32,10 +32,10 @@ VGMSTREAM* init_vgmstream_mpeg(STREAMFILE* sf) {
     if (!mpeg_get_frame_info(sf, start_offset, &info))
         goto fail;
 
-    /*  .mp3/mp2: standard (is .mp1 ever used in games?)
-     * .lmp1/2/3: for plugins
+    /*  .mp3/mp2: standard
+     * .lmp3/lmp2: for plugins
      * .mus: Marc Ecko's Getting Up (PC) */
-    if (!check_extensions(sf, "mp3,mp2,mp1,mus,lmp3,lmp2,lmp1"))
+    if (!check_extensions(sf, "mp3,mp2,lmp3,lmp2,mus"))
         goto fail;
 
     loop_flag = 0;

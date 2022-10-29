@@ -533,7 +533,7 @@ VGMSTREAM* init_vgmstream_wwise_bnk(STREAMFILE* sf, int* p_prefetch) {
         }
 
         case OPUSWW: { /* updated Opus [Assassin's Creed Valhalla (PC)] */
-            int mapping;
+            int i, mapping;
             opus_config cfg = {0};
 
             if (ww.block_size != 0 || ww.bits_per_sample != 0) goto fail;
@@ -542,6 +542,8 @@ VGMSTREAM* init_vgmstream_wwise_bnk(STREAMFILE* sf, int* p_prefetch) {
 
             cfg.channels = ww.channels;
             cfg.table_offset = ww.seek_offset;
+
+            vgmstream->sample_rate = 48000; /* fixed in AK's code */
 
             /* extra: size 0x10 (though last 2 fields are beyond, AK plz) */
             /* 0x12: samples per frame */
@@ -562,9 +564,9 @@ VGMSTREAM* init_vgmstream_wwise_bnk(STREAMFILE* sf, int* p_prefetch) {
                 ww.data_size = ww.file_size - start_offset;
             }
 
-            /* AK does some wonky implicit config for multichannel */
-            if (mapping > 0 && ww.channel_type == 1) { /* only allowed values ATM, set when >2ch */
-                static const int8_t mapping_matrix[8][8] = {
+            /* AK does some wonky implicit config for multichannel (only accepted channel type is 1) */
+            if (ww.channel_type == 1 && mapping == 1) {
+                static const int8_t mapping_matrix[8][8] = { /* (DeinterleaveAndRemap)*/
                     { 0, 0, 0, 0, 0, 0, 0, 0, },
                     { 0, 1, 0, 0, 0, 0, 0, 0, },
                     { 0, 2, 1, 0, 0, 0, 0, 0, },
@@ -574,9 +576,11 @@ VGMSTREAM* init_vgmstream_wwise_bnk(STREAMFILE* sf, int* p_prefetch) {
                     { 0, 6, 1, 2, 3, 4, 5, 0, },
                     { 0, 6, 1, 2, 3, 4, 5, 7, },
                 };
-                int i;
 
-                /* find coupled OPUS streams (internal streams using 2ch) */
+                if (ww.channels > 8)
+                    goto fail; /* matrix limit */
+
+                /* find coupled (stereo) OPUS streams (simplification of ChannelConfigToMapping) */
                 switch(ww.channel_layout) {
                     case mapping_7POINT1_surround:  cfg.coupled_count = 3; break;   /* 2ch+2ch+2ch+1ch+1ch, 5 streams */
                     case mapping_5POINT1_surround:                                  /* 2ch+2ch+1ch+1ch, 4 streams */
@@ -590,16 +594,28 @@ VGMSTREAM* init_vgmstream_wwise_bnk(STREAMFILE* sf, int* p_prefetch) {
                 /* total number internal OPUS streams (should be >0) */
                 cfg.stream_count = ww.channels - cfg.coupled_count;
 
-                if (mapping == 1) { // ak remapping
-                    /* channel assignments */
-                    for (i = 0; i < ww.channels; i++) {
-                        cfg.channel_mapping[i] = mapping_matrix[ww.channels - 1][i];
-                    }
-                } else { // linear
-                    for (i = 0; i < ww.channels; i++) {
-                        cfg.channel_mapping[i] = i;
-                    }
+                /* channel order */
+                for (i = 0; i < ww.channels; i++) {
+                    cfg.channel_mapping[i] = mapping_matrix[ww.channels - 1][i];
                 }
+            }
+            else if (ww.channel_type == 1 && mapping == 255) { /* Overwatch 2 (PC) */
+
+                /* only seen 12ch, but seems to be what ChannelConfigToMapping would output with > 8 */
+                cfg.coupled_count = 0;
+
+                cfg.stream_count = ww.channels - cfg.coupled_count;
+
+                //TODO: mapping seems to be 0x2d63f / FL FR FC LFE BL BR SL SR TFL TFR TBL TBR
+                // while output order seems to swap FC and LFE? (not set in passed channel mapping but reordered later)
+                for (i = 0; i < ww.channels; i++) {
+                    cfg.channel_mapping[i] = i;
+                }
+            }
+            else {
+                /* mapping 0: standard opus (implicit mono/stereo)  */
+                if (ww.channels > 2)
+                    goto fail;
             }
 
             /* Wwise Opus saves all frame sizes in the seek table */

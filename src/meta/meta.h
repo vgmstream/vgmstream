@@ -757,7 +757,7 @@ VGMSTREAM * init_vgmstream_bnk_sony(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_nus3bank(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_nus3bank_encrypted(STREAMFILE *streamFile);
 
-VGMSTREAM * init_vgmstream_scd_sscf(STREAMFILE *streamFile);
+VGMSTREAM * init_vgmstream_sscf(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_a2m(STREAMFILE *streamFile);
 
@@ -992,5 +992,7 @@ VGMSTREAM* init_vgmstream_sndz(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_vab(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_bigrp(STREAMFILE* sf);
+
+VGMSTREAM* init_vgmstream_sscf_encrypted(STREAMFILE* sf);
 
 #endif /*_META_H*/

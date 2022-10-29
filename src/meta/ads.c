@@ -363,7 +363,7 @@ VGMSTREAM* init_vgmstream_ads_container(STREAMFILE* sf) {
 
     subfile_size = get_streamfile_size(sf) - subfile_offset;
 
-    temp_sf = setup_subfile_streamfile(sf, subfile_offset, subfile_size, NULL);
+    temp_sf = setup_subfile_streamfile(sf, subfile_offset, subfile_size, "ads");
     if (!temp_sf) goto fail;
 
     vgmstream = init_vgmstream_ads(temp_sf);

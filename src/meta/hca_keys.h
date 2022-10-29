@@ -1094,6 +1094,9 @@ static const hcakey_info hcakey_list[] = {
     
         // CHUNITHM International Version (AC)
         {33426922444908636},   // 0076C19BDE43685C
+    
+        // Star Ocean: The Divine Force (PC)
+        {68308868861462528},   // 00f2ae8de77f0800
 };
 
 #endif/*_HCA_KEYS_H_*/
