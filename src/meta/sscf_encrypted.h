@@ -1,5 +1,5 @@
-#ifndef _SQEX_SCD_SSCF_ENCRYPTED_H_
-#define _SQEX_SCD_SSCF_ENCRYPTED_H_
+#ifndef _SSCF_ENCRYPTED_H_
+#define _SSCF_ENCRYPTED_H_
 #include "../streamfile.h"
 
 typedef struct {

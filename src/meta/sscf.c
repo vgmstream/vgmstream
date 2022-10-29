@@ -2,7 +2,7 @@
 #include "../coding/coding.h"
 
 /* SSCF - Square-Enix games, older version of .scd [Crisis Core -Final Fantasy VII- (PSP), Dissidia 012 (PSP)] */
-VGMSTREAM* init_vgmstream_scd_sscf(STREAMFILE* sf) {
+VGMSTREAM* init_vgmstream_sscf(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     uint32_t start_offset, meta_offset, stream_offset, stream_size;
     int loop_flag, channels, sample_rate;
@@ -100,7 +100,7 @@ VGMSTREAM* init_vgmstream_scd_sscf(STREAMFILE* sf) {
         vgmstream->loop_end_sample = vgmstream->num_samples;
     }
 
-    vgmstream->meta_type = meta_SCD_SSCF;
+    vgmstream->meta_type = meta_SSCF;
     vgmstream->coding_type = coding_PSX;
     vgmstream->layout_type = layout_none;
 

@@ -1699,7 +1699,7 @@
     <ClCompile Include="meta\sqex_scd.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\sqex_scd_sscf.c">
+    <ClCompile Include="meta\sscf.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\sqex_sead.c">
