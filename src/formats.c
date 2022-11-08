@@ -31,6 +31,7 @@ static const char* extension_list[] = {
     "800",
     "9tav",
 
+    "a3c", //txth/reserved [Puyo Puyo 20th Anniversary (PSP)]
     //"aac", //common
     "aa3", //FFmpeg/not parsed (ATRAC3/ATRAC3PLUS/MP3/LPCM/WMA)
     "aax",
