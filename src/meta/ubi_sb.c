@@ -1530,7 +1530,7 @@ static VGMSTREAM* init_vgmstream_ubi_sb_silence(ubi_sb_header* sb) {
     sample_rate = sb->sample_rate;
     if (sample_rate == 0)
         sample_rate = 48000;
-    num_samples = sb->duration * sample_rate;
+    num_samples = (int)(sb->duration * sample_rate);
 
 
     /* init the VGMSTREAM */
@@ -3560,6 +3560,18 @@ static int config_sb_version(ubi_sb_header* sb, STREAMFILE* sf) {
         config_sb_audio_fs(sb, 0x24, 0x2c, 0x28);
         config_sb_audio_hs(sb, 0x4c, 0x44, 0x30, 0x38, 0x54, 0x50);
         sb->cfg.audio_has_internal_names = 1;
+        return 1;
+    }
+
+    /* Prince of Persia: Warrior Within (Demo)(2004)(Xbox)-bank */
+    if (sb->version == 0x00100000 && sb->platform == UBI_XBOX) {
+        config_sb_entry(sb, 0x68, 0x90);
+
+        config_sb_audio_fs(sb, 0x24, 0x28, 0x40);
+        config_sb_audio_hs(sb, 0x60, 0x58, 0x44, 0x4c, 0x68, 0x64);
+        sb->cfg.audio_has_internal_names = 1;
+
+        config_sb_sequence(sb, 0x28, 0x14);
         return 1;
     }
 
