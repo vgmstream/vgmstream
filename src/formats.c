@@ -650,6 +650,7 @@ static const char* extension_list[] = {
     "xen",
     "xma",
     "xma2",
+    "xms",
     "xmu",
     "xmv",
     "xnb",

@@ -378,8 +378,9 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
      * .xvag: Uncharted Golden Abyss (Vita)[ATRAC9]
      * .ogg/logg: Luftrausers (Vita)[ATRAC9]
      * .p1d: Farming Simulator 15 (Vita)[ATRAC9]
+     * .xms: Ty the Tasmanian Tiger (Xbox)
      */
-    if ( check_extensions(sf, "wav,lwav,xwav,da,dax,cd,med,snd,adx,adp,xss,xsew,adpcm,adw,wd,,sbv,wvx,str,at3,rws,aud,at9,ckd,saf,ima,nsa,pcm,xvag,ogg,logg,p1d") ) {
+    if ( check_extensions(sf, "wav,lwav,xwav,da,dax,cd,med,snd,adx,adp,xss,xsew,adpcm,adw,wd,,sbv,wvx,str,at3,rws,aud,at9,ckd,saf,ima,nsa,pcm,xvag,ogg,logg,p1d,xms") ) {
         ;
     }
     else if ( check_extensions(sf, "mwv") ) {
