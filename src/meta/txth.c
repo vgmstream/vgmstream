@@ -121,7 +121,7 @@ typedef struct {
     int subfile_set;
     uint32_t subfile_offset;
     uint32_t subfile_size;
-    char subfile_extension[32];
+    char subfile_extension[16];
 
     uint32_t chunk_number;
     uint32_t chunk_start;
@@ -130,8 +130,9 @@ typedef struct {
     uint32_t chunk_header_size;
     uint32_t chunk_data_size;
     uint32_t chunk_value;
-    uint32_t chunk_size_offset;
-    uint32_t chunk_be;
+    uint32_t chunk_bsize_offset;
+    uint32_t chunk_dsize_offset;
+    uint32_t chunk_big_endian;
     int chunk_start_set;
     int chunk_size_set;
     int chunk_count_set;
@@ -820,9 +821,9 @@ static void set_body_chunk(txth_header* txth) {
     //todo maybe should only be done once, or have some count to retrigger to simplify?
     if (!txth->chunk_start_set || !txth->chunk_size_set || !txth->chunk_count_set)
         return;
-    if ((txth->chunk_size == 0 && ! txth->chunk_size_offset) ||
-         txth->chunk_start > txth->data_size ||
-         txth->chunk_count == 0)
+    if (txth->chunk_size == 0 && !(txth->chunk_bsize_offset || txth->chunk_dsize_offset))
+        return;
+    if (txth->chunk_start > txth->data_size || txth->chunk_count == 0)
         return;
     if (!txth->sf_body)
         return;
@@ -843,8 +844,9 @@ static void set_body_chunk(txth_header* txth) {
         cfg.chunk_data_size = txth->chunk_data_size;
 
         cfg.chunk_value = txth->chunk_value;
-        cfg.chunk_size_offset = txth->chunk_size_offset;
-        cfg.chunk_be = txth->chunk_be;
+        cfg.chunk_bsize_offset = txth->chunk_bsize_offset;
+        cfg.chunk_dsize_offset = txth->chunk_dsize_offset;
+        cfg.chunk_be = txth->chunk_big_endian;
 
         cfg.chunk_start = txth->chunk_start;
         cfg.chunk_size = txth->chunk_size;
@@ -877,7 +879,7 @@ static void set_body_chunk(txth_header* txth) {
 
 static int parse_keyval(STREAMFILE* sf, txth_header* txth, const char* key, char* val);
 static int parse_num(STREAMFILE* sf, txth_header* txth, const char* val, uint32_t* out_value);
-static int parse_string(STREAMFILE* sf, txth_header* txth, const char* val, char* str);
+static int parse_string(STREAMFILE* sf, txth_header* txth, const char* val, char* str, int str_len);
 static int parse_coef_table(STREAMFILE* sf, txth_header* txth, const char* val, uint8_t* out_value, size_t out_size);
 static int parse_name_table(txth_header* txth, char* val);
 static int parse_multi_txth(txth_header* txth, char* val);
@@ -1328,7 +1330,7 @@ static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char* key, cha
         txth->subfile_set = 1;
     }
     else if (is_string(key,"subfile_extension")) {
-        if (!parse_string(txth->sf_head,txth,val, txth->subfile_extension)) goto fail;
+        if (!parse_string(txth->sf_head,txth,val, txth->subfile_extension, sizeof(txth->subfile_extension))) goto fail;
         txth->subfile_set = 1;
     }
 
@@ -1442,10 +1444,15 @@ static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char* key, cha
         if (!parse_num(txth->sf_head,txth,val, &txth->chunk_value)) goto fail;
     }
     else if (is_string(key,"chunk_size_offset")) {
-        if (!parse_num(txth->sf_head,txth,val, &txth->chunk_size_offset)) goto fail;
+        if (!parse_num(txth->sf_head,txth,val, &txth->chunk_bsize_offset)) goto fail;
+        txth->chunk_size_set = 1;
+    }
+    else if (is_string(key,"chunk_data_size_offset")) {
+        if (!parse_num(txth->sf_head,txth,val, &txth->chunk_dsize_offset)) goto fail;
+        txth->chunk_size_set = 1;
     }
     else if (is_string(key,"chunk_endianness")) {
-        if (!parse_endianness(txth, val, &txth->chunk_be, NULL)) goto fail;
+        if (!parse_endianness(txth, val, &txth->chunk_big_endian, NULL)) goto fail;
     }
 
 
@@ -1615,8 +1622,12 @@ static int is_string_match(const char* text, const char* pattern) {
     /* either all chars consumed/matched and both pos point to null, or one didn't so string didn't match */
     return text[t_pos] == '\0' && pattern[p_pos] == '\0';
 }
-static int parse_string(STREAMFILE* sf, txth_header* txth, const char* val, char* str) {
+
+static int parse_string(STREAMFILE* sf, txth_header* txth, const char* val, char* str, int str_len) {
     int n = 0;
+
+    if (strlen(val) >= str_len)
+        return 0;
 
     /* read string without trailing spaces */
     if (sscanf(val, " %s%n[^ ]%n", str, &n, &n) != 1)
@@ -2001,7 +2012,8 @@ static int parse_num(STREAMFILE* sf, txth_header* txth, const char* val, uint32_
             else if ((n = is_string_field(val,"chunk_count")))          value = txth->chunk_count;
             else if ((n = is_string_field(val,"chunk_start")))          value = txth->chunk_start;
             else if ((n = is_string_field(val,"chunk_size")))           value = txth->chunk_size;
-            else if ((n = is_string_field(val,"chunk_size_offset")))    value = txth->chunk_size_offset;
+            else if ((n = is_string_field(val,"chunk_size_offset")))    value = txth->chunk_bsize_offset;
+            else if ((n = is_string_field(val,"chunk_data_size_offset")))value = txth->chunk_dsize_offset;
             else if ((n = is_string_field(val,"chunk_number")))         value = txth->chunk_number;
             else if ((n = is_string_field(val,"chunk_data_size")))      value = txth->chunk_data_size;
             else if ((n = is_string_field(val,"chunk_header_size")))    value = txth->chunk_header_size;

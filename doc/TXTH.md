@@ -462,24 +462,29 @@ Optional settings (set before main):
   - If size is 0x1000 and data_size 0x800 last 0x200 is ignored padding. 
 
 Dynamic settings (set before main, requires `chunk_header_size`):
-- `chunk_value`: ignores chunks that don't match this value at chunk offset 0x00 (32-bit, in `chunk_endianness`)
-- `chunk_size_offset`: reads chunk size at this offset, in header (32-bit in `chunk_endianness`). 
-- `chunk_endianness`: sets endianness of the above values
+- `chunk_value`: ignores chunks that don't match this value at chunk offset 0x00 (32-bit, in `chunk_endianness`). Can be used to ignore video chunks in movie files, for example.
+- `chunk_size_offset`: reads chunk size at this offset, in header (32-bit in `chunk_endianness`). For chunks of dynamic sizes (no need to set `chunk_size` as will be ignored). Includes header size.
+- `chunk_data_size_offset`: same, for data sizes (not including headers). Note that you can use header+data+size configs to handle padding between blocks.
+- `chunk_endianness`: sets endianness of the above two settings.
 
-For technical reasons, "dechunking" activates when setting all main settings, so set optional config first. Note that config is static (not per-chunk), so `chunk_size = @0x10` is read from the beginning of the file once, not every time a new chunk is found.
+For technical reasons, "dechunking" activates when setting all main settings, so set optional config first. Note that `chunk_size` is static (read once from a fixed offset) while `chunk_size_offset` is dynamic (read on every chunk).
 
 ```
-chunk_count = (value)
-chunk_start = (value)
-chunk_size = (value)
-
+# optional - fixed
 chunk_number = (value)
 chunk_header_size = (value)
 chunk_data_size = (value)
 
+# optional - dynamic
 chunk_value = (value)
 chunk_size_offset = (value)
-chunk_endian = LE|BE
+chunk_data_size_offset = (value)
+chunk_endianness = LE|BE
+
+# main
+chunk_count = (value)
+chunk_start = (value)
+chunk_size = (value)
 ```
 
 #### NAME TABLE
@@ -1275,7 +1280,7 @@ loop_start = @0x28:BE
 loop_flag = @0x2c:BE
 ```
 
-#### Grand Theft Auto: San Andreas .vgmstream.txth
+#### Grand Theft Auto: San Andreas (PS2) .vgmstream.txth
 ```
 # once extracted from bigfiles there are 2 types of files with hardcoded settings,
 # so we need 2 .txth
@@ -1344,4 +1349,24 @@ num_samples = data_size
 # base_offset, interleave, chunk_header_size, chunk_data_size
 #1: 0x1F40, 0x800,   0x00,   0x1000
 #2: 0x1F50, 0x10000, 0x1000, 0x20000
+```
+
+#### LEGO Batman 2 (Wii) .fmv.txth
+```
+# "dechunks" videos with dynamic chunks realtime and plays audio only
+
+codec = IMA
+channels = 2
+sample_rate = @0x20
+
+# each chunk is 0x00: ID + 0x04 data size (not including header)
+chunk_number = 1
+chunk_header_size = 0x08
+chunk_value = 0x00414D46 #"FMA\0" LE
+chunk_data_size_offset = 0x04
+
+chunk_count = 1
+chunk_start = 0x28 #first chunk after header
+
+num_samples = data_size
 ```
