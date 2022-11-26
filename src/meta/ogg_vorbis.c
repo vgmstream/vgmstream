@@ -170,9 +170,8 @@ static int _init_vgmstream_ogg_vorbis_tests(STREAMFILE* sf, ogg_vorbis_io_config
          * .acm: Planescape Torment Enhanced Edition (PC)
          * .sod: Zone 4 (PC)
          * .msa: Metal Slug Attack (Mobile)
-         * .aif/laif/aif-Loop: Psychonauts (PC) raw extractions (named)
          * .bin/lbin: Devil May Cry 3: Special Edition (PC) */
-        if (check_extensions(sf,"ogg,logg,adx,rof,acm,sod,msa,aif,laif,aif-Loop,bin,lbin"))
+        if (check_extensions(sf,"ogg,logg,adx,rof,acm,sod,msa,bin,lbin"))
             return 1;
         /* ignore others to allow stuff like .sngw */
     }

@@ -57,7 +57,6 @@ static const char* extension_list[] = {
     "ahv",
     "ai",
     //"aif", //common
-    "aif-Loop",
     "aifc", //common?
     //"aiff", //common
     "aix",
