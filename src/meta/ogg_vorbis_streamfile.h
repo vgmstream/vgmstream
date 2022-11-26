@@ -26,30 +26,30 @@ static size_t ogg_vorbis_io_read(STREAMFILE *sf, uint8_t *dest, off_t offset, si
 
     if (data->cfg.is_encrypted) {
         int max = bytes;
-        int header_end = 0x04 + data->cfg.start;
+        int header_end = 0x04;
+        
+        //TODO handle data->cfg.start;
 
-        if (data->cfg.max_offset + data->cfg.start) {
-            if (offset > data->cfg.max_offset + data->cfg.start) {
+        if (data->cfg.max_offset) {
+            if (offset > data->cfg.max_offset) {
                 max = 0;
             }
             else {
-                max = data->cfg.max_offset + data->cfg.start - offset;
+                max = data->cfg.max_offset - offset;
                 if (max > bytes)
                     max = bytes;
             }
         }
 
         for (i = 0; i < max; i++) {
-            if (data->cfg.is_header_swap && 
-                (offset + i) >= data->cfg.start &&
-                (offset + i) < header_end) {
+            if (data->cfg.is_header_swap && (offset + i) < header_end) {
                 dest[i] = header_swap[(offset + i) % 0x04];
             }
             else {
                 if (!data->cfg.key_len && !data->cfg.is_nibble_swap)
                     break;
-                if (data->cfg.key_len && (offset + i) >= data->cfg.start)
-                    dest[i] ^= data->cfg.key[(offset + i - data->cfg.start) % data->cfg.key_len];
+                if (data->cfg.key_len)
+                    dest[i] ^= data->cfg.key[(offset + i) % data->cfg.key_len];
                 if (data->cfg.is_nibble_swap)
                     dest[i] = ((dest[i] << 4) & 0xf0) | ((dest[i] >> 4) & 0x0f);
             }
