@@ -43,6 +43,9 @@ ogg_vorbis_codec_data* init_ogg_vorbis(STREAMFILE* sf, off_t start, off_t size, 
     callbacks.close_func = ov_close_func;
     callbacks.tell_func = ov_tell_func;
 
+    if (!size)
+        size = get_streamfile_size(sf) - start;
+
     /* test if this is a proper Ogg Vorbis file, with the current (from init_x) STREAMFILE
      * (quick test without having to malloc first, though if one invoked this it'll probably success) */
     {
