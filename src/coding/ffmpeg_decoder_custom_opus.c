@@ -500,11 +500,22 @@ static size_t make_opus_header(uint8_t* buf, int buf_size, opus_config *cfg) {
     size_t header_size = 0x13;
     int mapping_family = 0;
 
-    /* special multichannel config */
+    /* Opus can't play a Nch file unless the channel mapping is properly configured (not implicit).
+     * A 8ch file may be 2ch+2ch+1ch+1ch+2ch; this is defined with a "channel mapping":
+     * - mapping family:
+     *   0 = standard (single stream mono/stereo, >2ch = error, and table MUST be ommited)
+     *   1 = standard multichannel (1..8ch), using Vorbis channel layout (needs table)
+     *   255 = undefined (1..255ch)  application defined (needs table)
+     * - mapping table:
+     *   - stream count: internal opus streams (>= 1), of 1/2ch
+     *   - coupled count: internal stereo streams (<= streams)
+     *   - mappings: one byte per channel with the channel position (0..Nch), or 255 (silence)
+     */
+
+    /* set mapping family */
     if (cfg->channels > 2 || cfg->stream_count > 1) {
-        /* channel config: 0=standard (single stream mono/stereo), 1=vorbis, 255: not defined */
-        mapping_family = 1;
-        header_size += 0x01+0x01+cfg->channels;
+        mapping_family = 1; //todo test 255
+        header_size += 0x01 + 0x01 + cfg->channels; /* table size */
     }
 
     if (cfg->skip < 0) {
@@ -526,14 +537,15 @@ static size_t make_opus_header(uint8_t* buf, int buf_size, opus_config *cfg) {
     put_u16le(buf+0x10, 0); /* output gain */
     put_u8   (buf+0x12, mapping_family);
 
+    /* set mapping table */
     if (mapping_family > 0) {
         int i;
 
-        /* internal mono/stereo streams (N mono/stereo streams that make M channels) */
+        /* total streams (mono/stereo) */
         put_u8(buf+0x13, cfg->stream_count);
-        /* joint stereo streams (rest would be mono, so 6ch can be 2ch+2ch+1ch+1ch = 2 coupled in 4 streams */
+        /* stereo streams (6ch can be 2ch+2ch+1ch+1ch = 2 coupled in 4 streams) */
         put_u8(buf+0x14, cfg->coupled_count);
-        /* mapping per channel (order of channels, ex: 0x000104050203) */
+        /* mapping per channel (order of channels, ex: 00 01 04 05 02 03) */
         for (i = 0; i < cfg->channels; i++) {
             put_u8(buf+0x15+i, cfg->channel_mapping[i]);
         }
