@@ -246,12 +246,19 @@ VGMSTREAM* init_vgmstream_vag(STREAMFILE* sf) {
                 channel_size = channel_size / channels;
             }
             else if (version == 0x00000020 && reserved == 0x01010101) {
-                /* Gift (PS2) */
+                /* Eko Software */
                 start_offset = 0x800;
                 channels = 2; /* mono VAGs in this game are standard, without reserved value */ 
-                interleave = 0x2000;
-                if (read_u32be(0x4800,sf) == 0x00000000) /* one file has bigger interleave, detectable with ch2's null frame */
+                
+                /* detect interleave with ch2's null frame */
+                if (read_u32be(0x800 + 0x400,sf) == 0x00000000) /* Woody Woodpecker: Escape from Buzz Buzzard Park (PS2) */
+                    interleave = 0x400;
+                else if (read_u32be(0x800 + 0x4000,sf) == 0x00000000) /* Gift (PS2), one file */
                     interleave = 0x4000;
+                else if (read_u32be(0x800 + 0x2000,sf) == 0x00000000)  /* Gift (PS2) */
+                    interleave = 0x2000;
+                else 
+                    goto fail;
 
                 channel_size = channel_size / channels;
                 has_interleave_last = 1;
