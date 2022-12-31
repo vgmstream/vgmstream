@@ -84,7 +84,7 @@
   <ItemGroup>
     <ClInclude Include="coding\hca_decoder_clhca.h" />
     <ClInclude Include="coding\ice_decoder_icelib.h" />
-    <ClInclude Include="coding\mpeg_bitreader.h" />
+    <ClInclude Include="util\bitstream_msb.h" />
     <ClInclude Include="coding\mpeg_decoder.h" />
     <ClInclude Include="coding\vorbis_bitreader.h" />
     <ClInclude Include="coding\vorbis_custom_data_fsb.h" />

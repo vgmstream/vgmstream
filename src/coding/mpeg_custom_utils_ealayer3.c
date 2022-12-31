@@ -1,5 +1,5 @@
 #include "mpeg_decoder.h"
-#include "mpeg_bitreader.h"
+#include "../util/bitstream_msb.h"
 
 #ifdef VGM_USE_MPEG
 
@@ -108,7 +108,7 @@ int mpeg_custom_setup_init_ealayer3(STREAMFILE* sf, off_t start_offset, mpeg_cod
     {
         ib.sf = sf;
         ib.offset = start_offset;
-        ib.is.buf = ib.buf;
+        bm_setup(&ib.is, ib.buf, 0); // filled later
 
         ok = ealayer3_parse_frame(data, -1, &ib, &eaf);
         if (!ok) goto fail;
@@ -156,7 +156,7 @@ int mpeg_custom_parse_frame_ealayer3(VGMSTREAMCHANNEL* stream, mpeg_codec_data* 
 
         ib_0.sf = stream->streamfile;
         ib_0.offset = stream->offset;
-        ib_0.is.buf = ib_0.buf;
+        bm_setup(&ib_0.is, ib_0.buf, 0); // filled later
 
         ok = ealayer3_parse_frame(data, num_stream, &ib_0, &eaf_0);
         if (!ok) goto fail;
@@ -199,7 +199,7 @@ int mpeg_custom_parse_frame_ealayer3(VGMSTREAMCHANNEL* stream, mpeg_codec_data* 
 
         ib_1.sf = stream->streamfile;
         ib_1.offset = stream->offset;
-        ib_1.is.buf = ib_1.buf;
+        bm_setup(&ib_1.is, ib_1.buf, 0); // filled later
 
         ok = ealayer3_parse_frame(data, num_stream, &ib_1, &eaf_1);
         if (!ok) goto fail;
@@ -222,12 +222,12 @@ int mpeg_custom_parse_frame_ealayer3(VGMSTREAMCHANNEL* stream, mpeg_codec_data* 
     {
         bitstream_t os = {0};
 
-        init_bitstream(&os, ms->buffer, ms->buffer_size);
+        bm_setup(&os, ms->buffer, ms->buffer_size);
 
         ok = ealayer3_rebuild_mpeg_frame(&ib_0.is, &eaf_0, &ib_1.is, &eaf_1, &os);
         if (!ok) goto fail;
 
-        ms->bytes_in_buffer = os.b_off / 8; /* wrote full MPEG frame, hopefully */
+        ms->bytes_in_buffer = bm_pos(&os) / 8; /* wrote full MPEG frame, hopefully */
     }
 
     return 1;
@@ -267,8 +267,8 @@ static void fill_buf(ealayer3_buffer_t* ib, int bits) {
 
     //;VGM_LOG("filled: %lx + %x (b=%i, m=%i)\n", ib->offset, bytes_size, bits, (mod > 0 ? 8 - mod : 0));
 
-    read_size = read_streamfile(ib->buf + ib->is.bufsize, ib->offset, bytes_size, ib->sf);
-    ib->is.bufsize += read_size;
+    read_size = read_streamfile(ib->buf + ib->is.bufsize, ib->offset, bytes_size, ib->sf); //TODO don't access internals
+    bm_fill(&ib->is, read_size);
     ib->offset += read_size;
     ib->leftover_bits = (mod > 0 ? 8 - mod : 0);
 }
@@ -309,7 +309,7 @@ static int ealayer3_parse_frame_v1(ealayer3_buffer_t* ib, ealayer3_frame_t* eaf,
 
     /* read EA-frame V1 header */
     fill_buf(ib, 8);
-    rb_bits(is,  8,&eaf->v1_pcm_flag);
+    bm_get(is,  8,&eaf->v1_pcm_flag);
 
     eaf->pre_size = 1; /* 8b */
 
@@ -331,15 +331,15 @@ static int ealayer3_parse_frame_v1(ealayer3_buffer_t* ib, ealayer3_frame_t* eaf,
     /* check PCM block */
     if (eaf->v1_pcm_flag == 0xEE) {
         fill_buf(ib, 32);
-        rb_bits(is, 16,&eaf->v1_offset_samples); /* PCM block offset in the buffer */
-        rb_bits(is, 16,&eaf->v1_pcm_samples); /* number of PCM samples, can be 0 */
+        bm_get(is, 16,&eaf->v1_offset_samples); /* PCM block offset in the buffer */
+        bm_get(is, 16,&eaf->v1_pcm_samples); /* number of PCM samples, can be 0 */
 
         eaf->pre_size += 2+2; /* 16b+16b */
         eaf->pcm_size = (2*eaf->v1_pcm_samples * channels_per_frame);
 
         if (is_v1b) { /* extra 32b in v1b */
             fill_buf(ib, 32);
-            rb_bits(is, 32,&eaf->v1_pcm_unknown);
+            bm_get(is, 32,&eaf->v1_pcm_unknown);
 
             eaf->pre_size += 4; /* 32b */
 
@@ -363,19 +363,19 @@ static int ealayer3_parse_frame_v2(ealayer3_buffer_t* ib, ealayer3_frame_t* eaf)
 
     /* read EA-frame V2 header */
     fill_buf(ib, 16);
-    rb_bits(is,  1,&eaf->v2_extended_flag);
-    rb_bits(is,  1,&eaf->v2_stereo_flag);
-    rb_bits(is,  2,&eaf->v2_reserved);
-    rb_bits(is, 12,&eaf->v2_frame_size);
+    bm_get(is,  1,&eaf->v2_extended_flag);
+    bm_get(is,  1,&eaf->v2_stereo_flag);
+    bm_get(is,  2,&eaf->v2_reserved);
+    bm_get(is, 12,&eaf->v2_frame_size);
 
     eaf->pre_size = 2; /* 16b */
 
     if (eaf->v2_extended_flag) {
         fill_buf(ib, 32);
-        rb_bits(is,  2,&eaf->v2_offset_mode);
-        rb_bits(is, 10,&eaf->v2_offset_samples);
-        rb_bits(is, 10,&eaf->v2_pcm_samples);
-        rb_bits(is, 10,&eaf->v2_common_size);
+        bm_get(is,  2,&eaf->v2_offset_mode);
+        bm_get(is, 10,&eaf->v2_offset_samples);
+        bm_get(is, 10,&eaf->v2_pcm_samples);
+        bm_get(is, 10,&eaf->v2_common_size);
 
         eaf->pre_size += 4; /* 32b */
     }
@@ -423,16 +423,16 @@ static int ealayer3_parse_frame_common(ealayer3_buffer_t* ib, ealayer3_frame_t* 
     static const int channel_table[4] = { 2,2,2, 1 }; /* [channel_mode] */
 
     bitstream_t* is = &ib->is;
-    off_t start_b_off = is->b_off;
+    off_t start_b_off = bm_pos(is);
     int i, fill_bits, others_2_bits;
 
 
     /* read main header */
     fill_buf(ib, 8);
-    rb_bits(is,  2,&eaf->version_index);
-    rb_bits(is,  2,&eaf->sample_rate_index);
-    rb_bits(is,  2,&eaf->channel_mode);
-    rb_bits(is,  2,&eaf->mode_extension);
+    bm_get(is,  2,&eaf->version_index);
+    bm_get(is,  2,&eaf->sample_rate_index);
+    bm_get(is,  2,&eaf->channel_mode);
+    bm_get(is,  2,&eaf->mode_extension);
 
 
     /* check empty frame */
@@ -460,7 +460,7 @@ static int ealayer3_parse_frame_common(ealayer3_buffer_t* ib, ealayer3_frame_t* 
 
     /* read side info */
     fill_buf(ib, 1);
-    rb_bits(is,  1,&eaf->granule_index);
+    bm_get(is,  1,&eaf->granule_index);
 
     fill_bits = (eaf->mpeg1 && eaf->granule_index == 1) ? 4 * eaf->channels : 0;
     fill_bits = fill_bits + (12 + 32 + others_2_bits) * eaf->channels;
@@ -468,21 +468,21 @@ static int ealayer3_parse_frame_common(ealayer3_buffer_t* ib, ealayer3_frame_t* 
 
     if (eaf->mpeg1 && eaf->granule_index == 1) {
         for (i = 0; i < eaf->channels; i++) {
-            rb_bits(is,  4,&eaf->scfsi[i]);
+            bm_get(is,  4,&eaf->scfsi[i]);
         }
     }
 
     for (i = 0; i < eaf->channels; i++) {
-        rb_bits(is, 12,&eaf->main_data_size[i]);
+        bm_get(is, 12,&eaf->main_data_size[i]);
         /* divided in 47b=32+15 (MPEG1) or 51b=32+19 (MPEG2), arbitrarily */
-        rb_bits(is, 32,&eaf->others_1[i]);
-        rb_bits(is, others_2_bits,&eaf->others_2[i]);
+        bm_get(is, 32,&eaf->others_1[i]);
+        bm_get(is, others_2_bits,&eaf->others_2[i]);
     }
 
 
     /* derived */
-    eaf->data_offset_b = is->b_off; /* header size + above size */
-    eaf->base_size_b = (is->b_off - start_b_off); /* above size without header */
+    eaf->data_offset_b = bm_pos(is); /* header size + above size */
+    eaf->base_size_b = (bm_pos(is) - start_b_off); /* above size without header */
     for (i = 0; i < eaf->channels; i++) {
         eaf->data_size_b += eaf->main_data_size[i]; /* can be 0, meaning a micro EA-frame */
     }
@@ -490,7 +490,7 @@ static int ealayer3_parse_frame_common(ealayer3_buffer_t* ib, ealayer3_frame_t* 
         eaf->padding_size_b = 8 - ((eaf->base_size_b+eaf->data_size_b) % 8);
 
     fill_buf(ib, eaf->data_size_b + eaf->padding_size_b); /* read MPEG data (not PCM block) */
-    is->b_off += eaf->data_size_b + eaf->padding_size_b;
+    bm_skip(is, eaf->data_size_b + eaf->padding_size_b);
 
     eaf->common_size = (eaf->base_size_b + eaf->data_size_b + eaf->padding_size_b)/8;
 
@@ -542,55 +542,55 @@ static int ealayer3_rebuild_mpeg_frame(bitstream_t* is_0, ealayer3_frame_t* eaf_
 #endif
 
     /* write MPEG1/2 frame header */
-    wb_bits(os, 11, 0x7FF);  /* sync */
-    wb_bits(os,  2, eaf_0->version_index);
-    wb_bits(os,  2, 0x01);  /* layer III index */
-    wb_bits(os,  1, 1);  /* "no CRC" flag */
-    wb_bits(os,  4, expected_bitrate_index);
-    wb_bits(os,  2, eaf_0->sample_rate_index);
-    wb_bits(os,  1, 0);  /* padding */
-    wb_bits(os,  1, 0);  /* private */
-    wb_bits(os,  2, eaf_0->channel_mode);
-    wb_bits(os,  2, eaf_0->mode_extension);
-    wb_bits(os,  1, 1);  /* copyrighted */
-    wb_bits(os,  1, 1);  /* original */
-    wb_bits(os,  2, 0);  /* emphasis */
+    bm_put(os, 11, 0x7FF);  /* sync */
+    bm_put(os,  2, eaf_0->version_index);
+    bm_put(os,  2, 0x01);  /* layer III index */
+    bm_put(os,  1, 1);  /* "no CRC" flag */
+    bm_put(os,  4, expected_bitrate_index);
+    bm_put(os,  2, eaf_0->sample_rate_index);
+    bm_put(os,  1, 0);  /* padding */
+    bm_put(os,  1, 0);  /* private */
+    bm_put(os,  2, eaf_0->channel_mode);
+    bm_put(os,  2, eaf_0->mode_extension);
+    bm_put(os,  1, 1);  /* copyrighted */
+    bm_put(os,  1, 1);  /* original */
+    bm_put(os,  2, 0);  /* emphasis */
 
     if (eaf_0->mpeg1) {
         int private_bits = (eaf_0->channels==1 ? 5 : 3);
 
         /* write MPEG1 side info */
-        wb_bits(os,  9, 0);  /* main data start (no bit reservoir) */
-        wb_bits(os,  private_bits, 0);
+        bm_put(os,  9, 0);  /* main data start (no bit reservoir) */
+        bm_put(os,  private_bits, 0);
 
         for (i = 0; i < eaf_1->channels; i++) {
-            wb_bits(os,  4, eaf_1->scfsi[i]); /* saved in granule1 only */
+            bm_put(os,  4, eaf_1->scfsi[i]); /* saved in granule1 only */
         }
         for (i = 0; i < eaf_0->channels; i++) { /* granule0 */
-            wb_bits(os, 12,    eaf_0->main_data_size[i]);
-            wb_bits(os, 32,    eaf_0->others_1[i]);
-            wb_bits(os, 47-32, eaf_0->others_2[i]);
+            bm_put(os, 12,    eaf_0->main_data_size[i]);
+            bm_put(os, 32,    eaf_0->others_1[i]);
+            bm_put(os, 47-32, eaf_0->others_2[i]);
         }
         for (i = 0; i < eaf_1->channels; i++) { /* granule1 */
-            wb_bits(os, 12,    eaf_1->main_data_size[i]);
-            wb_bits(os, 32,    eaf_1->others_1[i]);
-            wb_bits(os, 47-32, eaf_1->others_2[i]);
+            bm_put(os, 12,    eaf_1->main_data_size[i]);
+            bm_put(os, 32,    eaf_1->others_1[i]);
+            bm_put(os, 47-32, eaf_1->others_2[i]);
         }
 
         /* write MPEG1 main data */
-        is_0->b_off = eaf_0->data_offset_b;
+        bm_set(is_0, eaf_0->data_offset_b);
         for (i = 0; i < eaf_0->channels; i++) { /* granule0 */
             for (j = 0; j < eaf_0->main_data_size[i]; j++) {
-                rb_bits(is_0,  1, &c);
-                wb_bits(os,    1,  c);
+                bm_get(is_0,  1, &c);
+                bm_put(os,    1,  c);
             }
         }
 
-        is_1->b_off = eaf_1->data_offset_b;
+        bm_set(is_1, eaf_1->data_offset_b);
         for (i = 0; i < eaf_1->channels; i++) { /* granule1 */
             for (j = 0; j < eaf_1->main_data_size[i]; j++) {
-                rb_bits(is_1,  1, &c);
-                wb_bits(os,    1,  c);
+                bm_get(is_1,  1, &c);
+                bm_put(os,    1,  c);
             }
         }
     }
@@ -598,43 +598,42 @@ static int ealayer3_rebuild_mpeg_frame(bitstream_t* is_0, ealayer3_frame_t* eaf_
         int private_bits = (eaf_0->channels==1 ? 1 : 2);
 
         /* write MPEG2 side info */
-        wb_bits(os,  8, 0);  /* main data start (no bit reservoir) */
-        wb_bits(os,  private_bits, 0);
+        bm_put(os,  8, 0);  /* main data start (no bit reservoir) */
+        bm_put(os,  private_bits, 0);
 
         for (i = 0; i < eaf_0->channels; i++) {
-            wb_bits(os, 12,    eaf_0->main_data_size[i]);
-            wb_bits(os, 32,    eaf_0->others_1[i]);
-            wb_bits(os, 51-32, eaf_0->others_2[i]);
+            bm_put(os, 12,    eaf_0->main_data_size[i]);
+            bm_put(os, 32,    eaf_0->others_1[i]);
+            bm_put(os, 51-32, eaf_0->others_2[i]);
         }
 
         /* write MPEG2 main data */
-        is_0->b_off = eaf_0->data_offset_b;
+        bm_set(is_0, eaf_0->data_offset_b);
         for (i = 0; i < eaf_0->channels; i++) {
             for (j = 0; j < eaf_0->main_data_size[i]; j++) {
-                rb_bits(is_0,  1, &c);
-                wb_bits(os,    1,  c);
+                bm_get(is_0,  1, &c);
+                bm_put(os,    1,  c);
             }
         }
     }
 
     /* align to closest 8b */
-    if (os->b_off % 8) {
-        int align_bits = 8 - (os->b_off % 8);
-        wb_bits(os,  align_bits,  0);
+    if (bm_pos(os) % 8) {
+        int align_bits = 8 - (bm_pos(os) % 8);
+        bm_put(os,  align_bits,  0);
     }
 
 
-    if (os->b_off/8 > expected_frame_size)  {
+    if (bm_pos(os) / 8 > expected_frame_size)  {
         /* bit reservoir! shouldn't happen with free bitrate, otherwise it's hard to fix as needs complex buffering/calcs */
-        VGM_LOG("EAL3: written 0x%x but expected less than 0x%x\n", (uint32_t)(os->b_off/8), expected_frame_size);
+        VGM_LOG("EAL3: written 0x%x but expected less than 0x%x\n", (uint32_t)(bm_pos(os) / 8), expected_frame_size);
     }
     else {
         /* fill ancillary data (should be ignored, but 0x00 seems to improve mpg123's free bitrate detection) */
-        memset(os->buf + os->b_off/8, 0x00, expected_frame_size - os->b_off/8);
+        memset(os->buf + bm_pos(os) / 8, 0x00, expected_frame_size - bm_pos(os) / 8);
     }
 
-    os->b_off = expected_frame_size*8;
-
+    bm_set(os, expected_frame_size * 8);
 
     return 1;
 fail:
@@ -835,7 +834,7 @@ static int ealayer3_skip_data(VGMSTREAMCHANNEL* stream, mpeg_codec_data* data, i
     for (i = 0; i < skips; i++) {
         ib.sf = stream->streamfile;
         ib.offset = stream->offset;
-        ib.is.buf = ib.buf;
+        bm_setup(&ib.is, ib.buf, 0); // filled later
 
         ok = ealayer3_parse_frame(data, num_stream, &ib, &eaf);
         if (!ok) goto fail;

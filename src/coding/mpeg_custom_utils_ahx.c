@@ -1,6 +1,6 @@
 #ifdef VGM_USE_MPEG
 #include "mpeg_decoder.h"
-#include "mpeg_bitreader.h"
+#include "../util/bitstream_msb.h"
 #include "coding.h"
 
 #define MPEG_AHX_EXPECTED_FRAME_SIZE 0x414
@@ -39,25 +39,25 @@ static int ahx_decrypt(uint8_t* buf, int curr_size, crikey_t* crikey) {
     bitstream_t ib = {0};
     bitstream_t ob = {0};
 
-    init_bitstream(&ib, buf, curr_size); /* frame */
-    init_bitstream(&ob, buf, curr_size); /* decrypted frame */
+    bm_setup(&ib, buf, curr_size); /* frame */
+    bm_setup(&ob, buf, curr_size); /* decrypted frame */
 
     /* MPEG header (fixed in AHX, otherwise layer/bitrate/channels sets bands+tables) */
-    bs_skip(&ib, 32);
-    bs_skip(&ob, 32);
+    bm_skip(&ib, 32);
+    bm_skip(&ob, 32);
 
     /* read bit allocs for later */
     for (int i = 0; i < AHX_BANDS; i++) {
         int ba_bits = AHX_BITALLOC_TABLE[i];
 
-        rb_bits(&ib, ba_bits, &bit_alloc[i]);
-        bs_skip(&ob, ba_bits);
+        bm_get (&ib, ba_bits, &bit_alloc[i]);
+        bm_skip(&ob, ba_bits);
     }
 
     /* get first scalefactor info to decide key */
     if (bit_alloc[0]) {
-        rb_bits(&ib, 2, &scfsi[0]);
-        bs_skip(&ob, 2);
+        bm_get (&ib, 2, &scfsi[0]);
+        bm_skip(&ob, 2);
     }
 
     uint16_t key;
@@ -71,9 +71,9 @@ static int ahx_decrypt(uint8_t* buf, int curr_size, crikey_t* crikey) {
     /* decrypt rest of scalefactors (only first ones are encrypted though) */
     for (int i = 1; i < AHX_BANDS; i++) {
         if (bit_alloc[i]) {
-            rb_bits(&ib, 2, &scfsi[i]);
+            bm_get (&ib, 2, &scfsi[i]);
             scfsi[i] ^= (key & 3);
-            wb_bits(&ob, 2,  scfsi[i]);
+            bm_put(&ob, 2,  scfsi[i]);
         }
         key >>= 2;
     }
@@ -84,10 +84,10 @@ static int ahx_decrypt(uint8_t* buf, int curr_size, crikey_t* crikey) {
             continue;
 
         switch(scfsi[i]) {
-            case 0: bs_skip(&ib, 6 * 3); break;
+            case 0: bm_skip(&ib, 6 * 3); break;
             case 1:
-            case 3: bs_skip(&ib, 6 * 2); break;
-            case 2: bs_skip(&ib, 6 * 1); break;
+            case 3: bm_skip(&ib, 6 * 2); break;
+            case 2: bm_skip(&ib, 6 * 1); break;
             default: break;
         }
     }
@@ -108,21 +108,21 @@ static int ahx_decrypt(uint8_t* buf, int curr_size, crikey_t* crikey) {
             else
                 qbits = qbits * 3; /* 3 qs */
 
-            int ok = bs_skip(&ib, qbits);
+            int ok = bm_skip(&ib, qbits);
             if (!ok) goto fail;
         }
     }
 
     /* read padding */
     {
-        int bpos = bs_pos(&ib);
+        int bpos = bm_pos(&ib);
         if (bpos % 8) {
-            bs_skip(&ib, 8 - (bpos % 8));
+            bm_skip(&ib, 8 - (bpos % 8));
         }
     }
 
     /* if file was properly read/decrypted this size should land in next frame header or near EOF */
-    return bs_pos(&ib) / 8;
+    return bm_pos(&ib) / 8;
 fail:
     return 0;
 }

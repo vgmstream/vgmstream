@@ -275,8 +275,8 @@
     <ClInclude Include="coding\hca_decoder_icelib.h">
       <Filter>coding\Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="coding\mpeg_bitreader.h">
-      <Filter>coding\Header Files</Filter>
+    <ClInclude Include="util\bitstream_msb.h">
+      <Filter>util\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="coding\mpeg_decoder.h">
       <Filter>coding\Header Files</Filter>
