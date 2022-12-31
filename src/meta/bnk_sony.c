@@ -54,7 +54,7 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
     data_offset = read_u32(0x10,sf);
     data_size = read_u32(0x14,sf);
     /* when sblk_offset >= 0x20: */
-    /* 0x18: ZLSD small footer, rare [Yakuza 6's Puyo Puyo (PS4)] */
+    /* 0x18: ZLSD small footer, rare in earlier versions [Yakuza 6's Puyo Puyo (PS4)] */
     /* 0x1c: ZLSD size */
 
     /* SE banks, also used for music. Most table fields seems reserved/defaults and
@@ -66,14 +66,17 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
     if (read_u32(sblk_offset+0x00,sf) != get_id32be("klBS")) /* SBlk = SFX block */
         goto fail;
     sblk_version = read_u32(sblk_offset+0x04,sf);
-    /* 0x08: flags? (sblk_version>=0x0d?, 0x03=Vita, 0x06=PS4)
+    /* 0x08: flags? (sblk_version>=0x0d?, 0x03=Vita, 0x06=PS4, 0x05=PS5)
      * - 04: non-fixed bank?
      * - 100: has names
-     * - 200: has user data
-     */
-    /* 0x0c: block id */
-    /* 0x10: block number */
-    /* 0x11: padding */
+     * - 200: has user data */
+    /* version < v0x1a: 
+     * - 0x0c: block id 
+     * - 0x10: block number 
+     * - 0x11: padding
+     * version >= v0x1a: 
+     * - 0x0c: hash (0x10)
+     * - 0x1c: filename (0x100?) */   
     //;VGM_LOG("BNK: sblk_offset=%lx, data_offset=%lx, sblk_version %x\n", sblk_offset, data_offset, sblk_version);
 
     {
@@ -140,6 +143,8 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
                 table1_suboffset = 0x0c;
                 table2_suboffset = 0x00;
                 break;
+
+            case 0x1a: /* Demon's Souls (PS5) */
 
             default:
                 vgm_logi("BNK: unknown version %x (report)\n", sblk_version);
