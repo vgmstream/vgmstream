@@ -58,7 +58,7 @@ export RMF SHELL CC AR STRIP WINDRES DLLTOOL
 ###############################################################################
 ### build defs
 
-DEF_CFLAGS += -ffast-math -O3 -Wall -Werror=format-security -Wdeclaration-after-statement -Wvla -Wimplicit-function-declaration -Wignored-qualifiers
+DEF_CFLAGS += -ffast-math -O3 -Wall -Werror=format-security -Wvla -Wimplicit-function-declaration -Wignored-qualifiers
 
 VGM_DEBUG_FLAGS = 0
 ifeq ($(VGM_DEBUG_FLAGS),1)
