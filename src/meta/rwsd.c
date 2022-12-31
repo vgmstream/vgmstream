@@ -106,6 +106,12 @@ VGMSTREAM* init_vgmstream_rwsd(STREAMFILE* sf) {
 
     stream_size = read_32bitBE(wave_offset + 0x50,sf);
 
+    /* this meta is a hack as WSD is just note info, and data offsets are elsewhere in the brsar,
+     * while this assumes whatever data follows RWSD must belong to it (common but fails in Wii Sports),
+     * detect data excess and reject (probably should use brawlbox's info offsets) */
+    if (stream_size * channels + 0x10000 < get_streamfile_size(sf) - start_offset)
+        goto fail;
+
     /* open the file for reading by each channel */
     {
         int i;
