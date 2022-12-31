@@ -7,23 +7,40 @@
 
 typedef struct {
     uint8_t* buf;           /* buffer to read/write */
-    size_t bufsize;         /* max size of the buffer */
-    uint32_t b_off;         /* current offset in bits inside the buffer */
+    size_t bufsize;         /* max size */
+    size_t b_max;           /* max size in bits */
+    uint32_t b_off;         /* current offset in bits inside buffer */
 } bitstream_t;
 
 /* convenience util */
-static void init_bitstream(bitstream_t* b, uint8_t* buf, size_t bufsize) {
+static inline void init_bitstream(bitstream_t* b, uint8_t* buf, size_t bufsize) {
     b->buf = buf;
     b->bufsize = bufsize;
+    b->b_max = bufsize * 8;
     b->b_off = 0;
 }
 
+static inline int bs_skip(bitstream_t* bs, uint32_t bits) {
+    if (bs->b_off + bits > bs->b_max)
+        goto fail;
+
+    bs->b_off += bits;
+
+    return 1;
+fail:
+    return 0;
+}
+
+static inline int bs_pos(bitstream_t* bs) {
+    return bs->b_off;
+}
+
 /* Read bits (max 32) from buf and update the bit offset. Order is BE (MSF). */
-static int rb_bits(bitstream_t* ib, uint32_t bits, uint32_t* value) {
+static inline int rb_bits(bitstream_t* ib, uint32_t bits, uint32_t* value) {
     uint32_t shift, pos, val;
     int i, bit_buf, bit_val;
 
-    if (bits > 32 || ib->b_off + bits > ib->bufsize * 8)
+    if (bits > 32 || ib->b_off + bits > ib->b_max)
         goto fail;
 
     pos = ib->b_off / 8;        /* byte offset */
@@ -55,11 +72,11 @@ fail:
 
 #ifndef BITSTREAM_READ_ONLY
 /* Write bits (max 32) to buf and update the bit offset. Order is BE (MSF). */
-static int wb_bits(bitstream_t* ob, uint32_t bits, uint32_t value) {
+static inline int wb_bits(bitstream_t* ob, uint32_t bits, uint32_t value) {
     uint32_t shift, pos;
     int i, bit_val, bit_buf;
 
-    if (bits > 32 || ob->b_off + bits > ob->bufsize * 8)
+    if (bits > 32 || ob->b_off + bits > ob->b_max)
         goto fail;
 
     pos = ob->b_off / 8; /* byte offset */

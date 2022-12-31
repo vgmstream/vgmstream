@@ -473,6 +473,13 @@ typedef enum {
     MPEG_EAMP3              /* custom frame header + MPEG frame + PCM blocks */
 } mpeg_custom_t;
 
+typedef struct {
+    int type;
+    uint16_t key1;
+    uint16_t key2;
+    uint16_t key3;
+} crikey_t;
+
 /* config for the above modes */
 typedef struct {
     int channels; /* max channels */
@@ -485,11 +492,7 @@ typedef struct {
     int encryption; /* encryption mode */
     int big_endian;
     int skip_samples;
-    /* for AHX */
-    int cri_type;
-    uint16_t cri_key1;
-    uint16_t cri_key2;
-    uint16_t cri_key3;
+    crikey_t crikey; /* for AHX */
 } mpeg_custom_config;
 
 mpeg_codec_data* init_mpeg(STREAMFILE* sf, off_t start_offset, coding_t *coding_type, int channels);
@@ -504,6 +507,7 @@ long mpeg_bytes_to_samples(long bytes, const mpeg_codec_data* data);
 
 uint32_t mpeg_get_tag_size(STREAMFILE* sf, uint32_t offset, uint32_t header);
 int mpeg_get_frame_info(STREAMFILE* sf, off_t offset, mpeg_frame_info* info);
+int test_ahx_key(STREAMFILE* sf, off_t offset, crikey_t* crikey);
 #endif
 
 

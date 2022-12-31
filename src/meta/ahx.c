@@ -1,9 +1,12 @@
 #include "meta.h"
 #include "../coding/coding.h"
-#include "../util.h"
-#if 0
-#include "adx_keys.h"
+#include "ahx_keys.h"
+#include "../util/cri_keys.h"
+
+#ifdef VGM_USE_MPEG
+static int find_ahx_key(STREAMFILE* sf, off_t offset, crikey_t* crikey);
 #endif
+
 
 /* AHX - CRI voice format */
 VGMSTREAM* init_vgmstream_ahx(STREAMFILE* sf) {
@@ -23,7 +26,7 @@ VGMSTREAM* init_vgmstream_ahx(STREAMFILE* sf) {
         read_u32be(start_offset - 0x04,sf) != 0x29435249)   /* ")CRI" */
        goto fail;
 
-    /* types:  0x10 = AHX for DC with bigger frames, 0x11 = AHX, 0x0N = ADX */
+    /* types: 0x10 = AHX for DC with fixed MPEG frame bits (bigger frames), 0x11 = standard AHX, 0x0N = ADX */
     type = read_u8(0x04,sf);
     if (type != 0x10 && type != 0x11) goto fail;
 
@@ -52,40 +55,13 @@ VGMSTREAM* init_vgmstream_ahx(STREAMFILE* sf) {
     {
 #ifdef VGM_USE_MPEG
         mpeg_custom_config cfg = {0};
+        crikey_t* crikey = &cfg.crikey;
 
-        cfg.encryption = read_u8(0x13,sf); /* 0x08 = keyword encryption */
-        cfg.cri_type = type;
+        cfg.encryption = read_u8(0x13,sf); /* only type 0x08 is known */
+        crikey->type = cfg.encryption;
 
         if (cfg.encryption) {
-            uint8_t keybuf[0x10+1] = {0}; /* approximate max for keystrings, +1 extra null for keystrings */
-            size_t key_size;
-
-            key_size = read_key_file(keybuf, sizeof(keybuf), sf);
-            if (key_size > 0) {
-#if 0
-                int i, is_ascii;
-                is_ascii = 1;
-                for (i = 0; i < key_size; i++) {
-                    if (keybuf[i] < 0x20 || keybuf[i] > 0x7f) {
-                        is_ascii = 0;
-                        break;
-                    }
-                }
-#endif
-                if (key_size == 0x06 /*&& !is_ascii*/) {
-                    cfg.cri_key1 = get_u16be(keybuf + 0x00);
-                    cfg.cri_key2 = get_u16be(keybuf + 0x02);
-                    cfg.cri_key3 = get_u16be(keybuf + 0x04);
-                }
-#if 0
-                else if (is_ascii) {
-                    const char* keystring = (const char*)keybuf;
-                    
-                    derive_adx_key8(keystring, &cfg.cri_key1, &cfg.cri_key2, &cfg.cri_key3);
-                    VGM_LOG("ok: %x, %x, %x\n", cfg.cri_key1, cfg.cri_key2, cfg.cri_key3 );
-                }
-#endif
-            }
+            find_ahx_key(sf, start_offset, crikey);
         }
 
         vgmstream->layout_type = layout_none;
@@ -104,3 +80,80 @@ fail:
     close_vgmstream(vgmstream);
     return NULL;
 }
+
+#ifdef VGM_USE_MPEG
+static int find_ahx_keyfile(STREAMFILE* sf, crikey_t* crikey) {
+    uint8_t keybuf[0x10+1] = {0}; /* approximate max for keystrings, +1 extra null for keystrings */
+    size_t key_size;
+    int is_keystring = 0;
+
+    key_size = read_key_file(keybuf, sizeof(keybuf) - 1, sf);
+    if (key_size <= 0)
+        goto fail;
+
+
+    if (crikey->type == 8) {
+        is_keystring = cri_key8_valid_keystring(keybuf, key_size);
+    }
+
+    if (key_size == 0x06 && !is_keystring) {
+        crikey->key1 = get_u16be(keybuf + 0x00);
+        crikey->key2 = get_u16be(keybuf + 0x02);
+        crikey->key3 = get_u16be(keybuf + 0x04);
+    }
+    else if (crikey->type == 8 && is_keystring) {
+        const char* keystring = (const char*)keybuf;
+        cri_key8_derive(keystring, &crikey->key1, &crikey->key2, &crikey->key3);
+    }
+    else {
+        goto fail;
+    }
+
+    return 1;
+fail:
+    return 0;
+}
+
+static int find_ahx_keylist(STREAMFILE* sf, off_t offset, crikey_t* crikey) {
+    int i;
+    int keycount = ahxkey8_list_count;
+    const ahxkey_info* keys = ahxkey8_list;
+
+
+    for (i = 0; i < keycount; i++) {
+        if (crikey->type == 0x08) {
+            cri_key8_derive(keys[i].key8, &crikey->key1, &crikey->key2, &crikey->key3);
+            //;VGM_LOG("AHX: testing %s [%04x %04x %04x]\n", keys[i].key8, crikey->key1, crikey->key2, crikey->key3);
+        }
+        else {
+            continue;
+        }
+
+        if (test_ahx_key(sf, offset, crikey)) {
+            //;VGM_LOG("AHX key found\n");
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+static int find_ahx_key(STREAMFILE* sf, off_t offset, crikey_t* crikey) {
+    int ok;
+    
+    ok = find_ahx_keyfile(sf, crikey);
+    if (ok)
+        return 1;
+
+    ok = find_ahx_keylist(sf, offset, crikey);
+    if (ok)
+        return 1;
+
+
+    crikey->key1 = 0;
+    crikey->key2 = 0;
+    crikey->key3 = 0;
+    vgm_logi("AHX: decryption key not found\n");
+    return 0;
+}
+#endif
