@@ -1,168 +1,123 @@
 #include "meta.h"
-#include "../util.h"
+#include "../coding/coding.h"
 
-VGMSTREAM * init_vgmstream_brstm(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
+VGMSTREAM* init_vgmstream_brstm(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
+    uint32_t start_offset, head_size, head_offset, info_offset;
+    int channels, loop_flag, codec, version;
 
-    coding_t coding_type;
-
-    off_t head_offset;
-    int codec_number;
-    int channel_count;
-    int loop_flag;
-    /* Certain Super Paper Mario tracks have a 44.1KHz sample rate in the
-     * header, but they should be played at 22.05KHz. We will make this
-     * correction if we see a file with a .brstmspm extension. */
-    int spm_flag = 0;
-    /* Trauma Center Second Opinion has an odd, semi-corrupt header */
-    int atlus_shrunken_head = 0;
-
-    off_t start_offset;
-
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("brstm",filename_extension(filename))) {
-        if (strcasecmp("brstmspm",filename_extension(filename))) goto fail;
-        else spm_flag = 1;
-    }
-
-    /* check header */
-    if ((uint32_t)read_32bitBE(0,streamFile)!=0x5253544D) /* "RSTM" */
+    /* checks */
+    if (!is_id32be(0x00,sf, "RSTM"))
         goto fail;
-    if ((uint32_t)read_32bitBE(4,streamFile)!=0xFEFF0100)
-    {
-        if ((uint32_t)read_32bitBE(4,streamFile)!=0xFEFF0001)
-            goto fail;
-        else
-            atlus_shrunken_head = 1;
+
+    /* .brstm: standard
+     * .brstmspm: fake hack */
+    if (!check_extensions(sf,"brstm,brstmspm"))
+        goto fail;
+
+    if (read_u16be(0x04, sf) != 0xFEFF) /* BE BOM for all Wii games */
+        goto fail;
+
+    version = read_u16be(0x06, sf); /* 0.1 (Trauma Center), 1.0 (all others) */
+    if (read_u32be(0x08, sf) != get_streamfile_size(sf))
+        goto fail;
+
+    head_size = read_u16be(0x0c, sf);
+    /* 0x0e: chunk count */
+
+    if (version == 0x0001) {
+        /* smaller simpler header found in some (beta?) files */
+        head_offset = head_size;
+        info_offset = head_offset + 0x08;
+    }
+    else {
+        /* chunk table: offset + sixe x N chunks */
+        head_offset = read_u32be(0x10,sf); /* in practice same as head_size */
+        info_offset = head_offset + 0x20;
+        /* HEAD starts with a sub-chunk table (info, )*/
     }
 
-    /* get head offset, check */
-    head_offset = read_32bitBE(0x10,streamFile);
-    if (atlus_shrunken_head)
-    {
-        /* the HEAD chunk is where we would expect to find the offset of that
-         * chunk... */
+    if (!is_id32be(head_offset,sf, "HEAD"))
+        goto fail;
+    /* 0x04: chunk size (set to 0x8 in v0.1) */
 
-        if ((uint32_t)head_offset!=0x48454144 || read_32bitBE(0x14,streamFile) != 8)
-            goto fail;
+    codec = read_u8(info_offset+0x00,sf);
+    loop_flag = read_u8(info_offset+0x01,sf);
+    channels = read_u8(info_offset+0x02,sf);
 
-        head_offset = -8;   /* most of the normal Nintendo RSTM offsets work
-                               with this assumption */
-    }
-    else
-    {
-        if ((uint32_t)read_32bitBE(head_offset,streamFile)!=0x48454144) /* "HEAD" */
-            goto fail;
-    }
+    start_offset = read_u32be(info_offset+0x10,sf); /* inside DATA chunk */
 
-    /* check type details */
-    codec_number = read_8bit(head_offset+0x20,streamFile);
-    loop_flag = read_8bit(head_offset+0x21,streamFile);
-    channel_count = read_8bit(head_offset+0x22,streamFile);
+    /* build the VGMSTREAM */
+    vgmstream = allocate_vgmstream(channels, loop_flag);
+    if (!vgmstream) goto fail;
 
-    switch (codec_number) {
+    vgmstream->meta_type = meta_RSTM;
+
+    vgmstream->sample_rate = read_u16be(info_offset+0x04,sf);
+    vgmstream->loop_start_sample = read_s32be(info_offset+0x08,sf);
+    vgmstream->num_samples = read_s32be(info_offset+0x0c,sf);
+    vgmstream->loop_end_sample = vgmstream->num_samples;
+
+    vgmstream->interleave_block_size = read_u32be(info_offset+0x18,sf);
+    vgmstream->interleave_last_block_size = read_u32be(info_offset+0x28,sf);
+
+    /* many Super Paper Mario tracks have a 44.1KHz sample rate in the header,
+     * but they should be played at 22.05KHz; detect with fake extension */
+    if (vgmstream->sample_rate == 44100 && check_extensions(sf, "brstmspm")) //TODO remove
+        vgmstream->sample_rate = 22050;
+
+    vgmstream->layout_type = (channels == 1) ? layout_none : layout_interleave;
+    switch(codec) {
         case 0:
-            coding_type = coding_PCM8;
+            vgmstream->coding_type = coding_PCM8;
             break;
         case 1:
-            coding_type = coding_PCM16BE;
+            vgmstream->coding_type = coding_PCM16BE;
             break;
         case 2:
-            coding_type = coding_NGC_DSP;
+            vgmstream->coding_type = coding_NGC_DSP;
             break;
         default:
             goto fail;
     }
 
-    if (channel_count < 1) goto fail;
-
-    /* build the VGMSTREAM */
-
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
-    if (!vgmstream) goto fail;
-
-    /* fill in the vital statistics */
-    vgmstream->num_samples = read_32bitBE(head_offset+0x2c,streamFile);
-    vgmstream->sample_rate = (uint16_t)read_16bitBE(head_offset+0x24,streamFile);
-    /* channels and loop flag are set by allocate_vgmstream */
-    vgmstream->loop_start_sample = read_32bitBE(head_offset+0x28,streamFile);
-    vgmstream->loop_end_sample = vgmstream->num_samples;
-
-    vgmstream->coding_type = coding_type;
-    vgmstream->layout_type = (channel_count == 1) ? layout_none : layout_interleave;
-    vgmstream->meta_type = meta_RSTM;
-    if (atlus_shrunken_head)
-        vgmstream->meta_type = meta_RSTM_shrunken;
-
-    if (spm_flag&& vgmstream->sample_rate == 44100) {
-        vgmstream->meta_type = meta_RSTM_SPM;
-        vgmstream->sample_rate = 22050;
-    }
-
-    vgmstream->interleave_block_size = read_32bitBE(head_offset+0x38,streamFile);
-    vgmstream->interleave_last_block_size = read_32bitBE(head_offset+0x48,streamFile);
-
+    // TODO read hist
     if (vgmstream->coding_type == coding_NGC_DSP) {
         off_t coef_offset;
-        off_t head_part3_offset;
         off_t adpcm_header_offset;
-        int i,j;
-        int coef_spacing;
+        int i, ch;
 
-        if (atlus_shrunken_head)
-        {
-            coef_offset = 0x50;
-            coef_spacing = 0x30;
-
-            for (j = 0; j < vgmstream->channels; j++) {
-                for (i = 0; i < 16; i++) {
-                    vgmstream->ch[j].adpcm_coef[i] = read_16bitBE(head_offset + coef_offset + j * coef_spacing + i * 2,streamFile);
-                }
-            }
+        if (version == 0x0001) {
+            /* standard */
+            VGM_LOG("ss=%x\n", head_offset + 0x38);
+            dsp_read_coefs_be(vgmstream, sf, head_offset + 0x38, 0x30);
         }
-        else
-        {
-            head_part3_offset = read_32bitBE(head_offset + 0x1c, streamFile);
+        else {
+            uint32_t head_part3_offset = read_32bitBE(head_offset + 0x1c, sf);
 
-            for (j = 0; j < vgmstream->channels; j++) {
+            /* read from offset table */
+            for (ch = 0; ch < vgmstream->channels; ch++) {
                 adpcm_header_offset = head_offset + 0x08
                     + head_part3_offset + 0x04 /* skip over HEAD part 3 */
-                    + j * 0x08 /* skip to channel's ADPCM offset table */
+                    + ch * 0x08 /* skip to channel's ADPCM offset table */
                     + 0x04; /* ADPCM header offset field */
 
                 coef_offset = head_offset + 0x08
-                    + read_32bitBE(adpcm_header_offset, streamFile)
+                    + read_u32be(adpcm_header_offset, sf)
                     + 0x08; /* coeffs field */
 
                 for (i = 0; i < 16; i++) {
-                    vgmstream->ch[j].adpcm_coef[i] = read_16bitBE(coef_offset + i * 2, streamFile);
+                    vgmstream->ch[ch].adpcm_coef[i] = read_s16be(coef_offset + i * 2, sf);
                 }
             }
         }
     }
 
-    start_offset = read_32bitBE(head_offset+0x30,streamFile);
-
-    /* open the file for reading by each channel */
-    {
-        int i;
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-
-            if (!vgmstream->ch[i].streamfile) goto fail;
-
-            vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=
-                start_offset + i*vgmstream->interleave_block_size;
-        }
-    }
-
+    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
+        goto fail;
     return vgmstream;
 
-    /* clean up anything we may have opened */
 fail:
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_vgmstream(vgmstream);
     return NULL;
 }
