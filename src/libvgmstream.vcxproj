@@ -84,7 +84,7 @@
   <ItemGroup>
     <ClInclude Include="coding\hca_decoder_clhca.h" />
     <ClInclude Include="coding\ice_decoder_icelib.h" />
-    <ClInclude Include="coding\mpeg_bitreader.h" />
+    <ClInclude Include="util\bitstream_msb.h" />
     <ClInclude Include="coding\mpeg_decoder.h" />
     <ClInclude Include="coding\vorbis_bitreader.h" />
     <ClInclude Include="coding\vorbis_custom_data_fsb.h" />
@@ -105,6 +105,7 @@
     <ClInclude Include="meta\adx_keys.h" />
     <ClInclude Include="meta\aax_utf.h" />
     <ClInclude Include="meta\9tav_streamfile.h" />
+    <ClInclude Include="meta\ahx_keys.h" />
     <ClInclude Include="meta\aix_streamfile.h" />
     <ClInclude Include="meta\awc_xma_streamfile.h" />
     <ClInclude Include="meta\bar_streamfile.h" />
@@ -172,6 +173,7 @@
     <ClInclude Include="layout\layout.h" />
     <ClInclude Include="util\chunks.h" />
     <ClInclude Include="util\cri_utf.h" />
+    <ClInclude Include="util\cri_keys.h" />
     <ClInclude Include="util\endianness.h" />
     <ClInclude Include="util\log.h" />
     <ClInclude Include="util\m2_psb.h" />
@@ -736,6 +738,7 @@
     <ClCompile Include="layout\blocked_xvas.c" />
     <ClCompile Include="util\chunks.c" />
     <ClCompile Include="util\cri_utf.c" />
+    <ClCompile Include="util\cri_keys.c" />
     <ClCompile Include="util\log.c" />
     <ClCompile Include="util\m2_psb.c" />
     <ClCompile Include="util\miniz.c" />

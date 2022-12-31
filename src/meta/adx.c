@@ -6,6 +6,7 @@
 #include "meta.h"
 #include "adx_keys.h"
 #include "../coding/coding.h"
+#include "../util/cri_keys.h"
 
 
 #ifdef VGM_DEBUG_OUTPUT
@@ -280,39 +281,32 @@ static int find_adx_key(STREAMFILE* sf, uint8_t type, uint16_t *xor_start, uint1
         key_size = read_key_file(keybuf, sizeof(keybuf), sf);
 
         if (key_size > 0) {
-            int is_ascii = 0;
+            int is_keystring = 0;
 
-            /* keystrings should be ASCII, also needed to tell apart 0x06 strings from derived keys */
             if (type == 8) {
-                is_ascii = 1;
-                for (i = 0; i < key_size; i++) {
-                    if (keybuf[i] < 0x20 || keybuf[i] > 0x7f) {
-                        is_ascii = 0;
-                        break;
-                    }
-                }
+                is_keystring = cri_key8_valid_keystring(keybuf, key_size);
             }
 
-            if (key_size == 0x06 && !is_ascii) {
+            if (key_size == 0x06 && !is_keystring) {
                 *xor_start = get_u16be(keybuf + 0x00);
                 *xor_mult  = get_u16be(keybuf + 0x02);
                 *xor_add   = get_u16be(keybuf + 0x04);
                 return 1;
             }
-            else if (type == 8 && is_ascii) {
+            else if (type == 8 && is_keystring) {
                 const char* keystring = (const char*)keybuf;
-                derive_adx_key8(keystring, xor_start, xor_mult, xor_add);
+                cri_key8_derive(keystring, xor_start, xor_mult, xor_add);
                 return 1;
             }
             else if (type == 9 && key_size == 0x08) {
                 uint64_t keycode = get_u64be(keybuf);
-                derive_adx_key9(keycode, subkey, xor_start, xor_mult, xor_add);
+                cri_key9_derive(keycode, subkey, xor_start, xor_mult, xor_add);
                 return 1;
             }
             else if (type == 9 && key_size == 0x08+0x02) {
                 uint64_t file_keycode = get_u64be(keybuf+0x00);
                 uint16_t file_subkey  = get_u16be(keybuf+0x08);
-                derive_adx_key9(file_keycode, file_subkey, xor_start, xor_mult, xor_add);
+                cri_key9_derive(file_keycode, file_subkey, xor_start, xor_mult, xor_add);
                 return 1;
             }
         }
@@ -438,7 +432,7 @@ static int find_adx_key(STREAMFILE* sf, uint8_t type, uint16_t *xor_start, uint1
 #ifdef ADX_BRUTEFORCE
             if (buf) {
                 keycode = get_u64be(buf + key_id);
-                derive_adx_key9(keycode, subkey, &key_xor, &key_mul, &key_add);
+                cri_key9_derive(keycode, subkey, &key_xor, &key_mul, &key_add);
             }
             else
 #endif
@@ -450,11 +444,11 @@ static int find_adx_key(STREAMFILE* sf, uint8_t type, uint16_t *xor_start, uint1
                 key_add = keys[key_id].add;
             }
             else if (type == 8 && keys[key_id].key8) {
-                derive_adx_key8(keys[key_id].key8, &key_xor, &key_mul, &key_add);
+                cri_key8_derive(keys[key_id].key8, &key_xor, &key_mul, &key_add);
             }
             else if (type == 9 && keys[key_id].key9) {
                 uint64_t keycode = keys[key_id].key9;
-                derive_adx_key9(keycode, subkey, &key_xor, &key_mul, &key_add);
+                cri_key9_derive(keycode, subkey, &key_xor, &key_mul, &key_add);
             }
             else {
                 VGM_LOG("ADX: incorrectly defined key id=%i\n", key_id);
@@ -474,13 +468,13 @@ static int find_adx_key(STREAMFILE* sf, uint8_t type, uint16_t *xor_start, uint1
                 mul = keys[key_id].mult;
                 add = keys[key_id].add;
                 if (type == 8 && keys[key_id].key8) {
-                    derive_adx_key8(keys[key_id].key8, &test_xor, &test_mul, &test_add);
+                    cri_key8_derive(keys[key_id].key8, &test_xor, &test_mul, &test_add);
                     VGM_LOG("key8: pre=%04x %04x %04x vs calc=%04x %04x %04x = %s (\"%s\")\n",
                             xor,mul,add, test_xor,test_mul,test_add,
                             xor==test_xor && mul==test_mul && add==test_add ? "ok" : "ko", keys[key_id].key8);
                 }
                 else if (type == 9 && keys[key_id].key9) {
-                    derive_adx_key9(keys[key_id].key9, subkey, &test_xor, &test_mul, &test_add);
+                    cri_key9_derive(keys[key_id].key9, subkey, &test_xor, &test_mul, &test_add);
                     VGM_LOG("key9: pre=%04x %04x %04x vs calc=%04x %04x %04x = %s (%"PRIu64")\n",
                             xor,mul,add, test_xor,test_mul,test_add,
                             xor==test_xor && mul==test_mul && add==test_add ? "ok" : "ko", keys[key_id].key9);

@@ -97,6 +97,7 @@ static const char* extension_list[] = {
     "bar",
     "bcstm",
     "bcwav",
+    "bcv", //txth/reserved [The Bigs (PSP)]
     "bd3",
     "bdsp",
     "bfstm",
@@ -998,7 +999,6 @@ static const meta_info meta_info_list[] = {
         {meta_DSP_MSS,              "Double DSP header stereo by .mss extension"},
         {meta_DSP_GCM,              "Double DSP header stereo by .gcm extension"},
         {meta_IDSP_TT,              "Traveller's Tales IDSP header"},
-        {meta_RSTM_SPM,             "Nintendo RSTM header (brstmspm)"},
         {meta_RAW_PCM,              "PC .raw raw header"},
         {meta_PS2_VAGi,             "Sony VAGi header"},
         {meta_PS2_VAGp,             "Sony VAGp header"},
@@ -1122,7 +1122,6 @@ static const meta_info meta_info_list[] = {
         {meta_PS2_P2BT,             "Pop'n'Music 7 Header"},
         {meta_PS2_GBTS,             "Pop'n'Music 9 Header"},
         {meta_NGC_DSP_IADP,         "IADP Header"},
-        {meta_RSTM_shrunken,        "Nintendo RSTM header, corrupted by Atlus"},
         {meta_RIFF_WAVE_MWV,        "RIFF WAVE header with .mwv flavoring"},
         {meta_FFCC_STR,             "Final Fantasy: Crystal Chronicles STR header"},
         {meta_SAT_BAKA,             "Konami BAKA header"},

@@ -80,6 +80,9 @@
     <ClInclude Include="meta\9tav_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="meta\ahx_keys.h">
+      <Filter>meta\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="meta\aix_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
@@ -272,8 +275,8 @@
     <ClInclude Include="coding\hca_decoder_icelib.h">
       <Filter>coding\Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="coding\mpeg_bitreader.h">
-      <Filter>coding\Header Files</Filter>
+    <ClInclude Include="util\bitstream_msb.h">
+      <Filter>util\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="coding\mpeg_decoder.h">
       <Filter>coding\Header Files</Filter>
@@ -315,6 +318,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="util\cri_utf.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="util\cri_keys.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="util\endianness.h">
@@ -1988,6 +1994,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="util\cri_utf.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="util\cri_keys.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="util\log.c">

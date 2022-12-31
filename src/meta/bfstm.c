@@ -28,9 +28,9 @@ VGMSTREAM* init_vgmstream_bfstm(STREAMFILE* sf) {
 
 
     /* checks */
-    if (!check_extensions(sf,"bfstm"))
-        goto fail;
     if (!is_id32be(0x00,sf, "FSTM"))
+        goto fail;
+    if (!check_extensions(sf,"bfstm"))
         goto fail;
     /* 0x06(2): header size (0x40)
      * 0x08: version (0x00000400)
