@@ -347,6 +347,13 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
     if (!is_id32be(0x00,sf,"RIFF"))
         goto fail;
 
+    riff_size = read_u32le(0x04,sf);
+
+    if (!is_id32be(0x08,sf, "WAVE"))
+        goto fail;
+
+    file_size = get_streamfile_size(sf);
+
     /* .lwav: to avoid hijacking .wav
      * .xwav: fake for Xbox games (not needed anymore)
      * .da: The Great Battle VI (PS1)
@@ -379,23 +386,17 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
      * .ogg/logg: Luftrausers (Vita)[ATRAC9]
      * .p1d: Farming Simulator 15 (Vita)[ATRAC9]
      * .xms: Ty the Tasmanian Tiger (Xbox)
+     * .mus: Burnout Legends/Dominator (PSP)
      */
-    if ( check_extensions(sf, "wav,lwav,xwav,da,dax,cd,med,snd,adx,adp,xss,xsew,adpcm,adw,wd,,sbv,wvx,str,at3,rws,aud,at9,ckd,saf,ima,nsa,pcm,xvag,ogg,logg,p1d,xms") ) {
+    if (check_extensions(sf, "wav,lwav,xwav,da,dax,cd,med,snd,adx,adp,xss,xsew,adpcm,adw,wd,,sbv,wvx,str,at3,rws,aud,at9,ckd,saf,ima,nsa,pcm,xvag,ogg,logg,p1d,xms,mus")) {
         ;
     }
-    else if ( check_extensions(sf, "mwv") ) {
+    else if (check_extensions(sf, "mwv")) {
         mwv = 1;
     }
     else {
         goto fail;
     }
-
-    riff_size = read_u32le(0x04,sf);
-
-    if (!is_id32be(0x08,sf, "WAVE"))
-        goto fail;
-
-    file_size = get_streamfile_size(sf);
 
     /* some games have wonky sizes, selectively fix to catch bad rips and new mutations */
     if (file_size != riff_size + 0x08) {
