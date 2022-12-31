@@ -212,6 +212,8 @@ int test_ahx_key(STREAMFILE* sf, off_t offset, crikey_t* crikey) {
         pos += size;
 
         curr_sync = get_u32be(buf + pos);
+        if (curr_sync == 0x00800100) /* EOF tag */
+            break;
         if (base_sync != curr_sync)
             goto fail;
     }
