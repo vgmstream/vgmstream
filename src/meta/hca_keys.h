@@ -1097,6 +1097,9 @@ static const hcakey_info hcakey_list[] = {
     
         // Star Ocean: The Divine Force (PC)
         {68308868861462528},   // 00f2ae8de77f0800
+    
+        // Sin Chronicle (Android)
+        {4385672148314579020}, // 3CDD0995259D604C
 };
 
 #endif/*_HCA_KEYS_H_*/
