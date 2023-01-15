@@ -14,14 +14,6 @@
     <ProjectGuid>{330B53AE-4FAE-46DA-8785-9016DB4E3E23}</ProjectGuid>
     <RootNamespace>getopt</RootNamespace>
     <Keyword>Win32Proj</Keyword>
-    <SccProjectName>
-    </SccProjectName>
-    <SccAuxPath>
-    </SccAuxPath>
-    <SccLocalPath>
-    </SccLocalPath>
-    <SccProvider>
-    </SccProvider>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
@@ -77,10 +69,10 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="getopt.c" />
+    <ClInclude Include="getopt.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="getopt.h" />
+    <ClCompile Include="getopt.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

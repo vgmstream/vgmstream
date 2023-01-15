@@ -14,14 +14,6 @@
     <ProjectGuid>{42D86561-8CE4-40F5-86CE-58C986B77502}</ProjectGuid>
     <RootNamespace>in_vgmstream</RootNamespace>
     <Keyword>Win32Proj</Keyword>
-    <SccProjectName>
-    </SccProjectName>
-    <SccAuxPath>
-    </SccAuxPath>
-    <SccLocalPath>
-    </SccLocalPath>
-    <SccProvider>
-    </SccProvider>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
@@ -116,12 +108,12 @@
     <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="resource.rc" />
-  </ItemGroup>
-  <ItemGroup>
     <ClCompile Include="in_config.c" />
     <ClCompile Include="in_streamfile.c" />
     <ClCompile Include="in_vgmstream.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="resource.rc" />
   </ItemGroup>
   <ItemGroup>
     <!--<ProjectReference Include="$(DependenciesDir)/fdk-aac/msvc/fdk-aac.vcxproj">

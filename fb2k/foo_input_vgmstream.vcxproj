@@ -14,14 +14,6 @@
     <ProjectGuid>{F3739CF2-F422-4A3D-BB0A-53C5D4C5ABA0}</ProjectGuid>
     <RootNamespace>foo_input_vgmstream</RootNamespace>
     <Keyword>Win32Proj</Keyword>
-    <SccProjectName>
-    </SccProjectName>
-    <SccAuxPath>
-    </SccAuxPath>
-    <SccLocalPath>
-    </SccLocalPath>
-    <SccProvider>
-    </SccProvider>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">

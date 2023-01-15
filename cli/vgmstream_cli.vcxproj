@@ -12,16 +12,8 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{AF7D88A0-3CB1-4CD8-BAD1-0305EB996D69}</ProjectGuid>
-    <RootNamespace>test</RootNamespace>
+    <RootNamespace>vgmstream-cli</RootNamespace>
     <Keyword>Win32Proj</Keyword>
-    <SccProjectName>
-    </SccProjectName>
-    <SccAuxPath>
-    </SccAuxPath>
-    <SccLocalPath>
-    </SccLocalPath>
-    <SccProvider>
-    </SccProvider>
     <TargetName>vgmstream-cli</TargetName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
