@@ -43,6 +43,9 @@ VGMSTREAM* init_vgmstream_smk(STREAMFILE *sf) {
         if (!vgmstream->codec_data) goto fail;
         vgmstream->coding_type = coding_FFmpeg;
         vgmstream->layout_type = layout_none;
+
+        // wrong decoding otherwise
+        ffmpeg_set_force_seek(vgmstream->codec_data);
 #else
         goto fail;
 #endif
