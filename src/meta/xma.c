@@ -157,6 +157,9 @@ VGMSTREAM* init_vgmstream_xma(STREAMFILE* sf) {
         vgmstream->layout_type = layout_none;
 
         xma_fix_raw_samples(vgmstream, sf, start_offset, data_size, chunk_offset, 1,1);
+
+        // some XMA (1?) files hang on seek to 0 near EOF, probably due to end packet/skip samples bugs
+        ffmpeg_set_force_seek(vgmstream->codec_data);
     }
 #else
     goto fail;
