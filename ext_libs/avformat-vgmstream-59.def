@@ -1,12 +1,12 @@
 EXPORTS
     av_add_index_entry
     av_append_packet
-    av_apply_bitstream_filters
     av_codec_get_id
     av_codec_get_tag
     av_codec_get_tag2
     av_demuxer_iterate
-    av_demuxer_open
+    av_disposition_from_string
+    av_disposition_to_string
     av_dump_format
     av_filename_number_test
     av_find_best_stream
@@ -14,25 +14,9 @@ EXPORTS
     av_find_input_format
     av_find_program_from_stream
     av_fmt_ctx_get_duration_estimation_method
+    av_fopen_utf8
     av_format_ffversion
-    av_format_get_audio_codec
-    av_format_get_control_message_cb
-    av_format_get_data_codec
-    av_format_get_metadata_header_padding
-    av_format_get_opaque
-    av_format_get_open_cb
-    av_format_get_probe_score
-    av_format_get_subtitle_codec
-    av_format_get_video_codec
     av_format_inject_global_side_data
-    av_format_set_audio_codec
-    av_format_set_control_message_cb
-    av_format_set_data_codec
-    av_format_set_metadata_header_padding
-    av_format_set_opaque
-    av_format_set_open_cb
-    av_format_set_subtitle_codec
-    av_format_set_video_codec
     av_get_frame_filename
     av_get_frame_filename2
     av_get_output_timestamp
@@ -43,16 +27,14 @@ EXPORTS
     av_guess_sample_aspect_ratio
     av_hex_dump
     av_hex_dump_log
-    av_iformat_next
     av_index_search_timestamp
     av_interleaved_write_frame
     av_interleaved_write_uncoded_frame
     av_match_ext
     av_muxer_iterate
     av_new_program
-    av_oformat_next
-    av_pkt_dump_log2
     av_pkt_dump2
+    av_pkt_dump_log2
     av_probe_input_buffer
     av_probe_input_buffer2
     av_probe_input_format
@@ -62,21 +44,15 @@ EXPORTS
     av_read_frame
     av_read_pause
     av_read_play
-    av_register_all
-    av_register_input_format
-    av_register_output_format
     av_sdp_create
     av_seek_frame
     av_stream_add_side_data
+    av_stream_get_class
     av_stream_get_codec_timebase
     av_stream_get_end_pts
     av_stream_get_parser
-    av_stream_get_r_frame_rate
-    av_stream_get_recommended_encoder_configuration
     av_stream_get_side_data
     av_stream_new_side_data
-    av_stream_set_r_frame_rate
-    av_stream_set_recommended_encoder_configuration
     av_url_split
     av_write_frame
     av_write_trailer
@@ -94,6 +70,9 @@ EXPORTS
     avformat_get_mov_video_tags
     avformat_get_riff_audio_tags
     avformat_get_riff_video_tags
+    avformat_index_get_entries_count
+    avformat_index_get_entry
+    avformat_index_get_entry_from_timestamp
     avformat_init_output
     avformat_license
     avformat_match_stream_specifier
@@ -126,11 +105,13 @@ EXPORTS
     avio_get_str16le
     avio_handshake
     avio_open
+    avio_open2
     avio_open_dir
     avio_open_dyn_buf
-    avio_open2
     avio_pause
+    avio_print_string_array
     avio_printf
+    avio_protocol_get_class
     avio_put_str
     avio_put_str16be
     avio_put_str16le
@@ -151,6 +132,7 @@ EXPORTS
     avio_seek_time
     avio_size
     avio_skip
+    avio_vprintf
     avio_w8
     avio_wb16
     avio_wb24
@@ -162,8 +144,8 @@ EXPORTS
     avio_wl64
     avio_write
     avio_write_marker
-    avpriv_io_delete
-    avpriv_io_move
     avpriv_new_chapter
     avpriv_register_devices
     avpriv_set_pts_info
+    avpriv_stream_set_need_parsing
+    avpriv_update_cur_dts
