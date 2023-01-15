@@ -110,6 +110,7 @@ static const char* extension_list[] = {
     "bik",
     "bika", //fake extension for .bik (to be removed)
     "bik2",
+    "binka", //FFmpeg/not parsed (BINK AUDIO)
     //"bin", //common
     "bk2",
     "bkr",  //txth/reserved [P.N.03 (GC), Viewtiful Joe (GC)]
