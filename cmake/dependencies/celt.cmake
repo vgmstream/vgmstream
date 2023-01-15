@@ -24,7 +24,7 @@ if(NOT WIN32 AND USE_CELT)
 		set(CELT_0110_LINK_PATH ${CELT_0110_BIN}/libcelt/.libs/libcelt0.a)
 		
 		configure_file(
-			${VGM_SOURCE_DIR}/ext_libs/celt-0110/ecintrin.h
+			${VGM_SOURCE_DIR}/ext_libs/builds/celt-0110/ecintrin.h
 			${CELT_0110_PATH}/libcelt/ecintrin.h
 		COPYONLY)
 		
@@ -100,11 +100,7 @@ if(NOT WIN32 AND USE_CELT)
 		
 		foreach(ver 0061 0110)
 			foreach(source ${CELT_CFLAGS})
-				string(REGEX REPLACE "^([^_]+)" "\\1_${ver}" target ${source})
-				if(source STREQUAL ${target})
-					set(target "${source}_${ver}")
-				endif()
-				list(APPEND CELT_${ver}_CFLAGS "-D${source}=${target}")
+				list(APPEND CELT_${ver}_CFLAGS "-D${source}=${source}_${ver}")
 			endforeach()
 			list(APPEND CELT_${ver}_CFLAGS "-fPIC")
 			

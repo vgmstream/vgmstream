@@ -1,8 +1,9 @@
 LIBRARY libcelt-0061.dll
 EXPORTS
-celt_0061_decode
-celt_0061_decoder_create
-celt_0061_decoder_destroy
-celt_0061_mode_create
-celt_0061_mode_destroy
-celt_0061_mode_info
+    celt_decode_0061
+    celt_decoder_create_0061
+    celt_decoder_destroy_0061
+    celt_mode_create_0061
+    celt_mode_destroy_0061
+    celt_mode_info_0061
+; symbols not used by vgmstream were ommited

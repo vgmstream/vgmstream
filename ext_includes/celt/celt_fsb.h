@@ -57,15 +57,15 @@
 /** State of the decoder. One decoder state is needed for each stream.
     It is initialised once at the beginning of the stream. Do *not*
     re-initialise the state for every frame */
-typedef struct CELT0061Decoder CELT0061Decoder;
-typedef struct CELT0110Decoder CELT0110Decoder;
+typedef struct CELTDecoder0061 CELTDecoder0061;
+typedef struct CELTDecoder CELTDecoder0110;
 
 /** The mode contains all the information necessary to create an
     encoder. Both the encoder and decoder need to be initialised
     with exactly the same mode, otherwise the quality will be very 
     bad */
-typedef struct CELT0061Mode CELT0061Mode;
-typedef struct CELT0110Mode CELT0110Mode;
+typedef struct CELTMode0061 CELTMode0061;
+typedef struct CELTMode0110 CELTMode0110;
 
 
 /* Mode calls */
@@ -80,19 +80,19 @@ typedef struct CELT0110Mode CELT0110Mode;
  @param error Returned error code (if NULL, no error will be returned)
  @return A newly created mode
 */
-EXPORT CELT0061Mode *celt_0061_mode_create(celt_int32 Fs, int channels, int frame_size, int *error);
-EXPORT CELT0110Mode *celt_0110_mode_create(celt_int32 Fs, int frame_size, int *error);
+/*EXPORT*/ CELTMode0061 *celt_mode_create_0061(celt_int32 Fs, int channels, int frame_size, int *error);
+/*EXPORT*/ CELTMode0110 *celt_mode_create_0110(celt_int32 Fs, int frame_size, int *error);
 
 /** Destroys a mode struct. Only call this after all encoders and 
     decoders using this mode are destroyed as well.
  @param mode Mode to be destroyed
 */
-EXPORT void celt_0061_mode_destroy(CELT0061Mode *mode);
-EXPORT void celt_0110_mode_destroy(CELT0110Mode *mode);
+/*EXPORT*/ void celt_mode_destroy_0061(CELTMode0061 *mode);
+/*EXPORT*/ void celt_mode_destroy_0110(CELTMode0110 *mode);
 
 /** Query information from a mode */
-EXPORT int celt_0061_mode_info(const CELT0061Mode *mode, int request, celt_int32 *value);
-EXPORT int celt_0110_mode_info(const CELT0110Mode *mode, int request, celt_int32 *value);
+/*EXPORT*/ int celt_mode_info_0061(const CELTMode0061 *mode, int request, celt_int32 *value);
+/*EXPORT*/ int celt_mode_info_0110(const CELTMode0110 *mode, int request, celt_int32 *value);
 
 
 /* Decoder stuff */
@@ -105,14 +105,14 @@ EXPORT int celt_0110_mode_info(const CELT0110Mode *mode, int request, celt_int32
  @param error Returns an error code
  @return Newly created decoder state.
  */
-EXPORT CELT0061Decoder *celt_0061_decoder_create(const CELT0061Mode *mode);
-EXPORT CELT0110Decoder *celt_0110_decoder_create_custom(const CELT0110Mode *mode, int channels, int *error);
+/*EXPORT*/ CELTDecoder0061 *celt_decoder_create_0061(const CELTMode0061 *mode);
+/*EXPORT*/ CELTDecoder0110 *celt_decoder_create_custom_0110(const CELTMode0110 *mode, int channels, int *error);
 
 /** Destroys a a decoder state.
  @param st Decoder state to be destroyed
  */
-EXPORT void celt_0061_decoder_destroy(CELT0061Decoder *st);
-EXPORT void celt_0110_decoder_destroy(CELT0110Decoder *st);
+/*EXPORT*/ void celt_decoder_destroy_0061(CELTDecoder0061 *st);
+/*EXPORT*/ void celt_decoder_destroy_0110(CELTDecoder0110 *st);
 
 /** Decodes a frame of audio.
  @param st Decoder state
@@ -123,8 +123,8 @@ EXPORT void celt_0110_decoder_destroy(CELT0110Decoder *st);
             returned here in 16-bit PCM format (native endian). 
  @return Error code.
  */
-EXPORT int celt_0061_decode(CELT0061Decoder *st, const unsigned char *data, int len, celt_int16 *pcm);
-EXPORT int celt_0110_decode(CELT0110Decoder *st, const unsigned char *data, int len, celt_int16 *pcm, int frame_size);
+/*EXPORT*/ int celt_decode_0061(CELTDecoder0061 *st, const unsigned char *data, int len, celt_int16 *pcm);
+/*EXPORT*/ int celt_decode_0110(CELTDecoder0110 *st, const unsigned char *data, int len, celt_int16 *pcm, int frame_size);
 
 
 

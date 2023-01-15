@@ -1,8 +1,9 @@
 LIBRARY libcelt-0110.dll
 EXPORTS
-celt_0110_decode
-celt_0110_decoder_create_custom
-celt_0110_decoder_destroy
-celt_0110_mode_create
-celt_0110_mode_destroy
-celt_0110_mode_info
+    celt_decode_0110
+    celt_decoder_create_custom_0110
+    celt_decoder_destroy_0110
+    celt_mode_create_0110
+    celt_mode_destroy_0110
+    celt_mode_info_0110
+; symbols not used by vgmstream were ommited
