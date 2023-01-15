@@ -139,9 +139,9 @@ jobs:
       # TODO: Add vgmstream123 to the archive and upload the Audacious plugin when it is supported
       run: |
         cd cli
-        tar cvfz vgmstream-cli.tar.gz vgmstream-cli
+        tar cvfz vgmstream-linux-cli.tar.gz vgmstream-cli
         cd ..
-        aws s3 cp cli/vgmstream-cli.tar.gz s3://vgmstream-builds/${{github.sha}}/linux/vgmstream-cli.tar.gz --acl public-read
+        aws s3 cp cli/vgmstream-linux-cli.tar.gz s3://vgmstream-builds/${{github.sha}}/linux/vgmstream-linux-cli.tar.gz --acl public-read
         cd ${{runner.workspace}}
         echo ${{github.sha}} | tee latest_id_lx
         aws s3 cp latest_id_lx s3://vgmstream-builds/ --acl public-read
