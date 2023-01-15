@@ -190,7 +190,6 @@ function Clean
 
 $fb2kFiles = @(
     "ext_libs/*.dll",
-    "ext_libs/libspeex/*.dll",
     "$configuration/foo_input_vgmstream.dll",
     "README.md"
     "doc/USAGE.md"
@@ -198,7 +197,6 @@ $fb2kFiles = @(
 
 $cliFiles = @(
     "ext_libs/*.dll",
-    "ext_libs/libspeex/*.dll",
     "$configuration/in_vgmstream.dll",
     "$configuration/vgmstream-cli.exe",
     "$configuration/xmp-vgmstream.dll",

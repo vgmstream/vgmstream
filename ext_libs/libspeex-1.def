@@ -1,4 +1,4 @@
-LIBRARY libspeex.dll
+LIBRARY libspeex-1.dll
 EXPORTS
 
 

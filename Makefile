@@ -143,8 +143,8 @@ ifeq ($(TARGET_OS),Windows_NT)
   VGM_SPEEX = 1
   ifneq ($(VGM_SPEEX),0)
     LIBS_CFLAGS  += -DVGM_USE_SPEEX
-    LIBS_LDFLAGS +=  -L../ext_libs/libspeex -lspeex
-    LIBS_TARGET_EXT_LIBS += libspeex/libspeex.a
+    LIBS_LDFLAGS += -lspeex-1
+    LIBS_TARGET_EXT_LIBS += libspeex-1.a
   endif
 
 else
@@ -217,7 +217,6 @@ ifeq ($(TARGET_OS),Windows_NT)
   ZIP_FILES += winamp/in_vgmstream.dll
   ZIP_FILES += xmplay/xmp-vgmstream.dll
   ZIP_FILES += ext_libs/*.dll
-  ZIP_FILES += ext_libs/libspeex/*.dll
   ZIP_FILES_AO  = cli/vgmstream123.exe
   ZIP_FILES_AO += $(LIBAO_DLL_PATH)/*.dll
 else

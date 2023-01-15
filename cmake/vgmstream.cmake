@@ -128,7 +128,7 @@ macro(setup_target TARGET)
         target_compile_definitions(${TARGET} PRIVATE VGM_USE_SPEEX)
         if(WIN32 AND LINK)
             add_dependencies(${TARGET} libspeex)
-            target_link_libraries(${TARGET} ${VGM_BINARY_DIR}/ext_libs/libspeex/libspeex.lib)
+            target_link_libraries(${TARGET} ${VGM_BINARY_DIR}/ext_libs/libspeex-1.lib)
         endif()
 		if(NOT WIN32 AND LINK)
 			target_link_libraries(${TARGET} speex m)
@@ -151,7 +151,7 @@ macro(install_dlls INSTALL_PREFIX)
 	set(CELT_DLL
 		${VGM_SOURCE_DIR}/ext_libs/libcelt-0061.dll
 		${VGM_SOURCE_DIR}/ext_libs/libcelt-0110.dll)
-    set(SPEEX_DLL ${VGM_SOURCE_DIR}/ext_libs/libspeex/libspeex.dll)
+    set(SPEEX_DLL ${VGM_SOURCE_DIR}/ext_libs/libspeex-1.dll)
 
 	# List of DLLs to check for install
 	set(DLLS

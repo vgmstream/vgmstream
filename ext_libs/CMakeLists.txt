@@ -103,13 +103,13 @@ if(MSVC)
 	endif()
 
     if(USE_SPEEX)
-        add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/libspeex/libspeex.lib ${CMAKE_CURRENT_BINARY_DIR}/libspeex/libspeex.exp
+        add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/libspeex-1.lib ${CMAKE_CURRENT_BINARY_DIR}/libspeex-1.exp
             COMMAND lib
-            ARGS /def:${CMAKE_CURRENT_SOURCE_DIR}/libspeex/libspeex.def /machine:x86 /out:${CMAKE_CURRENT_BINARY_DIR}/libspeex/libspeex.lib
-            DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/libspeex/libspeex.def)
+            ARGS /def:${CMAKE_CURRENT_SOURCE_DIR}/libspeex-1.def /machine:x86 /out:${CMAKE_CURRENT_BINARY_DIR}/libspeex-1.lib
+            DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/libspeex-1.def)
         file(GLOB SPEEX_HEADERS "${VGM_SOURCE_DIR}/ext_includes/speex/*.h")
         add_custom_target(libspeex
-            DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/libspeex/libspeex.lib
+            DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/libspeex-1.lib
             SOURCES ${SPEEX_HEADERS})
     endif()
 elseif(MINGW)
@@ -194,11 +194,11 @@ elseif(MINGW)
 	endif()
 
     if(USE_SPEEX)
-        add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/libspeex/libspeex.lib
+        add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/libspeex-1.lib
             COMMAND ${DLLTOOL}
-            ARGS -d ${CMAKE_CURRENT_SOURCE_DIR}/libspeex/libspeex.def -l ${CMAKE_CURRENT_BINARY_DIR}/libspeex/libspeex.lib
-            DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/libspeex/libspeex.def)
+            ARGS -d ${CMAKE_CURRENT_SOURCE_DIR}/libspeex-1.def -l ${CMAKE_CURRENT_BINARY_DIR}/libspeex-1.lib
+            DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/libspeex-1.def)
         add_custom_target(libspeex
-            DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/libspeex/libspeex.lib)
+            DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/libspeex-1.lib)
     endif()
 endif()

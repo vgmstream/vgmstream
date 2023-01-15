@@ -181,7 +181,6 @@
     <ClInclude Include="util\text_reader.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="coding\at3plus_decoder.c" />
     <ClCompile Include="coding\atrac9_decoder.c" />
     <ClCompile Include="coding\celt_fsb_decoder.c" />
     <ClCompile Include="coding\circus_decoder.c" />
