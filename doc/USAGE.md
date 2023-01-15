@@ -20,7 +20,7 @@ Put the following files somewhere Windows can find them:
 - `libatrac9.dll`
 - `libcelt-0061.dll`
 - `libcelt-0110.dll`
-- `libspeex.dll`
+- `libspeex-1.dll`
 
 For command line (`vgmstream-cli.exe`) and XMPlay this means in the directory with the main
 `.exe`, or possibly a directory in the PATH variable.
