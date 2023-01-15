@@ -102,49 +102,49 @@ ifeq ($(TARGET_OS),Windows_NT)
   ifneq ($(VGM_VORBIS),0)
     LIBS_CFLAGS  += -DVGM_USE_VORBIS
     LIBS_LDFLAGS += -lvorbis
-    LIBS_TARGET_EXT_LIBS += libvorbis.a
+    LIBS_TARGET_EXT_LIBS += libvorbis.dll.a
   endif
 
   VGM_MPEG = 1
   ifneq ($(VGM_MPEG),0)
     LIBS_CFLAGS  += -DVGM_USE_MPEG
     LIBS_LDFLAGS += -lmpg123-0
-    LIBS_TARGET_EXT_LIBS += libmpg123-0.a
+    LIBS_TARGET_EXT_LIBS += libmpg123-0.dll.a
   endif
 
   VGM_G719 = 1
   ifneq ($(VGM_G719),0)
     LIBS_CFLAGS  += -DVGM_USE_G719
     LIBS_LDFLAGS += -lg719_decode
-    LIBS_TARGET_EXT_LIBS += libg719_decode.a
+    LIBS_TARGET_EXT_LIBS += libg719_decode.dll.a
   endif
 
   VGM_FFMPEG = 1
   ifneq ($(VGM_FFMPEG),0)
     LIBS_CFLAGS  += -DVGM_USE_FFMPEG -I../ext_includes/ffmpeg
-    LIBS_LDFLAGS += -lavcodec -lavformat -lavutil -lswresample
-    LIBS_TARGET_EXT_LIBS += libavcodec.a libavformat.a libavutil.a libswresample.a
+    LIBS_LDFLAGS += -lavcodec-vgmstream-59 -lavformat-vgmstream-59 -lavutil-vgmstream-57 -lswresample-vgmstream-4
+    LIBS_TARGET_EXT_LIBS += avcodec-vgmstream-59.dll.a avformat-vgmstream-59.dll.a avutil-vgmstream-57.dll.a swresample-vgmstream-4.dll.a
   endif
 
   VGM_ATRAC9 = 1
   ifneq ($(VGM_ATRAC9),0)
     LIBS_CFLAGS  += -DVGM_USE_ATRAC9
     LIBS_LDFLAGS += -latrac9
-    LIBS_TARGET_EXT_LIBS += libatrac9.a
+    LIBS_TARGET_EXT_LIBS += libatrac9.dll.a
   endif
 
   VGM_CELT = 1
   ifneq ($(VGM_CELT),0)
     LIBS_CFLAGS  += -DVGM_USE_CELT
     LIBS_LDFLAGS += -lcelt-0061 -lcelt-0110
-    LIBS_TARGET_EXT_LIBS += libcelt-0061.a libcelt-0110.a
+    LIBS_TARGET_EXT_LIBS += libcelt-0061.dll.a libcelt-0110.dll.a
   endif
 
   VGM_SPEEX = 1
   ifneq ($(VGM_SPEEX),0)
     LIBS_CFLAGS  += -DVGM_USE_SPEEX
     LIBS_LDFLAGS += -lspeex-1
-    LIBS_TARGET_EXT_LIBS += libspeex-1.a
+    LIBS_TARGET_EXT_LIBS += libspeex-1.dll.a
   endif
 
 else
@@ -255,9 +255,9 @@ bin-ex: vgmstream-cli winamp xmplay vgmstream123
 	mkdir -p bin
 	zip -FS -j "bin/$(BIN_FILE)" $(ZIP_FILES) $(ZIP_FILES_AO)
 
-vgmstream_cli: vgmstream-cli
+vgmstream-cli: vgmstream_cli
 
-vgmstream-cli: version
+vgmstream_cli: version
 	$(MAKE) -C cli vgmstream_cli
 
 vgmstream123: version
