@@ -9,7 +9,7 @@ if(NOT WIN32 AND USE_G719)
 		set(G719_LINK_PATH ${G719_BIN}/libg719_decode.a)
 		
 		configure_file(
-			${VGM_SOURCE_DIR}/ext_libs/libg719_decode/CMakeLists.txt
+			${VGM_SOURCE_DIR}/ext_libs/extra/libg719_decode/CMakeLists.txt
 			${G719_PATH}/CMakeLists.txt
 		COPYONLY)
 		
