@@ -211,7 +211,7 @@ $fb2kPdbFiles = @(
 
 $cliPdbFiles = @(
     "$configuration/in_vgmstream.pdb",
-    "$configuration/test.pdb",
+    "$configuration/vgmstream-cli.pdb",
     "$configuration/xmp-vgmstream.pdb"
 )
 
