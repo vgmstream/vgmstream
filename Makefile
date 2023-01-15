@@ -10,6 +10,8 @@ else
 endif
 DEF_CFLAGS += -DVGMSTREAM_VERSION_AUTO -DVGM_LOG_OUTPUT
 
+VGM_X64=0
+
 ###############################################################################
 ### external defs
 # currently aimed to WIN32 builds but vgmstream-cli should work for others (or use autotools instead)
@@ -28,7 +30,13 @@ ifeq ($(TARGET_OS),Windows_NT)
   STRIP = strip
   WINDRES = windres
   DLLTOOL = dlltool
-  #DLLTOOL = dlltool -m i386:x86-64 --as-flags --64
+  
+  DLL_DIR = .
+  export DLL_DIR
+  ifneq ($(VGM_X64),0)
+    DLLTOOL = dlltool -m i386:x86-64 --as-flags --64
+    DLL_DIR = dll-x64
+  endif
 
   # same thing, the above should be available
   #CC = i686-w64-mingw32-gcc
@@ -85,6 +93,15 @@ endif
 LIBS_CFLAGS=
 LIBS_LDFLAGS=
 LIBS_TARGET_EXT_LIBS=
+
+### bit stuff
+# TODO: some targets don't work with X64 (Winamp, etc), detect
+#ifneq ($(VGM_X86),0)
+#  DEF_CFLAGS += -m32
+#endif
+ifneq ($(VGM_X64),0)
+  DEF_CFLAGS += -m64
+endif
 
 # config libs
 VGM_G7221 = 1

@@ -18,7 +18,7 @@ ifeq ($(TARGET_OS),Windows_NT)
 
   # -DUSE_ALLOCA
   CFLAGS += -DWIN32 -I../ext_includes -I../ext_libs/Getopt
-  LDFLAGS += -L../ext_libs
+  LDFLAGS += -L../ext_libs/$(DLL_DIR)
 
   LIBAO_INC = -I$(LIBAO_IPATH)
   LIBAO_LIB = -L$(LIBAO_LPATH) -lao

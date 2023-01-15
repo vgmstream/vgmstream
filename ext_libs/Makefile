@@ -12,10 +12,10 @@
 # -D is optional, but needed if DLL was renamed (like libcelts)
 
 # patterns match ($@ = target, $< = dependency, for others substitute)
-%.dll.a : %.def
-	$(DLLTOOL) -D $(patsubst %.def,%.dll,$<) -d $< -l $@
+%.dll.a:
+	$(DLLTOOL) -D $(DLL_DIR)/$(patsubst %.dll.a,%.dll,$@) -d $(DLL_DIR)/$(patsubst %.dll.a,%.def,$@) -l $(DLL_DIR)/$@
 
 clean:
-	$(RMF) *.dll.a
+	$(RMF) $(DLL_DIR)/*.dll.a
 
 .PHONY: clean
