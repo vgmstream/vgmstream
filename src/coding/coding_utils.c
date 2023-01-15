@@ -845,7 +845,11 @@ void xma_fix_raw_samples_ch(VGMSTREAM* vgmstream, STREAMFILE* sf, off_t stream_o
         }
     }
 
-#ifdef VGM_USE_FFMPEG
+
+#if 0
+    //TODO: ffmpeg now handles internal frame encoder delay, but not correctly in all cases
+    // without this in most cases should be equivalent as before
+//#ifdef VGM_USE_FFMPEG
     /* also fix FFmpeg, since we now know exact skips */
     {
         ffmpeg_codec_data* data = vgmstream->codec_data;
