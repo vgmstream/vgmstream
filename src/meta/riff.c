@@ -277,13 +277,6 @@ static int read_fmt(int big_endian, STREAMFILE* sf, off_t offset, riff_fmt_chunk
                 fmt->coding_type = coding_FFmpeg;
                 fmt->is_at3p = 1;
                 break;
-#elif defined(VGM_USE_MAIATRAC3PLUS)
-                uint16_t bztmp = read_u16(offset+0x32,sf);
-                bztmp = (bztmp >> 8) | (bztmp << 8);
-                fmt->coding_type = coding_AT3plus;
-                fmt->block_size = (bztmp & 0x3FF) * 8 + 8; /* should match fmt->block_size */
-                fmt->is_at3p = 1;
-                break;
 #else
                 goto fail;
 #endif
@@ -679,9 +672,6 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
 #ifdef VGM_USE_FFMPEG
         case coding_FFmpeg:
 #endif
-#ifdef VGM_USE_MAIATRAC3PLUS
-        case coding_AT3plus:
-#endif
 #ifdef VGM_USE_ATRAC9
         case coding_ATRAC9:
 #endif
@@ -786,17 +776,6 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
                     vgmstream->num_samples = loop_end_smpl;
             }
 
-            break;
-        }
-#endif
-#ifdef VGM_USE_MAIATRAC3PLUS
-        case coding_AT3plus: {
-            vgmstream->codec_data = init_at3plus();
-
-            /* get rough total samples but favor fact_samples if available (skip isn't correctly handled for now) */
-            vgmstream->num_samples = atrac3plus_bytes_to_samples(data_size, fmt.block_size);
-            if (fact_sample_count > 0 && fact_sample_count + fact_sample_skip < vgmstream->num_samples)
-                vgmstream->num_samples = fact_sample_count + fact_sample_skip;
             break;
         }
 #endif

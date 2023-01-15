@@ -30,7 +30,6 @@ enum {
 //#define VGM_USE_G719
 //#define VGM_USE_MP4V2
 //#define VGM_USE_FDKAAC
-//#define VGM_USE_MAIATRAC3PLUS
 //#define VGM_USE_FFMPEG
 //#define VGM_USE_ATRAC9
 //#define VGM_USE_CELT
@@ -211,10 +210,6 @@ typedef enum {
 
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
     coding_MP4_AAC,         /* AAC (MDCT-based) */
-#endif
-
-#ifdef VGM_USE_MAIATRAC3PLUS
-    coding_AT3plus,         /* Sony ATRAC3plus (MDCT-based) */
 #endif
 
 #ifdef VGM_USE_ATRAC9

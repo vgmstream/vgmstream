@@ -544,18 +544,6 @@ void free_mp4_aac(mp4_aac_codec_data* data);
 #endif
 
 
-#ifdef VGM_USE_MAIATRAC3PLUS
-/* at3plus_decoder */
-typedef struct maiatrac3plus_codec_data maiatrac3plus_codec_data;
-
-maiatrac3plus_codec_data* init_at3plus();
-void decode_at3plus(VGMSTREAM* vgmstream, sample * outbuf, int channelspacing, int32_t samples_to_do, int channel);
-void reset_at3plus(VGMSTREAM* vgmstream);
-void seek_at3plus(VGMSTREAM* vgmstream, int32_t num_sample);
-void free_at3plus(maiatrac3plus_codec_data* data);
-#endif
-
-
 #ifdef VGM_USE_ATRAC9
 /* atrac9_decoder */
 typedef struct {

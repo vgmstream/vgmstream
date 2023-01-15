@@ -127,7 +127,6 @@ All of these options are of type BOOL and can be set to either `ON` or `OFF`. Mo
 - **USE_MPEG**: Chooses if you wish to use libmpg123 for support of MP1/MP2/MP3. The default is `ON`.
 - **USE_VORBIS**: Chooses if you wish to use libvorbis for support of Vorbis. The default is `ON`.
 - **USE_FFMPEG**: Chooses if you wish to use FFmpeg for support of many codecs. The default is `ON`. `FFMPEG_PATH` can also be given, so it can use official/external SDK instead of the one used in vgmstream project.
-- **USE_MAIATRAC3PLUS**: Chooses if you wish to use MAIATRAC3+ for support of ATRAC3+. The default is `OFF`. It is not recommended to enable.
 - **USE_G7221**: Chooses if you wish to use G7221 for support of ITU-T G.722.1 annex C. The default is `ON`.
 - **USE_G719**: Chooses if you wish to use libg719_decode for support ITU-T G.719. The default is `ON`.
 - **USE_ATRAC9**: Chooses if you wish to use LibAtrac9 for support of ATRAC9. The default is `ON`.
@@ -167,7 +166,6 @@ If FDK-AAC/QAAC support is enabled, the following paths are required (with more 
 
 - **QAAC_PATH**: The path to the QAAC library. It can be obtained at https://github.com/kode54/qaac
 - **FDK_AAC_PATH**: The path to the FDK-AAC library. It can be obtained at https://github.com/kode54/fdk-aac
-- **MAIATRAC3PLUS_PATH**: The path to the MAIATRAC3+ library. If MAIATRAC3+ support is enabled, providing this path is required. It is not recommended to use.
 - **MPEG_PATH**: The path to the mpg123 library. It can be obtained from [the mpg123 project on SourceForge.net](https://sourceforge.net/projects/mpg123/files/mpg123/1.25.10/). If not set and static building is enabled, this will be downloaded automatically.
 - **FFMPEG_PATH**: The path to the FFmpeg source directory. It can be obtained at https://git.ffmpeg.org/ffmpeg.git If not set and static building is enabled, this will be downloaded automatically.
 - **G719_PATH**: The path to the G.719 decoder library. It can be obtained at https://github.com/kode54/libg719_decode If not set, it is downloaded automatically on Linux.

@@ -119,13 +119,6 @@ ifeq ($(TARGET_OS),Windows_NT)
     LIBS_TARGET_EXT_LIBS += libg719_decode.a
   endif
 
-  VGM_MAT3P = 0
-  ifneq ($(VGM_MAT3P),0)
-    LIBS_CFLAGS  += -DVGM_USE_MAIATRAC3PLUS
-    LIBS_LDFLAGS += -lat3plusdecoder
-    LIBS_TARGET_EXT_LIBS += libat3plusdecoder.a
-  endif
-
   VGM_FFMPEG = 1
   ifneq ($(VGM_FFMPEG),0)
     LIBS_CFLAGS  += -DVGM_USE_FFMPEG -I../ext_includes/ffmpeg
@@ -173,12 +166,6 @@ else
   ifneq ($(VGM_G719),0)
     LIBS_CFLAGS  += -DVGM_USE_G719
     LIBS_LDFLAGS += -lg719_decode
-  endif
-
-  VGM_MAT3P = 0
-  ifneq ($(VGM_MAT3P),0)
-    LIBS_CFLAGS  += -DVGM_USE_MAIATRAC3PLUS
-    LIBS_LDFLAGS += -lat3plusdecoder
   endif
 
   VGM_FFMPEG = 0

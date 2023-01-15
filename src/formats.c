@@ -886,9 +886,6 @@ static const coding_info coding_info_list[] = {
 #ifdef VGM_USE_G719
         {coding_G719,               "ITU G.719 annex B (Polycom Siren 22)"},
 #endif
-#ifdef VGM_USE_MAIATRAC3PLUS
-        {coding_AT3plus,            "ATRAC3plus"},
-#endif
 #ifdef VGM_USE_ATRAC9
         {coding_ATRAC9,             "ATRAC9"},
 #endif
