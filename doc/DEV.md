@@ -51,7 +51,7 @@ AllowShortIfStatementsOnASingleLine: Never
 ### Code quality
 There is quite a bit of code that could be improved overall, and parts can feel a bit hacked together and brittle. But given how niche the project is and how few contributors there are, priority is given to adding and improving formats.
 
-For regression testing there is a simple script that compares output of a previous version of vgmstream_cli with current. Some bugs may drastically change output when fixed (for example adjusting loops or decoding) so it could be hard to automate and maintain. There isn't an automated test suite at the moment, so tests are manually done as needed.
+For regression testing there is a simple script that compares output of a previous version of vgmstream-cli with current. Some bugs may drastically change output when fixed (for example adjusting loops or decoding) so it could be hard to automate and maintain. There isn't an automated test suite at the moment, so tests are manually done as needed.
 
 Code is checked for leaks from time to time using detection tools, but most of vgmstream formats are quite simple and don't need to manage memory. It's mainly useful for files using external decoders or complex segmented/layered layout combos.
 ```
@@ -59,7 +59,7 @@ Code is checked for leaks from time to time using detection tools, but most of v
 make vgmstream_cli EXTRA_CFLAGS="-g" STRIP=echo
 
 # find leaks
-drmemory -- vgmstream_cli -o file.ext
+drmemory -- vgmstream-cli -o file.ext
 ```
 
 Code is reasonably secure: some parts like IO are designed in a way should avoid segfaults, memory allocation is kept to minimum, and buffer handling is often very limited and simple making overflows unlikely. However, parts may cause division-by-zero or even infinite loops on bad data (fixed as known), no fuzz testing is done (some segfaults may remain, specially for complex codecs), and since vgmstream uses some external libraries/codecs there may be issues with old versions (updated at times).
@@ -114,7 +114,7 @@ Quick list of some audio terms used through vgmstream, applied to code. Mainly m
 vgmstream works by parsing a music stream header (*meta/*), preparing/controlling data and sample buffers (*layout/*) and decoding the compressed data into listenable PCM samples (*coding/*).
 
 Very simplified it goes like this:
-- player (test.exe, plugin, etc) opens a file stream (STREAMFILE) *[plugin's main/decode]*
+- player (CLI, plugin, etc) opens a file stream (STREAMFILE) *[plugin's main/decode]*
 - init tries all parsers (metas) until one works *[init_vgmstream]*
 - parser reads header (channels, sample rate, loop points) and set ups the VGMSTREAM struct, if the format is correct *[init_vgmstream_(format-name)]*
 - player finds total_samples to play, based on the number of loops and other settings *[get_vgmstream_play_samples]*

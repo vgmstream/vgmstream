@@ -12,7 +12,7 @@ DEF_CFLAGS += -DVGMSTREAM_VERSION_AUTO -DVGM_LOG_OUTPUT
 
 ###############################################################################
 ### external defs
-# currently aimed to WIN32 builds but vgmstream_cli should work for others (or use autotools instead)
+# currently aimed to WIN32 builds but vgmstream-cli should work for others (or use autotools instead)
 export TARGET_OS = $(OS)
 
 #for Win builds with vgmstream123
@@ -28,6 +28,7 @@ ifeq ($(TARGET_OS),Windows_NT)
   STRIP = strip
   WINDRES = windres
   DLLTOOL = dlltool
+  #DLLTOOL = dlltool -m i386:x86-64 --as-flags --64
 
   # same thing, the above should be available
   #CC = i686-w64-mingw32-gcc
@@ -225,7 +226,7 @@ ifeq ($(TARGET_OS),Windows_NT)
   ZIP_FILES  = COPYING
   ZIP_FILES += README.md
   ZIP_FILES += doc/USAGE.md
-  ZIP_FILES += cli/test.exe
+  ZIP_FILES += cli/vgmstream-cli.exe
   ZIP_FILES += winamp/in_vgmstream.dll
   ZIP_FILES += xmplay/xmp-vgmstream.dll
   ZIP_FILES += ext_libs/*.dll

@@ -13,7 +13,7 @@ LDFLAGS += -L../src -lvgmstream -lm $(EXTRA_LDFLAGS)
 TARGET_EXT_LIBS = 
 
 ifeq ($(TARGET_OS),Windows_NT)
-  OUTPUT_CLI = test.exe
+  OUTPUT_CLI = vgmstream-cli.exe
   OUTPUT_123 = vgmstream123.exe
 
   # -DUSE_ALLOCA

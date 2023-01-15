@@ -200,7 +200,7 @@ $cliFiles = @(
     "ext_libs/*.dll",
     "ext_libs/libspeex/*.dll",
     "$configuration/in_vgmstream.dll",
-    "$configuration/test.exe",
+    "$configuration/vgmstream-cli.exe",
     "$configuration/xmp-vgmstream.dll",
     "COPYING",
     "README.md"
@@ -221,7 +221,7 @@ function MakePackage
 {
     Build
 
-    if(!(Test-Path "$configuration/test.exe")) {
+    if(!(Test-Path "$configuration/vgmstream-cli.exe")) {
         Write-Error "Unable to find binaries, check for compilation errors"
         return
     }
