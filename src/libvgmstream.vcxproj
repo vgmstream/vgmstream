@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+﻿﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -530,7 +530,6 @@
     <ClCompile Include="meta\ps2_b1s.c" />
     <ClCompile Include="meta\ps2_bg00.c" />
     <ClCompile Include="meta\ps2_bmdx.c" />
-    <ClCompile Include="meta\ps2_ccc.c" />
     <ClCompile Include="meta\ps2_enth.c" />
     <ClCompile Include="meta\ps2_filp.c" />
     <ClCompile Include="meta\ps2_gbts.c" />

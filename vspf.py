@@ -12,7 +12,7 @@
 
 import os, glob
 
-TEST_OUTPUT = True
+TEST_OUTPUT = False
 BASE_SRC_PATH = '.'
 
 class ProjectFixer:

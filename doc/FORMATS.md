@@ -10,7 +10,6 @@ This list is not complete and many other files are supported.
 	- .ast
 	- .bg00
 	- .bmdx
-	- .ccc
 	- .cnk
 	- .enth
 	- .fag
@@ -39,7 +38,6 @@ This list is not complete and many other files are supported.
 	- .rnd
 	- .rstm
 	- .rws
-	- .rxw
 	- .snd
 	- .sfs
 	- .sl3

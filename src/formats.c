@@ -134,7 +134,6 @@ static const char* extension_list[] = {
     "cads",
     "caf",
     "cbd2",
-    "ccc", //fake extension (to be removed)
     "cd",
     "cfn", //fake extension for CAF (renamed, to be removed?)
     "chd", //txth/reserved [Donkey Konga (GC), Star Fox Assault (GC)]
@@ -440,7 +439,6 @@ static const char* extension_list[] = {
     "rws",
     "rwsd",
     "rwx",
-    "rxw",
     "rxx", //txth/reserved [Full Auto (X360)]
 
     "s14",
