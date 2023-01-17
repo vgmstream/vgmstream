@@ -16,7 +16,6 @@ ifeq ($(TARGET_OS),Windows_NT)
   OUTPUT_CLI = vgmstream-cli.exe
   OUTPUT_123 = vgmstream123.exe
 
-  # -DUSE_ALLOCA
   CFLAGS += -DWIN32 -I../ext_includes -I../ext_libs/Getopt
   LDFLAGS += -L../ext_libs/$(DLL_DIR)
 

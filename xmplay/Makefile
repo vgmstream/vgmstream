@@ -17,7 +17,7 @@ endif
 OUTPUT_XMPLAY = xmp-vgmstream.dll
 
 ifeq ($(TARGET_OS),Windows_NT)
-  CFLAGS += -m32 -DUSE_ALLOCA -DWIN32
+  CFLAGS += -m32 -DWIN32
 endif
 
 CFLAGS += $(DEF_CFLAGS) -I../ext_includes $(EXTRA_CFLAGS)
