@@ -195,7 +195,15 @@ chmod +x version-get.sh version-make.sh make-build.sh
 A tool used to generate common build files (for *make*, *VS/MSBuild*, etc), that in turn can be used to compile vgmstream's modules instead of using the existing scripts and files. Needs v3.6 or later:
 - https://cmake.org/download/
 
-On **Windows** you can use *cmake-gui*, that should be mostly self-explanatory. You need to set the *source dir*, *build dir*, *config options*, then hit *Configure* to set save options and build type (for example *Visual Studio* project files), then *Generate* to actually create files. If you want to change options, hit *Configure* and *Generate* again.
+On **Windows** you can use *cmake-gui*, that should be mostly self-explanatory but just in case:
+- select vgmstream's project root (vgmstream-master) in *where is the source code* (source dir)
+- select some path in *where to build binaries* (build dir), for example make a `/build` subdir
+- press *Configure* and select project "generator" type, for example *Visual Studio 16 2019*
+  - if you get an error check you have it installed and selected the correct project version
+- should show options in red; check what you need and uncheck what you don't
+- press *Generate*, this creates custom project files in "build binaries" path for your tools
+  - (if you are using *Visual Studio* there is a pre-made `vgmstream_full.sln` file)
+If you want to change options, hit *Configure* and *Generate* again. If you want to change project type, "delete cache" first then repeat steps.
 
 On **Linux**, the CMake script can automatically download and build the source code for dependencies that it requires. It is also capable of creating a statically linked binary for distribution purposes. See `./make-build-cmake.sh` (basically install desired deps then `mkdir -p build && cd build`, `cmake ..`, `make`).
 

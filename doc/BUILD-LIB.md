@@ -485,6 +485,7 @@ FFmpeg uses separates DLLs, that depend on each other like this:
 - avformat: avcodec, avutil
 - avcodec: avutil, swresample
 
+Note that *vgmstream* applies various patches in real time to fix several FFmpeg quirks (including infinite loops). Could be done with *git* patches, but not currently since users on Linux may link to system's libs and/or use different versions. Updating FFmpeg version without testing carefully is not recommended.
 
 #### Source
 ```bat
