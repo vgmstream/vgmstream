@@ -557,7 +557,6 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_zwdsp,           /* fake format */
     init_vgmstream_ps2_ccc,         /* fake format, to be removed */
     init_vgmstream_ps2_adm,         /* weird non-constant PSX blocks */
-    init_vgmstream_baf_badrip,      /* crap, to be removed */
     init_vgmstream_rxws_badrip,     /* crap, to be removed */
     init_vgmstream_rwsd,            /* crap, to be removed */
 #ifdef VGM_USE_FFMPEG
