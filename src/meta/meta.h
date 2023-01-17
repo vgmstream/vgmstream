@@ -85,7 +85,6 @@ VGMSTREAM * init_vgmstream_rwsd(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_xa(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_rxws(STREAMFILE* sf);
-VGMSTREAM * init_vgmstream_rxws_badrip(STREAMFILE* sf);
 
 VGMSTREAM * init_vgmstream_raw_int(STREAMFILE *streamFile);
 
