@@ -113,7 +113,7 @@ class VrtsComparator:
             pcm2, = S16_UNPACK(b2, pos)
 
             if not (pcm1 >= pcm2 - max and pcm1 <= pcm2 + max):
-                print("%i vs %i +- %i at %x" % (pcm1, pcm2, max, self._offset + pos))
+                #print("%i vs %i +- %i at %x" % (pcm1, pcm2, max, self._offset + pos))
                 self.fuzzy_diff = pcm1 - pcm2
                 self.fuzzy_offset = self._offset + pos
                 return RESULT_DIFFS
@@ -210,7 +210,7 @@ class VrtsPrinter:
     
     COLOR_RESULT = {
         RESULT_SAME: WHITE,
-        RESULT_FUZZY: LIGHT_GREEN,
+        RESULT_FUZZY: LIGHT_CYAN,
         RESULT_NONE: LIGHT_YELLOW,
         RESULT_DIFFS: LIGHT_RED,
         RESULT_SIZES: LIGHT_RED,
