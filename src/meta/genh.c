@@ -333,8 +333,7 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
                 else if (genh.codec == XMA1) {
                     int xma_stream_mode = genh.codec_mode == 1 ? 1 : 0;
 
-                    bytes = ffmpeg_make_riff_xma1(buf, 100, vgmstream->num_samples, genh.data_size, vgmstream->channels, vgmstream->sample_rate, xma_stream_mode);
-                    ffmpeg_data = init_ffmpeg_header_offset(streamFile, buf,bytes, genh.start_offset,genh.data_size);
+                    ffmpeg_data = init_ffmpeg_xma1_raw(streamFile, genh.start_offset, genh.data_size, vgmstream->channels, vgmstream->sample_rate, xma_stream_mode);
                     if ( !ffmpeg_data ) goto fail;
                 }
                 else if (genh.codec == XMA2) {

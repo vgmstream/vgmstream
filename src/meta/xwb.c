@@ -484,11 +484,7 @@ VGMSTREAM* init_vgmstream_xwb(STREAMFILE* sf) {
 
 #ifdef VGM_USE_FFMPEG
         case XMA1: { /* Kameo (X360), Table Tennis (X360) */
-            uint8_t buf[0x100];
-            int bytes;
-
-            bytes = ffmpeg_make_riff_xma1(buf, sizeof(buf), vgmstream->num_samples, xwb.stream_size, vgmstream->channels, vgmstream->sample_rate, 0);
-            vgmstream->codec_data = init_ffmpeg_header_offset(sf, buf, bytes, xwb.stream_offset,xwb.stream_size);
+            vgmstream->codec_data = init_ffmpeg_xma1_raw(sf, xwb.stream_offset, xwb.stream_size, vgmstream->channels, vgmstream->sample_rate, 0);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;

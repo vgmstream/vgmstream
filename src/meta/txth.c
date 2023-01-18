@@ -574,8 +574,7 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
                 else if (txth.codec == XMA1) {
                     int xma_stream_mode = txth.codec_mode == 1 ? 1 : 0;
 
-                    bytes = ffmpeg_make_riff_xma1(buf, sizeof(buf), vgmstream->num_samples, txth.data_size, vgmstream->channels, vgmstream->sample_rate, xma_stream_mode);
-                    ffmpeg_data = init_ffmpeg_header_offset(txth.sf_body, buf,bytes, txth.start_offset,txth.data_size);
+                    ffmpeg_data = init_ffmpeg_xma1_raw(txth.sf_body, txth.start_offset, txth.data_size, vgmstream->channels, vgmstream->sample_rate, xma_stream_mode);
                     if ( !ffmpeg_data ) goto fail;
                 }
                 else if (txth.codec == XMA2) {

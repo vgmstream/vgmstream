@@ -252,8 +252,6 @@ static layered_layout_data* build_layered_mul(STREAMFILE* sf, off_t offset, int 
         switch(codec) {
 #ifdef VGM_USE_FFMPEG
             case XMA1: {
-                uint8_t buf[0x100];
-                int bytes;
                 size_t stream_size;
                 int layer_channels = 1;
 
@@ -269,12 +267,11 @@ static layered_layout_data* build_layered_mul(STREAMFILE* sf, off_t offset, int 
                 data->layers[i]->sample_rate = vgmstream->sample_rate;
                 data->layers[i]->num_samples = vgmstream->num_samples;
 
-                bytes = ffmpeg_make_riff_xma1(buf, 0x100, data->layers[i]->num_samples, stream_size, data->layers[i]->channels, data->layers[i]->sample_rate, 0);
-                data->layers[i]->codec_data = init_ffmpeg_header_offset(temp_sf, buf,bytes, 0x00, stream_size);
+                data->layers[i]->codec_data = init_ffmpeg_xma1_raw(temp_sf, 0x00, stream_size, data->layers[i]->channels, data->layers[i]->sample_rate, 0);
                 if (!data->layers[i]->codec_data) goto fail;
-
                 data->layers[i]->coding_type = coding_FFmpeg;
                 data->layers[i]->layout_type = layout_none;
+
                 data->layers[i]->stream_size = stream_size;
 
                 xma_fix_raw_samples(data->layers[i], temp_sf, 0x00,stream_size, 0, 0,0); /* ? */

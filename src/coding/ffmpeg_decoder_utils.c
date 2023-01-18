@@ -220,4 +220,106 @@ fail:
     return NULL;
 }
 
+
+static int ffmpeg_make_riff_xma1(uint8_t* buf, size_t buf_size, size_t data_size, int channels, int sample_rate, int stream_mode) {
+    uint16_t codec_XMA1 = 0x0165;
+    size_t riff_size;
+    int streams, i;
+
+    /* stream disposition:
+     * 0: default (ex. 5ch = 2ch + 2ch + 1ch = 3 streams)
+     * 1: lineal (ex. 5ch = 1ch + 1ch + 1ch + 1ch + 1ch = 5 streams), unusual but exists
+     * others: not seen (ex. maybe 5ch = 2ch + 1ch + 1ch + 1ch = 4 streams) */
+    switch(stream_mode) {
+        case 0 : streams = (channels + 1) / 2; break;
+        case 1 : streams = channels; break;
+        default: return 0;
+    }
+
+    riff_size = 4+4+ 4 + 0x14 + 0x14*streams + 4+4;
+
+    if (buf_size < riff_size)
+        return -1;
+
+    memcpy(buf+0x00, "RIFF", 4);
+    put_32bitLE(buf+0x04, (int32_t)(riff_size-4-4 + data_size)); /* riff size */
+    memcpy(buf+0x08, "WAVE", 4);
+
+    memcpy(buf+0x0c, "fmt ", 4);
+    put_32bitLE(buf+0x10, 0xc + 0x14*streams);/*fmt size*/
+    put_16bitLE(buf+0x14, codec_XMA1);
+    put_16bitLE(buf+0x16, 16); /* bits per sample */
+    put_16bitLE(buf+0x18, 0x10D6); /* encoder options */
+    put_16bitLE(buf+0x1a, 0); /* largest stream skip (wrong, unneeded) */
+    put_16bitLE(buf+0x1c, streams); /* number of streams */
+    put_8bit   (buf+0x1e, 0); /* loop count */
+    put_8bit   (buf+0x1f, 2); /* version */
+
+    for (i = 0; i < streams; i++) {
+        int stream_channels;
+        uint32_t speakers;
+        off_t off = 0x20 + 0x14*i;/* stream riff offset */
+
+        if (stream_mode == 1) {
+            /* lineal */
+            stream_channels = 1;
+            switch(i) { /* per stream, values observed */
+                case 0: speakers = 0x0001; break;/* L */
+                case 1: speakers = 0x0002; break;/* R */
+                case 2: speakers = 0x0004; break;/* C */
+                case 3: speakers = 0x0008; break;/* LFE */
+                case 4: speakers = 0x0040; break;/* LB */
+                case 5: speakers = 0x0080; break;/* RB */
+                case 6: speakers = 0x0000; break;/* ? */
+                case 7: speakers = 0x0000; break;/* ? */
+                default: speakers = 0;
+            }
+        }
+        else {
+            /* with odd channels the last stream is mono */
+            stream_channels = channels / streams + (channels%2 != 0 && i+1 != streams ? 1 : 0);
+            switch(i) { /* per stream, values from xmaencode */
+                case 0: speakers = stream_channels == 1 ? 0x0001 : 0x0201; break;/* L R */
+                case 1: speakers = stream_channels == 1 ? 0x0004 : 0x0804; break;/* C LFE */
+                case 2: speakers = stream_channels == 1 ? 0x0040 : 0x8040; break;/* LB RB */
+                case 3: speakers = stream_channels == 1 ? 0x0000 : 0x0000; break;/* somehow empty (maybe should use 0x2010 LS RS) */
+                default: speakers = 0;
+            }
+        }
+
+        put_32bitLE(buf+off+0x00, sample_rate*stream_channels / sizeof(sample)); /* average bytes per second (wrong, unneeded) */
+        put_32bitLE(buf+off+0x04, sample_rate);
+        put_32bitLE(buf+off+0x08, 0); /* loop start */
+        put_32bitLE(buf+off+0x0c, 0); /* loop end */
+        put_8bit   (buf+off+0x10, 0); /* loop subframe */
+        put_8bit   (buf+off+0x11, stream_channels);
+        put_16bitLE(buf+off+0x12, speakers);
+    }
+
+    /* xmaencode decoding rejects XMA1 without "seek" chunk, though it doesn't seem to use it
+     * (needs to be have entries but can be bogus, also generates seek for even small sounds) */
+
+    memcpy(buf+riff_size-4-4, "data", 4);
+    put_32bitLE(buf+riff_size-4, data_size); /* data size */
+
+    return riff_size;
+}
+
+ffmpeg_codec_data* init_ffmpeg_xma1_raw(STREAMFILE* sf, uint32_t data_offset, uint32_t data_size, int channels, int sample_rate, int stream_mode) {
+    ffmpeg_codec_data* data = NULL;
+    uint8_t buf[0x100];
+    int bytes;
+
+    bytes = ffmpeg_make_riff_xma1(buf, sizeof(buf), data_size, channels, sample_rate, stream_mode);
+    data = init_ffmpeg_header_offset(sf, buf, bytes, data_offset, data_size);
+
+    /* n5.1.2 XMA1 hangs on seeks near end (infinite loop), presumably due to missing flush in wmapro.c's ff_xma1_decoder + frame skip samples */
+    ffmpeg_set_force_seek(data);
+
+    return data;
+fail:
+    free_ffmpeg(data);
+    return NULL;
+}
+
 #endif
