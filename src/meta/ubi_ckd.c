@@ -148,11 +148,7 @@ VGMSTREAM* init_vgmstream_ubi_ckd(STREAMFILE* sf) {
 
 #ifdef VGM_USE_FFMPEG
         case XMA2: {
-            uint8_t buf[0x100];
-            int bytes;
-
-            bytes = ffmpeg_make_riff_xma_from_fmt_chunk(buf, sizeof(buf), 0x14, 0x34, data_size, sf, 1);
-            vgmstream->codec_data = init_ffmpeg_header_offset(sf, buf,bytes, start_offset,data_size);
+            vgmstream->codec_data = init_ffmpeg_xma_chunk(sf, start_offset, data_size, 0x14, 0x34);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;

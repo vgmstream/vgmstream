@@ -415,12 +415,16 @@ static int ffmpeg_make_riff_xma_chunk(STREAMFILE* sf, uint8_t* buf, int buf_size
 }
 
 ffmpeg_codec_data* init_ffmpeg_xma_chunk(STREAMFILE* sf, uint32_t data_offset, uint32_t data_size, uint32_t chunk_offset, uint32_t chunk_size) {
+    return init_ffmpeg_xma_chunk_split(sf, sf, data_offset, data_size, chunk_offset, chunk_size);
+}
+
+ffmpeg_codec_data* init_ffmpeg_xma_chunk_split(STREAMFILE* sf_head, STREAMFILE* sf_data, uint32_t data_offset, uint32_t data_size, uint32_t chunk_offset, uint32_t chunk_size) {
     ffmpeg_codec_data* data = NULL;
     uint8_t buf[0x100];
     int is_xma1 = 0;
 
-    int bytes = ffmpeg_make_riff_xma_chunk(sf, buf, sizeof(buf), data_size, chunk_offset, chunk_size, &is_xma1);
-    data = init_ffmpeg_header_offset(sf, buf, bytes, data_offset, data_size);
+    int bytes = ffmpeg_make_riff_xma_chunk(sf_head, buf, sizeof(buf), data_size, chunk_offset, chunk_size, &is_xma1);
+    data = init_ffmpeg_header_offset(sf_data, buf, bytes, data_offset, data_size);
     if (!data) goto fail;
 
     /* n5.1.2 XMA1 hangs on seeks near end (infinite loop), presumably due to missing flush in wmapro.c's ff_xma1_decoder + frame skip samples */

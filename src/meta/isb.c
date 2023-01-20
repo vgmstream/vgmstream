@@ -238,8 +238,6 @@ VGMSTREAM* init_vgmstream_isb(STREAMFILE* sf) {
 
 #ifdef VGM_USE_FFMPEG
         case 0x04: {
-            uint8_t buf[0x100];
-            size_t bytes;
             off_t fmt_offset = start_offset;
             size_t fmt_size = 0x20;
 
@@ -247,8 +245,7 @@ VGMSTREAM* init_vgmstream_isb(STREAMFILE* sf) {
             stream_size -= fmt_size;
 
             /* XMA1 "fmt" chunk (BE, unlike the usual LE) */
-            bytes = ffmpeg_make_riff_xma_from_fmt_chunk(buf,sizeof(buf), fmt_offset,fmt_size, stream_size, sf, 1);
-            vgmstream->codec_data = init_ffmpeg_header_offset(sf, buf,bytes, start_offset, stream_size);
+            vgmstream->codec_data = init_ffmpeg_xma_chunk(sf, start_offset, stream_size, fmt_offset, fmt_size);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;

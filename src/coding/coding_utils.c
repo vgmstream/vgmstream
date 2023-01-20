@@ -139,41 +139,6 @@ int ffmpeg_make_riff_xma2(uint8_t* buf, size_t buf_size, size_t sample_count, si
     return riff_size;
 }
 
-static int ffmpeg_fmt_chunk_swap_endian(uint8_t* chunk, size_t chunk_size, uint16_t codec);
-
-/* Makes a XMA1/2 RIFF header for FFmpeg using a "fmt " chunk (XMAWAVEFORMAT or XMA2WAVEFORMATEX) as a base:
- * Useful to preserve the stream layout */
-int ffmpeg_make_riff_xma_from_fmt_chunk(uint8_t* buf, size_t buf_size, off_t fmt_offset, size_t fmt_size, size_t data_size, STREAMFILE* sf, int big_endian) {
-    size_t riff_size = 4+4+ 4 + 4+4+fmt_size + 4+4;
-    uint8_t chunk[0x100];
-
-    if (buf_size < riff_size || fmt_size > 0x100)
-        goto fail;
-    if (read_streamfile(chunk,fmt_offset,fmt_size, sf) != fmt_size)
-        goto fail;
-
-    if (big_endian) {
-        int codec = read_16bitBE(fmt_offset,sf);//TODO read from buf  
-        ffmpeg_fmt_chunk_swap_endian(chunk, fmt_size, codec);
-    }
-
-    memcpy(buf+0x00, "RIFF", 4);
-    put_32bitLE(buf+0x04, (int32_t)(riff_size-4-4 + data_size)); /* riff size */
-    memcpy(buf+0x08, "WAVE", 4);
-
-    memcpy(buf+0x0c, "fmt ", 4);
-    put_32bitLE(buf+0x10, fmt_size);/*fmt size*/
-    memcpy(buf+0x14, chunk, fmt_size);
-
-    memcpy(buf+0x14+fmt_size, "data", 4);
-    put_32bitLE(buf+0x14+fmt_size+4, data_size); /* data size */
-
-    return riff_size;
-
-fail:
-    return -1;
-}
-
 
 int ffmpeg_make_riff_xwma(uint8_t* buf, size_t buf_size, int codec, size_t data_size, int channels, int sample_rate, int avg_bps, int block_align) {
     size_t riff_size = 4+4+ 4 + 0x1a + 4+4;
@@ -231,61 +196,6 @@ int ffmpeg_make_riff_xwma(uint8_t* buf, size_t buf_size, int codec, size_t data_
     return riff_size;
 }
 
-
-static int ffmpeg_fmt_chunk_swap_endian(uint8_t* chunk, size_t chunk_size, uint16_t codec) {
-    int i;
-    /* swap from LE to BE or the other way around, doesn't matter */
-    switch(codec) {
-        case 0x165: { /* XMA1 */
-            put_16bitLE(chunk + 0x00, get_16bitBE(chunk + 0x00));/*FormatTag*/
-            put_16bitLE(chunk + 0x02, get_16bitBE(chunk + 0x02));/*BitsPerSample*/
-            put_16bitLE(chunk + 0x04, get_16bitBE(chunk + 0x04));/*EncodeOptions*/
-            put_16bitLE(chunk + 0x06, get_16bitBE(chunk + 0x06));/*LargestSkip*/
-            put_16bitLE(chunk + 0x08, get_16bitBE(chunk + 0x08));/*NumStreams*/
-            // put_8bit(chunk + 0x0a,    get_8bit(chunk + 0x0a));/*LoopCount*/
-            // put_8bit(chunk + 0x0b,    get_8bit(chunk + 0x0b));/*Version*/
-            for (i = 0xc; i < chunk_size; i += 0x14) { /* reverse endianness for each stream */
-                put_32bitLE(chunk + i + 0x00, get_32bitBE(chunk + i + 0x00));/*PsuedoBytesPerSec*/
-                put_32bitLE(chunk + i + 0x04, get_32bitBE(chunk + i + 0x04));/*SampleRate*/
-                put_32bitLE(chunk + i + 0x08, get_32bitBE(chunk + i + 0x08));/*LoopStart*/
-                put_32bitLE(chunk + i + 0x0c, get_32bitBE(chunk + i + 0x0c));/*LoopEnd*/
-                // put_8bit(chunk + i + 0x10,    get_8bit(chunk + i + 0x10));/*SubframeData*/
-                // put_8bit(chunk + i + 0x11,    get_8bit(chunk + i + 0x11));/*Channels*/
-                put_16bitLE(chunk + i + 0x12, get_16bitBE(chunk + i + 0x12));/*ChannelMask*/
-            }
-            break;
-        }
-
-        case 0x166: { /* XMA2 */
-            put_16bitLE(chunk + 0x00, get_16bitBE(chunk + 0x00));/*wFormatTag*/
-            put_16bitLE(chunk + 0x02, get_16bitBE(chunk + 0x02));/*nChannels*/
-            put_32bitLE(chunk + 0x04, get_32bitBE(chunk + 0x04));/*nSamplesPerSec*/
-            put_32bitLE(chunk + 0x08, get_32bitBE(chunk + 0x08));/*nAvgBytesPerSec*/
-            put_16bitLE(chunk + 0x0c, get_16bitBE(chunk + 0x0c));/*nBlockAlign*/
-            put_16bitLE(chunk + 0x0e, get_16bitBE(chunk + 0x0e));/*wBitsPerSample*/
-            put_16bitLE(chunk + 0x10, get_16bitBE(chunk + 0x10));/*cbSize*/
-            put_16bitLE(chunk + 0x12, get_16bitBE(chunk + 0x12));/*NumStreams*/
-            put_32bitLE(chunk + 0x14, get_32bitBE(chunk + 0x14));/*ChannelMask*/
-            put_32bitLE(chunk + 0x18, get_32bitBE(chunk + 0x18));/*SamplesEncoded*/
-            put_32bitLE(chunk + 0x1c, get_32bitBE(chunk + 0x1c));/*BytesPerBlock*/
-            put_32bitLE(chunk + 0x20, get_32bitBE(chunk + 0x20));/*PlayBegin*/
-            put_32bitLE(chunk + 0x24, get_32bitBE(chunk + 0x24));/*PlayLength*/
-            put_32bitLE(chunk + 0x28, get_32bitBE(chunk + 0x28));/*LoopBegin*/
-            put_32bitLE(chunk + 0x2c, get_32bitBE(chunk + 0x2c));/*LoopLength*/
-            /* put_8bit(chunk + 0x30,    get_8bit(chunk + 0x30));*//*LoopCount*/
-            /* put_8bit(chunk + 0x31,    get_8bit(chunk + 0x31));*//*EncoderVersion*/
-            put_16bitLE(chunk + 0x32, get_16bitBE(chunk + 0x32));/*BlockCount*/
-            break;
-        }
-        default:
-            goto fail;
-    }
-
-    return 1;
-
-fail:
-    return 0;
-}
 
 
 /* ******************************************** */

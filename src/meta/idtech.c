@@ -111,12 +111,9 @@ VGMSTREAM* init_vgmstream_mzrt_v0(STREAMFILE* sf) {
 
 #ifdef VGM_USE_FFMPEG
         case 0x0166: {
-            uint8_t buf[0x100];
-            int bytes;
             size_t stream_size = get_streamfile_size(temp_sf);
 
-            bytes = ffmpeg_make_riff_xma_from_fmt_chunk(buf,sizeof(buf), 0x15,0x34, stream_size, sf, 0);
-            vgmstream->codec_data = init_ffmpeg_header_offset(temp_sf, buf,bytes, 0x00,stream_size);
+            vgmstream->codec_data = init_ffmpeg_xma_chunk_split(sf, temp_sf, 0x00, stream_size, 0x15, 0x34);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;

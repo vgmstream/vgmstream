@@ -273,8 +273,6 @@ VGMSTREAM* init_vgmstream_ubi_lyn(STREAMFILE* sf) {
         }
 
         case 0x0166: { /* XMA (X360), standard */
-            uint8_t buf[0x100];
-            int bytes;
             off_t chunk_offset;
             size_t chunk_size, seek_size;
 
@@ -286,9 +284,8 @@ VGMSTREAM* init_vgmstream_ubi_lyn(STREAMFILE* sf) {
             start_offset += (0x04 + 0x04 + chunk_size + 0x04 + seek_size);
             data_size    -= (0x04 + 0x04 + chunk_size + 0x04 + seek_size);
 
-            bytes = ffmpeg_make_riff_xma_from_fmt_chunk(buf,0x100, chunk_offset,chunk_size, data_size, sf, 1);
-            vgmstream->codec_data = init_ffmpeg_header_offset(sf, buf,bytes, start_offset,data_size);
-            if ( !vgmstream->codec_data ) goto fail;
+            vgmstream->codec_data = init_ffmpeg_xma_chunk(sf, start_offset, data_size, chunk_offset, chunk_size);
+            if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
 
