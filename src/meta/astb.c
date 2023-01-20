@@ -2,7 +2,7 @@
 #include "../coding/coding.h"
 
 /* ASTB - found in Dead Rising (X360) */
-VGMSTREAM* init_vgmstream_x360_ast(STREAMFILE* sf) {
+VGMSTREAM* init_vgmstream_astb(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     off_t start_offset, data_size;
     int loop_flag, channels;
@@ -35,7 +35,7 @@ VGMSTREAM* init_vgmstream_x360_ast(STREAMFILE* sf) {
     if (!vgmstream) goto fail;
 
     vgmstream->sample_rate = read_s32be(0x40,sf);
-    vgmstream->meta_type = meta_X360_AST;
+    vgmstream->meta_type = meta_ASTB;
 
     {
         /* manually find sample offsets (XMA1 nonsense again) */

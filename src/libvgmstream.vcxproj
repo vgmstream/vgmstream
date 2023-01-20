@@ -338,6 +338,7 @@
     <ClCompile Include="meta\apple_caff.c" />
     <ClCompile Include="meta\asf.c" />
     <ClCompile Include="meta\ast.c" />
+    <ClCompile Include="meta\astb.c" />
     <ClCompile Include="meta\ast_mmv.c" />
     <ClCompile Include="meta\ast_mv.c" />
     <ClCompile Include="meta\atsl.c" />
@@ -370,6 +371,7 @@
     <ClCompile Include="meta\csb.c" />
     <ClCompile Include="meta\csmp.c" />
     <ClCompile Include="meta\cstr.c" />
+    <ClCompile Include="meta\cxs.c" />
     <ClCompile Include="meta\dcs_wav.c" />
     <ClCompile Include="meta\dc_asd.c" />
     <ClCompile Include="meta\dc_idvi.c" />
@@ -516,6 +518,7 @@
     <ClCompile Include="meta\opus.c" />
     <ClCompile Include="meta\otm.c" />
     <ClCompile Include="meta\p3d.c" />
+    <ClCompile Include="meta\pasx.c" />
     <ClCompile Include="meta\pcm_sre.c" />
     <ClCompile Include="meta\pcm_success.c" />
     <ClCompile Include="meta\pc_ast.c" />
@@ -688,9 +691,6 @@
     <ClCompile Include="meta\wvs.c" />
     <ClCompile Include="meta\wwise.c" />
     <ClCompile Include="meta\wxd_wxh.c" />
-    <ClCompile Include="meta\x360_ast.c" />
-    <ClCompile Include="meta\x360_cxs.c" />
-    <ClCompile Include="meta\x360_pasx.c" />
     <ClCompile Include="meta\x360_tra.c" />
     <ClCompile Include="meta\xa.c" />
     <ClCompile Include="meta\xau.c" />

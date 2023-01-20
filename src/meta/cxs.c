@@ -2,23 +2,23 @@
 #include "../coding/coding.h"
 
 /* CXS - found in Eternal Sonata (X360) */
-VGMSTREAM* init_vgmstream_x360_cxs(STREAMFILE* sf) {
+VGMSTREAM* init_vgmstream_cxs(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     off_t start_offset;
-    int loop_flag, channel_count;
+    int loop_flag, channels;
 
     /* checks */
-    if ( !check_extensions(sf,"cxs"))
+    if (!is_id32be(0x00,sf, "CXS "))
         goto fail;
-    if (read_32bitBE(0x00,sf) != 0x43585320)   /* "CXS " */
+    if (!check_extensions(sf,"cxs"))
         goto fail;
 
     loop_flag = read_32bitBE(0x18,sf) > 0;
-    channel_count = read_32bitBE(0x0c,sf);
+    channels = read_32bitBE(0x0c,sf);
     start_offset = read_32bitBE(0x04,sf) + read_32bitBE(0x28,sf); /* assumed, seek table always at 0x800 */
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
     /*  0x04: data start? */
@@ -28,7 +28,7 @@ VGMSTREAM* init_vgmstream_x360_cxs(STREAMFILE* sf) {
     vgmstream->loop_end_sample = read_32bitBE(0x18,sf);
     /* 0x1c: below */
 
-    vgmstream->meta_type = meta_X360_CXS;
+    vgmstream->meta_type = meta_CXS;
 
 #ifdef VGM_USE_FFMPEG
     {
@@ -53,7 +53,7 @@ VGMSTREAM* init_vgmstream_x360_cxs(STREAMFILE* sf) {
     goto fail;
 #endif
 
-    if ( !vgmstream_open_stream(vgmstream, sf, start_offset) )
+    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
         goto fail;
     return vgmstream;
 

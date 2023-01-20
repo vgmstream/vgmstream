@@ -585,17 +585,17 @@ typedef enum {
     meta_PS2_VDS_VDM,       /* Graffiti Kingdom */
     meta_FFMPEG,
     meta_FFMPEG_faulty,
-    meta_X360_CXS,          /* Eternal Sonata (Xbox 360) */
-    meta_AKB,               /* SQEX iOS */
-    meta_X360_PASX,         /* Namco PASX (Soul Calibur II HD X360) */
-    meta_XMA_RIFF,          /* Microsoft RIFF XMA */
-    meta_X360_AST,          /* Dead Rising (X360) */
+    meta_CXS,
+    meta_AKB,
+    meta_PASX,
+    meta_XMA_RIFF,
+    meta_ASTB,
     meta_WWISE_RIFF,        /* Audiokinetic Wwise RIFF/RIFX */
     meta_UBI_RAKI,          /* Ubisoft RAKI header (Rayman Legends, Just Dance 2017) */
     meta_SXD,               /* Sony SXD (Gravity Rush, Freedom Wars PSV) */
     meta_OGL,               /* Shin'en Wii/WiiU (Jett Rocket (Wii), FAST Racing NEO (WiiU)) */
     meta_MC3,               /* Paradigm games (T3 PS2, MX Rider PS2, MI: Operation Surma PS2) */
-    meta_GTD,               /* Knights Contract (X360/PS3), Valhalla Knights 3 (PSV) */
+    meta_GTD,
     meta_TA_AAC,
     meta_MTA2,
     meta_NGC_ULW,           /* Burnout 1 (GC only) */
@@ -603,7 +603,7 @@ typedef enum {
     meta_XA_04SW,
     meta_TXTH,              /* generic text header */
     meta_SK_AUD,            /* Silicon Knights .AUD (Eternal Darkness GC) */
-    meta_AHX,               /* CRI AHX header */
+    meta_AHX,
     meta_STM,               /* Angel Studios/Rockstar San Diego Games */
     meta_BINK,              /* RAD Game Tools BINK audio/video */
     meta_EA_SNU,            /* Electronic Arts SNU (Dead Space) */

@@ -2,7 +2,7 @@
 #include "../coding/coding.h"
 
 /* PASX - from Premium Agency games [SoulCalibur II HD (X360), Death By Cube (X360)] */
-VGMSTREAM* init_vgmstream_x360_pasx(STREAMFILE* sf) {
+VGMSTREAM* init_vgmstream_pasx(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     off_t start_offset, chunk_offset;
     size_t data_size, chunk_size;
@@ -39,7 +39,7 @@ VGMSTREAM* init_vgmstream_x360_pasx(STREAMFILE* sf) {
     vgmstream->num_samples = num_samples;
     vgmstream->loop_start_sample = loop_start_sample;
     vgmstream->loop_end_sample   = loop_end_sample;
-    vgmstream->meta_type = meta_X360_PASX;
+    vgmstream->meta_type = meta_PASX;
 
 #ifdef VGM_USE_FFMPEG
     {

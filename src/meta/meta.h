@@ -578,21 +578,21 @@ VGMSTREAM * init_vgmstream_bik(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_ps2_vds_vdm(STREAMFILE* streamFile);
 
-VGMSTREAM * init_vgmstream_x360_cxs(STREAMFILE* streamFile);
+VGMSTREAM * init_vgmstream_cxs(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_dsp_adx(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_akb(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_akb2(STREAMFILE *streamFile);
 
-VGMSTREAM * init_vgmstream_x360_ast(STREAMFILE *streamFile);
+VGMSTREAM* init_vgmstream_astb(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_wwise(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_wwise_bnk(STREAMFILE* sf, int* p_prefetch);
 
 VGMSTREAM * init_vgmstream_ubi_raki(STREAMFILE* streamFile);
 
-VGMSTREAM * init_vgmstream_x360_pasx(STREAMFILE *streamFile);
+VGMSTREAM* init_vgmstream_pasx(STREAMFILE* sf);
 
 VGMSTREAM * init_vgmstream_sxd(STREAMFILE *streamFile);
 
