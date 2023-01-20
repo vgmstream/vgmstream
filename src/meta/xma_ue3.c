@@ -2,36 +2,36 @@
 #include "../coding/coding.h"
 
 /* XMA from Unreal Engine games */
-VGMSTREAM* init_vgmstream_xma_ue3(STREAMFILE *sf) {
+VGMSTREAM* init_vgmstream_xma_ue3(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
-    off_t start_offset, chunk_offset;
-    int loop_flag, channel_count, sample_rate, is_xma2_old = 0;
+    uint32_t start_offset, chunk_offset;
+    int loop_flag, channel_count, sample_rate;
     int num_samples, loop_start_sample, loop_end_sample;
-    size_t file_size, fmt_size, seek_size, data_size;
+    uint32_t file_size, chunk_size, seek_size, data_size;
 
-
-    /* checks */
-    /* .xma: assumed */
-    /* .x360audio: fake produced by UE Viewer */
-    if (!check_extensions(sf, "xma,x360audio,"))
-        goto fail;
 
     /* UE3 uses class-like chunks called "SoundNodeWave" to store info and (rarely multi) raw audio data. Other
      * platforms use standard formats (PC=Ogg, PS3=MSF), while X360 has mutant XMA. Extractors transmogrify
      * UE3 XMA into RIFF XMA (discarding seek table and changing endianness) but we'll support actual raw
      * data for completeness. UE4 has .uexp which are very similar so XBone may use the same XMA. */
 
+    /* checks */
     file_size = get_streamfile_size(sf);
-    fmt_size  = read_u32be(0x00, sf);
+    chunk_size = read_u32be(0x00, sf);
     seek_size = read_u32be(0x04, sf);
     data_size = read_u32be(0x08, sf);
-    if (0x0c + fmt_size + seek_size + data_size != file_size)
+    if (0x0c + chunk_size + seek_size + data_size != file_size)
         goto fail;
+
+    /* .xma: assumed */
+    /* .x360audio: fake produced by UE Viewer */
+    if (!check_extensions(sf, "xma,x360audio,"))
+        goto fail;
+    
     chunk_offset = 0x0c;
 
     /* parse sample data (always BE unlike real XMA) */
-    if (fmt_size != 0x34) { /* old XMA2 [The Last Remnant (X360)] */
-        is_xma2_old = 1;
+    if (chunk_size != 0x34) { /* old XMA2 [The Last Remnant (X360)] */
         xma2_parse_xma2_chunk(sf, chunk_offset, &channel_count,&sample_rate, &loop_flag, &num_samples, &loop_start_sample, &loop_end_sample);
     }
     else { /* new XMA2 [Shadows of the Damned (X360)] */
@@ -40,7 +40,7 @@ VGMSTREAM* init_vgmstream_xma_ue3(STREAMFILE *sf) {
         xma2_parse_fmt_chunk_extra(sf, chunk_offset, &loop_flag, &num_samples, &loop_start_sample, &loop_end_sample, 1);
     }
 
-    start_offset = 0x0c + fmt_size + seek_size;
+    start_offset = 0x0c + chunk_size + seek_size;
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
@@ -54,15 +54,7 @@ VGMSTREAM* init_vgmstream_xma_ue3(STREAMFILE *sf) {
 
 #ifdef VGM_USE_FFMPEG
     {
-        uint8_t buf[0x100];
-        size_t bytes;
-
-        if (is_xma2_old) {
-            bytes = ffmpeg_make_riff_xma2_from_xma2_chunk(buf,0x100, chunk_offset,fmt_size, data_size, sf);
-        } else {
-            bytes = ffmpeg_make_riff_xma_from_fmt_chunk(buf,0x100, chunk_offset,fmt_size, data_size, sf, 1);
-        }
-        vgmstream->codec_data = init_ffmpeg_header_offset(sf, buf,bytes, start_offset,data_size);
+        vgmstream->codec_data = init_ffmpeg_xma_chunk(sf, start_offset, data_size, chunk_offset, chunk_size);
         if (!vgmstream->codec_data) goto fail;
         vgmstream->coding_type = coding_FFmpeg;
         vgmstream->layout_type = layout_none;
@@ -91,7 +83,6 @@ VGMSTREAM* init_vgmstream_xma_ue3(STREAMFILE *sf) {
     if (!vgmstream_open_stream(vgmstream, sf, start_offset))
         goto fail;
     return vgmstream;
-
 fail:
     close_vgmstream(vgmstream);
     return NULL;

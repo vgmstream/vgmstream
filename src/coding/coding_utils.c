@@ -139,6 +139,8 @@ int ffmpeg_make_riff_xma2(uint8_t* buf, size_t buf_size, size_t sample_count, si
     return riff_size;
 }
 
+static int ffmpeg_fmt_chunk_swap_endian(uint8_t* chunk, size_t chunk_size, uint16_t codec);
+
 /* Makes a XMA1/2 RIFF header for FFmpeg using a "fmt " chunk (XMAWAVEFORMAT or XMA2WAVEFORMATEX) as a base:
  * Useful to preserve the stream layout */
 int ffmpeg_make_riff_xma_from_fmt_chunk(uint8_t* buf, size_t buf_size, off_t fmt_offset, size_t fmt_size, size_t data_size, STREAMFILE* sf, int big_endian) {
@@ -172,35 +174,6 @@ fail:
     return -1;
 }
 
-/* Makes a XMA2 RIFF header for FFmpeg using a "XMA2" chunk (XMA2WAVEFORMAT) as a base.
- * Useful to preserve the stream layout */
-int ffmpeg_make_riff_xma2_from_xma2_chunk(uint8_t* buf, size_t buf_size, off_t xma2_offset, size_t xma2_size, size_t data_size, STREAMFILE* sf) {
-    uint8_t chunk[0x100];
-    size_t riff_size;
-
-    riff_size = 4+4+ 4 + 4+4+xma2_size + 4+4;
-    if (buf_size < riff_size || xma2_size > 0x100)
-        goto fail;
-    if (read_streamfile(chunk,xma2_offset,xma2_size, sf) != xma2_size)
-        goto fail;
-
-
-    memcpy(buf+0x00, "RIFF", 4);
-    put_32bitLE(buf+0x04, (int32_t)(riff_size-4-4 + data_size)); /* riff size */
-    memcpy(buf+0x08, "WAVE", 4);
-
-    memcpy(buf+0x0c, "XMA2", 4);
-    put_32bitLE(buf+0x10, xma2_size);
-    memcpy(buf+0x14, chunk, xma2_size);
-
-    memcpy(buf+0x14+xma2_size, "data", 4);
-    put_32bitLE(buf+0x14+xma2_size+4, data_size); /* data size */
-
-    return riff_size;
-
-fail:
-    return -1;
-}
 
 int ffmpeg_make_riff_xwma(uint8_t* buf, size_t buf_size, int codec, size_t data_size, int channels, int sample_rate, int avg_bps, int block_align) {
     size_t riff_size = 4+4+ 4 + 0x1a + 4+4;
@@ -259,7 +232,7 @@ int ffmpeg_make_riff_xwma(uint8_t* buf, size_t buf_size, int codec, size_t data_
 }
 
 
-int ffmpeg_fmt_chunk_swap_endian(uint8_t* chunk, size_t chunk_size, uint16_t codec) {
+static int ffmpeg_fmt_chunk_swap_endian(uint8_t* chunk, size_t chunk_size, uint16_t codec) {
     int i;
     /* swap from LE to BE or the other way around, doesn't matter */
     switch(codec) {

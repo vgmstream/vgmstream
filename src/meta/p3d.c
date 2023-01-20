@@ -180,12 +180,8 @@ VGMSTREAM* init_vgmstream_p3d(STREAMFILE* sf) {
 
 #ifdef VGM_USE_FFMPEG
         case 0x786D6100: {  /* "xma\0" (X360) */
-            uint8_t buf[0x100];
-            size_t bytes;
-
             //TODO: some in Spider-Man 4 beta use 18ch but ffmpeg supports max 16ch XMA2
-            bytes = ffmpeg_make_riff_xma2_from_xma2_chunk(buf, sizeof(buf), xma2_offset, xma2_size, data_size, sf);
-            vgmstream->codec_data = init_ffmpeg_header_offset(sf, buf,bytes, start_offset,data_size);
+            vgmstream->codec_data = init_ffmpeg_xma_chunk(sf, start_offset, data_size, xma2_offset, xma2_size);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
