@@ -16,8 +16,8 @@ static void decrypt_chunk(uint8_t* buf, int buf_size, mc161_io_data* data) {
 
 
     for (i = 0; i < buf_size; i++) {
-    	buf[i] = (uint8_t)(buf[i] ^ ((hash >> 8) & 0xFF));
-	    hash = (int32_t)(hash * 498729871) + (85731 * (int8_t)buf[i]); /* signed */
+        buf[i] = (uint8_t)(buf[i] ^ ((hash >> 8) & 0xFF));
+        hash = (int32_t)(hash * 498729871) + (85731 * (int8_t)buf[i]); /* signed */
     }
 
     data->curr_key = hash;

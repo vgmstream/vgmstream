@@ -3,38 +3,6 @@
 #include "sqex_streamfile.h"
 
 
-#if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
-/* AKB (AAC only) - found in SQEX iOS games */
-VGMSTREAM * init_vgmstream_akb_mp4(STREAMFILE *sf) {
-	VGMSTREAM * vgmstream = NULL;
-
-	size_t filesize;
-	uint32_t loop_start, loop_end;
-
-	if ((uint32_t)read_32bitBE(0, sf) != 0x414b4220) goto fail;
-
-	loop_start = read_s32le(0x14, sf);
-	loop_end = read_s32le(0x18, sf);
-
-	filesize = get_streamfile_size( sf );
-
-	vgmstream = init_vgmstream_mp4_aac_offset( sf, 0x20, filesize - 0x20 );
-	if ( !vgmstream ) goto fail;
-
-	if ( loop_start || loop_end ) {
-		vgmstream->loop_flag = 1;
-		vgmstream->loop_start_sample = loop_start;
-		vgmstream->loop_end_sample = loop_end;
-	}
-
-	return vgmstream;
-
-fail:
-	return NULL;
-}
-#endif
-
-
 /* AKB - found in SQEX 'sdlib' iOS/Android games */
 VGMSTREAM* init_vgmstream_akb(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;

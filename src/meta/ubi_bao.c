@@ -1360,7 +1360,7 @@ static STREAMFILE* open_atomic_bao(ubi_bao_file file_type, uint32_t file_id, int
                     snprintf(buf,buf_size, "%08x.bao", file_id);
                     sf_bao = open_streamfile_by_filename(sf, buf);
                     if (sf_bao) return sf_bao;
-				}
+                }
                 else {
                     /* %08x.sbao nomenclature (in addition to %08x.bao) present in Shaun White Snowboarding (Windows Vista) exe. */
                     snprintf(buf,buf_size, "%08x.sbao", file_id);
