@@ -260,7 +260,6 @@ typedef enum {
     layout_blocked_bdsp,
     layout_blocked_mxch,
     layout_blocked_ivaud,   /* GTA IV .ivaud blocks */
-    layout_blocked_tra,     /* DefJam Rapstar .tra blocks */
     layout_blocked_ps2_iab,
     layout_blocked_vs_str,
     layout_blocked_rws,
@@ -547,7 +546,6 @@ typedef enum {
     meta_SGXD,              /* Sony: Folklore, Genji, Tokyo Jungle (PS3), Brave Story, Kurohyo (PSP) */
     meta_WII_RAS,           /* Donkey Kong Country Returns (Wii) */
     meta_SPM,
-    meta_X360_TRA,          /* Def Jam Rapstar */
     meta_VGS_PS,
     meta_PS2_IAB,           /* Ueki no Housoku - Taosu ze Robert Juudan!! (PS2) */
     meta_VS_STR,            /* The Bouncer */

@@ -31,7 +31,6 @@ void block_update_ivaud(off_t block_offset, VGMSTREAM* vgmstream);
 void block_update_ea_swvr(off_t block_offset, VGMSTREAM* vgmstream);
 void block_update_adm(off_t block_offset, VGMSTREAM* vgmstream);
 void block_update_bdsp(off_t block_offset, VGMSTREAM* vgmstream);
-void block_update_tra(off_t block_offset, VGMSTREAM* vgmstream);
 void block_update_ps2_iab(off_t block_offset, VGMSTREAM* vgmstream);
 void block_update_vs_str(off_t block_offset, VGMSTREAM* vgmstream);
 void block_update_rws(off_t block_offset, VGMSTREAM* vgmstream);
