@@ -15,11 +15,11 @@ typedef struct {
     int32_t loop_end;
     int loop_flag;
 
-    off_t stream_offset;
-    off_t stream_size;
-    off_t extra_offset;
+    uint32_t stream_offset;
+    uint32_t stream_size;
+    uint32_t extra_offset;
     
-    off_t name_offset;
+    uint32_t name_offset;
 } aac_header;
 
 static int parse_aac(STREAMFILE* sf, aac_header* aac);
@@ -32,10 +32,10 @@ VGMSTREAM* init_vgmstream_ta_aac(STREAMFILE* sf) {
 
 
     /* checks */
+    if (!is_id32be(0x00, sf, "AAC ") && !is_id32le(0x00, sf, "AAC "))
+        goto fail;
     /* .aac: actual extension, .laac: for players to avoid hijacking MP4/AAC */
     if (!check_extensions(sf, "aac,laac"))
-        goto fail;
-    if (!is_id32be(0x00, sf, "AAC ") && !is_id32le(0x00, sf, "AAC "))
         goto fail;
 
     if (!parse_aac(sf, &aac))
@@ -55,11 +55,7 @@ VGMSTREAM* init_vgmstream_ta_aac(STREAMFILE* sf) {
 
 #ifdef VGM_USE_FFMPEG
         case 0x0165: { /* Infinite Undiscovery (X360), Star Ocean 4 (X360), Resonance of Fate (X360) */
-            uint8_t buf[0x100];
-            size_t bytes;
-
-            bytes = ffmpeg_make_riff_xma2(buf, sizeof(buf), aac.num_samples, aac.stream_size, aac.channels, aac.sample_rate, aac.block_count, aac.block_size);
-            vgmstream->codec_data = init_ffmpeg_header_offset(sf, buf, bytes, aac.stream_offset, aac.stream_size);
+            vgmstream->codec_data = init_ffmpeg_xma2_raw(sf, aac.stream_offset, aac.stream_size, aac.num_samples, aac.channels, aac.sample_rate, aac.block_size, aac.block_count);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
@@ -261,7 +257,7 @@ static int parse_aac_v1(STREAMFILE* sf, aac_header* aac) {
         aac->block_count    = read_u32be(offset + 0x2c, sf);
         
         /* one UI file has a smaller header, early version? */
-        if (read_u32be(offset + 0x30, sf) == 0x7374726D) {
+        if (is_id32be(offset + 0x30, sf, "strm")) {
             aac->loop_flag      = 0; /* ? */
             strm_offset = 0x30;
         }

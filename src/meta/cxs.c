@@ -32,22 +32,16 @@ VGMSTREAM* init_vgmstream_cxs(STREAMFILE* sf) {
 
 #ifdef VGM_USE_FFMPEG
     {
-        uint8_t buf[0x100];
-        size_t bytes, datasize, block_size, block_count;
+        uint32_t block_count = read_32bitBE(0x1c,sf);
+        uint32_t block_size  = read_32bitBE(0x20,sf);
+        uint32_t data_size   = read_32bitBE(0x24,sf);
 
-        block_count = read_32bitBE(0x1c,sf);
-        block_size  = read_32bitBE(0x20,sf);
-        datasize    = read_32bitBE(0x24,sf);
-
-        bytes = ffmpeg_make_riff_xma2(buf,100, vgmstream->num_samples, datasize, vgmstream->channels, vgmstream->sample_rate, block_count, block_size);
-        if (bytes <= 0) goto fail;
-
-        vgmstream->codec_data = init_ffmpeg_header_offset(sf, buf,bytes, start_offset,datasize);
+        vgmstream->codec_data = init_ffmpeg_xma2_raw(sf, start_offset, data_size, vgmstream->num_samples, vgmstream->channels, vgmstream->sample_rate, block_size, block_count);
         if (!vgmstream->codec_data) goto fail;
         vgmstream->coding_type = coding_FFmpeg;
         vgmstream->layout_type = layout_none;
 
-        xma_fix_raw_samples(vgmstream, sf, start_offset,datasize, 0, 0,1); /* num samples are ok */
+        xma_fix_raw_samples(vgmstream, sf, start_offset, data_size, 0, 0,1); /* num samples are ok */
     }
 #else
     goto fail;

@@ -575,17 +575,13 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
                     int xma_stream_mode = txth.codec_mode == 1 ? 1 : 0;
 
                     ffmpeg_data = init_ffmpeg_xma1_raw(txth.sf_body, txth.start_offset, txth.data_size, vgmstream->channels, vgmstream->sample_rate, xma_stream_mode);
-                    if ( !ffmpeg_data ) goto fail;
+                    if (!ffmpeg_data) goto fail;
                 }
                 else if (txth.codec == XMA2) {
-                    int block_count, block_size;
+                    int block_size = txth.interleave;
 
-                    block_size = txth.interleave ? txth.interleave : 2048;
-                    block_count = txth.data_size / block_size;
-
-                    bytes = ffmpeg_make_riff_xma2(buf, sizeof(buf), vgmstream->num_samples, txth.data_size, vgmstream->channels, vgmstream->sample_rate, block_count, block_size);
-                    ffmpeg_data = init_ffmpeg_header_offset(txth.sf_body, buf,bytes, txth.start_offset,txth.data_size);
-                    if ( !ffmpeg_data ) goto fail;
+                    ffmpeg_data = init_ffmpeg_xma2_raw(sf, txth.start_offset, txth.data_size, vgmstream->num_samples, vgmstream->channels, vgmstream->sample_rate, block_size, 0);
+                    if (!ffmpeg_data) goto fail;
                 }
                 else {
                     goto fail;

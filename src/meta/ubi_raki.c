@@ -3,8 +3,8 @@
 
 
 /* RAKI - Ubisoft audio format [Rayman Legends, Just Dance 2017 (multi)] */
-VGMSTREAM * init_vgmstream_ubi_raki(STREAMFILE *sf) {
-    VGMSTREAM * vgmstream = NULL;
+VGMSTREAM* init_vgmstream_ubi_raki(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
     off_t start_offset, offset, fmt_offset;
     size_t header_size, data_size;
     int big_endian;
@@ -16,19 +16,22 @@ VGMSTREAM * init_vgmstream_ubi_raki(STREAMFILE *sf) {
 
 
     /* checks */
+
+    /* some games (ex. Rayman Legends PS3) have a 32b file type before the RAKI data. However offsets are
+     * absolute and expect the type exists, so it's part of the file and not an extraction defect.
+     * Type varies between platforms (0x09, 0x0b, etc). */
+    if ((is_id32be(0x00,sf, "RAKI")))
+        offset = 0x00;
+    else if (is_id32be(0x04,sf, "RAKI")) 
+        offset = 0x04;
+    else
+        goto fail;
+
     /* .rak: Just Dance 2017
      * .ckd: Rayman Legends (technically .wav.ckd/rak) */
     if (!check_extensions(sf,"rak,ckd"))
         goto fail;
 
-    /* some games (ex. Rayman Legends PS3) have a 32b file type before the RAKI data. However
-     * offsets are absolute and expect the type exists, so it's part of the file and not an extraction defect. */
-    if ((read_32bitBE(0x00,sf) == 0x52414B49))  /* "RAKI" */
-        offset = 0x00;
-    else if ((read_32bitBE(0x04,sf) == 0x52414B49)) /* type varies between platforms (0x09, 0x0b) so ignore */
-        offset = 0x04;
-    else
-        goto fail;
 
     /* 0x04: version? (0x00, 0x07, 0x0a, etc); */
     platform = read_32bitBE(offset+0x08,sf); /* string */
@@ -182,19 +185,14 @@ VGMSTREAM * init_vgmstream_ubi_raki(STREAMFILE *sf) {
 #ifdef VGM_USE_FFMPEG
         case 0x58333630786D6132: {  /* "X360xma2" */
             /* chunks: "seek" (XMA2 seek table), "data" */
-            uint8_t buf[100];
-            int bytes, block_count;
             if (!block_align) goto fail;
 
-            block_count = data_size / block_align + (data_size % block_align ? 1 : 0);
+            vgmstream->num_samples = read_32bit(fmt_offset+0x18,sf);
 
-            bytes = ffmpeg_make_riff_xma2(buf, 100, vgmstream->num_samples, data_size, vgmstream->channels, vgmstream->sample_rate, block_count, block_align);
-            vgmstream->codec_data = init_ffmpeg_header_offset(sf, buf,bytes, start_offset,data_size);
+            vgmstream->codec_data = init_ffmpeg_xma2_raw(sf, start_offset, data_size, vgmstream->num_samples, vgmstream->channels, vgmstream->sample_rate, block_align, 0);
             if ( !vgmstream->codec_data ) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
-
-            vgmstream->num_samples = read_32bit(fmt_offset+0x18,sf);
 
             xma_fix_raw_samples(vgmstream, sf, start_offset,data_size, 0, 0,0); /* should apply to num_samples? */
             break;

@@ -2,8 +2,8 @@
 #include "../coding/coding.h"
 
 /* SEG - from Stormfront games [Eragon (multi), Forgotten Realms: Demon Stone (multi) */
-VGMSTREAM * init_vgmstream_seg(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
+VGMSTREAM* init_vgmstream_seg(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
     off_t start_offset;
     int loop_flag, channel_count;
     size_t data_size;
@@ -12,24 +12,24 @@ VGMSTREAM * init_vgmstream_seg(STREAMFILE *streamFile) {
 
 
     /* checks */
-    if (!check_extensions(streamFile, "seg"))
+    if (!is_id32be(0x00,sf, "seg\0"))
         goto fail;
-    if (read_32bitBE(0x00,streamFile) != 0x73656700) /* "seg\0" */
+    if (!check_extensions(sf, "seg"))
         goto fail;
 
-    codec = read_32bitBE(0x04,streamFile);
+    codec = read_32bitBE(0x04,sf);
     /* 0x08: version? (2: Eragon, Spiderwick Chronicles Wii / 3: Spiderwick Chronicles X360 / 4: Spiderwick Chronicles PC) */
-    if (guess_endianness32bit(0x08,streamFile)) {
+    if (guess_endianness32bit(0x08,sf)) {
         read_32bit = read_32bitBE;
     } else {
         read_32bit = read_32bitLE;
     }
     /* 0x0c: file size */
-    data_size = read_32bit(0x10, streamFile); /* including interleave padding */
+    data_size = read_32bit(0x10, sf); /* including interleave padding */
     /* 0x14: null */
 
-    loop_flag = read_32bit(0x20,streamFile); /* rare */
-    channel_count = read_32bit(0x24,streamFile);
+    loop_flag = read_32bit(0x20,sf); /* rare */
+    channel_count = read_32bit(0x24,sf);
     /* 0x28: extradata 1 entries (0x08 per entry, unknown) */
     /* 0x2c: extradata 1 offset */
     /* 0x30: extradata 2 entries (0x10 or 0x14 per entry, seek/hist table?) */
@@ -43,13 +43,13 @@ VGMSTREAM * init_vgmstream_seg(STREAMFILE *streamFile) {
     if (!vgmstream) goto fail;
 
     vgmstream->meta_type = meta_SEG;
-    vgmstream->sample_rate = read_32bit(0x18,streamFile);
-    vgmstream->num_samples = read_32bit(0x1c,streamFile);
+    vgmstream->sample_rate = read_32bit(0x18,sf);
+    vgmstream->num_samples = read_32bit(0x1c,sf);
     if (loop_flag) {
         vgmstream->loop_start_sample = 0;
         vgmstream->loop_end_sample = vgmstream->num_samples;
     }
-    read_string(vgmstream->stream_name,0x20+1, 0x38,streamFile);
+    read_string(vgmstream->stream_name,0x20+1, 0x38,sf);
 
     switch(codec) {
         case 0x70733200: /* "ps2\0" */
@@ -71,8 +71,8 @@ VGMSTREAM * init_vgmstream_seg(STREAMFILE *streamFile) {
             vgmstream->interleave_first_block_size = vgmstream->interleave_block_size - vgmstream->interleave_first_skip;
 
             /* standard dsp header at start_offset */
-            dsp_read_coefs_be(vgmstream, streamFile, start_offset+0x1c, vgmstream->interleave_block_size);
-            dsp_read_hist_be(vgmstream, streamFile, start_offset+0x40, vgmstream->interleave_block_size);
+            dsp_read_coefs_be(vgmstream, sf, start_offset+0x1c, vgmstream->interleave_block_size);
+            dsp_read_hist_be(vgmstream, sf, start_offset+0x40, vgmstream->interleave_block_size);
 
             start_offset += vgmstream->interleave_first_skip;
             break;
@@ -84,19 +84,14 @@ VGMSTREAM * init_vgmstream_seg(STREAMFILE *streamFile) {
 
 #ifdef VGM_USE_FFMPEG
         case 0x78623300: { /* "xb3\0" */
-            uint8_t buf[0x100];
-            int bytes, block_size, block_count;
+            int block_size = 0x4000;
 
-            block_size = 0x4000;
-            block_count = data_size / block_size + (data_size % block_size ? 1 : 0);
-
-            bytes = ffmpeg_make_riff_xma2(buf,0x100, vgmstream->num_samples, data_size, vgmstream->channels, vgmstream->sample_rate, block_count, block_size);
-            vgmstream->codec_data = init_ffmpeg_header_offset(streamFile, buf,bytes, start_offset,data_size);
+            vgmstream->codec_data = init_ffmpeg_xma2_raw(sf, start_offset, data_size, vgmstream->num_samples, vgmstream->channels, vgmstream->sample_rate, block_size, 0);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
 
-            xma_fix_raw_samples(vgmstream, streamFile, start_offset,data_size, 0, 0,0); /* samples are ok */
+            xma_fix_raw_samples(vgmstream, sf, start_offset,data_size, 0, 0,0); /* samples are ok */
             break;
         }
 #endif
@@ -105,10 +100,9 @@ VGMSTREAM * init_vgmstream_seg(STREAMFILE *streamFile) {
             goto fail;
     }
 
-    if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
+    if (!vgmstream_open_stream(vgmstream,sf,start_offset))
         goto fail;
     return vgmstream;
-
 fail:
     close_vgmstream(vgmstream);
     return NULL;

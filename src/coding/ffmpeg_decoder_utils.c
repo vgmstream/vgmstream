@@ -3,22 +3,22 @@
 #ifdef VGM_USE_FFMPEG
 
 static int ffmpeg_make_riff_atrac3(uint8_t* buf, size_t buf_size, size_t sample_count, size_t data_size, int channels, int sample_rate, int block_align, int joint_stereo, int encoder_delay) {
-    int buf_max = (0x04 + 0x04) + 0x4 + 0x28 + 0x10 + (0x04 + 0x04);
 
+    int buf_max = (0x04 * 2 + 0x4) + (0x04 * 2 + 0x20) + (0x04 * 2 + 0x08) + (0x04 * 2);
     if (buf_max > buf_size)
-        return -1;
+        return 0;
 
     memcpy   (buf+0x00, "RIFF", 0x04);
-    put_u32le(buf+0x04, (uint32_t)(buf_max - 0x04 - 0x04 + data_size)); /* riff size */
+    put_u32le(buf+0x04, buf_max - (0x04 * 2) + data_size); /* riff size */
     memcpy   (buf+0x08, "WAVE", 0x04);
 
     memcpy   (buf+0x0c, "fmt ", 0x04);
-    put_u32le(buf+0x10, 0x20);/*fmt size*/
+    put_u32le(buf+0x10, 0x20); /* fmt size */
     put_u16le(buf+0x14, 0x0270); /* ATRAC3 codec */
     put_u16le(buf+0x16, channels);
     put_u32le(buf+0x18, sample_rate);
     put_u32le(buf+0x1c, sample_rate * channels / sizeof(sample)); /* average bytes per second (wrong) */
-    put_u16le(buf+0x20, (uint16_t)(block_align)); /* block align */
+    put_u16le(buf+0x20, block_align); /* block align */
 
     put_u16le(buf+0x24, 0x0e); /* extra data size */
     put_u16le(buf+0x26, 1); /* unknown, always 1 */
@@ -29,12 +29,12 @@ static int ffmpeg_make_riff_atrac3(uint8_t* buf, size_t buf_size, size_t sample_
     put_u16le(buf+0x30, 1); /* unknown, always 1 (frame_factor?) */
     put_u16le(buf+0x32, 0); /* unknown, always 0 */
 
-    memcpy   (buf+0x34, "fact", 4);
-    put_u32le(buf+0x38, 0x8); /* fact size */
+    memcpy   (buf+0x34, "fact", 0x04);
+    put_u32le(buf+0x38, 0x08); /* fact size */
     put_u32le(buf+0x3c, sample_count);
     put_u32le(buf+0x40, encoder_delay);
 
-    memcpy   (buf+0x44, "data", 4);
+    memcpy   (buf+0x44, "data", 0x04);
     put_u32le(buf+0x48, data_size); /* data size */
 
     return buf_max;
@@ -136,7 +136,7 @@ ffmpeg_codec_data* init_ffmpeg_atrac3_riff(STREAMFILE* sf, off_t offset, int* p_
         implicit_skip = 69;
     }
     else if (is_at3p && fact_size == 0x08) {
-        implicit_skip = 184*2;
+        implicit_skip = 184 * 2;
     }
     else if (is_at3p && fact_size == 0x0c) {
         implicit_skip = 184; /* first 184 is already added to delay vs field at 0x08 */
@@ -202,8 +202,6 @@ fail:
     return NULL;
 }
 
-//TODO: make init_ffmpeg_xwma_fmt(be) too to pass fmt chunk
-
 ffmpeg_codec_data* init_ffmpeg_xwma(STREAMFILE* sf, uint32_t data_offset, uint32_t data_size, int format, int channels, int sample_rate, int avg_bitrate, int block_size) {
     ffmpeg_codec_data* data = NULL;
     uint8_t buf[0x100];
@@ -221,32 +219,29 @@ fail:
 
 
 static int ffmpeg_make_riff_xma1(uint8_t* buf, size_t buf_size, size_t data_size, int channels, int sample_rate, int stream_mode) {
-    uint16_t codec_XMA1 = 0x0165;
-    size_t riff_size;
-    int streams, i;
 
     /* stream disposition:
      * 0: default (ex. 5ch = 2ch + 2ch + 1ch = 3 streams)
      * 1: lineal (ex. 5ch = 1ch + 1ch + 1ch + 1ch + 1ch = 5 streams), unusual but exists
      * others: not seen (ex. maybe 5ch = 2ch + 1ch + 1ch + 1ch = 4 streams) */
+    int streams;
     switch(stream_mode) {
         case 0 : streams = (channels + 1) / 2; break;
         case 1 : streams = channels; break;
         default: return 0;
     }
 
-    riff_size = 4+4+ 4 + 0x14 + 0x14*streams + 4+4;
-
-    if (buf_size < riff_size)
-        return -1;
+    int buf_max = (0x04 * 2 + 0x4) + (0x04 * 2 + 0x0c + 0x14 * streams) + (0x04 * 2);
+    if (buf_max > buf_size)
+        return 0;
 
     memcpy   (buf+0x00, "RIFF", 0x04);
-    put_u32le(buf+0x04, (int32_t)(riff_size-4-4 + data_size)); /* riff size */
+    put_u32le(buf+0x04, buf_max - (0x04 * 2) + data_size); /* riff size */
     memcpy   (buf+0x08, "WAVE", 0x04);
 
     memcpy   (buf+0x0c, "fmt ", 0x04);
-    put_u32le(buf+0x10, 0xc + 0x14*streams);/*fmt size*/
-    put_u16le(buf+0x14, codec_XMA1);
+    put_u32le(buf+0x10, 0x0c + 0x14 * streams); /* fmt size */
+    put_u16le(buf+0x14, 0x0165); /* XMA1 */
     put_u16le(buf+0x16, 16); /* bits per sample */
     put_u16le(buf+0x18, 0x10D6); /* encoder options */
     put_u16le(buf+0x1a, 0); /* largest stream skip (wrong, unneeded) */
@@ -254,10 +249,10 @@ static int ffmpeg_make_riff_xma1(uint8_t* buf, size_t buf_size, size_t data_size
     put_u8   (buf+0x1e, 0); /* loop count */
     put_u8   (buf+0x1f, 2); /* version */
 
-    for (i = 0; i < streams; i++) {
+    for (int i = 0; i < streams; i++) {
         int stream_channels;
         uint32_t speakers;
-        off_t off = 0x20 + 0x14*i;/* stream riff offset */
+        off_t off = 0x20 + 0x14 * i; /* stream riff offset */
 
         if (stream_mode == 1) {
             /* lineal */
@@ -298,10 +293,10 @@ static int ffmpeg_make_riff_xma1(uint8_t* buf, size_t buf_size, size_t data_size
     /* xmaencode decoding rejects XMA1 without "seek" chunk, though it doesn't seem to use it
      * (needs to be have entries but can be bogus, also generates seek for even small sounds) */
 
-    memcpy   (buf + riff_size - 0x04 - 0x04, "data", 0x04);
-    put_u32le(buf + riff_size - 0x04, data_size); /* data size */
+    memcpy   (buf + buf_max - (0x04 * 2), "data", 0x04);
+    put_u32le(buf + buf_max - (0x04 * 1), data_size);
 
-    return riff_size;
+    return buf_max;
 }
 
 ffmpeg_codec_data* init_ffmpeg_xma1_raw(STREAMFILE* sf, uint32_t data_offset, uint32_t data_size, int channels, int sample_rate, int stream_mode) {
@@ -315,6 +310,86 @@ ffmpeg_codec_data* init_ffmpeg_xma1_raw(STREAMFILE* sf, uint32_t data_offset, ui
 
     /* n5.1.2 XMA1 hangs on seeks near end (infinite loop), presumably due to missing flush in wmapro.c's ff_xma1_decoder + frame skip samples */
     ffmpeg_set_force_seek(data);
+
+    return data;
+fail:
+    free_ffmpeg(data);
+    return NULL;
+}
+
+
+static int ffmpeg_make_riff_xma2(uint8_t* buf, size_t buf_size, size_t data_size, int32_t sample_count, int channels, int sample_rate, int block_size, int block_count) {
+    size_t bytecount;
+    int streams;
+    uint32_t speakers;
+
+    int buf_max = (0x04 * 2 + 0x04) + (0x04 * 2 + 0x34) + (0x04 * 2);
+    if (buf_max > buf_size)
+        return 0;
+
+    /* info from xma2defs.h, xact3wb.h and audiodefs.h */
+    streams = (channels + 1) / 2;
+    switch (channels) {
+        case 1: speakers = 0x04; break; /* 1.0: FC */
+        case 2: speakers = 0x01 | 0x02; break; /* 2.0: FL FR */
+        case 3: speakers = 0x01 | 0x02 | 0x08; break; /* 2.1: FL FR LF */
+        case 4: speakers = 0x01 | 0x02 | 0x10 | 0x20; break; /* 4.0: FL FR BL BR */
+        case 5: speakers = 0x01 | 0x02 | 0x08 | 0x10 | 0x20; break; /* 4.1: FL FR LF BL BR */
+        case 6: speakers = 0x01 | 0x02 | 0x04 | 0x08 | 0x10 | 0x20; break; /* 5.1: FL FR FC LF BL BR */
+        case 7: speakers = 0x01 | 0x02 | 0x04 | 0x08 | 0x10 | 0x20 | 0x100; break; /* 6.1: FL FR FC LF BL BR BC */
+        case 8: speakers = 0x01 | 0x02 | 0x04 | 0x08 | 0x10 | 0x20 | 0x40 | 0x80; break; /* 7.1: FL FR FC LF BL BR FLC FRC */
+        default: speakers = 0; break;
+    }
+
+    bytecount = sample_count * channels * sizeof(sample);
+
+    memcpy   (buf+0x00, "RIFF", 0x04);
+    put_u32le(buf+0x04, buf_max - (0x04 * 2) + data_size); /* riff size */
+    memcpy   (buf+0x08, "WAVE", 0x04);
+
+    memcpy   (buf+0x0c, "fmt ", 0x04);
+    put_u32le(buf+0x10, 0x34); /* fmt size */
+    put_u16le(buf+0x14, 0x0166); /* XMA2 */
+    put_u16le(buf+0x16, channels);
+    put_u32le(buf+0x18, sample_rate);
+    put_u32le(buf+0x1c, sample_rate * channels / sizeof(sample)); /* average bytes per second (wrong, unneeded) */
+    put_u16le(buf+0x20, (uint16_t)(channels * sizeof(sample))); /* block align */
+    put_u16le(buf+0x22, 16); /* bits per sample */
+
+    put_u16le(buf+0x24, 0x22); /* extra data size */
+    put_u16le(buf+0x26, streams); /* number of streams */
+    put_u32le(buf+0x28, speakers); /* speaker position  */
+    put_u32le(buf+0x2c, bytecount); /* PCM samples */
+    put_u32le(buf+0x30, block_size); /* XMA block size (can be zero, for seeking only) */
+    /* (looping values not set, expected to be handled externally) */
+    put_u32le(buf+0x34, 0); /* play begin */
+    put_u32le(buf+0x38, 0); /* play length */
+    put_u32le(buf+0x3c, 0); /* loop begin */
+    put_u32le(buf+0x40, 0); /* loop length */
+    put_u8   (buf+0x44, 0); /* loop count */
+    put_u8   (buf+0x45, 4); /* encoder version */
+    put_u16le(buf+0x46, block_count); /* blocks count (entries in seek table, can be zero) */
+
+    memcpy   (buf+0x48, "data", 0x04);
+    put_u32le(buf+0x4c, data_size); /* data size */
+
+    return buf_max;
+}
+
+ffmpeg_codec_data* init_ffmpeg_xma2_raw(STREAMFILE* sf, uint32_t data_offset, uint32_t data_size, int32_t sample_count, int channels, int sample_rate, int block_size, int block_count) {
+    ffmpeg_codec_data* data = NULL;
+    uint8_t buf[0x100];
+    int bytes;
+
+    /* seemingly not needed but just in case */
+    if (block_size <= 0)
+        block_size = 0x8000; /* default */
+    if (block_count <= 0)
+        block_count = (data_size / block_size) + (data_size % block_size != 0 ? 1 : 0); /* approx */
+
+    bytes = ffmpeg_make_riff_xma2(buf, sizeof(buf), data_size, sample_count, channels, sample_rate, block_size, block_count);
+    data = init_ffmpeg_header_offset(sf, buf, bytes, data_offset, data_size);
+    if (!data) goto fail;
 
     return data;
 fail:
@@ -383,7 +458,7 @@ fail:
 /* Makes a XMA1/2 RIFF header using a "fmt " chunk (XMAWAVEFORMAT/XMA2WAVEFORMATEX) or "XMA2" chunk (XMA2WAVEFORMAT), as a base:
  * Useful to preserve the stream layout */
 static int ffmpeg_make_riff_xma_chunk(STREAMFILE* sf, uint8_t* buf, int buf_size, uint32_t data_size, uint32_t chunk_offset, uint32_t chunk_size, int* p_is_xma1) {
-    int buf_max = (0x04 + 0x04) + 0x04 + (0x04 + 0x04) + chunk_size + (0x04 + 0x04);
+    int buf_max = (0x04 * 2 + 0x04) + (0x04 * 2 + chunk_size) + (0x04 * 2);
     if (buf_max > buf_size)
         return 0;
 
@@ -402,7 +477,7 @@ static int ffmpeg_make_riff_xma_chunk(STREAMFILE* sf, uint8_t* buf, int buf_size
     }
 
     memcpy   (buf+0x00, "RIFF", 0x04);
-    put_u32le(buf+0x04, (buf_max - 0x08 + data_size)); /* riff size */
+    put_u32le(buf+0x04, buf_max - (0x04 * 2)+ data_size); /* riff size */
     memcpy   (buf+0x08, "WAVE", 0x04);
     memcpy   (buf+0x0c, is_xma2_old ? "XMA2" : "fmt ", 0x04);
     put_u32le(buf+0x10, chunk_size);

@@ -501,14 +501,9 @@ VGMSTREAM* init_vgmstream_xwb(STREAMFILE* sf) {
         }
 
         case XMA2: { /* Blue Dragon (X360) */
-            uint8_t buf[0x100];
-            int bytes, block_size, block_count;
+            int block_size = 0x10000; /* XACT default */
 
-            block_size = 0x10000; /* XACT default */
-            block_count = xwb.stream_size / block_size + (xwb.stream_size % block_size ? 1 : 0);
-
-            bytes = ffmpeg_make_riff_xma2(buf, sizeof(buf), vgmstream->num_samples, xwb.stream_size, vgmstream->channels, vgmstream->sample_rate, block_count, block_size);
-            vgmstream->codec_data = init_ffmpeg_header_offset(sf, buf, bytes, xwb.stream_offset,xwb.stream_size);
+            vgmstream->codec_data = init_ffmpeg_xma2_raw(sf, xwb.stream_offset, xwb.stream_size, vgmstream->num_samples, vgmstream->channels, vgmstream->sample_rate, block_size, 0);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;

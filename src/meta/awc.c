@@ -70,9 +70,7 @@ VGMSTREAM* init_vgmstream_awc(STREAMFILE* sf) {
 
 #ifdef VGM_USE_FFMPEG
         case 0x05: {    /* XMA2 (X360) */
-            uint8_t buf[0x100];
-            size_t bytes, block_size, block_count, substream_size;
-            off_t substream_offset;
+            uint32_t substream_size, substream_offset;
 
             if (awc.is_music) {
                 /* 1ch XMAs in blocks, we'll use layered layout + custom IO to get multi-FFmpegs working */
@@ -95,26 +93,22 @@ VGMSTREAM* init_vgmstream_awc(STREAMFILE* sf) {
                     data->layers[i] = allocate_vgmstream(layer_channels, 0);
                     if (!data->layers[i]) goto fail;
 
-                    data->layers[i]->sample_rate = awc.sample_rate;
                     data->layers[i]->meta_type = meta_AWC;
                     data->layers[i]->coding_type = coding_FFmpeg;
                     data->layers[i]->layout_type = layout_none;
+                    data->layers[i]->sample_rate = awc.sample_rate;
                     data->layers[i]->num_samples = awc.num_samples;
 
                     /* setup custom IO streamfile, pass to FFmpeg and hope it's fooled */
                     temp_sf = setup_awc_xma_streamfile(sf, awc.stream_offset, awc.stream_size, awc.block_chunk, awc.channels, i);
                     if (!temp_sf) goto fail;
 
-                    substream_offset = 0; /* where FFmpeg thinks data starts, which our custom sf will clamp */
+                    substream_offset = 0x00; /* where FFmpeg thinks data starts, which our custom sf will clamp */
                     substream_size = get_streamfile_size(temp_sf); /* data of one XMA substream without blocks */
-                    block_size = 0x8000; /* no idea */
-                    block_count = substream_size / block_size; /* not accurate but not needed */
 
-                    bytes = ffmpeg_make_riff_xma2(buf, 0x100, awc.num_samples, substream_size, layer_channels, awc.sample_rate, block_count, block_size);
-                    data->layers[i]->codec_data = init_ffmpeg_header_offset(temp_sf, buf,bytes, substream_offset,substream_size);
-
-                    xma_fix_raw_samples(data->layers[i], temp_sf, substream_offset,substream_size, 0, 0,0); /* samples are ok? */
-
+                    data->layers[i]->codec_data = init_ffmpeg_xma2_raw(temp_sf, substream_offset, substream_size, awc.num_samples, layer_channels, awc.sample_rate, 0, 0);
+                    if (data->layers[i])
+                        xma_fix_raw_samples(data->layers[i], temp_sf, substream_offset, substream_size, 0, 0,0); /* samples are ok? */
                     close_streamfile(temp_sf);
                     if (!data->layers[i]->codec_data) goto fail;
                 }
@@ -125,11 +119,7 @@ VGMSTREAM* init_vgmstream_awc(STREAMFILE* sf) {
             }
             else {
                 /* regular XMA for sfx */
-                block_size = 0x8000; /* no idea */
-                block_count = awc.stream_size / block_size; /* not accurate but not needed */
-
-                bytes = ffmpeg_make_riff_xma2(buf, 0x100, awc.num_samples, awc.stream_size, awc.channels, awc.sample_rate, block_count, block_size);
-                vgmstream->codec_data = init_ffmpeg_header_offset(sf, buf,bytes, awc.stream_offset,awc.stream_size);
+                vgmstream->codec_data = init_ffmpeg_xma2_raw(sf, awc.stream_offset, awc.stream_size, awc.num_samples, awc.channels, awc.sample_rate, 0, 0);
                 if (!vgmstream->codec_data) goto fail;
                 vgmstream->coding_type = coding_FFmpeg;
                 vgmstream->layout_type = layout_none;

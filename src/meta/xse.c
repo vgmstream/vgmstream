@@ -14,9 +14,9 @@ VGMSTREAM* init_vgmstream_xse_new(STREAMFILE* sf) {
 
 
     /* checks */
-    if (!check_extensions(sf, "xse"))
+    if (!is_id32be(0x00,sf, "HRDS"))
         goto fail;
-    if (read_u32be(0x00,sf) != 0x48524453) /* "HRDS" */
+    if (!check_extensions(sf, "xse"))
         goto fail;
 
     /* similar to older version but BE and a bit less complex */
@@ -117,15 +117,11 @@ VGMSTREAM* init_vgmstream_xse_new(STREAMFILE* sf) {
 
 #ifdef VGM_USE_FFMPEG
         case 1: { /* Mindjack (X360) */
-            uint8_t buf[0x100];
-            int32_t bytes, block_size, block_count;
-
+            int block_size = 0x10000; /* XWAV new default */
+            int block_count = seek_count;
             data_size = get_streamfile_size(sf) - start_offset;
-            block_size = 0x10000; /* XWAV new default */
-            block_count = seek_count;
 
-            bytes = ffmpeg_make_riff_xma2(buf,0x100, vgmstream->num_samples, data_size, vgmstream->channels, vgmstream->sample_rate, block_count, block_size);
-            vgmstream->codec_data = init_ffmpeg_header_offset(sf, buf,bytes, start_offset,data_size);
+            vgmstream->codec_data = init_ffmpeg_xma2_raw(sf, start_offset, data_size, vgmstream->num_samples, vgmstream->channels, vgmstream->sample_rate, block_size, block_count);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
@@ -148,7 +144,6 @@ VGMSTREAM* init_vgmstream_xse_new(STREAMFILE* sf) {
     if (!vgmstream_open_stream(vgmstream, sf, start_offset))
         goto fail;
     return vgmstream;
-
 fail:
     close_vgmstream(vgmstream);
     return NULL;
@@ -166,10 +161,11 @@ VGMSTREAM* init_vgmstream_xse_old(STREAMFILE* sf) {
 
 
     /* checks */
+    if (!is_id32be(0x00,sf, "SDRH"))
+        goto fail;
+
     /* .xse: assumed */
     if (!check_extensions(sf, "xse"))
-        goto fail;
-    if (read_u32be(0x00,sf) != 0x53445248) /* "SDRH" */
         goto fail;
 
     /* similar to older version but LE and a bit more complex */
@@ -265,15 +261,12 @@ VGMSTREAM* init_vgmstream_xse_old(STREAMFILE* sf) {
 
 #ifdef VGM_USE_FFMPEG
         case 4: { /* Lost Odyssey (X360) */
-            uint8_t buf[0x100];
-            int32_t bytes, block_size, block_count;
+            int block_size = 0x8000; /* XWAV old default */
+            int block_count = seek_count;
 
             data_size = get_streamfile_size(sf) - start_offset;
-            block_size = 0x8000; /* XWAV old default */
-            block_count = seek_count;
 
-            bytes = ffmpeg_make_riff_xma2(buf,0x100, vgmstream->num_samples, data_size, vgmstream->channels, vgmstream->sample_rate, block_count, block_size);
-            vgmstream->codec_data = init_ffmpeg_header_offset(sf, buf,bytes, start_offset,data_size);
+            vgmstream->codec_data = init_ffmpeg_xma2_raw(sf, start_offset, data_size, vgmstream->num_samples, vgmstream->channels, vgmstream->sample_rate, block_size, block_count);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
@@ -294,7 +287,6 @@ VGMSTREAM* init_vgmstream_xse_old(STREAMFILE* sf) {
     if (!vgmstream_open_stream(vgmstream, sf, start_offset))
         goto fail;
     return vgmstream;
-
 fail:
     close_vgmstream(vgmstream);
     return NULL;

@@ -80,65 +80,6 @@ int ffmpeg_make_riff_atrac3plus(uint8_t* buf, size_t buf_size, size_t sample_cou
     return riff_size;
 }
 
-int ffmpeg_make_riff_xma2(uint8_t* buf, size_t buf_size, size_t sample_count, size_t data_size, int channels, int sample_rate, int block_count, int block_size) {
-    uint16_t codec_XMA2 = 0x0166;
-    size_t riff_size = 4+4+ 4 + 0x3c + 4+4;
-    size_t bytecount;
-    int streams;
-    uint32_t speakers;
-
-    /* info from xma2defs.h, xact3wb.h and audiodefs.h */
-    streams = (channels + 1) / 2;
-    switch (channels) {
-        case 1: speakers = 0x04; break; /* 1.0: FC */
-        case 2: speakers = 0x01 | 0x02; break; /* 2.0: FL FR */
-        case 3: speakers = 0x01 | 0x02 | 0x08; break; /* 2.1: FL FR LF */
-        case 4: speakers = 0x01 | 0x02 | 0x10 | 0x20; break; /* 4.0: FL FR BL BR */
-        case 5: speakers = 0x01 | 0x02 | 0x08 | 0x10 | 0x20; break; /* 4.1: FL FR LF BL BR */
-        case 6: speakers = 0x01 | 0x02 | 0x04 | 0x08 | 0x10 | 0x20; break; /* 5.1: FL FR FC LF BL BR */
-        case 7: speakers = 0x01 | 0x02 | 0x04 | 0x08 | 0x10 | 0x20 | 0x0100; break; /* 6.1: FL FR FC LF BL BR BC */
-        case 8: speakers = 0x01 | 0x02 | 0x04 | 0x08 | 0x10 | 0x20 | 0x40 | 0x80; break; /* 7.1: FL FR FC LF BL BR FLC FRC */
-        default: speakers = 0; break;
-    }
-
-    if (buf_size < riff_size)
-        return -1;
-
-    bytecount = sample_count * channels * sizeof(sample);
-
-    memcpy(buf+0x00, "RIFF", 4);
-    put_32bitLE(buf+0x04, (int32_t)(riff_size-4-4 + data_size)); /* riff size */
-    memcpy(buf+0x08, "WAVE", 4);
-
-    memcpy(buf+0x0c, "fmt ", 4);
-    put_32bitLE(buf+0x10, 0x34);/*fmt size*/
-    put_16bitLE(buf+0x14, codec_XMA2);
-    put_16bitLE(buf+0x16, channels);
-    put_32bitLE(buf+0x18, sample_rate);
-    put_32bitLE(buf+0x1c, sample_rate*channels / sizeof(sample)); /* average bytes per second (wrong, unneeded) */
-    put_16bitLE(buf+0x20, (int16_t)(channels*sizeof(sample))); /* block align */
-    put_16bitLE(buf+0x22, 16); /* bits per sample */
-
-    put_16bitLE(buf+0x24, 0x22); /* extra data size */
-    put_16bitLE(buf+0x26, streams); /* number of streams */
-    put_32bitLE(buf+0x28, speakers); /* speaker position  */
-    put_32bitLE(buf+0x2c, bytecount); /* PCM samples */
-    put_32bitLE(buf+0x30, block_size); /* XMA block size (can be zero, it's for seeking only) */
-    /* (looping values not set, expected to be handled externally) */
-    put_32bitLE(buf+0x34, 0); /* play begin */
-    put_32bitLE(buf+0x38, 0); /* play length */
-    put_32bitLE(buf+0x3c, 0); /* loop begin */
-    put_32bitLE(buf+0x40, 0); /* loop length */
-    put_8bit(buf+0x44, 0); /* loop count */
-    put_8bit(buf+0x45, 4); /* encoder version */
-    put_16bitLE(buf+0x46, block_count); /* blocks count (entries in seek table, can be zero) */
-
-    memcpy(buf+0x48, "data", 4);
-    put_32bitLE(buf+0x4c, data_size); /* data size */
-
-    return riff_size;
-}
-
 
 int ffmpeg_make_riff_xwma(uint8_t* buf, size_t buf_size, int codec, size_t data_size, int channels, int sample_rate, int avg_bps, int block_align) {
     size_t riff_size = 4+4+ 4 + 0x1a + 4+4;
@@ -754,18 +695,17 @@ void xma2_parse_xma2_chunk(STREAMFILE* sf, off_t chunk_offset, int* out_channels
     int channels, sample_rate, loop_flag, num_samples, loop_start_sample, loop_end_sample;
     off_t offset;
 
-    xma2_chunk_version = read_8bit(chunk_offset+0x00,sf);
-    num_streams        = read_8bit(chunk_offset+0x01,sf);
+    xma2_chunk_version = read_u8(chunk_offset+0x00,sf);
+    num_streams        = read_u8(chunk_offset+0x01,sf);
     loop_start_sample = read_32bit(chunk_offset+0x04,sf);
     loop_end_sample   = read_32bit(chunk_offset+0x08,sf);
-    loop_flag = (uint8_t)read_8bit(chunk_offset+0x03,sf) > 0 || loop_end_sample; /* rarely not set, encoder default */
+    loop_flag         = read_u8(chunk_offset+0x03,sf) > 0 || loop_end_sample; /* rarely not set, encoder default */
     sample_rate       = read_32bit(chunk_offset+0x0c,sf);
     /* may need loop end +1 */
 
     offset = xma2_chunk_version == 3 ? 0x14 : 0x1C;
     num_samples = read_32bit(chunk_offset+offset+0x00,sf);
-    /* pcm_samples in original sample rate (not usable as file may be resampled) */
-    /* pcm_samples = read_32bitBE(chunk_offset+offset+0x04,sf)*/
+    //pcm_samples = read_32bitBE(chunk_offset+offset+0x04,sf) /* in original sample rate (not usable as file may be resampled) */
 
     offset = xma2_chunk_version == 3 ? 0x20 : 0x28;
     channels = 0; /* channels is the sum of all streams */

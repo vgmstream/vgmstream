@@ -13,14 +13,14 @@ VGMSTREAM* init_vgmstream_mzrt_v0(STREAMFILE* sf) {
 
 
     /* checks */
+    if (!is_id32be(0x00,sf, "mzrt"))
+        goto fail;
+    if (read_u32be(0x04, sf) != 0) /* version */
+        goto fail;
+
     if (!check_extensions(sf, "idwav,idmsf,idxma"))
         goto fail;
 
-    if (!is_id32be(0x00,sf, "mzrt"))
-        goto fail;
-
-    if (read_u32be(0x04, sf) != 0) /* version */
-        goto fail;
 
     /* this format is bizarrely mis-aligned (and mis-designed too) */
 
@@ -164,12 +164,12 @@ VGMSTREAM* init_vgmstream_mzrt_v1(STREAMFILE* sf) {
 
 
     /* checks */
-    if (!check_extensions(sf, "idmsf")) //idmsa: untested
-        goto fail;
-
     if (!is_id32be(0x00,sf, "mzrt"))
         goto fail;
     if (read_u32be(0x04, sf) != 1) /* version */
+        goto fail;
+
+    if (!check_extensions(sf, "idmsf")) //idmsa: untested
         goto fail;
 
     type = read_s32be(0x09,sf);
@@ -311,12 +311,12 @@ VGMSTREAM* init_vgmstream_bsnf(STREAMFILE* sf) {
 
 
     /* checks */
-    if (!check_extensions(sf, "bsnd"))
-        goto fail;
-
     if (!is_id32be(0x00,sf, "bsnf")) /* null-terminated string */
         goto fail;
     if (read_u32be(0x05, sf) != 0x00000100) /* version */
+        goto fail;
+
+    if (!check_extensions(sf, "bsnd"))
         goto fail;
 
     offset = 0x18;
@@ -427,14 +427,9 @@ VGMSTREAM* init_vgmstream_bsnf(STREAMFILE* sf) {
 
 #ifdef VGM_USE_FFMPEG
         case 0x0166: {
-            uint8_t buf[0x100];
-            size_t bytes, block_size, block_count;
+            int block_size  = 0x800;
 
-            block_size  = 0x800;
-            block_count = stream_size / block_size;
-
-            bytes = ffmpeg_make_riff_xma2(buf, sizeof(buf), num_samples, stream_size, channels, sample_rate, block_count, block_size);
-            vgmstream->codec_data = init_ffmpeg_header_offset(sb, buf, bytes, start_offset, stream_size);
+            vgmstream->codec_data = init_ffmpeg_xma2_raw(sf, start_offset, stream_size, num_samples, channels, sample_rate, block_size, 0);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;

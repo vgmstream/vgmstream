@@ -621,8 +621,10 @@ ffmpeg_codec_data* init_ffmpeg_atrac3_raw(STREAMFILE* sf, off_t offset, size_t d
 ffmpeg_codec_data* init_ffmpeg_atrac3_riff(STREAMFILE* sf, off_t offset, int* out_samples);
 ffmpeg_codec_data* init_ffmpeg_aac(STREAMFILE* sf, off_t offset, size_t size, int skip_samples);
 ffmpeg_codec_data* init_ffmpeg_xwma(STREAMFILE* sf, uint32_t data_offset, uint32_t data_size, int format, int channels, int sample_rate, int avg_bitrate, int block_size);
+//TODO: make init_ffmpeg_xwma_fmt(be) too to pass fmt chunk
 
 ffmpeg_codec_data* init_ffmpeg_xma1_raw(STREAMFILE* sf, uint32_t data_offset, uint32_t data_size, int channels, int sample_rate, int stream_mode);
+ffmpeg_codec_data* init_ffmpeg_xma2_raw(STREAMFILE* sf, uint32_t data_offset, uint32_t data_size, int32_t sample_count, int channels, int sample_rate, int block_size, int block_count);
 ffmpeg_codec_data* init_ffmpeg_xma_chunk(STREAMFILE* sf, uint32_t data_offset, uint32_t data_size, uint32_t chunk_offset, uint32_t chunk_size);
 ffmpeg_codec_data* init_ffmpeg_xma_chunk_split(STREAMFILE* sf_head, STREAMFILE* sf_data, uint32_t data_offset, uint32_t data_size, uint32_t chunk_offset, uint32_t chunk_size);
 
@@ -683,7 +685,6 @@ ffmpeg_codec_data* init_ffmpeg_mp4_custom_lyn(STREAMFILE* sf, mp4_custom_t* mp4)
 
 /* coding_utils */
 int ffmpeg_make_riff_atrac3plus(uint8_t* buf, size_t buf_size, size_t sample_count, size_t data_size, int channels, int sample_rate, int block_align, int encoder_delay);
-int ffmpeg_make_riff_xma2(uint8_t* buf, size_t buf_size, size_t sample_count, size_t data_size, int channels, int sample_rate, int block_count, int block_size);
 int ffmpeg_make_riff_xwma(uint8_t* buf, size_t buf_size, int codec, size_t data_size, int channels, int sample_rate, int avg_bps, int block_align);
 
 /* MS audio format's sample info (struct to avoid passing so much stuff, separate for reusing) */

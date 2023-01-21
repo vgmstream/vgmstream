@@ -10,17 +10,16 @@ VGMSTREAM* init_vgmstream_xbox_hlwav(STREAMFILE* sf) {
     int loop_flag;
 
     /* checks */
-    if (!check_extensions(sf, "wav,lwav"))
-        goto fail;
-
-    /* check header and size */
     header_size = read_u32le(0x00, sf);
     if (header_size != 0x14)
         goto fail;
 
     data_size = read_u32le(0x04, sf);
     start_offset = read_u32le(0x08, sf);
-    if (data_size != get_streamfile_size(sf) - start_offset)
+    if (start_offset + data_size != get_streamfile_size(sf))
+        goto fail;
+
+    if (!check_extensions(sf, "wav,lwav"))
         goto fail;
 
     loop_start = read_s32le(0x0c, sf);
@@ -76,8 +75,8 @@ fail:
     return NULL;
 }
 
-/* .360.WAV, .PS3.WAV - from Valve games running on Source Engine, evolution of Xbox .WAV format seen above */
-/* [The Orange Box (X360), Portal 2 (PS3/X360), Counter-Strike: Global Offensive (PS3/X360)] */
+/* XMV - from Valve games running on Source Engine, evolution of Xbox .WAV format seen above
+ * [The Orange Box (X360), Portal 2 (PS3/X360), Counter-Strike: Global Offensive (PS3/X360)] */
 VGMSTREAM* init_vgmstream_xmv_valve(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     int32_t loop_start;
@@ -89,13 +88,13 @@ VGMSTREAM* init_vgmstream_xmv_valve(STREAMFILE* sf) {
     /* checks */
     if (!is_id32be(0x00, sf, "XMV "))
         goto fail;
+    if (read_u32be(0x04, sf) != 0x04) /* only version 4 is known */
+        goto fail;
 
+    /* technically .360.WAV, .PS3.WAV */
     if (!check_extensions(sf, "wav,lwav"))
         goto fail;
 
-    /* only version 4 is known */
-    if (read_u32be(0x04, sf) != 0x04)
-        goto fail;
 
     start_offset = read_u32be(0x10, sf);
     data_size = read_u32be(0x14, sf);
@@ -139,27 +138,23 @@ VGMSTREAM* init_vgmstream_xmv_valve(STREAMFILE* sf) {
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = 0x02;
             break;
+
 #ifdef VGM_USE_FFMPEG
         case 0x01: { /* XMA */
-            uint8_t buf[0x100];
-            int block_count, block_size;
-            size_t bytes;
+            int block_size = 0x800;
 
-            block_size = 0x800;
-            block_count = data_size / block_size;
-
-            bytes = ffmpeg_make_riff_xma2(buf, 0x100, num_samples, data_size, channels, sample_rate, block_count, block_size);
-
-            vgmstream->codec_data = init_ffmpeg_header_offset(sf, buf, bytes, start_offset, data_size);
+            vgmstream->codec_data = init_ffmpeg_xma2_raw(sf, start_offset, data_size, num_samples, channels, sample_rate, block_size, 0);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
+
             vgmstream->loop_end_sample -= loop_end_skip;
 
             xma_fix_raw_samples(vgmstream, sf, start_offset, data_size, 0, 1, 1);
             break;
         }
 #endif
+
 #ifdef VGM_USE_MPEG
         case 0x03: { /* MP3 */
             coding_t mpeg_coding;
