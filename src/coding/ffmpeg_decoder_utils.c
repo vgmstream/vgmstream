@@ -2,9 +2,12 @@
 
 #ifdef VGM_USE_FFMPEG
 
+/* Helper inits for FFmpeg's codecs. RIFF utils make headers for FFmpeg (it doesn't understand all valid RIFF headers,
+ * nor the utils make 100% correct headers). */
+
 static int ffmpeg_make_riff_atrac3(uint8_t* buf, size_t buf_size, size_t sample_count, size_t data_size, int channels, int sample_rate, int block_align, int joint_stereo, int encoder_delay) {
 
-    int buf_max = (0x04 * 2 + 0x4) + (0x04 * 2 + 0x20) + (0x04 * 2 + 0x08) + (0x04 * 2);
+    int buf_max = (0x04 * 2 + 0x04) + (0x04 * 2 + 0x20) + (0x04 * 2 + 0x08) + (0x04 * 2);
     if (buf_max > buf_size)
         return 0;
 
@@ -182,6 +185,80 @@ fail:
     return NULL;
 }
 
+
+static int ffmpeg_make_riff_atrac3plus(uint8_t* buf, int buf_size, uint32_t data_size, int32_t sample_count, int channels, int sample_rate, int block_align, int encoder_delay) {
+
+    int buf_max = (0x04 * 2 + 0x04) + (0x04 * 2 + 0x34) + (0x04 * 2 + 0x0c) + (0x04 * 2);
+    if (buf_max > buf_size)
+        return 0;
+
+    /* standard */
+    int channel_layout = 0;
+    switch(channels) {
+        case 1: channel_layout = mapping_MONO; break;
+        case 2: channel_layout = mapping_STEREO; break;
+        case 3: channel_layout = mapping_2POINT1; break;
+        case 4: channel_layout = mapping_QUAD; break;
+        case 5: channel_layout = mapping_5POINT0; break;
+        case 6: channel_layout = mapping_5POINT1; break;
+        default: break;
+    }
+
+    memcpy   (buf+0x00, "RIFF", 0x04);
+    put_u32le(buf+0x04, buf_max - (0x04 * 2) + data_size);
+    memcpy   (buf+0x08, "WAVE", 0x04);
+
+    memcpy   (buf+0x0c, "fmt ", 0x04);
+    put_u32le(buf+0x10, 0x34);
+    put_u16le(buf+0x14, 0xfffe); /* WAVEFORMATEXTENSIBLE */
+    put_u16le(buf+0x16, channels);
+    put_u32le(buf+0x18, sample_rate);
+    put_u32le(buf+0x1c, sample_rate * channels / sizeof(sample)); /* average bytes per second (wrong) */
+    put_u32le(buf+0x20, block_align); /* block align */
+
+    put_u16le(buf+0x24, 0x22); /* extra data size */
+    put_u16le(buf+0x26, 0x0800); /* samples per block */
+    put_u32le(buf+0x28, channel_layout);
+
+    put_u32be(buf+0x2c, 0xBFAA23E9); /* GUID1 */
+    put_u32be(buf+0x30, 0x58CB7144); /* GUID2 */
+    put_u32be(buf+0x34, 0xA119FFFA); /* GUID3 */
+    put_u32be(buf+0x38, 0x01E4CE62); /* GUID4 */
+    put_u16be(buf+0x3c, 0x0010); /* unknown */
+    put_u16be(buf+0x3e, 0x0000); /* unknown, atrac3plus config (varies with block size, FFmpeg doesn't use it) */
+    put_u32be(buf+0x40, 0x00000000); /* reserved? */
+    put_u32be(buf+0x44, 0x00000000); /* reserved? */
+
+    memcpy   (buf+0x48, "fact", 0x04);
+    put_u32le(buf+0x4c, 0x0c); /* fact size */
+    put_u32le(buf+0x50, sample_count);
+    put_u32le(buf+0x54, 0); /* unknown */
+    put_u32le(buf+0x58, encoder_delay);
+
+    memcpy   (buf+0x5c, "data", 0x04);
+    put_u32le(buf+0x60, data_size); /* data size */
+
+    return buf_max;
+}
+
+ffmpeg_codec_data* init_ffmpeg_atrac3plus_raw(STREAMFILE* sf, uint32_t data_offset, uint32_t data_size, int32_t sample_count, int channels, int sample_rate, int block_align, int encoder_delay) {
+    ffmpeg_codec_data* data = NULL;
+    uint8_t buf[0x100];
+    int bytes;
+
+    bytes = ffmpeg_make_riff_atrac3plus(buf,sizeof(buf), data_size, sample_count, channels, sample_rate, block_align, encoder_delay);
+    data = init_ffmpeg_header_offset(sf, buf, bytes, data_offset, data_size);
+    if (!data) goto fail;
+
+    ffmpeg_set_skip_samples(data, encoder_delay);
+
+    return data;
+fail:
+    free_ffmpeg(data);
+    return NULL;
+}
+
+
 ffmpeg_codec_data* init_ffmpeg_aac(STREAMFILE* sf, off_t offset, size_t size, int skip_samples) {
     ffmpeg_codec_data* data = NULL;
 
@@ -202,12 +279,69 @@ fail:
     return NULL;
 }
 
+
+static int ffmpeg_make_riff_xwma(uint8_t* buf, size_t buf_size, uint32_t data_size, int format, int channels, int sample_rate, int avg_bps, int block_align) {
+    int buf_max = (0x04 * 2 + 0x04) + (0x04 * 2 + 0x12) + (0x04 * 2);
+    if (buf_max > buf_size)
+        return 0;
+
+    /* XWMA encoder only allows a few channel/sample rate/bitrate combinations,
+     * but some create identical files with fake bitrate (1ch 22050hz at
+     * 20/48/192kbps are all 20kbps, with the exact same codec data).
+     * Decoder needs correct bitrate to work, so it's normalized here. */
+    /* (may be removed once FFmpeg fixes this) */
+    if (format == 0x161) { /* WMAv2 only */
+        int ch = channels;
+        int sr = sample_rate;
+        int br = avg_bps * 8;
+
+        /* Must be a bug in MS's encoder, as later versions of xWMAEncode remove these bitrates */
+        if (ch == 1) { 
+            if (sr == 22050 && (br==48000 || br==192000)) {
+                br = 20000;
+            }
+            else if (sr == 32000 && (br==48000 || br==192000))
+                br = 20000;
+            else if (sr == 44100 && (br==96000 || br==192000))
+                br = 48000;
+        }
+        else if (ch == 2) {
+            if (sr == 22050 && (br==48000 || br==192000))
+                br = 32000;
+            else if (sr == 32000 && (br==192000))
+                br = 48000;
+        }
+
+        avg_bps = br / 8;
+    }
+
+    memcpy   (buf+0x00, "RIFF", 0x04);
+    put_u32le(buf+0x04, buf_max - (0x04 * 2) + data_size); /* riff size */
+    memcpy   (buf+0x08, "XWMA", 0x04);
+
+    memcpy   (buf+0x0c, "fmt ", 0x04);
+    put_u32le(buf+0x10, 0x12); /* fmt size */
+    put_u16le(buf+0x14, format);
+    put_u16le(buf+0x16, channels);
+    put_u32le(buf+0x18, sample_rate);
+    put_u32le(buf+0x1c, avg_bps); /* average bytes per second, somehow vital for XWMA */
+    put_u16le(buf+0x20, block_align); /* block align */
+    put_u16le(buf+0x22, 16); /* bits per sample */
+    put_u16le(buf+0x24, 0); /* extra size */
+    /* here goes the "dpds" seek table, but it's optional and not needed by FFmpeg (and also buggy) */
+
+    memcpy   (buf+0x26, "data", 4);
+    put_u32le(buf+0x2a, data_size);
+
+    return buf_max;
+}
+
 ffmpeg_codec_data* init_ffmpeg_xwma(STREAMFILE* sf, uint32_t data_offset, uint32_t data_size, int format, int channels, int sample_rate, int avg_bitrate, int block_size) {
     ffmpeg_codec_data* data = NULL;
     uint8_t buf[0x100];
     int bytes;
 
-    bytes = ffmpeg_make_riff_xwma(buf, sizeof(buf), format, data_size, channels, sample_rate, avg_bitrate, block_size);
+    bytes = ffmpeg_make_riff_xwma(buf, sizeof(buf), data_size, format, channels, sample_rate, avg_bitrate, block_size);
     data = init_ffmpeg_header_offset(sf, buf,bytes, data_offset, data_size);
     if (!data) goto fail;
 
