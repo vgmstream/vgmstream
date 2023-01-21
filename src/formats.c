@@ -498,6 +498,7 @@ static const char* extension_list[] = {
     "smp",
     "smpl", //fake extension/header id for .v0/v1 (renamed, to be removed)
     "smv",
+    "snb",
     "snd",
     "snds",
     "sng",

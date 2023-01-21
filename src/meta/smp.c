@@ -15,10 +15,12 @@ VGMSTREAM* init_vgmstream_smp(STREAMFILE* sf) {
     if (version != 0x05 &&  /* Ghostbusters (PS2), Mushroom Men (Wii) */
         version != 0x06 &&  /* Ghostbusters (PS3/X360/PC) */
         version != 0x07 &&  /* Ghostbusters (PSP) */
-        version != 0x08)    /* Chandragupta (PS2/PSP), Street Cricket Champions 1/2 (PSP), Guilty Party (Wii) */
+        version != 0x08)    /* Def Jam Rapstar (X360), Chandragupta (PS2/PSP), Street Cricket Champions 1/2 (PSP), Guilty Party (Wii) */
         goto fail;
 
-    if (!check_extensions(sf, "smp"))
+    /* .smp: common
+     * .snb: Def Jam Rapstar (X360)-few files */
+    if (!check_extensions(sf, "smp,snb"))
         goto fail;
 
     /* 0x04~14: guid? */
