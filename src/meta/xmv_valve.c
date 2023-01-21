@@ -75,7 +75,7 @@ fail:
     return NULL;
 }
 
-/* XMV - from Valve games running on Source Engine, evolution of Xbox .WAV format seen above
+/* XWV - from Valve games running on Source Engine, evolution of Xbox .WAV format seen above
  * [The Orange Box (X360), Portal 2 (PS3/X360), Counter-Strike: Global Offensive (PS3/X360)] */
 VGMSTREAM* init_vgmstream_xmv_valve(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
@@ -86,12 +86,12 @@ VGMSTREAM* init_vgmstream_xmv_valve(STREAMFILE* sf) {
     int loop_flag;
 
     /* checks */
-    if (!is_id32be(0x00, sf, "XMV "))
+    if (!is_id32be(0x00, sf, "XWV "))
         goto fail;
     if (read_u32be(0x04, sf) != 0x04) /* only version 4 is known */
         goto fail;
 
-    /* technically .360.WAV, .PS3.WAV */
+    /* technically .360.wav, .ps3.wav */
     if (!check_extensions(sf, "wav,lwav"))
         goto fail;
 
