@@ -77,7 +77,7 @@ fail:
 
 /* XWV - from Valve games running on Source Engine, evolution of Xbox .WAV format seen above
  * [The Orange Box (X360), Portal 2 (PS3/X360), Counter-Strike: Global Offensive (PS3/X360)] */
-VGMSTREAM* init_vgmstream_xmv_valve(STREAMFILE* sf) {
+VGMSTREAM* init_vgmstream_xwv_valve(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     int32_t loop_start;
     uint32_t start_offset, data_size, sample_rate, num_samples;
@@ -126,7 +126,7 @@ VGMSTREAM* init_vgmstream_xmv_valve(STREAMFILE* sf) {
     vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->meta_type = meta_XMV_VALVE;
+    vgmstream->meta_type = meta_XWV_VALVE;
     vgmstream->sample_rate = sample_rate;
     vgmstream->num_samples = num_samples;
     vgmstream->loop_start_sample = loop_start;

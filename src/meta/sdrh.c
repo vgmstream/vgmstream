@@ -4,7 +4,7 @@
 
 
 /* SDRH - banks for newer feelplus-related games [Mindjack (PS3/X360)] */
-VGMSTREAM* init_vgmstream_xse_new(STREAMFILE* sf) {
+VGMSTREAM* init_vgmstream_sdrh_new(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     off_t start_offset, data_size, stream_size;
     int loop_flag = 0, channels, codec, sample_rate, seek_count;
@@ -14,7 +14,7 @@ VGMSTREAM* init_vgmstream_xse_new(STREAMFILE* sf) {
 
 
     /* checks */
-    if (!is_id32be(0x00,sf, "HRDS"))
+    if (!is_id32le(0x00,sf, "SDRH")) /* LE */
         goto fail;
     if (!check_extensions(sf, "xse"))
         goto fail;
@@ -150,8 +150,8 @@ fail:
 }
 
 
-/* SDRH - banks for older feelplus-related games [Lost Odyssey (X360)] */
-VGMSTREAM* init_vgmstream_xse_old(STREAMFILE* sf) {
+/* SDRH - banks for older feelplus-related games [Lost Odyssey (X360), Lost Odyssey Demo (X360)] */
+VGMSTREAM* init_vgmstream_sdrh_old(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     off_t start_offset, data_size, stream_size;
     int loop_flag = 0, channels, codec, sample_rate, seek_count;
@@ -164,7 +164,7 @@ VGMSTREAM* init_vgmstream_xse_old(STREAMFILE* sf) {
     if (!is_id32be(0x00,sf, "SDRH"))
         goto fail;
 
-    /* .xse: assumed */
+    /* .xse: actual extension (LO demo) */
     if (!check_extensions(sf, "xse"))
         goto fail;
 

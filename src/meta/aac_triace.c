@@ -26,7 +26,7 @@ static int parse_aac(STREAMFILE* sf, aac_header* aac);
 
 
 /* AAC - tri-Ace (ASKA engine) Audio Container */
-VGMSTREAM* init_vgmstream_ta_aac(STREAMFILE* sf) {
+VGMSTREAM* init_vgmstream_aac_triace(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     aac_header aac = {0};
 
@@ -46,7 +46,7 @@ VGMSTREAM* init_vgmstream_ta_aac(STREAMFILE* sf) {
     vgmstream = allocate_vgmstream(aac.channels, aac.loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->meta_type = meta_TA_AAC;
+    vgmstream->meta_type = meta_AAC_TRIACE;
     vgmstream->sample_rate = aac.sample_rate;
     vgmstream->num_streams = aac.total_subsongs;
     vgmstream->stream_size = aac.stream_size;

@@ -389,7 +389,8 @@ ffmpeg_codec_data* init_ffmpeg_header_offset_subsong(STREAMFILE* sf, uint8_t* he
         if (data->skip_samples < 0)
             data->skip_samples = 0;
 
-#if 0 //LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(58, 64, 100)
+#if 0
+        //LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(58, 64, 100)
         /* exposed before but not too reliable either */
         else if (stream->start_skip_samples) /* samples to skip in the first packet */
             data->skip_samples = stream->start_skip_samples;
@@ -404,7 +405,8 @@ ffmpeg_codec_data* init_ffmpeg_header_offset_subsong(STREAMFILE* sf, uint8_t* he
         VGM_ASSERT(stream->codecpar->trailing_padding > 0, "FFMPEG: trailing_padding %i\n", (int)stream->codecpar->trailing_padding);
         VGM_ASSERT(stream->codecpar->seek_preroll > 0, "FFMPEG: seek_preroll %i\n", (int)stream->codecpar->seek_preroll);//seek delay: OPUS
         VGM_ASSERT(stream->start_time > 0, "FFMPEG: start_time %i\n", (int)stream->start_time); //delay
-#if 0 //LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(58, 64, 100)
+#if 0
+        //LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(58, 64, 100)
         VGM_ASSERT(stream->first_discard_sample > 0, "FFMPEG: first_discard_sample %i\n", (int)stream->first_discard_sample); //padding: MP3
         VGM_ASSERT(stream->last_discard_sample > 0, "FFMPEG: last_discard_sample %i\n", (int)stream->last_discard_sample); //padding: MP3
         VGM_ASSERT(stream->skip_samples > 0, "FFMPEG: skip_samples %i\n", (int)stream->skip_samples); //delay: MP4

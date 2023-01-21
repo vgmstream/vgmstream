@@ -1,7 +1,7 @@
 #include "meta.h"
 #include "../coding/coding.h"
 
-/* CXS - found in Eternal Sonata (X360) */
+/* CXS - tri-Crescendo games [Eternal Sonata (X360)] */
 VGMSTREAM* init_vgmstream_cxs(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     off_t start_offset;
@@ -50,7 +50,6 @@ VGMSTREAM* init_vgmstream_cxs(STREAMFILE* sf) {
     if (!vgmstream_open_stream(vgmstream, sf, start_offset))
         goto fail;
     return vgmstream;
-
 fail:
     close_vgmstream(vgmstream);
     return NULL;

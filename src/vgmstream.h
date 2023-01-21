@@ -540,7 +540,7 @@ typedef enum {
     meta_NGC_NST_DSP,       /* Animaniacs [NGC] */
     meta_BAF,               /* Bizarre Creations (Blur, James Bond) */
     meta_XVAG,              /* Ratchet & Clank Future: Quest for Booty (PS3) */
-    meta_PS3_CPS,           /* Eternal Sonata (PS3) */
+    meta_CPS,
     meta_MSF,
     meta_PS3_PAST,          /* Bakugan Battle Brawlers (PS3) */
     meta_SGXD,              /* Sony: Folklore, Genji, Tokyo Jungle (PS3), Brave Story, Kurohyo (PSP) */
@@ -594,7 +594,7 @@ typedef enum {
     meta_OGL,               /* Shin'en Wii/WiiU (Jett Rocket (Wii), FAST Racing NEO (WiiU)) */
     meta_MC3,               /* Paradigm games (T3 PS2, MX Rider PS2, MI: Operation Surma PS2) */
     meta_GTD,
-    meta_TA_AAC,
+    meta_AAC_TRIACE,
     meta_MTA2,
     meta_NGC_ULW,           /* Burnout 1 (GC only) */
     meta_XA_XA30,
@@ -707,7 +707,7 @@ typedef enum {
     meta_PSF,
     meta_DSP_ITL_i,
     meta_IMA,
-    meta_XMV_VALVE,
+    meta_XWV_VALVE,
     meta_UBI_HX,
     meta_BMP_KONAMI,
     meta_ISB,
