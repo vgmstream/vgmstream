@@ -185,6 +185,7 @@ static const char* extension_list[] = {
     "ezw",
 
     "fag",
+    "fcb", //FFmpeg/not parsed (BINK AUDIO)
     "fda",
     "ffw",
     "filp",
