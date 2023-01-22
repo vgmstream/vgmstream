@@ -593,7 +593,7 @@ typedef enum {
     meta_SXD,               /* Sony SXD (Gravity Rush, Freedom Wars PSV) */
     meta_OGL,               /* Shin'en Wii/WiiU (Jett Rocket (Wii), FAST Racing NEO (WiiU)) */
     meta_MC3,               /* Paradigm games (T3 PS2, MX Rider PS2, MI: Operation Surma PS2) */
-    meta_GTD,
+    meta_GHS,
     meta_AAC_TRIACE,
     meta_MTA2,
     meta_NGC_ULW,           /* Burnout 1 (GC only) */

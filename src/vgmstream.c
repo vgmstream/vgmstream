@@ -294,7 +294,7 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_sxd,
     init_vgmstream_ogl,
     init_vgmstream_mc3,
-    init_vgmstream_gtd,
+    init_vgmstream_ghs,
     init_vgmstream_aac_triace,
     init_vgmstream_va3,
     init_vgmstream_mta2,
@@ -524,6 +524,7 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_vab,
     init_vgmstream_bigrp,
     init_vgmstream_sscf_encrypted,
+    init_vgmstream_s_p_sth,
 
     /* lower priority metas (no clean header identity, somewhat ambiguous, or need extension/companion file to identify) */
     init_vgmstream_scd_pcm,

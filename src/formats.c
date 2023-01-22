@@ -1248,7 +1248,7 @@ static const meta_info meta_info_list[] = {
         {meta_SXD,                  "Sony SXD header"},
         {meta_OGL,                  "Shin'en OGL header"},
         {meta_MC3,                  "Paradigm MC3 header"},
-        {meta_GTD,                  "Hexadrive GHS/S_P_STH header"},
+        {meta_GHS,                  "Hexadrive GHS/S_P_STH header"},
         {meta_AAC_TRIACE,           "tri-Ace AAC header"},
         {meta_MTA2,                 "Konami MTA2 header"},
         {meta_NGC_ULW,              "Criterion ULW raw header"},
