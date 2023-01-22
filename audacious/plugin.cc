@@ -142,10 +142,11 @@ bool VgmstreamPlugin::is_our_file(const char * filename, VFSFile & file) {
     if (!sf) return false;
 
     VGMSTREAM* infostream = init_vgmstream_from_STREAMFILE(sf);
+    close_streamfile(sf);
     if (!infostream) {
-        close_streamfile(sf);
         return false;
     }
+    close_vgmstream(infostream);
 
     return true;
 }
@@ -229,11 +230,10 @@ static bool read_info(const char* filename, Tuple & tuple) {
         sf->stream_index = subtune;
 
     VGMSTREAM* infostream = init_vgmstream_from_STREAMFILE(sf);
+    close_streamfile(sf);
     if (!infostream) {
-        close_streamfile(sf);
         return false;
     }
-
 
     int total_subtunes = infostream->num_streams;
 
@@ -245,7 +245,6 @@ static bool read_info(const char* filename, Tuple & tuple) {
         //set nullptr to leave subsong index linear (must add +1 to subtune)
         tuple.set_subtunes(total_subtunes, nullptr);
 
-        close_streamfile(sf);
         close_vgmstream(infostream);
         return true;
     }
@@ -339,11 +338,9 @@ static bool read_info(const char* filename, Tuple & tuple) {
 
             vgmstream_tags_close(tags);
             close_streamfile(sf_tags);
-        }        
+        }
     }
 
-
-    close_streamfile(sf);
     close_vgmstream(infostream);
 
     return true;
@@ -396,7 +393,6 @@ bool VgmstreamPlugin::play(const char * filename, VFSFile & file) {
 
     if (!vgmstream) {
         AUDINFO("filename %s is not a valid format\n", filename);
-        close_vgmstream(vgmstream);
         return false;
     }
 
@@ -404,7 +400,6 @@ bool VgmstreamPlugin::play(const char * filename, VFSFile & file) {
     set_stream_bitrate(bitrate);
 
     //todo apply config
-
 
     apply_config(vgmstream, &settings);
 
