@@ -1,99 +1,10 @@
 #ifndef _FSB_KEYS_H_
 #define _FSB_KEYS_H_
+#include <stdint.h>
 
-/**
+/*
  * List of known keys, found in aluigi's site (http://aluigi.altervista.org), forums, guessfsb.exe or manually.
  */
-
-/* DJ Hero 2 (X360) */ //"nos71RiT"
-static const uint8_t key_dj2[] = { 0x6E,0x6F,0x73,0x37,0x31,0x52,0x69,0x54 };
-
-/* Double Fine Productions: Brutal Legend, Massive Chalice, etc (multi) */  //"DFm3t4lFTW"
-static const uint8_t key_dfp[] = { 0x44,0x46,0x6D,0x33,0x74,0x34,0x6C,0x46,0x54,0x57 };
-
-/* N++ (PC?) */ //"H$#FJa%7gRZZOlxLiN50&g5Q"
-static const uint8_t key_npp[] = { 0x48,0x24,0x23,0x46,0x4A,0x61,0x25,0x37,0x67,0x52,0x5A,0x5A,0x4F,0x6C,0x78,0x4C,0x69,0x4E,0x35,0x30,0x26,0x67,0x35,0x51 };
-
-/* Slightly Mad Studios: Project CARS (PC?), World of Speed (PC) */ //"sTOoeJXI2LjK8jBMOk8h5IDRNZl3jq3I"
-static const uint8_t key_sms[] = { 0x73,0x54,0x4F,0x6F,0x65,0x4A,0x58,0x49,0x32,0x4C,0x6A,0x4B,0x38,0x6A,0x42,0x4D,0x4F,0x6B,0x38,0x68,0x35,0x49,0x44,0x52,0x4E,0x5A,0x6C,0x33,0x6A,0x71,0x33,0x49 };
-
-/* Ghost in the Shell: First Assault (PC) */ //"%lAn2{Pi*Lhw3T}@7*!kV=?qS$@iNlJ"
-static const uint8_t key_gfs[] = { 0x25,0x6C,0x41,0x6E,0x32,0x7B,0x50,0x69,0x2A,0x4C,0x68,0x77,0x33,0x54,0x7D,0x40,0x37,0x2A,0x21,0x6B,0x56,0x3D,0x3F,0x71,0x53,0x24,0x40,0x69,0x4E,0x6C,0x4A };
-
-/* RevHeadz Engine Sounds (Mobile) */ //"1^7%82#&5$~/8sz"
-static const uint8_t key_rev[] = { 0x31,0x5E,0x37,0x25,0x38,0x32,0x23,0x26,0x35,0x24,0x7E,0x2F,0x38,0x73,0x7A };
-
-/* Dark Souls 3 (PC) */ //"FDPrVuT4fAFvdHJYAgyMzRF4EcBAnKg"
-static const uint8_t key_ds3[] = { 0x46,0x44,0x50,0x72,0x56,0x75,0x54,0x34,0x66,0x41,0x46,0x76,0x64,0x48,0x4A,0x59,0x41,0x67,0x79,0x4D,0x7A,0x52,0x46,0x34,0x45,0x63,0x42,0x41,0x6E,0x4B,0x67 };
-
-/* Mortal Kombat X/XL (PC) */ //"996164B5FC0F402983F61F220BB51DC6"
-static const uint8_t key_mkx[] = { 0x39,0x39,0x36,0x31,0x36,0x34,0x42,0x35,0x46,0x43,0x30,0x46,0x34,0x30,0x32,0x39,0x38,0x33,0x46,0x36,0x31,0x46,0x32,0x32,0x30,0x42,0x42,0x35,0x31,0x44,0x43,0x36 };
-
-/* Xian Xia Chuan (PC) */ //"gat@tcqs2010"
-static const uint8_t key_xxc[] = { 0x67,0x61,0x74,0x40,0x74,0x63,0x71,0x73,0x32,0x30,0x31,0x30 };
-
-/* Mirror War: Reincarnation of Holiness (PC) */ //"logicsounddesignmwsdev"
-static const uint8_t key_mwr[] = { 0x6C,0x6F,0x67,0x69,0x63,0x73,0x6F,0x75,0x6E,0x64,0x64,0x65,0x73,0x69,0x67,0x6E,0x6D,0x77,0x73,0x64,0x65,0x76 };
-
-/* Need for Speed Shift 2 Unleashed (PC demo?) */ //"p&oACY^c4LK5C2v^x5nIO6kg5vNH$tlj"
-static const uint8_t key_n2u[] = { 0x70,0x26,0x6F,0x41,0x43,0x59,0x5E,0x63,0x34,0x4C,0x4B,0x35,0x43,0x32,0x76,0x5E,0x78,0x35,0x6E,0x49,0x4F,0x36,0x6B,0x67,0x35,0x76,0x4E,0x48,0x24,0x74,0x6C,0x6A };
-
-/* Critter Crunch (PC), Superbrothers: Sword & Sworcery (PC) */ //"j1$Mk0Libg3#apEr42mo"
-static const uint8_t key_ccr[] = { 0x6A,0x31,0x24,0x4D,0x6B,0x30,0x4C,0x69,0x62,0x67,0x33,0x23,0x61,0x70,0x45,0x72,0x34,0x32,0x6D,0x6F };
-
-/* Cyphers */ //"@kdj43nKDN^k*kj3ndf02hd95nsl(NJG"
-static const uint8_t key_cyp[] = { 0x40,0x6B,0x64,0x6A,0x34,0x33,0x6E,0x4B,0x44,0x4E,0x5E,0x6B,0x2A,0x6B,0x6A,0x33,0x6E,0x64,0x66,0x30,0x32,0x68,0x64,0x39,0x35,0x6E,0x73,0x6C,0x28,0x4E,0x4A,0x47 };
-
-/* Xuan Dou Zhi Wang / King of Combat */ //"Xiayuwu69252.Sonicli81223#$*@*0"
-static const uint8_t key_xdz[] = { 0x58,0x69,0x61,0x79,0x75,0x77,0x75,0x36,0x39,0x32,0x35,0x32,0x2E,0x53,0x6F,0x6E,0x69,0x63,0x6C,0x69,0x38,0x31,0x32,0x32,0x33,0x23,0x24,0x2A,0x40,0x2A,0x30 };
-
-/* Ji Feng Zhi Ren / Kritika Online */ //"kri_tika_5050_"
-static const uint8_t key_jzz[] = { 0x6B,0x72,0x69,0x5F,0x74,0x69,0x6B,0x61,0x5F,0x35,0x30,0x35,0x30,0x5F };
-
-/* Invisible Inc. (PC?) */ //"mint78run52"
-static const uint8_t key_inv[] = { 0x6D,0x69,0x6E,0x74,0x37,0x38,0x72,0x75,0x6E,0x35,0x32 };
-
-/* Guitar Hero 3 */ //"5atu6w4zaw"
-static const uint8_t key_gh3[] = { 0x35,0x61,0x74,0x75,0x36,0x77,0x34,0x7A,0x61,0x77 };
-
-/* Supreme Commander 2 */ //"B2A7BB00"
-static const uint8_t key_sc2[] = { 0x42,0x32,0x41,0x37,0x42,0x42,0x30,0x30 };
-
-/* Cookie Run: Ovenbreak */ //"ghfxhslrghfxhslr"
-static const uint8_t key_cro[] = { 0x67,0x68,0x66,0x78,0x68,0x73,0x6C,0x72,0x67,0x68,0x66,0x78,0x68,0x73,0x6C,0x72 };
-
-/* Monster Jam (PS2) */ //"truck/impact/carbody"
-static const uint8_t key_mtj[] = { 0x74,0x72,0x75,0x63,0x6B,0x2F,0x69,0x6D,0x70,0x61,0x63,0x74,0x2F,0x63,0x61,0x72,0x62,0x6F,0x64,0x79 };
-
-/* Guitar Hero 5 (X360) */
-static const uint8_t key_gh5[] = { 0xFC,0xF9,0xE4,0xB3,0xF5,0x57,0x5C,0xA5,0xAC,0x13,0xEC,0x4A,0x43,0x19,0x58,0xEB,0x4E,0xF3,0x84,0x0B,0x8B,0x78,0xFA,0xFD,0xBB,0x18,0x46,0x7E,0x31,0xFB,0xD0 };
-
-/* Sekiro: Shadows Die Twice (PC) */ //"G0KTrWjS9syqF7vVD6RaVXlFD91gMgkC"
-static const uint8_t key_sek[] = { 0x47,0x30,0x4B,0x54,0x72,0x57,0x6A,0x53,0x39,0x73,0x79,0x71,0x46,0x37,0x76,0x56,0x44,0x36,0x52,0x61,0x56,0x58,0x6C,0x46,0x44,0x39,0x31,0x67,0x4D,0x67,0x6B,0x43 };
-
-/* SCP: Unity (PC) */ //"BasicEncryptionKey"
-static const uint8_t key_scp[] = { 0x42,0x61,0x73,0x69,0x63,0x45,0x6E,0x63,0x72,0x79,0x70,0x74,0x69,0x6F,0x6E,0x4B,0x65,0x79 };
-
-/* Guitar Hero: Metallica (X360) */
-static const uint8_t key_ghm[] = { 0x8C,0xFA,0xF3,0x14,0xB1,0x53,0xDA,0xAB,0x2B,0x82,0x6B,0xD5,0x55,0x16,0xCF,0x01,0x90,0x20,0x28,0x14,0xB1,0x53,0xD8 };
-
-/* Worms Rumble Beta (PC) */ //"FXnTffGJ9LS855Gc"
-static const uint8_t key_wrb[] = { 0x46,0x58,0x6E,0x54,0x66,0x66,0x47,0x4A,0x39,0x4C,0x53,0x38,0x35,0x35,0x47,0x63 };
-
-/* Bubble Fighter (PC) */ //"qjvkeoqkrdhkdckd"
-static const uint8_t key_bbf[] = { 0x71,0x6A,0x76,0x6B,0x65,0x6F,0x71,0x6B,0x72,0x64,0x68,0x6B,0x64,0x63,0x6B,0x64 };
-
-/* Fall Guys (PC) update ~2021-11 */ //"p@4_ih*srN:UJk&8"
-static const uint8_t key_fg1[] = { 0x70,0x40,0x34,0x5F,0x69,0x68,0x2A,0x73,0x72,0x4E,0x3A,0x55,0x4A,0x6B,0x26,0x38 };
-
-/* Fall Guys (PC) update ~2022-07 */ //",&.XZ8]fLu%caPF+"
-static const uint8_t key_fg2[] = { 0x2c,0x26,0x2e,0x58,0x5a,0x38,0x5d,0x66,0x4c,0x75,0x25,0x63,0x61,0x50,0x46,0x2b };
-
-/* Achilles: Legends Untold (PC) */ //"Achilles_0_15_DpG"
-static const uint8_t key_alu[] = { 0x41,0x63,0x68,0x69,0x6C,0x6C,0x65,0x73,0x5F,0x30,0x5F,0x31,0x35,0x5F,0x44,0x70,0x47 };
-
-/* Cult of the Lamb Demo (PC) */ //"4FB8CC894515617939F4E1B7D50972D27213B8E6"
-static const uint8_t key_col[] = { 0x34,0x46,0x42,0x38,0x43,0x43,0x38,0x39,0x34,0x35,0x31,0x35,0x36,0x31,0x37,0x39,0x33,0x39,0x46,0x34,0x45,0x31,0x42,0x37,0x44,0x35,0x30,0x39,0x37,0x32,0x44,0x32,0x37,0x32,0x31,0x33,0x42,0x38,0x45,0x36 };
 
 // Unknown:
 // - Battle: Los Angeles
@@ -102,70 +13,62 @@ static const uint8_t key_col[] = { 0x34,0x46,0x42,0x38,0x43,0x43,0x38,0x39,0x34,
 // - Gas Guzzlers: Combat Carnage (PC?) "C5FA83EA64B34EC2BFE" hex or text? [FSB5]
 
 typedef struct {
-    int is_fsb5; /* FSB5 or FSB4/3*/
-    int is_alt; /* alt XOR mode (seemingly not tied to FSB version or anything) */
-    size_t fsbkey_size;
-    const uint8_t* fsbkey;
+    uint8_t flags;
+    const char* key;
+    size_t key_size; /* precalc'd for speed */
 } fsbkey_info;
 
+#define FLAG_FSB4 (1 << 0)    /* key is valid for FSB4/3 */
+#define FLAG_FSB5 (1 << 1)    /* key is valid for FSB5 */
+#define FLAG_STD  (1 << 2)    /* regular XOR mode */
+#define FLAG_ALT  (1 << 3)    /* alt XOR mode (seemingly not tied to FSB version or anything, maybe wrong key) */
+
+#define MODE_FSB4_STD  (FLAG_FSB4 | FLAG_STD)
+#define MODE_FSB4_ALT  (FLAG_FSB4 | FLAG_ALT)
+#define MODE_FSB4_ALL  (FLAG_FSB4 | FLAG_ALT)
+#define MODE_FSB5_STD  (FLAG_FSB5 | FLAG_STD)
+#define MODE_FSB5_ALT  (FLAG_FSB5 | FLAG_STD)
+#define MODE_FSB5_ALL  (FLAG_FSB5 | FLAG_STD | FLAG_ALT)
+#define MODE_FSBS_STD  (FLAG_FSB4 | FLAG_FSB5 | FLAG_STD)
+#define MODE_FSBS_ALL  (FLAG_FSB4 | FLAG_FSB5 | FLAG_STD | FLAG_ALT)
+
+/* ugly macro for string + precomputed len (removing string's extra NULL)*/
+#define FSBKEY_ADD(key) key, sizeof(key) - 1
+
 static const fsbkey_info fsbkey_list[] = {
-        { 0,0, sizeof(key_dj2),key_dj2 },
-        { 0,0, sizeof(key_dfp),key_dfp },//FSB4
-        { 1,0, sizeof(key_dfp),key_dfp },//FSB5
-        { 1,0, sizeof(key_npp),key_npp },//FSB5
-        { 1,0, sizeof(key_sms),key_sms },//FSB5
-        { 1,0, sizeof(key_gfs),key_gfs },//FSB5
-        { 1,0, sizeof(key_rev),key_rev },//FSB5
-        { 1,0, sizeof(key_ds3),key_ds3 },//untested
-        { 1,1, sizeof(key_ds3),key_ds3 },
-        { 1,0, sizeof(key_mkx),key_mkx },//FSB5
-        { 0,0, sizeof(key_xxc),key_xxc },//untested
-        { 0,1, sizeof(key_xxc),key_xxc },//untested
-        { 1,0, sizeof(key_xxc),key_xxc },//untested
-        { 1,1, sizeof(key_xxc),key_xxc },//untested
-        { 1,0, sizeof(key_mwr),key_mwr },//FSB5
-        { 0,0, sizeof(key_n2u),key_n2u },//untested
-        { 0,1, sizeof(key_n2u),key_n2u },//untested
-        { 0,0, sizeof(key_ccr),key_ccr },//untested
-        { 0,1, sizeof(key_ccr),key_ccr },//untested
-        { 1,0, sizeof(key_ccr),key_ccr },//untested
-        { 1,1, sizeof(key_ccr),key_ccr },//untested
-        { 0,0, sizeof(key_cyp),key_cyp },//untested
-        { 0,1, sizeof(key_cyp),key_cyp },//untested
-        { 1,0, sizeof(key_cyp),key_cyp },//untested
-        { 1,1, sizeof(key_cyp),key_cyp },//untested
-        { 0,0, sizeof(key_xdz),key_xdz },//untested
-        { 0,1, sizeof(key_xdz),key_xdz },//untested
-        { 1,0, sizeof(key_xdz),key_xdz },//untested
-        { 1,1, sizeof(key_xdz),key_xdz },//untested
-        { 0,0, sizeof(key_jzz),key_jzz },//untested
-        { 0,1, sizeof(key_jzz),key_jzz },//untested
-        { 1,0, sizeof(key_jzz),key_jzz },//untested
-        { 1,1, sizeof(key_jzz),key_jzz },//untested
-        { 0,0, sizeof(key_inv),key_inv },//untested
-        { 0,1, sizeof(key_inv),key_inv },//untested
-        { 1,0, sizeof(key_inv),key_inv },//untested
-        { 1,1, sizeof(key_inv),key_inv },//untested
-        { 0,0, sizeof(key_gh3),key_gh3 },//untested
-        { 0,1, sizeof(key_gh3),key_gh3 },//untested
-        { 1,0, sizeof(key_gh3),key_gh3 },//untested
-        { 1,1, sizeof(key_gh3),key_gh3 },//untested
-        { 0,0, sizeof(key_sc2),key_sc2 },//untested
-        { 0,1, sizeof(key_sc2),key_sc2 },//untested
-        { 1,0, sizeof(key_sc2),key_sc2 },//untested
-        { 1,1, sizeof(key_sc2),key_sc2 },//untested
-        { 1,0, sizeof(key_cro),key_cro },
-        { 0,1, sizeof(key_mtj),key_mtj },// FSB3
-        { 0,1, sizeof(key_gh5),key_gh5 },// FSB4
-        { 1,0, sizeof(key_sek),key_sek },// FSB5
-        { 1,0, sizeof(key_scp),key_scp },// FSB5
-        { 0,1, sizeof(key_ghm),key_ghm },// FSB4
-        { 1,0, sizeof(key_wrb),key_wrb },// FSB5
-        { 0,0, sizeof(key_bbf),key_bbf },// FSB4
-        { 1,0, sizeof(key_fg1),key_fg1 },// FSB5
-        { 1,0, sizeof(key_fg2),key_fg2 },// FSB5
-        { 1,0, sizeof(key_alu),key_alu },// FSB5
-        { 1,0, sizeof(key_col),key_col },// FSB5
+        { MODE_FSBS_STD, FSBKEY_ADD("DFm3t4lFTW") }, // Double Fine Productions: Brutal Legend, Massive Chalice, etc (multi)
+        { MODE_FSB4_STD, FSBKEY_ADD("nos71RiT") }, // DJ Hero 2 (X360)
+        { MODE_FSB5_STD, FSBKEY_ADD("H$#FJa%7gRZZOlxLiN50&g5Q") }, // N++ (PC?)
+        { MODE_FSB5_STD, FSBKEY_ADD("sTOoeJXI2LjK8jBMOk8h5IDRNZl3jq3I") }, // Slightly Mad Studios: Project CARS (PC?), World of Speed (PC)
+        { MODE_FSB5_STD, FSBKEY_ADD("%lAn2{Pi*Lhw3T}@7*!kV=?qS$@iNlJ") }, // Ghost in the Shell: First Assault (PC)
+        { MODE_FSB5_STD, FSBKEY_ADD("1^7%82#&5$~/8sz") }, // RevHeadz Engine Sounds (Mobile)
+        { MODE_FSB5_ALL, FSBKEY_ADD("FDPrVuT4fAFvdHJYAgyMzRF4EcBAnKg") }, // Dark Souls 3 (PC) [untested]
+        { MODE_FSB4_ALL, FSBKEY_ADD("p&oACY^c4LK5C2v^x5nIO6kg5vNH$tlj") }, // Need for Speed Shift 2 Unleashed (PC demo?)[untested]
+        { MODE_FSB5_STD, FSBKEY_ADD("996164B5FC0F402983F61F220BB51DC6") }, // Mortal Kombat X/XL (PC)
+        { MODE_FSB5_STD, FSBKEY_ADD("logicsounddesignmwsdev") }, // Mirror War: Reincarnation of Holiness (PC)
+        { MODE_FSBS_ALL, FSBKEY_ADD("gat@tcqs2010") }, // Xian Xia Chuan (PC) [untested]
+        { MODE_FSBS_ALL, FSBKEY_ADD("j1$Mk0Libg3#apEr42mo") }, // Critter Crunch (PC), Superbrothers: Sword & Sworcery (PC) [untested]
+        { MODE_FSBS_ALL, FSBKEY_ADD("@kdj43nKDN^k*kj3ndf02hd95nsl(NJG") }, // Cyphers [untested]
+        { MODE_FSBS_ALL, FSBKEY_ADD("Xiayuwu69252.Sonicli81223#$*@*0") }, // Xuan Dou Zhi Wang / King of Combat [untested]
+        { MODE_FSBS_ALL, FSBKEY_ADD("kri_tika_5050_") }, // Ji Feng Zhi Ren / Kritika Online [untested]
+        { MODE_FSBS_ALL, FSBKEY_ADD("mint78run52") }, // Invisible Inc. (PC?) [untested]
+        { MODE_FSBS_ALL, FSBKEY_ADD("5atu6w4zaw") }, // Guitar Hero 3 [untested]
+        { MODE_FSBS_ALL, FSBKEY_ADD("B2A7BB00") }, // Supreme Commander 2 [untested]
+        { MODE_FSB4_STD, FSBKEY_ADD("ghfxhslrghfxhslr") }, // Cookie Run: Ovenbreak
+        { MODE_FSB4_ALT, FSBKEY_ADD("truck/impact/carbody") },// Monster Jam (PS2) [FSB3]
+        { MODE_FSB4_ALT, FSBKEY_ADD("\xFC\xF9\xE4\xB3\xF5\x57\x5C\xA5\xAC\x13\xEC\x4A\x43\x19\x58\xEB\x4E\xF3\x84\x0B\x8B\x78\xFA\xFD\xBB\x18\x46\x7E\x31\xFB\xD0") },
+        { MODE_FSB4_ALT, FSBKEY_ADD("\x8C\xFA\xF3\x14\xB1\x53\xDA\xAB\x2B\x82\x6B\xD5\x55\x16\xCF\x01\x90\x20\x28\x14\xB1\x53\xD8") },
+        { MODE_FSB5_STD, FSBKEY_ADD("G0KTrWjS9syqF7vVD6RaVXlFD91gMgkC") }, // Sekiro: Shadows Die Twice (PC)
+        { MODE_FSB5_STD, FSBKEY_ADD("BasicEncryptionKey") }, // SCP: Unity (PC) 
+        { MODE_FSB5_STD, FSBKEY_ADD("FXnTffGJ9LS855Gc") }, // Worms Rumble Beta (PC)
+        { MODE_FSB4_STD, FSBKEY_ADD("qjvkeoqkrdhkdckd") }, // Bubble Fighter (PC)
+        { MODE_FSB5_STD, FSBKEY_ADD("p@4_ih*srN:UJk&8") }, // Fall Guys (PC) update ~2021-11
+        { MODE_FSB5_STD, FSBKEY_ADD(",&.XZ8]fLu%caPF+") }, // Fall Guys (PC) update ~2022-07
+        { MODE_FSB5_STD, FSBKEY_ADD("Achilles_0_15_DpG") }, // Achilles: Legends Untold (PC) 
+        { MODE_FSB5_STD, FSBKEY_ADD("4FB8CC894515617939F4E1B7D50972D27213B8E6") }, // Cult of the Lamb Demo (PC) 
+        { MODE_FSB5_STD, FSBKEY_ADD("X3EK%Bbga-%Y9HZZ%gkc*C512*$$DhRxWTGgjUG@=rUD") }, // Signalis (PC)
+        { MODE_FSB5_STD, FSBKEY_ADD("281ad163160cfc16f9a22c6755a64fad") }, // Ash Echoes beta (Android)
+
 };
 static const int fsbkey_list_count = sizeof(fsbkey_list) / sizeof(fsbkey_list[0]);
 
