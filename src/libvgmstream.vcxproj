@@ -416,9 +416,9 @@
     <ClCompile Include="meta\gcsw.c" />
     <ClCompile Include="meta\gcub.c" />
     <ClCompile Include="meta\genh.c" />
+    <ClCompile Include="meta\ghs.c" />
     <ClCompile Include="meta\gin.c" />
     <ClCompile Include="meta\gsp_gsb.c" />
-    <ClCompile Include="meta\gtd.c" />
     <ClCompile Include="meta\h4m.c" />
     <ClCompile Include="meta\halpst.c" />
     <ClCompile Include="meta\hca.c" />
