@@ -38,17 +38,16 @@ class ProjectFixer:
 
 
     def read(self):
-        with open (self.prj_pathname, 'r', encoding='utf-8') as f:
+        with open (self.prj_pathname, 'r', encoding='utf-8-sig') as f:
             lines = f.readlines()
             self.in_lines = [line.strip('\r\n') for line in lines]
-
 
     def add(self, text):
             self.out_lines.append(text)
 
     def get_files(self, ext):
         files = glob.glob(self.prj_path + '/**/*.' + ext, recursive=True)
-        
+
         items = []
         for file in files:
             basefile = file[len(self.prj_path) + 1 : ].replace('/', '\\')
@@ -57,8 +56,8 @@ class ProjectFixer:
                 pos = basefile.rindex('\\')
                 path = basefile[0 : pos + 1]
             items.append( (basefile, path) )
-        return items        
-        
+        return items
+
 
     def write_section(self, is_includes):
         if is_includes:
@@ -94,7 +93,7 @@ class ProjectFixer:
     # - writes lines if not target section
     # - when target section found (includes or compiles), redo section's files again
     def process(self):
-        
+
         lines_itr = iter(self.in_lines)
         for line in lines_itr:
             self.add(line)
@@ -122,7 +121,7 @@ class ProjectFixer:
                 self.add(next_line)
 
         #print("done", len(self.out_lines))
-    
+
     def write(self):
         if not self.is_changed():
             print("no changes detected for %s" % (self.prj_pathname))
