@@ -7,7 +7,7 @@ if(NOT WIN32 AND USE_CELT)
 		FILE_SUBDIR celt-0.6.1
 		
 		GIT_REPOSITORY https://gitlab.xiph.org/xiph/celt
-		GIT_TAG 8ccf148573277b983692e15d5f0753081f806bea
+		GIT_TAG v0.6.1
 	)
 	FetchDependency(CELT_0110
 		DIR celt-0110
@@ -17,7 +17,7 @@ if(NOT WIN32 AND USE_CELT)
 		FILE_SUBDIR celt-0.11.0
 		
 		GIT_REPOSITORY https://gitlab.xiph.org/xiph/celt
-		GIT_TAG 0b405d1170122c859faab435405666506d52fa2e
+		GIT_TAG v0.11
 	)
 	if(CELT_0061_PATH AND CELT_0110_PATH)
 		set(CELT_0061_LINK_PATH ${CELT_0061_BIN}/libcelt/.libs/libcelt.a)

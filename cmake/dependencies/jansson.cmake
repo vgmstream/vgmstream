@@ -13,7 +13,7 @@ if(NOT WIN32 AND USE_JANSSON)
 		FetchDependency(JANSSON
 			DIR jansson
 			GIT_REPOSITORY https://github.com/akheron/jansson
-			GIT_TAG 684e18c927e89615c2d501737e90018f4930d6c5
+			GIT_TAG v2.14
 		)
 		
 		if(JANSSON_PATH)
