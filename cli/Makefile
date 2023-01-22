@@ -13,12 +13,11 @@ LDFLAGS += -L../src -lvgmstream -lm $(EXTRA_LDFLAGS)
 TARGET_EXT_LIBS = 
 
 ifeq ($(TARGET_OS),Windows_NT)
-  OUTPUT_CLI = test.exe
+  OUTPUT_CLI = vgmstream-cli.exe
   OUTPUT_123 = vgmstream123.exe
 
-  # -DUSE_ALLOCA
   CFLAGS += -DWIN32 -I../ext_includes -I../ext_libs/Getopt
-  LDFLAGS += -L../ext_libs
+  LDFLAGS += -L../ext_libs/$(DLL_DIR)
 
   LIBAO_INC = -I$(LIBAO_IPATH)
   LIBAO_LIB = -L$(LIBAO_LPATH) -lao
@@ -58,6 +57,6 @@ $(TARGET_EXT_LIBS):
 	$(MAKE) -C ../ext_libs $@
 
 clean:
-	$(RMF) $(OUTPUT_CLI)
+	$(RMF) $(OUTPUT_CLI) $(OUTPUT_123)
 
 .PHONY: clean vgmstream_cli libvgmstream.a $(TARGET_EXT_LIBS)

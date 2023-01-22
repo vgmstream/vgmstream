@@ -160,16 +160,10 @@ VGMSTREAM* init_vgmstream_str_wav(STREAMFILE* sf) {
 
 #ifdef VGM_USE_FFMPEG
         case XMA2: {
-            uint8_t buf[0x100];
-            size_t stream_size;
-            size_t bytes, block_size, block_count;
+            uint32_t stream_size = get_streamfile_size(sf);
+            int block_size = 0x10000;
 
-            stream_size = get_streamfile_size(sf);
-            block_size = 0x10000;
-            block_count = stream_size / block_size; /* not accurate? */
-
-            bytes = ffmpeg_make_riff_xma2(buf,0x100, strwav.num_samples, stream_size, strwav.channels, strwav.sample_rate, block_count, block_size);
-            vgmstream->codec_data = init_ffmpeg_header_offset(sf, buf,bytes, 0x00,stream_size);
+            vgmstream->codec_data = init_ffmpeg_xma2_raw(sf, 0x00, stream_size, strwav.num_samples, strwav.channels, strwav.sample_rate, block_size, 0);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;

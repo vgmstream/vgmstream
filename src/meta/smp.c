@@ -11,14 +11,16 @@ VGMSTREAM* init_vgmstream_smp(STREAMFILE* sf) {
 
 
     /* checks */
-    if (!check_extensions(sf, "smp"))
-        goto fail;
-
     version = read_u32le(0x00,sf);
     if (version != 0x05 &&  /* Ghostbusters (PS2), Mushroom Men (Wii) */
         version != 0x06 &&  /* Ghostbusters (PS3/X360/PC) */
         version != 0x07 &&  /* Ghostbusters (PSP) */
-        version != 0x08)    /* Chandragupta (PS2/PSP), Street Cricket Champions 1/2 (PSP), Guilty Party (Wii) */
+        version != 0x08)    /* Def Jam Rapstar (X360), Chandragupta (PS2/PSP), Street Cricket Champions 1/2 (PSP), Guilty Party (Wii) */
+        goto fail;
+
+    /* .smp: common
+     * .snb: Def Jam Rapstar (X360)-few files */
+    if (!check_extensions(sf, "smp,snb"))
         goto fail;
 
     /* 0x04~14: guid? */
@@ -28,6 +30,9 @@ VGMSTREAM* init_vgmstream_smp(STREAMFILE* sf) {
     start_offset  = read_u32le(0x1c,sf);
     data_size     = read_u32le(0x20,sf);
     codec         = read_u32le(0x24,sf);
+    if (start_offset + data_size != get_streamfile_size(sf))
+        goto fail;
+
     /* smaller header found in Guilty Party (Wii) */
     if (version == 0x08 && start_offset == 0x80) {
         channels      = read_u8(0x28,sf);
@@ -102,17 +107,14 @@ VGMSTREAM* init_vgmstream_smp(STREAMFILE* sf) {
 
 #ifdef VGM_USE_FFMPEG
         case 0x07: {
-            uint8_t buf[0x100];
-            int bytes, block_size, block_count;
+            int block_size, block_count;
 
             if (bps != 16) goto fail;
-            /* 0x34(0x28): XMA config/table? */
+            /* 0x34(0x28): XMA config/table? (unknown format) */
+            block_size  = read_u16le(0x3e,sf);
+            block_count = read_u16le(0x54,sf);
 
-            block_size = 0x8000; /* assumed, @0x3e(2)? */
-            block_count = data_size / block_size + (data_size % block_size ? 1 : 0); /* @0x54(2)? */
-
-            bytes = ffmpeg_make_riff_xma2(buf,0x100, vgmstream->num_samples, data_size, vgmstream->channels, vgmstream->sample_rate, block_count, block_size);
-            vgmstream->codec_data = init_ffmpeg_header_offset(sf, buf,bytes, start_offset,data_size);
+            vgmstream->codec_data = init_ffmpeg_xma2_raw(sf, start_offset, data_size, vgmstream->num_samples, vgmstream->channels, vgmstream->sample_rate, block_size, block_count);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
@@ -130,7 +132,6 @@ VGMSTREAM* init_vgmstream_smp(STREAMFILE* sf) {
     if (!vgmstream_open_stream(vgmstream, sf, start_offset))
         goto fail;
     return vgmstream;
-
 fail:
     close_vgmstream(vgmstream);
     return NULL;

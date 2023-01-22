@@ -68,67 +68,55 @@ if(USE_FFMPEG)
 		if(FFMPEG_PATH)
 			set(FFMPEG_COMPILE YES)
 
+			set(FFMPEG_CONF_DEMUXER
+				ac3 eac3 spdif asf xwma mov oma xmv ogg flac wav aac mp3 smacker bink binka caf mpc mpc8 tak ape
+			)
 			set(FFMPEG_CONF_PARSER
 				ac3 mpegaudio xma vorbis opus
 			)
-			set(FFMPEG_CONF_DEMUXER
-				ac3 asf xwma mov oma ogg tak dsf wav aac dts dtshd mp3 bink flac msf xmv caf ape smacker pcm_s8 spdif mpc mpc8
-			)
 			set(FFMPEG_CONF_DECODER
-				ac3 wmapro wmav1 wmav2 wmavoice wmalossless xma1 xma2 dca tak dsd_lsbf dsd_lsbf_planar dsd_mbf dsd_msbf_planar aac atrac3 atrac3p mp1float mp2float mp3float binkaudio_dct binkaudio_rdft flac pcm_s16be pcm_s16be_planar pcm_s16le pcm_s16le_planar vorbis ape adpcm_ima_qt smackaud pcm_s8 pcm_s8_planar mpc7 mpc8 alac adpcm_ima_dk3 adpcm_ima_dk4
+			ac3 eac3 wmapro wmav1 wmav2 xma1 xma2 aac atrac3 atrac3p mp2float mp3float smackaud binkaudio_dct binkaudio_rdft pcm_s16be pcm_s16be_planar pcm_s16le pcm_s16le_planar pcm_s8 pcm_s8_planar flac vorbis mpc7 mpc8 alac adpcm_ima_qt adpcm_ima_dk3 adpcm_ima_dk4 tak ape
 			)
 			if(USE_FFMPEG_LIBOPUS)
 				list(APPEND FFMPEG_CONF_DECODER libopus)
 			else()
 				list(APPEND FFMPEG_CONF_DECODER opus)
 			endif()
-			set(FFMPEG_CONF_DISABLE_PARSER
-				mpeg4video h263
-			)
-			set(FFMPEG_CONF_DISABLE_DECODER
-				mpeg2video h263 h264 mpeg1video mpeg2video mpeg4 hevc vp9
-			)
 			string(REPLACE ";" "," FFMPEG_CONF_PARSER "${FFMPEG_CONF_PARSER}")
 			string(REPLACE ";" "," FFMPEG_CONF_DEMUXER "${FFMPEG_CONF_DEMUXER}")
 			string(REPLACE ";" "," FFMPEG_CONF_DECODER "${FFMPEG_CONF_DECODER}")
-			string(REPLACE ";" "," FFMPEG_CONF_DISABLE_PARSER "${FFMPEG_CONF_DISABLE_PARSER}")
-			string(REPLACE ";" "," FFMPEG_CONF_DISABLE_DECODER "${FFMPEG_CONF_DISABLE_DECODER}")
 			set(FFMPEG_CONF_ARGS
 				--enable-static
 				--disable-shared
 				--enable-gpl
+				--disable-version3
+				--disable-programs
 				--disable-doc
-				--disable-ffplay
-				--disable-ffprobe
 				--disable-avdevice
-				--disable-ffmpeg
+				--disable-swscale
 				--disable-postproc
 				--disable-avfilter
-				--disable-swscale
 				--disable-network
+				--disable-everything
+				--disable-iconv
+				--disable-mediafoundation
+				--disable-schannel
+				--disable-sdl2
+				--disable-zlib
 				--disable-swscale-alpha
-				--disable-vdpau
-				--disable-dxva2
 				--disable-amf
 				--disable-cuda
+				--disable-cuvid
+				--disable-dxva2
 				--disable-d3d11va
 				--disable-ffnvcodec
 				--disable-nvenc
 				--disable-nvdec
-				--disable-hwaccels
-				--disable-sdl2
-				--disable-iconv
-				--disable-everything
-				--enable-hwaccels
-				--enable-swresample
+				--disable-vdpau
 				--enable-parser=${FFMPEG_CONF_PARSER}
 				--enable-demuxer=${FFMPEG_CONF_DEMUXER}
 				--enable-decoder=${FFMPEG_CONF_DECODER}
-				--disable-parser=${FFMPEG_CONF_DISABLE_PARSER}
-				--disable-decoder=${FFMPEG_CONF_DISABLE_DECODER}
-				--disable-cuvid
-				--disable-version3
-				--disable-zlib
+				--enable-swresample
 				--extra-libs=-static
 				--extra-cflags=--static
 				--pkg-config-flags=--static

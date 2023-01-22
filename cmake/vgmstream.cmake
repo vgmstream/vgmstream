@@ -100,14 +100,6 @@ macro(setup_target TARGET)
 		endif()
 	endif()
 
-	if(USE_MAIATRAC3PLUS)
-		target_compile_definitions(${TARGET} PRIVATE VGM_USE_MAIATRAC3PLUS)
-		target_include_directories(${TARGET} PRIVATE ${MAIATRAC3PLUS_PATH}/MaiAT3PlusDecoder)
-		if(LINK)
-			target_link_libraries(${TARGET} at3plusdecoder)
-		endif()
-	endif()
-
 	if(USE_ATRAC9)
 		target_compile_definitions(${TARGET} PRIVATE VGM_USE_ATRAC9)
 		if(WIN32 AND LINK)
@@ -136,7 +128,7 @@ macro(setup_target TARGET)
         target_compile_definitions(${TARGET} PRIVATE VGM_USE_SPEEX)
         if(WIN32 AND LINK)
             add_dependencies(${TARGET} libspeex)
-            target_link_libraries(${TARGET} ${VGM_BINARY_DIR}/ext_libs/libspeex/libspeex.lib)
+            target_link_libraries(${TARGET} ${VGM_BINARY_DIR}/ext_libs/libspeex-1.lib)
         endif()
 		if(NOT WIN32 AND LINK)
 			target_link_libraries(${TARGET} speex m)
@@ -151,15 +143,15 @@ macro(install_dlls INSTALL_PREFIX)
 	set(VORBIS_DLL ${VGM_SOURCE_DIR}/ext_libs/libvorbis.dll)
 	set(G719_DLL ${VGM_SOURCE_DIR}/ext_libs/libg719_decode.dll)
 	set(FFMPEG_DLL
-		${VGM_SOURCE_DIR}/ext_libs/avcodec-vgmstream-58.dll
-		${VGM_SOURCE_DIR}/ext_libs/avformat-vgmstream-58.dll
-		${VGM_SOURCE_DIR}/ext_libs/avutil-vgmstream-56.dll
-		${VGM_SOURCE_DIR}/ext_libs/swresample-vgmstream-3.dll)
+		${VGM_SOURCE_DIR}/ext_libs/avcodec-vgmstream-59.dll
+		${VGM_SOURCE_DIR}/ext_libs/avformat-vgmstream-59.dll
+		${VGM_SOURCE_DIR}/ext_libs/avutil-vgmstream-57.dll
+		${VGM_SOURCE_DIR}/ext_libs/swresample-vgmstream-4.dll)
 	set(ATRAC9_DLL ${VGM_SOURCE_DIR}/ext_libs/libatrac9.dll)
 	set(CELT_DLL
 		${VGM_SOURCE_DIR}/ext_libs/libcelt-0061.dll
 		${VGM_SOURCE_DIR}/ext_libs/libcelt-0110.dll)
-    set(SPEEX_DLL ${VGM_SOURCE_DIR}/ext_libs/libspeex/libspeex.dll)
+    set(SPEEX_DLL ${VGM_SOURCE_DIR}/ext_libs/libspeex-1.dll)
 
 	# List of DLLs to check for install
 	set(DLLS

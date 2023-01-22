@@ -286,7 +286,6 @@ int render_layout(sample_t* buf, int32_t sample_count, VGMSTREAM* vgmstream) {
         case layout_blocked_ea_swvr:
         case layout_blocked_adm:
         case layout_blocked_bdsp:
-        case layout_blocked_tra:
         case layout_blocked_ps2_iab:
         case layout_blocked_vs_str:
         case layout_blocked_rws:

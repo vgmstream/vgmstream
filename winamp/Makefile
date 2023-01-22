@@ -22,8 +22,8 @@ TARGET_EXT_LIBS =
 OUTPUT_WINAMP = in_vgmstream.dll
 
 ifeq ($(TARGET_OS),Windows_NT)
-  CFLAGS += -DWIN32 -m32 -DUSE_ALLOCA -I../ext_includes
-  LDFLAGS += -L../ext_libs
+  CFLAGS += -DWIN32 -m32 -I../ext_includes
+  LDFLAGS += -L../ext_libs/$(DLL_DIR)
 endif
 
 CFLAGS += $(LIBS_CFLAGS)

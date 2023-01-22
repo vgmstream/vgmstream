@@ -745,14 +745,9 @@ static VGMSTREAM* init_vgmstream_ubi_hx_header(ubi_hx_header* hx, STREAMFILE* sf
 
 #ifdef VGM_USE_FFMPEG
         case XMA2: {
-            int bytes, block_count, block_size;
-            uint8_t buf[0x200];
+            int block_size = 0x800;
 
-            block_size = 0x800;
-            block_count = hx->stream_size / block_size;
-
-            bytes = ffmpeg_make_riff_xma2(buf,0x200, hx->num_samples, hx->stream_size, hx->channels, hx->sample_rate, block_count, block_size);
-            vgmstream->codec_data = init_ffmpeg_header_offset(sb, buf,bytes, hx->stream_offset,hx->stream_size);
+            vgmstream->codec_data = init_ffmpeg_xma2_raw(sb, hx->stream_offset, hx->stream_size, hx->num_samples, hx->channels, hx->sample_rate, block_size, 0);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;

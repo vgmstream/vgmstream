@@ -70,21 +70,21 @@ typedef struct {
 static int parse_genh(STREAMFILE * streamFile, genh_header * genh);
 
 /* GENH is an artificial "generic" header for headerless streams */
-VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
+VGMSTREAM* init_vgmstream_genh(STREAMFILE *sf) {
+    VGMSTREAM* vgmstream = NULL;
     genh_header genh = {0};
     coding_t coding;
     int i, j;
 
 
-    /* check extension, case insensitive */
-    if (!check_extensions(streamFile,"genh")) goto fail;
-
-    /* check header magic */
-    if (read_32bitBE(0x0,streamFile) != 0x47454e48) goto fail;
+    /* checks */
+    if (!is_id32be(0x0,sf, "GENH"))
+        goto fail;
+    if (!check_extensions(sf,"genh"))
+        goto fail;
 
     /* process the header */
-    if (!parse_genh(streamFile, &genh))
+    if (!parse_genh(sf, &genh))
         goto fail;
 
 
@@ -277,13 +277,13 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
                 /* normal/split coefs */
                 if ((genh.coef_type & 1) == 0) { /* normal mode */
                     for (j = 0; j < 16; j++) {
-                        vgmstream->ch[i].adpcm_coef[j] = read_16bit(genh.coef_offset + i*genh.coef_spacing + j*2, streamFile);
+                        vgmstream->ch[i].adpcm_coef[j] = read_16bit(genh.coef_offset + i*genh.coef_spacing + j*2, sf);
                     }
                 }
                 else { /* split coefs, 8 coefs in the main array, additional offset to 2nd array given at 0x34 for left, 0x38 for right */
                     for (j = 0; j < 8; j++) {
-                        vgmstream->ch[i].adpcm_coef[j*2] = read_16bit(genh.coef_offset + i*genh.coef_spacing + j*2, streamFile);
-                        vgmstream->ch[i].adpcm_coef[j*2+1] = read_16bit(genh.coef_split_offset + i*genh.coef_split_spacing + j*2, streamFile);
+                        vgmstream->ch[i].adpcm_coef[j*2] = read_16bit(genh.coef_offset + i*genh.coef_spacing + j*2, sf);
+                        vgmstream->ch[i].adpcm_coef[j*2+1] = read_16bit(genh.coef_split_offset + i*genh.coef_split_spacing + j*2, sf);
                     }
                 }
             }
@@ -292,7 +292,7 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
 #ifdef VGM_USE_MPEG
         case coding_MPEG_layer3:
             vgmstream->layout_type = layout_none;
-            vgmstream->codec_data = init_mpeg(streamFile, genh.start_offset, &coding, vgmstream->channels);
+            vgmstream->codec_data = init_mpeg(sf, genh.start_offset, &coding, vgmstream->channels);
             if (!vgmstream->codec_data) goto fail;
 
             break;
@@ -303,60 +303,48 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
 
             if (genh.codec == FFMPEG || genh.codec == AC3 || genh.codec == AAC) {
                 /* default FFmpeg */
-                ffmpeg_data = init_ffmpeg_offset(streamFile, genh.start_offset,genh.data_size);
+                ffmpeg_data = init_ffmpeg_offset(sf, genh.start_offset,genh.data_size);
                 if ( !ffmpeg_data ) goto fail;
 
                 //if (vgmstream->num_samples == 0)
                 //    vgmstream->num_samples = ffmpeg_get_samples(ffmpeg_data); /* sometimes works */
             }
+            else if (genh.codec == ATRAC3) {
+                int block_align, encoder_delay;
+
+                block_align = genh.interleave;
+                encoder_delay = genh.skip_samples;
+
+                ffmpeg_data = init_ffmpeg_atrac3_raw(sf, genh.start_offset,genh.data_size, vgmstream->num_samples,vgmstream->channels,vgmstream->sample_rate, block_align, encoder_delay);
+                if (!ffmpeg_data) goto fail;
+            }
+            else if (genh.codec == ATRAC3PLUS) {
+                int block_size = genh.interleave;
+
+                ffmpeg_data = init_ffmpeg_atrac3plus_raw(sf, genh.start_offset, genh.data_size, vgmstream->num_samples, vgmstream->channels, vgmstream->sample_rate, block_size, genh.skip_samples);
+                if (!ffmpeg_data) goto fail;
+            }
+            else if (genh.codec == XMA1) {
+                int xma_stream_mode = genh.codec_mode == 1 ? 1 : 0;
+
+                ffmpeg_data = init_ffmpeg_xma1_raw(sf, genh.start_offset, genh.data_size, vgmstream->channels, vgmstream->sample_rate, xma_stream_mode);
+                if (!ffmpeg_data) goto fail;
+            }
+            else if (genh.codec == XMA2) {
+                int block_size = genh.interleave;
+
+                ffmpeg_data = init_ffmpeg_xma2_raw(sf, genh.start_offset, genh.data_size, vgmstream->num_samples, vgmstream->channels, vgmstream->sample_rate, block_size, 0);
+                if (!ffmpeg_data) goto fail;
+            }
             else {
-                /* fake header FFmpeg */
-                uint8_t buf[200];
-                int32_t bytes;
-
-                if (genh.codec == ATRAC3) {
-                    int block_align, encoder_delay;
-
-                    block_align = genh.interleave;
-                    encoder_delay = genh.skip_samples;
-
-                    ffmpeg_data = init_ffmpeg_atrac3_raw(streamFile, genh.start_offset,genh.data_size, vgmstream->num_samples,vgmstream->channels,vgmstream->sample_rate, block_align, encoder_delay);
-                    if (!ffmpeg_data) goto fail;
-                }
-                else if (genh.codec == ATRAC3PLUS) {
-                    int block_size = genh.interleave;
-
-                    bytes = ffmpeg_make_riff_atrac3plus(buf, 200, vgmstream->num_samples, genh.data_size, vgmstream->channels, vgmstream->sample_rate, block_size, genh.skip_samples);
-                    ffmpeg_data = init_ffmpeg_header_offset(streamFile, buf,bytes, genh.start_offset,genh.data_size);
-                    if ( !ffmpeg_data ) goto fail;
-                }
-                else if (genh.codec == XMA1) {
-                    int xma_stream_mode = genh.codec_mode == 1 ? 1 : 0;
-
-                    bytes = ffmpeg_make_riff_xma1(buf, 100, vgmstream->num_samples, genh.data_size, vgmstream->channels, vgmstream->sample_rate, xma_stream_mode);
-                    ffmpeg_data = init_ffmpeg_header_offset(streamFile, buf,bytes, genh.start_offset,genh.data_size);
-                    if ( !ffmpeg_data ) goto fail;
-                }
-                else if (genh.codec == XMA2) {
-                    int block_count, block_size;
-
-                    block_size = genh.interleave ? genh.interleave : 2048;
-                    block_count = genh.data_size / block_size;
-
-                    bytes = ffmpeg_make_riff_xma2(buf, 200, vgmstream->num_samples, genh.data_size, vgmstream->channels, vgmstream->sample_rate, block_count, block_size);
-                    ffmpeg_data = init_ffmpeg_header_offset(streamFile, buf,bytes, genh.start_offset,genh.data_size);
-                    if ( !ffmpeg_data ) goto fail;
-                }
-                else {
-                    goto fail;
-                }
+                goto fail;
             }
 
             vgmstream->codec_data = ffmpeg_data;
             vgmstream->layout_type = layout_none;
 
             if (genh.codec == XMA1 || genh.codec == XMA2) {
-                xma_fix_raw_samples(vgmstream, streamFile, genh.start_offset,genh.data_size, 0, 0,0);
+                xma_fix_raw_samples(vgmstream, sf, genh.start_offset,genh.data_size, 0, 0,0);
             } else if (genh.skip_samples_mode && genh.skip_samples >= 0 && genh.codec != ATRAC3) { /* force encoder delay */
                 ffmpeg_set_skip_samples(ffmpeg_data, genh.skip_samples);
             }
@@ -373,7 +361,7 @@ VGMSTREAM * init_vgmstream_genh(STREAMFILE *streamFile) {
     vgmstream->allow_dual_stereo = 1;
 
 
-    if ( !vgmstream_open_stream(vgmstream,streamFile,genh.start_offset) )
+    if ( !vgmstream_open_stream(vgmstream,sf,genh.start_offset) )
         goto fail;
 
     return vgmstream;

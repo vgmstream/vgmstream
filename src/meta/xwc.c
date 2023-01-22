@@ -2,40 +2,40 @@
 #include "../coding/coding.h"
 
 /* .XWC - Starbreeze games [Chronicles of Riddick: Assault on Dark Athena, Syndicate] */
-VGMSTREAM * init_vgmstream_xwc(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
-	off_t start_offset, extra_offset;
-	size_t data_size;
-    int loop_flag, channel_count, codec, num_samples;
+VGMSTREAM* init_vgmstream_xwc(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
+    off_t start_offset, extra_offset;
+    size_t data_size;
+    int loop_flag, channels, codec, num_samples;
 
 
     /* checks */
     /* .xwc: extension of the bigfile, individual files don't have one */
-    if ( !check_extensions(streamFile,"xwc"))
+    if (!check_extensions(sf,"xwc"))
         goto fail;
 
 
     /* version */
-    if (read_32bitBE(0x00,streamFile) == 0x00030000 &&
-        read_32bitBE(0x04,streamFile) == 0x00900000) { /* The Darkness */
-        data_size = read_32bitLE(0x08, streamFile) + 0x1c; /* not including subheader */
-        channel_count = read_32bitLE(0x0c, streamFile);
+    if (read_32bitBE(0x00,sf) == 0x00030000 &&
+        read_32bitBE(0x04,sf) == 0x00900000) { /* The Darkness */
+        data_size = read_32bitLE(0x08, sf) + 0x1c; /* not including subheader */
+        channels = read_32bitLE(0x0c, sf);
         /* 0x10: num_samples */
         /* 0x14: 0x8000? */
         /* 0x18: null */
-        codec = read_32bitBE(0x1c, streamFile);
-        num_samples = read_32bitLE(0x20, streamFile);
+        codec = read_32bitBE(0x1c, sf);
+        num_samples = read_32bitLE(0x20, sf);
         /* 0x24: config data >> 2? (0x00(1): channels; 0x01(2): ?, 0x03(2): sample_rate) */
         extra_offset = 0x28;
     }
-    else if (read_32bitBE(0x00,streamFile) == 0x00040000 &&
-             read_32bitBE(0x04,streamFile) == 0x00900000) { /* Riddick, Syndicate */
-        data_size = read_32bitLE(0x08, streamFile) + 0x24; /* not including subheader */
-        channel_count = read_32bitLE(0x0c, streamFile);
+    else if (read_32bitBE(0x00,sf) == 0x00040000 &&
+             read_32bitBE(0x04,sf) == 0x00900000) { /* Riddick, Syndicate */
+        data_size = read_32bitLE(0x08, sf) + 0x24; /* not including subheader */
+        channels = read_32bitLE(0x0c, sf);
         /* 0x10: num_samples */
         /* 0x14: 0x8000? */
-        codec = read_32bitBE(0x24, streamFile);
-        num_samples = read_32bitLE(0x28, streamFile);
+        codec = read_32bitBE(0x24, sf);
+        num_samples = read_32bitLE(0x28, sf);
         /* 0x2c: config data >> 2? (0x00(1): channels; 0x01(2): ?, 0x03(2): sample_rate) */
         /* 0x30+: codec dependant */
         extra_offset = 0x30;
@@ -48,7 +48,7 @@ VGMSTREAM * init_vgmstream_xwc(STREAMFILE *streamFile) {
 
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    vgmstream = allocate_vgmstream(channels,loop_flag);
     if (!vgmstream) goto fail;
 
     vgmstream->meta_type = meta_XWC;
@@ -60,10 +60,10 @@ VGMSTREAM * init_vgmstream_xwc(STREAMFILE *streamFile) {
             mpeg_custom_config cfg = {0};
 
             start_offset = 0x800;
-            vgmstream->num_samples = read_32bitLE(extra_offset+0x00, streamFile); /* with encoder delay */ //todo improve
-            cfg.data_size = read_32bitLE(extra_offset+0x04, streamFile); /* without padding */
+            vgmstream->num_samples = read_32bitLE(extra_offset+0x00, sf); /* with encoder delay */ //todo improve
+            cfg.data_size = read_32bitLE(extra_offset+0x04, sf); /* without padding */
 
-            vgmstream->codec_data = init_mpeg_custom(streamFile, start_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_STANDARD, &cfg);
+            vgmstream->codec_data = init_mpeg_custom(sf, start_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_STANDARD, &cfg);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->layout_type = layout_none;
 
@@ -73,41 +73,41 @@ VGMSTREAM * init_vgmstream_xwc(STREAMFILE *streamFile) {
 #endif
 #ifdef VGM_USE_FFMPEG
         case 0x584D4100: { /* "XMA\0" (X360) */
-            uint8_t buf[0x100];
-            int32_t bytes, seek_size, block_size, block_count, sample_rate, chunk_size;
+            uint32_t seek_size, chunk_size, chunk_offset;
+            int block_size, block_count, sample_rate;
 
-            seek_size  = read_32bitLE(extra_offset + 0x00, streamFile);
-            chunk_size = read_32bitLE(extra_offset + 0x04 + seek_size, streamFile);
+            seek_size  = read_32bitLE(extra_offset + 0x00, sf);
+            chunk_size = read_32bitLE(extra_offset + 0x04 + seek_size, sf);
+            chunk_offset = extra_offset + 0x04 + seek_size + 0x04;
 
-            start_offset = extra_offset+ 0x04 + seek_size + chunk_size + 0x08;
+            data_size = read_32bitLE(chunk_offset + chunk_size + 0x00, sf);
+            start_offset = chunk_offset + chunk_size + 0x04;
             start_offset += (start_offset % 0x800) ? 0x800 - (start_offset % 0x800) : 0; /* padded */
-            data_size = data_size - start_offset;
 
             if (chunk_size == 0x34) { /* new XMA2 */
-                sample_rate = read_32bitLE(extra_offset+0x04+seek_size+0x08, streamFile);
-                block_size  = read_32bitLE(extra_offset+0x04+seek_size+0x20, streamFile);
+                sample_rate = read_32bitLE(extra_offset+0x04+seek_size+0x08, sf);
+                block_size  = read_32bitLE(extra_offset+0x04+seek_size+0x20, sf);
                 block_count = data_size / block_size;
                 /* others: standard RIFF XMA2 fmt? */
             }
-            else if (chunk_size == 0x2c) { /* old XMA2 */
-                sample_rate = read_32bitBE(extra_offset+0x04+seek_size+0x10, streamFile);
-                block_size  = read_32bitBE(extra_offset+0x04+seek_size+0x1c, streamFile);
-                block_count = read_32bitBE(extra_offset+0x04+seek_size+0x28, streamFile);
+            else if (chunk_size == 0x2c) { /* old XMA2 (not fully valid?) */
+                sample_rate = read_32bitBE(extra_offset+0x04+seek_size+0x10, sf);
+                block_size  = read_32bitBE(extra_offset+0x04+seek_size+0x1c, sf);
+                block_count = read_32bitBE(extra_offset+0x04+seek_size+0x28, sf);
                 /* others: scrambled RIFF fmt BE values */
             }
             else {
                 goto fail;
             }
 
-            bytes = ffmpeg_make_riff_xma2(buf,0x100, vgmstream->num_samples, data_size, vgmstream->channels, sample_rate, block_count, block_size);
-            vgmstream->codec_data = init_ffmpeg_header_offset(streamFile, buf,bytes, start_offset,data_size);
+            vgmstream->sample_rate = sample_rate;
+
+            vgmstream->codec_data = init_ffmpeg_xma2_raw(sf, start_offset, data_size, vgmstream->num_samples, vgmstream->channels, vgmstream->sample_rate, block_size, block_count);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
 
-            vgmstream->sample_rate = sample_rate;
-
-            xma_fix_raw_samples(vgmstream, streamFile, start_offset,data_size, 0, 0,0); /* samples are ok, fix delay */
+            xma_fix_raw_samples(vgmstream, sf, start_offset,data_size, 0, 0,0); /* samples are ok, fix delay */
             break;
         }
 #endif
@@ -116,12 +116,13 @@ VGMSTREAM * init_vgmstream_xwc(STREAMFILE *streamFile) {
             start_offset = 0x30;
             data_size = data_size - start_offset;
 
-            vgmstream->codec_data = init_ogg_vorbis(streamFile, start_offset, data_size, NULL);
+            vgmstream->sample_rate = read_32bitLE(start_offset + 0x28, sf);
+
+            vgmstream->codec_data = init_ogg_vorbis(sf, start_offset, data_size, NULL);
             if ( !vgmstream->codec_data ) goto fail;
             vgmstream->coding_type = coding_OGG_VORBIS;
             vgmstream->layout_type = layout_none;
 
-            vgmstream->sample_rate = read_32bitLE(start_offset + 0x28, streamFile);
             break;
         }
 #endif
@@ -130,10 +131,9 @@ VGMSTREAM * init_vgmstream_xwc(STREAMFILE *streamFile) {
     }
 
 
-    if ( !vgmstream_open_stream(vgmstream, streamFile, start_offset) )
+    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
         goto fail;
     return vgmstream;
-
 fail:
     close_vgmstream(vgmstream);
     return NULL;

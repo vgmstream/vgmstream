@@ -1,0 +1,138 @@
+# FFMPEG OPTIONS
+# options used in scripts. for full list usew "sh ./configure --help", and "sh ./configure --list-(various)"
+
+###############################################################################
+# GENERAL CONFIG
+
+# suffix to avoid clashing with other libs (ommit or overwrite if linking to system's FFmpeg)
+--build-suffix=-vgmstream
+
+# not very useful for vgmstream so could be disabled
+#--disable-logging
+
+# code licensing (defaults LGPLv2.1)
+# enables various video-related code, and possibly some ASM optimization, hard to tell, may not be useful
+# --enable-gpl
+# --disable-version3
+
+# thread would be unneeded for audio, but some FFmpeg code (libavutil/thread.h) seems to use them for mutex init
+# pthreads may create a libpthread.dll dependency, w32threads seems ok, while no threads seem to work fine (uses static vars as flags)
+--disable-pthreads
+--disable-w32threads
+--disable-os2threads
+
+# config (only need shared libs = .dll/.so)
+--disable-static
+--enable-shared
+
+# programs (ffplay, ffprobe, ffmpeg), docs (*pages)
+--disable-programs
+--disable-doc
+
+# components (some aren't enabled anyway but force just in case they get autodetected)
+--disable-avdevice
+--disable-swresample
+--disable-swscale
+--disable-postproc
+--disable-avfilter
+--disable-network
+
+# individual components (re-enabled below as needed): decoders, encoder, hwaccels, demuxers, muxers, parsers, protocols, bsfs, indevs, outdevs, filters
+--disable-everything
+
+# in theory this disables most of the values below, but will include them just in case
+--disable-autodetect
+# these should't be used, but seems to be autodetected by /configure so disable just in case
+--disable-iconv
+--disable-mediafoundation
+--disable-schannel
+--disable-sdl2
+--disable-zlib
+# all these should be implicit (video hwaccels), but same thing
+--disable-swscale-alpha
+--disable-amf
+--disable-cuda
+--disable-cuvid
+--disable-d3d11va
+--disable-dxva2
+--disable-ffnvcodec
+--disable-nvenc
+--disable-nvdec
+--disable-vdpau
+
+# this can't be disabled, for av_get_random_seed though shouldn't be needed (maybe indirectly by asf?)
+# Windows XP doesn't support bcrypt though, see "ffmpeg-revert-bcrypt-random.patch" if XP support is really needed
+# (--disable-random is available but seems to affect/disable a huge number of things)
+# (--disable-bcrypt) 
+
+# swresample is for regular opus, probably may be disabled when using libopus
+# (left in case it's needed in the future)
+--enable-swresample
+--enable-libopus
+
+###############################################################################
+# FORMATS
+# use "sh ./configure --list-demuxers / --list-parser / --list-decoders" for the whole thing
+
+# demuxers take data containers and splits into streams or frames (handles regular formats)
+# - ac3,eac3,spdif: PS2/PS3 games
+# - asf,xwma: Windows/X360 games
+# - mov: iOS audio, iOS/Switch videos (M4A/MP4)
+# - oma: PSP/PS3 demuxed videos
+# - xmv: Xbox videos
+# - ogg: common
+# - flac: common (rare in games)
+# - wav: common
+# - aac: 3DS games, demuxed videos
+# - mp3: common (for rare cases, shouldn't be used directly)
+# - smacker,bink,binka: games with RAD Game Tools videos/audio
+# - caf: iOS games
+# - mpc,mpc8: Android games
+# - tak,ape: extra for rips with compressed .wav
+--enable-demuxer=ac3,eac3,spdif,asf,xwma,mov,oma,xmv,ogg,flac,wav,aac,mp3,smacker,bink,binka,caf,mpc,mpc8,tak,ape
+
+# parsers take data streams and splits into frames (handles raw-ish formats)
+# - ac3: raw AC3 
+# - mpegaudio: common
+# - xma: X360 games
+# - vorbis: common (for rare cases, shouldn't be used directly)
+# - opus: Switch/PC games
+--enable-parser=ac3,mpegaudio,xma,vorbis,opus
+
+# decoders take frames and decodes (handles codecs)
+# (swap libopus with opus if needed)
+# - ac3,eac3: PS2/PS3 games
+# - wmapro,wmav1,wmav2,xma1,xma2: Windows/X360 games
+# - aac
+# - atrac3,atrac3p: PSP/PS3 games
+# - mp2float,mp3float: common
+# - smackaud,binkaudio_dct,binkaudio_rdft: games with RAD Game Tools videos/audio
+# - pcm_s16be,pcm_s16be_planar,pcm_s16le,pcm_s16le_planar,pcm_s8,pcm_s8_planar: for .wav not detected properly in riff.c
+# - flac: common (rare in games)
+# - vorbis: common (for rare cases, shouldn't be used directly)
+# - opus/libopus: Switch/PC games
+# - mpc7,mpc8: Android games
+# - alac,adpcm_ima_qt: iOS games
+# - adpcm_ima_dk3,adpcm_ima_dk4: Saturn videos
+# - tak,ape: extra for rips with compressed .wav
+--enable-decoder=ac3,eac3,wmapro,wmav1,wmav2,xma1,xma2,aac,atrac3,atrac3p,mp2float,mp3float,smackaud,binkaudio_dct,binkaudio_rdft,pcm_s16be,pcm_s16be_planar,pcm_s16le,pcm_s16le_planar,pcm_s8,pcm_s8_planar,flac,vorbis,libopus,mpc7,mpc8,alac,adpcm_ima_qt,adpcm_ima_dk3,adpcm_ima_dk4,tak,ape
+
+###############################################################################
+# OS/TESTS
+
+# Windows builds may need the following:
+#--target-os=mingw32 --arch=x86 / --arch=x86_64 --extra-ldflags=-static-libgcc
+
+# GCC options (probably not needed on Windows, PIC used for static libs to make shared libs also needs -Wl,-Bsymbolic)
+#--enable-pic
+#--extra-cflags=-fPIC
+#--extra-cflags=-m32 / -m64
+
+# if you want to test resulting config separate from the DLL, ffmpeg CLI to .wav can be enabled with:
+#--enable-ffmpeg
+#--enable-encoder=pcm_s16be,pcm_s16be_planar,pcm_s16le,pcm_s16le_planar
+#--enable-muxer=wav
+#--enable-protocol=data,file,subfile
+#--enable-filter=aformat,ainterleave,aresample
+#--enable-sdl2
+#--extra-cflags=-g -DDEBUG

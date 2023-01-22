@@ -484,11 +484,7 @@ VGMSTREAM* init_vgmstream_xwb(STREAMFILE* sf) {
 
 #ifdef VGM_USE_FFMPEG
         case XMA1: { /* Kameo (X360), Table Tennis (X360) */
-            uint8_t buf[0x100];
-            int bytes;
-
-            bytes = ffmpeg_make_riff_xma1(buf, sizeof(buf), vgmstream->num_samples, xwb.stream_size, vgmstream->channels, vgmstream->sample_rate, 0);
-            vgmstream->codec_data = init_ffmpeg_header_offset(sf, buf, bytes, xwb.stream_offset,xwb.stream_size);
+            vgmstream->codec_data = init_ffmpeg_xma1_raw(sf, xwb.stream_offset, xwb.stream_size, vgmstream->channels, vgmstream->sample_rate, 0);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
@@ -505,14 +501,9 @@ VGMSTREAM* init_vgmstream_xwb(STREAMFILE* sf) {
         }
 
         case XMA2: { /* Blue Dragon (X360) */
-            uint8_t buf[0x100];
-            int bytes, block_size, block_count;
+            int block_size = 0x10000; /* XACT default */
 
-            block_size = 0x10000; /* XACT default */
-            block_count = xwb.stream_size / block_size + (xwb.stream_size % block_size ? 1 : 0);
-
-            bytes = ffmpeg_make_riff_xma2(buf, sizeof(buf), vgmstream->num_samples, xwb.stream_size, vgmstream->channels, vgmstream->sample_rate, block_count, block_size);
-            vgmstream->codec_data = init_ffmpeg_header_offset(sf, buf, bytes, xwb.stream_offset,xwb.stream_size);
+            vgmstream->codec_data = init_ffmpeg_xma2_raw(sf, xwb.stream_offset, xwb.stream_size, vgmstream->num_samples, vgmstream->channels, vgmstream->sample_rate, block_size, 0);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
@@ -537,8 +528,7 @@ VGMSTREAM* init_vgmstream_xwb(STREAMFILE* sf) {
         }
 
         case XWMA: { /* WMAudio2 (WMA v2): BlazBlue (X360), WMAudio3 (WMA Pro): Bullet Witch (PC) voices */
-            uint8_t buf[0x100];
-            int bytes, bps_index, block_align, block_index, avg_bps, wma_codec;
+            int bps_index, block_align, block_index, avg_bps, wma_codec;
 
             bps_index = (xwb.block_align >> 5);  /* upper 3b bytes-per-second index (docs say 2b+6b but are wrong) */
             block_index =  (xwb.block_align) & 0x1F; /*lower 5b block alignment index */
@@ -549,8 +539,7 @@ VGMSTREAM* init_vgmstream_xwb(STREAMFILE* sf) {
             block_align = wma_block_align_index[block_index];
             wma_codec = xwb.bits_per_sample ? 0x162 : 0x161; /* 0=WMAudio2, 1=WMAudio3 */
 
-            bytes = ffmpeg_make_riff_xwma(buf, sizeof(buf), wma_codec, xwb.stream_size, vgmstream->channels, vgmstream->sample_rate, avg_bps, block_align);
-            vgmstream->codec_data = init_ffmpeg_header_offset(sf, buf, bytes, xwb.stream_offset,xwb.stream_size);
+            vgmstream->codec_data = init_ffmpeg_xwma(sf, xwb.stream_offset, xwb.stream_size, wma_codec, vgmstream->channels, vgmstream->sample_rate, avg_bps, block_align);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;

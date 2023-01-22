@@ -1118,10 +1118,9 @@ static VGMSTREAM* init_vgmstream_ubi_sb_base(ubi_sb_header* sb, STREAMFILE* sf_h
         // Probably a beta/custom encoder that creates some buggy frames, that a real X360 handles ok, but trips FFmpeg
         // xmaencode decodes correctly if counters are fixed (otherwise has clicks on every frame).
         case FMT_XMA1: {
-            uint8_t buf[0x100];
             uint32_t sec1_num, sec2_num, sec3_num, bits_per_frame;
             uint8_t flag;
-            size_t bytes, chunk_size, header_size, data_size;
+            size_t chunk_size, header_size, data_size;
             off_t header_offset;
 
             chunk_size = 0x20;
@@ -1146,9 +1145,7 @@ static VGMSTREAM* init_vgmstream_ubi_sb_base(ubi_sb_header* sb, STREAMFILE* sf_h
             start_offset += header_size;
             data_size = sec2_num * 0x800;
 
-            bytes = ffmpeg_make_riff_xma_from_fmt_chunk(buf, 0x100, header_offset, chunk_size, data_size, sf_data, 1);
-
-            vgmstream->codec_data = init_ffmpeg_header_offset(sf_data, buf, bytes, start_offset, data_size);
+            vgmstream->codec_data = init_ffmpeg_xma_chunk(sf_data, start_offset, data_size, header_offset, chunk_size);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
@@ -1158,8 +1155,7 @@ static VGMSTREAM* init_vgmstream_ubi_sb_base(ubi_sb_header* sb, STREAMFILE* sf_h
         }
 
         case RAW_XMA1: {
-            uint8_t buf[0x100];
-            size_t bytes, chunk_size;
+            size_t chunk_size;
             off_t header_offset;
 
             VGM_ASSERT(sb->is_streamed, "UBI SB: Raw XMA used for streamed sound\n");
@@ -1170,9 +1166,7 @@ static VGMSTREAM* init_vgmstream_ubi_sb_base(ubi_sb_header* sb, STREAMFILE* sf_h
             if (header_offset == 0)
                 header_offset = sb->extra_offset;
 
-            bytes = ffmpeg_make_riff_xma_from_fmt_chunk(buf, 0x100, header_offset, chunk_size, sb->stream_size, sf_head, 1);
-
-            vgmstream->codec_data = init_ffmpeg_header_offset(sf_data, buf, bytes, start_offset, sb->stream_size);
+            vgmstream->codec_data = init_ffmpeg_xma_chunk_split(sf_head, sf_data, start_offset, sb->stream_size, header_offset, chunk_size);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;

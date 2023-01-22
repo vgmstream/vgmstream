@@ -159,9 +159,6 @@ void block_update(off_t block_offset, VGMSTREAM* vgmstream) {
         case layout_blocked_bdsp:
             block_update_bdsp(block_offset,vgmstream);
             break;
-        case layout_blocked_tra:
-            block_update_tra(block_offset,vgmstream);
-            break;
         case layout_blocked_ps2_iab:
             block_update_ps2_iab(block_offset,vgmstream);
             break;

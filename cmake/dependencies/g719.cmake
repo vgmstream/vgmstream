@@ -2,14 +2,14 @@ if(NOT WIN32 AND USE_G719)
 	FetchDependency(G719
 		DIR libg719_decode
 		GIT_REPOSITORY https://github.com/kode54/libg719_decode
-		GIT_TAG 9bd89f89df4a5c0e9f178c173fc55d373f039bcf
+		GIT_TAG da90ad8a676876c6c47889bcea6a753f9bbf7a73
 	)
 	
 	if(G719_PATH)
 		set(G719_LINK_PATH ${G719_BIN}/libg719_decode.a)
 		
 		configure_file(
-			${VGM_SOURCE_DIR}/ext_libs/libg719_decode/CMakeLists.txt
+			${VGM_SOURCE_DIR}/ext_libs/extra/libg719_decode/CMakeLists.txt
 			${G719_PATH}/CMakeLists.txt
 		COPYONLY)
 		

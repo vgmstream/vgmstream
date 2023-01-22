@@ -550,47 +550,35 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
                 ffmpeg_data = init_ffmpeg_aac(txth.sf_body, txth.start_offset, txth.data_size, 0);
                 if (!ffmpeg_data) goto fail;
             }
+            else if (txth.codec == ATRAC3) {
+                int block_align, encoder_delay;
+
+                block_align = txth.interleave;
+                encoder_delay = txth.skip_samples;
+
+                ffmpeg_data = init_ffmpeg_atrac3_raw(txth.sf_body, txth.start_offset,txth.data_size, vgmstream->num_samples,vgmstream->channels,vgmstream->sample_rate, block_align, encoder_delay);
+                if (!ffmpeg_data) goto fail;
+            }
+            else if (txth.codec == ATRAC3PLUS) {
+                int block_size = txth.interleave;
+
+                ffmpeg_data = init_ffmpeg_atrac3plus_raw(txth.sf_body, txth.start_offset, txth.data_size, vgmstream->num_samples, vgmstream->channels, vgmstream->sample_rate, block_size, txth.skip_samples);
+                if (!ffmpeg_data) goto fail;
+            }
+            else if (txth.codec == XMA1) {
+                int xma_stream_mode = txth.codec_mode == 1 ? 1 : 0;
+
+                ffmpeg_data = init_ffmpeg_xma1_raw(txth.sf_body, txth.start_offset, txth.data_size, vgmstream->channels, vgmstream->sample_rate, xma_stream_mode);
+                if (!ffmpeg_data) goto fail;
+            }
+            else if (txth.codec == XMA2) {
+                int block_size = txth.interleave;
+
+                ffmpeg_data = init_ffmpeg_xma2_raw(sf, txth.start_offset, txth.data_size, vgmstream->num_samples, vgmstream->channels, vgmstream->sample_rate, block_size, 0);
+                if (!ffmpeg_data) goto fail;
+            }
             else {
-                /* fake header FFmpeg */
-                uint8_t buf[0x100];
-                int32_t bytes;
-
-                if (txth.codec == ATRAC3) {
-                    int block_align, encoder_delay;
-
-                    block_align = txth.interleave;
-                    encoder_delay = txth.skip_samples;
-
-                    ffmpeg_data = init_ffmpeg_atrac3_raw(txth.sf_body, txth.start_offset,txth.data_size, vgmstream->num_samples,vgmstream->channels,vgmstream->sample_rate, block_align, encoder_delay);
-                    if (!ffmpeg_data) goto fail;
-                }
-                else if (txth.codec == ATRAC3PLUS) {
-                    int block_size = txth.interleave;
-
-                    bytes = ffmpeg_make_riff_atrac3plus(buf, sizeof(buf), vgmstream->num_samples, txth.data_size, vgmstream->channels, vgmstream->sample_rate, block_size, txth.skip_samples);
-                    ffmpeg_data = init_ffmpeg_header_offset(txth.sf_body, buf,bytes, txth.start_offset,txth.data_size);
-                    if ( !ffmpeg_data ) goto fail;
-                }
-                else if (txth.codec == XMA1) {
-                    int xma_stream_mode = txth.codec_mode == 1 ? 1 : 0;
-
-                    bytes = ffmpeg_make_riff_xma1(buf, sizeof(buf), vgmstream->num_samples, txth.data_size, vgmstream->channels, vgmstream->sample_rate, xma_stream_mode);
-                    ffmpeg_data = init_ffmpeg_header_offset(txth.sf_body, buf,bytes, txth.start_offset,txth.data_size);
-                    if ( !ffmpeg_data ) goto fail;
-                }
-                else if (txth.codec == XMA2) {
-                    int block_count, block_size;
-
-                    block_size = txth.interleave ? txth.interleave : 2048;
-                    block_count = txth.data_size / block_size;
-
-                    bytes = ffmpeg_make_riff_xma2(buf, sizeof(buf), vgmstream->num_samples, txth.data_size, vgmstream->channels, vgmstream->sample_rate, block_count, block_size);
-                    ffmpeg_data = init_ffmpeg_header_offset(txth.sf_body, buf,bytes, txth.start_offset,txth.data_size);
-                    if ( !ffmpeg_data ) goto fail;
-                }
-                else {
-                    goto fail;
-                }
+                goto fail;
             }
 
             vgmstream->codec_data = ffmpeg_data;
@@ -598,7 +586,7 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
 
             if (txth.codec == XMA1 || txth.codec == XMA2) {
                 xma_fix_raw_samples(vgmstream, txth.sf_body, txth.start_offset,txth.data_size, 0, 0,0);
-            } else if (txth.skip_samples_set && txth.codec != ATRAC3) { /* force encoder delay */
+            } else if (txth.skip_samples_set && txth.codec != ATRAC3 && txth.codec != ATRAC3PLUS) { /* force encoder delay */
                 ffmpeg_set_skip_samples(ffmpeg_data, txth.skip_samples);
             }
 

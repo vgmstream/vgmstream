@@ -259,14 +259,9 @@ VGMSTREAM* init_vgmstream_xnb(STREAMFILE* sf) {
 
 #ifdef VGM_USE_FFMPEG
         case 0x166: { /* Terraria (X360) */
-            uint8_t buf[0x100];
-            int32_t bytes, block_size, block_count;
+            int block_size = 0x10000; /* guessed */
 
-            block_size = 0x10000; /* guessed */
-            block_count = data_size / block_size + (data_size % block_size ? 1 : 0);
-
-            bytes = ffmpeg_make_riff_xma2(buf,0x100, num_samples, data_size, vgmstream->channels, vgmstream->sample_rate, block_count, block_size);
-            vgmstream->codec_data = init_ffmpeg_header_offset(sf_h, buf,bytes, start_offset,data_size);
+            vgmstream->codec_data = init_ffmpeg_xma2_raw(sf_h, start_offset, data_size, num_samples, vgmstream->channels, vgmstream->sample_rate, block_size, 0);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;

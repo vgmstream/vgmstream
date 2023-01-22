@@ -10,9 +10,11 @@ else
 endif
 DEF_CFLAGS += -DVGMSTREAM_VERSION_AUTO -DVGM_LOG_OUTPUT
 
+VGM_X64=0
+
 ###############################################################################
 ### external defs
-# currently aimed to WIN32 builds but vgmstream_cli should work for others (or use autotools instead)
+# currently aimed to WIN32 builds but vgmstream-cli should work for others (or use autotools instead)
 export TARGET_OS = $(OS)
 
 #for Win builds with vgmstream123
@@ -28,6 +30,13 @@ ifeq ($(TARGET_OS),Windows_NT)
   STRIP = strip
   WINDRES = windres
   DLLTOOL = dlltool
+  
+  DLL_DIR = .
+  export DLL_DIR
+  ifneq ($(VGM_X64),0)
+    DLLTOOL = dlltool -m i386:x86-64 --as-flags --64
+    DLL_DIR = dll-x64
+  endif
 
   # same thing, the above should be available
   #CC = i686-w64-mingw32-gcc
@@ -85,6 +94,15 @@ LIBS_CFLAGS=
 LIBS_LDFLAGS=
 LIBS_TARGET_EXT_LIBS=
 
+### bit stuff
+# TODO: some targets don't work with X64 (Winamp, etc), detect
+#ifneq ($(VGM_X86),0)
+#  DEF_CFLAGS += -m32
+#endif
+ifneq ($(VGM_X64),0)
+  DEF_CFLAGS += -m64
+endif
+
 # config libs
 VGM_G7221 = 1
 ifneq ($(VGM_G7221),0)
@@ -101,56 +119,49 @@ ifeq ($(TARGET_OS),Windows_NT)
   ifneq ($(VGM_VORBIS),0)
     LIBS_CFLAGS  += -DVGM_USE_VORBIS
     LIBS_LDFLAGS += -lvorbis
-    LIBS_TARGET_EXT_LIBS += libvorbis.a
+    LIBS_TARGET_EXT_LIBS += libvorbis.dll.a
   endif
 
   VGM_MPEG = 1
   ifneq ($(VGM_MPEG),0)
     LIBS_CFLAGS  += -DVGM_USE_MPEG
     LIBS_LDFLAGS += -lmpg123-0
-    LIBS_TARGET_EXT_LIBS += libmpg123-0.a
+    LIBS_TARGET_EXT_LIBS += libmpg123-0.dll.a
   endif
 
   VGM_G719 = 1
   ifneq ($(VGM_G719),0)
     LIBS_CFLAGS  += -DVGM_USE_G719
     LIBS_LDFLAGS += -lg719_decode
-    LIBS_TARGET_EXT_LIBS += libg719_decode.a
-  endif
-
-  VGM_MAT3P = 0
-  ifneq ($(VGM_MAT3P),0)
-    LIBS_CFLAGS  += -DVGM_USE_MAIATRAC3PLUS
-    LIBS_LDFLAGS += -lat3plusdecoder
-    LIBS_TARGET_EXT_LIBS += libat3plusdecoder.a
+    LIBS_TARGET_EXT_LIBS += libg719_decode.dll.a
   endif
 
   VGM_FFMPEG = 1
   ifneq ($(VGM_FFMPEG),0)
     LIBS_CFLAGS  += -DVGM_USE_FFMPEG -I../ext_includes/ffmpeg
-    LIBS_LDFLAGS += -lavcodec -lavformat -lavutil -lswresample
-    LIBS_TARGET_EXT_LIBS += libavcodec.a libavformat.a libavutil.a libswresample.a
+    LIBS_LDFLAGS += -lavcodec-vgmstream-59 -lavformat-vgmstream-59 -lavutil-vgmstream-57 -lswresample-vgmstream-4
+    LIBS_TARGET_EXT_LIBS += avcodec-vgmstream-59.dll.a avformat-vgmstream-59.dll.a avutil-vgmstream-57.dll.a swresample-vgmstream-4.dll.a
   endif
 
   VGM_ATRAC9 = 1
   ifneq ($(VGM_ATRAC9),0)
     LIBS_CFLAGS  += -DVGM_USE_ATRAC9
     LIBS_LDFLAGS += -latrac9
-    LIBS_TARGET_EXT_LIBS += libatrac9.a
+    LIBS_TARGET_EXT_LIBS += libatrac9.dll.a
   endif
 
   VGM_CELT = 1
   ifneq ($(VGM_CELT),0)
     LIBS_CFLAGS  += -DVGM_USE_CELT
     LIBS_LDFLAGS += -lcelt-0061 -lcelt-0110
-    LIBS_TARGET_EXT_LIBS += libcelt-0061.a libcelt-0110.a
+    LIBS_TARGET_EXT_LIBS += libcelt-0061.dll.a libcelt-0110.dll.a
   endif
 
   VGM_SPEEX = 1
   ifneq ($(VGM_SPEEX),0)
     LIBS_CFLAGS  += -DVGM_USE_SPEEX
-    LIBS_LDFLAGS +=  -L../ext_libs/libspeex -lspeex
-    LIBS_TARGET_EXT_LIBS += libspeex/libspeex.a
+    LIBS_LDFLAGS += -lspeex-1
+    LIBS_TARGET_EXT_LIBS += libspeex-1.dll.a
   endif
 
 else
@@ -172,12 +183,6 @@ else
   ifneq ($(VGM_G719),0)
     LIBS_CFLAGS  += -DVGM_USE_G719
     LIBS_LDFLAGS += -lg719_decode
-  endif
-
-  VGM_MAT3P = 0
-  ifneq ($(VGM_MAT3P),0)
-    LIBS_CFLAGS  += -DVGM_USE_MAIATRAC3PLUS
-    LIBS_LDFLAGS += -lat3plusdecoder
   endif
 
   VGM_FFMPEG = 0
@@ -225,11 +230,10 @@ ifeq ($(TARGET_OS),Windows_NT)
   ZIP_FILES  = COPYING
   ZIP_FILES += README.md
   ZIP_FILES += doc/USAGE.md
-  ZIP_FILES += cli/test.exe
+  ZIP_FILES += cli/vgmstream-cli.exe
   ZIP_FILES += winamp/in_vgmstream.dll
   ZIP_FILES += xmplay/xmp-vgmstream.dll
   ZIP_FILES += ext_libs/*.dll
-  ZIP_FILES += ext_libs/libspeex/*.dll
   ZIP_FILES_AO  = cli/vgmstream123.exe
   ZIP_FILES_AO += $(LIBAO_DLL_PATH)/*.dll
 else
@@ -268,9 +272,9 @@ bin-ex: vgmstream-cli winamp xmplay vgmstream123
 	mkdir -p bin
 	zip -FS -j "bin/$(BIN_FILE)" $(ZIP_FILES) $(ZIP_FILES_AO)
 
-vgmstream_cli: vgmstream-cli
+vgmstream-cli: vgmstream_cli
 
-vgmstream-cli: version
+vgmstream_cli: version
 	$(MAKE) -C cli vgmstream_cli
 
 vgmstream123: version

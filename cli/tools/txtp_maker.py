@@ -508,8 +508,8 @@ class App(object):
         if self.cfg.cli:
             clis.append(self.cfg.cli)
         else:
-            clis.append('vgmstream_cli')
-            clis.append('test.exe')
+            clis.append('vgmstream-cli')
+            clis.append('test.exe') #for old CLIs
 
         for cli in clis:
             try:

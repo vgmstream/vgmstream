@@ -230,7 +230,7 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_dsp_dspw,
     init_vgmstream_jstm,
     init_vgmstream_xvag,
-    init_vgmstream_ps3_cps,
+    init_vgmstream_cps,
     init_vgmstream_sqex_scd,
     init_vgmstream_ngc_nst_dsp,
     init_vgmstream_baf,
@@ -239,7 +239,6 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_sgxd,
     init_vgmstream_wii_ras,
     init_vgmstream_spm,
-    init_vgmstream_x360_tra,
     init_vgmstream_ps2_iab,
     init_vgmstream_vs_str,
     init_vgmstream_lsf_n1nj4n,
@@ -279,7 +278,7 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_hca,
     init_vgmstream_svag_snk,
     init_vgmstream_ps2_vds_vdm,
-    init_vgmstream_x360_cxs,
+    init_vgmstream_cxs,
     init_vgmstream_dsp_adx,
     init_vgmstream_akb,
     init_vgmstream_akb2,
@@ -287,16 +286,16 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_mp4_aac_ffmpeg,
 #endif
     init_vgmstream_bik,
-    init_vgmstream_x360_ast,
+    init_vgmstream_astb,
     init_vgmstream_wwise,
     init_vgmstream_ubi_raki,
-    init_vgmstream_x360_pasx,
+    init_vgmstream_pasx,
     init_vgmstream_xma,
     init_vgmstream_sxd,
     init_vgmstream_ogl,
     init_vgmstream_mc3,
     init_vgmstream_gtd,
-    init_vgmstream_ta_aac,
+    init_vgmstream_aac_triace,
     init_vgmstream_va3,
     init_vgmstream_mta2,
     init_vgmstream_mta2_container,
@@ -454,7 +453,7 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_nub_xma,
     init_vgmstream_nub_idsp,
     init_vgmstream_nub_is14,
-    init_vgmstream_xmv_valve,
+    init_vgmstream_xwv_valve,
     init_vgmstream_ubi_hx,
     init_vgmstream_bmp_konami,
     init_vgmstream_opus_opusnx,
@@ -480,8 +479,8 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_zwv,
     init_vgmstream_dsb,
     init_vgmstream_bsf,
-    init_vgmstream_xse_new,
-    init_vgmstream_xse_old,
+    init_vgmstream_sdrh_new,
+    init_vgmstream_sdrh_old,
     init_vgmstream_wady,
     init_vgmstream_dsp_sqex,
     init_vgmstream_dsp_wiivoice,
@@ -555,10 +554,7 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_ngc_ulw,         /* .ulw raw u-Law */
     init_vgmstream_exakt_sc,        /* .sc raw PCM */
     init_vgmstream_zwdsp,           /* fake format */
-    init_vgmstream_ps2_ccc,         /* fake format, to be removed */
     init_vgmstream_ps2_adm,         /* weird non-constant PSX blocks */
-    init_vgmstream_baf_badrip,      /* crap, to be removed */
-    init_vgmstream_rxws_badrip,     /* crap, to be removed */
     init_vgmstream_rwsd,            /* crap, to be removed */
 #ifdef VGM_USE_FFMPEG
     init_vgmstream_ffmpeg,          /* may play anything incorrectly, since FFmpeg doesn't check extensions */

@@ -10,13 +10,14 @@ VGMSTREAM* init_vgmstream_ster(STREAMFILE* sf) {
 
 
     /* checks */
+    if (!is_id32be(0x00,sf, "STER"))
+        goto fail;
+
     /* .ster: header id (no apparent names/extensions)
      * .sfs: generic bigfile extension (to be removed?)*/
     if (!check_extensions(sf, "ster,sfs"))
         goto fail;
 
-    if (!is_id32be(0x00,sf, "STER"))
-        goto fail;
     channel_size = read_u32le(0x04, sf);
     loop_start = read_u32le(0x08, sf); /* absolute (ex. offset 0x50 for full loops) */
     /* 0x0c: data size BE */
@@ -28,7 +29,7 @@ VGMSTREAM* init_vgmstream_ster(STREAMFILE* sf) {
     start_offset = 0x30;
 
 
-	/* build the VGMSTREAM */
+    /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 

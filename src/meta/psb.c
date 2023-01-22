@@ -168,7 +168,7 @@ VGMSTREAM* init_vgmstream_psb(STREAMFILE* sf) {
             break;
 
 #ifdef VGM_USE_FFMPEG
-        case XWMA: { /* [Senxin Aleste (AC)] */
+        case XWMA: { /* Senxin Aleste (AC) */
             vgmstream->codec_data = init_ffmpeg_xwma(sf, psb.stream_offset[0], psb.stream_size[0], psb.format, psb.channels, psb.sample_rate, psb.avg_bitrate, psb.block_size);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
@@ -182,11 +182,7 @@ VGMSTREAM* init_vgmstream_psb(STREAMFILE* sf) {
         }
 
         case XMA2: { /* Sega Vintage Collection (X360) */
-            uint8_t buf[0x100];
-            size_t bytes;
-
-            bytes = ffmpeg_make_riff_xma_from_fmt_chunk(buf, sizeof(buf), psb.fmt_offset, psb.fmt_size, psb.stream_size[0], sf, 1);
-            vgmstream->codec_data = init_ffmpeg_header_offset(sf, buf, bytes, psb.stream_offset[0], psb.stream_size[0]);
+            vgmstream->codec_data = init_ffmpeg_xma_chunk(sf, psb.stream_offset[0], psb.stream_size[0], psb.fmt_offset, psb.fmt_size);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;

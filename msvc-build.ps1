@@ -190,7 +190,6 @@ function Clean
 
 $fb2kFiles = @(
     "ext_libs/*.dll",
-    "ext_libs/libspeex/*.dll",
     "$configuration/foo_input_vgmstream.dll",
     "README.md"
     "doc/USAGE.md"
@@ -198,9 +197,8 @@ $fb2kFiles = @(
 
 $cliFiles = @(
     "ext_libs/*.dll",
-    "ext_libs/libspeex/*.dll",
     "$configuration/in_vgmstream.dll",
-    "$configuration/test.exe",
+    "$configuration/vgmstream-cli.exe",
     "$configuration/xmp-vgmstream.dll",
     "COPYING",
     "README.md"
@@ -213,7 +211,7 @@ $fb2kPdbFiles = @(
 
 $cliPdbFiles = @(
     "$configuration/in_vgmstream.pdb",
-    "$configuration/test.pdb",
+    "$configuration/vgmstream-cli.pdb",
     "$configuration/xmp-vgmstream.pdb"
 )
 
@@ -221,7 +219,7 @@ function MakePackage
 {
     Build
 
-    if(!(Test-Path "$configuration/test.exe")) {
+    if(!(Test-Path "$configuration/vgmstream-cli.exe")) {
         Write-Error "Unable to find binaries, check for compilation errors"
         return
     }

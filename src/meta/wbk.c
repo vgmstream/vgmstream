@@ -301,9 +301,8 @@ VGMSTREAM* init_vgmstream_wbk_nslb(STREAMFILE* sf) {
 
 #ifdef VGM_USE_FFMPEG
         case 0x30: { /* RIFF XMA */
-            uint8_t buf[0x100];
             off_t riff_fmt_offset, riff_data_offset;
-            size_t bytes, riff_fmt_size, riff_data_size;
+            size_t riff_fmt_size, riff_data_size;
 
             sound_offset += 0x0c;
             sound_size -= 0x0c;
@@ -317,9 +316,8 @@ VGMSTREAM* init_vgmstream_wbk_nslb(STREAMFILE* sf) {
                 goto fail;
 
             sound_offset = riff_data_offset;
-            bytes = ffmpeg_make_riff_xma_from_fmt_chunk(buf, 0x100, riff_fmt_offset, riff_fmt_size, riff_data_size, sf, 0);
 
-            vgmstream->codec_data = init_ffmpeg_header_offset(sf, buf, bytes, riff_data_offset, riff_data_size);
+            vgmstream->codec_data = init_ffmpeg_xma_chunk(sf, riff_data_offset, riff_data_size, riff_fmt_offset, riff_fmt_size);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;

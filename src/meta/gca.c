@@ -3,39 +3,37 @@
 #include "../util.h"
 
 /* GCA - Terminal Reality games [Metal Slug Anthology (Wii), BlowOut (GC)] */
-VGMSTREAM * init_vgmstream_gca(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
+VGMSTREAM* init_vgmstream_gca(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
     off_t start_offset;
-    int loop_flag, channel_count;
+    int loop_flag, channels;
 
     /* checks */
-    if (!check_extensions(streamFile, "gca"))
+    if (!is_id32be(0x00,sf, "GCA1"))
         goto fail;
-
-    if (read_32bitBE(0x00,streamFile) != 0x47434131) /* "GCA1" */
+    if (!check_extensions(sf, "gca"))
         goto fail;
 
     start_offset = 0x40;
     loop_flag = 0;
-    channel_count = 1;
+    channels = 1;
 
-	/* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    /* build the VGMSTREAM */
+    vgmstream = allocate_vgmstream(channels,loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->sample_rate = read_32bitBE(0x2A,streamFile);
-    vgmstream->coding_type = coding_NGC_DSP;
-    vgmstream->num_samples = dsp_nibbles_to_samples(read_32bitBE(0x26,streamFile));//read_32bitBE(0x26,streamFile)*7/8;
-
-    vgmstream->layout_type = layout_none; /* we have no interleave, so we have no layout */
     vgmstream->meta_type = meta_GCA;
+    vgmstream->sample_rate = read_32bitBE(0x2A,sf);
+    vgmstream->num_samples = dsp_nibbles_to_samples(read_32bitBE(0x26,sf));//read_32bitBE(0x26,streamFile)*7/8;
 
-    dsp_read_coefs_be(vgmstream,streamFile,0x04,0x00);
+    vgmstream->coding_type = coding_NGC_DSP;
+    vgmstream->layout_type = layout_none;
 
-    if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
+    dsp_read_coefs_be(vgmstream, sf, 0x04, 0x00);
+
+    if (!vgmstream_open_stream(vgmstream,sf,start_offset))
         goto fail;
     return vgmstream;
-
 fail:
     close_vgmstream(vgmstream);
     return NULL;

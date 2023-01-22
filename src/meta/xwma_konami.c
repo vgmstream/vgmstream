@@ -4,30 +4,30 @@
 
 
 /* MSFC - Konami (Armature?) variation [Metal Gear Solid 2 HD (X360), Metal Gear Solid 3 HD (X360)] */
-VGMSTREAM * init_vgmstream_xwma_konami(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
+VGMSTREAM* init_vgmstream_xwma_konami(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
     off_t start_offset;
-    int loop_flag, channel_count, codec, sample_rate;
+    int loop_flag, channels, codec, sample_rate;
     size_t data_size;
-    STREAMFILE *temp_streamFile = NULL;
+    STREAMFILE *temp_sf = NULL;
 
 
     /* checks */
-    if (!check_extensions(streamFile,"xwma"))
+    if (!is_id32be(0x00,sf, "XWMA"))
         goto fail;
-    if (read_32bitBE(0x00,streamFile) != 0x58574D41) /* "XWMA" */
+    if (!check_extensions(sf,"xwma"))
         goto fail;
 
-    codec = read_32bitBE(0x04,streamFile);
-    channel_count = read_32bitBE(0x08,streamFile);
-    sample_rate = read_32bitBE(0x0c,streamFile);
-    data_size = read_32bitBE(0x10,streamFile); /* data size without padding */
+    codec = read_32bitBE(0x04,sf);
+    channels = read_32bitBE(0x08,sf);
+    sample_rate = read_32bitBE(0x0c,sf);
+    data_size = read_32bitBE(0x10,sf); /* data size without padding */
     loop_flag  = 0;
     start_offset = 0x20;
 
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count, loop_flag);
+    vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
     vgmstream->sample_rate = sample_rate;
@@ -35,19 +35,15 @@ VGMSTREAM * init_vgmstream_xwma_konami(STREAMFILE *streamFile) {
 
 #ifdef VGM_USE_FFMPEG
     {
-        uint8_t buf[0x100];
-        int bytes, avg_bps, block_align;
-
         /* 0x10: related to size? */
-        avg_bps     = read_32bitBE(0x14, streamFile);
-        block_align = read_32bitBE(0x18, streamFile);
+        int avg_bps     = read_32bitBE(0x14, sf);
+        int block_align = read_32bitBE(0x18, sf);
 
         /* data has padding (unrelated to KCEJ blocks) */
-        temp_streamFile = setup_xwma_konami_streamfile(streamFile, start_offset, block_align);
-        if (!temp_streamFile) goto fail;
+        temp_sf = setup_xwma_konami_streamfile(sf, start_offset, block_align);
+        if (!temp_sf) goto fail;
 
-        bytes = ffmpeg_make_riff_xwma(buf,0x100, codec, data_size, channel_count, sample_rate, avg_bps, block_align);
-        vgmstream->codec_data = init_ffmpeg_header_offset(temp_streamFile, buf,bytes, 0x00,data_size);
+        vgmstream->codec_data = init_ffmpeg_xwma(temp_sf, 0x00, data_size, codec, channels, sample_rate, avg_bps, block_align);
         if (!vgmstream->codec_data) goto fail;
         vgmstream->coding_type = coding_FFmpeg;
         vgmstream->layout_type = layout_none;
@@ -62,7 +58,7 @@ VGMSTREAM * init_vgmstream_xwma_konami(STREAMFILE *streamFile) {
 
 
             if (codec == 0x0161)
-                wma_get_samples(&msd, temp_streamFile, block_align, vgmstream->sample_rate,0x001F);
+                wma_get_samples(&msd, temp_sf, block_align, vgmstream->sample_rate,0x001F);
             //else //todo not correct
             //    wmapro_get_samples(&msd, temp_streamFile, block_align, vgmstream->sample_rate,0x00E0);
 
@@ -76,11 +72,10 @@ VGMSTREAM * init_vgmstream_xwma_konami(STREAMFILE *streamFile) {
     goto fail;
 #endif
 
-    close_streamfile(temp_streamFile);
+    close_streamfile(temp_sf);
     return vgmstream;
-
 fail:
-    close_streamfile(temp_streamFile);
+    close_streamfile(temp_sf);
     close_vgmstream(vgmstream);
     return NULL;
 }

@@ -118,7 +118,7 @@ VGMSTREAM* init_vgmstream_fsb(STREAMFILE* sf) {
 
     /* .fsb: standard
      * .bnk: Hard Corps Uprising (PS3)
-     * .sfx: Geon Cube (Wii)	 
+     * .sfx: Geon Cube (Wii)
      * .xen: Guitar Hero: World Tour (PC) */
     if ( !check_extensions(sf, "fsb,bnk,sfx,xen") )
         goto fail;
@@ -388,19 +388,15 @@ VGMSTREAM* init_vgmstream_fsb(STREAMFILE* sf) {
 
 #ifdef VGM_USE_FFMPEG
         case XMA: { /* FSB3: The Bourne Conspiracy 2008 (X360), FSB4: Armored Core V (X360), Hard Corps (X360) */
-            uint8_t buf[0x100];
-            size_t bytes, block_size, block_count;
+            int block_size = 0x8000; /* FSB default */
 
-            if (fsb.version != FMOD_FSB_VERSION_4_0) { /* 3.x, though no actual output changes [ex. Guitar Hero III (X360)] */
-                bytes = ffmpeg_make_riff_xma1(buf, sizeof(buf), fsb.num_samples, fsb.stream_size, fsb.channels, fsb.sample_rate, 0);
+            if (fsb.version != FMOD_FSB_VERSION_4_0) {
+                /* 3.x, though no actual output changes [ex. Guitar Hero III (X360), The Bourne Conspiracy (X360)] */
+                vgmstream->codec_data = init_ffmpeg_xma1_raw(sf, fsb.stream_offset, fsb.stream_size, fsb.channels, fsb.sample_rate, 0);
             }
             else {
-                block_size = 0x8000; /* FSB default */
-                block_count = fsb.stream_size / block_size; /* not accurate but not needed (custom_data_offset+0x14 -1?) */
-
-                bytes = ffmpeg_make_riff_xma2(buf, sizeof(buf), fsb.num_samples, fsb.stream_size, fsb.channels, fsb.sample_rate, block_count, block_size);
+                vgmstream->codec_data = init_ffmpeg_xma2_raw(sf, fsb.stream_offset, fsb.stream_size, fsb.num_samples, fsb.channels, fsb.sample_rate, block_size, 0);
             }
-            vgmstream->codec_data = init_ffmpeg_header_offset(sf, buf,bytes, fsb.stream_offset,fsb.stream_size);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;

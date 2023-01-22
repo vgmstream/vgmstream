@@ -215,16 +215,11 @@ static VGMSTREAM* init_vgmstream_koei_wavebank(kwb_header* kwb, STREAMFILE* sf_h
 
 #ifdef VGM_USE_FFMPEG
         case XMA2: {
-            uint8_t buf[0x100];
-            size_t bytes, block_size, block_count;
+            int block_size = 0x800; /* ? */
 
             if (kwb->channels > 1) goto fail;
 
-            block_size = 0x800; /* ? */
-            block_count = kwb->stream_size / block_size;
-
-            bytes = ffmpeg_make_riff_xma2(buf, sizeof(buf), vgmstream->num_samples, kwb->stream_size, kwb->channels, kwb->sample_rate, block_count, block_size);
-            vgmstream->codec_data = init_ffmpeg_header_offset(sf_b, buf,bytes, kwb->stream_offset, kwb->stream_size);
+            vgmstream->codec_data = init_ffmpeg_xma2_raw(sf_b, kwb->stream_offset, kwb->stream_size, vgmstream->num_samples, kwb->channels, kwb->sample_rate, block_size, 0);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;

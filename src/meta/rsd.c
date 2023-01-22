@@ -13,9 +13,9 @@ VGMSTREAM* init_vgmstream_rsd(STREAMFILE* sf) {
 
 
     /* checks */
-    if (!check_extensions(sf,"rsd,rsp"))
+    if ((read_u32be(0x00,sf) & 0xFFFFFF00) != get_id32be("RSD\00"))
         goto fail;
-    if ((read_u32be(0x00,sf) & 0xFFFFFF00) != 0x52534400) /* "RSD\00" */
+    if (!check_extensions(sf,"rsd,rsp"))
         goto fail;
 
     loop_flag = 0;
@@ -168,40 +168,34 @@ VGMSTREAM* init_vgmstream_rsd(STREAMFILE* sf) {
         }
 
         case 0x584D4120: { /* "XMA " [Crash of the Titans (X360)-v1, Crash: Mind over Mutant (X360)-v2] */
-            uint8_t buf[0x100];
-            size_t bytes, xma_size, block_size, block_count;
-            int xma_version;
+            uint32_t chunk_size = read_32bitBE(0x800, sf);
+            uint32_t seek_size = read_32bitBE(0x804, sf);
+            uint32_t stream_size = read_32bitBE(0x808, sf);
+            uint32_t chunk_offset = 0x80c;
+            int old_xma2_version = read_u8(chunk_offset + 0x00, sf);
 
+            start_offset = chunk_offset + chunk_size + seek_size;
 
-            /* skip mini header */
-            start_offset = 0x800 + read_32bitBE(0x800, sf) + read_32bitBE(0x804, sf) + 0xc; /* assumed, seek table always at 0x800 */
-            xma_size = read_32bitBE(0x808, sf);
-            xma_version = read_u8(0x80C, sf);
+            vgmstream->codec_data = init_ffmpeg_xma_chunk(sf, start_offset, stream_size, chunk_offset, chunk_size);
+            if (!vgmstream->codec_data) goto fail;
+            vgmstream->coding_type = coding_FFmpeg;
+            vgmstream->layout_type = layout_none;
 
-            switch (xma_version) {
+            /* read PCM samples rather than full samples (dev trickery?) */
+            switch (old_xma2_version) {
                 case 0x03:
-                    vgmstream->sample_rate = read_32bitBE(0x818, sf);
-                    vgmstream->num_samples = read_32bitBE(0x824, sf);
-                    block_count = read_32bitBE(0x828, sf);
-                    block_size = 0x10000;
+                    vgmstream->sample_rate = read_32bitBE(chunk_offset + 0x0c, sf);
+                    vgmstream->num_samples = read_32bitBE(chunk_offset + 0x18, sf);
                     break;
                 case 0x04:
-                    vgmstream->num_samples = read_32bitBE(0x814, sf);
-                    vgmstream->sample_rate = read_32bitBE(0x818, sf);
-                    block_count = read_32bitBE(0x830, sf);
-                    block_size = 0x10000;
+                    vgmstream->num_samples = read_32bitBE(chunk_offset + 0x08, sf);
+                    vgmstream->sample_rate = read_32bitBE(chunk_offset + 0x0c, sf);
                     break;
                 default:
                     goto fail;
             }
 
-            bytes = ffmpeg_make_riff_xma2(buf,sizeof(buf), vgmstream->num_samples, xma_size, vgmstream->channels, vgmstream->sample_rate, block_count, block_size);
-            vgmstream->codec_data = init_ffmpeg_header_offset(sf, buf, bytes, start_offset, xma_size);
-            if (!vgmstream->codec_data) goto fail;
-            vgmstream->coding_type = coding_FFmpeg;
-            vgmstream->layout_type = layout_none;
-
-            /* for some reason (dev trickery?) .rsd don't set skip in the bitstream, though they should */
+            /* for some reason (dev trickery?) .rsd don't set skips in the bitstream, though they should */
             //xma_fix_raw_samples(vgmstream, sf, start_offset,xma_size, 0, 0,0);
             ffmpeg_set_skip_samples(vgmstream->codec_data, 512+64);
             break;
@@ -218,7 +212,6 @@ VGMSTREAM* init_vgmstream_rsd(STREAMFILE* sf) {
     if (!vgmstream_open_stream(vgmstream, sf, start_offset))
         goto fail;
     return vgmstream;
-
 fail:
     close_vgmstream(vgmstream);
     return NULL;

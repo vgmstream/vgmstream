@@ -13,17 +13,17 @@ Put the following files somewhere Windows can find them:
 - `libvorbis.dll`
 - `libmpg123-0.dll`
 - `libg719_decode.dll`
-- `avcodec-vgmstream-58.dll`
-- `avformat-vgmstream-58.dll`
-- `avutil-vgmstream-56.dll`
-- `swresample-vgmstream-3.dll`
+- `avcodec-vgmstream-59.dll`
+- `avformat-vgmstream-59.dll`
+- `avutil-vgmstream-57.dll`
+- `swresample-vgmstream-4.dll`
 - `libatrac9.dll`
 - `libcelt-0061.dll`
 - `libcelt-0110.dll`
-- `libspeex.dll`
+- `libspeex-1.dll`
 
-For command line (`test.exe`) and XMPlay this means in the directory with the main `.exe`,
-or possibly a directory in the PATH variable.
+For command line (`vgmstream-cli.exe`) and XMPlay this means in the directory with the main
+`.exe`, or possibly a directory in the PATH variable.
 
 For Winamp, the above `.dll` also go near main `winamp.exe`, but note that `in_vgmstream.dll`
 plugin itself goes in `Plugins`.
@@ -34,25 +34,25 @@ automatically, though not all may enabled at the moment due to build scripts iss
 
 ## Components
 
-### test.exe/vgmstream-cli (command line decoder)
-*Windows*: unzip `test.exe` and follow the above instructions for installing needed extra files.
-`test.exe` is used for historical reasons, but you can call it `vgmstream-cli.exe`, anyway.
+### vgmstream-cli (command line decoder)
+*Windows*: unzip `vgmstream-cli` and follow the above instructions for installing needed extra files.
+This tool was called `test.exe` before for historical reasons (rename back if needed).
 
 *Others*: build instructions can be found in the [BUILD.md](BUILD.md) document (can be compiled
 with CMake/Make/autotools).
 
 Converts playable files to `.wav`. Typical usage would be:
-- `test.exe -o happy.wav happy.adx` to decode `happy.adx` to `happy.wav`.
+- `vgmstream-cli -o happy.wav happy.adx` to decode `happy.adx` to `happy.wav`.
 
 If command-line isn't your thing you can simply drag and drop one or multiple
 files to the executable to decode them as `(filename.ext).wav`.
 
 There are multiple options that alter how the file is converted, for example:
-- `test.exe -m file.adx`: print info but don't decode
-- `test.exe -i -o file_noloop.wav file.hca`: convert without looping
-- `test.exe -s 2 -F file.fsb`: write 2nd subsong + ending after 2.0 loops
-- `test.exe -l 3.0 -f 5.0 -d 3.0 file.wem`: 3 loops, 3s delay, 5s fade
-- `test.exe -o bgm_?f.wav file1.adx file2.adx`: convert multiple files to `bgm_(name).wav`
+- `vgmstream-cli -m file.adx`: print info but don't decode
+- `vgmstream-cli -i -o file_noloop.wav file.hca`: convert without looping
+- `vgmstream-cli -s 2 -F file.fsb`: write 2nd subsong + ending after 2.0 loops
+- `vgmstream-cli -l 3.0 -f 5.0 -d 3.0 file.wem`: 3 loops, 3s delay, 5s fade
+- `vgmstream-cli -o bgm_?f.wav file1.adx file2.adx`: convert multiple files to `bgm_(name).wav`
 
 Available commands are printed when run with no flags. Note that you can also
 achieve similar results for other plugins using TXTP, described later.
@@ -63,7 +63,7 @@ Output filename in `-o` may use wildcards:
 - `?n`: internal stream name, or input filename if format doesn't have name
 - `?f`: input filename
 
-For example `test.exe -s 2 -o ?04s_?n.wav file.fsb` could generate `0002_song1.wav`.
+For example `vgmstream-cli -s 2 -o ?04s_?n.wav file.fsb` could generate `0002_song1.wav`.
 Default output filename is `?f.wav`, or `?f#?s.wav` if you set subsongs (`-s/-S`).
 
 
@@ -221,17 +221,17 @@ is able to contain them. Easiest to use would be the *foobar/winamp/Audacious*
 plugins, that are able to "unpack" those subsongs automatically into the playlist.
 
 With CLI tools, you can select a subsong using the `-s` flag followed by a number,
-for example: `text.exe -s 5 file.bank` or `vgmstream123 -s 5 file.bank`.
+for example: `vgmstream-cli -s 5 file.bank` or `vgmstream123 -s 5 file.bank`.
 
 Using *vgmstream-cli* you can convert multiple subsongs at once using the `-S` flag.
 **WARNING, MAY TAKE A LOT OF SPACE!** Some files have been observed to contain +20000
 subsongs, so don't use this lightly. Remember to set an output name (`-o`) with subsong
 wildcards (or leave it alone for the defaults).
-- `test.exe -s 1 -S 100 file.bank`: writes from subsong 1 to subsong 100
-- `test.exe -s 101 -S 0 file.bank`: writes from subsong 101 to max subsong (automatically changes 0 to max)
-- `test.exe -S 0 file.bank`: writes from subsong 1 to max subsong
-- `test.exe -s 1 -S 5 -o bgm.wav file.bank`: writes 5 subsongs, but all overwrite the same file = wrong.
-- `test.exe -s 1 -S 5 -o bgm_?02s.wav file.bank`: writes 5 subsongs, each named differently = correct.
+- `vgmstream-cli -s 1 -S 100 file.bank`: writes from subsong 1 to subsong 100
+- `vgmstream-cli -s 101 -S 0 file.bank`: writes from subsong 101 to max subsong (automatically changes 0 to max)
+- `vgmstream-cli -S 0 file.bank`: writes from subsong 1 to max subsong
+- `vgmstream-cli -s 1 -S 5 -o bgm.wav file.bank`: writes 5 subsongs, but all overwrite the same file = wrong.
+- `vgmstream-cli -s 1 -S 5 -o bgm_?02s.wav file.bank`: writes 5 subsongs, each named differently = correct.
 
 For other players without support, or to play only a few choice subsongs, you
 can create multiple `.txtp` (explained later) to select one, like `bgm.sxd#10.txtp`
@@ -239,7 +239,7 @@ can create multiple `.txtp` (explained later) to select one, like `bgm.sxd#10.tx
 
 You can use this python script to autogenerate one `.txtp` per subsong:
 https://github.com/vgmstream/vgmstream/tree/master/cli/tools/txtp_maker.py
-Put in the same dir as test.exe/vgmstream_cli, then to drag-and-drop files with
+Put in the same dir as *vgmstream-cli*, then to drag-and-drop files with
 subsongs to `txtp_maker.py` (it has CLI options to control output too).
 
 ### Common and unknown extensions
@@ -881,7 +881,7 @@ boss2_3ningumi_ver6.adx     #l 1.0  #F .txtp
 You can also use it in CLI for quick access to some txtp-exclusive functions:
 ```
 # force change sample rate to 22050 (don't forget to use " with spaces)
-test.exe -o btl_koopa1_44k_lp.wav "btl_koopa1_44k_lp.brstm  #h22050.txtp"
+vgmstream-cli -o btl_koopa1_44k_lp.wav "btl_koopa1_44k_lp.brstm  #h22050.txtp"
 ```
 
 Support for this feature is limited by player itself, as foobar and Winamp allow

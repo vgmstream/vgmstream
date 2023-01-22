@@ -179,11 +179,7 @@ VGMSTREAM * init_vgmstream_baf(STREAMFILE *sf) {
 
     #ifdef VGM_USE_FFMPEG
         case 0x08: {
-            uint8_t buf[0x100];
-            int bytes;
-
-            bytes = ffmpeg_make_riff_xma1(buf,0x100, 0, stream_size, vgmstream->channels, vgmstream->sample_rate, 0);
-            vgmstream->codec_data = init_ffmpeg_header_offset(sf, buf,bytes, start_offset,stream_size);
+            vgmstream->codec_data = init_ffmpeg_xma1_raw(sf, start_offset, stream_size, vgmstream->channels, vgmstream->sample_rate, 0);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
@@ -222,61 +218,6 @@ VGMSTREAM * init_vgmstream_baf(STREAMFILE *sf) {
 
 
     if (!vgmstream_open_stream(vgmstream, sf, start_offset))
-        goto fail;
-    return vgmstream;
-
-fail:
-    close_vgmstream(vgmstream);
-    return NULL;
-}
-
-/* awful PS3 splits of the above with bad offsets and all */
-VGMSTREAM * init_vgmstream_baf_badrip(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
-    off_t WAVE_size, stream_size;
-    off_t start_offset;
-    long sample_count;
-    int sample_rate;
-
-    const int frame_size = 33;
-    const int frame_samples = (frame_size-1) * 2;
-    int channels;
-    int loop_flag = 0;
-
-    /* checks */
-    if ( !check_extensions(streamFile, "baf") )
-        goto fail;
-    if (read_32bitBE(0,streamFile) != 0x57415645) /* "WAVE" */
-        goto fail;
-    WAVE_size = read_32bitBE(4,streamFile);
-    if (WAVE_size != 0x4c) /* && WAVE_size != 0x50*/
-        goto fail;
-    if (read_32bitBE(WAVE_size,streamFile) != 0x44415441) /* "DATA"*/
-        goto fail;
-    /* check that WAVE size is data size */
-    stream_size = read_32bitBE(0x30,streamFile);
-    if (read_32bitBE(WAVE_size+4,streamFile)-8 != stream_size) goto fail;
-
-    sample_count = read_32bitBE(0x44,streamFile);
-    sample_rate = read_32bitBE(0x40,streamFile);
-    /* unsure how to detect channel count, so use a hack */
-    channels = (long long)stream_size / frame_size * frame_samples / sample_count;
-    start_offset = WAVE_size + 8;
-
-
-    /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channels,loop_flag);
-    if (!vgmstream) goto fail;
-
-    vgmstream->sample_rate = sample_rate;
-    vgmstream->num_samples = sample_count;
-
-    vgmstream->coding_type = coding_PSX_cfg;
-    vgmstream->layout_type = layout_interleave;
-    vgmstream->interleave_block_size = frame_size;
-    vgmstream->meta_type = meta_BAF;
-
-    if (!vgmstream_open_stream(vgmstream, streamFile, start_offset))
         goto fail;
     return vgmstream;
 

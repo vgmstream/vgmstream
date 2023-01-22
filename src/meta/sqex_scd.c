@@ -310,14 +310,10 @@ VGMSTREAM* init_vgmstream_sqex_scd(STREAMFILE* sf) {
 
 #ifdef VGM_USE_FFMPEG
         case 0x0B: {    /* XMA2 [Final Fantasy (X360), Lightning Returns (X360) sfx, Kingdom Hearts 2.8 (X1)] */
-            uint8_t buf[0x100];
-            int32_t bytes;
-
             /* extradata:
              * 0x00: fmt0x166 header (BE X360, LE XBone)
              * 0x34: seek table */
-            bytes = ffmpeg_make_riff_xma_from_fmt_chunk(buf,0x100, extradata_offset,0x34, stream_size, sf, big_endian);
-            vgmstream->codec_data = init_ffmpeg_header_offset(sf, buf, bytes, start_offset, stream_size);
+            vgmstream->codec_data = init_ffmpeg_xma_chunk(sf, start_offset, stream_size, extradata_offset, 0x34);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;

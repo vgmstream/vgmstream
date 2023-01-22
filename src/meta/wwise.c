@@ -365,9 +365,6 @@ VGMSTREAM* init_vgmstream_wwise_bnk(STREAMFILE* sf, int* p_prefetch) {
 
 #ifdef VGM_USE_FFMPEG
         case XMA2: { /* X360/XBone */
-            uint8_t buf[0x100];
-            int bytes;
-
             /* endian check should be enough */
             //if (ww.fmt_size != ...) goto fail; /* XMA1 0x20, XMA2old: 0x34, XMA2new: 0x40, XMA2 Guitar Hero Live/padded: 0x64, etc */
 
@@ -375,14 +372,7 @@ VGMSTREAM* init_vgmstream_wwise_bnk(STREAMFILE* sf, int* p_prefetch) {
             if (!(ww.big_endian || (!ww.big_endian && check_extensions(sf,"wem,bnk"))))
                 goto fail;
 
-            if (ww.xma2_offset) { /* older */
-                bytes = ffmpeg_make_riff_xma2_from_xma2_chunk(buf, sizeof(buf), ww.xma2_offset, ww.xma2_size, ww.data_size, sf);
-            }
-            else { /* newer */
-                bytes = ffmpeg_make_riff_xma_from_fmt_chunk(buf, sizeof(buf), ww.fmt_offset, ww.fmt_size, ww.data_size, sf, ww.big_endian);
-            }
-
-            vgmstream->codec_data = init_ffmpeg_header_offset(sf, buf,bytes, ww.data_offset,ww.data_size);
+            vgmstream->codec_data = init_ffmpeg_xma_chunk(sf, ww.data_offset, ww.data_size, ww.xma2_offset ? ww.xma2_offset : ww.fmt_offset, ww.xma2_size ? ww.xma2_size : ww.fmt_size);
             if ( !vgmstream->codec_data ) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;

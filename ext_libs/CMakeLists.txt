@@ -40,20 +40,20 @@ if(MSVC)
 	if(USE_FFMPEG AND NOT FFMPEG_LIBRARIES)
 		add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/avcodec.lib ${CMAKE_CURRENT_BINARY_DIR}/avcodec.exp
 			COMMAND lib
-			ARGS /def:${CMAKE_CURRENT_SOURCE_DIR}/avcodec-vgmstream-58.def /machine:x86 /out:${CMAKE_CURRENT_BINARY_DIR}/avcodec.lib
-			DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/avcodec-vgmstream-58.def)
+			ARGS /def:${CMAKE_CURRENT_SOURCE_DIR}/avcodec-vgmstream-59.def /machine:x86 /out:${CMAKE_CURRENT_BINARY_DIR}/avcodec.lib
+			DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/avcodec-vgmstream-59.def)
 		add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/avformat.lib ${CMAKE_CURRENT_BINARY_DIR}/avformat.exp
 			COMMAND lib
-			ARGS /def:${CMAKE_CURRENT_SOURCE_DIR}/avformat-vgmstream-58.def /machine:x86 /out:${CMAKE_CURRENT_BINARY_DIR}/avformat.lib
-			DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/avformat-vgmstream-58.def)
+			ARGS /def:${CMAKE_CURRENT_SOURCE_DIR}/avformat-vgmstream-59.def /machine:x86 /out:${CMAKE_CURRENT_BINARY_DIR}/avformat.lib
+			DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/avformat-vgmstream-59.def)
 		add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/avutil.lib ${CMAKE_CURRENT_BINARY_DIR}/avutil.exp
 			COMMAND lib
-			ARGS /def:${CMAKE_CURRENT_SOURCE_DIR}/avutil-vgmstream-56.def /machine:x86 /out:${CMAKE_CURRENT_BINARY_DIR}/avutil.lib
-			DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/avutil-vgmstream-56.def)
+			ARGS /def:${CMAKE_CURRENT_SOURCE_DIR}/avutil-vgmstream-57.def /machine:x86 /out:${CMAKE_CURRENT_BINARY_DIR}/avutil.lib
+			DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/avutil-vgmstream-57.def)
 		add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/swresample.lib ${CMAKE_CURRENT_BINARY_DIR}/swresample.exp
 			COMMAND lib
-			ARGS /def:${CMAKE_CURRENT_SOURCE_DIR}/swresample-vgmstream-3.def /machine:x86 /out:${CMAKE_CURRENT_BINARY_DIR}/swresample.lib
-			DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/swresample-vgmstream-3.def)
+			ARGS /def:${CMAKE_CURRENT_SOURCE_DIR}/swresample-vgmstream-4.def /machine:x86 /out:${CMAKE_CURRENT_BINARY_DIR}/swresample.lib
+			DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/swresample-vgmstream-4.def)
 		file(GLOB AVCODEC_HEADERS "${VGM_SOURCE_DIR}/ext_includes/ffmpeg/libavcodec/*.h")
 		file(GLOB AVFORMAT_HEADERS "${VGM_SOURCE_DIR}/ext_includes/ffmpeg/libavformat/*.h")
 		file(GLOB AVUTIL_HEADERS "${VGM_SOURCE_DIR}/ext_includes/ffmpeg/libavutil/*.h")
@@ -103,13 +103,13 @@ if(MSVC)
 	endif()
 
     if(USE_SPEEX)
-        add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/libspeex/libspeex.lib ${CMAKE_CURRENT_BINARY_DIR}/libspeex/libspeex.exp
+        add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/libspeex-1.lib ${CMAKE_CURRENT_BINARY_DIR}/libspeex-1.exp
             COMMAND lib
-            ARGS /def:${CMAKE_CURRENT_SOURCE_DIR}/libspeex/libspeex.def /machine:x86 /out:${CMAKE_CURRENT_BINARY_DIR}/libspeex/libspeex.lib
-            DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/libspeex/libspeex.def)
+            ARGS /def:${CMAKE_CURRENT_SOURCE_DIR}/libspeex-1.def /machine:x86 /out:${CMAKE_CURRENT_BINARY_DIR}/libspeex-1.lib
+            DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/libspeex-1.def)
         file(GLOB SPEEX_HEADERS "${VGM_SOURCE_DIR}/ext_includes/speex/*.h")
         add_custom_target(libspeex
-            DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/libspeex/libspeex.lib
+            DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/libspeex-1.lib
             SOURCES ${SPEEX_HEADERS})
     endif()
 elseif(MINGW)
@@ -147,20 +147,20 @@ elseif(MINGW)
 	if(USE_FFMPEG AND NOT FFMPEG_LIBRARIES)
 		add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/avcodec.lib
 			COMMAND ${DLLTOOL}
-			ARGS -d ${CMAKE_CURRENT_SOURCE_DIR}/avcodec-vgmstream-58.def -l ${CMAKE_CURRENT_BINARY_DIR}/avcodec.lib -D avcodec-vgmstream-58.dll
-			DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/avcodec-vgmstream-58.def)
+			ARGS -d ${CMAKE_CURRENT_SOURCE_DIR}/avcodec-vgmstream-59.def -l ${CMAKE_CURRENT_BINARY_DIR}/avcodec.lib -D avcodec-vgmstream-59.dll
+			DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/avcodec-vgmstream-59.def)
 		add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/avformat.lib
 			COMMAND ${DLLTOOL}
-			ARGS -d ${CMAKE_CURRENT_SOURCE_DIR}/avformat-vgmstream-58.def -l ${CMAKE_CURRENT_BINARY_DIR}/avformat.lib -D avformat-vgmstream-58.dll
-			DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/avformat-vgmstream-58.def)
+			ARGS -d ${CMAKE_CURRENT_SOURCE_DIR}/avformat-vgmstream-59.def -l ${CMAKE_CURRENT_BINARY_DIR}/avformat.lib -D avformat-vgmstream-59.dll
+			DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/avformat-vgmstream-59.def)
 		add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/avutil.lib
 			COMMAND ${DLLTOOL}
-			ARGS -d ${CMAKE_CURRENT_SOURCE_DIR}/avutil-vgmstream-56.def -l ${CMAKE_CURRENT_BINARY_DIR}/avutil.lib -D avutil-vgmstream-56.dll
-			DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/avutil-vgmstream-56.def)
+			ARGS -d ${CMAKE_CURRENT_SOURCE_DIR}/avutil-vgmstream-57.def -l ${CMAKE_CURRENT_BINARY_DIR}/avutil.lib -D avutil-vgmstream-57.dll
+			DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/avutil-vgmstream-57.def)
 		add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/swresample.lib
 			COMMAND ${DLLTOOL}
-			ARGS -d ${CMAKE_CURRENT_SOURCE_DIR}/swresample-vgmstream-3.def -l ${CMAKE_CURRENT_BINARY_DIR}/swresample.lib -D swresample-vgmstream-3.dll
-			DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/swresample-vgmstream-3.def)
+			ARGS -d ${CMAKE_CURRENT_SOURCE_DIR}/swresample-vgmstream-4.def -l ${CMAKE_CURRENT_BINARY_DIR}/swresample.lib -D swresample-vgmstream-4.dll
+			DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/swresample-vgmstream-4.def)
 		add_custom_target(ffmpeg
 			DEPENDS
 				${CMAKE_CURRENT_BINARY_DIR}/avcodec.lib
@@ -194,11 +194,11 @@ elseif(MINGW)
 	endif()
 
     if(USE_SPEEX)
-        add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/libspeex/libspeex.lib
+        add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/libspeex-1.lib
             COMMAND ${DLLTOOL}
-            ARGS -d ${CMAKE_CURRENT_SOURCE_DIR}/libspeex/libspeex.def -l ${CMAKE_CURRENT_BINARY_DIR}/libspeex/libspeex.lib
-            DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/libspeex/libspeex.def)
+            ARGS -d ${CMAKE_CURRENT_SOURCE_DIR}/libspeex-1.def -l ${CMAKE_CURRENT_BINARY_DIR}/libspeex-1.lib
+            DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/libspeex-1.def)
         add_custom_target(libspeex
-            DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/libspeex/libspeex.lib)
+            DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/libspeex-1.lib)
     endif()
 endif()

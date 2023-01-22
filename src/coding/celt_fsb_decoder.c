@@ -21,15 +21,15 @@ struct celt_codec_data {
 
     int channel_mode;
     celt_lib_t version;
-    void *mode_handle;
-    void *decoder_handle;
+    void* mode_handle;
+    void* decoder_handle;
 };
 
 
 /* FSB CELT, frames with custom header and standard data (API info from FMOD DLLs).
  * FMOD used various libcelt versions, thus some tweaks are needed for them to coexist. */
 
-celt_codec_data *init_celt_fsb(int channels, celt_lib_t version) {
+celt_codec_data* init_celt_fsb(int channels, celt_lib_t version) {
     int error = 0, lib_version = 0;
     celt_codec_data* data = NULL;
 
@@ -42,24 +42,24 @@ celt_codec_data *init_celt_fsb(int channels, celt_lib_t version) {
 
     switch(data->version) {
         case CELT_0_06_1: /* older FSB4 (FMOD ~4.33) */
-            data->mode_handle = celt_0061_mode_create(FSB_CELT_INTERNAL_SAMPLE_RATE, data->channel_mode, FSB_CELT_SAMPLES_PER_FRAME, &error);
+            data->mode_handle = celt_mode_create_0061(FSB_CELT_INTERNAL_SAMPLE_RATE, data->channel_mode, FSB_CELT_SAMPLES_PER_FRAME, &error);
             if (!data->mode_handle || error != CELT_OK) goto fail;
 
-            error = celt_0061_mode_info(data->mode_handle, CELT_GET_BITSTREAM_VERSION, &lib_version);
+            error = celt_mode_info_0061(data->mode_handle, CELT_GET_BITSTREAM_VERSION, &lib_version);
             if (error != CELT_OK || lib_version != FSB_CELT_0_06_1_VERSION) goto fail;
 
-            data->decoder_handle = celt_0061_decoder_create(data->mode_handle);
+            data->decoder_handle = celt_decoder_create_0061(data->mode_handle);
             if (!data->decoder_handle) goto fail;
             break;
 
         case CELT_0_11_0: /* newer FSB4 (FMOD ~4.34), FSB5 */
-            data->mode_handle = celt_0110_mode_create(FSB_CELT_INTERNAL_SAMPLE_RATE, FSB_CELT_SAMPLES_PER_FRAME, &error); /* "custom" and not ok? */
+            data->mode_handle = celt_mode_create_0110(FSB_CELT_INTERNAL_SAMPLE_RATE, FSB_CELT_SAMPLES_PER_FRAME, &error); /* "custom" and not ok? */
             if (!data->mode_handle || error != CELT_OK) goto fail;
 
-            error = celt_0110_mode_info(data->mode_handle, CELT_GET_BITSTREAM_VERSION, &lib_version);
+            error = celt_mode_info_0110(data->mode_handle, CELT_GET_BITSTREAM_VERSION, &lib_version);
             if (error != CELT_OK || lib_version != FSB_CELT_0_11_0_VERSION) goto fail;
 
-            data->decoder_handle = celt_0110_decoder_create_custom(data->mode_handle, data->channel_mode, &error);
+            data->decoder_handle = celt_decoder_create_custom_0110(data->mode_handle, data->channel_mode, &error);
             if (!data->decoder_handle || error != CELT_OK) goto fail;
             break;
 
@@ -136,11 +136,11 @@ void decode_celt_fsb(VGMSTREAM* vgmstream, sample_t* outbuf, int32_t samples_to_
 
             switch(data->version) {
                 case CELT_0_06_1:
-                    status = celt_0061_decode(data->decoder_handle, data_buffer,bytes, data->sample_buffer);
+                    status = celt_decode_0061(data->decoder_handle, data_buffer,bytes, data->sample_buffer);
                     break;
 
                 case CELT_0_11_0:
-                    status = celt_0110_decode(data->decoder_handle, data_buffer,bytes, data->sample_buffer, FSB_CELT_SAMPLES_PER_FRAME);
+                    status = celt_decode_0110(data->decoder_handle, data_buffer,bytes, data->sample_buffer, FSB_CELT_SAMPLES_PER_FRAME);
                     break;
 
                 default:
@@ -167,16 +167,16 @@ void reset_celt_fsb(celt_codec_data* data) {
     /* recreate decoder (mode should not change) */
     switch(data->version) {
         case CELT_0_06_1:
-            if (data->decoder_handle) celt_0061_decoder_destroy(data->decoder_handle);
+            if (data->decoder_handle) celt_decoder_destroy_0061(data->decoder_handle);
 
-            data->decoder_handle = celt_0061_decoder_create(data->mode_handle);
+            data->decoder_handle = celt_decoder_create_0061(data->mode_handle);
             if (!data->decoder_handle) goto fail;
             break;
 
         case CELT_0_11_0:
-            if (data->decoder_handle) celt_0110_decoder_destroy(data->decoder_handle);
+            if (data->decoder_handle) celt_decoder_destroy_0110(data->decoder_handle);
 
-            data->decoder_handle = celt_0110_decoder_create_custom(data->mode_handle, data->channel_mode, NULL);
+            data->decoder_handle = celt_decoder_create_custom_0110(data->mode_handle, data->channel_mode, NULL);
             if (!data->decoder_handle) goto fail;
             break;
 
@@ -211,13 +211,13 @@ void free_celt_fsb(celt_codec_data* data) {
 
     switch(data->version) {
         case CELT_0_06_1:
-            if (data->decoder_handle) celt_0061_decoder_destroy(data->decoder_handle);
-            if (data->mode_handle) celt_0061_mode_destroy(data->mode_handle);
+            if (data->decoder_handle) celt_decoder_destroy_0061(data->decoder_handle);
+            if (data->mode_handle) celt_mode_destroy_0061(data->mode_handle);
             break;
 
         case CELT_0_11_0:
-            if (data->decoder_handle) celt_0110_decoder_destroy(data->decoder_handle);
-            if (data->mode_handle) celt_0110_mode_destroy(data->mode_handle);
+            if (data->decoder_handle) celt_decoder_destroy_0110(data->decoder_handle);
+            if (data->mode_handle) celt_mode_destroy_0110(data->mode_handle);
             break;
 
         default:

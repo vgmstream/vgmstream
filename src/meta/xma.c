@@ -141,17 +141,7 @@ VGMSTREAM* init_vgmstream_xma(STREAMFILE* sf) {
 
 #ifdef VGM_USE_FFMPEG
     {
-        uint8_t buf[0x100];
-        int bytes;
-
-        if (is_xma2_old) {
-            bytes = ffmpeg_make_riff_xma2_from_xma2_chunk(buf, sizeof(buf), chunk_offset,chunk_size, data_size, sf);
-        }
-        else {
-            bytes = ffmpeg_make_riff_xma_from_fmt_chunk(buf, sizeof(buf), chunk_offset,chunk_size, data_size, sf, fmt_be);
-        }
-
-        vgmstream->codec_data = init_ffmpeg_header_offset(sf, buf, bytes, start_offset, data_size);
+        vgmstream->codec_data = init_ffmpeg_xma_chunk(sf, start_offset, data_size, chunk_offset, chunk_size);
         if (!vgmstream->codec_data) goto fail;
         vgmstream->coding_type = coding_FFmpeg;
         vgmstream->layout_type = layout_none;
@@ -162,11 +152,9 @@ VGMSTREAM* init_vgmstream_xma(STREAMFILE* sf) {
     goto fail;
 #endif
 
-
     if (!vgmstream_open_stream(vgmstream, sf, start_offset))
         goto fail;
     return vgmstream;
-
 fail:
     close_vgmstream(vgmstream);
     return NULL;

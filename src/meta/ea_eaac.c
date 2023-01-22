@@ -1847,8 +1847,7 @@ static layered_layout_data* build_layered_eaaudiocore(STREAMFILE *sf_data, eaac_
             /* EA-XMA uses completely separate 1/2ch streams, unlike standard XMA that interleaves 1/2ch
              * streams with a skip counter to reinterleave (so EA-XMA streams don't have skips set) */
             case EAAC_CODEC_EAXMA: {
-                uint8_t buf[0x100];
-                int bytes, block_size, block_count;
+                int block_size;
                 size_t stream_size;
                 int is_xma1;
 
@@ -1856,18 +1855,18 @@ static layered_layout_data* build_layered_eaaudiocore(STREAMFILE *sf_data, eaac_
                 if (!temp_sf) goto fail;
 
                 stream_size = get_streamfile_size(temp_sf);
-                block_size = 0x10000; /* unused */
-                block_count = stream_size / block_size + ((stream_size % block_size) ? 1 : 0);
+                block_size = 0x10000;
 
                 /* EA adopted XMA2 when it appeared around 2006, but detection isn't so easy
                  * (SNS with XMA2 do exist). Decoder should work when playing XMA1 as XMA2, but
                  * the other way around can cause issues, so it's safer to just use XMA2. */
                 is_xma1 = 0; //eaac->version == EAAC_VERSION_V0; /* approximate */
-                if (is_xma1)
-                    bytes = ffmpeg_make_riff_xma1(buf, 0x100, data->layers[i]->num_samples, stream_size, data->layers[i]->channels, data->layers[i]->sample_rate, 0);
-                else
-                    bytes = ffmpeg_make_riff_xma2(buf, 0x100, data->layers[i]->num_samples, stream_size, data->layers[i]->channels, data->layers[i]->sample_rate, block_count, block_size);
-                data->layers[i]->codec_data = init_ffmpeg_header_offset(temp_sf, buf,bytes, 0x00, stream_size);
+                if (is_xma1) {
+                    data->layers[i]->codec_data = init_ffmpeg_xma1_raw(temp_sf, 0x00, stream_size, data->layers[i]->channels, data->layers[i]->sample_rate, 0);
+                }
+                else {
+                    data->layers[i]->codec_data = init_ffmpeg_xma2_raw(temp_sf, 0x00, stream_size, data->layers[i]->num_samples, data->layers[i]->channels, data->layers[i]->sample_rate, block_size, 0);
+                }
                 if (!data->layers[i]->codec_data) goto fail;
 
                 data->layers[i]->coding_type = coding_FFmpeg;

@@ -26,9 +26,9 @@ typedef struct {
     int filebuf_size;
 
     /* custom IO */
-	void* arg;
+    void* arg;
     int (*read)(void* dst, int size, int n, void* arg);
-	int (*seek)(void* arg, int offset, int whence);
+    int (*seek)(void* arg, int offset, int whence);
 
 } icesnd_callback_t;
 

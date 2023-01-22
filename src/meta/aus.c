@@ -1,71 +1,48 @@
 #include "meta.h"
 #include "../util.h"
 
-/* AUS (found in various Capcom games) */
-VGMSTREAM * init_vgmstream_aus(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
+/* AUS - Atomic Planet games [Jackie Chan Adventures (PS2), Mega Man Anniversary Collection (PS2/Xbox)] */
+VGMSTREAM* init_vgmstream_aus(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
     off_t start_offset;
-    int loop_flag = 0;
-	int channel_count;
+    int loop_flag, channels, codec;
 
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("aus",filename_extension(filename))) goto fail;
 
-    /* check header */
-    if (read_32bitBE(0x00,streamFile) != 0x41555320) /* "AUS " */
+    /* checks */
+    if (!is_id32be(0x00, sf, "AUS "))
+        goto fail;
+    if (!check_extensions(sf, "aus"))
         goto fail;
 
-    loop_flag = (read_32bitLE(0x0c,streamFile)!=0);
-    channel_count = read_32bitLE(0xC,streamFile);
-    
-	/* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    channels = read_u32le(0x0c,sf);
+    start_offset = 0x800;
+    codec = read_u16le(0x06,sf);
+    loop_flag = (read_u32le(0x1c,sf) == 1); /* games seem to just do full loops, even when makes no sense (jingles/megaman stages) */
+
+    /* build the VGMSTREAM */
+    vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
-	/* fill in the vital statistics */
-    start_offset = 0x800;
-	vgmstream->channels = channel_count;
-    vgmstream->sample_rate = read_32bitLE(0x10,streamFile);
-	vgmstream->num_samples = read_32bitLE(0x08,streamFile);
+    vgmstream->meta_type = meta_AUS;
+    vgmstream->sample_rate = read_s32le(0x10,sf); /* uses pretty odd values */
+    vgmstream->num_samples = read_s32le(0x08,sf);
+    vgmstream->loop_start_sample = read_s32le(0x14,sf); /* always 0? */
+    vgmstream->loop_end_sample = read_s32le(0x18,sf); /* always samples? */
 
-	if(read_16bitLE(0x06,streamFile)==0x02) {
-		vgmstream->coding_type = coding_XBOX_IMA;
-		vgmstream->layout_type=layout_none;
-	} else {
-		vgmstream->coding_type = coding_PSX;
-		vgmstream->layout_type = layout_interleave;
-		vgmstream->interleave_block_size = 0x800;
-	}
-
-	if (loop_flag) {
-		vgmstream->loop_start_sample = read_32bitLE(0x14,streamFile);
-		vgmstream->loop_end_sample = read_32bitLE(0x08,streamFile);
-	}
-
-	vgmstream->meta_type = meta_AUS;
-
-    /* open the file for reading */
-    {
-        int i;
-        STREAMFILE * file;
-        file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (!file) goto fail;
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = file;
-
-            vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=start_offset+
-                vgmstream->interleave_block_size*i;
-
-        }
+    if (codec == 0x02) {
+        vgmstream->coding_type = coding_XBOX_IMA;
+        vgmstream->layout_type = layout_none;
+    }
+    else {
+        vgmstream->coding_type = coding_PSX;
+        vgmstream->layout_type = layout_interleave;
+        vgmstream->interleave_block_size = 0x800;
     }
 
+    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
+        goto fail;
     return vgmstream;
-
-    /* clean up anything we may have opened */
 fail:
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_vgmstream(vgmstream);
     return NULL;
 }

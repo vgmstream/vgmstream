@@ -489,15 +489,7 @@ VGMSTREAM* init_vgmstream_nub_xma(STREAMFILE* sf) {
 
 #ifdef VGM_USE_FFMPEG
     {
-        uint8_t buf[0x100];
-        size_t bytes;
-
-        if (nus_codec == 0x04) {
-            bytes = ffmpeg_make_riff_xma2_from_xma2_chunk(buf,0x100, chunk_offset,chunk_size, data_size, sf);
-        } else {
-            bytes = ffmpeg_make_riff_xma_from_fmt_chunk(buf,0x100, chunk_offset,chunk_size, data_size, sf, 1);
-        }
-        vgmstream->codec_data = init_ffmpeg_header_offset(sf, buf,bytes, start_offset,data_size);
+        vgmstream->codec_data = init_ffmpeg_xma_chunk(sf, start_offset, data_size, chunk_offset, chunk_size);
         if ( !vgmstream->codec_data ) goto fail;
         vgmstream->coding_type = coding_FFmpeg;
         vgmstream->layout_type = layout_none;

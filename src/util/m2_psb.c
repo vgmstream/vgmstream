@@ -15,7 +15,7 @@
  *   21                             // object: root (x2 listN + other data)
  *     0D 04 0D 06,0B,0D,0E         //   list8[4]: key indexes (#0 "id", #1 "spec", #2 "version", #3 "voice"; found in a separate "key names" table)
  *     0D 04 0D 00,02,04,09         //   list8[4]: byte offsets of next 4 items
- *     15 02		                //   #0 string8: string key #2 ("pc")
+ *     15 02                        //   #0 string8: string key #2 ("pc")
  *     1E 5C8F823F                  //   #1 float32: 1.02
  *     05 02                        //   #2 int8: 2
  *     21                           //   #3 object

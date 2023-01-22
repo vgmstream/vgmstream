@@ -23,7 +23,7 @@ struct dsp_header {
     int16_t loop_hist1;         /* 0x46 */
     int16_t loop_hist2;         /* 0x48 */
     int16_t channels;           /* 0x4a (DSPADPCM.exe ~v2.7 extension) */
-    int16_t block_size;         /* 0x4c */
+    uint16_t block_size;        /* 0x4c */
     /* padding/reserved up to 0x60, DSPADPCM.exe from GC adds garbage here (uninitialized MSVC memory?)
      * [ex. Batallion Wars (GC), Timesplitters 2 (GC)], 0xcccc...cccc with DSPADPCMD */
 };
