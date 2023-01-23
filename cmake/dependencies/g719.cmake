@@ -3,6 +3,7 @@ if(NOT WIN32 AND USE_G719)
 		DIR libg719_decode
 		GIT_REPOSITORY https://github.com/kode54/libg719_decode
 		GIT_TAG da90ad8a676876c6c47889bcea6a753f9bbf7a73
+		GIT_UNSHALLOW ON
 	)
 	
 	if(G719_PATH)

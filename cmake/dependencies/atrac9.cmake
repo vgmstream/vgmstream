@@ -3,6 +3,7 @@ if(NOT WIN32 AND USE_ATRAC9)
 		DIR LibAtrac9
 		GIT_REPOSITORY https://github.com/Thealexbarney/LibAtrac9
 		GIT_TAG 6a9e00f6c7abd74d037fd210b6670d3cdb313049
+		GIT_UNSHALLOW ON
 	)
 	
 	if(ATRAC9_PATH)
