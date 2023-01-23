@@ -113,6 +113,7 @@ if(USE_FFMPEG)
 				--disable-nvenc
 				--disable-nvdec
 				--disable-vdpau
+				--disable-vulkan
 				--enable-parser=${FFMPEG_CONF_PARSER}
 				--enable-demuxer=${FFMPEG_CONF_DEMUXER}
 				--enable-decoder=${FFMPEG_CONF_DECODER}
