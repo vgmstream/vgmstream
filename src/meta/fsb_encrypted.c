@@ -3,6 +3,8 @@
 #include "fsb_encrypted_streamfile.h"
 
 
+static VGMSTREAM* test_fsbkey(STREAMFILE* sf, const uint8_t* key, size_t key_size, uint8_t flags);
+
 /* fully encrypted FSBs */
 VGMSTREAM* init_vgmstream_fsb_encrypted(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
@@ -18,58 +20,21 @@ VGMSTREAM* init_vgmstream_fsb_encrypted(STREAMFILE* sf) {
     if (!check_extensions(sf, "fsb,ps3,xen"))
         goto fail;
 
-
     /* try fsbkey + all combinations of FSB4/5 and decryption algorithms */
     {
-        STREAMFILE* temp_sf = NULL;
         uint8_t key[FSB_KEY_MAX];
         size_t key_size = read_key_file(key, FSB_KEY_MAX, sf);
 
-        if (key_size) {
-            {
-                temp_sf = setup_fsb_streamfile(sf, key,key_size, 0);
-                if (!temp_sf) goto fail;
-
-                if (!vgmstream) vgmstream = init_vgmstream_fsb(temp_sf);
-                if (!vgmstream) vgmstream = init_vgmstream_fsb5(temp_sf);
-
-                close_streamfile(temp_sf);
-            }
-
-            if (!vgmstream) {
-                temp_sf = setup_fsb_streamfile(sf, key,key_size, 1);
-                if (!temp_sf) goto fail;
-
-                if (!vgmstream) vgmstream = init_vgmstream_fsb(temp_sf);
-                if (!vgmstream) vgmstream = init_vgmstream_fsb5(temp_sf);
-
-                close_streamfile(temp_sf);
-            }
-        }
+        test_fsbkey(sf, key, key_size, MODE_FSBS_ALL);
     }
 
 
     /* try all keys until one works */
     if (!vgmstream) {
-        int i;
-        STREAMFILE* temp_sf = NULL;
-
-        for (i = 0; i < fsbkey_list_count; i++) {
+        for (int i = 0; i < fsbkey_list_count; i++) {
             fsbkey_info entry = fsbkey_list[i];
-            //;VGM_LOG("fsbkey: size=%i, is_fsb5=%i, is_alt=%i\n", entry.fsbkey_size,entry.is_fsb5, entry.is_alt);
 
-            temp_sf = setup_fsb_streamfile(sf, entry.fsbkey, entry.fsbkey_size, entry.is_alt);
-            if (!temp_sf) goto fail;
-
-            if (fsbkey_list[i].is_fsb5) {
-                vgmstream = init_vgmstream_fsb5(temp_sf);
-            } else {
-                vgmstream = init_vgmstream_fsb(temp_sf);
-            }
-
-            //;if (vgmstream) dump_streamfile(temp_sf, 0);
-
-            close_streamfile(temp_sf);
+            vgmstream = test_fsbkey(sf, (const uint8_t*)entry.key, entry.key_size, entry.flags);
             if (vgmstream) break;
         }
     }
@@ -82,4 +47,42 @@ VGMSTREAM* init_vgmstream_fsb_encrypted(STREAMFILE* sf) {
 fail:
     close_vgmstream(vgmstream);
     return NULL;
+}
+
+static VGMSTREAM* test_fsbkey(STREAMFILE* sf, const uint8_t* key, size_t key_size, uint8_t flags) {
+    STREAMFILE* temp_sf = NULL;
+    VGMSTREAM* vc = NULL;
+
+    if (!key_size)
+        return NULL;
+
+    int test_fsb4 = flags & FLAG_FSB4;
+    int test_fsb5 = flags & FLAG_FSB5;
+    int test_std = flags & FLAG_STD;
+    int test_alt = flags & FLAG_ALT;
+
+
+    if (!vc && test_std) {
+        temp_sf = setup_fsb_streamfile(sf, key, key_size, 0);
+        if (!temp_sf) return NULL;
+
+        if (!vc && test_fsb4) vc = init_vgmstream_fsb(temp_sf);
+        if (!vc && test_fsb5) vc = init_vgmstream_fsb5(temp_sf);
+
+        //;if (vgmstream) dump_streamfile(temp_sf, 0);
+       close_streamfile(temp_sf);
+    }
+
+    if (!vc && test_alt) {
+        temp_sf = setup_fsb_streamfile(sf, key, key_size, 1);
+        if (!temp_sf) return NULL;
+
+        if (!vc  && test_fsb4) vc = init_vgmstream_fsb(temp_sf);
+        if (!vc && test_fsb5) vc = init_vgmstream_fsb5(temp_sf);
+
+        //;if (vgmstream) dump_streamfile(temp_sf, 0);
+        close_streamfile(temp_sf);
+    }
+    
+    return vc;
 }

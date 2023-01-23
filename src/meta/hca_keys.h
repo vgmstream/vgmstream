@@ -1,7 +1,7 @@
 #ifndef _HCA_KEYS_H_
 #define _HCA_KEYS_H_
-
-#include "hca_keys_awb.h"
+#include <stdint.h>
+//#include "hca_keys_awb.h"
 
 typedef struct {
     uint64_t key;               /* hca key or seed ('user') key */
@@ -1091,15 +1091,18 @@ static const hcakey_info hcakey_list[] = {
 
         // P Sengoku Otome 6 ~Akatsuki no Sekigahara~ (Android)
         {97648135},             // 0000000005d1fe07
-    
+
         // CHUNITHM International Version (AC)
         {33426922444908636},   // 0076C19BDE43685C
-    
+
         // Star Ocean: The Divine Force (PC)
         {68308868861462528},   // 00f2ae8de77f0800
-    
+
         // Sin Chronicle (Android)
         {4385672148314579020}, // 3CDD0995259D604C
+
+        // The Eminence in Shadow: Master of Garden (Android)
+        {8115775984160473168}, // 70A1074224880050
 };
 
 #endif/*_HCA_KEYS_H_*/

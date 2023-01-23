@@ -2,7 +2,7 @@
 #include "../coding/coding.h"
 #include "../layout/layout.h"
 
-typedef enum { NONE, MSADPCM, DSP, GCADPCM, ATRAC9, RIFF_ATRAC9, KOVS, /*KNS*/ } ktsr_codec;
+typedef enum { NONE, MSADPCM, DSP, GCADPCM, ATRAC9, RIFF_ATRAC9, KOVS, KTSS, } ktsr_codec;
 
 #define MAX_CHANNELS 8
 
@@ -33,9 +33,9 @@ typedef struct {
 
 static int parse_ktsr(ktsr_header* ktsr, STREAMFILE* sf);
 static layered_layout_data* build_layered_atrac9(ktsr_header* ktsr, STREAMFILE *sf, uint32_t config_data);
+static VGMSTREAM* init_vgmstream_ktsr_sub(STREAMFILE* sf_b, ktsr_header* ktsr, VGMSTREAM* (*init_vgmstream)(STREAMFILE* sf), const char* ext);
 
-
-/* KTSR - Koei Tecmo sound resource countainer */
+/* KTSR - Koei Tecmo sound resource container */
 VGMSTREAM* init_vgmstream_ktsr(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     STREAMFILE* sf_b = NULL;
@@ -75,6 +75,26 @@ VGMSTREAM* init_vgmstream_ktsr(STREAMFILE* sf) {
         sf_b = sf;
     }
 
+
+    /* subfiles */
+    {
+        VGMSTREAM* (*init_vgmstream)(STREAMFILE* sf) = NULL;
+        const char* ext;
+        switch(ktsr.codec) {
+            case RIFF_ATRAC9:   init_vgmstream = init_vgmstream_riff; ext = "at9"; break;
+            case KOVS:          init_vgmstream = init_vgmstream_ogg_vorbis; ext = "kvs"; break;
+            case KTSS:          init_vgmstream = init_vgmstream_ktss; ext = "ktss"; break;
+            default: break;
+        }
+
+        if (init_vgmstream) {
+            vgmstream = init_vgmstream_ktsr_sub(sf_b, &ktsr, init_vgmstream, ext);
+            if (!vgmstream) goto fail;
+
+            if (sf_b != sf) close_streamfile(sf_b);
+            return vgmstream;
+        }
+    }
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(ktsr.channels, ktsr.loop_flag);
@@ -125,49 +145,6 @@ VGMSTREAM* init_vgmstream_ktsr(STREAMFILE* sf) {
             break;
         }
 #endif
-
-        case RIFF_ATRAC9: {
-            VGMSTREAM* riff_vgmstream = NULL; //TODO: meh
-            STREAMFILE* temp_sf = setup_subfile_streamfile(sf_b, ktsr.stream_offsets[0], ktsr.stream_sizes[0], "at9");
-            if (!temp_sf) goto fail;
-
-            riff_vgmstream = init_vgmstream_riff(temp_sf);
-            close_streamfile(temp_sf);
-            if (!riff_vgmstream) goto fail;
-
-            riff_vgmstream->stream_size = vgmstream->stream_size;
-            riff_vgmstream->num_streams = vgmstream->num_streams;
-            riff_vgmstream->channel_layout = vgmstream->channel_layout;
-
-            strcpy(riff_vgmstream->stream_name, vgmstream->stream_name);
-
-            close_vgmstream(vgmstream);
-            if (sf_b != sf) close_streamfile(sf_b);
-            return riff_vgmstream;
-        }
-
-#ifdef VGM_USE_VORBIS
-        case KOVS: {
-            VGMSTREAM* ogg_vgmstream = NULL; //TODO: meh
-            STREAMFILE* temp_sf = setup_subfile_streamfile(sf_b, ktsr.stream_offsets[0], ktsr.stream_sizes[0], "kvs");
-            if (!temp_sf) goto fail;
-
-            ogg_vgmstream = init_vgmstream_ogg_vorbis(temp_sf);
-            close_streamfile(temp_sf);
-            if (!ogg_vgmstream) goto fail;
-
-            ogg_vgmstream->stream_size = vgmstream->stream_size;
-            ogg_vgmstream->num_streams = vgmstream->num_streams;
-            ogg_vgmstream->channel_layout = vgmstream->channel_layout;
-            /* loops look shared */
-            strcpy(ogg_vgmstream->stream_name, vgmstream->stream_name);
-
-            close_vgmstream(vgmstream);
-            if (sf_b != sf) close_streamfile(sf_b);
-            return ogg_vgmstream;
-        }
-#endif
-
         default:
             goto fail;
     }
@@ -192,6 +169,26 @@ fail:
     close_vgmstream(vgmstream);
     return NULL;
 }
+
+// TODO improve, unity with other metas that do similar stuff
+static VGMSTREAM* init_vgmstream_ktsr_sub(STREAMFILE* sf_b, ktsr_header* ktsr, VGMSTREAM* (*init_vgmstream)(STREAMFILE* sf), const char* ext) {
+    VGMSTREAM* sub_vgmstream = NULL;
+    STREAMFILE* temp_sf = setup_subfile_streamfile(sf_b, ktsr->stream_offsets[0], ktsr->stream_sizes[0], ext);
+    if (!temp_sf) return NULL;
+
+    sub_vgmstream = init_vgmstream(temp_sf);
+    close_streamfile(temp_sf);
+    if (!sub_vgmstream) return NULL;
+
+    sub_vgmstream->stream_size = ktsr->stream_sizes[0];
+    sub_vgmstream->num_streams = ktsr->total_subsongs;
+    sub_vgmstream->channel_layout = ktsr->channel_layout;
+
+    strcpy(sub_vgmstream->stream_name, ktsr->name);
+
+    return sub_vgmstream;
+}
+
 
 static layered_layout_data* build_layered_atrac9(ktsr_header* ktsr, STREAMFILE* sf, uint32_t config_data) {
     STREAMFILE* temp_sf = NULL;
@@ -256,12 +253,12 @@ static int parse_codec(ktsr_header* ktsr) {
         case 0x01: /* PC */
             if (ktsr->is_external) {
                 if (ktsr->format == 0x0005)
-                    ktsr->codec = KOVS;
+                    ktsr->codec = KOVS; // Atelier Ryza (PC)
                 else
                     goto fail;
             }
             else if (ktsr->format == 0x0000) {
-                ktsr->codec = MSADPCM;
+                ktsr->codec = MSADPCM; // Warrior Orochi 4 (PC)
             }
             else {
                 goto fail;
@@ -271,21 +268,25 @@ static int parse_codec(ktsr_header* ktsr) {
         case 0x03: /* PS4/VITA */
             if (ktsr->is_external) {
                 if (ktsr->format == 0x1001)
-                    ktsr->codec = RIFF_ATRAC9;
+                    ktsr->codec = RIFF_ATRAC9; // Nioh (PS4)
                 else
                     goto fail;
             }
             else if (ktsr->format == 0x0001)
-                ktsr->codec = ATRAC9;
+                ktsr->codec = ATRAC9; // Attack on Titan: Wings of Freedom (Vita)
             else
                 goto fail;
             break;
 
         case 0x04: /* Switch */
-            if (ktsr->is_external)
-                goto fail; /* KTSS? */
+            if (ktsr->is_external) {
+                if (ktsr->format == 0x0005)
+                    ktsr->codec = KTSS; // [Ultra Kaiju Monster Rancher (Switch)]
+                else
+                    goto fail;
+            }
             else if (ktsr->format == 0x0000)
-                ktsr->codec = DSP;
+                ktsr->codec = DSP; // Fire Emblem: Three Houses (Switch)
             else
                 goto fail;
             break;
@@ -296,7 +297,7 @@ static int parse_codec(ktsr_header* ktsr) {
 
     return 1;
 fail:
-    VGM_LOG("ktsr: unknown codec combo: ext=%x, fmt=%x, ptf=%x\n", ktsr->is_external, ktsr->format, ktsr->platform);
+    VGM_LOG("ktsr: unknown codec combo: external=%x, format=%x, platform=%x\n", ktsr->is_external, ktsr->format, ktsr->platform);
     return 0;
 }
 
