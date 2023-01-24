@@ -44,6 +44,7 @@ typedef enum {
     ASF = 30,           /* Argonaut ASF 4-bit ADPCM */
     EAXA = 31,          /* Electronic Arts EA-XA 4-bit ADPCM v1 */
     OKI4S = 32,         /* OKI ADPCM with 16-bit output (unlike OKI/VOX/Dialogic ADPCM's 12-bit) */
+    PCM24LE = 33,       /* 24-bit Little Endian PCM*/
     XA,
     XA_EA,
     CP_YM,
@@ -226,6 +227,7 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
             case PSX_bf:        
             case HEVAG:         interleave = 0x10; break;
             case NGC_DSP:       interleave = 0x08; break;
+            case PCM24LE:       interleave = 0x03; break;
             case PCM16LE:
             case PCM16BE:       interleave = 0x02; break;
             case PCM8:
@@ -246,6 +248,7 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
         case HEVAG:         coding = coding_HEVAG; break;
         case XBOX:          coding = coding_XBOX_IMA; break;
         case NGC_DTK:       coding = coding_NGC_DTK; break;
+        case PCM24LE:       coding = coding_PCM24LE; break;
         case PCM16LE:       coding = coding_PCM16LE; break;
         case PCM16BE:       coding = coding_PCM16BE; break;
         case PCM8:          coding = coding_PCM8; break;
@@ -318,6 +321,7 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
         case coding_PCM8_U_int:
             vgmstream->layout_type = layout_none;
             break;
+        case coding_PCM24LE:
         case coding_PCM16LE:
         case coding_PCM16BE:
         case coding_PCM8:
@@ -941,6 +945,7 @@ static txth_codec_t parse_codec(txth_header* txth, const char* val) {
     else if (is_string(val,"XBOX"))         return XBOX;
     else if (is_string(val,"NGC_DTK"))      return NGC_DTK;
     else if (is_string(val,"DTK"))          return NGC_DTK;
+    else if (is_string(val,"PCM24LE"))      return PCM24LE;
     else if (is_string(val,"PCM16BE"))      return PCM16BE;
     else if (is_string(val,"PCM16LE"))      return PCM16LE;
     else if (is_string(val,"PCM8"))         return PCM8;
@@ -2091,6 +2096,8 @@ static int get_bytes_to_samples(txth_header* txth, uint32_t bytes) {
         case PSX_bf:
         case HEVAG:
             return ps_bytes_to_samples(bytes, txth->channels);
+        case PCM24LE:
+            return pcm24_bytes_to_samples(bytes, txth->channels);
         case PCM16BE:
         case PCM16LE:
             return pcm16_bytes_to_samples(bytes, txth->channels);
