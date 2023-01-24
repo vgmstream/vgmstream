@@ -71,4 +71,8 @@ if(NOT EMSCRIPTEN)
 	setup_target(libvgmstream_shared TRUE)
 	
 	target_include_directories(libvgmstream_shared PRIVATE ${libvgmstream_includes})
+	
+	if(CMAKE_CXX_COMPILER_ID MATCHES Clang OR CMAKE_CXX_COMPILER_ID MATCHES GNU)
+		set_target_properties(libvgmstream_shared PROPERTIES LINK_FLAGS_RELEASE -s)
+	endif()
 endif()

@@ -96,6 +96,9 @@ if(NOT WIN32 AND USE_CELT)
 			mdct_backward
 			mdct_init
 			mdct_clear
+			clt_mdct_init
+			clt_mdct_clear
+			compute_pulse_cache
 		)
 		
 		foreach(ver 0061 0110)
