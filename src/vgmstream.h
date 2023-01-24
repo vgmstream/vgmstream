@@ -70,7 +70,8 @@ typedef enum {
     coding_ALAW,            /* 8-bit a-Law (non-linear PCM) */
 
     coding_PCMFLOAT,        /* 32-bit float PCM */
-    coding_PCM24LE,         /* 24-bit PCM */
+    coding_PCM24LE,         /* little endian 24-bit PCM */
+    coding_PCM24BE,         /* big endian 24-bit PCM */
 
     /* ADPCM */
     coding_CRI_ADX,         /* CRI ADX */
