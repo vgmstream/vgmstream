@@ -83,6 +83,8 @@ as explained below, but often will use default values. Accepted codec strings:
 # - DTK|NGC_DTK    Nintendo ADP/DTK ADPCM
 #   * For rare GC games
 #
+# - PCM24LE        PCM 24-bit little endian
+#   * Interleave is multiple of 0x3 (default)
 # - PCM16LE        PCM 16-bit little endian
 #   * For many games (usually on PC)
 #   * Interleave is multiple of 0x2 (default)
