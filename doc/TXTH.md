@@ -85,6 +85,8 @@ as explained below, but often will use default values. Accepted codec strings:
 #
 # - PCM24LE        PCM 24-bit little endian
 #   * Interleave is multiple of 0x3 (default)
+# - PCM24BE        PCM 24-bit little endian
+#   * For few games (usually on PS3)
 # - PCM16LE        PCM 16-bit little endian
 #   * For many games (usually on PC)
 #   * Interleave is multiple of 0x2 (default)
