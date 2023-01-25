@@ -216,6 +216,17 @@ void decode_pcmfloat(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspac
     }
 }
 
+void decode_pcm24be(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
+    int i;
+    int32_t sample_count;
+
+    for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count += channelspacing) {
+        off_t offset = stream->offset + i * 0x03;
+        int v = read_u8(offset+0x02, stream->streamfile) | (read_s16be(offset + 0x00, stream->streamfile) << 8);
+        outbuf[sample_count] = (v >> 8);
+    }
+}
+
 void decode_pcm24le(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
     int i;
     int32_t sample_count;
