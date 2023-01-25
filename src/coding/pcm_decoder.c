@@ -232,6 +232,10 @@ int32_t pcm_bytes_to_samples(size_t bytes, int channels, int bits_per_sample) {
     return ((int64_t)bytes * 8) / channels / bits_per_sample;
 }
 
+int32_t pcm24_bytes_to_samples(size_t bytes, int channels) {
+    return pcm_bytes_to_samples(bytes, channels, 24);
+}
+
 int32_t pcm16_bytes_to_samples(size_t bytes, int channels) {
     return pcm_bytes_to_samples(bytes, channels, 16);
 }
