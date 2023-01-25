@@ -53,7 +53,9 @@ elseif(VGMSTREAM_VERSION)
 	target_compile_definitions(vgmstream_cli PRIVATE VGMSTREAM_VERSION="${VGMSTREAM_VERSION}")
 endif()
 
-
+if(CMAKE_CXX_COMPILER_ID MATCHES Clang OR CMAKE_CXX_COMPILER_ID MATCHES GNU)
+	set_target_properties(vgmstream_cli PROPERTIES LINK_FLAGS_RELEASE -s)
+endif()
 
 # Install the CLI program
 install(TARGETS vgmstream_cli
@@ -80,9 +82,11 @@ if(NOT WIN32 AND BUILD_V123)
 
 	# Include the version string
 	target_compile_definitions(vgmstream123 PRIVATE VGMSTREAM_VERSION="${VGMSTREAM_VERSION}")
-
 	
-
+	if(CMAKE_CXX_COMPILER_ID MATCHES Clang OR CMAKE_CXX_COMPILER_ID MATCHES GNU)
+		set_target_properties(vgmstream123 PROPERTIES LINK_FLAGS_RELEASE -s)
+	endif()
+	
 	# Install vgmstream123
 	install(TARGETS vgmstream123
 		RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
