@@ -103,8 +103,10 @@ static VGMSTREAM* init_vgmstream_opus(STREAMFILE* sf, meta_t meta_type, off_t of
         vgmstream->layout_type = layout_none;
         vgmstream->channel_layout = ffmpeg_get_channel_layout(vgmstream->codec_data);
 
-        if (vgmstream->num_samples == 0) {
+        if (vgmstream->num_samples <= 0) {
             vgmstream->num_samples = switch_opus_get_samples(start_offset, data_size, sf) - skip;
+            if (num_samples < 0 && vgmstream->loop_end_sample > vgmstream->num_samples) /* special flag for weird cases */
+                vgmstream->loop_end_sample = vgmstream->num_samples;
         }
     }
 #else
@@ -293,18 +295,21 @@ VGMSTREAM* init_vgmstream_opus_shinen(STREAMFILE* sf) {
     /* checks */
     if (read_u32be(0x08,sf) != 0x01000080)
         goto fail;
-    if ( !check_extensions(sf,"opus,lopus"))
+    if (!check_extensions(sf,"opus,lopus"))
         goto fail;
 
     offset = 0x08;
-    num_samples = 0;
-    loop_start = read_32bitLE(0x00,sf);
-    loop_end = read_32bitLE(0x04,sf); /* 0 if no loop */
+    loop_start = read_s32le(0x00,sf);
+    loop_end = read_s32le(0x04,sf); /* 0 if no loop */
+
+    /* tepaneca.opus has loop_end slightly bigger than samples, but doesn't seem an encoder delay thing since
+     * several tracks do full loops to 0 and sound ok. Mark with a special flag to allow this case. */
+    num_samples = -1;
 
     if (loop_start > loop_end)
         goto fail; /* just in case */
 
-    return init_vgmstream_opus(sf, meta_OPUS, offset, num_samples,loop_start,loop_end);
+    return init_vgmstream_opus(sf, meta_OPUS, offset, num_samples, loop_start, loop_end);
 fail:
     return NULL;
 }
