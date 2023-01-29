@@ -1267,9 +1267,6 @@
     <ClCompile Include="meta\naomi_adpcm.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\naomi_spsd.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="meta\nds_hwas.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -1682,6 +1679,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\spm.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\spsd.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\sps_n1.c">

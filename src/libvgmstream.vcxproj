@@ -482,7 +482,6 @@
     <ClCompile Include="meta\myspd.c" />
     <ClCompile Include="meta\naac.c" />
     <ClCompile Include="meta\naomi_adpcm.c" />
-    <ClCompile Include="meta\naomi_spsd.c" />
     <ClCompile Include="meta\nds_hwas.c" />
     <ClCompile Include="meta\nds_rrds.c" />
     <ClCompile Include="meta\nds_strm.c" />
@@ -621,6 +620,7 @@
     <ClCompile Include="meta\smv.c" />
     <ClCompile Include="meta\sndz.c" />
     <ClCompile Include="meta\spm.c" />
+    <ClCompile Include="meta\spsd.c" />
     <ClCompile Include="meta\sps_n1.c" />
     <ClCompile Include="meta\spt_spd.c" />
     <ClCompile Include="meta\sqex_scd.c" />
