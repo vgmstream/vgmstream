@@ -83,10 +83,6 @@ as explained below, but often will use default values. Accepted codec strings:
 # - DTK|NGC_DTK    Nintendo ADP/DTK ADPCM
 #   * For rare GC games
 #
-# - PCM24LE        PCM 24-bit little endian
-#   * Interleave is multiple of 0x3 (default)
-# - PCM24BE        PCM 24-bit little endian
-#   * For few games (usually on PS3)
 # - PCM16LE        PCM 16-bit little endian
 #   * For many games (usually on PC)
 #   * Interleave is multiple of 0x2 (default)
@@ -102,6 +98,12 @@ as explained below, but often will use default values. Accepted codec strings:
 # - PCM8_SB        PCM 8-bit with sign bit
 #   * Variation with modified encoding
 #   * For few rare games [Sonic CD (SCD)]
+# - PCM24LE        PCM 24-bit little endian
+#   * For few rare games [100% Orange Juice (PC)-sfx]
+#   * Interleave is multiple of 0x3 (default)
+# - PCM24BE        PCM 24-bit little endian
+#   * For few rare games [Deadly Premonition (PS3)]
+#   * Interleave is multiple of 0x3 (default)
 # - PCM_FLOAT_LE   PCM 32-bit float little endian
 #   * For few rare games [Ikinari Maou (Switch)]
 #   * Interleave is multiple of 0x4 (default)

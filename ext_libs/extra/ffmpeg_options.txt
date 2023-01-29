@@ -59,6 +59,7 @@
 --disable-nvenc
 --disable-nvdec
 --disable-vdpau
+--disable-vulkan
 
 # this can't be disabled, for av_get_random_seed though shouldn't be needed (maybe indirectly by asf?)
 # Windows XP doesn't support bcrypt though, see "ffmpeg-revert-bcrypt-random.patch" if XP support is really needed
