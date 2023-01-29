@@ -128,24 +128,38 @@ jobs:
     #      path: ${{runner.workspace}}/build/audacious/vgmstream.so
     #      name: vgmstream-audacious
 
-    - name: Upload artifacts to S3
-      if: github.event_name != 'pull_request'
-      working-directory: ${{runner.workspace}}/build
+    # uploads current assets to vgmstream-releases (token only works on merges)
+    - name: Upload artifacts to nightly
+      if: github.event_name != 'pull_request' 
+      working-directory: ${{runner.workspace}}
       shell: bash
       env:
-          AWS_DEFAULT_REGION: us-west-1
-          AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY_ID}}
-          AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
-      # TODO: Add vgmstream123 to the archive and upload the Audacious plugin when it is supported
+        UPLOADER_GITHUB_TOKEN: ${{ secrets.UPLOADER_GITHUB_TOKEN }}
       run: |
-        cd cli
-        tar cvfz vgmstream-linux-cli.tar.gz vgmstream-cli
-        cd ..
-        aws s3 cp cli/vgmstream-linux-cli.tar.gz s3://vgmstream-builds/${{github.sha}}/linux/vgmstream-linux-cli.tar.gz --acl public-read
-        cd ${{runner.workspace}}
-        echo ${{github.sha}} | tee latest_id_lx
-        aws s3 cp latest_id_lx s3://vgmstream-builds/ --acl public-read
-      # cd audacious
-      # tar cvfz vgmstream-audacious.tar.gz vgmstream.so
-      # cd ..
-      # aws s3 cp audacious/vgmstream-audacious.tar.gz s3://vgmstream-builds/${{github.sha}}/linux/vgmstream-audacious.tar.gz --acl public-read
+        tar cvfz vgmstream-linux-cli.tar.gz -C ./build/cli vgmstream-cli
+     #  tar cvfz vgmstream-linux-123.tar.gz -C ./build/cli vgmstream123
+     #  tar cvfz vgmstream-linux-audacious.tar.gz -C ./build/audacious vgmstream.so
+        python .github/uploader.py vgmstream-linux-cli.tar.gz
+
+
+    #- name: Upload artifacts to S3
+    #  if: github.event_name != 'pull_request'
+    #  working-directory: ${{runner.workspace}}/build
+    #  shell: bash
+    #  env:
+    #      AWS_DEFAULT_REGION: us-west-1
+    #      AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY_ID}}
+    #      AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
+    #  # TODO: Add vgmstream123 to the archive and upload the Audacious plugin when it is supported
+    #  run: |
+    #    cd cli
+    #    tar cvfz vgmstream-linux-cli.tar.gz vgmstream-cli
+    #    cd ..
+    #    aws s3 cp cli/vgmstream-linux-cli.tar.gz s3://vgmstream-builds/${{github.sha}}/linux/vgmstream-linux-cli.tar.gz --acl public-read
+    #    cd ${{runner.workspace}}
+    #    echo ${{github.sha}} | tee latest_id_lx
+    #    aws s3 cp latest_id_lx s3://vgmstream-builds/ --acl public-read
+    #  # cd audacious
+    #  # tar cvfz vgmstream-audacious.tar.gz vgmstream.so
+    #  # cd ..
+    #  # aws s3 cp audacious/vgmstream-audacious.tar.gz s3://vgmstream-builds/${{github.sha}}/linux/vgmstream-audacious.tar.gz --acl public-read

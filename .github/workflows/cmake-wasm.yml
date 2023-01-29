@@ -118,16 +118,25 @@ jobs:
             ${{runner.workspace}}/embuild/cli/vgmstream-cli.wasm
           name: vgmstream-wasm
 
-    - name: Upload artifacts to S3
-      if: github.event_name != 'pull_request'
-      working-directory: ${{runner.workspace}}/embuild/cli
-      shell: bash
+    # uploads current assets to vgmstream-releases (token only works on merges)
+    - name: Upload artifacts to vgmstream-releases
+      if: github.event_name != 'pull_request' 
+      working-directory: ${{github.workspace}}
       env:
-          AWS_DEFAULT_REGION: us-west-1
-          AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY_ID}}
-          AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
+        UPLOADER_GITHUB_TOKEN: ${{ secrets.UPLOADER_GITHUB_TOKEN }}
       run: |
-        echo ${{github.sha}} | tee latest_id
-        aws s3 cp ${{runner.workspace}}/embuild/cli/vgmstream-cli.js s3://vgmstream-builds/js/vgmstream-cli.js --acl public-read
-        aws s3 cp ${{runner.workspace}}/embuild/cli/vgmstream-cli.wasm s3://vgmstream-builds/js/vgmstream-cli.wasm --acl public-read
-        aws s3 cp latest_id s3://vgmstream-builds/js/version --acl public-read
+        python .github/uploader.py ${{runner.workspace}}/embuild/cli/vgmstream-cli.js ${{runner.workspace}}/embuild/cli/vgmstream-cli.wasm
+
+    #- name: Upload artifacts to S3
+    #  if: github.event_name != 'pull_request'
+    #  working-directory: ${{runner.workspace}}/embuild/cli
+    #  shell: bash
+    #  env:
+    #      AWS_DEFAULT_REGION: us-west-1
+    #      AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY_ID}}
+    #      AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
+    #  run: |
+    #    echo ${{github.sha}} | tee latest_id
+    #    aws s3 cp ${{runner.workspace}}/embuild/cli/vgmstream-cli.js s3://vgmstream-builds/js/vgmstream-cli.js --acl public-read
+    #    aws s3 cp ${{runner.workspace}}/embuild/cli/vgmstream-cli.wasm s3://vgmstream-builds/js/vgmstream-cli.wasm --acl public-read
+    #    aws s3 cp latest_id s3://vgmstream-builds/js/version --acl public-read

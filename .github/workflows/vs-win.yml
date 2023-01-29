@@ -61,14 +61,15 @@ jobs:
           name: vgmstream-win.pdb
           path: ${{github.workspace}}\tmp\cli-p
 
-      # uploads current assets to vgmstream-releases
-      - name: Upload artifacts to nightly
+      # uploads current assets to vgmstream-releases (token only works on merges)
+      - name: Upload artifacts to vgmstream-releases
         if: github.event_name != 'pull_request' 
         working-directory: ${{github.workspace}}
         env:
           UPLOADER_GITHUB_TOKEN: ${{ secrets.UPLOADER_GITHUB_TOKEN }}
         run: |
           python .github/uploader.py bin/vgmstream-win.zip bin/foo_input_vgmstream.fb2k-component
+          python .github/uploader.py --changelog
 
       #- name: Upload artifacts to S3
       #  if: github.event_name != 'pull_request' 
@@ -87,4 +88,3 @@ jobs:
       #    git describe --always | tee latest_ver_win
       #    aws s3 cp latest_id_win s3://vgmstream-builds/ --acl public-read
       #    aws s3 cp latest_ver_win s3://vgmstream-builds/ --acl public-read
-      
