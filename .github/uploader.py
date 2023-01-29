@@ -1,0 +1,128 @@
+# uploads artifacts to nightly releases
+import urllib.request, json, argparse, glob, subprocess, os
+
+# to handle nightly releases:
+# - create repo (could be in main repo but needs a tag, that is associated with some commit)
+# - create release w/ tag, this is were uploads go 
+# - upload assets manually or via API below, needs access token
+# - assets have a fixed link based on tag = good
+#
+# To generate access tokens:
+# - go to user settings > developer settings
+#
+# * there are github actions that automate this that could be used, this is based from manual tests
+# * also "import github" to use Github(token) that comes with many helpers
+#   gh = Github(token)
+#   gh_repo = gh.get_repo(repo)
+#   gh_release = gh_repo.get_release(tag)
+#   assets = gh_release.get_assets()
+#   gh_release.update_release(...)
+#   gh_release.upload_asset(...)
+#
+# API: https://docs.github.com/en/rest/releases/releases?apiVersion=2022-11-28
+#      https://docs.github.com/en/rest/releases/assets?apiVersion=2022-11-28
+
+RELEASE_TAG = 'nightly'
+# gives info about release (public)
+URL_RELEASE = 'https://api.github.com/repos/vgmstream/vgmstream-releases/releases/tags/nightly'
+# allows deleting a single asset
+URL_DELETE = 'https://api.github.com/repos/vgmstream/vgmstream-releases/releases/assets/%s'
+# allows uploading a single asset
+URL_UPLOAD = 'https://uploads.github.com/repos/vgmstream/vgmstream-releases/releases/%s/assets?name=%s'
+
+
+def get_release():
+    contents = urllib.request.urlopen(URL_RELEASE).read()
+    data = json.loads(contents)
+    return data
+
+def delete_asset(release, file, token, debug):
+    basename = os.path.basename(file)
+
+    asset_id = None
+    for asset in release['assets']:
+        if asset['name'].lower() == basename.lower():
+            asset_id = asset['id']
+            break
+    if not asset_id:
+        print("asset id not found")
+        return
+
+    args = [
+        'curl',
+        '-X', 'DELETE',
+        '-H', 'Accept: application/vnd.github+json',
+        '-H', 'Authorization: Bearer %s' % (token),
+        '-H', 'X-GitHub-Api-Version: 2022-11-28',
+        URL_DELETE % (asset_id)
+    ]
+
+    print("* deleting old asset %s (%s)" % (file, asset_id))
+    if debug:
+        print(' '.join(args))
+    else:
+        subprocess.run(args, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+def upload_asset(release, file, token, debug):
+    basename = os.path.basename(file)
+    release_id = release['id']
+    
+    args = [
+        'curl',
+        '-X', 'POST',
+        '-H', 'Accept: application/vnd.github+json',
+        '-H', 'Access-Control-Allow-Origin: *',
+        '-H', 'Authorization: Bearer %s' % (token),
+        '-H', 'X-GitHub-Api-Version: 2022-11-28',
+        '-H', 'Content-Type: application/octet-stream',
+        URL_UPLOAD % (release_id, basename),
+        '--data-binary', '@%s' % (file)
+    ]
+
+    print("* uploading asset %s" % (file))
+    if debug:
+        print(' '.join(args))
+    else:
+        subprocess.run(args, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+def main(args):
+    print("staring asset uploader")
+
+    files = []
+    for file_glob in args.files:
+        files += glob.glob(file_glob)
+
+    if not files:
+        raise ValueError("no files found")
+        
+    token = args.token
+    if not token:
+        token = os.environ.get('UPLOADER_GITHUB_TOKEN')
+    if not token:
+        raise ValueError("token not defined")
+
+    release = get_release()
+    for file in files:
+        delete_asset(release, file, token, args.debug)
+        upload_asset(release, file, token, args.debug)
+    print("done")
+
+def parse_args():
+    description = (
+        "uploads artifacts to releases"
+    )
+    epilog = (
+    "-"
+    )
+
+    ap = argparse.ArgumentParser(description=description, epilog=epilog, formatter_class=argparse.RawTextHelpFormatter)
+    ap.add_argument("files", help="files to upload", nargs='+')
+    ap.add_argument("-t","--token", help="security token")
+    ap.add_argument("-x","--debug", help="no actions", action="store_true")
+
+    args = ap.parse_args()
+    return args
+
+if __name__ == "__main__":
+    args = parse_args()
+    main(args)

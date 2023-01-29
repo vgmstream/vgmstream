@@ -61,20 +61,30 @@ jobs:
           name: vgmstream-win.pdb
           path: ${{github.workspace}}\tmp\cli-p
 
-      - name: Upload artifacts to S3
-        if: github.event_name != 'pull_request' 
+      # uploads current assets to vgmstream-releases
+      - name: Upload artifacts to nightly
+        #if: github.event_name != 'pull_request' 
         working-directory: ${{github.workspace}}
-        shell: powershell
         env:
-            AWS_DEFAULT_REGION: us-west-1
-            AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY_ID}}
-            AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
+          UPLOADER_GITHUB_TOKEN: ${{ secrets.UPLOADER_GITHUB_TOKEN }}
         run: |
-          aws s3 cp bin\vgmstream-win.zip s3://vgmstream-builds/${{github.sha}}/windows/ --acl public-read 
-          aws s3 cp bin\foo_input_vgmstream.fb2k-component s3://vgmstream-builds/${{github.sha}}/windows/ --acl public-read 
-          aws s3 cp bin\vgmstream-win.pdb.zip s3://vgmstream-builds/${{github.sha}}/windows/ --acl public-read 
-          aws s3 cp bin\foo_input_vgmstream.pdb.zip s3://vgmstream-builds/${{github.sha}}/windows/ --acl public-read 
-          echo ${{github.sha}} | tee latest_id_win
-          git describe --always | tee latest_ver_win
-          aws s3 cp latest_id_win s3://vgmstream-builds/ --acl public-read
-          aws s3 cp latest_ver_win s3://vgmstream-builds/ --acl public-read
+          python .github/updater.py bin/vgmstream-win.zip bin/foo_input_vgmstream.fb2k-component -t $UPLOADER_GITHUB_TOKEN
+
+      #- name: Upload artifacts to S3
+      #  if: github.event_name != 'pull_request' 
+      #  working-directory: ${{github.workspace}}
+      #  shell: powershell
+      #  env:
+      #      AWS_DEFAULT_REGION: us-west-1
+      #      AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY_ID}}
+      #      AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
+      #  run: |
+      #    aws s3 cp bin\vgmstream-win.zip s3://vgmstream-builds/${{github.sha}}/windows/ --acl public-read 
+      #    aws s3 cp bin\foo_input_vgmstream.fb2k-component s3://vgmstream-builds/${{github.sha}}/windows/ --acl public-read 
+      #    aws s3 cp bin\vgmstream-win.pdb.zip s3://vgmstream-builds/${{github.sha}}/windows/ --acl public-read 
+      #    aws s3 cp bin\foo_input_vgmstream.pdb.zip s3://vgmstream-builds/${{github.sha}}/windows/ --acl public-read 
+      #    echo ${{github.sha}} | tee latest_id_win
+      #    git describe --always | tee latest_ver_win
+      #    aws s3 cp latest_id_win s3://vgmstream-builds/ --acl public-read
+      #    aws s3 cp latest_ver_win s3://vgmstream-builds/ --acl public-read
+      
