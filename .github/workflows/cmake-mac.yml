@@ -51,3 +51,16 @@ jobs:
         with:
           path: ${{ github.workspace }}/build/cli/vgmstream-cli
           name: vgmstream-mac
+
+      # uploads current assets to vgmstream-releases (token only works on merges)
+      - name: Upload artifacts to vgmstream-releases
+        if: github.event_name != 'pull_request' 
+        working-directory: ${{github.workspace}}
+        shell: bash
+        env:
+          UPLOADER_GITHUB_TOKEN: ${{ secrets.UPLOADER_GITHUB_TOKEN }}
+        run: |
+          tar cvfz vgmstream-mac-cli.tar.gz -C ./build/cli vgmstream-cli
+       #  tar cvfz vgmstream-linux-123.tar.gz -C ./build/cli vgmstream123
+       #  tar cvfz vgmstream-linux-audacious.tar.gz -C ./build/audacious vgmstream.so
+          python .github/uploader.py vgmstream-mac-cli.tar.gz

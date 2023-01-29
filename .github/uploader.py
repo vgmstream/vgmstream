@@ -1,4 +1,5 @@
 # uploads artifacts to nightly releases
+# NOTE: this is just a quick fix, feel free to handle releases more cleanly
 import urllib.request, json, argparse, glob, subprocess, os
 
 # to handle nightly releases:
@@ -29,14 +30,37 @@ URL_RELEASE = 'https://api.github.com/repos/vgmstream/vgmstream-releases/release
 URL_DELETE = 'https://api.github.com/repos/vgmstream/vgmstream-releases/releases/assets/%s'
 # allows uploading a single asset
 URL_UPLOAD = 'https://uploads.github.com/repos/vgmstream/vgmstream-releases/releases/%s/assets?name=%s'
+# change release info
+URL_UPDATE = 'https://api.github.com/repos/vgmstream/vgmstream-releases/releases/%s'
 
+#------------------------------------------------------------------------------
 
 def get_release():
     contents = urllib.request.urlopen(URL_RELEASE).read()
     data = json.loads(contents)
     return data
 
-def delete_asset(release, file, token, debug):
+def update_release(release, token, debug, body):
+    release_id = release['id']
+
+    args = [
+        'curl',
+        '-X', 'PATCH',
+        '-H', 'Accept: application/vnd.github+json',
+        '-H', 'Authorization: Bearer %s' % (token),
+        '-H', 'X-GitHub-Api-Version: 2022-11-28',
+        URL_UPDATE % (release_id),
+        '-d', '{"body":"%s"}' % (body),
+    ]
+    #-d '{"tag_name":"v1.0.0","target_commitish":"master","name":"v1.0.0","body":"...","draft":false,"prerelease":false}'
+
+    print("* updating release text")
+    if debug:
+        print(' '.join(args))
+    else:
+        subprocess.run(args, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+def delete_asset(release, token, debug, file):
     basename = os.path.basename(file)
 
     asset_id = None
@@ -54,7 +78,7 @@ def delete_asset(release, file, token, debug):
         '-H', 'Accept: application/vnd.github+json',
         '-H', 'Authorization: Bearer %s' % (token),
         '-H', 'X-GitHub-Api-Version: 2022-11-28',
-        URL_DELETE % (asset_id)
+        URL_DELETE % (asset_id),
     ]
 
     print("* deleting old asset %s (%s)" % (file, asset_id))
@@ -63,7 +87,7 @@ def delete_asset(release, file, token, debug):
     else:
         subprocess.run(args, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-def upload_asset(release, file, token, debug):
+def upload_asset(release, token, debug, file):
     basename = os.path.basename(file)
     release_id = release['id']
     
@@ -71,7 +95,6 @@ def upload_asset(release, file, token, debug):
         'curl',
         '-X', 'POST',
         '-H', 'Accept: application/vnd.github+json',
-        '-H', 'Access-Control-Allow-Origin: *',
         '-H', 'Authorization: Bearer %s' % (token),
         '-H', 'X-GitHub-Api-Version: 2022-11-28',
         '-H', 'Content-Type: application/octet-stream',
@@ -85,16 +108,58 @@ def upload_asset(release, file, token, debug):
     else:
         subprocess.run(args, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
+#------------------------------------------------------------------------------
+
+def generate_changelog(release, token, debug):
+    print("* generating changelog")
+    try:
+        import changelog
+        # writes in work dir and gets lines
+        lines = changelog.main() 
+
+        current_tag = 'r1810' #TODO get from some API maybe
+        body = [
+            'Automated releases ([full diffs here](https://github.com/vgmstream/vgmstream/compare/%s...master)).' % (current_tag),
+            '',
+            '',
+            '<details>'
+            '<summary>Recent changes</summary>',
+            '', #important, collapsable doesn't work otherwise
+        ]
+        body.extend(lines)
+        body.extend([
+            '</details>'
+        ])
+        body_text = '\\n'.join(body)
+        body_text = body_text.replace('"', '\"')
+
+        file = "changelog.txt"
+        update_release(release, token, debug, body_text)
+        delete_asset(release, token, debug, file)
+        upload_asset(release, token, debug, file)
+
+        #with open("body.json",'w') as f:
+        #    f.write('{"body":"%s"}' % (body_text))
+
+        #with open("changelog.txt",'rb') as f:
+        #    print(f.read())
+
+    except Exception as e:
+        print("couldn't generate changelog", e)
+
+
 def main(args):
-    print("staring asset uploader")
+    print("starting asset uploader")
 
     files = []
     for file_glob in args.files:
         files += glob.glob(file_glob)
 
-    if not files:
-        raise ValueError("no files found")
-        
+    # allow for changelog only
+    #if not files:
+    #    raise ValueError("no files found")
+
+    # this token usually only exists in env on merges, but allow passing for tests
     token = args.token
     if not token:
         token = os.environ.get('UPLOADER_GITHUB_TOKEN')
@@ -103,21 +168,25 @@ def main(args):
 
     release = get_release()
     for file in files:
-        delete_asset(release, file, token, args.debug)
-        upload_asset(release, file, token, args.debug)
+        delete_asset(release, token, args.debug, file)
+        upload_asset(release, token, args.debug, file)
+
+    # this should be invoked separately so release doesn't change per artifact
+    if args.changelog:
+        generate_changelog(release, token, args.debug)
+
     print("done")
 
 def parse_args():
     description = (
         "uploads artifacts to releases"
     )
-    epilog = (
-    "-"
-    )
+    epilog = None
 
     ap = argparse.ArgumentParser(description=description, epilog=epilog, formatter_class=argparse.RawTextHelpFormatter)
-    ap.add_argument("files", help="files to upload", nargs='+')
+    ap.add_argument("files", help="files to upload", nargs='*')
     ap.add_argument("-t","--token", help="security token")
+    ap.add_argument("-c","--changelog", help="update changelog as well", action="store_true")
     ap.add_argument("-x","--debug", help="no actions", action="store_true")
 
     args = ap.parse_args()
