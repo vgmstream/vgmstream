@@ -418,12 +418,11 @@ typedef enum {
     meta_PS2_JOE,           /* Wall-E / Pixar games */
     meta_NGC_YMF,           /* WWE WrestleMania X8 */
     meta_SADL,
-    meta_PS2_CCC,           /* Tokyo Xtreme Racer DRIFT 2 */
     meta_FAG,               /* Jackie Chan - Stuntmaster */
     meta_PS2_MIHB,          /* Merged MIH+MIB */
     meta_NGC_PDT,           /* Mario Party 6 */
     meta_DC_ASD,            /* Miss Moonligh */
-    meta_NAOMI_SPSD,        /* Guilty Gear X */
+    meta_SPSD,
     meta_RSD,
     meta_PS2_ASS,           /* ASS */
     meta_SEG,               /* Eragon */
