@@ -8,8 +8,11 @@
 # TODO reject some .wav but not all (detect created by v)
 # TODO capture stdout and enable fuzzy depending on codec
 # TODO fix -l option, add decode reset option
-import os, argparse, time, datetime, glob, subprocess, struct
+# TODO multiproc comparator singleton (faster with N files?)
 
+import os, argparse, time, datetime, glob, subprocess, array
+import multiprocessing
+#import multiprocessing.dummy #fake provs with threads, but not much slower (maybe faster on windows?)
 
 # don't try to decode common stuff
 IGNORED_EXTENSIONS = ['.exe', '.dll', '.zip', '.7z', '.rar', '.bat', '.sh', '.txt', '.lnk', '.wav', '.py', '.md', '.idb']
@@ -59,6 +62,7 @@ def parse_args():
     ap.add_argument("-l","--looping", help="compare looping files (slower)", action='store_true')
     ap.add_argument("-cn","--cli-new", help="sets name of new CLI (can be a path)")
     ap.add_argument("-co","--cli-old", help="sets name of old CLI (can be a path)")
+    ap.add_argument("-m","--multiprocesses", help="uses N multiprocesses to compare for performance\n(note that pypy w/ single process is faster than multiprocesses)", type=int, default=1)
 
     args = ap.parse_args()
     
@@ -73,34 +77,50 @@ def parse_args():
 
 ###############################################################################
 
-S16_UNPACK = struct.Struct('<h').unpack_from
+#S16_UNPACK = struct.Struct('<h').unpack_from
 
-# Compares 2 files and returns if contents are the same.
-# If fuzzy is set detects +- PCM changes (slower).
+# Compares 2 files and returns if contents are the same. If fuzzy is set detects +- PCM changes (slower).
+# Has an option to use multiprocesses, mainly noticeable with big (N-ch + 100MB) files.
 class VrtsComparator:
     CHUNK_HEADER = 0x50
-    CHUNK_SIZE = 0x00100000
+    CHUNK_SIZE = 0x00100000 * 10 #1MB * N
+    END_SIGNAL = None
 
-    def __init__(self, path1, path2, fuzzy_max=0):
+    def __init__(self, path1, path2, fuzzy_max=0, concurrency=1):
         self._path1 = path1
         self._path2 = path2
         self._fuzzy_max = fuzzy_max
+        self._concurrency = concurrency
         self._offset = 0
         self.fuzzy_count = 0
         self.fuzzy_diff = 0
         self.fuzzy_offset = 0
 
-    def _compare_fuzzy(self, b1, b2):
+    # compares PCM16LE bytes allowing +-N diffs between PCM bytes
+    # useful when comparing output from floats, that can change slightly due to compiler optimizations
+    def _test_fuzzy(self, b1, b2):
         len1 = len(b1)
         len2 = len(b2)
         if len1 != len2:
             return RESULT_SAME
 
-        # compares PCM16LE bytes allowing +-N diffs between PCM bytes
-        # useful when comparing output from floats, that can change slightly due to compiler optimizations
+        self.fuzzy_count = 0
+
+        b1_array = array.array('h') #LE
+        b1_array.frombytes(b1)
+        b2_array = array.array('h') #LE
+        b2_array.frombytes(b2)
+
         max = self._fuzzy_max
-        pos = 0
-        while pos < len1:
+        for i in range(len(b1_array)):
+            #pos = i * 2
+            pcm1 = b1_array[i]
+            pcm2 = b2_array[i]
+
+            # slower than pre-loaded array
+            #pcm1, = S16_UNPACK(b1, pos)
+            #pcm2, = S16_UNPACK(b2, pos)
+
             # slower than struct unpack
             #pcm1 = b1[pos+0] | (b1[pos+1] << 8)
             #if pcm1 & 0x8000:
@@ -108,55 +128,139 @@ class VrtsComparator:
             #pcm2 = b2[pos+0] | (b2[pos+1] << 8)
             #if pcm2 & 0x8000:
             #    pcm2 -= 0x10000
-            
-            pcm1, = S16_UNPACK(b1, pos)
-            pcm2, = S16_UNPACK(b2, pos)
 
             if not (pcm1 >= pcm2 - max and pcm1 <= pcm2 + max):
                 #print("%i vs %i +- %i at %x" % (pcm1, pcm2, max, self._offset + pos))
-                self.fuzzy_diff = pcm1 - pcm2
-                self.fuzzy_offset = self._offset + pos
+                #self.fuzzy_diff = pcm1 - pcm2
+                #self.fuzzy_offset = self._offset + pos
                 return RESULT_DIFFS
-
-            pos += 2
 
         self.fuzzy_count = 1
         return 0
 
-    def _compare_bytes(self, b1, b2):
-        # even though python is much slower than C this test is reasonably fast
+    def _test_bytes(self, b1, b2):
+        # even though python is much slower than C this test is reasonably fast (internally implemented in C probably)
         if b1 == b2:
             return RESULT_SAME
 
         # different: fuzzy check if same
         if self._fuzzy_max:
-            return self._compare_fuzzy(b1, b2)
+            return self._test_fuzzy(b1, b2)
 
         return RESULT_DIFFS
 
-    def _compare_files(self, f1, f2):
+    def _worker_multi(self, queue, result, fuzzies):
+        while True:
+            item = queue.get()
 
-        # header not part of fuzzyness (no need to get exact with sizes)
-        if self._fuzzy_max:
-            b1 = f1.read(self.CHUNK_HEADER)
-            b2 = f2.read(self.CHUNK_HEADER)
-            cmp = self._compare_bytes(b1, b2)
+            if item == self.END_SIGNAL:
+                # done
+                break
+
+            if result.value < 0:
+                # consume queue but don't stop, must wait for end signal
+                continue
+
+            b1, b2 = item
+            cmp = self._test_bytes(b1, b2)
             if cmp < 0:
-                return cmp
-            self._offset += self.CHUNK_HEADER
+                result.value = cmp
+                # mark but don't stop, must wait for end signal
+                continue
 
+            if self.fuzzy_count:
+                fuzzies.value += self.fuzzy_count
+                continue
+
+    def _compare_multi(self, f1, f2):
+        concurrency = self._concurrency
+
+        # reads chunks and passes them to validator workers in parallel
+        result = multiprocessing.Value('i', 0) #new shared "i"nt 
+        fuzzies = multiprocessing.Value('i', 0) #new shared "i"nt 
+        queue = multiprocessing.Queue(maxsize=concurrency)
+
+        # init all max procs that will validate
+        # (maybe should use Pool but seems to have some issues with shared queues and values)
+        procs = []
+        for _ in range(concurrency):
+            proc = multiprocessing.Process(target=self._worker_multi, args=(queue, result, fuzzies))
+            proc.daemon = True #depends on main proc (if main stops proc also stops)
+            proc.start()
+            procs.append(proc)
+
+        while True:
+            # some worker has signaled end (will still wait for END_SIGNAL in queue)
+            if result.value < 0:
+                break
+
+            b1 = f1.read(self.CHUNK_SIZE)
+            b2 = f2.read(self.CHUNK_SIZE)
+            if not b1 or not b2:
+                break
+
+            # pass chunks to queue
+            try:
+                queue.put((b1,b2)) #, timeout=15
+            except Exception as e: #ctrl+C, etc
+                print("queue error:", e)
+                break
+
+
+        # signal all processes to end using queue (safer overall than each stopping on its own)
+        for _ in range(concurrency):
+            try:
+                queue.put(self.END_SIGNAL) #, timeout=15
+            except Exception as e: #ctrl+C?
+                print("queue error:", e)
+                break
+
+        # should be stopped by the above
+        for proc in procs:
+            try:
+                proc.join()
+                proc.close()
+            except:
+                pass
+
+        try:
+            queue.close()
+        except:
+            pass
+
+        self.fuzzy_count = fuzzies.value
+        if result.value < 0:
+            return result.value
+        return RESULT_SAME
+
+    def _compare_single(self, f1, f2):
         while True:
             b1 = f1.read(self.CHUNK_SIZE)
             b2 = f2.read(self.CHUNK_SIZE)
             if not b1 or not b2:
                 break
 
-            cmp = self._compare_bytes(b1, b2)
+            cmp = self._test_bytes(b1, b2)
             if cmp < 0:
                 return cmp
             self._offset += self.CHUNK_SIZE
 
         return 0
+
+    def _compare_files(self, f1, f2):
+        # header not part of fuzzyness (no need to get exact with sizes)
+        if self._fuzzy_max:
+            b1 = f1.read(self.CHUNK_HEADER)
+            b2 = f2.read(self.CHUNK_HEADER)
+            cmp = self._test_bytes(b1, b2)
+            if cmp < 0:
+                return cmp
+            self._offset += self.CHUNK_HEADER
+
+        if self._concurrency > 1:
+            return self._compare_multi(f1, f2)
+        else:
+            return self._compare_single(f1, f2)
     
 
     def compare(self):
@@ -207,13 +311,16 @@ class VrtsPrinter:
     WHITE = '\033[97m'
     LIGHT_GRAY = "\033[37m"
     DARK_GRAY = "\033[90m"
+    DARK_GRAY = "\033[90m"
+    MAGENTA = "\033[35m"
+    LIGHT_MAGENTA = "\033[95m"
     
     COLOR_RESULT = {
         RESULT_SAME: WHITE,
         RESULT_FUZZY: LIGHT_CYAN,
         RESULT_NONE: LIGHT_YELLOW,
         RESULT_DIFFS: LIGHT_RED,
-        RESULT_SIZES: LIGHT_RED,
+        RESULT_SIZES: LIGHT_MAGENTA,
         RESULT_MISSING_NEW: LIGHT_RED,
         RESULT_MISSING_OLD: LIGHT_YELLOW,
     }
@@ -240,7 +347,7 @@ class VrtsPrinter:
             print(msg)
 
            
-    def result(self, msg, code, fuzzy_diff, fuzzy_offset):
+    def result(self, msg, code, fuzzy_diff=0, fuzzy_offset=0):
         text = self.TEXT_RESULT.get(code)
         color = self.COLOR_RESULT.get(code)
         if not text:
@@ -303,13 +410,41 @@ class VrtsFiles:
 # - subprocess.run
 #   - recommended but python 3.5+ 
 #    (check=True: raise exceptions like check_*, capture_output: return STDOUT/STDERR)
-class VrtsProcess:
+# * python2 needs to define DEVNULL like:
+#       with open(os.devnull, 'wb') as DEVNULL: #python2
+#           res = subprocess.check_call(args, stdout=DEVNULL, stderr=DEVNULL)
 
+class VrtsProcess:
+    # calls N parallel commands; returns True=ok, False=ko, None=wrong command
+    def calls(self, args_list, stdout=False):
+        max_procs = len(args_list)
+        procs = [None] * max_procs
+        outputs = [None] * max_procs
+
+        # initial call (may result in error)
+        for i, args in enumerate(args_list):
+            try:
+                procs[i] = subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            except Exception as e:
+                #print("file error: ", e)
+                outputs[i] = None #doesn't exists/etc
+
+        # wait and get result
+        for i, proc in enumerate(procs):
+            if not proc:
+                continue
+            proc.wait()
+
+            outputs[i] = True
+            if proc.returncode != 0:
+                outputs[i] = False #non-zero, exists but returns strerr (ex. ran with no args)
+            #elif stdout:
+            #    outputs[i] = proc.stdout
+        return outputs
+
+    # calls single command; returns True=ok, False=ko, None=wrong command
     def call(self, args, stdout=False):
         try:
-            #with open(os.devnull, 'wb') as DEVNULL: #python2
-            #    res = subprocess.check_call(args, stdout=DEVNULL, stderr=DEVNULL)
-
             res = subprocess.run(args, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) #capture_output=stdout, 
             #print("result:", res.returncode)
             #print("result:", res.strout, res.strerr)
@@ -337,6 +472,7 @@ class VrtsApp:
         self._p = VrtsPrinter()
         self._cli_new = None
         self._cli_old = None
+        self._temp_files = []
 
     def _find_cli(self, arg_cli, default_cli):
 
@@ -417,7 +553,7 @@ class VrtsApp:
         if self._args.fuzzy <= 0:
             return 0
 
-        if not stdout:
+        if not stdout or stdout == True:
             return fuzzy
 
         try:
@@ -451,40 +587,44 @@ class VrtsApp:
         for filename in self._files.filenames:
             filename_newwav = filename + ".new.wav"
             filename_oldwav = filename + ".old.wav"
+            self._temp_files = [filename_newwav, filename_oldwav]
 
             # main decode (ignores errors, comparator already checks them)
-            args = self._get_compare_args(self._cli_new, filename_newwav, filename)
-            stdout = self._prc.call(args, stdout=True)
+            args_new = self._get_compare_args(self._cli_new, filename_newwav, filename)
+            args_old = self._get_compare_args(self._cli_old, filename_oldwav, filename)
 
-            args = self._get_compare_args(self._cli_old, filename_oldwav, filename)
-            self._prc.call(args, stdout=False)
+            # call 2 parallel decodes (much faster)
+            stdouts = self._prc.calls([args_new, args_old], stdout=True)
+            stdout = stdouts[0]
+            #stdout = self._prc.call(args_new, stdout=True)
+            #self._prc.call(args_old, stdout=False)
 
             # test results
             fuzzy = self._get_fuzzy_count(stdout)
-            cmp = VrtsComparator(filename_newwav, filename_oldwav, fuzzy)
+            cmp = VrtsComparator(filename_newwav, filename_oldwav, fuzzy_max=fuzzy, concurrency=self._args.multiprocesses)
             code = cmp.compare()
 
-            self._p.result(filename, code, cmp.fuzzy_diff, cmp.fuzzy_offset)
+            self._p.result(filename, code) #, cmp.fuzzy_diff, cmp.fuzzy_offset
 
             if code < 0:
                 total_ko += 1
             else:
                 total_ok += 1
-
-            # post cleanup
-            if not self._args.no_delete:
-                try:
-                    os.remove(filename_newwav) 
-                except:
-                    pass
-                try:
-                    os.remove(filename_oldwav) 
-                except:
-                    pass
+            self.file_cleanup()
 
         ts_ed = time.time()
         self._p.info("done: ok=%s, ko=%s, elapsed %ss" % (total_ok, total_ko, ts_ed - ts_st))
 
+    def file_cleanup(self):
+        if self._args.no_delete:
+            return
+
+        for temp_file in self._temp_files:
+            try:
+                os.remove(temp_file)
+            except:
+                pass
+        self._temp_files = []
 
     def start(self):
         self._detect_cli()
@@ -500,9 +640,24 @@ def main():
     if not args:
         return
 
+    # doesn't seem to be a default way to detect program shutdown on windows
+    #try:
+    #    import win32api
+    #    win32api.SetConsoleCtrlHandler(func, True)
+    #except ImportError:
+    #    pass
+    #import signal
+    #signal.signal(signal.SIGBREAK, signal.default_int_handler) #
+    #signal.signal(signal.SIGINT, signal.default_int_handler) #
+    #signal.signal(signal.SIGTERM, signal.default_int_handler) #
+
+    app = VrtsApp(args)
     try:
-        VrtsApp(args).start()
+        app.start()
+    except KeyboardInterrupt as e:
+        app.file_cleanup()
     except ValueError as e:
+        app.file_cleanup()
         print(e)
 
 if __name__ == "__main__":
