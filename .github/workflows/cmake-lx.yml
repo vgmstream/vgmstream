@@ -10,10 +10,6 @@ env:
 
 jobs:
   build:
-    # The CMake configure and build commands are platform agnostic and should work equally
-    # well on Windows or Mac.  You can convert this to a matrix build if you need
-    # cross-platform coverage.
-    # See: https://docs.github.com/en/actions/configuring-and-managing-workflows/configuring-a-workflow#configuring-a-build-matrix
     name: CMake, Ubuntu
     runs-on: ubuntu-latest
 
@@ -131,15 +127,14 @@ jobs:
     # uploads current assets to vgmstream-releases (token only works on merges)
     - name: Upload artifacts to nightly
       if: github.event_name != 'pull_request' 
-      working-directory: ${{runner.workspace}}
       shell: bash
       env:
         UPLOADER_GITHUB_TOKEN: ${{ secrets.UPLOADER_GITHUB_TOKEN }}
       # tar cvfz vgmstream-linux-123.tar.gz -C ./build/cli vgmstream123
       # tar cvfz vgmstream-linux-audacious.tar.gz -C ./build/audacious vgmstream.so
       run: |
-        tar cvfz vgmstream-linux-cli.tar.gz -C ./build/cli vgmstream-cli
-        python .github/uploader.py vgmstream-linux-cli.tar.gz
+        tar cvfz ${{runner.workspace}}/vgmstream-linux-cli.tar.gz -C ${{runner.workspace}}/build/cli vgmstream-cli
+        python ${{github.workspace}}/.github/uploader.py ${{runner.workspace}}/vgmstream-linux-cli.tar.gz
 
 
     #- name: Upload artifacts to S3

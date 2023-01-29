@@ -1,6 +1,8 @@
+# github workflow to automate builds
+
 name: macOS build
 
-on: [push, pull_request]
+on: [push, pull_request, workflow_dispatch]
 
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
@@ -10,6 +12,7 @@ jobs:
   build:
     name: CMake, macOS
     runs-on: macos-latest
+
     steps:
       - uses: actions/checkout@v3
         with:
@@ -63,4 +66,4 @@ jobs:
         # tar cvfz vgmstream-linux-audacious.tar.gz -C ./build/audacious vgmstream.so
         run: |
           tar cvfz vgmstream-mac-cli.tar.gz -C ./build/cli vgmstream-cli
-          python .github/uploader.py vgmstream-mac-cli.tar.gz
+          python3 .github/uploader.py vgmstream-mac-cli.tar.gz
