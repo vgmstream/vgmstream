@@ -63,7 +63,7 @@ jobs:
 
       # uploads current assets to vgmstream-releases
       - name: Upload artifacts to nightly
-        #if: github.event_name != 'pull_request' 
+        if: github.event_name != 'pull_request' 
         working-directory: ${{github.workspace}}
         env:
           UPLOADER_GITHUB_TOKEN: ${{ secrets.UPLOADER_GITHUB_TOKEN }}
