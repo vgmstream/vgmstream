@@ -207,6 +207,9 @@ static mpg123_handle* init_mpg123_handle(void) {
 
     mpg123_param(m,MPG123_REMOVE_FLAGS,MPG123_GAPLESS,0.0); /* wonky support */
     mpg123_param(m,MPG123_RESYNC_LIMIT, -1, 0x2000); /* just in case, games shouldn't ever need this */
+#ifndef VGM_DEBUG_OUTPUT
+    mpg123_param(m, MPG123_ADD_FLAGS, MPG123_QUIET, 1);
+#endif
 
     if (mpg123_open_feed(m) != MPG123_OK) {
         goto fail;

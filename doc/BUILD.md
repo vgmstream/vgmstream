@@ -553,9 +553,9 @@ Adds support for ATRAC9, used in `.at9` and other formats for the PS4 and Vita.
 ### libcelt
 Adds support for FSB CELT versions 0.6.1 and 0.11.0, used in a handful of older `.fsb`.
 - Source (0.6.1): http://downloads.us.xiph.org/releases/celt/celt-0.6.1.tar.gz
-  - Git mirror: https://gitlab.xiph.org/xiph/celt (commit `8ccf148573277b983692e15d5f0753081f806bea`)
+  - Git mirror: https://gitlab.xiph.org/xiph/celt (tag `v0.6.1`)
 - Source (0.11.0): http://downloads.xiph.org/releases/celt/celt-0.11.0.tar.gz
-  - Git mirror: https://gitlab.xiph.org/xiph/celt (commit `0b405d1170122c859faab435405666506d52fa2e`)
+  - Git mirror: https://gitlab.xiph.org/xiph/celt (tag `v0.11`)
 - Official Windows binaries: none
 - Versions: 0.6.1, 0.11.0
 - DLL: `libcelt-0061.dll`, `libcelt-0110.dll`

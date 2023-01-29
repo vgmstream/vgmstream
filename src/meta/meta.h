@@ -309,7 +309,7 @@ VGMSTREAM * init_vgmstream_rsd(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_dc_asd(STREAMFILE * streamFile);
 
-VGMSTREAM * init_vgmstream_naomi_spsd(STREAMFILE * streamFile);
+VGMSTREAM* init_vgmstream_spsd(STREAMFILE* sf);
 
 VGMSTREAM * init_vgmstream_bgw(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_spw(STREAMFILE * streamFile);

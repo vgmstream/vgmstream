@@ -133,7 +133,7 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_ngc_pdt,
     init_vgmstream_wii_mus,
     init_vgmstream_dc_asd,
-    init_vgmstream_naomi_spsd,
+    init_vgmstream_spsd,
     init_vgmstream_rsd,
     init_vgmstream_bgw,
     init_vgmstream_spw,
