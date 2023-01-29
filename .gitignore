@@ -78,3 +78,6 @@ cmake_install.cmake
 #doc build
 doc/INFO.md
 doc/_build
+
+changelog.txt
+__pycache__

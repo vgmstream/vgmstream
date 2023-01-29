@@ -1,6 +1,6 @@
 # generates changelog
 # NOTE: this is just a quick fix, feel free to handle releases more cleanly
-import subprocess, urllib.request, json
+import subprocess, urllib.request, json, datetime
 
 USE_GIT = True
 GIT_MAX_MERGES = 10 #maybe should use max date
@@ -131,8 +131,10 @@ def write(lines):
         f.write('\n'.join(lines))
 
 def get_lines():
+    curr_date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     lines = [
-        '### CHANGELOG (latest changes)',
+        '### CHANGELOG',
+        '(latest main changes on %s, skips smaller commits)' % (curr_date),
         '',
     ]
     try:
