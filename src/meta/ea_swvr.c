@@ -1,25 +1,22 @@
 #include "meta.h"
 #include "../layout/layout.h"
 #include "../coding/coding.h"
+#include "../util/endianness.h"
 
 
 /* SWVR - from EA games, demuxed from .av/trk/mis/etc [Future Cop L.A.P.D. (PS/PC), Freekstyle (PS2/GC), EA Sports Supercross (PS)] */
 VGMSTREAM* init_vgmstream_ea_swvr(STREAMFILE* sf) {
-    VGMSTREAM * vgmstream = NULL;
+    VGMSTREAM* vgmstream = NULL;
     off_t start_offset;
-    int loop_flag = 0, channels, sample_rate, big_endian;
+    int loop_flag = 0, channels, sample_rate, big_endian, loop_block = 0;
     coding_t coding;
     uint32_t block_id;
-    int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
-    int16_t (*read_16bit)(off_t,STREAMFILE*) = NULL;
+    read_u32_t read_u32 = NULL;
+    read_u16_t read_u16 = NULL;
     int total_subsongs, target_subsong = sf->stream_index;
 
 
     /* checks */
-    /* .stream: common (found inside files)
-     * .str: shortened, probably unnecessary */
-    if (!check_extensions(sf,"stream,str"))
-        goto fail;
 
     /* Files have no actual audio headers, so we inspect the first block for known values.
      * Freekstyle uses multiblocks/subsongs (though some subsongs may be clones?) */
@@ -27,40 +24,48 @@ VGMSTREAM* init_vgmstream_ea_swvr(STREAMFILE* sf) {
     /* blocks ids are in machine endianness */
     if (read_u32be(0x00,sf) == get_id32be("RVWS")) { /* PS1/PS2/PC */
         big_endian = 0;
-        read_32bit = read_32bitLE;
-        read_16bit = read_16bitLE;
-        start_offset = read_32bit(0x04, sf);
+        read_u32 = read_u32le;
+        read_u16 = read_u16le;
+        start_offset = read_u32(0x04, sf);
+        /* 0x08: null */
+        loop_block = read_u32(0x0c, sf); /* uncommon [NASCAR Racing (PS1), Rumble Racing (PS2)] */
     }
     else if (read_u32be(0x00,sf) == get_id32be("SWVR")) { /* GC */
         big_endian = 1;
-        read_32bit = read_32bitBE;
-        read_16bit = read_16bitBE;
-        start_offset = read_32bit(0x04, sf);
+        read_u32 = read_u32be;
+        read_u16 = read_u16be;
+        start_offset = read_u32(0x04, sf);
     }
     else if (read_u32be(0x00,sf) == get_id32be("MGAV")) { /* Freekstyle (PS2) raw movies */
         big_endian = 0;
-        read_32bit = read_32bitLE;
-        read_16bit = read_16bitLE;
+        read_u32 = read_u32le;
+        read_u16 = read_u16le;
         start_offset = 0x00;
     }
     else if (read_u32be(0x00,sf) == get_id32be("DSPM")) { /* Freekstyle (GC) raw movies */
         big_endian = 1;
-        read_32bit = read_32bitBE;
-        read_16bit = read_16bitBE;
+        read_u32 = read_u32be;
+        read_u16 = read_u16be;
         start_offset = 0x00;
     }
     else {
         goto fail;
     }
 
-    if (read_32bit(start_offset+0x00, sf) == get_id32be("PADD")) /* Freekstyle */
-        start_offset += read_32bit(start_offset+0x04, sf);
+    /* .stream: common (found inside files)
+     * .str: shortened, probably unnecessary */
+    if (!check_extensions(sf,"stream,str"))
+        goto fail;
 
-    if (read_32bit(start_offset+0x00, sf) == get_id32be("FILL")) /* Freekstyle */
-        start_offset += read_32bit(start_offset+0x04, sf);
+
+    if (read_u32(start_offset+0x00, sf) == get_id32be("PADD")) /* Freekstyle */
+        start_offset += read_u32(start_offset+0x04, sf);
+
+    if (read_u32(start_offset+0x00, sf) == get_id32be("FILL")) /* Freekstyle */
+        start_offset += read_u32(start_offset+0x04, sf);
 
     total_subsongs = 1;
-    block_id = read_32bit(start_offset, sf);
+    block_id = read_u32(start_offset, sf);
     /* value after block id (usually at 0x38) is number of blocks of 0x6000 (results in file size, including FILLs) */
 
     /* intended sample rate for PSX music (verified in emus) should be 14260, but is found in ELF as pitch value
@@ -69,8 +74,8 @@ VGMSTREAM* init_vgmstream_ea_swvr(STREAMFILE* sf) {
     switch(block_id) {
         case 0x5641474D: /* "VAGM" (stereo music) */
             coding = coding_PSX;
-            if (read_16bit(start_offset+0x1a, sf) == 0x0024) {
-                total_subsongs = read_32bit(start_offset+0x0c, sf)+1;
+            if (read_u16(start_offset+0x1a, sf) == 0x0024) {
+                total_subsongs = read_u32(start_offset+0x0c, sf)+1;
                 sample_rate = 22050; /* Freekstyle (PS2) */
             }
             else {
@@ -80,7 +85,7 @@ VGMSTREAM* init_vgmstream_ea_swvr(STREAMFILE* sf) {
             break;
         case 0x56414742: /* "VAGB" (mono sfx/voices)*/
             coding = coding_PSX;
-            if (read_16bit(start_offset+0x1a, sf) == 0x6400) {
+            if (read_u16(start_offset+0x1a, sf) == 0x6400) {
                 sample_rate = 22050; /* Freekstyle (PS2) */
             }
             else {
@@ -91,7 +96,7 @@ VGMSTREAM* init_vgmstream_ea_swvr(STREAMFILE* sf) {
             break;
         case 0x4453504D: /* "DSPM" (stereo music) */
             coding = coding_NGC_DSP;
-            total_subsongs = read_32bit(start_offset+0x0c, sf)+1;
+            total_subsongs = read_u32(start_offset+0x0c, sf)+1;
             sample_rate = 22050; /* Freekstyle (GC) */
             channels = 2;
             break;
@@ -106,7 +111,7 @@ VGMSTREAM* init_vgmstream_ea_swvr(STREAMFILE* sf) {
             sample_rate = 14291; /* assumed, by comparing vs PSX output [Future Cop (PC)] */
             break;
         case 0x53484F43: /* "SHOC" (a generic block but hopefully has PC sounds) */
-            if (read_32bit(start_offset+0x10, sf) == get_id32be("SHDR")) { /* Future Cop (PC) */
+            if (read_u32(start_offset+0x10, sf) == get_id32be("SHDR")) { /* Future Cop (PC) */
                 /* there is a mini header? after SHDR
                  * 0x00: 5
                  * 0x04: "snds"
@@ -118,7 +123,7 @@ VGMSTREAM* init_vgmstream_ea_swvr(STREAMFILE* sf) {
                  * 0x1c: 1
                  * 0x20: 1
                  * 0x24: 0x4F430000 */
-                if (read_32bit(start_offset+0x18, sf) != get_id32be("snds"))
+                if (read_u32(start_offset+0x18, sf) != get_id32be("snds"))
                     goto fail;
                 coding = coding_PCM8_U_int;
                 channels = 1;
@@ -139,7 +144,7 @@ VGMSTREAM* init_vgmstream_ea_swvr(STREAMFILE* sf) {
     if (target_subsong == 0) target_subsong = 1;
     if (target_subsong < 0 || target_subsong > total_subsongs || total_subsongs < 1) goto fail;
 
-    loop_flag = 0;//(channels > 1); /* some Future Cop LAPD tracks repeat but other games have fadeouts */
+    loop_flag = (loop_block > 0);//(channels > 1); /* some Future Cop LAPD tracks repeat but other games have fadeouts */
 
 
     /* build the VGMSTREAM */
@@ -162,9 +167,11 @@ VGMSTREAM* init_vgmstream_ea_swvr(STREAMFILE* sf) {
 
     /* calc num_samples manually */
     {
-        int num_samples;
+        int block, num_samples;
+
         vgmstream->stream_index = target_subsong; /* needed to skip other subsong-blocks */
         vgmstream->next_block_offset = start_offset;
+        block = 0;
         do {
             block_update(vgmstream->next_block_offset,vgmstream);
             switch(vgmstream->coding_type) {
@@ -174,15 +181,19 @@ VGMSTREAM* init_vgmstream_ea_swvr(STREAMFILE* sf) {
                 default:             	num_samples = 0; break;
             }
             vgmstream->num_samples += num_samples;
+
+            /* check loop on data blocks */
+            if (num_samples) { 
+                block++;
+                if (loop_block == block) /* 1=first */
+                    vgmstream->loop_start_sample = vgmstream->num_samples;
+            }
         }
         while (vgmstream->next_block_offset < get_streamfile_size(sf));
         block_update(start_offset, vgmstream);
     }
 
-    if (loop_flag) {
-        vgmstream->loop_start_sample = 0;
-        vgmstream->loop_end_sample = vgmstream->num_samples;
-    }
+    vgmstream->loop_end_sample = vgmstream->num_samples;
 
     return vgmstream;
 

@@ -3,10 +3,10 @@
 import subprocess, urllib.request, json, datetime
 
 USE_GIT = True
-GIT_MAX_MERGES = 10 #maybe should use max date
+GIT_MAX_MERGES = 10
 JSON_MAX_MERGES = 10
 JSON_LOCAL = True
-
+MAKE_SHORT_CHANGELOG = False
 
 def convert_git(stdout):
     lines = stdout.split('\n')
@@ -46,7 +46,15 @@ def convert_git(stdout):
 def load_git():
     if not USE_GIT:
         raise ValueError("git disabled")
-    args = ['git','--no-pager','log', '--merges', '--max-count', str(GIT_MAX_MERGES), '--date=format:"%Y-%m-%d %H:%M:%S"']
+        
+    args = ['git', 'describe', '--tags', '--abbrev=0']
+    proc = subprocess.run(args, capture_output=True)
+    if proc.returncode != 0:
+        raise ValueError("git exception")
+    latest_tag = proc.stdout.decode('utf-8').strip()
+        
+    #args = ['git','--no-pager','log', '--merges', '--date=format:"%Y-%m-%d %H:%M:%S"',  '--max-count', str(GIT_MAX_MERGES) ]
+    args = ['git','--no-pager','log', '--merges', '--date=format:"%Y-%m-%d %H:%M:%S"', '%s..HEAD' % (latest_tag)]
     proc = subprocess.run(args, capture_output=True)
     if proc.returncode != 0:
         raise ValueError("git exception")
@@ -97,17 +105,25 @@ def load_json():
     return convert_json(data)
 
 
-def convert_items(items, lines):
+def convert_items(items, lines, short_log):
     for item in items:
         message = item['message']
         date = item['date']
 
-        header = "#### %s" % (date.replace('T',' ').replace('Z',''))
-
+        msg_from = None
+        ignore = False
         subs = []
         msg_lines = iter([msg.strip() for msg in message.split('\n')])
         for msg in msg_lines:
             if msg.lower().startswith('merge'):
+                if ' into ' in msg: #Merge branch ... into ...
+                    ignore = True
+                    break
+                try:
+                    pos = msg.index(' from ')
+                    msg_from = msg[pos + 6:].strip()
+                except:
+                    pass
                 continue
             if not msg: #always first?
                 continue
@@ -118,42 +134,56 @@ def convert_items(items, lines):
                 msg = '- %s' % (msg[2:])
             subs.append(msg)
 
+        if ignore:
+            continue
+
         if not subs:
             subs.append('- (not described)')
 
-        lines.append(header)
-        lines.extend(subs)
-        lines.append('')
+        if short_log:
+            lines.extend(subs)
+        else:
+            header = "#### %s" % (date.replace('T',' ').replace('Z',''))
+            if msg_from:
+                header += ' (%s)' % (msg_from)
+            lines.append(header)
+            lines.extend(subs)
+            lines.append('')
+            
 
 
 def write(lines):
     with open('changelog.txt', 'w', encoding="utf-8") as f:
         f.write('\n'.join(lines))
 
-def get_lines():
-    curr_date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    lines = [
-        '### CHANGELOG',
-        '(latest main changes on %s, skips smaller commits)' % (curr_date),
-        '',
-    ]
+def get_lines(short_log=False):
+    if short_log:
+        lines = []
+    else:
+        curr_date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        lines = [
+            '### CHANGELOG',
+            '(latest changes from previous release, generated on %s)' % (curr_date),
+            '',
+        ]
+
     try:
         try:
             items = load_git()
         except Exception as e:
             print("error when generating git, using json:", e)
             items = load_json()
-        convert_items(items, lines)
+        convert_items(items, lines, short_log)
         
     except Exception as e:
         print("err", e)
         lines.append("(couldn't generate changelog)")
     return lines
 
-def main():
-    lines = get_lines()
+def main(short_changelog=False):
+    lines = get_lines(short_changelog)
     write(lines)
     return lines
 
 if __name__ == "__main__":
-    main()
+    main(MAKE_SHORT_CHANGELOG)

@@ -30,7 +30,7 @@ VGMSTREAM* init_vgmstream_xwav_new(STREAMFILE* sf) {
      * 0x16: file number
      * 0x18: null
      * 0x1c: null
-     * 0x20: file name in some strange encoding/compression?
+     * 0x20: file name in a custom 40-char (RADIX style) encoding
     */
     start_offset = 0x800;
 
