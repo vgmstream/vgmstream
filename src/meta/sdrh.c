@@ -126,6 +126,17 @@ VGMSTREAM* init_vgmstream_sdrh_new(STREAMFILE* sf) {
 
             break;
 
+#ifdef VGM_USE_MPEG
+        case 5: {    /* No More Heroes (PS3) (rare, BAITO_GOMIHORI.XSE) */
+            mpeg_custom_config cfg = {0};
+            cfg.data_size = stream_size;
+
+            vgmstream->codec_data = init_mpeg_custom(sf, start_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_STANDARD, &cfg);
+            if (!vgmstream->codec_data) goto fail;
+            vgmstream->layout_type = layout_none;
+            break;
+        }
+#endif
 #ifdef VGM_USE_FFMPEG
         case 1: { /* Mindjack (X360), Moon Diver (X360) */
             int block_size = 0x10000; /* XWAV new default */
@@ -145,10 +156,15 @@ VGMSTREAM* init_vgmstream_sdrh_new(STREAMFILE* sf) {
             break;
         }
 
-        case 7: { /* Mindjack (PS3) */
+        case 6:   /* No More Heroes (PS3) */
+        case 7:   /* No More Heroes (PS3), Mindjack (PS3) */
+        case 8: { /* No More Heroes (PS3) */
             int block_align, encoder_delay;
 
-            block_align = 0x98 * vgmstream->channels;
+            /* fixed for all rates? doesn't happen with other codecs, some files are 48000 already */
+            vgmstream->sample_rate = 48000;
+
+            block_align = (codec == 8 ? 0xC0 : codec == 0x07 ? 0x98 : 0x60) * vgmstream->channels;
             encoder_delay = 1024 + 69*2; /* observed default, but seems files run out of space */
 
             vgmstream->codec_data = init_ffmpeg_atrac3_raw(sf, start_offset, stream_size, vgmstream->num_samples, vgmstream->channels,vgmstream->sample_rate, block_align, encoder_delay);
