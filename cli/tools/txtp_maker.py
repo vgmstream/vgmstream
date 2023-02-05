@@ -426,7 +426,7 @@ class TxtpMaker(object):
             if cfg.layers and cfg.layers < self.info.channels:
                 done = 0
                 for layer in range(0, self.info.channels, cfg.layers):
-                    sub = chr(ord('a') + done)
+                    sub = '_' + chr(ord('a') + done)
                     done += 1
                     mask = self._get_stream_mask(layer)
                     self._add(outname + sub, line + mask)
