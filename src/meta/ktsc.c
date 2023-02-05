@@ -6,23 +6,24 @@
 /* KTSC - Koei Tecmo KTSR container */
 VGMSTREAM* init_vgmstream_ktsc(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
-    STREAMFILE *temp_sf = NULL;
+    STREAMFILE* temp_sf = NULL;
     int target_subsong = sf->stream_index, total_subsongs;
-    off_t offset, subfile_offset;
-    size_t subfile_size;
+    uint32_t offset, subfile_offset, subfile_size;
 
 
     /* checks */
-    /* .ktsl2asbin: common [Atelier Ryza (PC)] */
-    if (!check_extensions(sf, "ktsl2asbin"))
+    if (!is_id32be(0x00, sf, "KTSC"))
+        goto fail;
+    if (read_u32be(0x04, sf) != 0x01000001) /* version? */
+        goto fail;
+
+    /* .ktsl2asbin: common [Atelier Ryza (PC)]
+     * .asbin: Warriors Orochi 4 (PC) (assumed) */
+    if (!check_extensions(sf, "ktsl2asbin,asbin"))
         goto fail;
 
     /* KTSC is a container of KTSRs, but can't be extracted easily as they use absolute pointers to the
      * same stream companion file. KTSRs may have subsongs, but only seem to have 1, so use KTSC's subsongs. */
-    if (read_u32be(0x00, sf) != 0x4B545343) /* "KTSC" */
-        goto fail;
-    if (read_u32be(0x04, sf) != 0x01000001) /* version? */
-        goto fail;
 
     if (target_subsong == 0) target_subsong = 1;
     total_subsongs = read_u32le(0x08, sf);
