@@ -70,6 +70,7 @@ static const char* extension_list[] = {
     "ap",
     "apc",
     "as4",
+    "asbin",
     "asd",
     "asf",
     "asr",

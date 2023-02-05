@@ -91,15 +91,21 @@ VGMSTREAM* init_vgmstream_xwav_new(STREAMFILE* sf) {
             break;
         }
 
-        case 7: { /* Moon Diver (PS3) */
+        case 6:   /* (used? same as SDRH) */
+        case 7:   /* Moon Diver (PS3) */
+        case 8: { /* No More Heroes (PS3) */
             int block_align, encoder_delay;
 
-            data_size = read_u32be(0x54,sf);
-            block_align = 0x98 * vgmstream->channels;
+            /* fixed for all rates? doesn't happen with other codecs, some files are 48000 already */
+            vgmstream->sample_rate = 48000;
+
+            block_align = (codec == 8 ? 0xC0 : codec == 0x07 ? 0x98 : 0x60) * vgmstream->channels;
             encoder_delay = 1024 + 69*2; /* observed default, matches XMA (needed as many files start with garbage) */
+
+            data_size = read_u32be(0x54,sf);
             vgmstream->num_samples = atrac3_bytes_to_samples(data_size, block_align) - encoder_delay; /* original samples break looping in some files otherwise */
 
-            vgmstream->codec_data = init_ffmpeg_atrac3_raw(sf, start_offset,data_size, vgmstream->num_samples,vgmstream->channels,vgmstream->sample_rate, block_align, encoder_delay);
+            vgmstream->codec_data = init_ffmpeg_atrac3_raw(sf, start_offset, data_size, vgmstream->num_samples,vgmstream->channels,vgmstream->sample_rate, block_align, encoder_delay);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;

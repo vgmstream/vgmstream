@@ -189,7 +189,7 @@ fail:
 
 
 #define AHX_KEY_BUFFER  0x2000
-#define AHX_KEY_TEST_FRAMES  15 /* wrong keys may work ok in some frames */
+#define AHX_KEY_TEST_FRAMES  20 /* wrong keys may work ok in some frames */
 
 /* check if current key ends properly in frame syncs */
 int test_ahx_key(STREAMFILE* sf, off_t offset, crikey_t* crikey) {

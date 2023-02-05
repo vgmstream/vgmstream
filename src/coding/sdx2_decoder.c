@@ -3,7 +3,11 @@
 #include "../util.h"
 
 /* SDX2 - 2:1 Squareroot-delta-exact compression */
-/* CBD2 - 2:1 Cuberoot-delta-exact compression (from the unreleased 3DO M2) */
+/* CBD2 - 2:1 Cuberoot-delta-exact compression (from 3DO/Konami M2) */
+
+/* Original code is implemented with ops in a custom DSP (DSPP) with a variation of FORTH
+ * (rather than tables), in the "3DO M2 Portfolio OS", so could be converted to plain calcs. */
+ 
 
 /* for (i=-128;i<128;i++) { squares[i+128] = i<0?(-i*i)*2:(i*i)*2; } */
 static int16_t squares[256] = {
@@ -34,6 +38,7 @@ static int16_t squares[256] = {
 };
 
 /*
+// original DSP ops, seems equivalent to (i * i * i) / 64
 for (uint16_t i = 0; i < 0x100; i += 1) {
     int16_t v = i;
     v -= 0x80;
@@ -83,7 +88,8 @@ static void decode_delta_exact(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int
         int8_t sample_byte = read_8bit(stream->offset+i,stream->streamfile);
         int16_t sample;
 
-        if (!(sample_byte & 1)) hist = 0;
+        if (!(sample_byte & 1)) /* even: "exact mode" (value as-is), odd: "delta mode" */
+            hist = 0;
         sample = hist + table[sample_byte+128];
 
         hist = outbuf[sample_count] = clamp16(sample);
@@ -102,7 +108,8 @@ static void decode_delta_exact_int(VGMSTREAMCHANNEL * stream, sample_t * outbuf,
         int8_t sample_byte = read_8bit(stream->offset+i*channelspacing,stream->streamfile);
         int16_t sample;
 
-        if (!(sample_byte & 1)) hist = 0;
+        if (!(sample_byte & 1)) /* even: "exact mode" (value as-is), odd: "delta mode" */
+            hist = 0;
         sample = hist + table[sample_byte+128];
 
         hist = outbuf[sample_count] = clamp16(sample);

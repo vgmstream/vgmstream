@@ -49,8 +49,9 @@ VGMSTREAM* init_vgmstream_ktsr(STREAMFILE* sf) {
         goto fail;
     if (read_u32be(0x04, sf) != 0x777B481A) /* hash(?) id: 0x777B481A=as, 0x0294DDFC=st, 0xC638E69E=gc */
         goto fail;
-    /* .ktsl2asbin: common [Atelier Ryza (PC/Switch), Nioh (PC)] */
-    if (!check_extensions(sf, "ktsl2asbin"))
+    /* .ktsl2asbin: common [Atelier Ryza (PC/Switch), Nioh (PC)] 
+     * .asbin: Warriors Orochi 4 (PC) */
+    if (!check_extensions(sf, "ktsl2asbin,asbin"))
         goto fail;
 
     /* KTSR can be a memory file (ktsl2asbin), streams (ktsl2stbin) and global config (ktsl2gcbin)
@@ -65,9 +66,10 @@ VGMSTREAM* init_vgmstream_ktsr(STREAMFILE* sf) {
 
     /* open companion body */
     if (ktsr.is_external) {
-        sf_b = open_streamfile_by_ext(sf, "ktsl2stbin");
+        const char* companion_ext = check_extensions(sf, "asbin") ? "stbin" : "ktsl2stbin";
+        sf_b = open_streamfile_by_ext(sf, companion_ext);
         if (!sf_b) {
-            vgm_logi("KTSR: companion file '*.ktsl2stbin' not found\n");
+            vgm_logi("KTSR: companion file '*.%s' not found\n", companion_ext);
             goto fail;
         }
     }
