@@ -369,7 +369,7 @@ ffmpeg_codec_data* init_ffmpeg_header_offset_subsong(STREAMFILE* sf, uint8_t* he
 #if 0
         /* derive info */
         data->sampleRate = data->codecCtx->sample_rate;
-        data->channels = data->codecCtx->channels;
+        data->channels = data->codecCtx->ch_layout.nb_channels; //data->codecCtx->channels;
         data->bitrate = (int)(data->codecCtx->bit_rate);
         data->blockAlign = data->codecCtx->block_align;
         data->frameSize = data->codecCtx->frame_size;
@@ -739,7 +739,7 @@ static void samples_dblp_to_s16(sample_t* obuf, double** inbuf, int ichs, int sa
 }
 
 static void copy_samples(ffmpeg_codec_data* data, sample_t* outbuf, int samples_to_do) {
-    int channels = data->codecCtx->channels;
+    int channels = data->codecCtx->ch_layout.nb_channels; //data->codecCtx->channels;
     int is_planar = av_sample_fmt_is_planar(data->codecCtx->sample_fmt) && (channels > 1);
     void* ibuf;
 
@@ -976,8 +976,21 @@ void ffmpeg_set_skip_samples(ffmpeg_codec_data* data, int skip_samples) {
 /* returns channel layout if set */
 uint32_t ffmpeg_get_channel_layout(ffmpeg_codec_data* data) {
     if (!data || !data->codecCtx) return 0;
-    return (uint32_t)data->codecCtx->channel_layout; /* uint64 but there ain't so many speaker mappings */
+
+    /* old */
+    //return (uint32_t)data->codecCtx->channel_layout; /* uint64 but there ain't so many speaker mappings */
+
+    /* new API is not very clear so maybe there is a better way */
+    if (data->codecCtx->ch_layout.order == AV_CHANNEL_ORDER_UNSPEC)
+        return 0;
+    if (data->codecCtx->ch_layout.order == AV_CHANNEL_ORDER_NATIVE) {
+        return (uint32_t)data->codecCtx->ch_layout.u.mask;
+    }
+
+    /* other options: not handled for now */
+    return 0;
 }
+
 
 /* yet another hack to fix codecs that encode channels in different order and reorder on decoder
  * but FFmpeg doesn't do it automatically
@@ -985,10 +998,10 @@ uint32_t ffmpeg_get_channel_layout(ffmpeg_codec_data* data) {
 void ffmpeg_set_channel_remapping(ffmpeg_codec_data* data, int *channel_remap) {
     int i;
 
-    if (data->codecCtx->channels > 32)
+    if (data->codecCtx->ch_layout.nb_channels > 32)
         return;
 
-    for (i = 0; i < data->codecCtx->channels; i++) {
+    for (i = 0; i < data->codecCtx->ch_layout.nb_channels; i++) {
         data->channel_remap[i] = channel_remap[i];
     }
     data->channel_remap_set = 1;
@@ -1056,7 +1069,7 @@ int ffmpeg_get_sample_rate(ffmpeg_codec_data* data) {
 int ffmpeg_get_channels(ffmpeg_codec_data* data) {
     if (!data || !data->codecCtx)
         return 0;
-    return data->codecCtx->channels;
+    return data->codecCtx->ch_layout.nb_channels; //data->codecCtx->channels;
 }
 
 int ffmpeg_get_subsong_count(ffmpeg_codec_data* data) {
