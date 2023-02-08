@@ -36,6 +36,15 @@
     <Filter Include="layout\Source Files">
       <UniqueIdentifier>{e729b7b3-e13c-4cf9-9ded-428c209b6f62}</UniqueIdentifier>
     </Filter>
+    <Filter Include="util">
+      <UniqueIdentifier>{717f16e9-63ac-4043-87ea-3b84c862e73b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="util\Header Files">
+      <UniqueIdentifier>{47034ba8-7631-44db-aa83-c536b5f91212}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="util\Source Files">
+      <UniqueIdentifier>{eea07e9d-f942-4a76-914a-4f1d8e367130}</UniqueIdentifier>
+    </Filter>
     <Filter Include="ext_libs">
       <UniqueIdentifier>{48DB0DEF-3694-40E0-9FF6-8A736E6C3A62}</UniqueIdentifier>
     </Filter>
@@ -2008,5 +2017,8 @@
     <ClCompile Include="util\text_reader.c">
       <Filter>util\Source Files</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\vgmstream_msvc.props" />
   </ItemGroup>
 </Project>

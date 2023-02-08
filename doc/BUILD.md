@@ -360,7 +360,7 @@ msbuild fb2k/foo_input_vgmstream.vcxproj ^
  /p:PlatformToolset=v142 ^
  /p:WindowsTargetPlatformVersion=10.0 ^
  /p:Configuration=Release ^
- /p:DependenciesDir=../..
+ /p:VCmnDependenciesDir=../..
 ```
 
 ### Audacious plugin
