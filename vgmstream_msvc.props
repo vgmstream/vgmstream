@@ -49,6 +49,9 @@
     <VCmnAdditionalDependencies32>../ext_libs/libvorbis.lib;../ext_libs/libmpg123-0.lib;../ext_libs/libg719_decode.lib;../ext_libs/avcodec.lib;../ext_libs/avformat.lib;../ext_libs/avutil.lib;../ext_libs/swresample.lib;../ext_libs/libatrac9.lib;../ext_libs/libcelt-0061.lib;../ext_libs/libcelt-0110.lib;../ext_libs/libspeex-1.lib</VCmnAdditionalDependencies32>
     <VCliAdditionalDependencies32>$(VCmnAdditionalDependencies32);../ext_libs/jansson.lib</VCliAdditionalDependencies32>
     <VFooAdditionalDependencies32>$(VCmnAdditionalDependencies32);$(VCmnDependenciesDir)/foobar/foobar2000/shared/shared.lib</VFooAdditionalDependencies32>
+    <VCmnAdditionalDependencies64>../ext_libs/dll-x64/libvorbis.lib;../ext_libs/dll-x64/libmpg123-0.lib;../ext_libs/dll-x64/libg719_decode.lib;../ext_libs/dll-x64/avcodec.lib;../ext_libs/dll-x64/avformat.lib;../ext_libs/dll-x64/avutil.lib;../ext_libs/dll-x64/swresample.lib;../ext_libs/dll-x64/libatrac9.lib;../ext_libs/dll-x64/libcelt-0061.lib;../ext_libs/dll-x64/libcelt-0110.lib;../ext_libs/dll-x64/libspeex-1.lib</VCmnAdditionalDependencies64>
+    <VCliAdditionalDependencies64>$(VCmnAdditionalDependencies64)</VCliAdditionalDependencies64>
+    <VFooAdditionalDependencies64>$(VCmnAdditionalDependencies64);$(VCmnDependenciesDir)/foobar/foobar2000/shared/shared-x64.lib</VFooAdditionalDependencies64>
     <VBuildCommandVersion>"$(ProjectDir)..\version-make.bat"</VBuildCommandVersion>
   </PropertyGroup>
 
@@ -83,6 +86,11 @@
   <ItemDefinitionGroup Condition="'$(Platform)'=='Win32'">
     <Link>
       <TargetMachine>MachineX86</TargetMachine>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Platform)'=='x64'">
+    <Link>
+      <TargetMachine>MachineX64</TargetMachine>
     </Link>
   </ItemDefinitionGroup>
 

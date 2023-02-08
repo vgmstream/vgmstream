@@ -2018,7 +2018,4 @@
       <Filter>util\Source Files</Filter>
     </ClCompile>
   </ItemGroup>
-  <ItemGroup>
-    <None Include="..\vgmstream_msvc.props" />
-  </ItemGroup>
 </Project>
