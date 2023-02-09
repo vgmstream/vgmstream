@@ -3,6 +3,7 @@
 #include "../util.h"
 
 #ifdef VGM_USE_VORBIS
+#define OV_EXCLUDE_STATIC_CALLBACKS
 #include <vorbis/vorbisfile.h>
 
 #define OGG_DEFAULT_BITSTREAM 0
