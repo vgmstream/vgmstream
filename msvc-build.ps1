@@ -19,7 +19,7 @@ if (!$toolset) { $toolset = "" }
 # - sdks: "" (default), "7.0" (Win7 SDK), "8.1" (Win8 SDK), "10.0" (Win10 SDK), etc
 if (!$sdk) { $sdk = "" }
 
-# - platforms: "" (default), "Win32"
+# - platforms: "" (default), "Win32", "x64"
 if (!$platform) { $platform = "" }
 
 # print compilation log
@@ -138,12 +138,26 @@ function CallMsbuild
         throw "Unable to find MSBuild. Is Visual Studio installed?"
     }
 
+    # TODO improve (why does every xxxxer make their own scripting engine)
     # main build (pass config separate and not as a single string)
     if (!$log) {
-        & $msbuild $solution $config $platform $toolset $sdk $target /m
+        if ($platform) {
+            throw "has platform"
+            & $msbuild $solution $config $platform $toolset $sdk $target /m
+        }
+        else {
+            & $msbuild $solution $config /p:Platform=Win32 $toolset $sdk $target /m
+            & $msbuild $solution $config /p:Platform=x64 $toolset $sdk $target /m
+        }
     }
     else {
-        & $msbuild $solution $config $platform $toolset $sdk $target /m > "msvc-build.log"
+        if ($platform) {
+            & $msbuild $solution $config $platform $toolset $sdk $target /m > "msvc-build.log"
+        }
+        else {
+            & $msbuild $solution $config /p:Platform=Win32 $toolset $sdk $target /m > "msvc-build.log"
+            & $msbuild $solution $config /p:Platform=x64 $toolset $sdk $target /m > "msvc-build.log"
+        }
     }
 
     if ($LASTEXITCODE -ne 0) {
@@ -153,7 +167,7 @@ function CallMsbuild
 
 function Build
 {
-    CallMsbuild "Build"
+    CallMsbuild "Build"    
 }
 
 function Rebuild
@@ -166,54 +180,67 @@ function Clean
     CallMsbuild "Clean"
     # todo fix the above, for now:
     #Remove-Item -Path "$dependencies" -Recurse -ErrorAction Ignore
-    Remove-Item -Path "cli/Debug" -Recurse -ErrorAction Ignore
-    Remove-Item -Path "cli/Release" -Recurse -ErrorAction Ignore
-    Remove-Item -Path "ext_libs/Debug" -Recurse -ErrorAction Ignore
-    Remove-Item -Path "ext_libs/Release" -Recurse -ErrorAction Ignore
-    Remove-Item -Path "ext_libs/Getopt/Debug" -Recurse -ErrorAction Ignore
-    Remove-Item -Path "ext_libs/Getopt/Release" -Recurse -ErrorAction Ignore
-    Remove-Item -Path "fb2k/Debug" -Recurse -ErrorAction Ignore
-    Remove-Item -Path "fb2k/Release" -Recurse -ErrorAction Ignore
-    Remove-Item -Path "src/Debug" -Recurse -ErrorAction Ignore
-    Remove-Item -Path "src/Release" -Recurse -ErrorAction Ignore
-    Remove-Item -Path "winamp/Debug" -Recurse -ErrorAction Ignore
-    Remove-Item -Path "winamp/Release" -Recurse -ErrorAction Ignore
-    Remove-Item -Path "xmplay/Debug" -Recurse -ErrorAction Ignore
-    Remove-Item -Path "xmplay/Release" -Recurse -ErrorAction Ignore
+    Remove-Item -Path "build-msvc" -Recurse -ErrorAction Ignore
+
     Remove-Item -Path "Debug" -Recurse -ErrorAction Ignore
     Remove-Item -Path "Release" -Recurse -ErrorAction Ignore
+
     Remove-Item -Path "bin" -Recurse -ErrorAction Ignore
     Remove-Item -Path "tmp" -Recurse -ErrorAction Ignore
 
     Remove-Item "msvc-build.log" -ErrorAction Ignore
 }
 
-$fb2kFiles = @(
+$cliFiles32 = @(
     "ext_libs/*.dll",
-    "$configuration/foo_input_vgmstream.dll",
-    "README.md"
-    "doc/USAGE.md"
-)
-
-$cliFiles = @(
-    "ext_libs/*.dll",
-    "$configuration/in_vgmstream.dll",
     "$configuration/vgmstream-cli.exe",
+    "$configuration/in_vgmstream.dll",
     "$configuration/xmp-vgmstream.dll",
     "COPYING",
     "README.md"
     "doc/USAGE.md"
 )
 
-$fb2kPdbFiles = @(
+$cliFiles64 = @(
+    "ext_libs/dll-x64/*.dll",
+    "x64/$configuration/vgmstream-cli.exe",
+    "COPYING",
+    "README.md"
+    "doc/USAGE.md"
+)
+
+$fb2kFiles32 = @(
+    "ext_libs/*.dll",
+    "$configuration/foo_input_vgmstream.dll",
+    "README.md"
+    "doc/USAGE.md"
+)
+
+$fb2kFiles64 = @(
+    "ext_libs/dll-x64/*.dll",
+    "x64/$configuration/foo_input_vgmstream.dll",
+    "README.md"
+    "doc/USAGE.md"
+)
+
+$cliPdbFiles32 = @(
+    "$configuration/vgmstream-cli.pdb",
+    "$configuration/in_vgmstream.pdb",
+    "$configuration/xmp-vgmstream.pdb"
+)
+
+$cliPdbFiles64 = @(
+    "x64/$configuration/vgmstream-cli.pdb"
+)
+
+$fb2kPdbFiles32 = @(
     "$configuration/foo_input_vgmstream.pdb"
 )
 
-$cliPdbFiles = @(
-    "$configuration/in_vgmstream.pdb",
-    "$configuration/vgmstream-cli.pdb",
-    "$configuration/xmp-vgmstream.pdb"
+$fb2kPdbFiles64 = @(
+    "x64/$configuration/foo_input_vgmstream.pdb"
 )
+
 
 function MakePackage
 {
@@ -224,16 +251,20 @@ function MakePackage
         return
     }
 
-    Compress-Archive $cliFiles $configuration/vgmstream-win.zip -Force
-    Compress-Archive $fb2kFiles $configuration/foo_input_vgmstream.zip -Force
-    Compress-Archive $cliPdbFiles $configuration/vgmstream-win.pdb.zip -Force
-    Compress-Archive $fb2kPdbFiles $configuration/foo_input_vgmstream.pdb.zip -Force
+    mkdir -Force bin
 
-    md -Force bin
-    Move-Item $configuration/vgmstream-win.zip bin/vgmstream-win.zip -Force
-    Move-Item $configuration/foo_input_vgmstream.zip bin/foo_input_vgmstream.fb2k-component -Force
-    Move-Item $configuration/vgmstream-win.pdb.zip bin/vgmstream-win.pdb.zip -Force
-    Move-Item $configuration/foo_input_vgmstream.pdb.zip bin/foo_input_vgmstream.pdb.zip -Force
+    Compress-Archive $cliFiles32 bin/vgmstream-win.zip -Force
+    Compress-Archive $cliFiles64 bin/vgmstream-win64.zip -Force
+    Compress-Archive $cliPdbFiles32 bin/vgmstream-win.pdb.zip -Force
+    Compress-Archive $cliPdbFiles64 bin/vgmstream-win64.pdb.zip -Force
+
+    Compress-Archive $fb2kFiles32 bin/foo_input_vgmstream.zip -Force
+    Move-Item bin/foo_input_vgmstream.zip bin/foo_input_vgmstream.fb2k-component -Force
+    #Compress-Archive $fb2kFiles64 bin/foo_input_vgmstream64.zip -Force
+    #Move-Item $configuration/foo_input_vgmstream64.zip bin/foo_input_vgmstream64.fb2k-component -Force
+
+    Compress-Archive $fb2kPdbFiles32 bin/foo_input_vgmstream.pdb.zip -Force
+    #Compress-Archive $fb2kPdbFiles64 bin/foo_input_vgmstream64.pdb.zip -Force
 }
 
 
@@ -242,13 +273,13 @@ function MakePackageTmp
 {
     MakePackage
 
-    md -Force tmp/cli
-    md -Force tmp/fb2k
-    md -Force tmp/cli-p
-    md -Force tmp/fb2k-p
+    mkdir -Force tmp/cli
+    mkdir -Force tmp/fb2k
+    mkdir -Force tmp/cli-p
+    mkdir -Force tmp/fb2k-p
 
-    Copy-Item $cliFiles tmp/cli/ -Recurse -Force
-    Copy-Item $fb2kFiles tmp/fb2k/ -Recurse -Force
+    Copy-Item $cliFiles32 tmp/cli/ -Recurse -Force
+    Copy-Item $fb2kFiles32 tmp/fb2k/ -Recurse -Force
     Copy-Item $cliPdbFiles tmp/cli-p/ -Recurse -Force
     Copy-Item $fb2kPdbFiles tmp/fb2k-p/ -Recurse -Force
 }

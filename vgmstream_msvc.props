@@ -55,6 +55,15 @@
     <VBuildCommandVersion>"$(ProjectDir)..\version-make.bat"</VBuildCommandVersion>
   </PropertyGroup>
 
+  <!-- common properties
+       OutDir: where .exe/dll/etc are copied
+       InDir: where .obj/logs/etc are generated -->
+  <PropertyGroup>
+    <OutDir Condition="'$(Platform)'=='Win32'">$(SolutionDir)\$(Configuration)\</OutDir>
+    <OutDir Condition="'$(Platform)'=='x64'">$(SolutionDir)\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)\build-msvc\$(Platform)-$(Configuration)\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+
   <!-- common compile config -->
   <ItemDefinitionGroup>
     <ClCompile>

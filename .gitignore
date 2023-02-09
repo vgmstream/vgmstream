@@ -24,6 +24,7 @@ ipch
 *.VC.db
 *.VC.VC.opendb
 
+/build-msvc
 **/Debug
 **/Release
 **/Debug FB2K
