@@ -188,28 +188,33 @@ fail:
 }
 
 
-#define AHX_KEY_BUFFER  0x2000
-#define AHX_KEY_TEST_FRAMES  20 /* wrong keys may work ok in some frames */
+#define AHX_KEY_BUFFER  0x1000 /* not too big since it's read per new key */
+#define AHX_KEY_TEST_FRAMES  25 /* wrong keys may work ok in some frames (specially blank) */
 
 /* check if current key ends properly in frame syncs */
 int test_ahx_key(STREAMFILE* sf, off_t offset, crikey_t* crikey) {
-    int bytes;
+    int bytes = 0;
     uint8_t buf[AHX_KEY_BUFFER];
     const int buf_size = sizeof(buf);
     int pos = 0;
     uint32_t base_sync, curr_sync;
 
-    bytes = read_streamfile(buf, offset, buf_size, sf);
-    //if (bytes != buf_size) goto fail; /* possible in small AHX */
 
-    base_sync = get_u32be(buf + 0x00);
     for (int i = 0; i < AHX_KEY_TEST_FRAMES; i++) {
+        if (bytes < MPEG_AHX_EXPECTED_FRAME_SIZE)  {
+            offset += pos;
+            pos = 0;
+            bytes = read_streamfile(buf, offset, buf_size, sf);
+            //if (bytes != buf_size) goto fail; /* possible in small AHX */
+            base_sync = get_u32be(buf + 0x00);
+        }
 
-        int size = ahx_decrypt(buf + pos, bytes, crikey);
-        if (size <= 0 || size >= bytes - 0x04) goto fail;
+        int frame_size = ahx_decrypt(buf + pos, bytes, crikey);
+        if (frame_size <= 0 || frame_size >= bytes - 0x04)
+            goto fail;
 
-        bytes -= size;
-        pos += size;
+        bytes -= frame_size;
+        pos += frame_size;
 
         curr_sync = get_u32be(buf + pos);
         if (curr_sync == 0x00800100) /* EOF tag */
