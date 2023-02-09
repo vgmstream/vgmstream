@@ -1,7 +1,7 @@
 [CmdletBinding()]
 Param(
     [Parameter(Position=0, mandatory=$true)]
-    [ValidateSet("Init", "Build", "Rebuild", "Clean", "Package", "PackageTmp")]
+    [ValidateSet("Init", "Build", "Rebuild", "Clean", "Package", "PackageArtifacts")]
     [string]$Task
 )
 
@@ -184,9 +184,9 @@ function Clean
 
     Remove-Item -Path "Debug" -Recurse -ErrorAction Ignore
     Remove-Item -Path "Release" -Recurse -ErrorAction Ignore
+    Remove-Item -Path "x64" -Recurse -ErrorAction Ignore
 
     Remove-Item -Path "bin" -Recurse -ErrorAction Ignore
-    Remove-Item -Path "tmp" -Recurse -ErrorAction Ignore
 
     Remove-Item "msvc-build.log" -ErrorAction Ignore
 }
@@ -268,20 +268,26 @@ function MakePackage
 }
 
 
-# for github actions/artifact uploads, that use a dir with files
-function MakePackageTmp
+# github actions/artifact uploads config, that need a dir with files to make an .zip artifact (don't allow single/pre-zipped files)
+function MakePackageArtifacts
 {
-    MakePackage
+    #MakePackage
 
-    mkdir -Force tmp/cli
-    mkdir -Force tmp/fb2k
-    mkdir -Force tmp/cli-p
-    mkdir -Force tmp/fb2k-p
+    mkdir -Force bin/artifacts/cli-x32
+    mkdir -Force bin/artifacts/cli-x64
+    mkdir -Force bin/artifacts/foobar2000-x32
+    #mkdir -Force bin/artifacts/foobar2000-x64
+    mkdir -Force bin/artifacts/pdb-x32
+    mkdir -Force bin/artifacts/pdb-x64
 
-    Copy-Item $cliFiles32 tmp/cli/ -Recurse -Force
-    Copy-Item $fb2kFiles32 tmp/fb2k/ -Recurse -Force
-    Copy-Item $cliPdbFiles tmp/cli-p/ -Recurse -Force
-    Copy-Item $fb2kPdbFiles tmp/fb2k-p/ -Recurse -Force
+    Copy-Item $cliFiles32 bin/artifacts/cli-x32/ -Recurse -Force
+    Copy-Item $cliFiles64 bin/artifacts/cli-x64/ -Recurse -Force
+    Copy-Item $fb2kFiles32 bin/artifacts/foobar2000-x32/ -Recurse -Force
+    #Copy-Item $fb2kFiles64 bin/artifacts/foobar2000-x64/ -Recurse -Force
+    Copy-Item $cliPdbFiles32 bin/artifacts/pdb-x32/ -Recurse -Force
+    Copy-Item $fb2kPdbFiles32 bin/artifacts/pdb-x32/ -Recurse -Force
+    Copy-Item $cliPdbFiles64 bin/artifacts/pdb-x64/ -Recurse -Force
+    #Copy-Item $fb2kPdbFiles64 bin/artifacts/pdb-x64/ -Recurse -Force
 }
 
 
@@ -292,5 +298,5 @@ switch ($Task)
     "Rebuild" { Rebuild }
     "Clean" { Clean }
     "Package" { MakePackage }
-    "PackageTmp" { MakePackageTmp }
+    "PackageArtifacts" { MakePackageArtifacts }
 }

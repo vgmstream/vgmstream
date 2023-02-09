@@ -35,31 +35,38 @@ jobs:
 
       - name: Prepare files for packaging
         shell: powershell
-        run: powershell -ExecutionPolicy Bypass -NoProfile -File .\msvc-build.ps1 PackageTmp
+        run: powershell -ExecutionPolicy Bypass -NoProfile -File .\msvc-build.ps1 PackageArtifacts
 
-      - name: Upload foobar2000 component artifact
+      # upload to "actions" tab artifacts (can only make a single .zip from a dir's files)
+      - name: Upload foobar2000 component 32-bit artifact
         uses: actions/upload-artifact@v3
         with:
           name: foo_input_vgmstream.fb2k-component
-          path: ${{github.workspace}}\tmp\fb2k
+          path: ${{github.workspace}}\bin\artifacts\foobar2000-x32
 
-      - name: Upload CLI tools artifact
+      - name: Upload CLI tools 32-bit artifact
         uses: actions/upload-artifact@v3
         with:
           name: vgmstream-win
-          path: ${{github.workspace}}\tmp\cli
+          path: ${{github.workspace}}\bin\artifacts\cli-x32
 
-      - name: Upload foobar2000 component debug symbols artifact
+      - name: Upload CLI tools 64-bit artifact
         uses: actions/upload-artifact@v3
         with:
-          name: foo_input_vgmstream.pdb
-          path: ${{github.workspace}}\tmp\fb2k-p
+          name: vgmstream-win64
+          path: ${{github.workspace}}\bin\artifacts\cli-x64
 
-      - name: Upload CLI tools debug symbols artifact
+      - name: debug symbols artifact
         uses: actions/upload-artifact@v3
         with:
-          name: vgmstream-win.pdb
-          path: ${{github.workspace}}\tmp\cli-p
+          name: debug-symbols-pdb-32
+          path: ${{github.workspace}}\bin\artifacts\pdb-x32
+
+      - name: debug symbols artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: debug-symbols-pdb-64
+          path: ${{github.workspace}}\bin\artifacts\pdb-x64
 
       # uploads current assets to vgmstream-releases (token only works on merges)
       - name: Upload artifacts to vgmstream-releases
