@@ -7,7 +7,7 @@
   <ImportGroup Label="PropertySheets" />
 
   <PropertyGroup Label="Configuration">
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)'=='Debug'" Label="Configuration">
     <WholeProgramOptimization>false</WholeProgramOptimization>
