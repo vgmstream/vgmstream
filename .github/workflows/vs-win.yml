@@ -38,11 +38,11 @@ jobs:
         run: powershell -ExecutionPolicy Bypass -NoProfile -File .\msvc-build.ps1 PackageArtifacts
 
       # upload to "actions" tab artifacts (can only make a single .zip from a dir's files)
-      - name: Upload foobar2000 component 32-bit artifact
+      - name: Upload foobar2000 component artifact
         uses: actions/upload-artifact@v3
         with:
           name: foo_input_vgmstream.fb2k-component
-          path: ${{github.workspace}}\bin\artifacts\foobar2000-x32
+          path: ${{github.workspace}}\bin\artifacts\foobar2000
 
       - name: Upload CLI tools 32-bit artifact
         uses: actions/upload-artifact@v3
@@ -56,17 +56,11 @@ jobs:
           name: vgmstream-win64
           path: ${{github.workspace}}\bin\artifacts\cli-x64
 
-      - name: debug symbols artifact
+      - name: debug symbols artifact (all)
         uses: actions/upload-artifact@v3
         with:
-          name: debug-symbols-pdb-32
-          path: ${{github.workspace}}\bin\artifacts\pdb-x32
-
-      - name: debug symbols artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: debug-symbols-pdb-64
-          path: ${{github.workspace}}\bin\artifacts\pdb-x64
+          name: debug-symbols-pdb
+          path: ${{github.workspace}}\bin\artifacts\pdb
 
       # uploads current assets to vgmstream-releases (token only works on merges)
       - name: Upload artifacts to vgmstream-releases

@@ -19,6 +19,7 @@ class input_vgmstream : public input_stubs {
         t_uint32 get_subsong(unsigned p_index);
         void get_info(t_uint32 p_subsong, file_info & p_info, abort_callback & p_abort);
         t_filestats get_file_stats(abort_callback & p_abort);
+        t_filestats2 get_stats2(uint32_t f, abort_callback & p_abort);
 
         void decode_initialize(t_uint32 p_subsong, unsigned p_flags, abort_callback & p_abort);
         bool decode_run(audio_chunk & p_chunk, abort_callback & p_abort);
@@ -44,6 +45,7 @@ class input_vgmstream : public input_stubs {
         //service_ptr_t<file> m_file;
         pfc::string8 filename;
         t_filestats stats;
+        t_filestats2 stats2;
 
         /* state */
         VGMSTREAM* vgmstream;

@@ -90,7 +90,7 @@ function Init
     #Download "https://www.foobar2000.org/files/SDK-2018-01-11.zip" "$dependencies\foobar.zip"
 
     # foobar: sdk static mirror
-    Download "https://github.com/vgmstream/vgmstream-deps/raw/master/foobar2000/SDK-2022-01-04.zip" "$dependencies\foobar.zip"
+    Download "https://github.com/vgmstream/vgmstream-deps/raw/master/foobar2000/SDK-2023-01-18.zip" "$dependencies\foobar.zip"
     Unzip "$dependencies\foobar.zip" "$dependencies\foobar"
 
     # foobar: aac (not used ATM)
@@ -142,11 +142,14 @@ function CallMsbuild
     # main build (pass config separate and not as a single string)
     if (!$log) {
         if ($platform) {
-            throw "has platform"
             & $msbuild $solution $config $platform $toolset $sdk $target /m
         }
         else {
             & $msbuild $solution $config /p:Platform=Win32 $toolset $sdk $target /m
+            if ($LASTEXITCODE -ne 0) {
+                throw "MSBuild failed"
+            }
+
             & $msbuild $solution $config /p:Platform=x64 $toolset $sdk $target /m
         }
     }
@@ -156,12 +159,15 @@ function CallMsbuild
         }
         else {
             & $msbuild $solution $config /p:Platform=Win32 $toolset $sdk $target /m > "msvc-build.log"
+            if ($LASTEXITCODE -ne 0) {
+                throw "MSBuild failed"
+            }
             & $msbuild $solution $config /p:Platform=x64 $toolset $sdk $target /m > "msvc-build.log"
         }
     }
 
     if ($LASTEXITCODE -ne 0) {
-        throw "MSBuild failed with error code $LASTEXITCODE"
+        throw "MSBuild failed"
     }
 }
 
@@ -217,10 +223,12 @@ $fb2kFiles32 = @(
 )
 
 $fb2kFiles64 = @(
-    "ext_libs/dll-x64/*.dll",
-    "x64/$configuration/foo_input_vgmstream.dll",
-    "README.md"
-    "doc/USAGE.md"
+    "ext_libs/dll-x64/*.dll"
+    "x64/$configuration/foo_input_vgmstream.dll"
+)
+
+$fb2kFiles_remove = @(
+    "bin/foobar2000/jansson.dll"
 )
 
 $cliPdbFiles32 = @(
@@ -255,16 +263,16 @@ function MakePackage
 
     Compress-Archive $cliFiles32 bin/vgmstream-win.zip -Force
     Compress-Archive $cliFiles64 bin/vgmstream-win64.zip -Force
-    Compress-Archive $cliPdbFiles32 bin/vgmstream-win.pdb.zip -Force
-    Compress-Archive $cliPdbFiles64 bin/vgmstream-win64.pdb.zip -Force
 
-    Compress-Archive $fb2kFiles32 bin/foo_input_vgmstream.zip -Force
+    # foobar 32 and 64-bit components go to the same file, in an extra "x64" subdir for the later
+    mkdir -Force bin/foobar2000
+    mkdir -Force bin/foobar2000/x64
+    Copy-Item $fb2kFiles32 bin/foobar2000/ -Recurse -Force
+    Copy-Item $fb2kFiles64 bin/foobar2000/x64/ -Recurse -Force
+    Remove-Item $fb2kFiles_remove -ErrorAction Ignore
+    Compress-Archive -Path bin/foobar2000/* bin/foo_input_vgmstream.zip -Force
     Move-Item bin/foo_input_vgmstream.zip bin/foo_input_vgmstream.fb2k-component -Force
-    #Compress-Archive $fb2kFiles64 bin/foo_input_vgmstream64.zip -Force
-    #Move-Item $configuration/foo_input_vgmstream64.zip bin/foo_input_vgmstream64.fb2k-component -Force
-
-    Compress-Archive $fb2kPdbFiles32 bin/foo_input_vgmstream.pdb.zip -Force
-    #Compress-Archive $fb2kPdbFiles64 bin/foo_input_vgmstream64.pdb.zip -Force
+    Remove-Item -Path bin/foobar2000 -Recurse -ErrorAction Ignore
 }
 
 
@@ -275,19 +283,20 @@ function MakePackageArtifacts
 
     mkdir -Force bin/artifacts/cli-x32
     mkdir -Force bin/artifacts/cli-x64
-    mkdir -Force bin/artifacts/foobar2000-x32
-    #mkdir -Force bin/artifacts/foobar2000-x64
-    mkdir -Force bin/artifacts/pdb-x32
-    mkdir -Force bin/artifacts/pdb-x64
+    mkdir -Force bin/artifacts/foobar2000
+    mkdir -Force bin/artifacts/foobar2000/x64
+    mkdir -Force bin/artifacts/pdb/x32
+    mkdir -Force bin/artifacts/pdb/x64
 
     Copy-Item $cliFiles32 bin/artifacts/cli-x32/ -Recurse -Force
     Copy-Item $cliFiles64 bin/artifacts/cli-x64/ -Recurse -Force
-    Copy-Item $fb2kFiles32 bin/artifacts/foobar2000-x32/ -Recurse -Force
-    #Copy-Item $fb2kFiles64 bin/artifacts/foobar2000-x64/ -Recurse -Force
-    Copy-Item $cliPdbFiles32 bin/artifacts/pdb-x32/ -Recurse -Force
-    Copy-Item $fb2kPdbFiles32 bin/artifacts/pdb-x32/ -Recurse -Force
-    Copy-Item $cliPdbFiles64 bin/artifacts/pdb-x64/ -Recurse -Force
-    #Copy-Item $fb2kPdbFiles64 bin/artifacts/pdb-x64/ -Recurse -Force
+    Copy-Item $fb2kFiles32 bin/artifacts/foobar2000/ -Recurse -Force
+    Copy-Item $fb2kFiles64 bin/artifacts/foobar2000/x64/ -Recurse -Force
+    Remove-Item $fb2kFiles_remove -ErrorAction Ignore
+    Copy-Item $cliPdbFiles32 bin/artifacts/pdb/x32/ -Recurse -Force
+    Copy-Item $fb2kPdbFiles32 bin/artifacts/pdb/x32/ -Recurse -Force
+    Copy-Item $cliPdbFiles64 bin/artifacts/pdb/x64/ -Recurse -Force
+    Copy-Item $fb2kPdbFiles64 bin/artifacts/pdb/x64/ -Recurse -Force
 }
 
 
