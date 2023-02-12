@@ -13,7 +13,7 @@
 
 # patterns match ($@ = target, $< = dependency, for others substitute)
 %.dll.a:
-	$(DLLTOOL) -D $(DLL_DIR)/$(patsubst %.dll.a,%.dll,$@) -d $(DLL_DIR)/$(patsubst %.dll.a,%.def,$@) -l $(DLL_DIR)/$@
+	$(DLLTOOL) -D $(DLL_DIR)/$(patsubst %.dll.a,%.dll,$@) -d $(patsubst %.dll.a,%.def,$@) -l $(DLL_DIR)/$@
 
 clean:
 	$(RMF) $(DLL_DIR)/*.dll.a

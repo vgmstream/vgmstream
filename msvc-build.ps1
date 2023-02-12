@@ -1,7 +1,7 @@
 [CmdletBinding()]
 Param(
     [Parameter(Position=0, mandatory=$true)]
-    [ValidateSet("Init", "Build", "Rebuild", "Clean", "Package", "PackageTmp")]
+    [ValidateSet("Init", "Build", "Rebuild", "Clean", "Package", "PackageArtifacts")]
     [string]$Task
 )
 
@@ -19,7 +19,7 @@ if (!$toolset) { $toolset = "" }
 # - sdks: "" (default), "7.0" (Win7 SDK), "8.1" (Win8 SDK), "10.0" (Win10 SDK), etc
 if (!$sdk) { $sdk = "" }
 
-# - platforms: "" (default), "Win32"
+# - platforms: "" (default), "Win32", "x64"
 if (!$platform) { $platform = "" }
 
 # print compilation log
@@ -90,7 +90,7 @@ function Init
     #Download "https://www.foobar2000.org/files/SDK-2018-01-11.zip" "$dependencies\foobar.zip"
 
     # foobar: sdk static mirror
-    Download "https://github.com/vgmstream/vgmstream-deps/raw/master/foobar2000/SDK-2022-01-04.zip" "$dependencies\foobar.zip"
+    Download "https://github.com/vgmstream/vgmstream-deps/raw/master/foobar2000/SDK-2023-01-18.zip" "$dependencies\foobar.zip"
     Unzip "$dependencies\foobar.zip" "$dependencies\foobar"
 
     # foobar: aac (not used ATM)
@@ -138,22 +138,42 @@ function CallMsbuild
         throw "Unable to find MSBuild. Is Visual Studio installed?"
     }
 
+    # TODO improve (why does every xxxxer make their own scripting engine)
     # main build (pass config separate and not as a single string)
     if (!$log) {
-        & $msbuild $solution $config $platform $toolset $sdk $target /m
+        if ($platform) {
+            & $msbuild $solution $config $platform $toolset $sdk $target /m
+        }
+        else {
+            & $msbuild $solution $config /p:Platform=Win32 $toolset $sdk $target /m
+            if ($LASTEXITCODE -ne 0) {
+                throw "MSBuild failed"
+            }
+
+            & $msbuild $solution $config /p:Platform=x64 $toolset $sdk $target /m
+        }
     }
     else {
-        & $msbuild $solution $config $platform $toolset $sdk $target /m > "msvc-build.log"
+        if ($platform) {
+            & $msbuild $solution $config $platform $toolset $sdk $target /m > "msvc-build.log"
+        }
+        else {
+            & $msbuild $solution $config /p:Platform=Win32 $toolset $sdk $target /m > "msvc-build.log"
+            if ($LASTEXITCODE -ne 0) {
+                throw "MSBuild failed"
+            }
+            & $msbuild $solution $config /p:Platform=x64 $toolset $sdk $target /m > "msvc-build.log"
+        }
     }
 
     if ($LASTEXITCODE -ne 0) {
-        throw "MSBuild failed with error code $LASTEXITCODE"
+        throw "MSBuild failed"
     }
 }
 
 function Build
 {
-    CallMsbuild "Build"
+    CallMsbuild "Build"    
 }
 
 function Rebuild
@@ -166,54 +186,69 @@ function Clean
     CallMsbuild "Clean"
     # todo fix the above, for now:
     #Remove-Item -Path "$dependencies" -Recurse -ErrorAction Ignore
-    Remove-Item -Path "cli/Debug" -Recurse -ErrorAction Ignore
-    Remove-Item -Path "cli/Release" -Recurse -ErrorAction Ignore
-    Remove-Item -Path "ext_libs/Debug" -Recurse -ErrorAction Ignore
-    Remove-Item -Path "ext_libs/Release" -Recurse -ErrorAction Ignore
-    Remove-Item -Path "ext_libs/Getopt/Debug" -Recurse -ErrorAction Ignore
-    Remove-Item -Path "ext_libs/Getopt/Release" -Recurse -ErrorAction Ignore
-    Remove-Item -Path "fb2k/Debug" -Recurse -ErrorAction Ignore
-    Remove-Item -Path "fb2k/Release" -Recurse -ErrorAction Ignore
-    Remove-Item -Path "src/Debug" -Recurse -ErrorAction Ignore
-    Remove-Item -Path "src/Release" -Recurse -ErrorAction Ignore
-    Remove-Item -Path "winamp/Debug" -Recurse -ErrorAction Ignore
-    Remove-Item -Path "winamp/Release" -Recurse -ErrorAction Ignore
-    Remove-Item -Path "xmplay/Debug" -Recurse -ErrorAction Ignore
-    Remove-Item -Path "xmplay/Release" -Recurse -ErrorAction Ignore
+    Remove-Item -Path "build-msvc" -Recurse -ErrorAction Ignore
+
     Remove-Item -Path "Debug" -Recurse -ErrorAction Ignore
     Remove-Item -Path "Release" -Recurse -ErrorAction Ignore
+    Remove-Item -Path "x64" -Recurse -ErrorAction Ignore
+
     Remove-Item -Path "bin" -Recurse -ErrorAction Ignore
-    Remove-Item -Path "tmp" -Recurse -ErrorAction Ignore
 
     Remove-Item "msvc-build.log" -ErrorAction Ignore
 }
 
-$fb2kFiles = @(
+$cliFiles32 = @(
     "ext_libs/*.dll",
-    "$configuration/foo_input_vgmstream.dll",
-    "README.md"
-    "doc/USAGE.md"
-)
-
-$cliFiles = @(
-    "ext_libs/*.dll",
-    "$configuration/in_vgmstream.dll",
     "$configuration/vgmstream-cli.exe",
+    "$configuration/in_vgmstream.dll",
     "$configuration/xmp-vgmstream.dll",
     "COPYING",
     "README.md"
     "doc/USAGE.md"
 )
 
-$fb2kPdbFiles = @(
+$cliFiles64 = @(
+    "ext_libs/dll-x64/*.dll",
+    "x64/$configuration/vgmstream-cli.exe",
+    "COPYING",
+    "README.md"
+    "doc/USAGE.md"
+)
+
+$fb2kFiles32 = @(
+    "ext_libs/*.dll",
+    "$configuration/foo_input_vgmstream.dll",
+    "README.md"
+    "doc/USAGE.md"
+)
+
+$fb2kFiles64 = @(
+    "ext_libs/dll-x64/*.dll"
+    "x64/$configuration/foo_input_vgmstream.dll"
+)
+
+$fb2kFiles_remove = @(
+    "bin/foobar2000/jansson.dll"
+)
+
+$cliPdbFiles32 = @(
+    "$configuration/vgmstream-cli.pdb",
+    "$configuration/in_vgmstream.pdb",
+    "$configuration/xmp-vgmstream.pdb"
+)
+
+$cliPdbFiles64 = @(
+    "x64/$configuration/vgmstream-cli.pdb"
+)
+
+$fb2kPdbFiles32 = @(
     "$configuration/foo_input_vgmstream.pdb"
 )
 
-$cliPdbFiles = @(
-    "$configuration/in_vgmstream.pdb",
-    "$configuration/vgmstream-cli.pdb",
-    "$configuration/xmp-vgmstream.pdb"
+$fb2kPdbFiles64 = @(
+    "x64/$configuration/foo_input_vgmstream.pdb"
 )
+
 
 function MakePackage
 {
@@ -224,33 +259,44 @@ function MakePackage
         return
     }
 
-    Compress-Archive $cliFiles $configuration/vgmstream-win.zip -Force
-    Compress-Archive $fb2kFiles $configuration/foo_input_vgmstream.zip -Force
-    Compress-Archive $cliPdbFiles $configuration/vgmstream-win.pdb.zip -Force
-    Compress-Archive $fb2kPdbFiles $configuration/foo_input_vgmstream.pdb.zip -Force
+    mkdir -Force bin
 
-    md -Force bin
-    Move-Item $configuration/vgmstream-win.zip bin/vgmstream-win.zip -Force
-    Move-Item $configuration/foo_input_vgmstream.zip bin/foo_input_vgmstream.fb2k-component -Force
-    Move-Item $configuration/vgmstream-win.pdb.zip bin/vgmstream-win.pdb.zip -Force
-    Move-Item $configuration/foo_input_vgmstream.pdb.zip bin/foo_input_vgmstream.pdb.zip -Force
+    Compress-Archive $cliFiles32 bin/vgmstream-win.zip -Force
+    Compress-Archive $cliFiles64 bin/vgmstream-win64.zip -Force
+
+    # foobar 32 and 64-bit components go to the same file, in an extra "x64" subdir for the later
+    mkdir -Force bin/foobar2000
+    mkdir -Force bin/foobar2000/x64
+    Copy-Item $fb2kFiles32 bin/foobar2000/ -Recurse -Force
+    Copy-Item $fb2kFiles64 bin/foobar2000/x64/ -Recurse -Force
+    Remove-Item $fb2kFiles_remove -ErrorAction Ignore
+    Compress-Archive -Path bin/foobar2000/* bin/foo_input_vgmstream.zip -Force
+    Move-Item bin/foo_input_vgmstream.zip bin/foo_input_vgmstream.fb2k-component -Force
+    Remove-Item -Path bin/foobar2000 -Recurse -ErrorAction Ignore
 }
 
 
-# for github actions/artifact uploads, that use a dir with files
-function MakePackageTmp
+# github actions/artifact uploads config, that need a dir with files to make an .zip artifact (don't allow single/pre-zipped files)
+function MakePackageArtifacts
 {
-    MakePackage
+    #MakePackage
 
-    md -Force tmp/cli
-    md -Force tmp/fb2k
-    md -Force tmp/cli-p
-    md -Force tmp/fb2k-p
+    mkdir -Force bin/artifacts/cli-x32
+    mkdir -Force bin/artifacts/cli-x64
+    mkdir -Force bin/artifacts/foobar2000
+    mkdir -Force bin/artifacts/foobar2000/x64
+    mkdir -Force bin/artifacts/pdb/x32
+    mkdir -Force bin/artifacts/pdb/x64
 
-    Copy-Item $cliFiles tmp/cli/ -Recurse -Force
-    Copy-Item $fb2kFiles tmp/fb2k/ -Recurse -Force
-    Copy-Item $cliPdbFiles tmp/cli-p/ -Recurse -Force
-    Copy-Item $fb2kPdbFiles tmp/fb2k-p/ -Recurse -Force
+    Copy-Item $cliFiles32 bin/artifacts/cli-x32/ -Recurse -Force
+    Copy-Item $cliFiles64 bin/artifacts/cli-x64/ -Recurse -Force
+    Copy-Item $fb2kFiles32 bin/artifacts/foobar2000/ -Recurse -Force
+    Copy-Item $fb2kFiles64 bin/artifacts/foobar2000/x64/ -Recurse -Force
+    Remove-Item $fb2kFiles_remove -ErrorAction Ignore
+    Copy-Item $cliPdbFiles32 bin/artifacts/pdb/x32/ -Recurse -Force
+    Copy-Item $fb2kPdbFiles32 bin/artifacts/pdb/x32/ -Recurse -Force
+    Copy-Item $cliPdbFiles64 bin/artifacts/pdb/x64/ -Recurse -Force
+    Copy-Item $fb2kPdbFiles64 bin/artifacts/pdb/x64/ -Recurse -Force
 }
 
 
@@ -261,5 +307,5 @@ switch ($Task)
     "Rebuild" { Rebuild }
     "Clean" { Clean }
     "Package" { MakePackage }
-    "PackageTmp" { MakePackageTmp }
+    "PackageArtifacts" { MakePackageArtifacts }
 }

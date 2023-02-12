@@ -5,9 +5,17 @@
       <Configuration>Debug</Configuration>
       <Platform>Win32</Platform>
     </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
     <ProjectConfiguration Include="Release|Win32">
       <Configuration>Release</Configuration>
       <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
@@ -16,50 +24,34 @@
     <Keyword>Win32Proj</Keyword>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+  <PropertyGroup Label="Configuration">
     <ConfigurationType>Utility</ConfigurationType>
-    <PlatformToolset>v142</PlatformToolset>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <ConfigurationType>Utility</ConfigurationType>
-    <PlatformToolset>v142</PlatformToolset>
+    <!--<CharacterSet>Unicode</CharacterSet>-->
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
-  <ImportGroup Label="ExtensionSettings">
+  <ImportGroup Label="PropertySheets">
+    <Import Project="..\vgmstream_msvc.props" />
   </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
+  <ImportGroup Label="ExtensionSettings" />
+  <ImportGroup Label="PropertySheets" />
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
     <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(SolutionDir)$(Configuration)\</OutDir>
-    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(Configuration)\</IntDir>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(SolutionDir)</OutDir>
-    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(Configuration)\</IntDir>
   </PropertyGroup>
-  <ItemDefinitionGroup>
-  </ItemDefinitionGroup>
-  <ItemGroup>
+  <ItemGroup Condition="'$(Platform)'=='Win32'">
     <CustomBuild Include="libmpg123-0.def">
       <Message>Building library stub</Message>
-      <Command>lib /def:libmpg123-0.def /machine:x86
-</Command>
+      <Command>lib /def:libmpg123-0.def /machine:x86 /out:libmpg123-0.lib</Command>
       <Outputs>libmpg123-0.lib;libmpg123-0.exp;%(Outputs)</Outputs>
     </CustomBuild>
     <CustomBuild Include="libvorbis.def">
       <Message>Building library stub</Message>
-      <Command>lib /def:libvorbis.def /machine:x86
-</Command>
+      <Command>lib /def:libvorbis.def /machine:x86 /out:libvorbis.lib</Command>
       <Outputs>libvorbis.lib;libvorbis.exp;%(Outputs)</Outputs>
     </CustomBuild>
     <CustomBuild Include="libg719_decode.def">
       <Message>Building library stub</Message>
-      <Command>lib /def:libg719_decode.def /machine:x86
-</Command>
+      <Command>lib /def:libg719_decode.def /machine:x86 /out:libg719_decode.lib</Command>
       <Outputs>libg719_decode.lib;libg719_decode.exp;%(Outputs)</Outputs>
     </CustomBuild>
     <CustomBuild Include="avcodec-vgmstream-59.def">
@@ -108,7 +100,63 @@
       <Outputs>jansson.lib;jansson.exp;%(Outputs)</Outputs>
     </CustomBuild>
   </ItemGroup>
+  <ItemGroup Condition="'$(Platform)'=='x64'">
+    <CustomBuild Include="libmpg123-0.def">
+      <Message>Building library stub</Message>
+      <Command>lib /def:libmpg123-0.def /machine:x64 /out:dll-x64\libmpg123-0.lib</Command>
+      <Outputs>dll-x64\libmpg123-0.lib;dll-x64\libmpg123-0.exp;%(Outputs)</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="libvorbis.def">
+      <Message>Building library stub</Message>
+      <Command>lib /def:libvorbis.def /machine:x64 /out:dll-x64\libvorbis.lib</Command>
+      <Outputs>dll-x64\libvorbis.lib;dll-x64\libvorbis.exp;%(Outputs)</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="libg719_decode.def">
+      <Message>Building library stub</Message>
+      <Command>lib /def:libg719_decode.def /machine:x64 /out:dll-x64\libg719_decode.lib</Command>
+      <Outputs>dll-x64\libg719_decode.lib;dll-x64\libg719_decode.exp;%(Outputs)</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="avcodec-vgmstream-59.def">
+      <Message>Building library stub</Message>
+      <Command>lib /def:avcodec-vgmstream-59.def /machine:x64 /out:dll-x64\avcodec.lib</Command>
+      <Outputs>dll-x64\avcodec.lib;dll-x64\avcodec.exp;%(Outputs)</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="avformat-vgmstream-59.def">
+      <Message>Building library stub</Message>
+      <Command>lib /def:avformat-vgmstream-59.def /machine:x64 /out:dll-x64\avformat.lib</Command>
+      <Outputs>dll-x64\avformat.lib;dll-x64\avformat.exp;%(Outputs)</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="avutil-vgmstream-57.def">
+      <Message>Building library stub</Message>
+      <Command>lib /def:avutil-vgmstream-57.def /machine:x64 /out:dll-x64\avutil.lib</Command>
+      <Outputs>dll-x64\avutil.lib;dll-x64\avutil.exp;%(Outputs)</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="swresample-vgmstream-4.def">
+      <Message>Building library stub</Message>
+      <Command>lib /def:swresample-vgmstream-4.def /machine:x64 /out:dll-x64\swresample.lib</Command>
+      <Outputs>dll-x64\swresample.lib;dll-x64\swresample.exp;%(Outputs)</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="libatrac9.def">
+      <Message>Building library stub</Message>
+      <Command>lib /def:libatrac9.def /machine:x64 /out:dll-x64\libatrac9.lib</Command>
+      <Outputs>dll-x64\libatrac9.lib;dll-x64\libatrac9.exp;%(Outputs)</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="libcelt-0061.def">
+      <Message>Building library stub</Message>
+      <Command>lib /def:libcelt-0061.def /machine:x64 /out:dll-x64\libcelt-0061.lib</Command>
+      <Outputs>dll-x64\libcelt-0061.lib;dll-x64\libcelt-0061.exp;%(Outputs)</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="libcelt-0110.def">
+      <Message>Building library stub</Message>
+      <Command>lib /def:libcelt-0110.def /machine:x64 /out:dll-x64\libcelt-0110.lib</Command>
+      <Outputs>dll-x64\libcelt-0110.lib;dll-x64\libcelt-0110.exp;%(Outputs)</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="libspeex-1.def">
+      <Message>Building library stub</Message>
+      <Command>lib /def:libspeex-1.def /machine:x64 /out:dll-x64\libspeex-1.lib</Command>
+      <Outputs>dll-x64\libspeex-1.lib;dll-x64\libspeex-1.exp;%(Outputs)</Outputs>
+    </CustomBuild>
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
-  <ImportGroup Label="ExtensionTargets">
-  </ImportGroup>
+  <ImportGroup Label="ExtensionTargets" />
 </Project>

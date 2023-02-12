@@ -98,6 +98,9 @@ void input_vgmstream::open(service_ptr_t<file> p_filehint, const char * p_path, 
         if ( p_filehint.is_empty() )
             input_open_file_helper( p_filehint, filename, p_reason, p_abort );
         stats = p_filehint->get_stats( p_abort );
+
+        uint32_t flags = stats2_legacy; //foobar2000_io.stats2_xxx, not sure about the implications
+        stats2 = p_filehint->get_stats2_(flags, p_abort); // ???
     }
 
     switch(p_reason) {
@@ -246,6 +249,10 @@ void input_vgmstream::get_info(t_uint32 p_subsong, file_info & p_info, abort_cal
 
 t_filestats input_vgmstream::get_file_stats(abort_callback & p_abort) {
     return stats;
+}
+
+t_filestats2 input_vgmstream::get_stats2(uint32_t f, abort_callback & p_abort) {
+    return stats2;
 }
 
 // called right before actually playing (decoding) a song/subsong

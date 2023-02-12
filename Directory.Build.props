@@ -1,13 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- MSBuild config: autoimported by MSBuild +15 (VS +2017) only, so it's probably better to use for small tweaks only -->
+<!-- MSBuild config: autoimported by MSBuild +15 (VS +2017) early in the process, so should only contain certain defaults.
+     File is searched for relative to .vcxproj (upper dirs) and not .sln -->
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-    <ImportGroup Label="PropertySheets" />
-    <PropertyGroup Label="UserMacros" />
-    <PropertyGroup />
-    <ItemDefinitionGroup>
-        <ClCompile>
-            <DisableSpecificWarnings>4018;4996;%(DisableSpecificWarnings)</DisableSpecificWarnings>
-        </ClCompile>
-    </ItemDefinitionGroup>
-<ItemGroup />
+  <!-- <Import Project="file.props" />-->
+
+  <ImportGroup Label="PropertySheets" />
+
+  <PropertyGroup Label="Configuration">
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)'=='Debug'" Label="Configuration">
+    <WholeProgramOptimization>false</WholeProgramOptimization>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)'=='Release'" Label="Configuration">
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup />
+  <ItemGroup />
 </Project>

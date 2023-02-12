@@ -98,13 +98,13 @@ Any versions that are not too ancient should work, since vgmstream uses standard
 
 ### Microsoft's Visual C++ (MSVC) / Visual Studio / MSBuild (compiler)
 Alt C compiler (**Windows** only), auto-generated builds for Windows use this. Bundled in:
-- Visual Studio (2015/2017/2019/latest): https://www.visualstudio.com/downloads/
+- Visual Studio (2017/2019/2022/latest): https://www.visualstudio.com/downloads/
 
 Visual Studio Community (free) should work, but you may need to register after a trial period. Even after trial you can still use *MSBuild*, command-line tool that actually does all the building, calling the *MSVC* compiler (Visual Studio itself is just an IDE for development and not actually needed).
 
 Instead of the full (usually huge) Visual Studio, you can also get "Build Tools for Visual Studio", variation that only installs *MSBuild* and necessary files without the IDE. Usually found in the above link, under "Tools for Visual Studio" (or google as MS's links tend to move around).
 
-When installing check the "Desktop development with C++" group, and optionally select "MFC support" and "ATL support" sub-options to build foobar2000 plugin (you can modify that or re-install IDE later, by running installed "Visual Studio Installer"). You can include MSVC v142 (2019) toolset, too, just in case, since it's mainly tested with that.
+When installing check the "Desktop development with C++" group, and optionally select "MFC support" and "ATL support" sub-options to build foobar2000 plugin (you can modify that or re-install IDE later, by running installed "Visual Studio Installer"). You can include MSVC v142 (2019) toolset, too, just in case, since it's mainly tested with that. foobar2000 plugin needs MSVC v143 (2022), but other components work with earlier versions.
 
 Older versions of MSVC (2010 and earlier) have limited C support and may not work with latest commits, while reportedly beta/new versions aren't always very stable. Also, only projects (`.vcxproj`) for VS2015+ are included (CMake may be able to generate older `.vcproj` if you really need them). Some very odd issues affecting MSVC only have been found and fixed before. Keep in mind all of this if you run into problems.
 
@@ -320,7 +320,8 @@ CMake can also be used instead to create project files (no particular benefit).
 Requires MSVC (foobar/SDK only links to MSVC C++ DLLs). To build in Visual Studio, run `./msvc-build-init.bat`, open `vgmstream_full.sln` and compile. To build from the command line, just run `./msvc-build.bat`.
 
 foobar has multiple dependencies. Build script downloads them automatically, but here they are:
-- foobar2000 SDK (2022-01-04), in *(vgmstream)/dependencies/foobar/*: http://www.foobar2000.org/SDK
+- foobar2000 SDK (2023-01-18), in *(vgmstream)/dependencies/foobar/*: http://www.foobar2000.org/SDK
+  - Needs visual studio 2022 (toolset v143)
 - WTL (if needed), in *(vgmstream)/dependencies/WTL/*: http://wtl.sourceforge.net/
 - (optional/disabled) FDK-AAC, in *(vgmstream)/dependencies/fdk-aac/*: https://github.com/kode54/fdk-aac
 - (optional/disabled) QAAC, in *(vgmstream)/dependencies/qaac/*: https://github.com/kode54/qaac
@@ -360,7 +361,7 @@ msbuild fb2k/foo_input_vgmstream.vcxproj ^
  /p:PlatformToolset=v142 ^
  /p:WindowsTargetPlatformVersion=10.0 ^
  /p:Configuration=Release ^
- /p:DependenciesDir=../..
+ /p:VCmnDependenciesDir=../..
 ```
 
 ### Audacious plugin

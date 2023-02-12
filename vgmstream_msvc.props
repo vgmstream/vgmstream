@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Default props (shown 'unchanged' in IDE), manually imported in .vcxproj. When modified .vcxproj are updated rather than this file.
+     Note that some config seemingly works in MSBuild (build tool) but not correctly in Visual Studio (actual IDE) and should be avoided:
+     - order matters (may not work in wrong places)
+     - .vcxprox should have all expected parts even if empty (.props don't need that)
+     - when editting, VS will usually only update existing tags 
+       - changing a <PropertyGroup Label="Configuration"> without Condition in GUI's Debug config may just update all props (no tag for different configs))
+     https://learn.microsoft.com/en-us/visualstudio/msbuild/customize-your-build?view=vs-2022
+     https://learn.microsoft.com/en-us/cpp/build/reference/vcxproj-file-structure?view=msvc-170
+     Loosely based on libopus' props.
+-->
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!-- <ItemGroup Label="ProjectConfigurations" /> -->
+
+  <!-- <PropertyGroup Label="Globals" /> -->
+
+  <!-- <Import Project="$(VCTargetsPath)\Microsoft.Cpp.default.props" /> -->
+
+  <!-- doesn't work unless imported before default props, but not sure about the implications (use Directory.Build.props instead) -->
+  <!-- <PropertyGroup Label="Configuration" Condition="..."/> -->
+
+  <!-- <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" /> -->
+
+  <ImportGroup Label="ExtensionSettings" />
+
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+
+  <!-- common macros (".." here refers from current .vcxproj) -->
+  <PropertyGroup Label="UserMacros">
+    <VCmnDependenciesDir>../dependencies</VCmnDependenciesDir>
+    <!-- .h includes (.. for version.h) -->
+    <VLibAdditionalIncludeDirectories>..;../ext_includes;../ext_includes/ffmpeg;../ext_libs/Getopt;$(VCmnDependenciesDir)/qaac/mp4v2/include;$(VCmnDependenciesDir)/fdk-aac/libSYS/include;$(VCmnDependenciesDir)/fdk-aac/libAACdec/include</VLibAdditionalIncludeDirectories>
+    <VCliAdditionalIncludeDirectories>..;../ext_includes;../ext_libs/Getopt</VCliAdditionalIncludeDirectories>
+    <VFooAdditionalIncludeDirectories>..;$(VCmnDependenciesDir)/wtl/include;$(VCmnDependenciesDir)/foobar;$(VCmnDependenciesDir)/foobar/foobar2000</VFooAdditionalIncludeDirectories>
+    <VCmdAdditionalIncludeDirectories>..</VCmdAdditionalIncludeDirectories>
+    <!-- compile flags -->
+    <VLibPreprocessorDefinitions>VGMSTREAM_VERSION_AUTO;VGM_LOG_OUTPUT;VGM_USE_VORBIS;VGM_USE_MPEG;VGM_USE_FFMPEG;VGM_USE_G7221;VGM_USE_G719;VGM_USE_ATRAC9;VGM_USE_CELT;VGM_USE_SPEEX</VLibPreprocessorDefinitions>
+    <VCmnPreprocessorDefinitions>VGMSTREAM_VERSION_AUTO</VCmnPreprocessorDefinitions>
+    <VCliPreprocessorDefinitions>$(VCmnPreprocessorDefinitions)</VCliPreprocessorDefinitions>
+    <VFooPreprocessorDefinitions>$(VCmnPreprocessorDefinitions)</VFooPreprocessorDefinitions>
+    <VXmpPreprocessorDefinitions>$(VCmnPreprocessorDefinitions)</VXmpPreprocessorDefinitions>
+    <VWmpPreprocessorDefinitions>$(VCmnPreprocessorDefinitions);IN_VGMSTREAM_EXPORTS;VGM_WINAMP_UNICODE</VWmpPreprocessorDefinitions>
+    <!-- link .lib -->
+    <VCmnAdditionalDependencies32>../ext_libs/libvorbis.lib;../ext_libs/libmpg123-0.lib;../ext_libs/libg719_decode.lib;../ext_libs/avcodec.lib;../ext_libs/avformat.lib;../ext_libs/avutil.lib;../ext_libs/swresample.lib;../ext_libs/libatrac9.lib;../ext_libs/libcelt-0061.lib;../ext_libs/libcelt-0110.lib;../ext_libs/libspeex-1.lib</VCmnAdditionalDependencies32>
+    <VCliAdditionalDependencies32>$(VCmnAdditionalDependencies32);../ext_libs/jansson.lib</VCliAdditionalDependencies32>
+    <VFooAdditionalDependencies32>$(VCmnAdditionalDependencies32);$(VCmnDependenciesDir)/foobar/foobar2000/shared/shared-Win32.lib</VFooAdditionalDependencies32>
+    <VCmnAdditionalDependencies64>../ext_libs/dll-x64/libvorbis.lib;../ext_libs/dll-x64/libmpg123-0.lib;../ext_libs/dll-x64/libg719_decode.lib;../ext_libs/dll-x64/avcodec.lib;../ext_libs/dll-x64/avformat.lib;../ext_libs/dll-x64/avutil.lib;../ext_libs/dll-x64/swresample.lib;../ext_libs/dll-x64/libatrac9.lib;../ext_libs/dll-x64/libcelt-0061.lib;../ext_libs/dll-x64/libcelt-0110.lib;../ext_libs/dll-x64/libspeex-1.lib</VCmnAdditionalDependencies64>
+    <VCliAdditionalDependencies64>$(VCmnAdditionalDependencies64)</VCliAdditionalDependencies64>
+    <VFooAdditionalDependencies64>$(VCmnAdditionalDependencies64);$(VCmnDependenciesDir)/foobar/foobar2000/shared/shared-x64.lib</VFooAdditionalDependencies64>
+    <VBuildCommandVersion>"$(ProjectDir)..\version-make.bat"</VBuildCommandVersion>
+  </PropertyGroup>
+
+  <!-- common properties
+       OutDir: where .exe/dll/etc are copied
+       InDir: where .obj/logs/etc are generated -->
+  <PropertyGroup>
+    <OutDir Condition="'$(Platform)'=='Win32'">$(SolutionDir)\$(Configuration)\</OutDir>
+    <OutDir Condition="'$(Platform)'=='x64'">$(SolutionDir)\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(SolutionDir)\build-msvc\$(Platform)-$(Configuration)\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+
+  <!-- common compile config -->
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FloatingPointModel Condition="'$(Configuration)'=='Release'">Fast</FloatingPointModel>
+      <FloatingPointModel Condition="'$(Configuration)'!='Release'">Precise</FloatingPointModel>
+      <DisableSpecificWarnings>4018;4996;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+    </ClCompile>
+    <PreBuildEvent>
+      <Message>Generating version</Message>
+      <Command>$(VBuildCommandVersion)</Command>
+    </PreBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <EnableEnhancedInstructionSet>NoExtensions</EnableEnhancedInstructionSet>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
+    <ClCompile>
+      <Optimization>MaxSpeed</Optimization>
+      <EnableEnhancedInstructionSet>NoExtensions</EnableEnhancedInstructionSet>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Platform)'=='Win32'">
+    <Link>
+      <TargetMachine>MachineX86</TargetMachine>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Platform)'=='x64'">
+    <Link>
+      <TargetMachine>MachineX64</TargetMachine>
+    </Link>
+  </ItemDefinitionGroup>
+
+  <!-- <ItemGroup /> -->
+
+  <!-- <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" /> -->
+
+  <!-- <ImportGroup Label="ExtensionTargets" /> -->
+</Project>
