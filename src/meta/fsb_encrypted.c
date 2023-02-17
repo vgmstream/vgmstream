@@ -25,7 +25,10 @@ VGMSTREAM* init_vgmstream_fsb_encrypted(STREAMFILE* sf) {
         uint8_t key[FSB_KEY_MAX];
         size_t key_size = read_key_file(key, FSB_KEY_MAX, sf);
 
-        test_fsbkey(sf, key, key_size, MODE_FSBS_ALL);
+        if (key_size) {
+            vgmstream = test_fsbkey(sf, key, key_size, MODE_FSBS_ALL);
+            return vgmstream;
+        }
     }
 
 
@@ -65,22 +68,22 @@ static VGMSTREAM* test_fsbkey(STREAMFILE* sf, const uint8_t* key, size_t key_siz
     if (!vc && test_std) {
         temp_sf = setup_fsb_streamfile(sf, key, key_size, 0);
         if (!temp_sf) return NULL;
+        //;dump_streamfile(temp_sf, 0);
 
         if (!vc && test_fsb4) vc = init_vgmstream_fsb(temp_sf);
         if (!vc && test_fsb5) vc = init_vgmstream_fsb5(temp_sf);
 
-        //;if (vgmstream) dump_streamfile(temp_sf, 0);
        close_streamfile(temp_sf);
     }
 
     if (!vc && test_alt) {
         temp_sf = setup_fsb_streamfile(sf, key, key_size, 1);
         if (!temp_sf) return NULL;
+        //;dump_streamfile(temp_sf, 1);
 
         if (!vc  && test_fsb4) vc = init_vgmstream_fsb(temp_sf);
         if (!vc && test_fsb5) vc = init_vgmstream_fsb5(temp_sf);
 
-        //;if (vgmstream) dump_streamfile(temp_sf, 0);
         close_streamfile(temp_sf);
     }
     
