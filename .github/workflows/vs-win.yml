@@ -66,12 +66,11 @@ jobs:
       - name: Upload artifacts to vgmstream-releases
         if: github.event_name != 'pull_request' 
         shell: cmd
-        working-directory: ${{github.workspace}}
         env:
           UPLOADER_GITHUB_TOKEN: ${{ secrets.UPLOADER_GITHUB_TOKEN }}
         run: |
-          python .github/uploader.py bin/vgmstream-win.zip bin/vgmstream-win64.zip bin/foo_input_vgmstream.fb2k-component
-          python .github/uploader.py --changelog
+          python ${{github.workspace}}\.github\uploader.py ${{github.workspace}}\bin\vgmstream-win.zip ${{github.workspace}}\bin\vgmstream-win64.zip ${{github.workspace}}\bin\foo_input_vgmstream.fb2k-component
+          python ${{github.workspace}}\.github\uploader.py --changelog
 
       #- name: Upload artifacts to S3
       #  if: github.event_name != 'pull_request' 
