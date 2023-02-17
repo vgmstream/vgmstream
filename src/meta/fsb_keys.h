@@ -68,7 +68,8 @@ static const fsbkey_info fsbkey_list[] = {
         { MODE_FSB5_STD, FSBKEY_ADD("4FB8CC894515617939F4E1B7D50972D27213B8E6") }, // Cult of the Lamb Demo (PC) 
         { MODE_FSB5_STD, FSBKEY_ADD("X3EK%Bbga-%Y9HZZ%gkc*C512*$$DhRxWTGgjUG@=rUD") }, // Signalis (PC)
         { MODE_FSB5_STD, FSBKEY_ADD("281ad163160cfc16f9a22c6755a64fad") }, // Ash Echoes beta (Android)
-
+        { MODE_FSB5_STD, FSBKEY_ADD("Aurogon666") }, // Afterimage demo (PC)
+        { MODE_FSB5_STD, FSBKEY_ADD("IfYouLikeThosesSoundsWhyNotRenumerateTheir2Authors?") }, // Blanc (PC/Switch)
 };
 static const int fsbkey_list_count = sizeof(fsbkey_list) / sizeof(fsbkey_list[0]);
 

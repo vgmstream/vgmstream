@@ -63,6 +63,7 @@ def parse_args():
     ap.add_argument("-cn","--cli-new", help="sets name of new CLI (can be a path)")
     ap.add_argument("-co","--cli-old", help="sets name of old CLI (can be a path)")
     ap.add_argument("-m","--multiprocesses", help="uses N multiprocesses to compare for performance\n(note that pypy w/ single process is faster than multiprocesses)", type=int, default=1)
+    ap.add_argument("-d","--diffs", help="compares input files directly (won't decode)", action='store_true')
 
     args = ap.parse_args()
     
@@ -385,10 +386,11 @@ class VrtsFiles:
                 if not os.path.isfile(file):
                     continue
 
-                # ignores non useful files
-                _, ext = os.path.splitext(file)
-                if ext.lower() in IGNORED_EXTENSIONS:
-                    continue
+                # ignores non useful files, except on diffs mode that uses them directly
+                if not self._args.diffs:
+                    _, ext = os.path.splitext(file)
+                    if ext.lower() in IGNORED_EXTENSIONS:
+                        continue
 
                 self.filenames.append(file)
 
@@ -497,6 +499,9 @@ class VrtsApp:
     # - can be passed a dir or file for old/new
     # - old is optional in performance mode
     def _detect_cli(self):
+        if self._args.diffs:
+            return
+    
         cli = self._find_cli(self._args.cli_new, DEFAULT_CLI_NEW)
         if cli:
             self._cli_new = cli
@@ -626,10 +631,28 @@ class VrtsApp:
                 pass
         self._temp_files = []
 
+    def _diffs(self):
+        
+        files = self._files.filenames
+        print(files)
+        for i in range(len(files) - 1):
+            curr = files[i]
+            next = files[i+1]
+            print(curr, next)
+            
+            fuzzy = self._args.fuzzy
+            cmp = VrtsComparator(curr, next, fuzzy_max=fuzzy, concurrency=self._args.multiprocesses)
+            code = cmp.compare()
+            
+            self._p.result(curr, code)
+
     def start(self):
         self._detect_cli()
         self._files.prepare()
-        if self._args.performance:
+        
+        if self._args.diffs:
+            self._diffs()
+        elif self._args.performance:
             self._performance()
         else:
             self._compare()
