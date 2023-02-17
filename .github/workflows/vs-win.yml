@@ -69,7 +69,7 @@ jobs:
         env:
           UPLOADER_GITHUB_TOKEN: ${{ secrets.UPLOADER_GITHUB_TOKEN }}
         run: |
-          python ${{github.workspace}}\.github\uploader.py ${{github.workspace}}\bin\vgmstream-win.zip ${{github.workspace}}\bin\vgmstream-win64.zip ${{github.workspace}}\bin\foo_input_vgmstream.fb2k-component
+          python ${{github.workspace}}\.github\uploader.py ${{runner.workspace}}\bin\vgmstream-win.zip ${{runner.workspace}}\bin\vgmstream-win64.zip ${{runner.workspace}}\bin\foo_input_vgmstream.fb2k-component
           python ${{github.workspace}}\.github\uploader.py --changelog
 
       #- name: Upload artifacts to S3
