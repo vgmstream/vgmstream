@@ -778,10 +778,16 @@ static ffmpeg_codec_data* init_ffmpeg_custom_opus_config(STREAMFILE* sf, off_t s
     ffmpeg_data = init_ffmpeg_offset(temp_sf, 0x00, get_streamfile_size(temp_sf));
     if (!ffmpeg_data) goto fail;
 
-    /* FFmpeg + libopus: skips samples, notifies skip in codecCtx->delay (not in stream->skip_samples)
-     * FFmpeg + opus: *doesn't* skip, also notifies skip in codecCtx->delay, hurray (possibly fixed in recent versions)
-     * FFmpeg + opus is audibly buggy with some low bitrate SSB Ultimate files */
-    //ffmpeg_set_skip_samples(ffmpeg_data, skip);
+    /* FFmpeg + libopus: skips samples, notifies skip in codecCtx->delay/initial_padding (not in stream->skip_samples)
+     * FFmpeg + opus: skip samples but loses them on reset/seek to 0, also notifies skip in codecCtx->delay/initial_padding */
+    {
+        /* quick fix for non-libopus (not sure how to detect better since both share AV_CODEC_ID_OPUS)*/
+        const char* name = ffmpeg_get_codec_name(ffmpeg_data);
+        if (name && (name[0] == 'O' || name[0] == 'o')) {  /* "Opus" vs "libopus" */
+            //ffmpeg_set_skip_samples(ffmpeg_data, cfg->skip); /* can't overwrite internal decoder skip */
+            ffmpeg_set_force_seek(ffmpeg_data);
+        }
+    }
 
     close_streamfile(temp_sf);
     return ffmpeg_data;
