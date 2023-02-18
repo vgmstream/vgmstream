@@ -19,7 +19,7 @@ jobs:
           fetch-depth: 0
 
       - name: Install dependencies
-        run: brew install autoconf automake cmake ffmpeg jansson libao libvorbis mpg123
+        run: brew install autoconf automake cmake pkgconfig ffmpeg jansson libao libvorbis mpg123
 
       - name: Cache celt
         uses: actions/cache@v3
@@ -62,8 +62,6 @@ jobs:
         shell: bash
         env:
           UPLOADER_GITHUB_TOKEN: ${{ secrets.UPLOADER_GITHUB_TOKEN }}
-        # tar cvfz vgmstream-linux-123.tar.gz -C ./build/cli vgmstream123
-        # tar cvfz vgmstream-linux-audacious.tar.gz -C ./build/audacious vgmstream.so
         run: |
           tar cvfz vgmstream-mac-cli.tar.gz -C ./build/cli vgmstream-cli
           python3 .github/uploader.py vgmstream-mac-cli.tar.gz
