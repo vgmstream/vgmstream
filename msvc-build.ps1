@@ -279,7 +279,7 @@ function MakePackage
 # github actions/artifact uploads config, that need a dir with files to make an .zip artifact (don't allow single/pre-zipped files)
 function MakePackageArtifacts
 {
-    #MakePackage
+    MakePackage
 
     mkdir -Force bin/artifacts/cli-x32
     mkdir -Force bin/artifacts/cli-x64
