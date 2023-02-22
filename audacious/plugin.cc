@@ -80,17 +80,17 @@ const char VgmstreamPlugin::about[] =
 /* widget config: {min, max, step} */
 const PreferencesWidget VgmstreamPlugin::widgets[] = {
     WidgetLabel(N_("<b>vgmstream config</b>")),
-    WidgetCheck(N_("Loop forever:"), WidgetBool(settings.loop_forever)),
-    WidgetCheck(N_("Ignore loop:"), WidgetBool(settings.ignore_loop)),
+    WidgetCheck(N_("Loop forever"), WidgetBool(settings.loop_forever)),
+    WidgetCheck(N_("Ignore loop"), WidgetBool(settings.ignore_loop)),
     WidgetSpin(N_("Loop count:"), WidgetFloat(settings.loop_count), {1, 100, 1.0}),
     WidgetSpin(N_("Fade length:"), WidgetFloat(settings.fade_time), {0, 60, 0.1}),
     WidgetSpin(N_("Fade delay:"), WidgetFloat(settings.fade_delay), {0, 60, 0.1}),
     WidgetSpin(N_("Downmix:"), WidgetInt(settings.downmix_channels), {0, 8, 1}),
-    WidgetCheck(N_("Enable unknown exts:"), WidgetBool(settings.exts_unknown_on)),
+    WidgetCheck(N_("Enable unknown exts"), WidgetBool(settings.exts_unknown_on)),
     // Audacious 3.6 will only match one plugin so this option has no actual use
     // (ex. a fake .flac only gets to the FLAC plugin and never to vgmstream, even on error)
     //WidgetCheck(N_("Enable common exts"), WidgetBool(settings.exts_common_on)),
-    WidgetCheck(N_("Disable tagfile:"), WidgetBool(settings.tagfile_disable)),
+    WidgetCheck(N_("Disable tagfile"), WidgetBool(settings.tagfile_disable))
 };
 
 void vgmstream_settings_load() {
