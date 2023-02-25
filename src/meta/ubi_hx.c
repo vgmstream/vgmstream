@@ -250,8 +250,8 @@ static int parse_header(ubi_hx_header* hx, STREAMFILE* sf, uint32_t offset, uint
     read_u32_t read_u32 = hx->big_endian ? read_u32be : read_u32le;
     read_s32_t read_s32 = hx->big_endian ? read_s32be : read_s32le;
     read_u16_t read_u16 = hx->big_endian ? read_u16be : read_u16le;
-    off_t riff_offset, riff_size, chunk_offset, stream_adjust = 0, resource_size;
-    size_t chunk_size;
+    uint32_t riff_offset, riff_size, stream_adjust = 0, resource_size, chunk_size;
+    off_t chunk_offset;
     int cue_flag = 0;
 
     //todo cleanup/unify common readings
@@ -339,7 +339,7 @@ static int parse_header(ubi_hx_header* hx, STREAMFILE* sf, uint32_t offset, uint
                 break;
 
             default:
-                VGM_LOG("ubi hx: unknown stream mode %x\n", hx->stream_mode);
+                VGM_LOG("ubi hx: unknown wave mode %x\n", hx->stream_mode);
                 goto fail;
         }
 
@@ -473,6 +473,7 @@ static int parse_header(ubi_hx_header* hx, STREAMFILE* sf, uint32_t offset, uint
 
         switch(hx->stream_mode) {
             case 0x00: /* static (smaller internal file) [XIII (Xbox)] */
+            case 0x02: /* static (smaller internal file) [XIII-beta (Xbox)] */
                 hx->stream_offset += offset;
                 break;
 
