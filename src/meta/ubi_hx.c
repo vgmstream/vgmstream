@@ -423,14 +423,28 @@ static int parse_header(ubi_hx_header* hx, STREAMFILE* sf, uint32_t offset, uint
         if ((strcmp(hx->class_name, "CXBoxStaticHWWaveFileIdObj") == 0 ||
              strcmp(hx->class_name, "CXBoxStreamHWWaveFileIdObj") == 0) && !hx->big_endian) {
             /* micro header: some mix of channels + block size + sample rate + flags, unsure of which bits */
-            hx->codec       = XIMA;
+            
             /* 0x00: ? */
-            hx->channels    = read_u8(offset + 0x01, sf); /* upper 2 bits? */
-            switch(hx->channels) { 
-                case 0x48: hx->channels = 1; break;
-                case 0x90: hx->channels = 2; break;
+            uint8_t flags    = read_u8(offset + 0x01, sf);
+            switch(flags) { 
+                case 0x05: // b00000101 /* XIII (Xbox)-beta 2002-12 */
+                    hx->channels = 1;
+                    hx->codec = PCM;
+                    break;
+                case 0x09: // b00001001 /* XIII (Xbox)-beta 2002-12 */
+                    hx->channels = 2;
+                    hx->codec = PCM;
+                    break;
+                case 0x48: // b01001000
+                    hx->channels = 1;
+                    hx->codec = XIMA;
+                    break;
+                case 0x90: // b10010000
+                    hx->channels = 2;
+                    hx->codec = XIMA;
+                    break;
                 default:
-                    VGM_LOG("ubi hx: channel type %x\n", hx->channels);
+                    VGM_LOG("ubi hx: channel flags %x\n", flags);
                     goto fail;
             }
             hx->sample_rate = (read_u16(offset + 0x02, sf) & 0x7FFFu) << 1u;  /* ??? */
