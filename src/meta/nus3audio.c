@@ -1,7 +1,7 @@
 #include "meta.h"
 #include "../coding/coding.h"
 
-typedef enum { IDSP, OPUS, RIFF, } nus3audio_codec;
+typedef enum { IDSP, OPUS, RIFF, BNSF, } nus3audio_codec;
 
 /* .nus3audio - Namco's newest newest audio container [Super Smash Bros. Ultimate (Switch), Mobile Suit Gundam: Extreme Vs. Maxi Boost ON (PS4)] */
 VGMSTREAM* init_vgmstream_nus3audio(STREAMFILE* sf) {
@@ -96,6 +96,10 @@ VGMSTREAM* init_vgmstream_nus3audio(STREAMFILE* sf) {
                 codec = RIFF;
                 fake_ext = "wav";
                 break;
+            case 0x424E5346: /* "BNSF" [gundam Extreme Vs 2 (AC)-multichannel] */
+                codec = BNSF;
+                fake_ext = "bnsf";
+                break;
             default:
                 vgm_logi("NUS3AUDIO: unknown codec (report)\n");
                 goto fail;
@@ -118,6 +122,10 @@ VGMSTREAM* init_vgmstream_nus3audio(STREAMFILE* sf) {
             break;
         case RIFF:
             vgmstream = init_vgmstream_riff(temp_sf);
+            if (!vgmstream) goto fail;
+            break;
+        case BNSF:
+            vgmstream = init_vgmstream_bnsf(temp_sf);
             if (!vgmstream) goto fail;
             break;
         default:
