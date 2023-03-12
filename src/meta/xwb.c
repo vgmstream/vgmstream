@@ -97,7 +97,7 @@ VGMSTREAM* init_vgmstream_xwb(STREAMFILE* sf) {
      * .xna: Touhou Makukasai ~ Fantasy Danmaku Festival (PC)
      * (extensionless): Ikaruga (X360/PC), Grabbed by the Ghoulies (Xbox) 
      * .bd: Fatal Frame 2 (Xbox) */
-    if (!check_extensions(sf,"xwb,xna,bd"))
+    if (!check_extensions(sf,"xwb,xna,bd,"))
         goto fail;
 
     xwb.little_endian = is_id32be(0x00,sf, "WBND"); /* Xbox/PC */
