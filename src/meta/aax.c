@@ -135,7 +135,7 @@ fail:
 }
 
 
-/* CRI's UTF wrapper around DSP [Sonic Colors sfx (Wii), NiGHTS: Journey of Dreams sfx (Wii)] */
+/* CRI's UTF wrapper around DSP [Sonic Colors (Wii)-sfx, NiGHTS: Journey of Dreams (Wii)-sfx] */
 VGMSTREAM* init_vgmstream_utf_dsp(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     off_t start_offset;
@@ -154,7 +154,7 @@ VGMSTREAM* init_vgmstream_utf_dsp(STREAMFILE* sf) {
     if (!check_extensions(sf, "aax,"))
         goto fail;
 
-    /* .aax contains a simple UTF table with one row and various columns being header info */
+    /* contains a simple UTF table with one row and various columns being header info */
     {
         int rows;
         const char* name;
@@ -215,9 +215,11 @@ VGMSTREAM* init_vgmstream_utf_dsp(STREAMFILE* sf) {
 
     if (!vgmstream_open_stream(vgmstream, sf, start_offset))
         goto fail;
+    utf_close(utf);
     return vgmstream;
 
 fail:
+    utf_close(utf);
     close_vgmstream(vgmstream);
     return NULL;
 }
