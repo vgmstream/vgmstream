@@ -264,6 +264,7 @@ static const char* extension_list[] = {
     "kces",
     "kcey", //fake extension/header id for .pcm (renamed, to be removed)
     "km9",
+    "kma",  //txth/reserved [Dynasty Warriors 7: Empires (PS3)]
     "kmx",
     "kovs", //fake extension/header id for .kvs
     "kno",
