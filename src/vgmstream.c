@@ -525,6 +525,7 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_bigrp,
     init_vgmstream_sscf_encrypted,
     init_vgmstream_s_p_sth,
+    init_vgmstream_utf_ahx,
 
     /* lower priority metas (no clean header identity, somewhat ambiguous, or need extension/companion file to identify) */
     init_vgmstream_scd_pcm,

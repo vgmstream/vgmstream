@@ -881,6 +881,7 @@ VGMSTREAM* init_vgmstream_xssb(STREAMFILE *sf);
 VGMSTREAM* init_vgmstream_xma_ue3(STREAMFILE *sf);
 
 VGMSTREAM* init_vgmstream_csb(STREAMFILE *sf);
+VGMSTREAM* init_vgmstream_utf_ahx(STREAMFILE *sf);
 
 VGMSTREAM *init_vgmstream_fwse(STREAMFILE *streamFile);
 

@@ -7,8 +7,7 @@
 VGMSTREAM* init_vgmstream_csb(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     STREAMFILE* temp_sf = NULL;
-    off_t subfile_offset;
-    size_t subfile_size;
+    uint32_t subfile_offset, subfile_size;
     utf_context* utf = NULL;
     utf_context* utf_sdl = NULL;
     int total_subsongs, target_subsong = sf->stream_index;
@@ -17,9 +16,9 @@ VGMSTREAM* init_vgmstream_csb(STREAMFILE* sf) {
 
 
     /* checks */
-    if (!check_extensions(sf, "csb"))
-        goto fail;
     if (!is_id32be(0x00,sf, "@UTF"))
+        goto fail;
+    if (!check_extensions(sf, "csb"))
         goto fail;
 
     /* .csb is an early, simpler version of .acb+awk (see acb.c) used until ~2013?
@@ -115,9 +114,7 @@ VGMSTREAM* init_vgmstream_csb(STREAMFILE* sf) {
             goto fail;
     }
 
-    //;VGM_LOG("CSB: subfile offset=%lx + %x\n", subfile_offset, subfile_size);
-
-
+    //;VGM_LOG("CSB: subfile offset=%x + %x\n", subfile_offset, subfile_size);
     temp_sf = setup_subfile_streamfile(sf, subfile_offset, subfile_size, "aax");
     if (!temp_sf) goto fail;
 
@@ -125,6 +122,11 @@ VGMSTREAM* init_vgmstream_csb(STREAMFILE* sf) {
         case 0: /* AAX */
         case 6: /* HCA */
             vgmstream = init_vgmstream_aax(temp_sf);
+            if (!vgmstream) goto fail;
+            break;
+
+        case 2: /* AHX */
+            vgmstream = init_vgmstream_utf_ahx(temp_sf);
             if (!vgmstream) goto fail;
             break;
 
@@ -149,6 +151,61 @@ VGMSTREAM* init_vgmstream_csb(STREAMFILE* sf) {
 fail:
     utf_close(utf);
     utf_close(utf_sdl);
+    close_streamfile(temp_sf);
+    close_vgmstream(vgmstream);
+    return NULL;
+}
+
+
+/* CRI's UTF wrapper around AHX [Yakuza: Dead Souls (PS3)-voices] */
+VGMSTREAM* init_vgmstream_utf_ahx(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
+    STREAMFILE* temp_sf = NULL;
+    uint32_t subfile_offset, subfile_size;
+    utf_context* utf = NULL;
+
+
+    /* checks */
+    if (!is_id32be(0x00,sf, "@UTF"))
+        goto fail;
+
+    /* .aax: assumed
+     * (extensionless): extracted names inside csb/cpk often don't have extensions */
+    if (!check_extensions(sf, "aax,"))
+        goto fail;
+
+    /* contains a simple UTF table with one row and offset+size info */
+    {
+        int rows;
+        const char* name;
+        uint32_t table_offset = 0x00;
+
+        utf = utf_open(sf, table_offset, &rows, &name);
+        if (!utf) goto fail;
+
+        if (strcmp(name, "AHX") != 0)
+            goto fail;
+
+        if (rows != 1)
+            goto fail;
+
+        if (!utf_query_data(utf, 0, "data", &subfile_offset, &subfile_size))
+            goto fail;
+    }
+
+    //;VGM_LOG("UTF_AHX: subfile offset=%x + %x\n", subfile_offset, subfile_size);
+    temp_sf = setup_subfile_streamfile(sf, subfile_offset, subfile_size, "ahx");
+    if (!temp_sf) goto fail;
+
+    vgmstream = init_vgmstream_ahx(temp_sf);
+    if (!vgmstream) goto fail;
+
+    utf_close(utf);
+    close_streamfile(temp_sf);
+    return vgmstream;
+
+fail:
+    utf_close(utf);
     close_streamfile(temp_sf);
     close_vgmstream(vgmstream);
     return NULL;
