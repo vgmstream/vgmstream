@@ -146,6 +146,7 @@ static const char* extension_list[] = {
     "cpk",
     "cps",
     "csa", //txth/reserved [LEGO Racers 2 (PS2)]
+    "csb",
     "csmp",
     "cvs", //txth/reserved [Aladdin in Nasira's Revenge (PS1)]
     "cwav",
