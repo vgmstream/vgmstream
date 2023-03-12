@@ -16,8 +16,8 @@ VGMSTREAM* init_vgmstream_swav(STREAMFILE* sf) {
     if (!is_id32be(0x00,sf, "SWAV"))
         goto fail;
 
-    /* .swav: standard
-     * .adpcm: Merlin - A Servant of Two Masters (DS) */
+    /* .swav: standard [found inside .sdat but SDK can create them]
+     * .adpcm: Merlin - A Servant of Two Masters (DS) [external] */
     if (!check_extensions(sf, "swav,adpcm"))
         goto fail;
 
