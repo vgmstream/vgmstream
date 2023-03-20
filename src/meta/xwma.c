@@ -31,8 +31,11 @@ VGMSTREAM* init_vgmstream_xwma(STREAMFILE* sf) {
     if (!is_id32be(0x08,sf, "XWMA"))
         goto fail;
     /* .xwma: standard
-     * .xwm: The Elder Scrolls: Skyrim (PC), Blade Arcus from Shining (PC) */
-    if (!check_extensions(sf, "xwma,xwm"))
+     * .xwm: The Elder Scrolls: Skyrim (PC), Blade Arcus from Shining (PC) 
+     * .xma: Castle Crashers (PC)
+     * .wma/lwma: BattleBlock Theater (PC)
+     */
+    if (!check_extensions(sf, "xwma,xwm,xma,wma,lwma"))
         goto fail;
 
     {

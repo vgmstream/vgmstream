@@ -378,8 +378,9 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
      * .p1d: Farming Simulator 15 (Vita)[ATRAC9]
      * .xms: Ty the Tasmanian Tiger (Xbox)
      * .mus: Burnout Legends/Dominator (PSP)
+     * .dat/ldat: RollerCoaster Tycoon 1/2 (PC)
      */
-    if (!check_extensions(sf, "wav,lwav,xwav,mwv,da,dax,cd,med,snd,adx,adp,xss,xsew,adpcm,adw,wd,,sbv,wvx,str,at3,rws,aud,at9,ckd,saf,ima,nsa,pcm,xvag,ogg,logg,p1d,xms,mus")) {
+    if (!check_extensions(sf, "wav,lwav,xwav,mwv,da,dax,cd,med,snd,adx,adp,xss,xsew,adpcm,adw,wd,,sbv,wvx,str,at3,rws,aud,at9,ckd,saf,ima,nsa,pcm,xvag,ogg,logg,p1d,xms,mus,dat,ldat")) {
         goto fail;
     }
 
