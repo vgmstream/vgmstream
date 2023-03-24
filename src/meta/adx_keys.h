@@ -204,6 +204,9 @@ static const adxkey_info adxkey8_list[] = {
     
         /* Shoujo Yoshitsune-den Ni - Toki wo Koeru Chigiri (PS2) */
         {0x62d7,0x483d,0x4fb7, "YOSHI2",0},
+    
+        /* Junjou Romantica - Koi no Doki Doki Daisakusen (PS2) (Marvelous) */
+        {0x5827,0x612d,0x5585, "Endress-SETSUNAI!",0},
 
 };
 
