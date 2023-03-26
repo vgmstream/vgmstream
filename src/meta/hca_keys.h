@@ -1159,16 +1159,19 @@ static const hcakey_info hcakey_list[] = {
         {97648135},             // 0000000005d1fe07
 
         // CHUNITHM International Version (AC)
-        {33426922444908636},   // 0076C19BDE43685C
+        {33426922444908636},    // 0076C19BDE43685C
 
         // Star Ocean: The Divine Force (PC)
-        {68308868861462528},   // 00f2ae8de77f0800
+        {68308868861462528},    // 00f2ae8de77f0800
 
         // Sin Chronicle (Android)
-        {4385672148314579020}, // 3CDD0995259D604C
+        {4385672148314579020},  // 3CDD0995259D604C
 
         // The Eminence in Shadow: Master of Garden (Android)
-        {8115775984160473168}, // 70A1074224880050
+        {8115775984160473168},  // 70A1074224880050
+
+        // Punishing: Gray Raven (Android)-newer assets
+        {62855594017927612},    // 00DF4ED46995B1BC 
 };
 
 #endif/*_HCA_KEYS_H_*/
