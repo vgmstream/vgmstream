@@ -32,24 +32,24 @@ typedef struct {
     int version;
 
     /* segments */
-    off_t base_offset;
-    size_t base_size;
-    off_t entry_offset;
-    size_t entry_size;
-    off_t names_offset;
-    size_t names_size;
-    size_t names_entry_size;
-    off_t extra_offset;
-    size_t extra_size;
-    off_t data_offset;
-    size_t data_size;
+    uint32_t base_offset;
+    uint32_t base_size;
+    uint32_t entry_offset;
+    uint32_t entry_size;
+    uint32_t names_offset;
+    uint32_t names_size;
+    uint32_t names_entry_size;
+    uint32_t extra_offset;
+    uint32_t extra_size;
+    uint32_t data_offset;
+    uint32_t data_size;
 
-    off_t stream_offset;
-    size_t stream_size;
+    uint32_t stream_offset;
+    uint32_t stream_size;
 
     uint32_t base_flags;
-    size_t entry_elem_size;
-    size_t entry_alignment;
+    uint32_t entry_elem_size;
+    uint32_t entry_alignment;
     int total_subsongs;
 
     uint32_t entry_flags;
@@ -361,6 +361,11 @@ VGMSTREAM* init_vgmstream_xwb(STREAMFILE* sf) {
             /*&& xwb.data_size == 0x4e0a1000*/) { /* some kind of id in Stardew Valley? */
         /* Stardew Valley (Vita), Owlboy (PS4): standard RIFF with ATRAC9 */
         xwb.codec = ATRAC9_RIFF;
+    }
+    else if (xwb.version == XACT1_1_MAX && xwb.codec == WMA
+        && read_u32be(xwb.stream_offset, sf) != 0x3026B275) { /* WMA/asf tag */
+        /* Jumper: Griffin's Story (X360): partial hijack (LE on X360 and early version + XMA2) */
+        xwb.codec = XMA2;
     }
 
 
