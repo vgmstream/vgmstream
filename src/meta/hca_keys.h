@@ -95,6 +95,8 @@ static const hcakey_info hcakey_list[] = {
         {9001712656335836006},      // 7CEC81F7C3091366
 
         // Ikemen Vampire - Ijin-tachi to Koi no Yuuwaku (iOS/Android)
+        // Ikemen Villains (Android)
+        // Ikemen Prince (Android)
         {45152594117267709},        // 00A06A0B8D0C10FD
 
         // Super Robot Wars X-Omega (iOS/Android)
@@ -1172,6 +1174,9 @@ static const hcakey_info hcakey_list[] = {
 
         // Punishing: Gray Raven (Android)-newer assets
         {62855594017927612},    // 00DF4ED46995B1BC 
+
+        {45152594117267709},    // 00A06A0B8D0C10FD
+        
 };
 
 #endif/*_HCA_KEYS_H_*/
