@@ -519,7 +519,8 @@ static int parse_musx(STREAMFILE* sf, musx_header* musx) {
                         case 0x44415434: /* "DAT4" */
                         case 0x44415435: /* "DAT5" */
                         case 0x44415438: /* "DAT8" */
-                            /* found on PS3/Wii (but not always?) */
+                        case 0x44415439: /* "DAT9" [Disney Infinity (X360)] */
+                            /* found on PS3/Wii/X360 (but not always?) */
                             musx->stream_size = read_u32le(0x44, sf);
                             musx->channels    = read_u32le(0x48, sf);
                             musx->sample_rate = read_u32le(0x4c, sf);
