@@ -280,10 +280,11 @@ static VGMSTREAM* init_vgmstream_bxwav(STREAMFILE* sf, bxwav_type_t type) {
                     /* 0x0c: ADPCM offset (from channel info offset), 0xFFFFFFFF otherwise */
                     /* 0x10: padding */
 
-                    if (read_u16(chnf_offset + 0x00, sf) != 0x1F00)
+                    /* 3DS doesn't seem to check this, allow for odd bcwavs from rstmcpp */
+                    if ((read_u16(chnf_offset + 0x00, sf) & 0x1F00) != 0x1F00) /* (ex. 0x1F01) */
                         goto fail;
                     chdt_offset = read_u32(chnf_offset + 0x04, sf) + data_offset + 0x08;
-                    coef_offset = read_u32(chnf_offset + 0x0c, sf) + chnf_offset;
+                    coef_offset = read_u32(chnf_offset + 0x0c, sf) + chnf_offset; /* usually after all channel info but will allow any position */
                     break;
 
                 default:

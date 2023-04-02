@@ -739,7 +739,11 @@ static void samples_dblp_to_s16(sample_t* obuf, double** inbuf, int ichs, int sa
 }
 
 static void copy_samples(ffmpeg_codec_data* data, sample_t* outbuf, int samples_to_do) {
-    int channels = data->codecCtx->ch_layout.nb_channels; //data->codecCtx->channels;
+#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(59, 24, 100)
+    int channels = data->codecCtx->channels;
+#else
+    int channels = data->codecCtx->ch_layout.nb_channels;
+#endif
     int is_planar = av_sample_fmt_is_planar(data->codecCtx->sample_fmt) && (channels > 1);
     void* ibuf;
 
@@ -977,9 +981,10 @@ void ffmpeg_set_skip_samples(ffmpeg_codec_data* data, int skip_samples) {
 uint32_t ffmpeg_get_channel_layout(ffmpeg_codec_data* data) {
     if (!data || !data->codecCtx) return 0;
 
-    /* old */
-    //return (uint32_t)data->codecCtx->channel_layout; /* uint64 but there ain't so many speaker mappings */
-
+#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(59, 24, 100)
+    /* uint64 but there aren't so many speaker mappings */
+    return (uint32_t)data->codecCtx->channel_layout;
+#else
     /* new API is not very clear so maybe there is a better way */
     if (data->codecCtx->ch_layout.order == AV_CHANNEL_ORDER_UNSPEC)
         return 0;
@@ -989,6 +994,7 @@ uint32_t ffmpeg_get_channel_layout(ffmpeg_codec_data* data) {
 
     /* other options: not handled for now */
     return 0;
+#endif
 }
 
 
@@ -997,11 +1003,16 @@ uint32_t ffmpeg_get_channel_layout(ffmpeg_codec_data* data) {
  * (maybe should be done via mixing, but could clash with other stuff?) */
 void ffmpeg_set_channel_remapping(ffmpeg_codec_data* data, int *channel_remap) {
     int i;
+#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(59, 24, 100)
+    int channels = data->codecCtx->channels;
+#else
+    int channels = data->codecCtx->ch_layout.nb_channels;
+#endif
 
-    if (data->codecCtx->ch_layout.nb_channels > 32)
+    if (channels > 32)
         return;
 
-    for (i = 0; i < data->codecCtx->ch_layout.nb_channels; i++) {
+    for (i = 0; i < channels; i++) {
         data->channel_remap[i] = channel_remap[i];
     }
     data->channel_remap_set = 1;
@@ -1069,7 +1080,13 @@ int ffmpeg_get_sample_rate(ffmpeg_codec_data* data) {
 int ffmpeg_get_channels(ffmpeg_codec_data* data) {
     if (!data || !data->codecCtx)
         return 0;
-    return data->codecCtx->ch_layout.nb_channels; //data->codecCtx->channels;
+#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(59, 24, 100)
+    int channels = data->codecCtx->channels;
+#else
+    int channels = data->codecCtx->ch_layout.nb_channels;
+#endif
+
+    return channels;
 }
 
 int ffmpeg_get_subsong_count(ffmpeg_codec_data* data) {

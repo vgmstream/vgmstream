@@ -56,6 +56,10 @@ VGMSTREAM* init_vgmstream_ubi_ckd(STREAMFILE* sf) {
                 } else if (find_chunk_be(sf, 0x6461744C,first_offset,0, &chunk_offset,&chunk_size)) { /* "datL" */
                     /* mono "datL" or full interleave with a "datR" after the "datL" (no check, pretend it exists) */
                     start_offset = chunk_offset;
+
+                    /* chunks follow RIFF's spec of "odd sizes treated as even" [Rayman Origins (Wii)-420_hud~sfx_endofmap_discoloop.wav.ckd] */
+                    if (chunk_size % 0x02 != 0) 
+                        chunk_size += 0x01;
                     data_size = chunk_size * channels;
                     interleave = (0x4+0x4) + chunk_size; /* don't forget to skip the "datR"+size chunk */
                 } else {
