@@ -131,6 +131,7 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
             case 0x0d: /* Polara (Vita), Crypt of the Necrodancer (Vita) */
             case 0x0e: /* Yakuza 6's Puyo Puyo (PS4) */
             case 0x0f: /* Ikaruga (PS4) */
+            case 0x10: /* Ginga Force (PS4) */
                 table1_offset    = sblk_offset + read_u32(sblk_offset+0x18,sf);
                 table2_offset    = sblk_offset + read_u32(sblk_offset+0x1c,sf);
                 table3_offset    = sblk_offset + read_u32(sblk_offset+0x2c,sf);
@@ -305,6 +306,7 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
             case 0x0d:
             case 0x0e:
             case 0x0f:
+            case 0x10:
                 flags           = read_u8   (table3_offset+table3_entry_offset+0x12,sf);
                 stream_offset   = read_u32(table3_offset+table3_entry_offset+0x44,sf);
                 stream_size     = read_u32(table3_offset+table3_entry_offset+0x48,sf);
@@ -325,6 +327,8 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
             case 0x09:
             case 0x0d:
             case 0x0e:
+            case 0x0f:
+            case 0x10:
                 /* find if this sound has an assigned name in table1 */
                 for (i = 0; i < section_entries; i++) {
                     uint32_t entry_offset = read_u16(table1_offset+(i*table1_entry_size)+table1_suboffset+0x00,sf);
@@ -479,6 +483,7 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
             case 0x0d:
             case 0x0e:
             case 0x0f:
+            case 0x10:
                 type = read_u16(start_offset+0x00,sf);
                 if (read_u32(start_offset+0x04,sf) != 0x01) /* type? */
                     goto fail;
