@@ -1175,7 +1175,8 @@ static const hcakey_info hcakey_list[] = {
         // Punishing: Gray Raven (Android)-newer assets
         {62855594017927612},    // 00DF4ED46995B1BC 
 
-        {45152594117267709},    // 00A06A0B8D0C10FD
+        // Dragon Quest The Adventure of Dai: A Hero's Bonds (Android)
+        {503876638109847402},   // 06FE2121F927CF6A (in criware decryptor init code, xor of 2 strings)
         
 };
 
