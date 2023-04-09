@@ -20,7 +20,7 @@ VGMSTREAM* init_vgmstream_mic_koei(STREAMFILE* sf) {
     channels        = read_u32le(0x08,sf);
     if (channels > 4) goto fail; /* 1/2/4 are known */
     interleave      = read_u32le(0x0c,sf);
-    if (interleave != 0x10) goto fail;
+    if (interleave != 0x10 && interleave != 0x20) goto fail;
 
     loop_end        = read_s32le(0x10,sf);
     loop_start      = read_s32le(0x14,sf);
