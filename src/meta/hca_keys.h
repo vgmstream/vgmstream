@@ -1177,7 +1177,13 @@ static const hcakey_info hcakey_list[] = {
 
         // Dragon Quest The Adventure of Dai: A Hero's Bonds (Android)
         {503876638109847402},   // 06FE2121F927CF6A (in criware decryptor init code, xor of 2 strings)
-        
+
+        // Love Live! School Idol Festival 2 MIRACLE LIVE (Android)
+        {5067530812966687744},  // 46537c6ceb39d400
+
+        // 404 Game RE:SET Prologue Demo (Android)
+        {21588207721978971},    // 004CB25C4C9B1C5B
+
 };
 
 #endif/*_HCA_KEYS_H_*/
