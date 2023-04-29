@@ -537,7 +537,7 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
     init_vgmstream_mic_koei,
     init_vgmstream_seb,
     init_vgmstream_ps2_pnb,
-    init_vgmstream_sli_ogg,
+    init_vgmstream_sli_loops,
     init_vgmstream_tgc,
 
     /* lowest priority metas (should go after all metas, and TXTH should go before raw formats) */

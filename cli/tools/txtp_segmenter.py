@@ -78,7 +78,7 @@ def get_txtp_name(args, file):
         txtp_name = os.path.splitext(os.path.basename(file))[0]
 
     else:
-        txtp_name = os.path.splitext(os.path.basename(args.files))[0]
+        txtp_name = os.path.splitext(os.path.basename(file))[0]
 
         txtp_name = txtp_name.replace('*', '')
         txtp_name = txtp_name.replace('?', '')
