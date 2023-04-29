@@ -1280,8 +1280,6 @@ static const meta_info meta_info_list[] = {
         {meta_PC_FLX,               "Ultima IX .FLX header"},
         {meta_MOGG,                 "Harmonix Music Systems MOGG Vorbis"},
         {meta_OGG_VORBIS,           "Ogg Vorbis header"},
-        {meta_OGG_SLI,              "Ogg Vorbis header (.sli looping)"},
-        {meta_OPUS_SLI,             "Ogg Opus header (.sli looping)"},
         {meta_OGG_SFL,              "Ogg Vorbis header (SFPL looping)"},
         {meta_OGG_KOVS,             "Ogg Vorbis header (KOVS)"},
         {meta_OGG_encrypted,        "Ogg Vorbis header (encrypted)"},
