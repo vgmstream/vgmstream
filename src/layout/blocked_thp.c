@@ -8,15 +8,15 @@ void block_update_thp(off_t block_offset, VGMSTREAM* vgmstream) {
     off_t audio_offset;
     size_t next_block_size, video_size;
 
-    next_block_size = read_u32be(block_offset + 0x00, sf);
-    /* 0x04: frame size previous */
+    next_block_size = read_u32be(block_offset + 0x00, sf); /* block may have padding, so need to save for next time */
+    /* 0x04: previous frame size */
     video_size = read_u32be(block_offset + 0x08,sf);
     /* 0x0c: audio size */
 
     audio_offset = block_offset + 0x10 + video_size;
 
     vgmstream->current_block_offset = block_offset;
-    vgmstream->next_block_offset = block_offset + vgmstream->full_block_size;
+    vgmstream->next_block_offset = block_offset + vgmstream->full_block_size; /* use prev saved data */
     vgmstream->full_block_size = next_block_size;
 
     /* block samples can be smaller than block size, normally in the last block,
@@ -27,9 +27,10 @@ void block_update_thp(off_t block_offset, VGMSTREAM* vgmstream) {
     audio_offset += 0x08;
 
     for (i = 0; i < vgmstream->channels; i++) {
+        /* always size of 2 channels even in mono [WarioWare Inc. (GC)] */
         off_t coef_offset = audio_offset + i*0x20;
-        off_t hist_offset = audio_offset + vgmstream->channels*0x20 + i*0x04;
-        off_t data_offset = audio_offset + 2*0x24 + i*vgmstream->current_block_size; /* reserved for 2 even in mono [WarioWare Inc. (GC)] */
+        off_t hist_offset = audio_offset + 2*0x20 + i*0x04;
+        off_t data_offset = audio_offset + 2*0x24 + i*vgmstream->current_block_size;
 
         for (j = 0; j < 16; j++) {
             vgmstream->ch[i].adpcm_coef[j] = read_s16be(coef_offset + (j*0x02),sf);
