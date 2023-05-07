@@ -88,6 +88,7 @@
     <ClInclude Include="streamtypes.h" />
     <ClInclude Include="util.h" />
     <ClInclude Include="vgmstream.h" />
+    <ClInclude Include="vgmstream_types.h" />
     <ClInclude Include="coding\acm_decoder_libacm.h" />
     <ClInclude Include="coding\circus_decoder_lib.h" />
     <ClInclude Include="coding\circus_decoder_lib_data.h" />
@@ -175,6 +176,10 @@
     <ClInclude Include="util\log.h" />
     <ClInclude Include="util\m2_psb.h" />
     <ClInclude Include="util\miniz.h" />
+    <ClInclude Include="util\reader_get.h" />
+    <ClInclude Include="util\reader_get_nibbles.h" />
+    <ClInclude Include="util\reader_put.h" />
+    <ClInclude Include="util\samples_ops.h" />
     <ClInclude Include="util\text_reader.h" />
   </ItemGroup>
   <ItemGroup>
@@ -735,6 +740,8 @@
     <ClCompile Include="util\log.c" />
     <ClCompile Include="util\m2_psb.c" />
     <ClCompile Include="util\miniz.c" />
+    <ClCompile Include="util\reader_put.c" />
+    <ClCompile Include="util\samples_ops.c" />
     <ClCompile Include="util\text_reader.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
