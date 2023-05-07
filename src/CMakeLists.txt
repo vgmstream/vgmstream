@@ -1,3 +1,5 @@
+file(GLOB BASE_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/base/*.h")
+file(GLOB BASE_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/base/*.c")
 file(GLOB CODING_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/coding/*.h")
 file(GLOB CODING_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/coding/*.c")
 file(GLOB LAYOUT_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/layout/*.h")
@@ -12,17 +14,22 @@ file(GLOB MAIN_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/*.h")
 file(GLOB MAIN_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/*.c")
 
 # Setup source groups, mainly for Visual Studio
+source_group("Header Files\\base" FILES ${BASE_HEADERS})
 source_group("Header Files\\coding" FILES ${CODING_HEADERS})
 source_group("Header Files\\layout" FILES ${LAYOUT_HEADERS})
 source_group("Header Files\\meta" FILES ${META_HEADERS})
 source_group("Header Files\\util" FILES ${UTIL_HEADERS})
 source_group("Header Files\\ext" FILES ${EXT_HEADERS})
+
+source_group("Source Files\\base" FILES ${BASE_SOURCES})
 source_group("Source Files\\coding" FILES ${CODING_SOURCES})
 source_group("Source Files\\layout" FILES ${LAYOUT_SOURCES})
 source_group("Source Files\\meta" FILES ${META_SOURCES})
 source_group("Source Files\\util" FILES ${UTIL_SOURCES})
 
 set(libvgmstream_sources
+	${BASE_HEADERS}
+	${BASE_SOURCES}
 	${CODING_HEADERS}
 	${CODING_SOURCES}
 	${LAYOUT_HEADERS}
@@ -38,6 +45,7 @@ set(libvgmstream_sources
 # Set up the proper include directories
 set(libvgmstream_includes
 	${VGM_SOURCE_DIR}/ext_includes
+	base
 	coding
 	layout
 	meta

@@ -7,6 +7,7 @@
 #include "../src/vgmstream.h"
 #include "../src/plugins.h"
 #include "../src/util.h"
+#include "../src/util/samples_ops.h"
 //todo use <>?
 #ifdef HAVE_JSON
 #include "jansson/jansson.h"

@@ -9,6 +9,15 @@
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
       <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
+    <Filter Include="base">
+      <UniqueIdentifier>{4437dc5f-0bf7-4a15-a70a-32258cafbe36}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="base\Header Files">
+      <UniqueIdentifier>{860f6a15-f877-4e8a-a0d6-fc4a0ccc985b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="base\Source Files">
+      <UniqueIdentifier>{00c1e41e-bcac-4dec-896c-3a09c5125e54}</UniqueIdentifier>
+    </Filter>
     <Filter Include="meta">
       <UniqueIdentifier>{07c49d19-cbf2-4e9f-b45d-d8a087f7926b}</UniqueIdentifier>
     </Filter>
@@ -56,6 +65,9 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="api.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="decode.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -78,6 +90,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="vgmstream.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="vgmstream_types.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="coding\acm_decoder_libacm.h">
@@ -317,6 +332,9 @@
     <ClInclude Include="util\bitstream_msb.h">
       <Filter>util\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="util\channel_mappings.h">
+      <Filter>util\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="util\chunks.h">
       <Filter>util\Header Files</Filter>
     </ClInclude>
@@ -338,6 +356,18 @@
     <ClInclude Include="util\miniz.h">
       <Filter>util\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="util\reader_get.h">
+      <Filter>util\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="util\reader_get_nibbles.h">
+      <Filter>util\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="util\reader_put.h">
+      <Filter>util\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="util\samples_ops.h">
+      <Filter>util\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="util\text_reader.h">
       <Filter>util\Header Files</Filter>
     </ClInclude>
@@ -347,9 +377,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="formats.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="info.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="mixing.c">
@@ -372,6 +399,9 @@
     </ClCompile>
     <ClCompile Include="vgmstream.c">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="base\info.c">
+      <Filter>base\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\acm_decoder.c">
       <Filter>coding\Source Files</Filter>
@@ -2012,6 +2042,12 @@
       <Filter>util\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="util\miniz.c">
+      <Filter>util\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="util\reader_put.c">
+      <Filter>util\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="util\samples_ops.c">
       <Filter>util\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="util\text_reader.c">

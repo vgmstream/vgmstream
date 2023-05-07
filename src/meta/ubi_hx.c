@@ -239,6 +239,14 @@ static int parse_name(ubi_hx_header* hx, STREAMFILE* sf) {
         }
     }
 
+    /* XIII GC has one subsong 718260C4 B7C67534 with empty index entry
+     * (CGCWavResData with name does exist but its CGCWaveFileIdObj doesn't point to it) */
+    if (!hx->is_external) {
+        strcpy(hx->internal_name,"?");
+        return 1;
+    }
+
+    VGM_LOG("UBI HX: name not found for CUUID %08x %08x\n", hx->cuuid1, hx->cuuid2);
 fail:
     vgm_logi("UBI HX: error parsing name at %x (report)\n", index_offset);
     return 0;

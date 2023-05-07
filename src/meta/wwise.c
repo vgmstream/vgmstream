@@ -3,6 +3,7 @@
 #include "../coding/coding.h"
 #include "../util/chunks.h"
 #include "../util/endianness.h"
+#include "../util/channel_mappings.h"
 
 
 /* Wwise uses a custom RIFF/RIFX header, non-standard enough that it's parsed it here.

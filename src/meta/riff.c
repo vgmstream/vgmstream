@@ -3,6 +3,7 @@
 #include "../coding/coding.h"
 #include "../layout/layout.h"
 #include "../util.h"
+#include "../util/channel_mappings.h"
 #include "riff_ogg_streamfile.h"
 
 /* RIFF - Resource Interchange File Format, standard container used in many games */

@@ -39,7 +39,7 @@
 
 #include "../src/vgmstream.h"
 #include "../src/plugins.h"
-
+#include "../src/util/samples_ops.h"
 
 #include "../version.h"
 #ifndef VGMSTREAM_VERSION

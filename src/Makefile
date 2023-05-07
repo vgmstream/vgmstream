@@ -5,25 +5,9 @@
 # automatically get all possible .o by finding all .c
 OBJECTS =
 
-SRC_SRCS = $(wildcard *.c)
-SRC_OBJS = $(patsubst %.c,%.o,$(SRC_SRCS))
-OBJECTS += $(SRC_OBJS)
-
-CODING_SRCS = $(wildcard coding/*.c)
-CODING_OBJS = $(patsubst %.c,%.o,$(CODING_SRCS))
-OBJECTS += $(CODING_OBJS)
-
-LAYOUT_SRCS = $(wildcard layout/*.c)
-LAYOUT_OBJS = $(patsubst %.c,%.o,$(LAYOUT_SRCS))
-OBJECTS += $(LAYOUT_OBJS)
-
-META_SRCS = $(wildcard meta/*.c)
-META_OBJS = $(patsubst %.c,%.o,$(META_SRCS))
-OBJECTS += $(META_OBJS)
-
-UTIL_SRCS = $(wildcard util/*.c)
-UTIL_OBJS = $(patsubst %.c,%.o,$(UTIL_SRCS))
-OBJECTS += $(UTIL_OBJS)
+#SRCS = $(wildcard **/*.c) #GNUMake 3.81?
+SRCS = $(wildcard *.c) $(wildcard */*.c)
+OBJECTS = $(patsubst %.c,%.o,$(SRCS))
 
 
 libvgmstream.a: $(OBJECTS)
