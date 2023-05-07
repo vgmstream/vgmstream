@@ -988,6 +988,19 @@ STREAMFILE* open_multifile_streamfile_f(STREAMFILE** sfs, size_t sfs_size) {
 
 /* **************************************************** */
 
+/* change pathname's extension to another (or add it if extensionless) */
+static void swap_extension(char* pathname, /*size_t*/ int pathname_len, const char* swap) {
+    char* extension = (char*)filename_extension(pathname);
+    //todo safeops
+    if (extension[0] == '\0') {
+        strcat(pathname, ".");
+        strcat(pathname, swap);
+    }
+    else {
+        strcpy(extension, swap);
+    }
+}
+
 STREAMFILE* open_streamfile(STREAMFILE* sf, const char* pathname) {
     return sf->open(sf, pathname, STREAMFILE_DEFAULT_BUFFER_SIZE);
 }
