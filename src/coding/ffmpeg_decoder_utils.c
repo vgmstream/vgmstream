@@ -1,4 +1,5 @@
 #include "coding.h"
+#include "../util/channel_mappings.h"
 
 #ifdef VGM_USE_FFMPEG
 

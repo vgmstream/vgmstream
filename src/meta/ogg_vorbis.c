@@ -2,6 +2,7 @@
 #include <string.h>
 #include "meta.h"
 #include "../coding/coding.h"
+#include "../util/channel_mappings.h"
 #include "ogg_vorbis_streamfile.h"
 
 
