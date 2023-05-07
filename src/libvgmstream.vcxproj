@@ -167,6 +167,7 @@
     <ClInclude Include="meta\xwma_konami_streamfile.h" />
     <ClInclude Include="meta\zsnd_streamfile.h" />
     <ClInclude Include="util\bitstream_msb.h" />
+    <ClInclude Include="util\channel_mappings.h" />
     <ClInclude Include="util\chunks.h" />
     <ClInclude Include="util\cri_keys.h" />
     <ClInclude Include="util\cri_utf.h" />
@@ -179,7 +180,6 @@
   <ItemGroup>
     <ClCompile Include="decode.c" />
     <ClCompile Include="formats.c" />
-    <ClCompile Include="info.c" />
     <ClCompile Include="mixing.c" />
     <ClCompile Include="plugins.c" />
     <ClCompile Include="render.c" />
@@ -187,6 +187,7 @@
     <ClCompile Include="streamfile.c" />
     <ClCompile Include="util.c" />
     <ClCompile Include="vgmstream.c" />
+    <ClCompile Include="base\info.c" />
     <ClCompile Include="coding\acm_decoder.c" />
     <ClCompile Include="coding\acm_decoder_decode.c" />
     <ClCompile Include="coding\acm_decoder_util.c" />

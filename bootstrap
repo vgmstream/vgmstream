@@ -4,8 +4,8 @@
 
 # gets all files and updates .am scripts to avoid having to do manually (frowned upon by automake, whatevs)
 # maybe there is a better way or place for this
-VGMSTREAM_SRCS=`(cd ./src/ && ls *.c coding/*.c layout/*.c meta/*.c util/*.c) | tr '\n' ' '`
-VGMSTREAM_HDRS=`(cd ./src/ && ls *.h coding/*.h layout/*.h meta/*.h util/*.h) | tr '\n' ' '`
+VGMSTREAM_SRCS=`(cd ./src/ && ls *.c */*.c) | tr '\n' ' '`
+VGMSTREAM_HDRS=`(cd ./src/ && ls *.h */*.h) | tr '\n' ' '`
 AUDACIOUS_SRCS=`(cd ./audacious/ && ls *.cc) | tr '\n' ' '`
 AUDACIOUS_HDRS=`(cd ./audacious/ && ls *.h) | tr '\n' ' '`
 

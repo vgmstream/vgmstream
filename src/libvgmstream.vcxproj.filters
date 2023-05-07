@@ -9,6 +9,15 @@
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
       <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
+    <Filter Include="base">
+      <UniqueIdentifier>{4437dc5f-0bf7-4a15-a70a-32258cafbe36}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="base\Header Files">
+      <UniqueIdentifier>{860f6a15-f877-4e8a-a0d6-fc4a0ccc985b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="base\Source Files">
+      <UniqueIdentifier>{00c1e41e-bcac-4dec-896c-3a09c5125e54}</UniqueIdentifier>
+    </Filter>
     <Filter Include="meta">
       <UniqueIdentifier>{07c49d19-cbf2-4e9f-b45d-d8a087f7926b}</UniqueIdentifier>
     </Filter>
@@ -317,6 +326,9 @@
     <ClInclude Include="util\bitstream_msb.h">
       <Filter>util\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="util\channel_mappings.h">
+      <Filter>util\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="util\chunks.h">
       <Filter>util\Header Files</Filter>
     </ClInclude>
@@ -349,9 +361,6 @@
     <ClCompile Include="formats.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="info.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="mixing.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -372,6 +381,9 @@
     </ClCompile>
     <ClCompile Include="vgmstream.c">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="base\info.c">
+      <Filter>base\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\acm_decoder.c">
       <Filter>coding\Source Files</Filter>
