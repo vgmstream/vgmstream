@@ -991,15 +991,6 @@ typedef struct {
 } layered_layout_data;
 
 
-
-/* libacm interface */
-typedef struct {
-    STREAMFILE* streamfile;
-    void* handle;
-    void* io_config;
-} acm_codec_data;
-
-
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
 typedef struct {
     STREAMFILE* streamfile;

@@ -4,6 +4,14 @@
 
 /* libacm 1.2 (despite what libacm.h says) from: https://github.com/markokr/libacm */
 
+
+/* libacm interface */
+struct acm_codec_data {
+    STREAMFILE* streamfile;
+    void* handle;
+    void* io_config;
+};
+
 typedef struct {
     STREAMFILE* streamfile; /* reference */
     int offset;
@@ -144,4 +152,19 @@ static int acm_get_length_streamfile(void *arg) {
     acm_io_config* config = arg;
 
     return get_streamfile_size(config->streamfile);
+}
+
+void get_info_acm(acm_codec_data* data, int* p_channels, int* p_sample_rate, int* p_samples) {
+    if (!data || !data->handle) {
+        *p_channels = 0;
+        *p_sample_rate = 0;
+        *p_samples = 0;
+        return;
+    }
+
+    ACMStream* handle = data->handle;
+
+    *p_channels = handle->info.channels;
+    *p_sample_rate = handle->info.rate;
+    *p_samples = handle->total_values / handle->info.channels;
 }

@@ -4,10 +4,10 @@
 
 /* ACM - InterPlay infinity engine games [Planescape: Torment (PC), Baldur's Gate (PC)] */
 VGMSTREAM* init_vgmstream_acm(STREAMFILE* sf) {
-    VGMSTREAM * vgmstream = NULL;
+    VGMSTREAM* vgmstream = NULL;
     int loop_flag = 0, channels, sample_rate, num_samples;
     int force_channel_number = 0;
-    acm_codec_data *data = NULL;
+    acm_codec_data* data = NULL;
 
 
     /* checks */
@@ -37,14 +37,10 @@ VGMSTREAM* init_vgmstream_acm(STREAMFILE* sf) {
 
     /* init decoder */
     {
-        ACMStream *handle;
         data = init_acm(sf, force_channel_number);
         if (!data) goto fail;
 
-        handle = data->handle;
-        channels = handle->info.channels;
-        sample_rate = handle->info.rate;
-        num_samples = handle->total_values / handle->info.channels;
+        get_info_acm(data, &channels, &sample_rate, &num_samples);
     }
 
 
