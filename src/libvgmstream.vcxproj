@@ -80,6 +80,7 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="api.h" />
     <ClInclude Include="decode.h" />
     <ClInclude Include="mixing.h" />
     <ClInclude Include="plugins.h" />

@@ -65,6 +65,9 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="api.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="decode.h">
       <Filter>Header Files</Filter>
     </ClInclude>
