@@ -64,6 +64,7 @@ static const fsbkey_info fsbkey_list[] = {
         { MODE_FSB4_STD, FSBKEY_ADD("qjvkeoqkrdhkdckd") }, // Bubble Fighter (PC)
         { MODE_FSB5_STD, FSBKEY_ADD("p@4_ih*srN:UJk&8") }, // Fall Guys (PC) update ~2021-11
         { MODE_FSB5_STD, FSBKEY_ADD(",&.XZ8]fLu%caPF+") }, // Fall Guys (PC) update ~2022-07
+        { MODE_FSB5_STD, FSBKEY_ADD("^*4[hE>K]x90Vj") }, // Fall Guys (PC) update ~2023-05
         { MODE_FSB5_STD, FSBKEY_ADD("Achilles_0_15_DpG") }, // Achilles: Legends Untold (PC) 
         { MODE_FSB5_STD, FSBKEY_ADD("4FB8CC894515617939F4E1B7D50972D27213B8E6") }, // Cult of the Lamb Demo (PC) 
         { MODE_FSB5_STD, FSBKEY_ADD("X3EK%Bbga-%Y9HZZ%gkc*C512*$$DhRxWTGgjUG@=rUD") }, // Signalis (PC)
