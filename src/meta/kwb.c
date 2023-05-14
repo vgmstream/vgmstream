@@ -1,5 +1,6 @@
 #include "meta.h"
 #include "../coding/coding.h"
+#include "../util/endianness.h"
 
 typedef enum { PCM16, MSADPCM, DSP_HEAD, DSP_BODY, AT9, MSF_APEX, XMA2 } kwb_codec;
 
@@ -594,7 +595,7 @@ static int parse_kwb(kwb_header* kwb, STREAMFILE* sf_h, STREAMFILE* sf_b) {
         head_offset = 0x00;
         body_offset = 0x00;
 
-        kwb->big_endian = guess_endianness32bit(head_offset + 0x08, sf_h);
+        kwb->big_endian = guess_endian32(head_offset + 0x08, sf_h);
 
         read_u32 = kwb->big_endian ? read_u32be : read_u32le;
     }

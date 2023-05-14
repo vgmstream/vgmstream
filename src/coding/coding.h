@@ -2,6 +2,7 @@
 #define _CODING_H
 
 #include "../vgmstream.h"
+#include "../util/reader_sf.h"
 #include "../util/reader_get_nibbles.h"
 //todo remove
 #include "hca_decoder_clhca.h"

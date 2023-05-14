@@ -1,6 +1,7 @@
 #include "meta.h"
 #include "../coding/coding.h"
 #include "../util/chunks.h"
+#include "../util/endianness.h"
 
 
 /* BKHD - Wwise soundbank container */
@@ -10,8 +11,8 @@ VGMSTREAM* init_vgmstream_bkhd(STREAMFILE* sf) {
     uint32_t subfile_offset, subfile_size, base_offset = 0;
     uint32_t subfile_id, version;
     int big_endian, is_dummy = 0, is_wmid = 0;
-    uint32_t (*read_u32)(off_t,STREAMFILE*);
-    float (*read_f32)(off_t,STREAMFILE*);
+    read_u32_t read_u32;
+    read_f32_t read_f32;
     int total_subsongs, target_subsong = sf->stream_index;
     int prefetch = 0;
 
@@ -24,7 +25,7 @@ VGMSTREAM* init_vgmstream_bkhd(STREAMFILE* sf) {
         base_offset = 0x0c;
     if (!is_id32be(base_offset + 0x00, sf, "BKHD"))
         goto fail;
-    big_endian = guess_endianness32bit(base_offset + 0x04, sf);
+    big_endian = guess_endian32(base_offset + 0x04, sf);
     read_u32 = big_endian ? read_u32be : read_u32le;
     read_f32 = big_endian ? read_f32be : read_f32le;
 
@@ -200,7 +201,7 @@ VGMSTREAM* init_vgmstream_bkhd_fx(STREAMFILE* sf) {
     /* .wem: used when (rarely) external */
     if (!check_extensions(sf,"wem,bnk"))
         goto fail;
-    big_endian = guess_endianness32bit(0x00, sf);
+    big_endian = guess_endian32(0x00, sf);
     read_u32 = big_endian ? read_u32be : read_u32le;
 
     /* Not an actual stream but typically convolution reverb models and other FX plugin helpers.

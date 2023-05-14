@@ -2,6 +2,7 @@
 #define _META_H
 
 #include "../vgmstream.h"
+#include "../util/reader_sf.h"
 
 typedef VGMSTREAM* (*init_vgmstream_t)(STREAMFILE* sf);
 

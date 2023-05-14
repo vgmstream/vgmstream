@@ -1,6 +1,7 @@
 #include "streamfile.h"
 #include "util.h"
 #include "vgmstream.h"
+#include "util/reader_sf.h"
 #include <string.h>
 
 /* for dup/fdopen in some systems */

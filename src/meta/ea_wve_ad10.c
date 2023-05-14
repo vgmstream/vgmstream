@@ -1,6 +1,7 @@
 #include "meta.h"
 #include "../coding/coding.h"
 #include "../layout/layout.h"
+#include "../util/endianness.h"
 
 /* EA WVE (Ad10) - from early Electronic Arts movies [Wing Commander 3/4 (PS1), Madden NHL 97 (PC)-w95] */
 VGMSTREAM* init_vgmstream_ea_wve_ad10(STREAMFILE* sf) {
@@ -22,7 +23,7 @@ VGMSTREAM* init_vgmstream_ea_wve_ad10(STREAMFILE* sf) {
         !is_id32be(0x00, sf, "Ad11"))    /* last audio block, but could be first */
         goto fail;
 
-    big_endian = guess_endianness32bit(0x04, sf);
+    big_endian = guess_endian32(0x04, sf);
 
     if (is_id32be(0x00, sf, "AABB"))
         start_offset += big_endian ?  read_u32be(0x04, sf) : read_u32le(0x04, sf);

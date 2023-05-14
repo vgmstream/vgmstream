@@ -1,5 +1,6 @@
 #include "../vgmstream.h"
 #include "../util/log.h"
+#include "../util/reader_sf.h"
 #include "plugins.h"
 #include "mixing.h"
 

@@ -1,5 +1,6 @@
 #include "meta.h"
 #include "../coding/coding.h"
+#include "../util/endianness.h"
 
 /* SSPR - Capcom container [Sengoku Basara 4 (PS3/PS4), Mega Man Zero ZX Legacy Collection (PS4)] */
 VGMSTREAM* init_vgmstream_sspr(STREAMFILE* sf) {
@@ -21,7 +22,7 @@ VGMSTREAM* init_vgmstream_sspr(STREAMFILE* sf) {
     /* Simple (audio only) container used some Capcom games (common engine?).
      * Some files come with a .stqr with unknown data (cues?). */
 
-    big_endian = guess_endianness32bit(0x04, sf); /* 0x01 (version?) */
+    big_endian = guess_endian32(0x04, sf); /* 0x01 (version?) */
     read_u32 = big_endian ? read_u32be : read_u32le;
 
     total_subsongs = read_u32(0x08,sf);

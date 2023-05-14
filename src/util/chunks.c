@@ -1,5 +1,5 @@
 #include "chunks.h"
-//#include "log.h"
+#include "reader_sf.h"
 
 
 int next_chunk(chunk_t* chunk, STREAMFILE* sf) {
