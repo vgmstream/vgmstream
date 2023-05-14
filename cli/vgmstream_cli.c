@@ -5,7 +5,7 @@
 
 #include <getopt.h>
 #include "../src/vgmstream.h"
-#include "../src/plugins.h"
+#include "../src/api.h"
 #include "../src/util.h"
 #include "../src/util/samples_ops.h"
 //todo use <>?

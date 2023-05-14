@@ -4,8 +4,8 @@
 #ifndef _PLUGINS_H_
 #define _PLUGINS_H_
 
-#include "streamfile.h"
-#include "vgmstream.h"
+#include "../streamfile.h"
+#include "../vgmstream.h"
 
 
 /* ****************************************** */

@@ -1,7 +1,7 @@
 #ifndef _DECODE_H
 #define _DECODE_H
 
-#include "vgmstream.h"
+#include "../vgmstream.h"
 
 void free_codec(VGMSTREAM* vgmstream);
 void seek_codec(VGMSTREAM* vgmstream);

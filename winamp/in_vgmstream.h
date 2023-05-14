@@ -22,7 +22,7 @@
 #include <math.h>
 
 #include "../src/vgmstream.h"
-#include "../src/plugins.h"
+#include "../src/api.h"
 #include "sdk/in2.h"
 #include "sdk/wa_ipc.h"
 #include "sdk/ipc_pe.h"

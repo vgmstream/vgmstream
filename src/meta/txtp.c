@@ -1,8 +1,8 @@
 #include "meta.h"
 #include "../coding/coding.h"
 #include "../layout/layout.h"
-#include "../mixing.h"
-#include "../plugins.h"
+#include "../base/mixing.h"
+#include "../base/plugins.h"
 #include "../util/text_reader.h"
 
 #include <math.h>

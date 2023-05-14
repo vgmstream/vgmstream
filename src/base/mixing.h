@@ -1,7 +1,7 @@
 #ifndef _MIXING_H_
 #define _MIXING_H_
 
-#include "vgmstream.h"
+#include "../vgmstream.h"
 
 /* Applies mixing commands to the sample buffer. Mixing must be externally enabled and
  * outbuf must big enough to hold output_channels*samples_to_do */

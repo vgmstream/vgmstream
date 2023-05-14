@@ -1,7 +1,7 @@
 #include <ctype.h>
 #include "../vgmstream.h"
 #include "../coding/coding.h"
-#include "../mixing.h"
+#include "mixing.h"
 #include "../util/channel_mappings.h"
 
 

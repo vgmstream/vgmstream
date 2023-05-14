@@ -1,6 +1,6 @@
 #include "layout.h"
 #include "../vgmstream.h"
-#include "../decode.h"
+#include "../base/decode.h"
 #include "../coding/coding.h"
 
 

@@ -1,8 +1,8 @@
 #include "layout.h"
 #include "../vgmstream.h"
-#include "../decode.h"
-#include "../mixing.h"
-#include "../plugins.h"
+#include "../base/decode.h"
+#include "../base/mixing.h"
+#include "../base/plugins.h"
 
 #define VGMSTREAM_MAX_SEGMENTS 1024
 #define VGMSTREAM_SEGMENT_SAMPLE_BUFFER 8192

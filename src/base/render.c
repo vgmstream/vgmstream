@@ -1,5 +1,5 @@
-#include "vgmstream.h"
-#include "layout/layout.h"
+#include "../vgmstream.h"
+#include "../layout/layout.h"
 #include "render.h"
 #include "decode.h"
 #include "mixing.h"

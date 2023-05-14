@@ -1,7 +1,7 @@
-#include "vgmstream.h"
+#include "../vgmstream.h"
+#include "../layout/layout.h"
+#include "../coding/coding.h"
 #include "decode.h"
-#include "layout/layout.h"
-#include "coding/coding.h"
 #include "mixing.h"
 #include "plugins.h"
 

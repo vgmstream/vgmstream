@@ -1,7 +1,7 @@
-#include "vgmstream.h"
+#include "../vgmstream.h"
+#include "../util/log.h"
 #include "plugins.h"
 #include "mixing.h"
-#include "util/log.h"
 
 
 /* ****************************************** */

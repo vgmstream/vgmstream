@@ -9,9 +9,9 @@
 #include "meta/meta.h"
 #include "layout/layout.h"
 #include "coding/coding.h"
-#include "decode.h"
-#include "render.h"
-#include "mixing.h"
+#include "base/decode.h"
+#include "base/render.h"
+#include "base/mixing.h"
 
 static void try_dual_file_stereo(VGMSTREAM* opened_vgmstream, STREAMFILE* sf, VGMSTREAM* (*init_vgmstream_function)(STREAMFILE*));
 
