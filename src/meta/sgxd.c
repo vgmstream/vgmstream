@@ -1,5 +1,6 @@
 #include "meta.h"
 #include "../coding/coding.h"
+#include "../util/chunks.h"
 
 
 /* SGXD - Sony/SCEI's format (SGB+SGH / SGD / SGX) */

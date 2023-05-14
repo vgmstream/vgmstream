@@ -2,6 +2,7 @@
 #include "../coding/coding.h"
 #include "../layout/layout.h"
 #include "xvag_streamfile.h"
+#include "../util/chunks.h"
 
 
 typedef struct {
@@ -41,11 +42,12 @@ VGMSTREAM* init_vgmstream_xvag(STREAMFILE* sf) {
 
 
     /* checks */
+    if (!is_id32be(0x00,sf, "XVAG"))
+        goto fail;
+
     /* .xvag: standard
      * (extensionless): The Last of Us (PS3) speech files */
     if (!check_extensions(sf,"xvag,"))
-        goto fail;
-    if (!is_id32be(0x00,sf, "XVAG"))
         goto fail;
 
     /* endian flag (XVAGs of the same game can use BE or LE, usually when reusing from other platforms) */

@@ -1,5 +1,6 @@
 #include "meta.h"
 #include "../coding/coding.h"
+#include "../util/companion_files.h"
 
 //typedef enum { ADX, HCA, VAG, RIFF, CWAV, DSP, CWAC, M4A } awb_type_t;
 

@@ -178,33 +178,10 @@ size_t read_string_utf16(char* buf, size_t buf_size, off_t offset, STREAMFILE* s
 size_t read_string_utf16le(char* buf, size_t buf_size, off_t offset, STREAMFILE* sf);
 size_t read_string_utf16be(char* buf, size_t buf_size, off_t offset, STREAMFILE* sf);
 
-/* Opens a file containing decryption keys and copies to buffer.
- * Tries "(name.ext)key" (per song), "(.ext)key" (per folder) keynames.
- * returns size of key if found and copied */
-size_t read_key_file(uint8_t* buf, size_t buf_size, STREAMFILE* sf);
-
-/* Opens .txtm file containing file:companion file(-s) mappings and tries to see if there's a match
- * then loads the associated companion file if one is found */
-STREAMFILE* read_filemap_file(STREAMFILE *sf, int file_num);
-STREAMFILE* read_filemap_file_pos(STREAMFILE *sf, int file_num, int* p_pos);
-
-
-/* hack to allow relative paths in various OSs */
-void fix_dir_separators(char* filename);
 
 /* Checks if the stream filename is one of the extensions (comma-separated, ex. "adx" or "adx,aix").
  * Empty is ok to accept files without extension ("", "adx,,aix"). Returns 0 on failure */
 int check_extensions(STREAMFILE* sf, const char* cmp_exts);
-
-/* chunk-style file helpers */
-int find_chunk_be(STREAMFILE* sf, uint32_t chunk_id, off_t start_offset, int full_chunk_size, off_t* p_chunk_offset, size_t* p_chunk_size);
-int find_chunk_le(STREAMFILE* sf, uint32_t chunk_id, off_t start_offset, int full_chunk_size, off_t* p_chunk_offset, size_t* p_chunk_size);
-int find_chunk(STREAMFILE* sf, uint32_t chunk_id, off_t start_offset, int full_chunk_size, off_t* p_chunk_offset, size_t* p_chunk_size, int big_endian_size, int zero_size_end);
-/* find a RIFF-style chunk (with chunk_size not including id and size) */
-int find_chunk_riff_le(STREAMFILE* sf, uint32_t chunk_id, off_t start_offset, size_t max_size, off_t* p_chunk_offset, size_t* p_chunk_size);
-int find_chunk_riff_be(STREAMFILE* sf, uint32_t chunk_id, off_t start_offset, size_t max_size, off_t* p_chunk_offset, size_t* p_chunk_size);
-/* same with chunk ids in variable endianess (so instead of "fmt " has " tmf" */
-int find_chunk_riff_ve(STREAMFILE* sf, uint32_t chunk_id, off_t start_offset, size_t max_size, off_t* p_chunk_offset, size_t* p_chunk_size, int big_endian);
 
 /* filename helpers */
 void get_streamfile_name(STREAMFILE* sf, char* buf, size_t size);

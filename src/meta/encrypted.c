@@ -1,5 +1,7 @@
 #include "meta.h"
 #include "../coding/coding.h"
+#include "../util/companion_files.h"
+#include "../util/chunks.h"
 #include "ogg_vorbis_streamfile.h"
 #include "encrypted_bgm_streamfile.h"
 #include "encrypted_mc161_streamfile.h"

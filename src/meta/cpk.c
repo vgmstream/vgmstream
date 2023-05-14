@@ -1,6 +1,7 @@
 #include "meta.h"
 #include "../coding/coding.h"
 #include "../util/cri_utf.h"
+#include "../util/companion_files.h"
 
 
 typedef enum { HCA, CWAV, ADX } cpk_type_t;

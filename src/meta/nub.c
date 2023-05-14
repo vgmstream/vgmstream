@@ -1,6 +1,7 @@
 #include "meta.h"
 #include "../coding/coding.h"
 #include "../util/endianness.h"
+#include "../util/chunks.h"
 
 
 static void load_name(char* name, size_t name_size, STREAMFILE* sf, int big_endian, int total_subsongs, int target_subsong);
@@ -20,17 +21,17 @@ VGMSTREAM* init_vgmstream_nub(STREAMFILE* sf) {
 
 
     /* checks */
-    /* .nub: standard
-     * .nub2: rare [iDOLM@STER - Gravure For You (PS3)] */
-    if (!check_extensions(sf, "nub,nub2"))
-        goto fail;
-
-    version = read_32bitBE(0x00,sf);
+    version = read_u32be(0x00,sf);
     if (version != 0x00020000 &&  /* v2.0 (rare, ex. Ridge Race 6 (X360)) */
         version != 0x00020100 &&  /* v2.1 (common) */
         version != 0x01020100)    /* same but LE (seen in PSP/PC games, except PS4) */
         goto fail;
-    if (read_32bitBE(0x04,sf) != 0x00000000) /* null */
+    if (read_u32be(0x04,sf) != 0x00000000) /* null */
+        goto fail;
+
+    /* .nub: standard
+     * .nub2: rare [iDOLM@STER - Gravure For You (PS3)] */
+    if (!check_extensions(sf, "nub,nub2"))
         goto fail;
 
     /* sometimes LE [Soul Calibur: Broken Destiny (PSP), Tales of Vesperia (PS4) */

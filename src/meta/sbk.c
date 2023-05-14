@@ -1,5 +1,7 @@
 #include "meta.h"
 #include "../coding/coding.h"
+#include "../util/chunks.h"
+
 
 /* .SBK - from Addiction Pinball (PC) */
 VGMSTREAM *init_vgmstream_sbk(STREAMFILE *sf) {
@@ -11,13 +13,12 @@ VGMSTREAM *init_vgmstream_sbk(STREAMFILE *sf) {
     int target_subsong = sf->stream_index, total_subsongs, loop_flag, is_streamed;
 
     /* checks */
-    if (!check_extensions(sf, "sbk"))
+    if (!is_id32be(0x00,sf, "RIFF"))
+        goto fail;
+    if (!is_id32be(0x08,sf, "SBNK"))
         goto fail;
 
-    /* check header */
-    if (read_u32be(0x00, sf) != 0x52494646) /* "RIFF" */
-        goto fail;
-    if (read_u32be(0x08, sf) != 0x53424E4B) /* "SBNK" */
+    if (!check_extensions(sf, "sbk"))
         goto fail;
 
     if (!find_chunk_le(sf, 0x57415649, 0x0c, 0, &table_offset, &table_size)) /* "WAVI" */

@@ -26,4 +26,16 @@ enum {
 };
 #endif
 
+
+/* chunk-style file helpers (the above is more performant, this is mainly for quick checks) */
+int find_chunk_be(STREAMFILE* sf, uint32_t chunk_id, off_t start_offset, int full_chunk_size, off_t* p_chunk_offset, size_t* p_chunk_size);
+int find_chunk_le(STREAMFILE* sf, uint32_t chunk_id, off_t start_offset, int full_chunk_size, off_t* p_chunk_offset, size_t* p_chunk_size);
+int find_chunk(STREAMFILE* sf, uint32_t chunk_id, off_t start_offset, int full_chunk_size, off_t* p_chunk_offset, size_t* p_chunk_size, int big_endian_size, int zero_size_end);
+/* find a RIFF-style chunk (with chunk_size not including id and size) */
+int find_chunk_riff_le(STREAMFILE* sf, uint32_t chunk_id, off_t start_offset, size_t max_size, off_t* p_chunk_offset, size_t* p_chunk_size);
+int find_chunk_riff_be(STREAMFILE* sf, uint32_t chunk_id, off_t start_offset, size_t max_size, off_t* p_chunk_offset, size_t* p_chunk_size);
+/* same with chunk ids in variable endianess (so instead of "fmt " has " tmf" */
+int find_chunk_riff_ve(STREAMFILE* sf, uint32_t chunk_id, off_t start_offset, size_t max_size, off_t* p_chunk_offset, size_t* p_chunk_size, int big_endian);
+
+
 #endif

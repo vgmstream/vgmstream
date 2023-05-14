@@ -1,6 +1,7 @@
 #include "meta.h"
 #include "../layout/layout.h"
 #include "../coding/coding.h"
+#include "../util/chunks.h"
 
 /* GSP+GSB - from Tecmo's Super Swing Golf 1 & 2 (Wii), Quantum Theory (PS3/X360) */
 VGMSTREAM* init_vgmstream_gsp_gsb(STREAMFILE* sf) {

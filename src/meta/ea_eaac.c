@@ -3,6 +3,7 @@
 #include "../layout/layout.h"
 #include "../coding/coding.h"
 #include "../util/endianness.h"
+#include "../util/companion_files.h"
 #include "ea_eaac_streamfile.h"
 
 /* EAAudioCore (aka SND10) formats, EA's current audio middleware */

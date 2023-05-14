@@ -1,6 +1,7 @@
 #include "meta.h"
 #include "../coding/coding.h"
 #include "../util/endianness.h"
+#include "../util/chunks.h"
 
 
 typedef enum { MSADPCM, DSP, MP3, XMA2 } ckd_codec;

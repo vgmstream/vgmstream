@@ -4,6 +4,7 @@
 #include "../base/mixing.h"
 #include "../base/plugins.h"
 #include "../util/text_reader.h"
+#include "../util/paths.h"
 
 #include <math.h>
 

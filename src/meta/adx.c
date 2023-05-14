@@ -7,6 +7,7 @@
 #include "adx_keys.h"
 #include "../coding/coding.h"
 #include "../util/cri_keys.h"
+#include "../util/companion_files.h"
 
 
 #ifdef VGM_DEBUG_OUTPUT

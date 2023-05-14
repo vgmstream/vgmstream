@@ -1,5 +1,6 @@
 #include "meta.h"
 #include "../coding/coding.h"
+#include "../util/chunks.h"
 
 
 /* CSMP - Retro Studios sample [Metroid Prime 3 (Wii)-sfx, Donkey Kong Country Returns (Wii)-sfx] */

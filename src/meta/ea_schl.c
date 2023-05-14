@@ -2,6 +2,7 @@
 #include "../layout/layout.h"
 #include "../coding/coding.h"
 #include "../util/endianness.h"
+#include "../util/companion_files.h"
 #include "ea_schl_streamfile.h"
 
 /* header version */

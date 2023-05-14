@@ -171,15 +171,18 @@
     <ClInclude Include="util\bitstream_msb.h" />
     <ClInclude Include="util\channel_mappings.h" />
     <ClInclude Include="util\chunks.h" />
+    <ClInclude Include="util\companion_files.h" />
     <ClInclude Include="util\cri_keys.h" />
     <ClInclude Include="util\cri_utf.h" />
     <ClInclude Include="util\endianness.h" />
     <ClInclude Include="util\log.h" />
     <ClInclude Include="util\m2_psb.h" />
     <ClInclude Include="util\miniz.h" />
+    <ClInclude Include="util\paths.h" />
     <ClInclude Include="util\reader_get.h" />
     <ClInclude Include="util\reader_get_nibbles.h" />
     <ClInclude Include="util\reader_put.h" />
+    <ClInclude Include="util\reader_sf.h" />
     <ClInclude Include="util\samples_ops.h" />
     <ClInclude Include="util\text_reader.h" />
   </ItemGroup>
@@ -736,11 +739,13 @@
     <ClCompile Include="meta\zwdsp.c" />
     <ClCompile Include="meta\zwv.c" />
     <ClCompile Include="util\chunks.c" />
+    <ClCompile Include="util\companion_files.c" />
     <ClCompile Include="util\cri_keys.c" />
     <ClCompile Include="util\cri_utf.c" />
     <ClCompile Include="util\log.c" />
     <ClCompile Include="util\m2_psb.c" />
     <ClCompile Include="util\miniz.c" />
+    <ClCompile Include="util\paths.c" />
     <ClCompile Include="util\reader_put.c" />
     <ClCompile Include="util\samples_ops.c" />
     <ClCompile Include="util\text_reader.c" />

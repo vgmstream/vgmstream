@@ -338,6 +338,9 @@
     <ClInclude Include="util\chunks.h">
       <Filter>util\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="util\companion_files.h">
+      <Filter>util\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="util\cri_keys.h">
       <Filter>util\Header Files</Filter>
     </ClInclude>
@@ -356,6 +359,9 @@
     <ClInclude Include="util\miniz.h">
       <Filter>util\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="util\paths.h">
+      <Filter>util\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="util\reader_get.h">
       <Filter>util\Header Files</Filter>
     </ClInclude>
@@ -363,6 +369,9 @@
       <Filter>util\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="util\reader_put.h">
+      <Filter>util\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="util\reader_sf.h">
       <Filter>util\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="util\samples_ops.h">
@@ -2029,6 +2038,9 @@
     <ClCompile Include="util\chunks.c">
       <Filter>util\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="util\companion_files.c">
+      <Filter>util\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="util\cri_keys.c">
       <Filter>util\Source Files</Filter>
     </ClCompile>
@@ -2042,6 +2054,9 @@
       <Filter>util\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="util\miniz.c">
+      <Filter>util\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="util\paths.c">
       <Filter>util\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="util\reader_put.c">
