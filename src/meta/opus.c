@@ -133,9 +133,10 @@ VGMSTREAM* init_vgmstream_opus_std(STREAMFILE* sf) {
     if (read_u32le(0x00,sf) != 0x80000001) /* 'basic info' chunk */
         goto fail;
 
-    /* .opus: standard
-     * .bgm: Cotton Reboot (Switch) */
-    if (!check_extensions(sf,"opus,lopus,bgm"))
+    /* .opus: standard / .lopus: for plugins
+     * .bgm: Cotton Reboot (Switch)
+     * .opu: Ys Memoire: The Oath in Felghana (Switch) */
+    if (!check_extensions(sf,"opus,lopus,bgm,opu"))
         goto fail;
 
     offset = 0x00;

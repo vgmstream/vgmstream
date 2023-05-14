@@ -393,6 +393,7 @@ static const char* extension_list[] = {
     "ogv",
     "oma", //FFmpeg/not parsed (ATRAC3/ATRAC3PLUS/MP3/LPCM/WMA)
     "omu",
+    "opu",
     //"opus", //common
     "opusx",
     "otm",
