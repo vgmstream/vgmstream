@@ -1,8 +1,8 @@
 #include "layout.h"
 #include "../vgmstream.h"
-#include "../decode.h"
-#include "../mixing.h"
-#include "../plugins.h"
+#include "../base/decode.h"
+#include "../base/mixing.h"
+#include "../base/plugins.h"
 
 #define VGMSTREAM_MAX_LAYERS 255
 #define VGMSTREAM_LAYER_SAMPLE_BUFFER 8192
@@ -25,12 +25,12 @@ void render_vgmstream_layered(sample_t* outbuf, int32_t sample_count, VGMSTREAM*
         int layer, ch;
 
 
-        if (vgmstream->loop_flag && vgmstream_do_loop(vgmstream)) {
+        if (vgmstream->loop_flag && decode_do_loop(vgmstream)) {
             /* handle looping (loop_layout has been called below) */
             continue;
         }
 
-        samples_to_do = get_vgmstream_samples_to_do(samples_this_block, samples_per_frame, vgmstream);
+        samples_to_do = decode_get_samples_to_do(samples_this_block, samples_per_frame, vgmstream);
         if (samples_to_do > sample_count - samples_written)
             samples_to_do = sample_count - samples_written;
 
@@ -105,7 +105,7 @@ void loop_layout_layered(VGMSTREAM* vgmstream, int32_t loop_sample) {
              * calls to do_loop work (used in seek_vgmstream) */
             if (data->layers[layer]->loop_flag) { /* mixing looping and non-looping layers is allowed */
                 data->layers[layer]->current_sample = data->layers[layer]->loop_end_sample; /* forces do loop */
-                vgmstream_do_loop(data->layers[layer]); /* guaranteed to work should loop_layout be called */
+                decode_do_loop(data->layers[layer]); /* guaranteed to work should loop_layout be called */
             }
             else {
                 /* needed when mixing non-looping layers and installing loop externally */

@@ -10,7 +10,7 @@ vgmstream can be compiled using one of several build scripts that are available 
 
 Because each module has different quirks one can't use a single tool for everything. You should be able to build most using a standard *compiler* (GCC/MSVC/Clang) using common *build systems* (scripts/CMake/autotools) in any typical *OS* (Windows/Linux/macOS).
 
-64-bit support should work but hasn't been throughly tested (may have subtle decoding bugs in some codecs), since most used components are plugins for 32-bit players. Windows libraries for extra codecs are included for 32-bit only at the moment.
+64-bit support should work but hasn't been as throughly tested, since most used components are plugins for 32-bit players. Windows libraries for extra codecs are included for 32-bit only at the moment.
 
 Though it's rather flexible (like using Windows with GCC and autotools), some combos may be a bit more complex to get working depending on your system and other factors.
 

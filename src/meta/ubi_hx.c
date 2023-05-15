@@ -2,6 +2,7 @@
 #include "../layout/layout.h"
 #include "../coding/coding.h"
 #include "../util/endianness.h"
+#include "../util/chunks.h"
 
 
 typedef enum { PCM, UBI, PSX, DSP, XIMA, ATRAC3, XMA2, MP3, SILENCE } ubi_hx_codec;

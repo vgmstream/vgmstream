@@ -1,6 +1,7 @@
 #include "meta.h"
 #include "../coding/coding.h"
 #include "../util/chunks.h"
+#include "../util/companion_files.h"
 #include "bnsf_keys.h"
 
 

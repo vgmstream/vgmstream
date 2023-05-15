@@ -52,8 +52,7 @@ def parse_args():
     ap.add_argument("-r","--recursive", help="search files in subfolders", action='store_true')
     ap.add_argument("-z","--fuzzy", help="fuzzy threshold of +-N PCM16LE", type=int, default=1)
     ap.add_argument("-nd","--no-delete", help="don't delete output", action='store_true')
-    ap.add_argument("-rd","--result-diffs", help="only report full diffs", action='store_true')
-    ap.add_argument("-rz","--result-fuzzy", help="only report full and fuzzy diffs", action='store_true')
+    ap.add_argument("-rd","--report-diffs", help="only report full diffs", action='store_true')
     ap.add_argument("-p","--performance-both", help="compare decode performance", action='store_true')
     ap.add_argument("-pn","--performance-new", help="test performance of new CLI", action='store_true')
     ap.add_argument("-po","--performance-old", help="test performance of old CLI", action='store_true')
@@ -335,7 +334,15 @@ class VrtsPrinter:
         RESULT_MISSING_OLD: 'missing old',
     }
 
-    def __init__(self):
+    REPORTS_DIFFS = [
+        #RESULT_NONE,
+        RESULT_SIZES,
+        RESULT_MISSING_NEW,
+        RESULT_MISSING_OLD
+    ]
+
+    def __init__(self, args):
+        self._args = args
         try:
             os.system('color') #win only?
         except:
@@ -347,7 +354,7 @@ class VrtsPrinter:
         else:
             print(msg)
 
-           
+
     def result(self, msg, code, fuzzy_diff=0, fuzzy_offset=0):
         text = self.TEXT_RESULT.get(code)
         color = self.COLOR_RESULT.get(code)
@@ -356,7 +363,13 @@ class VrtsPrinter:
         msg = "%s: %s" % (msg, text)
         if fuzzy_diff != 0:
             msg += " (%s @0x%x)" % (fuzzy_diff, fuzzy_offset)
-        self._print(msg, color)
+
+        report = True
+        if self._args.report_diffs and code not in self.REPORTS_DIFFS:
+            report = False
+
+        if report:
+            self._print(msg, color)
 
 
     def info(self, msg):
@@ -471,7 +484,7 @@ class VrtsApp:
         self._args = args
         self._files = VrtsFiles(args)
         self._prc = VrtsProcess()
-        self._p = VrtsPrinter()
+        self._p = VrtsPrinter(args)
         self._cli_new = None
         self._cli_old = None
         self._temp_files = []

@@ -1,6 +1,6 @@
 #include "layout.h"
 #include "../vgmstream.h"
-#include "../decode.h"
+#include "../base/decode.h"
 
 
 /* Decodes samples for interleaved streams.
@@ -19,20 +19,20 @@ void render_vgmstream_interleave(sample_t * buffer, int32_t sample_count, VGMSTR
 
     /* setup */
     {
-        int frame_size_d = get_vgmstream_frame_size(vgmstream);
-        samples_per_frame_d = get_vgmstream_samples_per_frame(vgmstream);
+        int frame_size_d = decode_get_frame_size(vgmstream);
+        samples_per_frame_d = decode_get_samples_per_frame(vgmstream);
         if (frame_size_d == 0 || samples_per_frame_d == 0) goto fail;
         samples_this_block_d = vgmstream->interleave_block_size / frame_size_d * samples_per_frame_d;
     }
     if (has_interleave_first) {
-        int frame_size_f = get_vgmstream_frame_size(vgmstream);
-        samples_per_frame_f = get_vgmstream_samples_per_frame(vgmstream); //todo samples per shortframe
+        int frame_size_f = decode_get_frame_size(vgmstream);
+        samples_per_frame_f = decode_get_samples_per_frame(vgmstream); //todo samples per shortframe
         if (frame_size_f == 0 || samples_per_frame_f == 0) goto fail;
         samples_this_block_f = vgmstream->interleave_first_block_size / frame_size_f * samples_per_frame_f;
     }
     if (has_interleave_last) {
-        int frame_size_l = get_vgmstream_shortframe_size(vgmstream);
-        samples_per_frame_l = get_vgmstream_samples_per_shortframe(vgmstream);
+        int frame_size_l = decode_get_shortframe_size(vgmstream);
+        samples_per_frame_l = decode_get_samples_per_shortframe(vgmstream);
         if (frame_size_l == 0 || samples_per_frame_l == 0) goto fail;
         samples_this_block_l = vgmstream->interleave_last_block_size / frame_size_l * samples_per_frame_l;
     }
@@ -62,7 +62,7 @@ void render_vgmstream_interleave(sample_t * buffer, int32_t sample_count, VGMSTR
     while (samples_written < sample_count) {
         int samples_to_do; 
 
-        if (vgmstream->loop_flag && vgmstream_do_loop(vgmstream)) {
+        if (vgmstream->loop_flag && decode_do_loop(vgmstream)) {
             /* handle looping, restore standard interleave sizes */
 
             if (has_interleave_first &&
@@ -83,7 +83,7 @@ void render_vgmstream_interleave(sample_t * buffer, int32_t sample_count, VGMSTR
             continue;
         }
 
-        samples_to_do = get_vgmstream_samples_to_do(samples_this_block, samples_per_frame, vgmstream);
+        samples_to_do = decode_get_samples_to_do(samples_this_block, samples_per_frame, vgmstream);
         if (samples_to_do > sample_count - samples_written)
             samples_to_do = sample_count - samples_written;
 

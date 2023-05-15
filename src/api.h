@@ -1,6 +1,10 @@
-//possible future public/opaque API
 #ifndef _API_H_
 #define _API_H_
+
+#include "base/plugins.h"
+
+
+//possible future public/opaque API
 #if 0
 
 #include <stdint.h>

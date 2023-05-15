@@ -51,4 +51,6 @@ const char* filename_extension(const char* pathname);
 
 void concatn(int length, char * dst, const char * src);
 
+size_t align_size_to_block(size_t value, size_t block_align);
+
 #endif

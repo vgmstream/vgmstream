@@ -1,5 +1,6 @@
 #include "meta.h"
 #include "../coding/coding.h"
+#include "../util/chunks.h"
 
 
 static int get_subsongs(STREAMFILE* sf, off_t fsb5_offset, size_t fsb5_size);
@@ -16,13 +17,14 @@ VGMSTREAM* init_vgmstream_fsb5_fev_bank(STREAMFILE* sf) {
 
 
     /* checks */
+    if (!is_id32be(0x00,sf, "RIFF"))
+        goto fail;
+    if (!is_id32be(0x08,sf, "FEV "))
+        goto fail;
+
     if (!check_extensions(sf, "bank"))
         goto fail;
 
-    if (read_u32be(0x00,sf) != 0x52494646) /* "RIFF" */
-        goto fail;
-    if (read_u32be(0x08,sf) != 0x46455620) /* "FEV " */
-        goto fail;
     version = read_u32le(0x14,sf); /* newer FEV have some kind of sub-version at 0x18 */
 
     /* .fev is an event format referencing various external .fsb, but FMOD can bake .fev and .fsb to

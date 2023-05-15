@@ -116,7 +116,7 @@ static const char* extension_list[] = {
     "bk2",
     "bkr",  //txth/reserved [P.N.03 (GC), Viewtiful Joe (GC)]
     "blk",
-    "bmdx",
+    "bmdx", //fake extension (to be removed?)
     "bms",
     "bnk",
     "bnm",
@@ -393,6 +393,7 @@ static const char* extension_list[] = {
     "ogv",
     "oma", //FFmpeg/not parsed (ATRAC3/ATRAC3PLUS/MP3/LPCM/WMA)
     "omu",
+    "opu",
     //"opus", //common
     "opusx",
     "otm",

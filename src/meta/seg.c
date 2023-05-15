@@ -1,5 +1,7 @@
 #include "meta.h"
 #include "../coding/coding.h"
+#include "../util/endianness.h"
+
 
 /* SEG - from Stormfront games [Eragon (multi), Forgotten Realms: Demon Stone (multi) */
 VGMSTREAM* init_vgmstream_seg(STREAMFILE* sf) {
@@ -19,7 +21,7 @@ VGMSTREAM* init_vgmstream_seg(STREAMFILE* sf) {
 
     codec = read_32bitBE(0x04,sf);
     /* 0x08: version? (2: Eragon, Spiderwick Chronicles Wii / 3: Spiderwick Chronicles X360 / 4: Spiderwick Chronicles PC) */
-    if (guess_endianness32bit(0x08,sf)) {
+    if (guess_endian32(0x08,sf)) {
         read_32bit = read_32bitBE;
     } else {
         read_32bit = read_32bitLE;

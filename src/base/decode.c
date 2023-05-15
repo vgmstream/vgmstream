@@ -1,14 +1,14 @@
-#include "vgmstream.h"
+#include "../vgmstream.h"
+#include "../layout/layout.h"
+#include "../coding/coding.h"
 #include "decode.h"
-#include "layout/layout.h"
-#include "coding/coding.h"
 #include "mixing.h"
 #include "plugins.h"
 
 /* custom codec handling, not exactly "decode" stuff but here to simplify adding new codecs */
 
 
-void free_codec(VGMSTREAM* vgmstream) {
+void decode_free(VGMSTREAM* vgmstream) {
 
 #ifdef VGM_USE_VORBIS
     if (vgmstream->coding_type == coding_OGG_VORBIS) {
@@ -119,7 +119,7 @@ void free_codec(VGMSTREAM* vgmstream) {
 }
 
 
-void seek_codec(VGMSTREAM* vgmstream) {
+void decode_seek(VGMSTREAM* vgmstream) {
     if (vgmstream->coding_type == coding_CIRCUS_VQ) {
         seek_circus_vq(vgmstream->codec_data, vgmstream->loop_current_sample);
     }
@@ -213,7 +213,7 @@ void seek_codec(VGMSTREAM* vgmstream) {
 }
 
 
-void reset_codec(VGMSTREAM* vgmstream) {
+void decode_reset(VGMSTREAM* vgmstream) {
 
 #ifdef VGM_USE_VORBIS
     if (vgmstream->coding_type == coding_OGG_VORBIS) {
@@ -325,7 +325,7 @@ void reset_codec(VGMSTREAM* vgmstream) {
 
 
 /* Get the number of samples of a single frame (smallest self-contained sample group, 1/N channels) */
-int get_vgmstream_samples_per_frame(VGMSTREAM* vgmstream) {
+int decode_get_samples_per_frame(VGMSTREAM* vgmstream) {
     /* Value returned here is the max (or less) that vgmstream will ask a decoder per
      * "decode_x" call. Decoders with variable samples per frame or internal discard
      * may return 0 here and handle arbitrary samples_to_do values internally
@@ -555,7 +555,7 @@ int get_vgmstream_samples_per_frame(VGMSTREAM* vgmstream) {
 }
 
 /* Get the number of bytes of a single frame (smallest self-contained byte group, 1/N channels) */
-int get_vgmstream_frame_size(VGMSTREAM* vgmstream) {
+int decode_get_frame_size(VGMSTREAM* vgmstream) {
     switch (vgmstream->coding_type) {
         case coding_SILENCE:
             return 0;
@@ -747,21 +747,21 @@ int get_vgmstream_frame_size(VGMSTREAM* vgmstream) {
 }
 
 /* In NDS IMA the frame size is the block size, so the last one is short */
-int get_vgmstream_samples_per_shortframe(VGMSTREAM* vgmstream) {
+int decode_get_samples_per_shortframe(VGMSTREAM* vgmstream) {
     switch (vgmstream->coding_type) {
         case coding_NDS_IMA:
             return (vgmstream->interleave_last_block_size-4)*2;
         default:
-            return get_vgmstream_samples_per_frame(vgmstream);
+            return decode_get_samples_per_frame(vgmstream);
     }
 }
 
-int get_vgmstream_shortframe_size(VGMSTREAM* vgmstream) {
+int decode_get_shortframe_size(VGMSTREAM* vgmstream) {
     switch (vgmstream->coding_type) {
         case coding_NDS_IMA:
             return vgmstream->interleave_last_block_size;
         default:
-            return get_vgmstream_frame_size(vgmstream);
+            return decode_get_frame_size(vgmstream);
     }
 }
 
@@ -1488,7 +1488,7 @@ void decode_vgmstream(VGMSTREAM* vgmstream, int samples_written, int samples_to_
 
 /* Calculate number of consecutive samples we can decode. Takes into account hitting
  * a loop start or end, or going past a single frame. */
-int get_vgmstream_samples_to_do(int samples_this_block, int samples_per_frame, VGMSTREAM* vgmstream) {
+int decode_get_samples_to_do(int samples_this_block, int samples_per_frame, VGMSTREAM* vgmstream) {
     int samples_to_do;
     int samples_left_this_block;
 
@@ -1521,7 +1521,7 @@ int get_vgmstream_samples_to_do(int samples_this_block, int samples_per_frame, V
 
 /* Detect loop start and save values, or detect loop end and restore (loop back).
  * Returns 1 if loop was done. */
-int vgmstream_do_loop(VGMSTREAM* vgmstream) {
+int decode_do_loop(VGMSTREAM* vgmstream) {
     /*if (!vgmstream->loop_flag) return 0;*/
 
     /* is this the loop end? = new loop, continue from loop_start_sample */
@@ -1557,7 +1557,7 @@ int vgmstream_do_loop(VGMSTREAM* vgmstream) {
          * - loop_ch[] is copied to ch[] (with custom value)
          * - then codec will use ch[]'s offset
          * regular codecs may use copied loop_ch[] offset without issue */
-        seek_codec(vgmstream);
+        decode_seek(vgmstream);
 
         /* restore! */
         memcpy(vgmstream->ch, vgmstream->loop_ch, sizeof(VGMSTREAMCHANNEL) * vgmstream->channels);

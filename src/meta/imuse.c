@@ -1,5 +1,6 @@
 #include "meta.h"
 #include "../coding/coding.h"
+#include "../util/chunks.h"
 
 
 /* LucasArts iMUSE (Interactive Music Streaming Engine) formats */

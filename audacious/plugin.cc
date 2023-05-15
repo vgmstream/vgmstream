@@ -16,7 +16,7 @@
 
 extern "C" {
 #include "../src/vgmstream.h"
-#include "../src/plugins.h"
+#include "../src/api.h"
 }
 #include "plugin.h"
 #include "vfs.h"

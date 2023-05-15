@@ -1,8 +1,8 @@
 #include "layout.h"
 #include "../vgmstream.h"
-#include "../decode.h"
-#include "../mixing.h"
-#include "../plugins.h"
+#include "../base/decode.h"
+#include "../base/mixing.h"
+#include "../base/plugins.h"
 
 #define VGMSTREAM_MAX_SEGMENTS 1024
 #define VGMSTREAM_SEGMENT_SAMPLE_BUFFER 8192
@@ -34,7 +34,7 @@ void render_vgmstream_segmented(sample_t* outbuf, int32_t sample_count, VGMSTREA
     while (samples_written < sample_count) {
         int samples_to_do;
 
-        if (vgmstream->loop_flag && vgmstream_do_loop(vgmstream)) {
+        if (vgmstream->loop_flag && decode_do_loop(vgmstream)) {
             /* handle looping (loop_layout has been called below, changes segments/state) */
             samples_this_block = vgmstream_get_samples(data->segments[data->current_segment]);
             mixing_info(data->segments[data->current_segment], NULL, &current_channels);
@@ -60,7 +60,7 @@ void render_vgmstream_segmented(sample_t* outbuf, int32_t sample_count, VGMSTREA
         }
 
 
-        samples_to_do = get_vgmstream_samples_to_do(samples_this_block, sample_count, vgmstream);
+        samples_to_do = decode_get_samples_to_do(samples_this_block, sample_count, vgmstream);
         if (samples_to_do > sample_count - samples_written)
             samples_to_do = sample_count - samples_written;
         if (samples_to_do > VGMSTREAM_SEGMENT_SAMPLE_BUFFER /*&& use_internal_buffer*/) /* always for fade/etc mixes */

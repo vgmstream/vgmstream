@@ -9,15 +9,16 @@
 #include "meta/meta.h"
 #include "layout/layout.h"
 #include "coding/coding.h"
-#include "decode.h"
-#include "render.h"
-#include "mixing.h"
+#include "base/decode.h"
+#include "base/render.h"
+#include "base/mixing.h"
 
-static void try_dual_file_stereo(VGMSTREAM* opened_vgmstream, STREAMFILE* sf, VGMSTREAM* (*init_vgmstream_function)(STREAMFILE*));
+typedef VGMSTREAM* (*init_vgmstream_t)(STREAMFILE*);
 
+static void try_dual_file_stereo(VGMSTREAM* opened_vgmstream, STREAMFILE* sf, init_vgmstream_t init_vgmstream_function);
 
 /* list of metadata parser functions that will recognize files, used on init */
-VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
+init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_adx,
     init_vgmstream_brstm,
     init_vgmstream_brwav,
@@ -563,25 +564,25 @@ VGMSTREAM* (*init_vgmstream_functions[])(STREAMFILE* sf) = {
 #endif
 };
 
+#define LOCAL_ARRAY_LENGTH(array) (sizeof(array) / sizeof(array[0]))
+static const int init_vgmstream_count = LOCAL_ARRAY_LENGTH(init_vgmstream_functions);
 
 /*****************************************************************************/
 /* INIT/META                                                                 */
 /*****************************************************************************/
-#define LOCAL_ARRAY_LENGTH(array) (sizeof(array) / sizeof(array[0]))
 
 /* internal version with all parameters */
 static VGMSTREAM* init_vgmstream_internal(STREAMFILE* sf) {
-    int i, fcns_count;
-
     if (!sf)
         return NULL;
 
-    fcns_count = LOCAL_ARRAY_LENGTH(init_vgmstream_functions);
-
     /* try a series of formats, see which works */
-    for (i = 0; i < fcns_count; i++) {
+    for (int i = 0; i < init_vgmstream_count; i++) {
+        init_vgmstream_t init_vgmstream_function = init_vgmstream_functions[i];
+    
+
         /* call init function and see if valid VGMSTREAM was returned */
-        VGMSTREAM* vgmstream = (init_vgmstream_functions[i])(sf);
+        VGMSTREAM* vgmstream = init_vgmstream_function(sf);
         if (!vgmstream)
             continue;
 
@@ -614,7 +615,7 @@ static VGMSTREAM* init_vgmstream_internal(STREAMFILE* sf) {
 
         /* test if candidate for dual stereo */
         if (vgmstream->channels == 1 && vgmstream->allow_dual_stereo == 1) {
-            try_dual_file_stereo(vgmstream, sf, init_vgmstream_functions[i]);
+            try_dual_file_stereo(vgmstream, sf, init_vgmstream_function);
         }
 
         /* clean as loops are readable metadata but loop fields may contain garbage
@@ -714,9 +715,9 @@ void reset_vgmstream(VGMSTREAM* vgmstream) {
      * Otherwise hit_loop will be 0 and it will be copied over anyway when we
      * really hit the loop start. */
 
-    reset_codec(vgmstream);
+    decode_reset(vgmstream);
 
-    reset_layout(vgmstream);
+    render_reset(vgmstream);
 
     /* note that this does not reset the constituent STREAMFILES
      * (vgmstream->ch[N].streamfiles' internal state, like internal offset, though shouldn't matter) */
@@ -737,7 +738,7 @@ VGMSTREAM* allocate_vgmstream(int channel_count, int loop_flag) {
      * - ch: config+state per channel, also modified by those
      * - start_vgmstream: vgmstream clone copied on init_vgmstream and restored on reset_vgmstream
      * - start_ch: ch clone copied on init_vgmstream and restored on reset_vgmstream
-     * - loop_ch: ch clone copied on loop start and restored on loop end (vgmstream_do_loop)
+     * - loop_ch: ch clone copied on loop start and restored on loop end (decode_do_loop)
      * - codec/layout_data: custom state for complex codecs or layouts, handled externally
      *
      * Here we only create the basic structs to be filled, and only after init_vgmstream it
@@ -799,10 +800,10 @@ void close_vgmstream(VGMSTREAM* vgmstream) {
     if (!vgmstream)
         return;
 
-    free_codec(vgmstream);
+    decode_free(vgmstream);
     vgmstream->codec_data = NULL;
 
-    free_layout(vgmstream);
+    render_free(vgmstream);
     vgmstream->layout_data = NULL;
 
 
@@ -915,7 +916,7 @@ void vgmstream_set_loop_target(VGMSTREAM* vgmstream, int loop_target) {
 
 /* See if there is a second file which may be the second channel, given an already opened mono vgmstream.
  * If a suitable file is found, open it and change opened_vgmstream to a stereo vgmstream. */
-static void try_dual_file_stereo(VGMSTREAM* opened_vgmstream, STREAMFILE* sf, VGMSTREAM*(*init_vgmstream_function)(STREAMFILE*)) {
+static void try_dual_file_stereo(VGMSTREAM* opened_vgmstream, STREAMFILE* sf, init_vgmstream_t init_vgmstream_function) {
     /* filename search pairs for dual file stereo */
     static const char* const dfs_pairs[][2] = {
         {"L","R"}, /* most common in .dsp and .vag */

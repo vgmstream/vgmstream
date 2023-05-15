@@ -2,6 +2,7 @@
 #include "../coding/coding.h"
 #include "ahx_keys.h"
 #include "../util/cri_keys.h"
+#include "../util/companion_files.h"
 
 #ifdef VGM_USE_MPEG
 static int find_ahx_key(STREAMFILE* sf, off_t offset, crikey_t* crikey);

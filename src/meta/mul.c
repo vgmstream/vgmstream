@@ -33,7 +33,7 @@ VGMSTREAM* init_vgmstream_mul(STREAMFILE* sf) {
         read_u32be(0x1c,sf) != 0)
         goto fail;
 
-    big_endian = guess_endianness32bit(0x00, sf);
+    big_endian = guess_endian32(0x00, sf);
     read_u32 = big_endian ? read_u32be : read_u32le;
     read_f32 = big_endian ? read_f32be : read_f32le;
 

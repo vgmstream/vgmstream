@@ -1,6 +1,6 @@
 #include "layout.h"
 #include "../vgmstream.h"
-#include "../decode.h"
+#include "../base/decode.h"
 #include "../coding/coding.h"
 
 
@@ -11,13 +11,13 @@ void render_vgmstream_blocked(sample_t* buffer, int32_t sample_count, VGMSTREAM*
     int samples_written = 0;
     int frame_size, samples_per_frame, samples_this_block;
 
-    frame_size = get_vgmstream_frame_size(vgmstream);
-    samples_per_frame = get_vgmstream_samples_per_frame(vgmstream);
+    frame_size = decode_get_frame_size(vgmstream);
+    samples_per_frame = decode_get_samples_per_frame(vgmstream);
     samples_this_block = 0;
 
     if (vgmstream->current_block_samples) {
         samples_this_block = vgmstream->current_block_samples;
-    } else if (frame_size == 0) { /* assume 4 bit */ //TODO: get_vgmstream_frame_size() really should return bits... */
+    } else if (frame_size == 0) { /* assume 4 bit */ //TODO: decode_get_frame_size() really should return bits... */
         samples_this_block = vgmstream->current_block_size * 2 * samples_per_frame;
     } else {
         samples_this_block = vgmstream->current_block_size / frame_size * samples_per_frame;
@@ -28,11 +28,11 @@ void render_vgmstream_blocked(sample_t* buffer, int32_t sample_count, VGMSTREAM*
         int samples_to_do; 
 
 
-        if (vgmstream->loop_flag && vgmstream_do_loop(vgmstream)) {
+        if (vgmstream->loop_flag && decode_do_loop(vgmstream)) {
             /* handle looping, readjust back to loop start values */
             if (vgmstream->current_block_samples) {
                 samples_this_block = vgmstream->current_block_samples;
-            } else if (frame_size == 0) { /* assume 4 bit */ //TODO: get_vgmstream_frame_size() really should return bits... */
+            } else if (frame_size == 0) { /* assume 4 bit */ //TODO: decode_get_frame_size() really should return bits... */
                 samples_this_block = vgmstream->current_block_size * 2 * samples_per_frame;
             } else {
                 samples_this_block = vgmstream->current_block_size / frame_size * samples_per_frame;
@@ -54,7 +54,7 @@ void render_vgmstream_blocked(sample_t* buffer, int32_t sample_count, VGMSTREAM*
             break;
         }
 
-        samples_to_do = get_vgmstream_samples_to_do(samples_this_block, samples_per_frame, vgmstream);
+        samples_to_do = decode_get_samples_to_do(samples_this_block, samples_per_frame, vgmstream);
         if (samples_to_do > sample_count - samples_written)
             samples_to_do = sample_count - samples_written;
 
@@ -74,11 +74,11 @@ void render_vgmstream_blocked(sample_t* buffer, int32_t sample_count, VGMSTREAM*
             block_update(vgmstream->next_block_offset,vgmstream);
 
             /* update since these may change each block */
-            frame_size = get_vgmstream_frame_size(vgmstream);
-            samples_per_frame = get_vgmstream_samples_per_frame(vgmstream);
+            frame_size = decode_get_frame_size(vgmstream);
+            samples_per_frame = decode_get_samples_per_frame(vgmstream);
             if (vgmstream->current_block_samples) {
                 samples_this_block = vgmstream->current_block_samples;
-            } else if (frame_size == 0) { /* assume 4 bit */ //TODO: get_vgmstream_frame_size() really should return bits... */
+            } else if (frame_size == 0) { /* assume 4 bit */ //TODO: decode_get_frame_size() really should return bits... */
                 samples_this_block = vgmstream->current_block_size * 2 * samples_per_frame;
             } else {
                 samples_this_block = vgmstream->current_block_size / frame_size * samples_per_frame;

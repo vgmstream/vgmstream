@@ -1,6 +1,7 @@
 #include "meta.h"
 #include "../coding/coding.h"
-#include "../coding/coding.h"
+#include "../util/endianness.h"
+#include "../util/chunks.h"
 
 
 typedef enum { MSADPCM, DSP, MP3, XMA2 } ckd_codec;
@@ -30,7 +31,7 @@ VGMSTREAM* init_vgmstream_ubi_ckd(STREAMFILE* sf) {
     if (!is_id32be(0x0c,sf, "fmt "))
         goto fail;
 
-    big_endian = guess_endianness32bit(0x04, sf);
+    big_endian = guess_endian32(0x04, sf);
     read_u32 = big_endian ? read_u32be : read_u32le;
     read_u16 = big_endian ? read_u16be : read_u16le;
 

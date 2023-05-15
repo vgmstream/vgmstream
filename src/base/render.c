@@ -1,5 +1,5 @@
-#include "vgmstream.h"
-#include "layout/layout.h"
+#include "../vgmstream.h"
+#include "../layout/layout.h"
 #include "render.h"
 #include "decode.h"
 #include "mixing.h"
@@ -222,7 +222,7 @@ void setup_state_vgmstream(VGMSTREAM* vgmstream) {
 
 /*****************************************************************************/
 
-void free_layout(VGMSTREAM* vgmstream) {
+void render_free(VGMSTREAM* vgmstream) {
 
     if (vgmstream->layout_type == layout_segmented) {
         free_layout_segmented(vgmstream->layout_data);
@@ -233,7 +233,7 @@ void free_layout(VGMSTREAM* vgmstream) {
     }
 }
 
-void reset_layout(VGMSTREAM* vgmstream) {
+void render_reset(VGMSTREAM* vgmstream) {
 
     if (vgmstream->layout_type == layout_segmented) {
         reset_layout_segmented(vgmstream->layout_data);

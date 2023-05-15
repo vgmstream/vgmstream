@@ -61,7 +61,7 @@
 
 #include <stdlib.h>
 #include "nwa_decoder.h"
-
+#include "../util/reader_sf.h"
 
 //NWAInfo::UseRunLength
 static int is_use_runlength(NWAData* nwa) {

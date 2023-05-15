@@ -13,7 +13,7 @@
 
 #include "xmpin.h"
 #include "../src/vgmstream.h"
-#include "../src/plugins.h"
+#include "../src/api.h"
 
 
 #include "../version.h"

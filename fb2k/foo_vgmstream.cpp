@@ -12,7 +12,7 @@
 
 extern "C" {
 #include "../src/vgmstream.h"
-#include "../src/plugins.h"
+#include "../src/api.h"
 }
 #include "foo_vgmstream.h"
 #include "foo_filetypes.h"

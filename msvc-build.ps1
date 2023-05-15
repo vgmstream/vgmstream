@@ -270,8 +270,18 @@ function MakePackage
     Copy-Item $fb2kFiles32 bin/foobar2000/ -Recurse -Force
     Copy-Item $fb2kFiles64 bin/foobar2000/x64/ -Recurse -Force
     Remove-Item $fb2kFiles_remove -ErrorAction Ignore
-    Compress-Archive -Path bin/foobar2000/* bin/foo_input_vgmstream.zip -Force
-    Move-Item bin/foo_input_vgmstream.zip bin/foo_input_vgmstream.fb2k-component -Force
+
+    # workaround for a foobar 2.0 64-bit bug: (earlier?) powershell creates zip paths with '\' (which seem
+    # non-standard), and apparently that confuses foobar when trying to unpack the zip
+    try {
+        # possibly available in github actions
+        & '7z' a -tzip bin/foo_input_vgmstream.fb2k-component bin/foobar2000/*
+    } catch {
+        # works for 32-bit at least
+        Compress-Archive -Path bin/foobar2000/* bin/foo_input_vgmstream.zip -Force
+        Move-Item bin/foo_input_vgmstream.zip bin/foo_input_vgmstream.fb2k-component -Force
+    }
+    
     Remove-Item -Path bin/foobar2000 -Recurse -ErrorAction Ignore
 }
 

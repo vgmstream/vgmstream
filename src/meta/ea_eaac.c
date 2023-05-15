@@ -2,6 +2,8 @@
 #include "meta.h"
 #include "../layout/layout.h"
 #include "../coding/coding.h"
+#include "../util/endianness.h"
+#include "../util/companion_files.h"
 #include "ea_eaac_streamfile.h"
 
 /* EAAudioCore (aka SND10) formats, EA's current audio middleware */
@@ -85,7 +87,7 @@ VGMSTREAM* init_vgmstream_ea_snu(STREAMFILE* sf) {
      * 0x0c(4): some sub-offset? (0x20, found when @0x01 is set) */
 
     /* use start_offset as endianness flag */
-    if (guess_endianness32bit(0x08,sf)) {
+    if (guess_endian32(0x08,sf)) {
         read_32bit = read_32bitBE;
     } else {
         read_32bit = read_32bitLE;
@@ -125,7 +127,7 @@ VGMSTREAM* init_vgmstream_ea_abk_eaac(STREAMFILE* sf) {
         goto fail;
 
     /* use table offset to check endianness */
-    if (guess_endianness32bit(0x1C, sf)) {
+    if (guess_endian32(0x1C, sf)) {
         read_32bit = read_32bitBE;
         read_16bit = read_16bitBE;
     } else {

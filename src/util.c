@@ -42,3 +42,12 @@ void concatn(int length, char * dst, const char * src) {
         dst[i]=src[j];
     dst[i]='\0';
 }
+
+size_t align_size_to_block(size_t value, size_t block_align) {
+    if (!block_align)
+        return 0;
+
+    size_t extra_size = value % block_align;
+    if (extra_size == 0) return value;
+    return (value + block_align - extra_size);
+}

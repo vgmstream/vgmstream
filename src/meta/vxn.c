@@ -1,5 +1,6 @@
 #include "meta.h"
 #include "../coding/coding.h"
+#include "../util/chunks.h"
 
 
 /* VXN - from Gameloft mobile games */
@@ -11,11 +12,12 @@ VGMSTREAM* init_vgmstream_vxn(STREAMFILE* sf) {
     int total_subsongs, target_subsong = sf->stream_index;
 
     /* checks */
+    if (!is_id32be(0x00,sf, "VoxN"))
+        goto fail;
+
     if (!check_extensions(sf,"vxn"))
         goto fail;
 
-    if (!is_id32be(0x00,sf, "VoxN"))
-        goto fail;
     /* 0x04: chunk size */
     /* 0x08: ASCII version? ("0.0.1") */
     if (read_u32le(0x10,sf) != get_streamfile_size(sf))

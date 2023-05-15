@@ -1,6 +1,6 @@
 #include "layout.h"
 #include "../vgmstream.h"
-#include "../decode.h"
+#include "../base/decode.h"
 
 
 /* Decodes samples for flat streams.
@@ -9,19 +9,19 @@ void render_vgmstream_flat(sample_t* outbuf, int32_t sample_count, VGMSTREAM* vg
     int samples_written = 0;
     int samples_per_frame, samples_this_block;
 
-    samples_per_frame = get_vgmstream_samples_per_frame(vgmstream);
+    samples_per_frame = decode_get_samples_per_frame(vgmstream);
     samples_this_block = vgmstream->num_samples; /* do all samples if possible */
 
 
     while (samples_written < sample_count) {
         int samples_to_do;
 
-        if (vgmstream->loop_flag && vgmstream_do_loop(vgmstream)) {
+        if (vgmstream->loop_flag && decode_do_loop(vgmstream)) {
             /* handle looping */
             continue;
         }
 
-        samples_to_do = get_vgmstream_samples_to_do(samples_this_block, samples_per_frame, vgmstream);
+        samples_to_do = decode_get_samples_to_do(samples_this_block, samples_per_frame, vgmstream);
         if (samples_to_do > sample_count - samples_written)
             samples_to_do = sample_count - samples_written;
 

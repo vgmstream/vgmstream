@@ -122,7 +122,7 @@ Very simplified it goes like this:
 - layout prepares samples and offsets to read from the stream *[render_vgmstream_(layout)]*
 - decoder reads and decodes bytes into PCM samples *[decode_vgmstream_(coding)]*
 - player plays those samples, asks to fill sample buffer again, repeats (until total_samples)
-- layout moves offsets back to loop_start when loop_end is reached *[vgmstream_do_loop]*
+- layout moves offsets back to loop_start when loop_end is reached *[decode_do_loop]*
 - player closes the VGMSTREAM once the stream is finished
 
 vgsmtream's main code (located in src) may be considered "libvgmstream", and plugins interface it through vgmstream.h, mainly the part commented as "vgmstream public API". There isn't a clean external API at the moment, this may be improved later.
@@ -201,10 +201,10 @@ If the decoder needs to keep state between calls it may use the VGMSTREAM for co
 Adding a new decoder involves:
 - *src/coding/(decoder-name).c*: create `decode_x` function that decodes stream data into the passed sample buffer. If the codec requires custom internals it may need `init/reset/seek/free_x`, or other helper functions.
 - *src/coding/coding.h*: define decoder's functions and type
-- *src/decode.c: get_vgmstream_samples_per_frame*: define so vgmstream only asks for N samples per decode_x call. May return 0 if variable/unknown/etc (decoder then must handle arbitrary number of samples)
-- *src/decode.c: get_vgmstream_frame_size*: define so vgmstream can do certain internal calculations. May return 0 if variable/unknown/etc, but blocked/interleave layouts will need to be used in a certain way.
+- *src/decode.c: decode_get_samples_per_frame*: define so vgmstream only asks for N samples per decode_x call. May return 0 if variable/unknown/etc (decoder then must handle arbitrary number of samples)
+- *src/decode.c: decode_get_frame_size*: define so vgmstream can do certain internal calculations. May return 0 if variable/unknown/etc, but blocked/interleave layouts will need to be used in a certain way.
 - *src/decode.c: decode_vgmstream*: call `decode_x`, possibly once per channel if the decoder works with a channel at a time.
-- *src/decode.c: add handling in `reset/seek/free_codec` if needed
+- *src/decode.c: add handling in `reset/seek/decode_free` if needed
 - *src/formats.c*: add coding type description
 - *src/libvgmstream.vcproj/vcxproj/filters*: add to compile new (decoder-name).c parser in VS
 - if the codec depends on a external library don't forget to mark parts with: *#ifdef VGM_USE_X ... #endif*

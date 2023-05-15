@@ -1,4 +1,5 @@
 #include "meta.h"
+#include "../util/companion_files.h"
 #include "fsb_keys.h"
 #include "fsb_encrypted_streamfile.h"
 

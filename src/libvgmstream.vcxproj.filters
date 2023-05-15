@@ -68,18 +68,6 @@
     <ClInclude Include="api.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="decode.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="mixing.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="plugins.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="render.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="streamfile.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -94,6 +82,18 @@
     </ClInclude>
     <ClInclude Include="vgmstream_types.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="base\decode.h">
+      <Filter>base\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="base\mixing.h">
+      <Filter>base\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="base\plugins.h">
+      <Filter>base\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="base\render.h">
+      <Filter>base\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="coding\acm_decoder_libacm.h">
       <Filter>coding\Header Files</Filter>
@@ -153,9 +153,6 @@
       <Filter>coding\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="coding\tac_decoder_lib_ops.h">
-      <Filter>coding\Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="coding\vorbis_bitreader.h">
       <Filter>coding\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="coding\vorbis_custom_data_fsb.h">
@@ -329,6 +326,9 @@
     <ClInclude Include="meta\zsnd_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="util\bitstream_lsb.h">
+      <Filter>util\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="util\bitstream_msb.h">
       <Filter>util\Header Files</Filter>
     </ClInclude>
@@ -336,6 +336,9 @@
       <Filter>util\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="util\chunks.h">
+      <Filter>util\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="util\companion_files.h">
       <Filter>util\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="util\cri_keys.h">
@@ -356,6 +359,9 @@
     <ClInclude Include="util\miniz.h">
       <Filter>util\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="util\paths.h">
+      <Filter>util\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="util\reader_get.h">
       <Filter>util\Header Files</Filter>
     </ClInclude>
@@ -363,6 +369,12 @@
       <Filter>util\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="util\reader_put.h">
+      <Filter>util\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="util\reader_sf.h">
+      <Filter>util\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="util\reader_text.h">
       <Filter>util\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="util\samples_ops.h">
@@ -373,22 +385,7 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="decode.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="formats.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="mixing.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="plugins.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="render.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="seek.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="streamfile.c">
@@ -400,7 +397,22 @@
     <ClCompile Include="vgmstream.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="base\decode.c">
+      <Filter>base\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="base\info.c">
+      <Filter>base\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="base\mixing.c">
+      <Filter>base\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="base\plugins.c">
+      <Filter>base\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="base\render.c">
+      <Filter>base\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="base\seek.c">
       <Filter>base\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\acm_decoder.c">
@@ -2029,6 +2041,9 @@
     <ClCompile Include="util\chunks.c">
       <Filter>util\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="util\companion_files.c">
+      <Filter>util\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="util\cri_keys.c">
       <Filter>util\Source Files</Filter>
     </ClCompile>
@@ -2044,7 +2059,10 @@
     <ClCompile Include="util\miniz.c">
       <Filter>util\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="util\reader_put.c">
+    <ClCompile Include="util\paths.c">
+      <Filter>util\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="util\reader.c">
       <Filter>util\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="util\samples_ops.c">

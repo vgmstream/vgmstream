@@ -1,5 +1,7 @@
 #include "meta.h"
 #include "../coding/coding.h"
+#include "../util/endianness.h"
+#include "../util/chunks.h"
 
 
 static void load_name(char* name, size_t name_size, STREAMFILE* sf, int big_endian, int total_subsongs, int target_subsong);
@@ -19,21 +21,21 @@ VGMSTREAM* init_vgmstream_nub(STREAMFILE* sf) {
 
 
     /* checks */
+    version = read_u32be(0x00,sf);
+    if (version != 0x00020000 &&  /* v2.0 (rare, ex. Ridge Race 6 (X360)) */
+        version != 0x00020100 &&  /* v2.1 (common) */
+        version != 0x01020100)    /* same but LE (seen in PSP/PC games, except PS4) */
+        goto fail;
+    if (read_u32be(0x04,sf) != 0x00000000) /* null */
+        goto fail;
+
     /* .nub: standard
      * .nub2: rare [iDOLM@STER - Gravure For You (PS3)] */
     if (!check_extensions(sf, "nub,nub2"))
         goto fail;
 
-    version = read_32bitBE(0x00,sf);
-    if (version != 0x00020000 &&  /* v2.0 (rare, ex. Ridge Race 6 (X360)) */
-        version != 0x00020100 &&  /* v2.1 (common) */
-        version != 0x01020100)    /* same but LE (seen in PSP/PC games, except PS4) */
-        goto fail;
-    if (read_32bitBE(0x04,sf) != 0x00000000) /* null */
-        goto fail;
-
     /* sometimes LE [Soul Calibur: Broken Destiny (PSP), Tales of Vesperia (PS4) */
-    big_endian = guess_endianness32bit(0x18, sf);
+    big_endian = guess_endian32(0x18, sf);
     if (big_endian) {
         read_32bit = read_32bitBE;
     } else{
@@ -249,7 +251,7 @@ VGMSTREAM* init_vgmstream_nub_wav(STREAMFILE* sf) {
     if (read_32bitBE(0x00,sf) != 0x77617600) /* "wav\0" "*/
         goto fail;
 
-    if (guess_endianness32bit(0x1c, sf)) {
+    if (guess_endian32(0x1c, sf)) {
         read_32bit = read_32bitBE;
         read_16bit = read_16bitBE;
     } else {
@@ -313,7 +315,7 @@ VGMSTREAM* init_vgmstream_nub_vag(STREAMFILE* sf) {
     if (read_32bitBE(0x00,sf) != 0x76616700) /* "vag\0" */
         goto fail;
 
-    if (guess_endianness32bit(0x1c, sf)) {
+    if (guess_endian32(0x1c, sf)) {
         read_32bit = read_32bitBE;
     } else {
         read_32bit = read_32bitLE;
@@ -598,7 +600,7 @@ VGMSTREAM* init_vgmstream_nub_is14(STREAMFILE* sf) {
     if (read_32bitBE(0x00,sf) != 0x69733134) /* "is14" */
         goto fail;
 
-    if (guess_endianness32bit(0x1c, sf)) {
+    if (guess_endian32(0x1c, sf)) {
         read_32bit = read_32bitBE;
     } else{
         read_32bit = read_32bitLE;

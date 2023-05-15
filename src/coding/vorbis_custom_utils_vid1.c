@@ -1,8 +1,7 @@
 #include "vorbis_custom_decoder.h"
 
 #ifdef VGM_USE_VORBIS
-#define BITSTREAM_READ_ONLY /* config */
-#include "vorbis_bitreader.h"
+#include "../util/bitstream_lsb.h"
 
 #include <vorbis/codec.h>
 
@@ -108,12 +107,12 @@ static int build_header_comment(uint8_t* buf, size_t bufsize) {
 
     if (bytes > bufsize) return 0;
 
-    put_8bit   (buf+0x00, 0x03);            /* packet_type (comments) */
-    memcpy     (buf+0x01, "vorbis", 6);     /* id */
-    put_32bitLE(buf+0x07, 0x09);            /* vendor_length */
-    memcpy     (buf+0x0b, "vgmstream", 9);  /* vendor_string */
-    put_32bitLE(buf+0x14, 0x00);            /* user_comment_list_length */
-    put_8bit   (buf+0x18, 0x01);            /* framing_flag (fixed) */
+    put_u8   (buf+0x00, 0x03);            /* packet_type (comments) */
+    memcpy   (buf+0x01, "vorbis", 6);     /* id */
+    put_u32le(buf+0x07, 0x09);            /* vendor_length */
+    memcpy   (buf+0x0b, "vgmstream", 9);  /* vendor_string */
+    put_u32le(buf+0x14, 0x00);            /* user_comment_list_length */
+    put_u8   (buf+0x18, 0x01);            /* framing_flag (fixed) */
 
     return bytes;
 }
@@ -129,11 +128,11 @@ static int get_packet_header(STREAMFILE* sf, off_t* offset, size_t* size) {
     if (read_streamfile(ibuf,(*offset),ibufsize, sf) != ibufsize)
         goto fail;
 
-    init_bitstream(&ib, ibuf, ibufsize);
+    bl_setup(&ib, ibuf, ibufsize);
 
     /* read using Vorbis weird LSF */
-    rv_bits(&ib,  4,&size_bits);
-    rv_bits(&ib,  (size_bits+1),(uint32_t*)size);
+    bl_get(&ib,  4,&size_bits);
+    bl_get(&ib,  (size_bits+1),(uint32_t*)size);
 
     /* special meaning, seen in silent frames */
     if (size_bits == 0 && *size == 0 && (uint8_t)read_8bit(*offset, sf) == 0x80) {

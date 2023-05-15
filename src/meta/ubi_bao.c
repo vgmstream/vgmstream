@@ -1,6 +1,7 @@
 #include "meta.h"
 #include "../layout/layout.h"
 #include "../coding/coding.h"
+#include "../util/endianness.h"
 #include "ubi_bao_streamfile.h"
 
 #define BAO_MIN_VERSION 0x1B
@@ -1570,7 +1571,7 @@ static void config_bao_endian(ubi_bao_header* bao, off_t offset, STREAMFILE* sf)
      * This could be done once as all BAOs share endianness */
 
     /* negate as fields looks like LE (0xN0000000) */
-    bao->big_endian = !guess_endianness32bit(offset+bao->cfg.bao_class, sf);
+    bao->big_endian = !guess_endian32(offset+bao->cfg.bao_class, sf);
 }
 
 
@@ -1714,7 +1715,7 @@ static int config_bao_version(ubi_bao_header* bao, STREAMFILE* sf) {
 
         /* next BAO uses machine endianness, entry should always exist
          * (maybe should use project BAO to detect?) */
-        if (guess_endianness32bit(header_size + 0x04, sf)) {
+        if (guess_endian32(header_size + 0x04, sf)) {
             version |= 0xFF00; /* signal Wii=BE, but don't modify original */
         }
     }

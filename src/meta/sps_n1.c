@@ -1,6 +1,7 @@
 #include "meta.h"
 #include "../layout/layout.h"
 #include "../coding/coding.h"
+#include "../util/endianness.h"
 
 /* also see init_vgmstream_dsp_sps_n1 and init_vgmstream_opus_sps_n1 */
 
@@ -21,7 +22,7 @@ VGMSTREAM* init_vgmstream_sps_n1(STREAMFILE* sf) {
     if (!check_extensions(sf,"sps"))
         goto fail;
 
-    if (guess_endianness32bit(0x00, sf)) { /* PS3 */
+    if (guess_endian32(0x00, sf)) { /* PS3 */
         read_u32 = read_u32be;
         read_u16 = read_u16be;
     }

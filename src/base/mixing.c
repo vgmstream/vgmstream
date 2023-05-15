@@ -1,7 +1,7 @@
-#include "vgmstream.h"
+#include "../vgmstream.h"
+#include "../util/channel_mappings.h"
 #include "mixing.h"
 #include "plugins.h"
-#include "util/channel_mappings.h"
 #include <math.h>
 #include <limits.h>
 

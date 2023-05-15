@@ -1,6 +1,7 @@
 #ifndef _XWB_XSB_H_
 #define _XWB_XSB_H_
 #include "meta.h"
+#include "../util/companion_files.h"
 
 #define XSB_XACT1_0_MAX 5       /* Unreal Championship (Xbox) */
 #define XSB_XACT1_1_MAX 8       /* Die Hard: Vendetta (Xbox) */

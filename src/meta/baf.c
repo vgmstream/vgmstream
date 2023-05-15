@@ -1,5 +1,7 @@
 #include "meta.h"
 #include "../coding/coding.h"
+#include "../util/endianness.h"
+
 
 /* .BAF - Bizarre Creations bank file [Blur (PS3), Project Gotham Racing 4 (X360), Geometry Wars (PC)] */
 VGMSTREAM * init_vgmstream_baf(STREAMFILE *sf) {
@@ -8,7 +10,7 @@ VGMSTREAM * init_vgmstream_baf(STREAMFILE *sf) {
     size_t stream_size;
     uint32_t channel_count, sample_rate, num_samples, version, codec, tracks;
     int loop_flag, total_subsongs, target_subsong = sf->stream_index;
-    uint32_t (*read_u32)(off_t,STREAMFILE*);
+    read_u32_t read_u32;
 
     /* checks */
     if (!is_id32be(0x00, sf, "BANK"))
@@ -18,7 +20,7 @@ VGMSTREAM * init_vgmstream_baf(STREAMFILE *sf) {
         goto fail;
 
     /* use BANK size to check endianness */
-    if (guess_endianness32bit(0x04,sf)) {
+    if (guess_endian32(0x04,sf)) {
         read_u32 = read_u32be;
     } else {
         read_u32 = read_u32le;

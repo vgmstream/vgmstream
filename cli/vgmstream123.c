@@ -38,7 +38,7 @@
 #endif
 
 #include "../src/vgmstream.h"
-#include "../src/plugins.h"
+#include "../src/api.h"
 #include "../src/util/samples_ops.h"
 
 #include "../version.h"

@@ -4,6 +4,7 @@
 #include "txth_streamfile.h"
 #include "../util/text_reader.h"
 #include "../util/endianness.h"
+#include "../util/paths.h"
 
 #define TXT_LINE_MAX 2048 /* probably ~1000 would be ok */
 #define TXT_LINE_KEY_MAX 128

@@ -81,15 +81,15 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="api.h" />
-    <ClInclude Include="decode.h" />
-    <ClInclude Include="mixing.h" />
-    <ClInclude Include="plugins.h" />
-    <ClInclude Include="render.h" />
     <ClInclude Include="streamfile.h" />
     <ClInclude Include="streamtypes.h" />
     <ClInclude Include="util.h" />
     <ClInclude Include="vgmstream.h" />
     <ClInclude Include="vgmstream_types.h" />
+    <ClInclude Include="base\decode.h" />
+    <ClInclude Include="base\mixing.h" />
+    <ClInclude Include="base\plugins.h" />
+    <ClInclude Include="base\render.h" />
     <ClInclude Include="coding\acm_decoder_libacm.h" />
     <ClInclude Include="coding\circus_decoder_lib.h" />
     <ClInclude Include="coding\circus_decoder_lib_data.h" />
@@ -110,7 +110,6 @@
     <ClInclude Include="coding\tac_decoder_lib.h" />
     <ClInclude Include="coding\tac_decoder_lib_data.h" />
     <ClInclude Include="coding\tac_decoder_lib_ops.h" />
-    <ClInclude Include="coding\vorbis_bitreader.h" />
     <ClInclude Include="coding\vorbis_custom_data_fsb.h" />
     <ClInclude Include="coding\vorbis_custom_data_wwise.h" />
     <ClInclude Include="coding\vorbis_custom_decoder.h" />
@@ -168,32 +167,37 @@
     <ClInclude Include="meta\xwb_xsb.h" />
     <ClInclude Include="meta\xwma_konami_streamfile.h" />
     <ClInclude Include="meta\zsnd_streamfile.h" />
+    <ClInclude Include="util\bitstream_lsb.h" />
     <ClInclude Include="util\bitstream_msb.h" />
     <ClInclude Include="util\channel_mappings.h" />
     <ClInclude Include="util\chunks.h" />
+    <ClInclude Include="util\companion_files.h" />
     <ClInclude Include="util\cri_keys.h" />
     <ClInclude Include="util\cri_utf.h" />
     <ClInclude Include="util\endianness.h" />
     <ClInclude Include="util\log.h" />
     <ClInclude Include="util\m2_psb.h" />
     <ClInclude Include="util\miniz.h" />
+    <ClInclude Include="util\paths.h" />
     <ClInclude Include="util\reader_get.h" />
     <ClInclude Include="util\reader_get_nibbles.h" />
     <ClInclude Include="util\reader_put.h" />
+    <ClInclude Include="util\reader_sf.h" />
+    <ClInclude Include="util\reader_text.h" />
     <ClInclude Include="util\samples_ops.h" />
     <ClInclude Include="util\text_reader.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="decode.c" />
     <ClCompile Include="formats.c" />
-    <ClCompile Include="mixing.c" />
-    <ClCompile Include="plugins.c" />
-    <ClCompile Include="render.c" />
-    <ClCompile Include="seek.c" />
     <ClCompile Include="streamfile.c" />
     <ClCompile Include="util.c" />
     <ClCompile Include="vgmstream.c" />
+    <ClCompile Include="base\decode.c" />
     <ClCompile Include="base\info.c" />
+    <ClCompile Include="base\mixing.c" />
+    <ClCompile Include="base\plugins.c" />
+    <ClCompile Include="base\render.c" />
+    <ClCompile Include="base\seek.c" />
     <ClCompile Include="coding\acm_decoder.c" />
     <ClCompile Include="coding\acm_decoder_decode.c" />
     <ClCompile Include="coding\acm_decoder_util.c" />
@@ -736,12 +740,14 @@
     <ClCompile Include="meta\zwdsp.c" />
     <ClCompile Include="meta\zwv.c" />
     <ClCompile Include="util\chunks.c" />
+    <ClCompile Include="util\companion_files.c" />
     <ClCompile Include="util\cri_keys.c" />
     <ClCompile Include="util\cri_utf.c" />
     <ClCompile Include="util\log.c" />
     <ClCompile Include="util\m2_psb.c" />
     <ClCompile Include="util\miniz.c" />
-    <ClCompile Include="util\reader_put.c" />
+    <ClCompile Include="util\paths.c" />
+    <ClCompile Include="util\reader.c" />
     <ClCompile Include="util\samples_ops.c" />
     <ClCompile Include="util\text_reader.c" />
   </ItemGroup>

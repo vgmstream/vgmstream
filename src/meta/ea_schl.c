@@ -1,6 +1,8 @@
 #include "meta.h"
 #include "../layout/layout.h"
 #include "../coding/coding.h"
+#include "../util/endianness.h"
+#include "../util/companion_files.h"
 #include "ea_schl_streamfile.h"
 
 /* header version */
@@ -222,7 +224,7 @@ VGMSTREAM* init_vgmstream_ea_schl_video(STREAMFILE* sf) {
     }
 
     /* use block size to check endianness */
-    if (guess_endianness32bit(0x04, sf)) {
+    if (guess_endian32(0x04, sf)) {
         read_32bit = read_32bitBE;
     } else {
         read_32bit = read_32bitLE;
@@ -329,7 +331,7 @@ VGMSTREAM* init_vgmstream_ea_abk(STREAMFILE* sf) {
         goto fail;
 
     /* use table offset to check endianness */
-    if (guess_endianness32bit(0x1C, sf)) {
+    if (guess_endian32(0x1C, sf)) {
         read_32bit = read_32bitBE;
         read_16bit = read_16bitBE;
     } else {
@@ -1142,7 +1144,7 @@ static VGMSTREAM* parse_schl_block(STREAMFILE* sf, off_t offset) {
         ea.codec_config |= (header_id & 0xFFFF) << 16;
     }
 
-    if (guess_endianness32bit(offset + 0x04, sf)) { /* size is always LE, except in early SS/MAC */
+    if (guess_endian32(offset + 0x04, sf)) { /* size is always LE, except in early SS/MAC */
         header_size = read_32bitBE(offset + 0x04, sf);
         ea.codec_config |= 0x02;
     }

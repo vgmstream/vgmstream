@@ -1,5 +1,6 @@
 #include "cri_utf.h"
 #include "log.h"
+#include "reader_sf.h"
 
 #define UTF_MAX_SCHEMA_SIZE       0x8000    /* arbitrary max */
 #define COLUMN_BITMASK_FLAG       0xf0

@@ -2,16 +2,19 @@
 #define _XNB_STREAMFILE_H_
 
 //#define XNB_ENABLE_LZX 1
+#include "../streamfile.h"
+#include "../util/log.h"
+
+#include "xnb_lz4mg.h"
 
 #ifdef XNB_ENABLE_LZX
-/* lib from https://github.com/sumatrapdfreader/chmlib
+/* can be safely enabled but useless since LZX isn't used for audio assets
+ * lib from https://github.com/sumatrapdfreader/chmlib
  * which is a cleaned-up version of https://github.com/jedwing/CHMLib */
-#include "lzx.h"
+#include "../utils/lzx.h"
 
 #define LZX_XNB_WINDOW_BITS 16
 #endif
-
-#include "xnb_lz4mg.h"
 
 
 #define XNB_TYPE_LZX  1
