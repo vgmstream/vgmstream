@@ -1,10 +1,11 @@
 #ifndef _BITSTREAM_MSB_H
 #define _BITSTREAM_MSB_H
 
-#include <stdint.h>
+#include "../streamtypes.h"
 
-/* Simple bitreader for MPEG/standard bit format.
- * Kept in .h since it's slightly faster (compiler can optimize better) */
+/* Simple bitreader for MPEG/standard bit style, in 'most significant byte' (MSB) format.
+ * Example: 0x12345678 is read as 78,56,34,12 then each byte's bits.
+ * Kept in .h since it's slightly faster (compiler can optimize statics better using default compile flags). */
 
 typedef struct {
     uint8_t* buf;           /* buffer to read/write */
@@ -70,6 +71,7 @@ static inline int bm_get(bitstream_t* ib, uint32_t bits, uint32_t* value) {
     pos = ib->b_off / 8;        /* byte offset */
     shift = ib->b_off % 8;      /* bit sub-offset */
 
+#if 1 //naive approach
     val = 0;
     for (i = 0; i < bits; i++) {
         bit_buf = (1U << (8-1-shift)) & 0xFF;   /* bit check for buf */
@@ -84,6 +86,35 @@ static inline int bm_get(bitstream_t* ib, uint32_t bits, uint32_t* value) {
             pos++;
         }
     }
+#else //has bugs
+    pos = ib->b_off / 8;        /* byte offset */
+    shift = ib->b_off % 8;      /* bit sub-offset */
+    uint32_t mask = MASK_TABLE[bits];    /* to remove upper in highest byte */
+
+    int left = 0;
+    if (bits == 0)
+        val = 0;
+    else 
+        val = ib->buf[pos+0];
+    left = 8 - (bits + shift);
+    if (bits + shift > 8) {
+        val = (val << 8u) | ib->buf[pos+1];
+        left = 16 - (bits + shift);
+        if (bits + shift > 16) {
+            val = (val << 8u) | ib->buf[pos+2];
+            left = 32 - (bits + shift);
+            if (bits + shift > 24) {
+                val = (val << 8u) | ib->buf[pos+3];
+                left = 32 - (bits + shift);
+                if (bits + shift > 32) {
+                    val = (val << 8u) | ib->buf[pos+4]; /* upper bits are lost (shifting over 32) */ TO-DO
+                    left = 40 - (bits + shift);
+                }
+            }
+        }
+    }
+    val = ((val >> left) & mask);
+#endif
 
     *value = val;
     ib->b_off += bits;

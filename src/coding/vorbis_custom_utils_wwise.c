@@ -1,8 +1,8 @@
 #include "vorbis_custom_decoder.h"
 
 #ifdef VGM_USE_VORBIS
-#include "vorbis_bitreader.h"
 #include <vorbis/codec.h>
+#include "../util/bitstream_lsb.h"
 
 #define WWISE_VORBIS_USE_PRECOMPILED_WVC 1 /* if enabled vgmstream weights ~150kb more but doesn't need external .wvc packets */
 #if WWISE_VORBIS_USE_PRECOMPILED_WVC
@@ -212,8 +212,8 @@ static size_t rebuild_packet(uint8_t* obuf, size_t obufsize, wpacket_t* wp, STRE
     ok = read_packet(wp, ibuf, ibufsize, sf, offset, data, 0);
     if (!ok) goto fail;
 
-    init_bitstream(&ow, obuf, obufsize);
-    init_bitstream(&iw, ibuf, ibufsize);
+    bl_setup(&ow, obuf, obufsize);
+    bl_setup(&iw, ibuf, ibufsize);
 
     ok = ww2ogg_generate_vorbis_packet(&ow, &iw, wp, data);
     if (!ok) goto fail;
@@ -242,8 +242,8 @@ static size_t rebuild_setup(uint8_t* obuf, size_t obufsize, wpacket_t* wp, STREA
     ok = read_packet(wp, ibuf, ibufsize, sf, offset, data, 1);
     if (!ok) goto fail;
 
-    init_bitstream(&ow, obuf, obufsize);
-    init_bitstream(&iw, ibuf, ibufsize);
+    bl_setup(&ow, obuf, obufsize);
+    bl_setup(&iw, ibuf, ibufsize);
 
     ok = ww2ogg_generate_vorbis_setup(&ow,&iw, data, wp->packet_size, sf);
     if (!ok) goto fail;
@@ -267,16 +267,16 @@ static size_t build_header_identification(uint8_t* buf, size_t bufsize, vorbis_c
 
     blocksizes = (cfg->blocksize_0_exp << 4) | (cfg->blocksize_1_exp);
 
-    put_8bit   (buf+0x00, 0x01);            /* packet_type (id) */
-    memcpy     (buf+0x01, "vorbis", 6);     /* id */
-    put_32bitLE(buf+0x07, 0x00);            /* vorbis_version (fixed) */
-    put_8bit   (buf+0x0b, cfg->channels);   /* audio_channels */
-    put_32bitLE(buf+0x0c, cfg->sample_rate);/* audio_sample_rate */
-    put_32bitLE(buf+0x10, 0x00);            /* bitrate_maximum (optional hint) */
-    put_32bitLE(buf+0x14, 0x00);            /* bitrate_nominal (optional hint) */
-    put_32bitLE(buf+0x18, 0x00);            /* bitrate_minimum (optional hint) */
-    put_8bit   (buf+0x1c, blocksizes);      /* blocksize_0 + blocksize_1 nibbles */
-    put_8bit   (buf+0x1d, 0x01);            /* framing_flag (fixed) */
+    put_u8   (buf+0x00, 0x01);            /* packet_type (id) */
+    memcpy   (buf+0x01, "vorbis", 6);     /* id */
+    put_u32le(buf+0x07, 0x00);            /* vorbis_version (fixed) */
+    put_u8   (buf+0x0b, cfg->channels);   /* audio_channels */
+    put_u32le(buf+0x0c, cfg->sample_rate);/* audio_sample_rate */
+    put_u32le(buf+0x10, 0x00);            /* bitrate_maximum (optional hint) */
+    put_u32le(buf+0x14, 0x00);            /* bitrate_nominal (optional hint) */
+    put_u32le(buf+0x18, 0x00);            /* bitrate_minimum (optional hint) */
+    put_u8   (buf+0x1c, blocksizes);      /* blocksize_0 + blocksize_1 nibbles */
+    put_u8   (buf+0x1d, 0x01);            /* framing_flag (fixed) */
 
     return bytes;
 }
@@ -286,12 +286,12 @@ static size_t build_header_comment(uint8_t* buf, size_t bufsize) {
 
     if (bytes > bufsize) return 0;
 
-    put_8bit   (buf+0x00, 0x03);            /* packet_type (comments) */
-    memcpy     (buf+0x01, "vorbis", 6);     /* id */
-    put_32bitLE(buf+0x07, 0x09);            /* vendor_length */
-    memcpy     (buf+0x0b, "vgmstream", 9);  /* vendor_string */
-    put_32bitLE(buf+0x14, 0x00);            /* user_comment_list_length */
-    put_8bit   (buf+0x18, 0x01);            /* framing_flag (fixed) */
+    put_u8   (buf+0x00, 0x03);            /* packet_type (comments) */
+    memcpy   (buf+0x01, "vorbis", 6);     /* id */
+    put_u32le(buf+0x07, 0x09);            /* vendor_length */
+    memcpy   (buf+0x0b, "vgmstream", 9);  /* vendor_string */
+    put_u32le(buf+0x14, 0x00);            /* user_comment_list_length */
+    put_u8   (buf+0x18, 0x01);            /* framing_flag (fixed) */
 
     return bytes;
 }
@@ -306,14 +306,14 @@ static int copy_bytes(bitstream_t* ob, bitstream_t* ib, uint32_t bytes) {
     for (i = 0; i < bytes / 4; i++) {
         uint32_t c = 0;
 
-        rv_bits(ib, 32, &c);
-        wv_bits(ob, 32,  c);
+        bl_get(ib, 32, &c);
+        bl_put(ob, 32,  c);
     }
     for (i = 0; i < bytes % 4; i++) {
         uint32_t c = 0;
 
-        rv_bits(ib,  8, &c);
-        wv_bits(ob,  8,  c);
+        bl_get(ib,  8, &c);
+        bl_put(ob,  8,  c);
     }
 #endif
 
@@ -325,8 +325,8 @@ static int copy_bytes(bitstream_t* ob, bitstream_t* ib, uint32_t bytes) {
         for (i = 0; i < bytes; i++, iw_pos++) {
             uint32_t c = ib->buf[iw_pos];
 
-          //rv_bits(ib,  8, &c);
-            wv_bits(ob,  8,  c);
+          //bl_get(ib,  8, &c);
+            bl_put(ob,  8,  c);
         }
 
         ib->b_off += bytes * 8;
@@ -337,8 +337,8 @@ static int copy_bytes(bitstream_t* ob, bitstream_t* ib, uint32_t bytes) {
     for (i = 0; i < bytes; i++) {
         uint32_t c = 0;
 
-        rv_bits(ib,  8, &c);
-        wv_bits(ob,  8,  c);
+        bl_get(ib,  8, &c);
+        bl_put(ob,  8,  c);
     }
 
     return 1;
@@ -369,13 +369,13 @@ static int ww2ogg_generate_vorbis_packet(bitstream_t* ow, bitstream_t* iw, wpack
 
         /* audio packet type */
         packet_type = 0;
-        wv_bits(ow,  1, packet_type);
+        bl_put(ow,  1, packet_type);
 
         /* collect this packet mode from the first byte */
-        rv_bits(iw,  data->mode_bits,&mode_number); /* max 6b */
-        wv_bits(ow,  data->mode_bits, mode_number);
+        bl_get(iw,  data->mode_bits,&mode_number); /* max 6b */
+        bl_put(ow,  data->mode_bits, mode_number);
 
-        rv_bits(iw,  8-data->mode_bits,&remainder);
+        bl_get(iw,  8-data->mode_bits,&remainder);
 
         /* adjust window info */
         if (data->mode_blockflag[mode_number]) {
@@ -387,9 +387,9 @@ static int ww2ogg_generate_vorbis_packet(bitstream_t* ow, bitstream_t* iw, wpack
                 uint32_t next_mode_number;
                 bitstream_t nw;
 
-                init_bitstream(&nw, wp->inxt, sizeof(wp->inxt));
+                bl_setup(&nw, wp->inxt, sizeof(wp->inxt));
 
-                rv_bits(&nw,  data->mode_bits,&next_mode_number); /* max 6b */
+                bl_get(&nw,  data->mode_bits,&next_mode_number); /* max 6b */
 
                 next_blockflag = data->mode_blockflag[next_mode_number];
             }
@@ -399,15 +399,15 @@ static int ww2ogg_generate_vorbis_packet(bitstream_t* ow, bitstream_t* iw, wpack
             }
 
             prev_window_type = data->prev_blockflag;
-            wv_bits(ow,  1, prev_window_type);
+            bl_put(ow,  1, prev_window_type);
 
             next_window_type = next_blockflag;
-            wv_bits(ow,  1, next_window_type);
+            bl_put(ow,  1, next_window_type);
         }
 
         data->prev_blockflag = data->mode_blockflag[mode_number]; /* save for next packet */
 
-        wv_bits(ow,  8-data->mode_bits, remainder);
+        bl_put(ow,  8-data->mode_bits, remainder);
 
         /* rest of the packet (input/output bytes aren't byte aligned here, so no memcpy) */
         copy_bytes(ow, iw, wp->packet_size - 1);
@@ -417,7 +417,7 @@ static int ww2ogg_generate_vorbis_packet(bitstream_t* ow, bitstream_t* iw, wpack
             uint32_t padding = 0;
             int padding_bits = 8 - (ow->b_off % 8);
 
-            wv_bits(ow,  padding_bits,  padding);
+            bl_put(ow,  padding_bits,  padding);
         }
     }
     else {
@@ -480,12 +480,12 @@ static int ww2ogg_codebook_library_copy(bitstream_t* ow, bitstream_t* iw) {
     uint32_t id = 0, dimensions = 0, entries = 0;
     uint32_t ordered = 0, lookup_type = 0;
 
-    rv_bits(iw, 24,&id);
-    wv_bits(ow, 24, id);
-    rv_bits(iw, 16,&dimensions);
-    wv_bits(ow, 16, dimensions);
-    rv_bits(iw, 24,&entries);
-    wv_bits(ow, 24, entries);
+    bl_get(iw, 24,&id);
+    bl_put(ow, 24, id);
+    bl_get(iw, 16,&dimensions);
+    bl_put(ow, 16, dimensions);
+    bl_get(iw, 24,&entries);
+    bl_put(ow, 24, entries);
 
     if (0x564342 != id) { /* "VCB" */
         VGM_LOG("Wwise Vorbis: invalid codebook identifier\n");
@@ -493,21 +493,21 @@ static int ww2ogg_codebook_library_copy(bitstream_t* ow, bitstream_t* iw) {
     }
 
     /* codeword lengths */
-    rv_bits(iw,  1,&ordered);
-    wv_bits(ow,  1, ordered);
+    bl_get(iw,  1,&ordered);
+    bl_put(ow,  1, ordered);
     if (ordered) {
         uint32_t initial_length = 0, current_entry = 0;
 
-        rv_bits(iw,  5,&initial_length);
-        wv_bits(ow,  5, initial_length);
+        bl_get(iw,  5,&initial_length);
+        bl_put(ow,  5, initial_length);
 
         current_entry = 0;
         while (current_entry < entries) {
             uint32_t number = 0;
-            int numberv_bits = ww2ogg_tremor_ilog(entries-current_entry);
+            int numbebl_get = ww2ogg_tremor_ilog(entries-current_entry);
 
-            rv_bits(iw, numberv_bits,&number);
-            wv_bits(ow, numberv_bits, number);
+            bl_get(iw, numbebl_get,&number);
+            bl_put(ow, numbebl_get, number);
             current_entry += number;
         }
         if (current_entry > entries) {
@@ -518,8 +518,8 @@ static int ww2ogg_codebook_library_copy(bitstream_t* ow, bitstream_t* iw) {
     else {
         uint32_t sparse = 0;
 
-        rv_bits(iw,  1,&sparse);
-        wv_bits(ow,  1, sparse);
+        bl_get(iw,  1,&sparse);
+        bl_put(ow,  1, sparse);
 
         for (i = 0; i < entries; i++) {
             uint32_t present_bool = 0;
@@ -528,8 +528,8 @@ static int ww2ogg_codebook_library_copy(bitstream_t* ow, bitstream_t* iw) {
             if (sparse) {
                 uint32_t present = 0;
 
-                rv_bits(iw,  1,&present);
-                wv_bits(ow,  1, present);
+                bl_get(iw,  1,&present);
+                bl_put(ow,  1, present);
 
                 present_bool = (0 != present);
             }
@@ -537,16 +537,16 @@ static int ww2ogg_codebook_library_copy(bitstream_t* ow, bitstream_t* iw) {
             if (present_bool) {
                 uint32_t codeword_length = 0;
 
-                rv_bits(iw,  5,&codeword_length);
-                wv_bits(ow,  5, codeword_length);
+                bl_get(iw,  5,&codeword_length);
+                bl_put(ow,  5, codeword_length);
             }
         }
     }
 
 
     /* lookup table */
-    rv_bits(iw,  4,&lookup_type);
-    wv_bits(ow,  4, lookup_type);
+    bl_get(iw,  4,&lookup_type);
+    bl_put(ow,  4, lookup_type);
 
     if (0 == lookup_type) {
         //VGM_LOG("Wwise Vorbis: no lookup table\n");
@@ -556,22 +556,22 @@ static int ww2ogg_codebook_library_copy(bitstream_t* ow, bitstream_t* iw) {
         uint32_t quantvals = 0, min = 0, max = 0;
         uint32_t value_length = 0, sequence_flag = 0;
 
-        rv_bits(iw, 32,&min);
-        wv_bits(ow, 32, min);
-        rv_bits(iw, 32,&max);
-        wv_bits(ow, 32, max);
-        rv_bits(iw,  4,&value_length);
-        wv_bits(ow,  4, value_length);
-        rv_bits(iw,  1,&sequence_flag);
-        wv_bits(ow,  1, sequence_flag);
+        bl_get(iw, 32,&min);
+        bl_put(ow, 32, min);
+        bl_get(iw, 32,&max);
+        bl_put(ow, 32, max);
+        bl_get(iw,  4,&value_length);
+        bl_put(ow,  4, value_length);
+        bl_get(iw,  1,&sequence_flag);
+        bl_put(ow,  1, sequence_flag);
 
         quantvals = ww2ogg_tremor_book_maptype1_quantvals(entries, dimensions);
         for (i = 0; i < quantvals; i++) {
             uint32_t val = 0, val_bits = 0;
             val_bits = value_length+1;
 
-            rv_bits(iw, val_bits,&val);
-            wv_bits(ow, val_bits, val);
+            bl_get(iw, val_bits,&val);
+            bl_put(ow, val_bits, val);
         }
     }
     else if (2 == lookup_type) {
@@ -596,28 +596,28 @@ static int ww2ogg_codebook_library_rebuild(bitstream_t* ow, bitstream_t* iw, siz
 
     id = 0x564342; /* "VCB" */
 
-    wv_bits(ow, 24, id);
-    rv_bits(iw,  4,&dimensions);
-    wv_bits(ow, 16, dimensions); /* 4 to 16 */
-    rv_bits(iw, 14,&entries);
-    wv_bits(ow, 24, entries); /* 14 to 24*/
+    bl_put(ow, 24, id);
+    bl_get(iw,  4,&dimensions);
+    bl_put(ow, 16, dimensions); /* 4 to 16 */
+    bl_get(iw, 14,&entries);
+    bl_put(ow, 24, entries); /* 14 to 24*/
 
     /* codeword lengths */
-    rv_bits(iw,  1,&ordered);
-    wv_bits(ow,  1, ordered);
+    bl_get(iw,  1,&ordered);
+    bl_put(ow,  1, ordered);
     if (ordered) {
         uint32_t initial_length = 0, current_entry = 0;
 
-        rv_bits(iw,  5,&initial_length);
-        wv_bits(ow,  5, initial_length);
+        bl_get(iw,  5,&initial_length);
+        bl_put(ow,  5, initial_length);
 
         current_entry = 0;
         while (current_entry < entries) {
             uint32_t number = 0;
-            int numberv_bits = ww2ogg_tremor_ilog(entries-current_entry);
+            int numbebl_get = ww2ogg_tremor_ilog(entries-current_entry);
 
-            rv_bits(iw, numberv_bits,&number);
-            wv_bits(ow, numberv_bits, number);
+            bl_get(iw, numbebl_get,&number);
+            bl_put(ow, numbebl_get, number);
             current_entry += number;
         }
         if (current_entry > entries) {
@@ -628,9 +628,9 @@ static int ww2ogg_codebook_library_rebuild(bitstream_t* ow, bitstream_t* iw, siz
     else {
         uint32_t codeword_length_length = 0, sparse = 0;
 
-        rv_bits(iw,  3,&codeword_length_length);
-        rv_bits(iw,  1,&sparse);
-        wv_bits(ow,  1, sparse);
+        bl_get(iw,  3,&codeword_length_length);
+        bl_get(iw,  1,&sparse);
+        bl_put(ow,  1, sparse);
 
         if (0 == codeword_length_length || 5 < codeword_length_length) {
             VGM_LOG("Wwise Vorbis: nonsense codeword length\n");
@@ -644,8 +644,8 @@ static int ww2ogg_codebook_library_rebuild(bitstream_t* ow, bitstream_t* iw, siz
             if (sparse) {
                 uint32_t present = 0;
 
-                rv_bits(iw,  1,&present);
-                wv_bits(ow,  1, present);
+                bl_get(iw,  1,&present);
+                bl_put(ow,  1, present);
 
                 present_bool = (0 != present);
             }
@@ -653,16 +653,16 @@ static int ww2ogg_codebook_library_rebuild(bitstream_t* ow, bitstream_t* iw, siz
             if (present_bool) {
                 uint32_t codeword_length = 0;
 
-                rv_bits(iw,  codeword_length_length,&codeword_length);
-                wv_bits(ow,  5, codeword_length); /* max 7 (3b) to 5 */
+                bl_get(iw,  codeword_length_length,&codeword_length);
+                bl_put(ow,  5, codeword_length); /* max 7 (3b) to 5 */
             }
         }
     }
 
 
     /* lookup table */
-    rv_bits(iw,  1,&lookup_type);
-    wv_bits(ow,  4, lookup_type); /* 1 to 4 */
+    bl_get(iw,  1,&lookup_type);
+    bl_put(ow,  4, lookup_type); /* 1 to 4 */
 
     if (0 == lookup_type) {
         //VGM_LOG("Wwise Vorbis: no lookup table\n");
@@ -672,22 +672,22 @@ static int ww2ogg_codebook_library_rebuild(bitstream_t* ow, bitstream_t* iw, siz
         uint32_t quantvals = 0, min = 0, max = 0;
         uint32_t value_length = 0, sequence_flag = 0;
 
-        rv_bits(iw, 32,&min);
-        wv_bits(ow, 32, min);
-        rv_bits(iw, 32,&max);
-        wv_bits(ow, 32, max);
-        rv_bits(iw,  4,&value_length);
-        wv_bits(ow,  4, value_length);
-        rv_bits(iw,  1,&sequence_flag);
-        wv_bits(ow,  1, sequence_flag);
+        bl_get(iw, 32,&min);
+        bl_put(ow, 32, min);
+        bl_get(iw, 32,&max);
+        bl_put(ow, 32, max);
+        bl_get(iw,  4,&value_length);
+        bl_put(ow,  4, value_length);
+        bl_get(iw,  1,&sequence_flag);
+        bl_put(ow,  1, sequence_flag);
 
         quantvals = ww2ogg_tremor_book_maptype1_quantvals(entries, dimensions);
         for (i = 0; i < quantvals; i++) {
             uint32_t val = 0, val_bits = 0;
             val_bits = value_length+1;
 
-            rv_bits(iw, val_bits,&val);
-            wv_bits(ow, val_bits, val);
+            bl_get(iw, val_bits,&val);
+            bl_put(ow, val_bits, val);
         }
     }
     else if (2 == lookup_type) {
@@ -722,7 +722,7 @@ static int ww2ogg_codebook_library_rebuild_by_id(bitstream_t* ow, uint32_t codeb
     cb_size = load_wvc(ibuf,ibufsize, codebook_id, setup_type, sf);
     if (cb_size == 0) goto fail;
 
-    init_bitstream(&iw, ibuf, ibufsize);
+    bl_setup(&iw, ibuf, ibufsize);
 
     return ww2ogg_codebook_library_rebuild(ow, &iw, cb_size, sf);
 fail:
@@ -746,8 +746,8 @@ static int ww2ogg_generate_vorbis_setup(bitstream_t* ow, bitstream_t* iw, vorbis
 
 
     /* Codebooks */
-    rv_bits(iw,  8,&codebook_count_less1);
-    wv_bits(ow,  8, codebook_count_less1);
+    bl_get(iw,  8,&codebook_count_less1);
+    bl_put(ow,  8, codebook_count_less1);
     codebook_count = codebook_count_less1 + 1;
 
     if (data->config.setup_type == WWV_FULL_SETUP) {
@@ -770,7 +770,7 @@ static int ww2ogg_generate_vorbis_setup(bitstream_t* ow, bitstream_t* iw, vorbis
             int rc;
             uint32_t codebook_id = 0;
 
-            rv_bits(iw, 10,&codebook_id);
+            bl_get(iw, 10,&codebook_id);
 
             rc = ww2ogg_codebook_library_rebuild_by_id(ow, codebook_id, data->config.setup_type, sf);
             if (!rc) goto fail;
@@ -780,9 +780,9 @@ static int ww2ogg_generate_vorbis_setup(bitstream_t* ow, bitstream_t* iw, vorbis
 
     /* Time domain transforms */
     time_count_less1 = 0;
-    wv_bits(ow,  6, time_count_less1);
+    bl_put(ow,  6, time_count_less1);
     dummy_time_value = 0;
-    wv_bits(ow, 16, dummy_time_value);
+    bl_put(ow, 16, dummy_time_value);
 
 
     if (data->config.setup_type == WWV_FULL_SETUP) {
@@ -792,8 +792,8 @@ static int ww2ogg_generate_vorbis_setup(bitstream_t* ow, bitstream_t* iw, vorbis
         uint32_t setup_packet_size_bits = packet_size * 8;
 
         while (total_bits_read < setup_packet_size_bits) {
-            rv_bits(iw,  1,&bitly);
-            wv_bits(ow,  1, bitly);
+            bl_get(iw,  1,&bitly);
+            bl_put(ow,  1, bitly);
             total_bits_read = iw->b_off;
         }
     }
@@ -806,8 +806,8 @@ static int ww2ogg_generate_vorbis_setup(bitstream_t* ow, bitstream_t* iw, vorbis
 
 
         /* Floors */
-        rv_bits(iw,  6,&floor_count_less1);
-        wv_bits(ow,  6, floor_count_less1);
+        bl_get(iw,  6,&floor_count_less1);
+        bl_put(ow,  6, floor_count_less1);
         floor_count = floor_count_less1 + 1;
 
         for (i = 0; i < floor_count; i++) {
@@ -818,10 +818,10 @@ static int ww2ogg_generate_vorbis_setup(bitstream_t* ow, bitstream_t* iw, vorbis
 
             // Always floor type 1
             floor_type = 1;
-            wv_bits(ow, 16, floor_type);
+            bl_put(ow, 16, floor_type);
 
-            rv_bits(iw,  5,&floor1_partitions);
-            wv_bits(ow,  5, floor1_partitions);
+            bl_get(iw,  5,&floor1_partitions);
+            bl_put(ow,  5, floor1_partitions);
 
             memset(floor1_partition_class_list, 0, sizeof(uint32_t)*32);
 
@@ -829,8 +829,8 @@ static int ww2ogg_generate_vorbis_setup(bitstream_t* ow, bitstream_t* iw, vorbis
             for (j = 0; j < floor1_partitions; j++) {
                 uint32_t floor1_partition_class = 0;
 
-                rv_bits(iw,  4,&floor1_partition_class);
-                wv_bits(ow,  4, floor1_partition_class);
+                bl_get(iw,  4,&floor1_partition_class);
+                bl_put(ow,  4, floor1_partition_class);
 
                 floor1_partition_class_list[j] = floor1_partition_class;
 
@@ -843,19 +843,19 @@ static int ww2ogg_generate_vorbis_setup(bitstream_t* ow, bitstream_t* iw, vorbis
             for (j = 0; j <= maximum_class; j++) {
                 uint32_t class_dimensions_less1 = 0, class_subclasses = 0;
 
-                rv_bits(iw,  3,&class_dimensions_less1);
-                wv_bits(ow,  3, class_dimensions_less1);
+                bl_get(iw,  3,&class_dimensions_less1);
+                bl_put(ow,  3, class_dimensions_less1);
 
                 floor1_class_dimensions_list[j] = class_dimensions_less1 + 1;
 
-                rv_bits(iw,  2,&class_subclasses);
-                wv_bits(ow,  2, class_subclasses);
+                bl_get(iw,  2,&class_subclasses);
+                bl_put(ow,  2, class_subclasses);
 
                 if (0 != class_subclasses) {
                     uint32_t masterbook = 0;
 
-                    rv_bits(iw,  8,&masterbook);
-                    wv_bits(ow,  8, masterbook);
+                    bl_get(iw,  8,&masterbook);
+                    bl_put(ow,  8, masterbook);
 
                     if (masterbook >= codebook_count) {
                         VGM_LOG("Wwise Vorbis: invalid floor1 masterbook\n");
@@ -867,8 +867,8 @@ static int ww2ogg_generate_vorbis_setup(bitstream_t* ow, bitstream_t* iw, vorbis
                     uint32_t subclass_book_plus1 = 0;
                     int subclass_book = 0; /* this MUST be int */
 
-                    rv_bits(iw,  8,&subclass_book_plus1);
-                    wv_bits(ow,  8, subclass_book_plus1);
+                    bl_get(iw,  8,&subclass_book_plus1);
+                    bl_put(ow,  8, subclass_book_plus1);
 
                     subclass_book = subclass_book_plus1 - 1;
                     if (subclass_book >= 0 && subclass_book >= codebook_count) {
@@ -878,11 +878,11 @@ static int ww2ogg_generate_vorbis_setup(bitstream_t* ow, bitstream_t* iw, vorbis
                 }
             }
 
-            rv_bits(iw,  2,&floor1_multiplier_less1);
-            wv_bits(ow,  2, floor1_multiplier_less1);
+            bl_get(iw,  2,&floor1_multiplier_less1);
+            bl_put(ow,  2, floor1_multiplier_less1);
 
-            rv_bits(iw,  4,&rangebits);
-            wv_bits(ow,  4, rangebits);
+            bl_get(iw,  4,&rangebits);
+            bl_put(ow,  4, rangebits);
 
             for (j = 0; j < floor1_partitions; j++) {
                 uint32_t current_class_number = 0;
@@ -891,16 +891,16 @@ static int ww2ogg_generate_vorbis_setup(bitstream_t* ow, bitstream_t* iw, vorbis
                 for (k = 0; k < floor1_class_dimensions_list[current_class_number]; k++) {
                     uint32_t X = 0; /* max 4b (15) */
 
-                    rv_bits(iw,  rangebits,&X);
-                    wv_bits(ow,  rangebits, X);
+                    bl_get(iw,  rangebits,&X);
+                    bl_put(ow,  rangebits, X);
                 }
             }
         }
 
 
         /* Residues */
-        rv_bits(iw,  6,&residue_count_less1);
-        wv_bits(ow,  6, residue_count_less1);
+        bl_get(iw,  6,&residue_count_less1);
+        bl_put(ow,  6, residue_count_less1);
         residue_count = residue_count_less1 + 1;
 
         for (i = 0; i < residue_count; i++) {
@@ -908,24 +908,24 @@ static int ww2ogg_generate_vorbis_setup(bitstream_t* ow, bitstream_t* iw, vorbis
             uint32_t residue_begin = 0, residue_end = 0, residue_partition_size_less1 = 0, residue_classifications_less1 = 0, residue_classbook = 0;
             uint32_t residue_cascade[64+1]; /* 6b +1 */
 
-            rv_bits(iw,  2,&residue_type);
-            wv_bits(ow, 16, residue_type); /* 2b to 16b */
+            bl_get(iw,  2,&residue_type);
+            bl_put(ow, 16, residue_type); /* 2b to 16b */
 
             if (residue_type > 2) {
                 VGM_LOG("Wwise Vorbis: invalid residue type\n");
                 goto fail;
             }
 
-            rv_bits(iw, 24,&residue_begin);
-            wv_bits(ow, 24, residue_begin);
-            rv_bits(iw, 24,&residue_end);
-            wv_bits(ow, 24, residue_end);
-            rv_bits(iw, 24,&residue_partition_size_less1);
-            wv_bits(ow, 24, residue_partition_size_less1);
-            rv_bits(iw,  6,&residue_classifications_less1);
-            wv_bits(ow,  6, residue_classifications_less1);
-            rv_bits(iw,  8,&residue_classbook);
-            wv_bits(ow,  8, residue_classbook);
+            bl_get(iw, 24,&residue_begin);
+            bl_put(ow, 24, residue_begin);
+            bl_get(iw, 24,&residue_end);
+            bl_put(ow, 24, residue_end);
+            bl_get(iw, 24,&residue_partition_size_less1);
+            bl_put(ow, 24, residue_partition_size_less1);
+            bl_get(iw,  6,&residue_classifications_less1);
+            bl_put(ow,  6, residue_classifications_less1);
+            bl_get(iw,  8,&residue_classbook);
+            bl_put(ow,  8, residue_classbook);
             residue_classifications = residue_classifications_less1 + 1;
 
             if (residue_classbook >= codebook_count) {
@@ -936,21 +936,21 @@ static int ww2ogg_generate_vorbis_setup(bitstream_t* ow, bitstream_t* iw, vorbis
             memset(residue_cascade, 0, sizeof(uint32_t)*(64+1));
 
             for (j = 0; j < residue_classifications; j++) {
-                uint32_t high_bits = 0, lowv_bits = 0, bitflag = 0;
+                uint32_t high_bits = 0, lobl_put = 0, bitflag = 0;
 
                 high_bits = 0;
 
-                rv_bits(iw, 3,&lowv_bits);
-                wv_bits(ow, 3, lowv_bits);
+                bl_get(iw, 3,&lobl_put);
+                bl_put(ow, 3, lobl_put);
 
-                rv_bits(iw, 1,&bitflag);
-                wv_bits(ow, 1, bitflag);
+                bl_get(iw, 1,&bitflag);
+                bl_put(ow, 1, bitflag);
                 if (bitflag) {
-                    rv_bits(iw, 5,&high_bits);
-                    wv_bits(ow, 5, high_bits);
+                    bl_get(iw, 5,&high_bits);
+                    bl_put(ow, 5, high_bits);
                 }
 
-                residue_cascade[j] = high_bits * 8 + lowv_bits;
+                residue_cascade[j] = high_bits * 8 + lobl_put;
             }
 
             for (j = 0; j < residue_classifications; j++) {
@@ -958,8 +958,8 @@ static int ww2ogg_generate_vorbis_setup(bitstream_t* ow, bitstream_t* iw, vorbis
                     if (residue_cascade[j] & (1 << k)) {
                         uint32_t residue_book = 0;
 
-                        rv_bits(iw, 8,&residue_book);
-                        wv_bits(ow, 8, residue_book);
+                        bl_get(iw, 8,&residue_book);
+                        bl_put(ow, 8, residue_book);
 
                         if (residue_book >= codebook_count) {
                             VGM_LOG("Wwise Vorbis: invalid residue book\n");
@@ -972,8 +972,8 @@ static int ww2ogg_generate_vorbis_setup(bitstream_t* ow, bitstream_t* iw, vorbis
 
 
         /* Mappings */
-        rv_bits(iw,  6,&mapping_count_less1);
-        wv_bits(ow,  6, mapping_count_less1);
+        bl_get(iw,  6,&mapping_count_less1);
+        bl_put(ow,  6, mapping_count_less1);
         mapping_count = mapping_count_less1 + 1;
 
         for (i = 0; i < mapping_count; i++) {
@@ -982,28 +982,28 @@ static int ww2ogg_generate_vorbis_setup(bitstream_t* ow, bitstream_t* iw, vorbis
 
             // always mapping type 0, the only one
             mapping_type = 0;
-            wv_bits(ow, 16, mapping_type);
+            bl_put(ow, 16, mapping_type);
 
-            rv_bits(iw,  1,&submaps_flag);
-            wv_bits(ow,  1, submaps_flag);
+            bl_get(iw,  1,&submaps_flag);
+            bl_put(ow,  1, submaps_flag);
 
             submaps = 1;
             if (submaps_flag) {
                 uint32_t submaps_less1 = 0;
 
-                rv_bits(iw,  4,&submaps_less1);
-                wv_bits(ow,  4, submaps_less1);
+                bl_get(iw,  4,&submaps_less1);
+                bl_put(ow,  4, submaps_less1);
                 submaps = submaps_less1 + 1;
             }
 
-            rv_bits(iw,  1,&square_polar_flag);
-            wv_bits(ow,  1, square_polar_flag);
+            bl_get(iw,  1,&square_polar_flag);
+            bl_put(ow,  1, square_polar_flag);
 
             if (square_polar_flag) {
                 uint32_t coupling_steps_less1 = 0, coupling_steps = 0;
 
-                rv_bits(iw,  8,&coupling_steps_less1);
-                wv_bits(ow,  8, coupling_steps_less1);
+                bl_get(iw,  8,&coupling_steps_less1);
+                bl_put(ow,  8, coupling_steps_less1);
                 coupling_steps = coupling_steps_less1 + 1;
 
                 for (j = 0; j < coupling_steps; j++) {
@@ -1011,10 +1011,10 @@ static int ww2ogg_generate_vorbis_setup(bitstream_t* ow, bitstream_t* iw, vorbis
                     int magnitude_bits = ww2ogg_tremor_ilog(channels-1);
                     int angle_bits = ww2ogg_tremor_ilog(channels-1);
 
-                    rv_bits(iw,  magnitude_bits,&magnitude);
-                    wv_bits(ow,  magnitude_bits, magnitude);
-                    rv_bits(iw,  angle_bits,&angle);
-                    wv_bits(ow,  angle_bits, angle);
+                    bl_get(iw,  magnitude_bits,&magnitude);
+                    bl_put(ow,  magnitude_bits, magnitude);
+                    bl_get(iw,  angle_bits,&angle);
+                    bl_put(ow,  angle_bits, angle);
 
                     if (angle == magnitude || magnitude >= channels || angle >= channels) {
                         VGM_LOG("Wwise Vorbis: invalid coupling (angle=%i, mag=%i, ch=%i)\n", angle, magnitude,channels);
@@ -1024,8 +1024,8 @@ static int ww2ogg_generate_vorbis_setup(bitstream_t* ow, bitstream_t* iw, vorbis
             }
 
             // a rare reserved field not removed by Ak!
-            rv_bits(iw,  2,&mapping_reserved);
-            wv_bits(ow,  2, mapping_reserved);
+            bl_get(iw,  2,&mapping_reserved);
+            bl_put(ow,  2, mapping_reserved);
             if (0 != mapping_reserved) {
                 VGM_LOG("Wwise Vorbis: mapping reserved field nonzero\n");
                 goto fail;
@@ -1035,8 +1035,8 @@ static int ww2ogg_generate_vorbis_setup(bitstream_t* ow, bitstream_t* iw, vorbis
                 for (j = 0; j < channels; j++) {
                     uint32_t mapping_mux = 0;
 
-                    rv_bits(iw,  4,&mapping_mux);
-                    wv_bits(ow,  4, mapping_mux);
+                    bl_get(iw,  4,&mapping_mux);
+                    bl_put(ow,  4, mapping_mux);
                     if (mapping_mux >= submaps) {
                         VGM_LOG("Wwise Vorbis: mapping_mux >= submaps\n");
                         goto fail;
@@ -1048,18 +1048,18 @@ static int ww2ogg_generate_vorbis_setup(bitstream_t* ow, bitstream_t* iw, vorbis
                 uint32_t time_config = 0, floor_number = 0, residue_number = 0;
 
                 // Another! Unused time domain transform configuration placeholder!
-                rv_bits(iw,  8,&time_config);
-                wv_bits(ow,  8, time_config);
+                bl_get(iw,  8,&time_config);
+                bl_put(ow,  8, time_config);
 
-                rv_bits(iw,  8,&floor_number);
-                wv_bits(ow,  8, floor_number);
+                bl_get(iw,  8,&floor_number);
+                bl_put(ow,  8, floor_number);
                 if (floor_number >= floor_count) {
                     VGM_LOG("Wwise Vorbis: invalid floor mapping\n");
                     goto fail;
                 }
 
-                rv_bits(iw,  8,&residue_number);
-                wv_bits(ow,  8, residue_number);
+                bl_get(iw,  8,&residue_number);
+                bl_put(ow,  8, residue_number);
                 if (residue_number >= residue_count) {
                     VGM_LOG("Wwise Vorbis: invalid residue mapping\n");
                     goto fail;
@@ -1069,8 +1069,8 @@ static int ww2ogg_generate_vorbis_setup(bitstream_t* ow, bitstream_t* iw, vorbis
 
 
         /* Modes */
-        rv_bits(iw,  6,&mode_count_less1);
-        wv_bits(ow,  6, mode_count_less1);
+        bl_get(iw,  6,&mode_count_less1);
+        bl_put(ow,  6, mode_count_less1);
         mode_count = mode_count_less1 + 1;
 
         memset(data->mode_blockflag, 0, sizeof(uint8_t)*(64+1)); /* up to max mode_count */
@@ -1079,18 +1079,18 @@ static int ww2ogg_generate_vorbis_setup(bitstream_t* ow, bitstream_t* iw, vorbis
         for (i = 0; i < mode_count; i++) {
             uint32_t block_flag = 0, windowtype = 0, transformtype = 0, mapping = 0;
 
-            rv_bits(iw,  1,&block_flag);
-            wv_bits(ow,  1, block_flag);
+            bl_get(iw,  1,&block_flag);
+            bl_put(ow,  1, block_flag);
 
             data->mode_blockflag[i] = (block_flag != 0); /* for mod_packets */
 
             windowtype = 0;
             transformtype = 0;
-            wv_bits(ow, 16, windowtype);
-            wv_bits(ow, 16, transformtype);
+            bl_put(ow, 16, windowtype);
+            bl_put(ow, 16, transformtype);
 
-            rv_bits(iw,  8,&mapping);
-            wv_bits(ow,  8, mapping);
+            bl_get(iw,  8,&mapping);
+            bl_put(ow,  8, mapping);
             if (mapping >= mapping_count) {
                 VGM_LOG("Wwise Vorbis: invalid mode mapping\n");
                 goto fail;
@@ -1104,7 +1104,7 @@ static int ww2ogg_generate_vorbis_setup(bitstream_t* ow, bitstream_t* iw, vorbis
         uint32_t framing = 0;
 
         framing = 1;
-        wv_bits(ow,  1, framing);
+        bl_put(ow,  1, framing);
     }
 
     /* remove trailing garbage bits */
@@ -1112,7 +1112,7 @@ static int ww2ogg_generate_vorbis_setup(bitstream_t* ow, bitstream_t* iw, vorbis
         uint32_t padding = 0;
         int padding_bits = 8 - (ow->b_off % 8);
 
-        wv_bits(ow,  padding_bits,  padding);
+        bl_put(ow,  padding_bits,  padding);
     }
 
 

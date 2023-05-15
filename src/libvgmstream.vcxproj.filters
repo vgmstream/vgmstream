@@ -155,9 +155,6 @@
     <ClInclude Include="coding\tac_decoder_lib_ops.h">
       <Filter>coding\Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="coding\vorbis_bitreader.h">
-      <Filter>coding\Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="coding\vorbis_custom_data_fsb.h">
       <Filter>coding\Header Files</Filter>
     </ClInclude>
@@ -328,6 +325,9 @@
     </ClInclude>
     <ClInclude Include="meta\zsnd_streamfile.h">
       <Filter>meta\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="util\bitstream_lsb.h">
+      <Filter>util\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="util\bitstream_msb.h">
       <Filter>util\Header Files</Filter>

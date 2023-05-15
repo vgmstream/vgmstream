@@ -110,7 +110,6 @@
     <ClInclude Include="coding\tac_decoder_lib.h" />
     <ClInclude Include="coding\tac_decoder_lib_data.h" />
     <ClInclude Include="coding\tac_decoder_lib_ops.h" />
-    <ClInclude Include="coding\vorbis_bitreader.h" />
     <ClInclude Include="coding\vorbis_custom_data_fsb.h" />
     <ClInclude Include="coding\vorbis_custom_data_wwise.h" />
     <ClInclude Include="coding\vorbis_custom_decoder.h" />
@@ -168,6 +167,7 @@
     <ClInclude Include="meta\xwb_xsb.h" />
     <ClInclude Include="meta\xwma_konami_streamfile.h" />
     <ClInclude Include="meta\zsnd_streamfile.h" />
+    <ClInclude Include="util\bitstream_lsb.h" />
     <ClInclude Include="util\bitstream_msb.h" />
     <ClInclude Include="util\channel_mappings.h" />
     <ClInclude Include="util\chunks.h" />

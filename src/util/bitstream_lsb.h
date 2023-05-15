@@ -1,8 +1,11 @@
-#ifndef _VORBIS_BITREADER_H
-#define _VORBIS_BITREADER_H
+#ifndef _BITSTREAM_LSB_H
+#define _BITSTREAM_LSB_H
 
-/* Simple bitreader for Vorbis' bit format.
- * Kept in .h since it's slightly faster (compiler can optimize statics better) */
+#include "../streamtypes.h"
+
+/* Simple bitreader for Vorbis' bit style, in 'least significant byte' (LSB) format.
+ * Example: 0x12345678 is read as 12,34,56,78 (continuous).
+ * Kept in .h since it's slightly faster (compiler can optimize statics better using default compile flags). */
 
 
 typedef struct {
@@ -12,7 +15,7 @@ typedef struct {
 } bitstream_t;
 
 /* convenience util */
-static void init_bitstream(bitstream_t* b, uint8_t* buf, size_t bufsize) {
+static inline void bl_setup(bitstream_t* b, uint8_t* buf, size_t bufsize) {
     b->buf = buf;
     b->bufsize = bufsize;
     b->b_off = 0;
@@ -29,7 +32,7 @@ static const uint32_t MASK_TABLE[33] = {
 
 /* Read bits (max 32) from buf and update the bit offset. Vorbis packs values in LSB order and byte by byte.
  * (ex. from 2 bytes 00100111 00000001 we can could read 4b=0111 and 6b=010010, 6b=remainder (second value is split into the 2nd byte) */
-static int rv_bits(bitstream_t* ib, uint32_t bits, uint32_t* value) {
+static inline int bl_get(bitstream_t* ib, uint32_t bits, uint32_t* value) {
     uint32_t shift, mask, pos, val;
 
     if (bits > 32 || ib->b_off + bits > ib->bufsize * 8)
@@ -59,15 +62,14 @@ static int rv_bits(bitstream_t* ib, uint32_t bits, uint32_t* value) {
 
     return 1;
 fail:
-    VGM_LOG_ONCE("BITREADER: read fail\n");
+    //VGM_LOG_ONCE("BITREADER: read fail\n");
     *value = 0;
     return 0;
 }
 
-#ifndef BITSTREAM_READ_ONLY
 /* Write bits (max 32) to buf and update the bit offset. Vorbis packs values in LSB order and byte by byte.
  * (ex. writing 1101011010 from b_off 2 we get 01101011 00001101 (value split, and 11 in the first byte skipped)*/
-static int wv_bits(bitstream_t* ob, uint32_t bits, uint32_t value) {
+static inline int bl_put(bitstream_t* ob, uint32_t bits, uint32_t value) {
     uint32_t shift, mask, pos;
 
     if (bits > 32 || ob->b_off + bits > ob->bufsize*8)
@@ -95,9 +97,8 @@ static int wv_bits(bitstream_t* ob, uint32_t bits, uint32_t value) {
     ob->b_off += bits;
     return 1;
 fail:
-    VGM_LOG_ONCE("BITREADER: write fail\n");
+    //VGM_LOG_ONCE("BITREADER: write fail\n");
     return 0;
 }
-#endif
 
 #endif
