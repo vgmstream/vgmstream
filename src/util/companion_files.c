@@ -1,6 +1,7 @@
 #include "companion_files.h"
 #include "paths.h"
 #include "../vgmstream.h"
+#include "../util/reader_text.h"
 
 
 size_t read_key_file(uint8_t* buf, size_t buf_size, STREAMFILE* sf) {

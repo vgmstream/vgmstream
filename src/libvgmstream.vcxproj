@@ -183,6 +183,7 @@
     <ClInclude Include="util\reader_get_nibbles.h" />
     <ClInclude Include="util\reader_put.h" />
     <ClInclude Include="util\reader_sf.h" />
+    <ClInclude Include="util\reader_text.h" />
     <ClInclude Include="util\samples_ops.h" />
     <ClInclude Include="util\text_reader.h" />
   </ItemGroup>
@@ -746,7 +747,7 @@
     <ClCompile Include="util\m2_psb.c" />
     <ClCompile Include="util\miniz.c" />
     <ClCompile Include="util\paths.c" />
-    <ClCompile Include="util\reader_put.c" />
+    <ClCompile Include="util\reader.c" />
     <ClCompile Include="util\samples_ops.c" />
     <ClCompile Include="util\text_reader.c" />
   </ItemGroup>

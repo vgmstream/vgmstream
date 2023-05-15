@@ -3,6 +3,7 @@
 
 #include "../vgmstream.h"
 #include "../util/reader_sf.h"
+#include "../util/reader_text.h"
 
 typedef VGMSTREAM* (*init_vgmstream_t)(STREAMFILE* sf);
 

@@ -374,6 +374,9 @@
     <ClInclude Include="util\reader_sf.h">
       <Filter>util\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="util\reader_text.h">
+      <Filter>util\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="util\samples_ops.h">
       <Filter>util\Header Files</Filter>
     </ClInclude>
@@ -2059,7 +2062,7 @@
     <ClCompile Include="util\paths.c">
       <Filter>util\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="util\reader_put.c">
+    <ClCompile Include="util\reader.c">
       <Filter>util\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="util\samples_ops.c">
