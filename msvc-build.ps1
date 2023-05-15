@@ -274,8 +274,8 @@ function MakePackage
     # workaround for a foobar 2.0 64-bit bug: (earlier?) powershell creates zip paths with '\' (which seem
     # non-standard), and apparently that confuses foobar when trying to unpack the zip
     try {
-        # possibly available in github actions
-        & '7z' a -tzip bin/foo_input_vgmstream.fb2k-component bin/foobar2000/*
+        # should be available in github actions
+        & '7z' a -tzip bin/foo_input_vgmstream.fb2k-component ./bin/foobar2000/*
     } catch {
         # works for 32-bit at least
         Compress-Archive -Path bin/foobar2000/* bin/foo_input_vgmstream.zip -Force
