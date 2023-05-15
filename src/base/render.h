@@ -3,8 +3,8 @@
 
 #include "../vgmstream.h"
 
-void free_layout(VGMSTREAM* vgmstream);
-void reset_layout(VGMSTREAM* vgmstream);
+void render_free(VGMSTREAM* vgmstream);
+void render_reset(VGMSTREAM* vgmstream);
 int render_layout(sample_t* buf, int32_t sample_count, VGMSTREAM* vgmstream);
 
 
