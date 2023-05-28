@@ -116,6 +116,7 @@ typedef struct {
     int target_subsong;
     uint32_t subsong_count;
     uint32_t subsong_spacing;
+    uint32_t subsong_sum;
 
     uint32_t name_offset_set;
     uint32_t name_offset;
@@ -1300,6 +1301,23 @@ static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char* key, cha
     else if (is_string(key,"subsong_spacing") || is_string(key,"subsong_offset")) {
         if (!parse_num(txth->sf_head,txth,val, &txth->subsong_spacing)) goto fail;
     }
+    else if (is_string(key,"subsong_sum")) {
+        /* add all values up to current subsong (for example, to add all sizes to get current offset, so get start_offset) 
+         * doesn't include current (that is, reading size from fist subsong doesn't add anything) */
+        int default_subsong = txth->target_subsong;
+        uint32_t subsong_sum = 0;
+
+        for (int i = 0; i < default_subsong - 1; i++) {
+            txth->target_subsong = i + 1;
+
+            if (!parse_num(txth->sf_head,txth,val, &subsong_sum)) goto fail;
+
+            txth->subsong_sum += subsong_sum;
+        }
+
+        txth->target_subsong = default_subsong;
+    }
+    
     else if (is_string(key,"name_offset")) {
         if (!parse_num(txth->sf_head,txth,val, &txth->name_offset)) goto fail;
         txth->name_offset_set = 1;
@@ -2001,6 +2019,7 @@ static int parse_num(STREAMFILE* sf, txth_header* txth, const char* val, uint32_
             else if ((n = is_string_field(val,"subsong_count")))        value = txth->subsong_count;
             else if ((n = is_string_field(val,"subsong_spacing")))      value = txth->subsong_spacing;
             else if ((n = is_string_field(val,"subsong_offset")))       value = txth->subsong_spacing;
+            else if ((n = is_string_field(val,"subsong_sum")))          value = txth->subsong_sum;
             else if ((n = is_string_field(val,"subfile_offset")))       value = txth->subfile_offset;
             else if ((n = is_string_field(val,"subfile_size")))         value = txth->subfile_size;
             else if ((n = is_string_field(val,"base_offset")))          value = txth->base_offset;
