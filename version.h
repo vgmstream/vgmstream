@@ -32,7 +32,7 @@
  *   versions should return "rNNNN" without extra text commit number text
  */
 
-#define VGMSTREAM_VERSION "r1831"
+#define VGMSTREAM_VERSION "r1843"
 #endif
 #endif
 
