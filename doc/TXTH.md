@@ -53,8 +53,7 @@ The following can be used in place of `(value)` for `(key) = (value)` commands.
   * `:LE|BE`: value is little/big endian (optional, defaults to LE)
   * `$1|2|3|4`: value has size of 8/16/24/32 bit (optional, defaults to 4)
   * Example: `@0x10:BE$2` means `get big endian 16b value at 0x10`
-- `(field)`: uses current value of some fields. Accepted strings:
-  - `interleave, interleave_last, channels, sample_rate, start_offset, data_size, num_samples, loop_start_sample, loop_end_sample, subsong_count, subsong_spacing, subfile_offset, subfile_size, base_offset, name_valueX`
+- `(field)`: uses current value of some fields (`interleave`, `channels`, `start_offset`, `data_size`, `num_samples`, `subsong_count`, `subfile_size`, `base_offset`, `name_valueX`, etc)
   - `subsong` is a special field for current subsong
 - `(other)`: other special values for certain keys, described per key
 
@@ -419,11 +418,13 @@ Sets the number of subsongs in the file, adjusting reads per subsong N: `value =
 
 Instead of `subsong_spacing` you can use `subsong_offset` (older alias).
 
-Mainly for bigfiles with consecutive headers per subsong, set subsong_offset to 0 when done as it affects any reads. The current subsong number is handled externally by plugins or TXTP.
+Mainly for bigfiles with consecutive headers per subsong, set `subsong_offset` to 0 when done as it affects any reads. The current subsong number is handled externally by plugins or TXTP.
 ```
 subsong_count = (value)
 subsong_spacing = (value)
 ```
+
+A experimental field is `subsong_sum = (value)`, that sums all subsong values up to current subsong. Mainly meant when offsets are the sum of subsong sizes: if you have a table of sizes at 0x10 for 3 subsongs, each of size 0x1000, then `subsong_sum = @0x10` for first subsong sums 0x0000, 0x1000 for second, 0x2000 for third (can be used later as `start_offset = subsong_sum`).
 
 #### NAMES
 Sets the name of the stream, most useful when used with subsongs. TXTH will read a string at `name_offset`, with `name_size characters`.

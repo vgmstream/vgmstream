@@ -639,6 +639,7 @@ static const char* extension_list[] = {
     "wua",
     "wv2",
     "wv6",
+    "wvd", //txth/reserved [Donkey Kong Barrel Blast (Wii)]
     "wve",
     "wvs",
     "wvx",

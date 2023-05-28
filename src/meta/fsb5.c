@@ -488,10 +488,9 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
             vgmstream->interleave_block_size = 0x8c;
             break;
 
-#if 0 //disabled until some game is found, can be created in the GUI tool
 #ifdef VGM_USE_FFMPEG
-        case 0x11: { /* FMOD_SOUND_FORMAT_OPUS */
-            int skip = 312; //fsb_opus_get_encoder_delay(fsb5.stream_offset, sb); /* returns 120 but this seems correct */
+        case 0x11: { /* FMOD_SOUND_FORMAT_OPUS  [LEGO 2K Drive (Switch)] */
+            int skip = 312; //fsb_opus_get_encoder_delay(fsb5.stream_offset, sb); /* returns 120 but this seems correct in test files */
             //vgmstream->num_samples -= skip;
 
             vgmstream->codec_data = init_ffmpeg_fsb_opus(sb, fsb5.stream_offset, fsb5.stream_size, vgmstream->channels, skip, vgmstream->sample_rate);
@@ -500,7 +499,6 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
             vgmstream->layout_type = layout_none;
             break;
         }
-#endif
 #endif
         default:
             vgm_logi("FSB5: unknown codec 0x%x (report)\n", fsb5.codec);
