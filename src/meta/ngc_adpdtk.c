@@ -14,7 +14,7 @@ VGMSTREAM* init_vgmstream_dtk(STREAMFILE* sf) {
      * .adp: standard [Harvest Moon: AWL (GC)]
      * .trk: standard [Bloody Roar: Primal Fury (GC)]
      * .wav/lwav: Alien Hominid (GC) */
-    if (!check_extensions(sf,"dtk,adp,wav,lwav"))
+    if (!check_extensions(sf,"dtk,adp,trk,wav,lwav"))
         goto fail;
 
     /* check valid frames as files have no header, and .adp/wav are common */
