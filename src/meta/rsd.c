@@ -104,7 +104,7 @@ VGMSTREAM* init_vgmstream_rsd(STREAMFILE* sf) {
             vgmstream->coding_type = coding_NGC_DSP;
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = 0x08; /* assumed, known files are mono */
-            dsp_read_coefs_le(vgmstream,sf,0x14,0x2e); /* LE! */
+            dsp_read_coefs_le(vgmstream,sf,0x1c,0x2e); /* LE! */
             dsp_read_hist_le (vgmstream,sf,0x38,0x2e);
 
             vgmstream->num_samples = dsp_bytes_to_samples(data_size, channels);

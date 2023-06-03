@@ -14,8 +14,9 @@ VGMSTREAM* init_vgmstream_thp(STREAMFILE* sf) {
     /* checks */
     /* .thp: actual extension
      * .dsp: fake extension?
+     * .mov: Dora the Explorer: JttPP (GC)
      * (extensionless): Fragile (Wii) */
-    if (!check_extensions(sf, "thp,dsp,"))
+    if (!check_extensions(sf, "thp,dsp,mov,"))
         goto fail;
     if (!is_id32be(0x00,sf, "THP\0"))
         goto fail;

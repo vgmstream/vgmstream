@@ -338,6 +338,7 @@ static const char* extension_list[] = {
     "mogg",
     //"m4a", //common
     //"m4v", //common
+    //"mov", //common
     //"mp+", //common [Moonshine Runners (PC)]
     //"mp2", //common
     //"mp3", //common
@@ -559,6 +560,7 @@ static const char* extension_list[] = {
     "tk5",
     "tmx",
     "tra",
+    "trk",
     "tun",
     "txth",
     "txtp",

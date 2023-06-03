@@ -11,9 +11,10 @@ VGMSTREAM* init_vgmstream_dtk(STREAMFILE* sf) {
 
     /* checks */
     /* .dtk: standard [XGRA (GC)]
-     * .adp: standard [Harvest Moon AWL (GC)]
+     * .adp: standard [Harvest Moon: AWL (GC)]
+     * .trk: Bloody Roar: Primal Fury (GC)
      * .wav/lwav: Alien Hominid (GC) */
-    if (!check_extensions(sf,"dtk,adp,wav,lwav"))
+    if (!check_extensions(sf,"dtk,adp,trk,wav,lwav"))
         goto fail;
 
     /* check valid frames as files have no header, and .adp/wav are common */
