@@ -25,7 +25,7 @@ typedef struct {
 
 #define MODE_FSB4_STD  (FLAG_FSB4 | FLAG_STD)
 #define MODE_FSB4_ALT  (FLAG_FSB4 | FLAG_ALT)
-#define MODE_FSB4_ALL  (FLAG_FSB4 | FLAG_ALT)
+#define MODE_FSB4_ALL  (FLAG_FSB4 | FLAG_STD | FLAG_ALT)
 #define MODE_FSB5_STD  (FLAG_FSB5 | FLAG_STD)
 #define MODE_FSB5_ALT  (FLAG_FSB5 | FLAG_STD)
 #define MODE_FSB5_ALL  (FLAG_FSB5 | FLAG_STD | FLAG_ALT)
@@ -42,8 +42,8 @@ static const fsbkey_info fsbkey_list[] = {
         { MODE_FSB5_STD, FSBKEY_ADD("sTOoeJXI2LjK8jBMOk8h5IDRNZl3jq3I") }, // Slightly Mad Studios: Project CARS (PC?), World of Speed (PC)
         { MODE_FSB5_STD, FSBKEY_ADD("%lAn2{Pi*Lhw3T}@7*!kV=?qS$@iNlJ") }, // Ghost in the Shell: First Assault (PC)
         { MODE_FSB5_STD, FSBKEY_ADD("1^7%82#&5$~/8sz") }, // RevHeadz Engine Sounds (Mobile)
-        { MODE_FSB5_ALL, FSBKEY_ADD("FDPrVuT4fAFvdHJYAgyMzRF4EcBAnKg") }, // Dark Souls 3 (PC) [untested]
-        { MODE_FSB4_ALL, FSBKEY_ADD("p&oACY^c4LK5C2v^x5nIO6kg5vNH$tlj") }, // Need for Speed Shift 2 Unleashed (PC demo?)[untested]
+        { MODE_FSB5_STD, FSBKEY_ADD("FDPrVuT4fAFvdHJYAgyMzRF4EcBAnKg") }, // Dark Souls 3 (PC)
+        { MODE_FSB4_STD, FSBKEY_ADD("p&oACY^c4LK5C2v^x5nIO6kg5vNH$tlj") }, // Need for Speed Shift 2 Unleashed (PC)
         { MODE_FSB5_STD, FSBKEY_ADD("996164B5FC0F402983F61F220BB51DC6") }, // Mortal Kombat X/XL (PC)
         { MODE_FSB5_STD, FSBKEY_ADD("logicsounddesignmwsdev") }, // Mirror War: Reincarnation of Holiness (PC)
         { MODE_FSBS_ALL, FSBKEY_ADD("gat@tcqs2010") }, // Xian Xia Chuan (PC) [untested]
@@ -56,8 +56,8 @@ static const fsbkey_info fsbkey_list[] = {
         { MODE_FSBS_ALL, FSBKEY_ADD("B2A7BB00") }, // Supreme Commander 2 [untested]
         { MODE_FSB4_STD, FSBKEY_ADD("ghfxhslrghfxhslr") }, // Cookie Run: Ovenbreak
         { MODE_FSB4_ALT, FSBKEY_ADD("truck/impact/carbody") },// Monster Jam (PS2) [FSB3]
-        { MODE_FSB4_ALT, FSBKEY_ADD("\xFC\xF9\xE4\xB3\xF5\x57\x5C\xA5\xAC\x13\xEC\x4A\x43\x19\x58\xEB\x4E\xF3\x84\x0B\x8B\x78\xFA\xFD\xBB\x18\x46\x7E\x31\xFB\xD0") },
-        { MODE_FSB4_ALT, FSBKEY_ADD("\x8C\xFA\xF3\x14\xB1\x53\xDA\xAB\x2B\x82\x6B\xD5\x55\x16\xCF\x01\x90\x20\x28\x14\xB1\x53\xD8") },
+        { MODE_FSB4_ALT, FSBKEY_ADD("\xFC\xF9\xE4\xB3\xF5\x57\x5C\xA5\xAC\x13\xEC\x4A\x43\x19\x58\xEB\x4E\xF3\x84\x0B\x8B\x78\xFA\xFD\xBB\x18\x46\x7E\x31\xFB\xD0") }, // Guitar Hero 5 (X360)
+        { MODE_FSB4_ALT, FSBKEY_ADD("\x8C\xFA\xF3\x14\xB1\x53\xDA\xAB\x2B\x82\x6B\xD5\x55\x16\xCF\x01\x90\x20\x28\x14\xB1\x53\xD8") }, // Guitar Hero: Metallica (X360)
         { MODE_FSB5_STD, FSBKEY_ADD("G0KTrWjS9syqF7vVD6RaVXlFD91gMgkC") }, // Sekiro: Shadows Die Twice (PC)
         { MODE_FSB5_STD, FSBKEY_ADD("BasicEncryptionKey") }, // SCP: Unity (PC) 
         { MODE_FSB5_STD, FSBKEY_ADD("FXnTffGJ9LS855Gc") }, // Worms Rumble Beta (PC)

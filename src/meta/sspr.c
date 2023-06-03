@@ -6,23 +6,22 @@
 VGMSTREAM* init_vgmstream_sspr(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     STREAMFILE* temp_sf = NULL;
-    uint32_t name_offset, subfile_offset, subfile_size, name_size;
-    int big_endian;
-    int total_subsongs, target_subsong = sf->stream_index;
-    char* extension;
-    uint32_t (*read_u32)(off_t,STREAMFILE*) = NULL;
-
 
     /* checks */
-    if (!check_extensions(sf,"sspr"))
-        goto fail;
     if (!is_id32be(0x00,sf,"SSPR"))
-        goto fail;
+        return NULL;
+    if (!check_extensions(sf,"sspr"))
+        return NULL;
+
+    uint32_t name_offset, subfile_offset, subfile_size, name_size;
+    int total_subsongs, target_subsong = sf->stream_index;
+    char* extension;
+    read_u32_t read_u32 = NULL;
 
     /* Simple (audio only) container used some Capcom games (common engine?).
      * Some files come with a .stqr with unknown data (cues?). */
 
-    big_endian = guess_endian32(0x04, sf); /* 0x01 (version?) */
+    int big_endian = guess_endian32(0x04, sf); /* 0x01 (version?) */
     read_u32 = big_endian ? read_u32be : read_u32le;
 
     total_subsongs = read_u32(0x08,sf);

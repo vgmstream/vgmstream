@@ -639,7 +639,7 @@ static int parse_header(STREAMFILE* sf_h, STREAMFILE* sf_b, strwav_header* strwa
     }
 
     /* SpongeBob SquarePants: Creature from the Krusty Krab (PS2)[2006] */
-    /* Big Bumpin (Xbox)[2006] */
+    /* Big Bumpin' (Xbox)[2006] */
     /* Sneak King (Xbox)[2006] */
     if ( read_u32be(0x04,sf_h) == 0x00000800 &&
          read_u32le(0x08,sf_h) == 0x00000000 &&
@@ -674,7 +674,7 @@ static int parse_header(STREAMFILE* sf_h, STREAMFILE* sf_b, strwav_header* strwa
         }
         else {
             strwav->codec = XBOX;
-            strwav->interleave  = strwav->tracks > 1 ? 0x9000 : 0xD800; /* assumed for multitrack */
+            strwav->interleave  = strwav->tracks > 1 ? 0x9000 : 0xD800;
         }
         ;VGM_LOG("STR+WAV: header SBCKK/BB/SK (PS2/Xbox)\n");
         return 1;

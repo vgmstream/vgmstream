@@ -5,7 +5,7 @@
 /* RSD - from Radical Entertainment games */
 VGMSTREAM* init_vgmstream_rsd(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
-    off_t start_offset, name_offset;
+    uint32_t start_offset, name_offset, coef_offset;
     size_t data_size;
     int loop_flag, channels, sample_rate, interleave;
     uint32_t codec;
@@ -14,9 +14,9 @@ VGMSTREAM* init_vgmstream_rsd(STREAMFILE* sf) {
 
     /* checks */
     if ((read_u32be(0x00,sf) & 0xFFFFFF00) != get_id32be("RSD\00"))
-        goto fail;
+        return NULL;
     if (!check_extensions(sf,"rsd,rsp"))
-        goto fail;
+        return NULL;
 
     loop_flag = 0;
 
@@ -32,14 +32,19 @@ VGMSTREAM* init_vgmstream_rsd(STREAMFILE* sf) {
             interleave   = read_u32le(0x14,sf); /* VAG only, 0x04 otherwise */
             start_offset = read_u32le(0x18,sf);
             name_offset  = 0;
+            coef_offset  = 0x1C;
+
+            if ((codec == get_id32be("GADP")))
+                start_offset = 0xA0;
             break;
 
         case '4': /* known codecs: VAG/PCM/RADP/PCMB [The Simpsons: Hit & Run, Tetris Worlds, Hulk] */
-            /* 0x14: padding */
+            /* 0x14: padding/coefs */
             /* 0x18: padding */
             interleave   = 0;
             start_offset = 0x800;
             name_offset  = 0;
+            coef_offset  = 0x14;
 
             /* PCMB/PCM/GADP normally start early but sometimes have padding [The Simpsons: Hit & Run (GC/Xbox)] */
             if ((codec == get_id32be("PCM ") || codec == get_id32be("PCMB") || codec == get_id32be("GADP"))
@@ -52,6 +57,7 @@ VGMSTREAM* init_vgmstream_rsd(STREAMFILE* sf) {
             name_offset  = 0x18; /* dev file path */
             interleave   = 0;
             start_offset = 0x800;
+            coef_offset = 0x00;
             break;
 
         default:
@@ -104,8 +110,8 @@ VGMSTREAM* init_vgmstream_rsd(STREAMFILE* sf) {
             vgmstream->coding_type = coding_NGC_DSP;
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = 0x08; /* assumed, known files are mono */
-            dsp_read_coefs_le(vgmstream,sf,0x1c,0x2e); /* LE! */
-            dsp_read_hist_le (vgmstream,sf,0x38,0x2e);
+            dsp_read_coefs_le(vgmstream,sf,coef_offset,0x2e); /* LE! */
+            dsp_read_hist_le (vgmstream,sf,coef_offset + 0x24, 0x2e);
 
             vgmstream->num_samples = dsp_bytes_to_samples(data_size, channels);
             break;

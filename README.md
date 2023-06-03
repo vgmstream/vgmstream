@@ -39,52 +39,58 @@ There are multiple end-user components:
 The main library (plain *vgmstream*) is the code that handles the internal conversion, while the
 above components are what you use to get sound.
 
-If you just want to convert game audio to `.wav`, easiest would be getting *vgmstream-cli* (see
-below) then drag-and-drop one or more files to the executable. This should create `(file.extension).wav`,
-if the format is supported. More usable would be installing a music player like *foobar2000* (for
-Windows) or *Audacious* (for Linux) then the appropriate component, so you can listen to VGM without
-converting and set options like infinite looping.
+If you want to convert game audio to `.wav`, try getting *vgmstream-cli* (see below) then
+drag-and-drop one or more files to the executable (support may vary per O.S. or distro).
+This should create `(file.extension).wav`, if the format is supported. More user-friendly
+would be installing a player like *foobar2000* (for Windows) or *Audacious* (for Linux)
+and the vgmstream plugin. Then you can directly listen your files and set options like infinite
+looping, or convert to `.wav` with the player's options (also easier if your file has multiple
+"subsongs").
 
 See [components](doc/USAGE.md#components) in the *usage guide* for full install instructions and
 explanations. The aim is feature parity, but there are a few differences between them due to
-missing implementation on vgmstream's side or lack of support in target player or API.
+missing parts on vgmstream's side or lack of support in the player.
 
-Note vgmstream cannot *encode* (convert from `.wav` to some video game format), it only *decodes*
+Note that vgmstream cannot *encode* (convert from `.wav` to a video game format), it only *decodes*
 (plays game audio).
 
 
 ### Windows
-You should get `vgmstream-win.zip`, which also bundles various components, or
-`foo_input_vgmstream.fb2k-component` for the installable foobar2000 plugin from the
-latest prebuilt binaries on our website:
+Get the latest prebuilt binaries (CLI/plugins/etc) on our website:
 - https://vgmstream.org
 
-You can also get them from the less frequently updated releases on GitHub:
+Or the less frequent "official" releases on GitHub:
 - https://github.com/vgmstream/vgmstream/releases
 
-If the above links fail, you may also try the alternative, somewhat recent versions built by
+The foobar2000 component is also available on https://www.foobar2000.org based on current
+release.
+
+If the above links fail, you may also try the alternative versions built by
 [bnnm](https://github.com/bnnm):
 - https://github.com/bnnm/vgmstream-builds/raw/master/bin/vgmstream-latest-test-u.zip
 
-If you prefer, you may compile the components from source as well, see the
-[build guide](doc/BUILD.md) for more information.
+You may compile from source as well, see the [build guide](doc/BUILD.md).
 
 ### Linux
-For convenience, releases distribute a command-line decoder in `vgmstream-cli.zip`. It is
-statically linked and should work on all systems running Linux kernel v3.2 and above.
+A prebuilt CLI binary is available. It's statically linked and should work on systems running
+Linux kernel v3.2 and above:
 - https://vgmstream.org
 - https://github.com/vgmstream/vgmstream/releases
 
-Building from source will also give you *vgmstream.so*, an Audacious plugin, and *vgmstream123*,
-a command-line player.
+Building from source will also give you *vgmstream.so* (Audacious plugin), and *vgmstream123*
+(command-line player).
 
-When building from source code, many components have to be installed or compiled separately. The
-[build guide](doc/BUILD.md) describes this process in more detail. For a quick build on Debian and
-Ubuntu-style distributions, run `./make-build-cmake.sh`. The script will be installing various
-dependencies, so you may prefer to copy the commands from the file and run them one by one.
+When building, many extra components have to be installed or compiled separately, which the
+[build guide](doc/BUILD.md) describes in detail. For a quick build on Debian and Ubuntu-style
+distributions run `./make-build-cmake.sh`. The script will need to install various dependencies,
+so you may prefer to copy commands and run them manually.
 
 ### macOS
-Please follow the [build guide](doc/BUILD.md).
+A prebuilt CLI binary is available as well:
+- https://vgmstream.org
+- https://github.com/vgmstream/vgmstream/releases
+
+Otherwise follow the [build guide](doc/BUILD.md).
 
 
 ## More info
