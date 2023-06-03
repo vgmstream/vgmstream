@@ -75,13 +75,15 @@ VGMSTREAM* init_vgmstream_bwav(STREAMFILE* sf) {
             vgmstream->allow_dual_stereo = 1; /* Animal Crossing: Happy Home Paradise */
             break;
 
-        case 0x0002: /* Zelda TOTK (Switch) */
+#ifdef VGM_USE_FFMPEG
+        case 0x0002: /* The Legend of Zelda: Tears of the Kingdom (Switch) */
             vgmstream->layout_data = build_layered_data(sf, channels);
             if (!vgmstream->layout_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_layered;
 
             break;
+#endif
         default:
             goto fail;
     }
