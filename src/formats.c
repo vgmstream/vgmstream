@@ -1258,7 +1258,6 @@ static const meta_info meta_info_list[] = {
         {meta_GHS,                  "Hexadrive GHS/S_P_STH header"},
         {meta_AAC_TRIACE,           "tri-Ace AAC header"},
         {meta_MTA2,                 "Konami MTA2 header"},
-        {meta_NGC_ULW,              "Criterion ULW raw header"},
         {meta_XA_XA30,              "Reflections XA30 header"},
         {meta_XA_04SW,              "Reflections 04SW header"},
         {meta_TXTH,                 "TXTH generic header"},

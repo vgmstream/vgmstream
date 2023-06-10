@@ -549,7 +549,6 @@ typedef enum {
     meta_GHS,
     meta_AAC_TRIACE,
     meta_MTA2,
-    meta_NGC_ULW,           /* Burnout 1 (GC only) */
     meta_XA_XA30,
     meta_XA_04SW,
     meta_TXTH,              /* generic text header */
