@@ -245,14 +245,14 @@ void utf_close(utf_context* utf) {
 }
 
 
-int utf_get_column(utf_context* utf, const char* column) {
+int utf_get_column(utf_context* utf, const char* column_name) {
     int i;
 
     /* find target column */
     for (i = 0; i < utf->columns; i++) {
         struct utf_column_t* col = &utf->schema[i];
 
-        if (col->name == NULL || strcmp(col->name, column) != 0)
+        if (col->name == NULL || strcmp(col->name, column_name) != 0)
             continue;
         return i;
     }
