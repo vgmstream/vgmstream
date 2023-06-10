@@ -61,8 +61,8 @@ static const char* extension_list[] = {
     //"aiff", //common
     "aix",
     "akb",
-    "al",
-    "al2",
+    "al", //txth/raw [Dominions 3 - The Awakening (PC)]
+    "al2", //txth/raw [Conquest of Elysium 3 (PC)]
     "ams", //txth/reserved [Super Dragon Ball Z (PS2) ELF names]
     "amts", //fake extension/header id for .stm (renamed? to be removed?)
     "an2",
@@ -568,7 +568,7 @@ static const char* extension_list[] = {
 
     "u0",
     "ue4opus",
-    "ulw",
+    "ulw", //txth/raw [Burnout (GC)]
     "um3",
     "utk",
     "uv",
