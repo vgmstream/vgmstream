@@ -64,7 +64,6 @@ static const char* extension_list[] = {
     "al", //txth/raw [Dominions 3 - The Awakening (PC)]
     "al2", //txth/raw [Conquest of Elysium 3 (PC)]
     "ams", //txth/reserved [Super Dragon Ball Z (PS2) ELF names]
-    "amts", //fake extension/header id for .stm (renamed? to be removed?)
     "an2",
     "ao",
     "ap",
@@ -415,7 +414,6 @@ static const char* extension_list[] = {
     "pona",
     "pos",
     "ps3",
-    "ps2stm", //fake extension for .stm (renamed? to be removed?)
     "psb",
     "psf",
     "psh", //fake extension for .vsv (to be removed)
@@ -530,7 +528,6 @@ static const char* extension_list[] = {
     "ster",
     "sth",
     "stm",
-    "stma", //fake extension/header id for .stm
     "str",
     "stream",
     "strm",
