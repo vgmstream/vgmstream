@@ -55,8 +55,10 @@ typedef enum {
     PCM8_SB,
     HEVAG,
     YMZ,
+    ULAW,
+    ALAW,
 
-    UNKNOWN = 99,
+    UNKNOWN = 255,
 } txth_codec_t;
 
 typedef enum { DEFAULT, NEGATIVE, POSITIVE, INVERTED } txth_loop_t;
@@ -238,6 +240,8 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
             case PCM8_U:
             case PCM8_SB:       interleave = 0x01; break;
             case PCM_FLOAT_LE:  interleave = 0x04; break;
+            case ULAW:
+            case ALAW:          interleave = 0x01; break;
             default:
                  break;
         }
@@ -260,6 +264,8 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
         case PCM8_U:        coding = coding_PCM8_U; break;
         case PCM8_U_int:    coding = coding_PCM8_U_int; break;
         case PCM8_SB:       coding = coding_PCM8_SB; break;
+        case ULAW:          coding = coding_ULAW; break;
+        case ALAW:          coding = coding_ALAW; break;
         case PCM_FLOAT_LE:  coding = coding_PCMFLOAT; break;
         case SDX2:          coding = coding_SDX2; break;
         case DVI_IMA:       coding = coding_DVI_IMA; break;
@@ -333,6 +339,8 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
         case coding_PCM8:
         case coding_PCM8_U:
         case coding_PCM8_SB:
+        case coding_ULAW:
+        case coding_ALAW:
         case coding_PCMFLOAT:
         case coding_PCM4:
         case coding_PCM4_U:
@@ -993,6 +1001,8 @@ static txth_codec_t parse_codec(txth_header* txth, const char* val) {
     else if (is_string(val,"PCM_FLOAT_LE")) return PCM_FLOAT_LE;
     else if (is_string(val,"IMA_HV"))       return IMA_HV;
     else if (is_string(val,"HEVAG"))        return HEVAG;
+    else if (is_string(val,"ULAW"))         return ULAW;
+    else if (is_string(val,"ALAW"))         return ALAW;
     /* special handling */
     else if (is_string(val,"name_value"))   return txth->name_values[0];
     else if (is_string(val,"name_value1"))  return txth->name_values[0];
@@ -2132,6 +2142,8 @@ static int get_bytes_to_samples(txth_header* txth, uint32_t bytes) {
         case PCM8_U_int:
         case PCM8_U:
         case PCM8_SB:
+        case ULAW:
+        case ALAW:
             return pcm8_bytes_to_samples(bytes, txth->channels);
         case PCM_FLOAT_LE:
             return pcm_bytes_to_samples(bytes, txth->channels, 32);

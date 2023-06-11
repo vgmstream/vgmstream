@@ -527,6 +527,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_sscf_encrypted,
     init_vgmstream_s_p_sth,
     init_vgmstream_utf_ahx,
+    init_vgmstream_ego_dic,
 
     /* lower priority metas (no clean header identity, somewhat ambiguous, or need extension/companion file to identify) */
     init_vgmstream_scd_pcm,
@@ -553,8 +554,6 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_raw_wavm,        /* .wavm raw xbox */
     init_vgmstream_raw_pcm,         /* .raw raw PCM */
     init_vgmstream_s14_sss,         /* .s14/sss raw siren14 */
-    init_vgmstream_raw_al,          /* .al/al2 raw A-LAW */
-    init_vgmstream_ngc_ulw,         /* .ulw raw u-Law */
     init_vgmstream_exakt_sc,        /* .sc raw PCM */
     init_vgmstream_zwdsp,           /* fake format */
     init_vgmstream_ps2_adm,         /* weird non-constant PSX blocks */

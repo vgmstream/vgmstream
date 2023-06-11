@@ -61,10 +61,9 @@ static const char* extension_list[] = {
     //"aiff", //common
     "aix",
     "akb",
-    "al",
-    "al2",
+    "al", //txth/raw [Dominions 3 - The Awakening (PC)]
+    "al2", //txth/raw [Conquest of Elysium 3 (PC)]
     "ams", //txth/reserved [Super Dragon Ball Z (PS2) ELF names]
-    "amts", //fake extension/header id for .stm (renamed? to be removed?)
     "an2",
     "ao",
     "ap",
@@ -163,6 +162,7 @@ static const char* extension_list[] = {
     "ddsp",
     "de2",
     "dec",
+    "dic",
     "diva",
     "dmsg", //fake extension/header id for .sgt (to be removed)
     "ds2", //txth/reserved [Star Wars Bounty Hunter (GC)]
@@ -415,7 +415,6 @@ static const char* extension_list[] = {
     "pona",
     "pos",
     "ps3",
-    "ps2stm", //fake extension for .stm (renamed? to be removed?)
     "psb",
     "psf",
     "psh", //fake extension for .vsv (to be removed)
@@ -530,7 +529,6 @@ static const char* extension_list[] = {
     "ster",
     "sth",
     "stm",
-    "stma", //fake extension/header id for .stm
     "str",
     "stream",
     "strm",
@@ -568,7 +566,7 @@ static const char* extension_list[] = {
 
     "u0",
     "ue4opus",
-    "ulw",
+    "ulw", //txth/raw [Burnout (GC)]
     "um3",
     "utk",
     "uv",
@@ -1261,7 +1259,6 @@ static const meta_info meta_info_list[] = {
         {meta_GHS,                  "Hexadrive GHS/S_P_STH header"},
         {meta_AAC_TRIACE,           "tri-Ace AAC header"},
         {meta_MTA2,                 "Konami MTA2 header"},
-        {meta_NGC_ULW,              "Criterion ULW raw header"},
         {meta_XA_XA30,              "Reflections XA30 header"},
         {meta_XA_04SW,              "Reflections 04SW header"},
         {meta_TXTH,                 "TXTH generic header"},
@@ -1273,7 +1270,6 @@ static const meta_info meta_info_list[] = {
         {meta_EA_SNU,               "Electronic Arts SNU header"},
         {meta_AWC,                  "Rockstar AWC header"},
         {meta_OPUS,                 "Nintendo Switch OPUS header"},
-        {meta_RAW_AL,               "Illwinter Game Design .AL raw header"},
         {meta_PC_AST,               "Capcom AST (PC) header"},
         {meta_UBI_SB,               "Ubisoft SBx header"},
         {meta_NAAC,                 "Namco NAAC header"},
@@ -1423,6 +1419,7 @@ static const meta_info meta_info_list[] = {
         {meta_SNDZ,                 "Sony SNDZ header"},
         {meta_VAB,                  "Sony VAB header"},
         {meta_BIGRP,                "Inti Creates .BIGRP header"},
+        {meta_DIC1,                 "Codemasters DIC1 header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {

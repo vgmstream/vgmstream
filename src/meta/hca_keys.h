@@ -13,8 +13,8 @@ typedef struct {
 
 
 /**
- * List of known keys, extracted from the game files (several found in 2ch.net, others from data analisys).
- * CRI's tools expect an unsigned 64 bit number string, but keys are commonly found online in hex form.
+ * List of known keys, extracted from the game files (most from data analisys, some from 2ch.net/forums).
+ * CRI's tools expect an unsigned 64 bit numberic string, but keys are commonly found online in hex form.
  * Keys only use 56 bits though, so the upper 8 bits can be ignored.
  *
  * Some ACB+AWB after mid 2018 use a user seed key + a scramble subkey in the AWB (normally 16b LE at 0x0e)
@@ -1181,8 +1181,11 @@ static const hcakey_info hcakey_list[] = {
         // Love Live! School Idol Festival 2 MIRACLE LIVE (Android)
         {5067530812966687744},  // 46537c6ceb39d400
 
-        // 404 Game RE:SET Prologue Demo (Android)
+        // 404 Game RE:SET (Android)
         {21588207721978971},    // 004CB25C4C9B1C5B
+
+        // Disney Star Smash (Android)
+        {3941111674189632},     // 000E006B915C3740
 
 };
 

@@ -549,7 +549,6 @@ typedef enum {
     meta_GHS,
     meta_AAC_TRIACE,
     meta_MTA2,
-    meta_NGC_ULW,           /* Burnout 1 (GC only) */
     meta_XA_XA30,
     meta_XA_04SW,
     meta_TXTH,              /* generic text header */
@@ -560,7 +559,6 @@ typedef enum {
     meta_EA_SNU,            /* Electronic Arts SNU (Dead Space) */
     meta_AWC,               /* Rockstar AWC (GTA5, RDR) */
     meta_OPUS,              /* Nintendo Opus [Lego City Undercover (Switch)] */
-    meta_RAW_AL,
     meta_PC_AST,            /* Dead Rising (PC) */
     meta_NAAC,              /* Namco AAC (3DS) */
     meta_UBI_SB,            /* Ubisoft banks */
@@ -712,6 +710,7 @@ typedef enum {
     meta_SNDZ,
     meta_VAB,
     meta_BIGRP,
+    meta_DIC1,
 
 } meta_t;
 

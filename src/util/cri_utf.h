@@ -24,7 +24,7 @@ typedef struct utf_context utf_context;
 utf_context* utf_open(STREAMFILE* sf, uint32_t table_offset, int* p_rows, const char** p_row_name);
 void utf_close(utf_context* utf);
 
-int utf_get_column(utf_context* utf, const char* column);
+int utf_get_column(utf_context* utf, const char* column_name);
 
 /* query calls (passing column index is faster, when you have to read lots of rows) */
 int utf_query_col_s8(utf_context* utf, int row, int column, int8_t* value);

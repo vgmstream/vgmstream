@@ -28,54 +28,53 @@ sudo apt-get install -y libao-dev
 ###############################################################################
 # vorbis deps
 sudo apt-get install -y libvorbis-dev
-FLAGS+=" VGM_VORBIS=1"
+FLAGS="${FLAGS} VGM_VORBIS=1"
 
 
 ###############################################################################
 # mpeg deps
 sudo apt-get install -y libmpg123-dev
-FLAGS+=" VGM_MPEG=1"
+FLAGS="${FLAGS} VGM_MPEG=1"
 
 
 ###############################################################################
 # speex deps
 sudo apt-get install -y libspeex-dev
-FLAGS+=" VGM_SPEEX=1"
+FLAGS="${FLAGS} VGM_SPEEX=1"
 
 
 ###############################################################################
 # ffmpeg deps
 sudo apt-get install -y libavformat-dev libavcodec-dev libavutil-dev libswresample-dev
-FLAGS+=" VGM_FFMPEG=1"
+FLAGS="${FLAGS} VGM_FFMPEG=1"
 
 
 ###############################################################################
 # atrac9 deps (compile)
-mkdir dependencies
+mkdir -p dependencies
 cd dependencies
+
 git clone https://github.com/Thealexbarney/LibAtrac9
 cd LibAtrac9/C
 make
 cd ../../../
 
-FLAGS+=" VGM_ATRAC9=2"
-#INCS+=" -I../dependencies/LibAtrac9/C/src"
-LIBS+=" -L../dependencies/LibAtrac9/C/bin"
+FLAGS="${FLAGS} VGM_ATRAC9=2"
+#INCS="${INCS} -I../dependencies/LibAtrac9/C/src"
+LIBS="${LIBS} -L../dependencies/LibAtrac9/C/bin"
 
 
 ###############################################################################
 # celt deps (compile x2)
-mkdir dependencies
-cd dependencies
 
 # used renames followed by unused renamed (but seems needed to avoid clashes)
 CELT0061_RENAMES=" \
-    -Dcelt_decode=celt_0061_decode \
-    -Dcelt_decoder_create=celt_0061_decoder_create \
-    -Dcelt_decoder_destroy=celt_0061_decoder_destroy \
-    -Dcelt_mode_create=celt_0061_mode_create \
-    -Dcelt_mode_destroy=celt_0061_mode_destroy \
-    -Dcelt_mode_info=celt_0061_mode_info \
+    -Dcelt_decode=celt_decode_0061 \
+    -Dcelt_decoder_create=celt_decoder_create_0061 \
+    -Dcelt_decoder_destroy=celt_decoder_destroy_0061 \
+    -Dcelt_mode_create=celt_mode_create_0061 \
+    -Dcelt_mode_destroy=celt_mode_destroy_0061 \
+    -Dcelt_mode_info=celt_mode_info_0061 \
     \
     -Dalg_quant=alg_quant_0061 \
     -Dalg_unquant=alg_unquant_0061 \
@@ -113,12 +112,12 @@ CELT0061_RENAMES=" \
     "
 # same as the above but I don't know sh enough to normalize
 CELT0110_RENAMES=" \
-    -Dcelt_decode=celt_0110_decode \
-    -Dcelt_decoder_create_custom=celt_0110_decoder_create_custom \
-    -Dcelt_decoder_destroy=celt_0110_decoder_destroy \
-    -Dcelt_mode_create=celt_0110_mode_create \
-    -Dcelt_mode_destroy=celt_0110_mode_destroy \
-    -Dcelt_mode_info=celt_0110_mode_info \
+    -Dcelt_decode=celt_decode_0110 \
+    -Dcelt_decoder_create_custom=celt_decoder_create_custom_0110 \
+    -Dcelt_decoder_destroy=celt_decoder_destroy_0110 \
+    -Dcelt_mode_create=celt_mode_create_0110 \
+    -Dcelt_mode_destroy=celt_mode_destroy_0110 \
+    -Dcelt_mode_info=celt_mode_info_0110 \
     \
     -Dalg_quant=alg_quant_0110 \
     -Dalg_unquant=alg_unquant_0110 \
@@ -154,6 +153,8 @@ CELT0110_RENAMES=" \
     -Dunquant_fine_energy=unquant_fine_energy_0110 \
     "
 
+mkdir -p dependencies
+cd dependencies
 
 git clone --depth 1 --branch v0.6.1 https://gitlab.xiph.org/xiph/celt.git celt-0061
 cd celt-0061
@@ -174,12 +175,12 @@ cd ..
 
 cd ..
 
-FLAGS+="VGM_CELT=2"
-#INCS+=" -I../dependencies/celt-0061/libcelt/.libs/"
-LIBS+=" -L../dependencies/celt-0061/libcelt/.libs/ -L../dependencies/celt-0110/libcelt/.libs/"
+FLAGS="${FLAGS} VGM_CELT=2"
+#INCS="${INCS} -I../dependencies/celt-0061/libcelt/.libs/"
+LIBS="${LIBS} -L../dependencies/celt-0061/libcelt/.libs/ -L../dependencies/celt-0110/libcelt/.libs/"
 
 
 ###############################################################################
 # vgmstream
-make vgmstream_cli $FLAGS EXTRA_CFLAGS=$INCS EXTRA_LDFLAGS=$LIBS
+make vgmstream-cli $FLAGS EXTRA_CFLAGS=$INCS EXTRA_LDFLAGS=$LIBS
 make vgmstream123 $FLAGS EXTRA_CFLAGS=$INCS EXTRA_LDFLAGS=$LIBS

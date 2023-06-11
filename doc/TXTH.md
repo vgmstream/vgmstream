@@ -107,6 +107,13 @@ as explained below, but often will use default values. Accepted codec strings:
 #   * For few rare games [Ikinari Maou (Switch)]
 #   * Interleave is multiple of 0x4 (default)
 #
+# - ULAW           mu-Law 8-bit PCM
+#   * For few rare games [Burnout (GC)]
+#   * Interleave is multiple of 0x1 (default)
+# - ALAW           A-Law 8-bit PCM
+#   * For few rare games [Illwinter Game Design games: Conquest of Elysium 3 (PC), Dominions 3/4 (PC)]
+#   * Interleave is multiple of 0x1 (default)
+#
 # - IMA            IMA ADPCM (mono/stereo)
 #   * For some PC games, and rarely consoles
 #   * Special interleave is multiple of 0x1, often +0x80

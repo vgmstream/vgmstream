@@ -215,7 +215,7 @@ This list is not complete and many other files are supported.
 	- .sd9 (MS ADPCM)
 	- .smp (MS ADPCM)
 	- .spw (PSX configurable ADPCM)
-	- .stm/lstm [amts/ps2stm/stma] (16 bit PCM, DVI IMA ADPCM, GC DSP ADPCM)
+	- .stm/lstm (16 bit PCM, DVI IMA ADPCM, GC DSP ADPCM)
 	- .str (SDX2 DPCM)
 	- .stx (GC AFC ADPCM)
 	- .ulw (u-Law PCM)
