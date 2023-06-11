@@ -411,6 +411,7 @@
     <ClCompile Include="meta\ea_swvr.c" />
     <ClCompile Include="meta\ea_wve_ad10.c" />
     <ClCompile Include="meta\ea_wve_au00.c" />
+    <ClCompile Include="meta\ego_dic.c" />
     <ClCompile Include="meta\encrypted.c" />
     <ClCompile Include="meta\esf.c" />
     <ClCompile Include="meta\exakt_sc.c" />
@@ -517,7 +518,6 @@
     <ClCompile Include="meta\ngc_ssm.c" />
     <ClCompile Include="meta\ngc_str_cauldron.c" />
     <ClCompile Include="meta\ngc_tydsp.c" />
-    <ClCompile Include="meta\ngc_ulw.c" />
     <ClCompile Include="meta\ngc_ymf.c" />
     <ClCompile Include="meta\nps.c" />
     <ClCompile Include="meta\nub.c" />
@@ -593,7 +593,6 @@
     <ClCompile Include="meta\psf.c" />
     <ClCompile Include="meta\ps_headerless.c" />
     <ClCompile Include="meta\rad.c" />
-    <ClCompile Include="meta\raw_al.c" />
     <ClCompile Include="meta\raw_int.c" />
     <ClCompile Include="meta\raw_pcm.c" />
     <ClCompile Include="meta\raw_snds.c" />

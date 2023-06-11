@@ -986,4 +986,6 @@ VGMSTREAM* init_vgmstream_bigrp(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_sscf_encrypted(STREAMFILE* sf);
 
+VGMSTREAM* init_vgmstream_ego_dic(STREAMFILE* sf);
+
 #endif /*_META_H*/

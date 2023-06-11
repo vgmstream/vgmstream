@@ -162,6 +162,7 @@ static const char* extension_list[] = {
     "ddsp",
     "de2",
     "dec",
+    "dic",
     "diva",
     "dmsg", //fake extension/header id for .sgt (to be removed)
     "ds2", //txth/reserved [Star Wars Bounty Hunter (GC)]
@@ -1418,6 +1419,7 @@ static const meta_info meta_info_list[] = {
         {meta_SNDZ,                 "Sony SNDZ header"},
         {meta_VAB,                  "Sony VAB header"},
         {meta_BIGRP,                "Inti Creates .BIGRP header"},
+        {meta_DIC1,                 "Codemasters DIC1 header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {
