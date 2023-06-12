@@ -711,6 +711,7 @@ typedef enum {
     meta_VAB,
     meta_BIGRP,
     meta_DIC1,
+    meta_AWD,
 
 } meta_t;
 
