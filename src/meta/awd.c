@@ -19,7 +19,8 @@ VGMSTREAM* init_vgmstream_awd(STREAMFILE* sf) {
         goto fail;
 
     /* .awd: standard (Black, Burnout series, Call of Duty: Finest Hour)
-     * .hwd/lwd: high/low vehicle engine sounds (Burnout series) */
+     * .hwd/lwd: high/low vehicle engine sounds (Burnout series) 
+     * (Burnout 3: Takedown, Burnout Revenge, Burnout Dominator) */
     if (!check_extensions(sf, "awd,hwd,lwd"))
         goto fail;
 
@@ -38,17 +39,18 @@ VGMSTREAM* init_vgmstream_awd(STREAMFILE* sf) {
     if (data_offset != data_offset_2)
         goto fail;
 
-    header_name_offset = wavedict_offset + 0x04;
-    linked_list_offset = wavedict_offset + 0x0C;
+    header_name_offset = read_u32(wavedict_offset + 0x04, sf);
 
     if (header_name_offset) /* not used in Black */
         read_string(header_name, STREAM_NAME_SIZE, header_name_offset, sf);
     
-    if (target_subsong == 0)
+    if (!target_subsong)
         target_subsong = 1;
     
     /* Linked lists have no total subsong count; instead iterating
      * through all of them, until it returns to the 1st song again */
+    linked_list_offset = wavedict_offset + 0x0C;
+
     prev_dict_entry = read_u32(linked_list_offset + 0x00, sf);
     next_dict_entry = read_u32(linked_list_offset + 0x04, sf);
 
@@ -69,13 +71,17 @@ VGMSTREAM* init_vgmstream_awd(STREAMFILE* sf) {
             stream_codec = read_u32(entry_info_offset + 0x14, sf);
             stream_size = read_u32(entry_info_offset + 0x18, sf);
             bit_depth = read_8bit(entry_info_offset + 0x1C, sf);
-            channels = read_8bit(entry_info_offset + 0x1D, sf); /* always 1, haven't seen any stereo entries */
+            channels = read_8bit(entry_info_offset + 0x1D, sf); /* always 1, don't think stereo entries exist */
             if (channels != 1)
                 goto fail;
 
-            /* stores a "00: GCN ADPCM Header" section, otherwise empty */
+            /* stores a "00: GCN ADPCM Header" chunk, otherwise empty */
             misc_data_offset = read_u32(entry_info_offset + 0x20, sf);
             misc_data_size = read_u32(entry_info_offset + 0x24, sf);
+
+            /* entry_info_offset + 0x2C to +0x44 has the target format information,
+             * which in most cases would probably be identical to the input format
+             * variables (from sample_rate to misc_data_size) */
 
             stream_offset = read_u32(entry_info_offset + 0x4C, sf) + data_offset;
 
@@ -106,12 +112,12 @@ VGMSTREAM* init_vgmstream_awd(STREAMFILE* sf) {
         snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%s", stream_name);
 
     switch (stream_codec) {
-        case 0x00: /* PS2 (All Games) */
+        case 0x00: /* PS2 (Black, Burnout series, Call of Duty: Finest Hour) */
             vgmstream->num_samples = ps_bytes_to_samples(stream_size, channels);
             vgmstream->coding_type = coding_PSX;
             break;
 
-        case 0x01: /* Xbox (Black, Burnout) */
+        case 0x01: /* Xbox (Black, Burnout series) */
             vgmstream->num_samples = pcm16_bytes_to_samples(stream_size, channels);
             vgmstream->coding_type = coding_PCM16LE;
             break;

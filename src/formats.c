@@ -218,6 +218,7 @@ static const char* extension_list[] = {
     "hab",
     "hca",
     "hdr",
+    "hdt",
     "hgc1",
     "his",
     "hps",
@@ -231,6 +232,7 @@ static const char* extension_list[] = {
     "hxg",
     "hxx",
     "hwas",
+    "hwb",
     "hwd",
 
     "iab",
@@ -291,6 +293,7 @@ static const char* extension_list[] = {
     "lasf", //fake extension for .asf (various)
     "lbin", //fake extension for .bin (various)
     "ldat", //fake extension for .dat
+    "ldt",
     "leg",
     "lep",
     "lflac", //fake extension for .flac, FFmpeg/not parsed
