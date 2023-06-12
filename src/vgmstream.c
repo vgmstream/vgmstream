@@ -28,6 +28,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_nds_strm,
     init_vgmstream_afc,
     init_vgmstream_ast,
+    init_vgmstream_awd,
     init_vgmstream_halpst,
     init_vgmstream_rs03,
     init_vgmstream_ngc_dsp_std,

@@ -358,6 +358,7 @@
     <ClCompile Include="meta\astb.c" />
     <ClCompile Include="meta\ast_mmv.c" />
     <ClCompile Include="meta\ast_mv.c" />
+    <ClCompile Include="meta\awd.c" />
     <ClCompile Include="meta\atsl.c" />
     <ClCompile Include="meta\atx.c" />
     <ClCompile Include="meta\aus.c" />
