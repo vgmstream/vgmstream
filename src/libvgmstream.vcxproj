@@ -363,6 +363,7 @@
     <ClCompile Include="meta\aus.c" />
     <ClCompile Include="meta\awb.c" />
     <ClCompile Include="meta\awc.c" />
+    <ClCompile Include="meta\awd.c" />
     <ClCompile Include="meta\baf.c" />
     <ClCompile Include="meta\bar.c" />
     <ClCompile Include="meta\bcstm.c" />

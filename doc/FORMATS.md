@@ -156,6 +156,7 @@ This list is not complete and many other files are supported.
 	- .ast (GC AFC ADPCM, 16 bit PCM)
 	- .aud (IMA ADPCM, WS DPCM)
 	- .aus (PSX ADPCM, Xbox IMA ADPCM)
+	- .awd/.hwd/.lwd (PSX ADPCM, XBOX IMA ADPCM, GC DSP ADPCM, 16 bit PCM)
 	- .brstm (GC DSP ADPCM, 8/16 bit PCM)
 	- .emff (PSX APDCM, GC DSP ADPCM)
 	- .fsb/wii (PSX ADPCM, GC DSP ADPCM, Xbox IMA ADPCM, MPEG audio, FSB Vorbis, MS XMA)

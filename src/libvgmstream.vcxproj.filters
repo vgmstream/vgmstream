@@ -910,6 +910,9 @@
     <ClCompile Include="meta\awc.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\awd.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\baf.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>

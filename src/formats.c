@@ -89,6 +89,7 @@ static const char* extension_list[] = {
     "awa", //txth/reserved [Missing Parts Side A (PS2)]
     "awb",
     "awc",
+    "awd",
 
     "b1s",
     "baf",
@@ -217,6 +218,7 @@ static const char* extension_list[] = {
     "hab",
     "hca",
     "hdr",
+    "hdt",
     "hgc1",
     "his",
     "hps",
@@ -230,6 +232,8 @@ static const char* extension_list[] = {
     "hxg",
     "hxx",
     "hwas",
+    "hwb",
+    "hwd",
 
     "iab",
     "iadp",
@@ -289,6 +293,7 @@ static const char* extension_list[] = {
     "lasf", //fake extension for .asf (various)
     "lbin", //fake extension for .bin (various)
     "ldat", //fake extension for .dat
+    "ldt",
     "leg",
     "lep",
     "lflac", //fake extension for .flac, FFmpeg/not parsed
@@ -316,6 +321,7 @@ static const char* extension_list[] = {
     "lsf",
     "lstm", //fake extension for .stm
     "lwav", //fake extension for .wav
+    "lwd",
     "lwma", //fake extension for .wma, FFmpeg/not parsed
 
     "mab",
@@ -1420,6 +1426,7 @@ static const meta_info meta_info_list[] = {
         {meta_VAB,                  "Sony VAB header"},
         {meta_BIGRP,                "Inti Creates .BIGRP header"},
         {meta_DIC1,                 "Codemasters DIC1 header"},
+        {meta_AWD,                  "RenderWare Audio Wave Dictionary header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {
