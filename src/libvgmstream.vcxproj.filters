@@ -2071,8 +2071,5 @@
     <ClCompile Include="util\text_reader.c">
       <Filter>util\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="awd.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
 </Project>
