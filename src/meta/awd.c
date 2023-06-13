@@ -9,10 +9,10 @@ VGMSTREAM* init_vgmstream_awd(STREAMFILE* sf) {
     char header_name[STREAM_NAME_SIZE], stream_name[STREAM_NAME_SIZE];
     int bit_depth = 0, channels = 0, sample_rate = 0, stream_codec = -1, total_subsongs = 0, target_subsong = sf->stream_index;
     int interleave, loop_flag;
-    off_t data_offset, data_offset_2, header_name_offset, misc_data_offset, linked_list_offset, wavedict_offset;
-    off_t entry_info_offset, entry_name_offset, entry_uuid_offset, next_dict_entry, prev_dict_entry, stream_offset;
+    off_t data_offset, header_name_offset, misc_data_offset, linked_list_offset, wavedict_offset;
+    off_t entry_info_offset, entry_name_offset, entry_uuid_offset, next_entry_offset, prev_entry_offset, stream_offset;
     read_u32_t read_u32;
-    size_t misc_data_size, stream_size = 0;
+    size_t data_size, header_size, misc_data_size, stream_size = 0;
 
     /* checks */
     if ((read_u32le(0x00, sf) != 0x809) && (read_u32be(0x00, sf) != 0x809))
@@ -28,15 +28,16 @@ VGMSTREAM* init_vgmstream_awd(STREAMFILE* sf) {
 
     data_offset = read_u32(0x08, sf);
     wavedict_offset = read_u32(0x0C, sf);
+    data_size = read_u32(0x14, sf);
     /* Platform UUIDs in big endian
      * {FD9D32D3-E179-426A-8424-14720AC7F648}: GameCube
      * {ACC9EAAA-38FC-1749-AE81-64EADBC79353}: PlayStation 2
      * {042D3A45-5FE4-C84B-81F0-DF758B01F273}: Xbox */
     //platf_uuid_1 = read_u64be(0x18, sf);
     //platf_uuid_2 = read_u64be(0x20, sf);
-    data_offset_2 = read_u32(0x28, sf);
+    header_size = read_u32(0x28, sf);
 
-    if (data_offset != data_offset_2)
+    if (data_offset != header_size)
         goto fail;
 
     header_name_offset = read_u32(wavedict_offset + 0x04, sf);
@@ -48,19 +49,22 @@ VGMSTREAM* init_vgmstream_awd(STREAMFILE* sf) {
         target_subsong = 1;
     
     /* Linked lists have no total subsong count; instead iterating
-     * through all of them, until it returns to the 1st song again */
+     * through all of them until it returns to the 1st entry again */
     linked_list_offset = wavedict_offset + 0x0C;
 
-    prev_dict_entry = read_u32(linked_list_offset + 0x00, sf);
-    next_dict_entry = read_u32(linked_list_offset + 0x04, sf);
+    prev_entry_offset = read_u32(linked_list_offset + 0x00, sf);
+    next_entry_offset = read_u32(linked_list_offset + 0x04, sf);
 
-    while (next_dict_entry != linked_list_offset) {
+    while (next_entry_offset != linked_list_offset) {
         total_subsongs++;
 
-        entry_info_offset = read_u32(next_dict_entry + 0x08, sf);
+        if (total_subsongs > 1024 || prev_entry_offset > header_size || next_entry_offset > header_size)
+            goto fail;
 
-        prev_dict_entry = read_u32(next_dict_entry + 0x00, sf);
-        next_dict_entry = read_u32(next_dict_entry + 0x04, sf);
+        entry_info_offset = read_u32(next_entry_offset + 0x08, sf);
+
+        prev_entry_offset = read_u32(next_entry_offset + 0x00, sf);
+        next_entry_offset = read_u32(next_entry_offset + 0x04, sf);
 
         /* is at the correct target song index */
         if (total_subsongs == target_subsong) {
@@ -95,6 +99,7 @@ VGMSTREAM* init_vgmstream_awd(STREAMFILE* sf) {
     interleave = 0;
     loop_flag = 0;
 
+    /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream)
         goto fail;
