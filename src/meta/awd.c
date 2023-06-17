@@ -15,16 +15,17 @@ VGMSTREAM* init_vgmstream_awd(STREAMFILE* sf) {
     size_t data_size, header_size, misc_data_size, stream_size = 0;
 
     /* checks */
-    if ((read_u32le(0x00, sf) != 0x809) && (read_u32be(0x00, sf) != 0x809))
+    if (read_u32le(0x00, sf) != 0x809 && read_u32be(0x00, sf) != 0x809)
         goto fail;
 
-    /* .awd: standard (Black, Burnout series, Call of Duty: Finest Hour)
-     * .hwd/lwd: high/low vehicle engine sounds (Burnout series) 
+    /* .awd: standard (Burnout series, Black, Call of Duty: Finest Hour)
+     * .hwd/lwd: high/low vehicle engine sounds (Burnout series)
      * (Burnout 3: Takedown, Burnout Revenge, Burnout Dominator) */
     if (!check_extensions(sf, "awd,hwd,lwd"))
         goto fail;
 
-    read_u32 = guess_endian32(0x00, sf) ? read_u32be : read_u32le;
+    read_u32 = read_u8(0x04, sf) ? read_u32be : read_u32le;
+    //read_u32 = guess_endian32(0x00, sf) ? read_u32be : read_u32le;
 
     data_offset = read_u32(0x08, sf);
     wavedict_offset = read_u32(0x0C, sf);
@@ -44,10 +45,10 @@ VGMSTREAM* init_vgmstream_awd(STREAMFILE* sf) {
 
     if (header_name_offset) /* not used in Black */
         read_string(header_name, STREAM_NAME_SIZE, header_name_offset, sf);
-    
+
     if (!target_subsong)
         target_subsong = 1;
-    
+
     /* Linked lists have no total subsong count; instead iterating
      * through all of them until it returns to the 1st entry again */
     linked_list_offset = wavedict_offset + 0x0C;
@@ -58,10 +59,13 @@ VGMSTREAM* init_vgmstream_awd(STREAMFILE* sf) {
     while (next_entry_offset != linked_list_offset) {
         total_subsongs++;
 
-        if (total_subsongs > 1024 || prev_entry_offset > header_size || next_entry_offset > header_size)
-            goto fail;
-
         entry_info_offset = read_u32(next_entry_offset + 0x08, sf);
+
+        if (total_subsongs > 1024 || /* in case it gets stuck in an infinite loop */
+            entry_info_offset < wavedict_offset || entry_info_offset > header_size ||
+            prev_entry_offset < wavedict_offset || prev_entry_offset > header_size ||
+            next_entry_offset < wavedict_offset || next_entry_offset > header_size)
+            goto fail;
 
         prev_entry_offset = read_u32(next_entry_offset + 0x00, sf);
         next_entry_offset = read_u32(next_entry_offset + 0x04, sf);
@@ -74,8 +78,8 @@ VGMSTREAM* init_vgmstream_awd(STREAMFILE* sf) {
             sample_rate = read_u32(entry_info_offset + 0x10, sf);
             stream_codec = read_u32(entry_info_offset + 0x14, sf);
             stream_size = read_u32(entry_info_offset + 0x18, sf);
-            bit_depth = read_8bit(entry_info_offset + 0x1C, sf);
-            channels = read_8bit(entry_info_offset + 0x1D, sf); /* always 1, don't think stereo entries exist */
+            bit_depth = read_u8(entry_info_offset + 0x1C, sf);
+            channels = read_u8(entry_info_offset + 0x1D, sf); /* always 1, don't think stereo entries exist */
             if (channels != 1)
                 goto fail;
 
@@ -117,12 +121,12 @@ VGMSTREAM* init_vgmstream_awd(STREAMFILE* sf) {
         snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%s", stream_name);
 
     switch (stream_codec) {
-        case 0x00: /* PS2 (Black, Burnout series, Call of Duty: Finest Hour) */
+        case 0x00: /* PS2 (Burnout series, Black, Call of Duty: Finest Hour) */
             vgmstream->num_samples = ps_bytes_to_samples(stream_size, channels);
             vgmstream->coding_type = coding_PSX;
             break;
 
-        case 0x01: /* Xbox (Black, Burnout series) */
+        case 0x01: /* Xbox (Burnout series, Black) */
             vgmstream->num_samples = pcm16_bytes_to_samples(stream_size, channels);
             vgmstream->coding_type = coding_PCM16LE;
             break;
@@ -130,6 +134,7 @@ VGMSTREAM* init_vgmstream_awd(STREAMFILE* sf) {
         case 0x03: /* GCN (Call of Duty: Finest Hour) */
             vgmstream->num_samples = dsp_bytes_to_samples(stream_size, channels);
             dsp_read_coefs_be(vgmstream, sf, misc_data_offset + 0x1C, 0);
+            dsp_read_hist_be(vgmstream, sf, misc_data_offset + 0x40, 0);
             vgmstream->coding_type = coding_NGC_DSP;
             break;
 
