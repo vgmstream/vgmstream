@@ -145,9 +145,11 @@ VGMSTREAM* init_vgmstream_vagwad(STREAMFILE* sf_wad) {
     vgmstream->sample_rate = sample_rate;
     vgmstream->stream_size = stream_size;
     vgmstream->num_streams = total_subsongs;
-    vgmstream->interleave_block_size = interleave;
-    vgmstream->interleave_first_skip = header_size;
-    vgmstream->interleave_first_block_size = interleave - header_size; /* interleave includes header */
+    if (stereo) {
+        vgmstream->interleave_block_size = interleave;
+        vgmstream->interleave_first_skip = header_size;
+        vgmstream->interleave_first_block_size = interleave - header_size; /* interleave includes header */
+    }
     vgmstream->num_samples = ps_bytes_to_samples(stream_size / channels, 1);
 
     /* only J&D: TPL has unique names, otherwise just "Mono" and "Stereo" */
