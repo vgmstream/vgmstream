@@ -132,6 +132,8 @@ VGMSTREAM* init_vgmstream_vagwad(STREAMFILE* sf_wad) {
     stream_size = read_u32(stream_offset + 0x0C, sf_wad);
     sample_rate = read_u32(stream_offset + 0x10, sf_wad);
 
+    //read_string(header_name, 17, stream_offset + 0x20, sf_wad);
+
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream)
@@ -148,7 +150,9 @@ VGMSTREAM* init_vgmstream_vagwad(STREAMFILE* sf_wad) {
     vgmstream->interleave_first_block_size = interleave - header_size; /* interleave includes header */
     vgmstream->num_samples = ps_bytes_to_samples(stream_size / channels, 1);
 
+    /* only J&D: TPL has unique names, otherwise just "Mono" and "Stereo" */
     snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%s", sound_name);
+    //snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%s/%s", sound_name, header_name);
 
     if (!vgmstream_open_stream(vgmstream, sf_wad, stream_offset + header_size))
         goto fail;
