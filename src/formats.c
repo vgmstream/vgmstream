@@ -143,6 +143,7 @@ static const char* extension_list[] = {
     "ckd",
     "cks",
     "cnk",
+    "com",
     "cpk",
     "cps",
     "csa", //txth/reserved [LEGO Racers 2 (PS2)]
@@ -180,6 +181,7 @@ static const char* extension_list[] = {
     "eas",
     "eda", //txth/reserved [Project Eden (PS2)]
     "emff", //fake extension for .mul (to be removed)
+    "eng",
     "enm",
     "eno",
     "ens",
@@ -194,6 +196,7 @@ static const char* extension_list[] = {
     "filp",
     //"flac", //common
     "flx",
+    "fre",
     "fsb",
     "fsv",
     "fwav",
@@ -206,6 +209,7 @@ static const char* extension_list[] = {
     "gcub",
     "gcw",
     "genh",
+    "ger",
     "gin",
     "gms",
     "grn",
@@ -256,12 +260,14 @@ static const char* extension_list[] = {
     "isb",
     "isd",
     "isws",
+    "ita",
     "itl",
     "ivaud",
     "ivag",
     "ivb",
     "ivs", //txth/reserved [Burnout 2 (PS2)]
 
+    "jap",
     "joe",
     "jstm",
 
@@ -275,6 +281,7 @@ static const char* extension_list[] = {
     "kno",
     "kns",
     "koe",
+    "kor",
     "kraw",
     "ktac",
     "ktsl2asbin",
@@ -521,6 +528,7 @@ static const char* extension_list[] = {
     "snz", //txth/reserved [Killzone HD (PS3)]
     "sod",
     "son",
+    "spa",
     "spd",
     "spm",
     "sps",

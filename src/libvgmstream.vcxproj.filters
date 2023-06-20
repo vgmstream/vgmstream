@@ -1852,6 +1852,9 @@
     <ClCompile Include="meta\vag.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\vagwad.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\vai.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>

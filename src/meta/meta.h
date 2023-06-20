@@ -107,6 +107,8 @@ VGMSTREAM * init_vgmstream_raw_pcm(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_vag(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_vag_aaap(STREAMFILE *streamFile);
 
+VGMSTREAM* init_vgmstream_vagwad(STREAMFILE* sf_wad);
+
 VGMSTREAM * init_vgmstream_seb(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_ild(STREAMFILE *streamFile);

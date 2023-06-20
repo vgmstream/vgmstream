@@ -677,6 +677,7 @@
     <ClCompile Include="meta\utk.c" />
     <ClCompile Include="meta\vab.c" />
     <ClCompile Include="meta\vag.c" />
+    <ClCompile Include="meta\vagwad.c" />
     <ClCompile Include="meta\vai.c" />
     <ClCompile Include="meta\vgs.c" />
     <ClCompile Include="meta\vgs_ps.c" />
