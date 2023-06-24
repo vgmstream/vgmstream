@@ -580,7 +580,7 @@ typedef enum {
     meta_WAF,               /* KID WAF [Ever 17 (PC)] */
     meta_WAVE,              /* EngineBlack games [Mighty Switch Force! (3DS)] */
     meta_WAVE_segmented,    /* EngineBlack games, segmented [Shantae and the Pirate's Curse (PC)] */
-    meta_SMV,               /* Cho Aniki Zero (PSP) */
+    meta_SMV,
     meta_NXAP,              /* Nex Entertainment games [Time Crisis 4 (PS3), Time Crisis Razing Storm (PS3)] */
     meta_EA_WVE_AU00,       /* Electronic Arts PS movies [Future Cop - L.A.P.D. (PS), Supercross 2000 (PS)] */
     meta_EA_WVE_AD10,       /* Electronic Arts PS movies [Wing Commander 3/4 (PS)] */

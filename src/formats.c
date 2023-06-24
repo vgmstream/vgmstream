@@ -1293,7 +1293,7 @@ static const meta_info meta_info_list[] = {
         {meta_WAF,                  "KID WAF header"},
         {meta_WAVE,                 "EngineBlack .WAVE header"},
         {meta_WAVE_segmented,       "EngineBlack .WAVE header (segmented)"},
-        {meta_SMV,                  "Cho Aniki Zero .SMV header"},
+        {meta_SMV,                  "extreme .SMV header"},
         {meta_NXAP,                 "Nex NXAP header"},
         {meta_EA_WVE_AU00,          "Electronic Arts WVE (au00) header"},
         {meta_EA_WVE_AD10,          "Electronic Arts WVE (Ad10) header"},
