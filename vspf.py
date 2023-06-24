@@ -55,6 +55,10 @@ class ProjectFixer:
             if '\\' in basefile:
                 pos = basefile.rindex('\\')
                 path = basefile[0 : pos + 1]
+            basename = os.path.basename(basefile)
+            if basename.startswith('.'): #hidden .c
+                continue
+
             items.append( (basefile, path) )
         return items
 
