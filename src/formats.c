@@ -508,7 +508,6 @@ static const char* extension_list[] = {
     "smc",
     "smk",
     "smp",
-    "smpl", //fake extension/header id for .v0/v1 (renamed, to be removed)
     "smv",
     "snb",
     "snd",
@@ -1179,7 +1178,7 @@ static const meta_info meta_info_list[] = {
         {meta_S14,                  "Namco .S14 raw header"},
         {meta_SSS,                  "Namco .SSS raw header"},
         {meta_PS2_GCM,              "Namco GCM header"},
-        {meta_PS2_SMPL,             "Homura SMPL header"},
+        {meta_SMPL,                 "Skonec SMPL header"},
         {meta_PS2_MSA,              "Success .MSA header"},
         {meta_NGC_PDT,              "Hudson .PDT header"},
         {meta_NGC_RKV,              "Legacy of Kain - Blood Omen 2 RKV GC header"},

@@ -2,42 +2,43 @@
 #include "../coding/coding.h"
 
 /* SMPL - from Homura (PS2) */
-VGMSTREAM * init_vgmstream_ps2_smpl(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
-    off_t start_offset;
-    int loop_flag, channel_count;
-    size_t channel_size;
+VGMSTREAM* init_vgmstream_smpl(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
+    uint32_t start_offset, channel_size;
+    int loop_flag, channels;
 
     /* checks*/
+    if (!is_id32be(0x00,sf, "SMPL"))
+        return NULL;
+
     /* .v0: left channel, .v1: right channel
      * .smpl: header id */
-    if ( !check_extensions(streamFile,"v0,v1,smpl") )
-       goto fail;
-    if (read_32bitBE(0x00,streamFile) != 0x534D504C) /* "SMPL" */
-        goto fail;
+    if (!check_extensions(sf,"v0,v1") )
+       return NULL;
 
-    channel_count = 1;
-    loop_flag = (read_32bitLE(0x30,streamFile) != 0); /* .v1 doesn't have loop points */
+    /* 0x04: version (VAG-clone) */
+    channels = 1;
+    loop_flag = (read_s32le(0x30,sf) != 0); /* .v1 doesn't have loop points */
     start_offset = 0x40;
-    channel_size = read_32bitBE(0x0c,streamFile) - 0x10;
+    channel_size = read_u32be(0x0c,sf) - 0x10;
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    vgmstream = allocate_vgmstream(channels,loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->sample_rate = read_32bitBE(0x10,streamFile);
-    vgmstream->num_samples = ps_bytes_to_samples(channel_size*channel_count, channel_count);
-    vgmstream->loop_start_sample = read_32bitLE(0x30,streamFile);
+    vgmstream->sample_rate = read_s32be(0x10,sf);
+    vgmstream->num_samples = ps_bytes_to_samples(channel_size*channels, channels);
+    vgmstream->loop_start_sample = read_s32le(0x30,sf);
     vgmstream->loop_end_sample = vgmstream->num_samples;
 
-    vgmstream->meta_type = meta_PS2_SMPL;
+    vgmstream->meta_type = meta_SMPL;
     vgmstream->allow_dual_stereo = 1;
     vgmstream->coding_type = coding_PSX;
     vgmstream->layout_type = layout_none;
 
-    read_string(vgmstream->stream_name,0x10+1, 0x20,streamFile);
+    read_string(vgmstream->stream_name,0x10+1, 0x20,sf);
 
-    if ( !vgmstream_open_stream(vgmstream, streamFile, start_offset) )
+    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
         goto fail;
     return vgmstream;
 

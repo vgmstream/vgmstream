@@ -465,7 +465,7 @@ typedef enum {
     meta_S14,               /* raw Siren 14, 24kbit mono */
     meta_SSS,               /* raw Siren 14, 48kbit stereo */
     meta_PS2_GCM,           /* NamCollection */
-    meta_PS2_SMPL,          /* Homura */
+    meta_SMPL,
     meta_PS2_MSA,           /* Psyvariar -Complete Edition- */
     meta_PS2_VOI,           /* RAW Danger (Zettaizetsumei Toshi 2 - Itetsuita Kiokutachi) [PS2] */
     meta_P3D,               /* Prototype P3D */

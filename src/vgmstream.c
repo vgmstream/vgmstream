@@ -207,7 +207,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_ps2_wb,
     init_vgmstream_bnsf,
     init_vgmstream_ps2_gcm,
-    init_vgmstream_ps2_smpl,
+    init_vgmstream_smpl,
     init_vgmstream_ps2_msa,
     init_vgmstream_ps2_voi,
     init_vgmstream_ngc_rkv,
@@ -1024,7 +1024,7 @@ static void try_dual_file_stereo(VGMSTREAM* opened_vgmstream, STREAMFILE* sf, in
 
     /* check these even if there is no loop, because they should then be zero in both
      * (Homura PS2 right channel doesn't have loop points so this check is ignored) */
-    if (new_vgmstream->meta_type != meta_PS2_SMPL &&
+    if (new_vgmstream->meta_type != meta_SMPL &&
             !(new_vgmstream->loop_flag      == opened_vgmstream->loop_flag &&
             new_vgmstream->loop_start_sample== opened_vgmstream->loop_start_sample &&
             new_vgmstream->loop_end_sample  == opened_vgmstream->loop_end_sample)) {
