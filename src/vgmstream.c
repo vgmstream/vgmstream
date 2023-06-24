@@ -552,7 +552,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_raw_snds,        /* .snds raw SNDS IMA */
     init_vgmstream_raw_wavm,        /* .wavm raw xbox */
     init_vgmstream_raw_pcm,         /* .raw raw PCM */
-    init_vgmstream_s14_sss,         /* .s14/sss raw siren14 */
+    init_vgmstream_raw_s14_sss,     /* .s14/sss raw siren14 */
     init_vgmstream_exakt_sc,        /* .sc raw PCM */
     init_vgmstream_zwdsp,           /* fake format */
     init_vgmstream_ps2_adm,         /* weird non-constant PSX blocks */

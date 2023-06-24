@@ -1164,7 +1164,7 @@ static const meta_info meta_info_list[] = {
         {meta_WII_BNS,              "Nintendo BNS header"},
         {meta_WII_WAS,              "Sumo Digital iSWS header"},
         {meta_XBOX_HLWAV,           "Half-Life 2 .WAV header"},
-        {meta_MYSPD,                "U-Sing .MYSPD header"},
+        {meta_MYSPD,                "Punchers Impact .MYSPD header"},
         {meta_HIS,                  "Her Interactive HIS header"},
         {meta_AST_MV,               "MicroVision AST header"},
         {meta_AST_MMV,              "Marvelous AST header"},

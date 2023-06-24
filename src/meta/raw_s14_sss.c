@@ -6,7 +6,7 @@
 static int test_interleave(STREAMFILE* sf, int channels, int interleave);
 
 /* .s14/.sss - headerless siren14 stream [The Idolm@ster (DS), Korogashi Puzzle Katamari Damacy (DS), Taiko no Tatsujin DS 1/2 (DS)] */
-VGMSTREAM* init_vgmstream_s14_sss(STREAMFILE* sf) {
+VGMSTREAM* init_vgmstream_raw_s14_sss(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     off_t start_offset = 0;
     int channels, loop_flag = 0, interleave;
@@ -18,7 +18,7 @@ VGMSTREAM* init_vgmstream_s14_sss(STREAMFILE* sf) {
     } else if (check_extensions(sf,"s14")) {
         channels = 1; /* may have dual _0ch.s14 + _1ch.s14, needs .txtp */
     } else {
-        goto fail;
+        return NULL;
     }
 
     /* raw siren comes in 3 frame sizes, try to guess the correct one */
