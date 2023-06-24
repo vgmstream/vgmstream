@@ -2,19 +2,17 @@
 #include "../util.h"
 #include "../coding/coding.h"
 
-/* .rsf - from Metroid Prime */
-
-VGMSTREAM* init_vgmstream_rsf(STREAMFILE* sf) {
+/* .rsf - from Metroid Prime (GC) */
+VGMSTREAM* init_vgmstream_raw_rsf(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     int channels, loop_flag;
     uint32_t interleave, file_size;
 
     /* checks */
     if (!check_extensions(sf,"rsf"))
-        goto fail;
+        return NULL;
 
     /* this is all we have to go on, rsf is completely headerless */
-
     file_size = get_streamfile_size(sf);
     interleave = (file_size + 1) / 2;
 

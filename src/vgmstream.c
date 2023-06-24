@@ -531,7 +531,6 @@ init_vgmstream_t init_vgmstream_functions[] = {
     /* lower priority metas (no clean header identity, somewhat ambiguous, or need extension/companion file to identify) */
     init_vgmstream_scd_pcm,
     init_vgmstream_agsc,
-    init_vgmstream_rsf,
     init_vgmstream_ps2_wmus,
     init_vgmstream_mib_mih,
     init_vgmstream_mjb_mjh,
@@ -547,6 +546,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_mpeg,            /* semi-raw MP3 */
     init_vgmstream_btsnd,           /* semi-headerless */
     init_vgmstream_encrypted,       /* encrypted stuff */
+    init_vgmstream_raw_rsf,         /* raw GC streamed files */
     init_vgmstream_raw_int,         /* .int raw PCM */
     init_vgmstream_ps_headerless,   /* tries to detect a bunch of PS-ADPCM formats */
     init_vgmstream_raw_snds,        /* .snds raw SNDS IMA */

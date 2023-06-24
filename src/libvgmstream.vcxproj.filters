@@ -1603,6 +1603,12 @@
     <ClCompile Include="meta\raw_pcm.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\raw_rsf.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\raw_s14_sss.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\raw_snds.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -1627,7 +1633,7 @@
     <ClCompile Include="meta\rsd.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\rsf.c">
+    <ClCompile Include="meta\rwax.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\rws.c">
@@ -1636,13 +1642,7 @@
     <ClCompile Include="meta\rwsd.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\rwx.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="meta\rxws.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="meta\s14_sss.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\s3v.c">

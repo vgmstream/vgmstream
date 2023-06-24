@@ -594,6 +594,8 @@
     <ClCompile Include="meta\rad.c" />
     <ClCompile Include="meta\raw_int.c" />
     <ClCompile Include="meta\raw_pcm.c" />
+    <ClCompile Include="meta\raw_rsf.c" />
+    <ClCompile Include="meta\raw_s14_sss.c" />
     <ClCompile Include="meta\raw_snds.c" />
     <ClCompile Include="meta\raw_wavm.c" />
     <ClCompile Include="meta\redspark.c" />
@@ -602,12 +604,10 @@
     <ClCompile Include="meta\rkv.c" />
     <ClCompile Include="meta\rs03.c" />
     <ClCompile Include="meta\rsd.c" />
-    <ClCompile Include="meta\rsf.c" />
+    <ClCompile Include="meta\rwax.c" />
     <ClCompile Include="meta\rws.c" />
     <ClCompile Include="meta\rwsd.c" />
-    <ClCompile Include="meta\rwx.c" />
     <ClCompile Include="meta\rxws.c" />
-    <ClCompile Include="meta\s14_sss.c" />
     <ClCompile Include="meta\s3v.c" />
     <ClCompile Include="meta\sab.c" />
     <ClCompile Include="meta\sadf.c" />
