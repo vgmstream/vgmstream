@@ -20,7 +20,7 @@ VGMSTREAM* init_vgmstream_ymf(STREAMFILE* sf) {
         return NULL;
     
     /* .ymf can contain audio or video, but not both (videos start with 0x100 and change minor values),
-     * though it's are found in ./movie/*.* and probably are considered so */
+     * though it's are found in ./movie/... and probably are considered so */
 
     loop_flag = 0;
     channels = 2;

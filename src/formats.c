@@ -1179,6 +1179,7 @@ static const meta_info meta_info_list[] = {
         {meta_PS2_GCM,              "Namco GCM header"},
         {meta_SMPL,                 "Skonec SMPL header"},
         {meta_PS2_MSA,              "Success .MSA header"},
+        {meta_VOI,                  "Irem .VOI header"},
         {meta_NGC_PDT,              "Hudson .PDT header"},
         {meta_NGC_RKV,              "Legacy of Kain - Blood Omen 2 RKV GC header"},
         {meta_DSP_DDSP,             ".DDSP header"},

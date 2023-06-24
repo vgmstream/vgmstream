@@ -452,7 +452,7 @@ VGMSTREAM* init_vgmstream_smpl(STREAMFILE* sf);
 
 VGMSTREAM * init_vgmstream_ps2_msa(STREAMFILE* streamFile);
 
-VGMSTREAM * init_vgmstream_ps2_voi(STREAMFILE* streamFile);
+VGMSTREAM* init_vgmstream_voi(STREAMFILE* sf);
 
 VGMSTREAM * init_vgmstream_ngc_rkv(STREAMFILE* streamFile);
 
