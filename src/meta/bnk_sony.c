@@ -146,6 +146,7 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
                 break;
 
             case 0x1a: /* Demon's Souls (PS5) */
+            case 0x23: /* The Last of Us (PC) */
 
             default:
                 vgm_logi("BNK: unknown version %x (report)\n", sblk_version);

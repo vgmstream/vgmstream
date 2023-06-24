@@ -191,11 +191,11 @@ static int read_fmt(int big_endian, STREAMFILE* sf, off_t offset, riff_fmt_chunk
             break;
 
 #ifdef VGM_USE_MPEG
-        case 0x0055: /* MP3 [Bear in the Big Blue House: Bear's Imagine That! (PC)] (official) */
+        case 0x0055: /* MP3 [Bear in the Big Blue House: Bear's Imagine That! (PC), Eclipse (PC)] (official) */
             fmt->coding_type = coding_MPEG_custom;
-            /* some oddities, unsure if part of standard: 
+            /* some oddities, unsure if part of standard:
              * - block size is 1 (in mono)
-             * - bps is 16
+             * - bps is 16 for some games
              * - extra size 0x0c, has channels? and (possibly) approx frame size */
             break;
 #endif
