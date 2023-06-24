@@ -341,6 +341,7 @@
     <ClCompile Include="meta\ads.c" />
     <ClCompile Include="meta\ads_midway.c" />
     <ClCompile Include="meta\adx.c" />
+    <ClCompile Include="meta\adx_monster.c" />
     <ClCompile Include="meta\afc.c" />
     <ClCompile Include="meta\agsc.c" />
     <ClCompile Include="meta\ahv.c" />
@@ -403,7 +404,6 @@
     <ClCompile Include="meta\dmsg_segh.c" />
     <ClCompile Include="meta\dsb.c" />
     <ClCompile Include="meta\dsf.c" />
-    <ClCompile Include="meta\dsp_adx.c" />
     <ClCompile Include="meta\dsp_bdsp.c" />
     <ClCompile Include="meta\ea_1snh.c" />
     <ClCompile Include="meta\ea_eaac.c" />
@@ -520,7 +520,6 @@
     <ClCompile Include="meta\ngc_ssm.c" />
     <ClCompile Include="meta\ngc_str_cauldron.c" />
     <ClCompile Include="meta\ngc_tydsp.c" />
-    <ClCompile Include="meta\ngc_ymf.c" />
     <ClCompile Include="meta\nps.c" />
     <ClCompile Include="meta\nub.c" />
     <ClCompile Include="meta\nus3audio.c" />
@@ -734,6 +733,7 @@
     <ClCompile Include="meta\xwma_konami.c" />
     <ClCompile Include="meta\xwv_valve.c" />
     <ClCompile Include="meta\ydsp.c" />
+    <ClCompile Include="meta\ymf.c" />
     <ClCompile Include="meta\zsd.c" />
     <ClCompile Include="meta\zsnd.c" />
     <ClCompile Include="meta\zwdsp.c" />
