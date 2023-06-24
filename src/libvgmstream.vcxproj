@@ -138,6 +138,7 @@
     <ClInclude Include="meta\idtech_streamfile.h" />
     <ClInclude Include="meta\jstm_streamfile.h" />
     <ClInclude Include="meta\kma9_streamfile.h" />
+    <ClInclude Include="meta\lp_ap_lep_streamfile.h" />
     <ClInclude Include="meta\lrmd_streamfile.h" />
     <ClInclude Include="meta\meta.h" />
     <ClInclude Include="meta\mta2_streamfile.h" />
@@ -147,7 +148,6 @@
     <ClInclude Include="meta\ogg_vorbis_streamfile.h" />
     <ClInclude Include="meta\opus_interleave_streamfile.h" />
     <ClInclude Include="meta\ppst_streamfile.h" />
-    <ClInclude Include="meta\ps2_enth_streamfile.h" />
     <ClInclude Include="meta\riff_ogg_streamfile.h" />
     <ClInclude Include="meta\sab_streamfile.h" />
     <ClInclude Include="meta\sfh_streamfile.h" />
@@ -470,6 +470,7 @@
     <ClCompile Include="meta\lopu_fb.c" />
     <ClCompile Include="meta\lpcm_fb.c" />
     <ClCompile Include="meta\lpcm_shade.c" />
+    <ClCompile Include="meta\lp_ap_lep.c" />
     <ClCompile Include="meta\lrmd.c" />
     <ClCompile Include="meta\lsf.c" />
     <ClCompile Include="meta\mattel_hyperscan.c" />
@@ -551,7 +552,6 @@
     <ClCompile Include="meta\ps2_b1s.c" />
     <ClCompile Include="meta\ps2_bg00.c" />
     <ClCompile Include="meta\ps2_bmdx.c" />
-    <ClCompile Include="meta\ps2_enth.c" />
     <ClCompile Include="meta\ps2_filp.c" />
     <ClCompile Include="meta\ps2_gbts.c" />
     <ClCompile Include="meta\ps2_gcm.c" />

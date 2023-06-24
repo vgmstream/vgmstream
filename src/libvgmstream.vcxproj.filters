@@ -239,6 +239,9 @@
     <ClInclude Include="meta\kma9_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="meta\lp_ap_lep_streamfile.h">
+      <Filter>meta\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="meta\lrmd_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
@@ -264,9 +267,6 @@
       <Filter>meta\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="meta\ppst_streamfile.h">
-      <Filter>meta\Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="meta\ps2_enth_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="meta\riff_ogg_streamfile.h">
@@ -1231,6 +1231,9 @@
     <ClCompile Include="meta\lpcm_shade.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\lp_ap_lep.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\lrmd.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -1472,9 +1475,6 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ps2_bmdx.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="meta\ps2_enth.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ps2_filp.c">

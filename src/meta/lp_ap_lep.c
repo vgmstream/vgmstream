@@ -1,6 +1,6 @@
 #include "meta.h"
 #include "../coding/coding.h"
-#include "ps2_enth_streamfile.h"
+#include "lp_ap_lep_streamfile.h"
 
 /* LP/AP/LEP - from Konami (KCES)'s Enthusia: Professional Racing (PS2) */
 VGMSTREAM* init_vgmstream_lp_ap_lep(STREAMFILE* sf) {
