@@ -356,7 +356,7 @@ typedef enum {
     meta_DC_IDVI,           /* Eldorado Gate */
     meta_KRAW,              /* Geometry Wars - Galaxies */
     meta_PS2_OMU,           /* PS2 Int file with Header */
-    meta_PS2_XA2,           /* XG3 Extreme-G Racing */
+    meta_XA2_ACCLAIM,
     meta_NUB,
     meta_IDSP_NL,           /* Mario Strikers Charged (Wii) */
     meta_IDSP_IE,           /* Defencer (GC) */
@@ -392,7 +392,6 @@ typedef enum {
     meta_PS2_VSF_TTA,       /* Tiny Toon Adventures: Defenders of the Universe */
     meta_ADS_MIDWAY,
     meta_PS2_SPS,           /* Ape Escape 2 */
-    meta_PS2_XA2_RRP,       /* RC Revenge Pro */
     meta_NGC_DSP_KONAMI,    /* Konami DSP header, found in various games */
     meta_UBI_CKD,           /* Ubisoft CKD RIFF header (Rayman Origins Wii) */
     meta_RAW_WAVM,
