@@ -1537,9 +1537,6 @@
     <ClCompile Include="meta\ps2_sl3.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ps2_smpl.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="meta\ps2_snd.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -1718,6 +1715,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\smp.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\smpl.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\smv.c">
