@@ -1,77 +1,51 @@
 #include "meta.h"
-#include "../util.h"
+#include "../coding/coding.h"
 
-/* YMF (WWE WrestleMania X8) */
-VGMSTREAM * init_vgmstream_ngc_ymf(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
-    off_t start_offset;
-    int loop_flag;
-	int channel_count;
+/* YMF - from Yuke's games [WWE WrestleMania X8 (GC)] */
+VGMSTREAM* init_vgmstream_ymf(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
+    uint32_t start_offset;
+    int channels, loop_flag;
 
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("ymf",filename_extension(filename))) goto fail;
 
-    /* check header */
-    if (read_32bitBE(0x00,streamFile) != 0x00000180)
-        goto fail;
+    /* checks */
+    if (read_u32be(0x00,sf) != 0x00000180 || 
+        read_u32be(0x08,sf) != 0x00000003 ||
+        read_u32be(0x0c,sf) != 0xCCCCCCCC)
+        return NULL;
+    /* 0x04: used data size? */
+
+    /* .ymf: actual extension */
+    if (!check_extensions(sf, "ymf"))
+        return NULL;
+    
+    /* .ymf can contain audio or video, but not both (videos start with 0x100 and change minor values),
+     * though it's are found in ./movie/*.* and probably are considered so */
 
     loop_flag = 0;
-    channel_count = 2;
+    channels = 2;
+    start_offset = read_u32be(0x00,sf);
     
-	/* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    /* build the VGMSTREAM */
+    vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
-	/* fill in the vital statistics */
-    start_offset = 0x180;
-	vgmstream->channels = channel_count;
-    vgmstream->sample_rate = read_32bitBE(0xA8,streamFile);
-    vgmstream->coding_type = coding_NGC_DSP;
-    vgmstream->num_samples = read_32bitBE(0xDC,streamFile);
-    if (loop_flag) {
-        vgmstream->loop_start_sample = 0;
-        vgmstream->loop_end_sample = read_32bitBE(0xDC,streamFile);
-    }
+    vgmstream->meta_type = meta_YMF;
+    vgmstream->sample_rate = read_32bitBE(0xA8,sf);
+    vgmstream->num_samples = read_32bitBE(0xDC,sf);
 
+    vgmstream->coding_type = coding_NGC_DSP;
     vgmstream->layout_type = layout_interleave;
     vgmstream->interleave_block_size = 0x20000;
-    vgmstream->meta_type = meta_NGC_YMF;
 
+    dsp_read_coefs_be(vgmstream, sf, 0xAE, 0x60);
+    //dsp_read_hist_be(vgmstream, sf, 0xAE + 0x20, 0x60);
 
-    if (vgmstream->coding_type == coding_NGC_DSP) {
-        int i;
-        for (i=0;i<16;i++) {
-            vgmstream->ch[0].adpcm_coef[i] = read_16bitBE(0xAE +i*2,streamFile);
-        }
-        if (vgmstream->channels) {
-            for (i=0;i<16;i++) {
-                vgmstream->ch[1].adpcm_coef[i] = read_16bitBE(0x10E +i*2,streamFile);
-            }
-        }
-    }
-
-    /* open the file for reading */
-    {
-        int i;
-        STREAMFILE * file;
-        file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (!file) goto fail;
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = file;
-
-            vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=start_offset+
-                vgmstream->interleave_block_size*i;
-
-        }
-    }
-
+    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
+        goto fail;
     return vgmstream;
 
-    /* clean up anything we may have opened */
 fail:
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_vgmstream(vgmstream);
     return NULL;
 }

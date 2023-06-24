@@ -18,18 +18,18 @@ VGMSTREAM* init_vgmstream_myspd(STREAMFILE* sf) {
     channel_size = read_s32be(0x00,sf);
 
     /* check size */
-	if (channel_size * channels + start_offset != get_streamfile_size(sf))
-		goto fail;
+    if (channel_size * channels + start_offset != get_streamfile_size(sf))
+        goto fail;
 
-	/* build the VGMSTREAM */
+    /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channels,loop_flag);
     if (!vgmstream) goto fail;
 
-	vgmstream->num_samples = ima_bytes_to_samples(channel_size*channels, channels);
+    vgmstream->num_samples = ima_bytes_to_samples(channel_size*channels, channels);
     vgmstream->sample_rate = read_s32be(0x04,sf);
 
     vgmstream->meta_type = meta_MYSPD;
-	vgmstream->coding_type = coding_IMA_int;
+    vgmstream->coding_type = coding_IMA_int;
     vgmstream->layout_type = layout_interleave;
     vgmstream->interleave_block_size = channel_size;
 

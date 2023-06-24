@@ -103,20 +103,20 @@ typedef struct {
 } list_t;
 
 struct psb_context_t {
-	uint32_t header_id;
-	uint16_t version;
-	uint16_t encrypt_value;
-	uint32_t encrypt_offset;
-	uint32_t keys_offset;
+    uint32_t header_id;
+    uint16_t version;
+    uint16_t encrypt_value;
+    uint32_t encrypt_offset;
+    uint32_t keys_offset;
 
-	uint32_t strings_list_offset;
-	uint32_t strings_data_offset;
-	uint32_t data_offsets_offset;
-	uint32_t data_sizes_offset;
+    uint32_t strings_list_offset;
+    uint32_t strings_data_offset;
+    uint32_t data_offsets_offset;
+    uint32_t data_sizes_offset;
 
-	uint32_t data_offset; /* also "resources" */
-	uint32_t root_offset; /* initial node */
-	uint32_t unknown; /* hash/crc? (v3) */
+    uint32_t data_offset; /* also "resources" */
+    uint32_t root_offset; /* initial node */
+    uint32_t unknown; /* hash/crc? (v3) */
 
     /* main buf and derived stuff */
     uint8_t* buf;
@@ -328,19 +328,19 @@ psb_context_t* psb_init(STREAMFILE* sf) {
     bytes = read_streamfile(header, 0x00, sizeof(header), sf);
     if (bytes != sizeof(header)) goto fail;
 
-	ctx->header_id = get_u32be(header + 0x00);
-	ctx->version = get_u16le(header + 0x04);
-	ctx->encrypt_value = get_u32le(header + 0x06);
-	ctx->encrypt_offset = get_u32le(header + 0x08);
-	ctx->keys_offset = get_u32le(header + 0x0c);
+    ctx->header_id = get_u32be(header + 0x00);
+    ctx->version = get_u16le(header + 0x04);
+    ctx->encrypt_value = get_u32le(header + 0x06);
+    ctx->encrypt_offset = get_u32le(header + 0x08);
+    ctx->keys_offset = get_u32le(header + 0x0c);
 
-	ctx->strings_list_offset = get_u32le(header + 0x10);
-	ctx->strings_data_offset = get_u32le(header + 0x14);
-	ctx->data_offsets_offset = get_u32le(header + 0x18);
-	ctx->data_sizes_offset = get_u32le(header + 0x1c);
+    ctx->strings_list_offset = get_u32le(header + 0x10);
+    ctx->strings_data_offset = get_u32le(header + 0x14);
+    ctx->data_offsets_offset = get_u32le(header + 0x18);
+    ctx->data_sizes_offset = get_u32le(header + 0x1c);
 
-	ctx->data_offset = get_u32le(header + 0x20);
-	ctx->root_offset = get_u32le(header + 0x24);
+    ctx->data_offset = get_u32le(header + 0x20);
+    ctx->root_offset = get_u32le(header + 0x24);
     if (ctx->version >= PSB_VERSION3)
         ctx->unknown = get_u32le(header + 0x28);
 

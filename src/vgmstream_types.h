@@ -369,7 +369,7 @@ typedef enum {
     meta_GCA,               /* Metal Slug Anthology */
     meta_NGC_SSM,           /* Golden Gashbell Full Power */
     meta_PS2_JOE,           /* Wall-E / Pixar games */
-    meta_NGC_YMF,           /* WWE WrestleMania X8 */
+    meta_YMF,
     meta_SADL,
     meta_FAG,               /* Jackie Chan - Stuntmaster */
     meta_PS2_MIHB,          /* Merged MIH+MIB */
@@ -527,7 +527,7 @@ typedef enum {
     meta_KT_WIIBGM,         /* Koei Tecmo WiiBGM */
     meta_KTSS,              /* Koei Tecmo Nintendo Stream (KNS) */
     meta_MCA,               /* Capcom MCA "MADP" */
-    meta_XB3D_ADX,          /* Xenoblade Chronicles 3D ADX */
+    meta_ADX_MONSTER,
     meta_HCA,               /* CRI HCA */
     meta_SVAG_SNK,
     meta_PS2_VDS_VDM,       /* Graffiti Kingdom */

@@ -213,7 +213,7 @@ static int lzxpcm_decompress(lzxpcm_stream_t* strm) {
             default: 
                 goto fail;
         }
-	}
+    }
 
 buffer_end:
     strm->next_out  += dst_pos;
@@ -232,65 +232,65 @@ fail:
 #if 0
 /* non-streamed form that XPCM originally uses, assumes buffers are big enough */
 static int lzxpcm_decompress_full(uint8_t* dst, size_t dst_size, const uint8_t* src, size_t src_size) {
-	int src_pos = 0;
-	int dst_pos = 0;
-	uint32_t flags = 0;
+    int src_pos = 0;
+    int dst_pos = 0;
+    uint32_t flags = 0;
 
 
-	while (src_pos < src_size && dst_pos < dst_size) {
-		flags >>= 1;
+    while (src_pos < src_size && dst_pos < dst_size) {
+        flags >>= 1;
 
-		if ((flags & 0x0100) == 0) {
-			flags = 0xFF00 | src[src_pos++];
-		}
-		
-		if (flags & 1) {
+        if ((flags & 0x0100) == 0) {
+            flags = 0xFF00 | src[src_pos++];
+        }
+        
+        if (flags & 1) {
             /* uncompressed byte per bit */
-			dst[dst_pos++] = src[src_pos++];
-		}
-		else { 
+            dst[dst_pos++] = src[src_pos++];
+        }
+        else { 
             /* compressed data */
-			uint32_t length;
-			uint32_t offset;
-			const uint32_t token = src[src_pos++];
+            uint32_t length;
+            uint32_t offset;
+            const uint32_t token = src[src_pos++];
 
-			if (token >= 0xC0) {
-				length = ((token >> 2) & 0x0F) + 4; /* 6b */
+            if (token >= 0xC0) {
+                length = ((token >> 2) & 0x0F) + 4; /* 6b */
 
-				offset = ((token & 3) << 8) | src[src_pos++]; /* upper 2b + lower 8b */
-			}
-			else if (token >= 0x80) {
-				length = ((token >> 5) & 3) + 2; /* 2b */
+                offset = ((token & 3) << 8) | src[src_pos++]; /* upper 2b + lower 8b */
+            }
+            else if (token >= 0x80) {
+                length = ((token >> 5) & 3) + 2; /* 2b */
 
-				offset = token & 0x1F; /* 5b */
-				if (offset == 0) {
-					offset = src[src_pos++];
-				}
-			}
-			else if (token == 0x7F) {
-				length = (uint16_t)(src[src_pos] | src[src_pos+1] << 8u) + 2;
-				src_pos += 2;
+                offset = token & 0x1F; /* 5b */
+                if (offset == 0) {
+                    offset = src[src_pos++];
+                }
+            }
+            else if (token == 0x7F) {
+                length = (uint16_t)(src[src_pos] | src[src_pos+1] << 8u) + 2;
+                src_pos += 2;
 
-				offset = (uint16_t)(src[src_pos] | src[src_pos+1] << 8u);
-				src_pos += 2;
-			}
-			else {
-				length = token + 4;
+                offset = (uint16_t)(src[src_pos] | src[src_pos+1] << 8u);
+                src_pos += 2;
+            }
+            else {
+                length = token + 4;
 
-				offset = (uint16_t)(src[src_pos] | src[src_pos+1] << 8u);
-				src_pos += 2;
-			}
+                offset = (uint16_t)(src[src_pos] | src[src_pos+1] << 8u);
+                src_pos += 2;
+            }
 
-			if (dst_pos + length > dst_size) {
-				length = dst_size - dst_pos;
-			}
+            if (dst_pos + length > dst_size) {
+                length = dst_size - dst_pos;
+            }
 
-			for (int i = 0; i < length; i++) {
-				dst[dst_pos] = dst[dst_pos - offset];
-				dst_pos++;
-			}
-		}
-	}
+            for (int i = 0; i < length; i++) {
+                dst[dst_pos] = dst[dst_pos - offset];
+                dst_pos++;
+            }
+        }
+    }
 
     return 0;
 }

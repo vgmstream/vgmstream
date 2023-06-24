@@ -126,7 +126,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_ps2_xa2,
     init_vgmstream_idsp_nl,
     init_vgmstream_idsp_ie,
-    init_vgmstream_ngc_ymf,
+    init_vgmstream_ymf,
     init_vgmstream_sadl,
     init_vgmstream_fag,
     init_vgmstream_ps2_mihb,
@@ -278,7 +278,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_svag_snk,
     init_vgmstream_ps2_vds_vdm,
     init_vgmstream_cxs,
-    init_vgmstream_dsp_adx,
+    init_vgmstream_adx_monster,
     init_vgmstream_akb,
     init_vgmstream_akb2,
 #ifdef VGM_USE_FFMPEG

@@ -1,60 +1,44 @@
 #include "meta.h"
 #include "../util.h"
 
-/* ZSD (Dragon Booster) */
-VGMSTREAM * init_vgmstream_zsd(STREAMFILE *streamFile) {
+/* ZSD - from Dragon Booster (DS) */
+VGMSTREAM* init_vgmstream_zsd(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
+    uint32_t start_offset;
+    int channels, loop_flag;
 
-	VGMSTREAM * vgmstream = NULL;
-	char filename[PATH_LIMIT];
-	off_t start_offset;
+    /* checks */
+    if (!is_id32be(0x00,sf, "ZSD\0"))
+        return NULL;
 
-    int loop_flag;
-    int channel_count;
+    /* .zsd: actual extension */
+    if (!check_extensions(sf, "zsd"))
+        return NULL;
 
-	/* check extension, case insensitive */
-	streamFile->get_name(streamFile,filename,sizeof(filename));
-	if (strcasecmp("zsd",filename_extension(filename))) goto fail;
-
-	/* check header */
-    if (read_32bitBE(0x00,streamFile) != 0x5A534400) goto fail;
-
+    /* 0x04: 0x1000? */
+    /* 0x08: 0x0c? */
+    /* 0x14: 0x08? */
+    /* 0x1c: 0x1000? */
+    channels = read_s32le(0x0c,sf);
+    
     loop_flag = 0;
-    channel_count = 1;
+    start_offset = read_s32le(0x20,sf);
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
-    /* fill in the vital statistics */
-    start_offset = read_32bitLE(0x20,streamFile);
-    vgmstream->channels = channel_count;
-    vgmstream->sample_rate = read_32bitLE(0x10,streamFile);
-    vgmstream->coding_type = coding_PCM8;
-    vgmstream->num_samples = read_32bitLE(0x18,streamFile)/channel_count;
-    vgmstream->interleave_block_size=0x0;
-
-    vgmstream->layout_type = layout_none;
     vgmstream->meta_type = meta_ZSD;
+    vgmstream->sample_rate = read_s32le(0x10,sf);
+    vgmstream->num_samples = read_s32le(0x18,sf) / channels;
+    vgmstream->coding_type = coding_PCM8;
+    vgmstream->layout_type = layout_none;
 
-
-    /* open the file for reading */
-    {
-        int i;
-        STREAMFILE * file;
-        file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (!file) goto fail;
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = file;
-            vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=start_offset+
-                vgmstream->interleave_block_size*i;
-        }
-    }
-
+    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
+        goto fail;
     return vgmstream;
 
-    /* clean up anything we may have opened */
 fail:
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_vgmstream(vgmstream);
     return NULL;
 }
