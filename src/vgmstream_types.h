@@ -410,8 +410,7 @@ typedef enum {
     meta_AIFC,              /* Audio Interchange File Format AIFF-C */
     meta_AIFF,              /* Audio Interchange File Format */
     meta_STR_SNDS,          /* .str with SNDS blocks and SHDR header */
-    meta_WS_AUD,            /* Westwood Studios .aud */
-    meta_WS_AUD_old,        /* Westwood Studios .aud, old style */
+    meta_WS_AUD,
     meta_RIFF_WAVE,         /* RIFF, for WAVs */
     meta_RIFF_WAVE_POS,     /* .wav + .pos for looping (Ys Complete PC) */
     meta_RIFF_WAVE_labl,    /* RIFF w/ loop Markers in LIST-adtl-labl */
@@ -506,7 +505,7 @@ typedef enum {
     meta_PS2_WMUS,          /* The Warriors (PS2) */
     meta_HYPERSCAN_KVAG,    /* Hyperscan KVAG/BVG */
     meta_IOS_PSND,          /* Crash Bandicoot Nitro Kart 2 (iOS) */
-    meta_BOS_ADP,
+    meta_ADP_WILDFIRE,
     meta_QD_ADP,
     meta_EB_SFX,            /* Excitebots .sfx */
     meta_EB_SF0,            /* Excitebots .sf0 */

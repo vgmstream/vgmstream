@@ -245,7 +245,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_xwav_old,
     init_vgmstream_hyperscan_kvag,
     init_vgmstream_ios_psnd,
-    init_vgmstream_adp_bos,
+    init_vgmstream_adp_wildfire,
     init_vgmstream_adp_qd,
     init_vgmstream_eb_sfx,
     init_vgmstream_eb_sf0,
