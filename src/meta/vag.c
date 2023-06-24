@@ -5,8 +5,7 @@
 /* VAGp - Sony SDK format, created by various official tools */
 VGMSTREAM* init_vgmstream_vag(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
-    off_t start_offset;
-    size_t file_size, channel_size, interleave, interleave_first = 0, interleave_first_skip = 0;
+    uint32_t start_offset, file_size, channel_size, interleave, interleave_first = 0, interleave_first_skip = 0;
     meta_t meta_type;
     int channels = 0, loop_flag, sample_rate;
     uint32_t vag_id, version, reserved;
@@ -17,7 +16,7 @@ VGMSTREAM* init_vgmstream_vag(STREAMFILE* sf) {
     /* checks */
     if (((read_u32be(0x00,sf) & 0xFFFFFF00) != get_id32be("VAG\0")) &&
         ((read_u32le(0x00,sf) & 0xFFFFFF00) != get_id32be("VAG\0")))
-        goto fail;
+        return NULL;
 
     /* .vag: standard
      * .swag: Frantix (PSP)
@@ -28,7 +27,7 @@ VGMSTREAM* init_vgmstream_vag(STREAMFILE* sf) {
      * .xa2: Shikigami no Shiro (PS2)
      * .snd: Alien Breed (Vita) */
     if (!check_extensions(sf,"vag,swag,str,vig,l,r,vas,xa2,snd"))
-        goto fail;
+        return NULL;
 
     file_size = get_streamfile_size(sf);
 
@@ -94,7 +93,7 @@ VGMSTREAM* init_vgmstream_vag(STREAMFILE* sf) {
                 else if (is_id32be(0x1000,sf, "pGAV"))
                     interleave = 0x1000; /* Jak X interleave, includes header */
                 else
-                    interleave = 0x2000; /* Jak 3 interleave in rare files, no header */
+                    goto fail;
                 interleave_first = interleave - start_offset; /* interleave includes header */
                 interleave_first_skip = start_offset;
             }
@@ -287,6 +286,14 @@ VGMSTREAM* init_vgmstream_vag(STREAMFILE* sf) {
 
         default:
             goto fail;
+    }
+
+    /* ignore bigfiles and bad extractions (approximate) */
+    if (channel_size * channels + interleave * channels + start_offset * channels + 0x8000 < get_streamfile_size(sf) || 
+        channel_size * channels > get_streamfile_size(sf)) {
+        vgm_logi("VAG: wrong expected (incorrect extraction? %x * %i + %x + %x + ~ vs %x)\n", 
+            channel_size, channels, interleave * channels, start_offset * channels, (uint32_t)get_streamfile_size(sf));
+        goto fail;
     }
 
 
