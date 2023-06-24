@@ -337,7 +337,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_ea_tmx,
     init_vgmstream_ea_sbr,
     init_vgmstream_ea_sbr_harmony,
-    init_vgmstream_ngc_vid1,
+    init_vgmstream_vid1,
     init_vgmstream_flx,
     init_vgmstream_mogg,
     init_vgmstream_kma9,

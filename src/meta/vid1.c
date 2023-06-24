@@ -1,36 +1,38 @@
 #include "meta.h"
 #include "../coding/coding.h"
 #include "../layout/layout.h"
+#include "../util/endianness.h"
 
 
 /* VID1 - Factor 5/DivX format GC/Xbox games [Gun (GC), Tony Hawk's American Wasteland (GC), Enter The Matrix (Xbox)]*/
-VGMSTREAM * init_vgmstream_ngc_vid1(STREAMFILE* sf) {
-    VGMSTREAM * vgmstream = NULL;
-    off_t start_offset, header_offset;
+VGMSTREAM* init_vgmstream_vid1(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
+    uint32_t start_offset, header_offset;
     int loop_flag = 0, channels, sample_rate;
     uint32_t codec;
     int big_endian;
-    uint32_t (*read_u32)(off_t,STREAMFILE*);
+    read_u32_t read_u32;
 
 
     /* checks */
-    /* .vid: video + (often) audio
-     * .ogg: audio only [Gun (GC)], .logg: for plugins */
-    if (!check_extensions(sf,"vid,ogg,logg"))
-        goto fail;
-
-    /* chunked/blocked format containing video or audio frames */
-    if (read_u32be(0x00, sf) == 0x56494431) { /* "VID1" BE (GC) */
+    if (is_id32be(0x00, sf, "VID1")) { /* BE (GC) */
         big_endian = 1;
     }
-    else if (read_u32le(0x00,sf) == 0x56494431) { /* "VID1" LE (Xbox) */
+    else if (is_id32le(0x00,sf, "VID1")) { /* LE (Xbox) */
         big_endian = 0;
     }
     else {
-        goto fail;
+        return NULL;
     }
+
+    /* .vid: video + (often) audio
+     * .ogg: audio only [Gun (GC)], .logg: for plugins */
+    if (!check_extensions(sf,"vid,ogg,logg"))
+        return NULL;
+
     read_u32 = big_endian ? read_u32be : read_u32le;
 
+    /* chunked/blocked format containing video or audio frames */
 
     /* find actual header start/size in the chunks (id + size + null) */
     {

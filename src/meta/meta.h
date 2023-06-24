@@ -668,7 +668,7 @@ VGMSTREAM * init_vgmstream_ea_tmx(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_ea_sbr(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_ea_sbr_harmony(STREAMFILE * streamFile);
 
-VGMSTREAM * init_vgmstream_ngc_vid1(STREAMFILE * streamFile);
+VGMSTREAM* init_vgmstream_vid1(STREAMFILE* sf);
 
 VGMSTREAM * init_vgmstream_flx(STREAMFILE * streamFile);
 
