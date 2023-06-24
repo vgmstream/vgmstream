@@ -579,7 +579,6 @@
     <ClCompile Include="meta\ps2_vds_vdm.c" />
     <ClCompile Include="meta\ps2_vgv.c" />
     <ClCompile Include="meta\ps2_vms.c" />
-    <ClCompile Include="meta\ps2_voi.c" />
     <ClCompile Include="meta\ps2_wad.c" />
     <ClCompile Include="meta\ps2_wb.c" />
     <ClCompile Include="meta\ps2_wmus.c" />
@@ -680,6 +679,7 @@
     <ClCompile Include="meta\vgs_ps.c" />
     <ClCompile Include="meta\vid1.c" />
     <ClCompile Include="meta\vis.c" />
+    <ClCompile Include="meta\voi.c" />
     <ClCompile Include="meta\vpk.c" />
     <ClCompile Include="meta\vs.c" />
     <ClCompile Include="meta\vsf.c" />
