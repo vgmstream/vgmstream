@@ -28,7 +28,6 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_nds_strm,
     init_vgmstream_afc,
     init_vgmstream_ast,
-    init_vgmstream_awd,
     init_vgmstream_halpst,
     init_vgmstream_rs03,
     init_vgmstream_ngc_dsp_std,
@@ -529,6 +528,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_s_p_sth,
     init_vgmstream_utf_ahx,
     init_vgmstream_ego_dic,
+    init_vgmstream_awd,
 
     /* lower priority metas (no clean header identity, somewhat ambiguous, or need extension/companion file to identify) */
     init_vgmstream_scd_pcm,
@@ -1124,6 +1124,9 @@ int vgmstream_open_stream_bf(VGMSTREAM* vgmstream, STREAMFILE* sf, off_t start_o
         goto fail;
     }
 
+    /* no need to open anything */
+    if (vgmstream->coding_type == coding_SILENCE)
+        return 1;
 
     /* stream/offsets not needed, managed by layout */
     if (vgmstream->layout_type == layout_segmented ||

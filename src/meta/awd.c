@@ -7,12 +7,12 @@
 VGMSTREAM* init_vgmstream_awd(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     char header_name[STREAM_NAME_SIZE], stream_name[STREAM_NAME_SIZE];
-    int bit_depth = 0, channels = 0, sample_rate = 0, stream_codec = -1, total_subsongs = 0, target_subsong = sf->stream_index;
+    int /*bit_depth = 0,*/ channels = 0, sample_rate = 0, stream_codec = -1, total_subsongs = 0, target_subsong = sf->stream_index;
     int interleave, loop_flag;
     off_t data_offset, header_name_offset, misc_data_offset, linked_list_offset, wavedict_offset;
-    off_t entry_info_offset, entry_name_offset, entry_uuid_offset, next_entry_offset, prev_entry_offset, stream_offset;
+    off_t entry_info_offset, entry_name_offset, /*entry_uuid_offset,*/ next_entry_offset, prev_entry_offset, stream_offset = 0;
     read_u32_t read_u32;
-    size_t data_size, header_size, misc_data_size, stream_size = 0;
+    size_t /*data_size,*/ header_size, /*misc_data_size,*/ stream_size = 0;
 
     /* checks */
     if (read_u32le(0x00, sf) != 0x809 && read_u32be(0x00, sf) != 0x809)
@@ -29,7 +29,7 @@ VGMSTREAM* init_vgmstream_awd(STREAMFILE* sf) {
 
     data_offset = read_u32(0x08, sf);
     wavedict_offset = read_u32(0x0C, sf);
-    data_size = read_u32(0x14, sf);
+  //data_size = read_u32(0x14, sf);
     /* Platform UUIDs in big endian
      * {FD9D32D3-E179-426A-8424-14720AC7F648}: GameCube
      * {ACC9EAAA-38FC-1749-AE81-64EADBC79353}: PlayStation 2
@@ -72,20 +72,20 @@ VGMSTREAM* init_vgmstream_awd(STREAMFILE* sf) {
 
         /* is at the correct target song index */
         if (total_subsongs == target_subsong) {
-            entry_uuid_offset = read_u32(entry_info_offset + 0x00, sf); /* only used in Burnout games */
+          //entry_uuid_offset = read_u32(entry_info_offset + 0x00, sf); /* only used in Burnout games */
             entry_name_offset = read_u32(entry_info_offset + 0x04, sf);
 
             sample_rate = read_u32(entry_info_offset + 0x10, sf);
             stream_codec = read_u32(entry_info_offset + 0x14, sf);
             stream_size = read_u32(entry_info_offset + 0x18, sf);
-            bit_depth = read_u8(entry_info_offset + 0x1C, sf);
+          //bit_depth = read_u8(entry_info_offset + 0x1C, sf);
             channels = read_u8(entry_info_offset + 0x1D, sf); /* always 1, don't think stereo entries exist */
             if (channels != 1)
                 goto fail;
 
             /* stores a "00: GCN ADPCM Header" chunk, otherwise empty */
             misc_data_offset = read_u32(entry_info_offset + 0x20, sf);
-            misc_data_size = read_u32(entry_info_offset + 0x24, sf);
+          //misc_data_size = read_u32(entry_info_offset + 0x24, sf);
 
             /* entry_info_offset + 0x2C to +0x44 has the target format information,
              * which in most cases would probably be identical to the input format
