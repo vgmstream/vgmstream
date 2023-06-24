@@ -10,6 +10,17 @@
     #include <unistd.h>
 #endif
 
+/* Enables a minor optimization when reopening file descriptors.
+ * Some systems/compilers have issues though, and dupe'd FILEs may fread garbage data in rare cases,
+ * possibly due to underlying buffers that get shared/thrashed by dup(). Seen for example in some .HPS and Ubi
+ * bigfiles (some later MSVC versions) or PS2 .RSD (Mac), where 2nd channel = 2nd SF reads garbage at some points.
+ *
+ * Keep it for other systems since this is (probably) kinda useful, though a more sensible approach would be
+ * redoing SF/FILE/buffer handling to avoid re-opening as much. */
+#if !defined (_MSC_VER) && !defined (__ANDROID__) && !defined (__APPLE__)
+    #define USE_STDIO_FDUP 1
+#endif
+ 
 /* For (rarely needed) +2GB file support we use fseek64/ftell64. Those are usually available
  * but may depend on compiler.
  * - MSVC: +VS2008 should work
@@ -138,13 +149,9 @@ static size_t stdio_read(STDIO_STREAMFILE* sf, uint8_t* dst, offv_t offset, size
             break; /* this shouldn't happen in our code */
         }
 
-#ifdef _MSC_VER
-        /* Workaround a bug that appears when compiling with MSVC (later versions).
-         * This bug is deterministic and seemingly appears randomly after seeking.
-         * It results in fread returning data from the wrong area of the file.
-         * HPS is one format that is almost always affected by this.
-         * May be related/same as stdio_open's fixed bug when using dup(), try disabling */
-        fseek_v(sf->infile, ftell_v(sf->infile), SEEK_SET);
+#if 0
+        /* old workaround for USE_STDIO_FDUP bug, keep it here for a while as a reminder just in case */
+        //fseek_v(sf->infile, ftell_v(sf->infile), SEEK_SET);
 #endif
 
         /* fill the buffer (offset now is beyond buf_offset) */
@@ -199,11 +206,8 @@ static STREAMFILE* stdio_open(STDIO_STREAMFILE* sf, const char* const filename, 
     if (!filename)
         return NULL;
 
-#if !defined (__ANDROID__) && !defined (_MSC_VER)
-    /* when enabling this for MSVC it'll seemingly work, but there are issues possibly related to underlying
-     * IO buffers when using dup(), noticeable by re-opening the same streamfile with small buffer sizes
-     * (reads garbage). fseek bug in line 81 may be related/same thing and may be removed.
-     * this reportedly this causes issues in Android too */
+#ifdef USE_STDIO_FDUP
+    /* minor optimization when reopening files, see comment in #define above */
 
     /* if same name, duplicate the file descriptor we already have open */
     if (sf->infile && !strcmp(sf->name,filename)) {
