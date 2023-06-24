@@ -3,7 +3,7 @@
 
 
 /* RWAX - from AirForce Delta Storm (Xbox) */
-VGMSTREAM* init_vgmstream_rwx(STREAMFILE* sf) {
+VGMSTREAM* init_vgmstream_rwax(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     uint32_t start_offset;
     int channels, loop_flag = 0;
