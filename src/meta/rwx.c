@@ -1,66 +1,42 @@
 #include "meta.h"
 #include "../util.h"
-/* RWX (found in Air Force Delta Storm (XBOX)) */
-VGMSTREAM * init_vgmstream_rwx(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
-    off_t start_offset;
 
-    int loop_flag = 0;
-	int channel_count;
 
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("rwx",filename_extension(filename))) goto fail;
+/* RWAX - from AirForce Delta Storm (Xbox) */
+VGMSTREAM* init_vgmstream_rwx(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
+    uint32_t start_offset;
+    int channels, loop_flag = 0;
 
-	/* check header */
-    if (read_32bitBE(0x00,streamFile) != 0x52415758)
-		goto fail;
-	
-		
-    loop_flag = read_32bitLE(0x0C,streamFile);
-    channel_count = 2;
+    /* checks */
+    if (!is_id32be(0x00,sf, "RAWX"))
+        return NULL;
+    if (!check_extensions(sf,"rwx"))
+        return NULL;
+
+    start_offset = read_u32le(0x04,sf);
+    loop_flag = read_s32le(0x0C,sf);
+    channels = 2;
     
-	/* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    /* build the VGMSTREAM */
+    vgmstream = allocate_vgmstream(channels,loop_flag);
     if (!vgmstream) goto fail;
 
+    vgmstream->meta_type = meta_RWAX;
+    vgmstream->sample_rate = read_s32le(0x08,sf);
+    vgmstream->num_samples = read_s32le(0x10,sf);
+    vgmstream->loop_start_sample = read_s32le(0x0C,sf);
+    vgmstream->loop_end_sample = read_s32le(0x10,sf);
 
-	/* fill in the vital statistics */
-    start_offset = read_32bitLE(0x04,streamFile);
-	vgmstream->channels = channel_count;
-    vgmstream->sample_rate = read_32bitLE(0x08,streamFile);
     vgmstream->coding_type = coding_PCM16LE;
-    vgmstream->num_samples = read_32bitLE(0x10,streamFile);
-    if (loop_flag) {
-        vgmstream->loop_start_sample = read_32bitLE(0x0C,streamFile);
-        vgmstream->loop_end_sample = read_32bitLE(0x10,streamFile);
-    }
-
     vgmstream->layout_type = layout_interleave;
     vgmstream->interleave_block_size = 0x2;
-    vgmstream->meta_type = meta_RWX;
 
-    /* open the file for reading */
-    {
-        int i;
-        STREAMFILE * file;
-        file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (!file) goto fail;
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = file;
-
-            vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=start_offset+
-                vgmstream->interleave_block_size*i;
-
-        }
-    }
-
+    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
+        goto fail;
     return vgmstream;
 
-    /* clean up anything we may have opened */
 fail:
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_vgmstream(vgmstream);
     return NULL;
 }
