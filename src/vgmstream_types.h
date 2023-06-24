@@ -438,7 +438,6 @@ typedef enum {
     meta_PS2_P2BT,          /* Pop'n'Music 7 Audio File */
     meta_PS2_GBTS,          /* Pop'n'Music 9 Audio File */
     meta_NGC_DSP_IADP,      /* Gamecube Interleave DSP */
-    meta_PS2_TK5,           /* Tekken 5 Stream Files */
     meta_PS2_MCG,           /* Gunvari MCG Files (was name .GCM on disk) */
     meta_ZSD,               /* Dragon Booster ZSD */
     meta_REDSPARK,          /* "RedSpark" RSD (MadWorld) */
@@ -470,7 +469,6 @@ typedef enum {
     meta_PS2_MSA,           /* Psyvariar -Complete Edition- */
     meta_PS2_VOI,           /* RAW Danger (Zettaizetsumei Toshi 2 - Itetsuita Kiokutachi) [PS2] */
     meta_P3D,               /* Prototype P3D */
-    meta_PS2_TK1,           /* Tekken (NamCollection) */
     meta_NGC_RKV,           /* Legacy of Kain - Blood Omen 2 (GC) */
     meta_DSP_DDSP,          /* Various (2 dsp files stuck together */
     meta_NGC_DSP_MPDS,      /* Big Air Freestyle, Terminator 3 */

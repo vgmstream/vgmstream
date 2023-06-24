@@ -373,9 +373,6 @@ VGMSTREAM * init_vgmstream_vsf(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_nds_rrds(STREAMFILE *streamFile);
 
-VGMSTREAM * init_vgmstream_ps2_tk5(STREAMFILE *streamFile);
-VGMSTREAM * init_vgmstream_ps2_tk1(STREAMFILE* streamFile);
-
 VGMSTREAM * init_vgmstream_ps2_vsf_tta(STREAMFILE *streamFile);
 
 VGMSTREAM* init_vgmstream_ads_midway(STREAMFILE* sf);

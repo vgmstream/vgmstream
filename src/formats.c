@@ -405,7 +405,7 @@ static const char* extension_list[] = {
     "opusx",
     "otm",
     "oto", //txth/reserved [Vampire Savior (SAT)]
-    "ovb",
+    "ovb", //txth/semi [namCollection: Tekken (PS2), Tekken 5: Tekken 1-3 (PS2)]
 
     "p04", //txth/reserved [Psychic Force 2012 (DC), Skies of Arcadia (DC)]
     "p16", //txth/reserved [Astal (SAT)]
@@ -561,7 +561,6 @@ static const char* extension_list[] = {
     "tgq",
     "tgv",
     "thp",
-    "tk5",
     "tmx",
     "tra",
     "trk",
@@ -1138,7 +1137,6 @@ static const meta_info meta_info_list[] = {
         {meta_SWAV,                 "Nintendo SWAV header"},
         {meta_VSF,                  "Square-Enix VSF header"},
         {meta_NDS_RRDS,             "Ridger Racer DS Header"},
-        {meta_PS2_TK5,              "Tekken 5 Stream Header"},
         {meta_PS2_SND,              "Might and Magic SSND Header"},
         {meta_PS2_VSF_TTA,          "VSF with SMSS Header"},
         {meta_ADS_MIDWAY,           "Midway ADS header"},
@@ -1187,7 +1185,6 @@ static const meta_info meta_info_list[] = {
         {meta_NGC_RKV,              "Legacy of Kain - Blood Omen 2 RKV GC header"},
         {meta_DSP_DDSP,             ".DDSP header"},
         {meta_P3D,                  "Radical P3D header"},
-        {meta_PS2_TK1,              "Tekken TK5STRM1 Header"},
         {meta_NGC_DSP_MPDS,         "MPDS DSP header"},
         {meta_DSP_STR_IG,           "Infogrames .DSP header"},
         {meta_EA_SWVR,              "Electronic Arts SWVR header"},
