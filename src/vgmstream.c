@@ -101,7 +101,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_ps2_rkv,
     init_vgmstream_ps2_vas,
     init_vgmstream_ps2_vas_container,
-    init_vgmstream_ps2_enth,
+    init_vgmstream_lp_ap_lep,
     init_vgmstream_sdt,
     init_vgmstream_aix,
     init_vgmstream_ngc_tydsp,

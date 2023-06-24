@@ -1080,7 +1080,7 @@ static const meta_info meta_info_list[] = {
         {meta_PS2_PCM,              "Konami KCEJ East .PCM header"},
         {meta_PS2_RKV,              "Legacy of Kain - Blood Omen 2 RKV PS2 header"},
         {meta_PS2_VAS,              "Konami .VAS header"},
-        {meta_PS2_ENTH,             ".enth Header"},
+        {meta_LP_AP_LEP,            "Konami LP/AP/LEP header"},
         {meta_SDT,                  "High Voltage .sdt header"},
         {meta_NGC_TYDSP,            ".tydsp Header"},
         {meta_WVS,                  "Swingin' Ape .WVS header"},
