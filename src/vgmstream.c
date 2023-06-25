@@ -84,7 +84,6 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_ps2_xa30,
     init_vgmstream_musc,
     init_vgmstream_musx,
-    init_vgmstream_leg,
     init_vgmstream_filp,
     init_vgmstream_ikm,
     init_vgmstream_ster,
