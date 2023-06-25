@@ -304,10 +304,9 @@ typedef enum {
     meta_PS_HEADERLESS,     /* headerless PS-ADPCM */
     meta_MIB_MIH,
     meta_PS2_MIC,           /* KOEI MIC File */
-    meta_PS2_VAGi,          /* VAGi Interleaved File */
-    meta_PS2_VAGp,          /* VAGp Mono File */
-    meta_PS2_pGAV,          /* VAGp with Little Endian Header */
-    meta_PS2_VAGp_AAAP,     /* Acclaim Austin Audio VAG header */
+    meta_VAG,
+    meta_VAG_custom,
+    meta_AAAP,
     meta_SEB,
     meta_STR_WAV,           /* Blitz Games STR+WAV files */
     meta_ILD,
@@ -507,8 +506,7 @@ typedef enum {
     meta_EB_SFX,            /* Excitebots .sfx */
     meta_EB_SF0,            /* Excitebots .sf0 */
     meta_MTAF,
-    meta_PS2_VAG1,          /* Metal Gear Solid 3 VAG1 */
-    meta_PS2_VAG2,          /* Metal Gear Solid 3 VAG2 */
+    meta_VAG_custom,
     meta_ALP,
     meta_WPD,               /* Shuffle! (PC) */
     meta_MN_STR,            /* Mini Ninjas (PC/PS3/WII) */

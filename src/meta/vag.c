@@ -54,7 +54,7 @@ VGMSTREAM* init_vgmstream_vag(STREAMFILE* sf) {
     switch(vag_id) {
 
         case 0x56414731: /* "VAG1" [Metal Gear Solid 3 (PS2), Cabela's African Safari (PSP), Shamu's Deep Sea Adventures (PS2)] */
-            meta_type = meta_PS2_VAG1; //TODO not always Konami (Sand Grain Studios)
+            meta_type = meta_VAG_custom; //TODO not always Konami (Sand Grain Studios)
             start_offset = 0x40; /* 0x30 is extra data in VAG1 */
             interleave = 0x10;
             loop_flag = 0;
@@ -66,7 +66,7 @@ VGMSTREAM* init_vgmstream_vag(STREAMFILE* sf) {
             break;
 
         case 0x56414732: /* "VAG2" (2 channels) [Metal Gear Solid 3 (PS2)] */
-            meta_type = meta_PS2_VAG2;
+            meta_type = meta_VAG_custom;
             start_offset = 0x40; /* 0x30 is extra data in VAG2 */
             channels = 2;
             interleave = 0x800;
@@ -74,7 +74,7 @@ VGMSTREAM* init_vgmstream_vag(STREAMFILE* sf) {
             break;
 
         case 0x56414769: /* "VAGi" (interleaved) */
-            meta_type = meta_PS2_VAGi;
+            meta_type = meta_VAG_custom;
             start_offset = 0x800;
             channels = 2;
             interleave = read_u32le(0x08,sf);
@@ -82,7 +82,7 @@ VGMSTREAM* init_vgmstream_vag(STREAMFILE* sf) {
             break;
 
         case 0x70474156: /* pGAV (little endian / stereo) [Jak 3 (PS2), Jak X (PS2)] */
-            meta_type = meta_PS2_pGAV;
+            meta_type = meta_VAG_custom;
             start_offset = 0x30;
 
             if (is_id32be(0x20,sf, "Ster")) {
@@ -109,7 +109,7 @@ VGMSTREAM* init_vgmstream_vag(STREAMFILE* sf) {
             break;
 
         case 0x56414770: /* "VAGp" (standard and variations) */
-            meta_type = meta_PS2_VAGp;
+            meta_type = meta_VAG;
 
             if (check_extensions(sf,"vig")) {
                 /* MX vs. ATV Untamed (PS2) */
@@ -339,12 +339,12 @@ VGMSTREAM* init_vgmstream_vag_aaap(STREAMFILE* sf) {
     int loop_flag;
 
     /* checks */
+    if (!is_id32be(0x00, sf, "AAAp"))
+        return NULL;
+
     /* .vag - assumed, we don't know the original filenames */
     if (!check_extensions(sf, "vag"))
-        goto fail;
-
-    if (read_u32be(0x00, sf) != 0x41414170) /* "AAAp" */
-        goto fail;
+        return NULL;
 
     interleave = read_u16le(0x04, sf);
     channels = read_u16le(0x06, sf);
@@ -369,7 +369,7 @@ VGMSTREAM* init_vgmstream_vag_aaap(STREAMFILE* sf) {
     vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->meta_type = meta_PS2_VAGp_AAAP;
+    vgmstream->meta_type = meta_AAAP;
     vgmstream->sample_rate = sample_rate;
     vgmstream->num_samples = ps_bytes_to_samples(channel_size, 1);
     vgmstream->coding_type = coding_PSX;
