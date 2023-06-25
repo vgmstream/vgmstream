@@ -68,7 +68,6 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_svs,
     init_vgmstream_riff,
     init_vgmstream_rifx,
-    init_vgmstream_pos,
     init_vgmstream_nwa,
     init_vgmstream_ea_1snh,
     init_vgmstream_ea_eacs,
@@ -339,7 +338,6 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_flx,
     init_vgmstream_mogg,
     init_vgmstream_kma9,
-    init_vgmstream_fsb_encrypted,
     init_vgmstream_xwc,
     init_vgmstream_atsl,
     init_vgmstream_sps_n1,
@@ -378,7 +376,6 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_hd3_bd3,
     init_vgmstream_bnk_sony,
     init_vgmstream_nus3bank,
-    init_vgmstream_nus3bank_encrypted,
     init_vgmstream_sscf,
     init_vgmstream_dsp_sps_n1,
     init_vgmstream_dsp_itl_ch,
@@ -536,14 +533,18 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_mjb_mjh,
     init_vgmstream_mic_koei,
     init_vgmstream_seb,
-    init_vgmstream_sli_loops,
     init_vgmstream_tgc,
+    /* need companion files */
+    init_vgmstream_pos,
+    init_vgmstream_sli_loops,
 
     /* lowest priority metas (should go after all metas, and TXTH should go before raw formats) */
     init_vgmstream_txth,            /* proper parsers should supersede TXTH, once added */
     init_vgmstream_dtk,             /* semi-raw GC streamed files */
     init_vgmstream_mpeg,            /* semi-raw MP3 */
     init_vgmstream_btsnd,           /* semi-headerless */
+    init_vgmstream_fsb_encrypted,
+    init_vgmstream_nus3bank_encrypted,
     init_vgmstream_encrypted,       /* encrypted stuff */
     init_vgmstream_raw_rsf,         /* raw GC streamed files */
     init_vgmstream_raw_int,         /* .int raw PCM */

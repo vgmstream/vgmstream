@@ -301,13 +301,13 @@ VGMSTREAM* init_vgmstream_ngc_dsp_std(STREAMFILE* sf) {
 
     /* checks */
     if (!read_dsp_header_be(&header, 0x00, sf))
-        goto fail;
+        return NULL;
 
     /* .dsp: standard
      * .adp: Dr. Muto/Battalion Wars (GC), Tale of Despereaux (Wii)
      * (extensionless): Tony Hawk's Downhill Jam (Wii) */
     if (!check_extensions(sf, "dsp,adp,"))
-        goto fail;
+        return NULL;
 
     channels = 1;
     start_offset = header_size;
@@ -418,12 +418,11 @@ VGMSTREAM* init_vgmstream_ngc_dsp_std_le(STREAMFILE* sf) {
     int i, channels;
 
     /* checks */
+    if (!read_dsp_header_le(&header, 0x00, sf))
+        return NULL;
     /* .adpcm: LEGO Worlds */
     if (!check_extensions(sf, "adpcm"))
-        goto fail;
-
-    if (!read_dsp_header_le(&header, 0x00, sf))
-        goto fail;
+        return NULL;
 
     channels = 1;
     start_offset = header_size;
@@ -503,10 +502,9 @@ VGMSTREAM* init_vgmstream_ngc_mdsp_std(STREAMFILE* sf) {
 
     /* checks */
     if (!read_dsp_header_be(&header, 0x00, sf))
-        goto fail;
-
+        return NULL;
     if (!check_extensions(sf, "dsp,mdsp"))
-        goto fail;
+        return NULL;
 
     channels = header.channels==0 ? 1 : header.channels;
     start_offset = header_size * channels;
