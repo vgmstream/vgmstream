@@ -565,7 +565,6 @@
     <ClCompile Include="meta\ps2_msa.c" />
     <ClCompile Include="meta\ps2_p2bt.c" />
     <ClCompile Include="meta\ps2_pcm.c" />
-    <ClCompile Include="meta\ps2_pnb.c" />
     <ClCompile Include="meta\ps2_rnd.c" />
     <ClCompile Include="meta\ps2_rstm.c" />
     <ClCompile Include="meta\ps2_sl3.c" />
@@ -585,6 +584,7 @@
     <ClCompile Include="meta\psb.c" />
     <ClCompile Include="meta\psf.c" />
     <ClCompile Include="meta\ps_headerless.c" />
+    <ClCompile Include="meta\pwb.c" />
     <ClCompile Include="meta\rad.c" />
     <ClCompile Include="meta\raw_int.c" />
     <ClCompile Include="meta\raw_pcm.c" />

@@ -111,8 +111,6 @@ VGMSTREAM * init_vgmstream_seb(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_ild(STREAMFILE *streamFile);
 
-VGMSTREAM * init_vgmstream_ps2_pnb(STREAMFILE *streamFile);
-
 VGMSTREAM * init_vgmstream_raw_wavm(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_ngc_str(STREAMFILE *streamFile);
@@ -982,5 +980,7 @@ VGMSTREAM* init_vgmstream_bigrp(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_sscf_encrypted(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_ego_dic(STREAMFILE* sf);
+
+VGMSTREAM* init_vgmstream_pwb(STREAMFILE* sf);
 
 #endif /*_META_H*/

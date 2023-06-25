@@ -310,7 +310,7 @@ typedef enum {
     meta_SEB,
     meta_STR_WAV,           /* Blitz Games STR+WAV files */
     meta_ILD,
-    meta_PS2_PNB,           /* PsychoNauts Bgm File */
+    meta_PWB,
     meta_VPK,               /* VPK Audio File */
     meta_PS2_BMDX,          /* Beatmania thing */
     meta_PS2_IVB,           /* Langrisser 3 IVB */
@@ -506,7 +506,6 @@ typedef enum {
     meta_EB_SFX,            /* Excitebots .sfx */
     meta_EB_SF0,            /* Excitebots .sf0 */
     meta_MTAF,
-    meta_VAG_custom,
     meta_ALP,
     meta_WPD,               /* Shuffle! (PC) */
     meta_MN_STR,            /* Mini Ninjas (PC/PS3/WII) */

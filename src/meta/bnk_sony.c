@@ -9,9 +9,8 @@ typedef enum { PSX, PCM16, ATRAC9, HEVAG } bnk_codec;
 VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     uint32_t start_offset, stream_offset, name_offset = 0;
-    uint32_t sblk_offset, data_offset;
-    uint32_t stream_size, data_size, interleave = 0;
-    int channels = 0, loop_flag, sample_rate, parts, sblk_version, big_endian;
+    uint32_t stream_size, interleave = 0;
+    int channels = 0, loop_flag, sample_rate, big_endian;
     int loop_start = 0, loop_end = 0;
     uint32_t center_note, center_fine, flags;
     uint32_t atrac9_info = 0;
@@ -37,25 +36,33 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
         big_endian = 0;
     }
     else {
-        goto fail;
+        return NULL;
     }
 
     /* checks */
     if (!check_extensions(sf, "bnk"))
-        goto fail;
+        return NULL;
 
+    uint32_t sblk_offset, sblk_size, data_offset, data_size, zlsd_size = 0;
+    int parts, sblk_version;
 
     parts = read_u32(0x04,sf);
-    if (parts < 2 || parts > 3) goto fail;
+    if (parts < 2 || parts > 3)
+        return NULL;
     /* in theory a bank can contain multiple blocks */
 
     sblk_offset = read_u32(0x08,sf);
-    /* 0x0c: sblk size */
+    sblk_size   = read_u32(0x0c,sf);
     data_offset = read_u32(0x10,sf);
-    data_size = read_u32(0x14,sf);
-    /* when sblk_offset >= 0x20: */
-    /* 0x18: ZLSD small footer, rare in earlier versions [Yakuza 6's Puyo Puyo (PS4)] */
-    /* 0x1c: ZLSD size */
+    data_size   = read_u32(0x14,sf);
+    if (sblk_offset >= 0x20) {
+        /* ZLSD small footer, rare in earlier versions and more common later [Yakuza 6's Puyo Puyo (PS4)] */
+      //zlsd_offset = read_u32(0x18,sf);
+        zlsd_size   = read_u32(0x1c,sf);
+    }
+    
+    if (sblk_offset + sblk_size + data_size + zlsd_size != get_streamfile_size(sf))
+        return NULL;
 
     /* SE banks, also used for music. Most table fields seems reserved/defaults and
      * don't change much between subsongs or files, so they aren't described in detail.
@@ -64,7 +71,7 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
 
     /* SBlk part: parse header */
     if (read_u32(sblk_offset+0x00,sf) != get_id32be("klBS")) /* SBlk = SFX block */
-        goto fail;
+        return NULL;
     sblk_version = read_u32(sblk_offset+0x04,sf);
     /* 0x08: flags? (sblk_version>=0x0d?, 0x03=Vita, 0x06=PS4, 0x05=PS5)
      * - 04: non-fixed bank?

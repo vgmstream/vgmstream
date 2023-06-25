@@ -525,6 +525,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_utf_ahx,
     init_vgmstream_ego_dic,
     init_vgmstream_awd,
+    init_vgmstream_pwb,
 
     /* lower priority metas (no clean header identity, somewhat ambiguous, or need extension/companion file to identify) */
     init_vgmstream_scd_pcm,
@@ -534,7 +535,6 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_mjb_mjh,
     init_vgmstream_mic_koei,
     init_vgmstream_seb,
-    init_vgmstream_ps2_pnb,
     init_vgmstream_sli_loops,
     init_vgmstream_tgc,
 
