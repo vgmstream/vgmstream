@@ -69,7 +69,7 @@ as explained below, but often will use default values. Accepted codec strings:
 #   * For many PS1/PS2/PS3 games
 #   * Interleave is multiple of 0x10 (default), often +0x1000
 # - PSX_bf         PlayStation ADPCM with bad flags
-#   * Variation with garbage data, for rare PS2 games [Fatal Frame (PS2)]
+#   * Variation with garbage data, for rare PS2 games [Fatal Frame (PS2), namCollection: Tekken (PS2)]
 # - HEVAG          Vita/PS4 ADPCM
 #   * For some Vita/PS4 games
 #   * Interleave is multiple of 0x10 (default)
