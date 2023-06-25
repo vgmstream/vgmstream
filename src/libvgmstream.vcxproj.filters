@@ -670,9 +670,6 @@
     <ClCompile Include="layout\blocked_awc.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="layout\blocked_bdsp.c">
-      <Filter>layout\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="layout\blocked_caf.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
@@ -1031,9 +1028,6 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\dsf.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="meta\dsp_bdsp.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ea_1snh.c">

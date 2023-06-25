@@ -100,7 +100,6 @@ static const char* extension_list[] = {
     "bcwav",
     "bcv", //txth/reserved [The Bigs (PSP)]
     "bd3",
-    "bdsp",
     "bfstm",
     "bfwav",
     "bg00",
@@ -942,7 +941,6 @@ static const layout_info layout_info_list[] = {
         {layout_blocked_filp,           "blocked (FILP)"},
         {layout_blocked_ea_swvr,        "blocked (EA SWVR)"},
         {layout_blocked_adm,            "blocked (ADM)"},
-        {layout_blocked_bdsp,           "blocked (BDSP)"},
         {layout_blocked_ivaud,          "blocked (IVAUD)"},
         {layout_blocked_ps2_iab,        "blocked (IAB)"},
         {layout_blocked_vs_str,         "blocked (STR VS)"},

@@ -220,7 +220,6 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_dsp_xiii,
     init_vgmstream_dsp_cabelas,
     init_vgmstream_lpcm_shade,
-    init_vgmstream_dsp_bdsp,
     init_vgmstream_ps2_vms,
     init_vgmstream_xau,
     init_vgmstream_bar,

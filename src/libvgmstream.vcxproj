@@ -283,7 +283,6 @@
     <ClCompile Include="layout\blocked_adm.c" />
     <ClCompile Include="layout\blocked_ast.c" />
     <ClCompile Include="layout\blocked_awc.c" />
-    <ClCompile Include="layout\blocked_bdsp.c" />
     <ClCompile Include="layout\blocked_caf.c" />
     <ClCompile Include="layout\blocked_dec.c" />
     <ClCompile Include="layout\blocked_ea_1snh.c" />
@@ -404,7 +403,6 @@
     <ClCompile Include="meta\dmsg_segh.c" />
     <ClCompile Include="meta\dsb.c" />
     <ClCompile Include="meta\dsf.c" />
-    <ClCompile Include="meta\dsp_bdsp.c" />
     <ClCompile Include="meta\ea_1snh.c" />
     <ClCompile Include="meta\ea_eaac.c" />
     <ClCompile Include="meta\ea_schl.c" />

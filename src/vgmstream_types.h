@@ -212,7 +212,6 @@ typedef enum {
     layout_blocked_filp,
     layout_blocked_ea_swvr,
     layout_blocked_adm,
-    layout_blocked_bdsp,
     layout_blocked_mxch,
     layout_blocked_ivaud,   /* GTA IV .ivaud blocks */
     layout_blocked_ps2_iab,
@@ -478,7 +477,6 @@ typedef enum {
     meta_DSP_CABELAS,       /* Cabelas games */
     meta_PS2_ADM,           /* Dragon Quest V (PS2) */
     meta_LPCM_SHADE,
-    meta_DSP_BDSP,          /* Ah! My Goddess */
     meta_PS2_VMS,           /* Autobahn Raser - Police Madness */
     meta_XAU,               /* XPEC Entertainment (Beat Down (PS2 Xbox), Spectral Force Chronicle (PS2)) */
     meta_GH3_BAR,           /* Guitar Hero III Mobile .bar */

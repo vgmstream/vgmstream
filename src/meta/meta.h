@@ -468,8 +468,6 @@ VGMSTREAM * init_vgmstream_ps2_adm(STREAMFILE* streamFile);
 
 VGMSTREAM* init_vgmstream_lpcm_shade(STREAMFILE* sf);
 
-VGMSTREAM * init_vgmstream_dsp_bdsp(STREAMFILE* streamFile);
-
 VGMSTREAM * init_vgmstream_ps2_vms(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_xau(STREAMFILE* streamFile);
