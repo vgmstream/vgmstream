@@ -17,8 +17,7 @@ VGMSTREAM* init_vgmstream_rws_mono(STREAMFILE* sf) {
     /* checks */
     if (read_u32le(0x00, sf) != 0x809) /* File ID */
         goto fail;
-    if (read_u32le(0x04, sf) + 0x0C != get_streamfile_size(sf))
-        goto fail;
+
     /* Burnout 2: Point of Impact (PS2, GCN, Xbox):
      * Predecessor to the common 0x80D-0x80F tag rws.c (which is also used in B2)
      * with some parts of it later reworked into awd.c seemingly */
@@ -29,7 +28,7 @@ VGMSTREAM* init_vgmstream_rws_mono(STREAMFILE* sf) {
      * 0x00000809: File ID
      * 0x0000080A: File header ID
      * 0x0000080C: File data ID
-     * 
+     *
      * 0x00000802: Stream ID
      * 0x00000803: Stream header ID
      * 0x00000804: Stream data ID
@@ -73,7 +72,7 @@ VGMSTREAM* init_vgmstream_rws_mono(STREAMFILE* sf) {
             if (channels != 1)
                 goto fail;
 
-            /* Assumed misc data offs/size at header_offset + 0x20 to +0x24 
+            /* Assumed misc data offs/size at header_offset + 0x20 to +0x24
              * which is always empty since GCN uses PCM S16BE encoding here */
 
             read_string(stream_name, STREAM_NAME_SIZE, header_offset + 0x7C, sf);
