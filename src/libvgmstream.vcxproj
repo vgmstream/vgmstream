@@ -606,6 +606,7 @@
     <ClCompile Include="meta\rsd.c" />
     <ClCompile Include="meta\rsf.c" />
     <ClCompile Include="meta\rws.c" />
+    <ClCompile Include="meta\rws_mono.c" />
     <ClCompile Include="meta\rwsd.c" />
     <ClCompile Include="meta\rwx.c" />
     <ClCompile Include="meta\rxws.c" />

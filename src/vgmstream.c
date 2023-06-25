@@ -529,6 +529,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_s_p_sth,
     init_vgmstream_utf_ahx,
     init_vgmstream_ego_dic,
+    init_vgmstream_rws_mono,
 
     /* lower priority metas (no clean header identity, somewhat ambiguous, or need extension/companion file to identify) */
     init_vgmstream_scd_pcm,
