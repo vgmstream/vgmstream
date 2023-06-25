@@ -91,7 +91,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_bg00,
     init_vgmstream_sat_dvi,
     init_vgmstream_dc_kcey,
-    init_vgmstream_ps2_rstm,
+    init_vgmstream_rstm_rockstar,
     init_vgmstream_acm,
     init_vgmstream_mus_acm,
     init_vgmstream_ps2_kces,

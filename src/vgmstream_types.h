@@ -336,7 +336,7 @@ typedef enum {
     meta_IKM,
     meta_STER,
     meta_BG00,              /* Ibara, Mushihimesama */
-    meta_PS2_RSTM,          /* Midnight Club 3 */
+    meta_RSTM_ROCKSTAR,
     meta_PS2_KCES,          /* Dance Dance Revolution */
     meta_HXD,
     meta_VSV,

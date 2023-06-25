@@ -1060,7 +1060,7 @@ static const meta_info meta_info_list[] = {
         {meta_SAT_DVI,              "Konami KCEN DVI. header"},
         {meta_DC_KCEY,              "Konami KCEY KCEYCOMP header"},
         {meta_BG00,                 "Falcom BG00 Header"},
-        {meta_PS2_RSTM,             "Rockstar Games RSTM Header"},
+        {meta_RSTM_ROCKSTAR,        "Rockstar Games RSTM Header"},
         {meta_ACM,                  "InterPlay ACM Header"},
         {meta_MUS_ACM,              "InterPlay MUS ACM header"},
         {meta_PS2_KCES,             "Konami KCES Header"},

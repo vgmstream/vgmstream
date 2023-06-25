@@ -233,7 +233,7 @@ VGMSTREAM * init_vgmstream_bg00(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_dc_kcey(STREAMFILE * streamFile);
 
-VGMSTREAM * init_vgmstream_ps2_rstm(STREAMFILE * streamFile);
+VGMSTREAM* init_vgmstream_rstm_rockstar(STREAMFILE* sf);
 
 VGMSTREAM * init_vgmstream_acm(STREAMFILE * streamFile);
 

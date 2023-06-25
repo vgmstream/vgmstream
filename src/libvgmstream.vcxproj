@@ -566,7 +566,6 @@
     <ClCompile Include="meta\ps2_p2bt.c" />
     <ClCompile Include="meta\ps2_pcm.c" />
     <ClCompile Include="meta\ps2_rnd.c" />
-    <ClCompile Include="meta\ps2_rstm.c" />
     <ClCompile Include="meta\ps2_sl3.c" />
     <ClCompile Include="meta\ps2_snd.c" />
     <ClCompile Include="meta\ps2_sps.c" />
@@ -598,6 +597,7 @@
     <ClCompile Include="meta\rkv.c" />
     <ClCompile Include="meta\rs03.c" />
     <ClCompile Include="meta\rsd.c" />
+    <ClCompile Include="meta\rstm_rockstar.c" />
     <ClCompile Include="meta\rwax.c" />
     <ClCompile Include="meta\rws.c" />
     <ClCompile Include="meta\rwsd.c" />
