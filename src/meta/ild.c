@@ -10,10 +10,10 @@ VGMSTREAM* init_vgmstream_ild(STREAMFILE* sf) {
 
     /* check ILD Header */
     if (!is_id32be(0x00,sf, "ILD\0"))
-        goto fail;
+        return NULL;
 
     if (!check_extensions(sf, "ild"))
-        goto fail;
+        return NULL;
 
     channels = read_u32le(0x04,sf); /* tracks (seen 2 and 4) */
     start_offset = read_u32le(0x08,sf);

@@ -446,6 +446,7 @@
     <ClCompile Include="meta\idtech.c" />
     <ClCompile Include="meta\ifs.c" />
     <ClCompile Include="meta\ikm.c" />
+    <ClCompile Include="meta\ild.c" />
     <ClCompile Include="meta\ima.c" />
     <ClCompile Include="meta\imc.c" />
     <ClCompile Include="meta\imuse.c" />
@@ -555,7 +556,6 @@
     <ClCompile Include="meta\ps2_hgc1.c" />
     <ClCompile Include="meta\ps2_hsf.c" />
     <ClCompile Include="meta\ps2_iab.c" />
-    <ClCompile Include="meta\ps2_ild.c" />
     <ClCompile Include="meta\ps2_joe.c" />
     <ClCompile Include="meta\ps2_kces.c" />
     <ClCompile Include="meta\ps2_leg.c" />
