@@ -380,6 +380,9 @@
     <ClInclude Include="util\samples_ops.h">
       <Filter>util\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="util\sf_utils.h">
+      <Filter>util\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="util\text_reader.h">
       <Filter>util\Header Files</Filter>
     </ClInclude>
@@ -2054,6 +2057,9 @@
       <Filter>util\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="util\samples_ops.c">
+      <Filter>util\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="util\sf_utils.c">
       <Filter>util\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="util\text_reader.c">

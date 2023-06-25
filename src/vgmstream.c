@@ -12,6 +12,7 @@
 #include "base/decode.h"
 #include "base/render.h"
 #include "base/mixing.h"
+#include "util/sf_utils.h"
 
 typedef VGMSTREAM* (*init_vgmstream_t)(STREAMFILE*);
 

@@ -185,6 +185,7 @@
     <ClInclude Include="util\reader_sf.h" />
     <ClInclude Include="util\reader_text.h" />
     <ClInclude Include="util\samples_ops.h" />
+    <ClInclude Include="util\sf_utils.h" />
     <ClInclude Include="util\text_reader.h" />
   </ItemGroup>
   <ItemGroup>
@@ -745,6 +746,7 @@
     <ClCompile Include="util\paths.c" />
     <ClCompile Include="util\reader.c" />
     <ClCompile Include="util\samples_ops.c" />
+    <ClCompile Include="util\sf_utils.c" />
     <ClCompile Include="util\text_reader.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
