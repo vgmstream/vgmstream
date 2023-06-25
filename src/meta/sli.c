@@ -12,8 +12,12 @@ VGMSTREAM* init_vgmstream_sli_loops(STREAMFILE* sf) {
     VGMSTREAM* (*init_vgmstream)(STREAMFILE* sf) = NULL;
 
     /* checks */
+    /* V1: fixed to 0x900?
+     * V2: varies with text size but around 0xC0 */
+    if (get_streamfile_size(sf) > 0x2000)
+        return NULL;
     if (!check_extensions(sf, "sli"))
-        goto fail;
+        return NULL;
 
     {
         /* try with file.ogg/opus/wav.sli=header and file.ogg/opus/wav=data */

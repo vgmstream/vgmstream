@@ -2,36 +2,38 @@
 #include "../coding/coding.h"
 #include "../util.h"
 
-/* .ADX - from Xenoblade 3D (3DS) */
-VGMSTREAM* init_vgmstream_dsp_adx(STREAMFILE *sf) {
+/* .ADX - from Monster Games [Xenoblade 3D (3DS)] */
+VGMSTREAM* init_vgmstream_adx_monster(STREAMFILE *sf) {
     VGMSTREAM* vgmstream = NULL;
     int loop_flag, channels;
     int channel_header_spacing = 0x34;
 
+
     /* checks */
-    if (!check_extensions(sf,"adx"))
-        goto fail;
-
     if (read_u32be(0x00,sf) != 0x02000000)
+        return NULL;
+
+    /* .adx: reused from Wii version, but actually DSP */
+    if (!check_extensions(sf,"adx"))
+        return NULL;
+
+    channels = read_s32le(0x0, sf);
+    loop_flag = read_s16le(0x6e, sf);
+    if (channels > 2 || channels < 0)
         goto fail;
-
-    channels = read_32bitLE(0, sf);
-    loop_flag = read_16bitLE(0x6e, sf);
-
-    if (channels > 2 || channels < 0) goto fail;
 
     vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
+    vgmstream->meta_type = meta_ADX_MONSTER;
     vgmstream->coding_type = coding_NGC_DSP;
     vgmstream->layout_type = layout_none;
-    vgmstream->meta_type = meta_XB3D_ADX;
-    vgmstream->sample_rate = read_32bitLE(0x70,sf);
-    vgmstream->num_samples = read_32bitLE(0x74, sf);
-    vgmstream->loop_start_sample = read_32bitLE(0x78, sf);
-    vgmstream->loop_end_sample = read_32bitLE(0x7c, sf);
+    vgmstream->sample_rate = read_s32le(0x70,sf);
+    vgmstream->num_samples = read_s32le(0x74, sf);
+    vgmstream->loop_start_sample = read_s32le(0x78, sf);
+    vgmstream->loop_end_sample = read_s32le(0x7c, sf);
 
-    dsp_read_coefs_le(vgmstream,sf, 0x4, channel_header_spacing);
+    dsp_read_coefs_le(vgmstream,sf, 0x04, channel_header_spacing);
 
     /* semi-interleave: manually open streams at offset */
     {

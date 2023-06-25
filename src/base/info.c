@@ -3,7 +3,7 @@
 #include "../coding/coding.h"
 #include "mixing.h"
 #include "../util/channel_mappings.h"
-
+#include "../util/sf_utils.h"
 
 /*******************************************************************************/
 /* TEXT                                                                        */

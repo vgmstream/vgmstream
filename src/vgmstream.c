@@ -12,6 +12,7 @@
 #include "base/decode.h"
 #include "base/render.h"
 #include "base/mixing.h"
+#include "util/sf_utils.h"
 
 typedef VGMSTREAM* (*init_vgmstream_t)(STREAMFILE*);
 
@@ -28,7 +29,6 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_nds_strm,
     init_vgmstream_afc,
     init_vgmstream_ast,
-    init_vgmstream_awd,
     init_vgmstream_halpst,
     init_vgmstream_rs03,
     init_vgmstream_ngc_dsp_std,
@@ -68,7 +68,6 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_svs,
     init_vgmstream_riff,
     init_vgmstream_rifx,
-    init_vgmstream_pos,
     init_vgmstream_nwa,
     init_vgmstream_ea_1snh,
     init_vgmstream_ea_eacs,
@@ -80,19 +79,18 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_fsb,
     init_vgmstream_fsb4_wav,
     init_vgmstream_fsb5,
-    init_vgmstream_rwx,
+    init_vgmstream_rwax,
     init_vgmstream_xwb,
     init_vgmstream_ps2_xa30,
     init_vgmstream_musc,
     init_vgmstream_musx,
-    init_vgmstream_leg,
     init_vgmstream_filp,
     init_vgmstream_ikm,
     init_vgmstream_ster,
     init_vgmstream_bg00,
     init_vgmstream_sat_dvi,
     init_vgmstream_dc_kcey,
-    init_vgmstream_ps2_rstm,
+    init_vgmstream_rstm_rockstar,
     init_vgmstream_acm,
     init_vgmstream_mus_acm,
     init_vgmstream_ps2_kces,
@@ -102,7 +100,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_ps2_rkv,
     init_vgmstream_ps2_vas,
     init_vgmstream_ps2_vas_container,
-    init_vgmstream_ps2_enth,
+    init_vgmstream_lp_ap_lep,
     init_vgmstream_sdt,
     init_vgmstream_aix,
     init_vgmstream_ngc_tydsp,
@@ -123,11 +121,11 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_ps2_rnd,
     init_vgmstream_idsp_tt,
     init_vgmstream_kraw,
-    init_vgmstream_ps2_omu,
-    init_vgmstream_ps2_xa2,
+    init_vgmstream_omu,
+    init_vgmstream_xa2_acclaim,
     init_vgmstream_idsp_nl,
     init_vgmstream_idsp_ie,
-    init_vgmstream_ngc_ymf,
+    init_vgmstream_ymf,
     init_vgmstream_sadl,
     init_vgmstream_fag,
     init_vgmstream_ps2_mihb,
@@ -168,7 +166,6 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_swav,
     init_vgmstream_vsf,
     init_vgmstream_nds_rrds,
-    init_vgmstream_ps2_tk5,
     init_vgmstream_ps2_vsf_tta,
     init_vgmstream_ads_midway,
     init_vgmstream_ps2_mcg,
@@ -179,7 +176,6 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_wii_wsd,
     init_vgmstream_dsp_ndp,
     init_vgmstream_ps2_sps,
-    init_vgmstream_ps2_xa2_rrp,
     init_vgmstream_nds_hwas,
     init_vgmstream_ngc_lps,
     init_vgmstream_ps2_snd,
@@ -209,13 +205,12 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_ps2_wb,
     init_vgmstream_bnsf,
     init_vgmstream_ps2_gcm,
-    init_vgmstream_ps2_smpl,
+    init_vgmstream_smpl,
     init_vgmstream_ps2_msa,
-    init_vgmstream_ps2_voi,
+    init_vgmstream_voi,
     init_vgmstream_ngc_rkv,
     init_vgmstream_dsp_ddsp,
     init_vgmstream_p3d,
-    init_vgmstream_ps2_tk1,
     init_vgmstream_ngc_dsp_mpds,
     init_vgmstream_dsp_str_ig,
     init_vgmstream_ea_swvr,
@@ -224,7 +219,6 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_dsp_xiii,
     init_vgmstream_dsp_cabelas,
     init_vgmstream_lpcm_shade,
-    init_vgmstream_dsp_bdsp,
     init_vgmstream_ps2_vms,
     init_vgmstream_xau,
     init_vgmstream_bar,
@@ -248,7 +242,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_xwav_old,
     init_vgmstream_hyperscan_kvag,
     init_vgmstream_ios_psnd,
-    init_vgmstream_adp_bos,
+    init_vgmstream_adp_wildfire,
     init_vgmstream_adp_qd,
     init_vgmstream_eb_sfx,
     init_vgmstream_eb_sf0,
@@ -281,7 +275,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_svag_snk,
     init_vgmstream_ps2_vds_vdm,
     init_vgmstream_cxs,
-    init_vgmstream_dsp_adx,
+    init_vgmstream_adx_monster,
     init_vgmstream_akb,
     init_vgmstream_akb2,
 #ifdef VGM_USE_FFMPEG
@@ -340,11 +334,10 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_ea_tmx,
     init_vgmstream_ea_sbr,
     init_vgmstream_ea_sbr_harmony,
-    init_vgmstream_ngc_vid1,
+    init_vgmstream_vid1,
     init_vgmstream_flx,
     init_vgmstream_mogg,
     init_vgmstream_kma9,
-    init_vgmstream_fsb_encrypted,
     init_vgmstream_xwc,
     init_vgmstream_atsl,
     init_vgmstream_sps_n1,
@@ -383,7 +376,6 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_hd3_bd3,
     init_vgmstream_bnk_sony,
     init_vgmstream_nus3bank,
-    init_vgmstream_nus3bank_encrypted,
     init_vgmstream_sscf,
     init_vgmstream_dsp_sps_n1,
     init_vgmstream_dsp_itl_ch,
@@ -530,32 +522,37 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_utf_ahx,
     init_vgmstream_ego_dic,
     init_vgmstream_rws_mono,
+    init_vgmstream_awd,
+    init_vgmstream_pwb,
 
     /* lower priority metas (no clean header identity, somewhat ambiguous, or need extension/companion file to identify) */
     init_vgmstream_scd_pcm,
     init_vgmstream_agsc,
-    init_vgmstream_rsf,
     init_vgmstream_ps2_wmus,
     init_vgmstream_mib_mih,
     init_vgmstream_mjb_mjh,
     init_vgmstream_mic_koei,
     init_vgmstream_seb,
-    init_vgmstream_ps2_pnb,
-    init_vgmstream_sli_loops,
     init_vgmstream_tgc,
+    /* need companion files */
+    init_vgmstream_pos,
+    init_vgmstream_sli_loops,
 
     /* lowest priority metas (should go after all metas, and TXTH should go before raw formats) */
     init_vgmstream_txth,            /* proper parsers should supersede TXTH, once added */
     init_vgmstream_dtk,             /* semi-raw GC streamed files */
     init_vgmstream_mpeg,            /* semi-raw MP3 */
     init_vgmstream_btsnd,           /* semi-headerless */
+    init_vgmstream_fsb_encrypted,
+    init_vgmstream_nus3bank_encrypted,
     init_vgmstream_encrypted,       /* encrypted stuff */
+    init_vgmstream_raw_rsf,         /* raw GC streamed files */
     init_vgmstream_raw_int,         /* .int raw PCM */
     init_vgmstream_ps_headerless,   /* tries to detect a bunch of PS-ADPCM formats */
     init_vgmstream_raw_snds,        /* .snds raw SNDS IMA */
     init_vgmstream_raw_wavm,        /* .wavm raw xbox */
     init_vgmstream_raw_pcm,         /* .raw raw PCM */
-    init_vgmstream_s14_sss,         /* .s14/sss raw siren14 */
+    init_vgmstream_raw_s14_sss,     /* .s14/sss raw siren14 */
     init_vgmstream_exakt_sc,        /* .sc raw PCM */
     init_vgmstream_zwdsp,           /* fake format */
     init_vgmstream_ps2_adm,         /* weird non-constant PSX blocks */
@@ -1027,7 +1024,7 @@ static void try_dual_file_stereo(VGMSTREAM* opened_vgmstream, STREAMFILE* sf, in
 
     /* check these even if there is no loop, because they should then be zero in both
      * (Homura PS2 right channel doesn't have loop points so this check is ignored) */
-    if (new_vgmstream->meta_type != meta_PS2_SMPL &&
+    if (new_vgmstream->meta_type != meta_SMPL &&
             !(new_vgmstream->loop_flag      == opened_vgmstream->loop_flag &&
             new_vgmstream->loop_start_sample== opened_vgmstream->loop_start_sample &&
             new_vgmstream->loop_end_sample  == opened_vgmstream->loop_end_sample)) {
@@ -1125,6 +1122,9 @@ int vgmstream_open_stream_bf(VGMSTREAM* vgmstream, STREAMFILE* sf, off_t start_o
         goto fail;
     }
 
+    /* no need to open anything */
+    if (vgmstream->coding_type == coding_SILENCE)
+        return 1;
 
     /* stream/offsets not needed, managed by layout */
     if (vgmstream->layout_type == layout_segmented ||

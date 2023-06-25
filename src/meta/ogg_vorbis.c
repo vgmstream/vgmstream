@@ -479,7 +479,7 @@ static int _init_vgmstream_ogg_vorbis_tests(STREAMFILE* sf, ogg_vorbis_io_config
         }
     }
 
-    /* "Ultramarine3" (???) */
+    /* .um3: Ultramarine / Bruns Engine files  */
     if (check_extensions(sf,"um3")) {
         if (!is_id32be(0x00,sf, "OggS")) {
             ovmi->decryption_callback = um3_ogg_decryption_callback;

@@ -69,4 +69,5 @@ doc/INFO.md
 doc/_build
 
 changelog.txt
+formats-info.md
 __pycache__

@@ -1,7 +1,7 @@
 #include "meta.h"
 #include "../coding/coding.h"
 
-/* OGV - .ogg container (not related to ogv video) [Bloody Rondo (PC)] */
+/* OGV - .ogg container (not related to ogv video) [Bloody Rondo (PC), Shinigami no Testament (PC)] */
 VGMSTREAM* init_vgmstream_ogv_3rdeye(STREAMFILE* sf) {
     uint32_t subfile_offset, subfile_size;
 

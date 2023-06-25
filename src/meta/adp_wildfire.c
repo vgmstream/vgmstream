@@ -1,18 +1,18 @@
 #include "meta.h"
 
-/* ADP - from Balls of Steel */
-VGMSTREAM* init_vgmstream_adp_bos(STREAMFILE* sf) {
+/* ADP - from Wildfire Studios games [Balls of Steel (PC)] */
+VGMSTREAM* init_vgmstream_adp_wildfire(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
-    off_t start_offset;
-    int loop_flag = 0;
-    int channels;
+    uint32_t start_offset;
+    int channels, loop_flag = 0;
 
     /* checks */
-    if (!check_extensions(sf,"adp"))
-        goto fail;
-
     if (!is_id32be(0x00,sf, "ADP!"))
-        goto fail;
+        return NULL;
+
+    if (!check_extensions(sf,"adp"))
+        return NULL;
+
 
     loop_flag = (-1 != read_s32le(0x08,sf));
     channels = 1;
@@ -30,7 +30,7 @@ VGMSTREAM* init_vgmstream_adp_bos(STREAMFILE* sf) {
 
     vgmstream->coding_type = coding_DVI_IMA_int;
     vgmstream->layout_type = layout_none;
-    vgmstream->meta_type = meta_BOS_ADP;
+    vgmstream->meta_type = meta_ADP_WILDFIRE;
 
     // 0x10, 0x12 - both initial history?
     //vgmstream->ch[0].adpcm_history1_32 = read_16bitLE(0x10,sf);

@@ -1,92 +1,48 @@
 #include "meta.h"
-#include "../util.h"
+#include "../coding/coding.h"
 
-/* YDSP (from WWE Day of Reckoning) */
-VGMSTREAM * init_vgmstream_ydsp(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
-    int loop_flag;
-    int channel_count;
-    off_t start_offset;
 
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("ydsp",filename_extension(filename))) goto fail;
+/* YDSP - from Yuke's games [WWE Day of Reckoning (GC), WWE WrestleMania XIX (GC)] */
+VGMSTREAM* init_vgmstream_ydsp(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
+    int channels, loop_flag;
+    uint32_t start_offset;
 
-    /* check header */
-    if (read_32bitBE(0x00,streamFile) != 0x59445350) /* "YDSP" */
-      goto fail;
+    /* checks */
+    if (!is_id32be(0x00,sf, "YDSP"))
+        return NULL;
 
-    loop_flag = (read_32bitBE(0xB0,streamFile)!=0x0);
-    channel_count = (uint16_t)read_16bitBE(0x10,streamFile);
-    
+    /* .ydsp: header id (in bigfile, .yds is the likely extension comparing similar files) */
+    if (!check_extensions(sf, "ydsp"))
+        return NULL;
+
+    loop_flag = (read_s32be(0xB0,sf) != 0x0);
+    channels = read_u16be(0x10,sf);
+    start_offset = 0x120;
+
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
-    /* fill in the vital statistics */
-    start_offset = 0x120;
-	  vgmstream->channels = channel_count;
-    vgmstream->sample_rate = read_32bitBE(0x0C,streamFile);
-    vgmstream->coding_type = coding_NGC_DSP;
     vgmstream->meta_type = meta_YDSP;
+    vgmstream->sample_rate = read_s32be(0x0C,sf);
 
-    vgmstream->num_samples = (read_32bitBE(0x08,streamFile))*14/8/channel_count;
+    vgmstream->num_samples = dsp_bytes_to_samples(read_u32be(0x08,sf), channels);
+    vgmstream->loop_start_sample = read_s32be(0xB0,sf);
+    vgmstream->loop_end_sample = read_s32be(0xB4,sf);
 
-    if (loop_flag)
-    {
-      vgmstream->loop_start_sample = read_32bitBE(0xB0,streamFile);
-      vgmstream->loop_end_sample = read_32bitBE(0xB4,streamFile);
-    }
+    vgmstream->coding_type = coding_NGC_DSP;
+    vgmstream->layout_type = layout_interleave;
+    vgmstream->interleave_block_size = read_32bitBE(0x14,sf);
 
-	  if (channel_count == 1)
-    {
-      vgmstream->layout_type = layout_none;
-    }
-    else if (channel_count == 2)
-    {
-      vgmstream->interleave_block_size = read_32bitBE(0x14,streamFile);
-      vgmstream->layout_type = layout_interleave;
-    }
-    	
+    dsp_read_coefs_be(vgmstream, sf, 0x20, 0x24);
+    //dsp_read_hist_be(vgmstream, sf, 0x20 + 0x20, 0x24);
 
-
-    /* open the file for reading */
-    
-	  if (vgmstream->coding_type == coding_NGC_DSP)
-    {
-      int i;
-      for (i=0;i<16;i++)
-      {
-        vgmstream->ch[0].adpcm_coef[i] = read_16bitBE(0x20+i*2,streamFile);
-      }
-        if (vgmstream->channels == 2)
-        {
-          for (i=0;i<16;i++)
-          {
-            vgmstream->ch[1].adpcm_coef[i] = read_16bitBE(0x44+i*2,streamFile);
-          }
-        }
-    }
-
-    {
-        int i;
-        STREAMFILE * file;
-        file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (!file) goto fail;
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = file;
-
-            vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=start_offset+
-                vgmstream->interleave_block_size*i;
-        }
-    }
-
+    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
+        goto fail;
     return vgmstream;
 
-    /* clean up anything we may have opened */
 fail:
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_vgmstream(vgmstream);
     return NULL;
 }

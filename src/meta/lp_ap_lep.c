@@ -1,9 +1,9 @@
 #include "meta.h"
 #include "../coding/coding.h"
-#include "ps2_enth_streamfile.h"
+#include "lp_ap_lep_streamfile.h"
 
 /* LP/AP/LEP - from Konami (KCES)'s Enthusia: Professional Racing (PS2) */
-VGMSTREAM* init_vgmstream_ps2_enth(STREAMFILE* sf) {
+VGMSTREAM* init_vgmstream_lp_ap_lep(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     STREAMFILE* temp_sf = NULL;
     off_t start_offset;
@@ -13,10 +13,13 @@ VGMSTREAM* init_vgmstream_ps2_enth(STREAMFILE* sf) {
 
 
     /* checks */
+    if (!is_id32be(0x00,sf,"LP  ") && !is_id32be(0x00,sf,"AP  ") && !is_id32be(0x00,sf,"LEP "))
+        return NULL;
+
     /* .bin/lbin: internal (no names in bigfiles but exes mention "bgm%05d.bin" and "LEP data")
      * .lp/lep/ap: header ID */
     if (!check_extensions(sf, "bin,lbin,lp,lep,ap"))
-        goto fail;
+        return NULL;
 
     id = read_u32be(0x00,sf);
     switch (id) {
@@ -49,7 +52,7 @@ VGMSTREAM* init_vgmstream_ps2_enth(STREAMFILE* sf) {
     vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->meta_type = meta_PS2_ENTH;
+    vgmstream->meta_type = meta_LP_AP_LEP;
     vgmstream->sample_rate = sample_rate;
 
     switch (id) {
