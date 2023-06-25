@@ -288,7 +288,7 @@ VGMSTREAM * init_vgmstream_ps2_rnd(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_kraw(STREAMFILE *streamFile);
 
-VGMSTREAM * init_vgmstream_ps2_omu(STREAMFILE *streamFile);
+VGMSTREAM* init_vgmstream_omu(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_xa2_acclaim(STREAMFILE* sf);
 

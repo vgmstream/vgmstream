@@ -994,7 +994,7 @@ static const meta_info meta_info_list[] = {
         {meta_XA,                   "Sony XA header"},
         {meta_RXWS,                 "Sony RXWS header"},
         {meta_RAW_INT,              "PS2 .int raw header"},
-        {meta_PS2_OMU,              "Alter Echo OMU Header"},
+        {meta_OMU,                  "Outrage OMU Header"},
         {meta_DSP_STM,              "Intelligent Systems STM header"},
         {meta_EXST,                 "Sony EXST header"},
         {meta_SVAG_KCET,            "Konami SVAG header"},

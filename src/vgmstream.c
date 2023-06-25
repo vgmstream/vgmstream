@@ -122,7 +122,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_ps2_rnd,
     init_vgmstream_idsp_tt,
     init_vgmstream_kraw,
-    init_vgmstream_ps2_omu,
+    init_vgmstream_omu,
     init_vgmstream_xa2_acclaim,
     init_vgmstream_idsp_nl,
     init_vgmstream_idsp_ie,

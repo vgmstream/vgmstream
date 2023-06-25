@@ -353,7 +353,7 @@ typedef enum {
     meta_SAP,
     meta_DC_IDVI,           /* Eldorado Gate */
     meta_KRAW,              /* Geometry Wars - Galaxies */
-    meta_PS2_OMU,           /* PS2 Int file with Header */
+    meta_OMU,
     meta_XA2_ACCLAIM,
     meta_NUB,
     meta_IDSP_NL,           /* Mario Strikers Charged (Wii) */

@@ -1,7 +1,7 @@
 #include "meta.h"
 
 /* IMU - found in Alter Echo (PS2) */
-VGMSTREAM* init_vgmstream_ps2_omu(STREAMFILE* sf) {
+VGMSTREAM* init_vgmstream_omu(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     off_t start_offset;
     int loop_flag, channels;
@@ -9,13 +9,11 @@ VGMSTREAM* init_vgmstream_ps2_omu(STREAMFILE* sf) {
 
     /* checks */
     if (!is_id32be(0x00,sf, "OMU "))
-        goto fail;
-
+        return NULL;
     if (!check_extensions(sf,"omu"))
-        goto fail;
-
+        return NULL;
     if (!is_id32be(0x08,sf, "FRMT"))
-        goto fail;
+        return NULL;
 
     loop_flag = 1;
     channels = read_u8(0x14,sf);
@@ -33,7 +31,7 @@ VGMSTREAM* init_vgmstream_ps2_omu(STREAMFILE* sf) {
     vgmstream->coding_type = coding_PCM16LE;
     vgmstream->layout_type = layout_interleave;
     vgmstream->interleave_block_size = 0x200;
-    vgmstream->meta_type = meta_PS2_OMU;
+    vgmstream->meta_type = meta_OMU;
 
     if (!vgmstream_open_stream(vgmstream, sf, start_offset))
         goto fail;
