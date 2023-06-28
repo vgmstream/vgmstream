@@ -980,7 +980,7 @@ VGMSTREAM* init_vgmstream_ego_dic(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_awd(STREAMFILE* sf);
 
-VGMSTREAM* init_vgmstream_rws_mono(STREAMFILE* sf);
+VGMSTREAM* init_vgmstream_rws_809(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_pwb(STREAMFILE* sf);
 

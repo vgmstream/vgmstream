@@ -1618,13 +1618,13 @@
     <ClCompile Include="meta\rwax.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\rws.c">
+    <ClCompile Include="meta\rws_809.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\rws_80d.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\rwsd.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="meta\rws_mono.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\rxws.c">
