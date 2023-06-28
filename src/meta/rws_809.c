@@ -81,7 +81,7 @@ VGMSTREAM* init_vgmstream_rws_809(STREAMFILE* sf) {
             /* (header_offset + 0x3C + misc_data_size) + 0x00 to +0x18 has the target format
              * info which in most cases would probably be identical to the input format info */
 
-            /* misc_data_size * 2 should be 0xC0 if it exists */
+            /* (misc_data_size * 2) should be 0xC0 if it exists */
             stream_name_offset = header_offset + 0x7C + (misc_data_size * 2);
             read_string(stream_name, STREAM_NAME_SIZE, stream_name_offset, sf);
 
@@ -112,7 +112,7 @@ VGMSTREAM* init_vgmstream_rws_809(STREAMFILE* sf) {
     vgmstream->num_streams = total_subsongs;
     vgmstream->interleave_block_size = interleave;
 
-    /* Seems to be the same as in rws.c, maybe merge the two switches into one function? */
+    /* Seems to be the same as in rws_80d.c, maybe merge the two switches into one function? */
     switch (codec_uuid) {
         case 0xD01BD217: /* {D01BD217-3587-4EED-B9D9-B8E86EA9B995}: PCM Signed 16-bit */
             vgmstream->num_samples = pcm16_bytes_to_samples(stream_size, channels);

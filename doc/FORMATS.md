@@ -1330,18 +1330,18 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Konami RWAX header [*RWAX*]
   - *rwax*: `.rwx`
   - Codecs: PCM16LE
-- **rws.c**
+- **rws_809.c**
   - RenderWare RWS header [*RWS*]
-  - *rws*: `.rws`
+  - *rws_809*: `.rws`
+  - Codecs: PSX NGC_DSP PCM16BE PCM16LE
+- **rws_80d.c**
+  - RenderWare RWS header [*RWS*]
+  - *rws_80d*: `.rws`
   - Codecs: PCM16_int PCM16BE PCM16LE PSX NGC_DSP XBOX_IMA
 - **rwsd.c**
   - Nintendo RWSD header (single stream) [*RWSD*]
   - *rwsd*: `.brwsd .rwsd`
   - Codecs: PCM8 PCM16BE NGC_DSP
-- **rws_mono.c**
-  - RenderWare RWS header [*RWS*]
-  - *rws_mono*: `.rws`
-  - Codecs: PSX PCM16BE PCM16LE
 - **rxws.c**
   - Sony RXWS header [*RXWS*]
   - *rxws*: `.xwb .xws + .xwh .xwb`
