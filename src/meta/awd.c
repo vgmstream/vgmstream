@@ -29,7 +29,7 @@ VGMSTREAM* init_vgmstream_awd(STREAMFILE* sf) {
 
     data_offset = read_u32(0x08, sf);
     wavedict_offset = read_u32(0x0C, sf);
-  //data_size = read_u32(0x14, sf);
+    //data_size = read_u32(0x14, sf);
     /* Platform UUIDs in big endian
      * {FD9D32D3-E179-426A-8424-14720AC7F648}: GameCube
      * {ACC9EAAA-38FC-1749-AE81-64EADBC79353}: PlayStation 2
@@ -72,20 +72,20 @@ VGMSTREAM* init_vgmstream_awd(STREAMFILE* sf) {
 
         /* is at the correct target song index */
         if (total_subsongs == target_subsong) {
-          //entry_uuid_offset = read_u32(entry_info_offset + 0x00, sf); /* only used in Burnout games */
+            //entry_uuid_offset = read_u32(entry_info_offset + 0x00, sf); /* only used in Burnout games */
             entry_name_offset = read_u32(entry_info_offset + 0x04, sf);
 
             sample_rate = read_u32(entry_info_offset + 0x10, sf);
             stream_codec = read_u32(entry_info_offset + 0x14, sf);
             stream_size = read_u32(entry_info_offset + 0x18, sf);
-          //bit_depth = read_u8(entry_info_offset + 0x1C, sf);
+            //bit_depth = read_u8(entry_info_offset + 0x1C, sf);
             channels = read_u8(entry_info_offset + 0x1D, sf); /* always 1, don't think stereo entries exist */
             if (channels != 1)
                 goto fail;
 
             /* stores a "00: GCN ADPCM Header" chunk, otherwise empty */
             misc_data_offset = read_u32(entry_info_offset + 0x20, sf);
-          //misc_data_size = read_u32(entry_info_offset + 0x24, sf);
+            //misc_data_size = read_u32(entry_info_offset + 0x24, sf);
 
             /* entry_info_offset + 0x2C to +0x44 has the target format information,
              * which in most cases would probably be identical to the input format
