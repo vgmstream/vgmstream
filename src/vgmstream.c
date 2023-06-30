@@ -115,7 +115,6 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_dc_str_v2,
     init_vgmstream_xmu,
     init_vgmstream_xvas,
-    init_vgmstream_ngc_bh2pcm,
     init_vgmstream_sat_sap,
     init_vgmstream_dc_idvi,
     init_vgmstream_ps2_rnd,

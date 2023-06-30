@@ -348,7 +348,6 @@ typedef enum {
     meta_NGC_TYDSP,         /* Ty - The Tasmanian Tiger */
     meta_DC_STR,            /* SEGA Stream Asset Builder */
     meta_DC_STR_V2,         /* variant of SEGA Stream Asset Builder */
-    meta_NGC_BH2PCM,        /* Bio Hazard 2 */
     meta_SAP,
     meta_DC_IDVI,           /* Eldorado Gate */
     meta_KRAW,              /* Geometry Wars - Galaxies */

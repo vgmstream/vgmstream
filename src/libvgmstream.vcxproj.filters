@@ -1345,9 +1345,6 @@
     <ClCompile Include="meta\ngc_adpdtk.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ngc_bh2pcm.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="meta\ngc_dsp_konami.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>

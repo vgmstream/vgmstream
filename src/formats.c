@@ -104,7 +104,6 @@ static const char* extension_list[] = {
     "bg00",
     "bgm",
     "bgw",
-    "bh2pcm",
     "bigrp",
     "bik",
     "bika", //fake extension for .bik (to be removed)

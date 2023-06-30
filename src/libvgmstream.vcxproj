@@ -508,7 +508,6 @@
     <ClCompile Include="meta\nds_strm.c" />
     <ClCompile Include="meta\nds_strm_ffta2.c" />
     <ClCompile Include="meta\ngc_adpdtk.c" />
-    <ClCompile Include="meta\ngc_bh2pcm.c" />
     <ClCompile Include="meta\ngc_dsp_konami.c" />
     <ClCompile Include="meta\ngc_dsp_mpds.c" />
     <ClCompile Include="meta\ngc_dsp_std.c" />
