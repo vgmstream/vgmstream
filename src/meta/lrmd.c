@@ -3,9 +3,10 @@
 #include "lrmd_streamfile.h"
 
 /* LRMD - Sony/SCEI's format (Loco Roco Music Data?) [LocoRoco 2 (PSP), LocoRoco: Midnight Carnival (PSP)] */
-VGMSTREAM * init_vgmstream_lrmd(STREAMFILE *sf) {
-    VGMSTREAM * vgmstream = NULL;
-    STREAMFILE * sf_h = NULL, *temp_sf = NULL;
+VGMSTREAM* init_vgmstream_lrmd(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
+    STREAMFILE* sb = NULL;
+    STREAMFILE* temp_sf = NULL;
     off_t stream_offset, section1_offset, section2_offset, basename_offset, subname_offset;
     size_t stream_size, max_chunk, block_size = 0, chunk_start, chunk_size;
     int loop_flag, channel_count, sample_rate, layers;
@@ -14,39 +15,41 @@ VGMSTREAM * init_vgmstream_lrmd(STREAMFILE *sf) {
 
 
     /* checks */
-    if (!check_extensions(sf, "lrmb"))
-        goto fail;
-    sf_h = open_streamfile_by_ext(sf, "lrmh");
-    if (!sf_h) goto fail;
-
-
-    if (read_u32be(0x00, sf_h) != 0x4C524D44) /* "LRMD" */
-        goto fail;
+    if (!is_id32be(0x00, sf, "LRMD"))
+        return NULL;
     /* 0x00: version 1? */
     /* 0x08: header size */
     /* 0x0c: body size */
 
-    if (read_u32be(0x10, sf_h) != 0x52455144) /* "REQD" */
-        goto fail;
+    if (!is_id32be(0x10, sf, "REQD"))
+        return NULL;
     /* 0x14: chunk size */
     /* 0x18: null? */
     /* 0x1c: 1? */
+
+    /* .lrmh+lrmb: actual extensions */
+    if (!check_extensions(sf, "lrmh"))
+        goto fail;
+
+    sb = open_streamfile_by_ext(sf, "lrmb");
+    if (!sb) goto fail;
+
     /* 0x20: null */
-    basename_offset = read_u32le(0x24, sf_h);
-    if (read_u16le(0x28, sf_h) != 0x4000) { /* pitch? */
+    basename_offset = read_u32le(0x24, sf);
+    if (read_u16le(0x28, sf) != 0x4000) { /* pitch? */
         VGM_LOG("LRMD: unknown value\n");
         goto fail;
     }
-    max_chunk = read_u16le(0x2a, sf_h);
-    num_samples = read_u32le(0x2c, sf_h);
+    max_chunk = read_u16le(0x2a, sf);
+    num_samples = read_u32le(0x2c, sf);
     /* 0x30: null? */
     /* 0x34: data size for all layers */
-    layers = read_u32le(0x38, sf_h);
-    section1_offset = read_u32le(0x3c, sf_h);
+    layers = read_u32le(0x38, sf);
+    section1_offset = read_u32le(0x3c, sf);
     /* 0x40: lip table entries */
     /* 0x44: lip table offset */
     /* 0x48: section2 flag */
-    section2_offset = read_u32le(0x4c, sf_h);
+    section2_offset = read_u32le(0x4c, sf);
     /* 0x40: section3 flag */
     /* 0x44: section3 (unknown) */
 
@@ -68,11 +71,11 @@ VGMSTREAM * init_vgmstream_lrmd(STREAMFILE *sf) {
             int layer_channels;
 
             /* not too sure but needed for LR2's muihouse last 3 layers */
-            layer_channels = read_u8(header_offset + 0x0d, sf_h) != 0 ? 1 : 2;
+            layer_channels = read_u8(header_offset + 0x0d, sf) != 0 ? 1 : 2;
 
             if (i + 1 == target_subsong) {
                 /* 0x00: null */
-                subname_offset = read_u32le(header_offset + 0x04, sf_h);
+                subname_offset = read_u32le(header_offset + 0x04, sf);
                 /* 0x08: unk */
                 /* 0x0c: flags? */
                 /* 0x10: null? */
@@ -94,9 +97,9 @@ VGMSTREAM * init_vgmstream_lrmd(STREAMFILE *sf) {
     /* section2: loops */
     /* 0x00: offset to "loop" name */
     if (section2_offset > 0) {
-        loop_end   = read_u32le(section2_offset + 0x04, sf_h);
-        loop_start = read_u32le(section2_offset + 0x08, sf_h);
-        loop_flag  = read_u32le(section2_offset + 0x0c, sf_h);
+        loop_end   = read_u32le(section2_offset + 0x04, sf);
+        loop_start = read_u32le(section2_offset + 0x08, sf);
+        loop_flag  = read_u32le(section2_offset + 0x0c, sf);
     }
     else {
         loop_end = 0;
@@ -106,7 +109,7 @@ VGMSTREAM * init_vgmstream_lrmd(STREAMFILE *sf) {
 
 
     /* data de-interleave */
-    temp_sf = setup_lrmd_streamfile(sf, block_size, chunk_start, chunk_size);
+    temp_sf = setup_lrmd_streamfile(sb, block_size, chunk_start, chunk_size);
     if (!temp_sf) goto fail;
 
     stream_offset = 0x00;
@@ -142,23 +145,23 @@ VGMSTREAM * init_vgmstream_lrmd(STREAMFILE *sf) {
 
     /* name custom main + layer name */
     {
-        int name_len = read_string(vgmstream->stream_name, STREAM_NAME_SIZE - 1, basename_offset, sf_h);
+        int name_len = read_string(vgmstream->stream_name, STREAM_NAME_SIZE - 1, basename_offset, sf);
 
         strcat(vgmstream->stream_name, "/");
         name_len++;
 
-        read_string(vgmstream->stream_name + name_len, STREAM_NAME_SIZE - name_len, subname_offset, sf_h);
+        read_string(vgmstream->stream_name + name_len, STREAM_NAME_SIZE - name_len, subname_offset, sf);
     }
 
     if (!vgmstream_open_stream(vgmstream, temp_sf, stream_offset))
         goto fail;
 
-    close_streamfile(sf_h);
+    close_streamfile(sb);
     close_streamfile(temp_sf);
     return vgmstream;
 
 fail:
-    close_streamfile(sf_h);
+    close_streamfile(sb);
     close_streamfile(temp_sf);
     close_vgmstream(vgmstream);
     return NULL;

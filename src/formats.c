@@ -316,7 +316,7 @@ static const char* extension_list[] = {
     "lpcm",
     "lpk",
     "lps",
-    "lrmb",
+    "lrmh",
     "lse",
     "lsf",
     "lstm", //fake extension for .stm
