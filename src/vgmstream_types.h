@@ -348,7 +348,6 @@ typedef enum {
     meta_NGC_TYDSP,         /* Ty - The Tasmanian Tiger */
     meta_DC_STR,            /* SEGA Stream Asset Builder */
     meta_DC_STR_V2,         /* variant of SEGA Stream Asset Builder */
-    meta_NGC_BH2PCM,        /* Bio Hazard 2 */
     meta_SAP,
     meta_DC_IDVI,           /* Eldorado Gate */
     meta_KRAW,              /* Geometry Wars - Galaxies */
@@ -461,7 +460,7 @@ typedef enum {
     meta_SSS,               /* raw Siren 14, 48kbit stereo */
     meta_PS2_GCM,           /* NamCollection */
     meta_SMPL,
-    meta_PS2_MSA,           /* Psyvariar -Complete Edition- */
+    meta_MSA,
     meta_VOI,
     meta_P3D,               /* Prototype P3D */
     meta_NGC_RKV,           /* Legacy of Kain - Blood Omen 2 (GC) */
@@ -544,7 +543,7 @@ typedef enum {
     meta_TXTH,              /* generic text header */
     meta_SK_AUD,            /* Silicon Knights .AUD (Eternal Darkness GC) */
     meta_AHX,
-    meta_STM,               /* Angel Studios/Rockstar San Diego Games */
+    meta_STMA,
     meta_BINK,              /* RAD Game Tools BINK audio/video */
     meta_EA_SNU,            /* Electronic Arts SNU (Dead Space) */
     meta_AWC,               /* Rockstar AWC (GTA5, RDR) */

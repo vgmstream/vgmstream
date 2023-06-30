@@ -3,6 +3,7 @@
 
 #include "../streamfile.h"
 #include "reader_get.h"
+#include "reader_sf.h"
 
 typedef uint32_t (*read_u32_t)(off_t, STREAMFILE*);
 typedef  int32_t (*read_s32_t)(off_t, STREAMFILE*);
@@ -23,6 +24,10 @@ static inline int guess_endian32(off_t offset, STREAMFILE* sf) {
     uint8_t buf[0x04];
     if (read_streamfile(buf, offset, 0x04, sf) != 0x04) return -1; /* ? */
     return get_u32le(buf) > get_u32be(buf) ? 1 : 0;
+}
+
+static inline read_u32_t guess_read_u32(off_t offset, STREAMFILE* sf) {
+    return guess_endian32(0x08,sf) ? read_u32be : read_u32le;
 }
 
 #endif

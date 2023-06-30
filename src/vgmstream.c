@@ -115,7 +115,6 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_dc_str_v2,
     init_vgmstream_xmu,
     init_vgmstream_xvas,
-    init_vgmstream_ngc_bh2pcm,
     init_vgmstream_sat_sap,
     init_vgmstream_dc_idvi,
     init_vgmstream_ps2_rnd,
@@ -206,7 +205,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_bnsf,
     init_vgmstream_ps2_gcm,
     init_vgmstream_smpl,
-    init_vgmstream_ps2_msa,
+    init_vgmstream_msa,
     init_vgmstream_voi,
     init_vgmstream_ngc_rkv,
     init_vgmstream_dsp_ddsp,
@@ -305,7 +304,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_ea_mpf_mus,
     init_vgmstream_ea_schl_fixed,
     init_vgmstream_sk_aud,
-    init_vgmstream_stm,
+    init_vgmstream_stma,
     init_vgmstream_ea_snu,
     init_vgmstream_awc,
     init_vgmstream_opus_std,
@@ -1149,13 +1148,6 @@ int vgmstream_open_stream_bf(VGMSTREAM* vgmstream, STREAMFILE* sf, off_t start_o
         return 1;
 #endif
 
-    if ((vgmstream->coding_type == coding_PSX_cfg ||
-            vgmstream->coding_type == coding_PSX_pivotal) &&
-            (vgmstream->interleave_block_size == 0 || vgmstream->interleave_block_size > 0x50)) {
-        VGM_LOG("VGMSTREAM: PSX-cfg decoder with wrong frame size %x\n", vgmstream->interleave_block_size);
-        goto fail;
-    }
-
     if ((vgmstream->coding_type == coding_CRI_ADX ||
             vgmstream->coding_type == coding_CRI_ADX_enc_8 ||
             vgmstream->coding_type == coding_CRI_ADX_enc_9 ||
@@ -1168,16 +1160,24 @@ int vgmstream_open_stream_bf(VGMSTREAM* vgmstream, STREAMFILE* sf, off_t start_o
 
     if ((vgmstream->coding_type == coding_MSADPCM || vgmstream->coding_type == coding_MSADPCM_ck ||
             vgmstream->coding_type == coding_MSADPCM_int ||
-            vgmstream->coding_type == coding_MS_IMA || vgmstream->coding_type == coding_MS_IMA_mono
+            vgmstream->coding_type == coding_MS_IMA || vgmstream->coding_type == coding_MS_IMA_mono ||
+            vgmstream->coding_type == coding_PSX_cfg || vgmstream->coding_type == coding_PSX_pivotal
             ) &&
             vgmstream->frame_size == 0) {
         vgmstream->frame_size = vgmstream->interleave_block_size;
     }
 
+    if ((vgmstream->coding_type == coding_PSX_cfg ||
+            vgmstream->coding_type == coding_PSX_pivotal) &&
+            (vgmstream->frame_size == 0 || vgmstream->frame_size > 0x50)) {
+        VGM_LOG("VGMSTREAM: PSX-cfg decoder with wrong frame size %x\n", vgmstream->frame_size);
+        goto fail;
+    }
+
     if ((vgmstream->coding_type == coding_MSADPCM ||
             vgmstream->coding_type == coding_MSADPCM_ck ||
             vgmstream->coding_type == coding_MSADPCM_int) &&
-            (vgmstream->frame_size > MSADPCM_MAX_BLOCK_SIZE)) {
+            (vgmstream->frame_size == 0 || vgmstream->frame_size > MSADPCM_MAX_BLOCK_SIZE)) {
         VGM_LOG("VGMSTREAM: MSADPCM decoder with wrong frame size %x\n", vgmstream->frame_size);
         goto fail;
     }

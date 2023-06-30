@@ -449,7 +449,7 @@ int decode_get_samples_per_frame(VGMSTREAM* vgmstream) {
             return 28;
         case coding_PSX_cfg:
         case coding_PSX_pivotal:
-            return (vgmstream->interleave_block_size - 0x01) * 2; /* size 0x01 header */
+            return (vgmstream->frame_size - 0x01) * 2; /* size 0x01 header */
 
         case coding_EA_XA:
         case coding_EA_XA_int:
@@ -669,7 +669,7 @@ int decode_get_frame_size(VGMSTREAM* vgmstream) {
             return 0x10;
         case coding_PSX_cfg:
         case coding_PSX_pivotal:
-            return vgmstream->interleave_block_size;
+            return vgmstream->frame_size;
 
         case coding_EA_XA:
             return 0x1E;
@@ -998,14 +998,14 @@ void decode_vgmstream(VGMSTREAM* vgmstream, int samples_written, int samples_to_
             for (ch = 0; ch < vgmstream->channels; ch++) {
                 decode_psx_configurable(&vgmstream->ch[ch], buffer+ch,
                         vgmstream->channels, vgmstream->samples_into_block, samples_to_do,
-                        vgmstream->interleave_block_size, vgmstream->codec_config);
+                        vgmstream->frame_size, vgmstream->codec_config);
             }
             break;
         case coding_PSX_pivotal:
             for (ch = 0; ch < vgmstream->channels; ch++) {
                 decode_psx_pivotal(&vgmstream->ch[ch], buffer+ch,
                         vgmstream->channels, vgmstream->samples_into_block, samples_to_do,
-                        vgmstream->interleave_block_size);
+                        vgmstream->frame_size);
             }
             break;
         case coding_HEVAG:

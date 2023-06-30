@@ -34,8 +34,11 @@ VGMSTREAM* init_vgmstream_mpeg(STREAMFILE* sf) {
 
     /*  .mp3/mp2: standard
      * .lmp3/lmp2: for plugins
-     * .mus: Marc Ecko's Getting Up (PC) */
-    if (!check_extensions(sf, "mp3,mp2,lmp3,lmp2,mus"))
+     * .mus: Marc Ecko's Getting Up (PC) 
+     * .imf: Colors (Gizmondo)
+     * .aix: Classic Compendium 2 (Gizmondo)
+     * (extensionless): Interstellar Flames 2 (Gizmondo) */
+    if (!check_extensions(sf, "mp3,mp2,lmp3,lmp2,mus,imf,aix,,"))
         goto fail;
 
     loop_flag = 0;
