@@ -484,6 +484,7 @@
     <ClCompile Include="meta\mp4.c" />
     <ClCompile Include="meta\mp4_faac.c" />
     <ClCompile Include="meta\mpeg.c" />
+    <ClCompile Include="meta\msa.c" />
     <ClCompile Include="meta\msb_msh.c" />
     <ClCompile Include="meta\msf.c" />
     <ClCompile Include="meta\msf_banpresto.c" />
@@ -562,7 +563,6 @@
     <ClCompile Include="meta\ps2_mcg.c" />
     <ClCompile Include="meta\ps2_mic.c" />
     <ClCompile Include="meta\ps2_mihb.c" />
-    <ClCompile Include="meta\ps2_msa.c" />
     <ClCompile Include="meta\ps2_p2bt.c" />
     <ClCompile Include="meta\ps2_pcm.c" />
     <ClCompile Include="meta\ps2_rnd.c" />
@@ -599,9 +599,9 @@
     <ClCompile Include="meta\rsd.c" />
     <ClCompile Include="meta\rstm_rockstar.c" />
     <ClCompile Include="meta\rwax.c" />
+    <ClCompile Include="meta\rwsd.c" />
     <ClCompile Include="meta\rws_809.c" />
     <ClCompile Include="meta\rws_80d.c" />
-    <ClCompile Include="meta\rwsd.c" />
     <ClCompile Include="meta\rxws.c" />
     <ClCompile Include="meta\s3v.c" />
     <ClCompile Include="meta\sab.c" />

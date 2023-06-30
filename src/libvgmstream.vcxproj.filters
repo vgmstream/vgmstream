@@ -1273,6 +1273,9 @@
     <ClCompile Include="meta\mpeg.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\msa.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\msb_msh.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -1507,9 +1510,6 @@
     <ClCompile Include="meta\ps2_mihb.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ps2_msa.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="meta\ps2_p2bt.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -1618,13 +1618,13 @@
     <ClCompile Include="meta\rwax.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\rwsd.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\rws_809.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\rws_80d.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="meta\rwsd.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\rxws.c">

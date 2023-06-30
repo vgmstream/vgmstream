@@ -461,7 +461,7 @@ typedef enum {
     meta_SSS,               /* raw Siren 14, 48kbit stereo */
     meta_PS2_GCM,           /* NamCollection */
     meta_SMPL,
-    meta_PS2_MSA,           /* Psyvariar -Complete Edition- */
+    meta_MSA,
     meta_VOI,
     meta_P3D,               /* Prototype P3D */
     meta_NGC_RKV,           /* Legacy of Kain - Blood Omen 2 (GC) */

@@ -206,7 +206,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_bnsf,
     init_vgmstream_ps2_gcm,
     init_vgmstream_smpl,
-    init_vgmstream_ps2_msa,
+    init_vgmstream_msa,
     init_vgmstream_voi,
     init_vgmstream_ngc_rkv,
     init_vgmstream_dsp_ddsp,

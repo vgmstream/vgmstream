@@ -443,7 +443,7 @@ VGMSTREAM * init_vgmstream_ps2_gcm(STREAMFILE* streamFile);
 
 VGMSTREAM* init_vgmstream_smpl(STREAMFILE* sf);
 
-VGMSTREAM * init_vgmstream_ps2_msa(STREAMFILE* streamFile);
+VGMSTREAM* init_vgmstream_msa(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_voi(STREAMFILE* sf);
 
