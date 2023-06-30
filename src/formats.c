@@ -99,7 +99,6 @@ static const char* extension_list[] = {
     "bcstm",
     "bcwav",
     "bcv", //txth/reserved [The Bigs (PSP)]
-    "bd3",
     "bfstm",
     "bfwav",
     "bg00",
@@ -216,6 +215,7 @@ static const char* extension_list[] = {
     "h4m",
     "hab",
     "hca",
+    "hd3",
     "hdr",
     "hdt",
     "hgc1",
