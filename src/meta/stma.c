@@ -2,7 +2,7 @@
 #include "../coding/coding.h"
 
 /* STM - from Angel Studios/Rockstar San Diego games [Red Dead Revolver (PS2), Spy Hunter 2 (PS2/Xbox)] */
-VGMSTREAM* init_vgmstream_stm(STREAMFILE* sf) {
+VGMSTREAM* init_vgmstream_stma(STREAMFILE* sf) {
 	VGMSTREAM* vgmstream = NULL;
 	off_t start_offset;
     int loop_flag = 0, channel_count;
@@ -65,7 +65,7 @@ VGMSTREAM* init_vgmstream_stm(STREAMFILE* sf) {
     if (!vgmstream) goto fail;
 
     vgmstream->sample_rate = read_32bit(0xc,sf);
-    vgmstream->meta_type = meta_STM;
+    vgmstream->meta_type = meta_STMA;
     vgmstream->layout_type = (channel_count > 1) ? layout_interleave : layout_none;
 
     switch(bps) {
@@ -109,7 +109,7 @@ VGMSTREAM* init_vgmstream_stm(STREAMFILE* sf) {
     }
 
 
-    if (!vgmstream_open_stream(vgmstream,sf,start_offset))
+    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
         goto fail;
     return vgmstream;
 

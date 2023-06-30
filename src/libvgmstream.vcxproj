@@ -642,7 +642,7 @@
     <ClCompile Include="meta\sspr.c" />
     <ClCompile Include="meta\ster.c" />
     <ClCompile Include="meta\sthd.c" />
-    <ClCompile Include="meta\stm.c" />
+    <ClCompile Include="meta\stma.c" />
     <ClCompile Include="meta\strm_abylight.c" />
     <ClCompile Include="meta\str_snds.c" />
     <ClCompile Include="meta\str_wav.c" />

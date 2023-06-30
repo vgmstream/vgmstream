@@ -305,7 +305,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_ea_mpf_mus,
     init_vgmstream_ea_schl_fixed,
     init_vgmstream_sk_aud,
-    init_vgmstream_stm,
+    init_vgmstream_stma,
     init_vgmstream_ea_snu,
     init_vgmstream_awc,
     init_vgmstream_opus_std,

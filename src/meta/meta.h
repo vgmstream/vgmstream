@@ -615,7 +615,7 @@ VGMSTREAM * init_vgmstream_ea_schl_fixed(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_sk_aud(STREAMFILE * streamFile);
 
-VGMSTREAM* init_vgmstream_stm(STREAMFILE* sf);
+VGMSTREAM* init_vgmstream_stma(STREAMFILE* sf);
 
 VGMSTREAM * init_vgmstream_awc(STREAMFILE * streamFile);
 

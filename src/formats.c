@@ -1261,7 +1261,7 @@ static const meta_info meta_info_list[] = {
         {meta_EA_BNK,               "Electronic Arts BNK header"},
         {meta_SK_AUD,               "Silicon Knights AUD header"},
         {meta_AHX,                  "CRI AHX header"},
-        {meta_STM,                  "Angel Studios/Rockstar San Diego STMA header"},
+        {meta_STMA,                 "Angel Studios/Rockstar San Diego STMA header"},
         {meta_BINK,                 "RAD Game Tools Bink header"},
         {meta_EA_SNU,               "Electronic Arts SNU header"},
         {meta_AWC,                  "Rockstar AWC header"},
