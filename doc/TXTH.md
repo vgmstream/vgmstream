@@ -132,8 +132,8 @@ as explained below, but often will use default values. Accepted codec strings:
 #
 # - MSADPCM        Microsoft ADPCM (mono/stereo)
 #   * For some PC games
-#   * Interleave (frame size) varies, often multiple of 0x100 [required]
-#
+#   * Interleave (frame size) varies, often 0x2c/0x8c/0x100/0x400 and max 0x800 [required]
+
 # - AICA           Yamaha AICA ADPCM (mono/stereo)
 #   * For some Dreamcast games, and some arcade (Naomi) games
 #   * Special interleave is multiple of 0x1

@@ -3,19 +3,23 @@
 
 import glob, os, re
 
-#TODO maybe sort by meta order list in vgmstream.c
-#TODO fix ??? descriptions
 #TODO fix some "ext + ext" exts
-#TODO improve some ubi formats
+#TODO improve dsp/ubi/ea formats
 #TODO detect subfile/init_x calls that aren't VGMSTREAM * init_
 #TODO detect MPEG_x, OPUS_x subtypes
-#TODO ignore some check extensions
-#TODO include common idstrings (first is_id32be() / is_id32le / get_id32be / get_id32be) 
+#TODO ignore some check extensions?
+#TODO maybe include common idstrings (first is_id32be() / is_id32le / get_id32be / get_id32be) 
 #     > after first valid init?
 
-META_FILES = '../**/meta/*.c'
-FORMAT_FILES = '../**/formats.c'
-IS_PRINT_INFO = False #false = write
+META_SRC = '../**/meta/*.c'
+FORMAT_SRC = '../**/formats.c'
+SORT_SRC = '../**/vgmstream.c'
+FORMAT_DOC = '../**/FORMATS.md'
+DUMP_DOC = 'formats-info.md'
+IS_SORT = True          #sorts metas lines based on LIST_SRC
+IS_PRINT_DOC = False    #echo list
+IS_DUMP_DOC = False     #creates DUMP_DOC
+IS_UPDATE_DOC = True    #updates FORMAT_DOC
 
 #VGMSTREAM * init_vgmstream_9tav(STREAMFILE *sf) #allow static since it's used in some cases
 RE_INIT = re.compile(r"VGMSTREAM[ ]*\*[ ]*init_vgmstream_([A-Za-z0-9_]+)\(.+\)")
@@ -41,10 +45,13 @@ RE_OLD_EXTCHECK = re.compile(r"if[ ]*\(strcasecmp\([ ]*\"(.+)\"[ ]*,filename_ext
 # formats.c extract
 RE_FORMATS_META = re.compile(r"{meta_([A-Z0-9][A-Za-z0-9_]+)[ ]*,[ ]* \"(.+)\"[ ]*}")
 
+# vgmstream.c meta call extract
+RE_SORT_INIT = re.compile(r"[ ]+init_vgmstream_([A-Za-z0-9_]+),")
+
 FILES_SKIP = [
     'txth.c','txtp.c','genh.c', 
     'silence.c', 'mp4_faac.c', 'deblock_streamfile.c', 
-    'ps_headerless.c', 'zwdsp.c', 'ngc_bh2pcm.c',
+    'ps_headerless.c', 'zwdsp.c',
 ]
 
 EXT_RENAMES = {'...': '(any)', '': '(extensionless)'}
@@ -53,8 +60,7 @@ META_IGNORES = ['meta_type', 'meta_t']
 CODING_IGNORES = ['coding_type', 'coding_t', 'FFmpeg', 'SILENCE']
 SUBFILES_IGNORES = ['subkey', 'silence', 'silence_container']
 
-
-# various codecs that 
+# detect better various codecs that use a generic coding_XXX
 INIT_CODECS = {
     re.compile(r'init_ffmpeg_aac\('): 'AAC',
     re.compile(r'init_ffmpeg_xwma\('): 'XWMA',
@@ -86,6 +92,7 @@ class MetaInit:
 class MetaFile:
     def __init__(self, file):
         self.fileinfo = os.path.basename(file)
+        self.order = 9999
         # divide each file into sub-metas since some .c have a bunch of them
         self.curr = MetaInit('default') #shouldn't be used but...
         self.inits = [self.curr]
@@ -132,6 +139,7 @@ class App:
     def __init__(self):
         self.infos = []
         self.desc_metas = {}
+        self.lines = []
 
     def extract_extensions(self, line):
        
@@ -160,7 +168,7 @@ class App:
     def parse_files(self):
         infos = self.infos
 
-        files = glob.glob(META_FILES, recursive=True)
+        files = glob.glob(META_SRC, recursive=True)
         for file in files:
             info = MetaFile(file)
             with open(file, 'r', encoding='utf-8') as f:
@@ -201,7 +209,8 @@ class App:
 
     def parse_formats(self):
         desc_metas = self.desc_metas
-        files = glob.glob(FORMAT_FILES, recursive=True)
+
+        files = glob.glob(FORMAT_SRC, recursive=True)
         for file in files:
             with open(file, 'r', encoding='utf-8') as f:
                 for line in f:
@@ -210,13 +219,41 @@ class App:
                         continue
                     meta, desc = items[0]
                     desc_metas[meta] = desc
-            
 
-    def print(self):
+    def sort_files(self):
+        inits_order = {}
+
+        # get process list order
+        files = glob.glob(SORT_SRC, recursive=True)
+        order = 0
+        for file in files:
+            with open(file, 'r', encoding='utf-8') as f:
+                for line in f:
+                    items = self.extract_regex(line, RE_SORT_INIT)
+                    if not items or len(items) != 1:
+                        continue
+                    init = items[0]
+                    inits_order[init] = order
+                    order += 1
+
+        # update (could be done on first pass or maybe in sort() but it's a bit specialized)
+        infos = self.infos
+        for info in infos:
+            for init in info.inits:
+                order = inits_order.get(init.name)
+                #print(init, order)
+                if order is not None and info.order > order:
+                    info.order = order
+
+        infos.sort(key=lambda x: x.order) #, reverse=True
+
+
+    def prepare_results(self):
         desc_metas = self.desc_metas
         infos = self.infos
         
-        lines = []
+
+        lines = self.lines
         for info in infos:
             #info.sort()
             if info.fileinfo in FILES_SKIP:
@@ -227,7 +264,6 @@ class App:
             #    metas = ' '.join(info.metas)
             #    fileinfo += " (%s)" % (metas)
             lines.append(fileinfo)
-
 
             if info.metas:
                 for meta in info.metas:
@@ -267,16 +303,67 @@ class App:
 
             #lines.append('')
 
-        if IS_PRINT_INFO:
-            print('\n'.join(lines))
-        else:
-            with open('formats-info.md', 'w', encoding='utf-8') as f:
-                f.write('\n'.join(lines))
+
+    def update_doc(self):
+        new_lines = self.lines
+
+        files = glob.glob(FORMAT_DOC, recursive=True)
+        if not files:
+            print("format doc (%s) not found" % FORMAT_DOC)
+            return
+
+        doc_lines = []
+        file = files[0]
+        with open(file, 'r', encoding='utf-8') as f:
+            is_updating = False
+            for line in f:
+                line = line.strip()
+
+                # find list section, add all current lines and ignore old ones until next section
+                if line.startswith('### List'):
+                    is_updating = True
+                    doc_lines.append(line)
+                    doc_lines += new_lines
+                    doc_lines.append('')
+                    continue
+
+                # next section
+                if is_updating and line.startswith('#'):
+                    is_updating = False
+
+                if not is_updating:
+                    doc_lines.append(line)
+
+        with open(file, 'w', encoding='utf-8', newline='\n') as f:
+            f.write('\n'.join(doc_lines))
+
+
+    def dump_doc(self):
+        lines = self.lines
+        
+        with open(DUMP_DOC, 'w', encoding='utf-8') as f:
+            f.write('\n'.join(lines))
+
+
+    def print_doc(self):
+        lines = self.lines
+        print('\n'.join(lines))
+
 
     def process(self):
         self.parse_files()
         self.parse_formats()
-        self.print()
+        if IS_SORT:
+            self.sort_files()
+
+        self.prepare_results()
+
+        if IS_PRINT_DOC:
+            self.print_doc()
+        if IS_DUMP_DOC:
+            self.dump_doc()
+        if IS_UPDATE_DOC:
+            self.update_doc()
 
 
 App().process()
