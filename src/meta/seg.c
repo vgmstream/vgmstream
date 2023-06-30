@@ -6,11 +6,10 @@
 /* SEG - from Stormfront games [Eragon (multi), Forgotten Realms: Demon Stone (multi) */
 VGMSTREAM* init_vgmstream_seg(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
-    off_t start_offset;
-    int loop_flag, channel_count;
-    size_t data_size;
+    uint32_t start_offset, data_size;
+    int loop_flag, channels;
     uint32_t codec;
-    int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
+    read_u32_t read_u32;
 
 
     /* checks */
@@ -19,19 +18,16 @@ VGMSTREAM* init_vgmstream_seg(STREAMFILE* sf) {
     if (!check_extensions(sf, "seg"))
         goto fail;
 
-    codec = read_32bitBE(0x04,sf);
-    /* 0x08: version? (2: Eragon, Spiderwick Chronicles Wii / 3: Spiderwick Chronicles X360 / 4: Spiderwick Chronicles PC) */
-    if (guess_endian32(0x08,sf)) {
-        read_32bit = read_32bitBE;
-    } else {
-        read_32bit = read_32bitLE;
-    }
+    codec = read_u32be(0x04,sf);
+    /* 0x08: version? (2: Eragon, Spiderwick Chronicles Wii / 3: Eragon X360, Spiderwick Chronicles X360 / 4: Spiderwick Chronicles PC) */
+    read_u32 = guess_read_u32(0x08, sf);
+
     /* 0x0c: file size */
-    data_size = read_32bit(0x10, sf); /* including interleave padding */
+    data_size = read_u32(0x10, sf); /* including interleave padding */
     /* 0x14: null */
 
-    loop_flag = read_32bit(0x20,sf); /* rare */
-    channel_count = read_32bit(0x24,sf);
+    loop_flag = read_u32(0x20,sf); /* rare */
+    channels = read_u32(0x24,sf);
     /* 0x28: extradata 1 entries (0x08 per entry, unknown) */
     /* 0x2c: extradata 1 offset */
     /* 0x30: extradata 2 entries (0x10 or 0x14 per entry, seek/hist table?) */
@@ -41,12 +37,12 @@ VGMSTREAM* init_vgmstream_seg(STREAMFILE* sf) {
 
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
     vgmstream->meta_type = meta_SEG;
-    vgmstream->sample_rate = read_32bit(0x18,sf);
-    vgmstream->num_samples = read_32bit(0x1c,sf);
+    vgmstream->sample_rate = read_u32(0x18,sf);
+    vgmstream->num_samples = read_u32(0x1c,sf);
     if (loop_flag) {
         vgmstream->loop_start_sample = 0;
         vgmstream->loop_end_sample = vgmstream->num_samples;
@@ -86,14 +82,29 @@ VGMSTREAM* init_vgmstream_seg(STREAMFILE* sf) {
 
 #ifdef VGM_USE_FFMPEG
         case 0x78623300: { /* "xb3\0" */
-            int block_size = 0x4000;
+            /* no apparent flag */
+            if (read_u32be(start_offset, sf) == 0) {
+                /* Eragon (PC) */
+                start_offset += 0x20A; /* one frame */
 
-            vgmstream->codec_data = init_ffmpeg_xma2_raw(sf, start_offset, data_size, vgmstream->num_samples, vgmstream->channels, vgmstream->sample_rate, block_size, 0);
-            if (!vgmstream->codec_data) goto fail;
-            vgmstream->coding_type = coding_FFmpeg;
-            vgmstream->layout_type = layout_none;
+                mpeg_custom_config cfg = {0};
 
-            xma_fix_raw_samples(vgmstream, sf, start_offset,data_size, 0, 0,0); /* samples are ok */
+                vgmstream->codec_data = init_mpeg_custom(sf, start_offset, &vgmstream->coding_type, channels, MPEG_STANDARD, &cfg);
+                if (!vgmstream->codec_data) goto fail;
+                vgmstream->layout_type = layout_none;
+            }
+            else {
+                /* The Spiderwick Chronicles (X360) */
+                int block_size = 0x4000;
+
+                vgmstream->codec_data = init_ffmpeg_xma2_raw(sf, start_offset, data_size, vgmstream->num_samples, vgmstream->channels, vgmstream->sample_rate, block_size, 0);
+                if (!vgmstream->codec_data) goto fail;
+                vgmstream->coding_type = coding_FFmpeg;
+                vgmstream->layout_type = layout_none;
+
+                xma_fix_raw_samples(vgmstream, sf, start_offset,data_size, 0, 0,0); /* samples are ok */
+            }
+
             break;
         }
 #endif
