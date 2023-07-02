@@ -8,7 +8,8 @@ typedef enum { PSX, PCM16, ATRAC9, HEVAG } bnk_codec;
 /* .BNK - Sony's SCREAM bank format [The Sly Collection (PS3), Puyo Puyo Tetris (PS4), NekoBuro: Cats Block (Vita)] */
 VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
-    uint32_t start_offset, stream_offset, name_offset = 0;
+    char bank_name[STREAM_NAME_SIZE] /*[8]*/, stream_name[STREAM_NAME_SIZE] /*[16]*/;
+    uint32_t start_offset, stream_offset, bank_name_offset = 0, stream_name_offset = 0;
     uint32_t stream_size, interleave = 0;
     int channels = 0, loop_flag, sample_rate, big_endian;
     int32_t loop_start = 0, loop_end = 0;
@@ -96,7 +97,8 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
         uint32_t table1_suboffset, table2_suboffset;
         uint32_t table2_entry_offset = 0, table3_entry_offset = 0;
         int table4_entry_id = -1;
-        uint32_t table4_entries_offset, table4_names_offset;
+        uint32_t table4_entry_idx, table4_entries_offset, table4_names_offset;
+        uint32_t entry_offset, entry_count;
 
 
         switch(sblk_version) {
@@ -332,8 +334,56 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
 
         /* parse names */
         switch(sblk_version) {
-          //case 0x03: /* different format? */
+            case 0x03:
+                for (i = 0; i < section_entries; i++) {
+                    entry_offset = read_u32(table1_offset + (i * table1_entry_size) + table1_suboffset, sf);
+                    entry_count = read_u8(table1_offset + (i * table1_entry_size) + 0x04, sf);
+
+                    /* is table2_entry_offset in the range of the expected section */
+                    if (table2_entry_offset >= entry_offset && table2_entry_offset < entry_offset + (entry_count * 0x08))
+                        table4_entry_id = i;
+                }
+
+                /* table4:
+                 * 0x00: bank name (optional)
+                 * 0x08: name section offset
+                 * 0x0C-0x14: 3 null pointers (reserved?)
+                 * 0x18: 32 name chunk offsets (shorts)
+                 */
+
+                /* Name chunks are organised as
+                 *  (name[0] + name[4] + name[8] + name[12]) & 0x1F;
+                 * and using that as the index for the chunk offsets
+                 *  name_sect_offset + (chunk_idx[result] * 0x14);
+                 */
+                if (read_u8(table4_offset, sf))
+                    bank_name_offset = table4_offset;
+
+                table4_entries_offset = table4_offset + 0x18;
+                table4_names_offset = table4_offset + read_u32(table4_offset + 0x08, sf);
+
+                for (i = 0; i < 32; i++) {
+                    table4_entry_idx = read_u16(table4_entries_offset + (i * 2), sf);
+                    stream_name_offset = table4_names_offset + (table4_entry_idx * 0x14);
+                    /* searches the chunk until it finds the target name/index, or breaks at empty name */
+                    while (read_u8(stream_name_offset, sf)) {
+                        /* in case it goes somewhere out of bounds unexpectedly */
+                        //if ((read_u8(stream_name_offset + 0x00, sf) + read_u8(stream_name_offset + 0x04, sf) +
+                        //     read_u8(stream_name_offset + 0x08, sf) + read_u8(stream_name_offset + 0x0C, sf)) & 0x1F != i)
+                        //    goto fail;
+                        if (read_u16(stream_name_offset + 0x10, sf) == table4_entry_id)
+                            goto loop_break; /* to break out of the for+while loop simultaneously */
+                            //break;
+                        stream_name_offset += 0x14;
+                    }
+                }
+                //goto fail; /* didn't find any valid index? */
+                loop_break:
+                break;
+
           //case 0x04: /* different format? */
+          //case 0x05: /* different format? */
+
             case 0x08:
             case 0x09:
             case 0x0d:
@@ -342,7 +392,7 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
             case 0x10:
                 /* find if this sound has an assigned name in table1 */
                 for (i = 0; i < section_entries; i++) {
-                    uint32_t entry_offset = read_u16(table1_offset+(i*table1_entry_size)+table1_suboffset+0x00,sf);
+                    entry_offset = read_u16(table1_offset+(i*table1_entry_size)+table1_suboffset+0x00,sf);
 
                     /* rarely (ex. Polara sfx) one name applies to multiple materials,
                      * from current entry_offset to next entry_offset (section offsets should be in order) */
@@ -358,6 +408,9 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
                 /* 0x0c: table4 size */
                 /* variable: entries */
                 /* variable: names (null terminated) */
+                if (read_u8(table4_offset, sf))
+                    bank_name_offset = table4_offset;
+
                 table4_entries_offset = table4_offset + read_u32(table4_offset+0x08, sf);
                 table4_names_offset = table4_entries_offset + (0x10*section_entries);
                 //;VGM_LOG("BNK: t4_entries=%lx, t4_names=%lx\n", table4_entries_offset, table4_names_offset);
@@ -366,7 +419,7 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
                 for (i = 0; i < section_entries; i++) {
                     int entry_id = read_u32(table4_entries_offset+(i*0x10)+0x0c, sf);
                     if (entry_id == table4_entry_id) {
-                        name_offset = table4_names_offset + read_u32(table4_entries_offset+(i*0x10)+0x00, sf);
+                        stream_name_offset = table4_names_offset + read_u32(table4_entries_offset+(i*0x10)+0x00, sf);
                         break;
                     }
                 }
@@ -376,7 +429,7 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
                 break;
         }
 
-        //;VGM_LOG("BNK: stream_offset=%lx, stream_size=%x, name_offset=%lx\n", stream_offset, stream_size, name_offset);
+        //;VGM_LOG("BNK: stream_offset=%lx, stream_size=%x, stream_name_offset=%lx\n", stream_offset, stream_size, stream_name_offset);
     }
 
 
@@ -635,9 +688,13 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
             goto fail;
     }
 
-    if (name_offset)
-        read_string(vgmstream->stream_name,STREAM_NAME_SIZE, name_offset,sf);
-
+    if (!bank_name_offset && stream_name_offset)
+        read_string(vgmstream->stream_name, STREAM_NAME_SIZE, stream_name_offset, sf);
+    else if (bank_name_offset && stream_name_offset) {
+        read_string(bank_name, STREAM_NAME_SIZE, bank_name_offset, sf);
+        read_string(stream_name, STREAM_NAME_SIZE, stream_name_offset, sf);
+        snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%s/%s", bank_name, stream_name);
+    }
 
     if (!vgmstream_open_stream(vgmstream, sf, start_offset))
         goto fail;
