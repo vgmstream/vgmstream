@@ -1187,6 +1187,9 @@ static const hcakey_info hcakey_list[] = {
         // Disney Star Smash (Android)
         {3941111674189632},     // 000E006B915C3740
 
+        // Final Fantasy VII: Ever Crisis (Android)
+        {19629307353822},       // 000011DA4DE45ADE
+
 };
 
 #endif/*_HCA_KEYS_H_*/
