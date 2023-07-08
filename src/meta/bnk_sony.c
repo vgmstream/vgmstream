@@ -472,8 +472,9 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
                 /* hack for PS3 files that use dual subsongs as stereo */
                 if (total_subsongs == 2 && stream_size * 2 == data_size) {
                     channels = 2;
-                    stream_size = stream_size*channels;
+                    stream_size = stream_size * channels;
                     total_subsongs = 1;
+                    start_offset -= stream_offset; /* also channels may be inverted [Fat Princess (PS3)] */
                 }
                 interleave = stream_size / channels;
 

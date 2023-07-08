@@ -20,7 +20,6 @@ void block_update_caf(off_t block_offset, VGMSTREAM* vgmstream);
 void block_update_wsi(off_t block_offset, VGMSTREAM* vgmstream);
 void block_update_str_snds(off_t block_offset, VGMSTREAM* vgmstream);
 void block_update_ws_aud(off_t block_offset, VGMSTREAM* vgmstream);
-void block_update_matx(off_t block_offset, VGMSTREAM* vgmstream);
 void block_update_dec(off_t block_offset, VGMSTREAM* vgmstream);
 void block_update_vs(off_t block_offset, VGMSTREAM* vgmstream);
 void block_update_mul(off_t block_offset, VGMSTREAM* vgmstream);

@@ -4,55 +4,55 @@
 #include "../util/chunks.h"
 
 /* GSP+GSB - from Tecmo's Super Swing Golf 1 & 2 (Wii), Quantum Theory (PS3/X360) */
-VGMSTREAM* init_vgmstream_gsp_gsb(STREAMFILE* sf) {
+VGMSTREAM* init_vgmstream_gsnd(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
-    STREAMFILE* sf_head = NULL;
+    STREAMFILE* sb = NULL;
     int loop_flag, channel_count, sample_rate, num_samples, loop_start, loop_end;
     off_t start_offset, chunk_offset, first_offset;
     size_t data_size;
     int codec;
 
-    
     /* checks */
-    if (!check_extensions(sf,"gsb"))
+    if (!is_id32be(0x00,sf, "GSND"))
         goto fail;
 
-    sf_head = open_streamfile_by_ext(sf, "gsp");
-    if (!sf_head) goto fail;
-
-    if (!is_id32be(0x00,sf_head, "GSND"))
+    if (!check_extensions(sf,"gsp"))
         goto fail;
+
+    sb = open_streamfile_by_ext(sf, "gsb");
+    if (!sb) goto fail;
+
     /* 0x04: version? */
     /* 0x08: 1? */
     /* 0x0c: 0? */
-    first_offset = read_32bitBE(0x10,sf_head); /* usually 0x14 */
+    first_offset = read_32bitBE(0x10,sf); /* usually 0x14 */
 
-    if (!find_chunk_be(sf_head, 0x48454144,first_offset,1, &chunk_offset,NULL)) /* "HEAD" */
+    if (!find_chunk_be(sf, get_id32be("HEAD"),first_offset,1, &chunk_offset,NULL))
         goto fail;
     /* 0x00: header size */
     /* 0x04: num_chunks */
 
-    if (!find_chunk_be(sf_head, 0x44415441,first_offset,1, &chunk_offset,NULL)) /* "DATA" */
+    if (!find_chunk_be(sf, get_id32be("DATA"),first_offset,1, &chunk_offset,NULL))
         goto fail;
-    data_size       = read_32bitBE(chunk_offset + 0x00,sf_head);
-    codec           = read_32bitBE(chunk_offset + 0x04,sf_head);
-    sample_rate     = read_32bitBE(chunk_offset + 0x08,sf_head);
+    data_size       = read_32bitBE(chunk_offset + 0x00,sf);
+    codec           = read_32bitBE(chunk_offset + 0x04,sf);
+    sample_rate     = read_32bitBE(chunk_offset + 0x08,sf);
     /* 0x0c: always 16? */
-    channel_count   = read_16bitBE(chunk_offset + 0x0e,sf_head);
+    channel_count   = read_16bitBE(chunk_offset + 0x0e,sf);
     /* 0x10: always 0? */
-    num_samples     = read_32bitBE(chunk_offset + 0x14,sf_head);
+    num_samples     = read_32bitBE(chunk_offset + 0x14,sf);
     /* 0x18: always 0? */
     /* 0x1c: unk (varies with codec_id) */
 
-    if (!find_chunk_be(sf_head, 0x42534943,first_offset,1, &chunk_offset,NULL)) /* "BSIC" */
+    if (!find_chunk_be(sf, get_id32be("BSIC"),first_offset,1, &chunk_offset,NULL))
         goto fail;
     /* 0x00/0x04: probably volume/pan/etc floats (1.0) */
     /* 0x08: null? */
-    loop_flag   = read_8bit(chunk_offset+0x0c,sf_head);
-    loop_start  = read_32bitBE(chunk_offset+0x10,sf_head);
-    loop_end    = read_32bitBE(chunk_offset+0x14,sf_head);
+    loop_flag   = read_8bit(chunk_offset+0x0c,sf);
+    loop_start  = read_32bitBE(chunk_offset+0x10,sf);
+    loop_end    = read_32bitBE(chunk_offset+0x14,sf);
 
-    //if (!find_chunk_be(streamHeader, 0x4E414D45,first_offset,1, &chunk_offset,NULL)) /* "NAME" */
+    //if (!find_chunk_be(streamHeader, get_id32be("NAME"),first_offset,1, &chunk_offset,NULL))
     //    goto fail;
     /* 0x00: name_size */
     /* 0x04+: name (same as filename) */
@@ -65,7 +65,7 @@ VGMSTREAM* init_vgmstream_gsp_gsb(STREAMFILE* sf) {
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->meta_type = meta_GSP_GSB;
+    vgmstream->meta_type = meta_GSND;
 
     vgmstream->sample_rate = sample_rate;
     vgmstream->num_samples = num_samples;
@@ -80,16 +80,16 @@ VGMSTREAM* init_vgmstream_gsp_gsb(STREAMFILE* sf) {
             vgmstream->coding_type = coding_NGC_DSP;
             vgmstream->layout_type = layout_blocked_gsb;
 
-            if (!find_chunk_be(sf_head, 0x47434558,first_offset,1, &chunk_offset,NULL)) /* "GCEX" */
+            if (!find_chunk_be(sf, get_id32be("GCEX"),first_offset,1, &chunk_offset,NULL))
                 goto fail;
 
             //vgmstream->current_block_size = read_32bitBE(chunk_offset+0x00,streamHeader);
-            block_header_size = read_32bitBE(chunk_offset+0x04,sf_head);
-            num_blocks = read_32bitBE(chunk_offset+0x08,sf_head);
+            block_header_size = read_32bitBE(chunk_offset+0x04,sf);
+            num_blocks = read_32bitBE(chunk_offset+0x08,sf);
             vgmstream->num_samples = (data_size - block_header_size * num_blocks) / 8 / vgmstream->channels * 14;
             /* 0x0c+: unk */
 
-            dsp_read_coefs_be(vgmstream, sf_head, chunk_offset+0x18, 0x30);
+            dsp_read_coefs_be(vgmstream, sf, chunk_offset+0x18, 0x30);
             break;
         }
 #ifdef VGM_USE_FFMPEG
@@ -101,7 +101,7 @@ VGMSTREAM* init_vgmstream_gsp_gsb(STREAMFILE* sf) {
             vgmstream->num_samples = atrac3_bytes_to_samples(data_size, block_align) - encoder_delay;
             /* fix num_samples as header samples seem to be modified to match altered (49999/48001) sample rates somehow */
 
-            vgmstream->codec_data = init_ffmpeg_atrac3_raw(sf, start_offset,data_size, vgmstream->num_samples,vgmstream->channels,vgmstream->sample_rate, block_align, encoder_delay);
+            vgmstream->codec_data = init_ffmpeg_atrac3_raw(sb, start_offset,data_size, vgmstream->num_samples,vgmstream->channels,vgmstream->sample_rate, block_align, encoder_delay);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
@@ -112,18 +112,18 @@ VGMSTREAM* init_vgmstream_gsp_gsb(STREAMFILE* sf) {
             break;
         }
 
-        case 0x09: { /* XMA2 [Quantum Theory (PS3)] */
-            if (!find_chunk_be(sf_head, 0x584D4558,first_offset,1, &chunk_offset,NULL)) /* "XMEX" */
+        case 0x09: { /* XMA2 [Quantum Theory (X360)] */
+            if (!find_chunk_be(sf, get_id32be("XMEX"),first_offset,1, &chunk_offset,NULL)) /* "XMEX" */
                 goto fail;
             /* 0x00: fmt0x166 header (BE) */
             /* 0x34: seek table */
 
-            vgmstream->codec_data = init_ffmpeg_xma_chunk_split(sf_head, sf, start_offset, data_size, chunk_offset, 0x34);
+            vgmstream->codec_data = init_ffmpeg_xma_chunk_split(sf, sb, start_offset, data_size, chunk_offset, 0x34);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
 
-            xma_fix_raw_samples(vgmstream, sf, start_offset,data_size, 0, 0,0); /* samples are ok */
+            xma_fix_raw_samples(vgmstream, sb, start_offset,data_size, 0, 0,0); /* samples are ok */
             break;
         }
 #endif
@@ -132,13 +132,13 @@ VGMSTREAM* init_vgmstream_gsp_gsb(STREAMFILE* sf) {
     }
 
 
-    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
+    if (!vgmstream_open_stream(vgmstream, sb, start_offset))
         goto fail;
-    close_streamfile(sf_head);
+    close_streamfile(sb);
     return vgmstream;
 
 fail:
-    close_streamfile(sf_head);
+    close_streamfile(sb);
     close_vgmstream(vgmstream);
     return NULL;
 }

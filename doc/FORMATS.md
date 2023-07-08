@@ -25,9 +25,9 @@ different internally (encrypted, different versions, etc) and not always can be 
 
 ### List
 - **adx.c**
-  - CRI ADX header type 03 [*ADX_03*]
-  - CRI ADX header type 04 [*ADX_04*]
-  - CRI ADX header type 05 [*ADX_05*]
+  - CRI ADX header (type 03) [*ADX_03*]
+  - CRI ADX header (type 04) [*ADX_04*]
+  - CRI ADX header (type 05) [*ADX_05*]
   - *adx*
     - Subfiles: *adx_subkey*
   - *adx_subkey*: `.adx .adp + .(external)`
@@ -198,7 +198,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Codecs: NGC_DSP
 - **ea_schl.c**
   - Electronic Arts BNK header [*EA_BNK*]
-  - Electronic Arts SCHl header (variable) [*EA_SCHL*]
+  - Electronic Arts SCHl header [*EA_SCHL*]
   - *ea_schl*: `.asf .lasf .str .chk .eam .exa .sng .aud .sx .xa .strm .stm .hab .xsf .gsf .(extensionless)`
   - *ea_schl_video*: `.uv .dct .mad .wve .vp6`
   - *ea_bnk*: `.bnk .sdt .hdt .ldt .abk .ast`
@@ -239,8 +239,8 @@ different internally (encrypted, different versions, etc) and not always can be 
   - *wsi*: `.wsi`
   - Codecs: NGC_DSP
 - **aifc.c**
-  - Apple AIFF-C (Audio Interchange File Format) header [*AIFC*]
-  - Apple AIFF (Audio Interchange File Format) header [*AIFF*]
+  - Apple AIFF-C header [*AIFC*]
+  - Apple AIFF header [*AIFF*]
   - *aifc*: `.aif .laif .wav .lwav .(extensionless) .aifc .laifc .afc .cbd2 .bgm .fda .n64 .xa .aiff .laiff .acm .adp .ai .pcm`
   - Codecs: SDX2 CBD2 DVI_IMA_int APPLE_IMA4 RELIC VADPCM PCM8 PCM16BE XA
 - **str_snds.c**
@@ -265,12 +265,12 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Codecs: PSX
 - **riff.c**
   - RIFF WAVE header [*RIFF_WAVE*]
-  - RIFF WAVE header with loop markers [*RIFF_WAVE_labl*]
-  - RIFF WAVE header with sample looping info [*RIFF_WAVE_smpl*]
-  - RIFF WAVE header with wsmp looping info [*RIFF_WAVE_wsmp*]
-  - RIFF WAVE header with .mwv flavoring [*RIFF_WAVE_MWV*]
+  - RIFF WAVE header (labl looping) [*RIFF_WAVE_labl*]
+  - RIFF WAVE header (smpl looping) [*RIFF_WAVE_smpl*]
+  - RIFF WAVE header (wsmp looping) [*RIFF_WAVE_wsmp*]
+  - RIFF WAVE header (ctrl looping) [*RIFF_WAVE_MWV*]
   - RIFX WAVE header [*RIFX_WAVE*]
-  - RIFX WAVE header with sample looping info [*RIFX_WAVE_smpl*]
+  - RIFX WAVE header (smpl looping) [*RIFX_WAVE_smpl*]
   - *riff*: `.wav .lwav .xwav .mwv .da .dax .cd .med .snd .adx .adp .xss .xsew .adpcm .adw .wd .(extensionless) .sbv .wvx .str .at3 .rws .aud .at9 .ckd .saf .ima .nsa .pcm .xvag .ogg .logg .p1d .xms .mus .dat .ldat`
   - *rifx*: `.wav .lwav`
   - Codecs: AICA_int PCM24LE PCM16BE PCM16LE PCM8_U MSADPCM IMA MS_IMA AICA MPEG_custom XBOX_IMA MS_IMA_3BIT DVI_IMA L5_555 OGG_VORBIS ATRAC9 ATRAC3 MPEG MSADPCM_int
@@ -290,13 +290,13 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Dino Crisis 3 XSS File [*XSS*]
   - *xss*: `.xss`
   - Codecs: PCM16LE
-- **ps2_sl3.c**
+- **sl3.c**
   - Atari Melbourne House SL3 header [*SL3*]
-  - *sl3*: `.ms .sl3`
+  - *sl3*: `.ms`
   - Codecs: PSX
-- **ps2_hgc1.c**
-  - Knights of the Temple 2 hgC1 Header [*HGC1*]
-  - *hgc1*: `.hgc1`
+- **hgc1.c**
+  - Cauldron HGC1 header [*HGC1*]
+  - *hgc1*: `.str`
   - Codecs: PSX
 - **aus.c**
   - Capcom AUS Header [*AUS*]
@@ -340,9 +340,9 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Eurocom MUSX header [*MUSX*]
   - *musx*: `.sfx .musx`
   - Codecs: PSX DAT4_IMA DVI_IMA_int XBOX_IMA NGC_DSP PCM16BE PCM16LE
-- **ps2_filp.c**
-  - Bio Hazard - Gun Survivor FILp Header [*FILP*]
-  - *filp*: `.filp`
+- **filp.c**
+  - cavia FILp Header [*FILP*]
+  - *filp*: `.fil`
   - Codecs: PSX
 - **ikm.c**
   - MiCROViSiON IKM header [*IKM*]
@@ -356,16 +356,16 @@ different internally (encrypted, different versions, etc) and not always can be 
   - ALCHEMY STER header [*STER*]
   - *ster*: `.ster .sfs`
   - Codecs: PSX
-- **ps2_bg00.c**
-  - Falcom BG00 Header [*BG00*]
+- **bg00.c**
+  - Cave BG00 header [*BG00*]
   - *bg00*: `.bg00`
   - Codecs: PSX
 - **sat_dvi.c**
-  - Konami KCEN DVI. header [*SAT_DVI*]
+  - Konami DVI. header [*SAT_DVI*]
   - *sat_dvi*: `.pcm .dvi`
   - Codecs: DVI_IMA_int
 - **dc_kcey.c**
-  - Konami KCEY KCEYCOMP header [*DC_KCEY*]
+  - Konami KCEY header [*DC_KCEY*]
   - *dc_kcey*: `.pcm .kcey`
   - Codecs: DVI_IMA
 - **rstm_rockstar.c**
@@ -393,7 +393,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - *vsv*: `.vsv .psh`
   - Codecs: PSX
 - **ps2_pcm.c**
-  - Konami KCEJ East .PCM header [*PS2_PCM*]
+  - Konami .PCM header [*PS2_PCM*]
   - *ps2_pcm*: `.pcm`
   - Codecs: PCM16LE
 - **rkv.c**
@@ -429,12 +429,8 @@ different internally (encrypted, different versions, etc) and not always can be 
   - *wvs_xbox*: `.wvs`
   - *wvs_ngc*: `.wvs`
   - Codecs: XBOX_IMA NGC_DSP
-- **xbox_ims.c**
-  - assumed Matrix file by .matx extension [*XBOX_MATX*]
-  - *xbox_matx*: `.matx`
-  - Codecs: XBOX_IMA
 - **dec.c**
-  - Falcom DEC RIFF header [*DEC*]
+  - Falcom .DEC RIFF header [*DEC*]
   - *dec*: `.dec .de2 + .(external)`
   - Codecs: MSADPCM
 - **vs.c**
@@ -464,7 +460,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - *dc_idvi*: `.dvi .idvi`
   - Codecs: DVI_IMA_int
 - **ps2_rnd.c**
-  - Knights of the Temple 2 hgC1 Header [*HGC1*]
+  - Cauldron HGC1 header [*HGC1*]
   - *ps2_rnd*: `.rnd`
   - Codecs: PSX
 - **kraw.c**
@@ -504,9 +500,9 @@ different internally (encrypted, different versions, etc) and not always can be 
   - *ngc_pdt*: `.pdt`
   - *ngc_pdt_split*: `.pdt`
   - Codecs: NGC_DSP
-- **wii_mus.c**
-  - mus header [*DSP_WII_MUS*]
-  - *wii_mus*: `.mus`
+- **mus_krone.c**
+  - Krone .MUS header [*MUS_KRONE*]
+  - *mus_krone*: `.mus`
   - Codecs: NGC_DSP
 - **dc_asd.c**
   - ASD Header [*DC_ASD*]
@@ -562,9 +558,9 @@ different internally (encrypted, different versions, etc) and not always can be 
   - ISH+ISD DSP Header [*ISH_ISD*]
   - *ish_isd*: `.isd + .ish`
   - Codecs: NGC_DSP
-- **gsp_gsb.c**
-  - Tecmo GSP+GSB Header [*GSP_GSB*]
-  - *gsp_gsb*: `.gsb + .gsp`
+- **gsnd.c**
+  - Tecmo GSND Header [*GSND*]
+  - *gsnd*: `.gsp + .gsb`
   - Codecs: NGC_DSP ATRAC3 XMA
 - **ydsp.c**
   - Yuke's YDSP Header [*YDSP*]
@@ -730,9 +726,9 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Sensaura SAB header [*SAB*]
   - *sab*: `.sab + .sob`
   - Codecs: PCM16LE PSX XBOX_IMA
-- **wii_bns.c**
-  - Nintendo BNS header [*WII_BNS*]
-  - *wii_bns*: `.bin .lbin .bns`
+- **bns.c**
+  - Nintendo BNS header [*BNS*]
+  - *bns*: `.bin .lbin .bns`
   - Codecs: NGC_DSP
 - **pona.c**
   - Policenauts BGM header [*PONA_3DO*]
@@ -771,9 +767,9 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Konami DSP header [*NGC_DSP_KONAMI*]
   - *ngc_dsp_konami*: `.dsp`
   - Codecs: NGC_DSP
-- **ps2_wb.c**
-  - Shooting Love. ~TRIZEAL~ WB header [*PS2_WB*]
-  - *ps2_wb*: `.wb`
+- **wb.c**
+  - Triangle Service .WB header [*WB*]
+  - *wb*: `.wb`
   - Codecs: PCM16LE
 - **bnsf.c**
   - Namco Bandai BNSF header [*BNSF*]
@@ -810,10 +806,6 @@ different internally (encrypted, different versions, etc) and not always can be 
 - **ps2_b1s.c**
   - B1S header [*PS2_B1S*]
   - *ps2_b1s*: `.b1s`
-  - Codecs: PSX
-- **ps2_wad.c**
-  - WAD header [*PS2_WAD*]
-  - *ps2_wad*: `.wad`
   - Codecs: PSX
 - **lpcm_shade.c**
   - Shade LPCM header [*LPCM_SHADE*]
@@ -952,7 +944,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - *ps2_2pfs*: `.sap .2pfs`
   - Codecs: PSX
 - **xnb.c**
-  - Microsoft XNA Game Studio 4.0 header [*XNB*]
+  - Microsoft XNA Game Studio header [*XNB*]
   - *xnb*: `.xnb + .(external)`
     - Subfiles: *ogg_vorbis riff opus_std ffmpeg*
   - Codecs: PCM8_U PCM16LE MSADPCM MS_IMA XMA2 NGC_DSP
@@ -1797,6 +1789,10 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Double Fine WB header [*PWB*]
   - *pwb*: `.pwb`
   - Codecs: PSX
+- **rawi.c**
+  - Torus SqueakStream RAWI header [*RAWI*]
+  - *rawi*: `(base) + .asset .(external) .raw`
+  - Codecs: NGC_DSP PCM16BE PSX PCM8 MS_IMA
 - **scd_pcm.c**
   - Lunar: Eternal Blue .PCM header [*SCD_PCM*]
   - *scd_pcm*: `.pcm`
@@ -1830,7 +1826,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - *tgc*: `.4`
   - Codecs: TGC
 - **pos.c**
-  - RIFF WAVE header and .pos for looping [*RIFF_WAVE_POS*]
+  - RIFF WAVE header (.pos looping) [*RIFF_WAVE_POS*]
   - *pos*: `.pos + .wav`
     - Subfiles: *riff*
 - **sli.c**
@@ -1838,7 +1834,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - *sli_loops*: `.sli + .(external)`
     - Subfiles: *ogg_opus ogg_vorbis riff*
 - **ngc_adpdtk.c**
-  - Nintendo DTK raw header [*DTK*]
+  - Nintendo .DTK raw header [*DTK*]
   - *dtk*: `.dtk .adp .trk .wav .lwav`
   - Codecs: NGC_DTK
 - **mpeg.c**

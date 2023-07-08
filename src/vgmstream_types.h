@@ -202,7 +202,6 @@ typedef enum {
     layout_blocked_wsi,
     layout_blocked_str_snds,
     layout_blocked_ws_aud,
-    layout_blocked_matx,
     layout_blocked_dec,
     layout_blocked_xvas,
     layout_blocked_vs,
@@ -258,7 +257,7 @@ typedef enum {
     meta_DSP_SADB,          /* .sad */
     meta_DSP_WSI,           /* .wsi */
     meta_IDSP_TT,           /* Traveller's Tales games */
-    meta_DSP_WII_MUS,       /* .mus */
+    meta_MUS_KRONE,
     meta_DSP_WII_WSD,       /* Phantom Brave (WII) */
     meta_WII_NDP,           /* Vertigo (Wii) */
     meta_DSP_YGO,           /* Konami: Yu-Gi-Oh! The Falsebound Kingdom (NGC), Hikaru no Go 3 (NGC) */
@@ -275,7 +274,7 @@ typedef enum {
     meta_THP,               /* THP movie files */
     meta_SWAV,
     meta_NDS_RRDS,          /* Ridge Racer DS */
-    meta_WII_BNS,           /* Wii BNS Banner Sound (similar to RSTM) */
+    meta_BNS,
     meta_WIIU_BTSND,        /* Wii U Boot Sound */
 
     meta_ADX_03,            /* CRI ADX "type 03" */
@@ -358,7 +357,7 @@ typedef enum {
     meta_IDSP_IE,           /* Defencer (GC) */
     meta_SPT_SPD,           /* Various (SPT+SPT DSP) */
     meta_ISH_ISD,           /* Various (ISH+ISD DSP) */
-    meta_GSP_GSB,           /* Tecmo games (Super Swing Golf 1 & 2, Quamtum Theory) */
+    meta_GSND,
     meta_YDSP,              /* WWE Day of Reckoning */
     meta_FFCC_STR,          /* Final Fantasy: Crystal Chronicles */
     meta_UBI_JADE,          /* Beyond Good & Evil, Rayman Raving Rabbids */
@@ -392,7 +391,6 @@ typedef enum {
     meta_UBI_CKD,           /* Ubisoft CKD RIFF header (Rayman Origins Wii) */
     meta_RAW_WAVM,
     meta_WVS,
-    meta_XBOX_MATX,         /* XBOX MATX */
     meta_XMU,
     meta_XVAS,
     meta_EA_SCHL,           /* Electronic Arts SCHl with variable header */
@@ -455,7 +453,7 @@ typedef enum {
     meta_AST_MMV,
     meta_DMSG,              /* Nightcaster II - Equinox (XBOX) */
     meta_NGC_DSP_AAAP,      /* Turok: Evolution (NGC), Vexx (NGC) */
-    meta_PS2_WB,            /* Shooting Love. ~TRIZEAL~ */
+    meta_WB,
     meta_S14,               /* raw Siren 14, 24kbit mono */
     meta_SSS,               /* raw Siren 14, 48kbit stereo */
     meta_PS2_GCM,           /* NamCollection */
@@ -469,7 +467,6 @@ typedef enum {
     meta_DSP_STR_IG,        /* Micro Machines, Superman Superman: Shadow of Apokolis */
     meta_EA_SWVR,           /* Future Cop L.A.P.D., Freekstyle */
     meta_PS2_B1S,           /* 7 Wonders of the ancient world */
-    meta_PS2_WAD,           /* The golden Compass */
     meta_DSP_XIII,          /* XIII, possibly more (Ubisoft header???) */
     meta_DSP_CABELAS,       /* Cabelas games */
     meta_PS2_ADM,           /* Dragon Quest V (PS2) */
@@ -581,11 +578,11 @@ typedef enum {
     meta_DSP_MCADPCM,       /* Skyrim (Switch) */
     meta_UBI_LYN,           /* Ubisoft LyN engine [The Adventures of Tintin (multi)] */
     meta_MSB_MSH,           /* sfx companion of MIH+MIB */
-    meta_TXTP,              /* generic text playlist */
+    meta_TXTP,
     meta_SMC_SMH,           /* Wangan Midnight (System 246) */
     meta_PPST,              /* PPST [Parappa the Rapper (PSP)] */
     meta_SPS_N1,
-    meta_UBI_BAO,           /* Ubisoft BAO */
+    meta_UBI_BAO,
     meta_DSP_SWITCH_AUDIO,  /* Gal Gun 2 (Switch) */
     meta_H4M,               /* Hudson HVQM4 video [Resident Evil 0 (GC), Tales of Symphonia (GC)] */
     meta_ASF,               /* Argonaut ASF [Croc 2 (PC)] */
@@ -701,6 +698,7 @@ typedef enum {
     meta_BIGRP,
     meta_DIC1,
     meta_AWD,
+    meta_RAWI,
 
 } meta_t;
 
