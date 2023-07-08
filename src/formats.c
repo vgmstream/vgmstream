@@ -206,8 +206,8 @@ static const char* extension_list[] = {
     "gin",
     "gms",
     "grn",
-    "gsb",
     "gsf",
+    "gsp",
     "gtd",
     "gwm",
 
@@ -1110,7 +1110,7 @@ static const meta_info meta_info_list[] = {
         {meta_GCA,                  "GCA DSP Header"},
         {meta_SPT_SPD,              "SPT+SPD DSP Header"},
         {meta_ISH_ISD,              "ISH+ISD DSP Header"},
-        {meta_GSP_GSB,              "Tecmo GSP+GSB Header"},
+        {meta_GSND,                 "Tecmo GSND Header"},
         {meta_YDSP,                 "Yuke's YDSP Header"},
         {meta_NGC_SSM,              "SSM DSP Header"},
         {meta_PS2_JOE,              "Asobo Studio .JOE header"},

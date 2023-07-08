@@ -358,7 +358,7 @@ typedef enum {
     meta_IDSP_IE,           /* Defencer (GC) */
     meta_SPT_SPD,           /* Various (SPT+SPT DSP) */
     meta_ISH_ISD,           /* Various (ISH+ISD DSP) */
-    meta_GSP_GSB,           /* Tecmo games (Super Swing Golf 1 & 2, Quamtum Theory) */
+    meta_GSND,
     meta_YDSP,              /* WWE Day of Reckoning */
     meta_FFCC_STR,          /* Final Fantasy: Crystal Chronicles */
     meta_UBI_JADE,          /* Beyond Good & Evil, Rayman Raving Rabbids */
@@ -581,11 +581,11 @@ typedef enum {
     meta_DSP_MCADPCM,       /* Skyrim (Switch) */
     meta_UBI_LYN,           /* Ubisoft LyN engine [The Adventures of Tintin (multi)] */
     meta_MSB_MSH,           /* sfx companion of MIH+MIB */
-    meta_TXTP,              /* generic text playlist */
+    meta_TXTP,
     meta_SMC_SMH,           /* Wangan Midnight (System 246) */
     meta_PPST,              /* PPST [Parappa the Rapper (PSP)] */
     meta_SPS_N1,
-    meta_UBI_BAO,           /* Ubisoft BAO */
+    meta_UBI_BAO,
     meta_DSP_SWITCH_AUDIO,  /* Gal Gun 2 (Switch) */
     meta_H4M,               /* Hudson HVQM4 video [Resident Evil 0 (GC), Tales of Symphonia (GC)] */
     meta_ASF,               /* Argonaut ASF [Croc 2 (PC)] */
