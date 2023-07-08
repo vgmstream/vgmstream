@@ -1,67 +1,55 @@
 #include "meta.h"
 #include "../layout/layout.h"
-#include "../util.h"
+#include "../coding/coding.h"
 
-/* FILp (Resident Evil - Dead Aim) */
-VGMSTREAM * init_vgmstream_filp(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
-    off_t start_offset;
-    int loop_flag = 0;
-    int channel_count;
-    int i;
 
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("filp",filename_extension(filename))) goto fail;
+/* FILp - from Resident Evil: Dead Aim (PS2) */
+VGMSTREAM* init_vgmstream_filp(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
+    uint32_t start_offset;
+    int channels, loop_flag;
 
-    /* check header */
-    if (read_32bitBE(0x0,streamFile) != 0x46494C70) /* "FILp" */
-        goto fail;
-    if (read_32bitBE(0x100,streamFile) != 0x56414770) /* "VAGp" */
-        goto fail;
-    if (read_32bitBE(0x130,streamFile) != 0x56414770) /* "VAGp" */
-        goto fail;
-    if (get_streamfile_size(streamFile) != read_32bitLE(0xC,streamFile))
-        goto fail;
 
-    loop_flag = (read_32bitLE(0x34,streamFile) == 0);
-    channel_count = read_32bitLE(0x4,streamFile);
+    /* checks */
+    if (!is_id32be(0x00,sf, "FILp"))
+        return NULL;
+    /* .fil: extension in bigfile */
+    if (!check_extensions(sf,"fil"))
+        return NULL;
+
+    channels = read_s32le(0x04,sf); /* stereo only though */
+    if (read_32bitLE(0x0C,sf) != get_streamfile_size(sf))
+        goto fail;
+    loop_flag = (read_u32le(0x34,sf) == 0x00); /* 00/01/02 */
+
+    if (!is_id32be(0x100,sf, "VAGp"))
+        return NULL;
+    if (!is_id32be(0x130,sf, "VAGp"))
+        return NULL;
+
+    start_offset = 0x00; /* multiple FILp blocks pasted together (each including VAGps, but their sizes refer to the whole thing) */
+
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
-    /* fill in the vital statistics */
-    start_offset = 0x0;
-    vgmstream->channels = channel_count;
-    vgmstream->sample_rate = read_32bitLE(0x110,streamFile);
+    vgmstream->meta_type = meta_FILP;
+    vgmstream->sample_rate = read_s32le(0x110,sf);
+
+    vgmstream->num_samples = ps_bytes_to_samples(read_u32le(0x10C,sf), 1); /* channel size for the whole stream */
+    vgmstream->loop_start_sample = 0;
+    vgmstream->loop_end_sample = vgmstream->num_samples;
+
     vgmstream->coding_type = coding_PSX;
     vgmstream->layout_type = layout_blocked_filp;
-    vgmstream->meta_type = meta_FILP;
 
-    /* open the file for reading */
-    {
-        STREAMFILE * file;
-        file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (!file) goto fail;
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = file;
-        }
-    }
-
-    block_update_filp(start_offset,vgmstream);
-    vgmstream->num_samples = read_32bitLE(0x10C,streamFile)/16*28;
-    if (loop_flag) {
-        vgmstream->loop_start_sample = 0;
-        vgmstream->loop_end_sample = vgmstream->num_samples;
-    }
-
+    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
+        goto fail;
+    block_update(start_offset, vgmstream);
 
     return vgmstream;
-
-    /* clean up anything we may have opened */
 fail:
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_vgmstream(vgmstream);
     return NULL;
 }

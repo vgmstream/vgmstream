@@ -258,7 +258,7 @@ typedef enum {
     meta_DSP_SADB,          /* .sad */
     meta_DSP_WSI,           /* .wsi */
     meta_IDSP_TT,           /* Traveller's Tales games */
-    meta_DSP_WII_MUS,       /* .mus */
+    meta_MUS_KRONE,
     meta_DSP_WII_WSD,       /* Phantom Brave (WII) */
     meta_WII_NDP,           /* Vertigo (Wii) */
     meta_DSP_YGO,           /* Konami: Yu-Gi-Oh! The Falsebound Kingdom (NGC), Hikaru no Go 3 (NGC) */
@@ -455,7 +455,7 @@ typedef enum {
     meta_AST_MMV,
     meta_DMSG,              /* Nightcaster II - Equinox (XBOX) */
     meta_NGC_DSP_AAAP,      /* Turok: Evolution (NGC), Vexx (NGC) */
-    meta_PS2_WB,            /* Shooting Love. ~TRIZEAL~ */
+    meta_WB,
     meta_S14,               /* raw Siren 14, 24kbit mono */
     meta_SSS,               /* raw Siren 14, 48kbit stereo */
     meta_PS2_GCM,           /* NamCollection */

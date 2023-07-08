@@ -1,65 +1,46 @@
 #include "meta.h"
-#include "../util.h"
+#include "../coding/coding.h"
 
-/* BG0 (from Ibara, Mushihimesama)
-Note: Seems the Loop Infos are stored external... */
-VGMSTREAM * init_vgmstream_bg00(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
-    off_t start_offset;
-    int loop_flag = 0;
-	int channel_count;
+/* BG00 - from Cave games [Ibara (PS2), Mushihime-sama (PS2)] */
+VGMSTREAM* init_vgmstream_bg00(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
+    uint32_t start_offset;
+    int channels, loop_flag = 0;
 
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("bg00",filename_extension(filename))) goto fail;
 
-    /* check header */
-    if (read_32bitBE(0x00,streamFile) != 0x42473030) /* "BG00" */
-        goto fail;
+    /* check */
+    if (!is_id32be(0x00,sf, "BG00"))
+        return NULL;
 
-    loop_flag = (read_32bitLE(0x08,streamFile)!=0);
-    channel_count = 2;
-    
-	/* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    /* .bg00: header ID (no filenames or debug strings) */
+    if (!check_extensions(sf,"bg00"))
+        return NULL;
+
+    if (!is_id32be(0x40,sf, "VAGp"))
+        return NULL;
+    if (!is_id32be(0x70,sf, "VAGp"))
+        return NULL;
+
+    loop_flag = 0; /* flag at 0x08? loop points seem external */
+    channels = 2; /* mono files use regular VAG */
+    start_offset = 0x800;
+
+    /* build the VGMSTREAM */
+    vgmstream = allocate_vgmstream(channels,loop_flag);
     if (!vgmstream) goto fail;
 
-	/* fill in the vital statistics */
-    start_offset = 0x800;
-	vgmstream->channels = channel_count;
-    vgmstream->sample_rate = read_32bitBE(0x80,streamFile);
-    vgmstream->coding_type = coding_PSX;
-    vgmstream->num_samples = (read_32bitBE(0x4C,streamFile)*2)*28/16/channel_count;
-    if (loop_flag) {
-        vgmstream->loop_start_sample = 0;
-        vgmstream->loop_end_sample = (read_32bitBE(0x4C,streamFile)*2)*28/16/channel_count;
-    }
-
-    vgmstream->layout_type = layout_interleave;
-    vgmstream->interleave_block_size = read_32bitLE(0x10,streamFile);
     vgmstream->meta_type = meta_BG00;
+    vgmstream->sample_rate = read_s32be(0x80,sf);
+    vgmstream->num_samples = ps_bytes_to_samples(read_32bitBE(0x4C,sf), 1);
 
-    /* open the file for reading */
-    {
-        int i;
-        STREAMFILE * file;
-        file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (!file) goto fail;
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = file;
+    vgmstream->coding_type = coding_PSX;
+    vgmstream->layout_type = layout_interleave;
+    vgmstream->interleave_block_size = read_32bitLE(0x10,sf);
 
-            vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=start_offset+
-                vgmstream->interleave_block_size*i;
-
-        }
-    }
-
+    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
+        goto fail;
     return vgmstream;
-
-    /* clean up anything we may have opened */
 fail:
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_vgmstream(vgmstream);
     return NULL;
 }

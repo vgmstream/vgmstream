@@ -300,7 +300,7 @@ VGMSTREAM * init_vgmstream_ps2_mihb(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_ngc_pdt_split(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_ngc_pdt(STREAMFILE * streamFile);
 
-VGMSTREAM * init_vgmstream_wii_mus(STREAMFILE * streamFile);
+VGMSTREAM* init_vgmstream_mus_krone(STREAMFILE* sf);
 
 VGMSTREAM * init_vgmstream_rsd(STREAMFILE * streamFile);
 
@@ -433,7 +433,7 @@ VGMSTREAM * init_vgmstream_ngc_dsp_konami(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_bnsf(STREAMFILE* streamFile);
 
-VGMSTREAM * init_vgmstream_ps2_wb(STREAMFILE* streamFile);
+VGMSTREAM* init_vgmstream_wb(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_raw_s14_sss(STREAMFILE* sf);
 

@@ -1,64 +1,45 @@
 #include "meta.h"
-#include "../util.h"
+#include "../coding/coding.h"
 
-/* WB (from Shooting Love. ~TRIZEAL~) */
-VGMSTREAM * init_vgmstream_ps2_wb(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
-    off_t start_offset;
 
-    int loop_flag;
-    int channel_count;
-
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("wb",filename_extension(filename))) goto fail;
+/* .WB - from Shooting Love. ~TRIZEAL~ */
+VGMSTREAM* init_vgmstream_wb(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
+    uint32_t start_offset;
+    int channels, loop_flag;
 
     /* check header */
-    if (read_32bitBE(0,streamFile) != 0x00000000)
+    if (read_u32le(0x00,sf) != 0x00000000)
+        return NULL;
+    if (read_u32le(0x0c,sf) + 0x10 != get_streamfile_size(sf))
+        return NULL;
+
+    /* .wb: actual extension */
+    if (!check_extensions(sf,"wb"))
         goto fail;
-	    
-    loop_flag = read_32bitLE(0x4,streamFile);
-    channel_count = 2;
+
+    channels = 2;
+    start_offset = 0x10;
+    loop_flag = read_32bitLE(0x04,sf) > 0; /* loop end may be defined */
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    vgmstream = allocate_vgmstream(channels,loop_flag);
     if (!vgmstream) goto fail;
 
-    /* fill in the vital statistics */
-    start_offset = 0x10;
-    vgmstream->channels = channel_count;
+    vgmstream->meta_type = meta_WB;
     vgmstream->sample_rate = 48000;
+    vgmstream->num_samples = pcm16_bytes_to_samples(read_u32le(0x0C,sf), channels);
+    vgmstream->loop_start_sample = read_s32le(0x04,sf);
+    vgmstream->loop_end_sample = read_s32le(0x08,sf);
+
     vgmstream->coding_type = coding_PCM16LE;
-    vgmstream->num_samples = read_32bitLE(0xC,streamFile)/4;
-    if (loop_flag) {
-       vgmstream->loop_start_sample = read_32bitLE(0x4,streamFile);
-       vgmstream->loop_end_sample = read_32bitLE(0x8,streamFile);
-    }
     vgmstream->layout_type = layout_interleave;
     vgmstream->interleave_block_size = 2;
-    vgmstream->meta_type = meta_PS2_WB;
-   
-    /* open the file for reading */
-    {
-        int i;
-        STREAMFILE * file;
-        file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (!file) goto fail;
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = file;
 
-            vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=start_offset+
-                vgmstream->interleave_block_size*i;
-
-        }
-    }
-
+    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
+        goto fail;
     return vgmstream;
-
 fail:
-    /* clean up anything we may have opened */
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_vgmstream(vgmstream);
     return NULL;
 }
