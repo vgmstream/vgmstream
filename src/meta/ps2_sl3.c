@@ -1,7 +1,7 @@
 #include "meta.h"
 #include "../coding/coding.h"
 
-/* SL3 - Winky Soft / Atari Melbourne House games [Test Drive Unlimited (PS2), Transformers 2003/2004 (PS2)] */
+/* SL3 - Sirens Sound Library (Winky Soft / Atari Melbourne House) games [Test Drive Unlimited (PS2), Transformers 2003/2004 (PS2)] */
 VGMSTREAM* init_vgmstream_sl3(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     off_t start_offset;
