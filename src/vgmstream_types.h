@@ -202,7 +202,6 @@ typedef enum {
     layout_blocked_wsi,
     layout_blocked_str_snds,
     layout_blocked_ws_aud,
-    layout_blocked_matx,
     layout_blocked_dec,
     layout_blocked_xvas,
     layout_blocked_vs,
@@ -392,7 +391,6 @@ typedef enum {
     meta_UBI_CKD,           /* Ubisoft CKD RIFF header (Rayman Origins Wii) */
     meta_RAW_WAVM,
     meta_WVS,
-    meta_XBOX_MATX,         /* XBOX MATX */
     meta_XMU,
     meta_XVAS,
     meta_EA_SCHL,           /* Electronic Arts SCHl with variable header */
@@ -469,7 +467,6 @@ typedef enum {
     meta_DSP_STR_IG,        /* Micro Machines, Superman Superman: Shadow of Apokolis */
     meta_EA_SWVR,           /* Future Cop L.A.P.D., Freekstyle */
     meta_PS2_B1S,           /* 7 Wonders of the ancient world */
-    meta_PS2_WAD,           /* The golden Compass */
     meta_DSP_XIII,          /* XIII, possibly more (Ubisoft header???) */
     meta_DSP_CABELAS,       /* Cabelas games */
     meta_PS2_ADM,           /* Dragon Quest V (PS2) */

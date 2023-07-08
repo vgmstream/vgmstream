@@ -123,9 +123,6 @@ void block_update(off_t block_offset, VGMSTREAM* vgmstream) {
         case layout_blocked_ws_aud:
             block_update_ws_aud(block_offset,vgmstream);
             break;
-        case layout_blocked_matx:
-            block_update_matx(block_offset,vgmstream);
-            break;
         case layout_blocked_dec:
             block_update_dec(block_offset,vgmstream);
             break;
