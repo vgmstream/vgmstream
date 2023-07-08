@@ -274,7 +274,7 @@ typedef enum {
     meta_THP,               /* THP movie files */
     meta_SWAV,
     meta_NDS_RRDS,          /* Ridge Racer DS */
-    meta_WII_BNS,           /* Wii BNS Banner Sound (similar to RSTM) */
+    meta_BNS,
     meta_WIIU_BTSND,        /* Wii U Boot Sound */
 
     meta_ADX_03,            /* CRI ADX "type 03" */

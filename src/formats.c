@@ -1150,7 +1150,7 @@ static const meta_info meta_info_list[] = {
         {meta_SAB,                  "Sensaura SAB header"},
         {meta_MAXIS_XA,             "Maxis XA Header"},
         {meta_EXAKT_SC,             "assumed Activision / EXAKT SC by extension"},
-        {meta_WII_BNS,              "Nintendo BNS header"},
+        {meta_BNS,                  "Nintendo BNS header"},
         {meta_WII_WAS,              "Sumo Digital iSWS header"},
         {meta_XBOX_HLWAV,           "Half-Life 2 .WAV header"},
         {meta_MYSPD,                "Punchers Impact .MYSPD header"},

@@ -3,7 +3,7 @@
 #include "../util.h"
 
 /* BNS - Wii "Banner Sound" disc jingle */
-VGMSTREAM* init_vgmstream_wii_bns(STREAMFILE* sf) {
+VGMSTREAM* init_vgmstream_bns(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     off_t bns_offset;
     uint32_t info_offset = 0, data_offset = 0;
@@ -15,7 +15,7 @@ VGMSTREAM* init_vgmstream_wii_bns(STREAMFILE* sf) {
     /* .bin: actual extension
      * .bns: header id */
     if (!check_extensions(sf, "bin,lbin,bns"))
-        goto fail;
+        return NULL;
 
     bns_offset = 0;
     if (is_id32be(bns_offset + 0x40, sf, "IMET")) {
@@ -32,9 +32,9 @@ VGMSTREAM* init_vgmstream_wii_bns(STREAMFILE* sf) {
     }
 
     if (!is_id32be(bns_offset + 0x00,sf, "BNS "))
-        goto fail;
+        return NULL;
     if (read_u32be(bns_offset + 0x04,sf) != 0xFEFF0100u)
-        goto fail;
+        return NULL;
 
     /* find chunks */
     {
@@ -110,7 +110,7 @@ VGMSTREAM* init_vgmstream_wii_bns(STREAMFILE* sf) {
     vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->meta_type = meta_WII_BNS;
+    vgmstream->meta_type = meta_BNS;
     vgmstream->sample_rate = sample_rate;
     vgmstream->num_samples = sample_count;
     vgmstream->loop_start_sample = loop_start;

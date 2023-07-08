@@ -410,7 +410,7 @@ VGMSTREAM * init_vgmstream_sab(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_exakt_sc(STREAMFILE* streamFile);
 
-VGMSTREAM * init_vgmstream_wii_bns(STREAMFILE* streamFile);
+VGMSTREAM* init_vgmstream_bns(STREAMFILE* sf);
 
 VGMSTREAM * init_vgmstream_pona_3do(STREAMFILE* streamFile);
 VGMSTREAM * init_vgmstream_pona_psx(STREAMFILE* streamFile);

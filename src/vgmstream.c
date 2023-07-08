@@ -188,7 +188,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_apple_caff,
     init_vgmstream_pc_mxst,
     init_vgmstream_sab,
-    init_vgmstream_wii_bns,
+    init_vgmstream_bns,
     init_vgmstream_wii_was,
     init_vgmstream_pona_3do,
     init_vgmstream_pona_psx,
