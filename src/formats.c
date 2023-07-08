@@ -1410,6 +1410,7 @@ static const meta_info meta_info_list[] = {
         {meta_BIGRP,                "Inti Creates .BIGRP header"},
         {meta_DIC1,                 "Codemasters DIC1 header"},
         {meta_AWD,                  "RenderWare Audio Wave Dictionary header"},
+        {meta_RAWI,                 "Torus SqueakStream RAWI header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {
