@@ -558,7 +558,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - ISH+ISD DSP Header [*ISH_ISD*]
   - *ish_isd*: `.isd + .ish`
   - Codecs: NGC_DSP
-- **gsp_gsb.c**
+- **gsnd.c**
   - Tecmo GSND Header [*GSND*]
   - *gsnd*: `.gsp + .gsb`
   - Codecs: NGC_DSP ATRAC3 XMA
@@ -1789,6 +1789,10 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Double Fine WB header [*PWB*]
   - *pwb*: `.pwb`
   - Codecs: PSX
+- **rawi.c**
+  - Torus SqueakStream RAWI header [*RAWI*]
+  - *rawi*: `(base) + .asset .(external) .raw`
+  - Codecs: NGC_DSP PCM16BE PSX PCM8 MS_IMA
 - **scd_pcm.c**
   - Lunar: Eternal Blue .PCM header [*SCD_PCM*]
   - *scd_pcm*: `.pcm`

@@ -438,7 +438,7 @@
     <ClCompile Include="meta\genh.c" />
     <ClCompile Include="meta\ghs.c" />
     <ClCompile Include="meta\gin.c" />
-    <ClCompile Include="meta\gsp_gsb.c" />
+    <ClCompile Include="meta\gsnd.c" />
     <ClCompile Include="meta\h4m.c" />
     <ClCompile Include="meta\halpst.c" />
     <ClCompile Include="meta\hca.c" />
@@ -582,6 +582,7 @@
     <ClCompile Include="meta\ps_headerless.c" />
     <ClCompile Include="meta\pwb.c" />
     <ClCompile Include="meta\rad.c" />
+    <ClCompile Include="meta\rawi.c" />
     <ClCompile Include="meta\raw_int.c" />
     <ClCompile Include="meta\raw_pcm.c" />
     <ClCompile Include="meta\raw_rsf.c" />
