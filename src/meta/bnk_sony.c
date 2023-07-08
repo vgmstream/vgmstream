@@ -4,6 +4,7 @@
 #include "../util/endianness.h"
 
 typedef enum { PSX, PCM16, ATRAC9, HEVAG } bnk_codec;
+uint16_t ps_note_to_pitch(uint16_t center_note, uint16_t center_fine, uint16_t note, int16_t fine);
 
 /* .BNK - Sony's SCREAM bank format [The Sly Collection (PS3), Puyo Puyo Tetris (PS4), NekoBuro: Cats Block (Vita)] */
 VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
@@ -13,7 +14,7 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
     uint32_t stream_size, interleave = 0;
     int channels = 0, loop_flag, sample_rate, big_endian;
     int32_t loop_start = 0, loop_end = 0;
-    uint32_t center_note, center_fine, flags;
+    uint16_t center_note, center_fine, flags, pitch;
     uint32_t atrac9_info = 0;
 
     int total_subsongs, target_subsong = sf->stream_index;
@@ -30,7 +31,7 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
         read_f32 = read_f32be;
         big_endian = 1;
     }
-    else if (read_u32le(0x00,sf) == 0x03) { /* PS2/Vita/PS4 */
+    else if (read_u32le(0x00,sf) == 0x03) { /* PS2/PSP/Vita/PS4 */
         read_u32 = read_u32le;
         read_u16 = read_u16le;
         read_f32 = read_f32le;
@@ -80,13 +81,13 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
      * - 04: non-fixed bank?
      * - 100: has names
      * - 200: has user data */
-    /* version < v0x1a: 
-     * - 0x0c: block id 
-     * - 0x10: block number 
+    /* version < v0x1a:
+     * - 0x0c: block id
+     * - 0x10: block number
      * - 0x11: padding
-     * version >= v0x1a: 
+     * version >= v0x1a:
      * - 0x0c: hash (0x10)
-     * - 0x1c: filename (0x100?) */   
+     * - 0x1c: filename (0x100?) */
     //;VGM_LOG("BNK: sblk_offset=%lx, data_offset=%lx, sblk_version %x\n", sblk_offset, data_offset, sblk_version);
 
     {
@@ -170,7 +171,7 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
 
         /* table defs:
          * - table1: sections, point to some materials (may be less than streams/materials)
-         *           (a "sound" that has N grains, and is triggered by games like a cue) 
+         *           (a "sound" that has N grains, and is triggered by games like a cue)
          * - table2: materials, point to all sounds or others subtypes (may be more than sounds)
          *           (a "grain" that does actions like play or changes volume)
          * - table3: sounds, point to streams (multiple sounds can repeat stream)
@@ -206,7 +207,7 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
                     if (total_subsongs == target_subsong) {
                         table2_entry_offset = 0;
                         table3_entry_offset = (i*0x28) + 0x08;
-                        /* continue to count all subsongs*/
+                        /* continue to count all subsongs */
                     }
 
                 }
@@ -270,49 +271,40 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
                 stream_offset   = read_u32(table3_offset+table3_entry_offset+0x10,sf);
                 stream_size     = read_u32(table3_offset+table3_entry_offset+0x14,sf);
 
-                /* "base" sample rates, allowed by the tool (for other rates must use base + semitones, but aren't exact) */
-                if (center_note == 0xC4 && center_fine == 0x00)
-                    sample_rate = 48000;
-                else if (center_note == 0xC2 && center_fine == 0x42)
-                    sample_rate = 44100;
-                else if (center_note == 0xb6 && center_fine == 0x42)
-                    sample_rate = 22050;
-                else if (center_note == 0xaa && center_fine == 0x42)
-                    sample_rate = 11025;
-                else if (center_note == 0xa4 && center_fine == 0x7c)
-                    sample_rate = 8000;
-                else {
-                    /* rough ("center") sample rates using semitone-to-hz formula: (rate) * 2 ^ ((pitch - base) / 12) */
-                    double curr_rate = 48000 * pow(2.0, (double)((int)center_note - 0xc4) / 12.0);
-                    double prev_rate = 48000 * pow(2.0, (double)(((int)center_note - 1) - 0xc4) / 12.0);
-                    /* partial semitone, from 0x00 = 0.0 to 0x7f = 1.0 of a semitone for current rate */
-                    float fine_pct = center_fine / 127.0f;
+                /* if it isn't, then it's treated as 44100 base? (PS1?) */
+                bool is_negative = center_note >> 7; /* center_note & 0x80; */
 
-                    //TODO improve (fine seems approximate and not sure how to calc current semitone hz value, so needs prev_rate)
-                    sample_rate =  curr_rate + (curr_rate - prev_rate) * fine_pct;
+                if (is_negative)
+                    center_note = 0x100 - center_note;
 
-                    /* some odd "beep" sfx in Sly 2/3 seems to go slightly higher after applying fine_pct, probably should resample */
-                    if (sample_rate > VGMSTREAM_MAX_SAMPLE_RATE)
-                        sample_rate = VGMSTREAM_MAX_SAMPLE_RATE;
+                /* note/fine seems to always be set to 60, 0? */
+                pitch = ps_note_to_pitch(center_note, center_fine, 0x3C, 0x00);
 
-                    /* waves can set base sample rate (48/44/22/11/8khz) + pitch in semitones, then converted to center+fine
-                     * 48000 + pitch 0.0  > center=0xc4, fine=0x00
-                     * 48000 + pitch 0.10 > center=0xc4, fine=0x0c
-                     * 48000 + pitch 0.50 > center=0xc4, fine=0x3f
-                     * 48000 + pitch 0.99 > center=0xc4, fine=0x7d
-                     * 48000 + pitch 1.00 > center=0xc5, fine=0x00
-                     * 48000 + pitch 12.0 > center=0xd0, fine=0x00
-                     * 48000 + pitch 24.0 > center=0xdc, fine=0x00
-                     * 48000 + pitch 56.0 > center=0xfc, fine=0x00
-                     * 48000 + pitch 68.0 > center=0x08, fine=0x00 > ?
-                     * 48000 + pitch -12.0 > center=0xb8, fine=0x00
-                     * 48000 + pitch -0.10 > center=0xc3, fine=0x72
-                     * 48000 + pitch -0.001 > not allowed
-                     * 8000  + pitch 1.00  > center=0xa4, fine=0x7c
-                     * 8000  + pitch -12.00 > center=0x98, fine=0x7c
-                     * 8000  + pitch -48.00 > center=0x74, fine=0x7c
-                     */
-                }
+                if (pitch > 0x4000)
+                    pitch = 0x4000; /* 192000 Hz max */
+
+                if (!is_negative) /* PS1 mode? */
+                    pitch = (pitch * 44100) / 48000;
+
+                sample_rate = (pitch * 48000) / 0x1000;
+
+                /* waves can set base sample rate (48/44/22/11/8khz) + pitch in semitones, then converted to center+fine
+                 * 48000 + pitch   0.00 > center=0xc4, fine=0x00
+                 * 48000 + pitch   0.10 > center=0xc4, fine=0x0c
+                 * 48000 + pitch   0.50 > center=0xc4, fine=0x3f
+                 * 48000 + pitch   0.99 > center=0xc4, fine=0x7d
+                 * 48000 + pitch   1.00 > center=0xc5, fine=0x00
+                 * 48000 + pitch  12.00 > center=0xd0, fine=0x00
+                 * 48000 + pitch  24.00 > center=0xdc, fine=0x00
+                 * 48000 + pitch  56.00 > center=0xfc, fine=0x00
+                 * 48000 + pitch  68.00 > center=0x08, fine=0x00 > ?
+                 * 48000 + pitch -12.00 > center=0xb8, fine=0x00
+                 * 48000 + pitch  -0.10 > center=0xc3, fine=0x72
+                 * 48000 + pitch -0.001 > not allowed
+                 * 8000  + pitch   1.00 > center=0xa4, fine=0x7c
+                 * 8000  + pitch -12.00 > center=0x98, fine=0x7c
+                 * 8000  + pitch -48.00 > center=0x74, fine=0x7c
+                 */
                 break;
 
             case 0x0d:
@@ -336,19 +328,21 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
         switch(sblk_version) {
             case 0x03:
                 for (i = 0; i < section_entries; i++) {
-                    entry_offset = read_u32(table1_offset + (i * table1_entry_size) + table1_suboffset, sf);
+                    entry_offset = read_u32(table1_offset + (i * table1_entry_size) + 0x08, sf);
                     entry_count = read_u8(table1_offset + (i * table1_entry_size) + 0x04, sf);
 
                     /* is table2_entry_offset in the range of the expected section */
-                    if (table2_entry_offset >= entry_offset && table2_entry_offset < entry_offset + (entry_count * 0x08))
+                    if (table2_entry_offset >= entry_offset && table2_entry_offset < entry_offset + (entry_count * 0x08)) {
                         table4_entry_id = i;
+                        break;
+                    }
                 }
 
                 /* table4:
                  * 0x00: bank name (optional)
                  * 0x08: name section offset
                  * 0x0C-0x14: 3 null pointers (reserved?)
-                 * 0x18: 32 name chunk offsets (shorts)
+                 * 0x18-0x58: 32 name chunk offset indices
                  */
 
                 /* Name chunks are organised as
@@ -378,6 +372,7 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
                     }
                 }
                 //goto fail; /* didn't find any valid index? */
+                stream_name_offset = 0;
                 loop_break:
                 break;
 
@@ -423,8 +418,8 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
                         break;
                     }
                 }
-
                 break;
+
             default:
                 break;
         }
@@ -492,7 +487,7 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
                  *  200 = send LFE
                  *  400 = send center
                  */
-                if ((flags & 0x80) && sblk_version <= 3) { 
+                if ((flags & 0x80) && sblk_version <= 3) {
                     codec = PCM16; /* rare [Wipeout HD (PS3)]-v3 */
                 }
                 else {
@@ -725,3 +720,91 @@ fail:
     return NULL;
 }
 #endif
+
+uint16_t note_pitch_table[12] = {
+    0x8000, 0x879C, 0x8FAC, 0x9837, 0xA145, 0xAADC,
+    0xB504, 0xBFC8, 0xCB2F, 0xD744, 0xE411, 0xF1A1
+};
+
+uint16_t fine_pitch_table[128] = {
+    0x8000, 0x800E, 0x801D, 0x802C, 0x803B, 0x804A, 0x8058, 0x8067,
+    0x8076, 0x8085, 0x8094, 0x80A3, 0x80B1, 0x80C0, 0x80CF, 0x80DE,
+    0x80ED, 0x80FC, 0x810B, 0x811A, 0x8129, 0x8138, 0x8146, 0x8155,
+    0x8164, 0x8173, 0x8182, 0x8191, 0x81A0, 0x81AF, 0x81BE, 0x81CD,
+    0x81DC, 0x81EB, 0x81FA, 0x8209, 0x8218, 0x8227, 0x8236, 0x8245,
+    0x8254, 0x8263, 0x8272, 0x8282, 0x8291, 0x82A0, 0x82AF, 0x82BE,
+    0x82CD, 0x82DC, 0x82EB, 0x82FA, 0x830A, 0x8319, 0x8328, 0x8337,
+    0x8346, 0x8355, 0x8364, 0x8374, 0x8383, 0x8392, 0x83A1, 0x83B0,
+    0x83C0, 0x83CF, 0x83DE, 0x83ED, 0x83FD, 0x840C, 0x841B, 0x842A,
+    0x843A, 0x8449, 0x8458, 0x8468, 0x8477, 0x8486, 0x8495, 0x84A5,
+    0x84B4, 0x84C3, 0x84D3, 0x84E2, 0x84F1, 0x8501, 0x8510, 0x8520,
+    0x852F, 0x853E, 0x854E, 0x855D, 0x856D, 0x857C, 0x858B, 0x859B,
+    0x85AA, 0x85BA, 0x85C9, 0x85D9, 0x85E8, 0x85F8, 0x8607, 0x8617,
+    0x8626, 0x8636, 0x8645, 0x8655, 0x8664, 0x8674, 0x8683, 0x8693,
+    0x86A2, 0x86B2, 0x86C1, 0x86D1, 0x86E0, 0x86F0, 0x8700, 0x870F,
+    0x871F, 0x872E, 0x873E, 0x874E, 0x875D, 0x876D, 0x877D, 0x878C
+};
+
+uint16_t ps_note_to_pitch(uint16_t center_note, uint16_t center_fine, uint16_t note, int16_t fine) {
+    /* Derived from OpenGOAL, Copyright (c) 2020-2022 OpenGOAL Team, ISC License
+     *
+     * Permission to use, copy, modify, and/or distribute this software for any
+     * purpose with or without fee is hereby granted, provided that the above
+     * copyright notice and this permission notice appear in all copies.
+     *
+     * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+     * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+     * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+     * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+     * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+     * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+     * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+     */
+
+    int32_t fine_adjust, fine_idx, note_adjust, note_idx;
+    int32_t unk1, unk2, unk3; /* TODO: better variable names */
+    uint16_t pitch;
+
+    fine_idx = fine + center_fine;
+
+    fine_adjust = fine_idx;
+    if (fine_idx < 0)
+        fine_adjust = fine_idx + 0x7F;
+
+    fine_adjust /= 128;
+    note_adjust = note + fine_adjust - center_note;
+    unk3 = note_adjust / 6;
+
+    if (note_adjust < 0)
+        unk3--;
+
+    fine_idx -= fine_adjust * 128;
+
+    if (note_adjust < 0)
+        unk2 = -1;
+    else
+        unk2 = 0;
+    if (unk3 < 0)
+        unk3--;
+
+    unk2 = (unk3 / 2) - unk2;
+    unk1 = unk2 - 2;
+    note_idx = note_adjust - (unk2 * 12);
+
+    if ((note_idx < 0) || ((note_idx == 0) && (fine_idx < 0))) {
+        note_idx += 12;
+        unk1 = unk2 - 3;
+    }
+
+    if (fine_idx < 0) {
+        note_idx = (note_idx - 1) + fine_adjust;
+        fine_idx += (fine_adjust + 1) * 128;
+    }
+
+    pitch = (note_pitch_table[note_idx] * fine_pitch_table[fine_idx]) >> 16;
+
+    if (unk1 < 0)
+        pitch = (pitch + (1 << (-unk1 - 1))) >> -unk1;
+
+    return pitch;
+}
