@@ -142,6 +142,8 @@ typedef struct {
     int chunk_start_set;
     int chunk_size_set;
     int chunk_count_set;
+    int chunk_bsize_set;
+    int chunk_dsize_set;
 
     uint32_t base_offset;
     uint32_t is_offset_absolute;
@@ -827,7 +829,8 @@ static void set_body_chunk(txth_header* txth) {
     //todo maybe should only be done once, or have some count to retrigger to simplify?
     if (!txth->chunk_start_set || !txth->chunk_size_set || !txth->chunk_count_set)
         return;
-    if (txth->chunk_size == 0 && !(txth->chunk_bsize_offset || txth->chunk_dsize_offset))
+
+    if (txth->chunk_size == 0 && !(txth->chunk_bsize_set || txth->chunk_dsize_set))
         return;
     if (txth->chunk_start > txth->data_size || txth->chunk_count == 0)
         return;
@@ -853,6 +856,8 @@ static void set_body_chunk(txth_header* txth) {
         cfg.chunk_bsize_offset = txth->chunk_bsize_offset;
         cfg.chunk_dsize_offset = txth->chunk_dsize_offset;
         cfg.chunk_be = txth->chunk_big_endian;
+        cfg.chunk_bsize_set = txth->chunk_bsize_set;
+        cfg.chunk_dsize_set = txth->chunk_dsize_set;
 
         cfg.chunk_start = txth->chunk_start;
         cfg.chunk_size = txth->chunk_size;
@@ -1473,10 +1478,12 @@ static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char* key, cha
     else if (is_string(key,"chunk_size_offset")) {
         if (!parse_num(txth->sf_head,txth,val, &txth->chunk_bsize_offset)) goto fail;
         txth->chunk_size_set = 1;
+        txth->chunk_bsize_set = 1;
     }
     else if (is_string(key,"chunk_data_size_offset")) {
         if (!parse_num(txth->sf_head,txth,val, &txth->chunk_dsize_offset)) goto fail;
         txth->chunk_size_set = 1;
+        txth->chunk_dsize_set = 1;
     }
     else if (is_string(key,"chunk_endianness")) {
         if (!parse_endianness(txth, val, &txth->chunk_big_endian, NULL)) goto fail;
