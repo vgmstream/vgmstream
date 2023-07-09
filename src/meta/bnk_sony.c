@@ -133,7 +133,7 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
                 /* 0x30: next block offset */
                 table3_offset    = sblk_offset + read_u32(sblk_offset+0x34,sf); /* grain data? */
                 table4_offset    = sblk_offset + read_u32(sblk_offset+0x38,sf); /* block names */
-                /*0x3c: SFXUD? */
+                /* 0x3c: SFXUD? */
 
                 table1_entry_size = 0x0c;
                 table1_suboffset = 0x08;
@@ -449,8 +449,11 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
                     stream_size += 0x10;
                     for (offset = data_offset + stream_offset + 0x10; offset < max_offset; offset += 0x10) {
 
-                        /* beginning frame (if file loops won't have end frame) */
-                        if (read_u32be(offset + 0x00, sf) == 0x00000000 && read_u32be(offset + 0x04, sf) == 0x00000000)
+                        /* beginning frame (if file loops won't have end frame)
+                         * checking the entire 16 byte block, as it is possible
+                         * for just the first 8 bytes to be empty [Bully (PS2)] */
+                        if (read_u32be(offset + 0x00, sf) == 0x00000000 && read_u32be(offset + 0x04, sf) == 0x00000000 &&
+                            read_u32be(offset + 0x08, sf) == 0x00000000 && read_u32be(offset + 0x0C, sf) == 0x00000000)
                             break;
 
                         stream_size += 0x10;
