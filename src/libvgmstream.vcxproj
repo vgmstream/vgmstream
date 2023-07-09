@@ -582,7 +582,6 @@
     <ClCompile Include="meta\ps_headerless.c" />
     <ClCompile Include="meta\pwb.c" />
     <ClCompile Include="meta\rad.c" />
-    <ClCompile Include="meta\rawi.c" />
     <ClCompile Include="meta\raw_int.c" />
     <ClCompile Include="meta\raw_pcm.c" />
     <ClCompile Include="meta\raw_rsf.c" />
@@ -635,6 +634,7 @@
     <ClCompile Include="meta\spt_spd.c" />
     <ClCompile Include="meta\sqex_scd.c" />
     <ClCompile Include="meta\sqex_sead.c" />
+    <ClCompile Include="meta\squeak.c" />
     <ClCompile Include="meta\sscf.c" />
     <ClCompile Include="meta\sscf_encrypted.c" />
     <ClCompile Include="meta\sspf.c" />
