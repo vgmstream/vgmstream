@@ -1789,10 +1789,11 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Double Fine WB header [*PWB*]
   - *pwb*: `.pwb`
   - Codecs: PSX
-- **rawi.c**
-  - Torus SqueakStream RAWI header [*RAWI*]
-  - *rawi*: `(base) + .asset .(external) .raw`
-  - Codecs: NGC_DSP PCM16BE PSX PCM8 MS_IMA
+- **squeak.c**
+  - Torus SqueakStream header [*SQUEAKSTREAM*]
+  - Torus SqueakSample header [*SQUEAKSAMPLE*]
+  - *squeaksample*: `(base) + .asset .(external) .raw`
+  - Codecs: NGC_DSP PCM16LE PCM16BE PSX PCM8 MS_IMA IMA
 - **scd_pcm.c**
   - Lunar: Eternal Blue .PCM header [*SCD_PCM*]
   - *scd_pcm*: `.pcm`

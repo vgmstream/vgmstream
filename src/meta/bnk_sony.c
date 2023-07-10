@@ -254,7 +254,7 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
             case 0x04:
             case 0x05:
             case 0x08:
-            case 0x09:
+            case 0x09: {
                 /* "tone" */
                 /* 0x00: priority */
                 /* 0x01: volume */
@@ -306,7 +306,7 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
                  * 8000  + pitch -48.00 > center=0x74, fine=0x7c
                  */
                 break;
-
+            }
             case 0x0d:
             case 0x0e:
             case 0x0f:
