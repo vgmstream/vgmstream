@@ -92,6 +92,7 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
 
     {
         int i;
+        bool is_negative;
         uint32_t table1_offset, table2_offset, table3_offset, table4_offset;
         uint32_t section_entries, material_entries, stream_entries;
         uint32_t table1_entry_size;
@@ -122,7 +123,7 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
             case 0x05: /* Ratchet & Clank (PS3) */
             case 0x08: /* Playstation Home Arcade (Vita) */
             case 0x09: /* Puyo Puyo Tetris (PS4) */
-                section_entries  = read_u16(sblk_offset+0x16,sf); /* entry size: ~0x0c (NumSounds)*/
+                section_entries  = read_u16(sblk_offset+0x16,sf); /* entry size: ~0x0c (NumSounds) */
                 material_entries = read_u16(sblk_offset+0x18,sf); /* entry size: ~0x08 (NumGrains) */
                 stream_entries   = read_u16(sblk_offset+0x1a,sf); /* entry size: ~0x18 + variable (NumWaveforms) */
                 table1_offset    = sblk_offset + read_u32(sblk_offset+0x1c,sf); /* sound offset */
@@ -228,7 +229,7 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
                     if (total_subsongs == target_subsong) {
                         table2_entry_offset = (i*0x08);
                         table3_entry_offset = table2_subinfo;
-                        /* continue to count all subsongs*/
+                        /* continue to count all subsongs */
                     }
                 }
 
@@ -254,7 +255,7 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
             case 0x04:
             case 0x05:
             case 0x08:
-            case 0x09: {
+            case 0x09:
                 /* "tone" */
                 /* 0x00: priority */
                 /* 0x01: volume */
@@ -272,12 +273,12 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
                 stream_size     = read_u32(table3_offset+table3_entry_offset+0x14,sf);
 
                 /* if it isn't, then it's treated as 44100 base? (PS1?) */
-                bool is_negative = center_note >> 7; /* center_note & 0x80; */
+                is_negative = center_note >> 7; /* center_note & 0x80; */
 
                 if (is_negative)
                     center_note = 0x100 - center_note;
 
-                /* note/fine seems to always be set to 60, 0? */
+                /* note/fine seems to always be set to 0x3C/0x00 */
                 pitch = ps_note_to_pitch(center_note, center_fine, 0x3C, 0x00);
 
                 if (pitch > 0x4000)
@@ -306,7 +307,7 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
                  * 8000  + pitch -48.00 > center=0x74, fine=0x7c
                  */
                 break;
-            }
+
             case 0x0d:
             case 0x0e:
             case 0x0f:
@@ -325,106 +326,109 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
         //;VGM_LOG("BNK: stream at %lx + %x\n", stream_offset, stream_size);
 
         /* parse names */
-        switch(sblk_version) {
-            case 0x03:
-                for (i = 0; i < section_entries; i++) {
-                    entry_offset = read_u32(table1_offset + (i * table1_entry_size) + 0x08, sf);
-                    entry_count = read_u8(table1_offset + (i * table1_entry_size) + 0x04, sf);
+        /* table4 can be nonexistent */
+        if (table4_offset > sblk_offset) {
+            switch (sblk_version) {
+                case 0x03:
+                    for (i = 0; i < section_entries; i++) {
+                        entry_offset = read_u32(table1_offset + (i * table1_entry_size) + 0x08, sf);
+                        entry_count = read_u8(table1_offset + (i * table1_entry_size) + 0x04, sf);
 
-                    /* is table2_entry_offset in the range of the expected section */
-                    if (table2_entry_offset >= entry_offset && table2_entry_offset < entry_offset + (entry_count * 0x08)) {
-                        table4_entry_id = i;
-                        break;
+                        /* is table2_entry_offset in the range of the expected section */
+                        if (table2_entry_offset >= entry_offset && table2_entry_offset < entry_offset + (entry_count * 0x08)) {
+                            table4_entry_id = i;
+                            break;
+                        }
                     }
-                }
 
-                /* table4:
-                 * 0x00: bank name (optional)
-                 * 0x08: name section offset
-                 * 0x0C-0x14: 3 null pointers (reserved?)
-                 * 0x18-0x58: 32 name chunk offset indices
-                 */
+                    /* table4:
+                     * 0x00: bank name (optional)
+                     * 0x08: name section offset
+                     * 0x0C-0x14: 3 null pointers (reserved?)
+                     * 0x18-0x58: 32 name chunk offset indices
+                     */
 
-                /* Name chunks are organised as
-                 *  (name[0] + name[4] + name[8] + name[12]) & 0x1F;
-                 * and using that as the index for the chunk offsets
-                 *  name_sect_offset + (chunk_idx[result] * 0x14);
-                 */
-                if (read_u8(table4_offset, sf))
-                    bank_name_offset = table4_offset;
+                     /* Name chunks are organised as
+                      *  (name[0] + name[4] + name[8] + name[12]) & 0x1F;
+                      * and using that as the index for the chunk offsets
+                      *  name_sect_offset + (chunk_idx[result] * 0x14);
+                      */
+                    if (read_u8(table4_offset, sf))
+                        bank_name_offset = table4_offset;
 
-                table4_entries_offset = table4_offset + 0x18;
-                table4_names_offset = table4_offset + read_u32(table4_offset + 0x08, sf);
+                    table4_entries_offset = table4_offset + 0x18;
+                    table4_names_offset = table4_offset + read_u32(table4_offset + 0x08, sf);
 
-                for (i = 0; i < 32; i++) {
-                    table4_entry_idx = read_u16(table4_entries_offset + (i * 2), sf);
-                    stream_name_offset = table4_names_offset + (table4_entry_idx * 0x14);
-                    /* searches the chunk until it finds the target name/index, or breaks at empty name */
-                    while (read_u8(stream_name_offset, sf)) {
-                        /* in case it goes somewhere out of bounds unexpectedly */
-                        //if ((read_u8(stream_name_offset + 0x00, sf) + read_u8(stream_name_offset + 0x04, sf) +
-                        //     read_u8(stream_name_offset + 0x08, sf) + read_u8(stream_name_offset + 0x0C, sf)) & 0x1F != i)
-                        //    goto fail;
-                        if (read_u16(stream_name_offset + 0x10, sf) == table4_entry_id)
-                            goto loop_break; /* to break out of the for+while loop simultaneously */
+                    for (i = 0; i < 32; i++) {
+                        table4_entry_idx = read_u16(table4_entries_offset + (i * 2), sf);
+                        stream_name_offset = table4_names_offset + (table4_entry_idx * 0x14);
+                        /* searches the chunk until it finds the target name/index, or breaks at empty name */
+                        while (read_u8(stream_name_offset, sf)) {
+                            /* in case it goes somewhere out of bounds unexpectedly */
+                            //if ((read_u8(stream_name_offset + 0x00, sf) + read_u8(stream_name_offset + 0x04, sf) +
+                            //     read_u8(stream_name_offset + 0x08, sf) + read_u8(stream_name_offset + 0x0C, sf)) & 0x1F != i)
+                            //    goto fail;
+                            if (read_u16(stream_name_offset + 0x10, sf) == table4_entry_id)
+                                goto loop_break; /* to break out of the for+while loop simultaneously */
                             //break;
-                        stream_name_offset += 0x14;
+                            stream_name_offset += 0x14;
+                        }
                     }
-                }
-                //goto fail; /* didn't find any valid index? */
-                stream_name_offset = 0;
+                    //goto fail; /* didn't find any valid index? */
+                    stream_name_offset = 0;
                 loop_break:
-                break;
+                    break;
 
-          //case 0x04: /* different format? */
-          //case 0x05: /* different format? */
+                    //case 0x04: /* different format? */
+                    //case 0x05: /* different format? */
 
-            case 0x08:
-            case 0x09:
-            case 0x0d:
-            case 0x0e:
-            case 0x0f:
-            case 0x10:
-                /* find if this sound has an assigned name in table1 */
-                for (i = 0; i < section_entries; i++) {
-                    entry_offset = read_u16(table1_offset+(i*table1_entry_size)+table1_suboffset+0x00,sf);
+                case 0x08:
+                case 0x09:
+                case 0x0d:
+                case 0x0e:
+                case 0x0f:
+                case 0x10:
+                    /* find if this sound has an assigned name in table1 */
+                    for (i = 0; i < section_entries; i++) {
+                        entry_offset = read_u16(table1_offset + (i * table1_entry_size) + table1_suboffset + 0x00, sf);
 
-                    /* rarely (ex. Polara sfx) one name applies to multiple materials,
-                     * from current entry_offset to next entry_offset (section offsets should be in order) */
-                    if (entry_offset <= table2_entry_offset ) {
-                        table4_entry_id = i;
-                        //break;
+                        /* rarely (ex. Polara sfx) one name applies to multiple materials,
+                         * from current entry_offset to next entry_offset (section offsets should be in order) */
+                        if (entry_offset <= table2_entry_offset) {
+                            table4_entry_id = i;
+                            //break;
+                        }
                     }
-                }
 
-                /* table4: */
-                /* 0x00: bank name (optional) */
-                /* 0x08: header size */
-                /* 0x0c: table4 size */
-                /* variable: entries */
-                /* variable: names (null terminated) */
-                if (read_u8(table4_offset, sf))
-                    bank_name_offset = table4_offset;
+                    /* table4: */
+                    /* 0x00: bank name (optional) */
+                    /* 0x08: header size */
+                    /* 0x0c: table4 size */
+                    /* variable: entries */
+                    /* variable: names (null terminated) */
+                    if (read_u8(table4_offset, sf))
+                        bank_name_offset = table4_offset;
 
-                table4_entries_offset = table4_offset + read_u32(table4_offset+0x08, sf);
-                table4_names_offset = table4_entries_offset + (0x10*section_entries);
-                //;VGM_LOG("BNK: t4_entries=%lx, t4_names=%lx\n", table4_entries_offset, table4_names_offset);
+                    table4_entries_offset = table4_offset + read_u32(table4_offset + 0x08, sf);
+                    table4_names_offset = table4_entries_offset + (0x10 * section_entries);
+                    //;VGM_LOG("BNK: t4_entries=%lx, t4_names=%lx\n", table4_entries_offset, table4_names_offset);
 
-                /* get assigned name from table4 names */
-                for (i = 0; i < section_entries; i++) {
-                    int entry_id = read_u32(table4_entries_offset+(i*0x10)+0x0c, sf);
-                    if (entry_id == table4_entry_id) {
-                        stream_name_offset = table4_names_offset + read_u32(table4_entries_offset+(i*0x10)+0x00, sf);
-                        break;
+                    /* get assigned name from table4 names */
+                    for (i = 0; i < section_entries; i++) {
+                        int entry_id = read_u32(table4_entries_offset + (i * 0x10) + 0x0c, sf);
+                        if (entry_id == table4_entry_id) {
+                            stream_name_offset = table4_names_offset + read_u32(table4_entries_offset + (i * 0x10) + 0x00, sf);
+                            break;
+                        }
                     }
-                }
-                break;
+                    break;
 
-            default:
-                break;
+                default:
+                    break;
+            }
+
+            //;VGM_LOG("BNK: stream_offset=%lx, stream_size=%x, stream_name_offset=%lx\n", stream_offset, stream_size, stream_name_offset);
         }
-
-        //;VGM_LOG("BNK: stream_offset=%lx, stream_size=%x, stream_name_offset=%lx\n", stream_offset, stream_size, stream_name_offset);
     }
 
 
