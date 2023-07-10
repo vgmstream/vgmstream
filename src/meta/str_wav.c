@@ -583,11 +583,17 @@ static int parse_header(STREAMFILE* sf_h, STREAMFILE* sf_b, strwav_header* strwa
         return 1;
     }
 
+    /* Bad Boys II (PC)[2004] */
     /* Pac-Man World 3 (PC)[2005] */
     if ((read_u32be(0x04,sf_h) == 0x00000800 ||
          read_u32be(0x04,sf_h) == 0x01000800) &&  /* rare, mu_spectral1_explore_2 */
          read_u32le(0x24,sf_h) == read_u32le(0x114,sf_h) && /* sample rate repeat */
-         read_u32le(0x130,sf_h) + read_u32le(0x134,sf_h) * 0x40 == header_size /* ~0x140 + cues */
+         (
+           // check if the header ends at table1 (Bad Boys)
+           read_u32le(0x128,sf_h) * 0x4 + read_u32le(0x12c, sf_h) == header_size ||
+           // otherwise it ends at table2
+           read_u32le(0x130,sf_h) + read_u32le(0x134,sf_h) * 0x40 == header_size /* ~0x140 + cues */
+           )
          ) {
         /* 0x08: null */
         /* 0x0c: hashname */
