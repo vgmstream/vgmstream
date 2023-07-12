@@ -348,11 +348,11 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
                      * 0x18-0x58: 32 name chunk offset indices
                      */
 
-                     /* Name chunks are organised as
-                      *  (name[0] + name[4] + name[8] + name[12]) & 0x1F;
-                      * and using that as the index for the chunk offsets
-                      *  name_sect_offset + (chunk_idx[result] * 0x14);
-                      */
+                    /* Name chunks are organised as
+                     *  (name[0] + name[4] + name[8] + name[12]) & 0x1F;
+                     * and using that as the index for the chunk offsets
+                     *  name_sect_offset + (chunk_idx[result] * 0x14);
+                     */
                     if (read_u8(table4_offset, sf))
                         bank_name_offset = table4_offset;
 
@@ -365,22 +365,57 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
                         /* searches the chunk until it finds the target name/index, or breaks at empty name */
                         while (read_u8(stream_name_offset, sf)) {
                             /* in case it goes somewhere out of bounds unexpectedly */
-                            //if ((read_u8(stream_name_offset + 0x00, sf) + read_u8(stream_name_offset + 0x04, sf) +
-                            //     read_u8(stream_name_offset + 0x08, sf) + read_u8(stream_name_offset + 0x0C, sf)) & 0x1F != i)
-                            //    goto fail;
+                            if (((read_u8(stream_name_offset + 0x00, sf) + read_u8(stream_name_offset + 0x04, sf) +
+                                  read_u8(stream_name_offset + 0x08, sf) + read_u8(stream_name_offset + 0x0C, sf)) & 0x1F) != i)
+                                goto fail;
                             if (read_u16(stream_name_offset + 0x10, sf) == table4_entry_id)
                                 goto loop_break; /* to break out of the for+while loop simultaneously */
-                            //break;
+                                //break;
                             stream_name_offset += 0x14;
                         }
                     }
                     //goto fail; /* didn't find any valid index? */
                     stream_name_offset = 0;
-                loop_break:
+                    loop_break:
                     break;
 
-                    //case 0x04: /* different format? */
-                    //case 0x05: /* different format? */
+                case 0x04:
+                case 0x05:
+                    /* a mix of v3 table1 parsing + v8-v16 table4 parsing */
+                    for (i = 0; i < section_entries; i++) {
+                        entry_offset = read_u32(table1_offset + (i * table1_entry_size) + 0x08, sf);
+                        entry_count = read_u8(table1_offset + (i * table1_entry_size) + 0x04, sf);
+
+                        if (table2_entry_offset >= entry_offset && table2_entry_offset < entry_offset + (entry_count * 0x08)) {
+                            table4_entry_id = i;
+                            break;
+                        }
+                    }
+
+                    /* table4:
+                     * 0x00: bank name (optional)
+                     * 0x08: name entries offset
+                     * 0x0C: name section offset
+                     *
+                     * name entries offset:
+                     * 0x00: name offset in name section
+                     * 0x04: name hash(?)
+                     * 0x08: ? (2x int16)
+                     * 0x0C: section index (int16)
+                     */
+                    if (read_u8(table4_offset, sf))
+                        bank_name_offset = table4_offset;
+
+                    table4_entries_offset = table4_offset + read_u32(table4_offset + 0x08, sf);
+                    table4_names_offset = table4_offset + read_u32(table4_offset + 0x0C, sf);
+
+                    for (i = 0; i < section_entries; i++) {
+                        if (read_u16(table4_entries_offset + (i * 0x10) + 0x0C, sf) == table4_entry_id) {
+                            stream_name_offset = table4_names_offset + read_u32(table4_entries_offset + (i * 0x10), sf);
+                            break;
+                        }
+                    }
+                    break;
 
                 case 0x08:
                 case 0x09:
@@ -768,8 +803,8 @@ uint16_t ps_note_to_pitch(uint16_t center_note, uint16_t center_fine, uint16_t n
      * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
      */
 
-    int32_t fine_adjust, fine_idx, note_adjust, note_idx;
-    int32_t unk1, unk2, unk3; /* TODO: better variable names */
+    int fine_adjust, fine_idx, note_adjust, note_idx;
+    int unk1, unk2, unk3; /* TODO: better variable names */
     uint16_t pitch;
 
     fine_idx = fine + center_fine;
