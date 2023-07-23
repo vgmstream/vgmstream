@@ -344,7 +344,6 @@ typedef enum {
     meta_PS2_VAS,           /* Pro Baseball Spirits 5 */
     meta_LP_AP_LEP,
     meta_SDT,               /* Baldur's Gate - Dark Alliance */
-    meta_NGC_TYDSP,         /* Ty - The Tasmanian Tiger */
     meta_DC_STR,            /* SEGA Stream Asset Builder */
     meta_DC_STR_V2,         /* variant of SEGA Stream Asset Builder */
     meta_SAP,

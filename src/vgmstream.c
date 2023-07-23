@@ -103,7 +103,6 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_lp_ap_lep,
     init_vgmstream_sdt,
     init_vgmstream_aix,
-    init_vgmstream_ngc_tydsp,
     init_vgmstream_wvs_xbox,
     init_vgmstream_wvs_ngc,
     init_vgmstream_dc_str,

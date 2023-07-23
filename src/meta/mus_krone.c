@@ -3,7 +3,7 @@
 #include "../coding/coding.h"
 
 
-/* .mus - from Star Wars: The Force Unleashed (Wii) */
+/* .mus - from Krone games [Ty: The Tasmanian Tiger 2 (GC), Star Wars: The Force Unleashed (Wii)] */
 VGMSTREAM* init_vgmstream_mus_krone(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     uint32_t start_offset, data_size;
