@@ -3,8 +3,8 @@
 #include "../util/chunks.h"
 
 
-/* SXD - Sony/SCE's SNDX lib format (cousin of SGXD) [Gravity Rush, Freedom Wars, Soul Sacrifice PSV] */
-VGMSTREAM* init_vgmstream_sxd(STREAMFILE* sf) {
+/* SXDF/SXDS - Sony/SCE's SNDX lib format (cousin of SGXD) [Gravity Rush, Freedom Wars, Soul Sacrifice PSV] */
+VGMSTREAM* init_vgmstream_sndx(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     STREAMFILE* sf_sxd1 = NULL, *sf_sxd2 = NULL, *sf_data = NULL, *sf_h = NULL, *sf_b = NULL;
     off_t start_offset, chunk_offset, first_offset = 0x60, name_offset = 0;
@@ -180,7 +180,7 @@ VGMSTREAM* init_vgmstream_sxd(STREAMFILE* sf) {
     vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->meta_type = meta_SXD;
+    vgmstream->meta_type = meta_SNDX;
     vgmstream->sample_rate = sample_rate;
 
     vgmstream->num_samples = num_samples;

@@ -283,7 +283,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_ubi_raki,
     init_vgmstream_pasx,
     init_vgmstream_xma,
-    init_vgmstream_sxd,
+    init_vgmstream_sndx,
     init_vgmstream_ogl,
     init_vgmstream_mc3,
     init_vgmstream_ghs,

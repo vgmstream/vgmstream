@@ -574,7 +574,7 @@ VGMSTREAM * init_vgmstream_ubi_raki(STREAMFILE* streamFile);
 
 VGMSTREAM* init_vgmstream_pasx(STREAMFILE* sf);
 
-VGMSTREAM * init_vgmstream_sxd(STREAMFILE *streamFile);
+VGMSTREAM * init_vgmstream_sndx(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_ogl(STREAMFILE *streamFile);
 

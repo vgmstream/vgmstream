@@ -628,6 +628,7 @@
     <ClCompile Include="meta\smp.c" />
     <ClCompile Include="meta\smpl.c" />
     <ClCompile Include="meta\smv.c" />
+    <ClCompile Include="meta\sndx.c" />
     <ClCompile Include="meta\sndz.c" />
     <ClCompile Include="meta\spm.c" />
     <ClCompile Include="meta\spsd.c" />
@@ -652,7 +653,6 @@
     <ClCompile Include="meta\svg.c" />
     <ClCompile Include="meta\svs.c" />
     <ClCompile Include="meta\swav.c" />
-    <ClCompile Include="meta\sxd.c" />
     <ClCompile Include="meta\tac.c" />
     <ClCompile Include="meta\tgc.c" />
     <ClCompile Include="meta\thp.c" />

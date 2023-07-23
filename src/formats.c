@@ -1242,7 +1242,7 @@ static const meta_info meta_info_list[] = {
         {meta_ASTB,                 "Capcom ASTB header"},
         {meta_WWISE_RIFF,           "Audiokinetic Wwise RIFF header"},
         {meta_UBI_RAKI,             "Ubisoft RAKI header"},
-        {meta_SXD,                  "Sony SXD header"},
+        {meta_SNDX,                 "Sony SNDX header"},
         {meta_OGL,                  "Shin'en OGL header"},
         {meta_MC3,                  "Paradigm MC3 header"},
         {meta_GHS,                  "Hexadrive GHS/S_P_STH header"},

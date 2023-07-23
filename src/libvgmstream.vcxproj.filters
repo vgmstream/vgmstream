@@ -1705,6 +1705,9 @@
     <ClCompile Include="meta\smv.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\sndx.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\sndz.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -1775,9 +1778,6 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\swav.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="meta\sxd.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\tac.c">
