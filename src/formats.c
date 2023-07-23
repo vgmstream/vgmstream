@@ -558,6 +558,7 @@ static const char* extension_list[] = {
     "tmx",
     "tra",
     "trk",
+    "trs", //txth/semi [Kamiwaza (PS2), Shinobido (PS2)]
     "tun",
     "txth",
     "txtp",
