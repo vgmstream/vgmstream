@@ -46,15 +46,16 @@ def convert_git(stdout):
 def load_git():
     if not USE_GIT:
         raise ValueError("git disabled")
-        
+
     args = ['git', 'describe', '--tags', '--abbrev=0']
     proc = subprocess.run(args, capture_output=True)
     if proc.returncode != 0:
         raise ValueError("git exception")
     latest_tag = proc.stdout.decode('utf-8').strip()
-        
+
+    # no apparent portable way to get a utc timezone in date=format
     #args = ['git','--no-pager','log', '--merges', '--date=format:"%Y-%m-%d %H:%M:%S"',  '--max-count', str(GIT_MAX_MERGES) ]
-    args = ['git','--no-pager','log', '--merges', '--date=format:"%Y-%m-%d %H:%M:%S"', '%s..HEAD' % (latest_tag)]
+    args = ['git','--no-pager','log', '--merges', '--date=format:"%Y-%m-%d %H:%M:%S %z"', '%s..HEAD' % (latest_tag)]
     proc = subprocess.run(args, capture_output=True)
     if proc.returncode != 0:
         raise ValueError("git exception")
@@ -160,7 +161,7 @@ def get_lines(short_log=False):
     if short_log:
         lines = []
     else:
-        curr_date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        curr_date = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S %z")
         lines = [
             '### CHANGELOG',
             '(latest changes from previous release, generated on %s)' % (curr_date),
