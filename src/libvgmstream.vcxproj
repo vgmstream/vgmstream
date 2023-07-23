@@ -175,6 +175,7 @@
     <ClInclude Include="util\cri_keys.h" />
     <ClInclude Include="util\cri_utf.h" />
     <ClInclude Include="util\endianness.h" />
+    <ClInclude Include="util\layout_utils.h" />
     <ClInclude Include="util\log.h" />
     <ClInclude Include="util\m2_psb.h" />
     <ClInclude Include="util\miniz.h" />
@@ -737,6 +738,7 @@
     <ClCompile Include="util\companion_files.c" />
     <ClCompile Include="util\cri_keys.c" />
     <ClCompile Include="util\cri_utf.c" />
+    <ClCompile Include="util\layout_utils.c" />
     <ClCompile Include="util\log.c" />
     <ClCompile Include="util\m2_psb.c" />
     <ClCompile Include="util\miniz.c" />

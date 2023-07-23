@@ -350,6 +350,9 @@
     <ClInclude Include="util\endianness.h">
       <Filter>util\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="util\layout_utils.h">
+      <Filter>util\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="util\log.h">
       <Filter>util\Header Files</Filter>
     </ClInclude>
@@ -2030,6 +2033,9 @@
       <Filter>util\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="util\cri_utf.c">
+      <Filter>util\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="util\layout_utils.c">
       <Filter>util\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="util\log.c">
