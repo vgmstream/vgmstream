@@ -296,7 +296,7 @@ VGMSTREAM * init_vgmstream_ps2_mihb(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_ngc_pdt_split(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_ngc_pdt(STREAMFILE * streamFile);
 
-VGMSTREAM* init_vgmstream_mus_krone(STREAMFILE* sf);
+VGMSTREAM* init_vgmstream_mus_krome(STREAMFILE* sf);
 
 VGMSTREAM * init_vgmstream_rsd(STREAMFILE * streamFile);
 

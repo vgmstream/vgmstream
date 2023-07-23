@@ -1086,7 +1086,7 @@ static const meta_info meta_info_list[] = {
         {meta_YMF,                  "Yuke's .YMF Header"},
         {meta_FAG,                  "Radical .FAG Header"},
         {meta_PS2_MIHB,             "Sony MultiStream MIC header"},
-        {meta_MUS_KRONE,            "Krone .MUS header"},
+        {meta_MUS_KROME,            "Krome .MUS header"},
         {meta_WII_SNG,              "SNG DSP Header"},
         {meta_RSD,                  "Radical RSD header"},
         {meta_DC_ASD,               "ASD Header"},

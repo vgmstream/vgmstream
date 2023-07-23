@@ -1330,7 +1330,7 @@
     <ClCompile Include="meta\mus_acm.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\mus_krone.c">
+    <ClCompile Include="meta\mus_krome.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\mus_vc.c">

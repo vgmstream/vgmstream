@@ -496,9 +496,9 @@ different internally (encrypted, different versions, etc) and not always can be 
   - *ngc_pdt*: `.pdt`
   - *ngc_pdt_split*: `.pdt`
   - Codecs: NGC_DSP
-- **mus_krone.c**
-  - Krone .MUS header [*MUS_KRONE*]
-  - *mus_krone*: `.mus`
+- **mus_krome.c**
+  - Krome .MUS header [*MUS_KROME*]
+  - *mus_krome*: `.mus`
   - Codecs: NGC_DSP
 - **dc_asd.c**
   - ASD Header [*DC_ASD*]

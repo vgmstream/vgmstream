@@ -257,7 +257,7 @@ typedef enum {
     meta_DSP_SADB,          /* .sad */
     meta_DSP_WSI,           /* .wsi */
     meta_IDSP_TT,           /* Traveller's Tales games */
-    meta_MUS_KRONE,
+    meta_MUS_KROME,
     meta_DSP_WII_WSD,       /* Phantom Brave (WII) */
     meta_WII_NDP,           /* Vertigo (Wii) */
     meta_DSP_YGO,           /* Konami: Yu-Gi-Oh! The Falsebound Kingdom (NGC), Hikaru no Go 3 (NGC) */

@@ -503,7 +503,7 @@
     <ClCompile Include="meta\musc.c" />
     <ClCompile Include="meta\musx.c" />
     <ClCompile Include="meta\mus_acm.c" />
-    <ClCompile Include="meta\mus_krone.c" />
+    <ClCompile Include="meta\mus_krome.c" />
     <ClCompile Include="meta\mus_vc.c" />
     <ClCompile Include="meta\myspd.c" />
     <ClCompile Include="meta\naac.c" />
