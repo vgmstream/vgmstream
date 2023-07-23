@@ -981,5 +981,6 @@ VGMSTREAM* init_vgmstream_pwb(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_squeakstream(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_squeaksample(STREAMFILE* sf);
 
+VGMSTREAM* init_vgmstream_snds(STREAMFILE* sf);
 
 #endif /*_META_H*/

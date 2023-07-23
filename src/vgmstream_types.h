@@ -700,6 +700,7 @@ typedef enum {
     meta_AWD,
     meta_SQUEAKSTREAM,
     meta_SQUEAKSAMPLE,
+    meta_SNDS,
 
 } meta_t;
 

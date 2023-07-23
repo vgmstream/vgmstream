@@ -1412,6 +1412,7 @@ static const meta_info meta_info_list[] = {
         {meta_AWD,                  "RenderWare Audio Wave Dictionary header"},
         {meta_SQUEAKSTREAM,         "Torus SqueakStream header"},
         {meta_SQUEAKSAMPLE,         "Torus SqueakSample header"},
+        {meta_SNDS,                 "Sony SNDS header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {

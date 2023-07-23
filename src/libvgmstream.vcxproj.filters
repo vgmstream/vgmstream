@@ -1705,6 +1705,9 @@
     <ClCompile Include="meta\smv.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\snds.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\sndx.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
