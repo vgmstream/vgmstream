@@ -216,6 +216,7 @@ VGMSTREAM* init_vgmstream_sdrh_old(STREAMFILE* sf) {
      * 0x30: file name in a custom 40-char (RADIX style) encoding
      * others: ? (change in old/new)
     */
+   /* there is also an older version in Shadow Hearts 2, more basic (no section table) and may contain sequences */
 
     /* parse section */
     {

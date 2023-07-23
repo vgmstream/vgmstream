@@ -350,6 +350,9 @@
     <ClInclude Include="util\endianness.h">
       <Filter>util\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="util\layout_utils.h">
+      <Filter>util\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="util\log.h">
       <Filter>util\Header Files</Filter>
     </ClInclude>
@@ -1327,7 +1330,7 @@
     <ClCompile Include="meta\mus_acm.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\mus_krone.c">
+    <ClCompile Include="meta\mus_krome.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\mus_vc.c">
@@ -1388,9 +1391,6 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ngc_str_cauldron.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="meta\ngc_tydsp.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\nps.c">
@@ -1702,6 +1702,12 @@
     <ClCompile Include="meta\smv.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\snds.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\sndx.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\sndz.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -1772,9 +1778,6 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\swav.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="meta\sxd.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\tac.c">
@@ -2030,6 +2033,9 @@
       <Filter>util\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="util\cri_utf.c">
+      <Filter>util\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="util\layout_utils.c">
       <Filter>util\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="util\log.c">

@@ -273,6 +273,7 @@ typedef struct {
     int input_channels;     /* internal buffer channels */
     int output_channels;    /* resulting channels (after mixing, if applied) */
     int external_looping;   /* don't loop using per-layer loops, but layout's own looping */
+    int curr_layer;         /* helper */
 } layered_layout_data;
 
 

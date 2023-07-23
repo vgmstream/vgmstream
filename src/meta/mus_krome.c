@@ -3,8 +3,8 @@
 #include "../coding/coding.h"
 
 
-/* .mus - from Star Wars: The Force Unleashed (Wii) */
-VGMSTREAM* init_vgmstream_mus_krone(STREAMFILE* sf) {
+/* .mus - from Krome games [Ty: The Tasmanian Tiger 2 (GC), Star Wars: The Force Unleashed (Wii)] */
+VGMSTREAM* init_vgmstream_mus_krome(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     uint32_t start_offset, data_size;
     int channels, loop_flag, interleave;
@@ -36,7 +36,7 @@ VGMSTREAM* init_vgmstream_mus_krone(STREAMFILE* sf) {
     vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->meta_type = meta_MUS_KRONE;
+    vgmstream->meta_type = meta_MUS_KROME;
     vgmstream->num_samples = num_samples;
     vgmstream->sample_rate = read_u16be(0x6c,sf);
 

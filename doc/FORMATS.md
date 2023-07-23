@@ -420,10 +420,6 @@ different internally (encrypted, different versions, etc) and not always can be 
   - CRI AIX header [*AIX*]
   - *aix*: `.aix`
     - Subfiles: *adx*
-- **ngc_tydsp.c**
-  - .tydsp Header [*NGC_TYDSP*]
-  - *ngc_tydsp*: `.tydsp`
-  - Codecs: NGC_DSP
 - **wvs.c**
   - Swingin' Ape .WVS header [*WVS*]
   - *wvs_xbox*: `.wvs`
@@ -500,9 +496,9 @@ different internally (encrypted, different versions, etc) and not always can be 
   - *ngc_pdt*: `.pdt`
   - *ngc_pdt_split*: `.pdt`
   - Codecs: NGC_DSP
-- **mus_krone.c**
-  - Krone .MUS header [*MUS_KRONE*]
-  - *mus_krone*: `.mus`
+- **mus_krome.c**
+  - Krome .MUS header [*MUS_KROME*]
+  - *mus_krome*: `.mus`
   - Codecs: NGC_DSP
 - **dc_asd.c**
   - ASD Header [*DC_ASD*]
@@ -662,10 +658,6 @@ different internally (encrypted, different versions, etc) and not always can be 
 - **redspark.c**
   - RedSpark Header [*REDSPARK*]
   - Codecs: NGC_DSP
-- **ivaud.c**
-  - Rockstar .ivaud header [*IVAUD*]
-  - *ivaud*: `.ivaud .(extensionless)`
-  - Codecs: PCM16LE XMA1 MPEG IMA_int
 - **ps2_sps.c**
   - Ape Escape 2 SPS Header [*PS2_SPS*]
   - *ps2_sps*: `.sps`
@@ -862,7 +854,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Codecs: PCM16LE
 - **sgxd.c**
   - Sony SGXD header [*SGXD*]
-  - *sgxd*: `.sgb .sgx .sgd + .sgh .sgb`
+  - *sgxd*: `.sgb .sgd + .sgh .sgb`
   - Codecs: PCM16BE OGG_VORBIS PSX ATRAC3 PSX_cfg FFmpeg(various)
 - **wii_ras.c**
   - RAS header [*WII_RAS*]
@@ -1040,9 +1032,9 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Microsoft XMA RIFF header [*XMA_RIFF*]
   - *xma*: `.xma .xma2 .wav .lwav .nps .str .kmx`
   - Codecs: XMA
-- **sxd.c**
-  - Sony SXD header [*SXD*]
-  - *sxd*: `.sxd .sxd2 .sxd3 + .sxd1`
+- **sndx.c**
+  - Sony SNDX header [*SNDX*]
+  - *sndx*: `.sxd .sxd2 .sxd3 + .sxd1`
   - Codecs: PSX HEVAG ATRAC9
 - **ogl.c**
   - Shin'en OGL header [*OGL*]
@@ -1793,7 +1785,10 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Torus SqueakStream header [*SQUEAKSTREAM*]
   - Torus SqueakSample header [*SQUEAKSAMPLE*]
   - *squeaksample*: `(base) + .asset .(external) .raw`
-  - Codecs: NGC_DSP PCM16LE PCM16BE PSX PCM8 MS_IMA IMA
+  - Codecs: NGC_DSP PCM16LE PCM16BE PSX PCM8 MS_IMA IMA XMA2 OGG_VORBIS SPEEX
+- **snds.c**
+  - Sony SNDS header [*SNDS*]
+  - Codecs: ATRAC9
 - **scd_pcm.c**
   - Lunar: Eternal Blue .PCM header [*SCD_PCM*]
   - *scd_pcm*: `.pcm`
@@ -1826,6 +1821,10 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Tiger Game.com .4 header [*TGC*]
   - *tgc*: `.4`
   - Codecs: TGC
+- **ivaud.c**
+  - Rockstar .ivaud header [*IVAUD*]
+  - *ivaud*: `.ivaud .(extensionless)`
+  - Codecs: PCM16LE XMA1 MPEG IMA_int
 - **pos.c**
   - RIFF WAVE header (.pos looping) [*RIFF_WAVE_POS*]
   - *pos*: `.pos + .wav`

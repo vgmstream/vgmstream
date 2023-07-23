@@ -257,7 +257,7 @@ typedef enum {
     meta_DSP_SADB,          /* .sad */
     meta_DSP_WSI,           /* .wsi */
     meta_IDSP_TT,           /* Traveller's Tales games */
-    meta_MUS_KRONE,
+    meta_MUS_KROME,
     meta_DSP_WII_WSD,       /* Phantom Brave (WII) */
     meta_WII_NDP,           /* Vertigo (Wii) */
     meta_DSP_YGO,           /* Konami: Yu-Gi-Oh! The Falsebound Kingdom (NGC), Hikaru no Go 3 (NGC) */
@@ -344,7 +344,6 @@ typedef enum {
     meta_PS2_VAS,           /* Pro Baseball Spirits 5 */
     meta_LP_AP_LEP,
     meta_SDT,               /* Baldur's Gate - Dark Alliance */
-    meta_NGC_TYDSP,         /* Ty - The Tasmanian Tiger */
     meta_DC_STR,            /* SEGA Stream Asset Builder */
     meta_DC_STR_V2,         /* variant of SEGA Stream Asset Builder */
     meta_SAP,
@@ -529,7 +528,7 @@ typedef enum {
     meta_ASTB,
     meta_WWISE_RIFF,        /* Audiokinetic Wwise RIFF/RIFX */
     meta_UBI_RAKI,          /* Ubisoft RAKI header (Rayman Legends, Just Dance 2017) */
-    meta_SXD,               /* Sony SXD (Gravity Rush, Freedom Wars PSV) */
+    meta_SNDX,
     meta_OGL,               /* Shin'en Wii/WiiU (Jett Rocket (Wii), FAST Racing NEO (WiiU)) */
     meta_MC3,               /* Paradigm games (T3 PS2, MX Rider PS2, MI: Operation Surma PS2) */
     meta_GHS,
@@ -537,7 +536,7 @@ typedef enum {
     meta_MTA2,
     meta_XA_XA30,
     meta_XA_04SW,
-    meta_TXTH,              /* generic text header */
+    meta_TXTH,
     meta_SK_AUD,            /* Silicon Knights .AUD (Eternal Darkness GC) */
     meta_AHX,
     meta_STMA,
@@ -700,6 +699,7 @@ typedef enum {
     meta_AWD,
     meta_SQUEAKSTREAM,
     meta_SQUEAKSAMPLE,
+    meta_SNDS,
 
 } meta_t;
 

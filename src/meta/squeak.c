@@ -2,9 +2,10 @@
 #include "../layout/layout.h"
 #include "../coding/coding.h"
 #include "../util/endianness.h"
+#include "../util/layout_utils.h"
 
-#define SQUEAK_MAX_CHANNELS  8  /* seen 3 in some voices */
-typedef enum { PCM16LE, PCM16BE, PCM8, DSP, PSX, MSIMA, IMA } squeak_type_t;
+#define SQUEAK_MAX_CHANNELS  6  /* seen 3 in some voices */
+typedef enum { PCM16LE, PCM16BE, PCM8, DSP, PSX, MSIMA, IMA, XMA2, VORBIS, SPEEX } squeak_type_t;
 
 typedef struct {
     squeak_type_t type;
@@ -26,6 +27,8 @@ typedef struct {
     uint32_t coef_offset;
     uint32_t coef_spacing;
 
+    uint32_t data_offsets[SQUEAK_MAX_CHANNELS];
+    uint32_t coef_offsets[SQUEAK_MAX_CHANNELS];
     uint32_t data_size;
 
     bool big_endian;
@@ -37,22 +40,21 @@ typedef struct {
 static VGMSTREAM* init_vgmstream_squeak_common(STREAMFILE* sf, squeak_header_t* h);
 
 
-/* SqueakStream - from Torus games (as identified in .hnk subdirs) */
+/* SqueakStream - from Torus games (name/engine as identified in .hnk subdirs) */
 VGMSTREAM* init_vgmstream_squeakstream(STREAMFILE* sf) {
     squeak_header_t h = {0};
     bool is_old = false;
 
 
     /* checks */
-    h.big_endian = false;
-    if (is_id32be(0x00,sf, "RAWI")) {
-        h.big_endian = false;
+    if (is_id32be(0x00,sf, "RAWI") || is_id32be(0x00,sf, "VORB") || is_id32be(0x00,sf, "SPEX")) {
+        h.big_endian = false; /* VORB/SPEX only use vorbis/speex but no apparent diffs */
     }
     else if (is_id32be(0x00,sf, "IWAR")) {
         h.big_endian = true; /* Wii/PS3/X360 */
     }
     else {
-        /* no header id so test codec in dumb endian */
+        /* no header id in early version so test codec in dumb endian */
         if ((read_u32le(0x00,sf) & 0x00FFFFFF) > 9 || (read_u32be(0x00,sf) & 0x00FFFFFF) > 9)
             return NULL;
         is_old = true;
@@ -137,13 +139,17 @@ VGMSTREAM* init_vgmstream_squeakstream(STREAMFILE* sf) {
     if (h.extb_offset > h.name_offset) return NULL;
 
     switch(h.codec) {
-        case 0x00: h.type = DSP; break;        /* Turbo Super Stunt Squad (Wii/3DS), Penguins of Madagascar (Wii/U/3DS) */
-        case 0x01: h.type = PCM16LE; break;    /* Falling Skies The Game (PC) */
-        case 0x02: h.type = PCM16BE; break;    /* Falling Skies The Game (X360) */
-        case 0x03: h.type = PSX; break;        /* How to Train Your Dragon 2 (PS3), Falling Skies The Game (PS3) */
-        case 0x05: h.type = PCM8; break;       /* Scooby Doo and the Spooky Swamp (DS), Scooby Doo! First Frights (DS) */
-        case 0x09: h.type = MSIMA; break;      /* Turbo Super Stunt Squad (DS) */
+        case 0x00: h.type = DSP; break;         /* Turbo Super Stunt Squad (Wii/3DS), Penguins of Madagascar (Wii/U/3DS) */
+        case 0x01: h.type = PCM16LE; break;     /* Falling Skies The Game (PC) */
+        case 0x02: h.type = h.big_endian ? PCM16BE : PCM16LE; break;  /* Falling Skies The Game (X360)-be, Scooby Doo and the Spooky Swamp (PC)-le */
+        case 0x03: h.type = PSX; break;         /* How to Train Your Dragon 2 (PS3), Falling Skies The Game (PS3) */
+        case 0x04: h.type = MSIMA; break;       /* Barbie Dreamhouse Party (DS) */
+        case 0x05: h.type = PCM8; break;        /* Scooby Doo and the Spooky Swamp (DS), Scooby Doo! First Frights (DS) */
+        case 0x07: h.type = SPEEX; break;       /* Scooby Doo and the Spooky Swamp (PC) */
+        case 0x08: h.type = VORBIS; break;      /* Scooby Doo and the Spooky Swamp (PC) */
+        case 0x09: h.type = MSIMA; break;       /* Turbo Super Stunt Squad (DS) */
         default:
+            VGM_LOG("SqueakStream: unknown codec %x\n", h.codec);
             return NULL;
     }
 
@@ -151,7 +157,7 @@ VGMSTREAM* init_vgmstream_squeakstream(STREAMFILE* sf) {
 }
 
 
-/* SqueakSample - from Torus games (as identified in .hnk subdirs) */
+/* SqueakSample - from Torus games (name/engine as identified in .hnk subdirs) */
 VGMSTREAM* init_vgmstream_squeaksample(STREAMFILE* sf) {
     squeak_header_t h = {0};
 
@@ -187,7 +193,6 @@ VGMSTREAM* init_vgmstream_squeaksample(STREAMFILE* sf) {
     h.loop_end      = read_s32(offset + 0x0c,sf);
     if (h.loop_start > h.loop_end || h.loop_end > h.num_samples) return NULL;
     h.codec         = read_s32(offset + 0x10,sf);
-    if (h.codec > 0x09) return NULL;
     h.sample_rate   = read_s32(offset + 0x14,sf);
     if (h.sample_rate > 48000 || h.sample_rate < 0) return NULL;
 
@@ -206,14 +211,25 @@ VGMSTREAM* init_vgmstream_squeaksample(STREAMFILE* sf) {
     h.external_data = (h.data_offset & 0xF0000000);
     h.data_offset = h.data_offset & 0x0FFFFFFF;
 
-    /* absolute offsets, should read for each channel but simplify 
-     * (also channels may have padding, but files end with no padding) */
-    if (h.channels > 1) {
-        int separation = h.codec == 0xFFFE0001 ? 0x68 : 0x2c;
-        uint32_t data_offset = read_u32le(offset + 0x04 + 1 * separation, sf) & 0x0FFFFFFF;
-        uint32_t coef_offset = read_u32le(offset + 0x28 + 1 * separation, sf);
-        h.interleave   = data_offset - h.data_offset; /* distance */
-        h.coef_spacing = coef_offset - h.coef_offset;
+    /* each channel has its own info but mostly repeats (data may have padding, but files end with no padding) */
+    {
+        int separation = 0;
+        switch(h.codec) {
+            case 0xFFFE0001:
+            case 0x0001FFFE:
+            case 0x01660001: separation = 0x68; break;
+            default:         separation = 0x2c; break;
+        }
+
+        for (int i = 0; i < h.channels; i++) {
+            h.data_offsets[i] = read_u32le(offset + 0x04 + i * separation, sf) & 0x0FFFFFFF;
+            h.coef_offsets[i] = read_u32le(offset + 0x28 + i * separation, sf);
+        }
+
+        if (h.channels > 1) {
+            h.interleave   = h.data_offsets[1] - h.data_offsets[0];
+            h.coef_spacing = h.coef_offsets[1] - h.coef_offsets[0];
+        }
     }
 
     switch(h.codec) {
@@ -223,8 +239,11 @@ VGMSTREAM* init_vgmstream_squeaksample(STREAMFILE* sf) {
         case 0x07: h.type = PSX; break;        /* How to Train Your Dragon 2 (PS3), Falling Skies The Game (PS3) */
         case 0x08:                             /* (same as below for unlooped audio) */
         case 0x09: h.type = IMA; break;        /* Scooby-Doo! First Frights (DS), Turbo Super Stunt Squad (DS) */
-        case 0xFFFE0001: h.type = h.big_endian ? PCM16BE : PCM16LE; break; /* Falling Skies The Game (X360) */
+        case 0xFFFE0001: h.type = PCM16BE; break; /* Falling Skies The Game (X360) */
+        case 0x0001FFFE: h.type = PCM16LE; break; /* Scooby Doo and the Spooky Swamp (PC), Monster High: New Ghoul in School (PC) */
+        case 0x01660001: h.type = XMA2; break; /* Rise of the Guardians (X360) */
         default:
+            VGM_LOG("SqueakSample: unknown codec %x\n", h.codec);
             return NULL;
     }
 
@@ -295,6 +314,7 @@ fail:
 static VGMSTREAM* init_vgmstream_squeak_common(STREAMFILE* sf, squeak_header_t* h) {
     VGMSTREAM* vgmstream = NULL;
     STREAMFILE* sb = NULL;
+    STREAMFILE* sf_body = NULL;
 
     /* common */
     int loop_flag = h->loop_end > 0;
@@ -306,6 +326,7 @@ static VGMSTREAM* init_vgmstream_squeak_common(STREAMFILE* sf, squeak_header_t* 
         if (!sb) goto fail;
     }
 
+    sf_body = sb ? sb : sf;
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(h->channels, loop_flag);
@@ -334,12 +355,13 @@ static VGMSTREAM* init_vgmstream_squeak_common(STREAMFILE* sf, squeak_header_t* 
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = h->interleave; /* not 0x02 */
 
+            break;
+
         case PCM16BE:
             vgmstream->coding_type = coding_PCM16BE;
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = h->interleave; /* not 0x02 */
 
-            /* etbl_offset may set offsets to RIFF fmts per channel) */
             break;
 
         case PSX:
@@ -358,7 +380,7 @@ static VGMSTREAM* init_vgmstream_squeak_common(STREAMFILE* sf, squeak_header_t* 
             vgmstream->coding_type = coding_MS_IMA;
             vgmstream->layout_type = layout_none;
             //vgmstream->interleave_block_size = h->interleave; /* unused? (mono) */
-            vgmstream->frame_size = 0x20;
+            vgmstream->frame_size = h->codec == 0x04 ? 0x400 : 0x20;
             break;
 
         case IMA:
@@ -370,8 +392,46 @@ static VGMSTREAM* init_vgmstream_squeak_common(STREAMFILE* sf, squeak_header_t* 
             h->data_offset += 0x04;
             break;
 
+#ifdef VGM_USE_FFMPEG
+        case XMA2: {
+            /* uses separate mono streams */
+            vgmstream->coding_type = coding_FFmpeg;
+            for (int i = 0; i < h->channels; i++) {
+                uint32_t offset = h->data_offsets[i];
+                uint32_t next_offset = (i + 1 == h->channels) ? get_streamfile_size(sf_body) : h->data_offsets[i+1];
+                uint32_t data_size = next_offset - offset;
+                int layer_channels = 1;
+
+                vgmstream->codec_data = init_ffmpeg_xma2_raw(sf_body, offset, data_size, h->num_samples, layer_channels, h->sample_rate, 0, 0);
+                if (!layered_add_codec(vgmstream, 0, layer_channels))
+                    goto fail;
+            }
+            if (!layered_add_done(vgmstream))
+                goto fail;
+
+            break;
+        }
+#endif
+#ifdef VGM_USE_VORBIS
+        case VORBIS:
+            vgmstream->codec_data = init_ogg_vorbis(sf_body, h->data_offset, 0, NULL);
+            if (!vgmstream->codec_data) goto fail;
+            vgmstream->coding_type = coding_OGG_VORBIS;
+            vgmstream->layout_type = layout_none;
+
+            break;
+#endif
+#ifdef VGM_USE_SPEEX
+        case SPEEX: {
+            vgmstream->codec_data = init_speex_torus(h->channels);
+            if (!vgmstream->codec_data) goto fail;
+            vgmstream->coding_type = coding_SPEEX;
+            vgmstream->layout_type = layout_none;
+
+            break;
+        }
+#endif
         default:
-            vgm_logi("RAWI: unknown codec %x (report)\n", h->codec);
             goto fail;
     }
 

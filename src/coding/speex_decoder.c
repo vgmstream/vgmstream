@@ -10,15 +10,19 @@
 #define SPEEX_DECODE_OK  0  /* -1 for end of stream, -2 corrupt stream */
 
 
+typedef enum { EA, TORUS } type_t;
+
 /* opaque struct */
 struct speex_codec_data {
+    type_t type;
+
     /* config */
     int channels;
     int samples_discard;
     int encoder_delay;
 
     uint8_t buf[SPEEX_MAX_FRAME_SIZE];
-    uint8_t frame_size;
+    int frame_size;
 
     int16_t* samples;
     int frame_samples;
@@ -32,7 +36,7 @@ struct speex_codec_data {
 
 
 /* raw SPEEX */
-speex_codec_data* init_speex_ea(int channels) {
+static speex_codec_data* init_speex(type_t type, int channels) {
     int res, sample_rate;
     speex_codec_data* data = NULL;
 
@@ -40,7 +44,9 @@ speex_codec_data* init_speex_ea(int channels) {
     data = calloc(1, sizeof(speex_codec_data));
     if (!data) goto fail;
 
-    //TODO: EA uses N decoders, unknown layout (known samples are mono)
+    data->type = type;
+
+    //TODO: unknown layout (known samples are mono, EA: N decoders, Torus: N too?)
     data->channels = channels;
     if (channels != 1)
         goto fail;
@@ -78,6 +84,14 @@ fail:
     return NULL;
 }
 
+speex_codec_data* init_speex_ea(int channels) {
+    return init_speex(EA, channels);
+}
+
+speex_codec_data* init_speex_torus(int channels) {
+    return init_speex(TORUS, channels);
+}
+
 
 static int decode_frame(speex_codec_data* data) {
     int res;
@@ -102,8 +116,18 @@ fail:
 static int read_frame(speex_codec_data* data, VGMSTREAMCHANNEL* stream) {
     size_t bytes;
 
-    data->frame_size = read_u8(stream->offset, stream->streamfile);
-    stream->offset += 0x01;
+    switch(data->type) {
+        case EA:
+            data->frame_size = read_u8(stream->offset, stream->streamfile);
+            stream->offset += 0x01;
+            break;
+        case TORUS:
+            data->frame_size = read_u16le(stream->offset, stream->streamfile);
+            stream->offset += 0x02;
+            break;
+        default:
+            break;
+    }
     if (data->frame_size == 0) goto fail;
 
     bytes = read_streamfile(data->buf, stream->offset, data->frame_size, stream->streamfile);

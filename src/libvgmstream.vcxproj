@@ -175,6 +175,7 @@
     <ClInclude Include="util\cri_keys.h" />
     <ClInclude Include="util\cri_utf.h" />
     <ClInclude Include="util\endianness.h" />
+    <ClInclude Include="util\layout_utils.h" />
     <ClInclude Include="util\log.h" />
     <ClInclude Include="util\m2_psb.h" />
     <ClInclude Include="util\miniz.h" />
@@ -502,7 +503,7 @@
     <ClCompile Include="meta\musc.c" />
     <ClCompile Include="meta\musx.c" />
     <ClCompile Include="meta\mus_acm.c" />
-    <ClCompile Include="meta\mus_krone.c" />
+    <ClCompile Include="meta\mus_krome.c" />
     <ClCompile Include="meta\mus_vc.c" />
     <ClCompile Include="meta\myspd.c" />
     <ClCompile Include="meta\naac.c" />
@@ -523,7 +524,6 @@
     <ClCompile Include="meta\ngc_sck_dsp.c" />
     <ClCompile Include="meta\ngc_ssm.c" />
     <ClCompile Include="meta\ngc_str_cauldron.c" />
-    <ClCompile Include="meta\ngc_tydsp.c" />
     <ClCompile Include="meta\nps.c" />
     <ClCompile Include="meta\nub.c" />
     <ClCompile Include="meta\nus3audio.c" />
@@ -627,6 +627,8 @@
     <ClCompile Include="meta\smp.c" />
     <ClCompile Include="meta\smpl.c" />
     <ClCompile Include="meta\smv.c" />
+    <ClCompile Include="meta\snds.c" />
+    <ClCompile Include="meta\sndx.c" />
     <ClCompile Include="meta\sndz.c" />
     <ClCompile Include="meta\spm.c" />
     <ClCompile Include="meta\spsd.c" />
@@ -651,7 +653,6 @@
     <ClCompile Include="meta\svg.c" />
     <ClCompile Include="meta\svs.c" />
     <ClCompile Include="meta\swav.c" />
-    <ClCompile Include="meta\sxd.c" />
     <ClCompile Include="meta\tac.c" />
     <ClCompile Include="meta\tgc.c" />
     <ClCompile Include="meta\thp.c" />
@@ -737,6 +738,7 @@
     <ClCompile Include="util\companion_files.c" />
     <ClCompile Include="util\cri_keys.c" />
     <ClCompile Include="util\cri_utf.c" />
+    <ClCompile Include="util\layout_utils.c" />
     <ClCompile Include="util\log.c" />
     <ClCompile Include="util\m2_psb.c" />
     <ClCompile Include="util\miniz.c" />

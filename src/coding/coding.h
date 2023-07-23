@@ -588,6 +588,7 @@ void free_celt_fsb(celt_codec_data* data);
 typedef struct speex_codec_data speex_codec_data;
 
 speex_codec_data* init_speex_ea(int channels);
+speex_codec_data* init_speex_torus(int channels);
 void decode_speex(VGMSTREAM* vgmstream, sample_t* outbuf, int32_t samples_to_do);
 void reset_speex(speex_codec_data* data);
 void seek_speex(VGMSTREAM* vgmstream, int32_t num_sample);

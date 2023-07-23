@@ -498,7 +498,6 @@ static const char* extension_list[] = {
     "sgb",
     "sgd",
     "sgt",
-    "sgx",
     "slb", //txth/reserved [THE Nekomura no Hitobito (PS2)]
     "sli",
     "smc",
@@ -559,10 +558,10 @@ static const char* extension_list[] = {
     "tmx",
     "tra",
     "trk",
+    "trs", //txth/semi [Kamiwaza (PS2), Shinobido (PS2)]
     "tun",
     "txth",
     "txtp",
-    "tydsp",
 
     "u0",
     "ue4opus",
@@ -1073,7 +1072,6 @@ static const meta_info meta_info_list[] = {
         {meta_PS2_VAS,              "Konami .VAS header"},
         {meta_LP_AP_LEP,            "Konami LP/AP/LEP header"},
         {meta_SDT,                  "High Voltage .sdt header"},
-        {meta_NGC_TYDSP,            ".tydsp Header"},
         {meta_WVS,                  "Swingin' Ape .WVS header"},
         {meta_DEC,                  "Falcom .DEC RIFF header"},
         {meta_VS,                   "Melbourne House .VS header"},
@@ -1088,7 +1086,7 @@ static const meta_info meta_info_list[] = {
         {meta_YMF,                  "Yuke's .YMF Header"},
         {meta_FAG,                  "Radical .FAG Header"},
         {meta_PS2_MIHB,             "Sony MultiStream MIC header"},
-        {meta_MUS_KRONE,            "Krone .MUS header"},
+        {meta_MUS_KROME,            "Krome .MUS header"},
         {meta_WII_SNG,              "SNG DSP Header"},
         {meta_RSD,                  "Radical RSD header"},
         {meta_DC_ASD,               "ASD Header"},
@@ -1242,7 +1240,7 @@ static const meta_info meta_info_list[] = {
         {meta_ASTB,                 "Capcom ASTB header"},
         {meta_WWISE_RIFF,           "Audiokinetic Wwise RIFF header"},
         {meta_UBI_RAKI,             "Ubisoft RAKI header"},
-        {meta_SXD,                  "Sony SXD header"},
+        {meta_SNDX,                 "Sony SNDX header"},
         {meta_OGL,                  "Shin'en OGL header"},
         {meta_MC3,                  "Paradigm MC3 header"},
         {meta_GHS,                  "Hexadrive GHS/S_P_STH header"},
@@ -1412,6 +1410,7 @@ static const meta_info meta_info_list[] = {
         {meta_AWD,                  "RenderWare Audio Wave Dictionary header"},
         {meta_SQUEAKSTREAM,         "Torus SqueakStream header"},
         {meta_SQUEAKSAMPLE,         "Torus SqueakSample header"},
+        {meta_SNDS,                 "Sony SNDS header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {
