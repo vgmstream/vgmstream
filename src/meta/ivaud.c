@@ -1,6 +1,7 @@
 #include "meta.h"
 #include "../layout/layout.h"
 #include "../coding/coding.h"
+#include "../util/endianness.h"
 
 typedef struct {
     int is_music;
@@ -31,13 +32,13 @@ VGMSTREAM* init_vgmstream_ivaud(STREAMFILE* sf) {
     int loop_flag;
 
     /* checks */
-    /* (hashed filenames are likely extensionless and .ivaud is added by tools) */
+    /* (hashed filenames are likely extensionless, .ivaud is added by tools) */
     if (!check_extensions(sf, "ivaud,"))
-        goto fail;
+        return NULL;
 
     /* check header */
     if (!parse_ivaud_header(sf, &ivaud))
-        goto fail;
+        return NULL;
 
 
     loop_flag = 0;
@@ -121,15 +122,19 @@ fail:
 /* Parse Rockstar's .ivaud header (much info from SparkIV). */
 static int parse_ivaud_header(STREAMFILE* sf, ivaud_header* ivaud) {
     int target_subsong = sf->stream_index;
-    uint64_t (*read_u64)(off_t,STREAMFILE*);
-    uint32_t (*read_u32)(off_t,STREAMFILE*);
-    uint16_t (*read_u16)(off_t,STREAMFILE*);
+    read_u64_t read_u64;
+    read_u32_t read_u32;
+    read_u16_t read_u16;
 
 
     ivaud->big_endian = read_u32be(0x00, sf) == 0; /* table offset at 0x04 > BE (64b) */
     read_u64 = ivaud->big_endian ? read_u64be : read_u64le;
     read_u32 = ivaud->big_endian ? read_u32be : read_u32le;
     read_u16 = ivaud->big_endian ? read_u16be : read_u16le;
+
+    uint64_t table_offset = read_u64(0x00,sf);
+    if (table_offset > 0x10000) /* arbitrary max, typically 0x1c~0x1000 */
+        return 0;
 
     /* use bank's stream count to detect */
     ivaud->is_music = (read_u32(0x10,sf) == 0);
@@ -138,7 +143,7 @@ static int parse_ivaud_header(STREAMFILE* sf, ivaud_header* ivaud) {
         off_t block_table_offset, channel_table_offset, channel_info_offset;
 
         /* music header */
-        block_table_offset = read_u64(0x00,sf);
+        block_table_offset = table_offset;
         ivaud->block_count = read_u32(0x08,sf);
         ivaud->block_size = read_u32(0x0c,sf); /* uses padded blocks */
         /* 0x10(4): stream count  */
@@ -185,7 +190,7 @@ static int parse_ivaud_header(STREAMFILE* sf, ivaud_header* ivaud) {
         off_t stream_table_offset, stream_info_offset, stream_entry_offset, offset;
 
         /* bank header */
-        stream_table_offset = read_u64(0x00,sf);
+        stream_table_offset = table_offset;
         /* 0x08(8): header size? start offset? */
         ivaud->total_subsongs = read_u32(0x10,sf);
         /* 0x14(4): unknown */

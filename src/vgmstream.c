@@ -170,7 +170,6 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_zsd,
     init_vgmstream_vgs_ps,
     init_vgmstream_redspark,
-    init_vgmstream_ivaud,
     init_vgmstream_wii_wsd,
     init_vgmstream_dsp_ndp,
     init_vgmstream_ps2_sps,
@@ -533,6 +532,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_mic_koei,
     init_vgmstream_seb,
     init_vgmstream_tgc,
+    init_vgmstream_ivaud,
     /* need companion files */
     init_vgmstream_pos,
     init_vgmstream_sli_loops,
