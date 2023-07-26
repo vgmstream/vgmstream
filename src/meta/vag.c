@@ -287,9 +287,10 @@ VGMSTREAM* init_vgmstream_vag(STREAMFILE* sf) {
             goto fail;
     }
 
-    /* ignore bigfiles and bad extractions (approximate) */
-    if (channel_size * channels + interleave * channels + start_offset * channels + 0x8000 < get_streamfile_size(sf) || 
-        channel_size * channels > get_streamfile_size(sf)) {
+    /* ignore bad extractions (approximate) */
+    /* bigfile ignoring breaks some of Jak series' VAGs (unless increased to roughly 1.4 MiB) */
+    //if (channel_size * channels + interleave * channels + start_offset * channels + 0x80000 < get_streamfile_size(sf) || 
+    if (channel_size * channels > get_streamfile_size(sf)) {
         vgm_logi("VAG: wrong expected (incorrect extraction? %x * %i + %x + %x + ~ vs %x)\n", 
             channel_size, channels, interleave * channels, start_offset * channels, (uint32_t)get_streamfile_size(sf));
         goto fail;
