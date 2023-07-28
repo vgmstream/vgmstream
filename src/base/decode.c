@@ -422,10 +422,11 @@ int decode_get_samples_per_frame(VGMSTREAM* vgmstream) {
         case coding_APPLE_IMA4:
             return 64;
         case coding_MS_IMA:
-        case coding_REF_IMA:
-            return ((vgmstream->frame_size - 0x04*vgmstream->channels) * 2 / vgmstream->channels) + 1;/* +1 from header sample */
+            return ((vgmstream->frame_size - 0x04*vgmstream->channels) * 2 / vgmstream->channels) + 1; /* +1 from header sample */
         case coding_MS_IMA_mono:
             return ((vgmstream->frame_size - 0x04) * 2) + 1; /* +1 from header sample */
+        case coding_REF_IMA:
+            return ((vgmstream->interleave_block_size - 0x04 * vgmstream->channels) * 2 / vgmstream->channels) + 1; /* +1 from header sample */
         case coding_RAD_IMA:
             return (vgmstream->interleave_block_size - 0x04*vgmstream->channels) * 2 / vgmstream->channels;
         case coding_NDS_IMA:
