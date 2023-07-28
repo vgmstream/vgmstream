@@ -5,7 +5,7 @@
 VGMSTREAM * init_vgmstream_xa_xa30(STREAMFILE *streamFile) {
     VGMSTREAM * vgmstream = NULL;
     off_t start_offset;
-    int loop_flag, channel_count, codec;
+    int loop_flag, channel_count, codec, interleave_block_size;
     size_t stream_size;
     int total_subsongs, target_subsong = streamFile->stream_index;
 
@@ -31,6 +31,7 @@ VGMSTREAM * init_vgmstream_xa_xa30(STREAMFILE *streamFile) {
     codec = read_32bitLE(0x0c,streamFile);
     start_offset = read_32bitLE(0x10 + 0x04*(target_subsong-1),streamFile);
     stream_size  = read_32bitLE(0x18 + 0x04*(target_subsong-1),streamFile);
+    interleave_block_size = read_32bitLE(0x24, streamFile);
 
 
     /* build the VGMSTREAM */
@@ -47,14 +48,14 @@ VGMSTREAM * init_vgmstream_xa_xa30(STREAMFILE *streamFile) {
         case 0x00:   /* PCM (rare, seen in Driver 3) */
             vgmstream->coding_type = coding_PCM16LE;
             vgmstream->layout_type = layout_interleave;
-            vgmstream->interleave_block_size = read_32bitLE(0x24,streamFile) / 2;
+            vgmstream->interleave_block_size = interleave_block_size / 2;
             vgmstream->num_samples = pcm_bytes_to_samples(stream_size, channel_count, 16);
             break;
 
         case 0x01:   /* MS-IMA variation */
             vgmstream->coding_type = coding_REF_IMA;
             vgmstream->layout_type = layout_none;
-            vgmstream->interleave_block_size = read_32bitLE(0x24,streamFile);
+            vgmstream->interleave_block_size = interleave_block_size;
             vgmstream->num_samples = ms_ima_bytes_to_samples(stream_size, vgmstream->interleave_block_size, channel_count);
             break;
 
