@@ -88,6 +88,8 @@
     <ClInclude Include="vgmstream_types.h" />
     <ClInclude Include="base\decode.h" />
     <ClInclude Include="base\mixing.h" />
+    <ClInclude Include="base\mixing_fades.h" />
+    <ClInclude Include="base\mixing_priv.h" />
     <ClInclude Include="base\plugins.h" />
     <ClInclude Include="base\render.h" />
     <ClInclude Include="coding\acm_decoder_libacm.h" />
@@ -197,6 +199,8 @@
     <ClCompile Include="base\decode.c" />
     <ClCompile Include="base\info.c" />
     <ClCompile Include="base\mixing.c" />
+    <ClCompile Include="base\mixing_commands.c" />
+    <ClCompile Include="base\mixing_macros.c" />
     <ClCompile Include="base\plugins.c" />
     <ClCompile Include="base\render.c" />
     <ClCompile Include="base\seek.c" />

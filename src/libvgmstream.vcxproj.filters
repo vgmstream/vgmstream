@@ -89,6 +89,12 @@
     <ClInclude Include="base\mixing.h">
       <Filter>base\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="base\mixing_fades.h">
+      <Filter>base\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="base\mixing_priv.h">
+      <Filter>base\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="base\plugins.h">
       <Filter>base\Header Files</Filter>
     </ClInclude>
@@ -410,6 +416,12 @@
       <Filter>base\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="base\mixing.c">
+      <Filter>base\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="base\mixing_commands.c">
+      <Filter>base\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="base\mixing_macros.c">
       <Filter>base\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="base\plugins.c">
