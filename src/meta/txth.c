@@ -1983,7 +1983,7 @@ static int parse_num(STREAMFILE* sf, txth_header* txth, const char* val, uint32_
             offset += txth->base_offset;
 
             if (/*offset < 0 ||*/ offset > get_streamfile_size(sf)) {
-                vgm_logi("TXTH: wrong offset over file size (%x + %x)\n", offset - txth->base_offset, txth->base_offset);
+                vgm_logi("TXTH:  wrong offset over file size (%x + %x)\n", offset - txth->base_offset, txth->base_offset);
                 goto fail;
             }
 
@@ -1996,7 +1996,7 @@ static int parse_num(STREAMFILE* sf, txth_header* txth, const char* val, uint32_
                 offset = offset + subsong_spacing * (txth->target_subsong - 1);
 
             if (txth->debug)
-                vgm_logi("TXTH: use value at 0x%x (%s %ib)\n", offset, big_endian ? "BE" : "LE", size * 8);
+                vgm_logi("TXTH:  use value at 0x%x (%s %ib)\n", offset, big_endian ? "BE" : "LE", size * 8);
 
             switch(size) {
                 case 1: value = read_u8(offset,sf); break;
@@ -2015,7 +2015,7 @@ static int parse_num(STREAMFILE* sf, txth_header* txth, const char* val, uint32_
             value_read = 1;
 
             if (txth->debug)
-                vgm_logi(hex ? "TXTH: use constant 0x%x\n" : "TXTH: use constant %i\n", value);
+                vgm_logi(hex ? "TXTH:  use constant 0x%x\n" : "TXTH:  use constant %i\n", value);
         }
         else { /* known field */
             if      ((n = is_string_field(val,"interleave")))           value = txth->interleave;
@@ -2074,7 +2074,7 @@ static int parse_num(STREAMFILE* sf, txth_header* txth, const char* val, uint32_
             value_read = 1;
 
             if (txth->debug)
-                vgm_logi("TXTH: use field value 0x%x\n", value);
+                vgm_logi("TXTH:  use field value 0x%x\n", value);
         }
 
         /* apply simple left-to-right math though, for now "(" ")" are counted and validated
@@ -2117,7 +2117,7 @@ static int parse_num(STREAMFILE* sf, txth_header* txth, const char* val, uint32_
     *out_value = result;
 
     if (txth->debug)
-        vgm_logi("TXTH: final value: %u (0x%x)\n", result, result);
+        vgm_logi("TXTH:  final value: %u (0x%x)\n", result, result);
 
     return 1;
 fail:

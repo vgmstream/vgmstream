@@ -1248,6 +1248,9 @@ static const hcakey_info hcakey_list[] = {
         // Tower of Sky (Android)
         {5893902754391672},     // 0014F0792C042678
 
+        // The Irregular at Magic High School: Reloaded Memory (Android)
+        {7181280307767738368},  // 63A9086451010000
+
 };
 
 #endif/*_HCA_KEYS_H_*/

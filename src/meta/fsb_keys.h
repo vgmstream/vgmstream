@@ -71,6 +71,7 @@ static const fsbkey_info fsbkey_list[] = {
         { MODE_FSB5_STD, FSBKEY_ADD("281ad163160cfc16f9a22c6755a64fad") }, // Ash Echoes beta (Android)
         { MODE_FSB5_STD, FSBKEY_ADD("Aurogon666") }, // Afterimage demo (PC)
         { MODE_FSB5_STD, FSBKEY_ADD("IfYouLikeThosesSoundsWhyNotRenumerateTheir2Authors?") }, // Blanc (PC/Switch)
+        { MODE_FSB5_STD, FSBKEY_ADD("L36nshM520") }, // Nishuihan Mobile (Android)
 };
 static const int fsbkey_list_count = sizeof(fsbkey_list) / sizeof(fsbkey_list[0]);
 
