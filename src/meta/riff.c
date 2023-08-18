@@ -177,6 +177,14 @@ static int read_fmt(int big_endian, STREAMFILE* sf, off_t offset, riff_fmt_chunk
                 goto fail;
             }
             break;
+        case 0x003: /* floating point PCM */
+            if (fmt->bps == 32) {
+              fmt->coding_type = coding_PCMFLOAT;
+            } else {
+              goto fail;
+            }
+            fmt->interleave = fmt->block_size / fmt->channels;
+            break;
 
         case 0x0011:  /* MS-IMA ADPCM [Layton Brothers: Mystery Room (iOS/Android)] */
             if (fmt->bps != 4) goto fail;
@@ -704,6 +712,7 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
         case coding_PCM24LE:
         case coding_PCM16LE:
         case coding_PCM8_U:
+        case coding_PCMFLOAT:
             vgmstream->num_samples = pcm_bytes_to_samples(data_size, fmt.channels, fmt.bps);
             break;
 
