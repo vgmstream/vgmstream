@@ -367,6 +367,7 @@ int decode_get_samples_per_frame(VGMSTREAM* vgmstream) {
         case coding_PCMFLOAT:
         case coding_PCM24LE:
         case coding_PCM24BE:
+        case coding_PCM32LE:
             return 1;
 #ifdef VGM_USE_VORBIS
         case coding_OGG_VORBIS:
@@ -594,6 +595,7 @@ int decode_get_frame_size(VGMSTREAM* vgmstream) {
         case coding_ALAW:
             return 0x01;
         case coding_PCMFLOAT:
+        case coding_PCM32LE:
             return 0x04;
         case coding_PCM24LE:
         case coding_PCM24BE:
@@ -904,6 +906,13 @@ void decode_vgmstream(VGMSTREAM* vgmstream, int samples_written, int samples_to_
             for (ch = 0; ch < vgmstream->channels; ch++) {
                 decode_pcm24be(&vgmstream->ch[ch], buffer + ch,
                     vgmstream->channels, vgmstream->samples_into_block, samples_to_do);
+            }
+            break;
+
+        case coding_PCM32LE:
+            for (ch = 0; ch < vgmstream->channels; ch++) {
+                decode_pcm32le(&vgmstream->ch[ch], buffer+ch,
+                        vgmstream->channels, vgmstream->samples_into_block, samples_to_do);
             }
             break;
 
