@@ -238,9 +238,24 @@ void decode_pcm24le(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspaci
     }
 }
 
+void decode_pcm32le(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
+    int i;
+    int32_t sample_count;
+
+    for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
+        off_t offset = stream->offset + i * 0x04;
+        int32_t v = read_s32le(offset, stream->streamfile);
+        outbuf[sample_count] = (v >> 16);
+    }
+}
+
 int32_t pcm_bytes_to_samples(size_t bytes, int channels, int bits_per_sample) {
     if (channels <= 0 || bits_per_sample <= 0) return 0;
     return ((int64_t)bytes * 8) / channels / bits_per_sample;
+}
+
+int32_t pcm32_bytes_to_samples(size_t bytes, int channels) {
+    return pcm_bytes_to_samples(bytes, channels, 32);
 }
 
 int32_t pcm24_bytes_to_samples(size_t bytes, int channels) {

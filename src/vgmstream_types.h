@@ -26,6 +26,7 @@ typedef enum {
     coding_PCMFLOAT,        /* 32-bit float PCM */
     coding_PCM24LE,         /* little endian 24-bit PCM */
     coding_PCM24BE,         /* big endian 24-bit PCM */
+    coding_PCM32LE,         /* little endian 32-bit PCM */
 
     /* ADPCM */
     coding_CRI_ADX,         /* CRI ADX */

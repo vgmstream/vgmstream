@@ -146,6 +146,9 @@ static int read_fmt(int big_endian, STREAMFILE* sf, off_t offset, riff_fmt_chunk
 
         case 0x0001: /* PCM */
             switch (fmt->bps) {
+                case 32:
+                    fmt->coding_type = coding_PCM32LE;
+                    break;
                 case 24: /* Omori (PC) */
                     fmt->coding_type = coding_PCM24LE;
                     break;
@@ -709,6 +712,7 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
 
     /* samples, codec init (after setting coding to ensure proper close on failure) */
     switch (fmt.coding_type) {
+        case coding_PCM32LE:
         case coding_PCM24LE:
         case coding_PCM16LE:
         case coding_PCM8_U:
