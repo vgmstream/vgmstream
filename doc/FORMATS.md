@@ -273,7 +273,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - RIFX WAVE header (smpl looping) [*RIFX_WAVE_smpl*]
   - *riff*: `.wav .lwav .xwav .mwv .da .dax .cd .med .snd .adx .adp .xss .xsew .adpcm .adw .wd .(extensionless) .sbv .wvx .str .at3 .rws .aud .at9 .ckd .saf .ima .nsa .pcm .xvag .ogg .logg .p1d .xms .mus .dat .ldat`
   - *rifx*: `.wav .lwav`
-  - Codecs: AICA_int PCM24LE PCM16BE PCM16LE PCM8_U MSADPCM IMA MS_IMA AICA MPEG_custom XBOX_IMA MS_IMA_3BIT DVI_IMA L5_555 OGG_VORBIS ATRAC9 ATRAC3 MPEG MSADPCM_int
+  - Codecs: AICA_int PCM32LE PCM24LE PCM16BE PCM16LE PCM8_U MSADPCM IMA PCMFLOAT MS_IMA AICA MPEG_custom XBOX_IMA MS_IMA_3BIT DVI_IMA L5_555 OGG_VORBIS ATRAC9 ATRAC3 MPEG MSADPCM_int
 - **nwa.c**
   - VisualArt's NWA header (NWAINFO.INI looping) [*NWA_NWAINFOINI*]
   - VisualArt's NWA header (Gameexe.ini looping) [*NWA_GAMEEXEINI*]
@@ -1735,8 +1735,9 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Eurocom ESF header [*ESF*]
   - *esf*: `.esf`
   - Codecs: DVI_IMA PCM8_U PCM16LE
-- **adm3.c**
-  - Crankcase ADM3 header [*ADM3*]
+- **adm.c**
+  - Crankcase ADMx header [*ADM*]
+  - *adm2*: `.wem`
   - *adm3*: `.wem`
   - Codecs: APPLE_IMA4
 - **tt_ad.c**
