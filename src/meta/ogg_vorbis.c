@@ -614,6 +614,7 @@ static VGMSTREAM* _init_vgmstream_ogg_vorbis_config(STREAMFILE* sf, off_t start,
         const char* comment = NULL;
 
         while (ogg_vorbis_get_comment(data, &comment)) {
+            ;VGM_LOG("OGG: user_comment=%s\n", comment);
 
             if (strstr(comment,"loop_start=") == comment || /* Phantasy Star Online: Blue Burst (PC) (no loop_end pair) */
                 strstr(comment,"LOOP_START=") == comment || /* Phantasy Star Online: Blue Burst (PC), common */
@@ -702,18 +703,26 @@ static VGMSTREAM* _init_vgmstream_ogg_vorbis_config(STREAMFILE* sf, off_t start,
                 force_seek = 1;
             }
 
+            else if (strstr(comment,"COMMENT=*loopsample,") == comment) { /* Tsuki ni Yorisou Otome no Sahou (PC) */
+                int unk0; // always 0 (delay?)
+                int unk1; // always -1 (loop flag? but non-looped files have no comment)
+                int m = sscanf(comment,"COMMENT=*loopsample,%d,%d,%d,%d", &unk0, &loop_start, &loop_end, &unk1);
+                if (m == 4) {
+                    loop_flag = 1;
+                    loop_end_found = 1;
+                }
+            }
+
             /* Hatsune Miku Project DIVA games, though only 'Arcade Future Tone' has >4ch files
              * ENCODER tag is common but ogg_vorbis_encode looks unique enough
              * (arcade ends with "2010-11-26" while consoles have "2011-02-07" */
-            if (strstr(comment, "ENCODER=ogg_vorbis_encode/") == comment) {
+            else if (strstr(comment, "ENCODER=ogg_vorbis_encode/") == comment) {
                 disable_reordering = 1;
             }
 
-            if (strstr(comment, "TITLE=") == comment) {
+            else if (strstr(comment, "TITLE=") == comment) {
                 strncpy(name, comment + 6, sizeof(name) - 1);
             }
-
-            ;VGM_LOG("OGG: user_comment=%s\n", comment);
         }
     }
 

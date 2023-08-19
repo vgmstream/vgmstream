@@ -7,6 +7,7 @@
 #endif
 #include <stdio.h>
 #include <io.h>
+#include <locale.h>
 
 #include <foobar2000/SDK/foobar2000.h>
 
@@ -351,12 +352,22 @@ bool input_vgmstream::g_is_our_path(const char * p_path, const char * p_extensio
 VGMSTREAM* input_vgmstream::init_vgmstream_foo(t_uint32 p_subsong, const char * const filename, abort_callback & p_abort) {
     VGMSTREAM* vgmstream = NULL;
 
+    /* Workaround for a foobar bug (mainly for complex TXTP):
+     * When converting to .ogg foobar calls oggenc, that calls setlocale(LC_ALL, "") to use system's locale.
+     * After that, text parsing using sscanf that expects US locale for "N.N" decimals fails in some locales,
+     * so reset it here just in case
+     * (maybe should be done on lib and/or restore original locale but it's not common to change it in C) */
+    //const char* original_locale = setlocale(LC_ALL, NULL);
+    setlocale(LC_ALL, "C");
+
     STREAMFILE* sf = open_foo_streamfile(filename, &p_abort, &stats);
     if (sf) {
         sf->stream_index = p_subsong;
         vgmstream = init_vgmstream_from_STREAMFILE(sf);
         close_streamfile(sf);
     }
+
+    //setlocale(LC_ALL, original_locale);
     return vgmstream;
 }
 

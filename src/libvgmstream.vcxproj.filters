@@ -832,7 +832,7 @@
     <ClCompile Include="meta\acx.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\adm3.c">
+    <ClCompile Include="meta\adm.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\adpcm_capcom.c">

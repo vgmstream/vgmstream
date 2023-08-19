@@ -1402,7 +1402,7 @@ static const meta_info meta_info_list[] = {
         {meta_SSPF,                 "Konami SSPF header"},
         {meta_S3V,                  "Konami S3V header"},
         {meta_ESF,                  "Eurocom ESF header"},
-        {meta_ADM3,                 "Crankcase ADM3 header"},
+        {meta_ADM,                  "Crankcase ADMx header"},
         {meta_TT_AD,                "Traveller's Tales AUDIO_DATA header"},
         {meta_SNDZ,                 "Sony SNDZ header"},
         {meta_VAB,                  "Sony VAB header"},
