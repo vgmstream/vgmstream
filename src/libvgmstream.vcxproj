@@ -337,7 +337,7 @@
     <ClCompile Include="meta\acb.c" />
     <ClCompile Include="meta\acm.c" />
     <ClCompile Include="meta\acx.c" />
-    <ClCompile Include="meta\adm3.c" />
+    <ClCompile Include="meta\adm.c" />
     <ClCompile Include="meta\adpcm_capcom.c" />
     <ClCompile Include="meta\adp_konami.c" />
     <ClCompile Include="meta\adp_qd.c" />
