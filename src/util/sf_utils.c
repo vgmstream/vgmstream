@@ -9,11 +9,18 @@ static void swap_extension(char* pathname, /*size_t*/ int pathname_len, const ch
     char* extension = (char*)filename_extension(pathname);
     //todo safeops
     if (extension[0] == '\0') {
-        strcat(pathname, ".");
-        strcat(pathname, swap);
+        if (swap[0] != '\0') {
+            strcat(pathname, ".");
+            strcat(pathname, swap);
+        }
     }
     else {
-        strcpy(extension, swap);
+        if (swap[0] != '\0') {
+            strcpy(extension, swap);
+        } else {
+            extension--;
+            extension[0] = '\0';
+        }
     }
 }
 
