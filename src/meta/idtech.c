@@ -303,90 +303,87 @@ VGMSTREAM* init_vgmstream_bsnf(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     off_t start_offset, offset, extra_offset;
     size_t stream_size;
-    int loop_flag, channels, codec, sample_rate; //, block_size = 0, bps = 0;
+    int target_subsong = sf->stream_index, num_languages,
+        loop_flag, channels, codec, sample_rate; //, block_size = 0, bps = 0;
     int32_t num_samples, loop_start = 0;
+    char language[0x10];
     STREAMFILE* sb = NULL;
-    const char* suffix = NULL;
-    const char* extension = NULL;
 
 
     /* checks */
-    if (!is_id32be(0x00,sf, "bsnf")) /* null-terminated string */
-        goto fail;
-    if (read_u32be(0x05, sf) != 0x00000100) /* version */
+    if (!is_id32be(0x00, sf, "bsnf"))
         goto fail;
 
     if (!check_extensions(sf, "bsnd"))
         goto fail;
 
-    offset = 0x18;
+    num_languages = read_u32be(0x04, sf);
+    if (target_subsong == 0) target_subsong = 1;
+    if (target_subsong < 0 || target_subsong > num_languages || num_languages < 1)
+        goto fail;
 
-    stream_size = read_u32be(offset + 0x00,sf);
-    offset = read_u32be(offset + 0x04,sf); /* absolute but typically right after this */
+    offset = 0x08 + (target_subsong - 1) * 0x18;
+
+    read_string(language, 0x10, offset + 0x00, sf);
+    stream_size = read_u32be(offset + 0x10, sf);
+    offset = read_u32be(offset + 0x14, sf); /* absolute but typically right after this */
 
     /* 0x00: crc? */
     /* 0x04: CBR samples or 0 if VBR */
-    num_samples = read_s32be(offset + 0x08,sf);
-    loop_start  = read_s32be(offset + 0x0c,sf);
+    num_samples = read_s32be(offset + 0x08, sf);
+    loop_start  = read_s32be(offset + 0x0c, sf);
     /* 0x10: stream size? */
     
-    codec       = read_u16le(offset + 0x14,sf);
+    codec       = read_u16le(offset + 0x14, sf);
     channels    = read_u16le(offset + 0x16, sf);
     sample_rate = read_u32le(offset + 0x18, sf);
   //block_size  = read_u16le(offset + 0x20, sf);
   //bps         = read_u16le(offset + 0x22, sf);
 
     extra_offset = offset + 0x24;
-    extension = "ogg"; /* same for all codecs */
-    switch(codec) {
-        case 0x0055: /* msf */
-            /* 0x00: table entries */
-            /* 0x04: seek table, format: frame size (16b) + frame samples (16b) */
-            suffix = "_msf.bsnd";
-            break;
 
-        case 0x0166: /* xma */
-            /* 0x00: extra size */
-            /* 0x02: xma config and block table */
-            suffix = "_xma.bsnd";
-            break;
-
-        case 0x674F: /* vorbis */
-            /* 0x00: extra size */
-            /* 0x02: num samples */
-            suffix = "_vorbis.bsnd";
-            goto fail; //untested
-            //break;
-
-        case 0x42D2: /* at9 */
-            /* 0x00: extra size */
-            /* 0x02: encoder delay */
-            /* 0x04: channel config */
-            /* 0x08: ATRAC9 GUID */
-            /* 0x1c: ATRAC9 config */
-            suffix = "_at9.bsnd";
-            break;
-
-        default:
-            goto fail;
-    }
+    /* extra data per codec */
+    /* 0x0055 - msf */
+    /*   0x00: table entries */
+    /*   0x04: seek table, format: frame size (16b) + frame samples (16b) */
+    /* 0x0166 - xma */
+    /*   0x00: extra size */
+    /*   0x02: xma config and block table */
+    /* 0x674F - vorbis */
+    /*   0x00: extra size */
+    /*   0x02: num samples */
+    /* 0x42D2 - at9 */
+    /*   0x00: extra size */
+    /*   0x02: encoder delay */
+    /*   0x04: channel config */
+    /*   0x08: ATRAC9 GUID */
+    /*   0x1c: ATRAC9 config */
 
     {
-        int suffix_len = strlen(suffix);
-        int filename_len;
         char filename[PATH_LIMIT];
+        get_streamfile_basename(sf, filename, sizeof(filename));
 
-        get_streamfile_filename(sf, filename, sizeof(filename));
-        filename_len = strlen(filename);
-
-        if (filename_len < suffix_len)
-            goto fail;
-        filename[filename_len - suffix_len + 0] = '.';
-        filename[filename_len - suffix_len + 1] = '\0';
-        strcat(filename, extension);
+        if (language[0] != '\0') {
+            strcat(filename, "_");
+            strcat(filename, language);
+        }
 
         sb = open_streamfile_by_filename(sf, filename);
-        if (!sb) goto fail;
+        if (!sb) {
+            if (language[0] != '\0') {
+                // fill missing languages with blanks
+                vgmstream = init_vgmstream_silence(channels, sample_rate, num_samples);
+                if (!vgmstream) goto fail;
+
+                vgmstream->meta_type = meta_BSNF;
+                vgmstream->num_streams = num_languages;
+                snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%s (missing)", language);
+
+                return vgmstream;
+            }
+
+            goto fail;
+        }
     }
 
     if (stream_size != get_streamfile_size(sb))
@@ -394,7 +391,6 @@ VGMSTREAM* init_vgmstream_bsnf(STREAMFILE* sf) {
 
     loop_flag = (loop_start > 0);
     start_offset = 0x00;
-
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channels, loop_flag);
@@ -405,12 +401,14 @@ VGMSTREAM* init_vgmstream_bsnf(STREAMFILE* sf) {
     vgmstream->num_samples = num_samples;
     vgmstream->loop_start_sample = loop_start;
     vgmstream->loop_end_sample = num_samples;
+    vgmstream->num_streams = num_languages;
+    strncpy(vgmstream->stream_name, language, STREAM_NAME_SIZE);
 
-    switch(codec) {
+    switch (codec) {
 
 #ifdef VGM_USE_MPEG
         case 0x0055: {
-            mpeg_custom_config cfg = {0};
+            mpeg_custom_config cfg = { 0 };
 
             cfg.skip_samples = 1152; /* seems ok */
 
@@ -427,14 +425,14 @@ VGMSTREAM* init_vgmstream_bsnf(STREAMFILE* sf) {
 
 #ifdef VGM_USE_FFMPEG
         case 0x0166: {
-            int block_size  = 0x800;
+            int block_size = 0x800;
 
-            vgmstream->codec_data = init_ffmpeg_xma2_raw(sf, start_offset, stream_size, num_samples, channels, sample_rate, block_size, 0);
+            vgmstream->codec_data = init_ffmpeg_xma2_raw(sb, start_offset, stream_size, num_samples, channels, sample_rate, block_size, 0);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
 
-            xma_fix_raw_samples(vgmstream, sb, start_offset, stream_size, 0x00, 1,1);
+            xma_fix_raw_samples(vgmstream, sb, start_offset, stream_size, 0x00, 1, 1);
             break;
         }
 #endif
@@ -451,11 +449,11 @@ VGMSTREAM* init_vgmstream_bsnf(STREAMFILE* sf) {
 
 #ifdef VGM_USE_ATRAC9
         case 0x42D2: {
-            atrac9_config cfg = {0};
+            atrac9_config cfg = { 0 };
 
             cfg.channels = vgmstream->channels;
-            cfg.encoder_delay = read_u16le(extra_offset + 0x02,sf);
-            cfg.config_data = read_u32be(extra_offset + 0x1c,sf);
+            cfg.encoder_delay = read_u16le(extra_offset + 0x02, sf);
+            cfg.config_data = read_u32be(extra_offset + 0x1c, sf);
 
             vgmstream->codec_data = init_atrac9(&cfg);
             if (!vgmstream->codec_data) goto fail;

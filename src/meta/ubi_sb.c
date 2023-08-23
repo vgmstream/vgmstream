@@ -62,8 +62,8 @@ typedef struct {
     int has_rs_files;
 
     off_t sequence_extra_offset;
-    off_t sequence_sequence_loop;
-    off_t sequence_sequence_single;
+    off_t sequence_sequence_loop_start;
+    off_t sequence_sequence_num_loops;
     off_t sequence_sequence_count;
     off_t sequence_entry_number;
     size_t sequence_entry_size;
@@ -188,8 +188,8 @@ typedef struct {
     int sequence_chain[SB_MAX_CHAIN_COUNT]; /* sequence of entry numbers */
     int sequence_banks[SB_MAX_CHAIN_COUNT]; /* sequence of bnk bank numbers */
     int sequence_multibank;     /* info flag */
-    int sequence_loop;          /* chain index to loop */
-    int sequence_single;        /* if que sequence plays once (loops by default) */
+    int sequence_loop_start;    /* chain index to loop */
+    int sequence_num_loops;     /* if que sequence plays once (loops by default) */
 
     float duration;             /* silence duration */
 
@@ -1467,7 +1467,7 @@ static VGMSTREAM* init_vgmstream_ubi_sb_sequence(ubi_sb_header* sb, STREAMFILE* 
         data->segments[i] = init_vgmstream_ubi_sb_header(&temp_sb, sf_bank, sf);
         if (!data->segments[i]) goto fail;
 
-        if (i == sb->sequence_loop)
+        if (i == sb->sequence_loop_start)
             sb->loop_start = sb->num_samples;
         sb->num_samples += data->segments[i]->num_samples;
 
@@ -1483,7 +1483,7 @@ static VGMSTREAM* init_vgmstream_ubi_sb_sequence(ubi_sb_header* sb, STREAMFILE* 
         goto fail;
 
     /* build the base VGMSTREAM */
-    vgmstream = allocate_vgmstream(data->output_channels, !sb->sequence_single);
+    vgmstream = allocate_vgmstream(data->output_channels, !sb->sequence_num_loops);
     if (!vgmstream) goto fail;
 
     vgmstream->meta_type = meta_UBI_SB;
@@ -1625,7 +1625,7 @@ static void build_readable_name(char * buf, size_t buf_size, ubi_sb_header* sb) 
         index = sb->header_index; //-1
 
     if (sb->type == UBI_SEQUENCE) {
-        if (sb->sequence_single) {
+        if (sb->sequence_num_loops) {
             if (sb->sequence_count == 1)
                 res_name = "single";
             else
@@ -1635,7 +1635,7 @@ static void build_readable_name(char * buf, size_t buf_size, ubi_sb_header* sb) 
             if (sb->sequence_count == 1)
                 res_name = "single-loop";
             else
-                res_name = (sb->sequence_loop == 0) ? "multi-loop" : "intro-loop";
+                res_name = (sb->sequence_loop_start == 0) ? "multi-loop" : "intro-loop";
         }
     }
     else {
@@ -1917,10 +1917,10 @@ static int parse_type_sequence(ubi_sb_header* sb, off_t offset, STREAMFILE* sf) 
         goto fail;
     }
 
-    sb->extra_offset    = read_32bit(offset + sb->cfg.sequence_extra_offset, sf) + sb->sectionX_offset;
-    sb->sequence_loop   = read_32bit(offset + sb->cfg.sequence_sequence_loop, sf);
-    sb->sequence_single = read_32bit(offset + sb->cfg.sequence_sequence_single, sf);
-    sb->sequence_count  = read_32bit(offset + sb->cfg.sequence_sequence_count, sf);
+    sb->extra_offset        = read_32bit(offset + sb->cfg.sequence_extra_offset, sf) + sb->sectionX_offset;
+    sb->sequence_loop_start = read_32bit(offset + sb->cfg.sequence_sequence_loop_start, sf);
+    sb->sequence_num_loops  = read_32bit(offset + sb->cfg.sequence_sequence_num_loops, sf);
+    sb->sequence_count      = read_32bit(offset + sb->cfg.sequence_sequence_count, sf);
 
     if (sb->sequence_count > SB_MAX_CHAIN_COUNT) {
         VGM_LOG("UBI SB: incorrect sequence count %i vs %i\n", sb->sequence_count, SB_MAX_CHAIN_COUNT);
@@ -2705,17 +2705,17 @@ static void config_sb_audio_ps2_old(ubi_sb_header *sb, off_t flag_bits, int stre
 }
 static void config_sb_sequence(ubi_sb_header* sb, off_t sequence_count, off_t entry_size) {
     /* sequence header and chain table */
-    sb->cfg.sequence_sequence_loop  = sequence_count - 0x10;
-    sb->cfg.sequence_sequence_single= sequence_count - 0x0c;
-    sb->cfg.sequence_sequence_count = sequence_count;
-    sb->cfg.sequence_entry_size     = entry_size;
-    sb->cfg.sequence_entry_number   = 0x00;
+    sb->cfg.sequence_sequence_loop_start = sequence_count - 0x10;
+    sb->cfg.sequence_sequence_num_loops  = sequence_count - 0x0c;
+    sb->cfg.sequence_sequence_count      = sequence_count;
+    sb->cfg.sequence_entry_size          = entry_size;
+    sb->cfg.sequence_entry_number        = 0x00;
     if (sb->is_bnm || sb->is_dat || sb->is_ps2_bnm) {
-        sb->cfg.sequence_sequence_loop  = sequence_count - 0x0c;
-        sb->cfg.sequence_sequence_single= sequence_count - 0x08;
+        sb->cfg.sequence_sequence_loop_start = sequence_count - 0x0c;
+        sb->cfg.sequence_sequence_num_loops  = sequence_count - 0x08;
     } else if (sb->is_blk) {
-        sb->cfg.sequence_sequence_loop  = sequence_count - 0x14;
-        sb->cfg.sequence_sequence_single= sequence_count - 0x0c;
+        sb->cfg.sequence_sequence_loop_start = sequence_count - 0x14;
+        sb->cfg.sequence_sequence_num_loops  = sequence_count - 0x0c;
     }
 }
 static void config_sb_layer_hs(ubi_sb_header* sb, off_t layer_count, off_t stream_size, off_t stream_offset, off_t stream_name) {
