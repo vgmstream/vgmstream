@@ -649,6 +649,7 @@ static const char* extension_list[] = {
     "xa",
     "xa2",
     "xa30",
+    "xai",
     "xag", //txth/reserved [Tamsoft's PS2 games]
     "xau",
     "xav",
