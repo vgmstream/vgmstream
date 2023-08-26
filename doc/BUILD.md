@@ -487,7 +487,7 @@ They are compiled in their own sources, and the resulting binary is linked by vg
 
 Currently vgmstream's repository contains pre-compiled external DLL libraries for **Windows**, while other systems link to system libraries or include static copies using CMake.
 
-### libvorbis
+### libvorbis/libogg
 Adds support for Vorbis, inside Ogg as `.ogg` (plain or encrypted) or custom variations like `.wem`, `.fsb`, `.ogl`, etc.
 - Sources:
   - http://downloads.xiph.org/releases/vorbis/libvorbis-1.3.7.zip (for base vorbis decoding)
@@ -495,7 +495,7 @@ Adds support for Vorbis, inside Ogg as `.ogg` (plain or encrypted) or custom var
 - Official Windows binaries: none
   - Commonly used compilations: https://www.rarewares.org/ogg-libraries.php (32-bit only, fusing libogg+libvorbis+libvorbisfile)
 - Version: 1.3.7
-- DLL: `libvorbis.dll`
+- DLL: `libvorbis.dll` (includes `libogg` + `libvorbis` + `libvorbisfile` for historical reasons)
 - lib: `-lvorbis -lvorbisfile`
 - licensed under the 3-clause BSD license
 

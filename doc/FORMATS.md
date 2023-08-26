@@ -167,7 +167,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Codecs: PSX
 - **xa.c**
   - Sony XA header [*XA*]
-  - *xa*: `.xa .str .pxa .grn .an2 .(extensionless)`
+  - *xa*: `.xa .str .pxa .grn .an2 .(extensionless) .xai`
   - Codecs: XA8 XA
 - **rxws.c**
   - Sony RXWS header [*RXWS*]
@@ -1301,6 +1301,7 @@ different internally (encrypted, different versions, etc) and not always can be 
 - **bnk_sony.c**
   - Sony BNK header [*BNK_SONY*]
   - *bnk_sony*: `.bnk`
+    - Subfiles: *riff*
   - Codecs: ATRAC9 PCM16BE PCM16LE PSX HEVAG
 - **nus3bank.c**
   - (container)

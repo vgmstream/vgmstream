@@ -239,7 +239,7 @@ Some `libatrac9.vcxproj` x64 config may be outdated. In MSBuild +15 (VS +2017) y
 ```
 
 
-### libvorbis
+### libvorbis/libogg
 Should be buildable with *autotools* (Git releases need to use `autogen.sh` first) or MSVC (projects in `./win32/`, may not be up to date). *CMake* may work as well.
 
 Methods below create 3 DLL: `libogg.dll`, `libvorbis.dll` and `libvorbisfile.dll` (also `libvorbisenc.dll`, unneeded), plus static libs (`.a`). However Vorbis/Ogg DLL support in vgmstream was originally added using a combined DLL from *RareWares* (https://www.rarewares.org/ogg-libraries.php) simply called `libvorbis.dll`, so separate DLLs can't be used at the moment and we'll need to fix that.
