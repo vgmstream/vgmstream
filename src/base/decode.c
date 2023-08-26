@@ -790,7 +790,7 @@ void decode_vgmstream(VGMSTREAM* vgmstream, int samples_written, int samples_to_
             for (ch = 0; ch < vgmstream->channels; ch++) {
                 decode_adx(&vgmstream->ch[ch], buffer+ch,
                         vgmstream->channels, vgmstream->samples_into_block, samples_to_do,
-                        vgmstream->interleave_block_size, vgmstream->coding_type);
+                        vgmstream->interleave_block_size, vgmstream->coding_type, vgmstream->codec_config);
             }
             break;
         case coding_NGC_DSP:
