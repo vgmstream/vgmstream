@@ -3,7 +3,7 @@
 #include "../coding/coding.h"
 #include "../util/endianness.h"
 
-typedef enum { NONE, PSX, PCM16, ATRAC9, HEVAG } bnk_codec;
+typedef enum { NONE, DUMMY, PSX, PCM16, ATRAC9, HEVAG, RIFF_ATRAC9 } bnk_codec;
 
 typedef struct {
     bnk_codec codec;
@@ -14,13 +14,15 @@ typedef struct {
     uint32_t sblk_offset;
     uint32_t data_offset;
     uint32_t data_size;
+    uint32_t zlsd_offset;
+    uint32_t zlsd_size;
 
     uint32_t table1_offset; /* usually sounds/cues (point to grains) */
     uint32_t table2_offset; /* usually grains/materials (point to waves) */
     uint32_t table3_offset; /* usually waves (point to streams) */
     uint32_t table4_offset; /* usually names */
-    uint32_t section_entries;
-    uint32_t material_entries;
+    uint32_t sounds_entries;
+    uint32_t grains_entries;
     uint32_t stream_entries;
     uint32_t table1_suboffset;
     uint32_t table2_suboffset;
@@ -36,6 +38,7 @@ typedef struct {
     int channels;
     int loop_flag;
     int sample_rate;
+    int32_t num_samples;
     int32_t loop_start;
     int32_t loop_end;
 
@@ -43,6 +46,7 @@ typedef struct {
     uint32_t stream_offset;
     uint32_t bank_name_offset;
     uint32_t stream_name_offset;
+    uint32_t stream_name_size;
 
     uint32_t stream_size;
     uint32_t interleave;
@@ -77,7 +81,32 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
 
     vgmstream->meta_type = meta_BNK_SONY;
 
+    if (!h.stream_name_size)
+        h.stream_name_size = STREAM_NAME_SIZE;
+
+    if (!h.bank_name_offset && h.stream_name_offset) {
+        read_string(vgmstream->stream_name, h.stream_name_size, h.stream_name_offset, sf);
+    }
+    else if (h.bank_name_offset && h.stream_name_offset) {
+        read_string(bank_name, h.stream_name_size, h.bank_name_offset, sf);
+        read_string(stream_name, h.stream_name_size, h.stream_name_offset, sf);
+        snprintf(vgmstream->stream_name, h.stream_name_size, "%s/%s", bank_name, stream_name);
+    }
+
+
     switch(h.codec) {
+        case DUMMY: {
+            VGMSTREAM* temp_vs = NULL;
+
+            temp_vs = init_vgmstream_silence_container(h.total_subsongs);
+            if (!temp_vs) goto fail;
+
+            temp_vs->meta_type = vgmstream->meta_type;
+
+            close_vgmstream(vgmstream);
+            return temp_vs;
+        }
+
 #ifdef VGM_USE_ATRAC9
         case ATRAC9: {
             atrac9_config cfg = {0};
@@ -95,7 +124,28 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
             vgmstream->loop_start_sample = h.loop_start;
             vgmstream->loop_end_sample = h.loop_end;
             break;
-    }
+        }
+
+        case RIFF_ATRAC9: {
+            VGMSTREAM* temp_vs = NULL;
+            STREAMFILE* temp_sf = NULL;
+
+
+            temp_sf = setup_subfile_streamfile(sf, h.start_offset, h.stream_size, "at9");
+            if (!temp_sf) goto fail;
+
+            temp_vs = init_vgmstream_riff(temp_sf);
+            close_streamfile(temp_sf);
+            if (!temp_vs) goto fail;
+
+            temp_vs->num_streams = vgmstream->num_streams;
+            temp_vs->stream_size = vgmstream->stream_size;
+            temp_vs->meta_type = vgmstream->meta_type;
+            strcpy(temp_vs->stream_name, vgmstream->stream_name);
+
+            close_vgmstream(vgmstream);
+            return temp_vs;
+        }
 #endif
         case PCM16:
             vgmstream->coding_type = h.big_endian ? coding_PCM16BE : coding_PCM16LE;
@@ -131,13 +181,6 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
             goto fail;
     }
 
-    if (!h.bank_name_offset && h.stream_name_offset)
-        read_string(vgmstream->stream_name, STREAM_NAME_SIZE, h.stream_name_offset, sf);
-    else if (h.bank_name_offset && h.stream_name_offset) {
-        read_string(bank_name, STREAM_NAME_SIZE, h.bank_name_offset, sf);
-        read_string(stream_name, STREAM_NAME_SIZE, h.stream_name_offset, sf);
-        snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%s/%s", bank_name, stream_name);
-    }
 
     if (!vgmstream_open_stream(vgmstream, sf, h.start_offset))
         goto fail;
@@ -277,8 +320,8 @@ static bool process_tables(STREAMFILE* sf, bnk_header_t* h) {
 
     switch(h->sblk_version) {
         case 0x01: /* Ratchet & Clank (PS2) */
-            h->section_entries  = read_u16(h->sblk_offset+0x16,sf); /* entry size: ~0x0c */
-            h->material_entries = read_u16(h->sblk_offset+0x18,sf); /* entry size: ~0x28 */
+            h->sounds_entries   = read_u16(h->sblk_offset+0x16,sf); /* entry size: ~0x0c */
+            h->grains_entries   = read_u16(h->sblk_offset+0x18,sf); /* entry size: ~0x28 */
             h->stream_entries   = read_u16(h->sblk_offset+0x1a,sf); /* entry size: none (count) */
             h->table1_offset    = h->sblk_offset + read_u32(h->sblk_offset+0x1c,sf);
             h->table2_offset    = h->sblk_offset + read_u32(h->sblk_offset+0x20,sf);
@@ -295,8 +338,8 @@ static bool process_tables(STREAMFILE* sf, bnk_header_t* h) {
         case 0x05: /* Ratchet & Clank (PS3) */
         case 0x08: /* Playstation Home Arcade (Vita) */
         case 0x09: /* Puyo Puyo Tetris (PS4) */
-            h->section_entries  = read_u16(h->sblk_offset+0x16,sf); /* entry size: ~0x0c (NumSounds) */
-            h->material_entries = read_u16(h->sblk_offset+0x18,sf); /* entry size: ~0x08 (NumGrains) */
+            h->sounds_entries   = read_u16(h->sblk_offset+0x16,sf); /* entry size: ~0x0c (NumSounds) */
+            h->grains_entries   = read_u16(h->sblk_offset+0x18,sf); /* entry size: ~0x08 (NumGrains) */
             h->stream_entries   = read_u16(h->sblk_offset+0x1a,sf); /* entry size: ~0x18 + variable (NumWaveforms) */
             h->table1_offset    = h->sblk_offset + read_u32(h->sblk_offset+0x1c,sf); /* sound offset */
             h->table2_offset    = h->sblk_offset + read_u32(h->sblk_offset+0x20,sf); /* grain offset */
@@ -321,8 +364,8 @@ static bool process_tables(STREAMFILE* sf, bnk_header_t* h) {
             h->table2_offset    = h->sblk_offset + read_u32(h->sblk_offset+0x1c,sf);
             h->table3_offset    = h->sblk_offset + read_u32(h->sblk_offset+0x2c,sf);
             h->table4_offset    = h->sblk_offset + read_u32(h->sblk_offset+0x30,sf);
-            h->section_entries  = read_u16(h->sblk_offset+0x38,sf); /* entry size: ~0x24 */
-            h->material_entries = read_u16(h->sblk_offset+0x3a,sf); /* entry size: ~0x08 */
+            h->sounds_entries   = read_u16(h->sblk_offset+0x38,sf); /* entry size: ~0x24 */
+            h->grains_entries   = read_u16(h->sblk_offset+0x3a,sf); /* entry size: ~0x08 */
             h->stream_entries   = read_u16(h->sblk_offset+0x3c,sf); /* entry size: ~0x5c + variable */
 
             h->table1_entry_size = 0x24;
@@ -330,15 +373,28 @@ static bool process_tables(STREAMFILE* sf, bnk_header_t* h) {
             h->table2_suboffset = 0x00;
             break;
 
+        /* later version have a few more tables (some optional) and work slightly differently (header is part of wave) */
         case 0x1a: /* Demon's Souls (PS5) */
-        case 0x23: /* The Last of Us (PC) */
+        case 0x23: { /* The Last of Us (PC) */
+            uint32_t tables_offset = h->sblk_offset + (h->sblk_version <= 0x1a ? 0x120 : 0x128);
+            uint32_t counts_offset = tables_offset + (h->sblk_version <= 0x1a ? 0x98 : 0xb0);
+
+          //h->table1_offset    = h->sblk_offset + read_u32(tables_offset+0x00,sf); /* sounds/cues */
+          //h->table2_offset    = 0;
+            h->table3_offset    = h->sblk_offset + read_u32(tables_offset+0x08,sf); /* wave offsets with info (integrated grains+waves?)*/
+          //h->sounds_entries   = read_u16(counts_offset+0x00,sf);
+          //h->grains_entries   = read_u16(counts_offset+0x02,sf);
+            h->stream_entries   = read_u16(counts_offset+0x06,sf);
+            break;
+        }
+
         default:
             vgm_logi("BNK: unknown version %x (report)\n", h->sblk_version);
             goto fail;
     }
 
     //;VGM_LOG("BNK: table offsets=%x, %x, %x, %x\n", h->table1_offset, h->table2_offset, h->table3_offset, h->table4_offset);
-    //;VGM_LOG("BNK: table entries=%i, %i, %i\n", h->section_entries, h->material_entries, h->stream_entries);
+    //;VGM_LOG("BNK: table entries=%i, %i, %i\n", h->sounds_entries, h->grains_entries, h->stream_entries);
 
     return true;
 fail:
@@ -368,7 +424,7 @@ static bool process_headers(STREAMFILE* sf, bnk_header_t* h) {
                 * there is no stream size like in v0x03
                 */
 
-            for (i = 0; i < h->material_entries; i++) {
+            for (i = 0; i < h->grains_entries; i++) {
                 uint32_t table2_type = read_u32(h->table2_offset + (i*0x28) + 0x00, sf);
 
                 if (table2_type != 0x01)
@@ -385,8 +441,14 @@ static bool process_headers(STREAMFILE* sf, bnk_header_t* h) {
 
             break;
 
+        case 0x1a:
+        case 0x23:
+            h->total_subsongs = h->stream_entries;
+            h->table3_entry_offset = (h->target_subsong - 1) * 0x08;
+            break;
+
         default:
-            for (i = 0; i < h->material_entries; i++) {
+            for (i = 0; i < h->grains_entries; i++) {
                 uint32_t table2_value, table2_subinfo, table2_subtype;
 
                 table2_value = read_u32(h->table2_offset+(i*0x08) + h->table2_suboffset + 0x00,sf);
@@ -416,7 +478,7 @@ static bool process_headers(STREAMFILE* sf, bnk_header_t* h) {
         /* TODO: find dupes?  */
     }
 
-    //;VGM_LOG("BNK: header entry at %lx\n", h->table3_offset + h->table3_entry_offset);
+    //;VGM_LOG("BNK: header entry at %x\n", h->table3_offset + h->table3_entry_offset);
 
     sndh_offset = h->table3_offset + h->table3_entry_offset;
 
@@ -494,6 +556,12 @@ static bool process_headers(STREAMFILE* sf, bnk_header_t* h) {
             h->sample_rate = (int)read_f32(sndh_offset+0x4c,sf);
             break;
 
+        case 0x1a: /* Demon's Souls (PS5) */
+        case 0x23: /* The Last of Us (PC) */
+            h->stream_offset     = read_u32(sndh_offset+0x00,sf);
+            /* rest is part of data, handled later */
+            break;
+
         default:
             VGM_LOG("BNK: missing version\n");
             goto fail;
@@ -522,7 +590,7 @@ static bool process_names(STREAMFILE* sf, bnk_header_t* h) {
 
     switch (h->sblk_version) {
         case 0x03:
-            for (i = 0; i < h->section_entries; i++) {
+            for (i = 0; i < h->sounds_entries; i++) {
                 entry_offset = read_u32(h->table1_offset + (i * h->table1_entry_size) + 0x08, sf);
                 entry_count = read_u8(h->table1_offset + (i * h->table1_entry_size) + 0x04, sf);
 
@@ -574,7 +642,7 @@ static bool process_names(STREAMFILE* sf, bnk_header_t* h) {
         case 0x04:
         case 0x05:
             /* a mix of v3 table1 parsing + v8-v16 table4 parsing */
-            for (i = 0; i < h->section_entries; i++) {
+            for (i = 0; i < h->sounds_entries; i++) {
                 entry_offset = read_u32(h->table1_offset + (i * h->table1_entry_size) + 0x08, sf);
                 entry_count = read_u8(h->table1_offset + (i * h->table1_entry_size) + 0x04, sf);
 
@@ -601,7 +669,7 @@ static bool process_names(STREAMFILE* sf, bnk_header_t* h) {
             table4_entries_offset = h->table4_offset + read_u32(h->table4_offset + 0x08, sf);
             table4_names_offset = h->table4_offset + read_u32(h->table4_offset + 0x0C, sf);
 
-            for (i = 0; i < h->section_entries; i++) {
+            for (i = 0; i < h->sounds_entries; i++) {
                 if (read_u16(table4_entries_offset + (i * 0x10) + 0x0C, sf) == table4_entry_id) {
                     h->stream_name_offset = table4_names_offset + read_u32(table4_entries_offset + (i * 0x10), sf);
                     break;
@@ -616,7 +684,7 @@ static bool process_names(STREAMFILE* sf, bnk_header_t* h) {
         case 0x0f:
         case 0x10:
             /* find if this sound has an assigned name in table1 */
-            for (i = 0; i < h->section_entries; i++) {
+            for (i = 0; i < h->sounds_entries; i++) {
                 entry_offset = read_u16(h->table1_offset + (i * h->table1_entry_size) + h->table1_suboffset + 0x00, sf);
 
                 /* rarely (ex. Polara sfx) one name applies to multiple materials,
@@ -637,11 +705,11 @@ static bool process_names(STREAMFILE* sf, bnk_header_t* h) {
                 h->bank_name_offset = h->table4_offset;
 
             table4_entries_offset = h->table4_offset + read_u32(h->table4_offset + 0x08, sf);
-            table4_names_offset = table4_entries_offset + (0x10 * h->section_entries);
+            table4_names_offset = table4_entries_offset + (0x10 * h->sounds_entries);
             //;VGM_LOG("BNK: t4_entries=%lx, t4_names=%lx\n", table4_entries_offset, table4_names_offset);
 
             /* get assigned name from table4 names */
-            for (i = 0; i < h->section_entries; i++) {
+            for (i = 0; i < h->sounds_entries; i++) {
                 int entry_id = read_u32(table4_entries_offset + (i * 0x10) + 0x0c, sf);
                 if (entry_id == table4_entry_id) {
                     h->stream_name_offset = table4_names_offset + read_u32(table4_entries_offset + (i * 0x10) + 0x00, sf);
@@ -665,11 +733,14 @@ fail:
 static bool process_data(STREAMFILE* sf, bnk_header_t* h) {
     read_u16_t read_u16 = h->big_endian ? read_u16be : read_u16le;
     read_u32_t read_u32 = h->big_endian ? read_u32be : read_u32le;
+    read_s32_t read_s32 = h->big_endian ? read_s32be : read_s32le;
+    read_u64_t read_u64 = h->big_endian ? read_u64be : read_u64le;
 
     int subtype, loop_length;
     uint32_t extradata_size = 0, postdata_size = 0;
 
     h->start_offset = h->data_offset + h->stream_offset;
+    uint32_t info_offset = h->start_offset;
 
     switch(h->sblk_version) {
         case 0x01:
@@ -846,6 +917,41 @@ static bool process_data(STREAMFILE* sf, bnk_header_t* h) {
             }
             break;
 
+        case 0x1a:
+        case 0x23:
+            if (h->stream_offset == 0xFFFFFFFF) {
+                h->channels = 1;
+                h->codec = DUMMY;
+                break;
+            }
+
+            /* pre-info */
+            h->stream_name_size   = read_u64(info_offset+0x00,sf);
+            h->stream_name_offset = info_offset + 0x08;
+            info_offset += h->stream_name_size + 0x08;
+
+            h->stream_size = read_u64(info_offset + 0x00,sf); /* after this offset */
+            h->stream_size += 0x08 + h->stream_name_size + 0x08;
+            /* 0x08: max block/etc size? (0x00010000/00030000) */
+            /* 0x0c: always 1? */
+            extradata_size = read_u64(info_offset + 0x10,sf) + 0x08 + h->stream_name_size + 0x18;
+            info_offset += 0x18;
+
+            /* actual stream info */
+            /* 0x00: extradata size (without pre-info, also above) */
+            h->atrac9_info = read_u32be(info_offset+0x04,sf);
+            h->num_samples  = read_s32(info_offset+0x08,sf);
+            h->channels     = read_u32(info_offset+0x0c,sf);
+            h->loop_start   = read_s32(info_offset+0x10,sf);
+            h->loop_end     = read_s32(info_offset+0x14,sf);
+            /* 0x18: loop flag (0=loop, -1=no) */
+            /* rest: null */
+            /* no sample rate (probably fixed to 48000/system's, but seen in RIFF) */
+            h->sample_rate = 48000;
+
+            h->codec = RIFF_ATRAC9; /* unsure how other codecs would work */
+            break;
+
         default:
             vgm_logi("BNK: unknown data version %x (report)\n", h->sblk_version);
             goto fail;
@@ -854,7 +960,42 @@ static bool process_data(STREAMFILE* sf, bnk_header_t* h) {
     h->start_offset += extradata_size;
     h->stream_size -= extradata_size;
     h->stream_size -= postdata_size;
-    //;VGM_LOG("BNK: offset=%lx, size=%x\n", h->start_offset, h->stream_size);
+    //;VGM_LOG("BNK: offset=%x, size=%x\n", h->start_offset, h->stream_size);
+
+    return true;
+fail:
+    return false;
+}
+
+
+/* zlsd part: parse extra footer (vox?) data */
+static bool process_zlsd(STREAMFILE* sf, bnk_header_t* h) {
+    if (!h->zlsd_offset)
+        return true;
+
+    read_u32_t read_u32 = h->big_endian ? read_u32be : read_u32le;
+
+    if (read_u32(h->zlsd_offset+0x00,sf) != get_id32be("DSLZ"))
+        return false;
+
+    /* 0x04: version? (1) */
+    int zlsd_count = read_u32(h->zlsd_offset+0x08,sf);
+    /* 0x0c: start */
+    /* rest: null */
+    
+    if (zlsd_count) {
+        vgm_logi("BNK: unsupported ZLSD subsongs found\n");
+        goto fail;
+    }
+
+    /* per entry (for v23)
+     * 00: crc (not referenced elsewhere)
+     * 04: stream offset (from this offset)
+     * 08: null (part of offset?)
+     * 0c: stream size
+     * 10: offset/size?
+     * 14: null */
+    /* known streams are standard XVAG (no subsongs) */
 
     return true;
 fail:
@@ -888,11 +1029,11 @@ static bool parse_bnk_v3(STREAMFILE* sf, bnk_header_t* h) {
     //h->sblk_size = read_u32(0x0c,sf);
     h->data_offset = read_u32(0x10,sf);
     h->data_size   = read_u32(0x14,sf);
-    /* ZLSD small empty footer, rare in earlier versions and common later [Yakuza 6's Puyo Puyo (PS4)] */
-    //if (h->sblk_offset >= 0x20) {
-    //  zlsd_offset = read_u32(0x18,sf);
-    //  zlsd_size   = read_u32(0x1c,sf);
-    //}
+    /* ZLSD footer, rare in earlier versions and common later (often empty) [Yakuza 6's Puyo Puyo (PS4)] */
+    if (sections >= 3) {
+        h->zlsd_offset = read_u32(0x18,sf);
+        h->zlsd_size   = read_u32(0x1c,sf);
+    }
 
     if (h->sblk_offset > 0x20)
         return false;
@@ -923,6 +1064,7 @@ static bool parse_bnk_v3(STREAMFILE* sf, bnk_header_t* h) {
      * - 0x20: filename (0x100?)
      */
     //;VGM_LOG("BNK: h->sblk_offset=%lx, h->data_offset=%lx, h->sblk_version %x\n", h->sblk_offset, h->data_offset, h->sblk_version);
+    //TODO handle, in rare cases may contain subsongs (unsure how are referenced but has its own number)
 
     if (!process_tables(sf, h))
         goto fail;
@@ -931,6 +1073,8 @@ static bool parse_bnk_v3(STREAMFILE* sf, bnk_header_t* h) {
     if (!process_names(sf, h))
         goto fail;
     if (!process_data(sf, h))
+        goto fail;
+    if (!process_zlsd(sf, h))
         goto fail;
 
     h->loop_flag = (h->loop_start >= 0) && (h->loop_end > 0);
