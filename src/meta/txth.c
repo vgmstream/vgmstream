@@ -313,6 +313,10 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
                 (int32_t*)&txth.loop_start_sample, (int32_t*)&txth.loop_end_sample);
     }
 
+    if (txth.debug) {
+        vgm_logi("TXTH: offset=%x, size=%x, coefs=%x + %x\n", txth.start_offset, txth.data_size, txth.coef_offset, txth.coef_spacing);
+    }
+
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(txth.channels,txth.loop_flag);

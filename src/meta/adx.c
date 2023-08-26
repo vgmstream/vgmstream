@@ -183,6 +183,7 @@ VGMSTREAM* init_vgmstream_adx_subkey(STREAMFILE* sf, uint16_t subkey) {
     vgmstream->loop_start_sample = loop_start_sample;
     vgmstream->loop_end_sample = loop_end_sample;
 
+    vgmstream->codec_config = version;
     vgmstream->coding_type = coding_type;
     vgmstream->layout_type = layout_interleave;
     vgmstream->interleave_block_size = frame_size;

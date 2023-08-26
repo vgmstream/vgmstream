@@ -1,7 +1,7 @@
 #include "coding.h"
 #include "../util.h"
 
-void decode_adx(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int32_t frame_size, coding_t coding_type) {
+void decode_adx(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int32_t frame_size, coding_t coding_type, uint32_t codec_config) {
     uint8_t frame[0x12] = {0};
     off_t frame_offset;
     int i, frames_in, sample_count = 0;
@@ -9,6 +9,7 @@ void decode_adx(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, 
     int scale, coef1, coef2;
     int32_t hist1 = stream->adpcm_history1_32;
     int32_t hist2 = stream->adpcm_history2_32;
+    int version = codec_config;
 
 
     /* external interleave (fixed size), mono */
@@ -50,7 +51,7 @@ void decode_adx(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, 
             break;
         case coding_CRI_ADX_enc_8:
         case coding_CRI_ADX_enc_9:
-            scale = ((scale ^ stream->adx_xor) & 0x1fff) + 1;
+            scale = ((scale ^ stream->adx_xor) & 0x1fff) + 1; /* this seems to be used even in unencrypted ADX (compatible) */
             coef1 = stream->adpcm_coef[0];
             coef2 = stream->adpcm_coef[1];
             break;
@@ -69,7 +70,13 @@ void decode_adx(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, 
         sample = i&1 ? /* high nibble first */
                 get_low_nibble_signed(nibbles):
                 get_high_nibble_signed(nibbles);
-        sample = sample * scale + (coef1 * hist1 >> 12) + (coef2 * hist2 >> 12);
+
+        /* Early (v3 ADX only) libs decode slightly differently (quieter?), while later libs (v4 ADX) tweaked it. V4 libs playing v3 files
+         * seem to behave like V4 though, so it's not detectable but not that common (ex. ports of old games reusing v3 ADX) */
+        if (version == 0x0300)
+            sample = sample * scale + ((coef1 * hist1) >> 12) + ((coef2 * hist2) >> 12); /* V3 lib */
+        else
+            sample = sample * scale + ((coef1 * hist1 + coef2 * hist2) >> 12); /* V4 lib */
         sample = clamp16(sample);
 
         outbuf[sample_count] = sample;
