@@ -1,165 +1,142 @@
 #include "meta.h"
 #include "../coding/coding.h"
-#include "../util.h"
 
-/* SEGA Stream Asset Builder...
-    this meta handles only V1 and V3... */
 
-VGMSTREAM * init_vgmstream_dc_str(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
-    off_t start_offset;
-    int loop_flag = 0;
-    int interleave;
-    int channel_count;
-    int samples;
+/* .STR - Sega Dreamcast's "Audio64 AM (AICA Manager) driver" streams */
+VGMSTREAM* init_vgmstream_str_sega(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
+    uint32_t start_offset, data_size;
+    int loop_flag, channels, track_channels, tracks, sample_rate, bps, interleave, blocks;
 
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("str",filename_extension(filename))) goto fail;
 
-    /* check header */
-    if (read_32bitBE(0xD5,streamFile) != 0x53656761) /* "Sega" */
+    /* checks */
+    tracks = read_u32le(0x00,sf);
+    if (tracks < 1 || tracks > 16) /* official limits */
+        return NULL;
+
+    /* "Sega Stream Asset Builder Revision ..." long text with program info, after header */
+    if (!is_id64be(0xD4,sf, "\0Sega St"))
+        return NULL;
+
+    if (!check_extensions(sf, "str"))
+        return NULL;
+
+    sample_rate = read_s32le(0x04,sf);
+    bps = read_u32le(0x08,sf);
+    interleave = read_s32le(0x0C,sf); /* multiples of 0x800 (sector size) */
+    blocks = read_s32le(0x10,sf); /* interruptsTillEnd, "how may irqs until the end of that tracks data" AKA interleaved blocks */
+
+    /* per track info (channels must be the same per track, and data_size may be inaccurate for other tracks) */
+    data_size = read_u32le(0x14,sf);
+    track_channels = read_s32le(0x18,sf); /* max 2 for AICA, N for PCM */
+    /* 0x08: blocks / interruptsTillEnd (not including padding) */
+    /* header track data reserved up to max 16 * 0x0c = 0xC0 + 0x18 = 0xD4 */
+    /* after track headers there may be one phantom entry with empty data/channels but repeated interruptsTillEnd (bug?) */
+
+    channels = track_channels * tracks;
+
+    loop_flag = 0; /* no loop info */
+    start_offset = 0x800; 
+
+    /* all tracks/data is padded */
+    if (blocks * channels * interleave != get_streamfile_size(sf) - start_offset)
         goto fail;
 
-    interleave = read_32bitLE(0xC,streamFile);
-    if ((get_streamfile_size(streamFile)-0x800) != (read_32bitLE(0x10,streamFile) *
-        ((read_32bitLE(0x0,streamFile)*(read_32bitLE(0x18,streamFile))))*interleave))
-        goto fail;
+    /* streams start with a "leadIn" silence that defaults to 2 blocks, but it's configurable */
+    //start_offset += (interleave * channels) * 2;
 
 
-    loop_flag = 0; /* (read_32bitLE(0x00,streamFile)!=0x00000000); */
-    samples = read_32bitLE(0x08,streamFile);
-    channel_count = (read_32bitLE(0x0,streamFile))*(read_32bitLE(0x18,streamFile));
-
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    vgmstream = allocate_vgmstream(channels,loop_flag);
     if (!vgmstream) goto fail;
 
+    vgmstream->meta_type = meta_STR_SEGA;
+    vgmstream->sample_rate = sample_rate;
 
-    /* fill in the vital statistics */
-    switch (samples) {
-        case 4:
+    switch (bps) {
+        case 4: /* common [GTA2 (DC)] */
             vgmstream->coding_type = coding_AICA_int;
-            vgmstream->num_samples = read_32bitLE(0x14,streamFile);
-        if (loop_flag) {
-            vgmstream->loop_start_sample = 0;
-            vgmstream->loop_end_sample = read_32bitLE(0x14,streamFile);
-        }
+            vgmstream->num_samples = yamaha_bytes_to_samples(data_size, track_channels);
+
+            for (int i = 0; i < channels; i++) {
+                vgmstream->ch[i].adpcm_step_index = 0x7f;
+            }
             break;
-        case 16:
+
+        case 8: /* not seen (encoder only) */
+            vgmstream->coding_type = coding_PCM8_U;
+            vgmstream->num_samples = pcm8_bytes_to_samples(data_size, track_channels);
+            break;
+
+        case 16: /* common [San Francisco Rush 2049 (DC)] */
             vgmstream->coding_type = coding_PCM16LE;
-            vgmstream->num_samples = read_32bitLE(0x14,streamFile)/2/channel_count;
-        if (loop_flag) {
-            vgmstream->loop_start_sample = 0;
-            vgmstream->loop_end_sample = read_32bitLE(0x14,streamFile)/2/channel_count;
-        }
+            vgmstream->num_samples = pcm16_bytes_to_samples(data_size, track_channels);
             break;
+
         default:
-    goto fail;
-}
-
-    
-    start_offset = 0x800;
-    vgmstream->channels = channel_count;
-    vgmstream->sample_rate = read_32bitLE(0x04,streamFile);
-    
-    if (vgmstream->channels == 1) {
-        vgmstream->layout_type = layout_none;
-    } else if (vgmstream->channels > 1) {
-        vgmstream->interleave_block_size = interleave;
-        vgmstream->layout_type = layout_interleave;
+            goto fail;
     }
 
-    vgmstream->meta_type = meta_DC_STR;
-    
-    /* open the file for reading */
-    {
-        int i;
-        STREAMFILE * file;
-        file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (!file) goto fail;
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = file;
+    vgmstream->interleave_block_size = interleave;
+    vgmstream->layout_type = layout_interleave;
 
-            vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=start_offset+
-                vgmstream->interleave_block_size*i;
-
-        }
-    }
-
+    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
+        goto fail;
     return vgmstream;
-
-    /* clean up anything we may have opened */
 fail:
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_vgmstream(vgmstream);
     return NULL;
 }
 
-/* This handles V2, not sure if it is really V2, cause the header is always
-    the same, not like in V1 and V3, only found in "102 Dalmatians - Puppies to the Rescue"
-    until now... */
-
-VGMSTREAM * init_vgmstream_dc_str_v2(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
+/* .STR - mutant Sega Dreamcast stream [102 Dalmatians: Puppies to the Rescue (DC)] */
+VGMSTREAM* init_vgmstream_str_sega_custom(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
     off_t start_offset;
-    int loop_flag = 0;
-	int channel_count;
+    int loop_flag, channels, sample_rate, interleave;
+    uint32_t data_size;
 
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("str",filename_extension(filename))) goto fail;
-
-    /* check header */
-    if ((read_32bitLE(0x00,streamFile) != 0x2))
-        goto fail;
-    if ((read_32bitLE(0x10,streamFile) != 0x10000))
-        goto fail;
-    if ((read_32bitLE(0x1C,streamFile) != 0x1F))
+    /* checks */
+    if (read_u32le(0x00,sf) != 0x2)
         goto fail;
 
-    channel_count = 2;
-   
-	/* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    if (read_u64be(0xD4,sf) != 0x00)
+        return NULL;
+
+    if (!check_extensions(sf, "str"))
+        return NULL;
+
+    /* this looks vaguely like a STR and could be a fully new thing, but game does include Audio64.drv */
+
+    loop_flag = 0;
+    channels = 2;
+    sample_rate = read_s32le(0x04,sf);
+    if (read_u32le(0x08,sf) != 16)
+        return NULL;
+    interleave = read_s32le(0x0c,sf);
+    if (read_u32le(0x10,sf) != 0x10000 ||
+        read_u32le(0x14,sf) != 0x00 ||
+        read_u32le(0x18,sf) != 0x00 ||
+        read_u32le(0x1C,sf) != 0x1F)
+        return NULL;
+
+    start_offset = 0x800;
+    data_size = get_streamfile_size(sf) - start_offset;
+
+
+    /* build the VGMSTREAM */
+    vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
-	/* fill in the vital statistics */
-    start_offset = 0x800;
-	vgmstream->channels = channel_count;
-    vgmstream->sample_rate = read_32bitLE(0x4,streamFile);
+    vgmstream->meta_type = meta_STR_SEGA_custom;
+    vgmstream->sample_rate =sample_rate;
     vgmstream->coding_type = coding_PCM16LE;
-    vgmstream->num_samples = (get_streamfile_size(streamFile)-start_offset)/2/channel_count;
-    if (loop_flag) {
-        vgmstream->loop_start_sample = 0;
-        vgmstream->loop_end_sample = (get_streamfile_size(streamFile)-start_offset)/2/channel_count;
-    }
-
+    vgmstream->num_samples = pcm16_bytes_to_samples(data_size, channels);
     vgmstream->layout_type = layout_interleave;
-    vgmstream->interleave_block_size = read_32bitLE(0xC,streamFile);
-    vgmstream->meta_type = meta_DC_STR_V2;
+    vgmstream->interleave_block_size = interleave;
 
-    /* open the file for reading */
-    {
-        int i;
-        STREAMFILE * file;
-        file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (!file) goto fail;
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = file;
-
-            vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=start_offset+
-                vgmstream->interleave_block_size*i;
-
-        }
-    }
-
+    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
+        goto fail;
     return vgmstream;
-
-    /* clean up anything we may have opened */
 fail:
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_vgmstream(vgmstream);
     return NULL;
 }

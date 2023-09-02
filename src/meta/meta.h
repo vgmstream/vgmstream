@@ -260,8 +260,8 @@ VGMSTREAM * init_vgmstream_aix(STREAMFILE * streamFile);
 VGMSTREAM* init_vgmstream_wvs_xbox(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_wvs_ngc(STREAMFILE* sf);
 
-VGMSTREAM * init_vgmstream_dc_str(STREAMFILE *streamFile);
-VGMSTREAM * init_vgmstream_dc_str_v2(STREAMFILE *streamFile);
+VGMSTREAM* init_vgmstream_str_sega(STREAMFILE* sf);
+VGMSTREAM* init_vgmstream_str_sega_custom(STREAMFILE* sf);
 
 VGMSTREAM * init_vgmstream_dec(STREAMFILE *streamFile);
 
