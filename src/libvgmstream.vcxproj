@@ -402,7 +402,6 @@
     <ClCompile Include="meta\dc_asd.c" />
     <ClCompile Include="meta\dc_idvi.c" />
     <ClCompile Include="meta\dc_kcey.c" />
-    <ClCompile Include="meta\dc_str.c" />
     <ClCompile Include="meta\deblock_streamfile.c" />
     <ClCompile Include="meta\dec.c" />
     <ClCompile Include="meta\derf.c" />
@@ -649,6 +648,7 @@
     <ClCompile Include="meta\sthd.c" />
     <ClCompile Include="meta\stma.c" />
     <ClCompile Include="meta\strm_abylight.c" />
+    <ClCompile Include="meta\str_sega.c" />
     <ClCompile Include="meta\str_snds.c" />
     <ClCompile Include="meta\str_wav.c" />
     <ClCompile Include="meta\sts.c" />
