@@ -189,6 +189,7 @@ static const char* extension_list[] = {
     "fda",
     "ffw",
     "filp",
+    "fish",
     //"flac", //common
     "flx",
     "fsb",

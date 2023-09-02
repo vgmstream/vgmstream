@@ -302,6 +302,34 @@ static int _init_vgmstream_ogg_vorbis_tests(STREAMFILE* sf, ogg_vorbis_io_config
         return 1;
     }
 
+    /* .fish: Wonder Boy: The Dragon's Trap (PC) */
+    if (read_u32be(0x00,sf) == 0x4E7C0F0E) { 
+
+        /* init big-ish table on startup, based on original unrolled code (sub_7FF7670FD990) */
+        cfg->key_len = 0x400;
+        if (sizeof(cfg->key) < cfg->key_len)
+            goto fail;
+
+        for (int i = 0; i < 0x400 / 4; i++) {
+            uint32_t key = i;
+            for (int round = 0; round < 8; round++) {
+                uint32_t tmp1 = (key >> 1);
+                uint32_t tmp2 = -(key & 1) & 0xEDB88324;
+                key = tmp1 ^ tmp2;
+            }
+            if (key == 0)
+                key = 0xEDB88324;
+
+            put_u32le(cfg->key + (i ^ 0x2A) * 4, key);
+        }
+        cfg->is_encrypted = 1;
+
+        if (!check_extensions(sf,"fish"))
+            goto fail;
+
+        return 1;
+    }
+
 
     /***************************************/
     /* harder to check (could be improved) */
