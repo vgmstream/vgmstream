@@ -11,30 +11,37 @@ VGMSTREAM* init_vgmstream_btsnd(STREAMFILE* sf) {
 
     /* checks */
     if (!check_extensions(sf, "btsnd"))
-        goto fail;
+        return NULL;
 
-    if (read_u32be(0x00,sf) != 0x02)
-        goto fail;
+    uint32_t type = read_u32be(0x00,sf);
+    if (type == 0x00) {
+        loop_flag = 0;
+    }
+    else if (type == 0x02) {
+        loop_flag = 1;
+    }
+    else {
+        return NULL;
+    }
 
-    loop_start = read_s32be(0x04, sf);
+    loop_start = read_s32be(0x04, sf); /* non-looping: 0 or some number lower than samples */
     start_offset = 0x08;
-
     channels = 2;
-    loop_flag = loop_start > 0;
 
-    /* extra check since format is so simple */
+    /* extra checks since format is so simple */
     data_size = get_streamfile_size(sf);
     num_samples = pcm16_bytes_to_samples(data_size - start_offset, channels);
     if (loop_start >= num_samples)
-        goto fail;
-
+        return NULL;
+    if (num_samples > 960000) /* known max reached by various games, encoder/Wii U limit? */
+        return NULL;
 
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->meta_type = meta_WIIU_BTSND;
+    vgmstream->meta_type = meta_BTSND;
     vgmstream->sample_rate = 48000;
     vgmstream->num_samples = num_samples;
     vgmstream->loop_start_sample = loop_start;

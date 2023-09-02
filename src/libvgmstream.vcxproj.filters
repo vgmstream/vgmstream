@@ -1027,9 +1027,6 @@
     <ClCompile Include="meta\dc_kcey.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\dc_str.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="meta\deblock_streamfile.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -1766,6 +1763,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\strm_abylight.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\str_sega.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\str_snds.c">

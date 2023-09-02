@@ -16,11 +16,6 @@ static const int scale_step_capcom[8] = {
     58982, 58982, 58982, 58982, 78643, 104858, 131072, 157286,
 };
 
-/* look-up for 'mul' IMA's sign*((code&7) * 2 + 1) for every code */
-static const int scale_delta[16] = {
-      1,  3,  5,  7,  9, 11, 13, 15,
-     -1, -3, -5, -7, -9,-11,-13,-15
-};
 
 /* Yamaha ADPCM-B (aka DELTA-T) expand used in YM2608/YM2610/etc (cross referenced with various sources and .so) */
 static void yamaha_adpcmb_expand_nibble(uint8_t byte, int shift, int32_t* hist1, int32_t* step_size, int16_t *out_sample) {
@@ -43,14 +38,22 @@ static void yamaha_adpcmb_expand_nibble(uint8_t byte, int shift, int32_t* hist1,
 }
 
 /* Yamaha AICA expand, slightly filtered vs "ACM" Yamaha ADPCM, same as Creative ADPCM
- * (some info from https://github.com/vgmrips/vgmplay, https://wiki.multimedia.cx/index.php/Creative_ADPCM) */
-static void yamaha_aica_expand_nibble(uint8_t byte, int shift, int32_t* hist1, int32_t* step_size, int16_t *out_sample) {
+ * (some info from https://github.com/superctr/adpcm/blob/master/ymz_codec.c, https://wiki.multimedia.cx/index.php/Creative_ADPCM) */
+static void yamaha_aica_expand_nibble(uint8_t byte, int shift, int16_t* hist1, int32_t* step_size, int16_t *out_sample) {
     int code, delta, sample;
 
-    *hist1 = *hist1 * 254 / 256; /* hist filter is vital to get correct waveform but not done in many emus */
+    *hist1 = *hist1 * 254 / 256; /* hist filter seems used but may not be needed? (clamping delta is enough?)*/
 
     code = (byte >> shift) & 0xf;
-    delta = (*step_size * scale_delta[code]) / 8; /* 'mul' IMA with table (not sure if part of encoder) */
+    delta = ((((code & 0x7) * 2) + 1) * (*step_size)) >> 3; /* like 'mul' IMA */
+
+    /* supposedly from official encoder but possibly all YM chips do this,
+     * matters in some games to avoid random glitches (early/buggy encoders?), ex. GTA2 */
+    if (delta > 32767)
+        delta = 32767;
+
+    if (code & 8)
+        delta = -delta;
     sample = *hist1 + delta;
 
     sample = clamp16(sample); /* apparently done by official encoder */
@@ -112,7 +115,7 @@ static void yamaha_capcom_expand_nibble(uint8_t byte, int shift, int32_t* hist1,
 void decode_aica(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel, int is_stereo, int is_high_first) {
     int i, sample_count = 0;
     int16_t out_sample;
-    int32_t hist1 = stream->adpcm_history1_16;
+    int16_t hist1 = stream->adpcm_history1_16;
     int step_size = stream->adpcm_step_index;
 
     /* no header (external setup), pre-clamp for wrong values */

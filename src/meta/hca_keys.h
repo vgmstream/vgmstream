@@ -1251,6 +1251,9 @@ static const hcakey_info hcakey_list[] = {
         // The Irregular at Magic High School: Reloaded Memory (Android)
         {7181280307767738368},  // 63A9086451010000
 
+        // BlazBlue Entropy Effect (Early Access) (PC)
+        {29814655674508831},    // 0069EC457894661F
+
 };
 
 #endif/*_HCA_KEYS_H_*/

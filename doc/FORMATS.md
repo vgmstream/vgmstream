@@ -223,7 +223,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Ogg Vorbis header (KOVS) [*OGG_KOVS*]
   - *ogg_vorbis*
     - Subfiles: *ogg_vorbis*
-  - *ogg_vorbis_config*: `.ogg .logg .adx .rof .acm .sod .msa .bin .lbin .kvs .kovs .rpgmvo .ogg_ .bgm .gwm .mus .isd .sngw .lse .eno .um3 .u0 + .(external)`
+  - *ogg_vorbis_config*: `.ogg .logg .adx .rof .acm .sod .msa .bin .lbin .kvs .kovs .rpgmvo .ogg_ .bgm .gwm .mus .fish .isd .sngw .lse .eno .um3 .u0 + .(external)`
     - Subfiles: *ogg_vorbis_config ogg_vorbis_cfg_ovmi ogg_vorbis_tests ogg_vorbis_common ogg_vorbis_tink ogg_vorbis*
   - Codecs: OGG OGG_VORBIS
 - **sfl.c**
@@ -425,6 +425,12 @@ different internally (encrypted, different versions, etc) and not always can be 
   - *wvs_xbox*: `.wvs`
   - *wvs_ngc*: `.wvs`
   - Codecs: XBOX_IMA NGC_DSP
+- **str_sega.c**
+  - Sega Stream Asset Builder header [*STR_SEGA*]
+  - Sega Stream Asset Builder header (custom) [*STR_SEGA_custom*]
+  - *str_sega*: `.str`
+  - *str_sega_custom*: `.str`
+  - Codecs: AICA_int PCM8_U PCM16LE
 - **dec.c**
   - Falcom .DEC RIFF header [*DEC*]
   - *dec*: `.dec .de2 + .(external)`
@@ -433,12 +439,6 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Melbourne House .VS header [*VS*]
   - *vs*: `.vs`
   - Codecs: PSX
-- **dc_str.c**
-  - Sega Stream Asset Builder header [*DC_STR*]
-  - variant of Sega Stream Asset Builder header [*DC_STR_V2*]
-  - *dc_str*: `.str`
-  - *dc_str_v2*: `.str`
-  - Codecs: AICA_int PCM16LE
 - **xmu.c**
   - Outrage XMU header [*XMU*]
   - *xmu*: `.xmu`
@@ -1844,7 +1844,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - *mpeg*: `.mp3 .mp2 .lmp3 .lmp2 .mus .imf .aix .(extensionless)`
   - Codecs: MPEG
 - **btsnd.c**
-  - Nintendo Wii U Menu Boot Sound [*WIIU_BTSND*]
+  - Nintendo Wii U Menu Boot Sound header [*BTSND*]
   - *btsnd*: `.btsnd`
   - Codecs: PCM16BE
 - **fsb_encrypted.c**

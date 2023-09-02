@@ -276,7 +276,7 @@ typedef enum {
     meta_SWAV,
     meta_NDS_RRDS,          /* Ridge Racer DS */
     meta_BNS,
-    meta_WIIU_BTSND,        /* Wii U Boot Sound */
+    meta_BTSND,
 
     meta_ADX_03,            /* CRI ADX "type 03" */
     meta_ADX_04,            /* CRI ADX "type 04" */
@@ -345,8 +345,8 @@ typedef enum {
     meta_PS2_VAS,           /* Pro Baseball Spirits 5 */
     meta_LP_AP_LEP,
     meta_SDT,               /* Baldur's Gate - Dark Alliance */
-    meta_DC_STR,            /* SEGA Stream Asset Builder */
-    meta_DC_STR_V2,         /* variant of SEGA Stream Asset Builder */
+    meta_STR_SEGA,
+    meta_STR_SEGA_custom,
     meta_SAP,
     meta_DC_IDVI,           /* Eldorado Gate */
     meta_KRAW,              /* Geometry Wars - Galaxies */
