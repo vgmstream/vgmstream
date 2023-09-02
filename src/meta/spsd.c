@@ -11,27 +11,29 @@ VGMSTREAM* init_vgmstream_spsd(STREAMFILE *sf) {
 
     /* checks */
     if (!is_id32be(0x00,sf, "SPSD"))
-        goto fail;
+        return NULL;
     /* .str: actual extension, rare [Shenmue (DC)]
      * .spsd: header id (maybe real ext is .PSD, similar to "SMLT" > .MLT) */
     if (!check_extensions(sf, "str,spsd"))
-        goto fail;
+        return NULL;
 
-    if (read_32bitBE(0x04,sf) != 0x01010004 && /* standard version */
-        read_32bitBE(0x04,sf) != 0x00010004)   /* uncommon version [Crazy Taxi (Naomi)] */
-        goto fail;
+    if (read_u32be(0x04,sf) != 0x01010004 && /* standard version */
+        read_u32be(0x04,sf) != 0x00010004)   /* uncommon version [Crazy Taxi (Naomi)] */
+        return NULL;
 
 
-    codec = read_8bit(0x08,sf);
-    flags = read_8bit(0x09,sf);
-    index = read_16bitLE(0x0a,sf);
-    data_size = read_32bitLE(0x0c,sf);
+    codec = read_u8(0x08,sf);
+    flags = read_u8(0x09,sf);
+    index = read_u16le(0x0a,sf);
+    data_size = read_u32le(0x0c,sf);
     //if (data_size + start_offset != get_streamfile_size(streamFile))
     //    goto fail; /* some rips out there have incorrect padding */
+    /* At 0x30(4*ch) is some config per channel but doesn't seem to affect ADPCM (found with PCM too) */
+
 
     //todo with 0x80 seems 0x2c is a loop_start_sample but must be adjusted to +1 block? (uncommon flag though)
     loop_flag = (flags & 0x80);
-    channels = ((flags & 0x01) || (flags & 0x02)) ? 2 : 1; /* 0x02 is rare but looks normal (Virtua Tennis 2) */
+    channels = ((flags & 0x01) || (flags & 0x02)) ? 2 : 1; /* 0x02 is rare (Virtua Tennis 2) */
     start_offset = 0x40;
 
 
@@ -39,29 +41,29 @@ VGMSTREAM* init_vgmstream_spsd(STREAMFILE *sf) {
     vgmstream = allocate_vgmstream(channels,loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->sample_rate = (uint16_t)read_16bitLE(0x2A,sf);
+    vgmstream->sample_rate = read_u16le(0x2A,sf);
 
     vgmstream->meta_type = meta_SPSD;
     switch (codec) {
         case 0x00: /* [Virtua Tennis 2 (Naomi), Club Kart: European Session (Naomi)] */
             vgmstream->coding_type = coding_PCM16LE;
-            vgmstream->num_samples = pcm_bytes_to_samples(data_size,channels,16);
-            vgmstream->loop_start_sample = read_32bitLE(0x2c,sf) + pcm_bytes_to_samples(0x2000*channels,channels,16);
+            vgmstream->num_samples = pcm16_bytes_to_samples(data_size, channels);
+            vgmstream->loop_start_sample = read_s32le(0x2c,sf) + pcm16_bytes_to_samples(0x2000,1);
             vgmstream->loop_end_sample = vgmstream->num_samples;
             break;
 
         case 0x01: /* [Virtua Tennis 2 (Naomi)] */
             vgmstream->coding_type = coding_PCM8;
-            vgmstream->num_samples = pcm_bytes_to_samples(data_size,channels,8);
-            vgmstream->loop_start_sample = read_32bitLE(0x2c,sf) + pcm_bytes_to_samples(0x2000*channels,channels,8);
+            vgmstream->num_samples = pcm8_bytes_to_samples(data_size, channels);
+            vgmstream->loop_start_sample = read_s32le(0x2c,sf) + pcm8_bytes_to_samples(0x2000,1);
             vgmstream->loop_end_sample = vgmstream->num_samples;
 
             break;
 
         case 0x03: /* standard */
             vgmstream->coding_type = coding_AICA_int;
-            vgmstream->num_samples = yamaha_bytes_to_samples(data_size,channels);
-            vgmstream->loop_start_sample = /*read_32bitLE(0x2c,streamFile) +*/ yamaha_bytes_to_samples(0x2000*channels,channels);
+            vgmstream->num_samples = yamaha_bytes_to_samples(data_size, channels);
+            vgmstream->loop_start_sample = /*read_s32le(0x2c,streamFile) +*/ yamaha_bytes_to_samples(0x2000,1);
             vgmstream->loop_end_sample = vgmstream->num_samples;
             break;
 
@@ -92,9 +94,6 @@ VGMSTREAM* init_vgmstream_spsd(STREAMFILE *sf) {
         goto fail;
     }
 
-    /* todo seems to decode slightly incorrectly in after certain data (loop section start?)
-     *  may depend on values in 0x20 or 0x2c [ex. Marvel vs Capcom 2 (Naomi)]
-     *  at 0x30(4*ch) is some config per channel but doesn't seem to affect ADPCM (found with PCM too) */
     {
         int i;
         for (i = 0; i < channels; i++) {
