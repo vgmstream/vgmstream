@@ -276,7 +276,7 @@ typedef enum {
     meta_SWAV,
     meta_NDS_RRDS,          /* Ridge Racer DS */
     meta_BNS,
-    meta_WIIU_BTSND,        /* Wii U Boot Sound */
+    meta_BTSND,
 
     meta_ADX_03,            /* CRI ADX "type 03" */
     meta_ADX_04,            /* CRI ADX "type 04" */

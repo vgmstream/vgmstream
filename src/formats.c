@@ -1229,7 +1229,7 @@ static const meta_info meta_info_list[] = {
         {meta_KT_WIIBGM,            "Koei Tecmo WiiBGM Header"},
         {meta_KTSS,                 "Koei Tecmo KTSS header"},
         {meta_IDSP_NAMCO,           "Namco IDSP header"},
-        {meta_WIIU_BTSND,           "Nintendo Wii U Menu Boot Sound"},
+        {meta_BTSND,                "Nintendo Wii U Menu Boot Sound header"},
         {meta_MCA,                  "Capcom MCA header"},
         {meta_ADX_MONSTER,          "Monster Games .ADX header"},
         {meta_HCA,                  "CRI HCA header"},
