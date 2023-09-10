@@ -389,7 +389,7 @@ VGMSTREAM* init_vgmstream_bsnf(STREAMFILE* sf) {
     if (stream_size != get_streamfile_size(sb))
         goto fail;
 
-    loop_flag = (loop_start > 0);
+    loop_flag = (loop_start > 0); /* loops from 0 on some codecs aren't detectable though */
     start_offset = 0x00;
 
     /* build the VGMSTREAM */
@@ -404,13 +404,18 @@ VGMSTREAM* init_vgmstream_bsnf(STREAMFILE* sf) {
     vgmstream->num_streams = num_languages;
     strncpy(vgmstream->stream_name, language, STREAM_NAME_SIZE);
 
+    /* for codecs with explicit encoder delay (mp3/at9/etc) num_samples includes it
+     * ex. mus_c05_dream_doorloop_* does full loops; with some codecs loop start is encoder delay and num_samples
+     * has extra delay samples compared to codecs with implicit delay (ex. mp3 1152 to 101152 vs ogg 0 to 100000),
+     * but there is no header value for encoder delay, maybe engine hardcodes it? */
+
     switch (codec) {
 
 #ifdef VGM_USE_MPEG
         case 0x0055: {
             mpeg_custom_config cfg = { 0 };
 
-            cfg.skip_samples = 1152; /* seems ok */
+            //cfg.skip_samples = 1152; /* observed default */
 
             vgmstream->codec_data = init_mpeg_custom(sb, start_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_STANDARD, &cfg);
             if (!vgmstream->codec_data) goto fail;
@@ -451,14 +456,20 @@ VGMSTREAM* init_vgmstream_bsnf(STREAMFILE* sf) {
         case 0x42D2: {
             atrac9_config cfg = { 0 };
 
+            /* extra offset: RIFF fmt extra data (extra size, frame size, GUID, etc), no fact samples/delay */
+
             cfg.channels = vgmstream->channels;
-            cfg.encoder_delay = read_u16le(extra_offset + 0x02, sf);
+            //cfg.encoder_delay = read_u16le(extra_offset + 0x02, sf) / 4; /* seemingly one subframe = 256 */
             cfg.config_data = read_u32be(extra_offset + 0x1c, sf);
 
             vgmstream->codec_data = init_atrac9(&cfg);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_ATRAC9;
             vgmstream->layout_type = layout_none;
+
+            vgmstream->num_samples -= cfg.encoder_delay;
+            vgmstream->loop_start_sample -= cfg.encoder_delay;
+            vgmstream->loop_end_sample -= cfg.encoder_delay;
             break;
         }
 #endif

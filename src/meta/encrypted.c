@@ -154,8 +154,8 @@ static VGMSTREAM* init_vgmstream_encrypted_rpgmvo_riff(STREAMFILE* sf) {
     e.key_size = 0x10;
     load_key(&cfg, e.keybuf, e.key_size);
     cfg.start = 0x10;
-    cfg.max_offset = 0x10;
-    
+    cfg.max_offset = 0x20;
+
     e.temp_sf = setup_ogg_vorbis_streamfile(sf, &cfg);
     if (!e.temp_sf) goto fail;
 
