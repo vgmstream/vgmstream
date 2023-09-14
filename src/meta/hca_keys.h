@@ -1254,6 +1254,9 @@ static const hcakey_info hcakey_list[] = {
         // BlazBlue Entropy Effect (Early Access) (PC)
         {29814655674508831},    // 0069EC457894661F
 
+        // Star Ocean: The Second Story R Demo (PC, Switch)
+        {533948357975462459},   // 0768F733DD87D23B
+
 };
 
 #endif/*_HCA_KEYS_H_*/
