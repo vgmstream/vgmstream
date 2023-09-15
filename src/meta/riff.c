@@ -169,6 +169,10 @@ static int read_fmt(int big_endian, STREAMFILE* sf, off_t offset, riff_fmt_chunk
 
         case 0x0002: /* MSADPCM */
             if (fmt->bps == 4) {
+                /* ADPCMWAVEFORMAT extra data:
+                 * - samples per frame (16b)
+                 * - num coefs (16b), always 7
+                 * - N x2 coefs (configurable but in practice fixed) */
                 fmt->coding_type = coding_MSADPCM;
                 if (!msadpcm_check_coefs(sf, fmt->offset + 0x08 + 0x14))
                     goto fail;
@@ -180,7 +184,7 @@ static int read_fmt(int big_endian, STREAMFILE* sf, off_t offset, riff_fmt_chunk
                 goto fail;
             }
             break;
-        case 0x003: /* floating point PCM */
+        case 0x0003: /* floating point PCM */
             if (fmt->bps == 32) {
               fmt->coding_type = coding_PCMFLOAT;
             } else {
@@ -190,6 +194,8 @@ static int read_fmt(int big_endian, STREAMFILE* sf, off_t offset, riff_fmt_chunk
             break;
 
         case 0x0011:  /* MS-IMA ADPCM [Layton Brothers: Mystery Room (iOS/Android)] */
+            /* IMAADPCMWAVEFORMAT extra data:
+             * - samples per frame (16b) */
             if (fmt->bps != 4) goto fail;
             fmt->coding_type = coding_MS_IMA;
             break;

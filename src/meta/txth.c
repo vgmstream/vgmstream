@@ -841,7 +841,7 @@ static void set_body_chunk(txth_header* txth) {
     if (!txth->sf_body)
         return;
 
-    /* treat chunks as subsongs */
+    /* treat chunks as subsongs (less subsongs than chunks could be allowed to ignore some chunks but it's kinda odd) */
     if (txth->subsong_count > 1 && txth->subsong_count == txth->chunk_count)
         txth->chunk_number = txth->target_subsong;
     if (txth->chunk_number == 0)

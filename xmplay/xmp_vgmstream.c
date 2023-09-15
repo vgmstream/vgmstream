@@ -29,8 +29,10 @@
 #define SAMPLE_BUFFER_SIZE  1024
 
 /* XMPlay extension list, only needed to associate extensions in Windows */
-/*  todo: as of v3.8.2.17, any more than ~1000 will crash XMplay's file list screen (but not using the non-native Winamp plugin...) */
-#define EXTENSION_LIST_SIZE   1000 /* (0x2000 * 2) */
+/*  with <v3.8.5.62, any more than ~1000 will crash XMplay's file list screen (but not using the non-native Winamp plugin?) */
+#define EXTENSION_LIST_SIZE  (0x2000 * 6)
+#define EXTENSION_LIST_SIZE_OLD  1000
+#define EXTENSION_LIST_SIZE_OLD_VERSION 0x0308053d /* less than v3.8.5.62 */
 #define XMPLAY_MAX_PATH  32768
 
 /* XMPlay function library */
@@ -421,12 +423,16 @@ static void build_extension_list() {
     size_t ext_list_len;
     int i, written;
 
+    int limit = EXTENSION_LIST_SIZE;
+    if (xmpfmisc->GetVersion() <= EXTENSION_LIST_SIZE_OLD_VERSION)
+        limit = EXTENSION_LIST_SIZE_OLD;
+
     written = sprintf(working_extension_list, "%s%c", "vgmstream files",'\0');
 
     ext_list = vgmstream_get_formats(&ext_list_len);
 
     for (i=0; i < ext_list_len; i++) {
-        written += add_extension(EXTENSION_LIST_SIZE-written, working_extension_list + written, ext_list[i]);
+        written += add_extension(limit-written, working_extension_list + written, ext_list[i]);
     }
     working_extension_list[written-1] = '\0'; /* remove last "/" */
 }
