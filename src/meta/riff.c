@@ -397,8 +397,9 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
      * .xms: Ty the Tasmanian Tiger (Xbox)
      * .mus: Burnout Legends/Dominator (PSP)
      * .dat/ldat: RollerCoaster Tycoon 1/2 (PC)
+     * .wma/lwma: SRS: Street Racing Syndicate (Xbox), Fast and the Furious (Xbox)
      */
-    if (!check_extensions(sf, "wav,lwav,xwav,mwv,da,dax,cd,med,snd,adx,adp,xss,xsew,adpcm,adw,wd,,sbv,wvx,str,at3,rws,aud,at9,ckd,saf,ima,nsa,pcm,xvag,ogg,logg,p1d,xms,mus,dat,ldat")) {
+    if (!check_extensions(sf, "wav,lwav,xwav,mwv,da,dax,cd,med,snd,adx,adp,xss,xsew,adpcm,adw,wd,,sbv,wvx,str,at3,rws,aud,at9,ckd,saf,ima,nsa,pcm,xvag,ogg,logg,p1d,xms,mus,dat,ldat,wma,lwma")) {
         goto fail;
     }
 
@@ -414,6 +415,9 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
 
         else if (codec == 0x0069 && riff_size + 0x04 == file_size)
             riff_size -= 0x04; /* [Halo 2 (PC)] (possibly bad extractor? 'Gravemind Tool') */
+
+        else if (codec == 0x0069 && riff_size + 0x10 == file_size)
+            riff_size += 0x08; /* [Fast and the Furious (Xbox)] ("HASH" chunk + 4 byte hash) */
 
         else if (codec == 0x0000 && riff_size + 0x04 == file_size)
             riff_size -= 0x04; /* [Headhunter (DC), Bomber hehhe (DC)] */
