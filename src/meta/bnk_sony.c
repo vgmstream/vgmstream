@@ -417,12 +417,12 @@ static bool process_headers(STREAMFILE* sf, bnk_header_t* h) {
     switch(h->sblk_version) {
         case 0x01:
             /* table2/3 has size 0x28 entries, seemingly:
-                * 0x00: subtype(01=sound)
-                * 0x08: same as other versions (pitch, flags, offset...)
-                * rest: padding
-                * 0x18: stream offset
-                * there is no stream size like in v0x03
-                */
+             * 0x00: subtype(01=sound)
+             * 0x08: same as other versions (pitch, flags, offset...)
+             * rest: padding
+             * 0x18: stream offset
+             * there is no stream size like in v0x03
+             */
 
             for (i = 0; i < h->grains_entries; i++) {
                 uint32_t table2_type = read_u32(h->table2_offset + (i*0x28) + 0x00, sf);
@@ -527,22 +527,22 @@ static bool process_headers(STREAMFILE* sf, bnk_header_t* h) {
             h->sample_rate = (pitch * 48000) / 0x1000;
 
             /* waves can set base sample rate (48/44/22/11/8khz) + pitch in semitones, then converted to center+fine
-                * 48000 + pitch   0.00 > center=0xc4, fine=0x00
-                * 48000 + pitch   0.10 > center=0xc4, fine=0x0c
-                * 48000 + pitch   0.50 > center=0xc4, fine=0x3f
-                * 48000 + pitch   0.99 > center=0xc4, fine=0x7d
-                * 48000 + pitch   1.00 > center=0xc5, fine=0x00
-                * 48000 + pitch  12.00 > center=0xd0, fine=0x00
-                * 48000 + pitch  24.00 > center=0xdc, fine=0x00
-                * 48000 + pitch  56.00 > center=0xfc, fine=0x00
-                * 48000 + pitch  68.00 > center=0x08, fine=0x00 > ?
-                * 48000 + pitch -12.00 > center=0xb8, fine=0x00
-                * 48000 + pitch  -0.10 > center=0xc3, fine=0x72
-                * 48000 + pitch -0.001 > not allowed
-                * 8000  + pitch   1.00 > center=0xa4, fine=0x7c
-                * 8000  + pitch -12.00 > center=0x98, fine=0x7c
-                * 8000  + pitch -48.00 > center=0x74, fine=0x7c
-                */
+             * 48000 + pitch   0.00 > center=0xc4, fine=0x00
+             * 48000 + pitch   0.10 > center=0xc4, fine=0x0c
+             * 48000 + pitch   0.50 > center=0xc4, fine=0x3f
+             * 48000 + pitch   0.99 > center=0xc4, fine=0x7d
+             * 48000 + pitch   1.00 > center=0xc5, fine=0x00
+             * 48000 + pitch  12.00 > center=0xd0, fine=0x00
+             * 48000 + pitch  24.00 > center=0xdc, fine=0x00
+             * 48000 + pitch  56.00 > center=0xfc, fine=0x00
+             * 48000 + pitch  68.00 > center=0x08, fine=0x00 > ?
+             * 48000 + pitch -12.00 > center=0xb8, fine=0x00
+             * 48000 + pitch  -0.10 > center=0xc3, fine=0x72
+             * 48000 + pitch -0.001 > not allowed
+             * 8000  + pitch   1.00 > center=0xa4, fine=0x7c
+             * 8000  + pitch -12.00 > center=0x98, fine=0x7c
+             * 8000  + pitch -48.00 > center=0x74, fine=0x7c
+             */
             break;
         }
 
@@ -602,17 +602,17 @@ static bool process_names(STREAMFILE* sf, bnk_header_t* h) {
             }
 
             /* table4:
-                * 0x00: bank name (optional)
-                * 0x08: name section offset
-                * 0x0C-0x14: 3 null pointers (reserved?)
-                * 0x18-0x58: 32 name chunk offset indices
-                */
+             * 0x00: bank name (optional)
+             * 0x08: name section offset
+             * 0x0C-0x18: 3 null pointers (reserved?)
+             * 0x18-0x58: 32 name chunk offset indices
+             */
 
             /* Name chunks are organised as
-                *  (name[0] + name[4] + name[8] + name[12]) & 0x1F;
-                * and using that as the index for the chunk offsets
-                *  name_sect_offset + (chunk_idx[result] * 0x14);
-                */
+             *  (name[0] + name[4] + name[8] + name[12]) % 32;
+             * and using that as the index for the chunk offsets
+             *  name_sect_offset + (chunk_idx[result] * 0x14);
+             */
             if (read_u8(h->table4_offset, sf))
                 h->bank_name_offset = h->table4_offset;
 
@@ -626,7 +626,7 @@ static bool process_names(STREAMFILE* sf, bnk_header_t* h) {
                 while (read_u8(h->stream_name_offset, sf)) {
                     /* in case it goes somewhere out of bounds unexpectedly */
                     if (((read_u8(h->stream_name_offset + 0x00, sf) + read_u8(h->stream_name_offset + 0x04, sf) +
-                            read_u8(h->stream_name_offset + 0x08, sf) + read_u8(h->stream_name_offset + 0x0C, sf)) & 0x1F) != i)
+                          read_u8(h->stream_name_offset + 0x08, sf) + read_u8(h->stream_name_offset + 0x0C, sf)) & 0x1F) != i)
                         goto fail;
                     if (read_u16(h->stream_name_offset + 0x10, sf) == table4_entry_id)
                         goto loop_break; /* to break out of the for+while loop simultaneously */
@@ -653,16 +653,16 @@ static bool process_names(STREAMFILE* sf, bnk_header_t* h) {
             }
 
             /* table4:
-                * 0x00: bank name (optional)
-                * 0x08: name entries offset
-                * 0x0C: name section offset
-                *
-                * name entries offset:
-                * 0x00: name offset in name section
-                * 0x04: name hash(?)
-                * 0x08: ? (2x int16)
-                * 0x0C: section index (int16)
-                */
+             * 0x00: bank name (optional)
+             * 0x08: name entries offset
+             * 0x0C: name section offset
+             *
+             * name entries offset:
+             * 0x00: name offset in name section
+             * 0x04: name hash(?)
+             * 0x08: ? (2x int16)
+             * 0x0C: section index (int16)
+             */
             if (read_u8(h->table4_offset, sf))
                 h->bank_name_offset = h->table4_offset;
 
@@ -785,19 +785,19 @@ static bool process_data(STREAMFILE* sf, bnk_header_t* h) {
             h->interleave = h->stream_size / h->channels;
 
             /* PS Home Arcade has other flags? supposedly:
-                *  01 = reverb
-                *  02 = vol scale 20
-                *  04 = vol scale 50
-                *  06 = vol scale 100
-                *  08 = noise
-                *  10 = no dry
-                *  20 = no steal
-                *  40 = loop VAG
-                *  80 = PCM
-                *  100 = has advanced packets
-                *  200 = send LFE
-                *  400 = send center
-                */
+             *  01 = reverb
+             *  02 = vol scale 20
+             *  04 = vol scale 50
+             *  06 = vol scale 100
+             *  08 = noise
+             *  10 = no dry
+             *  20 = no steal
+             *  40 = loop VAG
+             *  80 = PCM
+             *  100 = has advanced packets
+             *  200 = send LFE
+             *  400 = send center
+             */
             if ((h->stream_flags & 0x80) && h->sblk_version <= 3) {
                 h->codec = PCM16; /* rare [Wipeout HD (PS3)]-v3 */
             }
