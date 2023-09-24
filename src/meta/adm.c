@@ -5,7 +5,8 @@
 typedef struct {
     int total_subsongs;
     int target_subsong;
-    int version;
+    int file_version;
+    int header_version; /* major.minor in hex */
 
     uint32_t stream_offset;
     uint32_t stream_size;
@@ -18,7 +19,7 @@ typedef struct {
 
 static int parse_adm(adm_header_t* adm, STREAMFILE* sf);
 
-static VGMSTREAM* init_vgmstream_adm(STREAMFILE* sf, int version);
+static VGMSTREAM* init_vgmstream_adm(STREAMFILE* sf, int file_version);
 
 /* ADM2 - Crankcase Audio REV plugin file [The Grand Tour Game (PC)] */
 VGMSTREAM* init_vgmstream_adm2(STREAMFILE* sf) {
@@ -38,26 +39,24 @@ VGMSTREAM* init_vgmstream_adm3(STREAMFILE* sf) {
     /* checks */
     if (!is_id32be(0x00,sf, "ADM3"))
         return NULL;
-    if (!check_extensions(sf, "wem"))
+    if (!check_extensions(sf, "wem,bnk"))
         return NULL;
 
     return init_vgmstream_adm(sf, 3);
 }
 
-static VGMSTREAM* init_vgmstream_adm(STREAMFILE* sf, int version) {
+static VGMSTREAM* init_vgmstream_adm(STREAMFILE* sf, int file_version) {
     VGMSTREAM* vgmstream = NULL;
     adm_header_t adm = {0};
 
     /* ADMx are files used with the Wwise Crankaudio plugin, that simulate engine noises with
      * base internal samples and some internal RPM config (probably). Actual file seems to
-     * define some combo of samples, this only plays those separate samples.
-     * Decoder is basically Apple's IMA (internally just "ADPCMDecoder") but transforms to float
-     * each sample during decode by multiplying by 0.000030518509 */
+     * define some combo of samples, this only plays those separate samples. */
 
     adm.target_subsong = sf->stream_index;
     if (adm.target_subsong == 0) adm.target_subsong = 1;
 
-    adm.version = version;
+    adm.file_version = file_version;
 
     if (!parse_adm(&adm, sf))
         goto fail;
@@ -73,9 +72,21 @@ static VGMSTREAM* init_vgmstream_adm(STREAMFILE* sf, int version) {
     vgmstream->num_streams = adm.total_subsongs;
     vgmstream->stream_size = adm.stream_size;
 
-    vgmstream->coding_type = coding_APPLE_IMA4;
-    vgmstream->layout_type = layout_interleave;
-    vgmstream->interleave_block_size = 0x22;
+    switch(adm.header_version) {
+        case 0x00070000: /* The Crew Motorfest (PC) */
+            vgmstream->coding_type = coding_CRANKCASE_IMA;
+            //vgmstream->layout_type = layout_interleave;
+            //vgmstream->interleave_block_size = 0x23;
+            break;
+
+        default: /* The Grand Tour Game (PC) [0x00050000], MotoGP 21 (PC) [0x00060000] */
+            /* Basically Apple's IMA (internally just "ADPCMDecoder") but transforms to float
+            * each sample during decode by multiplying by 0.000030518509 */
+            vgmstream->coding_type = coding_APPLE_IMA4;
+            vgmstream->layout_type = layout_interleave;
+            vgmstream->interleave_block_size = 0x22;
+            break;
+    }
 
     if (!vgmstream_open_stream(vgmstream, sf, adm.stream_offset))
         goto fail;
@@ -169,12 +180,12 @@ static int parse_adm(adm_header_t* adm, STREAMFILE* sf) {
     uint32_t offset;
 
     /* 0x04: null */
-    /* 0x08: version? (ADM2: 0x00050000, ADM3: 0x00060000) */
+    adm->header_version = read_u32le(0x08, sf); /* ADM2: 0x00050000, ADM3: 0x00060000 (older) / 0x00070000 (2023) */
     /* 0x0c: header size */
     /* 0x10: data start */
     /* rest unknown, looks mostly the same between files (some floats and stuff) */
 
-    switch(adm->version) {
+    switch(adm->file_version) {
         case 2:
             /* low to high */
             offset = read_u32le(0x104, sf);
