@@ -90,6 +90,7 @@ typedef enum {
     coding_H4M_IMA,         /* H4M IMA ADPCM (stereo or mono, high nibble first) */
     coding_MTF_IMA,         /* Capcom MT Framework IMA ADPCM */
     coding_CD_IMA,          /* Crystal Dynamics IMA ADPCM */
+    coding_CRANKCASE_IMA,   /* CrankcaseAudio REV IMA ADPCM */
 
     coding_MSADPCM,         /* Microsoft ADPCM (stereo/mono) */
     coding_MSADPCM_int,     /* Microsoft ADPCM (mono) */

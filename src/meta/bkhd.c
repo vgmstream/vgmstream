@@ -143,6 +143,11 @@ VGMSTREAM* init_vgmstream_bkhd(STREAMFILE* sf) {
             vgmstream = init_vgmstream_wwise_bnk(temp_sf, &prefetch);
             if (!vgmstream) goto fail;
         }
+        else if (is_id32be(0x00, temp_sf, "ADM3")) {
+            // TODO: these may have multiple subsongs
+            vgmstream = init_vgmstream_adm3(temp_sf);
+            if (!vgmstream) goto fail;
+        }
         else if (read_f32(subfile_offset + 0x02, temp_sf) >= 30.0 &&
                  read_f32(subfile_offset + 0x02, temp_sf) <= 250.0) {
             is_wmid = 1;

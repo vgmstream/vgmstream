@@ -35,8 +35,8 @@ static const int IMA_IndexTable[16] = {
 
 
 /* Original IMA expansion, using shift+ADDs to avoid MULs (slow back then) */
-static void std_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset, int nibble_shift, int32_t * hist1, int32_t * step_index) {
-    int sample_nibble, sample_decoded, step, delta;
+static void std_ima_expand_nibble_data(uint8_t byte, int shift, int32_t* hist1, int32_t* index) {
+    int code, sample, step, delta;
 
     /* simplified through math from:
      *  - diff = (code + 1/2) * (step / 4)
@@ -44,21 +44,26 @@ static void std_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset, 
      *    > diff = (step * nibble / 4) + (step / 8)
      * final diff = [signed] (step / 8) + (step / 4) + (step / 2) + (step) [when code = 4+2+1] */
 
-    sample_nibble = (read_8bit(byte_offset,stream->streamfile) >> nibble_shift)&0xf; /* ADPCM code */
-    sample_decoded = *hist1; /* predictor value */
-    step = ADPCMTable[*step_index]; /* current step */
+    code = (byte >> shift) & 0xf;
+    sample = *hist1; /* predictor value */
+    step = ADPCMTable[*index]; /* current step */
 
     delta = step >> 3;
-    if (sample_nibble & 1) delta += step >> 2;
-    if (sample_nibble & 2) delta += step >> 1;
-    if (sample_nibble & 4) delta += step;
-    if (sample_nibble & 8) delta = -delta;
-    sample_decoded += delta;
+    if (code & 1) delta += step >> 2;
+    if (code & 2) delta += step >> 1;
+    if (code & 4) delta += step;
+    if (code & 8) delta = -delta;
+    sample += delta;
 
-    *hist1 = clamp16(sample_decoded);
-    *step_index += IMA_IndexTable[sample_nibble];
-    if (*step_index < 0) *step_index=0;
-    if (*step_index > 88) *step_index=88;
+    *hist1 = clamp16(sample);
+    *index += IMA_IndexTable[code];
+    if (*index < 0) *index = 0;
+    if (*index > 88) *index = 88;
+}
+
+static void std_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset, int nibble_shift, int32_t * hist1, int32_t * step_index) {
+    uint8_t byte = read_u8(byte_offset,stream->streamfile);
+    std_ima_expand_nibble_data(byte, nibble_shift, hist1, step_index);
 }
 
 /* Apple's IMA variation. Exactly the same except it uses 16b history (probably more sensitive to overflow/sign extend?) */
@@ -1287,6 +1292,43 @@ void decode_cd_ima(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacin
     stream->adpcm_step_index = step_index;
 }
 
+/* Crankcase Audio IMA, from libs (internally CrankcaseAudio::ADPCM and revadpcm) */
+void decode_crankcase_ima(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
+    uint8_t frame[0x23] = {0};
+    int i, frames_in, sample_pos = 0, block_samples, frame_size;
+    int32_t hist1 = stream->adpcm_history1_32;
+    int step_index = stream->adpcm_step_index;
+    uint32_t frame_offset;
+
+    /* external interleave (fixed size), mono */
+    frame_size = 0x23;
+    block_samples = (frame_size - 0x3) * 2;
+    frames_in = first_sample / block_samples;
+    first_sample = first_sample % block_samples;
+
+    frame_offset = stream->offset + frame_size * frames_in;
+    read_streamfile(frame, frame_offset, frame_size, stream->streamfile); /* ignore EOF errors */
+
+    /* normal header (hist+step), mono */
+    if (first_sample == 0) {
+        hist1   = get_s16be(frame + 0x00);
+        step_index = get_u8(frame + 0x02); /* no reserved value at 0x03 unlike other IMAs (misaligned reads?) */
+        step_index = _clamp_s32(step_index, 0, 88);
+    }
+
+    /* decode nibbles (layout: straight in mono) */
+    for (i = first_sample; i < first_sample + samples_to_do; i++) {
+        int pos = 0x03 + (i/2);
+        int shift = (i & 1 ? 4:0); /* low first */
+
+        std_ima_expand_nibble_data(frame[pos], shift, &hist1, &step_index);
+        outbuf[sample_pos] = (short)(hist1); /* internally output to float using "sample / 32767.0" */
+        sample_pos += channelspacing;
+    }
+
+    stream->adpcm_history1_32 = hist1;
+    stream->adpcm_step_index = step_index;
+}
 
 /* ************************************************************* */
 

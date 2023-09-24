@@ -286,7 +286,7 @@ static int parse_header(STREAMFILE* sf_h, STREAMFILE* sf_b, strwav_header* strwa
         /* 0x10c: header size */
 
         strwav->codec = IMA;
-        strwav->interleave  = strwav->tracks > 1 ? 0x8000 : 0x10000;
+        strwav->interleave  = strwav->tracks > 1 ? 0x10000 : 0x10000;
         ;VGM_LOG("STR+WAV: header TAZd (PC)\n");
         return 1;
     }

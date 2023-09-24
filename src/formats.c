@@ -831,6 +831,7 @@ static const coding_info coding_info_list[] = {
         {coding_UBI_SCE_IMA,        "Ubisoft 4-bit SCE IMA ADPCM"},
         {coding_H4M_IMA,            "Hudson HVQM4 4-bit IMA ADPCM"},
         {coding_CD_IMA,             "Crystal Dynamics 4-bit IMA ADPCM"},
+        {coding_CRANKCASE_IMA,      "CrankcaseAudio REV 4-bit IMA ADPCM"},
 
         {coding_MSADPCM,            "Microsoft 4-bit ADPCM"},
         {coding_MSADPCM_int,        "Microsoft 4-bit ADPCM (mono/interleave)"},

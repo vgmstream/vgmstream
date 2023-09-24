@@ -57,8 +57,6 @@ static const fsbkey_info fsbkey_list[] = {
         { MODE_FSB4_STD, FSBKEY_ADD("ghfxhslrghfxhslr") }, // Cookie Run: Ovenbreak
         { MODE_FSB4_ALT, FSBKEY_ADD("truck/impact/carbody") },// Monster Jam (PS2) [FSB3]
         { MODE_FSB4_ALT, FSBKEY_ADD("\xFC\xF9\xE4\xB3\xF5\x57\x5C\xA5\xAC\x13\xEC\x4A\x43\x19\x58\xEB\x4E\xF3\x84\x0B\x8B\x78\xFA\xFD\xBB\x18\x46\x7E\x31\xFB\xD0") }, // Guitar Hero 5 (X360)
-        { MODE_FSB4_ALT, FSBKEY_ADD("\x8C\xFA\xF3\x14\xB1\x53\xDA\xAB\x2B\x82\x6B\xD5\x55\x16\xCF\x01\x90\x20\x28\x14\xB1\x53\xD8") }, // Guitar Hero: Metallica (X360)
-        { MODE_FSB4_STD, FSBKEY_ADD("\xd2\x37\x70\x39\xa9\x86\xc5\xaf\x5b\x7f\xa2\x23\x98\x7e\xb6\xc2\x7e\x18\x7b\x2d\xd9\x31\x4b\x20\xb0\xc1\x8d\x06\xf2\xa7\xcd") }, // Guitar Hero: Metallica (PS3) [FSB4]
         { MODE_FSB5_STD, FSBKEY_ADD("G0KTrWjS9syqF7vVD6RaVXlFD91gMgkC") }, // Sekiro: Shadows Die Twice (PC)
         { MODE_FSB5_STD, FSBKEY_ADD("BasicEncryptionKey") }, // SCP: Unity (PC) 
         { MODE_FSB5_STD, FSBKEY_ADD("FXnTffGJ9LS855Gc") }, // Worms Rumble Beta (PC)
@@ -73,6 +71,11 @@ static const fsbkey_info fsbkey_list[] = {
         { MODE_FSB5_STD, FSBKEY_ADD("Aurogon666") }, // Afterimage demo (PC)
         { MODE_FSB5_STD, FSBKEY_ADD("IfYouLikeThosesSoundsWhyNotRenumerateTheir2Authors?") }, // Blanc (PC/Switch)
         { MODE_FSB5_STD, FSBKEY_ADD("L36nshM520") }, // Nishuihan Mobile (Android)
+
+        /* these games use a key per file, seemingly generated from the filename; could be possible to add them but there is a lot of songs,
+           so external .fsbkey may be better (use guessfsb 3.1 with --write-key-file) */
+        //{ MODE_FSB4_STD, FSBKEY_ADD("...") }, // Guitar Hero: Metallica (PC/PS3/X360) [FSB4]
+        //{ MODE_FSB4_STD, FSBKEY_ADD("...") }, // Guitar Hero: World Tour (PC/PS3/X360) [FSB4]
 };
 static const int fsbkey_list_count = sizeof(fsbkey_list) / sizeof(fsbkey_list[0]);
 

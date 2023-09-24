@@ -1587,7 +1587,7 @@ different internally (encrypted, different versions, etc) and not always can be 
 - **bkhd.c**
   - Audiokinetic Wwise FX header [*WWISE_FX*]
   - *bkhd*: `.bnk`
-    - Subfiles: *wwise_bnk bkhd_fx*
+    - Subfiles: *wwise_bnk adm3 bkhd_fx*
   - *bkhd_fx*: `.wem .bnk`
   - Codecs: PCMFLOAT
 - **diva.c**
@@ -1739,8 +1739,8 @@ different internally (encrypted, different versions, etc) and not always can be 
 - **adm.c**
   - Crankcase ADMx header [*ADM*]
   - *adm2*: `.wem`
-  - *adm3*: `.wem`
-  - Codecs: APPLE_IMA4
+  - *adm3*: `.wem .bnk`
+  - Codecs: CRANKCASE_IMA APPLE_IMA4
 - **tt_ad.c**
   - Traveller's Tales AUDIO_DATA header [*TT_AD*]
   - *tt_ad*: `.audio_data`
