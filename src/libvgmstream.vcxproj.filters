@@ -1096,6 +1096,9 @@
     <ClCompile Include="meta\fda.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\fdk_nxopus.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\ffdl.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>

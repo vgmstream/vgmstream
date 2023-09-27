@@ -309,6 +309,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_opus_nus3,
     init_vgmstream_opus_sps_n1,
     init_vgmstream_opus_nxa,
+    init_vgmstream_opus_fdk,
     init_vgmstream_pc_ast,
     init_vgmstream_naac,
     init_vgmstream_ubi_sb,

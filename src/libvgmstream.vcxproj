@@ -425,6 +425,7 @@
     <ClCompile Include="meta\ezw.c" />
     <ClCompile Include="meta\fag.c" />
     <ClCompile Include="meta\fda.c" />
+    <ClCompile Include="meta\fdk_nxopus.c" />
     <ClCompile Include="meta\ffdl.c" />
     <ClCompile Include="meta\ffmpeg.c" />
     <ClCompile Include="meta\ffw.c" />
