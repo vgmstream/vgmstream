@@ -521,6 +521,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_squeaksample,
     init_vgmstream_snds,
     init_vgmstream_adm2,
+    init_vgmstream_nxof,
 
     /* lower priority metas (no clean header identity, somewhat ambiguous, or need extension/companion file to identify) */
     init_vgmstream_scd_pcm,
