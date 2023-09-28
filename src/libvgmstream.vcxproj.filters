@@ -1096,9 +1096,6 @@
     <ClCompile Include="meta\fda.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\fdk_nxopus.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="meta\ffdl.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -1427,6 +1424,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\nxap.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\nxof.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ogg_opus.c">

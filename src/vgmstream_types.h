@@ -702,7 +702,7 @@ typedef enum {
     meta_SQUEAKSTREAM,
     meta_SQUEAKSAMPLE,
     meta_SNDS,
-    meta_FDK_NXOPUS,
+    meta_NXOF,
 
 } meta_t;
 

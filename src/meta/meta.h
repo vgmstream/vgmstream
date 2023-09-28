@@ -625,7 +625,6 @@ VGMSTREAM* init_vgmstream_opus_opusnx(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_opus_nsopus(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_opus_sqex(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_opus_rsnd(STREAMFILE* sf);
-VGMSTREAM* init_vgmstream_opus_fdk(STREAMFILE* sf);
 
 VGMSTREAM * init_vgmstream_pc_ast(STREAMFILE * streamFile);
 
@@ -982,5 +981,7 @@ VGMSTREAM* init_vgmstream_squeakstream(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_squeaksample(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_snds(STREAMFILE* sf);
+
+VGMSTREAM* init_vgmstream_nxof(STREAMFILE* sf);
 
 #endif /*_META_H*/

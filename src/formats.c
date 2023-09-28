@@ -1417,7 +1417,7 @@ static const meta_info meta_info_list[] = {
         {meta_SQUEAKSTREAM,         "Torus SqueakStream header"},
         {meta_SQUEAKSAMPLE,         "Torus SqueakSample header"},
         {meta_SNDS,                 "Sony SNDS header"},
-        {meta_FDK_NXOPUS,           "Nihon Falcom FDK Opus Header"},
+        {meta_NXOF,                 "Nihon Falcom FDK Opus Header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {

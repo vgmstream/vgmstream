@@ -1124,10 +1124,6 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Entergram NXA header [*NXA*]
   - *opus_nxa*: `.nxa`
   - Codecs: Opus
-- **fdk_nxopus.c**
-  - Nihon Falcom FDK Opus Header [*FDK_NXOPUS*]
-  - *opus_fdk*: `.nxopus`
-  - Codecs: Opus
 - **pc_ast.c**
   - Capcom AST (PC) header [*PC_AST*]
   - *pc_ast*: `.ast`
@@ -1795,6 +1791,10 @@ different internally (encrypted, different versions, etc) and not always can be 
 - **snds.c**
   - Sony SNDS header [*SNDS*]
   - Codecs: ATRAC9
+- **nxof.c**
+  - Nihon Falcom FDK Opus Header [*NXOF*]
+  - *nxof*: `.nxopus`
+  - Codecs: Opus
 - **scd_pcm.c**
   - Lunar: Eternal Blue .PCM header [*SCD_PCM*]
   - *scd_pcm*: `.pcm`

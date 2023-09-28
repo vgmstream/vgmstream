@@ -309,7 +309,6 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_opus_nus3,
     init_vgmstream_opus_sps_n1,
     init_vgmstream_opus_nxa,
-    init_vgmstream_opus_fdk,
     init_vgmstream_pc_ast,
     init_vgmstream_naac,
     init_vgmstream_ubi_sb,
@@ -522,6 +521,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_squeaksample,
     init_vgmstream_snds,
     init_vgmstream_adm2,
+    init_vgmstream_nxof,
 
     /* lower priority metas (no clean header identity, somewhat ambiguous, or need extension/companion file to identify) */
     init_vgmstream_scd_pcm,

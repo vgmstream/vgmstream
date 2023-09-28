@@ -425,7 +425,6 @@
     <ClCompile Include="meta\ezw.c" />
     <ClCompile Include="meta\fag.c" />
     <ClCompile Include="meta\fda.c" />
-    <ClCompile Include="meta\fdk_nxopus.c" />
     <ClCompile Include="meta\ffdl.c" />
     <ClCompile Include="meta\ffmpeg.c" />
     <ClCompile Include="meta\ffw.c" />
@@ -536,6 +535,7 @@
     <ClCompile Include="meta\nwav.c" />
     <ClCompile Include="meta\nxa.c" />
     <ClCompile Include="meta\nxap.c" />
+    <ClCompile Include="meta\nxof.c" />
     <ClCompile Include="meta\ogg_opus.c" />
     <ClCompile Include="meta\ogg_vorbis.c" />
     <ClCompile Include="meta\ogl.c" />

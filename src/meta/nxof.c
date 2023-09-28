@@ -2,7 +2,7 @@
 #include "../coding/coding.h"
 
 /* Nihon Falcom FDK NXOpus  [Ys X -NORDICS- (Switch)] */
-VGMSTREAM* init_vgmstream_opus_fdk(STREAMFILE* sf) {
+VGMSTREAM* init_vgmstream_nxof(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     off_t start_offset;
     int loop_flag, channels, sample_rate;
@@ -28,13 +28,14 @@ VGMSTREAM* init_vgmstream_opus_fdk(STREAMFILE* sf) {
     vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->meta_type = meta_FDK_NXOPUS;
+    vgmstream->meta_type = meta_NXOF;
     vgmstream->sample_rate = sample_rate;
     vgmstream->num_samples = num_samples;
     vgmstream->loop_start_sample = loop_start;
     vgmstream->loop_end_sample = loop_end;
 
 #ifdef VGM_USE_FFMPEG
+    skip = switch_opus_get_encoder_delay(start_offset, sf);
     vgmstream->codec_data = init_ffmpeg_switch_opus(sf, start_offset, data_size, vgmstream->channels, skip, vgmstream->sample_rate);
     if (!vgmstream->codec_data) goto fail;
     vgmstream->coding_type = coding_FFmpeg;
