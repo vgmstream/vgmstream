@@ -2,8 +2,8 @@
 #include "../coding/coding.h"
 
 
-/* Entergram NXA Opus [Higurashi no Naku Koro ni Hou (Switch), Gensou Rougoku no Kaleidoscope (Switch)] */
-VGMSTREAM* init_vgmstream_opus_nxa(STREAMFILE* sf) {
+/* Entergram NXA1 Opus [Higurashi no Naku Koro ni Hou (Switch), Gensou Rougoku no Kaleidoscope (Switch)] */
+VGMSTREAM* init_vgmstream_nxa1(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     off_t start_offset;
     int loop_flag, channels, type, sample_rate;
@@ -11,9 +11,9 @@ VGMSTREAM* init_vgmstream_opus_nxa(STREAMFILE* sf) {
     size_t data_size, frame_size;
 
     /* checks */
-    if (!check_extensions(sf, "nxa"))
-        goto fail;
     if (!is_id32be(0x00, sf, "NXA1"))
+        goto fail;
+    if (!check_extensions(sf, "nxa"))
         goto fail;
 
     start_offset = 0x30;
@@ -36,7 +36,7 @@ VGMSTREAM* init_vgmstream_opus_nxa(STREAMFILE* sf) {
     vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->meta_type = meta_NXA;
+    vgmstream->meta_type = meta_NXA1;
     vgmstream->sample_rate = sample_rate;
     vgmstream->num_samples = num_samples;
     vgmstream->loop_start_sample = loop_start;

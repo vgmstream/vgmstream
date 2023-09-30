@@ -117,6 +117,7 @@ def main():
         name = get_txtp_name(args, file)
         if not name in txtps:
             txtps[name] = []
+        file = file.replace('\\', '/')
         txtps[name].append(file)
 
 

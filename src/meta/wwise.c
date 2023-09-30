@@ -575,6 +575,7 @@ VGMSTREAM* init_vgmstream_wwise_bnk(STREAMFILE* sf, int* p_prefetch) {
                 switch(ww.channel_layout) {
                     case mapping_7POINT1_surround:  cfg.coupled_count = 3; break;   /* 2ch+2ch+2ch+1ch+1ch, 5 streams */
                     case mapping_5POINT1_surround:                                  /* 2ch+2ch+1ch+1ch, 4 streams */
+                    case mapping_5POINT0_surround:                                  /* 2ch+2ch+1ch, 3 streams [Bayonetta 3 (Switch)] */
                     case mapping_QUAD_side:         cfg.coupled_count = 2; break;   /* 2ch+2ch, 2 streams */
                     case mapping_2POINT1_xiph:                                      /* 2ch+1ch, 2 streams */
                     case mapping_STEREO:            cfg.coupled_count = 1; break;   /* 2ch, 1 stream */

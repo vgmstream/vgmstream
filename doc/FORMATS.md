@@ -271,7 +271,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - RIFF WAVE header (ctrl looping) [*RIFF_WAVE_MWV*]
   - RIFX WAVE header [*RIFX_WAVE*]
   - RIFX WAVE header (smpl looping) [*RIFX_WAVE_smpl*]
-  - *riff*: `.wav .lwav .xwav .mwv .da .dax .cd .med .snd .adx .adp .xss .xsew .adpcm .adw .wd .(extensionless) .sbv .wvx .str .at3 .rws .aud .at9 .ckd .saf .ima .nsa .pcm .xvag .ogg .logg .p1d .xms .mus .dat .ldat`
+  - *riff*: `.wav .lwav .xwav .mwv .da .dax .cd .med .snd .adx .adp .xss .xsew .adpcm .adw .wd .(extensionless) .sbv .wvx .str .at3 .rws .aud .at9 .ckd .saf .ima .nsa .pcm .xvag .ogg .logg .p1d .xms .mus .dat .ldat .wma .lwma`
   - *rifx*: `.wav .lwav`
   - Codecs: AICA_int PCM32LE PCM24LE PCM16BE PCM16LE PCM8_U MSADPCM IMA PCMFLOAT MS_IMA AICA MPEG_custom XBOX_IMA MS_IMA_3BIT DVI_IMA L5_555 OGG_VORBIS ATRAC9 ATRAC3 MPEG MSADPCM_int
 - **nwa.c**
@@ -1120,10 +1120,6 @@ different internally (encrypted, different versions, etc) and not always can be 
   - *opus_sqex*: `.wav .lwav`
   - *opus_rsnd*: `.rsnd`
   - Codecs: Opus
-- **nxa.c**
-  - Entergram NXA header [*NXA*]
-  - *opus_nxa*: `.nxa`
-  - Codecs: Opus
 - **pc_ast.c**
   - Capcom AST (PC) header [*PC_AST*]
   - *pc_ast*: `.ast`
@@ -1370,6 +1366,10 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Maxis UTK header [*UTK*]
   - *utk*: `.utk`
   - Codecs: EA_MT
+- **nxa1.c**
+  - Entergram NXA1 header [*NXA1*]
+  - *nxa1*: `.nxa`
+  - Codecs: Opus
 - **adpcm_capcom.c**
   - Capcom .ADPCM header [*ADPCM_CAPCOM*]
   - *adpcm_capcom*: `.adpcm .mca`
