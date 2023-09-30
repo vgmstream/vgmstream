@@ -618,7 +618,6 @@ VGMSTREAM* init_vgmstream_opus_nop(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_opus_shinen(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_opus_nus3(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_opus_sps_n1(STREAMFILE* sf);
-VGMSTREAM* init_vgmstream_opus_nxa(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_opus_opusx(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_opus_prototype(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_opus_opusnx(STREAMFILE* sf);
@@ -757,6 +756,8 @@ VGMSTREAM * init_vgmstream_xau_konami(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_derf(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_utk(STREAMFILE *streamFile);
+
+VGMSTREAM* init_vgmstream_nxa1(STREAMFILE* sf);
 
 VGMSTREAM * init_vgmstream_adpcm_capcom(STREAMFILE *streamFile);
 

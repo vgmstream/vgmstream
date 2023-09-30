@@ -612,7 +612,7 @@ typedef enum {
     meta_DERF,              /* Stupid Invaders (PC) */
     meta_SADF,
     meta_UTK,
-    meta_NXA,
+    meta_NXA1,
     meta_ADPCM_CAPCOM,
     meta_UE4OPUS,
     meta_XWMA,
