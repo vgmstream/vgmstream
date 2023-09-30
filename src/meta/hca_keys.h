@@ -1257,6 +1257,9 @@ static const hcakey_info hcakey_list[] = {
         // Star Ocean: The Second Story R Demo (PC, Switch)
         {533948357975462459},   // 0768F733DD87D23B
 
+        // Girls' Frontline 2: Exilium (Android)
+        {8930254087621254},     // 001FBA04CEA58A86
+
 };
 
 #endif/*_HCA_KEYS_H_*/
