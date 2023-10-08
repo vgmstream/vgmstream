@@ -458,6 +458,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_diva,
     init_vgmstream_imuse,
     init_vgmstream_ktsr,
+    init_vgmstream_asrs,
     init_vgmstream_mups,
     init_vgmstream_kat,
     init_vgmstream_pcm_success,

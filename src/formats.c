@@ -523,6 +523,7 @@ static const char* extension_list[] = {
     "sps",
     "spsd",
     "spw",
+    "srsa",
     "ss2",
     "ssd", //txth/reserved [Zack & Wiki (Wii)]
     "ssm",

@@ -884,6 +884,7 @@ VGMSTREAM* init_vgmstream_diva(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_imuse(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_ktsr(STREAMFILE* sf);
+VGMSTREAM* init_vgmstream_asrs(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_mups(STREAMFILE* sf);
 
