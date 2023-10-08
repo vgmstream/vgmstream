@@ -317,7 +317,7 @@ class App:
         with open(file, 'r', encoding='utf-8') as f:
             is_updating = False
             for line in f:
-                line = line.strip()
+                line = line.strip('\n')
 
                 # find list section, add all current lines and ignore old ones until next section
                 if line.startswith('### List'):
@@ -333,6 +333,8 @@ class App:
 
                 if not is_updating:
                     doc_lines.append(line)
+
+            doc_lines.append('')
 
         with open(file, 'w', encoding='utf-8', newline='\n') as f:
             f.write('\n'.join(doc_lines))
