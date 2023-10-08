@@ -16,7 +16,6 @@ VGMSTREAM * init_vgmstream_sthd(STREAMFILE *sf) {
         goto fail;
     /* first block has special values */
     if (read_u16le(0x04,sf) != 0x0800 ||
-        read_u32le(0x0c,sf) != 0x0001 ||
         read_u32le(0x14,sf) != 0x0000)
         goto fail;
 
