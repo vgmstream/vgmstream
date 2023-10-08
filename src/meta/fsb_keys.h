@@ -71,6 +71,7 @@ static const fsbkey_info fsbkey_list[] = {
         { MODE_FSB5_STD, FSBKEY_ADD("Aurogon666") }, // Afterimage demo (PC)
         { MODE_FSB5_STD, FSBKEY_ADD("IfYouLikeThosesSoundsWhyNotRenumerateTheir2Authors?") }, // Blanc (PC/Switch)
         { MODE_FSB5_STD, FSBKEY_ADD("L36nshM520") }, // Nishuihan Mobile (Android)
+        { MODE_FSB5_STD, FSBKEY_ADD("Forza2!") }, // Forza Motorsport (PC)
 
         /* these games use a key per file, seemingly generated from the filename; could be possible to add them but there is a lot of songs,
            so external .fsbkey may be better (use guessfsb 3.1 with --write-key-file) */
