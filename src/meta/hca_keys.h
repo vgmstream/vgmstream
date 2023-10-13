@@ -1260,6 +1260,9 @@ static const hcakey_info hcakey_list[] = {
         // Girls' Frontline 2: Exilium (Android)
         {8930254087621254},     // 001FBA04CEA58A86
 
+        // Sonic Superstars (Switch)
+        {1991062320230623},     // 000712DC5252B0DF
+
 };
 
 #endif/*_HCA_KEYS_H_*/
