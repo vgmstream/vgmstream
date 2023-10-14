@@ -667,14 +667,13 @@ static int parse_ktsr(ktsr_header* ktsr, STREAMFILE* sf) {
     parse_longname(ktsr, sf);
     build_name(ktsr, sf);
 
-    /* skip TSRS header */
-    if (ktsr->base_offset) {
-        //if (ktsr->is_external)
+    /* skip TSRS header (internals are pre-adjusted) */
+    if (ktsr->is_external && ktsr->base_offset) {
         for (int i = 0; i < ktsr->channels; i++) {
             ktsr->stream_offsets[i] += ktsr->base_offset;
         }
 
-        ktsr->extra_offset += ktsr->base_offset;
+        ktsr->extra_offset += ktsr->base_offset; /* ? */
     }
 
     return 1;
