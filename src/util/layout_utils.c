@@ -2,9 +2,17 @@
 
 #include "../vgmstream.h"
 #include "../layout/layout.h"
+#include "../coding/coding.h"
 
-bool layered_add_codec(VGMSTREAM* vs, int layers, int layer_channels) {
-    if (!vs || !vs->codec_data) {
+
+typedef VGMSTREAM* (*init_vgmstream_t)(STREAMFILE*);
+
+bool layered_add_subfile(VGMSTREAM* vs, int layers, int layer_channels, STREAMFILE* sf, uint32_t offset, uint32_t size, const char* ext, init_vgmstream_t init_vgmstream) {
+    int i;
+    layered_layout_data* data;
+    STREAMFILE* temp_sf;
+
+    if (!vs) {
         goto fail;
     }
 
@@ -13,8 +21,53 @@ bool layered_add_codec(VGMSTREAM* vs, int layers, int layer_channels) {
     if (!layers)
         layers = vs->channels / layer_channels;
 
+    switch(vs->layout_type) {
+        case layout_segmented: //to be improved
+            goto fail;
+
+        case layout_layered:
+            data = vs->layout_data;
+
+            i = data->curr_layer;
+            break;
+
+        default:
+            data = init_layout_layered(layers);
+            if (!data) goto fail;
+            vs->layout_data = data;
+            vs->layout_type = layout_layered;
+
+            i = 0;
+            break;
+    }
+
+    temp_sf = setup_subfile_streamfile(sf, offset, size, ext);
+    if (!temp_sf) goto fail;
+
+    data->layers[i] = init_vgmstream(temp_sf);
+    close_streamfile(temp_sf);
+    if (!data->layers[i]) goto fail;
+
+    data->curr_layer++;
+
+    return true;
+fail:
+    return false;
+}
+
+
+bool layered_add_codec(VGMSTREAM* vs, int layers, int layer_channels) {
     int i;
     layered_layout_data* data;
+
+    if (!vs || !vs->codec_data) {
+        goto fail;
+    }
+
+    if (!layer_channels)
+        layer_channels = 1;
+    if (!layers)
+        layers = vs->channels / layer_channels;
 
     switch(vs->layout_type) {
         case layout_segmented: //to be improved
@@ -64,6 +117,11 @@ bool layered_add_done(VGMSTREAM* vs) {
 
     if (!setup_layout_layered(vs->layout_data))
         goto fail;
+
+    if (!vs->coding_type) {
+        layered_layout_data* data = vs->layout_data;
+        vs->coding_type = data->layers[0]->coding_type;
+    }
 
     return true;
 fail:

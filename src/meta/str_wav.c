@@ -1,8 +1,9 @@
 #include "meta.h"
 #include "../coding/coding.h"
+#include "../util/layout_utils.h"
 
 
-typedef enum { PSX, DSP, XBOX, WMA, IMA, XMA2 } strwav_codec;
+typedef enum { PSX, DSP, XBOX, WMA, IMA, XMA2, MPEG } strwav_codec;
 typedef struct {
     int tracks;
     int channels;
@@ -169,6 +170,26 @@ VGMSTREAM* init_vgmstream_str_wav(STREAMFILE* sf) {
             vgmstream->layout_type = layout_none;
 
             xma_fix_raw_samples(vgmstream, sf, 0x00,stream_size, 0, 0,0);
+            break;
+        }
+#endif
+
+#ifdef VGM_USE_MPEG
+        case MPEG: {
+            /* regular MP3 starting with ID2, stereo tracks xN (bgm + vocals) but assuming last (or only one) could be mono */
+            int layers = (strwav.channels + 1) / 2;
+
+            for (int i = 0; i < layers; i++) {
+                uint32_t size = strwav.interleave;
+                uint32_t offset = i * size;
+                const char* ext = "mp3";
+                int layer_channels = ((layers % 2) && i + 1 == layers) ? 1 : 2;
+
+                layered_add_subfile(vgmstream, layers, layer_channels, sf, offset, size, ext, init_vgmstream_mpeg);
+            }
+
+            if (!layered_add_done(vgmstream))
+                goto fail;
             break;
         }
 #endif
@@ -712,6 +733,7 @@ static int parse_header(STREAMFILE* sf_h, STREAMFILE* sf_b, strwav_header* strwa
     /* Tak and the Guardians of Gross (Wii)[2008] */
     /* The House of the Dead: Overkill (Wii)[2009] (not Blitz but still the same format) */
     /* All Star Karate (Wii)[2010] */
+    /* Karaoke Revolution (Wii)[2010] */
     if ((read_u32be(0x04,sf_h) == 0x00000800 ||
          read_u32be(0x04,sf_h) == 0x00000700) && /* rare? */
          read_u32be(0x08,sf_h) != 0x00000000 &&
@@ -730,11 +752,12 @@ static int parse_header(STREAMFILE* sf_h, STREAMFILE* sf_b, strwav_header* strwa
         strwav->codec = DSP;
         strwav->coefs_table = 0x7c;
         strwav->interleave  = strwav->channels > 4 ? 0x4000 : 0x8000;
-        ;VGM_LOG("STR+WAV: header TKGG/HOTDO/ASK (Wii)\n");
+        ;VGM_LOG("STR+WAV: header TKGG/HOTDO/ASK/KR (Wii)\n");
         return 1;
     }
 
     /* The House of the Dead: Overkill (PS3)[2009] (not Blitz but still the same format) */
+    /* Karaoke Revolution (PS3)[2010] */
     if ((read_u32be(0x04,sf_h) == 0x00000800 ||
          read_u32be(0x04,sf_h) == 0x00000700) && /* rare? */
          read_u32be(0x08,sf_h) != 0x00000000 &&
@@ -747,10 +770,24 @@ static int parse_header(STREAMFILE* sf_h, STREAMFILE* sf_b, strwav_header* strwa
         strwav->sample_rate = read_s32be(0x38,sf_h);
         strwav->flags       = read_u32be(0x3c,sf_h);
 
-        strwav->channels    = read_s32be(0x70,sf_h); /* tracks of 1ch */
-        strwav->interleave  = strwav->channels > 4 ? 0x4000 : 0x8000;
+        strwav->channels    = read_s32be(0x70,sf_h);
 
-        strwav->codec = PSX;
+        /* possible flags/ch numbers at 0x4A/61 */
+        if (read_s32be(0x78,sf_h) != 0) { /* KRev */
+            strwav->tracks      = strwav->channels / 2;
+            strwav->num_samples = strwav->loop_end; /* num_samples here seems to be data size */
+            strwav->interleave  = read_s32be(0xA0,sf_h); /* one size per file, but CBR = same for all */
+            //C0: stream samples (same as num_samples)
+
+            strwav->codec = MPEG; /* full CBR MP3 one after other */
+        }
+        else { /* HOTD */
+            strwav->channels    = read_s32be(0x70,sf_h); /* tracks of 1ch */
+            strwav->interleave  = strwav->channels > 4 ? 0x4000 : 0x8000;
+
+            strwav->codec = PSX;
+        }
+
         ;VGM_LOG("STR+WAV: header HOTDO (PS3)\n");
         return 1;
     }
