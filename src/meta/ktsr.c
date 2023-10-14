@@ -12,8 +12,12 @@ typedef struct {
     int target_subsong;
     ktsr_codec codec;
 
+    uint32_t audio_id;
     int platform;
     int format;
+    uint32_t sound_id;
+    uint32_t sound_flags;
+    uint32_t config_flags;
 
     int channels;
     int sample_rate;
@@ -99,7 +103,8 @@ static VGMSTREAM* init_vgmstream_ktsr_internal(STREAMFILE* sf, bool is_srsa) {
 
     /* KTSR can be a memory file (ktsl2asbin), streams (ktsl2stbin) and global config (ktsl2gcbin)
      * This accepts .ktsl2asbin with internal data or external streams as subsongs.
-     * Hashes are meant to be read LE, but here are BE for easier comparison. Some info from KTSR.bt */
+     * Hashes are meant to be read LE, but here are BE for easier comparison (they probably correspond
+     * to some text but are pre-hashed in exes). Some info from KTSR.bt */
 
     if (target_subsong == 0) target_subsong = 1;
     ktsr.target_subsong = target_subsong;
@@ -468,16 +473,52 @@ fail:
     return 0;
 }
 
+/* ktsr engine reads+decrypts in the same func based on passed flag tho (reversed from exe) */
+static void decrypt_string_ktsr(char* buf, size_t buf_size, uint32_t seed) {
+    for (int i = 0; i < buf_size - 1; i++) {
+        if (!buf[i]) /* just in case */
+            break;
+
+        seed = 0x343FD * seed + 0x269EC3; /* classic rand */
+        buf[i] ^= (seed >> 16) & 0xFF; /* 3rd byte */
+        if (!buf[i]) /* end null is also encrypted (but there are extra nulls after it anyway) */
+            break;
+    }
+}
+
+/* like read_string but allow any value since it can be encrypted */
+static size_t read_string_ktsr(char* buf, size_t buf_size, off_t offset, STREAMFILE* sf) {
+    int pos;
+
+    for (pos = 0; pos < buf_size; pos++) {
+        uint8_t byte = read_u8(offset + pos, sf);
+        char c = (char)byte;
+        if (buf) buf[pos] = c;
+        if (c == '\0')
+            return pos;
+        if (pos+1 == buf_size) {
+            if (buf) buf[pos] = '\0';
+            return buf_size;
+        }
+    }
+
+    return 0;
+}
+
 static void build_name(ktsr_header* ktsr, STREAMFILE* sf) {
     char sound_name[255] = {0};
     char config_name[255] = {0};
 
     /* names can be different or same but usually config is better */
     if (ktsr->sound_name_offset) {
-        read_string(sound_name, sizeof(sound_name), ktsr->sound_name_offset, sf);
+        read_string_ktsr(sound_name, sizeof(sound_name), ktsr->sound_name_offset, sf);
+        if (ktsr->sound_flags & 0x0008)
+            decrypt_string_ktsr(sound_name, sizeof(sound_name), ktsr->audio_id);
     }
     if (ktsr->config_name_offset) {
-        read_string(config_name, sizeof(config_name), ktsr->config_name_offset, sf);
+        read_string_ktsr(config_name, sizeof(config_name), ktsr->config_name_offset, sf);
+        if (ktsr->config_flags & 0x0200)
+            decrypt_string_ktsr(config_name, sizeof(config_name), ktsr->audio_id);
     }
 
     //if (longname[0] && shortname[0]) {
@@ -493,7 +534,7 @@ static void build_name(ktsr_header* ktsr, STREAMFILE* sf) {
 
 }
 
-static void parse_longname(ktsr_header* ktsr, STREAMFILE* sf, uint32_t target_id) {
+static void parse_longname(ktsr_header* ktsr, STREAMFILE* sf) {
     /* more configs than sounds is possible so we need target_id first */
     uint32_t offset, end, name_offset;
     uint32_t stream_id;
@@ -505,9 +546,11 @@ static void parse_longname(ktsr_header* ktsr, STREAMFILE* sf, uint32_t target_id
         uint32_t size = read_u32le(offset + 0x04, sf);
         switch(type) {
             case 0xBD888C36: /* config */
-                stream_id = read_u32be(offset + 0x08, sf);
-                if (stream_id != target_id)
+                stream_id = read_u32le(offset + 0x08, sf);
+                if (stream_id != ktsr->sound_id)
                     break;
+
+                ktsr->config_flags = read_u32le(offset + 0x0c, sf);
 
                 name_offset = read_u32le(offset + 0x28, sf);
                 if (name_offset > 0)
@@ -524,7 +567,7 @@ static void parse_longname(ktsr_header* ktsr, STREAMFILE* sf, uint32_t target_id
 
 static int parse_ktsr(ktsr_header* ktsr, STREAMFILE* sf) {
     uint32_t offset, end, header_offset, name_offset;
-    uint32_t stream_id = 0, stream_count;
+    uint32_t stream_count;
 
     /* 00: KTSR
      * 04: type
@@ -540,11 +583,14 @@ static int parse_ktsr(ktsr_header* ktsr, STREAMFILE* sf) {
      * until end: entries (totals not defined) */
 
     ktsr->platform = read_u8(0x0b,sf);
+    ktsr->audio_id = read_u32le(0x0c,sf);
 
     if (read_u32le(0x18, sf) != read_u32le(0x1c, sf))
         goto fail;
-    if (read_u32le(0x1c, sf) != get_streamfile_size(sf))
+    if (read_u32le(0x1c, sf) != get_streamfile_size(sf)) {
+        vgm_logi("KTSR: incorrect file size (bad rip?)\n");
         goto fail;
+    }
 
     offset = 0x40;
     end = get_streamfile_size(sf);
@@ -557,7 +603,7 @@ static int parse_ktsr(ktsr_header* ktsr, STREAMFILE* sf) {
             case 0x6172DBA8: /* ? (mostly empty) */
             case 0xBD888C36: /* cue? (floats, stream id, etc, may have extended name; can have sub-chunks)-appears N times */
             case 0xC9C48EC1: /* unknown (has some string inside like "boss") */
-            case 0xA9D23BF1: /* "state container", some kind of config/floats, witgh names like 'State_bgm01'..N */
+            case 0xA9D23BF1: /* "state container", some kind of config/floats, with names like 'State_bgm01'..N */
             case 0x836FBECA: /* unknown (~0x300, encrypted? table + data) */
                 break;
 
@@ -565,9 +611,10 @@ static int parse_ktsr(ktsr_header* ktsr, STREAMFILE* sf) {
                 ktsr->total_subsongs++;
 
                 /* sound table:
-                 * 08: stream id (used in several places)
-                 * 0c: unknown (low number but not version?)
-                 * 0e: external flag
+                 * 08: current/stream id (used in several places)
+                 * 0c: flags (sounds only; other types are similar but different bits)
+                 *   0x08: encrypted names (only used after ASRS was introduced?)
+                 *   0x10000: external flag
                  * 10: sub-streams?
                  * 14: offset to header offset
                  * 18: offset to name
@@ -576,11 +623,10 @@ static int parse_ktsr(ktsr_header* ktsr, STREAMFILE* sf) {
                  * --: header
                  * --: subheader (varies) */
 
-
                 if (ktsr->total_subsongs == ktsr->target_subsong) {
 
-                    stream_id = read_u32be(offset + 0x08,sf);
-                    //ktsr->is_external = read_u16le(offset + 0x0e,sf);
+                    ktsr->sound_id = read_u32le(offset + 0x08,sf);
+                    ktsr->sound_flags = read_u32le(offset + 0x0c,sf);
                     stream_count = read_u32le(offset + 0x10,sf);
                     if (stream_count != 1) {
                         VGM_LOG("ktsr: unknown stream count\n");
@@ -611,7 +657,7 @@ static int parse_ktsr(ktsr_header* ktsr, STREAMFILE* sf) {
     if (ktsr->target_subsong > ktsr->total_subsongs)
         goto fail;
 
-    parse_longname(ktsr, sf, stream_id);
+    parse_longname(ktsr, sf);
     build_name(ktsr, sf);
 
     /* skip TSRS header */
