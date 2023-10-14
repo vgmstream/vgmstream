@@ -56,11 +56,11 @@ fail:
 }
 
 
-bool layered_add_codec(VGMSTREAM* vs, int layers, int layer_channels) {
+static bool layered_add_internal(VGMSTREAM* vs, int layers, int layer_channels, STREAMFILE* sf) {
     int i;
     layered_layout_data* data;
 
-    if (!vs || !vs->codec_data) {
+    if (!vs) {
         goto fail;
     }
 
@@ -99,9 +99,12 @@ bool layered_add_codec(VGMSTREAM* vs, int layers, int layer_channels) {
     data->layers[i]->loop_end_sample = vs->loop_end_sample;
 
     data->layers[i]->codec_data = vs->codec_data;
-    if (!data->layers[i]->codec_data) goto fail;
     data->layers[i]->coding_type = vs->coding_type;
+
     data->layers[i]->layout_type = layout_none;
+    data->layers[i]->interleave_block_size = vs->interleave_block_size;
+    if (vs->interleave_block_size)
+        data->layers[i]->layout_type = layout_interleave;
 
     vs->codec_data = NULL; /* moved to layer, don't hold it */
 
@@ -111,6 +114,18 @@ bool layered_add_codec(VGMSTREAM* vs, int layers, int layer_channels) {
 fail:
     return false;
 }
+
+bool layered_add_sf(VGMSTREAM* vs, int layers, int layer_channels, STREAMFILE* sf) {
+    return layered_add_internal(vs, layers, layer_channels, sf);
+}
+
+bool layered_add_codec(VGMSTREAM* vs, int layers, int layer_channels) {
+    if (!vs->codec_data)
+        return false;
+
+    return layered_add_internal(vs, layers, layer_channels, NULL);
+}
+
 
 bool layered_add_done(VGMSTREAM* vs) {
     //TODO: some extra checks/setup?

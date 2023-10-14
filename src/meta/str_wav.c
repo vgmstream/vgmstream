@@ -1,9 +1,10 @@
 #include "meta.h"
 #include "../coding/coding.h"
 #include "../util/layout_utils.h"
+#include "str_wav_streamfile.h"
 
 
-typedef enum { PSX, DSP, XBOX, WMA, IMA, XMA2, MPEG } strwav_codec;
+typedef enum { PSX, PSX_chunked, DSP, XBOX, WMA, IMA, XMA2, MPEG } strwav_codec;
 typedef struct {
     int tracks;
     int channels;
@@ -103,6 +104,29 @@ VGMSTREAM* init_vgmstream_str_wav(STREAMFILE* sf) {
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = strwav.interleave;
             break;
+
+        case PSX_chunked: { /* hack */
+            //tracks are stereo blocks of size 0x20000 * tracks, containing 4 interleaves of 0x8000:
+            // | 1 2 1 2 | 3 4 3 4 | 5 6 5 6 | 1 2 1 2 | 3 4 3 4 | 5 6 5 6 | ...
+
+            vgmstream->coding_type = coding_PSX;
+            vgmstream->interleave_block_size = strwav.interleave;
+            for (int i = 0; i < strwav.tracks; i++) {
+                uint32_t chunk_size = 0x20000;
+                int layer_channels = 2;
+
+                STREAMFILE* temp_sf = setup_str_wav_streamfile(sf, 0x00, strwav.tracks, i, chunk_size);
+                if (!temp_sf) goto fail;
+
+                bool res = layered_add_sf(vgmstream, strwav.tracks, layer_channels, temp_sf);
+                close_streamfile(temp_sf);
+                if (!res)
+                    goto fail;
+            }
+            if (!layered_add_done(vgmstream))
+                goto fail;
+            break;
+        }
 
         case DSP:
             vgmstream->coding_type = coding_NGC_DSP;
@@ -456,8 +480,8 @@ static int parse_header(STREAMFILE* sf_h, STREAMFILE* sf_b, strwav_header* strwa
 
         strwav->codec = PSX;
         strwav->interleave  = strwav->tracks > 1 ? 0x8000 : 0x8000;
-        //todo: tracks are stereo blocks of size 0x20000*tracks, containing 4 interleaves of 0x8000:
-        // | 1 2 1 2 | 3 4 3 4 | 5 6 5 6 | 1 2 1 2 | 3 4 3 4 | 5 6 5 6 | ...
+        if (strwav->tracks > 1) /* hack */
+            strwav->codec = PSX_chunked;
         ;VGM_LOG("STR+WAV: header ZPb (PS2)\n");
         return 1;
     }
@@ -690,7 +714,7 @@ static int parse_header(STREAMFILE* sf_h, STREAMFILE* sf_b, strwav_header* strwa
         /* 0x4c: ? (some low number) */
         strwav->tracks      = read_u8   (0x4e,sf_h);
         /* 0x4f: 16 bps */
-        /* 0x54: channels per each track? (ex. 2 stereo track: 0x02,0x02) */
+        /* 0x54: channels per each track (ex. 2 stereo track: 0x02,0x02) */
         /* 0x64: channels */
         /* 0x70+: tables */
 
@@ -772,8 +796,14 @@ static int parse_header(STREAMFILE* sf_h, STREAMFILE* sf_b, strwav_header* strwa
 
         strwav->channels    = read_s32be(0x70,sf_h);
 
-        /* possible flags/ch numbers at 0x4A/61 */
+        /* other possibly-useful flags (see Karaoke Wii too):
+         * - 0x4b: number of tracks 
+         * - 0x60: channels per track, ex. 020202 = 3 tracks of 2ch (max 0x08 = 8)
+         * - 0xa0: sizes per track (max 0x20 = 8)
+         * - 0xc0: samples per track (max 0x20 = 8)
+         * - rest: info/seek table? */
         if (read_s32be(0x78,sf_h) != 0) { /* KRev */
+
             strwav->tracks      = strwav->channels / 2;
             strwav->num_samples = strwav->loop_end; /* num_samples here seems to be data size */
             strwav->interleave  = read_s32be(0xA0,sf_h); /* one size per file, but CBR = same for all */

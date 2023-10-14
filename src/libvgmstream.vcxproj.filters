@@ -290,6 +290,9 @@
     <ClInclude Include="meta\sscf_encrypted.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="meta\str_wav_streamfile.h">
+      <Filter>meta\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="meta\txth_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>

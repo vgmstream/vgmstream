@@ -155,6 +155,7 @@
     <ClInclude Include="meta\sfh_streamfile.h" />
     <ClInclude Include="meta\sqex_streamfile.h" />
     <ClInclude Include="meta\sscf_encrypted.h" />
+    <ClInclude Include="meta\str_wav_streamfile.h" />
     <ClInclude Include="meta\txth_streamfile.h" />
     <ClInclude Include="meta\ubi_bao_streamfile.h" />
     <ClInclude Include="meta\ubi_ckd_cwav_streamfile.h" />
