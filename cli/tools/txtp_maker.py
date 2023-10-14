@@ -185,8 +185,11 @@ class TxtpInfo(object):
     def _get_text(self, str):
         text = self._get_string(str, full=True)
         # stream names in CLI is printed as UTF-8 using '\xNN', so detect and transform
-        if text and '\\' in text:
-            return text.encode('ascii').decode('unicode-escape').encode('iso-8859-1').decode('utf-8')
+        try:
+            if text and '\\' in text:
+                return text.encode('ascii').decode('unicode-escape').encode('iso-8859-1').decode('utf-8')
+        except:
+            return text #odd/buggy names
         return text
 
     def _get_value(self, str):
