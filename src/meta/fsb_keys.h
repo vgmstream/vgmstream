@@ -72,9 +72,10 @@ static const fsbkey_info fsbkey_list[] = {
         { MODE_FSB5_STD, FSBKEY_ADD("IfYouLikeThosesSoundsWhyNotRenumerateTheir2Authors?") }, // Blanc (PC/Switch)
         { MODE_FSB5_STD, FSBKEY_ADD("L36nshM520") }, // Nishuihan Mobile (Android)
         { MODE_FSB5_STD, FSBKEY_ADD("Forza2!") }, // Forza Motorsport (PC)
+        { MODE_FSB5_STD, FSBKEY_ADD("cbfjZTlUPaZI") }, // JDM: Japanese Drift Master (PC)
 
-        /* these games use a key per file, seemingly generated from the filename; could be possible to add them but there is a lot of songs,
-           so external .fsbkey may be better (use guessfsb 3.1 with --write-key-file) */
+        /* these games use a key per file, generated from the filename; could be possible to add them but there is a lot of songs,
+           so external .fsbkey may be better (use guessfsb 3.1 with --write-key-file or ) */
         //{ MODE_FSB4_STD, FSBKEY_ADD("...") }, // Guitar Hero: Metallica (PC/PS3/X360) [FSB4]
         //{ MODE_FSB4_STD, FSBKEY_ADD("...") }, // Guitar Hero: World Tour (PC/PS3/X360) [FSB4]
 };
