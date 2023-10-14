@@ -480,7 +480,8 @@ fail:
     return 0;
 }
 
-/* ktsr engine reads+decrypts in the same func based on passed flag tho (reversed from exe) */
+/* ktsr engine reads+decrypts in the same func based on passed flag tho (reversed from exe)
+ * Strings are usually ASCII but Shift-JIS is used in rare cases (0x0c3e2edf.srsa) */
 static void decrypt_string_ktsr(char* buf, size_t buf_size, uint32_t seed) {
     for (int i = 0; i < buf_size - 1; i++) {
         if (!buf[i]) /* just in case */
