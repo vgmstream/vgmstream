@@ -513,6 +513,10 @@ willow.mpf: willow.mus,willow_o.mus
 bgm_2_streamfiles.awb: bgm_2.acb
 ```
 ```
+# hashes of SE1_Common_BGM + ext [Hyrule Warriors: Age of Calamity (Switch)]
+0x3a160928.srsa: 0x272c6efb.srsa
+```
+```
 # Snack World (Switch) names for .awb (single .acb for all .awb, order matters)
 bgm.awb: bgm.acb
 bgm_DLC1.awb: bgm.acb
@@ -639,7 +643,7 @@ called to play one or multiple audio "waves"/"materials" in another section.
 Rather than handling cues, vgmstream shows and plays waves, then assigns cue names
 that point to the wave if possible, since vgmstream mainly deals with streamed/wave
 audio and simulating cues is out of scope. Figuring out a whole cue format can be a
-*huge* time investment, so handling waves only is often enough.
+*huge* time investment, so handling waves only is good enough.
 
 Cues can be *very* complex, like N cues pointing to 1 wave with varying pitch, or
 1 cue playing one random wave out of 3. Sometimes not all waves are referenced by

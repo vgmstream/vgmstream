@@ -1601,6 +1601,8 @@ different internally (encrypted, different versions, etc) and not always can be 
 - **ktsr.c**
   - Koei Tecmo KTSR header [*KTSR*]
   - *ktsr*: `.ktsl2asbin .asbin`
+  - *asrs*: `.srsa`
+  - *ktsr_internal*
     - Subfiles: *riff ogg_vorbis ktss*
   - Codecs: MSADPCM_int NGC_DSP ATRAC9
 - **mups.c**
@@ -1938,85 +1940,85 @@ Quick list of most codecs vgmstream supports, including many obscure ones that
 are used in few games.
 
 - PCM
-- PCM 16-bit (little endian, big endian)
-- PCM 8-bit (signed, unsigned, sign bit)
-- PCM 4-bit (signed, unsigned)
-- PCM 24-bit (little endian, big endian)
-- PCM 32-bit float
-- u-Law/a-LAW
+  - PCM 16-bit (little endian, big endian)
+  - PCM 8-bit (signed, unsigned, sign bit)
+  - PCM 4-bit (signed, unsigned)
+  - PCM 24-bit (little endian, big endian)
+  - PCM 32-bit float
+  - u-Law/a-LAW
 - ADPCM (BRR/XA-style)
-- CD-ROM XA ADPCM
-- Sony PSX ADPCM a.k.a VAG (standard, badflags, configurable, extended)
-- CRI ADX (standard, fixed, exponential, encrypted)
-- Silicon Graphics VADPCM
-- Nintendo DSP ADPCM a.k.a GC ADPCM
-- Nintendo DTK ADPCM
-- Nintendo AFC ADPCM
-- Microsoft MSADPCM (standard, mono, Cricket Audio)
-- Electronic Arts EA-XA (stereo, mono, Maxis)
-- Electronic Arts EA-XAS (v0, v1)
-- Konami MTAF ADPCM
-- Konami MTA2 ADPCM
-- FMOD FADPCM ADPCM
-- Procyon Studio ADPCM
-- Level-5 0x555 ADPCM
-- Konami XMD ADPCM
-- Argonaut ASF ADPCM
-- Tantalus ADPCM
+  - CD-ROM XA ADPCM
+  - Sony PSX ADPCM a.k.a VAG (standard, badflags, configurable, extended)
+  - CRI ADX (standard, fixed, exponential, encrypted)
+  - Silicon Graphics VADPCM
+  - Nintendo DSP ADPCM a.k.a GC ADPCM
+  - Nintendo DTK ADPCM
+  - Nintendo AFC ADPCM
+  - Microsoft MSADPCM (standard, mono, Cricket Audio)
+  - Electronic Arts EA-XA (stereo, mono, Maxis)
+  - Electronic Arts EA-XAS (v0, v1)
+  - Konami MTAF ADPCM
+  - Konami MTA2 ADPCM
+  - FMOD FADPCM ADPCM
+  - Procyon Studio ADPCM
+  - Level-5 0x555 ADPCM
+  - Konami XMD ADPCM
+  - Argonaut ASF ADPCM
+  - Tantalus ADPCM
 - ADPCM (IMA-style)
-- DVI/IMA ADPCM (stereo/mono + high/low nibble, 3DS, Quantic Dream, SNDS, etc)
-- Microsoft MS-IMA ADPCM (standard, Xbox, NDS, Radical, Wwise, FSB, WV6, etc)
-- Yamaha ADPCM (AICA, Aska)
-- Westwood VBR ADPCM
-- OKI ADPCM (16-bit output, 4-shift, PC-FX)
-- LucasArts iMUSE VBR ADPCM
-- Tiger Game.com ADPCM
+  - DVI/IMA ADPCM (stereo/mono + high/low nibble, 3DS, Quantic Dream, SNDS, etc)
+  - Microsoft MS-IMA ADPCM (standard, Xbox, NDS, Radical, Wwise, FSB, WV6, etc)
+  - Yamaha ADPCM (AICA, Aska)
+  - Westwood VBR ADPCM
+  - OKI ADPCM (16-bit output, 4-shift, PC-FX)
+  - LucasArts iMUSE VBR ADPCM
+  - Tiger Game.com ADPCM
 - ADPCM (others)
-- Sony HEVAG
-- Ubisoft 4/6-bit ADPCM
-- Platinum ADPCM
-- Paradigm MC3 ADPCM
-- Ocean DSA ADPCM
-- lsf ADPCM
-- ITU-T G.721
-- CompressWave (CWav) Huffman ADPCM
+  - Sony HEVAG
+  - Ubisoft 4/6-bit ADPCM
+  - Platinum ADPCM
+  - Paradigm MC3 ADPCM
+  - Ocean DSA ADPCM
+  - lsf ADPCM
+  - ITU-T G.721
+  - CompressWave (CWav) Huffman ADPCM
 - Perceptual/transform-based
-- MPEG MP1/2/3 (standard, AHX, XVAG, FSB, AWC, P3D, EA, etc)
-- Xiph Vorbis (Ogg, FSB, Wwise, OGL, Silicon Knights)
-- CRI HCA
-- ITU-T G.722.1 annex C a.k.a. Polycom Siren 14 (Namco)
-- ITU-T G.719 annex B a.k.a. Polycom Siren 22
-- Xiph Opus (Ogg, Switch, EA, UE4, Exient, FSB)
-- Xiph CELT (FSB)
-- Microsoft XMA1/2
-- Microsoft WMA v1, WMA v2, WMAPro
-- AAC
-- Sony ATRAC3
-- Sony ATRAC3plus
-- Sony ATRAC9
-- Relic Codec
-- tri-Ace PS2 Codec
-- Bink
-- AC3/SPDIF
-- Musepack
-- Electronic Arts EASpeex
-- Electronic Arts EALayer3
-- Electronic Arts EA-XMA
-- Electronic Arts MicroTalk a.k.a. UTK or UMT
-- Inti Creates DCT codec
-- Circus XPCM VQ
+  - MPEG MP1/2/3 (standard, AHX, XVAG, FSB, AWC, P3D, EA, etc)
+  - Xiph Vorbis (Ogg, FSB, Wwise, OGL, Silicon Knights)
+  - CRI HCA
+  - ITU-T G.722.1 annex C a.k.a. Polycom Siren 14 (Namco)
+  - ITU-T G.719 annex B a.k.a. Polycom Siren 22
+  - Xiph Opus (Ogg, Switch, EA, UE4, Exient, FSB)
+  - Xiph CELT (FSB)
+  - Microsoft XMA1/2
+  - Microsoft WMA v1, WMA v2, WMAPro
+  - AAC
+  - Sony ATRAC3
+  - Sony ATRAC3plus
+  - Sony ATRAC9
+  - Relic Codec
+  - tri-Ace PS2 Codec
+  - Bink
+  - AC3/SPDIF
+  - Musepack
+  - Electronic Arts EASpeex
+  - Electronic Arts EALayer3
+  - Electronic Arts EA-XMA
+  - Electronic Arts MicroTalk a.k.a. UTK or UMT
+  - Inti Creates DCT codec
+  - Circus XPCM VQ
 - Misc
-- SDX2 2:1 Squareroot-Delta-Exact compression DPCM
-- CBD2 2:1 Cuberoot-Delta-Exact compression DPCM
-- Activision EXAKT SASSC DPCM
-- Xilam DERF DPCM
-- Circus XPCM DPCM
-- VisualArt's NWA PCM/DPCM
-- Marble WADY PCM/DPCM
-- InterPlay ACM
-- Inti Creates Range codec
-- FLAC
-- Others
+  - SDX2 2:1 Squareroot-Delta-Exact compression DPCM
+  - CBD2 2:1 Cuberoot-Delta-Exact compression DPCM
+  - Activision EXAKT SASSC DPCM
+  - Xilam DERF DPCM
+  - Circus XPCM DPCM
+  - VisualArt's NWA PCM/DPCM
+  - Marble WADY PCM/DPCM
+  - InterPlay ACM
+  - Inti Creates Range codec
+  - FLAC
+  - Others
 
 Sometimes standard codecs come in non-standard layouts that aren't normally
 supported by other players (like multiple `.ogg` or `.mp3` files chunked and
