@@ -1600,8 +1600,9 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Codecs: IMUSE
 - **ktsr.c**
   - Koei Tecmo KTSR header [*KTSR*]
+  - *ktsr*: `.ktsl2asbin .asbin`
   - *asrs*: `.srsa`
-  - *ktsr_internal*: `.ktsl2asbin .asbin`
+  - *ktsr_internal*
     - Subfiles: *riff ogg_vorbis ktss*
   - Codecs: MSADPCM_int NGC_DSP ATRAC9
 - **mups.c**
