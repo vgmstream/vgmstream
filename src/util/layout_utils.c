@@ -108,6 +108,11 @@ static bool layered_add_internal(VGMSTREAM* vs, int layers, int layer_channels, 
 
     vs->codec_data = NULL; /* moved to layer, don't hold it */
 
+    if (sf) {
+        if (!vgmstream_open_stream(data->layers[i], sf, 0x00))
+            goto fail;
+    }
+
     data->curr_layer++;
 
     return true;
