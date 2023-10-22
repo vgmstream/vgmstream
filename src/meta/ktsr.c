@@ -2,6 +2,7 @@
 #include "../coding/coding.h"
 #include "../layout/layout.h"
 #include "../util/companion_files.h"
+#include "ktsr_streamfile.h"
 
 typedef enum { NONE, MSADPCM, DSP, GCADPCM, ATRAC9, RIFF_ATRAC9, KOVS, KTSS, } ktsr_codec;
 
@@ -231,15 +232,20 @@ fail:
     return NULL;
 }
 
-// TODO improve, unity with other metas that do similar stuff
+// TODO improve, unify with other metas that do similar stuff
 static VGMSTREAM* init_vgmstream_ktsr_sub(STREAMFILE* sf_b, ktsr_header* ktsr, VGMSTREAM* (*init_vgmstream)(STREAMFILE* sf), const char* ext) {
     VGMSTREAM* sub_vgmstream = NULL;
-    STREAMFILE* temp_sf = setup_subfile_streamfile(sf_b, ktsr->stream_offsets[0], ktsr->stream_sizes[0], ext);
+    STREAMFILE* temp_sf = NULL;
+
+    temp_sf = setup_ktsr_streamfile(sf_b, ktsr->is_external, ktsr->stream_offsets[0], ktsr->stream_sizes[0], ext);
     if (!temp_sf) return NULL;
 
     sub_vgmstream = init_vgmstream(temp_sf);
     close_streamfile(temp_sf);
-    if (!sub_vgmstream) return NULL;
+    if (!sub_vgmstream) {
+        VGM_LOG("ktsr: can't open subfile at %x (size %x)\n", ktsr->stream_offsets[0], ktsr->stream_sizes[0]);
+        return NULL;
+    }
 
     sub_vgmstream->stream_size = ktsr->stream_sizes[0];
     sub_vgmstream->num_streams = ktsr->total_subsongs;
@@ -378,9 +384,11 @@ static int parse_ktsr_subfile(ktsr_header* ktsr, STREAMFILE* sf, uint32_t offset
         case 0x3DEA478D: /* external [Nioh (PC)] (smaller) */
         case 0xDF92529F: /* external [Atelier Ryza (PC)] */
         case 0x6422007C: /* external [Atelier Ryza (PC)] */
+        case 0x793A1FD7: /* external [Stranger of Paradise (PS4)]-encrypted */
+        case 0xA0F4FC6C: /* external [Stranger of Paradise (PS4)]-encrypted */
             /* 08 subtype? (ex. 0x522B86B9)
              * 0c channels
-             * 10 ? (always 0x002706B8)
+             * 10 ? (always 0x002706B8 / 7864523D in SoP)
              * 14 external codec
              * 18 sample rate
              * 1c num samples

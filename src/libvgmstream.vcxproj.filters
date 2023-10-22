@@ -245,6 +245,9 @@
     <ClInclude Include="meta\kma9_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="meta\ktsr_streamfile.h">
+      <Filter>meta\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="meta\lp_ap_lep_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
@@ -345,6 +348,9 @@
       <Filter>util\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="util\chunks.h">
+      <Filter>util\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="util\cipher_blowfish.h">
       <Filter>util\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="util\companion_files.h">
@@ -2042,6 +2048,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="util\chunks.c">
+      <Filter>util\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="util\cipher_blowfish.c">
       <Filter>util\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="util\companion_files.c">

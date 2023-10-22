@@ -846,6 +846,7 @@ VGMSTREAM * init_vgmstream_nub_xma(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_nub_dsp(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_nub_idsp(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_nub_is14(STREAMFILE * streamFile);
+VGMSTREAM* init_vgmstream_nub_caf(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_xwv_valve(STREAMFILE* sf);
 
@@ -871,6 +872,7 @@ VGMSTREAM * init_vgmstream_tgc(STREAMFILE *streamFile);
 
 VGMSTREAM* init_vgmstream_kwb(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_xws(STREAMFILE* sf);
+VGMSTREAM* init_vgmstream_snd_koei(STREAMFILE* sf);
 
 VGMSTREAM * init_vgmstream_lrmd(STREAMFILE* sf);
 

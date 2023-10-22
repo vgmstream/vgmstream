@@ -140,6 +140,7 @@
     <ClInclude Include="meta\idtech_streamfile.h" />
     <ClInclude Include="meta\jstm_streamfile.h" />
     <ClInclude Include="meta\kma9_streamfile.h" />
+    <ClInclude Include="meta\ktsr_streamfile.h" />
     <ClInclude Include="meta\lp_ap_lep_streamfile.h" />
     <ClInclude Include="meta\lrmd_streamfile.h" />
     <ClInclude Include="meta\meta.h" />
@@ -174,6 +175,7 @@
     <ClInclude Include="util\bitstream_msb.h" />
     <ClInclude Include="util\channel_mappings.h" />
     <ClInclude Include="util\chunks.h" />
+    <ClInclude Include="util\cipher_blowfish.h" />
     <ClInclude Include="util\companion_files.h" />
     <ClInclude Include="util\cri_keys.h" />
     <ClInclude Include="util\cri_utf.h" />
@@ -741,6 +743,7 @@
     <ClCompile Include="meta\zwdsp.c" />
     <ClCompile Include="meta\zwv.c" />
     <ClCompile Include="util\chunks.c" />
+    <ClCompile Include="util\cipher_blowfish.c" />
     <ClCompile Include="util\companion_files.c" />
     <ClCompile Include="util\cri_keys.c" />
     <ClCompile Include="util\cri_utf.c" />
