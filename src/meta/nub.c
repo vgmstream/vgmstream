@@ -30,7 +30,7 @@ VGMSTREAM* init_vgmstream_nub(STREAMFILE* sf) {
         goto fail;
 
     /* .nub: standard
-     * .nub2: rare [iDOLM@STER - Gravure For You (PS3)] */
+     * .nub2: rare [iDOLM@STER: Gravure For You (PS3), Noby Noby Boy (iOS)] */
     if (!check_extensions(sf, "nub,nub2"))
         goto fail;
 
@@ -97,45 +97,50 @@ VGMSTREAM* init_vgmstream_nub(STREAMFILE* sf) {
         header_size = align_size_to_block(subheader_start + subheader_size, 0x10);
 
         switch(codec) {
-            case 0x00: /* (none) (xma1) */
+            case 0x00: /* xma1 */
                 fake_ext = "xma";
                 init_vgmstream_function = init_vgmstream_nub_xma;
                 break;
 
-            case 0x01: /* "wav\0" */
+            case 0x01:
                 fake_ext = "wav";
                 init_vgmstream_function = init_vgmstream_nub_wav;
                 break;
 
-            case 0x02: /* "vag\0" */
+            case 0x02:
                 fake_ext = "vag";
                 init_vgmstream_function = init_vgmstream_nub_vag;
                 break;
 
-            case 0x03: /* "at3\0" */
+            case 0x03:
                 fake_ext = "at3";
                 init_vgmstream_function = init_vgmstream_nub_at3;
                 break;
 
-            case 0x04: /* "xma\0" (xma2 old) */
-            case 0x08: /* "xma\0" (xma2 new) */
+            case 0x04: /* xma2 old */
+            case 0x08: /* xma2 new */
                 fake_ext = "xma";
                 init_vgmstream_function = init_vgmstream_nub_xma;
                 break;
 
-            case 0x05: /* "dsp\0" */
+            case 0x05:
                 fake_ext = "dsp";
                 init_vgmstream_function = init_vgmstream_nub_dsp;
                 break;
 
-            case 0x06: /* "idsp" */
+            case 0x06:
                 fake_ext = "idsp";
                 init_vgmstream_function = init_vgmstream_nub_idsp;
                 break;
 
-            case 0x07: /* "is14" */
+            case 0x07:
                 fake_ext = "is14";
                 init_vgmstream_function = init_vgmstream_nub_is14;
+                break;
+
+            case 0x09:
+                fake_ext = "caf";
+                init_vgmstream_function = init_vgmstream_nub_caf;
                 break;
 
             default:
@@ -235,9 +240,10 @@ static STREAMFILE* setup_nub_streamfile(STREAMFILE* sf, off_t header_offset, siz
 
 //todo could be simplified
 
-/* .nub wav - from Namco NUB archives [Ridge Racer 7 (PS3)] */
+/* .nub wav - from Namco NUB archives [Ridge Racer 7 (PS3), Noby Noby Boy (iOS)] */
 VGMSTREAM* init_vgmstream_nub_wav(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
+    STREAMFILE* temp_sf = NULL;
     off_t start_offset;
     int loop_flag, channel_count, sample_rate;
     size_t data_size, loop_start, loop_length;
@@ -246,10 +252,10 @@ VGMSTREAM* init_vgmstream_nub_wav(STREAMFILE* sf) {
 
 
     /* checks */
+    if (!is_id32be(0x00,sf, "wav\0"))
+        return NULL;
     if (!check_extensions(sf, "wav,lwav"))
-        goto fail;
-    if (read_32bitBE(0x00,sf) != 0x77617600) /* "wav\0" "*/
-        goto fail;
+        return NULL;
 
     if (guess_endian32(0x1c, sf)) {
         read_32bit = read_32bitBE;
@@ -276,6 +282,21 @@ VGMSTREAM* init_vgmstream_nub_wav(STREAMFILE* sf) {
 
     start_offset = 0xD0;
 
+    /* seen in Noby Noby Boy (iOS), not sure about flags */
+    if (is_id32be(start_offset, sf, "RIFF")) {
+        uint32_t subfile_offset = start_offset;
+        uint32_t subfile_size   = read_32bitLE(subfile_offset + 0x04, sf) + 0x08; /* RIFF size */
+
+        temp_sf = setup_subfile_streamfile(sf, subfile_offset,subfile_size, NULL);
+        if (!temp_sf) goto fail;
+
+        vgmstream = init_vgmstream_riff(temp_sf);
+        if (!vgmstream) goto fail;
+
+        close_streamfile(temp_sf);
+        return vgmstream;
+    }
+
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
@@ -296,6 +317,7 @@ VGMSTREAM* init_vgmstream_nub_wav(STREAMFILE* sf) {
     return vgmstream;
 
 fail:
+    close_streamfile(temp_sf);
     close_vgmstream(vgmstream);
     return NULL;
 }
@@ -310,10 +332,10 @@ VGMSTREAM* init_vgmstream_nub_vag(STREAMFILE* sf) {
 
 
     /* checks */
+    if (!is_id32be(0x00,sf, "vag\0"))
+        return NULL;
     if ( !check_extensions(sf, "vag"))
-        goto fail;
-    if (read_32bitBE(0x00,sf) != 0x76616700) /* "vag\0" */
-        goto fail;
+        return NULL;
 
     if (guess_endian32(0x1c, sf)) {
         read_32bit = read_32bitBE;
@@ -362,15 +384,13 @@ fail:
 VGMSTREAM* init_vgmstream_nub_at3(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     STREAMFILE* temp_sf = NULL;
-    off_t subfile_offset = 0;
-    size_t subfile_size = 0;
 
 
     /* checks */
+    if (!is_id32be(0x00,sf, "at3\0"))
+        return NULL;
     if (!check_extensions(sf,"at3"))
-        goto fail;
-    if (read_32bitBE(0x00,sf) != 0x61743300) /* "at3\0" */
-        goto fail;
+        return NULL;
 
     /* info header */
     /* 0x20: loop start (in samples) */
@@ -381,8 +401,8 @@ VGMSTREAM* init_vgmstream_nub_at3(STREAMFILE* sf) {
     /* format header: mini fmt (WAVEFORMATEX) + fact chunks LE (clone of RIFF's) */
     /* we can just ignore and use RIFF at data start since it has the same info */
 
-    subfile_offset = 0x100;
-    subfile_size   = read_32bitLE(subfile_offset + 0x04, sf) + 0x08; /* RIFF size */
+    uint32_t subfile_offset = 0x100;
+    uint32_t subfile_size   = read_32bitLE(subfile_offset + 0x04, sf) + 0x08; /* RIFF size */
 
     temp_sf = setup_subfile_streamfile(sf, subfile_offset,subfile_size, NULL);
     if (!temp_sf) goto fail;
@@ -410,9 +430,9 @@ VGMSTREAM* init_vgmstream_nub_xma(STREAMFILE* sf) {
 
     /* checks */
     if (!check_extensions(sf,"xma"))
-        goto fail;
+        return NULL;
 
-    if (read_32bitBE(0x00,sf) == 0x786D6100) { /* "xma\0" */
+    if (is_id32be(0x00,sf, "xma\0")) {
         /* nub v2.1 */
         nus_codec    = read_32bitBE(0x0C,sf);
         data_size    = read_32bitBE(0x14,sf);
@@ -435,7 +455,7 @@ VGMSTREAM* init_vgmstream_nub_xma(STREAMFILE* sf) {
         chunk_size   = header_size;
     }
     else {
-        goto fail;
+        return NULL;
     }
 
     start_offset = align_size_to_block(chunk_offset + header_size, 0x10);
@@ -520,10 +540,10 @@ VGMSTREAM* init_vgmstream_nub_dsp(STREAMFILE* sf) {
 
 
     /* checks */
+    if (!is_id32be(0x00,sf, "dsp\0"))
+        return NULL;
     if (!check_extensions(sf,"dsp"))
-        goto fail;
-    if (read_32bitBE(0x00,sf) != 0x64737000)    /* "dsp\0" */
-        goto fail;
+        return NULL;
 
     /* paste header+data together and pass to meta, which has loop info too */
     header_offset = 0xBC;
@@ -554,10 +574,10 @@ VGMSTREAM* init_vgmstream_nub_idsp(STREAMFILE* sf) {
 
 
     /* checks */
+    if (!is_id32be(0x00,sf, "idsp"))
+        return NULL;
     if (!check_extensions(sf,"idsp"))
-        goto fail;
-    if (read_32bitBE(0x00,sf) != 0x69647370)    /* "idsp" */
-        goto fail;
+        return NULL;
 
     /* info header */
     /* 0x20: loop start (in samples) */
@@ -595,10 +615,10 @@ VGMSTREAM* init_vgmstream_nub_is14(STREAMFILE* sf) {
 
 
     /* checks */
+    if (!is_id32be(0x00,sf, "is14"))
+        return NULL;
     if (!check_extensions(sf,"is14"))
-        goto fail;
-    if (read_32bitBE(0x00,sf) != 0x69733134) /* "is14" */
-        goto fail;
+        return NULL;
 
     if (guess_endian32(0x1c, sf)) {
         read_32bit = read_32bitBE;
@@ -623,6 +643,44 @@ VGMSTREAM* init_vgmstream_nub_is14(STREAMFILE* sf) {
     if (!temp_sf) goto fail;
 
     vgmstream = init_vgmstream_bnsf(temp_sf);
+    if (!vgmstream) goto fail;
+
+    close_streamfile(temp_sf);
+    return vgmstream;
+fail:
+    close_streamfile(temp_sf);
+    close_vgmstream(vgmstream);
+    return NULL;
+}
+
+/* .nub is14 - from Namco NUB archives [Noby Noby Boy (iOS)] */
+VGMSTREAM* init_vgmstream_nub_caf(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
+    STREAMFILE* temp_sf = NULL;
+
+
+    /* checks */
+    if (!is_id32be(0x00,sf, "caf\0"))
+        return NULL;
+    if (!check_extensions(sf,"caf"))
+        return NULL;
+
+    /* info header */
+    /* 0x20: loop start (in samples) */
+    /* 0x24: loop length (in samples) */
+    /* 0x28: loop flag */
+    /* 0x2c: null */
+
+    /* format header: simplified caff with some chunks */
+    /* we can just ignore and use caff at data start since it has the same info */
+
+    uint32_t subfile_offset = 0x110;
+    uint32_t subfile_size   = read_u32le(0x14, sf); /* padded but not fully validated */
+
+    temp_sf = setup_subfile_streamfile(sf, subfile_offset, subfile_size, NULL);
+    if (!temp_sf) goto fail;
+
+    vgmstream = init_vgmstream_apple_caff(temp_sf);
     if (!vgmstream) goto fail;
 
     close_streamfile(temp_sf);
