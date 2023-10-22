@@ -4,7 +4,7 @@
 #include "../layout/layout.h"
 
 
-#define PSB_MAX_LAYERS 2
+#define PSB_MAX_LAYERS 6 /* MGS Master Collection Vo.1 (Switch) */
 
 typedef enum { PCM, RIFF_AT3, XMA2, MSADPCM, XWMA, DSP, OPUSNX, RIFF_AT9, VAG } psb_codec_t;
 typedef struct {
