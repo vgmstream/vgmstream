@@ -330,7 +330,7 @@ circus_handle_t* circus_init(off_t start, uint8_t codec, uint8_t flags) {
     handle->flags = flags; //(config >> 8) & 0xFF;
 
     scale_index = (handle->flags & 0xF);
-    if (scale_index > 5) goto fail;
+    if (scale_index >= 5) goto fail;
     handle->scales = scale_table[scale_index];
 
     if (handle->codec == XPCM_CODEC_VQ_DEFLATE) {
