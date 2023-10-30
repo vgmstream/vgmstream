@@ -1012,7 +1012,7 @@ static int parse_values(ubi_bao_header* bao) {
     }
 
     /* set codec */
-    if (bao->stream_type > 0x10) {
+    if (bao->stream_type >= 0x10) {
         VGM_LOG("UBI BAO: unknown stream_type at %x\n", (uint32_t)bao->header_offset); goto fail;
         goto fail;
     }
