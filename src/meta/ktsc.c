@@ -14,8 +14,7 @@ VGMSTREAM* init_vgmstream_ktsc(STREAMFILE* sf) {
     /* checks */
     if (!is_id32be(0x00, sf, "KTSC"))
         goto fail;
-    if (read_u32be(0x04, sf) != 0x01000001) /* version? */
-        goto fail;
+    /* 0x04: version? (0x01000001: common, 0x01000004: FE Three Houses) */
 
     /* .ktsl2asbin: common [Atelier Ryza (PC)]
      * .asbin: Warriors Orochi 4 (PC) (assumed) */
