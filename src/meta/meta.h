@@ -819,8 +819,8 @@ VGMSTREAM * init_vgmstream_bwav(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_awb(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_awb_memory(STREAMFILE * streamFile, STREAMFILE *acbFile);
 
-VGMSTREAM * init_vgmstream_acb(STREAMFILE * streamFile);
-void load_acb_wave_name(STREAMFILE *acbFile, VGMSTREAM* vgmstream, int waveid, int port, int is_memory);
+VGMSTREAM* init_vgmstream_acb(STREAMFILE* sf);
+void load_acb_wave_info(STREAMFILE *acbFile, VGMSTREAM* vgmstream, int waveid, int port, int is_memory, int load_loops);
 
 VGMSTREAM * init_vgmstream_rad(STREAMFILE * streamFile);
 

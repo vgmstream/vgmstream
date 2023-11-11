@@ -4,7 +4,7 @@
 
 //typedef enum { ADX, HCA, VAG, RIFF, CWAV, DSP, CWAC, M4A } awb_type_t;
 
-static void load_awb_name(STREAMFILE* sf, STREAMFILE* sf_acb, VGMSTREAM* vgmstream, int waveid);
+static void load_acb_info(STREAMFILE* sf, STREAMFILE* sf_acb, VGMSTREAM* vgmstream, int waveid, int load_loops);
 
 /* AFS2/AWB (Atom Wave Bank) - CRI container of streaming audio, often together with a .acb cue sheet */
 VGMSTREAM* init_vgmstream_awb(STREAMFILE* sf) {
@@ -19,6 +19,7 @@ VGMSTREAM* init_vgmstream_awb_memory(STREAMFILE* sf, STREAMFILE* sf_acb) {
     uint8_t offset_size;
     uint16_t waveid_alignment, offset_alignment, subkey;
     int waveid;
+    int load_loops = 0;
 
 
     /* checks */
@@ -126,6 +127,11 @@ VGMSTREAM* init_vgmstream_awb_memory(STREAMFILE* sf, STREAMFILE* sf_acb) {
             extension = "m4a";
         }
 #endif
+        else if (read_u32be(subfile_offset + 0x00,sf) == 0x01000080) { /* (type 24=NXOpus) */
+            init_vgmstream =init_vgmstream_opus_std;  /* Super Mario RPG (Switch) */
+            extension = "opus";
+            load_loops = 1; /* loops not in Opus (rare) but in .acb */
+        }
         else { /* 12=XMA? */
             vgm_logi("AWB: unknown codec (report)\n");
             goto fail;
@@ -144,8 +150,8 @@ VGMSTREAM* init_vgmstream_awb_memory(STREAMFILE* sf, STREAMFILE* sf_acb) {
         vgmstream->num_streams = total_subsongs;
     }
 
-    /* try to load cue names */
-    load_awb_name(sf, sf_acb, vgmstream,  waveid);
+    /* try to load cue names+etc */
+    load_acb_info(sf, sf_acb, vgmstream,  waveid, load_loops);
 
     close_streamfile(temp_sf);
     return vgmstream;
@@ -157,7 +163,7 @@ fail:
 }
 
 
-static void load_awb_name(STREAMFILE* sf, STREAMFILE* sf_acb, VGMSTREAM* vgmstream, int waveid) {
+static void load_acb_info(STREAMFILE* sf, STREAMFILE* sf_acb, VGMSTREAM* vgmstream, int waveid, int load_loops) {
     int is_memory = (sf_acb != NULL);
     int port = 0;
 
@@ -170,7 +176,7 @@ static void load_awb_name(STREAMFILE* sf, STREAMFILE* sf_acb, VGMSTREAM* vgmstre
         /* try parsing TXTM if present */
         sf_acb = read_filemap_file_pos(sf, 0, &port);
 
-        /* try (name).awb + (name).awb */
+        /* try (name).awb + (name).acb */
         if (!sf_acb) {
             sf_acb = open_streamfile_by_ext(sf, "acb");
         }
@@ -204,11 +210,11 @@ static void load_awb_name(STREAMFILE* sf, STREAMFILE* sf_acb, VGMSTREAM* vgmstre
         }
 
         /* probably loaded */
-        load_acb_wave_name(sf_acb, vgmstream, waveid, port, is_memory);
+        load_acb_wave_info(sf_acb, vgmstream, waveid, port, is_memory, load_loops);
 
         close_streamfile(sf_acb);
     }
     else {
-        load_acb_wave_name(sf_acb, vgmstream, waveid, port, is_memory);
+        load_acb_wave_info(sf_acb, vgmstream, waveid, port, is_memory, load_loops);
     }
 }
