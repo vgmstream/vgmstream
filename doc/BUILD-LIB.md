@@ -433,7 +433,7 @@ Untested/outdated.
 ### libopus
 This is used below by FFmpeg (but can be disabled), as a static lib (`.a`/`.lib`) rather than DLL.
 
-If you wonder why use it through FFmpeg instead of directly, all work was already done for FFmpeg's opus so it was faster easier this way.
+If you wonder why use it through FFmpeg instead of directly, all work was already done for FFmpeg's opus so it was faster and easier this way.
 
 #### Source
 ```bat
@@ -475,7 +475,7 @@ MSBuild.exe opus.sln /p:Platform=x64 /p:Configuration=Release /p:WindowsTargetPl
 ### FFmpeg
 vgmstream's FFmpeg builds for **Windows** and static builds for **Linux** remove many unnecessary parts of FFmpeg to trim down its gigantic size, and, on Windows, are also built with the "-vgmstream" suffix to prevent clashing with other plugins. Current options can be seen in `ffmpeg_options.txt`. Shared **Linux** builds usually link to system FFmpeg without issues, while standard FFmpeg DLLs may work (renamed to -vgmstream).
 
-FFmpeg can be compiled with *libopus* (external lib) rather than internal *opus*. This is used because FFmpeg decodes incorrectly Opus files used some in games (mostly low bitrate). In older versions this was audibly wrong, but currently the difference shouldn't be that much, but still not that accurate compared with *libopus* (PCM sample diffs of +5000), so *vgmstream* enables it. Getting *libopus* recognized can be unwieldly, so internal *opus* is a decent enough substitute (remove `--enable-libopus` and change `libopus` to `opus` in `--enable-decoder`).
+FFmpeg can be compiled with *libopus* (external lib) rather than internal *opus*. This is used because FFmpeg decodes incorrectly Opus files used some in games (mostly low bitrate). In older versions this was audibly wrong, but currently the difference shouldn't be that much, but still not that accurate compared with *libopus* (PCM sample diffs of +5000), so *vgmstream* enables it. Getting *libopus* recognized can be unwieldly, so internal *opus* is a decent enough substitute (remove `--enable-libopus` and change `libopus` to `opus` in `--enable-decoder` from options, and remove `--enable-custom-modes` from *configure*).
 
 GCC and MSVC need `yasm.exe` somewhere in `PATH` to properly compile/optimize: https://yasm.tortall.net (add `--disable-yasm` to *configure* options to disable, may decrease performance).
 

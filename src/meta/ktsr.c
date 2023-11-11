@@ -350,11 +350,13 @@ static int parse_codec(ktsr_header* ktsr) {
             if (ktsr->is_external) {
                 if (ktsr->format == 0x0005)
                     ktsr->codec = KTSS; // [Ultra Kaiju Monster Rancher (Switch)]
+                else if (ktsr->format == 0x1000)
+                    ktsr->codec = KTSS; // [Fire Emblem: Three Houses (Switch)-some DSP voices]
                 else
                     goto fail;
             }
             else if (ktsr->format == 0x0000)
-                ktsr->codec = DSP; // Fire Emblem: Three Houses (Switch)
+                ktsr->codec = DSP; // [Fire Emblem: Three Houses (Switch)]
             else
                 goto fail;
             break;

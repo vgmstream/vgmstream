@@ -282,11 +282,11 @@ static void load_cpk_name(STREAMFILE* sf, STREAMFILE* sf_acb, VGMSTREAM* vgmstre
             return;
 
         /* companion .acb probably loaded */
-        load_acb_wave_name(sf_acb, vgmstream, waveid, port, is_memory);
+        load_acb_wave_info(sf_acb, vgmstream, waveid, port, is_memory, 0);
 
         close_streamfile(sf_acb);
     }
     else {
-        load_acb_wave_name(sf_acb, vgmstream, waveid, port, is_memory);
+        load_acb_wave_info(sf_acb, vgmstream, waveid, port, is_memory, 0);
     }
 }

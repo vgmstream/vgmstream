@@ -92,6 +92,7 @@ fail:
 #define ACB_TABLE_BUFFER_TRACKCOMMAND 0x2000
 #define ACB_TABLE_BUFFER_SYNTH 0x4000
 #define ACB_TABLE_BUFFER_WAVEFORM 0x4000
+#define ACB_TABLE_BUFFER_WAVEFORMEXTENSIONDATA 0x1000
 
 #define ACB_MAX_NAMELIST 255
 #define ACB_MAX_NAME 1024 /* even more is possible in rare cases [Senran Kagura Burst Re:Newal (PC)] */
@@ -159,7 +160,14 @@ typedef struct  {
     uint16_t Id;
     uint16_t PortNo;
     uint8_t Streaming;
+    uint8_t LoopFlag;
+    uint16_t ExtensionData;
 } Waveform_t;
+
+typedef struct  {
+    uint32_t LoopStart;
+    uint32_t LoopEnd;
+} WaveformExtensionData_t;
 
 
 typedef struct {
@@ -178,6 +186,7 @@ typedef struct {
     STREAMFILE* TrackCommandSf;
     STREAMFILE* SynthSf;
     STREAMFILE* WaveformSf;
+    STREAMFILE* WaveformExtensionDataSf;
 
     Cue_t* Cue;
     CueName_t* CueName;
@@ -188,6 +197,7 @@ typedef struct {
     TrackCommand_t* TrackCommand;
     Synth_t* Synth;
     Waveform_t* Waveform;
+    WaveformExtensionData_t* WaveformExtensionData;
 
     int Cue_rows;
     int CueName_rows;
@@ -198,6 +208,7 @@ typedef struct {
     int TrackCommand_rows;
     int Synth_rows;
     int Waveform_rows;
+    int WaveformExtensionData_rows;
 
     /* config */
     int is_memory;
@@ -208,7 +219,8 @@ typedef struct {
     int synth_depth;
     int sequence_depth;
 
-    /* name stuff */
+    /* name/config stuff */
+    int16_t waveform_index;
     int16_t cuename_index;
     const char* cuename_name;
     int awbname_count;
@@ -297,7 +309,7 @@ static void add_acb_name(acb_header* acb, int8_t Streaming) {
 static int preload_acb_waveform(acb_header* acb) {
     utf_context* Table = NULL;
     int* p_rows = &acb->Waveform_rows;
-    int i, c_Id, c_MemoryAwbId, c_StreamAwbId, c_StreamAwbPortNo, c_Streaming;
+    int i, c_Id, c_MemoryAwbId, c_StreamAwbId, c_StreamAwbPortNo, c_Streaming, c_LoopFlag, c_ExtensionData;
 
     if (*p_rows)
         return 1;
@@ -315,6 +327,8 @@ static int preload_acb_waveform(acb_header* acb) {
     c_StreamAwbId = utf_get_column(Table, "StreamAwbId");
     c_StreamAwbPortNo = utf_get_column(Table, "StreamAwbPortNo");
     c_Streaming = utf_get_column(Table, "Streaming");
+    c_LoopFlag = utf_get_column(Table, "LoopFlag");
+    c_ExtensionData = utf_get_column(Table, "ExtensionData");
 
     for (i = 0; i < *p_rows; i++) {
         Waveform_t* r = &acb->Waveform[i];
@@ -332,6 +346,10 @@ static int preload_acb_waveform(acb_header* acb) {
             r->PortNo = 0xFFFF;
         }
         utf_query_col_u8(Table, i, c_Streaming, &r->Streaming);
+        utf_query_col_u8(Table, i, c_LoopFlag, &r->LoopFlag);
+
+        r->ExtensionData = -1;
+        utf_query_col_u16(Table, i, c_ExtensionData, &r->ExtensionData); /* optional for newer/Switch acb */
     }
 
     utf_close(Table);
@@ -346,7 +364,7 @@ static int load_acb_waveform(acb_header* acb, uint16_t Index) {
     Waveform_t* r;
 
     if (!preload_acb_waveform(acb)) goto fail;
-    if (Index > acb->Waveform_rows) goto fail;
+    if (Index >= acb->Waveform_rows) goto fail;
     r = &acb->Waveform[Index];
     //;VGM_LOG("acb: Waveform[%i]: Id=%i, PortNo=%i, Streaming=%i\n", Index, r->Id, r->PortNo, r->Streaming);
 
@@ -361,6 +379,9 @@ static int load_acb_waveform(acb_header* acb, uint16_t Index) {
     /* must match our target's (0=memory, 1=streaming, 2=memory (prefetch)+stream) */
     if ((acb->is_memory && r->Streaming == 1) || (!acb->is_memory && r->Streaming == 0))
         return 1;
+
+    /* save waveid <> Index translation */
+    acb->waveform_index = Index;
 
     /* aaand finally get name (phew) */
     add_acb_name(acb, r->Streaming);
@@ -417,7 +438,7 @@ static int load_acb_synth(acb_header* acb, uint16_t Index) {
     int i, count;
 
     if (!preload_acb_synth(acb)) goto fail;
-    if (Index > acb->Synth_rows) goto fail;
+    if (Index >= acb->Synth_rows) goto fail;
     r = &acb->Synth[Index];
     //;VGM_LOG("acb: Synth[%i]: Type=%x, ReferenceItems={%x,%x}\n", Index, r->Type, r->ReferenceItems_offset, r->ReferenceItems_size);
 
@@ -615,7 +636,7 @@ static int load_acb_trackcommand(acb_header* acb, uint16_t Index) {
     TrackCommand_t* r;
 
     if (!preload_acb_trackcommand(acb)) goto fail;
-    if (Index > acb->TrackCommand_rows) goto fail;
+    if (Index >= acb->TrackCommand_rows) goto fail;
     r = &acb->TrackCommand[Index];
     //;VGM_LOG("acb: TrackEvent/Command[%i]: Command={%x,%x}\n", Index, r->Command_offset, r->Command_size);
 
@@ -669,7 +690,7 @@ static int load_acb_track(acb_header* acb, uint16_t Index) {
     Track_t* r;
 
     if (!preload_acb_track(acb)) goto fail;
-    if (Index > acb->Track_rows) goto fail;
+    if (Index >= acb->Track_rows) goto fail;
     r = &acb->Track[Index];
     //;VGM_LOG("acb: Track[%i]: EventIndex=%i\n", Index, r->EventIndex);
 
@@ -736,7 +757,7 @@ static int load_acb_sequence(acb_header* acb, uint16_t Index) {
     int i;
 
     if (!preload_acb_sequence(acb)) goto fail;
-    if (Index > acb->Sequence_rows) goto fail;
+    if (Index >= acb->Sequence_rows) goto fail;
     r = &acb->Sequence[Index];
     //;VGM_LOG("acb: Sequence[%i]: NumTracks=%i, TrackIndex={%x, %x}, Type=%x\n", Index, r->NumTracks, r->TrackIndex_offset, r->TrackIndex_size, r->Type);
 
@@ -832,7 +853,7 @@ static int load_acb_block(acb_header* acb, uint16_t Index) {
     int i;
 
     if (!preload_acb_block(acb)) goto fail;
-    if (Index > acb->Block_rows) goto fail;
+    if (Index >= acb->Block_rows) goto fail;
     r = &acb->Block[Index];
     //;VGM_LOG("acb: Block[%i]: NumTracks=%i, TrackIndex={%x, %x}\n", Index, r->NumTracks, r->TrackIndex_offset, r->TrackIndex_size);
 
@@ -900,7 +921,7 @@ static int load_acb_blocksequence(acb_header* acb, uint16_t Index) {
     int i;
 
     if (!preload_acb_blocksequence(acb)) goto fail;
-    if (Index > acb->BlockSequence_rows) goto fail;
+    if (Index >= acb->BlockSequence_rows) goto fail;
     r = &acb->BlockSequence[Index];
     //;VGM_LOG("acb: BlockSequence[%i]: NumTracks=%i, TrackIndex={%x, %x}, NumBlocks=%i, BlockIndex={%x, %x}\n", Index, r->NumTracks, r->TrackIndex_offset,r->TrackIndex_size, r->NumBlocks, r->BlockIndex_offset, r->BlockIndex_size);
 
@@ -977,7 +998,7 @@ static int load_acb_cue(acb_header* acb, uint16_t Index) {
 
     /* read Cue[Index] */
     if (!preload_acb_cue(acb)) goto fail;
-    if (Index > acb->Cue_rows) goto fail;
+    if (Index >= acb->Cue_rows) goto fail;
     r = &acb->Cue[Index];
     //;VGM_LOG("acb: Cue[%i]: ReferenceType=%i, ReferenceIndex=%i\n", Index, r->ReferenceType, r->ReferenceIndex);
 
@@ -1064,7 +1085,7 @@ static int load_acb_cuename(acb_header* acb, uint16_t Index) {
     CueName_t* r;
 
     if (!preload_acb_cuename(acb)) goto fail;
-    if (Index > acb->CueName_rows) goto fail;
+    if (Index >= acb->CueName_rows) goto fail;
     r = &acb->CueName[Index];
     //;VGM_LOG("acb: CueName[%i]: CueIndex=%i, CueName=%s\n", Index, r->CueIndex, r->CueName);
 
@@ -1080,6 +1101,79 @@ fail:
     VGM_LOG("acb: failed CueName %i\n", Index);
     return 0;
 }
+
+static int preload_acb_waveformextensiondata(acb_header* acb) {
+    utf_context* Table = NULL;
+    int* p_rows = &acb->WaveformExtensionData_rows;
+    int i, c_LoopStart, c_LoopEnd;
+
+    if (*p_rows)
+        return 1;
+    if (!open_utf_subtable(acb, &acb->WaveformExtensionDataSf, &Table, "WaveformExtensionDataTable", p_rows, ACB_TABLE_BUFFER_WAVEFORMEXTENSIONDATA))
+        goto fail;
+    if (!*p_rows)
+        return 1;
+    //;VGM_LOG("acb: preload WaveformExtensionData=%i\n", *p_rows);
+
+    acb->WaveformExtensionData = malloc(*p_rows * sizeof(WaveformExtensionData_t));
+    if (!acb->WaveformExtensionData) goto fail;
+
+    c_LoopStart = utf_get_column(Table, "LoopStart");
+    c_LoopEnd = utf_get_column(Table, "LoopEnd");
+
+    for (i = 0; i < *p_rows; i++) {
+        WaveformExtensionData_t* r = &acb->WaveformExtensionData[i];
+
+        utf_query_col_u32(Table, i, c_LoopStart, &r->LoopStart);
+        utf_query_col_u32(Table, i, c_LoopEnd, &r->LoopEnd);
+    }
+
+    utf_close(Table);
+    return 1;
+fail:
+    VGM_LOG("acb: failed WaveformExtensionData preload\n");
+    utf_close(Table);
+    return 0;
+}
+
+/* for Switch Opus that has loop info in a separate "WaveformExtensionData" table (pointed by a field in Waveform) */
+static int load_acb_loops(acb_header* acb, VGMSTREAM* vgmstream) {
+    Waveform_t* rw;
+    WaveformExtensionData_t* r;
+    uint16_t WaveIndex = acb->waveform_index;
+    uint16_t ExtensionIndex = -1;
+
+    if (vgmstream->loop_flag)
+        return 0;
+
+    /* assumes that will be init'd before while searching for names */
+    if (WaveIndex < 0) goto fail;
+    //if (!preload_acb_waveform(acb)) goto fail;
+    if (WaveIndex >= acb->Waveform_rows) goto fail;
+    rw = &acb->Waveform[WaveIndex];
+
+    /* 1=no loop, 2=loop, ignore others/0(default)/255 just in case */
+    if (rw->LoopFlag != 2)
+        return 0;
+
+    ExtensionIndex = rw->ExtensionData;
+    if (ExtensionIndex < 0) goto fail; /* not init'd? */
+
+    if (!preload_acb_waveformextensiondata(acb)) goto fail;
+    if (ExtensionIndex >= acb->WaveformExtensionData_rows) goto fail;
+
+    r = &acb->WaveformExtensionData[ExtensionIndex];
+
+    //;VGM_LOG("acb: WaveformExtensionData[%i]: LoopStart=%i, LoopEnd=%i\n", Index, r->LoopStart, r->LoopEnd);
+
+    vgmstream_force_loop(vgmstream, 1, r->LoopStart, r->LoopEnd);
+
+    return 1;
+fail:
+    VGM_LOG("acb: failed WaveformExtensionData %i\n", ExtensionIndex);
+    return 0;
+}
+
 
 /*****************************************************************************/
 
@@ -1111,7 +1205,7 @@ fail:
  * per table, meaning it uses a decent chunk of memory, but having to re-read with streamfiles is much slower.
  */
 
-void load_acb_wave_name(STREAMFILE* sf, VGMSTREAM* vgmstream, int waveid, int port, int is_memory) {
+void load_acb_wave_info(STREAMFILE* sf, VGMSTREAM* vgmstream, int waveid, int port, int is_memory, int load_loops) {
     acb_header acb = {0};
     int i;
 
@@ -1129,6 +1223,7 @@ void load_acb_wave_name(STREAMFILE* sf, VGMSTREAM* vgmstream, int waveid, int po
     acb.target_waveid = waveid;
     acb.target_port = port;
     acb.is_memory = is_memory;
+    acb.waveform_index = -1;
 
     /* read all possible cue names and find which waveids are referenced by it */
     preload_acb_cuename(&acb);
@@ -1141,6 +1236,11 @@ void load_acb_wave_name(STREAMFILE* sf, VGMSTREAM* vgmstream, int waveid, int po
     if (acb.awbname_count > 0) {
         strncpy(vgmstream->stream_name, acb.name, STREAM_NAME_SIZE);
         vgmstream->stream_name[STREAM_NAME_SIZE - 1] = '\0';
+    }
+
+    /* uncommon */
+    if (load_loops) {
+        load_acb_loops(&acb, vgmstream);
     }
 
     /* done */
@@ -1157,6 +1257,7 @@ fail:
     close_streamfile(acb.TrackCommandSf);
     close_streamfile(acb.SynthSf);
     close_streamfile(acb.WaveformSf);
+    close_streamfile(acb.WaveformExtensionDataSf);
 
     free(acb.CueName);
     free(acb.Cue);
@@ -1167,4 +1268,5 @@ fail:
     free(acb.TrackCommand);
     free(acb.Synth);
     free(acb.Waveform);
+    free(acb.WaveformExtensionData);
 }
