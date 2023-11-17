@@ -1254,7 +1254,7 @@ static const hcakey_info hcakey_list[] = {
         // BlazBlue Entropy Effect (Early Access) (PC)
         {29814655674508831},    // 0069EC457894661F
 
-        // Star Ocean: The Second Story R Demo (PC, Switch)
+        // Star Ocean: The Second Story R (PC, Switch)
         {533948357975462459},   // 0768F733DD87D23B
 
         // Girls' Frontline 2: Exilium (Android)
@@ -1262,6 +1262,9 @@ static const hcakey_info hcakey_list[] = {
 
         // Sonic Superstars (Switch)
         {1991062320230623},     // 000712DC5252B0DF
+		
+        // Persona 5 Tactica (Switch)
+        {48319776512953016},    // 00ABAA94AAAE4AB8
 
 };
 
