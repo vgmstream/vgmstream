@@ -475,6 +475,7 @@ static const char* extension_list[] = {
     "sbr",
     "sbv",
     "sig",
+    "slb", //txth/reserved [Vingt-et-un Systems PS2 games (Last Escort, etc]
     "sm0",
     "sm1",
     "sm2",
@@ -537,6 +538,7 @@ static const char* extension_list[] = {
     "stream",
     "strm",
     "sts",
+    "stv", //txth/reserved [Socio Art Logic PS2 games (Zero no Tsukaima games, Cambrian QTS, Shirogane no Soleil, etc)]
     "sts_cp3",
     "stx",
     "svag",
