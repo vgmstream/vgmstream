@@ -1,10 +1,11 @@
 #ifndef _BITSTREAM_LSB_H
 #define _BITSTREAM_LSB_H
 
-#include "../streamtypes.h"
+#include <stdint.h>
 
 /* Simple bitreader for Vorbis' bit style, in 'least significant byte' (LSB) format.
- * Example: 0x12345678 is read as 12,34,56,78 (continuous).
+ * Example: with 0x1234 = 00010010 00110100, reading 5b + 6b = 10010 100000
+ *  (first lower 5b, then next upper 3b and next lower 3b = 6b)
  * Kept in .h since it's slightly faster (compiler can optimize statics better using default compile flags). */
 
 
@@ -23,7 +24,7 @@ static inline void bl_setup(bitstream_t* b, uint8_t* buf, size_t bufsize) {
 
 /* same as (1 << bits) - 1, but that seems to trigger some nasty UB when bits = 32
  * (though in theory (1 << 32) = 0, 0 - 1 = UINT_MAX, but gives 0 compiling in some cases, but not always) */
-static const uint32_t MASK_TABLE[33] = {
+static const uint32_t MASK_TABLE_LSB[33] = {
         0x00000000, 0x00000001, 0x00000003, 0x00000007, 0x0000000f, 0x0000001f, 0x0000003f, 0x0000007f, 0x000000ff,
         0x000001ff, 0x000003ff, 0x000007ff, 0x00000fff, 0x00001fff, 0x00003fff, 0x00007fff, 0x0000ffff, 0x0001ffff,
         0x0003ffff, 0x0007ffff, 0x000fffff, 0x001fffff, 0x003fffff, 0x007fffff, 0x00ffffff, 0x01ffffff, 0x03ffffff,
@@ -40,7 +41,7 @@ static inline int bl_get(bitstream_t* ib, uint32_t bits, uint32_t* value) {
 
     pos = ib->b_off / 8;        /* byte offset */
     shift = ib->b_off % 8;      /* bit sub-offset */
-    mask = MASK_TABLE[bits];    /* to remove upper in highest byte */
+    mask = MASK_TABLE_LSB[bits];    /* to remove upper in highest byte */
 
     val = ib->buf[pos+0] >> shift;
     if (bits + shift > 8) {
