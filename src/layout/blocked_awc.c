@@ -11,13 +11,19 @@ static size_t get_block_header_size(STREAMFILE* sf, off_t offset, size_t channel
 void block_update_awc(off_t block_offset, VGMSTREAM * vgmstream) {
     STREAMFILE* sf = vgmstream->ch[0].streamfile;
     int32_t (*read_32bit)(off_t,STREAMFILE*) = vgmstream->codec_endian ? read_32bitBE : read_32bitLE;
-    size_t header_size, entries, block_size, block_samples;
-    size_t  channel_header_size;
+    size_t header_size, entries, block_size, block_samples, frame_size;
+    size_t channel_header_size;
     int i;
 
-    /* assumed only AWC_IMA enters here, MPEG/XMA2 need special parsing as blocked layout is too limited */
-    entries = read_32bit(block_offset + 0x04, sf); /* se first channel, assume all are the same */
-    //block_samples = entries * (0x800-4)*2; //todo use 
+    /* assumes only AWC_IMA/DSP enters here, MPEG/XMA2 need special parsing as blocked layout is too limited.
+     * Block header (see awc.c for a complete description):
+     * - per channel: header table (size 0x18 or 0x10)
+     * - per channel: seek table  (32b * entries = global samples per frame in each block) (not in DSP/Vorbis)
+     * - per channel: extra table (DSP only)
+     * - padding (not in ATRAC9/DSP)
+     */
+
+    entries = read_32bit(block_offset + 0x04, sf); /* se first channel, assume all are the same (not true in MPEG/XMA) */
     block_samples = read_32bit(block_offset + 0x0c, sf);
     block_size = vgmstream->full_block_size;
 
@@ -25,24 +31,32 @@ void block_update_awc(off_t block_offset, VGMSTREAM * vgmstream) {
     vgmstream->next_block_offset = block_offset + block_size;
     vgmstream->current_block_samples = block_samples;
 
-    /* starts with a header block */
-    /* for each channel
-     *   0x00: start entry within channel (ie. entries * ch) but may be off by +1/+2
-     *   0x04: entries
-     *   0x08: samples to discard in the beginning of this block (MPEG only?)
-     *   0x0c: samples in channel (for MPEG/XMA2 can vary between channels)
-     *   (next fields don't exist in later versions for IMA)
-     *   0x10: (MPEG only, empty otherwise) close to number of frames but varies a bit?
-     *   0x14: (MPEG only, empty otherwise) channel usable data size (not counting padding)
-     * for each channel
-     *   32b * entries = global samples per frame in each block (for MPEG probably per full frame)
-     */
+    switch(vgmstream->coding_type) {
+        case coding_NGC_DSP:
+            channel_header_size = 0x10;
+            frame_size = 0x08;
 
-    channel_header_size = get_channel_header_size(sf, block_offset, vgmstream->codec_endian);
-    header_size = get_block_header_size(sf, block_offset, channel_header_size, vgmstream->channels, vgmstream->codec_endian);
+            /* coefs on every block but it's always the same */
+            dsp_read_coefs_le(vgmstream, sf, block_offset + channel_header_size * vgmstream->channels + 0x10 + 0x1c + 0x00, 0x10 + 0x60);
+            dsp_read_hist_le (vgmstream, sf, block_offset + channel_header_size * vgmstream->channels + 0x10 + 0x1c + 0x20, 0x10 + 0x60);
+
+            header_size = 0;
+            header_size += channel_header_size * vgmstream->channels; /* header table */
+            /* no seek table */
+            header_size += 0x70 * vgmstream->channels; /* extra table */
+            /* no padding */
+
+            break;
+
+        default:
+            channel_header_size = get_channel_header_size(sf, block_offset, vgmstream->codec_endian);
+            header_size = get_block_header_size(sf, block_offset, channel_header_size, vgmstream->channels, vgmstream->codec_endian);
+            frame_size = 0x800;
+            break;
+    }
+
     for (i = 0; i < vgmstream->channels; i++) {
-        vgmstream->ch[i].offset = block_offset + header_size + 0x800*entries*i;
-        VGM_ASSERT(entries != read_32bit(block_offset + channel_header_size*i + 0x04, sf), "AWC: variable number of entries found at %lx\n", block_offset);
+        vgmstream->ch[i].offset = block_offset + header_size + frame_size * entries * i;
     }
 
 }
