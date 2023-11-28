@@ -1103,7 +1103,8 @@ different internally (encrypted, different versions, etc) and not always can be 
 - **awc.c**
   - Rockstar AWC header [*AWC*]
   - *awc*: `.awc`
-  - Codecs: PCM16BE PCM16LE AWC_IMA XMA2 MPEG VORBIS_custom
+    - Subfiles: *riff*
+  - Codecs: PCM16BE PCM16LE AWC_IMA XMA2 MPEG VORBIS_custom ATRAC9 NGC_DSP
 - **opus.c**
   - Nintendo Switch OPUS header [*OPUS*]
   - *opus_std*: `.opus .lopus .bgm .opu + .psi`
@@ -1491,7 +1492,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - *awb*
     - Subfiles: *awb_memory*
   - *awb_memory*: `.awb .afs2 + .acb .(external)`
-    - Subfiles: *adx_subkey hca_subkey vag riff bcwav ngc_dsp_std dsp_cwac mp4_aac_ffmpeg*
+    - Subfiles: *adx_subkey hca_subkey vag riff bcwav ngc_dsp_std dsp_cwac mp4_aac_ffmpeg opus_std*
 - **acb.c**
   - (container)
   - *acb*: `.acb`
@@ -1531,8 +1532,9 @@ different internally (encrypted, different versions, etc) and not always can be 
 - **nub.c**
   - Namco NUB header [*NUB*]
   - *nub*: `.nub .nub2 + .(external)`
-    - Subfiles: *nub_xma nub_wav nub_vag nub_at3 nub_dsp nub_idsp nub_is14 function*
+    - Subfiles: *nub_xma nub_wav nub_vag nub_at3 nub_dsp nub_idsp nub_is14 nub_caf function*
   - *nub_wav*: `.wav .lwav`
+    - Subfiles: *riff*
   - *nub_vag*: `.vag`
   - *nub_at3*: `.at3`
     - Subfiles: *riff*
@@ -1543,6 +1545,8 @@ different internally (encrypted, different versions, etc) and not always can be 
     - Subfiles: *idsp_namco*
   - *nub_is14*: `.is14`
     - Subfiles: *bnsf*
+  - *nub_caf*: `.caf`
+    - Subfiles: *apple_caff*
   - Codecs: PCM16BE PSX XMA
 - **ubi_hx.c**
   - Ubisoft HXx header [*UBI_HX*]
