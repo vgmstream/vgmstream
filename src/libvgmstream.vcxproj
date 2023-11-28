@@ -120,7 +120,7 @@
     <ClInclude Include="meta\adx_keys.h" />
     <ClInclude Include="meta\ahx_keys.h" />
     <ClInclude Include="meta\aix_streamfile.h" />
-    <ClInclude Include="meta\awc_xma_streamfile.h" />
+    <ClInclude Include="meta\awc_streamfile.h" />
     <ClInclude Include="meta\bar_streamfile.h" />
     <ClInclude Include="meta\bgw_streamfile.h" />
     <ClInclude Include="meta\bnsf_keys.h" />

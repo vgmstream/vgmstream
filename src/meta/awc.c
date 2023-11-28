@@ -1,10 +1,8 @@
 #include "meta.h"
 #include "../coding/coding.h"
 #include "../layout/layout.h"
-#include "awc_xma_streamfile.h"
-
-
-#define AWC_MAX_MUSIC_CHANNELS 20
+#include "../util/endianness.h"
+#include "awc_streamfile.h"
 
 typedef struct {
     int big_endian;
@@ -15,16 +13,22 @@ typedef struct {
 
     int channels;
     int sample_rate;
-    int codec;
     int num_samples;
+    uint8_t codec;
 
     int block_count;
     int block_chunk;
 
-    off_t stream_offset;
-    size_t stream_size;
-    off_t vorbis_offset[VGMSTREAM_MAX_CHANNELS];
+    uint32_t tags_offset;
+    uint32_t stream_offset;
+    uint32_t stream_size;
+    uint32_t vorbis_offset[AWC_MAX_MUSIC_CHANNELS];
 
+    uint32_t channel_hash[AWC_MAX_MUSIC_CHANNELS];
+    struct {
+        uint32_t hash_id;
+        int tag_count;
+    } stream_info[AWC_MAX_MUSIC_CHANNELS];
 } awc_header;
 
 static int parse_awc_header(STREAMFILE* sf, awc_header* awc);
@@ -74,52 +78,11 @@ VGMSTREAM* init_vgmstream_awc(STREAMFILE* sf) {
 
 #ifdef VGM_USE_FFMPEG
         case 0x05: {    /* XMA2 (X360) */
-            uint32_t substream_size, substream_offset;
-
             if (awc.is_streamed) {
-                /* 1ch XMAs in blocks, we'll use layered layout + custom IO to get multi-FFmpegs working */
-                int i;
-                layered_layout_data * data = NULL;
-
-                /* init layout */
-                data = init_layout_layered(awc.channels);
-                if (!data) goto fail;
-                vgmstream->layout_data = data;
+                vgmstream->layout_data = build_layered_awc(sf, &awc);
+                if (!vgmstream->layout_data) goto fail;
                 vgmstream->layout_type = layout_layered;
                 vgmstream->coding_type = coding_FFmpeg;
-
-                /* open each layer subfile */
-                for (i = 0; i < awc.channels; i++) {
-                    STREAMFILE* temp_sf = NULL;
-                    int layer_channels = 1;
-
-                    /* build the layer VGMSTREAM */
-                    data->layers[i] = allocate_vgmstream(layer_channels, 0);
-                    if (!data->layers[i]) goto fail;
-
-                    data->layers[i]->meta_type = meta_AWC;
-                    data->layers[i]->coding_type = coding_FFmpeg;
-                    data->layers[i]->layout_type = layout_none;
-                    data->layers[i]->sample_rate = awc.sample_rate;
-                    data->layers[i]->num_samples = awc.num_samples;
-
-                    /* setup custom IO streamfile, pass to FFmpeg and hope it's fooled */
-                    temp_sf = setup_awc_xma_streamfile(sf, awc.stream_offset, awc.stream_size, awc.block_chunk, awc.channels, i);
-                    if (!temp_sf) goto fail;
-
-                    substream_offset = 0x00; /* where FFmpeg thinks data starts, which our custom sf will clamp */
-                    substream_size = get_streamfile_size(temp_sf); /* data of one XMA substream without blocks */
-
-                    data->layers[i]->codec_data = init_ffmpeg_xma2_raw(temp_sf, substream_offset, substream_size, awc.num_samples, layer_channels, awc.sample_rate, 0, 0);
-                    if (data->layers[i])
-                        xma_fix_raw_samples(data->layers[i], temp_sf, substream_offset, substream_size, 0, 0,0); /* samples are ok? */
-                    close_streamfile(temp_sf);
-                    if (!data->layers[i]->codec_data) goto fail;
-                }
-
-                /* setup layered VGMSTREAMs */
-                if (!setup_layout_layered(data))
-                    goto fail;
             }
             else {
                 /* regular XMA for sfx */
@@ -151,7 +114,7 @@ VGMSTREAM* init_vgmstream_awc(STREAMFILE* sf) {
 #endif
 
 #ifdef VGM_USE_VORBIS
-        case 0x08: {   /* Vorbis (PC) [Red Dead Redemption 2 (PC)] */
+        case 0x08: {    /* Vorbis (PC) [Red Dead Redemption 2 (PC)] */
             if (awc.is_streamed) {
                 vgmstream->layout_data = build_layered_awc(sf, &awc);
                 if (!vgmstream->layout_data) goto fail;
@@ -175,7 +138,7 @@ VGMSTREAM* init_vgmstream_awc(STREAMFILE* sf) {
 #endif
 
 #ifdef VGM_USE_ATRAC9
-        case 0x0F: {   /* ATRAC9 (PC) [Red Dead Redemption (PS4)] */
+        case 0x0F: {    /* ATRAC9 (PC) [Red Dead Redemption (PS4)] */
             if (awc.is_streamed) {
                 vgmstream->layout_data = build_layered_awc(sf, &awc);
                 if (!vgmstream->layout_data) goto fail;
@@ -262,9 +225,9 @@ fail:
  * - data from tags (headers, tables, audio data, etc)
  */
 static int parse_awc_header(STREAMFILE* sf, awc_header* awc) {
-    uint64_t (*read_u64)(off_t,STREAMFILE*) = NULL; //TODO endian
-    uint32_t (*read_u32)(off_t,STREAMFILE*) = NULL;
-    uint16_t (*read_u16)(off_t,STREAMFILE*) = NULL;
+    read_u64_t read_u64 = NULL;
+    read_u32_t read_u32 = NULL;
+    read_u16_t read_u16 = NULL;
     int entries;
     uint32_t flags, tag_count = 0, tags_skip = 0;
     uint32_t offset;
@@ -369,15 +332,26 @@ static int parse_awc_header(STREAMFILE* sf, awc_header* awc) {
 
     /** stream ids and tag counts **/
     for (int i = 0; i < entries; i++) {
-        uint32_t info_header = read_u32(offset + 0x04*i, sf);
-        tag_count   = (info_header >> 29) & 0x7; /* 3b */
-        //hash_id   = (info_header >>  0) & 0x1FFFFFFF; /* 29b */
-        if (target_subsong - 1 == i)
-            break;
-        tags_skip += tag_count; /* tags to skip to reach target's tags, in the next header */
+        uint32_t info_header = read_u32(offset + 0x00, sf);
+        int entry_count  = (info_header >> 29) & 0x7; /* 3b */
+        uint32_t hash_id = (info_header >>  0) & 0x1FFFFFFF; /* 29b */
+        
+        if (i + 1 < target_subsong)
+            tags_skip += entry_count; /* tags to skip to reach target's tags, in the next header */
+        if (target_subsong == i + 1)
+            tag_count = entry_count;
+
+        if (awc->is_streamed) {
+            awc->stream_info[i].hash_id = hash_id;
+            awc->stream_info[i].tag_count = entry_count;
+        }
+
+        offset += 0x04;
     }
-    offset += 0x04 * entries;
-    offset += 0x08 * tags_skip;
+    awc->tags_offset = offset; /* where tags for stream start */
+
+    offset += 0x08 * tags_skip; /* ignore tags for other streams */
+
 
 
     /** tags per stream **/
@@ -386,7 +360,6 @@ static int parse_awc_header(STREAMFILE* sf, awc_header* awc) {
         uint8_t  tag_type   = ((tag_header >> 56) & 0xFF); /* 8b */
         uint32_t tag_size   = ((tag_header >> 28) & 0x0FFFFFFF); /* 28b */
         uint32_t tag_offset = ((tag_header >>  0) & 0x0FFFFFFF); /* 28b */
-        //;VGM_LOG("AWC: tag %i/%i at %x: t=%x, o=%x, s=%x\n", i+1, tag_count, offset + 0x08*i, tag_type, tag_offset, tag_size);
 
         /* types are apparently part of a hash derived from a word ("data", "format", etc). */
         switch(tag_type) {
@@ -407,19 +380,20 @@ static int parse_awc_header(STREAMFILE* sf, awc_header* awc) {
 
                 if (awc->channels != entries - 1) { /* not counting id-0 */
                     VGM_LOG("AWC: number of music channels doesn't match entries\n");
-                    goto fail;
+                    /* extremely rare but doesn't seem to matter, some streams are dummies (RDR2 STREAMS/ABIGAIL_HUMMING_*) */ 
+                    //goto fail;
                 }
 
                 for (int ch = 0; ch < awc->channels; ch++) {
                     int num_samples, sample_rate, codec;
 
-                    /* 0x00: reference stream hash/id  */
+                    awc->channel_hash[ch] = read_u32(tag_offset + 0x0c + 0x10*ch + 0x00,sf);  /* reference, for vorbis */
                     num_samples = read_u32(tag_offset + 0x0c + 0x10*ch + 0x04,sf);
                     /* 0x08: headroom */
                     sample_rate = read_u16(tag_offset + 0x0c + 0x10*ch + 0x0a,sf);
                     codec = read_u8(tag_offset + 0x0c + 0x10*ch + 0x0c,sf);
                     /* 0x0d(8): round size? */
-                    /* 0x0e: unknown (zero/-1) */
+                    /* 0x0e: unknown (zero/-1, loop flag? BOB_FINALE_1_A.awc, but also set in stingers) */
 
                     /* validate channels differences */
                     if ((awc->num_samples && !(awc->num_samples >= num_samples - 10 && awc->num_samples <= num_samples + 10)) ||
@@ -478,9 +452,21 @@ static int parse_awc_header(STREAMFILE* sf, awc_header* awc) {
                 /* 0x10: unknown */
                 awc->codec = read_u8(tag_offset + 0x1c, sf); /* 16b? */
                 /* 0x1e: vorbis setup size */
-                awc->vorbis_offset[0] = tag_offset + 0x20; /* data up to vorbis setup size */
+                if (read_u16(tag_offset + 0x1e,sf))/* rarely not set and uses a tag below */
+                    awc->vorbis_offset[0] = tag_offset + 0x20; /* data up to vorbis setup size */
 
                 awc->channels = 1;
+                break;
+
+            case 0x7F: /* vorbis setup */
+                if (awc->is_streamed) {
+                    /* music stream doesn't have this (instead every channel-strem have one, parsed later) */
+                    VGM_LOG("AWC: vorbis setup found but streamed\n");
+                    goto fail;
+                }
+
+                /* very rarely used for sfx: SS_AM/GESTURE01.awc */
+                awc->vorbis_offset[0] = tag_offset;
                 break;
 
             case 0x68: /* midi data [Red Dead Redemption 2 (PC)] */
@@ -494,6 +480,7 @@ static int parse_awc_header(STREAMFILE* sf, awc_header* awc) {
                 awc->channels = 1;
                 break;
 
+
             case 0xA3: /* block-to-sample table (32b x number of blocks w/ num_samples at the start of each block)
                         * or frame-size table (16b x number of frames) in some cases (ex. sfx+mpeg but not sfx+vorbis) */
             case 0xBD: /* events (32bx4): type_hash, params_hash, timestamp_ms, flags */
@@ -501,21 +488,42 @@ static int parse_awc_header(STREAMFILE* sf, awc_header* awc) {
             case 0x81: /* animation/CSR info? */
             case 0x36: /* list of hash-things? */
             case 0x2B: /* events/sizes? */
-            case 0x7f: /* vorbis setup (for streams) */
             default:   /* 0x68=midi?, 0x5A/0xD9=? */
                 //VGM_LOG("AWC: ignoring unknown tag 0x%02x\n", tag);
                 break;
         }
     }
 
-    /* in music mode there tags for other streams we don't need, except for vorbis that have one setup packet */
-    //TODO not correct (assumes 1 tag per stream and channel order doesn't match stream order)
-    // would need to read N tags and match channel id<>stream id, all vorbis setups are the same though)
+    /* in music mode there tags for other streams we don't use, except for vorbis. streams have vorbis setup info for channels, but
+     * channel<>stream order doesn't match, so we need to assign setup to channels. All setups seem to be the same though. */
     if (awc->is_streamed && awc->codec == 0x08) {
-        offset += 0x08 * tag_count;
+        offset = awc->tags_offset;
+        offset += 0x08 * awc->stream_info[0].tag_count; /* ignore 1st/music stream */
 
-        for (int ch = 0; ch < awc->channels; ch++) {
-            awc->vorbis_offset[ch] = read_u16(offset + 0x08*ch + 0x00, sf); /* tag offset */
+        for (int stream = 1; stream < entries; stream++) {
+            for (int tag = 0; tag < awc->stream_info[stream].tag_count; tag++) {
+                uint64_t tag_header = read_u64(offset,sf);
+                uint8_t  tag_type   = ((tag_header >> 56) & 0xFF); /* 8b */
+              //uint32_t tag_size   = ((tag_header >> 28) & 0x0FFFFFFF); /* 28b */
+                uint32_t tag_offset = ((tag_header >>  0) & 0x0FFFFFFF); /* 28b */
+
+                switch(tag_type) {
+                    case 0x7f: /* vorbis setup */
+                        /* find which channel uses this stream's data */
+                        for (int ch = 0; ch < awc->channels; ch++) {
+                            if (awc->channel_hash[ch] == awc->stream_info[stream].hash_id) {
+                                awc->vorbis_offset[ch] = tag_offset;
+                                //awc->vorbis_size[ch] = tag_size; /* not needed (implicit)*/
+                                break;
+                            }
+                        }
+                        break;
+                    default:
+                        break;
+                }
+
+                offset += 0x08;
+            }
         }
     }
 
@@ -531,166 +539,54 @@ fail:
 
 /* ************************************************************************* */
 
-typedef struct {
-    int start_entry;
-    int entries;
-    int32_t channel_skip;
-    int32_t channel_samples;
-
-    uint32_t extradata;
-
-    /* derived */
-    uint32_t chunk_start;
-    uint32_t chunk_size;
-} awc_block_t;
-
-typedef struct {
-    awc_block_t blk[AWC_MAX_MUSIC_CHANNELS];
-} awc_block_info_t;
-
-/* Block format:
- * - block header for all channels (needed to find frame start)
- * - frames from channel 1
- * - ...
- * - frames from channel N
- * - usually there is padding between channels or blocks (usually 0s but seen 0x97 in AT9)
- * 
- * Header format:
- * - per channel (frame start table)
- *   0x00: start entry for that channel? (-1 in vorbis)
- *         may be off by +1/+2?
- *         ex. on block 0, ch0/1 have 0x007F frames, a start entry is: ch0=0x0000, ch1=0x007F (MP3)
- *         ex. on block 0, ch0/1 have 0x02A9 frames, a start entry is: ch0=0x0000, ch1=0x02AA (AT9) !!
- *         (sum of all values from all channels may go beyond all posible frames, no idea)
- *   0x04: frames in this channel (may be different between channels)
- *         'frames' here may be actual single decoder frames or a chunk of frames
- *   0x08: samples to discard in the beginning of this block (MPEG/XMA2/Vorbis only?)
- *   0x0c: samples in channel (for MPEG/XMA2 can vary between channels)
- *         full samples without removing samples to discard
- *   (next fields don't exist in later versions for IMA or AT9)
- *   0x10: (MPEG only, empty otherwise) close to number of frames but varies a bit?
- *   0x14: (MPEG only, empty otherwise) channel chunk size (not counting padding)
- * - for each channel (seek table)
- *   32b * entries = global samples per frame in each block (for MPEG probably per full frame)
- *   (AT9 doesn't have a seek table as it's CBR)
- * - per channel (ATRAC9/DSP extra info):
- *   0x00: "D11A"
- *   0x04: frame size
- *   0x06: frame samples
- *   0x08: flags? (0x0103=AT9, 0x0104=DSP)
- *   0x0a: sample rate
- *   0x0c: ATRAC9 config (repeated but same for all blocks) or "D11E" (DSP)
- *   0x10-0x70: padding with 0x77 (ATRAC3) or standard DSP header for original full file (DSP)
- * - padding depending on codec (AT9/DSP: none, MPEG/XMA: closest 0x800)
- */
-static bool read_awb_block(STREAMFILE* sf, awc_header* awc, awc_block_info_t* bi, uint32_t block_offset) {
-    uint32_t channel_entry_size, seek_entry_size, extra_entry_size, header_padding;
-    uint32_t offset = block_offset;
-    /* read stupid block crap + derived info at once so hopefully it's a bit easier to understand */
-
-    switch(awc->codec) {
-        case 0x08: /* Vorbis */
-            channel_entry_size = 0x18;
-            seek_entry_size = 0x04;
-            extra_entry_size = 0x00;
-            header_padding = 0x800;
-            break;
-        case 0x0F: /* ATRAC9 */
-            channel_entry_size = 0x10;
-            seek_entry_size = 0x00;
-            extra_entry_size = 0x70;
-            header_padding = 0x00;
-            break;
-        default:
-            goto fail;
-    }
-
-    /* channel info table */
-    for (int ch = 0; ch < awc->channels; ch++) {
-        bi->blk[ch].start_entry        = read_u32le(offset + 0x00, sf);
-        bi->blk[ch].entries            = read_u32le(offset + 0x04, sf);
-        bi->blk[ch].channel_skip       = read_u32le(offset + 0x08, sf);
-        bi->blk[ch].channel_samples    = read_u32le(offset + 0x0c, sf);
-        /* others: optional */
-
-        offset += channel_entry_size;
-    }
-
-    /* seek table */
-    for (int ch = 0; ch < awc->channels; ch++) {
-        offset += bi->blk[ch].entries * seek_entry_size;
-    }
-
-    /* extra table and derived info */
-    for (int ch = 0; ch < awc->channels; ch++) {
-        switch(awc->codec) {
-            case 0x08: /* Vorbis */
-                /* each "frame" here is actually N vorbis frames then padding up to 0x800 (more or less like a big Ogg page) */
-                bi->blk[ch].chunk_size = bi->blk[ch].entries * 0x800;
-                break;
-            
-            case 0x0F: { /* ATRAC9 */
-                uint16_t frame_size = read_u16le(offset + 0x04, sf);
-    
-                bi->blk[ch].chunk_size = bi->blk[ch].entries * frame_size;
-                bi->blk[ch].extradata = read_u32be(offset + 0x0c, sf);
-                break;
-            }
-            default:
-                goto fail;
-        }
-        offset += extra_entry_size;
-    }
-
-    /* header done, move into data start */
-    if (header_padding) {
-        /* padding on the current size rather than file offset (block meant to be read into memory, probably) */
-        uint32_t header_size = offset - block_offset;
-        offset = block_offset + align_size_to_block(header_size, header_padding);
-    }
-
-    /* set frame starts per channel */
-    for (int ch = 0; ch < awc->channels; ch++) {
-        bi->blk[ch].chunk_start = offset;
-        offset += bi->blk[ch].chunk_size;
-    }
-
-    /* beyond this is padding until awc.block_chunk */
-
-    return true;
-fail:
-    return false;
-}
-
-/* ************************************************************************* */
-
-static VGMSTREAM* build_block_vgmstream(STREAMFILE* sf, awc_header* awc, int channel, awc_block_info_t* bi) {
+static VGMSTREAM* build_blocks_vgmstream(STREAMFILE* sf, awc_header* awc, int channel) {
     VGMSTREAM* vgmstream = NULL;
-    awc_block_t* blk = &bi->blk[channel];
+    STREAMFILE* temp_sf = NULL;
     int block_channels = 1;
+    uint32_t substream_size, substream_offset;
 
-    //;VGM_LOG("AWC: build ch%i at o=%x, s=%x\n", channel, blk->chunk_start, blk->chunk_size);
+
+    /* setup custom IO streamfile that removes AWC's odd blocks (not perfect but serviceable) */
+    temp_sf = setup_awc_streamfile(sf, awc->stream_offset, awc->stream_size, awc->block_chunk, awc->channels, channel, awc->codec, awc->big_endian);
+    if (!temp_sf) goto fail;
+
+    substream_offset = 0x00;
+    substream_size = get_streamfile_size(temp_sf);
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(block_channels, 0);
     if (!vgmstream) goto fail;
 
-    vgmstream->sample_rate = awc->sample_rate;
-    vgmstream->num_samples = blk->channel_samples - blk->channel_skip;
-    vgmstream->stream_size = blk->chunk_size;
     vgmstream->meta_type = meta_AWC;
+    vgmstream->sample_rate = awc->sample_rate;
+    vgmstream->num_samples = awc->num_samples;
+    vgmstream->stream_size = awc->stream_size;
+
+    vgmstream->stream_size = substream_size;
+
 
     switch(awc->codec) {
+#ifdef VGM_USE_FFMPEG
+        case 0x05: {    /* XMA2 (X360) */
+            vgmstream->codec_data = init_ffmpeg_xma2_raw(temp_sf, substream_offset, substream_size, awc->num_samples, block_channels, awc->sample_rate, 0, 0);
+            if (!vgmstream->codec_data) goto fail;
+            vgmstream->coding_type = coding_FFmpeg;
+            vgmstream->layout_type = layout_none;
+
+            xma_fix_raw_samples(vgmstream, temp_sf, substream_offset, substream_size, 0, 0,0); /* samples are ok? */
+            break;
+        }
+#endif
 #ifdef VGM_USE_VORBIS
         case 0x08: {
             vorbis_custom_config cfg = {0};
 
             cfg.channels = 1;
             cfg.sample_rate = awc->sample_rate;
-            cfg.header_offset = awc->vorbis_offset[channel]; /* setup page goes first */
-            //cfg.skip_samples = skip_samples; //todo
-        
-            vgmstream->codec_data = init_vorbis_custom(sf, blk->chunk_start, VORBIS_AWC, &cfg);
+            cfg.header_offset = awc->vorbis_offset[channel]; /* setup page goes separate */
+
+            /* note that it needs sf on init to read the header + start offset for later, and temp_sf on decode to read data */
+            vgmstream->codec_data = init_vorbis_custom(sf, substream_offset, VORBIS_AWC, &cfg);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->layout_type = layout_none;
             vgmstream->coding_type = coding_VORBIS_custom;
@@ -701,10 +597,12 @@ static VGMSTREAM* build_block_vgmstream(STREAMFILE* sf, awc_header* awc, int cha
         case 0x0F: {
             atrac9_config cfg = {0};
 
+            /* read from first block (all blocks have it but same thing), see awc_streamfile.h */
+            uint32_t extradata_offset = awc->stream_offset + 0x10 * awc->channels + 0x70 * channel + 0x0c;
+
             cfg.channels = block_channels;
-            cfg.encoder_delay = blk->channel_skip;
-            cfg.config_data = blk->extradata;
-            ;VGM_ASSERT(blk->channel_skip, "AWC discard found\n");
+            cfg.encoder_delay = 0; //?
+            cfg.config_data = read_u32be(extradata_offset, sf);
 
             vgmstream->codec_data = init_atrac9(&cfg);
             if (!vgmstream->codec_data) goto fail;
@@ -718,53 +616,14 @@ static VGMSTREAM* build_block_vgmstream(STREAMFILE* sf, awc_header* awc, int cha
             goto fail;
     }
 
-    if (!vgmstream_open_stream(vgmstream, sf, blk->chunk_start))
+    if (!vgmstream_open_stream(vgmstream, temp_sf, substream_offset))
         goto fail;
+    close_streamfile(temp_sf);
     return vgmstream;
 fail:
     ;VGM_LOG("AWB: can't open decoder\n");
     close_vgmstream(vgmstream);
-    return NULL;
-}
-
-/* per channel to possibly simplify block entry skips, though can't be handled right now */
-static VGMSTREAM* build_blocks_vgmstream(STREAMFILE* sf, awc_header* awc, int channel) {
-    VGMSTREAM* vgmstream = NULL;
-    segmented_layout_data* data = NULL;
-    int blocks = awc->block_count;
-    awc_block_info_t bi = {0};
-
-
-    /* init layout */
-    data = init_layout_segmented(blocks);
-    if (!data) goto fail;
-
-
-    /* one segment per block of this channel */
-    for (int i = 0; i < blocks; i++) {
-        uint32_t block_offset = awc->stream_offset + awc->block_chunk * i;
-
-        if (!read_awb_block(sf, awc, &bi, block_offset))
-            goto fail;
-
-        //;VGM_LOG("AWC: block=%i at %x\n", i, block_offset);
-        data->segments[i] = build_block_vgmstream(sf, awc, channel, &bi);
-        if (!data->segments[i]) goto fail;
-    }
-
-    /* setup VGMSTREAMs */
-    if (!setup_layout_segmented(data))
-        goto fail;
-
-    /* build the layout VGMSTREAM */
-    vgmstream = allocate_segmented_vgmstream(data, 0, 0, 0);
-    if (!vgmstream) goto fail;
-
-    return vgmstream;
-fail:
-    close_vgmstream(vgmstream);
-    if (!vgmstream)
-        free_layout_segmented(data);
+    close_streamfile(temp_sf);
     return NULL;
 }
 
@@ -810,4 +669,3 @@ fail:
     free_layout_layered(data);
     return NULL;
 }
-

@@ -185,7 +185,7 @@
     <ClInclude Include="meta\aix_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="meta\awc_xma_streamfile.h">
+    <ClInclude Include="meta\awc_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="meta\bar_streamfile.h">
