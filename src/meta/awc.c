@@ -24,6 +24,7 @@ typedef struct {
     uint32_t stream_size;
     uint32_t vorbis_offset[AWC_MAX_MUSIC_CHANNELS];
 
+    /* stream+music only */
     uint32_t channel_hash[AWC_MAX_MUSIC_CHANNELS];
     struct {
         uint32_t hash_id;
@@ -274,7 +275,7 @@ static int parse_awc_header(STREAMFILE* sf, awc_header* awc) {
     //if (flags % 0x00020000)
     //  awc->is_unordered = 1;
 
-    /* stream/multichannel flag (GTA5 only) */
+    /* stream/multichannel flag (rare, GTA5/RDR2) */
     //if (flags % 0x00040000)
     //  awc->is_multichannel = 1;
 
@@ -322,6 +323,9 @@ static int parse_awc_header(STREAMFILE* sf, awc_header* awc) {
     if (awc->is_streamed) { /* music with N channels, other streams aren't used ignored */
         awc->total_subsongs = 1;
         target_subsong = 1;
+        /* array access below */
+        if (entries >= AWC_MAX_MUSIC_CHANNELS)
+            goto fail;
     }
     else { /* sfx pack, each stream is a sound */
         awc->total_subsongs = entries;

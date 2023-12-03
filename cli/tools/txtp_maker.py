@@ -73,6 +73,7 @@ class Cli(object):
         p.add_argument('-fni', dest='include_regex', help="Filter by REGEX including matches of subsong name")
         p.add_argument('-fne', dest='exclude_regex', help="Filter by REGEX excluding matches of subsong name")
         p.add_argument('-nsc',dest='no_semicolon', help="Remove semicolon names (for songs with multinames)", action='store_true')
+        p.add_argument("-cmd","--command", help="sets any command (free text)")
         p.add_argument('-v', dest='log_level', help="Verbose log level (off|debug|info, default: info)", default='info')
         args = p.parse_args()
 
@@ -327,6 +328,11 @@ class TxtpMaker(object):
         with open(outname,"w+", encoding='utf-8') as ftxtp:
             if line:
                 ftxtp.write(line)
+            if cfg.command:
+                cmd = cfg.command.replace("\\n", "\n") + "\n"
+                if not line.endswith('\n'):
+                    cmd = "\n" + cmd
+                ftxtp.write(cmd)
 
         log.debug("created: " + outname)
         return

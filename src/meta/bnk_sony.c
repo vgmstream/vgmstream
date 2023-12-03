@@ -3,7 +3,7 @@
 #include "../coding/coding.h"
 #include "../util/endianness.h"
 
-typedef enum { NONE, DUMMY, PSX, PCM16, ATRAC9, HEVAG, RIFF_ATRAC9 } bnk_codec;
+typedef enum { NONE, DUMMY, PSX, PCM16, MPEG, ATRAC9, HEVAG, RIFF_ATRAC9 } bnk_codec;
 
 typedef struct {
     bnk_codec codec;
@@ -41,6 +41,7 @@ typedef struct {
     int32_t num_samples;
     int32_t loop_start;
     int32_t loop_end;
+    int32_t encoder_delay;
 
     uint32_t start_offset;
     uint32_t stream_offset;
@@ -81,7 +82,7 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
 
     vgmstream->meta_type = meta_BNK_SONY;
 
-    if (!h.stream_name_size)
+    if (h.stream_name_size >= STREAM_NAME_SIZE || h.stream_name_size <= 0)
         h.stream_name_size = STREAM_NAME_SIZE;
 
     if (!h.bank_name_offset && h.stream_name_offset) {
@@ -90,7 +91,7 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
     else if (h.bank_name_offset && h.stream_name_offset) {
         read_string(bank_name, h.stream_name_size, h.bank_name_offset, sf);
         read_string(stream_name, h.stream_name_size, h.stream_name_offset, sf);
-        snprintf(vgmstream->stream_name, h.stream_name_size, "%s/%s", bank_name, stream_name);
+        snprintf(vgmstream->stream_name, h.stream_name_size, "%s%s%s", bank_name, bank_name[0] == '\0' ? "" : "/", stream_name);
     }
 
 
@@ -147,6 +148,20 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
             return temp_vs;
         }
 #endif
+#ifdef VGM_USE_MPEG
+        case MPEG: {
+            mpeg_custom_config cfg = {0};
+            cfg.skip_samples = h.encoder_delay;
+
+            vgmstream->layout_type = layout_none;
+            vgmstream->codec_data = init_mpeg_custom(sf, h.start_offset, &vgmstream->coding_type, h.channels, MPEG_STANDARD, &cfg);
+            if (!vgmstream->codec_data) goto fail;
+
+            vgmstream->num_samples = h.num_samples;
+            break;
+        }
+#endif
+
         case PCM16:
             vgmstream->coding_type = h.big_endian ? coding_PCM16BE : coding_PCM16LE;
             vgmstream->layout_type = layout_interleave;
@@ -567,7 +582,7 @@ static bool process_headers(STREAMFILE* sf, bnk_header_t* h) {
             goto fail;
     }
 
-    //;VGM_LOG("BNK: stream at %lx + %x\n", h->stream_offset, h->stream_size);
+    ;VGM_LOG("BNK: header %x, stream at %x + %x\n", sndh_offset, h->data_offset + h->stream_offset, h->stream_size);
 
     return true;
 fail:
@@ -722,7 +737,7 @@ static bool process_names(STREAMFILE* sf, bnk_header_t* h) {
             break;
     }
 
-    //;VGM_LOG("BNK: stream_offset=%lx, stream_size=%x, stream_name_offset=%lx\n", h->stream_offset, h->stream_size, h->stream_name_offset);
+    //;VGM_LOG("BNK: stream_offset=%x, stream_size=%x, stream_name_offset=%x\n", h->stream_offset, h->stream_size, h->stream_name_offset);
 
     return true;
 fail:
@@ -813,8 +828,8 @@ static bool process_data(STREAMFILE* sf, bnk_header_t* h) {
 
         case 0x08:
         case 0x09:
-            subtype = read_u16(h->start_offset+0x00,sf);
-            extradata_size = 0x08 + read_u32(h->start_offset+0x04,sf); /* 0x14 for AT9 */
+            subtype = read_u32(h->start_offset+0x00,sf);
+            extradata_size = 0x08 + read_u32(h->start_offset+0x04,sf); /* 0x14 for AT9, 0x10 for PCM, 0x90 for MPEG */
 
             switch(subtype) {
                 case 0x00:
@@ -829,22 +844,49 @@ static bool process_data(STREAMFILE* sf, bnk_header_t* h) {
                     h->interleave = 0x01;
                     break;
 
-
-                case 0x02: /* ATRAC9 mono */
-                case 0x05: /* ATRAC9 stereo */
-                    if (read_u32(h->start_offset+0x08,sf) + 0x08 != extradata_size) { /* repeat? */
-                        VGM_LOG("BNK: unknown subtype\n");
-                        goto fail;
-                    }
+                case 0x02: /* ATRAC9 / MPEG mono */
+                case 0x05: /* ATRAC9 / MPEG stereo */
                     h->channels = (subtype == 0x02) ? 1 : 2;
 
-                    h->atrac9_info = read_u32be(h->start_offset+0x0c,sf);
-                    /* 0x10: null? */
-                    loop_length    = read_u32(h->start_offset+0x14,sf);
-                    h->loop_start  = read_u32(h->start_offset+0x18,sf);
-                    h->loop_end = h->loop_start + loop_length; /* loop_start is -1 if not set */
+                    if (h->big_endian) {
+                        /* The Last of Us demo (PS3) */
 
-                    h->codec = ATRAC9;
+                        /* 0x08: mpeg version? (1) */
+                        /* 0x0C: mpeg layer? (3) */
+                        /* 0x10: ? (related to frame size, 0xC0 > 0x40, 0x120 > 0x60) */
+                        /* 0x14: sample rate */
+                        /* 0x18: mpeg layer? (3) */
+                        /* 0x1c: mpeg version? (1) */
+                        /* 0x20: channels? */
+                        /* 0x24: frame size */
+                        /* 0x28: encoder delay */
+                        /* 0x2c: num samples */
+                        /* 0x30: ? */
+                        /* 0x34: ? */
+                        /* 0x38: 0? */
+                        /* 0x3c: data size */
+                        /* padding up to 0x90 */
+
+                        h->encoder_delay    = read_s32(h->start_offset+0x28,sf);
+                        h->num_samples      = read_s32(h->start_offset+0x2c,sf);
+
+                        h->codec = MPEG;
+                    }
+                    else {
+                        /* Puyo Puyo Tetris (PS4) */
+                        if (read_u32(h->start_offset+0x08,sf) + 0x08 != extradata_size) { /* repeat? */
+                            VGM_LOG("BNK: unknown subtype\n");
+                            goto fail;
+                        }
+
+                        h->atrac9_info = read_u32be(h->start_offset+0x0c,sf);
+                        /* 0x10: null? */
+                        loop_length    = read_u32(h->start_offset+0x14,sf);
+                        h->loop_start  = read_u32(h->start_offset+0x18,sf);
+                        h->loop_end = h->loop_start + loop_length; /* loop_start is -1 if not set */
+
+                        h->codec = ATRAC9;
+                    }
                     break;
 
                 default:
