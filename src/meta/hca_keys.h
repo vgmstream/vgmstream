@@ -1265,9 +1265,12 @@ static const hcakey_info hcakey_list[] = {
 		
         // Persona 5 Tactica (Switch)
         {48319776512953016},    // 00ABAA94AAAE4AB8
-        
-        // THE IDOLM@STER Shiny Colors Song For Prism (Windows)
+
+        // THE IDOLM@STER Shiny Colors Song For Prism (PC)
         {156967709847897761},   // 022DA94CEAB0C6A1
+
+        // Dokapon Kingdom Connect (PC, Switch)
+        {104863924750642073},   // 01748d2f1883eb99
 
 };
 
