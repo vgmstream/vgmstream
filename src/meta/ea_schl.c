@@ -297,8 +297,9 @@ VGMSTREAM* init_vgmstream_ea_bnk(STREAMFILE* sf) {
      * .sdt: Harry Potter games, Burnout games (PSP)
      * .hdt/ldt: Burnout games (PSP)
      * .abk: GoldenEye - Rogue Agent
-     * .ast: FIFA 2004 (inside .big) */
-    if (!check_extensions(sf,"bnk,sdt,hdt,ldt,abk,ast"))
+     * .ast: FIFA 2004 (inside .big)
+     * .cat: FIFA 2000 (PC, chant.cat) */
+    if (!check_extensions(sf,"bnk,sdt,hdt,ldt,abk,ast,cat"))
         goto fail;
 
     if (target_stream == 0) target_stream = 1;

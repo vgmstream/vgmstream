@@ -131,6 +131,7 @@ static const char* extension_list[] = {
 
     "cads",
     "caf",
+    "cat",
     "cbd2",
     "cd",
     "cfn", //fake extension for CAF (renamed, to be removed?)
