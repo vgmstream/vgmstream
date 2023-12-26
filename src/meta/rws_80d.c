@@ -40,6 +40,7 @@ typedef struct {
     size_t block_layers_size;
 
     off_t coefs_offset;
+    off_t hist_offset;
 
     char readable_name[STREAM_NAME_SIZE];
 } rws_header;
@@ -200,7 +201,7 @@ VGMSTREAM* init_vgmstream_rws(STREAMFILE* sf) {
     for (i = 0; i < rws.total_layers; i++) {
         uint32_t layer_codec = 0;
         if (i+1 == rws.target_layer) {
-            rws.sample_rate     = read_u32(offset + 0x00, sf);
+            rws.sample_rate = read_u32(offset + 0x00, sf);
             /* 0x04: config? */
           //rws.layer_size  = read_u32(offset + 0x08, sf); /* same or close to usable size */
             /* 0x0c: bits per sample */
@@ -210,7 +211,7 @@ VGMSTREAM* init_vgmstream_rws(STREAMFILE* sf) {
             /* 0x18: null or some size? */
             rws.codec       = read_u32(offset + 0x1c, sf); /* 128b uuid (32b-16b-16b-8b*8) but first 32b is enough */
         }
-        layer_codec   = read_u32(offset + 0x1c, sf);
+        layer_codec = read_u32(offset + 0x1c, sf);
         offset += 0x2c;
 
         /* DSP has an extra field per layer */
@@ -219,6 +220,7 @@ VGMSTREAM* init_vgmstream_rws(STREAMFILE* sf) {
             /* 0x04: approx size/loop related? (can be 0) */
             if (i+1 == rws.target_layer) {
                 rws.coefs_offset = offset + 0x1c;
+                rws.hist_offset  = offset + 0x40;
             }
             offset += 0x60;
         }
@@ -322,12 +324,14 @@ VGMSTREAM* init_vgmstream_rws(STREAMFILE* sf) {
             break;
 
         case 0xF86215B0: /* {F86215B0,31D5,4C29,BD,37,CD,BF,9B,D1,0C,53} DSP GC/Wii */
-            /* Burnout 2 (GC), Alice in Wonderland (Wii) */
+            /* Burnout 2 (GC), Alice in Wonderland (Wii), Call of Duty: Finest Hour (GC) */
             vgmstream->coding_type = coding_NGC_DSP;
             vgmstream->interleave_block_size = rws.block_size / 2;
 
             /* get coefs (all channels share them; also seem fixed for all RWS) */
             dsp_read_coefs_be(vgmstream, sf, rws.coefs_offset, 0);
+            /* get initial sample history data (rarely used / often empty) */
+            dsp_read_hist_be(vgmstream, sf, rws.hist_offset, 0);
 
             vgmstream->num_samples = dsp_bytes_to_samples(stream_size, rws.channels);
             break;
