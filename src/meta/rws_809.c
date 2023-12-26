@@ -7,7 +7,7 @@
 VGMSTREAM* init_vgmstream_rws_809(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     bool big_endian;
-    char header_name[STREAM_NAME_SIZE], stream_name[STREAM_NAME_SIZE];
+    char file_name[STREAM_NAME_SIZE], header_name[STREAM_NAME_SIZE], stream_name[STREAM_NAME_SIZE];
     int channels = 0, idx, interleave, loop_flag, sample_rate = 0, total_subsongs, target_subsong = sf->stream_index;
     read_u32_t read_u32;
     off_t chunk_offset, header_offset, misc_data_offset = 0, stream_name_offset, stream_offset = 0;
@@ -136,7 +136,11 @@ VGMSTREAM* init_vgmstream_rws_809(STREAMFILE* sf) {
             goto fail;
     }
 
-    snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%s/%s", header_name, stream_name);
+    get_streamfile_basename(sf, file_name, STREAM_NAME_SIZE);
+    if (strcmp(file_name, header_name) == 0)
+        snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%s", stream_name);
+    else
+        snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%s/%s", header_name, stream_name);
 
     if (!vgmstream_open_stream(vgmstream, sf, stream_offset + 0x0C))
         goto fail;

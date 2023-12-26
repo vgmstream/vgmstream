@@ -6,7 +6,7 @@
 /* AWD - Audio Wave Dictionary (RenderWare) */
 VGMSTREAM* init_vgmstream_awd(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
-    char header_name[STREAM_NAME_SIZE], stream_name[STREAM_NAME_SIZE];
+    char file_name[STREAM_NAME_SIZE], header_name[STREAM_NAME_SIZE], stream_name[STREAM_NAME_SIZE];
     int /*bit_depth = 0,*/ channels = 0, sample_rate = 0, stream_codec = -1, total_subsongs = 0, target_subsong = sf->stream_index;
     int interleave, loop_flag;
     off_t data_offset, header_name_offset, misc_data_offset, linked_list_offset, wavedict_offset;
@@ -115,7 +115,8 @@ VGMSTREAM* init_vgmstream_awd(STREAMFILE* sf) {
     vgmstream->num_streams = total_subsongs;
     vgmstream->interleave_block_size = interleave;
 
-    if (header_name_offset)
+    get_streamfile_basename(sf, file_name, STREAM_NAME_SIZE);
+    if (header_name_offset && strcmp(file_name, header_name))
         snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%s/%s", header_name, stream_name);
     else
         snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%s", stream_name);
