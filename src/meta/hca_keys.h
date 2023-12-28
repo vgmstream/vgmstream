@@ -1272,6 +1272,9 @@ static const hcakey_info hcakey_list[] = {
         // Dokapon Kingdom Connect (PC, Switch)
         {104863924750642073},   // 01748d2f1883eb99
 
+        // Girls' Frontline 2: Exilium (PC)
+        {7152097263845921},     // 001968CB68CF8221
+
 };
 
 #endif/*_HCA_KEYS_H_*/
