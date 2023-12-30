@@ -703,6 +703,7 @@ typedef enum {
     meta_SQUEAKSAMPLE,
     meta_SNDS,
     meta_NXOF,
+    meta_GWB_GWD,
 
 } meta_t;
 

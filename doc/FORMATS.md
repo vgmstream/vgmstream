@@ -185,7 +185,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Sony VAG header (custom) [*VAG_custom*]
   - Sony VAG header [*VAG*]
   - Acclaim Austin AAAp header [*AAAP*]
-  - *vag*: `.vag .swag .str .vig .l .r .vas .xa2 .snd`
+  - *vag*: `.vag .swag .str .vig .l .r .vas .xa2 .snd .svg`
   - *vag_aaap*: `.vag`
   - Codecs: PSX HEVAG
 - **ild.c**
@@ -201,7 +201,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Electronic Arts SCHl header [*EA_SCHL*]
   - *ea_schl*: `.asf .lasf .str .chk .eam .exa .sng .aud .sx .xa .strm .stm .hab .xsf .gsf .(extensionless)`
   - *ea_schl_video*: `.uv .dct .mad .wve .vp6`
-  - *ea_bnk*: `.bnk .sdt .hdt .ldt .abk .ast`
+  - *ea_bnk*: `.bnk .sdt .hdt .ldt .abk .ast .cat`
   - *ea_abk*: `.abk + .ast`
   - *ea_hdr_dat*: `.hdr + .dat`
     - Subfiles: *vag*
@@ -1299,7 +1299,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Sony BNK header [*BNK_SONY*]
   - *bnk_sony*: `.bnk`
     - Subfiles: *riff*
-  - Codecs: ATRAC9 PCM16BE PCM16LE PSX HEVAG
+  - Codecs: ATRAC9 MPEG PCM16BE PCM16LE PSX HEVAG
 - **nus3bank.c**
   - (container)
   - *nus3bank*: `.nub2 .nus3bank`
@@ -1798,9 +1798,13 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Sony SNDS header [*SNDS*]
   - Codecs: ATRAC9
 - **nxof.c**
-  - Nihon Falcom FDK Opus Header [*NXOF*]
+  - Nihon Falcom FDK header [*NXOF*]
   - *nxof*: `.nxopus`
   - Codecs: Opus
+- **gwb_gwd.c**
+  - Ubisoft GWB+GWD header [*GWB_GWD*]
+  - *gwb_gwd*: `.gwb + .gwd`
+  - Codecs: NGC_DSP
 - **scd_pcm.c**
   - Lunar: Eternal Blue .PCM header [*SCD_PCM*]
   - *scd_pcm*: `.pcm`
@@ -1851,7 +1855,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Codecs: NGC_DTK
 - **mpeg.c**
   - MPEG header [*MPEG*]
-  - *mpeg*: `.mp3 .mp2 .lmp3 .lmp2 .mus .imf .aix .(extensionless)`
+  - *mpeg*: `.mp3 .mp2 .lmp3 .lmp2 .mus .imf .aix .wav .lwav .(extensionless)`
   - Codecs: MPEG
 - **btsnd.c**
   - Nintendo Wii U Menu Boot Sound header [*BTSND*]

@@ -988,4 +988,6 @@ VGMSTREAM* init_vgmstream_snds(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_nxof(STREAMFILE* sf);
 
+VGMSTREAM* init_vgmstream_gwb_gwd(STREAMFILE* sf);
+
 #endif /*_META_H*/

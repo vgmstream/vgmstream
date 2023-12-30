@@ -212,6 +212,7 @@ static const char* extension_list[] = {
     "gsf",
     "gsp",
     "gtd",
+    "gwb",
     "gwm",
 
     "h4m",
@@ -1422,7 +1423,8 @@ static const meta_info meta_info_list[] = {
         {meta_SQUEAKSTREAM,         "Torus SqueakStream header"},
         {meta_SQUEAKSAMPLE,         "Torus SqueakSample header"},
         {meta_SNDS,                 "Sony SNDS header"},
-        {meta_NXOF,                 "Nihon Falcom FDK Opus Header"},
+        {meta_NXOF,                 "Nihon Falcom FDK header"},
+        {meta_GWB_GWD,              "Ubisoft GWB+GWD header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {
