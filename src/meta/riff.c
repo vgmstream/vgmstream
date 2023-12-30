@@ -467,6 +467,9 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
 
         else if (codec == 0xFFFE && riff_size + 0x08 + 0x40 == file_size)
             file_size -= 0x40; /* [Megami no Etsubo (PSP)] (has extra padding in all files) */
+
+        else if (codec == 0x0011 && file_size - riff_size - 0x08 <= 0x900 && is_id32be(riff_size + 0x08, sf, "cont"))
+            riff_size = file_size - 0x08; /* [Shin Megami Tensei: Imagine (PC)] (extra "cont" info 0x800/0x900 chunk) */
     }
 
     /* check for truncated RIFF */
