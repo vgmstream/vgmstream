@@ -3,16 +3,15 @@
 #include "../coding/coding.h"
 
 
-static int xa_read_subsongs(STREAMFILE* sf, int target_subsong, off_t start, uint16_t* p_stream_config, off_t* p_stream_offset, size_t* p_stream_size, int* p_form2);
+static int xa_read_subsongs(STREAMFILE* sf, int target_subsong, uint32_t start, uint32_t* p_stream_offset, uint32_t* p_stream_size);
 static int xa_check_format(STREAMFILE* sf, off_t offset, int is_blocked);
 
 /* XA - from Sony PS1 and Philips CD-i CD audio */
 VGMSTREAM* init_vgmstream_xa(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
-    off_t start_offset;
+    uint32_t start_offset, stream_size = 0;
     int loop_flag = 0, channels, sample_rate, bps;
     int is_riff = 0, is_form2 = 0, is_blocked;
-    size_t stream_size = 0;
     int total_subsongs = 0, target_subsong = sf->stream_index;
     uint16_t target_config = 0;
 
@@ -53,7 +52,7 @@ VGMSTREAM* init_vgmstream_xa(STREAMFILE* sf) {
 
     /* find subsongs as XA can interleave sectors using 'file' and 'channel' makers (see blocked_xa.c) */
     if (/*!is_riff &&*/ is_blocked) {
-        total_subsongs = xa_read_subsongs(sf, target_subsong, start_offset, &target_config, &start_offset, &stream_size, &is_form2);
+        total_subsongs = xa_read_subsongs(sf, target_subsong, start_offset, &start_offset, &stream_size);
         if (total_subsongs <= 0) goto fail;
     }
     else {
@@ -63,7 +62,13 @@ VGMSTREAM* init_vgmstream_xa(STREAMFILE* sf) {
     /* data is ok: parse header */
     if (is_blocked) {
         /* parse 0x18 sector header (also see blocked_xa.c)  */
-        uint8_t xa_header = read_u8(start_offset + 0x13,sf);
+        uint32_t curr_info = read_u32be(start_offset + 0x10, sf);
+        uint16_t xa_config  = (curr_info >> 16) & 0xFFFF; /* file+channel markers */
+        uint8_t  xa_submode = (curr_info >>  8) & 0xFF;
+        uint8_t  xa_header  = (curr_info >>  0) & 0xFF;
+
+        target_config = xa_config;
+        is_form2 = (xa_submode & 0x20);
 
         switch((xa_header >> 0) & 3) { /* 0..1: mono/stereo */
             case 0: channels = 1; break;
@@ -175,7 +180,7 @@ static int xa_check_format(STREAMFILE *sf, off_t offset, int is_blocked) {
             if (get_u32be(frame_hdr+0x00) != get_u32be(frame_hdr+0x04) ||
                 get_u32be(frame_hdr+0x08) != get_u32be(frame_hdr+0x0c))
                 goto fail;
-            /* blank frames should always use 0x0c0c0c0c (due to how shift works) */
+            /* blank frames should always use 0x0c0c0c0c due to how shift works, (in rare/unused file-channels it may be blank though) */
             if (get_u32be(frame_hdr+0x00) == 0 &&
                 get_u32be(frame_hdr+0x04) == 0 &&
                 get_u32be(frame_hdr+0x08) == 0 &&
@@ -196,14 +201,11 @@ fail:
 }
 
 
-#define XA_SUBSONG_MAX  1024 /* +500 found in bigfiles like Castlevania SOTN */
+#define XA_MAX_CHANNELS 16
 
-typedef struct xa_subsong_t {
-    uint16_t config;
-    off_t start;
-    int form2;
-    int sectors;
-    int end_flag;
+typedef struct {
+   uint32_t info;
+   int subsong;
 } xa_subsong_t;
 
 /* Get subsong info, as real XA data interleaves N sectors/subsongs (often 8/16). Extractors deinterleave
@@ -211,17 +213,38 @@ typedef struct xa_subsong_t {
  * usable sectors for bytes-to-samples.
  *
  * Bigfiles that paste tons of XA together are slow to parse since we need to read every sector to
- * count totals, but XA subsong handling is mainly for educational purposes. */
-static int xa_read_subsongs(STREAMFILE* sf, int target_subsong, off_t start, uint16_t* p_stream_config, off_t* p_stream_offset, size_t* p_stream_size, int* p_form2) {
-    xa_subsong_t *cur_subsong = NULL;
-    xa_subsong_t subsongs[XA_SUBSONG_MAX] = {0};
+ * count totals, but XA subsong handling is mainly for educational purposes.
+ *
+ * Raw XA CD sectors are interleaved and classified into "files" and "channels" due to how CD driver/audio buffer works.
+ * Devs select one file+channel (or just channel?) to play and CD ignores non-target sectors.
+ * "files" can be any number in any order (but usually 00~64), and "channels" seem to be max 00~0F.
+ * file+channel (=song) ends with a flag or when file changes; simplified example (upper=file, lower=channel):
+ *   0101 0102 0101 0102 0201 0202 0201 0202 0101 0102
+ * adapted to subsongs:
+ *   0101 #1 (all 0101 sectors until file change = 2 sectors)
+ *   0102 #2
+ *   0201 #3
+ *   0202 #4
+ *   0101 #5 (different than first subsong since there was another file in between, 1 sector)
+ *   0102 #6
+ *
+ * For video + audio the layout is the same with extra flags to detect video/audio sectors:
+ *   0101v 0101v 0101v 0101v 0101v 0101v 0101v 0101a (usually 7 video sectors per 1 audio sector)
+ *
+ * CDs can't have 0101 0101 0101 ... audio sectors (need to interleave other channels, or repeat data),
+ * but can be seen in demuxed XA. Combinations like a 0101 after 0201 probably only happen when devs
+ * paste many XAs into a bigfile, which likely would jump via offsets in exe to the XA start (can be
+ * split), but they are detected here for convenience.
+ */
+static int xa_read_subsongs(STREAMFILE* sf, int target_subsong, uint32_t start, uint32_t* p_stream_offset, uint32_t* p_stream_size) {
     const size_t sector_size = 0x930;
-    uint16_t prev_config;
-    int i, subsongs_count = 0;
-    size_t file_size;
-    off_t offset;
-    STREAMFILE *sf_test = NULL;
-    uint8_t header[4];
+    int subsongs_count = 0;
+    uint32_t offset, file_size;
+    STREAMFILE* sf_test = NULL;
+
+    xa_subsong_t xa_subsongs[XA_MAX_CHANNELS] = {0};
+    uint32_t target_start = 0xFFFFFFFFu;
+    int target_sectors = 0;
 
 
     /* buffer to speed up header reading; bigger (+0x8000) is actually faster than very small (~0x10),
@@ -229,99 +252,71 @@ static int xa_read_subsongs(STREAMFILE* sf, int target_subsong, off_t start, uin
     sf_test = reopen_streamfile(sf, 0x10000);
     if (!sf_test) goto fail;
 
-    prev_config = 0xFFFFu;
     file_size = get_streamfile_size(sf);
     offset = start;
 
+    if (target_subsong == 0) target_subsong = 1;
+
     /* read XA sectors */
     while (offset < file_size) {
-        uint16_t xa_config;
-        uint8_t  xa_submode;
-        int is_audio, is_eof;
+        uint32_t curr_info = read_u32be(offset + 0x10, sf_test);
+      //uint8_t xa_file     = (curr_info >> 24) & 0xFF;
+        uint8_t xa_chan     = (curr_info >> 16) & 0xFF;
+        uint8_t xa_submode  = (curr_info >>  8) & 0xFF;
+      //uint8_t xa_header   = (curr_info >>  0) & 0xFF;
+        bool is_audio = !(xa_submode & 0x08) && (xa_submode & 0x04) && !(xa_submode & 0x02);
+        bool is_eof = (xa_submode & 0x80);
+        bool is_target = false;
 
-        read_streamfile(header, offset + 0x10, sizeof(header), sf_test);
-        xa_config    = get_u16be(header + 0x00); /* file+channel markers */
-        xa_submode   = get_u8   (header + 0x02); /* flags */
-        is_audio = !(xa_submode & 0x08) && (xa_submode & 0x04) && !(xa_submode & 0x02);
-        is_eof = (xa_submode & 0x80);
+        if (xa_chan >= XA_MAX_CHANNELS) {
+            VGM_LOG("XA: too many channels: %x\n", xa_chan);
+        }
 
-        VGM_ASSERT((xa_submode & 0x01), "XA: end of audio at %lx\n", offset); /* rare, signals last sector [Tetris (CD-i)] */
-        //;VGM_ASSERT(is_eof, "XA: eof at %lx\n", offset);
-        //;VGM_ASSERT(!is_audio, "XA: not audio at %lx\n", offset);
+        VGM_ASSERT((xa_submode & 0x01), "XA: end of audio at %x\n", offset); /* rare, signals last sector [Tetris (CD-i)] */
+        //;VGM_ASSERT(is_eof, "XA: eof %02x%02x at %x\n", xa_file, xa_chan, offset); /* this sector still has data */
+        //;VGM_ASSERT(!is_audio, "XA: not audio at %x\n", offset);
 
         if (!is_audio) {
             offset += sector_size;
             continue;
         }
 
-        /* detect file+channel change = sector of new subsong or existing subsong
-         * (happens on every sector for interleaved XAs but only once for deint'd or video XAs) */
-        if (xa_config != prev_config)
-        {
-            /* find if this sector/config belongs to known subsong that hasn't ended
-             * (unsure if repeated configs+end flag is possible but probably in giant XAs) */
-            cur_subsong = NULL;
-            for (i = 0; i < subsongs_count; i++) { /* search algo could be improved, meh */
-                if (subsongs[i].config == xa_config && !subsongs[i].end_flag) {
-                    cur_subsong = &subsongs[i];
-                    break;
-                }
-            }
+        /* use info without submode to detect new subsongs */
+        curr_info = curr_info & 0xFFFF00FF;
 
-            /* old subsong not found = add new to list */
-            if (cur_subsong == NULL) {
-                uint8_t xa_channel = get_u8(header + 0x01);
-
-                /* when file+channel changes mark prev subsong of the same channel as finished
-                 * (this ensures reused ids in bigfiles are handled properly, ex.: 0101... 0201... 0101...) */
-                for (i = subsongs_count - 1; i >= 0; i--) {
-                    uint16_t subsong_config = subsongs[i].config;
-                    uint8_t subsong_channel = subsong_config & 0xFF;
-                    if (xa_config != subsong_config && xa_channel == subsong_channel) {
-                        subsongs[i].end_flag = 1;
-                        break;
-                    }
-                }
-
-
-                cur_subsong = &subsongs[subsongs_count];
-                subsongs_count++;
-                if (subsongs_count >= XA_SUBSONG_MAX) goto fail;
-
-                cur_subsong->config = xa_config;
-                cur_subsong->form2 = (xa_submode & 0x20);
-                cur_subsong->start = offset;
-              //cur_subsong->sectors = 0;
-              //cur_subsong->end_flag = 0;
-
-                //;VGM_LOG("XA: new subsong %i with config %04x at %lx\n", subsongs_count, xa_config, offset);
-            }
-
-            prev_config = xa_config;
-        }
-        else {
-            if (cur_subsong == NULL) goto fail;
+        /* changes for a current channel = new subsong */
+        if (xa_subsongs[xa_chan].info != curr_info) {
+            subsongs_count++;
+            xa_subsongs[xa_chan].info = curr_info;
+            xa_subsongs[xa_chan].subsong = subsongs_count;
         }
 
-        cur_subsong->sectors++;
-        if (is_eof)
-            cur_subsong->end_flag = 1;
+        /* current channel is still from expected subsong */
+        is_target = xa_subsongs[xa_chan].subsong == target_subsong;
+        if (is_target) {
+            if (target_start == 0xFFFFFFFFu)
+                target_start = offset;
+            target_sectors++;
+        }
+
+        /* remove info (after handling sector) so next comparison for this channel adds a subsong */
+        if (is_eof) {
+            xa_subsongs[xa_chan].info = 0;
+            xa_subsongs[xa_chan].subsong = 0;
+        }
 
         offset += sector_size;
     }
 
-    VGM_ASSERT(subsongs_count < 1, "XA: no audio found\n");
+    VGM_ASSERT(subsongs_count < 1, "XA: no audio found\n"); /* probably not possible even in videos */
 
-    if (target_subsong == 0) target_subsong = 1;
     if (target_subsong < 0 || target_subsong > subsongs_count || subsongs_count < 1) goto fail;
+    if (target_sectors == 0) goto fail;
 
-    cur_subsong = &subsongs[target_subsong - 1];
-    *p_stream_config = cur_subsong->config;
-    *p_stream_offset = cur_subsong->start;
-    *p_stream_size   = cur_subsong->sectors * sector_size;
-    *p_form2         = cur_subsong->form2;
+    *p_stream_offset = target_start;
+    *p_stream_size   = target_sectors * sector_size;
 
-    //;VGM_LOG("XA: subsong config=%x, offset=%lx, size=%x, form2=%i\n", *p_stream_config, *p_stream_offset, *p_stream_size, *p_form2);
+    //;VGM_LOG("XA: subsong offset=%x, size=%x\n", *p_stream_offset, *p_stream_size);
 
     close_streamfile(sf_test);
     return subsongs_count;
