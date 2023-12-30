@@ -1,7 +1,7 @@
 #ifndef _FSB_ENCRYPTED_STREAMFILE_H_
 #define _FSB_ENCRYPTED_STREAMFILE_H_
 
-#define FSB_KEY_MAX 0x10000 //0x168
+#define FSB_KEY_MAX 0x80 /* known max ~0x33 */
 
 
 typedef struct {
@@ -57,7 +57,7 @@ static STREAMFILE* setup_fsb_streamfile(STREAMFILE* sf, const uint8_t* key, size
     size_t io_data_size = sizeof(fsb_decryption_data);
 
     /* setup decryption with key (external) */
-    if (!key_size || key_size > FSB_KEY_MAX)
+    if (!key_size || key_size >= FSB_KEY_MAX)
         return NULL;
 
     memcpy(io_data.key, key, key_size);
