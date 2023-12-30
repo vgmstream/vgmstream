@@ -74,11 +74,12 @@ class Cli(object):
         p.add_argument('-fne', dest='exclude_regex', help="Filter by REGEX excluding matches of subsong name")
         p.add_argument('-nsc',dest='no_semicolon', help="Remove semicolon names (for songs with multinames)", action='store_true')
         p.add_argument("-cmd","--command", help="sets any command (free text)")
+        p.add_argument("-cmdi","--command-inline", help="sets any inline command (free text)")
         p.add_argument('-v', dest='log_level', help="Verbose log level (off|debug|info, default: info)", default='info')
         args = p.parse_args()
 
         # defauls to rename (easier to use with drag-and-drop)
-        if not all([args.overwrite, args.overwrite_ignore, args.overwrite_rename]):
+        if not any([args.overwrite, args.overwrite_ignore, args.overwrite_rename]):
             args.overwrite_rename = True
         return args
 
@@ -282,7 +283,7 @@ class TxtpMaker(object):
         for badchar in badchars:
             txt = txt.replace(badchar, '_')
 
-        if not self.cfg.no_internal_ext:
+        if self.cfg.no_internal_ext:
             pos = txt.rfind(".")
             if pos >= 0:
                 txt = txt[:pos]
@@ -328,6 +329,8 @@ class TxtpMaker(object):
         with open(outname,"w+", encoding='utf-8') as ftxtp:
             if line:
                 ftxtp.write(line)
+                if cfg.command_inline:
+                    ftxtp.write(cfg.command_inline)
             if cfg.command:
                 cmd = cfg.command.replace("\\n", "\n") + "\n"
                 if not line.endswith('\n'):
@@ -376,6 +379,7 @@ class TxtpMaker(object):
 
             outname = ''
             if cfg.base_name:
+                
                 stream_name = self._clean_stream_name()
                 internal_filename = stream_name
                 if not internal_filename:
