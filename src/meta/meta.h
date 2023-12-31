@@ -657,6 +657,7 @@ typedef struct {
     uint32_t body_offset;
     meta_t type;
     bool standalone;
+    bool is_sps;
 } eaac_meta_t;
 
 VGMSTREAM* load_vgmstream_ea_eaac(eaac_meta_t* info);

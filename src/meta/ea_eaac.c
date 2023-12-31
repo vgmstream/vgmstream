@@ -40,10 +40,11 @@
 #define EAAC_BLOCKID1_DATA              0x44 /* 'D' */
 #define EAAC_BLOCKID1_END               0x45 /* 'E' */
 
-static VGMSTREAM* init_vgmstream_eaaudiocore_header(STREAMFILE* sf_head, STREAMFILE* sf_data, off_t header_offset, off_t start_offset, meta_t meta_type, bool standalone);
+static VGMSTREAM* init_vgmstream_eaaudiocore_header(STREAMFILE* sf_head, STREAMFILE* sf_data, off_t header_offset, off_t start_offset, meta_t meta_type, bool standalone, bool is_sps);
 
 VGMSTREAM* load_vgmstream_ea_eaac(eaac_meta_t* info) {
-    return init_vgmstream_eaaudiocore_header(info->sf_head, info->sf_body, info->head_offset, info->body_offset, info->type, info->standalone);
+    info->is_sps = info->is_sps || info->type == meta_EA_SPS;
+    return init_vgmstream_eaaudiocore_header(info->sf_head, info->sf_body, info->head_offset, info->body_offset, info->type, info->standalone, info->is_sps);
 }
 
 
@@ -77,12 +78,12 @@ static VGMSTREAM* init_vgmstream_eaaudiocore_main(eaac_header_t* eaac, STREAMFIL
  * Audio "assets" come in separate RAM headers (.SNR/SPH) and raw blocked streams (.SNS/SPS),
  * or together in pseudoformats (.SNU, .SBR+.SBS banks, .AEMS, .MUS, etc).
  * Some .SNR include stream data, while .SPS have headers so .SPH is optional. */
-static VGMSTREAM* init_vgmstream_eaaudiocore_header(STREAMFILE* sf_head, STREAMFILE* sf_data, off_t header_offset, off_t start_offset, meta_t meta_type, bool standalone) {
+static VGMSTREAM* init_vgmstream_eaaudiocore_header(STREAMFILE* sf_head, STREAMFILE* sf_data, off_t header_offset, off_t start_offset, meta_t meta_type, bool standalone, bool is_sps) {
     eaac_header_t eaac = {0};
 
     /* SPS put the header in the first block */
     uint32_t header_block_size = 0;
-    if (meta_type == meta_EA_SPS) {
+    if (is_sps) {
         uint32_t header_block_info = read_u32be(header_offset, sf_head);
         uint8_t header_block_id;
 

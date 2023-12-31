@@ -2,6 +2,9 @@
 #include "../util/endianness.h"
 
 
+#define EAAC_BLOCKID1_HEADER            0x48 /* 'H' */
+
+
 /* .SNR+SNS - from EA latest games (~2005-2010), v0 header */
 VGMSTREAM* init_vgmstream_ea_snr_sns(STREAMFILE* sf) {
     eaac_meta_t info = {0};
@@ -23,6 +26,8 @@ VGMSTREAM* init_vgmstream_ea_sps(STREAMFILE* sf) {
     eaac_meta_t info = {0};
 
     /* checks */
+    if (read_u8(0x00, sf) != EAAC_BLOCKID1_HEADER) /* validated later but fails faster */
+        return NULL;
     if (!check_extensions(sf,"sps"))
         return NULL;
 
@@ -54,10 +59,24 @@ VGMSTREAM* init_vgmstream_ea_snu(STREAMFILE* sf) {
     /* use start offset as endianness flag */
     read_u32 = guess_read_u32(0x08,sf);
 
-    info.sf_head = sf;
-    info.sf_body = sf;
-    info.head_offset = 0x10; /* SNR header */
-    info.body_offset = read_u32(0x08,sf); /* SNS blocks */
-    info.type = meta_EA_SNU;
+    uint32_t body_offset = read_u32(0x08,sf);
+    uint8_t block_id = read_u8(body_offset, sf);
+
+
+    if (block_id == EAAC_BLOCKID1_HEADER) {
+        /* Dead Space 3 (PC) */
+        info.sf_head = sf;
+        info.head_offset = body_offset; /* header also at 0x10, but useless in SPS */
+        info.type = meta_EA_SNU;
+        info.is_sps = true;
+    }
+    else {
+        info.sf_head = sf;
+        info.sf_body = sf;
+        info.head_offset = 0x10; /* SNR header */
+        info.body_offset = body_offset; /* SNR body */
+        info.type = meta_EA_SNU;
+    }
+
     return load_vgmstream_ea_eaac(&info);
 }
