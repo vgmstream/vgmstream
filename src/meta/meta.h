@@ -650,6 +650,18 @@ VGMSTREAM * init_vgmstream_ea_tmx(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_ea_sbr(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_ea_sbr_harmony(STREAMFILE * streamFile);
 
+typedef struct {
+    STREAMFILE* sf_head;
+    STREAMFILE* sf_body;
+    uint32_t head_offset;
+    uint32_t body_offset;
+    meta_t type;
+    bool standalone;
+    bool is_sps;
+} eaac_meta_t;
+
+VGMSTREAM* load_vgmstream_ea_eaac(eaac_meta_t* info);
+
 VGMSTREAM* init_vgmstream_vid1(STREAMFILE* sf);
 
 VGMSTREAM * init_vgmstream_flx(STREAMFILE * streamFile);
@@ -987,5 +999,7 @@ VGMSTREAM* init_vgmstream_squeaksample(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_snds(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_nxof(STREAMFILE* sf);
+
+VGMSTREAM* init_vgmstream_gwb_gwd(STREAMFILE* sf);
 
 #endif /*_META_H*/

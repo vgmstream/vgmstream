@@ -37,8 +37,9 @@ VGMSTREAM* init_vgmstream_mpeg(STREAMFILE* sf) {
      * .mus: Marc Ecko's Getting Up (PC) 
      * .imf: Colors (Gizmondo)
      * .aix: Classic Compendium 2 (Gizmondo)
+     * .wav/lwav: The Seventh Seal (PC)
      * (extensionless): Interstellar Flames 2 (Gizmondo) */
-    if (!check_extensions(sf, "mp3,mp2,lmp3,lmp2,mus,imf,aix,,"))
+    if (!check_extensions(sf, "mp3,mp2,lmp3,lmp2,mus,imf,aix,wav,lwav,"))
         goto fail;
 
     loop_flag = 0;

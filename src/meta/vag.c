@@ -25,8 +25,9 @@ VGMSTREAM* init_vgmstream_vag(STREAMFILE* sf) {
      * .l/r: Crash Nitro Kart (PS2), Gradius V (PS2)
      * .vas: Kingdom Hearts II (PS2)
      * .xa2: Shikigami no Shiro (PS2)
-     * .snd: Alien Breed (Vita) */
-    if (!check_extensions(sf,"vag,swag,str,vig,l,r,vas,xa2,snd"))
+     * .snd: Alien Breed (Vita)
+     * .svg: ModernGroove: Ministry of Sound Edition (PS2) */
+    if (!check_extensions(sf,"vag,swag,str,vig,l,r,vas,xa2,snd,svg"))
         return NULL;
 
     file_size = get_streamfile_size(sf);
@@ -147,6 +148,16 @@ VGMSTREAM* init_vgmstream_vag(STREAMFILE* sf) {
                 interleave_first_skip = start_offset;
 
                 loop_flag = ps_find_loop_offsets(sf, start_offset, channel_size*channels, channels, interleave, &loop_start_sample, &loop_end_sample);
+            }
+            else if (version == 0x00000020 && is_id32be(0x800,sf, "VAGp")) {
+                /* ModernGroove: Ministry of Sound Edition (PS2) */
+                start_offset = 0x30;
+                channels = 2;
+                interleave = 0x800;
+                interleave_first = interleave - start_offset; /* includes header */
+                interleave_first_skip = start_offset;
+
+                loop_flag = 0;
             }
             else if (version == 0x40000000) {
                 /* Killzone (PS2) */

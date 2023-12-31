@@ -74,7 +74,7 @@ static const uint32_t MASK_TABLE_MSB[33] = {
 static inline int bm_get(bitstream_t* ib, uint32_t bits, uint32_t* value) {
     uint32_t shift, pos, mask;
     uint64_t val; //TODO: could use u32 with some shift fiddling
-    int i, bit_buf, bit_val, left;
+    int left;
 
     if (bits > 32 || ib->b_off + bits > ib->b_max)
         goto fail;
@@ -83,8 +83,10 @@ static inline int bm_get(bitstream_t* ib, uint32_t bits, uint32_t* value) {
     shift = ib->b_off % 8;      /* bit sub-offset */
 
 #if 0 //naive approach
+    int bit_val, bit_buf;
+
     val = 0;
-    for (i = 0; i < bits; i++) {
+    for (int i = 0; i < bits; i++) {
         bit_buf = (1U << (8-1-shift)) & 0xFF;   /* bit check for buf */
         bit_val = (1U << (bits-1-i));           /* bit to set in value */
 

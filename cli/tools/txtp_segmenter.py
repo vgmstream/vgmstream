@@ -34,6 +34,7 @@ def parse():
     parser.add_argument("-fe","--filter-exclude", help="exclude files matched with regex and keep rest")
     parser.add_argument("-s","--single", help="generate single files per list match", action='store_true')
     parser.add_argument("-l","--list", help="list only results and don't write .txtp", action='store_true')
+    parser.add_argument("-ml","--mode-layers", help="sets layers", action='store_true')
     parser.add_argument("-cla","--command-loop-auto", help="sets auto-loop (last segment)", action='store_true')
     parser.add_argument("-clf","--command-loop-force", help="sets auto-loop (last segment) even with 1 segment", action='store_true')
     parser.add_argument("-cls","--command-loop-start", help="sets loop start segment")
@@ -154,6 +155,8 @@ def main():
                     txtp_line = "%s%s\n" % (segment, command_inline)
                 ftxtp.write(txtp_line)
 
+            if args.mode_layers:
+                ftxtp.write("mode = layers\n")
             if args.command_loop_auto or args.command_loop_force and len_segments > 1:
                 ftxtp.write("loop_mode = auto\n")
             if args.command_loop_start:

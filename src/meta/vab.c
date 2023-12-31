@@ -167,8 +167,8 @@ VGMSTREAM* init_vgmstream_vab(STREAMFILE* sf) {
 
     data_size = read_u16le(waves_off + i * 0x02, sf) << 3;
 
-    if (data_size == 0 && center == 0 && shift == 0) {
-        // hack for empty sounds in Critical Depth
+    if (data_size == 0 /*&& center == 0 && shift == 0*/) {
+        // hack for empty sounds in rare cases (may set center/shift to 0 as well) [Critical Depth]
         vgmstream = init_vgmstream_silence(1, 44100, 44100);
         if (!vgmstream) goto fail;
 

@@ -185,7 +185,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Sony VAG header (custom) [*VAG_custom*]
   - Sony VAG header [*VAG*]
   - Acclaim Austin AAAp header [*AAAP*]
-  - *vag*: `.vag .swag .str .vig .l .r .vas .xa2 .snd`
+  - *vag*: `.vag .swag .str .vig .l .r .vas .xa2 .snd .svg`
   - *vag_aaap*: `.vag`
   - Codecs: PSX HEVAG
 - **ild.c**
@@ -201,7 +201,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Electronic Arts SCHl header [*EA_SCHL*]
   - *ea_schl*: `.asf .lasf .str .chk .eam .exa .sng .aud .sx .xa .strm .stm .hab .xsf .gsf .(extensionless)`
   - *ea_schl_video*: `.uv .dct .mad .wve .vp6`
-  - *ea_bnk*: `.bnk .sdt .hdt .ldt .abk .ast`
+  - *ea_bnk*: `.bnk .sdt .hdt .ldt .abk .ast .cat`
   - *ea_abk*: `.abk + .ast`
   - *ea_hdr_dat*: `.hdr + .dat`
     - Subfiles: *vag*
@@ -1084,22 +1084,13 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Angel Studios/Rockstar San Diego STMA header [*STMA*]
   - *stma*: `.stm .lstm`
   - Codecs: NGC_DSP DVI_IMA_int PCM16BE PCM16LE
-- **ea_eaac.c**
+- **ea_eaac_standard.c**
   - Electronic Arts SNR+SNS header [*EA_SNR_SNS*]
   - Electronic Arts SPS header [*EA_SPS*]
   - Electronic Arts SNU header [*EA_SNU*]
   - *ea_snr_sns*: `.snr`
   - *ea_sps*: `.sps`
   - *ea_snu*: `.snu`
-  - *ea_abk_eaac*: `.abk + .ast`
-  - *ea_sbr*: `.sbr + .sbs`
-  - *ea_hdr_sth_dat*: `.hdr + .sth .dat .mus .(external)`
-  - *ea_mpf_mus_eaac*: `.mpf + .(external)`
-  - *ea_tmx*: `.tmx`
-    - Subfiles: *gin*
-  - *ea_sbr_harmony*: `.sbr + .sbs`
-  - *eaaudiocore_header*: `(base) + .sns`
-  - Codecs: PCM16_int EA_XAS_V1 MPEG NGC_DSP SPEEX ATRAC9 Opus XMA1 XMA2
 - **awc.c**
   - Rockstar AWC header [*AWC*]
   - *awc*: `.awc`
@@ -1152,6 +1143,26 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Gameloft VXN header [*VXN*]
   - *vxn*: `.vxn`
   - Codecs: PCM16LE MSADPCM MS_IMA FFmpeg(various)
+- **ea_eaac_abk.c**
+  - Electronic Arts SNR+SNS header [*EA_SNR_SNS*]
+  - *ea_abk_eaac*: `.abk + .ast`
+- **ea_eaac_hdr_sth_dat.c**
+  - Electronic Arts SNR+SNS header [*EA_SNR_SNS*]
+  - *ea_hdr_sth_dat*: `.hdr + .sth .dat`
+- **ea_eaac_mpf_mus.c**
+  - Electronic Arts SNR+SNS header [*EA_SNR_SNS*]
+  - *ea_mpf_mus_eaac*: `.mpf + .(external) .mus`
+- **ea_eaac_tmx.c**
+  - Electronic Arts SNR+SNS header [*EA_SNR_SNS*]
+  - *ea_tmx*: `.tmx`
+    - Subfiles: *gin*
+- **ea_eaac_sbr.c**
+  - Electronic Arts SPS header [*EA_SPS*]
+  - Electronic Arts SNR+SNS header [*EA_SNR_SNS*]
+  - *ea_sbr*: `.sbr + .sbs`
+- **ea_eaac_sbr_harmony.c**
+  - Electronic Arts SPS header [*EA_SPS*]
+  - *ea_sbr_harmony*: `.sbr + .sbs`
 - **vid1.c**
   - Factor 5 VID1 header [*VID1*]
   - *vid1*: `.vid .ogg .logg`
@@ -1299,7 +1310,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Sony BNK header [*BNK_SONY*]
   - *bnk_sony*: `.bnk`
     - Subfiles: *riff*
-  - Codecs: ATRAC9 PCM16BE PCM16LE PSX HEVAG
+  - Codecs: ATRAC9 MPEG PCM16BE PCM16LE PSX HEVAG
 - **nus3bank.c**
   - (container)
   - *nus3bank*: `.nub2 .nus3bank`
@@ -1798,9 +1809,13 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Sony SNDS header [*SNDS*]
   - Codecs: ATRAC9
 - **nxof.c**
-  - Nihon Falcom FDK Opus Header [*NXOF*]
+  - Nihon Falcom FDK header [*NXOF*]
   - *nxof*: `.nxopus`
   - Codecs: Opus
+- **gwb_gwd.c**
+  - Ubisoft GWB+GWD header [*GWB_GWD*]
+  - *gwb_gwd*: `.gwb + .gwd`
+  - Codecs: NGC_DSP
 - **scd_pcm.c**
   - Lunar: Eternal Blue .PCM header [*SCD_PCM*]
   - *scd_pcm*: `.pcm`
@@ -1851,7 +1866,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Codecs: NGC_DTK
 - **mpeg.c**
   - MPEG header [*MPEG*]
-  - *mpeg*: `.mp3 .mp2 .lmp3 .lmp2 .mus .imf .aix .(extensionless)`
+  - *mpeg*: `.mp3 .mp2 .lmp3 .lmp2 .mus .imf .aix .wav .lwav .(extensionless)`
   - Codecs: MPEG
 - **btsnd.c**
   - Nintendo Wii U Menu Boot Sound header [*BTSND*]
@@ -1915,6 +1930,10 @@ different internally (encrypted, different versions, etc) and not always can be 
   - FFmpeg supported format [*FFMPEG*]
   - *ffmpeg*: `.(any) .at3`
   - Codecs: FFmpeg(various)
+- **ea_eaac.c**
+  - Electronic Arts SPS header [*EA_SPS*]
+  - *eaaudiocore_header*: `(base) + .sns`
+  - Codecs: PCM16_int EA_XAS_V1 MPEG NGC_DSP SPEEX ATRAC9 Opus XMA1 XMA2
 
 ## Supported extras
 Reminder of some extra formats and helper files vgmstream supports. They are described

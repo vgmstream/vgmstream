@@ -21,7 +21,7 @@ typedef struct {
 #define FLAG_FSB4 (1 << 0)    /* key is valid for FSB4/3 */
 #define FLAG_FSB5 (1 << 1)    /* key is valid for FSB5 */
 #define FLAG_STD  (1 << 2)    /* regular XOR mode */
-#define FLAG_ALT  (1 << 3)    /* alt XOR mode (seemingly not tied to FSB version or anything, maybe wrong key) */
+#define FLAG_ALT  (1 << 3)    /* alt XOR mode (seemingly older files or possibly FSB3 only) */
 
 #define MODE_FSB4_STD  (FLAG_FSB4 | FLAG_STD)
 #define MODE_FSB4_ALT  (FLAG_FSB4 | FLAG_ALT)
@@ -55,7 +55,7 @@ static const fsbkey_info fsbkey_list[] = {
         { MODE_FSBS_ALL, FSBKEY_ADD("5atu6w4zaw") }, // Guitar Hero 3 [untested]
         { MODE_FSBS_ALL, FSBKEY_ADD("B2A7BB00") }, // Supreme Commander 2 [untested]
         { MODE_FSB4_STD, FSBKEY_ADD("ghfxhslrghfxhslr") }, // Cookie Run: Ovenbreak
-        { MODE_FSB4_ALT, FSBKEY_ADD("truck/impact/carbody") },// Monster Jam (PS2) [FSB3]
+        { MODE_FSB4_ALT, FSBKEY_ADD("truck/impact/carbody") }, // Monster Jam (PS2) [FSB3]
         { MODE_FSB4_ALT, FSBKEY_ADD("\xFC\xF9\xE4\xB3\xF5\x57\x5C\xA5\xAC\x13\xEC\x4A\x43\x19\x58\xEB\x4E\xF3\x84\x0B\x8B\x78\xFA\xFD\xBB\x18\x46\x7E\x31\xFB\xD0") }, // Guitar Hero 5 (X360)
         { MODE_FSB5_STD, FSBKEY_ADD("G0KTrWjS9syqF7vVD6RaVXlFD91gMgkC") }, // Sekiro: Shadows Die Twice (PC)
         { MODE_FSB5_STD, FSBKEY_ADD("BasicEncryptionKey") }, // SCP: Unity (PC) 
@@ -73,6 +73,9 @@ static const fsbkey_info fsbkey_list[] = {
         { MODE_FSB5_STD, FSBKEY_ADD("L36nshM520") }, // Nishuihan Mobile (Android)
         { MODE_FSB5_STD, FSBKEY_ADD("Forza2!") }, // Forza Motorsport (PC)
         { MODE_FSB5_STD, FSBKEY_ADD("cbfjZTlUPaZI") }, // JDM: Japanese Drift Master (PC)
+        { MODE_FSB4_ALT, FSBKEY_ADD("tkdnsem000") }, // Ys Online: The Call of Solum (PC) [FSB3] (alt key: 2ED62676CEA6B60C0C0C)
+        { MODE_FSB4_STD, FSBKEY_ADD("4DxgpNV3pQLPD6GT7g9Gf6eWU7SXutGQ") }, // Test Drive: Ferrari Racing Legends (PC)
+        { MODE_FSB4_STD, FSBKEY_ADD("AjaxIsTheGoodestBoy") }, // Hello Kitty: Island Adventure (iOS)
 
         /* these games use a key per file, generated from the filename; could be possible to add them but there is a lot of songs,
            so external .fsbkey may be better (use guessfsb 3.1 with --write-key-file or ) */

@@ -414,6 +414,13 @@
     <ClCompile Include="meta\dsf.c" />
     <ClCompile Include="meta\ea_1snh.c" />
     <ClCompile Include="meta\ea_eaac.c" />
+    <ClCompile Include="meta\ea_eaac_abk.c" />
+    <ClCompile Include="meta\ea_eaac_hdr_sth_dat.c" />
+    <ClCompile Include="meta\ea_eaac_mpf_mus.c" />
+    <ClCompile Include="meta\ea_eaac_sbr.c" />
+    <ClCompile Include="meta\ea_eaac_sbr_harmony.c" />
+    <ClCompile Include="meta\ea_eaac_standard.c" />
+    <ClCompile Include="meta\ea_eaac_tmx.c" />
     <ClCompile Include="meta\ea_schl.c" />
     <ClCompile Include="meta\ea_schl_fixed.c" />
     <ClCompile Include="meta\ea_swvr.c" />
@@ -446,6 +453,7 @@
     <ClCompile Include="meta\ghs.c" />
     <ClCompile Include="meta\gin.c" />
     <ClCompile Include="meta\gsnd.c" />
+    <ClCompile Include="meta\gwb_gwd.c" />
     <ClCompile Include="meta\h4m.c" />
     <ClCompile Include="meta\halpst.c" />
     <ClCompile Include="meta\hca.c" />
