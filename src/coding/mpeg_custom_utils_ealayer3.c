@@ -391,7 +391,7 @@ static int ealayer3_parse_frame_v2(ealayer3_buffer_t* ib, ealayer3_frame_t* eaf)
     }
 
     VGM_ASSERT(eaf->v2_extended_flag && eaf->v2_common_size == 0, "EA EAL3: v2 empty frame\n"); /* seen in V2S */
-    VGM_ASSERT(eaf->v2_extended_flag && eaf->v2_offset_samples > 0, "EA EAL3: v2_offset_mode=%x with value=0x%x\n", eaf->v2_offset_mode, eaf->v2_offset_samples);
+    VGM_ASSERT(eaf->v2_extended_flag && eaf->v2_offset_samples > 0, "EA EAL3: v2_offset_mode=%x with value=0x%x\n", eaf->v2_offset_mode, eaf->v2_offset_samples); /* Dead Space 2 (PC) */
     //VGM_ASSERT(eaf->v2_pcm_samples > 0, "EA EAL3: v2_pcm_samples 0x%x\n", eaf->v2_pcm_samples);
 
     eaf->pcm_size = (eaf->v2_pcm_samples * sizeof(int16_t) * eaf->channels);
