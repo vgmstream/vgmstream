@@ -8,6 +8,7 @@ VGMSTREAM * init_vgmstream_dc_asd(STREAMFILE *streamFile) {
     off_t start_offset;
     int loop_flag;
     int channel_count;
+    int sample_rate;
 
     /* check extension, case insensitive */
     streamFile->get_name(streamFile,filename,sizeof(filename));
@@ -18,9 +19,17 @@ VGMSTREAM * init_vgmstream_dc_asd(STREAMFILE *streamFile) {
     we'll compare it... */
     if (read_32bitLE(0x0,streamFile) != read_32bitLE(0x4,streamFile))
         goto fail;
+
+    /* ableton related files can be incorrectly sent to this which don't have
+    the same style of header and unless we null check we get a divide by zero
+    crash... */
+    sample_rate = read_32bitLE(0xC,streamFile);
+    if (!sample_rate)
+        goto fail;
+    
     /* compare the frequency with the bitrate, if it doesn't match we'll close 
     the vgmstream... */
-    if (read_32bitLE(0x10,streamFile)/read_32bitLE(0xC,streamFile) != (uint16_t)read_16bitLE(0xA,streamFile)*2)
+    if (read_32bitLE(0x10,streamFile)/sample_rate != (uint16_t)read_16bitLE(0xA,streamFile)*2)
         goto fail;
 
     loop_flag = 0;
@@ -33,7 +42,7 @@ VGMSTREAM * init_vgmstream_dc_asd(STREAMFILE *streamFile) {
     /* fill in the vital statistics */
     start_offset = get_streamfile_size(streamFile) - read_32bitLE(0x0,streamFile);
     vgmstream->channels = channel_count;
-    vgmstream->sample_rate = read_32bitLE(0x0C,streamFile);
+    vgmstream->sample_rate = sample_rate;
     vgmstream->coding_type = coding_PCM16LE;
     vgmstream->num_samples = read_32bitLE(0x0,streamFile)/2/channel_count;
     if (loop_flag) {
