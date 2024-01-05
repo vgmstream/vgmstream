@@ -30,7 +30,7 @@ VGMSTREAM* init_vgmstream_xa(STREAMFILE* sf) {
     }
     else {
         /* non-blocked (ISO 2048 mode1/data) or incorrectly ripped: use TXTH */
-        goto fail;
+        return NULL;
     }
 
     /* .xa: common
@@ -41,7 +41,7 @@ VGMSTREAM* init_vgmstream_xa(STREAMFILE* sf) {
      * .xai: Quake II (PS1)
      * (extensionless): bigfiles [Castlevania: Symphony of the Night (PS1)] */
     if (!check_extensions(sf,"xa,str,pxa,grn,an2,,xai"))
-        goto fail;
+        return NULL;
 
     /* Proper XA comes in raw (BIN 2352 mode2/form2) CD sectors, that contain XA subheaders.
      * For headerless XA (ISO 2048 mode1/data) mode use TXTH. */
@@ -138,14 +138,15 @@ fail:
 
 
 static int xa_check_format(STREAMFILE *sf, off_t offset, int is_blocked) {
-    uint8_t frame_hdr[0x10];
-    int i, j, sector = 0, skip = 0;
-    off_t test_offset = offset;
     const size_t sector_size = (is_blocked ? 0x900 : 0x800);
     const size_t extra_size = (is_blocked ? 0x18 : 0x00);
     const size_t frame_size = 0x80;
     const int sector_max = 3;
     const int skip_max = 32; /* videos interleave 7 or 15 sectors + 1 audio sector, maybe 31 too */
+
+    uint8_t frame_hdr[0x10];
+    int sector = 0, skip = 0;
+    uint32_t test_offset = offset;
 
     /* test frames inside CD sectors */
     while (sector < sector_max) {
@@ -164,11 +165,11 @@ static int xa_check_format(STREAMFILE *sf, off_t offset, int is_blocked) {
 
         test_offset += extra_size; /* header */
 
-        for (i = 0; i < (sector_size / frame_size); i++) {
+        for (int i = 0; i < (sector_size / frame_size); i++) {
             read_streamfile(frame_hdr, test_offset, sizeof(frame_hdr), sf);
 
             /* XA frame checks: filter indexes should be 0..3, and shifts 0..C */
-            for (j = 0; j < 16; j++) {
+            for (int j = 0; j < 16; j++) {
                 uint8_t header = get_u8(frame_hdr + j);
                 if (((header >> 4) & 0xF) > 0x03)
                     goto fail;
@@ -180,11 +181,10 @@ static int xa_check_format(STREAMFILE *sf, off_t offset, int is_blocked) {
             if (get_u32be(frame_hdr+0x00) != get_u32be(frame_hdr+0x04) ||
                 get_u32be(frame_hdr+0x08) != get_u32be(frame_hdr+0x0c))
                 goto fail;
-            /* blank frames should always use 0x0c0c0c0c due to how shift works, (in rare/unused file-channels it may be blank though) */
-            if (get_u32be(frame_hdr+0x00) == 0 &&
-                get_u32be(frame_hdr+0x04) == 0 &&
-                get_u32be(frame_hdr+0x08) == 0 &&
-                get_u32be(frame_hdr+0x0c) == 0)
+            /* blank frames should always use 0x0c0c0c0c due to how shift works, (in rare file-channels some frames may be blank though) */
+            if (i == 0 &&
+                get_u32be(frame_hdr+0x00) == 0 && get_u32be(frame_hdr+0x04) == 0 &&
+                get_u32be(frame_hdr+0x08) == 0 && get_u32be(frame_hdr+0x0c) == 0)
                 goto fail;
 
             test_offset += 0x80;
@@ -201,7 +201,7 @@ fail:
 }
 
 
-#define XA_MAX_CHANNELS 16
+#define XA_MAX_CHANNELS 32 /* usually 08-16, seen ~24 in Langrisser V (PS1) */
 
 typedef struct {
    uint32_t info;
@@ -270,9 +270,10 @@ static int xa_read_subsongs(STREAMFILE* sf, int target_subsong, uint32_t start, 
 
         if (xa_chan >= XA_MAX_CHANNELS) {
             VGM_LOG("XA: too many channels: %x\n", xa_chan);
+            goto fail;
         }
 
-        VGM_ASSERT((xa_submode & 0x01), "XA: end of audio at %x\n", offset); /* rare, signals last sector [Tetris (CD-i)] */
+        //;VGM_ASSERT((xa_submode & 0x01), "XA: end of audio at %x\n", offset); /* rare, signals last sector [Tetris (CD-i), Langrisser V (PS1)] */
         //;VGM_ASSERT(is_eof, "XA: eof %02x%02x at %x\n", xa_file, xa_chan, offset); /* this sector still has data */
         //;VGM_ASSERT(!is_audio, "XA: not audio at %x\n", offset);
 
