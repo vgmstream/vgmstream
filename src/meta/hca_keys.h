@@ -1275,6 +1275,9 @@ static const hcakey_info hcakey_list[] = {
         // Girls' Frontline 2: Exilium (PC)
         {7152097263845921},     // 001968CB68CF8221
 
+        // Girls' Frontline 2: Exilium (PC)
+        {4079616028775461768},  // 389DB529D726B388
+
 };
 
 #endif/*_HCA_KEYS_H_*/
