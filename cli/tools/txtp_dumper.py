@@ -59,9 +59,13 @@ class App(object):
 
     def start(self):
         print("TXTP dumper start")
+
         filenames = []
         for filename in self.args.files:
-            filenames += glob.glob(filename)
+            if os.path.isfile(filename): #for files in paths with regex-like format
+                filenames += [filename]
+            else:
+                filenames += glob.glob(filename)
 
         for filename in filenames:
             path = self.args.output or '.'
