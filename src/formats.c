@@ -367,6 +367,7 @@ static const char* extension_list[] = {
     "msvp", //fake extension/header id for .msv
     "mta2",
     "mtaf",
+    "mtt", //txth/reserved [Splinter Cell: Pandora Tomorrow (PS2)]
     "mul",
     "mups",
     "mus",
