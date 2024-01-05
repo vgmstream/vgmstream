@@ -524,6 +524,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_adm2,
     init_vgmstream_nxof,
     init_vgmstream_gwb_gwd,
+    init_vgmstream_s_pack,
 
     /* lower priority metas (no clean header identity, somewhat ambiguous, or need extension/companion file to identify) */
     init_vgmstream_scd_pcm,
