@@ -300,7 +300,7 @@ VGMSTREAM* init_vgmstream_mus_krome(STREAMFILE* sf);
 
 VGMSTREAM * init_vgmstream_rsd(STREAMFILE * streamFile);
 
-VGMSTREAM * init_vgmstream_dc_asd(STREAMFILE * streamFile);
+VGMSTREAM* init_vgmstream_asd_naxat(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_spsd(STREAMFILE* sf);
 

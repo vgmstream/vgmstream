@@ -1,84 +1,61 @@
 #include "meta.h"
-#include "../util.h"
+#include "../coding/coding.h"
 
-/* ASD - found in Miss Moonlight (DC) */
-VGMSTREAM * init_vgmstream_dc_asd(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
-    off_t start_offset;
-    int loop_flag;
-    int channel_count;
-    int sample_rate;
+/* ASD - found Naxat (Spiel/Mesa) games [Miss Moonlight (DC), Yoshia no Oka de Nekoronde... (DC)] */
+VGMSTREAM* init_vgmstream_asd_naxat(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
+    uint32_t start_offset;
+    int loop_flag, channels, sample_rate;
 
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("asd",filename_extension(filename))) goto fail;
 
-    /* We have no "Magic" words in this header format, so we have to do some,
-    other checks, it seems the samplecount is stored twice in the header,
-    we'll compare it... */
-    if (read_32bitLE(0x0,streamFile) != read_32bitLE(0x4,streamFile))
-        goto fail;
+    /* checks */
+    uint32_t data_size = read_u32le(0x00, sf); /* padded and slightly less than file size */
+    if (data_size == 0 || data_size >= get_streamfile_size(sf) || data_size + 0x20 + 0x10 < get_streamfile_size(sf))
+        return NULL;
+    if (data_size != read_u32le(0x04,sf)) /* repeated size */
+        return NULL;
+    /* extension of the audio bigfiles (there are N offsets to these subfiles) */
+    if (!check_extensions(sf, "asd"))
+        return NULL;
 
-    /* ableton related files can be incorrectly sent to this which don't have
-    the same style of header and unless we null check we get a divide by zero
-    crash... */
-    sample_rate = read_32bitLE(0xC,streamFile);
-    if (!sample_rate)
-        goto fail;
-    
-    /* compare the frequency with the bitrate, if it doesn't match we'll close 
-    the vgmstream... */
-    if (read_32bitLE(0x10,streamFile)/sample_rate != (uint16_t)read_16bitLE(0xA,streamFile)*2)
-        goto fail;
+    /* fmt chunk, extra checks since format is simple */
+    if (read_u16le(0x08,sf) != 0x01) /* format*/
+        return NULL;
+    channels = read_u16le(0x0a,sf);
+    sample_rate = read_s32le(0x0c,sf);
 
+    if (channels < 1 || channels > 2)
+        return NULL;
+    if (sample_rate != 22050)
+        return NULL;
+    if (sample_rate * channels * sizeof(int16_t) != read_u32le(0x10,sf)) /* bitrate */
+        return NULL;
+    /* 04: block size, bps */
+    if (read_u32le(0x18,sf) != 0x00 )
+        return NULL;
+    if (read_u32le(0x1c,sf) != 0x00 )
+        return NULL;
+
+    start_offset = 0x20;
     loop_flag = 0;
-    channel_count = read_16bitLE(0x0A,streamFile);
-    
+
+
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
-    /* fill in the vital statistics */
-    start_offset = get_streamfile_size(streamFile) - read_32bitLE(0x0,streamFile);
-    vgmstream->channels = channel_count;
+    vgmstream->meta_type = meta_ASD_NAXAT;
     vgmstream->sample_rate = sample_rate;
+    vgmstream->num_samples = pcm16_bytes_to_samples(data_size, channels);
+
     vgmstream->coding_type = coding_PCM16LE;
-    vgmstream->num_samples = read_32bitLE(0x0,streamFile)/2/channel_count;
-    if (loop_flag) {
-        vgmstream->loop_start_sample = 0;
-        vgmstream->loop_end_sample = read_32bitLE(0x0,streamFile)/2/channel_count;
-    }
-    
-    vgmstream->meta_type = meta_DC_ASD;
+    vgmstream->layout_type = layout_interleave;
+    vgmstream->interleave_block_size = 0x02;
 
-    if (vgmstream->channels == 1) {
-        vgmstream->layout_type = layout_none;
-    } else if (vgmstream->channels == 2) {
-        vgmstream->layout_type = layout_interleave;
-        vgmstream->interleave_block_size = 0x2;
-    }
-
-    /* open the file for reading */
-    {
-        int i;
-        STREAMFILE * file;
-        file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (!file) goto fail;
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = file;
-
-            vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=start_offset+
-                vgmstream->interleave_block_size*i;
-
-        }
-    }
-
+    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
+        goto fail;
     return vgmstream;
-
-    /* clean up anything we may have opened */
 fail:
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_vgmstream(vgmstream);
     return NULL;
 }

@@ -1102,7 +1102,7 @@ static const meta_info meta_info_list[] = {
         {meta_MUS_KROME,            "Krome .MUS header"},
         {meta_WII_SNG,              "SNG DSP Header"},
         {meta_RSD,                  "Radical RSD header"},
-        {meta_DC_ASD,               "ASD Header"},
+        {meta_ASD_NAXAT,            "Naxat .ASD header"},
         {meta_SPSD,                 "Sega Naomi SPSD header"},
         {meta_FFXI_BGW,             "Square Enix .BGW header"},
         {meta_FFXI_SPW,             "Square Enix .SPW header"},

@@ -127,7 +127,6 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_ngc_pdt_split,
     init_vgmstream_ngc_pdt,
     init_vgmstream_mus_krome,
-    init_vgmstream_dc_asd,
     init_vgmstream_spsd,
     init_vgmstream_rsd,
     init_vgmstream_bgw,
@@ -536,6 +535,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_seb,
     init_vgmstream_tgc,
     init_vgmstream_ivaud,
+    init_vgmstream_asd_naxat,
     /* need companion files */
     init_vgmstream_pos,
     init_vgmstream_sli_loops,
