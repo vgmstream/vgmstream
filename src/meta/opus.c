@@ -135,8 +135,9 @@ VGMSTREAM* init_vgmstream_opus_std(STREAMFILE* sf) {
 
     /* .opus: standard / .lopus: for plugins
      * .bgm: Cotton Reboot (Switch)
-     * .opu: Ys Memoire: The Oath in Felghana (Switch) */
-    if (!check_extensions(sf,"opus,lopus,bgm,opu"))
+     * .opu: Ys Memoire: The Oath in Felghana (Switch)
+     * .ogg: Trouble Witches Origin (Switch) */
+    if (!check_extensions(sf,"opus,lopus,bgm,opu,ogg,logg"))
         goto fail;
 
     offset = 0x00;

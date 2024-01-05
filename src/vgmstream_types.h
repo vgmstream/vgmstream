@@ -370,11 +370,11 @@ typedef enum {
     meta_FAG,               /* Jackie Chan - Stuntmaster */
     meta_PS2_MIHB,          /* Merged MIH+MIB */
     meta_NGC_PDT,           /* Mario Party 6 */
-    meta_DC_ASD,            /* Miss Moonligh */
+    meta_ASD_NAXAT,
     meta_SPSD,
     meta_RSD,
-    meta_PS2_ASS,           /* ASS */
-    meta_SEG,               /* Eragon */
+    meta_PS2_ASS,
+    meta_SEG,
     meta_NDS_STRM_FFTA2,    /* Final Fantasy Tactics A2 */
     meta_KNON,
     meta_ZWDSP,             /* Zack and Wiki */

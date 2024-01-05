@@ -204,6 +204,7 @@ static const char* extension_list[] = {
     "gcm",
     "gcub",
     "gcw",
+    "ged",
     "genh",
     "gin",
     "gmd",  //txth/semi [High Voltage games: Charlie and the Chocolate Factory (GC), Zathura (GC)]
@@ -366,6 +367,7 @@ static const char* extension_list[] = {
     "msvp", //fake extension/header id for .msv
     "mta2",
     "mtaf",
+    "mtt", //txth/reserved [Splinter Cell: Pandora Tomorrow (PS2)]
     "mul",
     "mups",
     "mus",
@@ -1101,7 +1103,7 @@ static const meta_info meta_info_list[] = {
         {meta_MUS_KROME,            "Krome .MUS header"},
         {meta_WII_SNG,              "SNG DSP Header"},
         {meta_RSD,                  "Radical RSD header"},
-        {meta_DC_ASD,               "ASD Header"},
+        {meta_ASD_NAXAT,            "Naxat .ASD header"},
         {meta_SPSD,                 "Sega Naomi SPSD header"},
         {meta_FFXI_BGW,             "Square Enix .BGW header"},
         {meta_FFXI_SPW,             "Square Enix .SPW header"},

@@ -53,4 +53,7 @@ void concatn(int length, char * dst, const char * src);
 
 size_t align_size_to_block(size_t value, size_t block_align);
 
+/* checks max subsongs and setups target */
+bool check_subsongs(int* target_subsong, int total_subsongs);
+
 #endif

@@ -1818,6 +1818,7 @@ static int parse_type_audio(ubi_sb_header* sb, off_t offset, STREAMFILE* sf) {
     sb->sample_rate     = read_32bit(offset + sb->cfg.audio_sample_rate, sf);
     sb->stream_type     = read_32bit(offset + sb->cfg.audio_stream_type, sf);
 
+    //TO-DO a handful of SC:PT PS2 streams have 0 stream offset+size, maybe should set config + allow as dummies (ex. MAPS.SM1 #14191 #14255)
     if (sb->stream_size == 0) {
         VGM_LOG("UBI SB: bad stream size\n");
         goto fail;
@@ -2414,7 +2415,8 @@ static int parse_offsets(ubi_sb_header* sb, STREAMFILE* sf) {
                 break;
         }
 
-        if (sb->stream_offset == 0) {
+        /* valid in rare cases with ram-streamed but also external file (SC:PT PS2 > MAPS.RS1)*/
+        if (sb->stream_offset == 0 && !sb->is_external) {
             VGM_LOG("UBI SM: Failed to find offset for resource %d in subblock %d in map %s\n", sb->header_index, sb->subblock_id, sb->map_name);
             goto fail;
         }

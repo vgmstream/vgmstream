@@ -300,7 +300,7 @@ VGMSTREAM* init_vgmstream_mus_krome(STREAMFILE* sf);
 
 VGMSTREAM * init_vgmstream_rsd(STREAMFILE * streamFile);
 
-VGMSTREAM * init_vgmstream_dc_asd(STREAMFILE * streamFile);
+VGMSTREAM* init_vgmstream_asd_naxat(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_spsd(STREAMFILE* sf);
 
@@ -580,6 +580,7 @@ VGMSTREAM * init_vgmstream_mc3(STREAMFILE *streamFile);
 
 VGMSTREAM* init_vgmstream_ghs(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_s_p_sth(STREAMFILE* sf);
+VGMSTREAM* init_vgmstream_s_pack(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_aac_triace(STREAMFILE* sf);
 

@@ -48,6 +48,9 @@ static int read_dsp_header_endian(struct dsp_header *header, off_t offset, STREA
     header->sample_count        = get_u32(buf+0x00);
     if (header->sample_count > 0x10000000)
         goto fail; /* unlikely to be that big, should catch fourccs */
+
+    /* usually nibbles = size*2 in mono, but interleaved stereo or L+R may use nibbles =~ size (or not), so can't
+     * easily reject files with more nibbles than data (nibbles may be part of the -R file) without redoing L+R handling */
     header->nibble_count        = get_u32(buf+0x04);
     if (header->nibble_count > 0x10000000)
         goto fail;

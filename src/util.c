@@ -51,3 +51,11 @@ size_t align_size_to_block(size_t value, size_t block_align) {
     if (extra_size == 0) return value;
     return (value + block_align - extra_size);
 }
+
+bool check_subsongs(int* target_subsong, int total_subsongs) {
+    if (*target_subsong == 0)
+        *target_subsong = 1;
+    if (*target_subsong < 0 || *target_subsong > total_subsongs || total_subsongs < 1)
+        return false;
+    return true;
+}

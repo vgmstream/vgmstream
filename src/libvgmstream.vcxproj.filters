@@ -904,6 +904,9 @@
     <ClCompile Include="meta\apple_caff.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\asd_naxat.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\asf.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -1025,9 +1028,6 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\dcs_wav.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="meta\dc_asd.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\dc_idvi.c">
