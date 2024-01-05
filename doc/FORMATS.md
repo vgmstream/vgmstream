@@ -500,10 +500,6 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Krome .MUS header [*MUS_KROME*]
   - *mus_krome*: `.mus`
   - Codecs: NGC_DSP
-- **dc_asd.c**
-  - ASD Header [*DC_ASD*]
-  - *dc_asd*: `.asd`
-  - Codecs: PCM16LE
 - **spsd.c**
   - Sega Naomi SPSD header [*SPSD*]
   - *spsd*: `.str .spsd`
@@ -1008,7 +1004,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Codecs: FFmpeg(various)
 - **bik.c**
   - RAD Game Tools Bink header [*BINK*]
-  - *bik*: `.bik .bik2 .bk2 .ps3 .xmv .xen .vid .bika`
+  - *bik*: `.bik .bk2 .bik2 .ps3 .xmv .xen .vid .bika`
   - Codecs: FFmpeg(various)
 - **astb.c**
   - Capcom ASTB header [*ASTB*]
@@ -1049,7 +1045,9 @@ different internally (encrypted, different versions, etc) and not always can be 
   - *ghs*: `.gtd`
   - *s_p_sth*: `.gtd`
     - Subfiles: *msf*
-  - Codecs: XMA ATRAC9
+  - *s_pack*: `.ged`
+    - Subfiles: *ghs*
+  - Codecs: PCM16LE MSADPCM XMA ATRAC9
 - **aac_triace.c**
   - tri-Ace AAC header [*AAC_TRIACE*]
   - *aac_triace*: `.aac .laac`
@@ -1098,7 +1096,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Codecs: PCM16BE PCM16LE AWC_IMA XMA2 MPEG VORBIS_custom ATRAC9 NGC_DSP
 - **opus.c**
   - Nintendo Switch OPUS header [*OPUS*]
-  - *opus_std*: `.opus .lopus .bgm .opu + .psi`
+  - *opus_std*: `.opus .lopus .bgm .opu .ogg .logg + .psi`
   - *opus_n1*: `.opus .lopus`
   - *opus_capcom*: `.opus .lopus`
   - *opus_nop*: `.nop`
@@ -1852,6 +1850,10 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Rockstar .ivaud header [*IVAUD*]
   - *ivaud*: `.ivaud .(extensionless)`
   - Codecs: PCM16LE XMA1 MPEG IMA_int
+- **asd_naxat.c**
+  - Naxat .ASD header [*ASD_NAXAT*]
+  - *asd_naxat*: `.asd`
+  - Codecs: PCM16LE
 - **pos.c**
   - RIFF WAVE header (.pos looping) [*RIFF_WAVE_POS*]
   - *pos*: `.pos + .wav`
@@ -1932,7 +1934,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Codecs: FFmpeg(various)
 - **ea_eaac.c**
   - Electronic Arts SPS header [*EA_SPS*]
-  - *eaaudiocore_header*: `(base) + .sns`
+  - *eaaudiocore_main*: `(base) + .sns`
   - Codecs: PCM16_int EA_XAS_V1 MPEG NGC_DSP SPEEX ATRAC9 Opus XMA1 XMA2
 
 ## Supported extras
