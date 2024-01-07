@@ -384,6 +384,7 @@ static const char* extension_list[] = {
     "nds",
     "ndp", //fake extension/header id for .nds
     "nlsd",
+    "no",
     "nop",
     "nps",
     "npsf", //fake extension/header id for .nps (in bigfiles)
