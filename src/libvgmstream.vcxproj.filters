@@ -185,6 +185,9 @@
     <ClInclude Include="meta\aix_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="meta\awc_decryption_streamfile.h">
+      <Filter>meta\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="meta\awc_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
@@ -351,6 +354,9 @@
       <Filter>util\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="util\cipher_blowfish.h">
+      <Filter>util\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="util\cipher_xxtea.h">
       <Filter>util\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="util\companion_files.h">
@@ -2075,6 +2081,9 @@
       <Filter>util\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="util\cipher_blowfish.c">
+      <Filter>util\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="util\cipher_xxtea.c">
       <Filter>util\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="util\companion_files.c">

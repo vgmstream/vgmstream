@@ -3,6 +3,7 @@
 #include "../layout/layout.h"
 #include "../util/endianness.h"
 #include "awc_streamfile.h"
+#include "awc_decryption_streamfile.h"
 
 typedef struct {
     int big_endian;
@@ -37,9 +38,10 @@ static int parse_awc_header(STREAMFILE* sf, awc_header* awc);
 static layered_layout_data* build_layered_awc(STREAMFILE* sf, awc_header* awc);
 
 
-/* AWC - Audio Wave Container from RAGE (Rockstar Advanced Game Engine) [Red Dead Redemption, Max Payne 3, GTA5 (multi)] */
+/* AWC - Audio Wave Container from RAGE (Rockstar Advanced Game Engine) [GTA5 (multi), Red Dead Redemption (multi), Max Payne 3 (multi)] */
 VGMSTREAM* init_vgmstream_awc(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
+    STREAMFILE* sf_body = NULL;
     awc_header awc = {0};
 
 
@@ -48,6 +50,18 @@ VGMSTREAM* init_vgmstream_awc(STREAMFILE* sf) {
         return NULL;
     if (!check_extensions(sf,"awc"))
         return NULL;
+
+    if (awc.is_encrypted) {
+        /* seen in GTA5 PC, music or sfx (not all files) */
+        sf_body = setup_awcd_streamfile(sf, awc.stream_offset, awc.stream_size, awc.block_chunk);
+        if (!sf_body) {
+            vgm_logi("AWC: encrypted data found, needs .awckey\n");
+            goto fail;
+        }
+    }
+    else {
+        sf_body = sf;
+    }
 
 
     /* build the VGMSTREAM */
@@ -80,19 +94,19 @@ VGMSTREAM* init_vgmstream_awc(STREAMFILE* sf) {
 #ifdef VGM_USE_FFMPEG
         case 0x05: {    /* XMA2 (X360) */
             if (awc.is_streamed) {
-                vgmstream->layout_data = build_layered_awc(sf, &awc);
+                vgmstream->layout_data = build_layered_awc(sf_body, &awc);
                 if (!vgmstream->layout_data) goto fail;
                 vgmstream->layout_type = layout_layered;
                 vgmstream->coding_type = coding_FFmpeg;
             }
             else {
                 /* regular XMA for sfx */
-                vgmstream->codec_data = init_ffmpeg_xma2_raw(sf, awc.stream_offset, awc.stream_size, awc.num_samples, awc.channels, awc.sample_rate, 0, 0);
+                vgmstream->codec_data = init_ffmpeg_xma2_raw(sf_body, awc.stream_offset, awc.stream_size, awc.num_samples, awc.channels, awc.sample_rate, 0, 0);
                 if (!vgmstream->codec_data) goto fail;
                 vgmstream->coding_type = coding_FFmpeg;
                 vgmstream->layout_type = layout_none;
 
-                xma_fix_raw_samples(vgmstream, sf, awc.stream_offset,awc.stream_size, 0, 0,0); /* samples are ok? */
+                xma_fix_raw_samples(vgmstream, sf_body, awc.stream_offset,awc.stream_size, 0, 0,0); /* samples are ok? */
             }
 
             break;
@@ -106,7 +120,7 @@ VGMSTREAM* init_vgmstream_awc(STREAMFILE* sf) {
             cfg.chunk_size = awc.block_chunk;
             cfg.big_endian = awc.big_endian;
 
-            vgmstream->codec_data = init_mpeg_custom(sf, awc.stream_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_AWC, &cfg);
+            vgmstream->codec_data = init_mpeg_custom(sf_body, awc.stream_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_AWC, &cfg);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->layout_type = layout_none;
 
@@ -117,7 +131,7 @@ VGMSTREAM* init_vgmstream_awc(STREAMFILE* sf) {
 #ifdef VGM_USE_VORBIS
         case 0x08: {    /* Vorbis (PC) [Red Dead Redemption 2 (PC)] */
             if (awc.is_streamed) {
-                vgmstream->layout_data = build_layered_awc(sf, &awc);
+                vgmstream->layout_data = build_layered_awc(sf_body, &awc);
                 if (!vgmstream->layout_data) goto fail;
                 vgmstream->layout_type = layout_layered;
                 vgmstream->coding_type = coding_VORBIS_custom;
@@ -129,7 +143,7 @@ VGMSTREAM* init_vgmstream_awc(STREAMFILE* sf) {
                 cfg.sample_rate = awc.sample_rate;
                 cfg.header_offset = awc.vorbis_offset[0];
 
-                vgmstream->codec_data = init_vorbis_custom(sf, awc.stream_offset, VORBIS_AWC, &cfg);
+                vgmstream->codec_data = init_vorbis_custom(sf_body, awc.stream_offset, VORBIS_AWC, &cfg);
                 if (!vgmstream->codec_data) goto fail;
                 vgmstream->layout_type = layout_none;
                 vgmstream->coding_type = coding_VORBIS_custom;
@@ -141,7 +155,7 @@ VGMSTREAM* init_vgmstream_awc(STREAMFILE* sf) {
 #ifdef VGM_USE_ATRAC9
         case 0x0F: {    /* ATRAC9 (PC) [Red Dead Redemption (PS4)] */
             if (awc.is_streamed) {
-                vgmstream->layout_data = build_layered_awc(sf, &awc);
+                vgmstream->layout_data = build_layered_awc(sf_body, &awc);
                 if (!vgmstream->layout_data) goto fail;
                 vgmstream->layout_type = layout_layered;
                 vgmstream->coding_type = coding_ATRAC9;
@@ -150,7 +164,7 @@ VGMSTREAM* init_vgmstream_awc(STREAMFILE* sf) {
                 VGMSTREAM* temp_vs = NULL;
                 STREAMFILE* temp_sf = NULL;
 
-                temp_sf = setup_subfile_streamfile(sf, awc.stream_offset, awc.stream_size, "at9");
+                temp_sf = setup_subfile_streamfile(sf_body, awc.stream_offset, awc.stream_size, "at9");
                 if (!temp_sf) goto fail;
 
                 temp_vs = init_vgmstream_riff(temp_sf);
@@ -178,8 +192,8 @@ VGMSTREAM* init_vgmstream_awc(STREAMFILE* sf) {
 
             if (!awc.is_streamed) {
                 /* dsp header */
-                dsp_read_coefs_le(vgmstream, sf, awc.stream_offset + 0x1c + 0x00, 0x00);
-                dsp_read_hist_le (vgmstream, sf, awc.stream_offset + 0x1c + 0x20, 0x00);
+                dsp_read_coefs_le(vgmstream, sf_body, awc.stream_offset + 0x1c + 0x00, 0x00);
+                dsp_read_hist_le (vgmstream, sf_body, awc.stream_offset + 0x1c + 0x20, 0x00);
                 awc.stream_offset += 0x60;
 
                 /* shouldn't be possible since it's only used for sfx anyway */
@@ -199,11 +213,13 @@ VGMSTREAM* init_vgmstream_awc(STREAMFILE* sf) {
     }
 
 
-    if (!vgmstream_open_stream(vgmstream, sf, awc.stream_offset))
+    if (!vgmstream_open_stream(vgmstream, sf_body, awc.stream_offset))
         goto fail;
+    if (sf_body != sf) close_streamfile(sf_body);
     return vgmstream;
 
 fail:
+    if (sf_body != sf) close_streamfile(sf_body);
     close_vgmstream(vgmstream);
     return NULL;
 }
@@ -282,11 +298,6 @@ static int parse_awc_header(STREAMFILE* sf, awc_header* awc) {
     /* encrypted data chunk (most of GTA5 PC for licensed audio) */
     if (flags & 0x00080000)
         awc->is_encrypted = 1;
-
-    if (awc->is_encrypted) {
-        VGM_LOG("AWC: encrypted data found\n");
-        goto fail;
-    }
 
 
     /* When first stream hash/id is 0 AWC it has fake entry with info for all channels = music, sfx pack otherwise.
@@ -483,7 +494,6 @@ static int parse_awc_header(STREAMFILE* sf, awc_header* awc) {
                 awc->codec = 0xFF;
                 awc->channels = 1;
                 break;
-
 
             case 0xA3: /* block-to-sample table (32b x number of blocks w/ num_samples at the start of each block)
                         * or frame-size table (16b x number of frames) in some cases (ex. sfx+mpeg but not sfx+vorbis) */

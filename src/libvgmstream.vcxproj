@@ -120,6 +120,7 @@
     <ClInclude Include="meta\adx_keys.h" />
     <ClInclude Include="meta\ahx_keys.h" />
     <ClInclude Include="meta\aix_streamfile.h" />
+    <ClInclude Include="meta\awc_decryption_streamfile.h" />
     <ClInclude Include="meta\awc_streamfile.h" />
     <ClInclude Include="meta\bar_streamfile.h" />
     <ClInclude Include="meta\bgw_streamfile.h" />
@@ -176,6 +177,7 @@
     <ClInclude Include="util\channel_mappings.h" />
     <ClInclude Include="util\chunks.h" />
     <ClInclude Include="util\cipher_blowfish.h" />
+    <ClInclude Include="util\cipher_xxtea.h" />
     <ClInclude Include="util\companion_files.h" />
     <ClInclude Include="util\cri_keys.h" />
     <ClInclude Include="util\cri_utf.h" />
@@ -752,6 +754,7 @@
     <ClCompile Include="meta\zwv.c" />
     <ClCompile Include="util\chunks.c" />
     <ClCompile Include="util\cipher_blowfish.c" />
+    <ClCompile Include="util\cipher_xxtea.c" />
     <ClCompile Include="util\companion_files.c" />
     <ClCompile Include="util\cri_keys.c" />
     <ClCompile Include="util\cri_utf.c" />
