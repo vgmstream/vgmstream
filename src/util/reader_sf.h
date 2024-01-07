@@ -31,18 +31,22 @@ static inline int32_t read_32bitBE(off_t offset, STREAMFILE* sf) {
     if (read_streamfile(buf,offset,4,sf)!=4) return -1;
     return get_s32be(buf);
 }
-static inline int64_t read_64bitLE(off_t offset, STREAMFILE* sf) {
+static inline int64_t read_s64le(off_t offset, STREAMFILE* sf) {
     uint8_t buf[8];
 
     if (read_streamfile(buf,offset,8,sf)!=8) return -1;
     return get_s64le(buf);
 }
-static inline int64_t read_64bitBE(off_t offset, STREAMFILE* sf) {
+static inline uint64_t read_u64le(off_t offset, STREAMFILE* sf) { return (uint64_t)read_s64le(offset, sf); }
+
+static inline int64_t read_s64be(off_t offset, STREAMFILE* sf) {
     uint8_t buf[8];
 
     if (read_streamfile(buf,offset,8,sf)!=8) return -1;
     return get_s64be(buf);
 }
+static inline uint64_t read_u64be(off_t offset, STREAMFILE* sf) { return (uint64_t)read_s64be(offset, sf); }
+
 static inline int8_t read_8bit(off_t offset, STREAMFILE* sf) {
     uint8_t buf[1];
 
@@ -61,10 +65,6 @@ static inline int32_t  read_s32le(off_t offset, STREAMFILE* sf) { return        
 static inline uint32_t read_u32le(off_t offset, STREAMFILE* sf) { return (uint32_t)read_32bitLE(offset, sf); }
 static inline int32_t  read_s32be(off_t offset, STREAMFILE* sf) { return           read_32bitBE(offset, sf); }
 static inline uint32_t read_u32be(off_t offset, STREAMFILE* sf) { return (uint32_t)read_32bitBE(offset, sf); }
-static inline int64_t  read_s64be(off_t offset, STREAMFILE* sf) { return           read_64bitBE(offset, sf); }
-static inline uint64_t read_u64be(off_t offset, STREAMFILE* sf) { return (uint64_t)read_64bitBE(offset, sf); }
-static inline int64_t  read_s64le(off_t offset, STREAMFILE* sf) { return           read_64bitLE(offset, sf); }
-static inline uint64_t read_u64le(off_t offset, STREAMFILE* sf) { return (uint64_t)read_64bitLE(offset, sf); }
 
 static inline float read_f32be(off_t offset, STREAMFILE* sf) {
     uint8_t buf[4];
