@@ -33,7 +33,7 @@ static const float xa_coefs[16][2] = {
 void decode_ea_xas_v1(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
     uint8_t frame[0x4c] = {0};
     off_t frame_offset;
-    int group, row, i, samples_done = 0, sample_count = 0;
+    int samples_done = 0, sample_count = 0;
     size_t bytes_per_frame, samples_per_frame;
 
 
@@ -55,11 +55,11 @@ void decode_ea_xas_v1(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspa
 
 
     /* parse group headers */
-    for (group = 0; group < 4; group++) {
+    for (int group = 0; group < 4; group++) {
         float coef1, coef2;
         int16_t hist1, hist2;
         uint8_t shift;
-        uint32_t group_header = (uint32_t)get_32bitLE(frame + group*0x4); /* always LE */
+        uint32_t group_header = get_u32le(frame + group*0x4); /* always LE */
 
         coef1 = xa_coefs[group_header & 0x0F][0];
         coef2 = xa_coefs[group_header & 0x0F][1];
@@ -80,8 +80,8 @@ void decode_ea_xas_v1(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspa
         sample_count++;
 
         /* process nibbles per group */
-        for (row = 0; row < 15; row++) {
-            for (i = 0; i < 1*2; i++) {
+        for (int row = 0; row < 15; row++) {
+            for (int i = 0; i < 1 * 2; i++) {
                 uint8_t nibbles = frame[4*4 + row*0x04 + group + i/2];
                 int sample;
 
@@ -116,7 +116,7 @@ void decode_ea_xas_v1(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspa
 void decode_ea_xas_v0(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
     uint8_t frame[0x13] = {0};
     off_t frame_offset;
-    int i, frames_in, samples_done = 0, sample_count = 0;
+    int frames_in, samples_done = 0, sample_count = 0;
     size_t bytes_per_frame, samples_per_frame;
 
 
@@ -129,14 +129,14 @@ void decode_ea_xas_v0(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspa
     frame_offset = stream->offset + bytes_per_frame * frames_in;
     read_streamfile(frame, frame_offset, bytes_per_frame, stream->streamfile); /* ignore EOF errors */
 
-    //todo see above
+    //TODO make expand function and fuse with above
 
     /* process frame */
     {
         float coef1, coef2;
         int16_t hist1, hist2;
         uint8_t shift;
-        uint32_t frame_header = (uint32_t)get_32bitLE(frame); /* always LE */
+        uint32_t frame_header = get_u32le(frame); /* always LE */
 
         coef1 = xa_coefs[frame_header & 0x0F][0];
         coef2 = xa_coefs[frame_header & 0x0F][1];
@@ -157,7 +157,7 @@ void decode_ea_xas_v0(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspa
         sample_count++;
 
         /* process nibbles */
-        for (i = 0; i < 0x0f*2; i++) {
+        for (int i = 0; i < 0x0f * 2; i++) {
             uint8_t nibbles = frame[0x02 + 0x02 + i/2];
             int sample;
 

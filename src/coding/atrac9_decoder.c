@@ -33,7 +33,7 @@ atrac9_codec_data* init_atrac9(atrac9_config* cfg) {
     data->handle = Atrac9GetHandle();
     if (!data->handle) goto fail;
 
-    put_32bitBE(config_data, cfg->config_data);
+    put_u32be(config_data, cfg->config_data);
     status = Atrac9InitDecoder(data->handle, config_data);
     if (status < 0) goto fail;
 
@@ -150,7 +150,7 @@ void reset_atrac9(atrac9_codec_data* data) {
         data->handle = Atrac9GetHandle();
         if (!data->handle) goto fail;
 
-        put_32bitBE(config_data, data->config.config_data);
+        put_u32be(config_data, data->config.config_data);
         status = Atrac9InitDecoder(data->handle, config_data);
         if (status < 0) goto fail;
     }

@@ -1051,7 +1051,7 @@ static size_t make_wav_header(uint8_t* buf, size_t buf_size, int32_t sample_coun
         goto fail;
 
     memcpy(buf+0x00, "RIFF", 0x04); /* RIFF header */
-    put_32bitLE(buf+0x04, (int32_t)(header_size - 0x08 + data_size)); /* size of RIFF */
+    put_u32le(buf+0x04, (int32_t)(header_size - 0x08 + data_size)); /* size of RIFF */
 
     memcpy(buf+0x08, "WAVE", 4); /* WAVE header */
 

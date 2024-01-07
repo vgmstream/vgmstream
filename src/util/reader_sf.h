@@ -1,6 +1,7 @@
 #ifndef _READER_SF_H
 #define _READER_SF_H
 #include "../streamfile.h"
+#include "reader_get.h"
 
 
 /* Sometimes you just need an int, and we're doing the buffering.
@@ -10,37 +11,37 @@ static inline int16_t read_16bitLE(off_t offset, STREAMFILE* sf) {
     uint8_t buf[2];
 
     if (read_streamfile(buf,offset,2,sf)!=2) return -1;
-    return get_16bitLE(buf);
+    return get_s16le(buf);
 }
 static inline int16_t read_16bitBE(off_t offset, STREAMFILE* sf) {
     uint8_t buf[2];
 
     if (read_streamfile(buf,offset,2,sf)!=2) return -1;
-    return get_16bitBE(buf);
+    return get_s16be(buf);
 }
 static inline int32_t read_32bitLE(off_t offset, STREAMFILE* sf) {
     uint8_t buf[4];
 
     if (read_streamfile(buf,offset,4,sf)!=4) return -1;
-    return get_32bitLE(buf);
+    return get_s32le(buf);
 }
 static inline int32_t read_32bitBE(off_t offset, STREAMFILE* sf) {
     uint8_t buf[4];
 
     if (read_streamfile(buf,offset,4,sf)!=4) return -1;
-    return get_32bitBE(buf);
+    return get_s32be(buf);
 }
 static inline int64_t read_64bitLE(off_t offset, STREAMFILE* sf) {
     uint8_t buf[8];
 
     if (read_streamfile(buf,offset,8,sf)!=8) return -1;
-    return get_64bitLE(buf);
+    return get_s64le(buf);
 }
 static inline int64_t read_64bitBE(off_t offset, STREAMFILE* sf) {
     uint8_t buf[8];
 
     if (read_streamfile(buf,offset,8,sf)!=8) return -1;
-    return get_64bitBE(buf);
+    return get_s64be(buf);
 }
 static inline int8_t read_8bit(off_t offset, STREAMFILE* sf) {
     uint8_t buf[1];
