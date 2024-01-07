@@ -668,7 +668,7 @@ static void ealayer3_copy_pcm_block(uint8_t* outbuf, off_t pcm_offset, int pcm_n
         int pos = 0;
         for (i = 0; i < pcm_number * channels_per_frame; i++) {
             int16_t pcm_sample = get_s16be(pcm_block + pos);
-            put_16bitLE(outbuf + pos, pcm_sample);
+            put_s16le(outbuf + pos, pcm_sample);
 
             pos += sizeof(sample);
         }
@@ -680,7 +680,7 @@ static void ealayer3_copy_pcm_block(uint8_t* outbuf, off_t pcm_offset, int pcm_n
             int put_pos = sizeof(sample) * ch;
             for (i = 0; i < pcm_number; i++) {
                 int16_t pcm_sample = get_s16be(pcm_block + get_pos);
-                put_16bitLE(outbuf + put_pos, pcm_sample);
+                put_s16le(outbuf + put_pos, pcm_sample);
 
                 get_pos += sizeof(sample);
                 put_pos += sizeof(sample) * channels_per_frame;

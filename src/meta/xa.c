@@ -39,6 +39,7 @@ VGMSTREAM* init_vgmstream_xa(STREAMFILE* sf) {
      * .grn: Micro Machines (CDi)
      * .an2: Croc (PS1) movies
      * .xai: Quake II (PS1)
+     * .no: Incredible Crisis (PS1)
      * (extensionless): bigfiles [Castlevania: Symphony of the Night (PS1)] */
     if (!check_extensions(sf,"xa,str,pxa,grn,an2,,xai"))
         return NULL;
@@ -67,35 +68,48 @@ VGMSTREAM* init_vgmstream_xa(STREAMFILE* sf) {
         uint8_t  xa_submode = (curr_info >>  8) & 0xFF;
         uint8_t  xa_header  = (curr_info >>  0) & 0xFF;
 
+        /* header is repeated at 0x14 and could check if matches, but some ripped XA patch byte 0x01
+         * for some reason, and in rare cases has garbage [Incredible Crisis (PS1) XAPACK00.NO#5]
+         * (probably means a real PS1 only uses the first header, if it can play such XA) */
+
         target_config = xa_config;
         is_form2 = (xa_submode & 0x20);
 
         switch((xa_header >> 0) & 3) { /* 0..1: mono/stereo */
             case 0: channels = 1; break;
             case 1: channels = 2; break;
-            default: goto fail;
+            default:
+                vgm_logi("XA: buggy data found\n");
+                goto fail;
         }
         switch((xa_header >> 2) & 3) { /* 2..3: sample rate */
             case 0: sample_rate = 37800; break;
             case 1: sample_rate = 18900; break;
-            default: goto fail;
+            default:
+                vgm_logi("XA: buggy data found\n");
+                goto fail;
         }
         switch((xa_header >> 4) & 3) { /* 4..5: bits per sample */
             case 0: bps = 4; break; /* PS1 games only do 4-bit ADPCM */
             case 1: bps = 8; break; /* Micro Machines (CDi) */
-            default: goto fail;
+            default:
+                vgm_logi("XA: buggy data found\n");
+                goto fail;
         }
         switch((xa_header >> 6) & 1) { /* 6: emphasis flag (should apply a de-emphasis filter) */
             case 0: break;
-            default: /* very rare, waveform looks ok so maybe not needed [Croc (PS1) PACKx.str] */
+            default:
+                /* very rare, waveform looks ok so maybe not needed [Croc (PS1) PACKx.str] */
                 vgm_logi("XA: emphasis found\n");
                 break;
         }
         switch((xa_header >> 7) & 1) { /* 7: reserved */
             case 0: break;
             default:
-                vgm_logi("XA: unknown reserved bit found\n");
-                goto fail;
+                /* very rare, found in all regions and xa channel's headers but probably a mastering
+                 * bug since repeated header is wrong [Incredible Crisis (PS1) XAPACK00.NO#5] */
+                vgm_logi("XA: reserved bit found\n");
+                break;
         }
     }
     else {

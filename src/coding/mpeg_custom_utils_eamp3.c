@@ -135,8 +135,8 @@ static int eamp3_write_pcm_block(VGMSTREAMCHANNEL *stream, mpeg_codec_data *data
         /* read + write PCM block samples (always LE) */
         for (i = 0; i < eaf->pcm_number * data->channels_per_frame; i++) {
             off_t pcm_offset = stream->offset + eaf->pre_size + eaf->mpeg_size + sizeof(sample)*i;
-            int16_t pcm_sample = read_16bitLE(pcm_offset,stream->streamfile);
-            put_16bitLE(ms->output_buffer + bytes_filled + sizeof(sample)*i, pcm_sample);
+            int16_t pcm_sample = read_s16le(pcm_offset,stream->streamfile);
+            put_s16le(ms->output_buffer + bytes_filled + sizeof(sample) * i, pcm_sample);
         }
         ms->samples_filled += eaf->pcm_number;
 

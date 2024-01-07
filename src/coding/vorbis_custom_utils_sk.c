@@ -175,8 +175,8 @@ static int build_header(uint8_t* buf, size_t bufsize, STREAMFILE* sf, off_t pack
 
     if (0x07+packet_size-0x03 > bufsize) return 0;
 
-    put_8bit   (buf+0x00, read_8bit(packet_offset,sf)); /* packet_type */
-    memcpy     (buf+0x01, "vorbis", 6); /* id */
+    put_u8(buf+0x00, read_8bit(packet_offset,sf)); /* packet_type */
+    memcpy(buf+0x01, "vorbis", 6); /* id */
     bytes = read_streamfile(buf+0x07,packet_offset+0x03, packet_size-0x03,sf); /* copy rest (all except id+"SK") */
     if (packet_size-0x03 != bytes)
         return 0;

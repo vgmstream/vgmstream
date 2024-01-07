@@ -2,8 +2,8 @@
 #include "../coding/coding.h"
 
 /* Apple Core Audio Format File - from iOS games [Vectros (iOS), Ridge Racer Accelerated (iOS)] */
-VGMSTREAM * init_vgmstream_apple_caff(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
+VGMSTREAM* init_vgmstream_apple_caff(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
     off_t start_offset = 0, chunk_offset;
     size_t file_size, data_size = 0;
     int loop_flag, channel_count = 0, sample_rate = 0;
@@ -15,20 +15,19 @@ VGMSTREAM * init_vgmstream_apple_caff(STREAMFILE *streamFile) {
 
 
     /* checks */
-    if (!check_extensions(streamFile, "caf"))
-        goto fail;
+    if (!is_id32be(0x00,sf, "caff"))
+        return NULL;
+    if (read_32bitBE(0x04,sf) != 0x00010000) /* version/flags */
+        return NULL;
+    if (!check_extensions(sf, "caf"))
+        return NULL;
 
-    if (read_32bitBE(0x00,streamFile) != 0x63616666) /* "caff" */
-        goto fail;
-    if (read_32bitBE(0x04,streamFile) != 0x00010000) /* version/flags */
-        goto fail;
-
-    file_size = get_streamfile_size(streamFile);
+    file_size = get_streamfile_size(sf);
     chunk_offset = 0x08;
 
     while (chunk_offset < file_size) {
-        uint32_t chunk_type = read_32bitBE(chunk_offset+0x00,streamFile);
-        uint32_t chunk_size = (uint32_t)read_64bitBE(chunk_offset+0x04,streamFile);
+        uint32_t chunk_type = read_u32be(chunk_offset+0x00,sf);
+        uint32_t chunk_size = (uint32_t)read_u64be(chunk_offset+0x04,sf);
         chunk_offset += 0x0c;
 
         switch (chunk_type) {
@@ -37,26 +36,26 @@ VGMSTREAM * init_vgmstream_apple_caff(STREAMFILE *streamFile) {
                 found_desc = 1;
 
                 {
-                    uint64_t sample_long = (uint64_t)read_64bitBE(chunk_offset+0x00, streamFile);
+                    uint64_t sample_long = read_u64be(chunk_offset+0x00, sf);
                     double* sample_double; /* double sample rate, double the fun */
 
                     sample_double = (double*)&sample_long;
                     sample_rate = (int)(*sample_double);
                 }
 
-                codec = read_32bitBE(chunk_offset+0x08, streamFile);
+                codec = read_32bitBE(chunk_offset+0x08, sf);
                 //codec_flags         = read_32bitBE(chunk_offset+0x0c, streamFile);
-                bytes_per_packet    = read_32bitBE(chunk_offset+0x10, streamFile);
-                samples_per_packet  = read_32bitBE(chunk_offset+0x14, streamFile);
-                channels_per_packet = read_32bitBE(chunk_offset+0x18, streamFile);
-                bits_per_sample     = read_32bitBE(chunk_offset+0x1C, streamFile);
+                bytes_per_packet    = read_32bitBE(chunk_offset+0x10, sf);
+                samples_per_packet  = read_32bitBE(chunk_offset+0x14, sf);
+                channels_per_packet = read_32bitBE(chunk_offset+0x18, sf);
+                bits_per_sample     = read_32bitBE(chunk_offset+0x1C, sf);
                 break;
 
             case 0x70616b74:    /* "pakt" */
                 //found_pakt = 1;
 
-                //packets_table_size = (uint32_t)read_64bitBE(chunk_offset+0x00,streamFile); /* 0 for constant bitrate */
-                valid_samples = (uint32_t)read_64bitBE(chunk_offset+0x08,streamFile);
+                //packets_table_size = (uint32_t)read_u64be(chunk_offset+0x00,streamFile); /* 0 for constant bitrate */
+                valid_samples = (uint32_t)read_u64be(chunk_offset+0x08,sf);
                 //priming_samples = read_32bitBE(chunk_offset+0x10,streamFile); /* encoder delay samples */
                 //unused_samples = read_32bitBE(chunk_offset+0x14,streamFile); /* footer samples */
                 break;
@@ -91,8 +90,8 @@ VGMSTREAM * init_vgmstream_apple_caff(STREAMFILE *streamFile) {
     vgmstream = allocate_vgmstream(channel_count,loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->sample_rate = sample_rate;
     vgmstream->meta_type = meta_CAFF;
+    vgmstream->sample_rate = sample_rate;
 
     switch(codec) {
         case 0x6C70636D: /* "lpcm" */
@@ -150,7 +149,7 @@ VGMSTREAM * init_vgmstream_apple_caff(STREAMFILE *streamFile) {
             goto fail;
     }
 
-    if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
+    if (!vgmstream_open_stream(vgmstream,sf,start_offset))
         goto fail;
     return vgmstream;
 

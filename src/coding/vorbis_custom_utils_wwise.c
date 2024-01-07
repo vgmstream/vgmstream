@@ -740,8 +740,8 @@ static int ww2ogg_generate_vorbis_setup(bitstream_t* ow, bitstream_t* iw, vorbis
 
 
     /* packet header */
-    put_8bit(ow->buf+0x00, 0x05);            /* packet_type (setup) */
-    memcpy  (ow->buf+0x01, "vorbis", 6);     /* id */
+    put_u8(ow->buf+0x00, 0x05);            /* packet_type (setup) */
+    memcpy(ow->buf+0x01, "vorbis", 6);     /* id */
     ow->b_off += (1+6) * 8; /* bit offset of output (Vorbis) setup, after fake type + id */
 
 
@@ -1233,12 +1233,12 @@ static int load_wvc_array(uint8_t* buf, size_t bufsize, uint32_t codebook_id, ww
         int codebook_count;
 
         /* at the end of the WVC is an offset table, and we need to find codebook id (number) offset */
-        table_start = get_32bitLE(wvc + wvc_size - 4); /* last offset */
+        table_start = get_u32le(wvc + wvc_size - 4); /* last offset */
         codebook_count = ((wvc_size - table_start) / 4) - 1;
         if (codebook_id >= codebook_count) goto fail;
 
-        codebook_offset = get_32bitLE(wvc + table_start + codebook_id*4);
-        codebook_size   = get_32bitLE(wvc + table_start + codebook_id*4 + 4) - codebook_offset;
+        codebook_offset = get_u32le(wvc + table_start + codebook_id*4);
+        codebook_size   = get_u32le(wvc + table_start + codebook_id*4 + 4) - codebook_offset;
         if (codebook_size > bufsize) goto fail;
 
         memcpy(buf, wvc+codebook_offset, codebook_size);

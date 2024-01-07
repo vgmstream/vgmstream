@@ -24,12 +24,28 @@ const char* filename_extension(const char* pathname) {
 }
 
 
+/* math helpers */
+uint32_t clamp_u32(uint32_t v, uint32_t min, uint32_t max) {
+    if (v < min) return min;
+    if (v > max) return max;
+    return v;
+}
+
 int round10(int val) {
     int round_val = val % 10;
     if (round_val < 5) /* half-down rounding */
         return val - round_val;
     else
         return val + (10 - round_val);
+}
+
+size_t align_size_to_block(size_t value, size_t block_align) {
+    if (!block_align)
+        return 0;
+
+    size_t extra_size = value % block_align;
+    if (extra_size == 0) return value;
+    return (value + block_align - extra_size);
 }
 
 /* length is maximum length of dst. dst will always be null-terminated if
@@ -41,15 +57,6 @@ void concatn(int length, char * dst, const char * src) {
     for (j=0;i<length-1 && src[j];i++,j++)
         dst[i]=src[j];
     dst[i]='\0';
-}
-
-size_t align_size_to_block(size_t value, size_t block_align) {
-    if (!block_align)
-        return 0;
-
-    size_t extra_size = value % block_align;
-    if (extra_size == 0) return value;
-    return (value + block_align - extra_size);
 }
 
 bool check_subsongs(int* target_subsong, int total_subsongs) {
