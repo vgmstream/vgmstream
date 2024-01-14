@@ -84,7 +84,7 @@ VGMSTREAM* init_vgmstream_ego_dic(STREAMFILE* sf) {
         if (sb == NULL) {
             vgm_logi("DIC1: external file '%s' not found (put together)\n", resource_name);
             /* allow missing as silence since some game use huge .dic that is a bit hard to get */
-            //goto fail;
+            codec = 0xFFFFFFFF; //goto fail;
         }
     }
 
@@ -100,6 +100,13 @@ VGMSTREAM* init_vgmstream_ego_dic(STREAMFILE* sf) {
 
 
     switch(codec) {
+        case 0xFFFFFFFF: //fake
+            vgmstream->coding_type = coding_SILENCE;
+            vgmstream->layout_type = layout_none;
+
+            vgmstream->num_samples = sample_rate;
+            break;
+
         case 0x57495000: //WIP\0
             vgmstream->coding_type = coding_PCM16LE;
             vgmstream->layout_type = layout_interleave;
@@ -143,10 +150,6 @@ VGMSTREAM* init_vgmstream_ego_dic(STREAMFILE* sf) {
 
     vgmstream->loop_start_sample = 0;
     vgmstream->loop_end_sample = vgmstream->num_samples;
-    if (!sb) {
-        vgmstream->coding_type = coding_SILENCE;
-        vgmstream->layout_type = layout_none;
-    }
 
     if (!vgmstream_open_stream(vgmstream, sb, stream_offset))
         goto fail;

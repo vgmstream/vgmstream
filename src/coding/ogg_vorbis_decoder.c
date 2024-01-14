@@ -38,6 +38,8 @@ ogg_vorbis_codec_data* init_ogg_vorbis(STREAMFILE* sf, off_t start, off_t size, 
     ov_callbacks callbacks = {0};
 
     //todo clean up
+    if (!sf)
+        return NULL;
 
     callbacks.read_func = ov_read_func;
     callbacks.seek_func = ov_seek_func;
