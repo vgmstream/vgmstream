@@ -450,5 +450,8 @@ int get_vgmstream_average_bitrate(VGMSTREAM* vgmstream) {
     bitrate_info_t br = {0};
     br.count_max = BITRATE_FILES_MAX;
 
+    if (vgmstream->coding_type == coding_SILENCE)
+        return 0;
+
     return get_vgmstream_file_bitrate_main(vgmstream, &br, NULL);
 }
