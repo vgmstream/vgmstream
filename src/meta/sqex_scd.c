@@ -24,14 +24,13 @@ VGMSTREAM* init_vgmstream_sqex_scd(STREAMFILE* sf) {
 
 
     /* checks */
-    if (!check_extensions(sf, "scd"))
-        goto fail;
-
-    /** main header **/
     if (!is_id32be(0x00,sf, "SEDB") &&
         !is_id32be(0x04,sf, "SSCF"))
-        goto fail;
+        return NULL;
+    if (!check_extensions(sf, "scd"))
+        return NULL;
 
+    /** main header **/
     big_endian = read_u8(0x0c,sf) == 0x01;
     if (big_endian) { /* big endian flag */
         //size_offset = 0x14;
@@ -152,7 +151,7 @@ VGMSTREAM* init_vgmstream_sqex_scd(STREAMFILE* sf) {
 #ifdef VGM_USE_VORBIS
     /* special case using init_vgmstream_ogg_vorbis */
     if (codec == 0x06) {
-        VGMSTREAM *ogg_vgmstream;
+        VGMSTREAM* ogg_vgmstream;
         uint8_t ogg_version, ogg_byte;
         ogg_vorbis_meta_info_t ovmi = {0};
 
@@ -216,15 +215,16 @@ VGMSTREAM* init_vgmstream_sqex_scd(STREAMFILE* sf) {
         read_string(vgmstream->stream_name, STREAM_NAME_SIZE, name_offset, sf);
 
     switch (codec) {
-        case 0x01:      /* PCM */
-            vgmstream->coding_type = coding_PCM16LE;
+        case 0x00:      /* PCM BE [Drakengard 3 (PS3)] */
+        case 0x01:      /* PCM LE */
+            vgmstream->coding_type = codec == 0x00 ? coding_PCM16BE : coding_PCM16LE;
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = 0x02;
 
-            vgmstream->num_samples = pcm_bytes_to_samples(stream_size, channels, 16);
+            vgmstream->num_samples = pcm16_bytes_to_samples(stream_size, channels);
             if (loop_flag) {
-                vgmstream->loop_start_sample = pcm_bytes_to_samples(loop_start, channels, 16);
-                vgmstream->loop_end_sample = pcm_bytes_to_samples(loop_end, channels, 16);
+                vgmstream->loop_start_sample = pcm16_bytes_to_samples(loop_start, channels);
+                vgmstream->loop_end_sample = pcm16_bytes_to_samples(loop_end, channels);
             }
             break;
 
