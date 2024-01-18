@@ -523,7 +523,7 @@ VGMSTREAM * init_vgmstream_ps2_hsf(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_ivag(STREAMFILE* streamFile);
 
-VGMSTREAM * init_vgmstream_ps2_2pfs(STREAMFILE* streamFile);
+VGMSTREAM* init_vgmstream_2pfs(STREAMFILE* sf);
 
 VGMSTREAM * init_vgmstream_ubi_ckd(STREAMFILE* streamFile);
 

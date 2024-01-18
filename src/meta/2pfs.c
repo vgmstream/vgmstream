@@ -3,7 +3,7 @@
 
 
 /* 2PFS - from Konami Games [Mahoromatic: Moetto-KiraKira Maid-San (PS2), GANTZ The Game (PS2)] */
-VGMSTREAM* init_vgmstream_ps2_2pfs(STREAMFILE* sf) {
+VGMSTREAM* init_vgmstream_2pfs(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     off_t start_offset;
     int loop_flag, channels, version, interleave;
@@ -42,7 +42,7 @@ VGMSTREAM* init_vgmstream_ps2_2pfs(STREAMFILE* sf) {
     vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->meta_type = meta_PS2_2PFS;
+    vgmstream->meta_type = meta_2PFS;
     vgmstream->num_samples = read_u32le(0x34,sf) * 28 / 16 / channels;
     vgmstream->coding_type = coding_PSX;
     vgmstream->layout_type = layout_interleave;

@@ -335,6 +335,7 @@
     <ClCompile Include="layout\segmented.c" />
     <ClCompile Include="meta\208.c" />
     <ClCompile Include="meta\2dx9.c" />
+    <ClCompile Include="meta\2pfs.c" />
     <ClCompile Include="meta\9tav.c" />
     <ClCompile Include="meta\a2m.c" />
     <ClCompile Include="meta\aac_triace.c" />
@@ -566,7 +567,6 @@
     <ClCompile Include="meta\pona.c" />
     <ClCompile Include="meta\pos.c" />
     <ClCompile Include="meta\ppst.c" />
-    <ClCompile Include="meta\ps2_2pfs.c" />
     <ClCompile Include="meta\ps2_adm.c" />
     <ClCompile Include="meta\ps2_ass.c" />
     <ClCompile Include="meta\ps2_b1s.c" />

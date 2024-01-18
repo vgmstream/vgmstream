@@ -23,7 +23,6 @@ static const char* extension_list[] = {
 
     "208",
     "2dx9",
-    "2pfs",
     "3do",
     "3ds", //txth/reserved [F1 2011 (3DS)] 
     "4", //for Game.com audio
@@ -1231,7 +1230,7 @@ static const meta_info meta_info_list[] = {
         {meta_MSS,                  "Guerilla MCSS header"},
         {meta_PS2_HSF,              "Lowrider 'HSF' header"},
         {meta_IVAG,                 "Namco IVAG header"},
-        {meta_PS2_2PFS,             "Konami 2PFS header"},
+        {meta_2PFS,                 "Konami 2PFS header"},
         {meta_UBI_CKD,              "Ubisoft CKD RIFF header"},
         {meta_PS2_VBK,              "PS2 VBK Header"},
         {meta_OTM,                  "Otomedius OTM Header"},
