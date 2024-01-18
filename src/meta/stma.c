@@ -3,19 +3,19 @@
 
 /* STM - from Angel Studios/Rockstar San Diego games [Red Dead Revolver (PS2), Spy Hunter 2 (PS2/Xbox)] */
 VGMSTREAM* init_vgmstream_stma(STREAMFILE* sf) {
-	VGMSTREAM* vgmstream = NULL;
-	off_t start_offset;
+    VGMSTREAM* vgmstream = NULL;
+    off_t start_offset;
     int loop_flag = 0, channel_count;
     int big_endian, bps, interleave, data_size, loop_start = 0, loop_end = 0;
     int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
     int16_t (*read_16bit)(off_t,STREAMFILE*) = NULL;
 
 
-	/* checks */
+    /* checks */
     if (!is_id32be(0x00,sf, "STMA") &&      /* LE */
         !is_id32be(0x00,sf, "AMTS"))        /* BE */
         goto fail;
-	/* .stm: real extension
+    /* .stm: real extension
      * .lstm: for plugins */
     if (!check_extensions(sf,"stm,lstm"))
         goto fail;

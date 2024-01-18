@@ -2,23 +2,21 @@
 #include "../coding/coding.h"
 
 
-/* 2PFS - from Konami Games [Mahoromatic: Moetto - KiraKira Maid-San (PS2), GANTZ The Game (PS2)] */
-VGMSTREAM* init_vgmstream_ps2_2pfs(STREAMFILE *sf) {
-    VGMSTREAM * vgmstream = NULL;
+/* 2PFS - from Konami Games [Mahoromatic: Moetto-KiraKira Maid-San (PS2), GANTZ The Game (PS2)] */
+VGMSTREAM* init_vgmstream_ps2_2pfs(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
     off_t start_offset;
     int loop_flag, channels, version, interleave;
-    int loop_start_block, loop_end_block; /* block number */
+    int loop_start_block, loop_end_block;
     int loop_start_adjust, loop_end_adjust; /* loops start/end a few samples into the start/end block */
 
 
     /* checks */
-    /* .sap: standard
-     * .2pfs: header id? (Mahoromatic) */
-    if (!check_extensions(sf, "sap,2pfs"))
-        goto fail;
-
-    if (read_u32be(0x00,sf) != 0x32504653) /* "2PFS" */
-        goto fail;
+    if (!is_id32be(0x00,sf, "2PFS"))
+        return NULL;
+    /* .sap: standard */
+    if (!check_extensions(sf, "sap"))
+        return NULL;
 
     version = read_u16le(0x04,sf);
     if (version != 0x01 && version != 0x02) /* v1: Mahoromatic, v2: Gantz */
@@ -77,7 +75,6 @@ VGMSTREAM* init_vgmstream_ps2_2pfs(STREAMFILE *sf) {
     if (!vgmstream_open_stream(vgmstream, sf, start_offset))
         goto fail;
     return vgmstream;
-
 fail:
     close_vgmstream(vgmstream);
     return NULL;

@@ -9,11 +9,11 @@ VGMSTREAM* init_vgmstream_waf(STREAMFILE* sf) {
 
 
     /* checks */
-    if (!check_extensions(sf, "waf"))
-        goto fail;
-
     if (!is_id32be(0x00,sf, "WAF\0"))
-        goto fail;
+        return NULL;
+    if (!check_extensions(sf, "waf"))
+        return NULL;
+
     if (read_u32le(0x34,sf) + 0x38 != get_streamfile_size(sf))
         goto fail;
 
