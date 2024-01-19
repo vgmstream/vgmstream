@@ -449,6 +449,7 @@
     <ClCompile Include="meta\fsb_encrypted.c" />
     <ClCompile Include="meta\fwse.c" />
     <ClCompile Include="meta\g1l.c" />
+    <ClCompile Include="meta\gbts.c" />
     <ClCompile Include="meta\gca.c" />
     <ClCompile Include="meta\gcsw.c" />
     <ClCompile Include="meta\gcub.c" />
@@ -557,6 +558,7 @@
     <ClCompile Include="meta\omu.c" />
     <ClCompile Include="meta\opus.c" />
     <ClCompile Include="meta\otm.c" />
+    <ClCompile Include="meta\p2bt_move_visa.c" />
     <ClCompile Include="meta\p3d.c" />
     <ClCompile Include="meta\pasx.c" />
     <ClCompile Include="meta\pcm_sre.c" />
@@ -571,7 +573,6 @@
     <ClCompile Include="meta\ps2_ass.c" />
     <ClCompile Include="meta\ps2_b1s.c" />
     <ClCompile Include="meta\ps2_bmdx.c" />
-    <ClCompile Include="meta\ps2_gbts.c" />
     <ClCompile Include="meta\ps2_gcm.c" />
     <ClCompile Include="meta\ps2_hsf.c" />
     <ClCompile Include="meta\ps2_iab.c" />
@@ -580,7 +581,6 @@
     <ClCompile Include="meta\ps2_mcg.c" />
     <ClCompile Include="meta\ps2_mic.c" />
     <ClCompile Include="meta\ps2_mihb.c" />
-    <ClCompile Include="meta\ps2_p2bt.c" />
     <ClCompile Include="meta\ps2_pcm.c" />
     <ClCompile Include="meta\ps2_rnd.c" />
     <ClCompile Include="meta\ps2_snd.c" />
@@ -693,7 +693,6 @@
     <ClCompile Include="meta\vgs.c" />
     <ClCompile Include="meta\vgs_ps.c" />
     <ClCompile Include="meta\vid1.c" />
-    <ClCompile Include="meta\vis.c" />
     <ClCompile Include="meta\voi.c" />
     <ClCompile Include="meta\vpk.c" />
     <ClCompile Include="meta\vs.c" />
