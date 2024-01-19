@@ -1,92 +1,56 @@
 #include "meta.h"
-#include "../util.h"
+#include "../coding/coding.h"
 
-/* GBTS : Pop'n'Music 9 Bgm File */
 
-VGMSTREAM * init_vgmstream_ps2_gbts(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
+/* GbTs - from KCES games [Pop'n Music 9/10 (PS2)] */
+VGMSTREAM* init_vgmstream_gbts(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
+    int loop_flag, channels;
+    uint32_t data_offset, sample_rate, data_size;
+    uint32_t loop_start, loop_end;
 
-    int loop_flag=0;
-	int channel_count;
-    off_t start_offset;
-	off_t loopStart = 0;
-	off_t loopEnd = 0;
-	size_t filelength;
 
-	int i;
+    /* checks */
+    if (!is_id32be(0x00,sf, "GbTs"))
+        return NULL;
+    /* .gbts: header id (no apparent exts) */
+    if (!check_extensions(sf, "gbts"))
+        return NULL;
 
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("gbts",filename_extension(filename))) goto fail;
+    /* 04: always 0x24 */
+    data_offset = read_u32le(0x08,sf);
+    data_size   = read_u32le(0x0C,sf);
+    loop_start  = read_u32le(0x10,sf); /* (0x20 = start frame if not set) */
+    loop_end    = read_u32le(0x14,sf); /* (0x00 if not set) */
+    sample_rate = read_s32le(0x18,sf);
+    channels    = read_s32le(0x1C,sf);
+    /* 20: 1? */
+    /* 24: block size? */
 
-	/* check loop */
-	start_offset=0x801;
+    loop_flag = loop_end > 0;
+    loop_end += loop_start; /* loop region matches PS-ADPCM flags */
 
-	filelength = get_streamfile_size(streamFile);
-	do {
-		// Loop Start ...
-		if(read_8bit(start_offset,streamFile)==0x06) {
-			if(loopStart==0) loopStart = start_offset-0x801;
-		}
 
-		// Loop End ...
-		if(read_8bit(start_offset,streamFile)==0x03) {
-			if(loopEnd==0) loopEnd = start_offset-0x801-0x10;
-		}
-
-		start_offset+=0x10;
-
-	} while (start_offset<(int32_t)filelength);
-
-	loop_flag = (loopEnd!=0);
-    channel_count=read_32bitLE(0x1C,streamFile);
-    
-	/* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    /* build the VGMSTREAM */
+    vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
-	/* fill in the vital statistics */
-	vgmstream->channels = channel_count;
-    vgmstream->sample_rate = read_32bitLE(0x18,streamFile);;
+    vgmstream->sample_rate = sample_rate;
 
-	/* Check for Compression Scheme */
-	vgmstream->coding_type = coding_PSX;
-    vgmstream->num_samples = read_32bitLE(0x0C,streamFile)/16*28/vgmstream->channels;
-	vgmstream->interleave_block_size = 0x10;
+    vgmstream->num_samples = ps_bytes_to_samples(data_size, channels);
+    vgmstream->loop_start_sample = ps_bytes_to_samples(loop_start, channels);
+    vgmstream->loop_end_sample = ps_bytes_to_samples(loop_end, channels);
 
-	/* Get loop point values */
-	if(vgmstream->loop_flag) {
-		vgmstream->loop_start_sample = (loopStart/(vgmstream->interleave_block_size)*vgmstream->interleave_block_size)/16*28;
-		vgmstream->loop_start_sample += (loopStart%vgmstream->interleave_block_size)/16*28;
-		vgmstream->loop_start_sample /=vgmstream->channels;
-		vgmstream->loop_end_sample = (loopEnd/(vgmstream->interleave_block_size)*vgmstream->interleave_block_size)/16*28;
-		vgmstream->loop_end_sample += (loopEnd%vgmstream->interleave_block_size)/16*28;
-		vgmstream->loop_end_sample /=vgmstream->channels;
-	}
-
+    vgmstream->coding_type = coding_PSX;
     vgmstream->layout_type = layout_interleave;
-    vgmstream->meta_type = meta_PS2_GBTS;
+    vgmstream->interleave_block_size = 0x10;
 
-	start_offset = (off_t)0x800;
+    vgmstream->meta_type = meta_GBTS;
 
-    /* open the file for reading by each channel */
-    {
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-
-            if (!vgmstream->ch[i].streamfile) goto fail;
-
-            vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=
-                (off_t)(start_offset+vgmstream->interleave_block_size*i);
-        }
-    }
-
+    if (!vgmstream_open_stream(vgmstream, sf, data_offset))
+        goto fail;
     return vgmstream;
-
-    /* clean up anything we may have opened */
 fail:
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_vgmstream(vgmstream);
     return NULL;
 }

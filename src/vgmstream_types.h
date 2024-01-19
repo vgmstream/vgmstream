@@ -428,8 +428,8 @@ typedef enum {
     meta_FFXI_BGW,          /* FFXI (PC) BGW */
     meta_FFXI_SPW,          /* FFXI (PC) SPW */
     meta_STS,
-    meta_PS2_P2BT,          /* Pop'n'Music 7 Audio File */
-    meta_PS2_GBTS,          /* Pop'n'Music 9 Audio File */
+    meta_P2BT_MOVE_VISA,
+    meta_GBTS,
     meta_NGC_DSP_IADP,      /* Gamecube Interleave DSP */
     meta_PS2_MCG,           /* Gunvari MCG Files (was name .GCM on disk) */
     meta_ZSD,               /* Dragon Booster ZSD */
@@ -602,7 +602,6 @@ typedef enum {
     meta_MSV,
     meta_SDF,
     meta_SVG,               /* Hunter - The Reckoning - Wayward (PS2) */
-    meta_VIS,               /* AirForce Delta Strike (PS2) */
     meta_VAI,               /* Ratatouille (GC) */
     meta_AIF_ASOBO,         /* Ratatouille (PC) */
     meta_AO,                /* Cloudphobia (PC) */

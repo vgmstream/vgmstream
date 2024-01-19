@@ -1,70 +1,65 @@
 #include "meta.h"
-#include "../util.h"
+#include "../coding/coding.h"
 
-/* P2BT : Pop'n'Music 7 & 8 Bgm File */
 
-VGMSTREAM * init_vgmstream_ps2_p2bt(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
+/* P2BT/MOVE/VISA - from Konami/KCE Studio games [Pop'n Music 7/8/Best (PS2), AirForce Delta Strike (PS2)] */
+VGMSTREAM* init_vgmstream_p2bt_move_visa(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
+    uint32_t data_offset;
+    int loop_flag, channels, sample_rate, interleave;
+    uint32_t loop_start, data_size;
 
-    int loop_flag=0;
-	int channel_count;
-    off_t start_offset;
-    int i;
 
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("p2bt",filename_extension(filename))) goto fail;
+    /* checks */
+    if (!is_id32be(0x00,sf, "P2BT") && 
+        !is_id32be(0x00,sf, "MOVE") && 
+        !is_id32be(0x00,sf, "VISA"))
+        return NULL;
+    /* .psbt/move: header id (no apparent exts)
+     * .vis: actual extension found in AFDS and other KCES games */
+    if (!check_extensions(sf, "p2bt,move,vis"))
+        return NULL;
 
-	if((read_32bitBE(0x00,streamFile)!=0x4d4F5645) && // MOVE 
-	   (read_32bitBE(0x00,streamFile)!=0x50324254))   // P2BT
-		goto fail;
+    /* (header is the same with different IDs, all may be used within a single same game) */
+    /* 04: 07FC? */
+    sample_rate = read_s32le(0x08,sf);
+    loop_start = read_s32le(0x0c,sf);
+    data_size = read_u32le(0x10,sf); /* without padding */
+    interleave = read_u32le(0x14,sf); /* usually 0x10, sometimes 0x400 */
+    /* 18: 1? */
+    /* 1c: 0x10? */
+    channels = read_s32le(0x20,sf);
+    /* 24: 1? */
+    /* 28: stream name (AFDS), same as basename + original ext */
 
-	/* check loop */
-	loop_flag = (read_32bitLE(0x0C,streamFile)!=0);
-    channel_count=read_32bitLE(0x20,streamFile);
-    
-	/* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    loop_flag = (loop_start != 0);
+    data_offset = 0x800;
+
+
+    /* build the VGMSTREAM */
+    vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
-	/* fill in the vital statistics */
-	vgmstream->channels = channel_count;
-    vgmstream->sample_rate = read_32bitLE(0x08,streamFile);;
+    vgmstream->sample_rate = sample_rate;
 
-	/* Check for Compression Scheme */
-	vgmstream->coding_type = coding_PSX;
-    vgmstream->num_samples = read_32bitLE(0x10,streamFile)/16*28/vgmstream->channels;
+    vgmstream->num_samples = ps_bytes_to_samples(data_size, channels);
+    vgmstream->loop_start_sample = ps_bytes_to_samples(loop_start, channels);
+    vgmstream->loop_end_sample = vgmstream->num_samples;
 
-	/* Get loop point values */
-	if(vgmstream->loop_flag) {
-		vgmstream->loop_start_sample = read_32bitLE(0x0C,streamFile)/16*28/vgmstream->channels;
-		vgmstream->loop_end_sample = vgmstream->num_samples;
-	}
-
-	vgmstream->interleave_block_size = read_32bitLE(0x14,streamFile);;
+    vgmstream->coding_type = coding_PSX;
     vgmstream->layout_type = layout_interleave;
-    vgmstream->meta_type = meta_PS2_P2BT;
+    vgmstream->interleave_block_size = interleave;
 
-	start_offset = (off_t)0x800;
+    if (vgmstream->interleave_block_size)
+        vgmstream->interleave_last_block_size = (data_size % (vgmstream->interleave_block_size * channels)) / channels;
+    read_string(vgmstream->stream_name,0x10+1, 0x28, sf);
 
-    /* open the file for reading by each channel */
-    {
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
+    vgmstream->meta_type = meta_P2BT_MOVE_VISA;
 
-            if (!vgmstream->ch[i].streamfile) goto fail;
-
-            vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=
-                (off_t)(start_offset+vgmstream->interleave_block_size*i);
-        }
-    }
-
+    if (!vgmstream_open_stream(vgmstream, sf, data_offset))
+        goto fail;
     return vgmstream;
-
-    /* clean up anything we may have opened */
 fail:
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_vgmstream(vgmstream);
     return NULL;
 }

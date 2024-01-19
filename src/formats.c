@@ -346,6 +346,7 @@ static const char* extension_list[] = {
     //"m4a", //common
     //"m4v", //common
     //"mov", //common
+    "move",
     //"mp+", //common [Moonshine Runners (PC)]
     //"mp2", //common
     //"mp3", //common
@@ -1129,8 +1130,8 @@ static const meta_info meta_info_list[] = {
         {meta_MUL,                  "Crystal Dynamics .MUL header"},
         {meta_THP,                  "Nintendo THP header"},
         {meta_STS,                  "Alfa System .STS header"},
-        {meta_PS2_P2BT,             "Pop'n'Music 7 Header"},
-        {meta_PS2_GBTS,             "Pop'n'Music 9 Header"},
+        {meta_P2BT_MOVE_VISA,       "Konami P2BT/MOVE/VISA header"},
+        {meta_GBTS,                 "Konami GBTS header"},
         {meta_NGC_DSP_IADP,         "IADP Header"},
         {meta_RIFF_WAVE_MWV,        "RIFF WAVE header (ctrl looping)"},
         {meta_FFCC_STR,             "Final Fantasy: Crystal Chronicles STR header"},
@@ -1326,7 +1327,6 @@ static const meta_info meta_info_list[] = {
         {meta_MSV,                  "Sony MultiStream MSV header"},
         {meta_SDF,                  "Beyond Reality SDF header"},
         {meta_SVG,                  "High Voltage SVG header"},
-        {meta_VIS,                  "Konami VIS header"},
         {meta_VAI,                  "Asobo Studio .VAI header"},
         {meta_AIF_ASOBO,            "Asobo Studio .AIF header"},
         {meta_AO,                   "AlphaOgg .AO header"},
