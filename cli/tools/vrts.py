@@ -530,16 +530,12 @@ class VrtsApp:
 
     def _get_performance_args(self, cli):
         args = [cli, '-O'] #flag to not write files
-        if self._args.looping:
+        if not self._args.looping:
             args.append('-i')
         args.extend(self._files.filenames)
         return args
 
     def _performance(self):
-        flag_looping = ''
-        if self._args.looping:
-            flag_looping = '-i'
-
         # pases all files at once, as it's faster than 1 by 1 (that has to init program every time)
         if self._args.performance_new:
             self._p.info("testing new performance")
@@ -587,7 +583,7 @@ class VrtsApp:
 
     def _get_compare_args(self, cli, outwav, filename):
         args = [cli, '-o', outwav] #flag to not write files
-        if self._args.looping:
+        if not self._args.looping:
             args.append('-i')
         args.append(filename)
         return args
@@ -595,10 +591,6 @@ class VrtsApp:
     def _compare(self):
         ts_st = time.time()
         self._p.info("comparing files")
-
-        flag_looping = ''
-        if self._args.looping:
-            flag_looping = '-i'
 
         total_ok = 0
         total_ko = 0
