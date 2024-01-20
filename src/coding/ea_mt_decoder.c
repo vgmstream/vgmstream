@@ -1,17 +1,8 @@
 #include "coding.h"
+#include "libs/utkdec.h"
 
-#include "ea_mt_decoder_utk.h"
+/* Decodes EA MicroTalk */
 
-/* Decodes EA MicroTalk (speech codec) using utkencode lib (slightly modified for vgmstream).
- * EA separates MT10:1 and MT5:1 (bigger frames), but apparently are the same
- * with different encoding parameters. Later revisions may have PCM blocks (rare).
- *
- * Decoder by Andrew D'Addesio: https://github.com/daddesio/utkencode
- * Info: http://wiki.niotso.org/UTK
- */
-
-
-//#define UTK_MAKE_U32(a,b,c,d) ((a)|((b)<<8)|((c)<<16)|((d)<<24))
 #define UTK_ROUND(x) ((x) >= 0.0f ? ((x)+0.5f) : ((x)-0.5f))
 #define UTK_MIN(x,y) ((x)<(y)?(x):(y))
 #define UTK_MAX(x,y) ((x)>(y)?(x):(y))
@@ -26,21 +17,30 @@ struct ea_mt_codec_data {
     off_t loop_offset;
     int loop_sample;
 
-    int pcm_blocks;
     int samples_filled;
     int samples_used;
     int samples_done;
     int samples_discard;
-    void* utk_context;
+    void* ctx;
 };
 
 static size_t ea_mt_read_callback(void *dest, int size, void *arg);
+static ea_mt_codec_data* init_ea_mt_internal(utk_type_t type, int channels, int loop_sample, off_t* loop_offsets);
+
 
 ea_mt_codec_data* init_ea_mt(int channels, int pcm_blocks) {
     return init_ea_mt_loops(channels, pcm_blocks, 0, NULL);
 }
 
 ea_mt_codec_data* init_ea_mt_loops(int channels, int pcm_blocks, int loop_sample, off_t *loop_offsets) {
+    return init_ea_mt_internal(pcm_blocks ? UTK_EA_PCM : UTK_EA, channels, loop_sample, loop_offsets);
+}
+
+ea_mt_codec_data* init_ea_mt_cbx(int channels) {
+    return init_ea_mt_internal(UTK_CBX, channels, 0, NULL);
+}
+
+static ea_mt_codec_data* init_ea_mt_internal(utk_type_t type, int channels, int loop_sample, off_t* loop_offsets) {
     ea_mt_codec_data* data = NULL;
     int i;
 
@@ -48,16 +48,14 @@ ea_mt_codec_data* init_ea_mt_loops(int channels, int pcm_blocks, int loop_sample
     if (!data) goto fail;
 
     for (i = 0; i < channels; i++) {
-        data[i].utk_context = calloc(1, sizeof(UTKContext));
-        if (!data[i].utk_context) goto fail;
-        utk_init(data[i].utk_context);
+        data[i].ctx = utk_init(type);
+        if (!data[i].ctx) goto fail;
 
-        data[i].pcm_blocks = pcm_blocks;
         data[i].loop_sample = loop_sample;
         if (loop_offsets)
             data[i].loop_offset = loop_offsets[i];
 
-        utk_set_callback(data[i].utk_context, data[i].buffer, UTK_BUFFER_SIZE, &data[i], &ea_mt_read_callback);
+        utk_set_callback(data[i].ctx, data[i].buffer, UTK_BUFFER_SIZE, &data[i], &ea_mt_read_callback);
     }
 
     return data;
@@ -71,10 +69,9 @@ void decode_ea_mt(VGMSTREAM* vgmstream, sample_t* outbuf, int channelspacing, in
     int i;
     ea_mt_codec_data* data = vgmstream->codec_data;
     ea_mt_codec_data* ch_data = &data[channel];
-    UTKContext* ctx = ch_data->utk_context;
     int samples_done = 0;
 
-
+    float* fbuf = utk_get_samples(ch_data->ctx);
     while (samples_done < samples_to_do) {
 
         if (ch_data->samples_filled) {
@@ -98,7 +95,7 @@ void decode_ea_mt(VGMSTREAM* vgmstream, sample_t* outbuf, int channelspacing, in
                     samples_to_get = samples_to_do - samples_done;
 
                 for (i = ch_data->samples_used; i < ch_data->samples_used + samples_to_get; i++) {
-                    int pcm = UTK_ROUND(ctx->decompressed_frame[i]);
+                    int pcm = UTK_ROUND(fbuf[i]);
                     outbuf[0] = (int16_t)UTK_CLAMP(pcm, -32768, 32767);
                     outbuf += channelspacing;
                 }
@@ -119,19 +116,20 @@ void decode_ea_mt(VGMSTREAM* vgmstream, sample_t* outbuf, int channelspacing, in
 
                 /* offset is usually at loop_offset here, but not always (ex. loop_sample < 432) */
                 ch_data->offset = ch_data->loop_offset;
-                utk_set_ptr(ctx, 0, 0); /* reset the buffer reader */
-                utk_reset(ctx); /* decoder init (all fields must be reset, for some edge cases) */
+                utk_set_buffer(ch_data->ctx, 0, 0); /* reset the buffer reader */
+                utk_reset(ch_data->ctx); /* decoder init (all fields must be reset, for some edge cases) */
             }
         }
         else {
             /* new frame */
-            if (ch_data->pcm_blocks)
-                utk_rev3_decode_frame(ctx);
-            else
-                utk_decode_frame(ctx);
+            int samples = utk_decode_frame(ch_data->ctx);
+            if (samples < 0) {
+                VGM_LOG("wrong decode: %i\n", samples);
+                samples = 432;
+            }
 
             ch_data->samples_used = 0;
-            ch_data->samples_filled = 432;
+            ch_data->samples_filled = samples;
         }
     }
 }
@@ -143,23 +141,20 @@ static void flush_ea_mt_offsets(VGMSTREAM* vgmstream, int is_start, int samples_
     if (!data) return;
 
 
-    /* EA-MT frames are VBR (not byte-aligned?), so utk_decoder reads new buffer data automatically.
+    /* EA-MT frames are VBR and not byte-aligned, so utk_decoder reads new buffer data automatically.
      * When decoding starts or a SCHl block changes, flush_ea_mt must be called to reset the state.
      * A bit hacky but would need some restructuring otherwise. */
 
     for (i = 0; i < vgmstream->channels; i++) {
-        UTKContext* ctx = data[i].utk_context;
-
-        data[i].streamfile = vgmstream->ch[i].streamfile; /* maybe should keep its own STREAMFILE? */
+        data[i].streamfile = vgmstream->ch[i].streamfile;
         if (is_start)
             data[i].offset = vgmstream->ch[i].channel_start_offset;
         else
             data[i].offset = vgmstream->ch[i].offset;
-        utk_set_ptr(ctx, 0, 0); /* reset the buffer reader */
+        utk_set_buffer(data[i].ctx, 0, 0); /* reset the buffer reader */
 
         if (is_start) {
-            utk_reset(ctx);
-            ctx->parsed_header = 0;
+            utk_reset(data[i].ctx);
             data[i].samples_done = 0;
         }
 
@@ -187,7 +182,7 @@ void free_ea_mt(ea_mt_codec_data* data, int channels) {
         return;
 
     for (i = 0; i < channels; i++) {
-        free(data[i].utk_context);
+        utk_free(data[i].ctx);
     }
     free(data);
 }

@@ -99,7 +99,6 @@
     <ClInclude Include="coding\coding.h" />
     <ClInclude Include="coding\coding_utils_samples.h" />
     <ClInclude Include="coding\compresswave_decoder_lib.h" />
-    <ClInclude Include="coding\ea_mt_decoder_utk.h" />
     <ClInclude Include="coding\g7221_decoder_aes.h" />
     <ClInclude Include="coding\g7221_decoder_lib.h" />
     <ClInclude Include="coding\g7221_decoder_lib_data.h" />
@@ -115,6 +114,7 @@
     <ClInclude Include="coding\vorbis_custom_data_fsb.h" />
     <ClInclude Include="coding\vorbis_custom_data_wwise.h" />
     <ClInclude Include="coding\vorbis_custom_decoder.h" />
+    <ClInclude Include="coding\libs\utkdec.h" />
     <ClInclude Include="layout\layout.h" />
     <ClInclude Include="meta\9tav_streamfile.h" />
     <ClInclude Include="meta\adx_keys.h" />
@@ -290,6 +290,7 @@
     <ClCompile Include="coding\xa_decoder.c" />
     <ClCompile Include="coding\xmd_decoder.c" />
     <ClCompile Include="coding\yamaha_decoder.c" />
+    <ClCompile Include="coding\libs\utkdec.c" />
     <ClCompile Include="layout\blocked.c" />
     <ClCompile Include="layout\blocked_adm.c" />
     <ClCompile Include="layout\blocked_ast.c" />

@@ -122,9 +122,6 @@
     <ClInclude Include="coding\compresswave_decoder_lib.h">
       <Filter>coding\Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="coding\ea_mt_decoder_utk.h">
-      <Filter>coding\Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="coding\g7221_decoder_aes.h">
       <Filter>coding\Header Files</Filter>
     </ClInclude>
@@ -169,6 +166,9 @@
     </ClInclude>
     <ClInclude Include="coding\vorbis_custom_decoder.h">
       <Filter>coding\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="coding\libs\utkdec.h">
+      <Filter>coding\libs\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="layout\layout.h">
       <Filter>layout\Header Files</Filter>
@@ -690,6 +690,9 @@
     </ClCompile>
     <ClCompile Include="coding\yamaha_decoder.c">
       <Filter>coding\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\libs\utkdec.c">
+      <Filter>coding\libs\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="layout\blocked.c">
       <Filter>layout\Source Files</Filter>
