@@ -703,6 +703,7 @@ typedef enum {
     meta_SNDS,
     meta_NXOF,
     meta_GWB_GWD,
+    meta_CBX,
 
 } meta_t;
 

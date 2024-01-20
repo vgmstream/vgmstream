@@ -132,6 +132,7 @@ static const char* extension_list[] = {
     "caf",
     "cat",
     "cbd2",
+    "cbx",
     "cd",
     "cfn", //fake extension for CAF (renamed, to be removed?)
     "chd", //txth/reserved [Donkey Konga (GC), Star Fox Assault (GC)]
@@ -1427,6 +1428,7 @@ static const meta_info meta_info_list[] = {
         {meta_SNDS,                 "Sony SNDS header"},
         {meta_NXOF,                 "Nihon Falcom FDK header"},
         {meta_GWB_GWD,              "Ubisoft GWB+GWD header"},
+        {meta_CBX,                  "Traveller's Tales CBX header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {
