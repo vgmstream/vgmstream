@@ -380,9 +380,9 @@ different internally (encrypted, different versions, etc) and not always can be 
   - InterPlay MUS ACM header [*MUS_ACM*]
   - *mus_acm*: `.mus`
     - Subfiles: *acm ogg_vorbis*
-- **ps2_kces.c**
-  - Konami KCES Header [*PS2_KCES*]
-  - *ps2_kces*: `.kces`
+- **vig_kces.c**
+  - Konami .VIG Header [*VIG_KCES*]
+  - *vig_kces*: `.vig`
   - Codecs: PSX
 - **hxd.c**
   - Tecmo HXD Header [*HXD*]
@@ -587,13 +587,13 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Alfa System .STS header [*STS*]
   - *sts*: `.sts`
   - Codecs: NGC_DSP
-- **ps2_p2bt.c**
-  - Pop'n'Music 7 Header [*PS2_P2BT*]
-  - *ps2_p2bt*: `.p2bt`
+- **p2bt_move_visa.c**
+  - Konami P2BT/MOVE/VISA header [*P2BT_MOVE_VISA*]
+  - *p2bt_move_visa*: `.p2bt .move .vis`
   - Codecs: PSX
-- **ps2_gbts.c**
-  - Pop'n'Music 9 Header [*PS2_GBTS*]
-  - *ps2_gbts*: `.gbts`
+- **gbts.c**
+  - Konami GBTS header [*GBTS*]
+  - *gbts*: `.gbts`
   - Codecs: PSX
 - **wii_sng.c**
   - SNG DSP Header [*WII_SNG*]
@@ -652,7 +652,8 @@ different internally (encrypted, different versions, etc) and not always can be 
   - *vgs_ps*: `.vgs`
   - Codecs: PSX
 - **redspark.c**
-  - RedSpark Header [*REDSPARK*]
+  - RedSpark header [*REDSPARK*]
+  - *redspark*: `.rsd`
   - Codecs: NGC_DSP
 - **ps2_sps.c**
   - Ape Escape 2 SPS Header [*PS2_SPS*]
@@ -831,7 +832,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Square Enix SCD header [*SQEX_SCD*]
   - *sqex_scd*: `.scd`
     - Subfiles: *ogg_vorbis_config*
-  - Codecs: OGG PCM16LE PSX MPEG MSADPCM NGC_DSP XMA ATRAC3 ATRAC9
+  - Codecs: OGG PCM16BE PCM16LE PSX MPEG MSADPCM NGC_DSP XMA ATRAC3 ATRAC9
 - **ngc_nst_dsp.c**
   - Animaniacs NST header [*NGC_NST_DSP*]
   - *ngc_nst_dsp*: `.dsp`
@@ -881,10 +882,10 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Mattel Hyperscan KVAG [*HYPERSCAN_KVAG*]
   - *hyperscan_kvag*: `.bvg`
   - Codecs: DVI_IMA
-- **ios_psnd.c**
-  - PSND Header [*IOS_PSND*]
-  - *ios_psnd*: `.psnd`
-  - Codecs: PCM16LE
+- **psnd.c**
+  - Polarbit PSND header [*PSND*]
+  - *psnd*: `.psn`
+  - Codecs: PCM16LE DVI_IMA
 - **adp_wildfire.c**
   - Wildfire ADP! header [*ADP_WILDFIRE*]
   - *adp_wildfire*: `.adp`
@@ -927,9 +928,9 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Namco IVAG header [*IVAG*]
   - *ivag*: `.ivag`
   - Codecs: PSX
-- **ps2_2pfs.c**
-  - Konami 2PFS header [*PS2_2PFS*]
-  - *ps2_2pfs*: `.sap .2pfs`
+- **2pfs.c**
+  - Konami 2PFS header [*2PFS*]
+  - *2pfs*: `.sap`
   - Codecs: PSX
 - **xnb.c**
   - Microsoft XNA Game Studio header [*XNB*]
@@ -1339,10 +1340,6 @@ different internally (encrypted, different versions, etc) and not always can be 
   - High Voltage SVG header [*SVG*]
   - *svg*: `.svg`
   - Codecs: PSX
-- **vis.c**
-  - Konami VIS header [*VIS*]
-  - *vis*: `.vis`
-  - Codecs: PSX
 - **vai.c**
   - Asobo Studio .VAI header [*VAI*]
   - *vai*: `.vai`
@@ -1590,6 +1587,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Koei Tecmo WaveBank header [*KWB*]
   - *kwb*: `.wbd .wb2 .sed + .wbh .whd .wh2`
   - *xws*: `.xws`
+  - *snd_koei*: `.snd`
   - *koei_wavebank*
     - Subfiles: *msf dsp_apex*
   - Codecs: PCM16LE MSADPCM NGC_DSP XMA2 ATRAC9
@@ -1814,6 +1812,10 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Ubisoft GWB+GWD header [*GWB_GWD*]
   - *gwb_gwd*: `.gwb + .gwd`
   - Codecs: NGC_DSP
+- **cbx.c**
+  - Traveller's Tales CBX header [*CBX*]
+  - *cbx*: `.cbx`
+  - Codecs: EA_MT
 - **scd_pcm.c**
   - Lunar: Eternal Blue .PCM header [*SCD_PCM*]
   - *scd_pcm*: `.pcm`

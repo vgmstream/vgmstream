@@ -4,7 +4,7 @@
 /* WB - from Psychonauts (PS2) */
 VGMSTREAM* init_vgmstream_pwb(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
-	int channels, loop_flag;
+    int channels, loop_flag;
     uint32_t stream_offset, stream_size, loop_start, loop_end;
 
 
@@ -54,7 +54,7 @@ VGMSTREAM* init_vgmstream_pwb(STREAMFILE* sf) {
     }
 
 
-	/* build the VGMSTREAM */
+    /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
@@ -65,7 +65,7 @@ VGMSTREAM* init_vgmstream_pwb(STREAMFILE* sf) {
     vgmstream->loop_start_sample = ps_bytes_to_samples(loop_start, channels);
     vgmstream->loop_end_sample = ps_bytes_to_samples(loop_end, channels);
 
-	vgmstream->coding_type = coding_PSX;
+    vgmstream->coding_type = coding_PSX;
     vgmstream->layout_type = layout_none;
     vgmstream->num_streams = total_subsongs;
     vgmstream->stream_size = stream_size;

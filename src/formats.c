@@ -23,7 +23,6 @@ static const char* extension_list[] = {
 
     "208",
     "2dx9",
-    "2pfs",
     "3do",
     "3ds", //txth/reserved [F1 2011 (3DS)] 
     "4", //for Game.com audio
@@ -133,6 +132,7 @@ static const char* extension_list[] = {
     "caf",
     "cat",
     "cbd2",
+    "cbx",
     "cd",
     "cfn", //fake extension for CAF (renamed, to be removed?)
     "chd", //txth/reserved [Donkey Konga (GC), Star Fox Assault (GC)]
@@ -347,6 +347,7 @@ static const char* extension_list[] = {
     //"m4a", //common
     //"m4v", //common
     //"mov", //common
+    "move",
     //"mp+", //common [Moonshine Runners (PC)]
     //"mp2", //common
     //"mp3", //common
@@ -428,7 +429,7 @@ static const char* extension_list[] = {
     "psb",
     "psf",
     "psh", //fake extension for .vsv (to be removed)
-    "psnd",
+    "psn",
     "pwb",
 
     "r",
@@ -1072,7 +1073,7 @@ static const meta_info meta_info_list[] = {
         {meta_RSTM_ROCKSTAR,        "Rockstar Games RSTM Header"},
         {meta_ACM,                  "InterPlay ACM Header"},
         {meta_MUS_ACM,              "InterPlay MUS ACM header"},
-        {meta_PS2_KCES,             "Konami KCES Header"},
+        {meta_VIG_KCES,             "Konami .VIG Header"},
         {meta_HXD,                  "Tecmo HXD Header"},
         {meta_VSV,                  "Square Enix .vsv Header"},
         {meta_RIFF_WAVE_labl,       "RIFF WAVE header (labl looping)"},
@@ -1130,8 +1131,8 @@ static const meta_info meta_info_list[] = {
         {meta_MUL,                  "Crystal Dynamics .MUL header"},
         {meta_THP,                  "Nintendo THP header"},
         {meta_STS,                  "Alfa System .STS header"},
-        {meta_PS2_P2BT,             "Pop'n'Music 7 Header"},
-        {meta_PS2_GBTS,             "Pop'n'Music 9 Header"},
+        {meta_P2BT_MOVE_VISA,       "Konami P2BT/MOVE/VISA header"},
+        {meta_GBTS,                 "Konami GBTS header"},
         {meta_NGC_DSP_IADP,         "IADP Header"},
         {meta_RIFF_WAVE_MWV,        "RIFF WAVE header (ctrl looping)"},
         {meta_FFCC_STR,             "Final Fantasy: Crystal Chronicles STR header"},
@@ -1219,7 +1220,7 @@ static const meta_info meta_info_list[] = {
         {meta_RAW_SNDS,             "PC .snds raw header"},
         {meta_PS2_WMUS,             "assumed The Warriors Sony ADPCM by .wmus extension"},
         {meta_HYPERSCAN_KVAG,       "Mattel Hyperscan KVAG"},
-        {meta_IOS_PSND,             "PSND Header"},
+        {meta_PSND,                 "Polarbit PSND header"},
         {meta_ADP_WILDFIRE,         "Wildfire ADP! header"},
         {meta_QD_ADP,               "Quantic Dream .ADP header"},
         {meta_EB_SFX,               "Excitebots .sfx header"},
@@ -1231,7 +1232,7 @@ static const meta_info meta_info_list[] = {
         {meta_MSS,                  "Guerilla MCSS header"},
         {meta_PS2_HSF,              "Lowrider 'HSF' header"},
         {meta_IVAG,                 "Namco IVAG header"},
-        {meta_PS2_2PFS,             "Konami 2PFS header"},
+        {meta_2PFS,                 "Konami 2PFS header"},
         {meta_UBI_CKD,              "Ubisoft CKD RIFF header"},
         {meta_PS2_VBK,              "PS2 VBK Header"},
         {meta_OTM,                  "Otomedius OTM Header"},
@@ -1327,7 +1328,6 @@ static const meta_info meta_info_list[] = {
         {meta_MSV,                  "Sony MultiStream MSV header"},
         {meta_SDF,                  "Beyond Reality SDF header"},
         {meta_SVG,                  "High Voltage SVG header"},
-        {meta_VIS,                  "Konami VIS header"},
         {meta_VAI,                  "Asobo Studio .VAI header"},
         {meta_AIF_ASOBO,            "Asobo Studio .AIF header"},
         {meta_AO,                   "AlphaOgg .AO header"},
@@ -1428,6 +1428,7 @@ static const meta_info meta_info_list[] = {
         {meta_SNDS,                 "Sony SNDS header"},
         {meta_NXOF,                 "Nihon Falcom FDK header"},
         {meta_GWB_GWD,              "Ubisoft GWB+GWD header"},
+        {meta_CBX,                  "Traveller's Tales CBX header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {

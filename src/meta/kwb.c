@@ -26,8 +26,8 @@ typedef struct {
     //off_t name_offset;
 } kwb_header;
 
-static int parse_kwb(kwb_header* kwb, STREAMFILE* sf_h, STREAMFILE* sf_b);
-static int parse_xws(kwb_header* kwb, STREAMFILE* sf);
+static bool parse_kwb(kwb_header* kwb, STREAMFILE* sf_h, STREAMFILE* sf_b);
+static bool parse_xws(kwb_header* kwb, STREAMFILE* sf);
 static VGMSTREAM* init_vgmstream_koei_wavebank(kwb_header* kwb, STREAMFILE* sf_h, STREAMFILE* sf_b);
 
 
@@ -43,14 +43,14 @@ VGMSTREAM* init_vgmstream_kwb(STREAMFILE* sf) {
     if (!is_id32be(0x00, sf, "WBD_") &&
         !is_id32le(0x00, sf, "WBD_") &&
         !is_id32be(0x00, sf, "WHD1"))
-        goto fail;
+        return NULL;
 
     /* .wbd+wbh: common [Bladestorm Nightmare (PC)]
      * .wbd+whd: uncommon [Nights of Azure 2 (PS4)]
      * .wb2+wh2: newer [Nights of Azure 2 (PC)]
      * .sed: mixed header+data [Dissidia NT (PC)] */
     if (!check_extensions(sf, "wbd,wb2,sed"))
-        goto fail;
+        return NULL;
 
 
     /* open companion header */
@@ -102,13 +102,13 @@ VGMSTREAM* init_vgmstream_xws(STREAMFILE* sf) {
 
     /* checks */
     if (!check_extensions(sf, "xws"))
-        goto fail;
+        return NULL;
 
     if (target_subsong == 0) target_subsong = 1;
     kwb.target_subsong = target_subsong;
 
     if (!parse_xws(&kwb, sf))
-        goto fail;
+        return NULL;
 
     vgmstream = init_vgmstream_koei_wavebank(&kwb, sf, sf);
     if (!vgmstream) goto fail;
@@ -119,6 +119,34 @@ fail:
     return NULL;
 }
 
+#if 0
+/* SND - Sound? from Koei games [Ninja Gaiden Sigma -Master Collection- (PC)] */
+VGMSTREAM* init_vgmstream_snd_koei(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
+    kwb_header kwb = {0};
+    int target_subsong = sf->stream_index;
+
+
+    /* checks */
+    /* .snd: header id/assumed by extractors? (doatool) */
+    if (!check_extensions(sf, "snd"))
+        return NULL;
+
+    if (target_subsong == 0) target_subsong = 1;
+    kwb.target_subsong = target_subsong;
+
+    if (!parse_xws(&kwb, sf))
+        return NULL;
+
+    vgmstream = init_vgmstream_koei_wavebank(&kwb, sf, sf);
+    if (!vgmstream) goto fail;
+
+    return vgmstream;
+fail:
+    close_vgmstream(vgmstream);
+    return NULL;
+}
+#endif
 
 static VGMSTREAM* init_vgmstream_koei_wavebank(kwb_header* kwb, STREAMFILE* sf_h, STREAMFILE* sf_b) {
     VGMSTREAM* vgmstream = NULL;
@@ -563,7 +591,7 @@ fail:
 }
 
 
-static int parse_kwb(kwb_header* kwb, STREAMFILE* sf_h, STREAMFILE* sf_b) {
+static bool parse_kwb(kwb_header* kwb, STREAMFILE* sf_h, STREAMFILE* sf_b) {
     off_t head_offset, body_offset, start;
     uint32_t type;
     uint32_t (*read_u32)(off_t,STREAMFILE*) = NULL;
@@ -644,12 +672,12 @@ static int parse_kwb(kwb_header* kwb, STREAMFILE* sf_h, STREAMFILE* sf_b) {
     if (!kwb->found)
         goto fail;
 
-    return 1;
+    return true;
 fail:
-    return 0;
+    return false;
 }
 
-static int parse_type_msfbank(kwb_header* kwb, off_t offset, STREAMFILE* sf) {
+static bool parse_type_msfbank(kwb_header* kwb, off_t offset, STREAMFILE* sf) {
     /* this is just like XWSF, abridged: */
     int entries, current_subsongs, relative_subsong;
     off_t header_offset;
@@ -671,9 +699,9 @@ static int parse_type_msfbank(kwb_header* kwb, off_t offset, STREAMFILE* sf) {
 
     kwb->stream_offset += offset;
 
-    return 1;
+    return true;
 //fail:
-//    return 0;
+//    return false;
 }
 
 static int parse_type_xwsfile(kwb_header* kwb, uint32_t offset, STREAMFILE* sf) {
@@ -681,22 +709,22 @@ static int parse_type_xwsfile(kwb_header* kwb, uint32_t offset, STREAMFILE* sf) 
     int i, chunks, chunks2;
     uint32_t (*read_u32)(off_t,STREAMFILE*) = NULL;
 
-
-    if (!(is_id64be(offset + 0x00, sf, "XWSFILE\0")) &&
-        !(is_id64be(offset + 0x00, sf, "tdpack\0\0")))
+    if (!( is_id64be(offset + 0x00, sf, "XWSFILE\0") ||
+           is_id64be(offset + 0x00, sf, "tdpack\0\0")))
+         //is_id64be(offset + 0x00, sf, "SND\0\0\0\0\0")
         goto fail;
 
     kwb->big_endian = read_u8(offset + 0x08, sf) == 0xFF;
-    /* 0x0a: version? (0100: NG2/NG3 PS3, 0101: DoA LR PC, NG2/3 PC) */
+    /* 0x0a: version? (0100: NG2/NG3 PS3, NGm PC, 0101: DoA LR PC, NG2/3 PC) */
 
     read_u32 = kwb->big_endian ? read_u32be : read_u32le;
 
     /* 0x0c: tables start  */
     /* 0x10: file size */
-    chunks  = read_u32(offset + 0x14, sf);
-    chunks2 = read_u32(offset + 0x18, sf);
+    chunks2  = read_u32(offset + 0x14, sf);
+    chunks = read_u32(offset + 0x18, sf);
     /* 0x1c: null */
-    if (chunks != chunks2)
+    if (chunks != chunks2) //seen in NGm PC
         goto fail;
 
     table1_offset = read_u32(offset + 0x20, sf); /* offsets */
@@ -737,6 +765,13 @@ static int parse_type_xwsfile(kwb_header* kwb, uint32_t offset, STREAMFILE* sf) 
             if (!parse_type_xwsfile(kwb, head_offset, sf))
                 goto fail;
         }
+#if 0
+        else if (entry_type == get_id32be("tdpa")) { /* + "ck\0\0" */
+            i += 1;
+            if (!parse_type_xwsfile(kwb, head_offset, sf))
+                goto fail;
+        }
+#endif
         else if (entry_type == get_id32be("CUEB") || entry_type < 0x100) {
             i += 1;
             /* CUE-like info (may start with 0 or a low number instead) */
@@ -767,7 +802,7 @@ fail:
 }
 
 
-static int parse_xws(kwb_header* kwb, STREAMFILE* sf) {
+static bool parse_xws(kwb_header* kwb, STREAMFILE* sf) {
 
     /* Format is similar to WHD1 with some annoyances of its own. Variations:
      * - XWSFILE w/ N chunks: CUE offsets + 1 MSFBANK offset
@@ -776,16 +811,16 @@ static int parse_xws(kwb_header* kwb, STREAMFILE* sf) {
      *   [Dead or Alive 5 Last Round (PC)]
      * - tdpack: same but points to N XWSFILE
      *   [Ninja Gaiden 3 Razor's Edge (PS3)]
+     * - SND: similar to XWSFILE w/ 2*N chunks, points to tdpack (which point to _HBW0000+KWB2)
+     *   [Ninja Gaiden Sigma -Master Collection- (PC)]
      *
      * Needs to call sub-parts multiple times to fill total subsongs when parsing xwsfile.
      */
     if (!parse_type_xwsfile(kwb, 0x00, sf))
-        goto fail;
+        return false;
 
     if (!kwb->found)
-        goto fail;
+        return false;
 
-    return 1;
-fail:
-    return 0;
+    return true;
 }

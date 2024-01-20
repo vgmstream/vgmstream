@@ -99,7 +99,6 @@
     <ClInclude Include="coding\coding.h" />
     <ClInclude Include="coding\coding_utils_samples.h" />
     <ClInclude Include="coding\compresswave_decoder_lib.h" />
-    <ClInclude Include="coding\ea_mt_decoder_utk.h" />
     <ClInclude Include="coding\g7221_decoder_aes.h" />
     <ClInclude Include="coding\g7221_decoder_lib.h" />
     <ClInclude Include="coding\g7221_decoder_lib_data.h" />
@@ -115,6 +114,7 @@
     <ClInclude Include="coding\vorbis_custom_data_fsb.h" />
     <ClInclude Include="coding\vorbis_custom_data_wwise.h" />
     <ClInclude Include="coding\vorbis_custom_decoder.h" />
+    <ClInclude Include="coding\libs\utkdec.h" />
     <ClInclude Include="layout\layout.h" />
     <ClInclude Include="meta\9tav_streamfile.h" />
     <ClInclude Include="meta\adx_keys.h" />
@@ -290,6 +290,7 @@
     <ClCompile Include="coding\xa_decoder.c" />
     <ClCompile Include="coding\xmd_decoder.c" />
     <ClCompile Include="coding\yamaha_decoder.c" />
+    <ClCompile Include="coding\libs\utkdec.c" />
     <ClCompile Include="layout\blocked.c" />
     <ClCompile Include="layout\blocked_adm.c" />
     <ClCompile Include="layout\blocked_ast.c" />
@@ -335,6 +336,7 @@
     <ClCompile Include="layout\segmented.c" />
     <ClCompile Include="meta\208.c" />
     <ClCompile Include="meta\2dx9.c" />
+    <ClCompile Include="meta\2pfs.c" />
     <ClCompile Include="meta\9tav.c" />
     <ClCompile Include="meta\a2m.c" />
     <ClCompile Include="meta\aac_triace.c" />
@@ -396,6 +398,7 @@
     <ClCompile Include="meta\bwav.c" />
     <ClCompile Include="meta\bw_mp3_riff.c" />
     <ClCompile Include="meta\caf.c" />
+    <ClCompile Include="meta\cbx.c" />
     <ClCompile Include="meta\ck.c" />
     <ClCompile Include="meta\compresswave.c" />
     <ClCompile Include="meta\cpk.c" />
@@ -448,6 +451,7 @@
     <ClCompile Include="meta\fsb_encrypted.c" />
     <ClCompile Include="meta\fwse.c" />
     <ClCompile Include="meta\g1l.c" />
+    <ClCompile Include="meta\gbts.c" />
     <ClCompile Include="meta\gca.c" />
     <ClCompile Include="meta\gcsw.c" />
     <ClCompile Include="meta\gcub.c" />
@@ -471,7 +475,6 @@
     <ClCompile Include="meta\ima.c" />
     <ClCompile Include="meta\imc.c" />
     <ClCompile Include="meta\imuse.c" />
-    <ClCompile Include="meta\ios_psnd.c" />
     <ClCompile Include="meta\isb.c" />
     <ClCompile Include="meta\ish_isd.c" />
     <ClCompile Include="meta\ivag.c" />
@@ -556,6 +559,7 @@
     <ClCompile Include="meta\omu.c" />
     <ClCompile Include="meta\opus.c" />
     <ClCompile Include="meta\otm.c" />
+    <ClCompile Include="meta\p2bt_move_visa.c" />
     <ClCompile Include="meta\p3d.c" />
     <ClCompile Include="meta\pasx.c" />
     <ClCompile Include="meta\pcm_sre.c" />
@@ -566,21 +570,17 @@
     <ClCompile Include="meta\pona.c" />
     <ClCompile Include="meta\pos.c" />
     <ClCompile Include="meta\ppst.c" />
-    <ClCompile Include="meta\ps2_2pfs.c" />
     <ClCompile Include="meta\ps2_adm.c" />
     <ClCompile Include="meta\ps2_ass.c" />
     <ClCompile Include="meta\ps2_b1s.c" />
     <ClCompile Include="meta\ps2_bmdx.c" />
-    <ClCompile Include="meta\ps2_gbts.c" />
     <ClCompile Include="meta\ps2_gcm.c" />
     <ClCompile Include="meta\ps2_hsf.c" />
     <ClCompile Include="meta\ps2_iab.c" />
     <ClCompile Include="meta\ps2_joe.c" />
-    <ClCompile Include="meta\ps2_kces.c" />
     <ClCompile Include="meta\ps2_mcg.c" />
     <ClCompile Include="meta\ps2_mic.c" />
     <ClCompile Include="meta\ps2_mihb.c" />
-    <ClCompile Include="meta\ps2_p2bt.c" />
     <ClCompile Include="meta\ps2_pcm.c" />
     <ClCompile Include="meta\ps2_rnd.c" />
     <ClCompile Include="meta\ps2_snd.c" />
@@ -596,6 +596,7 @@
     <ClCompile Include="meta\ps3_past.c" />
     <ClCompile Include="meta\psb.c" />
     <ClCompile Include="meta\psf.c" />
+    <ClCompile Include="meta\psnd.c" />
     <ClCompile Include="meta\ps_headerless.c" />
     <ClCompile Include="meta\pwb.c" />
     <ClCompile Include="meta\rad.c" />
@@ -693,7 +694,7 @@
     <ClCompile Include="meta\vgs.c" />
     <ClCompile Include="meta\vgs_ps.c" />
     <ClCompile Include="meta\vid1.c" />
-    <ClCompile Include="meta\vis.c" />
+    <ClCompile Include="meta\vig_kces.c" />
     <ClCompile Include="meta\voi.c" />
     <ClCompile Include="meta\vpk.c" />
     <ClCompile Include="meta\vs.c" />

@@ -15,8 +15,6 @@
  * (adapted from hcs's code to do multiple querys in the same table)
  */
 
-//todo move to src/util subdir
-
 /* opaque struct */
 typedef struct utf_context utf_context;
 

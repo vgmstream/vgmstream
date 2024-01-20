@@ -6,7 +6,7 @@
 OBJECTS =
 
 #SRCS = $(wildcard **/*.c) #GNUMake 3.81?
-SRCS = $(wildcard *.c) $(wildcard */*.c)
+SRCS = $(wildcard *.c) $(wildcard */*.c) $(wildcard */*/*.c)
 OBJECTS = $(patsubst %.c,%.o,$(SRCS))
 
 

@@ -29,12 +29,12 @@ struct dsp_header {
 };
 
 /* read and do basic validations to the above struct */
-static int read_dsp_header_endian(struct dsp_header *header, off_t offset, STREAMFILE* sf, int big_endian) {
+static bool read_dsp_header_endian(struct dsp_header *header, off_t offset, STREAMFILE* sf, int big_endian) {
     uint32_t (*get_u32)(const uint8_t*) = big_endian ? get_u32be : get_u32le;
     uint16_t (*get_u16)(const uint8_t*) = big_endian ? get_u16be : get_u16le;
     int16_t  (*get_s16)(const uint8_t*) = big_endian ? get_s16be : get_s16le;
-    int i;
     uint8_t buf[0x60];
+    int zero_coefs;
 
     if (offset > get_streamfile_size(sf))
         goto fail;
@@ -46,13 +46,13 @@ static int read_dsp_header_endian(struct dsp_header *header, off_t offset, STREA
 
     /* base */
     header->sample_count        = get_u32(buf+0x00);
-    if (header->sample_count > 0x10000000)
+    if (header->sample_count > 0x10000000 || header->sample_count == 0)
         goto fail; /* unlikely to be that big, should catch fourccs */
 
     /* usually nibbles = size*2 in mono, but interleaved stereo or L+R may use nibbles =~ size (or not), so can't
      * easily reject files with more nibbles than data (nibbles may be part of the -R file) without redoing L+R handling */
     header->nibble_count        = get_u32(buf+0x04);
-    if (header->nibble_count > 0x10000000)
+    if (header->nibble_count > 0x20000000 || header->nibble_count == 0)
         goto fail;
 
     header->sample_rate         = get_u32(buf+0x08);
@@ -73,14 +73,21 @@ static int read_dsp_header_endian(struct dsp_header *header, off_t offset, STREA
     if (header->initial_offset != 2 && header->initial_offset != 0)
         goto fail; /* Dr. Muto uses 0 */
 
-    for (i = 0; i < 16; i++)
+    zero_coefs = 0;
+    for (int i = 0; i < 16; i++) {
         header->coef[i]         = get_s16(buf+0x1c + i*0x02);
+        if (header->coef[i] == 0)
+            zero_coefs++;
+    }
+    /* some 0s are ok, more than 8 is probably wrong */
+    if (zero_coefs == 16)
+        goto fail;
 
     header->gain                = get_u16(buf+0x3c);
     if (header->gain != 0)
         goto fail;
 
-    /* decoder state */
+    /* decoder state (could check that ps <= 0xNN but not that useful) */
     header->initial_ps          = get_u16(buf+0x3e);
     header->initial_hist1       = get_s16(buf+0x40);
     header->initial_hist2       = get_s16(buf+0x42);
@@ -97,9 +104,9 @@ static int read_dsp_header_endian(struct dsp_header *header, off_t offset, STREA
     if (header->block_size >= 0xF000) /* same, 16b (usually 0) */
         header->block_size = 0;
 
-    return 1;
+    return true;
 fail:
-    return 0;
+    return false;
 }
 static int read_dsp_header_be(struct dsp_header *header, off_t offset, STREAMFILE* file) {
     return read_dsp_header_endian(header, offset, file, 1);
@@ -149,16 +156,16 @@ static VGMSTREAM* init_vgmstream_dsp_common(STREAMFILE* sf, dsp_meta* dspm) {
 
 
     if (dspm->channels > dspm->max_channels)
-        goto fail;
-    if (dspm->channels > COMMON_DSP_MAX_CHANNELS)
-        goto fail;
+        return NULL;
+    if (dspm->channels > COMMON_DSP_MAX_CHANNELS || dspm->channels < 0)
+        return NULL;
 
     /* load standard DSP header per channel */
     {
         for (i = 0; i < dspm->channels; i++) {
             if (!read_dsp_header_endian(&ch_header[i], dspm->header_offset + i*dspm->header_spacing, sf, !dspm->little_endian)) {
                 //;VGM_LOG("DSP: bad header\n");
-                goto fail;
+                return NULL;
             }
         }
     }
