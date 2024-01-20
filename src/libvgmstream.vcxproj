@@ -577,7 +577,6 @@
     <ClCompile Include="meta\ps2_hsf.c" />
     <ClCompile Include="meta\ps2_iab.c" />
     <ClCompile Include="meta\ps2_joe.c" />
-    <ClCompile Include="meta\ps2_kces.c" />
     <ClCompile Include="meta\ps2_mcg.c" />
     <ClCompile Include="meta\ps2_mic.c" />
     <ClCompile Include="meta\ps2_mihb.c" />
@@ -693,6 +692,7 @@
     <ClCompile Include="meta\vgs.c" />
     <ClCompile Include="meta\vgs_ps.c" />
     <ClCompile Include="meta\vid1.c" />
+    <ClCompile Include="meta\vig_kces.c" />
     <ClCompile Include="meta\voi.c" />
     <ClCompile Include="meta\vpk.c" />
     <ClCompile Include="meta\vs.c" />
