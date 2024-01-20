@@ -398,6 +398,7 @@
     <ClCompile Include="meta\bwav.c" />
     <ClCompile Include="meta\bw_mp3_riff.c" />
     <ClCompile Include="meta\caf.c" />
+    <ClCompile Include="meta\cbx.c" />
     <ClCompile Include="meta\ck.c" />
     <ClCompile Include="meta\compresswave.c" />
     <ClCompile Include="meta\cpk.c" />
@@ -474,7 +475,6 @@
     <ClCompile Include="meta\ima.c" />
     <ClCompile Include="meta\imc.c" />
     <ClCompile Include="meta\imuse.c" />
-    <ClCompile Include="meta\ios_psnd.c" />
     <ClCompile Include="meta\isb.c" />
     <ClCompile Include="meta\ish_isd.c" />
     <ClCompile Include="meta\ivag.c" />
@@ -596,6 +596,7 @@
     <ClCompile Include="meta\ps3_past.c" />
     <ClCompile Include="meta\psb.c" />
     <ClCompile Include="meta\psf.c" />
+    <ClCompile Include="meta\psnd.c" />
     <ClCompile Include="meta\ps_headerless.c" />
     <ClCompile Include="meta\pwb.c" />
     <ClCompile Include="meta\rad.c" />
