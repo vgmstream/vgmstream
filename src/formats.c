@@ -429,7 +429,7 @@ static const char* extension_list[] = {
     "psb",
     "psf",
     "psh", //fake extension for .vsv (to be removed)
-    "psnd",
+    "psn",
     "pwb",
 
     "r",
@@ -1220,7 +1220,7 @@ static const meta_info meta_info_list[] = {
         {meta_RAW_SNDS,             "PC .snds raw header"},
         {meta_PS2_WMUS,             "assumed The Warriors Sony ADPCM by .wmus extension"},
         {meta_HYPERSCAN_KVAG,       "Mattel Hyperscan KVAG"},
-        {meta_IOS_PSND,             "PSND Header"},
+        {meta_PSND,                 "Polarbit PSND header"},
         {meta_ADP_WILDFIRE,         "Wildfire ADP! header"},
         {meta_QD_ADP,               "Quantic Dream .ADP header"},
         {meta_EB_SFX,               "Excitebots .sfx header"},

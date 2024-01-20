@@ -500,7 +500,7 @@ VGMSTREAM * init_vgmstream_ps2_wmus(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_hyperscan_kvag(STREAMFILE* streamFile);
 
-VGMSTREAM * init_vgmstream_ios_psnd(STREAMFILE* streamFile);
+VGMSTREAM* init_vgmstream_psnd(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_adp_wildfire(STREAMFILE* sf);
 

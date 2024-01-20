@@ -1,76 +1,74 @@
 #include "meta.h"
-#include "../util.h"
+#include "../coding/coding.h"
 
-/* PSND (from Crash Bandicoot Nitro Kart 2 (iOS) */
-VGMSTREAM * init_vgmstream_ios_psnd(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
-    off_t start_offset;
 
-    int loop_flag;
-   int channel_count;
+/* PSND - from Polarbit games [Crash Bandicoot Nitro Kart 3D/2 (iOS), Reckless Racing 2 (Android/iOS)] */
+VGMSTREAM* init_vgmstream_psnd(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
+    uint32_t start_offset, data_size, type;
+    int loop_flag, channels, sample_rate;
 
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("psnd",filename_extension(filename))) goto fail;
 
-    /* check header */
-    if (read_32bitBE(0x00,streamFile) != 0x50534E44) /* "PSND" */
-        goto fail;
+    /* checks */
+    if (!is_id32be(0x00,sf, "PSND"))
+        return NULL;
+    /* .psn: actual extension in exes */
+    if (!check_extensions(sf, "psn"))
+        return NULL;
 
-    if (read_16bitBE(0xC,streamFile)==0x2256){
-		loop_flag = 1;
-	}
-	else {
-		loop_flag = 0;
-	}
-	channel_count = read_8bit(0xE,streamFile);
+    data_size = read_u32le(0x04, sf); /* after this field */
+    type = read_u32le(0x08,sf);
+    sample_rate = read_u16le(0x0c,sf);
 
-   /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    switch (type) {
+        case 0x0030006: /* CBNK */
+            channels    = read_u8(0xE,sf);
+            if (read_u8(0x0f, sf) != 16) goto fail; /* bps */
+            start_offset = 0x10;
+            
+            break;
+        case 0x0000004: /* RR */
+            channels = 1;
+            start_offset = 0x0e;
+            break;
+        default:
+            goto fail;
+    }
+       
+    data_size = data_size + 0x08 - start_offset;
+    loop_flag = 0; /* generally 22050hz music loops */
+
+
+    /* build the VGMSTREAM */
+    vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
-   /* fill in the vital statistics */
-    start_offset = 0x10;
-    vgmstream->channels = channel_count;
-	
-	if (read_16bitBE(0xC,streamFile)==0x44AC){
-		vgmstream->sample_rate = 44100;
-	}
-	else {
-        vgmstream->sample_rate = read_16bitLE(0xC,streamFile);
-	}
-
-    vgmstream->coding_type = coding_PCM16LE;
-    vgmstream->num_samples = (read_32bitLE(0x4,streamFile)-8)/4;
-	if (loop_flag) {
-        vgmstream->loop_start_sample = 0;
-       vgmstream->loop_end_sample = vgmstream->num_samples;
-    }
-    vgmstream->layout_type = layout_interleave;
-    vgmstream->interleave_block_size = 2;
-    vgmstream->meta_type = meta_IOS_PSND;
-
-    /* open the file for reading */
-    {
-        int i;
-        STREAMFILE * file;
-        file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (!file) goto fail;
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = file;
-
-            vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=start_offset+
-                vgmstream->interleave_block_size*i;
-
-        }
+    vgmstream->sample_rate = sample_rate;
+    switch (type) {
+        case 0x0030006:
+            vgmstream->coding_type = coding_PCM16LE;
+            vgmstream->layout_type = layout_interleave;
+            vgmstream->interleave_block_size = 0x02;
+            vgmstream->num_samples = pcm16_bytes_to_samples(data_size, channels);
+            break;
+        case 0x0000004:
+            vgmstream->coding_type = coding_DVI_IMA;
+            vgmstream->layout_type = layout_none;
+            vgmstream->num_samples = ima_bytes_to_samples(data_size, channels);
+            break;
+        default:
+            goto fail;
     }
 
+    vgmstream->loop_start_sample = 0;
+    vgmstream->loop_end_sample = vgmstream->num_samples;
+
+    vgmstream->meta_type = meta_PSND;
+
+    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
+        goto fail;
     return vgmstream;
-
-    /* clean up anything we may have opened */
 fail:
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_vgmstream(vgmstream);
     return NULL;
 }

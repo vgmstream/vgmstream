@@ -496,7 +496,7 @@ typedef enum {
     meta_RAW_SNDS,
     meta_PS2_WMUS,          /* The Warriors (PS2) */
     meta_HYPERSCAN_KVAG,    /* Hyperscan KVAG/BVG */
-    meta_IOS_PSND,          /* Crash Bandicoot Nitro Kart 2 (iOS) */
+    meta_PSND,
     meta_ADP_WILDFIRE,
     meta_QD_ADP,
     meta_EB_SFX,            /* Excitebots .sfx */
