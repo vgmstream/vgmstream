@@ -234,7 +234,7 @@ VGMSTREAM* init_vgmstream_rstm_rockstar(STREAMFILE* sf);
 
 VGMSTREAM * init_vgmstream_acm(STREAMFILE * streamFile);
 
-VGMSTREAM * init_vgmstream_ps2_kces(STREAMFILE * streamFile);
+VGMSTREAM* init_vgmstream_vig_kces(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_hxd(STREAMFILE* sf);
 

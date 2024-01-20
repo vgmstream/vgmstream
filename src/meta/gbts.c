@@ -2,11 +2,11 @@
 #include "../coding/coding.h"
 
 
-/* GbTs - from KCES games [Pop'n Music 9/10 (PS2)] */
+/* GbTs - from Konami/KCE Studio games [Pop'n Music 9/10 (PS2)] */
 VGMSTREAM* init_vgmstream_gbts(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
-    int loop_flag, channels;
-    uint32_t data_offset, sample_rate, data_size;
+    uint32_t data_offset, data_size;
+    int loop_flag, channels, sample_rate;
     uint32_t loop_start, loop_end;
 
 
@@ -17,17 +17,19 @@ VGMSTREAM* init_vgmstream_gbts(STREAMFILE* sf) {
     if (!check_extensions(sf, "gbts"))
         return NULL;
 
+
     /* 04: always 0x24 */
     data_offset = read_u32le(0x08,sf);
-    data_size   = read_u32le(0x0C,sf);
+    data_size   = read_u32le(0x0C,sf); /* without padding */
     loop_start  = read_u32le(0x10,sf); /* (0x20 = start frame if not set) */
     loop_end    = read_u32le(0x14,sf); /* (0x00 if not set) */
     sample_rate = read_s32le(0x18,sf);
     channels    = read_s32le(0x1C,sf);
     /* 20: 1? */
-    /* 24: block size? */
+    /* 24: block size (interleave * channels) */
+    /* 30+: empty */
 
-    loop_flag = loop_end > 0;
+    loop_flag = (loop_end > 0);
     loop_end += loop_start; /* loop region matches PS-ADPCM flags */
 
 
@@ -36,7 +38,6 @@ VGMSTREAM* init_vgmstream_gbts(STREAMFILE* sf) {
     if (!vgmstream) goto fail;
 
     vgmstream->sample_rate = sample_rate;
-
     vgmstream->num_samples = ps_bytes_to_samples(data_size, channels);
     vgmstream->loop_start_sample = ps_bytes_to_samples(loop_start, channels);
     vgmstream->loop_end_sample = ps_bytes_to_samples(loop_end, channels);

@@ -1,71 +1,57 @@
 #include "meta.h"
-#include "../util.h"
+#include "../coding/coding.h"
 
-/* KCES (from Dance Dance Revolution) */
-VGMSTREAM * init_vgmstream_ps2_kces(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
-    off_t start_offset;
 
-    int loop_flag = 0;
-	int channel_count;
+/* .vig - from Konami/KCE Studio games [Pop'n Music 11~14 (PS2), Dance Dance Revolution SuperNova/X (PS2)] */
+VGMSTREAM* init_vgmstream_vig_kces(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
+    uint32_t data_offset, data_size;
+    int loop_flag, channels, sample_rate, interleave;
+    uint32_t loop_start, loop_end;
 
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("kces",filename_extension(filename)) &&
-        strcasecmp("vig",filename_extension(filename))) goto fail;
 
-    /* check header */
-    if (read_32bitBE(0x00,streamFile) != 0x01006408)
-        goto fail;
+    /* checks */
+    if (read_u32be(0x00,sf) != 0x01006408)
+        return NULL;
+    /* .vig: actual extension from DDR exes */
+    if (!check_extensions(sf, "vig"))
+        return NULL;
 
-    loop_flag = (read_32bitLE(0x14,streamFile)!=0); 
-    channel_count = read_32bitLE(0x1C,streamFile);
+    /* note this is almost the same as GbTs, may be fused later */
+    /* 04: null */
+    data_offset = read_u32le(0x08,sf);
+    data_size   = read_u32le(0x0C,sf); /* without padding */
+    loop_start  = read_u32le(0x10,sf); /* (0x00 if not set) */
+    loop_end    = read_u32le(0x14,sf); /* (0x00 if not set) */
+    sample_rate = read_s32le(0x18,sf);
+    channels    = read_s32le(0x1C,sf);
+    /* 20: 0? */
+    interleave  = read_u32le(0x24,sf); /* 0 for mono */
+    /* 30+: garbage from other data */
+
+    loop_flag = (loop_end > 0);
+    loop_end += loop_start; /* loop region matches PS-ADPCM flags */
+
     
-	/* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    /* build the VGMSTREAM */
+    vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
-	/* fill in the vital statistics */
-    start_offset = read_32bitLE(0x08,streamFile);
-	vgmstream->channels = channel_count;
-    vgmstream->sample_rate = read_32bitLE(0x18,streamFile);
+    vgmstream->sample_rate = sample_rate;
+    vgmstream->num_samples = ps_bytes_to_samples(data_size, channels);
+    vgmstream->loop_start_sample = ps_bytes_to_samples(loop_start, channels);
+    vgmstream->loop_end_sample = ps_bytes_to_samples(loop_end, channels);
+
     vgmstream->coding_type = coding_PSX;
-    vgmstream->num_samples = read_32bitLE(0x0C,streamFile)*28/16/channel_count;
-    if (loop_flag) {
-        vgmstream->loop_start_sample = (read_32bitLE(0x0C,streamFile)-read_32bitLE(0x14,streamFile))*28/16/channel_count;
-        vgmstream->loop_end_sample = read_32bitLE(0x0C,streamFile)*28/16/channel_count;
-    }
+    vgmstream->layout_type = layout_interleave;
+    vgmstream->interleave_block_size = interleave;
 
+    vgmstream->meta_type = meta_VIG_KCES;
 
-	if(vgmstream->channels==1) {
-		vgmstream->layout_type=layout_none;
-	} else {
-		vgmstream->layout_type = layout_interleave;
-		vgmstream->interleave_block_size = read_32bitLE(0x24,streamFile);
-	}
-    vgmstream->meta_type = meta_PS2_KCES;
-
-    /* open the file for reading */
-    {
-        int i;
-        STREAMFILE * file;
-        file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (!file) goto fail;
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = file;
-
-            vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=start_offset+
-                vgmstream->interleave_block_size*i;
-
-        }
-    }
-
+    if (!vgmstream_open_stream(vgmstream, sf, data_offset))
+        goto fail;
     return vgmstream;
-
-    /* clean up anything we may have opened */
 fail:
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_vgmstream(vgmstream);
     return NULL;
 }

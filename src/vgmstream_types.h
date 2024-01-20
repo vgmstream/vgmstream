@@ -337,7 +337,7 @@ typedef enum {
     meta_STER,
     meta_BG00,              /* Ibara, Mushihimesama */
     meta_RSTM_ROCKSTAR,
-    meta_PS2_KCES,          /* Dance Dance Revolution */
+    meta_VIG_KCES,
     meta_HXD,
     meta_VSV,
     meta_SCD_PCM,           /* Lunar - Eternal Blue */
