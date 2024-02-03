@@ -1278,6 +1278,9 @@ static const hcakey_info hcakey_list[] = {
         // Girls' Frontline 2: Exilium (PC)
         {4079616028775461768},  // 389DB529D726B388
 
+        // Persona 3 Reload (PC)
+        {11918920},             // 0000000000B5DE48
+
 };
 
 #endif/*_HCA_KEYS_H_*/
