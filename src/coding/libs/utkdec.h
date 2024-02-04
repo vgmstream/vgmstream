@@ -10,6 +10,7 @@
  * EA classifies MT as MT10:1 (smaller frames) and MT5:1 (bigger frames), but both are the same
  * with different encoding parameters. Later revisions may have PCM blocks (rare). This codec was
  * also reused by Traveller Tales in CBX (same devs?) with minor modifications.
+ * Internally it's sometimes called "UTalk" too.
  *
  * TODO:
  * - lazy/avoid peeking/overreading when no bits left (OG code does it though, shouldn't matter)
@@ -25,9 +26,10 @@ typedef enum {
 /* opaque struct */
 typedef struct utk_context_t utk_context_t;
 
-/* inits UTK (must be externally created + init here) */
+/* inits UTK */
 utk_context_t* utk_init(utk_type_t type);
 
+/* frees UTK */
 void utk_free(utk_context_t*);
 
 /* reset/flush */

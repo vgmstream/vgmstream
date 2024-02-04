@@ -507,7 +507,7 @@ static int _init_vgmstream_ogg_vorbis_tests(STREAMFILE* sf, ogg_vorbis_io_config
         }
     }
 
-    /* .um3: Ultramarine / Bruns Engine files  */
+    /* .um3: Ultramarine / Bruns Engine files */
     if (check_extensions(sf,"um3")) {
         if (!is_id32be(0x00,sf, "OggS")) {
             ovmi->decryption_callback = um3_ogg_decryption_callback;
@@ -644,69 +644,68 @@ static VGMSTREAM* _init_vgmstream_ogg_vorbis_config(STREAMFILE* sf, off_t start,
         while (ogg_vorbis_get_comment(data, &comment)) {
             ;VGM_LOG("OGG: user_comment=%s\n", comment);
 
-            if (strstr(comment,"loop_start=") == comment || /* Phantasy Star Online: Blue Burst (PC) (no loop_end pair) */
-                strstr(comment,"LOOP_START=") == comment || /* Phantasy Star Online: Blue Burst (PC), common */
-                strstr(comment,"LOOPPOINT=") == comment || /* Sonic Robo Blast 2 */
-                strstr(comment,"COMMENT=LOOPPOINT=") == comment ||
-                strstr(comment,"LOOPSTART=") == comment ||
-                strstr(comment,"um3.stream.looppoint.start=") == comment ||
-                strstr(comment,"LOOP_BEGIN=") == comment || /* Hatsune Miku: Project Diva F (PS3) */
-                strstr(comment,"LoopStart=") == comment ||  /* Capcom games [Devil May Cry 4 (PC)] */
-                strstr(comment,"LOOP=") == comment || /* Duke Nukem 3D: 20th Anniversary World Tour */
-                strstr(comment,"XIPH_CUE_LOOPSTART=") == comment) {  /* DeNa games [Super Mario Run (Android), FF Record Keeper (Android)] */
+            if (   strstr(comment,"loop_start=") == comment                 /* Phantasy Star Online: Blue Burst (PC) (no loop_end pair) */
+                || strstr(comment,"LOOP_START=") == comment                 /* Phantasy Star Online: Blue Burst (PC), common */
+                || strstr(comment,"LOOPPOINT=") == comment                  /* Sonic Robo Blast 2 (PC) */
+                || strstr(comment,"COMMENT=LOOPPOINT=") == comment
+                || strstr(comment,"LOOPSTART=") == comment                  /* common? */
+                || strstr(comment,"um3.stream.looppoint.start=") == comment /* Ultramarine / Bruns Engine files */
+                || strstr(comment,"LOOP_BEGIN=") == comment                 /* Hatsune Miku: Project Diva F (PS3) */
+                || strstr(comment,"LoopStart=") == comment                  /* Capcom games [Devil May Cry 4 (PC)] */
+                || strstr(comment,"LOOP=") == comment                       /* Duke Nukem 3D: 20th Anniversary World Tour */
+                || strstr(comment,"XIPH_CUE_LOOPSTART=") == comment         /* DeNa games [Super Mario Run (Android), FF Record Keeper (Android)] */
+                || strstr(comment,"LOOPS=") == comment                      /* The Rumble Fish + (Switch) */
+                ) {
                 loop_start = atol(strrchr(comment,'=')+1);
                 loop_flag = (loop_start >= 0);
             }
-            else if (strstr(comment,"LOOPLENGTH=") == comment) {/* (LOOPSTART pair) */
+            else if (strstr(comment,"LOOPLENGTH=") == comment) {            /* (LOOPSTART pair) */
                 loop_length = atol(strrchr(comment,'=')+1);
                 loop_length_found = 1;
             }
-            else if (strstr(comment,"title=-lps") == comment) { /* KID [Memories Off #5 (PC), Remember11 (PC)] */
-                loop_start = atol(comment+10);
-                loop_flag = (loop_start >= 0);
-            }
-            else if (strstr(comment,"album=-lpe") == comment) { /* (title=-lps pair) */
-                loop_end = atol(comment+10);
+            else if (  strstr(comment,"LoopEnd=") == comment                /* (LoopStart pair) */
+                    || strstr(comment,"LOOP_END=") == comment               /* (LOOP_START/LOOP_BEGIN pair) */
+                    || strstr(comment, "XIPH_CUE_LOOPEND=") == comment      /* (XIPH_CUE_LOOPSTART pair) */
+                    || strstr(comment, "LOOPE=") == comment                 /* (LOOPS pair) */
+                    ) {
+                loop_end = atol(strrchr(comment, '=') + 1);
                 loop_end_found = 1;
                 loop_flag = 1;
             }
-            else if (strstr(comment,"LoopEnd=") == comment) { /* (LoopStart pair) */
-                loop_end = atol(strrchr(comment,'=')+1);
-                loop_end_found = 1;
+            else if (strstr(comment,"title=-lps") == comment) {             /* KID [Memories Off #5 (PC), Remember11 (PC)] */
+                loop_start = atol(comment+10);
+                loop_flag = (loop_start >= 0);
             }
-            else if (strstr(comment,"LOOP_END=") == comment) { /* (LOOP_START/LOOP_BEGIN pair) */
-                loop_end = atol(strrchr(comment,'=')+1);
+            else if (strstr(comment,"album=-lpe") == comment) {             /* (title=-lps pair) */
+                loop_end = atol(comment+10);
                 loop_end_found = 1;
+                loop_flag = 1;
             }
             else if (strstr(comment,"lp=") == comment) {
                 sscanf(strrchr(comment,'=')+1,"%d,%d", &loop_start,&loop_end);
                 loop_end_found = 1;
                 loop_flag = 1;
             }
-            else if (strstr(comment,"LOOPDEFS=") == comment) { /* Fairy Fencer F: Advent Dark Force */
+            else if (strstr(comment,"LOOPDEFS=") == comment) {              /* Fairy Fencer F: Advent Dark Force */
                 sscanf(strrchr(comment,'=')+1,"%d,%d", &loop_start,&loop_end);
-                loop_flag = 1;
                 loop_end_found = 1;
+                loop_flag = 1;
             }
-            else if (strstr(comment,"COMMENT=loop(") == comment) { /* Zero Time Dilemma (PC) */
+            else if (strstr(comment,"COMMENT=loop(") == comment) {          /* Zero Time Dilemma (PC) */
                 sscanf(strrchr(comment,'(')+1,"%d,%d", &loop_start,&loop_end);
+                loop_end_found = 1;
                 loop_flag = 1;
-                loop_end_found = 1;
             }
-            else if (strstr(comment, "XIPH_CUE_LOOPEND=") == comment) { /* (XIPH_CUE_LOOPSTART pair) */
-                loop_end = atol(strrchr(comment, '=') + 1);
-                loop_end_found = 1;
-            }
-            else if (strstr(comment, "omment=") == comment) { /* Air (Android) */
+            else if (strstr(comment, "omment=") == comment) {               /* Air (Android) */
                 sscanf(strstr(comment, "=LOOPSTART=") + 11, "%d,LOOPEND=%d", &loop_start, &loop_end);
-                loop_flag = 1;
                 loop_end_found = 1;
+                loop_flag = 1;
             }
-            else if (strstr(comment,"MarkerNum=0002") == comment) { /* Megaman X Legacy Collection: MMX1/2/3 (PC) flag */
+            else if (strstr(comment,"MarkerNum=0002") == comment) {         /* Megaman X Legacy Collection: MMX1/2/3 (PC) flag */
                 /* uses LoopStart=-1 LoopEnd=-1, then 3 secuential comments: "MarkerNum" + "M=7F(start)" + "M=7F(end)" */
                 loop_flag = 1;
             }
-            else if (strstr(comment,"M=7F") == comment) { /* Megaman X Legacy Collection: MMX1/2/3 (PC) start/end */
+            else if (strstr(comment,"M=7F") == comment) {                   /* Megaman X Legacy Collection: MMX1/2/3 (PC) start/end */
                 if (loop_flag && loop_start < 0) { /* LoopStart should set as -1 before */
                     sscanf(comment,"M=7F%x", &loop_start);
                 }
@@ -715,7 +714,7 @@ static VGMSTREAM* _init_vgmstream_ogg_vorbis_config(STREAMFILE* sf, off_t start,
                     loop_end_found = 1;
                 }
             }
-            else if (strstr(comment,"LOOPMS=") == comment) { /* Sonic Robo Blast 2 (PC) */
+            else if (strstr(comment,"LOOPMS=") == comment) {                /* Sonic Robo Blast 2 (PC) */
                 loop_start = atol(strrchr(comment,'=')+1) * sample_rate / 1000; /* ms to samples */
                 loop_flag = (loop_start >= 0);
             }
@@ -730,8 +729,7 @@ static VGMSTREAM* _init_vgmstream_ogg_vorbis_config(STREAMFILE* sf, off_t start,
                  * loopTime nor have wrong granules though) */
                 force_seek = 1;
             }
-
-            else if (strstr(comment,"COMMENT=*loopsample,") == comment) { /* Tsuki ni Yorisou Otome no Sahou (PC) */
+            else if (strstr(comment,"COMMENT=*loopsample,") == comment) {   /* Tsuki ni Yorisou Otome no Sahou (PC) */
                 int unk0; // always 0 (delay?)
                 int unk1; // always -1 (loop flag? but non-looped files have no comment)
                 int m = sscanf(comment,"COMMENT=*loopsample,%d,%d,%d,%d", &unk0, &loop_start, &loop_end, &unk1);

@@ -241,7 +241,7 @@ different internally (encrypted, different versions, etc) and not always can be 
 - **aifc.c**
   - Apple AIFF-C header [*AIFC*]
   - Apple AIFF header [*AIFF*]
-  - *aifc*: `.aif .laif .wav .lwav .(extensionless) .aifc .laifc .afc .cbd2 .bgm .fda .n64 .xa .aiff .laiff .acm .adp .ai .pcm`
+  - *aifc*: `.aif .laif .wav .lwav .(extensionless) .aifc .laifc .afc .cbd2 .bgm .fda .n64 .xa .caf .aiff .laiff .acm .adp .ai .pcm`
   - Codecs: SDX2 CBD2 DVI_IMA_int APPLE_IMA4 RELIC VADPCM PCM8 PCM16BE XA
 - **str_snds.c**
   - 3DO SNDS header [*STR_SNDS*]
@@ -271,7 +271,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - RIFF WAVE header (ctrl looping) [*RIFF_WAVE_MWV*]
   - RIFX WAVE header [*RIFX_WAVE*]
   - RIFX WAVE header (smpl looping) [*RIFX_WAVE_smpl*]
-  - *riff*: `.wav .lwav .xwav .mwv .da .dax .cd .med .snd .adx .adp .xss .xsew .adpcm .adw .wd .(extensionless) .sbv .wvx .str .at3 .rws .aud .at9 .ckd .saf .ima .nsa .pcm .xvag .ogg .logg .p1d .xms .mus .dat .ldat .wma .lwma`
+  - *riff*: `.wav .lwav .xwav .mwv .da .dax .cd .med .snd .adx .adp .xss .xsew .adpcm .adw .wd .(extensionless) .sbv .wvx .str .at3 .rws .aud .at9 .ckd .saf .ima .nsa .pcm .xvag .ogg .logg .p1d .xms .mus .dat .ldat .wma .lwma .caf`
   - *rifx*: `.wav .lwav`
   - Codecs: AICA_int PCM32LE PCM24LE PCM16BE PCM16LE PCM8_U MSADPCM IMA PCMFLOAT MS_IMA AICA MPEG_custom XBOX_IMA MS_IMA_3BIT DVI_IMA L5_555 OGG_VORBIS ATRAC9 ATRAC3 MPEG MSADPCM_int
 - **nwa.c**

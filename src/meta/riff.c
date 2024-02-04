@@ -354,12 +354,12 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
 
     /* checks*/
     if (!is_id32be(0x00,sf,"RIFF"))
-        goto fail;
+        return NULL;
 
     riff_size = read_u32le(0x04,sf);
 
     if (!is_id32be(0x08,sf, "WAVE"))
-        goto fail;
+        return NULL;
 
     file_size = get_streamfile_size(sf);
 
@@ -398,9 +398,10 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
      * .mus: Burnout Legends/Dominator (PSP)
      * .dat/ldat: RollerCoaster Tycoon 1/2 (PC)
      * .wma/lwma: SRS: Street Racing Syndicate (Xbox), Fast and the Furious (Xbox)
+     * .caf: Topple (iOS)
      */
-    if (!check_extensions(sf, "wav,lwav,xwav,mwv,da,dax,cd,med,snd,adx,adp,xss,xsew,adpcm,adw,wd,,sbv,wvx,str,at3,rws,aud,at9,ckd,saf,ima,nsa,pcm,xvag,ogg,logg,p1d,xms,mus,dat,ldat,wma,lwma")) {
-        goto fail;
+    if (!check_extensions(sf, "wav,lwav,xwav,mwv,da,dax,cd,med,snd,adx,adp,xss,xsew,adpcm,adw,wd,,sbv,wvx,str,at3,rws,aud,at9,ckd,saf,ima,nsa,pcm,xvag,ogg,logg,p1d,xms,mus,dat,ldat,wma,lwma,caf")) {
+        return NULL;
     }
 
     /* some games have wonky sizes, selectively fix to catch bad rips and new mutations */
