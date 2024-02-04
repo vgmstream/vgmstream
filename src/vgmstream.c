@@ -951,6 +951,7 @@ static void try_dual_file_stereo(VGMSTREAM* opened_vgmstream, STREAMFILE* sf, in
     VGMSTREAM* new_vgmstream = NULL;
     STREAMFILE* dual_sf = NULL;
     int i,j, dfs_pair_count, extension_len, filename_len;
+    int sample_variance, loop_variance;
 
     if (opened_vgmstream->channels != 1)
         return;
@@ -1021,14 +1022,11 @@ static void try_dual_file_stereo(VGMSTREAM* opened_vgmstream, STREAMFILE* sf, in
 
     new_vgmstream = init_vgmstream_function(dual_sf); /* use the init function that just worked */
     close_streamfile(dual_sf);
+    if (!new_vgmstream)
+        goto fail;
 
     /* see if we were able to open the file, and if everything matched nicely */
-    if (!(new_vgmstream &&
-            new_vgmstream->channels == 1 &&
-            /* we have seen legitimate pairs where these are off by one...
-             * but leaving it commented out until I can find those and recheck */
-            /* abs(new_vgmstream->num_samples-opened_vgmstream->num_samples <= 1) && */
-            new_vgmstream->num_samples == opened_vgmstream->num_samples &&
+    if (!(new_vgmstream->channels == 1 &&
             new_vgmstream->sample_rate == opened_vgmstream->sample_rate &&
             new_vgmstream->meta_type   == opened_vgmstream->meta_type &&
             new_vgmstream->coding_type == opened_vgmstream->coding_type &&
@@ -1040,13 +1038,39 @@ static void try_dual_file_stereo(VGMSTREAM* opened_vgmstream, STREAMFILE* sf, in
         goto fail;
     }
 
-    /* check these even if there is no loop, because they should then be zero in both
-     * (Homura PS2 right channel doesn't have loop points so this check is ignored) */
-    if (new_vgmstream->meta_type != meta_SMPL &&
-            !(new_vgmstream->loop_flag      == opened_vgmstream->loop_flag &&
-            new_vgmstream->loop_start_sample== opened_vgmstream->loop_start_sample &&
-            new_vgmstream->loop_end_sample  == opened_vgmstream->loop_end_sample)) {
-        goto fail;
+    /* samples/loops should match even when there is no loop, except in special cases
+     * in the odd cases where values diverge, will use either L's loops or R's loops depending on which file is opened */
+    if (new_vgmstream->meta_type == meta_SMPL) {
+        loop_variance = -1; /* right channel doesn't have loop points so this check is ignored [Homura (PS2)] */
+        sample_variance = 0;
+    }
+    else if (new_vgmstream->meta_type == meta_DSP_STD && new_vgmstream->sample_rate <= 24000) {
+        loop_variance = 170000; /* rarely loop points are a bit apart, though usually only a few samples [Harvest Moon: Tree of Tranquility (Wii)] */
+        sample_variance = opened_vgmstream->loop_flag ? 1600 : 700; /* less common but loops don't reach end */
+    }
+    else {
+        loop_variance = 0;  /* otherwise should match exactly */
+        sample_variance = 0;
+    }
+
+    {
+        int ns_variance = new_vgmstream->num_samples - opened_vgmstream->num_samples;
+
+        /* either channel may be bigger */
+        if (abs(ns_variance) > sample_variance)
+            goto fail;
+    }
+
+    if (loop_variance >= 0) {
+        int ls_variance = new_vgmstream->loop_start_sample - opened_vgmstream->loop_start_sample;
+        int le_variance = new_vgmstream->loop_end_sample - opened_vgmstream->loop_end_sample;
+
+        if (new_vgmstream->loop_flag != opened_vgmstream->loop_flag)
+            goto fail;
+
+        /* either channel may be bigger */
+        if (abs(ls_variance) > loop_variance || abs(le_variance) > loop_variance)
+            goto fail;
     }
 
     /* We seem to have a usable, matching file. Merge in the second channel. */
