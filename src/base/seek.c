@@ -168,7 +168,7 @@ void seek_vgmstream(VGMSTREAM* vgmstream, int32_t seek_sample) {
             if (!vgmstream->hit_loop) {
                 int32_t skip_samples;
 
-                if (vgmstream->current_sample >= vgmstream->loop_start_sample) {
+                if (vgmstream->current_sample > vgmstream->loop_start_sample) { /* may be 0 */
                     VGM_LOG("SEEK: bad current sample %i vs %i\n", vgmstream->current_sample, vgmstream->loop_start_sample);
                     reset_vgmstream(vgmstream);
                 }

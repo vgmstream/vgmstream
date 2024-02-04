@@ -3,7 +3,7 @@
 #include <string.h>
 #include "utkdec.h"
 
-
+// AKA 'UTALKSTATE'
 struct utk_context_t {
     /* config */ 
     utk_type_t type;
@@ -35,12 +35,12 @@ struct utk_context_t {
 };
 
 
-/* bit mask; (1 << count) - 1 is probably faster now but OG code uses a table */
+/* AKA 'bitmask'; (1 << count) - 1 is probably faster now but OG code uses a table */
 static const uint8_t mask_table[8] = {
     0x01,0x03,0x07,0x0F,0x1F,0x3F,0x7F,0xFF
 };
 
-/* reflection coefficients, rounded that correspond to hex values in exes (actual float is longer)
+/* AKA 'coeff_table', reflection coefficients (rounded) that correspond to hex values in exes (actual float is longer)
  * note this table is mirrored: for (i = 1 .. 32) t[64 - i] = -t[i]) */
 static const float utk_rc_table[64] = {
     /* 6b index start */
@@ -63,6 +63,7 @@ static const float utk_rc_table[64] = {
     +0.977431f, +0.983879f, +0.990327f, +0.996776f,
 };
 
+// AKA 'index_table'
 static const uint8_t utk_codebooks[2][256] = {
     /* normal model */
     {
@@ -109,6 +110,7 @@ enum {
     MDL_LARGEPULSE = 1
 };
 
+// AKA 'decode_table'
 static const struct {
     int next_model;
     int code_size;
@@ -202,7 +204,7 @@ static uint8_t peek_bits(struct bitreader_t* br, int count) {
     return br->bits_value & mask;
 }
 
-/* assumes count <= 8, which is always true since sizes are known and don't depend on the bitstream. */
+/* aka 'getbits', LSB style and assumes count <= 8, which is always true since sizes are known and don't depend on the bitstream. */
 static uint8_t read_bits(struct bitreader_t* br, int count) {
     uint8_t mask = mask_table[count - 1];
     uint8_t ret = br->bits_value & mask;
@@ -218,7 +220,7 @@ static uint8_t read_bits(struct bitreader_t* br, int count) {
     return ret;
 }
 
-/* for clarity, as found in OG code (no return) */
+/* AKA 'discardbits', as found in OG code (no return) */
 static void consume_bits(struct bitreader_t* br, int count) {
     read_bits(br, count);
 }
@@ -307,19 +309,19 @@ static void decode_excitation(utk_context_t* ctx, bool use_multipulse, float* ou
             int bits = 0;
             float val = 0.0f;
 
-            /* peek + partial consume code (odd to use 2 codes for 0.0 but seen in multiple exes) */
+            /* peek + partial consume code (bitreader is LSB so this is equivalent to reading bit by bit, but OG handles it like this) */
             int huffman_code = peek_bits(&ctx->br, 2); /* variable-length, may consume less */
             switch (huffman_code) {
-                case 0: //code: 0
-                case 2: //code: 1 (maybe meant to be -0.0?)
+                case 0: //value 00 = h.code: 0
+                case 2: //value 10 = h.code: 0
                     val = 0.0f;
                     bits = 1;
                     break;
-                case 1: //code: 01
+                case 1: //value 01 = h.code: 10
                     val = -2.0f;
                     bits = 2;
                     break;
-                case 3: //code: 11
+                case 3: //value 11 = h.code: 11
                     val = 2.0f;
                     bits = 2;
                     break;
@@ -334,6 +336,7 @@ static void decode_excitation(utk_context_t* ctx, bool use_multipulse, float* ou
     }
 }
 
+// AKA ref_to_lpc
 static void rc_to_lpc(const float* rc_data, float* lpc) {
     int j;
     float tmp1[12];
@@ -364,6 +367,7 @@ static void rc_to_lpc(const float* rc_data, float* lpc) {
     }
 }
 
+// AKA 'filter'
 static void lp_synthesis_filter(utk_context_t* ctx, int offset, int blocks) {
     int i, j, k;
     float lpc[12];
@@ -393,7 +397,7 @@ static void lp_synthesis_filter(utk_context_t* ctx, int offset, int blocks) {
     }
 }
 
-/* OG sometimes inlines this (sx3, not B&B/CBX) */
+// AKA 'interpolate', OG sometimes inlines this (sx3, not B&B/CBX) */
 static void interpolate_rest(float* excitation) {
     for (int i = 0; i < 108; i += 2) {
         float tmp1 = (excitation[i - 5] + excitation[i + 5]) * 0.01803268f;
@@ -403,6 +407,7 @@ static void interpolate_rest(float* excitation) {
     }
 }
 
+// AKA 'decodemut'
 static void decode_frame_main(utk_context_t* ctx) {
     bool use_multipulse = false;
     float excitation[5 + 108 + 5]; /* extra +5*2 for interpolation */
@@ -436,7 +441,8 @@ static void decode_frame_main(utk_context_t* ctx) {
         rc_delta[i] = (utk_rc_table[idx] - ctx->rc_data[i]) * 0.25f;
     }
 
-    /* decode four subframes */
+
+    /* decode four subframes (AKA 'readsamples' but inline'd) */
     for (int i = 0; i < 4; i++) {
         int pitch_lag = read_bits(&ctx->br, 8);
         int pitch_value = read_bits(&ctx->br, 4);
