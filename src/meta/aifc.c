@@ -82,35 +82,39 @@ VGMSTREAM* init_vgmstream_aifc(STREAMFILE* sf) {
 
     /* checks */
     if (!is_id32be(0x00,sf, "FORM"))
-        goto fail;
+        return NULL;
 
-    /* .aif: common (AIFF or AIFC), .aiff: common AIFF, .aifc: common AIFC
-     * .laif/laiff/laifc: for plugins
+    /* .aif: common (AIFF or AIFC)
+     * .wav: SimCity 3000 (Mac) (both AIFF and AIFC)
+     * (extensionless): Doom (3DO)
+     * 
+     * .aifc: renamed AIFC?
+     * .afc: ?
      * .cbd2: M2 games
      * .bgm: Super Street Fighter II Turbo (3DO)
+     * .fda: Homeworld 2 (PC)
+     * .n64: Turok (N64) src
+     * .xa: SimCity 3000 (Mac)
+     * .caf: Topple (iOS)
+     *
+     * .aiff: renamed AIFF? 
      * .acm: Crusader - No Remorse (SAT)
      * .adp: Sonic Jam (SAT)
      * .ai: Dragon Force (SAT)
-     * (extensionless: Doom (3DO)
-     * .fda: Homeworld 2 (PC)
-     * .n64: Turok (N64) src
      * .pcm: Road Rash (SAT)
-     * .wav: SimCity 3000 (Mac) (both AIFC and AIFF)
-     * .lwav: for media players that may confuse this format with the usual RIFF WAVE file.
-     * .xa: SimCity 3000 (Mac)
      */
     if (check_extensions(sf, "aif,laif,wav,lwav,")) {
         is_aifc_ext = 1;
         is_aiff_ext = 1;
     }
-    else if (check_extensions(sf, "aifc,laifc,afc,cbd2,bgm,fda,n64,xa")) {
+    else if (check_extensions(sf, "aifc,laifc,afc,cbd2,bgm,fda,n64,xa,caf")) {
         is_aifc_ext = 1;
     }
     else if (check_extensions(sf, "aiff,laiff,acm,adp,ai,pcm")) {
         is_aiff_ext = 1;
     }
     else {
-        goto fail;
+        return NULL;
     }
 
     file_size = get_streamfile_size(sf);
