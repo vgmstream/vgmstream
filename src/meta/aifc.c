@@ -86,6 +86,7 @@ VGMSTREAM* init_vgmstream_aifc(STREAMFILE* sf) {
 
     /* .aif: common (AIFF or AIFC)
      * .wav: SimCity 3000 (Mac) (both AIFF and AIFC)
+     * .aiff: rare and actually AIFC (maybe renamed AIFF too) [Cro-Mag Rally (Mac)]
      * (extensionless): Doom (3DO)
      * 
      * .aifc: renamed AIFC?
@@ -97,20 +98,19 @@ VGMSTREAM* init_vgmstream_aifc(STREAMFILE* sf) {
      * .xa: SimCity 3000 (Mac)
      * .caf: Topple (iOS)
      *
-     * .aiff: renamed AIFF? 
      * .acm: Crusader - No Remorse (SAT)
      * .adp: Sonic Jam (SAT)
      * .ai: Dragon Force (SAT)
      * .pcm: Road Rash (SAT)
      */
-    if (check_extensions(sf, "aif,laif,wav,lwav,")) {
+    if (check_extensions(sf, "aif,laif,wav,lwav,aiff,laiff,")) {
         is_aifc_ext = 1;
         is_aiff_ext = 1;
     }
     else if (check_extensions(sf, "aifc,laifc,afc,cbd2,bgm,fda,n64,xa,caf")) {
         is_aifc_ext = 1;
     }
-    else if (check_extensions(sf, "aiff,laiff,acm,adp,ai,pcm")) {
+    else if (check_extensions(sf, "acm,adp,ai,pcm")) {
         is_aiff_ext = 1;
     }
     else {
@@ -138,13 +138,14 @@ VGMSTREAM* init_vgmstream_aifc(STREAMFILE* sf) {
     if (file_size != aifx_size + 0x08) {
         if (is_aiff && file_size == aifx_size + 0x08 + 0x08)
             aifx_size += 0x08; /* [Psychic Force Puzzle Taisen CD2 (PS1)] */
+        else if (is_aifc && file_size == aifx_size + 0x08 + 0x4c)
+            aifx_size += 0x4c; /* Cro-Mag Rally (Mac), only one file */
     }
 
     if (aifx_size + 0x08 != file_size) {
         vgm_logi("AIFF: wrong reported size %x + 0x8 vs file size %x\n", aifx_size, file_size);
         goto fail;
     }
-
 
     /* read through chunks to verify format and find metadata */
     {
@@ -164,7 +165,7 @@ VGMSTREAM* init_vgmstream_aifc(STREAMFILE* sf) {
                 goto fail;
 
             switch(chunk_type) {
-                case 0x46564552:    /* "FVER" (version info, required) */
+                case 0x46564552:    /* "FVER" (version info, officially required but some odd game ommits it [Cro-Mag Rally (Mac)]) */
                     if (fver_found) goto fail;
                     if (is_aiff) goto fail; /* plain AIFF shouldn't have */
                     fver_found = 1;
@@ -315,13 +316,13 @@ VGMSTREAM* init_vgmstream_aifc(STREAMFILE* sf) {
     }
 
     if (is_aifc) {
-        if (!fver_found || !comm_found || !data_found)
+        if (/*!fver_found ||*/ !comm_found || !data_found)
             goto fail;
-    } else if (is_aiff) {
+    }
+    else if (is_aiff) {
         if (!comm_found || !data_found)
             goto fail;
     }
-
 
     /* read loop points */
     if (inst_offset && mark_offset) {
