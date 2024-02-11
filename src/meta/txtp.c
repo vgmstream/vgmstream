@@ -408,6 +408,23 @@ static int make_group_segment(txtp_header* txtp, txtp_group* grp, int position, 
     }
 
 
+    /* fix loop keep (do it before init'ing as loops/metadata may be disabled for segments) */
+    int32_t loop_start_sample = 0, loop_end_sample = 0;
+    if (loop_flag && txtp->is_loop_keep) {
+        int32_t current_samples = 0;
+        for (i = 0; i < count; i++) {
+            if (loop_start == i+1 /*&& txtp->vgmstream[i + position]->loop_start_sample*/) {
+                loop_start_sample = current_samples + txtp->vgmstream[i + position]->loop_start_sample;
+            }
+
+            current_samples += txtp->vgmstream[i + position]->num_samples;
+
+            if (loop_end == i+1 && txtp->vgmstream[i + position]->loop_end_sample) {
+                loop_end_sample = current_samples - txtp->vgmstream[i + position]->num_samples + txtp->vgmstream[i + position]->loop_end_sample;
+            }
+        }
+    }
+
     /* init layout */
     data_s = init_layout_segmented(count);
     if (!data_s) goto fail;
@@ -436,18 +453,8 @@ static int make_group_segment(txtp_header* txtp, txtp_group* grp, int position, 
 
     /* fix loop keep */
     if (loop_flag && txtp->is_loop_keep) {
-        int32_t current_samples = 0;
-        for (i = 0; i < count; i++) {
-            if (loop_start == i+1 /*&& data_s->segments[i]->loop_start_sample*/) {
-                vgmstream->loop_start_sample = current_samples + data_s->segments[i]->loop_start_sample;
-            }
-
-            current_samples += data_s->segments[i]->num_samples;
-
-            if (loop_end == i+1 && data_s->segments[i]->loop_end_sample) {
-                vgmstream->loop_end_sample = current_samples - data_s->segments[i]->num_samples + data_s->segments[i]->loop_end_sample;
-            }
-        }
+        vgmstream->loop_start_sample = loop_start_sample;
+        vgmstream->loop_end_sample = loop_end_sample;
     }
 
 
