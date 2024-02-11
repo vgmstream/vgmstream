@@ -404,11 +404,11 @@ Regular formats without companion files should work fine in upper/lowercase. For
 Certain formats have encrypted data, and need a key to decrypt. vgmstream
 will try to find the correct key from a list, but it can be provided by
 a companion file:
-- `.adx`: `.adxkey` (keystring, 8-byte keycode, or derived 6 byte start/mult/add key)
+- `.adx`: `.adxkey` (keystring, or 8-byte keycode, or derived 6 byte start/mult/add key)
 - `.ahx`: `.ahxkey` (keystring, or derived 6-byte start/mult/add key)
-- `.hca`: `.hcakey` (8-byte decryption key, a 64-bit number)
-  - `.awb`/`.acb` also may use `.hcakey`, and will combine with an internal AWB subkey
-  - May set a 8-byte key followed a 2-byte AWB subkey for newer HCA
+- `.hca`: `.hcakey` (keystring, or 8-byte keycode, a 64-bit number)
+  - May set 8-byte key followed a 2-byte AWB subkey for newer HCA
+  - `.awb`/`.acb` also may use `.adxkey`/`.hcakey`, and will combine with an internal AWB subkey
 - `.fsb`: `.fsbkey` (decryption key in hex, usually between 8-32 bytes) 
 - `.bnsf`: `.bnsfkey` (decryption key, a string up to 24 chars)
 - `.awc`: `.awckey` (decryption key, 0x10 bytes divided into 4 BE ints)

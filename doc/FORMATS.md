@@ -1944,22 +1944,22 @@ Reminder of some extra formats and helper files vgmstream supports. They are des
 in detail in USAGE.md.
 
 - artificial headers:
-- .txth (text header, adds support to lots of extra formats)
-- .genh (generic header, deprecated)
+  - .txth (text header, adds support to lots of extra formats)
+  - .txtp (text play config, per song segment/layer manipulation)
+  - .txtm (text map config, for formats that open companion files manually)
+  - .genh (generic header, deprecated)
 - loop assists:
-- .txtm (text map config, for formats that open companion files manually)
-- .txtp (text play config, per song segment/layer manipulation)
-- loop assists:
-- .mus (playlist for .acm)
-- .pos (loop info for .wav)
-- .sli (loop info for .ogg)
-- .sfl (loop info for .ogg)
+  - .mus (playlist for .acm)
+  - .pos (loop info for .wav)
+  - .sli (loop info for .ogg)
+  - .sfl (loop info for .ogg)
 - other:
-- .adxkey (decryption key for .adx)
-- .ahxkey (decryption key for .ahx)
-- .hcakey (decryption key for .hca)
-- .fsbkey (decryption key for .fsb)
-- .bnsfkey (decryption key for .bnsf)
+  - .adxkey (decryption key for .adx)
+  - .ahxkey (decryption key for .ahx)
+  - .hcakey (decryption key for .hca)
+  - .fsbkey (decryption key for .fsb)
+  - .bnsfkey (decryption key for .bnsf)
+  - .awckey (decryption key for .awc)
 
 
 ## Supported codecs

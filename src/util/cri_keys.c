@@ -126,14 +126,28 @@ end:
     *p_key3 = key3;
 }
 
-int cri_key8_valid_keystring(uint8_t* buf, int buf_size) {
-    int i;
+bool cri_key8_valid_keystring(uint8_t* buf, int buf_size) {
+    if (buf_size <= 0)
+        return false;
 
-    for (i = 0; i < buf_size; i++) {
+    for (int i = 0; i < buf_size; i++) {
         if (buf[i] < 0x20 || buf[i] > 0x8f) { /* allow 0x8x for (uncommon) cases of SHIFT-JIS */
-            return 0;
+            return false;
         }
     }
 
-    return 1;
+    return true;
+}
+
+bool cri_key9_valid_keystring(uint8_t* buf, int buf_size) {
+    if (buf_size <= 0 || buf_size > 20) /* max u64 */
+        return false;
+
+    for (int i = 0; i < buf_size; i++) {
+        if (buf[i] < 0x30 || buf[i] > 0x39) { /* numbers only */
+            return false;
+        }
+    }
+
+    return true;
 }
