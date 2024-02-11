@@ -17,7 +17,7 @@
 #define ADX_KEY_MAX_TEST_FRAMES 32768
 #define ADX_KEY_TEST_BUFFER_SIZE 0x8000
 
-static int find_adx_key(STREAMFILE* sf, uint8_t type, uint16_t* xor_start, uint16_t* xor_mult, uint16_t* xor_add, uint16_t subkey);
+static bool find_adx_key(STREAMFILE* sf, uint8_t type, uint16_t* xor_start, uint16_t* xor_mult, uint16_t* xor_add, uint16_t subkey);
 
 VGMSTREAM* init_vgmstream_adx(STREAMFILE* sf) {
     return init_vgmstream_adx_subkey(sf, 0);
@@ -87,7 +87,6 @@ VGMSTREAM* init_vgmstream_adx_subkey(STREAMFILE* sf, uint16_t subkey) {
 
     /* encryption */
     if (version == 0x0408) {
-
         if (!find_adx_key(sf, 8, &xor_start, &xor_mult, &xor_add, 0)) {
             vgm_logi("ADX: decryption keystring not found\n");
         }
@@ -265,7 +264,7 @@ fail:
 
 /* ADX key detection works by reading XORed ADPCM scales in frames, and un-XORing with keys in
  * a list. If resulting values are within the expected range for N scales we accept that key. */
-static int find_adx_key(STREAMFILE* sf, uint8_t type, uint16_t *xor_start, uint16_t *xor_mult, uint16_t *xor_add, uint16_t subkey) {
+static bool find_adx_key(STREAMFILE* sf, uint8_t type, uint16_t *xor_start, uint16_t *xor_mult, uint16_t *xor_add, uint16_t subkey) {
     const int frame_size = 0x12;
     uint16_t *scales = NULL;
     uint16_t *prescales = NULL;
@@ -280,7 +279,7 @@ static int find_adx_key(STREAMFILE* sf, uint8_t type, uint16_t *xor_start, uint1
         size_t key_size;
 
         /* handle type8 keystrings, key9 keycodes and derived keys too */
-        key_size = read_key_file(keybuf, sizeof(keybuf), sf);
+        key_size = read_key_file(keybuf, sizeof(keybuf) - 1, sf);
 
         if (key_size > 0) {
             int is_keystring = 0;
@@ -288,28 +287,37 @@ static int find_adx_key(STREAMFILE* sf, uint8_t type, uint16_t *xor_start, uint1
             if (type == 8) {
                 is_keystring = cri_key8_valid_keystring(keybuf, key_size);
             }
+            else if (type == 9) {
+                is_keystring = cri_key9_valid_keystring(keybuf, key_size);
+            }
 
             if (key_size == 0x06 && !is_keystring) {
                 *xor_start = get_u16be(keybuf + 0x00);
                 *xor_mult  = get_u16be(keybuf + 0x02);
                 *xor_add   = get_u16be(keybuf + 0x04);
-                return 1;
+                return true;
             }
             else if (type == 8 && is_keystring) {
                 const char* keystring = (const char*)keybuf;
                 cri_key8_derive(keystring, xor_start, xor_mult, xor_add);
-                return 1;
+                return true;
+            }
+            else if (type == 9 && is_keystring) {
+                const char* keystring = (const char*)keybuf;
+                uint64_t keycode = strtoull(keystring, NULL, 10);
+                cri_key9_derive(keycode, subkey, xor_start, xor_mult, xor_add);
+                return true;
             }
             else if (type == 9 && key_size == 0x08) {
                 uint64_t keycode = get_u64be(keybuf);
                 cri_key9_derive(keycode, subkey, xor_start, xor_mult, xor_add);
-                return 1;
+                return true;
             }
             else if (type == 9 && key_size == 0x08+0x02) {
                 uint64_t file_keycode = get_u64be(keybuf+0x00);
                 uint16_t file_subkey  = get_u16be(keybuf+0x08);
                 cri_key9_derive(file_keycode, file_subkey, xor_start, xor_mult, xor_add);
-                return 1;
+                return true;
             }
         }
         /* no key set or unknown format, try list */
@@ -525,5 +533,5 @@ static int find_adx_key(STREAMFILE* sf, uint8_t type, uint16_t *xor_start, uint1
 done:
     free(scales);
     free(prescales);
-    return rc;
+    return rc != 0;
 }

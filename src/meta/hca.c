@@ -4,6 +4,7 @@
 #include "../coding/hca_decoder_clhca.h"
 #include "../util/channel_mappings.h"
 #include "../util/companion_files.h"
+#include "../util/cri_keys.h"
 
 #ifdef VGM_DEBUG_OUTPUT
   //#define HCA_BRUTEFORCE
@@ -45,14 +46,21 @@ VGMSTREAM* init_vgmstream_hca_subkey(STREAMFILE* sf, uint16_t subkey) {
     /* find decryption key in external file or preloaded list */
     if (hca_info->encryptionEnabled) {
         uint64_t keycode = 0;
-        uint8_t keybuf[0x08+0x02];
-        size_t keysize;
+        uint8_t keybuf[20+1] = {0}; /* max keystring 20, +1 extra null */
+        size_t key_size;
 
-        keysize = read_key_file(keybuf, sizeof(keybuf), sf);
-        if (keysize == 0x08) { /* standard */
+        key_size = read_key_file(keybuf, sizeof(keybuf) - 1, sf);
+
+        bool is_keystring = cri_key9_valid_keystring(keybuf, key_size);
+
+        if (is_keystring) { /* number */
+            const char* keystring = (const char*)keybuf;
+            keycode = strtoull(keystring, NULL, 10);
+        }
+        else if (key_size == 0x08) { /* hex */
             keycode = get_u64be(keybuf+0x00);
         }
-        else if (keysize == 0x08+0x02) { /* seed key + AWB subkey */
+        else if (key_size == 0x08+0x02) { /* seed key + AWB subkey */
             keycode = get_u64be(keybuf+0x00);
             subkey  = get_u16be(keybuf+0x08);
         }
