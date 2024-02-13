@@ -276,6 +276,9 @@ static const adxkey_info adxkey9_list[] = {
         /* Persona 5 Royal (PC) */
         {0x0000,0x0000,0x0000, NULL,9923540143823782},      // 002341683D2FDBA6
 
+        /* ARGONAVIS -Kimi ga Mita Stage e- (Android) */
+        {0x069c,0x06e9,0x0323, NULL,0},                     // guessed with VGAudio (possible key: 34E06E8192 / 227103637906)
+
 };
 
 static const int adxkey8_list_count = sizeof(adxkey8_list) / sizeof(adxkey8_list[0]);
