@@ -1281,6 +1281,21 @@ static const hcakey_info hcakey_list[] = {
         // Persona 3 Reload (PC)
         {11918920},             // 0000000000B5DE48
 
+        // IDOL FANTASY (Android)
+        {4308390175392019587},  // 3BCA7A09A6063483
+
+        // re:colloquial (Android)
+        {9863154698521},        // 000008F871D50919
+
+        // Ojisama to Nego Super Miracle Puzzle (Android)
+        {5783843453453438113},  // 504456FA0F8F8CA1
+
+        // ARGONAVIS from BanG Dream! AAside (Android)
+        {1403972877097251940},  // 137BE9E4A5AA3464
+
+        // ARGONAVIS -Kimi ga Mita Stage e- (Android)
+        {301179795002661},      // 000111EBE2B1D525
+
 };
 
 #endif/*_HCA_KEYS_H_*/
