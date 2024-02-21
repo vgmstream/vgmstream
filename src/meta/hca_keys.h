@@ -13,7 +13,7 @@ typedef struct {
 
 
 /**
- * List of known keys, extracted from the game files (most from data analisys, some from 2ch.net/forums).
+ * List of known keys, extracted from the game files (most from data analysis, some from 2ch.net/forums).
  * CRI's tools expect an unsigned 64 bit numberic string, but keys are commonly found online in hex form.
  * Keys only use 56 bits though, so the upper 8 bits can be ignored.
  *
@@ -1295,6 +1295,9 @@ static const hcakey_info hcakey_list[] = {
 
         // ARGONAVIS -Kimi ga Mita Stage e- (Android)
         {301179795002661},      // 000111EBE2B1D525
+
+        // YuYuYui (Switch)
+        {3733383634313939},     // 000D437E1D5562D3
 
 };
 
