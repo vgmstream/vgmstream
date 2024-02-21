@@ -1296,6 +1296,9 @@ static const hcakey_info hcakey_list[] = {
         // ARGONAVIS -Kimi ga Mita Stage e- (Android)
         {301179795002661},      // 000111EBE2B1D525
 
+        // YuYuYui (Switch)
+        {3733383634313939},     // 000D437E1D5562D3
+
 };
 
 #endif/*_HCA_KEYS_H_*/
