@@ -416,6 +416,12 @@ a companion file:
 The key file can be `.(ext)key` (for the whole folder), or `(name).(ext)key"
 (for a single file). The format is made up to suit vgmstream.
 
+For example, if you have an encrypted HCA and its key string is *"123456789"*, make
+a text file named `.hcakey` (notice it starts with a dot), open it with a text editor
+and copy that key without quotes nor line endings: `123456789`. Save it, then play the
+HCA normally. vgmstream will see this key and use it automatically.
+
+
 ### Artificial files
 In some cases a file only has raw data, while important header info (codec type,
 sample rate, channels, etc) is stored in the .exe or other hard to locate places.
