@@ -1299,6 +1299,8 @@ static const hcakey_info hcakey_list[] = {
         // YuYuYui (Switch)
         {3733383634313939},     // 000D437E1D5562D3
 
+        // Pachislot Valvrave (iOS)
+        {2753732797542815},      // 009C8816134319F
 };
 
 #endif/*_HCA_KEYS_H_*/
