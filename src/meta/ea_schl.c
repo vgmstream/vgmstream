@@ -201,26 +201,31 @@ VGMSTREAM* init_vgmstream_ea_schl_video(STREAMFILE* sf) {
     int32_t(*read_32bit)(off_t, STREAMFILE*);
 
 
-    /* check extension */
+    /* checks */
     /* .uv: early */
     /* .dct: early-mid [ex. Need for Speed II SE (PC), FIFA 98 (PC)] */
     /* .wve: early-mid [Madden NFL 99 (PC)] */
     /* .mad: mid */
     /* .vp6: late */
-    if (check_extensions(sf, "uv,dct")) {
-        /* starts with audio header block */
-        if (read_32bitBE(0x00, sf) != EA_BLOCKID_HEADER) /* "SCHl" */
-            goto fail;
-    } else if (check_extensions(sf, "mad,wve")) {
-        /* check initial movie block id */
-        if (read_32bitBE(0x00, sf) != 0x4D41446B) /* "MADk" */
-            goto fail;
-    } else if (check_extensions(sf, "vp6")) {
-        /* check initial movie block id */
-        if (read_32bitBE(0x00, sf) != 0x4D566864) /* "MVhd" */
-            goto fail;
-    } else {
-        goto fail;
+    /* .mpc: SSX Tricky (PS2) */
+    if (is_id32be(0x00, sf, "SCHl")) {
+        if (!check_extensions(sf, "uv,dct"))
+            return NULL;
+    }
+    else if (is_id32be(0x00, sf, "MADk")) {
+        if (!check_extensions(sf, "mad,wve"))
+            return NULL;
+    }
+    else if (is_id32be(0x00, sf, "MVhd")) {
+        if (!check_extensions(sf, "vp6"))
+            return NULL;
+    }
+    else if (is_id32be(0x00, sf, "MPCh")) {
+        if (!check_extensions(sf, "mpc,lmpc"))
+            return NULL;
+    }
+    else {
+        return NULL;
     }
 
     /* use block size to check endianness */
