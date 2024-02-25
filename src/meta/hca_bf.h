@@ -5,6 +5,7 @@
 #include "../coding/coding.h"
 
 #ifdef HCA_BRUTEFORCE
+#define HCA_BF_CHUNK 0x48000008 //~1GB (int), extra size for keys in between chunks
 
 static void bruteforce_process_result(hca_keytest_t* hk, unsigned long long* p_keycode) {
     *p_keycode = hk->best_key;
@@ -34,7 +35,8 @@ typedef enum {
 static void bruteforce_hca_key_bin_type(STREAMFILE* sf, hca_codec_data* hca_data, unsigned long long* p_keycode, uint16_t subkey, HBF_type_t type) {
     STREAMFILE* sf_keys = NULL;
     uint8_t* buf = NULL;
-    uint32_t keys_size, bytes;
+    uint64_t keys_offset;
+    uint32_t keys_limit;
     int pos, step;
     uint64_t key = 0, old_key = 0;
     hca_keytest_t hk = {0};
@@ -48,16 +50,12 @@ static void bruteforce_hca_key_bin_type(STREAMFILE* sf, hca_codec_data* hca_data
 
     VGM_LOG("HCA BF: test keys.bin (type %i)\n", type);
 
-    keys_size = get_streamfile_size(sf_keys);
-
-    buf = malloc(keys_size);
+    buf = malloc(HCA_BF_CHUNK);
     if (!buf) {
         VGM_LOG("HCA BF: key file too big!\n");
         goto done;
     }
 
-    bytes = read_streamfile(buf, 0, keys_size, sf_keys);
-    if (bytes != keys_size) goto done;
 
     VGM_LOG("HCA BF: start .bin\n");
 
@@ -73,9 +71,36 @@ static void bruteforce_hca_key_bin_type(STREAMFILE* sf, hca_codec_data* hca_data
         default: goto done;
     }
 
+    /* main read */
+    keys_offset = 0;
+    keys_limit = 0;
     pos = 0;
-    while (pos < keys_size - 8) {
-        VGM_ASSERT(pos % 0x1000000 == 0, "HCA: pos %x...\n", pos);
+    while (true) {
+        /* read new chunk */
+        if (pos >= keys_limit) {
+            if (keys_offset + keys_limit == get_streamfile_size(sf_keys))
+                break;
+            if (keys_limit >= 8)
+                keys_offset += keys_limit - 8;
+
+            VGM_LOG("HCA: reading %llx + ...\n", (long long)keys_offset);
+            keys_limit = read_streamfile(buf, keys_offset, HCA_BF_CHUNK, sf_keys);
+            if (keys_limit == 0)
+                return;
+            pos = 0;
+        }
+
+        if (pos % 0x1000000 == 0) {
+            uint64_t pos_out = keys_offset + pos;
+            VGM_LOG("HCA: pos %llx...\n", (long long)pos_out);
+        }
+
+#ifdef HCA_BF_IGNORE_BAD_KEYS
+        if (!is_good_key(buf + pos, int_size)) {
+            pos += step;
+            continue;
+        }
+#endif
 
         /* keys are usually u64le but other orders may exist */
         switch(type) {
