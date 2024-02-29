@@ -1301,6 +1301,10 @@ static const hcakey_info hcakey_list[] = {
 
         // Pachislot Valvrave (iOS)
         {2753732797542815},      // 009C8816134319F
+
+        // Jujutsu Kaisen: Cursed Clash (multi)
+        {984703514306706654},    // DAA5EA10B547CDE
+
 };
 
 #endif/*_HCA_KEYS_H_*/

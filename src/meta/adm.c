@@ -213,8 +213,10 @@ static int parse_adm(adm_header_t* adm, STREAMFILE* sf) {
 
             /* idle engine */
             offset = read_u32le(0x10c, sf);
-            if (!parse_type(adm, sf, offset)) goto fail; /* SMP2 */
-            if (read_u32le(0x110, sf) != 1) goto fail;
+            if (offset != 0) { /* may not exist */
+                if (!parse_type(adm, sf, offset)) goto fail; /* SMP2 */
+                if (read_u32le(0x110, sf) != 1) goto fail;
+            }
             break;
 
         default:
