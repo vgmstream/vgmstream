@@ -414,6 +414,7 @@ static const char* extension_list[] = {
     "ovb", //txth/semi [namCollection: Tekken (PS2), Tekken 5: Tekken 1-3 (PS2)]
 
     "p04", //txth/reserved [Psychic Force 2012 (DC), Skies of Arcadia (DC)]
+    "p08", //txth/reserved [SoulCalibur (DC)]
     "p16", //txth/reserved [Astal (SAT)]
     "p1d", //txth/reserved [Farming Simulator 18 (3DS)]
     "p2a", //txth/reserved [Thunderhawk Operation Phoenix (PS2)]
