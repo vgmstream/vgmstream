@@ -23,7 +23,8 @@
 In_Module input_module;
 DWORD WINAPI __stdcall decode(void *arg);
 
-/* Winamp Play extension list, to accept and associate extensions in Windows */
+/* Winamp Play extension list, to accept and associate extensions in Windows
+ * (older versions of XMPlay also will crash with so many exts but can't autodetect version here) */
 #define EXTENSION_LIST_SIZE   (0x2000 * 6)
 /* fixed list to simplify but could also malloc/free on init/close */
 char working_extension_list[EXTENSION_LIST_SIZE] = {0};

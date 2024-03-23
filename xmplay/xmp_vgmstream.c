@@ -29,7 +29,7 @@
 #define SAMPLE_BUFFER_SIZE  1024
 
 /* XMPlay extension list, only needed to associate extensions in Windows */
-/*  with <v3.8.5.62, any more than ~1000 will crash XMplay's file list screen (but not using the non-native Winamp plugin?) */
+/*  with <v3.8.5.62, any more than ~1000 will crash XMplay's file list screen. */
 #define EXTENSION_LIST_SIZE  (0x2000 * 6)
 #define EXTENSION_LIST_SIZE_OLD  1000
 #define EXTENSION_LIST_SIZE_OLD_VERSION 0x0308053d /* less than v3.8.5.62 */
