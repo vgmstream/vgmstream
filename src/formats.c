@@ -297,7 +297,6 @@ static const char* extension_list[] = {
     "lbin", //fake extension for .bin (various)
     "ldat", //fake extension for .dat
     "ldt",
-    "leg",
     "lep",
     "lflac", //fake extension for .flac, FFmpeg/not parsed
     "lin",

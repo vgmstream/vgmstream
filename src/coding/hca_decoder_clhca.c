@@ -219,7 +219,9 @@ static unsigned int bitreader_peek(clData* br, int bitsize) {
     unsigned int v = 0;
     unsigned int bit_offset, bit_left;
 
-    if (!(bit + bitsize <= size))
+    if (bit + bitsize > size)
+        return v;
+    if (bitsize == 0) /* may happen when resolution is 0 (dequantize_coefficients) */
         return v;
 
     bit_offset = bitsize + bit_rem;

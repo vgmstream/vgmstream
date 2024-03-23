@@ -4,29 +4,29 @@
 
 
 /* ZSND - Z-Axis/Vicarious Visions games [X-Men Legends II (multi), Marvel Ultimate Alliance (multi)] */
-VGMSTREAM * init_vgmstream_zsnd(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
-    STREAMFILE *temp_streamFile = NULL;
-    off_t start_offset, name_offset;
-    size_t stream_size, name_size;
-    int loop_flag, channel_count, sample_rate, layers, layers2 = 0;
+VGMSTREAM* init_vgmstream_zsnd(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
+    STREAMFILE* temp_sf = NULL;
+    uint32_t start_offset, name_offset, stream_size, name_size;
+    int loop_flag, channels, sample_rate, layers, layers2 = 0;
     uint32_t codec;
-    int total_subsongs, target_subsong = streamFile->stream_index;
+    int total_subsongs, target_subsong = sf->stream_index;
     int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
     int16_t (*read_16bit)(off_t,STREAMFILE*) = NULL;
 
 
     /* checks */
+    if (!is_id32be(0x00,sf, "ZSND"))
+        return NULL;
+
     /* .zss/zsm: standard
      * .ens/enm: same for PS2
-     * .zsd: normal or compact [BMX XXX (Xbox), Aggresive Inline (Xbox)] */
-    if (!check_extensions(streamFile, "zss,zsm,ens,enm,zsd"))
-        goto fail;
-    if (read_32bitBE(0x00,streamFile) != 0x5A534E44) /* "ZSND" */
-        goto fail;
+     * .zsd: normal or compact [BMX XXX (Xbox), Aggresive Inline (Xbox), Dave Mirra Freestyle BMX (PS1/PS2)] */
+    if (!check_extensions(sf, "zss,zsm,ens,enm,zsd"))
+        return NULL;
     /* probably zss=stream, zsm=memory; no diffs other than size */
 
-    codec = read_32bitBE(0x04,streamFile);
+    codec = read_u32be(0x04,sf);
     /* 0x08: file size, but slightly bigger (+0x01~04) in some platforms */
     /* 0x0c: header end/first stream start (unneeded as all offsets are absolute) */
 
@@ -42,9 +42,9 @@ VGMSTREAM * init_vgmstream_zsnd(STREAMFILE *streamFile) {
 
     /* parse header tables */
     {
-        off_t header2_offset, header3_offset;
+        uint32_t header2_offset, header3_offset;
         int   table2_entries, table3_entries;
-        off_t table2_body, table3_body;
+        uint32_t table2_body, table3_body;
         int is_v1, i;
 
 
@@ -68,28 +68,28 @@ VGMSTREAM * init_vgmstream_zsnd(STREAMFILE *streamFile) {
          * table1 may have more entries than table2/3, and sometimes isn't set
          */
 
-        /* V1 has no table heads, rare [Aggresive Inline (Xbox)]
+        /* V1 has no table heads, rare [Aggresive Inline (Xbox), Dave Mirra Freestyle BMX (PS1/PS2)]
          * no apparent flag but we can test if table heads offsets appear */
-        is_v1 = read_32bit(0x14,streamFile) <= read_32bit(0x1c,streamFile) &&
-                read_32bit(0x1c,streamFile) <= read_32bit(0x24,streamFile) &&
-                read_32bit(0x24,streamFile) <= read_32bit(0x2c,streamFile) &&
-                read_32bit(0x2c,streamFile) <= read_32bit(0x34,streamFile) &&
-                read_32bit(0x34,streamFile) <= read_32bit(0x3c,streamFile) &&
-                read_32bit(0x3c,streamFile) <= read_32bit(0x44,streamFile);
+        is_v1 = read_32bit(0x14,sf) <= read_32bit(0x1c,sf) &&
+                read_32bit(0x1c,sf) <= read_32bit(0x24,sf) &&
+                read_32bit(0x24,sf) <= read_32bit(0x2c,sf) &&
+                read_32bit(0x2c,sf) <= read_32bit(0x34,sf) &&
+                read_32bit(0x34,sf) <= read_32bit(0x3c,sf) &&
+                read_32bit(0x3c,sf) <= read_32bit(0x44,sf);
 
         if (!is_v1) {
-            table2_entries = read_32bit(0x1c,streamFile);
-            table2_body    = read_32bit(0x24,streamFile);
+            table2_entries = read_32bit(0x1c,sf);
+            table2_body    = read_32bit(0x24,sf);
 
-            table3_entries = read_32bit(0x28,streamFile);
-            table3_body    = read_32bit(0x30,streamFile);
+            table3_entries = read_32bit(0x28,sf);
+            table3_body    = read_32bit(0x30,sf);
         }
         else {
-            table2_entries = read_32bit(0x18,streamFile);
-            table2_body    = read_32bit(0x1C,streamFile);
+            table2_entries = read_32bit(0x18,sf);
+            table2_body    = read_32bit(0x1C,sf);
 
-            table3_entries = read_32bit(0x20,streamFile);
-            table3_body    = read_32bit(0x24,streamFile);
+            table3_entries = read_32bit(0x20,sf);
+            table3_body    = read_32bit(0x24,sf);
         }
 
         total_subsongs = table3_entries;
@@ -102,23 +102,23 @@ VGMSTREAM * init_vgmstream_zsnd(STREAMFILE *streamFile) {
                 if (table2_entries == 0) goto fail;
 
                 header2_offset = table2_body + 0x18*(target_subsong-1);
-                layers       = read_16bit(header2_offset + 0x02,streamFile);
-                sample_rate  = read_32bit(header2_offset + 0x04,streamFile);
+                layers       = read_16bit(header2_offset + 0x02,sf);
+                sample_rate  = read_32bit(header2_offset + 0x04,sf);
 
                 header3_offset = table3_body + 0x4c*(target_subsong-1);
-                start_offset = read_32bit(header3_offset + 0x00,streamFile);
-                stream_size  = read_32bit(header3_offset + 0x04,streamFile);
+                start_offset = read_32bit(header3_offset + 0x00,sf);
+                stream_size  = read_32bit(header3_offset + 0x04,sf);
                 name_offset  = header3_offset + 0x0c;
                 name_size    = 0x40;
                 break;
 
             case 0x58424F58: { /* "XBOX" */
-                size_t entry2_size = is_v1 || check_extensions(streamFile, "zsd") ? 0x14 : 0x1c;
+                size_t entry2_size = is_v1 || check_extensions(sf, "zsd") ? 0x14 : 0x1c;
 
                 /* BMX has unordered stream headers, and not every stream has a header */
                 header2_offset = 0;
                 for (i = 0; i < table2_entries; i++) {
-                    int16_t id = read_16bit(table2_body + entry2_size*i + 0x00,streamFile);
+                    int16_t id = read_16bit(table2_body + entry2_size*i + 0x00,sf);
 
                     if (id >= 0 && id + 1 != target_subsong) /* can be -1 == deleted entry */
                         continue;
@@ -130,8 +130,8 @@ VGMSTREAM * init_vgmstream_zsnd(STREAMFILE *streamFile) {
                     if (table2_entries > 0) {
                         /* seems usable for sfx, meh */
                         header2_offset = table2_body + entry2_size*0;
-                        layers       = read_16bit(header2_offset + 0x02,streamFile);
-                        sample_rate  = read_32bit(header2_offset + 0x04,streamFile);
+                        layers       = read_16bit(header2_offset + 0x02,sf);
+                        sample_rate  = read_32bit(header2_offset + 0x04,sf);
                     }
                     else {
                         layers       = 0;
@@ -139,16 +139,16 @@ VGMSTREAM * init_vgmstream_zsnd(STREAMFILE *streamFile) {
                     }
                 }
                 else {
-                    layers       = read_16bit(header2_offset + 0x02,streamFile);
-                    sample_rate  = read_32bit(header2_offset + 0x04,streamFile);
+                    layers       = read_16bit(header2_offset + 0x02,sf);
+                    sample_rate  = read_32bit(header2_offset + 0x04,sf);
                     if (entry2_size > 0x18) {
-                        layers2 = read_32bit(header2_offset + 0x18,streamFile);
+                        layers2 = read_32bit(header2_offset + 0x18,sf);
                     }
                 }
 
                 header3_offset = table3_body + 0x54*(target_subsong-1);
-                start_offset = read_32bit(header3_offset + 0x00,streamFile);
-                stream_size  = read_32bit(header3_offset + 0x04,streamFile);
+                start_offset = read_32bit(header3_offset + 0x00,sf);
+                stream_size  = read_32bit(header3_offset + 0x04,sf);
                 /* 0x08: flags? related to looping? (not channels) */
               //loop_end     = read_32bit(header3_offset + 0x10,streamFile);
                 name_offset  = header3_offset + 0x14;
@@ -162,7 +162,7 @@ VGMSTREAM * init_vgmstream_zsnd(STREAMFILE *streamFile) {
                         char filename[PATH_LIMIT];
 
                         /* stream length isn't enough */
-                        get_streamfile_filename(streamFile, filename, sizeof(filename));
+                        get_streamfile_filename(sf, filename, sizeof(filename));
                         is_music = strcmp(filename, "music.zsd") == 0;
                     }
                     else {
@@ -183,15 +183,22 @@ VGMSTREAM * init_vgmstream_zsnd(STREAMFILE *streamFile) {
             }
 
             case 0x50533220: /* "PS2 " (also for PSP) */
-                if (table2_entries == 0) goto fail;
-
-                header2_offset = table2_body + 0x10*(target_subsong-1);
-                sample_rate  = read_16bit(header2_offset + 0x02,streamFile);
-                layers       = read_16bit(header2_offset + 0x04,streamFile);
+            case 0x50535820: /* "PSX "  */
+                if (table2_entries == 0) {
+                    /* rare, seen in MUSIC.ZSD but SFX*.ZSD do have headers [Dave Mirra Freestyle BMX (PS1/PS2)] */
+                    sample_rate = 0x1000;
+                    layers = 0x02;
+                }
+                else {
+                    uint32_t header2_spacing = (is_v1) ? 0x0c : 0x10;
+                    header2_offset = table2_body + header2_spacing * (target_subsong-1);
+                    sample_rate  = read_16bit(header2_offset + 0x02,sf);
+                    layers       = read_16bit(header2_offset + 0x04,sf);
+                }
 
                 header3_offset = table3_body + 0x08*(target_subsong-1);
-                start_offset = read_32bit(header3_offset + 0x00,streamFile);
-                stream_size  = read_32bit(header3_offset + 0x04,streamFile);
+                start_offset = read_32bit(header3_offset + 0x00,sf);
+                stream_size  = read_32bit(header3_offset + 0x04,sf);
                 name_offset  = 0;
                 name_size    = 0;
 
@@ -203,12 +210,12 @@ VGMSTREAM * init_vgmstream_zsnd(STREAMFILE *streamFile) {
 
             case 0x47435542: /* "GCUB" (also for Wii) */
                 header2_offset = table2_body + 0x18*(target_subsong-1);
-                layers        = read_16bit(header2_offset + 0x02,streamFile);
-                sample_rate   = read_32bit(header2_offset + 0x04,streamFile);
+                layers        = read_16bit(header2_offset + 0x02,sf);
+                sample_rate   = read_32bit(header2_offset + 0x04,sf);
 
                 header3_offset = table3_body + 0x0c*(target_subsong-1);
-                start_offset  = read_32bit(header3_offset + 0x00,streamFile);
-                stream_size   = read_32bit(header3_offset + 0x04,streamFile);
+                start_offset  = read_32bit(header3_offset + 0x00,sf);
+                stream_size   = read_32bit(header3_offset + 0x04,sf);
                 /* 0x08: "DSP " for some reason */
                 name_offset   = 0;
                 name_size     = 0;
@@ -220,17 +227,17 @@ VGMSTREAM * init_vgmstream_zsnd(STREAMFILE *streamFile) {
 
         /* maybe flags? */
         switch (layers) {
-            case 0x00: channel_count = 1; break;
-            case 0x01: channel_count = 1; break; /* set when looping? */
-            case 0x02: channel_count = 2; break;
-            case 0x22: channel_count = 4; break;
+            case 0x00: channels = 1; break;
+            case 0x01: channels = 1; break; /* set when looping? */
+            case 0x02: channels = 2; break;
+            case 0x22: channels = 4; break;
             default:
-                VGM_LOG("ZSND: unknown layers\n");
+                VGM_LOG("ZSND: unknown flags %x\n", layers);
                 goto fail;
         }
 
         if (layers2) {
-            channel_count = channel_count * layers2;
+            channels = channels * layers2;
         }
 
         loop_flag = 0;
@@ -238,7 +245,7 @@ VGMSTREAM * init_vgmstream_zsnd(STREAMFILE *streamFile) {
 
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count, loop_flag);
+    vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
     vgmstream->meta_type = meta_ZSND;
@@ -252,15 +259,15 @@ VGMSTREAM * init_vgmstream_zsnd(STREAMFILE *streamFile) {
             //vgmstream->layout_type = layout_interleave; /* interleaved stereo for >2ch*/
             //vgmstream->interleave_block_size = 0x2000 * 2 / channel_count;
 
-            vgmstream->num_samples = ima_bytes_to_samples(stream_size, channel_count);
+            vgmstream->num_samples = ima_bytes_to_samples(stream_size, channels);
             break;
 
         case 0x58424F58: /* "XBOX" */
             vgmstream->coding_type = coding_XBOX_IMA;
             vgmstream->layout_type = layout_interleave; /* interleaved stereo for >2ch*/
-            vgmstream->interleave_block_size = 0x9000 * 2 / channel_count;
+            vgmstream->interleave_block_size = 0x9000 * 2 / channels;
 
-            vgmstream->num_samples = xbox_ima_bytes_to_samples(stream_size, channel_count);
+            vgmstream->num_samples = xbox_ima_bytes_to_samples(stream_size, channels);
 
             /* very rarely entries refer to external .wma, but redoing the logic to handle only real
              * streams handle is a pain, so signal this case with an empty file [Aggresive Inline (Xbox)] */
@@ -270,11 +277,12 @@ VGMSTREAM * init_vgmstream_zsnd(STREAMFILE *streamFile) {
             break;
 
         case 0x50533220: /* "PS2 " (also for PSP) */
+        case 0x50535820: /* "PSX " */
             vgmstream->coding_type = coding_PSX;
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = 0x800;
 
-            vgmstream->num_samples = ps_bytes_to_samples(stream_size, channel_count);
+            vgmstream->num_samples = ps_bytes_to_samples(stream_size, channels);
             break;
 
         case 0x47435542: /* "GCUB" (also for Wii) */
@@ -283,12 +291,12 @@ VGMSTREAM * init_vgmstream_zsnd(STREAMFILE *streamFile) {
             vgmstream->interleave_block_size = 0x8000;
 
             /* has a full DSP header, but num_samples may vary slighly between channels, so calc manually */
-            dsp_read_coefs_be(vgmstream, streamFile, start_offset+0x1c,0x60);
-            dsp_read_hist_be(vgmstream, streamFile, start_offset+0x40, 0x60);
-            start_offset += 0x60*channel_count;
-            stream_size -= 0x60*channel_count;
+            dsp_read_coefs_be(vgmstream, sf, start_offset+0x1c,0x60);
+            dsp_read_hist_be(vgmstream, sf, start_offset+0x40, 0x60);
+            start_offset += 0x60*channels;
+            stream_size -= 0x60*channels;
 
-            vgmstream->num_samples = dsp_bytes_to_samples(stream_size, channel_count);
+            vgmstream->num_samples = dsp_bytes_to_samples(stream_size, channels);
             break;
 
         default:
@@ -299,20 +307,19 @@ VGMSTREAM * init_vgmstream_zsnd(STREAMFILE *streamFile) {
     vgmstream->stream_size = stream_size;
 
     if (name_offset) {
-        read_string(vgmstream->stream_name,name_size, name_offset,streamFile);
+        read_string(vgmstream->stream_name,name_size, name_offset,sf);
     }
 
+    temp_sf = setup_zsnd_streamfile(sf, start_offset, stream_size); /* fixes last interleave reads */
+    if (!temp_sf) goto fail;
 
-    temp_streamFile = setup_zsnd_streamfile(streamFile, start_offset, stream_size); /* fixes last interleave reads */
-    if (!temp_streamFile) goto fail;
-
-    if (!vgmstream_open_stream(vgmstream,temp_streamFile,start_offset))
+    if (!vgmstream_open_stream(vgmstream,temp_sf,start_offset))
         goto fail;
-    close_streamfile(temp_streamFile);
+    close_streamfile(temp_sf);
     return vgmstream;
 
 fail:
-    close_streamfile(temp_streamFile);
+    close_streamfile(temp_sf);
     close_vgmstream(vgmstream);
     return NULL;
 }

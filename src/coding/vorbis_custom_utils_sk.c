@@ -7,7 +7,7 @@
 /* DEFS                                                                         */
 /* **************************************************************************** */
 
-static int get_page_info(STREAMFILE* sf, off_t page_offset, off_t* p_packet_offset, size_t* p_packet_size, int* p_page_packets, int target_packet);
+static bool get_page_info(STREAMFILE* sf, off_t page_offset, off_t* p_packet_offset, size_t* p_packet_size, int* p_page_packets, int target_packet);
 static int build_header(uint8_t* buf, size_t bufsize, STREAMFILE* sf, off_t packet_offset, size_t packet_size);
 
 
@@ -19,7 +19,7 @@ static int build_header(uint8_t* buf, size_t bufsize, STREAMFILE* sf, off_t pack
  * SK just replaces the id 0x4F676753 ("OggS") by 0x11534B10 (\11"SK"\10), and the word "vorbis" by "SK"
  * in init packets (for obfuscation, surely). So essentially we are parsing regular Ogg here.
  *
- * A simpler way to implement this would be in ogg_vorbis_file with read callbacks (pretend this is proof of concept).
+ * A simpler way to implement this may be using ogg_vorbis_file with read callbacks (pretend this is proof of concept).
  */
 int vorbis_custom_setup_init_sk(STREAMFILE* sf, off_t start_offset, vorbis_custom_codec_data* data) {
     off_t offset = start_offset;
@@ -27,7 +27,7 @@ int vorbis_custom_setup_init_sk(STREAMFILE* sf, off_t start_offset, vorbis_custo
     size_t id_size = 0, comment_size = 0, setup_size = 0;
     int page_packets;
 
-    /* rebuild header packets, they are standard except the "vorbis" keyword is replaced by "SK" */
+    /* standard header packets except the "vorbis" keyword is replaced by "SK" */
 
     /* first page has the id packet */
     if (!get_page_info(sf, offset, &id_offset, &id_size, &page_packets, 0)) goto fail;
@@ -69,12 +69,12 @@ int vorbis_custom_parse_packet_sk(VGMSTREAMCHANNEL* stream, vorbis_custom_codec_
     off_t packet_offset = 0;
     size_t packet_size = 0;
     int page_packets;
-    int res;
+    bool ok;
 
     /* read OggS/SK page and get current packet */
-    res = get_page_info(stream->streamfile, stream->offset, &packet_offset, &packet_size, &page_packets, data->current_packet);
+    ok = get_page_info(stream->streamfile, stream->offset, &packet_offset, &packet_size, &page_packets, data->current_packet);
     data->current_packet++;
-    if (!res || packet_size > data->buffer_size) goto fail;
+    if (!ok || packet_size > data->buffer_size) goto fail;
 
     /* read raw block */
     data->op.bytes = read_streamfile(data->buffer, packet_offset, packet_size, stream->streamfile);
@@ -113,7 +113,7 @@ fail:
  *  0x--(n): data
  * Reference: https://xiph.org/ogg/doc/framing.html
  */
-static int get_page_info(STREAMFILE* sf, off_t page_offset, off_t* p_packet_offset, size_t* p_packet_size, int* p_page_packets, int target_packet) {
+static bool get_page_info(STREAMFILE* sf, off_t page_offset, off_t* p_packet_offset, size_t* p_packet_size, int* p_page_packets, int target_packet) {
     off_t table_offset, current_packet_offset, target_packet_offset = 0;
     size_t total_packets_size = 0, current_packet_size = 0, target_packet_size = 0;
     int page_packets = 0;
@@ -121,18 +121,18 @@ static int get_page_info(STREAMFILE* sf, off_t page_offset, off_t* p_packet_offs
     int i;
 
 
-    if (read_32bitBE(page_offset+0x00, sf) != 0x11534B10) /* \11"SK"\10 */
+    if (read_u32be(page_offset+0x00, sf) != 0x11534B10) /* \11"SK"\10 */
         goto fail; /* not a valid page */
     /* No point on validating other stuff, but they look legal enough (CRC too it seems) */
 
-    segments = (uint8_t)read_8bit(page_offset+0x1a, sf);
+    segments = read_u8(page_offset+0x1a, sf);
 
     table_offset = page_offset + 0x1b;
     current_packet_offset = page_offset + 0x1b + segments; /* first packet starts after segments */
 
     /* process segments */
     for (i = 0; i < segments; i++) {
-        uint8_t segment_size = (uint8_t)read_8bit(table_offset, sf);
+        uint8_t segment_size = read_u8(table_offset, sf);
         total_packets_size += segment_size;
         current_packet_size += segment_size;
         table_offset += 0x01;
@@ -169,19 +169,21 @@ fail:
     return 0;
 }
 
-/* rebuild a "SK" header packet to a "vorbis" one */
+/* rebuild a custom header packet into a "vorbis" one */
 static int build_header(uint8_t* buf, size_t bufsize, STREAMFILE* sf, off_t packet_offset, size_t packet_size) {
     int bytes;
+    int vorbis_word_size = 0x02; /* "SK" */
 
-    if (0x07+packet_size-0x03 > bufsize) return 0;
-
-    put_u8(buf+0x00, read_8bit(packet_offset,sf)); /* packet_type */
-    memcpy(buf+0x01, "vorbis", 6); /* id */
-    bytes = read_streamfile(buf+0x07,packet_offset+0x03, packet_size-0x03,sf); /* copy rest (all except id+"SK") */
-    if (packet_size-0x03 != bytes)
+    if (0x07 + packet_size - 0x01 - vorbis_word_size > bufsize)
         return 0;
 
-    return 0x07+packet_size-0x03;
+    put_u8(buf+0x00, read_u8(packet_offset,sf)); /* packet_type */
+    memcpy(buf+0x01, "vorbis", 6); /* id */
+    bytes = read_streamfile(buf+0x07, packet_offset + 0x01 + vorbis_word_size, packet_size - 0x01 - vorbis_word_size, sf); /* copy rest (all except id+"(vorbis word)") */
+    if (packet_size - 0x03 != bytes)
+        return 0;
+
+    return 0x07 + packet_size - 0x03;
 }
 
 #endif

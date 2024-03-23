@@ -10,8 +10,7 @@
 /* DEFS                                                                         */
 /* **************************************************************************** */
 
-static int get_packet_header(STREAMFILE* sf, off_t* offset, size_t* size);
-static int build_header_comment(uint8_t* buf, size_t bufsize);
+static int get_packet_header(STREAMFILE* sf, uint32_t* offset, uint32_t* size);
 
 
 /* **************************************************************************** */
@@ -20,36 +19,27 @@ static int build_header_comment(uint8_t* buf, size_t bufsize);
 
 /**
  * VID1 removes the Ogg layer and uses a block layout with custom packet headers.
+ * Has standard id/setup packets but removes comment packet.
  *
  * Info from hcs's vid1_2ogg: https://github.com/hcs64/vgm_ripping/tree/master/demux/vid1_2ogg
  */
 int vorbis_custom_setup_init_vid1(STREAMFILE* sf, off_t start_offset, vorbis_custom_codec_data* data) {
-    off_t offset = start_offset;
-    size_t packet_size = 0;
+    uint32_t offset = start_offset;
+    uint32_t packet_size = 0;
 
-    /* read header packets (id/setup), each with an VID1 header */
-
-    /* normal identificacion packet */
     get_packet_header(sf, &offset, &packet_size);
-    if (packet_size > data->buffer_size) goto fail;
-    data->op.bytes = read_streamfile(data->buffer,offset,packet_size, sf);
-    if (vorbis_synthesis_headerin(&data->vi, &data->vc, &data->op) != 0) goto fail; /* parse identification header */
-    offset += packet_size;
+    if (!load_header_packet(sf, data, packet_size, 0x00, &offset)) /* identificacion packet */
+        goto fail;
 
-    /* generate comment packet */
     data->op.bytes = build_header_comment(data->buffer, data->buffer_size);
-    if (!data->op.bytes) goto fail;
-    if (vorbis_synthesis_headerin(&data->vi, &data->vc, &data->op) !=0 ) goto fail; /* parse comment header */
+    if (vorbis_synthesis_headerin(&data->vi, &data->vc, &data->op) != 0)/* comment packet */
+        goto fail; 
 
-    /* normal setup packet */
     get_packet_header(sf, &offset, &packet_size);
-    if (packet_size > data->buffer_size) goto fail;
-    data->op.bytes = read_streamfile(data->buffer,offset,packet_size, sf);
-    if (vorbis_synthesis_headerin(&data->vi, &data->vc, &data->op) != 0) goto fail; /* parse setup header */
-    offset += packet_size;
+    if (!load_header_packet(sf, data, packet_size, 0x00, &offset)) /* setup packet */
+        goto fail;
 
     return 1;
-
 fail:
     return 0;
 }
@@ -60,23 +50,23 @@ int vorbis_custom_parse_packet_vid1(VGMSTREAMCHANNEL* stream, vorbis_custom_code
 
 
     /* test block start */
-    if (read_32bitBE(stream->offset + 0x00,stream->streamfile) == 0x4652414D) { /* "FRAM" */
+    if (is_id32be(stream->offset + 0x00,stream->streamfile, "FRAM")) {
         stream->offset += 0x20;
 
-        if (read_32bitBE(stream->offset + 0x00,stream->streamfile) == 0x56494444) { /* "VIDD"*/
-            stream->offset += read_32bitBE(stream->offset + 0x04, stream->streamfile);
+        if (is_id32be(stream->offset + 0x00,stream->streamfile, "VIDD")) {
+            stream->offset += read_u32be(stream->offset + 0x04, stream->streamfile);
         }
 
-        if (read_32bitBE(stream->offset + 0x00,stream->streamfile) == 0x41554444) { /* "AUDD" */
+        if (is_id32be(stream->offset + 0x00,stream->streamfile, "AUDD")) {
             data->block_offset = stream->offset;
-            data->block_size   = read_32bitBE(stream->offset + 0x0c,stream->streamfile);
+            data->block_size   = read_u32be(stream->offset + 0x0c,stream->streamfile);
             stream->offset += 0x14; /* actual start, rest is chunk sizes and maybe granule info */
         }
     }
 
 
     /* get packet info the VID1 header */
-    get_packet_header(stream->streamfile, &stream->offset, (size_t*)&data->op.bytes);
+    get_packet_header(stream->streamfile, (uint32_t*)&stream->offset, (uint32_t*)&data->op.bytes);
     if (data->op.bytes == 0 || data->op.bytes > data->buffer_size) goto fail; /* EOF or end padding */
 
     /* read raw block */
@@ -88,7 +78,7 @@ int vorbis_custom_parse_packet_vid1(VGMSTREAMCHANNEL* stream, vorbis_custom_code
 
     /* test block end (weird size calc but seems ok) */
     if ((stream->offset - (data->block_offset + 0x14)) >= (data->block_size - 0x06)) {
-        stream->offset = data->block_offset + read_32bitBE(data->block_offset + 0x04,stream->streamfile);
+        stream->offset = data->block_offset + read_u32be(data->block_offset + 0x04,stream->streamfile);
     }
 
     return 1;
@@ -102,23 +92,8 @@ fail:
 /* INTERNAL HELPERS                                                             */
 /* **************************************************************************** */
 
-static int build_header_comment(uint8_t* buf, size_t bufsize) {
-    int bytes = 0x19;
-
-    if (bytes > bufsize) return 0;
-
-    put_u8   (buf+0x00, 0x03);            /* packet_type (comments) */
-    memcpy   (buf+0x01, "vorbis", 6);     /* id */
-    put_u32le(buf+0x07, 0x09);            /* vendor_length */
-    memcpy   (buf+0x0b, "vgmstream", 9);  /* vendor_string */
-    put_u32le(buf+0x14, 0x00);            /* user_comment_list_length */
-    put_u8   (buf+0x18, 0x01);            /* framing_flag (fixed) */
-
-    return bytes;
-}
-
 /* read header in Vorbis bitpacking format  */
-static int get_packet_header(STREAMFILE* sf, off_t* offset, size_t* size) {
+static int get_packet_header(STREAMFILE* sf, uint32_t* offset, uint32_t* size) {
     uint8_t ibuf[0x04]; /* header buffer */
     size_t ibufsize = 0x04; /* header ~max */
     bitstream_t ib = {0};
