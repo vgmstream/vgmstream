@@ -23,9 +23,6 @@ typedef struct {
     uint8_t inxt[0x01];
 } wpacket_t;
 
-static size_t build_header_identification(uint8_t* buf, size_t bufsize, vorbis_custom_config* cfg);
-static size_t build_header_comment(uint8_t* buf, size_t bufsize);
-
 static int read_packet(wpacket_t* wp, uint8_t* ibuf, size_t ibufsize, STREAMFILE* sf, off_t offset, vorbis_custom_codec_data* data, int is_setup);
 static size_t rebuild_packet(uint8_t* obuf, size_t obufsize, wpacket_t* wp, STREAMFILE* sf, off_t offset, vorbis_custom_codec_data* data);
 static size_t rebuild_setup(uint8_t* obuf, size_t obufsize, wpacket_t* wp, STREAMFILE* sf, off_t offset, vorbis_custom_codec_data* data);
@@ -64,44 +61,43 @@ int vorbis_custom_setup_init_wwise(STREAMFILE* sf, off_t start_offset, vorbis_cu
         ok = read_packet(&wp, data->buffer, data->buffer_size, sf, offset, data, 1);
         if (!ok) goto fail;
         data->op.bytes = wp.packet_size;
-        if (vorbis_synthesis_headerin(&data->vi, &data->vc, &data->op) != 0) goto fail;
+        if (vorbis_synthesis_headerin(&data->vi, &data->vc, &data->op) != 0)
+            goto fail;
         offset += wp.header_size + wp.packet_size;
 
         /* normal comment packet */
         ok = read_packet(&wp, data->buffer, data->buffer_size, sf, offset, data, 1);
         if (!ok) goto fail;
         data->op.bytes = wp.packet_size;
-        if (vorbis_synthesis_headerin(&data->vi, &data->vc, &data->op) != 0) goto fail;
+        if (vorbis_synthesis_headerin(&data->vi, &data->vc, &data->op) != 0)
+            goto fail;
         offset += wp.header_size + wp.packet_size;
 
         /* normal setup packet */
         ok = read_packet(&wp, data->buffer, data->buffer_size, sf, offset, data, 1);
         if (!ok) goto fail;
         data->op.bytes = wp.packet_size;
-        if (vorbis_synthesis_headerin(&data->vi, &data->vc, &data->op) != 0) goto fail;
+        if (vorbis_synthesis_headerin(&data->vi, &data->vc, &data->op) != 0)
+            goto fail;
         offset += wp.header_size + wp.packet_size;
     }
     else {
         /* rebuild headers */
 
-        /* new identificacion packet */
         data->op.bytes = build_header_identification(data->buffer, data->buffer_size, &data->config);
-        if (!data->op.bytes) goto fail;
-        if (vorbis_synthesis_headerin(&data->vi, &data->vc, &data->op) != 0) goto fail; /* parse identification header */
+        if (vorbis_synthesis_headerin(&data->vi, &data->vc, &data->op) != 0) /* identification packet */
+            goto fail;
 
-        /* new comment packet */
         data->op.bytes = build_header_comment(data->buffer, data->buffer_size);
-        if (!data->op.bytes) goto fail;
-        if (vorbis_synthesis_headerin(&data->vi, &data->vc, &data->op) !=0 ) goto fail; /* parse comment header */
+        if (vorbis_synthesis_headerin(&data->vi, &data->vc, &data->op) !=0 ) /* comment packet */
+            goto fail;
 
-        /* rebuild setup packet */
         data->op.bytes = rebuild_setup(data->buffer, data->buffer_size, &wp, sf, start_offset, data);
-        if (!data->op.bytes) goto fail;
-        if (vorbis_synthesis_headerin(&data->vi, &data->vc, &data->op) != 0) goto fail; /* parse setup header */
+        if (vorbis_synthesis_headerin(&data->vi, &data->vc, &data->op) != 0) /* setup packet */
+            goto fail;
     }
 
     return 1;
-
 fail:
     return 0;
 }
@@ -258,44 +254,6 @@ static size_t rebuild_setup(uint8_t* obuf, size_t obufsize, wpacket_t* wp, STREA
 fail:
     return 0;
 }
-
-static size_t build_header_identification(uint8_t* buf, size_t bufsize, vorbis_custom_config* cfg) {
-    size_t bytes = 0x1e;
-    uint8_t blocksizes;
-
-    if (bytes > bufsize) return 0;
-
-    blocksizes = (cfg->blocksize_0_exp << 4) | (cfg->blocksize_1_exp);
-
-    put_u8   (buf+0x00, 0x01);            /* packet_type (id) */
-    memcpy   (buf+0x01, "vorbis", 6);     /* id */
-    put_u32le(buf+0x07, 0x00);            /* vorbis_version (fixed) */
-    put_u8   (buf+0x0b, cfg->channels);   /* audio_channels */
-    put_u32le(buf+0x0c, cfg->sample_rate);/* audio_sample_rate */
-    put_u32le(buf+0x10, 0x00);            /* bitrate_maximum (optional hint) */
-    put_u32le(buf+0x14, 0x00);            /* bitrate_nominal (optional hint) */
-    put_u32le(buf+0x18, 0x00);            /* bitrate_minimum (optional hint) */
-    put_u8   (buf+0x1c, blocksizes);      /* blocksize_0 + blocksize_1 nibbles */
-    put_u8   (buf+0x1d, 0x01);            /* framing_flag (fixed) */
-
-    return bytes;
-}
-
-static size_t build_header_comment(uint8_t* buf, size_t bufsize) {
-    size_t bytes = 0x19;
-
-    if (bytes > bufsize) return 0;
-
-    put_u8   (buf+0x00, 0x03);            /* packet_type (comments) */
-    memcpy   (buf+0x01, "vorbis", 6);     /* id */
-    put_u32le(buf+0x07, 0x09);            /* vendor_length */
-    memcpy   (buf+0x0b, "vgmstream", 9);  /* vendor_string */
-    put_u32le(buf+0x14, 0x00);            /* user_comment_list_length */
-    put_u8   (buf+0x18, 0x01);            /* framing_flag (fixed) */
-
-    return bytes;
-}
-
 
 /* copy packet bytes, where input/output bufs may not be byte-aligned (so no memcpy) */
 static int copy_bytes(bitstream_t* ob, bitstream_t* ib, uint32_t bytes) {

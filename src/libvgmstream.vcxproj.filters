@@ -658,6 +658,9 @@
     <ClCompile Include="coding\vorbis_custom_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="coding\vorbis_custom_utils.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="coding\vorbis_custom_utils_awc.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
