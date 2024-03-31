@@ -168,6 +168,13 @@ void input_vgmstream::get_info(t_uint32 p_subsong, file_info & p_info, abort_cal
     if (get_description_tag(temp,description,"stream count: ")) p_info.meta_set("stream_count",temp);
     if (get_description_tag(temp,description,"stream index: ")) p_info.meta_set("stream_index",temp);
     if (get_description_tag(temp,description,"stream name: ")) p_info.meta_set("stream_name",temp);
+    if (loop_end) {
+        p_info.meta_set("loop_start", pfc::format_int(loop_start));
+        p_info.meta_set("loop_end", pfc::format_int(loop_end));
+        // has extra text info
+        //if (get_description_tag(temp,description,"loop start: ")) p_info.meta_set("loop_start",temp);
+        //if (get_description_tag(temp,description,"loop end: ")) p_info.meta_set("loop_end",temp); 
+    }
 
     /* get external file tags */
     //todo optimize and don't parse tags again for this session (not sure how), seems foobar

@@ -25,7 +25,6 @@ typedef enum {
     AICA = 10,          /* YAMAHA AICA ADPCM (Dreamcast games) */
     MSADPCM = 11,       /* MS ADPCM (Windows games) */
     NGC_DSP = 12,       /* NGC DSP (Nintendo games) */
-    PCM8_U_int = 13,    /* 8-bit unsigned PCM (interleaved) */
     PSX_bf = 14,        /* PS-ADPCM with bad flags */
     MS_IMA = 15,        /* Microsoft IMA ADPCM */
     PCM8_U = 16,        /* 8-bit unsigned PCM */
@@ -79,6 +78,7 @@ typedef struct {
     uint32_t interleave_last;
     uint32_t interleave_first;
     uint32_t interleave_first_skip;
+    uint32_t frame_size;
     uint32_t channels;
     uint32_t sample_rate;
 
@@ -264,7 +264,6 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
         case PCM16BE:       coding = coding_PCM16BE; break;
         case PCM8:          coding = coding_PCM8; break;
         case PCM8_U:        coding = coding_PCM8_U; break;
-        case PCM8_U_int:    coding = coding_PCM8_U_int; break;
         case PCM8_SB:       coding = coding_PCM8_SB; break;
         case ULAW:          coding = coding_ULAW; break;
         case ALAW:          coding = coding_ALAW; break;
@@ -335,9 +334,6 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
 
     /* codec specific (taken from GENH with minimal changes) */
     switch (coding) {
-        case coding_PCM8_U_int:
-            vgmstream->layout_type = layout_none;
-            break;
         case coding_PCM24LE:
         case coding_PCM24BE:
         case coding_PCM16LE:
@@ -457,20 +453,24 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
             break;
 
         case coding_MS_IMA:
-            if (!txth.interleave) goto fail; /* creates garbage */
-
-            vgmstream->interleave_block_size = txth.interleave;
+            vgmstream->interleave_block_size = txth.frame_size ? txth.frame_size : txth.interleave;
             vgmstream->layout_type = layout_none;
 
             vgmstream->allow_dual_stereo = 1; //???
             break;
 
         case coding_MSADPCM:
-            if (vgmstream->channels > 2) goto fail;
-            if (!txth.interleave) goto fail;
-
-            vgmstream->frame_size = txth.interleave;
-            vgmstream->layout_type = layout_none;
+            if (vgmstream->channels > 2) goto fail; //can't handle
+            if (txth.interleave && txth.frame_size) {
+                coding = coding_MSADPCM_int;
+                vgmstream->frame_size = txth.frame_size;
+                vgmstream->interleave_block_size = txth.interleave;
+                vgmstream->layout_type = layout_interleave;
+            }
+            else {
+                vgmstream->frame_size = txth.frame_size ? txth.frame_size : txth.interleave;
+                vgmstream->layout_type = layout_none;
+            }
             break;
 
         case coding_XBOX_IMA:
@@ -974,7 +974,6 @@ static txth_codec_t parse_codec(txth_header* txth, const char* val) {
     else if (is_string(val,"PCM16LE"))      return PCM16LE;
     else if (is_string(val,"PCM8"))         return PCM8;
     else if (is_string(val,"PCM8_U"))       return PCM8_U;
-    else if (is_string(val,"PCM8_U_int"))   return PCM8_U_int;
     else if (is_string(val,"PCM8_SB"))      return PCM8_SB;
     else if (is_string(val,"SDX2"))         return SDX2;
     else if (is_string(val,"DVI_IMA"))      return DVI_IMA;
@@ -1119,6 +1118,9 @@ static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char* key, cha
             if (txth->data_size && txth->data_size > skip)
                 txth->data_size -= skip;
         }
+    }
+    else if (is_string(key,"frame_size")) {
+        if (!parse_num(txth->sf_head,txth,val, &txth->frame_size)) goto fail;
     }
 
     /* BASE CONFIG */
@@ -2026,6 +2028,7 @@ static int parse_num(STREAMFILE* sf, txth_header* txth, const char* val, uint32_
             else if ((n = is_string_field(val,"interleave_last")))      value = txth->interleave_last;
             else if ((n = is_string_field(val,"interleave_first")))     value = txth->interleave_first;
             else if ((n = is_string_field(val,"interleave_first_skip")))value = txth->interleave_first_skip;
+            else if ((n = is_string_field(val,"frame_size")))           value = txth->frame_size;
             else if ((n = is_string_field(val,"channels")))             value = txth->channels;
             else if ((n = is_string_field(val,"sample_rate")))          value = txth->sample_rate;
             else if ((n = is_string_field(val,"start_offset")))         value = txth->start_offset;
@@ -2133,7 +2136,7 @@ fail:
 static int get_bytes_to_samples(txth_header* txth, uint32_t bytes) {
     switch(txth->codec) {
         case MS_IMA:
-            return ms_ima_bytes_to_samples(bytes, txth->interleave, txth->channels);
+            return ms_ima_bytes_to_samples(bytes, txth->frame_size ? txth->frame_size : txth->interleave, txth->channels);
         case XBOX:
             return xbox_ima_bytes_to_samples(bytes, txth->channels);
         case NGC_DSP:
@@ -2150,7 +2153,6 @@ static int get_bytes_to_samples(txth_header* txth, uint32_t bytes) {
         case PCM16LE:
             return pcm16_bytes_to_samples(bytes, txth->channels);
         case PCM8:
-        case PCM8_U_int:
         case PCM8_U:
         case PCM8_SB:
         case ULAW:
@@ -2163,11 +2165,11 @@ static int get_bytes_to_samples(txth_header* txth, uint32_t bytes) {
         case TGC:
             return pcm_bytes_to_samples(bytes, txth->channels, 4);
         case MSADPCM:
-            return msadpcm_bytes_to_samples(bytes, txth->interleave, txth->channels);
+            return msadpcm_bytes_to_samples(bytes, txth->frame_size ? txth->frame_size : txth->interleave, txth->channels);
         case ATRAC3:
-            return atrac3_bytes_to_samples(bytes, txth->interleave);
+            return atrac3_bytes_to_samples(bytes, txth->frame_size ? txth->frame_size : txth->interleave);
         case ATRAC3PLUS:
-            return atrac3plus_bytes_to_samples(bytes, txth->interleave);
+            return atrac3plus_bytes_to_samples(bytes, txth->frame_size ? txth->frame_size : txth->interleave);
         case AAC:
             return aac_get_samples(txth->sf_body, txth->start_offset, bytes);
 #ifdef VGM_USE_MPEG
@@ -2175,7 +2177,7 @@ static int get_bytes_to_samples(txth_header* txth, uint32_t bytes) {
             return mpeg_get_samples(txth->sf_body, txth->start_offset, bytes);
 #endif
         case AC3:
-            return ac3_bytes_to_samples(bytes, txth->interleave, txth->channels);
+            return ac3_bytes_to_samples(bytes, txth->frame_size ? txth->frame_size : txth->interleave, txth->channels);
         case ASF:
             return asf_bytes_to_samples(bytes, txth->channels);
         case EAXA:

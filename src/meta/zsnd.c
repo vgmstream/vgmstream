@@ -21,7 +21,7 @@ VGMSTREAM* init_vgmstream_zsnd(STREAMFILE* sf) {
 
     /* .zss/zsm: standard
      * .ens/enm: same for PS2
-     * .zsd: normal or compact [BMX XXX (Xbox), Aggresive Inline (Xbox), Dave Mirra Freestyle BMX (PS1/PS2)] */
+     * .zsd: normal or compact [BMX XXX (Xbox), Aggresive Inline (Xbox), Dave Mirra Freestyle BMX 1/2 (PS1/PS2)] */
     if (!check_extensions(sf, "zss,zsm,ens,enm,zsd"))
         return NULL;
     /* probably zss=stream, zsm=memory; no diffs other than size */
@@ -68,7 +68,7 @@ VGMSTREAM* init_vgmstream_zsnd(STREAMFILE* sf) {
          * table1 may have more entries than table2/3, and sometimes isn't set
          */
 
-        /* V1 has no table heads, rare [Aggresive Inline (Xbox), Dave Mirra Freestyle BMX (PS1/PS2)]
+        /* V1 has no table heads, rare [Aggresive Inline (Xbox), Dave Mirra Freestyle BMX 1/2 (PS1/PS2)]
          * no apparent flag but we can test if table heads offsets appear */
         is_v1 = read_32bit(0x14,sf) <= read_32bit(0x1c,sf) &&
                 read_32bit(0x1c,sf) <= read_32bit(0x24,sf) &&
@@ -185,7 +185,7 @@ VGMSTREAM* init_vgmstream_zsnd(STREAMFILE* sf) {
             case 0x50533220: /* "PS2 " (also for PSP) */
             case 0x50535820: /* "PSX "  */
                 if (table2_entries == 0) {
-                    /* rare, seen in MUSIC.ZSD but SFX*.ZSD do have headers [Dave Mirra Freestyle BMX (PS1/PS2)] */
+                    /* rare, seen in MUSIC.ZSD but SFX*.ZSD do have headers [Dave Mirra Freestyle BMX 1/2 (PS1/PS2)] */
                     sample_rate = 0x1000;
                     layers = 0x02;
                 }
