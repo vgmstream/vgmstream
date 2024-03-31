@@ -92,8 +92,6 @@ as explained below, but often will use default values. Accepted codec strings:
 #   * Interleave is multiple of 0x1 (default)
 # - PCM8_U         PCM 8-bit unsigned
 #   * Variation with modified encoding
-# - PCM8_U_int     PCM 8-bit unsigned (interleave block)
-#   * Variation with modified encoding
 # - PCM8_SB        PCM 8-bit with sign bit
 #   * Variation with modified encoding
 #   * For few rare games [Sonic CD (SCD)]

@@ -25,7 +25,6 @@ typedef enum {
     AICA = 10,          /* YAMAHA AICA ADPCM (Dreamcast games) */
     MSADPCM = 11,       /* MS ADPCM (Windows games) */
     NGC_DSP = 12,       /* NGC DSP (Nintendo games) */
-    PCM8_U_int = 13,    /* 8-bit unsigned PCM (interleaved) */
     PSX_bf = 14,        /* PS-ADPCM with bad flags */
     MS_IMA = 15,        /* Microsoft IMA ADPCM */
     PCM8_U = 16,        /* 8-bit unsigned PCM */
@@ -265,7 +264,6 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
         case PCM16BE:       coding = coding_PCM16BE; break;
         case PCM8:          coding = coding_PCM8; break;
         case PCM8_U:        coding = coding_PCM8_U; break;
-        case PCM8_U_int:    coding = coding_PCM8_U_int; break;
         case PCM8_SB:       coding = coding_PCM8_SB; break;
         case ULAW:          coding = coding_ULAW; break;
         case ALAW:          coding = coding_ALAW; break;
@@ -336,9 +334,6 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
 
     /* codec specific (taken from GENH with minimal changes) */
     switch (coding) {
-        case coding_PCM8_U_int:
-            vgmstream->layout_type = layout_none;
-            break;
         case coding_PCM24LE:
         case coding_PCM24BE:
         case coding_PCM16LE:
@@ -979,7 +974,6 @@ static txth_codec_t parse_codec(txth_header* txth, const char* val) {
     else if (is_string(val,"PCM16LE"))      return PCM16LE;
     else if (is_string(val,"PCM8"))         return PCM8;
     else if (is_string(val,"PCM8_U"))       return PCM8_U;
-    else if (is_string(val,"PCM8_U_int"))   return PCM8_U_int;
     else if (is_string(val,"PCM8_SB"))      return PCM8_SB;
     else if (is_string(val,"SDX2"))         return SDX2;
     else if (is_string(val,"DVI_IMA"))      return DVI_IMA;
@@ -2159,7 +2153,6 @@ static int get_bytes_to_samples(txth_header* txth, uint32_t bytes) {
         case PCM16LE:
             return pcm16_bytes_to_samples(bytes, txth->channels);
         case PCM8:
-        case PCM8_U_int:
         case PCM8_U:
         case PCM8_SB:
         case ULAW:
