@@ -1248,7 +1248,6 @@ void load_acb_wave_info(STREAMFILE* sf, VGMSTREAM* vgmstream, int waveid, int po
 
     /* done */
 fail:
-VGM_LOG("close %x\n", (uint32_t)acb.CueNames);
     utf_close(acb.Header);
     utf_close(acb.CueNames);
 
