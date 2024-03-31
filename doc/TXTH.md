@@ -124,7 +124,7 @@ as explained below, but often will use default values. Accepted codec strings:
 #   * Special interleave is multiple of 0x24 (mono) or 0x48 (stereo)
 # - MS_IMA         Microsoft IMA ADPCM
 #   * For some PC games
-#   * Interleave (frame size) varies, often multiple of 0x100 [required]
+#   * frame_size (or interleave) varies, often multiple of 0x100 [required]
 # - APPLE_IMA4     Apple Quicktime IMA ADPCM
 #   * For some Mac/iOS games
 # - IMA_HV         High Voltage's IMA ADPCM
@@ -132,8 +132,9 @@ as explained below, but often will use default values. Accepted codec strings:
 #
 # - MSADPCM        Microsoft ADPCM (mono/stereo)
 #   * For some PC games
-#   * Interleave (frame size) varies, often 0x2c/0x8c/0x100/0x400 and max 0x800 [required]
-
+#   * frame_size (or interleave) varies, often 0x2c/0x8c/0x100/0x400 and max 0x800 [required]
+#   * frame_size + interleave forces mono mode
+#
 # - AICA           Yamaha AICA ADPCM (mono/stereo)
 #   * For some Dreamcast games, and some arcade (Naomi) games
 #   * Special interleave is multiple of 0x1
@@ -152,11 +153,11 @@ as explained below, but often will use default values. Accepted codec strings:
 #
 # - ATRAC3         Sony ATRAC3
 #   * For some PS2 and PS3 games
-#   * Interleave (frame size) can be 0x60/0x98/0xC0 * channels [required]
+#   * frame_size (or interleave) can be 0x60/0x98/0xC0 * channels [required]
 #   * Should set skip_samples (around 1024+69 but varies)
 # - ATRAC3PLUS     Sony ATRAC3plus
 #   * For many PSP games and rare PS3 games
-#   * Interleave (frame size) can be: [required]
+#   * frame_size (or interleave) can be: [required]
 #     Mono: 0x0118|0178|0230|02E8
 #     Stereo: 0x0118|0178|0230|02E8|03A8|0460|05D0|0748|0800
 #     6/8 channels: multiple of one of the above
@@ -168,8 +169,9 @@ as explained below, but often will use default values. Accepted codec strings:
 #   * For later X360 games
 #
 # - AC3            AC3/SPDIF
-#   * For few PS2 games
+#   * For few PS2 games [Burnout (PS2)]
 #   * Should set skip_samples (around 256 but varies)
+#   * bytes-to-samples needs interleave, but only works for PS2-style AC3 (use sync work 0x72F8/0x770B rather than 0x0b77)
 # - AAC            Advanced Audio Coding (raw outside .mp4)
 #   * For some 3DS games and many iOS games
 #   * Should set skip_samples (typically 1024 but varies, 2112 is also common)
@@ -206,9 +208,9 @@ codec = (codec string)
 #### CODEC VARIATIONS
 Changes the behavior of some codecs:
 ```
+# - XBOX|EAXA: 0=standard (mono or stereo interleave), 1=force mono interleave mode
 # - NGC_DSP: 0=normal interleave, 1=byte interleave, 2=no interleave
 # - XMA1|XMA2: 0=dual multichannel (2ch xN), 1=single multichannel (1ch xN)
-# - XBOX|EAXA: 0=standard (mono or stereo interleave), 1=force mono interleave mode
 # - PCFX: 0=standard, 1='buggy encoder' mode, 2/3=same as 0/1 but with double volume
 # - PCM4|PCM4_U: 0=low nibble first, 1=high nibble first
 # - others: ignored
@@ -226,16 +228,43 @@ value_add|value_+ = (value)
 value_sub|value_- = (value)
 ```
 
-#### INTERLEAVE / FRAME SIZE [REQUIRED depending on codec]
-This value changes how data is read depending on the codec:
-- For mono/interleaved codecs it's the amount of data between channels, and while optional (defaults described in the "codec" section) you'll often need to set it to get proper sound.
-- For codecs with custom frame sizes (MSADPCM, MS-IMA, ATRAC3/plus) means frame size and is required.
-- Interleave 0 means "stereo mode" for codecs marked as "mono/stereo", and setting it will usually force mono-interleaved mode.
+#### INTERLEAVE [REQUIRED depending on codec]
+This value changes how data is read, and while optional (defaults described in the "codec" section) you'll often need it to get proper sound.
+
+Roughly speaking interleave is the separation between data of each channel (or the size of a data chunk). For example `interleave = 0x02` means there are 2 bytes of data from channel 1, then 2 bytes from channel 2, then bytes for other channels if any (this is common for PCM16LE, where 2 bytes = 1 sample). While `interleave = 0x1000` works the same but means there is a lot more data of one channel before next channel:
+```
+interleave = 0x02:    | ch1 | ch2 | ch1 | ch2 | ...
+interleave = 0x08:    | ch1 ch1 ch1 ch1 | ch2 ch2 ch2 ch2 | ch1 ch1 ch1 ch1 | ch2 ch2 ch2 ch2 | ...
+```
+
+Incorrect interleave will usually sound like audio is "fragmented" or noisy (since channel data is misinterpreted), but it's usually easy enough to try a few common values until it sounds right. Interleave needs to be a multiple of some value (PCM16LE is multiple of 0x02 so can't use interleave 0x05).
 
 Special values:
 - `half_size`: sets interleave as data_size / channels automatically
 ```
 interleave = (value)|half_size
+```
+
+##### Special cases
+Depending on the codec itself interleave has certain implications:
+- mono-interleaved codecs: uses default value or value in `interleave` as described above
+- mono/stereo codecs: no default, setting interleave usually forces mono-interleaved mode (if known cases exists)
+- codecs with frame sizes: if `interleave` is set but `frame_size` isn't set, it'll use the former as `frame_size` (see below)
+- other codecs: ignored
+
+Mono/stereo codecs are a bit particular in that they have two modes. For 1 channel files mono mode is always used. But for stereo files, different games may have either mono-interleave data or stereo data:
+- stereo file uses mono data: set interleave (forces mono mode with interleaved chunks)
+- stereo file uses stereo data: don't set interleave (forces stereo mode with linear chunks)
+
+It's technically possible that a game could use stereo mode with interleave for multichannel, but isn't handled at the moment.
+
+#### FRAME SIZE [REQUIRED depending on codec]
+Codecs with custom frame sizes (MSADPCM, MS-IMA, ATRAC3/plus) need `frame_size`. "frame size" is the amount of data the decoder needs as a single unit. Conceptually it's similar to interleave, so to simplify usage you may set `interleave` instead of `frame_size`.
+
+It's possible though rare (seen in some MSADPCM files) that a game needs a `frame_size` then sets another `interleave` value, for example has frame_size 0x100 with mono interleave 0x400. This means it reads multiple smaller 0x100 for one channel up to 0x400, then next channel, etc.
+
+```
+frame_size = (value)
 ```
 
 #### INTERLEAVE IN THE LAST BLOCK
@@ -885,6 +914,19 @@ num_samples = data_size
 
 #@0x00 interleave?
 #@0x04 number of 0x800 sectors
+```
+
+#### Metal Gear Solid 2 Substance (PC) .txth
+```
+# cutscene/voices use mono interleave for stereo tracks, set both frame_size and interleave
+codec = MSADPCM
+frame_size = 0x400
+interleave = 0x800
+sample_rate = @0x06:BE$2
+channels = @0x08$1
+# 0a: codec (11=msapdcm)
+start_offset = 0x10
+num_samples = data_size
 ```
 
 #### Colin McRae DiRT (PC) .wip.txth
