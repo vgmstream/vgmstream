@@ -5,13 +5,13 @@
 #include "mixing.h"
 #include "plugins.h"
 
-
-static void seek_force_loop(VGMSTREAM* vgmstream, int loop_count) {
+/* pretend decoder reached loop end so internal state is set like jumping to loop start 
+ * (no effect in some layouts but that is ok) */
+static void seek_force_loop_end(VGMSTREAM* vgmstream, int loop_count) {
     /* only called after hit loop */
     if (!vgmstream->hit_loop)
         return;
 
-    /* pretend decoder reached loop end so state is set to loop start */
     vgmstream->loop_count = loop_count - 1; /* seeking to first loop must become ++ > 0 */
     vgmstream->current_sample = vgmstream->loop_end_sample;
     decode_do_loop(vgmstream);
@@ -33,45 +33,155 @@ static void seek_force_decode(VGMSTREAM* vgmstream, int samples) {
     }
 }
 
+
+static void seek_layout_standard(VGMSTREAM* vgmstream, int32_t seek_sample) {
+    //;VGM_LOG("SEEK: body / seekr=%i, curr=%i\n", seek_sample, vgmstream->current_sample);
+
+    int32_t decode_samples = 0;
+
+    play_state_t* ps = &vgmstream->pstate;
+    bool is_looped = vgmstream->loop_flag || vgmstream->loop_target > 0; /* loop target disabled loop flag during decode */
+    bool is_config = vgmstream->config_enabled;
+    int play_forever = vgmstream->config.play_forever;
+
+    /* seek=10 would be seekr=10-5+3=8 inside decoder */
+    int32_t seek_relative = seek_sample;
+    if (is_config)
+        seek_relative = seek_relative - ps->pad_begin_duration + ps->trim_begin_duration;
+
+
+    //;VGM_LOG("SEEK: body / seekr=%i, curr=%i\n", seek_relative, vgmstream->current_sample);
+
+    /* seek can be in some part of the body, depending on looping/decoder's current position/etc */
+    if (!is_looped && seek_relative < vgmstream->current_sample) {
+        /* non-looped seek before decoder's position: restart + consume (seekr=50s, curr=95 > restart + decode=50s) */
+        decode_samples = seek_relative;
+        reset_vgmstream(vgmstream);
+
+        //;VGM_LOG("SEEK: non-loop reset / dec=%i\n", decode_samples);
+    }
+    else if (!is_looped && seek_relative < vgmstream->num_samples) {
+        /* non-looped seek after decoder's position: consume (seekr=95s, curr=50 > decode=95-50=45s) */
+        decode_samples = seek_relative - vgmstream->current_sample;
+
+        //;VGM_LOG("SEEK: non-loop forward / dec=%i\n", decode_samples);
+    }
+    else if (!is_looped) {
+        /* after num_samples, can happen when body is set manually (seekr=120s) */
+        decode_samples = 0;
+        vgmstream->current_sample = vgmstream->num_samples + 1;
+
+        //;VGM_LOG("SEEK: non-loop silence / dec=%i\n", decode_samples);
+    }
+    else if (seek_relative < vgmstream->loop_start_sample) {
+        /* looped seek before decoder's position: restart + consume or just consume */
+
+        if (seek_relative < vgmstream->current_sample) {
+            /* seekr=9s, current=10s > decode=9s from start */
+            decode_samples = seek_relative;
+            reset_vgmstream(vgmstream);
+
+            //;VGM_LOG("SEEK: loop start reset / dec=%i\n", decode_samples);
+        }
+        else {
+            /* seekr=9s, current=8s > decode=1s from current */
+            decode_samples = seek_relative - vgmstream->current_sample;
+
+            //;VGM_LOG("SEEK: loop start forward / dec=%i\n", decode_samples);
+        }
+    }
+    else {
+        /* looped seek after loop start: can be clamped between loop parts (relative to decoder's current_sample) to minimize decoding */
+        int32_t loop_body = (vgmstream->loop_end_sample - vgmstream->loop_start_sample);
+        int32_t loop_seek = (seek_relative - vgmstream->loop_start_sample) % loop_body;
+        int     loop_count = loop_seek / loop_body;
+
+        /* current must have reached loop start at some point, otherwise force it (NOTE: some layouts don't actually set hit_loop) */
+        if (!vgmstream->hit_loop) {
+            if (vgmstream->current_sample > vgmstream->loop_start_sample) { /* may be 0 */
+                VGM_LOG("SEEK: bad current sample %i vs %i\n", vgmstream->current_sample, vgmstream->loop_start_sample);
+                reset_vgmstream(vgmstream);
+            }
+
+            int32_t skip_samples = (vgmstream->loop_start_sample - vgmstream->current_sample);
+            //;VGM_LOG("SEEK: must loop / skip=%i, curr=%i\n", skip_samples, vgmstream->current_sample);
+
+            seek_force_decode(vgmstream, skip_samples);
+        }
+
+        /* current must be in loop area (may happen at start) */
+        if (vgmstream->current_sample < vgmstream->loop_start_sample
+                || vgmstream->current_sample < vgmstream->loop_end_sample) {
+            ;VGM_LOG("SEEK: outside loop area / curr=%i, ls=%i, le=%i\n", vgmstream->current_sample, vgmstream->current_sample, vgmstream->loop_end_sample);
+            seek_force_loop_end(vgmstream, 0);
+        }
+
+        int32_t loop_curr = vgmstream->current_sample - vgmstream->loop_start_sample;
+
+        //;VGM_LOG("SEEK: in loop / seekr=%i, seekl=%i, loops=%i, cur=%i, dec=%i\n", seek_relative, loop_seek, loop_count, loop_curr, decode_samples);
+
+        /* when "ignore fade" is used and seek falls into non-fade part, this needs to seek right before it
+            so when calling seek_force_loop_end detection kicks in, and non-fade then decodes normally */
+        if (vgmstream->loop_target && vgmstream->loop_target == loop_count) {
+            loop_seek = loop_body;
+            //decode_samples += loop_seek;
+
+            //VGM_LOG("outside!: %i\n", loop_body);
+        }
+
+        if (loop_seek < loop_curr) {
+            decode_samples += loop_seek;
+            seek_force_loop_end(vgmstream, loop_count);
+
+            //;VGM_LOG("SEEK: loop reset / dec=%i, loop=%i\n", decode_samples, loop_count);
+        }
+        else {
+            decode_samples += (loop_seek - loop_curr);
+            //vgmstream->loop_count = loop_count - 1; //todo
+
+            //;VGM_LOG("SEEK: loop forward / dec=%i, loop=%i\n", decode_samples, loop_count);
+        }
+
+        /* adjust fade if seek ends in fade region */
+        if (is_config && !play_forever
+                && seek_sample >= ps->pad_begin_duration + ps->body_duration
+                && seek_sample < ps->pad_begin_duration + ps->body_duration + ps->fade_duration) {
+            ps->fade_left = ps->pad_begin_duration + ps->body_duration + ps->fade_duration - seek_sample;
+            //;VGM_LOG("SEEK: in fade / fade=%i, %i\n", ps->fade_left, ps->fade_duration);
+        }
+    }
+
+    /* done at the end in case of reset */
+    if (is_config) {
+        ps->pad_begin_left = 0;
+        ps->trim_begin_left = 0;
+    }
+
+    seek_force_decode(vgmstream, decode_samples);
+    ;VGM_LOG("SEEK: force=%i, current=%i\n", decode_samples, vgmstream->current_sample);
+}
+
+
+
 void seek_vgmstream(VGMSTREAM* vgmstream, int32_t seek_sample) {
     play_state_t* ps = &vgmstream->pstate;
     int play_forever = vgmstream->config.play_forever;
 
-    int32_t decode_samples = 0;
-    int loop_count = -1;
-    int is_looped = vgmstream->loop_flag || vgmstream->loop_target > 0; /* loop target disabled loop flag during decode */
-
+    bool is_looped = vgmstream->loop_flag || vgmstream->loop_target > 0; /* loop target disabled loop flag during decode */
+    bool is_config = vgmstream->config_enabled;
 
     /* cleanup */
     if (seek_sample < 0)
         seek_sample = 0;
     /* play forever can seek past max */
-    if (vgmstream->config_enabled && seek_sample > ps->play_duration && !play_forever)
+    if (is_config && seek_sample > ps->play_duration && !play_forever)
         seek_sample = ps->play_duration;
 
-#if 0 //todo move below, needs to clamp in decode part
-    /* optimize as layouts can seek faster internally */
-    if (vgmstream->layout_type == layout_segmented) {
-        seek_layout_segmented(vgmstream, seek_sample);
-
-        if (vgmstream->config_enabled) {
-            vgmstream->pstate.play_position = seek_sample;
-        }
-        return;
-    }
-    else if (vgmstream->layout_type == layout_layered) {
-        seek_layout_layered(vgmstream, seek_sample);
-
-        if (vgmstream->config_enabled) {
-            vgmstream->pstate.play_position = seek_sample;
-        }
-        return;
-    }
-#endif
 
     /* will decode and loop until seek sample, but slower */
     //todo apply same loop logic as below, or pretend we have play_forever + settings?
-    if (!vgmstream->config_enabled) {
+    if (!is_config) {
+        int32_t decode_samples;
         //;VGM_LOG("SEEK: simple seek=%i, cur=%i\n", seek_sample, vgmstream->current_sample);
         if (seek_sample < vgmstream->current_sample) {
             decode_samples = seek_sample;
@@ -104,9 +214,8 @@ void seek_vgmstream(VGMSTREAM* vgmstream, int32_t seek_sample) {
     //;VGM_LOG("SEEK: seek sample=%i, is_looped=%i\n", seek_sample, is_looped);
 
     /* start/pad-begin: consume pad samples */
-    if (seek_sample < ps->pad_begin_duration) {
+    if (is_config && seek_sample < ps->pad_begin_duration) {
         /* seek=3: pad=5-3=2 */
-        decode_samples = 0;
 
         reset_vgmstream(vgmstream);
         ps->pad_begin_left = ps->pad_begin_duration - seek_sample;
@@ -114,121 +223,8 @@ void seek_vgmstream(VGMSTREAM* vgmstream, int32_t seek_sample) {
         //;VGM_LOG("SEEK: pad start / dec=%i\n", decode_samples);
     }
 
-    /* body: find position relative to decoder's current sample */
-    else if (play_forever || seek_sample < ps->pad_begin_duration + ps->body_duration + ps->fade_duration) {
-        /* seek=10 would be seekr=10-5+3=8 inside decoder */
-        int32_t seek_relative = seek_sample - ps->pad_begin_duration + ps->trim_begin_duration;
-
-
-        //;VGM_LOG("SEEK: body / seekr=%i, curr=%i\n", seek_relative, vgmstream->current_sample);
-
-        /* seek can be in some part of the body, depending on looped/decoder's current/etc */
-        if (!is_looped && seek_relative < vgmstream->current_sample) {
-            /* seekr=50s, curr=95 > restart + decode=50s */
-            decode_samples = seek_relative;
-            reset_vgmstream(vgmstream);
-
-            //;VGM_LOG("SEEK: non-loop reset / dec=%i\n", decode_samples);
-        }
-        else if (!is_looped && seek_relative < vgmstream->num_samples) {
-            /* seekr=95s, curr=50 > decode=95-50=45s */
-            decode_samples = seek_relative - vgmstream->current_sample;
-
-            //;VGM_LOG("SEEK: non-loop forward / dec=%i\n", decode_samples);
-        }
-        else if (!is_looped) {
-            /* seekr=120s (outside decode, can happen when body is set manually) */
-            decode_samples = 0;
-            vgmstream->current_sample = vgmstream->num_samples + 1;
-
-            //;VGM_LOG("SEEK: non-loop silence / dec=%i\n", decode_samples);
-        }
-        else if (seek_relative < vgmstream->loop_start_sample) {
-            /* seekr=6s > 6-5+3 > seek=4s inside decoder < 20s: decode 4s from start, or 1s if current was at 3s */
-
-            if (seek_relative < vgmstream->current_sample) {
-                /* seekr=9s, current=10s > decode=9s from start */
-                decode_samples = seek_relative;
-                reset_vgmstream(vgmstream);
-
-                //;VGM_LOG("SEEK: loop start reset / dec=%i\n", decode_samples);
-            }
-            else {
-                /* seekr=9s, current=8s > decode=1s from current */
-                decode_samples = seek_relative - vgmstream->current_sample;
-
-                //;VGM_LOG("SEEK: loop start forward / dec=%i\n", decode_samples);
-            }
-        }
-        else {
-            /* seek can be clamped between loop parts (relative to decoder's current_sample) to minimize decoding */
-            int32_t loop_body, loop_seek, loop_curr;
-
-            /* current must have reached loop start at some point */
-            if (!vgmstream->hit_loop) {
-                int32_t skip_samples;
-
-                if (vgmstream->current_sample > vgmstream->loop_start_sample) { /* may be 0 */
-                    VGM_LOG("SEEK: bad current sample %i vs %i\n", vgmstream->current_sample, vgmstream->loop_start_sample);
-                    reset_vgmstream(vgmstream);
-                }
-
-                skip_samples = (vgmstream->loop_start_sample - vgmstream->current_sample);
-                //;VGM_LOG("SEEK: must loop / skip=%i, curr=%i\n", skip_samples, vgmstream->current_sample);
-
-                seek_force_decode(vgmstream, skip_samples);
-            }
-
-            /* current must be in loop area (shouldn't happen?) */
-            if (vgmstream->current_sample < vgmstream->loop_start_sample
-                    || vgmstream->current_sample < vgmstream->loop_end_sample) {
-                //;VGM_LOG("SEEK: current outside loop area / curr=%i, ls=%i, le=%i\n", vgmstream->current_sample, vgmstream->current_sample, vgmstream->loop_end_sample);
-                seek_force_loop(vgmstream, 0);
-            }
-
-
-            loop_body = (vgmstream->loop_end_sample - vgmstream->loop_start_sample);
-            loop_seek = seek_relative - vgmstream->loop_start_sample;
-            loop_count = loop_seek / loop_body;
-            loop_seek = loop_seek % loop_body;
-            loop_curr = vgmstream->current_sample - vgmstream->loop_start_sample;
-
-            /* when "ignore fade" is used and seek falls into non-fade part, this needs to seek right before it
-               so when calling seek_force_loop detection kicks in, and non-fade then decodes normally */
-            if (vgmstream->loop_target && vgmstream->loop_target == loop_count) {
-                loop_seek = loop_body;
-            }
-
-            //;VGM_LOG("SEEK: in loop / seekl=%i, loops=%i, cur=%i, dec=%i\n", loop_seek, loop_count, loop_curr, decode_samples);
-            if (loop_seek < loop_curr) {
-                decode_samples += loop_seek;
-                seek_force_loop(vgmstream, loop_count);
-
-                //;VGM_LOG("SEEK: loop reset / dec=%i, loop=%i\n", decode_samples, loop_count);
-            }
-            else {
-                decode_samples += (loop_seek - loop_curr);
-
-                //;VGM_LOG("SEEK: loop forward / dec=%i, loop=%i\n", decode_samples, loop_count);
-            }
-
-            /* adjust fade if seek ends in fade region */
-            if (!play_forever
-                    && seek_sample >= ps->pad_begin_duration + ps->body_duration
-                    && seek_sample < ps->pad_begin_duration + ps->body_duration + ps->fade_duration) {
-                ps->fade_left = ps->pad_begin_duration + ps->body_duration + ps->fade_duration - seek_sample;
-                //;VGM_LOG("SEEK: in fade / fade=%i, %i\n", ps->fade_left, ps->fade_duration);
-            }
-        }
-
-        /* done at the end in case of reset */
-        ps->pad_begin_left = 0;
-        ps->trim_begin_left = 0;
-    }
-
     /* pad end and beyond: ignored */
-    else {
-        decode_samples = 0;
+    else if (is_config && !play_forever && seek_sample >= ps->pad_begin_duration + ps->body_duration + ps->fade_duration) {
         ps->pad_begin_left = 0;
         ps->trim_begin_left = 0;
         if (!is_looped)
@@ -238,8 +234,25 @@ void seek_vgmstream(VGMSTREAM* vgmstream, int32_t seek_sample) {
         /* looping decoder state isn't changed (seek backwards could use current sample) */
     }
 
+    /* body: seek relative to decoder's current sample */
+    else {
+#if 0 
+        //TODO issues: handles seek into loops number N  correctly, and into fade region
+        //- handle looping within
+        //- handle 
+        /* optimize as layouts can seek faster internally */
+        if (vgmstream->layout_type == layout_segmented) {
+            seek_layout_segmented(vgmstream, seek_sample);
+        }
+        else if (vgmstream->layout_type == layout_layered) {
+            seek_layout_layered(vgmstream, seek_sample);
+        }
+        else
+#endif
+        seek_layout_standard(vgmstream, seek_sample);
 
-    seek_force_decode(vgmstream, decode_samples);
+    }
+
 
     vgmstream->pstate.play_position = seek_sample;
 }
