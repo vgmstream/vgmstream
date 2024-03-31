@@ -6,7 +6,7 @@
 VGMSTREAM* init_vgmstream_wave(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     uint32_t start_offset, extradata_offset, interleave;
-    int channels, loop_flag, sample_rate, codec;
+    int channels, loop_flag, sample_rate, codec, version;
     int32_t num_samples, loop_start, loop_end;
     int big_endian;
     read_u32_t read_u32;
@@ -16,17 +16,16 @@ VGMSTREAM* init_vgmstream_wave(STREAMFILE* sf) {
 
     /* checks */
     if (!is_id32be(0x00,sf, "VAW3") && /* Happy Feet Two (3DS) */
+        !is_id32be(0x00,sf, "WWAV") && /* Mighty Switch Force! (beta) (Wii) */
         read_u32le(0x00,sf) != 0xE5B7ECFE &&  /* common LE (hashed something?)  */
         read_u32be(0x00,sf) != 0xE5B7ECFE &&
         read_u32be(0x00,sf) != 0xC9FB0C03)  /* NDS [Lalaloopsy, Adventure Time: HIKWYSOG (DS)] */
-        goto fail;
-    /* 0x04: version? common=0, VAW3=2 */
+        return NULL;
 
     if (!check_extensions(sf, "wave"))
-        goto fail;
+        return NULL;
 
-    /* assumed */
-    big_endian = read_u32be(0x00,sf) == 0xE5B7ECFE;
+    big_endian = read_u32be(0x00,sf) == 0xE5B7ECFE || is_id32be(0x00,sf, "WWAV");
     if (big_endian) {
         read_u32 = read_u32be;
         read_s32 = read_s32be;
@@ -37,6 +36,7 @@ VGMSTREAM* init_vgmstream_wave(STREAMFILE* sf) {
         read_f32 = read_f32le;
     }
 
+    version = read_u32(0x04,sf); /* common=0x0000, VAW3=0x0002, 0x50000=WWAV */
     if (read_u32(0x08,sf) != get_streamfile_size(sf))
         goto fail;
 
@@ -64,6 +64,11 @@ VGMSTREAM* init_vgmstream_wave(STREAMFILE* sf) {
         loop_flag = 1;
     }
 
+    /* normalize codec: WWAV uses codec 0x00 for DSP */
+    if (codec == 0x00 && version == 0x00050000 && start_offset > 0x40) {
+        codec = 0x02;
+    }
+
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channels, loop_flag);
@@ -76,7 +81,7 @@ VGMSTREAM* init_vgmstream_wave(STREAMFILE* sf) {
 
     vgmstream->meta_type = meta_WAVE;
 
-    /* not sure if there are other codecs but anyway (based also see wave-segmented) */
+    /* not sure if there are other codecs but anyway (based on wave-segmented) */
     switch(codec) {
         case 0x02:
             /* DS games use IMA, no apparent flag (could also test ID) */
@@ -97,9 +102,16 @@ VGMSTREAM* init_vgmstream_wave(STREAMFILE* sf) {
                 vgmstream->layout_type = layout_interleave;
                 vgmstream->interleave_block_size = interleave;
 
-                /* ADPCM setup: 0x20 coefs + 0x06 initial ps/hist1/hist2 + 0x06 loop ps/hist1/hist2, per channel */
-                dsp_read_coefs(vgmstream, sf, extradata_offset+0x00, 0x2c, big_endian);
-                dsp_read_hist(vgmstream, sf, extradata_offset+0x22, 0x2c, big_endian);
+                /* ADPCM setup: 0x20 coefs + 0x06 initial ps/hist1/hist2 + 0x06 loop ps/hist1/hist2 + ?, per channel */
+                int head_spacing = 0x2c;
+                int hist_spacing = 0x22;
+                if (version == 0x00050000) { /* has an extra empty 16b after coefs */
+                    head_spacing = 0x2e;
+                    hist_spacing = 0x24;
+                }
+
+                dsp_read_coefs(vgmstream, sf, extradata_offset + 0x00, head_spacing, big_endian);
+                dsp_read_hist(vgmstream, sf, extradata_offset + hist_spacing, head_spacing, big_endian);
             }
             break;
         default:
