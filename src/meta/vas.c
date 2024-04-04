@@ -2,7 +2,7 @@
 #include "../coding/coding.h"
 
 /* VAS - Manhunt 2 [PSP] */
-VGMSTREAM* init_vgmstream_rstm_rockstar(STREAMFILE* sf) {
+VGMSTREAM* init_vgmstream_vas(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     off_t stream_offset;
     size_t stream_size;
