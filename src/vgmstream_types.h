@@ -704,6 +704,7 @@ typedef enum {
     meta_NXOF,
     meta_GWB_GWD,
     meta_CBX,
+    meta_VAS,
 
 } meta_t;
 

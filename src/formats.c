@@ -1430,6 +1430,7 @@ static const meta_info meta_info_list[] = {
         {meta_NXOF,                 "Nihon Falcom FDK header"},
         {meta_GWB_GWD,              "Ubisoft GWB+GWD header"},
         {meta_CBX,                  "Traveller's Tales CBX header"},
+        {meta_VAS,                  "Manhunt 2 .VAS header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {

@@ -1897,6 +1897,9 @@
     <ClCompile Include="meta\vai.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\vas.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\vgs.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>

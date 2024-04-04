@@ -692,6 +692,7 @@
     <ClCompile Include="meta\vab.c" />
     <ClCompile Include="meta\vag.c" />
     <ClCompile Include="meta\vai.c" />
+    <ClCompile Include="meta\vas.c" />
     <ClCompile Include="meta\vgs.c" />
     <ClCompile Include="meta\vgs_ps.c" />
     <ClCompile Include="meta\vid1.c" />
