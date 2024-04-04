@@ -630,6 +630,7 @@ static const char* extension_list[] = {
     "wavebatch",
     "wavm",
     "wavx", //txth/reserved [LEGO Star Wars (Xbox)]
+    "wax",
     "way",
     "wb",
     "wb2",
