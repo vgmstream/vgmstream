@@ -1305,8 +1305,8 @@ static const hcakey_info hcakey_list[] = {
         // Jujutsu Kaisen: Cursed Clash (multi)
         {984703514306706654},    // DAA5EA10B547CDE
 
-        // Puyo Puyo Puzzle Pop (iOS)
-        {9999},                  // hope it is the right key
+        // Puyo Puyo Puzzle Pop (iOS/macOS)
+        {9999},                  // I don't know what this number comment does, so anyone can fill this comment up with the number
 
 };
 
