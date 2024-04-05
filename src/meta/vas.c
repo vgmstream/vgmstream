@@ -1,17 +1,16 @@
 #include "meta.h"
 #include "../coding/coding.h"
 
-/* VAS - Manhunt 2 [PSP] */
+/* VAS - Manhunt 2 [PSP] blocked audio format */
 VGMSTREAM* init_vgmstream_vas(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     off_t stream_offset;
-    size_t data_size, stream_size;
+    size_t data_size, stream_size, block_size = 0x40;
     int sample_rate, num_streams, channels, loop_flag = 0;
-    int is_v2, block_size, target_subsong = sf->stream_index;
+    int is_v2, target_subsong = sf->stream_index;
 
 
     /* checks */
-
     /* VAGs: v1, used in prerelease builds
      * 2AGs: v2, used in the final release */
     if (!is_id32be(0x00, sf, "VAGs") && !is_id32be(0x00, sf, "2AGs"))
@@ -20,18 +19,25 @@ VGMSTREAM* init_vgmstream_vas(STREAMFILE* sf) {
     if (!check_extensions(sf, "vas"))
         goto fail;
 
+
+    /* parse header */
     data_size = read_u32le(0x04, sf);
     sample_rate = read_u16le(0x08, sf);
     if (read_u8(0x0A, sf)) goto fail; /* always 0? */
     num_streams = read_u8(0x0B, sf);
+
     if (num_streams < 1 || num_streams > 32) goto fail;
     if (!target_subsong) target_subsong = 1;
 
-    is_v2 = is_id32be(0x00, sf, "2AGs");
+    channels = 1; /* might be read_u8(0x0A, sf) + 1? */
 
-    block_size = 0x40;
+
+    /* set up stream */
+    is_v2 = read_u8(0x00, sf) == 0x32; /* 2AGs */
+
     stream_offset = 0x0C;
-    /* only in v2, 32 byte buffer of the intended order for stream blocks */
+    /* only in v2, 32 byte buffer of the intended order for stream blocks(?) */
+    /* always 00 01 02 03 04 05 06 in the multi-stream music/ambience files */
     if (is_v2) stream_offset += 0x20;
 
     /* might conflict with the standard VAG otherwise */
@@ -43,10 +49,8 @@ VGMSTREAM* init_vgmstream_vas(STREAMFILE* sf) {
      * builds also use v2 for those, but this should be how v1 works in theory */
     stream_offset += block_size * (is_v2 ? read_u8(0x0C + target_subsong, sf) : target_subsong);
 
-
     stream_size = data_size / num_streams;
 
-    channels = 1; /* might be read_u8(0x0A, sf) + 1? */
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channels, loop_flag);

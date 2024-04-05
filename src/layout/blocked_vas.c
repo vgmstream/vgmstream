@@ -1,7 +1,7 @@
 #include "layout.h"
 #include "../vgmstream.h"
 
-/* VAS - Manhunt 2 PSP blocked audio layout */
+/* VAS - Manhunt 2 PSP VAGs/2AGs blocked audio layout */
 void block_update_vas(off_t block_offset, VGMSTREAM* vgmstream) {
     size_t block_size;
     int num_streams;
