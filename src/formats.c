@@ -630,6 +630,7 @@ static const char* extension_list[] = {
     "wavebatch",
     "wavm",
     "wavx", //txth/reserved [LEGO Star Wars (Xbox)]
+    "wax",
     "way",
     "wb",
     "wb2",
@@ -971,6 +972,7 @@ static const layout_info layout_info_list[] = {
         {layout_blocked_vid1,           "blocked (VID1)"},
         {layout_blocked_ubi_sce,        "blocked (Ubi SCE)"},
         {layout_blocked_tt_ad,          "blocked (TT AD)"},
+        {layout_blocked_vas,            "blocked (VAS)"},
 };
 
 static const meta_info meta_info_list[] = {
@@ -1429,6 +1431,7 @@ static const meta_info meta_info_list[] = {
         {meta_NXOF,                 "Nihon Falcom FDK header"},
         {meta_GWB_GWD,              "Ubisoft GWB+GWD header"},
         {meta_CBX,                  "Traveller's Tales CBX header"},
+        {meta_VAS,                  "Manhunt 2 .VAS header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {

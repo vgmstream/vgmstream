@@ -1002,4 +1002,6 @@ VGMSTREAM* init_vgmstream_gwb_gwd(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_cbx(STREAMFILE* sf);
 
+VGMSTREAM* init_vgmstream_vas(STREAMFILE* sf);
+
 #endif /*_META_H*/
