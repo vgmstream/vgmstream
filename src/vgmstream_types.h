@@ -233,6 +233,7 @@ typedef enum {
     layout_blocked_vid1,
     layout_blocked_ubi_sce,
     layout_blocked_tt_ad,
+    layout_blocked_vas,
 
     /* otherwise odd */
     layout_segmented,       /* song divided in segments (song sections) */

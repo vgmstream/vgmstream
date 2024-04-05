@@ -319,6 +319,7 @@
     <ClCompile Include="layout\blocked_thp.c" />
     <ClCompile Include="layout\blocked_tt_ad.c" />
     <ClCompile Include="layout\blocked_ubi_sce.c" />
+    <ClCompile Include="layout\blocked_vas.c" />
     <ClCompile Include="layout\blocked_vgs.c" />
     <ClCompile Include="layout\blocked_vid1.c" />
     <ClCompile Include="layout\blocked_vs.c" />

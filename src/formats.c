@@ -972,6 +972,7 @@ static const layout_info layout_info_list[] = {
         {layout_blocked_vid1,           "blocked (VID1)"},
         {layout_blocked_ubi_sce,        "blocked (Ubi SCE)"},
         {layout_blocked_tt_ad,          "blocked (TT AD)"},
+        {layout_blocked_vas,            "blocked (VAS)"},
 };
 
 static const meta_info meta_info_list[] = {
