@@ -1306,7 +1306,7 @@ static const hcakey_info hcakey_list[] = {
         {984703514306706654},    // DAA5EA10B547CDE
 
         // Puyo Puyo Puzzle Pop (iOS)
-        {9999},                  // Todo: Fill this up with the number like the other keys
+        {9999},                  // 000000000000270F
 
 };
 
