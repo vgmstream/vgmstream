@@ -330,7 +330,7 @@ VGMSTREAM * init_vgmstream_ydsp(STREAMFILE * streamFile);
 
 VGMSTREAM* init_vgmstream_gsnd(STREAMFILE* sf);
 
-VGMSTREAM * init_vgmstream_ngc_ssm(STREAMFILE * streamFile);
+VGMSTREAM* init_vgmstream_ssm(STREAMFILE* sf);
 
 VGMSTREAM * init_vgmstream_ps2_joe(STREAMFILE * streamFile);
 

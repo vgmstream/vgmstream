@@ -380,6 +380,9 @@
     <ClInclude Include="util\m2_psb.h">
       <Filter>util\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="util\meta_utils.h">
+      <Filter>util\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="util\miniz.h">
       <Filter>util\Header Files</Filter>
     </ClInclude>
@@ -2114,6 +2117,9 @@
       <Filter>util\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="util\m2_psb.c">
+      <Filter>util\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="util\meta_utils.c">
       <Filter>util\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="util\miniz.c">

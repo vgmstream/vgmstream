@@ -142,7 +142,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_ish_isd,
     init_vgmstream_gsnd,
     init_vgmstream_ydsp,
-    init_vgmstream_ngc_ssm,
+    init_vgmstream_ssm,
     init_vgmstream_ps2_joe,
     init_vgmstream_vgs,
     init_vgmstream_dcs_wav,

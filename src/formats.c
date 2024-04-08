@@ -1125,7 +1125,7 @@ static const meta_info meta_info_list[] = {
         {meta_ISH_ISD,              "ISH+ISD DSP Header"},
         {meta_GSND,                 "Tecmo GSND Header"},
         {meta_YDSP,                 "Yuke's YDSP Header"},
-        {meta_NGC_SSM,              "SSM DSP Header"},
+        {meta_SSM,                  "HAL Laboratory .SSM Header"},
         {meta_PS2_JOE,              "Asobo Studio .JOE header"},
         {meta_VGS,                  "Guitar Hero VGS Header"},
         {meta_DCS_WAV,              "In Utero DCS+WAV header"},

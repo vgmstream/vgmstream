@@ -185,6 +185,7 @@
     <ClInclude Include="util\layout_utils.h" />
     <ClInclude Include="util\log.h" />
     <ClInclude Include="util\m2_psb.h" />
+    <ClInclude Include="util\meta_utils.h" />
     <ClInclude Include="util\miniz.h" />
     <ClInclude Include="util\paths.h" />
     <ClInclude Include="util\reader_get.h" />
@@ -765,6 +766,7 @@
     <ClCompile Include="util\layout_utils.c" />
     <ClCompile Include="util\log.c" />
     <ClCompile Include="util\m2_psb.c" />
+    <ClCompile Include="util\meta_utils.c" />
     <ClCompile Include="util\miniz.c" />
     <ClCompile Include="util\paths.c" />
     <ClCompile Include="util\reader.c" />

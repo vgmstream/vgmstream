@@ -364,7 +364,7 @@ typedef enum {
     meta_FFCC_STR,          /* Final Fantasy: Crystal Chronicles */
     meta_UBI_JADE,          /* Beyond Good & Evil, Rayman Raving Rabbids */
     meta_GCA,               /* Metal Slug Anthology */
-    meta_NGC_SSM,           /* Golden Gashbell Full Power */
+    meta_SSM,
     meta_PS2_JOE,           /* Wall-E / Pixar games */
     meta_YMF,
     meta_SADL,
