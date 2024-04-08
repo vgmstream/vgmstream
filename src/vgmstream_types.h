@@ -131,6 +131,7 @@ typedef enum {
     coding_SASSC,           /* Activision EXAKT SASSC 8-bit DPCM */
     coding_DERF,            /* DERF 8-bit DPCM */
     coding_WADY,            /* WADY 8-bit DPCM */
+    coding_DPCM_KCEJ,       /* Konami Computer Entertainment Japan 8-bit DPCM */
     coding_NWA,             /* VisualArt's NWA DPCM */
     coding_ACM,             /* InterPlay ACM */
     coding_CIRCUS_ADPCM,    /* Circus 8-bit ADPCM */
@@ -344,7 +345,7 @@ typedef enum {
     meta_SCD_PCM,           /* Lunar - Eternal Blue */
     meta_PS2_PCM,           /* Konami KCEJ East: Ephemeral Fantasia, Yu-Gi-Oh! The Duelists of the Roses, 7 Blades */
     meta_PS2_RKV,           /* Legacy of Kain - Blood Omen 2 (PS2) */
-    meta_PS2_VAS,           /* Pro Baseball Spirits 5 */
+    meta_VAS_KCEO,
     meta_LP_AP_LEP,
     meta_SDT,               /* Baldur's Gate - Dark Alliance */
     meta_STR_SEGA,
@@ -364,7 +365,7 @@ typedef enum {
     meta_FFCC_STR,          /* Final Fantasy: Crystal Chronicles */
     meta_UBI_JADE,          /* Beyond Good & Evil, Rayman Raving Rabbids */
     meta_GCA,               /* Metal Slug Anthology */
-    meta_NGC_SSM,           /* Golden Gashbell Full Power */
+    meta_SSM,
     meta_PS2_JOE,           /* Wall-E / Pixar games */
     meta_YMF,
     meta_SADL,
@@ -705,7 +706,7 @@ typedef enum {
     meta_NXOF,
     meta_GWB_GWD,
     meta_CBX,
-    meta_VAS,
+    meta_VAS_ROCKSTAR,
 
 } meta_t;
 

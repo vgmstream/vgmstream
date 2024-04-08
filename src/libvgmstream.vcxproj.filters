@@ -380,6 +380,9 @@
     <ClInclude Include="util\m2_psb.h">
       <Filter>util\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="util\meta_utils.h">
+      <Filter>util\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="util\miniz.h">
       <Filter>util\Header Files</Filter>
     </ClInclude>
@@ -485,6 +488,9 @@
       <Filter>coding\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\derf_decoder.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\dpcm_kcej_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\dsa_decoder.c">
@@ -1456,7 +1462,7 @@
     <ClCompile Include="meta\ngc_str_cauldron.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\nps.c">
+    <ClCompile Include="meta\npsf.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\nub.c">
@@ -1583,9 +1589,6 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ps2_va3.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="meta\ps2_vas.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ps2_vbk.c">
@@ -1900,7 +1903,10 @@
     <ClCompile Include="meta\vai.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\vas.c">
+    <ClCompile Include="meta\vas_kceo.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\vas_rockstar.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\vgs.c">
@@ -2114,6 +2120,9 @@
       <Filter>util\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="util\m2_psb.c">
+      <Filter>util\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="util\meta_utils.c">
       <Filter>util\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="util\miniz.c">

@@ -2,7 +2,7 @@
 #include "../coding/coding.h"
 
 /* VAS - Manhunt 2 [PSP] blocked audio format */
-VGMSTREAM* init_vgmstream_vas(STREAMFILE* sf) {
+VGMSTREAM* init_vgmstream_vas_rockstar(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     off_t stream_offset;
     size_t data_size, stream_size, block_size = 0x40;
@@ -14,10 +14,10 @@ VGMSTREAM* init_vgmstream_vas(STREAMFILE* sf) {
     /* VAGs: v1, used in prerelease builds
      * 2AGs: v2, used in the final release */
     if (!is_id32be(0x00, sf, "VAGs") && !is_id32be(0x00, sf, "2AGs"))
-        goto fail;
+        return NULL;
 
     if (!check_extensions(sf, "vas"))
-        goto fail;
+        return NULL;
 
 
     /* parse header */
@@ -26,7 +26,7 @@ VGMSTREAM* init_vgmstream_vas(STREAMFILE* sf) {
     if (read_u8(0x0A, sf)) goto fail; /* always 0? */
     num_streams = read_u8(0x0B, sf);
 
-    if (num_streams < 1 || num_streams > 32) goto fail;
+    if (target_subsong < 0 || num_streams < 1 || num_streams > 32) goto fail;
     if (!target_subsong) target_subsong = 1;
 
     channels = 1; /* might be read_u8(0x0A, sf) + 1? */
@@ -56,7 +56,7 @@ VGMSTREAM* init_vgmstream_vas(STREAMFILE* sf) {
     vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->meta_type = meta_VAS;
+    vgmstream->meta_type = meta_VAS_ROCKSTAR;
     vgmstream->coding_type = coding_PSX;
     vgmstream->num_streams = num_streams;
     vgmstream->sample_rate = sample_rate;

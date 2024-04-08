@@ -880,6 +880,7 @@ static const coding_info coding_info_list[] = {
         {coding_SASSC,              "Activision / EXAKT SASSC 8-bit DPCM"},
         {coding_DERF,               "Xilam DERF 8-bit DPCM"},
         {coding_WADY,               "Marble WADY 8-bit DPCM"},
+        {coding_DPCM_KCEJ,          "Konami 8-bit DPCM"},
         {coding_NWA,                "VisualArt's NWA DPCM"},
         {coding_ACM,                "InterPlay ACM"},
         {coding_CIRCUS_ADPCM,       "Circus 8-bit ADPCM"},
@@ -1087,7 +1088,7 @@ static const meta_info meta_info_list[] = {
         {meta_SCD_PCM,              "Lunar: Eternal Blue .PCM header"},
         {meta_PS2_PCM,              "Konami .PCM header"},
         {meta_PS2_RKV,              "Legacy of Kain - Blood Omen 2 RKV PS2 header"},
-        {meta_PS2_VAS,              "Konami .VAS header"},
+        {meta_VAS_KCEO,             "Konami .VAS header"},
         {meta_LP_AP_LEP,            "Konami LP/AP/LEP header"},
         {meta_SDT,                  "High Voltage .sdt header"},
         {meta_WVS,                  "Swingin' Ape .WVS header"},
@@ -1125,7 +1126,7 @@ static const meta_info meta_info_list[] = {
         {meta_ISH_ISD,              "ISH+ISD DSP Header"},
         {meta_GSND,                 "Tecmo GSND Header"},
         {meta_YDSP,                 "Yuke's YDSP Header"},
-        {meta_NGC_SSM,              "SSM DSP Header"},
+        {meta_SSM,                  "HAL Laboratory .SSM Header"},
         {meta_PS2_JOE,              "Asobo Studio .JOE header"},
         {meta_VGS,                  "Guitar Hero VGS Header"},
         {meta_DCS_WAV,              "In Utero DCS+WAV header"},
@@ -1431,7 +1432,7 @@ static const meta_info meta_info_list[] = {
         {meta_NXOF,                 "Nihon Falcom FDK header"},
         {meta_GWB_GWD,              "Ubisoft GWB+GWD header"},
         {meta_CBX,                  "Traveller's Tales CBX header"},
-        {meta_VAS,                  "Manhunt 2 .VAS header"},
+        {meta_VAS_ROCKSTAR,         "Rockstar .VAS header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {

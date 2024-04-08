@@ -2,25 +2,25 @@
 #include "../coding/coding.h"
 
 /* NPFS - found in Namco NuSound v1 games [Tekken 5 (PS2), Venus & Braves (PS2), Ridge Racer (PSP)] */
-VGMSTREAM* init_vgmstream_nps(STREAMFILE* sf) {
-    VGMSTREAM * vgmstream = NULL;
+VGMSTREAM* init_vgmstream_npsf(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
     off_t start_offset;
     uint32_t channel_size;
-    int loop_flag, channel_count, loop_start, sample_rate;
+    int loop_flag, channels, loop_start, sample_rate;
 
 
     /* checks */
+    if (!is_id32be(0x00, sf, "NPSF"))
+        return NULL;
     /* .nps: referenced extension (ex. Venus & Braves, Ridge Racer data files)
      * .npsf: header id (Namco Production Sound File?) */
-    if ( !check_extensions(sf,"nps,npsf"))
-        goto fail;
+    if (!check_extensions(sf,"nps,npsf"))
+        return NULL;
 
-    if (read_u32be(0x00, sf) != 0x4E505346) /* "NPSF" */
-        goto fail;
 
     /* 0x04: version? (0x00001000 = 1.00?) */
     channel_size    = read_s32le(0x08, sf);
-    channel_count   = read_s32le(0x0C, sf);
+    channels        = read_s32le(0x0C, sf);
     start_offset    = read_s32le(0x10, sf); /* interleave? */
     loop_start      = read_s32le(0x14, sf);
     sample_rate     = read_s32le(0x18, sf);
@@ -36,7 +36,7 @@ VGMSTREAM* init_vgmstream_nps(STREAMFILE* sf) {
 
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count, loop_flag);
+    vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
     vgmstream->sample_rate = sample_rate;

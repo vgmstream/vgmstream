@@ -111,6 +111,8 @@ as explained below, but often will use default values. Accepted codec strings:
 # - ALAW           A-Law 8-bit PCM
 #   * For few rare games [Illwinter Game Design games: Conquest of Elysium 3 (PC), Dominions 3/4 (PC)]
 #   * Interleave is multiple of 0x1 (default)
+# - DPCM_KCEJ      DPCM 8-bit (KCE Japan)
+#   * For rare games [Metal Gear Solid 2 (PS2)-cutscenes]
 #
 # - IMA            IMA ADPCM (mono/stereo)
 #   * For some PC games, and rarely consoles

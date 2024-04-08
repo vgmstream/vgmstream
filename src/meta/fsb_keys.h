@@ -76,6 +76,7 @@ static const fsbkey_info fsbkey_list[] = {
         { MODE_FSB4_ALT, FSBKEY_ADD("tkdnsem000") }, // Ys Online: The Call of Solum (PC) [FSB3] (alt key: 2ED62676CEA6B60C0C0C)
         { MODE_FSB4_STD, FSBKEY_ADD("4DxgpNV3pQLPD6GT7g9Gf6eWU7SXutGQ") }, // Test Drive: Ferrari Racing Legends (PC)
         { MODE_FSB4_STD, FSBKEY_ADD("AjaxIsTheGoodestBoy") }, // Hello Kitty: Island Adventure (iOS)
+        { MODE_FSB5_STD, FSBKEY_ADD("resoforce") }, // Rivals of Aether 2 (PC)
 
         /* these games use a key per file, generated from the filename; could be possible to add them but there is a lot of songs,
            so external .fsbkey may be better (use guessfsb 3.1 with --write-key-file or ) */
