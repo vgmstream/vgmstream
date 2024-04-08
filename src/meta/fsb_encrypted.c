@@ -65,8 +65,7 @@ static VGMSTREAM* test_fsbkey(STREAMFILE* sf, const uint8_t* key, size_t key_siz
     int test_std = flags & FLAG_STD;
     int test_alt = flags & FLAG_ALT;
 
-
-    if (!vc && test_std) {
+    if (!vc && test_std && test_fsb_streamfile(sf, key, key_size, 0)) {
         temp_sf = setup_fsb_streamfile(sf, key, key_size, 0);
         if (!temp_sf) return NULL;
         //;dump_streamfile(temp_sf, 0);
@@ -77,7 +76,7 @@ static VGMSTREAM* test_fsbkey(STREAMFILE* sf, const uint8_t* key, size_t key_siz
        close_streamfile(temp_sf);
     }
 
-    if (!vc && test_alt) {
+    if (!vc && test_alt && test_fsb_streamfile(sf, key, key_size, 1)) {
         temp_sf = setup_fsb_streamfile(sf, key, key_size, 1);
         if (!temp_sf) return NULL;
         //;dump_streamfile(temp_sf, 1);
