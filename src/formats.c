@@ -1087,7 +1087,7 @@ static const meta_info meta_info_list[] = {
         {meta_SCD_PCM,              "Lunar: Eternal Blue .PCM header"},
         {meta_PS2_PCM,              "Konami .PCM header"},
         {meta_PS2_RKV,              "Legacy of Kain - Blood Omen 2 RKV PS2 header"},
-        {meta_PS2_VAS,              "Konami .VAS header"},
+        {meta_VAS_KCEO,             "Konami .VAS header"},
         {meta_LP_AP_LEP,            "Konami LP/AP/LEP header"},
         {meta_SDT,                  "High Voltage .sdt header"},
         {meta_WVS,                  "Swingin' Ape .WVS header"},
@@ -1431,7 +1431,7 @@ static const meta_info meta_info_list[] = {
         {meta_NXOF,                 "Nihon Falcom FDK header"},
         {meta_GWB_GWD,              "Ubisoft GWB+GWD header"},
         {meta_CBX,                  "Traveller's Tales CBX header"},
-        {meta_VAS,                  "Manhunt 2 .VAS header"},
+        {meta_VAS_ROCKSTAR,         "Rockstar .VAS header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {

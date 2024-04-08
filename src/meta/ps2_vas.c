@@ -2,8 +2,8 @@
 #include "../coding/coding.h"
 
 
-/* .VAS - from Konami Jikkyou Powerful Pro Yakyuu games */
-VGMSTREAM* init_vgmstream_ps2_vas(STREAMFILE* sf) {
+/* .VAS - from Konami Computer Enterntainment Osaka games [Jikkyou Powerful Pro Yakyuu 8 (PS2), Jikkyou World Soccer 2000 (PS2)] */
+VGMSTREAM* init_vgmstream_vas_kceo(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     off_t start_offset;
     int loop_flag, channels;
@@ -11,9 +11,9 @@ VGMSTREAM* init_vgmstream_ps2_vas(STREAMFILE* sf) {
 
     /* checks */
     if (!check_extensions(sf, "vas"))
-        goto fail;
+        return NULL;
     if (read_u32le(0x00,sf) + 0x800 != get_streamfile_size(sf))
-       goto fail;
+        return NULL;
 
     loop_flag = (read_u32le(0x10,sf) != 0);
     channels = 2;
@@ -25,10 +25,10 @@ VGMSTREAM* init_vgmstream_ps2_vas(STREAMFILE* sf) {
 
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channels,loop_flag);
+    vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->meta_type = meta_PS2_VAS;
+    vgmstream->meta_type = meta_VAS_KCEO;
     vgmstream->sample_rate = read_s32le(0x04,sf);
 
     vgmstream->coding_type = coding_PSX;
@@ -50,7 +50,7 @@ fail:
 
 
 /* .VAS in containers */
-VGMSTREAM* init_vgmstream_ps2_vas_container(STREAMFILE* sf) {
+VGMSTREAM* init_vgmstream_vas_kceo_container(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     STREAMFILE* temp_sf = NULL;
     off_t subfile_offset = 0;
@@ -60,7 +60,7 @@ VGMSTREAM* init_vgmstream_ps2_vas_container(STREAMFILE* sf) {
 
     /* checks */
     if (!check_extensions(sf, "vas"))
-        goto fail;
+        return NULL;
 
     if (read_u32be(0x00, sf) == 0xAB8A5A00) { /* fixed value */
 
@@ -139,7 +139,7 @@ VGMSTREAM* init_vgmstream_ps2_vas_container(STREAMFILE* sf) {
     temp_sf = setup_subfile_streamfile(sf, subfile_offset,subfile_size, NULL);
     if (!temp_sf) goto fail;
 
-    vgmstream = init_vgmstream_ps2_vas(temp_sf);
+    vgmstream = init_vgmstream_vas_kceo(temp_sf);
     if (!vgmstream) goto fail;
 
     vgmstream->num_streams = total_subsongs;
