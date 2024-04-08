@@ -880,6 +880,7 @@ static const coding_info coding_info_list[] = {
         {coding_SASSC,              "Activision / EXAKT SASSC 8-bit DPCM"},
         {coding_DERF,               "Xilam DERF 8-bit DPCM"},
         {coding_WADY,               "Marble WADY 8-bit DPCM"},
+        {coding_DPCM_KCEJ,          "Konami 8-bit DPCM"},
         {coding_NWA,                "VisualArt's NWA DPCM"},
         {coding_ACM,                "InterPlay ACM"},
         {coding_CIRCUS_ADPCM,       "Circus 8-bit ADPCM"},

@@ -56,6 +56,7 @@ typedef enum {
     YMZ,
     ULAW,
     ALAW,
+    DPCM_KCEJ,
 
     UNKNOWN = 255,
 } txth_codec_t;
@@ -234,16 +235,16 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
             case PSX_bf:        
             case HEVAG:         interleave = 0x10; break;
             case NGC_DSP:       interleave = 0x08; break;
+            case PCM_FLOAT_LE:  interleave = 0x04; break;
             case PCM24LE:       interleave = 0x03; break;
             case PCM24BE:       interleave = 0x03; break;
             case PCM16LE:
             case PCM16BE:       interleave = 0x02; break;
             case PCM8:
             case PCM8_U:
-            case PCM8_SB:       interleave = 0x01; break;
-            case PCM_FLOAT_LE:  interleave = 0x04; break;
+            case PCM8_SB:
             case ULAW:
-            case ALAW:          interleave = 0x01; break;
+            case ALAW:          
             default:
                  break;
         }
@@ -267,6 +268,7 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
         case PCM8_SB:       coding = coding_PCM8_SB; break;
         case ULAW:          coding = coding_ULAW; break;
         case ALAW:          coding = coding_ALAW; break;
+        case DPCM_KCEJ:     coding = coding_DPCM_KCEJ; break;
         case PCM_FLOAT_LE:  coding = coding_PCMFLOAT; break;
         case SDX2:          coding = coding_SDX2; break;
         case DVI_IMA:       coding = coding_DVI_IMA; break;
@@ -415,6 +417,12 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
 
             //TODO recheck and use only for needed cases
             vgmstream->allow_dual_stereo = 1; /* known to be used in: PSX, AICA, YMZ */
+            break;
+
+        case coding_DPCM_KCEJ:
+            if (vgmstream->channels == 1) goto fail; /* untested/unknown */
+            vgmstream->interleave_block_size = 0x01;
+            vgmstream->layout_type = layout_interleave;
             break;
 
         case coding_PCFX:
@@ -1011,6 +1019,7 @@ static txth_codec_t parse_codec(txth_header* txth, const char* val) {
     else if (is_string(val,"HEVAG"))        return HEVAG;
     else if (is_string(val,"ULAW"))         return ULAW;
     else if (is_string(val,"ALAW"))         return ALAW;
+    else if (is_string(val,"DPCM_KCEJ"))    return DPCM_KCEJ;
     /* special handling */
     else if (is_string(val,"name_value"))   return txth->name_values[0];
     else if (is_string(val,"name_value1"))  return txth->name_values[0];
@@ -2157,6 +2166,7 @@ static int get_bytes_to_samples(txth_header* txth, uint32_t bytes) {
         case PCM8_SB:
         case ULAW:
         case ALAW:
+        case DPCM_KCEJ:
             return pcm8_bytes_to_samples(bytes, txth->channels);
         case PCM_FLOAT_LE:
             return pcm_bytes_to_samples(bytes, txth->channels, 32);
