@@ -123,16 +123,23 @@ Note the above is also affected by vgmstream's options *Enable common exts* (vgm
 will accept and play common files like `.wav` or `.ogg`), and *Enable unknown exts* (will
 try to play files outside the known extension list, which is often possible through *TXTH*).
 
-#### Default title
+#### Default title and playlist columns
 By default *vgmstream* auto-generates a `title` tag depending on subsongs, stream name
 and other details. You can change this by setting *"override title"* in the options,
 that uses foobar's default (filename without extension) and tweating the display format
 in *Preferences > Display > Default User Interface* (may need to add some conditionals
-to handle files with/out subsongs). *vgmstream* automatically exports these tags:
+to handle files with/out subsongs).
+
+*vgmstream* automatically exports these tags:
 - `STREAM_INDEX`: current subsong, if file has subsongs, starts from 1
 - `STREAM_COUNT`: total subsongs, if file has subsongs
 - `STREAM_NAME`: internal name, that also exists in some formats without subsongs
-For example: `[%artist% - ]%title% [%stream_index%][/ %stream_name%]` 
+- `LOOP_START`: loop start, if any
+- `LOOP_END`: loop end, if any
+
+Those exported tags can be used as columns as well (*.. > Playlist view > custom columns*).
+
+Example: `[%artist% - ]%title% [%stream_index%][/ %stream_name%]`
 
 You can also set an unique *Destination* pattern when converting to .wav (even without)
 setting *override title*). For example `[$num(%stream_index%,2)] %filename%[-%stream_name%]` 
