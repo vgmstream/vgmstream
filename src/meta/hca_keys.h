@@ -1308,6 +1308,9 @@ static const hcakey_info hcakey_list[] = {
         // Puyo Puyo Puzzle Pop (iOS)
         {9999},                  // 000000000000270F
 
+        // Penny Blood: Hellbound (PC)
+        {845873498572},          // 00000C4F1FD49CC
+
 };
 
 #endif/*_HCA_KEYS_H_*/

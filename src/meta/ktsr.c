@@ -40,7 +40,7 @@ typedef struct {
 } ktsr_header;
 
 static VGMSTREAM* init_vgmstream_ktsr_internal(STREAMFILE* sf, bool is_srsa);
-static int parse_ktsr(ktsr_header* ktsr, STREAMFILE* sf);
+static bool parse_ktsr(ktsr_header* ktsr, STREAMFILE* sf);
 static layered_layout_data* build_layered_atrac9(ktsr_header* ktsr, STREAMFILE *sf, uint32_t config_data);
 static VGMSTREAM* init_vgmstream_ktsr_sub(STREAMFILE* sf_b, ktsr_header* ktsr, VGMSTREAM* (*init_vgmstream)(STREAMFILE* sf), const char* ext);
 
@@ -112,6 +112,11 @@ static VGMSTREAM* init_vgmstream_ktsr_internal(STREAMFILE* sf, bool is_srsa) {
 
     if (!parse_ktsr(&ktsr, sf))
         goto fail;
+
+    if (ktsr.total_subsongs == 0) {
+        vgm_logi("KTSR: file has no subsongs\n");
+        return NULL;
+    }
 
     /* open companion body */
     if (ktsr.is_external) {
@@ -371,7 +376,7 @@ fail:
     return 0;
 }
 
-static int parse_ktsr_subfile(ktsr_header* ktsr, STREAMFILE* sf, uint32_t offset) {
+static bool parse_ktsr_subfile(ktsr_header* ktsr, STREAMFILE* sf, uint32_t offset) {
     uint32_t suboffset, starts_offset, sizes_offset;
     int i;
     uint32_t type;
@@ -484,10 +489,10 @@ static int parse_ktsr_subfile(ktsr_header* ktsr, STREAMFILE* sf, uint32_t offset
     if (!parse_codec(ktsr))
         goto fail;
 
-    return 1;
+    return true;
 fail:
     VGM_LOG("ktsr: error parsing subheader\n");
-    return 0;
+    return false;
 }
 
 /* ktsr engine reads+decrypts in the same func based on passed flag tho (reversed from exe)
@@ -583,7 +588,7 @@ static void parse_longname(ktsr_header* ktsr, STREAMFILE* sf) {
     }
 }
 
-static int parse_ktsr(ktsr_header* ktsr, STREAMFILE* sf) {
+static bool parse_ktsr(ktsr_header* ktsr, STREAMFILE* sf) {
     uint32_t offset, end, header_offset, name_offset;
     uint32_t stream_count;
 
@@ -672,6 +677,10 @@ static int parse_ktsr(ktsr_header* ktsr, STREAMFILE* sf) {
         offset += size;
     }
 
+    if (ktsr->total_subsongs == 0) {
+        return true;
+    }
+
     if (ktsr->target_subsong > ktsr->total_subsongs)
         goto fail;
 
@@ -687,8 +696,8 @@ static int parse_ktsr(ktsr_header* ktsr, STREAMFILE* sf) {
         ktsr->extra_offset += ktsr->base_offset; /* ? */
     }
 
-    return 1;
+    return true;
 fail:
     vgm_logi("KTSR: unknown variation (report)\n");
-    return 0;
+    return false;
 }

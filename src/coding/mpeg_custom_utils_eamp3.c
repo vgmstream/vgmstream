@@ -15,42 +15,49 @@ typedef struct {
     uint32_t pcm_size; /* size of the PCM block */
 } eamp3_frame_info;
 
-static int eamp3_parse_frame(VGMSTREAMCHANNEL *stream, mpeg_codec_data *data, eamp3_frame_info * eaf);
-static int eamp3_write_pcm_block(VGMSTREAMCHANNEL *stream, mpeg_codec_data *data, int num_stream, eamp3_frame_info * eaf);
-static int eamp3_skip_data(VGMSTREAMCHANNEL *stream, mpeg_codec_data *data, int num_stream, int at_start);
+static bool eamp3_parse_frame(STREAMFILE* sf, uint32_t offset, mpeg_codec_data* data, eamp3_frame_info* eaf);
+static int eamp3_write_pcm_block(VGMSTREAMCHANNEL* stream, mpeg_codec_data* data, int num_stream, eamp3_frame_info* eaf);
+static int eamp3_skip_data(VGMSTREAMCHANNEL* stream, mpeg_codec_data* data, int num_stream, int at_start);
 
 /* init config and validate */
-int mpeg_custom_setup_init_eamp3(STREAMFILE *streamFile, off_t start_offset, mpeg_codec_data *data, coding_t *coding_type) {
-    mpeg_frame_info info;
-    uint16_t frame_header;
-    size_t header_size;
+int mpeg_custom_setup_init_eamp3(STREAMFILE* sf, off_t start_offset, mpeg_codec_data *data, coding_t *coding_type) {
+    eamp3_frame_info eaf = {0};
 
-
-    /* test unknown stuff */
-    frame_header = (uint16_t)read_16bitLE(start_offset+0x00, streamFile);
-    if (frame_header & 0x2000) {
-        VGM_LOG("EAMP3: found unknown bit 13\n");
-        goto fail;
-    }
-    if ((frame_header & 0x8000) && (uint32_t)read_32bitLE(start_offset+0x02, streamFile) > 0xFFFF) {
-        VGM_LOG("EAMP3: found big PCM block\n");
+    /* needed below for rare PCM-only cases (EAMP3 can use multilayers) */
+    data->channels_per_frame = data->config.channels >= 2 ? 2 : 1;
+    bool ok = eamp3_parse_frame(sf, start_offset, data, &eaf);
+    if (!ok) goto fail;
+    
+    /* checks */
+    if (eaf.unknown_flag || (eaf.extended_flag && eaf.pcm_number > 0xFFFF) || (!eaf.pcm_number && !eaf.mpeg_size)) {
+        VGM_LOG("EAMP3: found data found\n");
         goto fail;
     }
 
     /* get frame info at offset */
-    header_size = (frame_header & 0x8000) ? 0x06 : 0x02;
-    if (!mpeg_get_frame_info(streamFile, start_offset+header_size, &info))
-        goto fail;
-    switch(info.layer) {
-        case 1: *coding_type = coding_MPEG_layer1; break;
-        case 2: *coding_type = coding_MPEG_layer2; break;
-        case 3: *coding_type = coding_MPEG_layer3; break;
-        default: goto fail;
+    if (!eaf.mpeg_size) {
+        /* rare small pcm-only files, pretend mp3 max though won't be really needed [FC24 (PC)] */
+        *coding_type = coding_MPEG_layer3;
+        data->channels_per_frame = data->config.channels;
+        data->samples_per_frame = 1152;
+        data->bitrate_per_frame = 320;
+        data->sample_rate_per_frame = 48000;
     }
-    data->channels_per_frame = info.channels;
-    data->samples_per_frame = info.frame_samples;
-    data->bitrate_per_frame = info.bit_rate;
-    data->sample_rate_per_frame = info.sample_rate;
+    else {
+        mpeg_frame_info info;
+        if (!mpeg_get_frame_info(sf, start_offset + eaf.pre_size, &info))
+            goto fail;
+        switch(info.layer) {
+            case 1: *coding_type = coding_MPEG_layer1; break;
+            case 2: *coding_type = coding_MPEG_layer2; break;
+            case 3: *coding_type = coding_MPEG_layer3; break;
+            default: goto fail;
+        }
+        data->channels_per_frame = info.channels;
+        data->samples_per_frame = info.frame_samples;
+        data->bitrate_per_frame = info.bit_rate;
+        data->sample_rate_per_frame = info.sample_rate;
+    }
 
 
     return 1;
@@ -61,14 +68,14 @@ fail:
 /* reads custom frame header + MPEG data + (optional) PCM block */
 int mpeg_custom_parse_frame_eamp3(VGMSTREAMCHANNEL *stream, mpeg_codec_data *data, int num_stream) {
     mpeg_custom_stream *ms = data->streams[num_stream];
-    eamp3_frame_info eaf;
+    eamp3_frame_info eaf = {0};
     int ok;
 
 
     if (!eamp3_skip_data(stream, data, num_stream, 1))
         goto fail;
 
-    ok = eamp3_parse_frame(stream, data, &eaf);
+    ok = eamp3_parse_frame(stream->streamfile, stream->offset, data, &eaf);
     if (!ok) goto fail;
 
     ms->bytes_in_buffer = read_streamfile(ms->buffer, stream->offset + eaf.pre_size, eaf.mpeg_size, stream->streamfile);
@@ -87,8 +94,8 @@ fail:
 }
 
 
-static int eamp3_parse_frame(VGMSTREAMCHANNEL *stream, mpeg_codec_data *data, eamp3_frame_info * eaf) {
-    uint16_t current_header = (uint16_t)read_16bitLE(stream->offset+0x00, stream->streamfile);
+static bool eamp3_parse_frame(STREAMFILE* sf, uint32_t offset, mpeg_codec_data* data, eamp3_frame_info* eaf) {
+    uint16_t current_header = read_u16le(offset+0x00, sf);
 
     eaf->extended_flag  = (current_header & 0x8000);
     eaf->stereo_flag    = (current_header & 0x4000);
@@ -96,12 +103,12 @@ static int eamp3_parse_frame(VGMSTREAMCHANNEL *stream, mpeg_codec_data *data, ea
     eaf->frame_size     = (current_header & 0x1FFF); /* full size including PCM block */
     eaf->pcm_number     = 0;
     if (eaf->extended_flag > 0) {
-        eaf->pcm_number = (uint32_t)read_32bitLE(stream->offset+0x02, stream->streamfile);
-        eaf->pcm_size   = sizeof(sample) * eaf->pcm_number * data->channels_per_frame;
+        eaf->pcm_number = read_u32le(offset+0x02, sf);
+        eaf->pcm_size   = sizeof(int16_t) * eaf->pcm_number * data->channels_per_frame;
         eaf->pre_size   = 0x06;
         eaf->mpeg_size  = eaf->frame_size - eaf->pre_size - eaf->pcm_size;
         if (eaf->frame_size < eaf->pre_size + eaf->pcm_size) {
-            VGM_LOG("EAMP3: bad pcm size at %x\n", (uint32_t)stream->offset);
+            VGM_LOG("EAMP3: bad pcm size at %x: %x < %x + %x (%x * %x)\n", offset, eaf->frame_size, eaf->pre_size, eaf->pcm_size, eaf->pcm_number, data->channels_per_frame);
             goto fail;
         }
     }
@@ -111,9 +118,9 @@ static int eamp3_parse_frame(VGMSTREAMCHANNEL *stream, mpeg_codec_data *data, ea
         eaf->mpeg_size  = eaf->frame_size - eaf->pre_size;
     }
 
-    return 1;
+    return true;
 fail:
-    return 0;
+    return false;
 }
 
 /* write PCM block directly to sample buffer and setup decode discard (see EALayer3). */
@@ -155,12 +162,12 @@ fail:
 /* Skip EA-frames from other streams for .sns/sps multichannel (see EALayer3). */
 static int eamp3_skip_data(VGMSTREAMCHANNEL *stream, mpeg_codec_data *data, int num_stream, int at_start) {
     int ok, i;
-    eamp3_frame_info eaf;
+    eamp3_frame_info eaf = {0};
     int skips = at_start ? num_stream : data->streams_size - 1 - num_stream;
 
 
     for (i = 0; i < skips; i++) {
-        ok = eamp3_parse_frame(stream, data, &eaf);
+        ok = eamp3_parse_frame(stream->streamfile, stream->offset, data, &eaf);
         if (!ok) goto fail;
 
         //;VGM_LOG("s%i: skipping %x, now at %lx\n", num_stream,eaf.frame_size,stream->offset);

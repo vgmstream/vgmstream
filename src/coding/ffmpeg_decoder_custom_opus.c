@@ -514,7 +514,7 @@ static size_t make_opus_header(uint8_t* buf, int buf_size, opus_config *cfg) {
 
     /* set mapping family */
     if (cfg->channels > 2 || cfg->stream_count > 1) {
-        mapping_family = 1; //todo test 255
+        mapping_family = 1;
         header_size += 0x01 + 0x01 + cfg->channels; /* table size */
     }
 
@@ -525,7 +525,7 @@ static size_t make_opus_header(uint8_t* buf, int buf_size, opus_config *cfg) {
 
     if (header_size > buf_size) {
         VGM_LOG("OPUS: buffer can't hold header\n");
-        goto fail;
+        return 0;
     }
 
     put_u32be(buf+0x00, get_id32be("Opus"));
@@ -539,21 +539,29 @@ static size_t make_opus_header(uint8_t* buf, int buf_size, opus_config *cfg) {
 
     /* set mapping table */
     if (mapping_family > 0) {
-        int i;
+        /* test if external mappings are correctly set, as incorrect values result in wrong output
+         * (ex. all 0s would mean "write channel L in every channel)")*/
+        bool mappings_set = false;
+        for (int i = 0; i < cfg->channels; i++) {
+            if (cfg->channel_mapping[i]) {
+                mappings_set = true;
+                break;
+            }
+        }
 
         /* total streams (mono/stereo) */
         put_u8(buf+0x13, cfg->stream_count);
         /* stereo streams (6ch can be 2ch+2ch+1ch+1ch = 2 coupled in 4 streams) */
         put_u8(buf+0x14, cfg->coupled_count);
+
         /* mapping per channel (order of channels, ex: 00 01 04 05 02 03) */
-        for (i = 0; i < cfg->channels; i++) {
-            put_u8(buf+0x15+i, cfg->channel_mapping[i]);
+        for (int i = 0; i < cfg->channels; i++) {
+            uint8_t mapping = (mappings_set) ? cfg->channel_mapping[i] : i;
+            put_u8(buf+0x15+i, mapping);
         }
     }
 
     return header_size;
-fail:
-    return 0;
 }
 
 static size_t make_opus_comment(uint8_t* buf, int buf_size) {
@@ -568,11 +576,11 @@ static size_t make_opus_comment(uint8_t* buf, int buf_size) {
 
     if (comment_size > buf_size) {
         VGM_LOG("OPUS: buffer can't hold comment\n");
-        goto fail;
+        return 0;
     }
 
-    put_u32be(buf+0x00, 0x4F707573); /* "Opus" header magic */
-    put_u32be(buf+0x04, 0x54616773); /* "Tags" header magic */
+    put_u32be(buf+0x00, get_id32be("Opus"));
+    put_u32be(buf+0x04, get_id32be("Tags"));
     put_u32le(buf+0x08, vendor_string_length);
     memcpy   (buf+0x0c, vendor_string, vendor_string_length);
     put_u32le(buf+0x0c + vendor_string_length+0x00, 1); /* user_comment_list_length */
@@ -580,8 +588,6 @@ static size_t make_opus_comment(uint8_t* buf, int buf_size) {
     memcpy   (buf+0x0c + vendor_string_length+0x08, user_comment_0_string, user_comment_0_length);
 
     return comment_size;
-fail:
-    return 0;
 }
 
 static size_t make_oggs_first(uint8_t* buf, int buf_size, opus_config* cfg) {

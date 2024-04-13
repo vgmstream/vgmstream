@@ -251,8 +251,8 @@ fail:
 
 static segmented_layout_data* build_segmented_eaaudiocore_looping(STREAMFILE* sf_head, STREAMFILE* sf_data, eaac_header_t* eaac);
 static layered_layout_data* build_layered_eaaudiocore(STREAMFILE* sf, eaac_header_t *eaac, off_t start_offset);
-static STREAMFILE *setup_eaac_streamfile(eaac_header_t *ea, STREAMFILE* sf_head, STREAMFILE* sf_data);
-static size_t calculate_eaac_size(STREAMFILE* sf, eaac_header_t *ea, uint32_t num_samples, off_t start_offset, int is_ram);
+static STREAMFILE* setup_eaac_streamfile(eaac_header_t* ea, STREAMFILE* sf_head, STREAMFILE* sf_data);
+static size_t calculate_eaac_size(STREAMFILE* sf, eaac_header_t* ea, uint32_t num_samples, off_t start_offset, int is_ram);
 
 
 static VGMSTREAM* init_vgmstream_eaaudiocore_main(eaac_header_t* eaac, STREAMFILE* sf_head, STREAMFILE* sf_data, off_t header_offset, off_t _start_offset, meta_t meta_type, bool standalone) {
@@ -469,17 +469,29 @@ static VGMSTREAM* init_vgmstream_eaaudiocore_main(eaac_header_t* eaac, STREAMFIL
             }
             else {
                 switch(eaac->channels) {
-                  //case 8:  cfg.coupled_count = 3; break;   /* 2ch+2ch+2ch+1ch+1ch, 5 streams */
-                  //case 6:  cfg.coupled_count = 2; break;   /* 2ch+2ch+1ch+1ch, 4 streams */
-                    case 4:  cfg.coupled_count = 2; break;   /* 2ch+2ch, 2 streams */
-                    case 2:  cfg.coupled_count = 1; break;   /* 2ch, 1 stream */
-                    case 1:  cfg.coupled_count = 0; break;   /* 1ch, 1 stream [Madden 22 (PC)] */
-                    default: goto fail;                      /* possibly: streams = Nch / 2, coupled = Nch % 2 */
+                  //case 8:  cfg.coupled_count = 3; break;  /* 2ch+2ch+2ch+1ch+1ch, 5 streams */
+                    case 6:  cfg.coupled_count = 2; break;  /* 2ch+2ch+1ch+1ch, 4 streams [FC24 (PC)] */
+                    case 4:  cfg.coupled_count = 2; break;  /* 2ch+2ch, 2 streams */
+                    case 2:  cfg.coupled_count = 1; break;  /* 2ch, 1 stream */
+                    case 1:  cfg.coupled_count = 0; break;  /* 1ch, 1 stream [Madden 22 (PC)] */
+                    default: 
+                        VGM_LOG("EAAC: unknown coupled count for %i\n", eaac->channels);
+                        goto fail;                          /* possibly: streams = Nch / 2, coupled = Nch % 2 */
                 }
             }
 
             /* total number internal OPUS streams (should be >0) */
             cfg.stream_count = cfg.channels - cfg.coupled_count;
+
+            /* observed mapping, basically swaps BL<>LFE (4ch and below are fine with defaults)*/
+            if (eaac->channels == 6) { /* FL FR FC LFE BL BR */
+                cfg.channel_mapping[0] = 0;
+                cfg.channel_mapping[1] = 1;
+                cfg.channel_mapping[2] = 2;
+                cfg.channel_mapping[3] = 5;
+                cfg.channel_mapping[4] = 4;
+                cfg.channel_mapping[5] = 3;
+            }
 
             /* We *don't* remove EA blocks b/c in Multi Opus 1 block = 1 Opus packet
              * Regular EAOPUS uses layers to fake multichannel, this is normal multichannel Opus.
