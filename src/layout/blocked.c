@@ -144,8 +144,8 @@ void block_update(off_t block_offset, VGMSTREAM* vgmstream) {
         case layout_blocked_filp:
             block_update_filp(block_offset,vgmstream);
             break;
-        case layout_blocked_ivaud:
-            block_update_ivaud(block_offset,vgmstream);
+        case layout_blocked_rage_aud:
+            block_update_rage_aud(block_offset,vgmstream);
             break;
         case layout_blocked_ea_swvr:
             block_update_ea_swvr(block_offset,vgmstream);

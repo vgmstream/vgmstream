@@ -535,7 +535,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_mic_koei,
     init_vgmstream_seb,
     init_vgmstream_tgc,
-    init_vgmstream_ivaud,
+    init_vgmstream_rage_aud,
     init_vgmstream_asd_naxat,
     /* need companion files */
     init_vgmstream_pos,
