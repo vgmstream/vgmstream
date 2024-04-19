@@ -215,21 +215,21 @@ typedef enum {
     layout_blocked_ea_swvr,
     layout_blocked_adm,
     layout_blocked_mxch,
-    layout_blocked_ivaud,   /* GTA IV .ivaud blocks */
+    layout_blocked_rage_aud,    /* Rockstar AUD blocks */
     layout_blocked_ps2_iab,
     layout_blocked_vs_str,
     layout_blocked_rws,
     layout_blocked_hwas,
-    layout_blocked_ea_sns,  /* newest Electronic Arts blocks, found in SNS/SNU/SPS/etc formats */
-    layout_blocked_awc,     /* Rockstar AWC */
-    layout_blocked_vgs,     /* Guitar Hero II (PS2) */
+    layout_blocked_ea_sns,      /* newest Electronic Arts blocks, found in SNS/SNU/SPS/etc formats */
+    layout_blocked_awc,         /* Rockstar AWC */
+    layout_blocked_vgs,         /* Guitar Hero II (PS2) */
     layout_blocked_xwav,
-    layout_blocked_xvag_subsong, /* XVAG subsongs [God of War III (PS4)] */
+    layout_blocked_xvag_subsong,/* XVAG subsongs [God of War III (PS4)] */
     layout_blocked_ea_wve_au00, /* EA WVE au00 blocks */
     layout_blocked_ea_wve_ad10, /* EA WVE Ad10 blocks */
-    layout_blocked_sthd, /* Dream Factory STHD */
-    layout_blocked_h4m, /* H4M video */
-    layout_blocked_xa_aiff, /* XA in AIFF files [Crusader: No Remorse (SAT), Road Rash (3DO)] */
+    layout_blocked_sthd,        /* Dream Factory STHD */
+    layout_blocked_h4m,         /* H4M video */
+    layout_blocked_xa_aiff,     /* XA in AIFF files [Crusader: No Remorse (SAT), Road Rash (3DO)] */
     layout_blocked_vs_square,
     layout_blocked_vid1,
     layout_blocked_ubi_sce,
@@ -436,7 +436,7 @@ typedef enum {
     meta_PS2_MCG,           /* Gunvari MCG Files (was name .GCM on disk) */
     meta_ZSD,               /* Dragon Booster ZSD */
     meta_REDSPARK,          /* "RedSpark" RSD (MadWorld) */
-    meta_IVAUD,             /* .ivaud GTA IV */
+    meta_RAGE_AUD,          /* Rockstar AUD - MC:LA, GTA IV */
     meta_NDS_HWAS,          /* Spider-Man 3, Tony Hawk's Downhill Jam, possibly more... */
     meta_NGC_LPS,           /* Rave Master (Groove Adventure Rave)(GC) */
     meta_NAOMI_ADPCM,       /* NAOMI/NAOMI2 ARcade games */

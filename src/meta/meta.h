@@ -374,7 +374,7 @@ VGMSTREAM * init_vgmstream_vgs_ps(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_redspark(STREAMFILE *streamFile);
 
-VGMSTREAM * init_vgmstream_ivaud(STREAMFILE *streamFile);
+VGMSTREAM * init_vgmstream_rage_aud(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_ps2_sps(STREAMFILE *streamFile);
 

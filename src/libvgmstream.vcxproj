@@ -311,10 +311,10 @@
     <ClCompile Include="layout\blocked_h4m.c" />
     <ClCompile Include="layout\blocked_halpst.c" />
     <ClCompile Include="layout\blocked_hwas.c" />
-    <ClCompile Include="layout\blocked_ivaud.c" />
     <ClCompile Include="layout\blocked_mul.c" />
     <ClCompile Include="layout\blocked_mxch.c" />
     <ClCompile Include="layout\blocked_ps2_iab.c" />
+    <ClCompile Include="layout\blocked_rage_aud.c" />
     <ClCompile Include="layout\blocked_rws.c" />
     <ClCompile Include="layout\blocked_sthd.c" />
     <ClCompile Include="layout\blocked_str_snds.c" />
@@ -482,7 +482,6 @@
     <ClCompile Include="meta\isb.c" />
     <ClCompile Include="meta\ish_isd.c" />
     <ClCompile Include="meta\ivag.c" />
-    <ClCompile Include="meta\ivaud.c" />
     <ClCompile Include="meta\ivb.c" />
     <ClCompile Include="meta\jstm.c" />
     <ClCompile Include="meta\kat.c" />
@@ -603,6 +602,7 @@
     <ClCompile Include="meta\ps_headerless.c" />
     <ClCompile Include="meta\pwb.c" />
     <ClCompile Include="meta\rad.c" />
+    <ClCompile Include="meta\rage_aud.c" />
     <ClCompile Include="meta\raw_int.c" />
     <ClCompile Include="meta\raw_pcm.c" />
     <ClCompile Include="meta\raw_rsf.c" />

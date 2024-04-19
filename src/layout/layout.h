@@ -27,7 +27,7 @@ void block_update_gsb(off_t block_offset, VGMSTREAM* vgmstream);
 void block_update_xvas(off_t block_offset, VGMSTREAM* vgmstream);
 void block_update_thp(off_t block_offset, VGMSTREAM* vgmstream);
 void block_update_filp(off_t block_offset, VGMSTREAM* vgmstream);
-void block_update_ivaud(off_t block_offset, VGMSTREAM* vgmstream);
+void block_update_rage_aud(off_t block_offset, VGMSTREAM* vgmstream);
 void block_update_ea_swvr(off_t block_offset, VGMSTREAM* vgmstream);
 void block_update_adm(off_t block_offset, VGMSTREAM* vgmstream);
 void block_update_ps2_iab(off_t block_offset, VGMSTREAM* vgmstream);
