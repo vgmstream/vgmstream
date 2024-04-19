@@ -754,9 +754,6 @@
     <ClCompile Include="layout\blocked_hwas.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="layout\blocked_ivaud.c">
-      <Filter>layout\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="layout\blocked_mul.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
@@ -764,6 +761,9 @@
       <Filter>layout\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="layout\blocked_ps2_iab.c">
+      <Filter>layout\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="layout\blocked_rage_aud.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="layout\blocked_rws.c">
@@ -1267,9 +1267,6 @@
     <ClCompile Include="meta\ivag.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ivaud.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="meta\ivb.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -1628,6 +1625,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\rad.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\rage_aud.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\raw_int.c">
