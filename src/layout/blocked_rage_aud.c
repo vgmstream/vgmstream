@@ -9,7 +9,7 @@ void block_update_rage_aud(off_t block_offset, VGMSTREAM* vgmstream) {
     off_t seek_info_offset;
     int i;
 
-    //big_endian = read_u32le(0x00, sf) == 0; /* 64-bit number */
+    //big_endian = read_u32le(block_offset, sf) == 0; /* 64-bit number */
     read_u64_t read_u64 = vgmstream->codec_endian ? read_u64be : read_u64le;
     read_u32_t read_u32 = vgmstream->codec_endian ? read_u32be : read_u32le;
 
@@ -37,13 +37,13 @@ void block_update_rage_aud(off_t block_offset, VGMSTREAM* vgmstream) {
      * (table is max 0x7b8 + seek table offset + 0x800-padded) */
 
     /* TODO: This isn't really reliable, there are several very short 4-7ch streams in
-     * both MCLA and GTA4 whose seek tables are short enough to fit in 0x800 alignment
-     * 
+     * both MCLA and GTA4 whose seek tables are small enough to fit in 0x800 alignment
+     *
      * The best option might be to search for the highest start_entry offset across all the
      * seek info entries (offsets 0x00 and 0x04, can be along with the block_samples loop),
      * and do seek_info_size + furthest_offset * 0x08 + num_entries * 0x08, since sometimes
      * the number of seek entries are off by one, so just adding them all up won't match.
-     * 
+     *
      * However this should always be done from the 1st stream block, or at the very least
      * not the final block, since it can have less data left over due to it being the end
      * of the stream, where the calculation would result in it being smaller than it is.

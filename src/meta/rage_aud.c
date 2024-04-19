@@ -155,6 +155,13 @@ static int parse_aud_header(STREAMFILE* sf, aud_header* aud) {
         aud->stream_offset = read_u32(0x2c, sf);
         channel_info_offset = channel_table_offset + aud->channel_count * 0x10;
 
+        /* TODO: While not exactly relevant currently without it being supported yet,
+         * there are two Xbox 360 (XMA) streams, where the block count is off by one.
+         *
+         * This size check will fail on the following two files:
+         * GTA4 - Header says 2 blocks, actually has 3 - EP1_SFX/RP03_ML
+         * MCLA - Header says 3 blocks, actually has 4 - AUDIO/X360/SFX/AMBIENCE_STREAM/AMB_QUADSHOT_MALL_ADVERT_09
+         */
         if ((aud->block_count * aud->block_size) + aud->stream_offset != get_streamfile_size(sf)) {
             VGM_LOG("RAGE AUD: bad file size\n");
             goto fail;
