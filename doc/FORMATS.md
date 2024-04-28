@@ -261,7 +261,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Codecs: PSX
 - **svs.c**
   - Square SVS header [*SVS*]
-  - *svs*: `.svs`
+  - *svs*: `.bgm .svs`
   - Codecs: PSX
 - **riff.c**
   - RIFF WAVE header [*RIFF_WAVE*]
@@ -271,7 +271,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - RIFF WAVE header (ctrl looping) [*RIFF_WAVE_MWV*]
   - RIFX WAVE header [*RIFX_WAVE*]
   - RIFX WAVE header (smpl looping) [*RIFX_WAVE_smpl*]
-  - *riff*: `.wav .lwav .xwav .mwv .da .dax .cd .med .snd .adx .adp .xss .xsew .adpcm .adw .wd .(extensionless) .sbv .wvx .str .at3 .rws .aud .at9 .ckd .saf .ima .nsa .pcm .xvag .ogg .logg .p1d .xms .mus .dat .ldat .wma .lwma .caf .wax`
+  - *riff*: `.wav .lwav .xwav .mwv .da .dax .cd .med .snd .adx .adp .xss .xsew .adpcm .adw .wd .(extensionless) .sbv .wvx .str .at3 .rws .aud .at9 .ckd .saf .ima .nsa .pcm .xvag .ogg .logg .p1d .xms .mus .dat .ldat .wma .lwma .caf .wax .voi`
   - *rifx*: `.wav .lwav`
   - Codecs: AICA_int PCM32LE PCM24LE PCM16BE PCM16LE PCM8_U MSADPCM IMA PCMFLOAT MS_IMA AICA MPEG_custom XBOX_IMA MS_IMA_3BIT DVI_IMA L5_555 OGG_VORBIS ATRAC9 ATRAC3 MPEG MSADPCM_int
 - **nwa.c**
@@ -837,7 +837,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Codecs: PCM16LE PSX_cfg XMA1
 - **msf.c**
   - Sony MSF header [*MSF*]
-  - *msf*: `.msf .msa .at3 .mp3 .str`
+  - *msf*: `.msf .msa .at3 .mp3 .str .snd`
   - Codecs: PCM16BE PCM16LE PSX ATRAC3 FFmpeg(various)
 - **ps3_past.c**
   - SNDP header [*PS3_PAST*]
@@ -1452,7 +1452,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Codecs: PCM8_U
 - **ffdl.c**
   - (container)
-  - *ffdl*: `.ogg .logg .mp4 .lmp4 .bin .(extensionless)`
+  - *ffdl*: `.ogg .logg .mp4 .lmp4 .bin .lbin .(extensionless)`
     - Subfiles: *ogg_vorbis mp4_aac_ffmpeg*
 - **mus_vc.c**
   - Vicious Cycle .MUS header [*MUS_VC*]
@@ -1710,7 +1710,7 @@ different internally (encrypted, different versions, etc) and not always can be 
 - **psb.c**
   - M2 PSB header [*PSB*]
   - *psb*: `.psb`
-    - Subfiles: *riff vag*
+    - Subfiles: *riff vag ogg_vorbis*
   - Codecs: PCM16LE PCM24LE MSADPCM XWMA XMA NGC_DSP Opus
 - **lopu_fb.c**
   - French-Bread LOPU header [*LOPU_FB*]
@@ -1852,10 +1852,10 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Tiger Game.com .4 header [*TGC*]
   - *tgc*: `.4`
   - Codecs: TGC
-- **ivaud.c**
-  - Rockstar .ivaud header [*IVAUD*]
-  - *ivaud*: `.ivaud .(extensionless)`
-  - Codecs: PCM16LE XMA1 MPEG IMA_int
+- **rage_aud.c**
+  - Rockstar AUD header [*RAGE_AUD*]
+  - *rage_aud*: `.(extensionless) .ivaud`
+  - Codecs: PCM16BE PCM16LE XMA1 MPEG IMA_int
 - **asd_naxat.c**
   - Naxat .ASD header [*ASD_NAXAT*]
   - *asd_naxat*: `.asd`

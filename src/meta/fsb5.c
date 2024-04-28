@@ -188,7 +188,8 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
                             break;
                         case 0x05:  /* unknown 32b */
                             /* rare, found in Tearaway (Vita) with value 0 in first stream and
-                             * Shantae and the Seven Sirens (Mobile) with value 0x0003bd72 BE in #44 (Arena Town) */
+                             * Shantae and the Seven Sirens (Mobile) with value 0x0003bd72 BE in #44 (Arena Town),
+                             * also in SMT3 Remaster same as loop start (cue to jump to next segment?) */
                             VGM_LOG("FSB5: stream %i flag %x with value %08x\n", i, extraflag_type, read_u32le(extraflag_offset+0x04,sf));
                             break;
                         case 0x06:  /* XMA seek table */
