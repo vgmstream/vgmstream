@@ -663,8 +663,9 @@ static VGMSTREAM* _init_vgmstream_ogg_vorbis_config(STREAMFILE* sf, off_t start,
                 loop_length = atol(strrchr(comment,'=')+1);
                 loop_length_found = 1;
             }
-            else if (  strstr(comment,"LoopEnd=") == comment                /* (LoopStart pair) */
+            else if (  strstr(comment,"loop_end=") == comment               /* (not seen but in case loop_start is used, to avoid full loops) */
                     || strstr(comment,"LOOP_END=") == comment               /* (LOOP_START/LOOP_BEGIN pair) */
+                    || strstr(comment,"LoopEnd=") == comment                /* (LoopStart pair) */
                     || strstr(comment, "XIPH_CUE_LOOPEND=") == comment      /* (XIPH_CUE_LOOPSTART pair) */
                     || strstr(comment, "LOOPE=") == comment                 /* (LOOPS pair) */
                     ) {

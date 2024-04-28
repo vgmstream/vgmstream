@@ -67,7 +67,7 @@ typedef struct {
  *   0xNN: may have padding between channels depending on codec (mainly MPEG/XMA)
  * - padding until this block's end
  */
-static bool read_awb_block(STREAMFILE* sf, awc_block_info_t* bi) {
+static bool read_awc_block(STREAMFILE* sf, awc_block_info_t* bi) {
     read_s32_t read_s32 = bi->big_endian ? read_s32be : read_s32le;
     read_u16_t read_u16 = bi->big_endian ? read_u16be : read_u16le;
 
@@ -167,34 +167,9 @@ static uint32_t get_block_repeated_size(STREAMFILE* sf, awc_block_info_t* bi, in
         return 0;
 
     switch(bi->codec) {
-        case 0x05: { /* XMA2 */
-            const uint32_t samples_per_subframe = 512;
-            uint32_t samples_this_frame;
-            uint8_t subframes;
-            uint32_t offset = bi->block_offset + bi->blk[channel].chunk_start;
-            int repeat_samples = bi->blk[channel].channel_skip;
-
-            //TODO: fix (needs proper decoder + sample discard)
-            /* Repeat samples are the number of decoded samples to discard, but in this streamfile we can't do that.
-             * Also XMA is VBR, and may encode silent frames with up to 63 subframes yet we may have few repeat samples.
-             * We could find out how many subframes of 512 samples to skip, then adjust the XMA frame header, though
-             * output will be slightly off since subframes are related.
-             *
-             * For now just skip a full frame depending on the number of subframes vs repeat samples.
-             * Most files work ok-ish but channels may desync slightly. */
-
-            subframes = (read_u8(offset,sf) >> 2) & 0x3F; /* peek into frame header */
-            samples_this_frame = subframes * samples_per_subframe;
-            if (repeat_samples >= (int)(samples_this_frame * 0.13)) { /* skip mosts */
-                return bi->blk[channel].frame_size;
-            }
-            else {
-                return 0;
-            }
-        }
-
+        case 0x05: /* XMA2 */
         case 0x08: /* Vorbis */
-            /* when data repeats seems to clone exactly the last super-frame */            
+            /* when data repeats seems to clone the last (super-)frame */
             return bi->blk[channel].frame_size;
 
         case 0x0F: /* ATRAC9 */
@@ -215,7 +190,7 @@ static void block_callback(STREAMFILE *sf, deblock_io_data* data) {
     bi.channels = data->cfg.track_count;
     bi.codec = data->cfg.track_type;
 
-    if (!read_awb_block(sf, &bi))
+    if (!read_awc_block(sf, &bi))
         return; //???
 
     uint32_t repeat_size = get_block_repeated_size(sf, &bi, channel);
@@ -230,7 +205,7 @@ static STREAMFILE* setup_awc_streamfile(STREAMFILE* sf, uint32_t stream_offset, 
     STREAMFILE* new_sf = NULL;
     deblock_config_t cfg = {0};
 
-    if (channels >= AWC_MAX_MUSIC_CHANNELS)
+    if (channels > AWC_MAX_MUSIC_CHANNELS || channel >= channels)
         return NULL;
 
     cfg.track_number = channel;
@@ -241,7 +216,7 @@ static STREAMFILE* setup_awc_streamfile(STREAMFILE* sf, uint32_t stream_offset, 
     cfg.track_type = codec;
     cfg.big_endian = big_endian;
     //cfg.physical_offset = stream_offset;
-    //cfg.logical_size = awc_xma_io_size(sf, &cfg); /* force init */
+    //cfg.logical_size = awc_io_size(sf, &cfg); /* force init */
     cfg.block_callback = block_callback;
 
     new_sf = open_wrap_streamfile(sf);

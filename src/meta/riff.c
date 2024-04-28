@@ -400,8 +400,9 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
      * .wma/lwma: SRS: Street Racing Syndicate (Xbox), Fast and the Furious (Xbox)
      * .caf: Topple (iOS)
      * .wax: Lamborghini (Xbox)
+     * .voi: Sol Trigger (PSP)[ATRAC3]
      */
-    if (!check_extensions(sf, "wav,lwav,xwav,mwv,da,dax,cd,med,snd,adx,adp,xss,xsew,adpcm,adw,wd,,sbv,wvx,str,at3,rws,aud,at9,ckd,saf,ima,nsa,pcm,xvag,ogg,logg,p1d,xms,mus,dat,ldat,wma,lwma,caf,wax")) {
+    if (!check_extensions(sf, "wav,lwav,xwav,mwv,da,dax,cd,med,snd,adx,adp,xss,xsew,adpcm,adw,wd,,sbv,wvx,str,at3,rws,aud,at9,ckd,saf,ima,nsa,pcm,xvag,ogg,logg,p1d,xms,mus,dat,ldat,wma,lwma,caf,wax,voi")) {
         return NULL;
     }
 

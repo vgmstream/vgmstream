@@ -21,7 +21,7 @@ VGMSTREAM* init_vgmstream_ffdl(STREAMFILE* sf) {
      * .mp4/lmp4: probable extension for iOS
      * .bin: iOS FFDL extension
      * (extensionless): for FFDL files without names in Android .obb bigfile */
-    if (!check_extensions(sf, "ogg,logg,mp4,lmp4,bin,"))
+    if (!check_extensions(sf, "ogg,logg,mp4,lmp4,bin,lbin,"))
         goto fail;
 
     /* "FFDL" is a wrapper used in all of the game's files, that may contain standard

@@ -71,12 +71,18 @@ VGMSTREAM* init_vgmstream_ngc_rkv(STREAMFILE* sf) {
     /* "": empty (files have names but no extensions)
      * .rkv: container bigfile extension
      * .bo2: fake extension */
-    if (!check_extensions(sf, ",rkv,bo2"))
-        goto fail;
     if (read_u32be(0x00,sf) != 0x00)
-        goto fail;
+        return NULL;
+    int sample_rate = read_s32be(0x04,sf);
+    if (sample_rate < 22050 || sample_rate > 48000)
+        return NULL;
+    if (read_u64be(0x14,sf) != 0x00 || read_u64be(0x1c,sf) != 0x00)
+        return NULL;
     if (read_u32be(0x24,sf) == 0x00) /* quick test vs GC rkv (coef position) */
-        goto fail;
+        return NULL;
+    if (!check_extensions(sf, ",rkv,bo2"))
+        return NULL;
+
 
     switch (read_u32be(0x10,sf)) {
         case 0x00: channels = 1; break;
@@ -91,7 +97,7 @@ VGMSTREAM* init_vgmstream_ngc_rkv(STREAMFILE* sf) {
     vgmstream = allocate_vgmstream(channels,loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->sample_rate = read_s32be(0x04,sf);
+    vgmstream->sample_rate = sample_rate;
     vgmstream->num_samples = read_s32be(0x0C,sf);
     if (loop_flag) {
         vgmstream->loop_start_sample = read_s32be(0x08,sf);

@@ -281,6 +281,9 @@
     <ClInclude Include="meta\ppst_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="meta\rage_aud_streamfile.h">
+      <Filter>meta\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="meta\riff_ogg_streamfile.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>

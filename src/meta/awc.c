@@ -335,7 +335,7 @@ static int parse_awc_header(STREAMFILE* sf, awc_header* awc) {
         awc->total_subsongs = 1;
         target_subsong = 1;
         /* array access below */
-        if (entries >= AWC_MAX_MUSIC_CHANNELS)
+        if (entries > AWC_MAX_MUSIC_CHANNELS)
             goto fail;
     }
     else { /* sfx pack, each stream is a sound */

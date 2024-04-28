@@ -6,7 +6,7 @@
 
 #define PSB_MAX_LAYERS 6 /* MGS Master Collection Vo.1 (Switch) */
 
-typedef enum { PCM, RIFF_AT3, XMA2, MSADPCM, XWMA, DSP, OPUSNX, RIFF_AT9, VAG } psb_codec_t;
+typedef enum { PCM, RIFF_AT3, XMA2, MSADPCM, XWMA, DSP, OPUSNX, RIFF_AT9, VAG, OGG_VORBIS, RIFF_WAV } psb_codec_t;
 typedef struct {
     const char* id; /* format */
     const char* spec; /* platform */
@@ -102,6 +102,16 @@ VGMSTREAM* init_vgmstream_psb(STREAMFILE* sf) {
                 init_vgmstream = init_vgmstream_riff;
                 break;
 
+            case RIFF_WAV: /* Legend of Mana (Android) */
+                ext = "wav";
+                init_vgmstream = init_vgmstream_riff;
+                break;
+
+            case OGG_VORBIS: /* Legend of Mana (Android) */
+                ext = "ogg";
+                init_vgmstream = init_vgmstream_ogg_vorbis;
+                break;
+
             default:
                 break;
         }
@@ -113,6 +123,12 @@ VGMSTREAM* init_vgmstream_psb(STREAMFILE* sf) {
             vgmstream = init_vgmstream(temp_sf);
             close_streamfile(temp_sf);
             if (!vgmstream) goto fail;
+
+            if (psb.codec == OGG_VORBIS || psb.codec == RIFF_WAV) {
+                vgmstream_force_loop(vgmstream, psb.loop_flag, psb.loop_start, psb.loop_start + psb.loop_end);
+                if (vgmstream->loop_end_sample < vgmstream->num_samples)
+                    vgmstream->loop_end_sample += 1;
+            }
 
             vgmstream->num_streams = psb.total_subsongs;
             strncpy(vgmstream->stream_name, psb.readable_name, STREAM_NAME_SIZE);
@@ -225,7 +241,7 @@ VGMSTREAM* init_vgmstream_psb(STREAMFILE* sf) {
     }
 
     /* loop meaning varies, no apparent flags, seen in PCM/DSP/MSADPCM/WMAv2:
-     * - loop_start + loop_length [LoM (PC), Namco Museum V1 (PC), Senxin Aleste (PC)]
+     * - loop_start + loop_length [LoM (PC/And), Namco Museum V1 (PC), Senxin Aleste (PC)]
      * - loop_start + loop_end [G-Darius (Sw)]
      * (only in some cases of "loop" field so shouldn't happen to often) */
     if (psb.loop_test) {
@@ -505,6 +521,21 @@ static int prepare_codec(STREAMFILE* sf, psb_header_t* psb) {
         return 1;
     }
 
+    if (strcmp(spec, "and") == 0) {
+        if (!ext)
+            goto fail;
+
+        if (strcmp(ext, ".ogg") == 0) {
+            psb->codec = OGG_VORBIS;
+            return 1;
+        }
+
+        if (strcmp(ext, ".wav") == 0) {
+            psb->codec = RIFF_WAV;
+            return 1;
+        }
+    }
+
 fail:
     vgm_logi("PSB: unknown codec (report)\n");
     return 0;
@@ -611,15 +642,27 @@ static int parse_psb_channels(psb_header_t* psb, psb_node_t* nchans) {
                     psb->fmt_size = data.size;
                 }
 
+                psb->tmp->ext = psb_node_get_string(&narch, "ext"); /* appears for all channels, assumed to be the same */
+
                 if (psb_node_by_key(&narch, "loop", &node)) {
                     /* can be found as "false" with body+intro */
                     if (psb_node_get_type(&node) == PSB_TYPE_ARRAY) {
                         //todo improve
                         psb_node_by_index(&node, 0, &nsub);
-                        psb->loop_start = psb_node_get_result(&nsub).num;
+                        psb_result_t ls = psb_node_get_result(&nsub);
 
                         psb_node_by_index(&node, 1, &nsub);
-                        psb->loop_end = psb_node_get_result(&nsub).num;
+                        psb_result_t le = psb_node_get_result(&nsub);
+
+                        if (psb->tmp->ext != NULL && (strcmp(psb->tmp->ext, ".ogg") == 0 || strcmp(psb->tmp->ext, ".wav") == 0)) {
+                            /* LoM Android, still in samples but rarely they have decimals (only in .wav?) */
+                            psb->loop_start = ls.flt;
+                            psb->loop_end = le.flt;
+                        }
+                        else {
+                            psb->loop_start = ls.num;
+                            psb->loop_end = le.num;
+                        }
 
                         psb->loop_test = 1; /* loop end meaning varies*/
                     }
@@ -651,8 +694,6 @@ static int parse_psb_channels(psb_header_t* psb, psb_node_t* nchans) {
                 psb->sample_rate = (int)psb_node_get_float(&narch, "samprate"); /* seen in DSP */
                 if (!psb->sample_rate)
                     psb->sample_rate = psb_node_get_integer(&narch, "samprate"); /* seen in OpusNX */
-
-                psb->tmp->ext = psb_node_get_string(&narch, "ext"); /* appears for all channels, assumed to be the same */
 
                 psb->tmp->wav = psb_node_get_string(&narch, "wav");
 
