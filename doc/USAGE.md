@@ -137,9 +137,11 @@ to handle files with/out subsongs).
 - `LOOP_START`: loop start, if any
 - `LOOP_END`: loop end, if any
 
-Those exported tags can be used as columns as well (*.. > Playlist view > custom columns*).
+Exported tags can be used as columns as well (*.. > Playlist view > custom columns*),
+and may be added as tags (which means *vgmstream* can play and loop an exported `.ogg`,
+since those tags are inherited).
 
-Example: `[%artist% - ]%title% [%stream_index%][/ %stream_name%]`
+Custom title example: `[%artist% - ]%title% [%stream_index%][/ %stream_name%]`
 
 You can also set an unique *Destination* pattern when converting to .wav (even without)
 setting *override title*). For example `[$num(%stream_index%,2)] %filename%[-%stream_name%]` 
