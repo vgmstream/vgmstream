@@ -1,39 +1,42 @@
 #include "meta.h"
-#include "../layout/layout.h"
 #include "../coding/coding.h"
+#include "../layout/layout.h"
 #include "../util/endianness.h"
+#include "rage_aud_streamfile.h"
 
 typedef struct {
-    int is_music;
+    int big_endian;
+    int is_streamed; /* implicit: streams=music, sfx=memory */
 
     int total_subsongs;
 
-    int channel_count;
+    int channels;
     int sample_rate;
-    int codec;
     int num_samples;
+    int codec;
 
-    size_t block_count;
-    size_t block_size;
+    int block_count;
+    int block_chunk;
 
-    off_t stream_offset;
-    size_t stream_size;
-
-    int big_endian;
+    uint32_t stream_offset;
+    uint32_t stream_size;
 } aud_header;
 
 static int parse_aud_header(STREAMFILE* sf, aud_header* aud);
 
+static layered_layout_data* build_layered_rage_aud(STREAMFILE* sf, aud_header* aud);
 
-/* RAGE AUD - MC:LA, GTA IV (PC/PS3/X360) */
+
+/* RAGE AUD - from older RAGE engine games [Midnight Club: Los Angeles (PS3/X360), GTA IV (PC/PS3/X360)] */
 VGMSTREAM* init_vgmstream_rage_aud(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     aud_header aud = {0};
     int loop_flag;
 
     /* checks */
-    /* extensionless (.ivaud is fake/added by tools) */
-    if (!check_extensions(sf, "ivaud,"))
+    /* (extensionless): original names before hashing
+     * .ivaud: fake/added by tools */
+    if (!check_extensions(sf, ",ivaud"))
         return NULL;
 
     /* check header */
@@ -45,7 +48,7 @@ VGMSTREAM* init_vgmstream_rage_aud(STREAMFILE* sf) {
 
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(aud.channel_count, loop_flag);
+    vgmstream = allocate_vgmstream(aud.channels, loop_flag);
     if (!vgmstream) goto fail;
 
     vgmstream->sample_rate = aud.sample_rate;
@@ -58,18 +61,21 @@ VGMSTREAM* init_vgmstream_rage_aud(STREAMFILE* sf) {
     switch (aud.codec) {
         case 0x0001: /* common in sfx, uncommon in music (ex. EP2_SFX/MENU_MUSIC) */
             vgmstream->coding_type = aud.big_endian ? coding_PCM16BE : coding_PCM16LE;
-            vgmstream->layout_type = aud.is_music ? layout_blocked_rage_aud : layout_none;
-            vgmstream->full_block_size = aud.block_size;
+            vgmstream->layout_type = aud.is_streamed ? layout_blocked_rage_aud : layout_none;
+            vgmstream->full_block_size = aud.block_chunk;
             break;
 
 #ifdef VGM_USE_FFMPEG
-        case 0x0000: { /* XMA2 (X360) */
-            if (aud.is_music) {
-                goto fail;
+        case 0x0000: { /* XMA1 (X360) */
+            if (aud.is_streamed) {
+                vgmstream->layout_data = build_layered_rage_aud(sf, &aud);
+                if (!vgmstream->layout_data) goto fail;
+                vgmstream->layout_type = layout_layered;
+                vgmstream->coding_type = coding_FFmpeg;
             }
             else {
                 /* regular XMA for sfx */
-                vgmstream->codec_data = init_ffmpeg_xma1_raw(sf, aud.stream_offset, aud.stream_size, aud.channel_count, aud.sample_rate, 0);
+                vgmstream->codec_data = init_ffmpeg_xma1_raw(sf, aud.stream_offset, aud.stream_size, aud.channels, aud.sample_rate, 0);
                 if (!vgmstream->codec_data) goto fail;
                 vgmstream->coding_type = coding_FFmpeg;
                 vgmstream->layout_type = layout_none;
@@ -83,12 +89,11 @@ VGMSTREAM* init_vgmstream_rage_aud(STREAMFILE* sf) {
 #ifdef VGM_USE_MPEG
         case 0x0100: { /* MPEG (PS3) */
             mpeg_custom_config cfg = {0};
-
-            if (aud.is_music) {
+            if (aud.is_streamed) {
                 goto fail;
             }
             else {
-                cfg.chunk_size = aud.block_size;
+                cfg.chunk_size = aud.block_chunk;
                 cfg.big_endian = aud.big_endian;
 
                 vgmstream->codec_data = init_mpeg_custom(sf, aud.stream_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_STANDARD, &cfg);
@@ -101,8 +106,8 @@ VGMSTREAM* init_vgmstream_rage_aud(STREAMFILE* sf) {
 
         case 0x0400: /* PC */
             vgmstream->coding_type = coding_IMA_int;
-            vgmstream->layout_type = aud.is_music ? layout_blocked_rage_aud : layout_none;
-            vgmstream->full_block_size = aud.block_size;
+            vgmstream->layout_type = aud.is_streamed ? layout_blocked_rage_aud : layout_none;
+            vgmstream->full_block_size = aud.block_chunk;
             break;
 
         default:
@@ -134,35 +139,33 @@ static int parse_aud_header(STREAMFILE* sf, aud_header* aud) {
     read_u16 = aud->big_endian ? read_u16be : read_u16le;
 
     uint64_t table_offset = read_u64(0x00, sf);
-    if (table_offset > 0x10000) /* arbitrary max, typically 0x1c~0x1000 */
+    if (table_offset > 0x18000) /* typically 0x1c~0x1000, seen 0x17BE8 */
         return 0;
 
     /* use bank's stream count to detect */
-    aud->is_music = (read_u32(0x10, sf) == 0);
+    aud->is_streamed = (read_u32(0x10, sf) == 0);
 
-    if (aud->is_music) {
+    if (aud->is_streamed) {
         off_t block_table_offset, channel_table_offset, channel_info_offset;
 
         /* music header */
         block_table_offset = table_offset;
         aud->block_count = read_u32(0x08, sf);
-        aud->block_size = read_u32(0x0c, sf); /* uses padded blocks */
+        aud->block_chunk = read_u32(0x0c, sf); /* uses padded blocks */
         /* 0x10(4): stream count  */
         channel_table_offset = read_u64(0x14, sf);
         /* 0x1c(8): block_table_offset again? */
-        aud->channel_count = read_u32(0x24, sf);
+        aud->channels = read_u32(0x24, sf);
         /* 0x28(4): unknown entries? */
         aud->stream_offset = read_u32(0x2c, sf);
-        channel_info_offset = channel_table_offset + aud->channel_count * 0x10;
+        channel_info_offset = channel_table_offset + aud->channels * 0x10;
 
-        /* TODO: While not exactly relevant currently without it being supported yet,
-         * there are two Xbox 360 (XMA) streams, where the block count is off by one.
-         *
-         * This size check will fail on the following two files:
-         * GTA4 - Header says 2 blocks, actually has 3 - EP1_SFX/RP03_ML
-         * MCLA - Header says 3 blocks, actually has 4 - AUDIO/X360/SFX/AMBIENCE_STREAM/AMB_QUADSHOT_MALL_ADVERT_09
+        /* block count is off in rare XMA streams:
+         *  GTA4 - Header says 2 blocks, actually has 3 - EP1_SFX/RP03_ML
+         *  MCLA - Header says 3 blocks, actually has 4 - AUDIO/X360/SFX/AMBIENCE_STREAM/AMB_QUADSHOT_MALL_ADVERT_09
          */
-        if ((aud->block_count * aud->block_size) + aud->stream_offset != get_streamfile_size(sf)) {
+        uint32_t expected_size = aud->block_count * aud->block_chunk + aud->stream_offset;
+        if (expected_size != get_streamfile_size(sf) && expected_size + aud->block_chunk != get_streamfile_size(sf)) {
             VGM_LOG("RAGE AUD: bad file size\n");
             goto fail;
         }
@@ -231,11 +234,94 @@ static int parse_aud_header(STREAMFILE* sf, aud_header* aud) {
         /* 0x20(8): adpcm states offset, 0x38: num states? (reference for seeks?) */
         /* rest: unknown data */
 
-        aud->channel_count = 1;
+        aud->channels = 1;
     }
 
     return 1;
 
 fail:
     return 0;
+}
+
+/* ************************************************************************* */
+
+static VGMSTREAM* build_blocks_vgmstream(STREAMFILE* sf, aud_header* aud, int channel) {
+    VGMSTREAM* vgmstream = NULL;
+    STREAMFILE* temp_sf = NULL;
+    int block_channels = 1;
+    uint32_t substream_size, substream_offset;
+
+
+    /* setup custom IO streamfile that removes RAGE's odd blocks (not perfect but serviceable) */
+    temp_sf = setup_rage_aud_streamfile(sf, aud->stream_offset, aud->stream_size, aud->block_chunk, aud->channels, channel, aud->codec, aud->big_endian);
+    if (!temp_sf) goto fail;
+
+    substream_offset = 0x00;
+    substream_size = get_streamfile_size(temp_sf);
+
+    /* build the VGMSTREAM */
+    vgmstream = allocate_vgmstream(block_channels, 0);
+    if (!vgmstream) goto fail;
+
+    vgmstream->meta_type = meta_RAGE_AUD;
+    vgmstream->sample_rate = aud->sample_rate;
+    vgmstream->num_samples = aud->num_samples;
+    vgmstream->stream_size = aud->stream_size;
+
+    vgmstream->stream_size = substream_size;
+
+
+    switch(aud->codec) {
+#ifdef VGM_USE_FFMPEG
+        case 0x0000: {    /* XMA1 (X360) */
+            vgmstream->codec_data = init_ffmpeg_xma1_raw(temp_sf, substream_offset, substream_size, block_channels, aud->sample_rate, 0);
+            if (!vgmstream->codec_data) goto fail;
+            vgmstream->coding_type = coding_FFmpeg;
+            vgmstream->layout_type = layout_none;
+
+            //TODO
+            //xma_fix_raw_samples(vgmstream, temp_sf, substream_offset, substream_size, 0, 0,0); /* samples are ok? */
+            break;
+        }
+#endif
+        default:
+            goto fail;
+    }
+
+    if (!vgmstream_open_stream(vgmstream, temp_sf, substream_offset))
+        goto fail;
+    close_streamfile(temp_sf);
+    return vgmstream;
+fail:
+    ;VGM_LOG("AUD: can't open decoder\n");
+    close_vgmstream(vgmstream);
+    close_streamfile(temp_sf);
+    return NULL;
+}
+
+/* ************************************************************************* */
+
+/* blah blah, see awc.c */
+static layered_layout_data* build_layered_rage_aud(STREAMFILE* sf, aud_header* aud) {
+    int i;
+    layered_layout_data* data = NULL;
+
+
+    /* init layout */
+    data = init_layout_layered(aud->channels);
+    if (!data) goto fail;
+
+    /* open each layer subfile */
+    for (i = 0; i < aud->channels; i++) {
+        data->layers[i] = build_blocks_vgmstream(sf, aud, i);
+        if (!data->layers[i]) goto fail;
+    }
+
+    /* setup layered VGMSTREAMs */
+    if (!setup_layout_layered(data))
+        goto fail;
+    return data;
+fail:
+    free_layout_layered(data);
+    return NULL;
 }
