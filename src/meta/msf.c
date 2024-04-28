@@ -15,8 +15,9 @@ VGMSTREAM* init_vgmstream_msf(STREAMFILE* sf) {
      * .msa: Sonic & Sega All-Stars Racing (PS3)
      * .at3: Silent Hill HD Collection (PS3), Z/X Zekkai no Crusade (PS3)
      * .mp3: Darkstalkers Resurrection (PS3)
-     * .str: Pac-Man and the Ghostly Adventures (PS3) */
-    if (!check_extensions(sf,"msf,msa,at3,mp3,str"))
+     * .str: Pac-Man and the Ghostly Adventures (PS3)
+     * .snd: HamsterBall (PS3) */
+    if (!check_extensions(sf,"msf,msa,at3,mp3,str,snd"))
         goto fail;
 
     /* check header "MSF" + version-char, usually:
