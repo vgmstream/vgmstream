@@ -151,7 +151,7 @@ static inline size_t get_streamfile_size(STREAMFILE* sf) {
     return sf->get_size(sf);
 }
 
-
+/* debug util, mainly for custom IO testing (num = writes file N, -1 = printfs, -2 = only reads) */
 void dump_streamfile(STREAMFILE* sf, int num);
 
 #endif

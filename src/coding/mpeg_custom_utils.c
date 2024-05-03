@@ -8,7 +8,7 @@ int mpeg_custom_setup_init_default(STREAMFILE* sf, off_t start_offset, mpeg_code
 
 
     /* get frame info at offset */
-    if ( !mpeg_get_frame_info(sf, start_offset, &info))
+    if (!mpeg_get_frame_info(sf, start_offset, &info))
         goto fail;
     switch(info.layer) {
         case 1: *coding_type = coding_MPEG_layer1; break;
@@ -264,7 +264,7 @@ fail:
  * Gets info from a MPEG frame header at offset. Normally you would use mpg123_info but somehow
  * it's wrong at times (maybe because we use an ancient version) so here we do our thing.
  */
-static int mpeg_get_frame_info_h(uint32_t header, mpeg_frame_info* info) {
+bool mpeg_get_frame_info_h(uint32_t header, mpeg_frame_info* info) {
     /* index tables */
     static const int versions[4] = { /* MPEG 2.5 */ 3, /* reserved */ -1,  /* MPEG 2 */ 2, /* MPEG 1 */ 1 };
     static const int layers[4] = { -1,3,2,1 };
@@ -330,12 +330,12 @@ static int mpeg_get_frame_info_h(uint32_t header, mpeg_frame_info* info) {
         default: goto fail;
     }
 
-    return 1;
+    return true;
 
 fail:
-    return 0;
+    return false;
 }
-int mpeg_get_frame_info(STREAMFILE* sf, off_t offset, mpeg_frame_info* info) {
+bool mpeg_get_frame_info(STREAMFILE* sf, off_t offset, mpeg_frame_info* info) {
     uint32_t header = read_u32be(offset, sf);
     return mpeg_get_frame_info_h(header, info);
 }

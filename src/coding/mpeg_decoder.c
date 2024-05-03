@@ -113,9 +113,9 @@ fail:
 
 
 /* Init custom MPEG, with given type and config */
-mpeg_codec_data* init_mpeg_custom(STREAMFILE* sf, off_t start_offset, coding_t* coding_type, int channels, mpeg_custom_t type, mpeg_custom_config* config) {
+mpeg_codec_data* init_mpeg_custom(STREAMFILE* sf, off_t start_offset, coding_t* coding_type, int channels, mpeg_custom_t type, mpeg_custom_config* cfg) {
     mpeg_codec_data* data = NULL;
-    int i, ok;
+    int ok;
 
     /* init codec */
     data = calloc(1, sizeof(mpeg_codec_data));
@@ -124,7 +124,8 @@ mpeg_codec_data* init_mpeg_custom(STREAMFILE* sf, off_t start_offset, coding_t* 
     /* keep around to decode */
     data->custom = 1;
     data->type = type;
-    memcpy(&data->config, config, sizeof(mpeg_custom_config));
+    if (cfg)
+        memcpy(&data->config, cfg, sizeof(mpeg_custom_config));
     data->config.channels = channels;
 
     data->default_buffer_size = MPEG_DATA_BUFFER_SIZE;
@@ -135,7 +136,6 @@ mpeg_codec_data* init_mpeg_custom(STREAMFILE* sf, off_t start_offset, coding_t* 
         case MPEG_EAL31b:
         case MPEG_EAL32P:
         case MPEG_EAL32S:   ok = mpeg_custom_setup_init_ealayer3(sf, start_offset, data, coding_type); break;
-        case MPEG_AWC:      ok = mpeg_custom_setup_init_awc(sf, start_offset, data, coding_type); break;
         case MPEG_EAMP3:    ok = mpeg_custom_setup_init_eamp3(sf, start_offset, data, coding_type); break;
         default:            ok = mpeg_custom_setup_init_default(sf, start_offset, data, coding_type); break;
     }
@@ -161,7 +161,7 @@ mpeg_codec_data* init_mpeg_custom(STREAMFILE* sf, off_t start_offset, coding_t* 
         data->streams_size += 1;
 
     data->streams = calloc(data->streams_size, sizeof(mpeg_custom_stream*));
-    for (i = 0; i < data->streams_size; i++) {
+    for (int i = 0; i < data->streams_size; i++) {
         data->streams[i] = calloc(1, sizeof(mpeg_custom_stream));
         data->streams[i]->m = init_mpg123_handle(); /* decoder not shared as may need several frames to decode)*/
         if (!data->streams[i]->m) goto fail;
@@ -409,7 +409,6 @@ static void decode_mpeg_custom_stream(VGMSTREAMCHANNEL* stream, mpeg_codec_data*
             case MPEG_EAL32P:
             case MPEG_EAL32S:   ok = mpeg_custom_parse_frame_ealayer3(stream, data, num_stream); break;
             case MPEG_AHX:      ok = mpeg_custom_parse_frame_ahx(stream, data, num_stream); break;
-            case MPEG_AWC:      ok = mpeg_custom_parse_frame_awc(stream, data, num_stream); break;
             case MPEG_EAMP3:    ok = mpeg_custom_parse_frame_eamp3(stream, data, num_stream); break;
             default:            ok = mpeg_custom_parse_frame_default(stream, data, num_stream); break;
         }

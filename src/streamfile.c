@@ -1002,7 +1002,6 @@ STREAMFILE* reopen_streamfile(STREAMFILE* sf, size_t buffer_size) {
 
 /* ************************************************************************* */
 
-/* debug util, mainly for custom IO testing */
 void dump_streamfile(STREAMFILE* sf, int num) {
 #ifdef VGM_DEBUG_OUTPUT
     offv_t offset = 0;
@@ -1019,7 +1018,7 @@ void dump_streamfile(STREAMFILE* sf, int num) {
         if (!f) return;
     }
 
-    VGM_LOG("dump streamfile: size %x\n", get_streamfile_size(sf));
+    VGM_LOG("dump streamfile %i: size %x\n", num, get_streamfile_size(sf));
     while (offset < get_streamfile_size(sf)) {
         uint8_t buf[0x8000];
         size_t bytes;
@@ -1032,8 +1031,9 @@ void dump_streamfile(STREAMFILE* sf, int num) {
 
         if (f)
             fwrite(buf, sizeof(uint8_t), bytes, f);
-        else
+        else if (num == -1)
             VGM_LOGB(buf, bytes, 0);
+        //else: don't do anything (read test)
         offset += bytes;
     }
 
