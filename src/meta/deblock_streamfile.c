@@ -18,7 +18,7 @@ static size_t deblock_io_read(STREAMFILE* sf, uint8_t* dest, off_t offset, size_
 
     /* re-start when previous offset (can't map logical<>physical offsets) */
     if (data->logical_offset < 0 || offset < data->logical_offset) {
-        ;VGM_LOG("DEBLOCK: restart offset=%lx + %x, po=%lx, lo=%lx\n", offset, length, data->physical_offset, data->logical_offset);
+        //;VGM_LOG("DEBLOCK: restart offset=%lx + %x, po=%lx, lo=%lx\n", offset, length, data->physical_offset, data->logical_offset);
         data->physical_offset = data->cfg.stream_start;
         data->logical_offset = 0x00;
         data->block_size = 0;
