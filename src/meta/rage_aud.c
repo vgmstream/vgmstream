@@ -1,6 +1,7 @@
 #include "meta.h"
 #include "../coding/coding.h"
 #include "../layout/layout.h"
+#include "../util.h"
 #include "../util/endianness.h"
 #include "rage_aud_streamfile.h"
 
@@ -22,7 +23,7 @@ typedef struct {
     uint32_t stream_size;
 } aud_header;
 
-static int parse_aud_header(STREAMFILE* sf, aud_header* aud);
+static bool parse_aud_header(STREAMFILE* sf, aud_header* aud);
 
 static layered_layout_data* build_layered_rage_aud(STREAMFILE* sf, aud_header* aud);
 
@@ -88,15 +89,14 @@ VGMSTREAM* init_vgmstream_rage_aud(STREAMFILE* sf) {
 
 #ifdef VGM_USE_MPEG
         case 0x0100: { /* MPEG (PS3) */
-            mpeg_custom_config cfg = {0};
             if (aud.is_streamed) {
-                goto fail;
+                vgmstream->layout_data = build_layered_rage_aud(sf, &aud);
+                if (!vgmstream->layout_data) goto fail;
+                vgmstream->layout_type = layout_layered;
+                vgmstream->coding_type = coding_MPEG_custom;
             }
             else {
-                cfg.chunk_size = aud.block_chunk;
-                cfg.big_endian = aud.big_endian;
-
-                vgmstream->codec_data = init_mpeg_custom(sf, aud.stream_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_STANDARD, &cfg);
+                vgmstream->codec_data = init_mpeg_custom(sf, aud.stream_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_STANDARD, NULL);
                 if (!vgmstream->codec_data) goto fail;
                 vgmstream->layout_type = layout_none;
             }
@@ -126,7 +126,7 @@ fail:
 }
 
 /* Parse Rockstar's AUD header (much info from SparkIV). */
-static int parse_aud_header(STREAMFILE* sf, aud_header* aud) {
+static bool parse_aud_header(STREAMFILE* sf, aud_header* aud) {
     int target_subsong = sf->stream_index;
     read_u64_t read_u64;
     read_u32_t read_u32;
@@ -139,8 +139,8 @@ static int parse_aud_header(STREAMFILE* sf, aud_header* aud) {
     read_u16 = aud->big_endian ? read_u16be : read_u16le;
 
     uint64_t table_offset = read_u64(0x00, sf);
-    if (table_offset > 0x18000) /* typically 0x1c~0x1000, seen 0x17BE8 */
-        return 0;
+    if (table_offset > 0x20000 || table_offset < 0x1c) /* typically 0x1c~0x1000, seen ~0x19000 */
+        return false;
 
     /* use bank's stream count to detect */
     aud->is_streamed = (read_u32(0x10, sf) == 0);
@@ -160,14 +160,14 @@ static int parse_aud_header(STREAMFILE* sf, aud_header* aud) {
         aud->stream_offset = read_u32(0x2c, sf);
         channel_info_offset = channel_table_offset + aud->channels * 0x10;
 
-        /* block count is off in rare XMA streams:
+        /* block count is off in rare XMA streams, though we only need it to check the header:
          *  GTA4 - Header says 2 blocks, actually has 3 - EP1_SFX/RP03_ML
          *  MCLA - Header says 3 blocks, actually has 4 - AUDIO/X360/SFX/AMBIENCE_STREAM/AMB_QUADSHOT_MALL_ADVERT_09
          */
         uint32_t expected_size = aud->block_count * aud->block_chunk + aud->stream_offset;
         if (expected_size != get_streamfile_size(sf) && expected_size + aud->block_chunk != get_streamfile_size(sf)) {
-            VGM_LOG("RAGE AUD: bad file size\n");
-            goto fail;
+            //;VGM_LOG("RAGE AUD: bad file size\n");
+            return false;
         }
 
         /* channel table (one entry per channel, points to channel info) */
@@ -186,7 +186,8 @@ static int parse_aud_header(STREAMFILE* sf, aud_header* aud) {
         aud->codec = read_u32(channel_info_offset + 0x1c, sf);
         /* (when codec is IMA) */
         /* 0x20(8): adpcm states offset, 0x38: num states? (reference for seeks?) */
-        /* rest: unknown data */
+        /* rest: unknown data (varies per codec?) */
+        /* in MC:LA there is samples-per-frame and frame size table for MPEG */
 
         /* block table (one entry per block) */
         /* 0x00: data size processed up to this block (doesn't count block padding) */
@@ -207,11 +208,11 @@ static int parse_aud_header(STREAMFILE* sf, aud_header* aud) {
         /* 0x14(4): unknown */
         aud->stream_offset = read_u32(0x18, sf); /* base start_offset */
 
-        if (target_subsong == 0) target_subsong = 1;
-        if (target_subsong < 0 || target_subsong > aud->total_subsongs || aud->total_subsongs < 1) goto fail;
-
         if (stream_table_offset != 0x1c)
-            goto fail;
+            return false;
+        if (!check_subsongs(&target_subsong, aud->total_subsongs))
+            return false;
+
         stream_info_offset = stream_table_offset + 0x10 * aud->total_subsongs;
 
         /* stream table (one entry per stream, points to stream info) */
@@ -234,13 +235,13 @@ static int parse_aud_header(STREAMFILE* sf, aud_header* aud) {
         /* 0x20(8): adpcm states offset, 0x38: num states? (reference for seeks?) */
         /* rest: unknown data */
 
+        /* GTA IV PS3's 0x7D27B1E8' #165 and #166 seem to point to the same wrong offset pointing to the middle of data
+         * (original bug/unused? maybe should allow MPEG resync?) */
+
         aud->channels = 1;
     }
 
-    return 1;
-
-fail:
-    return 0;
+    return true;
 }
 
 /* ************************************************************************* */
@@ -279,11 +280,20 @@ static VGMSTREAM* build_blocks_vgmstream(STREAMFILE* sf, aud_header* aud, int ch
             vgmstream->coding_type = coding_FFmpeg;
             vgmstream->layout_type = layout_none;
 
-            //TODO
             //xma_fix_raw_samples(vgmstream, temp_sf, substream_offset, substream_size, 0, 0,0); /* samples are ok? */
             break;
         }
 #endif
+
+#ifdef VGM_USE_MPEG
+        case 0x0100: { /* MPEG (PS3) */
+            vgmstream->codec_data = init_mpeg_custom(temp_sf, substream_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_STANDARD, NULL);
+            if (!vgmstream->codec_data) goto fail;
+            vgmstream->layout_type = layout_none;
+            break;
+        }
+#endif
+
         default:
             goto fail;
     }
@@ -293,7 +303,7 @@ static VGMSTREAM* build_blocks_vgmstream(STREAMFILE* sf, aud_header* aud, int ch
     close_streamfile(temp_sf);
     return vgmstream;
 fail:
-    ;VGM_LOG("AUD: can't open decoder\n");
+    ;VGM_LOG("RAGE AUD: can't open decoder\n");
     close_vgmstream(vgmstream);
     close_streamfile(temp_sf);
     return NULL;
