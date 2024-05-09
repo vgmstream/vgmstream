@@ -21,11 +21,14 @@ VGMSTREAM* init_vgmstream_ea_sbk(STREAMFILE* sf) {
 
     read_u32 = is_id32be(0x00, sf, "sbnk") ? read_u32le : read_u32be;
 
+    /* sdat_size is stored at 0x0C too? */
     sdat_offset = read_u32(0x10, sf);
     sdat_size = read_u32(0x14, sf);
 
     /* lots of other unk data between here and the sdat chunk */
 
+    if (read_u32(0x0C, sf) != sdat_size)
+        goto fail;
     if (sdat_offset + sdat_size != get_streamfile_size(sf))
         goto fail;
 
@@ -45,7 +48,7 @@ VGMSTREAM* init_vgmstream_ea_sbk(STREAMFILE* sf) {
     }
     else if (is_id32be(sdat_offset, sf, "sdat") || /* sdat */
              is_id32le(sdat_offset, sf, "sdat")) { /* tads */
-        /* The Simpsons Game */
+        /* The Simpsons Game, The Godfather II */
 
         int total_streams;
         off_t entry_offset, stream_offset;
