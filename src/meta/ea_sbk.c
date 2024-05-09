@@ -34,7 +34,7 @@ VGMSTREAM* init_vgmstream_ea_sbk(STREAMFILE* sf) {
         is_id32be(chunk_offset, sf, "BNKb")) {
         /* The Godfather */
 
-        vgmstream = load_vgmstream_ea_bnk(sf, chunk_offset, target_stream, 0); /* unsure about is_embedded */
+        vgmstream = load_vgmstream_ea_bnk(sf, chunk_offset, target_stream, 0);
         if (!vgmstream) goto fail;
 
         vgmstream->meta_type = meta_EA_SBK;
