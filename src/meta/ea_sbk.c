@@ -27,7 +27,8 @@ VGMSTREAM* init_vgmstream_ea_sbk(STREAMFILE* sf) {
         goto fail;
 
 
-    if (!target_stream) target_stream = 1;
+    if (target_stream < 0) goto fail;
+    if (target_stream == 0) target_stream = 1;
     target_stream -= 1;
 
     if (is_id32be(chunk_offset, sf, "BNKl") ||
@@ -43,12 +44,16 @@ VGMSTREAM* init_vgmstream_ea_sbk(STREAMFILE* sf) {
              is_id32le(chunk_offset, sf, "sdat")) { /* tads */
         /* The Simpsons Game */
 
-        int total_subsongs;
+        int total_streams;
         off_t entry_offset, stream_offset;
 
         eaac_meta_t info = {0};
 
-        total_subsongs = read_u32(chunk_offset + 0x04, sf);
+
+        total_streams = read_u32(chunk_offset + 0x04, sf);
+        if (total_streams < 1 || target_stream + 1 > total_streams)
+            goto fail;
+
         entry_offset = chunk_offset + 0x8 + target_stream * 0x10;
 
         /* For each entry:
@@ -57,7 +62,6 @@ VGMSTREAM* init_vgmstream_ea_sbk(STREAMFILE* sf) {
          * 0x08: stream offset
          * 0x0C: 0xFEEDFEED (?)
          */
-
         if (read_u32(entry_offset + 0x00, sf) != target_stream)
             goto fail;
 
@@ -66,12 +70,17 @@ VGMSTREAM* init_vgmstream_ea_sbk(STREAMFILE* sf) {
         info.sf_head = sf;
         info.sf_body = sf;
         info.head_offset = stream_offset;
+        //info.body_offset
         info.type = meta_EA_SBK;
 
         vgmstream = load_vgmstream_ea_eaac(&info);
         if (!vgmstream) goto fail;
 
-        vgmstream->num_streams = total_subsongs;
+        vgmstream->num_streams = total_streams;
+    }
+    else {
+        VGM_LOG("EA SBK: unsupported sound data block\n");
+        goto fail;
     }
 
     return vgmstream;
