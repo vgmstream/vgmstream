@@ -6,8 +6,9 @@
 VGMSTREAM* init_vgmstream_ea_sbk(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     int target_stream = sf->stream_index;
-    off_t chunk_offset;
-    size_t chunk_size;
+    off_t sdat_offset;
+    size_t sdat_size;
+    read_u32_t read_u32;
 
     /* checks */
     if (!is_id32be(0x00, sf, "sbnk") && /* sbnk */
@@ -18,12 +19,14 @@ VGMSTREAM* init_vgmstream_ea_sbk(STREAMFILE* sf) {
         return NULL;
 
 
-    read_u32_t read_u32 = is_id32be(0x00, sf, "sbnk") ? read_u32le : read_u32be;
+    read_u32 = is_id32be(0x00, sf, "sbnk") ? read_u32le : read_u32be;
 
-    chunk_offset = read_u32(0x10, sf);
-    chunk_size = read_u32(0x14, sf);
+    sdat_offset = read_u32(0x10, sf);
+    sdat_size = read_u32(0x14, sf);
 
-    if (chunk_offset + chunk_size != get_streamfile_size(sf))
+    /* lots of other unk data between here and the sdat chunk */
+
+    if (sdat_offset + sdat_size != get_streamfile_size(sf))
         goto fail;
 
 
@@ -31,17 +34,17 @@ VGMSTREAM* init_vgmstream_ea_sbk(STREAMFILE* sf) {
     if (target_stream == 0) target_stream = 1;
     target_stream -= 1;
 
-    if (is_id32be(chunk_offset, sf, "BNKl") ||
-        is_id32be(chunk_offset, sf, "BNKb")) {
+    if (is_id32be(sdat_offset, sf, "BNKl") ||
+        is_id32be(sdat_offset, sf, "BNKb")) {
         /* The Godfather */
 
-        vgmstream = load_vgmstream_ea_bnk(sf, chunk_offset, target_stream, 0);
+        vgmstream = load_vgmstream_ea_bnk(sf, sdat_offset, target_stream, 0);
         if (!vgmstream) goto fail;
 
         vgmstream->meta_type = meta_EA_SBK;
     }
-    else if (is_id32be(chunk_offset, sf, "sdat") || /* sdat */
-             is_id32le(chunk_offset, sf, "sdat")) { /* tads */
+    else if (is_id32be(sdat_offset, sf, "sdat") || /* sdat */
+             is_id32le(sdat_offset, sf, "sdat")) { /* tads */
         /* The Simpsons Game */
 
         int total_streams;
@@ -50,11 +53,9 @@ VGMSTREAM* init_vgmstream_ea_sbk(STREAMFILE* sf) {
         eaac_meta_t info = {0};
 
 
-        total_streams = read_u32(chunk_offset + 0x04, sf);
+        total_streams = read_u32(sdat_offset + 0x04, sf);
         if (total_streams < 1 || target_stream + 1 > total_streams)
             goto fail;
-
-        entry_offset = chunk_offset + 0x8 + target_stream * 0x10;
 
         /* For each entry:
          * 0x00: stream index
@@ -62,10 +63,10 @@ VGMSTREAM* init_vgmstream_ea_sbk(STREAMFILE* sf) {
          * 0x08: stream offset
          * 0x0C: 0xFEEDFEED (?)
          */
-        if (read_u32(entry_offset + 0x00, sf) != target_stream)
-            goto fail;
+        entry_offset = sdat_offset + 0x08 + target_stream * 0x10;
 
-        stream_offset = chunk_offset + read_u32(entry_offset + 0x08, sf);
+        if (read_u32(entry_offset + 0x00, sf) != target_stream) goto fail;
+        stream_offset = sdat_offset + read_u32(entry_offset + 0x08, sf);
 
         info.sf_head = sf;
         info.sf_body = sf;
@@ -79,7 +80,7 @@ VGMSTREAM* init_vgmstream_ea_sbk(STREAMFILE* sf) {
         vgmstream->num_streams = total_streams;
     }
     else {
-        VGM_LOG("EA SBK: unsupported sound data block\n");
+        VGM_LOG("EA SBK: unsupported sound data chunk\n");
         goto fail;
     }
 
