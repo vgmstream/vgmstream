@@ -167,9 +167,6 @@
     <ClInclude Include="coding\vorbis_custom_decoder.h">
       <Filter>coding\Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="coding\libs\utkdec.h">
-      <Filter>coding\libs\Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="layout\layout.h">
       <Filter>layout\Header Files</Filter>
     </ClInclude>
@@ -415,6 +412,9 @@
     </ClInclude>
     <ClInclude Include="util\text_reader.h">
       <Filter>util\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="coding\libs\utkdec.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -699,9 +699,6 @@
     </ClCompile>
     <ClCompile Include="coding\yamaha_decoder.c">
       <Filter>coding\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="coding\libs\utkdec.c">
-      <Filter>coding\libs\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="layout\blocked.c">
       <Filter>layout\Source Files</Filter>
@@ -1109,6 +1106,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ea_eaac_tmx.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\ea_sbk.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ea_schl.c">
@@ -2142,6 +2142,9 @@
     </ClCompile>
     <ClCompile Include="util\text_reader.c">
       <Filter>util\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\libs\utkdec.c">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

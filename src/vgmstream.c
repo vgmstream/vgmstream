@@ -523,6 +523,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_s_pack,
     init_vgmstream_cbx,
     init_vgmstream_vas_rockstar,
+    init_vgmstream_ea_sbk,
 
     /* lower priority metas (no clean header identity, somewhat ambiguous, or need extension/companion file to identify) */
     init_vgmstream_agsc,

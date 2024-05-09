@@ -430,6 +430,7 @@
     <ClCompile Include="meta\ea_eaac_sbr_harmony.c" />
     <ClCompile Include="meta\ea_eaac_standard.c" />
     <ClCompile Include="meta\ea_eaac_tmx.c" />
+    <ClCompile Include="meta\ea_sbk.c" />
     <ClCompile Include="meta\ea_schl.c" />
     <ClCompile Include="meta\ea_schl_fixed.c" />
     <ClCompile Include="meta\ea_swvr.c" />
