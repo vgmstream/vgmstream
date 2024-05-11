@@ -603,6 +603,7 @@ VGMSTREAM * init_vgmstream_ea_hdr_dat(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_ea_hdr_dat_v2(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_ea_map_mus(STREAMFILE * steeamFile);
 VGMSTREAM * init_vgmstream_ea_mpf_mus(STREAMFILE * steeamFile);
+VGMSTREAM* load_vgmstream_ea_bnk(STREAMFILE* sf, off_t offset, int target_stream, int is_embedded);
 
 VGMSTREAM * init_vgmstream_ea_schl_fixed(STREAMFILE * streamFile);
 
@@ -1004,7 +1005,6 @@ VGMSTREAM* init_vgmstream_cbx(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_vas_rockstar(STREAMFILE* sf);
 
-VGMSTREAM* load_vgmstream_ea_bnk(STREAMFILE* sf, off_t offset, int target_stream, int is_embedded);
 VGMSTREAM* init_vgmstream_ea_sbk(STREAMFILE* sf);
 
 #endif /*_META_H*/
