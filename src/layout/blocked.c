@@ -216,6 +216,9 @@ void block_update(off_t block_offset, VGMSTREAM* vgmstream) {
 }
 
 void blocked_count_samples(VGMSTREAM* vgmstream, STREAMFILE* sf, off_t offset) {
+    if (vgmstream == NULL)
+        return;
+
     int block_samples;
     off_t max_offset = get_streamfile_size(sf);
 
@@ -231,9 +234,11 @@ void blocked_count_samples(VGMSTREAM* vgmstream, STREAMFILE* sf, off_t offset) {
         }
         else {
             switch(vgmstream->coding_type) {
+                case coding_PCM16LE:
                 case coding_PCM16_int:  block_samples = pcm16_bytes_to_samples(vgmstream->current_block_size, 1); break;
                 case coding_PCM8_int:
                 case coding_PCM8_U_int: block_samples = pcm8_bytes_to_samples(vgmstream->current_block_size, 1); break;
+                case coding_XBOX_IMA_int:
                 case coding_XBOX_IMA:   block_samples = xbox_ima_bytes_to_samples(vgmstream->current_block_size, 1); break;
                 case coding_NGC_DSP:    block_samples = dsp_bytes_to_samples(vgmstream->current_block_size, 1); break;
                 case coding_PSX:        block_samples = ps_bytes_to_samples(vgmstream->current_block_size,1); break;
