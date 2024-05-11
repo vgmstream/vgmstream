@@ -401,8 +401,9 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
      * .caf: Topple (iOS)
      * .wax: Lamborghini (Xbox)
      * .voi: Sol Trigger (PSP)[ATRAC3]
+     * .se: Rockman X4 (PC)
      */
-    if (!check_extensions(sf, "wav,lwav,xwav,mwv,da,dax,cd,med,snd,adx,adp,xss,xsew,adpcm,adw,wd,,sbv,wvx,str,at3,rws,aud,at9,ckd,saf,ima,nsa,pcm,xvag,ogg,logg,p1d,xms,mus,dat,ldat,wma,lwma,caf,wax,voi")) {
+    if (!check_extensions(sf, "wav,lwav,xwav,mwv,da,dax,cd,med,snd,adx,adp,xss,xsew,adpcm,adw,wd,,sbv,wvx,str,at3,rws,aud,at9,ckd,saf,ima,nsa,pcm,xvag,ogg,logg,p1d,xms,mus,dat,ldat,wma,lwma,caf,wax,voi,se")) {
         return NULL;
     }
 

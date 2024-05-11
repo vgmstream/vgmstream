@@ -497,6 +497,7 @@ static const char* extension_list[] = {
     "sdp", //txth/reserved [Metal Gear Arcade (AC)]
     "sdf",
     "sdt",
+    "se",
     "seb",
     "sed",
     "seg",
