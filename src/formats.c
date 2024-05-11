@@ -1433,6 +1433,7 @@ static const meta_info meta_info_list[] = {
         {meta_GWB_GWD,              "Ubisoft GWB+GWD header"},
         {meta_CBX,                  "Traveller's Tales CBX header"},
         {meta_VAS_ROCKSTAR,         "Rockstar .VAS header"},
+        {meta_EA_SBK,               "Electronic Arts SBK header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {

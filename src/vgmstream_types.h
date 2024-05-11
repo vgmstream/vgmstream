@@ -707,6 +707,7 @@ typedef enum {
     meta_GWB_GWD,
     meta_CBX,
     meta_VAS_ROCKSTAR,
+    meta_EA_SBK,
 
 } meta_t;
 
