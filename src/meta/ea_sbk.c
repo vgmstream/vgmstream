@@ -2,7 +2,7 @@
 #include "../util/endianness.h"
 
 
-/* .SBK - EA Redwood Shores soundbank (Simpsons Game, Godfather) */
+/* .SBK - EA Redwood Shores/Visceral Games soundbank */
 VGMSTREAM* init_vgmstream_ea_sbk(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     int target_stream = sf->stream_index;
@@ -21,16 +21,15 @@ VGMSTREAM* init_vgmstream_ea_sbk(STREAMFILE* sf) {
 
     read_u32 = is_id32be(0x00, sf, "sbnk") ? read_u32le : read_u32be;
 
-    /* sdat_size is stored at 0x0C too? */
+    sdat_size = read_u32(0x0C, sf);
     sdat_offset = read_u32(0x10, sf);
-    sdat_size = read_u32(0x14, sf);
+    /* sdat_size is also at 0x14 in all but its very early variant in PS2 007 */
 
     /* lots of other unk data between here and the sdat chunk */
 
-    if (read_u32(0x0C, sf) != sdat_size)
-        goto fail;
+    //if (read_u32(0x14, sf) != sdat_size) goto fail;
     if (sdat_offset + sdat_size != get_streamfile_size(sf))
-        goto fail;
+        goto fail; /* TODO: also check with 4 byte alignment? */
 
 
     if (target_stream < 0) goto fail;
@@ -39,7 +38,7 @@ VGMSTREAM* init_vgmstream_ea_sbk(STREAMFILE* sf) {
 
     if (is_id32be(sdat_offset, sf, "BNKl") ||
         is_id32be(sdat_offset, sf, "BNKb")) {
-        /* The Godfather */
+        /* 007: From Russia with Love, The Godfather */
 
         vgmstream = load_vgmstream_ea_bnk(sf, sdat_offset, target_stream, 0);
         if (!vgmstream) goto fail;
@@ -48,7 +47,7 @@ VGMSTREAM* init_vgmstream_ea_sbk(STREAMFILE* sf) {
     }
     else if (is_id32be(sdat_offset, sf, "sdat") || /* sdat */
              is_id32le(sdat_offset, sf, "sdat")) { /* tads */
-        /* The Simpsons Game, The Godfather II */
+        /* The Simpsons Game, The Godfather II, Dead Space */
 
         int total_streams;
         off_t entry_offset, stream_offset;
@@ -65,6 +64,8 @@ VGMSTREAM* init_vgmstream_ea_sbk(STREAMFILE* sf) {
          * 0x04: 0x0313BABE (?)
          * 0x08: stream offset
          * 0x0C: 0xFEEDFEED (?)
+         *
+         * Dead Space 3 has non-placeholder data at 0x04 (SPS related?)
          */
         entry_offset = sdat_offset + 0x08 + target_stream * 0x10;
 
@@ -76,6 +77,9 @@ VGMSTREAM* init_vgmstream_ea_sbk(STREAMFILE* sf) {
         info.head_offset = stream_offset;
         //info.body_offset
         info.type = meta_EA_SBK;
+
+        if (read_u8(stream_offset, sf) == 0x48) /* 'H' - EAAC_BLOCKID1_HEADER */
+            info.is_sps = true; /* Dead Space 3 only? */
 
         vgmstream = load_vgmstream_ea_eaac(&info);
         if (!vgmstream) goto fail;
