@@ -1573,9 +1573,6 @@
     <ClCompile Include="meta\ps2_mic.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ps2_mihb.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="meta\ps2_pcm.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
