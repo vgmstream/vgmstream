@@ -4,11 +4,61 @@
 #include "../util/companion_files.h"
 
 
+static VGMSTREAM* init_vgmstream_ea_mpf_mus_eaac(STREAMFILE* sf, const char* mus_name);
 static STREAMFILE *open_mapfile_pair(STREAMFILE* sf, int track /*, int num_tracks*/);
 
+/* .MPF - Standard EA MPF+MUS */
+VGMSTREAM* init_vgmstream_ea_mpf_eaac(STREAMFILE* sf) {
+    if (!check_extensions(sf, "mpf"))
+        return NULL;
+    return init_vgmstream_ea_mpf_mus_eaac(sf, NULL);
+}
+
+/* .MSB/.MSX - EA Redwood Shores (MSB/MSX)+MUS [The Godfather (PS3/360), The Simpsons Game (PS3/360)] */
+VGMSTREAM* init_vgmstream_ea_msb_eaac(STREAMFILE* sf) {
+    /* container with MPF, extra info, and a pre-defined MUS filename */
+    VGMSTREAM* vgmstream = NULL;
+    STREAMFILE* sf_mpf = NULL;
+    const char* mus_name[0x20 + 1];
+    size_t header_size;
+    off_t info_offset, mus_name_offset;
+    read_u32_t read_u32;
+
+    if (!check_extensions(sf, "msb,msx"))
+        return NULL;
+
+    header_size = 0x50;
+    mus_name_offset = 0x30;
+
+    /* 0x08: buffer size of the pre-defined .mus filename? (always 0x20)
+     * 0x20: mpf version number?  (always 0x05)
+     * 0x24: offset to a chunk of plaintext data w/ event and node info & names
+     * 0x2C: some hash?
+     * 0x30: intended .mus filename */
+    read_u32 = guess_read_u32(0x08, sf);
+
+    /* not exactly the same as mpf size since it's aligned, but doesn't matter here */
+    info_offset = read_u32(0x24, sf); //+ header_size;
+    read_string(mus_name, 0x20 + 1, mus_name_offset, sf);
+
+    sf_mpf = open_wrap_streamfile(sf);
+    sf_mpf = open_clamp_streamfile(sf_mpf, header_size, info_offset);
+    if (!sf_mpf) goto fail;
+
+    vgmstream = init_vgmstream_ea_mpf_mus_eaac(sf_mpf, mus_name);
+    if (!vgmstream) goto fail;
+    close_streamfile(sf_mpf);
+
+    return vgmstream;
+
+fail:
+    close_vgmstream(vgmstream);
+    close_streamfile(sf_mpf);
+    return NULL;
+}
 
 /* EA MPF/MUS combo - used in older 7th gen games for storing interactive music */
-VGMSTREAM* init_vgmstream_ea_mpf_mus_eaac(STREAMFILE* sf) {
+static VGMSTREAM* init_vgmstream_ea_mpf_mus_eaac(STREAMFILE* sf, const char* mus_name) {
     VGMSTREAM* vgmstream = NULL;
     STREAMFILE *sf_mus = NULL;
     uint32_t num_tracks, track_start, track_checksum = 0, mus_sounds, mus_stream = 0, bnk_index = 0, bnk_sound_index = 0,
@@ -33,9 +83,6 @@ VGMSTREAM* init_vgmstream_ea_mpf_mus_eaac(STREAMFILE* sf) {
     else {
         return NULL;
     }
-
-    if (!check_extensions(sf, "mpf"))
-        return NULL;
 
     version = read_u8(0x04, sf);
     sub_version = read_u8(0x05, sf);
@@ -69,7 +116,7 @@ VGMSTREAM* init_vgmstream_ea_mpf_mus_eaac(STREAMFILE* sf) {
     }
 
     /* open MUS file that matches this track */
-    sf_mus = open_mapfile_pair(sf, i);//, num_tracks
+    sf_mus = mus_name ? open_streamfile_by_filename(sf, mus_name) : open_mapfile_pair(sf, i);//, num_tracks
     if (!sf_mus) goto fail;
 
     /* sample offsets table is still there but it just holds SNS offsets, we only need it for RAM sound indexes */
