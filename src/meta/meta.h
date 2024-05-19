@@ -103,8 +103,9 @@ VGMSTREAM* init_vgmstream_mic_koei(STREAMFILE* sf);
 
 VGMSTREAM * init_vgmstream_raw_pcm(STREAMFILE *streamFile);
 
-VGMSTREAM * init_vgmstream_vag(STREAMFILE *streamFile);
-VGMSTREAM * init_vgmstream_vag_aaap(STREAMFILE *streamFile);
+VGMSTREAM * init_vgmstream_vag(STREAMFILE *sf);
+VGMSTREAM * init_vgmstream_vag_aaap(STREAMFILE *sf);
+VGMSTREAM * init_vgmstream_vag_footer(STREAMFILE* sf);
 
 VGMSTREAM * init_vgmstream_seb(STREAMFILE *streamFile);
 

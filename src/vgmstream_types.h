@@ -309,6 +309,7 @@ typedef enum {
     meta_PS2_MIC,           /* KOEI MIC File */
     meta_VAG,
     meta_VAG_custom,
+    meta_VAG_footer,
     meta_AAAP,
     meta_SEB,
     meta_STR_WAV,           /* Blitz Games STR+WAV files */

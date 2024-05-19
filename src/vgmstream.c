@@ -49,6 +49,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_ngc_dsp_std_int,
     init_vgmstream_vag,
     init_vgmstream_vag_aaap,
+    init_vgmstream_vag_footer,
     init_vgmstream_ild,
     init_vgmstream_ngc_str,
     init_vgmstream_ea_schl,

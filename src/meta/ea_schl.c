@@ -166,8 +166,9 @@ VGMSTREAM* init_vgmstream_ea_schl(STREAMFILE* sf) {
      * .hab: GoldenEye - Rogue Agent (inside .big)
      * .xsf: 007 - Agent Under Fire (Xbox)
      * .gsf: 007 - Everything or Nothing (GC)
-     * (extensionless): SSX (PS2) (inside .big) */
-    if (!check_extensions(sf,"asf,lasf,str,chk,eam,exa,sng,aud,sx,xa,strm,stm,hab,xsf,gsf,"))
+     * (extensionless): SSX (PS2) (inside .big)
+     * .r: The Sims 2: Pets (PSP) (not l/r, shorter "res") */
+    if (!check_extensions(sf,"asf,lasf,str,chk,eam,exa,sng,aud,sx,xa,strm,stm,hab,xsf,gsf,,r"))
         goto fail;
 
     /* check header */
@@ -307,8 +308,9 @@ VGMSTREAM* init_vgmstream_ea_bnk(STREAMFILE* sf) {
      * .hdt/ldt: Burnout games (PSP)
      * .abk: GoldenEye - Rogue Agent
      * .ast: FIFA 2004 (inside .big)
-     * .cat: FIFA 2000 (PC, chant.cat) */
-    if (!check_extensions(sf,"bnk,sdt,hdt,ldt,abk,ast,cat"))
+     * .cat: FIFA 2000 (PC, chant.cat)
+     * (extensionless): The Sims 2 spinoffs (PSP) */
+    if (!check_extensions(sf,"bnk,sdt,hdt,ldt,abk,ast,cat,"))
         goto fail;
 
     if (target_stream == 0) target_stream = 1;
