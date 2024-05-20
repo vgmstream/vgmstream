@@ -4,18 +4,18 @@
 #include "../util/companion_files.h"
 
 
-static VGMSTREAM* init_vgmstream_ea_mpf_mus_eaac(STREAMFILE* sf, const char* mus_name);
+static VGMSTREAM* init_vgmstream_ea_mpf_mus_eaac_main(STREAMFILE* sf, const char* mus_name);
 static STREAMFILE *open_mapfile_pair(STREAMFILE* sf, int track /*, int num_tracks*/);
 
 /* .MPF - Standard EA MPF+MUS */
-VGMSTREAM* init_vgmstream_ea_mpf_eaac(STREAMFILE* sf) {
+VGMSTREAM* init_vgmstream_ea_mpf_mus_eaac(STREAMFILE* sf) {
     if (!check_extensions(sf, "mpf"))
         return NULL;
-    return init_vgmstream_ea_mpf_mus_eaac(sf, NULL);
+    return init_vgmstream_ea_mpf_mus_eaac_main(sf, NULL);
 }
 
 /* .MSB/.MSX - EA Redwood Shores (MSB/MSX)+MUS [The Godfather (PS3/360), The Simpsons Game (PS3/360)] */
-VGMSTREAM* init_vgmstream_ea_msb_eaac(STREAMFILE* sf) {
+VGMSTREAM* init_vgmstream_ea_msb_mus_eaac(STREAMFILE* sf) {
     /* container with MPF, extra info, and a pre-defined MUS filename */
     VGMSTREAM* vgmstream = NULL;
     STREAMFILE* sf_mpf = NULL;
@@ -31,7 +31,7 @@ VGMSTREAM* init_vgmstream_ea_msb_eaac(STREAMFILE* sf) {
     mus_name_offset = 0x30;
 
     /* 0x08: buffer size of the pre-defined .mus filename? (always 0x20)
-     * 0x20: mpf version number?  (always 0x05)
+     * 0x20: mpf version number? (always 0x05)
      * 0x24: offset to a chunk of plaintext data w/ event and node info & names
      * 0x2C: some hash?
      * 0x30: intended .mus filename */
@@ -45,7 +45,7 @@ VGMSTREAM* init_vgmstream_ea_msb_eaac(STREAMFILE* sf) {
     sf_mpf = open_clamp_streamfile(sf_mpf, header_size, info_offset);
     if (!sf_mpf) goto fail;
 
-    vgmstream = init_vgmstream_ea_mpf_mus_eaac(sf_mpf, mus_name);
+    vgmstream = init_vgmstream_ea_mpf_mus_eaac_main(sf_mpf, mus_name);
     if (!vgmstream) goto fail;
     close_streamfile(sf_mpf);
 
@@ -58,7 +58,7 @@ fail:
 }
 
 /* EA MPF/MUS combo - used in older 7th gen games for storing interactive music */
-static VGMSTREAM* init_vgmstream_ea_mpf_mus_eaac(STREAMFILE* sf, const char* mus_name) {
+static VGMSTREAM* init_vgmstream_ea_mpf_mus_eaac_main(STREAMFILE* sf, const char* mus_name) {
     VGMSTREAM* vgmstream = NULL;
     STREAMFILE *sf_mus = NULL;
     uint32_t num_tracks, track_start, track_checksum = 0, mus_sounds, mus_stream = 0, bnk_index = 0, bnk_sound_index = 0,
@@ -182,7 +182,7 @@ static VGMSTREAM* init_vgmstream_ea_mpf_mus_eaac(STREAMFILE* sf, const char* mus
 
                 if (index == 0xffff) /* EOF check */
                     goto fail;
-                
+
                 entry_offset += 0x0c;
                 if (read_u16(entry_offset + 0x00, sf_mus) != index ||
                     read_u16(entry_offset + 0x02, sf_mus) != sub_index + 1)

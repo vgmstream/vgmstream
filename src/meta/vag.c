@@ -182,8 +182,10 @@ VGMSTREAM* init_vgmstream_vag(STREAMFILE* sf) {
                 /* EoR/Maxis title specific
                  * always blank in Killzone */
                 if (version == 0x02000000) {
-                    //uint8_t c = read_u8(0x30, sf); /* maybe better to do (c >= 0x30 && c <= 0x7A)? */
-                    if (read_u8(0x30, sf) >= 0x20 && read_u8(0x30, sf) <= 0x7E) stream_name_size = 0x20;
+                    //uint8_t c = read_u8(0x30, sf);
+                    /* maybe better to do (c >= 0x30 && c <= 0x7A)? */
+                    if (read_u8(0x30, sf) >= 0x20 && read_u8(0x30, sf) <= 0x7E)
+                        stream_name_size = 0x20;
                     loop_flag = ps_find_loop_offsets(sf, start_offset, channel_size, channels, interleave, &loop_start_sample, &loop_end_sample);
                 }
             }
@@ -414,7 +416,7 @@ fail:
     return NULL;
 }
 
-/* VAGp (footer) - Sims 2 console spinoffs [The Sims 2: Pets (PS2), The Sims 2: Castaway (PS2)] */
+/* VAGp footer - sound data first, header at the end [The Sims 2: Pets (PS2), The Sims 2: Castaway (PS2)] */
 VGMSTREAM* init_vgmstream_vag_footer(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     size_t file_size, stream_size;
@@ -424,16 +426,20 @@ VGMSTREAM* init_vgmstream_vag_footer(STREAMFILE* sf) {
     uint32_t version;
 
 
-    file_size = get_streamfile_size(sf);
-    header_offset = file_size - 0x40;
-
     /* checks */
-    if (!is_id32be(header_offset, sf, "VAGp"))
+    /* check if this begins with valid PS-ADPCM */
+    if (!ps_check_format(sf, 0x00, 0x40))
         return NULL;
 
     /* (extensionless): Sims 2 console spinoffs
      * .vag: assumed, may be added by tools */
     if (!check_extensions(sf, ",vag"))
+        return NULL;
+
+    file_size = get_streamfile_size(sf);
+    header_offset = file_size - 0x40;
+
+    if (!is_id32be(header_offset, sf, "VAGp"))
         return NULL;
 
 

@@ -134,7 +134,7 @@ typedef struct {
     size_t stream_size;
 } ea_header;
 
-static VGMSTREAM* init_vgmstream_ea_mpf_mus(STREAMFILE* sf, const char* mus_name);
+static VGMSTREAM* init_vgmstream_ea_mpf_mus_main(STREAMFILE* sf, const char* mus_name);
 static VGMSTREAM* parse_schl_block(STREAMFILE* sf, off_t offset);
 static VGMSTREAM* parse_bnk_header(STREAMFILE* sf, off_t offset, int target_stream, int is_embedded);
 static int parse_variable_header(STREAMFILE* sf, ea_header* ea, off_t begin_offset, int max_length, int bnk_version);
@@ -316,7 +316,7 @@ VGMSTREAM* init_vgmstream_ea_bnk(STREAMFILE* sf) {
 
     if (target_stream == 0) target_stream = 1;
     return parse_bnk_header(sf, 0x00, target_stream - 1, 0);
-    
+
 fail:
     return NULL;
 }
@@ -703,11 +703,11 @@ static STREAMFILE* open_mapfile_pair(STREAMFILE* sf, int track /*, int num_track
         /* EA loads pairs manually, so complex cases needs .txtm to map
          * NSF2:
          * - ZTRxxROK.MAP > ZTRxx.TRJ
-         * - ZTRxxTEC.MAP > ZTRxx.TRM 
-         * - ZZSHOW.MAP and ZZSHOW2.MAP > ZZSHOW.MUS 
+         * - ZTRxxTEC.MAP > ZTRxx.TRM
+         * - ZZSHOW.MAP and ZZSHOW2.MAP > ZZSHOW.MUS
          * NSF3:
-         * - ZTRxxROK.MAP > ZZZTRxxA.TRJ 
-         * - ZTRxxTEC.MAP > ZZZTRxxB.TRM 
+         * - ZTRxxROK.MAP > ZZZTRxxA.TRJ
+         * - ZTRxxTEC.MAP > ZZZTRxxB.TRM
          * - ZTR00R0A.MAP and ZTR00R0B.MAP > ZZZTR00A.TRJ
          * SSX 3:
          * - *.mpf > *.mus,xxloops0.mus
@@ -861,14 +861,14 @@ fail:
 }
 
 /* .MPF - Standard EA MPF+MUS */
-VGMSTREAM* init_vgmstream_ea_mpf(STREAMFILE* sf) {
+VGMSTREAM* init_vgmstream_ea_mpf_mus(STREAMFILE* sf) {
     if (!check_extensions(sf, "mpf"))
         return NULL;
-    return init_vgmstream_ea_mpf_mus(sf, NULL);
+    return init_vgmstream_ea_mpf_mus_main(sf, NULL);
 }
 
 /* .MSB/.MSX - EA Redwood Shores (MSB/MSX)+MUS [007: From Russia with Love, The Godfather (PC/PS2/Wii)] */
-VGMSTREAM* init_vgmstream_ea_msb(STREAMFILE* sf) {
+VGMSTREAM* init_vgmstream_ea_msb_mus(STREAMFILE* sf) {
     /* container with MPF, extra info, and a pre-defined MUS filename */
     VGMSTREAM* vgmstream = NULL;
     STREAMFILE* sf_mpf = NULL;
@@ -884,7 +884,7 @@ VGMSTREAM* init_vgmstream_ea_msb(STREAMFILE* sf) {
     mus_name_offset = 0x30;
 
     /* 0x08: buffer size of the pre-defined .mus filename? (always 0x20)
-     * 0x20: mpf version number?  (always 0x05)
+     * 0x20: mpf version number? (always 0x05)
      * 0x24: offset to a chunk of plaintext data w/ event and node info & names
      * 0x2C: some hash?
      * 0x30: intended .mus filename */
@@ -898,7 +898,7 @@ VGMSTREAM* init_vgmstream_ea_msb(STREAMFILE* sf) {
     sf_mpf = open_clamp_streamfile(sf_mpf, header_size, info_offset);
     if (!sf_mpf) goto fail;
 
-    vgmstream = init_vgmstream_ea_mpf_mus(sf_mpf, mus_name);
+    vgmstream = init_vgmstream_ea_mpf_mus_main(sf_mpf, mus_name);
     if (!vgmstream) goto fail;
     close_streamfile(sf_mpf);
 
@@ -911,7 +911,7 @@ fail:
 }
 
 /* EA MPF/MUS combo - used in 6th gen games for interactive music (for EA's PathFinder tool) */
-static VGMSTREAM* init_vgmstream_ea_mpf_mus(STREAMFILE* sf, const char* mus_name) {
+static VGMSTREAM* init_vgmstream_ea_mpf_mus_main(STREAMFILE* sf, const char* mus_name) {
     VGMSTREAM* vgmstream = NULL;
     STREAMFILE* sf_mus = NULL;
     segmented_layout_data *data_s = NULL;

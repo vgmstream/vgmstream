@@ -1,7 +1,7 @@
 #include "meta.h"
 #include "../coding/coding.h"
 
-static VGMSTREAM* parse_multistream_header(STREAMFILE* sf_head, STREAMFILE* sf_body, off_t header_offset, off_t start_offset);
+static VGMSTREAM* init_vgmstream_multistream(STREAMFILE* sf_head, STREAMFILE* sf_body, off_t header_offset, off_t start_offset);
 
 /* MIH+MIB - SCEE MultiStream interleaved bank (header+data) [namCollection: Ace Combat 2 (PS2), Rampage: Total Destruction (PS2)] */
 VGMSTREAM* init_vgmstream_mib_mih(STREAMFILE* sf_body) {
@@ -30,7 +30,7 @@ VGMSTREAM* init_vgmstream_mib_mih(STREAMFILE* sf_body) {
         }
     }
 
-    vgmstream = parse_multistream_header(sf_head, sf_body, header_offset, start_offset);
+    vgmstream = init_vgmstream_multistream(sf_head, sf_body, header_offset, start_offset);
     if (!vgmstream) goto fail;
 
     vgmstream->meta_type = meta_MIB_MIH;
@@ -61,7 +61,7 @@ VGMSTREAM* init_vgmstream_ps2_mihb(STREAMFILE* sf) {
     header_offset = 0x00;
     start_offset = 0x40;
 
-    vgmstream = parse_multistream_header(sf, sf, header_offset, start_offset);
+    vgmstream = init_vgmstream_multistream(sf, sf, header_offset, start_offset);
     if (!vgmstream) goto fail;
 
     vgmstream->meta_type = meta_PS2_MIHB;
@@ -73,7 +73,7 @@ fail:
     return NULL;
 }
 
-static VGMSTREAM* parse_multistream_header(STREAMFILE* sf_head, STREAMFILE* sf_body, off_t header_offset, off_t start_offset) {
+static VGMSTREAM* init_vgmstream_multistream(STREAMFILE* sf_head, STREAMFILE* sf_body, off_t header_offset, off_t start_offset) {
     VGMSTREAM* vgmstream = NULL;
     size_t data_size, frame_size, frame_last, frame_count;
     int channels, loop_flag, sample_rate;
