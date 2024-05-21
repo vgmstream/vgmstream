@@ -122,7 +122,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_ymf,
     init_vgmstream_sadl,
     init_vgmstream_fag,
-    init_vgmstream_ps2_mihb,
+    init_vgmstream_mic,
     init_vgmstream_ngc_pdt_split,
     init_vgmstream_ngc_pdt,
     init_vgmstream_mus_krome,

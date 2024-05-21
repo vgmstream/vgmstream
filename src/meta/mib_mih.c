@@ -44,8 +44,8 @@ fail:
     return NULL;
 }
 
-/* MIC/MIHB - SCEE MultiStream interleaved bank (merged MIH+MIB) [Rogue Trooper (PS2), The Sims 2 (PS2)] */
-VGMSTREAM* init_vgmstream_ps2_mihb(STREAMFILE* sf) {
+/* MIC - SCEE MultiStream interleaved bank (merged MIH+MIB) [Rogue Trooper (PS2), The Sims 2 (PS2)] */
+VGMSTREAM* init_vgmstream_mic(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     off_t header_offset, start_offset;
 
@@ -64,7 +64,7 @@ VGMSTREAM* init_vgmstream_ps2_mihb(STREAMFILE* sf) {
     vgmstream = init_vgmstream_multistream(sf, sf, header_offset, start_offset);
     if (!vgmstream) goto fail;
 
-    vgmstream->meta_type = meta_PS2_MIHB;
+    vgmstream->meta_type = meta_MIC;
 
     return vgmstream;
 

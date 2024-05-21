@@ -306,7 +306,7 @@ typedef enum {
     meta_SVAG_KCET,
     meta_PS_HEADERLESS,     /* headerless PS-ADPCM */
     meta_MIB_MIH,
-    meta_PS2_MIC,           /* KOEI MIC File */
+    meta_MIC_KOEI,
     meta_VAG,
     meta_VAG_custom,
     meta_VAG_footer,
@@ -371,7 +371,7 @@ typedef enum {
     meta_YMF,
     meta_SADL,
     meta_FAG,               /* Jackie Chan - Stuntmaster */
-    meta_PS2_MIHB,          /* Merged MIH+MIB */
+    meta_MIC,
     meta_NGC_PDT,           /* Mario Party 6 */
     meta_ASD_NAXAT,
     meta_SPSD,

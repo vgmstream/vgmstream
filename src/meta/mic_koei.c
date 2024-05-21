@@ -35,7 +35,7 @@ VGMSTREAM* init_vgmstream_mic_koei(STREAMFILE* sf) {
     vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->meta_type = meta_PS2_MIC;
+    vgmstream->meta_type = meta_MIC_KOEI;
     vgmstream->sample_rate = sample_rate;
 
     vgmstream->coding_type = coding_PSX;
