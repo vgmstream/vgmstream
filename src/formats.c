@@ -340,7 +340,6 @@ static const char* extension_list[] = {
     "mi4", //fake extension for .mib (renamed, to be removed)
     "mib",
     "mic",
-    "mihb",
     "mnstr",
     "mogg",
     //"m4a", //common

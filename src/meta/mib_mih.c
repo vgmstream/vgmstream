@@ -51,9 +51,8 @@ VGMSTREAM* init_vgmstream_mic(STREAMFILE* sf) {
 
     /* check extension */
     /* .mic: official extension
-     * (extensionless): The Urbz (PS2), The Sims 2 series (PS2)
-     * .mihb: assumed? */
-    if (!check_extensions(sf, "mic,,mihb"))
+     * (extensionless): The Urbz (PS2), The Sims 2 series (PS2) */
+    if (!check_extensions(sf, "mic,"))
         return NULL;
     if (read_u32le(0x00, sf) != 0x40) /* header size */
         return NULL;
