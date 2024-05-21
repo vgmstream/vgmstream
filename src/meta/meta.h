@@ -292,7 +292,7 @@ VGMSTREAM * init_vgmstream_sadl(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_fag(STREAMFILE * streamFile);
 
-VGMSTREAM * init_vgmstream_ps2_mihb(STREAMFILE * streamFile);
+VGMSTREAM* init_vgmstream_mic(STREAMFILE* sf);
 
 VGMSTREAM * init_vgmstream_ngc_pdt_split(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_ngc_pdt(STREAMFILE * streamFile);

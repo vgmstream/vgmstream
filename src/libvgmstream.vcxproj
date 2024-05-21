@@ -505,6 +505,7 @@
     <ClCompile Include="meta\mc3.c" />
     <ClCompile Include="meta\mca.c" />
     <ClCompile Include="meta\mib_mih.c" />
+    <ClCompile Include="meta\mic_koei.c" />
     <ClCompile Include="meta\mjb_mjh.c" />
     <ClCompile Include="meta\mn_str.c" />
     <ClCompile Include="meta\mogg.c" />
@@ -583,7 +584,6 @@
     <ClCompile Include="meta\ps2_iab.c" />
     <ClCompile Include="meta\ps2_joe.c" />
     <ClCompile Include="meta\ps2_mcg.c" />
-    <ClCompile Include="meta\ps2_mic.c" />
     <ClCompile Include="meta\ps2_pcm.c" />
     <ClCompile Include="meta\ps2_rnd.c" />
     <ClCompile Include="meta\ps2_snd.c" />

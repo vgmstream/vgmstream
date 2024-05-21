@@ -44,16 +44,15 @@ fail:
     return NULL;
 }
 
-/* MIC/MIHB - SCEE MultiStream interleaved bank (merged MIH+MIB) [Rogue Trooper (PS2), The Sims 2 (PS2)] */
-VGMSTREAM* init_vgmstream_ps2_mihb(STREAMFILE* sf) {
+/* MIC - SCEE MultiStream interleaved bank (merged MIH+MIB) [Rogue Trooper (PS2), The Sims 2 (PS2)] */
+VGMSTREAM* init_vgmstream_mic(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     off_t header_offset, start_offset;
 
     /* check extension */
     /* .mic: official extension
-     * (extensionless): The Urbz (PS2), The Sims 2 series (PS2)
-     * .mihb: assumed? */
-    if (!check_extensions(sf, "mic,,mihb"))
+     * (extensionless): The Urbz (PS2), The Sims 2 series (PS2) */
+    if (!check_extensions(sf, "mic,"))
         return NULL;
     if (read_u32le(0x00, sf) != 0x40) /* header size */
         return NULL;
@@ -64,7 +63,7 @@ VGMSTREAM* init_vgmstream_ps2_mihb(STREAMFILE* sf) {
     vgmstream = init_vgmstream_multistream(sf, sf, header_offset, start_offset);
     if (!vgmstream) goto fail;
 
-    vgmstream->meta_type = meta_PS2_MIHB;
+    vgmstream->meta_type = meta_MIC;
 
     return vgmstream;
 
