@@ -365,6 +365,7 @@ static const char* extension_list[] = {
     "mss",
     "msv",
     "msvp", //fake extension/header id for .msv
+    "msx",
     "mta2",
     "mtaf",
     "mtt", //txth/reserved [Splinter Cell: Pandora Tomorrow (PS2)]
@@ -1024,6 +1025,7 @@ static const meta_info meta_info_list[] = {
         {meta_RAW_PCM,              "PC .raw raw header"},
         {meta_VAG,                  "Sony VAG header"},
         {meta_VAG_custom,           "Sony VAG header (custom)"},
+        {meta_VAG_footer,           "Sony VAG footer"},
         {meta_AAAP,                 "Acclaim Austin AAAp header"},
         {meta_SEB,                  "Game Arts .SEB header"},
         {meta_STR_WAV,              "Blitz Games .STR+WAV header"},

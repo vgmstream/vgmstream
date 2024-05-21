@@ -64,9 +64,8 @@ VGMSTREAM* init_vgmstream_ea_sbk(STREAMFILE* sf) {
          * 0x04: 0x0313BABE (?)
          * 0x08: stream offset
          * 0x0C: 0xFEEDFEED (?)
-         *
-         * Dead Space 3 has non-placeholder data at 0x04 (SPS related?)
          */
+        /* Dead Space 3 has non-placeholder data at 0x04 (SPS related?) */
         entry_offset = sdat_offset + 0x08 + target_stream * 0x10;
 
         if (read_u32(entry_offset + 0x00, sf) != target_stream) goto fail;
