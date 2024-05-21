@@ -872,11 +872,13 @@ VGMSTREAM* init_vgmstream_ea_msb_mus(STREAMFILE* sf) {
     /* container with MPF, extra info, and a pre-defined MUS filename */
     VGMSTREAM* vgmstream = NULL;
     STREAMFILE* sf_mpf = NULL;
-    const char* mus_name[0x20 + 1];
+    char mus_name[0x20 + 1];
     size_t header_size;
     off_t info_offset, mus_name_offset;
     read_u32_t read_u32;
 
+    //if (read_u64be(0x00,sf) != 0) //TODO always?
+    //    return NULL;
     if (!check_extensions(sf, "msb,msx"))
         return NULL;
 
@@ -890,9 +892,15 @@ VGMSTREAM* init_vgmstream_ea_msb_mus(STREAMFILE* sf) {
      * 0x30: intended .mus filename */
     read_u32 = guess_read_u32(0x08, sf);
 
+    /* extra checks to fail faster before streamfile'ing */
+    if (read_u32(0x08,sf) != 0x20)
+        return NULL;
+    if (read_u32(0x20,sf) != 0x05)
+        return NULL;
+
     /* not exactly the same as mpf size since it's aligned, but correct size is only needed for v3 */
     info_offset = read_u32(0x24, sf); //+ header_size;
-    read_string(mus_name, 0x20 + 1, mus_name_offset, sf);
+    read_string(mus_name, sizeof(mus_name), mus_name_offset, sf);
 
     sf_mpf = open_wrap_streamfile(sf);
     sf_mpf = open_clamp_streamfile(sf_mpf, header_size, info_offset);
