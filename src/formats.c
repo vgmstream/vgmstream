@@ -1436,6 +1436,7 @@ static const meta_info meta_info_list[] = {
         {meta_CBX,                  "Traveller's Tales CBX header"},
         {meta_VAS_ROCKSTAR,         "Rockstar .VAS header"},
         {meta_EA_SBK,               "Electronic Arts SBK header"},
+        {meta_DSP_ASURA,            "Rebellion DSP header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {

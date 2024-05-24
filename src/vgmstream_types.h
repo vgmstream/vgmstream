@@ -709,6 +709,7 @@ typedef enum {
     meta_CBX,
     meta_VAS_ROCKSTAR,
     meta_EA_SBK,
+    meta_DSP_ASURA,
 
 } meta_t;
 
