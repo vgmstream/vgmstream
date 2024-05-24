@@ -1624,7 +1624,7 @@ VGMSTREAM* init_vgmstream_dsp_asura_ds2(STREAMFILE* sf) {
     dsp_meta dspm = {0};
 
     if (!check_extensions(sf, "ds2"))
-        goto fail;
+        return NULL;
 
     dspm.channels = 2;
     dspm.max_channels = 2;
@@ -1644,7 +1644,7 @@ fail:
 }
 
 
-/* .adpcm - Rebellion (Asura engine) [Sniper Elite series (NSW)] */
+/* TTSS - Rebellion (Asura engine) [Sniper Elite series (NSW)] */
 VGMSTREAM* init_vgmstream_dsp_asura_ttss(STREAMFILE* sf) {
     dsp_meta dspm = {0};
     size_t header_size = 0x0C;
@@ -1654,10 +1654,10 @@ VGMSTREAM* init_vgmstream_dsp_asura_ttss(STREAMFILE* sf) {
     if (!is_id32be(0x00, sf, "TTSS"))
         return NULL;
 
-    /* .adpcm: Sniper Elite V2 Remaster, Sniper Elite 4 (NSW)
+    /* .adpcm: Sniper Elite V2 Remaster (NSW), Sniper Elite 4 (NSW)
      * .wav: Sniper Elite V2 Remaster (NSW), Sniper Elite 3 (NSW), Sniper Elite 4 (NSW) */
     if (!check_extensions(sf, "adpcm,wav,lwav"))
-        goto fail;
+        return NULL;
 
     /* ch2_size is 0 if mono, otherwise they should match */
     ch1_size = read_u32le(0x04, sf);
