@@ -71,6 +71,7 @@ VGMSTREAM* init_vgmstream_dsp_kwa(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_dsp_apex(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_dsp_asura(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_dsp_asura_ds2(STREAMFILE* sf);
+VGMSTREAM* init_vgmstream_dsp_asura_ttss(STREAMFILE* sf);
 
 VGMSTREAM * init_vgmstream_csmp(STREAMFILE *streamFile);
 

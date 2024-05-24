@@ -1642,3 +1642,51 @@ VGMSTREAM* init_vgmstream_dsp_asura_ds2(STREAMFILE* sf) {
 fail:
     return NULL;
 }
+
+
+/* .adpcm - Rebellion (Asura engine) [Sniper Elite series (NSW)] */
+VGMSTREAM* init_vgmstream_dsp_asura_ttss(STREAMFILE* sf) {
+    dsp_meta dspm = {0};
+    size_t header_size = 0x0C;
+    size_t ch1_size, ch2_size;
+
+    /* checks */
+    if (!is_id32be(0x00, sf, "TTSS"))
+        return NULL;
+
+    /* .adpcm: Sniper Elite V2 Remaster, Sniper Elite 4 (NSW)
+     * .wav: Sniper Elite V2 Remaster (NSW), Sniper Elite 3 (NSW), Sniper Elite 4 (NSW) */
+    if (!check_extensions(sf, "adpcm,wav,lwav"))
+        goto fail;
+
+    /* ch2_size is 0 if mono, otherwise they should match */
+    ch1_size = read_u32le(0x04, sf);
+    ch2_size = read_u32le(0x08, sf);
+
+    /* as with WiiU Asura DSPx, files are (sometimes) aligned to 0x04 with garbage 0xCD bytes */
+    if (header_size + ch1_size + ch2_size != get_streamfile_size(sf) &&
+        align_size_to_block(header_size + ch1_size + ch2_size, 0x04) != get_streamfile_size(sf))
+        goto fail;
+
+    dspm.channels = 1;
+    dspm.max_channels = 1;
+    dspm.little_endian = 1;
+
+    if (ch2_size != 0x00) {
+        if (ch1_size != ch2_size)
+            goto fail;
+
+        dspm.channels = 2;
+        dspm.max_channels = 2;
+        dspm.header_spacing = ch1_size;
+        dspm.interleave = dspm.header_spacing;
+    }
+
+    dspm.header_offset = header_size + 0x00;
+    dspm.start_offset = header_size + 0x60;
+
+    dspm.meta_type = meta_DSP_ASURA;
+    return init_vgmstream_dsp_common(sf, &dspm);
+fail:
+    return NULL;
+}
