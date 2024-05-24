@@ -24,8 +24,8 @@ VGMSTREAM* init_vgmstream_ea_msb_mus_eaac(STREAMFILE* sf) {
     off_t info_offset, mus_name_offset;
     read_u32_t read_u32;
 
-    //if (read_u64be(0x00,sf) != 0) //TODO always?
-    //    return NULL;
+    if (read_u64be(0x00, sf) != 0)
+        return NULL;
     if (!check_extensions(sf, "msb,msx"))
         return NULL;
 
@@ -40,13 +40,22 @@ VGMSTREAM* init_vgmstream_ea_msb_mus_eaac(STREAMFILE* sf) {
     read_u32 = guess_read_u32(0x08, sf);
 
     /* extra checks to fail faster before streamfile'ing */
-    if (read_u32(0x08,sf) != 0x20)
+    if (read_u32(0x08, sf) != 0x20)
         return NULL;
-    if (read_u32(0x20,sf) != 0x05)
+    if (read_u32(0x20, sf) != 0x05)
         return NULL;
 
     /* not exactly the same as mpf size since it's aligned, but doesn't matter here */
     info_offset = read_u32(0x24, sf); //+ header_size;
+    /* TODO: it should be theoretically possible to use the numparts section
+     * in the plaintext chunk to get valid stream names using its entry node
+     * indices by checking if they're within range of the current subsong.
+     *
+     * However the main thing currently preventing that from being a thing
+     * is the fact that the indices deviate starting off by being off by 1,
+     * and can go up to being off by like 10 or in some rare extreme cases
+     * up to couple 100s. See if this index logic has some rhyme or reason.
+     */
     read_string(mus_name, sizeof(mus_name), mus_name_offset, sf);
 
     sf_mpf = open_wrap_streamfile(sf);
@@ -55,8 +64,8 @@ VGMSTREAM* init_vgmstream_ea_msb_mus_eaac(STREAMFILE* sf) {
 
     vgmstream = init_vgmstream_ea_mpf_mus_eaac_main(sf_mpf, mus_name);
     if (!vgmstream) goto fail;
-    close_streamfile(sf_mpf);
 
+    close_streamfile(sf_mpf);
     return vgmstream;
 
 fail:
