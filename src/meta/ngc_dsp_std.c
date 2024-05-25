@@ -56,8 +56,10 @@ static bool read_dsp_header_endian(struct dsp_header *header, off_t offset, STRE
         goto fail;
 
     header->sample_rate         = get_u32(buf+0x08);
-    if (header->sample_rate < 8000 || header->sample_rate > 48000)
-        goto fail; /* validated later but fail faster (unsure of min) */
+    if (header->sample_rate < 5000 || header->sample_rate > 48000)
+        /* validated later but fail faster (unsure of min) */
+        /* lowest known so far is 5000 in Judge Dredd (GC) */
+        goto fail;
 
     /* context */
     header->loop_flag           = get_u16(buf+0x0c);
@@ -315,8 +317,10 @@ VGMSTREAM* init_vgmstream_ngc_dsp_std(STREAMFILE* sf) {
 
     /* .dsp: standard
      * .adp: Dr. Muto/Battalion Wars (GC), Tale of Despereaux (Wii)
-     * (extensionless): Tony Hawk's Downhill Jam (Wii) */
-    if (!check_extensions(sf, "dsp,adp,"))
+     * (extensionless): Tony Hawk's Downhill Jam (Wii)
+     * .wav: PDC World Championship Darts 2009 & Pro Tour (Wii) 
+     * .dat: The Sims: Bustin' Out (GC) (rarely, most are extensionless) */
+    if (!check_extensions(sf, "dsp,adp,,wav,lwav,dat,ldat"))
         return NULL;
 
     channels = 1;
@@ -358,7 +362,7 @@ VGMSTREAM* init_vgmstream_ngc_dsp_std(STREAMFILE* sf) {
 
         /* ignore ddsp, that set samples/nibbles counting both channels so can't be detected
          * (could check for .dsp but most files don't need this) */
-        if (check_extensions(sf, "adp")) {
+        if (check_extensions(sf, "adp,")) {
             uint32_t interleave = (get_streamfile_size(sf) / 2);
 
             ko = !read_dsp_header_be(&header2, interleave, sf);
@@ -371,7 +375,7 @@ VGMSTREAM* init_vgmstream_ngc_dsp_std(STREAMFILE* sf) {
             }
         }
     }
-        
+
     if (header.loop_flag) {
         off_t loop_off;
         /* check loop predictor/scale */
@@ -846,15 +850,16 @@ fail:
     return NULL;
 }
 
-/* .ddsp - full interleaved dsp [Shark Tale (GC), The Sims 2: Pets (Wii), Wacky Races: Crash & Dash (Wii)] */
+/* .ddsp - full interleaved dsp [Shark Tale (GC), The Sims series (GC/Wii), Wacky Races: Crash & Dash (Wii)] */
 VGMSTREAM* init_vgmstream_dsp_ddsp(STREAMFILE* sf) {
     dsp_meta dspm = {0};
 
     /* checks */
     /* .adp: Tale of Despereaux (Wii) */
     /* .ddsp: fake extension (games have bigfiles without names, but has references to .wav)
-     * .wav: Wacky Races: Crash & Dash (Wii) */    
-    if (!check_extensions(sf, "adp,ddsp,wav,lwav"))
+     * .wav: Wacky Races: Crash & Dash (Wii)
+     * (extensionless): The Sims series (GC/Wii) */
+    if (!check_extensions(sf, "adp,ddsp,wav,lwav,"))
         goto fail;
 
     dspm.channels = 2;
@@ -913,7 +918,7 @@ VGMSTREAM* init_vgmstream_dsp_str_ig(STREAMFILE* sf) {
     dspm.header_spacing = 0x80;
     dspm.start_offset = 0x800;
     dspm.interleave = 0x4000;
-    
+
     dspm.meta_type = meta_DSP_STR_IG;
     return init_vgmstream_dsp_common(sf, &dspm);
 fail:
@@ -1271,7 +1276,7 @@ fail:
 }
 
 /* .ds2 - LucasArts wrapper [Star Wars: Bounty Hunter (GC)] */
-VGMSTREAM* init_vgmstream_dsp_ds2(STREAMFILE* sf) {
+VGMSTREAM* init_vgmstream_dsp_lucasarts_ds2(STREAMFILE* sf) {
     dsp_meta dspm = {0};
     size_t file_size, channel_offset;
 
@@ -1406,7 +1411,7 @@ VGMSTREAM* init_vgmstream_dsp_wiiadpcm(STREAMFILE* sf) {
         goto fail;
 
     dspm.interleave = read_u32be(0x08,sf); /* interleave offset */
-    /* 0x0c: NFS = 0 when RAM (2 DSP headers), interleave size when stream (2 WIIADPCM headers) 
+    /* 0x0c: NFS = 0 when RAM (2 DSP headers), interleave size when stream (2 WIIADPCM headers)
      *       AB = 0 (2 WIIADPCM headers) */
 
     dspm.channels = (dspm.interleave ? 2 : 1);
@@ -1552,6 +1557,135 @@ VGMSTREAM* init_vgmstream_dsp_apex(STREAMFILE* sf) {
     dspm.interleave_last = (stream_size / dspm.channels) % dspm.interleave;
 
     dspm.meta_type = meta_DSP_APEX;
+    return init_vgmstream_dsp_common(sf, &dspm);
+fail:
+    return NULL;
+}
+
+
+/* DSP - Rebellion Developments (Asura engine) games */
+VGMSTREAM* init_vgmstream_dsp_asura(STREAMFILE* sf) {
+    dsp_meta dspm = {0};
+    off_t start_offset;
+    size_t data_size;
+    uint8_t flag;
+
+    /* checks */
+    if (!is_id32be(0x00, sf, "DSP\x00") && /* GC */
+        !is_id32be(0x00, sf, "DSP\x01") && /* GC/Wii/WiiU */
+        !is_id32be(0x00, sf, "DSP\x02"))   /* WiiU */
+        return NULL;
+
+    /* .dsp: Judge Dredd (GC)
+     * .wav: Judge Dredd (GC), The Simpsons Game (Wii), Sniper Elite V2 (WiiU) */
+    if (!check_extensions(sf, "dsp,wav,lwav"))
+        return NULL;
+
+    /* flag set to 0x00 so far only seen in Judge Dredd, which also uses 0x01
+     * at first assumed being 0 means it has a stream name at 0x48 (unlikely) */
+    /* flag set to 0x02 means it's ddsp-like stereo */
+    flag = read_u8(0x03, sf);
+    /* GC/Wii games are all just standard DSP with an id string */
+    /* Sniper Elite V2 (WiiU) added a filesize value in the header 
+     * and has extra garbage 0xCD bytes at the end for alignment */
+    start_offset = 0x04;
+
+    data_size = read_u32be(start_offset, sf);
+    /* stereo flag should only occur on the WiiU, Wii uses .ds2 or .sfx (ngc_dsp_asura) */
+    if (align_size_to_block(data_size + 0x08, 0x04) == get_streamfile_size(sf) || (flag == 0x02 &&
+        align_size_to_block(data_size * 2 + 0x0C, 0x04) == get_streamfile_size(sf)))
+        start_offset = 0x08;
+
+    dspm.channels = 1;
+    dspm.max_channels = 1;
+
+    if (flag == 0x02) { /* channels are not aligned */
+        if (read_u32be(data_size + 0x08, sf) != data_size)
+            goto fail; /* size should match */
+
+        dspm.channels = 2;
+        dspm.max_channels = 2;
+        dspm.header_spacing = data_size + 0x04;
+        dspm.interleave = dspm.header_spacing;
+    }
+
+    dspm.header_offset = start_offset + 0x00;
+    dspm.start_offset = start_offset + 0x60;
+
+    dspm.meta_type = meta_DSP_ASURA;
+    return init_vgmstream_dsp_common(sf, &dspm);
+fail:
+    return NULL;
+}
+
+
+/* .ds2 - Rebellion (Asura engine) [PDC World Championship Darts 2009 & Pro Tour (Wii)] */
+VGMSTREAM* init_vgmstream_dsp_asura_ds2(STREAMFILE* sf) {
+    dsp_meta dspm = {0};
+
+    if (!check_extensions(sf, "ds2"))
+        return NULL;
+
+    dspm.channels = 2;
+    dspm.max_channels = 2;
+    dspm.interleave = 0x8000;
+
+    dspm.header_offset = 0x00;
+    dspm.start_offset = 0x60;
+
+    dspm.header_spacing = dspm.interleave;
+    dspm.interleave_first_skip = dspm.start_offset;
+    dspm.interleave_first = dspm.interleave - dspm.interleave_first_skip;
+
+    dspm.meta_type = meta_DSP_ASURA;
+    return init_vgmstream_dsp_common(sf, &dspm);
+fail:
+    return NULL;
+}
+
+
+/* TTSS - Rebellion (Asura engine) [Sniper Elite series (NSW)] */
+VGMSTREAM* init_vgmstream_dsp_asura_ttss(STREAMFILE* sf) {
+    dsp_meta dspm = {0};
+    size_t header_size = 0x0C;
+    size_t ch1_size, ch2_size;
+
+    /* checks */
+    if (!is_id32be(0x00, sf, "TTSS"))
+        return NULL;
+
+    /* .adpcm: Sniper Elite V2 Remaster (NSW), Sniper Elite 4 (NSW)
+     * .wav: Sniper Elite V2 Remaster (NSW), Sniper Elite 3 (NSW), Sniper Elite 4 (NSW) */
+    if (!check_extensions(sf, "adpcm,wav,lwav"))
+        return NULL;
+
+    /* ch2_size is 0 if mono, otherwise they should match */
+    ch1_size = read_u32le(0x04, sf);
+    ch2_size = read_u32le(0x08, sf);
+
+    /* as with WiiU Asura DSPx, files are (sometimes) aligned to 0x04 with garbage 0xCD bytes */
+    if (header_size + ch1_size + ch2_size != get_streamfile_size(sf) &&
+        align_size_to_block(header_size + ch1_size + ch2_size, 0x04) != get_streamfile_size(sf))
+        goto fail;
+
+    dspm.channels = 1;
+    dspm.max_channels = 1;
+    dspm.little_endian = 1;
+
+    if (ch2_size != 0x00) {
+        if (ch1_size != ch2_size)
+            goto fail;
+
+        dspm.channels = 2;
+        dspm.max_channels = 2;
+        dspm.header_spacing = ch1_size;
+        dspm.interleave = dspm.header_spacing;
+    }
+
+    dspm.header_offset = header_size + 0x00;
+    dspm.start_offset = header_size + 0x60;
+
+    dspm.meta_type = meta_DSP_ASURA;
     return init_vgmstream_dsp_common(sf, &dspm);
 fail:
     return NULL;

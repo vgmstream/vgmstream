@@ -60,7 +60,7 @@ VGMSTREAM* init_vgmstream_dsp_sps_n1(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_dsp_itl_ch(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_dsp_adpy(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_dsp_adpx(STREAMFILE* sf);
-VGMSTREAM* init_vgmstream_dsp_ds2(STREAMFILE* sf);
+VGMSTREAM* init_vgmstream_dsp_lucasarts_ds2(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_dsp_itl(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_dsp_sqex(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_dsp_wiivoice(STREAMFILE* sf);
@@ -69,6 +69,9 @@ VGMSTREAM* init_vgmstream_dsp_cwac(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_idsp_tose(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_dsp_kwa(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_dsp_apex(STREAMFILE* sf);
+VGMSTREAM* init_vgmstream_dsp_asura(STREAMFILE* sf);
+VGMSTREAM* init_vgmstream_dsp_asura_ds2(STREAMFILE* sf);
+VGMSTREAM* init_vgmstream_dsp_asura_ttss(STREAMFILE* sf);
 
 VGMSTREAM * init_vgmstream_csmp(STREAMFILE *streamFile);
 
@@ -1009,5 +1012,7 @@ VGMSTREAM* init_vgmstream_cbx(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_vas_rockstar(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_ea_sbk(STREAMFILE* sf);
+
+VGMSTREAM* init_vgmstream_dsp_asura_sfx(STREAMFILE* sf);
 
 #endif /*_META_H*/

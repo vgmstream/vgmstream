@@ -409,7 +409,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_gin,
     init_vgmstream_dsf,
     init_vgmstream_208,
-    init_vgmstream_dsp_ds2,
+    init_vgmstream_dsp_lucasarts_ds2,
     init_vgmstream_ffdl,
     init_vgmstream_mus_vc,
     init_vgmstream_strm_abylight,
@@ -527,6 +527,10 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_cbx,
     init_vgmstream_vas_rockstar,
     init_vgmstream_ea_sbk,
+    init_vgmstream_dsp_asura,
+    init_vgmstream_dsp_asura_ds2,
+    init_vgmstream_dsp_asura_ttss,
+    init_vgmstream_dsp_asura_sfx,
 
     /* lower priority metas (no clean header identity, somewhat ambiguous, or need extension/companion file to identify) */
     init_vgmstream_agsc,

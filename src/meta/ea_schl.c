@@ -877,8 +877,8 @@ VGMSTREAM* init_vgmstream_ea_msb_mus(STREAMFILE* sf) {
     off_t info_offset, mus_name_offset;
     read_u32_t read_u32;
 
-    //if (read_u64be(0x00,sf) != 0) //TODO always?
-    //    return NULL;
+    if (read_u64be(0x00, sf) != 0)
+        return NULL;
     if (!check_extensions(sf, "msb,msx"))
         return NULL;
 
@@ -893,9 +893,9 @@ VGMSTREAM* init_vgmstream_ea_msb_mus(STREAMFILE* sf) {
     read_u32 = guess_read_u32(0x08, sf);
 
     /* extra checks to fail faster before streamfile'ing */
-    if (read_u32(0x08,sf) != 0x20)
+    if (read_u32(0x08, sf) != 0x20)
         return NULL;
-    if (read_u32(0x20,sf) != 0x05)
+    if (read_u32(0x20, sf) != 0x05)
         return NULL;
 
     /* not exactly the same as mpf size since it's aligned, but correct size is only needed for v3 */
@@ -908,8 +908,8 @@ VGMSTREAM* init_vgmstream_ea_msb_mus(STREAMFILE* sf) {
 
     vgmstream = init_vgmstream_ea_mpf_mus_main(sf_mpf, mus_name);
     if (!vgmstream) goto fail;
-    close_streamfile(sf_mpf);
 
+    close_streamfile(sf_mpf);
     return vgmstream;
 
 fail:
