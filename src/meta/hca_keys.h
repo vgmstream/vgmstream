@@ -1311,6 +1311,9 @@ static const hcakey_info hcakey_list[] = {
         // Penny Blood: Hellbound (PC)
         {845873498572},          // 00000C4F1FD49CC
 
+        // Sonic Rumble (Android)
+        {6834182874188563},      // 001847A7328BCB13
+
 };
 
 #endif/*_HCA_KEYS_H_*/
