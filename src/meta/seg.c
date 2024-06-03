@@ -84,6 +84,7 @@ VGMSTREAM* init_vgmstream_seg(STREAMFILE* sf) {
         case 0x78623300: { /* "xb3\0" */
             /* no apparent flag */
             if (read_u32be(start_offset, sf) == 0) {
+#ifdef VGM_USE_MPEG
                 /* Eragon (PC) */
                 start_offset += 0x20A; /* one frame */
 
@@ -92,6 +93,9 @@ VGMSTREAM* init_vgmstream_seg(STREAMFILE* sf) {
                 vgmstream->codec_data = init_mpeg_custom(sf, start_offset, &vgmstream->coding_type, channels, MPEG_STANDARD, &cfg);
                 if (!vgmstream->codec_data) goto fail;
                 vgmstream->layout_type = layout_none;
+#else
+                goto fail;
+#endif
             }
             else {
                 /* The Spiderwick Chronicles (X360) */
