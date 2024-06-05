@@ -7,12 +7,12 @@
 VGMSTREAM* init_vgmstream_awd(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     char file_name[STREAM_NAME_SIZE], header_name[STREAM_NAME_SIZE], stream_name[STREAM_NAME_SIZE];
-    int /*bit_depth = 0,*/ channels = 0, sample_rate = 0, stream_codec = -1, total_subsongs = 0, target_subsong = sf->stream_index;
+    int channels = 0, sample_rate = 0, stream_codec = -1, total_subsongs = 0, target_subsong = sf->stream_index;
     int interleave, loop_flag;
     off_t data_offset, header_name_offset, misc_data_offset, linked_list_offset, wavedict_offset;
-    off_t entry_info_offset, entry_name_offset, /*entry_uuid_offset,*/ next_entry_offset, prev_entry_offset, stream_offset = 0;
+    off_t entry_info_offset, entry_name_offset, next_entry_offset, prev_entry_offset, stream_offset = 0;
     read_u32_t read_u32;
-    size_t /*data_size,*/ header_size, /*misc_data_size,*/ stream_size = 0;
+    size_t header_size, stream_size = 0;
 
     /* checks */
     if (read_u32le(0x00, sf) != 0x809 && read_u32be(0x00, sf) != 0x809)
@@ -30,12 +30,12 @@ VGMSTREAM* init_vgmstream_awd(STREAMFILE* sf) {
     data_offset = read_u32(0x08, sf);
     wavedict_offset = read_u32(0x0C, sf);
     //data_size = read_u32(0x14, sf);
-    /* Platform UUIDs in big endian
-     * {FD9D32D3-E179-426A-8424-14720AC7F648}: GameCube
-     * {ACC9EAAA-38FC-1749-AE81-64EADBC79353}: PlayStation 2
-     * {042D3A45-5FE4-C84B-81F0-DF758B01F273}: Xbox */
-    //platf_uuid_1 = read_u64be(0x18, sf);
-    //platf_uuid_2 = read_u64be(0x20, sf);
+    /* Platform UUIDs; all but Windows are seen in the wild
+     *  {FD9D32D3-E179-426A-8424-14720AC7F648}: GameCube
+     *  {AAEAC9AC-FC38-4917-AE81-64EADBC79353}: PlayStation 2
+     *  {44E50A10-08BA-4250-B971-69E921B9CF4F}: Windows
+     *  {453A2D04-E45F-4BC8-81F0-DF758B01F273}: Xbox */
+    //platf_uuid = read_u32(0x18, sf);
     header_size = read_u32(0x28, sf);
 
     if (data_offset != header_size)
@@ -120,6 +120,21 @@ VGMSTREAM* init_vgmstream_awd(STREAMFILE* sf) {
         snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%s/%s", header_name, stream_name);
     else
         snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%s", stream_name);
+
+    /* these should be all the codec indices, even if most aren't ever used
+     * based on the research at https://burnout.wiki/wiki/Wave_Dictionary
+     *  0x00: PS ADPCM
+     *  0x01: PCM
+     *  0x02: Float
+     *  0x03: DSP ADPCM
+     *  0x04: Xbox IMA ADPCM
+     *  0x05: WMA
+     *  0x06: MP3
+     *  0x07: MP2
+     *  0x08: MP1
+     *  0x09: AC3
+     *  0x0A: IMA ADPCM
+     */
 
     switch (stream_codec) {
         case 0x00: /* PS2 (Burnout series, Black, Call of Duty: Finest Hour) */

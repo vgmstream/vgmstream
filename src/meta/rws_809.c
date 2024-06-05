@@ -112,7 +112,8 @@ VGMSTREAM* init_vgmstream_rws_809(STREAMFILE* sf) {
     vgmstream->num_streams = total_subsongs;
     vgmstream->interleave_block_size = interleave;
 
-    /* Seems to be the same as in rws_80d.c, maybe merge the two switches into one function? */
+    /* should be the same as in rws_80d, maybe merge the two switches into one function? */
+    /* the full list of all the valid codec UUIDs can also be found listed in rws_80d */
     switch (codec_uuid) {
         case 0xD01BD217: /* {D01BD217-3587-4EED-B9D9-B8E86EA9B995}: PCM Signed 16-bit */
             vgmstream->num_samples = pcm16_bytes_to_samples(stream_size, channels);

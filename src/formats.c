@@ -1427,7 +1427,7 @@ static const meta_info meta_info_list[] = {
         {meta_VAB,                  "Sony VAB header"},
         {meta_BIGRP,                "Inti Creates .BIGRP header"},
         {meta_DIC1,                 "Codemasters DIC1 header"},
-        {meta_AWD,                  "RenderWare Audio Wave Dictionary header"},
+        {meta_AWD,                  "RenderWare AWD header"},
         {meta_SQUEAKSTREAM,         "Torus SqueakStream header"},
         {meta_SQUEAKSAMPLE,         "Torus SqueakSample header"},
         {meta_SNDS,                 "Sony SNDS header"},
