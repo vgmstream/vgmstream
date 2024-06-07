@@ -125,6 +125,7 @@ as explained below, but often will use default values. Accepted codec strings:
 # - MS_IMA         Microsoft IMA ADPCM
 #   * For some PC games
 #   * frame_size (or interleave) varies, often multiple of 0x100 [required]
+#   * frame_size + interleave forces mono mode
 # - APPLE_IMA4     Apple Quicktime IMA ADPCM
 #   * For some Mac/iOS games
 # - IMA_HV         High Voltage's IMA ADPCM

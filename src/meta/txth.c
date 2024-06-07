@@ -461,14 +461,24 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
             break;
 
         case coding_MS_IMA:
-            vgmstream->interleave_block_size = txth.frame_size ? txth.frame_size : txth.interleave;
-            vgmstream->layout_type = layout_none;
+            if (txth.interleave && txth.frame_size) {
+                coding = coding_MS_IMA_mono;
+                vgmstream->frame_size = txth.frame_size;
+                vgmstream->interleave_block_size = txth.interleave;
+                vgmstream->layout_type = layout_interleave;
+            }
+            else {
+                vgmstream->frame_size = txth.frame_size ? txth.frame_size : txth.interleave;
+                vgmstream->layout_type = layout_none;
+            }
 
-            vgmstream->allow_dual_stereo = 1; //???
+            //TO-DO: needs to force MS_IMA_mono first if ch = 1, since dual_stereo + MS_IMA = assumes MS_IMA_stereo
+            // (or better do it after init / during setup stream)
+            //vgmstream->allow_dual_stereo = 1;
             break;
 
         case coding_MSADPCM:
-            if (vgmstream->channels > 2) goto fail; //can't handle
+            if (vgmstream->channels > 2) goto fail; //can't handle (to-do: only non-mono?)
             if (txth.interleave && txth.frame_size) {
                 coding = coding_MSADPCM_int;
                 vgmstream->frame_size = txth.frame_size;
