@@ -9,27 +9,28 @@ VGMSTREAM* init_vgmstream_xnb(STREAMFILE* sf) {
     STREAMFILE* sf_h = NULL;
     off_t start_offset, offset, xma_chunk_offset = 0;
     int loop_flag = 0, channel_count, num_samples = 0, loop_start = 0, loop_end = 0;
-    int big_endian, flags, codec, sample_rate, block_align, bps;
+    int flags, codec, sample_rate, block_align, bps;
     size_t data_size;
-    char platform;
     int is_sound = 0, is_ogg = 0, is_at9 = 0, is_song = 0;
     char song_name[255+1];
 
 
     /* checks */
     if ((read_u32be(0x00, sf) & 0xFFFFFF00) != get_id32be("XNB\0"))
-        goto fail;
+        return NULL;
     if (!check_extensions(sf,"xnb"))
-        goto fail;
+        return NULL;
 
     /* XNA Studio platforms: 'w' = Windows, 'm' = Windows Phone 7, 'x' = X360
      * MonoGame extensions: 'i' = iOS, 'a' = Android, 'X' = MacOSX, 'P' = PS4, 'S' = Switch, etc */
-    platform = read_u8(0x03, sf);
-    big_endian = (platform == 'x');
+    char platform = read_u8(0x03, sf);
+    int big_endian = (platform == 'x');
+    int version = read_u8(0x04,sf);
 
-    if (read_u8(0x04,sf) != 0x04 &&   /* XNA 3.0? found on Scare Me (XBLIG), no notable diffs */
-        read_u8(0x04,sf) != 0x05)     /* XNA 4.0 version */
-        goto fail;
+    if (version != 0x03 &&   /* XNA 2.0? found on Miner: Dig Deep (XBLIG), no notable diffs */
+        version != 0x04 &&   /* XNA 3.0? found on Scare Me (XBLIG), no notable diffs */
+        version != 0x05)     /* XNA 4.0 version */
+        return NULL;
 
     flags = read_u8(0x05, sf);
   //if (flags & 0x01) goto fail; /* "HiDef profile" content (no actual difference) */
