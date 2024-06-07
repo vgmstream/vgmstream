@@ -929,3 +929,25 @@ vgmstream's internals are tailored to play streams so, in other words, it's not
 possible to add support for sequenced audio unless massive changes were done,
 basically becoming another program entirely. There are other projects better
 suited for playing sequences.
+
+
+## External loop points
+Most games use audio formats that define loop points inside its files. That is,
+you get looped/repeated audio in vgmstream simply by opening the files.
+
+However some games use formats that don't define loops points, and instead store
+loops in the executable or some external file. For example they could have a bunch
+of `.ogg` and some text with start/end loop time info for all `.ogg`, or `.opus`
+files with loop samples defined in a `.bfsar`.
+
+Since those cases are typically custom/per game, vgmstream can't really read those
+loop points automatically. Instead, one should make (manually or with some script)
+one TXTP per file that tells vgmstream about its external loop points, and play
+the `.txtp`:
+**BGM_BTL_ACMaster_opus.txtp**: `BGM_BTL_ACMaster_opus.lopus #I 258724 2929972`
+
+Some games also use intro + loop "segments" in separate files that can be combined
+with `.txtp` as well.
+
+This may even happen with formats that do have loops in other games (for example
+relatively common with `.fsb` and mobile games, that may define loops in a .json file).

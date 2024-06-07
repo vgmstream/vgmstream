@@ -2,13 +2,13 @@
 This is vgmstream, a library for playing streamed (prerecorded) video game audio.
 
 Some of vgmstream's features:
-- [Hundreds of video game music formats and codecs](doc/FORMATS.md), from typical game engine files
-  to obscure single-game codecs, aiming for high accuracy and compatibility.
+- Decodes [hundreds of video game music formats and codecs](doc/FORMATS.md), from typical
+  game engine files to obscure single-game codecs, aiming for high accuracy and compatibility.
 - Support for looped BGM, using file's internal metadata for smooth transitions, with accurate
   sample counts.
 - [Subsongs](doc/USAGE.md#subsongs), playing a format's multiple internal songs separately.
 - Many types of companion files (data split into multiple files) and custom containers.
-- Encryption keys, internal stream names, and many other unusual cases found in game audio.
+- Encryption keys, internal stream names, and other unusual cases found in game audio.
 - [TXTH](doc/TXTH.md) function, to add external support for extra formats, including raw audio in
   many forms.
 - [TXTP](doc/TXTP.md) function, for real-time and per-file config, like forced looping, removing
