@@ -1319,7 +1319,7 @@ VGMSTREAM* init_vgmstream_dsp_itl(STREAMFILE* sf) {
     /* .itl: standard
      * .dsp: default to catch a similar file, not sure which devs */
     if (!check_extensions(sf, "itl,dsp"))
-        goto fail;
+        return NULL;
 
     stream_size = get_streamfile_size(sf);
     dspm.channels = 2;
@@ -1337,8 +1337,6 @@ VGMSTREAM* init_vgmstream_dsp_itl(STREAMFILE* sf) {
     //todo when .dsp should refer to Ultimate Board Collection (Wii), not sure about dev
     dspm.meta_type = meta_DSP_ITL_i;
     return init_vgmstream_dsp_common(sf, &dspm);
-fail:
-    return NULL;
 }
 
 /* .wav - Square Enix wrapper [Dragon Quest I-III (Switch)] */
@@ -1347,10 +1345,9 @@ VGMSTREAM* init_vgmstream_dsp_sqex(STREAMFILE* sf) {
 
     /* checks */
     if (read_u32be(0x00,sf) != 0x00000000)
-        goto fail;
-
+        return NULL;
     if (!check_extensions(sf, "wav,lwav"))
-        goto fail;
+        return NULL;
 
     dspm.channels = read_u32le(0x04,sf);
     dspm.header_offset = read_u32le(0x08,sf);
@@ -1368,8 +1365,6 @@ VGMSTREAM* init_vgmstream_dsp_sqex(STREAMFILE* sf) {
 
     dspm.meta_type = meta_DSP_SQEX;
     return init_vgmstream_dsp_common(sf, &dspm);
-fail:
-    return NULL;
 }
 
 /* WiiVoice - Koei Tecmo wrapper [Fatal Frame 5 (WiiU)] */
@@ -1379,10 +1374,10 @@ VGMSTREAM* init_vgmstream_dsp_wiivoice(STREAMFILE* sf) {
 
     /* checks */
     if (!is_id64be(0x00,sf, "WiiVoice"))
-        goto fail;
+        return NULL;
     /* .dsp: assumed */
     if (!check_extensions(sf, "dsp"))
-        goto fail;
+        return NULL;
 
     dspm.channels = 1;
     dspm.max_channels = 1;
@@ -1395,8 +1390,6 @@ VGMSTREAM* init_vgmstream_dsp_wiivoice(STREAMFILE* sf) {
 
     dspm.meta_type = meta_DSP_WIIVOICE;
     return init_vgmstream_dsp_common(sf, &dspm);
-fail:
-    return NULL;
 }
 
 
@@ -1406,9 +1399,9 @@ VGMSTREAM* init_vgmstream_dsp_wiiadpcm(STREAMFILE* sf) {
 
     /* checks */
     if (!is_id64be(0x00,sf, "WIIADPCM"))
-        goto fail;
+        return NULL;
     if (!check_extensions(sf, "adpcm"))
-        goto fail;
+        return NULL;
 
     dspm.interleave = read_u32be(0x08,sf); /* interleave offset */
     /* 0x0c: NFS = 0 when RAM (2 DSP headers), interleave size when stream (2 WIIADPCM headers)
@@ -1433,8 +1426,6 @@ VGMSTREAM* init_vgmstream_dsp_wiiadpcm(STREAMFILE* sf) {
 
     dspm.meta_type = meta_DSP_WIIADPCM;
     return init_vgmstream_dsp_common(sf, &dspm);
-fail:
-    return NULL;
 }
 
 
@@ -1444,11 +1435,11 @@ VGMSTREAM* init_vgmstream_dsp_cwac(STREAMFILE* sf) {
 
     /* checks */
     if (!is_id32be(0x00,sf, "CWAC"))
-        goto fail;
+        return NULL;
 
     /* .dsp: assumed */
     if (!check_extensions(sf, "dsp"))
-        goto fail;
+        return NULL;
 
     dspm.channels       = read_u16be(0x04,sf);
     dspm.header_offset  = read_u32be(0x08,sf);
@@ -1460,8 +1451,6 @@ VGMSTREAM* init_vgmstream_dsp_cwac(STREAMFILE* sf) {
 
     dspm.meta_type = meta_DSP_CWAC;
     return init_vgmstream_dsp_common(sf, &dspm);
-fail:
-    return NULL;
 }
 
 
@@ -1472,9 +1461,9 @@ VGMSTREAM* init_vgmstream_idsp_tose(STREAMFILE* sf) {
 
     /* checks */
     if (read_u32be(0x00,sf) != 0)
-        goto fail;
+        return NULL;
     if (!check_extensions(sf, "idsp"))
-        goto fail;
+        return NULL;
 
     dspm.max_channels = 4; /* mainly stereo */
 
@@ -1488,12 +1477,10 @@ VGMSTREAM* init_vgmstream_idsp_tose(STREAMFILE* sf) {
     dspm.start_offset = dspm.header_offset + dspm.header_spacing * dspm.channels;
 
     if (dspm.start_offset + dspm.interleave * dspm.channels * blocks != get_streamfile_size(sf))
-        goto fail;
+        return NULL;
 
     dspm.meta_type = meta_IDSP_TOSE;
     return init_vgmstream_dsp_common(sf, &dspm);
-fail:
-    return NULL;
 }
 
 
@@ -1503,10 +1490,10 @@ VGMSTREAM* init_vgmstream_dsp_kwa(STREAMFILE* sf) {
 
     /* checks */
     if (read_u32be(0x00,sf) != 3)
-        goto fail;
+        return NULL;
 
     if (!check_extensions(sf, "kwa"))
-        goto fail;
+        return NULL;
 
     dspm.max_channels   = 4;
 
@@ -1524,8 +1511,6 @@ VGMSTREAM* init_vgmstream_dsp_kwa(STREAMFILE* sf) {
 
     dspm.meta_type = meta_DSP_KWA;
     return init_vgmstream_dsp_common(sf, &dspm);
-fail:
-    return NULL;
 }
 
 
@@ -1536,11 +1521,11 @@ VGMSTREAM* init_vgmstream_dsp_apex(STREAMFILE* sf) {
 
     /* checks */
     if (!is_id32be(0x00,sf, "APEX"))
-        goto fail;
+        return NULL;
 
     /* .dsp: assumed */
     if (!check_extensions(sf, "dsp"))
-        goto fail;
+        return NULL;
 
     dspm.max_channels   = 2;
     stream_size         = read_u32be(0x04,sf);
@@ -1558,8 +1543,6 @@ VGMSTREAM* init_vgmstream_dsp_apex(STREAMFILE* sf) {
 
     dspm.meta_type = meta_DSP_APEX;
     return init_vgmstream_dsp_common(sf, &dspm);
-fail:
-    return NULL;
 }
 
 
@@ -1601,7 +1584,7 @@ VGMSTREAM* init_vgmstream_dsp_asura(STREAMFILE* sf) {
 
     if (flag == 0x02) { /* channels are not aligned */
         if (read_u32be(data_size + 0x08, sf) != data_size)
-            goto fail; /* size should match */
+            return NULL; /* size should match */
 
         dspm.channels = 2;
         dspm.max_channels = 2;
@@ -1614,8 +1597,6 @@ VGMSTREAM* init_vgmstream_dsp_asura(STREAMFILE* sf) {
 
     dspm.meta_type = meta_DSP_ASURA;
     return init_vgmstream_dsp_common(sf, &dspm);
-fail:
-    return NULL;
 }
 
 
@@ -1639,8 +1620,6 @@ VGMSTREAM* init_vgmstream_dsp_asura_ds2(STREAMFILE* sf) {
 
     dspm.meta_type = meta_DSP_ASURA;
     return init_vgmstream_dsp_common(sf, &dspm);
-fail:
-    return NULL;
 }
 
 
@@ -1666,7 +1645,7 @@ VGMSTREAM* init_vgmstream_dsp_asura_ttss(STREAMFILE* sf) {
     /* as with WiiU Asura DSPx, files are (sometimes) aligned to 0x04 with garbage 0xCD bytes */
     if (header_size + ch1_size + ch2_size != get_streamfile_size(sf) &&
         align_size_to_block(header_size + ch1_size + ch2_size, 0x04) != get_streamfile_size(sf))
-        goto fail;
+        return NULL;
 
     dspm.channels = 1;
     dspm.max_channels = 1;
@@ -1674,7 +1653,7 @@ VGMSTREAM* init_vgmstream_dsp_asura_ttss(STREAMFILE* sf) {
 
     if (ch2_size != 0x00) {
         if (ch1_size != ch2_size)
-            goto fail;
+            return NULL;
 
         dspm.channels = 2;
         dspm.max_channels = 2;
@@ -1687,6 +1666,4 @@ VGMSTREAM* init_vgmstream_dsp_asura_ttss(STREAMFILE* sf) {
 
     dspm.meta_type = meta_DSP_ASURA;
     return init_vgmstream_dsp_common(sf, &dspm);
-fail:
-    return NULL;
 }
