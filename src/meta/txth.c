@@ -480,7 +480,7 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
         case coding_MSADPCM:
             if (vgmstream->channels > 2) goto fail; //can't handle (to-do: only non-mono?)
             if (txth.interleave && txth.frame_size) {
-                coding = coding_MSADPCM_int;
+                coding = coding_MSADPCM_mono;
                 vgmstream->frame_size = txth.frame_size;
                 vgmstream->interleave_block_size = txth.interleave;
                 vgmstream->layout_type = layout_interleave;
@@ -493,7 +493,7 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
 
         case coding_XBOX_IMA:
             if (txth.codec_mode == 1) { /* mono interleave */
-                coding = coding_XBOX_IMA_int;
+                coding = coding_XBOX_IMA_mono;
                 vgmstream->layout_type = layout_interleave;
                 vgmstream->interleave_block_size = txth.interleave;
                 vgmstream->interleave_last_block_size = txth.interleave_last;

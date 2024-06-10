@@ -1397,7 +1397,7 @@ static VGMSTREAM* init_vgmstream_ea_variable_header(STREAMFILE* sf, ea_header* e
             break;
 
         case EA_CODEC2_XBOXADPCM:   /* XBOX IMA (split mono) */
-            vgmstream->coding_type = coding_XBOX_IMA_int;
+            vgmstream->coding_type = coding_XBOX_IMA_mono;
             break;
 
         case EA_CODEC2_GCADPCM:     /* DSP */

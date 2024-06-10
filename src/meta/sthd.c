@@ -53,7 +53,7 @@ VGMSTREAM* init_vgmstream_sthd(STREAMFILE* sf) {
 
     vgmstream->coding_type = build_date >= 0x20170000 ? /* no apparent flags [Phantom Dust Remaster (PC)] */
           coding_PCM16LE :
-          coding_XBOX_IMA_int;
+          coding_XBOX_IMA_mono;
     vgmstream->layout_type = layout_blocked_sthd;
 
     if (!vgmstream_open_stream(vgmstream,sf,start_offset))
@@ -78,7 +78,7 @@ VGMSTREAM* init_vgmstream_sthd(STREAMFILE* sf) {
             int block_samples = 0;
             switch(vgmstream->coding_type) {
                 case coding_PCM16LE:        block_samples = pcm16_bytes_to_samples(vgmstream->current_block_size, 1); break;
-                case coding_XBOX_IMA_int:   block_samples = xbox_ima_bytes_to_samples(vgmstream->current_block_size, 1); break;
+                case coding_XBOX_IMA_mono:  block_samples = xbox_ima_bytes_to_samples(vgmstream->current_block_size, 1); break;
                 default: goto fail;
             }
 

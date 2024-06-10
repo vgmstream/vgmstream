@@ -128,9 +128,10 @@ void describe_vgmstream(VGMSTREAM* vgmstream, char* desc, int length) {
         int32_t frame_size = vgmstream->frame_size > 0 ? vgmstream->frame_size : vgmstream->interleave_block_size;
         switch (vgmstream->coding_type) {
             case coding_MSADPCM:
-            case coding_MSADPCM_int:
+            case coding_MSADPCM_mono:
             case coding_MSADPCM_ck:
             case coding_MS_IMA:
+            case coding_MS_IMA_mono:
             case coding_MC3:
             case coding_WWISE_IMA:
             case coding_REF_IMA:
@@ -232,9 +233,10 @@ void describe_vgmstream_info(VGMSTREAM* vgmstream, vgmstream_info* info) {
         int32_t frame_size = vgmstream->frame_size > 0 ? vgmstream->frame_size : vgmstream->interleave_block_size;
         switch (vgmstream->coding_type) {
         case coding_MSADPCM:
-        case coding_MSADPCM_int:
+        case coding_MSADPCM_mono:
         case coding_MSADPCM_ck:
         case coding_MS_IMA:
+        case coding_MS_IMA_mono:
         case coding_MC3:
         case coding_WWISE_IMA:
         case coding_REF_IMA:

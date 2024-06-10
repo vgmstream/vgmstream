@@ -181,7 +181,7 @@ static VGMSTREAM* init_vgmstream_ktsr_internal(STREAMFILE* sf, bool is_srsa) {
     switch(ktsr.codec) {
 
         case MSADPCM:
-            vgmstream->coding_type = coding_MSADPCM_int;
+            vgmstream->coding_type = coding_MSADPCM_mono;
             vgmstream->layout_type = layout_none;
             separate_offsets = 1;
 

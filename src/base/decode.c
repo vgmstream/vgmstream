@@ -416,7 +416,7 @@ int decode_get_samples_per_frame(VGMSTREAM* vgmstream) {
             return 2;
         case coding_XBOX_IMA:
         case coding_XBOX_IMA_mch:
-        case coding_XBOX_IMA_int:
+        case coding_XBOX_IMA_mono:
         case coding_FSB_IMA:
         case coding_WWISE_IMA:
         case coding_CD_IMA: /* (0x24 - 0x04) * 2 */
@@ -467,7 +467,7 @@ int decode_get_samples_per_frame(VGMSTREAM* vgmstream) {
 
         case coding_MSADPCM:
             return (vgmstream->frame_size - 0x07*vgmstream->channels)*2 / vgmstream->channels + 2;
-        case coding_MSADPCM_int:
+        case coding_MSADPCM_mono:
         case coding_MSADPCM_ck:
             return (vgmstream->frame_size - 0x07)*2 + 2;
         case coding_WS: /* only works if output sample size is 8 bit, which always is for WS ADPCM */
@@ -653,7 +653,7 @@ int decode_get_frame_size(VGMSTREAM* vgmstream) {
         case coding_XBOX_IMA:
             //todo should be  0x48 when stereo, but blocked/interleave layout don't understand stereo codecs
             return 0x24; //vgmstream->channels==1 ? 0x24 : 0x48;
-        case coding_XBOX_IMA_int:
+        case coding_XBOX_IMA_mono:
         case coding_WWISE_IMA:
         case coding_CD_IMA:
             return 0x24;
@@ -693,7 +693,7 @@ int decode_get_frame_size(VGMSTREAM* vgmstream) {
             return 0x4c*vgmstream->channels;
 
         case coding_MSADPCM:
-        case coding_MSADPCM_int:
+        case coding_MSADPCM_mono:
         case coding_MSADPCM_ck:
             return vgmstream->frame_size;
         case coding_WS:
@@ -934,7 +934,7 @@ void decode_vgmstream(VGMSTREAM* vgmstream, int samples_written, int samples_to_
             }
             break;
         case coding_XBOX_IMA:
-        case coding_XBOX_IMA_int: {
+        case coding_XBOX_IMA_mono: {
             int is_stereo = (vgmstream->channels > 1 && vgmstream->coding_type == coding_XBOX_IMA);
             for (ch = 0; ch < vgmstream->channels; ch++) {
                 decode_xbox_ima(&vgmstream->ch[ch], buffer+ch,
@@ -1334,8 +1334,8 @@ void decode_vgmstream(VGMSTREAM* vgmstream, int samples_written, int samples_to_
             decode_nwa(vgmstream->codec_data, buffer, samples_to_do);
             break;
         case coding_MSADPCM:
-        case coding_MSADPCM_int:
-            if (vgmstream->channels == 1 || vgmstream->coding_type == coding_MSADPCM_int) {
+        case coding_MSADPCM_mono:
+            if (vgmstream->channels == 1 || vgmstream->coding_type == coding_MSADPCM_mono) {
                 for (ch = 0; ch < vgmstream->channels; ch++) {
                     decode_msadpcm_mono(vgmstream,buffer+ch,
                             vgmstream->channels,vgmstream->samples_into_block, samples_to_do, ch,

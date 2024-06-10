@@ -869,7 +869,7 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
 
     /* UE4 uses interleaved mono MSADPCM, try to autodetect without breaking normal MSADPCM */
     if (fmt.coding_type == coding_MSADPCM && is_ue4_msadpcm(sf, &fmt, fact_sample_count, start_offset, data_size)) {
-        vgmstream->coding_type = coding_MSADPCM_int;
+        vgmstream->coding_type = coding_MSADPCM_mono;
         vgmstream->codec_config = 1; /* mark as UE4 MSADPCM */
         vgmstream->frame_size = fmt.block_size;
         vgmstream->layout_type = layout_interleave;
