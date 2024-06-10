@@ -1,6 +1,6 @@
 #include "coding.h"
 #include "coding_utils_samples.h"
-#include "compresswave_decoder_lib.h"
+#include "libs/compresswave_lib.h"
 
 
 #define COMPRESSWAVE_MAX_FRAME_SAMPLES  0x1000  /* arbitrary but should be multiple of 2 for 22050 mode */

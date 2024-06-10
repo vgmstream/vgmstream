@@ -102,7 +102,8 @@ different internally (encrypted, different versions, etc) and not always can be 
   - TOSE .IDSP header [*IDSP_TOSE*]
   - Kuju London .KWA header [*DSP_KWA*]
   - Koei Tecmo APEX header [*DSP_APEX*]
-  - *ngc_dsp_std*: `.dsp .adp .(extensionless)`
+  - Rebellion DSP header [*DSP_ASURA*]
+  - *ngc_dsp_std*: `.dsp .adp .(extensionless) .wav .lwav .dat .ldat`
   - *ngc_dsp_std_le*: `.adpcm`
   - *ngc_mdsp_std*: `.dsp .mdsp`
   - *ngc_dsp_stm*: `.stm .lstm .dsp`
@@ -113,7 +114,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - *idsp_tt*: `.gcm .idsp .wua`
   - *idsp_nl*: `.idsp`
   - *wii_wsd*: `.wsd`
-  - *dsp_ddsp*: `.adp .ddsp .wav .lwav`
+  - *dsp_ddsp*: `.adp .ddsp .wav .lwav .(extensionless)`
   - *wii_was*: `.was .dsp .isws`
   - *dsp_str_ig*: `.str`
   - *dsp_xiii*: `.dsp`
@@ -128,7 +129,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - *dsp_itl_ch*: `.itl`
   - *dsp_adpy*: `.adpcmx`
   - *dsp_adpx*: `.adpcmx`
-  - *dsp_ds2*: `.ds2 .dsp`
+  - *dsp_lucasarts_ds2*: `.ds2 .dsp`
   - *dsp_itl*: `.itl .dsp`
   - *dsp_sqex*: `.wav .lwav`
   - *dsp_wiivoice*: `.dsp`
@@ -137,6 +138,9 @@ different internally (encrypted, different versions, etc) and not always can be 
   - *idsp_tose*: `.idsp`
   - *dsp_kwa*: `.kwa`
   - *dsp_apex*: `.dsp`
+  - *dsp_asura*: `.dsp .wav .lwav`
+  - *dsp_asura_ds2*: `.ds2`
+  - *dsp_asura_ttss*: `.adpcm .wav .lwav`
   - Codecs: NGC_DSP NGC_DSP_subint
 - **csmp.c**
   - Retro Studios CSMP header [*CSMP*]
@@ -186,7 +190,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Sony VAG header [*VAG*]
   - Acclaim Austin AAAp header [*AAAP*]
   - Sony VAG footer [*VAG_footer*]
-  - *vag*: `.vag .swag .str .vig .l .r .vas .xa2 .snd .svg .(extensionless)`
+  - *vag*: `.vag .swag .str .vig .l .r .vas .xa2 .snd .svg .(extensionless) .wav .lwav`
   - *vag_aaap*: `.vag`
   - *vag_footer*: `.(extensionless) .vag`
   - Codecs: PSX HEVAG
@@ -1616,7 +1620,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - *ktsr*: `.ktsl2asbin .asbin`
   - *asrs*: `.srsa`
   - *ktsr_internal*
-    - Subfiles: *riff ogg_vorbis ktss*
+    - Subfiles: *riff ogg_vorbis ktss ktac*
   - Codecs: MSADPCM_int NGC_DSP ATRAC9
 - **mups.c**
   - (container)
@@ -1787,7 +1791,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - *ego_dic*: `.dic + .(external)`
   - Codecs: PCM16LE ULAW XBOX_IMA OGG_VORBIS
 - **awd.c**
-  - RenderWare Audio Wave Dictionary header [*AWD*]
+  - RenderWare AWD header [*AWD*]
   - *awd*: `.awd .hwd .lwd`
   - Codecs: PSX PCM16LE NGC_DSP XBOX_IMA
 - **rws_809.c**
@@ -1825,6 +1829,10 @@ different internally (encrypted, different versions, etc) and not always can be 
 - **ea_sbk.c**
   - Electronic Arts SBK header [*EA_SBK*]
   - *ea_sbk*: `.sbk`
+- **ngc_dsp_asura.c**
+  - Rebellion DSP header [*DSP_ASURA*]
+  - *dsp_asura_sfx*: `.sfx`
+  - Codecs: NGC_DSP
 - **agsc.c**
   - Retro Studios AGSC header [*AGSC*]
   - *agsc*: `.agsc`

@@ -1,5 +1,5 @@
-#ifndef _RELIC_DECODER_LIB_H_
-#define _RELIC_DECODER_LIB_H_
+#ifndef _RELIC_LIB_H_
+#define _RELIC_LIB_H_
 
 #include <stdint.h>
 
@@ -20,4 +20,4 @@ int relic_decode_frame(relic_handle_t* handle, uint8_t* buf, int channel);
 
 void relic_get_pcm16(relic_handle_t* handle, int16_t* outbuf, int32_t samples, int32_t skip);
 
-#endif/*_RELIC_DECODER_LIB_H_ */
+#endif

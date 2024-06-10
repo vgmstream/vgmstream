@@ -26,11 +26,11 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "ice_decoder_icelib.h" 
+#include "icelib.h" 
 
 /* use miniz (API-compatible) to avoid adding external zlib just for this codec
  * - https://github.com/richgel999/miniz */
-#include "../util/miniz.h" 
+#include "../../util/miniz.h" 
 //#include "zlib.h"
 
 #define ICESND_MAX_CHANNELS    2

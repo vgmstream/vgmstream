@@ -236,7 +236,7 @@ VGMSTREAM* init_vgmstream_genh(STREAMFILE *sf) {
 
         case coding_XBOX_IMA:
             if (genh.codec_mode == 1) { /* mono interleave */
-                coding = coding_XBOX_IMA_int;
+                coding = coding_XBOX_IMA_mono;
                 vgmstream->layout_type = layout_interleave;
                 vgmstream->interleave_last_block_size = genh.interleave_last;
                 vgmstream->interleave_block_size = genh.interleave;

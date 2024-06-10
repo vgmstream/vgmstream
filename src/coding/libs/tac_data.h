@@ -1,5 +1,7 @@
-#ifndef _TAC_DECODER_LIB_DATA_H_
-#define _TAC_DECODER_LIB_DATA_H_
+#ifndef _TAC_DATA_H_
+#define _TAC_DATA_H_
+
+#include <stdint.h>
 
 /* VU1 register simulation, needs type conversion at times (should be optimized out by compiler). */
 typedef union {

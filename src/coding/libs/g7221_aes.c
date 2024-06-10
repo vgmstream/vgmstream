@@ -1,5 +1,5 @@
 #include <stdlib.h>
-#include "g7221_decoder_aes.h"
+#include "g7221_aes.h"
 
 /* Namco's NUS AES is just standard AES-192 in ECB mode, so this can be swapped with another lib,
  * if more code needs AES. Most implementations out there either use pre-calculated look-up tables,

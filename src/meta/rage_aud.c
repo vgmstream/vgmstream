@@ -100,6 +100,11 @@ VGMSTREAM* init_vgmstream_rage_aud(STREAMFILE* sf) {
                 if (!vgmstream->codec_data) goto fail;
                 vgmstream->layout_type = layout_none;
             }
+
+            /* RAGE MP3s have an odd encoder delay handling: files are encoded ignoring the first 1152
+             * samples, then MP3s play 1 frame of silence (encoder delay) and rest of the song. This
+             * makes waveforms correctly aligned vs other platforms without having to manually discard
+             * samples, but don't actually contain the first samples of a song. */
             break;
         }
 #endif

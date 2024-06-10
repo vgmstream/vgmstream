@@ -1,5 +1,5 @@
-#ifndef _TAC_DECODER_LIB_H_
-#define _TAC_DECODER_LIB_H_
+#ifndef _TAC_LIB_H_
+#define _TAC_LIB_H_
 
 /* tri-Ace Codec (TAC) lib, found in PS2 games */
 

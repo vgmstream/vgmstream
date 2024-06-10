@@ -1,9 +1,5 @@
-#ifndef _clHCA_H
-#define _clHCA_H
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+#ifndef _CLHCA_H_
+#define _CLHCA_H_
 
 
 /* Must pass at least 8 bytes of data to this function.
@@ -85,9 +81,5 @@ int clHCA_TestBlock(clHCA *hca, void *data, unsigned int size);
 /* Resets the internal decode state, used when restarting to decode the file from the beginning.
  * Without it there are minor differences, mainly useful when testing a new key. */
 void clHCA_DecodeReset(clHCA * hca);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif

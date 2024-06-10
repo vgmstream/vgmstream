@@ -23,7 +23,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "acm_decoder_libacm.h" //"libacm.h"//vgmstream mod
+#include "libacm.h"
 
 #define WAVC_HEADER_LEN	28
 #define ACM_HEADER_LEN	14

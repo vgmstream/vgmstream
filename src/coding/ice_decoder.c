@@ -1,5 +1,5 @@
 #include "coding.h"
-#include "ice_decoder_icelib.h"
+#include "libs/icelib.h"
 
 
 typedef struct {

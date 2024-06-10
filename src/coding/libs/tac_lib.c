@@ -38,9 +38,9 @@
 /**********************************************************************************/
 /* DEFINITIONS                                                                    */
 /**********************************************************************************/
-#include "tac_decoder_lib_data.h"
-#include "tac_decoder_lib_ops.h"
-#include "tac_decoder_lib.h"
+#include "tac_data.h"
+#include "tac_ops.h"
+#include "tac_lib.h"
 
 //#define TAC_MAX_FRAME_SIZE  0x300 /* typically around ~0x1d0, observed max is ~0x2e2 */
 #define TAC_CODED_BANDS     27

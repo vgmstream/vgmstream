@@ -54,7 +54,7 @@ VGMSTREAM* init_vgmstream_ads_midway(STREAMFILE* sf) {
 
         case 0x00000021: /* Xbox */
             start_offset = 0x28;
-            vgmstream->coding_type = coding_XBOX_IMA_int;
+            vgmstream->coding_type = coding_XBOX_IMA_mono;
             vgmstream->num_samples = xbox_ima_bytes_to_samples(read_32bitBE(0x24,sf), vgmstream->channels);
             vgmstream->layout_type = channels == 1 ? layout_none : layout_interleave;
             vgmstream->interleave_block_size = 0x24;

@@ -1,7 +1,7 @@
 #include "coding.h"
 
 #ifdef VGM_USE_G7221
-#include "g7221_decoder_lib.h"
+#include "libs/g7221_lib.h"
 
 #define G7221_MAX_FRAME_SIZE 0x78   /* 960/8 */
 #define G7221_MAX_FRAME_SAMPLES 640 /* 32000/50 */

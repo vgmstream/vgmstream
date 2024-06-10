@@ -1211,7 +1211,7 @@ int vgmstream_open_stream_bf(VGMSTREAM* vgmstream, STREAMFILE* sf, off_t start_o
     }
 
     if ((vgmstream->coding_type == coding_MSADPCM || vgmstream->coding_type == coding_MSADPCM_ck ||
-            vgmstream->coding_type == coding_MSADPCM_int ||
+            vgmstream->coding_type == coding_MSADPCM_mono ||
             vgmstream->coding_type == coding_MS_IMA || vgmstream->coding_type == coding_MS_IMA_mono ||
             vgmstream->coding_type == coding_PSX_cfg || vgmstream->coding_type == coding_PSX_pivotal
             ) &&
@@ -1228,7 +1228,7 @@ int vgmstream_open_stream_bf(VGMSTREAM* vgmstream, STREAMFILE* sf, off_t start_o
 
     if ((vgmstream->coding_type == coding_MSADPCM ||
             vgmstream->coding_type == coding_MSADPCM_ck ||
-            vgmstream->coding_type == coding_MSADPCM_int) &&
+            vgmstream->coding_type == coding_MSADPCM_mono) &&
             (vgmstream->frame_size == 0 || vgmstream->frame_size > MSADPCM_MAX_BLOCK_SIZE)) {
         VGM_LOG("VGMSTREAM: MSADPCM decoder with wrong frame size %x\n", vgmstream->frame_size);
         goto fail;

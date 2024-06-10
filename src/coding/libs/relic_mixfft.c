@@ -594,7 +594,7 @@ static void twiddleTransf(int sofarRadix, int radix, int remainRadix,
     }
 }   /* twiddleTransf */
 
-/*static*/ void fft(int n, float *xRe, float *xIm, 
+/*static void fft*/ void relic_mixfft_fft(int n, float *xRe, float *xIm, 
                            float *yRe, float *yIm)
 {
     int   sofarRadix[maxFactorCount],

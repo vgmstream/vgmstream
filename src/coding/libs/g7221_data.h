@@ -1,5 +1,5 @@
-#ifndef _DATA_H_
-#define _DATA_H_
+#ifndef _G7221_DATA_H_
+#define _G7221_DATA_H_
 
 #include <stdint.h>
 

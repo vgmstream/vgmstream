@@ -72,14 +72,14 @@ typedef enum {
     coding_BLITZ_IMA,       /* Blitz Games 4-bit IMA ADPCM */
 
     coding_MS_IMA,          /* Microsoft IMA ADPCM */
-    coding_MS_IMA_mono,     /* Microsoft IMA ADPCM (mono/interleave) */
+    coding_MS_IMA_mono,     /* Microsoft IMA ADPCM (mono) */
     coding_XBOX_IMA,        /* XBOX IMA ADPCM */
     coding_XBOX_IMA_mch,    /* XBOX IMA ADPCM (multichannel) */
-    coding_XBOX_IMA_int,    /* XBOX IMA ADPCM (mono/interleave) */
+    coding_XBOX_IMA_mono,   /* XBOX IMA ADPCM (mono) */
     coding_NDS_IMA,         /* IMA ADPCM w/ NDS layout */
     coding_DAT4_IMA,        /* Eurocom 'DAT4' IMA ADPCM */
     coding_RAD_IMA,         /* Radical IMA ADPCM */
-    coding_RAD_IMA_mono,    /* Radical IMA ADPCM (mono/interleave) */
+    coding_RAD_IMA_mono,    /* Radical IMA ADPCM (mono) */
     coding_APPLE_IMA4,      /* Apple Quicktime IMA4 */
     coding_FSB_IMA,         /* FMOD's FSB multichannel IMA ADPCM */
     coding_WWISE_IMA,       /* Audiokinetic Wwise IMA ADPCM */
@@ -93,7 +93,7 @@ typedef enum {
     coding_CRANKCASE_IMA,   /* CrankcaseAudio REV IMA ADPCM */
 
     coding_MSADPCM,         /* Microsoft ADPCM (stereo/mono) */
-    coding_MSADPCM_int,     /* Microsoft ADPCM (mono) */
+    coding_MSADPCM_mono,    /* Microsoft ADPCM (mono) */
     coding_MSADPCM_ck,      /* Microsoft ADPCM (Cricket Audio variation) */
     coding_WS,              /* Westwood Studios VBR ADPCM */
 

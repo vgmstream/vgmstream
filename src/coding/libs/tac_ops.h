@@ -1,8 +1,6 @@
-#ifndef _TAC_DECODER_LIB_OPS_H_
-#define _TAC_DECODER_LIB_OPS_H_
-
+#ifndef _TAC_OPS_H_
+#define _TAC_OPS_H_
 #include <math.h>
-#include "tac_decoder_lib_ops.h"
 
 /* The following ops are similar to VU1's ops, but not quite the same. For example VU1 has special op
  * registers like the ACC, and updates zero/neg/etc flags per op (plus added here a few helper ops).

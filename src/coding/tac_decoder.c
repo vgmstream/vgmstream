@@ -1,7 +1,7 @@
 #include "coding.h"
 #include "coding_utils_samples.h"
 
-#include "tac_decoder_lib.h"
+#include "libs/tac_lib.h"
 
 
 /* opaque struct */

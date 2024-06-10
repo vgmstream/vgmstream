@@ -1,7 +1,7 @@
-#ifndef _CIRCUS_DECODER_LIB_H_
-#define _CIRCUS_DECODER_LIB_H_
+#ifndef _CIRCUS_VQ_LIB_H_
+#define _CIRCUS_VQ_LIB_H_
 
-#include "../streamfile.h"
+#include "../../streamfile.h"
 
 typedef struct circus_handle_t circus_handle_t;
 
