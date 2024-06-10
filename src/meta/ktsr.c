@@ -4,7 +4,7 @@
 #include "../util/companion_files.h"
 #include "ktsr_streamfile.h"
 
-typedef enum { NONE, MSADPCM, DSP, GCADPCM, ATRAC9, RIFF_ATRAC9, KOVS, KTSS, } ktsr_codec;
+typedef enum { NONE, MSADPCM, DSP, GCADPCM, ATRAC9, RIFF_ATRAC9, KOVS, KTSS, KTAC } ktsr_codec;
 
 #define MAX_CHANNELS 8
 
@@ -151,6 +151,7 @@ static VGMSTREAM* init_vgmstream_ktsr_internal(STREAMFILE* sf, bool is_srsa) {
             case RIFF_ATRAC9:   init_vgmstream = init_vgmstream_riff; ext = "at9"; break;
             case KOVS:          init_vgmstream = init_vgmstream_ogg_vorbis; ext = "kvs"; break;
             case KTSS:          init_vgmstream = init_vgmstream_ktss; ext = "ktss"; break;
+            case KTAC:          init_vgmstream = init_vgmstream_ktac; ext = "ktac"; break;
             default: break;
         }
 
@@ -342,6 +343,8 @@ static int parse_codec(ktsr_header* ktsr) {
             if (ktsr->is_external) {
                 if (ktsr->format == 0x1001)
                     ktsr->codec = RIFF_ATRAC9; // Nioh (PS4)
+                else if (ktsr->format == 0x0005)
+                    ktsr->codec = KTAC; // Blue Reflection Tie (PS4)
                 else
                     goto fail;
             }
