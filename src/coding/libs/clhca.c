@@ -25,7 +25,7 @@
 //--------------------------------------------------
 // Includes
 //--------------------------------------------------
-#include "hca_decoder_clhca.h"
+#include "clhca.h"
 #include <stddef.h>
 #include <stdlib.h>
 #include <memory.h>

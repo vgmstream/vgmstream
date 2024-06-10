@@ -1,3 +1,6 @@
+#ifndef _CIRCUS_VQ_LZXPCM_H_
+#define _CIRCUS_VQ_LZXPCM_H_
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -294,4 +297,6 @@ static int lzxpcm_decompress_full(uint8_t* dst, size_t dst_size, const uint8_t* 
 
     return 0;
 }
+#endif
+
 #endif

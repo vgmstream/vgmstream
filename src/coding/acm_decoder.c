@@ -1,5 +1,5 @@
 #include "coding.h"
-#include "acm_decoder_libacm.h"
+#include "libs/libacm.h"
 #include <stdio.h>
 
 /* libacm 1.2 (despite what libacm.h says) from: https://github.com/markokr/libacm */

@@ -2,9 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "g7221_decoder_lib.h"
-#include "g7221_decoder_aes.h"
-
+#include "g7221_lib.h"
+#include "g7221_aes.h"
+#include "g7221_data.h"
 
 /* Decodes Siren14 from Namco's BNSF, a mono MLT/DCT-based codec for speech/sound (low bandwidth).
  * Reverse engineered for various exes with info from Polycom's reference int decoder.
@@ -45,8 +45,6 @@
  * TODO: missing some validations (may segfault on bad data), 
  *       access indexes with (idx & max) and clamp buffer reads
  */
-
-#include "g7221_decoder_lib_data.h"
 
 /*****************************************************************************
  * IMLT

@@ -1,6 +1,6 @@
 #include "meta.h"
 #include "../coding/coding.h"
-#include "../coding/ice_decoder_icelib.h"
+#include "../coding/libs/icelib.h"
 
 
 /* .BIGRP - from Inti Creates "ICE"/"Imperial" engine [Blaster Master Zero 2 (SW), Gunvolt 3 (SW)] */

@@ -1,8 +1,8 @@
 /*
     Interface to Namco G.722.1 decoder
 */
-#ifndef _G7221_DECODER_LIB_H
-#define _G7221_DECODER_LIB_H
+#ifndef _G7221_LIB_H
+#define _G7221_LIB_H
 
 #include <stdint.h>
 

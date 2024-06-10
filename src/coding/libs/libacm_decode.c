@@ -24,7 +24,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "acm_decoder_libacm.h" //"libacm.h"//vgmstream mod
+#include "libacm.h"
 
 #define ACM_BUFLEN	(64*1024)
 

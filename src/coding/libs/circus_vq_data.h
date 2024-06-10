@@ -1,5 +1,5 @@
-#ifndef _CIRCUS_DECODER_LIB_DATA_H_
-#define _CIRCUS_DECODER_LIB_DATA_H_
+#ifndef _CIRCUS_VQ_DATA_H_
+#define _CIRCUS_VQ_DATA_H_
 
 #include <stdint.h>
 

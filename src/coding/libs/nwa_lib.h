@@ -30,10 +30,10 @@
  * 
  */
 
-#ifndef _NWA_DECODER_H
-#define _NWA_DECODER_H
+#ifndef _NWA_LIB_H
+#define _NWA_LIB_H
 
-#include "../streamfile.h"
+#include "../../streamfile.h"
 
 typedef struct NWAData_s {
     int channels;

@@ -5,7 +5,7 @@
 #include "../util/reader_sf.h"
 #include "../util/reader_get_nibbles.h"
 //todo remove
-#include "hca_decoder_clhca.h"
+#include "libs/clhca.h"
 
 /* adx_decoder */
 void decode_adx(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int32_t frame_bytes, coding_t coding_type, uint32_t codec_config);

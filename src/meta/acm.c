@@ -1,6 +1,6 @@
 #include "meta.h"
 #include "../coding/coding.h"
-#include "../coding/acm_decoder_libacm.h"
+#include "../coding/libs/libacm.h"
 
 /* ACM - InterPlay infinity engine games [Planescape: Torment (PC), Baldur's Gate (PC)] */
 VGMSTREAM* init_vgmstream_acm(STREAMFILE* sf) {

@@ -14,14 +14,14 @@
  * https://bitbucket.org/losnoco/foo_adpcm/src/master/foo_oki/source/libpcm/libpcm.cpp
  */
 
-#include "circus_decoder_lib.h"
-#include "circus_decoder_lib_data.h"
+#include "circus_vq_lib.h"
+#include "circus_vq_data.h"
 
-#include "circus_decoder_lzxpcm.h"
+#include "circus_vq_lzxpcm.h"
 
 /* use miniz (API-compatible) to avoid adding external zlib just for this codec
  * - https://github.com/richgel999/miniz */
-#include "../util/miniz.h"
+#include "../../util/miniz.h"
 //#include "zlib.h"
 
 

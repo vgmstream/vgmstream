@@ -1,5 +1,5 @@
 #include "coding.h"
-#include "relic_decoder_lib.h"
+#include "libs/relic_lib.h"
 
 //TODO: fix looping
 

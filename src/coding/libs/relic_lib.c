@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include "relic_decoder_lib.h"
+#include "relic_lib.h"
 
 /* Relic Codec decoder, a fairly simple mono-interleave DCT-based codec.
  *
@@ -11,7 +11,7 @@
  */
 
 /* mixfft.c */
-extern void fft(int n, float* xRe, float* xIm, float* yRe, float* yIm);
+extern void relic_mixfft_fft(int n, float* xRe, float* xIm, float* yRe, float* yIm);
 
 
 #define RELIC_MAX_CHANNELS  2
@@ -92,7 +92,7 @@ static int apply_idct(const float* freq, float* wave, const float* dct, int dct_
     }
 
     /* main FFT */
-    fft(dct_quarter, in_re, in_im, out_re, out_im);
+    relic_mixfft_fft(dct_quarter, in_re, in_im, out_re, out_im);
 
     /* postrotation, window and reorder? */
     factor = 8.0 / sqrt(dct_size);

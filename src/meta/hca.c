@@ -1,7 +1,7 @@
 #include "meta.h"
 #include "hca_keys.h"
 #include "../coding/coding.h"
-#include "../coding/hca_decoder_clhca.h"
+#include "../coding/libs/clhca.h"
 #include "../util/channel_mappings.h"
 #include "../util/companion_files.h"
 #include "../util/cri_keys.h"
