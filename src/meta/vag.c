@@ -361,6 +361,7 @@ fail:
     return NULL;
 }
 
+
 /* AAAp - Acclaim Austin Audio VAG header [The Red Star (PS2)] */
 VGMSTREAM* init_vgmstream_vag_aaap(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
@@ -416,6 +417,7 @@ fail:
     close_vgmstream(vgmstream);
     return NULL;
 }
+
 
 /* VAGp footer - sound data first, header at the end [The Sims 2: Pets (PS2), The Sims 2: Castaway (PS2)] */
 VGMSTREAM* init_vgmstream_vag_footer(STREAMFILE* sf) {
@@ -481,6 +483,83 @@ VGMSTREAM* init_vgmstream_vag_footer(STREAMFILE* sf) {
     vgmstream->num_samples = ps_bytes_to_samples(stream_size, channels);
 
     read_string(vgmstream->stream_name, 0x10 + 1, header_offset + 0x20, sf);
+
+    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
+        goto fail;
+    return vgmstream;
+
+fail:
+    close_vgmstream(vgmstream);
+    return NULL;
+}
+
+
+/* .VAG - Evolution Games [Nickelodeon Rocket Power: Beach Bandits (PS2)] */
+VGMSTREAM* init_vgmstream_vag_evolution_games(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
+    size_t stream_size;
+    off_t start_offset;
+    int channels, interleave, sample_rate, loop_flag;
+
+
+    /* checks */
+    if (!check_extensions(sf, "vag"))
+        return NULL;
+
+    /* VAGp replaced with 3 spaces + NUL */
+    if (!is_id32be(0x00, sf, "   \0"))
+        return NULL;
+
+
+    /* all the data is in little endian */
+    if (read_u32le(0x04, sf) != 0) goto fail; /* version */
+    if (!is_id32be(0x08, sf, "   \0")) goto fail; /* reserved */
+    stream_size = read_u32le(0x0C, sf);
+    sample_rate = read_u32le(0x10, sf);
+    /* reserved 0x14 == "    "
+     * reserved 0x18 == "    "
+     * reserved 0x1C == "   \0"
+     */
+    /* starting to think the padding was made with null-terminated strings */
+
+    /* data is often aligned to 0x80, but not always */
+    if (stream_size + 0x30 != get_streamfile_size(sf) &&
+        align_size_to_block(stream_size + 0x30, 0x80) != get_streamfile_size(sf))
+        goto fail;
+
+    /*  HACK 1  */
+    stream_size -= 0x20;
+    /* technically the stream size is correct, however the final ADPCM frame
+     * has the end flag 0x7 stored in the coef/shift byte for whatever reason
+     * and the 2nd to last frame in most files has what seems like garbage(?)
+     * so there's an audible click at the end from those.
+     */
+
+    /*  HACK 2  */
+    if (is_id32be(0x10, sf, "tpad"))
+        sample_rate = 44100; /* from the GC port */
+    /* sample rate is valid for all files except Boostpad.vag, where this field
+     * is uninitialized and instead has the string "tpad" (likely from the name)
+     */
+
+    channels = 1;
+    loop_flag = 0;
+    interleave = 0;
+    start_offset = 0x30;
+
+
+    /* build the VGMSTREAM */
+    vgmstream = allocate_vgmstream(channels, loop_flag);
+    if (!vgmstream) goto fail;
+
+    vgmstream->meta_type = meta_VAG_custom;
+    vgmstream->coding_type = coding_PSX;
+    vgmstream->layout_type = layout_none;
+    vgmstream->sample_rate = sample_rate;
+    vgmstream->interleave_block_size = interleave;
+    vgmstream->num_samples = ps_bytes_to_samples(stream_size, channels);
+
+    read_string(vgmstream->stream_name, 0x10 + 1, 0x20, sf); /* always "Evolution Games"? */
 
     if (!vgmstream_open_stream(vgmstream, sf, start_offset))
         goto fail;
