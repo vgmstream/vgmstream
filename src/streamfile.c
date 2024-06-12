@@ -438,16 +438,12 @@ static void buffer_close(BUFFER_STREAMFILE* sf) {
 }
 
 STREAMFILE* open_buffer_streamfile(STREAMFILE* sf, size_t buf_size) {
-    uint8_t* buf = NULL;
     BUFFER_STREAMFILE* this_sf = NULL;
 
     if (!sf) goto fail;
 
     if (buf_size == 0)
         buf_size = STREAMFILE_DEFAULT_BUFFER_SIZE;
-
-    buf = calloc(buf_size, sizeof(uint8_t));
-    if (!buf) goto fail;
 
     this_sf = calloc(1, sizeof(BUFFER_STREAMFILE));
     if (!this_sf) goto fail;
@@ -463,7 +459,8 @@ STREAMFILE* open_buffer_streamfile(STREAMFILE* sf, size_t buf_size) {
 
     this_sf->inner_sf = sf;
     this_sf->buf_size = buf_size;
-    this_sf->buf = buf;
+    this_sf->buf = calloc(buf_size, sizeof(uint8_t));
+    if (!this_sf->buf) goto fail;
 
     this_sf->file_size = sf->get_size(sf);
 

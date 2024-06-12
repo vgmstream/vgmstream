@@ -67,7 +67,7 @@ fail:
 
 /* reads custom frame header + MPEG data + (optional) PCM block */
 int mpeg_custom_parse_frame_eamp3(VGMSTREAMCHANNEL *stream, mpeg_codec_data *data, int num_stream) {
-    mpeg_custom_stream *ms = data->streams[num_stream];
+    mpeg_custom_stream* ms = &data->streams[num_stream];
     eamp3_frame_info eaf = {0};
     int ok;
 
@@ -125,7 +125,7 @@ fail:
 
 /* write PCM block directly to sample buffer and setup decode discard (see EALayer3). */
 static int eamp3_write_pcm_block(VGMSTREAMCHANNEL *stream, mpeg_codec_data *data, int num_stream, eamp3_frame_info * eaf) {
-    mpeg_custom_stream *ms = data->streams[num_stream];
+    mpeg_custom_stream* ms = &data->streams[num_stream];
     size_t bytes_filled;
     int i;
 

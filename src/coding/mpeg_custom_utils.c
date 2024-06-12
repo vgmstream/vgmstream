@@ -118,7 +118,7 @@ fail:
 
 /* writes data to the buffer and moves offsets */
 int mpeg_custom_parse_frame_default(VGMSTREAMCHANNEL* stream, mpeg_codec_data* data, int num_stream) {
-    mpeg_custom_stream *ms = data->streams[num_stream];
+    mpeg_custom_stream* ms = &data->streams[num_stream];
     mpeg_frame_info info;
     size_t current_data_size = 0;
     size_t current_padding = 0;

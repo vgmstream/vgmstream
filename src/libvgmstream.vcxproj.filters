@@ -416,6 +416,9 @@
     <ClInclude Include="util\text_reader.h">
       <Filter>util\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="util\zlib_vgmstream.h">
+      <Filter>util\Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="formats.c">

@@ -19,10 +19,8 @@
 
 #include "circus_vq_lzxpcm.h"
 
-/* use miniz (API-compatible) to avoid adding external zlib just for this codec
- * - https://github.com/richgel999/miniz */
-#include "../../util/miniz.h"
 //#include "zlib.h"
+#include "../../util/zlib_vgmstream.h" 
 
 
 //#define XPCM_CODEC_PCM       0
