@@ -130,7 +130,7 @@ fail:
 
 /* writes data to the buffer and moves offsets, transforming AHX frames as needed */
 int mpeg_custom_parse_frame_ahx(VGMSTREAMCHANNEL* stream, mpeg_codec_data* data, int num_stream) {
-    mpeg_custom_stream *ms = data->streams[num_stream];
+    mpeg_custom_stream* ms = &data->streams[num_stream];
     size_t curr_size = 0;
     size_t file_size = get_streamfile_size(stream->streamfile);
 

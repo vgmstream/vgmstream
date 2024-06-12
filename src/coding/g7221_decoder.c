@@ -73,19 +73,23 @@ void decode_g7221(VGMSTREAM* vgmstream, sample_t* outbuf, int channelspacing, in
 
 
 void reset_g7221(g7221_codec_data* data) {
-    int i;
-    if (!data) return;
+    if (!data)
+        return;
 
-    for (i = 0; i < data->channels; i++) {
+    for (int i = 0; i < data->channels; i++) {
+        if (!data->ch)
+            continue;
         g7221_reset(data->ch[i].handle);
     }
 }
 
 void free_g7221(g7221_codec_data* data) {
-    int i;
-    if (!data) return;
+    if (!data)
+        return;
 
-    for (i = 0; i < data->channels; i++) {
+    for (int i = 0; i < data->channels; i++) {
+        if (!data->ch)
+            continue;
         g7221_free(data->ch[i].handle);
     }
     free(data->ch);
@@ -93,10 +97,12 @@ void free_g7221(g7221_codec_data* data) {
 }
 
 void set_key_g7221(g7221_codec_data* data, const uint8_t* key) {
-    int i;
-    if (!data) return;
+    if (!data)
+        return;
 
-    for (i = 0; i < data->channels; i++) {
+    for (int i = 0; i < data->channels; i++) {
+        if (!data->ch)
+            continue;
         g7221_set_key(data->ch[i].handle, key);
     }
 }

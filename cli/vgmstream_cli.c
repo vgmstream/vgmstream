@@ -890,10 +890,13 @@ static int write_file(VGMSTREAM* vgmstream, cli_config* cfg) {
         //setvbuf(outfile, NULL, _IOFBF, SAMPLE_BUFFER_SIZE * sizeof(sample_t) * input_channels);
         //setvbuf(outfile, NULL, _IONBF, 0);
     }
+    else {
+        // decode only: outfile is NULL (won't write anything)
+    }
 
 
     /* decode forever */
-    while (cfg->play_forever) {
+    while (cfg->play_forever && !cfg->decode_only) {
         int to_get = SAMPLE_BUFFER_SIZE;
 
         render_vgmstream(buf, to_get, vgmstream);
@@ -931,12 +934,12 @@ static int write_file(VGMSTREAM* vgmstream, cli_config* cfg) {
         }
     }
 
-    if (outfile && !cfg->play_sdtout)
+    if (outfile && outfile != stdout)
         fclose(outfile);
     free(buf);
     return 1;
 fail:
-    if (outfile && !cfg->play_sdtout)
+    if (outfile && outfile != stdout)
         fclose(outfile);
     free(buf);
     return 0;
