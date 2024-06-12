@@ -29,4 +29,6 @@ int decode_get_samples_per_shortframe(VGMSTREAM* vgmstream);
 int decode_get_shortframe_size(VGMSTREAM* vgmstream);
 
 
+bool decode_uses_internal_offset_updates(VGMSTREAM* vgmstream);
+
 #endif

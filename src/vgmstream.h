@@ -222,6 +222,7 @@ typedef struct {
     /* decoder config/state */
     int codec_endian;               /* little/big endian marker; name is left vague but usually means big endian */
     int codec_config;               /* flags for codecs or layouts with minor variations; meaning is up to them */
+    bool codec_internal_updates;    /* temp(?) kludge (see vgmstream_open_stream/decode) */
     int32_t ws_output_size;         /* WS ADPCM: output bytes for this block */
 
 
