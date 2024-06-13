@@ -473,7 +473,7 @@ VGMSTREAM* init_vgmstream_xwb(STREAMFILE* sf) {
 
     if (stream_name[0]) {
         get_streamfile_basename(sf, file_name, STREAM_NAME_SIZE);
-        if (strcmp(file_name, xwb.wavebank_name) != 0)
+        if (xwb.wavebank_name[0] && strcmp(file_name, xwb.wavebank_name) != 0)
             snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%s/%s", xwb.wavebank_name, stream_name);
         else
             snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%s", stream_name);

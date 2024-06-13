@@ -3,6 +3,9 @@
 #include "../util/endianness.h"
 
 
+/* using their original codec names, see the comment before `switch (stream_codec)` */
+typedef enum { VAG, PCM, FLOAT, GCNADPCM, XADPCM, WMA, MP3, MP2, MPG, AC3, IMAADPCM } awd_codec;
+
 /* AWD - Audio Wave Dictionary (RenderWare) */
 VGMSTREAM* init_vgmstream_awd(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
@@ -137,24 +140,24 @@ VGMSTREAM* init_vgmstream_awd(STREAMFILE* sf) {
      */
 
     switch (stream_codec) {
-        case 0x00: /* PS2 (Burnout series, Black, Call of Duty: Finest Hour) */
+        case VAG: /* PS2 (Burnout series, Black, Call of Duty: Finest Hour) */
             vgmstream->num_samples = ps_bytes_to_samples(stream_size, channels);
             vgmstream->coding_type = coding_PSX;
             break;
 
-        case 0x01: /* Xbox (Burnout series, Black) */
+        case PCM: /* Xbox (Burnout series, Black) */
             vgmstream->num_samples = pcm16_bytes_to_samples(stream_size, channels);
             vgmstream->coding_type = coding_PCM16LE;
             break;
 
-        case 0x03: /* GCN (Call of Duty: Finest Hour) */
+        case GCNADPCM: /* GCN (Call of Duty: Finest Hour) */
             vgmstream->num_samples = dsp_bytes_to_samples(stream_size, channels);
             dsp_read_coefs_be(vgmstream, sf, misc_data_offset + 0x1C, 0);
             dsp_read_hist_be(vgmstream, sf, misc_data_offset + 0x40, 0);
             vgmstream->coding_type = coding_NGC_DSP;
             break;
 
-        case 0x04: /* Xbox (Black, Call of Duty: Finest Hour) */
+        case XADPCM: /* Xbox (Black, Call of Duty: Finest Hour) */
             vgmstream->num_samples = xbox_ima_bytes_to_samples(stream_size, channels);
             vgmstream->coding_type = coding_XBOX_IMA;
             break;
