@@ -728,7 +728,7 @@ static void get_name(char* buf, size_t maxsize, int target_subsong, xwb_header* 
     if (xwb->version == 1) {
         /* .wbh, a simple name container */
         sf_name = open_streamfile_by_ext(sf_xwb, "wbh");
-        if (!sf_name) return; /* rarely found [Pac-Man World 2 (Xbox)] */
+        if (!sf_name) goto fail; /* rarely found [Pac-Man World 2 (Xbox)] */
 
         name_found = get_wbh_name(buf, maxsize, target_subsong, xwb, sf_name);
         close_streamfile(sf_name);
@@ -736,14 +736,15 @@ static void get_name(char* buf, size_t maxsize, int target_subsong, xwb_header* 
     else {
         /* .xsb, a comically complex cue format */
         sf_name = open_xsb_filename_pair(sf_xwb);
-        if (!sf_name) return; /* not all xwb have xsb though */
+        if (!sf_name) goto fail; /* not all xwb have xsb though */
 
         name_found = get_xsb_name(buf, maxsize, target_subsong, xwb, sf_name);
         close_streamfile(sf_name);
     }
 
+    if (!name_found) goto fail;
+    return;
 
-    if (!name_found) {
-        buf[0] = '\0';
-    }
+fail:
+    buf[0] = '\0';
 }
