@@ -3,10 +3,24 @@
 #include "../util/endianness.h"
 
 
-/* using their original codec names, see the comment before `switch (stream_codec)` */
-typedef enum { VAG, PCM, FLOAT, GCNADPCM, XADPCM, WMA, MP3, MP2, MPG, AC3, IMAADPCM } awd_codec;
+/* using their original codec names */
+typedef enum {
+    VAG      = 0x00, /* PS ADPCM */
+    PCM      = 0x01, /* Signed 16-bit */
+    FLOAT    = 0x02,
+    GCNADPCM = 0x03, /* Nintendo DSP ADPCM */
+    XADPCM   = 0x04, /* Xbox IMA ADPCM */
+    WMA      = 0x05, /* Windows Media Audio */
+    MP3      = 0x06, /* MPEG-1/2 Audio Layer III */
+    MP2      = 0x07, /* MPEG-1/2 Audio Layer II */
+    MPG      = 0x08, /* MPEG-1   Audio Layer I */
+    AC3      = 0x09, /* Dolby AC-3 */
+    IMAADPCM = 0x0A  /* unk: Standard? MS IMA? rws_80d uses Xbox IMA */
+} awd_codec;
+/* these should be all the codec indices, even if most aren't ever used
+ * based on the research at https://burnout.wiki/wiki/Wave_Dictionary */
 
-/* AWD - Audio Wave Dictionary (RenderWare) */
+/* .AWD - RenderWare Audio Wave Dictionary */
 VGMSTREAM* init_vgmstream_awd(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     char file_name[STREAM_NAME_SIZE], header_name[STREAM_NAME_SIZE], stream_name[STREAM_NAME_SIZE];
@@ -123,21 +137,6 @@ VGMSTREAM* init_vgmstream_awd(STREAMFILE* sf) {
         snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%s/%s", header_name, stream_name);
     else
         snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%s", stream_name);
-
-    /* these should be all the codec indices, even if most aren't ever used
-     * based on the research at https://burnout.wiki/wiki/Wave_Dictionary
-     *  0x00: PS ADPCM
-     *  0x01: PCM
-     *  0x02: Float
-     *  0x03: DSP ADPCM
-     *  0x04: Xbox IMA ADPCM
-     *  0x05: WMA
-     *  0x06: MP3
-     *  0x07: MP2
-     *  0x08: MP1
-     *  0x09: AC3
-     *  0x0A: IMA ADPCM
-     */
 
     switch (stream_codec) {
         case VAG: /* PS2 (Burnout series, Black, Call of Duty: Finest Hour) */
