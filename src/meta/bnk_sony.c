@@ -30,6 +30,8 @@ typedef struct {
     uint32_t table2_entry_offset;
     uint32_t table3_entry_offset;
 
+    char bank_name[STREAM_NAME_SIZE];
+    char stream_name[STREAM_NAME_SIZE];
 
     /* stream related */
     int total_subsongs;
@@ -59,10 +61,11 @@ typedef struct {
 static bool parse_bnk_v3(STREAMFILE* sf, bnk_header_t* h);
 
 
-/* .BNK - Sony's SCREAM bank format [The Sly Collection (PS3), Puyo Puyo Tetris (PS4), NekoBuro: Cats Block (Vita)] */
+/* .BNK - Sony's 989SND/SCREAM bank format - SCRiptable Engine for Audio Manipulation
+ * [The Sly Collection (PS3), Puyo Puyo Tetris (PS4), NekoBuro: Cats Block (Vita)] */
 VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
-    char bank_name[STREAM_NAME_SIZE] /*[8]*/, stream_name[STREAM_NAME_SIZE] /*[16]*/;
+    char file_name[STREAM_NAME_SIZE];
     bnk_header_t h = {0};
 
     /* checks */
@@ -85,15 +88,19 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
     if (h.stream_name_size >= STREAM_NAME_SIZE || h.stream_name_size <= 0)
         h.stream_name_size = STREAM_NAME_SIZE;
 
-    if (!h.bank_name_offset && h.stream_name_offset) {
-        read_string(vgmstream->stream_name, h.stream_name_size, h.stream_name_offset, sf);
-    }
-    else if (h.bank_name_offset && h.stream_name_offset) {
-        read_string(bank_name, h.stream_name_size, h.bank_name_offset, sf);
-        read_string(stream_name, h.stream_name_size, h.stream_name_offset, sf);
-        snprintf(vgmstream->stream_name, h.stream_name_size, "%s%s%s", bank_name, bank_name[0] == '\0' ? "" : "/", stream_name);
-    }
+    /* replace this with reading into the buffer ASAP when processing tables? */
+    if (h.bank_name_offset)
+        read_string(h.bank_name, h.stream_name_size, h.bank_name_offset, sf);
+    if (h.stream_name_offset)
+        read_string(h.stream_name, h.stream_name_size, h.stream_name_offset, sf);
 
+    if (h.stream_name[0]) {
+        get_streamfile_basename(sf, file_name, STREAM_NAME_SIZE);
+        if (h.bank_name[0] && strcmp(file_name, h.bank_name) != 0)
+            snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%s/%s", h.bank_name, h.stream_name);
+        else
+            snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%s", h.stream_name);
+    }
 
     switch(h.codec) {
         case DUMMY: {
@@ -772,11 +779,10 @@ static bool process_data(STREAMFILE* sf, bnk_header_t* h) {
                 h->stream_size += 0x10;
                 for (offset = h->data_offset + h->stream_offset + 0x10; offset < max_offset; offset += 0x10) {
 
-                    /* beginning frame (if file loops won't have end frame)
-                        * checking the entire 16 byte block, as it is possible
-                        * for just the first 8 bytes to be empty [Bully (PS2)] */
-                    if (read_u32be(offset + 0x00, sf) == 0x00000000 && read_u32be(offset + 0x04, sf) == 0x00000000 &&
-                        read_u32be(offset + 0x08, sf) == 0x00000000 && read_u32be(offset + 0x0C, sf) == 0x00000000)
+                    /* beginning frame (if file loops won't have end frame) */
+                    /* checking the entire 16 byte frame, as it is possible
+                     * for just the first 8 bytes to be empty [Bully (PS2)] */
+                    if (read_u64be(offset + 0x00, sf) == 0x00000000 && read_u64be(offset + 0x08, sf) == 0x00000000)
                         break;
 
                     h->stream_size += 0x10;
