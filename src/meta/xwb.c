@@ -86,6 +86,7 @@ VGMSTREAM* init_vgmstream_xwb(STREAMFILE* sf) {
     int target_subsong = sf->stream_index;
     uint32_t (*read_u32)(off_t,STREAMFILE*) = NULL;
     int32_t (*read_s32)(off_t,STREAMFILE*) = NULL;
+    char stream_name[STREAM_NAME_SIZE], file_name[STREAM_NAME_SIZE];
 
 
     /* checks */
@@ -432,7 +433,7 @@ VGMSTREAM* init_vgmstream_xwb(STREAMFILE* sf) {
         xwb.fix_xma_loop_samples = 1;
         xwb.fix_xma_num_samples = 0;
 
-        /* Techland's XMA in tool_version 0x2a (not 0x2c?) seems to use (entry_info >> 1) num_samples 
+        /* Techland's XMA in tool_version 0x2a (not 0x2c?) seems to use (entry_info >> 1) num_samples
          * for music banks, but not sfx [Nail'd (X360)-0x2a, Dead Island (X360)-0x2c] */
         if (xwb.version == XACT_TECHLAND) {
             xwb.num_samples = 0;
@@ -467,7 +468,16 @@ VGMSTREAM* init_vgmstream_xwb(STREAMFILE* sf) {
     vgmstream->num_streams = xwb.total_subsongs;
     vgmstream->stream_size = xwb.stream_size;
     vgmstream->meta_type = meta_XWB;
-    get_name(vgmstream->stream_name,STREAM_NAME_SIZE, target_subsong, &xwb, sf);
+
+    get_name(stream_name, STREAM_NAME_SIZE, target_subsong, &xwb, sf);
+
+    if (stream_name[0]) {
+        get_streamfile_basename(sf, file_name, STREAM_NAME_SIZE);
+        if (xwb.wavebank_name[0] && strcmp(file_name, xwb.wavebank_name) != 0)
+            snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%s/%s", xwb.wavebank_name, stream_name);
+        else
+            snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%s", stream_name);
+    }
 
     switch(xwb.codec) {
         case PCM: /* Unreal Championship (Xbox)[PCM8], KOF2003 (Xbox)[PCM16LE], Otomedius (X360)[PCM16BE] */
@@ -718,7 +728,7 @@ static void get_name(char* buf, size_t maxsize, int target_subsong, xwb_header* 
     if (xwb->version == 1) {
         /* .wbh, a simple name container */
         sf_name = open_streamfile_by_ext(sf_xwb, "wbh");
-        if (!sf_name) return; /* rarely found [Pac-Man World 2 (Xbox)] */
+        if (!sf_name) goto fail; /* rarely found [Pac-Man World 2 (Xbox)] */
 
         name_found = get_wbh_name(buf, maxsize, target_subsong, xwb, sf_name);
         close_streamfile(sf_name);
@@ -726,14 +736,15 @@ static void get_name(char* buf, size_t maxsize, int target_subsong, xwb_header* 
     else {
         /* .xsb, a comically complex cue format */
         sf_name = open_xsb_filename_pair(sf_xwb);
-        if (!sf_name) return; /* not all xwb have xsb though */
+        if (!sf_name) goto fail; /* not all xwb have xsb though */
 
         name_found = get_xsb_name(buf, maxsize, target_subsong, xwb, sf_name);
         close_streamfile(sf_name);
     }
 
+    if (!name_found) goto fail;
+    return;
 
-    if (!name_found) {
-        buf[0] = '\0';
-    }
+fail:
+    buf[0] = '\0';
 }

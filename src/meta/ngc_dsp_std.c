@@ -319,8 +319,9 @@ VGMSTREAM* init_vgmstream_ngc_dsp_std(STREAMFILE* sf) {
      * .adp: Dr. Muto/Battalion Wars (GC), Tale of Despereaux (Wii)
      * (extensionless): Tony Hawk's Downhill Jam (Wii)
      * .wav: PDC World Championship Darts 2009 & Pro Tour (Wii) 
-     * .dat: The Sims: Bustin' Out (GC) (rarely, most are extensionless) */
-    if (!check_extensions(sf, "dsp,adp,,wav,lwav,dat,ldat"))
+     * .dat: The Sims: Bustin' Out (GC) (rarely, most are extensionless)
+     * .rsm: Bully: Scholarship Edition (Wii) (Speech.bin) */
+    if (!check_extensions(sf, "dsp,adp,,wav,lwav,dat,ldat,rsm"))
         return NULL;
 
     channels = 1;
@@ -600,6 +601,7 @@ fail:
     return NULL;
 }
 
+
 /* .STE - single header + interleaved dsp [Monopoly Party! (GC)] */
 VGMSTREAM* init_vgmstream_ngc_mpdsp(STREAMFILE* sf) {
     dsp_meta dspm = {0};
@@ -628,6 +630,7 @@ VGMSTREAM* init_vgmstream_ngc_mpdsp(STREAMFILE* sf) {
 fail:
     return NULL;
 }
+
 
 /* various dsp with differing extensions and interleave values */
 VGMSTREAM* init_vgmstream_ngc_dsp_std_int(STREAMFILE* sf) {
@@ -668,6 +671,7 @@ fail:
     return NULL;
 }
 
+
 /* IDSP - Namco header (from NUB/NUS3) + interleaved dsp [SSB4 (3DS), Tekken Tag Tournament 2 (WiiU)] */
 VGMSTREAM* init_vgmstream_idsp_namco(STREAMFILE* sf) {
     dsp_meta dspm = {0};
@@ -702,6 +706,7 @@ VGMSTREAM* init_vgmstream_idsp_namco(STREAMFILE* sf) {
 fail:
     return NULL;
 }
+
 
 /* sadb - Procyon Studio header + interleaved dsp [Shiren the Wanderer 3 (Wii), Disaster: Day of Crisis (Wii)] */
 VGMSTREAM* init_vgmstream_sadb(STREAMFILE* sf) {
@@ -786,6 +791,7 @@ fail:
     return NULL;
 }
 
+
 /* IDSP - from Next Level games [Super Mario Strikers (GC), Mario Strikers Charged (Wii), Spider-Man: Friend or Foe (Wii)] */
 VGMSTREAM* init_vgmstream_idsp_nl(STREAMFILE* sf) {
     dsp_meta dspm = {0};
@@ -824,6 +830,7 @@ fail:
     return NULL;
 }
 
+
 /* .wsd - Custom header + full interleaved dsp [Phantom Brave (Wii)] */
 VGMSTREAM* init_vgmstream_wii_wsd(STREAMFILE* sf) {
     dsp_meta dspm = {0};
@@ -849,6 +856,7 @@ VGMSTREAM* init_vgmstream_wii_wsd(STREAMFILE* sf) {
 fail:
     return NULL;
 }
+
 
 /* .ddsp - full interleaved dsp [Shark Tale (GC), The Sims series (GC/Wii), Wacky Races: Crash & Dash (Wii)] */
 VGMSTREAM* init_vgmstream_dsp_ddsp(STREAMFILE* sf) {
@@ -879,6 +887,7 @@ fail:
     return NULL;
 }
 
+
 /* iSWS - Sumo Digital header + interleaved dsp [DiRT 2 (Wii), F1 2009 (Wii)] */
 VGMSTREAM* init_vgmstream_wii_was(STREAMFILE* sf) {
     dsp_meta dspm = {0};
@@ -903,6 +912,7 @@ fail:
     return NULL;
 }
 
+
 /* .str - Infogrames raw interleaved dsp [Micro Machines (GC), Superman: Shadow of Apokolips (GC)] */
 VGMSTREAM* init_vgmstream_dsp_str_ig(STREAMFILE* sf) {
     dsp_meta dspm = {0};
@@ -924,6 +934,7 @@ VGMSTREAM* init_vgmstream_dsp_str_ig(STREAMFILE* sf) {
 fail:
     return NULL;
 }
+
 
 /* .dsp - Ubisoft interleaved dsp with bad loop start [Speed Challenge: Jacques Villeneuve's Racing Vision (GC), XIII (GC)] */
 VGMSTREAM* init_vgmstream_dsp_xiii(STREAMFILE* sf) {
@@ -947,6 +958,7 @@ VGMSTREAM* init_vgmstream_dsp_xiii(STREAMFILE* sf) {
 fail:
     return NULL;
 }
+
 
 /* NPD - Icon Games header + subinterleaved DSPs [Vertigo (Wii), Build n' Race (Wii)] */
 VGMSTREAM* init_vgmstream_dsp_ndp(STREAMFILE* sf) {
@@ -978,6 +990,7 @@ fail:
     return NULL;
 }
 
+
 /* Cabela's series (Magic Wand dev?) - header + interleaved dsp
  *  [Cabela's Big Game Hunt 2005 Adventures (GC), Cabela's Outdoor Adventures (GC)] */
 VGMSTREAM* init_vgmstream_dsp_cabelas(STREAMFILE* sf) {
@@ -1006,6 +1019,7 @@ fail:
     return NULL;
 }
 
+
 /* AAAp - Acclaim Austin Audio header + interleaved dsp [Vexx (GC), Turok: Evolution (GC)] */
 VGMSTREAM* init_vgmstream_ngc_dsp_aaap(STREAMFILE* sf) {
     dsp_meta dspm = {0};
@@ -1030,6 +1044,7 @@ VGMSTREAM* init_vgmstream_ngc_dsp_aaap(STREAMFILE* sf) {
 fail:
     return NULL;
 }
+
 
 /* DSPW - Capcom header + full interleaved DSP [Sengoku Basara 3 (Wii), Monster Hunter 3 Ultimate (WiiU)] */
 VGMSTREAM* init_vgmstream_dsp_dspw(STREAMFILE* sf) {
@@ -1077,6 +1092,7 @@ fail:
     return NULL;
 }
 
+
 /* iadp - custom header + interleaved dsp [Dr. Muto (GC)] */
 VGMSTREAM* init_vgmstream_ngc_dsp_iadp(STREAMFILE* sf) {
     dsp_meta dspm = {0};
@@ -1104,6 +1120,7 @@ fail:
     return NULL;
 }
 
+
 /* .mcadpcm - Custom header + full interleaved dsp [Skyrim (Switch)] */
 VGMSTREAM* init_vgmstream_dsp_mcadpcm(STREAMFILE* sf) {
     dsp_meta dspm = {0};
@@ -1130,6 +1147,7 @@ VGMSTREAM* init_vgmstream_dsp_mcadpcm(STREAMFILE* sf) {
 fail:
     return NULL;
 }
+
 
 /* .switch_audio - UE4 standard LE header + full interleaved dsp [Gal Gun 2 (Switch)] */
 VGMSTREAM* init_vgmstream_dsp_switch_audio(STREAMFILE* sf) {
@@ -1161,6 +1179,7 @@ fail:
     return NULL;
 }
 
+
 /* .vag - Nippon Ichi SPS wrapper [Penny-Punching Princess (Switch), Ys VIII (Switch)] */
 VGMSTREAM* init_vgmstream_dsp_sps_n1(STREAMFILE* sf) {
     dsp_meta dspm = {0};
@@ -1191,6 +1210,7 @@ fail:
     return NULL;
 }
 
+
 /* .itl - from Chanrinko Hero (GC) */
 VGMSTREAM* init_vgmstream_dsp_itl_ch(STREAMFILE* sf) {
     dsp_meta dspm = {0};
@@ -1214,6 +1234,7 @@ VGMSTREAM* init_vgmstream_dsp_itl_ch(STREAMFILE* sf) {
 fail:
     return NULL;
 }
+
 
 /* ADPY - AQUASTYLE wrapper [Touhou Genso Wanderer -Reloaded- (Switch)] */
 VGMSTREAM* init_vgmstream_dsp_adpy(STREAMFILE* sf) {
@@ -1245,6 +1266,7 @@ fail:
     return NULL;
 }
 
+
 /* ADPX - AQUASTYLE wrapper [Fushigi no Gensokyo: Lotus Labyrinth (Switch)] */
 VGMSTREAM* init_vgmstream_dsp_adpx(STREAMFILE* sf) {
     dsp_meta dspm = {0};
@@ -1274,6 +1296,7 @@ VGMSTREAM* init_vgmstream_dsp_adpx(STREAMFILE* sf) {
 fail:
     return NULL;
 }
+
 
 /* .ds2 - LucasArts wrapper [Star Wars: Bounty Hunter (GC)] */
 VGMSTREAM* init_vgmstream_dsp_lucasarts_ds2(STREAMFILE* sf) {
@@ -1310,6 +1333,7 @@ fail:
     return NULL;
 }
 
+
 /* .itl - Incinerator Studios interleaved dsp [Cars Race-o-rama (Wii), MX vs ATV Untamed (Wii)] */
 VGMSTREAM* init_vgmstream_dsp_itl(STREAMFILE* sf) {
     dsp_meta dspm = {0};
@@ -1339,6 +1363,7 @@ VGMSTREAM* init_vgmstream_dsp_itl(STREAMFILE* sf) {
     return init_vgmstream_dsp_common(sf, &dspm);
 }
 
+
 /* .wav - Square Enix wrapper [Dragon Quest I-III (Switch)] */
 VGMSTREAM* init_vgmstream_dsp_sqex(STREAMFILE* sf) {
     dsp_meta dspm = {0};
@@ -1366,6 +1391,7 @@ VGMSTREAM* init_vgmstream_dsp_sqex(STREAMFILE* sf) {
     dspm.meta_type = meta_DSP_SQEX;
     return init_vgmstream_dsp_common(sf, &dspm);
 }
+
 
 /* WiiVoice - Koei Tecmo wrapper [Fatal Frame 5 (WiiU)] */
 VGMSTREAM* init_vgmstream_dsp_wiivoice(STREAMFILE* sf) {

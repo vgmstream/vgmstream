@@ -3,7 +3,24 @@
 #include "../util/endianness.h"
 
 
-/* AWD - Audio Wave Dictionary (RenderWare) */
+/* using their original codec names */
+typedef enum {
+    VAG      = 0x00, /* PS ADPCM */
+    PCM      = 0x01, /* Signed 16-bit */
+    FLOAT    = 0x02,
+    GCNADPCM = 0x03, /* Nintendo DSP ADPCM */
+    XADPCM   = 0x04, /* Xbox IMA ADPCM */
+    WMA      = 0x05, /* Windows Media Audio */
+    MP3      = 0x06, /* MPEG-1/2 Audio Layer III */
+    MP2      = 0x07, /* MPEG-1/2 Audio Layer II */
+    MPG      = 0x08, /* MPEG-1   Audio Layer I */
+    AC3      = 0x09, /* Dolby AC-3 */
+    IMAADPCM = 0x0A  /* unk: Standard? MS IMA? rws_80d uses Xbox IMA */
+} awd_codec;
+/* these should be all the codec indices, even if most aren't ever used
+ * based on the research at https://burnout.wiki/wiki/Wave_Dictionary */
+
+/* .AWD - RenderWare Audio Wave Dictionary */
 VGMSTREAM* init_vgmstream_awd(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     char file_name[STREAM_NAME_SIZE], header_name[STREAM_NAME_SIZE], stream_name[STREAM_NAME_SIZE];
@@ -121,40 +138,25 @@ VGMSTREAM* init_vgmstream_awd(STREAMFILE* sf) {
     else
         snprintf(vgmstream->stream_name, STREAM_NAME_SIZE, "%s", stream_name);
 
-    /* these should be all the codec indices, even if most aren't ever used
-     * based on the research at https://burnout.wiki/wiki/Wave_Dictionary
-     *  0x00: PS ADPCM
-     *  0x01: PCM
-     *  0x02: Float
-     *  0x03: DSP ADPCM
-     *  0x04: Xbox IMA ADPCM
-     *  0x05: WMA
-     *  0x06: MP3
-     *  0x07: MP2
-     *  0x08: MP1
-     *  0x09: AC3
-     *  0x0A: IMA ADPCM
-     */
-
     switch (stream_codec) {
-        case 0x00: /* PS2 (Burnout series, Black, Call of Duty: Finest Hour) */
+        case VAG: /* PS2 (Burnout series, Black, Call of Duty: Finest Hour) */
             vgmstream->num_samples = ps_bytes_to_samples(stream_size, channels);
             vgmstream->coding_type = coding_PSX;
             break;
 
-        case 0x01: /* Xbox (Burnout series, Black) */
+        case PCM: /* Xbox (Burnout series, Black) */
             vgmstream->num_samples = pcm16_bytes_to_samples(stream_size, channels);
             vgmstream->coding_type = coding_PCM16LE;
             break;
 
-        case 0x03: /* GCN (Call of Duty: Finest Hour) */
+        case GCNADPCM: /* GCN (Call of Duty: Finest Hour) */
             vgmstream->num_samples = dsp_bytes_to_samples(stream_size, channels);
             dsp_read_coefs_be(vgmstream, sf, misc_data_offset + 0x1C, 0);
             dsp_read_hist_be(vgmstream, sf, misc_data_offset + 0x40, 0);
             vgmstream->coding_type = coding_NGC_DSP;
             break;
 
-        case 0x04: /* Xbox (Black, Call of Duty: Finest Hour) */
+        case XADPCM: /* Xbox (Black, Call of Duty: Finest Hour) */
             vgmstream->num_samples = xbox_ima_bytes_to_samples(stream_size, channels);
             vgmstream->coding_type = coding_XBOX_IMA;
             break;
