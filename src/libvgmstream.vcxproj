@@ -197,6 +197,7 @@
     <ClInclude Include="util\samples_ops.h" />
     <ClInclude Include="util\sf_utils.h" />
     <ClInclude Include="util\text_reader.h" />
+    <ClInclude Include="util\zlib_vgmstream.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="formats.c" />

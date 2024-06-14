@@ -132,7 +132,7 @@ fail:
 
 /* writes data to the buffer and moves offsets, transforming EALayer3 frames */
 int mpeg_custom_parse_frame_ealayer3(VGMSTREAMCHANNEL* stream, mpeg_codec_data* data, int num_stream) {
-    mpeg_custom_stream *ms = data->streams[num_stream];
+    mpeg_custom_stream* ms = &data->streams[num_stream];
     int ok, granule_found;
     ealayer3_buffer_t ib_0 = {0}, ib_1 = {0};
     ealayer3_frame_t eaf_0, eaf_1;
@@ -280,7 +280,7 @@ static int ealayer3_parse_frame(mpeg_codec_data* data, int num_stream, ealayer3_
      * (unknown in the first EA-frame but that's ok) */
     int channels_per_frame = 0;
     if (num_stream >= 0) {
-        channels_per_frame = data->streams[num_stream]->channels_per_frame;
+        channels_per_frame = data->streams[num_stream].channels_per_frame;
     }
 
     /* make sure as there is re-parsing in loops */
@@ -692,7 +692,7 @@ static void ealayer3_copy_pcm_block(uint8_t* outbuf, off_t pcm_offset, int pcm_n
 /* write PCM block directly to sample buffer and setup decode discard (EALayer3 seems to use this as a prefetch of sorts).
  * Seems to alter decoded sample buffer to handle encoder delay/padding in a twisted way. */
 static int ealayer3_write_pcm_block(VGMSTREAMCHANNEL* stream, mpeg_codec_data* data, int num_stream, ealayer3_frame_t* eaf) {
-    mpeg_custom_stream *ms = data->streams[num_stream];
+    mpeg_custom_stream* ms = &data->streams[num_stream];
     int channels_per_frame = ms->channels_per_frame;
     size_t bytes_filled;
 

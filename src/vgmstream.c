@@ -1235,6 +1235,8 @@ int vgmstream_open_stream_bf(VGMSTREAM* vgmstream, STREAMFILE* sf, off_t start_o
         goto fail;
     }
 
+    vgmstream->codec_internal_updates = decode_uses_internal_offset_updates(vgmstream);
+
     /* big interleaved values for non-interleaved data may result in incorrect behavior,
      * quick fix for now since layouts are finicky, with 'interleave' left for meta info
      * (certain layouts+codecs combos results in funny output too, should rework the whole thing) */

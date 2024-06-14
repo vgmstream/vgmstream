@@ -773,6 +773,36 @@ int decode_get_shortframe_size(VGMSTREAM* vgmstream) {
     }
 }
 
+/* ugly kludge due to vgmstream's finicky internals, to be improved some day:
+ * - some codecs have frame sizes AND may also have interleave
+ * - meaning, ch0 could read 0x100 (frame_size) N times until 0x1000 (interleave)
+ *   then skip 0x1000 per other channels and keep reading 0x100
+ *   (basically: ch0=0x0000..0x1000, ch1=0x1000..0x2000, ch0=0x2000..0x3000, etc)
+ * - interleave layout assumes by default codecs DON'T update offsets and only interleave does
+ *   - interleave calculates how many frames/samples will read before moving offsets,
+ *     then once 1 channel is done skips original channel data + other channel's data
+ *   - decoders need to calculate current frame offset on every frame since
+ *     offsets only move when interleave moves offsets (ugly)
+ * - other codecs move offsets internally instead (also ugly)
+ *   - but interleave doesn't know this and will skip too much data
+ * 
+ * To handle the last case, return a flag here that interleave layout can use to
+ * separate between both cases when the interleave data is done 
+ * - codec doesn't advance offsets: will skip interleave for all channels including current
+ *   - ex. 2ch, 0x100, 0x1000: after reading 0x100*10 frames offset is still 0x0000 > skips 0x1000*2 (ch0+ch1)
+ * - codec does advance offsets: will skip interleave for all channels except current
+ *   - ex. 2ch, 0x100, 0x1000: after reading 0x100*10 frames offset is at 0x1000 >  skips 0x1000*1 (ch1)
+ * 
+ * Ideally frame reading + skipping would be moved to some kind of consumer functions
+ * separate from frame decoding which would simplify all this but meanwhile...
+ * 
+ * Instead of this flag, codecs could be converted to avoid moving offsets (like most codecs) but it's
+ * getting hard to understand the root issue so have some wall of text as a reminder.
+ */
+bool decode_uses_internal_offset_updates(VGMSTREAM* vgmstream) {
+    return vgmstream->coding_type == coding_MS_IMA || vgmstream->coding_type == coding_MS_IMA_mono;
+}
+
 /* Decode samples into the buffer. Assume that we have written samples_written into the
  * buffer already, and we have samples_to_do consecutive samples ahead of us (won't call
  * more than one frame if configured above to do so).

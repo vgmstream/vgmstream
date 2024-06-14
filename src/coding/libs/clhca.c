@@ -212,63 +212,63 @@ static void bitreader_init(clData* br, const void *data, int size) {
 
 /* CRI's bitreader only handles 16b max during decode (header just reads bytes)
  * so maybe could be optimized by ignoring higher cases */
-static unsigned int bitreader_peek(clData* br, int bitsize) {
-    const unsigned int bit = br->bit;
-    const unsigned int bit_rem = bit & 7;
-    const unsigned int size = br->size;
+static unsigned int bitreader_peek(clData* br, int bits_read) {
+    const unsigned int bit_pos = br->bit;
+    const unsigned int bit_rem = bit_pos & 7;
+    const unsigned int bit_size = br->size;
     unsigned int v = 0;
-    unsigned int bit_offset, bit_left;
+    unsigned int bit_offset, bits_left;
 
-    if (bit + bitsize > size)
+    if (bit_pos + bits_read > bit_size)
         return v;
-    if (bitsize == 0) /* may happen when resolution is 0 (dequantize_coefficients) */
+    if (bits_read == 0) /* may happen when resolution is 0 (dequantize_coefficients) */
         return v;
 
-    bit_offset = bitsize + bit_rem;
-    bit_left = size - bit;
-    if (bit_left >= 32 && bit_offset >= 25) {
+    bit_offset = bits_read + bit_rem;
+    bits_left = bit_size - bit_pos;
+    if (bits_left >= 32 && bit_offset >= 25) {
         static const unsigned int mask[8] = {
                 0xFFFFFFFF,0x7FFFFFFF,0x3FFFFFFF,0x1FFFFFFF,
                 0x0FFFFFFF,0x07FFFFFF,0x03FFFFFF,0x01FFFFFF
         };
-        const unsigned char* data = &br->data[bit >> 3];
+        const unsigned char* data = &br->data[bit_pos >> 3];
         v = data[0];
         v = (v << 8) | data[1];
         v = (v << 8) | data[2];
         v = (v << 8) | data[3];
         v &= mask[bit_rem];
-        v >>= 32 - bit_rem - bitsize;
+        v >>= 32 - bit_rem - bits_read;
     }
-    else if (bit_left >= 24 && bit_offset >= 17) {
+    else if (bits_left >= 24 && bit_offset >= 17) {
         static const unsigned int mask[8] = {
                 0xFFFFFF,0x7FFFFF,0x3FFFFF,0x1FFFFF,
                 0x0FFFFF,0x07FFFF,0x03FFFF,0x01FFFF
         };
-        const unsigned char* data = &br->data[bit >> 3];
+        const unsigned char* data = &br->data[bit_pos >> 3];
         v = data[0];
         v = (v << 8) | data[1];
         v = (v << 8) | data[2];
         v &= mask[bit_rem];
-        v >>= 24 - bit_rem - bitsize;
+        v >>= 24 - bit_rem - bits_read;
     }
-    else if (bit_left >= 16 && bit_offset >= 9) {
+    else if (bits_left >= 16 && bit_offset >= 9) {
         static const unsigned int mask[8] = {
                 0xFFFF,0x7FFF,0x3FFF,0x1FFF,0x0FFF,0x07FF,0x03FF,0x01FF
         };
-        const unsigned char* data = &br->data[bit >> 3];
+        const unsigned char* data = &br->data[bit_pos >> 3];
         v = data[0];
         v = (v << 8) | data[1];
         v &= mask[bit_rem];
-        v >>= 16 - bit_rem - bitsize;
+        v >>= 16 - bit_rem - bits_read;
     }
     else {
         static const unsigned int mask[8] = {
                 0xFF,0x7F,0x3F,0x1F,0x0F,0x07,0x03,0x01
         };
-        const unsigned char* data = &br->data[bit >> 3];
+        const unsigned char* data = &br->data[bit_pos >> 3];
         v = data[0];
         v &= mask[bit_rem];
-        v >>= 8 - bit_rem - bitsize;
+        v >>= 8 - bit_rem - bits_read;
     }
     return v;
 }

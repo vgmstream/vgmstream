@@ -11,7 +11,18 @@
  * - expand type: IMA style or variations; low or high nibble first
  */
 
-static const int ADPCMTable[90] = {
+//TODO: decide on a better name and location
+static inline int _clamp_s32(int value, int min, int max) {
+    if (value < min)
+        return min;
+    else if (value > max)
+        return max;
+    else
+        return value;
+}
+
+
+static const int16_t ima_step_size_table[89+1] = {
     7, 8, 9, 10, 11, 12, 13, 14,
     16, 17, 19, 21, 23, 25, 28, 31,
     34, 37, 41, 45, 50, 55, 60, 66,
@@ -28,7 +39,7 @@ static const int ADPCMTable[90] = {
     0 /* garbage value for Ubisoft IMA (see blocked_ubi_sce.c) */
 };
 
-static const int IMA_IndexTable[16] = {
+static const int8_t ima_index_table[16] = {
     -1, -1, -1, -1, 2, 4, 6, 8,
     -1, -1, -1, -1, 2, 4, 6, 8 
 };
@@ -46,7 +57,7 @@ static void std_ima_expand_nibble_data(uint8_t byte, int shift, int32_t* hist1, 
 
     code = (byte >> shift) & 0xf;
     sample = *hist1; /* predictor value */
-    step = ADPCMTable[*index]; /* current step */
+    step = ima_step_size_table[*index]; /* current step */
 
     delta = step >> 3;
     if (code & 1) delta += step >> 2;
@@ -56,7 +67,7 @@ static void std_ima_expand_nibble_data(uint8_t byte, int shift, int32_t* hist1, 
     sample += delta;
 
     *hist1 = clamp16(sample);
-    *index += IMA_IndexTable[code];
+    *index += ima_index_table[code];
     if (*index < 0) *index = 0;
     if (*index > 88) *index = 88;
 }
@@ -72,7 +83,7 @@ static void std_ima_expand_nibble_16(VGMSTREAMCHANNEL * stream, off_t byte_offse
 
     sample_nibble = (read_8bit(byte_offset,stream->streamfile) >> nibble_shift)&0xf;
     sample_decoded = *hist1;
-    step = ADPCMTable[*step_index];
+    step = ima_step_size_table[*step_index];
 
     delta = step >> 3;
     if (sample_nibble & 1) delta += step >> 2;
@@ -82,7 +93,7 @@ static void std_ima_expand_nibble_16(VGMSTREAMCHANNEL * stream, off_t byte_offse
     sample_decoded += delta;
 
     *hist1 = clamp16(sample_decoded); /* no need for this, actually */
-    *step_index += IMA_IndexTable[sample_nibble];
+    *step_index += ima_index_table[sample_nibble];
     if (*step_index < 0) *step_index=0;
     if (*step_index > 88) *step_index=88;
 }
@@ -100,7 +111,7 @@ static void std_ima_expand_nibble_mul(VGMSTREAMCHANNEL * stream, off_t byte_offs
 
     sample_nibble = (read_8bit(byte_offset,stream->streamfile) >> nibble_shift)&0xf;
     sample_decoded = *hist1;
-    step = ADPCMTable[*step_index];
+    step = ima_step_size_table[*step_index];
 
     delta = (sample_nibble & 0x7);
     delta = ((delta * 2 + 1) * step) >> 3;
@@ -108,7 +119,7 @@ static void std_ima_expand_nibble_mul(VGMSTREAMCHANNEL * stream, off_t byte_offs
     sample_decoded += delta;
 
     *hist1 = clamp16(sample_decoded);
-    *step_index += IMA_IndexTable[sample_nibble];
+    *step_index += ima_index_table[sample_nibble];
     if (*step_index < 0) *step_index=0;
     if (*step_index > 88) *step_index=88;
 }
@@ -119,7 +130,7 @@ static void nw_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset, i
 
     sample_nibble = (read_8bit(byte_offset,stream->streamfile) >> nibble_shift)&0xf;
     sample_decoded = *hist1;
-    step = ADPCMTable[*step_index];
+    step = ima_step_size_table[*step_index];
 
     sample_decoded = sample_decoded << 3;
     delta = (sample_nibble & 0x07);
@@ -129,7 +140,7 @@ static void nw_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset, i
     sample_decoded = sample_decoded >> 3;
 
     *hist1 = clamp16(sample_decoded);
-    *step_index += IMA_IndexTable[sample_nibble];
+    *step_index += ima_index_table[sample_nibble];
     if (*step_index < 0) *step_index=0;
     if (*step_index > 88) *step_index=88;
 }
@@ -141,11 +152,11 @@ static void snds_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset,
     sample_nibble = (read_8bit(byte_offset,stream->streamfile) >> nibble_shift)&0xf;
     sample_decoded = *hist1;
 
-    *step_index += IMA_IndexTable[sample_nibble];
+    *step_index += ima_index_table[sample_nibble];
     if (*step_index < 0) *step_index=0;
     if (*step_index > 88) *step_index=88;
 
-    step = ADPCMTable[*step_index];
+    step = ima_step_size_table[*step_index];
 
     delta = (sample_nibble & 7) * step / 4 + step / 8; /* standard IMA */
     if (sample_nibble & 8) delta = -delta;
@@ -160,7 +171,7 @@ static void otns_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset,
 
     sample_nibble = (read_8bit(byte_offset,stream->streamfile) >> nibble_shift)&0xf;
     sample_decoded = *hist1;
-    step = ADPCMTable[*step_index];
+    step = ima_step_size_table[*step_index];
 
     delta = 0;
     if(sample_nibble & 4) delta = step * 4;
@@ -171,7 +182,7 @@ static void otns_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset,
     sample_decoded += delta;
 
     *hist1 = clamp16(sample_decoded);
-    *step_index += IMA_IndexTable[sample_nibble];
+    *step_index += ima_index_table[sample_nibble];
     if (*step_index < 0) *step_index=0;
     if (*step_index > 88) *step_index=88;
 }
@@ -182,7 +193,7 @@ static void wv6_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset, 
 
     sample_nibble = (read_8bit(byte_offset,stream->streamfile) >> nibble_shift)&0xf;
     sample_decoded = *hist1;
-    step = ADPCMTable[*step_index];
+    step = ima_step_size_table[*step_index];
 
     delta = (sample_nibble & 0x7);
     delta = ((delta * step) >> 3) + ((delta * step) >> 2);
@@ -190,7 +201,7 @@ static void wv6_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset, 
     sample_decoded += delta;
 
     *hist1 = clamp16(sample_decoded);
-    *step_index += IMA_IndexTable[sample_nibble];
+    *step_index += ima_index_table[sample_nibble];
     if (*step_index < 0) *step_index=0;
     if (*step_index > 88) *step_index=88;
 }
@@ -201,7 +212,7 @@ static void hv_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset, i
 
     sample_nibble = (read_8bit(byte_offset,stream->streamfile) >> nibble_shift)&0xf;
     sample_decoded = *hist1;
-    step = ADPCMTable[*step_index];
+    step = ima_step_size_table[*step_index];
 
     delta = (sample_nibble & 0x7);
     delta = (delta * step) >> 2;
@@ -209,7 +220,7 @@ static void hv_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset, i
     sample_decoded += delta;
 
     *hist1 = clamp16(sample_decoded);
-    *step_index += IMA_IndexTable[sample_nibble];
+    *step_index += ima_index_table[sample_nibble];
     if (*step_index < 0) *step_index=0;
     if (*step_index > 88) *step_index=88;
 }
@@ -220,7 +231,7 @@ static void ffta2_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset
 
     sample_nibble = (read_8bit(byte_offset,stream->streamfile) >> nibble_shift)&0xf; /* ADPCM code */
     sample_decoded = *hist1; /* predictor value */
-    step = ADPCMTable[*step_index] * 0x100; /* current step (table in ROM is pre-multiplied though) */
+    step = ima_step_size_table[*step_index] * 0x100; /* current step (table in ROM is pre-multiplied though) */
 
     delta = step >> 3;
     if (sample_nibble & 1) delta += step >> 2;
@@ -238,7 +249,7 @@ static void ffta2_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset
     *hist1 = sample_decoded;
     *out_sample = (short)((sample_decoded + 128) / 256); /* int16 sample rounding, hist is kept as int32 */
 
-    *step_index += IMA_IndexTable[sample_nibble];
+    *step_index += ima_index_table[sample_nibble];
     if (*step_index < 0) *step_index=0;
     if (*step_index > 88) *step_index=88;
 }
@@ -249,7 +260,7 @@ static void blitz_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset
 
     sample_nibble = (read_8bit(byte_offset,stream->streamfile) >> nibble_shift)&0xf; /* ADPCM code */
     sample_decoded = *hist1; /* predictor value */
-    step = ADPCMTable[*step_index]; /* current step */
+    step = ima_step_size_table[*step_index]; /* current step */
 
     /* table has 2 different values, not enough to bother adding the full table */
     if (step == 22385)
@@ -265,7 +276,7 @@ static void blitz_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset
     /* in Zapper somehow the exe tries to clamp hist but actually doesn't (bug? not in Lilo & Stitch),
      * seems the pcm buffer must be clamped outside though to fix some scratchiness */
     *hist1 = sample_decoded;//clamp16(sample_decoded);
-    *step_index += IMA_IndexTable[sample_nibble];
+    *step_index += ima_index_table[sample_nibble];
     if (*step_index < 0) *step_index=0;
     if (*step_index > 88) *step_index=88;
 }
@@ -279,7 +290,7 @@ static void mtf_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset, 
 
     sample_nibble = (read_8bit(byte_offset,stream->streamfile) >> nibble_shift) & 0xf;
     sample_decoded = *hist1;
-    step = ADPCMTable[*step_index];
+    step = ima_step_size_table[*step_index];
 
     delta = step * (2 * sample_nibble - 15);
     sample_decoded += delta;
@@ -339,7 +350,7 @@ static void cd_ima_expand_nibble(uint8_t byte, int shift, int32_t* hist1, int32_
     sample += delta;
 
     *hist1 = clamp16(sample);
-    *index += IMA_IndexTable[code];
+    *index += ima_index_table[code];
     if (*index < 0) *index=0;
     if (*index > 88) *index=88;
 }
@@ -826,8 +837,7 @@ void decode_dat4_ima(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelsp
 
         hist1 = read_16bitLE(header_offset,stream->streamfile);
         step_index = read_8bit(header_offset+2,stream->streamfile);
-
-        //todo clip step_index?
+        step_index = _clamp_s32(step_index, 0, 88); /* probably pre-adjusted */
     }
 
     for (i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
@@ -1237,15 +1247,6 @@ void decode_h4m_ima(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspa
     stream->adpcm_step_index = step_index;
 }
 
-/* test... */
-static inline int _clamp_s32(int value, int min, int max) {
-    if (value < min)
-        return min;
-    else if (value > max)
-        return max;
-    else
-        return value;
-}
 
 /* Crystal Dynamics IMA. Original code uses mind-bending intrinsics, so this may not be fully accurate.
  * Has another table with delta_table MMX combos, and uses header sample (first nibble is always 0). */

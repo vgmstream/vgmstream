@@ -15,6 +15,7 @@ void render_vgmstream_interleave(sample_t * buffer, int32_t sample_count, VGMSTR
     int samples_per_frame_l = 0, samples_this_block_l = 0; /* last */
     int has_interleave_first = vgmstream->interleave_first_block_size && vgmstream->channels > 1;
     int has_interleave_last = vgmstream->interleave_last_block_size && vgmstream->channels > 1;
+    int has_interleave_internal_updates = vgmstream->codec_internal_updates;
 
 
     /* setup */
@@ -133,9 +134,15 @@ void render_vgmstream_interleave(sample_t * buffer, int32_t sample_count, VGMSTR
                     vgmstream->ch[ch].offset += skip;
                 }
             }
+            else if (has_interleave_internal_updates) {
+                for (ch = 0; ch < vgmstream->channels; ch++) {
+                    off_t skip = vgmstream->interleave_block_size * (vgmstream->channels - 1);
+                    vgmstream->ch[ch].offset += skip;
+                }
+            }
             else {
                 for (ch = 0; ch < vgmstream->channels; ch++) {
-                    off_t skip = vgmstream->interleave_block_size*vgmstream->channels;
+                    off_t skip = vgmstream->interleave_block_size * vgmstream->channels;
                     vgmstream->ch[ch].offset += skip;
                 }
             }
