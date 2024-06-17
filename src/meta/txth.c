@@ -2155,6 +2155,8 @@ fail:
 static int get_bytes_to_samples(txth_header* txth, uint32_t bytes) {
     switch(txth->codec) {
         case MS_IMA:
+            if (txth->interleave && txth->frame_size) /* mono mode */ //TODO maybe some helper instead
+                return ms_ima_bytes_to_samples(bytes / txth->channels, txth->frame_size, 1);
             return ms_ima_bytes_to_samples(bytes, txth->frame_size ? txth->frame_size : txth->interleave, txth->channels);
         case XBOX:
             return xbox_ima_bytes_to_samples(bytes, txth->channels);
@@ -2185,6 +2187,8 @@ static int get_bytes_to_samples(txth_header* txth, uint32_t bytes) {
         case TGC:
             return pcm_bytes_to_samples(bytes, txth->channels, 4);
         case MSADPCM:
+            if (txth->interleave && txth->frame_size) /* mono mode */ //TODO some helper instead
+                return msadpcm_bytes_to_samples(bytes / txth->channels, txth->frame_size, 1);
             return msadpcm_bytes_to_samples(bytes, txth->frame_size ? txth->frame_size : txth->interleave, txth->channels);
         case ATRAC3:
             return atrac3_bytes_to_samples(bytes, txth->frame_size ? txth->frame_size : txth->interleave);
