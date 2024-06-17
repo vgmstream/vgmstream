@@ -1314,6 +1314,9 @@ static const hcakey_info hcakey_list[] = {
         // Sonic Rumble (Android)
         {6834182874188563},     // 001847A7328BCB13
 
+        // P A Certain Magical Index 2 (Android)
+        {5963},                 // 000000000000174B
+
 };
 
 #endif/*_HCA_KEYS_H_*/
