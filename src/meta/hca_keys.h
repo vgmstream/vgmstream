@@ -1316,6 +1316,9 @@ static const hcakey_info hcakey_list[] = {
 
         // P A Certain Magical Index 2 (Android)
         {5963},                 // 000000000000174B
+		
+        // Reynatis (Switch)
+        {5963496778882477625},  // 52C298B97479EE39
 
 };
 
