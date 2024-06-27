@@ -138,7 +138,8 @@ static int parse_type(adm_header_t* adm, STREAMFILE* sf, uint32_t offset) {
         int i;
 
         for (i = 0; i < table_count; i++) {
-            uint32_t smp2_unk    = read_u32le(table_offset + i * 0x08 + 0x00, sf);
+            /* 16-bit value after smp2_unk rarely have non-zero values [PUBG Lite] */
+            uint16_t smp2_unk    = read_u16le(table_offset + i * 0x08 + 0x00, sf);
             uint32_t smp2_offset = read_u32le(table_offset + i * 0x08 + 0x04, sf);
 
             if (smp2_unk != 1)
