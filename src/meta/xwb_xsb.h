@@ -907,7 +907,9 @@ static STREAMFILE * open_xsb_filename_pair(STREAMFILE *streamXwb) {
             {"StreamBank_*.xwb","SoundBank_*.xsb"},     /* Ginga Force (X360) */
             {"WaveBank_*.xwb","SoundBank_*.xsb"},       /* Ginga Force (X360) */
             {"*_WB.xwb","*_SB.xsb"},                    /* Ninja Blade (X360) */
-            {"*_WB.xwb","*_SB.xsb"},                    /* Ninja Blade (X360) */
+            {"cache_dvdstr.xwb","cache.xsb"},           /* SpongeBob: Lights Camera Pants (Xbox) */
+            {"cache_hddstr.xwb","cache.xsb"},           /* SpongeBob: Lights Camera Pants (Xbox) */
+            {"cache_mem.xwb","cache.xsb"},              /* SpongeBob: Lights Camera Pants (Xbox) */
             {"CA_NightMusic.xwb","CAMusic.xsb"},        /* Psychonauts (Xbox) */
             {"CAJAMusic.xwb","CAMusic.xsb"},            /* "" */
             {"STFX.xwb","CommonMusic.xsb"},             /* "" */
