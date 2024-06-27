@@ -103,8 +103,8 @@ static int parse_type(adm_header_t* adm, STREAMFILE* sf, uint32_t offset) {
     /* ADM2 chunks */
     if (is_id32be(offset, sf, "GRN1") && adm->file_version == 2) {
         /* 0x74: offset to floats? */
-        offset = read_u32le(offset + 0x78, sf); /* to SMP1 */
-        if (!parse_type(adm, sf, offset))
+        offset = read_u32le(offset + 0x78, sf);
+        if (!parse_type(adm, sf, offset)) /* SMP1 */
             goto fail;
     }
     else if (is_id32be(offset, sf, "SMP1")) {
@@ -129,15 +129,15 @@ static int parse_type(adm_header_t* adm, STREAMFILE* sf, uint32_t offset) {
     else if (is_id32be(offset, sf, "RMP1")) {
         off_t next_offset;
         next_offset = read_u32le(offset + 0x1c, sf);
-        if (!parse_type(adm, sf, next_offset)) /* to SMP1 */
+        if (!parse_type(adm, sf, next_offset)) /* SMB1 */
             goto fail;
         next_offset = read_u32le(offset + 0x24, sf);
-        if (!parse_type(adm, sf, next_offset)) /* to GRN1 */
+        if (!parse_type(adm, sf, next_offset)) /* GRN1 */
             goto fail;
     }
     else if (is_id32be(offset, sf, "GRN1") && adm->file_version == 3) {
         offset = read_u32le(offset + 0x5c, sf);
-        if (!parse_type(adm, sf, offset)) /* to SMP2 */
+        if (!parse_type(adm, sf, offset)) /* SMP2 */
             goto fail;
     }
     else if (is_id32be(offset, sf, "SMB1")) {
