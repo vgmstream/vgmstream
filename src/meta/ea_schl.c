@@ -215,7 +215,7 @@ VGMSTREAM* init_vgmstream_ea_schl_video(STREAMFILE* sf) {
     /* .vp6: late */
     /* .mpc: SSX Tricky (PS2) */
     if (is_id32be(0x00, sf, "SCHl")) {
-        if (!check_extensions(sf, "uv,dct"))
+        if (!check_extensions(sf, "uv,dct,mpc,lmpc,vp6"))
             return NULL;
     }
     else if (is_id32be(0x00, sf, "MADk")) {
