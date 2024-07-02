@@ -46,20 +46,20 @@ VGMSTREAM* init_vgmstream_ea_schl(STREAMFILE* sf) {
         return NULL;
 
     /* check header */
-    if (read_32bitBE(0x00, sf) != EA_BLOCKID_HEADER &&  /* "SCHl" */
-        read_32bitBE(0x00, sf) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_EN) && /* "SHEN" */
-        read_32bitBE(0x00, sf) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_FR) && /* "SHFR" */
-        read_32bitBE(0x00, sf) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_GE) && /* "SHGE" */
-        read_32bitBE(0x00, sf) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_DE) && /* "SHDE" */
-        read_32bitBE(0x00, sf) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_IT) && /* "SHIT" */
-        read_32bitBE(0x00, sf) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_SP) && /* "SHSP" */
-        read_32bitBE(0x00, sf) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_ES) && /* "SHES" */
-        read_32bitBE(0x00, sf) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_MX) && /* "SHMX" */
-        read_32bitBE(0x00, sf) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_RU) && /* "SHRU" */
-        read_32bitBE(0x00, sf) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_JA) && /* "SHJA" */
-        read_32bitBE(0x00, sf) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_JP) && /* "SHJP" */
-        read_32bitBE(0x00, sf) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_PL) && /* "SHPL" */
-        read_32bitBE(0x00, sf) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_BR))   /* "SHBR" */
+    if (read_u32be(0x00, sf) != EA_BLOCKID_HEADER &&  /* "SCHl" */
+        read_u32be(0x00, sf) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_EN) && /* "SHEN" */
+        read_u32be(0x00, sf) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_FR) && /* "SHFR" */
+        read_u32be(0x00, sf) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_GE) && /* "SHGE" */
+        read_u32be(0x00, sf) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_DE) && /* "SHDE" */
+        read_u32be(0x00, sf) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_IT) && /* "SHIT" */
+        read_u32be(0x00, sf) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_SP) && /* "SHSP" */
+        read_u32be(0x00, sf) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_ES) && /* "SHES" */
+        read_u32be(0x00, sf) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_MX) && /* "SHMX" */
+        read_u32be(0x00, sf) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_RU) && /* "SHRU" */
+        read_u32be(0x00, sf) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_JA) && /* "SHJA" */
+        read_u32be(0x00, sf) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_JP) && /* "SHJP" */
+        read_u32be(0x00, sf) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_PL) && /* "SHPL" */
+        read_u32be(0x00, sf) != (EA_BLOCKID_LOC_HEADER | EA_BLOCKID_LOC_BR))   /* "SHBR" */
         return NULL;
 
     /* Stream is divided into blocks/chunks: SCHl=audio header, SCCl=count of SCDl, SCDl=data xN, SCLl=loop end, SCEl=end.
@@ -93,7 +93,7 @@ VGMSTREAM* init_vgmstream_ea_schl_video(STREAMFILE* sf) {
     off_t offset = 0, start_offset = 0;
     int blocks_done = 0;
     int total_subsongs, target_subsong = sf->stream_index;
-    int32_t(*read_32bit)(off_t, STREAMFILE*);
+    read_u32_t read_u32;
 
 
     /* checks */
@@ -124,17 +124,12 @@ VGMSTREAM* init_vgmstream_ea_schl_video(STREAMFILE* sf) {
     }
 
     /* use block size to check endianness */
-    if (guess_endian32(0x04, sf)) {
-        read_32bit = read_32bitBE;
-    }
-    else {
-        read_32bit = read_32bitLE;
-    }
+    read_u32 = guess_endian32(0x04, sf) ? read_u32be : read_u32le;
 
     /* find starting valid header for the parser */
     while (offset < get_streamfile_size(sf)) {
-        uint32_t block_id = read_32bitBE(offset + 0x00, sf);
-        uint32_t block_size = read_32bit(offset + 0x04, sf);
+        uint32_t block_id = read_u32be(offset + 0x00, sf);
+        uint32_t block_size = read_u32(offset + 0x04, sf);
 
         /* find "SCHl" or "SHxx" blocks */
         if ((block_id == EA_BLOCKID_HEADER) || ((block_id & 0xFFFF0000) == EA_BLOCKID_LOC_HEADER)) {
@@ -159,8 +154,8 @@ VGMSTREAM* init_vgmstream_ea_schl_video(STREAMFILE* sf) {
     if (target_subsong == 0) target_subsong = 1;
     offset = start_offset;
     while (offset < get_streamfile_size(sf)) {
-        uint32_t block_id = read_32bitBE(offset + 0x00, sf);
-        uint32_t block_size = read_32bit(offset + 0x04, sf);
+        uint32_t block_id = read_u32be(offset + 0x00, sf);
+        uint32_t block_size = read_u32(offset + 0x04, sf);
 
         /* no more subsongs (assumes all SHxx headers go together) */
         if (((block_id & 0xFFFF0000) != EA_BLOCKID_LOC_HEADER)) {

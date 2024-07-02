@@ -8,7 +8,7 @@
 #define EA_BNK_HEADER_LE            0x424E4B6C /* "BNKl" */
 #define EA_BNK_HEADER_BE            0x424E4B62 /* "BNKb" */
 
-static VGMSTREAM* init_vgmstream_ea_mpf_mus_main(STREAMFILE* sf, const char* mus_name);
+static VGMSTREAM* init_vgmstream_ea_mpf_mus_schl_main(STREAMFILE* sf, const char* mus_name);
 static STREAMFILE* open_mapfile_pair(STREAMFILE* sf, int track /*, int num_tracks*/);
 
 /* EA MAP/MUS combo - used in older games for interactive music (for EA's PathFinder tool) */
@@ -79,14 +79,14 @@ fail:
 }
 
 /* .MPF - Standard EA MPF+MUS */
-VGMSTREAM* init_vgmstream_ea_mpf_mus(STREAMFILE* sf) {
+VGMSTREAM* init_vgmstream_ea_mpf_mus_schl(STREAMFILE* sf) {
     if (!check_extensions(sf, "mpf"))
         return NULL;
-    return init_vgmstream_ea_mpf_mus_main(sf, NULL);
+    return init_vgmstream_ea_mpf_mus_schl_main(sf, NULL);
 }
 
 /* .MSB/.MSX - EA Redwood Shores (MSB/MSX)+MUS [007: From Russia with Love, The Godfather (PC/PS2/Wii)] */
-VGMSTREAM* init_vgmstream_ea_msb_mus(STREAMFILE* sf) {
+VGMSTREAM* init_vgmstream_ea_msb_mus_schl(STREAMFILE* sf) {
     /* container with MPF, extra info, and a pre-defined MUS filename */
     VGMSTREAM* vgmstream = NULL;
     STREAMFILE* sf_mpf = NULL;
@@ -124,7 +124,7 @@ VGMSTREAM* init_vgmstream_ea_msb_mus(STREAMFILE* sf) {
     sf_mpf = open_clamp_streamfile(sf_mpf, header_size, info_offset);
     if (!sf_mpf) goto fail;
 
-    vgmstream = init_vgmstream_ea_mpf_mus_main(sf_mpf, mus_name);
+    vgmstream = init_vgmstream_ea_mpf_mus_schl_main(sf_mpf, mus_name);
     if (!vgmstream) goto fail;
 
     close_streamfile(sf_mpf);
@@ -137,7 +137,7 @@ fail:
 }
 
 /* EA MPF/MUS combo - used in 6th gen games for interactive music (for EA's PathFinder tool) */
-static VGMSTREAM* init_vgmstream_ea_mpf_mus_main(STREAMFILE* sf, const char* mus_name) {
+static VGMSTREAM* init_vgmstream_ea_mpf_mus_schl_main(STREAMFILE* sf, const char* mus_name) {
     VGMSTREAM* vgmstream = NULL;
     STREAMFILE* sf_mus = NULL;
     segmented_layout_data* data_s = NULL;
@@ -147,8 +147,8 @@ static VGMSTREAM* init_vgmstream_ea_mpf_mus_main(STREAMFILE* sf, const char* mus
     uint8_t version, sub_version, num_tracks, num_sections, num_events, num_routers, num_vars, subentry_num = 0;
     int i;
     int target_stream = sf->stream_index, total_streams, big_endian, is_ram = 0;
-    uint32_t(*read_u32)(off_t, STREAMFILE*);
-    uint16_t(*read_u16)(off_t, STREAMFILE*);
+    read_u32_t read_u32;
+    read_u16_t read_u16;
 
     /* detect endianness */
     if (is_id32be(0x00, sf, "PFDx")) {

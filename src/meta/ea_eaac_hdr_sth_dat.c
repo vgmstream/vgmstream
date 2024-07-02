@@ -15,7 +15,7 @@ VGMSTREAM* init_vgmstream_ea_hdr_sth_dat(STREAMFILE* sf) {
     uint16_t sth_offset, sth_offset2;
     uint8_t num_params, num_sounds, block_id;
     size_t dat_size;
-    uint32_t(*read_u32)(off_t, STREAMFILE*);
+    read_u32_t read_u32;
     eaac_meta_t info = {0};
 
     /* 0x00: ID */

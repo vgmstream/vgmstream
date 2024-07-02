@@ -85,8 +85,8 @@ static VGMSTREAM* init_vgmstream_ea_mpf_mus_eaac_main(STREAMFILE* sf, const char
     segmented_layout_data* data_s = NULL;
     int i;
     int target_stream = sf->stream_index, total_streams, is_ram = 0;
-    uint32_t(*read_u32)(off_t, STREAMFILE *);
-    uint16_t(*read_u16)(off_t, STREAMFILE *);
+    read_u32_t read_u32;
+    read_u16_t read_u16;
 
     /* checks */
     if (is_id32be(0x00, sf, "PFDx")) {

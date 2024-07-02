@@ -155,21 +155,21 @@ static VGMSTREAM* parse_schl_block(STREAMFILE* sf, off_t offset) {
     off_t start_offset, header_offset;
     size_t header_size;
     uint32_t header_id;
-    ea_header ea = { 0 };
+    ea_header ea = {0};
 
     /* use higher bits to store target localized block in case of multilang video,
      * so only header sub-id will be read and other langs skipped */
-    header_id = read_32bitBE(offset + 0x00, sf);
+    header_id = read_u32be(offset + 0x00, sf);
     if ((header_id & 0xFFFF0000) == EA_BLOCKID_LOC_HEADER) {
         ea.codec_config |= (header_id & 0xFFFF) << 16;
     }
 
     if (guess_endian32(offset + 0x04, sf)) { /* size is always LE, except in early SS/MAC */
-        header_size = read_32bitBE(offset + 0x04, sf);
+        header_size = read_u32be(offset + 0x04, sf);
         ea.codec_config |= 0x02;
     }
     else {
-        header_size = read_32bitLE(offset + 0x04, sf);
+        header_size = read_u32le(offset + 0x04, sf);
     }
 
     header_offset = offset + 0x08;
@@ -192,33 +192,35 @@ static VGMSTREAM* parse_bnk_header(STREAMFILE* sf, off_t offset, int target_stre
     uint16_t num_sounds;
     off_t header_offset, start_offset, test_offset, table_offset, entry_offset;
     size_t header_size;
-    ea_header ea = { 0 };
-    int32_t(*read_32bit)(off_t, STREAMFILE*) = NULL;
-    int16_t(*read_16bit)(off_t, STREAMFILE*) = NULL;
-    VGMSTREAM *vgmstream = NULL;
+    ea_header ea = {0};
+    read_u32_t read_u32;
+    read_u16_t read_u16;
+    VGMSTREAM* vgmstream = NULL;
     int bnk_version;
     int real_bnk_sounds = 0;
 
     /* check header */
     /* BNK header endianness is platform-native */
-    if (read_32bitBE(offset + 0x00, sf) == EA_BNK_HEADER_BE) {
-        read_32bit = read_32bitBE;
-        read_16bit = read_16bitBE;
-    } else if (read_32bitBE(offset + 0x00, sf) == EA_BNK_HEADER_LE) {
-        read_32bit = read_32bitLE;
-        read_16bit = read_16bitLE;
-    } else {
-        goto fail;
+    if (read_u32be(offset + 0x00, sf) == EA_BNK_HEADER_BE) {
+        read_u32 = read_u32be;
+        read_u16 = read_u16be;
+    }
+    else if (read_u32be(offset + 0x00, sf) == EA_BNK_HEADER_LE) {
+        read_u32 = read_u32le;
+        read_u16 = read_u16le;
+    }
+    else {
+        return NULL;
     }
 
-    bnk_version = read_8bit(offset + 0x04, sf);
-    num_sounds = read_16bit(offset + 0x06, sf);
+    bnk_version = read_u8(offset + 0x04, sf);
+    num_sounds = read_u16(offset + 0x06, sf);
 
     /* check multi-streams */
     switch (bnk_version) {
         case 0x02: /* early [Need For Speed II (PC/PS1), FIFA 98 (PC/PS1/SAT)] */
             table_offset = 0x0c;
-            header_size = read_32bit(offset + 0x08, sf); /* full size */
+            header_size = read_u32(offset + 0x08, sf); /* full size */
             break;
 
         case 0x04: /* mid (last used in PSX banks) */
@@ -240,12 +242,12 @@ static VGMSTREAM* parse_bnk_header(STREAMFILE* sf, off_t offset, int target_stre
             goto fail;
 
         entry_offset = offset + table_offset + 0x04 * target_stream;
-        header_offset = entry_offset + read_32bit(entry_offset, sf);
+        header_offset = entry_offset + read_u32(entry_offset, sf);
     } else {
         /* some of these are dummies with zero offset, skip them when opening standalone BNK */
         for (i = 0; i < num_sounds; i++) {
             entry_offset = offset + table_offset + 0x04 * i;
-            test_offset = read_32bit(entry_offset, sf);
+            test_offset = read_u32(entry_offset, sf);
 
             if (test_offset != 0) {
                 if (target_stream == real_bnk_sounds)
@@ -357,11 +359,11 @@ static VGMSTREAM* init_vgmstream_ea_variable_header(STREAMFILE* sf, ea_header* e
 
             /* get them coefs (start offsets are not necessarily ordered) */
             {
-                int16_t (*read_16bit)(off_t,STREAMFILE*) = ea->big_endian ? read_16bitBE : read_16bitLE;
+                read_u16_t read_u16 = ea->big_endian ? read_u16be : read_u16le;
 
-                for (ch=0; ch < ea->channels; ch++) {
-                    for (i=0; i < 16; i++) { /* actual size 0x21, last byte unknown */
-                        vgmstream->ch[ch].adpcm_coef[i] = read_16bit(ea->coefs[ch] + i*2, sf);
+                for (ch = 0; ch < ea->channels; ch++) {
+                    for (i = 0; i < 16; i++) { /* actual size 0x21, last byte unknown */
+                        vgmstream->ch[ch].adpcm_coef[i] = read_u16(ea->coefs[ch] + i * 2, sf);
                     }
                 }
             }
@@ -371,7 +373,7 @@ static VGMSTREAM* init_vgmstream_ea_variable_header(STREAMFILE* sf, ea_header* e
             vgmstream->coding_type = coding_VADPCM;
 
             for (ch = 0; ch < ea->channels; ch++) {
-                int order   = read_u32be(ea->coefs[ch] + 0x00, sf);
+                int order = read_u32be(ea->coefs[ch] + 0x00, sf);
                 int entries = read_u32be(ea->coefs[ch] + 0x04, sf);
                 vadpcm_read_coefs_be(vgmstream, sf, ea->coefs[ch] + 0x08, order, entries, ch);
             }
@@ -382,8 +384,8 @@ static VGMSTREAM* init_vgmstream_ea_variable_header(STREAMFILE* sf, ea_header* e
         case EA_CODEC2_LAYER3: {    /* MPEG Layer III, aka MP3 */
             mpeg_custom_config cfg = {0};
             off_t mpeg_start_offset = is_bnk ?
-                    start_offset :
-                    get_ea_stream_mpeg_start_offset(sf, start_offset, ea);
+                start_offset :
+                get_ea_stream_mpeg_start_offset(sf, start_offset, ea);
             if (!mpeg_start_offset) goto fail;
 
             /* layout is still blocks, but should work fine with the custom mpeg decoder */
@@ -395,8 +397,8 @@ static VGMSTREAM* init_vgmstream_ea_variable_header(STREAMFILE* sf, ea_header* e
         case EA_CODEC2_EALAYER3: {  /* MP3 variant */
             mpeg_custom_config cfg = {0};
             off_t mpeg_start_offset = is_bnk ?
-                    start_offset :
-                    get_ea_stream_mpeg_start_offset(sf, start_offset, ea);
+                start_offset :
+                get_ea_stream_mpeg_start_offset(sf, start_offset, ea);
             if (!mpeg_start_offset) goto fail;
 
             /* layout is still blocks, but should work fine with the custom mpeg decoder */
@@ -421,7 +423,7 @@ static VGMSTREAM* init_vgmstream_ea_variable_header(STREAMFILE* sf, ea_header* e
             break;
 
 #ifdef VGM_USE_FFMPEG
-      //case EA_CODEC2_ATRAC3: /* works but commented to catch games using it */
+        //case EA_CODEC2_ATRAC3: /* works but commented to catch games using it */
         case EA_CODEC2_ATRAC3PLUS: { /* ATRAC3plus [Medal of Honor Heroes 2 (PSP)] */
             /* data chunked in SCxx blocks, including RIFF header */
             if (!is_bnk) {
@@ -449,9 +451,9 @@ static VGMSTREAM* init_vgmstream_ea_variable_header(STREAMFILE* sf, ea_header* e
         }
 #endif
 
-        default:
-            VGM_LOG("EA SCHl: unknown codec2 0x%02x for platform 0x%02x\n", ea->codec2, ea->platform);
-            goto fail;
+    default:
+        VGM_LOG("EA SCHl: unknown codec2 0x%02x for platform 0x%02x\n", ea->codec2, ea->platform);
+        goto fail;
     }
 
     vgmstream->stream_size = ea->stream_size;
@@ -474,64 +476,67 @@ static VGMSTREAM* init_vgmstream_ea_variable_header(STREAMFILE* sf, ea_header* e
                 case coding_EA_XA_int: {
                     int interleave = ea->num_samples / 28 * 0x0f; /* full interleave */
                     for (i = 0; i < vgmstream->channels; i++) {
-                        vgmstream->ch[i].offset = ea->offsets[0] * interleave*i;
+                        vgmstream->ch[i].offset = ea->offsets[0] * interleave * i;
                     }
                     break;
                 }
                 case coding_PCM8_int:
                 case coding_PCM16_int: {
-                    int interleave = ea->bps==8 ? 0x01 : 0x02;
+                    int interleave = ea->bps == 8 ? 0x01 : 0x02;
                     for (i = 0; i < vgmstream->channels; i++) {
-                        vgmstream->ch[i].offset = ea->offsets[0] + interleave*i;
+                        vgmstream->ch[i].offset = ea->offsets[0] + interleave * i;
                     }
                     break;
                 }
                 case coding_PCM8:
                 case coding_PCM16LE:
                 case coding_PCM16BE: {
-                    int interleave = ea->num_samples * (ea->bps==8 ? 0x01 : 0x02); /* full interleave */
+                    int interleave = ea->num_samples * (ea->bps == 8 ? 0x01 : 0x02); /* full interleave */
                     for (i = 0; i < vgmstream->channels; i++) {
-                        vgmstream->ch[i].offset = ea->offsets[0] + interleave*i;
+                        vgmstream->ch[i].offset = ea->offsets[0] + interleave * i;
                     }
                     break;
                 }
                 case coding_PSX: {
                     int interleave = ea->num_samples / 28 * 0x10; /* full interleave */
                     for (i = 0; i < vgmstream->channels; i++) {
-                        vgmstream->ch[i].offset = ea->offsets[0] + interleave*i;
+                        vgmstream->ch[i].offset = ea->offsets[0] + interleave * i;
                     }
                     break;
                 }
                 case coding_VADPCM: {
                     uint32_t interleave = ea->flag_value;
                     for (i = 0; i < vgmstream->channels; i++) {
-                        vgmstream->ch[i].offset = ea->offsets[0] + interleave*i;
+                        vgmstream->ch[i].offset = ea->offsets[0] + interleave * i;
                     }
                     break;
                 }
                 case coding_EA_MT: {
                     uint32_t interleave = ea->flag_value;
                     for (i = 0; i < vgmstream->channels; i++) {
-                        vgmstream->ch[i].offset = ea->offsets[0] + interleave*i;
+                        vgmstream->ch[i].offset = ea->offsets[0] + interleave * i;
                     }
                     break;
                 }
                 default:
                     VGM_LOG("EA SCHl: Unknown channel offsets for codec 0x%02x in version %d\n", ea->codec1, ea->version);
                     goto fail;
-            }
-        } else if (vgmstream->coding_type == coding_NGC_DSP && vgmstream->channels > 1 && ea->offsets[0] == ea->offsets[1]) {
+                }
+        }
+        else if (vgmstream->coding_type == coding_NGC_DSP && vgmstream->channels > 1 && ea->offsets[0] == ea->offsets[1]) {
             /* pcstream+gcadpcm with sx.exe v2, not in flag_value, probably a bug (even with this parts of the wave are off) */
             int interleave = (ea->num_samples / 14 * 8); /* full interleave */
             for (i = 0; i < vgmstream->channels; i++) {
-                vgmstream->ch[i].offset = ea->offsets[0] + interleave*i;
+                vgmstream->ch[i].offset = ea->offsets[0] + interleave * i;
             }
-        } else if (ea->platform == EA_PLATFORM_PS2 && (ea->flag_value & 0x100)) {
+        }
+        else if (ea->platform == EA_PLATFORM_PS2 && (ea->flag_value & 0x100)) {
             /* weird 0x10 mini header when played on IOP (codec/loop start/loop end/samples) [SSX 3 (PS2)] */
             for (i = 0; i < vgmstream->channels; i++) {
                 vgmstream->ch[i].offset = ea->offsets[i] + 0x10;
             }
-        } else {
+        }
+        else {
             /* absolute */
             for (i = 0; i < vgmstream->channels; i++) {
                 vgmstream->ch[i].offset = ea->offsets[i];
@@ -539,7 +544,8 @@ static VGMSTREAM* init_vgmstream_ea_variable_header(STREAMFILE* sf, ea_header* e
         }
 
         /* TODO: Figure out how to get stream size for BNK sounds */
-    } else {
+    }
+    else {
         update_ea_stream_size(sf, start_offset, vgmstream);
     }
 
@@ -552,11 +558,11 @@ fail:
 
 static uint32_t read_patch(STREAMFILE* sf, off_t* offset) {
     uint32_t result = 0;
-    uint8_t byte_count = read_8bit(*offset, sf);
+    uint8_t byte_count = read_u8(*offset, sf);
     (*offset)++;
 
     if (byte_count == 0xFF) { /* signals 32b size (ex. custom user data) */
-        (*offset) += 4 + read_32bitBE(*offset, sf);
+        (*offset) += 4 + read_u32be(*offset, sf);
         return 0;
     }
 
@@ -565,9 +571,9 @@ static uint32_t read_patch(STREAMFILE* sf, off_t* offset) {
         return 0;
     }
 
-    for ( ; byte_count > 0; byte_count--) { /* count of 0 is also possible, means value 0 */
+    for (; byte_count > 0; byte_count--) { /* count of 0 is also possible, means value 0 */
         result <<= 8;
-        result += (uint8_t)read_8bit(*offset, sf);
+        result += (uint8_t)read_u8(*offset, sf);
         (*offset)++;
     }
 
@@ -598,7 +604,7 @@ static int parse_variable_header(STREAMFILE* sf, ea_header* ea, off_t begin_offs
         offset += 4 + 4; /* GSTRs have an extra field (config?): ex. 0x01000000, 0x010000D8 BE */
     }
     else if ((platform_id & 0xFFFF0000) == get_id32be("PT\0\0")) { /* PlaTform */
-        ea->platform = read_u16le(offset + 2,sf);
+        ea->platform = read_u16le(offset + 2, sf);
         offset += 4;
     }
     else {
@@ -608,11 +614,11 @@ static int parse_variable_header(STREAMFILE* sf, ea_header* ea, off_t begin_offs
 
     /* parse mini-chunks/tags (variable, ommited if default exists; some are removed in later versions of sx.exe) */
     while (!is_header_end && offset - begin_offset < max_length) {
-        uint8_t patch_type = read_u8(offset,sf);
+        uint8_t patch_type = read_u8(offset, sf);
         offset++;
 
         //;{ off_t test = offset; VGM_LOG("EA SCHl: patch=%02x at %lx, value=%x\n", patch_type, offset-1, read_patch(sf, &test)); }
-        switch(patch_type) {
+        switch (patch_type) {
             case 0x00: /* signals non-default block rate and maybe other stuff; or padding after 0xFF */
                 if (!is_header_end)
                     read_patch(sf, &offset);
@@ -674,7 +680,7 @@ static int parse_variable_header(STREAMFILE* sf, ea_header* ea, off_t begin_offs
                 ea->channels = read_patch(sf, &offset);
                 break;
             case 0x84: /* sample rate */
-                ea->sample_rate = read_patch(sf,&offset);
+                ea->sample_rate = read_patch(sf, &offset);
                 break;
 
             case 0x85: /* sample count */
@@ -687,7 +693,7 @@ static int parse_variable_header(STREAMFILE* sf, ea_header* ea, off_t begin_offs
                 ea->loop_end = read_patch(sf, &offset) + 1; /* sx.exe does +1 */
                 break;
 
-            /* channel offsets (BNK only), can be the equal for all channels or interleaved; not necessarily contiguous */
+                /* channel offsets (BNK only), can be the equal for all channels or interleaved; not necessarily contiguous */
             case 0x88: /* absolute offset of ch1 (or ch1+ch2 for stereo EAXA) */
                 ea->offsets[0] = read_patch(sf, &offset);
                 break;
@@ -708,27 +714,27 @@ static int parse_variable_header(STREAMFILE* sf, ea_header* ea, off_t begin_offs
                 break;
 
             case 0x8F: /* DSP/N64BLK coefs ch1 */
-                ea->coefs[0] = offset+1;
+                ea->coefs[0] = offset + 1;
                 read_patch(sf, &offset);
                 break;
             case 0x90: /* DSP/N64BLK coefs ch2 */
-                ea->coefs[1] = offset+1;
+                ea->coefs[1] = offset + 1;
                 read_patch(sf, &offset);
                 break;
             case 0x91: /* DSP coefs ch3, and unknown in older versions */
-                ea->coefs[2] = offset+1;
+                ea->coefs[2] = offset + 1;
                 read_patch(sf, &offset);
                 break;
             case 0xAB: /* DSP coefs ch4 */
-                ea->coefs[3] = offset+1;
+                ea->coefs[3] = offset + 1;
                 read_patch(sf, &offset);
                 break;
             case 0xAC: /* DSP coefs ch5 */
-                ea->coefs[4] = offset+1;
+                ea->coefs[4] = offset + 1;
                 read_patch(sf, &offset);
                 break;
             case 0xAD: /* DSP coefs ch6 */
-                ea->coefs[5] = offset+1;
+                ea->coefs[5] = offset + 1;
                 read_patch(sf, &offset);
                 break;
 
@@ -752,8 +758,8 @@ static int parse_variable_header(STREAMFILE* sf, ea_header* ea, off_t begin_offs
                 break;
 
             case 0x8C: /* flags (ex. play type = 01=static/02=dynamic | spatialize = 20=pan/etc) */
-                       /* (ex. PS1 VAG=0, PS2 PCM/LAYER2=4, GC EAXA=4, 3DS DSP=512, Xbox EAXA=36, N64 BLK=05E800, N64 MT10=01588805E800) */
-                /* in rare cases value is the interleave, will be ignored if > 32b */
+                /* (ex. PS1 VAG=0, PS2 PCM/LAYER2=4, GC EAXA=4, 3DS DSP=512, Xbox EAXA=36, N64 BLK=05E800, N64 MT10=01588805E800) */
+         /* in rare cases value is the interleave, will be ignored if > 32b */
                 ea->flag_value = read_patch(sf, &offset);
                 break;
 
@@ -818,7 +824,7 @@ static int parse_variable_header(STREAMFILE* sf, ea_header* ea, off_t begin_offs
     /* version mainly affects defaults and minor stuff, can come with all codecs */
     /* V0 is often just null but it's specified in some files (uncommon, with patch size 0x00) */
     if (ea->version == EA_VERSION_NONE) {
-        switch(ea->platform) {
+        switch (ea->platform) {
             case EA_PLATFORM_PC:        ea->version = EA_VERSION_V0; break;
             case EA_PLATFORM_PSX:       ea->version = EA_VERSION_V0; break;
             case EA_PLATFORM_N64:       ea->version = EA_VERSION_V0; break;
@@ -836,12 +842,12 @@ static int parse_variable_header(STREAMFILE* sf, ea_header* ea, off_t begin_offs
             default:
                 VGM_LOG("EA SCHl: unknown default version for platform 0x%02x\n", ea->platform);
                 goto fail;
-        }
+            }
     }
 
     /* codec1 defaults */
     if (ea->codec1 == EA_CODEC1_NONE && ea->version == EA_VERSION_V0) {
-        switch(ea->platform) {
+        switch (ea->platform) {
             case EA_PLATFORM_PC:        ea->codec1 = EA_CODEC1_PCM; break;
             case EA_PLATFORM_PSX:       ea->codec1 = EA_CODEC1_VAG; break;
             case EA_PLATFORM_N64:       ea->codec1 = EA_CODEC1_N64; break;
@@ -850,7 +856,7 @@ static int parse_variable_header(STREAMFILE* sf, ea_header* ea, off_t begin_offs
             default:
                 VGM_LOG("EA SCHl: unknown default codec1 for platform 0x%02x\n", ea->platform);
                 goto fail;
-        }
+            }
     }
 
     /* codec1 to codec2 to simplify later parsing */
@@ -858,9 +864,9 @@ static int parse_variable_header(STREAMFILE* sf, ea_header* ea, off_t begin_offs
         switch (ea->codec1) {
             case EA_CODEC1_PCM:
                 if (ea->platform == EA_PLATFORM_PC)
-                    ea->codec2 = ea->bps==8 ? EA_CODEC2_S8_INT : (ea->big_endian ? EA_CODEC2_S16BE_INT : EA_CODEC2_S16LE_INT);
+                    ea->codec2 = ea->bps == 8 ? EA_CODEC2_S8_INT : (ea->big_endian ? EA_CODEC2_S16BE_INT : EA_CODEC2_S16LE_INT);
                 else
-                    ea->codec2 = ea->bps==8 ? EA_CODEC2_S8 : (ea->big_endian ? EA_CODEC2_S16BE : EA_CODEC2_S16LE);
+                    ea->codec2 = ea->bps == 8 ? EA_CODEC2_S8 : (ea->big_endian ? EA_CODEC2_S16BE : EA_CODEC2_S16LE);
                 break;
             case EA_CODEC1_N64:         ea->codec2 = EA_CODEC2_N64; break;
             case EA_CODEC1_VAG:         ea->codec2 = EA_CODEC2_VAG; break;
@@ -879,7 +885,7 @@ static int parse_variable_header(STREAMFILE* sf, ea_header* ea, off_t begin_offs
 
     /* codec2 defaults */
     if (ea->codec2 == EA_CODEC2_NONE) {
-        switch(ea->platform) {
+        switch (ea->platform) {
             case EA_PLATFORM_GENERIC:   ea->codec2 = EA_CODEC2_EAXA; break;
             case EA_PLATFORM_PC:        ea->codec2 = EA_CODEC2_EAXA; break;
             case EA_PLATFORM_PSX:       ea->codec2 = EA_CODEC2_VAG; break;
@@ -896,12 +902,12 @@ static int parse_variable_header(STREAMFILE* sf, ea_header* ea, off_t begin_offs
             default:
                 VGM_LOG("EA SCHl: unknown default codec2 for platform 0x%02x\n", ea->platform);
                 goto fail;
-        }
+            }
     }
 
     /* somehow doesn't follow machine's sample rate or anything sensical */
     if (!ea->sample_rate) {
-        switch(ea->platform) {
+        switch (ea->platform) {
             case EA_PLATFORM_GENERIC:   ea->sample_rate = 48000; break;
             case EA_PLATFORM_PC:        ea->sample_rate = 22050; break;
             case EA_PLATFORM_PSX:       ea->sample_rate = 22050; break;
@@ -919,7 +925,7 @@ static int parse_variable_header(STREAMFILE* sf, ea_header* ea, off_t begin_offs
             default:
                 VGM_LOG("EA SCHl: unknown default sample rate for platform 0x%02x\n", ea->platform);
                 goto fail;
-        }
+            }
     }
 
     /* EA-XA and MicroTalk got updated revisions with PCM blocks in sx v2.30 */
@@ -973,7 +979,7 @@ static void update_ea_stream_size(STREAMFILE* sf, off_t start_offset, VGMSTREAM*
         if (vgmstream->current_block_samples < 0)
             break;
 
-        block_id = read_32bitBE(vgmstream->current_block_offset + 0x00, sf);
+        block_id = read_u32be(vgmstream->current_block_offset + 0x00, sf);
         if (block_id == EA_BLOCKID_END) { /* banks should never contain movie "SHxx" */
             break;
         }
@@ -993,23 +999,23 @@ static void update_ea_stream_size(STREAMFILE* sf, off_t start_offset, VGMSTREAM*
 static off_t get_ea_stream_mpeg_start_offset(STREAMFILE* sf, off_t start_offset, const ea_header* ea) {
     size_t file_size = get_streamfile_size(sf);
     off_t block_offset = start_offset;
-    int32_t (*read_32bit)(off_t,STREAMFILE*) = ea->big_endian ? read_32bitBE : read_32bitLE;
+    read_u32_t read_u32 = ea->big_endian ? read_u32be : read_u32le;
     uint32_t header_lang = (ea->codec_config >> 16) & 0xFFFF;
 
     while (block_offset < file_size) {
         uint32_t block_id, block_size;
         off_t offset;
 
-        block_id = read_32bitBE(block_offset+0x00,sf);
+        block_id = read_u32be(block_offset + 0x00, sf);
 
-        block_size = read_32bitLE(block_offset+0x04,sf);
+        block_size = read_u32le(block_offset + 0x04, sf);
         if (block_size > 0x00F00000) /* size is always LE, except in early SAT/MAC */
-            block_size = read_32bitBE(block_offset+0x04,sf);
+            block_size = read_u32be(block_offset + 0x04, sf);
 
         if (block_id == EA_BLOCKID_DATA || block_id == ((EA_BLOCKID_LOC_DATA | header_lang))) {
             /* "SCDl" or target "SDxx" multilang blocks */
-            offset = read_32bit(block_offset+0x0c,sf); /* first value seems ok, second is something else in EALayer3 */
-            return block_offset + 0x0c + ea->channels*0x04 + offset;
+            offset = read_u32(block_offset + 0x0c, sf); /* first value seems ok, second is something else in EALayer3 */
+            return block_offset + 0x0c + ea->channels * 0x04 + offset;
         }
         else if (block_id == 0x00000000) {
             goto fail; /* just in case */

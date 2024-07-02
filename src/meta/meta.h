@@ -603,12 +603,12 @@ VGMSTREAM * init_vgmstream_txth(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_ea_schl(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_ea_schl_video(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_ea_bnk(STREAMFILE * streamFile);
-VGMSTREAM * init_vgmstream_ea_abk(STREAMFILE * streamFile);
+VGMSTREAM * init_vgmstream_ea_abk_schl(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_ea_hdr_dat(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_ea_hdr_dat_v2(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_ea_map_mus(STREAMFILE * streamFile);
-VGMSTREAM * init_vgmstream_ea_mpf_mus(STREAMFILE * streamFile);
-VGMSTREAM * init_vgmstream_ea_msb_mus(STREAMFILE * streamFile);
+VGMSTREAM * init_vgmstream_ea_mpf_mus_schl(STREAMFILE * streamFile);
+VGMSTREAM * init_vgmstream_ea_msb_mus_schl(STREAMFILE * streamFile);
 VGMSTREAM* load_vgmstream_ea_bnk(STREAMFILE* sf, off_t offset, int target_stream, int is_embedded);
 VGMSTREAM* load_vgmstream_ea_schl(STREAMFILE* sf, off_t offset);
 
