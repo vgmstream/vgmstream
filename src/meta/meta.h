@@ -610,6 +610,7 @@ VGMSTREAM * init_vgmstream_ea_map_mus(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_ea_mpf_mus(STREAMFILE * streamFile);
 VGMSTREAM * init_vgmstream_ea_msb_mus(STREAMFILE * streamFile);
 VGMSTREAM* load_vgmstream_ea_bnk(STREAMFILE* sf, off_t offset, int target_stream, int is_embedded);
+VGMSTREAM* load_vgmstream_ea_schl(STREAMFILE* sf, off_t offset);
 
 VGMSTREAM * init_vgmstream_ea_schl_fixed(STREAMFILE * streamFile);
 
