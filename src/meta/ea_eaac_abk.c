@@ -24,7 +24,7 @@ VGMSTREAM* init_vgmstream_ea_amb_eaac(STREAMFILE* sf) {
         return NULL;
 
     read_u32 = guess_read_u32(0x00, sf);
-    if (read_u32(0x00, sf) != 0x09) /* version? */
+    if (read_u32(0x00, sf) != 0x09) /* version */
         return NULL;
 
     abk_offset = 0x40;
@@ -42,6 +42,10 @@ VGMSTREAM* init_vgmstream_ea_amb_eaac(STREAMFILE* sf) {
 
     if (read_u32(0x0C, sf) != abk_size)
         goto fail;
+
+    /* in case stricter checks are needed: */
+    //if (!is_id32be(abk_offset + abk_size, sf, "MOIR"))
+    //    goto fail;
 
     sf_abk = open_wrap_streamfile(sf);
     sf_abk = open_clamp_streamfile(sf_abk, abk_offset, abk_size);

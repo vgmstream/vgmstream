@@ -85,7 +85,7 @@ VGMSTREAM* init_vgmstream_ea_mpf_mus_schl(STREAMFILE* sf) {
     return init_vgmstream_ea_mpf_mus_schl_main(sf, NULL);
 }
 
-/* .MSB/.MSX - EA Redwood Shores (MSB/MSX)+MUS [007: From Russia with Love, The Godfather (PC/PS2/Wii)] */
+/* .MSB/MSX - EA Redwood Shores (MSB/MSX)+MUS [007: From Russia with Love, The Godfather (PC/PS2/Xbox/Wii)] */
 VGMSTREAM* init_vgmstream_ea_msb_mus_schl(STREAMFILE* sf) {
     /* container with MPF, extra info, and a pre-defined MUS filename */
     VGMSTREAM* vgmstream = NULL;

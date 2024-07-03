@@ -16,7 +16,7 @@ VGMSTREAM* init_vgmstream_ea_abk_schl(STREAMFILE* sf) {
     return init_vgmstream_ea_abk_schl_main(sf);
 }
 
-/* .AMB/AMX - EA Redwood Shores variant [007: From Russia with Love, The Godfather (PC/PS2/Wii)] */
+/* .AMB/AMX - EA Redwood Shores variant [007: From Russia with Love, The Godfather (PC/PS2/Xbox/Wii)] */
 VGMSTREAM* init_vgmstream_ea_amb_schl(STREAMFILE* sf) {
     /* container with .ABK ("ABKC") and .CSI ("MOIR") data */
     VGMSTREAM* vgmstream = NULL;

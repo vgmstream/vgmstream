@@ -14,7 +14,7 @@ VGMSTREAM* init_vgmstream_ea_mpf_mus_eaac(STREAMFILE* sf) {
     return init_vgmstream_ea_mpf_mus_eaac_main(sf, NULL);
 }
 
-/* .MSB/.MSX - EA Redwood Shores (MSB/MSX)+MUS [The Godfather (PS3/360), The Simpsons Game (PS3/360)] */
+/* .MSB/MSX - EA Redwood Shores (MSB/MSX)+MUS [The Godfather (PS3/360), The Simpsons Game (PS3/360)] */
 VGMSTREAM* init_vgmstream_ea_msb_mus_eaac(STREAMFILE* sf) {
     /* container with MPF, extra info, and a pre-defined MUS filename */
     VGMSTREAM* vgmstream = NULL;

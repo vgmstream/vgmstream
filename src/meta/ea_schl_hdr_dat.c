@@ -15,7 +15,7 @@ VGMSTREAM* init_vgmstream_ea_hdr_dat(STREAMFILE* sf) {
 
     /* checks */
     if (!check_extensions(sf, "hdr"))
-        goto fail;
+        return NULL;
 
     /* main header is machine endian but it's not important here */
     /* 0x00: ID */
@@ -30,11 +30,11 @@ VGMSTREAM* init_vgmstream_ea_hdr_dat(STREAMFILE* sf) {
 
     /* no nice way to validate these so we do what we can */
     if (read_u16be(0x0a, sf) != 0)
-        goto fail;
+        return NULL;
 
     /* first offset is always zero */
     if (read_u16be(0x0c, sf) != 0)
-        goto fail;
+        return NULL;
 
     /* must be accompanied by DAT file with SCHl or VAG sounds */
     sf_dat = open_streamfile_by_ext(sf, "dat");
