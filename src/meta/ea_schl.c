@@ -384,8 +384,8 @@ static VGMSTREAM* init_vgmstream_ea_variable_header(STREAMFILE* sf, ea_header* e
         case EA_CODEC2_LAYER3: {    /* MPEG Layer III, aka MP3 */
             mpeg_custom_config cfg = {0};
             off_t mpeg_start_offset = is_bnk ?
-                start_offset :
-                get_ea_stream_mpeg_start_offset(sf, start_offset, ea);
+                    start_offset :
+                    get_ea_stream_mpeg_start_offset(sf, start_offset, ea);
             if (!mpeg_start_offset) goto fail;
 
             /* layout is still blocks, but should work fine with the custom mpeg decoder */
@@ -397,8 +397,8 @@ static VGMSTREAM* init_vgmstream_ea_variable_header(STREAMFILE* sf, ea_header* e
         case EA_CODEC2_EALAYER3: {  /* MP3 variant */
             mpeg_custom_config cfg = {0};
             off_t mpeg_start_offset = is_bnk ?
-                start_offset :
-                get_ea_stream_mpeg_start_offset(sf, start_offset, ea);
+                    start_offset :
+                    get_ea_stream_mpeg_start_offset(sf, start_offset, ea);
             if (!mpeg_start_offset) goto fail;
 
             /* layout is still blocks, but should work fine with the custom mpeg decoder */
@@ -423,7 +423,7 @@ static VGMSTREAM* init_vgmstream_ea_variable_header(STREAMFILE* sf, ea_header* e
             break;
 
 #ifdef VGM_USE_FFMPEG
-        //case EA_CODEC2_ATRAC3: /* works but commented to catch games using it */
+      //case EA_CODEC2_ATRAC3: /* works but commented to catch games using it */
         case EA_CODEC2_ATRAC3PLUS: { /* ATRAC3plus [Medal of Honor Heroes 2 (PSP)] */
             /* data chunked in SCxx blocks, including RIFF header */
             if (!is_bnk) {
@@ -451,9 +451,9 @@ static VGMSTREAM* init_vgmstream_ea_variable_header(STREAMFILE* sf, ea_header* e
         }
 #endif
 
-    default:
-        VGM_LOG("EA SCHl: unknown codec2 0x%02x for platform 0x%02x\n", ea->codec2, ea->platform);
-        goto fail;
+        default:
+            VGM_LOG("EA SCHl: unknown codec2 0x%02x for platform 0x%02x\n", ea->codec2, ea->platform);
+            goto fail;
     }
 
     vgmstream->stream_size = ea->stream_size;
@@ -693,7 +693,7 @@ static int parse_variable_header(STREAMFILE* sf, ea_header* ea, off_t begin_offs
                 ea->loop_end = read_patch(sf, &offset) + 1; /* sx.exe does +1 */
                 break;
 
-                /* channel offsets (BNK only), can be the equal for all channels or interleaved; not necessarily contiguous */
+            /* channel offsets (BNK only), can be the equal for all channels or interleaved; not necessarily contiguous */
             case 0x88: /* absolute offset of ch1 (or ch1+ch2 for stereo EAXA) */
                 ea->offsets[0] = read_patch(sf, &offset);
                 break;
@@ -758,8 +758,8 @@ static int parse_variable_header(STREAMFILE* sf, ea_header* ea, off_t begin_offs
                 break;
 
             case 0x8C: /* flags (ex. play type = 01=static/02=dynamic | spatialize = 20=pan/etc) */
-                /* (ex. PS1 VAG=0, PS2 PCM/LAYER2=4, GC EAXA=4, 3DS DSP=512, Xbox EAXA=36, N64 BLK=05E800, N64 MT10=01588805E800) */
-         /* in rare cases value is the interleave, will be ignored if > 32b */
+                       /* (ex. PS1 VAG=0, PS2 PCM/LAYER2=4, GC EAXA=4, 3DS DSP=512, Xbox EAXA=36, N64 BLK=05E800, N64 MT10=01588805E800) */
+                /* in rare cases value is the interleave, will be ignored if > 32b */
                 ea->flag_value = read_patch(sf, &offset);
                 break;
 
@@ -842,7 +842,7 @@ static int parse_variable_header(STREAMFILE* sf, ea_header* ea, off_t begin_offs
             default:
                 VGM_LOG("EA SCHl: unknown default version for platform 0x%02x\n", ea->platform);
                 goto fail;
-            }
+        }
     }
 
     /* codec1 defaults */
@@ -856,7 +856,7 @@ static int parse_variable_header(STREAMFILE* sf, ea_header* ea, off_t begin_offs
             default:
                 VGM_LOG("EA SCHl: unknown default codec1 for platform 0x%02x\n", ea->platform);
                 goto fail;
-            }
+        }
     }
 
     /* codec1 to codec2 to simplify later parsing */
@@ -902,7 +902,7 @@ static int parse_variable_header(STREAMFILE* sf, ea_header* ea, off_t begin_offs
             default:
                 VGM_LOG("EA SCHl: unknown default codec2 for platform 0x%02x\n", ea->platform);
                 goto fail;
-            }
+        }
     }
 
     /* somehow doesn't follow machine's sample rate or anything sensical */
@@ -925,7 +925,7 @@ static int parse_variable_header(STREAMFILE* sf, ea_header* ea, off_t begin_offs
             default:
                 VGM_LOG("EA SCHl: unknown default sample rate for platform 0x%02x\n", ea->platform);
                 goto fail;
-            }
+        }
     }
 
     /* EA-XA and MicroTalk got updated revisions with PCM blocks in sx v2.30 */
