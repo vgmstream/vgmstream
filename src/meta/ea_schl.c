@@ -521,7 +521,7 @@ static VGMSTREAM* init_vgmstream_ea_variable_header(STREAMFILE* sf, ea_header* e
                 default:
                     VGM_LOG("EA SCHl: Unknown channel offsets for codec 0x%02x in version %d\n", ea->codec1, ea->version);
                     goto fail;
-                }
+            }
         }
         else if (vgmstream->coding_type == coding_NGC_DSP && vgmstream->channels > 1 && ea->offsets[0] == ea->offsets[1]) {
             /* pcstream+gcadpcm with sx.exe v2, not in flag_value, probably a bug (even with this parts of the wave are off) */
@@ -544,8 +544,7 @@ static VGMSTREAM* init_vgmstream_ea_variable_header(STREAMFILE* sf, ea_header* e
         }
 
         /* TODO: Figure out how to get stream size for BNK sounds */
-    }
-    else {
+    } else {
         update_ea_stream_size(sf, start_offset, vgmstream);
     }
 
