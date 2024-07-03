@@ -62,7 +62,9 @@ static const char* extension_list[] = {
     "akb",
     "al", //txth/raw [Dominions 3 - The Awakening (PC)]
     "al2", //txth/raw [Conquest of Elysium 3 (PC)]
+    "amb",
     "ams", //txth/reserved [Super Dragon Ball Z (PS2) ELF names]
+    "amx",
     "an2",
     "ao",
     "ap",

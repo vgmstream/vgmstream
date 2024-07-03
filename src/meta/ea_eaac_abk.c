@@ -1,11 +1,66 @@
 #include "meta.h"
 #include "../util/endianness.h"
 
+static VGMSTREAM* init_vgmstream_ea_abk_eaac_main(STREAMFILE* sf);
 static VGMSTREAM* parse_s10a_header(STREAMFILE* sf, off_t offset, uint16_t target_index, off_t ast_offset);
 
+/* .ABK - standard */
+VGMSTREAM* init_vgmstream_ea_abk_eaac(STREAMFILE* sf) {
+    if (!check_extensions(sf, "abk"))
+        return NULL;
+    return init_vgmstream_ea_abk_eaac_main(sf);
+}
+
+/* .AMB/AMX - EA Redwood Shores variant [The Godfather (PS3/X360), The Simpsons Game (PS3/360)] */
+VGMSTREAM* init_vgmstream_ea_amb_eaac(STREAMFILE* sf) {
+    /* container with .ABK ("ABKC") and .CSI ("MOIR") data */
+    VGMSTREAM* vgmstream = NULL;
+    STREAMFILE* sf_abk = NULL;
+    off_t abk_offset;
+    size_t abk_size;
+    read_u32_t read_u32;
+
+    if (!check_extensions(sf, "amb,amx"))
+        return NULL;
+
+    read_u32 = guess_read_u32(0x00, sf);
+    if (read_u32(0x00, sf) != 0x09) /* version? */
+        return NULL;
+
+    abk_offset = 0x40;
+    /* 0x04: MOIR offset (+ abk_offset)
+     * 0x08: MOIR size
+     * 0x0C: unk offset (same as MOIR)
+     * 0x10: unk size (always 0?)
+     * 0x14: unk (some hash?)
+     * 0x18: always 1.0f?
+     * 0x1C: always 2.0f?
+     * 0x20: always 100.0f?
+     * 0x24: unk (some bitfield? sometimes 0x10000)
+     */
+    abk_size = read_u32(0x04, sf);
+
+    if (read_u32(0x0C, sf) != abk_size)
+        goto fail;
+
+    sf_abk = open_wrap_streamfile(sf);
+    sf_abk = open_clamp_streamfile(sf_abk, abk_offset, abk_size);
+    if (!sf_abk) goto fail;
+
+    vgmstream = init_vgmstream_ea_abk_eaac_main(sf_abk);
+    if (!vgmstream) goto fail;
+
+    close_streamfile(sf_abk);
+    return vgmstream;
+
+fail:
+    close_vgmstream(vgmstream);
+    close_streamfile(sf_abk);
+    return NULL;
+}
 
 /* EA ABK - ABK header seems to be same as in the old games but the sound table is different and it contains SNR/SNS sounds instead */
-VGMSTREAM* init_vgmstream_ea_abk_eaac(STREAMFILE* sf) {
+static VGMSTREAM* init_vgmstream_ea_abk_eaac_main(STREAMFILE* sf) {
     VGMSTREAM* vgmstream;
     int is_dupe, total_sounds = 0, target_stream = sf->stream_index;
     off_t bnk_offset, modules_table, module_data, player_offset, samples_table, entry_offset, ast_offset;
@@ -20,8 +75,6 @@ VGMSTREAM* init_vgmstream_ea_abk_eaac(STREAMFILE* sf) {
 
     /* checks */
     if (!is_id32be(0x00, sf, "ABKC"))
-        return NULL;
-    if (!check_extensions(sf, "abk"))
         return NULL;
 
     /* use table offset to check endianness */
