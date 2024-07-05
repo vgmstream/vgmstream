@@ -114,15 +114,15 @@ VGMSTREAM* init_vgmstream_fsb(STREAMFILE* sf) {
 
     /* checks */
     if ((read_u32be(0x00,sf) & 0xFFFFFF00) != get_id32be("FSB\0"))
-        goto fail;
+        return NULL;
 
     /* .fsb: standard
      * .bnk: Hard Corps Uprising (PS3)
      * .sfx: Geon Cube (Wii)
-     * .ps3: Neversoft games (PS3)     
+     * .ps3: Neversoft games (PS3)
      * .xen: Neversoft games (X360/PC) */
-    if ( !check_extensions(sf, "fsb,bnk,sfx,ps3,xen") )
-        goto fail;
+    if (!check_extensions(sf, "fsb,bnk,sfx,ps3,xen"))
+        return NULL;
 
     fsb.id = read_u32be(0x00,sf);
     if (fsb.id == get_id32be("FSB1")) {
@@ -170,15 +170,18 @@ VGMSTREAM* init_vgmstream_fsb(STREAMFILE* sf) {
             fsb.meta_type = meta_FSB2;
             fsb.base_header_size  = 0x10;
             fsb.sample_header_min = 0x40; /* guessed */
-        } else if (fsb.id == get_id32be("FSB3")) {
+        }
+        else if (fsb.id == get_id32be("FSB3")) {
             fsb.meta_type = meta_FSB3;
             fsb.base_header_size  = 0x18;
             fsb.sample_header_min = 0x40;
-        } else if (fsb.id == get_id32be("FSB4")) {
+        }
+        else if (fsb.id == get_id32be("FSB4")) {
             fsb.meta_type = meta_FSB4;
             fsb.base_header_size  = 0x30;
             fsb.sample_header_min = 0x50;
-        } else {
+        }
+        else {
             goto fail;
         }
 
@@ -197,7 +200,8 @@ VGMSTREAM* init_vgmstream_fsb(STREAMFILE* sf) {
 
         if (fsb.version == FMOD_FSB_VERSION_3_1) {
             fsb.sample_header_min = 0x50;
-        } else if (fsb.version != 0 /* FSB2 */
+        }
+        else if (fsb.version != 0 /* FSB2 */
                 && fsb.version != FMOD_FSB_VERSION_3_0
                 && fsb.version != FMOD_FSB_VERSION_4_0) {
             goto fail;
@@ -224,6 +228,20 @@ VGMSTREAM* init_vgmstream_fsb(STREAMFILE* sf) {
                     fsb.stream_size = read_32bitLE(header_offset+0x04,sf);
                     fsb.loop_start = 0;
                     fsb.loop_end = 0;
+
+                    /* XMA basic headers have extra data [Forza Motorsport 3 (X360)] */
+                    if (fsb.mode & FSOUND_XMA) {
+                        if (read_u32le(header_offset+0x08, sf) != 0x20)
+                            goto fail;
+                        /* 0x08: always 0x20? (table offset?) */
+                        /* 0x0c: loop/sample related? (mode LOOP_OFF though) */
+                        /* 0x10: low number */
+                        /* 0x14: low number */
+                        /* 0x18: always 0x01? */
+                        uint32_t seek_entries = read_u32le(header_offset+0x1c, sf);
+                        /* skip seek table */
+                        stream_header_size += 0x18 + seek_entries * 0x04;
+                    }
                 }
                 else {
                     /* subsong header for normal files */
@@ -390,7 +408,7 @@ VGMSTREAM* init_vgmstream_fsb(STREAMFILE* sf) {
 #ifdef VGM_USE_FFMPEG
         case XMA: { /* FSB3: The Bourne Conspiracy 2008 (X360), FSB4: Armored Core V (X360), Hard Corps (X360) */
             int block_size = 0x8000; /* FSB default */
-
+VGM_LOG("1: %x %x\n", (uint32_t)fsb.stream_offset, fsb.stream_size);
             if (fsb.version != FMOD_FSB_VERSION_4_0) {
                 /* 3.x, though no actual output changes [ex. Guitar Hero III (X360), The Bourne Conspiracy (X360)] */
                 vgmstream->codec_data = init_ffmpeg_xma1_raw(sf, fsb.stream_offset, fsb.stream_size, fsb.channels, fsb.sample_rate, 0);
