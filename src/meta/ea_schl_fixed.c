@@ -32,13 +32,13 @@ VGMSTREAM* init_vgmstream_ea_schl_fixed(STREAMFILE* sf) {
 
     /* checks */
     if (!is_id32be(0x00,sf, "SCHl"))
-        goto fail;
+        return NULL;
 
     /* .asf: original [NHK 97 (PC)]
      * .lasf: fake for plugins
      * .cnk: ps1 [NBA Live 97 (PS1)] */
     if (!check_extensions(sf,"asf,lasf,cnk"))
-        goto fail;
+        return NULL;
 
     /* see ea_schl.c for more info about blocks */
     //TODO: handle SCCl? [NBA Live 97 (PS1)]

@@ -298,6 +298,15 @@ VGMSTREAM* init_vgmstream_vag(STREAMFILE* sf) {
                 loop_start_sample = 0;
                 loop_end_sample = ps_bytes_to_samples(channel_size,1);
             }
+            else if (version == 0x00000020 && channel_size == file_size + 0x10) {
+                /* THQ Australia [Jimmy Neutron: Attack of the Twonkies, SpongeBob: Lights, Camera, Pants!] */
+                start_offset = 0x30;
+                interleave = 0;
+                channels = 1;
+
+                channel_size -= 0x40;
+                loop_flag = ps_find_loop_offsets(sf, start_offset, channel_size, channels, interleave, &loop_start_sample, &loop_end_sample);
+            }
             else {
                 /* standard PS1/PS2/PS3 .vag [Ecco the Dolphin (PS2), Legasista (PS3)] */
                 start_offset = 0x30;

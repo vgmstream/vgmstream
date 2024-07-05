@@ -17,9 +17,9 @@ VGMSTREAM* init_vgmstream_ea_sbr_harmony(STREAMFILE* sf) {
     char sound_name[STREAM_NAME_SIZE];
     int target_stream = sf->stream_index, total_sounds, local_target, is_streamed = 0;
     int i, j;
-    uint64_t(*read_u64)(off_t, STREAMFILE *);
-    uint32_t(*read_u32)(off_t, STREAMFILE*);
-    uint16_t(*read_u16)(off_t, STREAMFILE*);
+    read_u64_t read_u64;
+    read_u32_t read_u32;
+    read_u16_t read_u16;
     eaac_meta_t info = {0};
 
 

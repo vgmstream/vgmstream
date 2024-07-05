@@ -102,6 +102,8 @@ VGMSTREAM* init_vgmstream_aifc(STREAMFILE* sf) {
      * .adp: Sonic Jam (SAT)
      * .ai: Dragon Force (SAT)
      * .pcm: Road Rash (SAT)
+     * .vp6: The Godfather (PS3/X360) (logo.vp6)
+     * .mpc: The Godfather (PC) (writercredit.mpc)
      */
     if (check_extensions(sf, "aif,laif,wav,lwav,aiff,laiff,")) {
         is_aifc_ext = 1;
@@ -110,7 +112,7 @@ VGMSTREAM* init_vgmstream_aifc(STREAMFILE* sf) {
     else if (check_extensions(sf, "aifc,laifc,afc,cbd2,bgm,fda,n64,xa,caf")) {
         is_aifc_ext = 1;
     }
-    else if (check_extensions(sf, "acm,adp,ai,pcm")) {
+    else if (check_extensions(sf, "acm,adp,ai,pcm,vp6,mpc,lmpc")) {
         is_aiff_ext = 1;
     }
     else {

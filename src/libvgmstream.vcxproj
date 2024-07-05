@@ -434,7 +434,11 @@
     <ClCompile Include="meta\ea_eaac_tmx.c" />
     <ClCompile Include="meta\ea_sbk.c" />
     <ClCompile Include="meta\ea_schl.c" />
+    <ClCompile Include="meta\ea_schl_abk.c" />
     <ClCompile Include="meta\ea_schl_fixed.c" />
+    <ClCompile Include="meta\ea_schl_hdr_dat.c" />
+    <ClCompile Include="meta\ea_schl_map_mpf_mus.c" />
+    <ClCompile Include="meta\ea_schl_standard.c" />
     <ClCompile Include="meta\ea_swvr.c" />
     <ClCompile Include="meta\ea_wve_ad10.c" />
     <ClCompile Include="meta\ea_wve_au00.c" />

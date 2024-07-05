@@ -1,11 +1,70 @@
 #include "meta.h"
 #include "../util/endianness.h"
 
+static VGMSTREAM* init_vgmstream_ea_abk_eaac_main(STREAMFILE* sf);
 static VGMSTREAM* parse_s10a_header(STREAMFILE* sf, off_t offset, uint16_t target_index, off_t ast_offset);
 
+/* .ABK - standard */
+VGMSTREAM* init_vgmstream_ea_abk_eaac(STREAMFILE* sf) {
+    if (!check_extensions(sf, "abk"))
+        return NULL;
+    return init_vgmstream_ea_abk_eaac_main(sf);
+}
+
+/* .AMB/AMX - EA Redwood Shores variant [The Godfather (PS3/X360), The Simpsons Game (PS3/360)] */
+VGMSTREAM* init_vgmstream_ea_amb_eaac(STREAMFILE* sf) {
+    /* container with .ABK ("ABKC") and .CSI ("MOIR") data */
+    VGMSTREAM* vgmstream = NULL;
+    STREAMFILE* sf_abk = NULL;
+    off_t abk_offset;
+    size_t abk_size;
+    read_u32_t read_u32;
+
+    if (!check_extensions(sf, "amb,amx"))
+        return NULL;
+
+    read_u32 = guess_read_u32(0x00, sf);
+    if (read_u32(0x00, sf) != 0x09) /* version */
+        return NULL;
+
+    abk_offset = 0x40;
+    /* 0x04: MOIR offset (+ abk_offset)
+     * 0x08: MOIR size
+     * 0x0C: unk offset (same as MOIR)
+     * 0x10: unk size (always 0?)
+     * 0x14: unk (some hash?)
+     * 0x18: always 1.0f?
+     * 0x1C: always 2.0f?
+     * 0x20: always 100.0f?
+     * 0x24: unk (some bitfield? sometimes 0x10000)
+     */
+    abk_size = read_u32(0x04, sf);
+
+    if (read_u32(0x0C, sf) != abk_size)
+        goto fail;
+
+    /* in case stricter checks are needed: */
+    //if (!is_id32be(abk_offset + abk_size, sf, "MOIR"))
+    //    goto fail;
+
+    sf_abk = open_wrap_streamfile(sf);
+    sf_abk = open_clamp_streamfile(sf_abk, abk_offset, abk_size);
+    if (!sf_abk) goto fail;
+
+    vgmstream = init_vgmstream_ea_abk_eaac_main(sf_abk);
+    if (!vgmstream) goto fail;
+
+    close_streamfile(sf_abk);
+    return vgmstream;
+
+fail:
+    close_vgmstream(vgmstream);
+    close_streamfile(sf_abk);
+    return NULL;
+}
 
 /* EA ABK - ABK header seems to be same as in the old games but the sound table is different and it contains SNR/SNS sounds instead */
-VGMSTREAM* init_vgmstream_ea_abk_eaac(STREAMFILE* sf) {
+static VGMSTREAM* init_vgmstream_ea_abk_eaac_main(STREAMFILE* sf) {
     VGMSTREAM* vgmstream;
     int is_dupe, total_sounds = 0, target_stream = sf->stream_index;
     off_t bnk_offset, modules_table, module_data, player_offset, samples_table, entry_offset, ast_offset;
@@ -14,32 +73,30 @@ VGMSTREAM* init_vgmstream_ea_abk_eaac(STREAMFILE* sf) {
     uint16_t num_modules, bnk_index, bnk_target_index;
     uint8_t num_players;
     off_t sample_tables[0x400];
-    int32_t(*read_32bit)(off_t, STREAMFILE*);
-    int16_t(*read_16bit)(off_t, STREAMFILE*);
+    read_u32_t read_u32;
+    read_u16_t read_u16;
 
 
     /* checks */
     if (!is_id32be(0x00, sf, "ABKC"))
         return NULL;
-    if (!check_extensions(sf, "abk"))
-        return NULL;
 
     /* use table offset to check endianness */
     if (guess_endian32(0x1C, sf)) {
-        read_32bit = read_32bitBE;
-        read_16bit = read_16bitBE;
+        read_u32 = read_u32be;
+        read_u16 = read_u16be;
     } else {
-        read_32bit = read_32bitLE;
-        read_16bit = read_16bitLE;
+        read_u32 = read_u32le;
+        read_u16 = read_u16le;
     }
 
     if (target_stream == 0) target_stream = 1;
     if (target_stream < 0)
         goto fail;
 
-    num_modules = read_16bit(0x0A, sf);
-    modules_table = read_32bit(0x1C, sf);
-    bnk_offset = read_32bit(0x20, sf);
+    num_modules = read_u16(0x0A, sf);
+    modules_table = read_u32(0x1C, sf);
+    bnk_offset = read_u32(0x20, sf);
     num_sample_tables = 0;
     bnk_target_index = 0xFFFF;
     ast_offset = 0;
@@ -67,13 +124,13 @@ VGMSTREAM* init_vgmstream_ea_abk_eaac(STREAMFILE* sf) {
     }
 
     for (uint32_t i = 0; i < num_modules; i++) {
-        num_players = read_8bit(modules_table + cfg_num_players_off, sf);
-        module_data = read_32bit(modules_table + cfg_module_data_off, sf);
+        num_players = read_u8(modules_table + cfg_num_players_off, sf);
+        module_data = read_u32(modules_table + cfg_module_data_off, sf);
         if (num_players == 0xff) goto fail; /* EOF read */
 
         for (uint32_t j = 0; j < num_players; j++) {
-            player_offset = read_32bit(modules_table + cfg_module_entry_size + 0x04 * j, sf);
-            samples_table = read_32bit(module_data + player_offset + cfg_samples_table_off, sf);
+            player_offset = read_u32(modules_table + cfg_module_entry_size + 0x04 * j, sf);
+            samples_table = read_u32(module_data + player_offset + cfg_samples_table_off, sf);
 
             /* multiple players may point at the same sound table */
             is_dupe = 0;
@@ -88,7 +145,7 @@ VGMSTREAM* init_vgmstream_ea_abk_eaac(STREAMFILE* sf) {
                 continue;
 
             sample_tables[num_sample_tables++] = samples_table;
-            num_sounds = read_32bit(samples_table, sf);
+            num_sounds = read_u32(samples_table, sf);
             if (num_sounds == 0xffffffff) goto fail; /* EOF read */
 
             for (uint32_t k = 0; k < num_sounds; k++) {
@@ -97,7 +154,7 @@ VGMSTREAM* init_vgmstream_ea_abk_eaac(STREAMFILE* sf) {
                 /* 0x03: azimuth */
                 /* 0x08: streamed data offset */
                 entry_offset = samples_table + 0x04 + 0x0C * k;
-                bnk_index = read_16bit(entry_offset + 0x00, sf);
+                bnk_index = read_u16(entry_offset + 0x00, sf);
 
                 /* some of these are dummies */
                 if (bnk_index == 0xFFFF)
@@ -106,13 +163,13 @@ VGMSTREAM* init_vgmstream_ea_abk_eaac(STREAMFILE* sf) {
                 total_sounds++;
                 if (target_stream == total_sounds) {
                     bnk_target_index = bnk_index;
-                    ast_offset = read_32bit(entry_offset + 0x08, sf);
+                    ast_offset = read_u32(entry_offset + 0x08, sf);
                 }
             }
         }
 
         /* skip class controllers */
-        num_players += read_8bit(modules_table + cfg_num_players_off + 0x03, sf);
+        num_players += read_u8(modules_table + cfg_num_players_off + 0x03, sf);
         modules_table += cfg_module_entry_size + num_players * 0x04;
     }
 
@@ -147,11 +204,11 @@ static VGMSTREAM* parse_s10a_header(STREAMFILE* sf, off_t offset, uint16_t targe
     if (!is_id32be(offset + 0x00, sf, "S10A"))
         return NULL;
 
-    num_sounds = read_32bitBE(offset + 0x08, sf);
+    num_sounds = read_u32be(offset + 0x08, sf);
     if (num_sounds == 0 || target_index >= num_sounds)
         return NULL;
 
-    snr_offset = offset + read_32bitBE(offset + 0x0C + 0x04 * target_index, sf);
+    snr_offset = offset + read_u32be(offset + 0x0C + 0x04 * target_index, sf);
 
     if (sns_offset == 0xFFFFFFFF) {
         /* RAM asset */
