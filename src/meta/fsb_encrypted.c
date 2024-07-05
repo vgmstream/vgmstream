@@ -12,14 +12,14 @@ VGMSTREAM* init_vgmstream_fsb_encrypted(STREAMFILE* sf) {
 
     /* ignore non-encrypted FSB */
     if ((read_u32be(0x00,sf) & 0xFFFFFF00) == get_id32be("FSB\0"))
-        goto fail;
+        return NULL;
 
     /* checks */
     /* .fsb: standard
      * .fsb.ps3: various Guitar Hero (PS3)
      * .fsb.xen: various Guitar Hero (X360/PC) */
     if (!check_extensions(sf, "fsb,ps3,xen"))
-        goto fail;
+        return NULL;
 
     /* try fsbkey + all combinations of FSB4/5 and decryption algorithms */
     {
@@ -27,7 +27,7 @@ VGMSTREAM* init_vgmstream_fsb_encrypted(STREAMFILE* sf) {
         size_t key_size = read_key_file(key, FSB_KEY_MAX, sf);
 
         if (key_size) {
-            vgmstream = test_fsbkey(sf, key, key_size, MODE_FSBS_ALL);
+            vgmstream = test_fsbkey(sf, key, key_size, MODE_FSBS);
             return vgmstream;
         }
     }
@@ -60,10 +60,10 @@ static VGMSTREAM* test_fsbkey(STREAMFILE* sf, const uint8_t* key, size_t key_siz
     if (!key_size)
         return NULL;
 
-    int test_fsb4 = flags & FLAG_FSB4;
-    int test_fsb5 = flags & FLAG_FSB5;
-    int test_std = flags & FLAG_STD;
-    int test_alt = flags & FLAG_ALT;
+    bool test_fsb4 = flags & FLAG_FSB4;
+    bool test_fsb5 = flags & FLAG_FSB5;
+    bool test_alt  = flags & FLAG_ALT;
+    bool test_std  = flags & FLAG_STD;
 
     if (!vc && test_std && test_fsb_streamfile(sf, key, key_size, 0)) {
         temp_sf = setup_fsb_streamfile(sf, key, key_size, 0);
