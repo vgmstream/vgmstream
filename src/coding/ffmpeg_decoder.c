@@ -430,6 +430,22 @@ fail:
     return NULL;
 }
 
+/* FFmpeg internals (roughly) for reference:
+ * 
+ *   AVFormatContext                    // base info extracted from input file
+ *     AVStream                         // substreams
+ *       AVCodecParameters              // codec id, channels, format, ...
+ *   
+ *   AVCodecContext                     // sample rate and general info
+ * 
+ * - open avformat to get all possible info (needs file or IO)
+ * - open avcodec to decode based on target stream
+ * - decode chunks of data (feed style)
+ *   - read next frame into packet via avformat
+ *   - decode packet via avcodec
+ *   - handle samples
+*/
+
 static int init_ffmpeg_config(ffmpeg_codec_data* data, int target_subsong, int reset) {
     int errcode = 0;
 
