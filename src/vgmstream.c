@@ -79,7 +79,6 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_aus,
     init_vgmstream_rws,
     init_vgmstream_fsb,
-    init_vgmstream_fsb4_wav,
     init_vgmstream_fsb5,
     init_vgmstream_rwax,
     init_vgmstream_xwb,

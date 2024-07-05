@@ -641,7 +641,6 @@ static const char* extension_list[] = {
     "wbk",
     "wd",
     "wem",
-    "wii",
     "wiive", //txth/semi [Rubik World (Wii)]
     "wic", //txth/reserved [Road Rash (SAT)-videos]
     "wip", //txth/reserved [Colin McRae DiRT (PC)]
