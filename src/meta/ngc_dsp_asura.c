@@ -18,8 +18,8 @@ VGMSTREAM* init_vgmstream_dsp_asura_sfx(STREAMFILE* sf) {
 
     /* no clear header id, but this is how they all start */
     /* the 0x02s are likely channels and codec (DSPADPCM) */
-    if (read_u32be(0x00, sf) != 0x00 &&
-        read_u32be(0x04, sf) != 0x02 &&
+    if (read_u32be(0x00, sf) != 0x00 ||
+        read_u32be(0x04, sf) != 0x02 ||
         read_u32be(0x08, sf) != 0x02)
         return NULL;
 
@@ -44,8 +44,7 @@ VGMSTREAM* init_vgmstream_dsp_asura_sfx(STREAMFILE* sf) {
     loop_flag = 0;
 
     /* more safety checks */
-    if (interleave < 0 ||
-        interleave < nibble_count / 2 ||
+    if (interleave < 0 || interleave < nibble_count / 2 ||
         interleave > get_streamfile_size(sf) / channels)
         goto fail;
 
