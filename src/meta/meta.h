@@ -208,10 +208,9 @@ VGMSTREAM * init_vgmstream_aus(STREAMFILE * streamFile);
 
 VGMSTREAM * init_vgmstream_rws(STREAMFILE * streamFile);
 
-VGMSTREAM * init_vgmstream_fsb(STREAMFILE * streamFile);
-VGMSTREAM * init_vgmstream_fsb4_wav(STREAMFILE * streamFile);
+VGMSTREAM* init_vgmstream_fsb(STREAMFILE* sf);
 
-VGMSTREAM * init_vgmstream_fsb5(STREAMFILE * streamFile);
+VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_rwax(STREAMFILE* sf);
 
