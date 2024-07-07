@@ -12,19 +12,17 @@ CFLAGS += $(DEF_CFLAGS) -DVAR_ARRAYS $(EXTRA_CFLAGS)
 LDFLAGS += -L../src -lvgmstream -lm $(EXTRA_LDFLAGS)
 TARGET_EXT_LIBS = 
 
-ifeq ($(TARGET_OS),Windows_NT)
-  OUTPUT_CLI = vgmstream-cli.exe
-  OUTPUT_123 = vgmstream123.exe
+OUTPUT_CLI = vgmstream-cli
+OUTPUT_123 = vgmstream123
+OUTPUT_API = api_example
 
+ifeq ($(TARGET_OS),Windows_NT)
   CFLAGS += -DWIN32 -I../ext_includes -I../ext_libs/Getopt
   LDFLAGS += -L../ext_libs/$(DLL_DIR)
 
   LIBAO_INC = -I$(LIBAO_IPATH)
   LIBAO_LIB = -L$(LIBAO_LPATH) -lao
 else
-  OUTPUT_CLI = vgmstream-cli
-  OUTPUT_123 = vgmstream123
-
   #todo move to subfolders and remove
   CFLAGS += -I../ext_includes
 
@@ -50,6 +48,10 @@ vgmstream123: libvgmstream.a $(TARGET_EXT_LIBS)
 	$(CC) $(CFLAGS) $(LIBAO_INC) vgmstream123.c $(LDFLAGS) $(LIBAO_LIB) -o $(OUTPUT_123)
 	$(STRIP) $(OUTPUT_123)
 
+api_example: libvgmstream.a $(TARGET_EXT_LIBS)
+	$(CC) $(CFLAGS) api_example.c $(LDFLAGS) -o $(OUTPUT_API)
+	$(STRIP) api_example
+
 libvgmstream.a:
 	$(MAKE) -C ../src $@
 
@@ -57,6 +59,6 @@ $(TARGET_EXT_LIBS):
 	$(MAKE) -C ../ext_libs $@
 
 clean:
-	$(RMF) $(OUTPUT_CLI) $(OUTPUT_123)
+	$(RMF) $(OUTPUT_CLI) $(OUTPUT_123) $(OUTPUT_123)
 
 .PHONY: clean vgmstream_cli libvgmstream.a $(TARGET_EXT_LIBS)
