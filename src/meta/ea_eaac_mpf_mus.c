@@ -16,50 +16,53 @@ VGMSTREAM* init_vgmstream_ea_mpf_mus_eaac(STREAMFILE* sf) {
 
 /* .MSB/MSX - EA Redwood Shores (MSB/MSX)+MUS [The Godfather (PS3/360), The Simpsons Game (PS3/360)] */
 VGMSTREAM* init_vgmstream_ea_msb_mus_eaac(STREAMFILE* sf) {
-    /* container with MPF, extra info, and a pre-defined MUS filename */
+    /* container with .MPF ("PFDx"), .NAM (numevents/numparts/numdefines), and a pre-defined MUS filename */
     VGMSTREAM* vgmstream = NULL;
     STREAMFILE* sf_mpf = NULL;
     char mus_name[0x20 + 1];
-    size_t header_size;
-    off_t info_offset, mus_name_offset;
+    size_t mpf_size;
+    off_t header_offset, mpf_offset, mus_name_offset;
     read_u32_t read_u32;
 
-    if (read_u64be(0x00, sf) != 0)
-        return NULL;
     if (!check_extensions(sf, "msb,msx"))
         return NULL;
 
-    header_size = 0x50;
-    mus_name_offset = 0x30;
-
-    /* 0x08: buffer size of the pre-defined .mus filename? (always 0x20)
-     * 0x20: mpf version number? (always 0x05)
-     * 0x24: offset to a chunk of plaintext data w/ event and node info & names
-     * 0x2C: some hash?
-     * 0x30: intended .mus filename */
     read_u32 = guess_read_u32(0x08, sf);
 
-    /* extra checks to fail faster before streamfile'ing */
-    if (read_u32(0x08, sf) != 0x20)
+    if (read_u64le(0x00, sf) != 0)
         return NULL;
-    if (read_u32(0x20, sf) != 0x05)
+    header_offset = read_u32(0x08, sf);
+    if (header_offset != 0x20)
+        return NULL;
+    if (read_u32(header_offset, sf) != 0x05) /* version */
         return NULL;
 
-    /* not exactly the same as mpf size since it's aligned, but doesn't matter here */
-    info_offset = read_u32(0x24, sf); //+ header_size;
+
+    mpf_offset = header_offset + 0x30;
+    /* Version 0x05:
+     *  0x04: plaintext events/parts/defines offset (+ mpf offset)
+     *  0x08: always 0?
+     *  0x0C: some hash?
+     *  0x10: intended .mus filename
+     *  0x30: PFDx data
+     */
+    mus_name_offset = header_offset + 0x10;
+
+    /* not exactly the same as mpf size since it's aligned, but correct size is only needed for v3 */
+    mpf_size = read_u32(header_offset + 0x04, sf);
     /* TODO: it should be theoretically possible to use the numparts section
      * in the plaintext chunk to get valid stream names using its entry node
-     * indices by checking if they're within range of the current subsong.
-     *
-     * However the main thing currently preventing that from being a thing
-     * is the fact that the indices deviate starting off by being off by 1,
-     * and can go up to being off by like 10 or in some rare extreme cases
-     * up to couple 100s. See if this index logic has some rhyme or reason.
-     */
+     * indices by checking if they're within range of the current subsong */
+    /* However, there is something funky going on, where for each stream the
+     * number goes off by 2 (and in some cases by a much larger value) which
+     * needs to be worked out first before anything else can be done */
     read_string(mus_name, sizeof(mus_name), mus_name_offset, sf);
+    /* usually the same base name, but can rarely be different
+     * e.g. bargain_bin.msb/msx -> bin.mus [The Simpsons Game]
+     */
 
     sf_mpf = open_wrap_streamfile(sf);
-    sf_mpf = open_clamp_streamfile(sf_mpf, header_size, info_offset);
+    sf_mpf = open_clamp_streamfile(sf_mpf, mpf_offset, mpf_size);
     if (!sf_mpf) goto fail;
 
     vgmstream = init_vgmstream_ea_mpf_mus_eaac_main(sf_mpf, mus_name);
