@@ -902,7 +902,7 @@ static int write_file(VGMSTREAM* vgmstream, cli_config* cfg) {
         render_vgmstream(buf, to_get, vgmstream);
 
         swap_samples_le(buf, channels * to_get); /* write PC endian */
-        fwrite(buf, sizeof(sample_t) * channels, to_get, outfile);
+        fwrite(buf, sizeof(sample_t), to_get * channels, outfile);
         /* should write infinitely until program kill */
     }
 
@@ -930,7 +930,7 @@ static int write_file(VGMSTREAM* vgmstream, cli_config* cfg) {
 
         if (!cfg->decode_only) {
             swap_samples_le(buf, channels * to_get); /* write PC endian */
-            fwrite(buf, sizeof(sample_t) * channels, to_get, outfile);
+            fwrite(buf, sizeof(sample_t), to_get * channels, outfile);
         }
     }
 
