@@ -430,10 +430,26 @@ fail:
     return NULL;
 }
 
+/* FFmpeg internals (roughly) for reference:
+ * 
+ *   AVFormatContext                    // base info extracted from input file
+ *     AVStream                         // substreams
+ *       AVCodecParameters              // codec id, channels, format, ...
+ *   
+ *   AVCodecContext                     // sample rate and general info
+ * 
+ * - open avformat to get all possible format info (needs file or custom IO)
+ * - open avcodec based on target stream + codec info from avformat
+ * - decode chunks of data (feed style)
+ *   - read next frame into packet via avformat
+ *   - decode packet via avcodec
+ *   - handle samples
+*/
+
 static int init_ffmpeg_config(ffmpeg_codec_data* data, int target_subsong, int reset) {
     int errcode = 0;
 
-    /* basic IO/format setup */
+    /* custom IO/format setup */
     data->buffer = av_malloc(FFMPEG_DEFAULT_IO_BUFFER_SIZE);
     if (!data->buffer) goto fail;
 
@@ -448,13 +464,14 @@ static int init_ffmpeg_config(ffmpeg_codec_data* data, int target_subsong, int r
     //data->inputFormatCtx = av_find_input_format("h264"); /* set directly? */
     /* on reset could use AVFormatContext.iformat to reload old format too */
 
+    /* format detection */
     errcode = avformat_open_input(&data->formatCtx, NULL /*""*/, NULL, NULL);
     if (errcode < 0) goto fail;
 
     errcode = avformat_find_stream_info(data->formatCtx, NULL);
     if (errcode < 0) goto fail;
 
-    /* find valid audio stream and set other streams to discard */
+    /* find valid audio stream and set other streams to be discarded */
     {
         int i, stream_index, stream_count;
 
@@ -485,24 +502,22 @@ static int init_ffmpeg_config(ffmpeg_codec_data* data, int target_subsong, int r
         data->stream_count = stream_count;
     }
 
-    /* setup codec with stream info */
+    /* setup codec from stream info */
     data->codecCtx = avcodec_alloc_context3(NULL);
     if (!data->codecCtx) goto fail;
 
     errcode = avcodec_parameters_to_context(data->codecCtx, data->formatCtx->streams[data->stream_index]->codecpar);
     if (errcode < 0) goto fail;
 
-    /* deprecated and seemingly not needed */
-    //av_codec_set_pkt_timebase(data->codecCtx, stream->time_base);
+    //av_codec_set_pkt_timebase(data->codecCtx, stream->time_base); /* deprecated and seemingly not needed */
 
-    /* not useddeprecated and seemingly not needed */
     data->codec = avcodec_find_decoder(data->codecCtx->codec_id);
     if (!data->codec) goto fail;
 
     errcode = avcodec_open2(data->codecCtx, data->codec, NULL);
     if (errcode < 0) goto fail;
 
-    /* prepare codec and frame/packet buffers */
+    /* prepare frame/packet buffers */
     data->packet = av_malloc(sizeof(AVPacket)); /* av_packet_alloc? */
     if (!data->packet) goto fail;
     av_new_packet(data->packet, 0);

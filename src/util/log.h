@@ -73,6 +73,8 @@ void vgm_log_set_callback(void* ctx_p, int level, int type, void* callback);
             printf("\n"); \
         } while (0)
 
+    #define VGM_STEP()  do { printf("%s: %s:%i\n", __FILE__, __FUNCTION__,  __LINE__); } while (0)
+
 #else /* VGM_DEBUG_OUTPUT */
 
     #define VGM_LOG_ONCE(...) /* nothing */
@@ -82,6 +84,8 @@ void vgm_log_set_callback(void* ctx_p, int level, int type, void* callback);
     #define VGM_LOGT() /* nothing */
 
     #define VGM_LOGB(buf, buf_size, bytes_per_line) /* nothing */
+
+    #define VGM_STEP() /* nothing */
 
 #endif /*VGM_DEBUG_OUTPUT*/
 

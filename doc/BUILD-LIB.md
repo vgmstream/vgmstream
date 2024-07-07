@@ -1,6 +1,8 @@
 # vgmstream lib build help
 This document explains how to build various external dependencies used in vgmstream.  Like *vgmstream*, most external libs use C and need to be compiled as such.
 
+The main purpose this doc is to have a reference of what each lib is doing, and to rebuild Windows DLLs. Linux libs are handled automatically using CMake, though you can use these steps too.
+
 See [BUILD](BUILD.md#external-libraries) for a description of each lib first.
 
 ## Intro
@@ -60,7 +62,7 @@ On Linux `install` is used to actually *install* libs on system dirs (so `--pref
 You can call multiple *targets* in a single line `make clean install-strip` is the same as `make clean` and `make install` (which in turn calls plain `make` / default). That's the theory, but at some libs don't properly handle this.
 
 ### autotools config
-*autotools* are **very** fragile and picky, beware when changing stuff.Check other flags by calling `sh ./configure --help`, but changing some of the steps will likely cause odd issues, *autotools are not consistent between libs*.
+*autotools* are **very** fragile and picky, beware when changing stuff. Check other flags by calling `sh ./configure --help`, but changing some of the steps will likely cause odd issues. *autotools are not consistent between libs*.
 
 Common *configure*/Makefile params:
 - `--build=...`: current compilation environment (autodetected, but may fail in outdated libs)
@@ -90,7 +92,7 @@ However, *those flags aren't consistent between libs*, meaning in one using *con
 ### Xiph's releases and exports
 Sometimes we use "official releases" sources rather than using Git's sources. Both should be the same, but releases have pre-generated *./configure*, while Git needs to call `autogen.sh` that calls `autoreconf` that generates a base `configure` script. Since getting `autoreconf` working on **Windows** without MSYS2 requires extra steps (not described), Xiph's releases are recommended.
 
-When building a DLL/lib compiler sets *exported symbols* (functions). Xiph's *autoconf* may generate DLLs correctly, butdon't detect Mingw/Win config properly and export all symbols by default. This is fixed manually, but there may be better ways to handle it (to be researched).
+When building a DLL/lib compiler sets *exported symbols* (functions). Xiph's *autoconf* may generate DLLs correctly, but don't detect Mingw/Win config properly and export all symbols by default. This is fixed manually, but there may be better ways to handle it (to be researched).
 
 ### Shared libs details
 Roughly, a `.dll` is a Windows "shared library"; Linux equivalent would be a `.so` file. First, `.c` files are compiled into objects (`.o` in GCC, `.obj` in MSCV), then can be made into a `.dll`. Later, when a program needs that DLL (or rather, it's functions), a compiler can use it as long as some conditions are met.
@@ -98,7 +100,7 @@ Roughly, a `.dll` is a Windows "shared library"; Linux equivalent would be a `.s
 DLL must *export symbols* (functions), which on a Windows's DLL is done with:
 - adding `__declspec(dllexport)` to a function (usually done with `#define EXPORT ...` and similar ways)
 - using a `.def` module definition file
-- if neither of the above is used, GCC exports every function by default (not great=
+- if neither of the above is used, GCC exports every function by default (not great)
 
 Then, to *link* (refer to) a DLL compiler usually needs helper files (`.dll.a` in GCC, `.lib` in MSVC). DLL's are copied to vgmstream's source, while helper files are created on compile time from `.dll`+`.def` (see *ext_libs/Makefile* for GCC and `ext_libs.vcxproj` for MSVC).
 

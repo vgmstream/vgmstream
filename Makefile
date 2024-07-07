@@ -280,6 +280,9 @@ vgmstream_cli: version
 vgmstream123: version
 	$(MAKE) -C cli vgmstream123
 
+api_example: version
+	$(MAKE) -C cli api_example
+
 winamp: version
 	$(MAKE) -C winamp in_vgmstream
 
