@@ -1580,9 +1580,10 @@ VGMSTREAM* init_vgmstream_dsp_asura(STREAMFILE* sf) {
     uint8_t flag;
 
     /* checks */
-    if (!is_id32be(0x00, sf, "DSP\x00") && /* GC */
-        !is_id32be(0x00, sf, "DSP\x01") && /* GC/Wii/WiiU */
-        !is_id32be(0x00, sf, "DSP\x02"))   /* WiiU */
+    /* "DSP\x00" (GC), "DSP\x01" (GC/Wii/WiiU), "DSP\x02" (WiiU) */
+    if ((read_u32be(0x00, sf) & 0xFFFFFF00) != get_id32be("DSP\0"))
+        return NULL;
+    if (read_u8(0x03, sf) < 0x00 || read_u8(0x03, sf) > 0x02)
         return NULL;
 
     /* .dsp: Judge Dredd (GC)
@@ -1590,7 +1591,7 @@ VGMSTREAM* init_vgmstream_dsp_asura(STREAMFILE* sf) {
     if (!check_extensions(sf, "dsp,wav,lwav"))
         return NULL;
 
-    /* flag set to 0x00 so far only seen in Judge Dredd, which also uses 0x01
+    /* flag set to 0x00 so far only seen in Judge Dredd, which also uses 0x01.
      * at first assumed being 0 means it has a stream name at 0x48 (unlikely) */
     /* flag set to 0x02 means it's ddsp-like stereo */
     flag = read_u8(0x03, sf);
