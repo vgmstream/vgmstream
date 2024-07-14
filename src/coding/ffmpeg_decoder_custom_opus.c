@@ -273,7 +273,7 @@ static size_t opus_io_size(STREAMFILE* sf, opus_io_data* data) {
             break;
         }
 
-        if (data_size == 0) {
+        if (data_size <= 0 || data_size >= 0xFFFFF) { /* arbitrary max + catch -1/EOF */
             VGM_LOG("OPUS: data_size is 0 at %x\n", (uint32_t)offset);
             return 0; /* bad rip? or could 'break' and truck along */
         }
