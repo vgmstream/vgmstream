@@ -59,6 +59,6 @@ $(TARGET_EXT_LIBS):
 	$(MAKE) -C ../ext_libs $@
 
 clean:
-	$(RMF) $(OUTPUT_CLI) $(OUTPUT_123) $(OUTPUT_123)
+	$(RMF) $(OUTPUT_CLI) $(OUTPUT_123) $(OUTPUT_API)
 
 .PHONY: clean vgmstream_cli libvgmstream.a $(TARGET_EXT_LIBS)
