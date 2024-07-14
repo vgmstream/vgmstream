@@ -642,7 +642,7 @@ static size_t get_table_frame_size(opus_io_data* data, int frame) {
 static size_t custom_opus_get_samples(off_t offset, size_t stream_size, STREAMFILE* sf, opus_type_t type) {
     size_t num_samples = 0;
     off_t end_offset = offset + stream_size;
-    int packet = 0;
+    //int packet = 0;
 
     if (end_offset > get_streamfile_size(sf)) {
         VGM_LOG("OPUS: wrong end offset found\n");
@@ -699,7 +699,7 @@ static size_t custom_opus_get_samples(off_t offset, size_t stream_size, STREAMFI
         num_samples += packet_samples;
 
         offset += skip_size + data_size;
-        packet++;
+        //packet++;
     }
 
     return num_samples;
