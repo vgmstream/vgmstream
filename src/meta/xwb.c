@@ -75,7 +75,7 @@ typedef struct {
     int fix_xma_loop_samples;
 } xwb_header;
 
-static void get_name(char* buf, size_t maxsize, int target_subsong, xwb_header* xwb, STREAMFILE* sf);
+static void get_name(char* buf, size_t buf_size, int target_subsong, xwb_header* xwb, STREAMFILE* sf);
 
 
 /* XWB - XACT Wave Bank (Microsoft SDK format for XBOX/XBOX360/Windows) */
@@ -638,10 +638,10 @@ fail:
 
 /* ****************************************************************************** */
 
-static int get_xwb_name(char* buf, size_t maxsize, int target_subsong, xwb_header* xwb, STREAMFILE* sf) {
+static int get_xwb_name(char* buf, size_t buf_size, int target_subsong, xwb_header* xwb, STREAMFILE* sf) {
     size_t read;
 
-    if (!xwb->names_offset || !xwb->names_size || xwb->names_entry_size > maxsize)
+    if (!xwb->names_offset || !xwb->names_size || xwb->names_entry_size > buf_size)
         goto fail;
 
     read = read_string(buf,xwb->names_entry_size, xwb->names_offset + xwb->names_entry_size*(target_subsong-1),sf);
@@ -653,7 +653,7 @@ fail:
     return 0;
 }
 
-static int get_xsb_name(char* buf, size_t maxsize, int target_subsong, xwb_header* xwb, STREAMFILE* sf) {
+static int get_xsb_name(char* buf, size_t buf_size, int target_subsong, xwb_header* xwb, STREAMFILE* sf) {
     xsb_header xsb = {0};
 
     xsb.selected_stream = target_subsong - 1;
@@ -670,8 +670,7 @@ static int get_xsb_name(char* buf, size_t maxsize, int target_subsong, xwb_heade
     if (!xsb.name_len || xsb.name[0] == '\0')
         goto fail;
 
-    strncpy(buf,xsb.name,maxsize);
-    buf[maxsize-1] = '\0';
+    snprintf(buf, buf_size, "%s", xsb.name);
     return 1;
 fail:
     return 0;
@@ -715,12 +714,12 @@ fail:
     return 0;
 }
 
-static void get_name(char* buf, size_t maxsize, int target_subsong, xwb_header* xwb, STREAMFILE* sf_xwb) {
+static void get_name(char* buf, size_t buf_size, int target_subsong, xwb_header* xwb, STREAMFILE* sf_xwb) {
     STREAMFILE* sf_name = NULL;
     int name_found;
 
     /* try to get the stream name in the .xwb, though they are very rarely included */
-    name_found = get_xwb_name(buf, maxsize, target_subsong, xwb, sf_xwb);
+    name_found = get_xwb_name(buf, buf_size, target_subsong, xwb, sf_xwb);
     if (name_found) return;
 
     /* try again in a companion files */
@@ -730,7 +729,7 @@ static void get_name(char* buf, size_t maxsize, int target_subsong, xwb_header* 
         sf_name = open_streamfile_by_ext(sf_xwb, "wbh");
         if (!sf_name) goto fail; /* rarely found [Pac-Man World 2 (Xbox)] */
 
-        name_found = get_wbh_name(buf, maxsize, target_subsong, xwb, sf_name);
+        name_found = get_wbh_name(buf, buf_size, target_subsong, xwb, sf_name);
         close_streamfile(sf_name);
     }
     else {
@@ -738,7 +737,7 @@ static void get_name(char* buf, size_t maxsize, int target_subsong, xwb_header* 
         sf_name = open_xsb_filename_pair(sf_xwb);
         if (!sf_name) goto fail; /* not all xwb have xsb though */
 
-        name_found = get_xsb_name(buf, maxsize, target_subsong, xwb, sf_name);
+        name_found = get_xsb_name(buf, buf_size, target_subsong, xwb, sf_name);
         close_streamfile(sf_name);
     }
 

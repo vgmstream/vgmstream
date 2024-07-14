@@ -81,11 +81,16 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="api.h" />
+    <ClInclude Include="api_decode.h" />
+    <ClInclude Include="api_helpers.h" />
+    <ClInclude Include="api_streamfile.h" />
+    <ClInclude Include="api_tags.h" />
     <ClInclude Include="streamfile.h" />
     <ClInclude Include="streamtypes.h" />
     <ClInclude Include="util.h" />
     <ClInclude Include="vgmstream.h" />
     <ClInclude Include="vgmstream_types.h" />
+    <ClInclude Include="base\api_internal.h" />
     <ClInclude Include="base\decode.h" />
     <ClInclude Include="base\mixing.h" />
     <ClInclude Include="base\mixing_fades.h" />
@@ -197,6 +202,7 @@
     <ClInclude Include="util\samples_ops.h" />
     <ClInclude Include="util\sf_utils.h" />
     <ClInclude Include="util\text_reader.h" />
+    <ClInclude Include="util\vgmstream_limits.h" />
     <ClInclude Include="util\zlib_vgmstream.h" />
   </ItemGroup>
   <ItemGroup>
@@ -204,6 +210,13 @@
     <ClCompile Include="streamfile.c" />
     <ClCompile Include="util.c" />
     <ClCompile Include="vgmstream.c" />
+    <ClCompile Include="base\api_decode_base.c" />
+    <ClCompile Include="base\api_decode_open.c" />
+    <ClCompile Include="base\api_decode_play.c" />
+    <ClCompile Include="base\api_helpers.c" />
+    <ClCompile Include="base\api_libsf.c" />
+    <ClCompile Include="base\api_tags.c" />
+    <ClCompile Include="base\config.c" />
     <ClCompile Include="base\decode.c" />
     <ClCompile Include="base\info.c" />
     <ClCompile Include="base\mixing.c" />
@@ -212,6 +225,15 @@
     <ClCompile Include="base\plugins.c" />
     <ClCompile Include="base\render.c" />
     <ClCompile Include="base\seek.c" />
+    <ClCompile Include="base\streamfile_api.c" />
+    <ClCompile Include="base\streamfile_buffer.c" />
+    <ClCompile Include="base\streamfile_clamp.c" />
+    <ClCompile Include="base\streamfile_fakename.c" />
+    <ClCompile Include="base\streamfile_io.c" />
+    <ClCompile Include="base\streamfile_multifile.c" />
+    <ClCompile Include="base\streamfile_stdio.c" />
+    <ClCompile Include="base\streamfile_wrap.c" />
+    <ClCompile Include="base\tags.c" />
     <ClCompile Include="coding\acm_decoder.c" />
     <ClCompile Include="coding\adx_decoder.c" />
     <ClCompile Include="coding\asf_decoder.c" />

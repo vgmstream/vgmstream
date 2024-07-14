@@ -1066,6 +1066,21 @@ fail:
     return 0;
 }
 
+static int is_absolute(const char* fn) {
+    return fn[0] == '/' || fn[0] == '\\'  || fn[1] == ':';
+}
+
+static STREAMFILE* open_path_streamfile(STREAMFILE* sf, char* path) {
+    fix_dir_separators(path); /* clean paths */
+
+    /* absolute paths are detected for convenience, but since it's hard to unify all OSs
+    * and plugins, they aren't "officially" supported nor documented, thus may or may not work */
+    if (is_absolute(path))
+        return open_streamfile(sf, path); /* from path as is */
+    else
+        return open_streamfile_by_filename(sf, path); /* from current path */
+}
+
 static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char* key, char* val) {
 
     if (txth->debug)
@@ -1415,9 +1430,7 @@ static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char* key, cha
             txth->sf_head_opened = 1;
         }
         else { /* open file */
-            fix_dir_separators(val); /* clean paths */
-
-            txth->sf_head = open_streamfile_by_filename(txth->sf, val);
+            txth->sf_head = open_path_streamfile(txth->sf, val);
             if (!txth->sf_head) goto fail;
             txth->sf_head_opened = 1;
         }
@@ -1445,9 +1458,7 @@ static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char* key, cha
             txth->sf_body_opened = 1;
         }
         else { /* open file */
-            fix_dir_separators(val); /* clean paths */
-
-            txth->sf_body = open_streamfile_by_filename(txth->sf, val);
+            txth->sf_body = open_path_streamfile(txth->sf, val);
             if (!txth->sf_body) goto fail;
             txth->sf_body_opened = 1;
         }

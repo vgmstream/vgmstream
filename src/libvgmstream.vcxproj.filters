@@ -68,6 +68,18 @@
     <ClInclude Include="api.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="api_decode.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="api_helpers.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="api_streamfile.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="api_tags.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="streamfile.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -82,6 +94,9 @@
     </ClInclude>
     <ClInclude Include="vgmstream_types.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="base\api_internal.h">
+      <Filter>base\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="base\decode.h">
       <Filter>base\Header Files</Filter>
@@ -416,6 +431,9 @@
     <ClInclude Include="util\text_reader.h">
       <Filter>util\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="util\vgmstream_limits.h">
+      <Filter>util\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="util\zlib_vgmstream.h">
       <Filter>util\Header Files</Filter>
     </ClInclude>
@@ -432,6 +450,27 @@
     </ClCompile>
     <ClCompile Include="vgmstream.c">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="base\api_decode_base.c">
+      <Filter>base\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="base\api_decode_open.c">
+      <Filter>base\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="base\api_decode_play.c">
+      <Filter>base\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="base\api_helpers.c">
+      <Filter>base\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="base\api_libsf.c">
+      <Filter>base\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="base\api_tags.c">
+      <Filter>base\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="base\config.c">
+      <Filter>base\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="base\decode.c">
       <Filter>base\Source Files</Filter>
@@ -455,6 +494,33 @@
       <Filter>base\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="base\seek.c">
+      <Filter>base\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="base\streamfile_api.c">
+      <Filter>base\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="base\streamfile_buffer.c">
+      <Filter>base\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="base\streamfile_clamp.c">
+      <Filter>base\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="base\streamfile_fakename.c">
+      <Filter>base\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="base\streamfile_io.c">
+      <Filter>base\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="base\streamfile_multifile.c">
+      <Filter>base\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="base\streamfile_stdio.c">
+      <Filter>base\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="base\streamfile_wrap.c">
+      <Filter>base\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="base\tags.c">
       <Filter>base\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\acm_decoder.c">

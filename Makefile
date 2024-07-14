@@ -300,4 +300,4 @@ clean:
 	$(MAKE) -C xmplay clean
 	$(MAKE) -C ext_libs clean
 
-.PHONY: clean buildfullrelease buildrelease sourceball bin vgmstream-cli vgmstream_cli vgmstream123 winamp xmplay version
+.PHONY: clean buildfullrelease buildrelease sourceball bin vgmstream-cli vgmstream_cli vgmstream123 api_example winamp xmplay version

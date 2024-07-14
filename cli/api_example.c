@@ -1,13 +1,14 @@
-#if 0
+#include "../src/api.h"
+#if LIBVGMSTREAM_ENABLE
 #include <stdlib.h>
 #include <stdio.h>
-#include "../src/api.h"
+#include <assert.h>
+
+#include "../src/base/api_internal.h"
 
 
 static void usage(const char* progname) {
-    fprintf(stderr, "API test v%08x\n"
-            "Usage: %s <infile>\n"
-            , libvgmstream_get_version()
+    fprintf(stderr, "Usage: %s <infile>\n"
             , progname
     );
 }
@@ -24,23 +25,18 @@ static FILE* get_output_file(const char* filename) {
 }
 
 static libvgmstream_streamfile_t* get_streamfile(const char* filename) {
-    return NULL;
+    return libvgmstream_streamfile_from_filename(filename);
 }
 
-/* simplistic example of vgmstream's API
- * for something a bit more featured see vgmstream-cli
- */
-int main(int argc, char** argv) {
+static int api_example(const char* infile) {
+VGM_STEP();
     int err;
     FILE* outfile = NULL;
-    const char* infile;
     
-    if (argc != 2) {
-        usage(argv[0]);
-        return EXIT_FAILURE;
-    }
-
-    infile = argv[1];
+    bool fill_test;
+    int pcm16_samples;
+    int pcm16_bytes;
+    short* pcm16 = NULL;
 
 
     // main init
@@ -50,45 +46,96 @@ int main(int argc, char** argv) {
 
     // set default config
     libvgmstream_config_t cfg = {
-        .loop_count = 2.0,
-        .fade_time = 10.0,
+        //.loop_count = 1.0,
+        //.fade_time = 10.0,
+        .ignore_loop = true,
     };
     libvgmstream_setup(lib, &cfg);
 
 
     // open target file
-    libvgmstream_options_t options = {
-        .sf = get_streamfile(infile)
+    libvgmstream_options_t opt = {
+        .libsf = get_streamfile(infile)
     };
-    err = libvgmstream_open(lib, &options);
-    if (err < 0) goto fail;
-
-
+    err = libvgmstream_open(lib, &opt);
     // external SF is not needed after _open
-    libvgmstream_streamfile_close(options.sf); 
+    libvgmstream_streamfile_close(opt.libsf); 
 
+    if (err < 0) {
+        printf("not a valid file\n");
+        goto fail;
+    }
 
     // output file
     outfile = get_output_file(infile);
     if (!outfile) goto fail;
 
+    {
+        char title[128];
+        libvgmstream_title_t cfg = {
+            .filename = infile,
+            .remove_extension = true,
+        };
+        libvgmstream_get_title(lib, &cfg, title, sizeof(title));
+
+        printf("- format title:\n");
+        printf("%s\n", title);
+    }
+
+    {
+        char describe[1024];
+        libvgmstream_format_describe(lib, describe, sizeof(describe));
+
+        printf("- format describe:\n");
+        printf("%s\n", describe);
+    }
+
+    printf("- format info\n");
+    printf("channels: %i\n", lib->format->channels);
+    printf("sample rate: %i\n", lib->format->sample_rate);
+    printf("codec: %s\n", lib->format->codec_name);
+    printf("samples: %i\n", (int32_t)lib->format->sample_count);
+    printf("\n");
+    printf("- decoding: %i\n" , (int32_t)lib->format->play_samples);
+
+    
+    
+    fill_test = true;
+    pcm16_samples = 512;
+    pcm16_bytes = pcm16_samples * sizeof(short) * lib->format->channels;
+    pcm16 = malloc(pcm16_bytes);
+    if (!pcm16) goto fail;
 
     // play file and do something with decoded samples
     while (true) {
-        int pos;
+        //int pos;
+        void* buf;
+        int buf_bytes = 0;
 
         if (lib->decoder->done)
             break;
 
         // get current samples
-        err = libvgmstream_play(lib);
-        if (err < 0) goto fail;
+        if (fill_test) {
+            err = libvgmstream_fill(lib, pcm16, pcm16_samples);
+            if (err < 0) goto fail;
 
-        fwrite(lib->decoder->buf, sizeof(uint8_t), lib->decoder->buf_bytes, outfile);
+            buf = pcm16;
+            buf_bytes = err * sizeof(short) * lib->format->channels;
+        }
+        else {
+            err = libvgmstream_play(lib);
+            if (err < 0) goto fail;
 
-        pos = (int)libvgmstream_play_position(lib);
-        printf("\rpos: %d", pos);
-        fflush(stdout);
+            buf = lib->decoder->buf;
+            buf_bytes = lib->decoder->buf_bytes;
+        }
+
+        fwrite(buf, sizeof(uint8_t), buf_bytes, outfile);
+
+        //pos = (int)libvgmstream_get_play_position(lib);
+        //printf("\r- decode pos: %d", pos);
+        //fflush(stdout);
     }
     printf("\n");
 
@@ -98,6 +145,7 @@ int main(int argc, char** argv) {
     // process done
     libvgmstream_free(lib);
     fclose(outfile);
+    free(pcm16);
 
     printf("done\n");
     return EXIT_SUCCESS;
@@ -105,8 +153,258 @@ fail:
     // process failed
     libvgmstream_free(lib);
     fclose(outfile);
+    free(pcm16);
 
     printf("failed!\n");
     return EXIT_FAILURE;
+}
+
+
+static void test_lib_is_valid() {
+    VGM_STEP();
+
+    bool expected, result;
+
+    expected = true;
+    result = libvgmstream_is_valid("test.adx", NULL);
+    assert(expected == result);
+
+    expected = true;
+    result = libvgmstream_is_valid("extensionless", NULL);
+    assert(expected == result);
+
+    libvgmstream_valid_t cfg = {
+        .reject_extensionless = true
+    };
+    expected = false;
+    result = libvgmstream_is_valid("extensionless", &cfg);
+    assert(expected == result);
+}
+
+static void test_lib_extensions() {
+    VGM_STEP();
+
+    const char** exts;
+    size_t size = 0;
+
+    size = 0;
+    exts = libvgmstream_get_extensions(&size);
+    assert(exts != NULL && size > 100);
+
+    exts = libvgmstream_get_extensions(NULL);
+    assert(exts == NULL);
+
+    size = 0;
+    exts = libvgmstream_get_common_extensions(&size);
+    assert(exts != NULL && size > 1 && size < 100);
+
+    exts = libvgmstream_get_common_extensions(NULL);
+    assert(exts == NULL);
+}
+
+static libvgmstream_streamfile_t* test_libsf_open() {
+    VGM_STEP();
+
+    libvgmstream_streamfile_t* libsf = NULL;
+
+    libsf = libvgmstream_streamfile_from_filename("api.bin_wrong");
+    assert(libsf == NULL);
+
+    libsf = libvgmstream_streamfile_from_filename("api.bin");
+    assert(libsf != NULL);
+
+    return libsf;
+}
+
+
+static void test_libsf_read(libvgmstream_streamfile_t* libsf) {
+    VGM_STEP();
+
+    int read;
+    uint8_t buf[0x20];
+
+    read = libsf->read(libsf->user_data, buf, sizeof(buf));
+    assert(read == sizeof(buf));
+    for (int  i = 0; i < sizeof(buf); i++) {
+        assert(buf[i] == ((i + 0x00) & 0xFF));
+    }
+
+    read = libsf->read(libsf->user_data, buf, sizeof(buf));
+    assert(read == sizeof(buf));
+    for (int  i = 0; i < sizeof(buf); i++) {
+        assert(buf[i] == ((i + 0x20) & 0xFF));
+    }
+}
+
+static void test_libsf_seek_read(libvgmstream_streamfile_t* libsf) {
+    VGM_STEP();
+
+    int read, res;
+    uint8_t buf[0x20];
+
+    res = libsf->seek(libsf->user_data, 0x19BC0, 0);
+    assert(res == 0);
+
+    read = libsf->read(libsf->user_data, buf, sizeof(buf));
+    assert(read == sizeof(buf));
+    for (int  i = 0; i < sizeof(buf); i++) {
+        assert(buf[i] == ((i + 0xC0) & 0xFF));
+    }
+
+    res = libsf->seek(libsf->user_data, 0x7FFFFF, 0);
+    assert(res == 0);
+
+    read = libsf->read(libsf->user_data, buf, sizeof(buf));
+    assert(read == 0);
+}
+
+static void test_libsf_size(libvgmstream_streamfile_t* libsf) {
+    VGM_STEP();
+
+    int64_t size = libsf->get_size(libsf->user_data);
+    assert(size == 0x20000);
+}
+
+static void test_libsf_name(libvgmstream_streamfile_t* libsf) {
+    VGM_STEP();
+
+    char name[128];
+    libsf->get_name(libsf->user_data, name, sizeof(name));
+    assert(strcmp(name, "api.bin") == 0);
+}
+
+static void test_libsf_reopen(libvgmstream_streamfile_t* libsf) {
+    VGM_STEP();
+
+    uint8_t buf[0x20];
+    int read;
+
+    libvgmstream_streamfile_t* newsf = NULL;
+
+    newsf = libsf->open(libsf->user_data, "api2.bin_wrong");
+    assert(newsf == NULL);
+
+    newsf = libsf->open(libsf->user_data, "api2.bin");
+    assert(newsf != NULL);
+
+    read = newsf->read(newsf->user_data, buf, sizeof(buf));
+    assert(read == sizeof(buf));
+    assert(buf[0x10] == 0x10);
+
+    newsf->close(newsf);
+}
+
+static void test_libsf_apisf(libvgmstream_streamfile_t* libsf) {
+    VGM_STEP();
+
+    STREAMFILE* sf = open_api_streamfile(libsf);
+    assert(sf != NULL);
+
+    int read;
+    uint8_t buf[0x20];
+
+    read = read_streamfile(buf, 0xF0, sizeof(buf), sf);
+    assert(read == sizeof(buf));
+    for (int  i = 0; i < sizeof(buf); i++) {
+        assert(buf[i] == ((i + 0xF0) & 0xFF));
+    }
+
+    size_t size = get_streamfile_size(sf);
+    assert(size == 0x20000);
+
+    close_streamfile(sf);
+
+}
+
+
+static void test_lib_streamfile() {
+    VGM_STEP();
+
+    libvgmstream_streamfile_t* libsf = test_libsf_open();
+    test_libsf_read(libsf);
+    test_libsf_seek_read(libsf);
+    test_libsf_size(libsf);
+    test_libsf_name(libsf);
+    test_libsf_reopen(libsf);
+    test_libsf_apisf(libsf);
+
+    // close
+    libsf->close(libsf);
+}
+
+static void test_lib_tags() {
+    VGM_STEP();
+
+    libvgmstream_streamfile_t* libsf = NULL;
+    libvgmstream_tags_t* tags = NULL;
+    bool more = false;
+
+    libsf = libvgmstream_streamfile_from_filename("sample_!tags.m3u");
+    assert(libsf != NULL);
+
+    tags = libvgmstream_tags_init(libsf);
+    assert(tags != NULL);
+
+
+    libvgmstream_tags_find(tags, "filename1.adx");
+    more = libvgmstream_tags_next_tag(tags);
+    assert(more && strcmp(tags->key, "ARTIST") == 0 && strcmp(tags->val, "global artist") == 0);
+    more = libvgmstream_tags_next_tag(tags);
+    assert(more && strcmp(tags->key, "TITLE") == 0 && strcmp(tags->val, "filename1 title") == 0);
+    more = libvgmstream_tags_next_tag(tags);
+    assert(!more);
+
+
+    libvgmstream_tags_find(tags, "filename2.adx");
+    more = libvgmstream_tags_next_tag(tags);
+    assert(more && strcmp(tags->key, "ARTIST") == 0 && strcmp(tags->val, "global artist") == 0);
+    more = libvgmstream_tags_next_tag(tags);
+    assert(more && strcmp(tags->key, "TITLE") == 0 && strcmp(tags->val, "filename2 title") == 0);
+    more = libvgmstream_tags_next_tag(tags);
+    assert(!more);
+
+
+    libvgmstream_tags_find(tags, "filename3.adx");
+    more = libvgmstream_tags_next_tag(tags);
+    assert(more && strcmp(tags->key, "ARTIST") == 0 && strcmp(tags->val, "global artist") == 0);
+    more = libvgmstream_tags_next_tag(tags);
+    assert(!more);
+
+
+    libvgmstream_tags_find(tags, "filename_incorrect.adx");
+    more = libvgmstream_tags_next_tag(tags);
+    assert(more && strcmp(tags->key, "ARTIST") == 0 && strcmp(tags->val, "global artist") == 0);
+    more = libvgmstream_tags_next_tag(tags);
+    assert(!more);
+
+    libvgmstream_tags_free(tags);
+    libvgmstream_streamfile_close(libsf);
+}
+
+
+/* simplistic example of vgmstream's API
+ * for something a bit more featured see vgmstream-cli
+ */
+int main(int argc, char** argv) {
+    printf("API v%08x test\n", libvgmstream_get_version());
+
+    libvgmstream_log_t cfg = {
+        .stdout_callback = true
+    };
+    libvgmstream_set_log(&cfg);
+
+    test_lib_is_valid();
+    test_lib_extensions();
+    test_lib_streamfile();
+    test_lib_tags();
+
+    if (argc != 2) {
+        usage(argv[0]);
+        return EXIT_FAILURE;
+    }
+
+    api_example(argv[1]);
+
+    return 0;
 }
 #endif

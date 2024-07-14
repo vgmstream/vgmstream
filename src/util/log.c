@@ -43,7 +43,7 @@ void vgm_log_set_callback(void* ctx_p, int level, int type, void* callback) {
 }
 
 static void log_internal(void* ctx_p, int level, const char* fmt, va_list args) {
-    char line[255];
+    char line[256];
     int out;
     logger_t* ctx = ctx_p;
     if (!ctx) ctx = &log_impl;
