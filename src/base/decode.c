@@ -49,6 +49,10 @@ void decode_free(VGMSTREAM* vgmstream) {
         free_imuse(vgmstream->codec_data);
     }
 
+    if (vgmstream->coding_type == coding_ONGAKUKAN_ADPCM) {
+        free_ongakukan_adp(vgmstream->codec_data);
+    }
+
     if (vgmstream->coding_type == coding_COMPRESSWAVE) {
         free_compresswave(vgmstream->codec_data);
     }
@@ -147,6 +151,10 @@ void decode_seek(VGMSTREAM* vgmstream) {
 
     if (vgmstream->coding_type == coding_IMUSE) {
         seek_imuse(vgmstream->codec_data, vgmstream->loop_current_sample);
+    }
+
+    if (vgmstream->coding_type == coding_ONGAKUKAN_ADPCM) {
+        seek_ongakukan_adp(vgmstream->codec_data, vgmstream->loop_current_sample);
     }
 
     if (vgmstream->coding_type == coding_COMPRESSWAVE) {
@@ -252,6 +260,10 @@ void decode_reset(VGMSTREAM* vgmstream) {
 
     if (vgmstream->coding_type == coding_IMUSE) {
         reset_imuse(vgmstream->codec_data);
+    }
+
+    if (vgmstream->coding_type == coding_ONGAKUKAN_ADPCM) {
+        reset_ongakukan_adp(vgmstream->codec_data);
     }
 
     if (vgmstream->coding_type == coding_COMPRESSWAVE) {
@@ -522,6 +534,8 @@ int decode_get_samples_per_frame(VGMSTREAM* vgmstream) {
             return 0; /* varies per mode */
         case coding_IMUSE:
             return 0; /* varies per frame */
+        case coding_ONGAKUKAN_ADPCM:
+            return 0; /* actually 1. */
         case coding_COMPRESSWAVE:
             return 0; /* multiple of 2 */
         case coding_EA_MT:
@@ -1527,6 +1541,10 @@ void decode_vgmstream(VGMSTREAM* vgmstream, int samples_written, int samples_to_
 
         case coding_IMUSE:
             decode_imuse(vgmstream, buffer, samples_to_do);
+            break;
+
+        case coding_ONGAKUKAN_ADPCM:
+            decode_ongakukan_adp(vgmstream, buffer, samples_to_do);
             break;
 
         case coding_COMPRESSWAVE:
