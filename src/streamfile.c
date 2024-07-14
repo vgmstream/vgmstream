@@ -242,6 +242,9 @@ static STREAMFILE* open_stdio_streamfile_buffer_by_file(FILE* infile, const char
     uint8_t* buf = NULL;
     STDIO_STREAMFILE* this_sf = NULL;
 
+    if (buf_size <= 0)
+        buf_size = STREAMFILE_DEFAULT_BUFFER_SIZE;
+
     buf = calloc(buf_size, sizeof(uint8_t));
     if (!buf) goto fail;
 
@@ -326,11 +329,11 @@ static STREAMFILE* open_stdio_streamfile_buffer(const char* const filename, size
 }
 
 STREAMFILE* open_stdio_streamfile(const char* filename) {
-    return open_stdio_streamfile_buffer(filename, STREAMFILE_DEFAULT_BUFFER_SIZE);
+    return open_stdio_streamfile_buffer(filename, 0);
 }
 
 STREAMFILE* open_stdio_streamfile_by_file(FILE* file, const char* filename) {
-    return open_stdio_streamfile_buffer_by_file(file, filename, STREAMFILE_DEFAULT_BUFFER_SIZE);
+    return open_stdio_streamfile_buffer_by_file(file, filename, 0);
 }
 
 /* **************************************************** */

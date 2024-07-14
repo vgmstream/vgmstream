@@ -442,6 +442,7 @@ bool VgmstreamPlugin::play(const char * filename, VFSFile & file) {
         render_vgmstream(buffer, to_do, vgmstream);
 
         write_audio(buffer, to_do * sizeof(short) * output_channels);
+        //TODO: detect how many written
         decode_pos_samples += to_do;
     }
 

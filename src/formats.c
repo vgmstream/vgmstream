@@ -734,12 +734,18 @@ static const char* common_extension_list[] = {
 
 
 /* List supported formats and return elements in the list, for plugins that need to know. */
-const char ** vgmstream_get_formats(size_t * size) {
+const char** vgmstream_get_formats(size_t* size) {
+    if (!size)
+        return NULL;
+
     *size = sizeof(extension_list) / sizeof(char*);
     return extension_list;
 }
 
-const char ** vgmstream_get_common_formats(size_t * size) {
+const char** vgmstream_get_common_formats(size_t* size) {
+    if (!size)
+        return NULL;
+
     *size = sizeof(common_extension_list) / sizeof(char*);
     return common_extension_list;
 }
@@ -766,18 +772,18 @@ typedef struct {
 static const coding_info coding_info_list[] = {
         {coding_SILENCE,            "Silence"},
 
-        {coding_PCM16LE,            "Little Endian 16-bit PCM"},
-        {coding_PCM16BE,            "Big Endian 16-bit PCM"},
-        {coding_PCM16_int,          "16-bit PCM with 2 byte interleave (block)"},
+        {coding_PCM16LE,            "16-bit Little Endian PCM"},
+        {coding_PCM16BE,            "16-bit Big Endian PCM"},
+        {coding_PCM16_int,          "16-bit PCM (block)"},
         {coding_PCM8,               "8-bit signed PCM"},
-        {coding_PCM8_int,           "8-bit signed PCM with 1 byte interleave (block)"},
+        {coding_PCM8_int,           "8-bit signed PCM (block)"},
         {coding_PCM8_U,             "8-bit unsigned PCM"},
-        {coding_PCM8_U_int,         "8-bit unsigned PCM with 1 byte interleave (block)"},
-        {coding_PCM8_SB,            "8-bit PCM with sign bit"},
+        {coding_PCM8_U_int,         "8-bit unsigned PCM (block)"},
+        {coding_PCM8_SB,            "8-bit sign bit PCM"},
         {coding_PCM4,               "4-bit signed PCM"},
         {coding_PCM4_U,             "4-bit unsigned PCM"},
         {coding_ULAW,               "8-bit u-Law"},
-        {coding_ULAW_int,           "8-bit u-Law with 1 byte interleave (block)"},
+        {coding_ULAW_int,           "8-bit u-Law (block)"},
         {coding_ALAW,               "8-bit a-Law"},
         {coding_PCMFLOAT,           "32-bit float PCM"},
         {coding_PCM24LE,            "24-bit Little Endian PCM"},
@@ -876,9 +882,9 @@ static const coding_info coding_info_list[] = {
         {coding_COMPRESSWAVE,       "CompressWave Huffman ADPCM"},
 
         {coding_SDX2,               "Squareroot-delta-exact (SDX2) 8-bit DPCM"},
-        {coding_SDX2_int,           "Squareroot-delta-exact (SDX2) 8-bit DPCM with 1 byte interleave"},
+        {coding_SDX2_int,           "Squareroot-delta-exact (SDX2) 8-bit DPCM (block)"},
         {coding_CBD2,               "Cuberoot-delta-exact (CBD2) 8-bit DPCM"},
-        {coding_CBD2_int,           "Cuberoot-delta-exact (CBD2) 8-bit DPCM with 1 byte interleave"},
+        {coding_CBD2_int,           "Cuberoot-delta-exact (CBD2) 8-bit DPCM (block)"},
         {coding_SASSC,              "Activision / EXAKT SASSC 8-bit DPCM"},
         {coding_DERF,               "Xilam DERF 8-bit DPCM"},
         {coding_WADY,               "Marble WADY 8-bit DPCM"},
@@ -1010,7 +1016,7 @@ static const meta_info meta_info_list[] = {
         {meta_XA,                   "Sony XA header"},
         {meta_RXWS,                 "Sony RXWS header"},
         {meta_RAW_INT,              "PS2 .int raw header"},
-        {meta_OMU,                  "Outrage OMU Header"},
+        {meta_OMU,                  "Outrage OMU header"},
         {meta_DSP_STM,              "Intelligent Systems STM header"},
         {meta_EXST,                 "Sony EXST header"},
         {meta_SVAG_KCET,            "Konami SVAG header"},
@@ -1035,8 +1041,8 @@ static const meta_info meta_info_list[] = {
         {meta_DSP_STR,              "Cauldron .STR header"},
         {meta_EA_SCHL,              "Electronic Arts SCHl header"},
         {meta_EA_SCHL_fixed,        "Electronic Arts SCHl header (fixed)"},
-        {meta_CAF,                  "tri-Crescendo CAF Header"},
-        {meta_VPK,                  "SCE America VPK Header"},
+        {meta_CAF,                  "tri-Crescendo CAF header"},
+        {meta_VPK,                  "SCE America VPK header"},
         {meta_GENH,                 "GENH generic header"},
         {meta_DSP_SADB,             "Procyon Studio SADB header"},
         {meta_SADL,                 "Procyon Studio SADL header"},
@@ -1055,7 +1061,7 @@ static const meta_info meta_info_list[] = {
         {meta_NWA_GAMEEXEINI,       "VisualArt's NWA header (Gameexe.ini looping)"},
         {meta_XSS,                  "Dino Crisis 3 XSS File"},
         {meta_HGC1,                 "Cauldron HGC1 header"},
-        {meta_AUS,                  "Capcom AUS Header"},
+        {meta_AUS,                  "Atomic Planet AUS header"},
         {meta_RWS,                  "RenderWare RWS header"},
         {meta_EA_1SNH,              "Electronic Arts 1SNh header"},
         {meta_EA_EACS,              "Electronic Arts EACS header"},
@@ -1070,17 +1076,17 @@ static const meta_info meta_info_list[] = {
         {meta_PS2_XA30,             "Reflections XA30 PS2 header"},
         {meta_MUSC,                 "Krome MUSC header"},
         {meta_MUSX,                 "Eurocom MUSX header"},
-        {meta_FILP,                 "cavia FILp Header"},
+        {meta_FILP,                 "cavia FILp header"},
         {meta_IKM,                  "MiCROViSiON IKM header"},
         {meta_STER,                 "ALCHEMY STER header"},
         {meta_SAT_DVI,              "Konami DVI. header"},
         {meta_DC_KCEY,              "Konami KCEY header"},
         {meta_BG00,                 "Cave BG00 header"},
-        {meta_RSTM_ROCKSTAR,        "Rockstar Games RSTM Header"},
-        {meta_ACM,                  "InterPlay ACM Header"},
+        {meta_RSTM_ROCKSTAR,        "Rockstar Games RSTM header"},
+        {meta_ACM,                  "InterPlay ACM header"},
         {meta_MUS_ACM,              "InterPlay MUS ACM header"},
-        {meta_VIG_KCES,             "Konami .VIG Header"},
-        {meta_HXD,                  "Tecmo HXD Header"},
+        {meta_VIG_KCES,             "Konami .VIG header"},
+        {meta_HXD,                  "Tecmo HXD header"},
         {meta_VSV,                  "Square Enix .vsv Header"},
         {meta_RIFF_WAVE_labl,       "RIFF WAVE header (labl looping)"},
         {meta_RIFF_WAVE_smpl,       "RIFF WAVE header (smpl looping)"},
@@ -1101,7 +1107,7 @@ static const meta_info meta_info_list[] = {
         {meta_STR_SEGA_custom,      "Sega Stream Asset Builder header (custom)"},
         {meta_XMU,                  "Outrage XMU header"},
         {meta_XVAS,                 "Konami .XVAS header"},
-        {meta_XA2_ACCLAIM,          "Acclaim .XA2 Header"},
+        {meta_XA2_ACCLAIM,          "Acclaim .XA2 header"},
         {meta_SAP,                  "VING .SAP header"},
         {meta_DC_IDVI,              "Capcom IDVI header"},
         {meta_KRAW,                 "Geometry Wars: Galaxies KRAW header"},
