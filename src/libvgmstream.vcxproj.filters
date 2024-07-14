@@ -392,9 +392,6 @@
     <ClInclude Include="util\layout_utils.h">
       <Filter>util\Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="util\limits.h">
-      <Filter>util\Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="util\log.h">
       <Filter>util\Header Files</Filter>
     </ClInclude>
@@ -432,6 +429,9 @@
       <Filter>util\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="util\text_reader.h">
+      <Filter>util\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="util\vgmstream_limits.h">
       <Filter>util\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="util\zlib_vgmstream.h">

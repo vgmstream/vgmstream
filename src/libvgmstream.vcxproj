@@ -189,7 +189,6 @@
     <ClInclude Include="util\cri_utf.h" />
     <ClInclude Include="util\endianness.h" />
     <ClInclude Include="util\layout_utils.h" />
-    <ClInclude Include="util\limits.h" />
     <ClInclude Include="util\log.h" />
     <ClInclude Include="util\m2_psb.h" />
     <ClInclude Include="util\meta_utils.h" />
@@ -203,6 +202,7 @@
     <ClInclude Include="util\samples_ops.h" />
     <ClInclude Include="util\sf_utils.h" />
     <ClInclude Include="util\text_reader.h" />
+    <ClInclude Include="util\vgmstream_limits.h" />
     <ClInclude Include="util\zlib_vgmstream.h" />
   </ItemGroup>
   <ItemGroup>

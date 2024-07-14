@@ -1,5 +1,5 @@
 #include "../streamfile.h"
-#include "../util/limits.h"
+#include "../util/vgmstream_limits.h"
 
 
 typedef struct {

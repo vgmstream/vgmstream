@@ -19,7 +19,7 @@
 
 
 /* reasonable limits */
-#include "util/limits.h"
+#include "util/vgmstream_limits.h"
 
 #include "streamfile.h"
 #include "vgmstream_types.h"
