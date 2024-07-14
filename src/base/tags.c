@@ -86,17 +86,10 @@ int vgmstream_tags_next_tag(VGMSTREAM_TAGS* tags, STREAMFILE* tagfile) {
 
     /* prepare file start and skip BOM if needed */
     if (tags->offset == 0) {
-        if (read_u16le(0x00, tagfile) == 0xFFFE ||
-            read_u16le(0x00, tagfile) == 0xFEFF) {
-            tags->offset = 0x02;
-            if (tags->section_start == 0)
-                tags->section_start = 0x02;
-        }
-        else if ((read_u32be(0x00, tagfile) & 0xFFFFFF00) ==  0xEFBBBF00) {
-            tags->offset = 0x03;
-            if (tags->section_start == 0)
-                tags->section_start = 0x03;
-        }
+        size_t bom_size = read_bom(tagfile);
+        tags->offset = bom_size;
+        if (tags->section_start == 0)
+            tags->section_start = bom_size;
     }
 
     /* read lines */
