@@ -38,9 +38,9 @@ void decode_ongakukan_adp(VGMSTREAM* vgmstream, sample_t* outbuf, int32_t sample
 {
 	ongakukan_adp_data* data = vgmstream->codec_data;
 
-	(long int)(data->samples_filled) = grab_samples_filled_from_ongakukan_adp(data->handle);
-	(long int)(data->samples_consumed) = grab_samples_consumed_from_ongakukan_adp(data->handle);
-	data->samples = grab_sample_hist_from_ongakukan_adp(data->handle);
+	data->samples_filled = (int32_t)grab_samples_filled_from_ongakukan_adp(data->handle);
+	data->samples_consumed = (int32_t)grab_samples_consumed_from_ongakukan_adp(data->handle);
+	data->samples = (int16_t*)grab_sample_hist_from_ongakukan_adp(data->handle);
 	while (data->samples_done < samples_to_do)
 	{
 		if (data->samples_filled)
@@ -63,9 +63,9 @@ void decode_ongakukan_adp(VGMSTREAM* vgmstream, sample_t* outbuf, int32_t sample
 			send_samples_filled_to_ongakukan_adp((long int)(data->samples_filled), data->handle);
 		}
 		else { decode_ongakukan_adp_data(data->handle);
-		(long int)(data->samples_filled) = grab_samples_filled_from_ongakukan_adp(data->handle);
-		(long int)(data->samples_consumed) = grab_samples_consumed_from_ongakukan_adp(data->handle);
-		data->samples = grab_sample_hist_from_ongakukan_adp(data->handle); }
+		data->samples_filled = (int32_t)grab_samples_filled_from_ongakukan_adp(data->handle);
+		data->samples_consumed = (int32_t)grab_samples_consumed_from_ongakukan_adp(data->handle);
+		data->samples = (int16_t*)grab_sample_hist_from_ongakukan_adp(data->handle); }
 	}
 }
 
