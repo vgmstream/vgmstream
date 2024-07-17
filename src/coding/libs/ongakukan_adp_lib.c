@@ -127,7 +127,7 @@ void seek_ongakukan_adpcm_pos(ongakukan_adp_t* handle, long int target_sample)
      * and though they're fairly useless ATM, you pretty much want to leave them alone). */
 
     /* anyway, we'll have to tell decoder that target_sample is calling and wants to go somewhere right now,
-     * so we'll have data_offset reposition itself to where sound data for that sample ought to be 
+     * so we'll have data_offset reposition itself to where sound data for that sample ought to be
      * and (as of now) reset basically all decode state up to this point so we can continue to decode all sample pairs without issue. */
     handle->data_offset = handle->start_offset + ts_data_offset;
     handle->sample_pair_is_decoded = 0;
@@ -207,6 +207,11 @@ void decode_ongakukan_adp_data(ongakukan_adp_t* handle)
 {
     /* set samples_filled to 0 and have our decoder go through every sample that exists in the sound data.*/
     handle->samples_filled = 0;
+    if (handle->sample_pair_is_decoded == 0)
+    {
+        handle->samples_filled = 0;
+        handle->samples_consumed = 0;
+    }
     decode_ongakukan_adpcm_sample(handle, handle->sample_hist);
     /* if setup is established for further decoding, switch gears and have the decoder use that setup for as long as possible. */
     if (handle->sample_has_base_setup_from_the_start == 1)
@@ -220,7 +225,6 @@ void decode_ongakukan_adp_data(ongakukan_adp_t* handle)
         handle->data_offset++;
         handle->alt_sample_work1 += 2;
         handle->alt_sample_work2 -= 2;
-        handle->samples_consumed = 0;
         handle->samples_filled = 2;
         handle->sample_pair_is_decoded = 0;
     }

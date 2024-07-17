@@ -28,6 +28,7 @@ ongakukan_adp_data* init_ongakukan_adp(STREAMFILE* sf, int32_t data_offset, int3
 		sample_needs_setup, sample_has_base_setup_from_the_start);
 	if (!data->handle) goto fail;
 
+	printf(" return data; \n");
 	return data;
 fail:
 	free_ongakukan_adp(data);
@@ -38,8 +39,9 @@ void decode_ongakukan_adp(VGMSTREAM* vgmstream, sample_t* outbuf, int32_t sample
 {
 	ongakukan_adp_data* data = vgmstream->codec_data;
 
-	data->samples_filled = (int32_t)grab_samples_filled_from_ongakukan_adp(data->handle);
-	data->samples_consumed = (int32_t)grab_samples_consumed_from_ongakukan_adp(data->handle);
+	data->samples_done = 0;
+	data->samples_filled = 0;
+	data->samples_consumed = 0;
 	data->samples = (int16_t*)grab_sample_hist_from_ongakukan_adp(data->handle); /* this'll return a pointer from the handle containing the samples themselves. */
 	while (data->samples_done < samples_to_do)
 	{
