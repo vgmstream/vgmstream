@@ -227,7 +227,7 @@ void decode_ongakukan_adpcm_sample(ongakukan_adp_t* handle, short int* sample_hi
             handle->base_pair = 0; /* set representing byte to 0 while we're at it. */
         }
         /* "pinch off" of a single-byte read. remember that we need two nibbles. */
-        (uint8_t)(handle->base_pair) = read_u8_wrapper(handle);
+        handle->base_pair = (uint8_t)read_u8_wrapper(handle);
 
         /* now pick two nibbles, subtract them, reverse the order of said nibbles so we can calc them one-by-one,
          * and finally tell handle that we're done with two samples and would like to take a break, please. */

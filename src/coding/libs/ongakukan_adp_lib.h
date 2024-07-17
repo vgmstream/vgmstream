@@ -28,4 +28,4 @@ void* grab_sample_hist_from_ongakukan_adp(ongakukan_adp_t* handle);
 /* function declaration for actually decoding samples, can't be that hard, right? */
 void decode_ongakukan_adp_data(ongakukan_adp_t* handle);
 
-#endif _ONGAKUKAN_ADP_LIB_
+#endif /* _ONGAKUKAN_ADP_LIB_ */
