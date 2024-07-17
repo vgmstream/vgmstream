@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -85,6 +85,7 @@
     <ClInclude Include="api_helpers.h" />
     <ClInclude Include="api_streamfile.h" />
     <ClInclude Include="api_tags.h" />
+    <ClInclude Include="coding\libs\ongakukan_adp_lib.h" />
     <ClInclude Include="streamfile.h" />
     <ClInclude Include="streamtypes.h" />
     <ClInclude Include="util.h" />
@@ -206,7 +207,10 @@
     <ClInclude Include="util\zlib_vgmstream.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="coding\libs\ongakukan_adp_lib.c" />
+    <ClCompile Include="coding\ongakukan_adp_decoder.c" />
     <ClCompile Include="formats.c" />
+    <ClCompile Include="meta\adp_ongakukan.c" />
     <ClCompile Include="streamfile.c" />
     <ClCompile Include="util.c" />
     <ClCompile Include="vgmstream.c" />
