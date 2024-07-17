@@ -69,7 +69,7 @@ ongakukan_adp_t* boot_ongakukan_adpcm(STREAMFILE* sf, long int data_offset, long
     ongakukan_adp_t* handle = NULL;
 
     /* allocate handle using malloc. */
-    handle = malloc(sizeof(handle));
+    handle = malloc(sizeof(ongakukan_adp_t));
     if (!handle) goto fail;
 
     /* now, to set up the rest of the handle with the data we have... */

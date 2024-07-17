@@ -5,7 +5,6 @@
 struct ongakukan_adp_data
 {
 	void* handle;
-	//int32_t num_samples;
 	int16_t* samples;
 	int32_t samples_done;
 	int32_t samples_filled;
@@ -22,7 +21,9 @@ ongakukan_adp_data* init_ongakukan_adp(STREAMFILE* sf, int32_t data_offset, int3
 	data = calloc(1, sizeof(ongakukan_adp_data));
 	if (!data) goto fail;
 
+	/* reopen STREAMFILE from here, then pass it as an argument for our init function. we need to be able to read the file directly. */
 	data->sf = reopen_streamfile(sf, 0);
+	if (!data->sf) goto fail;
 	data->handle = boot_ongakukan_adpcm(data->sf, (long int)(data_offset), (long int)(data_size),
 		sample_needs_setup, sample_has_base_setup_from_the_start);
 	if (!data->handle) goto fail;
@@ -39,7 +40,7 @@ void decode_ongakukan_adp(VGMSTREAM* vgmstream, sample_t* outbuf, int32_t sample
 
 	data->samples_filled = (int32_t)grab_samples_filled_from_ongakukan_adp(data->handle);
 	data->samples_consumed = (int32_t)grab_samples_consumed_from_ongakukan_adp(data->handle);
-	data->samples = (int16_t*)grab_sample_hist_from_ongakukan_adp(data->handle);
+	data->samples = (int16_t*)grab_sample_hist_from_ongakukan_adp(data->handle); /* this'll return a pointer from the handle containing the samples themselves. */
 	while (data->samples_done < samples_to_do)
 	{
 		if (data->samples_filled)
@@ -83,9 +84,7 @@ void seek_ongakukan_adp(ongakukan_adp_data* data, int32_t current_sample)
 void free_ongakukan_adp(ongakukan_adp_data* data)
 {
 	if (!data) return;
-	close_streamfile(data->sf);
 	free_all_ongakukan_adpcm(data->handle);
-	free(data->samples);
 	free(data);
 }
 
