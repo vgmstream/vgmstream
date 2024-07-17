@@ -136,6 +136,7 @@ typedef enum {
     coding_ACM,             /* InterPlay ACM */
     coding_CIRCUS_ADPCM,    /* Circus 8-bit ADPCM */
     coding_UBI_ADPCM,       /* Ubisoft 4/6-bit ADPCM */
+    coding_ONGAKUKAN_ADPCM, /* Ongakukan 4-bit ADPCM */
 
     coding_EA_MT,           /* Electronic Arts MicroTalk (linear-predictive speech codec) */
     coding_CIRCUS_VQ,       /* Circus VQ */
@@ -710,6 +711,7 @@ typedef enum {
     meta_VAS_ROCKSTAR,
     meta_EA_SBK,
     meta_DSP_ASURA,
+    meta_ONGAKUKAN_RIFF_ADP,
 
 } meta_t;
 

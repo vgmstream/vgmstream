@@ -63,6 +63,15 @@
     <Filter Include="ext_libs\Header Files">
       <UniqueIdentifier>{20824073-8817-41CF-8A21-D54294A56050}</UniqueIdentifier>
     </Filter>
+    <Filter Include="coding\libs">
+      <UniqueIdentifier>{bda8b035-f70b-4601-b479-4403b1071fe4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="coding\libs\Header Files">
+      <UniqueIdentifier>{eec1739b-a5e2-4202-98ff-e9fa2bd6ed00}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="coding\libs\Source Files">
+      <UniqueIdentifier>{5d980902-91bd-4e75-aa07-7da27edf5a99}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="api.h">
@@ -436,6 +445,57 @@
     </ClInclude>
     <ClInclude Include="util\zlib_vgmstream.h">
       <Filter>util\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="coding\libs\circus_vq_data.h">
+      <Filter>coding\libs\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="coding\libs\circus_vq_lib.h">
+      <Filter>coding\libs\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="coding\libs\circus_vq_lzxpcm.h">
+      <Filter>coding\libs\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="coding\libs\clhca.h">
+      <Filter>coding\libs\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="coding\libs\compresswave_lib.h">
+      <Filter>coding\libs\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="coding\libs\g7221_aes.h">
+      <Filter>coding\libs\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="coding\libs\g7221_data.h">
+      <Filter>coding\libs\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="coding\libs\g7221_lib.h">
+      <Filter>coding\libs\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="coding\libs\icelib.h">
+      <Filter>coding\libs\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="coding\libs\libacm.h">
+      <Filter>coding\libs\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="coding\libs\nwa_lib.h">
+      <Filter>coding\libs\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="coding\libs\ongakukan_adp_lib.h">
+      <Filter>coding\libs\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="coding\libs\relic_lib.h">
+      <Filter>coding\libs\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="coding\libs\tac_data.h">
+      <Filter>coding\libs\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="coding\libs\tac_lib.h">
+      <Filter>coding\libs\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="coding\libs\tac_ops.h">
+      <Filter>coding\libs\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="coding\libs\utkdec.h">
+      <Filter>coding\libs\Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -2229,6 +2289,54 @@
     </ClCompile>
     <ClCompile Include="util\text_reader.c">
       <Filter>util\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\adp_ongakukan.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\ongakukan_adp_decoder.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\libs\circus_vq_lib.c">
+      <Filter>coding\libs\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\libs\clhca.c">
+      <Filter>coding\libs\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\libs\compresswave_lib.c">
+      <Filter>coding\libs\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\libs\g7221_aes.c">
+      <Filter>coding\libs\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\libs\g7221_lib.c">
+      <Filter>coding\libs\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\libs\icelib.c">
+      <Filter>coding\libs\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\libs\libacm_decode.c">
+      <Filter>coding\libs\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\libs\libacm_util.c">
+      <Filter>coding\libs\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\libs\nwa_lib.c">
+      <Filter>coding\libs\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\libs\ongakukan_adp_lib.c">
+      <Filter>coding\libs\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\libs\relic_lib.c">
+      <Filter>coding\libs\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\libs\relic_mixfft.c">
+      <Filter>coding\libs\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\libs\tac_lib.c">
+      <Filter>coding\libs\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\libs\utkdec.c">
+      <Filter>coding\libs\Source Files</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

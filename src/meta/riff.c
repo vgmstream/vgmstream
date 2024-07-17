@@ -350,6 +350,7 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
     off_t mwv_pflt_offset = 0;
     off_t mwv_ctrl_offset = 0;
     int ignore_riff_size = 0;
+    int riff_size_bigger_than_pcm_file = 0;
 
 
     /* checks*/
@@ -474,6 +475,16 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
 
         else if (codec == 0x0011 && file_size - riff_size - 0x08 <= 0x900 && is_id32be(riff_size + 0x08, sf, "cont"))
             riff_size = file_size - 0x08; /* [Shin Megami Tensei: Imagine (PC)] (extra "cont" info 0x800/0x900 chunk) */
+
+        else if (codec == 0x0001 && riff_size > file_size + 0x8000)
+            riff_size_bigger_than_pcm_file = 1; /* [Train Simulator: Midousuji-hen (PS2)] (reports bigger RIFF sizes than should be possible) */
+    }
+
+    /* throw out when RIFF size is bigger than actual file size */
+    if (riff_size_bigger_than_pcm_file)
+    {
+        /* vgm_logi("RIFF: reported size (%d) bigger than actual file (%d)\n", riff_size, file_size); */
+        goto fail;
     }
 
     /* check for truncated RIFF */

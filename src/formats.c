@@ -893,6 +893,7 @@ static const coding_info coding_info_list[] = {
         {coding_ACM,                "InterPlay ACM"},
         {coding_CIRCUS_ADPCM,       "Circus 8-bit ADPCM"},
         {coding_UBI_ADPCM,          "Ubisoft 4/6-bit ADPCM"},
+        {coding_ONGAKUKAN_ADPCM,    "Ongakukan 4-bit ADPCM"},
 
         {coding_EA_MT,              "Electronic Arts MicroTalk"},
         {coding_CIRCUS_VQ,          "Circus VQ"},
@@ -1444,6 +1445,7 @@ static const meta_info meta_info_list[] = {
         {meta_VAS_ROCKSTAR,         "Rockstar .VAS header"},
         {meta_EA_SBK,               "Electronic Arts SBK header"},
         {meta_DSP_ASURA,            "Rebellion DSP header"},
+        {meta_ONGAKUKAN_RIFF_ADP,   "Ongakukan RIFF WAVE header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {
