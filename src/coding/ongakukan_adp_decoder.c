@@ -1,6 +1,5 @@
 #include <stdlib.h>
 #include "coding.h"
-#include "coding_utils_samples.h"
 #include "libs/ongakukan_adp_lib.h"
 
 struct ongakukan_adp_data

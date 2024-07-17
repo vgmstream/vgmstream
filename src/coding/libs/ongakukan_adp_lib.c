@@ -1,14 +1,14 @@
 
 /* Decodes Ongakukan ADPCM, found in their PS2 and PSP games.
  * Basically their take on ADPCM with some companding and quantization involved.
- * 
- * Original decoder is a mix of COP0 and VU1 code, however PS2 floats aren't actually used (if at all) 
+ *
+ * Original decoder is a mix of COP0 and VU1 code, however PS2 floats aren't actually used (if at all)
  * when it comes to converting encoded sample data (consisting of a single byte with two 4-bit nibbles, respectively) to PCM16.
  *
  * The decoder you see here is a hand-crafted, faithful C adaptation of original MIPS R5900 (PS2) and R4000 (PSP) code, from various executables of their games.
  * As a consequence of all this, a new, entirely custom decoder had to be designed from the ground-up into vgmstream. No info surrounding this codec was available. */
 
-/* Additional notes: 
+/* Additional notes:
  * - This code does not support PCM16 sound data, in any way, shape, or form.
  * -- Ongakukan's internal sound engine from their PS2 and PSP games allow for only two codecs: signed PCM16, and their own take on ADPCM, respectively.
  * -- However, much of that support is reliant on a flag that's set to either one of the two codecs depending on the opened file extension.
@@ -60,7 +60,7 @@ uint8_t read_u8_wrapper(ongakukan_adp_t* handle);
 char set_up_sample_startpoint(ongakukan_adp_t* handle);
 void decode_ongakukan_adpcm_sample(ongakukan_adp_t* handle, short int* sample_hist);
 
-/* codec management functions, meant to oversee and supervise ADP data from the top-down. 
+/* codec management functions, meant to oversee and supervise ADP data from the top-down.
  * in layman terms, they control how ADP data should be handled and when. */
 
 ongakukan_adp_t* boot_ongakukan_adpcm(STREAMFILE* sf, long int data_offset, long int data_size,
@@ -69,7 +69,7 @@ ongakukan_adp_t* boot_ongakukan_adpcm(STREAMFILE* sf, long int data_offset, long
     ongakukan_adp_t* handle = NULL;
 
     /* allocate handle using malloc. */
-    handle = (ongakukan_adp_t*)malloc(sizeof(handle));
+    handle = malloc(sizeof(handle));
     if (!handle) goto fail;
 
     /* now, to set up the rest of the handle with the data we have... */
