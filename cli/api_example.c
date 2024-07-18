@@ -268,8 +268,7 @@ static void test_libsf_size(libvgmstream_streamfile_t* libsf) {
 static void test_libsf_name(libvgmstream_streamfile_t* libsf) {
     VGM_STEP();
 
-    char name[128];
-    libsf->get_name(libsf->user_data, name, sizeof(name));
+    const char* name = libsf->get_name(libsf->user_data);
     assert(strcmp(name, "api.bin") == 0);
 }
 

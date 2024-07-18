@@ -33,7 +33,16 @@ static offv_t api_get_offset(API_STREAMFILE* sf) {
 static void api_get_name(API_STREAMFILE* sf, char* name, size_t name_size) {
     void* user_data = sf->libsf->user_data;
 
-    sf->libsf->get_name(user_data, name, name_size);
+    if (!name || !name_size)
+        return;
+    name[0] = '\0';
+
+    const char* external_name = sf->libsf->get_name(user_data);
+    if (!external_name)
+        return;
+
+    snprintf(name, name_size, "%s", external_name);
+    name[name_size - 1] = '\0';
 }
 
 static STREAMFILE* api_open(API_STREAMFILE* sf, const char* filename, size_t buf_size) {
