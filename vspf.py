@@ -150,7 +150,13 @@ class ProjectFixer:
 def main():
     types = [
         './src/*.vcxproj',
-        './src/*.vcxproj.filters'
+        './src/*.vcxproj.filters',
+        #'./cli/*.vcxproj',
+        #'./cli/*.vcxproj.filters',
+        './winamp/*.vcxproj',
+        './winamp/*.vcxproj.filters',
+        './xmplay/*.vcxproj',
+        './xmplay/*.vcxproj.filters',
     ]
 
     for type in types:

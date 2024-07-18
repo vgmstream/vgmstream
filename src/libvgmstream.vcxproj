@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -85,7 +85,6 @@
     <ClInclude Include="api_helpers.h" />
     <ClInclude Include="api_streamfile.h" />
     <ClInclude Include="api_tags.h" />
-    <ClInclude Include="coding\libs\ongakukan_adp_lib.h" />
     <ClInclude Include="streamfile.h" />
     <ClInclude Include="streamtypes.h" />
     <ClInclude Include="util.h" />
@@ -116,6 +115,7 @@
     <ClInclude Include="coding\libs\icelib.h" />
     <ClInclude Include="coding\libs\libacm.h" />
     <ClInclude Include="coding\libs\nwa_lib.h" />
+    <ClInclude Include="coding\libs\ongakukan_adp_lib.h" />
     <ClInclude Include="coding\libs\relic_lib.h" />
     <ClInclude Include="coding\libs\tac_data.h" />
     <ClInclude Include="coding\libs\tac_lib.h" />
@@ -207,10 +207,7 @@
     <ClInclude Include="util\zlib_vgmstream.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="coding\libs\ongakukan_adp_lib.c" />
-    <ClCompile Include="coding\ongakukan_adp_decoder.c" />
     <ClCompile Include="formats.c" />
-    <ClCompile Include="meta\adp_ongakukan.c" />
     <ClCompile Include="streamfile.c" />
     <ClCompile Include="util.c" />
     <ClCompile Include="vgmstream.c" />
@@ -283,6 +280,7 @@
     <ClCompile Include="coding\nwa_decoder.c" />
     <ClCompile Include="coding\ogg_vorbis_decoder.c" />
     <ClCompile Include="coding\oki_decoder.c" />
+    <ClCompile Include="coding\ongakukan_adp_decoder.c" />
     <ClCompile Include="coding\pcm_decoder.c" />
     <ClCompile Include="coding\psv_decoder.c" />
     <ClCompile Include="coding\psx_decoder.c" />
@@ -318,6 +316,7 @@
     <ClCompile Include="coding\libs\libacm_decode.c" />
     <ClCompile Include="coding\libs\libacm_util.c" />
     <ClCompile Include="coding\libs\nwa_lib.c" />
+    <ClCompile Include="coding\libs\ongakukan_adp_lib.c" />
     <ClCompile Include="coding\libs\relic_lib.c" />
     <ClCompile Include="coding\libs\relic_mixfft.c" />
     <ClCompile Include="coding\libs\tac_lib.c" />
@@ -379,6 +378,7 @@
     <ClCompile Include="meta\adm.c" />
     <ClCompile Include="meta\adpcm_capcom.c" />
     <ClCompile Include="meta\adp_konami.c" />
+    <ClCompile Include="meta\adp_ongakukan.c" />
     <ClCompile Include="meta\adp_qd.c" />
     <ClCompile Include="meta\adp_wildfire.c" />
     <ClCompile Include="meta\ads.c" />
@@ -507,6 +507,7 @@
     <ClCompile Include="meta\idsp_ie.c" />
     <ClCompile Include="meta\idtech.c" />
     <ClCompile Include="meta\ifs.c" />
+    <ClCompile Include="meta\iivb.c" />
     <ClCompile Include="meta\ikm.c" />
     <ClCompile Include="meta\ild.c" />
     <ClCompile Include="meta\ima.c" />
@@ -515,7 +516,6 @@
     <ClCompile Include="meta\isb.c" />
     <ClCompile Include="meta\ish_isd.c" />
     <ClCompile Include="meta\ivag.c" />
-    <ClCompile Include="meta\ivb.c" />
     <ClCompile Include="meta\jstm.c" />
     <ClCompile Include="meta\kat.c" />
     <ClCompile Include="meta\kma9.c" />
