@@ -79,7 +79,6 @@ void free_ongakukan_adp(ongakukan_adp_data* data)
     if (!data) return;
     close_streamfile(data->sf);
     ongakukan_adpcm_free(data->handle);
-    free(data->samples);
     free(data);
 }
 
