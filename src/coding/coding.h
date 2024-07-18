@@ -298,7 +298,7 @@ void free_imuse(imuse_codec_data* data);
 typedef struct ongakukan_adp_data ongakukan_adp_data;
 
 ongakukan_adp_data* init_ongakukan_adp(STREAMFILE* sf, int32_t data_offset, int32_t data_size,
-    char sound_is_adpcm, char sample_has_base_setup_from_the_start);
+    bool sound_is_adpcm);
 void decode_ongakukan_adp(VGMSTREAM* vgmstream, sample_t* outbuf, int32_t samples_to_do);
 void reset_ongakukan_adp(ongakukan_adp_data* data);
 void seek_ongakukan_adp(ongakukan_adp_data* data, int32_t current_sample);
