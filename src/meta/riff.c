@@ -474,6 +474,7 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
 
         else if (codec == 0x0011 && file_size - riff_size - 0x08 <= 0x900 && is_id32be(riff_size + 0x08, sf, "cont"))
             riff_size = file_size - 0x08; /* [Shin Megami Tensei: Imagine (PC)] (extra "cont" info 0x800/0x900 chunk) */
+
     }
 
     /* check for truncated RIFF */
@@ -1194,7 +1195,7 @@ VGMSTREAM* init_vgmstream_rifx(STREAMFILE* sf) {
             /* end must add +1, but check in case of faulty tools */
             if (vgmstream->loop_end_sample - 1 == vgmstream->num_samples)
                 vgmstream->loop_end_sample--;
-            
+
             vgmstream->meta_type = meta_RIFX_WAVE_smpl;
         }
     }

@@ -294,6 +294,16 @@ void reset_imuse(imuse_codec_data* data);
 void seek_imuse(imuse_codec_data* data, int32_t num_sample);
 void free_imuse(imuse_codec_data* data);
 
+/* ongakukan_adp_decoder */
+typedef struct ongakukan_adp_data ongakukan_adp_data;
+
+ongakukan_adp_data* init_ongakukan_adp(STREAMFILE* sf, int32_t data_offset, int32_t data_size,
+    bool sound_is_adpcm);
+void decode_ongakukan_adp(VGMSTREAM* vgmstream, sample_t* outbuf, int32_t samples_to_do);
+void reset_ongakukan_adp(ongakukan_adp_data* data);
+void seek_ongakukan_adp(ongakukan_adp_data* data, int32_t current_sample);
+void free_ongakukan_adp(ongakukan_adp_data* data);
+int32_t ongakukan_adp_get_samples(ongakukan_adp_data* data);
 
 /* compresswave_decoder */
 typedef struct compresswave_codec_data compresswave_codec_data;
