@@ -33,14 +33,14 @@ TARGET_EXT_LIBS += $(LIBS_TARGET_EXT_LIBS)
 
 export CFLAGS LDFLAGS
 
-#SRC_SRCS = $(wildcard *.c)
-SRC_SRCS = in_vgmstream.c in_streamfile.c in_config.c
+SRCS = $(wildcard *.c)
+OBJECTS = $(wildcard *.o)
 
 ###############################################################################
 ### targets
 
 in_vgmstream: libvgmstream.a $(TARGET_EXT_LIBS) resource.o
-	$(CC) -shared -static-libgcc $(CFLAGS) $(SRC_SRCS) resource.o $(LDFLAGS) -o $(OUTPUT_WINAMP)
+	$(CC) -shared -static-libgcc $(CFLAGS) $(SRCS) resource.o $(LDFLAGS) -o $(OUTPUT_WINAMP)
 	$(STRIP) $(OUTPUT_WINAMP)
 
 resource.o: resource.rc resource.h
@@ -53,6 +53,6 @@ $(TARGET_EXT_LIBS):
 	$(MAKE) -C ../ext_libs $@
 
 clean:
-	$(RMF) $(OUTPUT_WINAMP) resource.o
+	$(RMF) $(OUTPUT_WINAMP) $(OBJECTS) resource.o
 
 .PHONY: clean in_vgmstream libvgmstream.a $(TARGET_EXT_LIBS)

@@ -66,7 +66,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_str_snds,
     init_vgmstream_ws_aud,
     init_vgmstream_ahx,
-    init_vgmstream_ivb,
+    init_vgmstream_iivb,
     init_vgmstream_svs,
     init_vgmstream_riff,
     init_vgmstream_rifx,
@@ -533,7 +533,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_dsp_asura_ds2,
     init_vgmstream_dsp_asura_ttss,
     init_vgmstream_dsp_asura_sfx,
-    init_vgmstream_ongakukan_adp,
+    init_vgmstream_adp_ongakukan,
 
     /* lower priority metas (no clean header identity, somewhat ambiguous, or need extension/companion file to identify) */
     init_vgmstream_agsc,

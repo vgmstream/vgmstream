@@ -9,6 +9,7 @@ typedef struct {
     int64_t offset;
     int64_t size;
     STREAMFILE* inner_sf;
+    char name[PATH_LIMIT];
 } libsf_data_t;
 
 static int libsf_read(void* user_data, uint8_t* dst, int dst_size) {
@@ -58,16 +59,16 @@ static int64_t libsf_get_size(void* user_data) {
     return data->size;
 }
 
-static void libsf_get_name(void* user_data, char* name, int name_size) {
-    if (!name || !name_size)
-        return;
-    name[0] = '\0';
-
+static const char* libsf_get_name(void* user_data) {
     libsf_data_t* data = user_data;
     if (!data)
-        return;
+        return NULL;
 
-    data->inner_sf->get_name(data->inner_sf, name, name_size); /* default */
+    if (data->name[0] == '\0') {
+        data->inner_sf->get_name(data->inner_sf, data->name, sizeof(data->name));
+    }
+
+    return data->name;
 }
 
 struct libvgmstream_streamfile_t* libsf_open(void* user_data, const char* filename) {

@@ -9,8 +9,8 @@
 /* ************************************* */
 
 /* config */
-#define CONFIG_APP_NAME  TEXT("vgmstream plugin")
-#define CONFIG_INI_NAME  TEXT("plugin.ini")
+#define CONFIG_APP_NAME         TEXT("vgmstream plugin")
+#define CONFIG_INI_NAME         TEXT("plugin.ini")
 
 #define INI_FADE_TIME           TEXT("fade_seconds")
 #define INI_FADE_DELAY          TEXT("fade_delay")
@@ -28,28 +28,28 @@
 #define INI_CLIP_TYPE           TEXT("clip_type")
 
 TCHAR *dlg_priority_strings[7] = {
-        TEXT("Idle"),
-        TEXT("Lowest"),
-        TEXT("Below Normal"),
-        TEXT("Normal"),
-        TEXT("Above Normal"),
-        TEXT("Highest (not recommended)"),
-        TEXT("Time Critical (not recommended)")
+    TEXT("Idle"),
+    TEXT("Lowest"),
+    TEXT("Below Normal"),
+    TEXT("Normal"),
+    TEXT("Above Normal"),
+    TEXT("Highest (not recommended)"),
+    TEXT("Time Critical (not recommended)")
 };
 TCHAR *dlg_replaygain_strings[] = {
-        TEXT("None"),
-        TEXT("Album"),
-        TEXT("Peak")
+    TEXT("None"),
+    TEXT("Album"),
+    TEXT("Peak")
 };
 
-int priority_values[7] = {
-        THREAD_PRIORITY_IDLE,
-        THREAD_PRIORITY_LOWEST,
-        THREAD_PRIORITY_BELOW_NORMAL,
-        THREAD_PRIORITY_NORMAL,
-        THREAD_PRIORITY_ABOVE_NORMAL,
-        THREAD_PRIORITY_HIGHEST,
-        THREAD_PRIORITY_TIME_CRITICAL
+const int priority_values[7] = {
+    THREAD_PRIORITY_IDLE,
+    THREAD_PRIORITY_LOWEST,
+    THREAD_PRIORITY_BELOW_NORMAL,
+    THREAD_PRIORITY_NORMAL,
+    THREAD_PRIORITY_ABOVE_NORMAL,
+    THREAD_PRIORITY_HIGHEST,
+    THREAD_PRIORITY_TIME_CRITICAL
 };
 
 

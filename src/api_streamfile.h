@@ -42,9 +42,9 @@ typedef struct libvgmstream_streamfile_t {
      */
     int64_t (*get_size)(void* user_data);
 
-    /* copy current filename to name buf
+    /* get current filename
      */
-    void (*get_name)(void* user_data, char* name, int name_size); //TODO return char*?
+    const char* (*get_name)(void* user_data);
 
     /* open another streamfile from filename (may be some path/protocol, or same as current get_name = reopen)
      * - vgmstream mainly opens stuff based on current get_name (relative), so there shouldn't be need to transform this path

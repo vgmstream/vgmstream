@@ -5,10 +5,14 @@
 /* Allocate memory and setup a VGMSTREAM */
 VGMSTREAM* alloc_metastream(meta_header_t* h) {
 
-    if (h->sample_rate <= 0 || h->sample_rate > VGMSTREAM_MAX_SAMPLE_RATE)
+    if (h->sample_rate <= 0 || h->sample_rate > VGMSTREAM_MAX_SAMPLE_RATE) {
+        VGM_LOG("meta: wrong sample rate %i\n", h->sample_rate);
         return NULL;
-    if (h->num_samples <= 0 || h->num_samples > VGMSTREAM_MAX_NUM_SAMPLES)
+    }
+    if (h->num_samples <= 0 || h->num_samples > VGMSTREAM_MAX_NUM_SAMPLES) {
+        VGM_LOG("meta: wrong samples %i\n", h->sample_rate);
         return NULL;
+    }
 
     VGMSTREAM* vgmstream = allocate_vgmstream(h->channels, h->loop_flag);
     if (!vgmstream) return NULL;

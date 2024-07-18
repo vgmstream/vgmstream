@@ -21,7 +21,7 @@ The main development repository: https://github.com/vgmstream/vgmstream/
 Automated builds with the latest changes: https://vgmstream.org
 (https://github.com/vgmstream/vgmstream-releases/releases/tag/nightly)
 
-Common releases: https://github.com/vgmstream/vgmstream/releases
+Numbered releases: https://github.com/vgmstream/vgmstream/releases
 
 Help can be found here: https://www.hcs64.com/
 
@@ -39,56 +39,54 @@ There are multiple end-user components:
 The main library (plain *vgmstream*) is the code that handles the internal conversion, while the
 above components are what you use to get sound.
 
-If you want to convert game audio to `.wav`, try getting *vgmstream-cli* (see below) then
-drag-and-drop one or more files to the executable (support may vary per O.S. or distro).
-This should create `(file.extension).wav`, if the format is supported. More user-friendly
-would be installing a player like *foobar2000* (for Windows) or *Audacious* (for Linux)
-and the vgmstream plugin. Then you can directly listen your files and set options like infinite
-looping, or convert to `.wav` with the player's options (also easier if your file has multiple
-"subsongs").
+### Usage
+If you want to convert game audio to `.wav`, get *vgmstream-cli* then drag-and-drop one
+or more files to the executable (support may vary per O.S. or distro). This should create
+`(file.extension).wav`, if the format is supported. You can also try the online web player
+instead. See: https://vgmstream.org
+
+More user-friendly would be installing a player like *foobar2000* (on Windows) or *Audacious*
+(on Linux) and the vgmstream plugin. Then you can directly listen your files and set options like
+infinite looping, or convert to `.wav` with the player's options (also easier to use if your file
+has multiple "subsongs").
 
 See [components](doc/USAGE.md#components) in the *usage guide* for full install instructions and
 explanations. The aim is feature parity, but there are a few differences between them due to
 missing parts on vgmstream's side or lack of support in the player.
 
-Note that vgmstream cannot *encode* (convert from `.wav` to a video game format), it only *decodes*
+Note that vgmstream cannot *encode* (convert from `.wav` to a game format), it only *decodes*
 (plays game audio).
 
-
-### Windows
-Get the latest prebuilt binaries (CLI/plugins/etc) on our website:
-- https://vgmstream.org
-
-Or the less frequent "official" releases on GitHub:
-- https://github.com/vgmstream/vgmstream/releases
+### Windows binaries
+Prebuilt binaries:
+- https://vgmstream.org (latest)
+- https://github.com/vgmstream/vgmstream/releases (infrequent numbered releases)
 
 The foobar2000 component is also available on https://www.foobar2000.org based on current
 release.
 
-If the above links fail, you may also try the alternative versions built by
-[bnnm](https://github.com/bnnm):
+You may also try the alternative versions (irregularly) built by [bnnm](https://github.com/bnnm):
 - https://github.com/bnnm/vgmstream-builds/raw/master/bin/vgmstream-latest-test-u.zip
 
-You may compile from source as well, see the [build guide](doc/BUILD.md).
+Or compile from source, see the [build guide](doc/BUILD.md).
 
-### Linux
+### Linux binaries
 A prebuilt CLI binary is available. It's statically linked and should work on systems running
 Linux kernel v3.2 and above:
-- https://vgmstream.org
-- https://github.com/vgmstream/vgmstream/releases
+- https://vgmstream.org (latest)
+- https://github.com/vgmstream/vgmstream/releases (infrequent numbered releases)
 
 Building from source will also give you *vgmstream.so* (Audacious plugin), and *vgmstream123*
-(command-line player).
+(command-line player), which can't be statically linked.
 
-When building, many extra components have to be installed or compiled separately, which the
-[build guide](doc/BUILD.md) describes in detail. For a quick build on Debian and Ubuntu-style
-distributions run `./make-build-cmake.sh`. The script will need to install various dependencies,
-so you may prefer to copy commands and run them manually.
+When building it needs several external libraries. For a quick script for Debian and Ubuntu-style
+distros run `./make-build-cmake.sh`. The script will need to install dependencies first, so you
+may prefer to run steps manually, which the [build guide](doc/BUILD.md) describes in detail.
 
-### macOS
-A prebuilt CLI binary is available as well:
-- https://vgmstream.org
-- https://github.com/vgmstream/vgmstream/releases
+### macOS binaries
+A prebuilt CLI binary is available:
+- https://vgmstream.org (latest)
+- https://github.com/vgmstream/vgmstream/releases (infrequent numbered releases)
 
 Otherwise follow the [build guide](doc/BUILD.md).
 
