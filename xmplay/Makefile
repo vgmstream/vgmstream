@@ -31,12 +31,14 @@ TARGET_EXT_LIBS += $(LIBS_TARGET_EXT_LIBS)
 
 export CFLAGS LDFLAGS
 
+SRCS = $(wildcard *.c)
+OBJECTS = $(wildcard *.o)
 
 ###############################################################################
 ### targets
 
 xmp_vgmstream: libvgmstream.a $(TARGET_EXT_LIBS)
-	$(CC) -shared -static-libgcc $(CFLAGS) xmp_vgmstream.c $(LDFLAGS) -o $(OUTPUT_XMPLAY) xmpin.def
+	$(CC) -shared -static-libgcc $(CFLAGS) $(SRCS) $(LDFLAGS) -o $(OUTPUT_XMPLAY) xmpin.def
 	$(STRIP) $(OUTPUT_XMPLAY)
 
 libvgmstream.a:
@@ -46,6 +48,6 @@ $(TARGET_EXT_LIBS):
 	$(MAKE) -C ../ext_libs $@
 
 clean:
-	$(RMF) $(OUTPUT_XMPLAY)
+	$(RMF) $(OBJECTS) $(OUTPUT_XMPLAY)
 
 .PHONY: clean xmp_vgmstream libvgmstream.a $(TARGET_EXT_LIBS)

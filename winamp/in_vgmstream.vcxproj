@@ -67,10 +67,15 @@
   <ItemGroup>
     <ClInclude Include="in_vgmstream.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="sdk\in2.h" />
+    <ClInclude Include="sdk\ipc_pe.h" />
+    <ClInclude Include="sdk\out.h" />
+    <ClInclude Include="sdk\wa_ipc.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="in_config.c" />
     <ClCompile Include="in_streamfile.c" />
+    <ClCompile Include="in_utils.c" />
     <ClCompile Include="in_vgmstream.c" />
   </ItemGroup>
   <ItemGroup>

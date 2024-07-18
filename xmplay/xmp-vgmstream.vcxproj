@@ -69,8 +69,11 @@
   <ItemGroup>
     <ClInclude Include="xmpfunc.h" />
     <ClInclude Include="xmpin.h" />
+    <ClInclude Include="xmp_vgmstream.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="xmp_streamfile.c" />
+    <ClCompile Include="xmp_utils.c" />
     <ClCompile Include="xmp_vgmstream.c" />
   </ItemGroup>
   <ItemGroup>

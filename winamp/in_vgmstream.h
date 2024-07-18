@@ -34,7 +34,7 @@
 /* ************************************* */
 
 extern In_Module input_module;
-extern int priority_values[7];
+extern const int priority_values[7];
 
 typedef enum {
     REPLAYGAIN_NONE,
@@ -87,8 +87,8 @@ extern winamp_log_t* walog;
 /* ************************************* */
 /* IN_UNICODE                            */
 /* ************************************* */
-//todo safe ops
-//todo there must be a better way to handle unicode...
+//TODO safe ops
+//TODO there must be a better way to handle unicode...
 #ifdef UNICODE_INPUT_PLUGIN
 #define wa_strcmp wcscmp
 #define wa_strncmp wcsncmp
@@ -190,11 +190,11 @@ static inline void cfg_char_to_wchar(TCHAR *wdst, size_t wdstsize, const char *s
 }
 
 
-/* ************************************* */
-/* IN_STREAMFILE                         */
-/* ************************************* */
-
 /* in_streamfile.c */
 STREAMFILE* open_winamp_streamfile_by_ipath(const in_char* wpath);
 
-#endif /*_IN_VGMSTREAM_*/
+void build_extension_list(char* extension_list, int list_size);
+
+bool split_subsongs(const in_char* filename, int subsong_index, VGMSTREAM* vgmstream);
+
+#endif
