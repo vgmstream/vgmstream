@@ -2,7 +2,7 @@
 #include "../coding/coding.h"
 
 /* Ongakukan RIFF with "ADP" extension [Train Simulator: Midousuji-sen (PS2), Mobile Train Simulator (PSP)] */
-VGMSTREAM* init_vgmstream_ongakukan_adp(STREAMFILE* sf) {
+VGMSTREAM* init_vgmstream_adp_ongakukan(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     off_t start_offset;
     int loop_flag = 0;

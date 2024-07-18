@@ -1053,7 +1053,7 @@ static const meta_info meta_info_list[] = {
         {meta_AIFF,                 "Apple AIFF header"},
         {meta_STR_SNDS,             "3DO SNDS header"},
         {meta_WS_AUD,               "Westwood Studios .AUD header"},
-        {meta_PS2_IVB,              "IVB/BVII header"},
+        {meta_IIVB,                 "Vingt-et-un IIVB header"},
         {meta_SVS,                  "Square SVS header"},
         {meta_RIFF_WAVE,            "RIFF WAVE header"},
         {meta_RIFF_WAVE_POS,        "RIFF WAVE header (.pos looping)"},
