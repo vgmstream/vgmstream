@@ -49,7 +49,7 @@ struct ongakukan_adp_t
 
 /* filter table consisting of 16 numbers each. */
 
-const short int ongakukan_adpcm_filter[16] = { 233, 549, 453, 375, 310, 233, 233, 233, 233, 233, 233, 233, 310, 375, 453, 549 };
+static const short int ongakukan_adpcm_filter[16] = { 233, 549, 453, 375, 310, 233, 233, 233, 233, 233, 233, 233, 310, 375, 453, 549 };
 
 /* streamfile read function declararion, more may be added in the future. */
 
@@ -63,13 +63,15 @@ static void decode_ongakukan_adpcm_samples(ongakukan_adp_t* handle);
 /* codec management functions, meant to oversee and supervise ADP data from the top-down.
  * in layman terms, they control how ADP data should be handled and when. */
 
-ongakukan_adp_t* init_ongakukan_adpcm(STREAMFILE* sf, long int data_offset, long int data_size,
-    bool sound_is_adpcm)
+ongakukan_adp_t* ongakukan_adpcm_init(STREAMFILE* sf, long int data_offset, long int data_size, bool sound_is_adpcm)
 {
     ongakukan_adp_t* handle = NULL;
 
-    /* allocate handle using malloc. */
-    handle = malloc(sizeof(ongakukan_adp_t));
+    if (!sound_is_adpcm)
+        return NULL;
+
+    /* allocate handle. */
+    handle = calloc(1, sizeof(ongakukan_adp_t));
     if (!handle) goto fail;
 
     /* now, to set up the rest of the handle with the data we have... */
@@ -134,16 +136,16 @@ void ongakukan_adpcm_seek(ongakukan_adp_t* handle, long int target_sample)
      * seek_ongakukan_adpcm_pos in its current state is a bit more involved than the above, but works. */
 }
 
-long int get_num_samples_from_ongakukan_adpcm(ongakukan_adp_t* handle)
+long int ongakukan_adpcm_get_num_samples(ongakukan_adp_t* handle)
 {
     if (!handle) return 0;
     return handle->sample_work;
 }
 
-void* get_sample_hist_from_ongakukan_adpcm(ongakukan_adp_t* handle)
+short* ongakukan_adpcm_get_sample_hist(ongakukan_adp_t* handle)
 {
     if (!handle) return 0;
-    return &handle->sample_hist;
+    return handle->sample_hist;
 }
 
 /* function definitions for the inner workings of codec data. */
@@ -163,7 +165,7 @@ static bool set_up_sample_startpoint(ongakukan_adp_t* handle)
     return true;
 }
 
-void decode_ongakukan_adpcm_data(ongakukan_adp_t* handle)
+void ongakukan_adpcm_decode_data(ongakukan_adp_t* handle)
 {
     /* set samples_filled to 0 and have our decoder go through every sample that exists in the sound data.*/
     decode_ongakukan_adpcm_samples(handle);
