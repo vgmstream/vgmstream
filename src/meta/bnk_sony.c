@@ -378,6 +378,7 @@ static bool process_tables(STREAMFILE* sf, bnk_header_t* h) {
             h->table2_suboffset = 0x00;
             break;
 
+        case 0x0c: /* SingStar Ultimate Party (PS3/PS4) */
         case 0x0d: /* Polara (Vita), Crypt of the Necrodancer (Vita) */
         case 0x0e: /* Yakuza 6's Puyo Puyo (PS4) */
         case 0x0f: /* Ikaruga (PS4) */
@@ -568,11 +569,12 @@ static bool process_headers(STREAMFILE* sf, bnk_header_t* h) {
             break;
         }
 
+        case 0x0c:
         case 0x0d:
         case 0x0e:
         case 0x0f:
         case 0x10:
-            h->stream_flags     = read_u8 (sndh_offset+0x12,sf);
+            h->stream_flags     = read_u16(sndh_offset+0x12,sf);
             h->stream_offset    = read_u32(sndh_offset+0x44,sf);
             h->stream_size      = read_u32(sndh_offset+0x48,sf);
             h->sample_rate = (int)read_f32(sndh_offset+0x4c,sf);
@@ -701,16 +703,17 @@ static bool process_names(STREAMFILE* sf, bnk_header_t* h) {
 
         case 0x08:
         case 0x09:
+        case 0x0c:
         case 0x0d:
         case 0x0e:
         case 0x0f:
         case 0x10:
             /* find if this sound has an assigned name in table1 */
             for (i = 0; i < h->sounds_entries; i++) {
-                entry_offset = read_u16(h->table1_offset + (i * h->table1_entry_size) + h->table1_suboffset + 0x00, sf);
+                entry_offset = read_u32(h->table1_offset + (i * h->table1_entry_size) + h->table1_suboffset + 0x00, sf);
 
                 /* rarely (ex. Polara sfx) one name applies to multiple materials,
-                    * from current entry_offset to next entry_offset (section offsets should be in order) */
+                 * from current entry_offset to next entry_offset (section offsets should be in order) */
                 if (entry_offset <= h->table2_entry_offset) {
                     table4_entry_id = i;
                     //break;
@@ -732,7 +735,7 @@ static bool process_names(STREAMFILE* sf, bnk_header_t* h) {
 
             /* get assigned name from table4 names */
             for (i = 0; i < h->sounds_entries; i++) {
-                int entry_id = read_u32(table4_entries_offset + (i * 0x10) + 0x0c, sf);
+                int entry_id = read_u16(table4_entries_offset + (i * 0x10) + 0x0c, sf);
                 if (entry_id == table4_entry_id) {
                     h->stream_name_offset = table4_names_offset + read_u32(table4_entries_offset + (i * 0x10) + 0x00, sf);
                     break;
@@ -901,6 +904,94 @@ static bool process_data(STREAMFILE* sf, bnk_header_t* h) {
             }
             break;
 
+        case 0x0c:
+            /* has two different variants under the same version - one for PS3 and another for PS4 */
+
+            subtype = read_u32(h->start_offset + 0x00,sf); /* might be u16 at 0x02 instead? (implied by PS4's subtypes) */
+            if (read_u32(h->start_offset + 0x04, sf) != 0x01) { /* type? */
+                VGM_LOG("BNK: unknown subtype\n");
+                goto fail;
+            }
+            extradata_size = 0x10 + read_u32(h->start_offset + 0x08, sf); /* 0x80 for MP3, 0x10 for PCM/PS-ADPCM */
+            /* 0x0c: null? */
+
+            if (h->big_endian) {
+                switch (subtype) { /* PS3 */
+                    case 0x00: /* PS-ADPCM */
+                        /* 0x10: null? */
+                        h->channels = read_u32(h->start_offset + 0x14, sf);
+                        h->interleave = 0x10;
+
+                        h->loop_start = read_u32(h->start_offset + 0x18, sf);
+                        loop_length = read_u32(h->start_offset + 0x1c, sf);
+                        h->loop_end = h->loop_start + loop_length; /* loop_start is -1 if not set */
+
+                        h->codec = PSX;
+                        break;
+
+                    case 0x01: /* PCM */
+                        /* 0x10: null? */
+                        h->channels = read_u32(h->start_offset + 0x14, sf);
+                        h->interleave = 0x02;
+
+                        h->loop_start = read_u32(h->start_offset + 0x18, sf);
+                        loop_length = read_u32(h->start_offset + 0x1c, sf);
+                        h->loop_end = h->loop_start + loop_length; /* loop_start is -1 if not set */
+
+                        h->codec = PCM16;
+                        break;
+
+                    case 0x03: /* MP3 */
+                        /* largely the same layout as descibed in v9 above, except +0x08 to all the offsets */
+                        h->channels = read_u32(h->start_offset + 0x28, sf);
+
+                        h->encoder_delay = read_u32(h->start_offset + 0x30, sf);
+                        h->num_samples = read_u32(h->start_offset + 0x34, sf);
+
+                        h->codec = MPEG;
+                        break;
+
+                    default:
+                        vgm_logi("BNK: unknown subtype %x (report)\n", subtype);
+                        goto fail;
+                }
+            }
+            else {
+                switch (subtype) { /* PS4 */
+                    /* if subtype is u16 @ 0x02, then 0x00 is PCM and 0x01 is VAG */
+                    case 0x00: /* PCM mono? */
+                    case 0x01: /* PCM stereo? */
+                        /* 0x10: null? */
+                        h->channels = read_u32(h->start_offset + 0x14, sf);
+                        h->interleave = 0x02;
+
+                        h->loop_start = read_u32(h->start_offset + 0x18, sf);
+                        loop_length = read_u32(h->start_offset + 0x1c, sf);
+                        h->loop_end = h->loop_start + loop_length; /* loop_start is -1 if not set */
+
+                        h->codec = PCM16;
+                        break;
+
+                    case 0x10000: /* PS-ADPCM (HEVAG?) */
+                        /* 0x10: num samples */
+                        h->channels = read_u32(h->start_offset + 0x14, sf);
+                        h->interleave = 0x10;
+
+                        h->loop_start = read_u32(h->start_offset + 0x18, sf);
+                        loop_length = read_u32(h->start_offset + 0x1c, sf);
+                        h->loop_end = h->loop_start + loop_length; /* loop_start is -1 if not set */
+
+                        h->codec = PSX;
+                        break;
+
+                    default:
+                        vgm_logi("BNK: unknown subtype %x (report)\n", subtype);
+                        goto fail;
+                }
+            }
+
+            break;
+
         case 0x0d:
         case 0x0e:
         case 0x0f:
@@ -945,7 +1036,7 @@ static bool process_data(STREAMFILE* sf, bnk_header_t* h) {
                     h->codec = PCM16;
                     break;
 
-                case 0x00: /* HEVAG (test banks) */
+                case 0x00: /* HEVAG (test banks) - likely standard VAG */
                 case 0x03: /* HEVAG (Ikaruga) */
                     /* 0x10: null? */
                     h->channels = read_u32(h->start_offset+0x14,sf);
@@ -1030,7 +1121,7 @@ static bool process_zlsd(STREAMFILE* sf, bnk_header_t* h) {
     int zlsd_count = read_u32(h->zlsd_offset+0x08,sf);
     /* 0x0c: start */
     /* rest: null */
-    
+
     if (zlsd_count) {
         vgm_logi("BNK: unsupported ZLSD subsongs found\n");
         goto fail;
