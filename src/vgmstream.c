@@ -206,7 +206,6 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_ngc_dsp_mpds,
     init_vgmstream_dsp_str_ig,
     init_vgmstream_ea_swvr,
-    init_vgmstream_ps2_b1s,
     init_vgmstream_dsp_xiii,
     init_vgmstream_dsp_cabelas,
     init_vgmstream_lpcm_shade,
