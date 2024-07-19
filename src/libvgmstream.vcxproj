@@ -126,6 +126,7 @@
     <ClInclude Include="meta\adx_keys.h" />
     <ClInclude Include="meta\ahx_keys.h" />
     <ClInclude Include="meta\aix_streamfile.h" />
+    <ClInclude Include="meta\apa3_streamfile.h" />
     <ClInclude Include="meta\awc_decryption_streamfile.h" />
     <ClInclude Include="meta\awc_streamfile.h" />
     <ClInclude Include="meta\bar_streamfile.h" />
@@ -395,6 +396,7 @@
     <ClCompile Include="meta\akb.c" />
     <ClCompile Include="meta\alp.c" />
     <ClCompile Include="meta\ao.c" />
+    <ClCompile Include="meta\apa3.c" />
     <ClCompile Include="meta\apc.c" />
     <ClCompile Include="meta\apple_caff.c" />
     <ClCompile Include="meta\asd_naxat.c" />
@@ -404,7 +406,6 @@
     <ClCompile Include="meta\ast_mmv.c" />
     <ClCompile Include="meta\ast_mv.c" />
     <ClCompile Include="meta\atsl.c" />
-    <ClCompile Include="meta\atx.c" />
     <ClCompile Include="meta\aus.c" />
     <ClCompile Include="meta\awb.c" />
     <ClCompile Include="meta\awc.c" />
@@ -610,7 +611,6 @@
     <ClCompile Include="meta\ppst.c" />
     <ClCompile Include="meta\ps2_adm.c" />
     <ClCompile Include="meta\ps2_ass.c" />
-    <ClCompile Include="meta\ps2_b1s.c" />
     <ClCompile Include="meta\ps2_bmdx.c" />
     <ClCompile Include="meta\ps2_gcm.c" />
     <ClCompile Include="meta\ps2_hsf.c" />

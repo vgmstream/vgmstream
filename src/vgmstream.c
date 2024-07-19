@@ -334,7 +334,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_xwc,
     init_vgmstream_atsl,
     init_vgmstream_sps_n1,
-    init_vgmstream_atx,
+    init_vgmstream_apa3,
     init_vgmstream_sqex_sead,
     init_vgmstream_waf,
     init_vgmstream_wave,

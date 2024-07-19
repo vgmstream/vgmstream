@@ -688,7 +688,7 @@ VGMSTREAM * init_vgmstream_atsl(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_sps_n1(STREAMFILE *streamFile);
 VGMSTREAM * init_vgmstream_sps_n1_segmented(STREAMFILE *streamFile);
 
-VGMSTREAM * init_vgmstream_atx(STREAMFILE *streamFile);
+VGMSTREAM* init_vgmstream_apa3(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_sqex_sead(STREAMFILE * streamFile);
 
