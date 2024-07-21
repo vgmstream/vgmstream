@@ -85,6 +85,7 @@
     <ClInclude Include="api_helpers.h" />
     <ClInclude Include="api_streamfile.h" />
     <ClInclude Include="api_tags.h" />
+    <ClInclude Include="api_version.h" />
     <ClInclude Include="streamfile.h" />
     <ClInclude Include="streamtypes.h" />
     <ClInclude Include="util.h" />
@@ -201,7 +202,6 @@
     <ClInclude Include="util\reader_put.h" />
     <ClInclude Include="util\reader_sf.h" />
     <ClInclude Include="util\reader_text.h" />
-    <ClInclude Include="util\samples_ops.h" />
     <ClInclude Include="util\sf_utils.h" />
     <ClInclude Include="util\text_reader.h" />
     <ClInclude Include="util\vgmstream_limits.h" />
@@ -804,7 +804,6 @@
     <ClCompile Include="util\miniz.c" />
     <ClCompile Include="util\paths.c" />
     <ClCompile Include="util\reader.c" />
-    <ClCompile Include="util\samples_ops.c" />
     <ClCompile Include="util\sf_utils.c" />
     <ClCompile Include="util\text_reader.c" />
   </ItemGroup>

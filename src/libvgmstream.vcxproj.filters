@@ -89,6 +89,9 @@
     <ClInclude Include="api_tags.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="api_version.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="streamfile.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -435,9 +438,6 @@
       <Filter>util\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="util\reader_text.h">
-      <Filter>util\Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="util\samples_ops.h">
       <Filter>util\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="util\sf_utils.h">
@@ -2240,9 +2240,6 @@
       <Filter>util\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="util\reader.c">
-      <Filter>util\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="util\samples_ops.c">
       <Filter>util\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="util\sf_utils.c">
