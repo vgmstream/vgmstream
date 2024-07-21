@@ -41,11 +41,11 @@ export CFLAGS LDFLAGS
 ### targets
 
 vgmstream_cli: libvgmstream.a $(TARGET_EXT_LIBS)
-	$(CC) $(CFLAGS) vgmstream_cli.c $(LDFLAGS) -o $(OUTPUT_CLI)
+	$(CC) $(CFLAGS) vgmstream_cli.c wav_utils.c $(LDFLAGS) -o $(OUTPUT_CLI)
 	$(STRIP) $(OUTPUT_CLI)
 
 vgmstream123: libvgmstream.a $(TARGET_EXT_LIBS)
-	$(CC) $(CFLAGS) $(LIBAO_INC) vgmstream123.c $(LDFLAGS) $(LIBAO_LIB) -o $(OUTPUT_123)
+	$(CC) $(CFLAGS) $(LIBAO_INC) vgmstream123.c wav_utils.c $(LDFLAGS) $(LIBAO_LIB) -o $(OUTPUT_123)
 	$(STRIP) $(OUTPUT_123)
 
 api_example: libvgmstream.a $(TARGET_EXT_LIBS)

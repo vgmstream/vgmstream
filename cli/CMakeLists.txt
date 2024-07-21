@@ -1,7 +1,7 @@
 # CLI
 
 add_executable(vgmstream_cli
-	vgmstream_cli.c)
+	vgmstream_cli.c wav_utils.c)
 
 set_target_properties(vgmstream_cli PROPERTIES
 	PREFIX ""
@@ -67,7 +67,7 @@ if(NOT WIN32 AND BUILD_V123)
 	# vgmstream123
 
 	add_executable(vgmstream123
-		vgmstream123.c)
+		vgmstream123.c wav_utils.c)
 
 	# Link to the vgmstream library as well as libao
 	target_link_libraries(vgmstream123
