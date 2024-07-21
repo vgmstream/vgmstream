@@ -212,7 +212,6 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_ps2_vms,
     init_vgmstream_xau,
     init_vgmstream_bar,
-    init_vgmstream_ffw,
     init_vgmstream_dsp_dspw,
     init_vgmstream_jstm,
     init_vgmstream_xvag,

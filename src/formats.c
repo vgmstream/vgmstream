@@ -190,7 +190,6 @@ static const char* extension_list[] = {
     "fag",
     "fcb", //FFmpeg/not parsed (BINK AUDIO)
     "fda",
-    "ffw",
     "filp",
     "fish",
     //"flac", //common
@@ -1211,7 +1210,6 @@ static const meta_info meta_info_list[] = {
         {meta_PS2_VMS,              "VMS Header"},
         {meta_XAU,                  "XPEC XAU header"},
         {meta_GH3_BAR,              "Guitar Hero III Mobile .bar"},
-        {meta_FFW,                  "Freedom Fighters BGM header"},
         {meta_DSP_DSPW,             "Capcom DSPW header"},
         {meta_PS2_JSTM,             "JSTM Header"},
         {meta_XVAG,                 "Sony XVAG header"},

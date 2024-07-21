@@ -463,8 +463,6 @@ VGMSTREAM * init_vgmstream_xau(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_bar(STREAMFILE* streamFile);
 
-VGMSTREAM * init_vgmstream_ffw(STREAMFILE* streamFile);
-
 VGMSTREAM * init_vgmstream_jstm(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_xvag(STREAMFILE* streamFile);

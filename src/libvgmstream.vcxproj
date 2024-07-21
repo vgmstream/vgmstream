@@ -480,7 +480,6 @@
     <ClCompile Include="meta\fda.c" />
     <ClCompile Include="meta\ffdl.c" />
     <ClCompile Include="meta\ffmpeg.c" />
-    <ClCompile Include="meta\ffw.c" />
     <ClCompile Include="meta\filp.c" />
     <ClCompile Include="meta\flx.c" />
     <ClCompile Include="meta\fsb.c" />

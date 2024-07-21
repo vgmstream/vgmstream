@@ -1270,9 +1270,6 @@
     <ClCompile Include="meta\ffmpeg.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ffw.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="meta\filp.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
