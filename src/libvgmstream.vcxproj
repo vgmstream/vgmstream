@@ -85,6 +85,7 @@
     <ClInclude Include="api_helpers.h" />
     <ClInclude Include="api_streamfile.h" />
     <ClInclude Include="api_tags.h" />
+    <ClInclude Include="api_version.h" />
     <ClInclude Include="streamfile.h" />
     <ClInclude Include="streamtypes.h" />
     <ClInclude Include="util.h" />
@@ -126,6 +127,7 @@
     <ClInclude Include="meta\adx_keys.h" />
     <ClInclude Include="meta\ahx_keys.h" />
     <ClInclude Include="meta\aix_streamfile.h" />
+    <ClInclude Include="meta\apa3_streamfile.h" />
     <ClInclude Include="meta\awc_decryption_streamfile.h" />
     <ClInclude Include="meta\awc_streamfile.h" />
     <ClInclude Include="meta\bar_streamfile.h" />
@@ -200,7 +202,6 @@
     <ClInclude Include="util\reader_put.h" />
     <ClInclude Include="util\reader_sf.h" />
     <ClInclude Include="util\reader_text.h" />
-    <ClInclude Include="util\samples_ops.h" />
     <ClInclude Include="util\sf_utils.h" />
     <ClInclude Include="util\text_reader.h" />
     <ClInclude Include="util\vgmstream_limits.h" />
@@ -395,6 +396,7 @@
     <ClCompile Include="meta\akb.c" />
     <ClCompile Include="meta\alp.c" />
     <ClCompile Include="meta\ao.c" />
+    <ClCompile Include="meta\apa3.c" />
     <ClCompile Include="meta\apc.c" />
     <ClCompile Include="meta\apple_caff.c" />
     <ClCompile Include="meta\asd_naxat.c" />
@@ -404,7 +406,6 @@
     <ClCompile Include="meta\ast_mmv.c" />
     <ClCompile Include="meta\ast_mv.c" />
     <ClCompile Include="meta\atsl.c" />
-    <ClCompile Include="meta\atx.c" />
     <ClCompile Include="meta\aus.c" />
     <ClCompile Include="meta\awb.c" />
     <ClCompile Include="meta\awc.c" />
@@ -479,7 +480,6 @@
     <ClCompile Include="meta\fda.c" />
     <ClCompile Include="meta\ffdl.c" />
     <ClCompile Include="meta\ffmpeg.c" />
-    <ClCompile Include="meta\ffw.c" />
     <ClCompile Include="meta\filp.c" />
     <ClCompile Include="meta\flx.c" />
     <ClCompile Include="meta\fsb.c" />
@@ -610,7 +610,6 @@
     <ClCompile Include="meta\ppst.c" />
     <ClCompile Include="meta\ps2_adm.c" />
     <ClCompile Include="meta\ps2_ass.c" />
-    <ClCompile Include="meta\ps2_b1s.c" />
     <ClCompile Include="meta\ps2_bmdx.c" />
     <ClCompile Include="meta\ps2_gcm.c" />
     <ClCompile Include="meta\ps2_hsf.c" />
@@ -804,7 +803,6 @@
     <ClCompile Include="util\miniz.c" />
     <ClCompile Include="util\paths.c" />
     <ClCompile Include="util\reader.c" />
-    <ClCompile Include="util\samples_ops.c" />
     <ClCompile Include="util\sf_utils.c" />
     <ClCompile Include="util\text_reader.c" />
   </ItemGroup>

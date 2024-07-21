@@ -92,7 +92,7 @@ static const char* extension_list[] = {
     "awc",
     "awd",
 
-    "b1s",
+    "b1s", //txth/reserved [7 Wonders of the Ancient World (PS2)]
     "baf",
     "baka",
     "bank",
@@ -190,7 +190,6 @@ static const char* extension_list[] = {
     "fag",
     "fcb", //FFmpeg/not parsed (BINK AUDIO)
     "fda",
-    "ffw",
     "filp",
     "fish",
     //"flac", //common
@@ -1204,7 +1203,6 @@ static const meta_info meta_info_list[] = {
         {meta_NGC_DSP_MPDS,         "MPDS DSP header"},
         {meta_DSP_STR_IG,           "Infogrames .DSP header"},
         {meta_EA_SWVR,              "Electronic Arts SWVR header"},
-        {meta_PS2_B1S,              "B1S header"},
         {meta_DSP_XIII,             "XIII dsp header"},
         {meta_DSP_CABELAS,          "Cabelas games .DSP header"},
         {meta_PS2_ADM,              "Dragon Quest V .ADM raw header"},
@@ -1212,7 +1210,6 @@ static const meta_info meta_info_list[] = {
         {meta_PS2_VMS,              "VMS Header"},
         {meta_XAU,                  "XPEC XAU header"},
         {meta_GH3_BAR,              "Guitar Hero III Mobile .bar"},
-        {meta_FFW,                  "Freedom Fighters BGM header"},
         {meta_DSP_DSPW,             "Capcom DSPW header"},
         {meta_PS2_JSTM,             "JSTM Header"},
         {meta_XVAG,                 "Sony XVAG header"},

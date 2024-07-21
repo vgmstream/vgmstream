@@ -785,10 +785,6 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Electronic Arts SWVR header [*EA_SWVR*]
   - *ea_swvr*: `.stream .str`
   - Codecs: PSX NGC_DSP PCM8_U_int
-- **ps2_b1s.c**
-  - B1S header [*PS2_B1S*]
-  - *ps2_b1s*: `.b1s`
-  - Codecs: PSX
 - **lpcm_shade.c**
   - Shade LPCM header [*LPCM_SHADE*]
   - *lpcm_shade*: `.w .lpcm`
@@ -805,10 +801,6 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Guitar Hero III Mobile .bar [*GH3_BAR*]
   - *bar*: `.bar`
   - Codecs: IMA
-- **ffw.c**
-  - Freedom Fighters BGM header [*FFW*]
-  - *ffw*: `.ffw`
-  - Codecs: PCM16BE
 - **jstm.c**
   - JSTM Header [*PS2_JSTM*]
   - *jstm*: `.stm .jstm`
@@ -1206,9 +1198,9 @@ different internally (encrypted, different versions, etc) and not always can be 
     - Subfiles: *vag riff*
   - *sps_n1_segmented*: `.at9 .nlsd`
     - Subfiles: *ogg_vorbis opus_std*
-- **atx.c**
+- **apa3.c**
   - (container)
-  - *atx*: `.atx + .(external)`
+  - *apa3*: `.atx`
     - Subfiles: *riff*
 - **sqex_sead.c**
   - Square Enix SAB header [*SQEX_SAB*]

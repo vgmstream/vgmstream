@@ -104,7 +104,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="wav_utils.h" />
+  </ItemGroup>
+  <ItemGroup>
     <ClCompile Include="vgmstream_cli.c" />
+    <ClCompile Include="wav_utils.c" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ext_libs\ext_libs.vcxproj">
