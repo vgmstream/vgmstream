@@ -39,7 +39,9 @@ typedef struct {
     uint32_t hists_offset;
     uint32_t hists_spacing;
 
-    /* optional but can be used for some actions */
+    uint32_t name_offset;
+
+    /* optional but can be used for some actions (such as DSP coefs) */
     bool big_endian;
     coding_t coding;
     layout_t layout;
@@ -51,6 +53,8 @@ typedef struct {
     STREAMFILE* sf_body;
 
     bool open_stream;
+
+    bool allow_dual_stereo;
 } meta_header_t;
 
 VGMSTREAM* alloc_metastream(meta_header_t* h);

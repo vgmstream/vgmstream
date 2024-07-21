@@ -1,5 +1,6 @@
 #include "../vgmstream.h"
 #include "meta_utils.h"
+#include "reader_text.h"
 
 
 /* Allocate memory and setup a VGMSTREAM */
@@ -10,7 +11,7 @@ VGMSTREAM* alloc_metastream(meta_header_t* h) {
         return NULL;
     }
     if (h->num_samples <= 0 || h->num_samples > VGMSTREAM_MAX_NUM_SAMPLES) {
-        VGM_LOG("meta: wrong samples %i\n", h->sample_rate);
+        VGM_LOG("meta: wrong samples %i\n", h->num_samples);
         return NULL;
     }
 
@@ -30,7 +31,10 @@ VGMSTREAM* alloc_metastream(meta_header_t* h) {
     vgmstream->num_streams = h->total_subsongs;
     vgmstream->stream_size = h->stream_size;
     vgmstream->interleave_block_size = h->interleave;
+    vgmstream->allow_dual_stereo = h->allow_dual_stereo;
 
+    if (h->name_offset)
+        read_string(vgmstream->stream_name, sizeof(vgmstream->stream_name), h->name_offset, h->sf ? h->sf : h->sf_head);
     
     if (h->coding == coding_NGC_DSP && (h->sf || h->sf_head)) {
         if (h->coefs_offset || h->coefs_spacing)

@@ -1,74 +1,145 @@
 #include "meta.h"
-#include "../util.h"
+#include "../coding/coding.h"
+#include "../util/reader_text.h"
+#include "../util/meta_utils.h"
 
-/* .agsc - from Metroid Prime 2 */
+static bool parse_agsc(meta_header_t* hdr, STREAMFILE* sf, int version);
 
-VGMSTREAM * init_vgmstream_agsc(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
 
-    off_t header_offset;
-    off_t start_offset;
-    int channel_count;
-    int i;
+/* .agsc - from Retro Studios games [Metroid Prime (GC), Metroid Prime 2 (GC)] */
+VGMSTREAM* init_vgmstream_agsc(STREAMFILE* sf) {
 
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("agsc",filename_extension(filename))) goto fail;
+    /* checks */
+    int version;
+    if (is_id32be(0x00, sf, "Audi"))
+        version = 1;
+    else if (read_u32be(0x00, sf) == 0x00000001)
+        version = 2;
+    else
+        return NULL;
 
-    /* check header */
-    if ((uint32_t)read_32bitBE(0,streamFile)!=0x00000001)
-        goto fail;
+    /* .agsc: 'class' type in .pak */
+    if (!check_extensions(sf, "agsc"))
+        return NULL;
 
-    /* count length of name, including terminating 0 */
-    for (header_offset=4;header_offset < get_streamfile_size(streamFile) && read_8bit(header_offset,streamFile)!='\0';header_offset++);
 
-    header_offset ++;
+    meta_header_t hdr = {0};
+    if (!parse_agsc(&hdr, sf, version))
+        return NULL;
 
-    channel_count = 1;
+    hdr.meta = meta_AGSC;
+    hdr.coding = coding_NGC_DSP;
+    hdr.layout = layout_none;
+    hdr.big_endian = true;
+    hdr.allow_dual_stereo = true;
 
-    /* build the VGMSTREAM */
+    hdr.sf = sf;
+    hdr.open_stream = true;
 
-    vgmstream = allocate_vgmstream(1,1);
-    if (!vgmstream) goto fail;
+    return alloc_metastream(&hdr);
+}
 
-    /* fill in the vital statistics */
-    vgmstream->num_samples = read_32bitBE(header_offset+0xda,streamFile);
-    vgmstream->sample_rate = (uint16_t)read_16bitBE(header_offset+0xd8,streamFile);
 
-    vgmstream->loop_start_sample = read_32bitBE(header_offset+0xde,streamFile);
-    /* this is cute, we actually have a "loop length" */
-    vgmstream->loop_end_sample = (vgmstream->loop_start_sample + read_32bitBE(header_offset+0xe2,streamFile))-1;
+static bool parse_agsc(meta_header_t* hdr, STREAMFILE* sf, int version) {
+    uint32_t offset;
+    int name_size;
 
-    vgmstream->coding_type = coding_NGC_DSP;
-    vgmstream->layout_type = layout_none;
-    vgmstream->meta_type = meta_AGSC;
-    vgmstream->allow_dual_stereo = 1;
+    switch(version) {
+        case 1: 
+            // usually "Audio/" but rarely "Audio//"
+            name_size = read_string(NULL, 0x20, 0x00, sf);
+            if (name_size == 0) // not a string
+                return false;
+            offset = name_size + 1;
+            break; 
 
-    for (i=0;i<16;i++) {
-        vgmstream->ch[0].adpcm_coef[i]=read_16bitBE(header_offset+0xf6+i*2,streamFile);
+        case 2:
+            /* after fixed ID */
+            offset = 0x04;
+            break;
+
+        default:
+            return false;
     }
 
-    start_offset = header_offset+0x116;
+    /* after id starts with name + null */
+    hdr->name_offset = offset;
+    name_size = read_string(NULL, 0x20, offset, sf);
+    if (name_size == 0) // not a string
+        return false;
+    offset += name_size + 1;
 
-    /* open the file for reading by each channel */
-    {
-        int i;
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
+    uint32_t head_offset, data_offset;
+    uint32_t unk1_size, unk2_size, head_size, data_size;
+    switch(version) {
+        case 1:
+            /* per chunk: chunk size + chunk data */
+            unk1_size = read_u32be(offset, sf);
+            offset += 0x04 + unk1_size;
 
-            if (!vgmstream->ch[i].streamfile) goto fail;
+            unk2_size = read_u32be(offset, sf);
+            offset += 0x04 + unk2_size;
 
-            vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=
-                start_offset;
-        }
+            data_offset = offset + 0x04; // data chunk goes before headers...
+            data_size = read_u32be(offset, sf);
+            offset += 0x04 + data_size;
+
+            head_offset = offset + 0x04;
+            head_size = read_u32be(offset, sf);
+            offset += 0x04 + head_size;
+
+            break;
+
+        case 2:
+            /* chunk sizes per chunk + chunk data per chunk */
+            offset += 0x02; // song id?
+            unk1_size = read_u32be(offset + 0x00, sf);
+            unk2_size = read_u32be(offset + 0x04, sf);
+            head_size = read_u32be(offset + 0x08, sf);
+            data_size = read_u32be(offset + 0x0c, sf);
+
+            head_offset = offset + 0x10 + unk1_size + unk2_size;
+            data_offset = head_offset + head_size;
+
+            break;
+        default:
+            return false;
+    }
+    // offsets/values/data aren't 32b aligned but file is (0xFF padding)
+
+    // possible in some test banks
+    if (data_size == 0 || head_size < 0x20 + 0x28) {
+        vgm_logi("AGSC: bank has no subsongs (ignore)\n");
+        return false;
     }
 
-    return vgmstream;
+    /* header chunk has 0x20 headers per subsong + 0xFFFFFFFF (end marker) + 0x28 coefs per subsongs,
+     * no apparent count even in other chunks */
+    hdr->total_subsongs = (head_size - 0x04) / (0x20 + 0x28);
+    hdr->target_subsong = sf->stream_index;
+    if (!check_subsongs(&hdr->target_subsong, hdr->total_subsongs))
+        return false;
 
-    /* clean up anything we may have opened */
-fail:
-    if (vgmstream) close_vgmstream(vgmstream);
-    return NULL;
+    uint32_t entry_offset = head_offset + 0x20 * (hdr->target_subsong - 1);
+
+    // 00: id?
+    hdr->stream_offset  = read_u32be(entry_offset + 0x04,sf) + data_offset;
+    // 08: null?
+    // 0c: always 0x3c00?
+    hdr->sample_rate    = read_u16be(entry_offset + 0x0e,sf);
+    hdr->num_samples    = read_s32be(entry_offset + 0x10,sf);
+    hdr->loop_start     = read_s32be(entry_offset + 0x14,sf);
+    hdr->loop_end       = read_s32be(entry_offset + 0x18,sf); // loop length
+    hdr->coefs_offset   = read_s32be(entry_offset + 0x1c,sf);
+
+    if (hdr->loop_end)
+        hdr->loop_end = hdr->loop_end + hdr->loop_start - 1;
+    hdr->loop_flag = hdr->loop_end != 0;
+
+    hdr->coefs_offset += head_offset + 0x08; // skip unknown hist/loop ps-like values
+
+    hdr->channels = 1; // MP2 uses dual stereo for title track
+    hdr->stream_size = hdr->num_samples / 14 * 8 * hdr->channels; // meh
+
+    return true;
 }
