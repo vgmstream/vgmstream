@@ -1,6 +1,7 @@
 #ifndef _WAV_UTILS_H_
 #define _WAV_UTILS_H_
 
+#include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
 
