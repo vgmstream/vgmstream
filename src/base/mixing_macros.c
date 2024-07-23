@@ -76,8 +76,8 @@ static int is_layered_auto(VGMSTREAM* vgmstream, int max, char mode) {
     /* no channel down/upmixing (cannot guess output) */
     mixer_data_t* data = vgmstream->mixing_data;
     for (int i = 0; i < data->mixing_count; i++) {
-        mix_command_t mix = data->mixing_chain[i].command;
-        if (mix == MIX_UPMIX || mix == MIX_DOWNMIX || mix == MIX_KILLMIX) /*mix == MIX_SWAP || ??? */
+        mix_type_t type = data->mixing_chain[i].type;
+        if (type == MIX_UPMIX || type == MIX_DOWNMIX || type == MIX_KILLMIX) /*type == MIX_SWAP || ??? */
             return 0;
     }
 

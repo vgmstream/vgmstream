@@ -103,10 +103,10 @@ void mix_vgmstream(sample_t *outbuf, int32_t sample_count, VGMSTREAM* vgmstream)
      */
     data->current_channels = vgmstream->channels;
     for (int m = 0; m < data->mixing_count; m++) {
-        mix_command_data* mix = &data->mixing_chain[m];
+        mix_op_t* mix = &data->mixing_chain[m];
 
         //TODO: set callback
-        switch(mix->command) {
+        switch(mix->type) {
             case MIX_SWAP:      mixer_op_swap(data, sample_count, mix); break;
             case MIX_ADD:       mixer_op_add(data, sample_count, mix); break;
             case MIX_VOLUME:    mixer_op_volume(data, sample_count, mix); break;
@@ -166,7 +166,6 @@ void mixing_update_channel(VGMSTREAM* vgmstream) {
 /* ******************************************************************* */
 
 static int fix_layered_channel_layout(VGMSTREAM* vgmstream) {
-    int i;
     mixer_data_t* data = vgmstream->mixing_data;
     layered_layout_data* layout_data;
     uint32_t prev_cl;
@@ -185,7 +184,7 @@ static int fix_layered_channel_layout(VGMSTREAM* vgmstream) {
     if (prev_cl == 0)
         return 0;
 
-    for (i = 1; i < layout_data->layer_count; i++) {
+    for (int i = 1; i < layout_data->layer_count; i++) {
         uint32_t layer_cl = layout_data->layers[i]->channel_layout;
         if (prev_cl != layer_cl)
             return 0;

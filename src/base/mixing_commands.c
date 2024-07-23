@@ -5,7 +5,7 @@
 #include <limits.h>
 
 
-static bool add_mixing(VGMSTREAM* vgmstream, mix_command_data *mix) {
+static bool add_mixing(VGMSTREAM* vgmstream, mix_op_t* op) {
     mixer_data_t* data = vgmstream->mixing_data;
     if (!data)
         return false;
@@ -21,11 +21,11 @@ static bool add_mixing(VGMSTREAM* vgmstream, mix_command_data *mix) {
         return false;
     }
 
-    data->mixing_chain[data->mixing_count] = *mix; /* memcpy */
+    data->mixing_chain[data->mixing_count] = *op; /* memcpy */
     data->mixing_count++;
 
 
-    if (mix->command == MIX_FADE) {
+    if (op->type == MIX_FADE) {
         data->has_fade = true;
     }
     else {
@@ -39,20 +39,20 @@ static bool add_mixing(VGMSTREAM* vgmstream, mix_command_data *mix) {
 
 void mixing_push_swap(VGMSTREAM* vgmstream, int ch_dst, int ch_src) {
     mixer_data_t* data = vgmstream->mixing_data;
-    mix_command_data mix = {0};
+    mix_op_t op = {0};
 
     if (ch_dst < 0 || ch_src < 0 || ch_dst == ch_src) return;
     if (!data || ch_dst >= data->output_channels || ch_src >= data->output_channels) return;
-    mix.command = MIX_SWAP;
-    mix.ch_dst = ch_dst;
-    mix.ch_src = ch_src;
+    op.type = MIX_SWAP;
+    op.ch_dst = ch_dst;
+    op.ch_src = ch_src;
 
-    add_mixing(vgmstream, &mix);
+    add_mixing(vgmstream, &op);
 }
 
 void mixing_push_add(VGMSTREAM* vgmstream, int ch_dst, int ch_src, double volume) {
     mixer_data_t* data = vgmstream->mixing_data;
-    mix_command_data mix = {0};
+    mix_op_t op = {0};
     if (!data) return;
 
     //if (volume < 0.0) return; /* negative volume inverts the waveform */
@@ -60,35 +60,35 @@ void mixing_push_add(VGMSTREAM* vgmstream, int ch_dst, int ch_src, double volume
     if (ch_dst < 0 || ch_src < 0) return;
     if (!data || ch_dst >= data->output_channels || ch_src >= data->output_channels) return;
 
-    mix.command = MIX_ADD;
-    mix.ch_dst = ch_dst;
-    mix.ch_src = ch_src;
-    mix.vol = volume;
+    op.type = MIX_ADD;
+    op.ch_dst = ch_dst;
+    op.ch_src = ch_src;
+    op.vol = volume;
 
     //;VGM_LOG("MIX: add %i+%i*%f\n", ch_dst,ch_src,volume);
-    add_mixing(vgmstream, &mix);
+    add_mixing(vgmstream, &op);
 }
 
 void mixing_push_volume(VGMSTREAM* vgmstream, int ch_dst, double volume) {
     mixer_data_t* data = vgmstream->mixing_data;
-    mix_command_data mix = {0};
+    mix_op_t op = {0};
 
     //if (ch_dst < 0) return; /* means all channels */
     //if (volume < 0.0) return; /* negative volume inverts the waveform */
     if (volume == 1.0) return; /* no change */
     if (!data || ch_dst >= data->output_channels) return;
 
-    mix.command = MIX_VOLUME; //if (volume == 0.0) MIX_VOLUME0 /* could simplify */
-    mix.ch_dst = ch_dst;
-    mix.vol = volume;
+    op.type = MIX_VOLUME; //if (volume == 0.0) MIX_VOLUME0 /* could simplify */
+    op.ch_dst = ch_dst;
+    op.vol = volume;
 
     //;VGM_LOG("MIX: volume %i*%f\n", ch_dst,volume);
-    add_mixing(vgmstream, &mix);
+    add_mixing(vgmstream, &op);
 }
 
 void mixing_push_limit(VGMSTREAM* vgmstream, int ch_dst, double volume) {
     mixer_data_t* data = vgmstream->mixing_data;
-    mix_command_data mix = {0};
+    mix_op_t op = {0};
 
     //if (ch_dst < 0) return; /* means all channels */
     if (volume < 0.0) return;
@@ -96,26 +96,26 @@ void mixing_push_limit(VGMSTREAM* vgmstream, int ch_dst, double volume) {
     if (!data || ch_dst >= data->output_channels) return;
     //if (volume == 0.0) return; /* dumb but whatevs */
 
-    mix.command = MIX_LIMIT;
-    mix.ch_dst = ch_dst;
-    mix.vol = volume;
+    op.type = MIX_LIMIT;
+    op.ch_dst = ch_dst;
+    op.vol = volume;
 
-    add_mixing(vgmstream, &mix);
+    add_mixing(vgmstream, &op);
 }
 
 void mixing_push_upmix(VGMSTREAM* vgmstream, int ch_dst) {
     mixer_data_t* data = vgmstream->mixing_data;
-    mix_command_data mix = {0};
+    mix_op_t op = {0};
     int ok;
 
     if (ch_dst < 0) return;
     if (!data || ch_dst > data->output_channels || data->output_channels +1 > VGMSTREAM_MAX_CHANNELS) return;
     /* dst can be == output_channels here, since we are inserting */
 
-    mix.command = MIX_UPMIX;
-    mix.ch_dst = ch_dst;
+    op.type = MIX_UPMIX;
+    op.ch_dst = ch_dst;
 
-    ok = add_mixing(vgmstream, &mix);
+    ok = add_mixing(vgmstream, &op);
     if (ok) {
         data->output_channels += 1;
         if (data->mixing_channels < data->output_channels)
@@ -125,16 +125,16 @@ void mixing_push_upmix(VGMSTREAM* vgmstream, int ch_dst) {
 
 void mixing_push_downmix(VGMSTREAM* vgmstream, int ch_dst) {
     mixer_data_t* data = vgmstream->mixing_data;
-    mix_command_data mix = {0};
+    mix_op_t op = {0};
     int ok;
 
     if (ch_dst < 0) return;
     if (!data || ch_dst >= data->output_channels || data->output_channels - 1 < 1) return;
 
-    mix.command = MIX_DOWNMIX;
-    mix.ch_dst = ch_dst;
+    op.type = MIX_DOWNMIX;
+    op.ch_dst = ch_dst;
 
-    ok = add_mixing(vgmstream, &mix);
+    ok = add_mixing(vgmstream, &op);
     if (ok) {
         data->output_channels -= 1;
     }
@@ -142,31 +142,29 @@ void mixing_push_downmix(VGMSTREAM* vgmstream, int ch_dst) {
 
 void mixing_push_killmix(VGMSTREAM* vgmstream, int ch_dst) {
     mixer_data_t* data = vgmstream->mixing_data;
-    mix_command_data mix = {0};
-    int ok;
+    mix_op_t op = {0};
 
     if (ch_dst <= 0) return; /* can't kill from first channel */
     if (!data || ch_dst >= data->output_channels) return;
 
-    mix.command = MIX_KILLMIX;
-    mix.ch_dst = ch_dst;
+    op.type = MIX_KILLMIX;
+    op.ch_dst = ch_dst;
 
     //;VGM_LOG("MIX: killmix %i\n", ch_dst);
-    ok = add_mixing(vgmstream, &mix);
+    bool ok = add_mixing(vgmstream, &op);
     if (ok) {
         data->output_channels = ch_dst; /* clamp channels */
     }
 }
 
 
-static mix_command_data* get_last_fade(mixer_data_t* data, int target_channel) {
-    int i;
-    for (i = data->mixing_count; i > 0; i--) {
-        mix_command_data *mix = &data->mixing_chain[i-1];
-        if (mix->command != MIX_FADE)
+static mix_op_t* get_last_fade(mixer_data_t* data, int target_channel) {
+    for (int i = data->mixing_count; i > 0; i--) {
+        mix_op_t* op = &data->mixing_chain[i-1];
+        if (op->type != MIX_FADE)
             continue;
-        if (mix->ch_dst == target_channel)
-            return mix;
+        if (op->ch_dst == target_channel)
+            return op;
     }
 
     return NULL;
@@ -176,8 +174,8 @@ static mix_command_data* get_last_fade(mixer_data_t* data, int target_channel) {
 void mixing_push_fade(VGMSTREAM* vgmstream, int ch_dst, double vol_start, double vol_end, char shape,
         int32_t time_pre, int32_t time_start, int32_t time_end, int32_t time_post) {
     mixer_data_t* data = vgmstream->mixing_data;
-    mix_command_data mix = {0};
-    mix_command_data *mix_prev;
+    mix_op_t op = {0};
+    mix_op_t* op_prev;
 
 
     //if (ch_dst < 0) return; /* means all channels */
@@ -192,15 +190,15 @@ void mixing_push_fade(VGMSTREAM* vgmstream, int ch_dst, double vol_start, double
     if (shape == '(' || shape == ')')
         shape = 'H';
 
-    mix.command = MIX_FADE;
-    mix.ch_dst = ch_dst;
-    mix.vol_start = vol_start;
-    mix.vol_end = vol_end;
-    mix.shape = shape;
-    mix.time_pre = time_pre;
-    mix.time_start = time_start;
-    mix.time_end = time_end;
-    mix.time_post = time_post;
+    op.type = MIX_FADE;
+    op.ch_dst = ch_dst;
+    op.vol_start = vol_start;
+    op.vol_end = vol_end;
+    op.shape = shape;
+    op.time_pre = time_pre;
+    op.time_start = time_start;
+    op.time_end = time_end;
+    op.time_post = time_post;
 
 
     /* cancel fades and optimize a bit when using negative pre/post:
@@ -216,33 +214,33 @@ void mixing_push_fade(VGMSTREAM* vgmstream, int ch_dst, double vol_start, double
      *   as they're uncommon and hard to optimize
      * fades cancel fades of the same channel, and 'all channel' (-1) fades also cancel 'all channels'
      */
-    mix_prev = get_last_fade(data, mix.ch_dst);
-    if (mix_prev == NULL) {
+    op_prev = get_last_fade(data, op.ch_dst);
+    if (op_prev == NULL) {
         if (vol_start == 1.0 && time_pre < 0)
             time_pre = time_start; /* fade-out helds default volume before fade start can be clamped */
         if (vol_end == 1.0 && time_post < 0)
             time_post = time_end; /* fade-in helds default volume after fade end can be clamped */
     }
-    else if (mix_prev->time_post < 0 || mix.time_pre < 0) {
+    else if (op_prev->time_post < 0 || op.time_pre < 0) {
         int is_prev = 1;
         /* test if prev is really cancelled by this */
-        if ((mix_prev->time_end > mix.time_start) ||
-            (mix_prev->time_post >= 0 && mix_prev->time_post > mix.time_start) ||
-            (mix.time_pre >= 0 && mix.time_pre < mix_prev->time_end))
+        if ((op_prev->time_end > op.time_start) ||
+            (op_prev->time_post >= 0 && op_prev->time_post > op.time_start) ||
+            (op.time_pre >= 0 && op.time_pre < op_prev->time_end))
             is_prev = 0;
 
         if (is_prev) {
             /* change negative values to actual points */
-            if (mix_prev->time_post < 0 && mix.time_pre < 0) {
-                mix_prev->time_post = mix_prev->time_end;
-                mix.time_pre = mix_prev->time_post;
+            if (op_prev->time_post < 0 && op.time_pre < 0) {
+                op_prev->time_post = op_prev->time_end;
+                op.time_pre = op_prev->time_post;
             }
 
-            if (mix_prev->time_post >= 0 && mix.time_pre < 0) {
-                mix.time_pre = mix_prev->time_post;
+            if (op_prev->time_post >= 0 && op.time_pre < 0) {
+                op.time_pre = op_prev->time_post;
             }
-            else if (mix_prev->time_post < 0 && mix.time_pre >= 0) {
-                mix_prev->time_post = mix.time_pre;
+            else if (op_prev->time_post < 0 && op.time_pre >= 0) {
+                op_prev->time_post = op.time_pre;
             }
             /* else: both define start/ends, do nothing */
         }
@@ -250,5 +248,5 @@ void mixing_push_fade(VGMSTREAM* vgmstream, int ch_dst, double vol_start, double
     }
 
     //;VGM_LOG("MIX: fade %i^%f~%f=%c@%i~%i~%i~%i\n", ch_dst, vol_start, vol_end, shape, time_pre, time_start, time_end, time_post);
-    add_mixing(vgmstream, &mix);
+    add_mixing(vgmstream, &op);
 }

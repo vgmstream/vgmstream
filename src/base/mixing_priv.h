@@ -4,9 +4,6 @@
 
 #define VGMSTREAM_MAX_MIXING 512
 
-//TODO rename
-
-/* mixing info */
 typedef enum {
     MIX_SWAP,
     MIX_ADD,
@@ -16,10 +13,10 @@ typedef enum {
     MIX_DOWNMIX,
     MIX_KILLMIX,
     MIX_FADE
-} mix_command_t;
+} mix_type_t;
 
 typedef struct {
-    mix_command_t command;
+    mix_type_t type;
     /* common */
     int ch_dst;
     int ch_src;
@@ -33,7 +30,7 @@ typedef struct {
     int32_t time_start; /* fade start position where vol changes from vol_start to vol_end */
     int32_t time_end;   /* fade end position where vol changes from vol_start to vol_end */
     int32_t time_post;  /* position after time_end where vol_end applies (-1 = end) */
-} mix_command_data;
+} mix_op_t;
 
 typedef struct {
     int mixing_channels;    /* max channels needed to mix */
@@ -43,7 +40,7 @@ typedef struct {
 
     int mixing_count;       /* mixing number */
     size_t mixing_size;     /* mixing max */
-    mix_command_data mixing_chain[VGMSTREAM_MAX_MIXING]; /* effects to apply (could be alloc'ed but to simplify...) */
+    mix_op_t mixing_chain[VGMSTREAM_MAX_MIXING]; /* effects to apply (could be alloc'ed but to simplify...) */
 
     float* mixbuf;          /* internal mixing buffer */
     int current_channels;   /* state: channels may increase/decrease during ops */
@@ -54,13 +51,13 @@ typedef struct {
     bool has_fade;
 } mixer_data_t;
 
-void mixer_op_swap(mixer_data_t* data, int32_t sample_count, mix_command_data* mix);
-void mixer_op_add(mixer_data_t* data, int32_t sample_count, mix_command_data* mix);
-void mixer_op_volume(mixer_data_t* data, int32_t sample_count, mix_command_data* mix);
-void mixer_op_limit(mixer_data_t* data, int32_t sample_count, mix_command_data* mix);
-void mixer_op_upmix(mixer_data_t* data, int32_t sample_count, mix_command_data* mix);
-void mixer_op_downmix(mixer_data_t* data, int32_t sample_count, mix_command_data* mix);
-void mixer_op_killmix(mixer_data_t* data, int32_t sample_count, mix_command_data* mix);
-void mixer_op_fade(mixer_data_t* data, int32_t sample_count, mix_command_data* mix);
+void mixer_op_swap(mixer_data_t* data, int32_t sample_count, mix_op_t* op);
+void mixer_op_add(mixer_data_t* data, int32_t sample_count, mix_op_t* op);
+void mixer_op_volume(mixer_data_t* data, int32_t sample_count, mix_op_t* op);
+void mixer_op_limit(mixer_data_t* data, int32_t sample_count, mix_op_t* op);
+void mixer_op_upmix(mixer_data_t* data, int32_t sample_count, mix_op_t* op);
+void mixer_op_downmix(mixer_data_t* data, int32_t sample_count, mix_op_t* op);
+void mixer_op_killmix(mixer_data_t* data, int32_t sample_count, mix_op_t* op);
+void mixer_op_fade(mixer_data_t* data, int32_t sample_count, mix_op_t* op);
 bool mixer_op_fade_is_active(mixer_data_t* data, int32_t current_start, int32_t current_end);
 #endif

@@ -54,28 +54,28 @@ static inline float get_fade_gain_curve(char shape, float index) {
     return gain;
 }
 
-static bool get_fade_gain(mix_command_data *mix, float *out_cur_vol, int32_t current_subpos) {
+static bool get_fade_gain(mix_op_t* op, float* out_cur_vol, int32_t current_subpos) {
     float cur_vol = 0.0f;
 
-    if ((current_subpos >= mix->time_pre || mix->time_pre < 0) && current_subpos < mix->time_start) {
-        cur_vol = mix->vol_start; /* before */
+    if ((current_subpos >= op->time_pre || op->time_pre < 0) && current_subpos < op->time_start) {
+        cur_vol = op->vol_start; /* before */
     }
-    else if (current_subpos >= mix->time_end && (current_subpos < mix->time_post || mix->time_post < 0)) {
-        cur_vol = mix->vol_end; /* after */
+    else if (current_subpos >= op->time_end && (current_subpos < op->time_post || op->time_post < 0)) {
+        cur_vol = op->vol_end; /* after */
     }
-    else if (current_subpos >= mix->time_start && current_subpos < mix->time_end) {
+    else if (current_subpos >= op->time_start && current_subpos < op->time_end) {
         /* in between */
         float range_vol, range_dur, range_idx, index, gain;
 
-        if (mix->vol_start < mix->vol_end) { /* fade in */
-            range_vol = mix->vol_end - mix->vol_start;
-            range_dur = mix->time_end - mix->time_start;
-            range_idx = current_subpos - mix->time_start;
+        if (op->vol_start < op->vol_end) { /* fade in */
+            range_vol = op->vol_end - op->vol_start;
+            range_dur = op->time_end - op->time_start;
+            range_idx = current_subpos - op->time_start;
             index = range_idx / range_dur;
         } else { /* fade out */
-            range_vol = mix->vol_end - mix->vol_start;
-            range_dur = mix->time_end - mix->time_start;
-            range_idx = mix->time_end - current_subpos;
+            range_vol = op->vol_end - op->vol_start;
+            range_dur = op->time_end - op->time_start;
+            range_idx = op->time_end - current_subpos;
             index = range_idx / range_dur;
         }
 
@@ -95,12 +95,12 @@ static bool get_fade_gain(mix_command_data *mix, float *out_cur_vol, int32_t cur
          * curves are complementary (exponential fade-in ~= logarithmic fade-out); the following
          * are described taking fade-in = normal.
          */
-        gain = get_fade_gain_curve(mix->shape, index);
+        gain = get_fade_gain_curve(op->shape, index);
 
-        if (mix->vol_start < mix->vol_end) {  /* fade in */
-            cur_vol = mix->vol_start + range_vol * gain;
+        if (op->vol_start < op->vol_end) {  /* fade in */
+            cur_vol = op->vol_start + range_vol * gain;
         } else { /* fade out */
-            cur_vol = mix->vol_end - range_vol * gain; //mix->vol_start - range_vol * (1 - gain);
+            cur_vol = op->vol_end - range_vol * gain; //mix->vol_start - range_vol * (1 - gain);
         }
     }
     else {
@@ -112,7 +112,7 @@ static bool get_fade_gain(mix_command_data *mix, float *out_cur_vol, int32_t cur
     return true;
 }
 
-void mixer_op_fade(mixer_data_t* data, int32_t sample_count, mix_command_data* mix) {
+void mixer_op_fade(mixer_data_t* data, int32_t sample_count, mix_op_t* mix) {
     float* sbuf = data->mixbuf;
     float new_gain = 0.0f;
 
@@ -145,11 +145,11 @@ void mixer_op_fade(mixer_data_t* data, int32_t sample_count, mix_command_data* m
 bool mixer_op_fade_is_active(mixer_data_t* data, int32_t current_start, int32_t current_end) {
 
     for (int i = 0; i < data->mixing_count; i++) {
-        mix_command_data* mix = &data->mixing_chain[i];
+        mix_op_t* mix = &data->mixing_chain[i];
         int32_t fade_start, fade_end;
         float vol_start = mix->vol_start;
 
-        if (mix->command != MIX_FADE)
+        if (mix->type != MIX_FADE)
             continue;
 
         /* check is current range falls within a fade
