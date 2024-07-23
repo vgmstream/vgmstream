@@ -1,64 +1,8 @@
-#ifndef _MIXING_FADE_H_
-#define _MIXING_FADE_H_
-
 #include "mixing_priv.h"
-#include <math.h>
 #include <limits.h>
+#include <math.h>
 
 #define MIXING_PI   3.14159265358979323846f
-
-
-static inline int is_fade_active(mixing_data *data, int32_t current_start, int32_t current_end) {
-    int i;
-
-    for (i = 0; i < data->mixing_count; i++) {
-        mix_command_data *mix = &data->mixing_chain[i];
-        int32_t fade_start, fade_end;
-        float vol_start = mix->vol_start;
-
-        if (mix->command != MIX_FADE)
-            continue;
-
-        /* check is current range falls within a fade
-         * (assuming fades were already optimized on add) */
-        if (mix->time_pre < 0 && vol_start == 1.0) {
-            fade_start = mix->time_start; /* ignore unused */
-        }
-        else {
-            fade_start = mix->time_pre < 0 ? 0 : mix->time_pre;
-        }
-        fade_end = mix->time_post < 0 ? INT_MAX : mix->time_post;
-        
-        //;VGM_LOG("MIX: fade test, tp=%i, te=%i, cs=%i, ce=%i\n", mix->time_pre, mix->time_post, current_start, current_end);
-        if (current_start < fade_end && current_end > fade_start) {
-            //;VGM_LOG("MIX: fade active, cs=%i < fe=%i and ce=%i > fs=%i\n", current_start, fade_end, current_end, fade_start);
-            return 1;
-        }
-    }
-
-    return 0;
-}
-
-static inline int32_t get_current_pos(VGMSTREAM* vgmstream, int32_t sample_count) {
-    int32_t current_pos;
-
-    if (vgmstream->config_enabled) {
-        return vgmstream->pstate.play_position;
-    }
-
-    if (vgmstream->loop_flag && vgmstream->loop_count > 0) {
-        int loop_pre = vgmstream->loop_start_sample; /* samples before looping */
-        int loop_into = (vgmstream->current_sample - vgmstream->loop_start_sample); /* samples after loop */
-        int loop_samples = (vgmstream->loop_end_sample - vgmstream->loop_start_sample); /* looped section */
-
-        current_pos = loop_pre + (loop_samples * vgmstream->loop_count) + loop_into - sample_count;
-    }
-    else {
-        current_pos = (vgmstream->current_sample - sample_count);
-    }
-
-    return current_pos;
-}
 
 static inline float get_fade_gain_curve(char shape, float index) {
     float gain;
@@ -68,7 +12,7 @@ static inline float get_fade_gain_curve(char shape, float index) {
         return index;
     }
 
-    //todo optimizations: interleave calcs, maybe use cosf, powf, etc? (with extra defines)
+    //TODO optimizations: interleave calcs, maybe use cosf, powf, etc? (with extra defines)
 
     /* (curve math mostly from SoX/FFmpeg) */
     switch(shape) {
@@ -79,6 +23,7 @@ static inline float get_fade_gain_curve(char shape, float index) {
             //gain = pow(0.1f, (1.0f - index) * 2.5f);
             gain = exp(-5.75646273248511f * (1.0f - index));
             break;
+
         case 'L': /* logarithmic (inverse of the above, maybe for crossfades) */
             //gain = 1 - pow(0.1f, (index) * 2.5f);
             gain = 1 - exp(-5.75646273248511f * (index));
@@ -95,6 +40,7 @@ static inline float get_fade_gain_curve(char shape, float index) {
         case 'p': /* parabola (maybe for crossfades) */
             gain =  1.0f - sqrt(1.0f - index);
             break;
+
         case 'P': /* inverted parabola (maybe for fades) */
             gain = (1.0f - (1.0f - index) * (1.0f - index));
             break;
@@ -108,7 +54,7 @@ static inline float get_fade_gain_curve(char shape, float index) {
     return gain;
 }
 
-static int get_fade_gain(mix_command_data *mix, float *out_cur_vol, int32_t current_subpos) {
+static bool get_fade_gain(mix_command_data *mix, float *out_cur_vol, int32_t current_subpos) {
     float cur_vol = 0.0f;
 
     if ((current_subpos >= mix->time_pre || mix->time_pre < 0) && current_subpos < mix->time_start) {
@@ -159,13 +105,69 @@ static int get_fade_gain(mix_command_data *mix, float *out_cur_vol, int32_t curr
     }
     else {
         /* fade is outside reach */
-        goto fail;
+        return false;
     }
 
     *out_cur_vol = cur_vol;
-    return 1;
-fail:
-    return 0;
+    return true;
 }
 
-#endif
+void mixer_op_fade(mixer_data_t* data, int32_t sample_count, mix_command_data* mix) {
+    float* sbuf = data->mixbuf;
+    float new_gain = 0.0f;
+
+    int channels = data->current_channels;
+    int32_t current_subpos = data->current_subpos;
+
+    //TODO optimize for case 0?
+    for (int s = 0; s < sample_count; s++) {
+        bool fade_applies = get_fade_gain(mix, &new_gain, current_subpos);
+        if (!fade_applies) //TODO optimize?
+            continue;
+
+        if (mix->ch_dst < 0) {
+            for (int ch = 0; ch < channels; ch++) {
+                sbuf[ch] = sbuf[ch] * new_gain;
+            }
+        }
+        else {
+            sbuf[mix->ch_dst] = sbuf[mix->ch_dst] * new_gain;
+        }
+
+        sbuf += channels;
+        current_subpos++;
+    }
+
+    data->current_subpos = current_subpos;
+}
+
+
+bool mixer_op_fade_is_active(mixer_data_t* data, int32_t current_start, int32_t current_end) {
+
+    for (int i = 0; i < data->mixing_count; i++) {
+        mix_command_data* mix = &data->mixing_chain[i];
+        int32_t fade_start, fade_end;
+        float vol_start = mix->vol_start;
+
+        if (mix->command != MIX_FADE)
+            continue;
+
+        /* check is current range falls within a fade
+         * (assuming fades were already optimized on add) */
+        if (mix->time_pre < 0 && vol_start == 1.0) {
+            fade_start = mix->time_start; /* ignore unused */
+        }
+        else {
+            fade_start = mix->time_pre < 0 ? 0 : mix->time_pre;
+        }
+        fade_end = mix->time_post < 0 ? INT_MAX : mix->time_post;
+        
+        //;VGM_LOG("MIX: fade test, tp=%i, te=%i, cs=%i, ce=%i\n", mix->time_pre, mix->time_post, current_start, current_end);
+        if (current_start < fade_end && current_end > fade_start) {
+            //;VGM_LOG("MIX: fade active, cs=%i < fe=%i and ce=%i > fs=%i\n", current_start, fade_end, current_end, fade_start);
+            return true;
+        }
+    }
+
+    return false;
+}

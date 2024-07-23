@@ -1,24 +1,24 @@
 #include "../vgmstream.h"
-#include "../util/channel_mappings.h"
 #include "mixing.h"
 #include "mixing_priv.h"
 #include <math.h>
 #include <limits.h>
 
 
-static int add_mixing(VGMSTREAM* vgmstream, mix_command_data *mix) {
-    mixing_data *data = vgmstream->mixing_data;
-    if (!data) return 0;
+static bool add_mixing(VGMSTREAM* vgmstream, mix_command_data *mix) {
+    mixer_data_t* data = vgmstream->mixing_data;
+    if (!data)
+        return false;
 
 
     if (data->mixing_on) {
         VGM_LOG("MIX: ignoring new mixes when mixing active\n");
-        return 0; /* to avoid down/upmixing after activation */
+        return false; /* to avoid down/upmixing after activation */
     }
 
     if (data->mixing_count + 1 > data->mixing_size) {
         VGM_LOG("MIX: too many mixes\n");
-        return 0;
+        return false;
     }
 
     data->mixing_chain[data->mixing_count] = *mix; /* memcpy */
@@ -26,19 +26,19 @@ static int add_mixing(VGMSTREAM* vgmstream, mix_command_data *mix) {
 
 
     if (mix->command == MIX_FADE) {
-        data->has_fade = 1;
+        data->has_fade = true;
     }
     else {
-        data->has_non_fade = 1;
+        data->has_non_fade = true;
     }
 
     //;VGM_LOG("MIX: total %i\n", data->mixing_count);
-    return 1;
+    return true;
 }
 
 
 void mixing_push_swap(VGMSTREAM* vgmstream, int ch_dst, int ch_src) {
-    mixing_data *data = vgmstream->mixing_data;
+    mixer_data_t* data = vgmstream->mixing_data;
     mix_command_data mix = {0};
 
     if (ch_dst < 0 || ch_src < 0 || ch_dst == ch_src) return;
@@ -51,7 +51,7 @@ void mixing_push_swap(VGMSTREAM* vgmstream, int ch_dst, int ch_src) {
 }
 
 void mixing_push_add(VGMSTREAM* vgmstream, int ch_dst, int ch_src, double volume) {
-    mixing_data *data = vgmstream->mixing_data;
+    mixer_data_t* data = vgmstream->mixing_data;
     mix_command_data mix = {0};
     if (!data) return;
 
@@ -60,7 +60,7 @@ void mixing_push_add(VGMSTREAM* vgmstream, int ch_dst, int ch_src, double volume
     if (ch_dst < 0 || ch_src < 0) return;
     if (!data || ch_dst >= data->output_channels || ch_src >= data->output_channels) return;
 
-    mix.command = (volume == 1.0) ?  MIX_ADD_COPY : MIX_ADD;
+    mix.command = MIX_ADD;
     mix.ch_dst = ch_dst;
     mix.ch_src = ch_src;
     mix.vol = volume;
@@ -70,7 +70,7 @@ void mixing_push_add(VGMSTREAM* vgmstream, int ch_dst, int ch_src, double volume
 }
 
 void mixing_push_volume(VGMSTREAM* vgmstream, int ch_dst, double volume) {
-    mixing_data *data = vgmstream->mixing_data;
+    mixer_data_t* data = vgmstream->mixing_data;
     mix_command_data mix = {0};
 
     //if (ch_dst < 0) return; /* means all channels */
@@ -87,7 +87,7 @@ void mixing_push_volume(VGMSTREAM* vgmstream, int ch_dst, double volume) {
 }
 
 void mixing_push_limit(VGMSTREAM* vgmstream, int ch_dst, double volume) {
-    mixing_data *data = vgmstream->mixing_data;
+    mixer_data_t* data = vgmstream->mixing_data;
     mix_command_data mix = {0};
 
     //if (ch_dst < 0) return; /* means all channels */
@@ -104,7 +104,7 @@ void mixing_push_limit(VGMSTREAM* vgmstream, int ch_dst, double volume) {
 }
 
 void mixing_push_upmix(VGMSTREAM* vgmstream, int ch_dst) {
-    mixing_data *data = vgmstream->mixing_data;
+    mixer_data_t* data = vgmstream->mixing_data;
     mix_command_data mix = {0};
     int ok;
 
@@ -124,7 +124,7 @@ void mixing_push_upmix(VGMSTREAM* vgmstream, int ch_dst) {
 }
 
 void mixing_push_downmix(VGMSTREAM* vgmstream, int ch_dst) {
-    mixing_data *data = vgmstream->mixing_data;
+    mixer_data_t* data = vgmstream->mixing_data;
     mix_command_data mix = {0};
     int ok;
 
@@ -141,7 +141,7 @@ void mixing_push_downmix(VGMSTREAM* vgmstream, int ch_dst) {
 }
 
 void mixing_push_killmix(VGMSTREAM* vgmstream, int ch_dst) {
-    mixing_data *data = vgmstream->mixing_data;
+    mixer_data_t* data = vgmstream->mixing_data;
     mix_command_data mix = {0};
     int ok;
 
@@ -159,7 +159,7 @@ void mixing_push_killmix(VGMSTREAM* vgmstream, int ch_dst) {
 }
 
 
-static mix_command_data* get_last_fade(mixing_data *data, int target_channel) {
+static mix_command_data* get_last_fade(mixer_data_t* data, int target_channel) {
     int i;
     for (i = data->mixing_count; i > 0; i--) {
         mix_command_data *mix = &data->mixing_chain[i-1];
@@ -175,7 +175,7 @@ static mix_command_data* get_last_fade(mixing_data *data, int target_channel) {
 
 void mixing_push_fade(VGMSTREAM* vgmstream, int ch_dst, double vol_start, double vol_end, char shape,
         int32_t time_pre, int32_t time_start, int32_t time_end, int32_t time_post) {
-    mixing_data *data = vgmstream->mixing_data;
+    mixer_data_t* data = vgmstream->mixing_data;
     mix_command_data mix = {0};
     mix_command_data *mix_prev;
 

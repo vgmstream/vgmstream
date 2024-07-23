@@ -11,9 +11,7 @@
 #define MIX_MACRO_BGM     'b'
 
 void mixing_macro_volume(VGMSTREAM* vgmstream, double volume, uint32_t mask) {
-    mixing_data *data = vgmstream->mixing_data;
-    int ch;
-
+    mixer_data_t* data = vgmstream->mixing_data;
     if (!data)
         return;
 
@@ -22,7 +20,7 @@ void mixing_macro_volume(VGMSTREAM* vgmstream, double volume, uint32_t mask) {
         return;
     }
 
-    for (ch = 0; ch < data->output_channels; ch++) {
+    for (int ch = 0; ch < data->output_channels; ch++) {
         if (!((mask >> ch) & 1))
             continue;
         mixing_push_volume(vgmstream, ch, volume);
@@ -30,9 +28,7 @@ void mixing_macro_volume(VGMSTREAM* vgmstream, double volume, uint32_t mask) {
 }
 
 void mixing_macro_track(VGMSTREAM* vgmstream, uint32_t mask) {
-    mixing_data *data = vgmstream->mixing_data;
-    int ch;
-
+    mixer_data_t* data = vgmstream->mixing_data;
     if (!data)
         return;
 
@@ -41,7 +37,7 @@ void mixing_macro_track(VGMSTREAM* vgmstream, uint32_t mask) {
     }
 
     /* reverse remove all channels (easier this way as when removing channels numbers change) */
-    for (ch = data->output_channels - 1; ch >= 0; ch--) {
+    for (int ch = data->output_channels - 1; ch >= 0; ch--) {
         if ((mask >> ch) & 1)
             continue;
         mixing_push_downmix(vgmstream, ch);
@@ -51,16 +47,13 @@ void mixing_macro_track(VGMSTREAM* vgmstream, uint32_t mask) {
 
 /* get highest channel count */
 static int get_layered_max_channels(VGMSTREAM* vgmstream) {
-    int i, max;
-    layered_layout_data* data;
-
     if (vgmstream->layout_type != layout_layered)
         return 0;
 
-    data = vgmstream->layout_data;
+    layered_layout_data* data = vgmstream->layout_data;
 
-    max = 0;
-    for (i = 0; i < data->layer_count; i++) {
+    int max = 0;
+    for (int i = 0; i < data->layer_count; i++) {
         int output_channels = 0;
 
         mixing_info(data->layers[i], NULL, &output_channels);
@@ -73,11 +66,6 @@ static int get_layered_max_channels(VGMSTREAM* vgmstream) {
 }
 
 static int is_layered_auto(VGMSTREAM* vgmstream, int max, char mode) {
-    int i;
-    mixing_data *data = vgmstream->mixing_data;
-    layered_layout_data* l_data;
-
-
     if (vgmstream->layout_type != layout_layered)
         return 0;
 
@@ -86,15 +74,16 @@ static int is_layered_auto(VGMSTREAM* vgmstream, int max, char mode) {
         return 0;
 
     /* no channel down/upmixing (cannot guess output) */
-    for (i = 0; i < data->mixing_count; i++) {
+    mixer_data_t* data = vgmstream->mixing_data;
+    for (int i = 0; i < data->mixing_count; i++) {
         mix_command_t mix = data->mixing_chain[i].command;
         if (mix == MIX_UPMIX || mix == MIX_DOWNMIX || mix == MIX_KILLMIX) /*mix == MIX_SWAP || ??? */
             return 0;
     }
 
     /* only previsible cases */
-    l_data = vgmstream->layout_data;
-    for (i = 0; i < l_data->layer_count; i++) {
+    layered_layout_data* l_data = vgmstream->layout_data;
+    for (int i = 0; i < l_data->layer_count; i++) {
         int output_channels = 0;
 
         mixing_info(l_data->layers[i], NULL, &output_channels);
@@ -110,9 +99,8 @@ static int is_layered_auto(VGMSTREAM* vgmstream, int max, char mode) {
 /* special layering, where channels are respected (so Ls only go to Ls), also more optimized */
 static void mixing_macro_layer_auto(VGMSTREAM* vgmstream, int max, char mode) {
     layered_layout_data* ldata = vgmstream->layout_data;
-    int i, ch;
-    int target_layer = 0, target_chs = 0, ch_max, target_ch = 0, target_silence = 0;
-    int ch_num;
+    int target_layer = 0, target_chs = 0, target_ch = 0, target_silence = 0;
+    int ch_num, ch_max;
 
     /* With N layers like: (ch1 ch2) (ch1 ch2 ch3 ch4) (ch1 ch2), output is normally 2+4+2=8ch.
      * We want to find highest layer (ch1..4) = 4ch, add other channels to it and drop them */
@@ -120,7 +108,7 @@ static void mixing_macro_layer_auto(VGMSTREAM* vgmstream, int max, char mode) {
     /* find target "main" channels (will be first most of the time) */
     ch_num = 0;
     ch_max = 0;
-    for (i = 0; i < ldata->layer_count; i++) {
+    for (int i = 0; i < ldata->layer_count; i++) {
         int layer_chs = 0;
 
         mixing_info(ldata->layers[i], NULL, &layer_chs);
@@ -148,7 +136,7 @@ static void mixing_macro_layer_auto(VGMSTREAM* vgmstream, int max, char mode) {
     /* add other channels to target (assumes standard channel mapping to simplify)
      * most of the time all layers will have same number of channels though */
     ch_num = 0;
-    for (i = 0; i < ldata->layer_count; i++) {
+    for (int i = 0; i < ldata->layer_count; i++) {
         int layer_chs = 0;
 
         if (target_layer == i) {
@@ -165,7 +153,7 @@ static void mixing_macro_layer_auto(VGMSTREAM* vgmstream, int max, char mode) {
 
         if (layer_chs == target_chs) {
             /* 1:1 mapping */
-            for (ch = 0; ch < layer_chs; ch++) {
+            for (int ch = 0; ch < layer_chs; ch++) {
                 mixing_push_add(vgmstream, target_ch + ch, ch_num + ch, 1.0);
             }
         }
@@ -184,7 +172,7 @@ static void mixing_macro_layer_auto(VGMSTREAM* vgmstream, int max, char mode) {
                     break;
                 default: /* less common */
                     //TODO add other mixes, depends on target_chs + mapping (ex. 4.0 to 5.0 != 5.1, 2.1 xiph to 5.1 != 5.1 xiph)
-                    for (ch = 0; ch < layer_chs; ch++) {
+                    for (int ch = 0; ch < layer_chs; ch++) {
                         mixing_push_add(vgmstream, target_ch + ch, ch_num + ch, 1.0);
                     }
                     break;
@@ -196,13 +184,13 @@ static void mixing_macro_layer_auto(VGMSTREAM* vgmstream, int max, char mode) {
 
     /* drop non-target channels */
     ch_num = 0;
-    for (i = 0; i < ldata->layer_count; i++) {
+    for (int i = 0; i < ldata->layer_count; i++) {
         
         if (i < target_layer) { /* least common, hopefully (slower to drop chs 1 by 1) */
             int layer_chs = 0;
             mixing_info(ldata->layers[i], NULL, &layer_chs);
 
-            for (ch = 0; ch < layer_chs; ch++) {
+            for (int ch = 0; ch < layer_chs; ch++) {
                 mixing_push_downmix(vgmstream, ch_num); //+ ch
             }
 
@@ -220,7 +208,7 @@ static void mixing_macro_layer_auto(VGMSTREAM* vgmstream, int max, char mode) {
 
 
 void mixing_macro_layer(VGMSTREAM* vgmstream, int max, uint32_t mask, char mode) {
-    mixing_data *data = vgmstream->mixing_data;
+    mixer_data_t* data = vgmstream->mixing_data;
     int current, ch, output_channels, selected_channels;
 
     if (!data)
@@ -304,7 +292,7 @@ void mixing_macro_layer(VGMSTREAM* vgmstream, int max, uint32_t mask, char mode)
 }
 
 void mixing_macro_crosstrack(VGMSTREAM* vgmstream, int max) {
-    mixing_data *data = vgmstream->mixing_data;
+    mixer_data_t* data = vgmstream->mixing_data;
     int current, ch, track, track_ch, track_num, output_channels;
     int32_t change_pos, change_next, change_time;
 
@@ -368,7 +356,7 @@ void mixing_macro_crosstrack(VGMSTREAM* vgmstream, int max) {
 }
 
 void mixing_macro_crosslayer(VGMSTREAM* vgmstream, int max, char mode) {
-    mixing_data *data = vgmstream->mixing_data;
+    mixer_data_t* data = vgmstream->mixing_data;
     int current, ch, layer, layer_ch, layer_num, loop, output_channels;
     int32_t change_pos, change_time;
 
@@ -481,7 +469,7 @@ typedef enum {
 } mixing_position_t;
 
 void mixing_macro_downmix(VGMSTREAM* vgmstream, int max /*, mapping_t output_mapping*/) {
-    mixing_data *data = vgmstream->mixing_data;
+    mixer_data_t* data = vgmstream->mixing_data;
     int ch, output_channels, mp_in, mp_out, ch_in, ch_out;
     channel_mapping_t input_mapping, output_mapping;
     const double vol_max = 1.0;

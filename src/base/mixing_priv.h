@@ -1,14 +1,15 @@
 #ifndef _MIXING_PRIV_H_
 #define _MIXING_PRIV_H_
+#include "../streamtypes.h"
 
-#include "../vgmstream.h"
 #define VGMSTREAM_MAX_MIXING 512
+
+//TODO rename
 
 /* mixing info */
 typedef enum {
     MIX_SWAP,
     MIX_ADD,
-    MIX_ADD_COPY,
     MIX_VOLUME,
     MIX_LIMIT,
     MIX_UPMIX,
@@ -37,16 +38,29 @@ typedef struct {
 typedef struct {
     int mixing_channels;    /* max channels needed to mix */
     int output_channels;    /* resulting channels after mixing */
-    int mixing_on;          /* mixing allowed */
+
+    bool mixing_on;         /* mixing allowed */
+
     int mixing_count;       /* mixing number */
     size_t mixing_size;     /* mixing max */
     mix_command_data mixing_chain[VGMSTREAM_MAX_MIXING]; /* effects to apply (could be alloc'ed but to simplify...) */
+
     float* mixbuf;          /* internal mixing buffer */
+    int current_channels;   /* state: channels may increase/decrease during ops */
+    int32_t current_subpos; /* state: current sample pos in the stream */
 
     /* fades only apply at some points, other mixes are active */
-    int has_non_fade;
-    int has_fade;
-} mixing_data;
+    bool has_non_fade;
+    bool has_fade;
+} mixer_data_t;
 
-
+void mixer_op_swap(mixer_data_t* data, int32_t sample_count, mix_command_data* mix);
+void mixer_op_add(mixer_data_t* data, int32_t sample_count, mix_command_data* mix);
+void mixer_op_volume(mixer_data_t* data, int32_t sample_count, mix_command_data* mix);
+void mixer_op_limit(mixer_data_t* data, int32_t sample_count, mix_command_data* mix);
+void mixer_op_upmix(mixer_data_t* data, int32_t sample_count, mix_command_data* mix);
+void mixer_op_downmix(mixer_data_t* data, int32_t sample_count, mix_command_data* mix);
+void mixer_op_killmix(mixer_data_t* data, int32_t sample_count, mix_command_data* mix);
+void mixer_op_fade(mixer_data_t* data, int32_t sample_count, mix_command_data* mix);
+bool mixer_op_fade_is_active(mixer_data_t* data, int32_t current_start, int32_t current_end);
 #endif
