@@ -112,12 +112,12 @@ static bool get_fade_gain(mix_op_t* op, float* out_cur_vol, int32_t current_subp
     return true;
 }
 
-void mixer_op_fade(mixer_data_t* data, int32_t sample_count, mix_op_t* mix) {
-    float* sbuf = data->mixbuf;
+void mixer_op_fade(mixer_t* mixer, int32_t sample_count, mix_op_t* mix) {
+    float* sbuf = mixer->mixbuf;
     float new_gain = 0.0f;
 
-    int channels = data->current_channels;
-    int32_t current_subpos = data->current_subpos;
+    int channels = mixer->current_channels;
+    int32_t current_subpos = mixer->current_subpos;
 
     //TODO optimize for case 0?
     for (int s = 0; s < sample_count; s++) {
@@ -138,14 +138,14 @@ void mixer_op_fade(mixer_data_t* data, int32_t sample_count, mix_op_t* mix) {
         current_subpos++;
     }
 
-    data->current_subpos = current_subpos;
+    mixer->current_subpos = current_subpos;
 }
 
 
-bool mixer_op_fade_is_active(mixer_data_t* data, int32_t current_start, int32_t current_end) {
+bool mixer_op_fade_is_active(mixer_t* mixer, int32_t current_start, int32_t current_end) {
 
-    for (int i = 0; i < data->mixing_count; i++) {
-        mix_op_t* mix = &data->mixing_chain[i];
+    for (int i = 0; i < mixer->chain_count; i++) {
+        mix_op_t* mix = &mixer->chain[i];
         int32_t fade_start, fade_end;
         float vol_start = mix->vol_start;
 

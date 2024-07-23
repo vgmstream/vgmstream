@@ -5,35 +5,35 @@
 // when there are no actual float ops (ex. 'swap', if no ' volume' )
 // Performance gain is probably fairly small, though.
 
-void mixer_op_swap(mixer_data_t* data, int32_t sample_count, mix_op_t* op) {
-    float* sbuf = data->mixbuf;
+void mixer_op_swap(mixer_t* mixer, int32_t sample_count, mix_op_t* op) {
+    float* sbuf = mixer->mixbuf;
 
     for (int s = 0; s < sample_count; s++) {
         float temp_f = sbuf[op->ch_dst];
         sbuf[op->ch_dst] = sbuf[op->ch_src];
         sbuf[op->ch_src] = temp_f;
 
-        sbuf += data->current_channels;
+        sbuf += mixer->current_channels;
     }
 }
 
-void mixer_op_add(mixer_data_t* data, int32_t sample_count, mix_op_t* op) {
-    float* sbuf = data->mixbuf;
+void mixer_op_add(mixer_t* mixer, int32_t sample_count, mix_op_t* op) {
+    float* sbuf = mixer->mixbuf;
 
     /* could optimize when vol == 1 to avoid one multiplication but whatevs (not common) */
     for (int s = 0; s < sample_count; s++) {
         sbuf[op->ch_dst] = sbuf[op->ch_dst] + sbuf[op->ch_src] * op->vol;
 
-        sbuf += data->current_channels;
+        sbuf += mixer->current_channels;
     }
 }
 
-void mixer_op_volume(mixer_data_t* data, int32_t sample_count, mix_op_t* op) {
-    float* sbuf = data->mixbuf;
+void mixer_op_volume(mixer_t* mixer, int32_t sample_count, mix_op_t* op) {
+    float* sbuf = mixer->mixbuf;
     
     if (op->ch_dst < 0) {
         /* "all channels", most common case */
-        for (int s = 0; s < sample_count * data->current_channels; s++) {
+        for (int s = 0; s < sample_count * mixer->current_channels; s++) {
             sbuf[s] = sbuf[s] * op->vol;
         }
     }
@@ -41,13 +41,13 @@ void mixer_op_volume(mixer_data_t* data, int32_t sample_count, mix_op_t* op) {
         for (int s = 0; s < sample_count; s++) {
             sbuf[op->ch_dst] = sbuf[op->ch_dst] * op->vol;
 
-            sbuf += data->current_channels;
+            sbuf += mixer->current_channels;
         }
     }
 }
 
-void mixer_op_limit(mixer_data_t* data, int32_t sample_count, mix_op_t* op) {
-    float* sbuf = data->mixbuf;
+void mixer_op_limit(mixer_t* mixer, int32_t sample_count, mix_op_t* op) {
+    float* sbuf = mixer->mixbuf;
 
     const float limiter_max = 32767.0f;
     const float limiter_min = -32768.0f;
@@ -59,7 +59,7 @@ void mixer_op_limit(mixer_data_t* data, int32_t sample_count, mix_op_t* op) {
     for (int s = 0; s < sample_count; s++) {
 
         if (op->ch_dst < 0) {
-            for (int ch = 0; ch < data->current_channels; ch++) {
+            for (int ch = 0; ch < mixer->current_channels; ch++) {
                 if (sbuf[ch] > temp_max)
                     sbuf[ch] = temp_max;
                 else if (sbuf[ch] < temp_min)
@@ -73,24 +73,24 @@ void mixer_op_limit(mixer_data_t* data, int32_t sample_count, mix_op_t* op) {
                 sbuf[op->ch_dst] = temp_min;
         }
 
-        sbuf += data->current_channels;
+        sbuf += mixer->current_channels;
     }
 }
 
-void mixer_op_upmix(mixer_data_t* data, int32_t sample_count, mix_op_t* op) {
-    int max_channels = data->current_channels;
-    data->current_channels += 1;
+void mixer_op_upmix(mixer_t* mixer, int32_t sample_count, mix_op_t* op) {
+    int max_channels = mixer->current_channels;
+    mixer->current_channels += 1;
 
-    float* sbuf_tmp = data->mixbuf + sample_count * data->current_channels;
-    float* sbuf = data->mixbuf + sample_count * max_channels;
+    float* sbuf_tmp = mixer->mixbuf + sample_count * mixer->current_channels;
+    float* sbuf = mixer->mixbuf + sample_count * max_channels;
 
     /* copy 'backwards' as otherwise would overwrite samples before moving them forward */
     for (int s = 0; s < sample_count; s++) {
-        sbuf_tmp -= data->current_channels;
+        sbuf_tmp -= mixer->current_channels;
         sbuf -= max_channels;
 
         int sbuf_ch = max_channels - 1;
-        for (int ch = data->current_channels - 1; ch >= 0; ch--) {
+        for (int ch = mixer->current_channels - 1; ch >= 0; ch--) {
             if (ch == op->ch_dst) {
                 sbuf_tmp[ch] = 0; /* inserted as silent */
             }
@@ -102,11 +102,11 @@ void mixer_op_upmix(mixer_data_t* data, int32_t sample_count, mix_op_t* op) {
     }
 }
 
-void mixer_op_downmix(mixer_data_t* data, int32_t sample_count, mix_op_t* op) {
-    int max_channels = data->current_channels;
-    data->current_channels -= 1;
+void mixer_op_downmix(mixer_t* mixer, int32_t sample_count, mix_op_t* op) {
+    int max_channels = mixer->current_channels;
+    mixer->current_channels -= 1;
 
-    float* sbuf = data->mixbuf;
+    float* sbuf = mixer->mixbuf;
     float* sbuf_tmp = sbuf;
 
     for (int s = 0; s < sample_count; s++) {
@@ -119,24 +119,24 @@ void mixer_op_downmix(mixer_data_t* data, int32_t sample_count, mix_op_t* op) {
             sbuf_tmp[ch] = sbuf[ch + 1]; /* 'pull' dropped channels back */
         }
 
-        sbuf_tmp += data->current_channels;
+        sbuf_tmp += mixer->current_channels;
         sbuf += max_channels;
     }
 }
 
-void mixer_op_killmix(mixer_data_t* data, int32_t sample_count, mix_op_t* op) {
-    int max_channels = data->current_channels;
-    data->current_channels = op->ch_dst; /* clamp channels */
+void mixer_op_killmix(mixer_t* mixer, int32_t sample_count, mix_op_t* op) {
+    int max_channels = mixer->current_channels;
+    mixer->current_channels = op->ch_dst; /* clamp channels */
 
-    float* sbuf = data->mixbuf;
+    float* sbuf = mixer->mixbuf;
     float* sbuf_tmp = sbuf;
 
     for (int s = 0; s < sample_count; s++) {
-        for (int ch = 0; ch < data->current_channels; ch++) {
+        for (int ch = 0; ch < mixer->current_channels; ch++) {
             sbuf_tmp[ch] = sbuf[ch];
         }
 
-        sbuf_tmp += data->current_channels;
+        sbuf_tmp += mixer->current_channels;
         sbuf += max_channels;
     }
 }

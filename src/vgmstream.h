@@ -221,7 +221,7 @@ typedef struct {
     VGMSTREAMCHANNEL* loop_ch;      /* shallow copy of channels as they were at the loop point (for loops) */
     void* start_vgmstream;          /* shallow copy of the VGMSTREAM as it was at the beginning of the stream (for resets) */
 
-    void* mixing_data;              /* state for mixing effects */
+    void* mixer;                    /* state for mixing effects */
 
     /* Optional data the codec needs for the whole stream. This is for codecs too
      * different from vgmstream's structure to be reasonably shoehorned.

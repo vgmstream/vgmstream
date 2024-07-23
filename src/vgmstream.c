@@ -642,8 +642,8 @@ static VGMSTREAM* init_vgmstream_internal(STREAMFILE* sf) {
         /* some players are picky with incorrect channel layouts */
         if (vgmstream->channel_layout > 0) {
             int output_channels = vgmstream->channels;
-            int ch, count = 0, max_ch = 32;
-            for (ch = 0; ch < max_ch; ch++) {
+            int count = 0, max_ch = 32;
+            for (int ch = 0; ch < max_ch; ch++) {
                 int bit = (vgmstream->channel_layout >> ch) & 1;
                 if (ch > 17 && bit) {
                     VGM_LOG("VGMSTREAM: wrong bit %i in channel_layout %x\n", ch, vgmstream->channel_layout);
@@ -750,12 +750,12 @@ void reset_vgmstream(VGMSTREAM* vgmstream) {
 }
 
 /* Allocate memory and setup a VGMSTREAM */
-VGMSTREAM* allocate_vgmstream(int channel_count, int loop_flag) {
+VGMSTREAM* allocate_vgmstream(int channels, int loop_flag) {
     VGMSTREAM* vgmstream;
 
-    /* up to ~16-24 aren't too rare for multilayered files, more is probably a bug */
-    if (channel_count <= 0 || channel_count > VGMSTREAM_MAX_CHANNELS) {
-        VGM_LOG("VGMSTREAM: error allocating %i channels\n", channel_count);
+    /* up to ~16-24 aren't too rare for multilayered files, 50+ is probably a bug */
+    if (channels <= 0 || channels > VGMSTREAM_MAX_CHANNELS) {
+        VGM_LOG("VGMSTREAM: error allocating %i channels\n", channels);
         return NULL;
     }
 
@@ -777,20 +777,20 @@ VGMSTREAM* allocate_vgmstream(int channel_count, int loop_flag) {
      */
 
     /* create vgmstream + main structs (other data is 0'ed) */
-    vgmstream = calloc(1,sizeof(VGMSTREAM));
+    vgmstream = calloc(1, sizeof(VGMSTREAM));
     if (!vgmstream) return NULL;
 
-    vgmstream->start_vgmstream = calloc(1,sizeof(VGMSTREAM));
+    vgmstream->start_vgmstream = calloc(1, sizeof(VGMSTREAM));
     if (!vgmstream->start_vgmstream) goto fail;
 
-    vgmstream->ch = calloc(channel_count,sizeof(VGMSTREAMCHANNEL));
+    vgmstream->ch = calloc(channels, sizeof(VGMSTREAMCHANNEL));
     if (!vgmstream->ch) goto fail;
 
-    vgmstream->start_ch = calloc(channel_count,sizeof(VGMSTREAMCHANNEL));
+    vgmstream->start_ch = calloc(channels, sizeof(VGMSTREAMCHANNEL));
     if (!vgmstream->start_ch) goto fail;
 
     if (loop_flag) {
-        vgmstream->loop_ch = calloc(channel_count,sizeof(VGMSTREAMCHANNEL));
+        vgmstream->loop_ch = calloc(channels, sizeof(VGMSTREAMCHANNEL));
         if (!vgmstream->loop_ch) goto fail;
     }
 
@@ -798,27 +798,20 @@ VGMSTREAM* allocate_vgmstream(int channel_count, int loop_flag) {
      * in theory the bigger the better but in practice there isn't much difference */
     vgmstream->tmpbuf_size = 0x10000; /* for all channels */
     vgmstream->tmpbuf = malloc(sizeof(sample_t) * vgmstream->tmpbuf_size);
+    if (!vgmstream->tmpbuf) goto fail;
 
-
-    vgmstream->channels = channel_count;
+    vgmstream->channels = channels;
     vgmstream->loop_flag = loop_flag;
 
-    mixing_init(vgmstream); /* pre-init */
+    vgmstream->mixer = mixer_init(vgmstream->channels); /* pre-init */
+    //if (!vgmstream->mixer) goto fail;
 
     /* BEWARE: try_dual_file_stereo does some free'ing too */ 
 
     //vgmstream->stream_name_size = STREAM_NAME_SIZE;
     return vgmstream;
 fail:
-    if (vgmstream) {
-        mixing_close(vgmstream);
-        free(vgmstream->tmpbuf);
-        free(vgmstream->ch);
-        free(vgmstream->start_ch);
-        free(vgmstream->loop_ch);
-        free(vgmstream->start_vgmstream);
-    }
-    free(vgmstream);
+    close_vgmstream(vgmstream);
     return NULL;
 }
 
@@ -834,25 +827,21 @@ void close_vgmstream(VGMSTREAM* vgmstream) {
 
 
     /* now that the special cases have had their chance, clean up the standard items */
-    {
-        int i,j;
-
-        for (i = 0; i < vgmstream->channels; i++) {
-            if (vgmstream->ch[i].streamfile) {
-                close_streamfile(vgmstream->ch[i].streamfile);
-                /* Multiple channels might have the same streamfile. Find the others
-                 * that are the same as this and clear them so they won't be closed again. */
-                for (j = 0; j < vgmstream->channels; j++) {
-                    if (i != j && vgmstream->ch[j].streamfile == vgmstream->ch[i].streamfile) {
-                        vgmstream->ch[j].streamfile = NULL;
-                    }
+    for (int i = 0; i < vgmstream->channels; i++) {
+        if (vgmstream->ch[i].streamfile) {
+            close_streamfile(vgmstream->ch[i].streamfile);
+            /* Multiple channels might have the same streamfile. Find the others
+                * that are the same as this and clear them so they won't be closed again. */
+            for (int j = 0; j < vgmstream->channels; j++) {
+                if (i != j && vgmstream->ch[j].streamfile == vgmstream->ch[i].streamfile) {
+                    vgmstream->ch[j].streamfile = NULL;
                 }
-                vgmstream->ch[i].streamfile = NULL;
             }
+            vgmstream->ch[i].streamfile = NULL;
         }
     }
 
-    mixing_close(vgmstream);
+    mixer_free(vgmstream->mixer);
     free(vgmstream->tmpbuf);
     free(vgmstream->ch);
     free(vgmstream->start_ch);
@@ -898,13 +887,13 @@ void vgmstream_force_loop(VGMSTREAM* vgmstream, int loop_flag, int loop_start_sa
 
     /* propagate changes to layouts that need them */
     if (vgmstream->layout_type == layout_layered) {
-        int i;
         layered_layout_data* data = vgmstream->layout_data;
 
         /* layered loops using the internal VGMSTREAMs */
-        for (i = 0; i < data->layer_count; i++) {
-            if (!data->layers[i]->config_enabled) /* only in simple mode */
+        for (int i = 0; i < data->layer_count; i++) {
+            if (!data->layers[i]->config_enabled) { /* only in simple mode */
                 vgmstream_force_loop(data->layers[i], loop_flag, loop_start_sample, loop_end_sample);
+            }
             /* layer's force_loop also calls setup_vgmstream, no need to do it here */
         }
     }
@@ -924,9 +913,8 @@ void vgmstream_set_loop_target(VGMSTREAM* vgmstream, int loop_target) {
 
     /* propagate changes to layouts that need them */
     if (vgmstream->layout_type == layout_layered) {
-        int i;
         layered_layout_data *data = vgmstream->layout_data;
-        for (i = 0; i < data->layer_count; i++) {
+        for (int i = 0; i < data->layer_count; i++) {
             vgmstream_set_loop_target(data->layers[i], loop_target);
         }
     }
@@ -960,7 +948,7 @@ static void try_dual_file_stereo(VGMSTREAM* opened_vgmstream, STREAMFILE* sf, in
     int dfs_pair = -1; /* -1=no stereo, 0=opened_vgmstream is left, 1=opened_vgmstream is right */
     VGMSTREAM* new_vgmstream = NULL;
     STREAMFILE* dual_sf = NULL;
-    int i,j, dfs_pair_count, extension_len, filename_len;
+    int dfs_pair_count, extension_len, filename_len;
     int sample_variance, loop_variance;
 
     if (opened_vgmstream->channels != 1)
@@ -986,8 +974,8 @@ static void try_dual_file_stereo(VGMSTREAM* opened_vgmstream, STREAMFILE* sf, in
 
     /* find pair from base name and modify new_filename with the opposite (tries L>R then R>L) */
     dfs_pair_count = (sizeof(dfs_pairs)/sizeof(dfs_pairs[0]));
-    for (i = 0; dfs_pair == -1 && i < dfs_pair_count; i++) {
-        for (j = 0; dfs_pair == -1 && j < 2; j++) {
+    for (int i = 0; dfs_pair == -1 && i < dfs_pair_count; i++) {
+        for (int j = 0; dfs_pair == -1 && j < 2; j++) {
             const char* this_suffix = dfs_pairs[i][j];
             const char* that_suffix = dfs_pairs[i][j^1];
             size_t this_suffix_len = strlen(dfs_pairs[i][j]);
@@ -1136,12 +1124,12 @@ static void try_dual_file_stereo(VGMSTREAM* opened_vgmstream, STREAMFILE* sf, in
             opened_vgmstream->layout_type = layout_none; /* fixes some odd cases */
 
         /* discard the second VGMSTREAM */
-        mixing_close(new_vgmstream);
+        mixer_free(new_vgmstream->mixer);
         free(new_vgmstream->tmpbuf);
         free(new_vgmstream->start_vgmstream);
         free(new_vgmstream);
 
-        mixing_update_channel(opened_vgmstream); /* notify of new channel hacked-in */
+        mixer_update_channel(opened_vgmstream); /* notify of new channel hacked-in */
     }
 
     return;
@@ -1160,6 +1148,7 @@ fail:
 int vgmstream_open_stream(VGMSTREAM* vgmstream, STREAMFILE* sf, off_t start_offset) {
     return vgmstream_open_stream_bf(vgmstream, sf, start_offset, 0);
 }
+
 int vgmstream_open_stream_bf(VGMSTREAM* vgmstream, STREAMFILE* sf, off_t start_offset, int force_multibuffer) {
     STREAMFILE* file = NULL;
     char filename[PATH_LIMIT];

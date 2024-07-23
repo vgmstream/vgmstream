@@ -9,17 +9,19 @@ void mix_vgmstream(sample_t *outbuf, int32_t sample_count, VGMSTREAM* vgmstream)
 
 /* internal mixing pre-setup for vgmstream (doesn't imply usage).
  * If init somehow fails next calls are ignored. */
-void mixing_init(VGMSTREAM* vgmstream);
-void mixing_close(VGMSTREAM* vgmstream);
-void mixing_update_channel(VGMSTREAM* vgmstream);
+void* mixer_init(int channels);
+void mixer_free(void* mixer);
+void mixer_update_channel(void* mixer);
+void mixer_process(void* _mixer, sample_t *outbuf, int32_t sample_count, int32_t current_pos);
+bool mixer_is_active(void* mixer);
 
 /* Call to let vgmstream apply mixing, which must handle input/output_channels.
  * Once mixing is active any new mixes are ignored (to avoid the possibility
  * of down/upmixing without querying input/output_channels). */
-void mixing_setup(VGMSTREAM * vgmstream, int32_t max_sample_count);
+void mixing_setup(VGMSTREAM* vgmstream, int32_t max_sample_count);
 
 /* gets current mixing info */
-void mixing_info(VGMSTREAM * vgmstream, int *input_channels, int *output_channels);
+void mixing_info(VGMSTREAM* vgmstream, int *input_channels, int *output_channels);
 
 /* adds mixes filtering and optimizing if needed */
 void mixing_push_swap(VGMSTREAM* vgmstream, int ch_dst, int ch_src);

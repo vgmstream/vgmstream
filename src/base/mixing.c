@@ -2,7 +2,7 @@
 #include "../util/channel_mappings.h"
 #include "mixing.h"
 #include "mixing_priv.h"
-#include "plugins.h"
+#include "sbuf.h"
 #include <math.h>
 #include <limits.h>
 
@@ -17,7 +17,7 @@
  * 
  * Mixing may add or remove channels. input_channels is the buf's original channels,
  * and output_channels the resulting buf's channels. buf and mixbuf must be
- * as big as whichever of input/output channels is bigger.
+ * as big as max channels (mixing_channels).
  * 
  * Mixing ops are added by a meta (ex. TXTP) or plugin through the API. Non-sensical
  * mixes are ignored (to avoid rechecking every time).
@@ -29,28 +29,6 @@
  */
 
 /* ******************************************************************* */
-
-// TODO decide if using float 1.0 style or 32767 style (fuzzy PCM changes when doing that)
-static void sbuf_copy_s16_to_f32(float* buf_f32, int16_t* buf_s16, int samples, int channels) {
-    for (int s = 0; s < samples * channels; s++) {
-        buf_f32[s] = buf_s16[s]; // / 32767.0f
-    }
-}
-
-static void sbuf_copy_f32_to_s16(int16_t* buf_s16, float* buf_f32, int samples, int channels) {
-    /* when casting float to int, value is simply truncated:
-     * - (int)1.7 = 1, (int)-1.7 = -1
-     * alts for more accurate rounding could be:
-     * - (int)floor(f)
-     * - (int)(f < 0 ? f - 0.5f : f + 0.5f)
-     * - (((int) (f1 + 32768.5)) - 32768)
-     * - etc
-     * but since +-1 isn't really audible we'll just cast as it's the fastest
-     */
-    for (int s = 0; s < samples * channels; s++) {
-        buf_s16[s] = clamp16( buf_f32[s]); // * 32767.0f
-    }
-}
 
 static int32_t get_current_pos(VGMSTREAM* vgmstream, int32_t sample_count) {
     int32_t current_pos;
@@ -74,99 +52,116 @@ static int32_t get_current_pos(VGMSTREAM* vgmstream, int32_t sample_count) {
 }
 
 void mix_vgmstream(sample_t *outbuf, int32_t sample_count, VGMSTREAM* vgmstream) {
-    mixer_data_t* data = vgmstream->mixing_data;
+    mixer_t* mixer = vgmstream->mixer;
 
     /* no support or not need to apply */
-    if (!data || !data->mixing_on || data->mixing_count == 0)
+    if (!mixer || !mixer->active || mixer->chain_count == 0)
+        return;
+
+    int32_t current_pos = get_current_pos(vgmstream, sample_count);
+
+    mixer_process(mixer, outbuf, sample_count, current_pos);
+}
+
+/* ******************************************************************* */
+
+void* mixer_init(int channels) {
+    mixer_t* mixer = calloc(1, sizeof(mixer_t));
+    if (!mixer) goto fail;
+
+    mixer->chain_size = VGMSTREAM_MAX_MIXING; /* fixed array for now */
+    mixer->mixing_channels = channels;
+    mixer->output_channels = channels;
+    mixer->input_channels = channels;
+
+    return mixer;
+
+fail:
+    mixer_free(mixer);
+    return NULL;
+}
+
+void mixer_free(void* _mixer) {
+    mixer_t* mixer = _mixer;
+    if (!mixer) return;
+
+    free(mixer->mixbuf);
+    free(mixer);
+}
+
+void mixer_update_channel(void* _mixer) {
+    mixer_t* mixer = _mixer;
+    if (!mixer) return;
+
+    /* lame hack for dual stereo, but dual stereo is pretty hack-ish to begin with */
+    mixer->mixing_channels++;
+    mixer->output_channels++;
+}
+
+bool mixer_is_active(void* _mixer) {
+    mixer_t* mixer = _mixer;
+
+    /* no support or not need to apply */
+    if (!mixer || !mixer->active || mixer->chain_count == 0)
+        return false;
+
+    return true;
+}
+
+
+void mixer_process(void* _mixer, sample_t *outbuf, int32_t sample_count, int32_t current_pos) {
+    mixer_t* mixer = _mixer;
+
+    /* no support or not need to apply */
+    if (!mixer || !mixer->active || mixer->chain_count == 0)
         return;
 
     /* try to skip if no fades apply (set but does nothing yet) + only has fades 
      * (could be done in mix op but avoids upgrading bufs in some cases) */
-    data->current_subpos = 0;
-    if (data->has_fade) {
-        int32_t current_pos = get_current_pos(vgmstream, sample_count);
+    mixer->current_subpos = 0;
+    if (mixer->has_fade) {
         //;VGM_LOG("MIX: fade test %i, %i\n", data->has_non_fade, mixer_op_fade_is_active(data, current_pos, current_pos + sample_count));
-        if (!data->has_non_fade && !mixer_op_fade_is_active(data, current_pos, current_pos + sample_count))
+        if (!mixer->has_non_fade && !mixer_op_fade_is_active(mixer, current_pos, current_pos + sample_count))
             return;
 
         //;VGM_LOG("MIX: fade pos=%i\n", current_pos);
-        data->current_subpos = current_pos;
+        mixer->current_subpos = current_pos;
     }
 
-
     // upgrade buf for mixing (somehow using float buf rather than int32 is faster?)
-    sbuf_copy_s16_to_f32(data->mixbuf, outbuf, sample_count, vgmstream->channels);
+    sbuf_copy_s16_to_f32(mixer->mixbuf, outbuf, sample_count, mixer->input_channels);
 
     /* apply mixing ops in order. Some ops change total channels they may change around:
      * - 2ch w/ "1+2,1u" = ch1+ch2, ch1(add and push rest) = 3ch: ch1' ch1+ch2 ch2
      * - 2ch w/ "1u"     = downmix to 1ch (current_channels decreases once)
      */
-    data->current_channels = vgmstream->channels;
-    for (int m = 0; m < data->mixing_count; m++) {
-        mix_op_t* mix = &data->mixing_chain[m];
+    mixer->current_channels = mixer->input_channels;
+    for (int m = 0; m < mixer->chain_count; m++) {
+        mix_op_t* mix = &mixer->chain[m];
 
         //TODO: set callback
         switch(mix->type) {
-            case MIX_SWAP:      mixer_op_swap(data, sample_count, mix); break;
-            case MIX_ADD:       mixer_op_add(data, sample_count, mix); break;
-            case MIX_VOLUME:    mixer_op_volume(data, sample_count, mix); break;
-            case MIX_LIMIT:     mixer_op_limit(data, sample_count, mix); break;
-            case MIX_UPMIX:     mixer_op_upmix(data, sample_count, mix); break;
-            case MIX_DOWNMIX:   mixer_op_downmix(data, sample_count, mix); break;
-            case MIX_KILLMIX:   mixer_op_killmix(data, sample_count, mix); break;
-            case MIX_FADE:      mixer_op_fade(data, sample_count, mix);
+            case MIX_SWAP:      mixer_op_swap(mixer, sample_count, mix); break;
+            case MIX_ADD:       mixer_op_add(mixer, sample_count, mix); break;
+            case MIX_VOLUME:    mixer_op_volume(mixer, sample_count, mix); break;
+            case MIX_LIMIT:     mixer_op_limit(mixer, sample_count, mix); break;
+            case MIX_UPMIX:     mixer_op_upmix(mixer, sample_count, mix); break;
+            case MIX_DOWNMIX:   mixer_op_downmix(mixer, sample_count, mix); break;
+            case MIX_KILLMIX:   mixer_op_killmix(mixer, sample_count, mix); break;
+            case MIX_FADE:      mixer_op_fade(mixer, sample_count, mix);
             default:
                 break;
         }
     }
 
     /* downgrade mix to original output */
-    sbuf_copy_f32_to_s16(outbuf, data->mixbuf, sample_count, data->output_channels);
+    sbuf_copy_f32_to_s16(outbuf, mixer->mixbuf, sample_count, mixer->output_channels);
 }
-
-/* ******************************************************************* */
-
-void mixing_init(VGMSTREAM* vgmstream) {
-    mixer_data_t* data = calloc(1, sizeof(mixer_data_t));
-    if (!data) goto fail;
-
-    data->mixing_size = VGMSTREAM_MAX_MIXING; /* fixed array for now */
-    data->mixing_channels = vgmstream->channels;
-    data->output_channels = vgmstream->channels;
-
-    vgmstream->mixing_data = data;
-    return;
-
-fail:
-    free(data);
-    return;
-}
-
-void mixing_close(VGMSTREAM* vgmstream) {
-    if (!vgmstream)
-        return;
-
-    mixer_data_t* data = vgmstream->mixing_data;
-    if (!data) return;
-
-    free(data->mixbuf);
-    free(data);
-}
-
-void mixing_update_channel(VGMSTREAM* vgmstream) {
-    mixer_data_t* data = vgmstream->mixing_data;
-    if (!data) return;
-
-    /* lame hack for dual stereo, but dual stereo is pretty hack-ish to begin with */
-    data->mixing_channels++;
-    data->output_channels++;
-}
-
 
 /* ******************************************************************* */
 
 static int fix_layered_channel_layout(VGMSTREAM* vgmstream) {
-    mixer_data_t* data = vgmstream->mixing_data;
+    mixer_t* data = vgmstream->mixer;
     layered_layout_data* layout_data;
     uint32_t prev_cl;
 
@@ -198,7 +193,7 @@ static int fix_layered_channel_layout(VGMSTREAM* vgmstream) {
 
 /* channel layout + down/upmixing = ?, salvage what we can */
 static void fix_channel_layout(VGMSTREAM* vgmstream) {
-    mixer_data_t* data = vgmstream->mixing_data;
+    mixer_t* data = vgmstream->mixer;
 
     if (fix_layered_channel_layout(vgmstream))
         goto done;
@@ -216,7 +211,7 @@ done:
 
 
 void mixing_setup(VGMSTREAM* vgmstream, int32_t max_sample_count) {
-    mixer_data_t* data = vgmstream->mixing_data;
+    mixer_t* data = vgmstream->mixer;
 
     if (!data)
         return;
@@ -230,7 +225,7 @@ void mixing_setup(VGMSTREAM* vgmstream, int32_t max_sample_count) {
     if (!mixbuf_re) goto fail;
 
     data->mixbuf = mixbuf_re;
-    data->mixing_on = true;
+    data->active = true;
 
     fix_channel_layout(vgmstream);
 
@@ -245,7 +240,7 @@ fail:
 }
 
 void mixing_info(VGMSTREAM* vgmstream, int* p_input_channels, int* p_output_channels) {
-    mixer_data_t* data = vgmstream->mixing_data;
+    mixer_t* data = vgmstream->mixer;
     int input_channels, output_channels;
 
     if (!data)

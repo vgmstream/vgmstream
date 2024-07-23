@@ -11,8 +11,8 @@
 #define MIX_MACRO_BGM     'b'
 
 void mixing_macro_volume(VGMSTREAM* vgmstream, double volume, uint32_t mask) {
-    mixer_data_t* data = vgmstream->mixing_data;
-    if (!data)
+    mixer_t* mixer = vgmstream->mixer;
+    if (!mixer)
         return;
 
     if (mask == 0) {
@@ -20,7 +20,7 @@ void mixing_macro_volume(VGMSTREAM* vgmstream, double volume, uint32_t mask) {
         return;
     }
 
-    for (int ch = 0; ch < data->output_channels; ch++) {
+    for (int ch = 0; ch < mixer->output_channels; ch++) {
         if (!((mask >> ch) & 1))
             continue;
         mixing_push_volume(vgmstream, ch, volume);
@@ -28,8 +28,8 @@ void mixing_macro_volume(VGMSTREAM* vgmstream, double volume, uint32_t mask) {
 }
 
 void mixing_macro_track(VGMSTREAM* vgmstream, uint32_t mask) {
-    mixer_data_t* data = vgmstream->mixing_data;
-    if (!data)
+    mixer_t* mixer = vgmstream->mixer;
+    if (!mixer)
         return;
 
     if (mask == 0) {
@@ -37,7 +37,7 @@ void mixing_macro_track(VGMSTREAM* vgmstream, uint32_t mask) {
     }
 
     /* reverse remove all channels (easier this way as when removing channels numbers change) */
-    for (int ch = data->output_channels - 1; ch >= 0; ch--) {
+    for (int ch = mixer->output_channels - 1; ch >= 0; ch--) {
         if ((mask >> ch) & 1)
             continue;
         mixing_push_downmix(vgmstream, ch);
@@ -74,9 +74,9 @@ static int is_layered_auto(VGMSTREAM* vgmstream, int max, char mode) {
         return 0;
 
     /* no channel down/upmixing (cannot guess output) */
-    mixer_data_t* data = vgmstream->mixing_data;
-    for (int i = 0; i < data->mixing_count; i++) {
-        mix_type_t type = data->mixing_chain[i].type;
+    mixer_t* mixer = vgmstream->mixer;
+    for (int i = 0; i < mixer->chain_count; i++) {
+        mix_type_t type = mixer->chain[i].type;
         if (type == MIX_UPMIX || type == MIX_DOWNMIX || type == MIX_KILLMIX) /*type == MIX_SWAP || ??? */
             return 0;
     }
@@ -208,10 +208,10 @@ static void mixing_macro_layer_auto(VGMSTREAM* vgmstream, int max, char mode) {
 
 
 void mixing_macro_layer(VGMSTREAM* vgmstream, int max, uint32_t mask, char mode) {
-    mixer_data_t* data = vgmstream->mixing_data;
+    mixer_t* mixer = vgmstream->mixer;
     int current, ch, output_channels, selected_channels;
 
-    if (!data)
+    if (!mixer)
         return;
 
     if (is_layered_auto(vgmstream, max, mode)) {
@@ -224,7 +224,7 @@ void mixing_macro_layer(VGMSTREAM* vgmstream, int max, uint32_t mask, char mode)
     if (max == 0) /* auto calculate */
         max = get_layered_max_channels(vgmstream);
 
-    if (max <= 0 || data->output_channels <= max)
+    if (max <= 0 || mixer->output_channels <= max)
         return;
 
     /* set all channels (non-existant channels will be ignored) */
@@ -233,7 +233,7 @@ void mixing_macro_layer(VGMSTREAM* vgmstream, int max, uint32_t mask, char mode)
     }
 
     /* save before adding fake channels */
-    output_channels = data->output_channels;
+    output_channels = mixer->output_channels;
 
     /* count possibly set channels */
     selected_channels = 0;
@@ -292,19 +292,19 @@ void mixing_macro_layer(VGMSTREAM* vgmstream, int max, uint32_t mask, char mode)
 }
 
 void mixing_macro_crosstrack(VGMSTREAM* vgmstream, int max) {
-    mixer_data_t* data = vgmstream->mixing_data;
+    mixer_t* mixer = vgmstream->mixer;
     int current, ch, track, track_ch, track_num, output_channels;
     int32_t change_pos, change_next, change_time;
 
-    if (!data)
+    if (!mixer)
         return;
-    if (max <= 0 || data->output_channels <= max)
+    if (max <= 0 || mixer->output_channels <= max)
         return;
     if (!vgmstream->loop_flag) /* maybe force loop? */
         return;
 
     /* this probably only makes sense for even channels so upmix before if needed) */
-    output_channels = data->output_channels;
+    output_channels = mixer->output_channels;
     if (output_channels % 2) {
         mixing_push_upmix(vgmstream, output_channels);
         output_channels += 1;
@@ -356,19 +356,19 @@ void mixing_macro_crosstrack(VGMSTREAM* vgmstream, int max) {
 }
 
 void mixing_macro_crosslayer(VGMSTREAM* vgmstream, int max, char mode) {
-    mixer_data_t* data = vgmstream->mixing_data;
+    mixer_t* mixer = vgmstream->mixer;
     int current, ch, layer, layer_ch, layer_num, loop, output_channels;
     int32_t change_pos, change_time;
 
-    if (!data)
+    if (!mixer)
         return;
-    if (max <= 0 || data->output_channels <= max)
+    if (max <= 0 || mixer->output_channels <= max)
         return;
     if (!vgmstream->loop_flag) /* maybe force loop? */
         return;
 
     /* this probably only makes sense for even channels so upmix before if needed) */
-    output_channels = data->output_channels;
+    output_channels = mixer->output_channels;
     if (output_channels % 2) {
         mixing_push_upmix(vgmstream, output_channels);
         output_channels += 1;
@@ -469,7 +469,7 @@ typedef enum {
 } mixing_position_t;
 
 void mixing_macro_downmix(VGMSTREAM* vgmstream, int max /*, mapping_t output_mapping*/) {
-    mixer_data_t* data = vgmstream->mixing_data;
+    mixer_t* mixer = vgmstream->mixer;
     int ch, output_channels, mp_in, mp_out, ch_in, ch_out;
     channel_mapping_t input_mapping, output_mapping;
     const double vol_max = 1.0;
@@ -478,15 +478,15 @@ void mixing_macro_downmix(VGMSTREAM* vgmstream, int max /*, mapping_t output_map
     double matrix[16][16] = {{0}};
 
 
-    if (!data)
+    if (!mixer)
         return;
-    if (max <= 1 || data->output_channels <= max || max >= 8)
+    if (max <= 1 || mixer->output_channels <= max || max >= 8)
         return;
 
     /* assume WAV defaults if not set */
     input_mapping = vgmstream->channel_layout;
     if (input_mapping == 0) {
-        switch(data->output_channels) {
+        switch(mixer->output_channels) {
             case 1: input_mapping = mapping_MONO; break;
             case 2: input_mapping = mapping_STEREO; break;
             case 3: input_mapping = mapping_2POINT1; break;
@@ -532,7 +532,7 @@ void mixing_macro_downmix(VGMSTREAM* vgmstream, int max /*, mapping_t output_map
     }
 
     /* save and make N fake channels at the beginning for easier calcs */
-    output_channels = data->output_channels;
+    output_channels = mixer->output_channels;
     for (ch = 0; ch < max; ch++) {
         mixing_push_upmix(vgmstream, 0);
     }

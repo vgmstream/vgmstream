@@ -9,6 +9,8 @@
 
 
 void decode_free(VGMSTREAM* vgmstream) {
+    if (!vgmstream->codec_data)
+        return;
 
 #ifdef VGM_USE_VORBIS
     if (vgmstream->coding_type == coding_OGG_VORBIS) {
@@ -124,6 +126,9 @@ void decode_free(VGMSTREAM* vgmstream) {
 
 
 void decode_seek(VGMSTREAM* vgmstream) {
+    if (!vgmstream->codec_data)
+        return;
+
     if (vgmstream->coding_type == coding_CIRCUS_VQ) {
         seek_circus_vq(vgmstream->codec_data, vgmstream->loop_current_sample);
     }
@@ -222,6 +227,8 @@ void decode_seek(VGMSTREAM* vgmstream) {
 
 
 void decode_reset(VGMSTREAM* vgmstream) {
+    if (!vgmstream->codec_data)
+        return;
 
 #ifdef VGM_USE_VORBIS
     if (vgmstream->coding_type == coding_OGG_VORBIS) {
