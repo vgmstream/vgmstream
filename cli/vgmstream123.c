@@ -684,7 +684,7 @@ static void add_driver_option(const char *key_value) {
 }
 
 
-static void usage(const char* progname, int is_help) {
+static void print_usage(const char* progname, int is_help) {
     song_settings_t default_par = DEFAULT_PARAMS;
     const char* default_driver = "???";
 
@@ -765,7 +765,7 @@ int main(int argc, char **argv) {
 
     if (argc == 1) {
         /* We were invoked with no arguments */
-        usage(argv[0], 0);
+        print_usage(argv[0], 0);
         goto done;
     }
 
@@ -848,7 +848,7 @@ again_opts:
                 out_filename = optarg;
                 break;
             case 'h':
-                usage(argv[0], 1);
+                print_usage(argv[0], 1);
                 goto done;
             case 'P':
                 add_driver_option(optarg);
