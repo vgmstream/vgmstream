@@ -1,4 +1,4 @@
-#include "mixing_priv.h"
+#include "mixer_priv.h"
 
 
 // TO-DO: some ops can be done with original PCM sbuf to avoid copying to the float sbuf

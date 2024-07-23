@@ -1,4 +1,4 @@
-#include "mixing_priv.h"
+#include "mixer_priv.h"
 #include <limits.h>
 #include <math.h>
 

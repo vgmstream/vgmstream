@@ -1,5 +1,5 @@
-#ifndef _MIXING_PRIV_H_
-#define _MIXING_PRIV_H_
+#ifndef _MIXER_PRIV_H_
+#define _MIXER_PRIV_H_
 #include "../streamtypes.h"
 
 #define VGMSTREAM_MAX_MIXING 512
