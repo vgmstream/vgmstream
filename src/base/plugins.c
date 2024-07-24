@@ -156,7 +156,7 @@ void vgmstream_get_title(char* buf, int buf_len, const char* filename, VGMSTREAM
 /* MIXING: modifies vgmstream output          */
 /* ****************************************** */
 
-void vgmstream_mixing_enable(VGMSTREAM* vgmstream, int32_t max_sample_count, int *input_channels, int *output_channels) {
+void vgmstream_mixing_enable(VGMSTREAM* vgmstream, int32_t max_sample_count, int* input_channels, int* output_channels) {
     mixing_setup(vgmstream, max_sample_count);
     mixing_info(vgmstream, input_channels, output_channels);
 
@@ -165,7 +165,7 @@ void vgmstream_mixing_enable(VGMSTREAM* vgmstream, int32_t max_sample_count, int
     setup_vgmstream(vgmstream);
 }
 
-void vgmstream_mixing_autodownmix(VGMSTREAM *vgmstream, int max_channels) {
+void vgmstream_mixing_autodownmix(VGMSTREAM* vgmstream, int max_channels) {
     if (max_channels <= 0)
         return;
 
@@ -181,7 +181,7 @@ void vgmstream_mixing_autodownmix(VGMSTREAM *vgmstream, int max_channels) {
     return;
 }
 
-void vgmstream_mixing_stereo_only(VGMSTREAM *vgmstream, int start) {
+void vgmstream_mixing_stereo_only(VGMSTREAM* vgmstream, int start) {
     if (start < 0)
         return;
     /* could check to avoid making mono files in edge cases but meh */

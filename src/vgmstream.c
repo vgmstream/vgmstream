@@ -12,6 +12,7 @@
 #include "base/decode.h"
 #include "base/render.h"
 #include "base/mixing.h"
+#include "base/mixer.h"
 #include "util/sf_utils.h"
 
 typedef VGMSTREAM* (*init_vgmstream_t)(STREAMFILE*);
@@ -928,6 +929,82 @@ void vgmstream_set_loop_target(VGMSTREAM* vgmstream, int loop_target) {
 /* MISC                                                                        */
 /*******************************************************************************/
 
+static bool merge_vgmstream(VGMSTREAM* opened_vgmstream, VGMSTREAM* new_vgmstream, int dfs_pair) {
+    VGMSTREAMCHANNEL* new_chans = NULL;
+    VGMSTREAMCHANNEL* new_loop_chans = NULL;
+    VGMSTREAMCHANNEL* new_start_chans = NULL;
+    const int merged_channels = 2;
+
+    /* checked outside but just in case */
+    if (!opened_vgmstream || !new_vgmstream)
+        goto fail;
+    //if (opened_vgmstream->channels + new_vgmstream->channels != merged_channels || dfs_pair >= merged_channels)
+    //    goto fail;
+
+    /* build the channels */
+    new_chans = calloc(merged_channels, sizeof(VGMSTREAMCHANNEL));
+    if (!new_chans) goto fail;
+
+    memcpy(&new_chans[dfs_pair],&opened_vgmstream->ch[0],sizeof(VGMSTREAMCHANNEL));
+    memcpy(&new_chans[dfs_pair^1],&new_vgmstream->ch[0],sizeof(VGMSTREAMCHANNEL));
+
+    /* loop and start will be initialized later, we just need to allocate them here */
+    new_start_chans = calloc(merged_channels, sizeof(VGMSTREAMCHANNEL));
+    if (!new_start_chans) {
+        free(new_chans);
+        goto fail;
+    }
+
+    if (opened_vgmstream->loop_ch) {
+        new_loop_chans = calloc(merged_channels, sizeof(VGMSTREAMCHANNEL));
+        if (!new_loop_chans) {
+            free(new_chans);
+            free(new_start_chans);
+            goto fail;
+        }
+    }
+
+    //TODO: maybe should just manually open a new vgmstream and its streamfiles and close normally
+    /* not using close_vgmstream as that would close the file */
+
+    /* remove the existing structures */
+    free(opened_vgmstream->ch);
+    free(new_vgmstream->ch);
+
+    free(opened_vgmstream->start_ch);
+    free(new_vgmstream->start_ch);
+
+    if (opened_vgmstream->loop_ch) {
+        free(opened_vgmstream->loop_ch);
+        free(new_vgmstream->loop_ch);
+    }
+
+    /* fill in the new structures */
+    opened_vgmstream->ch = new_chans;
+    opened_vgmstream->start_ch = new_start_chans;
+    opened_vgmstream->loop_ch = new_loop_chans;
+
+    /* stereo! */
+    opened_vgmstream->channels = merged_channels;
+    if (opened_vgmstream->layout_type == layout_interleave)
+        opened_vgmstream->layout_type = layout_none; /* fixes some odd cases */
+
+    /* discard the second VGMSTREAM */
+    mixer_free(new_vgmstream->mixer);
+    free(new_vgmstream->tmpbuf);
+    free(new_vgmstream->start_vgmstream);
+    free(new_vgmstream);
+
+    mixer_update_channel(opened_vgmstream->mixer); /* notify of new channel hacked-in */
+
+    return true;
+fail:
+    free(new_chans);
+    free(new_loop_chans);
+    free(new_start_chans);
+    return false;
+}
+
 /* See if there is a second file which may be the second channel, given an already opened mono vgmstream.
  * If a suitable file is found, open it and change opened_vgmstream to a stereo vgmstream. */
 static void try_dual_file_stereo(VGMSTREAM* opened_vgmstream, STREAMFILE* sf, init_vgmstream_t init_vgmstream_function) {
@@ -1072,65 +1149,8 @@ static void try_dual_file_stereo(VGMSTREAM* opened_vgmstream, STREAMFILE* sf, in
     }
 
     /* We seem to have a usable, matching file. Merge in the second channel. */
-    {
-        VGMSTREAMCHANNEL* new_chans;
-        VGMSTREAMCHANNEL* new_loop_chans = NULL;
-        VGMSTREAMCHANNEL* new_start_chans = NULL;
-
-        /* build the channels */
-        new_chans = calloc(2,sizeof(VGMSTREAMCHANNEL));
-        if (!new_chans) goto fail;
-
-        memcpy(&new_chans[dfs_pair],&opened_vgmstream->ch[0],sizeof(VGMSTREAMCHANNEL));
-        memcpy(&new_chans[dfs_pair^1],&new_vgmstream->ch[0],sizeof(VGMSTREAMCHANNEL));
-
-        /* loop and start will be initialized later, we just need to allocate them here */
-        new_start_chans = calloc(2,sizeof(VGMSTREAMCHANNEL));
-        if (!new_start_chans) {
-            free(new_chans);
-            goto fail;
-        }
-
-        if (opened_vgmstream->loop_ch) {
-            new_loop_chans = calloc(2,sizeof(VGMSTREAMCHANNEL));
-            if (!new_loop_chans) {
-                free(new_chans);
-                free(new_start_chans);
-                goto fail;
-            }
-        }
-
-        /* remove the existing structures */
-        /* not using close_vgmstream as that would close the file */
-        free(opened_vgmstream->ch);
-        free(new_vgmstream->ch);
-
-        free(opened_vgmstream->start_ch);
-        free(new_vgmstream->start_ch);
-
-        if (opened_vgmstream->loop_ch) {
-            free(opened_vgmstream->loop_ch);
-            free(new_vgmstream->loop_ch);
-        }
-
-        /* fill in the new structures */
-        opened_vgmstream->ch = new_chans;
-        opened_vgmstream->start_ch = new_start_chans;
-        opened_vgmstream->loop_ch = new_loop_chans;
-
-        /* stereo! */
-        opened_vgmstream->channels = 2;
-        if (opened_vgmstream->layout_type == layout_interleave)
-            opened_vgmstream->layout_type = layout_none; /* fixes some odd cases */
-
-        /* discard the second VGMSTREAM */
-        mixer_free(new_vgmstream->mixer);
-        free(new_vgmstream->tmpbuf);
-        free(new_vgmstream->start_vgmstream);
-        free(new_vgmstream);
-
-        mixer_update_channel(opened_vgmstream); /* notify of new channel hacked-in */
-    }
+    if (!merge_vgmstream(opened_vgmstream, new_vgmstream, dfs_pair))
+        goto fail;
 
     return;
 fail:

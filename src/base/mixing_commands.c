@@ -1,6 +1,6 @@
 #include "../vgmstream.h"
 #include "mixing.h"
-#include "mixing_priv.h"
+#include "mixer_priv.h"
 #include <math.h>
 #include <limits.h>
 
