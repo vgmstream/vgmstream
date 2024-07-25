@@ -1,6 +1,7 @@
 #ifndef _MIXER_PRIV_H_
 #define _MIXER_PRIV_H_
 #include "../streamtypes.h"
+#include "mixer.h"
 
 #define VGMSTREAM_MAX_MIXING 512
 
@@ -32,7 +33,7 @@ typedef struct {
     int32_t time_post;  /* position after time_end where vol_end applies (-1 = end) */
 } mix_op_t;
 
-typedef struct {
+struct mixer_t {
     int input_channels;     /* starting channels before mixing */
     int output_channels;    /* resulting channels after mixing */
     int mixing_channels;    /* max channels needed to mix */
@@ -51,15 +52,15 @@ typedef struct {
     int current_channels;   /* state: channels may increase/decrease during ops */
     int32_t current_subpos; /* state: current sample pos in the stream */
 
-} mixer_t;
+};
 
-void mixer_op_swap(mixer_t* data, int32_t sample_count, mix_op_t* op);
-void mixer_op_add(mixer_t* data, int32_t sample_count, mix_op_t* op);
-void mixer_op_volume(mixer_t* data, int32_t sample_count, mix_op_t* op);
-void mixer_op_limit(mixer_t* data, int32_t sample_count, mix_op_t* op);
-void mixer_op_upmix(mixer_t* data, int32_t sample_count, mix_op_t* op);
-void mixer_op_downmix(mixer_t* data, int32_t sample_count, mix_op_t* op);
-void mixer_op_killmix(mixer_t* data, int32_t sample_count, mix_op_t* op);
-void mixer_op_fade(mixer_t* data, int32_t sample_count, mix_op_t* op);
-bool mixer_op_fade_is_active(mixer_t* data, int32_t current_start, int32_t current_end);
+void mixer_op_swap(mixer_t* mixer, int32_t sample_count, mix_op_t* op);
+void mixer_op_add(mixer_t* mixer, int32_t sample_count, mix_op_t* op);
+void mixer_op_volume(mixer_t* mixer, int32_t sample_count, mix_op_t* op);
+void mixer_op_limit(mixer_t* mixer, int32_t sample_count, mix_op_t* op);
+void mixer_op_upmix(mixer_t* mixer, int32_t sample_count, mix_op_t* op);
+void mixer_op_downmix(mixer_t* mixer, int32_t sample_count, mix_op_t* op);
+void mixer_op_killmix(mixer_t* mixer, int32_t sample_count, mix_op_t* op);
+void mixer_op_fade(mixer_t* mixer, int32_t sample_count, mix_op_t* op);
+bool mixer_op_fade_is_active(mixer_t* mixer, int32_t current_start, int32_t current_end);
 #endif

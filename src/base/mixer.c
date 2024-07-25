@@ -29,7 +29,7 @@
  * segmented/layered layouts handle mixing on their own.
  */
 
-void* mixer_init(int channels) {
+mixer_t* mixer_init(int channels) {
     mixer_t* mixer = calloc(1, sizeof(mixer_t));
     if (!mixer) goto fail;
 
@@ -45,16 +45,14 @@ fail:
     return NULL;
 }
 
-void mixer_free(void* _mixer) {
-    mixer_t* mixer = _mixer;
+void mixer_free(mixer_t* mixer) {
     if (!mixer) return;
 
     free(mixer->mixbuf);
     free(mixer);
 }
 
-void mixer_update_channel(void* _mixer) {
-    mixer_t* mixer = _mixer;
+void mixer_update_channel(mixer_t* mixer) {
     if (!mixer) return;
 
     /* lame hack for dual stereo, but dual stereo is pretty hack-ish to begin with */
@@ -62,9 +60,7 @@ void mixer_update_channel(void* _mixer) {
     mixer->output_channels++;
 }
 
-bool mixer_is_active(void* _mixer) {
-    mixer_t* mixer = _mixer;
-
+bool mixer_is_active(mixer_t* mixer) {
     /* no support or not need to apply */
     if (!mixer || !mixer->active || mixer->chain_count == 0)
         return false;
@@ -73,8 +69,7 @@ bool mixer_is_active(void* _mixer) {
 }
 
 
-void mixer_process(void* _mixer, sample_t *outbuf, int32_t sample_count, int32_t current_pos) {
-    mixer_t* mixer = _mixer;
+void mixer_process(mixer_t* mixer, sample_t* outbuf, int32_t sample_count, int32_t current_pos) {
 
     /* no support or not need to apply */
     if (!mixer || !mixer->active || mixer->chain_count == 0)
