@@ -69,8 +69,8 @@ void print_tags(cli_config_t* cfg);
 void print_title(VGMSTREAM* vgmstream, cli_config_t* cfg);
 
 #ifdef HAVE_JSON
-void print_json_version();
-void print_json_info(VGMSTREAM* vgmstream, cli_config_t* cfg);
+void print_json_version(const char* vgmstream_version);
+void print_json_info(VGMSTREAM* vgm, cli_config_t* cfg, const char* vgmstream_version);
 #endif
 
 

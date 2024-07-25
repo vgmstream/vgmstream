@@ -230,7 +230,7 @@ static bool parse_config(cli_config_t* cfg, int argc, char** argv) {
                 goto fail;
 #ifdef HAVE_JSON
             case 'V':
-                print_json_version();
+                print_json_version(VGMSTREAM_VERSION);
                 goto fail;
             case 'I':
                 cfg->print_metajson = true;
@@ -576,7 +576,7 @@ static bool convert_file(cli_config_t* cfg) {
 #ifdef HAVE_JSON
     }
     else {
-        print_json_info(vgmstream, cfg);
+        print_json_info(vgmstream, cfg, VGMSTREAM_VERSION);
     }
 #endif
 

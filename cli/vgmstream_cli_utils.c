@@ -184,7 +184,7 @@ void print_title(VGMSTREAM* vgmstream, cli_config_t* cfg) {
 }
 
 #ifdef HAVE_JSON
-void print_json_version() {
+void print_json_version(const char* vgmstream_version) {
     size_t extension_list_len;
     size_t common_extension_list_len;
     const char** extension_list;
@@ -205,7 +205,7 @@ void print_json_version() {
         json_array_append(cext_list, cext);
     }
 
-    json_t* version_string = json_string(VGMSTREAM_VERSION);
+    json_t* version_string = json_string(vgmstream_version);
 
     json_t* final_object = json_object();
     json_object_set(final_object, "version", version_string);
@@ -219,8 +219,8 @@ void print_json_version() {
     json_dumpf(final_object, stdout, JSON_COMPACT);
 }
 
-void print_json_info(VGMSTREAM* vgm, cli_config_t* cfg) {
-    json_t* version_string = json_string(VGMSTREAM_VERSION);
+void print_json_info(VGMSTREAM* vgm, cli_config_t* cfg, const char* vgmstream_version) {
+    json_t* version_string = json_string(vgmstream_version);
     vgmstream_info info;
     describe_vgmstream_info(vgm, &info);
 
