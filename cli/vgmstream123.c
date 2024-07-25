@@ -396,7 +396,7 @@ static int play_vgmstream(const char* filename, song_settings_t* cfg) {
             render_vgmstream(buffer, to_do, vgmstream);
 
 #if LITTLE_ENDIAN_OUTPUT
-            swap_samples_le(buffer, output_channels * to_do, 0);
+            wav_swap_samples_le(buffer, output_channels * to_do, 0);
 #endif
 
             if (verbose && !out_filename) {

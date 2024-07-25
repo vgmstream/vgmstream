@@ -104,10 +104,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="vgmstream_cli.h" />
     <ClInclude Include="wav_utils.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="vgmstream_cli.c" />
+    <ClCompile Include="vgmstream_cli_utils.c" />
     <ClCompile Include="wav_utils.c" />
   </ItemGroup>
   <ItemGroup>

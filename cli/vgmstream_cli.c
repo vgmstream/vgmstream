@@ -4,15 +4,9 @@
 #define POSIXLY_CORRECT
 
 #include <getopt.h>
+#include "vgmstream_cli.h"
 #include "wav_utils.h"
-#include "../src/vgmstream.h"
-#include "../src/api.h"
-#include "../src/util.h"
-//todo use <>?
-#ifdef HAVE_JSON
-#include "jansson/jansson.h"
-#endif
-
+ 
 #ifdef WIN32
 #include <io.h>
 #include <fcntl.h>
@@ -40,7 +34,7 @@
 #ifdef __EMSCRIPTEN__
     #define SAMPLE_BUFFER_SIZE  1024
 #else
-    #define SAMPLE_BUFFER_SIZE  32768
+    #define SAMPLE_BUFFER_SIZE  (1024*32)
 #endif
 
 /* getopt globals from .h, for reference (the horror...) */
@@ -65,16 +59,16 @@ static void print_usage(const char* progname, bool is_help) {
             "    -E: force end-to-end looping even if file has real loop points\n"
             "    -s N: select subsong N, if the format supports multiple subsongs\n"
             "    -S N: select end subsong N (set 0 for 'all')\n"
-            "    -L: append a smpl chunk and create a looping wav\n"
             "    -p: output to stdout (for piping into another program)\n"
             "    -P: output to stdout even if stdout is a terminal\n"
             "    -c: loop forever (continuously) to stdout\n"
+            "    -L: append a smpl chunk and create a looping wav\n"
           //"    -w: allow .wav in original sample format rather than downmixing to PCM16\n"
-            "    -h: print all commands\n"
 #ifdef HAVE_JSON
             "    -V: print version info and supported extensions as JSON\n"
             "    -I: print requested file info as JSON\n"
 #endif
+            "    -h: print all commands\n"
             , progname);
 
     if (!is_help)
@@ -99,59 +93,7 @@ static void print_usage(const char* progname, bool is_help) {
 
 }
 
-
-typedef struct {
-    char** infilenames;
-    int infilenames_count;
-    const char* infilename;
-
-    const char* outfilename_config;
-    const char* outfilename;
-
-    const char* tag_filename;
-
-    bool play_forever;
-    bool play_sdtout;
-    bool play_wreckless;
-    bool print_metaonly;
-#ifdef HAVE_JSON
-    bool print_metajson;
-#endif
-    bool print_adxencd;
-    bool print_oggenc;
-    bool print_batchvar;
-    bool write_lwav;
-    int stereo_track;
-    int subsong_index;
-    int subsong_end;
-
-    double loop_count;
-    double fade_time;
-    double fade_delay;
-    bool ignore_fade;
-    bool ignore_loop;
-    bool force_loop;
-    bool really_force_loop;
-
-    bool validate_extensions;
-    bool test_reset;
-    int seek_samples1;
-    int seek_samples2;
-    bool decode_only;
-    bool show_title;
-    int downmix_channels;
-
-    /* not quite config but eh */
-    int lwav_loop_start;
-    int lwav_loop_end;
-} cli_config;
-#ifdef HAVE_JSON
-static void print_json_version();
-static void print_json_info(VGMSTREAM* vgm, cli_config* cfg);
-#endif
-
-
-static bool parse_config(cli_config* cfg, int argc, char** argv) {
+static bool parse_config(cli_config_t* cfg, int argc, char** argv) {
     int opt;
 
     /* non-zero defaults */
@@ -174,6 +116,8 @@ static bool parse_config(cli_config* cfg, int argc, char** argv) {
             case 'o':
                 cfg->outfilename = optarg;
                 break;
+
+            // playback config
             case 'l':
                 //cfg->loop_count = strtod(optarg, &end); //C99, allow?
                 //if (*end != '\0') goto fail_arg;
@@ -185,9 +129,19 @@ static bool parse_config(cli_config* cfg, int argc, char** argv) {
             case 'd':
                 cfg->fade_delay = atof(optarg);
                 break;
+            case 'F':
+                cfg->ignore_fade = true;
+                break;
             case 'i':
                 cfg->ignore_loop = true;
                 break;
+            case 'e':
+                cfg->force_loop = true;
+                break;
+            case 'E':
+                cfg->really_force_loop = true;
+                break;
+
             case 'p':
                 cfg->play_sdtout = true;
                 break;
@@ -198,6 +152,28 @@ static bool parse_config(cli_config* cfg, int argc, char** argv) {
             case 'c':
                 cfg->play_forever = true;
                 break;
+
+            // subsongs
+            case 's':
+                cfg->subsong_index = atoi(optarg);
+                break;
+            case 'S':
+                cfg->subsong_end = atoi(optarg);
+                if (!cfg->subsong_end)
+                    cfg->subsong_end = -1; /* signal up to end (otherwise 0 = not set) */
+                if (!cfg->subsong_index)
+                    cfg->subsong_index = 1;
+                break;
+
+            // wav config
+            case 'L':
+                cfg->write_lwav = true;
+                break;
+            case 'w':
+                cfg->write_original_wav = true;
+                break;
+
+            // print flags
             case 'm':
                 cfg->print_metaonly = true;
                 break;
@@ -210,39 +186,22 @@ static bool parse_config(cli_config* cfg, int argc, char** argv) {
             case 'b':
                 cfg->print_batchvar = true;
                 break;
-            case 'e':
-                cfg->force_loop = true;
-                break;
-            case 'E':
-                cfg->really_force_loop = true;
-                break;
-            case 'L':
-                cfg->write_lwav = true;
-                break;
-            case 'r':
-                cfg->test_reset = true;
-                break;
-            case '2':
-                cfg->stereo_track = atoi(optarg);
-                break;
-            case 'F':
-                cfg->ignore_fade = true;
-                break;
-            case 's':
-                cfg->subsong_index = atoi(optarg);
-                break;
-            case 'S':
-                cfg->subsong_end = atoi(optarg);
-                if (!cfg->subsong_end)
-                    cfg->subsong_end = -1; /* signal up to end (otherwise 0 = not set) */
-                if (!cfg->subsong_index)
-                    cfg->subsong_index = 1;
+            case 'T':
+                cfg->print_title = true;
                 break;
             case 't':
                 cfg->tag_filename = "!tags.m3u";
                 break;
-            case 'T':
-                cfg->show_title = true;
+
+            // debug stuff
+            case 'O':
+                cfg->decode_only = true;
+                break;
+            case 'r':
+                cfg->test_reset = true;
+                break;
+            case 'v':
+                cfg->validate_extensions = true;
                 break;
             case 'k':
                 cfg->seek_samples1 = atoi(optarg);
@@ -250,15 +209,13 @@ static bool parse_config(cli_config* cfg, int argc, char** argv) {
             case 'K':
                 cfg->seek_samples2 = atoi(optarg);
                 break;
-            case 'O':
-                cfg->decode_only = true;
-                break;
-            case 'v':
-                cfg->validate_extensions = true;
-                break;
             case 'D':
                 cfg->downmix_channels = atoi(optarg);
                 break;
+            case '2':
+                cfg->stereo_track = atoi(optarg);
+                break;
+
             case 'h':
                 print_usage(argv[0], true);
                 goto fail;
@@ -309,7 +266,7 @@ fail:
     return false;
 }
 
-static bool validate_config(cli_config* cfg) {
+static bool validate_config(cli_config_t* cfg) {
     if (cfg->play_sdtout && (!cfg->play_wreckless && isatty(STDOUT_FILENO))) {
         fprintf(stderr, "Are you sure you want to output wave data to the terminal?\nIf so use -P instead of -p.\n");
         goto fail;
@@ -330,52 +287,9 @@ fail:
     return false;
 }
 
-static void print_info(VGMSTREAM* vgmstream, cli_config* cfg) {
-    int channels = vgmstream->channels;
-    if (!cfg->play_sdtout) {
-        if (cfg->print_adxencd) {
-            printf("adxencd");
-            if (!cfg->print_metaonly)
-                printf(" \"%s\"",cfg->outfilename);
-            if (vgmstream->loop_flag)
-                printf(" -lps%d -lpe%d", vgmstream->loop_start_sample, vgmstream->loop_end_sample);
-            printf("\n");
-        }
-        else if (cfg->print_oggenc) {
-            printf("oggenc");
-            if (!cfg->print_metaonly)
-                printf(" \"%s\"", cfg->outfilename);
-            if (vgmstream->loop_flag)
-                printf(" -c LOOPSTART=%d -c LOOPLENGTH=%d", vgmstream->loop_start_sample, vgmstream->loop_end_sample-vgmstream->loop_start_sample);
-            printf("\n");
-        }
-        else if (cfg->print_batchvar) {
-            if (!cfg->print_metaonly)
-                printf("set fname=\"%s\"\n", cfg->outfilename);
-            printf("set tsamp=%d\nset chan=%d\n", vgmstream->num_samples, channels);
-            if (vgmstream->loop_flag)
-                printf("set lstart=%d\nset lend=%d\nset loop=1\n", vgmstream->loop_start_sample, vgmstream->loop_end_sample);
-            else
-                printf("set loop=0\n");
-        }
-        else if (cfg->print_metaonly) {
-            printf("metadata for %s\n", cfg->infilename);
-        }
-        else {
-            printf("decoding %s\n", cfg->infilename);
-        }
-    }
+/* ************************************************************ */
 
-    if (!cfg->play_sdtout && !cfg->print_adxencd && !cfg->print_oggenc && !cfg->print_batchvar) {
-        char description[1024];
-        description[0] = '\0';
-        describe_vgmstream(vgmstream,description,1024);
-        printf("%s",description);
-    }
-}
-
-
-static void apply_config(VGMSTREAM* vgmstream, cli_config* cfg) {
+static void apply_config(VGMSTREAM* vgmstream, cli_config_t* cfg) {
     vgmstream_cfg_t vcfg = {0};
 
     /* write loops in the wav, but don't actually loop it */
@@ -412,270 +326,115 @@ static void apply_config(VGMSTREAM* vgmstream, cli_config* cfg) {
     vgmstream_apply_config(vgmstream, &vcfg);
 }
 
+static bool write_file(VGMSTREAM* vgmstream, cli_config_t* cfg) {
+    FILE* outfile = NULL;
+    int32_t len_samples;
+    sample_t* buf = NULL;
+    int channels, input_channels;
 
-static void print_tags(cli_config* cfg) {
-    VGMSTREAM_TAGS* tags = NULL;
-    STREAMFILE* sf_tags = NULL;
-    const char *tag_key, *tag_val;
 
-    if (!cfg->tag_filename)
-        return;
+    channels = vgmstream->channels;
+    input_channels = vgmstream->channels;
 
-    sf_tags = open_stdio_streamfile(cfg->tag_filename);
-    if (!sf_tags) {
-        printf("tag file %s not found\n", cfg->tag_filename);
-        return;
+    vgmstream_mixing_enable(vgmstream, 0, &input_channels, &channels);
+
+    /* last init */
+    buf = malloc(SAMPLE_BUFFER_SIZE * sizeof(sample_t) * input_channels);
+    if (!buf) {
+        fprintf(stderr, "failed allocating output buffer\n");
+        goto fail;
     }
 
-    printf("tags:\n");
+    /* simulate seek */
+    len_samples = vgmstream_get_samples(vgmstream);
+    if (cfg->seek_samples2 >= 0)
+        len_samples -= cfg->seek_samples2;
+    else if (cfg->seek_samples1 >= 0)
+        len_samples -= cfg->seek_samples1;
 
-    tags = vgmstream_tags_init(&tag_key, &tag_val);
-    vgmstream_tags_reset(tags, cfg->infilename);
-    while (vgmstream_tags_next_tag(tags, sf_tags)) {
-        printf("- '%s'='%s'\n", tag_key, tag_val);
+    if (cfg->seek_samples1 >= 0)
+        seek_vgmstream(vgmstream, cfg->seek_samples1);
+    if (cfg->seek_samples2 >= 0)
+        seek_vgmstream(vgmstream, cfg->seek_samples2);
+
+
+    /* output file */
+    if (cfg->play_sdtout) {
+        outfile = stdout;
     }
+    else if (!cfg->decode_only) {
+        outfile = fopen(cfg->outfilename, "wb");
+        if (!outfile) {
+            fprintf(stderr, "failed to open %s for output\n", cfg->outfilename);
+            goto fail;
+        }
 
-    vgmstream_tags_close(tags);
-    close_streamfile(sf_tags);
-}
-
-static void print_title(VGMSTREAM* vgmstream, cli_config* cfg) {
-    char title[1024];
-    vgmstream_title_t tcfg = {0};
-
-    if (!cfg->show_title)
-        return;
-
-    tcfg.force_title = 0;
-    tcfg.subsong_range = 0;
-    tcfg.remove_extension = 0;
-
-    vgmstream_get_title(title, sizeof(title), cfg->infilename, vgmstream, &tcfg);
-
-    printf("title: %s\n", title);
-}
-
-#ifdef HAVE_JSON
-void print_json_version() {
-    size_t extension_list_len;
-    size_t common_extension_list_len;
-    const char** extension_list;
-    const char** common_extension_list;
-    extension_list = vgmstream_get_formats(&extension_list_len);
-    common_extension_list = vgmstream_get_common_formats(&common_extension_list_len);
-
-    json_t* ext_list = json_array();
-    json_t* cext_list = json_array();
-
-    for (size_t i = 0; i < extension_list_len; ++i) {
-        json_t* ext = json_string(extension_list[i]);
-        json_array_append(ext_list, ext);
-    }
-
-    for (size_t i = 0; i < common_extension_list_len; ++i) {
-        json_t* cext = json_string(common_extension_list[i]);
-        json_array_append(cext_list, cext);
-    }
-
-    json_t* version_string = json_string(VGMSTREAM_VERSION);
-
-    json_t* final_object = json_object();
-    json_object_set(final_object, "version", version_string);
-    json_decref(version_string);
-
-    json_object_set(final_object, "extensions",
-                    json_pack("{soso}",
-                              "vgm", ext_list,
-                              "common", cext_list));
-
-    json_dumpf(final_object, stdout, JSON_COMPACT);
-}
-#endif
-
-static void clean_filename(char* dst, int clean_paths) {
-    for (int i = 0; i < strlen(dst); i++) {
-        char c = dst[i];
-        int is_badchar = (clean_paths && (c == '\\' || c == '/'))
-            || c == '*' || c == '?' || c == ':' /*|| c == '|'*/ || c == '<' || c == '>';
-        if (is_badchar)
-            dst[i] = '_';
-    }
-}
-
-/* replaces a filename with "?n" (stream name), "?f" (infilename) or "?s" (subsong) wildcards
- * ("?" was chosen since it's not a valid Windows filename char and hopefully nobody uses it on Linux) */
-static void replace_filename(char* dst, size_t dstsize, cli_config* cfg, VGMSTREAM* vgmstream) {
-    int subsong;
-    char stream_name[PATH_LIMIT];
-    char buf[PATH_LIMIT];
-    char tmp[PATH_LIMIT];
-
-
-    /* file has a "%" > temp replace for sprintf */
-    strcpy(buf, cfg->outfilename_config);
-    for (int i = 0; i < strlen(buf); i++) {
-        if (buf[i] == '%')
-            buf[i] = '|'; /* non-valid filename, not used in format */
-    }
-
-    /* init config */
-    subsong = vgmstream->stream_index;
-    if (subsong > vgmstream->num_streams || subsong != cfg->subsong_index) {
-        subsong = 0; /* for games without subsongs / bad config */
-    }
-
-    if (vgmstream->stream_name[0] != '\0') {
-        snprintf(stream_name, sizeof(stream_name), "%s", vgmstream->stream_name);
-        clean_filename(stream_name, 1); /* clean subsong name's subdirs */
+        /* no improvement */
+        //setvbuf(outfile, NULL, _IOFBF, SAMPLE_BUFFER_SIZE * sizeof(sample_t) * input_channels);
+        //setvbuf(outfile, NULL, _IONBF, 0);
     }
     else {
-        snprintf(stream_name, sizeof(stream_name), "%s", cfg->infilename);
-        clean_filename(stream_name, 0); /* don't clean user's subdirs */
+        // decode only: outfile is NULL (won't write anything)
     }
 
-    /* do controlled replaces of each wildcard (in theory could appear N times) */
-    do {
-        char* pos = strchr(buf, '?');
-        if (!pos)
-            break;
 
-        /* use buf as format and copy formatted result to tmp (assuming sprintf's format must not overlap with dst) */
-        if (pos[1] == 'n') {
-            pos[0] = '%';
-            pos[1] = 's'; /* use %s */
-            snprintf(tmp, sizeof(tmp), buf, stream_name);
-        }
-        else if (pos[1] == 'f') {
-            pos[0] = '%';
-            pos[1] = 's'; /* use %s */
-            snprintf(tmp, sizeof(tmp), buf, cfg->infilename);
-        }
-        else if (pos[1] == 's') {
-            pos[0] = '%';
-            pos[1] = 'i'; /* use %i */
-            snprintf(tmp, sizeof(tmp), buf, subsong);
-        }
-        else if ((pos[1] == '0' && pos[2] >= '1' && pos[2] <= '9' && pos[3] == 's')) {
-            pos[0] = '%';
-            pos[3] = 'i'; /* use %0Ni */
-            snprintf(tmp, sizeof(tmp), buf, subsong);
-        }
-        else {
-            /* not recognized */
-            continue;
-        }
+    /* decode forever */
+    while (cfg->play_forever && !cfg->decode_only) {
+        int to_get = SAMPLE_BUFFER_SIZE;
 
-        /* copy result to buf again, so it can be used as format in next replace
-         * (can be optimized with some pointer swapping but who cares about a few extra nanoseconds) */
-        strcpy(buf, tmp);
-    }
-    while (1);
+        render_vgmstream(buf, to_get, vgmstream);
 
-    /* replace % back */
-    for (int i = 0; i < strlen(buf); i++) {
-        if (buf[i] == '|')
-            buf[i] = '%';
+        wav_swap_samples_le(buf, channels * to_get, 0);
+        fwrite(buf, sizeof(sample_t), to_get * channels, outfile);
+        /* should write infinitely until program kill */
     }
 
-    snprintf(dst, dstsize, "%s", buf);
-}
 
+    /* slap on a .wav header */
+    if (!cfg->decode_only) {
+        uint8_t wav_buf[0x100];
+        size_t bytes_done;
 
-/* ************************************************************ */
+        wav_header_t wav = {
+            .sample_count = len_samples,
+            .sample_rate = vgmstream->sample_rate,
+            .channels = channels,
+            .write_smpl_chunk = cfg->write_lwav,
+            .loop_start = cfg->lwav_loop_start,
+            .loop_end = cfg->lwav_loop_end
+        };
 
-static bool convert_file(cli_config* cfg);
-static bool convert_subsongs(cli_config* cfg);
-static bool write_file(VGMSTREAM* vgmstream, cli_config* cfg);
-
-
-int main(int argc, char** argv) {
-    cli_config cfg = {0};
-    bool res, ok;
-
-
-    /* read args */
-    res = parse_config(&cfg, argc, argv);
-    if (!res) goto fail;
-
-    res = validate_config(&cfg);
-    if (!res) goto fail;
-
-    vgmstream_set_log_stdout(VGM_LOG_LEVEL_ALL);
-
-#ifdef WIN32
-    /* make stdout output work with windows */
-    if (cfg.play_sdtout) {
-        _setmode(fileno(stdout),_O_BINARY);
+        bytes_done = wav_make_header(wav_buf, 0x100, &wav);
+        fwrite(wav_buf, sizeof(uint8_t), bytes_done, outfile);
     }
-#endif
 
-    ok = false;
-    for (int i = 0; i < cfg.infilenames_count; i++) {
-        /* current name, to avoid passing params all the time */
-        cfg.infilename = cfg.infilenames[i];
-        if (cfg.outfilename_config)
-            cfg.outfilename = NULL;
 
-        if (cfg.subsong_index > 0 && cfg.subsong_end != 0) {
-            res = convert_subsongs(&cfg);
-            //if (!res) goto fail;
-            if (res) ok = true;
-        }
-        else {
-            res = convert_file(&cfg);
-            //if (!res) goto fail;
-            if (res) ok = true;
+    /* decode */
+    for (int i = 0; i < len_samples; i += SAMPLE_BUFFER_SIZE) {
+        int to_get = SAMPLE_BUFFER_SIZE;
+        if (i + SAMPLE_BUFFER_SIZE > len_samples)
+            to_get = len_samples - i;
+
+        render_vgmstream(buf, to_get, vgmstream);
+
+        if (!cfg->decode_only) {
+            wav_swap_samples_le(buf, channels * to_get, 0);
+            fwrite(buf, sizeof(sample_t), to_get * channels, outfile);
         }
     }
 
-    /* ok if at least one succeeds, for programs that check result code */
-    if (!ok)
-        goto fail;
-
-    return EXIT_SUCCESS;
-fail:
-    return EXIT_FAILURE;
-}
-
-static bool convert_subsongs(cli_config* cfg) {
-    int res, kos;
-    /* restore original values in case of multiple parsed files */
-    int start_temp = cfg->subsong_index;
-    int end_temp = cfg->subsong_end;
-
-    /* first call should force load max subsongs */
-    if (cfg->subsong_end == -1) {
-        res = convert_file(cfg);
-        if (!res) goto fail;
-    }
-
-
-    //;VGM_LOG("CLI: subsongs %i to %i\n", cfg->subsong_index, cfg->subsong_end + 1);
-
-    /* convert subsong range */
-    kos = 0 ;
-    for (int subsong = cfg->subsong_index; subsong < cfg->subsong_end + 1; subsong++) {
-        cfg->subsong_index = subsong; 
-
-        res = convert_file(cfg);
-        if (!res) kos++;
-    }
-
-    if (kos) {
-        fprintf(stderr, "failed %i subsongs\n", kos);
-    }
-
-    cfg->subsong_index = start_temp;
-    cfg->subsong_end = end_temp;
+    if (outfile && outfile != stdout)
+        fclose(outfile);
+    free(buf);
     return true;
 fail:
-    cfg->subsong_index = start_temp;
-    cfg->subsong_end = end_temp;
+    if (outfile && outfile != stdout)
+        fclose(outfile);
+    free(buf);
     return false;
 }
 
-
-static bool convert_file(cli_config* cfg) {
+static bool convert_file(cli_config_t* cfg) {
     VGMSTREAM* vgmstream = NULL;
     char outfilename_temp[PATH_LIMIT];
     int32_t len_samples;
@@ -803,7 +562,6 @@ static bool convert_file(cli_config* cfg) {
     }
     else {
         print_json_info(vgmstream, cfg);
-        printf("\n");
     }
 #endif
 
@@ -838,187 +596,88 @@ fail:
     return false;
 }
 
+static bool convert_subsongs(cli_config_t* cfg) {
+    int res, ko_count;
+    /* restore original values in case of multiple parsed files */
+    int start_temp = cfg->subsong_index;
+    int end_temp = cfg->subsong_end;
 
-static bool write_file(VGMSTREAM* vgmstream, cli_config* cfg) {
-    FILE* outfile = NULL;
-    int32_t len_samples;
-    sample_t* buf = NULL;
-    int channels, input_channels;
-
-
-    channels = vgmstream->channels;
-    input_channels = vgmstream->channels;
-
-    vgmstream_mixing_enable(vgmstream, 0, &input_channels, &channels);
-
-    /* last init */
-    buf = malloc(SAMPLE_BUFFER_SIZE * sizeof(sample_t) * input_channels);
-    if (!buf) {
-        fprintf(stderr, "failed allocating output buffer\n");
-        goto fail;
-    }
-
-    /* simulate seek */
-    len_samples = vgmstream_get_samples(vgmstream);
-    if (cfg->seek_samples2 >= 0)
-        len_samples -= cfg->seek_samples2;
-    else if (cfg->seek_samples1 >= 0)
-        len_samples -= cfg->seek_samples1;
-
-    if (cfg->seek_samples1 >= 0)
-        seek_vgmstream(vgmstream, cfg->seek_samples1);
-    if (cfg->seek_samples2 >= 0)
-        seek_vgmstream(vgmstream, cfg->seek_samples2);
-
-
-    /* output file */
-    if (cfg->play_sdtout) {
-        outfile = stdout;
-    }
-    else if (!cfg->decode_only) {
-        outfile = fopen(cfg->outfilename, "wb");
-        if (!outfile) {
-            fprintf(stderr, "failed to open %s for output\n", cfg->outfilename);
-            goto fail;
-        }
-
-        /* no improvement */
-        //setvbuf(outfile, NULL, _IOFBF, SAMPLE_BUFFER_SIZE * sizeof(sample_t) * input_channels);
-        //setvbuf(outfile, NULL, _IONBF, 0);
-    }
-    else {
-        // decode only: outfile is NULL (won't write anything)
+    /* first call should force load max subsongs */
+    if (cfg->subsong_end == -1) {
+        res = convert_file(cfg);
+        if (!res) goto fail;
     }
 
 
-    /* decode forever */
-    while (cfg->play_forever && !cfg->decode_only) {
-        int to_get = SAMPLE_BUFFER_SIZE;
+    //;VGM_LOG("CLI: subsongs %i to %i\n", cfg->subsong_index, cfg->subsong_end + 1);
 
-        render_vgmstream(buf, to_get, vgmstream);
+    /* convert subsong range */
+    ko_count = 0 ;
+    for (int subsong = cfg->subsong_index; subsong < cfg->subsong_end + 1; subsong++) {
+        cfg->subsong_index = subsong; 
 
-        swap_samples_le(buf, channels * to_get, 0);
-        fwrite(buf, sizeof(sample_t), to_get * channels, outfile);
-        /* should write infinitely until program kill */
+        res = convert_file(cfg);
+        if (!res) ko_count++;
     }
 
-
-    /* slap on a .wav header */
-    if (!cfg->decode_only) {
-        uint8_t wav_buf[0x100];
-        size_t bytes_done;
-
-        wav_header_t wav = {
-            .sample_count = len_samples,
-            .sample_rate = vgmstream->sample_rate,
-            .channels = channels,
-            .write_smpl_chunk = cfg->write_lwav,
-            .loop_start = cfg->lwav_loop_start,
-            .loop_end = cfg->lwav_loop_end
-        };
-
-        bytes_done = wav_make_header(wav_buf, 0x100, &wav);
-        fwrite(wav_buf, sizeof(uint8_t), bytes_done, outfile);
+    if (ko_count) {
+        fprintf(stderr, "failed %i subsongs\n", ko_count);
     }
 
-
-    /* decode */
-    for (int i = 0; i < len_samples; i += SAMPLE_BUFFER_SIZE) {
-        int to_get = SAMPLE_BUFFER_SIZE;
-        if (i + SAMPLE_BUFFER_SIZE > len_samples)
-            to_get = len_samples - i;
-
-        render_vgmstream(buf, to_get, vgmstream);
-
-        if (!cfg->decode_only) {
-            swap_samples_le(buf, channels * to_get, 0);
-            fwrite(buf, sizeof(sample_t), to_get * channels, outfile);
-        }
-    }
-
-    if (outfile && outfile != stdout)
-        fclose(outfile);
-    free(buf);
+    cfg->subsong_index = start_temp;
+    cfg->subsong_end = end_temp;
     return true;
 fail:
-    if (outfile && outfile != stdout)
-        fclose(outfile);
-    free(buf);
+    cfg->subsong_index = start_temp;
+    cfg->subsong_end = end_temp;
     return false;
 }
 
+int main(int argc, char** argv) {
+    cli_config_t cfg = {0};
+    bool res, ok;
 
-#ifdef HAVE_JSON
-static void print_json_info(VGMSTREAM* vgm, cli_config* cfg) {
-    json_t* version_string = json_string(VGMSTREAM_VERSION);
-    vgmstream_info info;
-    describe_vgmstream_info(vgm, &info);
 
-    json_t* mixing_info = NULL;
+    /* read args */
+    res = parse_config(&cfg, argc, argv);
+    if (!res) goto fail;
 
-    // The JSON pack format string is defined here: https://jansson.readthedocs.io/en/latest/apiref.html#building-values
+    res = validate_config(&cfg);
+    if (!res) goto fail;
 
-    if (info.mixing_info.input_channels > 0) {
-        mixing_info = json_pack("{sisi}",
-            "inputChannels", info.mixing_info.input_channels,
-            "outputChannels", info.mixing_info.output_channels);
+    vgmstream_set_log_stdout(VGM_LOG_LEVEL_ALL);
+
+#ifdef WIN32
+    /* make stdout output work with windows */
+    if (cfg.play_sdtout) {
+        _setmode(fileno(stdout),_O_BINARY);
     }
-
-    json_t* loop_info = NULL;
-
-    if (info.loop_info.end > info.loop_info.start) {
-        loop_info = json_pack("{sisi}",
-            "start", info.loop_info.start,
-            "end", info.loop_info.end);
-    }
-
-    json_t* interleave_info = NULL;
-
-    if (info.interleave_info.last_block > info.interleave_info.first_block) {
-        interleave_info = json_pack("{sisi}",
-            "firstBlock", info.interleave_info.first_block,
-            "lastBlock", info.interleave_info.last_block
-        );
-    }
-
-    json_t* stream_info = json_pack("{sisssi}",
-        "index", info.stream_info.current,
-        "name", info.stream_info.name,
-        "total", info.stream_info.total
-    );
-
-    if (info.stream_info.name[0] == '\0') {
-        json_object_set(stream_info, "name", json_null());
-    }
-
-    json_t* final_object = json_pack(
-        "{sssisiso?siso?so?sisssssisssiso?}",
-        "version", version_string,
-        "sampleRate", info.sample_rate,
-        "channels", info.channels,
-        "mixingInfo", mixing_info,
-        "channelLayout", info.channel_layout,
-        "loopingInfo", loop_info,
-        "interleaveInfo", interleave_info,
-        "numberOfSamples", info.num_samples,
-        "encoding", info.encoding,
-        "layout", info.layout,
-        "frameSize", info.frame_size,
-        "metadataSource", info.metadata,
-        "bitrate", info.bitrate,
-        "streamInfo", stream_info
-    );
-
-    if (info.frame_size == 0) {
-        json_object_set(final_object, "frameSize", json_null());
-    }
-
-    if (info.channel_layout == 0) {
-        json_object_set(final_object, "channelLayout", json_null());
-    }
-
-    json_dumpf(final_object, stdout, JSON_COMPACT);
-
-    json_decref(final_object);
-}
 #endif
+
+    ok = false;
+    for (int i = 0; i < cfg.infilenames_count; i++) {
+        /* current name, to avoid passing params all the time */
+        cfg.infilename = cfg.infilenames[i];
+        if (cfg.outfilename_config)
+            cfg.outfilename = NULL;
+
+        if (cfg.subsong_index > 0 && cfg.subsong_end != 0) {
+            res = convert_subsongs(&cfg);
+            //if (!res) goto fail;
+            if (res) ok = true;
+        }
+        else {
+            res = convert_file(&cfg);
+            //if (!res) goto fail;
+            if (res) ok = true;
+        }
+    }
+
+    /* ok if at least one succeeds, for programs that check result code */
+    if (!ok)
+        goto fail;
+
+    return EXIT_SUCCESS;
+fail:
+    return EXIT_FAILURE;
+}

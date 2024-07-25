@@ -19,12 +19,18 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="vgmstream_cli.h">
+      <Filter>Header Files</Filter>
+    </ClCompile>
     <ClCompile Include="wav_utils.h">
       <Filter>Header Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="vgmstream_cli.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="vgmstream_cli_utils.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="wav_utils.c">
