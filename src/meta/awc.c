@@ -202,7 +202,7 @@ VGMSTREAM* init_vgmstream_awc(STREAMFILE* sf) {
                 /* shouldn't be possible since it's only used for sfx anyway */
                 if (awc.channels > 1)
                     goto fail;
-            } 
+            }
             break;
 
         case 0xFF:
@@ -228,7 +228,7 @@ fail:
 }
 
 
-/* Parse Rockstar's AWC header (much info from LibertyV: https://github.com/koolkdev/libertyv). 
+/* Parse Rockstar's AWC header (much info from LibertyV: https://github.com/koolkdev/libertyv).
  *
  * AWC defines logical streams/tracks, each with N tags (type+offset+size) that point to headers/tables with info.
  * First stream may be a "music" type, then other streams are used as channels and not always define tags.
@@ -306,7 +306,7 @@ static int parse_awc_header(STREAMFILE* sf, awc_header* awc) {
      * sfx = N single streams, music = N interleaved mono channels (even for MP3/XMA/Vorbis/etc).
      * Channels set a stream hash/id that typically is one of the defined ones and its tags do apply to that
      * channel, but rarely may not exist. Ex.:
-     * 
+     *
      * - bgm01.awc
      * Stream ID 00000000 (implicit: music stream, all others aren't used)
      *   Tag: music header
@@ -352,7 +352,7 @@ static int parse_awc_header(STREAMFILE* sf, awc_header* awc) {
         uint32_t info_header = read_u32(offset + 0x00, sf);
         int entry_count  = (info_header >> 29) & 0x7; /* 3b */
         uint32_t hash_id = (info_header >>  0) & 0x1FFFFFFF; /* 29b */
-        
+
         if (i + 1 < target_subsong)
             tags_skip += entry_count; /* tags to skip to reach target's tags, in the next header */
         if (target_subsong == i + 1)
@@ -397,7 +397,7 @@ static int parse_awc_header(STREAMFILE* sf, awc_header* awc) {
 
                 if (awc->channels != entries - 1) { /* not counting id-0 */
                     VGM_LOG("AWC: number of music channels doesn't match entries\n");
-                    /* extremely rare but doesn't seem to matter, some streams are dummies (RDR2 STREAMS/ABIGAIL_HUMMING_*) */ 
+                    /* extremely rare but doesn't seem to matter, some streams are dummies (RDR2 STREAMS/ABIGAIL_HUMMING_*) */
                     //goto fail;
                 }
 

@@ -516,6 +516,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_dsp_asura_ttss,
     init_vgmstream_dsp_asura_sfx,
     init_vgmstream_adp_ongakukan,
+    init_vgmstream_juiced_dat,
 
     /* lower priority metas (no clean header identity, somewhat ambiguous, or need extension/companion file to identify) */
     init_vgmstream_agsc,
@@ -569,7 +570,7 @@ VGMSTREAM* detect_vgmstream_format(STREAMFILE* sf) {
     /* try a series of formats, see which works */
     for (int i = 0; i < init_vgmstream_count; i++) {
         init_vgmstream_t init_vgmstream_function = init_vgmstream_functions[i];
-    
+
         /* call init function and see if valid VGMSTREAM was returned */
         VGMSTREAM* vgmstream = init_vgmstream_function(sf);
         if (!vgmstream)

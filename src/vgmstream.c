@@ -136,7 +136,7 @@ void setup_vgmstream(VGMSTREAM* vgmstream) {
             vgmstream->loop_end_sample = 0;
         }
     }
-    
+
     /* clean as loops are readable metadata but loop fields may contain garbage
         * (done *after* dual stereo as it needs loop fields to match) */
     if (!vgmstream->loop_flag) {
