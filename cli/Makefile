@@ -22,6 +22,12 @@ ifeq ($(TARGET_OS),Windows_NT)
 
   LIBAO_INC = -I$(LIBAO_IPATH)
   LIBAO_LIB = -L$(LIBAO_LPATH) -lao
+
+  # strip needs full name
+  OUTPUT_CLI = vgmstream-cli.exe
+  OUTPUT_123 = vgmstream123.exe
+  OUTPUT_API = api_example.exe
+
 else
   #todo move to subfolders and remove
   CFLAGS += -I../ext_includes
@@ -50,7 +56,7 @@ vgmstream123: libvgmstream.a $(TARGET_EXT_LIBS)
 
 api_example: libvgmstream.a $(TARGET_EXT_LIBS)
 	$(CC) $(CFLAGS) api_example.c $(LDFLAGS) -o $(OUTPUT_API)
-	$(STRIP) api_example
+	$(STRIP) $(OUTPUT_API)
 
 libvgmstream.a:
 	$(MAKE) -C ../src $@

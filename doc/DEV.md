@@ -10,16 +10,17 @@ There are no hard coding rules but for consistency one should follow the style u
 - 4 spaces instead of tabs
 - `\n` breaks (LF, Linux style), instead of `\r\n` (CRLF, Windows style)
 - `underscore_and_lowercase_names` instead of `CamelCase`
-- `/* C89 comments */` for general comments, `//C99 comments` for special comments (like disabling code but leaving it there for visibility)
+- `/* C89 comments */` for general comments, `//C99 comments` for other comments
 - brackets starting in the same line
   - ex. `if (..) { LF ... LF }`
 - line length ~100, more is ok for 'noise code' (uninteresting calcs or function defs)
 - offsets/sizes in hex, counts/numbers in decimal
 - test functions may return 1=ok, 0=ko for simplicity
 - `free(ptr)` no need to NULL-check per standard, `close_stuff(ptr)` should follow when possible
-- `lowercase_helper_structs_t`, `UPPERCASE_MAIN_STRUCTS`
+- `lowercase_helper_structs_t`, `UPPERCASE_INTERNAL_STRUCTS`
 - spaces in calcs/ifs/etc may be added as desired for clarity
   - ex. `if (simple_check)` or `if ( complex_and_important_stuff(weird + weird) )`
+  - though generally you should split steps if readibility is impaired
 - `goto` are used to abort and reach "fail" sections (typical C cleanup style), beware vars should be defined first
 - pointer definitions should keep the `*` together for consistency 
   - ex. `VGMSTREAM* init_x() { ... }` `STREAMFILE* sf = ...`
@@ -79,7 +80,8 @@ Some of the code can be inefficient or duplicated at places, but it isn't that m
 ./ext_includes/      external includes for compiling
 ./ext_libs/          external libs/DLLs for linking
 ./fb2k/              foobar2000 plugin
-./src/               main vgmstream code
+./src/               initial vgmstream code
+./src/base/          core vgmstream features
 ./src/coding/        format data decoders
 ./src/layout/        format data demuxers
 ./src/meta/          format header parsers

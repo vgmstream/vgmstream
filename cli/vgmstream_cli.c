@@ -4,8 +4,6 @@
 #define POSIXLY_CORRECT
 
 #include <getopt.h>
-#include "vgmstream_cli.h"
-#include "wav_utils.h"
  
 #ifdef WIN32
 #include <io.h>
@@ -18,6 +16,9 @@
 #define STDOUT_FILENO 1
 #endif
 
+
+#include "vgmstream_cli.h"
+#include "wav_utils.h"
 
 #include "../version.h"
 #ifndef VGMSTREAM_VERSION

@@ -830,9 +830,9 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Sony MSF header [*MSF*]
   - *msf*: `.msf .msa .at3 .mp3 .str .snd`
   - Codecs: PCM16BE PCM16LE PSX ATRAC3 FFmpeg(various)
-- **ps3_past.c**
-  - SNDP header [*PS3_PAST*]
-  - *ps3_past*: `.past`
+- **sndp.c**
+  - Premium Agency SNDP header [*SNDP*]
+  - *sndp*: `.past`
   - Codecs: PCM16LE
 - **sgxd.c**
   - Sony SGXD header [*SGXD*]
@@ -1262,7 +1262,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - *smc_smh*: `.smc + .smh`
   - Codecs: PSX
 - **ppst.c**
-  - Parappa PPST header [*PPST*]
+  - epics PPST header [*PPST*]
   - *ppst*: `.sng`
     - Subfiles: *riff*
 - **ubi_bao.c**
@@ -2033,6 +2033,7 @@ are used in few games.
   - Paradigm MC3 ADPCM
   - Ocean DSA ADPCM
   - lsf ADPCM
+  - Ongakukan ADPCM
   - ITU-T G.721
   - CompressWave (CWav) Huffman ADPCM
 - Perceptual/transform-based

@@ -164,7 +164,7 @@ typedef struct {
     layout_t layout_type;           /* type of layout */
     meta_t meta_type;               /* type of metadata */
 
-    /* loopin config */
+    /* loop config */
     int loop_flag;                  /* is this stream looped? */
     int32_t loop_start_sample;      /* first sample of the loop (included in the loop) */
     int32_t loop_end_sample;        /* last sample of the loop (not included in the loop) */
@@ -186,7 +186,7 @@ typedef struct {
     uint32_t channel_layout;        /* order: FL FR FC LFE BL BR FLC FRC BC SL SR etc (WAVEFORMATEX flags where FL=lowest bit set) */
 
     /* other config */
-    int allow_dual_stereo;          /* search for dual stereo (file_L.ext + file_R.ext = single stereo file) */
+    bool allow_dual_stereo;         /* search for dual stereo (file_L.ext + file_R.ext = single stereo file) */
 
 
     /* layout/block state */
@@ -205,7 +205,7 @@ typedef struct {
     size_t loop_block_size;         /* saved from current_block_size */
     int32_t loop_block_samples;     /* saved from current_block_samples */
     off_t loop_next_block_offset;   /* saved from next_block_offset */
-    int hit_loop;                   /* save config when loop is hit, but first time only */
+    bool hit_loop;                  /* save config when loop is hit, but first time only */
 
 
     /* decoder config/state */
@@ -233,7 +233,7 @@ typedef struct {
 
 
     /* play config/state */
-    int config_enabled;             /* config can be used */
+    bool config_enabled;            /* config can be used */
     play_config_t config;           /* player config (applied over decoding) */
     play_state_t pstate;            /* player state (applied over decoding) */
     int loop_count;                 /* counter of complete loops (1=looped once) */
