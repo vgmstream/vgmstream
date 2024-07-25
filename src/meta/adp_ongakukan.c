@@ -27,7 +27,7 @@ VGMSTREAM* init_vgmstream_adp_ongakukan(STREAMFILE* sf) {
     expected_size = (read_u32le(0x04, sf) - 0x24);
     pcm_size = data_size * 2 * sizeof(short); // * channels
     diff = expected_size - pcm_size;
-    if (diff < 0 || diff > 2)
+    if (diff < 0 || diff > 14)
         return NULL;
 
     if (!is_id32be(0x08, sf, "WAVE"))
