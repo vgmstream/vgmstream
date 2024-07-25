@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     
     - name: Fetch Git tags
       run: |
@@ -33,7 +33,7 @@ jobs:
         echo "RELEASE=$(lsb_release -sr)" >> $GITHUB_ENV
 
     - name: Cache celt
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: |
           ${{runner.workspace}}/dependencies/celt-0061
@@ -43,7 +43,7 @@ jobs:
         key: linux-${{ env.RELEASE }}-celt-${{ hashFiles('cmake/dependencies/celt.cmake') }}
 
     - name: Cache ffmpeg
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: |
           ${{runner.workspace}}/build/dependencies/ffmpeg/bin/usr/local/include
@@ -51,21 +51,21 @@ jobs:
         key: linux-${{ env.RELEASE }}-ffmpeg-${{ hashFiles('cmake/dependencies/ffmpeg.cmake') }}
 
     - name: Cache atrac9
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: |
           ${{runner.workspace}}/build/dependencies/LibAtrac9/bin
         key: linux-${{ env.RELEASE }}-atrac9-${{ hashFiles('cmake/dependencies/atrac9.cmake') }}
 
     - name: Cache g719
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: |
           ${{runner.workspace}}/build/dependencies/libg719_decode/libg719_decode.a
         key: linux-${{ env.RELEASE }}-g719-${{ hashFiles('cmake/dependencies/g719.cmake') }}
 
     - name: Cache mpg123
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: |
           ${{runner.workspace}}/dependencies/mpg123
@@ -73,14 +73,14 @@ jobs:
         key: linux-${{ env.RELEASE }}-mpg123-${{ hashFiles('cmake/dependencies/mpg123.cmake') }}
 
     - name: Cache speex
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: |
           ${{runner.workspace}}/build/dependencies/speex/libspeex/.libs
         key: linux-${{ env.RELEASE }}-speex-${{ hashFiles('cmake/dependencies/speex.cmake') }}
 
     - name: Cache ogg
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: |
           ${{runner.workspace}}/build/dependencies/ogg/libogg.a
@@ -88,7 +88,7 @@ jobs:
         key: linux-${{ env.RELEASE }}-ogg-${{ hashFiles('cmake/dependencies/ogg.cmake') }}
 
     - name: Cache vorbis
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: |
           ${{runner.workspace}}/build/dependencies/vorbis/lib/*.a
@@ -111,7 +111,7 @@ jobs:
       run: cmake --build . --config $BUILD_TYPE
 
     - name: Upload CLI tools artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
           path: |
             ${{runner.workspace}}/build/cli/vgmstream-cli
@@ -119,7 +119,7 @@ jobs:
           name: vgmstream-cli
 
     #- name: Upload Audacious plugin artifact
-    #  uses: actions/upload-artifact@v3
+    #  uses: actions/upload-artifact@v4
     #  with:
     #      path: ${{runner.workspace}}/build/audacious/vgmstream.so
     #      name: vgmstream-audacious
