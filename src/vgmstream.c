@@ -6,7 +6,7 @@
 #include <string.h>
 #include <math.h>
 #include "vgmstream.h"
-#include "meta/meta.h"
+#include "vgmstream_init.h"
 #include "layout/layout.h"
 #include "coding/coding.h"
 #include "base/decode.h"
@@ -17,7 +17,7 @@
 
 typedef VGMSTREAM* (*init_vgmstream_t)(STREAMFILE*);
 
-static void try_dual_file_stereo(VGMSTREAM* opened_vgmstream, STREAMFILE* sf, init_vgmstream_t init_vgmstream_function);
+static void try_dual_file_stereo(VGMSTREAM* opened_vgmstream, STREAMFILE* sf, int format_id);
 
 /* list of metadata parser functions that will recognize files, used on init */
 init_vgmstream_t init_vgmstream_functions[] = {
@@ -582,8 +582,7 @@ static const int init_vgmstream_count = LOCAL_ARRAY_LENGTH(init_vgmstream_functi
 /* INIT/META                                                                 */
 /*****************************************************************************/
 
-/* internal version with all parameters */
-static VGMSTREAM* init_vgmstream_internal(STREAMFILE* sf) {
+VGMSTREAM* detect_vgmstream_format(STREAMFILE* sf) {
     if (!sf)
         return NULL;
 
@@ -591,96 +590,115 @@ static VGMSTREAM* init_vgmstream_internal(STREAMFILE* sf) {
     for (int i = 0; i < init_vgmstream_count; i++) {
         init_vgmstream_t init_vgmstream_function = init_vgmstream_functions[i];
     
-
         /* call init function and see if valid VGMSTREAM was returned */
         VGMSTREAM* vgmstream = init_vgmstream_function(sf);
         if (!vgmstream)
             continue;
 
-        /* fail if there is nothing/too much to play (<=0 generates empty files, >N writes GBs of garbage) */
-        if (vgmstream->num_samples <= 0 || vgmstream->num_samples > VGMSTREAM_MAX_NUM_SAMPLES) {
-            VGM_LOG("VGMSTREAM: wrong num_samples %i\n", vgmstream->num_samples);
+        int format_id = i + 1;
+
+        /* validate + setup vgmstream */
+        if (!prepare_vgmstream(vgmstream, sf, format_id)) {
+            /* keep trying if wasn't valid, as simpler formats may return a vgmstream by mistake */
             close_vgmstream(vgmstream);
             continue;
         }
-
-        /* everything should have a reasonable sample rate */
-        if (vgmstream->sample_rate < VGMSTREAM_MIN_SAMPLE_RATE || vgmstream->sample_rate > VGMSTREAM_MAX_SAMPLE_RATE) {
-            VGM_LOG("VGMSTREAM: wrong sample_rate %i\n", vgmstream->sample_rate);
-            close_vgmstream(vgmstream);
-            continue;
-        }
-
-        /* sanify loops and remove bad metadata */
-        if (vgmstream->loop_flag) {
-            if (vgmstream->loop_end_sample <= vgmstream->loop_start_sample
-                    || vgmstream->loop_end_sample > vgmstream->num_samples
-                    || vgmstream->loop_start_sample < 0) {
-                VGM_LOG("VGMSTREAM: wrong loops ignored (lss=%i, lse=%i, ns=%i)\n",
-                        vgmstream->loop_start_sample, vgmstream->loop_end_sample, vgmstream->num_samples);
-                vgmstream->loop_flag = 0;
-                vgmstream->loop_start_sample = 0;
-                vgmstream->loop_end_sample = 0;
-            }
-        }
-
-        /* test if candidate for dual stereo */
-        if (vgmstream->channels == 1 && vgmstream->allow_dual_stereo == 1) {
-            try_dual_file_stereo(vgmstream, sf, init_vgmstream_function);
-        }
-
-
-#ifdef VGM_USE_FFMPEG
-        /* check FFmpeg streams here, for lack of a better place */
-        if (vgmstream->coding_type == coding_FFmpeg) {
-            int ffmpeg_subsongs = ffmpeg_get_subsong_count(vgmstream->codec_data);
-            if (ffmpeg_subsongs && !vgmstream->num_streams) {
-                vgmstream->num_streams = ffmpeg_subsongs;
-            }
-        }
-#endif
-
-        /* some players are picky with incorrect channel layouts */
-        if (vgmstream->channel_layout > 0) {
-            int output_channels = vgmstream->channels;
-            int count = 0, max_ch = 32;
-            for (int ch = 0; ch < max_ch; ch++) {
-                int bit = (vgmstream->channel_layout >> ch) & 1;
-                if (ch > 17 && bit) {
-                    VGM_LOG("VGMSTREAM: wrong bit %i in channel_layout %x\n", ch, vgmstream->channel_layout);
-                    vgmstream->channel_layout = 0;
-                    break;
-                }
-                count += bit;
-            }
-
-            if (count > output_channels) {
-                VGM_LOG("VGMSTREAM: wrong totals %i in channel_layout %x\n", count, vgmstream->channel_layout);
-                vgmstream->channel_layout = 0;
-            }
-        }
-
-        /* files can have thousands subsongs, but let's put a limit */
-        if (vgmstream->num_streams < 0 || vgmstream->num_streams > VGMSTREAM_MAX_SUBSONGS) {
-            VGM_LOG("VGMSTREAM: wrong num_streams (ns=%i)\n", vgmstream->num_streams);
-            close_vgmstream(vgmstream);
-            continue;
-        }
-
-        /* save info */
-        /* stream_index 0 may be used by plugins to signal "vgmstream default" (IOW don't force to 1) */
-        if (vgmstream->stream_index == 0) {
-            vgmstream->stream_index = sf->stream_index;
-        }
-
-
-        setup_vgmstream(vgmstream); /* final setup */
 
         return vgmstream;
     }
 
     /* not supported */
     return NULL;
+}
+
+init_vgmstream_t get_vgmstream_format_init(int format_id) {
+    // ID is expected to be from 1...N, to distinguish from 0 = not set
+    if (format_id <= 0 || format_id > init_vgmstream_count)
+        return NULL;
+
+    return init_vgmstream_functions[format_id - 1];
+}
+
+
+bool prepare_vgmstream(VGMSTREAM* vgmstream, STREAMFILE* sf, int format_id) {
+
+    /* fail if there is nothing/too much to play (<=0 generates empty files, >N writes GBs of garbage) */
+    if (vgmstream->num_samples <= 0 || vgmstream->num_samples > VGMSTREAM_MAX_NUM_SAMPLES) {
+        VGM_LOG("VGMSTREAM: wrong num_samples %i\n", vgmstream->num_samples);
+        return false;
+    }
+
+    /* everything should have a reasonable sample rate */
+    if (vgmstream->sample_rate < VGMSTREAM_MIN_SAMPLE_RATE || vgmstream->sample_rate > VGMSTREAM_MAX_SAMPLE_RATE) {
+        VGM_LOG("VGMSTREAM: wrong sample_rate %i\n", vgmstream->sample_rate);
+        return false;
+    }
+
+    /* sanify loops and remove bad metadata */
+    if (vgmstream->loop_flag) {
+        if (vgmstream->loop_end_sample <= vgmstream->loop_start_sample
+                || vgmstream->loop_end_sample > vgmstream->num_samples
+                || vgmstream->loop_start_sample < 0) {
+            VGM_LOG("VGMSTREAM: wrong loops ignored (lss=%i, lse=%i, ns=%i)\n",
+                    vgmstream->loop_start_sample, vgmstream->loop_end_sample, vgmstream->num_samples);
+            vgmstream->loop_flag = 0;
+            vgmstream->loop_start_sample = 0;
+            vgmstream->loop_end_sample = 0;
+        }
+    }
+
+    /* test if candidate for dual stereo */
+    if (vgmstream->channels == 1 && vgmstream->allow_dual_stereo == 1) {
+        try_dual_file_stereo(vgmstream, sf, format_id);
+    }
+
+
+#ifdef VGM_USE_FFMPEG
+    /* check FFmpeg streams here, for lack of a better place */
+    if (vgmstream->coding_type == coding_FFmpeg) {
+        int ffmpeg_subsongs = ffmpeg_get_subsong_count(vgmstream->codec_data);
+        if (ffmpeg_subsongs && !vgmstream->num_streams) {
+            vgmstream->num_streams = ffmpeg_subsongs;
+        }
+    }
+#endif
+
+    /* some players are picky with incorrect channel layouts */
+    if (vgmstream->channel_layout > 0) {
+        int output_channels = vgmstream->channels;
+        int count = 0, max_ch = 32;
+        for (int ch = 0; ch < max_ch; ch++) {
+            int bit = (vgmstream->channel_layout >> ch) & 1;
+            if (ch > 17 && bit) {
+                VGM_LOG("VGMSTREAM: wrong bit %i in channel_layout %x\n", ch, vgmstream->channel_layout);
+                vgmstream->channel_layout = 0;
+                break;
+            }
+            count += bit;
+        }
+
+        if (count > output_channels) {
+            VGM_LOG("VGMSTREAM: wrong totals %i in channel_layout %x\n", count, vgmstream->channel_layout);
+            vgmstream->channel_layout = 0;
+        }
+    }
+
+    /* files can have thousands subsongs, but let's put a limit */
+    if (vgmstream->num_streams < 0 || vgmstream->num_streams > VGMSTREAM_MAX_SUBSONGS) {
+        VGM_LOG("VGMSTREAM: wrong num_streams (ns=%i)\n", vgmstream->num_streams);
+        return false;
+    }
+
+    /* save info */
+    /* stream_index 0 may be used by plugins to signal "vgmstream default" (IOW don't force to 1) */
+    if (vgmstream->stream_index == 0) {
+        vgmstream->stream_index = sf->stream_index;
+    }
+
+
+    setup_vgmstream(vgmstream); /* final setup */
+
+    return true;
 }
 
 void setup_vgmstream(VGMSTREAM* vgmstream) {
@@ -728,7 +746,7 @@ VGMSTREAM* init_vgmstream(const char* const filename) {
 }
 
 VGMSTREAM* init_vgmstream_from_STREAMFILE(STREAMFILE* sf) {
-    return init_vgmstream_internal(sf);
+    return detect_vgmstream_format(sf);
 }
 
 /* Reset a VGMSTREAM to its state at the start of playback (when a plugin seeks back to zero). */
@@ -807,7 +825,7 @@ VGMSTREAM* allocate_vgmstream(int channels, int loop_flag) {
     vgmstream->mixer = mixer_init(vgmstream->channels); /* pre-init */
     //if (!vgmstream->mixer) goto fail;
 
-    /* BEWARE: try_dual_file_stereo does some free'ing too */ 
+    /* BEWARE: merge_vgmstream does some free'ing too */ 
 
     //vgmstream->stream_name_size = STREAM_NAME_SIZE;
     return vgmstream;
@@ -1007,7 +1025,7 @@ fail:
 
 /* See if there is a second file which may be the second channel, given an already opened mono vgmstream.
  * If a suitable file is found, open it and change opened_vgmstream to a stereo vgmstream. */
-static void try_dual_file_stereo(VGMSTREAM* opened_vgmstream, STREAMFILE* sf, init_vgmstream_t init_vgmstream_function) {
+static void try_dual_file_stereo(VGMSTREAM* opened_vgmstream, STREAMFILE* sf, int format_id) {
     /* filename search pairs for dual file stereo */
     static const char* const dfs_pairs[][2] = {
         {"L","R"}, /* most common in .dsp and .vag */
@@ -1092,8 +1110,12 @@ static void try_dual_file_stereo(VGMSTREAM* opened_vgmstream, STREAMFILE* sf, in
 
     /* filename didn't have a suitable L/R-pair name */
     if (dfs_pair == -1)
-        goto fail;
+        return;
     //;VGM_LOG("DFS: match %i filename=%s\n", dfs_pair, new_filename);
+
+    init_vgmstream_t init_vgmstream_function = get_vgmstream_format_init(format_id);
+    if (init_vgmstream_function == NULL)
+        goto fail;
 
     new_vgmstream = init_vgmstream_function(dual_sf); /* use the init function that just worked */
     close_streamfile(dual_sf);
