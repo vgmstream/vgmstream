@@ -1218,7 +1218,7 @@ static const meta_info meta_info_list[] = {
         {meta_NGC_NST_DSP,          "Animaniacs NST header"},
         {meta_BAF,                  "Bizarre Creations .baf header"},
         {meta_MSF,                  "Sony MSF header"},
-        {meta_PS3_PAST,             "SNDP header"},
+        {meta_SNDP,                 "Premium Agency SNDP header"},
         {meta_SGXD,                 "Sony SGXD header"},
         {meta_WII_RAS,              "RAS header"},
         {meta_SPM,                  "Square SPM header"},

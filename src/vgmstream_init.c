@@ -204,7 +204,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_ngc_nst_dsp,
     init_vgmstream_baf,
     init_vgmstream_msf,
-    init_vgmstream_ps3_past,
+    init_vgmstream_sndp,
     init_vgmstream_sgxd,
     init_vgmstream_wii_ras,
     init_vgmstream_spm,
