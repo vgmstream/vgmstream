@@ -22,7 +22,9 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
+
 #include <strings.h>
 #include <getopt.h>
 #include <ao/ao.h>
@@ -37,6 +39,8 @@
 # include <termios.h>
 #endif
 
+
+#include "wav_utils.h"
 #include "../src/vgmstream.h"
 #include "../src/api.h"
 
@@ -464,6 +468,7 @@ fail:
 }
 
 static int play_playlist(const char *filename, song_settings_t *default_par) {
+#ifndef WIN32
     int ret = 0;
     FILE *f;
     char *line = NULL;
@@ -537,6 +542,9 @@ static int play_playlist(const char *filename, song_settings_t *default_par) {
     fclose(f);
 
     return ret;
+#else
+    return -1;
+#endif
 }
 
 static int play_compressed_file(const char *filename, song_settings_t *par, const char *expand_cmd) {
