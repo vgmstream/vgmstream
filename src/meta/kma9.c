@@ -3,41 +3,41 @@
 #include "kma9_streamfile.h"
 
 
-/* KMA9 - Koei Tecmo's interleaved ATRAC9 [Nobunaga no Yabou - Souzou (Vita)] */
-VGMSTREAM * init_vgmstream_kma9(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
-    STREAMFILE* temp_streamFile = NULL;
+/* KMA9 - Koei Tecmo games [Nobunaga no Yabou: Souzou (Vita)] */
+VGMSTREAM* init_vgmstream_kma9(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
+    STREAMFILE* temp_sf = NULL;
     off_t start_offset;
     size_t stream_size, interleave;
-    int loop_flag, channel_count;
-    int total_subsongs = 0, target_subsong = streamFile->stream_index;
+    int loop_flag, channels;
+    int total_subsongs = 0, target_subsong = sf->stream_index;
 
 
     /* checks */
-    if ( !check_extensions(streamFile,"km9") )
-        goto fail;
-    if (read_32bitBE(0x00,streamFile) != 0x4B4D4139) /* "KMA9" */
-        goto fail;
+    if (!is_id32be(0x00,sf, "KMA9"))
+        return NULL;
+    if (!check_extensions(sf,"km9"))
+        return NULL;
 
-    start_offset = read_32bitLE(0x04,streamFile);
-    channel_count = read_16bitLE(0x32,streamFile);
-    loop_flag = (read_32bitLE(0x28,streamFile) != 0);
+    start_offset = read_u32le(0x04,sf);
+    channels = read_u16le(0x32,sf);
+    loop_flag = (read_s32le(0x28,sf) != 0);
 
-    total_subsongs = read_32bitLE(0x08,streamFile);
+    total_subsongs = read_s32le(0x08,sf);
     if (target_subsong == 0) target_subsong = 1;
     if (target_subsong < 0 || target_subsong > total_subsongs || total_subsongs < 1) goto fail;
     /* 0x0c: unknown */
-    interleave = read_32bitLE(0x10,streamFile); /* 1 superframe */
-    stream_size = read_32bitLE(0x14,streamFile); /* per subsong */
+    interleave = read_u32le(0x10,sf); /* 1 superframe */
+    stream_size = read_u32le(0x14,sf); /* per subsong */
 
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->sample_rate = read_32bitLE(0x34,streamFile);
-    vgmstream->num_samples = read_32bitLE(0x18,streamFile); /* without skip_samples? */
-    vgmstream->loop_start_sample = read_32bitLE(0x24,streamFile); /* with skip_samples? */
+    vgmstream->sample_rate = read_s32le(0x34,sf);
+    vgmstream->num_samples = read_s32le(0x18,sf); /* without skip_samples? */
+    vgmstream->loop_start_sample = read_s32le(0x24,sf); /* with skip_samples? */
     vgmstream->loop_end_sample = vgmstream->num_samples; /* 0x28 looks like end samples but isn't, no idea */
     vgmstream->num_streams = total_subsongs;
     vgmstream->stream_size = stream_size;
@@ -47,9 +47,9 @@ VGMSTREAM * init_vgmstream_kma9(STREAMFILE *streamFile) {
     {
         atrac9_config cfg = {0};
 
-        cfg.channels = vgmstream->channels;
-        cfg.encoder_delay = read_32bitLE(0x20,streamFile);
-        cfg.config_data = read_32bitBE(0x5c,streamFile);
+        cfg.channels = channels;
+        cfg.encoder_delay = read_s32le(0x20,sf);
+        cfg.config_data = read_u32be(0x5c,sf);
 
         vgmstream->codec_data = init_atrac9(&cfg);
         if (!vgmstream->codec_data) goto fail;
@@ -62,22 +62,21 @@ VGMSTREAM * init_vgmstream_kma9(STREAMFILE *streamFile) {
         }
 
         /* KMA9 interleaves one ATRAC9 frame per subsong */
-        temp_streamFile = setup_kma9_streamfile(streamFile, start_offset, stream_size, interleave, (target_subsong-1), total_subsongs);
-        if (!temp_streamFile) goto fail;
+        temp_sf = setup_kma9_streamfile(sf, start_offset, stream_size, interleave, (target_subsong-1), total_subsongs);
+        if (!temp_sf) goto fail;
         start_offset = 0;
     }
 #else
     goto fail;
 #endif
 
-    /* open the file for reading */
-    if ( !vgmstream_open_stream(vgmstream, temp_streamFile, start_offset) )
+    if (!vgmstream_open_stream(vgmstream, temp_sf, start_offset))
         goto fail;
-    close_streamfile(temp_streamFile);
+    close_streamfile(temp_sf);
     return vgmstream;
 
 fail:
-    close_streamfile(temp_streamFile);
+    close_streamfile(temp_sf);
     close_vgmstream(vgmstream);
     return NULL;
 }

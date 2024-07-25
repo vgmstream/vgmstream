@@ -14,9 +14,9 @@ VGMSTREAM* init_vgmstream_sndp(STREAMFILE* sf) {
 
     bool loop_flag = (read_u32be(0x1c,sf) !=0);
     int channels = read_u16be(0x0c,sf);
-	off_t start_offset = 0x30;
+    off_t start_offset = 0x30;
 
-	/* build the VGMSTREAM */
+    /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 

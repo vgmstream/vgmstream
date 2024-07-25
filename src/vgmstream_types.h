@@ -583,7 +583,7 @@ typedef enum {
     meta_MSB_MSH,           /* sfx companion of MIH+MIB */
     meta_TXTP,
     meta_SMC_SMH,           /* Wangan Midnight (System 246) */
-    meta_PPST,              /* PPST [Parappa the Rapper (PSP)] */
+    meta_PPST,
     meta_SPS_N1,
     meta_UBI_BAO,
     meta_DSP_SWITCH_AUDIO,  /* Gal Gun 2 (Switch) */

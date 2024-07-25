@@ -1316,7 +1316,7 @@ static const meta_info meta_info_list[] = {
         {meta_MSB_MSH,              "Sony MultiStream MSH+MSB header"},
         {meta_TXTP,                 "TXTP generic header"},
         {meta_SMC_SMH,              "Genki SMC+SMH header"},
-        {meta_PPST,                 "Parappa PPST header"},
+        {meta_PPST,                 "epics PPST header"},
         {meta_SPS_N1,               "Nippon Ichi .SPS header"},
         {meta_UBI_BAO,              "Ubisoft BAO header"},
         {meta_DSP_SWITCH_AUDIO,     "UE4 Switch Audio header"},
