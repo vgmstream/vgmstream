@@ -90,14 +90,16 @@
     <ClInclude Include="streamtypes.h" />
     <ClInclude Include="util.h" />
     <ClInclude Include="vgmstream.h" />
+    <ClInclude Include="vgmstream_init.h" />
     <ClInclude Include="vgmstream_types.h" />
     <ClInclude Include="base\api_internal.h" />
     <ClInclude Include="base\decode.h" />
+    <ClInclude Include="base\mixer.h" />
+    <ClInclude Include="base\mixer_priv.h" />
     <ClInclude Include="base\mixing.h" />
-    <ClInclude Include="base\mixing_fades.h" />
-    <ClInclude Include="base\mixing_priv.h" />
     <ClInclude Include="base\plugins.h" />
     <ClInclude Include="base\render.h" />
+    <ClInclude Include="base\sbuf.h" />
     <ClInclude Include="coding\coding.h" />
     <ClInclude Include="coding\coding_utils_samples.h" />
     <ClInclude Include="coding\g72x_state.h" />
@@ -212,6 +214,7 @@
     <ClCompile Include="streamfile.c" />
     <ClCompile Include="util.c" />
     <ClCompile Include="vgmstream.c" />
+    <ClCompile Include="vgmstream_init.c" />
     <ClCompile Include="base\api_decode_base.c" />
     <ClCompile Include="base\api_decode_open.c" />
     <ClCompile Include="base\api_decode_play.c" />
@@ -221,6 +224,9 @@
     <ClCompile Include="base\config.c" />
     <ClCompile Include="base\decode.c" />
     <ClCompile Include="base\info.c" />
+    <ClCompile Include="base\mixer.c" />
+    <ClCompile Include="base\mixer_ops_common.c" />
+    <ClCompile Include="base\mixer_ops_fade.c" />
     <ClCompile Include="base\mixing.c" />
     <ClCompile Include="base\mixing_commands.c" />
     <ClCompile Include="base\mixing_macros.c" />

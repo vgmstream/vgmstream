@@ -104,6 +104,9 @@
     <ClInclude Include="vgmstream.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="vgmstream_init.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="vgmstream_types.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -113,19 +116,22 @@
     <ClInclude Include="base\decode.h">
       <Filter>base\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="base\mixer.h">
+      <Filter>base\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="base\mixer_priv.h">
+      <Filter>base\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="base\mixing.h">
-      <Filter>base\Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="base\mixing_fades.h">
-      <Filter>base\Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="base\mixing_priv.h">
       <Filter>base\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="base\plugins.h">
       <Filter>base\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="base\render.h">
+      <Filter>base\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="base\sbuf.h">
       <Filter>base\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="coding\coding.h">
@@ -466,6 +472,9 @@
     <ClCompile Include="vgmstream.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="vgmstream_init.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="base\api_decode_base.c">
       <Filter>base\Source Files</Filter>
     </ClCompile>
@@ -491,6 +500,15 @@
       <Filter>base\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="base\info.c">
+      <Filter>base\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="base\mixer.c">
+      <Filter>base\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="base\mixer_ops_common.c">
+      <Filter>base\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="base\mixer_ops_fade.c">
       <Filter>base\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="base\mixing.c">
