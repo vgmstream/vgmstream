@@ -2,18 +2,17 @@
 #include "../coding/coding.h"
 
 /* .gin - EA engine sounds [Need for Speed: Most Wanted (multi)] */
-VGMSTREAM * init_vgmstream_gin(STREAMFILE *sf) {
-    VGMSTREAM *vgmstream = NULL;
+VGMSTREAM* init_vgmstream_gin(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
     off_t start_offset;
     int loop_flag, channel_count, sample_rate, num_samples;
 
-    if (!check_extensions(sf, "gin"))
-        goto fail;
-
     /* checks */
     if (!is_id32be(0x00, sf, "Gnsu") && /* original */
-        !is_id32be(0x00, sf, "Octn")) /* later (2013+) games, looks same as "Gnsu" */
-        goto fail;
+        !is_id32be(0x00, sf, "Octn"))   /* later (2013+) games */
+        return NULL;
+    if (!check_extensions(sf, "gin"))
+        return NULL;
 
     /* contains mapped values for engine RPM sounds but we'll just play the whole thing */
     /* 0x04: size? "20\00\00"? */

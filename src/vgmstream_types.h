@@ -486,7 +486,7 @@ typedef enum {
     meta_XVAG,              /* Ratchet & Clank Future: Quest for Booty (PS3) */
     meta_CPS,
     meta_MSF,
-    meta_PS3_PAST,          /* Bakugan Battle Brawlers (PS3) */
+    meta_SNDP,
     meta_SGXD,              /* Sony: Folklore, Genji, Tokyo Jungle (PS3), Brave Story, Kurohyo (PSP) */
     meta_WII_RAS,           /* Donkey Kong Country Returns (Wii) */
     meta_SPM,
@@ -583,7 +583,7 @@ typedef enum {
     meta_MSB_MSH,           /* sfx companion of MIH+MIB */
     meta_TXTP,
     meta_SMC_SMH,           /* Wangan Midnight (System 246) */
-    meta_PPST,              /* PPST [Parappa the Rapper (PSP)] */
+    meta_PPST,
     meta_SPS_N1,
     meta_UBI_BAO,
     meta_DSP_SWITCH_AUDIO,  /* Gal Gun 2 (Switch) */

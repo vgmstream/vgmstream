@@ -223,6 +223,8 @@ void setup_state_vgmstream(VGMSTREAM* vgmstream) {
 /*****************************************************************************/
 
 void render_free(VGMSTREAM* vgmstream) {
+    if (!vgmstream->layout_data)
+        return;
 
     if (vgmstream->layout_type == layout_segmented) {
         free_layout_segmented(vgmstream->layout_data);

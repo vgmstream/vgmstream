@@ -22,7 +22,9 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
+
 #include <strings.h>
 #include <getopt.h>
 #include <ao/ao.h>
@@ -37,6 +39,8 @@
 # include <termios.h>
 #endif
 
+
+#include "wav_utils.h"
 #include "../src/vgmstream.h"
 #include "../src/api.h"
 
@@ -396,7 +400,7 @@ static int play_vgmstream(const char* filename, song_settings_t* cfg) {
             render_vgmstream(buffer, to_do, vgmstream);
 
 #if LITTLE_ENDIAN_OUTPUT
-            swap_samples_le(buffer, output_channels * to_do, 0);
+            wav_swap_samples_le(buffer, output_channels * to_do, 0);
 #endif
 
             if (verbose && !out_filename) {
@@ -464,6 +468,7 @@ fail:
 }
 
 static int play_playlist(const char *filename, song_settings_t *default_par) {
+#ifndef WIN32
     int ret = 0;
     FILE *f;
     char *line = NULL;
@@ -537,6 +542,9 @@ static int play_playlist(const char *filename, song_settings_t *default_par) {
     fclose(f);
 
     return ret;
+#else
+    return -1;
+#endif
 }
 
 static int play_compressed_file(const char *filename, song_settings_t *par, const char *expand_cmd) {
@@ -684,7 +692,7 @@ static void add_driver_option(const char *key_value) {
 }
 
 
-static void usage(const char* progname, int is_help) {
+static void print_usage(const char* progname, int is_help) {
     song_settings_t default_par = DEFAULT_PARAMS;
     const char* default_driver = "???";
 
@@ -765,7 +773,7 @@ int main(int argc, char **argv) {
 
     if (argc == 1) {
         /* We were invoked with no arguments */
-        usage(argv[0], 0);
+        print_usage(argv[0], 0);
         goto done;
     }
 
@@ -848,7 +856,7 @@ again_opts:
                 out_filename = optarg;
                 break;
             case 'h':
-                usage(argv[0], 1);
+                print_usage(argv[0], 1);
                 goto done;
             case 'P':
                 add_driver_option(optarg);

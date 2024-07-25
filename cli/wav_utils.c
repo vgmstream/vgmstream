@@ -104,27 +104,6 @@ size_t wav_make_header(uint8_t* buf, size_t buf_size, wav_header_t* wav) {
     return header_size;
 }
 
-#if 0
-void swap_samples_le(sample_t *buf, int count) {
-    /* Windows can't be BE... I think */
-#if !defined(_WIN32)
-#if !defined(__BYTE_ORDER__) || __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__
-    for (int  i = 0; i < count; i++) {
-        /* 16b sample in memory: aabb where aa=MSB, bb=LSB */
-        uint8_t b0 = buf[i] & 0xff;
-        uint8_t b1 = buf[i] >> 8;
-        uint8_t *p = (uint8_t*)&(buf[i]);
-        /* 16b sample in buffer: bbaa where bb=LSB, aa=MSB */
-        p[0] = b0;
-        p[1] = b1;
-        /* when endianness is LE, buffer has bbaa already so this function can be skipped */
-    }
-#endif
-#endif
-}
-#endif
-
-
 static inline void swap_value(uint8_t* buf, int sample_size) {
     for (int i = 0; i < sample_size / 2; i++) {
         char temp = buf[i];
@@ -134,7 +113,7 @@ static inline void swap_value(uint8_t* buf, int sample_size) {
 }
 
 /* when endianness is LE buffer is correct already and this function can be skipped */
-void swap_samples_le(void* samples, int samples_len, int sample_size) {
+void wav_swap_samples_le(void* samples, int samples_len, int sample_size) {
     /* Windows can't be BE... I think */
 #if !defined(_WIN32)
 #if !defined(__BYTE_ORDER__) || __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__

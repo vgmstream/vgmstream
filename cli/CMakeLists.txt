@@ -1,7 +1,7 @@
 # CLI
 
 add_executable(vgmstream_cli
-	vgmstream_cli.c wav_utils.c)
+	vgmstream_cli.c vgmstream_cli_utils.c wav_utils.c)
 
 set_target_properties(vgmstream_cli PROPERTIES
 	PREFIX ""

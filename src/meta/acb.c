@@ -51,7 +51,7 @@ VGMSTREAM* init_vgmstream_acb(STREAMFILE* sf) {
         }
     }
 
-    //;VGM_LOG("acb: subfile offset=%lx + %x\n", subfile_offset, subfile_size);
+    //;VGM_LOG("acb: subfile offset=%x + %x\n", subfile_offset, subfile_size);
 
     temp_sf = setup_subfile_streamfile(sf, subfile_offset,subfile_size, "awb");
     if (!temp_sf) goto fail;
@@ -538,7 +538,7 @@ static int load_acb_command_tlvs(acb_header* acb, STREAMFILE* sf, uint32_t Comma
 
                 tlv_type = read_u16be(Command_offset + pos + 0x00, sf); /* ReferenceItem */
                 tlv_index = read_u16be(Command_offset + pos + 0x02, sf);
-                //;VGM_LOG("acb: TLV at %x: type %x, index=%x\n", offset, tlv_type, tlv_index);
+                //;VGM_LOG("acb: TLV at %x: type %x, index=%x\n", Command_offset, tlv_type, tlv_index);
 
                 /* same as Synth's ReferenceItem type? */
                 switch(tlv_type) {
@@ -561,7 +561,7 @@ static int load_acb_command_tlvs(acb_header* acb, STREAMFILE* sf, uint32_t Comma
 
             case 2004: /* noteOnWithDuration */
                 /* same as the above plus extra field */
-                //;VGM_LOG("acb: TLV at %x: usable code %i?\n", offset-0x03, tlv_code);
+                //;VGM_LOG("acb: TLV at %x: usable code %i?\n", Command_offset-0x03, tlv_code);
                 break;
 
             case 33:   /* mute */
@@ -576,7 +576,7 @@ static int load_acb_command_tlvs(acb_header* acb, STREAMFILE* sf, uint32_t Comma
             case 7100: /* startAction */
             case 7101: /* stopAction */
                 /* may be needed? */
-                //;VGM_LOG("acb: TLV at %x: check code %i?\n", offset-0x03, tlv_code);
+                //;VGM_LOG("acb: TLV at %x: check code %i?\n", Command_offset-0x03, tlv_code);
                 break;
 
             case 0:    /* no-op */
@@ -1167,7 +1167,7 @@ static int load_acb_loops(acb_header* acb, VGMSTREAM* vgmstream) {
 
     r = &acb->WaveformExtensionData[ExtensionIndex];
 
-    //;VGM_LOG("acb: WaveformExtensionData[%i]: LoopStart=%i, LoopEnd=%i\n", Index, r->LoopStart, r->LoopEnd);
+    //;VGM_LOG("acb: WaveformExtensionData[%i]: LoopStart=%i, LoopEnd=%i\n", ExtensionIndex, r->LoopStart, r->LoopEnd);
 
     vgmstream_force_loop(vgmstream, 1, r->LoopStart, r->LoopEnd);
 

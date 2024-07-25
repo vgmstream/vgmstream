@@ -477,7 +477,7 @@ VGMSTREAM * init_vgmstream_baf(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_msf(STREAMFILE* streamFile);
 
-VGMSTREAM * init_vgmstream_ps3_past(STREAMFILE* streamFile);
+VGMSTREAM* init_vgmstream_sndp(STREAMFILE* sf);
 
 VGMSTREAM * init_vgmstream_sgxd(STREAMFILE* streamFile);
 

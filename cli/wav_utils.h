@@ -24,6 +24,6 @@ size_t wav_make_header(uint8_t* buf, size_t buf_size, wav_header_t* wav);
 /* swap big endian samples to little endian. Does nothing if machine is already LE.
  * Used when writting .WAV files, where samples in memory/buf may be BE while RIFF
  * is expected to have LE samples. */
-void swap_samples_le(void* samples, int samples_len, int sample_size);
+void wav_swap_samples_le(void* samples, int samples_len, int sample_size);
 
 #endif

@@ -6,680 +6,118 @@
 #include <string.h>
 #include <math.h>
 #include "vgmstream.h"
-#include "meta/meta.h"
+#include "vgmstream_init.h"
 #include "layout/layout.h"
 #include "coding/coding.h"
 #include "base/decode.h"
 #include "base/render.h"
 #include "base/mixing.h"
+#include "base/mixer.h"
 #include "util/sf_utils.h"
 
-typedef VGMSTREAM* (*init_vgmstream_t)(STREAMFILE*);
 
-static void try_dual_file_stereo(VGMSTREAM* opened_vgmstream, STREAMFILE* sf, init_vgmstream_t init_vgmstream_function);
+static void try_dual_file_stereo(VGMSTREAM* opened_vgmstream, STREAMFILE* sf, int format_id);
 
-/* list of metadata parser functions that will recognize files, used on init */
-init_vgmstream_t init_vgmstream_functions[] = {
-    init_vgmstream_adx,
-    init_vgmstream_brstm,
-    init_vgmstream_brwav,
-    init_vgmstream_bfwav,
-    init_vgmstream_bcwav,
-    init_vgmstream_brwar,
-    init_vgmstream_nds_strm,
-    init_vgmstream_afc,
-    init_vgmstream_ast,
-    init_vgmstream_halpst,
-    init_vgmstream_rs03,
-    init_vgmstream_ngc_dsp_std,
-    init_vgmstream_ngc_dsp_std_le,
-    init_vgmstream_ngc_mdsp_std,
-    init_vgmstream_csmp,
-    init_vgmstream_rfrm,
-    init_vgmstream_cstr,
-    init_vgmstream_gcsw,
-    init_vgmstream_ads,
-    init_vgmstream_npsf,
-    init_vgmstream_xa,
-    init_vgmstream_rxws,
-    init_vgmstream_ngc_dsp_stm,
-    init_vgmstream_exst,
-    init_vgmstream_svag_kcet,
-    init_vgmstream_ngc_mpdsp,
-    init_vgmstream_ngc_dsp_std_int,
-    init_vgmstream_vag,
-    init_vgmstream_vag_aaap,
-    init_vgmstream_vag_footer,
-    init_vgmstream_vag_evolution_games,
-    init_vgmstream_ild,
-    init_vgmstream_ngc_str,
-    init_vgmstream_ea_schl,
-    init_vgmstream_caf,
-    init_vgmstream_vpk,
-    init_vgmstream_genh,
-    init_vgmstream_ogg_vorbis,
-    init_vgmstream_sfl_ogg,
-    init_vgmstream_sadb,
-    init_vgmstream_ps2_bmdx,
-    init_vgmstream_wsi,
-    init_vgmstream_aifc,
-    init_vgmstream_str_snds,
-    init_vgmstream_ws_aud,
-    init_vgmstream_ahx,
-    init_vgmstream_iivb,
-    init_vgmstream_svs,
-    init_vgmstream_riff,
-    init_vgmstream_rifx,
-    init_vgmstream_nwa,
-    init_vgmstream_ea_1snh,
-    init_vgmstream_ea_eacs,
-    init_vgmstream_xss,
-    init_vgmstream_sl3,
-    init_vgmstream_hgc1,
-    init_vgmstream_aus,
-    init_vgmstream_rws,
-    init_vgmstream_fsb,
-    init_vgmstream_fsb5,
-    init_vgmstream_rwax,
-    init_vgmstream_xwb,
-    init_vgmstream_ps2_xa30,
-    init_vgmstream_musc,
-    init_vgmstream_musx,
-    init_vgmstream_filp,
-    init_vgmstream_ikm,
-    init_vgmstream_ster,
-    init_vgmstream_bg00,
-    init_vgmstream_sat_dvi,
-    init_vgmstream_dc_kcey,
-    init_vgmstream_rstm_rockstar,
-    init_vgmstream_acm,
-    init_vgmstream_mus_acm,
-    init_vgmstream_vig_kces,
-    init_vgmstream_hxd,
-    init_vgmstream_vsv,
-    init_vgmstream_ps2_pcm,
-    init_vgmstream_ps2_rkv,
-    init_vgmstream_lp_ap_lep,
-    init_vgmstream_sdt,
-    init_vgmstream_aix,
-    init_vgmstream_wvs_xbox,
-    init_vgmstream_wvs_ngc,
-    init_vgmstream_str_sega,
-    init_vgmstream_str_sega_custom,
-    init_vgmstream_dec,
-    init_vgmstream_vs,
-    init_vgmstream_xmu,
-    init_vgmstream_xvas,
-    init_vgmstream_sat_sap,
-    init_vgmstream_dc_idvi,
-    init_vgmstream_ps2_rnd,
-    init_vgmstream_idsp_tt,
-    init_vgmstream_kraw,
-    init_vgmstream_omu,
-    init_vgmstream_xa2_acclaim,
-    init_vgmstream_idsp_nl,
-    init_vgmstream_idsp_ie,
-    init_vgmstream_ymf,
-    init_vgmstream_sadl,
-    init_vgmstream_fag,
-    init_vgmstream_mic,
-    init_vgmstream_ngc_pdt_split,
-    init_vgmstream_ngc_pdt,
-    init_vgmstream_mus_krome,
-    init_vgmstream_spsd,
-    init_vgmstream_rsd,
-    init_vgmstream_bgw,
-    init_vgmstream_spw,
-    init_vgmstream_ps2_ass,
-    init_vgmstream_ubi_jade,
-    init_vgmstream_ubi_jade_container,
-    init_vgmstream_seg,
-    init_vgmstream_nds_strm_ffta2,
-    init_vgmstream_knon,
-    init_vgmstream_gca,
-    init_vgmstream_spt_spd,
-    init_vgmstream_ish_isd,
-    init_vgmstream_gsnd,
-    init_vgmstream_ydsp,
-    init_vgmstream_ssm,
-    init_vgmstream_ps2_joe,
-    init_vgmstream_vgs,
-    init_vgmstream_dcs_wav,
-    init_vgmstream_mul,
-    init_vgmstream_thp,
-    init_vgmstream_sts,
-    init_vgmstream_p2bt_move_visa,
-    init_vgmstream_gbts,
-    init_vgmstream_wii_sng,
-    init_vgmstream_ngc_dsp_iadp,
-    init_vgmstream_aax,
-    init_vgmstream_utf_dsp,
-    init_vgmstream_ngc_ffcc_str,
-    init_vgmstream_sat_baka,
-    init_vgmstream_swav,
-    init_vgmstream_vsf,
-    init_vgmstream_nds_rrds,
-    init_vgmstream_ps2_vsf_tta,
-    init_vgmstream_ads_midway,
-    init_vgmstream_ps2_mcg,
-    init_vgmstream_zsd,
-    init_vgmstream_vgs_ps,
-    init_vgmstream_redspark,
-    init_vgmstream_wii_wsd,
-    init_vgmstream_dsp_ndp,
-    init_vgmstream_ps2_sps,
-    init_vgmstream_nds_hwas,
-    init_vgmstream_ngc_lps,
-    init_vgmstream_ps2_snd,
-    init_vgmstream_naomi_adpcm,
-    init_vgmstream_sd9,
-    init_vgmstream_2dx9,
-    init_vgmstream_dsp_ygo,
-    init_vgmstream_ps2_vgv,
-    init_vgmstream_gcub,
-    init_vgmstream_maxis_xa,
-    init_vgmstream_ngc_sck_dsp,
-    init_vgmstream_apple_caff,
-    init_vgmstream_pc_mxst,
-    init_vgmstream_sab,
-    init_vgmstream_bns,
-    init_vgmstream_wii_was,
-    init_vgmstream_pona_3do,
-    init_vgmstream_pona_psx,
-    init_vgmstream_xbox_hlwav,
-    init_vgmstream_myspd,
-    init_vgmstream_his,
-    init_vgmstream_ast_mmv,
-    init_vgmstream_ast_mv,
-    init_vgmstream_dmsg,
-    init_vgmstream_ngc_dsp_aaap,
-    init_vgmstream_ngc_dsp_konami,
-    init_vgmstream_wb,
-    init_vgmstream_bnsf,
-    init_vgmstream_ps2_gcm,
-    init_vgmstream_smpl,
-    init_vgmstream_msa,
-    init_vgmstream_voi,
-    init_vgmstream_ngc_rkv,
-    init_vgmstream_dsp_ddsp,
-    init_vgmstream_p3d,
-    init_vgmstream_ngc_dsp_mpds,
-    init_vgmstream_dsp_str_ig,
-    init_vgmstream_ea_swvr,
-    init_vgmstream_dsp_xiii,
-    init_vgmstream_dsp_cabelas,
-    init_vgmstream_lpcm_shade,
-    init_vgmstream_ps2_vms,
-    init_vgmstream_xau,
-    init_vgmstream_bar,
-    init_vgmstream_dsp_dspw,
-    init_vgmstream_jstm,
-    init_vgmstream_xvag,
-    init_vgmstream_cps,
-    init_vgmstream_sqex_scd,
-    init_vgmstream_ngc_nst_dsp,
-    init_vgmstream_baf,
-    init_vgmstream_msf,
-    init_vgmstream_ps3_past,
-    init_vgmstream_sgxd,
-    init_vgmstream_wii_ras,
-    init_vgmstream_spm,
-    init_vgmstream_ps2_iab,
-    init_vgmstream_vs_str,
-    init_vgmstream_lsf_n1nj4n,
-    init_vgmstream_xwav_new,
-    init_vgmstream_xwav_old,
-    init_vgmstream_hyperscan_kvag,
-    init_vgmstream_psnd,
-    init_vgmstream_adp_wildfire,
-    init_vgmstream_adp_qd,
-    init_vgmstream_eb_sfx,
-    init_vgmstream_eb_sf0,
-    init_vgmstream_mtaf,
-    init_vgmstream_alp,
-    init_vgmstream_wpd,
-    init_vgmstream_mn_str,
-    init_vgmstream_mss,
-    init_vgmstream_ps2_hsf,
-    init_vgmstream_ivag,
-    init_vgmstream_2pfs,
-    init_vgmstream_xnb,
-    init_vgmstream_ubi_ckd,
-    init_vgmstream_ps2_vbk,
-    init_vgmstream_otm,
-    init_vgmstream_bcstm,
-    init_vgmstream_idsp_namco,
-    init_vgmstream_kt_g1l,
-    init_vgmstream_kt_wiibgm,
-    init_vgmstream_bfstm,
-    init_vgmstream_mca,
-#if 0
-    init_vgmstream_mp4_aac,
-#endif
-#if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
-    init_vgmstream_akb_mp4,
-#endif
-    init_vgmstream_ktss,
-    init_vgmstream_hca,
-    init_vgmstream_svag_snk,
-    init_vgmstream_ps2_vds_vdm,
-    init_vgmstream_cxs,
-    init_vgmstream_adx_monster,
-    init_vgmstream_akb,
-    init_vgmstream_akb2,
-#ifdef VGM_USE_FFMPEG
-    init_vgmstream_mp4_aac_ffmpeg,
-#endif
-    init_vgmstream_bik,
-    init_vgmstream_astb,
-    init_vgmstream_wwise,
-    init_vgmstream_ubi_raki,
-    init_vgmstream_pasx,
-    init_vgmstream_xma,
-    init_vgmstream_sndx,
-    init_vgmstream_ogl,
-    init_vgmstream_mc3,
-    init_vgmstream_ghs,
-    init_vgmstream_aac_triace,
-    init_vgmstream_va3,
-    init_vgmstream_mta2,
-    init_vgmstream_mta2_container,
-    init_vgmstream_xa_xa30,
-    init_vgmstream_xa_04sw,
-    init_vgmstream_ea_bnk,
-    init_vgmstream_ea_abk_schl,
-    init_vgmstream_ea_amb_schl,
-    init_vgmstream_ea_hdr_dat,
-    init_vgmstream_ea_hdr_dat_v2,
-    init_vgmstream_ea_map_mus,
-    init_vgmstream_ea_mpf_mus_schl,
-    init_vgmstream_ea_msb_mus_schl,
-    init_vgmstream_ea_schl_fixed,
-    init_vgmstream_sk_aud,
-    init_vgmstream_stma,
-    init_vgmstream_ea_snu,
-    init_vgmstream_awc,
-    init_vgmstream_opus_std,
-    init_vgmstream_opus_n1,
-    init_vgmstream_opus_capcom,
-    init_vgmstream_opus_nop,
-    init_vgmstream_opus_shinen,
-    init_vgmstream_opus_nus3,
-    init_vgmstream_opus_sps_n1,
-    init_vgmstream_pc_ast,
-    init_vgmstream_naac,
-    init_vgmstream_ubi_sb,
-    init_vgmstream_ubi_sm,
-    init_vgmstream_ubi_bnm,
-    init_vgmstream_ubi_bnm_ps2,
-    init_vgmstream_ubi_dat,
-    init_vgmstream_ubi_blk,
-    init_vgmstream_ezw,
-    init_vgmstream_vxn,
-    init_vgmstream_ea_snr_sns,
-    init_vgmstream_ea_sps,
-    init_vgmstream_ea_abk_eaac,
-    init_vgmstream_ea_amb_eaac,
-    init_vgmstream_ea_hdr_sth_dat,
-    init_vgmstream_ea_mpf_mus_eaac,
-    init_vgmstream_ea_msb_mus_eaac,
-    init_vgmstream_ea_tmx,
-    init_vgmstream_ea_sbr,
-    init_vgmstream_ea_sbr_harmony,
-    init_vgmstream_vid1,
-    init_vgmstream_flx,
-    init_vgmstream_mogg,
-    init_vgmstream_kma9,
-    init_vgmstream_xwc,
-    init_vgmstream_atsl,
-    init_vgmstream_sps_n1,
-    init_vgmstream_apa3,
-    init_vgmstream_sqex_sead,
-    init_vgmstream_waf,
-    init_vgmstream_wave,
-    init_vgmstream_wave_segmented,
-    init_vgmstream_smv,
-    init_vgmstream_nxap,
-    init_vgmstream_ea_wve_au00,
-    init_vgmstream_ea_wve_ad10,
-    init_vgmstream_sthd,
-    init_vgmstream_pcm_sre,
-    init_vgmstream_dsp_mcadpcm,
-    init_vgmstream_ubi_lyn,
-    init_vgmstream_ubi_lyn_container,
-    init_vgmstream_msb_msh,
-    init_vgmstream_txtp,
-    init_vgmstream_smc_smh,
-    init_vgmstream_ppst,
-    init_vgmstream_sps_n1_segmented,
-    init_vgmstream_ubi_bao_pk,
-    init_vgmstream_ubi_bao_atomic,
-    init_vgmstream_dsp_switch_audio,
-    init_vgmstream_sadf,
-    init_vgmstream_h4m,
-    init_vgmstream_ads_container,
-    init_vgmstream_asf,
-    init_vgmstream_xmd,
-    init_vgmstream_cks,
-    init_vgmstream_ckb,
-    init_vgmstream_wv6,
-    init_vgmstream_str_wav,
-    init_vgmstream_wavebatch,
-    init_vgmstream_hd3_bd3,
-    init_vgmstream_bnk_sony,
-    init_vgmstream_nus3bank,
-    init_vgmstream_sscf,
-    init_vgmstream_dsp_sps_n1,
-    init_vgmstream_dsp_itl_ch,
-    init_vgmstream_a2m,
-    init_vgmstream_ahv,
-    init_vgmstream_msv,
-    init_vgmstream_sdf,
-    init_vgmstream_svg,
-    init_vgmstream_vai,
-    init_vgmstream_aif_asobo,
-    init_vgmstream_ao,
-    init_vgmstream_apc,
-    init_vgmstream_wv2,
-    init_vgmstream_xau_konami,
-    init_vgmstream_derf,
-    init_vgmstream_utk,
-    init_vgmstream_nxa1,
-    init_vgmstream_adpcm_capcom,
-    init_vgmstream_ue4opus,
-    init_vgmstream_xwma,
-    init_vgmstream_xopus,
-    init_vgmstream_vs_square,
-    init_vgmstream_msf_banpresto_wmsf,
-    init_vgmstream_msf_banpresto_2msf,
-    init_vgmstream_nwav,
-    init_vgmstream_xpcm,
-    init_vgmstream_msf_tamasoft,
-    init_vgmstream_xps_dat,
-    init_vgmstream_xps,
-    init_vgmstream_zsnd,
-    init_vgmstream_opus_opusx,
-    init_vgmstream_dsp_adpy,
-    init_vgmstream_dsp_adpx,
-    init_vgmstream_ogg_opus,
-    init_vgmstream_nus3audio,
-    init_vgmstream_imc,
-    init_vgmstream_imc_container,
-    init_vgmstream_smp,
-    init_vgmstream_gin,
-    init_vgmstream_dsf,
-    init_vgmstream_208,
-    init_vgmstream_dsp_lucasarts_ds2,
-    init_vgmstream_ffdl,
-    init_vgmstream_mus_vc,
-    init_vgmstream_strm_abylight,
-    init_vgmstream_sfh,
-    init_vgmstream_ea_schl_video,
-    init_vgmstream_msf_konami,
-    init_vgmstream_xwma_konami,
-    init_vgmstream_9tav,
-    init_vgmstream_fsb5_fev_bank,
-    init_vgmstream_bwav,
-    init_vgmstream_opus_prototype,
-    init_vgmstream_awb,
-    init_vgmstream_acb,
-    init_vgmstream_rad,
-    init_vgmstream_smk,
-    init_vgmstream_mzrt_v0,
-    init_vgmstream_xavs,
-    init_vgmstream_psf_single,
-    init_vgmstream_psf_segmented,
-    init_vgmstream_dsp_itl,
-    init_vgmstream_sch,
-    init_vgmstream_ima,
-    init_vgmstream_nub,
-    init_vgmstream_nub_wav,
-    init_vgmstream_nub_vag,
-    init_vgmstream_nub_at3,
-    init_vgmstream_nub_xma,
-    init_vgmstream_nub_idsp,
-    init_vgmstream_nub_is14,
-    init_vgmstream_xwv_valve,
-    init_vgmstream_ubi_hx,
-    init_vgmstream_bmp_konami,
-    init_vgmstream_opus_opusnx,
-    init_vgmstream_opus_sqex,
-    init_vgmstream_isb,
-    init_vgmstream_xssb,
-    init_vgmstream_xma_ue3,
-    init_vgmstream_csb,
-    init_vgmstream_fwse,
-    init_vgmstream_fda,
-    init_vgmstream_kwb,
-    init_vgmstream_lrmd,
-    init_vgmstream_bkhd,
-    init_vgmstream_bkhd_fx,
-    init_vgmstream_diva,
-    init_vgmstream_imuse,
-    init_vgmstream_ktsr,
-    init_vgmstream_asrs,
-    init_vgmstream_mups,
-    init_vgmstream_kat,
-    init_vgmstream_pcm_success,
-    init_vgmstream_ktsc,
-    init_vgmstream_adp_konami,
-    init_vgmstream_zwv,
-    init_vgmstream_dsb,
-    init_vgmstream_bsf,
-    init_vgmstream_sdrh_new,
-    init_vgmstream_sdrh_old,
-    init_vgmstream_wady,
-    init_vgmstream_dsp_sqex,
-    init_vgmstream_dsp_wiivoice,
-    init_vgmstream_xws,
-    init_vgmstream_cpk,
-    init_vgmstream_opus_nsopus,
-    init_vgmstream_sbk,
-    init_vgmstream_dsp_wiiadpcm,
-    init_vgmstream_dsp_cwac,
-    init_vgmstream_ifs,
-    init_vgmstream_acx,
-    init_vgmstream_compresswave,
-    init_vgmstream_ktac,
-    init_vgmstream_mzrt_v1,
-    init_vgmstream_bsnf,
-    init_vgmstream_tac,
-    init_vgmstream_idsp_tose,
-    init_vgmstream_dsp_kwa,
-    init_vgmstream_ogv_3rdeye,
-    init_vgmstream_sspr,
-    init_vgmstream_piff_tpcm,
-    init_vgmstream_wxd_wxh,
-    init_vgmstream_bnk_relic,
-    init_vgmstream_xsh_xsd_xss,
-    init_vgmstream_psb,
-    init_vgmstream_lopu_fb,
-    init_vgmstream_lpcm_fb,
-    init_vgmstream_wbk,
-    init_vgmstream_wbk_nslb,
-    init_vgmstream_dsp_apex,
-    init_vgmstream_ubi_ckd_cwav,
-    init_vgmstream_sspf,
-    init_vgmstream_opus_rsnd,
-    init_vgmstream_s3v,
-    init_vgmstream_esf,
-    init_vgmstream_adm3,
-    init_vgmstream_tt_ad,
-    init_vgmstream_bw_mp3_riff,
-    init_vgmstream_bw_riff_mp3,
-    init_vgmstream_sndz,
-    init_vgmstream_vab,
-    init_vgmstream_bigrp,
-    init_vgmstream_sscf_encrypted,
-    init_vgmstream_s_p_sth,
-    init_vgmstream_utf_ahx,
-    init_vgmstream_ego_dic,
-    init_vgmstream_awd,
-    init_vgmstream_rws_809,
-    init_vgmstream_pwb,
-    init_vgmstream_squeakstream,
-    init_vgmstream_squeaksample,
-    init_vgmstream_snds,
-    init_vgmstream_adm2,
-    init_vgmstream_nxof,
-    init_vgmstream_gwb_gwd,
-    init_vgmstream_s_pack,
-    init_vgmstream_cbx,
-    init_vgmstream_vas_rockstar,
-    init_vgmstream_ea_sbk,
-    init_vgmstream_dsp_asura,
-    init_vgmstream_dsp_asura_ds2,
-    init_vgmstream_dsp_asura_ttss,
-    init_vgmstream_dsp_asura_sfx,
-    init_vgmstream_adp_ongakukan,
-
-    /* lower priority metas (no clean header identity, somewhat ambiguous, or need extension/companion file to identify) */
-    init_vgmstream_agsc,
-    init_vgmstream_scd_pcm,
-    init_vgmstream_vas_kceo,
-    init_vgmstream_vas_kceo_container,
-    init_vgmstream_ps2_wmus,
-    init_vgmstream_mib_mih,
-    init_vgmstream_mjb_mjh,
-    init_vgmstream_mic_koei,
-    init_vgmstream_seb,
-    init_vgmstream_tgc,
-    init_vgmstream_rage_aud,
-    init_vgmstream_asd_naxat,
-    /* need companion files */
-    init_vgmstream_pos,
-    init_vgmstream_sli_loops,
-
-    /* lowest priority metas (should go after all metas, and TXTH should go before raw formats) */
-    init_vgmstream_txth,            /* proper parsers should supersede TXTH, once added */
-    init_vgmstream_dtk,             /* semi-raw GC streamed files */
-    init_vgmstream_mpeg,            /* semi-raw MP3 */
-    init_vgmstream_btsnd,           /* semi-headerless */
-    init_vgmstream_fsb_encrypted,
-    init_vgmstream_nus3bank_encrypted,
-    init_vgmstream_encrypted,       /* encrypted stuff */
-    init_vgmstream_raw_rsf,         /* raw GC streamed files */
-    init_vgmstream_raw_int,         /* .int raw PCM */
-    init_vgmstream_ps_headerless,   /* tries to detect a bunch of PS-ADPCM formats */
-    init_vgmstream_raw_snds,        /* .snds raw SNDS IMA */
-    init_vgmstream_raw_wavm,        /* .wavm raw xbox */
-    init_vgmstream_raw_pcm,         /* .raw raw PCM */
-    init_vgmstream_raw_s14_sss,     /* .s14/sss raw siren14 */
-    init_vgmstream_exakt_sc,        /* .sc raw PCM */
-    init_vgmstream_zwdsp,           /* fake format */
-    init_vgmstream_ps2_adm,         /* weird non-constant PSX blocks */
-    init_vgmstream_rwsd,            /* crap, to be removed */
-#ifdef VGM_USE_FFMPEG
-    init_vgmstream_ffmpeg,          /* may play anything incorrectly, since FFmpeg doesn't check extensions */
-#endif
-};
-
-#define LOCAL_ARRAY_LENGTH(array) (sizeof(array) / sizeof(array[0]))
-static const int init_vgmstream_count = LOCAL_ARRAY_LENGTH(init_vgmstream_functions);
 
 /*****************************************************************************/
 /* INIT/META                                                                 */
 /*****************************************************************************/
 
-/* internal version with all parameters */
-static VGMSTREAM* init_vgmstream_internal(STREAMFILE* sf) {
-    if (!sf)
-        return NULL;
+/* format detection and VGMSTREAM setup, uses default parameters */
+VGMSTREAM* init_vgmstream(const char* const filename) {
+    VGMSTREAM* vgmstream = NULL;
+    STREAMFILE* sf = open_stdio_streamfile(filename);
+    if (sf) {
+        vgmstream = init_vgmstream_from_STREAMFILE(sf);
+        close_streamfile(sf);
+    }
+    return vgmstream;
+}
 
-    /* try a series of formats, see which works */
-    for (int i = 0; i < init_vgmstream_count; i++) {
-        init_vgmstream_t init_vgmstream_function = init_vgmstream_functions[i];
-    
+VGMSTREAM* init_vgmstream_from_STREAMFILE(STREAMFILE* sf) {
+    return detect_vgmstream_format(sf);
+}
 
-        /* call init function and see if valid VGMSTREAM was returned */
-        VGMSTREAM* vgmstream = init_vgmstream_function(sf);
-        if (!vgmstream)
-            continue;
 
-        /* fail if there is nothing/too much to play (<=0 generates empty files, >N writes GBs of garbage) */
-        if (vgmstream->num_samples <= 0 || vgmstream->num_samples > VGMSTREAM_MAX_NUM_SAMPLES) {
-            VGM_LOG("VGMSTREAM: wrong num_samples %i\n", vgmstream->num_samples);
-            close_vgmstream(vgmstream);
-            continue;
+bool prepare_vgmstream(VGMSTREAM* vgmstream, STREAMFILE* sf, int format_id) {
+
+    /* fail if there is nothing/too much to play (<=0 generates empty files, >N writes GBs of garbage) */
+    if (vgmstream->num_samples <= 0 || vgmstream->num_samples > VGMSTREAM_MAX_NUM_SAMPLES) {
+        VGM_LOG("VGMSTREAM: wrong num_samples %i\n", vgmstream->num_samples);
+        return false;
+    }
+
+    /* everything should have a reasonable sample rate */
+    if (vgmstream->sample_rate < VGMSTREAM_MIN_SAMPLE_RATE || vgmstream->sample_rate > VGMSTREAM_MAX_SAMPLE_RATE) {
+        VGM_LOG("VGMSTREAM: wrong sample_rate %i\n", vgmstream->sample_rate);
+        return false;
+    }
+
+    /* sanify loops and remove bad metadata */
+    if (vgmstream->loop_flag) {
+        if (vgmstream->loop_end_sample <= vgmstream->loop_start_sample
+                || vgmstream->loop_end_sample > vgmstream->num_samples
+                || vgmstream->loop_start_sample < 0) {
+            VGM_LOG("VGMSTREAM: wrong loops ignored (lss=%i, lse=%i, ns=%i)\n",
+                    vgmstream->loop_start_sample, vgmstream->loop_end_sample, vgmstream->num_samples);
+            vgmstream->loop_flag = 0;
+            vgmstream->loop_start_sample = 0;
+            vgmstream->loop_end_sample = 0;
         }
+    }
 
-        /* everything should have a reasonable sample rate */
-        if (vgmstream->sample_rate < VGMSTREAM_MIN_SAMPLE_RATE || vgmstream->sample_rate > VGMSTREAM_MAX_SAMPLE_RATE) {
-            VGM_LOG("VGMSTREAM: wrong sample_rate %i\n", vgmstream->sample_rate);
-            close_vgmstream(vgmstream);
-            continue;
-        }
-
-        /* sanify loops and remove bad metadata */
-        if (vgmstream->loop_flag) {
-            if (vgmstream->loop_end_sample <= vgmstream->loop_start_sample
-                    || vgmstream->loop_end_sample > vgmstream->num_samples
-                    || vgmstream->loop_start_sample < 0) {
-                VGM_LOG("VGMSTREAM: wrong loops ignored (lss=%i, lse=%i, ns=%i)\n",
-                        vgmstream->loop_start_sample, vgmstream->loop_end_sample, vgmstream->num_samples);
-                vgmstream->loop_flag = 0;
-                vgmstream->loop_start_sample = 0;
-                vgmstream->loop_end_sample = 0;
-            }
-        }
-
-        /* test if candidate for dual stereo */
-        if (vgmstream->channels == 1 && vgmstream->allow_dual_stereo == 1) {
-            try_dual_file_stereo(vgmstream, sf, init_vgmstream_function);
-        }
+    /* test if candidate for dual stereo */
+    if (vgmstream->channels == 1 && vgmstream->allow_dual_stereo == 1) {
+        try_dual_file_stereo(vgmstream, sf, format_id);
+    }
 
 
 #ifdef VGM_USE_FFMPEG
-        /* check FFmpeg streams here, for lack of a better place */
-        if (vgmstream->coding_type == coding_FFmpeg) {
-            int ffmpeg_subsongs = ffmpeg_get_subsong_count(vgmstream->codec_data);
-            if (ffmpeg_subsongs && !vgmstream->num_streams) {
-                vgmstream->num_streams = ffmpeg_subsongs;
-            }
+    /* check FFmpeg streams here, for lack of a better place */
+    if (vgmstream->coding_type == coding_FFmpeg) {
+        int ffmpeg_subsongs = ffmpeg_get_subsong_count(vgmstream->codec_data);
+        if (ffmpeg_subsongs && !vgmstream->num_streams) {
+            vgmstream->num_streams = ffmpeg_subsongs;
         }
+    }
 #endif
 
-        /* some players are picky with incorrect channel layouts */
-        if (vgmstream->channel_layout > 0) {
-            int output_channels = vgmstream->channels;
-            int ch, count = 0, max_ch = 32;
-            for (ch = 0; ch < max_ch; ch++) {
-                int bit = (vgmstream->channel_layout >> ch) & 1;
-                if (ch > 17 && bit) {
-                    VGM_LOG("VGMSTREAM: wrong bit %i in channel_layout %x\n", ch, vgmstream->channel_layout);
-                    vgmstream->channel_layout = 0;
-                    break;
-                }
-                count += bit;
-            }
-
-            if (count > output_channels) {
-                VGM_LOG("VGMSTREAM: wrong totals %i in channel_layout %x\n", count, vgmstream->channel_layout);
+    /* some players are picky with incorrect channel layouts */
+    if (vgmstream->channel_layout > 0) {
+        int output_channels = vgmstream->channels;
+        int count = 0, max_ch = 32;
+        for (int ch = 0; ch < max_ch; ch++) {
+            int bit = (vgmstream->channel_layout >> ch) & 1;
+            if (ch > 17 && bit) {
+                VGM_LOG("VGMSTREAM: wrong bit %i in channel_layout %x\n", ch, vgmstream->channel_layout);
                 vgmstream->channel_layout = 0;
+                break;
             }
+            count += bit;
         }
 
-        /* files can have thousands subsongs, but let's put a limit */
-        if (vgmstream->num_streams < 0 || vgmstream->num_streams > VGMSTREAM_MAX_SUBSONGS) {
-            VGM_LOG("VGMSTREAM: wrong num_streams (ns=%i)\n", vgmstream->num_streams);
-            close_vgmstream(vgmstream);
-            continue;
+        if (count > output_channels) {
+            VGM_LOG("VGMSTREAM: wrong totals %i in channel_layout %x\n", count, vgmstream->channel_layout);
+            vgmstream->channel_layout = 0;
         }
-
-        /* save info */
-        /* stream_index 0 may be used by plugins to signal "vgmstream default" (IOW don't force to 1) */
-        if (vgmstream->stream_index == 0) {
-            vgmstream->stream_index = sf->stream_index;
-        }
-
-
-        setup_vgmstream(vgmstream); /* final setup */
-
-        return vgmstream;
     }
 
-    /* not supported */
-    return NULL;
+    /* files can have thousands subsongs, but let's put a limit */
+    if (vgmstream->num_streams < 0 || vgmstream->num_streams > VGMSTREAM_MAX_SUBSONGS) {
+        VGM_LOG("VGMSTREAM: wrong num_streams (ns=%i)\n", vgmstream->num_streams);
+        return false;
+    }
+
+    /* save info */
+    /* stream_index 0 may be used by plugins to signal "vgmstream default" (IOW don't force to 1) */
+    if (vgmstream->stream_index == 0) {
+        vgmstream->stream_index = sf->stream_index;
+    }
+
+
+    setup_vgmstream(vgmstream); /* final setup */
+
+    return true;
 }
 
 void setup_vgmstream(VGMSTREAM* vgmstream) {
@@ -714,22 +152,6 @@ void setup_vgmstream(VGMSTREAM* vgmstream) {
      * as they can be created using init_vgmstream or manually */
 }
 
-
-/* format detection and VGMSTREAM setup, uses default parameters */
-VGMSTREAM* init_vgmstream(const char* const filename) {
-    VGMSTREAM* vgmstream = NULL;
-    STREAMFILE* sf = open_stdio_streamfile(filename);
-    if (sf) {
-        vgmstream = init_vgmstream_from_STREAMFILE(sf);
-        close_streamfile(sf);
-    }
-    return vgmstream;
-}
-
-VGMSTREAM* init_vgmstream_from_STREAMFILE(STREAMFILE* sf) {
-    return init_vgmstream_internal(sf);
-}
-
 /* Reset a VGMSTREAM to its state at the start of playback (when a plugin seeks back to zero). */
 void reset_vgmstream(VGMSTREAM* vgmstream) {
 
@@ -750,12 +172,12 @@ void reset_vgmstream(VGMSTREAM* vgmstream) {
 }
 
 /* Allocate memory and setup a VGMSTREAM */
-VGMSTREAM* allocate_vgmstream(int channel_count, int loop_flag) {
+VGMSTREAM* allocate_vgmstream(int channels, int loop_flag) {
     VGMSTREAM* vgmstream;
 
-    /* up to ~16-24 aren't too rare for multilayered files, more is probably a bug */
-    if (channel_count <= 0 || channel_count > VGMSTREAM_MAX_CHANNELS) {
-        VGM_LOG("VGMSTREAM: error allocating %i channels\n", channel_count);
+    /* up to ~16-24 aren't too rare for multilayered files, 50+ is probably a bug */
+    if (channels <= 0 || channels > VGMSTREAM_MAX_CHANNELS) {
+        VGM_LOG("VGMSTREAM: error allocating %i channels\n", channels);
         return NULL;
     }
 
@@ -777,20 +199,20 @@ VGMSTREAM* allocate_vgmstream(int channel_count, int loop_flag) {
      */
 
     /* create vgmstream + main structs (other data is 0'ed) */
-    vgmstream = calloc(1,sizeof(VGMSTREAM));
+    vgmstream = calloc(1, sizeof(VGMSTREAM));
     if (!vgmstream) return NULL;
 
-    vgmstream->start_vgmstream = calloc(1,sizeof(VGMSTREAM));
+    vgmstream->start_vgmstream = calloc(1, sizeof(VGMSTREAM));
     if (!vgmstream->start_vgmstream) goto fail;
 
-    vgmstream->ch = calloc(channel_count,sizeof(VGMSTREAMCHANNEL));
+    vgmstream->ch = calloc(channels, sizeof(VGMSTREAMCHANNEL));
     if (!vgmstream->ch) goto fail;
 
-    vgmstream->start_ch = calloc(channel_count,sizeof(VGMSTREAMCHANNEL));
+    vgmstream->start_ch = calloc(channels, sizeof(VGMSTREAMCHANNEL));
     if (!vgmstream->start_ch) goto fail;
 
     if (loop_flag) {
-        vgmstream->loop_ch = calloc(channel_count,sizeof(VGMSTREAMCHANNEL));
+        vgmstream->loop_ch = calloc(channels, sizeof(VGMSTREAMCHANNEL));
         if (!vgmstream->loop_ch) goto fail;
     }
 
@@ -798,27 +220,20 @@ VGMSTREAM* allocate_vgmstream(int channel_count, int loop_flag) {
      * in theory the bigger the better but in practice there isn't much difference */
     vgmstream->tmpbuf_size = 0x10000; /* for all channels */
     vgmstream->tmpbuf = malloc(sizeof(sample_t) * vgmstream->tmpbuf_size);
+    if (!vgmstream->tmpbuf) goto fail;
 
-
-    vgmstream->channels = channel_count;
+    vgmstream->channels = channels;
     vgmstream->loop_flag = loop_flag;
 
-    mixing_init(vgmstream); /* pre-init */
+    vgmstream->mixer = mixer_init(vgmstream->channels); /* pre-init */
+    //if (!vgmstream->mixer) goto fail;
 
-    /* BEWARE: try_dual_file_stereo does some free'ing too */ 
+    /* BEWARE: merge_vgmstream does some free'ing too */ 
 
     //vgmstream->stream_name_size = STREAM_NAME_SIZE;
     return vgmstream;
 fail:
-    if (vgmstream) {
-        mixing_close(vgmstream);
-        free(vgmstream->tmpbuf);
-        free(vgmstream->ch);
-        free(vgmstream->start_ch);
-        free(vgmstream->loop_ch);
-        free(vgmstream->start_vgmstream);
-    }
-    free(vgmstream);
+    close_vgmstream(vgmstream);
     return NULL;
 }
 
@@ -834,25 +249,21 @@ void close_vgmstream(VGMSTREAM* vgmstream) {
 
 
     /* now that the special cases have had their chance, clean up the standard items */
-    {
-        int i,j;
-
-        for (i = 0; i < vgmstream->channels; i++) {
-            if (vgmstream->ch[i].streamfile) {
-                close_streamfile(vgmstream->ch[i].streamfile);
-                /* Multiple channels might have the same streamfile. Find the others
-                 * that are the same as this and clear them so they won't be closed again. */
-                for (j = 0; j < vgmstream->channels; j++) {
-                    if (i != j && vgmstream->ch[j].streamfile == vgmstream->ch[i].streamfile) {
-                        vgmstream->ch[j].streamfile = NULL;
-                    }
+    for (int i = 0; i < vgmstream->channels; i++) {
+        if (vgmstream->ch[i].streamfile) {
+            close_streamfile(vgmstream->ch[i].streamfile);
+            /* Multiple channels might have the same streamfile. Find the others
+                * that are the same as this and clear them so they won't be closed again. */
+            for (int j = 0; j < vgmstream->channels; j++) {
+                if (i != j && vgmstream->ch[j].streamfile == vgmstream->ch[i].streamfile) {
+                    vgmstream->ch[j].streamfile = NULL;
                 }
-                vgmstream->ch[i].streamfile = NULL;
             }
+            vgmstream->ch[i].streamfile = NULL;
         }
     }
 
-    mixing_close(vgmstream);
+    mixer_free(vgmstream->mixer);
     free(vgmstream->tmpbuf);
     free(vgmstream->ch);
     free(vgmstream->start_ch);
@@ -898,13 +309,13 @@ void vgmstream_force_loop(VGMSTREAM* vgmstream, int loop_flag, int loop_start_sa
 
     /* propagate changes to layouts that need them */
     if (vgmstream->layout_type == layout_layered) {
-        int i;
         layered_layout_data* data = vgmstream->layout_data;
 
         /* layered loops using the internal VGMSTREAMs */
-        for (i = 0; i < data->layer_count; i++) {
-            if (!data->layers[i]->config_enabled) /* only in simple mode */
+        for (int i = 0; i < data->layer_count; i++) {
+            if (!data->layers[i]->config_enabled) { /* only in simple mode */
                 vgmstream_force_loop(data->layers[i], loop_flag, loop_start_sample, loop_end_sample);
+            }
             /* layer's force_loop also calls setup_vgmstream, no need to do it here */
         }
     }
@@ -924,9 +335,8 @@ void vgmstream_set_loop_target(VGMSTREAM* vgmstream, int loop_target) {
 
     /* propagate changes to layouts that need them */
     if (vgmstream->layout_type == layout_layered) {
-        int i;
         layered_layout_data *data = vgmstream->layout_data;
-        for (i = 0; i < data->layer_count; i++) {
+        for (int i = 0; i < data->layer_count; i++) {
             vgmstream_set_loop_target(data->layers[i], loop_target);
         }
     }
@@ -940,9 +350,85 @@ void vgmstream_set_loop_target(VGMSTREAM* vgmstream, int loop_target) {
 /* MISC                                                                        */
 /*******************************************************************************/
 
+static bool merge_vgmstream(VGMSTREAM* opened_vgmstream, VGMSTREAM* new_vgmstream, int dfs_pair) {
+    VGMSTREAMCHANNEL* new_chans = NULL;
+    VGMSTREAMCHANNEL* new_loop_chans = NULL;
+    VGMSTREAMCHANNEL* new_start_chans = NULL;
+    const int merged_channels = 2;
+
+    /* checked outside but just in case */
+    if (!opened_vgmstream || !new_vgmstream)
+        goto fail;
+    //if (opened_vgmstream->channels + new_vgmstream->channels != merged_channels || dfs_pair >= merged_channels)
+    //    goto fail;
+
+    /* build the channels */
+    new_chans = calloc(merged_channels, sizeof(VGMSTREAMCHANNEL));
+    if (!new_chans) goto fail;
+
+    memcpy(&new_chans[dfs_pair],&opened_vgmstream->ch[0],sizeof(VGMSTREAMCHANNEL));
+    memcpy(&new_chans[dfs_pair^1],&new_vgmstream->ch[0],sizeof(VGMSTREAMCHANNEL));
+
+    /* loop and start will be initialized later, we just need to allocate them here */
+    new_start_chans = calloc(merged_channels, sizeof(VGMSTREAMCHANNEL));
+    if (!new_start_chans) {
+        free(new_chans);
+        goto fail;
+    }
+
+    if (opened_vgmstream->loop_ch) {
+        new_loop_chans = calloc(merged_channels, sizeof(VGMSTREAMCHANNEL));
+        if (!new_loop_chans) {
+            free(new_chans);
+            free(new_start_chans);
+            goto fail;
+        }
+    }
+
+    //TODO: maybe should just manually open a new vgmstream and its streamfiles and close normally
+    /* not using close_vgmstream as that would close the file */
+
+    /* remove the existing structures */
+    free(opened_vgmstream->ch);
+    free(new_vgmstream->ch);
+
+    free(opened_vgmstream->start_ch);
+    free(new_vgmstream->start_ch);
+
+    if (opened_vgmstream->loop_ch) {
+        free(opened_vgmstream->loop_ch);
+        free(new_vgmstream->loop_ch);
+    }
+
+    /* fill in the new structures */
+    opened_vgmstream->ch = new_chans;
+    opened_vgmstream->start_ch = new_start_chans;
+    opened_vgmstream->loop_ch = new_loop_chans;
+
+    /* stereo! */
+    opened_vgmstream->channels = merged_channels;
+    if (opened_vgmstream->layout_type == layout_interleave)
+        opened_vgmstream->layout_type = layout_none; /* fixes some odd cases */
+
+    /* discard the second VGMSTREAM */
+    mixer_free(new_vgmstream->mixer);
+    free(new_vgmstream->tmpbuf);
+    free(new_vgmstream->start_vgmstream);
+    free(new_vgmstream);
+
+    mixer_update_channel(opened_vgmstream->mixer); /* notify of new channel hacked-in */
+
+    return true;
+fail:
+    free(new_chans);
+    free(new_loop_chans);
+    free(new_start_chans);
+    return false;
+}
+
 /* See if there is a second file which may be the second channel, given an already opened mono vgmstream.
  * If a suitable file is found, open it and change opened_vgmstream to a stereo vgmstream. */
-static void try_dual_file_stereo(VGMSTREAM* opened_vgmstream, STREAMFILE* sf, init_vgmstream_t init_vgmstream_function) {
+static void try_dual_file_stereo(VGMSTREAM* opened_vgmstream, STREAMFILE* sf, int format_id) {
     /* filename search pairs for dual file stereo */
     static const char* const dfs_pairs[][2] = {
         {"L","R"}, /* most common in .dsp and .vag */
@@ -960,7 +446,7 @@ static void try_dual_file_stereo(VGMSTREAM* opened_vgmstream, STREAMFILE* sf, in
     int dfs_pair = -1; /* -1=no stereo, 0=opened_vgmstream is left, 1=opened_vgmstream is right */
     VGMSTREAM* new_vgmstream = NULL;
     STREAMFILE* dual_sf = NULL;
-    int i,j, dfs_pair_count, extension_len, filename_len;
+    int dfs_pair_count, extension_len, filename_len;
     int sample_variance, loop_variance;
 
     if (opened_vgmstream->channels != 1)
@@ -986,8 +472,8 @@ static void try_dual_file_stereo(VGMSTREAM* opened_vgmstream, STREAMFILE* sf, in
 
     /* find pair from base name and modify new_filename with the opposite (tries L>R then R>L) */
     dfs_pair_count = (sizeof(dfs_pairs)/sizeof(dfs_pairs[0]));
-    for (i = 0; dfs_pair == -1 && i < dfs_pair_count; i++) {
-        for (j = 0; dfs_pair == -1 && j < 2; j++) {
+    for (int i = 0; dfs_pair == -1 && i < dfs_pair_count; i++) {
+        for (int j = 0; dfs_pair == -1 && j < 2; j++) {
             const char* this_suffix = dfs_pairs[i][j];
             const char* that_suffix = dfs_pairs[i][j^1];
             size_t this_suffix_len = strlen(dfs_pairs[i][j]);
@@ -1027,8 +513,12 @@ static void try_dual_file_stereo(VGMSTREAM* opened_vgmstream, STREAMFILE* sf, in
 
     /* filename didn't have a suitable L/R-pair name */
     if (dfs_pair == -1)
-        goto fail;
+        return;
     //;VGM_LOG("DFS: match %i filename=%s\n", dfs_pair, new_filename);
+
+    init_vgmstream_t init_vgmstream_function = get_vgmstream_format_init(format_id);
+    if (init_vgmstream_function == NULL)
+        goto fail;
 
     new_vgmstream = init_vgmstream_function(dual_sf); /* use the init function that just worked */
     close_streamfile(dual_sf);
@@ -1084,65 +574,8 @@ static void try_dual_file_stereo(VGMSTREAM* opened_vgmstream, STREAMFILE* sf, in
     }
 
     /* We seem to have a usable, matching file. Merge in the second channel. */
-    {
-        VGMSTREAMCHANNEL* new_chans;
-        VGMSTREAMCHANNEL* new_loop_chans = NULL;
-        VGMSTREAMCHANNEL* new_start_chans = NULL;
-
-        /* build the channels */
-        new_chans = calloc(2,sizeof(VGMSTREAMCHANNEL));
-        if (!new_chans) goto fail;
-
-        memcpy(&new_chans[dfs_pair],&opened_vgmstream->ch[0],sizeof(VGMSTREAMCHANNEL));
-        memcpy(&new_chans[dfs_pair^1],&new_vgmstream->ch[0],sizeof(VGMSTREAMCHANNEL));
-
-        /* loop and start will be initialized later, we just need to allocate them here */
-        new_start_chans = calloc(2,sizeof(VGMSTREAMCHANNEL));
-        if (!new_start_chans) {
-            free(new_chans);
-            goto fail;
-        }
-
-        if (opened_vgmstream->loop_ch) {
-            new_loop_chans = calloc(2,sizeof(VGMSTREAMCHANNEL));
-            if (!new_loop_chans) {
-                free(new_chans);
-                free(new_start_chans);
-                goto fail;
-            }
-        }
-
-        /* remove the existing structures */
-        /* not using close_vgmstream as that would close the file */
-        free(opened_vgmstream->ch);
-        free(new_vgmstream->ch);
-
-        free(opened_vgmstream->start_ch);
-        free(new_vgmstream->start_ch);
-
-        if (opened_vgmstream->loop_ch) {
-            free(opened_vgmstream->loop_ch);
-            free(new_vgmstream->loop_ch);
-        }
-
-        /* fill in the new structures */
-        opened_vgmstream->ch = new_chans;
-        opened_vgmstream->start_ch = new_start_chans;
-        opened_vgmstream->loop_ch = new_loop_chans;
-
-        /* stereo! */
-        opened_vgmstream->channels = 2;
-        if (opened_vgmstream->layout_type == layout_interleave)
-            opened_vgmstream->layout_type = layout_none; /* fixes some odd cases */
-
-        /* discard the second VGMSTREAM */
-        mixing_close(new_vgmstream);
-        free(new_vgmstream->tmpbuf);
-        free(new_vgmstream->start_vgmstream);
-        free(new_vgmstream);
-
-        mixing_update_channel(opened_vgmstream); /* notify of new channel hacked-in */
-    }
+    if (!merge_vgmstream(opened_vgmstream, new_vgmstream, dfs_pair))
+        goto fail;
 
     return;
 fail:
@@ -1160,6 +593,7 @@ fail:
 int vgmstream_open_stream(VGMSTREAM* vgmstream, STREAMFILE* sf, off_t start_offset) {
     return vgmstream_open_stream_bf(vgmstream, sf, start_offset, 0);
 }
+
 int vgmstream_open_stream_bf(VGMSTREAM* vgmstream, STREAMFILE* sf, off_t start_offset, int force_multibuffer) {
     STREAMFILE* file = NULL;
     char filename[PATH_LIMIT];

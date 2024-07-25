@@ -30,7 +30,7 @@ VGMSTREAM* init_vgmstream_rstm_rockstar(STREAMFILE* sf) {
     //loop_flag = (read_s32le(0x24,sf) > 0);
     loop_flag = loop_end != stream_size;
 
-	/* build the VGMSTREAM */
+    /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 

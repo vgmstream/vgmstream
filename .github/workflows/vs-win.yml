@@ -18,7 +18,7 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Fetch Git tags
         shell: cmd
@@ -39,25 +39,25 @@ jobs:
 
       # upload to "actions" tab artifacts (can only make a single .zip from a dir's files)
       - name: Upload foobar2000 component artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: foo_input_vgmstream.fb2k-component
           path: ${{github.workspace}}\bin\artifacts\foobar2000
 
       - name: Upload CLI tools 32-bit artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: vgmstream-win
           path: ${{github.workspace}}\bin\artifacts\cli-x32
 
       - name: Upload CLI tools 64-bit artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: vgmstream-win64
           path: ${{github.workspace}}\bin\artifacts\cli-x64
 
       - name: debug symbols artifact (all)
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: debug-symbols-pdb
           path: ${{github.workspace}}\bin\artifacts\pdb

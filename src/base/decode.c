@@ -9,6 +9,8 @@
 
 
 void decode_free(VGMSTREAM* vgmstream) {
+    if (!vgmstream->codec_data)
+        return;
 
 #ifdef VGM_USE_VORBIS
     if (vgmstream->coding_type == coding_OGG_VORBIS) {
@@ -124,6 +126,9 @@ void decode_free(VGMSTREAM* vgmstream) {
 
 
 void decode_seek(VGMSTREAM* vgmstream) {
+    if (!vgmstream->codec_data)
+        return;
+
     if (vgmstream->coding_type == coding_CIRCUS_VQ) {
         seek_circus_vq(vgmstream->codec_data, vgmstream->loop_current_sample);
     }
@@ -222,6 +227,8 @@ void decode_seek(VGMSTREAM* vgmstream) {
 
 
 void decode_reset(VGMSTREAM* vgmstream) {
+    if (!vgmstream->codec_data)
+        return;
 
 #ifdef VGM_USE_VORBIS
     if (vgmstream->coding_type == coding_OGG_VORBIS) {
@@ -1672,7 +1679,7 @@ int decode_do_loop(VGMSTREAM* vgmstream) {
         vgmstream->loop_next_block_offset = vgmstream->next_block_offset;
         //vgmstream->lstate = vgmstream->pstate; /* play state is applied over loops */
 
-        vgmstream->hit_loop = 1; /* info that loop is now ready to use */
+        vgmstream->hit_loop = true; /* info that loop is now ready to use */
     }
 
     return 0; /* not looped */
