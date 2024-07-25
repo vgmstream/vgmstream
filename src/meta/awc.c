@@ -120,7 +120,7 @@ VGMSTREAM* init_vgmstream_awc(STREAMFILE* sf) {
                 vgmstream->layout_data = build_layered_awc(sf_body, &awc);
                 if (!vgmstream->layout_data) goto fail;
                 vgmstream->layout_type = layout_layered;
-                vgmstream->coding_type = coding_FFmpeg;
+                vgmstream->coding_type = coding_MPEG_custom;
             }
             else {
                 vgmstream->codec_data = init_mpeg_custom(sf_body, awc.stream_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_STANDARD, NULL);
