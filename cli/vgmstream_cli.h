@@ -13,6 +13,8 @@ typedef struct {
     const char* outfilename_config;
     const char* outfilename;
 
+    int sample_buffer_size;
+
     // playback config
     double loop_count;
     double fade_time;

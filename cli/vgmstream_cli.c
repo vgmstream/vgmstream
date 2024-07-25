@@ -28,15 +28,15 @@
 #define APP_INFO  APP_NAME " (" __DATE__ ")"
 
 
-/* Low values are ok as there is very little performance difference, but higher
- * may improve write I/O in some systems as this*channels doubles as output buffer
+/* Low values are ok as there is very little performance difference, but higher may improve write I/O in some systems.
  * For systems with less memory (like wasm without -s ALLOW_MEMORY_GROWTH) lower helps a bit. */
-//TODO: make it selectable with -n? in the future may just use internal bufs for min memory
 #ifdef __EMSCRIPTEN__
     #define SAMPLE_BUFFER_SIZE  1024
 #else
-    #define SAMPLE_BUFFER_SIZE  (1024*32)
+    #define SAMPLE_BUFFER_SIZE  (1024*8)
 #endif
+#define MIN_SAMPLE_BUFFER_SIZE  128
+#define MAX_SAMPLE_BUFFER_SIZE  (1024*128)
 
 /* getopt globals from .h, for reference (the horror...) */
 //extern char* optarg;
@@ -89,6 +89,7 @@ static void print_usage(const char* progname, bool is_help) {
             "    -t: print !tags found in !tags.m3u (for tag testing)\n"
             "    -T: print title (for title testing)\n"
             "    -D <max channels>: downmix to <max channels> (for plugin downmix testing)\n"
+            "    -B <samples> force a sample buffer size (for api testing)\n"
             "    -O: decode but don't write to file (for performance testing)\n"
     );
 
@@ -98,7 +99,7 @@ static bool parse_config(cli_config_t* cfg, int argc, char** argv) {
     int opt;
 
     /* non-zero defaults */
-    cfg->stereo_track = -1;
+    cfg->sample_buffer_size = SAMPLE_BUFFER_SIZE;
     cfg->loop_count = 2.0;
     cfg->fade_time = 10.0;
     cfg->seek_samples1 = -1;
@@ -108,7 +109,7 @@ static bool parse_config(cli_config_t* cfg, int argc, char** argv) {
     optind = 1; /* reset getopt's ugly globals (needed in wasm that may call same main() multiple times) */
 
     /* read config */
-    while ((opt = getopt(argc, argv, "o:l:f:d:ipPcmxeLEFrgb2:s:tTk:K:hOvD:S:"
+    while ((opt = getopt(argc, argv, "o:l:f:d:ipPcmxeLEFrgb2:s:tTk:K:hOvD:S:B:"
 #ifdef HAVE_JSON
         "VI"
 #endif
@@ -213,8 +214,15 @@ static bool parse_config(cli_config_t* cfg, int argc, char** argv) {
             case 'D':
                 cfg->downmix_channels = atoi(optarg);
                 break;
+            case 'B':
+                cfg->sample_buffer_size = atoi(optarg);
+                if (cfg->sample_buffer_size < MIN_SAMPLE_BUFFER_SIZE || cfg->sample_buffer_size > MAX_SAMPLE_BUFFER_SIZE) {
+                    fprintf(stderr, "incorrect sample buffer value\n");
+                    goto fail;
+                }
+                break;
             case '2':
-                cfg->stereo_track = atoi(optarg);
+                cfg->stereo_track = atoi(optarg) + 1;
                 break;
 
             case 'h':
@@ -340,7 +348,7 @@ static bool write_file(VGMSTREAM* vgmstream, cli_config_t* cfg) {
     vgmstream_mixing_enable(vgmstream, 0, &input_channels, &channels);
 
     /* last init */
-    buf = malloc(SAMPLE_BUFFER_SIZE * sizeof(sample_t) * input_channels);
+    buf = malloc(cfg->sample_buffer_size * sizeof(sample_t) * input_channels);
     if (!buf) {
         fprintf(stderr, "failed allocating output buffer\n");
         goto fail;
@@ -371,7 +379,7 @@ static bool write_file(VGMSTREAM* vgmstream, cli_config_t* cfg) {
         }
 
         /* no improvement */
-        //setvbuf(outfile, NULL, _IOFBF, SAMPLE_BUFFER_SIZE * sizeof(sample_t) * input_channels);
+        //setvbuf(outfile, NULL, _IOFBF, cfg->sample_buffer_size * sizeof(sample_t) * input_channels);
         //setvbuf(outfile, NULL, _IONBF, 0);
     }
     else {
@@ -381,7 +389,7 @@ static bool write_file(VGMSTREAM* vgmstream, cli_config_t* cfg) {
 
     /* decode forever */
     while (cfg->play_forever && !cfg->decode_only) {
-        int to_get = SAMPLE_BUFFER_SIZE;
+        int to_get = cfg->sample_buffer_size;
 
         render_vgmstream(buf, to_get, vgmstream);
 
@@ -411,9 +419,9 @@ static bool write_file(VGMSTREAM* vgmstream, cli_config_t* cfg) {
 
 
     /* decode */
-    for (int i = 0; i < len_samples; i += SAMPLE_BUFFER_SIZE) {
-        int to_get = SAMPLE_BUFFER_SIZE;
-        if (i + SAMPLE_BUFFER_SIZE > len_samples)
+    for (int i = 0; i < len_samples; i += cfg->sample_buffer_size) {
+        int to_get = cfg->sample_buffer_size;
+        if (i + cfg->sample_buffer_size > len_samples)
             to_get = len_samples - i;
 
         render_vgmstream(buf, to_get, vgmstream);
@@ -435,6 +443,22 @@ fail:
     return false;
 }
 
+static bool is_valid_extension(cli_config_t* cfg) {
+    /* for plugin testing */
+    if (!cfg->validate_extensions)
+        return true; 
+    
+    vgmstream_ctx_valid_cfg vcfg = {0};
+
+    vcfg.skip_standard = 0;
+    vcfg.reject_extensionless = 0;
+    vcfg.accept_unknown = 0;
+    vcfg.accept_common = 0;
+
+    return vgmstream_ctx_is_valid(cfg->infilename, &vcfg);
+}
+
+
 static bool convert_file(cli_config_t* cfg) {
     VGMSTREAM* vgmstream = NULL;
     char outfilename_temp[PATH_LIMIT];
@@ -442,18 +466,8 @@ static bool convert_file(cli_config_t* cfg) {
 
 
     /* for plugin testing */
-    if (cfg->validate_extensions)  {
-        int valid;
-        vgmstream_ctx_valid_cfg vcfg = {0};
-
-        vcfg.skip_standard = 0;
-        vcfg.reject_extensionless = 0;
-        vcfg.accept_unknown = 0;
-        vcfg.accept_common = 0;
-
-        valid = vgmstream_ctx_is_valid(cfg->infilename, &vcfg);
-        if (!valid) goto fail;
-    }
+    if (!is_valid_extension(cfg))
+        return false;
 
     /* open streamfile and pass subsong */
     {
@@ -478,20 +492,20 @@ static bool convert_file(cli_config_t* cfg) {
             close_vgmstream(vgmstream);
             return true;
         }
+
+        /* modify the VGMSTREAM if needed (before printing file info) */
+        apply_config(vgmstream, cfg);
+
+        /* enable after config but before outbuf */
+        if (cfg->downmix_channels) {
+            vgmstream_mixing_autodownmix(vgmstream, cfg->downmix_channels);
+        }
+        else if (cfg->stereo_track > 0) {
+            vgmstream_mixing_stereo_only(vgmstream, cfg->stereo_track - 1);
+        }
+        vgmstream_mixing_enable(vgmstream, cfg->sample_buffer_size, NULL, NULL);
     }
 
-
-    /* modify the VGMSTREAM if needed (before printing file info) */
-    apply_config(vgmstream, cfg);
-
-    /* enable after config but before outbuf */
-    if (cfg->downmix_channels) {
-        vgmstream_mixing_autodownmix(vgmstream, cfg->downmix_channels);
-    }
-    else if (cfg->stereo_track >= 0) {
-        vgmstream_mixing_stereo_only(vgmstream, cfg->stereo_track);
-    }
-    vgmstream_mixing_enable(vgmstream, SAMPLE_BUFFER_SIZE, NULL, NULL);
 
     /* get final play config */
     len_samples = vgmstream_get_samples(vgmstream);
