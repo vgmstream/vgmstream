@@ -38,7 +38,7 @@ void decode_nwa(nwa_codec_data* data, sample_t* outbuf, int32_t samples_to_do) {
 nwa_codec_data* init_nwa(STREAMFILE* sf) {
     nwa_codec_data* data = NULL;
 
-    data = malloc(sizeof(nwa_codec_data));
+    data = calloc(1, sizeof(nwa_codec_data));
     if (!data) goto fail;
 
     data->nwa = nwalib_open(sf);
