@@ -701,20 +701,20 @@ fail:
 /* CONFIG                                                                      */
 /*******************************************************************************/
 
-static void copy_flag(int* dst_flag, int* src_flag) {
+static void copy_flag(bool* dst_flag, bool* src_flag) {
     if (!*src_flag)
         return;
     *dst_flag = 1;
 }
 
-static void copy_secs(int* dst_flag, double* dst_secs, int* src_flag, double* src_secs) {
+static void copy_secs(bool* dst_flag, double* dst_secs, bool* src_flag, double* src_secs) {
     if (!*src_flag)
         return;
     *dst_flag = 1;
     *dst_secs = *src_secs;
 }
 
-static void copy_time(int* dst_flag, int32_t* dst_time, double* dst_time_s, int* src_flag, int32_t* src_time, double* src_time_s) {
+static void copy_time(bool* dst_flag, int32_t* dst_time, double* dst_time_s, bool* src_flag, int32_t* src_time, double* src_time_s) {
     if (!*src_flag)
         return;
     *dst_flag = 1;
@@ -899,7 +899,7 @@ static void apply_settings(VGMSTREAM* vgmstream, txtp_entry* current) {
  * - %n: special match (not counted in return value), chars consumed until that point (can appear and be set multiple times)
  */
 
-static int get_double(const char* params, double *value, int *is_set) {
+static int get_double(const char* params, double* value, bool* is_set) {
     int n, m;
     double temp;
 
@@ -1035,14 +1035,14 @@ static int get_time(const char* params, double* value_f, int32_t* value_i) {
     return 0;
 }
 
-static int get_time_f(const char* params, double* value_f, int32_t* value_i, int* flag) {
+static int get_time_f(const char* params, double* value_f, int32_t* value_i, bool* flag) {
     int n = get_time(params, value_f, value_i);
     if (n > 0)
         *flag = 1;
     return n;
 }
 
-static int get_bool(const char* params, int* value) {
+static int get_bool(const char* params, bool* value) {
     int n,m;
     char temp;
 
