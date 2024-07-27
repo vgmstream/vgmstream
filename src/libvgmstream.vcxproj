@@ -81,11 +81,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="api.h" />
-    <ClInclude Include="api_decode.h" />
-    <ClInclude Include="api_helpers.h" />
-    <ClInclude Include="api_streamfile.h" />
-    <ClInclude Include="api_tags.h" />
-    <ClInclude Include="api_version.h" />
+    <ClInclude Include="libvgmstream.h" />
+    <ClInclude Include="libvgmstream_streamfile.h" />
     <ClInclude Include="streamfile.h" />
     <ClInclude Include="streamtypes.h" />
     <ClInclude Include="util.h" />

@@ -5,6 +5,7 @@
 #include "../util/reader_sf.h"
 #include "../util/reader_text.h"
 #include "../util/sf_utils.h"
+#include "../util/log.h"
 
 typedef VGMSTREAM* (*init_vgmstream_t)(STREAMFILE* sf);
 

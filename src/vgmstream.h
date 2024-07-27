@@ -23,7 +23,6 @@
 
 #include "streamfile.h"
 #include "vgmstream_types.h"
-#include "util/log.h"
 
 #ifdef VGM_USE_MP4V2
 #define MP4V2_NO_STDINT_DEFS
@@ -38,14 +37,14 @@
 
 
 typedef struct {
-    int config_set; /* some of the mods below are set */
+    bool config_set; /* some of the mods below are set */
 
     /* modifiers */
-    int play_forever;
-    int ignore_loop;
-    int force_loop;
-    int really_force_loop;
-    int ignore_fade;
+    bool play_forever;
+    bool ignore_loop;
+    bool force_loop;
+    bool really_force_loop;
+    bool ignore_fade;
 
     /* processing */
     double loop_count;
@@ -66,18 +65,18 @@ typedef struct {
     double pad_end_s;
 
     /* internal flags */
-    int pad_begin_set;
-    int trim_begin_set;
-    int body_time_set;
-    int loop_count_set;
-    int trim_end_set;
-    int fade_delay_set;
-    int fade_time_set;
-    int pad_end_set;
+    bool pad_begin_set;
+    bool trim_begin_set;
+    bool body_time_set;
+    bool loop_count_set;
+    bool trim_end_set;
+    bool fade_delay_set;
+    bool fade_time_set;
+    bool pad_end_set;
 
     /* for lack of a better place... */
-    int is_txtp;
-    int is_mini_txtp;
+    bool is_txtp;
+    bool is_mini_txtp;
 
 } play_config_t;
 
@@ -165,7 +164,7 @@ typedef struct {
     meta_t meta_type;               /* type of metadata */
 
     /* loop config */
-    int loop_flag;                  /* is this stream looped? */
+    bool loop_flag;                 /* is this stream looped? */
     int32_t loop_start_sample;      /* first sample of the loop (included in the loop) */
     int32_t loop_end_sample;        /* last sample of the loop (not included in the loop) */
 

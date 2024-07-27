@@ -1,4 +1,4 @@
-#include "../src/api.h"
+#include "../src/libvgmstream.h"
 #if LIBVGMSTREAM_ENABLE
 #include <stdlib.h>
 #include <stdio.h>

@@ -77,19 +77,10 @@
     <ClInclude Include="api.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="api_decode.h">
+    <ClInclude Include="libvgmstream.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="api_helpers.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="api_streamfile.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="api_tags.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="api_version.h">
+    <ClInclude Include="libvgmstream_streamfile.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="streamfile.h">

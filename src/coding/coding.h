@@ -4,6 +4,7 @@
 #include "../vgmstream.h"
 #include "../util/reader_sf.h"
 #include "../util/reader_get_nibbles.h"
+#include "../util/log.h"
 //todo remove
 #include "libs/clhca.h"
 
