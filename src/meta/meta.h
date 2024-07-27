@@ -163,8 +163,7 @@ VGMSTREAM* init_vgmstream_mp4_aac_ffmpeg(STREAMFILE* sf);
 #endif
 
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
-VGMSTREAM * init_vgmstream_mp4_aac(STREAMFILE * streamFile);
-VGMSTREAM * init_vgmstream_mp4_aac_offset(STREAMFILE *streamFile, uint64_t start, uint64_t size);
+VGMSTREAM* init_vgmstream_mp4_aac(STREAMFILE* sf);
 #endif
 
 VGMSTREAM* init_vgmstream_sli_loops(STREAMFILE* sf);

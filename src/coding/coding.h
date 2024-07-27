@@ -561,10 +561,19 @@ void free_g719(g719_codec_data* data, int channels);
 
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
 /* mp4_aac_decoder */
+typedef struct mp4_aac_codec_data mp4_aac_codec_data;
+
+mp4_aac_codec_data* init_mp4_aac(STREAMFILE* sf);
 void decode_mp4_aac(mp4_aac_codec_data* data, sample_t* outbuf, int32_t samples_to_do, int channels);
 void reset_mp4_aac(VGMSTREAM* vgmstream);
 void seek_mp4_aac(VGMSTREAM* vgmstream, int32_t num_sample);
 void free_mp4_aac(mp4_aac_codec_data* data);
+
+STREAMFILE* mp4_aac_get_streamfile(mp4_aac_codec_data* data);
+int32_t mp4_aac_get_samples(mp4_aac_codec_data* data);
+int32_t mp4_aac_get_samples_per_frame(mp4_aac_codec_data* data);
+int mp4_aac_get_sample_rate(mp4_aac_codec_data* data);
+int mp4_aac_get_channels(mp4_aac_codec_data* data);
 #endif
 
 

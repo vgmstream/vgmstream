@@ -330,8 +330,7 @@ static STREAMFILE* get_vgmstream_average_bitrate_channel_streamfile(VGMSTREAM* v
 #endif
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
     if (vgmstream->coding_type == coding_MP4_AAC) {
-        mp4_aac_codec_data *data = vgmstream->codec_data;
-        return data ? data->if_file.streamfile : NULL;
+        return mp4_aac_get_streamfile(vgmstream->codec_data);
     }
 #endif
 

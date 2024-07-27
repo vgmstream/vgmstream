@@ -1,8 +1,8 @@
 /*
- * vgmstream.h - definitions for VGMSTREAM, encapsulating a multi-channel, looped audio stream
+ * vgmstream.h - internal definitions for VGMSTREAM, encapsulating a multi-channel, looped audio stream
  */
-#ifndef _VGMSTREAM_H
-#define _VGMSTREAM_H
+#ifndef _VGMSTREAM_H_
+#define _VGMSTREAM_H_
 
 /* Due mostly to licensing issues, Vorbis, MPEG, G.722.1, etc decoding is done by external libraries.
  * Libs are disabled by default, defined on compile-time for builds that support it */
@@ -23,15 +23,6 @@
 
 #include "streamfile.h"
 #include "vgmstream_types.h"
-
-#ifdef VGM_USE_MP4V2
-#define MP4V2_NO_STDINT_DEFS
-#include <mp4v2/mp4v2.h>
-#endif
-
-#ifdef VGM_USE_FDKAAC
-#include <aacdecoder_lib.h>
-#endif
 
 #include "coding/g72x_state.h"
 
@@ -265,26 +256,6 @@ typedef struct {
     int curr_layer;         /* helper */
 } layered_layout_data;
 
-
-#if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
-typedef struct {
-    STREAMFILE* streamfile;
-    uint64_t start;
-    uint64_t offset;
-    uint64_t size;
-} mp4_streamfile;
-
-typedef struct {
-    mp4_streamfile if_file;
-    MP4FileHandle h_mp4file;
-    MP4TrackId track_id;
-    unsigned long sampleId, numSamples;
-    UINT codec_init_data_size;
-    HANDLE_AACDECODER h_aacdecoder;
-    unsigned int sample_ptr, samples_per_frame, samples_discard;
-    INT_PCM sample_buffer[( (6) * (2048)*4 )];
-} mp4_aac_codec_data;
-#endif
 
 // VGMStream description in structure format
 typedef struct {
