@@ -167,6 +167,7 @@
     <ClInclude Include="meta\sscf_encrypted.h" />
     <ClInclude Include="meta\str_wav_streamfile.h" />
     <ClInclude Include="meta\txth_streamfile.h" />
+    <ClInclude Include="meta\txtp.h" />
     <ClInclude Include="meta\ubi_bao_streamfile.h" />
     <ClInclude Include="meta\ubi_ckd_cwav_streamfile.h" />
     <ClInclude Include="meta\ubi_lyn_streamfile.h" />
@@ -716,6 +717,8 @@
     <ClCompile Include="meta\tt_ad.c" />
     <ClCompile Include="meta\txth.c" />
     <ClCompile Include="meta\txtp.c" />
+    <ClCompile Include="meta\txtp_parser.c" />
+    <ClCompile Include="meta\txtp_process.c" />
     <ClCompile Include="meta\ubi_bao.c" />
     <ClCompile Include="meta\ubi_ckd.c" />
     <ClCompile Include="meta\ubi_ckd_cwav.c" />
