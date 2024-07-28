@@ -9,9 +9,9 @@ static void load_vgmstream(libvgmstream_priv_t* priv, libvgmstream_options_t* op
     if (!sf_api)
         return;
 
-    //TODO: handle format_internal_id
+    //TODO: handle internal format_id
     
-    sf_api->stream_index = opt->subsong;
+    sf_api->stream_index = opt->subsong_index;
     priv->vgmstream = init_vgmstream_from_STREAMFILE(sf_api);
     close_streamfile(sf_api);
 }
@@ -77,13 +77,15 @@ static void update_format_info(libvgmstream_priv_t* priv) {
     vgmstream_mixing_enable(v, 0, &fmt->input_channels, &fmt->channels);
     fmt->channel_layout = v->channel_layout;
 
-    fmt->sample_count = v->num_samples;
+    fmt->stream_samples = v->num_samples;
     fmt->loop_start = v->loop_start_sample;
     fmt->loop_end = v->loop_end_sample;
     fmt->loop_flag = v->loop_flag;
 
     fmt->play_forever = priv->pos.play_forever;
     fmt->play_samples = priv->pos.play_samples;
+
+    fmt->format_id = v->format_id;
 
     fmt->stream_bitrate = get_vgmstream_average_bitrate(v);
 
@@ -94,18 +96,16 @@ static void update_format_info(libvgmstream_priv_t* priv) {
     if (v->stream_name[0] != '\0') { //snprintf UB for NULL args
         snprintf(fmt->stream_name, sizeof(fmt->stream_name), "%s", v->stream_name);
     }
-
-    fmt->format_internal_id = 0; //TODO
 }
 
-LIBVGMSTREAM_API int libvgmstream_open(libvgmstream_t* lib, libvgmstream_options_t* opt) {
+LIBVGMSTREAM_API int libvgmstream_open_song(libvgmstream_t* lib, libvgmstream_options_t* opt) {
     if (!lib ||!lib->priv)
         return LIBVGMSTREAM_ERROR_GENERIC;
-    if (!opt || !opt->libsf || opt->subsong < 0)
+    if (!opt || !opt->libsf || opt->subsong_index < 0)
         return LIBVGMSTREAM_ERROR_GENERIC;
 
     // close loaded song if any + reset
-    libvgmstream_close(lib);
+    libvgmstream_close_song(lib);
 
     libvgmstream_priv_t* priv = lib->priv;
 
@@ -123,7 +123,7 @@ LIBVGMSTREAM_API int libvgmstream_open(libvgmstream_t* lib, libvgmstream_options
 }
 
 
-LIBVGMSTREAM_API void libvgmstream_close(libvgmstream_t* lib) {
+LIBVGMSTREAM_API void libvgmstream_close_song(libvgmstream_t* lib) {
     if (!lib || !lib->priv)
         return;
 

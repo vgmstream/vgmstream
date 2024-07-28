@@ -3,7 +3,7 @@
 #ifndef _LIBVGMSTREAM_H_
 #define _LIBVGMSTREAM_H_
 
-//#define LIBVGMSTREAM_ENABLE 1
+#define LIBVGMSTREAM_ENABLE 1
 #if LIBVGMSTREAM_ENABLE
 
 /* By default vgmstream behaves like a decoder (decode samples until stream end), but you can configure
@@ -21,7 +21,7 @@
  * Basic usage (also see api_example.c):
  *   - libvgmstream_init(...)       // base context
  *   - libvgmstream_setup(...)      // config if needed
- *   - libvgmstream_open(...)       // setup format
+ *   - libvgmstream_open_song(...)  // setup format
  *   - libvgmstream_play(...)       // main decode
  *   - output samples + repeat libvgmstream_play until stream is done
  *   - libvgmstream_free(...)       // cleanup
@@ -104,7 +104,7 @@ typedef struct {
     //int frame_size;                       // when file has some configurable frame size
 
     /* sample info (may not be used depending on config) */
-    int64_t sample_count;                   // file's max samples (not final play duration)
+    int64_t stream_samples;                 // file's max samples (not final play duration)
     int64_t loop_start;                     // loop start sample
     int64_t loop_end;                       // loop end sample
     bool loop_flag;                         // if file loops (false + defined loops means looping was forcefully disabled)
@@ -130,7 +130,7 @@ typedef struct {
     /* misc */
     //bool rough_samples;                   // signal cases where loop points or sample count can't exactly reflect actual behavior
 
-    int format_internal_id;                 // when reopening subfiles or similar formats without checking other all possible formats
+    int format_id;                          // when reopening subfiles or similar formats without checking other all possible formats
                                             // ** this value WILL change without warning between vgmstream versions/commits
 
 } libvgmstream_format_t;
@@ -202,10 +202,10 @@ typedef struct {
     libvgmstream_streamfile_t* libsf;       // custom IO streamfile that provides reader info for vgmstream
                                             // ** not needed after _open and should be closed, as vgmstream re-opens its own SFs internally as needed
 
-    int subsong;                            // target subsong (1..N) or 0 = default/first
+    int subsong_index;                      // target subsong (1..N) or 0 = default/first
                                             // ** to check if a file has subsongs, _open first + check format->total_subsongs (then _open 2nd, 3rd, etc)
 
-    int format_internal_id;                 // force a format (for example when loading new subsong of the same archive)
+    int format_id;                          // force a format (for example when loading new subsong of the same archive)
 
     int stereo_track;                       // forces vgmstream to decode one 2ch+2ch+2ch... 'track' and discard other channels, where 0 = disabled, 1..N = Nth track
 
@@ -215,11 +215,11 @@ typedef struct {
  * - returns < 0 on error (file not recognised, invalid subsong index, etc)
  * - will close currently loaded song if needed
  */
-LIBVGMSTREAM_API int libvgmstream_open(libvgmstream_t* lib, libvgmstream_options_t* open_options);
+LIBVGMSTREAM_API int libvgmstream_open_song(libvgmstream_t* lib, libvgmstream_options_t* open_options);
 
 /* Closes current song; may still use libvgmstream to open other songs
  */
-LIBVGMSTREAM_API void libvgmstream_close(libvgmstream_t* lib);
+LIBVGMSTREAM_API void libvgmstream_close_song(libvgmstream_t* lib);
 
 
 /* Decodes next batch of samples
