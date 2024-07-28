@@ -23,7 +23,7 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y libjansson-dev yasm libopus-dev
+        sudo apt-get install -y yasm libopus-dev
 
     - name: Create build environment
       # Some projects don't allow in-source building, so create a separate build directory
