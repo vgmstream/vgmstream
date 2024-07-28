@@ -5,7 +5,7 @@
 
 
 
-static void copy_time(int* dst_flag, int32_t* dst_time, double* dst_time_s, int* src_flag, int32_t* src_time, double* src_time_s) {
+static void copy_time(bool* dst_flag, int32_t* dst_time, double* dst_time_s, bool* src_flag, int32_t* src_time, double* src_time_s) {
     if (!*src_flag)
         return;
     *dst_flag = 1;

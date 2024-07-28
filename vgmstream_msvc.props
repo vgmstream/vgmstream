@@ -47,7 +47,7 @@
     <VWmpPreprocessorDefinitions>$(VCmnPreprocessorDefinitions);IN_VGMSTREAM_EXPORTS;VGM_WINAMP_UNICODE</VWmpPreprocessorDefinitions>
     <!-- link .lib -->
     <VCmnAdditionalDependencies32>../ext_libs/libvorbis.lib;../ext_libs/libmpg123-0.lib;../ext_libs/libg719_decode.lib;../ext_libs/avcodec.lib;../ext_libs/avformat.lib;../ext_libs/avutil.lib;../ext_libs/swresample.lib;../ext_libs/libatrac9.lib;../ext_libs/libcelt-0061.lib;../ext_libs/libcelt-0110.lib;../ext_libs/libspeex-1.lib</VCmnAdditionalDependencies32>
-    <VCliAdditionalDependencies32>$(VCmnAdditionalDependencies32);../ext_libs/jansson.lib</VCliAdditionalDependencies32>
+    <VCliAdditionalDependencies32>$(VCmnAdditionalDependencies32);</VCliAdditionalDependencies32>
     <VFooAdditionalDependencies32>$(VCmnAdditionalDependencies32);$(VCmnDependenciesDir)/foobar/foobar2000/shared/shared-Win32.lib</VFooAdditionalDependencies32>
     <VCmnAdditionalDependencies64>../ext_libs/dll-x64/libvorbis.lib;../ext_libs/dll-x64/libmpg123-0.lib;../ext_libs/dll-x64/libg719_decode.lib;../ext_libs/dll-x64/avcodec.lib;../ext_libs/dll-x64/avformat.lib;../ext_libs/dll-x64/avutil.lib;../ext_libs/dll-x64/swresample.lib;../ext_libs/dll-x64/libatrac9.lib;../ext_libs/dll-x64/libcelt-0061.lib;../ext_libs/dll-x64/libcelt-0110.lib;../ext_libs/dll-x64/libspeex-1.lib</VCmnAdditionalDependencies64>
     <VCliAdditionalDependencies64>$(VCmnAdditionalDependencies64)</VCliAdditionalDependencies64>

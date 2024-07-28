@@ -4,6 +4,7 @@
 #include "../streamtypes.h"
 #include "../vgmstream.h"
 #include "../util/reader_sf.h"
+#include "../util/log.h"
 
 /* blocked layouts */
 void render_vgmstream_blocked(sample_t* buffer, int32_t sample_count, VGMSTREAM* vgmstream);

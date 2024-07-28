@@ -81,11 +81,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="api.h" />
-    <ClInclude Include="api_decode.h" />
-    <ClInclude Include="api_helpers.h" />
-    <ClInclude Include="api_streamfile.h" />
-    <ClInclude Include="api_tags.h" />
-    <ClInclude Include="api_version.h" />
+    <ClInclude Include="libvgmstream.h" />
+    <ClInclude Include="libvgmstream_streamfile.h" />
     <ClInclude Include="streamfile.h" />
     <ClInclude Include="streamtypes.h" />
     <ClInclude Include="util.h" />
@@ -170,6 +167,7 @@
     <ClInclude Include="meta\sscf_encrypted.h" />
     <ClInclude Include="meta\str_wav_streamfile.h" />
     <ClInclude Include="meta\txth_streamfile.h" />
+    <ClInclude Include="meta\txtp.h" />
     <ClInclude Include="meta\ubi_bao_streamfile.h" />
     <ClInclude Include="meta\ubi_ckd_cwav_streamfile.h" />
     <ClInclude Include="meta\ubi_lyn_streamfile.h" />
@@ -719,6 +717,8 @@
     <ClCompile Include="meta\tt_ad.c" />
     <ClCompile Include="meta\txth.c" />
     <ClCompile Include="meta\txtp.c" />
+    <ClCompile Include="meta\txtp_parser.c" />
+    <ClCompile Include="meta\txtp_process.c" />
     <ClCompile Include="meta\ubi_bao.c" />
     <ClCompile Include="meta\ubi_ckd.c" />
     <ClCompile Include="meta\ubi_ckd_cwav.c" />

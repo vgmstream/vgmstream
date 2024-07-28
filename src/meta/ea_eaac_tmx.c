@@ -16,7 +16,7 @@ VGMSTREAM* init_vgmstream_ea_tmx(STREAMFILE* sf) {
     if (is_id32be(0x0c, sf, "0001")) {
         read_u32 = read_u32be;
     }
-    else if (is_id32le(0x0c, sf, "1000")) {
+    else if (is_id32le(0x0c, sf, "0001")) {
         read_u32 = read_u32le;
     }
     else {

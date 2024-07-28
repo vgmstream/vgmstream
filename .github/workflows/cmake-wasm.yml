@@ -49,13 +49,6 @@ jobs:
           ${{runner.workspace}}/embuild/dependencies/ffmpeg/bin/usr/local/lib
         key: wasm-ffmpeg-${{ hashFiles('cmake/dependencies/ffmpeg.cmake') }}
 
-    - name: Cache jansson
-      uses: actions/cache@v4
-      with:
-        path: |
-          ${{runner.workspace}}/embuild/dependencies/jansson/src/.libs
-        key: wasm-jansson-${{ hashFiles('cmake/dependencies/jansson.cmake') }}
-
     - name: Cache atrac9
       uses: actions/cache@v4
       with:

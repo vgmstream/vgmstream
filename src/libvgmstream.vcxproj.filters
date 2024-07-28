@@ -77,19 +77,10 @@
     <ClInclude Include="api.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="api_decode.h">
+    <ClInclude Include="libvgmstream.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="api_helpers.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="api_streamfile.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="api_tags.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="api_version.h">
+    <ClInclude Include="libvgmstream_streamfile.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="streamfile.h">
@@ -342,6 +333,9 @@
       <Filter>meta\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="meta\txth_streamfile.h">
+      <Filter>meta\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="meta\txtp.h">
       <Filter>meta\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="meta\ubi_bao_streamfile.h">
@@ -1985,6 +1979,12 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\txtp.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\txtp_parser.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\txtp_process.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ubi_bao.c">

@@ -94,11 +94,6 @@
       <Command>lib /def:libspeex-1.def /machine:x86 /out:libspeex-1.lib</Command>
       <Outputs>libspeex-1.lib;libspeex-1.exp;%(Outputs)</Outputs>
     </CustomBuild>
-    <CustomBuild Include="jansson.def">
-      <Message>Building library stub</Message>
-      <Command>lib /def:jansson.def /machine:x86 /out:jansson.lib</Command>
-      <Outputs>jansson.lib;jansson.exp;%(Outputs)</Outputs>
-    </CustomBuild>
   </ItemGroup>
   <ItemGroup Condition="'$(Platform)'=='x64'">
     <CustomBuild Include="libmpg123-0.def">
