@@ -6,10 +6,7 @@
 #include "../src/api.h"
 #include "../src/vgmstream.h"
 
-//todo use <>?
-#ifdef HAVE_JSON
-#include "jansson/jansson.h"
-#endif
+#include "vjson.h"
 
 
 static void clean_filename(char* dst, int clean_paths) {
@@ -191,114 +188,106 @@ void print_title(VGMSTREAM* vgmstream, cli_config_t* cfg) {
     printf("title: %s\n", title);
 }
 
-#ifdef HAVE_JSON
 void print_json_version(const char* vgmstream_version) {
-    size_t extension_list_len;
-    size_t common_extension_list_len;
+    size_t extension_list_len = 0;
     const char** extension_list;
-    const char** common_extension_list;
-    extension_list = vgmstream_get_formats(&extension_list_len);
-    common_extension_list = vgmstream_get_common_formats(&common_extension_list_len);
 
-    json_t* ext_list = json_array();
-    json_t* cext_list = json_array();
+    vjson_t j = {0};
 
-    for (size_t i = 0; i < extension_list_len; ++i) {
-        json_t* ext = json_string(extension_list[i]);
-        json_array_append(ext_list, ext);
-    }
+    char buf[0x4000]; // exts need ~0x1400
+    vjson_init(&j, buf, sizeof(buf));
 
-    for (size_t i = 0; i < common_extension_list_len; ++i) {
-        json_t* cext = json_string(common_extension_list[i]);
-        json_array_append(cext_list, cext);
-    }
+    vjson_obj_open(&j);
+        vjson_keystr(&j, "version", vgmstream_version);
 
-    json_t* version_string = json_string(vgmstream_version);
+        vjson_key(&j, "extensions");
+        vjson_obj_open(&j);
 
-    json_t* final_object = json_object();
-    json_object_set(final_object, "version", version_string);
-    json_decref(version_string);
+            vjson_key(&j, "vgm");
+            vjson_arr_open(&j);
+            extension_list = vgmstream_get_formats(&extension_list_len);
+            for (int i = 0; i < extension_list_len; i++) {
+                vjson_str(&j, extension_list[i]);
+            }
+            vjson_arr_close(&j);
 
-    json_object_set(final_object, "extensions",
-                    json_pack("{soso}",
-                              "vgm", ext_list,
-                              "common", cext_list));
+            vjson_key(&j, "common");
+            vjson_arr_open(&j);
+            extension_list = vgmstream_get_common_formats(&extension_list_len);
+            for (int i = 0; i < extension_list_len; i++) {
+                vjson_str(&j, extension_list[i]);
+            }
+            vjson_arr_close(&j);
 
-    json_dumpf(final_object, stdout, JSON_COMPACT);
+        vjson_obj_close(&j);
+    vjson_obj_close(&j);
+
+    printf("%s\n", buf);
 }
 
 void print_json_info(VGMSTREAM* vgm, cli_config_t* cfg, const char* vgmstream_version) {
-    json_t* version_string = json_string(vgmstream_version);
+    char buf[0x1000]; // probably fine with ~0x400
+    vjson_t j = {0};
+    vjson_init(&j, buf, sizeof(buf));
+
     vgmstream_info info;
     describe_vgmstream_info(vgm, &info);
+    
+    vjson_obj_open(&j);
+        vjson_keystr(&j, "version", vgmstream_version);
+        vjson_keyint(&j, "sampleRate", info.sample_rate);
+        vjson_keyint(&j, "channels", info.channels);
 
-    json_t* mixing_info = NULL;
+        vjson_key(&j, "mixingInfo");
+        if (info.mixing_info.input_channels > 0) {
+            vjson_obj_open(&j);
+                vjson_keyint(&j, "inputChannels", info.mixing_info.input_channels);
+                vjson_keyint(&j, "outputChannels", info.mixing_info.output_channels);
+            vjson_obj_close(&j);
+        }
+        else {
+            vjson_null(&j);
+        }
 
-    // The JSON pack format string is defined here: https://jansson.readthedocs.io/en/latest/apiref.html#building-values
+        vjson_keyintnull(&j, "channelLayout", info.channel_layout);
 
-    if (info.mixing_info.input_channels > 0) {
-        mixing_info = json_pack("{sisi}",
-            "inputChannels", info.mixing_info.input_channels,
-            "outputChannels", info.mixing_info.output_channels);
-    }
+        vjson_key(&j, "loopingInfo");
+        if (info.loop_info.end > info.loop_info.start) {
+            vjson_obj_open(&j);
+                vjson_keyint(&j, "start", info.loop_info.start);
+                vjson_keyint(&j, "end", info.loop_info.start);
+            vjson_obj_close(&j);
+        }
+        else {
+            vjson_null(&j);
+        }
 
-    json_t* loop_info = NULL;
+        vjson_key(&j, "interleaveInfo");
+        if (info.interleave_info.last_block > info.interleave_info.first_block) {
+            vjson_obj_open(&j);
+                vjson_keyint(&j, "firstBlock", info.interleave_info.last_block);
+                vjson_keyint(&j, "lastBlock", info.interleave_info.first_block);
+            vjson_obj_close(&j);
+        }
+        else {
+            vjson_null(&j);
+        }
 
-    if (info.loop_info.end > info.loop_info.start) {
-        loop_info = json_pack("{sisi}",
-            "start", info.loop_info.start,
-            "end", info.loop_info.end);
-    }
+        vjson_keyint(&j, "numberOfSamples", info.num_samples);
+        vjson_keystr(&j, "encoding", info.encoding);
+        vjson_keystr(&j, "layout", info.layout);
+        vjson_keyintnull(&j, "frameSize", info.frame_size);
+        vjson_keystr(&j, "metadataSource", info.metadata);
+        vjson_keyint(&j, "bitrate", info.bitrate);
 
-    json_t* interleave_info = NULL;
+        vjson_key(&j, "streamInfo");
+        vjson_obj_open(&j);
+            vjson_keyint(&j, "index", info.stream_info.current);
+            vjson_keystr(&j, "name", info.stream_info.name);
+            vjson_keyint(&j, "total", info.stream_info.total);
+        vjson_obj_close(&j);
 
-    if (info.interleave_info.last_block > info.interleave_info.first_block) {
-        interleave_info = json_pack("{sisi}",
-            "firstBlock", info.interleave_info.first_block,
-            "lastBlock", info.interleave_info.last_block
-        );
-    }
+    vjson_obj_close(&j);
 
-    json_t* stream_info = json_pack("{sisssi}",
-        "index", info.stream_info.current,
-        "name", info.stream_info.name,
-        "total", info.stream_info.total
-    );
-
-    if (info.stream_info.name[0] == '\0') {
-        json_object_set(stream_info, "name", json_null());
-    }
-
-    json_t* final_object = json_pack(
-        "{sssisiso?siso?so?sisssssisssiso?}",
-        "version", version_string,
-        "sampleRate", info.sample_rate,
-        "channels", info.channels,
-        "mixingInfo", mixing_info,
-        "channelLayout", info.channel_layout,
-        "loopingInfo", loop_info,
-        "interleaveInfo", interleave_info,
-        "numberOfSamples", info.num_samples,
-        "encoding", info.encoding,
-        "layout", info.layout,
-        "frameSize", info.frame_size,
-        "metadataSource", info.metadata,
-        "bitrate", info.bitrate,
-        "streamInfo", stream_info
-    );
-
-    if (info.frame_size == 0) {
-        json_object_set(final_object, "frameSize", json_null());
-    }
-
-    if (info.channel_layout == 0) {
-        json_object_set(final_object, "channelLayout", json_null());
-    }
-
-    json_dumpf(final_object, stdout, JSON_COMPACT);
-
-    json_decref(final_object);
-
-    printf("\n");
+    printf("%s\n", buf);
 }
-#endif

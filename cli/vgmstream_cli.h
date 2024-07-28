@@ -1,5 +1,5 @@
-#ifndef _VGMSTREAM_CLI_H
-#define _VGMSTREAM_CLI_H
+#ifndef _VGMSTREAM_CLI_H_
+#define _VGMSTREAM_CLI_H_
 
 #include "../src/api.h"
 #include "../src/vgmstream.h"
@@ -43,9 +43,7 @@ typedef struct {
     bool print_oggenc;
     bool print_batchvar;
     bool print_title;
-#ifdef HAVE_JSON
     bool print_metajson;
-#endif
     const char* tag_filename;
 
     // debug stuff
@@ -69,10 +67,8 @@ void print_info(VGMSTREAM* vgmstream, cli_config_t* cfg);
 void print_tags(cli_config_t* cfg);
 void print_title(VGMSTREAM* vgmstream, cli_config_t* cfg);
 
-#ifdef HAVE_JSON
 void print_json_version(const char* vgmstream_version);
 void print_json_info(VGMSTREAM* vgm, cli_config_t* cfg, const char* vgmstream_version);
-#endif
 
 
 #endif
