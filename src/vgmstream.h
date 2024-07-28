@@ -177,7 +177,7 @@ typedef struct {
 
     /* other config */
     bool allow_dual_stereo;         /* search for dual stereo (file_L.ext + file_R.ext = single stereo file) */
-
+    int format_id;                  /* internal format ID */
 
     /* layout/block state */
     size_t full_block_size;         /* actual data size of an entire block (ie. may be fixed, include padding/headers, etc) */

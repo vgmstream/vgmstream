@@ -16,7 +16,7 @@
 #include "util/sf_utils.h"
 
 
-static void try_dual_file_stereo(VGMSTREAM* opened_vgmstream, STREAMFILE* sf, int format_id);
+static void try_dual_file_stereo(VGMSTREAM* opened_vgmstream, STREAMFILE* sf);
 
 
 /*****************************************************************************/
@@ -39,7 +39,7 @@ VGMSTREAM* init_vgmstream_from_STREAMFILE(STREAMFILE* sf) {
 }
 
 
-bool prepare_vgmstream(VGMSTREAM* vgmstream, STREAMFILE* sf, int format_id) {
+bool prepare_vgmstream(VGMSTREAM* vgmstream, STREAMFILE* sf) {
 
     /* fail if there is nothing/too much to play (<=0 generates empty files, >N writes GBs of garbage) */
     if (vgmstream->num_samples <= 0 || vgmstream->num_samples > VGMSTREAM_MAX_NUM_SAMPLES) {
@@ -68,7 +68,7 @@ bool prepare_vgmstream(VGMSTREAM* vgmstream, STREAMFILE* sf, int format_id) {
 
     /* test if candidate for dual stereo */
     if (vgmstream->channels == 1 && vgmstream->allow_dual_stereo == 1) {
-        try_dual_file_stereo(vgmstream, sf, format_id);
+        try_dual_file_stereo(vgmstream, sf);
     }
 
 
@@ -428,7 +428,7 @@ fail:
 
 /* See if there is a second file which may be the second channel, given an already opened mono vgmstream.
  * If a suitable file is found, open it and change opened_vgmstream to a stereo vgmstream. */
-static void try_dual_file_stereo(VGMSTREAM* opened_vgmstream, STREAMFILE* sf, int format_id) {
+static void try_dual_file_stereo(VGMSTREAM* opened_vgmstream, STREAMFILE* sf) {
     /* filename search pairs for dual file stereo */
     static const char* const dfs_pairs[][2] = {
         {"L","R"}, /* most common in .dsp and .vag */
@@ -516,7 +516,7 @@ static void try_dual_file_stereo(VGMSTREAM* opened_vgmstream, STREAMFILE* sf, in
         return;
     //;VGM_LOG("DFS: match %i filename=%s\n", dfs_pair, new_filename);
 
-    init_vgmstream_t init_vgmstream_function = get_vgmstream_format_init(format_id);
+    init_vgmstream_t init_vgmstream_function = get_vgmstream_format_init(opened_vgmstream->format_id);
     if (init_vgmstream_function == NULL)
         goto fail;
 

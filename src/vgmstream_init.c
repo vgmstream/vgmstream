@@ -572,10 +572,10 @@ VGMSTREAM* detect_vgmstream_format(STREAMFILE* sf) {
         if (!vgmstream)
             continue;
 
-        int format_id = i + 1;
+        vgmstream->format_id = i + 1;
 
         /* validate + setup vgmstream */
-        if (!prepare_vgmstream(vgmstream, sf, format_id)) {
+        if (!prepare_vgmstream(vgmstream, sf)) {
             /* keep trying if wasn't valid, as simpler formats may return a vgmstream by mistake */
             close_vgmstream(vgmstream);
             continue;
