@@ -4,6 +4,7 @@
 #include "../src/api.h"
 #include "../src/vgmstream.h"
 
+#define CLI_PATH_LIMIT 4096
 
 typedef struct {
     char** infilenames;

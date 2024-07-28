@@ -1,5 +1,8 @@
-#include "vgmstream_cli.h"
+#include <string.h>
+#include <inttypes.h>
+#include <stdio.h>
 
+#include "vgmstream_cli.h"
 #include "../src/api.h"
 #include "../src/vgmstream.h"
 
@@ -23,9 +26,9 @@ static void clean_filename(char* dst, int clean_paths) {
  * ("?" was chosen since it's not a valid Windows filename char and hopefully nobody uses it on Linux) */
 void replace_filename(char* dst, size_t dstsize, cli_config_t* cfg, VGMSTREAM* vgmstream) {
     int subsong;
-    char stream_name[PATH_LIMIT];
-    char buf[PATH_LIMIT];
-    char tmp[PATH_LIMIT];
+    char stream_name[CLI_PATH_LIMIT];
+    char buf[CLI_PATH_LIMIT];
+    char tmp[CLI_PATH_LIMIT];
 
 
     /* file has a "%" > temp replace for sprintf */
@@ -100,29 +103,34 @@ void replace_filename(char* dst, size_t dstsize, cli_config_t* cfg, VGMSTREAM* v
 
 void print_info(VGMSTREAM* vgmstream, cli_config_t* cfg) {
     int channels = vgmstream->channels;
+    int64_t num_samples = vgmstream->num_samples;
+    bool loop_flag = vgmstream->loop_flag;
+    int64_t loop_start = vgmstream->loop_start_sample;
+    int64_t loop_end = vgmstream->loop_start_sample;
+
     if (!cfg->play_sdtout) {
         if (cfg->print_adxencd) {
             printf("adxencd");
             if (!cfg->print_metaonly)
-                printf(" \"%s\"",cfg->outfilename);
-            if (vgmstream->loop_flag)
-                printf(" -lps%d -lpe%d", vgmstream->loop_start_sample, vgmstream->loop_end_sample);
+                printf(" \"%s\"", cfg->outfilename);
+            if (loop_flag)
+                printf(" -lps%"PRId64" -lpe%"PRId64, loop_start, loop_end);
             printf("\n");
         }
         else if (cfg->print_oggenc) {
             printf("oggenc");
             if (!cfg->print_metaonly)
                 printf(" \"%s\"", cfg->outfilename);
-            if (vgmstream->loop_flag)
-                printf(" -c LOOPSTART=%d -c LOOPLENGTH=%d", vgmstream->loop_start_sample, vgmstream->loop_end_sample-vgmstream->loop_start_sample);
+            if (loop_flag)
+                printf(" -c LOOPSTART=%"PRId64" -c LOOPLENGTH=%"PRId64, loop_start, loop_end - loop_start);
             printf("\n");
         }
         else if (cfg->print_batchvar) {
             if (!cfg->print_metaonly)
                 printf("set fname=\"%s\"\n", cfg->outfilename);
-            printf("set tsamp=%d\nset chan=%d\n", vgmstream->num_samples, channels);
-            if (vgmstream->loop_flag)
-                printf("set lstart=%d\nset lend=%d\nset loop=1\n", vgmstream->loop_start_sample, vgmstream->loop_end_sample);
+            printf("set tsamp=%"PRId64"\nset chan=%d\n", num_samples, channels);
+            if (loop_flag)
+                printf("set lstart=%"PRId64"\nset lend=%"PRId64"\nset loop=1\n", loop_start, loop_end);
             else
                 printf("set loop=0\n");
         }
