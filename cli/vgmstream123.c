@@ -868,7 +868,7 @@ again_opts:
                 verbose = 1;
                 break;
             default:
-                VGM_LOG("vgmstream123: unknown opt %x", opt);
+                printf("vgmstream123: unknown opt %x", opt);
                 goto done;
         }
     }
