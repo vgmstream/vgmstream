@@ -1,18 +1,13 @@
-#ifndef _API_STREAMFILE_H_
-#define _API_STREAMFILE_H_
-#include "api.h"
+#ifndef _LIBVGMSTREAM_STREAMFILE_H_
+#define _LIBVGMSTREAM_STREAMFILE_H_
+#include "libvgmstream.h"
 #if LIBVGMSTREAM_ENABLE
 
 /* vgmstream's IO API, defined as a "streamfile" (SF).
  * 
- * Compared to typical IO, vgmstream has some extra needs that roughly assume there is an underlying filesystem (as usual in games):
- * - seeking + reading from arbitrary offsets: header not in the beginning of a stream, rewinding back when looping, etc
- * - opening other streamfiles: reopening a copy of the current SF, formats with split header + data, decryption files, etc
- * - extracting the filename: opening similarly named companion files, basic extension sanity checks, heuristics for odd cases, etc
- * 
- * If your IO can't fully satisfy those constraints, it may still be possible to create a streamfile that just simulates part of it.
- * For example, returning a fake filename, and only handling "open" that reopens itself (same filename), while returning default/incorrect
- * values for non-handled operations. Simpler formats will probably work just fine.
+ * vgmstream roughly assumes there is an underlying filesystem (as usual in games): seeking + reading from arbitrary offsets,
+ * opening companion files, filename tests, etc. If your case is too different you may still create a partial streamfile: returning
+ * a fake filename, only handling "open" that reopens itself (same filename), etc. Simpler formats will probably work just fine.
  */
 
 
@@ -28,26 +23,26 @@ typedef struct libvgmstream_streamfile_t {
     //uint32_t flags;   // info flags for vgmstream
     void* user_data;    // any internal structure
 
-    /* read 'length' data at internal offset to 'dst' (implicit seek if needed)
-     * - assumes 0 = failure/EOF 
+    /* read 'length' data at internal offset to 'dst'
+     * - assumes 0 = failure/EOF
      */
     int (*read)(void* user_data, uint8_t* dst, int dst_size);
 
     /* seek to offset
-     * - note that due to how vgmstream works this is a fairly common operation (to be optimized later)
+     * - note that vgmstream needs to seek + read fairly often (to be optimized later)
      */
     int64_t (*seek)(void* user_data, int64_t offset, int whence);
 
-    /* get max offset
+    /* get max offset (typically for checks or calculations)
      */
     int64_t (*get_size)(void* user_data);
 
-    /* get current filename
+    /* get current filename (used to open same or other streamfiles and heuristics; no need to be a real path)
      */
     const char* (*get_name)(void* user_data);
 
     /* open another streamfile from filename (may be some path/protocol, or same as current get_name = reopen)
-     * - vgmstream mainly opens stuff based on current get_name (relative), so there shouldn't be need to transform this path
+     * - vgmstream opens stuff based on current get_name (relative), so there shouldn't be need to transform this path
      */
     struct libvgmstream_streamfile_t* (*open)(void* user_data, const char* filename);
 

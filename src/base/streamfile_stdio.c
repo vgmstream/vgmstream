@@ -10,6 +10,9 @@
     #include <unistd.h>
 #endif
 
+// for testing purposes; generally slower since reads often aren't optimized for unbuffered IO
+//#define DISABLE_BUFFER
+
 /* Enables a minor optimization when reopening file descriptors.
  * Some systems/compilers have issues though, and dupe'd FILEs may fread garbage data in rare cases,
  * possibly due to underlying buffers that get shared/thrashed by dup(). Seen for example in some .HPS and Ubi
@@ -101,6 +104,15 @@ static size_t stdio_read(STDIO_STREAMFILE* sf, uint8_t* dst, offv_t offset, size
     if (/*!sf->infile ||*/ !dst || length <= 0 || offset < 0)
         return 0;
 
+#ifdef DISABLE_BUFFER
+    if (offset != sf->offset) {
+        fseek_v(sf->infile, offset, SEEK_SET);
+    }
+    read_total = fread(dst, sizeof(uint8_t), length, sf->infile);
+
+    sf->offset = offset + read_total;
+    return read_total;
+#else
     //;VGM_LOG("stdio: read %lx + %x (buf %lx + %x)\n", offset, length, sf->buf_offset, sf->valid_size, sf->buf_size);
 
     /* is the part of the requested length in the buffer? */
@@ -183,6 +195,7 @@ static size_t stdio_read(STDIO_STREAMFILE* sf, uint8_t* dst, offv_t offset, size
 
     sf->offset = offset; /* last fread offset */
     return read_total;
+#endif
 }
 
 static size_t stdio_get_size(STDIO_STREAMFILE* sf) {

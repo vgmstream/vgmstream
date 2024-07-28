@@ -84,8 +84,6 @@ sudo apt-get install -y libmpg123-dev libvorbis-dev libspeex-dev
 sudo apt-get install -y libavformat-dev libavcodec-dev libavutil-dev libswresample-dev
 # for vgmstream123 and audacious
 sudo apt-get install -y libao-dev audacious-dev
-# for JSON dumping
-sudo apt-get install -y libjansson-dev
 # for static builds
 sudo apt-get install -y yasm libopus-dev
 # actual cmake
@@ -137,8 +135,6 @@ The following option is currently only available for **Windows**:
 - **USE_CELT**: Chooses if you wish to use libcelt for support of FSB CELT versions 0.6.1 and 0.11.0. The default is `ON`.
 
 The following option is only available for **\*nix-based OSes**:
-
-- **USE_JANSSON**: Chooses if you wish to use libjansson for support of JSON dumping capabilities. The default is `ON`.
 
 #### Build Options
 

@@ -3,6 +3,7 @@
  */
 #define POSIXLY_CORRECT
 
+#include <stdio.h>
 #include <getopt.h>
  
 #ifdef WIN32
@@ -65,10 +66,8 @@ static void print_usage(const char* progname, bool is_help) {
             "    -c: loop forever (continuously) to stdout\n"
             "    -L: append a smpl chunk and create a looping wav\n"
           //"    -w: allow .wav in original sample format rather than downmixing to PCM16\n"
-#ifdef HAVE_JSON
             "    -V: print version info and supported extensions as JSON\n"
             "    -I: print requested file info as JSON\n"
-#endif
             "    -h: print all commands\n"
             , progname);
 
@@ -109,11 +108,7 @@ static bool parse_config(cli_config_t* cfg, int argc, char** argv) {
     optind = 1; /* reset getopt's ugly globals (needed in wasm that may call same main() multiple times) */
 
     /* read config */
-    while ((opt = getopt(argc, argv, "o:l:f:d:ipPcmxeLEFrgb2:s:tTk:K:hOvD:S:B:"
-#ifdef HAVE_JSON
-        "VI"
-#endif
-    )) != -1) {
+    while ((opt = getopt(argc, argv, "o:l:f:d:ipPcmxeLEFrgb2:s:tTk:K:hOvD:S:B:VI")) != -1) {
         switch (opt) {
             case 'o':
                 cfg->outfilename = optarg;
@@ -228,14 +223,12 @@ static bool parse_config(cli_config_t* cfg, int argc, char** argv) {
             case 'h':
                 print_usage(argv[0], true);
                 goto fail;
-#ifdef HAVE_JSON
             case 'V':
                 print_json_version(VGMSTREAM_VERSION);
                 goto fail;
             case 'I':
                 cfg->print_metajson = true;
                 break;
-#endif
             case '?':
                 fprintf(stderr, "missing argument or unknown option -%c\n", optopt);
                 goto fail;
@@ -458,10 +451,48 @@ static bool is_valid_extension(cli_config_t* cfg) {
     return vgmstream_ctx_is_valid(cfg->infilename, &vcfg);
 }
 
+static VGMSTREAM* open_vgmstream(cli_config_t* cfg) {
+    STREAMFILE* sf = NULL;
+    VGMSTREAM* vgmstream = NULL;
+    
+    sf = open_stdio_streamfile(cfg->infilename);
+    if (!sf) {
+        fprintf(stderr, "file %s not found\n", cfg->infilename);
+        return NULL;
+    }
+
+    sf->stream_index = cfg->subsong_index;
+    vgmstream = init_vgmstream_from_STREAMFILE(sf);
+
+    if (!vgmstream) {
+        fprintf(stderr, "failed opening %s\n", cfg->infilename);
+        goto fail;
+    }
+
+    /* modify the VGMSTREAM if needed (before printing file info) */
+    apply_config(vgmstream, cfg);
+
+    /* enable after config but before outbuf */
+    if (cfg->downmix_channels) {
+        vgmstream_mixing_autodownmix(vgmstream, cfg->downmix_channels);
+    }
+    else if (cfg->stereo_track > 0) {
+        vgmstream_mixing_stereo_only(vgmstream, cfg->stereo_track - 1);
+    }
+    vgmstream_mixing_enable(vgmstream, cfg->sample_buffer_size, NULL, NULL);
+
+
+    close_streamfile(sf);
+    return vgmstream;
+fail:
+    close_streamfile(sf);
+    close_vgmstream(vgmstream);
+    return NULL;
+}
 
 static bool convert_file(cli_config_t* cfg) {
     VGMSTREAM* vgmstream = NULL;
-    char outfilename_temp[PATH_LIMIT];
+    char outfilename_temp[CLI_PATH_LIMIT];
     int32_t len_samples;
 
 
@@ -470,40 +501,14 @@ static bool convert_file(cli_config_t* cfg) {
         return false;
 
     /* open streamfile and pass subsong */
-    {
-        STREAMFILE* sf = open_stdio_streamfile(cfg->infilename);
-        if (!sf) {
-            fprintf(stderr, "file %s not found\n", cfg->infilename);
-            goto fail;
-        }
+    vgmstream = open_vgmstream(cfg);
+    if (!vgmstream) goto fail;
 
-        sf->stream_index = cfg->subsong_index;
-        vgmstream = init_vgmstream_from_STREAMFILE(sf);
-        close_streamfile(sf);
-
-        if (!vgmstream) {
-            fprintf(stderr, "failed opening %s\n", cfg->infilename);
-            goto fail;
-        }
-
-        /* force load total subsongs if signalled */
-        if (cfg->subsong_end == -1) {
-            cfg->subsong_end = vgmstream->num_streams;
-            close_vgmstream(vgmstream);
-            return true;
-        }
-
-        /* modify the VGMSTREAM if needed (before printing file info) */
-        apply_config(vgmstream, cfg);
-
-        /* enable after config but before outbuf */
-        if (cfg->downmix_channels) {
-            vgmstream_mixing_autodownmix(vgmstream, cfg->downmix_channels);
-        }
-        else if (cfg->stereo_track > 0) {
-            vgmstream_mixing_stereo_only(vgmstream, cfg->stereo_track - 1);
-        }
-        vgmstream_mixing_enable(vgmstream, cfg->sample_buffer_size, NULL, NULL);
+    /* force load total subsongs if signalled */
+    if (cfg->subsong_end == -1) {
+        cfg->subsong_end = vgmstream->num_streams;
+        close_vgmstream(vgmstream);
+        return true;
     }
 
 
@@ -567,18 +572,14 @@ static bool convert_file(cli_config_t* cfg) {
 
 
     /* prints */
-#ifdef HAVE_JSON
     if (!cfg->print_metajson) {
-#endif
         print_info(vgmstream, cfg);
         print_tags(cfg);
         print_title(vgmstream, cfg);
-#ifdef HAVE_JSON
     }
     else {
         print_json_info(vgmstream, cfg, VGMSTREAM_VERSION);
     }
-#endif
 
     /* prints done */
     if (cfg->print_metaonly) {
@@ -593,7 +594,7 @@ static bool convert_file(cli_config_t* cfg) {
     /* try again with reset (for testing, simulates a seek to 0 after changing internal state)
      * (could simulate by seeking to last sample then to 0, too) */
     if (cfg->test_reset) {
-        char outfilename_reset[PATH_LIMIT];
+        char outfilename_reset[CLI_PATH_LIMIT];
         snprintf(outfilename_reset, sizeof(outfilename_reset), "%s.reset.wav", cfg->outfilename);
 
         cfg->outfilename = outfilename_reset;
@@ -653,14 +654,15 @@ int main(int argc, char** argv) {
     bool res, ok;
 
 
+    vgmstream_set_log_stdout(VGM_LOG_LEVEL_ALL);
+
+
     /* read args */
     res = parse_config(&cfg, argc, argv);
     if (!res) goto fail;
 
     res = validate_config(&cfg);
     if (!res) goto fail;
-
-    vgmstream_set_log_stdout(VGM_LOG_LEVEL_ALL);
 
 #ifdef WIN32
     /* make stdout output work with windows */

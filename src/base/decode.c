@@ -188,7 +188,7 @@ void decode_seek(VGMSTREAM* vgmstream) {
 
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
     if (vgmstream->coding_type == coding_MP4_AAC) {
-        seek_mp4_aac(vgmstream, vgmstream->loop_sample);
+        seek_mp4_aac(vgmstream, vgmstream->loop_current_sample);
     }
 #endif
 
@@ -560,7 +560,7 @@ int decode_get_samples_per_frame(VGMSTREAM* vgmstream) {
             return 0; /* ~100 (range), ~16 (DCT) */
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
         case coding_MP4_AAC:
-            return ((mp4_aac_codec_data*)vgmstream->codec_data)->samples_per_frame;
+            return mp4_get_samples_per_frame(vgmstream->codec_data);
 #endif
 #ifdef VGM_USE_ATRAC9
         case coding_ATRAC9:

@@ -228,7 +228,7 @@ $fb2kFiles64 = @(
 )
 
 $fb2kFiles_remove = @(
-    "bin/foobar2000/jansson.dll"
+    "bin/foobar2000/xxxx.dll"
 )
 
 $cliPdbFiles32 = @(

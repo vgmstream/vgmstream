@@ -1,10 +1,11 @@
-#include "../src/api.h"
+#include "../src/libvgmstream.h"
 #if LIBVGMSTREAM_ENABLE
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
 
 #include "../src/base/api_internal.h"
+#include "../src/streamfile.h"
 
 
 static void usage(const char* progname) {
@@ -29,14 +30,14 @@ static libvgmstream_streamfile_t* get_streamfile(const char* filename) {
 }
 
 static int api_example(const char* infile) {
-VGM_STEP();
+    VGM_STEP();
     int err;
     FILE* outfile = NULL;
     
-    bool fill_test;
-    int pcm16_samples;
-    int pcm16_bytes;
-    short* pcm16 = NULL;
+    bool fill_test = true;
+    int fill_pcm16_samples;
+    int fill_pcm16_bytes;
+    short* fill_pcm16 = NULL;
 
 
     // main init
@@ -49,6 +50,7 @@ VGM_STEP();
         //.loop_count = 1.0,
         //.fade_time = 10.0,
         .ignore_loop = true,
+        .force_pcm16 = fill_test,
     };
     libvgmstream_setup(lib, &cfg);
 
@@ -57,7 +59,7 @@ VGM_STEP();
     libvgmstream_options_t opt = {
         .libsf = get_streamfile(infile)
     };
-    err = libvgmstream_open(lib, &opt);
+    err = libvgmstream_open_song(lib, &opt);
     // external SF is not needed after _open
     libvgmstream_streamfile_close(opt.libsf); 
 
@@ -94,33 +96,28 @@ VGM_STEP();
     printf("channels: %i\n", lib->format->channels);
     printf("sample rate: %i\n", lib->format->sample_rate);
     printf("codec: %s\n", lib->format->codec_name);
-    printf("samples: %i\n", (int32_t)lib->format->sample_count);
+    printf("samples: %i\n", (int32_t)lib->format->stream_samples);
     printf("\n");
+
     printf("- decoding: %i\n" , (int32_t)lib->format->play_samples);
 
-    
-    
-    fill_test = true;
-    pcm16_samples = 512;
-    pcm16_bytes = pcm16_samples * sizeof(short) * lib->format->channels;
-    pcm16 = malloc(pcm16_bytes);
-    if (!pcm16) goto fail;
+    fill_pcm16_samples = 512;
+    fill_pcm16_bytes = fill_pcm16_samples * sizeof(short) * lib->format->channels;
+    fill_pcm16 = malloc(fill_pcm16_bytes);
+    if (!fill_pcm16) goto fail;
 
     // play file and do something with decoded samples
-    while (true) {
+    while (!lib->decoder->done) {
         //int pos;
         void* buf;
         int buf_bytes = 0;
 
-        if (lib->decoder->done)
-            break;
-
         // get current samples
         if (fill_test) {
-            err = libvgmstream_fill(lib, pcm16, pcm16_samples);
+            err = libvgmstream_fill(lib, fill_pcm16, fill_pcm16_samples);
             if (err < 0) goto fail;
 
-            buf = pcm16;
+            buf = fill_pcm16;
             buf_bytes = err * sizeof(short) * lib->format->channels;
         }
         else {
@@ -140,12 +137,12 @@ VGM_STEP();
     printf("\n");
 
     // close current streamfile before opening new ones, optional
-    //libvgmstream_close(lib);
+    //libvgmstream_close_song(lib);
 
     // process done
     libvgmstream_free(lib);
     fclose(outfile);
-    free(pcm16);
+    free(fill_pcm16);
 
     printf("done\n");
     return EXIT_SUCCESS;
@@ -153,7 +150,7 @@ fail:
     // process failed
     libvgmstream_free(lib);
     fclose(outfile);
-    free(pcm16);
+    free(fill_pcm16);
 
     printf("failed!\n");
     return EXIT_FAILURE;

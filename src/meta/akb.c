@@ -147,7 +147,6 @@ VGMSTREAM* init_vgmstream_akb(STREAMFILE* sf) {
 
 #ifdef VGM_USE_FFMPEG
         case 0x06: { /* M4A with AAC [The World Ends with You (iPad)] */
-            /* init_vgmstream_akb_mp4 above has priority, but this works fine too */
             vgmstream->codec_data = init_ffmpeg_offset(sf, start_offset,stream_size-start_offset);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->coding_type = coding_FFmpeg;

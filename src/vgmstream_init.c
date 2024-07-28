@@ -237,11 +237,8 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_kt_wiibgm,
     init_vgmstream_bfstm,
     init_vgmstream_mca,
-#if 0
-    init_vgmstream_mp4_aac,
-#endif
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
-    init_vgmstream_akb_mp4,
+    init_vgmstream_mp4_aac,
 #endif
     init_vgmstream_ktss,
     init_vgmstream_hca,
@@ -575,10 +572,10 @@ VGMSTREAM* detect_vgmstream_format(STREAMFILE* sf) {
         if (!vgmstream)
             continue;
 
-        int format_id = i + 1;
+        vgmstream->format_id = i + 1;
 
         /* validate + setup vgmstream */
-        if (!prepare_vgmstream(vgmstream, sf, format_id)) {
+        if (!prepare_vgmstream(vgmstream, sf)) {
             /* keep trying if wasn't valid, as simpler formats may return a vgmstream by mistake */
             close_vgmstream(vgmstream);
             continue;

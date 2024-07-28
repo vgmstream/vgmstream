@@ -1,8 +1,8 @@
 /*
- * vgmstream.h - definitions for VGMSTREAM, encapsulating a multi-channel, looped audio stream
+ * vgmstream.h - internal definitions for VGMSTREAM, encapsulating a multi-channel, looped audio stream
  */
-#ifndef _VGMSTREAM_H
-#define _VGMSTREAM_H
+#ifndef _VGMSTREAM_H_
+#define _VGMSTREAM_H_
 
 /* Due mostly to licensing issues, Vorbis, MPEG, G.722.1, etc decoding is done by external libraries.
  * Libs are disabled by default, defined on compile-time for builds that support it */
@@ -23,29 +23,19 @@
 
 #include "streamfile.h"
 #include "vgmstream_types.h"
-#include "util/log.h"
-
-#ifdef VGM_USE_MP4V2
-#define MP4V2_NO_STDINT_DEFS
-#include <mp4v2/mp4v2.h>
-#endif
-
-#ifdef VGM_USE_FDKAAC
-#include <aacdecoder_lib.h>
-#endif
 
 #include "coding/g72x_state.h"
 
 
 typedef struct {
-    int config_set; /* some of the mods below are set */
+    bool config_set; /* some of the mods below are set */
 
     /* modifiers */
-    int play_forever;
-    int ignore_loop;
-    int force_loop;
-    int really_force_loop;
-    int ignore_fade;
+    bool play_forever;
+    bool ignore_loop;
+    bool force_loop;
+    bool really_force_loop;
+    bool ignore_fade;
 
     /* processing */
     double loop_count;
@@ -66,18 +56,18 @@ typedef struct {
     double pad_end_s;
 
     /* internal flags */
-    int pad_begin_set;
-    int trim_begin_set;
-    int body_time_set;
-    int loop_count_set;
-    int trim_end_set;
-    int fade_delay_set;
-    int fade_time_set;
-    int pad_end_set;
+    bool pad_begin_set;
+    bool trim_begin_set;
+    bool body_time_set;
+    bool loop_count_set;
+    bool trim_end_set;
+    bool fade_delay_set;
+    bool fade_time_set;
+    bool pad_end_set;
 
     /* for lack of a better place... */
-    int is_txtp;
-    int is_mini_txtp;
+    bool is_txtp;
+    bool is_mini_txtp;
 
 } play_config_t;
 
@@ -165,7 +155,7 @@ typedef struct {
     meta_t meta_type;               /* type of metadata */
 
     /* loop config */
-    int loop_flag;                  /* is this stream looped? */
+    bool loop_flag;                 /* is this stream looped? */
     int32_t loop_start_sample;      /* first sample of the loop (included in the loop) */
     int32_t loop_end_sample;        /* last sample of the loop (not included in the loop) */
 
@@ -187,7 +177,7 @@ typedef struct {
 
     /* other config */
     bool allow_dual_stereo;         /* search for dual stereo (file_L.ext + file_R.ext = single stereo file) */
-
+    int format_id;                  /* internal format ID */
 
     /* layout/block state */
     size_t full_block_size;         /* actual data size of an entire block (ie. may be fixed, include padding/headers, etc) */
@@ -266,26 +256,6 @@ typedef struct {
     int curr_layer;         /* helper */
 } layered_layout_data;
 
-
-#if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
-typedef struct {
-    STREAMFILE* streamfile;
-    uint64_t start;
-    uint64_t offset;
-    uint64_t size;
-} mp4_streamfile;
-
-typedef struct {
-    mp4_streamfile if_file;
-    MP4FileHandle h_mp4file;
-    MP4TrackId track_id;
-    unsigned long sampleId, numSamples;
-    UINT codec_init_data_size;
-    HANDLE_AACDECODER h_aacdecoder;
-    unsigned int sample_ptr, samples_per_frame, samples_discard;
-    INT_PCM sample_buffer[( (6) * (2048)*4 )];
-} mp4_aac_codec_data;
-#endif
 
 // VGMStream description in structure format
 typedef struct {

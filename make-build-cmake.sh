@@ -11,7 +11,6 @@ sudo apt-get install libavformat-dev libavcodec-dev libavutil-dev libswresample-
 sudo apt-get install yasm libopus-dev
 # optional: for vgmstream 123 and audacious
 sudo apt-get install -y libao-dev audacious-dev
-#sudo apt-get install libjansson-dev
 
 mkdir -p build
 cd build 

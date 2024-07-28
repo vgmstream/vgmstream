@@ -62,11 +62,6 @@ PKG_CHECK_MODULES(AO, [ao >= 1.1.0], have_libao=yes,
         [AC_MSG_WARN([Cannot find libao - will not build vgmstream123])])
 AM_CONDITIONAL(HAVE_LIBAO, test "$have_libao" = yes)
 
-have_jansson=no
-PKG_CHECK_MODULES(JANSSON, [jansson >= 2.3], have_jansson=yes,
-        [AC_MSG_WARN([Cannot find jansson - will disable JSON dumping in CLI])])
-AM_CONDITIONAL(HAVE_JANSSON, test "$have_jansson" = yes)
-
 if test "_$GCC" = _yes
 then
   CFLAGS="$CFLAGS -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-but-set-variable"

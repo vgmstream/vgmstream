@@ -1,6 +1,7 @@
 #ifndef _API_INTERNAL_H_
 #define _API_INTERNAL_H_
-#include "../api.h"
+#include "../libvgmstream.h"
+#include "../util/log.h"
 #include "../vgmstream.h"
 #include "plugins.h"
 
