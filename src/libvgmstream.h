@@ -3,7 +3,7 @@
 #ifndef _LIBVGMSTREAM_H_
 #define _LIBVGMSTREAM_H_
 
-#define LIBVGMSTREAM_ENABLE 1
+//#define LIBVGMSTREAM_ENABLE 1
 #if LIBVGMSTREAM_ENABLE
 
 /* By default vgmstream behaves like a decoder (decode samples until stream end), but you can configure
@@ -46,6 +46,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include "libvgmstream_streamfile.h"
 
 
