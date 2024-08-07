@@ -4,24 +4,24 @@
 
 typedef struct TCompressWaveData TCompressWaveData;
 
-void TCompressWaveData_GetLoopState(TCompressWaveData* this);
-void TCompressWaveData_SetLoopState(TCompressWaveData* this);
+void TCompressWaveData_GetLoopState(TCompressWaveData* self);
+void TCompressWaveData_SetLoopState(TCompressWaveData* self);
 
 TCompressWaveData* TCompressWaveData_Create(void);
-void TCompressWaveData_Free(TCompressWaveData* this);
-int TCompressWaveData_Rendering(TCompressWaveData* this, int16_t* buf, uint32_t Len);
-int TCompressWaveData_LoadFromStream(TCompressWaveData* this, STREAMFILE* ss);
-void TCompressWaveData_SetCipherCode(TCompressWaveData* this, uint32_t Num);
+void TCompressWaveData_Free(TCompressWaveData* self);
+int TCompressWaveData_Rendering(TCompressWaveData* self, int16_t* buf, uint32_t Len);
+int TCompressWaveData_LoadFromStream(TCompressWaveData* self, STREAMFILE* ss);
+void TCompressWaveData_SetCipherCode(TCompressWaveData* self, uint32_t Num);
 
-void TCompressWaveData_Play(TCompressWaveData* this, int loop);
-void TCompressWaveData_Stop(TCompressWaveData* this);
-void TCompressWaveData_Previous(TCompressWaveData* this);
-void TCompressWaveData_Pause(TCompressWaveData* this);
-void TCompressWaveData_SetVolume(TCompressWaveData* this, float vol, float fade);
-float TCompressWaveData_GetVolume(TCompressWaveData* this);
-float TCompressWaveData_GetSetVolume(TCompressWaveData* this);
-float TCompressWaveData_GetFade(TCompressWaveData* this);
-float TCompressWaveData_GetPlayTime(TCompressWaveData* this);
-float TCompressWaveData_GetTotalTime(TCompressWaveData* this);
+void TCompressWaveData_Play(TCompressWaveData* self, int loop);
+void TCompressWaveData_Stop(TCompressWaveData* self);
+void TCompressWaveData_Previous(TCompressWaveData* self);
+void TCompressWaveData_Pause(TCompressWaveData* self);
+void TCompressWaveData_SetVolume(TCompressWaveData* self, float vol, float fade);
+float TCompressWaveData_GetVolume(TCompressWaveData* self);
+float TCompressWaveData_GetSetVolume(TCompressWaveData* self);
+float TCompressWaveData_GetFade(TCompressWaveData* self);
+float TCompressWaveData_GetPlayTime(TCompressWaveData* self);
+float TCompressWaveData_GetTotalTime(TCompressWaveData* self);
 
 #endif /*_COMPRESSWAVE_LIB_H */
