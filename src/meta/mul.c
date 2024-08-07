@@ -54,7 +54,7 @@ VGMSTREAM* init_vgmstream_mul(STREAMFILE* sf) {
     {
         float check1 = read_f32(0x38,sf);
         float check2 = read_f32(0x3c,sf);
-        if (!(check1 >= 1.0 && check1 <= 3000.0) && check2 != 1.0)
+        if (!(check1 >= 1.0f && check1 <= 3000.0f) && check2 != 1.0f)
             goto fail;
     }
 

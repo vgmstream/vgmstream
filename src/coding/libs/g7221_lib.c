@@ -1072,7 +1072,7 @@ static int unpack_frame(int bit_rate, const uint8_t* data, int frame_size, /*int
     if (test_errors) {
         int max_pad_bytes = 0x8; /* usually 0x04 and rarely ~0x08 */
         int bits_left = 8 * expected_frame_size - bitpos;
-        int i, endpos, test_bits;
+        int endpos, test_bits;
 
         if (bits_left > 0) {
 

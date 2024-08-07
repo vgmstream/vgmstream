@@ -1252,9 +1252,9 @@ int tac_decode_frame(tac_handle_t* handle, const uint8_t* block) {
 
 
 static inline int16_t clamp16f(float sample) {
-    if (sample > 32767.0)
+    if (sample > 32767.0f)
         return 32767;
-    else if (sample < -32768.0)
+    else if (sample < -32768.0f)
         return -32768;
     return (int16_t)sample;
 }

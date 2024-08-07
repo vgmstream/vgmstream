@@ -858,17 +858,17 @@ void TCompressWaveData_SetVolume(TCompressWaveData* self, float vol, float fade)
 
     aaa = vol;
     //set volume threshold
-    if (aaa > 1.0) aaa = 1.0;
-    if (aaa < 0.0) aaa = 0.0;
+    if (aaa > 1.0f) aaa = 1.0f;
+    if (aaa < 0.0f) aaa = 0.0f;
     //calc volume increse
-    if (fade < 0.01) {  //with fade value
+    if (fade < 0.01f) {  //with fade value
         self->Ffade = 0;
-        self->FVolume = round(aaa * (double)PW_MAXVOLUME);
+        self->FVolume = (int32_t)round((double)aaa * (double)PW_MAXVOLUME);
         self->FSetVolume = self->FVolume;
     }
     else {              //without fade value
-        self->Ffade = round((double)PW_MAXVOLUME / fade / 44100);
-        self->FSetVolume = round(aaa * (double)PW_MAXVOLUME);
+        self->Ffade = (int32_t)round((double)PW_MAXVOLUME / (double)fade / 44100);
+        self->FSetVolume = (int32_t)round((double)aaa * (double)PW_MAXVOLUME);
     }
 }
 

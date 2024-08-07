@@ -12,7 +12,7 @@ static inline float get_fade_gain_curve(char shape, float index) {
         return index;
     }
 
-    //TODO optimizations: interleave calcs, maybe use cosf, powf, etc? (with extra defines)
+    //TODO optimizations: interleave calcs
 
     /* (curve math mostly from SoX/FFmpeg) */
     switch(shape) {
@@ -20,17 +20,17 @@ static inline float get_fade_gain_curve(char shape, float index) {
          * (alt calculations with 'exp' from FFmpeg use (factor)*ln(0.1) = -NN.N...  */
 
         case 'E': /* exponential (for fade-outs, closer to natural decay of sound) */
-            //gain = pow(0.1f, (1.0f - index) * 2.5f);
-            gain = exp(-5.75646273248511f * (1.0f - index));
+            //gain = powf(0.1f, (1.0f - index) * 2.5f);
+            gain = expf(-5.75646273248511f * (1.0f - index));
             break;
 
         case 'L': /* logarithmic (inverse of the above, maybe for crossfades) */
-            //gain = 1 - pow(0.1f, (index) * 2.5f);
-            gain = 1 - exp(-5.75646273248511f * (index));
+            //gain = 1 - powf(0.1f, (index) * 2.5f);
+            gain = 1 - expf(-5.75646273248511f * (index));
             break;
 
         case 'H': /* raised sine wave or cosine wave (for more musical crossfades) */
-            gain = (1.0f - cos(index * MIXING_PI)) / 2.0f;
+            gain = (1.0f - cosf(index * MIXING_PI)) / 2.0f;
             break;
 
         case 'Q': /* quarter of sine wave (for musical fades) */
@@ -38,7 +38,7 @@ static inline float get_fade_gain_curve(char shape, float index) {
             break;
 
         case 'p': /* parabola (maybe for crossfades) */
-            gain =  1.0f - sqrt(1.0f - index);
+            gain =  1.0f - sqrtf(1.0f - index);
             break;
 
         case 'P': /* inverted parabola (maybe for fades) */
@@ -154,7 +154,7 @@ bool mixer_op_fade_is_active(mixer_t* mixer, int32_t current_start, int32_t curr
 
         /* check is current range falls within a fade
          * (assuming fades were already optimized on add) */
-        if (mix->time_pre < 0 && vol_start == 1.0) {
+        if (mix->time_pre < 0 && vol_start == 1.0f) {
             fade_start = mix->time_start; /* ignore unused */
         }
         else {

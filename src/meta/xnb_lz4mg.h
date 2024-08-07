@@ -156,8 +156,8 @@ static int lz4mg_decompress(lz4mg_stream_t* strm) {
                 } while (next_len == LZ4MG_VARLEN_CONTINUE);
 
                 ctx->state = SET_MATCH;
-                //break; // Falthrough for MSVC
-
+                //break; // for MSVC (jump threading optimization compiler bug, fixed in ~2023-12)
+                // fall through
             case SET_MATCH:
                 ctx->match_len += LZ4MG_MIN_MATCH_LEN;
 
@@ -166,8 +166,8 @@ static int lz4mg_decompress(lz4mg_stream_t* strm) {
                     ctx->match_pos = LZ4MG_WINDOW_SIZE + ctx->match_pos;
 
                 ctx->state = COPY_MATCH;
-                //break; // Fallthrough for MSVC
-
+                //break; // for MSVC (jump threading optimization compiler bug, fixed in ~2023-12)
+                // fall through
             case COPY_MATCH:
                  while (ctx->match_len > 0) {
                     if (dst_pos >= dst_size)

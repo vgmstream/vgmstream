@@ -812,7 +812,7 @@ static void print_internal(psb_node_t* curr, int depth) {
             break;
 
         case PSB_TYPE_FLOAT:
-            printf("%f,\n", res.flt);
+            printf("%f,\n", (double)res.flt);
             break;
 
         case PSB_TYPE_STRING:

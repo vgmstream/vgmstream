@@ -13,7 +13,7 @@
 static void describe_get_time(int32_t samples, int sample_rate, double* p_time_mm, double* p_time_ss) {
     double seconds = (double)samples / sample_rate;
     *p_time_mm = (int)(seconds / 60.0);
-    *p_time_ss = seconds - *p_time_mm * 60.0f;
+    *p_time_ss = seconds - *p_time_mm * 60.0;
     if (*p_time_ss >= 59.999) /* avoid round up to 60.0 when printing to %06.3f */
         *p_time_ss = 59.999;
 }
