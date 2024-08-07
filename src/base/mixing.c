@@ -4,6 +4,7 @@
 #include "mixer.h"
 #include "mixer_priv.h"
 #include "sbuf.h"
+#include "../layout/layout.h"
 #include <math.h>
 #include <limits.h>
 

@@ -94,27 +94,28 @@ typedef struct {
 } play_state_t;
 
 
-/* info for a single vgmstream channel */
+/* info for a single vgmstream 'channel' (or rather, mono stream) */
 typedef struct {
     STREAMFILE* streamfile;     /* file used by this channel */
     off_t channel_start_offset; /* where data for this channel begins */
     off_t offset;               /* current location in the file */
 
-    off_t frame_header_offset;  /* offset of the current frame header (for WS) */
-    int samples_left_in_frame;  /* for WS */
+    /* format and channel specific */
 
-    /* format specific */
-
-    /* adpcm */
-    int16_t adpcm_coef[16];             /* formats with decode coefficients built in (DSP, some ADX) */
-    int32_t adpcm_coef_3by32[0x60];     /* Level-5 0x555 */
-    int16_t vadpcm_coefs[8*2*8];        /* VADPCM: max 8 groups * max 2 order * fixed 8 subframe coefs */
+    /* ADPCM with built or variable decode coefficients */
     union {
-        int16_t adpcm_history1_16;      /* previous sample */
+        int16_t adpcm_coef[16];         /* DSP, some ADX (in rare cases may change per block) */
+        int16_t vadpcm_coefs[8*2*8];    /* VADPCM: max 8 groups * max 2 order * fixed 8 subframe = 128 coefs */
+        int32_t adpcm_coef_3by32[96];   /* Level-5 0x555 */
+    };
+
+    /* previous ADPCM samples */
+    union {
+        int16_t adpcm_history1_16;
         int32_t adpcm_history1_32;
     };
     union {
-        int16_t adpcm_history2_16;      /* previous previous sample */
+        int16_t adpcm_history2_16;
         int32_t adpcm_history2_32;
     };
     union {
@@ -129,14 +130,20 @@ typedef struct {
     //double adpcm_history1_double;
     //double adpcm_history2_double;
 
-    int adpcm_step_index;               /* for IMA */
-    int adpcm_scale;                    /* for MS ADPCM */
+    /* for ADPCM decoders that store steps (IMA) or scales (MSADPCM) */
+    union {
+        int adpcm_step_index;
+        int adpcm_scale;
+    };
+
+    /* Westwood Studios decoder */
+    off_t ws_frame_header_offset;       /* offset of the current frame header */
+    int ws_samples_left_in_frame;       /* last decoded info */
 
     /* state for G.721 decoder, sort of big but we might as well keep it around */
     struct g72x_state g72x_state;
 
     /* ADX encryption */
-    int adx_channels;
     uint16_t adx_xor;
     uint16_t adx_mult;
     uint16_t adx_add;
@@ -147,9 +154,9 @@ typedef struct {
 /* main vgmstream info */
 typedef struct {
     /* basic config */
-    int32_t num_samples;            /* the actual max number of samples */
+    int channels;                   /* number of channels for the current stream */
     int32_t sample_rate;            /* sample rate in Hz */
-    int channels;                   /* number of channels */
+    int32_t num_samples;            /* the actual max number of samples */
     coding_t coding_type;           /* type of encoding */
     layout_t layout_type;           /* type of layout */
     meta_t meta_type;               /* type of metadata */
@@ -180,13 +187,13 @@ typedef struct {
     int format_id;                  /* internal format ID */
 
     /* layout/block state */
-    size_t full_block_size;         /* actual data size of an entire block (ie. may be fixed, include padding/headers, etc) */
     int32_t current_sample;         /* sample point within the file (for loop detection) */
     int32_t samples_into_block;     /* number of samples into the current block/interleave/segment/etc */
     off_t current_block_offset;     /* start of this block (offset of block header) */
     size_t current_block_size;      /* size in usable bytes of the block we're in now (used to calculate num_samples per block) */
     int32_t current_block_samples;  /* size in samples of the block we're in now (used over current_block_size if possible) */
     off_t next_block_offset;        /* offset of header of the next block */
+    size_t full_block_size;         /* actual data size of an entire block (ie. may be fixed, include padding/headers, etc) */
 
     /* loop state (saved when loop is hit to restore later) */
     int32_t loop_current_sample;    /* saved from current_sample (same as loop_start_sample, but more state-like) */
@@ -228,33 +235,11 @@ typedef struct {
     play_state_t pstate;            /* player state (applied over decoding) */
     int loop_count;                 /* counter of complete loops (1=looped once) */
     int loop_target;                /* max loops before continuing with the stream end (loops forever if not set) */
+
     sample_t* tmpbuf;               /* garbage buffer used for seeking/trimming */
     size_t tmpbuf_size;             /* for all channels (samples = tmpbuf_size / channels) */
 
 } VGMSTREAM;
-
-
-/* for files made of "continuous" segments, one per section of a song (using a complete sub-VGMSTREAM) */
-typedef struct {
-    int segment_count;
-    VGMSTREAM** segments;
-    int current_segment;
-    sample_t* buffer;
-    int input_channels;     /* internal buffer channels */
-    int output_channels;    /* resulting channels (after mixing, if applied) */
-    int mixed_channels;     /* segments have different number of channels */
-} segmented_layout_data;
-
-/* for files made of "parallel" layers, one per group of channels (using a complete sub-VGMSTREAM) */
-typedef struct {
-    int layer_count;
-    VGMSTREAM** layers;
-    sample_t* buffer;
-    int input_channels;     /* internal buffer channels */
-    int output_channels;    /* resulting channels (after mixing, if applied) */
-    int external_looping;   /* don't loop using per-layer loops, but layout's own looping */
-    int curr_layer;         /* helper */
-} layered_layout_data;
 
 
 // VGMStream description in structure format
@@ -304,9 +289,6 @@ void reset_vgmstream(VGMSTREAM* vgmstream);
 /* close an open vgmstream */
 void close_vgmstream(VGMSTREAM* vgmstream);
 
-/* calculate the number of samples to be played based on looping parameters */
-int32_t get_vgmstream_play_samples(double looptimes, double fadeseconds, double fadedelayseconds, VGMSTREAM* vgmstream);
-
 /* Decode data into sample buffer. Returns < sample_count on stream end */
 int render_vgmstream(sample_t* buffer, int32_t sample_count, VGMSTREAM* vgmstream);
 
@@ -320,20 +302,6 @@ void describe_vgmstream_info(VGMSTREAM* vgmstream, vgmstream_info* desc);
 
 /* Return the average bitrate in bps of all unique files contained within this stream. */
 int get_vgmstream_average_bitrate(VGMSTREAM* vgmstream);
-
-/* List supported formats and return elements in the list, for plugins that need to know.
- * The list disables some common formats that may conflict (.wav, .ogg, etc). */
-const char** vgmstream_get_formats(size_t* size);
-
-/* same, but for common-but-disabled formats in the above list. */
-const char** vgmstream_get_common_formats(size_t* size);
-
-/* Force enable/disable internal looping. Should be done before playing anything (or after reset),
- * and not all codecs support arbitrary loop values ATM. */
-void vgmstream_force_loop(VGMSTREAM* vgmstream, int loop_flag, int loop_start_sample, int loop_end_sample);
-
-/* Set number of max loops to do, then play up to stream end (for songs with proper endings) */
-void vgmstream_set_loop_target(VGMSTREAM* vgmstream, int loop_target);
 
 /* Return 1 if vgmstream detects from the filename that said file can be used even if doesn't physically exist */
 int vgmstream_is_virtual_filename(const char* filename);
@@ -358,5 +326,16 @@ void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t ou
 void get_vgmstream_layout_description(VGMSTREAM* vgmstream, char* out, size_t out_size);
 void get_vgmstream_meta_description(VGMSTREAM* vgmstream, char* out, size_t out_size);
 
+/* calculate the number of samples to be played based on looping parameters */
+int32_t get_vgmstream_play_samples(double looptimes, double fadeseconds, double fadedelayseconds, VGMSTREAM* vgmstream);
+
 void setup_state_vgmstream(VGMSTREAM* vgmstream);
+
+/* Force enable/disable internal looping. Should be done before playing anything (or after reset),
+ * and not all codecs support arbitrary loop values ATM. */
+void vgmstream_force_loop(VGMSTREAM* vgmstream, int loop_flag, int loop_start_sample, int loop_end_sample);
+
+/* Set number of max loops to do, then play up to stream end (for songs with proper endings) */
+void vgmstream_set_loop_target(VGMSTREAM* vgmstream, int loop_target);
+
 #endif

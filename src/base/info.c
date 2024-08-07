@@ -1,6 +1,7 @@
 #include <ctype.h>
 #include "../vgmstream.h"
 #include "../coding/coding.h"
+#include "../layout/layout.h"
 #include "mixing.h"
 #include "../util/channel_mappings.h"
 #include "../util/sf_utils.h"

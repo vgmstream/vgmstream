@@ -1,5 +1,6 @@
 #include "vgmstream.h"
 #include "coding/coding.h"
+#include "layout/layout.h"
 
 
 /* Defines the list of accepted extensions. vgmstream doesn't use it internally so it's here
@@ -1237,7 +1238,7 @@ static const meta_info meta_info_list[] = {
         {meta_EB_SF0,               "assumed Excitebots .sf0 by extension"},
         {meta_MTAF,                 "Konami MTAF header"},
         {meta_ALP,                  "High Voltage ALP header"},
-        {meta_WPD,                  "WPD 'DPW' header"},
+        {meta_WPD,                  "Navel WPD header"},
         {meta_MN_STR,               "Mini Ninjas 'STR' header"},
         {meta_MSS,                  "Guerilla MCSS header"},
         {meta_PS2_HSF,              "Lowrider 'HSF' header"},

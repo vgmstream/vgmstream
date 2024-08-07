@@ -1,5 +1,6 @@
 #include "../vgmstream.h"
 #include "../util/channel_mappings.h"
+#include "../layout/layout.h"
 #include "mixing.h"
 #include "mixer_priv.h"
 #include <math.h>

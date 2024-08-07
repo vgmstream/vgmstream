@@ -8,6 +8,14 @@
 #include "../vgmstream.h"
 
 
+/* List supported formats and return elements in the list, for plugins that need to know.
+ * The list disables some common formats that may conflict (.wav, .ogg, etc). */
+const char** vgmstream_get_formats(size_t* size);
+
+/* same, but for common-but-disabled formats in the above list. */
+const char** vgmstream_get_common_formats(size_t* size);
+
+
 /* ****************************************** */
 /* CONTEXT: simplifies plugin code            */
 /* ****************************************** */
