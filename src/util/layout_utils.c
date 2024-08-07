@@ -3,6 +3,7 @@
 #include "../vgmstream.h"
 #include "../layout/layout.h"
 #include "../coding/coding.h"
+#include "../base/plugins.h"
 
 
 typedef VGMSTREAM* (*init_vgmstream_t)(STREAMFILE*);
@@ -146,4 +147,149 @@ bool layered_add_done(VGMSTREAM* vs) {
     return true;
 fail:
     return false;
+}
+
+
+
+/* helper for easier creation of layers */
+VGMSTREAM* allocate_layered_vgmstream(layered_layout_data* data) {
+    VGMSTREAM* vgmstream = NULL;
+    int i, channels, loop_flag, sample_rate, external_looping;
+    int32_t num_samples, loop_start, loop_end;
+    int delta = 1024;
+    coding_t coding_type = data->layers[0]->coding_type;
+
+    /* get data */
+    channels = data->output_channels;
+
+    num_samples = 0;
+    loop_flag = 1;
+    loop_start = data->layers[0]->loop_start_sample;
+    loop_end = data->layers[0]->loop_end_sample;
+    external_looping = 0;
+    sample_rate = 0;
+
+    for (i = 0; i < data->layer_count; i++) {
+        int32_t layer_samples = vgmstream_get_samples(data->layers[i]);
+        int layer_loop = data->layers[i]->loop_flag;
+        int32_t layer_loop_start = data->layers[i]->loop_start_sample;
+        int32_t layer_loop_end = data->layers[i]->loop_end_sample;
+        int layer_rate = data->layers[i]->sample_rate;
+
+        /* internal has own config (and maybe looping), looping now must be done on layout level
+         * (instead of on each layer, that is faster) */
+        if (data->layers[i]->config_enabled) {
+            loop_flag = 0;
+            layer_loop = 0;
+            external_looping = 1;
+        }
+
+        /* all layers should share loop pointsto consider looping enabled,
+         * but allow some leeway (ex. Dragalia Lost bgm+vocals ~12 samples) */
+        if (!layer_loop
+                || !(loop_start >= layer_loop_start - delta && loop_start <= layer_loop_start + delta)
+                || !(loop_end >= layer_loop_end - delta && loop_start <= layer_loop_end + delta)) {
+            loop_flag = 0;
+            loop_start = 0;
+            loop_end = 0;
+        }
+
+        if (num_samples < layer_samples) /* max */
+            num_samples = layer_samples;
+
+        if (sample_rate < layer_rate)
+            sample_rate = layer_rate;
+
+        if (coding_type == coding_SILENCE)
+            coding_type = data->layers[i]->coding_type;
+    }
+
+    data->external_looping = external_looping;
+
+
+    /* build the VGMSTREAM */
+    vgmstream = allocate_vgmstream(channels, loop_flag);
+    if (!vgmstream) goto fail;
+
+    vgmstream->meta_type = data->layers[0]->meta_type;
+    vgmstream->sample_rate = sample_rate;
+    vgmstream->num_samples = num_samples;
+    vgmstream->loop_start_sample = loop_start;
+    vgmstream->loop_end_sample = loop_end;
+    vgmstream->coding_type = coding_type;
+
+    vgmstream->layout_type = layout_layered;
+    vgmstream->layout_data = data;
+
+    return vgmstream;
+
+fail:
+    if (vgmstream) vgmstream->layout_data = NULL;
+    close_vgmstream(vgmstream);
+    return NULL;
+}
+
+
+/* helper for easier creation of segments */
+VGMSTREAM* allocate_segmented_vgmstream(segmented_layout_data* data, int loop_flag, int loop_start_segment, int loop_end_segment) {
+    VGMSTREAM* vgmstream = NULL;
+    int channel_layout;
+    int i, sample_rate;
+    int32_t num_samples, loop_start, loop_end;
+    coding_t coding_type = data->segments[0]->coding_type;
+
+    /* save data */
+    channel_layout = data->segments[0]->channel_layout;
+    num_samples = 0;
+    loop_start = 0;
+    loop_end = 0;
+    sample_rate = 0;
+    for (i = 0; i < data->segment_count; i++) {
+        /* needs get_samples since element may use play settings */
+        int32_t segment_samples = vgmstream_get_samples(data->segments[i]);
+        int segment_rate = data->segments[i]->sample_rate;
+
+        if (loop_flag && i == loop_start_segment)
+            loop_start = num_samples;
+
+        num_samples += segment_samples;
+
+        if (loop_flag && i == loop_end_segment)
+            loop_end = num_samples;
+
+        /* inherit first segment's layout but only if all segments' layout match */
+        if (channel_layout != 0 && channel_layout != data->segments[i]->channel_layout)
+            channel_layout = 0;
+
+        if (sample_rate < segment_rate)
+            sample_rate = segment_rate;
+
+        if (coding_type == coding_SILENCE)
+            coding_type = data->segments[i]->coding_type;
+    }
+
+    /* respect loop_flag even when no loop_end found as it's possible file loops are set outside */
+
+
+    /* build the VGMSTREAM */
+    vgmstream = allocate_vgmstream(data->output_channels, loop_flag);
+    if (!vgmstream) goto fail;
+
+    vgmstream->meta_type = data->segments[0]->meta_type;
+    vgmstream->sample_rate = sample_rate;
+    vgmstream->num_samples = num_samples;
+    vgmstream->loop_start_sample = loop_start;
+    vgmstream->loop_end_sample = loop_end;
+    vgmstream->coding_type = coding_type;
+    vgmstream->channel_layout = channel_layout;
+
+    vgmstream->layout_type = layout_segmented;
+    vgmstream->layout_data = data;
+
+    return vgmstream;
+
+fail:
+    if (vgmstream) vgmstream->layout_data = NULL;
+    close_vgmstream(vgmstream);
+    return NULL;
 }

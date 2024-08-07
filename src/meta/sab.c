@@ -1,6 +1,7 @@
 #include "meta.h"
 #include "../coding/coding.h"
 #include "../layout/layout.h"
+#include "../util/layout_utils.h"
 #include "sab_streamfile.h"
 
 typedef struct {
@@ -234,7 +235,6 @@ static VGMSTREAM* build_layered_vgmstream(STREAMFILE* sf, sab_header* sab) {
     VGMSTREAM* vgmstream = NULL;
     STREAMFILE* temp_sf = NULL;
     layered_layout_data* data = NULL;
-    int i;
 
     if (sab->sound_count == 1 || !sab->is_stream) {
         return build_vgmstream(sf, sab);
@@ -245,7 +245,7 @@ static VGMSTREAM* build_layered_vgmstream(STREAMFILE* sf, sab_header* sab) {
     if (!data) goto fail;
 
     /* de-chunk audio layers */
-    for (i = 0; i < sab->sound_count; i++) {
+    for (int i = 0; i < sab->sound_count; i++) {
         temp_sf = setup_sab_streamfile(sf, sab->stream_offset, sab->sound_count, i, sab->block_size);
         if (!temp_sf) goto fail;
 

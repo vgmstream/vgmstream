@@ -30,7 +30,6 @@ void free_layout_segmented(segmented_layout_data* data);
 void reset_layout_segmented(segmented_layout_data* data);
 void seek_layout_segmented(VGMSTREAM* vgmstream, int32_t seek_sample);
 void loop_layout_segmented(VGMSTREAM* vgmstream, int32_t loop_sample);
-VGMSTREAM* allocate_segmented_vgmstream(segmented_layout_data* data, int loop_flag, int loop_start_segment, int loop_end_segment);
 
 /* layered layout */
 /* for files made of "parallel" layers, one per group of channels (using a complete sub-VGMSTREAM) */
@@ -51,7 +50,6 @@ void free_layout_layered(layered_layout_data* data);
 void reset_layout_layered(layered_layout_data* data);
 void seek_layout_layered(VGMSTREAM* vgmstream, int32_t seek_sample);
 void loop_layout_layered(VGMSTREAM* vgmstream, int32_t loop_sample);
-VGMSTREAM* allocate_layered_vgmstream(layered_layout_data* data);
 
 /* blocked layouts */
 void render_vgmstream_blocked(sample_t* buffer, int32_t sample_count, VGMSTREAM* vgmstream);
