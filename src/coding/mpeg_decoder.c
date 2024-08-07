@@ -23,7 +23,7 @@ mpeg_codec_data* init_mpeg(STREAMFILE* sf, off_t start_offset, coding_t* coding_
     if (!data) goto fail;
 
     data->buffer_size = MPEG_DATA_BUFFER_SIZE;
-    data->buffer = calloc(sizeof(uint8_t), data->buffer_size);
+    data->buffer = calloc(data->buffer_size, sizeof(uint8_t));
     if (!data->buffer) goto fail;
 
     data->m = init_mpg123_handle();
@@ -176,7 +176,7 @@ mpeg_codec_data* init_mpeg_custom(STREAMFILE* sf, off_t start_offset, coding_t* 
 
         /* one per stream as sometimes mpg123 can't read the whole buffer in one pass */
         data->streams[i].buffer_size = data->default_buffer_size;
-        data->streams[i].buffer = calloc(sizeof(uint8_t), data->streams[i].buffer_size);
+        data->streams[i].buffer = calloc(data->streams[i].buffer_size, sizeof(uint8_t));
         if (!data->streams[i].buffer) goto fail;
 
         data->streams[i].channels_per_frame = data->channels_per_frame;

@@ -67,7 +67,7 @@ celt_codec_data* init_celt_fsb(int channels, celt_lib_t version) {
             goto fail;
     }
 
-    data->sample_buffer = calloc(sizeof(sample), data->channel_mode * FSB_CELT_SAMPLES_PER_FRAME);
+    data->sample_buffer = calloc(data->channel_mode * FSB_CELT_SAMPLES_PER_FRAME, sizeof(sample_t));
     if (!data->sample_buffer) goto fail;
     /*  there is ~128 samples of encoder delay, but FMOD DLLs don't discard it? */
 

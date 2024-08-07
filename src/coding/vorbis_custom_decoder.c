@@ -23,11 +23,11 @@ vorbis_custom_codec_data* init_vorbis_custom(STREAMFILE* sf, off_t start_offset,
     int ok;
 
     /* init stuff */
-    data = calloc(1,sizeof(vorbis_custom_codec_data));
+    data = calloc(1, sizeof(vorbis_custom_codec_data));
     if (!data) goto fail;
 
     data->buffer_size = VORBIS_DEFAULT_BUFFER_SIZE;
-    data->buffer = calloc(sizeof(uint8_t), data->buffer_size);
+    data->buffer = calloc(data->buffer_size, sizeof(uint8_t));
     if (!data->buffer) goto fail;
 
     /* keep around to decode too */
