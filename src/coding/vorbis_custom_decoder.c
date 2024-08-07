@@ -165,7 +165,7 @@ void decode_vorbis_custom(VGMSTREAM* vgmstream, sample_t* outbuf, int32_t sample
 decode_fail:
     /* on error just put some 0 samples */
     VGM_LOG("VORBIS: decode fail at %x, missing %i samples\n", (uint32_t)stream->offset, (samples_to_do - samples_done));
-    memset(outbuf + samples_done * channels, 0, (samples_to_do - samples_done) * channels * sizeof(sample));
+    memset(outbuf + samples_done * channels, 0, (samples_to_do - samples_done) * channels * sizeof(sample_t));
 }
 
 /* converts from internal Vorbis format to standard PCM (mostly from Xiph's decoder_example.c) */

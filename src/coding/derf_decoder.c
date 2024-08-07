@@ -18,7 +18,7 @@ static const int derf_steps[96] = {
 };
 
 /* Xilam DERF DPCM for Stupid Invaders (PC), decompiled from the exe */
-void decode_derf(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
+void decode_derf(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
     int i, sample_pos = 0, index;
     int32_t hist = stream->adpcm_history1_32;
     off_t frame_offset = stream->offset; /* frame size is 1 */

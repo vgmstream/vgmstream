@@ -22,7 +22,7 @@ static int ffmpeg_make_riff_atrac3(uint8_t* buf, size_t buf_size, size_t sample_
     put_u16le(buf+0x14, 0x0270); /* ATRAC3 codec */
     put_u16le(buf+0x16, channels);
     put_u32le(buf+0x18, sample_rate);
-    put_u32le(buf+0x1c, sample_rate * channels / sizeof(sample)); /* average bytes per second (wrong) */
+    put_u32le(buf+0x1c, sample_rate * channels / sizeof(sample_t)); /* average bytes per second (wrong) */
     put_u16le(buf+0x20, block_align); /* block align */
 
     put_u16le(buf+0x24, 0x0e); /* extra data size */
@@ -215,7 +215,7 @@ static int ffmpeg_make_riff_atrac3plus(uint8_t* buf, int buf_size, uint32_t data
     put_u16le(buf+0x14, 0xfffe); /* WAVEFORMATEXTENSIBLE */
     put_u16le(buf+0x16, channels);
     put_u32le(buf+0x18, sample_rate);
-    put_u32le(buf+0x1c, sample_rate * channels / sizeof(sample)); /* average bytes per second (wrong) */
+    put_u32le(buf+0x1c, sample_rate * channels / sizeof(sample_t)); /* average bytes per second (wrong) */
     put_u32le(buf+0x20, block_align); /* block align */
 
     put_u16le(buf+0x24, 0x22); /* extra data size */
@@ -417,7 +417,7 @@ static int ffmpeg_make_riff_xma1(uint8_t* buf, size_t buf_size, size_t data_size
             }
         }
 
-        put_u32le(buf+off+0x00, sample_rate*stream_channels / sizeof(sample)); /* average bytes per second (wrong, unneeded) */
+        put_u32le(buf+off+0x00, sample_rate*stream_channels / sizeof(sample_t)); /* average bytes per second (wrong, unneeded) */
         put_u32le(buf+off+0x04, sample_rate);
         put_u32le(buf+off+0x08, 0); /* loop start */
         put_u32le(buf+off+0x0c, 0); /* loop end */
@@ -477,7 +477,7 @@ static int ffmpeg_make_riff_xma2(uint8_t* buf, size_t buf_size, size_t data_size
         default: speakers = 0; break;
     }
 
-    bytecount = sample_count * channels * sizeof(sample);
+    bytecount = sample_count * channels * sizeof(sample_t);
 
     memcpy   (buf+0x00, "RIFF", 0x04);
     put_u32le(buf+0x04, buf_max - (0x04 * 2) + data_size); /* riff size */
@@ -488,8 +488,8 @@ static int ffmpeg_make_riff_xma2(uint8_t* buf, size_t buf_size, size_t data_size
     put_u16le(buf+0x14, 0x0166); /* XMA2 */
     put_u16le(buf+0x16, channels);
     put_u32le(buf+0x18, sample_rate);
-    put_u32le(buf+0x1c, sample_rate * channels / sizeof(sample)); /* average bytes per second (wrong, unneeded) */
-    put_u16le(buf+0x20, (uint16_t)(channels * sizeof(sample))); /* block align */
+    put_u32le(buf+0x1c, sample_rate * channels / sizeof(sample_t)); /* average bytes per second (wrong, unneeded) */
+    put_u16le(buf+0x20, (uint16_t)(channels * sizeof(sample_t))); /* block align */
     put_u16le(buf+0x22, 16); /* bits per sample */
 
     put_u16le(buf+0x24, 0x22); /* extra data size */

@@ -139,8 +139,8 @@ void decode_ubi_adpcm(VGMSTREAM* vgmstream, sample_t* outbuf, int32_t samples_to
                     samples_to_get = samples_to_do - samples_done;
 
                 memcpy(outbuf + samples_done*channels,
-                       data->samples + data->samples_consumed*channels,
-                       samples_to_get*channels * sizeof(sample));
+                       data->samples + data->samples_consumed * channels,
+                       samples_to_get * channels * sizeof(sample_t));
                 samples_done += samples_to_get;
             }
 

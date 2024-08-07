@@ -95,7 +95,7 @@ void decode_hca(hca_codec_data* data, sample_t* outbuf, int32_t samples_to_do) {
 
                 memcpy(outbuf + samples_done*channels,
                        data->sample_buffer + data->samples_consumed*channels,
-                       samples_to_get*channels * sizeof(sample));
+                       samples_to_get*channels * sizeof(sample_t));
                 samples_done += samples_to_get;
             }
 
@@ -110,7 +110,7 @@ void decode_hca(hca_codec_data* data, sample_t* outbuf, int32_t samples_to_do) {
 
             /* EOF/error */
             if (data->current_block >= data->info.blockCount) {
-                memset(outbuf, 0, (samples_to_do - samples_done) * channels * sizeof(sample));
+                memset(outbuf, 0, (samples_to_do - samples_done) * channels * sizeof(sample_t));
                 break;
             }
 

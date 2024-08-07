@@ -170,7 +170,7 @@ mpeg_codec_data* init_mpeg_custom(STREAMFILE* sf, off_t start_offset, coding_t* 
         if (!data->streams[i].handle) goto fail;
 
         /* size could be any value */
-        data->streams[i].output_buffer_size = sizeof(sample) * data->channels_per_frame * data->samples_per_frame;
+        data->streams[i].output_buffer_size = sizeof(sample_t) * data->channels_per_frame * data->samples_per_frame;
         data->streams[i].output_buffer = calloc(data->streams[i].output_buffer_size, sizeof(uint8_t));
         if (!data->streams[i].output_buffer) goto fail;
 
@@ -260,7 +260,7 @@ static void decode_mpeg_standard(VGMSTREAMCHANNEL* stream, mpeg_codec_data* data
             /* end of stream, fill rest with 0s */
             if (data->bytes_in_buffer <= 0) {
                 VGM_ASSERT(samples_to_do < samples_done, "MPEG: end of stream, filling %i\n", (samples_to_do - samples_done));
-                memset(outbuf + samples_done * channels, 0, (samples_to_do - samples_done) * channels * sizeof(sample));
+                memset(outbuf + samples_done * channels, 0, (samples_to_do - samples_done) * channels * sizeof(sample_t));
                 break;
             }
 
@@ -270,7 +270,7 @@ static void decode_mpeg_standard(VGMSTREAMCHANNEL* stream, mpeg_codec_data* data
             stream->offset += data->bytes_in_buffer;
         }
 
-        bytes_to_do = (samples_to_do-samples_done)*sizeof(sample)*channels;
+        bytes_to_do = (samples_to_do-samples_done)*sizeof(sample_t)*channels;
 
         /* feed new raw data to the decoder if needed, copy decoded results to output */
         if (!data->buffer_used) {
@@ -288,7 +288,7 @@ static void decode_mpeg_standard(VGMSTREAMCHANNEL* stream, mpeg_codec_data* data
         VGM_ASSERT(rc != MPG123_NEED_MORE && rc != MPG123_OK, "MPEG: error %i\n", rc);
 
         /* update copied samples */
-        samples_done += bytes_done/sizeof(sample)/channels;
+        samples_done += bytes_done / sizeof(sample_t) / channels;
         outbytes += bytes_done;
     }
 }
@@ -430,7 +430,7 @@ static void decode_mpeg_custom_stream(VGMSTREAMCHANNEL* stream, mpeg_codec_data*
     }
 
 
-    bytes_filled = sizeof(sample) * ms->samples_filled * channels_per_frame;
+    bytes_filled = sizeof(sample_t) * ms->samples_filled * channels_per_frame;
     /* feed new raw data to the decoder if needed, copy decoded results to frame buffer output */
     if (!ms->buffer_used) {
         //;VGM_LOG("MPEG: feed new data and get samples\n");
@@ -447,7 +447,7 @@ static void decode_mpeg_custom_stream(VGMSTREAMCHANNEL* stream, mpeg_codec_data*
                 (unsigned char*)ms->output_buffer + bytes_filled, ms->output_buffer_size - bytes_filled,
                 &bytes_done);
     }
-    samples_filled = (bytes_done / sizeof(sample) / channels_per_frame);
+    samples_filled = (bytes_done / sizeof(sample_t) / channels_per_frame);
 
     /* discard for weird features (EALayer3 and PCM blocks, AWC and repeated frames) */
     if (ms->decode_to_discard) {
@@ -455,7 +455,7 @@ static void decode_mpeg_custom_stream(VGMSTREAMCHANNEL* stream, mpeg_codec_data*
         size_t decode_to_discard = ms->decode_to_discard;
         if (decode_to_discard > samples_filled)
             decode_to_discard = samples_filled;
-        bytes_to_discard = sizeof(sample) * decode_to_discard * channels_per_frame;
+        bytes_to_discard = sizeof(sample_t) * decode_to_discard * channels_per_frame;
 
         bytes_done -= bytes_to_discard;
         ms->decode_to_discard -= decode_to_discard;
@@ -478,9 +478,9 @@ static void decode_mpeg_custom_stream(VGMSTREAMCHANNEL* stream, mpeg_codec_data*
 
 decode_fail:
     /* 0-fill but continue with other streams */
-    bytes_filled = ms->samples_filled * channels_per_frame * sizeof(sample);
+    bytes_filled = ms->samples_filled * channels_per_frame * sizeof(sample_t);
     memset(ms->output_buffer + bytes_filled, 0, ms->output_buffer_size - bytes_filled);
-    ms->samples_filled = (ms->output_buffer_size / channels_per_frame / sizeof(sample));
+    ms->samples_filled = (ms->output_buffer_size / channels_per_frame / sizeof(sample_t));
 }
 
 

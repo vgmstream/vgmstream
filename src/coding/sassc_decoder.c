@@ -4,30 +4,28 @@
 /* Activision / EXAKT Entertainment's DPCM for Supercar Street Challenge */
 
 #if 0
-
 To build table:
 
-int32_t bring_round(int32_t v)
-{  
+int32_t bring_round(int32_t v) {  
     return v | (v >> 12);
 }   
 
 for (i=0x00;i<0x20;i++) 
-    SASSC_steps[i] = bring_round(i<<4);    
+    sassc_steps[i] = bring_round(i<<4);    
 for (i=0x20;i<0x40;i++)   
-    SASSC_steps[i] = bring_round(((i-0x20)*7+0x20)<<4);
+    sassc_steps[i] = bring_round(((i-0x20)*7+0x20)<<4);
 for (i=0x40;i<0x60;i++)
-    SASSC_steps[i] = bring_round(((i-0x40)*24+0x100)<<4);
+    sassc_steps[i] = bring_round(((i-0x40)*24+0x100)<<4);
 for (i=0x60;i<0x80;i++)
-    SASSC_steps[i] = bring_round(((i-0x60)*96+0x400)<<4);
+    sassc_steps[i] = bring_round(((i-0x60)*96+0x400)<<4);
 
 for (i=0x80;i<0xFF;i++)
-    SASSC_steps[i] = -SASSC_steps[i-0x80];
+    sassc_steps[i] = -sassc_steps[i-0x80];
 
-SASSC_steps[0xFF] = SASSC_steps[0x7F];
+sassc_steps[0xFF] = sassc_steps[0x7F];
 #endif
-int32_t SASSC_steps[256] =
-{
+
+static const int32_t sassc_steps[256] = {
        0,      16,      32,      48,      64,      80,      96,     112,
      128,     144,     160,     176,     192,     208,     224,     240,
      256,     272,     288,     304,     320,     336,     352,     368,
@@ -63,13 +61,14 @@ int32_t SASSC_steps[256] =
   -53261,  -54797,  -56333,  -57870,  -59406,  -60942,  -62479,   64015,
 };
 
-void decode_sassc(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
+void decode_sassc(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
     int i;
     int32_t sample_count;
     int32_t hist = stream->adpcm_history1_32;
 
-    for(i=first_sample,sample_count=0; i<first_sample+samples_to_do; i++,sample_count+=channelspacing) {
-        hist = hist + SASSC_steps[(uint8_t)read_8bit(stream->offset+i,stream->streamfile)];
+    for (i = first_sample, sample_count = 0; i < first_sample + samples_to_do; i++, sample_count += channelspacing) {
+        uint8_t index = read_u8(stream->offset + i, stream->streamfile);
+        hist = hist + sassc_steps[index];
         outbuf[sample_count] = clamp16(hist);
     }
 
