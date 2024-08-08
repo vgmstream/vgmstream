@@ -1,75 +1,52 @@
 #include "meta.h"
-#include "../util.h"
+#include "../coding/coding.h"
 
-/* .dsp found in:
-    Hikaru No Go 3 (NGC)
-    Yu-Gi-Oh! The Falsebound Kingdom (NGC)
-
-    2010-01-31 - added loop stuff and some header checks...
-*/
-
-VGMSTREAM * init_vgmstream_dsp_ygo(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
-    int loop_flag;
-    int channel_count;
+/* .dsp - from KCE Japan East GC games [Yu-Gi-Oh! The Falsebound Kingdom (GC), Hikaru No Go 3 (GC)] */
+VGMSTREAM* init_vgmstream_dsp_kceje(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
+    int channels, loop_flag;
     off_t start_offset;
-    int i;
 
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("dsp",filename_extension(filename))) goto fail;
 
-    /* check file size with size given in header */
-    if ((read_32bitBE(0x0,streamFile)+0xE0) != (get_streamfile_size(streamFile)))
-        goto fail;
+    /* checks */
+    if (read_u32be(0x00,sf) + 0xE0 != get_streamfile_size(sf))
+        return NULL;
+    if (read_u32be(0x04,sf) != 0x01)
+        return NULL;
+    if (read_u32be(0x08,sf) != 0x10000000)
+        return NULL;
+    if (read_u32be(0x0c,sf) != 0x00)
+        return NULL;
 
-    loop_flag = (uint16_t)(read_16bitBE(0x2C,streamFile) != 0x0);
-    channel_count = 1;
-    
+    /* .dsp: assumed (no names in .pac bigfile and refs to DSP streams) */
+    if (!check_extensions(sf, "dsp"))
+        return NULL;
+
+    channels = 1;
+    loop_flag = read_u16be(0x2C,sf) != 0x00;
+    start_offset = 0xE0;
+
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
-    /* fill in the vital statistics */
-    start_offset = 0xE0;
-    vgmstream->channels = channel_count;
-    vgmstream->sample_rate = read_32bitBE(0x28,streamFile);
+    vgmstream->sample_rate = read_u32be(0x28,sf);
+    vgmstream->num_samples = read_u32be(0x20,sf);
+    vgmstream->loop_start_sample = dsp_bytes_to_samples(read_u32be(0x30,sf), 2);
+    vgmstream->loop_end_sample = dsp_bytes_to_samples(read_u32be(0x34,sf), 2);
+    vgmstream->allow_dual_stereo = true;
+
+    vgmstream->meta_type = meta_DSP_KCEJE;
     vgmstream->coding_type = coding_NGC_DSP;
-    vgmstream->num_samples = read_32bitBE(0x20,streamFile);
     vgmstream->layout_type = layout_none;
-    vgmstream->meta_type = meta_DSP_YGO;
-    vgmstream->allow_dual_stereo = 1;
-    if (loop_flag) {
-        vgmstream->loop_start_sample = (read_32bitBE(0x30,streamFile)*14/16);
-        vgmstream->loop_end_sample = (read_32bitBE(0x34,streamFile)*14/16);
-    }
 
-    // read coef stuff
-    {
-        for (i=0;i<16;i++) {
-            vgmstream->ch[0].adpcm_coef[i] = read_16bitBE(0x3C+i*2,streamFile);
-        }
-    }
+    dsp_read_coefs_be(vgmstream, sf, 0x3c, 0x00);
 
-    /* open the file for reading */
-    {
-        int i;
-        STREAMFILE * file;
-        file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (!file) goto fail;
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = file;
-            vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=start_offset+
-                vgmstream->interleave_block_size*i;
-        }
-    }
-
+    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
+        goto fail;
     return vgmstream;
 
 fail:
-    /* clean up anything we may have opened */
-    if (vgmstream) close_vgmstream(vgmstream);
+    close_vgmstream(vgmstream);
     return NULL;
 }
