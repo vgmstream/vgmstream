@@ -272,7 +272,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - RIFX WAVE header (smpl looping) [*RIFX_WAVE_smpl*]
   - *riff*: `.wav .lwav .xwav .mwv .da .dax .cd .med .snd .adx .adp .xss .xsew .adpcm .adw .wd .(extensionless) .sbv .wvx .str .at3 .rws .aud .at9 .ckd .saf .ima .nsa .pcm .xvag .ogg .logg .p1d .xms .mus .dat .ldat .wma .lwma .caf .wax .voi .se`
   - *rifx*: `.wav .lwav`
-  - Codecs: AICA_int PCM32LE PCM24LE PCM16BE PCM16LE PCM8_U MSADPCM IMA PCMFLOAT MS_IMA AICA MPEG_custom XBOX_IMA MS_IMA_3BIT DVI_IMA L5_555 OGG_VORBIS ATRAC9 ATRAC3 MPEG MSADPCM_mono
+  - Codecs: AICA_int PCM32LE PCM24LE PCM16BE PCM16LE PCM8_U MSADPCM IMA PCMFLOAT MS_IMA AICA MPEG_custom XBOX_IMA MS_IMA_3BIT DVI_IMA LEVEL5 OGG_VORBIS ATRAC9 ATRAC3 MPEG MSADPCM_mono
 - **nwa.c**
   - VisualArt's NWA header (NWAINFO.INI looping) [*NWA_NWAINFOINI*]
   - VisualArt's NWA header (Gameexe.ini looping) [*NWA_GAMEEXEINI*]
@@ -389,10 +389,6 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Square Enix .vsv Header [*VSV*]
   - *vsv*: `.vsv .psh`
   - Codecs: PSX
-- **ps2_pcm.c**
-  - Konami .PCM header [*PS2_PCM*]
-  - *ps2_pcm*: `.pcm`
-  - Codecs: PCM16LE
 - **rkv.c**
   - Legacy of Kain - Blood Omen 2 RKV PS2 header [*PS2_RKV*]
   - Legacy of Kain - Blood Omen 2 RKV GC header [*NGC_RKV*]
@@ -503,8 +499,8 @@ different internally (encrypted, different versions, etc) and not always can be 
     - Subfiles: *ogg_vorbis_config*
   - Codecs: PCM16LE PCM16BE PSX XBOX_IMA_mch XBOX_IMA NGC_DSP NGC_DSP_subint RAD_IMA OGG FFmpeg(various) ATRAC3 XMA
 - **bgw.c**
-  - Square Enix .BGW header [*FFXI_BGW*]
-  - Square Enix .SPW header [*FFXI_SPW*]
+  - Square Enix BGMStream header [*BGW*]
+  - Square Enix SeWave header [*SPW*]
   - *bgw*: `.bgw`
   - *spw*: `.spw`
   - Codecs: PSX_cfg ATRAC3 PCM16LE
@@ -676,9 +672,9 @@ different internally (encrypted, different versions, etc) and not always can be 
   - beatmania IIDX 2DX9 header [*2DX9*]
   - *2dx9*: `.2dx9`
   - Codecs: MSADPCM
-- **ngc_dsp_ygo.c**
-  - Konami custom DSP Header [*DSP_YGO*]
-  - *dsp_ygo*: `.dsp`
+- **dsp_kceje.c**
+  - Konami .DSP Header [*DSP_KCEJE*]
+  - *dsp_kceje*: `.dsp`
   - Codecs: NGC_DSP
 - **ps2_vgv.c**
   - Rune: Viking Warlord VGV Header [*PS2_VGV*]
@@ -894,7 +890,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - *alp*: `.tun .pcm`
   - Codecs: HV_IMA
 - **wpd.c**
-  - WPD 'DPW' header [*WPD*]
+  - Navel WPD header [*WPD*]
   - *wpd*: `.wpd`
   - Codecs: PCM16LE
 - **mn_str.c**
@@ -1095,7 +1091,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Rockstar AWC header [*AWC*]
   - *awc*: `.awc`
     - Subfiles: *riff*
-  - Codecs: PCM16BE PCM16LE AWC_IMA XMA2 MPEG VORBIS_custom ATRAC9 NGC_DSP
+  - Codecs: PCM16BE PCM16LE AWC_IMA XMA2 MPEG_custom MPEG VORBIS_custom ATRAC9 NGC_DSP
 - **opus.c**
   - Nintendo Switch OPUS header [*OPUS*]
   - *opus_std*: `.opus .lopus .bgm .opu .ogg .logg + .psi`
@@ -1878,6 +1874,10 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Naxat .ASD header [*ASD_NAXAT*]
   - *asd_naxat*: `.asd`
   - Codecs: PCM16LE
+- **pcm_kceje.c**
+  - Konami .PCM header [*PCM_KCEJE*]
+  - *pcm_kceje*: `.pcm`
+  - Codecs: PCM16LE
 - **pos.c**
   - RIFF WAVE header (.pos looping) [*RIFF_WAVE_POS*]
   - *pos*: `.pos + .wav`
@@ -2014,7 +2014,7 @@ are used in few games.
   - Konami MTA2 ADPCM
   - FMOD FADPCM ADPCM
   - Procyon Studio ADPCM
-  - Level-5 0x555 ADPCM
+  - Level-5 ADPCM
   - Konami XMD ADPCM
   - Argonaut ASF ADPCM
   - Tantalus ADPCM
