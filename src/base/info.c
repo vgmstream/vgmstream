@@ -52,7 +52,7 @@ void describe_vgmstream(VGMSTREAM* vgmstream, char* desc, int length) {
     }
 
     if (vgmstream->channel_layout) {
-        int cl = vgmstream->channel_layout;
+        uint32_t cl = vgmstream->channel_layout;
 
         /* not "channel layout: " to avoid mixups with "layout: " */
         snprintf(temp,TEMPSIZE, "channel mask: 0x%x /", vgmstream->channel_layout);
@@ -63,8 +63,8 @@ void describe_vgmstream(VGMSTREAM* vgmstream, char* desc, int length) {
         if (cl & speaker_LFE)   concatn(length,desc," LFE");
         if (cl & speaker_BL)    concatn(length,desc," BL");
         if (cl & speaker_BR)    concatn(length,desc," BR");
-        if (cl & speaker_FLC)   concatn(length,desc," FLC");
-        if (cl & speaker_FRC)   concatn(length,desc," FRC");
+        if (cl & speaker_FLC)   concatn(length,desc," FLC"); //FCL is also common
+        if (cl & speaker_FRC)   concatn(length,desc," FRC"); //FCR is also common
         if (cl & speaker_BC)    concatn(length,desc," BC");
         if (cl & speaker_SL)    concatn(length,desc," SL");
         if (cl & speaker_SR)    concatn(length,desc," SR");

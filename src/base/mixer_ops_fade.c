@@ -34,7 +34,7 @@ static inline float get_fade_gain_curve(char shape, float index) {
             break;
 
         case 'Q': /* quarter of sine wave (for musical fades) */
-            gain = sin(index * MIXING_PI / 2.0f);
+            gain = sinf(index * MIXING_PI / 2.0f);
             break;
 
         case 'p': /* parabola (maybe for crossfades) */

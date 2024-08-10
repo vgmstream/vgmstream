@@ -60,7 +60,7 @@ static inline void libvgmstream_streamfile_close(libvgmstream_streamfile_t* libs
 }
 
 
-LIBVGMSTREAM_API libvgmstream_streamfile_t* libvgmstream_streamfile_from_filename(const char* filename);
+LIBVGMSTREAM_API libvgmstream_streamfile_t* libvgmstream_streamfile_open_from_stdio(const char* filename);
 
 #endif
 #endif

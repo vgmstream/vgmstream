@@ -6,7 +6,7 @@
 // TODO decide if using float 1.0 style or 32767 style (fuzzy PCM changes when doing that)
 static inline void sbuf_copy_s16_to_f32(float* buf_f32, int16_t* buf_s16, int samples, int channels) {
     for (int s = 0; s < samples * channels; s++) {
-        buf_f32[s] = buf_s16[s]; // / 32767.0f
+        buf_f32[s] = (float)buf_s16[s]; // / 32767.0f
     }
 }
 
