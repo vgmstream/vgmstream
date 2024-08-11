@@ -23,11 +23,11 @@ vorbis_custom_codec_data* init_vorbis_custom(STREAMFILE* sf, off_t start_offset,
     int ok;
 
     /* init stuff */
-    data = calloc(1,sizeof(vorbis_custom_codec_data));
+    data = calloc(1, sizeof(vorbis_custom_codec_data));
     if (!data) goto fail;
 
     data->buffer_size = VORBIS_DEFAULT_BUFFER_SIZE;
-    data->buffer = calloc(sizeof(uint8_t), data->buffer_size);
+    data->buffer = calloc(data->buffer_size, sizeof(uint8_t));
     if (!data->buffer) goto fail;
 
     /* keep around to decode too */
@@ -165,7 +165,7 @@ void decode_vorbis_custom(VGMSTREAM* vgmstream, sample_t* outbuf, int32_t sample
 decode_fail:
     /* on error just put some 0 samples */
     VGM_LOG("VORBIS: decode fail at %x, missing %i samples\n", (uint32_t)stream->offset, (samples_to_do - samples_done));
-    memset(outbuf + samples_done * channels, 0, (samples_to_do - samples_done) * channels * sizeof(sample));
+    memset(outbuf + samples_done * channels, 0, (samples_to_do - samples_done) * channels * sizeof(sample_t));
 }
 
 /* converts from internal Vorbis format to standard PCM (mostly from Xiph's decoder_example.c) */

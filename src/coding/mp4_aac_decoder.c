@@ -154,7 +154,7 @@ fail:
 }
 
 
-static void convert_samples(INT_PCM * src, sample * dest, int32_t count) {
+static void convert_samples(INT_PCM * src, sample_t* dest, int32_t count) {
 	int32_t i;
 	for ( i = 0; i < count; i++ ) {
 		INT_PCM sample = *src++;
@@ -164,7 +164,7 @@ static void convert_samples(INT_PCM * src, sample * dest, int32_t count) {
 	}
 }
 
-void decode_mp4_aac(mp4_aac_codec_data * data, sample * outbuf, int32_t samples_to_do, int channels) {
+void decode_mp4_aac(mp4_aac_codec_data * data, sample_t* outbuf, int32_t samples_to_do, int channels) {
 	int samples_done = 0;
 
 	uint8_t * buffer = NULL;
@@ -199,7 +199,7 @@ void decode_mp4_aac(mp4_aac_codec_data * data, sample * outbuf, int32_t samples_
 
 	while ( samples_done < samples_to_do ) {
 		if (data->sampleId >= data->numSamples) {
-			memset(outbuf, 0, (samples_to_do - samples_done) * stream_info->numChannels * sizeof(sample));
+			memset(outbuf, 0, (samples_to_do - samples_done) * stream_info->numChannels * sizeof(sample_t));
 			break;
 		}
 		if (!MP4ReadSample( data->h_mp4file, data->track_id, ++data->sampleId, (uint8_t**)(&buffer), (uint32_t*)(&buffer_size), 0, 0, 0, 0)) return;

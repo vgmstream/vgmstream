@@ -132,7 +132,7 @@ fail:
 }
 
 
-LIBVGMSTREAM_API libvgmstream_streamfile_t* libvgmstream_streamfile_from_filename(const char* filename) {
+LIBVGMSTREAM_API libvgmstream_streamfile_t* libvgmstream_streamfile_open_from_stdio(const char* filename) {
     STREAMFILE* sf = open_stdio_streamfile(filename);
     if (!sf)
         return NULL;

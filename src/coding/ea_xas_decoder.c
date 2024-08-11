@@ -113,7 +113,7 @@ void decode_ea_xas_v1(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspa
 
 
 /* EA-XAS v0 (xas0), without complex layouts and closer to EA-XA. Somewhat based on daemon1's decoder. */
-void decode_ea_xas_v0(VGMSTREAMCHANNEL * stream, sample * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
+void decode_ea_xas_v0(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
     uint8_t frame[0x13] = {0};
     off_t frame_offset;
     int frames_in, samples_done = 0, sample_count = 0;

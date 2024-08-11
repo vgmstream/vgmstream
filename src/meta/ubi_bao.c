@@ -990,7 +990,7 @@ static int parse_type_silence(ubi_bao_header* bao, off_t offset, STREAMFILE* sf)
 
     bao->duration = read_f32(h_offset + bao->cfg.silence_duration_float, sf);
     if (bao->duration <= 0.0f) {
-        VGM_LOG("UBI BAO: bad duration %f at %x\n", bao->duration, (uint32_t)offset);
+        VGM_LOG("UBI BAO: bad duration %f at %x\n", (double)bao->duration, (uint32_t)offset);
         goto fail;
     }
 

@@ -2,6 +2,7 @@
 #define _LAYOUTS_UTIL_H
 
 #include "../vgmstream.h"
+#include "../layout/layout.h"
 
 typedef VGMSTREAM* (*init_vgmstream_t)(STREAMFILE*);
 
@@ -18,4 +19,7 @@ bool layered_add_codec(VGMSTREAM* vs, int layers, int layer_channels);
 
 /* call when done adding layers */
 bool layered_add_done(VGMSTREAM* vs);
+
+VGMSTREAM* allocate_layered_vgmstream(layered_layout_data* data);
+VGMSTREAM* allocate_segmented_vgmstream(segmented_layout_data* data, int loop_flag, int loop_start_segment, int loop_end_segment);
 #endif

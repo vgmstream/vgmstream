@@ -454,6 +454,7 @@
     <ClCompile Include="meta\dmsg_segh.c" />
     <ClCompile Include="meta\dsb.c" />
     <ClCompile Include="meta\dsf.c" />
+    <ClCompile Include="meta\dsp_kceje.c" />
     <ClCompile Include="meta\ea_1snh.c" />
     <ClCompile Include="meta\ea_eaac.c" />
     <ClCompile Include="meta\ea_eaac_abk.c" />
@@ -577,7 +578,6 @@
     <ClCompile Include="meta\ngc_dsp_konami.c" />
     <ClCompile Include="meta\ngc_dsp_mpds.c" />
     <ClCompile Include="meta\ngc_dsp_std.c" />
-    <ClCompile Include="meta\ngc_dsp_ygo.c" />
     <ClCompile Include="meta\ngc_ffcc_str.c" />
     <ClCompile Include="meta\ngc_lps.c" />
     <ClCompile Include="meta\ngc_nst_dsp.c" />
@@ -604,6 +604,7 @@
     <ClCompile Include="meta\p2bt_move_visa.c" />
     <ClCompile Include="meta\p3d.c" />
     <ClCompile Include="meta\pasx.c" />
+    <ClCompile Include="meta\pcm_kceje.c" />
     <ClCompile Include="meta\pcm_sre.c" />
     <ClCompile Include="meta\pcm_success.c" />
     <ClCompile Include="meta\pc_ast.c" />
@@ -620,7 +621,6 @@
     <ClCompile Include="meta\ps2_iab.c" />
     <ClCompile Include="meta\ps2_joe.c" />
     <ClCompile Include="meta\ps2_mcg.c" />
-    <ClCompile Include="meta\ps2_pcm.c" />
     <ClCompile Include="meta\ps2_rnd.c" />
     <ClCompile Include="meta\ps2_snd.c" />
     <ClCompile Include="meta\ps2_sps.c" />

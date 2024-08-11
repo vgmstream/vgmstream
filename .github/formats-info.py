@@ -52,6 +52,7 @@ FILES_SKIP = [
     'txth.c','txtp.c','genh.c', 
     'silence.c', 'mp4_faac.c', 'deblock_streamfile.c', 
     'ps_headerless.c', 'zwdsp.c',
+    'txtp_parser.c', 'txtp_process.c',
 ]
 
 EXT_RENAMES = {'...': '(any)', '': '(extensionless)'}

@@ -1,59 +1,33 @@
 #include "meta.h"
-#include "../util.h"
+#include "../util/meta_utils.h"
 
-/* WPD (from Shuffle! (PC)) */
-VGMSTREAM * init_vgmstream_wpd(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
-    off_t start_offset;
-    int channel_count;
-    int loop_flag;
+/* WPD - from Shuffle! (PC) */
+VGMSTREAM* init_vgmstream_wpd(STREAMFILE* sf) {
 
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("wpd",filename_extension(filename))) goto fail;
+    /* checks */
+    if (!is_id32be(0x00,sf, " DPW"))
+        return NULL;
+    if (!check_extensions(sf, "wpd"))
+        return NULL;
 
-    /* check header */
-    if (read_32bitBE(0x00,streamFile) != 0x20445057) /* " DPW" */
-        goto fail;
+    meta_header_t h = {0};
+    h.meta = meta_WPD;
+    h.channels      = read_u32le(0x04,sf); /* always 2? */
+    // 08: always 2?
+    // 0c: bits per sample (16)
+    h.sample_rate   = read_s32le(0x10,sf); /* big endian? */
+    h.data_size     = read_u32le(0x14,sf);
+    // 18: PCM fmt (codec 0001, channels, srate, bitrate...)
 
-    channel_count = read_32bitLE(0x4,streamFile);
-    loop_flag = 0;
+    h.stream_offset = 0x30;
+    h.num_samples = pcm16_bytes_to_samples(h.data_size, h.channels);
 
-   /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
-    if (!vgmstream) goto fail;
+    h.coding = coding_PCM16LE;
+    h.layout = layout_interleave;
+    h.interleave = 0x02;
 
-   /* fill in the vital statistics */
-    start_offset = 0x30;
-    vgmstream->channels = channel_count;
-    vgmstream->sample_rate = read_32bitLE(0x10,streamFile);
-    vgmstream->coding_type = coding_PCM16LE;
-    vgmstream->num_samples = (read_32bitLE(0x14,streamFile))/2/channel_count;
-    vgmstream->layout_type = layout_interleave;
-    vgmstream->interleave_block_size = 2;
-    vgmstream->meta_type = meta_WPD;
+    h.sf = sf;
+    h.open_stream = true;
 
-    /* open the file for reading */
-    {
-        int i;
-        STREAMFILE * file;
-        file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (!file) goto fail;
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = file;
-
-            vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=start_offset+
-                vgmstream->interleave_block_size*i;
-
-        }
-    }
-
-    return vgmstream;
-
-    /* clean up anything we may have opened */
-fail:
-    if (vgmstream) close_vgmstream(vgmstream);
-    return NULL;
+    return alloc_metastream(&h);
 }

@@ -90,7 +90,7 @@ void decode_adx(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, 
     stream->adpcm_history2_32 = hist2;
 
     if ((coding_type == coding_CRI_ADX_enc_8 || coding_type == coding_CRI_ADX_enc_9) && !(i % 32)) {
-        for (i =0; i < stream->adx_channels; i++) {
+        for (i = 0; i < channelspacing; i++) {
             adx_next_key(stream);
         }
     }

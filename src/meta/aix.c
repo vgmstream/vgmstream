@@ -1,5 +1,6 @@
 #include "meta.h"
 #include "../layout/layout.h"
+#include "../util/layout_utils.h"
 #include "aix_streamfile.h"
 
 

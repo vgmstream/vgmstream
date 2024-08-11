@@ -46,8 +46,8 @@ ipch
 # build
 /version_auto.h
 /dependencies
-/bin/**/*
-/tmp/**/*
+/bin
+/tmp
 /**/vgmstream-win.zip
 /**/foo_input_vgmstream.fb2k-component
 
@@ -64,10 +64,7 @@ CMakeFiles
 /audacious/Makefile
 cmake_install.cmake
 
-#doc build
-doc/INFO.md
-doc/_build
-
+# doc stuff
 changelog.txt
 formats-info.md
 __pycache__

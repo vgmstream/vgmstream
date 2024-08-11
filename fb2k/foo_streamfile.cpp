@@ -115,12 +115,15 @@ static size_t foo_read(FOO_STREAMFILE* sf, uint8_t* dst, offv_t offset, size_t l
     sf->offset = offset; /* last fread offset */
     return read_total;
 }
+
 static size_t foo_get_size(FOO_STREAMFILE* sf) {
     return sf->file_size;
 }
+
 static offv_t foo_get_offset(FOO_STREAMFILE* sf) {
     return sf->offset;
 }
+
 static void foo_get_name(FOO_STREAMFILE* sf, char* name, size_t name_size) {
     int copy_size = sf->name_len + 1;
     if (copy_size > name_size)
@@ -138,6 +141,7 @@ static void foo_get_name(FOO_STREAMFILE* sf, char* name, size_t name_size) {
     }
     */
 }
+
 static void foo_close(FOO_STREAMFILE* sf) {
     sf->m_file.release(); //release alloc'ed ptr
     free(sf->name);
@@ -247,11 +251,11 @@ static STREAMFILE* open_foo_streamfile_buffer_by_file(service_ptr_t<file> m_file
     if (strncmp(filename, "unpack", 6) == 0) {
         const char* archfile_ptr = strrchr(this_sf->name, '|');
         if (archfile_ptr)
-            this_sf->archfile_end = (intptr_t)archfile_ptr + 1 - (intptr_t)this_sf->name; // after "|""
+            this_sf->archfile_end = (int)((intptr_t)archfile_ptr + 1 - (intptr_t)this_sf->name); // after "|""
 
         const char* archpath_ptr = strrchr(this_sf->name, '\\');
         if (archpath_ptr)
-            this_sf->archpath_end = (intptr_t)archpath_ptr + 1 - (intptr_t)this_sf->name; // after "\\"
+            this_sf->archpath_end = (int)((intptr_t)archpath_ptr + 1 - (intptr_t)this_sf->name); // after "\\"
 
         if (this_sf->archpath_end <= 0 || this_sf->archfile_end <= 0 || this_sf->archpath_end > this_sf->archfile_end || 
                 this_sf->archfile_end > this_sf->name_len || this_sf->archfile_end >= PATH_LIMIT) {

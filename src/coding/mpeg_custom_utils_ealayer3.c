@@ -670,20 +670,20 @@ static void ealayer3_copy_pcm_block(uint8_t* outbuf, off_t pcm_offset, int pcm_n
             int16_t pcm_sample = get_s16be(pcm_block + pos);
             put_s16le(outbuf + pos, pcm_sample);
 
-            pos += sizeof(sample);
+            pos += sizeof(sample_t);
         }
     }
     else {
         /* all of ch0 first, then all of ch1 (EAL3 v1b only) */
         int get_pos = 0;
         for (ch = 0; ch < channels_per_frame; ch++) {
-            int put_pos = sizeof(sample) * ch;
+            int put_pos = sizeof(sample_t) * ch;
             for (i = 0; i < pcm_number; i++) {
                 int16_t pcm_sample = get_s16be(pcm_block + get_pos);
                 put_s16le(outbuf + put_pos, pcm_sample);
 
-                get_pos += sizeof(sample);
-                put_pos += sizeof(sample) * channels_per_frame;
+                get_pos += sizeof(sample_t);
+                put_pos += sizeof(sample_t) * channels_per_frame;
             }
         }
     }
@@ -697,7 +697,7 @@ static int ealayer3_write_pcm_block(VGMSTREAMCHANNEL* stream, mpeg_codec_data* d
     size_t bytes_filled;
 
 
-    bytes_filled = sizeof(sample) * ms->samples_filled * channels_per_frame;
+    bytes_filled = sizeof(sample_t) * ms->samples_filled * channels_per_frame;
     if (bytes_filled + eaf->pcm_size > ms->output_buffer_size) {
         VGM_LOG("EAL3: can't fill the sample buffer with 0x%x\n", eaf->pcm_size);
         goto fail;

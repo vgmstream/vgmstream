@@ -36,11 +36,11 @@ typedef struct {
     int64_t Size;
 } TStream;
 
-static void TStream_Read_Uint32(TStream* this, uint32_t* value) {
+static void TStream_Read_Uint32(TStream* self, uint32_t* value) {
     uint8_t buf[0x4] = {0};
 
-    read_streamfile(buf, this->Position, sizeof(buf), this->File);
-    this->Position += 0x4;
+    read_streamfile(buf, self->Position, sizeof(buf), self->File);
+    self->Position += 0x4;
 
     *value = get_u32le(buf);
 }
@@ -118,83 +118,83 @@ typedef struct {
 
 
 //related to huffman encoding
-static void THuff_InitHuffTree(THuff* this); //initializes tree
-static int THuff_InsertHuffNode(THuff* this, int v, int w, TNodeState s, int b1, int b2); //add node to tree
-static void THuff_MakeHuffTree(THuff* this);
+static void THuff_InitHuffTree(THuff* self); //initializes tree
+static int THuff_InsertHuffNode(THuff* self, int v, int w, TNodeState s, int b1, int b2); //add node to tree
+static void THuff_MakeHuffTree(THuff* self);
 
 //related to single bit IO
-static void THuff_BeginBitIO(THuff* this);
-static void THuff_EndBitIO(THuff* this);
-static int THuff_ReadBit(THuff* this);
+static void THuff_BeginBitIO(THuff* self);
+static void THuff_EndBitIO(THuff* self);
+static int THuff_ReadBit(THuff* self);
 static uint32_t THuff__ROR(uint32_t src, uint32_t shift);
 
 static THuff* THuff_Create(TStream* buf); // creation
-static void THuff_Free(THuff* this); // release the power
-static void THuff_SetCipherCode(THuff* this, uint32_t msk); // encryption mask bits
+static void THuff_Free(THuff* self); // release the power
+static void THuff_SetCipherCode(THuff* self, uint32_t msk); // encryption mask bits
 //functions for reading
-static void THuff_BeginRead(THuff* this);
-static int THuff_Read(THuff* this);
+static void THuff_BeginRead(THuff* self);
+static int THuff_Read(THuff* self);
 
 #if 0
-static int64_t THuff_GetFileSize(THuff* this); // get file size before encoding
-static int THuff_GetEOF(THuff* this); // EOF detection
+static int64_t THuff_GetFileSize(THuff* self); // get file size before encoding
+static int THuff_GetEOF(THuff* self); // EOF detection
 #endif
-static void THuff_MoveBeginPosition(THuff* this); // return to initial state
-static void THuff_GetPositionData(THuff* this, THuffPositionData* s);   // secret
-static void THuff_SetPositionData(THuff* this, THuffPositionData* s);
+static void THuff_MoveBeginPosition(THuff* self); // return to initial state
+static void THuff_GetPositionData(THuff* self, THuffPositionData* s);   // secret
+static void THuff_SetPositionData(THuff* self, THuffPositionData* s);
 
 //------------------------------------------------------------------------------
 //create
 static THuff* THuff_Create(TStream* buf) {
-    THuff* this = malloc(sizeof(THuff));
-    if (!this) return NULL;
+    THuff* self = malloc(sizeof(THuff));
+    if (!self) return NULL;
 
     //define stream
-    this->Buff = *buf;
+    self->Buff = *buf;
 
     //initialization
-    THuff_InitHuffTree(this);
-    memcpy(this->Hed.HedChar, "HUF\0", 0x4);
-    this->Hed.Version  = 1;
-    this->Hed.FileSize = 0;
+    THuff_InitHuffTree(self);
+    memcpy(self->Hed.HedChar, "HUF\0", 0x4);
+    self->Hed.Version  = 1;
+    self->Hed.FileSize = 0;
 
     //set cipher bits
-    this->CipherBuf = 0;
-    THuff_SetCipherCode(this, 0x0);
+    self->CipherBuf = 0;
+    THuff_SetCipherCode(self, 0x0);
 
     //mode
-    this->Mode = 0;
+    self->Mode = 0;
 
-    return this;
+    return self;
 }
 
 //------------------------------------------------------------------------------
 //free
-static void THuff_Free(THuff* this) {
-    if (this == NULL) return;
-    if (this->Mode == 2)
-        THuff_EndBitIO(this);
-    free(this);
+static void THuff_Free(THuff* self) {
+    if (self == NULL) return;
+    if (self->Mode == 2)
+        THuff_EndBitIO(self);
+    free(self);
 }
 
 //------------------------------------------------------------------------------
 //init tree structure (unused state)
-static void THuff_InitHuffTree(THuff* this) {
+static void THuff_InitHuffTree(THuff* self) {
     int i;
 
     for (i = 0; i < 512; i++) {
-        this->Node[i].State = nsEmpty;
+        self->Node[i].State = nsEmpty;
     }
 }
 
 //------------------------------------------------------------------------------
 //add node to huffman tree
-static int THuff_InsertHuffNode(THuff* this, int v, int w, TNodeState s, int b1, int b2) {
+static int THuff_InsertHuffNode(THuff* self, int v, int w, TNodeState s, int b1, int b2) {
     int result = 0;
     int i;
 
     i = 0;
-    while ((this->Node[i].State != nsEmpty) && (i < 512)) {
+    while ((self->Node[i].State != nsEmpty) && (i < 512)) {
         i++;
     }
 
@@ -203,15 +203,15 @@ static int THuff_InsertHuffNode(THuff* this, int v, int w, TNodeState s, int b1,
         return result; //exit;
     }
 
-    this->Node[i].Value = v & 0xFF; //BYTE(v);
-    this->Node[i].Weight = w;
-    this->Node[i].State  = s;
-    this->Node[i].Link[0] = b1;
-    if (this->Node[i].Link[0] > 511) {
+    self->Node[i].Value = v & 0xFF; //BYTE(v);
+    self->Node[i].Weight = w;
+    self->Node[i].State  = s;
+    self->Node[i].Link[0] = b1;
+    if (self->Node[i].Link[0] > 511) {
         return -1;//? //halt;
     }
-    this->Node[i].Link[1] = b2;
-    if (this->Node[i].Link[1] > 511) {
+    self->Node[i].Link[1] = b2;
+    if (self->Node[i].Link[1] > 511) {
         return -1;//? //halt;
     }
     //return entry number
@@ -221,31 +221,31 @@ static int THuff_InsertHuffNode(THuff* this, int v, int w, TNodeState s, int b1,
 
 //------------------------------------------------------------------------------
 //reads and expands huffman-encoded data
-static int THuff_Read(THuff* this) {
+static int THuff_Read(THuff* self) {
     int i;
 
-    i = this->Root;
-    while (this->Node[i].State != nsLeaf) {
-        i = this->Node[i].Link[THuff_ReadBit(this)];
+    i = self->Root;
+    while (self->Node[i].State != nsLeaf) {
+        i = self->Node[i].Link[THuff_ReadBit(self)];
     }
 
-    return this->Node[i].Value;
+    return self->Node[i].Value;
 }
 
 //------------------------------------------------------------------------------
 //creates fork code from tree
 
 //finds node of lowest weight
-static int THuff_MakeHuffTree_SerchMinNode(THuff* this, int* tNode) {
+static int THuff_MakeHuffTree_SerchMinNode(THuff* self, int* tNode) {
     int ii, aaa1, aaa2;
 
     aaa1 = 0xFFFFFFF;
     aaa2 = 0;
     for (ii = 0 ; ii < 256; ii++) {
         if (tNode[ii] != -1) {
-            if (this->Node[tNode[ii]].Weight < aaa1) {
+            if (self->Node[tNode[ii]].Weight < aaa1) {
                 aaa2 = ii;
-                aaa1 = this->Node[tNode[ii]].Weight;
+                aaa1 = self->Node[tNode[ii]].Weight;
             }
         }
     }
@@ -253,43 +253,43 @@ static int THuff_MakeHuffTree_SerchMinNode(THuff* this, int* tNode) {
 }
 
 //finds closest node
-static int THuff_MakeHuffTree_SerchNearNode(THuff* this, int* tNode, int pos) {
+static int THuff_MakeHuffTree_SerchNearNode(THuff* self, int* tNode, int pos) {
     int ii, aaa1, aaa2;
 
     aaa1 = 0xFFFFFFF;
     aaa2 = 0;
     for (ii = 0 ; ii < 256; ii++) {
         if (tNode[ii] != -1) {
-            if ((abs(this->Node[tNode[ii]].Weight - this->Node[tNode[pos]].Weight) < aaa1) && (pos != ii)) {
+            if ((abs(self->Node[tNode[ii]].Weight - self->Node[tNode[pos]].Weight) < aaa1) && (pos != ii)) {
                 aaa2 = ii;
-                aaa1 = this->Node[tNode[ii]].Weight;
+                aaa1 = self->Node[tNode[ii]].Weight;
             }
         }
     }
     return aaa2;
 }
 
-static void THuff_MakeHuffTree_MakeHuffCodeFromTree(THuff* this, uint8_t* tCode1, int* tCodePos, int pos) {
+static void THuff_MakeHuffTree_MakeHuffCodeFromTree(THuff* self, uint8_t* tCode1, int* tCodePos, int pos) {
     int ii, aaa1;
 
-    if (this->Node[pos].State == nsLeaf) { //found
+    if (self->Node[pos].State == nsLeaf) { //found
         tCode1[*tCodePos] = 0xFF;
-        aaa1 = this->Node[pos].Value;
+        aaa1 = self->Node[pos].Value;
         for (ii = 0; ii < 256; ii++) {
-            this->Code[aaa1][ii] = tCode1[ii];
+            self->Code[aaa1][ii] = tCode1[ii];
         }
     }
     else { //not
-        if (this->Node[pos].Link[0] != -1) {
+        if (self->Node[pos].Link[0] != -1) {
             tCode1[*tCodePos] = 0;
             (*tCodePos)++;
-            THuff_MakeHuffTree_MakeHuffCodeFromTree(this, tCode1, tCodePos, this->Node[pos].Link[0]);
+            THuff_MakeHuffTree_MakeHuffCodeFromTree(self, tCode1, tCodePos, self->Node[pos].Link[0]);
         }
 
-        if (this->Node[pos].Link[1] != -1) {
+        if (self->Node[pos].Link[1] != -1) {
             tCode1[*tCodePos] = 1;
             (*tCodePos)++;
-            THuff_MakeHuffTree_MakeHuffCodeFromTree(this, tCode1, tCodePos, this->Node[pos].Link[1]);
+            THuff_MakeHuffTree_MakeHuffCodeFromTree(self, tCode1, tCodePos, self->Node[pos].Link[1]);
         }
     }
 
@@ -297,7 +297,7 @@ static void THuff_MakeHuffTree_MakeHuffCodeFromTree(THuff* this, uint8_t* tCode1
 }
 
 // creates huffman tree/codes from apparance rate (0..255)
-static void THuff_MakeHuffTree(THuff* this) {
+static void THuff_MakeHuffTree(THuff* self) {
     int i, aa1, aa2, aa3;
     int tCodePos;
     uint8_t tCode1[257];
@@ -307,7 +307,7 @@ static void THuff_MakeHuffTree(THuff* this) {
     int tNode[257];
 
     //initializes huffman tree
-    THuff_InitHuffTree(this);
+    THuff_InitHuffTree(self);
     for (i = 0; i < 256; i++) {
         tNode[i] = -1;
         tCode1[i] = 0;
@@ -318,17 +318,17 @@ static void THuff_MakeHuffTree(THuff* this) {
 
     //adds child nodes + comparison target nodes
     for (i = 0; i < 256; i++) {
-        tNode[i] = THuff_InsertHuffNode(this, i, this->Hed.HistGraph[i], nsLeaf, -1, -1);
+        tNode[i] = THuff_InsertHuffNode(self, i, self->Hed.HistGraph[i], nsLeaf, -1, -1);
     }
 
     //creates optimal tree
     for (i = 0; i < 256 - 1; i++) {
         //find smallest node
-        aa1 = THuff_MakeHuffTree_SerchMinNode(this, tNode);
+        aa1 = THuff_MakeHuffTree_SerchMinNode(self, tNode);
         //find value closest to smallest node
-        aa2 = THuff_MakeHuffTree_SerchNearNode(this, tNode, aa1);
+        aa2 = THuff_MakeHuffTree_SerchNearNode(self, tNode, aa1);
         //make new node joining both together
-        aa3 = THuff_InsertHuffNode(this, -1, this->Node[tNode[aa1]].Weight + this->Node[tNode[aa2]].Weight, nsBranch, tNode[aa1], tNode[aa2]);
+        aa3 = THuff_InsertHuffNode(self, -1, self->Node[tNode[aa1]].Weight + self->Node[tNode[aa2]].Weight, nsBranch, tNode[aa1], tNode[aa2]);
         //remove aa1/2 from comparison target nodes.
         tNode[aa1] = -1;
         tNode[aa2] = -1;
@@ -337,63 +337,63 @@ static void THuff_MakeHuffTree(THuff* this) {
     }
 
     //finally make added node top of the tree
-    this->Root = aa3;
+    self->Root = aa3;
 
     //create stack for data expansion from tree info
     tCodePos = 0;
-    THuff_MakeHuffTree_MakeHuffCodeFromTree(this, tCode1, &tCodePos, this->Root);
+    THuff_MakeHuffTree_MakeHuffCodeFromTree(self, tCode1, &tCodePos, self->Root);
 }
 
 //------------------------------------------------------------------------------
 //bit IO start process
-static void THuff_BeginBitIO(THuff* this) {
-    this->IoCount = 0;
-    this->BitBuf = 0;
-    this->BitCount = 32;
+static void THuff_BeginBitIO(THuff* self) {
+    self->IoCount = 0;
+    self->BitBuf = 0;
+    self->BitCount = 32;
 #if 0
-    this->BitWriteLen = 0;
+    self->BitWriteLen = 0;
 #endif
-    this->CipherBuf = 0;
+    self->CipherBuf = 0;
 }
 
 //------------------------------------------------------------------------------
 //bit IO end process
-static void THuff_EndBitIO(THuff* this) {
+static void THuff_EndBitIO(THuff* self) {
 #if 0
-    if (this->IoCount == 2 && this->BitCount > 0) {
-        this->BitBuf = this->BitBuf ^ this->CipherBuf;
-        TStream_Write(this->Buff, BitBuf,4);
+    if (self->IoCount == 2 && self->BitCount > 0) {
+        self->BitBuf = self->BitBuf ^ self->CipherBuf;
+        TStream_Write(self->Buff, BitBuf,4);
     }
 #endif
-    THuff_BeginBitIO(this);
+    THuff_BeginBitIO(self);
 }
 
 //------------------------------------------------------------------------------
 //read 1 bit from file
-static int THuff_ReadBit(THuff* this) {
+static int THuff_ReadBit(THuff* self) {
     int result;
     uint32_t aaa;
 
-    if (this->BitCount == 32) {
-        this->IoCount = 1; //ReadMode
-        if (this->Buff.Position < this->Buff.Size) {
+    if (self->BitCount == 32) {
+        self->IoCount = 1; //ReadMode
+        if (self->Buff.Position < self->Buff.Size) {
             //read
-            TStream_Read_Uint32(&this->Buff, &aaa); //Buff.Read(aaa,sizeof(DWORD));
-            this->BitBuf = aaa ^ this->CipherBuf;
+            TStream_Read_Uint32(&self->Buff, &aaa); //Buff.Read(aaa,sizeof(DWORD));
+            self->BitBuf = aaa ^ self->CipherBuf;
 
             //decryption phase
-            this->CipherBuf = THuff__ROR(this->CipherBuf, aaa & 7);
-            this->CipherBuf = this->CipherBuf ^ this->CipherList[aaa & 7];
+            self->CipherBuf = THuff__ROR(self->CipherBuf, aaa & 7);
+            self->CipherBuf = self->CipherBuf ^ self->CipherList[aaa & 7];
         }
-        this->BitCount = 0;
+        self->BitCount = 0;
     }
 
     //return 1 bit
-    result = this->BitBuf & 1;
-    this->BitBuf = this->BitBuf >> 1;
+    result = self->BitBuf & 1;
+    self->BitBuf = self->BitBuf >> 1;
 
     //advance BitCount
-    this->BitCount++;
+    self->BitCount++;
 
     return result;
 }
@@ -401,12 +401,12 @@ static int THuff_ReadBit(THuff* this) {
 //------------------------------------------------------------------------------
 //starts reading encoded data from stream
 
-static void TStream_Read_THuffHedState(TStream* this, THuffHedState* Hed) {
+static void TStream_Read_THuffHedState(TStream* self, THuffHedState* Hed) {
     uint8_t buf[0x410];
     int i;
 
-    read_streamfile(buf, this->Position, sizeof(buf), this->File);
-    this->Position += sizeof(buf);
+    read_streamfile(buf, self->Position, sizeof(buf), self->File);
+    self->Position += sizeof(buf);
 
     /* 0x00: string size (always 3) */
     memcpy(Hed->HedChar, buf+0x01, 0x03);
@@ -417,25 +417,25 @@ static void TStream_Read_THuffHedState(TStream* this, THuffHedState* Hed) {
     Hed->FileSize = get_u64le(buf+0x408); /* seems always 0 */
 }
 
-static void THuff_BeginRead(THuff* this) {
-    TStream_Read_THuffHedState(&this->Buff, &this->Hed); //Buff.Read(Hed,sizeof(THuffHedState));
-    THuff_MakeHuffTree(this);
-    this->BeginPos = this->Buff.Position;
-    THuff_BeginBitIO(this);
-    this->Mode = 1;
+static void THuff_BeginRead(THuff* self) {
+    TStream_Read_THuffHedState(&self->Buff, &self->Hed); //Buff.Read(Hed,sizeof(THuffHedState));
+    THuff_MakeHuffTree(self);
+    self->BeginPos = self->Buff.Position;
+    THuff_BeginBitIO(self);
+    self->Mode = 1;
 }
 
 #if 0
 //------------------------------------------------------------------------------
 //get file size before encoding
-static int64_t THuff_GetFileSize(THuff* this) {
-    return this->Hed.FileSize;
+static int64_t THuff_GetFileSize(THuff* self) {
+    return self->Hed.FileSize;
 }
 
 //------------------------------------------------------------------------------
 //EOF detection
-static int THuff_GetEOF(THuff* this) {
-    if (this->Buff.Position < this->Buff.Size)
+static int THuff_GetEOF(THuff* self) {
+    if (self->Buff.Position < self->Buff.Size)
         return CW_FALSE;
     else
         return CW_TRUE;
@@ -443,39 +443,39 @@ static int THuff_GetEOF(THuff* this) {
 #endif
 //------------------------------------------------------------------------------
 //return to initial positon
-static void THuff_MoveBeginPosition(THuff* this) {
-    THuff_EndBitIO(this);
-    this->Buff.Position = this->BeginPos;
-    THuff_BeginBitIO(this);
+static void THuff_MoveBeginPosition(THuff* self) {
+    THuff_EndBitIO(self);
+    self->Buff.Position = self->BeginPos;
+    THuff_BeginBitIO(self);
 }
 
 //------------------------------------------------------------------------------
-static void THuff_GetPositionData(THuff* this, THuffPositionData* s) {
-    s->BitBuf    = this->BitBuf;
-    s->BitCount  = this->BitCount;
-    s->StreamPos = this->Buff.Position;
-    s->CipherBuf = this->CipherBuf;
+static void THuff_GetPositionData(THuff* self, THuffPositionData* s) {
+    s->BitBuf    = self->BitBuf;
+    s->BitCount  = self->BitCount;
+    s->StreamPos = self->Buff.Position;
+    s->CipherBuf = self->CipherBuf;
 }
 
 //------------------------------------------------------------------------------
-static void THuff_SetPositionData(THuff* this, THuffPositionData* s) {
-    this->BitBuf   = s->BitBuf;
-    this->BitCount = s->BitCount;
-    this->Buff.Position = s->StreamPos;
-    this->CipherBuf = s->CipherBuf;
+static void THuff_SetPositionData(THuff* self, THuffPositionData* s) {
+    self->BitBuf   = s->BitBuf;
+    self->BitCount = s->BitCount;
+    self->Buff.Position = s->StreamPos;
+    self->CipherBuf = s->CipherBuf;
 }
 
 //------------------------------------------------------------------------------
-static void THuff_SetCipherCode(THuff* this, uint32_t msk) {
+static void THuff_SetCipherCode(THuff* self, uint32_t msk) {
     //creates mask list
-    this->CipherList[0] = msk / 3;
-    this->CipherList[1] = msk / 17;
-    this->CipherList[2] = msk / 7;
-    this->CipherList[3] = msk / 5;
-    this->CipherList[4] = msk / 3;
-    this->CipherList[5] = msk / 11;
-    this->CipherList[6] = msk / 13;
-    this->CipherList[7] = msk / 19;
+    self->CipherList[0] = msk / 3;
+    self->CipherList[1] = msk / 17;
+    self->CipherList[2] = msk / 7;
+    self->CipherList[3] = msk / 5;
+    self->CipherList[4] = msk / 3;
+    self->CipherList[5] = msk / 11;
+    self->CipherList[6] = msk / 13;
+    self->CipherList[7] = msk / 19;
 }
 
 //------------------------------------------------------------------------------
@@ -558,76 +558,76 @@ struct TCompressWaveData {
 //-----------------------------------------------------------
 //create
 TCompressWaveData* TCompressWaveData_Create(void) {
-    TCompressWaveData* this = malloc(sizeof(TCompressWaveData));
-    if (!this) return NULL;
+    TCompressWaveData* self = malloc(sizeof(TCompressWaveData));
+    if (!self) return NULL;
 #if 0
-    this->Data = NULL;
+    self->Data = NULL;
 #endif
-    this->RH = NULL;
-    this->FWavePosition = 0;
-    this->FWaveLength   = 0;
-    this->FVolume = PW_MAXVOLUME;
-    this->FSetVolume = PW_MAXVOLUME;
-    this->Ffade    = 0;
-    this->FEndLoop = CW_FALSE;
-    this->FPlay    = CW_FALSE;
-    this->NowRendering = CW_FALSE;
-    TCompressWaveData_SetCipherCode(this, 0);
+    self->RH = NULL;
+    self->FWavePosition = 0;
+    self->FWaveLength   = 0;
+    self->FVolume = PW_MAXVOLUME;
+    self->FSetVolume = PW_MAXVOLUME;
+    self->Ffade    = 0;
+    self->FEndLoop = CW_FALSE;
+    self->FPlay    = CW_FALSE;
+    self->NowRendering = CW_FALSE;
+    TCompressWaveData_SetCipherCode(self, 0);
 
-    return this;
+    return self;
 }
 
 //-----------------------------------------------------------
 //free
-void TCompressWaveData_Free(TCompressWaveData* this) {
-    if (!this)
+void TCompressWaveData_Free(TCompressWaveData* self) {
+    if (!self)
         return;
 
-    //EXTRA: presumably for threading but OG lib doesn't properly set this to false on all errors
+    //EXTRA: presumably for threading but OG lib doesn't properly set self to false on all errors
 #if 0
     //sync
-    while (this->NowRendering) {
+    while (self->NowRendering) {
         ;
     }
 #endif
     //free
-    if (this->RH != NULL)
-        THuff_Free(this->RH);
+    if (self->RH != NULL)
+        THuff_Free(self->RH);
 #if 0
-    if (this->Data != NULL)
-        TMemoryStream_Free(this->Data);
+    if (self->Data != NULL)
+        TMemoryStream_Free(self->Data);
 #endif
-    free(this);
+    free(self);
 }
 
 
 //-----------------------------------------------------------
 //outpus 44100/16bit/stereo waveform to designed buffer
 
-static void TCompressWaveData_Rendering_ReadPress(TCompressWaveData* this, int32_t* RFlg, int32_t* LFlg) {
-    if (this->Hed.Channel == 2) {
-        *RFlg = THuff_Read(this->RH);          //STEREO
-        *LFlg = THuff_Read(this->RH);
+static void TCompressWaveData_Rendering_ReadPress(TCompressWaveData* self, int32_t* RFlg, int32_t* LFlg) {
+    if (self->Hed.Channel == 2) {
+        *RFlg = THuff_Read(self->RH);          //STEREO
+        *LFlg = THuff_Read(self->RH);
     }
     else {
-        *RFlg = THuff_Read(this->RH);          //MONO
+        *RFlg = THuff_Read(self->RH);          //MONO
         *LFlg = *RFlg;
     }
 }
 
-static void TCompressWaveData_Rendering_WriteWave(TCompressWaveData* this, int16_t** buf1, int32_t RVol, int32_t LVol) {
+static void TCompressWaveData_Rendering_WriteWave(TCompressWaveData* self, int16_t** buf1, int32_t RVol, int32_t LVol) {
     TLRWRITEBUFFER bbb = {0};
 
-    if (this->Hed.Sample == 44100) {        //44100 STEREO/MONO
+    if (self->Hed.Sample == 44100) {        //44100 STEREO/MONO
         bbb.RBuf = RVol;
         bbb.LBuf = LVol;
         (*buf1)[0] = bbb.RBuf;
         (*buf1)[1] = bbb.LBuf;
         (*buf1) += 2;
     }
-    if (this->Hed.Sample == 22050) {        //22050 STEREO/MONO
-        bbb.RBuf = (this->RBackBuf + RVol) / 2;
-        bbb.LBuf = (this->LBackBuf + LVol) / 2;
+    if (self->Hed.Sample == 22050) {        //22050 STEREO/MONO
+        bbb.RBuf = (self->RBackBuf + RVol) / 2;
+        bbb.LBuf = (self->LBackBuf + LVol) / 2;
         (*buf1)[0] = bbb.RBuf;
         (*buf1)[1] = bbb.LBuf;
         (*buf1) += 2;
@@ -638,12 +638,12 @@ static void TCompressWaveData_Rendering_WriteWave(TCompressWaveData* this, int16
         (*buf1)[1] = bbb.LBuf;
         (*buf1) += 2;
 
-        this->RBackBuf = RVol;
-        this->LBackBuf = LVol;
+        self->RBackBuf = RVol;
+        self->LBackBuf = LVol;
     }
 }
 
-int TCompressWaveData_Rendering(TCompressWaveData* this, int16_t* buf, uint32_t Len) {
+int TCompressWaveData_Rendering(TCompressWaveData* self, int16_t* buf, uint32_t Len) {
     int result;
     int32_t RFlg, LFlg, RVol, LVol;
     int i, aaa;
@@ -651,33 +651,33 @@ int TCompressWaveData_Rendering(TCompressWaveData* this, int16_t* buf, uint32_t 
     int32_t PressLength, WaveStep;
 
 
-    this->NowRendering = CW_TRUE;
+    self->NowRendering = CW_TRUE;
     result = CW_FALSE;
 #if 0
-    if (this->Data == NULL) {
-        this->NowRendering = CW_FALSE;
+    if (self->Data == NULL) {
+        self->NowRendering = CW_FALSE;
         return result; //exit;
     }
 #endif
 
     //fadeout song stop
-    if ((this->FVolume < 1) && (this->FSetVolume < 1)) {
-        this->FPlay = CW_FALSE;
+    if ((self->FVolume < 1) && (self->FSetVolume < 1)) {
+        self->FPlay = CW_FALSE;
     }
-    //if (abs(this->FSetVolume - this->FVolume) < this->Ffade) {
-    //    this->FPlay = CW_FALSE;
+    //if (abs(self->FSetVolume - self->FVolume) < self->Ffade) {
+    //    self->FPlay = CW_FALSE;
     //}
 
     //stop if FPlay (play flag) wasn't set
-    if (this->FPlay == CW_FALSE) {
-        this->NowRendering = CW_FALSE;
+    if (self->FPlay == CW_FALSE) {
+        self->NowRendering = CW_FALSE;
         return result; //exit;
     }
 
     //pre processing
-    RVol = this->Fvv1;
-    LVol = this->Fvv2;
-    if (this->Hed.Sample == 44100)
+    RVol = self->Fvv1;
+    LVol = self->Fvv2;
+    if (self->Hed.Sample == 44100)
         WaveStep = 4;
     else
         WaveStep = 8;
@@ -689,76 +689,76 @@ int TCompressWaveData_Rendering(TCompressWaveData* this, int16_t* buf, uint32_t 
     for (i = 0; i < PressLength; i++) {
 
         //crossed over？
-        if (this->FWavePosition > this->FWaveLength) {
-            if (this->FEndLoop == CW_TRUE) { //playback with loop?
-                TCompressWaveData_Previous(this);
+        if (self->FWavePosition > self->FWaveLength) {
+            if (self->FEndLoop == CW_TRUE) { //playback with loop?
+                TCompressWaveData_Previous(self);
             }
             else {  //in case of playback without loop
-                this->FPlay = CW_FALSE;
+                self->FPlay = CW_FALSE;
                 return result; //exit
             }
         }
 
         //loop related
-        if (this->Hed.LoopCount > this->FLoop) {
+        if (self->Hed.LoopCount > self->FLoop) {
             //if position is loop start, hold current flag/state
             //shr 3 matches 8 bit aligment
-            if ((this->Hed.LoopStart >> 3) == (this->FWavePosition >> 3)) {
-                TCompressWaveData_GetLoopState(this);
+            if ((self->Hed.LoopStart >> 3) == (self->FWavePosition >> 3)) {
+                TCompressWaveData_GetLoopState(self);
             }
             //if reached loop end do loop.
-            if ((this->Hed.LoopEnd >> 3) == (this->FWavePosition >> 3)) {
-                if (this->Hed.LoopCount != 255)
-                    this->FLoop++;
-                TCompressWaveData_SetLoopState(this);
+            if ((self->Hed.LoopEnd >> 3) == (self->FWavePosition >> 3)) {
+                if (self->Hed.LoopCount != 255)
+                    self->FLoop++;
+                TCompressWaveData_SetLoopState(self);
             }
         }
 
         //read
-        TCompressWaveData_Rendering_ReadPress(this, &RFlg, &LFlg);
-        this->Faa1 = this->Faa1 + this->Hed.Tbl[RFlg];
-        this->Faa2 = this->Faa2 + this->Hed.Tbl[LFlg];
-        this->Fvv1 = this->Fvv1 + this->Faa1;
-        this->Fvv2 = this->Fvv2 + this->Faa2;
+        TCompressWaveData_Rendering_ReadPress(self, &RFlg, &LFlg);
+        self->Faa1 = self->Faa1 + self->Hed.Tbl[RFlg];
+        self->Faa2 = self->Faa2 + self->Hed.Tbl[LFlg];
+        self->Fvv1 = self->Fvv1 + self->Faa1;
+        self->Fvv2 = self->Fvv2 + self->Faa2;
 
         //volume adjustment
-        aaa = this->FSetVolume - this->FVolume;
-        if (abs(aaa) < this->Ffade) {
-            this->FVolume = this->FSetVolume;
+        aaa = self->FSetVolume - self->FVolume;
+        if (abs(aaa) < self->Ffade) {
+            self->FVolume = self->FSetVolume;
         }
         else {
             if (aaa > 0)
-                this->FVolume = this->FVolume + this->Ffade;
+                self->FVolume = self->FVolume + self->Ffade;
             else
-                this->FVolume = this->FVolume - this->Ffade;
+                self->FVolume = self->FVolume - self->Ffade;
         }
 
         //threshold calcs (due to overflow)
-        if (this->Fvv1 > +32760) {
-            this->Fvv1 = +32760;
-            this->Faa1 = 0;
+        if (self->Fvv1 > +32760) {
+            self->Fvv1 = +32760;
+            self->Faa1 = 0;
         }
-        if (this->Fvv1 < -32760) {
-            this->Fvv1 = -32760;
-            this->Faa1 = 0;
+        if (self->Fvv1 < -32760) {
+            self->Fvv1 = -32760;
+            self->Faa1 = 0;
         }
-        if (this->Fvv2 > +32760) {
-            this->Fvv2 = +32760;
-            this->Faa2 = 0;
+        if (self->Fvv2 > +32760) {
+            self->Fvv2 = +32760;
+            self->Faa2 = 0;
         }
-        if (this->Fvv2 < -32760) {
-            this->Fvv2 = -32760;
-            this->Faa2 = 0;
+        if (self->Fvv2 < -32760) {
+            self->Fvv2 = -32760;
+            self->Faa2 = 0;
         }
 
-        aaa = (this->FVolume >> 20);
-        RVol = this->Fvv1 * aaa / 256;
-        LVol = this->Fvv2 * aaa / 256;
+        aaa = (self->FVolume >> 20);
+        RVol = self->Fvv1 * aaa / 256;
+        LVol = self->Fvv2 * aaa / 256;
 
         //expand to buffer
-        TCompressWaveData_Rendering_WriteWave(this, &buf1, RVol, LVol);
+        TCompressWaveData_Rendering_WriteWave(self, &buf1, RVol, LVol);
         //advance playback position
-        this->FWavePosition += WaveStep;
+        self->FWavePosition += WaveStep;
     }
 
     //remainder calcs
@@ -766,10 +766,10 @@ int TCompressWaveData_Rendering(TCompressWaveData* this, int16_t* buf, uint32_t 
     //example: 44100 / 4 = 11025...OK    44100 / 8 = 5512.5...NG
     // in that case appear as noise
     if (Len % 8 == 4) {
-        TCompressWaveData_Rendering_WriteWave(this, &buf1, RVol, LVol);
+        TCompressWaveData_Rendering_WriteWave(self, &buf1, RVol, LVol);
     }
 
-    this->NowRendering = CW_FALSE;
+    self->NowRendering = CW_FALSE;
     result = CW_TRUE;
     return result;
 }
@@ -778,12 +778,12 @@ int TCompressWaveData_Rendering(TCompressWaveData* this, int16_t* buf, uint32_t 
 //-----------------------------------------------------------
 //read compressed file from stream
 
-static void TStream_Read_PRESSWAVEDATAHED(TStream* this, PRESSWAVEDATAHED* Hed) {
+static void TStream_Read_PRESSWAVEDATAHED(TStream* self, PRESSWAVEDATAHED* Hed) {
     uint8_t buf[0x538];
     int i, len;
 
-    read_streamfile(buf, this->Position, sizeof(buf), this->File);
-    this->Position += sizeof(buf);
+    read_streamfile(buf, self->Position, sizeof(buf), self->File);
+    self->Position += sizeof(buf);
 
     memcpy(Hed->HedChar, buf + 0x00, 8);
     Hed->Channel   = get_u32le(buf + 0x08);
@@ -806,15 +806,15 @@ static void TStream_Read_PRESSWAVEDATAHED(TStream* this, PRESSWAVEDATAHED* Hed) 
     /* 0x948: data start */
 }
 
-int TCompressWaveData_LoadFromStream(TCompressWaveData* this, STREAMFILE* ss) {
+int TCompressWaveData_LoadFromStream(TCompressWaveData* self, STREAMFILE* ss) {
     int result = CW_FALSE;
     TStream data = {0};
 
     if (ss == NULL)
         return result;
 #if 0
-    if (this->Data != NULL)
-        TMemoryStream_Free(this->Data);
+    if (self->Data != NULL)
+        TMemoryStream_Free(self->Data);
 #endif
 
     data.File = ss; //data = TMemoryStream.Create;
@@ -824,32 +824,32 @@ int TCompressWaveData_LoadFromStream(TCompressWaveData* this, STREAMFILE* ss) {
     //get header info
     data.Position = 0;
 
-    TStream_Read_PRESSWAVEDATAHED(&data, &this->Hed); //data.Read(Hed,sizeof(PRESSWAVEDATAHED));
-    this->FWaveLength = this->Hed.UnPressSize;
-    if (this->RH != NULL)
-        THuff_Free(this->RH);
-    this->RH = THuff_Create(&data);
-    if (!this->RH) return result;
+    TStream_Read_PRESSWAVEDATAHED(&data, &self->Hed); //data.Read(Hed,sizeof(PRESSWAVEDATAHED));
+    self->FWaveLength = self->Hed.UnPressSize;
+    if (self->RH != NULL)
+        THuff_Free(self->RH);
+    self->RH = THuff_Create(&data);
+    if (!self->RH) return result;
 
-    THuff_SetCipherCode(this->RH, 0x00);
-    THuff_BeginRead(this->RH);
+    THuff_SetCipherCode(self->RH, 0x00);
+    THuff_BeginRead(self->RH);
 
     //initialize playback flag
-    TCompressWaveData_Stop(this);
-    TCompressWaveData_SetVolume(this, 1.0, 0.0);
+    TCompressWaveData_Stop(self);
+    TCompressWaveData_SetVolume(self, 1.0, 0.0);
     result = CW_TRUE;
     return result;
 }
 
 //------------------------------------------------------------------------------
 //temp pause
-void TCompressWaveData_Pause(TCompressWaveData* this) {
-    this->FPlay = CW_FALSE;
+void TCompressWaveData_Pause(TCompressWaveData* self) {
+    self->FPlay = CW_FALSE;
 }
 
 //-----------------------------------------------------------
 //sets volume
-void TCompressWaveData_SetVolume(TCompressWaveData* this, float vol, float fade) {
+void TCompressWaveData_SetVolume(TCompressWaveData* self, float vol, float fade) {
     float aaa;
 
     //EXTRA: C float seemingly can't store PW_MAXVOLUME (268435455 becomes 268435456.0), so must cast to double
@@ -858,112 +858,112 @@ void TCompressWaveData_SetVolume(TCompressWaveData* this, float vol, float fade)
 
     aaa = vol;
     //set volume threshold
-    if (aaa > 1.0) aaa = 1.0;
-    if (aaa < 0.0) aaa = 0.0;
+    if (aaa > 1.0f) aaa = 1.0f;
+    if (aaa < 0.0f) aaa = 0.0f;
     //calc volume increse
-    if (fade < 0.01) {  //with fade value
-        this->Ffade = 0;
-        this->FVolume = round(aaa * (double)PW_MAXVOLUME);
-        this->FSetVolume = this->FVolume;
+    if (fade < 0.01f) {  //with fade value
+        self->Ffade = 0;
+        self->FVolume = (int32_t)round((double)aaa * (double)PW_MAXVOLUME);
+        self->FSetVolume = self->FVolume;
     }
     else {              //without fade value
-        this->Ffade = round((double)PW_MAXVOLUME / fade / 44100);
-        this->FSetVolume = round(aaa * (double)PW_MAXVOLUME);
+        self->Ffade = (int32_t)round((double)PW_MAXVOLUME / (double)fade / 44100);
+        self->FSetVolume = (int32_t)round((double)aaa * (double)PW_MAXVOLUME);
     }
 }
 
 //-----------------------------------------------------------
 //returns fade value
-float TCompressWaveData_GetFade(TCompressWaveData* this) {
-    if ((this->Ffade == 0) || (abs(this->FVolume - this->FSetVolume) == 0)) {
+float TCompressWaveData_GetFade(TCompressWaveData* self) {
+    if ((self->Ffade == 0) || (abs(self->FVolume - self->FSetVolume) == 0)) {
         return 0; //exit;
     }
-    return (abs(this->FVolume - this->FSetVolume)/44100) / this->Ffade;
+    return (abs(self->FVolume - self->FSetVolume)/44100) / self->Ffade;
 }
 
 //-----------------------------------------------------------
 //returns volume value
-float TCompressWaveData_GetVolume(TCompressWaveData* this) {
-    return this->FVolume / PW_MAXVOLUME;
+float TCompressWaveData_GetVolume(TCompressWaveData* self) {
+    return self->FVolume / PW_MAXVOLUME;
 }
 
 //------------------------------------------------------------------------------
 //returns volume after fade
-float TCompressWaveData_GetSetVolume(TCompressWaveData* this) {
-    return this->FSetVolume / PW_MAXVOLUME;
+float TCompressWaveData_GetSetVolume(TCompressWaveData* self) {
+    return self->FSetVolume / PW_MAXVOLUME;
 }
 
 //------------------------------------------------------------------------------
 //returns play time (current position). unit is secs
-float TCompressWaveData_GetPlayTime(TCompressWaveData* this) {
-    return this->FWavePosition / (44100*4);
+float TCompressWaveData_GetPlayTime(TCompressWaveData* self) {
+    return self->FWavePosition / (44100*4);
 }
 
 //-----------------------------------------------------------
 //returns song length. unit is secs
-float TCompressWaveData_GetTotalTime(TCompressWaveData* this) {
-    return this->FWaveLength / (44100*4);
+float TCompressWaveData_GetTotalTime(TCompressWaveData* self) {
+    return self->FWaveLength / (44100*4);
 }
 
 //-----------------------------------------------------------
 //play stop command. returns song to beginning
-void TCompressWaveData_Stop(TCompressWaveData* this) {
+void TCompressWaveData_Stop(TCompressWaveData* self) {
     //play flags to initial state
-    this->FWavePosition = 0;
-    this->Fvv1 = 0;
-    this->Faa1 = 0;
-    this->Fvv2 = 0;
-    this->Faa2 = 0;
-    this->LBackBuf = 0;
-    this->RBackBuf = 0;
-    TCompressWaveData_SetVolume(this, 1.0, 0);
-    this->FPlay = CW_FALSE;
-    this->FLoop = 0;
+    self->FWavePosition = 0;
+    self->Fvv1 = 0;
+    self->Faa1 = 0;
+    self->Fvv2 = 0;
+    self->Faa2 = 0;
+    self->LBackBuf = 0;
+    self->RBackBuf = 0;
+    TCompressWaveData_SetVolume(self, 1.0, 0);
+    self->FPlay = CW_FALSE;
+    self->FLoop = 0;
 #if 0
-    if (this->Data == NULL)
+    if (self->Data == NULL)
         return;
 #endif
 
-    //EXTRA: presumably for threading but OG lib doesn't properly set this to false on all errors
+    //EXTRA: presumably for threading but OG lib doesn't properly set self to false on all errors
 #if 0
     //sync
-    while (this->NowRendering) {
+    while (self->NowRendering) {
         ;
     }
 #endif
 
     //return to initial location
-    THuff_MoveBeginPosition(this->RH);
+    THuff_MoveBeginPosition(self->RH);
 }
 
 //-----------------------------------------------------------
 //returns song to beginning. difference vs STOP is that fade isn't initialized
-void TCompressWaveData_Previous(TCompressWaveData* this) {
+void TCompressWaveData_Previous(TCompressWaveData* self) {
     //play flags to initial state
-    this->FWavePosition = 0;
-    this->Fvv1 = 0;
-    this->Faa1 = 0;
-    this->Fvv2 = 0;
-    this->Faa2 = 0;
-    this->LBackBuf = 0;
-    this->RBackBuf = 0;
-    this->FLoop = 0;
+    self->FWavePosition = 0;
+    self->Fvv1 = 0;
+    self->Faa1 = 0;
+    self->Fvv2 = 0;
+    self->Faa2 = 0;
+    self->LBackBuf = 0;
+    self->RBackBuf = 0;
+    self->FLoop = 0;
 
 #if 0
-    if (this->Data == NULL)
+    if (self->Data == NULL)
         return;
 #endif
     //return to initial location
-    THuff_MoveBeginPosition(this->RH);
+    THuff_MoveBeginPosition(self->RH);
 }
 
 //------------------------------------------------------------
 //starts song playback
-void TCompressWaveData_Play(TCompressWaveData* this, int loop) {
-    this->FPlay    = CW_TRUE;
-    this->FEndLoop = loop;
-    if ((this->FVolume == 0) && (this->FSetVolume == 0))
-        TCompressWaveData_SetVolume(this, 1.0,0);
+void TCompressWaveData_Play(TCompressWaveData* self, int loop) {
+    self->FPlay    = CW_TRUE;
+    self->FEndLoop = loop;
+    if ((self->FVolume == 0) && (self->FSetVolume == 0))
+        TCompressWaveData_SetVolume(self, 1.0,0);
 }
 
 //------------------------------------------------------------
@@ -971,28 +971,28 @@ void TCompressWaveData_Play(TCompressWaveData* this, int loop) {
 //--------------------------------------------------------------
 //record encoded file position
 //since it uses huffman needs to held those flags too
-void TCompressWaveData_GetLoopState(TCompressWaveData* this) {
-    this->LPFaa1 = this->Faa1;
-    this->LPFaa2 = this->Faa2;
-    this->LPFvv1 = this->Fvv1;
-    this->LPFvv2 = this->Fvv2;
-    THuff_GetPositionData(this->RH, &this->PosData);
+void TCompressWaveData_GetLoopState(TCompressWaveData* self) {
+    self->LPFaa1 = self->Faa1;
+    self->LPFaa2 = self->Faa2;
+    self->LPFvv1 = self->Fvv1;
+    self->LPFvv2 = self->Fvv2;
+    THuff_GetPositionData(self->RH, &self->PosData);
 }
 
 //--------------------------------------------------------------
 //return to recorded encoded file position
-void TCompressWaveData_SetLoopState(TCompressWaveData* this) {
-    this->Faa1 = this->LPFaa1;
-    this->Faa2 = this->LPFaa2;
-    this->Fvv1 = this->LPFvv1;
-    this->Fvv2 = this->LPFvv2;
-    THuff_SetPositionData(this->RH, &this->PosData);
-    this->FWavePosition = this->Hed.LoopStart;
+void TCompressWaveData_SetLoopState(TCompressWaveData* self) {
+    self->Faa1 = self->LPFaa1;
+    self->Faa2 = self->LPFaa2;
+    self->Fvv1 = self->LPFvv1;
+    self->Fvv2 = self->LPFvv2;
+    THuff_SetPositionData(self->RH, &self->PosData);
+    self->FWavePosition = self->Hed.LoopStart;
 }
 
 //-----------------------------------------------------------
 //sets cipher code
-void TCompressWaveData_SetCipherCode(TCompressWaveData* this, uint32_t Num) {
-    this->CipherCode = Num;
+void TCompressWaveData_SetCipherCode(TCompressWaveData* self, uint32_t Num) {
+    self->CipherCode = Num;
 }
 

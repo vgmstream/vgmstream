@@ -106,7 +106,7 @@ typedef enum {
     coding_TGC,             /* Tiger Game.com 4-bit ADPCM */
 
     coding_NDS_PROCYON,     /* Procyon Studio ADPCM */
-    coding_L5_555,          /* Level-5 0x555 ADPCM */
+    coding_LEVEL5,          /* Level-5 ADPCM */
     coding_LSF,             /* lsf ADPCM (Fastlane Street Racing iPhone)*/
     coding_MTAF,            /* Konami MTAF ADPCM */
     coding_MTA2,            /* Konami MTA2 ADPCM */
@@ -265,7 +265,7 @@ typedef enum {
     meta_MUS_KROME,
     meta_DSP_WII_WSD,       /* Phantom Brave (WII) */
     meta_WII_NDP,           /* Vertigo (Wii) */
-    meta_DSP_YGO,           /* Konami: Yu-Gi-Oh! The Falsebound Kingdom (NGC), Hikaru no Go 3 (NGC) */
+    meta_DSP_KCEJE,
 
     meta_STRM,              /* Nintendo STRM */
     meta_RSTM,              /* Nintendo RSTM (Revolution Stream, similar to STRM) */
@@ -345,7 +345,7 @@ typedef enum {
     meta_HXD,
     meta_VSV,
     meta_SCD_PCM,           /* Lunar - Eternal Blue */
-    meta_PS2_PCM,           /* Konami KCEJ East: Ephemeral Fantasia, Yu-Gi-Oh! The Duelists of the Roses, 7 Blades */
+    meta_PCM_KCEJE,
     meta_PS2_RKV,           /* Legacy of Kain - Blood Omen 2 (PS2) */
     meta_VAS_KCEO,
     meta_LP_AP_LEP,
@@ -429,8 +429,8 @@ typedef enum {
     meta_MUS_ACM,           /* MUS playlist of InterPlay ACM files */
     meta_DEC,               /* Falcom PC games (Xanadu Next, Gurumin) */
     meta_VS,                /* Men in Black .vs */
-    meta_FFXI_BGW,          /* FFXI (PC) BGW */
-    meta_FFXI_SPW,          /* FFXI (PC) SPW */
+    meta_BGW,
+    meta_SPW,
     meta_STS,
     meta_P2BT_MOVE_VISA,
     meta_GBTS,
@@ -505,7 +505,7 @@ typedef enum {
     meta_EB_SF0,            /* Excitebots .sf0 */
     meta_MTAF,
     meta_ALP,
-    meta_WPD,               /* Shuffle! (PC) */
+    meta_WPD,
     meta_MN_STR,            /* Mini Ninjas (PC/PS3/WII) */
     meta_MSS,               /* Guerilla: ShellShock Nam '67 (PS2/Xbox), Killzone (PS2) */
     meta_PS2_HSF,           /* Lowrider (PS2) */

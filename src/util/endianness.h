@@ -33,7 +33,7 @@ static inline int guess_endian32(off_t offset, STREAMFILE* sf) {
 }
 
 static inline read_u32_t guess_read_u32(off_t offset, STREAMFILE* sf) {
-    return guess_endian32(0x08,sf) ? read_u32be : read_u32le;
+    return guess_endian32(offset,sf) ? read_u32be : read_u32le;
 }
 
 #endif

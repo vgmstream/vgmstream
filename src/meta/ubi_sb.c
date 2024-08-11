@@ -2494,6 +2494,8 @@ static int parse_header(ubi_sb_header* sb, STREAMFILE* sf, off_t offset, int ind
                 sb->duration = 1.0f;
                 break;
             }
+
+            // fall through
         default:
             VGM_LOG("UBI SB: unknown header type %x at %x\n", sb->header_type, (uint32_t)offset);
             goto fail;

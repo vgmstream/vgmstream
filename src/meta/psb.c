@@ -823,7 +823,7 @@ static int parse_psb(STREAMFILE* sf, psb_header_t* psb) {
     /* enforced by M2 code */
     version = psb_node_get_float(&nroot, "version");
     if (version < 1.02f || version > 1.02f) {
-        vgm_logi("PSB: unsupported version %f (report)\n", version);
+        vgm_logi("PSB: unsupported version %f (report)\n", (double)version);
         goto fail;
     }
 

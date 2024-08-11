@@ -592,7 +592,7 @@ void reset_atrac9(atrac9_codec_data* data);
 void seek_atrac9(VGMSTREAM* vgmstream, int32_t num_sample);
 void free_atrac9(atrac9_codec_data* data);
 size_t atrac9_bytes_to_samples(size_t bytes, atrac9_codec_data* data);
-size_t atrac9_bytes_to_samples_cfg(size_t bytes, uint32_t atrac9_config);
+size_t atrac9_bytes_to_samples_cfg(size_t bytes, uint32_t config_data);
 #endif
 
 
@@ -767,4 +767,4 @@ int mpc_get_samples(STREAMFILE* sf, off_t offset, int32_t* p_samples, int32_t* p
 /* helper to pass a wrapped, clamped, fake extension-ed, SF to another meta */
 STREAMFILE* setup_subfile_streamfile(STREAMFILE* sf, offv_t subfile_offset, size_t subfile_size, const char* extension);
 
-#endif /*_CODING_H*/
+#endif

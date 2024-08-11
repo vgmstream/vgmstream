@@ -237,8 +237,9 @@ void WINAPI xmplay_GetInfoText(char* format, char* length) {
     rate = vgmstream->sample_rate;
     samples = vgmstream->num_samples;
     bps = get_vgmstream_average_bitrate(vgmstream) / 1000;
-    get_vgmstream_coding_description(vgmstream, fmt, sizeof(fmt));
-	if (strcmp(fmt, "FFmpeg") == 0)
+
+    //get_vgmstream_coding_description(vgmstream, fmt, sizeof(fmt));
+	//if (strcmp(fmt, "FFmpeg") == 0)
 	{
 		char buffer[1024];
 		buffer[0] = '\0';

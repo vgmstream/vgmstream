@@ -6,6 +6,12 @@
 
   <ImportGroup Label="PropertySheets" />
 
+  <!-- size mismatch warnings, should rework stuff rather than castings all the time
+       (plus compilers can't detect code that logically can't lose precision, such as a clamped values) -->
+  <PropertyGroup>
+    <NoWarn>C4267;C4244</NoWarn>
+  </PropertyGroup>
+
   <PropertyGroup Label="Configuration">
     <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>

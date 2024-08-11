@@ -1192,6 +1192,9 @@
     <ClCompile Include="meta\dsf.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\dsp_kceje.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\ea_1snh.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -1561,9 +1564,6 @@
     <ClCompile Include="meta\ngc_dsp_std.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ngc_dsp_ygo.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="meta\ngc_ffcc_str.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -1642,6 +1642,9 @@
     <ClCompile Include="meta\pasx.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\pcm_kceje.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\pcm_sre.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -1688,9 +1691,6 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ps2_mcg.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="meta\ps2_pcm.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ps2_rnd.c">

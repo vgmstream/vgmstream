@@ -2,6 +2,7 @@
 #include "../layout/layout.h"
 #include "../coding/coding.h"
 #include "../util/endianness.h"
+#include "../util/layout_utils.h"
 
 /* also see init_vgmstream_dsp_sps_n1 and init_vgmstream_opus_sps_n1 */
 

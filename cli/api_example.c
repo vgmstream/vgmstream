@@ -26,7 +26,7 @@ static FILE* get_output_file(const char* filename) {
 }
 
 static libvgmstream_streamfile_t* get_streamfile(const char* filename) {
-    return libvgmstream_streamfile_from_filename(filename);
+    return libvgmstream_streamfile_open_from_stdio(filename);
 }
 
 static int api_example(const char* infile) {
@@ -204,10 +204,10 @@ static libvgmstream_streamfile_t* test_libsf_open() {
 
     libvgmstream_streamfile_t* libsf = NULL;
 
-    libsf = libvgmstream_streamfile_from_filename("api.bin_wrong");
+    libsf = libvgmstream_streamfile_open_from_stdio("api.bin_wrong");
     assert(libsf == NULL);
 
-    libsf = libvgmstream_streamfile_from_filename("api.bin");
+    libsf = libvgmstream_streamfile_open_from_stdio("api.bin");
     assert(libsf != NULL);
 
     return libsf;
@@ -335,7 +335,7 @@ static void test_lib_tags() {
     libvgmstream_tags_t* tags = NULL;
     bool more = false;
 
-    libsf = libvgmstream_streamfile_from_filename("sample_!tags.m3u");
+    libsf = libvgmstream_streamfile_open_from_stdio("sample_!tags.m3u");
     assert(libsf != NULL);
 
     tags = libvgmstream_tags_init(libsf);
