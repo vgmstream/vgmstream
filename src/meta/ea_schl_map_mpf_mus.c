@@ -2,6 +2,7 @@
 #include "../util/endianness.h"
 #include "../layout/layout.h"
 #include "../util/companion_files.h"
+#include "../util/layout_utils.h"
 
 #define EA_BLOCKID_HEADER           0x5343486C /* "SCHl" */
 

@@ -92,7 +92,7 @@ void decode_relic(VGMSTREAMCHANNEL* stream, relic_codec_data* data, sample_t* ou
 decode_fail:
     /* on error just put some 0 samples */
     VGM_LOG("RELIC: decode fail, missing %i samples\n", samples_to_do);
-    memset(outbuf, 0, samples_to_do * data->channels * sizeof(sample));
+    memset(outbuf, 0, samples_to_do * data->channels * sizeof(sample_t));
 }
 
 void reset_relic(relic_codec_data* data) {

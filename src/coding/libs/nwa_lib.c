@@ -205,7 +205,7 @@ static int getbits(const uint8_t** p_data, int* shift, int bits) {
 
 // NWADecode
 static void decode_block(NWAData* nwa, const uint8_t* data, int outdatasize) {
-    sample d[2];
+    short d[2];
     int i;
     int shift = 0;
 

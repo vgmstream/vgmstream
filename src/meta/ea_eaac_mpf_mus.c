@@ -1,6 +1,7 @@
 #include "meta.h"
 #include "../util/endianness.h"
 #include "../layout/layout.h"
+#include "../util/layout_utils.h"
 #include "../util/companion_files.h"
 
 

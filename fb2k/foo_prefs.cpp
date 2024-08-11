@@ -5,10 +5,6 @@
 #include <io.h>
 
 #include "foo_prefs.h"
-extern "C" {
-#include "../src/vgmstream.h"
-#include "../src/util.h"
-}
 #include "foo_vgmstream.h"
 
 
@@ -27,13 +23,13 @@ static cfg_bool     cfg_ExtsCommonOn    ({0x405af423,0x5037,0x4eae,{0xa6,0xe3,0x
 // Needs to be here in rder to access the static config
 void input_vgmstream::load_settings() {
 	// no verification needed here, as it is done below
-	sscanf(cfg_FadeLength.get_ptr(),"%lf",&fade_seconds);
-	sscanf(cfg_LoopCount.get_ptr(),"%lf",&loop_count);
-	sscanf(cfg_FadeDelay.get_ptr(),"%lf",&fade_delay_seconds);
+	sscanf(cfg_FadeLength.get_ptr(), "%lf", &fade_seconds);
+	sscanf(cfg_LoopCount.get_ptr(), "%lf", &loop_count);
+	sscanf(cfg_FadeDelay.get_ptr(), "%lf", &fade_delay_seconds);
 	loop_forever = cfg_LoopForever;
 	ignore_loop = cfg_IgnoreLoop;
     disable_subsongs = cfg_DisableSubsongs;
-    sscanf(cfg_DownmixChannels.get_ptr(),"%d",&downmix_channels);
+    sscanf(cfg_DownmixChannels.get_ptr(), "%d", &downmix_channels);
     tagfile_disable = cfg_TagfileDisable;
     override_title = cfg_OverrideTitle;
   //exts_unknown_on = cfg_ExtsUnknownOn;
@@ -43,13 +39,13 @@ void input_vgmstream::load_settings() {
     if (loop_count <= 0)
         loop_count = 1;
 }
-void input_vgmstream::g_load_cfg(int *accept_unknown, int *accept_common) {
-    //todo improve
-    *accept_unknown = cfg_ExtsUnknownOn ? 1 : 0;
-    *accept_common = cfg_ExtsCommonOn ? 1 : 0;
+void input_vgmstream::g_load_cfg(int* accept_unknown, int* accept_common) {
+    //TODO improve
+    *accept_unknown = cfg_ExtsUnknownOn;
+    *accept_common = cfg_ExtsCommonOn;
 }
 
-const char * vgmstream_prefs::get_name() {
+const char* vgmstream_prefs::get_name() {
 	return input_vgmstream::g_get_name();
 }
 
@@ -61,50 +57,55 @@ GUID vgmstream_prefs::get_parent_guid() {
 	return guid_input;
 }
 
+static UINT get_check(bool value) {
+	return value ? BST_CHECKED : BST_UNCHECKED;
+}
+
 BOOL vgmstreamPreferences::OnInitDialog(CWindow, LPARAM) {
-	CheckDlgButton(IDC_LOOP_FOREVER, cfg_LoopForever?BST_CHECKED:BST_UNCHECKED);
-	CheckDlgButton(IDC_IGNORE_LOOP, cfg_IgnoreLoop?BST_CHECKED:BST_UNCHECKED);
-	CheckDlgButton(IDC_LOOP_NORMALLY, (!cfg_IgnoreLoop && !cfg_LoopForever)?BST_CHECKED:BST_UNCHECKED);
+	CheckDlgButton(IDC_LOOP_FOREVER, get_check(cfg_LoopForever));
+	CheckDlgButton(IDC_IGNORE_LOOP, get_check(cfg_IgnoreLoop));
+	CheckDlgButton(IDC_LOOP_NORMALLY, get_check(!cfg_IgnoreLoop && !cfg_LoopForever));
 
 	uSetDlgItemText(m_hWnd, IDC_LOOP_COUNT, cfg_LoopCount);
 	uSetDlgItemText(m_hWnd, IDC_FADE_SECONDS, cfg_FadeLength);
 	uSetDlgItemText(m_hWnd, IDC_FADE_DELAY_SECONDS, cfg_FadeDelay);
 
-	CheckDlgButton(IDC_DISABLE_SUBSONGS, cfg_DisableSubsongs?BST_CHECKED:BST_UNCHECKED);
+	CheckDlgButton(IDC_DISABLE_SUBSONGS, get_check(cfg_DisableSubsongs));
 
     uSetDlgItemText(m_hWnd, IDC_DOWNMIX_CHANNELS, cfg_DownmixChannels);
 
-    CheckDlgButton(IDC_TAGFILE_DISABLE, cfg_TagfileDisable?BST_CHECKED:BST_UNCHECKED);
-    CheckDlgButton(IDC_OVERRIDE_TITLE, cfg_OverrideTitle?BST_CHECKED:BST_UNCHECKED);
-    CheckDlgButton(IDC_EXTS_UNKNOWN_ON, cfg_ExtsUnknownOn?BST_CHECKED:BST_UNCHECKED);
-    CheckDlgButton(IDC_EXTS_COMMON_ON, cfg_ExtsCommonOn?BST_CHECKED:BST_UNCHECKED);
+    CheckDlgButton(IDC_TAGFILE_DISABLE, get_check(cfg_TagfileDisable));
+    CheckDlgButton(IDC_OVERRIDE_TITLE, get_check(cfg_OverrideTitle));
+    CheckDlgButton(IDC_EXTS_UNKNOWN_ON, get_check(cfg_ExtsUnknownOn));
+    CheckDlgButton(IDC_EXTS_COMMON_ON, get_check(cfg_ExtsCommonOn));
 
 	return TRUE;
 }
 
 t_uint32 vgmstreamPreferences::get_state() {
 	t_uint32 state = preferences_state::resettable;
-	if (HasChanged()) state |= preferences_state::changed;
+	if (HasChanged())
+		state |= preferences_state::changed;
 	return state;
 }
 
 void vgmstreamPreferences::reset() {
-	CheckDlgButton(IDC_LOOP_FOREVER, DEFAULT_LOOP_FOREVER?BST_CHECKED:BST_UNCHECKED);
-	CheckDlgButton(IDC_IGNORE_LOOP, DEFAULT_IGNORE_LOOP?BST_CHECKED:BST_UNCHECKED);
-	CheckDlgButton(IDC_LOOP_NORMALLY, (!DEFAULT_IGNORE_LOOP && !DEFAULT_LOOP_FOREVER)?BST_CHECKED:BST_UNCHECKED);
+	CheckDlgButton(IDC_LOOP_FOREVER, get_check(DEFAULT_LOOP_FOREVER));
+	CheckDlgButton(IDC_IGNORE_LOOP, get_check(DEFAULT_IGNORE_LOOP));
+	CheckDlgButton(IDC_LOOP_NORMALLY, get_check(!DEFAULT_IGNORE_LOOP && !DEFAULT_LOOP_FOREVER));
 
 	uSetDlgItemText(m_hWnd, IDC_LOOP_COUNT, DEFAULT_LOOP_COUNT);
 	uSetDlgItemText(m_hWnd, IDC_FADE_SECONDS, DEFAULT_FADE_SECONDS);
 	uSetDlgItemText(m_hWnd, IDC_FADE_DELAY_SECONDS, DEFAULT_FADE_DELAY_SECONDS);
 
-    CheckDlgButton(IDC_DISABLE_SUBSONGS, DEFAULT_DISABLE_SUBSONGS?BST_CHECKED:BST_UNCHECKED);
+    CheckDlgButton(IDC_DISABLE_SUBSONGS, get_check(DEFAULT_DISABLE_SUBSONGS));
 
     uSetDlgItemText(m_hWnd, IDC_DOWNMIX_CHANNELS, DEFAULT_DOWNMIX_CHANNELS);
 
-    CheckDlgButton(IDC_TAGFILE_DISABLE, DEFAULT_TAGFILE_DISABLE?BST_CHECKED:BST_UNCHECKED);
-    CheckDlgButton(IDC_OVERRIDE_TITLE, DEFAULT_OVERRIDE_TITLE?BST_CHECKED:BST_UNCHECKED);
-    CheckDlgButton(IDC_EXTS_UNKNOWN_ON, DEFAULT_EXTS_UNKNOWN_ON?BST_CHECKED:BST_UNCHECKED);
-    CheckDlgButton(IDC_EXTS_COMMON_ON, DEFAULT_EXTS_COMMON_ON?BST_CHECKED:BST_UNCHECKED);
+    CheckDlgButton(IDC_TAGFILE_DISABLE, get_check(DEFAULT_TAGFILE_DISABLE));
+    CheckDlgButton(IDC_OVERRIDE_TITLE, get_check(DEFAULT_OVERRIDE_TITLE));
+    CheckDlgButton(IDC_EXTS_UNKNOWN_ON, get_check(DEFAULT_EXTS_UNKNOWN_ON));
+    CheckDlgButton(IDC_EXTS_COMMON_ON, get_check(DEFAULT_EXTS_COMMON_ON));
 }
 
 
@@ -125,9 +126,8 @@ void vgmstreamPreferences::apply() {
 
 	pfc::string buf;
 	buf = uGetDlgItemText(m_hWnd, IDC_FADE_SECONDS);
-	if (sscanf(buf.get_ptr(),"%lf%n",&temp_fade_seconds,&consumed)<1
-		|| consumed!=strlen(buf.get_ptr()) ||
-		temp_fade_seconds<0) {
+	if (sscanf(buf.get_ptr(), "%lf%n", &temp_fade_seconds, &consumed) < 1
+		|| consumed != strlen(buf.get_ptr()) || temp_fade_seconds < 0) {
 		uMessageBox(m_hWnd,
 				"Invalid value for Fade Length\n"
 				"Must be a number greater than or equal to zero",
@@ -136,9 +136,8 @@ void vgmstreamPreferences::apply() {
 	} else cfg_FadeLength = buf.get_ptr();
 
 	buf = uGetDlgItemText(m_hWnd, IDC_LOOP_COUNT);
-	if (sscanf(buf.get_ptr(),"%lf%n",&temp_loop_count,&consumed)<1
-		|| consumed!=strlen(buf.get_ptr()) ||
-		temp_loop_count<0) {
+	if (sscanf(buf.get_ptr(), "%lf%n", &temp_loop_count, &consumed) < 1
+		|| consumed != strlen(buf.get_ptr()) || temp_loop_count < 0) {
 		uMessageBox(m_hWnd,
 				"Invalid value for Loop Count\n"
 				"Must be a number greater than or equal to zero",
@@ -147,24 +146,22 @@ void vgmstreamPreferences::apply() {
 	} else cfg_LoopCount = buf.get_ptr();
 
 	buf = uGetDlgItemText(m_hWnd, IDC_FADE_DELAY_SECONDS);
-	if (sscanf(buf.get_ptr(),"%lf%n",&temp_fade_delay_seconds,&consumed)<1
-		|| consumed!=strlen(buf.get_ptr()) ||
-		temp_fade_delay_seconds<0) {
+	if (sscanf(buf.get_ptr(), "%lf%n", &temp_fade_delay_seconds, &consumed) < 1
+		|| consumed != strlen(buf.get_ptr()) || temp_fade_delay_seconds < 0) {
 		uMessageBox(m_hWnd,
 				"Invalid value for Fade Delay\n"
 				"Must be a number",
-				"Error",MB_OK|MB_ICONERROR);
+				"Error", MB_OK|MB_ICONERROR);
 		return;
 	} else cfg_FadeDelay = buf.get_ptr();
 
     buf = uGetDlgItemText(m_hWnd, IDC_DOWNMIX_CHANNELS);
-    if (sscanf(buf.get_ptr(),"%d%n",&temp_downmix_channels,&consumed)<1
-        || consumed!=strlen(buf.get_ptr()) ||
-        temp_downmix_channels<0) {
+    if (sscanf(buf.get_ptr(), "%d%n", &temp_downmix_channels, &consumed) < 1
+        || consumed != strlen(buf.get_ptr()) || temp_downmix_channels < 0) {
         uMessageBox(m_hWnd,
                 "Invalid value for Downmix Channels\n"
                 "Must be a number greater than or equal to zero",
-                "Error",MB_OK|MB_ICONERROR);
+                "Error", MB_OK|MB_ICONERROR);
         return;
     } else cfg_DownmixChannels = buf.get_ptr();
 

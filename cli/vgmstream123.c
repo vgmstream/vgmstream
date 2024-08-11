@@ -342,7 +342,7 @@ static int play_vgmstream(const char* filename, song_settings_t* cfg) {
         if (!buffer) goto fail;
     }
 
-    max_buffer_samples = buffer_size / (input_channels * sizeof(sample));
+    max_buffer_samples = buffer_size / (input_channels * sizeof(sample_t));
 
     vgmstream_mixing_enable(vgmstream, max_buffer_samples, NULL, NULL); /* enable */
 
@@ -423,7 +423,7 @@ static int play_vgmstream(const char* filename, song_settings_t* cfg) {
                 fflush(stdout);
             }
 
-            if (!ao_play(device, (char *)buffer, to_do * output_channels * sizeof(sample))) {
+            if (!ao_play(device, (char *)buffer, to_do * output_channels * sizeof(sample_t))) {
                 fputs("\nAudio playback error\n", stderr);
                 ao_close(device);
                 device = NULL;

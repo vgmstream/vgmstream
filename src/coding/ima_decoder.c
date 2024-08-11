@@ -1113,14 +1113,14 @@ void decode_ubi_ima(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspa
         /* write PCM samples, must be written to match header's num_samples (hist mustn't) */
         max_samples_to_do = ((samples_to_do > header_samples) ? header_samples : samples_to_do);
         for (i = first_sample; i < max_samples_to_do; i++, sample_count += channelspacing) {
-            outbuf[sample_count] = read_16bit(offset + channel*sizeof(sample) + i*channelspacing*sizeof(sample),stream->streamfile);
+            outbuf[sample_count] = read_16bit(offset + channel * sizeof(sample_t) + i*channelspacing * sizeof(sample_t), stream->streamfile);
             first_sample++;
             samples_to_do--;
         }
 
         /* header done */
         if (i == header_samples) {
-            stream->offset = offset + header_samples*channelspacing*sizeof(sample);
+            stream->offset = offset + header_samples*channelspacing * sizeof(sample_t);
         }
     }
 

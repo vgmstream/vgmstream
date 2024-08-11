@@ -40,7 +40,7 @@ void build_extension_list(char* winamp_list, int winamp_list_size) {
     for (i = 0; i < ext_list_len; i++) {
         int used = add_extension(winamp_list, winamp_list_size - description_size, ext_list[i]);
         if (used <= 0) {
-            vgm_logi("build_extension_list: not enough buf for all exts\n");
+            //vgm_logi("build_extension_list: not enough buf for all exts\n");
             break;
         }
         winamp_list += used;

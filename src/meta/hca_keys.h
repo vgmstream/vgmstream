@@ -1320,6 +1320,12 @@ static const hcakey_info hcakey_list[] = {
         // Reynatis (Switch)
         {5963496778882477625},  // 52C298B97479EE39
 
+        // Buddysma!! ~Smartphone Start! Buddyfight (Android)
+        {8132462270},           // 00000001E4BB86BE
+
+        // Code Geass: Lost Stories (Android)
+        {9182735170},           // 0000000223556B42
+
 };
 
 #endif/*_HCA_KEYS_H_*/

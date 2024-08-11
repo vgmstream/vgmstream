@@ -148,8 +148,8 @@ VGMSTREAM* init_vgmstream_bkhd(STREAMFILE* sf) {
             vgmstream = init_vgmstream_adm3(temp_sf);
             if (!vgmstream) goto fail;
         }
-        else if (read_f32(subfile_offset + 0x02, temp_sf) >= 30.0 &&
-                 read_f32(subfile_offset + 0x02, temp_sf) <= 250.0) {
+        else if (read_f32(subfile_offset + 0x02, temp_sf) >= 30.0f &&
+                 read_f32(subfile_offset + 0x02, temp_sf) <= 250.0f) {
             is_wmid = 1;
             /* ignore Wwise's custom .wmid (similar to a regular midi but with simplified
              *  chunks and custom fields: 0x00=MThd's division, 0x02: bpm (new), etc) */

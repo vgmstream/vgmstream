@@ -1,6 +1,7 @@
 #include "meta.h"
 #include "../layout/layout.h"
 #include "../util/endianness.h"
+#include "../util/layout_utils.h"
 
 #define EA_BLOCKID_HEADER           0x5343486C /* "SCHl" */
 

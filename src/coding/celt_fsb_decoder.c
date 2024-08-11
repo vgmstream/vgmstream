@@ -67,7 +67,7 @@ celt_codec_data* init_celt_fsb(int channels, celt_lib_t version) {
             goto fail;
     }
 
-    data->sample_buffer = calloc(sizeof(sample), data->channel_mode * FSB_CELT_SAMPLES_PER_FRAME);
+    data->sample_buffer = calloc(data->channel_mode * FSB_CELT_SAMPLES_PER_FRAME, sizeof(sample_t));
     if (!data->sample_buffer) goto fail;
     /*  there is ~128 samples of encoder delay, but FMOD DLLs don't discard it? */
 
@@ -103,7 +103,7 @@ void decode_celt_fsb(VGMSTREAM* vgmstream, sample_t* outbuf, int32_t samples_to_
 
                 memcpy(outbuf + samples_done*channels,
                        data->sample_buffer + data->samples_used*channels,
-                       samples_to_get*channels * sizeof(sample));
+                       samples_to_get*channels * sizeof(sample_t));
 
                 samples_done += samples_to_get;
             }
@@ -158,7 +158,7 @@ void decode_celt_fsb(VGMSTREAM* vgmstream, sample_t* outbuf, int32_t samples_to_
 decode_fail:
     /* on error just put some 0 samples */
     VGM_LOG("CELT: decode fail at %x, missing %i samples\n", (uint32_t)stream->offset, (samples_to_do - samples_done));
-    memset(outbuf + samples_done * channels, 0, (samples_to_do - samples_done) * sizeof(sample) * channels);
+    memset(outbuf + samples_done * channels, 0, (samples_to_do - samples_done) * sizeof(sample_t) * channels);
 }
 
 void reset_celt_fsb(celt_codec_data* data) {

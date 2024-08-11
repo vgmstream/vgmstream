@@ -5,6 +5,7 @@
 #include "../layout/layout.h"
 #include "../base/mixing.h"
 #include "../base/plugins.h"
+#include "../util/layout_utils.h"
 
 
 /*******************************************************************************/

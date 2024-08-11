@@ -244,8 +244,8 @@ static int read_fmt(int big_endian, STREAMFILE* sf, off_t offset, riff_fmt_chunk
             /* real 0x300 is "Fujitsu FM Towns SND" with block align 0x01 */
             break;
 
-        case 0x0555: /* Level-5 0x555 ADPCM (unofficial) */
-            fmt->coding_type = coding_L5_555;
+        case 0x0555: /* Level-5 ADPCM (unofficial) */
+            fmt->coding_type = coding_LEVEL5;
             fmt->interleave = 0x12;
             break;
 
@@ -738,7 +738,7 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
             vgmstream->num_samples = pcm_bytes_to_samples(data_size, fmt.channels, fmt.bps);
             break;
 
-        case coding_L5_555:
+        case coding_LEVEL5:
             vgmstream->num_samples = data_size / 0x12 / fmt.channels * 32;
 
             /* coefs */
@@ -912,7 +912,7 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
             vgmstream->loop_end_sample = loop_end_wsmp;
             vgmstream->meta_type = meta_RIFF_WAVE_wsmp;
         }
-        else if (fmt.coding_type == coding_L5_555 && mwv_ctrl_offset) {
+        else if (fmt.coding_type == coding_LEVEL5 && mwv_ctrl_offset) {
             vgmstream->loop_start_sample = read_s32le(mwv_ctrl_offset + 0x0c, sf);
             vgmstream->loop_end_sample = vgmstream->num_samples;
             vgmstream->meta_type = meta_RIFF_WAVE_MWV;

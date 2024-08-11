@@ -50,9 +50,9 @@ atrac9_codec_data* init_atrac9(atrac9_config* cfg) {
     /* must hold at least one superframe and its samples */
     data->data_buffer_size = data->info.superframeSize;
     /* extra leeway as Atrac9Decode seems to overread ~2 bytes (doesn't affect decoding though) */
-    data->data_buffer = calloc(sizeof(uint8_t), data->data_buffer_size + 0x10);
-    /* while ATRAC9 uses float internally, Sony's API only return PCM16 */
-    data->sample_buffer = calloc(sizeof(sample_t), data->info.channels * data->info.frameSamples * data->info.framesInSuperframe);
+    data->data_buffer = calloc(data->data_buffer_size + 0x10, sizeof(uint8_t));
+    /* while ATRAC9 uses float internally, Sony's API only returns PCM16 */
+    data->sample_buffer = calloc(data->info.channels * data->info.frameSamples * data->info.framesInSuperframe, sizeof(sample_t));
 
     data->samples_to_discard = cfg->encoder_delay;
 
@@ -89,7 +89,7 @@ void decode_atrac9(VGMSTREAM* vgmstream, sample_t* outbuf, int32_t samples_to_do
 
                 memcpy(outbuf + samples_done*channels,
                        data->sample_buffer + data->samples_used*channels,
-                       samples_to_get*channels * sizeof(sample));
+                       samples_to_get*channels * sizeof(sample_t));
 
                 samples_done += samples_to_get;
             }
@@ -131,7 +131,7 @@ void decode_atrac9(VGMSTREAM* vgmstream, sample_t* outbuf, int32_t samples_to_do
 decode_fail:
     /* on error just put some 0 samples */
     VGM_LOG("ATRAC9: decode fail at %x, missing %i samples\n", (uint32_t)stream->offset, (samples_to_do - samples_done));
-    memset(outbuf + samples_done * channels, 0, (samples_to_do - samples_done) * sizeof(sample) * channels);
+    memset(outbuf + samples_done * channels, 0, (samples_to_do - samples_done) * sizeof(sample_t) * channels);
 }
 
 void reset_atrac9(atrac9_codec_data* data) {
@@ -221,7 +221,7 @@ void free_atrac9(atrac9_codec_data* data) {
 }
 
 
-static int atrac9_parse_config(uint32_t atrac9_config, int *out_sample_rate, int *out_channels, size_t *out_frame_size, size_t *out_samples_per_frame) {
+static int atrac9_parse_config(uint32_t config_data, int* p_sample_rate, int* p_channels, size_t* p_frame_size, size_t* p_samples_per_frame) {
     static const int sample_rate_table[16] = {
             11025, 12000, 16000, 22050, 24000, 32000, 44100, 48000,
             44100, 48000, 64000, 88200, 96000,128000,176400,192000
@@ -235,13 +235,13 @@ static int atrac9_parse_config(uint32_t atrac9_config, int *out_sample_rate, int
     };
 
     int superframe_size, frames_per_superframe, samples_per_frame, samples_per_superframe;
-    uint32_t sync             = (atrac9_config >> 24) & 0xff; /* 8b */
-    uint8_t sample_rate_index = (atrac9_config >> 20) & 0x0f; /* 4b */
-    uint8_t channels_index    = (atrac9_config >> 17) & 0x07; /* 3b */
-    /* uint8_t validation bit = (atrac9_config >> 16) & 0x01; */ /* 1b */
-    size_t frame_size         = (atrac9_config >>  5) & 0x7FF; /* 11b */
-    size_t superframe_index   = (atrac9_config >>  3) & 0x3; /* 2b */
-    /* uint8_t unused         = (atrac9_config >>  0) & 0x7);*/ /* 3b */
+    uint32_t sync             = (config_data >> 24) & 0xff; /* 8b */
+    uint8_t sample_rate_index = (config_data >> 20) & 0x0f; /* 4b */
+    uint8_t channels_index    = (config_data >> 17) & 0x07; /* 3b */
+    /* uint8_t validation bit = (config_data >> 16) & 0x01; */ /* 1b */
+    size_t frame_size         = (config_data >>  5) & 0x7FF; /* 11b */
+    size_t superframe_index   = (config_data >>  3) & 0x3; /* 2b */
+    /* uint8_t unused         = (config_data >>  0) & 0x7);*/ /* 3b */
 
     superframe_size = ((frame_size+1) << superframe_index);
     frames_per_superframe = (1 << superframe_index);
@@ -250,14 +250,14 @@ static int atrac9_parse_config(uint32_t atrac9_config, int *out_sample_rate, int
 
     if (sync != 0xFE)
         goto fail;
-    if (out_sample_rate)
-        *out_sample_rate = sample_rate_table[sample_rate_index];
-    if (out_channels)
-        *out_channels = channel_table[channels_index];
-    if (out_frame_size)
-        *out_frame_size = superframe_size;
-    if (out_samples_per_frame)
-        *out_samples_per_frame = samples_per_superframe;
+    if (p_sample_rate)
+        *p_sample_rate = sample_rate_table[sample_rate_index];
+    if (p_channels)
+        *p_channels = channel_table[channels_index];
+    if (p_frame_size)
+        *p_frame_size = superframe_size;
+    if (p_samples_per_frame)
+        *p_samples_per_frame = samples_per_superframe;
 
     return 1;
 fail:
@@ -268,9 +268,9 @@ size_t atrac9_bytes_to_samples(size_t bytes, atrac9_codec_data* data) {
     return bytes / data->info.superframeSize * (data->info.frameSamples * data->info.framesInSuperframe);
 }
 
-size_t atrac9_bytes_to_samples_cfg(size_t bytes, uint32_t atrac9_config) {
+size_t atrac9_bytes_to_samples_cfg(size_t bytes, uint32_t config_data) {
     size_t frame_size, samples_per_frame;
-    if (!atrac9_parse_config(atrac9_config, NULL, NULL, &frame_size, &samples_per_frame))
+    if (!atrac9_parse_config(config_data, NULL, NULL, &frame_size, &samples_per_frame))
         return 0;
     return bytes / frame_size * samples_per_frame;
 }

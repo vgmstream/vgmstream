@@ -2,7 +2,7 @@
 #include "libs/libacm.h"
 #include <stdio.h>
 
-/* libacm 1.2 (despite what libacm.h says) from: https://github.com/markokr/libacm */
+/* libacm 1.2 (despite libacm.h saying 1.1) from: https://github.com/markokr/libacm */
 
 
 /* libacm interface */
@@ -26,10 +26,10 @@ acm_codec_data* init_acm(STREAMFILE* sf, int force_channel_number) {
     acm_codec_data* data = NULL;
 
 
-    data = calloc(1,sizeof(acm_codec_data));
+    data = calloc(1, sizeof(acm_codec_data));
     if (!data) goto fail;
 
-    data->io_config = calloc(1,sizeof(acm_io_config));
+    data->io_config = calloc(1, sizeof(acm_io_config));
     if (!data->io_config) goto fail;
 
     data->streamfile = reopen_streamfile(sf, 0);
@@ -74,12 +74,12 @@ void decode_acm(acm_codec_data* data, sample_t* outbuf, int32_t samples_to_do, i
     while (samples_read < samples_to_do) {
         int32_t bytes_read_just_now = acm_read(
                 acm,
-                (char*)(outbuf+samples_read*channelspacing),
-                (samples_to_do-samples_read)*sizeof(sample)*channelspacing,
+                (char*)(outbuf + samples_read * channelspacing),
+                (samples_to_do - samples_read) * sizeof(sample_t) * channelspacing,
                 0,2,1);
 
         if (bytes_read_just_now > 0) {
-            samples_read += bytes_read_just_now/sizeof(sample)/channelspacing;
+            samples_read += bytes_read_just_now / sizeof(sample_t) / channelspacing;
         } else {
             return;
         }

@@ -1,6 +1,7 @@
 #include "meta.h"
 #include "../coding/coding.h"
 #include "../layout/layout.h"
+#include "../util/layout_utils.h"
 #include "9tav_streamfile.h"
 
 /* 9TAV - from Metal Gear Solid 2/3 HD (Vita) */
