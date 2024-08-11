@@ -1601,10 +1601,10 @@ int decode_get_samples_to_do(int samples_this_block, int samples_per_frame, VGMS
     return samples_to_do;
 }
 
-/* Detect loop start and save values, or detect loop end and restore (loop back).
- * Returns 1 if loop was done. */
-int decode_do_loop(VGMSTREAM* vgmstream) {
-    /*if (!vgmstream->loop_flag) return 0;*/
+
+/* Detect loop start and save values, or detect loop end and restore (loop back). Returns true if loop was done. */
+bool decode_do_loop(VGMSTREAM* vgmstream) {
+    //if (!vgmstream->loop_flag) return false;
 
     /* is this the loop end? = new loop, continue from loop_start_sample */
     if (vgmstream->current_sample == vgmstream->loop_end_sample) {
@@ -1613,8 +1613,8 @@ int decode_do_loop(VGMSTREAM* vgmstream) {
          * (only needed with the "play stream end after looping N times" option enabled) */
         vgmstream->loop_count++;
         if (vgmstream->loop_target && vgmstream->loop_target == vgmstream->loop_count) {
-            vgmstream->loop_flag = 0; /* could be improved but works ok, will be restored on resets */
-            return 0;
+            vgmstream->loop_flag = false; /* could be improved but works ok, will be restored on resets */
+            return false;
         }
 
         /* against everything I hold sacred, preserve adpcm history before looping for certain types */
@@ -1623,8 +1623,7 @@ int decode_do_loop(VGMSTREAM* vgmstream) {
             vgmstream->meta_type == meta_DSP_CSTR ||
             vgmstream->coding_type == coding_PSX ||
             vgmstream->coding_type == coding_PSX_badflags) {
-            int ch;
-            for (ch = 0; ch < vgmstream->channels; ch++) {
+            for (int ch = 0; ch < vgmstream->channels; ch++) {
                 vgmstream->loop_ch[ch].adpcm_history1_16 = vgmstream->ch[ch].adpcm_history1_16;
                 vgmstream->loop_ch[ch].adpcm_history2_16 = vgmstream->ch[ch].adpcm_history2_16;
                 vgmstream->loop_ch[ch].adpcm_history1_32 = vgmstream->ch[ch].adpcm_history1_32;
@@ -1633,12 +1632,13 @@ int decode_do_loop(VGMSTREAM* vgmstream) {
         }
 
         //TODO: improve
-        /* loop codecs that need special handling, usually:
-         * - on hit_loop, current offset is copied to loop_ch[].offset
-         * - some codecs will overwrite loop_ch[].offset with a custom value
-         * - loop_ch[] is copied to ch[] (with custom value)
-         * - then codec will use ch[]'s offset
-         * regular codecs may use copied loop_ch[] offset without issue */
+        /* codecs with codec_data that decode_seek need special handling, usually:
+         * - during decode, codec uses vgmstream->ch[].offset to handle current offset
+         * - on hit_loop, current offset is auto-copied to vgmstream->loop_ch[].offset
+         * - decode_seek codecs may overwrite vgmstream->loop_ch[].offset with a custom value (such as start_offset)
+         * - vgmstream->loop_ch[] is copied below to vgmstream->ch[] (with the newly assigned custom value)
+         * - then codec will use vgmstream->ch[].offset during decode
+         * regular codecs will use copied vgmstream->loop_ch[].offset without issue */
         decode_seek(vgmstream);
 
         /* restore! */
@@ -1649,7 +1649,7 @@ int decode_do_loop(VGMSTREAM* vgmstream) {
         vgmstream->current_block_samples = vgmstream->loop_block_samples;
         vgmstream->current_block_offset = vgmstream->loop_block_offset;
         vgmstream->next_block_offset = vgmstream->loop_next_block_offset;
-        //vgmstream->pstate = vgmstream->lstate; /* play state is applied over loops */
+        vgmstream->full_block_size = vgmstream->loop_full_block_size;
 
         /* loop layouts (after restore, in case layout needs state manipulations) */
         switch(vgmstream->layout_type) {
@@ -1663,24 +1663,30 @@ int decode_do_loop(VGMSTREAM* vgmstream) {
                 break;
         }
 
-        return 1; /* looped */
+        /* play state is applied over loops and stream decoding, so it's not restored on loops */
+        //vgmstream->pstate = vgmstream->lstate;
+
+        return true; /* has looped */
     }
 
 
     /* is this the loop start? save if we haven't saved yet (right when first loop starts) */
     if (!vgmstream->hit_loop && vgmstream->current_sample == vgmstream->loop_start_sample) {
         /* save! */
-        memcpy(vgmstream->loop_ch, vgmstream->ch, sizeof(VGMSTREAMCHANNEL)*vgmstream->channels);
+        memcpy(vgmstream->loop_ch, vgmstream->ch, sizeof(VGMSTREAMCHANNEL) * vgmstream->channels);
         vgmstream->loop_current_sample = vgmstream->current_sample;
         vgmstream->loop_samples_into_block = vgmstream->samples_into_block;
         vgmstream->loop_block_size = vgmstream->current_block_size;
         vgmstream->loop_block_samples = vgmstream->current_block_samples;
         vgmstream->loop_block_offset = vgmstream->current_block_offset;
         vgmstream->loop_next_block_offset = vgmstream->next_block_offset;
-        //vgmstream->lstate = vgmstream->pstate; /* play state is applied over loops */
+        vgmstream->loop_full_block_size = vgmstream->full_block_size;
+
+        /* play state is applied over loops and stream decoding, so it's not saved on loops */
+        //vgmstream->lstate = vgmstream->pstate;
 
         vgmstream->hit_loop = true; /* info that loop is now ready to use */
     }
 
-    return 0; /* not looped */
+    return false; /* has not looped */
 }

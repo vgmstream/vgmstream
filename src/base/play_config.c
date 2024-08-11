@@ -13,50 +13,50 @@ static void copy_time(bool* dst_flag, int32_t* dst_time, double* dst_time_s, boo
     *dst_time_s = *src_time_s;
 }
 
-//todo reuse in txtp?
+// config that has been set internally via TXTP
 static void load_default_config(play_config_t* def, play_config_t* tcfg) {
 
     /* loop limit: txtp #L > txtp #l > player #L > player #l */
     if (tcfg->play_forever) {
-        def->play_forever = 1;
-        def->ignore_loop = 0;
+        def->play_forever = true;
+        def->ignore_loop = false;
     }
     if (tcfg->loop_count_set) {
         def->loop_count = tcfg->loop_count;
-        def->loop_count_set = 1;
-        def->ignore_loop = 0;
+        def->loop_count_set = true;
+        def->ignore_loop = false;
         if (!tcfg->play_forever)
-            def->play_forever = 0;
+            def->play_forever = false;
     }
 
     /* fade priority: #F > #f, #d */
     if (tcfg->ignore_fade) {
-        def->ignore_fade = 1;
+        def->ignore_fade = true;
     }
     if (tcfg->fade_delay_set) {
         def->fade_delay = tcfg->fade_delay;
-        def->fade_delay_set = 1;
+        def->fade_delay_set = true;
     }
     if (tcfg->fade_time_set) {
         def->fade_time = tcfg->fade_time;
-        def->fade_time_set = 1;
+        def->fade_time_set = true;
     }
 
     /* loop priority: #i > #e > #E (respect player's ignore too) */
     if (tcfg->really_force_loop) {
-        //def->ignore_loop = 0;
-        def->force_loop = 0;
-        def->really_force_loop = 1;
+        //def->ignore_loop = false;
+        def->force_loop = false;
+        def->really_force_loop = true;
     }
     if (tcfg->force_loop) {
-        //def->ignore_loop = 0;
-        def->force_loop = 1;
-        def->really_force_loop = 0;
+        //def->ignore_loop = false;
+        def->force_loop = true;
+        def->really_force_loop = false;
     }
     if (tcfg->ignore_loop) {
-        def->ignore_loop = 1;
-        def->force_loop = 0;
-        def->really_force_loop = 0;
+        def->ignore_loop = true;
+        def->force_loop = false;
+        def->really_force_loop = false;
     }
 
     copy_time(&def->pad_begin_set,  &def->pad_begin,    &def->pad_begin_s,      &tcfg->pad_begin_set,   &tcfg->pad_begin,   &tcfg->pad_begin_s);
@@ -69,7 +69,8 @@ static void load_default_config(play_config_t* def, play_config_t* tcfg) {
     def->is_txtp = tcfg->is_txtp;
 }
 
-static void load_player_config(play_config_t* def, vgmstream_cfg_t* vcfg) {
+/* config that has been set externally by plugins */
+static void load_external_config(play_config_t* def, vgmstream_cfg_t* vcfg) {
     def->play_forever = vcfg->play_forever;
     def->ignore_loop = vcfg->ignore_loop;
     def->force_loop = vcfg->force_loop;
@@ -77,31 +78,32 @@ static void load_player_config(play_config_t* def, vgmstream_cfg_t* vcfg) {
     def->ignore_fade = vcfg->ignore_fade;
 
     def->loop_count = vcfg->loop_count;
-    def->loop_count_set = 1;
+    def->loop_count_set = true;
     def->fade_delay = vcfg->fade_delay;
-    def->fade_delay_set = 1;
+    def->fade_delay_set = true;
     def->fade_time = vcfg->fade_time;
-    def->fade_time_set = 1;
+    def->fade_time_set = true;
 }
 
+/* apply play config to vgmstream */
 void vgmstream_apply_config(VGMSTREAM* vgmstream, vgmstream_cfg_t* vcfg) {
     play_config_t defs = {0};
     play_config_t* def = &defs; /* for convenience... */
     play_config_t* tcfg = &vgmstream->config;
 
 
-    load_player_config(def, vcfg);
-    def->config_set = 1;
+    load_external_config(def, vcfg);
+    def->config_set = true;
 
     if (!vcfg->disable_config_override)
         load_default_config(def, tcfg);
 
     if (!vcfg->allow_play_forever)
-        def->play_forever = 0;
+        def->play_forever = false;
 
     /* copy final config back */
      *tcfg = *def;
 
      vgmstream->config_enabled = def->config_set;
-     setup_state_vgmstream(vgmstream);
+     setup_vgmstream_play_state(vgmstream);
 }

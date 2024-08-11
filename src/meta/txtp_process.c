@@ -131,7 +131,7 @@ static void apply_settings(VGMSTREAM* vgmstream, txtp_entry_t* current) {
 
     /* default play config (last after sample rate mods/mixing/etc) */
     txtp_copy_config(&vgmstream->config, &current->config);
-    setup_state_vgmstream(vgmstream);
+    setup_vgmstream_play_state(vgmstream);
     /* config is enabled in layouts or externally (for compatibility, since we don't know yet if this
      * VGMSTREAM will part of a layout, or is enabled externally to not mess up plugins's calcs) */
 }
