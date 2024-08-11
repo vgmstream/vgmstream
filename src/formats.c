@@ -1074,7 +1074,6 @@ static const meta_info meta_info_list[] = {
         {meta_FSB5,                 "FMOD FSB5 header"},
         {meta_RWAX,                 "Konami RWAX header"},
         {meta_XWB,                  "Microsoft XWB header"},
-        {meta_PS2_XA30,             "Reflections XA30 PS2 header"},
         {meta_MUSC,                 "Krome MUSC header"},
         {meta_MUSX,                 "Eurocom MUSX header"},
         {meta_FILP,                 "cavia FILp header"},

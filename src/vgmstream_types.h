@@ -333,7 +333,6 @@ typedef enum {
     meta_FSB5,              /* FMOD Sample Bank, version 5 */
     meta_RWAX,
     meta_XWB,               /* Microsoft XACT framework (Xbox, X360, Windows) */
-    meta_PS2_XA30,          /* Driver - Parallel Lines (PS2) */
     meta_MUSC,              /* Krome PS2 games */
     meta_MUSX,
     meta_FILP,              /* Resident Evil - Dead Aim */
