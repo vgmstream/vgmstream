@@ -209,6 +209,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="formats.c" />
+    <ClCompile Include="meta\juiced.c" />
+    <ClCompile Include="meta\snd_sdx_vbc.c" />
     <ClCompile Include="streamfile.c" />
     <ClCompile Include="util.c" />
     <ClCompile Include="vgmstream.c" />

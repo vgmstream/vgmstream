@@ -513,6 +513,8 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_dsp_asura_sfx,
     init_vgmstream_adp_ongakukan,
     init_vgmstream_juiced_dat,
+    init_vgmstream_snd_vbc,
+    init_vgmstream_sdx_vbc,
 
     /* lower priority metas (no clean header identity, somewhat ambiguous, or need extension/companion file to identify) */
     init_vgmstream_agsc,

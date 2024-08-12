@@ -2263,5 +2263,11 @@
     <ClCompile Include="util\text_reader.c">
       <Filter>util\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\snd_sdx_vbc.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\juiced.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
