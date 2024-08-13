@@ -50,11 +50,13 @@ typedef struct {
     uint16_t volume_r; /* sound_right_volume */
     // ^ ditto.
     int32_t source; /* sound_source */
-    int32_t flags; /* sound_flags (snd format exclusive) */
-    /* sdx format introduced three flag vars */
-    int32_t flags1;
-    int32_t flags2;
-    int32_t flags3;
+    int32_t flags; /* sound_flags */
+    // sdx format introduced two flag vars
+    /*
+    int32_t unk0x48;
+    int32_t unk0x4c;    
+    */
+
 
     size_t sdx_size;
     int8_t sdx_block_info_size;
@@ -118,7 +120,7 @@ VGMSTREAM* init_vgmstream_snd_vbc(STREAMFILE* sf) {
     vgmstream->loop_start_sample = 0;
     vgmstream->loop_end_sample = vgmstream->num_samples;
 
-    sf_body = (ps2snd.flags & 0x04) ? ps2snd.sf_stream_vbc : ps2snd.sf_vbc;
+    sf_body = (ps2snd.flags & 0x10) ? ps2snd.sf_stream_vbc : ps2snd.sf_vbc;
     if (!sf_body) goto fail;
 
     if (ps2snd.sound_has_defined_name_or_id == true)
@@ -166,8 +168,8 @@ VGMSTREAM* init_vgmstream_sdx_vbc(STREAMFILE* sf) {
 
     /* sdx file - xsh+xsd/xss format from Treyarch Xbox games if first three fields (version number, zero, number of sounds) never existed. */
 
-    channels = (ps2snd.flags3 & 0x01) ? 2 : 1;
-    loop_flag = (ps2snd.flags3 & 0x02) ? 1 : 0;
+    channels = (ps2snd.flags & 0x01) ? 2 : 1;
+    loop_flag = (ps2snd.flags & 0x02) ? 1 : 0;
     vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
@@ -183,7 +185,7 @@ VGMSTREAM* init_vgmstream_sdx_vbc(STREAMFILE* sf) {
     vgmstream->loop_start_sample = 0;
     vgmstream->loop_end_sample = vgmstream->num_samples;
 
-    sf_body = (ps2snd.flags3 & 0x10) ? ps2snd.sf_stream_vbc : ps2snd.sf_vbc;
+    sf_body = (ps2snd.flags & 0x10) ? ps2snd.sf_stream_vbc : ps2snd.sf_vbc;
     if (!sf_body) goto fail;
 
     strcpy(vgmstream->stream_name, ps2snd.stream_name);
@@ -516,8 +518,7 @@ static int parse_line_comms(STREAMFILE* sf, treyarch_ps2snd* ps2snd) {
                             // (todo) fill in the silence in case of an unsuccessful load.
                             if (!ps2snd->sf_stream_vbc) continue;
                         } else {
-                            // put in a flag denoting STREAM.VBC being loaded.
-                            ps2snd->flags |= 4;
+                            // do nothing, flag var already knows STREAM.VBC exists.
                             continue;
                         }
                     }
@@ -808,12 +809,14 @@ static int parse_sdx_binary_struct(STREAMFILE* sf, treyarch_ps2snd* ps2snd, sdx_
     ps2snd->pitch = read_u16le(sbgt_->bin_pos + 0x3c, sf);
     ps2snd->volume_l = read_u16le(sbgt_->bin_pos + 0x3e, sf);
     ps2snd->volume_r = read_u16le(sbgt_->bin_pos + 0x40, sf);
-    ps2snd->flags1 = read_u16le(sbgt_->bin_pos + 0x48, sf);
-    ps2snd->flags2 = read_u16le(sbgt_->bin_pos + 0x4c, sf);
-    ps2snd->flags3 = read_u16le(sbgt_->bin_pos + 0x50, sf);
+    /*
+    ps2snd->unk0x48 = read_u16le(sbgt_->bin_pos + 0x48, sf);
+    ps2snd->unk0x4c = read_u16le(sbgt_->bin_pos + 0x4c, sf);    
+    */
+    ps2snd->flags = read_u16le(sbgt_->bin_pos + 0x50, sf);
     sbgt_->bin_pos += ps2snd->sdx_block_info_size;
 
-    if ((ps2snd->flags3 & 0x10) == 0) {
+    if ((ps2snd->flags & 0x10) == 0) {
         // recycled spu vbc loading code from parse_line_comms func.
         while (!ps2snd->sf_vbc)
         {
@@ -847,7 +850,7 @@ static int parse_sdx_binary_struct(STREAMFILE* sf, treyarch_ps2snd* ps2snd, sdx_
             }
             */
         }
-    } else if ((ps2snd->flags3 & 0x10) == 0x10) {
+    } else if ((ps2snd->flags & 0x10) == 0x10) {
         // recycled STREAM.VBC loading code from parse_line_comms func.
         while (!ps2snd->sf_stream_vbc)
         {
@@ -876,8 +879,7 @@ static int parse_sdx_binary_struct(STREAMFILE* sf, treyarch_ps2snd* ps2snd, sdx_
                 if (!ps2snd->sf_stream_vbc) continue;
             }
             else {
-                // put in a flag denoting STREAM.VBC being loaded.
-                ps2snd->flags |= 4;
+                // do nothing, flag var already knows STREAM.VBC exists.
                 continue;
             }
             */
