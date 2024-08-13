@@ -3,8 +3,6 @@
 #include "../util/text_reader.h"
 #include "../util/companion_files.h"
 
-/* (todo) exploit txtm functionality */
-
 typedef enum { NONE_ = 0, REALSIZE_ = 1, SIZE__ = 2, OFFSET_ = 3, FREQ_ = 4, LOOP_ = 10, 
                REVERB_ = 11, VOLL_ = 5, VOLR_ = 6, VOLUME_ = 7, STEREO_ = 8, MONO_ = 9, SPU_ = 12, 
                COLLECTION_ = 14, CD_ = 13, SOUND_SOURCE_ = 17, STRING___ = 16, INT___ = 15} treyarch_ps2snd_comms;
@@ -18,6 +16,7 @@ typedef struct {
 
     bool is_stream_snd; /* STREAM.SND, unused but present in some PS2 games. */
     bool snd_start_offset_set;
+    bool sdx_start_offset_set;
     bool subsong_set_to_zero;
     bool text_reader_set;
     bool subsong_set;
@@ -30,6 +29,7 @@ typedef struct {
     int line_len;
     char* line;
     int32_t snd_start_offset;
+    int32_t sdx_start_offset;
 
     int total_subsongs; /* must be counted either per text line or per binary struct. */
     int expected_subsong;
@@ -50,7 +50,14 @@ typedef struct {
     uint16_t volume_r; /* sound_right_volume */
     // ^ ditto.
     int32_t source; /* sound_source */
-    int32_t flags; /* sound_flags */
+    int32_t flags; /* sound_flags (snd format exclusive) */
+    /* sdx format introduced three flag vars */
+    int32_t flags1;
+    int32_t flags2;
+    int32_t flags3;
+
+    size_t sdx_size;
+    int8_t sdx_block_info_size;
 } treyarch_ps2snd;
 
 static int parse_treyarch_ps2_snd(treyarch_ps2snd* ps2snd);
@@ -76,8 +83,9 @@ VGMSTREAM* init_vgmstream_snd_vbc(STREAMFILE* sf) {
     ps2snd.subsong_set = false;
     ps2snd.target_subsong = sf->stream_index;
 
-    /* bool config for when STREAM.SND opens */
+    /* get basename of snd file */
     get_streamfile_basename(sf, ps2snd.basename,sizeof(ps2snd.basename));
+    /* bool config for when STREAM.SND opens */
     if (strcmp(ps2snd.basename,"STREAM") == 0)
         ps2snd.is_stream_snd = true;
 
@@ -139,14 +147,54 @@ VGMSTREAM* init_vgmstream_sdx_vbc(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     STREAMFILE* sf_body = NULL;
     treyarch_ps2snd ps2snd = { 0 };
+    int channels, loop_flag;
 
     /* checks */
     if (!check_extensions(sf,"sdx")) return NULL;
 
-    if (!parse_sdx(&ps2snd)) return NULL;
+    ps2snd.sf_sdx = sf;
+    ps2snd.subsong_set_to_zero = false;
+    ps2snd.sdx_start_offset_set = false;
+    ps2snd.subsong_set = false;
+    ps2snd.target_subsong = sf->stream_index;
+    ps2snd.sdx_block_info_size = 0x58;
+
+    /* get basename of sdx file */
+    get_streamfile_basename(sf, ps2snd.basename, sizeof(ps2snd.basename));
+
+    if (!parse_sdx(&ps2snd)) goto fail;
 
     /* sdx file - xsh+xsd/xss format from Treyarch Xbox games if first three fields (version number, zero, number of sounds) never existed. */
-    return NULL;
+
+    channels = (ps2snd.flags3 & 0x01) ? 2 : 1;
+    loop_flag = (ps2snd.flags3 & 0x02) ? 1 : 0;
+    vgmstream = allocate_vgmstream(channels, loop_flag);
+    if (!vgmstream) goto fail;
+
+    vgmstream->meta_type = meta_SDX_VBC;
+    vgmstream->sample_rate = round10((48000 * ps2snd.pitch) / 4096); /* alternatively, (ps2snd.pitch * 48000) << 12 */
+    vgmstream->num_streams = ps2snd.total_subsongs;
+    vgmstream->stream_size = ps2snd.size;
+
+    vgmstream->coding_type = coding_PSX;
+    vgmstream->layout_type = layout_interleave;
+    vgmstream->interleave_block_size = 0x800;
+    vgmstream->num_samples = ps_bytes_to_samples(ps2snd.size, channels);
+    vgmstream->loop_start_sample = 0;
+    vgmstream->loop_end_sample = vgmstream->num_samples;
+
+    sf_body = (ps2snd.flags3 & 0x10) ? ps2snd.sf_stream_vbc : ps2snd.sf_vbc;
+    if (!sf_body) goto fail;
+
+    strcpy(vgmstream->stream_name, ps2snd.stream_name);
+
+    if (!vgmstream_open_stream(vgmstream, sf_body, ps2snd.offset))
+        goto fail;
+    close_treyarch_ps2snd_streamfiles(&ps2snd);
+    return vgmstream;
+fail:
+    close_treyarch_ps2snd_streamfiles(&ps2snd);
+    close_vgmstream(vgmstream);
 }
 
 void close_treyarch_ps2snd_streamfiles(treyarch_ps2snd* ps2snd)
@@ -224,18 +272,12 @@ static int parse_treyarch_ps2_snd(treyarch_ps2snd* ps2snd) {
             } while (ps2snd->line_len >= 0);
 
             if (ps2snd->calc_total_subsongs_first == false) {
-                if (ps2snd->target_subsong < 0 || ps2snd->target_subsong > ps2snd->total_subsongs || ps2snd->total_subsongs < 1) goto fail;
-            }
+                if (ps2snd->target_subsong < 0 || ps2snd->target_subsong > ps2snd->total_subsongs || ps2snd->total_subsongs < 1) goto fail; }
         }
     }
 
     return 1;
 fail:
-    return 0;
-}
-
-static int parse_sdx(treyarch_ps2snd* ps2snd) {
-    /* stub function. to be made useful later. no ETA. */
     return 0;
 }
 
@@ -671,4 +713,185 @@ fail:
 
 static void clear_comm_key(line_go_through* cfg) {
     cfg->got_token = true;
+}
+
+typedef struct {
+    int bin_pos;
+    int bkup_pos;
+} sdx_bin_go_through;
+
+static int parse_sdx_binary_struct(STREAMFILE* sf, treyarch_ps2snd* ps2snd, sdx_bin_go_through* sbgt_);
+
+static int parse_sdx(treyarch_ps2snd* ps2snd) {
+    int i;
+    uint32_t sdx_test1, sdx_test2, sdx_test3;
+    bool valid_read = false;
+
+    /* additional checks, we need to know if this sdx is the real deal. */
+    sdx_test1 = read_u32be(0, ps2snd->sf_sdx); /* sdx format starts with a literal string weighing 0x30 bytes. */
+    if ((sdx_test1 & 0x80808080) == 0) {
+        if (sdx_test1 & 0x40404040) {
+            sdx_test2 = read_u32le(0x30, ps2snd->sf_sdx); /* then starts with a literal zero even tho it's not a requirement. */
+            if (sdx_test2 == 0) {
+                sdx_test3 = read_u32le(0x34, ps2snd->sf_sdx); /* then starts with a fairly small non-zero number even tho it's also not required. */
+                if (sdx_test3 < 0x10000) { valid_read = true; }
+            }
+        }
+    }
+
+    if (valid_read == false) {
+        goto fail;
+    }
+    else {
+        if (ps2snd->sdx_start_offset_set == false) {
+            ps2snd->sdx_start_offset = 0;
+            ps2snd->sdx_size = get_streamfile_size(ps2snd->sf_sdx);
+            ps2snd->sdx_block_info_size = 0x58;
+            ps2snd->sdx_start_offset_set = true;
+        }
+
+        for (i = 0; i < 2; i++)
+        {
+            sdx_bin_go_through sbgt_ = { 0 };
+            switch (i)
+            {
+            case 0:
+                ps2snd->calc_total_subsongs_first = true;
+                break;
+            case 1:
+                ps2snd->calc_total_subsongs_first = false;
+                break;
+            default:
+                break;
+            }
+
+            while (true) {
+                if (!parse_sdx_binary_struct(ps2snd->sf_sdx, ps2snd, &sbgt_)) break;
+                if (ps2snd->calc_total_subsongs_first == false) {
+                    if (ps2snd->subsong_set == true) { break; }
+                }
+            }
+        }
+    }
+
+    return 1;
+fail:
+    return 0;
+}
+
+static int parse_sdx_binary_struct(STREAMFILE* sf, treyarch_ps2snd* ps2snd, sdx_bin_go_through* sbgt_) {
+    bool nothing_left_to_read = false;
+    char temp_val5[64];
+    char temp_val6[32];
+    bool spu_vbc_success = false;
+    bool stream_vbc_success = false;
+
+    if (sbgt_->bin_pos >= ps2snd->sdx_size) { nothing_left_to_read = true; }
+    if (nothing_left_to_read == true) { goto fail; }
+
+    if (ps2snd->subsong_set_to_zero == false) {
+        if (ps2snd->target_subsong == 0) ps2snd->target_subsong = 1;
+        ps2snd->total_subsongs = 0;
+        ps2snd->expected_subsong = 1;
+        ps2snd->subsong_set_to_zero = true;
+    }
+
+    if (ps2snd->calc_total_subsongs_first == false) {
+        if (ps2snd->target_subsong < 0 || ps2snd->target_subsong > ps2snd->total_subsongs || ps2snd->total_subsongs < 1) goto fail;
+    }
+
+    sbgt_->bkup_pos = sbgt_->bin_pos;
+    read_string(ps2snd->stream_name, 0x30, sbgt_->bin_pos + 0, sf);
+    ps2snd->offset = read_s32le(sbgt_->bin_pos + 0x30, sf);
+    ps2snd->realsize = read_s32le(sbgt_->bin_pos + 0x34, sf);
+    ps2snd->size = read_s32le(sbgt_->bin_pos + 0x38, sf);
+    ps2snd->pitch = read_u16le(sbgt_->bin_pos + 0x3c, sf);
+    ps2snd->volume_l = read_u16le(sbgt_->bin_pos + 0x3e, sf);
+    ps2snd->volume_r = read_u16le(sbgt_->bin_pos + 0x40, sf);
+    ps2snd->flags1 = read_u16le(sbgt_->bin_pos + 0x48, sf);
+    ps2snd->flags2 = read_u16le(sbgt_->bin_pos + 0x4c, sf);
+    ps2snd->flags3 = read_u16le(sbgt_->bin_pos + 0x50, sf);
+    sbgt_->bin_pos += ps2snd->sdx_block_info_size;
+
+    if ((ps2snd->flags3 & 0x10) == 0) {
+        // recycled spu vbc loading code from parse_line_comms func.
+        while (!ps2snd->sf_vbc)
+        {
+            // open vbc from the spu folder.
+            snprintf(temp_val5, sizeof(temp_val5), "spu\\%s.vbc", ps2snd->basename);
+            if (spu_vbc_success == false) ps2snd->sf_vbc = open_streamfile_by_filename(sf, temp_val5);
+            if (ps2snd->sf_vbc && spu_vbc_success == false) spu_vbc_success = true;
+
+            // open vbc from the same folder as the sdx itself (unlikely).
+            snprintf(temp_val6, sizeof(temp_val6), "%s.vbc", ps2snd->basename);
+            if (spu_vbc_success == false) ps2snd->sf_vbc = open_streamfile_by_filename(sf, temp_val6);
+            if (ps2snd->sf_vbc && spu_vbc_success == false) spu_vbc_success = true;
+
+            // open vbc through an txtm file.
+            // vbc file shares the same basename as sdx file does shouldn't be too hard to find the former file.
+            // (TRAINING.VBC has TRAINING.SDX also, for one.)
+            // (todo) have vgmstream inform the end-user on how to make a txtm file.
+            if (spu_vbc_success == false) ps2snd->sf_vbc = read_filemap_file(sf, 0);
+            if (ps2snd->sf_vbc && spu_vbc_success == false) spu_vbc_success = true;
+
+            /*
+            // (todo) proper handling for empty vbc streamfile object.
+            if (spu_vbc_success == false) {
+                // tried everything, no dice.
+                // (todo) fill in the silence in case of an unsuccessful load.
+                if (!ps2snd->sf_vbc) continue;
+            }
+            else {
+                // AFAIK when spu vbc is loaded nothing is done to the flags var itself. (info needs double-checking)
+                continue;
+            }
+            */
+        }
+    } else if ((ps2snd->flags3 & 0x10) == 0x10) {
+        // recycled STREAM.VBC loading code from parse_line_comms func.
+        while (!ps2snd->sf_stream_vbc)
+        {
+            // open STREAM.VBC from two folders back and into the stream folder.
+            if (stream_vbc_success == false) ps2snd->sf_stream_vbc = open_streamfile_by_filename(sf, "..\\..\\stream\\stream.vbc");
+            if (ps2snd->sf_stream_vbc && stream_vbc_success == false) stream_vbc_success = true;
+
+            // open STREAM.VBC from the stream folder if said folder goes alongside snd and/or vbc files (unlikely).
+            if (stream_vbc_success == false) ps2snd->sf_stream_vbc = open_streamfile_by_filename(sf, "stream\\stream.vbc");
+            if (ps2snd->sf_stream_vbc && stream_vbc_success == false) stream_vbc_success = true;
+
+            // open STREAM.VBC from the same folder as where the snd and/or vbc files are (unlikely).
+            if (stream_vbc_success == false) ps2snd->sf_stream_vbc = open_streamfile_by_filename(sf, "stream.vbc");
+            if (ps2snd->sf_stream_vbc && stream_vbc_success == false) stream_vbc_success = true;
+
+            // open STREAM.VBC through an txtm file.
+            // (todo) have vgmstream inform the end-user on how to make a txtm file.
+            if (stream_vbc_success == false) ps2snd->sf_stream_vbc = read_filemap_file(sf, 1);
+            if (ps2snd->sf_stream_vbc && stream_vbc_success == false) stream_vbc_success = true;
+
+            /*
+            // (todo) proper handling for empty vbc streamfile object.
+            if (stream_vbc_success == false) {
+                // tried everything, no dice.
+                // (todo) fill in the silence in case of an unsuccessful load.
+                if (!ps2snd->sf_stream_vbc) continue;
+            }
+            else {
+                // put in a flag denoting STREAM.VBC being loaded.
+                ps2snd->flags |= 4;
+                continue;
+            }
+            */
+        }
+    }
+
+    if (ps2snd->calc_total_subsongs_first == true) { ps2snd->total_subsongs++; }
+    else {
+        if (ps2snd->expected_subsong == ps2snd->target_subsong) { ps2snd->subsong_set = true; }
+        ps2snd->expected_subsong++;
+        if (ps2snd->target_subsong < 0 || ps2snd->target_subsong > ps2snd->total_subsongs || ps2snd->total_subsongs < 1) goto fail;
+    }
+
+    return 1;
+fail:
+    return 0;
 }
