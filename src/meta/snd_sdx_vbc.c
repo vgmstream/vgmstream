@@ -23,6 +23,7 @@ typedef struct {
     bool sound_has_defined_name_or_id;
     bool stream_has_name_rather_than_id;
     bool calc_total_subsongs_first;
+    bool nothing_left_to_read_out_of_sdx;
 
     text_reader_t tr;
     uint8_t buf[255 + 1];
@@ -197,6 +198,7 @@ VGMSTREAM* init_vgmstream_sdx_vbc(STREAMFILE* sf) {
 fail:
     close_treyarch_ps2snd_streamfiles(&ps2snd);
     close_vgmstream(vgmstream);
+    return NULL;
 }
 
 void close_treyarch_ps2snd_streamfiles(treyarch_ps2snd* ps2snd)
@@ -272,9 +274,6 @@ static int parse_treyarch_ps2_snd(treyarch_ps2snd* ps2snd) {
                 }
 
             } while (ps2snd->line_len >= 0);
-
-            if (ps2snd->calc_total_subsongs_first == false) {
-                if (ps2snd->target_subsong < 0 || ps2snd->target_subsong > ps2snd->total_subsongs || ps2snd->total_subsongs < 1) goto fail; }
         }
     }
 
@@ -296,6 +295,10 @@ static int parse_line_comms(STREAMFILE* sf, treyarch_ps2snd* ps2snd) {
     bool spu_vbc_success = false;
     bool stream_vbc_success = false;
     ps2snd->subsong_set = false;
+
+    if (ps2snd->calc_total_subsongs_first == false) {
+        if (ps2snd->target_subsong < 0 || ps2snd->target_subsong > ps2snd->total_subsongs || ps2snd->total_subsongs < 1) goto fail;
+    }
 
     is_comment = line_is_comment(ps2snd->line);
     if (!is_comment)
@@ -754,6 +757,7 @@ static int parse_sdx(treyarch_ps2snd* ps2snd) {
         for (i = 0; i < 2; i++)
         {
             sdx_bin_go_through sbgt_ = { 0 };
+            ps2snd->nothing_left_to_read_out_of_sdx = false;
             switch (i)
             {
             case 0:
@@ -767,7 +771,8 @@ static int parse_sdx(treyarch_ps2snd* ps2snd) {
             }
 
             while (true) {
-                if (!parse_sdx_binary_struct(ps2snd->sf_sdx, ps2snd, &sbgt_)) break;
+                if (!parse_sdx_binary_struct(ps2snd->sf_sdx, ps2snd, &sbgt_)) goto fail;
+                if (ps2snd->nothing_left_to_read_out_of_sdx == true) { break; }
                 if (ps2snd->calc_total_subsongs_first == false) {
                     if (ps2snd->subsong_set == true) { break; }
                 }
@@ -781,119 +786,122 @@ fail:
 }
 
 static int parse_sdx_binary_struct(STREAMFILE* sf, treyarch_ps2snd* ps2snd, sdx_bin_go_through* sbgt_) {
-    bool nothing_left_to_read = false;
     char temp_val5[64];
     char temp_val6[32];
     bool spu_vbc_success = false;
     bool stream_vbc_success = false;
 
-    if (sbgt_->bin_pos >= ps2snd->sdx_size) { nothing_left_to_read = true; }
-    if (nothing_left_to_read == true) { goto fail; }
-
-    if (ps2snd->subsong_set_to_zero == false) {
-        if (ps2snd->target_subsong == 0) ps2snd->target_subsong = 1;
-        ps2snd->total_subsongs = 0;
-        ps2snd->expected_subsong = 1;
-        ps2snd->subsong_set_to_zero = true;
-    }
+    if (sbgt_->bin_pos >= ps2snd->sdx_size) { ps2snd->nothing_left_to_read_out_of_sdx = true; }
 
     if (ps2snd->calc_total_subsongs_first == false) {
         if (ps2snd->target_subsong < 0 || ps2snd->target_subsong > ps2snd->total_subsongs || ps2snd->total_subsongs < 1) goto fail;
     }
 
-    sbgt_->bkup_pos = sbgt_->bin_pos;
-    read_string(ps2snd->stream_name, 0x30, sbgt_->bin_pos + 0, sf);
-    ps2snd->offset = read_s32le(sbgt_->bin_pos + 0x30, sf);
-    ps2snd->realsize = read_s32le(sbgt_->bin_pos + 0x34, sf);
-    ps2snd->size = read_s32le(sbgt_->bin_pos + 0x38, sf);
-    ps2snd->pitch = read_u16le(sbgt_->bin_pos + 0x3c, sf);
-    ps2snd->volume_l = read_u16le(sbgt_->bin_pos + 0x3e, sf);
-    ps2snd->volume_r = read_u16le(sbgt_->bin_pos + 0x40, sf);
-    /*
-    ps2snd->unk0x48 = read_u16le(sbgt_->bin_pos + 0x48, sf);
-    ps2snd->unk0x4c = read_u16le(sbgt_->bin_pos + 0x4c, sf);    
-    */
-    ps2snd->flags = read_u16le(sbgt_->bin_pos + 0x50, sf);
-    sbgt_->bin_pos += ps2snd->sdx_block_info_size;
-
-    if ((ps2snd->flags & 0x10) == 0) {
-        // recycled spu vbc loading code from parse_line_comms func.
-        while (!ps2snd->sf_vbc)
-        {
-            // open vbc from the spu folder.
-            snprintf(temp_val5, sizeof(temp_val5), "spu\\%s.vbc", ps2snd->basename);
-            if (spu_vbc_success == false) ps2snd->sf_vbc = open_streamfile_by_filename(sf, temp_val5);
-            if (ps2snd->sf_vbc && spu_vbc_success == false) spu_vbc_success = true;
-
-            // open vbc from the same folder as the sdx itself (unlikely).
-            snprintf(temp_val6, sizeof(temp_val6), "%s.vbc", ps2snd->basename);
-            if (spu_vbc_success == false) ps2snd->sf_vbc = open_streamfile_by_filename(sf, temp_val6);
-            if (ps2snd->sf_vbc && spu_vbc_success == false) spu_vbc_success = true;
-
-            // open vbc through an txtm file.
-            // vbc file shares the same basename as sdx file does shouldn't be too hard to find the former file.
-            // (TRAINING.VBC has TRAINING.SDX also, for one.)
-            // (todo) have vgmstream inform the end-user on how to make a txtm file.
-            if (spu_vbc_success == false) ps2snd->sf_vbc = read_filemap_file(sf, 0);
-            if (ps2snd->sf_vbc && spu_vbc_success == false) spu_vbc_success = true;
-
-            /*
-            // (todo) proper handling for empty vbc streamfile object.
-            if (spu_vbc_success == false) {
-                // tried everything, no dice.
-                // (todo) fill in the silence in case of an unsuccessful load.
-                if (!ps2snd->sf_vbc) continue;
-            }
-            else {
-                // AFAIK when spu vbc is loaded nothing is done to the flags var itself. (info needs double-checking)
-                continue;
-            }
-            */
+    if (ps2snd->nothing_left_to_read_out_of_sdx == false)
+    {
+        if (ps2snd->subsong_set_to_zero == false) {
+            if (ps2snd->target_subsong == 0) ps2snd->target_subsong = 1;
+            ps2snd->total_subsongs = 0;
+            ps2snd->expected_subsong = 1;
+            ps2snd->subsong_set_to_zero = true;
         }
-    } else if ((ps2snd->flags & 0x10) == 0x10) {
-        // recycled STREAM.VBC loading code from parse_line_comms func.
-        while (!ps2snd->sf_stream_vbc)
-        {
-            // open STREAM.VBC from two folders back and into the stream folder.
-            if (stream_vbc_success == false) ps2snd->sf_stream_vbc = open_streamfile_by_filename(sf, "..\\..\\stream\\stream.vbc");
-            if (ps2snd->sf_stream_vbc && stream_vbc_success == false) stream_vbc_success = true;
 
-            // open STREAM.VBC from the stream folder if said folder goes alongside snd and/or vbc files (unlikely).
-            if (stream_vbc_success == false) ps2snd->sf_stream_vbc = open_streamfile_by_filename(sf, "stream\\stream.vbc");
-            if (ps2snd->sf_stream_vbc && stream_vbc_success == false) stream_vbc_success = true;
+        sbgt_->bkup_pos = sbgt_->bin_pos;
+        read_string(ps2snd->stream_name, 0x30, sbgt_->bin_pos + 0, sf);
+        ps2snd->offset = read_s32le(sbgt_->bin_pos + 0x30, sf);
+        ps2snd->realsize = read_s32le(sbgt_->bin_pos + 0x34, sf);
+        ps2snd->size = read_s32le(sbgt_->bin_pos + 0x38, sf);
+        ps2snd->pitch = read_u16le(sbgt_->bin_pos + 0x3c, sf);
+        ps2snd->volume_l = read_u16le(sbgt_->bin_pos + 0x3e, sf);
+        ps2snd->volume_r = read_u16le(sbgt_->bin_pos + 0x40, sf);
+        /*
+        ps2snd->unk0x48 = read_u16le(sbgt_->bin_pos + 0x48, sf);
+        ps2snd->unk0x4c = read_u16le(sbgt_->bin_pos + 0x4c, sf);    
+        */
+        ps2snd->flags = read_u16le(sbgt_->bin_pos + 0x50, sf);
+        sbgt_->bin_pos += ps2snd->sdx_block_info_size;
 
-            // open STREAM.VBC from the same folder as where the snd and/or vbc files are (unlikely).
-            if (stream_vbc_success == false) ps2snd->sf_stream_vbc = open_streamfile_by_filename(sf, "stream.vbc");
-            if (ps2snd->sf_stream_vbc && stream_vbc_success == false) stream_vbc_success = true;
+        if ((ps2snd->flags & 0x10) == 0) {
+            // recycled spu vbc loading code from parse_line_comms func.
+            while (!ps2snd->sf_vbc)
+            {
+                // open vbc from the spu folder.
+                snprintf(temp_val5, sizeof(temp_val5), "spu\\%s.vbc", ps2snd->basename);
+                if (spu_vbc_success == false) ps2snd->sf_vbc = open_streamfile_by_filename(sf, temp_val5);
+                if (ps2snd->sf_vbc && spu_vbc_success == false) spu_vbc_success = true;
 
-            // open STREAM.VBC through an txtm file.
-            // (todo) have vgmstream inform the end-user on how to make a txtm file.
-            if (stream_vbc_success == false) ps2snd->sf_stream_vbc = read_filemap_file(sf, 1);
-            if (ps2snd->sf_stream_vbc && stream_vbc_success == false) stream_vbc_success = true;
+                // open vbc from the same folder as the sdx itself (unlikely).
+                snprintf(temp_val6, sizeof(temp_val6), "%s.vbc", ps2snd->basename);
+                if (spu_vbc_success == false) ps2snd->sf_vbc = open_streamfile_by_filename(sf, temp_val6);
+                if (ps2snd->sf_vbc && spu_vbc_success == false) spu_vbc_success = true;
 
-            /*
-            // (todo) proper handling for empty vbc streamfile object.
-            if (stream_vbc_success == false) {
-                // tried everything, no dice.
-                // (todo) fill in the silence in case of an unsuccessful load.
-                if (!ps2snd->sf_stream_vbc) continue;
+                // open vbc through an txtm file.
+                // vbc file shares the same basename as sdx file does shouldn't be too hard to find the former file.
+                // (TRAINING.VBC has TRAINING.SDX also, for one.)
+                // (todo) have vgmstream inform the end-user on how to make a txtm file.
+                if (spu_vbc_success == false) ps2snd->sf_vbc = read_filemap_file(sf, 0);
+                if (ps2snd->sf_vbc && spu_vbc_success == false) spu_vbc_success = true;
+
+                /*
+                // (todo) proper handling for empty vbc streamfile object.
+                if (spu_vbc_success == false) {
+                    // tried everything, no dice.
+                    // (todo) fill in the silence in case of an unsuccessful load.
+                    if (!ps2snd->sf_vbc) continue;
+                }
+                else {
+                    // AFAIK when spu vbc is loaded nothing is done to the flags var itself. (info needs double-checking)
+                    continue;
+                }
+                */
             }
-            else {
-                // do nothing, flag var already knows STREAM.VBC exists.
-                continue;
+        } else if ((ps2snd->flags & 0x10) == 0x10) {
+            // recycled STREAM.VBC loading code from parse_line_comms func.
+            while (!ps2snd->sf_stream_vbc)
+            {
+                // open STREAM.VBC from two folders back and into the stream folder.
+                if (stream_vbc_success == false) ps2snd->sf_stream_vbc = open_streamfile_by_filename(sf, "..\\..\\stream\\stream.vbc");
+                if (ps2snd->sf_stream_vbc && stream_vbc_success == false) stream_vbc_success = true;
+
+                // open STREAM.VBC from the stream folder if said folder goes alongside snd and/or vbc files (unlikely).
+                if (stream_vbc_success == false) ps2snd->sf_stream_vbc = open_streamfile_by_filename(sf, "stream\\stream.vbc");
+                if (ps2snd->sf_stream_vbc && stream_vbc_success == false) stream_vbc_success = true;
+
+                // open STREAM.VBC from the same folder as where the snd and/or vbc files are (unlikely).
+                if (stream_vbc_success == false) ps2snd->sf_stream_vbc = open_streamfile_by_filename(sf, "stream.vbc");
+                if (ps2snd->sf_stream_vbc && stream_vbc_success == false) stream_vbc_success = true;
+
+                // open STREAM.VBC through an txtm file.
+                // (todo) have vgmstream inform the end-user on how to make a txtm file.
+                if (stream_vbc_success == false) ps2snd->sf_stream_vbc = read_filemap_file(sf, 1);
+                if (ps2snd->sf_stream_vbc && stream_vbc_success == false) stream_vbc_success = true;
+
+                /*
+                // (todo) proper handling for empty vbc streamfile object.
+                if (stream_vbc_success == false) {
+                    // tried everything, no dice.
+                    // (todo) fill in the silence in case of an unsuccessful load.
+                    if (!ps2snd->sf_stream_vbc) continue;
+                }
+                else {
+                    // do nothing, flag var already knows STREAM.VBC exists.
+                    continue;
+                }
+                */
             }
-            */
+        }
+
+        if (ps2snd->calc_total_subsongs_first == true) { ps2snd->total_subsongs++; }
+        else {
+            if (ps2snd->expected_subsong == ps2snd->target_subsong) { ps2snd->subsong_set = true; }
+            ps2snd->expected_subsong++;
         }
     }
-
-    if (ps2snd->calc_total_subsongs_first == true) { ps2snd->total_subsongs++; }
-    else {
-        if (ps2snd->expected_subsong == ps2snd->target_subsong) { ps2snd->subsong_set = true; }
-        ps2snd->expected_subsong++;
-        if (ps2snd->target_subsong < 0 || ps2snd->target_subsong > ps2snd->total_subsongs || ps2snd->total_subsongs < 1) goto fail;
-    }
+    else { goto read_all_of_sdx; }
 
     return 1;
+read_all_of_sdx:
+    return 2;
 fail:
     return 0;
 }
