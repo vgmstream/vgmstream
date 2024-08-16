@@ -173,6 +173,10 @@ typedef struct {
     size_t interleave_last_block_size; /* smaller interleave for last block */
     size_t frame_size;              /* for codecs with configurable size */
 
+    /* offset hacks */
+    size_t broken_interleave_sample_pos;    /* Data offset at which to skip over faulty samples (used with Camelot 3DS bcstm streams) */
+    size_t broken_interleave_sample_count;  /* Number of faulty bytes to skip (used with Camelot 3DS bcstm streams) */
+
     /* subsong config */
     int num_streams;                /* for multi-stream formats (0=not set/one stream, 1=one stream) */
     int stream_index;               /* selected subsong (also 1-based) */

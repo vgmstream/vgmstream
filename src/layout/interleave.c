@@ -147,6 +147,13 @@ void render_vgmstream_interleave(sample_t * buffer, int32_t sample_count, VGMSTR
                 }
             }
 
+            if (vgmstream->broken_interleave_sample_count != 0 && vgmstream->current_sample == vgmstream->broken_interleave_sample_pos) {
+                samples_per_frame = samples_per_frame_d;
+                for (ch = 0; ch < vgmstream->channels; ch++) {
+                    vgmstream->ch[ch].offset += vgmstream->broken_interleave_sample_count / samples_per_frame;
+                }
+            }
+
             vgmstream->samples_into_block = 0;
         }
     }
