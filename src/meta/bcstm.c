@@ -79,28 +79,30 @@ VGMSTREAM * init_vgmstream_bcstm(STREAMFILE *streamFile) {
 
     /* Camelot doesn't follow header values */
     if (is_camelot_ima) {
-        size_t blocks_to_subtract;
-        size_t samples_per_byte = 2;
+        int blocks_to_subtract;
+        size_t broken_interleave_byte_offset;
+        size_t sample_count_header = read_32bitLE(info_offset + 0x2C, streamFile);
         size_t header_block_count = read_32bitLE(info_offset + 0x30, streamFile);
         size_t header_block_size = read_32bitLE(info_offset + 0x34, streamFile);
         size_t header_last_block_size = read_32bitLE(info_offset + 0x44, streamFile);
-
         size_t data_size_file = get_streamfile_size(streamFile) - start_offset;
-        size_t sample_count_header = read_32bitLE(info_offset + 0x2C, streamFile);
-        size_t badblock_sample_diff = (data_size_file * samples_per_byte / channel_count) - sample_count_header;
+        size_t badblock_sample_diff = ima_bytes_to_samples(data_size_file, channel_count) - sample_count_header;
 
         /* Camelot uses a hardcoded block size of 0x200, rather than the one provided in the header...kind of? */
         vgmstream->interleave_block_size = 0x200;
         vgmstream->interleave_last_block_size = header_last_block_size % vgmstream->interleave_block_size;
 
         /**
-         * The "final" block (or rather, 0x200 bytes before the final block if the header values were actually followed)
-         * seems to contain a few bytes of unused(?) data that shifts all of the remaining blocks forward a bit.
-         * This leads to issues with data alignment, and corrupts the interleaved audio data as a result.
+         * The "final" block (or rather, 0x200 bytes before the would-be final block if the header values were actually
+         * followed) seems to contain a few bytes of unused(?) data that shifts all of the remaining blocks forward a bit.
+         * This leads to issues with data alignment, and corrupts the interleaved audio data as a result (but only for Mario Golf).
          * The following parameters are needed to adequately correct for this behavior.
          */
         blocks_to_subtract = 1 - ((header_last_block_size + vgmstream->interleave_block_size) / header_block_size);
-        vgmstream->broken_interleave_sample_pos = (((header_block_count - blocks_to_subtract) * header_block_size) - vgmstream->interleave_block_size) * samples_per_byte;
+        broken_interleave_byte_offset = (((header_block_count - blocks_to_subtract)
+                * header_block_size) - vgmstream->interleave_block_size) * channel_count;
+
+        vgmstream->broken_interleave_sample_pos = ima_bytes_to_samples(broken_interleave_byte_offset, channel_count);
         vgmstream->broken_interleave_sample_count = badblock_sample_diff;
     }
 
