@@ -12,26 +12,27 @@
 /* Decodes samples for layered streams.
  * Each decoded vgmstream 'layer' (which may have different codecs and number of channels)
  * is mixed into a final buffer, creating a single super-vgmstream. */
-void render_vgmstream_layered(sample_t* outbuf, int32_t sample_len, VGMSTREAM* vgmstream) {
+void render_vgmstream_layered(sample_t* outbuf, int32_t sample_count, VGMSTREAM* vgmstream) {
     layered_layout_data* data = vgmstream->layout_data;
 
     int samples_per_frame = VGMSTREAM_LAYER_SAMPLE_BUFFER;
     int samples_this_block = vgmstream->num_samples; /* do all samples if possible */
 
     int samples_filled = 0;
-    while (samples_filled < sample_len) {
+    while (samples_filled < sample_count) {
+        int ch;
+
         if (vgmstream->loop_flag && decode_do_loop(vgmstream)) {
-            /* handle looping (loop_layout has been called below) */
+            /* handle looping (loop_layout has been called inside) */
             continue;
         }
 
-        int ch;
         int samples_to_do = decode_get_samples_to_do(samples_this_block, samples_per_frame, vgmstream);
-        if (samples_to_do > sample_len - samples_filled)
-            samples_to_do = sample_len - samples_filled;
+        if (samples_to_do > sample_count - samples_filled)
+            samples_to_do = sample_count - samples_filled;
 
         if (samples_to_do <= 0) { /* when decoding more than num_samples */
-            VGM_LOG_ONCE("LAYERED: samples_to_do 0\n");
+            VGM_LOG_ONCE("LAYERED: wrong samples_to_do\n"); 
             goto decode_fail;
         }
 
@@ -57,7 +58,7 @@ void render_vgmstream_layered(sample_t* outbuf, int32_t sample_len, VGMSTREAM* v
 
     return;
 decode_fail:
-    sbuf_silence(outbuf, sample_len, data->output_channels, samples_filled);
+    sbuf_silence(outbuf, sample_count, data->output_channels, samples_filled);
 }
 
 

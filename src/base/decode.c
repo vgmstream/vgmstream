@@ -828,10 +828,10 @@ bool decode_uses_internal_offset_updates(VGMSTREAM* vgmstream) {
  * buffer already, and we have samples_to_do consecutive samples ahead of us (won't call
  * more than one frame if configured above to do so).
  * Called by layouts since they handle samples written/to_do */
-void decode_vgmstream(VGMSTREAM* vgmstream, int samples_written, int samples_to_do, sample_t* buffer) {
+void decode_vgmstream(VGMSTREAM* vgmstream, int samples_filled, int samples_to_do, sample_t* buffer) {
     int ch;
 
-    buffer += samples_written * vgmstream->channels; /* passed externally to simplify I guess */
+    buffer += samples_filled * vgmstream->channels; /* passed externally to simplify I guess */
 
     switch (vgmstream->coding_type) {
         case coding_SILENCE:

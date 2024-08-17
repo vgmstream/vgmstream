@@ -31,9 +31,10 @@ void render_vgmstream_segmented(sample_t* outbuf, int32_t sample_count, VGMSTREA
     mixing_info(data->segments[data->current_segment], NULL, &current_channels);
     int samples_this_block = vgmstream_get_samples(data->segments[data->current_segment]);
 
-    int samples_written = 0;
-    while (samples_written < sample_count) {
+    int samples_filled = 0;
+    while (samples_filled < sample_count) {
         int samples_to_do;
+        sample_t* buf;
 
         if (vgmstream->loop_flag && decode_do_loop(vgmstream)) {
             /* handle looping (loop_layout has been called below, changes segments/state) */
@@ -62,8 +63,8 @@ void render_vgmstream_segmented(sample_t* outbuf, int32_t sample_count, VGMSTREA
 
 
         samples_to_do = decode_get_samples_to_do(samples_this_block, sample_count, vgmstream);
-        if (samples_to_do > sample_count - samples_written)
-            samples_to_do = sample_count - samples_written;
+        if (samples_to_do > sample_count - samples_filled)
+            samples_to_do = sample_count - samples_filled;
         if (samples_to_do > VGMSTREAM_SEGMENT_SAMPLE_BUFFER /*&& use_internal_buffer*/) /* always for fade/etc mixes */
             samples_to_do = VGMSTREAM_SEGMENT_SAMPLE_BUFFER;
 
@@ -72,21 +73,21 @@ void render_vgmstream_segmented(sample_t* outbuf, int32_t sample_count, VGMSTREA
             goto decode_fail;
         }
 
-        sample_t* buf = use_internal_buffer ? data->buffer : &outbuf[samples_written * data->output_channels];
+        buf = use_internal_buffer ? data->buffer : &outbuf[samples_filled * data->output_channels];
         render_vgmstream(buf, samples_to_do, data->segments[data->current_segment]);
 
         if (use_internal_buffer) {
-            sbuf_copy_samples(outbuf, data->output_channels, data->buffer, current_channels, samples_to_do, samples_written);
+            sbuf_copy_samples(outbuf, data->output_channels, data->buffer, current_channels, samples_to_do, samples_filled);
         }
 
-        samples_written += samples_to_do;
+        samples_filled += samples_to_do;
         vgmstream->current_sample += samples_to_do;
         vgmstream->samples_into_block += samples_to_do;
     }
 
     return;
 decode_fail:
-    sbuf_silence(outbuf, sample_count, data->output_channels, samples_written);
+    sbuf_silence(outbuf, sample_count, data->output_channels, samples_filled);
 }
 
 
