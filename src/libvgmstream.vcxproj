@@ -231,6 +231,7 @@
     <ClCompile Include="base\play_state.c" />
     <ClCompile Include="base\plugins.c" />
     <ClCompile Include="base\render.c" />
+    <ClCompile Include="base\sbuf.c" />
     <ClCompile Include="base\seek.c" />
     <ClCompile Include="base\streamfile_api.c" />
     <ClCompile Include="base\streamfile_buffer.c" />
