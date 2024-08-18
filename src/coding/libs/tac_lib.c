@@ -1140,7 +1140,7 @@ tac_handle_t* tac_init(const uint8_t* buf, int buf_size) {
     if (buf_size < TAC_BLOCK_SIZE)
         goto fail;
 
-    handle = malloc(sizeof(tac_handle_t));
+    handle = calloc(1, sizeof(tac_handle_t));
     if (!handle) goto fail;
 
     {

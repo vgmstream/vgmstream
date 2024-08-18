@@ -3,59 +3,60 @@
 
 
 /* BCSTM - Nintendo 3DS format */
-VGMSTREAM * init_vgmstream_bcstm(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
+VGMSTREAM* init_vgmstream_bcstm(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
     off_t start_offset;
     off_t info_offset = 0, seek_offset = 0, data_offset = 0;
-    int channel_count, loop_flag, codec;
-    int is_camelot_ima = 0;
+    int channels, loop_flag, codec;
+    bool is_camelot_ima = false;
 
 
     /* checks */
-    if ( !check_extensions(streamFile,"bcstm") )
-        goto fail;
+    if (!is_id32be(0x00, sf, "CSTM"))
+        return NULL;
+    if (!check_extensions(sf,"bcstm"))
+        return NULL;
 
-    /* CSTM header */
-    if (read_32bitBE(0x00, streamFile) != 0x4353544D) /* "CSTM" */
-        goto fail;
-    /* 0x06(2): header size (0x40), 0x08: version (0x00000400), 0x0c: file size (not accurate for Camelot IMA) */
+    // 04: BOM
+    // 06: header size (0x40)
+    // 08: version (0x00000400)
+    // 0c: file size (not accurate for Camelot IMA)
 
-    /* check BOM */
-    if ((uint16_t)read_16bitLE(0x04, streamFile) != 0xFEFF)
-        goto fail;
+    if (read_u16le(0x04, sf) != 0xFEFF)
+        return NULL;
 
-    /* get sections (should always appear in the same order) */
-    {
-        int i;
-        int section_count = read_16bitLE(0x10, streamFile);
-        for (i = 0; i < section_count; i++) {
-            /* 0x00: id, 0x02(2): padding, 0x04(4): offset, 0x08(4): size */
-            uint16_t section_id = read_16bitLE(0x14 + i*0x0c+0x00, streamFile);
-            switch(section_id) {
-                case 0x4000: info_offset = read_32bitLE(0x14 + i*0x0c+0x04, streamFile); break;
-                case 0x4001: seek_offset = read_32bitLE(0x14 + i*0x0c+0x04, streamFile); break;
-                case 0x4002: data_offset = read_32bitLE(0x14 + i*0x0c+0x04, streamFile); break;
-              //case 0x4003: /* off_t regn_offset = read_32bitLE(0x18 + i * 0xc, streamFile); */ /* ? */
-              //case 0x4004: /* off_t pdat_offset = read_32bitLE(0x18 + i * 0xc, streamFile); */ /* ? */
-                default:
-                    break;
-            }
+    /* get sections (should always appear in the same order though) */
+    int section_count = read_u16le(0x10, sf);
+    for (int i = 0; i < section_count; i++) {
+        // 00: id
+        // 02 padding
+        // 04: offset
+        // 08: size
+        uint16_t section_id = read_u16le(0x14 + i * 0x0c + 0x00, sf);
+        switch(section_id) {
+            case 0x4000: info_offset = read_u32le(0x14 + i * 0x0c + 0x04, sf); break;
+            case 0x4001: seek_offset = read_u32le(0x14 + i * 0x0c + 0x04, sf); break;
+            case 0x4002: data_offset = read_u32le(0x14 + i * 0x0c + 0x04, sf); break;
+            //case 0x4003: regn_offset = read_u32le(0x18 + i * 0x0c + 0x04, sf); break; // ?
+            //case 0x4004: pdat_offset = read_u32le(0x18 + i * 0x0c + 0x04, sf); break; // ?
+            default:
+                break;
         }
     }
 
     /* INFO section */
-    if (read_32bitBE(info_offset, streamFile) != 0x494E464F) /* "INFO" */
-        goto fail;
-    codec = read_8bit(info_offset + 0x20, streamFile);
-    loop_flag = read_8bit(info_offset + 0x21, streamFile);
-    channel_count = read_8bit(info_offset + 0x22, streamFile);
+    if (!is_id32be(info_offset, sf, "INFO"))
+        return NULL;
+    codec = read_u8(info_offset + 0x20, sf);
+    loop_flag = read_8bit(info_offset + 0x21, sf);
+    channels = read_8bit(info_offset + 0x22, sf);
 
 
     /* Camelot games have some weird codec hijack [Mario Tennis Open (3DS), Mario Golf: World Tour (3DS)] */
-    if (codec == 0x02 && read_32bitBE(seek_offset, streamFile) != 0x5345454B) { /* "SEEK" */
+    if (codec == 0x02 && !is_id32be(seek_offset, sf, "SEEK")) {
         if (seek_offset == 0) goto fail;
         start_offset = seek_offset;
-        is_camelot_ima = 1;
+        is_camelot_ima = true;
     }
     else {
         if (data_offset == 0) goto fail;
@@ -64,33 +65,24 @@ VGMSTREAM * init_vgmstream_bcstm(STREAMFILE *streamFile) {
 
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count, loop_flag);
+    vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->sample_rate = read_32bitLE(info_offset + 0x24, streamFile);
-    vgmstream->num_samples = read_32bitLE(info_offset + 0x2c, streamFile);
-    vgmstream->loop_start_sample = read_32bitLE(info_offset + 0x28, streamFile);
+    vgmstream->sample_rate = read_s32le(info_offset + 0x24, sf);
+    vgmstream->num_samples = read_s32le(info_offset + 0x2c, sf);
+    vgmstream->loop_start_sample = read_s32le(info_offset + 0x28, sf);
     vgmstream->loop_end_sample = vgmstream->num_samples;
 
     vgmstream->meta_type = meta_CSTM;
-    vgmstream->layout_type = (channel_count == 1) ? layout_none : layout_interleave;
-    vgmstream->interleave_block_size = read_32bitLE(info_offset + 0x34, streamFile);
-    vgmstream->interleave_last_block_size = read_32bitLE(info_offset + 0x44, streamFile);
+    vgmstream->layout_type = (channels == 1) ? layout_none : layout_interleave;
+    vgmstream->interleave_block_size = read_u32le(info_offset + 0x34, sf);
+    vgmstream->interleave_last_block_size = read_u32le(info_offset + 0x44, sf);
 
     /* Camelot doesn't follow header values */
     if (is_camelot_ima) {
-        size_t block_samples, last_samples;
-        size_t data_size = get_streamfile_size(streamFile) - start_offset;
+        size_t data_size = get_streamfile_size(sf) - start_offset;
         vgmstream->interleave_block_size = 0x200;
-        vgmstream->interleave_last_block_size = (data_size % (vgmstream->interleave_block_size*channel_count)) / channel_count;
-
-        /* align the loop points back to avoid pops in some IMA streams, seems to help some Mario Golf songs but not all */
-        block_samples = ima_bytes_to_samples(vgmstream->interleave_block_size*channel_count,channel_count); // 5000?
-        last_samples  = ima_bytes_to_samples(vgmstream->interleave_last_block_size*channel_count,channel_count);
-        if (vgmstream->loop_start_sample > block_samples) {
-            vgmstream->loop_start_sample -= last_samples;
-            vgmstream->loop_end_sample -= last_samples;
-        }
+        vgmstream->interleave_last_block_size = (data_size % (vgmstream->interleave_block_size * channels)) / channels;
     }
 
     switch(codec) {
@@ -107,16 +99,15 @@ VGMSTREAM * init_vgmstream_bcstm(STREAMFILE *streamFile) {
                 vgmstream->coding_type = coding_NW_IMA;
             }
             else {
-                int i, c;
                 off_t channel_indexes, channel_info_offset, coefs_offset;
 
-                channel_indexes = info_offset+0x08 + read_32bitLE(info_offset + 0x1C, streamFile);
-                for (i = 0; i < vgmstream->channels; i++) {
-                    channel_info_offset = channel_indexes + read_32bitLE(channel_indexes+0x04+(i*0x08)+0x04, streamFile);
-                    coefs_offset = channel_info_offset + read_32bitLE(channel_info_offset+0x04, streamFile);
+                channel_indexes = info_offset+0x08 + read_u32le(info_offset + 0x1C, sf);
+                for (int i = 0; i < vgmstream->channels; i++) {
+                    channel_info_offset = channel_indexes + read_u32le(channel_indexes + 0x04 + (i * 0x08) + 0x04, sf);
+                    coefs_offset = channel_info_offset + read_u32le(channel_info_offset + 0x04, sf);
 
-                    for (c = 0; c < 16; c++) {
-                        vgmstream->ch[i].adpcm_coef[c] = read_16bitLE(coefs_offset + c*2, streamFile);
+                    for (int c = 0; c < 16; c++) {
+                        vgmstream->ch[i].adpcm_coef[c] = read_s16le(coefs_offset + c * 0x02, sf);
                     }
                 }
             }
@@ -126,7 +117,7 @@ VGMSTREAM * init_vgmstream_bcstm(STREAMFILE *streamFile) {
             goto fail;
     }
 
-    if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
+    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
         goto fail;
     return vgmstream;
 

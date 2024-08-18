@@ -208,7 +208,7 @@ typedef enum {
     layout_blocked_ws_aud,
     layout_blocked_dec,
     layout_blocked_xvas,
-    layout_blocked_vs,
+    layout_blocked_vs_mh,
     layout_blocked_mul,
     layout_blocked_gsb,
     layout_blocked_thp,
@@ -333,7 +333,6 @@ typedef enum {
     meta_FSB5,              /* FMOD Sample Bank, version 5 */
     meta_RWAX,
     meta_XWB,               /* Microsoft XACT framework (Xbox, X360, Windows) */
-    meta_PS2_XA30,          /* Driver - Parallel Lines (PS2) */
     meta_MUSC,              /* Krome PS2 games */
     meta_MUSX,
     meta_FILP,              /* Resident Evil - Dead Aim */
@@ -428,7 +427,7 @@ typedef enum {
     meta_ACM,               /* InterPlay ACM header */
     meta_MUS_ACM,           /* MUS playlist of InterPlay ACM files */
     meta_DEC,               /* Falcom PC games (Xanadu Next, Gurumin) */
-    meta_VS,                /* Men in Black .vs */
+    meta_VS_MH,
     meta_BGW,
     meta_SPW,
     meta_STS,

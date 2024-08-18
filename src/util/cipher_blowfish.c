@@ -244,7 +244,7 @@ blowfish_ctx* blowfish_init_ecb(uint8_t* key, int32_t key_len) {
     uint32_t xl, xr;
     uint8_t tmpkey[18*4];
 
-    blowfish_ctx* ctx = malloc(sizeof(blowfish_ctx));
+    blowfish_ctx* ctx = calloc(1, sizeof(blowfish_ctx));
     if (!ctx) return NULL;
 
     

@@ -219,7 +219,6 @@
     <ClCompile Include="base\api_helpers.c" />
     <ClCompile Include="base\api_libsf.c" />
     <ClCompile Include="base\api_tags.c" />
-    <ClCompile Include="base\config.c" />
     <ClCompile Include="base\decode.c" />
     <ClCompile Include="base\info.c" />
     <ClCompile Include="base\mixer.c" />
@@ -228,8 +227,11 @@
     <ClCompile Include="base\mixing.c" />
     <ClCompile Include="base\mixing_commands.c" />
     <ClCompile Include="base\mixing_macros.c" />
+    <ClCompile Include="base\play_config.c" />
+    <ClCompile Include="base\play_state.c" />
     <ClCompile Include="base\plugins.c" />
     <ClCompile Include="base\render.c" />
+    <ClCompile Include="base\sbuf.c" />
     <ClCompile Include="base\seek.c" />
     <ClCompile Include="base\streamfile_api.c" />
     <ClCompile Include="base\streamfile_buffer.c" />
@@ -630,7 +632,6 @@
     <ClCompile Include="meta\ps2_vgv.c" />
     <ClCompile Include="meta\ps2_vms.c" />
     <ClCompile Include="meta\ps2_wmus.c" />
-    <ClCompile Include="meta\ps2_xa30.c" />
     <ClCompile Include="meta\psb.c" />
     <ClCompile Include="meta\psf.c" />
     <ClCompile Include="meta\psnd.c" />

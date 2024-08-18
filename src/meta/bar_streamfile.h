@@ -60,7 +60,7 @@ static void close_bar(BARSTREAMFILE *streamFile) {
 
 
 /*static*/ STREAMFILE *wrap_bar_STREAMFILE(STREAMFILE *file) {
-    BARSTREAMFILE *streamfile = malloc(sizeof(BARSTREAMFILE));
+    BARSTREAMFILE *streamfile = calloc(1, sizeof(BARSTREAMFILE));
 
     if (!streamfile)
         return NULL;

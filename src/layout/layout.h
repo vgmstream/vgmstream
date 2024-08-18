@@ -11,6 +11,7 @@ void render_vgmstream_flat(sample_t* buffer, int32_t sample_count, VGMSTREAM* vg
 
 void render_vgmstream_interleave(sample_t* buffer, int32_t sample_count, VGMSTREAM* vgmstream);
 
+
 /* segmented layout */
 /* for files made of "continuous" segments, one per section of a song (using a complete sub-VGMSTREAM) */
 typedef struct {
@@ -25,11 +26,12 @@ typedef struct {
 
 void render_vgmstream_segmented(sample_t* buffer, int32_t sample_count, VGMSTREAM* vgmstream);
 segmented_layout_data* init_layout_segmented(int segment_count);
-int setup_layout_segmented(segmented_layout_data* data);
+bool setup_layout_segmented(segmented_layout_data* data);
 void free_layout_segmented(segmented_layout_data* data);
 void reset_layout_segmented(segmented_layout_data* data);
 void seek_layout_segmented(VGMSTREAM* vgmstream, int32_t seek_sample);
 void loop_layout_segmented(VGMSTREAM* vgmstream, int32_t loop_sample);
+
 
 /* layered layout */
 /* for files made of "parallel" layers, one per group of channels (using a complete sub-VGMSTREAM) */
@@ -45,16 +47,16 @@ typedef struct {
 
 void render_vgmstream_layered(sample_t* buffer, int32_t sample_count, VGMSTREAM* vgmstream);
 layered_layout_data* init_layout_layered(int layer_count);
-int setup_layout_layered(layered_layout_data* data);
+bool setup_layout_layered(layered_layout_data* data);
 void free_layout_layered(layered_layout_data* data);
 void reset_layout_layered(layered_layout_data* data);
 void seek_layout_layered(VGMSTREAM* vgmstream, int32_t seek_sample);
 void loop_layout_layered(VGMSTREAM* vgmstream, int32_t loop_sample);
 
+
 /* blocked layouts */
 void render_vgmstream_blocked(sample_t* buffer, int32_t sample_count, VGMSTREAM* vgmstream);
 void block_update(off_t block_offset, VGMSTREAM* vgmstream);
-void blocked_count_samples(VGMSTREAM* vgmstream, STREAMFILE* sf, off_t offset);
 
 void block_update_ast(off_t block_ofset, VGMSTREAM* vgmstream);
 void block_update_mxch(off_t block_ofset, VGMSTREAM* vgmstream);
@@ -67,7 +69,7 @@ void block_update_wsi(off_t block_offset, VGMSTREAM* vgmstream);
 void block_update_str_snds(off_t block_offset, VGMSTREAM* vgmstream);
 void block_update_ws_aud(off_t block_offset, VGMSTREAM* vgmstream);
 void block_update_dec(off_t block_offset, VGMSTREAM* vgmstream);
-void block_update_vs(off_t block_offset, VGMSTREAM* vgmstream);
+void block_update_vs_mh(off_t block_offset, VGMSTREAM* vgmstream);
 void block_update_mul(off_t block_offset, VGMSTREAM* vgmstream);
 void block_update_gsb(off_t block_offset, VGMSTREAM* vgmstream);
 void block_update_xvas(off_t block_offset, VGMSTREAM* vgmstream);

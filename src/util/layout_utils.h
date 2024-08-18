@@ -22,4 +22,11 @@ bool layered_add_done(VGMSTREAM* vs);
 
 VGMSTREAM* allocate_layered_vgmstream(layered_layout_data* data);
 VGMSTREAM* allocate_segmented_vgmstream(segmented_layout_data* data, int loop_flag, int loop_start_segment, int loop_end_segment);
+
+
+typedef struct {
+    off_t offset;
+} blocked_counter_t;
+
+void blocked_count_samples(VGMSTREAM* vgmstream, STREAMFILE* sf, blocked_counter_t* cfg);
 #endif

@@ -60,29 +60,29 @@ static void ini_get_filename(In_Module* input_module, TCHAR *inifile) {
     if (IsWindow(input_module->hMainWindow) && SendMessage(input_module->hMainWindow, WM_WA_IPC,0,IPC_GETVERSION) >= 0x5000) {
         /* newer Winamp with per-user settings */
         TCHAR *ini_dir = (TCHAR *)SendMessage(input_module->hMainWindow, WM_WA_IPC, 0, IPC_GETINIDIRECTORY);
-        cfg_strncpy(inifile, ini_dir, PATH_LIMIT);
+        cfg_strncpy(inifile, ini_dir, WINAMP_PATH_LIMIT);
 
-        cfg_strncat(inifile, TEXT("\\Plugins\\"), PATH_LIMIT);
+        cfg_strncat(inifile, TEXT("\\Plugins\\"), WINAMP_PATH_LIMIT);
 
         /* can't be certain that \Plugins already exists in the user dir */
         CreateDirectory(inifile,NULL);
 
-        cfg_strncat(inifile, CONFIG_INI_NAME, PATH_LIMIT);
+        cfg_strncat(inifile, CONFIG_INI_NAME, WINAMP_PATH_LIMIT);
     }
     else {
         /* older winamp with single settings */
         TCHAR *lastSlash;
 
-        GetModuleFileName(NULL, inifile, PATH_LIMIT);
+        GetModuleFileName(NULL, inifile, WINAMP_PATH_LIMIT);
         lastSlash = cfg_strrchr(inifile, TEXT('\\'));
 
         *(lastSlash + 1) = 0;
 
         /* XMPlay doesn't have a "plugins" subfolder */
         if (settings.is_xmplay)
-            cfg_strncat(inifile, CONFIG_INI_NAME,PATH_LIMIT);
+            cfg_strncat(inifile, CONFIG_INI_NAME, WINAMP_PATH_LIMIT);
         else
-            cfg_strncat(inifile, TEXT("Plugins\\") CONFIG_INI_NAME,PATH_LIMIT);
+            cfg_strncat(inifile, TEXT("Plugins\\") CONFIG_INI_NAME, WINAMP_PATH_LIMIT);
         /* Maybe should query IPC_GETINIDIRECTORY and use that, not sure what ancient Winamps need.
          * There must be some proper way to handle dirs since other Winamp plugins save config in 
          * XMPlay correctly (this feels like archaeology, try later) */
@@ -144,7 +144,7 @@ static void ini_set_b(const char *inifile, const char *entry, int val) {
 }
 
 /*static*/ void load_config(In_Module* input_module, winamp_settings_t* settings, winamp_settings_t* defaults) {
-    TCHAR inifile[PATH_LIMIT];
+    TCHAR inifile[WINAMP_PATH_LIMIT];
 
     ini_get_filename(input_module, inifile);
 
@@ -176,7 +176,7 @@ static void ini_set_b(const char *inifile, const char *entry, int val) {
 }
 
 static void save_config(In_Module* input_module, winamp_settings_t* settings) {
-    TCHAR inifile[PATH_LIMIT];
+    TCHAR inifile[WINAMP_PATH_LIMIT];
 
     ini_get_filename(input_module, inifile);
 

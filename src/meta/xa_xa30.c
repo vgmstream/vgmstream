@@ -1,62 +1,99 @@
 #include "meta.h"
 #include "../coding/coding.h"
 
-/* XA30 - found in Reflections games [Driver: Parallel Lines (PC), Driver 3 (PC)] */
-VGMSTREAM * init_vgmstream_xa_xa30(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
+/* XA30 - from Reflections games [Driver: Parallel Lines (PC/PS2), Driver 3 (PC)] */
+VGMSTREAM* init_vgmstream_xa_xa30(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
+
+    /* checks */
+    if (!is_id32be(0x00,sf, "XA30") &&  /* [Driver: Parallel Lines (PC/PS2)] */
+        !is_id32be(0x00,sf, "e4x\x92")) /* [Driver 3 (PC)] */
+        return NULL;
+
+    /* .XA: actual extension
+     * .xa30/e4x: header ID */
+    if (!check_extensions(sf,"xa,xa30,e4x"))
+        return NULL;
+
+
     off_t start_offset;
-    int loop_flag, channel_count, codec, interleave_block_size;
-    size_t stream_size;
-    int total_subsongs, target_subsong = streamFile->stream_index;
+    int loop_flag, channels, interleave, sample_rate;
+    uint32_t codec, stream_size, file_size;
+    int total_subsongs, target_subsong = sf->stream_index;
 
+    if (read_u32le(0x04,sf) > 2) {
+        /* PS2 */
+        sample_rate = read_s32le(0x04,sf);
+        interleave = read_u16le(0x08, sf); // assumed, always 0x8000
+        channels = read_u16le(0x0a, sf); // assumed, always 1
+        start_offset = read_u32le(0x0C,sf);
+        // 10: some samples value? (smaller than real samples)
+        stream_size = read_u32le(0x14,sf); // always off by 0x800
+        // 18: fixed values
+        // 1c: null
+        // rest of the header: garbage/repeated values or config (includes stream name)
 
-    /* check extension, case insensitive */
-    /* ".xa30/e4x" is just the ID, the real filename should be .XA */
-    if (!check_extensions(streamFile,"xa,xa30,e4x"))
-        goto fail;
+        if (channels != 1)
+            return NULL;
 
-    /* check header */
-    if (read_32bitBE(0x00,streamFile) != 0x58413330 &&   /* "XA30" [Driver: Parallel Lines (PC)]*/
-        read_32bitBE(0x00,streamFile) != 0x65347892)     /* "e4x\92" [Driver 3 (PC)]*/
-        goto fail;
-    if (read_32bitLE(0x04,streamFile) != 2) /* channels?, also extra check to avoid PS2/PC XA30 mixup */
-        goto fail;
+        codec = 0xFF; //fake codec to simplify
+        total_subsongs = 0;
 
-    total_subsongs = read_32bitLE(0x14,streamFile) != 0 ? 2 : 1; /* second stream offset (only in Driver 3) */
-    if (target_subsong == 0) target_subsong = 1;
-    if (target_subsong < 0 || target_subsong > total_subsongs || total_subsongs < 1) goto fail;
+        file_size = get_streamfile_size(sf);
+        if (stream_size - 0x0800 != file_size)
+            return NULL;
+        stream_size = file_size - start_offset;
+    }
+    else {
+        /* PC */
+        total_subsongs = read_u32le(0x14,sf) != 0 ? 2 : 1; /* second stream offset (only in Driver 3) */
+        if (target_subsong == 0) target_subsong = 1;
+        if (target_subsong < 0 || target_subsong > total_subsongs || total_subsongs < 1) goto fail;
+
+        channels = read_s32le(0x04,sf); // assumed, always 2
+        sample_rate = read_s32le(0x08,sf);
+        codec = read_u32le(0x0c,sf);
+        start_offset = read_u32le(0x10 + 0x04 * (target_subsong - 1),sf);
+        stream_size  = read_u32le(0x18 + 0x04 * (target_subsong - 1),sf);
+        //20: fixed: IMA=00016000, PCM=00056000
+        interleave = read_u32le(0x24, sf);
+        // rest of the header is null
+
+        if (channels != 2)
+            return NULL;
+    }
 
     loop_flag = 0;
-    channel_count = 2; /* 0x04: channels? (always 2 in practice) */
-    codec = read_32bitLE(0x0c,streamFile);
-    start_offset = read_32bitLE(0x10 + 0x04*(target_subsong-1),streamFile);
-    stream_size  = read_32bitLE(0x18 + 0x04*(target_subsong-1),streamFile);
-    interleave_block_size = read_32bitLE(0x24, streamFile);
-
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->sample_rate = read_32bitLE(0x08,streamFile);
-    /* 0x20: always IMA=00016000, PCM=00056000 PCM?, rest of the header is null */
+    vgmstream->meta_type = meta_XA_XA30;
+    vgmstream->sample_rate = sample_rate;
     vgmstream->num_streams = total_subsongs;
     vgmstream->stream_size = stream_size;
-    vgmstream->meta_type = meta_XA_XA30;
 
     switch(codec) {
-        case 0x00:   /* PCM (rare, seen in Driver 3) */
+        case 0x00:   /* Driver 3 (PC)-rare */
             vgmstream->coding_type = coding_PCM16LE;
             vgmstream->layout_type = layout_interleave;
-            vgmstream->interleave_block_size = interleave_block_size / 2;
-            vgmstream->num_samples = pcm_bytes_to_samples(stream_size, channel_count, 16);
+            vgmstream->interleave_block_size = interleave / 2;
+            vgmstream->num_samples = pcm16_bytes_to_samples(stream_size, channels);
             break;
 
-        case 0x01:   /* MS-IMA variation */
+        case 0x01:
             vgmstream->coding_type = coding_REF_IMA;
             vgmstream->layout_type = layout_none;
-            vgmstream->interleave_block_size = interleave_block_size;
-            vgmstream->num_samples = ms_ima_bytes_to_samples(stream_size, vgmstream->interleave_block_size, channel_count);
+            vgmstream->interleave_block_size = interleave;
+            vgmstream->num_samples = ms_ima_bytes_to_samples(stream_size, interleave, channels);
+            break;
+
+        case 0xFF:
+            vgmstream->coding_type = coding_PSX;
+            vgmstream->layout_type = layout_none;
+            vgmstream->interleave_block_size = interleave;
+            vgmstream->num_samples = ps_bytes_to_samples(stream_size, channels);
             break;
 
         default:
@@ -64,12 +101,9 @@ VGMSTREAM * init_vgmstream_xa_xa30(STREAMFILE *streamFile) {
     }
 
 
-    /* open the file for reading */
-    if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
+    if (!vgmstream_open_stream(vgmstream,sf,start_offset))
         goto fail;
-
     return vgmstream;
-
 fail:
     close_vgmstream(vgmstream);
     return NULL;

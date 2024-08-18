@@ -51,7 +51,7 @@ static void update_decoder_info(libvgmstream_priv_t* priv, int samples_done) {
     priv->dec.done = priv->decode_done;
 }
 
-LIBVGMSTREAM_API int libvgmstream_play(libvgmstream_t* lib) {
+LIBVGMSTREAM_API int libvgmstream_render(libvgmstream_t* lib) {
     if (!lib || !lib->priv)
         return LIBVGMSTREAM_ERROR_GENERIC;
 
@@ -85,7 +85,7 @@ LIBVGMSTREAM_API int libvgmstream_fill(libvgmstream_t* lib, void* buf, int buf_s
         return LIBVGMSTREAM_ERROR_GENERIC;
 
     if (priv->buf.consumed >= priv->buf.samples) {
-        int err = libvgmstream_play(lib);
+        int err = libvgmstream_render(lib);
         if (err < 0) return err;
     }
 

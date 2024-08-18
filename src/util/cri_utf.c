@@ -145,7 +145,7 @@ utf_context* utf_open(STREAMFILE* sf, uint32_t table_offset, int* p_rows, const 
 
         utf->table_name = utf->string_table + utf->name_offset;
 
-        utf->schema = malloc(utf->columns * sizeof(struct utf_column_t));
+        utf->schema = calloc(1, utf->columns * sizeof(struct utf_column_t));
         if (!utf->schema) goto fail;
 
         for (i = 0; i < utf->columns; i++) {

@@ -487,9 +487,6 @@
     <ClCompile Include="base\api_tags.c">
       <Filter>base\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="base\config.c">
-      <Filter>base\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="base\decode.c">
       <Filter>base\Source Files</Filter>
     </ClCompile>
@@ -514,10 +511,19 @@
     <ClCompile Include="base\mixing_macros.c">
       <Filter>base\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="base\play_config.c">
+      <Filter>base\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="base\play_state.c">
+      <Filter>base\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="base\plugins.c">
       <Filter>base\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="base\render.c">
+      <Filter>base\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="base\sbuf.c">
       <Filter>base\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="base\seek.c">
@@ -1718,9 +1724,6 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ps2_wmus.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="meta\ps2_xa30.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\psb.c">

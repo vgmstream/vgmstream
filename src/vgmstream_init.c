@@ -66,7 +66,6 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_fsb5,
     init_vgmstream_rwax,
     init_vgmstream_xwb,
-    init_vgmstream_ps2_xa30,
     init_vgmstream_musc,
     init_vgmstream_musx,
     init_vgmstream_filp,
@@ -90,7 +89,6 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_str_sega,
     init_vgmstream_str_sega_custom,
     init_vgmstream_dec,
-    init_vgmstream_vs,
     init_vgmstream_xmu,
     init_vgmstream_xvas,
     init_vgmstream_sat_sap,
@@ -527,6 +525,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_rage_aud,
     init_vgmstream_asd_naxat,
     init_vgmstream_pcm_kceje,
+    init_vgmstream_vs_mh,
     /* need companion files */
     init_vgmstream_pos,
     init_vgmstream_sli_loops,

@@ -115,7 +115,7 @@ void mixer_op_downmix(mixer_t* mixer, int32_t sample_count, mix_op_t* op) {
             sbuf_tmp[ch] = sbuf[ch]; /* copy untouched channels */
         }
 
-        for (int ch = op->ch_dst; ch < max_channels; ch++) {
+        for (int ch = op->ch_dst; ch < max_channels - 1; ch++) {
             sbuf_tmp[ch] = sbuf[ch + 1]; /* 'pull' dropped channels back */
         }
 

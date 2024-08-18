@@ -21,19 +21,19 @@ struct VGMSTREAM_TAGS {
     char targetpath[VGMSTREAM_TAGS_LINE_MAX];
 
     /* tag section for filename (see comments below) */
-    int section_found;
+    bool section_found;
     off_t section_start;
     off_t section_end;
     off_t offset;
 
     /* commands */
-    int autotrack_on;
-    int autotrack_written;
+    bool autotrack_on;
+    bool autotrack_written;
     int track_count;
-    int exact_match;
+    bool exact_match;
 
-    int autoalbum_on;
-    int autoalbum_written;
+    bool autoalbum_on;
+    bool autoalbum_written;
 };
 
 
@@ -50,7 +50,7 @@ static void tags_clean(VGMSTREAM_TAGS* tag) {
 }
 
 VGMSTREAM_TAGS* vgmstream_tags_init(const char* *tag_key, const char* *tag_val) {
-    VGMSTREAM_TAGS* tags = malloc(sizeof(VGMSTREAM_TAGS));
+    VGMSTREAM_TAGS* tags = calloc(1, sizeof(VGMSTREAM_TAGS));
     if (!tags) goto fail;
 
     *tag_key = tags->key;
@@ -102,7 +102,7 @@ int vgmstream_tags_next_tag(VGMSTREAM_TAGS* tags, STREAMFILE* tagfile) {
             if (tags->autotrack_on && !tags->autotrack_written) {
                 sprintf(tags->key, "%s", "TRACK");
                 sprintf(tags->val, "%i", tags->track_count);
-                tags->autotrack_written = 1;
+                tags->autotrack_written = true;
                 return 1;
             }
 
@@ -119,7 +119,7 @@ int vgmstream_tags_next_tag(VGMSTREAM_TAGS* tags, STREAMFILE* tagfile) {
 
                 sprintf(tags->key, "%s", "ALBUM");
                 sprintf(tags->val, "%s", path+1);
-                tags->autoalbum_written = 1;
+                tags->autoalbum_written = true;
                 return 1;
             }
 
@@ -150,13 +150,13 @@ int vgmstream_tags_next_tag(VGMSTREAM_TAGS* tags, STREAMFILE* tagfile) {
                 if (ok == 1 || ok == 2) {
                     int key_len = n2 - n1;
                     if (strncasecmp(tags->key, "AUTOTRACK", key_len) == 0) {
-                        tags->autotrack_on = 1;
+                        tags->autotrack_on = true;
                     }
                     else if (strncasecmp(tags->key, "AUTOALBUM", key_len) == 0) {
-                        tags->autoalbum_on = 1;
+                        tags->autoalbum_on = true;
                     }
                     else if (strncasecmp(tags->key, "EXACTMATCH", key_len) == 0) {
-                        tags->exact_match = 1;
+                        tags->exact_match = true;
                     }
 
                     continue; /* not an actual tag */
@@ -210,7 +210,7 @@ int vgmstream_tags_next_tag(VGMSTREAM_TAGS* tags, STREAMFILE* tagfile) {
                 if (filename_found) {
                     /* section ok, start would be set before this (or be 0) */
                     tags->section_end = tags->offset;
-                    tags->section_found = 1;
+                    tags->section_found = true;
                     tags->offset = tags->section_start;
                 }
                 else {

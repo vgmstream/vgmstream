@@ -7,17 +7,14 @@ VGMSTREAM* init_vgmstream_mpeg(STREAMFILE* sf) {
 #ifdef VGM_USE_MPEG
     VGMSTREAM* vgmstream = NULL;
     uint32_t start_offset;
-    int loop_flag = 0;
-    mpeg_frame_info info = {0};
-    uint32_t header_id;
 
 
     /* checks */
-    header_id = read_u32be(0x00, sf);
+    uint32_t header_id = read_u32be(0x00, sf);
     if ((header_id & 0xFFF00000) != 0xFFF00000 &&
         (header_id & 0xFFFFFF00) != get_id32be("ID3\0") &&
         (header_id & 0xFFFFFF00) != get_id32be("TAG\0"))
-        goto fail;
+        return NULL;
 
     /* detect base offset, since some tags with images are big
      * (init_mpeg only skips tags in a small-ish buffer) */
@@ -29,8 +26,9 @@ VGMSTREAM* init_vgmstream_mpeg(STREAMFILE* sf) {
         start_offset += tag_size;
     }
 
+    mpeg_frame_info info = {0};
     if (!mpeg_get_frame_info(sf, start_offset, &info))
-        goto fail;
+        return NULL;
 
     /*  .mp3/mp2: standard
      * .lmp3/lmp2: for plugins
@@ -38,11 +36,12 @@ VGMSTREAM* init_vgmstream_mpeg(STREAMFILE* sf) {
      * .imf: Colors (Gizmondo)
      * .aix: Classic Compendium 2 (Gizmondo)
      * .wav/lwav: The Seventh Seal (PC)
+     * .nfx: Grand Theft Auto III (Android)
      * (extensionless): Interstellar Flames 2 (Gizmondo) */
-    if (!check_extensions(sf, "mp3,mp2,lmp3,lmp2,mus,imf,aix,wav,lwav,"))
-        goto fail;
+    if (!check_extensions(sf, "mp3,mp2,lmp3,lmp2,mus,imf,aix,wav,lwav,nfx,"))
+        return NULL;
 
-    loop_flag = 0;
+    bool loop_flag = 0;
 
 
     /* build VGMSTREAM */

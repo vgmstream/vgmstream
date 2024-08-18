@@ -80,7 +80,7 @@ static int is_use_runlength(NWAData* nwa) {
 NWAData* nwalib_open(STREAMFILE* sf) {
     uint8_t header[0x2c] = {0};
     int i;
-    NWAData* const nwa = malloc(sizeof(NWAData));
+    NWAData* const nwa = calloc(1, sizeof(NWAData));
     if (!nwa) goto fail;
 
     //NWAData::ReadHeader
