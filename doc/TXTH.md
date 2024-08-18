@@ -94,7 +94,7 @@ as explained below, but often will use default values. Accepted codec strings:
 #   * Variation with modified encoding
 # - PCM8_SB        PCM 8-bit with sign bit
 #   * Variation with modified encoding
-#   * For few rare games [Sonic CD (SCD)]
+#   * For few rare games [Sonic CD (SCD), Road Avenger (SCD)]
 # - PCM24LE        PCM 24-bit little endian
 #   * For few rare games [100% Orange Juice (PC)-sfx]
 #   * Interleave is multiple of 0x3 (default)

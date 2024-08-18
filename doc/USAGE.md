@@ -216,14 +216,29 @@ WAV/MP3 conversions ahead of time.
 The tag syntax follows the conventions established in Apple's HTTP Live Streaming
 standard, whose docs discuss extending M3U with arbitrary tags.
 
+### Related projects
+We only manage the above components, but there are other projects using
+vgmstream that may useful for other cases. A few of them:
+- Web browser player: https://github.com/KatieFrogs/vgmstream-web
+- AIMP plugin: https://github.com/ArtemIzmaylov/aimp_vgmstream
+- DeaDBeeF plugin: https://github.com/jchv/deadbeef-vgmstream
+- Python bindings: https://github.com/hugeBlack/pyvgmstream
+- 3DS port: https://github.com/TricksterGuy/3ds-vgmstream
+- Reaper plugin: https://github.com/maxton/reaper_vgmstream
+- Simple GUI: https://github.com/BENICHN/VGMGUI
+
+They may not be up to date though, and since they aren't part of vgmstream
+issues should be directed to each project.
+
 
 ## Special cases
 vgmstream aims to support most audio formats as-is, but some files require extra
 handling.
 
 ### Subsongs
-Certain container formats have multiple audio files, usually called "subsongs", often
-not meant to be extracted (no simple separation from container).
+Certain container formats have multiple audio files, usually called "subsongs", 
+which usually are not meant to be extracted as single files (can't easily separate
+from their container).
 
 By default vgmstream plays first subsong and reports total subsongs, if the format
 is able to contain them. Easiest to use would be the *foobar/winamp/Audacious*
@@ -233,17 +248,17 @@ With CLI tools, you can select a subsong using the `-s` flag followed by a numbe
 for example: `vgmstream-cli -s 5 file.bank` or `vgmstream123 -s 5 file.bank`.
 
 Using *vgmstream-cli* you can convert multiple subsongs at once using the `-S` flag.
-**WARNING, MAY TAKE A LOT OF SPACE!** Some files have been observed to contain +20000
+**WARNING, MAY TAKE A LOT OF SPACE!** Some containers have been observed to contain +20000
 subsongs, so don't use this lightly. Remember to set an output name (`-o`) with subsong
-wildcards (or leave it alone for the defaults).
+wildcards (or leave it alone for good defaults).
 - `vgmstream-cli -s 1 -S 100 file.bank`: writes from subsong 1 to subsong 100
 - `vgmstream-cli -s 101 -S 0 file.bank`: writes from subsong 101 to max subsong (automatically changes 0 to max)
 - `vgmstream-cli -S 0 file.bank`: writes from subsong 1 to max subsong
 - `vgmstream-cli -s 1 -S 5 -o bgm.wav file.bank`: writes 5 subsongs, but all overwrite the same file = wrong.
 - `vgmstream-cli -s 1 -S 5 -o bgm_?02s.wav file.bank`: writes 5 subsongs, each named differently = correct.
 
-For other players without support, or to play only a few choice subsongs, you
-can create multiple `.txtp` (explained later) to select one, like `bgm.sxd#10.txtp`
+For players without subsong support, or to play only a few choice subsongs you can
+create multiple `.txtp` (explained later) to select one subsong, like `bgm.sxd#10.txtp`
 (plays subsong 10 in `bgm.sxd`).
 
 You can use this python script to autogenerate one `.txtp` per subsong:
@@ -693,16 +708,20 @@ order). The format is meant to be both a quick playlist and tags, but the tagfil
 itself just 'looks' like an M3U. you can load files manually or using other playlists
 and still get tags.
 
+Currently there is no way to simplify adding tags and you need to manually add them,
+but format is just a text file. You can use your player to save a playlist in `.m3u`
+format sinde the folder with your files, then edit it with any text editor.
+
 Format is:
 ```
-# ignored comment
+# comment (ignored)
 # $GLOBAL_COMMAND (extra features)
 # @GLOBAL_TAG text (applies all following tracks)
 
 # %LOCAL_TAG text (applies to next track only)
-filename1
+filename1.ext
 # %LOCAL_TAG text (applies to next track only)
-filename2
+filename2.ext
 ```
 Accepted tags depend on the player (foobar: any; Winamp: see ATF config, Audacious:
 few standard ones), typically *ALBUM/ARTIST/TITLE/DISC/TRACK/COMPOSER/etc*, lower
@@ -727,7 +746,7 @@ Example:
 # * Global tags apply to all songs, unless overwritten
 #   Better use ARTIST instead of ALBUMARTIST (more compatible)
 #   Tags usually go in CAPS for readability but no differences
-
+#
 # $AUTOTRACK
 # * This adds TRACK tags automatically from 1 to N
 
@@ -842,10 +861,11 @@ BGM01.adx #I 1.0 90.0 .txtp
 
 ### Issues
 If your player isn't picking tags make sure vgmstream is detecting the song
-(as other plugins can steal its extensions, see above), `.m3u` is properly
-named and that filenames inside match the song filename. For Winamp you need
-to make sure *options > titles > advanced title formatting* checkbox is set and
-the format defined.
+and "vgmstream version" or such text shows in the file properties (as other
+plugins can steal its extensions, see above), `.m3u` is properly named and
+that filenames inside match the song filename. For Winamp you need to make
+sure *options > titles > advanced title formatting* checkbox is set and the
+format defined.
 
 When tags change behavior varies depending on player:
 - *Winamp*: should refresh tags when a different file is played.
