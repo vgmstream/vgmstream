@@ -208,7 +208,7 @@ typedef enum {
     layout_blocked_ws_aud,
     layout_blocked_dec,
     layout_blocked_xvas,
-    layout_blocked_vs,
+    layout_blocked_vs_mh,
     layout_blocked_mul,
     layout_blocked_gsb,
     layout_blocked_thp,
@@ -427,7 +427,7 @@ typedef enum {
     meta_ACM,               /* InterPlay ACM header */
     meta_MUS_ACM,           /* MUS playlist of InterPlay ACM files */
     meta_DEC,               /* Falcom PC games (Xanadu Next, Gurumin) */
-    meta_VS,                /* Men in Black .vs */
+    meta_VS_MH,
     meta_BGW,
     meta_SPW,
     meta_STS,

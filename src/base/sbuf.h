@@ -36,7 +36,7 @@ void sbuf_copy_s16_to_f32(float* buf_f32, int16_t* buf_s16, int samples, int cha
 
 void sbuf_copy_f32_to_s16(int16_t* buf_s16, float* buf_f32, int samples, int channels);
 
-void sbuf_copy_samples(sample_t* dst, int dst_channels, sample_t* src, int src_channels, int samples_to_do, int samples_written);
+void sbuf_copy_samples(sample_t* dst, int dst_channels, sample_t* src, int src_channels, int samples_to_do, int samples_filled);
 
 void sbuf_copy_layers(sample_t* dst, int dst_channels, sample_t* src, int src_channels, int samples_to_do, int samples_filled, int dst_ch_start);
 

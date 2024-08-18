@@ -2,6 +2,7 @@
 #include "../coding/coding.h"
 #include "../layout/layout.h"
 #include "../util/endianness.h"
+#include "../util/layout_utils.h"
 
 
 /* VID1 - Factor 5/DivX format GC/Xbox games [Gun (GC), Tony Hawk's American Wasteland (GC), Enter The Matrix (Xbox)]*/
@@ -10,16 +11,16 @@ VGMSTREAM* init_vgmstream_vid1(STREAMFILE* sf) {
     uint32_t start_offset, header_offset;
     int loop_flag = 0, channels, sample_rate;
     uint32_t codec;
-    int big_endian;
+    bool big_endian;
     read_u32_t read_u32;
 
 
     /* checks */
     if (is_id32be(0x00, sf, "VID1")) { /* BE (GC) */
-        big_endian = 1;
+        big_endian = true;
     }
     else if (is_id32le(0x00,sf, "VID1")) { /* LE (Xbox) */
-        big_endian = 0;
+        big_endian = false;
     }
     else {
         return NULL;
@@ -110,24 +111,10 @@ VGMSTREAM* init_vgmstream_vid1(STREAMFILE* sf) {
 
     /* calc num_samples as playable data size varies between files/blocks */
     if (vgmstream->layout_type == layout_blocked_vid1) {
-        int block_samples;
+        blocked_counter_t cfg = {0};
+        cfg.offset = start_offset;
 
-        vgmstream->next_block_offset = start_offset;
-        do {
-            block_update(vgmstream->next_block_offset, vgmstream);
-            if (vgmstream->current_block_samples < 0)
-                break;
-
-            switch(vgmstream->coding_type) {
-                case coding_PCM16_int:  block_samples = pcm_bytes_to_samples(vgmstream->current_block_size, 1, 16); break;
-                case coding_XBOX_IMA:   block_samples = xbox_ima_bytes_to_samples(vgmstream->current_block_size, 1); break;
-                case coding_NGC_DSP:    block_samples = dsp_bytes_to_samples(vgmstream->current_block_size, 1); break;
-                default: goto fail;
-            }
-            vgmstream->num_samples += block_samples;
-        }
-        while (vgmstream->next_block_offset < get_streamfile_size(sf));
-        block_update(start_offset, vgmstream);
+        blocked_count_samples(vgmstream, sf, &cfg);
     }
 
     return vgmstream;

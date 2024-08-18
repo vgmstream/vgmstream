@@ -16,9 +16,12 @@ void render_vgmstream_blocked(sample_t* outbuf, int32_t sample_count, VGMSTREAM*
 
     if (vgmstream->current_block_samples) {
         samples_this_block = vgmstream->current_block_samples;
-    } else if (frame_size == 0) { /* assume 4 bit */
+    }
+    else if (frame_size == 0) {
+        //TO-DO: this case doesn't seem possible, codecs that return frame_size 0 (should) set current_block_samples
         samples_this_block = vgmstream->current_block_size * 2 * samples_per_frame;
-    } else {
+    }
+    else {
         samples_this_block = vgmstream->current_block_size / frame_size * samples_per_frame;
     }
 
@@ -74,9 +77,12 @@ void render_vgmstream_blocked(sample_t* outbuf, int32_t sample_count, VGMSTREAM*
             samples_per_frame = decode_get_samples_per_frame(vgmstream);
             if (vgmstream->current_block_samples) {
                 samples_this_block = vgmstream->current_block_samples;
-            } else if (frame_size == 0) { /* assume 4 bit */
+            }
+            else if (frame_size == 0) {
+                //TO-DO: this case doesn't seem possible, codecs that return frame_size 0 (should) set current_block_samples
                 samples_this_block = vgmstream->current_block_size * 2 * samples_per_frame;
-            } else {
+            }
+            else {
                 samples_this_block = vgmstream->current_block_size / frame_size * samples_per_frame;
             }
 
@@ -131,8 +137,8 @@ void block_update(off_t block_offset, VGMSTREAM* vgmstream) {
         case layout_blocked_gsb:
             block_update_gsb(block_offset,vgmstream);
             break;
-        case layout_blocked_vs:
-            block_update_vs(block_offset,vgmstream);
+        case layout_blocked_vs_mh:
+            block_update_vs_mh(block_offset,vgmstream);
             break;
         case layout_blocked_xvas:
             block_update_xvas(block_offset,vgmstream);
@@ -212,44 +218,4 @@ void block_update(off_t block_offset, VGMSTREAM* vgmstream) {
         default: /* not a blocked layout */
             break;
     }
-}
-
-void blocked_count_samples(VGMSTREAM* vgmstream, STREAMFILE* sf, off_t offset) {
-    if (vgmstream == NULL)
-        return;
-
-    int block_samples;
-    off_t max_offset = get_streamfile_size(sf);
-
-    vgmstream->next_block_offset = offset;
-    do {
-        block_update(vgmstream->next_block_offset, vgmstream);
-
-        if (vgmstream->current_block_samples < 0 || vgmstream->current_block_size == 0xFFFFFFFF)
-            break;
-
-        if (vgmstream->current_block_samples) {
-            block_samples = vgmstream->current_block_samples;
-        }
-        else {
-            switch(vgmstream->coding_type) {
-                case coding_PCM16LE:
-                case coding_PCM16_int:  block_samples = pcm16_bytes_to_samples(vgmstream->current_block_size, 1); break;
-                case coding_PCM8_int:
-                case coding_PCM8_U_int: block_samples = pcm8_bytes_to_samples(vgmstream->current_block_size, 1); break;
-                case coding_XBOX_IMA_mono:
-                case coding_XBOX_IMA:   block_samples = xbox_ima_bytes_to_samples(vgmstream->current_block_size, 1); break;
-                case coding_NGC_DSP:    block_samples = dsp_bytes_to_samples(vgmstream->current_block_size, 1); break;
-                case coding_PSX:        block_samples = ps_bytes_to_samples(vgmstream->current_block_size,1); break;
-                default:
-                    VGM_LOG("BLOCKED: missing codec\n");
-                    return;
-            }
-        }
-
-        vgmstream->num_samples += block_samples;
-    }
-    while (vgmstream->next_block_offset < max_offset);
-
-    block_update(offset, vgmstream); /* reset */
 }

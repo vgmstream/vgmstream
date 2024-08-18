@@ -4,6 +4,7 @@
 #include "decode.h"
 #include "mixing.h"
 #include "plugins.h"
+#include "sbuf.h"
 
 /* custom codec handling, not exactly "decode" stuff but here to simplify adding new codecs */
 
@@ -824,7 +825,7 @@ bool decode_uses_internal_offset_updates(VGMSTREAM* vgmstream) {
     return vgmstream->coding_type == coding_MS_IMA || vgmstream->coding_type == coding_MS_IMA_mono;
 }
 
-/* Decode samples into the buffer. Assume that we have written samples_written into the
+/* Decode samples into the buffer. Assume that we have written samples_filled into the
  * buffer already, and we have samples_to_do consecutive samples ahead of us (won't call
  * more than one frame if configured above to do so).
  * Called by layouts since they handle samples written/to_do */
@@ -832,10 +833,11 @@ void decode_vgmstream(VGMSTREAM* vgmstream, int samples_filled, int samples_to_d
     int ch;
 
     buffer += samples_filled * vgmstream->channels; /* passed externally to simplify I guess */
+    //samples_to_do -= samples_filled; /* pre-adjusted */
 
     switch (vgmstream->coding_type) {
         case coding_SILENCE:
-            memset(buffer, 0, samples_to_do * vgmstream->channels * sizeof(sample_t));
+            sbuf_silence(buffer, samples_to_do, vgmstream->channels, 0);
             break;
 
         case coding_CRI_ADX:

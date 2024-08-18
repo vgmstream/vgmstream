@@ -57,7 +57,6 @@ void loop_layout_layered(VGMSTREAM* vgmstream, int32_t loop_sample);
 /* blocked layouts */
 void render_vgmstream_blocked(sample_t* buffer, int32_t sample_count, VGMSTREAM* vgmstream);
 void block_update(off_t block_offset, VGMSTREAM* vgmstream);
-void blocked_count_samples(VGMSTREAM* vgmstream, STREAMFILE* sf, off_t offset);
 
 void block_update_ast(off_t block_ofset, VGMSTREAM* vgmstream);
 void block_update_mxch(off_t block_ofset, VGMSTREAM* vgmstream);
@@ -70,7 +69,7 @@ void block_update_wsi(off_t block_offset, VGMSTREAM* vgmstream);
 void block_update_str_snds(off_t block_offset, VGMSTREAM* vgmstream);
 void block_update_ws_aud(off_t block_offset, VGMSTREAM* vgmstream);
 void block_update_dec(off_t block_offset, VGMSTREAM* vgmstream);
-void block_update_vs(off_t block_offset, VGMSTREAM* vgmstream);
+void block_update_vs_mh(off_t block_offset, VGMSTREAM* vgmstream);
 void block_update_mul(off_t block_offset, VGMSTREAM* vgmstream);
 void block_update_gsb(off_t block_offset, VGMSTREAM* vgmstream);
 void block_update_xvas(off_t block_offset, VGMSTREAM* vgmstream);

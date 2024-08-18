@@ -293,3 +293,44 @@ fail:
     close_vgmstream(vgmstream);
     return NULL;
 }
+
+
+void blocked_count_samples(VGMSTREAM* vgmstream, STREAMFILE* sf, blocked_counter_t* cfg) {
+    if (vgmstream == NULL)
+        return;
+
+    int block_samples;
+    off_t max_offset = get_streamfile_size(sf);
+
+    vgmstream->next_block_offset = cfg->offset;
+    do {
+        block_update(vgmstream->next_block_offset, vgmstream);
+
+        if (vgmstream->current_block_samples < 0 || vgmstream->current_block_size == 0xFFFFFFFF)
+            break;
+
+        if (vgmstream->current_block_samples) {
+            block_samples = vgmstream->current_block_samples;
+        }
+        else {
+            switch(vgmstream->coding_type) {
+                case coding_PCM16LE:
+                case coding_PCM16_int:  block_samples = pcm16_bytes_to_samples(vgmstream->current_block_size, 1); break;
+                case coding_PCM8_int:
+                case coding_PCM8_U_int: block_samples = pcm8_bytes_to_samples(vgmstream->current_block_size, 1); break;
+                case coding_XBOX_IMA_mono:
+                case coding_XBOX_IMA:   block_samples = xbox_ima_bytes_to_samples(vgmstream->current_block_size, 1); break;
+                case coding_NGC_DSP:    block_samples = dsp_bytes_to_samples(vgmstream->current_block_size, 1); break;
+                case coding_PSX:        block_samples = ps_bytes_to_samples(vgmstream->current_block_size,1); break;
+                default:
+                    VGM_LOG("BLOCKED: missing codec\n");
+                    return;
+            }
+        }
+
+        vgmstream->num_samples += block_samples;
+    }
+    while (vgmstream->next_block_offset < max_offset);
+
+    block_update(cfg->offset, vgmstream); /* reset */
+}

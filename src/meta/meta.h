@@ -267,7 +267,7 @@ VGMSTREAM* init_vgmstream_str_sega_custom(STREAMFILE* sf);
 
 VGMSTREAM * init_vgmstream_dec(STREAMFILE *streamFile);
 
-VGMSTREAM * init_vgmstream_vs(STREAMFILE *streamFile);
+VGMSTREAM* init_vgmstream_vs_mh(STREAMFILE* sf);
 
 VGMSTREAM * init_vgmstream_xmu(STREAMFILE *streamFile);
 

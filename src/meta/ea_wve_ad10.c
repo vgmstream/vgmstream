@@ -2,45 +2,47 @@
 #include "../coding/coding.h"
 #include "../layout/layout.h"
 #include "../util/endianness.h"
+#include "../util/layout_utils.h"
+
 
 /* EA WVE (Ad10) - from early Electronic Arts movies [Wing Commander 3/4 (PS1), Madden NHL 97 (PC)-w95] */
 VGMSTREAM* init_vgmstream_ea_wve_ad10(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     off_t start_offset;
     int loop_flag, channels;
-    int big_endian, is_ps1;
 
 
     /* checks */
-    /* .wve: common
-     * .mov: Madden NHL 97 (also uses .wve) */
-    if (!check_extensions(sf, "wve,mov"))
-        goto fail;
-
-    start_offset = 0x00;
     if (!is_id32be(0x00, sf, "AABB") &&  /* video block */
         !is_id32be(0x00, sf, "Ad10") &&  /* audio block */
         !is_id32be(0x00, sf, "Ad11"))    /* last audio block, but could be first */
-        goto fail;
+        return NULL;
 
-    big_endian = guess_endian32(0x04, sf);
+    /* .wve: common
+     * .mov: Madden NHL 97 (also uses .wve) */
+    if (!check_extensions(sf, "wve,mov"))
+        return NULL;
 
-    if (is_id32be(0x00, sf, "AABB"))
+    bool big_endian = guess_endian32(0x04, sf);
+
+    start_offset = 0x00;
+    if (is_id32be(0x00, sf, "AABB")){
         start_offset += big_endian ?  read_u32be(0x04, sf) : read_u32le(0x04, sf);
+    }
 
-    loop_flag  = 0;
-
+    bool is_ps1;
     if (ps_check_format(sf, start_offset + 0x08, 0x40)) {
         /* no header = no channels, but seems if the first PS-ADPCM header is 00 then it's mono, somehow
         * (ex. Wing Commander 3 intro / Wing Commander 4 = stereo, rest of Wing Commander 3 = mono) */
         channels = read_u8(start_offset + 0x08,sf) != 0 ? 2 : 1;
-        is_ps1 = 1;
-        VGM_LOG("ps1");
+        is_ps1 = true;
     }
     else {
         channels = 1;
-        is_ps1 = 0;
+        is_ps1 = false;
     }
+
+    loop_flag = false;
 
 
     /* build the VGMSTREAM */
@@ -59,10 +61,14 @@ VGMSTREAM* init_vgmstream_ea_wve_ad10(STREAMFILE* sf) {
     if (!vgmstream_open_stream(vgmstream, sf, start_offset))
         goto fail;
 
-    blocked_count_samples(vgmstream, sf, start_offset);
+    {
+        blocked_counter_t cfg = {0};
+        cfg.offset = start_offset;
+
+        blocked_count_samples(vgmstream, sf, &cfg);
+    }
 
     return vgmstream;
-
 fail:
     close_vgmstream(vgmstream);
     return NULL;
