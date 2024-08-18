@@ -319,7 +319,7 @@ static int preload_acb_waveform(acb_header* acb) {
         return 1;
     //;VGM_LOG("acb: preload Waveform=%i\n", *p_rows);
 
-    acb->Waveform = malloc(*p_rows * sizeof(Waveform_t));
+    acb->Waveform = calloc(1, *p_rows * sizeof(Waveform_t));
     if (!acb->Waveform) goto fail;
 
     c_Id = utf_get_column(Table, "Id");
@@ -410,7 +410,7 @@ static int preload_acb_synth(acb_header* acb) {
         return 1;
     //;VGM_LOG("acb: preload Synth=%i\n", *p_rows);
 
-    acb->Synth = malloc(*p_rows * sizeof(Synth_t));
+    acb->Synth = calloc(1, *p_rows * sizeof(Synth_t));
     if (!acb->Synth) goto fail;
 
     c_Type = utf_get_column(Table, "Type");
@@ -613,7 +613,7 @@ static int preload_acb_trackcommand(acb_header* acb) {
         return 1;
     //;VGM_LOG("acb: preload TrackEvent/Command=%i\n", *p_rows);
 
-    acb->TrackCommand = malloc(*p_rows * sizeof(TrackCommand_t));
+    acb->TrackCommand = calloc(1, *p_rows * sizeof(TrackCommand_t));
     if (!acb->TrackCommand) goto fail;
 
     c_Command = utf_get_column(Table, "Command");
@@ -665,7 +665,7 @@ static int preload_acb_track(acb_header* acb) {
         return 1;
     //;VGM_LOG("acb: preload Track=%i\n", *p_rows);
 
-    acb->Track = malloc(*p_rows * sizeof(Track_t));
+    acb->Track = calloc(1, *p_rows * sizeof(Track_t));
     if (!acb->Track) goto fail;
 
     c_EventIndex = utf_get_column(Table, "EventIndex");
@@ -724,7 +724,7 @@ static int preload_acb_sequence(acb_header* acb) {
         return 1;
     //;VGM_LOG("acb: preload Sequence=%i\n", *p_rows);
 
-    acb->Sequence = malloc(*p_rows * sizeof(Sequence_t));
+    acb->Sequence = calloc(1, *p_rows * sizeof(Sequence_t));
     if (!acb->Sequence) goto fail;
 
     c_NumTracks = utf_get_column(Table, "NumTracks");
@@ -826,7 +826,7 @@ static int preload_acb_block(acb_header* acb) {
         return 1;
     //;VGM_LOG("acb: preload Block=%i\n", *p_rows);
 
-    acb->Block = malloc(*p_rows * sizeof(Block_t));
+    acb->Block = calloc(1, *p_rows * sizeof(Block_t));
     if (!acb->Block) goto fail;
 
     c_NumTracks = utf_get_column(Table, "NumTracks");
@@ -891,7 +891,7 @@ static int preload_acb_blocksequence(acb_header* acb) {
         return 1;
     //;VGM_LOG("acb: preload BlockSequence=%i\n", *p_rows);
 
-    acb->BlockSequence = malloc(*p_rows * sizeof(BlockSequence_t));
+    acb->BlockSequence = calloc(1, *p_rows * sizeof(BlockSequence_t));
     if (!acb->BlockSequence) goto fail;
 
     c_NumTracks = utf_get_column(Table, "NumTracks");
@@ -972,7 +972,7 @@ static int preload_acb_cue(acb_header* acb) {
         return 1;
     //;VGM_LOG("acb: preload Cue=%i\n", *p_rows);
 
-    acb->Cue = malloc(*p_rows * sizeof(Cue_t));
+    acb->Cue = calloc(1, *p_rows * sizeof(Cue_t));
     if (!acb->Cue) goto fail;
 
     c_ReferenceType = utf_get_column(Table, "ReferenceType");
@@ -1064,7 +1064,7 @@ static int preload_acb_cuename(acb_header* acb) {
         return 1;
     //;VGM_LOG("acb: preload CueName=%i\n", *p_rows);
 
-    acb->CueName = malloc(*p_rows * sizeof(CueName_t));
+    acb->CueName = calloc(1, *p_rows * sizeof(CueName_t));
     if (!acb->CueName) goto fail;
 
     c_CueIndex = utf_get_column(Table, "CueIndex");
@@ -1118,7 +1118,7 @@ static int preload_acb_waveformextensiondata(acb_header* acb) {
         return 1;
     //;VGM_LOG("acb: preload WaveformExtensionData=%i\n", *p_rows);
 
-    acb->WaveformExtensionData = malloc(*p_rows * sizeof(WaveformExtensionData_t));
+    acb->WaveformExtensionData = calloc(1, *p_rows * sizeof(WaveformExtensionData_t));
     if (!acb->WaveformExtensionData) goto fail;
 
     c_LoopStart = utf_get_column(Table, "LoopStart");

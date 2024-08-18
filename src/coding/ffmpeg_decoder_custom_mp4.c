@@ -489,7 +489,7 @@ static ffmpeg_codec_data* init_ffmpeg_mp4_custom(STREAMFILE* sf, mp4_custom_t* m
     if (buf_len > 0x100000) /* ??? */
         goto fail;
 
-    buf = malloc(buf_len);
+    buf = calloc(1, buf_len);
     if (!buf) goto fail;
     bytes = make_m4a_header(buf, buf_len, mp4, sf, type); /* before changing stream_offset/size */
 

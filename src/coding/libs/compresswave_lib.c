@@ -146,7 +146,7 @@ static void THuff_SetPositionData(THuff* self, THuffPositionData* s);
 //------------------------------------------------------------------------------
 //create
 static THuff* THuff_Create(TStream* buf) {
-    THuff* self = malloc(sizeof(THuff));
+    THuff* self = calloc(1, sizeof(THuff));
     if (!self) return NULL;
 
     //define stream
@@ -558,7 +558,7 @@ struct TCompressWaveData {
 //-----------------------------------------------------------
 //create
 TCompressWaveData* TCompressWaveData_Create(void) {
-    TCompressWaveData* self = malloc(sizeof(TCompressWaveData));
+    TCompressWaveData* self = calloc(1, sizeof(TCompressWaveData));
     if (!self) return NULL;
 #if 0
     self->Data = NULL;

@@ -320,7 +320,7 @@ circus_handle_t* circus_init(off_t start, uint8_t codec, uint8_t flags) {
     circus_handle_t* handle = NULL;
     int scale_index, err;
 
-    handle = malloc(sizeof(circus_handle_t));
+    handle = calloc(1, sizeof(circus_handle_t));
     if (!handle) goto fail;
 
     handle->start = start;
