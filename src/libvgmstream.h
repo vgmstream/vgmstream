@@ -1,30 +1,29 @@
-/* libvgmstream: vgmstream's public API */
-
 #ifndef _LIBVGMSTREAM_H_
 #define _LIBVGMSTREAM_H_
 
 //#define LIBVGMSTREAM_ENABLE 1
 #if LIBVGMSTREAM_ENABLE
 
-/* By default vgmstream behaves like a decoder (decode samples until stream end), but you can configure
+/* libvgmstream: vgmstream's public API
+ *
+ * Basic usage (also see api_example.c):
+ *   - libvgmstream_init(...)       // create context
+ *   - libvgmstream_setup(...)      // setup config (if needed)
+ *   - libvgmstream_open_song(...)  // open format
+ *   - libvgmstream_render(...)     // main decode
+ *   - output samples + repeat libvgmstream_render until stream is done
+ *   - libvgmstream_free(...)       // cleanup
+ *
+ * By default vgmstream behaves like a decoder (returns samples until stream end), but you can configure
  * it to loop N times or even downmix. In other words, it also behaves a bit like a player.
- * It exposes multiple convenience stuff mainly for various plugins that mostly repeat the same features.
- * All this may make the API still WIP and a bit twisted, probably will improve later. Probably.
- * 
+ * It exposes multiple convenience stuff mainly for various plugins with similar features.
+ * This may make the API a bit odd, will probably improve later. Probably.
+ *
  * Notes:
- * - now there is an API internals (vgmstream.h) may change in the future
- * - may dynamically allocate stuff as needed (mainly some buffers, but varies per format)
+ * - now there is an API, internals (vgmstream.h) may change in the future so avoid accesing them
  * - some details described in the API may not happen at the moment (defined for future changes)
  * - uses long-winded libvgmstream_* names since internals alredy use the vgmstream_* 'namespace', #define as needed
  * - c-strings should be in UTF-8
- *
- * Basic usage (also see api_example.c):
- *   - libvgmstream_init(...)       // base context
- *   - libvgmstream_setup(...)      // config if needed
- *   - libvgmstream_open_song(...)  // setup format
- *   - libvgmstream_play(...)       // main decode
- *   - output samples + repeat libvgmstream_play until stream is done
- *   - libvgmstream_free(...)       // cleanup
  */
 
 
@@ -108,7 +107,9 @@ typedef struct {
     int64_t stream_samples;                 // file's max samples (not final play duration)
     int64_t loop_start;                     // loop start sample
     int64_t loop_end;                       // loop end sample
-    bool loop_flag;                         // if file loops (false + defined loops means looping was forcefully disabled)
+    bool loop_flag;                         // if file loops
+                                            // ** false + defined loops means looping was forcefully disabled
+                                            // ** true + undefined loops means the file loops in a way not representable by loop points
 
     bool play_forever;                      // if file loops forever based on current config (meaning _play never stops)
     int64_t play_samples;                   // totals after all calculations (after applying loop/fade/etc config)
@@ -191,8 +192,8 @@ typedef struct {
 } libvgmstream_config_t;
 
 /* pass default config, that will be applied to song on open
- * - invalid config or complex cases (ex. some TXTP) may ignore these settings.
- * - called without a song loaded (before _open or after _close), otherwise ignored.
+ * - invalid config or complex cases (ex. some TXTP) may ignore these settings
+ * - should be called without a song loaded (before _open or after _close)
  * - without config vgmstream will decode the current stream once
  */
 LIBVGMSTREAM_API void libvgmstream_setup(libvgmstream_t* lib, libvgmstream_config_t* cfg);
@@ -227,7 +228,7 @@ LIBVGMSTREAM_API void libvgmstream_close_song(libvgmstream_t* lib);
  * - vgmstream supplies its own buffer, updated on lib->decoder->* values (may change between calls)
  * - returns < 0 on error
  */
-LIBVGMSTREAM_API int libvgmstream_play(libvgmstream_t* lib);
+LIBVGMSTREAM_API int libvgmstream_render(libvgmstream_t* lib);
 
 /* Same as _play, but fills some external buffer (also updates lib->decoder->* values)
  * - returns < 0 on error, or N = number of filled samples.
@@ -297,7 +298,7 @@ typedef struct {
 /* Returns if vgmstream can parse a filename by extension, to reject some files earlier
  * - doesn't check file contents (that's only done on _open)
  * - config may be NULL
- * - mainly for plugins that fail early; libvgmstream doesn't use this
+ * - mainly for plugins that want to fail early; libvgmstream doesn't use this
  */
 LIBVGMSTREAM_API bool libvgmstream_is_valid(const char* filename, libvgmstream_valid_t* cfg);
 
@@ -321,6 +322,9 @@ LIBVGMSTREAM_API int libvgmstream_get_title(libvgmstream_t* lib, libvgmstream_ti
  */
 LIBVGMSTREAM_API int libvgmstream_format_describe(libvgmstream_t* lib, char* dst, int dst_size);
 
+/* Return true if vgmstream detects from the filename that file can be used even if doesn't physically exist.
+ */
+LIBVGMSTREAM_API bool libvgmstream_is_virtual_filename(const char* filename);
 
 
 /*****************************************************************************/

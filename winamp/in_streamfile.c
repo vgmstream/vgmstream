@@ -61,14 +61,14 @@ static void wasf_get_name(WINAMP_STREAMFILE* sf, char* buffer, size_t length) {
 }
 
 static STREAMFILE* wasf_open(WINAMP_STREAMFILE* sf, const char* const filename, size_t buffersize) {
-    in_char wpath[PATH_LIMIT];
+    in_char wpath[WINAMP_PATH_LIMIT];
 
     if (!filename)
         return NULL;
 
     /* no need to wfdopen here, may use standard IO */
     /* STREAMFILEs carry char/UTF8 names, convert to wchar for Winamp */
-    wa_char_to_ichar(wpath, PATH_LIMIT, filename);
+    wa_char_to_ichar(wpath, WINAMP_PATH_LIMIT, filename);
     return open_winamp_streamfile_by_ipath(wpath);
 }
 
@@ -109,11 +109,11 @@ fail:
 STREAMFILE* open_winamp_streamfile_by_ipath(const in_char* wpath) {
     FILE* infile = NULL;
     STREAMFILE* sf;
-    char path[PATH_LIMIT];
+    char path[WINAMP_PATH_LIMIT];
 
 
     /* convert to UTF-8 if needed for internal use */
-    wa_ichar_to_char(path,PATH_LIMIT, wpath);
+    wa_ichar_to_char(path, WINAMP_PATH_LIMIT, wpath);
 
     /* open a FILE from a Winamp (possibly UTF-16) path */
     infile = wa_fopen(wpath);

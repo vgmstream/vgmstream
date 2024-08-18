@@ -89,9 +89,9 @@ bool split_subsongs(const in_char* filename, int subsong_index, VGMSTREAM* vgmst
     /* The only way to pass info around in Winamp is encoding it into the filename, so a fake name
      * is created with the index. Then, winamp_Play (and related) intercepts and reads the index. */
     for (i = 0; i < vgmstream->num_streams; i++) {
-        in_char stream_fn[PATH_LIMIT];
+        in_char stream_fn[WINAMP_PATH_LIMIT];
 
-        make_fn_subsong(stream_fn,PATH_LIMIT, filename, (i+1)); /* encode index in filename */
+        make_fn_subsong(stream_fn, WINAMP_PATH_LIMIT, filename, (i+1)); /* encode index in filename */
 
         /* insert at index */
         {

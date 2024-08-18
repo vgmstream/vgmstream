@@ -121,7 +121,7 @@ static int api_example(const char* infile) {
             buf_bytes = err * sizeof(short) * lib->format->channels;
         }
         else {
-            err = libvgmstream_play(lib);
+            err = libvgmstream_render(lib);
             if (err < 0) goto fail;
 
             buf = lib->decoder->buf;

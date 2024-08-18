@@ -88,4 +88,8 @@ LIBVGMSTREAM_API int libvgmstream_get_title(libvgmstream_t* lib, libvgmstream_ti
     return LIBVGMSTREAM_OK;
 }
 
+LIBVGMSTREAM_API bool libvgmstream_is_virtual_filename(const char* filename) {
+    return vgmstream_is_virtual_filename(filename);
+}
+
 #endif

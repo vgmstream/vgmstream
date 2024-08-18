@@ -33,6 +33,8 @@
 /* IN_CONFIG                             */
 /* ************************************* */
 
+#define WINAMP_PATH_LIMIT 4096
+
 extern In_Module input_module;
 extern const int priority_values[7];
 

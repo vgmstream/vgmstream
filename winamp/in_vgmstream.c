@@ -51,15 +51,15 @@ const char* tagfile_name = "!tags.m3u";
 HANDLE decode_thread_handle = INVALID_HANDLE_VALUE;
 
 VGMSTREAM* vgmstream = NULL;
-in_char lastfn[PATH_LIMIT] = {0}; /* name of the currently playing file */
+in_char lastfn[WINAMP_PATH_LIMIT] = {0}; /* name of the currently playing file */
 
 winamp_settings_t defaults;
 winamp_settings_t settings;
 winamp_state_t state;
-short sample_buffer[SAMPLE_BUFFER_SIZE*2 * VGMSTREAM_MAX_CHANNELS]; //todo maybe should be dynamic
+short sample_buffer[SAMPLE_BUFFER_SIZE * 2 * VGMSTREAM_MAX_CHANNELS]; //todo maybe should be dynamic
 
 /* info cache (optimization) */
-in_char info_fn[PATH_LIMIT] = {0};
+in_char info_fn[WINAMP_PATH_LIMIT] = {0};
 in_char info_title[GETFILEINFO_TITLE_LENGTH];
 int info_time;
 int info_valid;
@@ -116,11 +116,11 @@ static VGMSTREAM* init_vgmstream_winamp(const in_char* fn, int stream_index) {
 
 /* opens vgmstream with (possibly) an index */
 static VGMSTREAM* init_vgmstream_winamp_fileinfo(const in_char* fn) {
-    in_char filename[PATH_LIMIT];
+    in_char filename[WINAMP_PATH_LIMIT];
     int stream_index = 0;
 
     /* check for info encoded in the filename */
-    parse_fn_string(fn, NULL, filename,PATH_LIMIT);
+    parse_fn_string(fn, NULL, filename, WINAMP_PATH_LIMIT);
     parse_fn_int(fn, wa_L("$s"), &stream_index);
 
     return init_vgmstream_winamp(filename, stream_index);
@@ -141,14 +141,14 @@ static int is_xmplay() {
 
 /* unicode utils */
 static void get_title(in_char* dst, int dst_size, const in_char* fn, VGMSTREAM* infostream) {
-    in_char filename[PATH_LIMIT];
-    char buffer[PATH_LIMIT];
-    char filename_utf8[PATH_LIMIT];
+    in_char filename[WINAMP_PATH_LIMIT];
+    char buffer[WINAMP_PATH_LIMIT];
+    char filename_utf8[WINAMP_PATH_LIMIT];
 
-    parse_fn_string(fn, NULL, filename,PATH_LIMIT);
+    parse_fn_string(fn, NULL, filename,WINAMP_PATH_LIMIT);
     //parse_fn_int(fn, wa_L("$s"), &stream_index);
 
-    wa_ichar_to_char(filename_utf8, PATH_LIMIT, filename);
+    wa_ichar_to_char(filename_utf8, WINAMP_PATH_LIMIT, filename);
 
     /* infostream gets added at first with index 0, then once played it re-adds proper numbers */
     if (infostream) {
@@ -187,7 +187,7 @@ static double get_album_gain_volume(const in_char* fn) {
     if (settings.gain_type == REPLAYGAIN_NONE)
         return 1.0;
 
-    //;{ char f8[PATH_LIMIT]; wa_ichar_to_char(f8,PATH_LIMIT,(in_char*)fn); vgm_logi("get_album_gain_volume: file %s\n", f8); }
+    //;{ char f8[WINAMP_PATH_LIMIT]; wa_ichar_to_char(f8,WINAMP_PATH_LIMIT,(in_char*)fn); vgm_logi("get_album_gain_volume: file %s\n", f8); }
 
     replaygain[0] = '\0'; /* reset each time to make sure we read actual tags */
     if (settings.gain_type == REPLAYGAIN_ALBUM
@@ -281,7 +281,7 @@ void winamp_Quit() {
 int winamp_IsOurFile(const in_char *fn) {
     VGMSTREAM* infostream;
     vgmstream_ctx_valid_cfg cfg = {0};
-    char filename_utf8[PATH_LIMIT];
+    char filename_utf8[WINAMP_PATH_LIMIT];
     int valid;
 
     /* Winamp file opening 101:
@@ -315,7 +315,7 @@ int winamp_IsOurFile(const in_char *fn) {
     cfg.accept_unknown = settings.exts_unknown_on;
     cfg.accept_common = settings.exts_common_on;
 
-    wa_ichar_to_char(filename_utf8, PATH_LIMIT, fn);
+    wa_ichar_to_char(filename_utf8, WINAMP_PATH_LIMIT, fn);
 
     //;vgm_logi("winamp_IsOurFile: %s\n", filename_utf8);
 
@@ -324,7 +324,7 @@ int winamp_IsOurFile(const in_char *fn) {
      * open/get info from the file (slower so keep some cache) */
 
     info_valid = 0; /* may not be playable */
-    wa_strncpy(info_fn, fn, PATH_LIMIT); /* copy now for repeat calls */
+    wa_strncpy(info_fn, fn, WINAMP_PATH_LIMIT); /* copy now for repeat calls */
 
     /* basic extension check */
     valid = vgmstream_ctx_is_valid(filename_utf8, &cfg);
@@ -369,17 +369,17 @@ int winamp_IsOurFile(const in_char *fn) {
 /* request to start playing a file */
 int winamp_Play(const in_char *fn) {
     int max_latency;
-    in_char filename[PATH_LIMIT];
+    in_char filename[WINAMP_PATH_LIMIT];
     int stream_index = 0;
 
-    //;{ char f8[PATH_LIMIT]; wa_ichar_to_char(f8,PATH_LIMIT,fn); vgm_logi("winamp_Play: file %s\n", f8); }
+    //;{ char f8[WINAMP_PATH_LIMIT]; wa_ichar_to_char(f8,WINAMP_PATH_LIMIT,fn); vgm_logi("winamp_Play: file %s\n", f8); }
 
     /* shouldn't happen */
     if (vgmstream)
         return 1;
 
     /* check for info encoded in the filename */
-    parse_fn_string(fn, NULL, filename,PATH_LIMIT);
+    parse_fn_string(fn, NULL, filename,WINAMP_PATH_LIMIT);
     parse_fn_int(fn, wa_L("$s"), &stream_index);
 
     /* open the stream */
@@ -412,7 +412,7 @@ int winamp_Play(const in_char *fn) {
 
 
     /* save original name */
-    wa_strncpy(lastfn,fn,PATH_LIMIT);
+    wa_strncpy(lastfn,fn,WINAMP_PATH_LIMIT);
 
     /* open the output plugin */
     max_latency = input_module.outMod->Open(vgmstream->sample_rate, state.output_channels, 16, 0, 0);
@@ -530,7 +530,7 @@ int winamp_InfoBox(const in_char *fn, HWND hwnd) {
         if (!vgmstream)
             return 0;
 
-        describe_vgmstream(vgmstream,description,sizeof(description));
+        describe_vgmstream(vgmstream, description, sizeof(description));
     }
     else {
         /* some other file in playlist given by filename */
@@ -544,7 +544,7 @@ int winamp_InfoBox(const in_char *fn, HWND hwnd) {
         vgmstream_mixing_autodownmix(infostream, settings.downmix_channels);
         vgmstream_mixing_enable(infostream, 0, NULL, NULL);
 
-        describe_vgmstream(infostream,description,sizeof(description));
+        describe_vgmstream(infostream, description, sizeof(description));
 
         close_vgmstream(infostream);
         infostream = NULL;
@@ -592,7 +592,7 @@ void winamp_GetFileInfo(const in_char *fn, in_char *title, int *length_in_ms) {
     }
     else {
         VGMSTREAM* infostream = NULL;
-        //;{ char f8[PATH_LIMIT]; wa_ichar_to_char(f8,PATH_LIMIT,fn); vgm_logi("winamp_GetFileInfo: file %s\n", f8); }
+        //;{ char f8[WINAMP_PATH_LIMIT]; wa_ichar_to_char(f8,WINAMP_PATH_LIMIT,fn); vgm_logi("winamp_GetFileInfo: file %s\n", f8); }
 
         /* not changed from last IsOurFile (most common) */
         if (info_valid && wa_strcmp(fn, info_fn) == 0) {
@@ -789,13 +789,13 @@ __declspec(dllexport) In_Module * winampGetInModule2() {
 /* IN_TAGS                               */
 /* ************************************* */
 
-/* could malloc and stuff but totals aren't much bigger than PATH_LIMITs anyway */
+/* could malloc and stuff but totals aren't much bigger than WINAMP_PATH_LIMITs anyway */
 #define WINAMP_TAGS_ENTRY_MAX      30
 #define WINAMP_TAGS_ENTRY_SIZE     2048
 
 typedef struct {
     int loaded;
-    in_char filename[PATH_LIMIT]; /* tags are loaded for this file */
+    in_char filename[WINAMP_PATH_LIMIT]; /* tags are loaded for this file */
     int tag_count;
 
     char keys[WINAMP_TAGS_ENTRY_MAX][WINAMP_TAGS_ENTRY_SIZE+1];
@@ -809,10 +809,10 @@ winamp_tags last_tags;
  * Winamp requests one tag at a time and may reask for the same tag several times */
 static void load_tagfile_info(in_char* filename) {
     STREAMFILE *tagFile = NULL;
-    in_char filename_clean[PATH_LIMIT];
-    char filename_utf8[PATH_LIMIT];
-    char tagfile_path_utf8[PATH_LIMIT];
-    in_char tagfile_path_i[PATH_LIMIT];
+    in_char filename_clean[WINAMP_PATH_LIMIT];
+    char filename_utf8[WINAMP_PATH_LIMIT];
+    char tagfile_path_utf8[WINAMP_PATH_LIMIT];
+    in_char tagfile_path_i[WINAMP_PATH_LIMIT];
     char *path;
 
 
@@ -823,7 +823,7 @@ static void load_tagfile_info(in_char* filename) {
     }
 
     /* clean extra part for subsong tags */
-    parse_fn_string(filename, NULL, filename_clean,PATH_LIMIT);
+    parse_fn_string(filename, NULL, filename_clean,WINAMP_PATH_LIMIT);
 
     if (wa_strcmp(last_tags.filename, filename_clean) == 0) {
         return; /* not changed, tags still apply */
@@ -832,18 +832,18 @@ static void load_tagfile_info(in_char* filename) {
     last_tags.loaded = 0;
 
     /* tags are now for this filename, find tagfile path */
-    wa_ichar_to_char(filename_utf8, PATH_LIMIT, filename_clean);
+    wa_ichar_to_char(filename_utf8, WINAMP_PATH_LIMIT, filename_clean);
     strcpy(tagfile_path_utf8,filename_utf8);
 
     path = strrchr(tagfile_path_utf8,'\\');
     if (path != NULL) {
         path[1] = '\0'; /* includes "\", remove after that from tagfile_path */
-        strcat(tagfile_path_utf8,tagfile_name);
+        strcat(tagfile_path_utf8, tagfile_name);
     }
     else { /* ??? */
-        strcpy(tagfile_path_utf8,tagfile_name);
+        strcpy(tagfile_path_utf8, tagfile_name);
     }
-    wa_char_to_ichar(tagfile_path_i, PATH_LIMIT, tagfile_path_utf8);
+    wa_char_to_ichar(tagfile_path_i, WINAMP_PATH_LIMIT, tagfile_path_utf8);
 
     wa_strcpy(last_tags.filename, filename_clean);
     last_tags.tag_count = 0;
@@ -895,7 +895,7 @@ static int winampGetExtendedFileInfo_common(in_char* filename, char *metadata, c
     int i, tag_found;
     int max_len;
 
-    //;{ char f8[PATH_LIMIT]; wa_ichar_to_char(f8,PATH_LIMIT,filename); vgm_logi("winampGetExtendedFileInfo_common: file %s\n", f8); }
+    //;{ char f8[WINAMP_PATH_LIMIT]; wa_ichar_to_char(f8,WINAMP_PATH_LIMIT,filename); vgm_logi("winampGetExtendedFileInfo_common: file %s\n", f8); }
 
     /* load list current tags, if necessary */
     load_tagfile_info(filename);
@@ -952,13 +952,13 @@ fail:
 
 /* for Winamp 5.24 */
 __declspec (dllexport) int winampGetExtendedFileInfo(char *filename, char *metadata, char *ret, int retlen) {
-    in_char filename_wchar[PATH_LIMIT];
+    in_char filename_wchar[WINAMP_PATH_LIMIT];
     int ok;
 
     if (settings.tagfile_disable)
         return 0;
 
-    wa_char_to_ichar(filename_wchar,PATH_LIMIT, filename);
+    wa_char_to_ichar(filename_wchar,WINAMP_PATH_LIMIT, filename);
 
     //;{ vgm_logi("winampGetExtendedFileInfo: file %s\n", filename); }
 
@@ -971,16 +971,16 @@ __declspec (dllexport) int winampGetExtendedFileInfo(char *filename, char *metad
 
 /* for Winamp 5.3+ */
 __declspec (dllexport) int winampGetExtendedFileInfoW(wchar_t *filename, char *metadata, wchar_t *ret, int retlen) {
-    in_char filename_ichar[PATH_LIMIT];
+    in_char filename_ichar[WINAMP_PATH_LIMIT];
     char ret_utf8[2048];
     int ok;
 
     if (settings.tagfile_disable)
         return 0;
 
-    wa_wchar_to_ichar(filename_ichar,PATH_LIMIT, filename);
+    wa_wchar_to_ichar(filename_ichar,WINAMP_PATH_LIMIT, filename);
 
-    //;{ char f8[PATH_LIMIT]; wa_ichar_to_char(f8,PATH_LIMIT,filename); vgm_logi("winampGetExtendedFileInfoW: file %s\n", f8); }
+    //;{ char f8[WINAMP_PATH_LIMIT]; wa_ichar_to_char(f8,WINAMP_PATH_LIMIT,filename); vgm_logi("winampGetExtendedFileInfoW: file %s\n", f8); }
 
     ok = winampGetExtendedFileInfo_common(filename_ichar, metadata, ret_utf8,2048);
     if (ok == 0)
@@ -1019,7 +1019,7 @@ short xsample_buffer[SAMPLE_BUFFER_SIZE*2 * VGMSTREAM_MAX_CHANNELS];
 static void* winampGetExtendedRead_open_common(in_char *fn, int *size, int *bps, int *nch, int *srate) {
     VGMSTREAM* xvgmstream = NULL;
 
-    //;{ char f8[PATH_LIMIT]; wa_ichar_to_char(f8,PATH_LIMIT,fn); vgm_logi("winampGetExtendedRead_open_common: open common file %s\n", f8); }
+    //;{ char f8[WINAMP_PATH_LIMIT]; wa_ichar_to_char(f8,WINAMP_PATH_LIMIT,fn); vgm_logi("winampGetExtendedRead_open_common: open common file %s\n", f8); }
 
     /* open the stream */
     xvgmstream = init_vgmstream_winamp_fileinfo(fn);
@@ -1056,17 +1056,17 @@ static void* winampGetExtendedRead_open_common(in_char *fn, int *size, int *bps,
 }
 
 __declspec(dllexport) void* winampGetExtendedRead_open(const char *fn, int *size, int *bps, int *nch, int *srate) {
-    in_char filename_wchar[PATH_LIMIT];
+    in_char filename_wchar[WINAMP_PATH_LIMIT];
 
-    wa_char_to_ichar(filename_wchar, PATH_LIMIT, fn);
+    wa_char_to_ichar(filename_wchar, WINAMP_PATH_LIMIT, fn);
 
     return winampGetExtendedRead_open_common(filename_wchar, size, bps, nch, srate);
 }
 
 __declspec(dllexport) void* winampGetExtendedRead_openW(const wchar_t *fn, int *size, int *bps, int *nch, int *srate) {
-    in_char filename_ichar[PATH_LIMIT];
+    in_char filename_ichar[WINAMP_PATH_LIMIT];
 
-    wa_wchar_to_ichar(filename_ichar, PATH_LIMIT, fn);
+    wa_wchar_to_ichar(filename_ichar, WINAMP_PATH_LIMIT, fn);
 
     return winampGetExtendedRead_open_common(filename_ichar, size, bps, nch, srate);
 }
