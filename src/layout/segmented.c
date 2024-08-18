@@ -14,7 +14,7 @@
  * (like one part for intro and other for loop segments, which may even use different codecs). */
 void render_vgmstream_segmented(sample_t* outbuf, int32_t sample_count, VGMSTREAM* vgmstream) {
     segmented_layout_data* data = vgmstream->layout_data;
-    bool use_internal_buffer = 0;
+    bool use_internal_buffer = false;
 
     /* normally uses outbuf directly (faster?) but could need internal buffer if downmixing */
     if (vgmstream->channels != data->input_channels || data->mixed_channels) {
@@ -146,7 +146,6 @@ fail:
 
 bool setup_layout_segmented(segmented_layout_data* data) {
     int max_input_channels = 0, max_output_channels = 0, mixed_channels = 0;
-    sample_t* outbuf_re = NULL;
 
 
     /* setup each VGMSTREAM (roughly equivalent to vgmstream.c's init_vgmstream_internal stuff) */
@@ -211,12 +210,11 @@ bool setup_layout_segmented(segmented_layout_data* data) {
     }
 
     if (max_output_channels > VGMSTREAM_MAX_CHANNELS || max_input_channels > VGMSTREAM_MAX_CHANNELS)
-        goto fail;
+        return false;
 
     /* create internal buffer big enough for mixing */
-    outbuf_re = realloc(data->buffer, VGMSTREAM_SEGMENT_SAMPLE_BUFFER*max_input_channels*sizeof(sample_t));
-    if (!outbuf_re) goto fail;
-    data->buffer = outbuf_re;
+    if (!sbuf_realloc(&data->buffer, VGMSTREAM_SEGMENT_SAMPLE_BUFFER, max_input_channels))
+        goto fail;
 
     data->input_channels = max_input_channels;
     data->output_channels = max_output_channels;
@@ -232,7 +230,7 @@ void free_layout_segmented(segmented_layout_data* data) {
         return;
 
     for (int i = 0; i < data->segment_count; i++) {
-        bool is_repeat = true;
+        bool is_repeat = false;
 
         /* segments are allowed to be repeated so don't close the same thing twice */
         for (int j = 0; j < i; j++) {

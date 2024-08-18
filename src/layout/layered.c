@@ -179,9 +179,8 @@ bool setup_layout_layered(layered_layout_data* data) {
         return false;
 
     /* create internal buffer big enough for mixing all layers */
-    sample_t* outbuf_re = realloc(data->buffer, VGMSTREAM_LAYER_SAMPLE_BUFFER * max_input_channels * sizeof(sample_t));
-    if (!outbuf_re) goto fail;
-    data->buffer = outbuf_re;
+    if (!sbuf_realloc(&data->buffer, VGMSTREAM_LAYER_SAMPLE_BUFFER, max_input_channels))
+        goto fail;
 
     data->input_channels = max_input_channels;
     data->output_channels = max_output_channels;

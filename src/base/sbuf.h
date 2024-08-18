@@ -1,5 +1,5 @@
-#ifndef _SBUF_H
-#define _SBUF_H
+#ifndef _SBUF_H_
+#define _SBUF_H_
 
 #include "../streamtypes.h"
 
@@ -27,6 +27,11 @@ typedef struct {
 } sbuf_t;
 
 void sbuf_init16(sbuf_t* sbuf, int16_t* buf, int samples, int channels);
+
+void sbuf_clamp(sbuf_t* sbuf, int samples);
+
+/* skips N samples from current sbuf */
+void sbuf_consume(sbuf_t* sbuf, int samples);
 #endif
 
 /* it's probably slightly faster to make those inline'd, but aren't called that often to matter (given big enough total samples) */
@@ -42,5 +47,6 @@ void sbuf_copy_layers(sample_t* dst, int dst_channels, sample_t* src, int src_ch
 
 void sbuf_silence(sample_t* dst, int samples, int channels, int filled);
 
+bool sbuf_realloc(sample_t** dst, int samples, int channels);
 
 #endif

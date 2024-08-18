@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include <string.h>
 #include "../util.h"
 #include "sbuf.h"
@@ -73,4 +74,12 @@ void sbuf_copy_layers(sample_t* dst, int dst_channels, sample_t* src, int src_ch
 
 void sbuf_silence(sample_t* dst, int samples, int channels, int filled) {
     memset(dst + filled * channels, 0, (samples - filled) * channels * sizeof(sample_t));   
+}
+
+bool sbuf_realloc(sample_t** dst, int samples, int channels) {
+    sample_t* outbuf_re = realloc(*dst, samples * channels * sizeof(sample_t));
+    if (!outbuf_re) return false;
+
+    *dst = outbuf_re;
+    return true;
 }
