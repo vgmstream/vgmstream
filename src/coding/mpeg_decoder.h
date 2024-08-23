@@ -12,16 +12,16 @@
 /* represents a single MPEG stream */
 typedef struct {
     /* per stream as sometimes mpg123 must be fed in passes if data is big enough (ex. EALayer3 multichannel) */
-    uint8_t *buffer; /* raw data buffer */
+    uint8_t* buffer; /* raw data buffer */
     size_t buffer_size;
     size_t bytes_in_buffer;
-    int buffer_full; /* raw buffer has been filled */
-    int buffer_used; /* raw buffer has been fed to the decoder */
+    bool buffer_full; /* raw buffer has been filled */
+    bool buffer_used; /* raw buffer has been fed to the decoder */
 
     mpg123_handle* handle; /* MPEG decoder */
 
-    uint8_t *output_buffer; /* decoded samples from this stream (in bytes for mpg123) */
-    size_t output_buffer_size;
+    void* sbuf; /* decoded samples from this stream */
+    size_t sbuf_size; /* in bytes for mpg123 */
     size_t samples_filled; /* data in the buffer (in samples) */
     size_t samples_used; /* data extracted from the buffer */
 
@@ -37,9 +37,10 @@ struct mpeg_codec_data {
     uint8_t* buffer; /* raw data buffer */
     size_t buffer_size;
     size_t bytes_in_buffer;
-    int buffer_full; /* raw buffer has been filled */
-    int buffer_used; /* raw buffer has been fed to the decoder */
-    mpg123_handle *m; /* MPEG decoder */
+    bool buffer_full; /* raw buffer has been filled */
+    bool buffer_used; /* raw buffer has been fed to the decoder */
+
+    mpg123_handle* m; /* MPEG decoder */
     struct mpg123_frameinfo mi; /* start info, so it's available even when resetting */
 
     /* for internal use */
