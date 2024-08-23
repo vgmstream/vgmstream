@@ -3,11 +3,11 @@
 
 typedef struct {
     VGMSTREAM_TAGS* vtags;
-    libvgmstream_streamfile_t* libsf;
+    libstreamfile_t* libsf;
     STREAMFILE* sf_tags;
 } libvgmstream_tags_priv_t;
 
-LIBVGMSTREAM_API libvgmstream_tags_t* libvgmstream_tags_init(libvgmstream_streamfile_t* libsf) {
+LIBVGMSTREAM_API libvgmstream_tags_t* libvgmstream_tags_init(libstreamfile_t* libsf) {
     if (!libsf)
         return NULL;
 

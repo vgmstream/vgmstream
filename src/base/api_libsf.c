@@ -1,9 +1,9 @@
 #include "api_internal.h"
 #if LIBVGMSTREAM_ENABLE
 
-static libvgmstream_streamfile_t* libvgmstream_streamfile_from_streamfile(STREAMFILE* sf);
+static libstreamfile_t* libvgmstream_streamfile_from_streamfile(STREAMFILE* sf);
 
-/* libvgmstream_streamfile_t for external use, as a default implementation calling some internal SF */
+/* libstreamfile_t for external use, as a default implementation calling some internal SF */
 
 typedef struct {
     int64_t offset;
@@ -71,7 +71,7 @@ static const char* libsf_get_name(void* user_data) {
     return data->name;
 }
 
-struct libvgmstream_streamfile_t* libsf_open(void* user_data, const char* filename) {
+struct libstreamfile_t* libsf_open(void* user_data, const char* filename) {
     libsf_data_t* data = user_data;
     if (!data || !data->inner_sf)
         return NULL;
@@ -80,7 +80,7 @@ struct libvgmstream_streamfile_t* libsf_open(void* user_data, const char* filena
     if (!sf)
         return NULL;
 
-    libvgmstream_streamfile_t* libsf = libvgmstream_streamfile_from_streamfile(sf);
+    libstreamfile_t* libsf = libvgmstream_streamfile_from_streamfile(sf);
     if (!libsf) {
         close_streamfile(sf);
         return NULL;
@@ -89,7 +89,7 @@ struct libvgmstream_streamfile_t* libsf_open(void* user_data, const char* filena
     return libsf;
 }
 
-static void libsf_close(struct libvgmstream_streamfile_t* libsf) {
+static void libsf_close(struct libstreamfile_t* libsf) {
     if (!libsf)
         return;
 
@@ -101,14 +101,14 @@ static void libsf_close(struct libvgmstream_streamfile_t* libsf) {
     free(libsf);
 }
 
-static libvgmstream_streamfile_t* libvgmstream_streamfile_from_streamfile(STREAMFILE* sf) {
+static libstreamfile_t* libvgmstream_streamfile_from_streamfile(STREAMFILE* sf) {
     if (!sf)
         return NULL;
 
-    libvgmstream_streamfile_t* libsf = NULL;
+    libstreamfile_t* libsf = NULL;
     libsf_data_t* data = NULL;
 
-    libsf = calloc(1, sizeof(libvgmstream_streamfile_t));
+    libsf = calloc(1, sizeof(libstreamfile_t));
     if (!libsf) goto fail;
 
     libsf->read = libsf_read;
@@ -132,12 +132,12 @@ fail:
 }
 
 
-LIBVGMSTREAM_API libvgmstream_streamfile_t* libvgmstream_streamfile_open_from_stdio(const char* filename) {
+LIBVGMSTREAM_API libstreamfile_t* libvgmstream_streamfile_open_from_stdio(const char* filename) {
     STREAMFILE* sf = open_stdio_streamfile(filename);
     if (!sf)
         return NULL;
 
-    libvgmstream_streamfile_t* libsf = libvgmstream_streamfile_from_streamfile(sf);
+    libstreamfile_t* libsf = libvgmstream_streamfile_from_streamfile(sf);
     if (!libsf) {
         close_streamfile(sf);
         return NULL;

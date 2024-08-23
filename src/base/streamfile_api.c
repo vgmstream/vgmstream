@@ -1,15 +1,15 @@
 #include "api_internal.h"
 #if LIBVGMSTREAM_ENABLE
-/* STREAMFILE for internal use, that bridges calls to external libvgmstream_streamfile_t */
+/* STREAMFILE for internal use, that bridges calls to external libstreamfile_t */
 
 
-static STREAMFILE* open_api_streamfile_internal(libvgmstream_streamfile_t* libsf, bool external_libsf);
+static STREAMFILE* open_api_streamfile_internal(libstreamfile_t* libsf, bool external_libsf);
 
 
 typedef struct {
     STREAMFILE vt;
 
-    libvgmstream_streamfile_t* libsf;
+    libstreamfile_t* libsf;
     bool external_libsf; //TODO: improve
 } API_STREAMFILE;
 
@@ -46,7 +46,7 @@ static void api_get_name(API_STREAMFILE* sf, char* name, size_t name_size) {
 }
 
 static STREAMFILE* api_open(API_STREAMFILE* sf, const char* filename, size_t buf_size) {
-    libvgmstream_streamfile_t* libsf = sf->libsf->open(sf->libsf->user_data, filename);
+    libstreamfile_t* libsf = sf->libsf->open(sf->libsf->user_data, filename);
     STREAMFILE* new_sf = open_api_streamfile_internal(libsf, false);
 
     if (!new_sf) {
@@ -63,7 +63,7 @@ static void api_close(API_STREAMFILE* sf) {
     free(sf);
 }
 
-static STREAMFILE* open_api_streamfile_internal(libvgmstream_streamfile_t* libsf, bool external_libsf) {
+static STREAMFILE* open_api_streamfile_internal(libstreamfile_t* libsf, bool external_libsf) {
     API_STREAMFILE* this_sf = NULL;
 
     if (!libsf)
@@ -87,7 +87,7 @@ static STREAMFILE* open_api_streamfile_internal(libvgmstream_streamfile_t* libsf
     return &this_sf->vt;
 }
 
-STREAMFILE* open_api_streamfile(libvgmstream_streamfile_t* libsf) {
+STREAMFILE* open_api_streamfile(libstreamfile_t* libsf) {
     return open_api_streamfile_internal(libsf, true);
 }
 

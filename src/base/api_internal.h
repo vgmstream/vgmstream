@@ -57,7 +57,7 @@ typedef struct {
 
 void libvgmstream_priv_reset(libvgmstream_priv_t* priv, bool reset_buf);
 
-STREAMFILE* open_api_streamfile(libvgmstream_streamfile_t* libsf);
+STREAMFILE* open_api_streamfile(libstreamfile_t* libsf);
 
 #endif
 #endif

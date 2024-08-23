@@ -201,7 +201,7 @@ LIBVGMSTREAM_API void libvgmstream_setup(libvgmstream_t* lib, libvgmstream_confi
 
 /* configures how vgmstream opens the format */
 typedef struct {
-    libvgmstream_streamfile_t* libsf;       // custom IO streamfile that provides reader info for vgmstream
+    libstreamfile_t* libsf;                 // custom IO streamfile that provides reader info for vgmstream
                                             // ** not needed after _open and should be closed, as vgmstream re-opens its own SFs internally as needed
 
     int subsong_index;                      // target subsong (1..N) or 0 = default/first
@@ -345,7 +345,7 @@ typedef struct {
  * - libsf should point to a !tags.m3u file
  * - unlike libvgmstream_open, sf tagfile must be valid during the tag extraction process.
  */
-LIBVGMSTREAM_API libvgmstream_tags_t* libvgmstream_tags_init(libvgmstream_streamfile_t* libsf);
+LIBVGMSTREAM_API libvgmstream_tags_t* libvgmstream_tags_init(libstreamfile_t* libsf);
 
 /* Finds tags for a new filename. Must be called first before extracting tags.
  */

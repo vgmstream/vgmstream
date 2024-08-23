@@ -25,7 +25,7 @@ static FILE* get_output_file(const char* filename) {
     return outfile;
 }
 
-static libvgmstream_streamfile_t* get_streamfile(const char* filename) {
+static libstreamfile_t* get_streamfile(const char* filename) {
     return libvgmstream_streamfile_open_from_stdio(filename);
 }
 
@@ -199,10 +199,10 @@ static void test_lib_extensions() {
     assert(exts == NULL);
 }
 
-static libvgmstream_streamfile_t* test_libsf_open() {
+static libstreamfile_t* test_libsf_open() {
     VGM_STEP();
 
-    libvgmstream_streamfile_t* libsf = NULL;
+    libstreamfile_t* libsf = NULL;
 
     libsf = libvgmstream_streamfile_open_from_stdio("api.bin_wrong");
     assert(libsf == NULL);
@@ -214,7 +214,7 @@ static libvgmstream_streamfile_t* test_libsf_open() {
 }
 
 
-static void test_libsf_read(libvgmstream_streamfile_t* libsf) {
+static void test_libsf_read(libstreamfile_t* libsf) {
     VGM_STEP();
 
     int read;
@@ -233,7 +233,7 @@ static void test_libsf_read(libvgmstream_streamfile_t* libsf) {
     }
 }
 
-static void test_libsf_seek_read(libvgmstream_streamfile_t* libsf) {
+static void test_libsf_seek_read(libstreamfile_t* libsf) {
     VGM_STEP();
 
     int read, res;
@@ -255,27 +255,27 @@ static void test_libsf_seek_read(libvgmstream_streamfile_t* libsf) {
     assert(read == 0);
 }
 
-static void test_libsf_size(libvgmstream_streamfile_t* libsf) {
+static void test_libsf_size(libstreamfile_t* libsf) {
     VGM_STEP();
 
     int64_t size = libsf->get_size(libsf->user_data);
     assert(size == 0x20000);
 }
 
-static void test_libsf_name(libvgmstream_streamfile_t* libsf) {
+static void test_libsf_name(libstreamfile_t* libsf) {
     VGM_STEP();
 
     const char* name = libsf->get_name(libsf->user_data);
     assert(strcmp(name, "api.bin") == 0);
 }
 
-static void test_libsf_reopen(libvgmstream_streamfile_t* libsf) {
+static void test_libsf_reopen(libstreamfile_t* libsf) {
     VGM_STEP();
 
     uint8_t buf[0x20];
     int read;
 
-    libvgmstream_streamfile_t* newsf = NULL;
+    libstreamfile_t* newsf = NULL;
 
     newsf = libsf->open(libsf->user_data, "api2.bin_wrong");
     assert(newsf == NULL);
@@ -290,7 +290,7 @@ static void test_libsf_reopen(libvgmstream_streamfile_t* libsf) {
     newsf->close(newsf);
 }
 
-static void test_libsf_apisf(libvgmstream_streamfile_t* libsf) {
+static void test_libsf_apisf(libstreamfile_t* libsf) {
     VGM_STEP();
 
     STREAMFILE* sf = open_api_streamfile(libsf);
@@ -316,7 +316,7 @@ static void test_libsf_apisf(libvgmstream_streamfile_t* libsf) {
 static void test_lib_streamfile() {
     VGM_STEP();
 
-    libvgmstream_streamfile_t* libsf = test_libsf_open();
+    libstreamfile_t* libsf = test_libsf_open();
     test_libsf_read(libsf);
     test_libsf_seek_read(libsf);
     test_libsf_size(libsf);
@@ -331,7 +331,7 @@ static void test_lib_streamfile() {
 static void test_lib_tags() {
     VGM_STEP();
 
-    libvgmstream_streamfile_t* libsf = NULL;
+    libstreamfile_t* libsf = NULL;
     libvgmstream_tags_t* tags = NULL;
     bool more = false;
 
