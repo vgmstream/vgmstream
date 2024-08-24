@@ -84,7 +84,7 @@ int render_layout(sample_t* buf, int32_t sample_count, VGMSTREAM* vgmstream) {
     if (vgmstream->current_sample > vgmstream->num_samples) {
         int channels = vgmstream->channels;
 
-        memset(buf, 0, sample_count * sizeof(sample_t) * channels);
+        sbuf_silence_s16(buf, sample_count, channels, 0);
         return sample_count;
     }
 
@@ -156,7 +156,8 @@ int render_layout(sample_t* buf, int32_t sample_count, VGMSTREAM* vgmstream) {
             excess = sample_count;
         decoded = sample_count - excess;
 
-        memset(buf + decoded * channels, 0, excess * sizeof(sample_t) * channels);
+        sbuf_silence_s16(buf, sample_count, channels, decoded);
+
         return sample_count;
     }
 
@@ -214,7 +215,8 @@ static void play_op_pad_begin(VGMSTREAM* vgmstream, render_helper_t* renderer) {
     if (to_do > buf_samples)
         to_do = buf_samples;
 
-    memset(renderer->tmpbuf, 0, to_do * sizeof(sample_t) * channels);
+    sbuf_silence_s16(renderer->tmpbuf, to_do, channels, 0);
+
     ps->pad_begin_left -= to_do;
 
     renderer->samples_done += to_do;
@@ -258,8 +260,8 @@ static void play_op_fade(VGMSTREAM* vgmstream, sample_t* buf, int samples_done) 
 
     ps->fade_left -= to_do;
 
-    /* next samples after fade end would be pad end/silence, so we can just memset */
-    memset(buf + (start + to_do) * channels, 0, (samples_done - to_do - start) * sizeof(sample_t) * channels);
+    /* next samples after fade end would be pad end/silence */
+    sbuf_silence_s16(buf, samples_done, channels, (start + to_do));
 }
 
 // adds null samples after decode
@@ -292,7 +294,7 @@ static int play_op_pad_end(VGMSTREAM* vgmstream, sample_t* buf, int samples_done
     if (to_do > samples_done - skip)
         to_do = samples_done - skip;
 
-    memset(buf + (skip * channels), 0, to_do * sizeof(sample_t) * channels);
+    sbuf_silence_s16(buf, to_do + skip, channels, skip);
     return skip + to_do;
 }
 
@@ -354,6 +356,7 @@ int render_vgmstream(sample_t* buf, int32_t sample_count, VGMSTREAM* vgmstream) 
 
     /* main decode */
     int done = render_layout(renderer.tmpbuf, renderer.samples_to_do, vgmstream);
+
     mix_vgmstream(renderer.tmpbuf, done, vgmstream);
 
 

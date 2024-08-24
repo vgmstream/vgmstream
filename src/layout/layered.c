@@ -58,7 +58,7 @@ void render_vgmstream_layered(sample_t* outbuf, int32_t sample_count, VGMSTREAM*
 
     return;
 decode_fail:
-    sbuf_silence(outbuf, sample_count, data->output_channels, samples_filled);
+    sbuf_silence_s16(outbuf, sample_count, data->output_channels, samples_filled);
 }
 
 

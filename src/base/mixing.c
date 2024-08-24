@@ -1,12 +1,12 @@
+#include <math.h>
+#include <limits.h>
 #include "../vgmstream.h"
 #include "../util/channel_mappings.h"
+#include "../layout/layout.h"
 #include "mixing.h"
 #include "mixer.h"
 #include "mixer_priv.h"
 #include "sbuf.h"
-#include "../layout/layout.h"
-#include <math.h>
-#include <limits.h>
 
 //TODO simplify
 /**
@@ -58,9 +58,14 @@ void mix_vgmstream(sample_t *outbuf, int32_t sample_count, VGMSTREAM* vgmstream)
     if (!mixer_is_active(vgmstream->mixer))
         return;
 
-    int32_t current_pos = get_current_pos(vgmstream, sample_count);
+    sbuf_t sbuf_tmp;
+    sbuf_t* sbuf = &sbuf_tmp;
+    sbuf_init_s16(sbuf, outbuf, sample_count, vgmstream->channels);
+    sbuf->filled = sbuf->samples;
 
-    mixer_process(vgmstream->mixer, outbuf, sample_count, current_pos);
+    int32_t current_pos = get_current_pos(vgmstream, sbuf->filled);
+
+    mixer_process(vgmstream->mixer, sbuf, current_pos);
 }
 
 /* ******************************************************************* */

@@ -23,7 +23,7 @@ void render_vgmstream_segmented(sample_t* outbuf, int32_t sample_count, VGMSTREA
 
     if (data->current_segment >= data->segment_count) {
         VGM_LOG_ONCE("SEGMENT: wrong current segment\n");
-        sbuf_silence(outbuf, sample_count, data->output_channels, 0);
+        sbuf_silence_s16(outbuf, sample_count, data->output_channels, 0);
         return;
     }
 
@@ -87,7 +87,7 @@ void render_vgmstream_segmented(sample_t* outbuf, int32_t sample_count, VGMSTREA
 
     return;
 decode_fail:
-    sbuf_silence(outbuf, sample_count, data->output_channels, samples_filled);
+    sbuf_silence_s16(outbuf, sample_count, data->output_channels, samples_filled);
 }
 
 

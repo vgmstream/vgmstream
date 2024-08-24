@@ -3,37 +3,74 @@
 #include "../util.h"
 #include "sbuf.h"
 
-#if 0
-/* skips N samples from current sbuf */
-void sbuf_init16(sbuf_t* sbuf, int16_t* buf, int samples, int channels) {
+
+void sbuf_init_s16(sbuf_t* sbuf, int16_t* buf, int samples, int channels) {
     memset(sbuf, 0, sizeof(sbuf_t));
     sbuf->buf = buf;
     sbuf->samples = samples;
     sbuf->channels = channels;
     sbuf->fmt = SFMT_S16;
 }
-#endif
 
+void sbuf_init_f32(sbuf_t* sbuf, float* buf, int samples, int channels) {
+    memset(sbuf, 0, sizeof(sbuf_t));
+    sbuf->buf = buf;
+    sbuf->samples = samples;
+    sbuf->channels = channels;
+    sbuf->fmt = SFMT_F32;
+}
 
-// TODO decide if using float 1.0 style or 32767 style (fuzzy PCM changes when doing that)
-void sbuf_copy_s16_to_f32(float* buf_f32, int16_t* buf_s16, int samples, int channels) {
-    for (int s = 0; s < samples * channels; s++) {
-        buf_f32[s] = (float)buf_s16[s]; // / 32767.0f
+//TODO decide if using float 1.0 style or 32767 style (fuzzy PCM when doing that)
+//TODO: maybe use macro-style templating (but kinda ugly)
+void sbuf_copy_to_f32(float* dst, sbuf_t* sbuf) {
+
+    switch(sbuf->fmt) {
+        case SFMT_S16: {
+            int16_t* buf = sbuf->buf;
+            for (int s = 0; s < sbuf->filled * sbuf->channels; s++) {
+                dst[s] = (float)buf[s]; // / 32767.0f
+            }
+            break;
+        }
+        case SFMT_F32: {
+            float* buf = sbuf->buf;
+            for (int s = 0; s < sbuf->filled * sbuf->channels; s++) {
+                dst[s] = buf[s];
+            }
+            break;
+        }
+        default:
+            break;
     }
 }
 
-void sbuf_copy_f32_to_s16(int16_t* buf_s16, float* buf_f32, int samples, int channels) {
-    /* when casting float to int, value is simply truncated:
-     * - (int)1.7 = 1, (int)-1.7 = -1
-     * alts for more accurate rounding could be:
-     * - (int)floor(f)
-     * - (int)(f < 0 ? f - 0.5f : f + 0.5f)
-     * - (((int) (f1 + 32768.5)) - 32768)
-     * - etc
-     * but since +-1 isn't really audible we'll just cast, as it's the fastest
-     */
-    for (int s = 0; s < samples * channels; s++) {
-        buf_s16[s] = clamp16( buf_f32[s]); // * 32767.0f
+/* when casting float to int, value is simply truncated:
+ * - (int)1.7 = 1, (int)-1.7 = -1
+ * alts for more accurate rounding could be:
+ * - (int)floor(f)
+ * - (int)(f < 0 ? f - 0.5f : f + 0.5f)
+ * - (((int) (f1 + 32768.5)) - 32768)
+ * - etc
+ * but since +-1 isn't really audible we'll just cast, as it's the fastest
+ */
+void sbuf_copy_from_f32(sbuf_t* sbuf, float* src) {
+    switch(sbuf->fmt) {
+        case SFMT_S16: {
+            int16_t* buf = sbuf->buf;
+            for (int s = 0; s < sbuf->filled * sbuf->channels; s++) {
+                buf[s] = clamp16( src[s]); // * 32767.0f
+            }
+            break;
+        }
+        case SFMT_F32: {
+            float* buf = sbuf->buf;
+            for (int s = 0; s < sbuf->filled * sbuf->channels; s++) {
+                buf[s] = src[s];
+            }
+            break;
+        }
+        default:
+            break;
     }
 }
 
@@ -72,7 +109,7 @@ void sbuf_copy_layers(sample_t* dst, int dst_channels, sample_t* src, int src_ch
     }
 }
 
-void sbuf_silence(sample_t* dst, int samples, int channels, int filled) {
+void sbuf_silence_s16(sample_t* dst, int samples, int channels, int filled) {
     memset(dst + filled * channels, 0, (samples - filled) * channels * sizeof(sample_t));   
 }
 
