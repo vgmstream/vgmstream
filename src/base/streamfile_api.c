@@ -16,7 +16,7 @@ typedef struct {
 static size_t api_read(API_STREAMFILE* sf, uint8_t* dst, offv_t offset, size_t length) {
     void* user_data = sf->libsf->user_data;
 
-    sf->libsf->seek(sf->libsf->user_data, offset, LIBVGMSTREAM_STREAMFILE_SEEK_SET);
+    sf->libsf->seek(sf->libsf->user_data, offset, LIBSTREAMFILE_SEEK_SET);
     return sf->libsf->read(user_data, dst, length);
 }
 
@@ -50,7 +50,7 @@ static STREAMFILE* api_open(API_STREAMFILE* sf, const char* filename, size_t buf
     STREAMFILE* new_sf = open_api_streamfile_internal(libsf, false);
 
     if (!new_sf) {
-        libvgmstream_streamfile_close(libsf);
+        libstreamfile_close(libsf);
     }
 
     return new_sf;

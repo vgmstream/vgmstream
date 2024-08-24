@@ -1,37 +1,41 @@
 #include "api_internal.h"
 #if LIBVGMSTREAM_ENABLE
 
-#define INTERNAL_BUF_SAMPLES  1024
-//TODO: use internal 
 
-static void reset_buf(libvgmstream_priv_t* priv) {
-    /* state reset */
+static bool reset_buf(libvgmstream_priv_t* priv) {
+    // state reset
     priv->buf.samples = 0;
     priv->buf.bytes = 0;
     priv->buf.consumed = 0;
 
     if (priv->buf.initialized)
-        return;
-    int output_channels = priv->vgmstream->channels;
-    int input_channels = priv->vgmstream->channels;
-    vgmstream_mixing_enable(priv->vgmstream, 0, &input_channels, &output_channels); //query
+        return true;
 
-    /* static config */
-    priv->buf.channels = input_channels;
-    if (priv->buf.channels < output_channels)
-        priv->buf.channels = output_channels;
+    vgmstream_mixing_enable(priv->vgmstream, 0, &priv->buf.input_channels, &priv->buf.output_channels); //query
+
+    // ???
+    if (priv->buf.input_channels <= 0)
+        priv->buf.input_channels = priv->vgmstream->channels;
+    if (priv->buf.output_channels <= 0)
+        priv->buf.output_channels = priv->vgmstream->channels;
+
+    // should be as big as output
+    if (priv->buf.input_channels < priv->buf.output_channels)
+        priv->buf.input_channels = priv->buf.output_channels;
 
     priv->buf.sample_size = sizeof(sample_t);
     priv->buf.max_samples = INTERNAL_BUF_SAMPLES;
-    priv->buf.max_bytes = priv->buf.max_samples * priv->buf.sample_size * priv->buf.channels;
+    priv->buf.max_bytes = priv->buf.max_samples * priv->buf.sample_size * priv->buf.input_channels;
     priv->buf.data = malloc(priv->buf.max_bytes);
+    if (!priv->buf.data) return false;
 
     priv->buf.initialized = true;
+    return true;
 }
 
 static void update_buf(libvgmstream_priv_t* priv, int samples_done) {
     priv->buf.samples = samples_done;
-    priv->buf.bytes = samples_done * priv->buf.sample_size * priv->buf.channels;
+    priv->buf.bytes = samples_done * priv->buf.sample_size * priv->buf.output_channels;
     //priv->buf.consumed = 0; //external
 
     if (!priv->pos.play_forever) {
@@ -59,8 +63,7 @@ LIBVGMSTREAM_API int libvgmstream_render(libvgmstream_t* lib) {
     if (priv->decode_done)
         return LIBVGMSTREAM_ERROR_GENERIC;
 
-    reset_buf(priv);
-    if (!priv->buf.data)
+    if (!reset_buf(priv))
         return LIBVGMSTREAM_ERROR_GENERIC;
 
     int to_get = priv->buf.max_samples;
@@ -92,8 +95,8 @@ LIBVGMSTREAM_API int libvgmstream_fill(libvgmstream_t* lib, void* buf, int buf_s
     int copy_samples = priv->buf.samples;
     if (copy_samples > buf_samples)
         copy_samples = buf_samples;
-    int copy_bytes = priv->buf.sample_size * priv->buf.channels * copy_samples;
-    int skip_bytes = priv->buf.sample_size * priv->buf.channels * priv->buf.consumed;
+    int copy_bytes = priv->buf.sample_size * priv->buf.output_channels * copy_samples;
+    int skip_bytes = priv->buf.sample_size * priv->buf.output_channels * priv->buf.consumed;
 
     memcpy(buf, ((uint8_t*)priv->buf.data) + skip_bytes, copy_bytes);
     priv->buf.consumed += copy_samples;

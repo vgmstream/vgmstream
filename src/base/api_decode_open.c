@@ -1,8 +1,6 @@
 #include "api_internal.h"
 #if LIBVGMSTREAM_ENABLE
 
-#define INTERNAL_BUF_SAMPLES  1024
-
 
 static void load_vgmstream(libvgmstream_priv_t* priv, libvgmstream_options_t* opt) {
     STREAMFILE* sf_api = open_api_streamfile(opt->libsf);

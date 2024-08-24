@@ -26,7 +26,7 @@ static FILE* get_output_file(const char* filename) {
 }
 
 static libstreamfile_t* get_streamfile(const char* filename) {
-    return libvgmstream_streamfile_open_from_stdio(filename);
+    return libstreamfile_open_from_stdio(filename);
 }
 
 static int api_example(const char* infile) {
@@ -61,7 +61,7 @@ static int api_example(const char* infile) {
     };
     err = libvgmstream_open_song(lib, &opt);
     // external SF is not needed after _open
-    libvgmstream_streamfile_close(opt.libsf); 
+    libstreamfile_close(opt.libsf); 
 
     if (err < 0) {
         printf("not a valid file\n");
@@ -204,10 +204,10 @@ static libstreamfile_t* test_libsf_open() {
 
     libstreamfile_t* libsf = NULL;
 
-    libsf = libvgmstream_streamfile_open_from_stdio("api.bin_wrong");
+    libsf = libstreamfile_open_from_stdio("api.bin_wrong");
     assert(libsf == NULL);
 
-    libsf = libvgmstream_streamfile_open_from_stdio("api.bin");
+    libsf = libstreamfile_open_from_stdio("api.bin");
     assert(libsf != NULL);
 
     return libsf;
@@ -335,7 +335,7 @@ static void test_lib_tags() {
     libvgmstream_tags_t* tags = NULL;
     bool more = false;
 
-    libsf = libvgmstream_streamfile_open_from_stdio("sample_!tags.m3u");
+    libsf = libstreamfile_open_from_stdio("sample_!tags.m3u");
     assert(libsf != NULL);
 
     tags = libvgmstream_tags_init(libsf);
@@ -374,7 +374,7 @@ static void test_lib_tags() {
     assert(!more);
 
     libvgmstream_tags_free(tags);
-    libvgmstream_streamfile_close(libsf);
+    libstreamfile_close(libsf);
 }
 
 

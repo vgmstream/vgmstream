@@ -12,14 +12,14 @@
 
 
 enum {
-    LIBVGMSTREAM_STREAMFILE_SEEK_SET            = 0,
-    LIBVGMSTREAM_STREAMFILE_SEEK_CUR            = 1,
-    LIBVGMSTREAM_STREAMFILE_SEEK_END            = 2,
-  //LIBVGMSTREAM_STREAMFILE_SEEK_GET_OFFSET     = 3,
-  //LIBVGMSTREAM_STREAMFILE_SEEK_GET_SIZE       = 5,
+    LIBSTREAMFILE_SEEK_SET            = 0,
+    LIBSTREAMFILE_SEEK_CUR            = 1,
+    LIBSTREAMFILE_SEEK_END            = 2,
+  //LIBSTREAMFILE_SEEK_GET_OFFSET     = 3,
+  //LIBSTREAMFILE_SEEK_GET_SIZE       = 5,
 };
 
-// maybe libvgmstream_streamfile_t but it was getting unwieldly
+// maybe "libvgmstream_streamfile_t" but it was getting unwieldly
 typedef struct libstreamfile_t {
     //uint32_t flags;   // info flags for vgmstream
     void* user_data;    // any internal structure
@@ -54,14 +54,14 @@ typedef struct libstreamfile_t {
 
 
 /* helper */
-static inline void libvgmstream_streamfile_close(libstreamfile_t* libsf) {
+static inline void libstreamfile_close(libstreamfile_t* libsf) {
     if (!libsf || !libsf->close)
         return;
     libsf->close(libsf);
 }
 
 
-LIBVGMSTREAM_API libstreamfile_t* libvgmstream_streamfile_open_from_stdio(const char* filename);
+LIBVGMSTREAM_API libstreamfile_t* libstreamfile_open_from_stdio(const char* filename);
 
 #endif
 #endif

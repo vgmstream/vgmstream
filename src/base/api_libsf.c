@@ -1,7 +1,7 @@
 #include "api_internal.h"
 #if LIBVGMSTREAM_ENABLE
 
-static libstreamfile_t* libvgmstream_streamfile_from_streamfile(STREAMFILE* sf);
+static libstreamfile_t* libstreamfile_from_streamfile(STREAMFILE* sf);
 
 /* libstreamfile_t for external use, as a default implementation calling some internal SF */
 
@@ -29,12 +29,12 @@ static int64_t libsf_seek(void* user_data, int64_t offset, int whence) {
         return -1;
 
     switch (whence) {
-        case LIBVGMSTREAM_STREAMFILE_SEEK_SET: /* absolute */
+        case LIBSTREAMFILE_SEEK_SET: /* absolute */
             break;
-        case LIBVGMSTREAM_STREAMFILE_SEEK_CUR: /* relative to current */
+        case LIBSTREAMFILE_SEEK_CUR: /* relative to current */
             offset += data->offset;
             break;
-        case LIBVGMSTREAM_STREAMFILE_SEEK_END: /* relative to file end (should be negative) */
+        case LIBSTREAMFILE_SEEK_END: /* relative to file end (should be negative) */
             offset += data->size;
             break;
         default:
@@ -80,7 +80,7 @@ struct libstreamfile_t* libsf_open(void* user_data, const char* filename) {
     if (!sf)
         return NULL;
 
-    libstreamfile_t* libsf = libvgmstream_streamfile_from_streamfile(sf);
+    libstreamfile_t* libsf = libstreamfile_from_streamfile(sf);
     if (!libsf) {
         close_streamfile(sf);
         return NULL;
@@ -101,7 +101,7 @@ static void libsf_close(struct libstreamfile_t* libsf) {
     free(libsf);
 }
 
-static libstreamfile_t* libvgmstream_streamfile_from_streamfile(STREAMFILE* sf) {
+static libstreamfile_t* libstreamfile_from_streamfile(STREAMFILE* sf) {
     if (!sf)
         return NULL;
 
@@ -132,12 +132,12 @@ fail:
 }
 
 
-LIBVGMSTREAM_API libstreamfile_t* libvgmstream_streamfile_open_from_stdio(const char* filename) {
+LIBVGMSTREAM_API libstreamfile_t* libstreamfile_open_from_stdio(const char* filename) {
     STREAMFILE* sf = open_stdio_streamfile(filename);
     if (!sf)
         return NULL;
 
-    libstreamfile_t* libsf = libvgmstream_streamfile_from_streamfile(sf);
+    libstreamfile_t* libsf = libstreamfile_from_streamfile(sf);
     if (!libsf) {
         close_streamfile(sf);
         return NULL;

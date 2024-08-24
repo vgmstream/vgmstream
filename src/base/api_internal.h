@@ -11,6 +11,8 @@
 #define LIBVGMSTREAM_ERROR_GENERIC  -1
 #define LIBVGMSTREAM_ERROR_DONE  -2
 
+#define INTERNAL_BUF_SAMPLES  1024
+
 /* self-note: various API functions are just bridges to internal stuff.
  * Rather than changing the internal stuff to handle API structs/etc,
  * leave internals untouched for a while so external plugins/users may adapt.
@@ -21,7 +23,8 @@ typedef struct {
     void* data;
 
     /* config */
-    int channels;
+    int input_channels;
+    int output_channels;
     int max_bytes;
     int max_samples;
     int sample_size;
