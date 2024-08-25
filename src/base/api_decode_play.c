@@ -24,9 +24,13 @@ static bool reset_buf(libvgmstream_priv_t* priv) {
         priv->buf.input_channels = priv->buf.output_channels;
 
     priv->buf.sample_size = sizeof(sample_t);
+    //priv->buf.sample_size = sizeof(float);
     priv->buf.max_samples = INTERNAL_BUF_SAMPLES;
-    priv->buf.max_bytes = priv->buf.max_samples * priv->buf.sample_size * priv->buf.input_channels;
-    priv->buf.data = malloc(priv->buf.max_bytes);
+    
+    int max_sample_size = sizeof(sample_t);
+    //int max_sample_size = sizeof(float);
+    int max_bytes = priv->buf.max_samples * max_sample_size * priv->buf.input_channels;
+    priv->buf.data = malloc(max_bytes);
     if (!priv->buf.data) return false;
 
     priv->buf.initialized = true;

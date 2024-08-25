@@ -25,7 +25,6 @@ typedef struct {
     /* config */
     int input_channels;
     int output_channels;
-    int max_bytes;
     int max_samples;
     int sample_size;
 

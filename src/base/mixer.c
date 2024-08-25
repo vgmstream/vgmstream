@@ -86,9 +86,8 @@ void mixer_process(mixer_t* mixer, sbuf_t* sbuf, int32_t current_pos) {
         mixer->current_subpos = current_pos;
     }
 
-    // upgrade buf for mixing (somehow using float buf rather than int32 is faster?)
+    // remix to temp buf for mixing (somehow using float buf rather than int32 is faster?)
     sbuf_copy_to_f32(mixer->mixbuf, sbuf);
-    //sbuf_copy_s16_to_f32(mixer->mixbuf, outbuf, sample_count, mixer->input_channels);
 
     // apply mixing ops in order. current_channels may increase or decrease per op
     // - 2ch w/ "1+2,1u" = ch1+ch2, ch1(add and push rest) = 3ch: ch1' ch1+ch2 ch2
@@ -112,8 +111,9 @@ void mixer_process(mixer_t* mixer, sbuf_t* sbuf, int32_t current_pos) {
         }
     }
 
-    // downgrade mix to original output (with new channels)
-    sbuf->channels = mixer->output_channels;
+    // setup + remix to output buf (buf is expected to be big enough to handle config)
+    sbuf->channels = mixer->output_channels; // new channels
+    //if (force_float) sbuf->fmt = SFMT_FLT; // new format
+    //if (force_pcm16) sbuf->fmt = SFMT_PCM16; // new format
     sbuf_copy_from_f32(sbuf, mixer->mixbuf);
-    //sbuf_copy_f32_to_s16(outbuf, mixer->mixbuf, sbuf->filled, mixer->output_channels);
 }

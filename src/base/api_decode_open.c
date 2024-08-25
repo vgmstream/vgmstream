@@ -59,12 +59,25 @@ static void update_position(libvgmstream_priv_t* priv) {
     pos->current = 0;
 }
 
+static int get_sample_size(libvgmstream_sample_t sample_type) {
+    switch(sample_type) {
+        case LIBVGMSTREAM_SAMPLE_PCM24:
+        case LIBVGMSTREAM_SAMPLE_PCM32:
+        case LIBVGMSTREAM_SAMPLE_FLOAT:
+            return 0x04;
+        case LIBVGMSTREAM_SAMPLE_PCM16:
+        default:
+            return 0x02;
+    }
+}
+
 static void update_format_info(libvgmstream_priv_t* priv) {
     libvgmstream_format_t* fmt = &priv->fmt;
     VGMSTREAM* v = priv->vgmstream;
 
-    fmt->sample_size = 0x02;
     fmt->sample_type = LIBVGMSTREAM_SAMPLE_PCM16; 
+    //fmt->sample_type = LIBVGMSTREAM_SAMPLE_FLOAT; 
+    fmt->sample_size = get_sample_size(fmt->sample_type);
     fmt->sample_rate = v->sample_rate;
 
     fmt->subsong_index = v->stream_index;
