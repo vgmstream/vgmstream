@@ -3,10 +3,11 @@
 
 #include "../vgmstream.h"
 #include "../util/log.h"
+#include "sbuf.h"
 
 /* Applies mixing commands to the sample buffer. Mixing must be externally enabled and
  * outbuf must big enough to hold output_channels*samples_to_do */
-void mix_vgmstream(sample_t *outbuf, int32_t sample_count, VGMSTREAM* vgmstream);
+void mix_vgmstream(sbuf_t* sbuf, VGMSTREAM* vgmstream);
 
 /* Call to let vgmstream apply mixing, which must handle input/output_channels.
  * Once mixing is active any new mixes are ignored (to avoid the possibility

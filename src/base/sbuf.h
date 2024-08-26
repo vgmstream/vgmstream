@@ -15,7 +15,7 @@ typedef enum {
 } sfmt_t;
 
 
-/* simple buffer info for internal mixing
+/* simple buffer info to pass around, for internal mixing
  * meant to held existing sound buffer pointers rather than alloc'ing directly (some ops will swap/move its internals) */
 typedef struct {
     void* buf;          /* current sample buffer */
@@ -30,9 +30,12 @@ void sbuf_init_s16(sbuf_t* sbuf, int16_t* buf, int samples, int channels);
 
 void sbuf_init_f32(sbuf_t* sbuf, float* buf, int samples, int channels);
 
+void* sbuf_get_filled_buf(sbuf_t* sbuf);
+
 //void sbuf_clamp(sbuf_t* sbuf, int samples);
 
-//void sbuf_consume(sbuf_t* sbuf, int samples);
+/* move buf by samples amount to simplify some code (will lose base buf pointer) */
+void sbuf_consume(sbuf_t* sbuf, int count);
 
 /* it's probably slightly faster to make those inline'd, but aren't called that often to matter (given big enough total samples) */
 
@@ -46,7 +49,11 @@ void sbuf_copy_samples(sample_t* dst, int dst_channels, sample_t* src, int src_c
 void sbuf_copy_layers(sample_t* dst, int dst_channels, sample_t* src, int src_channels, int samples_to_do, int samples_filled, int dst_ch_start);
 
 void sbuf_silence_s16(sample_t* dst, int samples, int channels, int filled);
+void sbuf_silence_rest(sbuf_t* sbuf);
+void sbuf_silence_part(sbuf_t* sbuf, int from, int count);
 
 bool sbuf_realloc(sample_t** dst, int samples, int channels);
+
+void sbuf_fadeout(sbuf_t* sbuf, int start, int to_do, int fade_pos, int fade_duration);
 
 #endif

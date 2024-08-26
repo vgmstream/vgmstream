@@ -53,15 +53,15 @@ static int32_t get_current_pos(VGMSTREAM* vgmstream, int32_t sample_count) {
     return current_pos;
 }
 
-void mix_vgmstream(sample_t *outbuf, int32_t sample_count, VGMSTREAM* vgmstream) {
+void mix_vgmstream(sbuf_t* sbuf, VGMSTREAM* vgmstream) {
     /* no support or not need to apply */
     if (!mixer_is_active(vgmstream->mixer))
         return;
 
-    sbuf_t sbuf_tmp;
-    sbuf_t* sbuf = &sbuf_tmp;
-    sbuf_init_s16(sbuf, outbuf, sample_count, vgmstream->channels);
-    sbuf->filled = sbuf->samples;
+    //sbuf_t sbuf_tmp;
+    //sbuf_t* sbuf = &sbuf_tmp;
+    //sbuf_init_s16(sbuf, outbuf, sample_count, vgmstream->channels);
+    //sbuf->filled = sbuf->samples;
 
     int32_t current_pos = get_current_pos(vgmstream, sbuf->filled);
 

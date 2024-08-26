@@ -22,6 +22,41 @@ void sbuf_init_f32(sbuf_t* sbuf, float* buf, int samples, int channels) {
 }
 
 
+static int get_sample_size(sfmt_t fmt) {
+    switch(fmt) {
+        case SFMT_F32:
+        case SFMT_FLT:
+            return 0x04;
+        case SFMT_S16:
+            return 0x02;
+        default:
+            return 0;
+    }
+}
+
+void* sbuf_get_filled_buf(sbuf_t* sbuf) {
+    int sample_size = get_sample_size(sbuf->fmt);
+
+    uint8_t* buf = sbuf->buf;
+    buf += sbuf->filled * sbuf->channels * sample_size;
+    return buf;
+}
+
+void sbuf_consume(sbuf_t* sbuf, int count) {
+    int sample_size = get_sample_size(sbuf->fmt);
+    if (sample_size <= 0)
+        return;
+    if (count > sbuf->samples || count > sbuf->filled) //TODO?
+        return;
+
+    uint8_t* buf = sbuf->buf;
+    buf += count * sbuf->channels * sample_size;
+
+    sbuf->buf = buf;
+    sbuf->filled -= count;
+    sbuf->samples -= count;
+}
+
 /* when casting float to int, value is simply truncated:
  * - (int)1.7 = 1, (int)-1.7 = -1
  * alts for more accurate rounding could be:
@@ -37,6 +72,16 @@ void sbuf_init_f32(sbuf_t* sbuf, float* buf, int samples, int channels) {
  * It's slightly faster (~5%) but causes fuzzy PCM<>float<>PCM conversions.
  */
 static inline int float_to_int(float val) {
+#if 1
+    return (int)val;
+#elif defined(_MSC_VER)
+    return (int)val;
+#else
+    return lrintf(val);
+#endif
+}
+
+static inline int double_to_int(double val) {
 #if 1
     return (int)val;
 #elif defined(_MSC_VER)
@@ -136,7 +181,19 @@ void sbuf_copy_layers(sample_t* dst, int dst_channels, sample_t* src, int src_ch
 }
 
 void sbuf_silence_s16(sample_t* dst, int samples, int channels, int filled) {
-    memset(dst + filled * channels, 0, (samples - filled) * channels * sizeof(sample_t));   
+    memset(dst + filled * channels, 0, (samples - filled) * channels * sizeof(sample_t));
+}
+
+void sbuf_silence_part(sbuf_t* sbuf, int from, int count) {
+    int sample_size = get_sample_size(sbuf->fmt);
+
+    uint8_t* buf = sbuf->buf;
+    buf += from * sbuf->channels * sample_size;
+    memset(buf, 0, count * sbuf->channels * sample_size);
+}
+
+void sbuf_silence_rest(sbuf_t* sbuf) {
+    sbuf_silence_part(sbuf, sbuf->filled, sbuf->samples - sbuf->filled);
 }
 
 bool sbuf_realloc(sample_t** dst, int samples, int channels) {
@@ -145,4 +202,50 @@ bool sbuf_realloc(sample_t** dst, int samples, int channels) {
 
     *dst = outbuf_re;
     return true;
+}
+
+void sbuf_fadeout(sbuf_t* sbuf, int start, int to_do, int fade_pos, int fade_duration) {
+    //TODO: use interpolated fadedness to improve performance?
+    //TODO: use float fadedness?
+    
+    int s = start * sbuf->channels;
+    int s_end = (start + to_do) * sbuf->channels;
+            
+
+    switch(sbuf->fmt) {
+        case SFMT_S16: {
+            int16_t* buf = sbuf->buf;
+            while (s < s_end) {
+                double fadedness = (double)(fade_duration - fade_pos) / fade_duration;
+                fade_pos++;
+
+                for (int ch = 0; ch < sbuf->channels; ch++) {
+                    buf[s] = double_to_int(buf[s] * fadedness);
+                    s++;
+                }
+            }
+            break;
+        }
+
+        case SFMT_FLT:
+        case SFMT_F32: {
+            float* buf = sbuf->buf;
+            while (s < s_end) {
+                double fadedness = (double)(fade_duration - fade_pos) / fade_duration;
+                fade_pos++;
+
+                for (int ch = 0; ch < sbuf->channels; ch++) {
+                    buf[s] = double_to_int(buf[s] * fadedness);
+                    s++;
+                }
+            }
+            break;
+        }
+        default:
+            break;
+    }
+
+    /* next samples after fade end would be pad end/silence */
+    int count = sbuf->filled - (start + to_do);
+    sbuf_silence_part(sbuf, start + to_do, count);
 }
