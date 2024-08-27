@@ -1326,6 +1326,12 @@ static const hcakey_info hcakey_list[] = {
         // Code Geass: Lost Stories (Android)
         {9182735170},           // 0000000223556B42
 
+        // Super Robot Wars DD (Android)
+        {464113616464131416},           // 0670DCE00CC43558
+
+        // Ange Re:Link (Android)
+        {9666854456},           // 0000000240307E38
+
 };
 
 #endif/*_HCA_KEYS_H_*/
