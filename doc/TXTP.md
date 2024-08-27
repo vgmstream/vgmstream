@@ -35,6 +35,12 @@ field.bfstm #C3,4
 # notice it has the original filename + extension, then commands, then .txtp
 ```
 
+**bgm01-loop-repeat.txtp**
+```
+bgm01.fsb #e
+```
+
+
 ## TXTP MODES
 TXTP can join and play together multiple songs in various ways by setting a file list and mode:
 ```

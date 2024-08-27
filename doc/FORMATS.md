@@ -325,10 +325,6 @@ different internally (encrypted, different versions, etc) and not always can be 
   - *xwb*: `.xwb .xna .hwb .bd .(extensionless) + .wbh`
     - Subfiles: *riff*
   - Codecs: PCM8_U PCM16LE PCM16BE XBOX_IMA MSADPCM XMA1 XMA2 FFmpeg(various) XWMA ATRAC3 OGG_VORBIS NGC_DSP
-- **ps2_xa30.c**
-  - Reflections XA30 PS2 header [*PS2_XA30*]
-  - *ps2_xa30*: `.xa .xa30`
-  - Codecs: PSX
 - **musc.c**
   - Krome MUSC header [*MUSC*]
   - *musc*: `.mus .musc`
@@ -422,10 +418,6 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Falcom .DEC RIFF header [*DEC*]
   - *dec*: `.dec .de2 + .(external)`
   - Codecs: MSADPCM
-- **vs.c**
-  - Melbourne House .VS header [*VS*]
-  - *vs*: `.vs`
-  - Codecs: PSX
 - **xmu.c**
   - Outrage XMU header [*XMU*]
   - *xmu*: `.xmu`
@@ -1047,7 +1039,7 @@ different internally (encrypted, different versions, etc) and not always can be 
 - **xa_xa30.c**
   - Reflections XA30 header [*XA_XA30*]
   - *xa_xa30*: `.xa .xa30 .e4x`
-  - Codecs: PCM16LE REF_IMA
+  - Codecs: PCM16LE REF_IMA PSX
 - **xa_04sw.c**
   - Reflections 04SW header [*XA_04SW*]
   - *xa_04sw*: `.xa`
@@ -1878,6 +1870,10 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Konami .PCM header [*PCM_KCEJE*]
   - *pcm_kceje*: `.pcm`
   - Codecs: PCM16LE
+- **vs.c**
+  - Melbourne House .VS header [*VS_MH*]
+  - *vs_mh*: `.vs`
+  - Codecs: PSX
 - **pos.c**
   - RIFF WAVE header (.pos looping) [*RIFF_WAVE_POS*]
   - *pos*: `.pos + .wav`
@@ -1892,7 +1888,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Codecs: NGC_DTK
 - **mpeg.c**
   - MPEG header [*MPEG*]
-  - *mpeg*: `.mp3 .mp2 .lmp3 .lmp2 .mus .imf .aix .wav .lwav .(extensionless)`
+  - *mpeg*: `.mp3 .mp2 .lmp3 .lmp2 .mus .imf .aix .wav .lwav .nfx .(extensionless)`
   - Codecs: MPEG
 - **btsnd.c**
   - Nintendo Wii U Menu Boot Sound header [*BTSND*]
