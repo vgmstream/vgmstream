@@ -1,10 +1,10 @@
+#include <math.h>
+#include <limits.h>
 #include "../vgmstream.h"
 #include "../util/channel_mappings.h"
 #include "../layout/layout.h"
 #include "mixing.h"
 #include "mixer_priv.h"
-#include <math.h>
-#include <limits.h>
 
 
 #define MIX_MACRO_VOCALS  'v'
@@ -471,7 +471,7 @@ typedef enum {
 
 void mixing_macro_downmix(VGMSTREAM* vgmstream, int max /*, mapping_t output_mapping*/) {
     mixer_t* mixer = vgmstream->mixer;
-    int ch, output_channels, mp_in, mp_out, ch_in, ch_out;
+    int output_channels, mp_in, mp_out, ch_in, ch_out;
     channel_mapping_t input_mapping, output_mapping;
     const double vol_max = 1.0;
     const double vol_sqrt = 1 / sqrt(2);
@@ -534,7 +534,7 @@ void mixing_macro_downmix(VGMSTREAM* vgmstream, int max /*, mapping_t output_map
 
     /* save and make N fake channels at the beginning for easier calcs */
     output_channels = mixer->output_channels;
-    for (ch = 0; ch < max; ch++) {
+    for (int ch = 0; ch < max; ch++) {
         mixing_push_upmix(vgmstream, 0);
     }
 
@@ -542,13 +542,13 @@ void mixing_macro_downmix(VGMSTREAM* vgmstream, int max /*, mapping_t output_map
     ch_in = 0;
     for (mp_in = 0; mp_in < 16; mp_in++) {
         /* read input mapping (ex. 5.1) and find channel */
-        if (!(input_mapping & (1<<mp_in)))
+        if (!(input_mapping & (1 << mp_in)))
             continue;
 
         ch_out = 0;
         for (mp_out = 0; mp_out < 16; mp_out++) {
             /* read output mapping (ex. 2.0) and find channel */
-            if (!(output_mapping & (1<<mp_out)))
+            if (!(output_mapping & (1 << mp_out)))
                 continue;
             mixing_push_add(vgmstream, ch_out, max + ch_in, matrix[mp_in][mp_out]);
 
@@ -564,4 +564,17 @@ void mixing_macro_downmix(VGMSTREAM* vgmstream, int max /*, mapping_t output_map
 
     /* remove unneeded channels */
     mixing_push_killmix(vgmstream, max);
+}
+
+
+void mixing_macro_output_sample_format(VGMSTREAM* vgmstream, sfmt_t type) {
+    mixer_t* mixer = vgmstream->mixer;
+    if (!mixer)
+        return;
+
+    // optimization (may skip initializing mixer)
+    sfmt_t input_fmt = mixing_get_input_sample_type(vgmstream);
+    if (input_fmt == type)
+        return;
+    mixer->force_type = type;
 }

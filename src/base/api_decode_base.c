@@ -1,4 +1,5 @@
 #include "api_internal.h"
+#include "mixing.h"
 #if LIBVGMSTREAM_ENABLE
 
 #define INTERNAL_BUF_SAMPLES  1024
@@ -79,6 +80,29 @@ void libvgmstream_priv_reset(libvgmstream_priv_t* priv, bool reset_buf) {
 
     priv->pos.current = 0;
     priv->decode_done = false;
+}
+
+libvgmstream_sample_t api_get_output_sample_type(libvgmstream_priv_t* priv) {
+    VGMSTREAM* v = priv->vgmstream;
+    sfmt_t format = mixing_get_output_sample_type(v);
+    switch(format) {
+        case SFMT_S16: return LIBVGMSTREAM_SAMPLE_PCM16;
+        case SFMT_FLT: return LIBVGMSTREAM_SAMPLE_FLOAT;
+        default:
+            return 0x00; //???
+    }
+}
+
+int api_get_sample_size(libvgmstream_sample_t sample_type) {
+    switch(sample_type) {
+        case LIBVGMSTREAM_SAMPLE_PCM24:
+        case LIBVGMSTREAM_SAMPLE_PCM32:
+        case LIBVGMSTREAM_SAMPLE_FLOAT:
+            return 0x04;
+        case LIBVGMSTREAM_SAMPLE_PCM16:
+        default:
+            return 0x02;
+    }
 }
 
 #endif

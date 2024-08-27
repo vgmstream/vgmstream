@@ -30,7 +30,9 @@ void sbuf_init_s16(sbuf_t* sbuf, int16_t* buf, int samples, int channels);
 
 void sbuf_init_f32(sbuf_t* sbuf, float* buf, int samples, int channels);
 
-void* sbuf_get_filled_buf(sbuf_t* sbuf);
+int sfmt_get_sample_size(sfmt_t fmt);
+
+//void* sbuf_get_filled_buf(sbuf_t* sbuf);
 
 //void sbuf_clamp(sbuf_t* sbuf, int samples);
 

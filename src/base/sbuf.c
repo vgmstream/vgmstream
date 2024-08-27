@@ -22,7 +22,7 @@ void sbuf_init_f32(sbuf_t* sbuf, float* buf, int samples, int channels) {
 }
 
 
-static int get_sample_size(sfmt_t fmt) {
+int sfmt_get_sample_size(sfmt_t fmt) {
     switch(fmt) {
         case SFMT_F32:
         case SFMT_FLT:
@@ -34,16 +34,18 @@ static int get_sample_size(sfmt_t fmt) {
     }
 }
 
+#if 0
 void* sbuf_get_filled_buf(sbuf_t* sbuf) {
-    int sample_size = get_sample_size(sbuf->fmt);
+    int sample_size = sfmt_get_sample_size(sbuf->fmt);
 
     uint8_t* buf = sbuf->buf;
     buf += sbuf->filled * sbuf->channels * sample_size;
     return buf;
 }
+#endif
 
 void sbuf_consume(sbuf_t* sbuf, int count) {
-    int sample_size = get_sample_size(sbuf->fmt);
+    int sample_size = sfmt_get_sample_size(sbuf->fmt);
     if (sample_size <= 0)
         return;
     if (count > sbuf->samples || count > sbuf->filled) //TODO?
@@ -87,8 +89,12 @@ static inline int double_to_int(double val) {
 #elif defined(_MSC_VER)
     return (int)val;
 #else
-    return lrintf(val);
+    return lrint(val);
 #endif
+}
+
+static inline float double_to_float(double val) {
+    return (float)val;
 }
 
 //TODO decide if using float 1.0 style or 32767 style (fuzzy PCM when doing that)
@@ -185,7 +191,7 @@ void sbuf_silence_s16(sample_t* dst, int samples, int channels, int filled) {
 }
 
 void sbuf_silence_part(sbuf_t* sbuf, int from, int count) {
-    int sample_size = get_sample_size(sbuf->fmt);
+    int sample_size = sfmt_get_sample_size(sbuf->fmt);
 
     uint8_t* buf = sbuf->buf;
     buf += from * sbuf->channels * sample_size;
@@ -235,7 +241,7 @@ void sbuf_fadeout(sbuf_t* sbuf, int start, int to_do, int fade_pos, int fade_dur
                 fade_pos++;
 
                 for (int ch = 0; ch < sbuf->channels; ch++) {
-                    buf[s] = double_to_int(buf[s] * fadedness);
+                    buf[s] = double_to_float(buf[s] * fadedness);
                     s++;
                 }
             }

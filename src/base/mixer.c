@@ -62,17 +62,23 @@ void mixer_update_channel(mixer_t* mixer) {
 
 bool mixer_is_active(mixer_t* mixer) {
     /* no support or not need to apply */
-    if (!mixer || !mixer->active || mixer->chain_count == 0)
+    if (!mixer || !mixer->active)
         return false;
 
-    return true;
+    if (mixer->chain_count > 0)
+        return true;
+
+    if (mixer->force_type != SFMT_NONE)
+        return true;
+
+    return false;
 }
 
 void mixer_process(mixer_t* mixer, sbuf_t* sbuf, int32_t current_pos) {
 
-    /* no support or not need to apply */
-    if (!mixer || !mixer->active || mixer->chain_count == 0)
-        return;
+    /* external */
+    //if (!mixer_is_active(mixer))
+    //    return;
 
     /* try to skip if no fades apply (set but does nothing yet) + only has fades 
      * (could be done in mix op but avoids upgrading bufs in some cases) */
@@ -112,8 +118,10 @@ void mixer_process(mixer_t* mixer, sbuf_t* sbuf, int32_t current_pos) {
     }
 
     // setup + remix to output buf (buf is expected to be big enough to handle config)
-    sbuf->channels = mixer->output_channels; // new channels
-    //if (force_float) sbuf->fmt = SFMT_FLT; // new format
-    //if (force_pcm16) sbuf->fmt = SFMT_PCM16; // new format
+    sbuf->channels = mixer->output_channels;
+    if (mixer->force_type) {
+        sbuf->fmt = mixer->force_type;
+    }
+
     sbuf_copy_from_f32(sbuf, mixer->mixbuf);
 }

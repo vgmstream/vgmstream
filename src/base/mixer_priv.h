@@ -2,6 +2,7 @@
 #define _MIXER_PRIV_H_
 #include "../streamtypes.h"
 #include "mixer.h"
+#include "sbuf.h"
 
 #define VGMSTREAM_MAX_MIXING 512
 
@@ -52,6 +53,7 @@ struct mixer_t {
     int current_channels;   /* state: channels may increase/decrease during ops */
     int32_t current_subpos; /* state: current sample pos in the stream */
 
+    sfmt_t force_type;
 };
 
 void mixer_op_swap(mixer_t* mixer, int32_t sample_count, mix_op_t* op);

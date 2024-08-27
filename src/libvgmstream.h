@@ -188,6 +188,7 @@ typedef struct {
                                             // ** this type of downmixing is very simplistic and not recommended
 
     bool force_pcm16;                       // forces output buffer to be remixed into PCM16
+    bool force_float;                       // forces output buffer to be remixed into float
 
 } libvgmstream_config_t;
 
