@@ -147,7 +147,7 @@ void render_vgmstream_interleave(sample_t* outbuf, int32_t sample_count, VGMSTRE
     layout_config_t layout = {0};
     if (!setup_helper(&layout, vgmstream)) {
         VGM_LOG_ONCE("INTERLEAVE: wrong config found\n");
-        sbuf_silence(outbuf, sample_count, vgmstream->channels, 0);
+        sbuf_silence_s16(outbuf, sample_count, vgmstream->channels, 0);
         return;
     }
 
@@ -193,5 +193,5 @@ void render_vgmstream_interleave(sample_t* outbuf, int32_t sample_count, VGMSTRE
 
     return;
 decode_fail:
-    sbuf_silence(outbuf, sample_count, vgmstream->channels, samples_filled);
+    sbuf_silence_s16(outbuf, sample_count, vgmstream->channels, samples_filled);
 }

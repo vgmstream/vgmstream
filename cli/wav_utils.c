@@ -79,7 +79,7 @@ size_t wav_make_header(uint8_t* buf, size_t buf_size, wav_header_t* wav) {
 
     if (!wav->sample_size)
         wav->sample_size = sizeof(short);
-    if (wav->sample_size <= 0 || wav->sample_size >= 4)
+    if (wav->sample_size <= 0x00 || wav->sample_size > 0x04)
         return 0;
 
     size_t data_size = wav->sample_count * wav->channels * wav->sample_size;

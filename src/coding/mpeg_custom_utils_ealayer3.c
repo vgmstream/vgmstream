@@ -698,7 +698,7 @@ static int ealayer3_write_pcm_block(VGMSTREAMCHANNEL* stream, mpeg_codec_data* d
 
 
     bytes_filled = sizeof(sample_t) * ms->samples_filled * channels_per_frame;
-    if (bytes_filled + eaf->pcm_size > ms->output_buffer_size) {
+    if (bytes_filled + eaf->pcm_size > ms->sbuf_size) {
         VGM_LOG("EAL3: can't fill the sample buffer with 0x%x\n", eaf->pcm_size);
         goto fail;
     }
@@ -709,9 +709,11 @@ static int ealayer3_write_pcm_block(VGMSTREAMCHANNEL* stream, mpeg_codec_data* d
     }
 
     if (eaf->v1_pcm_samples || eaf->v1_offset_samples) {
-        uint8_t* outbuf = ms->output_buffer + bytes_filled;
+        uint8_t* outbuf = ms->sbuf;
         off_t pcm_offset = stream->offset + eaf->pre_size + eaf->common_size;
         size_t decode_to_discard;
+
+        outbuf += bytes_filled;
 
         VGM_ASSERT(eaf->v1_offset_samples > 576, "EAL3: big discard %i at 0x%x\n", eaf->v1_offset_samples, (uint32_t)stream->offset);
         VGM_ASSERT(eaf->v1_pcm_samples > 0x100, "EAL3: big samples %i at 0x%x\n", eaf->v1_pcm_samples, (uint32_t)stream->offset);
@@ -742,9 +744,11 @@ static int ealayer3_write_pcm_block(VGMSTREAMCHANNEL* stream, mpeg_codec_data* d
     }
 
     if (eaf->v2_extended_flag) {
-        uint8_t* outbuf = ms->output_buffer + bytes_filled;
+        uint8_t* outbuf = ms->sbuf;
         off_t pcm_offset = stream->offset + eaf->pre_size + eaf->common_size;
         size_t usable_samples, decode_to_discard;
+
+        outbuf += bytes_filled;
 
         /* V2P usually only copies big PCM, while V2S discards then copies few samples (similar to V1b).
          * Unlike V1b, both modes seem to use 'packed' PCM block */

@@ -92,7 +92,7 @@ void render_vgmstream_blocked(sample_t* outbuf, int32_t sample_count, VGMSTREAM*
 
     return;
 decode_fail:
-    sbuf_silence(outbuf, sample_count, vgmstream->channels, samples_filled);
+    sbuf_silence_s16(outbuf, sample_count, vgmstream->channels, samples_filled);
 }
 
 /* helper functions to parse new block */

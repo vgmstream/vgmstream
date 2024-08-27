@@ -2,11 +2,12 @@
 #define _MIXING_H_
 
 #include "../vgmstream.h"
-#include "../util/log.h"
+#include "../util/log.h" //TODO remove
+#include "sbuf.h"
 
 /* Applies mixing commands to the sample buffer. Mixing must be externally enabled and
  * outbuf must big enough to hold output_channels*samples_to_do */
-void mix_vgmstream(sample_t *outbuf, int32_t sample_count, VGMSTREAM* vgmstream);
+void mix_vgmstream(sbuf_t* sbuf, VGMSTREAM* vgmstream);
 
 /* Call to let vgmstream apply mixing, which must handle input/output_channels.
  * Once mixing is active any new mixes are ignored (to avoid the possibility
@@ -14,7 +15,10 @@ void mix_vgmstream(sample_t *outbuf, int32_t sample_count, VGMSTREAM* vgmstream)
 void mixing_setup(VGMSTREAM* vgmstream, int32_t max_sample_count);
 
 /* gets current mixing info */
-void mixing_info(VGMSTREAM* vgmstream, int *input_channels, int *output_channels);
+void mixing_info(VGMSTREAM* vgmstream, int* input_channels, int* output_channels);
+
+sfmt_t mixing_get_input_sample_type(VGMSTREAM* vgmstream);
+sfmt_t mixing_get_output_sample_type(VGMSTREAM* vgmstream);
 
 /* adds mixes filtering and optimizing if needed */
 void mixing_push_swap(VGMSTREAM* vgmstream, int ch_dst, int ch_src);
@@ -32,6 +36,7 @@ void mixing_macro_layer(VGMSTREAM* vgmstream, int max, uint32_t mask, char mode)
 void mixing_macro_crosstrack(VGMSTREAM* vgmstream, int max);
 void mixing_macro_crosslayer(VGMSTREAM* vgmstream, int max, char mode);
 void mixing_macro_downmix(VGMSTREAM* vgmstream, int max /*, mapping_t output_mapping*/);
+void mixing_macro_output_sample_format(VGMSTREAM* vgmstream, sfmt_t type);
 
 
 #endif

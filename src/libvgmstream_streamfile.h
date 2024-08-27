@@ -12,14 +12,15 @@
 
 
 enum {
-    LIBVGMSTREAM_STREAMFILE_SEEK_SET            = 0,
-    LIBVGMSTREAM_STREAMFILE_SEEK_CUR            = 1,
-    LIBVGMSTREAM_STREAMFILE_SEEK_END            = 2,
-  //LIBVGMSTREAM_STREAMFILE_SEEK_GET_OFFSET     = 3,
-  //LIBVGMSTREAM_STREAMFILE_SEEK_GET_SIZE       = 5,
+    LIBSTREAMFILE_SEEK_SET            = 0,
+    LIBSTREAMFILE_SEEK_CUR            = 1,
+    LIBSTREAMFILE_SEEK_END            = 2,
+  //LIBSTREAMFILE_SEEK_GET_OFFSET     = 3,
+  //LIBSTREAMFILE_SEEK_GET_SIZE       = 5,
 };
 
-typedef struct libvgmstream_streamfile_t {
+// maybe "libvgmstream_streamfile_t" but it was getting unwieldly
+typedef struct libstreamfile_t {
     //uint32_t flags;   // info flags for vgmstream
     void* user_data;    // any internal structure
 
@@ -44,23 +45,23 @@ typedef struct libvgmstream_streamfile_t {
     /* open another streamfile from filename (may be some path/protocol, or same as current get_name = reopen)
      * - vgmstream opens stuff based on current get_name (relative), so there shouldn't be need to transform this path
      */
-    struct libvgmstream_streamfile_t* (*open)(void* user_data, const char* filename);
+    struct libstreamfile_t* (*open)(void* user_data, const char* filename);
 
     /* free current SF (needed for copied streamfiles) */
-    void (*close)(struct libvgmstream_streamfile_t* libsf);
+    void (*close)(struct libstreamfile_t* libsf);
 
-} libvgmstream_streamfile_t;
+} libstreamfile_t;
 
 
 /* helper */
-static inline void libvgmstream_streamfile_close(libvgmstream_streamfile_t* libsf) {
+static inline void libstreamfile_close(libstreamfile_t* libsf) {
     if (!libsf || !libsf->close)
         return;
     libsf->close(libsf);
 }
 
 
-LIBVGMSTREAM_API libvgmstream_streamfile_t* libvgmstream_streamfile_open_from_stdio(const char* filename);
+LIBVGMSTREAM_API libstreamfile_t* libstreamfile_open_from_stdio(const char* filename);
 
 #endif
 #endif

@@ -67,7 +67,7 @@ Code is reasonably secure: some parts like IO are designed in a way should avoid
 
 Some of the code can be inefficient or duplicated at places, but it isn't that much of a problem if gives clarity. vgmstream's performance is fast enough (as it mainly deals with playing songs in real time) so that favors clarity over optimization. Performance bottlenecks are mainly:
 - I/O: since I/O is buffered it's possible to needlessly trash the buffers when reading previous/next offsets back and forth. It's better to read linearly using big enough data chunks and cache values.
-- for loops: since your average audio file contains millions of samples, this means lots of loops. Care should be taken to avoid unnecessary function calls or recalculations per single sample when multiple samples could be processed at once.
+- `for` loops: since your average audio file contains millions of samples, this means lots of loops. Care should be taken to avoid unnecessary function calls or recalculations per single sample when multiple samples could be processed at once.
 
 
 ## Source structure
@@ -83,6 +83,7 @@ Some of the code can be inefficient or duplicated at places, but it isn't that m
 ./src/               initial vgmstream code
 ./src/base/          core vgmstream features
 ./src/coding/        format data decoders
+./src/coding/lib/    lib-like decoders, external to vgmstream
 ./src/layout/        format data demuxers
 ./src/meta/          format header parsers
 ./src/util/          helpers
@@ -101,7 +102,7 @@ Quick list of some audio terms used through vgmstream, applied to code. Mainly m
 - audio sample: digital audio unit (single value) to define playable sound. A sound is a wave, and an array of many samples (digital) together make a wave (analog).
   - Each output channel has its own set of samples.
   - Normally `1 sample` actually means `1 sample for every channel` (common standard that makes code logic simpler).
-    - If an stereo file has `1000000` samples it actually means `2*1000000` total samples.
+    - If an stereo file has `1000000` samples it actually means `2 channels * 1000000` total samples.
 - sample rate: number of samples per second (in *hz*). Also called frequency.
   - If a file has a sample rate *44100hz* and lasts *30 seconds* this means `44100 * 30 = 1323000` samples.
   - Since many samples together make a wave, the higher the sample rate the more samples we have, and the better-sounding wave we get.
@@ -112,8 +113,8 @@ Quick list of some audio terms used through vgmstream, applied to code. Mainly m
 - block: a generic section of data, made of one or many frames for all channels.
 
 
-## Overview
-vgmstream works by parsing a music stream header (*meta/*), preparing/controlling data and sample buffers (*layout/*) and decoding the compressed data into listenable PCM samples (*coding/*).
+## Process overview
+vgmstream works by parsing audio header metadata (*meta/*), preparing + managing data and sample buffers (*layout/*) and decoding the compressed data into listenable PCM samples (*coding/*).
 
 Very simplified it goes like this:
 - player (CLI, plugin, etc) opens a file stream (STREAMFILE) *[plugin's main/decode]*
@@ -127,14 +128,11 @@ Very simplified it goes like this:
 - layout moves offsets back to loop_start when loop_end is reached *[decode_do_loop]*
 - player closes the VGMSTREAM once the stream is finished
 
-vgsmtream's main code (located in src) may be considered "libvgmstream", and plugins interface it through vgmstream.h, mainly the part commented as "vgmstream public API". There isn't a clean external API at the moment, this may be improved later.
 
-## Components
+## Internal parts
 
 ### STREAMFILEs
-Structs with I/O callbacks that vgmstream uses in place of stdio/FILEs. All I/O must be done through STREAMFILEs as it lets plugins set up their own. This includes reading data or opening other STREAMFILEs (ex. when a header has companion files that need to be parsed, or during setup).
-
-Players should open a base STREAMFILE and pass it to init_vgmstream. Once it's done this STREAMFILE must be closed, as internally vgmstream opens its own copy (using the base one's callbacks).
+Structs with I/O callbacks that vgmstream uses in place of stdio/FILEs. All I/O must be done through STREAMFILEs as it lets plugins set up their own I/O. This includes reading data or opening other STREAMFILEs (ex. when a header has companion files that need to be parsed, or during setup).
 
 For optimization purposes vgmstream may open a copy of the FILE per channel, as each has its own I/O buffer, and channel data can be too separate to fit a single buffer.
 
@@ -148,18 +146,18 @@ Certain metas combine those streamfiles together with special layouts to support
 
 
 ### VGMSTREAM
-The VGMSTREAM (caps) is the main struct created during init when a file is successfully recognized and parsed. It holds the file's configuration (channels, sample rate, decoder, layout, samples, loop points, etc) and decoder state (STREAMFILEs, offsets per channel, current sample, etc), and is used to interact with the API.
+The VGMSTREAM (caps) is the main struct created during init when a file is successfully recognized and parsed. It holds the file's configuration (channels, sample rate, decoder, layout, samples, loop points, etc) and decoder state (STREAMFILEs, offsets per channel, current sample, etc).
 
 ### metas
 Metadata (header) parsers that identify and handle formats.
 
 To add a new one:
-- *src/meta/(format-name).c*: create new init_vgmstream_(format-name) parser that tests the extension and header id, reads all needed info from the stream header and sets up the VGMSTREAM
+- *src/meta/(format-name).c*: create new `init_vgmstream_(format-name)` parser that tests the extension and header id, reads all needed info from the stream header and sets up the VGMSTREAM
 - *src/meta/meta.h*: define parser's init
-- *src/vgmstream.h*: define meta type in the meta_t list
-- *src/vgmstream.c*: add parser init to the init list
-- *src/formats.c*: add new extension to the format list, add meta type description
-- *src/libvgmstream.vcproj/vcxproj/filters*: add to compile new (format-name).c parser in VS
+- *src/vgmstream_types.h*: define meta type in the meta_t list
+- *src/vgmstream_init.c*: add parser init to the init list
+- *src/formats.c*: add new extension to the format list (if needed), add meta type description
+- *src/libvgmstream.vcproj/vcxproj/filters*: add to compile new (format-name).c parser in VS (may use `vspf.py` on root)
 - if the format needs an external library don't forget to mark optional parts with: *#ifdef VGM_USE_X ... #endif*
 
 Ultimately the meta must alloc the VGMSTREAM, set config and initial state. vgmstream needs the total of number samples to work, so at times must convert from data sizes to samples (doing calculations or using helpers).

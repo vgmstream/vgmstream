@@ -1,12 +1,12 @@
+#include <math.h>
+#include <limits.h>
 #include "../vgmstream.h"
 #include "../util/channel_mappings.h"
+#include "../layout/layout.h"
 #include "mixing.h"
 #include "mixer.h"
 #include "mixer_priv.h"
 #include "sbuf.h"
-#include "../layout/layout.h"
-#include <math.h>
-#include <limits.h>
 
 //TODO simplify
 /**
@@ -53,14 +53,14 @@ static int32_t get_current_pos(VGMSTREAM* vgmstream, int32_t sample_count) {
     return current_pos;
 }
 
-void mix_vgmstream(sample_t *outbuf, int32_t sample_count, VGMSTREAM* vgmstream) {
+void mix_vgmstream(sbuf_t* sbuf, VGMSTREAM* vgmstream) {
     /* no support or not need to apply */
     if (!mixer_is_active(vgmstream->mixer))
         return;
 
-    int32_t current_pos = get_current_pos(vgmstream, sample_count);
+    int32_t current_pos = get_current_pos(vgmstream, sbuf->filled);
 
-    mixer_process(vgmstream->mixer, outbuf, sample_count, current_pos);
+    mixer_process(vgmstream->mixer, sbuf, current_pos);
 }
 
 /* ******************************************************************* */
@@ -148,8 +148,11 @@ void mixing_info(VGMSTREAM* vgmstream, int* p_input_channels, int* p_output_chan
     mixer_t* mixer = vgmstream->mixer;
     int input_channels, output_channels;
 
-    if (!mixer)
-        goto fail;
+    if (!mixer) {
+        if (p_input_channels)  *p_input_channels = vgmstream->channels;
+        if (p_output_channels) *p_output_channels = vgmstream->channels;
+        return;
+    }
 
     output_channels = mixer->output_channels;
     if (mixer->output_channels > vgmstream->channels)
@@ -159,11 +162,22 @@ void mixing_info(VGMSTREAM* vgmstream, int* p_input_channels, int* p_output_chan
 
     if (p_input_channels)  *p_input_channels = input_channels;
     if (p_output_channels) *p_output_channels = output_channels;
+}
 
-    //;VGM_LOG("MIX: channels %i, in=%i, out=%i, mix=%i\n", vgmstream->channels, input_channels, output_channels, data->mixing_channels);
-    return;
-fail:
-    if (p_input_channels)  *p_input_channels = vgmstream->channels;
-    if (p_output_channels) *p_output_channels = vgmstream->channels;
-    return;
+sfmt_t mixing_get_input_sample_type(VGMSTREAM* vgmstream) {
+    // TODO: check vgmstream
+    return SFMT_S16;
+}
+
+sfmt_t mixing_get_output_sample_type(VGMSTREAM* vgmstream) {
+    sfmt_t input_fmt = mixing_get_input_sample_type(vgmstream);
+
+    mixer_t* mixer = vgmstream->mixer;
+    if (!mixer)
+        return input_fmt;
+
+    if (mixer->force_type)
+        return mixer->force_type;
+
+    return input_fmt;
 }

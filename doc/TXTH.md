@@ -578,6 +578,8 @@ This is particularly interesting when combined with offsets to some long value. 
 
 It also allows parsing formats that set offsets to another offset, by "chaining" `base_offset`. With `base_offset = @0x10` (pointing to `0x40`) then `base_offset = @0x20`, it reads value at `0x60`. Set to 0 when you want to disable/reset the chain: `base_offset = @0x10` then `base_offset = 0` then `base_offset = @0x20` reads value at `0x20`
 
+You can also use `base_offset` to read values from the end of the stream: `base_offset = data_size - 0x100`.
+
 ```
 base_offset = (value)
 ```

@@ -837,7 +837,7 @@ void decode_vgmstream(VGMSTREAM* vgmstream, int samples_filled, int samples_to_d
 
     switch (vgmstream->coding_type) {
         case coding_SILENCE:
-            sbuf_silence(buffer, samples_to_do, vgmstream->channels, 0);
+            sbuf_silence_s16(buffer, samples_to_do, vgmstream->channels, 0);
             break;
 
         case coding_CRI_ADX:

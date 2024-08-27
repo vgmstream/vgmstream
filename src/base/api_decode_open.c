@@ -1,7 +1,7 @@
 #include "api_internal.h"
+#include "sbuf.h"
+#include "mixing.h"
 #if LIBVGMSTREAM_ENABLE
-
-#define INTERNAL_BUF_SAMPLES  1024
 
 
 static void load_vgmstream(libvgmstream_priv_t* priv, libvgmstream_options_t* opt) {
@@ -49,6 +49,11 @@ static void prepare_mixing(libvgmstream_priv_t* priv, libvgmstream_options_t* op
         vgmstream_mixing_stereo_only(priv->vgmstream, opt->stereo_track - 1);
     }
 
+    if (priv->cfg.force_pcm16)
+        mixing_macro_output_sample_format(priv->vgmstream, SFMT_S16);
+    else if (priv->cfg.force_float)
+        mixing_macro_output_sample_format(priv->vgmstream, SFMT_FLT);
+
     vgmstream_mixing_enable(priv->vgmstream, INTERNAL_BUF_SAMPLES, NULL /*&input_channels*/, NULL /*&output_channels*/);
 }
 
@@ -65,10 +70,6 @@ static void update_format_info(libvgmstream_priv_t* priv) {
     libvgmstream_format_t* fmt = &priv->fmt;
     VGMSTREAM* v = priv->vgmstream;
 
-    fmt->sample_size = 0x02;
-    fmt->sample_type = LIBVGMSTREAM_SAMPLE_PCM16; 
-    fmt->sample_rate = v->sample_rate;
-
     fmt->subsong_index = v->stream_index;
     fmt->subsong_count = v->num_streams;
 
@@ -76,6 +77,11 @@ static void update_format_info(libvgmstream_priv_t* priv) {
     fmt->input_channels = 0;
     vgmstream_mixing_enable(v, 0, &fmt->input_channels, &fmt->channels);
     fmt->channel_layout = v->channel_layout;
+
+    fmt->sample_type = api_get_output_sample_type(priv);
+    fmt->sample_size = api_get_sample_size(fmt->sample_type);
+
+    fmt->sample_rate = v->sample_rate;
 
     fmt->stream_samples = v->num_samples;
     fmt->loop_start = v->loop_start_sample;

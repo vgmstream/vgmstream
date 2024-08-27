@@ -11,6 +11,8 @@
 #define LIBVGMSTREAM_ERROR_GENERIC  -1
 #define LIBVGMSTREAM_ERROR_DONE  -2
 
+#define INTERNAL_BUF_SAMPLES  1024
+
 /* self-note: various API functions are just bridges to internal stuff.
  * Rather than changing the internal stuff to handle API structs/etc,
  * leave internals untouched for a while so external plugins/users may adapt.
@@ -20,11 +22,10 @@ typedef struct {
     bool initialized;
     void* data;
 
-    /* config */
-    int channels;
-    int max_bytes;
+    /* config (output values channels/size after mixing, though buf may be as big as input size) */
     int max_samples;
-    int sample_size;
+    int channels;       /* */
+    int sample_size;    
 
     /* state */
     int samples;
@@ -56,8 +57,10 @@ typedef struct {
 
 
 void libvgmstream_priv_reset(libvgmstream_priv_t* priv, bool reset_buf);
+libvgmstream_sample_t api_get_output_sample_type(libvgmstream_priv_t* priv);
+int api_get_sample_size(libvgmstream_sample_t sample_type);
 
-STREAMFILE* open_api_streamfile(libvgmstream_streamfile_t* libsf);
+STREAMFILE* open_api_streamfile(libstreamfile_t* libsf);
 
 #endif
 #endif
