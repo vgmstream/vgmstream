@@ -25,36 +25,30 @@ typedef struct {
     int filled;         /* samples in buffer */
 } sbuf_t;
 
+/* it's probably slightly faster to make some function inline'd, but aren't called that often to matter (given big enough total samples) */
 
 void sbuf_init_s16(sbuf_t* sbuf, int16_t* buf, int samples, int channels);
-
 void sbuf_init_f32(sbuf_t* sbuf, float* buf, int samples, int channels);
 
 int sfmt_get_sample_size(sfmt_t fmt);
 
 //void* sbuf_get_filled_buf(sbuf_t* sbuf);
-
 //void sbuf_clamp(sbuf_t* sbuf, int samples);
 
 /* move buf by samples amount to simplify some code (will lose base buf pointer) */
 void sbuf_consume(sbuf_t* sbuf, int count);
 
-/* it's probably slightly faster to make those inline'd, but aren't called that often to matter (given big enough total samples) */
-
 // TODO decide if using float 1.0 style or 32767 style (fuzzy PCM changes when doing that)
 void sbuf_copy_to_f32(float* dst, sbuf_t* sbuf);
-
 void sbuf_copy_from_f32(sbuf_t* sbuf, float* src);
 
-void sbuf_copy_samples(sample_t* dst, int dst_channels, sample_t* src, int src_channels, int samples_to_do, int samples_filled);
-
+void sbuf_copy_segments(sample_t* dst, int dst_channels, sample_t* src, int src_channels, int samples_to_do, int samples_filled);
 void sbuf_copy_layers(sample_t* dst, int dst_channels, sample_t* src, int src_channels, int samples_to_do, int samples_filled, int dst_ch_start);
+bool sbuf_realloc(sample_t** dst, int samples, int channels);
 
 void sbuf_silence_s16(sample_t* dst, int samples, int channels, int filled);
 void sbuf_silence_rest(sbuf_t* sbuf);
 void sbuf_silence_part(sbuf_t* sbuf, int from, int count);
-
-bool sbuf_realloc(sample_t** dst, int samples, int channels);
 
 void sbuf_fadeout(sbuf_t* sbuf, int start, int to_do, int fade_pos, int fade_duration);
 

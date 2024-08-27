@@ -77,7 +77,7 @@ void render_vgmstream_segmented(sample_t* outbuf, int32_t sample_count, VGMSTREA
         render_vgmstream(buf, samples_to_do, data->segments[data->current_segment]);
 
         if (use_internal_buffer) {
-            sbuf_copy_samples(outbuf, data->output_channels, data->buffer, current_channels, samples_to_do, samples_filled);
+            sbuf_copy_segments(outbuf, data->output_channels, data->buffer, current_channels, samples_to_do, samples_filled);
         }
 
         samples_filled += samples_to_do;

@@ -151,7 +151,7 @@ void sbuf_copy_from_f32(sbuf_t* sbuf, float* src) {
     }
 }
 
-void sbuf_copy_samples(sample_t* dst, int dst_channels, sample_t* src, int src_channels, int samples_to_do, int samples_filled) {
+void sbuf_copy_segments(sample_t* dst, int dst_channels, sample_t* src, int src_channels, int samples_to_do, int samples_filled) {
     int pos = samples_filled * dst_channels;
 
     if (src_channels == dst_channels) { /* most common and probably faster */
@@ -186,6 +186,14 @@ void sbuf_copy_layers(sample_t* dst, int dst_channels, sample_t* src, int src_ch
     }
 }
 
+bool sbuf_realloc(sample_t** dst, int samples, int channels) {
+    sample_t* outbuf_re = realloc(*dst, samples * channels * sizeof(sample_t));
+    if (!outbuf_re) return false;
+
+    *dst = outbuf_re;
+    return true;
+}
+
 void sbuf_silence_s16(sample_t* dst, int samples, int channels, int filled) {
     memset(dst + filled * channels, 0, (samples - filled) * channels * sizeof(sample_t));
 }
@@ -200,14 +208,6 @@ void sbuf_silence_part(sbuf_t* sbuf, int from, int count) {
 
 void sbuf_silence_rest(sbuf_t* sbuf) {
     sbuf_silence_part(sbuf, sbuf->filled, sbuf->samples - sbuf->filled);
-}
-
-bool sbuf_realloc(sample_t** dst, int samples, int channels) {
-    sample_t* outbuf_re = realloc(*dst, samples * channels * sizeof(sample_t));
-    if (!outbuf_re) return false;
-
-    *dst = outbuf_re;
-    return true;
 }
 
 void sbuf_fadeout(sbuf_t* sbuf, int start, int to_do, int fade_pos, int fade_duration) {
