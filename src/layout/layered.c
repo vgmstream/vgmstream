@@ -4,6 +4,7 @@
 #include "../base/mixing.h"
 #include "../base/plugins.h"
 #include "../base/sbuf.h"
+#include "../base/render.h"
 
 #define VGMSTREAM_MAX_LAYERS 255
 #define VGMSTREAM_LAYER_SAMPLE_BUFFER 8192
@@ -12,14 +13,16 @@
 /* Decodes samples for layered streams.
  * Each decoded vgmstream 'layer' (which may have different codecs and number of channels)
  * is mixed into a final buffer, creating a single super-vgmstream. */
-void render_vgmstream_layered(sample_t* outbuf, int32_t sample_count, VGMSTREAM* vgmstream) {
+void render_vgmstream_layered(sbuf_t* sdst, VGMSTREAM* vgmstream) {
     layered_layout_data* data = vgmstream->layout_data;
+    sbuf_t ssrc_tmp;
+    sbuf_t* ssrc = &ssrc_tmp;
 
     int samples_per_frame = VGMSTREAM_LAYER_SAMPLE_BUFFER;
     int samples_this_block = vgmstream->num_samples; /* do all samples if possible */
 
-    int samples_filled = 0;
-    while (samples_filled < sample_count) {
+    //int samples_filled = 0;
+    while (sdst->filled < sdst->samples) {
         int ch;
 
         if (vgmstream->loop_flag && decode_do_loop(vgmstream)) {
@@ -28,37 +31,34 @@ void render_vgmstream_layered(sample_t* outbuf, int32_t sample_count, VGMSTREAM*
         }
 
         int samples_to_do = decode_get_samples_to_do(samples_this_block, samples_per_frame, vgmstream);
-        if (samples_to_do > sample_count - samples_filled)
-            samples_to_do = sample_count - samples_filled;
+        if (samples_to_do > sdst->samples - sdst->filled)
+            samples_to_do = sdst->samples - sdst->filled;
 
         if (samples_to_do <= 0) { /* when decoding more than num_samples */
             VGM_LOG_ONCE("LAYERED: wrong samples_to_do\n"); 
-            goto decode_fail;
+            break;
         }
 
         /* decode all layers */
         ch = 0;
         for (int current_layer = 0; current_layer < data->layer_count; current_layer++) {
+            /* layers may have their own number of channels/format (buf is as big as needed) */
+            sfmt_t format = mixing_get_input_sample_type(data->layers[current_layer]);
+            sbuf_init(ssrc, format, data->buffer, samples_to_do, data->layers[current_layer]->channels);
 
-            /* layers may have their own number of channels */
-            int layer_channels;
-            mixing_info(data->layers[current_layer], NULL, &layer_channels);
-
-            render_vgmstream(data->buffer, samples_to_do, data->layers[current_layer]);
+            render_main(ssrc, data->layers[current_layer]);
 
             /* mix layer samples to main samples */
-            sbuf_copy_layers(outbuf, data->output_channels, data->buffer, layer_channels, samples_to_do, samples_filled, ch);
-            ch += layer_channels;
+            sbuf_copy_layers(sdst, ssrc, ch, samples_to_do);
+            ch += ssrc->channels;
         }
 
-        samples_filled += samples_to_do;
+        sdst->filled += samples_to_do;
         vgmstream->current_sample += samples_to_do;
         vgmstream->samples_into_block += samples_to_do;
     }
 
-    return;
-decode_fail:
-    sbuf_silence_s16(outbuf, sample_count, data->output_channels, samples_filled);
+    sbuf_silence_rest(sdst);
 }
 
 
@@ -125,10 +125,11 @@ fail:
 }
 
 bool setup_layout_layered(layered_layout_data* data) {
-
-    /* setup each VGMSTREAM (roughly equivalent to vgmstream.c's init_vgmstream_internal stuff) */
     int max_input_channels = 0;
     int max_output_channels = 0;
+    int max_sample_size = 0;
+
+    /* setup each VGMSTREAM (roughly equivalent to vgmstream.c's init_vgmstream_internal stuff) */
     for (int i = 0; i < data->layer_count; i++) {
         if (data->layers[i] == NULL) {
             VGM_LOG("LAYERED: no vgmstream in %i\n", i);
@@ -140,7 +141,7 @@ bool setup_layout_layered(layered_layout_data* data) {
             return false;
         }
 
-        /* different layers may have different input/output channels */
+        /* different layers may have different input/output channels or sample formats */
         int layer_input_channels, layer_output_channels;
         mixing_info(data->layers[i], &layer_input_channels, &layer_output_channels);
 
@@ -163,6 +164,10 @@ bool setup_layout_layered(layered_layout_data* data) {
 #endif
         }
 
+        int current_sample_size = sfmt_get_sample_size( mixing_get_input_sample_type(data->layers[i]) );
+        if (max_sample_size < current_sample_size)
+            max_sample_size = current_sample_size;
+
         /* loops and other values could be mismatched, but should be handled on allocate */
 
         /* init mixing */
@@ -179,8 +184,9 @@ bool setup_layout_layered(layered_layout_data* data) {
         return false;
 
     /* create internal buffer big enough for mixing all layers */
-    if (!sbuf_realloc(&data->buffer, VGMSTREAM_LAYER_SAMPLE_BUFFER, max_input_channels))
-        goto fail;
+    free(data->buffer);
+    data->buffer = malloc(VGMSTREAM_LAYER_SAMPLE_BUFFER * max_input_channels * max_sample_size);
+    if (!data->buffer) goto fail;
 
     data->input_channels = max_input_channels;
     data->output_channels = max_output_channels;
@@ -190,7 +196,7 @@ fail:
     return false; /* caller is expected to free */
 }
 
-void free_layout_layered(layered_layout_data *data) {
+void free_layout_layered(layered_layout_data* data) {
     if (!data)
         return;
 
@@ -202,7 +208,7 @@ void free_layout_layered(layered_layout_data *data) {
     free(data);
 }
 
-void reset_layout_layered(layered_layout_data *data) {
+void reset_layout_layered(layered_layout_data* data) {
     if (!data)
         return;
 
