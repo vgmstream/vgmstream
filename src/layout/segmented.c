@@ -4,6 +4,7 @@
 #include "../base/mixing.h"
 #include "../base/plugins.h"
 #include "../base/sbuf.h"
+#include "../base/render.h"
 
 #define VGMSTREAM_MAX_SEGMENTS 1024
 #define VGMSTREAM_SEGMENT_SAMPLE_BUFFER 8192
@@ -12,18 +13,15 @@
 /* Decodes samples for segmented streams.
  * Chains together sequential vgmstreams, for data divided into separate sections or files
  * (like one part for intro and other for loop segments, which may even use different codecs). */
-void render_vgmstream_segmented(sample_t* outbuf, int32_t sample_count, VGMSTREAM* vgmstream) {
+void render_vgmstream_segmented(sbuf_t* sbuf, VGMSTREAM* vgmstream) {
     segmented_layout_data* data = vgmstream->layout_data;
-    bool use_internal_buffer = false;
+    sbuf_t ssrc_tmp;
+    sbuf_t* ssrc = &ssrc_tmp;
 
-    /* normally uses outbuf directly (faster?) but could need internal buffer if downmixing */
-    if (vgmstream->channels != data->input_channels || data->mixed_channels) {
-        use_internal_buffer = true;
-    }
 
     if (data->current_segment >= data->segment_count) {
         VGM_LOG_ONCE("SEGMENT: wrong current segment\n");
-        sbuf_silence_s16(outbuf, sample_count, data->output_channels, 0);
+        sbuf_silence_rest(sbuf);
         return;
     }
 
@@ -31,10 +29,10 @@ void render_vgmstream_segmented(sample_t* outbuf, int32_t sample_count, VGMSTREA
     mixing_info(data->segments[data->current_segment], NULL, &current_channels);
     int samples_this_block = vgmstream_get_samples(data->segments[data->current_segment]);
 
-    int samples_filled = 0;
-    while (samples_filled < sample_count) {
+    while (sbuf->filled < sbuf->samples) {
         int samples_to_do;
-        sample_t* buf;
+        sfmt_t segment_format;
+        void* buf_filled = NULL;
 
         if (vgmstream->loop_flag && decode_do_loop(vgmstream)) {
             /* handle looping (loop_layout has been called below, changes segments/state) */
@@ -62,9 +60,9 @@ void render_vgmstream_segmented(sample_t* outbuf, int32_t sample_count, VGMSTREA
         }
 
 
-        samples_to_do = decode_get_samples_to_do(samples_this_block, sample_count, vgmstream);
-        if (samples_to_do > sample_count - samples_filled)
-            samples_to_do = sample_count - samples_filled;
+        samples_to_do = decode_get_samples_to_do(samples_this_block, sbuf->samples, vgmstream);
+        if (samples_to_do > sbuf->samples - sbuf->filled)
+            samples_to_do = sbuf->samples - sbuf->filled;
         if (samples_to_do > VGMSTREAM_SEGMENT_SAMPLE_BUFFER /*&& use_internal_buffer*/) /* always for fade/etc mixes */
             samples_to_do = VGMSTREAM_SEGMENT_SAMPLE_BUFFER;
 
@@ -73,23 +71,31 @@ void render_vgmstream_segmented(sample_t* outbuf, int32_t sample_count, VGMSTREA
             goto decode_fail;
         }
 
-        buf = use_internal_buffer ? data->buffer : &outbuf[samples_filled * data->output_channels];
-        render_vgmstream(buf, samples_to_do, data->segments[data->current_segment]);
+        segment_format = mixing_get_input_sample_type(data->segments[data->current_segment]);
+        sbuf_init(ssrc, segment_format, data->buffer, samples_to_do, data->segments[data->current_segment]->channels);
 
-        if (use_internal_buffer) {
-            sbuf_copy_segments(outbuf, data->output_channels, data->buffer, current_channels, samples_to_do, samples_filled);
+        // try to use part of outbuf directly if not remixed (minioptimization) //TODO improve detection
+        if (vgmstream->channels == data->input_channels && sbuf->fmt == segment_format && !data->mixed_channels) {
+            buf_filled = sbuf_get_filled_buf(sbuf);
+            ssrc->buf = buf_filled;
         }
 
-        samples_filled += samples_to_do;
+        render_main(ssrc, data->segments[data->current_segment]);
+
+        // returned buf may have changed
+        if (ssrc->buf != buf_filled) {
+            sbuf_copy_segments(sbuf, ssrc);
+        }
+
+        sbuf->filled += samples_to_do;
         vgmstream->current_sample += samples_to_do;
         vgmstream->samples_into_block += samples_to_do;
     }
 
     return;
 decode_fail:
-    sbuf_silence_s16(outbuf, sample_count, data->output_channels, samples_filled);
+    sbuf_silence_rest(sbuf);
 }
-
 
 
 void seek_layout_segmented(VGMSTREAM* vgmstream, int32_t seek_sample) {
@@ -145,8 +151,10 @@ fail:
 }
 
 bool setup_layout_segmented(segmented_layout_data* data) {
-    int max_input_channels = 0, max_output_channels = 0, mixed_channels = 0;
-
+    int max_input_channels = 0;
+    int max_output_channels = 0;
+    int max_sample_size = 0;
+    bool mixed_channels = false;
 
     /* setup each VGMSTREAM (roughly equivalent to vgmstream.c's init_vgmstream_internal stuff) */
     for (int i = 0; i < data->segment_count; i++) {
@@ -187,7 +195,7 @@ bool setup_layout_segmented(segmented_layout_data* data) {
 
             mixing_info(data->segments[i-1], NULL, &prev_output_channels);
             if (segment_output_channels != prev_output_channels) {
-                mixed_channels = 1;
+                mixed_channels = true;
                 //VGM_LOG("SEGMENTED: segment %i has wrong channels %i vs prev channels %i\n", i, segment_output_channels, prev_output_channels);
                 //goto fail;
             }
@@ -202,6 +210,10 @@ bool setup_layout_segmented(segmented_layout_data* data) {
             //    goto fail;
         }
 
+        int current_sample_size = sfmt_get_sample_size( mixing_get_input_sample_type(data->segments[i]) );
+        if (max_sample_size < current_sample_size)
+            max_sample_size = current_sample_size;
+
         /* init mixing */
         mixing_setup(data->segments[i], VGMSTREAM_SEGMENT_SAMPLE_BUFFER);
 
@@ -213,8 +225,9 @@ bool setup_layout_segmented(segmented_layout_data* data) {
         return false;
 
     /* create internal buffer big enough for mixing */
-    if (!sbuf_realloc(&data->buffer, VGMSTREAM_SEGMENT_SAMPLE_BUFFER, max_input_channels))
-        goto fail;
+    free(data->buffer);
+    data->buffer = malloc(VGMSTREAM_SEGMENT_SAMPLE_BUFFER * max_input_channels * max_sample_size);
+    if (!data->buffer) goto fail;
 
     data->input_channels = max_input_channels;
     data->output_channels = max_output_channels;

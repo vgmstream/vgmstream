@@ -49,10 +49,12 @@ static void prepare_mixing(libvgmstream_priv_t* priv, libvgmstream_options_t* op
         vgmstream_mixing_stereo_only(priv->vgmstream, opt->stereo_track - 1);
     }
 
-    if (priv->cfg.force_pcm16)
+    if (priv->cfg.force_pcm16) {
         mixing_macro_output_sample_format(priv->vgmstream, SFMT_S16);
-    else if (priv->cfg.force_float)
+    }
+    else if (priv->cfg.force_float) {
         mixing_macro_output_sample_format(priv->vgmstream, SFMT_FLT);
+    }
 
     vgmstream_mixing_enable(priv->vgmstream, INTERNAL_BUF_SAMPLES, NULL /*&input_channels*/, NULL /*&output_channels*/);
 }

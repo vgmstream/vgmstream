@@ -137,7 +137,7 @@ int render_layout(sbuf_t* sbuf, VGMSTREAM* vgmstream) {
             render_vgmstream_blocked(buf, sample_count, vgmstream);
             break;
         case layout_segmented:
-            render_vgmstream_segmented(buf, sample_count,vgmstream);
+            render_vgmstream_segmented(sbuf, vgmstream);
             break;
         case layout_layered:
             render_vgmstream_layered(sbuf, vgmstream);

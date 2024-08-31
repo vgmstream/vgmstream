@@ -25,7 +25,7 @@ typedef struct {
     bool mixed_channels;     /* segments have different number of channels */
 } segmented_layout_data;
 
-void render_vgmstream_segmented(sample_t* buffer, int32_t sample_count, VGMSTREAM* vgmstream);
+void render_vgmstream_segmented(sbuf_t* sbuf, VGMSTREAM* vgmstream);
 segmented_layout_data* init_layout_segmented(int segment_count);
 bool setup_layout_segmented(segmented_layout_data* data);
 void free_layout_segmented(segmented_layout_data* data);

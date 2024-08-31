@@ -36,7 +36,7 @@ void render_vgmstream_layered(sbuf_t* sdst, VGMSTREAM* vgmstream) {
 
         if (samples_to_do <= 0) { /* when decoding more than num_samples */
             VGM_LOG_ONCE("LAYERED: wrong samples_to_do\n"); 
-            break;
+            goto decode_fail;
         }
 
         /* decode all layers */
@@ -58,6 +58,8 @@ void render_vgmstream_layered(sbuf_t* sdst, VGMSTREAM* vgmstream) {
         vgmstream->samples_into_block += samples_to_do;
     }
 
+    return;
+decode_fail:
     sbuf_silence_rest(sdst);
 }
 
