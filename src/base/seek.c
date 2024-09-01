@@ -4,6 +4,7 @@
 #include "decode.h"
 #include "mixing.h"
 #include "plugins.h"
+#include "sbuf.h"
 
 /* pretend decoder reached loop end so internal state is set like jumping to loop start 
  * (no effect in some layouts but that is ok) */
@@ -18,16 +19,18 @@ static void seek_force_loop_end(VGMSTREAM* vgmstream, int loop_count) {
 }
 
 static void seek_force_decode(VGMSTREAM* vgmstream, int samples) {
-    sample_t* tmpbuf = vgmstream->tmpbuf;
-    size_t tmpbuf_size = vgmstream->tmpbuf_size;
-    int32_t buf_samples = tmpbuf_size / vgmstream->channels; /* base channels, no need to apply mixing */
+    void* tmpbuf = vgmstream->tmpbuf;
+    int buf_samples = vgmstream->tmpbuf_size / vgmstream->channels / sizeof(float); /* base decoder channels, no need to apply mixing */
+
+    sbuf_t sbuf_tmp;
+    sbuf_init(&sbuf_tmp, mixing_get_input_sample_type(vgmstream), tmpbuf, buf_samples, vgmstream->channels);
 
     while (samples) {
         int to_do = samples;
         if (to_do > buf_samples)
             to_do = buf_samples;
-
-        render_layout(tmpbuf, to_do, vgmstream);
+        sbuf_tmp.samples = to_do;
+        render_layout(&sbuf_tmp, vgmstream);
         /* no mixing */
         samples -= to_do;
     }

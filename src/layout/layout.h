@@ -1,10 +1,11 @@
-#ifndef _LAYOUT_H
-#define _LAYOUT_H
+#ifndef _LAYOUT_H_
+#define _LAYOUT_H_
 
 #include "../streamtypes.h"
 #include "../vgmstream.h"
 #include "../util/reader_sf.h"
 #include "../util/log.h"
+#include "../base/sbuf.h"
 
 /* basic layouts */
 void render_vgmstream_flat(sample_t* buffer, int32_t sample_count, VGMSTREAM* vgmstream);
@@ -21,10 +22,10 @@ typedef struct {
     sample_t* buffer;
     int input_channels;     /* internal buffer channels */
     int output_channels;    /* resulting channels (after mixing, if applied) */
-    int mixed_channels;     /* segments have different number of channels */
+    bool mixed_channels;     /* segments have different number of channels */
 } segmented_layout_data;
 
-void render_vgmstream_segmented(sample_t* buffer, int32_t sample_count, VGMSTREAM* vgmstream);
+void render_vgmstream_segmented(sbuf_t* sbuf, VGMSTREAM* vgmstream);
 segmented_layout_data* init_layout_segmented(int segment_count);
 bool setup_layout_segmented(segmented_layout_data* data);
 void free_layout_segmented(segmented_layout_data* data);
@@ -45,7 +46,7 @@ typedef struct {
     int curr_layer;         /* helper */
 } layered_layout_data;
 
-void render_vgmstream_layered(sample_t* buffer, int32_t sample_count, VGMSTREAM* vgmstream);
+void render_vgmstream_layered(sbuf_t* sbuf, VGMSTREAM* vgmstream);
 layered_layout_data* init_layout_layered(int layer_count);
 bool setup_layout_layered(layered_layout_data* data);
 void free_layout_layered(layered_layout_data* data);

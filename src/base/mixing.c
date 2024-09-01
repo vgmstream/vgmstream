@@ -8,29 +8,7 @@
 #include "mixer_priv.h"
 #include "sbuf.h"
 
-//TODO simplify
-/**
- * Mixer modifies decoded sample buffer before final output. This is implemented
- * mostly with simplicity in mind rather than performance. Process:
- * - detect if mixing applies at current moment or exit (mini performance optimization)
- * - copy/upgrade buf to float mixbuf if needed
- * - do mixing ops
- * - copy/downgrade mixbuf to original buf if needed
- * 
- * Mixing may add or remove channels. input_channels is the buf's original channels,
- * and output_channels the resulting buf's channels. buf and mixbuf must be
- * as big as max channels (mixing_channels).
- * 
- * Mixing ops are added by a meta (ex. TXTP) or plugin through the API. Non-sensical
- * mixes are ignored (to avoid rechecking every time).
- * 
- * Currently, mixing must be manually enabled before starting to decode, because plugins
- * need to setup bigger bufs when upmixing. (to be changed)
- *
- * segmented/layered layouts handle mixing on their own.
- */
-
-/* ******************************************************************* */
+/* Wrapper/helpers for vgmstream's "mixer", which does main sample buffer transformations */
 
 static int32_t get_current_pos(VGMSTREAM* vgmstream, int32_t sample_count) {
     int32_t current_pos;
@@ -166,6 +144,7 @@ void mixing_info(VGMSTREAM* vgmstream, int* p_input_channels, int* p_output_chan
 
 sfmt_t mixing_get_input_sample_type(VGMSTREAM* vgmstream) {
     // TODO: check vgmstream
+    // TODO: on layered/segments, detect biggest value and use that (ex. if one of the layers uses flt > flt)
     return SFMT_S16;
 }
 

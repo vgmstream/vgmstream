@@ -7,26 +7,22 @@
 #include <math.h>
 #include <limits.h>
 
-//TODO simplify
 /**
  * Mixer modifies decoded sample buffer before final output. This is implemented
- * mostly with simplicity in mind rather than performance. Process:
+ * with simplicity in mind rather than performance. Process:
  * - detect if mixing applies at current moment or exit (mini performance optimization)
  * - copy/upgrade buf to float mixbuf if needed
  * - do mixing ops
  * - copy/downgrade mixbuf to original buf if needed
  * 
- * Mixing may add or remove channels. input_channels is the buf's original channels,
- * and output_channels the resulting buf's channels. buf and mixbuf must be
- * as big as max channels (mixing_channels).
- * 
- * Mixing ops are added by a meta (ex. TXTP) or plugin through the API. Non-sensical
- * mixes are ignored (to avoid rechecking every time).
- * 
- * Currently, mixing must be manually enabled before starting to decode, because plugins
- * need to setup bigger bufs when upmixing. (to be changed)
+ * Mixing ops are added by a meta (ex. TXTP) or plugins through API. Non-sensical config
+ * is ignored on add (to avoid rechecking every time).
  *
- * segmented/layered layouts handle mixing on their own.
+ * Mixing may add or remove channels or change sample format. external buf and internal mixbuf
+ * are expected to be as big as needed. Currently, mixing must be manually enabled before starting
+ * to decode, because plugins need to setup appropriate bufs. (to be changed)
+ *
+ * segmented/layered layouts handle mixing vgmstream sample bufs on their own.
  */
 
 mixer_t* mixer_init(int channels) {
