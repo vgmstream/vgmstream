@@ -12,7 +12,6 @@ int vgmstream_ctx_is_valid(const char* filename, vgmstream_ctx_valid_cfg *cfg) {
     const char** extension_list;
     size_t extension_list_len;
     const char* extension;
-    int i;
 
     bool is_extension = cfg && cfg->is_extension;
     bool reject_extensionless = cfg && cfg->reject_extensionless;
@@ -29,19 +28,19 @@ int vgmstream_ctx_is_valid(const char* filename, vgmstream_ctx_valid_cfg *cfg) {
     /* some metas accept extensionless files, but make sure it's not a path (unlikely but...) */
     if (strlen(extension) <= 0) {
         int len = strlen(filename); /* foobar passes an extension as so len may be still 0 */
-        if (len <= 0 && is_extension)
-            return 0;
+        if (len <= 0 && !is_extension)
+            return false;
         if (len > 1 && (filename[len - 1] == '/' || filename[len - 1] == '\\'))
-            return 0;
+            return false;
         return !reject_extensionless;
     }
 
     /* try in default list */
     if (!skip_standard) {
         extension_list = vgmstream_get_formats(&extension_list_len);
-        for (i = 0; i < extension_list_len; i++) {
+        for (int i = 0; i < extension_list_len; i++) {
             if (strcasecmp(extension, extension_list[i]) == 0) {
-                return 1;
+                return true;
             }
         }
     }
@@ -49,29 +48,29 @@ int vgmstream_ctx_is_valid(const char* filename, vgmstream_ctx_valid_cfg *cfg) {
     /* try in common extensions */
     if (accept_common) {
         extension_list = vgmstream_get_common_formats(&extension_list_len);
-        for (i = 0; i < extension_list_len; i++) {
+        for (int i = 0; i < extension_list_len; i++) {
             if (strcasecmp(extension, extension_list[i]) == 0)
-                return 1;
+                return true;
         }
     }
 
     /* allow anything not in the normal list but not in common extensions */
     if (accept_unknown) {
-        int is_common = 0;
+        bool is_common = false;
 
         extension_list = vgmstream_get_common_formats(&extension_list_len);
-        for (i = 0; i < extension_list_len; i++) {
+        for (int i = 0; i < extension_list_len; i++) {
             if (strcasecmp(extension, extension_list[i]) == 0) {
-                is_common = 1;
+                is_common = true;
                 break;
             }
         }
 
         if (!is_common)
-            return 1;
+            return true;
     }
 
-    return 0;
+    return false;
 }
 
 void vgmstream_get_title(char* buf, int buf_len, const char* filename, VGMSTREAM* vgmstream, vgmstream_title_t* cfg) {
