@@ -1,7 +1,7 @@
 #ifndef _LIBVGMSTREAM_H_
 #define _LIBVGMSTREAM_H_
 
-//#define LIBVGMSTREAM_ENABLE 1
+#define LIBVGMSTREAM_ENABLE 1
 #if LIBVGMSTREAM_ENABLE
 
 /* libvgmstream: vgmstream's public API

@@ -12,7 +12,7 @@ typedef struct {
     //TODO may be more useful with filled+consumed and not moving *samples?
 } s16buf_t;
 
-static void s16buf_silence(sample_t** p_outbuf, int32_t* p_samples_silence, int channels) {
+static inline void s16buf_silence(sample_t** p_outbuf, int32_t* p_samples_silence, int channels) {
     int samples_silence;
 
     samples_silence = *p_samples_silence;
@@ -23,7 +23,7 @@ static void s16buf_silence(sample_t** p_outbuf, int32_t* p_samples_silence, int 
     *p_samples_silence -= samples_silence;
 }
 
-static void s16buf_discard(sample_t** p_outbuf, s16buf_t* sbuf, int32_t* p_samples_discard) {
+static inline void s16buf_discard(sample_t** p_outbuf, s16buf_t* sbuf, int32_t* p_samples_discard) {
     int samples_discard;
 
     samples_discard = *p_samples_discard;
@@ -39,7 +39,7 @@ static void s16buf_discard(sample_t** p_outbuf, s16buf_t* sbuf, int32_t* p_sampl
 }
 
 /* copy, move and mark consumed samples */
-static void s16buf_consume(sample_t** p_outbuf, s16buf_t* sbuf, int32_t* p_samples_consume) {
+static inline void s16buf_consume(sample_t** p_outbuf, s16buf_t* sbuf, int32_t* p_samples_consume) {
     int samples_consume;
 
     samples_consume = *p_samples_consume;

@@ -1,5 +1,5 @@
 #include "coding.h"
-
+#include "coding_utils_samples.h"
 
 /* LucasArts' iMUSE decoder, mainly for VIMA (like IMA but with variable frame and code sizes).
  * Reverse engineered from various .exe
@@ -122,31 +122,6 @@ static const int8_t* index_tables_v2[8] = {
 
 /* ************************** */
 
-typedef struct {
-    /*const*/ int16_t* samples;
-    int filled;
-    int channels;
-    //todo may be more useful with filled/full? use 2 mark methods?
-} sbuf_t;
-
-/* copy, move and mark consumed samples */
-static void sbuf_consume(sample_t** p_outbuf, int32_t* p_samples_to_do, sbuf_t* sbuf) {
-    int samples_consume;
-
-    samples_consume = *p_samples_to_do;
-    if (samples_consume > sbuf->filled)
-        samples_consume = sbuf->filled;
-
-    /* memcpy is safe when filled/samples_copy is 0 (but must pass non-NULL bufs) */
-    memcpy(*p_outbuf, sbuf->samples, samples_consume * sbuf->channels * sizeof(int16_t));
-
-    sbuf->samples += samples_consume * sbuf->channels;
-    sbuf->filled -= samples_consume;
-
-    *p_outbuf += samples_consume * sbuf->channels;
-    *p_samples_to_do -= samples_consume;
-}
-
 static int clamp_s32(int val, int min, int max) {
     if (val > max)
         return max;
@@ -174,7 +149,7 @@ struct imuse_codec_data {
     uint16_t adpcm_table[64 * 89];
 
     /* state */
-    sbuf_t sbuf;
+    s16buf_t sbuf;
     int current_block;
     int16_t samples[MAX_BLOCK_SIZE / sizeof(int16_t) * MAX_CHANNELS];
 };
@@ -309,7 +284,7 @@ fail:
 
 /* **************************************** */
 
-static void decode_vima1(sbuf_t* sbuf, uint8_t* buf, size_t data_left, int block_num, uint16_t* adpcm_table) {
+static void decode_vima1(s16buf_t* sbuf, uint8_t* buf, size_t data_left, int block_num, uint16_t* adpcm_table) {
     int ch, i, j, s;
     int bitpos;
     int adpcm_history[MAX_CHANNELS] = {0};
@@ -434,7 +409,7 @@ static int decode_block1(imuse_codec_data* data, uint8_t* block, size_t data_lef
     return 1;
 }
 
-static void decode_data2(sbuf_t* sbuf, uint8_t* buf, size_t data_left, int block_num) {
+static void decode_data2(s16buf_t* sbuf, uint8_t* buf, size_t data_left, int block_num) {
     int i, j;
     int channels = sbuf->channels;
 
@@ -453,7 +428,7 @@ static void decode_data2(sbuf_t* sbuf, uint8_t* buf, size_t data_left, int block
     }
 }
 
-static void decode_vima2(sbuf_t* sbuf, uint8_t* buf, size_t data_left, uint16_t* adpcm_table) {
+static void decode_vima2(s16buf_t* sbuf, uint8_t* buf, size_t data_left, uint16_t* adpcm_table) {
     int ch, i, s;
     int bitpos;
     int adpcm_history[MAX_CHANNELS] = {0};
@@ -622,14 +597,14 @@ void decode_imuse(VGMSTREAM* vgmstream, sample_t* outbuf, int32_t samples_to_do)
 
 
     while (samples_to_do > 0) {
-        sbuf_t* sbuf = &data->sbuf;
+        s16buf_t* sbuf = &data->sbuf;
 
         if (sbuf->filled == 0) {
             ok = decode_block(sf, data);
             if (!ok) goto fail;
         }
 
-        sbuf_consume(&outbuf, &samples_to_do, sbuf);
+        s16buf_consume(&outbuf, sbuf, &samples_to_do);
     }
 
     return;
