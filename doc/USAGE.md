@@ -286,19 +286,20 @@ like foobar or Winamp don't react well to that, they may be renamed to these
 - `.stm` to `.lstm` (Rockstar STM)
 - `.wav` to `.lwav` (standard WAV, various formats)
 - `.wma` to `.lwma` (standard WMA)
-- `.(any)` to `.vgmstream` (FFmpeg formats or TXTH)
+- `.(unknown)` to `.vgmstream` (TXTH formats / extracted bigfiles without extension)
 
 Command line tools don't have this restriction and will accept the original
-filename.
+filename. Note that vgmstream also accepts certain extension-less files as-is too.
 
-The main advantage of renaming here is that vgmstream may use the file's internal
-loop info, or apply subtle fixes, but is also limited in some ways (like ignoring
-standard tags). `.vgmstream` is a catch-all extension that may work as a last resort
-to make a file playable.
+The main reason of renaming is forcing the player to use vgmstream instead of its
+internal decoder. vgmstream then may use the file's loop info, or apply small
+fixes, but is also limited in some ways such as regular tagged files (like `.ogg`)
+won't show tags when played through vgmstream (since video game `.ogg` rarely
+have anything worth showing).
 
 Some plugins have options that allow "*common extensions*" to be played, making any
 renaming unnecessary. You may need to adjust plugin priority in player's options
-first. Note that vgmstream also accepts certain extension-less files as-is too.
+first, but the same issues apply (will lose tags).
 
 Similarly, vgmstream has a curated list of known extensions, that plugins may take
 into account and ignore unknowns. Through *TXTH* you can make unknown files playable,

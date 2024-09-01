@@ -811,7 +811,9 @@ static bool parse_psb(STREAMFILE* sf, psb_header_t* psb) {
 
     ctx = psb_init(sf);
     if (!ctx) goto fail;
-    psb_print(ctx);
+#ifdef VGM_DEBUG_OUTPUT
+    //psb_print(ctx);
+#endif
 
     /* main process */
     psb_get_root(ctx, &nroot);

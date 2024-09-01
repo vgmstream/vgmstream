@@ -784,6 +784,8 @@ int psb_node_exists(const psb_node_t* node, const char* key) {
 /******************************************************************************/
 /* ETC */
 
+#ifdef VGM_DEBUG_OUTPUT
+
 #define PSB_DEPTH_STEP 2
 
 static void print_internal(psb_node_t* curr, int depth) {
@@ -862,3 +864,4 @@ void psb_print(psb_context_t* ctx) {
     psb_get_root(ctx, &node);
     print_internal(&node, 0);
 }
+#endif
