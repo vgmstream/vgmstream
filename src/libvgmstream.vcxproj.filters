@@ -1882,6 +1882,9 @@
     <ClCompile Include="meta\smv.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\snd_sdx_vbc.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\sndp.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
