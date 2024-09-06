@@ -47,9 +47,6 @@ typedef struct {
 
     uint32_t start_offset;
     uint32_t stream_offset;
-    uint32_t bank_name_offset;
-    uint32_t stream_name_offset;
-    uint32_t stream_name_size;
 
     uint32_t stream_size;
     uint32_t interleave;
@@ -84,15 +81,6 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
     vgmstream->stream_size = h.stream_size;
 
     vgmstream->meta_type = meta_BNK_SONY;
-
-    if (h.stream_name_size >= STREAM_NAME_SIZE || h.stream_name_size <= 0)
-        h.stream_name_size = STREAM_NAME_SIZE;
-
-    /* replace this with reading into the buffer ASAP when processing tables? */
-    if (h.bank_name_offset)
-        read_string(h.bank_name, h.stream_name_size, h.bank_name_offset, sf);
-    if (h.stream_name_offset)
-        read_string(h.stream_name, h.stream_name_size, h.stream_name_offset, sf);
 
     if (h.stream_name[0]) {
         get_streamfile_basename(sf, file_name, STREAM_NAME_SIZE);
@@ -611,6 +599,7 @@ static bool process_names(STREAMFILE* sf, bnk_header_t* h) {
     int table4_entry_id = -1;
     uint32_t table4_entry_idx, table4_entries_offset, table4_names_offset;
     uint32_t entry_offset, entry_count;
+    uint32_t stream_name_offset;
 
     switch (h->sblk_version) {
         case 0x03:
@@ -637,30 +626,30 @@ static bool process_names(STREAMFILE* sf, bnk_header_t* h) {
              * and using that as the index for the chunk offsets
              *  name_sect_offset + (chunk_idx[result] * 0x14);
              */
-            if (read_u8(h->table4_offset, sf))
-                h->bank_name_offset = h->table4_offset;
+            read_string(h->bank_name, STREAM_NAME_SIZE, h->table4_offset, sf);
 
             table4_entries_offset = h->table4_offset + 0x18;
             table4_names_offset = h->table4_offset + read_u32(h->table4_offset + 0x08, sf);
 
             for (i = 0; i < 32; i++) {
                 table4_entry_idx = read_u16(table4_entries_offset + (i * 2), sf);
-                h->stream_name_offset = table4_names_offset + (table4_entry_idx * 0x14);
+                stream_name_offset = table4_names_offset + (table4_entry_idx * 0x14);
                 /* searches the chunk until it finds the target name/index, or breaks at empty name */
-                while (read_u8(h->stream_name_offset, sf)) {
+                while (read_u8(stream_name_offset, sf)) {
                     /* in case it goes somewhere out of bounds unexpectedly */
-                    if (((read_u8(h->stream_name_offset + 0x00, sf) + read_u8(h->stream_name_offset + 0x04, sf) +
-                          read_u8(h->stream_name_offset + 0x08, sf) + read_u8(h->stream_name_offset + 0x0C, sf)) & 0x1F) != i)
+                    if (((read_u8(stream_name_offset + 0x00, sf) + read_u8(stream_name_offset + 0x04, sf) +
+                          read_u8(stream_name_offset + 0x08, sf) + read_u8(stream_name_offset + 0x0C, sf)) & 0x1F) != i)
                         goto fail;
-                    if (read_u16(h->stream_name_offset + 0x10, sf) == table4_entry_id)
+                    if (read_u16(stream_name_offset + 0x10, sf) == table4_entry_id) {
+                        read_string(h->stream_name, STREAM_NAME_SIZE, stream_name_offset, sf);
                         goto loop_break; /* to break out of the for+while loop simultaneously */
                         //break;
-                    h->stream_name_offset += 0x14;
+                    }
+                    stream_name_offset += 0x14;
                 }
             }
             //goto fail; /* didn't find any valid index? */
-            h->stream_name_offset = 0;
-            loop_break:
+loop_break:
             break;
 
         case 0x04:
@@ -687,15 +676,15 @@ static bool process_names(STREAMFILE* sf, bnk_header_t* h) {
              * 0x08: ? (2x int16)
              * 0x0C: section index (int16)
              */
-            if (read_u8(h->table4_offset, sf))
-                h->bank_name_offset = h->table4_offset;
+            read_string(h->bank_name, STREAM_NAME_SIZE, h->table4_offset, sf);
 
             table4_entries_offset = h->table4_offset + read_u32(h->table4_offset + 0x08, sf);
             table4_names_offset = h->table4_offset + read_u32(h->table4_offset + 0x0C, sf);
 
             for (i = 0; i < h->sounds_entries; i++) {
                 if (read_u16(table4_entries_offset + (i * 0x10) + 0x0C, sf) == table4_entry_id) {
-                    h->stream_name_offset = table4_names_offset + read_u32(table4_entries_offset + (i * 0x10), sf);
+                    stream_name_offset = table4_names_offset + read_u32(table4_entries_offset + (i * 0x10), sf);
+                    read_string(h->stream_name, STREAM_NAME_SIZE, stream_name_offset, sf);
                     break;
                 }
             }
@@ -726,8 +715,7 @@ static bool process_names(STREAMFILE* sf, bnk_header_t* h) {
             /* 0x0c: table4 size */
             /* variable: entries */
             /* variable: names (null terminated) */
-            if (read_u8(h->table4_offset, sf))
-                h->bank_name_offset = h->table4_offset;
+            read_string(h->bank_name, STREAM_NAME_SIZE, h->table4_offset, sf);
 
             table4_entries_offset = h->table4_offset + read_u32(h->table4_offset + 0x08, sf);
             table4_names_offset = table4_entries_offset + (0x10 * h->sounds_entries);
@@ -737,7 +725,8 @@ static bool process_names(STREAMFILE* sf, bnk_header_t* h) {
             for (i = 0; i < h->sounds_entries; i++) {
                 int entry_id = read_u16(table4_entries_offset + (i * 0x10) + 0x0c, sf);
                 if (entry_id == table4_entry_id) {
-                    h->stream_name_offset = table4_names_offset + read_u32(table4_entries_offset + (i * 0x10) + 0x00, sf);
+                    stream_name_offset = table4_names_offset + read_u32(table4_entries_offset + (i * 0x10) + 0x00, sf);
+                    read_string(h->stream_name, STREAM_NAME_SIZE, stream_name_offset, sf);
                     break;
                 }
             }
@@ -763,6 +752,7 @@ static bool process_data(STREAMFILE* sf, bnk_header_t* h) {
 
     int subtype, loop_length;
     uint32_t extradata_size = 0, postdata_size = 0;
+    uint32_t stream_name_size, stream_name_offset;
 
     h->start_offset = h->data_offset + h->stream_offset;
     uint32_t info_offset = h->start_offset;
@@ -1065,16 +1055,20 @@ static bool process_data(STREAMFILE* sf, bnk_header_t* h) {
             }
 
             /* pre-info */
-            h->stream_name_size   = read_u64(info_offset+0x00,sf);
-            h->stream_name_offset = info_offset + 0x08;
-            info_offset += h->stream_name_size + 0x08;
+            stream_name_size   = read_u64(info_offset+0x00,sf);
+            stream_name_offset = info_offset + 0x08;
+            info_offset += stream_name_size + 0x08;
 
             h->stream_size = read_u64(info_offset + 0x00,sf); /* after this offset */
-            h->stream_size += 0x08 + h->stream_name_size + 0x08;
+            h->stream_size += 0x08 + stream_name_size + 0x08;
             /* 0x08: max block/etc size? (0x00010000/00030000) */
             /* 0x0c: always 1? */
-            extradata_size = read_u64(info_offset + 0x10,sf) + 0x08 + h->stream_name_size + 0x18;
+            extradata_size = read_u64(info_offset + 0x10,sf) + 0x08 + stream_name_size + 0x18;
             info_offset += 0x18;
+
+            if (stream_name_size >= STREAM_NAME_SIZE || stream_name_size <= 0)
+                stream_name_size = STREAM_NAME_SIZE;
+            read_string(h->stream_name, stream_name_size, stream_name_offset, sf);
 
             /* actual stream info */
             /* 0x00: extradata size (without pre-info, also above) */
