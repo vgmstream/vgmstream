@@ -384,9 +384,10 @@ static bool process_tables(STREAMFILE* sf, bnk_header_t* h) {
             h->table2_suboffset = 0x00;
             break;
 
-        /* later version have a few more tables (some optional) and work slightly differently (header is part of wave) */
+        /* later versions have a few more tables (some optional) and work slightly differently (header is part of wave) */
         case 0x1a: /* Demon's Souls (PS5) */
         case 0x23: { /* The Last of Us (PC) */
+            uint32_t bank_name_offset = h->sblk_offset + (h->sblk_version <= 0x1a ? 0x1c : 0x20);
             uint32_t tables_offset = h->sblk_offset + (h->sblk_version <= 0x1a ? 0x120 : 0x128);
             uint32_t counts_offset = tables_offset + (h->sblk_version <= 0x1a ? 0x98 : 0xb0);
 
@@ -396,6 +397,8 @@ static bool process_tables(STREAMFILE* sf, bnk_header_t* h) {
           //h->sounds_entries   = read_u16(counts_offset+0x00,sf);
           //h->grains_entries   = read_u16(counts_offset+0x02,sf);
             h->stream_entries   = read_u16(counts_offset+0x06,sf);
+
+            read_string(h->bank_name, STREAM_NAME_SIZE, bank_name_offset, sf);
             break;
         }
 
