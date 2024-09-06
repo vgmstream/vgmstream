@@ -695,12 +695,16 @@ typedef struct {
 static int parse_sdx_binary_struct(STREAMFILE* sf, treyarch_ps2snd* ps2snd, sdx_bin_go_through* sbgt);
 
 static int parse_sdx(treyarch_ps2snd* ps2snd) {
-    /* additional checks, we need to know if this sdx is the real deal. */
-    if ((read_u32le(0x30, ps2snd->sf_header)) == 0 && (read_u32le(0x34, ps2snd->sf_header)) > 0x10000) goto fail;
-
     ps2snd->start_offset = 0;
-    ps2snd->header_size = get_streamfile_size(ps2snd->sf_header);
     ps2snd->sdx_block_info_size = 0x58;
+    ps2snd->header_size = get_streamfile_size(ps2snd->sf_header);
+
+    /* additional checks, we need to know if this sdx is the real deal. */
+    /* step 1 - do not allow sdx files weighing less than 88 bytes (block size of an entire binary struct). */
+    if (ps2snd->header_size < ps2snd->sdx_block_info_size) goto fail;
+
+    /* step 2 - if one value isn't zero and other value isn't "small enough", might as well just fail. */
+    if ((read_u32le(0x30, ps2snd->sf_header)) != 0 && (read_u32le(0x34, ps2snd->sf_header)) > 0x10000) goto fail;
 
     if (ps2snd->target_subsong == 0) ps2snd->target_subsong = 1;
     ps2snd->total_subsongs = 0;
