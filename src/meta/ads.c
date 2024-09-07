@@ -23,7 +23,7 @@ VGMSTREAM* init_vgmstream_ads(STREAMFILE* sf) {
      * .adx: Armored Core 3 (PS2)
      * (extensionless): MotoGP (PS2)
      * .800: Mobile Suit Gundam: The One Year War (PS2) */
-    if (!check_extensions(sf, "ads,ss2,pcm,adx,,800"))
+    if (!check_extensions(sf, "ads,ss2,pcm,adx,,800,sdl"))
         goto fail;
 
     if (read_u32le(0x04,sf) != 0x18 &&  /* standard header size */
