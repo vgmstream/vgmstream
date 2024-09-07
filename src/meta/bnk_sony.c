@@ -150,6 +150,7 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
 
             temp_sf = setup_subfile_streamfile(sf, h.start_offset, h.stream_size, "xvag");
             if (!temp_sf) goto fail;
+            temp_sf->stream_index = 1;
 
             temp_vs = init_vgmstream_xvag(temp_sf);
             close_streamfile(temp_sf);
@@ -937,7 +938,7 @@ static bool process_data(STREAMFILE* sf, bnk_header_t* h) {
         case 0x0c:
             /* has two different variants under the same version - one for PS3 and another for PS4 */
 
-            subtype = read_u32(h->start_offset + 0x00,sf); /* might be u16 at 0x02 instead? (implied by PS4's subtypes) */
+            subtype = read_u16(h->start_offset + 0x02, sf);
             if (read_u32(h->start_offset + 0x04, sf) != 0x01) { /* type? */
                 VGM_LOG("BNK: unknown subtype\n");
                 goto fail;
@@ -988,9 +989,7 @@ static bool process_data(STREAMFILE* sf, bnk_header_t* h) {
             }
             else {
                 switch (subtype) { /* PS4 */
-                    /* if subtype is u16 @ 0x02, then 0x00 is PCM and 0x01 is VAG */
-                    case 0x00: /* PCM mono? */
-                    case 0x01: /* PCM stereo? */
+                    case 0x00: /* PCM */
                         /* 0x10: null? */
                         h->channels = read_u32(h->start_offset + 0x14, sf);
                         h->interleave = 0x02;
@@ -1002,7 +1001,7 @@ static bool process_data(STREAMFILE* sf, bnk_header_t* h) {
                         h->codec = PCM16;
                         break;
 
-                    case 0x10000: /* PS-ADPCM (HEVAG?) */
+                    case 0x01: /* PS-ADPCM (HEVAG?) */
                         /* 0x10: num samples */
                         h->channels = read_u32(h->start_offset + 0x14, sf);
                         h->interleave = 0x10;
@@ -1179,11 +1178,8 @@ static bool process_zlsd(STREAMFILE* sf, bnk_header_t* h) {
     /* rest: null */
 
     /* files can have both SBlk+ZLSD streams */
-    if (!zlsd_entries) {
-        if (!h->total_subsongs)
-            goto fail;
+    if (!zlsd_entries)
         return true;
-    }
 
     /* per entry (for v23)
      * 00: crc (not referenced elsewhere)
@@ -1196,21 +1192,24 @@ static bool process_zlsd(STREAMFILE* sf, bnk_header_t* h) {
 
     /* negative if still working on SBlk streams */
     target_subsong = h->target_subsong - h->total_subsongs - 1;
-
-    if (target_subsong >= 0) {
-        zlsd_table_entry_offset = h->zlsd_offset + zlsd_table_offset + target_subsong * 0x18;
-
-        h->start_offset = zlsd_table_entry_offset + 0x04 + read_u32(zlsd_table_entry_offset + 0x04, sf);
-        h->stream_size = read_u32(zlsd_table_entry_offset + 0x0C, sf);
-
-        /* should be a switch case, but no other formats known yet */
-        //if (!is_id32be(h->stream_offset, sf, "XVAG")) goto fail;
-
-        h->codec = XVAG_ATRAC9;
-        h->channels = 1; /* dummy, real channels will be retrieved from xvag/riff */
-    }
-
     h->total_subsongs += zlsd_entries;
+
+    if (h->target_subsong < 0 || h->target_subsong > h->total_subsongs || h->total_subsongs < 1)
+        goto fail;
+
+    if (target_subsong < 0)
+        return true;
+
+    zlsd_table_entry_offset = h->zlsd_offset + zlsd_table_offset + target_subsong * 0x18;
+
+    h->start_offset = zlsd_table_entry_offset + 0x04 + read_u32(zlsd_table_entry_offset + 0x04, sf);
+    h->stream_size = read_u32(zlsd_table_entry_offset + 0x0C, sf);
+
+    /* should be a switch case, but no other formats known yet */
+    if (!is_id32be(h->start_offset, sf, "XVAG")) goto fail;
+
+    h->codec = XVAG_ATRAC9;
+    h->channels = 1; /* dummy, real channels will be retrieved from xvag/riff */
 
     return true;
 fail:
