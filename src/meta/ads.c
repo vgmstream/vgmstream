@@ -22,7 +22,8 @@ VGMSTREAM* init_vgmstream_ads(STREAMFILE* sf) {
      * .pcm: Taisho Mononoke Ibunroku (PS2)
      * .adx: Armored Core 3 (PS2)
      * (extensionless): MotoGP (PS2)
-     * .800: Mobile Suit Gundam: The One Year War (PS2) */
+     * .800: Mobile Suit Gundam: The One Year War (PS2)
+     * .sdl: Innocent Life: A Futuristic Harvest Moon (Special Edition) (PS2) */
     if (!check_extensions(sf, "ads,ss2,pcm,adx,,800,sdl"))
         goto fail;
 
