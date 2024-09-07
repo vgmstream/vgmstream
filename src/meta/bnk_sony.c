@@ -1094,7 +1094,7 @@ static bool process_data(STREAMFILE* sf, bnk_header_t* h) {
 
             h->stream_size = read_u64(info_offset + 0x00,sf); /* after this offset */
             h->stream_size += 0x08 + stream_name_size + 0x08;
-            /* 0x08: 0/1 for PCM (Mono/Stereo?), 0/1/2/3 for ATRAC9 (channels/2 except mono=0?) */
+            /* 0x08: 0/1 for PCM (Mono/Stereo?), 0/1/2/3 for ATRAC9 (channels/2)? */
             subtype = read_u16(info_offset + 0x0a, sf);
             /* 0x0c: always 1 - using this to detect whether it's an SBlk or ZLSD/exteral sound for now */
             extradata_size = read_u64(info_offset + 0x10,sf) + 0x08 + stream_name_size + 0x18;
@@ -1206,7 +1206,11 @@ static bool process_zlsd(STREAMFILE* sf, bnk_header_t* h) {
     h->stream_size = read_u32(zlsd_table_entry_offset + 0x0C, sf);
 
     /* should be a switch case, but no other formats known yet */
-    if (!is_id32be(h->start_offset, sf, "XVAG")) goto fail;
+    if (!is_id32be(h->start_offset, sf, "XVAG")) {
+        /* maybe also a separate warning if XVAG returns more than 1 subsong? */
+        vgm_logi("BNK: unsupported ZLSD subtype found (report)\n");
+        goto fail;
+    }
 
     h->codec = XVAG_ATRAC9;
     h->channels = 1; /* dummy, real channels will be retrieved from xvag/riff */
