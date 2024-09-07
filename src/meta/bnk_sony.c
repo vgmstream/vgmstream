@@ -459,6 +459,24 @@ static bool process_headers(STREAMFILE* sf, bnk_header_t* h) {
         case 0x23:
             h->total_subsongs = h->stream_entries;
             h->table3_entry_offset = (h->target_subsong - 1) * 0x08;
+
+            /* find the amount of external/ZLSD subsongs in SBlk to skip, see process_data() for more info */
+            for (i = 0; i < h->stream_entries; i++) {
+                uint32_t stream_offset = read_u32(h->table3_offset + h->table3_entry_offset + i * 0x08, sf);
+                /* some rare files (vox-joel.bnk) have dummy streams sprinkled between external ones, which kinda break it */
+                /* maybe at that point also find exclude and skip dummy streams from being loaded? */
+                if (stream_offset == 0xFFFFFFFF) {
+                    //if (skip_dummy_streams) h->total_subsongs--;
+                    continue;
+                }
+                stream_offset += h->data_offset;
+
+                uint32_t stream_name_size = read_u32(stream_offset + 0x00, sf);
+                if (read_u32(stream_offset + 0x08 + stream_name_size + 0x0C, sf) != 0x01)
+                    h->total_subsongs--;
+            }
+            vgm_logi("h->total_subsongs = %d / h->stream_entries = %d\n", h->total_subsongs, h->stream_entries);
+
             break;
 
         default:
@@ -1064,28 +1082,58 @@ static bool process_data(STREAMFILE* sf, bnk_header_t* h) {
 
             h->stream_size = read_u64(info_offset + 0x00,sf); /* after this offset */
             h->stream_size += 0x08 + stream_name_size + 0x08;
-            /* 0x08: max block/etc size? (0x00010000/00030000) */
-            /* 0x0c: always 1? */
+            /* 0x08: 0/1 for PCM (Mono/Stereo?), 0/1/2/3 for ATRAC9 (channels/2 except mono=0?) */
+            subtype = read_u16(info_offset + 0x0a, sf);
+            /* 0x0c: always 1 - using this to detect whether it's an SBlk or ZLSD/exteral sound for now */
             extradata_size = read_u64(info_offset + 0x10,sf) + 0x08 + stream_name_size + 0x18;
-            info_offset += 0x18;
 
             if (stream_name_size >= STREAM_NAME_SIZE || stream_name_size <= 0)
                 stream_name_size = STREAM_NAME_SIZE;
             read_string(h->stream_name, stream_name_size, stream_name_offset, sf);
 
+            /* is there a better way to detect? name size isn't aligned for these either, so ext check also works */
+            /* the name likely has to be hashed and that can be used to find the appropeiate ZLSD entry */
+            //if (is_id32be(info_offset - 0x5, sf, "xvag")) break; /* extension */
+            if (read_u32(info_offset + 0x0c, sf) != 0x01) {
+                //h->external_subsongs++; /* total calculated and subtracted in process_headers() */
+                /* for external/zlsd this will just read the stream name from the next entry, or 0 for the last one */
+                break;
+            }
+
+            info_offset += 0x18;
+
             /* actual stream info */
-            /* 0x00: extradata size (without pre-info, also above) */
-            h->atrac9_info = read_u32be(info_offset+0x04,sf);
-            h->num_samples  = read_s32(info_offset+0x08,sf);
-            h->channels     = read_u32(info_offset+0x0c,sf);
-            h->loop_start   = read_s32(info_offset+0x10,sf);
-            h->loop_end     = read_s32(info_offset+0x14,sf);
-            /* 0x18: loop flag (0=loop, -1=no) */
-            /* rest: null */
+            switch (subtype) {
+                case 0x00:
+                    h->num_samples = read_s32(info_offset + 0x00, sf);
+                    h->channels    = read_u32(info_offset + 0x04, sf);
+                    /* 0x08: loop flag? (always -1) */
+
+                    h->codec = PCM16;
+                    break;
+
+                /* should be split, but 0x1A has no other known codecs yet */
+                case 0x01: /* 0x23 */
+                case 0x03: /* 0x1A */
+                    /* 0x00: extradata size (without pre-info, also above) */
+                    h->atrac9_info = read_u32be(info_offset + 0x04, sf);
+                    h->num_samples   = read_s32(info_offset + 0x08, sf);
+                    h->channels      = read_u32(info_offset + 0x0c, sf);
+                    h->loop_start    = read_s32(info_offset + 0x10, sf);
+                    h->loop_end      = read_s32(info_offset + 0x14, sf);
+                    /* 0x18: loop flag (0=loop, -1=no) */
+                    /* rest: null */
+
+                    h->codec = RIFF_ATRAC9;
+                    break;
+
+                default:
+                    vgm_logi("BNK: unknown subtype %x (report)\n", subtype);
+                    goto fail;
+            }
+
             /* no sample rate (probably fixed to 48000/system's, but seen in RIFF) */
             h->sample_rate = 48000;
-
-            h->codec = RIFF_ATRAC9; /* unsure how other codecs would work */
             break;
 
         default:
@@ -1103,7 +1151,6 @@ fail:
     return false;
 }
 
-
 /* zlsd part: parse extra footer (vox?) data */
 static bool process_zlsd(STREAMFILE* sf, bnk_header_t* h) {
     if (!h->zlsd_offset)
@@ -1117,11 +1164,14 @@ static bool process_zlsd(STREAMFILE* sf, bnk_header_t* h) {
     /* 0x04: version? (1) */
     int zlsd_count = read_u32(h->zlsd_offset+0x08,sf);
     /* 0x0c: start */
+    /* 0x10: start if 64-bit zlsd_count? seen in SBlk 0x1A */
     /* rest: null */
 
     if (zlsd_count) {
         vgm_logi("BNK: unsupported ZLSD subsongs found\n");
-        goto fail;
+        /* there are files with both SBlk+ZLSD streams */
+        /* returning false means none of those streams will work either */
+        return true;
     }
 
     /* per entry (for v23)
@@ -1192,12 +1242,12 @@ static bool parse_bnk_v3(STREAMFILE* sf, bnk_header_t* h) {
      * - 0x10: block number
      * - 0x11: padding
      * version >= v0x1a:
-     * - 0x0c: hash (0x10)
-     * - 0x1c: filename (0x100?)
+     * - 0x0c: uuid (0x10)
+     * - 0x1c: bank name (0x100?)
      * version ~= v0x23:
      * - 0x0c: null (depends on flags? v1a=0x05, v23=0x07)
-     * - 0x10: hash (0x10)
-     * - 0x20: filename (0x100?)
+     * - 0x10: uuid (0x10)
+     * - 0x20: bank name (0x100?)
      */
     //;VGM_LOG("BNK: h->sblk_offset=%lx, h->data_offset=%lx, h->sblk_version %x\n", h->sblk_offset, h->data_offset, h->sblk_version);
     //TODO handle, in rare cases may contain subsongs (unsure how are referenced but has its own number)
