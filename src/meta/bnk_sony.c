@@ -1174,7 +1174,7 @@ static bool process_zlsd(STREAMFILE* sf, bnk_header_t* h) {
     if (!h->zlsd_offset)
         return true;
 
-    int zlsd_entries, target_subsong;
+    int zlsd_subsongs, target_subsong;
     uint32_t zlsd_table_offset, zlsd_table_entry_offset, stream_offset;
     read_u32_t read_u32 = h->big_endian ? read_u32be : read_u32le;
 
@@ -1182,17 +1182,23 @@ static bool process_zlsd(STREAMFILE* sf, bnk_header_t* h) {
         return false;
 
     /* 0x04: version? (1) */
-    zlsd_entries = read_u32(h->zlsd_offset + 0x08, sf);
+    zlsd_subsongs = read_u32(h->zlsd_offset + 0x08, sf);
     /* 0x0c: start (most of the time) */
-    /* 0x10: start if 64-bit zlsd_entries? seen in SBlk 0x1A */
+    /* 0x10: start if 64-bit zlsd_subsongs? seen in SBlk 0x1A */
     zlsd_table_offset = read_u32(h->zlsd_offset + 0x0C, sf);
     /* rest: null */
 
     /* files can have both SBlk+ZLSD streams */
-    if (!zlsd_entries)
+    if (zlsd_subsongs < 1) {
+        if (h->total_subsongs < 1)
+            goto fail;
         return true;
+    }
 
-    /* per entry (for v23)
+    if (!zlsd_table_offset)
+        goto fail; /* 64-bit entries count? */
+
+    /* per entry (for SBlk v0x23)
      * 00: crc (not referenced elsewhere)
      * 04: stream offset (from this offset)
      * 08: null (part of offset?)
@@ -1203,9 +1209,9 @@ static bool process_zlsd(STREAMFILE* sf, bnk_header_t* h) {
 
     /* target_subsong is negative if it's working on SBlk streams */
     target_subsong = h->target_subsong - h->total_subsongs - 1;
-    h->total_subsongs += zlsd_entries;
+    h->total_subsongs += zlsd_subsongs;
 
-    if (h->target_subsong < 0 || h->target_subsong > h->total_subsongs || h->total_subsongs < 1)
+    if (h->target_subsong < 0 || h->target_subsong > h->total_subsongs)
         goto fail;
 
     if (target_subsong < 0)
