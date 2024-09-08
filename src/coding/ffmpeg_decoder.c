@@ -432,11 +432,16 @@ fail:
 
 /* FFmpeg internals (roughly) for reference:
  * 
+ *   // metadata info first extracted 
  *   AVFormatContext                    // base info extracted from input file
  *     AVStream                         // substreams
  *       AVCodecParameters              // codec id, channels, format, ...
  *   
- *   AVCodecContext                     // sample rate and general info
+ *   // codec info passed to 'decode' functions
+ *   AVCodecContext                     // codec's sample rate, priv data and general info
+ *   AVPacket                           // encoded data (1 or N frames) passed to decoder
+ *   AVFrame                            // decoded data (audio samples + channels + etc) received from decoder
+ *                                      //  (bufs are internally managed)
  * 
  * - open avformat to get all possible format info (needs file or custom IO)
  * - open avcodec based on target stream + codec info from avformat
@@ -444,8 +449,13 @@ fail:
  *   - read next frame into packet via avformat
  *   - decode packet via avcodec
  *   - handle samples
-*/
-
+ * 
+ * In FFmpeg, each "avformat" defines an struct with format info/config and read_probe (detection) + read_header
+ * (setup format/codec params) + read_packet (demux single frame) functions. Meanwhile "avcodec" defines an struct
+ * with config and decode_init/close (setup, may use first block's data to init itself or some extradata from
+ * avformat) + decode_frame (loads AVFrame from AVPacket) + decode_flush (reset state).
+ * Codec/demuxer contexts aren't alloc'd manually and instead they declare priv data size.
+ */
 static int init_ffmpeg_config(ffmpeg_codec_data* data, int target_subsong, int reset) {
     int errcode = 0;
 

@@ -6,16 +6,13 @@ static bool bink_get_info(STREAMFILE* sf, int target_subsong, int* p_total_subso
 
 /* BINK 1/2 - RAD Game Tools movies (audio/video format) */
 VGMSTREAM* init_vgmstream_bik(STREAMFILE* sf) {
-    VGMSTREAM * vgmstream = NULL;
-    int channels = 0, loop_flag = 0, sample_rate = 0, num_samples = 0;
-    int total_subsongs = 0, target_subsong = sf->stream_index;
-    size_t stream_size;
+    VGMSTREAM* vgmstream = NULL;
 
     /* checks */
     /* bink1/2 header, followed by version-char (audio is the same) */
     if ((read_u32be(0x00,sf) & 0xffffff00) != get_id32be("BIK\0") &&
         (read_u32be(0x00,sf) & 0xffffff00) != get_id32be("KB2\0"))
-        goto fail;
+        return NULL;
 
     /* .bik/bk2: standard
     *  .bik2: older?
@@ -25,7 +22,13 @@ VGMSTREAM* init_vgmstream_bik(STREAMFILE* sf) {
      * .vid: Etrange Libellules games [Alice in Wonderland (PC)] 
      * .bika: fake extension for demuxed audio */
     if (!check_extensions(sf,"bik,bk2,bik2,ps3,xmv,xen,vid,bika"))
-        goto fail;
+        return NULL;
+
+    /* this typically handles regular or demuxed videos, but .bik with a 4x4 video made for audio do exist [Viva Piñata (DS)] */
+
+    int channels = 0, loop_flag = 0, sample_rate = 0, num_samples = 0;
+    int total_subsongs = 0, target_subsong = sf->stream_index;
+    size_t stream_size;
 
     /* find target stream info and samples */
     if (!bink_get_info(sf, target_subsong, &total_subsongs, &stream_size, &channels, &sample_rate, &num_samples))

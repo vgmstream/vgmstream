@@ -330,8 +330,7 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
     vgmstream->num_streams = txth.subsong_count;
     vgmstream->stream_size = txth.data_size;
     if (txth.name_offset_set) {
-        size_t name_size = txth.name_size ? txth.name_size + 1 : STREAM_NAME_SIZE;
-        read_string(vgmstream->stream_name,name_size, txth.name_offset,txth.sf_head);
+        read_string_sz(vgmstream->stream_name, STREAM_NAME_SIZE, txth.name_size, txth.name_offset, txth.sf_head);
     }
 
     /* codec specific (taken from GENH with minimal changes) */
@@ -780,6 +779,9 @@ static VGMSTREAM* init_subfile(txth_header* txth) {
     }
     //todo: other combos with subsongs + subfile?
 
+    if (txth->name_offset_set) {
+        read_string_sz(vgmstream->stream_name, STREAM_NAME_SIZE, txth->name_size, txth->name_offset, txth->sf_head);
+    }
 
     close_streamfile(sf_sub);
     return vgmstream;

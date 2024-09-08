@@ -243,7 +243,7 @@ VGMSTREAM* init_vgmstream_nus3bank(STREAMFILE* sf) {
 
     vgmstream->num_streams = total_subsongs;
     if (name_offset)
-        read_string(vgmstream->stream_name, name_size, name_offset, sf);
+        read_string_sz(vgmstream->stream_name, STREAM_NAME_SIZE, name_size, name_offset, sf);
 
 
     close_streamfile(temp_sf);
