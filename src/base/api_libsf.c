@@ -71,9 +71,9 @@ static const char* libsf_get_name(void* user_data) {
     return data->name;
 }
 
-struct libstreamfile_t* libsf_open(void* user_data, const char* filename) {
+static libstreamfile_t* libsf_open(void* user_data, const char* filename) {
     libsf_data_t* data = user_data;
-    if (!data || !data->inner_sf)
+    if (!data || !data->inner_sf || !filename)
         return NULL;
 
     STREAMFILE* sf = data->inner_sf->open(data->inner_sf, filename, 0);
@@ -89,7 +89,7 @@ struct libstreamfile_t* libsf_open(void* user_data, const char* filename) {
     return libsf;
 }
 
-static void libsf_close(struct libstreamfile_t* libsf) {
+static void libsf_close(libstreamfile_t* libsf) {
     if (!libsf)
         return;
 
