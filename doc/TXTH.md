@@ -303,11 +303,13 @@ id_check = (value)
 ```
 
 #### NUMBER OF CHANNELS [REQUIRED]
+How many audio channels the file has, typically 2 (stereo).
 ```
 channels = (value)
 ```
 
-#### MUSIC FREQUENCY [REQUIRED]
+#### AUDIO FREQUENCY [REQUIRED]
+Number of samples per second, typically 48000/44100/32000/24000/22050/11025.
 ```
 sample_rate = (value)
 ```

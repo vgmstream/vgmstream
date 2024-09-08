@@ -35,7 +35,7 @@ void render_vgmstream_layered(sbuf_t* sdst, VGMSTREAM* vgmstream) {
             samples_to_do = sdst->samples - sdst->filled;
 
         if (samples_to_do <= 0) { /* when decoding more than num_samples */
-            VGM_LOG_ONCE("LAYERED: wrong samples_to_do\n"); 
+            VGM_LOG_ONCE("LAYERED: wrong %i samples_to_do (%i filled vs %i samples)\n", samples_to_do, sdst->filled, sdst->samples); 
             goto decode_fail;
         }
 
