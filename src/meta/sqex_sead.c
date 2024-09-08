@@ -339,58 +339,45 @@ static void sead_cat(char* dst, int dst_max, const char* src) {
 }
 
 static void build_readable_sab_name(sead_header_t* sead, STREAMFILE* sf, uint32_t sndname_offset, uint32_t sndname_size) {
-    char * buf = sead->readable_name;
+    char* buf = sead->readable_name;
     int buf_size = sizeof(sead->readable_name);
-    char descriptor[255], name[255];
-
-    if (sead->filename_size > 255 || sndname_size > 255)
-        goto fail;
+    char descriptor[256], name[256];
 
     if (buf[0] == '\0') { /* init */
-        read_string(descriptor,sead->filename_size+1, sead->filename_offset, sf);
-        read_string(name, sndname_size+1, sndname_offset, sf);
+        read_string_sz(descriptor, sizeof(descriptor), sead->filename_size, sead->filename_offset, sf);
+        read_string_sz(name, sizeof(name), sndname_size, sndname_offset, sf);
 
         snprintf(buf,buf_size, "%s/%s", descriptor, name);
     }
     else { /* add */
-        read_string(name, sndname_size+1, sndname_offset, sf);
+        read_string_sz(name, sizeof(name), sndname_size, sndname_offset, sf);
 
         sead_cat(buf, buf_size, "; ");
         sead_cat(buf, buf_size, name);
     }
-    return;
-fail:
-    VGM_LOG("SEAD: bad sab name found\n");
 }
 
 static void build_readable_mab_name(sead_header_t* sead, STREAMFILE* sf) {
-    char * buf = sead->readable_name;
+    char* buf = sead->readable_name;
     int buf_size = sizeof(sead->readable_name);
-    char descriptor[255], name[255], mode[255];
+    char descriptor[256], name[256], mode[256];
 
-    if (sead->filename_size > 255 || sead->muscname_size > 255 || sead->sectname_size > 255 || sead->modename_size > 255)
-        goto fail;
-
-    read_string(descriptor,sead->filename_size+1,sead->filename_offset, sf);
-    //read_string(filename,sead->muscname_size+1,sead->muscname_offset, sf); /* same as filename, not too interesting */
+    read_string_sz(descriptor, sizeof(descriptor), sead->filename_size, sead->filename_offset, sf);
+    //read_string_sz(filename, sizeof(filename), sead->muscname_size, sead->muscname_offset, sf); /* same as filename, not too interesting */
     if (sead->sectname_offset)
-        read_string(name,sead->sectname_size+1,sead->sectname_offset, sf);
+        read_string_sz(name, sizeof(name), sead->sectname_size,sead->sectname_offset, sf);
     else if (sead->instname_offset)
-        read_string(name,sead->instname_size+1,sead->instname_offset, sf);
+        read_string_sz(name, sizeof(name), sead->instname_size, sead->instname_offset, sf);
     else
         strcpy(name, "?");
     if (sead->modename_offset > 0)
-        read_string(mode,sead->modename_size+1,sead->modename_offset, sf);
+        read_string_sz(mode, sizeof(mode), sead->modename_size,sead->modename_offset, sf);
 
     /* default mode in most files */
     if (sead->modename_offset == 0 || strcmp(mode, "Mode") == 0 || strcmp(mode, "Mode0") == 0)
         snprintf(buf,buf_size, "%s/%s", descriptor, name);
     else
         snprintf(buf,buf_size, "%s/%s/%s", descriptor, name, mode);
-
-    return;
-fail:
-    VGM_LOG("SEAD: bad mab name found\n");
 }
 
 static void parse_sead_mab_name(sead_header_t* sead, STREAMFILE* sf) {

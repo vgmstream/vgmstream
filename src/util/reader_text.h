@@ -11,7 +11,10 @@ size_t read_line(char* buf, int buf_size, off_t offset, STREAMFILE* sf, int* p_l
 /* skip BOM if needed */
 size_t read_bom(STREAMFILE* sf);
 
-/* reads a c-string (ANSI only), up to bufsize or NULL, returning size. buf is optional (works as get_string_size). */
+/* Reads a C-string (ANSI only), up to buf_size, string_size (no need to include null char), or NULL (whichever is happens first).
+ * Returning size and buf is optional (works as get_string_size without it). Will always null-terminate the string. */
+size_t read_string_sz(char* buf, size_t buf_size, size_t string_size, off_t offset, STREAMFILE* sf);
+/* same but without known string_size */
 size_t read_string(char* buf, size_t buf_size, off_t offset, STREAMFILE* sf);
 /* reads a UTF16 string... but actually only as ANSI (discards the upper byte) */
 size_t read_string_utf16(char* buf, size_t buf_size, off_t offset, STREAMFILE* sf, int big_endian);
