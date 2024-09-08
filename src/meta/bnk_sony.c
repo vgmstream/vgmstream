@@ -159,7 +159,7 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
             temp_vs->num_streams = vgmstream->num_streams;
             //temp_vs->stream_size = vgmstream->stream_size;
             temp_vs->meta_type = vgmstream->meta_type;
-            //strcpy(temp_vs->stream_name, vgmstream->stream_name);
+            strcpy(temp_vs->stream_name, vgmstream->stream_name);
 
             close_vgmstream(vgmstream);
             return temp_vs;
@@ -532,6 +532,10 @@ static bool process_headers(STREAMFILE* sf, bnk_header_t* h) {
 
     //;VGM_LOG("BNK: header entry at %x\n", h->table3_offset + h->table3_entry_offset);
 
+    /* is currently working on ZLSD streams */
+    if (h->zlsd_offset && h->target_subsong > h->total_subsongs)
+        return true;
+
     sndh_offset = h->table3_offset + h->table3_entry_offset;
 
     /* parse sounds */
@@ -634,6 +638,10 @@ static bool process_names(STREAMFILE* sf, bnk_header_t* h) {
 
     /* table4 can be nonexistent */
     if (h->table4_offset <= h->sblk_offset)
+        return true;
+
+    /* is currently working on ZLSD streams */
+    if (h->zlsd_offset && h->target_subsong > h->total_subsongs)
         return true;
 
     int i;
@@ -790,6 +798,10 @@ static bool process_data(STREAMFILE* sf, bnk_header_t* h) {
     read_u32_t read_u32 = h->big_endian ? read_u32be : read_u32le;
     read_s32_t read_s32 = h->big_endian ? read_s32be : read_s32le;
     read_u64_t read_u64 = h->big_endian ? read_u64be : read_u64le;
+
+    /* is currently working on ZLSD streams */
+    if (h->zlsd_offset && h->target_subsong > h->total_subsongs)
+        return true;
 
     int subtype, loop_length;
     uint32_t extradata_size = 0, postdata_size = 0;
@@ -1104,8 +1116,7 @@ static bool process_data(STREAMFILE* sf, bnk_header_t* h) {
             read_string(h->stream_name, stream_name_size, stream_name_offset, sf);
 
             /* the stream name likely has to be hashed and that can be used to find the appropeiate ZLSD entry */
-            if (read_u32(info_offset + 0x0c, sf) != 0x01)
-                break;
+            //if (read_u32(info_offset + 0x0c, sf) != 0x01) break;
 
             info_offset += 0x18;
 
@@ -1190,7 +1201,7 @@ static bool process_zlsd(STREAMFILE* sf, bnk_header_t* h) {
      * 14: null */
     /* known streams are standard XVAG (no subsongs) */
 
-    /* negative if still working on SBlk streams */
+    /* target_subsong is negative if it's working on SBlk streams */
     target_subsong = h->target_subsong - h->total_subsongs - 1;
     h->total_subsongs += zlsd_entries;
 
@@ -1201,14 +1212,13 @@ static bool process_zlsd(STREAMFILE* sf, bnk_header_t* h) {
         return true;
 
     zlsd_table_entry_offset = h->zlsd_offset + zlsd_table_offset + target_subsong * 0x18;
-
     h->start_offset = zlsd_table_entry_offset + 0x04 + read_u32(zlsd_table_entry_offset + 0x04, sf);
     h->stream_size = read_u32(zlsd_table_entry_offset + 0x0C, sf);
 
     /* should be a switch case, but no other formats known yet */
     if (!is_id32be(h->start_offset, sf, "XVAG")) {
         /* maybe also a separate warning if XVAG returns more than 1 subsong? */
-        vgm_logi("BNK: unsupported ZLSD subtype found (report)\n");
+        vgm_logi("BNK: unsupported ZLSD subfile found (report)\n");
         goto fail;
     }
 
@@ -1224,11 +1234,11 @@ fail:
 /* parse SCREAM bnk (usually SFX but also used for music) */
 static bool parse_bnk_v3(STREAMFILE* sf, bnk_header_t* h) {
 
-   /* bnk/SCREAM tool version (v2 is a bit different, not seen v1) */
+    /* bnk/SCREAM tool version (v2 is a bit different, not seen v1) */
     if (read_u32be(0x00,sf) == 0x03) { /* PS3 */
         h->big_endian = 1;
     }
-    else if (read_u32le(0x00,sf) == 0x03) { /* PS2/PSP/Vita/PS4 */
+    else if (read_u32le(0x00,sf) == 0x03) { /* PS2/PSP/Vita/PS4/PS5 */
         h->big_endian = 0;
     }
     else {
@@ -1242,7 +1252,7 @@ static bool parse_bnk_v3(STREAMFILE* sf, bnk_header_t* h) {
         return false;
     /* in theory a bank can contain multiple blocks but only those are used */
 
-    /* section sizes don't include padding (sometimes aligned to 0x10/0x800) */
+    /* file is sometimes aligned to 0x10/0x800, so this can't be used for total size checks */
     h->sblk_offset = read_u32(0x08,sf);
     //h->sblk_size = read_u32(0x0c,sf);
     h->data_offset = read_u32(0x10,sf);
