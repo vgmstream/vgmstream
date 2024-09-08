@@ -31,8 +31,11 @@ static void seek_force_decode(VGMSTREAM* vgmstream, int samples) {
             to_do = buf_samples;
         sbuf_tmp.samples = to_do;
         render_layout(&sbuf_tmp, vgmstream);
+
         /* no mixing */
         samples -= to_do;
+
+        sbuf_tmp.filled = 0; // discard buf
     }
 }
 
