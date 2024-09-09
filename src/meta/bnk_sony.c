@@ -3,7 +3,7 @@
 #include "../coding/coding.h"
 #include "../util/endianness.h"
 
-typedef enum { NONE, DUMMY, PSX, PCM16, MPEG, ATRAC9, HEVAG, RIFF_ATRAC9, XVAG_ATRAC9 } bnk_codec;
+typedef enum { NONE, DUMMY, EXTERNAL, PSX, PCM16, MPEG, ATRAC9, HEVAG, RIFF_ATRAC9, XVAG_ATRAC9 } bnk_codec;
 
 typedef struct {
     bnk_codec codec;
@@ -103,6 +103,39 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
             return temp_vs;
         }
 
+        case EXTERNAL: {
+            VGMSTREAM* temp_vs = NULL;
+            STREAMFILE* temp_sf = NULL;
+
+
+            /* try with both stream_name and bank_name/stream_name? */
+            temp_sf = open_streamfile_by_filename(sf, h.stream_name);
+            if (!temp_sf) { /* create dummy stream if it can't be found */
+                temp_vs = init_vgmstream_silence_container(h.total_subsongs);
+                if (!temp_vs) goto fail;
+
+                temp_vs->meta_type = vgmstream->meta_type;
+                snprintf(temp_vs->stream_name, STREAM_NAME_SIZE, "%s [not found]", vgmstream->stream_name);
+
+                close_vgmstream(vgmstream);
+                return temp_vs;
+            }
+
+            /* are external streams always xvag? it shouldn't be hardcoded like this, but... */
+            /* and at that point does this also need to be put behind #ifdef VGM_USE_ATRAC9? */
+            /* known BNK v12 externals use XVAG MPEG but it functions differently in general */
+            temp_vs = init_vgmstream_xvag(temp_sf);
+            close_streamfile(temp_sf);
+            if (!temp_vs) goto fail;
+
+            temp_vs->num_streams = vgmstream->num_streams;
+            temp_vs->meta_type = vgmstream->meta_type;
+            strcpy(temp_vs->stream_name, vgmstream->stream_name);
+
+            close_vgmstream(vgmstream);
+            return temp_vs;
+        }
+
 #ifdef VGM_USE_ATRAC9
         case ATRAC9: {
             atrac9_config cfg = {0};
@@ -155,6 +188,8 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
             temp_vs = init_vgmstream_xvag(temp_sf);
             close_streamfile(temp_sf);
             if (!temp_vs) goto fail;
+
+            /* maybe also a separate warning/fail if XVAG returns more than 1 subsong? */
 
             temp_vs->num_streams = vgmstream->num_streams;
             //temp_vs->stream_size = vgmstream->stream_size;
@@ -479,24 +514,8 @@ static bool process_headers(STREAMFILE* sf, bnk_header_t* h) {
 
         case 0x1a:
         case 0x23:
-            for (i = 0; i < h->stream_entries; i++) {
-                /* skip dummy/silence streams */
-                uint32_t stream_offset = read_u32(h->table3_offset + i * 0x08, sf);
-                if (stream_offset == 0xFFFFFFFF)
-                    continue;
-
-                /* skip ZLSD/external streams */
-                stream_offset += h->data_offset;
-                uint32_t stream_name_size = read_u32(stream_offset + 0x00, sf);
-                if (read_u32(stream_offset + 0x08 + stream_name_size + 0x0C, sf) != 0x01)
-                    continue;
-
-                h->total_subsongs++;
-                if (h->total_subsongs == h->target_subsong)
-                    h->table3_entry_offset = i * 0x08;
-                /* continue to count all subsongs */
-            }
-
+            h->total_subsongs = h->stream_entries;
+            h->table3_entry_offset = (h->target_subsong - 1) * 0x08;
             break;
 
         default:
@@ -1099,6 +1118,12 @@ static bool process_data(STREAMFILE* sf, bnk_header_t* h) {
 
         case 0x1a:
         case 0x23:
+            if (h->stream_offset == 0xFFFFFFFF) {
+                h->channels = 1;
+                h->codec = DUMMY;
+                break;
+            }
+
             /* pre-info */
             stream_name_size   = read_u64(info_offset+0x00,sf);
             stream_name_offset = info_offset + 0x08;
@@ -1115,8 +1140,11 @@ static bool process_data(STREAMFILE* sf, bnk_header_t* h) {
                 stream_name_size = STREAM_NAME_SIZE;
             read_string(h->stream_name, stream_name_size, stream_name_offset, sf);
 
-            /* the stream name likely has to be hashed and that can be used to find the appropeiate ZLSD entry */
-            //if (read_u32(info_offset + 0x0c, sf) != 0x01) break;
+            if (read_u32(info_offset + 0x0c, sf) != 0x01) {
+                h->channels = 1;
+                h->codec = EXTERNAL;
+                break;
+            }
 
             info_offset += 0x18;
 
@@ -1169,13 +1197,19 @@ fail:
     return false;
 }
 
-/* zlsd part: parse extra footer (vox?) data */
+/* zlsd part: parse external stream prefetch data */
 static bool process_zlsd(STREAMFILE* sf, bnk_header_t* h) {
     if (!h->zlsd_offset)
         return true;
 
+    /* TODO:  ZLSD contains FNV1-32 hashes of the SBlk external streams,
+     * but with the way it's all currently set up, it isn't as simple to
+     * map appropriate hashes to existing SBlk streams. So for now these
+     * won't have a "proper" stream name visible.
+     */
+
     int zlsd_subsongs, target_subsong;
-    uint32_t zlsd_table_offset, zlsd_table_entry_offset, stream_offset;
+    uint32_t zlsd_table_offset, zlsd_table_entry_offset, stream_offset, stream_name_hash;
     read_u32_t read_u32 = h->big_endian ? read_u32be : read_u32le;
 
     if (read_u32(h->zlsd_offset + 0x00, sf) != get_id32be("DSLZ"))
@@ -1199,12 +1233,12 @@ static bool process_zlsd(STREAMFILE* sf, bnk_header_t* h) {
         goto fail; /* 64-bit entries count? */
 
     /* per entry (for SBlk v0x23)
-     * 00: crc (not referenced elsewhere)
+     * 00: fnv1-32 hash of the stream name
      * 04: stream offset (from this offset)
      * 08: null (part of offset?)
      * 0c: stream size
      * 10: offset/size?
-     * 14: null */
+     * 14/18: null */
     /* known streams are standard XVAG (no subsongs) */
 
     /* target_subsong is negative if it's working on SBlk streams */
@@ -1220,16 +1254,17 @@ static bool process_zlsd(STREAMFILE* sf, bnk_header_t* h) {
     zlsd_table_entry_offset = h->zlsd_offset + zlsd_table_offset + target_subsong * 0x18;
     h->start_offset = zlsd_table_entry_offset + 0x04 + read_u32(zlsd_table_entry_offset + 0x04, sf);
     h->stream_size = read_u32(zlsd_table_entry_offset + 0x0C, sf);
+    stream_name_hash = read_u32(zlsd_table_entry_offset + 0x00, sf);
 
     /* should be a switch case, but no other formats known yet */
     if (!is_id32be(h->start_offset, sf, "XVAG")) {
-        /* maybe also a separate warning if XVAG returns more than 1 subsong? */
         vgm_logi("BNK: unsupported ZLSD subfile found (report)\n");
         goto fail;
     }
 
-    h->codec = XVAG_ATRAC9;
+    snprintf(h->stream_name, STREAM_NAME_SIZE, "%u [pre]", stream_name_hash);
     h->channels = 1; /* dummy, real channels will be retrieved from xvag/riff */
+    h->codec = XVAG_ATRAC9;
 
     return true;
 fail:
