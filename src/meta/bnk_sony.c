@@ -3,7 +3,7 @@
 #include "../coding/coding.h"
 #include "../util/endianness.h"
 
-typedef enum { NONE, DUMMY, PSX, PCM16, MPEG, ATRAC9, HEVAG, RIFF_ATRAC9 } bnk_codec;
+typedef enum { NONE, DUMMY, EXTERNAL, PSX, PCM16, MPEG, ATRAC9, HEVAG, RIFF_ATRAC9, XVAG_ATRAC9 } bnk_codec;
 
 typedef struct {
     bnk_codec codec;
@@ -47,9 +47,6 @@ typedef struct {
 
     uint32_t start_offset;
     uint32_t stream_offset;
-    uint32_t bank_name_offset;
-    uint32_t stream_name_offset;
-    uint32_t stream_name_size;
 
     uint32_t stream_size;
     uint32_t interleave;
@@ -69,9 +66,9 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
     bnk_header_t h = {0};
 
     /* checks */
-    if (!parse_bnk_v3(sf, &h))
-        return NULL;
     if (!check_extensions(sf, "bnk"))
+        return NULL;
+    if (!parse_bnk_v3(sf, &h))
         return NULL;
 
 
@@ -84,15 +81,6 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
     vgmstream->stream_size = h.stream_size;
 
     vgmstream->meta_type = meta_BNK_SONY;
-
-    if (h.stream_name_size >= STREAM_NAME_SIZE || h.stream_name_size <= 0)
-        h.stream_name_size = STREAM_NAME_SIZE;
-
-    /* replace this with reading into the buffer ASAP when processing tables? */
-    if (h.bank_name_offset)
-        read_string(h.bank_name, h.stream_name_size, h.bank_name_offset, sf);
-    if (h.stream_name_offset)
-        read_string(h.stream_name, h.stream_name_size, h.stream_name_offset, sf);
 
     if (h.stream_name[0]) {
         get_streamfile_basename(sf, file_name, STREAM_NAME_SIZE);
@@ -110,6 +98,39 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
             if (!temp_vs) goto fail;
 
             temp_vs->meta_type = vgmstream->meta_type;
+
+            close_vgmstream(vgmstream);
+            return temp_vs;
+        }
+
+        case EXTERNAL: {
+            VGMSTREAM* temp_vs = NULL;
+            STREAMFILE* temp_sf = NULL;
+
+
+            /* try with both stream_name and bank_name/stream_name? */
+            temp_sf = open_streamfile_by_filename(sf, h.stream_name);
+            if (!temp_sf) { /* create dummy stream if it can't be found */
+                temp_vs = init_vgmstream_silence_container(h.total_subsongs);
+                if (!temp_vs) goto fail;
+
+                temp_vs->meta_type = vgmstream->meta_type;
+                snprintf(temp_vs->stream_name, STREAM_NAME_SIZE, "%s [not found]", vgmstream->stream_name);
+
+                close_vgmstream(vgmstream);
+                return temp_vs;
+            }
+
+            /* are external streams always xvag? it shouldn't be hardcoded like this, but... */
+            /* and at that point does this also need to be put behind #ifdef VGM_USE_ATRAC9? */
+            /* known BNK v12 externals use XVAG MPEG but it functions differently in general */
+            temp_vs = init_vgmstream_xvag(temp_sf);
+            close_streamfile(temp_sf);
+            if (!temp_vs) goto fail;
+
+            temp_vs->num_streams = vgmstream->num_streams;
+            temp_vs->meta_type = vgmstream->meta_type;
+            strcpy(temp_vs->stream_name, vgmstream->stream_name);
 
             close_vgmstream(vgmstream);
             return temp_vs;
@@ -148,6 +169,30 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
 
             temp_vs->num_streams = vgmstream->num_streams;
             temp_vs->stream_size = vgmstream->stream_size;
+            temp_vs->meta_type = vgmstream->meta_type;
+            strcpy(temp_vs->stream_name, vgmstream->stream_name);
+
+            close_vgmstream(vgmstream);
+            return temp_vs;
+        }
+
+        case XVAG_ATRAC9: {
+            VGMSTREAM* temp_vs = NULL;
+            STREAMFILE* temp_sf = NULL;
+
+
+            temp_sf = setup_subfile_streamfile(sf, h.start_offset, h.stream_size, "xvag");
+            if (!temp_sf) goto fail;
+            temp_sf->stream_index = 1;
+
+            temp_vs = init_vgmstream_xvag(temp_sf);
+            close_streamfile(temp_sf);
+            if (!temp_vs) goto fail;
+
+            /* maybe also a separate warning/fail if XVAG returns more than 1 subsong? */
+
+            temp_vs->num_streams = vgmstream->num_streams;
+            //temp_vs->stream_size = vgmstream->stream_size;
             temp_vs->meta_type = vgmstream->meta_type;
             strcpy(temp_vs->stream_name, vgmstream->stream_name);
 
@@ -396,9 +441,10 @@ static bool process_tables(STREAMFILE* sf, bnk_header_t* h) {
             h->table2_suboffset = 0x00;
             break;
 
-        /* later version have a few more tables (some optional) and work slightly differently (header is part of wave) */
+        /* later versions have a few more tables (some optional) and work slightly differently (header is part of wave) */
         case 0x1a: /* Demon's Souls (PS5) */
         case 0x23: { /* The Last of Us (PC) */
+            uint32_t bank_name_offset = h->sblk_offset + (h->sblk_version <= 0x1a ? 0x1c : 0x20);
             uint32_t tables_offset = h->sblk_offset + (h->sblk_version <= 0x1a ? 0x120 : 0x128);
             uint32_t counts_offset = tables_offset + (h->sblk_version <= 0x1a ? 0x98 : 0xb0);
 
@@ -408,6 +454,8 @@ static bool process_tables(STREAMFILE* sf, bnk_header_t* h) {
           //h->sounds_entries   = read_u16(counts_offset+0x00,sf);
           //h->grains_entries   = read_u16(counts_offset+0x02,sf);
             h->stream_entries   = read_u16(counts_offset+0x06,sf);
+
+            read_string(h->bank_name, STREAM_NAME_SIZE, bank_name_offset, sf);
             break;
         }
 
@@ -493,7 +541,7 @@ static bool process_headers(STREAMFILE* sf, bnk_header_t* h) {
 
 
     //;VGM_LOG("BNK: subsongs %i, table2_entry=%x, table3_entry=%x\n", h->total_subsongs, h->table2_entry_offset, h->table3_entry_offset);
-    if (h->target_subsong < 0 || h->target_subsong > h->total_subsongs || h->total_subsongs < 1)
+    if (!h->zlsd_offset && (h->target_subsong < 0 || h->target_subsong > h->total_subsongs || h->total_subsongs < 1))
         goto fail;
     /* this means some subsongs repeat streams, that can happen in some sfx banks, whatevs */
     if (h->total_subsongs != h->stream_entries) {
@@ -502,6 +550,10 @@ static bool process_headers(STREAMFILE* sf, bnk_header_t* h) {
     }
 
     //;VGM_LOG("BNK: header entry at %x\n", h->table3_offset + h->table3_entry_offset);
+
+    /* is currently working on ZLSD streams */
+    if (h->zlsd_offset && h->target_subsong > h->total_subsongs)
+        return true;
 
     sndh_offset = h->table3_offset + h->table3_entry_offset;
 
@@ -607,10 +659,15 @@ static bool process_names(STREAMFILE* sf, bnk_header_t* h) {
     if (h->table4_offset <= h->sblk_offset)
         return true;
 
+    /* is currently working on ZLSD streams */
+    if (h->zlsd_offset && h->target_subsong > h->total_subsongs)
+        return true;
+
     int i;
     int table4_entry_id = -1;
     uint32_t table4_entry_idx, table4_entries_offset, table4_names_offset;
     uint32_t entry_offset, entry_count;
+    uint32_t stream_name_offset;
 
     switch (h->sblk_version) {
         case 0x03:
@@ -637,30 +694,30 @@ static bool process_names(STREAMFILE* sf, bnk_header_t* h) {
              * and using that as the index for the chunk offsets
              *  name_sect_offset + (chunk_idx[result] * 0x14);
              */
-            if (read_u8(h->table4_offset, sf))
-                h->bank_name_offset = h->table4_offset;
+            read_string(h->bank_name, STREAM_NAME_SIZE, h->table4_offset, sf);
 
             table4_entries_offset = h->table4_offset + 0x18;
             table4_names_offset = h->table4_offset + read_u32(h->table4_offset + 0x08, sf);
 
             for (i = 0; i < 32; i++) {
                 table4_entry_idx = read_u16(table4_entries_offset + (i * 2), sf);
-                h->stream_name_offset = table4_names_offset + (table4_entry_idx * 0x14);
+                stream_name_offset = table4_names_offset + (table4_entry_idx * 0x14);
                 /* searches the chunk until it finds the target name/index, or breaks at empty name */
-                while (read_u8(h->stream_name_offset, sf)) {
+                while (read_u8(stream_name_offset, sf)) {
                     /* in case it goes somewhere out of bounds unexpectedly */
-                    if (((read_u8(h->stream_name_offset + 0x00, sf) + read_u8(h->stream_name_offset + 0x04, sf) +
-                          read_u8(h->stream_name_offset + 0x08, sf) + read_u8(h->stream_name_offset + 0x0C, sf)) & 0x1F) != i)
+                    if (((read_u8(stream_name_offset + 0x00, sf) + read_u8(stream_name_offset + 0x04, sf) +
+                          read_u8(stream_name_offset + 0x08, sf) + read_u8(stream_name_offset + 0x0C, sf)) & 0x1F) != i)
                         goto fail;
-                    if (read_u16(h->stream_name_offset + 0x10, sf) == table4_entry_id)
+                    if (read_u16(stream_name_offset + 0x10, sf) == table4_entry_id) {
+                        read_string(h->stream_name, STREAM_NAME_SIZE, stream_name_offset, sf);
                         goto loop_break; /* to break out of the for+while loop simultaneously */
                         //break;
-                    h->stream_name_offset += 0x14;
+                    }
+                    stream_name_offset += 0x14;
                 }
             }
             //goto fail; /* didn't find any valid index? */
-            h->stream_name_offset = 0;
-            loop_break:
+loop_break:
             break;
 
         case 0x04:
@@ -687,15 +744,15 @@ static bool process_names(STREAMFILE* sf, bnk_header_t* h) {
              * 0x08: ? (2x int16)
              * 0x0C: section index (int16)
              */
-            if (read_u8(h->table4_offset, sf))
-                h->bank_name_offset = h->table4_offset;
+            read_string(h->bank_name, STREAM_NAME_SIZE, h->table4_offset, sf);
 
             table4_entries_offset = h->table4_offset + read_u32(h->table4_offset + 0x08, sf);
             table4_names_offset = h->table4_offset + read_u32(h->table4_offset + 0x0C, sf);
 
             for (i = 0; i < h->sounds_entries; i++) {
                 if (read_u16(table4_entries_offset + (i * 0x10) + 0x0C, sf) == table4_entry_id) {
-                    h->stream_name_offset = table4_names_offset + read_u32(table4_entries_offset + (i * 0x10), sf);
+                    stream_name_offset = table4_names_offset + read_u32(table4_entries_offset + (i * 0x10), sf);
+                    read_string(h->stream_name, STREAM_NAME_SIZE, stream_name_offset, sf);
                     break;
                 }
             }
@@ -726,8 +783,7 @@ static bool process_names(STREAMFILE* sf, bnk_header_t* h) {
             /* 0x0c: table4 size */
             /* variable: entries */
             /* variable: names (null terminated) */
-            if (read_u8(h->table4_offset, sf))
-                h->bank_name_offset = h->table4_offset;
+            read_string(h->bank_name, STREAM_NAME_SIZE, h->table4_offset, sf);
 
             table4_entries_offset = h->table4_offset + read_u32(h->table4_offset + 0x08, sf);
             table4_names_offset = table4_entries_offset + (0x10 * h->sounds_entries);
@@ -737,7 +793,8 @@ static bool process_names(STREAMFILE* sf, bnk_header_t* h) {
             for (i = 0; i < h->sounds_entries; i++) {
                 int entry_id = read_u16(table4_entries_offset + (i * 0x10) + 0x0c, sf);
                 if (entry_id == table4_entry_id) {
-                    h->stream_name_offset = table4_names_offset + read_u32(table4_entries_offset + (i * 0x10) + 0x00, sf);
+                    stream_name_offset = table4_names_offset + read_u32(table4_entries_offset + (i * 0x10) + 0x00, sf);
+                    read_string(h->stream_name, STREAM_NAME_SIZE, stream_name_offset, sf);
                     break;
                 }
             }
@@ -761,8 +818,13 @@ static bool process_data(STREAMFILE* sf, bnk_header_t* h) {
     read_s32_t read_s32 = h->big_endian ? read_s32be : read_s32le;
     read_u64_t read_u64 = h->big_endian ? read_u64be : read_u64le;
 
+    /* is currently working on ZLSD streams */
+    if (h->zlsd_offset && h->target_subsong > h->total_subsongs)
+        return true;
+
     int subtype, loop_length;
     uint32_t extradata_size = 0, postdata_size = 0;
+    uint32_t stream_name_size, stream_name_offset;
 
     h->start_offset = h->data_offset + h->stream_offset;
     uint32_t info_offset = h->start_offset;
@@ -907,7 +969,7 @@ static bool process_data(STREAMFILE* sf, bnk_header_t* h) {
         case 0x0c:
             /* has two different variants under the same version - one for PS3 and another for PS4 */
 
-            subtype = read_u32(h->start_offset + 0x00,sf); /* might be u16 at 0x02 instead? (implied by PS4's subtypes) */
+            subtype = read_u16(h->start_offset + 0x02, sf);
             if (read_u32(h->start_offset + 0x04, sf) != 0x01) { /* type? */
                 VGM_LOG("BNK: unknown subtype\n");
                 goto fail;
@@ -958,9 +1020,7 @@ static bool process_data(STREAMFILE* sf, bnk_header_t* h) {
             }
             else {
                 switch (subtype) { /* PS4 */
-                    /* if subtype is u16 @ 0x02, then 0x00 is PCM and 0x01 is VAG */
-                    case 0x00: /* PCM mono? */
-                    case 0x01: /* PCM stereo? */
+                    case 0x00: /* PCM */
                         /* 0x10: null? */
                         h->channels = read_u32(h->start_offset + 0x14, sf);
                         h->interleave = 0x02;
@@ -972,7 +1032,7 @@ static bool process_data(STREAMFILE* sf, bnk_header_t* h) {
                         h->codec = PCM16;
                         break;
 
-                    case 0x10000: /* PS-ADPCM (HEVAG?) */
+                    case 0x01: /* PS-ADPCM (HEVAG?) */
                         /* 0x10: num samples */
                         h->channels = read_u32(h->start_offset + 0x14, sf);
                         h->interleave = 0x10;
@@ -1065,30 +1125,61 @@ static bool process_data(STREAMFILE* sf, bnk_header_t* h) {
             }
 
             /* pre-info */
-            h->stream_name_size   = read_u64(info_offset+0x00,sf);
-            h->stream_name_offset = info_offset + 0x08;
-            info_offset += h->stream_name_size + 0x08;
+            stream_name_size   = read_u64(info_offset+0x00,sf);
+            stream_name_offset = info_offset + 0x08;
+            info_offset += stream_name_size + 0x08;
 
             h->stream_size = read_u64(info_offset + 0x00,sf); /* after this offset */
-            h->stream_size += 0x08 + h->stream_name_size + 0x08;
-            /* 0x08: max block/etc size? (0x00010000/00030000) */
-            /* 0x0c: always 1? */
-            extradata_size = read_u64(info_offset + 0x10,sf) + 0x08 + h->stream_name_size + 0x18;
+            h->stream_size += 0x08 + stream_name_size + 0x08;
+            /* 0x08: 0/1 for PCM (Mono/Stereo?), 0/1/2/3 for ATRAC9 (channels/2)? */
+            subtype = read_u16(info_offset + 0x0a, sf);
+            /* 0x0c: always 1 - using this to detect whether it's an SBlk or ZLSD/exteral sound for now */
+            extradata_size = read_u64(info_offset + 0x10,sf) + 0x08 + stream_name_size + 0x18;
+
+            if (stream_name_size >= STREAM_NAME_SIZE || stream_name_size <= 0)
+                stream_name_size = STREAM_NAME_SIZE;
+            read_string(h->stream_name, stream_name_size, stream_name_offset, sf);
+
+            if (read_u32(info_offset + 0x0c, sf) != 0x01) {
+                h->channels = 1;
+                h->codec = EXTERNAL;
+                break;
+            }
+
             info_offset += 0x18;
 
             /* actual stream info */
-            /* 0x00: extradata size (without pre-info, also above) */
-            h->atrac9_info = read_u32be(info_offset+0x04,sf);
-            h->num_samples  = read_s32(info_offset+0x08,sf);
-            h->channels     = read_u32(info_offset+0x0c,sf);
-            h->loop_start   = read_s32(info_offset+0x10,sf);
-            h->loop_end     = read_s32(info_offset+0x14,sf);
-            /* 0x18: loop flag (0=loop, -1=no) */
-            /* rest: null */
+            switch (subtype) {
+                case 0x00: /* PCM */
+                    h->num_samples = read_s32(info_offset + 0x00, sf);
+                    h->channels    = read_u32(info_offset + 0x04, sf);
+                    /* 0x08: loop flag? (always -1) */
+
+                    h->codec = PCM16;
+                    break;
+
+                /* should be split, but 0x1A has no other known codecs yet */
+                case 0x01: /* ATRAC9 (0x23) */
+                case 0x03: /* ATRAC9 (0x1A) */
+                    /* 0x00: extradata size (without pre-info, also above) */
+                    h->atrac9_info = read_u32be(info_offset + 0x04, sf);
+                    h->num_samples   = read_s32(info_offset + 0x08, sf);
+                    h->channels      = read_u32(info_offset + 0x0c, sf);
+                    h->loop_start    = read_s32(info_offset + 0x10, sf);
+                    h->loop_end      = read_s32(info_offset + 0x14, sf);
+                    /* 0x18: loop flag (0=loop, -1=no) */
+                    /* rest: null */
+
+                    h->codec = RIFF_ATRAC9;
+                    break;
+
+                default:
+                    vgm_logi("BNK: unknown subtype %x (report)\n", subtype);
+                    goto fail;
+            }
+
             /* no sample rate (probably fixed to 48000/system's, but seen in RIFF) */
             h->sample_rate = 48000;
-
-            h->codec = RIFF_ATRAC9; /* unsure how other codecs would work */
             break;
 
         default:
@@ -1106,35 +1197,74 @@ fail:
     return false;
 }
 
-
-/* zlsd part: parse extra footer (vox?) data */
+/* zlsd part: parse external stream prefetch data */
 static bool process_zlsd(STREAMFILE* sf, bnk_header_t* h) {
     if (!h->zlsd_offset)
         return true;
 
+    /* TODO:  ZLSD contains FNV1-32 hashes of the SBlk external streams,
+     * but with the way it's all currently set up, it isn't as simple to
+     * map appropriate hashes to existing SBlk streams. So for now these
+     * won't have a "proper" stream name visible.
+     */
+
+    int zlsd_subsongs, target_subsong;
+    uint32_t zlsd_table_offset, zlsd_table_entry_offset, stream_offset, stream_name_hash;
     read_u32_t read_u32 = h->big_endian ? read_u32be : read_u32le;
 
-    if (read_u32(h->zlsd_offset+0x00,sf) != get_id32be("DSLZ"))
+    if (read_u32(h->zlsd_offset + 0x00, sf) != get_id32be("DSLZ"))
         return false;
 
     /* 0x04: version? (1) */
-    int zlsd_count = read_u32(h->zlsd_offset+0x08,sf);
-    /* 0x0c: start */
+    zlsd_subsongs = read_u32(h->zlsd_offset + 0x08, sf);
+    /* 0x0c: start (most of the time) */
+    /* 0x10: start if 64-bit zlsd_subsongs? seen in SBlk 0x1A */
+    zlsd_table_offset = read_u32(h->zlsd_offset + 0x0C, sf);
     /* rest: null */
 
-    if (zlsd_count) {
-        vgm_logi("BNK: unsupported ZLSD subsongs found\n");
-        goto fail;
+    /* files can have both SBlk+ZLSD streams */
+    if (zlsd_subsongs < 1) {
+        if (h->total_subsongs < 1)
+            goto fail;
+        return true;
     }
 
-    /* per entry (for v23)
-     * 00: crc (not referenced elsewhere)
+    if (!zlsd_table_offset)
+        goto fail; /* 64-bit entries count? */
+
+    /* per entry (for SBlk v0x23)
+     * 00: fnv1-32 hash of the stream name
      * 04: stream offset (from this offset)
      * 08: null (part of offset?)
      * 0c: stream size
      * 10: offset/size?
-     * 14: null */
+     * 14/18: null */
     /* known streams are standard XVAG (no subsongs) */
+
+    /* target_subsong is negative if it's working on SBlk streams */
+    target_subsong = h->target_subsong - h->total_subsongs - 1;
+    h->total_subsongs += zlsd_subsongs;
+
+    if (h->target_subsong < 0 || h->target_subsong > h->total_subsongs)
+        goto fail;
+
+    if (target_subsong < 0)
+        return true;
+
+    zlsd_table_entry_offset = h->zlsd_offset + zlsd_table_offset + target_subsong * 0x18;
+    h->start_offset = zlsd_table_entry_offset + 0x04 + read_u32(zlsd_table_entry_offset + 0x04, sf);
+    h->stream_size = read_u32(zlsd_table_entry_offset + 0x0C, sf);
+    stream_name_hash = read_u32(zlsd_table_entry_offset + 0x00, sf);
+
+    /* should be a switch case, but no other formats known yet */
+    if (!is_id32be(h->start_offset, sf, "XVAG")) {
+        vgm_logi("BNK: unsupported ZLSD subfile found (report)\n");
+        goto fail;
+    }
+
+    snprintf(h->stream_name, STREAM_NAME_SIZE, "%u [pre]", stream_name_hash);
+    h->channels = 1; /* dummy, real channels will be retrieved from xvag/riff */
+    h->codec = XVAG_ATRAC9;
 
     return true;
 fail:
@@ -1145,11 +1275,11 @@ fail:
 /* parse SCREAM bnk (usually SFX but also used for music) */
 static bool parse_bnk_v3(STREAMFILE* sf, bnk_header_t* h) {
 
-   /* bnk/SCREAM tool version (v2 is a bit different, not seen v1) */
+    /* bnk/SCREAM tool version (v2 is a bit different, not seen v1) */
     if (read_u32be(0x00,sf) == 0x03) { /* PS3 */
         h->big_endian = 1;
     }
-    else if (read_u32le(0x00,sf) == 0x03) { /* PS2/PSP/Vita/PS4 */
+    else if (read_u32le(0x00,sf) == 0x03) { /* PS2/PSP/Vita/PS4/PS5 */
         h->big_endian = 0;
     }
     else {
@@ -1163,7 +1293,7 @@ static bool parse_bnk_v3(STREAMFILE* sf, bnk_header_t* h) {
         return false;
     /* in theory a bank can contain multiple blocks but only those are used */
 
-    /* section sizes don't include padding (sometimes aligned to 0x10/0x800) */
+    /* file is sometimes aligned to 0x10/0x800, so this can't be used for total size checks */
     h->sblk_offset = read_u32(0x08,sf);
     //h->sblk_size = read_u32(0x0c,sf);
     h->data_offset = read_u32(0x10,sf);
@@ -1195,12 +1325,12 @@ static bool parse_bnk_v3(STREAMFILE* sf, bnk_header_t* h) {
      * - 0x10: block number
      * - 0x11: padding
      * version >= v0x1a:
-     * - 0x0c: hash (0x10)
-     * - 0x1c: filename (0x100?)
+     * - 0x0c: uuid (0x10)
+     * - 0x1c: bank name (0x100?)
      * version ~= v0x23:
      * - 0x0c: null (depends on flags? v1a=0x05, v23=0x07)
-     * - 0x10: hash (0x10)
-     * - 0x20: filename (0x100?)
+     * - 0x10: uuid (0x10)
+     * - 0x20: bank name (0x100?)
      */
     //;VGM_LOG("BNK: h->sblk_offset=%lx, h->data_offset=%lx, h->sblk_version %x\n", h->sblk_offset, h->data_offset, h->sblk_version);
     //TODO handle, in rare cases may contain subsongs (unsure how are referenced but has its own number)
