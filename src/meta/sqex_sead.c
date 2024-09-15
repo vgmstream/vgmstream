@@ -244,6 +244,48 @@ VGMSTREAM* init_vgmstream_sqex_sead(STREAMFILE* sf) {
         }
 #endif
 
+#ifdef VGM_USE_FFMPEG
+        case 0x05: { /* XMA2 [Kingdom Hearts 3 (X1)] */
+            start_offset = sead.extradata_offset + sead.extradata_size;
+
+            /* extradata */
+            // 00: null?
+            // 03: XMA sub-version? (4)
+            // 04: extradata base size (without seek)
+            // 06: seek entries
+            // 08: XMA sample rate (ex. may be 47999)
+            // 0c: bitrate?
+            // 10: block size?
+            // 14: null?
+            // 18: total samples (with encoder delay)
+            // 1c: frame size?
+            // 20: null?
+            // 24: total samples (without encoder delay)
+            // 28: loop start
+            // 2c: loop length?
+            // 30+ seek table
+
+            int block_size = read_u32(sead.extradata_offset+0x10,sf);
+            if (!block_size)
+                goto fail;
+            int block_count = sead.stream_size + 1;
+            int num_samples = read_u32(sead.extradata_offset+0x24,sf);
+
+            vgmstream->codec_data = init_ffmpeg_xma2_raw(sf, start_offset, sead.stream_size, num_samples, sead.channels, sead.sample_rate, block_size, block_count);
+            if (!vgmstream->codec_data) goto fail;
+            vgmstream->coding_type = coding_FFmpeg;
+            vgmstream->layout_type = layout_none;
+
+            vgmstream->num_samples = num_samples;
+            vgmstream->loop_start_sample = sead.loop_start;
+            vgmstream->loop_end_sample = sead.loop_end;
+
+            //xma_fix_raw_samples(vgmstream, sf, start_offset, sead.stream_size, 0, 0,1);
+
+            break;
+        }
+#endif
+
 #ifdef VGM_USE_MPEG
         case 0x06: { /* MSMP3 (MSF subfile) [Dragon Quest Builders (PS3)] */
             mpeg_custom_config cfg = {0};
@@ -310,7 +352,6 @@ VGMSTREAM* init_vgmstream_sqex_sead(STREAMFILE* sf) {
             }
         }
 
-        case 0x05: /* XMA2 (extradata may be a XMA2 fmt extra chunk) */
         case 0x08: /* SWITCHOPUS (no extradata?) */
         default:
             vgm_logi("SQEX SEAD: unknown codec %x\n", sead.codec);

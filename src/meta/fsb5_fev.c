@@ -60,6 +60,10 @@ VGMSTREAM* init_vgmstream_fsb5_fev_bank(STREAMFILE* sf) {
             case 0x534E4448: /* "SNDH" */
                 bank_offset = offset;
                 bank_size = chunk_size;
+                if (bank_size == 0) {
+                    vgm_logi("FSB: bank has no subsongs (ignore)\n");
+                    goto fail;
+                }
                 break;
 
             default:
@@ -84,10 +88,9 @@ VGMSTREAM* init_vgmstream_fsb5_fev_bank(STREAMFILE* sf) {
          * 0x84: SCP Unity (PC) [~2020]
          * 0x86: Hades (Switch) [~2020] */
         size_t entry_size = version <= 0x28 ? 0x04 : 0x08;
-        int i, banks;
 
         /* 0x00: unknown (chunk version? ex LE: 0x00080003, 0x00080005) */
-        banks = (bank_size - 0x04) / entry_size;
+        int banks = (bank_size - 0x04) / entry_size;
 
         /* multiple banks is possible but rare [Hades (Switch), Guacamelee 2 (Switch)],
          * must map bank (global) subsong to FSB (internal) subsong */
@@ -97,7 +100,7 @@ VGMSTREAM* init_vgmstream_fsb5_fev_bank(STREAMFILE* sf) {
         fsb5_pos = 0;
         fsb5_subsong = -1;
         total_subsongs = 0;
-        for (i = 0; i < banks; i++) {
+        for (int i = 0; i < banks; i++) {
             //TODO: fsb5_size fails for v0x28< + encrypted, but only used with multibanks = unlikely
             uint32_t fsb5_offset  = read_u32le(bank_offset + 0x04 + entry_size*i + 0x00,sf);
             uint32_t fsb5_size   = read_u32le(bank_offset + 0x08 + entry_size*i,sf);
