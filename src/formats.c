@@ -588,6 +588,7 @@ static const char* extension_list[] = {
     "utk",
     "uv",
 
+    "v",
     "v0",
     //"v1", //dual channel with v0
     "va3",
