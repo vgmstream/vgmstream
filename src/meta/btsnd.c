@@ -10,23 +10,26 @@ VGMSTREAM* init_vgmstream_btsnd(STREAMFILE* sf) {
 
 
     /* checks */
-    if (!check_extensions(sf, "btsnd"))
+    uint32_t type = read_u32be(0x00,sf);
+    if (type != 0x00 && type != 0x02)
         return NULL;
 
-    uint32_t type = read_u32be(0x00,sf);
-    if (type == 0x00) {
-        loop_flag = 0;
-    }
-    else if (type == 0x02) {
-        loop_flag = 1;
-    }
-    else {
+    if (!check_extensions(sf, "btsnd"))
         return NULL;
-    }
 
     loop_start = read_s32be(0x04, sf); /* non-looping: 0 or some number lower than samples */
     start_offset = 0x08;
     channels = 2;
+
+    // maybe 'type' is just a version number and is always meant to loop?
+    loop_flag = false;
+    if (type == 0x00) {
+        // Petit Computer BIG (WiiU): doesn't loop (fades), Splatoon (WiiU): loops
+        loop_flag = loop_start > 0;
+    }
+    else if (type == 0x02) {
+        loop_flag = true;
+    }
 
     /* extra checks since format is so simple */
     data_size = get_streamfile_size(sf);
