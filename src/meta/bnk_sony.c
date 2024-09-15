@@ -401,7 +401,7 @@ static bool process_tables(STREAMFILE* sf, bnk_header_t* h) {
             break;
 
         case 0x03: /* Yu-Gi-Oh! GX - The Beginning of Destiny (PS2) */
-        case 0x04: /* Test banks */
+        case 0x04: /* EyePet (PS3), Test banks */
         case 0x05: /* Ratchet & Clank (PS3) */
         case 0x08: /* Playstation Home Arcade (Vita) */
         case 0x09: /* Puyo Puyo Tetris (PS4) */
@@ -884,8 +884,9 @@ static bool process_data(STREAMFILE* sf, bnk_header_t* h) {
              *  200 = send LFE
              *  400 = send center
              */
-            if ((h->stream_flags & 0x80) && h->sblk_version <= 3) {
-                h->codec = PCM16; /* rare [Wipeout HD (PS3)]-v3 */
+            if ((h->stream_flags & 0x80) && h->sblk_version <= 4) {
+                /* rare [Wipeout HD (PS3)-v3, EyePet (PS3)-v4] */
+                h->codec = PCM16;
             }
             else {
                 h->loop_flag = ps_find_loop_offsets(sf, h->start_offset, h->stream_size, h->channels, h->interleave, &h->loop_start, &h->loop_end);
