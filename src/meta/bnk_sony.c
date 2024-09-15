@@ -401,7 +401,7 @@ static bool process_tables(STREAMFILE* sf, bnk_header_t* h) {
             break;
 
         case 0x03: /* Yu-Gi-Oh! GX - The Beginning of Destiny (PS2) */
-        case 0x04: /* Test banks */
+        case 0x04: /* EyePet (PS3), Test banks */
         case 0x05: /* Ratchet & Clank (PS3) */
         case 0x08: /* Playstation Home Arcade (Vita) */
         case 0x09: /* Puyo Puyo Tetris (PS4) */
@@ -443,10 +443,11 @@ static bool process_tables(STREAMFILE* sf, bnk_header_t* h) {
 
         /* later versions have a few more tables (some optional) and work slightly differently (header is part of wave) */
         case 0x1a: /* Demon's Souls (PS5) */
+        case 0x1c: /* The Last of Us Part II */
         case 0x23: { /* The Last of Us (PC) */
-            uint32_t bank_name_offset = h->sblk_offset + (h->sblk_version <= 0x1a ? 0x1c : 0x20);
-            uint32_t tables_offset = h->sblk_offset + (h->sblk_version <= 0x1a ? 0x120 : 0x128);
-            uint32_t counts_offset = tables_offset + (h->sblk_version <= 0x1a ? 0x98 : 0xb0);
+            uint32_t bank_name_offset = h->sblk_offset + (h->sblk_version <= 0x1c ? 0x1c : 0x20);
+            uint32_t tables_offset = h->sblk_offset + (h->sblk_version <= 0x1c ? 0x120 : 0x128);
+            uint32_t counts_offset = tables_offset + (h->sblk_version <= 0x1c ? 0x98 : 0xb0);
 
           //h->table1_offset    = h->sblk_offset + read_u32(tables_offset+0x00,sf); /* sounds/cues */
           //h->table2_offset    = 0;
@@ -513,6 +514,7 @@ static bool process_headers(STREAMFILE* sf, bnk_header_t* h) {
             break;
 
         case 0x1a:
+        case 0x1c:
         case 0x23:
             h->total_subsongs = h->stream_entries;
             h->table3_entry_offset = (h->target_subsong - 1) * 0x08;
@@ -632,8 +634,9 @@ static bool process_headers(STREAMFILE* sf, bnk_header_t* h) {
             h->sample_rate = (int)read_f32(sndh_offset+0x4c,sf);
             break;
 
-        case 0x1a: /* Demon's Souls (PS5) */
-        case 0x23: /* The Last of Us (PC) */
+        case 0x1a:
+        case 0x1c:
+        case 0x23:
             h->stream_offset     = read_u32(sndh_offset+0x00,sf);
             /* rest is part of data, handled later */
             break;
@@ -884,8 +887,9 @@ static bool process_data(STREAMFILE* sf, bnk_header_t* h) {
              *  200 = send LFE
              *  400 = send center
              */
-            if ((h->stream_flags & 0x80) && h->sblk_version <= 3) {
-                h->codec = PCM16; /* rare [Wipeout HD (PS3)]-v3 */
+            if ((h->stream_flags & 0x80) && h->sblk_version <= 4) {
+                /* rare [Wipeout HD (PS3)-v3, EyePet (PS3)-v4] */
+                h->codec = PCM16;
             }
             else {
                 h->loop_flag = ps_find_loop_offsets(sf, h->start_offset, h->stream_size, h->channels, h->interleave, &h->loop_start, &h->loop_end);
@@ -1117,6 +1121,7 @@ static bool process_data(STREAMFILE* sf, bnk_header_t* h) {
             break;
 
         case 0x1a:
+        case 0x1c:
         case 0x23:
             if (h->stream_offset == 0xFFFFFFFF) {
                 h->channels = 1;
@@ -1140,7 +1145,8 @@ static bool process_data(STREAMFILE* sf, bnk_header_t* h) {
                 stream_name_size = STREAM_NAME_SIZE;
             read_string(h->stream_name, stream_name_size, stream_name_offset, sf);
 
-            if (read_u32(info_offset + 0x0c, sf) != 0x01) {
+            /* size check is necessary, otherwise it risks a false positive with the ZLSD version number */
+            if (info_offset + 0x10 > h->data_offset + h->data_size || read_u32(info_offset + 0x0c, sf) != 0x01) {
                 h->channels = 1;
                 h->codec = EXTERNAL;
                 break;
@@ -1158,9 +1164,9 @@ static bool process_data(STREAMFILE* sf, bnk_header_t* h) {
                     h->codec = PCM16;
                     break;
 
-                /* should be split, but 0x1A has no other known codecs yet */
+                /* should be split, but 0x1A/0x1C has no other known codecs yet */
                 case 0x01: /* ATRAC9 (0x23) */
-                case 0x03: /* ATRAC9 (0x1A) */
+                case 0x03: /* ATRAC9 (0x1A/0x1C) */
                     /* 0x00: extradata size (without pre-info, also above) */
                     h->atrac9_info = read_u32be(info_offset + 0x04, sf);
                     h->num_samples   = read_s32(info_offset + 0x08, sf);
@@ -1209,7 +1215,7 @@ static bool process_zlsd(STREAMFILE* sf, bnk_header_t* h) {
      */
 
     int zlsd_subsongs, target_subsong;
-    uint32_t zlsd_table_offset, zlsd_table_entry_offset, stream_offset, stream_name_hash;
+    uint32_t zlsd_table_offset, zlsd_table_entry_offset, stream_name_hash;
     read_u32_t read_u32 = h->big_endian ? read_u32be : read_u32le;
 
     if (read_u32(h->zlsd_offset + 0x00, sf) != get_id32be("DSLZ"))
@@ -1218,7 +1224,7 @@ static bool process_zlsd(STREAMFILE* sf, bnk_header_t* h) {
     /* 0x04: version? (1) */
     zlsd_subsongs = read_u32(h->zlsd_offset + 0x08, sf);
     /* 0x0c: start (most of the time) */
-    /* 0x10: start if 64-bit zlsd_subsongs? seen in SBlk 0x1A */
+    /* 0x10: start if 64-bit zlsd_subsongs? seen in SBlk 0x1A/0x1C */
     zlsd_table_offset = read_u32(h->zlsd_offset + 0x0C, sf);
     /* rest: null */
 
