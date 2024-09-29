@@ -1455,11 +1455,14 @@ static const hcakey_info hcakey_list[] = {
         {9182735170},           // 0000000223556B42
 
         // Super Robot Wars DD (Android)
-        {464113616464131416},           // 0670DCE00CC43558
+        {464113616464131416},   // 0670DCE00CC43558
 
         // Ange Re:Link (Android)
         {9666854456},           // 0000000240307E38
 
+        // Metaphor: ReFantazio Demo (PC)
+        {572184256205070254},   // 07F0CE8CA92C9FAE
+
 };
 
-#endif/*_HCA_KEYS_H_*/
+#endif
