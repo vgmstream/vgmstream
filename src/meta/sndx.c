@@ -10,7 +10,7 @@ VGMSTREAM* init_vgmstream_sndx(STREAMFILE* sf) {
     off_t start_offset, chunk_offset, first_offset = 0x60, name_offset = 0;
     size_t chunk_size, stream_size = 0;
 
-    int is_dual, is_external;
+    bool is_dual, is_external;
     int loop_flag, channels, codec, sample_rate;
     int32_t num_samples, loop_start_sample, loop_end_sample;
     uint32_t flags, at9_config_data = 0;
@@ -18,11 +18,14 @@ VGMSTREAM* init_vgmstream_sndx(STREAMFILE* sf) {
 
 
     /* checks */
+    if (!is_id32be(0x00, sf, "SXDF") && !is_id32be(0x00, sf, "SXDS"))
+        return NULL;
+
     /* .sxd: header+data (SXDF)
      * .sxd1: header (SXDF) + .sxd2 = data (SXDS)
      * .sxd3: sxd1 + sxd2 pasted together (found in some PS4 games, ex. Fate Extella)*/
     if (!check_extensions(sf,"sxd,sxd2,sxd3"))
-        goto fail;
+        return NULL;
 
     /* setup head/body variations */
     if (check_extensions(sf,"sxd2")) {
@@ -33,7 +36,7 @@ VGMSTREAM* init_vgmstream_sndx(STREAMFILE* sf) {
 
         sf_sxd1 = sf_h;
         sf_sxd2 = sf;
-        is_dual = 1;
+        is_dual = true;
     }
     else if (check_extensions(sf,"sxd3")) {
         /* sxd3: make subfiles for head and body to simplify parsing */
@@ -50,13 +53,13 @@ VGMSTREAM* init_vgmstream_sndx(STREAMFILE* sf) {
 
         sf_sxd1 = sf_h;
         sf_sxd2 = sf_b;
-        is_dual = 1;
+        is_dual = true;
     }
     else {
         /* sxd: use the current file as header */
         sf_sxd1 = sf;
         sf_sxd2 = NULL;
-        is_dual = 0;
+        is_dual = false;
     }
 
     if (sf_sxd1 && !is_id32be(0x00, sf_sxd1, "SXDF"))
@@ -225,6 +228,14 @@ VGMSTREAM* init_vgmstream_sndx(STREAMFILE* sf) {
             goto fail;
     }
 
+    /* .sxd have names but they are a bit complex:
+     * - WAVE chunk has N subsongs
+     * - NAME chunk may define M names but usually doesn't match with subsongs (may be less or more)
+     * - LVRN may define some state and LVAR its possible values (battle_state=bgm_battle_start/win/intro)
+     * - TRNS also has names based on possible transition 
+     * - final WAVE seem to depend on NAME (event?) + state=value, similar to Wwise
+     * - presumably TONE/REQD/SEQD chunks have WAVE<>event matching info since they seem to always appear
+     */
 
     /* open the file for reading */
     if (!vgmstream_open_stream(vgmstream, sf_data, start_offset))
