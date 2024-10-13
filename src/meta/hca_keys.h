@@ -1466,6 +1466,9 @@ static const hcakey_info hcakey_list[] = {
         // Metaphor: ReFantazio Demo (PC)
         {572184256205070254},   // 07F0CE8CA92C9FAE
 
+        // DanMachi BATTLE CHRONICLE (Android)
+        {8893372566804407},     // 001F9879A8B317B7
+
 };
 
 #endif
