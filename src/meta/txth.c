@@ -922,6 +922,16 @@ static int is_string(const char* val, const char* cmp);
 static int get_bytes_to_samples(txth_header* txth, uint32_t bytes);
 static int get_padding_size(txth_header* txth, int discard_empty);
 
+static void string_trim(char* str) {
+    int str_len = strlen(str);
+    int i;
+    for (i = str_len - 1; i >= 0; i--) {
+        if (str[i] != ' ')
+            break;
+        str[i] = '\0';
+    }
+}
+
 /* Simple text parser of "key = value" lines.
  * The code is meh and error handling not exactly the best. */
 static int parse_txth(txth_header* txth) {
@@ -1418,6 +1428,9 @@ static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char* key, cha
             txth->sf_head_opened = 0;
         }
 
+        /* manual trim since this is not handled by sscanf/parse_string and opens may need it */
+        string_trim(val);
+
         if (is_string(val,"null")) { /* reset */
             if (!txth->streamfile_is_txth) {
                 txth->sf_head = txth->sf; /* base non-txth file */
@@ -1445,6 +1458,9 @@ static int parse_keyval(STREAMFILE* sf_, txth_header* txth, const char* key, cha
             txth->sf_body = NULL;
             txth->sf_body_opened = 0;
         }
+
+        /* manual trim since this is not handled by sscanf/parse_string and opens may need it */
+        string_trim(val);
 
         if (is_string(val,"null")) { /* reset */
             if (!txth->streamfile_is_txth) {
@@ -1622,6 +1638,7 @@ static uint16_t get_string_wchar(const char* val, int pos, int* csize) {
 
     return wchar;
 }
+
 static int is_string_match(const char* text, const char* pattern) {
     int t_pos = 0, p_pos = 0, t_len = 0, p_len = 0;
     int p_size, t_size;
@@ -1733,16 +1750,6 @@ static int parse_coef_table(STREAMFILE* sf, txth_header* txth, const char* val, 
     return 1;
 fail:
     return 0;
-}
-
-static void string_trim(char* str) {
-    int str_len = strlen(str);
-    int i;
-    for (i = str_len - 1; i >= 0; i--) {
-        if (str[i] != ' ')
-            break;
-        str[i] = '\0';
-    }
 }
 
 static int read_name_table_keyval(txth_header* txth, const char* line, char* key, char* val) {
