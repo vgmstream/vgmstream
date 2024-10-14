@@ -1469,6 +1469,8 @@ static const hcakey_info hcakey_list[] = {
         // DanMachi BATTLE CHRONICLE (Android)
         {8893372566804407},     // 001F9879A8B317B7
 
+        // DRAGON BALL: Sparking! ZERO (multi)
+        {13238534807163085345u}, // B7B8B9442F99A221
 };
 
 #endif
