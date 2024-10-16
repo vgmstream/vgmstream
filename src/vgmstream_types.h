@@ -709,6 +709,8 @@ typedef enum {
     meta_EA_SBK,
     meta_DSP_ASURA,
     meta_ONGAKUKAN_RIFF_ADP,
+    meta_SND_VBC,
+    meta_SDX_VBC,
 
 } meta_t;
 
