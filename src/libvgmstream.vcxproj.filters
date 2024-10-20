@@ -107,6 +107,9 @@
     <ClInclude Include="base\decode.h">
       <Filter>base\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="base\decode_state.h">
+      <Filter>base\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="base\mixer.h">
       <Filter>base\Header Files</Filter>
     </ClInclude>
@@ -1561,9 +1564,6 @@
     <ClCompile Include="meta\ngc_dsp_asura.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ngc_dsp_konami.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="meta\ngc_dsp_mpds.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -2180,9 +2180,6 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\xvag.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="meta\xvas.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\xwav.c">
