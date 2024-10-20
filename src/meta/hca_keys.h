@@ -1471,6 +1471,9 @@ static const hcakey_info hcakey_list[] = {
 
         // DRAGON BALL: Sparking! ZERO (multi)
         {13238534807163085345u}, // B7B8B9442F99A221
+
+	// TOUHOU GENSOU MAHJONG (both demo and main)
+	{7757726886},
 };
 
 #endif
