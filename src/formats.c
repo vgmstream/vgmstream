@@ -687,7 +687,6 @@ static const char* extension_list[] = {
     "xsew",
     "xss",
     "xvag",
-    "xvas",
     "xwav", //fake extension for .wav (renamed, to be removed)
     "xwb",
     "xmd",
