@@ -161,7 +161,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Codecs: PCM16BE
 - **ads.c**
   - Sony ADS header [*ADS*]
-  - *ads*: `.ads .ss2 .pcm .adx .(extensionless) .800`
+  - *ads*: `.ads .ss2 .pcm .adx .(extensionless) .800 .sdl`
   - *ads_container*: `.ads .cads`
     - Subfiles: *ads*
   - Codecs: PCM16LE DVI_IMA_int PSX
@@ -270,7 +270,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - RIFF WAVE header (ctrl looping) [*RIFF_WAVE_MWV*]
   - RIFX WAVE header [*RIFX_WAVE*]
   - RIFX WAVE header (smpl looping) [*RIFX_WAVE_smpl*]
-  - *riff*: `.wav .lwav .xwav .mwv .da .dax .cd .med .snd .adx .adp .xss .xsew .adpcm .adw .wd .(extensionless) .sbv .wvx .str .at3 .rws .aud .at9 .ckd .saf .ima .nsa .pcm .xvag .ogg .logg .p1d .xms .mus .dat .ldat .wma .lwma .caf .wax .voi .se`
+  - *riff*: `.wav .lwav .xwav .mwv .da .dax .cd .med .snd .adx .adp .xss .xsew .adpcm .adw .wd .(extensionless) .sbv .wvx .str .at3 .rws .aud .at9 .ckd .saf .ima .nsa .pcm .xvag .ogg .logg .p1d .xms .mus .dat .ldat .wma .lwma .caf .wax .voi .se .v`
   - *rifx*: `.wav .lwav`
   - Codecs: AICA_int PCM32LE PCM24LE PCM16BE PCM16LE PCM8_U MSADPCM IMA PCMFLOAT MS_IMA AICA MPEG_custom XBOX_IMA MS_IMA_3BIT DVI_IMA LEVEL5 OGG_VORBIS ATRAC9 ATRAC3 MPEG MSADPCM_mono
 - **nwa.c**
@@ -421,10 +421,6 @@ different internally (encrypted, different versions, etc) and not always can be 
 - **xmu.c**
   - Outrage XMU header [*XMU*]
   - *xmu*: `.xmu`
-  - Codecs: XBOX_IMA
-- **xvas.c**
-  - Konami .XVAS header [*XVAS*]
-  - *xvas*: `.xvas`
   - Codecs: XBOX_IMA
 - **sat_sap.c**
   - VING .SAP header [*SAP*]
@@ -733,10 +729,6 @@ different internally (encrypted, different versions, etc) and not always can be 
   - (container)
   - *dmsg*: `.sgt .dmsg`
     - Subfiles: *riff*
-- **ngc_dsp_konami.c**
-  - Konami DSP header [*NGC_DSP_KONAMI*]
-  - *ngc_dsp_konami*: `.dsp`
-  - Codecs: NGC_DSP
 - **wb.c**
   - Triangle Service .WB header [*WB*]
   - *wb*: `.wb`
@@ -1195,7 +1187,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Square Enix MAB header [*SQEX_MAB*]
   - *sqex_sead*: `.sab .mab .sbin`
     - Subfiles: *ogg_vorbis_config hca*
-  - Codecs: PCM16LE MSADPCM OGG ATRAC9 MPEG
+  - Codecs: PCM16LE MSADPCM OGG ATRAC9 XMA2 MPEG
 - **waf.c**
   - KID WAF header [*WAF*]
   - *waf*: `.waf`
@@ -1300,8 +1292,8 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Codecs: PSX
 - **bnk_sony.c**
   - Sony BNK header [*BNK_SONY*]
-  - *bnk_sony*: `.bnk`
-    - Subfiles: *riff*
+  - *bnk_sony*: `.bnk + .(external)`
+    - Subfiles: *xvag riff*
   - Codecs: ATRAC9 MPEG PCM16BE PCM16LE PSX HEVAG
 - **nus3bank.c**
   - (container)
@@ -1834,10 +1826,10 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Codecs: PCM8_SB
 - **vas_kceo.c**
   - Konami .VAS header [*VAS_KCEO*]
-  - *vas_kceo*: `.vas`
+  - *vas_kceo*: `.vas .dsp`
   - *vas_kceo_container*: `.vas`
     - Subfiles: *vas_kceo*
-  - Codecs: PSX
+  - Codecs: PCM16LE XBOX_IMA PSX NGC_DSP
 - **ps2_wmus.c**
   - assumed The Warriors Sony ADPCM by .wmus extension [*PS2_WMUS*]
   - *ps2_wmus*: `.wmus`

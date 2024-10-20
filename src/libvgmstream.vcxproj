@@ -91,6 +91,7 @@
     <ClInclude Include="vgmstream_types.h" />
     <ClInclude Include="base\api_internal.h" />
     <ClInclude Include="base\decode.h" />
+    <ClInclude Include="base\decode_state.h" />
     <ClInclude Include="base\mixer.h" />
     <ClInclude Include="base\mixer_priv.h" />
     <ClInclude Include="base\mixing.h" />
@@ -577,7 +578,6 @@
     <ClCompile Include="meta\nds_strm_ffta2.c" />
     <ClCompile Include="meta\ngc_adpdtk.c" />
     <ClCompile Include="meta\ngc_dsp_asura.c" />
-    <ClCompile Include="meta\ngc_dsp_konami.c" />
     <ClCompile Include="meta\ngc_dsp_mpds.c" />
     <ClCompile Include="meta\ngc_dsp_std.c" />
     <ClCompile Include="meta\ngc_ffcc_str.c" />
@@ -784,7 +784,6 @@
     <ClCompile Include="meta\xss.c" />
     <ClCompile Include="meta\xssb.c" />
     <ClCompile Include="meta\xvag.c" />
-    <ClCompile Include="meta\xvas.c" />
     <ClCompile Include="meta\xwav.c" />
     <ClCompile Include="meta\xwb.c" />
     <ClCompile Include="meta\xwc.c" />

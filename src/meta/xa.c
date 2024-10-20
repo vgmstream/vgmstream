@@ -11,7 +11,7 @@ VGMSTREAM* init_vgmstream_xa(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     uint32_t start_offset, stream_size = 0;
     int loop_flag = 0, channels, sample_rate, bps;
-    int is_riff = 0, is_form2 = 0, is_blocked;
+    bool is_riff = false, is_form2 = false, is_blocked;
     int total_subsongs = 0, target_subsong = sf->stream_index;
     uint16_t target_config = 0;
 
@@ -19,13 +19,13 @@ VGMSTREAM* init_vgmstream_xa(STREAMFILE* sf) {
     /* checks */
     if (read_u32be(0x00,sf) == 0x00FFFFFF && read_u32be(0x04,sf) == 0xFFFFFFFF && read_u32be(0x08,sf) == 0xFFFFFF00) {
         /* sector sync word = raw data */
-        is_blocked = 1;
+        is_blocked = true;
         start_offset = 0x00;
     }
     else if (is_id32be(0x00,sf, "RIFF") && is_id32be(0x08,sf, "CDXA") && is_id32be(0x0C,sf, "fmt ")) {
         /* RIFF header = raw with header (optional, added by CD drivers when copying and not part of the CD data) */
-        is_blocked = 1;
-        is_riff = 1;
+        is_blocked = true;
+        is_riff = true;
         start_offset = 0x2c; /* after "data", ignore RIFF values as often are wrong */
     }
     else {
@@ -49,7 +49,7 @@ VGMSTREAM* init_vgmstream_xa(STREAMFILE* sf) {
 
     /* test for XA data, since format is raw-ish (with RIFF it's assumed to be ok) */
     if (!is_riff && !xa_check_format(sf, start_offset, is_blocked))
-       goto fail;
+       return NULL;
 
     /* find subsongs as XA can interleave sectors using 'file' and 'channel' makers (see blocked_xa.c) */
     if (/*!is_riff &&*/ is_blocked) {
@@ -182,12 +182,12 @@ static int xa_check_format(STREAMFILE *sf, off_t offset, int is_blocked) {
         for (int i = 0; i < (sector_size / frame_size); i++) {
             read_streamfile(frame_hdr, test_offset, sizeof(frame_hdr), sf);
 
-            /* XA frame checks: filter indexes should be 0..3, and shifts 0..C */
+            /* XA frame checks: filter indexes should be 0..3 and shifts 0..C, but somehow Planet Laika movies have D */
             for (int j = 0; j < 16; j++) {
                 uint8_t header = get_u8(frame_hdr + j);
                 if (((header >> 4) & 0xF) > 0x03)
                     goto fail;
-                if (((header >> 0) & 0xF) > 0x0c)
+                if (((header >> 0) & 0xF) > 0x0d)
                     goto fail;
             }
 

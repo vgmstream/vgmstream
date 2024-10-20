@@ -391,12 +391,10 @@ typedef enum {
     meta_PS2_VSF_TTA,       /* Tiny Toon Adventures: Defenders of the Universe */
     meta_ADS_MIDWAY,
     meta_PS2_SPS,           /* Ape Escape 2 */
-    meta_NGC_DSP_KONAMI,    /* Konami DSP header, found in various games */
     meta_UBI_CKD,           /* Ubisoft CKD RIFF header (Rayman Origins Wii) */
     meta_RAW_WAVM,
     meta_WVS,
     meta_XMU,
-    meta_XVAS,
     meta_EA_SCHL,           /* Electronic Arts SCHl with variable header */
     meta_EA_SCHL_fixed,     /* Electronic Arts SCHl with fixed header */
     meta_EA_BNK,            /* Electronic Arts BNK */
