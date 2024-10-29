@@ -739,6 +739,11 @@ static VGMSTREAM* _init_vgmstream_ogg_vorbis_config(STREAMFILE* sf, off_t start,
                     loop_end_found = 1;
                 }
             }
+            else if (strstr(comment,"L=") == comment) { /* Kamaitachi no Yoru 2 (PS2) */
+                //sscanf(strrchr(comment,'=')+1,"%d", &loop_start);
+                loop_start = atol(strrchr(comment,'=')+1);
+                loop_flag = 1;
+            }
 
             /* Hatsune Miku Project DIVA games, though only 'Arcade Future Tone' has >4ch files
              * ENCODER tag is common but ogg_vorbis_encode looks unique enough

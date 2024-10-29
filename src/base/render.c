@@ -181,6 +181,7 @@ static void play_op_trim(VGMSTREAM* vgmstream, sbuf_t* sbuf) {
         if (to_do > buf_samples)
             to_do = buf_samples;
 
+        sbuf_tmp.filled = 0;
         sbuf_tmp.samples = to_do;
         int done = render_layout(&sbuf_tmp, vgmstream);
         /* no mixing */

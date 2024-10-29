@@ -183,7 +183,8 @@ VGMSTREAM* init_vgmstream_ubi_raki(STREAMFILE* sf) {
 #endif
 
 #ifdef VGM_USE_FFMPEG
-        case 0x58333630786D6132: {  /* "X360xma2" */
+        case 0x58333630786D6132:    /* "X360xma2" */
+        case 0x44757261786D6132: {  /* "Duraxma2" */
             /* chunks: "seek" (XMA2 seek table), "data" */
             if (!block_align) goto fail;
 
