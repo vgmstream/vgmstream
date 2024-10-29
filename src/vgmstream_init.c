@@ -290,6 +290,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_ubi_bnm_ps2,
     init_vgmstream_ubi_dat,
     init_vgmstream_ubi_blk,
+    init_vgmstream_ubi_apm,
     init_vgmstream_ezw,
     init_vgmstream_vxn,
     init_vgmstream_ea_snr_sns,

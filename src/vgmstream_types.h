@@ -548,6 +548,7 @@ typedef enum {
     meta_PC_AST,            /* Dead Rising (PC) */
     meta_NAAC,              /* Namco AAC (3DS) */
     meta_UBI_SB,            /* Ubisoft banks */
+    meta_UBI_APM,           /* Ubisoft APM */
     meta_EZW,               /* EZ2DJ (Arcade) EZWAV */
     meta_VXN,               /* Gameloft mobile games */
     meta_EA_SNR_SNS,        /* Electronic Arts SNR+SNS (Burnout Paradise) */
