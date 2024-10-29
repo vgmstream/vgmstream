@@ -720,6 +720,7 @@
     <ClCompile Include="meta\txtp.c" />
     <ClCompile Include="meta\txtp_parser.c" />
     <ClCompile Include="meta\txtp_process.c" />
+    <ClCompile Include="meta\ubi_apm.c" />
     <ClCompile Include="meta\ubi_bao.c" />
     <ClCompile Include="meta\ubi_ckd.c" />
     <ClCompile Include="meta\ubi_ckd_cwav.c" />

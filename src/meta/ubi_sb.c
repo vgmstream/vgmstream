@@ -1196,27 +1196,7 @@ static VGMSTREAM* init_vgmstream_ubi_sb_base(ubi_sb_header* sb, STREAMFILE* sf_h
 
         case FMT_APM:
             /* APM is a full format though most fields are repeated from .bnm
-             * (info from https://github.com/Synthesis/ray2get)
-             * 0x00(2): format tag (0x2000 for Ubisoft ADPCM)
-             * 0x02(2): channels
-             * 0x04(4): sample rate
-             * 0x08(4): byte rate? PCM samples?
-             * 0x0C(2): block align
-             * 0x0E(2): bits per sample
-             * 0x10(4): header size
-             * 0x14(4): "vs12"
-             * 0x18(4): file size
-             * 0x1C(4): nibble size
-             * 0x20(4): -1?
-             * 0x24(4): 0?
-             * 0x28(4): high/low nibble flag (when loaded in memory)
-             * 0x2C(N): ADPCM info per channel, last to first
-             * - 0x00(4): ADPCM hist
-             * - 0x04(4): ADPCM step index
-             * - 0x08(4): copy of ADPCM data (after interleave, ex. R from data + 0x01)
-             * 0x60(4): "DATA"
-             * 0x64(N): ADPCM data
-             */
+             * see ubi_apm.c for documentation */
 
             vgmstream->coding_type = coding_DVI_IMA_int;
             vgmstream->layout_type = layout_interleave;

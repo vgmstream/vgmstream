@@ -1990,6 +1990,9 @@
     <ClCompile Include="meta\txtp_process.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\ubi_apm.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\ubi_bao.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
