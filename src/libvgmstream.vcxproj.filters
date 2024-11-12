@@ -1831,6 +1831,9 @@
     <ClCompile Include="meta\sd9.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\sdd.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\sdf.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
