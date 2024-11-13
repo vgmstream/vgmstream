@@ -1,5 +1,6 @@
 #include "meta.h"
 #include "../coding/coding.h"
+#include "../util/chunks.h"
 
 /* .SDD - from Piglet's Big Game (PS2/GC) */
 VGMSTREAM* init_vgmstream_sdd(STREAMFILE* sf) {
@@ -82,6 +83,26 @@ VGMSTREAM* init_vgmstream_sdd(STREAMFILE* sf) {
             sound_offset += 0x60;
             vgmstream->stream_size -= 0x60;
             break;
+        case 0x02: { /* PCM */
+            off_t chunk_offset;
+            size_t chunk_size;
+
+            /* stored as RIFF */
+            sound_offset += 0x0c;
+            sound_size -= 0x0c;
+
+            /* find "data" chunk */
+            if (!find_chunk_riff_le(sf, 0x64617461, sound_offset, sound_size, &chunk_offset, &chunk_size))
+                goto fail;
+
+            vgmstream->coding_type = coding_PCM16LE;
+            vgmstream->layout_type = layout_none;
+            vgmstream->num_samples = pcm16_bytes_to_samples(chunk_size, channels);
+
+            sound_offset = chunk_offset;
+            vgmstream->stream_size = chunk_size;
+            break;
+        }
         case 0x03: /* PSX */
             vgmstream->coding_type = coding_PSX;
             vgmstream->layout_type = layout_none;
