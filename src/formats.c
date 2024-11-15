@@ -499,6 +499,7 @@ static const char* extension_list[] = {
     "scd",
     "sch",
     "sd9",
+    "sdd",
     "sdl",
     "sdp", //txth/reserved [Metal Gear Arcade (AC)]
     "sdf",
@@ -1446,6 +1447,7 @@ static const meta_info meta_info_list[] = {
         {meta_EA_SBK,               "Electronic Arts SBK header"},
         {meta_DSP_ASURA,            "Rebellion DSP header"},
         {meta_ONGAKUKAN_RIFF_ADP,   "Ongakukan RIFF WAVE header"},
+        {meta_SDD,                  "Doki Denki DSBH header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {

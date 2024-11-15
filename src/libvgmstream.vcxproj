@@ -667,6 +667,7 @@
     <ClCompile Include="meta\sbk.c" />
     <ClCompile Include="meta\scd_pcm.c" />
     <ClCompile Include="meta\sd9.c" />
+    <ClCompile Include="meta\sdd.c" />
     <ClCompile Include="meta\sdf.c" />
     <ClCompile Include="meta\sdrh.c" />
     <ClCompile Include="meta\sdt.c" />
