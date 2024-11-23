@@ -156,7 +156,7 @@ VGMSTREAM* init_vgmstream_awc(STREAMFILE* sf) {
 #endif
 
 #ifdef VGM_USE_ATRAC9
-        case 0x0F: {    /* ATRAC9 (PC) [Red Dead Redemption (PS4)] */
+        case 0x0F: {    /* ATRAC9 (PS4) [Red Dead Redemption (PS4)] */
             if (awc.is_streamed) {
                 vgmstream->layout_data = build_layered_awc(sf_body, &awc);
                 if (!vgmstream->layout_data) goto fail;
@@ -204,6 +204,50 @@ VGMSTREAM* init_vgmstream_awc(STREAMFILE* sf) {
                     goto fail;
             } 
             break;
+
+#ifdef VGM_USE_ATRAC9
+        case 0x0D: {    /* OPUS (PC) [Red Dead Redemption (PC)] */
+            if (awc.is_streamed) {
+                vgmstream->layout_data = build_layered_awc(sf_body, &awc);
+                if (!vgmstream->layout_data) goto fail;
+                vgmstream->layout_type = layout_layered;
+                vgmstream->coding_type = coding_FFmpeg;
+            }
+            else {
+                VGM_LOG("AWC: unknown non-streamed Opus mode\n");
+                goto fail;
+            }
+            break;
+        }
+#endif
+
+        case 0x11: {    /* RIFF-MSADPCM (PC) [Red Dead Redemption (PC)] */
+            if (awc.is_streamed) {
+                VGM_LOG("AWC: unknown streamed mode for codec 0x%02x\n", awc.codec);
+                goto fail;
+            }
+            else {
+                VGMSTREAM* temp_vs = NULL;
+                STREAMFILE* temp_sf = NULL;
+
+                temp_sf = setup_subfile_streamfile(sf_body, awc.stream_offset, awc.stream_size, "wav");
+                if (!temp_sf) goto fail;
+
+                temp_vs = init_vgmstream_riff(temp_sf);
+                close_streamfile(temp_sf);
+                if (!temp_vs) goto fail;
+
+                temp_vs->num_streams = vgmstream->num_streams;
+                temp_vs->stream_size = vgmstream->stream_size;
+                temp_vs->meta_type = vgmstream->meta_type;
+                strcpy(temp_vs->stream_name, vgmstream->stream_name);
+
+                close_vgmstream(vgmstream);
+                //vgmstream = temp_vs;
+                return temp_vs;
+            }
+            break;
+        }
 
         case 0xFF:
             vgmstream->coding_type = coding_SILENCE;
@@ -617,6 +661,24 @@ static VGMSTREAM* build_blocks_vgmstream(STREAMFILE* sf, awc_header* awc, int ch
             break;
         }
 #endif
+#ifdef VGM_USE_FFMPEG
+        case 0x0D: {
+            opus_config cfg = {0};
+
+            /* read from first block (all blocks have it but same thing), see awc_streamfile.h */
+            uint32_t frame_size_offset = awc->stream_offset + 0x10 * awc->channels + 0x70 * channel + 0x04;
+
+            cfg.frame_size = read_u16le(frame_size_offset, sf); // always 0x50?
+            cfg.channels = 1;
+
+            vgmstream->codec_data = init_ffmpeg_fixed_opus(temp_sf, substream_offset, substream_size, &cfg);
+            if (!vgmstream->codec_data) goto fail;
+            vgmstream->coding_type = coding_FFmpeg;
+            vgmstream->layout_type = layout_none;
+
+            break;
+        }
+#endif
 #ifdef VGM_USE_ATRAC9
         case 0x0F: {
             atrac9_config cfg = {0};
@@ -669,9 +731,8 @@ fail:
 // independently.
 //
 // This can be simulated by making one decoder per block (segmented, but opens too many SFs and can't skip
-// samples correctly), or with a custom STREAMFILE that skips repeated block (works ok-ish but not all codecs).
+// samples correctly), or with a custom STREAMFILE that skips repeated block (works ok-ish).
 static layered_layout_data* build_layered_awc(STREAMFILE* sf, awc_header* awc) {
-    int i;
     layered_layout_data* data = NULL;
 
 
@@ -680,7 +741,7 @@ static layered_layout_data* build_layered_awc(STREAMFILE* sf, awc_header* awc) {
     if (!data) goto fail;
 
     /* open each layer subfile */
-    for (i = 0; i < awc->channels; i++) {
+    for (int i = 0; i < awc->channels; i++) {
         data->layers[i] = build_blocks_vgmstream(sf, awc, i);
         if (!data->layers[i]) goto fail;
     }
