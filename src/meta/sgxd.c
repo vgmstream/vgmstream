@@ -109,7 +109,7 @@ VGMSTREAM* init_vgmstream_sgxd(STREAMFILE* sf) {
         uint32_t stream_offset;
         chunk_offset += 0x08 + 0x38 * (target_subsong-1); /* position in target header*/
 
-        /* 0x00: ? (00/01/02) */
+        /* 0x00: flags? (00/01/02) */
         name_offset = read_u32le(chunk_offset+0x04,sf_head);
         codec = read_u8(chunk_offset+0x08,sf_head);
         channels = read_u8(chunk_offset+0x09,sf_head);
@@ -119,16 +119,14 @@ VGMSTREAM* init_vgmstream_sgxd(STREAMFILE* sf) {
         /* 0x10: info_type, meaning of the next value
          *       (00=null, 30/40=data size without padding (ADPCM, ATRAC3plus), 80/A0=block size (AC3) */
         /* 0x14: info_value (see above) */
-        /* 0x18: unknown (ex. 0x0008/0010/3307/CC02/etc, RGND related?) x2 */
+        /* 0x18: vol L + vol R? */
         /* 0x1c: null */
-
         num_samples = read_s32le(chunk_offset+0x20,sf_head);
         loop_start_sample = read_s32le(chunk_offset+0x24,sf_head);
         loop_end_sample = read_s32le(chunk_offset+0x28,sf_head);
         stream_size = read_u32le(chunk_offset+0x2c,sf_head); /* stream size (without padding) / interleave (for type3) */
 
         stream_offset = read_u32le(chunk_offset+0x30,sf_head);
-
         /* 0x34: SGD/SGH = stream size (with padding) / interleave */
 
         loop_flag = loop_start_sample != -1 && loop_end_sample != -1;
@@ -216,6 +214,8 @@ VGMSTREAM* init_vgmstream_sgxd(STREAMFILE* sf) {
         }
 #endif
 
+        // 0x00: PCM16LE?
+        // https://github.com/Nenkai/010GameTemplates/blob/main/Sony/SGXD.bt
         default:
             VGM_LOG("SGDX: unknown codec %i\n", codec);
             goto fail;

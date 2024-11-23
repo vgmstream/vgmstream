@@ -61,9 +61,9 @@ typedef struct {
  *   0x00: "D11A"
  *   0x04: frame size
  *   0x06: frame samples
- *   0x08: flags? (0x0103=AT9, 0x0104=DSP)
+ *   0x08: flags? (0x0101=OPUS, 0x0103=AT9, 0x0104=DSP)
  *   0x0a: sample rate
- *   0x0c: ATRAC9 config (repeated but same for all blocks) or "D11E" (DSP)
+ *   0x0c: ATRAC9 config (repeated but same for all blocks) or "D11E" (OPUS/DSP)
  *   0x10-0x70: padding with 0x77 (ATRAC3) or standard DSP header for original full file (DSP)
  * - padding up to data start, depending on codec (DSP/ATRAC9: none, others: aligned to 0x800)
  */
@@ -91,6 +91,7 @@ static bool read_awc_block(STREAMFILE* sf, awc_block_info_t* bi) {
             extra_entry_size = 0x00;
             header_padding = 0x800;
             break;
+        case 0x0D: /* OPUS */
         case 0x0F: /* ATRAC9 */
             channel_entry_size = 0x10;
             seek_entry_size = 0x00;
@@ -136,6 +137,7 @@ static bool read_awc_block(STREAMFILE* sf, awc_block_info_t* bi) {
                 bi->blk[ch].chunk_size = align_size_to_block(bi->blk[ch].channel_size, 0x10);
                 //bi->blk[ch].channel_size = (pre-loaded);
                 break;
+            case 0x0D: /* OPUS */
             case 0x0F: /* ATRAC9 */
                 bi->blk[ch].frame_size = read_u16(offset + 0x04, sf);
                 bi->blk[ch].chunk_size = bi->blk[ch].entries * bi->blk[ch].frame_size;
@@ -217,6 +219,7 @@ static uint32_t get_block_repeated_size(STREAMFILE* sf, awc_block_info_t* bi, in
             return skip_size; /* skip_size fills frame size */
         }
 
+        case 0x0D: /* OPUS */
         case 0x0F: /* ATRAC9 */
         default: 
             VGM_LOG("AWC: found channel skip in codec %x\n", bi->codec); /* not seen */
