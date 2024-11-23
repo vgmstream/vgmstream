@@ -79,7 +79,8 @@ void replace_filename(char* dst, size_t dstsize, cli_config_t* cfg, VGMSTREAM* v
         }
         else {
             /* not recognized */
-            continue;
+            // TO-DO should move buf or swap "?" with "_"? may happen with non-ascii on Windows; for now break to avoid infinite loops
+            break;
         }
 
         /* copy result to buf again, so it can be used as format in next replace
