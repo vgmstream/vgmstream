@@ -1483,7 +1483,10 @@ static const hcakey_info hcakey_list[] = {
     {13238534807163085345u},    // B7B8B9442F99A221
 
     // TOUHOU GENSOU MAHJONG (PC) [demo and release]
-    {7757726886},
+    {7757726886},               // 00000001CE6584A6
+
+    // NARUTO X BORUTO NINJA VOLTAGE (Android)
+    {15607939238842976091u},    // D89A8A0B171DC75B
 };
 
 #endif
