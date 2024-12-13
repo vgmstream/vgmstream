@@ -475,7 +475,7 @@ void mixing_macro_downmix(VGMSTREAM* vgmstream, int max /*, mapping_t output_map
     channel_mapping_t input_mapping, output_mapping;
     const double vol_max = 1.0;
     const double vol_sqrt = 1 / sqrt(2);
-    const double vol_half = 1 / 2;
+    const double vol_half = 0.5;
     double matrix[16][16] = {{0}};
 
 
