@@ -1013,4 +1013,8 @@ VGMSTREAM* init_vgmstream_adp_ongakukan(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_sdd(STREAMFILE* sf);
 
+VGMSTREAM* init_vgmstream_snd_vbc(STREAMFILE* sf);
+
+VGMSTREAM* init_vgmstream_sdx_vbc(STREAMFILE* sf);
+
 #endif /*_META_H*/
