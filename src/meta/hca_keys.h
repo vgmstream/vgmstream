@@ -464,6 +464,7 @@ static const hcakey_info hcakey_list[] = {
     {0xc642361141842f89},       // music_0110035
     {0x9eb82f449eb4f3f6},       // music_0110036
     {0x417822c4c107541c},       // music_0110037
+    {0x9e55fe333fe182dd},       // music_0110038
     {0xfb647d074e53fab6},       // music_0120001
     {0xc24049b9f7ed3105},       // music_0120002
     {0x0dc128f2fd48bf4b},       // music_0120003
@@ -704,6 +705,7 @@ static const hcakey_info hcakey_list[] = {
     {0xfdb798f20efbf4ac},       // music_0610026
     {0x9f37cb27968428fa},       // music_0610027
     {0x36024c4a109520ec},       // music_0610028
+    {0x758ad666ba171bd7},       // music_0610029
     {0x8258ddd6a1d0849b},       // music_0620001
     {0x1dd21a1244ca12f1},       // music_0620002
     {0xfdec74b23d8b494b},       // music_0620003
@@ -941,6 +943,7 @@ static const hcakey_info hcakey_list[] = {
     {0x9b1fdeafe8007f41},       // music_5030104
     {0xace06e1ff0e92427},       // music_5030105
     {0x5b6614302dee85c2},       // music_5030106
+    {0xa54a0ae6b0c3b101},       // music_5030107
     {0x444dda6d55d76095},       // music_5040001
     {0xcbf4f1324081e0a6},       // music_5040002
     {0xf1db3c1d9542063a},       // music_5040003
@@ -1234,10 +1237,18 @@ static const hcakey_info hcakey_list[] = {
     {0x5c8623402d1c822d},       // music_5050286
     {0xca545af62852a7b7},       // music_5050287
     {0x518c6e5c4a268161},       // music_5050288
+    {0x3b03fdfe671ddf68},       // music_5050289
+    {0x7566fe3ae0662094},       // music_5050290
+    {0x51d39f5ef693843c},       // music_5050291
+    {0xb259f525f1f359d0},       // music_5050292
+    {0xd2f2d004121c4118},       // music_5050293
+    {0x775610e63d2b622b},       // music_5050294
     {0xcc73017924bfaaae},       // music_5050295
     {0xd2197c8cf0ea08f9},       // music_5050296
     {0x481c17fb41e25dbb},       // music_5050303
     {0xe259362b1d601f93},       // music_5050304
+    {0x7698628d25ad406b},       // music_5050305
+    {0x34c0f6db642145a0},       // music_5050307
     {0x52c250eade92393b},       // music_9010001
     {0xf66e6bb5b0599b07},       // music_9010002
     {0x8582b5a60dbbf948},       // music_9010003
