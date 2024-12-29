@@ -256,7 +256,7 @@ void print_json_info(VGMSTREAM* vgm, cli_config_t* cfg, const char* vgmstream_ve
         if (info.loop_info.end > info.loop_info.start) {
             vjson_obj_open(&j);
                 vjson_keyint(&j, "start", info.loop_info.start);
-                vjson_keyint(&j, "end", info.loop_info.start);
+                vjson_keyint(&j, "end", info.loop_info.end);
             vjson_obj_close(&j);
         }
         else {
