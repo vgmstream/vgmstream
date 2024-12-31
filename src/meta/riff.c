@@ -16,12 +16,16 @@ typedef struct {
     int32_t loop_start_smpl;
     int32_t loop_end_smpl;
 
+    bool loop_cue;
+    int32_t loop_start_cue;
+    int32_t loop_end_cue;
+
     bool loop_labl;
     long loop_start_ms;
     long loop_end_ms;
 
-    bool loop_cue;
-    int32_t loop_start_cue;
+    bool loop_rgn;
+    long loop_region_size;
 
     bool loop_ctrl;
     int32_t loop_start_ctrl;
@@ -61,8 +65,8 @@ static long parse_adtl_marker_ms(unsigned char* marker) {
 
 /* loop points have been found hiding here (ex. set by Sound Forge) */
 static void parse_adtl(uint32_t adtl_offset, uint32_t adtl_length, STREAMFILE* sf, riff_sample_into_t* si) {
-    bool loop_start_found = false;
-    bool loop_end_found = false;
+    bool labl_start_found = false;
+    bool labl_end_found = false;
     uint32_t current_chunk = adtl_offset + 0x04;
     unsigned char label_content[128]; //arbitrary max
 
@@ -85,25 +89,47 @@ static void parse_adtl(uint32_t adtl_offset, uint32_t adtl_length, STREAMFILE* s
                     return;
                 label_content[label_size] = '\0'; // labl null-terminates but just in case
 
+                // find "Marker", though rarely "loop" or "Region" can be found to mark loop cues [Portal (PC), Touhou Suimusou (PC)]
                 int loop_value = parse_adtl_marker_ms(label_content);
                 if (loop_value < 0)
                     break;
                 
                 switch (cue_id) {
                     case 1:
-                        if (loop_start_found)
+                        if (labl_start_found)
                             break;
                         si->loop_start_ms = loop_value;
-                        loop_start_found = (loop_value >= 0);
+                        labl_start_found = (loop_value >= 0);
                         break;
                     case 2:
-                        if (loop_end_found)
+                        if (labl_end_found)
                             break;
                         si->loop_end_ms = loop_value;
-                        loop_end_found = (loop_value >= 0);
+                        labl_end_found = (loop_value >= 0);
                         break;
                     default:
                         break;
+                }
+
+                break;
+            }
+
+            case 0x6C747874: { /* "ltxt" [Touhou Suimusou (PC), Redline (PC)] */
+                if (si->loop_rgn)
+                    break;
+
+                int cue_id = read_s32le(current_chunk + 0x08 + 0x00,sf);
+                int32_t cue_point = read_s32le(current_chunk + 0x08 + 0x04,sf);
+                if (!is_id32be(current_chunk + 0x08 + 0x08, sf, "rgn "))
+                    break;
+                if (cue_id == 1) {
+                    si->loop_rgn = true;
+                    si->loop_region_size = cue_point;
+
+                    // assumes cues go first (cue_id should exist?)
+                    if (si->loop_cue && !si->loop_end_cue) {
+                        si->loop_end_cue = si->loop_start_cue + si->loop_region_size;
+                    }
                 }
 
                 break;
@@ -120,9 +146,15 @@ static void parse_adtl(uint32_t adtl_offset, uint32_t adtl_length, STREAMFILE* s
         current_chunk += 0x08 + chunk_size;
     }
 
-    if (loop_start_found && loop_end_found) {
+    if (labl_start_found && labl_end_found) {
         si->loop_labl = true;
         si->loop_flag = true;
+    }
+
+    // in rare cases loop start cue+labl is found, but doesn't seem to mean loop [Caesar III (PC)]
+    if (labl_start_found && !labl_end_found) {
+        si->loop_labl = true;
+        si->loop_flag = false; // 1 cue is treated as loop start, so force as loop end
     }
 
     /* labels don't seem to be consistently ordered */
@@ -610,7 +642,7 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
 
                     if (read_u32le(current_chunk + 0x08 + 0x24 + 0x04, sf) == 0) { /* loop forward */
                         si.loop_start_smpl = read_s32le(current_chunk + 0x08 + 0x24 + 0x08, sf);
-                        si.loop_end_smpl   = read_s32le(current_chunk + 0x08 + 0x24 + 0x0c, sf) + 1; /* must add 1 as per spec (ok for standard WAV/AT3/AT9) */
+                        si.loop_end_smpl   = read_s32le(current_chunk + 0x08 + 0x24 + 0x0c, sf);
                         si.loop_smpl = true;
                         si.loop_flag = true;
                     }
@@ -681,20 +713,50 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
                     si.loop_ctrl = true;
                     break;
 
-                case 0x63756520:    /* "cue " (used in Source Engine, also seen cue + adtl rgn in Sound Forge) [Team Fortress 2 (PC)] */
-                    if (fmt.coding_type == coding_PCM8_U ||
-                        fmt.coding_type == coding_PCM16LE ||
-                        fmt.coding_type == coding_MSADPCM) {
-                        uint32_t num_cues = read_s32le(current_chunk + 0x08, sf);
+                case 0x63756520: {  /* "cue " (used in Source Engine, also seen cue + adtl in Sound Forge) [Team Fortress 2 (PC)] */
+                    if (!(fmt.coding_type == coding_PCM8_U || fmt.coding_type == coding_PCM16LE || fmt.coding_type == coding_MSADPCM))
+                        break;
 
-                        if (num_cues > 0) {
-                            /* the second cue sets loop end point but it's not actually used by the engine */
-                            si.loop_start_cue = read_s32le(current_chunk + 0x20, sf);
-                            si.loop_cue = true;
-                            si.loop_flag = true;
+                    /* handle loop_start or start + end (more are possible but usually means custom regions);
+                     * could have have other meanings but is often used for loops */
+                    int num_cues = read_s32le(current_chunk + 0x08 + 0x00, sf);
+                    if (num_cues <= 0 || num_cues > 2)
+                        break;
+
+                    uint32_t cue_offset = current_chunk + 0x08 + 0x04;
+                    for (int i = 0; i < num_cues; i++) {
+                        // 0x00: id (usually 0x01, 0x02 ... but may be unordered)
+                        // 0x04: position (usually same as sample point)
+                        // 0x08: fourcc type
+                        // 0x0c: "chunk start", relative offset (null in practice)
+                        // 0x10: "block start", relative offset (null in practice)
+                        // 0x14: sample offset
+                        uint32_t cue_id     = read_s32le(cue_offset + 0x00, sf);
+                        uint32_t cue_point  = read_s32le(cue_offset + 0x14, sf);
+                        cue_offset += 0x18;
+
+                        switch (cue_id) {
+                            case 1:
+                                si.loop_start_cue = cue_point;
+                                break;
+                            case 2:
+                                si.loop_end_cue = cue_point;
+                                break;
                         }
                     }
+
+                    // cues may be unordered so swap if needed
+                    if (si.loop_end_cue > 0 && si.loop_start_cue > si.loop_end_cue) {
+                        int32_t tmp = si.loop_start_cue;
+                        si.loop_start_cue = si.loop_end_cue;
+                        si.loop_end_cue = tmp;
+                    }
+                    si.loop_cue = true;
+                    si.loop_flag = true;
+
+                    /* assumes "cue" goes before "adtl" (has extra detection for some cases) */
                     break;
+                }
 
                 case 0x4E584246:    /* "NXBF" (Namco NuSound v1) [R:Racing Evolution (Xbox)] */
                     /* very similar to NUS's NPSF, but not quite like Cstr */
@@ -891,7 +953,7 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
 
                 /* happens with official tools when "fact" is not found */
                 if (vgmstream->num_samples == 0)
-                    vgmstream->num_samples = si.loop_end_smpl;
+                    vgmstream->num_samples = si.loop_end_smpl + 1;
             }
 
             break;
@@ -978,25 +1040,41 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
     /* meta, loops */
     vgmstream->meta_type = meta_RIFF_WAVE;
     if (si.loop_flag) {
-        /* order matters as tools may rarely include multiple chunks (like smpl + cue/rgn) [Redline (PC)] */
-        if (si.loop_smpl) {
+        /* order matters as tools may rarely include multiple chunks (like smpl + cue/adtl) [Redline (PC)] */
+        if (si.loop_smpl) { /* most common */
             vgmstream->loop_start_sample = si.loop_start_smpl;
-            vgmstream->loop_end_sample = si.loop_end_smpl;
+            vgmstream->loop_end_sample = si.loop_end_smpl + 1;
             vgmstream->meta_type = meta_RIFF_WAVE_smpl;
 
             // end adds +1 as per spec, but check in case of faulty tools
             if (vgmstream->loop_end_sample - 1 == vgmstream->num_samples)
                 vgmstream->loop_end_sample--;
         }
-        else if (si.loop_labl && si.loop_start_ms >= 0) {
+        else if (si.loop_cue && si.loop_labl) { /* [Advanced Power Dolls 2 (PC)] */
+            /* favor cues as labels are valid but converted samples are slightly off */
+            vgmstream->loop_start_sample = si.loop_start_cue;
+            vgmstream->loop_end_sample = si.loop_end_cue + 1;
+            vgmstream->meta_type = meta_RIFF_WAVE_cue;
+
+            // end adds +1 as per spec, but check in case of faulty tools
+            if (vgmstream->loop_end_sample - 1 == vgmstream->num_samples)
+                vgmstream->loop_end_sample--;
+        }
+        else if (si.loop_cue && si.loop_rgn) { /* [Touhou Suimusou (PC)] */
+            vgmstream->loop_start_sample = si.loop_start_cue;
+            vgmstream->loop_end_sample = si.loop_end_cue;
+            vgmstream->meta_type = meta_RIFF_WAVE_cue;
+        }
+        else if (si.loop_labl && si.loop_start_ms >= 0) { /* possible without cue? */
             vgmstream->loop_start_sample = (long long)si.loop_start_ms * fmt.sample_rate / 1000;
             vgmstream->loop_end_sample = (long long)si.loop_end_ms * fmt.sample_rate / 1000;
             vgmstream->meta_type = meta_RIFF_WAVE_labl;
         }
-        else if (si.loop_cue) {
+        else if (si.loop_cue) { /* [Team Fortress 2 (PC), Portal (PC)] */
+            /* in Source engine ignores the loop end cue; usually doesn't set labl/ltxt (seen "loop" label in Portal) */
             vgmstream->loop_start_sample = si.loop_start_cue;
             vgmstream->loop_end_sample = vgmstream->num_samples;
-            vgmstream->meta_type = meta_RIFF_WAVE_cue_rgn;
+            vgmstream->meta_type = meta_RIFF_WAVE_cue;
         }
         else if (si.loop_ctrl && fmt.coding_type == coding_LEVEL5) {
             vgmstream->loop_start_sample = si.loop_start_ctrl;
@@ -1290,7 +1368,6 @@ VGMSTREAM* init_vgmstream_rifx(STREAMFILE* sf) {
     if (!vgmstream_open_stream(vgmstream, sf, start_offset))
         goto fail;
     return vgmstream;
-
 fail:
     close_vgmstream(vgmstream);
     return NULL;
