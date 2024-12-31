@@ -379,20 +379,7 @@ static bool write_file(VGMSTREAM* vgmstream, cli_config_t* cfg) {
         // decode only: outfile is NULL (won't write anything)
     }
 
-
-    /* decode forever */
-    while (cfg->play_forever && !cfg->decode_only) {
-        int to_get = cfg->sample_buffer_size;
-
-        render_vgmstream(buf, to_get, vgmstream);
-
-        wav_swap_samples_le(buf, channels * to_get, 0);
-        fwrite(buf, sizeof(sample_t), to_get * channels, outfile);
-        /* should write infinitely until program kill */
-    }
-
-
-    /* slap on a .wav header */
+    /* slap on a .wav header (note that this goes before decodes in case of printing to stdout) */
     if (!cfg->decode_only) {
         uint8_t wav_buf[0x100];
         size_t bytes_done;
@@ -410,6 +397,16 @@ static bool write_file(VGMSTREAM* vgmstream, cli_config_t* cfg) {
         fwrite(wav_buf, sizeof(uint8_t), bytes_done, outfile);
     }
 
+    /* decode forever */
+    while (cfg->play_forever && !cfg->decode_only) {
+        int to_get = cfg->sample_buffer_size;
+
+        render_vgmstream(buf, to_get, vgmstream);
+
+        wav_swap_samples_le(buf, channels * to_get, 0);
+        fwrite(buf, sizeof(sample_t), to_get * channels, outfile);
+        /* should write infinitely until program kill */
+    }
 
     /* decode */
     for (int i = 0; i < len_samples; i += cfg->sample_buffer_size) {
