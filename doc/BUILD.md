@@ -22,7 +22,7 @@ Though it's rather flexible (like using Windows with GCC and autotools), some co
 ```sh
 sudo apt-get update
 # base deps
-sudo apt-get install -y gcc g++ make cmake build-essential git
+sudo apt-get install -y gcc g++ make cmake build-essential git pkg-config
 # optional: for extra formats (can be ommited to build with static libs)
 sudo apt-get install -y libmpg123-dev libvorbis-dev libspeex-dev
 sudo apt-get install -y libavformat-dev libavcodec-dev libavutil-dev libswresample-dev
@@ -123,11 +123,15 @@ First, follow the *Emscripten* installation instructions:
 
 Though basically:
 ```sh
+apt-get install -y python3
+
 git clone https://github.com/emscripten-core/emsdk
 cd emsdk
 ./emsdk install latest
 ./emsdk activate latest
 source ./emsdk_env.sh
+
+emsdk
 ```
 
 Then you should be able to build it on **Linux** (**Windows** should be possible too, but has some issues at the moment), for example with CMake:

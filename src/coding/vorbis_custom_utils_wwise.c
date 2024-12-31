@@ -44,7 +44,6 @@ static int load_wvc_array(uint8_t* buf, size_t bufsize, uint32_t codebook_id, ww
 /**
  * Wwise stores a reduced setup, and packets have mini headers with the size, and data packets
  * may reduced as well. The format evolved over time so there are many variations.
- * The Wwise implementation uses Tremor (fixed-point Vorbis) but shouldn't matter.
  *
  * Format reverse-engineered by hcs in ww2ogg (https://github.com/hcs64/ww2ogg).
  */

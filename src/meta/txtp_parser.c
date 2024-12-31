@@ -854,7 +854,7 @@ static int add_entry(txtp_header_t* txtp, char* filename, int is_default) {
     txtp_entry_t entry = {0};
 
 
-    //;VGM_LOG("TXTP: filename=%s\n", filename);
+    ;VGM_LOG("TXTP: input filename=%s\n", filename);
 
     /* parse filename: file.ext#(commands) */
     {
@@ -864,19 +864,43 @@ static int add_entry(txtp_header_t* txtp, char* filename, int is_default) {
             params = filename; /* multiple commands without filename */
         }
         else {
-            /* find settings start after filenames (filenames can also contain dots and #,
-             * so this may be fooled by certain patterns) */
-            params = strchr(filename, '.'); /* first dot (may be a false positive) */
-            if (!params) /* extensionless */
+            // Find settings after filename (basically find extension then first #).
+            // Filenames may contain dots and # though, so this may be fooled by certain patterns
+            // (like with extensionless files with a # inside or dirs with . in the name)
+
+            // Find first dot which is usually the extension; may be a false positive but hard to handle every case
+            // (can't use "last dot" because some commands allow it like '#I 1.0 20.0')
+            params = strchr(filename, '.');
+            if (!params) // extensionless = reset to line start
                 params = filename;
-            params = strchr(params, '#'); /* next should be actual settings */
+
+            // Skip relative path like ./../stuff/../ and maybe "01 blah... blah.adx"
+            while (params[1] == '.' || params[1] == '/') {
+                char* params_tmp = strchr(params + 1, '.');
+                if (!params_tmp) //???
+                    break;
+                params = params_tmp;
+            }
+
+            // Rarely filenames may be "01. blah (#blah).ext #i", where the first # is ambiguous.
+            // Detect the space after dot (always a track number) and search dot again.
+            if (params[1] == ' ') {
+                params = strchr(params + 1, '.');
+                if (!params) /* extensionless */
+                    params = filename;
+            }
+
+            // first # after dot should be actual .txtp settings
+            params = strchr(params, '#');
             if (!params)
                 params = NULL;
         }
 
+        ;VGM_LOG("TXTP: params=%s\n", params);
         parse_params(&entry, params);
     }
 
+    ;VGM_LOG("TXTP: output filename=%s\n", filename);
 
     clean_filename(filename);
     //;VGM_LOG("TXTP: clean filename='%s'\n", filename);

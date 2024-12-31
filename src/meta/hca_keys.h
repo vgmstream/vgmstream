@@ -1501,6 +1501,9 @@ static const hcakey_info hcakey_list[] = {
 
     // Kingdom Hearts 3 (Steam)
     {10095514444067761537u},    // 8C1A78E6077BED81
+
+    // Muv-Luv Dimensions (Android)
+    {8848},                     // 0000000000002290
 };
 
 #endif

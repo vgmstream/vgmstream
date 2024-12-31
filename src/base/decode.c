@@ -6,10 +6,34 @@
 #include "plugins.h"
 #include "sbuf.h"
 
+#if VGM_TEST_DECODER
+#include "../util/log.h"
+#include "decode_state.h"
+
+
+static void* decode_state_init() {
+    return calloc(1, sizeof(decode_state_t));
+}
+
+static void decode_state_reset(VGMSTREAM* vgmstream) {
+    memset(vgmstream->decode_state, 0, sizeof(decode_state_t));
+}
+
+// this could be part of the VGMSTREAM but for now keep separate as it simplifies 
+// some loop-related stuff
+void* decode_init() {
+    return decode_state_init();
+}
+#endif
+
+
 /* custom codec handling, not exactly "decode" stuff but here to simplify adding new codecs */
 
-
 void decode_free(VGMSTREAM* vgmstream) {
+#if VGM_TEST_DECODER
+    free(vgmstream->decode_state);
+#endif
+
     if (!vgmstream->codec_data)
         return;
 
@@ -127,6 +151,10 @@ void decode_free(VGMSTREAM* vgmstream) {
 
 
 void decode_seek(VGMSTREAM* vgmstream) {
+#if VGM_TEST_DECODER
+    decode_state_reset(vgmstream);
+#endif
+
     if (!vgmstream->codec_data)
         return;
 
@@ -228,6 +256,10 @@ void decode_seek(VGMSTREAM* vgmstream) {
 
 
 void decode_reset(VGMSTREAM* vgmstream) {
+#if VGM_TEST_DECODER
+    decode_state_reset(vgmstream);
+#endif
+
     if (!vgmstream->codec_data)
         return;
 
@@ -825,11 +857,74 @@ bool decode_uses_internal_offset_updates(VGMSTREAM* vgmstream) {
     return vgmstream->coding_type == coding_MS_IMA || vgmstream->coding_type == coding_MS_IMA_mono;
 }
 
+#if VGM_TEST_DECODER
+// decode frames for decoders which have their own sample buffer
+static void decode_frames(sbuf_t* sbuf, VGMSTREAM* vgmstream) {
+    const int max_empty = 10000;
+    int num_empty = 0;
+
+    decode_state_t* ds = vgmstream->decode_state;
+
+    while (sbuf->filled < sbuf->samples) {
+
+        // decode new frame if all was consumed
+        if (ds->sbuf.filled == 0) {
+            bool ok = false;
+            switch (vgmstream->coding_type) {
+                case coding_TAC:
+                    ok = decode_tac_frame(vgmstream);
+                    break;
+                default:
+                    break;
+            }
+
+            if (!ok)
+                goto decode_fail;
+        }
+
+        if (ds->discard) {
+            // decode may signal that decoded samples need to be discarded, because of encoder delay
+            // (first samples of a file need to be ignored) or a loop
+            int current_discard = ds->discard;
+            if (current_discard > ds->sbuf.filled)
+                current_discard = ds->sbuf.filled;
+
+            sbuf_consume(&ds->sbuf, current_discard);
+
+            ds->discard -= current_discard;
+        }
+        else {
+            // copy + consume
+            int samples_copy = ds->sbuf.filled;
+            if (samples_copy > sbuf->samples - sbuf->filled)
+                samples_copy = sbuf->samples - sbuf->filled;
+
+            sbuf_copy_segments(sbuf, &ds->sbuf);
+            sbuf_consume(&ds->sbuf, samples_copy);
+
+            sbuf->filled += samples_copy;
+        }
+    }
+
+    return;
+decode_fail:
+    /* on error just put some 0 samples */
+    VGM_LOG("VGMSTREAM: decode fail, missing %i samples\n", sbuf->samples - sbuf->filled);
+    sbuf_silence_rest(sbuf);
+}
+#endif
+
 /* Decode samples into the buffer. Assume that we have written samples_filled into the
  * buffer already, and we have samples_to_do consecutive samples ahead of us (won't call
  * more than one frame if configured above to do so).
  * Called by layouts since they handle samples written/to_do */
 void decode_vgmstream(VGMSTREAM* vgmstream, int samples_filled, int samples_to_do, sample_t* buffer) {
+#if VGM_TEST_DECODER
+    sbuf_t sbuf_tmp = {0};
+    sbuf_t* sbuf = &sbuf_tmp;
+    sbuf_init_s16(sbuf, buffer,  samples_filled + samples_to_do, vgmstream->channels);
+    sbuf->filled = samples_filled;
+#endif
     int ch;
 
     buffer += samples_filled * vgmstream->channels; /* passed externally to simplify I guess */
@@ -1566,6 +1661,9 @@ void decode_vgmstream(VGMSTREAM* vgmstream, int samples_filled, int samples_to_d
             }
             break;
         default:
+#if VGM_TEST_DECODER
+            decode_frames(sbuf, vgmstream);
+#endif
             break;
     }
 }

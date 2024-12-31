@@ -372,6 +372,9 @@ typedef struct tac_codec_data tac_codec_data;
 
 tac_codec_data* init_tac(STREAMFILE* sf);
 void decode_tac(VGMSTREAM* vgmstream, sample_t* outbuf, int32_t samples_to_do);
+#if VGM_TEST_DECODER
+bool decode_tac_frame(VGMSTREAM* vgmstream);
+#endif
 void reset_tac(tac_codec_data* data);
 void seek_tac(tac_codec_data* data, int32_t num_sample);
 void free_tac(tac_codec_data* data);
