@@ -545,8 +545,9 @@ willow.mpf: willow.mus,willow_o.mus
 bgm_2_streamfiles.awb: bgm_2.acb
 ```
 ```
-# hashes of SE1_Common_BGM + ext [Hyrule Warriors: Age of Calamity (Switch)]
-0x3a160928.srsa: 0x272c6efb.srsa
+# hashes of SE1_Common_BGM + SRSA/SRST [Hyrule Warriors: Age of Calamity (Switch)]
+# (more exactly "R_SRSA［SE1_Common_BGM］" and "R_SRST［SE1_Common_BGM］")
+0x3a160928.srsa: 0x272c6efb.srst
 ```
 ```
 # Snack World (Switch) names for .awb (single .acb for all .awb, order matters)
