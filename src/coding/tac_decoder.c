@@ -1,6 +1,8 @@
 #include "coding.h"
 #include "coding_utils_samples.h"
-
+#if VGM_TEST_DECODER
+#include "../base/decode_state.h"
+#endif
 #include "libs/tac_lib.h"
 
 
@@ -128,6 +130,34 @@ fail:
     VGM_LOG("TAC: decode fail at %x, missing %i samples\n", (uint32_t)data->offset, samples_to_do);
     s16buf_silence(&outbuf, &samples_to_do, data->sbuf.channels);
 }
+
+#if VGM_TEST_DECODER
+bool decode_tac_frame(VGMSTREAM* vgmstream) {
+    VGMSTREAMCHANNEL* stream = &vgmstream->ch[0];
+    tac_codec_data* data = vgmstream->codec_data;
+    decode_state_t* ds = vgmstream->decode_state;
+
+    sbuf_init_s16(&ds->sbuf, data->samples, TAC_FRAME_SAMPLES, vgmstream->channels);
+
+    bool ok;
+
+    ok = read_frame(data, stream->streamfile);
+    if (!ok) return false;
+
+    ok = decode_frame(data);
+    if (!ok) return false;
+
+    ds->sbuf.filled = TAC_FRAME_SAMPLES; //TODO call sbuf_fill(samples);
+
+    // copy and let decoder handle
+    if (data->samples_discard) {
+        ds->discard = data->samples_discard;
+        data->samples_discard = 0;
+    }
+
+    return true;
+}
+#endif
 
 
 void reset_tac(tac_codec_data* data) {
