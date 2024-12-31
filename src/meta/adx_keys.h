@@ -277,11 +277,11 @@ static const adxkey_info adxkey9_list[] = {
         {0x0000,0x0000,0x0000, NULL,9923540143823782},      // 002341683D2FDBA6
 
         /* ARGONAVIS -Kimi ga Mita Stage e- (Android) */
-        {0x069c,0x06e9,0x0323, NULL,0},                     // guessed with VGAudio (possible key: 34E06E8192 / 227103637906)
+        {0x0000,0x0000,0x0000, NULL,301179795002661},       // 000111EBE2B1D525 (+ AWB subkeys)
 
 };
 
 static const int adxkey8_list_count = sizeof(adxkey8_list) / sizeof(adxkey8_list[0]);
 static const int adxkey9_list_count = sizeof(adxkey9_list) / sizeof(adxkey9_list[0]);
 
-#endif/*_ADX_KEYS_H_*/
+#endif
