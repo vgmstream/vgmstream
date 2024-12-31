@@ -325,46 +325,36 @@ static int parse_codec(ktsr_header* ktsr) {
     switch(ktsr->platform) {
         case 0x01: /* PC */
         case 0x05: /* PC/Steam [Fate/Samurai Remnant (PC)] */
-            if (ktsr->is_external) {
-                if (ktsr->format == 0x0005)
-                    ktsr->codec = KOVS; // Atelier Ryza (PC)
-                else
-                    goto fail;
-            }
-            else if (ktsr->format == 0x0000) {
+            if (ktsr->format == 0x0000 && !ktsr->is_external)
                 ktsr->codec = MSADPCM; // Warrior Orochi 4 (PC)
-            }
-            else {
+            //else if (ktsr->format == 0x0001)
+            //    ktsr->codec = KA1A; // Dynasty Warriors Origins (PC)
+            else if (ktsr->format == 0x0005 && ktsr->is_external)
+                ktsr->codec = KOVS; // Atelier Ryza (PC)
+            //else if (ktsr->format == 0x1001 && ktsr->is_external)
+            //    ktsr->codec = KA1A; // Dynasty Warriors Origins (PC)
+            else
                 goto fail;
-            }
             break;
 
         case 0x03: /* PS4/VITA */
-            if (ktsr->is_external) {
-                if (ktsr->format == 0x1001)
-                    ktsr->codec = RIFF_ATRAC9; // Nioh (PS4)
-                else if (ktsr->format == 0x0005)
-                    ktsr->codec = KTAC; // Blue Reflection Tie (PS4)
-                else
-                    goto fail;
-            }
-            else if (ktsr->format == 0x0001)
+            if (ktsr->format == 0x0001 && !ktsr->is_external)
                 ktsr->codec = ATRAC9; // Attack on Titan: Wings of Freedom (Vita)
+            else if (ktsr->format == 0x0005 && ktsr->is_external)
+                ktsr->codec = KTAC; // Blue Reflection Tie (PS4)
+            else if (ktsr->format == 0x1001 && ktsr->is_external)
+                ktsr->codec = RIFF_ATRAC9; // Nioh (PS4)
             else
                 goto fail;
             break;
 
         case 0x04: /* Switch */
-            if (ktsr->is_external) {
-                if (ktsr->format == 0x0005)
-                    ktsr->codec = KTSS; // [Ultra Kaiju Monster Rancher (Switch)]
-                else if (ktsr->format == 0x1000)
-                    ktsr->codec = KTSS; // [Fire Emblem: Three Houses (Switch)-some DSP voices]
-                else
-                    goto fail;
-            }
-            else if (ktsr->format == 0x0000)
+            if (ktsr->format == 0x0000 && !ktsr->is_external)
                 ktsr->codec = DSP; // [Fire Emblem: Three Houses (Switch)]
+            else if (ktsr->format == 0x0005 && ktsr->is_external)
+                ktsr->codec = KTSS; // [Ultra Kaiju Monster Rancher (Switch)]
+            else if (ktsr->format == 0x1000 && ktsr->is_external)
+                ktsr->codec = KTSS; // [Fire Emblem: Three Houses (Switch)-some DSP voices]
             else
                 goto fail;
             break;
@@ -630,7 +620,8 @@ static bool parse_ktsr(ktsr_header* ktsr, STREAMFILE* sf) {
             case 0xBD888C36: /* cue? (floats, stream id, etc, may have extended name; can have sub-chunks)-appears N times */
             case 0xC9C48EC1: /* unknown (has some string inside like "boss") */
             case 0xA9D23BF1: /* "state container", some kind of config/floats, with names like 'State_bgm01'..N */
-            case 0x836FBECA: /* unknown (~0x300, encrypted? table + data) */
+            case 0x836FBECA: /* random sfxs? (ex. weapon sfx variations; IDs + encrypted name table + data) */
+            case 0x2d232c98: /* big mix of tables, found in DWO BGM srsa */
                 break;
 
             case 0xC5CCCB70: /* sound (internal data or external stream) */
@@ -673,7 +664,7 @@ static bool parse_ktsr(ktsr_header* ktsr, STREAMFILE* sf) {
 
             default:
                 /* streams also have their own chunks like 0x09D4F415, not needed here */  
-                VGM_LOG("ktsr: unknown chunk at %x\n", offset);
+                VGM_LOG("ktsr: unknown chunk 0x%08x at %x\n", type, offset);
                 goto fail;
         }
 
