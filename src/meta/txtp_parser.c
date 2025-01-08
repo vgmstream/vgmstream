@@ -854,7 +854,7 @@ static int add_entry(txtp_header_t* txtp, char* filename, int is_default) {
     txtp_entry_t entry = {0};
 
 
-    ;VGM_LOG("TXTP: input filename=%s\n", filename);
+    //;VGM_LOG("TXTP: input filename=%s\n", filename);
 
     /* parse filename: file.ext#(commands) */
     {
@@ -896,11 +896,11 @@ static int add_entry(txtp_header_t* txtp, char* filename, int is_default) {
                 params = NULL;
         }
 
-        ;VGM_LOG("TXTP: params=%s\n", params);
+        //;VGM_LOG("TXTP: params=%s\n", params);
         parse_params(&entry, params);
     }
 
-    ;VGM_LOG("TXTP: output filename=%s\n", filename);
+    //;VGM_LOG("TXTP: output filename=%s\n", filename);
 
     clean_filename(filename);
     //;VGM_LOG("TXTP: clean filename='%s'\n", filename);

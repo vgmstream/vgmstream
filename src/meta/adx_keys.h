@@ -279,6 +279,9 @@ static const adxkey_info adxkey9_list[] = {
         /* ARGONAVIS -Kimi ga Mita Stage e- (Android) */
         {0x0000,0x0000,0x0000, NULL,301179795002661},       // 000111EBE2B1D525 (+ AWB subkeys)
 
+        // Bungo Stray Dogs: Mayoi Inu Kaikitan (iOS/Android)
+        {0x0000,0x0000,0x0000, NULL,1655728931134731873},   // 16FA54B0C09F7661
+
 };
 
 static const int adxkey8_list_count = sizeof(adxkey8_list) / sizeof(adxkey8_list[0]);

@@ -973,3 +973,23 @@ with `.txtp` as well.
 
 This may even happen with formats that do have loops in other games (for example
 relatively common with `.fsb` and mobile games, that may define loops in a .json file).
+
+
+## Modding game audio and encoding wav files to video game formats
+vgmstream cannot *encode* (convert *from* `.wav` *to* a game format), it only *decodes*
+(plays game audio). It also can't repack/mod game files (like `.wem`) into other game
+formats (like `.bnk`).
+
+One may think it's easy to do, since vgmstream reads game audio might as well write audio
+too, but *encoding* and *decoding* are very different.
+
+To *decode* vgmstream just reads a few existing values from the file's *header*,
+to setup and play the file's *body* data, decompressing the game's audio codec.
+
+To *encode* the program would need to make the *header* from scratch (having to include
+lots of values the game needs but aren't needed for vgmstream to play audio), and take
+PCM audio (.wav) and compress it (*very* different than decompressing) to make a *body*.
+
+In other words you need a dedicated tool that can *encode* to your particular format.
+Since *encoding* is lot harder than *decoding* it's not very common to find public tools,
+and may need to program one yourself.
