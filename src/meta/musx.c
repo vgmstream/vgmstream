@@ -25,6 +25,7 @@ typedef struct {
     int channels;
     int sample_rate;
     int loop_flag;
+    uint32_t flags;
     int32_t loop_start;
     int32_t loop_end;
     int32_t num_samples;
@@ -173,7 +174,6 @@ fail:
 
 static int parse_musx_stream(STREAMFILE* sf, musx_header* musx) {
     uint32_t (*read_u32)(off_t,STREAMFILE*) = NULL;
-    int default_channels, default_sample_rate;
 
     if (musx->big_endian) {
         read_u32 = read_u32be;
@@ -210,7 +210,85 @@ static int parse_musx_stream(STREAMFILE* sf, musx_header* musx) {
     }
 
 
+    /* parse loops and other info */
+    if (musx->tables_offset && musx->loops_offset) {
+        /* cue/stream position table thing */
+        /* 0x00: cues1 entries (entry size 0x34 or 0x18)
+         * 0x04: cues2 entries (entry size 0x20 or 0x14)
+         * 0x08: header size (always 0x14)
+         * 0x0c: cues2 start
+         * 0x10: volume? (usually <= 100) */
+
+        /* find loops (cues1 also seems to have this info but this looks ok) */
+        int cues2_count = read_u32(musx->loops_offset+0x04, sf);
+        off_t cues2_offset = musx->loops_offset + read_u32(musx->loops_offset+0x0c, sf);
+        for (int i = 0; i < cues2_count; i++) {
+            uint32_t type, offset1, offset2;
+
+            if (musx->is_old) {
+                offset1 = read_u32(cues2_offset + i*0x20 + 0x04, sf);
+                type    = read_u32(cues2_offset + i*0x20 + 0x08, sf);
+                offset2 = read_u32(cues2_offset + i*0x20 + 0x14, sf);
+            } else {
+                offset1 = read_u32(cues2_offset + i*0x14 + 0x04, sf);
+                type    = read_u32(cues2_offset + i*0x14 + 0x08, sf);
+                offset2 = read_u32(cues2_offset + i*0x14 + 0x0c, sf);
+            }
+
+            /* other types (0x0a, 0x09) look like section/end markers, 0x06/07 only seems to exist once */
+            if (type == 0x06 || type == 0x07) { /* loop / goto */
+                musx->loop_start = offset2;
+                musx->loop_end = offset1;
+                musx->loop_flag = 1;
+                break;
+            }
+        }
+    }
+    else if (musx->loops_offset && read_u32be(musx->loops_offset, sf) != 0xABABABAB) {
+        /* parse loop table (loop starts are -1 if non-looping)
+         * 0x00: version? (always 1)
+         * 0x04: flags (&1=loops, &2=alt?)
+         * 0x08: loop start offset?
+         * 0x0c: loop end offset?
+         * 0x10: loop end sample
+         * 0x14: loop start sample
+         * 0x18: loop end offset
+         * 0x1c: loop start offset */
+        musx->flags             = read_u32le(musx->loops_offset+0x04, sf);
+        musx->loop_end_sample   = read_s32le(musx->loops_offset+0x10, sf);
+        musx->loop_start_sample = read_s32le(musx->loops_offset+0x14, sf);
+        musx->loop_end          = read_s32le(musx->loops_offset+0x18, sf);
+        musx->loop_start        = read_s32le(musx->loops_offset+0x1c, sf);
+        musx->num_samples       = musx->loop_end_sample; /* preferable even if not looping as some files have padding */
+        musx->loop_flag         = (musx->loop_start_sample >= 0);
+    }
+
+    /* fix some v10 platform (like PSP) sizes */
+    if (musx->stream_size == 0) {
+        musx->stream_size = musx->file_size - musx->stream_offset;
+
+        /* always padded to nearest 0x800 sector */
+        if (musx->stream_size > 0x800) {
+            uint8_t buf[0x800];
+            int pos;
+            off_t offset = musx->stream_offset + musx->stream_size - 0x800;
+
+            if (read_streamfile(buf, offset, sizeof(buf), sf) != 0x800)
+                goto fail;
+
+            pos = 0x800 - 0x04;
+            while (pos > 0) {
+                if (get_u32be(buf + pos) != 0xABABABAB)
+                    break;
+                musx->stream_size -= 0x04;
+                pos -= 0x04;
+            }
+        }
+    }
+
+
     /* defaults */
+    int default_channels, default_sample_rate;
     switch(musx->platform) {
 
         case 0x5053325F: /* "PS2_" */
@@ -254,27 +332,27 @@ static int parse_musx_stream(STREAMFILE* sf, musx_header* musx) {
             break;
 
         case 0x5749495F: /* "WII_" */
-            default_channels = 2;
-            default_sample_rate = 32000;
-            musx->codec = DAT;
-            break;
-
-        case 0x5053335F: /* "PS3_" */
-            default_channels = 2;
-            default_sample_rate = 44100;
-            musx->codec = DAT;
-            break;
-
         case 0x58455F5F: /* "XE__" */
             default_channels = 2;
             default_sample_rate = 32000;
             musx->codec = DAT;
             break;
 
+        case 0x5053335F: /* "PS3_" */
         case 0x50435F5F: /* "PC__" */
             default_channels = 2;
             default_sample_rate = 44100;
             musx->codec = DAT;
+
+            // some v10 versions use 44100 and others 32000, the latter seem to have loop info table (even without loops) and a flag
+            // - 44100: Robots (PC)-v10 (no loop table), Pirates of the Caribbean: At World's End (PC)-v10 (no loop table), Beijing 2008 (loop table)
+            // - 32000: G-Force (PS3)-v10, Ice Age 3 (PC)-v10 (loop table with flag 2)
+            // The flag also exists in files with similar loop tables in the DAT* chunk
+            if (musx->version == 10 && musx->flags && musx->flags & 0x02) {
+                default_sample_rate = 32000;
+            }
+            //TO-DO: some files use 22050 but don't seem to set any flag [Beijing 2008 (PS3)]
+
             break;
 
         case 0x50433032: /* "PC02" */
@@ -292,85 +370,6 @@ static int parse_musx_stream(STREAMFILE* sf, musx_header* musx) {
         musx->channels = default_channels;
     if (musx->sample_rate == 0)
         musx->sample_rate = default_sample_rate;
-
-
-    /* parse loops and other info */
-    if (musx->tables_offset && musx->loops_offset) {
-        int i, cues2_count;
-        off_t cues2_offset;
-
-        /* cue/stream position table thing */
-        /* 0x00: cues1 entries (entry size 0x34 or 0x18)
-         * 0x04: cues2 entries (entry size 0x20 or 0x14)
-         * 0x08: header size (always 0x14)
-         * 0x0c: cues2 start
-         * 0x10: volume? (usually <= 100) */
-
-        /* find loops (cues1 also seems to have this info but this looks ok) */
-        cues2_count = read_u32(musx->loops_offset+0x04, sf);
-        cues2_offset = musx->loops_offset + read_u32(musx->loops_offset+0x0c, sf);
-        for (i = 0; i < cues2_count; i++) {
-            uint32_t type, offset1, offset2;
-
-            if (musx->is_old) {
-                offset1 = read_u32(cues2_offset + i*0x20 + 0x04, sf);
-                type    = read_u32(cues2_offset + i*0x20 + 0x08, sf);
-                offset2 = read_u32(cues2_offset + i*0x20 + 0x14, sf);
-            } else {
-                offset1 = read_u32(cues2_offset + i*0x14 + 0x04, sf);
-                type    = read_u32(cues2_offset + i*0x14 + 0x08, sf);
-                offset2 = read_u32(cues2_offset + i*0x14 + 0x0c, sf);
-            }
-
-            /* other types (0x0a, 0x09) look like section/end markers, 0x06/07 only seems to exist once */
-            if (type == 0x06 || type == 0x07) { /* loop / goto */
-                musx->loop_start = offset2;
-                musx->loop_end = offset1;
-                musx->loop_flag = 1;
-                break;
-            }
-        }
-    }
-    else if (musx->loops_offset && read_u32be(musx->loops_offset, sf) != 0xABABABAB) {
-        /* parse loop table (loop starts are -1 if non-looping)
-         * 0x00: version?
-         * 0x04: flags? (&1=loops)
-         * 0x08: loop start offset?
-         * 0x0c: loop end offset?
-         * 0x10: loop end sample
-         * 0x14: loop start sample
-         * 0x18: loop end offset
-         * 0x1c: loop start offset */
-        musx->loop_end_sample   = read_s32le(musx->loops_offset+0x10, sf);
-        musx->loop_start_sample = read_s32le(musx->loops_offset+0x14, sf);
-        musx->loop_end          = read_s32le(musx->loops_offset+0x18, sf);
-        musx->loop_start        = read_s32le(musx->loops_offset+0x1c, sf);
-        musx->num_samples       = musx->loop_end_sample; /* preferable even if not looping as some files have padding */
-        musx->loop_flag         = (musx->loop_start_sample >= 0);
-    }
-
-    /* fix some v10 platform (like PSP) sizes */
-    if (musx->stream_size == 0) {
-        musx->stream_size = musx->file_size - musx->stream_offset;
-
-        /* always padded to nearest 0x800 sector */
-        if (musx->stream_size > 0x800) {
-            uint8_t buf[0x800];
-            int pos;
-            off_t offset = musx->stream_offset + musx->stream_size - 0x800;
-
-            if (read_streamfile(buf, offset, sizeof(buf), sf) != 0x800)
-                goto fail;
-
-            pos = 0x800 - 0x04;
-            while (pos > 0) {
-                if (get_u32be(buf + pos) != 0xABABABAB)
-                    break;
-                musx->stream_size -= 0x04;
-                pos -= 0x04;
-            }
-        }
-    }
 
     return 1;
 fail:
