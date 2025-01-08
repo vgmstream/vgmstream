@@ -10,20 +10,19 @@ VGMSTREAM* init_vgmstream_psf_single(STREAMFILE* sf) {
     off_t start_offset;
     int loop_flag, channel_count, sample_rate, rate_value, interleave;
     uint32_t psf_config;
-    uint8_t flags;
     size_t data_size;
     coding_t codec;
 
 
     /* checks */
     if ((read_u32be(0x00,sf) & 0xFFFFFF00) != get_id32be("PSF\0"))
-        goto fail;
+        return NULL;
     /* .psf: actual extension
      * .swd: bigfile extension */
     if (!check_extensions(sf, "psf,swd"))
-        goto fail;
+        return NULL;
 
-    flags = read_8bit(0x03,sf);
+    uint8_t flags = read_8bit(0x03,sf);
     switch(flags) {
         case 0xC0: /* [The Great Escape (PS2), Conflict: Desert Storm (PS2)] */
         case 0x40: /* [The Great Escape (PS2)] */
@@ -495,6 +494,8 @@ fail:
 
 typedef enum { UNKNOWN, IMUS, PFST, PFSM } sch_type;
 #define SCH_STREAM "Stream.swd"
+#define SCH_STREAM_PS2 "STREAM.SWD"
+
 
 
 /* SCH - Pivotal games multi-audio container [The Great Escape, Conflict series] */
@@ -504,7 +505,6 @@ VGMSTREAM* init_vgmstream_sch(STREAMFILE* sf) {
     STREAMFILE* temp_sf = NULL;
     off_t skip = 0, chunk_offset, target_offset = 0, header_offset, subfile_offset = 0;
     size_t file_size, chunk_padding, target_size = 0, subfile_size = 0;
-    int big_endian;
     int total_subsongs = 0, target_subsong = sf->stream_index;
     int32_t (*read_32bit)(off_t,STREAMFILE*) = NULL;
     sch_type target_type = UNKNOWN;
@@ -516,23 +516,23 @@ VGMSTREAM* init_vgmstream_sch(STREAMFILE* sf) {
         skip = 0x0E;
     if (!is_id32be(skip + 0x00,sf, "SCH\0") &&
         !is_id32le(skip + 0x00,sf, "SCH\0"))    /* (BE consoles) */
-        goto fail;
+        return NULL;
 
     if (!check_extensions(sf, "sch"))
-        goto fail;
+        return NULL;
 
 
     /* chunked format (id+size, GC pads to 0x20 and uses BE/inverted ids):
      * no other info so total subsongs would be count of usable chunks
      * (offsets are probably in level .dat files) */
-    big_endian = (is_id32le(skip + 0x00,sf, "SCH\0"));
+    int big_endian = (is_id32le(skip + 0x00,sf, "SCH\0"));
     if (big_endian) {
         read_32bit = read_32bitBE;
         chunk_padding = 0x18;
     }
     else {
         read_32bit = read_32bitLE;
-        chunk_padding = 0;
+        chunk_padding = 0x00;
     }
 
     file_size = get_streamfile_size(sf);
@@ -598,9 +598,9 @@ VGMSTREAM* init_vgmstream_sch(STREAMFILE* sf) {
 
     switch(target_type) {
         case IMUS: { /* external segmented track */
-            STREAMFILE *psf_sf;
+            STREAMFILE* psf_sf = NULL;
             uint8_t name_size;
-            char name[255];
+            char name[256];
 
             /* 0x00: config/size?
              * 0x04: name size
@@ -611,32 +611,33 @@ VGMSTREAM* init_vgmstream_sch(STREAMFILE* sf) {
              */
 
             name_size = read_u8(header_offset + 0x04, sf);
-            read_string(name,name_size, header_offset + 0x08, sf);
+            read_string(name, name_size, header_offset + 0x08, sf);
 
-            /* later games have name but actually use bigfile [Conflict: Global Storm (Xbox)] */
+            /* later Xbox games have name but actually use bigfile [Conflict: Global Storm (Xbox)] */
             if (read_u8(header_offset + 0x07, sf) == 0xCC) {
                 external_sf = open_streamfile_by_filename(sf, SCH_STREAM);
-                if (!external_sf) {
-                    vgm_logi("SCH: external file '%s' not found (put together)\n", SCH_STREAM);
-                    goto fail;
+                if (external_sf) {
+                    subfile_offset = read_32bit(header_offset + 0x08 + name_size, sf);
+                    subfile_size = get_streamfile_size(external_sf) - subfile_offset; /* not ok but meh */
+
+                    temp_sf = setup_subfile_streamfile(external_sf, subfile_offset,subfile_size, "psf");
+                    if (!temp_sf) goto fail;
+
+                    psf_sf = temp_sf;
                 }
-
-                subfile_offset = read_32bit(header_offset + 0x08 + name_size, sf);
-                subfile_size = get_streamfile_size(external_sf) - subfile_offset; /* not ok but meh */
-
-                temp_sf = setup_subfile_streamfile(external_sf, subfile_offset,subfile_size, "psf");
-                if (!temp_sf) goto fail;
-
-                psf_sf = temp_sf;
             }
-            else {
-                external_sf = open_streamfile_by_filename(sf, name);
-                if (!external_sf) {
-                    vgm_logi("SCH: external file '%s' not found (put together)\n", name);
-                    goto fail;
-                }
 
-                psf_sf = external_sf;
+            /* PC games still use name + 0xCC at header, no diffs vs Xbox? [Conflict: Global Storm (PC)] */
+            if (!psf_sf) {
+                external_sf = open_streamfile_by_filename(sf, name);
+                if (external_sf) {
+                    psf_sf = external_sf;
+                }
+            }
+
+            if (!psf_sf) {
+                vgm_logi("SCH: external file '%s' or '%s' not found (put together)\n", SCH_STREAM, name);
+                goto fail;
             }
 
             vgmstream = init_vgmstream_psf_segmented(psf_sf);
@@ -652,7 +653,7 @@ VGMSTREAM* init_vgmstream_sch(STREAMFILE* sf) {
         case PFST: { /* external track */
             STREAMFILE *psf_sf;
             uint8_t name_size;
-            char name[255];
+            char name[256];
 
             if (chunk_padding == 0 && target_size > 0x08 + 0x0c) { /* TGE PC/Xbox version */
                 /* 0x00: -1/0
@@ -697,7 +698,7 @@ VGMSTREAM* init_vgmstream_sch(STREAMFILE* sf) {
                 }
             }
             else if (chunk_padding) {
-                strcpy(name, "STREAM.SWD"); /* fixed */
+                strcpy(name, SCH_STREAM_PS2); /* fixed */
 
                 /* 0x00: -1
                  * 0x04: config/size?
@@ -715,7 +716,7 @@ VGMSTREAM* init_vgmstream_sch(STREAMFILE* sf) {
                 psf_sf = temp_sf;
             }
             else { /* others */
-                strcpy(name, "STREAM.SWD"); /* fixed */
+                strcpy(name, SCH_STREAM_PS2); /* fixed */
 
                 /* 0x00: -1
                  * 0x04: config/size?
