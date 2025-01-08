@@ -83,23 +83,37 @@ class App(object):
                     if line.startswith('#'):
                         continue
 
-                    if not line.endswith('.txtp'):
-                        if self.args.force:
-                            line += '.txtp'
-                        else:
-                            continue
-
-                    line.replace('\\', '/')
-
+                    line = line.replace('\\n', '\n') #may conflict with paths but...
+                    line = line.replace('\\', '/')
 
                     subdir = self.args.subdir
                     if ':' in line:
-                        index = line.find(':') #internal txtp : txtp name
+                        # 'commands : name.txtp' format
+                        index = line.find(':')
 
                         text = line[0:index].strip()
                         name = line[index+1:].strip()
 
+                        # detect and allow 'name.txtp : commands' too
+                        if text.endswith('.txtp') and not name.endswith('.txtp'):
+                            temp = text
+                            text = name
+                            name = temp
+
+                        if not name.endswith('.txtp'):
+                            if self.args.force:
+                                name += '.txtp'
+                            else:
+                                continue
+
                     elif self.args.maxitxtp or subdir:
+                        if not line.endswith('.txtp'):
+                            if self.args.force:
+                                line += '.txtp'
+                            else:
+                                continue
+                        
+
                         index = line.find('.') #first extension
 
                         if line[index:].startswith('.txtp'): #???
@@ -114,6 +128,12 @@ class App(object):
                                 subdir = subdir + '/'
                             text = subdir + text
                     else:
+                        if not line.endswith('.txtp'):
+                            if self.args.force:
+                                line += '.txtp'
+                            else:
+                                continue
+
                         # should be a mini-txtp, but if name isn't "file.ext.txtp" and just "file.txtp",
                         # probably means proper txtp exists and should't be created (when generating from !tags.m3u)
                         name = line
@@ -127,6 +147,9 @@ class App(object):
                             continue
 
                     outpath = os.path.join(path, name)
+
+                    dir_path = os.path.dirname(outpath)
+                    os.makedirs(dir_path, exist_ok=True)
 
                     with open(outpath, 'w') as fo:
                         if text:
