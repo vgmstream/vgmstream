@@ -181,6 +181,7 @@ static uint32_t get_block_repeated_size(STREAMFILE* sf, awc_block_info_t* bi, in
             /* when data repeats seems to clone the last (super-)frame */
             return bi->blk[channel].frame_size;
 
+#ifdef VGM_USE_MPEG
         case 0x07: { /* MPEG */
             /* first super-frame will repeat N VBR old sub-frames, without crossing frame_size.
              * In GTA5 repeated sub-frames seems to match exactly repeated samples, while RDR seems to match 1 full frame (like RAGE-aud).
@@ -218,7 +219,7 @@ static uint32_t get_block_repeated_size(STREAMFILE* sf, awc_block_info_t* bi, in
 
             return skip_size; /* skip_size fills frame size */
         }
-
+#endif
         case 0x0D: /* OPUS */
         case 0x0F: /* ATRAC9 */
         default: 
