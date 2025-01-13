@@ -162,6 +162,7 @@ static uint32_t get_block_repeated_size(STREAMFILE* sf, rage_aud_block_info_t* b
             return bi->blk[channel].frame_size;
         }
 
+#ifdef VGM_USE_MPEG
         case 0x0100: { /* MPEG */
             /* first super-frame will repeat N VBR old sub-frames, without crossing frame_size.
              * ex. repeated frames' size could be set to 0x774 (7 sub-frames) if adding 1 more would take >0x800.
@@ -189,7 +190,7 @@ static uint32_t get_block_repeated_size(STREAMFILE* sf, rage_aud_block_info_t* b
 
             return skip_size; /* skip_size fills frame size */
         }
-
+#endif
         default: 
             ;VGM_LOG("RAGE_AUD: found channel skip in codec %x\n", bi->codec); /* not seen */
             return 0;
