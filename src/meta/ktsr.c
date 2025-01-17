@@ -4,7 +4,7 @@
 #include "../util/companion_files.h"
 #include "ktsr_streamfile.h"
 
-typedef enum { NONE, MSADPCM, DSP, GCADPCM, ATRAC9, RIFF_ATRAC9, KOVS, KTSS, KTAC } ktsr_codec;
+typedef enum { NONE, MSADPCM, DSP, GCADPCM, ATRAC9, RIFF_ATRAC9, KOVS, KTSS, KTAC, KA1A, KA1A_INTERNAL } ktsr_codec;
 
 #define MAX_CHANNELS 8
 
@@ -87,7 +87,7 @@ static VGMSTREAM* init_vgmstream_ktsr_internal(STREAMFILE* sf, bool is_srsa) {
     STREAMFILE* sf_b = NULL;
     ktsr_header ktsr = {0};
     int target_subsong = sf->stream_index;
-    int separate_offsets = 0;
+    bool separate_offsets = false;
 
     ktsr.is_srsa = is_srsa;
     if (ktsr.is_srsa) {
@@ -152,6 +152,7 @@ static VGMSTREAM* init_vgmstream_ktsr_internal(STREAMFILE* sf, bool is_srsa) {
             case KOVS:          init_vgmstream = init_vgmstream_ogg_vorbis; ext = "kvs"; break;
             case KTSS:          init_vgmstream = init_vgmstream_ktss; ext = "ktss"; break;
             case KTAC:          init_vgmstream = init_vgmstream_ktac; ext = "ktac"; break;
+            case KA1A:          init_vgmstream = init_vgmstream_ka1a; ext = "ka1a"; break;
             default: break;
         }
 
@@ -183,16 +184,36 @@ static VGMSTREAM* init_vgmstream_ktsr_internal(STREAMFILE* sf, bool is_srsa) {
         case MSADPCM:
             vgmstream->coding_type = coding_MSADPCM_mono;
             vgmstream->layout_type = layout_none;
-            separate_offsets = 1;
+            separate_offsets = true;
 
             /* 0x00: samples per frame */
             vgmstream->frame_size = read_u16le(ktsr.extra_offset + 0x02, sf_b);
             break;
 
+        case KA1A_INTERNAL: {
+            // 00: bitrate mode
+            // XX: start offsets per channel (from hash-id start aka extra_offset - 0x48)
+            // XX: size per channel
+            // XX: padding
+
+            int bitrate_mode = read_s32le(ktsr.extra_offset + 0x00, sf); // signed! (may be negative)
+
+            vgmstream->codec_data = init_ka1a(bitrate_mode, ktsr.channels);
+            if (!vgmstream->codec_data) goto fail;
+            vgmstream->coding_type = coding_KA1A;
+            vgmstream->layout_type = layout_none;
+
+            // mono streams handled in decoder, though needs channel offsets + flag
+            vgmstream->codec_config = 1;
+            separate_offsets = true;
+
+            break;
+        }
+
         case DSP:
             vgmstream->coding_type = coding_NGC_DSP;
             vgmstream->layout_type = layout_none;
-            separate_offsets = 1;
+            separate_offsets = true;
 
             dsp_read_coefs_le(vgmstream, sf, ktsr.extra_offset + 0x1c, 0x60);
             dsp_read_hist_le (vgmstream, sf, ktsr.extra_offset + 0x40, 0x60);
@@ -327,12 +348,12 @@ static int parse_codec(ktsr_header* ktsr) {
         case 0x05: /* PC/Steam [Fate/Samurai Remnant (PC)] */
             if (ktsr->format == 0x0000 && !ktsr->is_external)
                 ktsr->codec = MSADPCM; // Warrior Orochi 4 (PC)
-            //else if (ktsr->format == 0x0001)
-            //    ktsr->codec = KA1A; // Dynasty Warriors Origins (PC)
+            else if (ktsr->format == 0x0001)
+                ktsr->codec = KA1A_INTERNAL; // Dynasty Warriors Origins (PC)
             else if (ktsr->format == 0x0005 && ktsr->is_external)
                 ktsr->codec = KOVS; // Atelier Ryza (PC)
-            //else if (ktsr->format == 0x1001 && ktsr->is_external)
-            //    ktsr->codec = KA1A; // Dynasty Warriors Origins (PC)
+            else if (ktsr->format == 0x1001 && ktsr->is_external)
+                ktsr->codec = KA1A; // Dynasty Warriors Origins (PC)
             else
                 goto fail;
             break;
@@ -377,7 +398,8 @@ static bool parse_ktsr_subfile(ktsr_header* ktsr, STREAMFILE* sf, uint32_t offse
     type = read_u32be(offset + 0x00, sf); /* hash-id? */
   //size = read_u32le(offset + 0x04, sf);
 
-    /* probably could check the flag in sound header, but the format is kinda messy */
+    // probably could check the flags in sound header, but the format is kinda messy
+    // (all these numbers are surely LE hashes of something)
     switch(type) {
 
         case 0x38D0437D: /* external [Nioh (PC/PS4), Atelier Ryza (PC)] */

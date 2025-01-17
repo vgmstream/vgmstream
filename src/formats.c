@@ -271,6 +271,7 @@ static const char* extension_list[] = {
     "joe",
     "jstm",
 
+    "ka1a",
     "kat",
     "kces",
     "kcey", //fake extension/header id for .pcm (renamed, to be removed)
@@ -907,6 +908,7 @@ static const coding_info coding_info_list[] = {
         {coding_TAC,                "tri-Ace Codec"},
         {coding_ICE_RANGE,          "Inti Creates Range Codec"},
         {coding_ICE_DCT,            "Inti Creates DCT Codec"},
+        {coding_KA1A,               "Koei Tecmo KA1A Codec"},
 
 #ifdef VGM_USE_VORBIS
         {coding_OGG_VORBIS,         "Ogg Vorbis"},
@@ -1449,6 +1451,7 @@ static const meta_info meta_info_list[] = {
         {meta_DSP_ASURA,            "Rebellion DSP header"},
         {meta_ONGAKUKAN_RIFF_ADP,   "Ongakukan RIFF WAVE header"},
         {meta_SDD,                  "Doki Denki DSBH header"},
+        {meta_KA1A,                 "Koei Tecmo KA1A header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {

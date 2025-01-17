@@ -176,6 +176,12 @@
     <ClInclude Include="coding\libs\icelib.h">
       <Filter>coding\libs\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="coding\libs\ka1a_dec.h">
+      <Filter>coding\libs\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="coding\libs\ka1a_dec_data.h">
+      <Filter>coding\libs\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="coding\libs\libacm.h">
       <Filter>coding\libs\Header Files</Filter>
     </ClInclude>
@@ -637,6 +643,9 @@
     <ClCompile Include="coding\imuse_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="coding\ka1a_decoder.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="coding\l5_555_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
@@ -791,6 +800,9 @@
       <Filter>coding\libs\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\libs\icelib.c">
+      <Filter>coding\libs\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\libs\ka1a_dec.c">
       <Filter>coding\libs\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\libs\libacm_decode.c">
@@ -1403,6 +1415,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\jstm.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\ka1a.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\kat.c">

@@ -3,9 +3,7 @@
 
 #include "../vgmstream.h"
 
-#if VGM_TEST_DECODER
 void* decode_init();
-#endif
 void decode_free(VGMSTREAM* vgmstream);
 void decode_seek(VGMSTREAM* vgmstream);
 void decode_reset(VGMSTREAM* vgmstream);

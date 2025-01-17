@@ -242,9 +242,7 @@ typedef struct {
     void* tmpbuf;                   /* garbage buffer used for seeking/trimming */
     size_t tmpbuf_size;             /* for all channels (samples = tmpbuf_size / channels / sample_size) */
 
-#if VGM_TEST_DECODER
-    void* decode_state;             /* for some decoders (TO-DO: to be mover around) */
-#endif
+    void* decode_state;             /* for some decoders (TO-DO: to be moved around) */
 } VGMSTREAM;
 
 

@@ -145,6 +145,7 @@ typedef enum {
     coding_TAC,             /* tri-Ace Codec (MDCT-based) */
     coding_ICE_RANGE,       /* Inti Creates "range" codec */
     coding_ICE_DCT,         /* Inti Creates "DCT" codec */
+    coding_KA1A,            /* Koei Tecmo codec (transform-based) */
 
 #ifdef VGM_USE_VORBIS
     coding_OGG_VORBIS,      /* Xiph Vorbis with Ogg layer (MDCT-based) */
@@ -710,6 +711,7 @@ typedef enum {
     meta_DSP_ASURA,
     meta_ONGAKUKAN_RIFF_ADP,
     meta_SDD,
+    meta_KA1A,
 
 } meta_t;
 

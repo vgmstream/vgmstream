@@ -372,9 +372,6 @@ typedef struct tac_codec_data tac_codec_data;
 
 tac_codec_data* init_tac(STREAMFILE* sf);
 void decode_tac(VGMSTREAM* vgmstream, sample_t* outbuf, int32_t samples_to_do);
-#if VGM_TEST_DECODER
-bool decode_tac_frame(VGMSTREAM* vgmstream);
-#endif
 void reset_tac(tac_codec_data* data);
 void seek_tac(tac_codec_data* data, int32_t num_sample);
 void free_tac(tac_codec_data* data);
@@ -388,6 +385,16 @@ void decode_ice(ice_codec_data* data, sample_t* outbuf, int32_t samples_to_do);
 void reset_ice(ice_codec_data* data);
 void seek_ice(ice_codec_data* data, int32_t num_sample);
 void free_ice(ice_codec_data* data);
+
+
+/* ka1a_decoder */
+typedef struct ka1a_codec_data ka1a_codec_data;
+
+ka1a_codec_data* init_ka1a(int bitrate_mode, int channels_tracks);
+void free_ka1a(ka1a_codec_data* data);
+void reset_ka1a(ka1a_codec_data* data);
+bool decode_ka1a_frame(VGMSTREAM* vgmstream);
+void seek_ka1a(VGMSTREAM* v, int32_t num_sample);
 
 
 #ifdef VGM_USE_VORBIS
