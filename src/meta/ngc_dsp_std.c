@@ -139,13 +139,16 @@ typedef struct {
     meta_t meta_type;
 
     /* hacks */
-    int force_loop;                 /* force full loop */
-    int force_loop_seconds;         /* force loop, but must be longer than this (to catch jingles) */
-    int fix_looping;                /* fix loop end going past num_samples */
-    int fix_loop_start;             /* weird files with bad loop start */
-    int single_header;              /* all channels share header, thus totals are off */
-    int ignore_header_agreement;    /* sometimes there are minor differences between headers */
-    int ignore_loop_ps;             /* sometimes has bad loop start ps */
+    bool force_loop;                /* force full loop */
+    bool force_loop_seconds;        /* force loop, but must be longer than this (to catch jingles) */
+    bool fix_looping;               /* fix loop end going past num_samples */
+    bool fix_loop_start;            /* weird files with bad loop start */
+    bool single_header;             /* all channels share header, thus totals are off (2=double) */
+    bool double_header;             /* all channels share header, thus totals are off (2=double) */
+    bool ignore_header_agreement;   /* sometimes there are minor differences between headers */
+    bool ignore_initial_ps;         /* rarely has bad start ps */
+    bool ignore_loop_ps;            /* sometimes has bad loop start ps */
+    bool ignore_null_coefs;         /* silent files in rare ases */
 } dsp_meta;
 
 #define COMMON_DSP_MAX_CHANNELS 6
@@ -199,7 +202,7 @@ static VGMSTREAM* init_vgmstream_dsp_common(STREAMFILE* sf, dsp_meta* dspm) {
     }
 
     /* check expected initial predictor/scale */
-    {
+    if (!dspm->ignore_initial_ps) {
         int channels = dspm->channels;
         if (dspm->single_header)
             channels = 1;
@@ -288,7 +291,7 @@ static VGMSTREAM* init_vgmstream_dsp_common(STREAMFILE* sf, dsp_meta* dspm) {
     if (dspm->fix_looping && vgmstream->loop_end_sample > vgmstream->num_samples)
         vgmstream->loop_end_sample = vgmstream->num_samples;
 
-    if (dspm->single_header == 2) { /* double the samples */
+    if (dspm->double_header) { /* double the samples */
         vgmstream->num_samples /= dspm->channels;
         vgmstream->loop_start_sample /= dspm->channels;
         vgmstream->loop_end_sample /= dspm->channels;
@@ -312,7 +315,7 @@ VGMSTREAM* init_vgmstream_ngc_dsp_std(STREAMFILE* sf) {
     dsp_header_t header;
     const size_t header_size = 0x60;
     off_t start_offset;
-    int i, channels;
+    int channels;
 
     /* checks */
     if (!read_dsp_header_be(&header, 0x00, sf))
@@ -412,8 +415,9 @@ VGMSTREAM* init_vgmstream_ngc_dsp_std(STREAMFILE* sf) {
 
     {
         /* adpcm coeffs/history */
-        for (i = 0; i < 16; i++)
+        for (int i = 0; i < 16; i++) {
             vgmstream->ch[0].adpcm_coef[i] = header.coef[i];
+        }
         vgmstream->ch[0].adpcm_history1_16 = header.initial_hist1;
         vgmstream->ch[0].adpcm_history2_16 = header.initial_hist2;
     }
@@ -433,7 +437,7 @@ VGMSTREAM* init_vgmstream_ngc_dsp_std_le(STREAMFILE* sf) {
     dsp_header_t header;
     const size_t header_size = 0x60;
     off_t start_offset;
-    int i, channels;
+    int channels;
 
     /* checks */
     if (!read_dsp_header_le(&header, 0x00, sf))
@@ -495,8 +499,9 @@ VGMSTREAM* init_vgmstream_ngc_dsp_std_le(STREAMFILE* sf) {
 
     {
         /* adpcm coeffs/history */
-        for (i = 0; i < 16; i++)
+        for (int i = 0; i < 16; i++) {
             vgmstream->ch[0].adpcm_coef[i] = header.coef[i];
+        }
         vgmstream->ch[0].adpcm_history1_16 = header.initial_hist1;
         vgmstream->ch[0].adpcm_history2_16 = header.initial_hist2;
     }
@@ -516,7 +521,8 @@ VGMSTREAM* init_vgmstream_ngc_mdsp_std(STREAMFILE* sf) {
     dsp_header_t header;
     const size_t header_size = 0x60;
     off_t start_offset;
-    int i, c, channels;
+    int channels;
+
 
     /* checks */
     if (!read_dsp_header_be(&header, 0x00, sf))
@@ -553,13 +559,14 @@ VGMSTREAM* init_vgmstream_ngc_mdsp_std(STREAMFILE* sf) {
     if (vgmstream->interleave_block_size)
         vgmstream->interleave_last_block_size = (header.nibble_count / 2 % vgmstream->interleave_block_size + 7) / 8 * 8;
 
-    for (i = 0; i < channels; i++) {
+    for (int i = 0; i < channels; i++) {
         if (!read_dsp_header_be(&header, header_size * i, sf))
             goto fail;
 
         /* adpcm coeffs/history */
-        for (c = 0; c < 16; c++)
+        for (int c = 0; c < 16; c++) {
             vgmstream->ch[i].adpcm_coef[c] = header.coef[c];
+        }
         vgmstream->ch[i].adpcm_history1_16 = header.initial_hist1;
         vgmstream->ch[i].adpcm_history2_16 = header.initial_hist2;
     }
@@ -621,7 +628,8 @@ VGMSTREAM* init_vgmstream_ngc_mpdsp(STREAMFILE* sf) {
 
     dspm.channels = 2;
     dspm.max_channels = 2;
-    dspm.single_header = 2;
+    dspm.single_header = true;
+    dspm.double_header = true;
 
     dspm.header_offset =  0x00;
     dspm.header_spacing = 0x00; /* same header for both channels */
@@ -681,33 +689,37 @@ VGMSTREAM* init_vgmstream_idsp_namco(STREAMFILE* sf) {
 
     /* checks */
     if (!is_id32be(0x00,sf, "IDSP"))
-        goto fail;
+        return NULL;
 
     if (!check_extensions(sf, "idsp"))
-        goto fail;
+        return NULL;
 
     dspm.max_channels = 8;
     /* games do adjust loop_end if bigger than num_samples (only happens in user-created IDSPs) */
     dspm.fix_looping = 1;
 
     /* 0x04: null */
-    dspm.channels = read_32bitBE(0x08, sf);
+    dspm.channels = read_s32be(0x08, sf);
     /* 0x0c: sample rate */
     /* 0x10: num_samples */
     /* 0x14: loop start */
     /* 0x18: loop end */
-    dspm.interleave = read_32bitBE(0x1c,sf); /* usually 0x10 */
-    dspm.header_offset = read_32bitBE(0x20,sf);
-    dspm.header_spacing = read_32bitBE(0x24,sf);
-    dspm.start_offset = read_32bitBE(0x28,sf);
+    dspm.interleave = read_u32be(0x1c,sf); /* usually 0x10 */
+    dspm.header_offset = read_u32be(0x20,sf);
+    dspm.header_spacing = read_u32be(0x24,sf);
+    dspm.start_offset = read_u32be(0x28,sf);
+
     /* Soul Calibur: Broken destiny (PSP), Taiko no Tatsujin: Atsumete Tomodachi Daisakusen (WiiU) */
-    if (dspm.interleave == 0) /* half interleave (happens sometimes), use channel size */
-        dspm.interleave = read_32bitBE(0x2c,sf);
+    if (dspm.interleave == 0)  {
+        /* half interleave (happens sometimes), use channel size */
+        dspm.interleave = read_u32be(0x2c,sf);
+        /* Rarely 2nd channel stars with a padding frame then real 2nd channel with initial_ps. Must be some
+         * NUS2 bug when importing DSP data as only happens for one subsong and offsets/sizes are fine [We Ski (Wii)] */
+        dspm.ignore_initial_ps = true;
+    }
 
     dspm.meta_type = meta_IDSP_NAMCO;
     return init_vgmstream_dsp_common(sf, &dspm);
-fail:
-    return NULL;
 }
 
 
@@ -1323,7 +1335,7 @@ VGMSTREAM* init_vgmstream_dsp_lucasarts_ds2(STREAMFILE* sf) {
 
     dspm.channels = 2;
     dspm.max_channels = 2;
-    dspm.single_header = 1;
+    dspm.single_header = true;
 
     dspm.header_offset = 0x00;
     dspm.header_spacing = 0x00;
