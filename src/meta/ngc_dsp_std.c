@@ -29,8 +29,12 @@ typedef struct {
      * [ex. Batallion Wars (GC), Timesplitters 2 (GC)], 0xcccc...cccc with DSPADPCMD */
 } dsp_header_t;
 
+typedef struct {
+    bool ignore_null_coefs;         /* silent files in rare cases */
+} dsp_header_config_t;
+
 /* read and do basic validations to the above struct */
-static bool read_dsp_header_endian(dsp_header_t* header, off_t offset, STREAMFILE* sf, bool big_endian) {
+static bool read_dsp_header_endian(dsp_header_t* header, off_t offset, STREAMFILE* sf, bool big_endian, dsp_header_config_t* cfg) {
     get_u32_t get_u32 = big_endian ? get_u32be : get_u32le;
     get_u16_t get_u16 = big_endian ? get_u16be : get_u16le;
     get_s16_t get_s16 = big_endian ? get_s16be : get_s16le;
@@ -84,9 +88,11 @@ static bool read_dsp_header_endian(dsp_header_t* header, off_t offset, STREAMFIL
         if (header->coef[i] == 0)
             zero_coefs++;
     }
-    /* some 0s are ok, more than 8 is probably wrong */
-    if (zero_coefs == 16)
-        goto fail;
+    /* some 0s are ok, more than 8 is probably wrong, but rarely ok */
+    if (cfg == NULL || !cfg->ignore_null_coefs) {
+        if (zero_coefs == 16)
+            goto fail;
+    }
 
     header->gain                = get_u16(buf+0x3c);
     if (header->gain != 0)
@@ -113,11 +119,13 @@ static bool read_dsp_header_endian(dsp_header_t* header, off_t offset, STREAMFIL
 fail:
     return false;
 }
+
 static int read_dsp_header_be(dsp_header_t *header, off_t offset, STREAMFILE* file) {
-    return read_dsp_header_endian(header, offset, file, 1);
+    return read_dsp_header_endian(header, offset, file, true, NULL);
 }
+
 static int read_dsp_header_le(dsp_header_t *header, off_t offset, STREAMFILE* file) {
-    return read_dsp_header_endian(header, offset, file, 0);
+    return read_dsp_header_endian(header, offset, file, false, NULL);
 }
 
 /* ********************************* */
@@ -148,7 +156,7 @@ typedef struct {
     bool ignore_header_agreement;   /* sometimes there are minor differences between headers */
     bool ignore_initial_ps;         /* rarely has bad start ps */
     bool ignore_loop_ps;            /* sometimes has bad loop start ps */
-    bool ignore_null_coefs;         /* silent files in rare ases */
+    dsp_header_config_t cfg;
 } dsp_meta;
 
 #define COMMON_DSP_MAX_CHANNELS 6
@@ -171,7 +179,7 @@ static VGMSTREAM* init_vgmstream_dsp_common(STREAMFILE* sf, dsp_meta* dspm) {
     /* load standard DSP header per channel */
     {
         for (i = 0; i < dspm->channels; i++) {
-            if (!read_dsp_header_endian(&ch_header[i], dspm->header_offset + i*dspm->header_spacing, sf, !dspm->little_endian)) {
+            if (!read_dsp_header_endian(&ch_header[i], dspm->header_offset + i*dspm->header_spacing, sf, !dspm->little_endian, &dspm->cfg)) {
                 //;VGM_LOG("DSP: bad header\n");
                 return NULL;
             }
@@ -409,7 +417,7 @@ VGMSTREAM* init_vgmstream_ngc_dsp_std(STREAMFILE* sf) {
         vgmstream->loop_end_sample = vgmstream->num_samples;
 
     vgmstream->meta_type = meta_DSP_STD;
-    vgmstream->allow_dual_stereo = 1; /* very common in .dsp */
+    vgmstream->allow_dual_stereo = true; /* very common in .dsp */
     vgmstream->coding_type = coding_NGC_DSP;
     vgmstream->layout_type = layout_none;
 
@@ -495,7 +503,7 @@ VGMSTREAM* init_vgmstream_ngc_dsp_std_le(STREAMFILE* sf) {
     vgmstream->meta_type = meta_DSP_STD;
     vgmstream->coding_type = coding_NGC_DSP;
     vgmstream->layout_type = layout_none;
-    vgmstream->allow_dual_stereo = 1;
+    vgmstream->allow_dual_stereo = true;
 
     {
         /* adpcm coeffs/history */
@@ -717,6 +725,9 @@ VGMSTREAM* init_vgmstream_idsp_namco(STREAMFILE* sf) {
          * NUS2 bug when importing DSP data as only happens for one subsong and offsets/sizes are fine [We Ski (Wii)] */
         dspm.ignore_initial_ps = true;
     }
+
+    // rare but valid IDSP [Super Smash Bros. Ultimate (Switch)-vc_kirby.nus3audio]
+    dspm.cfg.ignore_null_coefs = true;
 
     dspm.meta_type = meta_IDSP_NAMCO;
     return init_vgmstream_dsp_common(sf, &dspm);
