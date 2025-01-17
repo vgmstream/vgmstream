@@ -4,7 +4,7 @@
 #include "../util/companion_files.h"
 #include "ktsr_streamfile.h"
 
-typedef enum { NONE, MSADPCM, DSP, GCADPCM, ATRAC9, RIFF_ATRAC9, KOVS, KTSS, KTAC, KA1A, KA1A_INTERNAL } ktsr_codec;
+typedef enum { NONE, MSADPCM, DSP, GCADPCM, ATRAC9, RIFF_ATRAC9, KMA9, AT9_KM9, KOVS, KTSS, KTAC, KA1A, KA1A_INTERNAL, } ktsr_codec;
 
 #define MAX_CHANNELS 8
 
@@ -145,14 +145,23 @@ static VGMSTREAM* init_vgmstream_ktsr_internal(STREAMFILE* sf, bool is_srsa) {
 
     /* subfiles */
     {
+        // autodetect ill-defined streams (assumes file isn't encrypted)
+        if (ktsr.codec == AT9_KM9) {
+            if (is_id32be(ktsr.stream_offsets[0], sf_b, "KMA9"))
+                ktsr.codec = KMA9;
+            else
+                ktsr.codec = RIFF_ATRAC9;
+        }
+
         VGMSTREAM* (*init_vgmstream)(STREAMFILE* sf) = NULL;
         const char* ext;
         switch(ktsr.codec) {
-            case RIFF_ATRAC9:   init_vgmstream = init_vgmstream_riff; ext = "at9"; break;
-            case KOVS:          init_vgmstream = init_vgmstream_ogg_vorbis; ext = "kvs"; break;
-            case KTSS:          init_vgmstream = init_vgmstream_ktss; ext = "ktss"; break;
-            case KTAC:          init_vgmstream = init_vgmstream_ktac; ext = "ktac"; break;
-            case KA1A:          init_vgmstream = init_vgmstream_ka1a; ext = "ka1a"; break;
+            case RIFF_ATRAC9:   init_vgmstream = init_vgmstream_riff; ext = "at9"; break;       // Nioh (PS4)
+            case KOVS:          init_vgmstream = init_vgmstream_ogg_vorbis; ext = "kvs"; break; // Nioh (PC)
+            case KTSS:          init_vgmstream = init_vgmstream_ktss; ext = "ktss"; break;      // 
+            case KTAC:          init_vgmstream = init_vgmstream_ktac; ext = "ktac"; break;      // Blue Reflection Tie (PS4)
+            case KA1A:          init_vgmstream = init_vgmstream_ka1a; ext = "ka1a"; break;      // Dynasty Warriors Origins (PC)
+            case KMA9:          init_vgmstream = init_vgmstream_kma9; ext = "km9"; break;       // Fairy Tail 2 (PS4)
             default: break;
         }
 
@@ -364,7 +373,7 @@ static int parse_codec(ktsr_header* ktsr) {
             else if (ktsr->format == 0x0005 && ktsr->is_external)
                 ktsr->codec = KTAC; // Blue Reflection Tie (PS4)
             else if (ktsr->format == 0x1001 && ktsr->is_external)
-                ktsr->codec = RIFF_ATRAC9; // Nioh (PS4)
+                ktsr->codec = AT9_KM9; // Nioh (PS4)-at9, Fairy Tail 2 (PS4)-km9 (no apparent differences of flags/channels/etc)
             else
                 goto fail;
             break;
@@ -414,7 +423,7 @@ static bool parse_ktsr_subfile(ktsr_header* ktsr, STREAMFILE* sf, uint32_t offse
              * 14 external codec
              * 18 sample rate
              * 1c num samples
-             * 20 null?
+             * 20 null / 0x1000?
              * 24 loop start or -1 (loop end is num samples)
              * 28 channel layout (or null?)
              * 2c null
@@ -423,6 +432,7 @@ static bool parse_ktsr_subfile(ktsr_header* ktsr, STREAMFILE* sf, uint32_t offse
              * 38 data size
              * 3c always 0x0200
              */
+            //;VGM_LOG("header %08x at %x\n", type, offset);
 
             ktsr->channels  = read_u32le(offset + 0x0c, sf);
             ktsr->format    = read_u32le(offset + 0x14, sf);
@@ -438,7 +448,7 @@ static bool parse_ktsr_subfile(ktsr_header* ktsr, STREAMFILE* sf, uint32_t offse
                 ktsr->stream_offsets[0] = read_u32le(offset + 0x34, sf);
                 ktsr->stream_sizes[0]   = read_u32le(offset + 0x38, sf);
             }
-            ktsr->is_external = 1;
+            ktsr->is_external = true;
 
             break;
 
@@ -547,18 +557,19 @@ static void build_name(ktsr_header* ktsr, STREAMFILE* sf) {
     char sound_name[255] = {0};
     char config_name[255] = {0};
 
-    /* names can be different or same but usually config is better */
     if (ktsr->sound_name_offset) {
         read_string_ktsr(sound_name, sizeof(sound_name), ktsr->sound_name_offset, sf);
         if (ktsr->sound_flags & 0x0008)
             decrypt_string_ktsr(sound_name, sizeof(sound_name), ktsr->audio_id);
     }
+
     if (ktsr->config_name_offset) {
         read_string_ktsr(config_name, sizeof(config_name), ktsr->config_name_offset, sf);
         if (ktsr->config_flags & 0x0200)
             decrypt_string_ktsr(config_name, sizeof(config_name), ktsr->audio_id);
     }
 
+    // names can be different or same but usually config name is better
     //if (longname[0] && shortname[0]) {
     //    snprintf(ktsr->name, sizeof(ktsr->name), "%s; %s", longname, shortname);
     //}
