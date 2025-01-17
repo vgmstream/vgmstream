@@ -57,6 +57,8 @@ typedef struct {
 
 
     /* not quite config but eh */
+    int subsong_current_index;
+    int subsong_current_end;
     int lwav_loop_start;
     int lwav_loop_end;
 } cli_config_t;

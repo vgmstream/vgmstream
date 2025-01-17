@@ -156,9 +156,9 @@ static bool parse_config(cli_config_t* cfg, int argc, char** argv) {
                 break;
             case 'S':
                 cfg->subsong_end = atoi(optarg);
-                if (!cfg->subsong_end)
+                if (cfg->subsong_end == 0)
                     cfg->subsong_end = -1; /* signal up to end (otherwise 0 = not set) */
-                if (!cfg->subsong_index)
+                if (cfg->subsong_index == 0)
                     cfg->subsong_index = 1;
                 break;
 
@@ -458,7 +458,7 @@ static VGMSTREAM* open_vgmstream(cli_config_t* cfg) {
         return NULL;
     }
 
-    sf->stream_index = cfg->subsong_index;
+    sf->stream_index = cfg->subsong_current_index;
     vgmstream = init_vgmstream_from_STREAMFILE(sf);
 
     if (!vgmstream) {
@@ -502,8 +502,8 @@ static bool convert_file(cli_config_t* cfg) {
     if (!vgmstream) goto fail;
 
     /* force load total subsongs if signalled */
-    if (cfg->subsong_end == -1) {
-        cfg->subsong_end = vgmstream->num_streams;
+    if (cfg->subsong_current_end == -1) {
+        cfg->subsong_current_end = vgmstream->num_streams;
         close_vgmstream(vgmstream);
         return true;
     }
@@ -542,7 +542,7 @@ static bool convert_file(cli_config_t* cfg) {
 
         if (!cfg->outfilename_config && !cfg->outfilename) {
             /* defaults */
-            int has_subsongs = (cfg->subsong_index >= 1 && vgmstream->num_streams >= 1);
+            bool has_subsongs = (cfg->subsong_current_index >= 1 && vgmstream->num_streams >= 1);
 
             cfg->outfilename_config = has_subsongs ? 
                 "?f#?s.wav" :
@@ -610,40 +610,33 @@ fail:
 }
 
 static bool convert_subsongs(cli_config_t* cfg) {
-    int res, ko_count;
-    /* restore original values in case of multiple parsed files */
-    int start_temp = cfg->subsong_index;
-    int end_temp = cfg->subsong_end;
+    // set base value for current file (passed files may have different number of subsongs)
+    cfg->subsong_current_index = cfg->subsong_index;
+    cfg->subsong_current_end = cfg->subsong_end;
 
-    /* first call should force load max subsongs */
-    if (cfg->subsong_end == -1) {
-        res = convert_file(cfg);
-        if (!res) goto fail;
+    // first call should force load max subsongs (if file has no subsongs this will be set to 1)
+    if (cfg->subsong_current_end == -1) {
+        bool res = convert_file(cfg);
+        if (!res) return false;
     }
 
 
-    //;VGM_LOG("CLI: subsongs %i to %i\n", cfg->subsong_index, cfg->subsong_end + 1);
+    //printf("CLI: subsongs %i to %i\n", cfg->subsong_current_index, cfg->subsong_current_end + 1);
 
-    /* convert subsong range */
-    ko_count = 0 ;
-    for (int subsong = cfg->subsong_index; subsong < cfg->subsong_end + 1; subsong++) {
-        cfg->subsong_index = subsong; 
-
-        res = convert_file(cfg);
+    // convert subsong range
+    int ko_count = 0 ;
+    while (cfg->subsong_current_index < cfg->subsong_current_end + 1) {
+        bool res = convert_file(cfg);
         if (!res) ko_count++;
+
+        cfg->subsong_current_index++;
     }
 
     if (ko_count) {
         fprintf(stderr, "failed %i subsongs\n", ko_count);
     }
 
-    cfg->subsong_index = start_temp;
-    cfg->subsong_end = end_temp;
     return true;
-fail:
-    cfg->subsong_index = start_temp;
-    cfg->subsong_end = end_temp;
-    return false;
 }
 
 int main(int argc, char** argv) {
@@ -681,6 +674,8 @@ int main(int argc, char** argv) {
             if (res) ok = true;
         }
         else {
+            cfg.subsong_current_index = cfg.subsong_index;
+
             res = convert_file(&cfg);
             //if (!res) goto fail;
             if (res) ok = true;

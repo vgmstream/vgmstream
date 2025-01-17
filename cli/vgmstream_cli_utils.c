@@ -12,7 +12,7 @@
 static void clean_filename(char* dst, int clean_paths) {
     for (int i = 0; i < strlen(dst); i++) {
         char c = dst[i];
-        int is_badchar = (clean_paths && (c == '\\' || c == '/'))
+        bool is_badchar = (clean_paths && (c == '\\' || c == '/'))
             || c == '*' || c == '?' || c == ':' /*|| c == '|'*/ || c == '<' || c == '>';
         if (is_badchar)
             dst[i] = '_';
@@ -37,7 +37,7 @@ void replace_filename(char* dst, size_t dstsize, cli_config_t* cfg, VGMSTREAM* v
 
     /* init config */
     subsong = vgmstream->stream_index;
-    if (subsong > vgmstream->num_streams || subsong != cfg->subsong_index) {
+    if (subsong > vgmstream->num_streams || subsong != cfg->subsong_current_index) {
         subsong = 0; /* for games without subsongs / bad config */
     }
 
