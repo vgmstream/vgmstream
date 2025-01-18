@@ -72,7 +72,7 @@
 #define LITTLE_ENDIAN_OUTPUT 1 /* untested in BE */
 
 
-#define DEFAULT_PARAMS { 0, 0, -1, -1, 2.0, 10.0, 0.0,   0, 0, 0, 0 }
+#define DEFAULT_CONFIG { 0, 0, -1, -1, 2.0, 10.0, 0.0,   0, 0, 0, 0,  0, 0 }
 typedef struct {
     int subsong_index;
     int subsong_end;
@@ -87,7 +87,11 @@ typedef struct {
     int force_loop;
     int really_force_loop;
     int play_forever;
-} song_settings_t;
+
+    /* not quite config but eh */
+    int subsong_current_index;
+    int subsong_current_end;
+} song_config_t;
 
 static const char *out_filename = NULL;
 static int driver_id;
@@ -106,7 +110,7 @@ static int verbose = 0;
 static volatile int interrupted = 0;
 static double interrupt_time = 0.0;
 
-static int play_file(const char *filename, song_settings_t *par);
+static int play_file(const char* filename, song_config_t* cfg);
 
 static void interrupt_handler(int signum) {
     interrupted = 1;
@@ -184,7 +188,7 @@ static int set_sample_format(int channels, int sample_rate) {
     return 0;
 }
 
-static void apply_config(VGMSTREAM* vgmstream, song_settings_t* cfg) {
+static void apply_config(VGMSTREAM* vgmstream, song_config_t* cfg) {
     vgmstream_cfg_t vcfg = {0};
 
     vcfg.allow_play_forever = 1;
@@ -226,7 +230,7 @@ static int getkey() {
 }
 #endif
 
-static int play_vgmstream(const char* filename, song_settings_t* cfg) {
+static int play_vgmstream(const char* filename, song_config_t* cfg) {
     int ret = 0;
     STREAMFILE* sf;
     VGMSTREAM* vgmstream;
@@ -245,7 +249,7 @@ static int play_vgmstream(const char* filename, song_settings_t* cfg) {
 
     vgmstream_set_log_stdout(VGM_LOG_LEVEL_ALL);
 
-    sf->stream_index = cfg->subsong_index;
+    sf->stream_index = cfg->subsong_current_index;
     vgmstream = init_vgmstream_from_STREAMFILE(sf);
     close_streamfile(sf);
 
@@ -255,8 +259,8 @@ static int play_vgmstream(const char* filename, song_settings_t* cfg) {
     }
 
     /* force load total subsongs if signalled */
-    if (cfg->subsong_end == -1) {
-        cfg->subsong_end = vgmstream->num_streams;
+    if (cfg->subsong_current_end == -1) {
+        cfg->subsong_current_end = vgmstream->num_streams;
         close_vgmstream(vgmstream);
         return 0;
     }
@@ -467,16 +471,14 @@ fail:
     return ret;
 }
 
-static int play_playlist(const char *filename, song_settings_t *default_par) {
+static int play_playlist(const char *filename, song_config_t* default_cfg) {
 #ifndef WIN32
     int ret = 0;
     FILE *f;
     char *line = NULL;
     size_t line_mem = 0;
     ssize_t line_len = 0;
-    song_settings_t par;
-
-    memcpy(&par, default_par, sizeof(par));
+    song_config_t cfg = *default_cfg;
 
     f = fopen(filename, "r");
     if (!f) {
@@ -514,13 +516,13 @@ static int play_playlist(const char *filename, song_settings_t *default_par) {
                 if (arg) arg++;
 
                 if (PARAM_MATCHES("FADEDELAY"))
-                    par.fade_delay = atof(arg);
+                    cfg.fade_delay = atof(arg);
                 else if (PARAM_MATCHES("FADETIME"))
-                    par.fade_time = atof(arg);
+                    cfg.fade_time = atof(arg);
                 else if (PARAM_MATCHES("LOOPCOUNT"))
-                    par.loop_count = atof(arg);
+                    cfg.loop_count = atof(arg);
                 else if (PARAM_MATCHES("STREAMINDEX"))
-                    par.subsong_index = atoi(arg);
+                    cfg.subsong_index = atoi(arg);
 
                 param = strtok(NULL, ",");
             }
@@ -531,11 +533,11 @@ static int play_playlist(const char *filename, song_settings_t *default_par) {
         if (line[0] == '\0' || line[0] == '#')
             continue;
 
-        ret = play_file(line, &par);
+        ret = play_file(line, &cfg);
         if (ret) break;
 
         /* Reset playback options to default */
-        memcpy(&par, default_par, sizeof(par));
+        memcpy(&cfg, default_cfg, sizeof(cfg));
     }
 
     free(line);
@@ -547,7 +549,7 @@ static int play_playlist(const char *filename, song_settings_t *default_par) {
 #endif
 }
 
-static int play_compressed_file(const char *filename, song_settings_t *par, const char *expand_cmd) {
+static int play_compressed_file(const char* filename, song_config_t* cfg, const char* expand_cmd) {
     int ret;
     char temp_dir[128] = "/tmp/vgmXXXXXX";
     const char *base_name;
@@ -617,7 +619,7 @@ static int play_compressed_file(const char *filename, song_settings_t *par, cons
             fprintf(stderr, "%s: error decompressing file\n", filename);
     }
     else
-        ret = play_file(temp_file, par);
+        ret = play_file(temp_file, cfg);
 
     remove(temp_file);
     remove(temp_dir);
@@ -631,33 +633,39 @@ fail:
 
 #define ENDS_IN(EXT) !strcasecmp(EXT, filename + len - sizeof(EXT) + 1)
 
-static int play_standard(const char* filename, song_settings_t* cfg) {
-    int ret, subsong;
+static int play_standard(const char* filename, song_config_t* cfg) {
 
     /* standard */
     if (cfg->subsong_end == 0) {
+        cfg->subsong_current_index = cfg->subsong_index;
+
         return play_vgmstream(filename, cfg);
     }
 
     /* N subsongs */
 
-    /* first call should force load max subsongs */
-    if (cfg->subsong_end == -1) {
-        ret = play_vgmstream(filename, cfg);
+    // set base value for current file (passed files may have different number of subsongs)
+    cfg->subsong_current_index = cfg->subsong_index;
+    cfg->subsong_current_end = cfg->subsong_end;
+
+    // first call should force load max subsongs (if file has no subsongs this will be set to 1)
+    if (cfg->subsong_current_end == -1) {
+        int ret = play_vgmstream(filename, cfg);
         if (ret) return ret;
     }
 
-    for (subsong = cfg->subsong_index; subsong < cfg->subsong_end + 1; subsong++) {
-        cfg->subsong_index = subsong; 
-
-        ret = play_vgmstream(filename, cfg);
+    // convert subsong range
+    while (cfg->subsong_current_index < cfg->subsong_current_end + 1) {
+        int ret = play_vgmstream(filename, cfg);
         if (ret) return ret;
+
+        cfg->subsong_current_index++;
     }
 
     return 0;
 }
 
-static int play_file(const char* filename, song_settings_t* cfg) {
+static int play_file(const char* filename, song_config_t* cfg) {
     size_t len = strlen(filename);
 
     if (ENDS_IN(".m3u") || ENDS_IN(".m3u8"))
@@ -692,8 +700,8 @@ static void add_driver_option(const char *key_value) {
 }
 
 
-static void print_usage(const char* progname, int is_help) {
-    song_settings_t default_par = DEFAULT_PARAMS;
+static void print_usage(const char* progname, bool is_help) {
+    song_config_t default_cfg = DEFAULT_CONFIG;
     const char* default_driver = "???";
 
     {
@@ -750,17 +758,17 @@ static void print_usage(const char* progname, int is_help) {
         "playlist referring to same. This program supports the \"EXT-X-VGMSTREAM\" tag\n"
         "in playlists, and files compressed with gzip/bzip2/xz.\n",
         buffer_size_kb,
-        default_par.loop_count,
-        default_par.fade_time,
-        default_par.fade_delay
+        default_cfg.loop_count,
+        default_cfg.fade_time,
+        default_cfg.fade_delay
     );
 }
 
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
     int error = 0;
     int opt;
-    song_settings_t cfg;
+    song_config_t cfg = {0};
     int extension = 0;
 
     signal(SIGHUP,  interrupt_handler);
@@ -773,14 +781,14 @@ int main(int argc, char **argv) {
 
     if (argc == 1) {
         /* We were invoked with no arguments */
-        print_usage(argv[0], 0);
+        print_usage(argv[0], false);
         goto done;
     }
 
 again_opts:
     {
-        song_settings_t default_par = DEFAULT_PARAMS;
-        cfg = default_par;
+        song_config_t default_cfg = DEFAULT_CONFIG;
+        cfg = default_cfg;
     }
 
     while ((opt = getopt(argc, argv, "-D:f:l:M:s:2:B:d:o:P:@:hrmieEcS:")) != -1) {
@@ -819,9 +827,9 @@ again_opts:
                 break;
             case 'S':
                 cfg.subsong_end = atoi(optarg);
-                if (!cfg.subsong_end)
+                if (cfg.subsong_end == 0)
                     cfg.subsong_end = -1; /* signal up to end (otherwise 0 = not set) */
-                if (!cfg.subsong_index)
+                if (cfg.subsong_index == 0)
                     cfg.subsong_index = 1;
                 break;
             case '2':
@@ -856,7 +864,7 @@ again_opts:
                 out_filename = optarg;
                 break;
             case 'h':
-                print_usage(argv[0], 1);
+                print_usage(argv[0], true);
                 goto done;
             case 'P':
                 add_driver_option(optarg);
