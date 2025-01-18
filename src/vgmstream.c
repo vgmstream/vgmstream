@@ -82,13 +82,12 @@ bool prepare_vgmstream(VGMSTREAM* vgmstream, STREAMFILE* sf) {
     }
 #endif
 
-    /* some players are picky with incorrect channel layouts */
+    /* some players are picky with incorrect channel layouts (also messes ups downmixing calcs) */
     if (vgmstream->channel_layout > 0) {
-        int output_channels = vgmstream->channels;
         int count = 0, max_ch = 32;
         for (int ch = 0; ch < max_ch; ch++) {
             int bit = (vgmstream->channel_layout >> ch) & 1;
-            if (ch > 17 && bit) {
+            if (ch > 17 && bit) { // unknown past 16
                 VGM_LOG("VGMSTREAM: wrong bit %i in channel_layout %x\n", ch, vgmstream->channel_layout);
                 vgmstream->channel_layout = 0;
                 break;
@@ -96,8 +95,8 @@ bool prepare_vgmstream(VGMSTREAM* vgmstream, STREAMFILE* sf) {
             count += bit;
         }
 
-        if (count > output_channels) {
-            VGM_LOG("VGMSTREAM: wrong totals %i in channel_layout %x\n", count, vgmstream->channel_layout);
+        if (count != vgmstream->channels) {
+            VGM_LOG("VGMSTREAM: ignored mismatched channel_layout %04x, uses %i vs %i channels\n", vgmstream->channel_layout, count, vgmstream->channels);
             vgmstream->channel_layout = 0;
         }
     }

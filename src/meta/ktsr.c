@@ -157,7 +157,7 @@ static VGMSTREAM* init_vgmstream_ktsr_internal(STREAMFILE* sf, bool is_srsa) {
         const char* ext;
         switch(ktsr.codec) {
             case RIFF_ATRAC9:   init_vgmstream = init_vgmstream_riff; ext = "at9"; break;       // Nioh (PS4)
-            case KOVS:          init_vgmstream = init_vgmstream_ogg_vorbis; ext = "kvs"; break; // Nioh (PC)
+            case KOVS:          init_vgmstream = init_vgmstream_ogg_vorbis; ext = "kvs"; break; // Nioh (PC), Fairy Tail 2 (PC)
             case KTSS:          init_vgmstream = init_vgmstream_ktss; ext = "ktss"; break;      // 
             case KTAC:          init_vgmstream = init_vgmstream_ktac; ext = "ktac"; break;      // Blue Reflection Tie (PS4)
             case KA1A:          init_vgmstream = init_vgmstream_ka1a; ext = "ka1a"; break;      // Dynasty Warriors Origins (PC)
@@ -466,7 +466,7 @@ static bool parse_ktsr_subfile(ktsr_header* ktsr, STREAMFILE* sf, uint32_t offse
              * 18 num samples
              * 1c null or 0x100?
              * 20 loop start or -1 (loop end is num samples)
-             * 24 channel layout or null
+             * 24 null or channel layout (for 1 track in case of multi-track streams))
              * 28 header offset (within subfile)
              * 2c header size [B, C]
              * 30 offset to data start offset [A, C] or to data start+size [B]
