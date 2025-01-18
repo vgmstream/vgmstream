@@ -1381,6 +1381,9 @@
     <ClCompile Include="meta\hxd.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\i3ds.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\idsp_ie.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>

@@ -1021,4 +1021,6 @@ VGMSTREAM* init_vgmstream_pphd(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_xabp(STREAMFILE* sf);
 
+VGMSTREAM* init_vgmstream_i3ds(STREAMFILE* sf);
+
 #endif

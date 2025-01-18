@@ -517,6 +517,7 @@
     <ClCompile Include="meta\hgc1.c" />
     <ClCompile Include="meta\his.c" />
     <ClCompile Include="meta\hxd.c" />
+    <ClCompile Include="meta\i3ds.c" />
     <ClCompile Include="meta\idsp_ie.c" />
     <ClCompile Include="meta\idtech.c" />
     <ClCompile Include="meta\ifs.c" />

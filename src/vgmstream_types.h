@@ -715,6 +715,7 @@ typedef enum {
     meta_HD_BD,
     meta_PPHD,
     meta_XABP,
+    meta_I3DS,
 
 } meta_t;
 
