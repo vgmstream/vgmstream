@@ -712,6 +712,7 @@ typedef enum {
     meta_ONGAKUKAN_RIFF_ADP,
     meta_SDD,
     meta_KA1A,
+    meta_HD_BD,
 
 } meta_t;
 

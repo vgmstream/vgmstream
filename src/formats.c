@@ -222,6 +222,8 @@ static const char* extension_list[] = {
     "h4m",
     "hab",
     "hca",
+    "hd",
+    "hbd",
     "hd3",
     "hdr",
     "hdt",
@@ -1452,6 +1454,7 @@ static const meta_info meta_info_list[] = {
         {meta_ONGAKUKAN_RIFF_ADP,   "Ongakukan RIFF WAVE header"},
         {meta_SDD,                  "Doki Denki DSBH header"},
         {meta_KA1A,                 "Koei Tecmo KA1A header"},
+        {meta_HD_BD,                "Sony HD+BD header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {
