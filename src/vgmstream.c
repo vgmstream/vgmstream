@@ -113,6 +113,14 @@ bool prepare_vgmstream(VGMSTREAM* vgmstream, STREAMFILE* sf) {
         vgmstream->stream_index = sf->stream_index;
     }
 
+    //TODO: this should be called in setup_vgmstream sometimes, but hard to detect since it's used for other stuff
+    /* clean as loops are readable metadata but loop fields may contain garbage
+     * (done *after* dual stereo as it needs loop fields to match) */
+    if (!vgmstream->loop_flag) {
+        vgmstream->loop_start_sample = 0;
+        vgmstream->loop_end_sample = 0;
+    }
+
 
     setup_vgmstream(vgmstream); /* final setup */
 
