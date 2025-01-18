@@ -1019,4 +1019,6 @@ VGMSTREAM* init_vgmstream_hd_bd(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_pphd(STREAMFILE* sf);
 
-#endif /*_META_H*/
+VGMSTREAM* init_vgmstream_xabp(STREAMFILE* sf);
+
+#endif

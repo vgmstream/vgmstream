@@ -776,6 +776,7 @@
     <ClCompile Include="meta\wxd_wxh.c" />
     <ClCompile Include="meta\xa.c" />
     <ClCompile Include="meta\xa2_acclaim.c" />
+    <ClCompile Include="meta\xabp.c" />
     <ClCompile Include="meta\xau.c" />
     <ClCompile Include="meta\xau_konami.c" />
     <ClCompile Include="meta\xavs.c" />

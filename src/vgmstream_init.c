@@ -513,6 +513,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_ka1a,
     init_vgmstream_hd_bd,
     init_vgmstream_pphd,
+    init_vgmstream_xabp,
 
     /* lower priority metas (no clean header identity, somewhat ambiguous, or need extension/companion file to identify) */
     init_vgmstream_agsc,

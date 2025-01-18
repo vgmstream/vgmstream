@@ -109,12 +109,13 @@ int32_t pcm8_bytes_to_samples(size_t bytes, int channels);
 void decode_psx(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int is_badflags, int config);
 void decode_psx_configurable(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int frame_size, int config);
 void decode_psx_pivotal(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int frame_size);
-int ps_find_loop_offsets(STREAMFILE* sf, off_t start_offset, size_t data_size, int channels, size_t interleave, int32_t* out_loop_start, int32_t* out_loop_end);
-int ps_find_loop_offsets_full(STREAMFILE* sf, off_t start_offset, size_t data_size, int channels, size_t interleave, int32_t* out_loop_start, int32_t* out_loop_end);
+bool ps_find_loop_offsets(STREAMFILE* sf, off_t start_offset, size_t data_size, int channels, size_t interleave, int32_t* out_loop_start, int32_t* out_loop_end);
+bool ps_find_loop_offsets_full(STREAMFILE* sf, off_t start_offset, size_t data_size, int channels, size_t interleave, int32_t* out_loop_start, int32_t* out_loop_end);
+bool ps_find_stream_info(STREAMFILE* sf, off_t start_offset, size_t data_size, int channels, size_t interleave, int32_t* p_loop_start, int32_t* p_loop_end, uint32_t* p_stream_size);
 size_t ps_find_padding(STREAMFILE* sf, off_t start_offset, size_t data_size, int channels, size_t interleave, int discard_empty);
 size_t ps_bytes_to_samples(size_t bytes, int channels);
 size_t ps_cfg_bytes_to_samples(size_t bytes, size_t frame_size, int channels);
-int ps_check_format(STREAMFILE* sf, off_t offset, size_t max);
+bool ps_check_format(STREAMFILE* sf, off_t offset, size_t max);
 
 
 /* psv_decoder */

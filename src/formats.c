@@ -221,9 +221,10 @@ static const char* extension_list[] = {
 
     "h4m",
     "hab",
+    "hbd",
     "hca",
     "hd",
-    "hbd",
+    "hd2",
     "hd3",
     "hdr",
     "hdt",
@@ -1457,6 +1458,7 @@ static const meta_info meta_info_list[] = {
         {meta_KA1A,                 "Koei Tecmo KA1A header"},
         {meta_HD_BD,                "Sony HD+BD header"},
         {meta_PPHD,                 "Sony PPHD header"},
+        {meta_XABP,                 "cavia XABp header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {

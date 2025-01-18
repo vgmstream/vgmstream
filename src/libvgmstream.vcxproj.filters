@@ -2158,6 +2158,9 @@
     <ClCompile Include="meta\xa2_acclaim.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\xabp.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\xau.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
