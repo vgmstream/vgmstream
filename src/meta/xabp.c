@@ -40,6 +40,7 @@ VGMSTREAM* init_vgmstream_xabp(STREAMFILE* sf) {
     h.coding = coding_PSX;
     h.layout = layout_none;
     h.open_stream = true;
+    h.has_subsongs = true;
 
     h.sf_head = sf;
     h.sf_body = open_streamfile_by_ext(sf,"bd");
@@ -47,10 +48,9 @@ VGMSTREAM* init_vgmstream_xabp(STREAMFILE* sf) {
 
     // Entries/offsets aren't ordered .bd not it seems to have sizes (maybe mixes notes+streams into one)
     // Since PS-ADPCM is wired to play until end frame end or loop, it's probably designed like that.
-    // It also repeats entries (different ID but same config) but for now just prints it as is.
+    // It also repeats entries (different ID but same config) but for now just prints it as is; this also happens in bigfiles.
     h.loop_flag = ps_find_stream_info(h.sf_body, h.stream_offset, bd_size - h.stream_offset, h.channels, h.interleave, &h.loop_start, &h.loop_end, &h.stream_size);
     h.num_samples = ps_bytes_to_samples(h.stream_size, h.channels);
-VGM_LOG("s=%x, %x\n", h.stream_offset, h.stream_size);
 
     vgmstream = alloc_metastream(&h);
     close_streamfile(h.sf_body);

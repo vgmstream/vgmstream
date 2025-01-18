@@ -88,8 +88,8 @@ VGMSTREAM* init_vgmstream_hd_bd(STREAMFILE* sf) {
 
     h.coding = coding_PSX;
     h.layout = layout_none;
-
     h.open_stream = true;
+    h.has_subsongs = true;
 
     // detect hdb pasted together (handle as a separate meta?)
     if (get_streamfile_size(sf) == hd_size + bd_size) {

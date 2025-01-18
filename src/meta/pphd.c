@@ -69,8 +69,8 @@ VGMSTREAM* init_vgmstream_pphd(STREAMFILE* sf) {
 
     h.coding = coding_PSX;
     h.layout = layout_none;
-
     h.open_stream = true;
+    h.has_subsongs = true;
 
     h.sf_head = sf;
     h.sf_body = open_streamfile_by_ext(sf,"pbd");
