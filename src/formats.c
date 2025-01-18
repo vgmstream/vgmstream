@@ -429,6 +429,7 @@ static const char* extension_list[] = {
     "past",
     "pcm",
     "pdt",
+    "phd",
     "pk",
     "pona",
     "pos",
@@ -1455,6 +1456,7 @@ static const meta_info meta_info_list[] = {
         {meta_SDD,                  "Doki Denki DSBH header"},
         {meta_KA1A,                 "Koei Tecmo KA1A header"},
         {meta_HD_BD,                "Sony HD+BD header"},
+        {meta_PPHD,                 "Sony PPHD header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {

@@ -1369,6 +1369,9 @@
     <ClCompile Include="meta\hd3_bd3.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\hd_bd.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\hgc1.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -1685,6 +1688,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\pos.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\pphd.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ppst.c">

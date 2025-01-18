@@ -513,6 +513,7 @@
     <ClCompile Include="meta\halpst.c" />
     <ClCompile Include="meta\hca.c" />
     <ClCompile Include="meta\hd3_bd3.c" />
+    <ClCompile Include="meta\hd_bd.c" />
     <ClCompile Include="meta\hgc1.c" />
     <ClCompile Include="meta\his.c" />
     <ClCompile Include="meta\hxd.c" />
@@ -619,6 +620,7 @@
     <ClCompile Include="meta\piff_tpcm.c" />
     <ClCompile Include="meta\pona.c" />
     <ClCompile Include="meta\pos.c" />
+    <ClCompile Include="meta\pphd.c" />
     <ClCompile Include="meta\ppst.c" />
     <ClCompile Include="meta\ps2_adm.c" />
     <ClCompile Include="meta\ps2_ass.c" />
