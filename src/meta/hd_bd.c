@@ -12,7 +12,7 @@ VGMSTREAM* init_vgmstream_hd_bd(STREAMFILE* sf) {
     if (!is_id64be(0x00,sf, "IECSsreV"))
         return NULL;
     // 0x08: full section size
-    // 0x0c: version? 0x00020000 LE
+    // 0x0c: version? 0x01010000, 0x00020000 LE
 
     // .hd: standard
     // .hdb: found in PrincessSoft's PS2 games (.PAC bigfiles don't seem to have names but exe does refers to HDB)
@@ -30,7 +30,8 @@ VGMSTREAM* init_vgmstream_hd_bd(STREAMFILE* sf) {
     // 0x18: Sset offset
     // 0x1c: Smpl offset
     uint32_t vagi_offset = read_u32le(head_offset + 0x20, sf);
-    // rest: reserved (-1 x7)
+    // 0x24: Setb offset
+    // rest: reserved (-1)
 
     meta_header_t h = {
         .meta = meta_HD_BD,
@@ -60,11 +61,11 @@ VGMSTREAM* init_vgmstream_hd_bd(STREAMFILE* sf) {
 
     // vagi header
     h.stream_offset = read_u32le(info_offset + 0x00, sf);
-    h.sample_rate   = read_s16le(info_offset + 0x04,sf);
+    h.sample_rate   = read_u16le(info_offset + 0x04,sf);
     uint8_t flags   = read_u8   (info_offset + 0x06,sf);
-    uint8_t unknown = read_u8   (info_offset + 0x07,sf); //volume?
+    uint8_t unknown = read_u8   (info_offset + 0x07,sf); // 0x00 in v1.1, 0xFF in v2.0 (?)
 
-    if (flags > 0x01 || unknown != 0xFF) {
+    if (flags > 0x01 || (unknown != 0x00 && unknown != 0xFF)) {
         vgm_logi("HD+BD: unknown header flags (report)\n");
         return NULL;
     }
