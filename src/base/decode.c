@@ -6,7 +6,6 @@
 #include "plugins.h"
 #include "sbuf.h"
 
-#if VGM_TEST_DECODER
 #include "../util/log.h"
 #include "decode_state.h"
 
@@ -16,7 +15,13 @@ static void* decode_state_init() {
 }
 
 static void decode_state_reset(VGMSTREAM* vgmstream) {
+    if (!vgmstream->decode_state)
+        return;
     memset(vgmstream->decode_state, 0, sizeof(decode_state_t));
+}
+
+static void decode_state_free(VGMSTREAM* vgmstream) {
+    free(vgmstream->decode_state);
 }
 
 // this could be part of the VGMSTREAM but for now keep separate as it simplifies 
@@ -24,15 +29,12 @@ static void decode_state_reset(VGMSTREAM* vgmstream) {
 void* decode_init() {
     return decode_state_init();
 }
-#endif
 
 
 /* custom codec handling, not exactly "decode" stuff but here to simplify adding new codecs */
 
 void decode_free(VGMSTREAM* vgmstream) {
-#if VGM_TEST_DECODER
-    free(vgmstream->decode_state);
-#endif
+    decode_state_free(vgmstream);
 
     if (!vgmstream->codec_data)
         return;
@@ -86,6 +88,10 @@ void decode_free(VGMSTREAM* vgmstream) {
 
     if (vgmstream->coding_type == coding_EA_MT) {
         free_ea_mt(vgmstream->codec_data, vgmstream->channels);
+    }
+
+    if (vgmstream->coding_type == coding_KA1A) {
+        free_ka1a(vgmstream->codec_data);
     }
 
 #ifdef VGM_USE_FFMPEG
@@ -151,9 +157,7 @@ void decode_free(VGMSTREAM* vgmstream) {
 
 
 void decode_seek(VGMSTREAM* vgmstream) {
-#if VGM_TEST_DECODER
     decode_state_reset(vgmstream);
-#endif
 
     if (!vgmstream->codec_data)
         return;
@@ -197,6 +201,10 @@ void decode_seek(VGMSTREAM* vgmstream) {
 
     if (vgmstream->coding_type == coding_EA_MT) {
         seek_ea_mt(vgmstream, vgmstream->loop_current_sample);
+    }
+
+    if (vgmstream->coding_type == coding_KA1A) {
+        seek_ka1a(vgmstream, vgmstream->loop_current_sample);
     }
 
 #ifdef VGM_USE_VORBIS
@@ -256,9 +264,7 @@ void decode_seek(VGMSTREAM* vgmstream) {
 
 
 void decode_reset(VGMSTREAM* vgmstream) {
-#if VGM_TEST_DECODER
     decode_state_reset(vgmstream);
-#endif
 
     if (!vgmstream->codec_data)
         return;
@@ -312,6 +318,10 @@ void decode_reset(VGMSTREAM* vgmstream) {
 
     if (vgmstream->coding_type == coding_EA_MT) {
         reset_ea_mt(vgmstream);
+    }
+
+    if (vgmstream->coding_type == coding_KA1A) {
+        reset_ka1a(vgmstream->codec_data);
     }
 
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
@@ -857,74 +867,75 @@ bool decode_uses_internal_offset_updates(VGMSTREAM* vgmstream) {
     return vgmstream->coding_type == coding_MS_IMA || vgmstream->coding_type == coding_MS_IMA_mono;
 }
 
-#if VGM_TEST_DECODER
-// decode frames for decoders which have their own sample buffer
-static void decode_frames(sbuf_t* sbuf, VGMSTREAM* vgmstream) {
-    const int max_empty = 10000;
+
+// decode frames for decoders which decode frame by frame and have their own sample buffer
+static void decode_frames(sbuf_t* sdst, VGMSTREAM* vgmstream) {
+    const int max_empty = 1000;
     int num_empty = 0;
-
     decode_state_t* ds = vgmstream->decode_state;
+    sbuf_t* ssrc = &ds->sbuf;
 
-    while (sbuf->filled < sbuf->samples) {
 
-        // decode new frame if all was consumed
-        if (ds->sbuf.filled == 0) {
+    // fill the external buf by decoding N times; may read partially that buf
+    while (sdst->filled < sdst->samples) {
+
+        // decode new frame if prev one was consumed
+        if (ssrc->filled == 0) {
             bool ok = false;
             switch (vgmstream->coding_type) {
-                case coding_TAC:
-                    ok = decode_tac_frame(vgmstream);
+                case coding_KA1A:
+                    ok = decode_ka1a_frame(vgmstream);
                     break;
                 default:
-                    break;
+                    goto decode_fail;
             }
 
             if (!ok)
                 goto decode_fail;
         }
 
+        // decoder may not fill the buffer in a few calls in some codecs, but more it's probably a bug
+        if (ssrc->filled == 0) {
+            num_empty++;
+            if (num_empty > max_empty) {
+                VGM_LOG("VGMSTREAM: deadlock?\n");
+                goto decode_fail;
+            }
+        }
+    
         if (ds->discard) {
-            // decode may signal that decoded samples need to be discarded, because of encoder delay
-            // (first samples of a file need to be ignored) or a loop
-            int current_discard = ds->discard;
-            if (current_discard > ds->sbuf.filled)
-                current_discard = ds->sbuf.filled;
+            // decoder may signal that samples need to be discarded (ex. encoder delay or during loops)
+            int samples_discard = ds->discard;
+            if (samples_discard > ssrc->filled)
+                samples_discard = ssrc->filled;
 
-            sbuf_consume(&ds->sbuf, current_discard);
-
-            ds->discard -= current_discard;
+            sbuf_consume(ssrc, samples_discard);
+            ds->discard -= samples_discard;
+            // there may be more discard in next loop
         }
         else {
             // copy + consume
-            int samples_copy = ds->sbuf.filled;
-            if (samples_copy > sbuf->samples - sbuf->filled)
-                samples_copy = sbuf->samples - sbuf->filled;
+            int samples_copy = sbuf_get_copy_max(sdst, ssrc);
 
-            sbuf_copy_segments(sbuf, &ds->sbuf);
-            sbuf_consume(&ds->sbuf, samples_copy);
-
-            sbuf->filled += samples_copy;
+            sbuf_copy_segments(sdst, ssrc, samples_copy);
+            sbuf_consume(ssrc, samples_copy);
         }
     }
 
     return;
 decode_fail:
-    /* on error just put some 0 samples */
-    VGM_LOG("VGMSTREAM: decode fail, missing %i samples\n", sbuf->samples - sbuf->filled);
-    sbuf_silence_rest(sbuf);
+    //TODO clean ssrc?
+    //* on error just put some 0 samples
+    VGM_LOG("VGMSTREAM: decode fail, missing %i samples\n", sdst->samples - sdst->filled);
+    sbuf_silence_rest(sdst);
 }
-#endif
+
 
 /* Decode samples into the buffer. Assume that we have written samples_filled into the
  * buffer already, and we have samples_to_do consecutive samples ahead of us (won't call
  * more than one frame if configured above to do so).
  * Called by layouts since they handle samples written/to_do */
 void decode_vgmstream(VGMSTREAM* vgmstream, int samples_filled, int samples_to_do, sample_t* buffer) {
-#if VGM_TEST_DECODER
-    sbuf_t sbuf_tmp = {0};
-    sbuf_t* sbuf = &sbuf_tmp;
-    sbuf_init_s16(sbuf, buffer,  samples_filled + samples_to_do, vgmstream->channels);
-    sbuf->filled = samples_filled;
-#endif
     int ch;
 
     buffer += samples_filled * vgmstream->channels; /* passed externally to simplify I guess */
@@ -1660,11 +1671,18 @@ void decode_vgmstream(VGMSTREAM* vgmstream, int samples_filled, int samples_to_d
                 decode_ea_mt(vgmstream, buffer+ch, vgmstream->channels, samples_to_do, ch);
             }
             break;
-        default:
-#if VGM_TEST_DECODER
+
+        default: {
+            sbuf_t sbuf_tmp = {0};
+            sbuf_t* sbuf = &sbuf_tmp;
+
+            // buffers already adjusted
+            sbuf_init_s16(sbuf, buffer, /*samples_filled +*/ samples_to_do, vgmstream->channels);
+            sbuf->filled = 0; // samples_filled;
+
             decode_frames(sbuf, vgmstream);
-#endif
             break;
+        }
     }
 }
 

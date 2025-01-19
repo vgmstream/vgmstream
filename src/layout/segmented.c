@@ -80,16 +80,18 @@ void render_vgmstream_segmented(sbuf_t* sbuf, VGMSTREAM* vgmstream) {
             ssrc->buf = buf_filled;
         }
 
-        render_main(ssrc, data->segments[data->current_segment]);
-
+        int samples_done = render_main(ssrc, data->segments[data->current_segment]);
+        samples_done = samples_to_do;
         // returned buf may have changed
         if (ssrc->buf != buf_filled) {
-            sbuf_copy_segments(sbuf, ssrc);
+            sbuf_copy_segments(sbuf, ssrc, samples_done);
+        } else {
+            //TODO ???
+            sbuf->filled += samples_done;
         }
 
-        sbuf->filled += samples_to_do;
-        vgmstream->current_sample += samples_to_do;
-        vgmstream->samples_into_block += samples_to_do;
+        vgmstream->current_sample += samples_done;
+        vgmstream->samples_into_block += samples_done;
     }
 
     return;

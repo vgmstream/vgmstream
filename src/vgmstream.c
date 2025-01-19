@@ -82,13 +82,12 @@ bool prepare_vgmstream(VGMSTREAM* vgmstream, STREAMFILE* sf) {
     }
 #endif
 
-    /* some players are picky with incorrect channel layouts */
+    /* some players are picky with incorrect channel layouts (also messes ups downmixing calcs) */
     if (vgmstream->channel_layout > 0) {
-        int output_channels = vgmstream->channels;
         int count = 0, max_ch = 32;
         for (int ch = 0; ch < max_ch; ch++) {
             int bit = (vgmstream->channel_layout >> ch) & 1;
-            if (ch > 17 && bit) {
+            if (ch > 17 && bit) { // unknown past 16
                 VGM_LOG("VGMSTREAM: wrong bit %i in channel_layout %x\n", ch, vgmstream->channel_layout);
                 vgmstream->channel_layout = 0;
                 break;
@@ -96,8 +95,8 @@ bool prepare_vgmstream(VGMSTREAM* vgmstream, STREAMFILE* sf) {
             count += bit;
         }
 
-        if (count > output_channels) {
-            VGM_LOG("VGMSTREAM: wrong totals %i in channel_layout %x\n", count, vgmstream->channel_layout);
+        if (count != vgmstream->channels) {
+            VGM_LOG("VGMSTREAM: ignored mismatched channel_layout %04x, uses %i vs %i channels\n", vgmstream->channel_layout, count, vgmstream->channels);
             vgmstream->channel_layout = 0;
         }
     }
@@ -112,6 +111,14 @@ bool prepare_vgmstream(VGMSTREAM* vgmstream, STREAMFILE* sf) {
     /* stream_index 0 may be used by plugins to signal "vgmstream default" (IOW don't force to 1) */
     if (vgmstream->stream_index == 0) {
         vgmstream->stream_index = sf->stream_index;
+    }
+
+    //TODO: this should be called in setup_vgmstream sometimes, but hard to detect since it's used for other stuff
+    /* clean as loops are readable metadata but loop fields may contain garbage
+     * (done *after* dual stereo as it needs loop fields to match) */
+    if (!vgmstream->loop_flag) {
+        vgmstream->loop_start_sample = 0;
+        vgmstream->loop_end_sample = 0;
     }
 
 
@@ -225,10 +232,8 @@ VGMSTREAM* allocate_vgmstream(int channels, int loop_flag) {
     vgmstream->mixer = mixer_init(vgmstream->channels); /* pre-init */
     if (!vgmstream->mixer) goto fail;
 
-#if VGM_TEST_DECODER
     vgmstream->decode_state = decode_init();
     if (!vgmstream->decode_state) goto fail;
-#endif
 
     //TODO: improve/init later to minimize memory
     /* garbage buffer for seeking/discarding (local bufs may cause stack overflows with segments/layers)
@@ -420,9 +425,7 @@ static bool merge_vgmstream(VGMSTREAM* opened_vgmstream, VGMSTREAM* new_vgmstrea
         opened_vgmstream->layout_type = layout_none; /* fixes some odd cases */
 
     /* discard the second VGMSTREAM */
-#if VGM_TEST_DECODER
     decode_free(new_vgmstream);
-#endif
     mixer_free(new_vgmstream->mixer);
     free(new_vgmstream->tmpbuf);
     free(new_vgmstream->start_vgmstream);

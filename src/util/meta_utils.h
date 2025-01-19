@@ -24,6 +24,7 @@ typedef struct {
     int total_subsongs;
 
     int32_t interleave;
+    int32_t interleave_last;
 
     /* common helpers */
     uint32_t stream_offset; /* where current stream starts */
@@ -54,6 +55,7 @@ typedef struct {
 
     bool open_stream;
 
+    bool has_subsongs;
     bool allow_dual_stereo;
 } meta_header_t;
 

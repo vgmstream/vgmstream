@@ -25,7 +25,7 @@ static const char* extension_list[] = {
     "208",
     "2dx9",
     "3do",
-    "3ds", //txth/reserved [F1 2011 (3DS)] 
+    "3ds",
     "4", //for Game.com audio
     "8", //txth/reserved [Gungage (PS1)]
     "800",
@@ -221,7 +221,10 @@ static const char* extension_list[] = {
 
     "h4m",
     "hab",
+    "hbd",
     "hca",
+    "hd",
+    "hd2",
     "hd3",
     "hdr",
     "hdt",
@@ -271,6 +274,8 @@ static const char* extension_list[] = {
     "joe",
     "jstm",
 
+    "k2sb",
+    "ka1a",
     "kat",
     "kces",
     "kcey", //fake extension/header id for .pcm (renamed, to be removed)
@@ -426,6 +431,7 @@ static const char* extension_list[] = {
     "past",
     "pcm",
     "pdt",
+    "phd",
     "pk",
     "pona",
     "pos",
@@ -760,17 +766,17 @@ const char** vgmstream_get_common_formats(size_t* size) {
 
 typedef struct {
     coding_t type;
-    const char *description;
+    const char* description;
 } coding_info;
 
 typedef struct {
     layout_t type;
-    const char *description;
+    const char* description;
 } layout_info;
 
 typedef struct {
     meta_t type;
-    const char *description;
+    const char* description;
 } meta_info;
 
 
@@ -907,6 +913,7 @@ static const coding_info coding_info_list[] = {
         {coding_TAC,                "tri-Ace Codec"},
         {coding_ICE_RANGE,          "Inti Creates Range Codec"},
         {coding_ICE_DCT,            "Inti Creates DCT Codec"},
+        {coding_KA1A,               "Koei Tecmo KA1A Codec"},
 
 #ifdef VGM_USE_VORBIS
         {coding_OGG_VORBIS,         "Ogg Vorbis"},
@@ -1449,11 +1456,14 @@ static const meta_info meta_info_list[] = {
         {meta_DSP_ASURA,            "Rebellion DSP header"},
         {meta_ONGAKUKAN_RIFF_ADP,   "Ongakukan RIFF WAVE header"},
         {meta_SDD,                  "Doki Denki DSBH header"},
+        {meta_KA1A,                 "Koei Tecmo KA1A header"},
+        {meta_HD_BD,                "Sony HD+BD header"},
+        {meta_PPHD,                 "Sony PPHD header"},
+        {meta_XABP,                 "cavia XABp header"},
+        {meta_I3DS,                 "Codemasters i3DS header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {
-    int i, list_length;
-    const char *description;
 
 #ifdef VGM_USE_FFMPEG
     if (vgmstream->coding_type == coding_FFmpeg) {
@@ -1471,7 +1481,7 @@ void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t ou
     }
 #endif
 
-    description = "CANNOT DECODE";
+    const char* description = "CANNOT DECODE";
 
     switch (vgmstream->coding_type) {
 #ifdef VGM_USE_FFMPEG
@@ -1481,23 +1491,22 @@ void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t ou
                 description = "FFmpeg";
             break;
 #endif
-        default:
-            list_length = sizeof(coding_info_list) / sizeof(coding_info);
-            for (i = 0; i < list_length; i++) {
+        default: {
+            int list_length = sizeof(coding_info_list) / sizeof(coding_info);
+            for (int i = 0; i < list_length; i++) {
                 if (coding_info_list[i].type == vgmstream->coding_type)
                     description = coding_info_list[i].description;
             }
             break;
+        }
     }
 
     strncpy(out, description, out_size);
 }
 
 static const char* get_layout_name(layout_t layout_type) {
-    int i, list_length;
-
-    list_length = sizeof(layout_info_list) / sizeof(layout_info);
-    for (i = 0; i < list_length; i++) {
+    int list_length = sizeof(layout_info_list) / sizeof(layout_info);
+    for (int i = 0; i < list_length; i++) {
         if (layout_info_list[i].type == layout_type)
             return layout_info_list[i].description;
     }
@@ -1505,13 +1514,12 @@ static const char* get_layout_name(layout_t layout_type) {
     return NULL;
 }
 
-static int has_sublayouts(VGMSTREAM** vgmstreams, int count) {
-    int i;
-    for (i = 0; i < count; i++) {
+static bool has_sublayouts(VGMSTREAM** vgmstreams, int count) {
+    for (int i = 0; i < count; i++) {
         if (vgmstreams[i]->layout_type == layout_segmented || vgmstreams[i]->layout_type == layout_layered)
-            return 1;
+            return true;
     }
-    return 0;
+    return false;
 }
 
 /* Makes a mixed description, considering a segments/layers can contain segments/layers infinitely, like:
@@ -1529,7 +1537,7 @@ static int has_sublayouts(VGMSTREAM** vgmstreams, int count) {
  * ("mixed" is added externally)
  */
 static int get_layout_mixed_description(VGMSTREAM* vgmstream, char* dst, int dst_size) {
-    int i, count, done = 0;
+    int count, done = 0;
     VGMSTREAM** vgmstreams = NULL;
 
     if (vgmstream->layout_type == layout_layered) {
@@ -1555,7 +1563,7 @@ static int get_layout_mixed_description(VGMSTREAM* vgmstream, char* dst, int dst
         dst[done++] = '[';
     }
 
-    for (i = 0; i < count; i++) {
+    for (int i = 0; i < count; i++) {
         done += get_layout_mixed_description(vgmstreams[i], dst + done, dst_size - done);
     }
 
@@ -1568,7 +1576,7 @@ static int get_layout_mixed_description(VGMSTREAM* vgmstream, char* dst, int dst
 
 void get_vgmstream_layout_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {
     const char* description;
-    int mixed = 0;
+    bool mixed = false;
 
     description = get_layout_name(vgmstream->layout_type);
     if (!description) description = "INCONCEIVABLE";
@@ -1599,13 +1607,10 @@ void get_vgmstream_layout_description(VGMSTREAM* vgmstream, char* out, size_t ou
 }
 
 void get_vgmstream_meta_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {
-    int i, list_length;
-    const char* description;
+    const char* description = "THEY SHOULD HAVE SENT A POET";
 
-    description = "THEY SHOULD HAVE SENT A POET";
-
-    list_length = sizeof(meta_info_list) / sizeof(meta_info);
-    for (i=0; i < list_length; i++) {
+    int list_length = sizeof(meta_info_list) / sizeof(meta_info);
+    for (int i = 0; i < list_length; i++) {
         if (meta_info_list[i].type == vgmstream->meta_type)
             description = meta_info_list[i].description;
     }

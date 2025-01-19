@@ -51,8 +51,10 @@ atrac9_codec_data* init_atrac9(atrac9_config* cfg) {
     data->data_buffer_size = data->info.superframeSize;
     /* extra leeway as Atrac9Decode seems to overread ~2 bytes (doesn't affect decoding though) */
     data->data_buffer = calloc(data->data_buffer_size + 0x10, sizeof(uint8_t));
+    if (!data->data_buffer) goto fail;
     /* while ATRAC9 uses float internally, Sony's API only returns PCM16 */
     data->sample_buffer = calloc(data->info.channels * data->info.frameSamples * data->info.framesInSuperframe, sizeof(sample_t));
+    if (!data->sample_buffer) goto fail;
 
     data->samples_to_discard = cfg->encoder_delay;
 

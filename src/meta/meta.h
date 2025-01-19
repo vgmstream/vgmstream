@@ -898,6 +898,7 @@ VGMSTREAM* init_vgmstream_imuse(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_ktsr(STREAMFILE* sf);
 VGMSTREAM* init_vgmstream_asrs(STREAMFILE* sf);
+VGMSTREAM* init_vgmstream_sdbs(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_mups(STREAMFILE* sf);
 
@@ -1013,4 +1014,14 @@ VGMSTREAM* init_vgmstream_adp_ongakukan(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_sdd(STREAMFILE* sf);
 
-#endif /*_META_H*/
+VGMSTREAM* init_vgmstream_ka1a(STREAMFILE* sf);
+
+VGMSTREAM* init_vgmstream_hd_bd(STREAMFILE* sf);
+
+VGMSTREAM* init_vgmstream_pphd(STREAMFILE* sf);
+
+VGMSTREAM* init_vgmstream_xabp(STREAMFILE* sf);
+
+VGMSTREAM* init_vgmstream_i3ds(STREAMFILE* sf);
+
+#endif

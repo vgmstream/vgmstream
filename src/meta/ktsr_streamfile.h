@@ -119,18 +119,14 @@ static size_t ktsr_io_read(STREAMFILE* sf, uint8_t* dest, off_t offset, size_t l
 
 
 /* Decrypts blowfish KTSR streams */
-static STREAMFILE* setup_ktsr_streamfile(STREAMFILE* sf, bool is_external, uint32_t subfile_offset, uint32_t subfile_size, const char* extension) {
+static STREAMFILE* setup_ktsr_streamfile(STREAMFILE* sf, uint32_t st_offset, bool is_external, uint32_t subfile_offset, uint32_t subfile_size, const char* extension) {
     STREAMFILE* new_sf = NULL;
     ktsr_io_data io_data = {0};
 
     if (is_external) {
-        uint32_t offset = 0x00;
-        if (is_id32be(0x00, sf, "TSRS"))
-            offset += 0x10;
-        if (!is_id32be(offset + 0x00, sf, "KTSR"))
-            goto fail;
-
-        read_streamfile(io_data.key, offset + 0x20, sizeof(io_data.key), sf);
+        if (!is_id32be(st_offset + 0x00, sf, "KTSR"))
+            return NULL;
+        read_streamfile(io_data.key, st_offset + 0x20, sizeof(io_data.key), sf);
     }
 
     /* setup subfile */
@@ -143,10 +139,7 @@ static STREAMFILE* setup_ktsr_streamfile(STREAMFILE* sf, bool is_external, uint3
     new_sf = open_clamp_streamfile_f(new_sf, subfile_offset, subfile_size);
     if (extension)
         new_sf = open_fakename_streamfile_f(new_sf, NULL, extension);
-
     return new_sf;
-fail:
-    return NULL;
 }
 
 #endif

@@ -15,6 +15,11 @@ VGMSTREAM* alloc_metastream(meta_header_t* h) {
         return NULL;
     }
 
+    if (h->has_subsongs && (h->target_subsong < 0 || h->target_subsong > h->total_subsongs || h->total_subsongs < 1)) {
+        VGM_LOG("meta: wrong subsongs %i vs %i\n", h->target_subsong, h->total_subsongs);
+        return NULL;
+    }
+
     VGMSTREAM* vgmstream = allocate_vgmstream(h->channels, h->loop_flag);
     if (!vgmstream) return NULL;
 
@@ -31,6 +36,7 @@ VGMSTREAM* alloc_metastream(meta_header_t* h) {
     vgmstream->num_streams = h->total_subsongs;
     vgmstream->stream_size = h->stream_size;
     vgmstream->interleave_block_size = h->interleave;
+    vgmstream->interleave_last_block_size = h->interleave_last;
     vgmstream->allow_dual_stereo = h->allow_dual_stereo;
 
     if (h->name_offset)
@@ -44,7 +50,7 @@ VGMSTREAM* alloc_metastream(meta_header_t* h) {
     }
 
     if (h->open_stream) {
-        if (!vgmstream_open_stream(vgmstream, h->sf ? h->sf : h->sf_head, h->stream_offset))
+        if (!vgmstream_open_stream(vgmstream, h->sf ? h->sf : h->sf_body, h->stream_offset))
             goto fail;
     }
 

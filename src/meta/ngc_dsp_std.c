@@ -29,8 +29,12 @@ typedef struct {
      * [ex. Batallion Wars (GC), Timesplitters 2 (GC)], 0xcccc...cccc with DSPADPCMD */
 } dsp_header_t;
 
+typedef struct {
+    bool ignore_null_coefs;         /* silent files in rare cases */
+} dsp_header_config_t;
+
 /* read and do basic validations to the above struct */
-static bool read_dsp_header_endian(dsp_header_t* header, off_t offset, STREAMFILE* sf, bool big_endian) {
+static bool read_dsp_header_endian(dsp_header_t* header, off_t offset, STREAMFILE* sf, bool big_endian, dsp_header_config_t* cfg) {
     get_u32_t get_u32 = big_endian ? get_u32be : get_u32le;
     get_u16_t get_u16 = big_endian ? get_u16be : get_u16le;
     get_s16_t get_s16 = big_endian ? get_s16be : get_s16le;
@@ -84,9 +88,11 @@ static bool read_dsp_header_endian(dsp_header_t* header, off_t offset, STREAMFIL
         if (header->coef[i] == 0)
             zero_coefs++;
     }
-    /* some 0s are ok, more than 8 is probably wrong */
-    if (zero_coefs == 16)
-        goto fail;
+    /* some 0s are ok, more than 8 is probably wrong, but rarely ok */
+    if (cfg == NULL || !cfg->ignore_null_coefs) {
+        if (zero_coefs == 16)
+            goto fail;
+    }
 
     header->gain                = get_u16(buf+0x3c);
     if (header->gain != 0)
@@ -113,11 +119,13 @@ static bool read_dsp_header_endian(dsp_header_t* header, off_t offset, STREAMFIL
 fail:
     return false;
 }
+
 static int read_dsp_header_be(dsp_header_t *header, off_t offset, STREAMFILE* file) {
-    return read_dsp_header_endian(header, offset, file, 1);
+    return read_dsp_header_endian(header, offset, file, true, NULL);
 }
+
 static int read_dsp_header_le(dsp_header_t *header, off_t offset, STREAMFILE* file) {
-    return read_dsp_header_endian(header, offset, file, 0);
+    return read_dsp_header_endian(header, offset, file, false, NULL);
 }
 
 /* ********************************* */
@@ -139,13 +147,16 @@ typedef struct {
     meta_t meta_type;
 
     /* hacks */
-    int force_loop;                 /* force full loop */
-    int force_loop_seconds;         /* force loop, but must be longer than this (to catch jingles) */
-    int fix_looping;                /* fix loop end going past num_samples */
-    int fix_loop_start;             /* weird files with bad loop start */
-    int single_header;              /* all channels share header, thus totals are off */
-    int ignore_header_agreement;    /* sometimes there are minor differences between headers */
-    int ignore_loop_ps;             /* sometimes has bad loop start ps */
+    bool force_loop;                /* force full loop */
+    bool force_loop_seconds;        /* force loop, but must be longer than this (to catch jingles) */
+    bool fix_looping;               /* fix loop end going past num_samples */
+    bool fix_loop_start;            /* weird files with bad loop start */
+    bool single_header;             /* all channels share header, thus totals are off (2=double) */
+    bool double_header;             /* all channels share header, thus totals are off (2=double) */
+    bool ignore_header_agreement;   /* sometimes there are minor differences between headers */
+    bool ignore_initial_ps;         /* rarely has bad start ps */
+    bool ignore_loop_ps;            /* sometimes has bad loop start ps */
+    dsp_header_config_t cfg;
 } dsp_meta;
 
 #define COMMON_DSP_MAX_CHANNELS 6
@@ -168,7 +179,7 @@ static VGMSTREAM* init_vgmstream_dsp_common(STREAMFILE* sf, dsp_meta* dspm) {
     /* load standard DSP header per channel */
     {
         for (i = 0; i < dspm->channels; i++) {
-            if (!read_dsp_header_endian(&ch_header[i], dspm->header_offset + i*dspm->header_spacing, sf, !dspm->little_endian)) {
+            if (!read_dsp_header_endian(&ch_header[i], dspm->header_offset + i*dspm->header_spacing, sf, !dspm->little_endian, &dspm->cfg)) {
                 //;VGM_LOG("DSP: bad header\n");
                 return NULL;
             }
@@ -199,7 +210,7 @@ static VGMSTREAM* init_vgmstream_dsp_common(STREAMFILE* sf, dsp_meta* dspm) {
     }
 
     /* check expected initial predictor/scale */
-    {
+    if (!dspm->ignore_initial_ps) {
         int channels = dspm->channels;
         if (dspm->single_header)
             channels = 1;
@@ -288,7 +299,7 @@ static VGMSTREAM* init_vgmstream_dsp_common(STREAMFILE* sf, dsp_meta* dspm) {
     if (dspm->fix_looping && vgmstream->loop_end_sample > vgmstream->num_samples)
         vgmstream->loop_end_sample = vgmstream->num_samples;
 
-    if (dspm->single_header == 2) { /* double the samples */
+    if (dspm->double_header) { /* double the samples */
         vgmstream->num_samples /= dspm->channels;
         vgmstream->loop_start_sample /= dspm->channels;
         vgmstream->loop_end_sample /= dspm->channels;
@@ -312,7 +323,7 @@ VGMSTREAM* init_vgmstream_ngc_dsp_std(STREAMFILE* sf) {
     dsp_header_t header;
     const size_t header_size = 0x60;
     off_t start_offset;
-    int i, channels;
+    int channels;
 
     /* checks */
     if (!read_dsp_header_be(&header, 0x00, sf))
@@ -406,14 +417,15 @@ VGMSTREAM* init_vgmstream_ngc_dsp_std(STREAMFILE* sf) {
         vgmstream->loop_end_sample = vgmstream->num_samples;
 
     vgmstream->meta_type = meta_DSP_STD;
-    vgmstream->allow_dual_stereo = 1; /* very common in .dsp */
+    vgmstream->allow_dual_stereo = true; /* very common in .dsp */
     vgmstream->coding_type = coding_NGC_DSP;
     vgmstream->layout_type = layout_none;
 
     {
         /* adpcm coeffs/history */
-        for (i = 0; i < 16; i++)
+        for (int i = 0; i < 16; i++) {
             vgmstream->ch[0].adpcm_coef[i] = header.coef[i];
+        }
         vgmstream->ch[0].adpcm_history1_16 = header.initial_hist1;
         vgmstream->ch[0].adpcm_history2_16 = header.initial_hist2;
     }
@@ -433,7 +445,7 @@ VGMSTREAM* init_vgmstream_ngc_dsp_std_le(STREAMFILE* sf) {
     dsp_header_t header;
     const size_t header_size = 0x60;
     off_t start_offset;
-    int i, channels;
+    int channels;
 
     /* checks */
     if (!read_dsp_header_le(&header, 0x00, sf))
@@ -491,12 +503,13 @@ VGMSTREAM* init_vgmstream_ngc_dsp_std_le(STREAMFILE* sf) {
     vgmstream->meta_type = meta_DSP_STD;
     vgmstream->coding_type = coding_NGC_DSP;
     vgmstream->layout_type = layout_none;
-    vgmstream->allow_dual_stereo = 1;
+    vgmstream->allow_dual_stereo = true;
 
     {
         /* adpcm coeffs/history */
-        for (i = 0; i < 16; i++)
+        for (int i = 0; i < 16; i++) {
             vgmstream->ch[0].adpcm_coef[i] = header.coef[i];
+        }
         vgmstream->ch[0].adpcm_history1_16 = header.initial_hist1;
         vgmstream->ch[0].adpcm_history2_16 = header.initial_hist2;
     }
@@ -516,7 +529,8 @@ VGMSTREAM* init_vgmstream_ngc_mdsp_std(STREAMFILE* sf) {
     dsp_header_t header;
     const size_t header_size = 0x60;
     off_t start_offset;
-    int i, c, channels;
+    int channels;
+
 
     /* checks */
     if (!read_dsp_header_be(&header, 0x00, sf))
@@ -553,13 +567,14 @@ VGMSTREAM* init_vgmstream_ngc_mdsp_std(STREAMFILE* sf) {
     if (vgmstream->interleave_block_size)
         vgmstream->interleave_last_block_size = (header.nibble_count / 2 % vgmstream->interleave_block_size + 7) / 8 * 8;
 
-    for (i = 0; i < channels; i++) {
+    for (int i = 0; i < channels; i++) {
         if (!read_dsp_header_be(&header, header_size * i, sf))
             goto fail;
 
         /* adpcm coeffs/history */
-        for (c = 0; c < 16; c++)
+        for (int c = 0; c < 16; c++) {
             vgmstream->ch[i].adpcm_coef[c] = header.coef[c];
+        }
         vgmstream->ch[i].adpcm_history1_16 = header.initial_hist1;
         vgmstream->ch[i].adpcm_history2_16 = header.initial_hist2;
     }
@@ -621,7 +636,8 @@ VGMSTREAM* init_vgmstream_ngc_mpdsp(STREAMFILE* sf) {
 
     dspm.channels = 2;
     dspm.max_channels = 2;
-    dspm.single_header = 2;
+    dspm.single_header = true;
+    dspm.double_header = true;
 
     dspm.header_offset =  0x00;
     dspm.header_spacing = 0x00; /* same header for both channels */
@@ -681,33 +697,40 @@ VGMSTREAM* init_vgmstream_idsp_namco(STREAMFILE* sf) {
 
     /* checks */
     if (!is_id32be(0x00,sf, "IDSP"))
-        goto fail;
+        return NULL;
 
     if (!check_extensions(sf, "idsp"))
-        goto fail;
+        return NULL;
 
     dspm.max_channels = 8;
     /* games do adjust loop_end if bigger than num_samples (only happens in user-created IDSPs) */
     dspm.fix_looping = 1;
 
     /* 0x04: null */
-    dspm.channels = read_32bitBE(0x08, sf);
+    dspm.channels = read_s32be(0x08, sf);
     /* 0x0c: sample rate */
     /* 0x10: num_samples */
     /* 0x14: loop start */
     /* 0x18: loop end */
-    dspm.interleave = read_32bitBE(0x1c,sf); /* usually 0x10 */
-    dspm.header_offset = read_32bitBE(0x20,sf);
-    dspm.header_spacing = read_32bitBE(0x24,sf);
-    dspm.start_offset = read_32bitBE(0x28,sf);
+    dspm.interleave = read_u32be(0x1c,sf); /* usually 0x10 */
+    dspm.header_offset = read_u32be(0x20,sf);
+    dspm.header_spacing = read_u32be(0x24,sf);
+    dspm.start_offset = read_u32be(0x28,sf);
+
     /* Soul Calibur: Broken destiny (PSP), Taiko no Tatsujin: Atsumete Tomodachi Daisakusen (WiiU) */
-    if (dspm.interleave == 0) /* half interleave (happens sometimes), use channel size */
-        dspm.interleave = read_32bitBE(0x2c,sf);
+    if (dspm.interleave == 0)  {
+        /* half interleave (happens sometimes), use channel size */
+        dspm.interleave = read_u32be(0x2c,sf);
+        /* Rarely 2nd channel stars with a padding frame then real 2nd channel with initial_ps. Must be some
+         * NUS2 bug when importing DSP data as only happens for one subsong and offsets/sizes are fine [We Ski (Wii)] */
+        dspm.ignore_initial_ps = true;
+    }
+
+    // rare but valid IDSP [Super Smash Bros. Ultimate (Switch)-vc_kirby.nus3audio]
+    dspm.cfg.ignore_null_coefs = true;
 
     dspm.meta_type = meta_IDSP_NAMCO;
     return init_vgmstream_dsp_common(sf, &dspm);
-fail:
-    return NULL;
 }
 
 
@@ -1323,7 +1346,7 @@ VGMSTREAM* init_vgmstream_dsp_lucasarts_ds2(STREAMFILE* sf) {
 
     dspm.channels = 2;
     dspm.max_channels = 2;
-    dspm.single_header = 1;
+    dspm.single_header = true;
 
     dspm.header_offset = 0x00;
     dspm.header_spacing = 0x00;

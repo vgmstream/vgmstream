@@ -1,13 +1,11 @@
 #ifndef _DECODE_STATE_H
 #define _DECODE_STATE_H
 
-#if VGM_TEST_DECODER
 #include "sbuf.h"
 
 typedef struct {
     int discard;
     sbuf_t sbuf;
 } decode_state_t;
-#endif
 
 #endif

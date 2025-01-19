@@ -176,6 +176,12 @@
     <ClInclude Include="coding\libs\icelib.h">
       <Filter>coding\libs\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="coding\libs\ka1a_dec.h">
+      <Filter>coding\libs\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="coding\libs\ka1a_dec_data.h">
+      <Filter>coding\libs\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="coding\libs\libacm.h">
       <Filter>coding\libs\Header Files</Filter>
     </ClInclude>
@@ -637,6 +643,9 @@
     <ClCompile Include="coding\imuse_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="coding\ka1a_decoder.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="coding\l5_555_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
@@ -791,6 +800,9 @@
       <Filter>coding\libs\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\libs\icelib.c">
+      <Filter>coding\libs\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\libs\ka1a_dec.c">
       <Filter>coding\libs\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\libs\libacm_decode.c">
@@ -1357,6 +1369,9 @@
     <ClCompile Include="meta\hd3_bd3.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\hd_bd.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\hgc1.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -1364,6 +1379,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\hxd.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\i3ds.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\idsp_ie.c">
@@ -1403,6 +1421,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\jstm.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\ka1a.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\kat.c">
@@ -1670,6 +1691,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\pos.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\pphd.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ppst.c">
@@ -2135,6 +2159,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\xa2_acclaim.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\xabp.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\xau.c">

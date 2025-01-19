@@ -3,6 +3,7 @@
 //#include <math.h>
 #include "../util.h"
 #include "sbuf.h"
+#include "../util/log.h"
 
 
 void sbuf_init(sbuf_t* sbuf, sfmt_t format, void* buf, int samples, int channels) {
@@ -14,19 +15,15 @@ void sbuf_init(sbuf_t* sbuf, sfmt_t format, void* buf, int samples, int channels
 }
 
 void sbuf_init_s16(sbuf_t* sbuf, int16_t* buf, int samples, int channels) {
-    memset(sbuf, 0, sizeof(sbuf_t));
-    sbuf->buf = buf;
-    sbuf->samples = samples;
-    sbuf->channels = channels;
-    sbuf->fmt = SFMT_S16;
+    sbuf_init(sbuf, SFMT_S16, buf, samples, channels);
 }
 
 void sbuf_init_f32(sbuf_t* sbuf, float* buf, int samples, int channels) {
-    memset(sbuf, 0, sizeof(sbuf_t));
-    sbuf->buf = buf;
-    sbuf->samples = samples;
-    sbuf->channels = channels;
-    sbuf->fmt = SFMT_F32;
+    sbuf_init(sbuf, SFMT_F32, buf, samples, channels);
+}
+
+void sbuf_init_flt(sbuf_t* sbuf, float* buf, int samples, int channels) {
+    sbuf_init(sbuf, SFMT_FLT, buf, samples, channels);
 }
 
 
@@ -50,19 +47,19 @@ void* sbuf_get_filled_buf(sbuf_t* sbuf) {
     return buf;
 }
 
-void sbuf_consume(sbuf_t* sbuf, int count) {
+void sbuf_consume(sbuf_t* sbuf, int samples) {
     int sample_size = sfmt_get_sample_size(sbuf->fmt);
-    if (sample_size <= 0)
+    if (sample_size <= 0) //???
         return;
-    if (count > sbuf->samples || count > sbuf->filled) //TODO?
+    if (samples > sbuf->samples || samples > sbuf->filled) //???
         return;
 
     uint8_t* buf = sbuf->buf;
-    buf += count * sbuf->channels * sample_size;
+    buf += samples * sbuf->channels * sample_size;
 
     sbuf->buf = buf;
-    sbuf->filled -= count;
-    sbuf->samples -= count;
+    sbuf->filled -= samples;
+    sbuf->samples -= samples;
 }
 
 /* when casting float to int, value is simply truncated:
@@ -157,6 +154,15 @@ void sbuf_copy_from_f32(sbuf_t* sbuf, float* src) {
     }
 }
 
+// max samples to copy from ssrc to sdst, considering that dst may be partially filled
+int sbuf_get_copy_max(sbuf_t* sdst, sbuf_t* ssrc) {
+    int sdst_max = sdst->samples - sdst->filled;
+    int samples_copy = ssrc->filled;
+    if (samples_copy > sdst_max)
+        samples_copy = sdst_max;
+    return samples_copy;
+}
+
 
 /* ugly thing to avoid repeating functions */
 #define sbuf_copy_segments_internal(dst, src, src_pos, dst_pos, src_max) \
@@ -174,25 +180,29 @@ void sbuf_copy_from_f32(sbuf_t* sbuf, float* src) {
         dst[dst_pos++] = float_to_int(src[src_pos++] * value); \
     }
 
-void sbuf_copy_segments(sbuf_t* sdst, sbuf_t* ssrc) {
-    /* uncommon so probably fine albeit slower-ish, 0'd other channels first */
+// copy N samples from ssrc into dst (should be clamped externally)
+void sbuf_copy_segments(sbuf_t* sdst, sbuf_t* ssrc, int samples_copy) {
+    
     if (ssrc->channels != sdst->channels) {
-        sbuf_silence_part(sdst, sdst->filled, ssrc->filled);
+        // 0'd other channels first (uncommon so probably fine albeit slower-ish)
+        sbuf_silence_part(sdst, sdst->filled, samples_copy);
         sbuf_copy_layers(sdst, ssrc, 0, ssrc->filled);
 #if 0
-        // "faster" but lots of extra ifs, not worth it
+        // "faster" but lots of extra ifs per sample format, not worth it
         while (src_pos < src_max) {
             for (int ch = 0; ch < dst_channels; ch++) {
                 dst[dst_pos++] = ch >= src_channels ? 0 : src[src_pos++];
             }
         }
 #endif
+        //TODO: may want to handle externally?
+        sdst->filled += samples_copy;
         return;
     }
 
     int src_pos = 0;
     int dst_pos = sdst->filled * sdst->channels;
-    int src_max = ssrc->filled * ssrc->channels;
+    int src_max = samples_copy * ssrc->channels;
 
     // define all posible combos, probably there is a better way to handle this but...
 
@@ -239,6 +249,9 @@ void sbuf_copy_segments(sbuf_t* sdst, sbuf_t* ssrc) {
         float* src = ssrc->buf;
         sbuf_copy_segments_internal_flt(dst, src, src_pos, dst_pos, src_max, (1/32768.0f));
     }
+
+    //TODO: may want to handle externally?
+    sdst->filled += samples_copy;
 }
 
 

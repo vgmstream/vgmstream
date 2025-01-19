@@ -30,6 +30,7 @@ typedef struct {
 void sbuf_init(sbuf_t* sbuf, sfmt_t format, void* buf, int samples, int channels);
 void sbuf_init_s16(sbuf_t* sbuf, int16_t* buf, int samples, int channels);
 void sbuf_init_f32(sbuf_t* sbuf, float* buf, int samples, int channels);
+void sbuf_init_flt(sbuf_t* sbuf, float* buf, int samples, int channels);
 
 int sfmt_get_sample_size(sfmt_t fmt);
 
@@ -39,9 +40,11 @@ void* sbuf_get_filled_buf(sbuf_t* sbuf);
 void sbuf_consume(sbuf_t* sbuf, int count);
 
 /* helpers to copy between buffers; note they assume dst and src aren't the same buf */
+int sbuf_get_copy_max(sbuf_t* sdst, sbuf_t* ssrc);
+
 void sbuf_copy_to_f32(float* dst, sbuf_t* sbuf);
 void sbuf_copy_from_f32(sbuf_t* sbuf, float* src);
-void sbuf_copy_segments(sbuf_t* sdst, sbuf_t* ssrc);
+void sbuf_copy_segments(sbuf_t* sdst, sbuf_t* ssrc, int samples_copy);
 void sbuf_copy_layers(sbuf_t* sdst, sbuf_t* ssrc, int dst_ch_start, int expected);
 
 void sbuf_silence_s16(sample_t* dst, int samples, int channels, int filled);

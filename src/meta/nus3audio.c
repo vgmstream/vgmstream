@@ -15,14 +15,14 @@ VGMSTREAM* init_vgmstream_nus3audio(STREAMFILE* sf) {
 
     /* checks */
     if (!is_id32be(0x00,sf, "NUS3"))
-        goto fail;
+        return NULL;
     if (read_u32le(0x04,sf) + 0x08 != get_streamfile_size(sf))
-        goto fail;
+        return NULL;
     if (!is_id32be(0x08,sf, "AUDI"))
-        goto fail;
+        return NULL;
 
     if (!check_extensions(sf, "nus3audio"))
-        goto fail;
+        return NULL;
 
 
     /* parse existing chunks */

@@ -264,10 +264,11 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Codecs: PSX
 - **riff.c**
   - RIFF WAVE header [*RIFF_WAVE*]
-  - RIFF WAVE header (labl looping) [*RIFF_WAVE_labl*]
   - RIFF WAVE header (smpl looping) [*RIFF_WAVE_smpl*]
+  - RIFF WAVE header (cue looping) [*RIFF_WAVE_cue*]
+  - RIFF WAVE header (labl looping) [*RIFF_WAVE_labl*]
+  - RIFF WAVE header (ctrl looping) [*RIFF_WAVE_ctrl*]
   - RIFF WAVE header (wsmp looping) [*RIFF_WAVE_wsmp*]
-  - RIFF WAVE header (ctrl looping) [*RIFF_WAVE_MWV*]
   - RIFX WAVE header [*RIFX_WAVE*]
   - RIFX WAVE header (smpl looping) [*RIFX_WAVE_smpl*]
   - *riff*: `.wav .lwav .xwav .mwv .da .dax .cd .med .snd .adx .adp .xss .xsew .adpcm .adw .wd .(extensionless) .sbv .wvx .str .at3 .rws .aud .at9 .ckd .saf .ima .nsa .pcm .xvag .ogg .logg .p1d .xms .mus .dat .ldat .wma .lwma .caf .wax .voi .se .v`
@@ -1075,7 +1076,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Rockstar AWC header [*AWC*]
   - *awc*: `.awc`
     - Subfiles: *riff*
-  - Codecs: PCM16BE PCM16LE AWC_IMA XMA2 MPEG_custom MPEG VORBIS_custom ATRAC9 NGC_DSP
+  - Codecs: PCM16BE PCM16LE AWC_IMA XMA2 MPEG_custom MPEG VORBIS_custom ATRAC9 NGC_DSP Opus
 - **opus.c**
   - Nintendo Switch OPUS header [*OPUS*]
   - *opus_std*: `.opus .lopus .bgm .opu .ogg .logg + .psi`
@@ -1115,6 +1116,10 @@ different internally (encrypted, different versions, etc) and not always can be 
   - *ubi_sb_sequence*: `(base) + .(external)`
   - *ubi_sb_header*: `(base) + .(external) .kat`
   - Codecs: PCM16LE AICA_int UBI_IMA UBI_SCE_IMA UBI_ADPCM PSX XBOX_IMA NGC_DSP ATRAC3 XMA OGG_VORBIS DVI_IMA_int
+- **ubi_apm.c**
+  - Ubisoft APM header [*UBI_APM*]
+  - *ubi_apm*: `.apm`
+  - Codecs: DVI_IMA_int
 - **ezw.c**
   - EZ2DJ EZWAVE header [*EZW*]
   - *ezw*: `.ezw`
@@ -1195,7 +1200,7 @@ different internally (encrypted, different versions, etc) and not always can be 
 - **wave.c**
   - EngineBlack .WAVE header [*WAVE*]
   - *wave*: `.wave`
-  - Codecs: IMA_int NGC_DSP
+  - Codecs: PCM8 PCM16BE NGC_DSP IMA_int
 - **wave_segmented.c**
   - EngineBlack .WAVE header [*WAVE*]
   - EngineBlack .WAVE header (segmented) [*WAVE_segmented*]
@@ -1598,9 +1603,10 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Koei Tecmo KTSR header [*KTSR*]
   - *ktsr*: `.ktsl2asbin .asbin`
   - *asrs*: `.srsa`
+  - *sdbs*: `.k2sb`
   - *ktsr_internal*
-    - Subfiles: *riff ogg_vorbis ktss ktac*
-  - Codecs: MSADPCM_mono NGC_DSP ATRAC9
+    - Subfiles: *riff ogg_vorbis ktss ktac ka1a kma9*
+  - Codecs: MSADPCM_mono KA1A NGC_DSP ATRAC9
 - **mups.c**
   - (container)
   - *mups*: `.mups .(extensionless)`
@@ -1816,6 +1822,30 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Ongakukan RIFF WAVE header [*ONGAKUKAN_RIFF_ADP*]
   - *adp_ongakukan*: `.adp`
   - Codecs: ONGAKUKAN_ADPCM
+- **sdd.c**
+  - Doki Denki DSBH header [*SDD*]
+  - *sdd*: `.sdd`
+  - Codecs: NGC_DSP PCM16LE PSX
+- **ka1a.c**
+  - Koei Tecmo KA1A header [*KA1A*]
+  - *ka1a*: `.ka1a`
+  - Codecs: KA1A
+- **hd_bd.c**
+  - Sony HD+BD header [*HD_BD*]
+  - *hd_bd*: `.hd .hbd + .bd`
+  - Codecs: PSX
+- **pphd.c**
+  - Sony PPHD header [*PPHD*]
+  - *pphd*: `.phd + .pbd`
+  - Codecs: PSX
+- **xabp.c**
+  - cavia XABp header [*XABP*]
+  - *xabp*: `.hd2 + .bd`
+  - Codecs: PSX
+- **i3ds.c**
+  - Codemasters i3DS header [*I3DS*]
+  - *i3ds*: `.3ds`
+  - Codecs: NGC_DSP
 - **agsc.c**
   - Retro Studios AGSC header [*AGSC*]
   - *agsc*: `.agsc`

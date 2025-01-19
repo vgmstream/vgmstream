@@ -250,39 +250,43 @@ void decode_psx_pivotal(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channels
  * - 0x7 (0111): End marker and don't decode
  * - 0x8+(1NNN): Not valid
  */
-static int ps_find_loop_offsets_internal(STREAMFILE* sf, off_t start_offset, size_t data_size, int channels, size_t interleave, int32_t * p_loop_start, int32_t * p_loop_end, int config) {
+static int ps_find_stream_info_internal(STREAMFILE* sf, off_t start_offset, size_t data_size, int channels, size_t interleave, int32_t* p_loop_start, int32_t* p_loop_end, uint32_t* p_stream_size, int config) {
     int num_samples = 0, loop_start = 0, loop_end = 0;
-    int loop_start_found = 0, loop_end_found = 0;
+    bool loop_start_found = false, loop_end_found = false;
     off_t offset = start_offset;
     off_t max_offset = start_offset + data_size;
     size_t interleave_consumed = 0;
-    int detect_full_loops = config & 1;
+    bool detect_full_loops = config & 1;
+    bool stop_on_null = config & 2;
+    int frames = 0;
 
 
     if (data_size == 0 || channels == 0 || (channels > 1 && interleave == 0))
         return 0;
 
     while (offset < max_offset) {
-        uint8_t flag = read_u8(offset+0x01, sf) & 0x0F; /* lower nibble only (for HEVAG) */
+        uint16_t header = read_u16be(offset+0x00, sf);
+        uint8_t flag = header & 0x0F; /* lower nibble only (for HEVAG) */;
+        frames++;
 
         /* theoretically possible and would use last 0x06 */
         VGM_ASSERT_ONCE(loop_start_found && flag == 0x06, "PS LOOPS: multiple loop start found at %x\n", (uint32_t)offset);
 
         if (flag == 0x06 && !loop_start_found) {
             loop_start = num_samples; /* loop start before this frame */
-            loop_start_found = 1;
+            loop_start_found = true;
         }
 
         if (flag == 0x03 && !loop_end) {
             loop_end = num_samples + 28; /* loop end after this frame */
-            loop_end_found = 1;
+            loop_end_found = true;
 
             /* ignore strange case in Commandos (PS2), has many loop starts and ends */
             if (channels == 1
                     && offset + 0x10 < max_offset
                     && (read_u8(offset + 0x11, sf) & 0x0F) == 0x06) {
                 loop_end = 0;
-                loop_end_found = 0;
+                loop_end_found = false;
             }
 
             if (loop_start_found && loop_end_found)
@@ -296,7 +300,7 @@ static int ps_find_loop_offsets_internal(STREAMFILE* sf, off_t start_offset, siz
         if (flag == 0x01 && detect_full_loops) {
             static const uint8_t eof[0x10] = {0xFF,0x07,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
             uint8_t buf[0x10];
-            uint8_t hdr = read_u8(offset + 0x00, sf);
+            uint8_t hdr = (header >> 8) & 0xFF;
 
             int read = read_streamfile(buf, offset+0x10, sizeof(buf), sf);
             if (read > 0
@@ -310,8 +314,8 @@ static int ps_find_loop_offsets_internal(STREAMFILE* sf, off_t start_offset, siz
                 if (hdr == buf[0] && memcmp(buf+1, eof+1, sizeof(buf) - 1) == 0) {
                     loop_start = 28; /* skip first frame as it's null in PS-ADPCM */
                     loop_end = num_samples + 28; /* loop end after this frame */
-                    loop_start_found = 1;
-                    loop_end_found = 1;
+                    loop_start_found = true;
+                    loop_end_found = true;
                     //;VGM_LOG("PS LOOPS: full loop found\n");
                     break;
                 }
@@ -326,8 +330,19 @@ static int ps_find_loop_offsets_internal(STREAMFILE* sf, off_t start_offset, siz
         interleave_consumed += 0x10;
         if (interleave_consumed == interleave) {
             interleave_consumed = 0;
-            offset += interleave*(channels - 1);
+            offset += interleave * (channels - 1);
         }
+
+        // stream done flag
+        if (stop_on_null && offset > start_offset && (flag & 0x01)) {
+            frames++;
+            break;
+        }
+    }
+
+    if (p_stream_size) {
+         // uses frames rather than offsets to take interleave into account
+        *p_stream_size = frames * 0x10 * channels;
     }
 
     VGM_ASSERT(loop_start_found && !loop_end_found, "PS LOOPS: found loop start but not loop end\n");
@@ -341,15 +356,21 @@ static int ps_find_loop_offsets_internal(STREAMFILE* sf, off_t start_offset, siz
         return 1;
     }
 
+
     return 0; /* no loop */
 }
 
-int ps_find_loop_offsets(STREAMFILE* sf, off_t start_offset, size_t data_size, int channels, size_t interleave, int32_t* p_loop_start, int32_t* p_loop_end) {
-    return ps_find_loop_offsets_internal(sf, start_offset, data_size, channels, interleave, p_loop_start, p_loop_end, 0);
+//TODO: rename as it returns samples
+bool ps_find_loop_offsets(STREAMFILE* sf, off_t start_offset, size_t data_size, int channels, size_t interleave, int32_t* p_loop_start, int32_t* p_loop_end) {
+    return ps_find_stream_info_internal(sf, start_offset, data_size, channels, interleave, p_loop_start, p_loop_end, NULL, 0x00);
 }
 
-int ps_find_loop_offsets_full(STREAMFILE* sf, off_t start_offset, size_t data_size, int channels, size_t interleave, int32_t* p_loop_start, int32_t* p_loop_end) {
-    return ps_find_loop_offsets_internal(sf, start_offset, data_size, channels, interleave, p_loop_start, p_loop_end, 1);
+bool ps_find_loop_offsets_full(STREAMFILE* sf, off_t start_offset, size_t data_size, int channels, size_t interleave, int32_t* p_loop_start, int32_t* p_loop_end) {
+    return ps_find_stream_info_internal(sf, start_offset, data_size, channels, interleave, p_loop_start, p_loop_end, NULL, 0x01);
+}
+
+bool ps_find_stream_info(STREAMFILE* sf, off_t start_offset, size_t data_size, int channels, size_t interleave, int32_t* p_loop_start, int32_t* p_loop_end, uint32_t* p_stream_size) {
+    return ps_find_stream_info_internal(sf, start_offset, data_size, channels, interleave, p_loop_start, p_loop_end, p_stream_size, 0x02);
 }
 
 size_t ps_find_padding(STREAMFILE* sf, off_t start_offset, size_t data_size, int channels, size_t interleave, int discard_empty) {
@@ -440,7 +461,7 @@ size_t ps_cfg_bytes_to_samples(size_t bytes, size_t frame_size, int channels) {
 }
 
 /* test PS-ADPCM frames for correctness */
-int ps_check_format(STREAMFILE* sf, off_t offset, size_t max) {
+bool ps_check_format(STREAMFILE* sf, off_t offset, size_t max) {
     off_t max_offset = offset + max;
     if (max_offset > get_streamfile_size(sf))
         max_offset = get_streamfile_size(sf);
@@ -450,10 +471,10 @@ int ps_check_format(STREAMFILE* sf, off_t offset, size_t max) {
         uint8_t flags     =  read_8bit(offset+0x01,sf);
 
         if (predictor > 5 || flags > 7) {
-            return 0;
+            return false;
         }
         offset += 0x10;
     }
 
-    return 1;
+    return true;
 }
