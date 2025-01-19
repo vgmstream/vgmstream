@@ -274,6 +274,7 @@ static const char* extension_list[] = {
     "joe",
     "jstm",
 
+    "k2sb",
     "ka1a",
     "kat",
     "kces",
