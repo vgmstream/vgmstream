@@ -381,10 +381,12 @@ static int parse_line_commands(STREAMFILE* sf, treyarch_ps2snd* ps2snd, bool reg
  
     bool defined_sound_name_or_id = true; 
     treyarch_ps2snd_cmds command = NONE; 
-    treyarch_ps2snd_cmds alt_command = NONE; 
-    // (todo) generates C4552 warning. 
-    for (; ps2snd->entry.cmds = get_string_cmd_key(&state, ps2snd->line, &command, &int_value, char_array_small); ps2snd->entry.cmds != 0) 
-    { 
+    treyarch_ps2snd_cmds alt_command = NONE;
+    while (ps2snd->entry.cmds = get_string_cmd_key(&state, ps2snd->line, &command, &int_value, char_array_small))
+    {
+        if (!ps2snd->entry.cmds)
+            break;
+
         if (defined_sound_name_or_id) 
         { 
             alt_command = ps2snd->entry.cmds - INT; 
@@ -993,15 +995,25 @@ static int parse_sdx(treyarch_ps2snd* ps2snd) {
     // read whole file, once for parsing through it just to get the total subsong count. 
     sdx_bin_reader_state state = { 0 }; 
     int return_state = 0; 
-    while (return_state = parse_sdx_binary_struct(ps2snd->sf_header, ps2snd, &state, false), return_state != 2) 
+    while (return_state = parse_sdx_binary_struct(ps2snd->sf_header, ps2snd, &state, false))
+    {
+        if (return_state == 2)
+            break;
+
         if (!return_state) 
             return 0; 
+    }
  
-    // now read the file again, but not the whole file; 
-    // instead, we simply deduce where subsong info is located in the SDX ad go from there. 
-    while (return_state = parse_sdx_binary_struct(ps2snd->sf_header, ps2snd, &state, true), (return_state != 2 && return_state != 3)) 
+    // now read the file again, but not the whole file;
+    // instead, we simply deduce where subsong info is located in the SDX ad go from there.
+    while (return_state = parse_sdx_binary_struct(ps2snd->sf_header, ps2snd, &state, true))
+    {
+        if (return_state == 2 && return_state == 3)
+            break;
+
         if (!return_state) 
             return 0; 
+    }
  
     // with subsong already set, we copy selected_entry from the entry we just parsed. 
     if (ps2snd->subsong_set) 
@@ -1042,147 +1054,147 @@ static int parse_sdx_binary_struct(STREAMFILE* sf, treyarch_ps2snd* ps2snd, sdx_
         if (cfg->bin_pos >= ps2snd->header_size) 
             return 2; 
     } 
- 
-    /* 
-     * Treyarch SDX format owes a lot to the SND format; 
-     * - most of the text file structure has now been replaced with a binary struct weighing 88 bytes apiece. 
-     * -- "apiece" in this case means "as many sounds as SDX permits". 
-     * - to account for this, SDX file now consists of multiple blocks of pre-serialized binary structs, 
-     *   with one block representing an entire sound and all its surrounding information. 
-     * -- "sound name" is first stored into a 48-byte char field, which is then followed by three 32-bit-wide fields representing certain values, and so on and so forth. 
-     *  
-     * One upside to all this is that reading sound info is now much easier; 
-     * eliminates the need to parse "variables", "commands", names and numbers into a serialized binary struct from a single text line. 
-     */ 
- 
-    // if we're just counting subsongs, it's best to just read through them one-by-one. 
-    // but if we already know what subsong vgmstream is going to play, 
-    // and we already know how many subsongs there are in this thing, 
-    // just conjure up a specific position to where we'll likely read the subsong info from. 
-    // with this in mind, we define an array of 10 off_t with the numbers that we came up with. 
-    if (!register_subsong) 
-    { 
-        offset[0] = cfg->bin_pos + 0; 
-        offset[1] = cfg->bin_pos + 0x30; 
-        offset[2] = cfg->bin_pos + 0x34; 
-        offset[3] = cfg->bin_pos + 0x38; 
-        offset[4] = cfg->bin_pos + 0x3c; 
-        offset[5] = cfg->bin_pos + 0x3e; 
-        offset[6] = cfg->bin_pos + 0x40; 
-        offset[7] = cfg->bin_pos + 0x48; 
-        offset[8] = cfg->bin_pos + 0x4c; 
-        offset[9] = cfg->bin_pos + 0x50; 
-        //offset[10] = cfg->bin_pos + 0x54; 
-    } else { 
-        offset[0] = ((ps2snd->target_subsong-1) * ps2snd->sdx_block_info_size) + 0; 
-        offset[1] = ((ps2snd->target_subsong-1) * ps2snd->sdx_block_info_size) + 0x30; 
-        offset[2] = ((ps2snd->target_subsong-1) * ps2snd->sdx_block_info_size) + 0x34; 
-        offset[3] = ((ps2snd->target_subsong-1) * ps2snd->sdx_block_info_size) + 0x38; 
-        offset[4] = ((ps2snd->target_subsong-1) * ps2snd->sdx_block_info_size) + 0x3c; 
-        offset[5] = ((ps2snd->target_subsong-1) * ps2snd->sdx_block_info_size) + 0x3e; 
-        offset[6] = ((ps2snd->target_subsong-1) * ps2snd->sdx_block_info_size) + 0x40; 
-        offset[7] = ((ps2snd->target_subsong-1) * ps2snd->sdx_block_info_size) + 0x48; 
-        offset[8] = ((ps2snd->target_subsong-1) * ps2snd->sdx_block_info_size) + 0x4c; 
-        offset[9] = ((ps2snd->target_subsong-1) * ps2snd->sdx_block_info_size) + 0x50; 
-        //offset[10] = ((ps2snd->target_subsong-1) * ps2snd->sdx_block_info_size) + 0x54; 
-    } 
-    read_string(ps2snd->entry.stream_name, 0x30, offset[0], sf); 
-    ps2snd->entry.offset = read_s32le(offset[1], sf); 
-    ps2snd->entry.realsize = read_s32le(offset[2], sf); 
-    ps2snd->entry.size = read_s32le(offset[3], sf); 
-    ps2snd->entry.pitch = read_u16le(offset[4], sf); 
-    ps2snd->entry.volume_l = read_u16le(offset[5], sf); 
-    ps2snd->entry.volume_r = read_u16le(offset[6], sf); 
-    ps2snd->entry.unk0x48 = read_u32le(offset[7], sf); 
-    ps2snd->entry.source = read_s32le(offset[8], sf); 
-    ps2snd->entry.flags = read_u32le(offset[9], sf); 
-    /* 
-    ps2snd->unk0x54 = read_u32le(offset[10], sf); 
-    */ 
-    if (!register_subsong) 
-    { 
-        cfg->bin_pos += ps2snd->sdx_block_info_size; 
-        if (cfg->bin_pos <= ps2snd->header_size) 
-            ps2snd->total_subsongs++; 
-    } 
- 
-    if (register_subsong) 
-        if (ps2snd->target_subsong < 0 || ps2snd->target_subsong > ps2snd->total_subsongs || ps2snd->target_subsong > 900 || ps2snd->total_subsongs < 1) 
-            return 0; 
-    // observed max number of subsongs for an sdx binary file is 809. [Minority Report: Everybody Runs (PS2)] 
- 
-    if (register_subsong) 
-    { 
-        ps2snd->subsong_set = true; 
- 
-        if (ps2snd->subsong_set) 
-        { 
-            for (int i = 0; i < 5; i++) 
-            { 
-                if (!(ps2snd->entry.flags & 0x10)) 
-                { 
-                    switch (i) 
-                    { 
-                    case 0: 
-                        // set vbc load name to be vbc from the spu folder. 
-                        snprintf(vbc_main_load_name, sizeof(vbc_main_load_name), "spu\\%s.vbc", ps2snd->basename); 
-                        break; 
-                    case 1: 
-                        // set vbc load name to be vbc from the same folder as the snd itself (unlikely). 
-                        snprintf(vbc_main_load_name, sizeof(vbc_main_load_name), "%s.vbc", ps2snd->basename); 
-                        break; 
-                    case 2: 
-                        // open vbc through an txtm file. 
-                        // vbc file shares the same basename as snd file does shouldn't be too hard to find the former file. 
-                        // (MENU.VBC has MENU.SND also, for one) 
-                        ps2snd->sf_vbc = read_filemap_file(sf, 0); 
-                        // (todo) untested. 
-                        break; 
-                    default: 
-                        break; 
-                    } 
-                    if (i >= 0 && i <= 1) 
-                    { 
-                        // finally load vbc from already-built load name. 
-                        ps2snd->sf_vbc = open_streamfile_by_filename(sf, vbc_main_load_name); 
-                    } 
-                } 
-                else if (ps2snd->entry.flags & 0x10) 
-                { 
-                    switch (i) 
-                    { 
-                    case 0: 
-                        // open STREAM.VBC from two folders back and into the stream folder. 
-                        ps2snd->sf_vbc = open_streamfile_by_filename(sf, "..\\..\\stream\\stream.vbc"); 
-                        break; 
-                    case 1: 
-                        // open STREAM.VBC from one folder back and into the stream folder. 
-                        ps2snd->sf_vbc = open_streamfile_by_filename(sf, "..\\stream\\stream.vbc"); 
-                        break; 
-                    case 2: 
-                        // open STREAM.VBC from the stream folder if said folder goes alongside snd and/or vbc files (unlikely). 
-                        ps2snd->sf_vbc = open_streamfile_by_filename(sf, "stream\\stream.vbc"); 
-                        break; 
-                    case 3: 
-                        // open STREAM.VBC from the same folder as where the snd and/or vbc files are (unlikely). 
-                        ps2snd->sf_vbc = open_streamfile_by_filename(sf, "stream.vbc"); 
-                        break; 
-                    case 4: 
-                        // open STREAM.VBC through an txtm file. 
-                        ps2snd->sf_vbc = read_filemap_file(sf, 1); 
-                        // (todo) untested. 
-                        break; 
-                    default: 
-                        break; 
-                    } 
-                } 
- 
-                if (ps2snd->sf_vbc) break; 
-            } 
- 
-            return 3; 
-        } 
-    } 
- 
-    return 1; 
-} 
+
+    /*
+     * Treyarch SDX format owes a lot to the SND format;
+     * - most of the text file structure has now been replaced with a binary struct weighing 88 bytes apiece.
+     * -- "apiece" in this case means "as many sounds as SDX permits".
+     * - to account for this, SDX file now consists of multiple blocks of pre-serialized binary structs,
+     *   with one block representing an entire sound and all its surrounding information.
+     * -- "sound name" is first stored into a 48-byte char field, which is then followed by three 32-bit-wide fields representing certain values, and so on and so forth.
+     * 
+     * One upside to all this is that reading sound info is now much easier;
+     * eliminates the need to parse "variables", "commands", names and numbers into a serialized binary struct from a single text line.
+     */
+
+    // if we're just counting subsongs, it's best to just read through them one-by-one.
+    // but if we already know what subsong vgmstream is going to play,
+    // and we already know how many subsongs there are in this thing,
+    // just conjure up a specific position to where we'll likely read the subsong info from.
+    // with this in mind, we define an array of 10 off_t with the numbers that we came up with.
+    if (!register_subsong)
+    {
+        offset[0] = cfg->bin_pos + 0;
+        offset[1] = cfg->bin_pos + 0x30;
+        offset[2] = cfg->bin_pos + 0x34;
+        offset[3] = cfg->bin_pos + 0x38;
+        offset[4] = cfg->bin_pos + 0x3c;
+        offset[5] = cfg->bin_pos + 0x3e;
+        offset[6] = cfg->bin_pos + 0x40;
+        offset[7] = cfg->bin_pos + 0x48;
+        offset[8] = cfg->bin_pos + 0x4c;
+        offset[9] = cfg->bin_pos + 0x50;
+        //offset[10] = cfg->bin_pos + 0x54;
+    } else {
+        offset[0] = ((ps2snd->target_subsong-1) * ps2snd->sdx_block_info_size) + 0;
+        offset[1] = ((ps2snd->target_subsong-1) * ps2snd->sdx_block_info_size) + 0x30;
+        offset[2] = ((ps2snd->target_subsong-1) * ps2snd->sdx_block_info_size) + 0x34;
+        offset[3] = ((ps2snd->target_subsong-1) * ps2snd->sdx_block_info_size) + 0x38;
+        offset[4] = ((ps2snd->target_subsong-1) * ps2snd->sdx_block_info_size) + 0x3c;
+        offset[5] = ((ps2snd->target_subsong-1) * ps2snd->sdx_block_info_size) + 0x3e;
+        offset[6] = ((ps2snd->target_subsong-1) * ps2snd->sdx_block_info_size) + 0x40;
+        offset[7] = ((ps2snd->target_subsong-1) * ps2snd->sdx_block_info_size) + 0x48;
+        offset[8] = ((ps2snd->target_subsong-1) * ps2snd->sdx_block_info_size) + 0x4c;
+        offset[9] = ((ps2snd->target_subsong-1) * ps2snd->sdx_block_info_size) + 0x50;
+        //offset[10] = ((ps2snd->target_subsong-1) * ps2snd->sdx_block_info_size) + 0x54;
+    }
+    read_string(ps2snd->entry.stream_name, 0x30, offset[0], sf);
+    ps2snd->entry.offset = read_s32le(offset[1], sf);
+    ps2snd->entry.realsize = read_s32le(offset[2], sf);
+    ps2snd->entry.size = read_s32le(offset[3], sf);
+    ps2snd->entry.pitch = read_u16le(offset[4], sf);
+    ps2snd->entry.volume_l = read_u16le(offset[5], sf);
+    ps2snd->entry.volume_r = read_u16le(offset[6], sf);
+    ps2snd->entry.unk0x48 = read_u32le(offset[7], sf);
+    ps2snd->entry.source = read_s32le(offset[8], sf);
+    ps2snd->entry.flags = read_u32le(offset[9], sf);
+    /*
+    ps2snd->unk0x54 = read_u32le(offset[10], sf);
+    */
+    if (!register_subsong)
+    {
+        cfg->bin_pos += ps2snd->sdx_block_info_size;
+        if (cfg->bin_pos <= ps2snd->header_size)
+            ps2snd->total_subsongs++;
+    }
+
+    if (register_subsong)
+        if (ps2snd->target_subsong < 0 || ps2snd->target_subsong > ps2snd->total_subsongs || ps2snd->target_subsong > 900 || ps2snd->total_subsongs < 1)
+            return 0;
+    // observed max number of subsongs for an sdx binary file is 809. [Minority Report: Everybody Runs (PS2)]
+
+    if (register_subsong)
+    {
+        ps2snd->subsong_set = true;
+
+        if (ps2snd->subsong_set)
+        {
+            for (int i = 0; i < 5; i++)
+            {
+                if (!(ps2snd->entry.flags & 0x10))
+                {
+                    switch (i)
+                    {
+                    case 0:
+                        // set vbc load name to be vbc from the spu folder.
+                        snprintf(vbc_main_load_name, sizeof(vbc_main_load_name), "spu\\%s.vbc", ps2snd->basename);
+                        break;
+                    case 1:
+                        // set vbc load name to be vbc from the same folder as the snd itself (unlikely).
+                        snprintf(vbc_main_load_name, sizeof(vbc_main_load_name), "%s.vbc", ps2snd->basename);
+                        break;
+                    case 2:
+                        // open vbc through an txtm file.
+                        // vbc file shares the same basename as snd file does shouldn't be too hard to find the former file.
+                        // (MENU.VBC has MENU.SND also, for one)
+                        ps2snd->sf_vbc = read_filemap_file(sf, 0);
+                        // (todo) untested.
+                        break;
+                    default:
+                        break;
+                    }
+                    if (i >= 0 && i <= 1)
+                    {
+                        // finally load vbc from already-built load name.
+                        ps2snd->sf_vbc = open_streamfile_by_filename(sf, vbc_main_load_name);
+                    }
+                }
+                else if (ps2snd->entry.flags & 0x10)
+                {
+                    switch (i)
+                    {
+                    case 0:
+                        // open STREAM.VBC from two folders back and into the stream folder.
+                        ps2snd->sf_vbc = open_streamfile_by_filename(sf, "..\\..\\stream\\stream.vbc");
+                        break;
+                    case 1:
+                        // open STREAM.VBC from one folder back and into the stream folder.
+                        ps2snd->sf_vbc = open_streamfile_by_filename(sf, "..\\stream\\stream.vbc");
+                        break;
+                    case 2:
+                        // open STREAM.VBC from the stream folder if said folder goes alongside snd and/or vbc files (unlikely).
+                        ps2snd->sf_vbc = open_streamfile_by_filename(sf, "stream\\stream.vbc");
+                        break;
+                    case 3:
+                        // open STREAM.VBC from the same folder as where the snd and/or vbc files are (unlikely).
+                        ps2snd->sf_vbc = open_streamfile_by_filename(sf, "stream.vbc");
+                        break;
+                    case 4:
+                        // open STREAM.VBC through an txtm file.
+                        ps2snd->sf_vbc = read_filemap_file(sf, 1);
+                        // (todo) untested.
+                        break;
+                    default:
+                        break;
+                    }
+                }
+
+                if (ps2snd->sf_vbc) break;
+            }
+
+            return 3;
+        }
+    }
+
+    return 1;
+}
