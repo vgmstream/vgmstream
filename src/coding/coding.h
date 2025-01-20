@@ -65,6 +65,9 @@ void dsp_read_coefs(VGMSTREAM* vgmstream, STREAMFILE* sf, off_t offset, off_t sp
 void dsp_read_hist_be(VGMSTREAM* vgmstream, STREAMFILE* sf, off_t offset, off_t spacing);
 void dsp_read_hist_le(VGMSTREAM* vgmstream, STREAMFILE* sf, off_t offset, off_t spacing);
 void dsp_read_hist(VGMSTREAM* vgmstream, STREAMFILE* sf, off_t offset, off_t spacing, int be);
+void dsp_read_coefs_separately_be(VGMSTREAM* vgmstream, STREAMFILE* sf, off_t offset, int ch);
+void dsp_read_coefs_separately_le(VGMSTREAM* vgmstream, STREAMFILE* sf, off_t offset, int ch);
+void dsp_read_coefs_separately(VGMSTREAM* vgmstream, STREAMFILE* sf, off_t offset, int be, int ch);
 
 
 /* ngc_dtk_decoder */

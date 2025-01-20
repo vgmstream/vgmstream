@@ -215,7 +215,134 @@ void block_update(off_t block_offset, VGMSTREAM* vgmstream) {
         case layout_blocked_vas:
             block_update_vas(block_offset,vgmstream);
             break;
+        case layout_blocked_snd_gcw_str:
+            block_update_snd_gcw_str(block_offset, vgmstream);
+            break;
         default: /* not a blocked layout */
             break;
     }
+}
+
+snd_gcw_str_blocked_layout_data* init_snd_gcw_str_blocked_layout(int32_t num_samples, int channels, size_t block_size)
+{
+    snd_gcw_str_blocked_layout_data* data = NULL;
+
+    if (channels < 1 || channels > 2)
+        goto fail;
+    if (num_samples < 0)
+        goto fail;
+    if (block_size < 0x800 || block_size > 0x8000)
+        goto fail;
+
+    if ((channels == 2) && (block_size < 0x8000))
+    {
+        // if stereo sound has a block size of less than 0x8000 bytes; unlikely to happen.
+        vgm_logi("SND+GCW: unknown block size (%d) for stereo stream (should be %d), abort\n", block_size, 0x8000);
+        goto fail;
+    }
+
+    data = calloc(1, sizeof(snd_gcw_str_blocked_layout_data));
+    if (!data) goto fail;
+
+    data->info = calloc(channels, sizeof(snd_gcw_str_first_block_header_info*));
+    if (!data->info) goto fail;
+
+    if (!data->finished_all_calcs)
+    {
+        data->channels = channels;
+        data->block_size = block_size;
+        data->first_block_header_size = 0x40;
+
+        // bigfile-adjacent dsp consist of the following "header":
+        // 0x00-0x20 - dsp coef data (per channel)
+        // 0x20-0x40 - blank space (per channel)
+        // what follows is actual, raw sound codec data,
+        // divided into 0x8000 blocks or less (for a multiple of 0x800)
+        // regardless if said data is mono or stereo.
+
+        // first step: use num_samples to set boundaries regarding how a sound begins, and how it ends.
+        data->data_size_calc = num_samples / 14;
+        // ^ assuming that vgmstream->num_samples wasn't tempered beforehand.
+        data->data_size_modulus = 14 - (num_samples % 14);
+        if (data->data_size_modulus != 14) data->data_size_calc++;
+        data->data_size = (data->data_size_calc * 8) + data->first_block_header_size;
+
+        data->first_sample_threshold = 0;
+        data->last_sample_threshold = data->data_size_calc * 14;
+
+        // second step: calculate how many physical data blocks are needed to process all that blocked sound data.
+        // worst-case scenario: calculate the remainder of that and use it as a last block size.
+        data->blocks = data->data_size / data->block_size;
+        data->last_block_size = data->data_size - (data->blocks * data->block_size);
+        if (data->last_block_size != 0)
+            data->blocks++;
+
+        // third step: calculate the boundaries of when a sample of a sound block begins, and when it ends.
+        // of course, when muliple blocks are involved, makes sense to calculate only the size of start, overall, and end block.
+        if (data->blocks != 0)
+        {
+            // example of an sound that needs two blocks: "CROWD_OH04", from "nhl2k3.snd" [NHL 2K3 (GC)]
+            // when this happens, overall block size will have to be sacrificed.
+            if (data->blocks == 1)
+            {
+                data->last_block_size -= data->first_block_header_size;
+                data->first_block_size = data->last_block_size;
+                data->current_block_size = 0;
+                data->last_block_size = 0;
+            }
+            else {
+                data->first_block_size = data->block_size - data->first_block_header_size;
+                data->current_block_size = (data->blocks == 2) ? 0 : data->block_size;
+            }
+            // calc first block samples regardless of how many blocks there are.
+            data->first_block_samples = data->first_block_size / 8;
+            data->first_block_samples_mod = 8 - (data->first_block_size % 8);
+            if (data->first_block_samples_mod != 8) data->first_block_samples++;
+            data->first_block_samples *= 14;
+            data->first_block_samples_threshold = data->first_block_samples;
+            // calc samples of both current and last block.
+            if (data->blocks == 1)
+            {
+                data->current_block_samples = 0;
+                data->last_block_samples = 0;
+                data->last_block_samples_threshold = data->first_block_samples_threshold + 0;
+            }
+            else {
+                if (data->blocks > 2)
+                {
+                    data->current_block_samples = data->current_block_size / 8;
+                    data->current_block_samples_mod = 8 - (data->current_block_samples % 8);
+                    if (data->current_block_samples_mod != 8) data->current_block_samples++;
+                    data->current_block_samples *= 14;
+                }
+
+                data->last_block_samples = data->last_block_size / 8;
+                data->last_block_samples_mod = 8 - (data->last_block_size % 8);
+                if (data->last_block_samples_mod != 8) data->last_block_samples++;
+                data->last_block_samples *= 14;
+                data->last_block_samples_threshold = (data->blocks == 2)
+                    ? data->first_block_samples_threshold + 0
+                    : data->first_block_samples_threshold + ((data->blocks - 2) * data->current_block_samples);
+            }
+        }
+
+        data->finished_all_calcs = true;
+    }
+
+    return data;
+fail:
+    free_snd_gcw_str_blocked_layout(data);
+    return NULL;
+}
+
+void free_snd_gcw_str_blocked_layout(snd_gcw_str_blocked_layout_data* data)
+{
+    if (!data)
+        return;
+
+    for (int i = 0; i < data->channels; i++)
+        free(data->info[i]);
+
+    free(data->info);
+    free(data);
 }

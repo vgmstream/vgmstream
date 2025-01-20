@@ -237,6 +237,7 @@ typedef enum {
     layout_blocked_ubi_sce,
     layout_blocked_tt_ad,
     layout_blocked_vas,
+    layout_blocked_snd_gcw_str,
 
     /* otherwise odd */
     layout_segmented,       /* song divided in segments (song sections) */
@@ -716,6 +717,9 @@ typedef enum {
     meta_PPHD,
     meta_XABP,
     meta_I3DS,
+    meta_SND_VBC,
+    meta_SDX_VBC,
+    meta_SND_GCW_STR,
 
 } meta_t;
 

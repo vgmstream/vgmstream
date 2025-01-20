@@ -355,6 +355,7 @@
     <ClCompile Include="layout\blocked_ps2_iab.c" />
     <ClCompile Include="layout\blocked_rage_aud.c" />
     <ClCompile Include="layout\blocked_rws.c" />
+    <ClCompile Include="layout\blocked_snd_gcw_str.c" />
     <ClCompile Include="layout\blocked_sthd.c" />
     <ClCompile Include="layout\blocked_str_snds.c" />
     <ClCompile Include="layout\blocked_thp.c" />
@@ -693,6 +694,8 @@
     <ClCompile Include="meta\smp.c" />
     <ClCompile Include="meta\smpl.c" />
     <ClCompile Include="meta\smv.c" />
+    <ClCompile Include="meta\snd_gcw_str.c" />
+    <ClCompile Include="meta\snd_sdx_vbc.c" />
     <ClCompile Include="meta\sndp.c" />
     <ClCompile Include="meta\snds.c" />
     <ClCompile Include="meta\sndx.c" />

@@ -52,6 +52,10 @@ void render_free(VGMSTREAM* vgmstream) {
     if (!vgmstream->layout_data)
         return;
 
+    if (vgmstream->layout_type == layout_blocked_snd_gcw_str) {
+        free_snd_gcw_str_blocked_layout(vgmstream->layout_data);
+    }
+
     if (vgmstream->layout_type == layout_segmented) {
         free_layout_segmented(vgmstream->layout_data);
     }
@@ -134,6 +138,7 @@ int render_layout(sbuf_t* sbuf, VGMSTREAM* vgmstream) {
         case layout_blocked_ubi_sce:
         case layout_blocked_tt_ad:
         case layout_blocked_vas:
+        case layout_blocked_snd_gcw_str:
             render_vgmstream_blocked(buf, sample_count, vgmstream);
             break;
         case layout_segmented:

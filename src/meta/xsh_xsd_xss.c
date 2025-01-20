@@ -22,6 +22,20 @@ VGMSTREAM* init_vgmstream_xsh_xsd_xss(STREAMFILE* sf) {
 
     version = read_u32le(0x00, sf);
 
+    bool is_valid_xsh_ver = false;
+    switch (version)
+    {
+    case 0x009D: // [Spider-Man 2002 (Xbox)]
+    case 0x0100: // [Kelly Slater's Pro Surfer (Xbox)]
+    case 0x0101: // [Minority Report: Everybody Runs (Xbox)], [NHL 2K3 (Xbox)]
+        is_valid_xsh_ver = true;
+        break;
+    default:
+        break;
+    }
+    if (!is_valid_xsh_ver)
+        goto fail;
+
     if (read_u32le(0x04, sf) != 0)
         goto fail;
 
@@ -72,12 +86,10 @@ VGMSTREAM* init_vgmstream_xsh_xsd_xss(STREAMFILE* sf) {
 
             offset += 0x20;
             break;
-
-        default:
-            goto fail;
     }
 
-    loop_flag = 0;
+    // with (flags & 0x01) set, entire sound will loop from start-to-finish. no exceptions.
+    loop_flag = (flags & 0x01) ? 1 : 0;
 
     if (stream_type < 0 || stream_type > 2)
         goto fail;
@@ -117,6 +129,14 @@ VGMSTREAM* init_vgmstream_xsh_xsd_xss(STREAMFILE* sf) {
                 vgmstream = init_vgmstream_riff(sf_body);
                 if (!vgmstream) goto fail;
 
+                // xsh can set loop flags for some xss (city_main.xss)
+                // but on their own they don't have actual loop info; no sight of an "smpl" chunk in them either.
+                if (!vgmstream->loop_flag && flags & 0x01) {
+                    if (!num_samples)
+                        num_samples = xbox_ima_bytes_to_samples(stream_size, channels);
+                    vgmstream_force_loop(vgmstream, loop_flag, 0, num_samples);
+                }
+
                 vgmstream->num_streams = total_subsongs;
                 read_string(vgmstream->stream_name, name_size, name_offset,sf);
 
@@ -134,9 +154,6 @@ VGMSTREAM* init_vgmstream_xsh_xsd_xss(STREAMFILE* sf) {
                     goto fail;
                 }
                 break;
-
-            default:
-                goto fail;
         }
 
     }
@@ -167,6 +184,11 @@ VGMSTREAM* init_vgmstream_xsh_xsd_xss(STREAMFILE* sf) {
                 num_samples = xbox_ima_bytes_to_samples(stream_size, channels);
 
             vgmstream->num_samples = num_samples;
+
+            if (flags & 0x01) {
+                vgmstream->loop_start_sample = 0;
+                vgmstream->loop_end_sample = vgmstream->num_samples;
+            }
             break;
     }
 

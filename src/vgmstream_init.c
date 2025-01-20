@@ -516,6 +516,9 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_xabp,
     init_vgmstream_i3ds,
     init_vgmstream_sdbs,
+    init_vgmstream_snd_vbc,
+    init_vgmstream_sdx_vbc,
+    init_vgmstream_snd_gcw_str,
 
     /* lower priority metas (no clean header identity, somewhat ambiguous, or need extension/companion file to identify) */
     init_vgmstream_agsc,

@@ -98,5 +98,47 @@ void block_update_vid1(off_t block_offset, VGMSTREAM* vgmstream);
 void block_update_ubi_sce(off_t block_offset, VGMSTREAM* vgmstream);
 void block_update_tt_ad(off_t block_offset, VGMSTREAM* vgmstream);
 void block_update_vas(off_t block_offset, VGMSTREAM* vgmstream);
+void block_update_snd_gcw_str(off_t block_offset, VGMSTREAM* vgmstream);
+
+// per-channel first block header info
+// for bigfile-adjacent dsp from SND+GCW/STR format
+typedef struct {
+    bool exists;
+    bool coef_parsed;
+    bool has_blank_space;
+    STREAMFILE* sf;
+    off_t coef_offset;
+} snd_gcw_str_first_block_header_info;
+
+// blocked layout for SND+GCW/STR format.
+typedef struct {
+    int channels;
+    snd_gcw_str_first_block_header_info** info;
+
+    size_t block_size;
+    int32_t data_size_calc;
+    int32_t data_size_modulus;
+    int32_t data_size;
+    size_t first_block_header_size;
+    size_t first_block_size;
+    size_t current_block_size;
+    size_t last_block_size;
+    int32_t first_block_samples;
+    int32_t first_block_samples_mod;
+    int32_t current_block_samples;
+    int32_t current_block_samples_mod;
+    int32_t last_block_samples;
+    int32_t last_block_samples_mod;
+    int32_t first_sample_threshold;
+    int32_t last_sample_threshold;
+    int32_t first_block_samples_threshold;
+    //int32_t current_block_samples_threshold; 
+    int32_t last_block_samples_threshold;
+    int32_t blocks;
+    bool finished_all_calcs;
+} snd_gcw_str_blocked_layout_data;
+
+snd_gcw_str_blocked_layout_data* init_snd_gcw_str_blocked_layout(int32_t num_samples, int channels, size_t block_size);
+void free_snd_gcw_str_blocked_layout(snd_gcw_str_blocked_layout_data* data);
 
 #endif

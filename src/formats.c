@@ -510,6 +510,7 @@ static const char* extension_list[] = {
     "sdp", //txth/reserved [Metal Gear Arcade (AC)]
     "sdf",
     "sdt",
+    "sdx",
     "se",
     "seb",
     "sed",
@@ -995,6 +996,7 @@ static const layout_info layout_info_list[] = {
         {layout_blocked_ubi_sce,        "blocked (Ubi SCE)"},
         {layout_blocked_tt_ad,          "blocked (TT AD)"},
         {layout_blocked_vas,            "blocked (VAS)"},
+        {layout_blocked_snd_gcw_str,    "blocked (SND+GCW/STR)"},
 };
 
 static const meta_info meta_info_list[] = {
@@ -1461,6 +1463,9 @@ static const meta_info meta_info_list[] = {
         {meta_PPHD,                 "Sony PPHD header"},
         {meta_XABP,                 "cavia XABp header"},
         {meta_I3DS,                 "Codemasters i3DS header"},
+        {meta_SND_VBC,              "Treyarch SND+VBC header"},
+        {meta_SDX_VBC,              "Treyarch SDX+VBC header"},
+        {meta_SND_GCW_STR,          "Treyarch SND+GCW/STR header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {

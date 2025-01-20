@@ -162,6 +162,30 @@ void dsp_read_coefs(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t offset,
     }
 }
 
+/* reads DSP coefs separately in the streamfile with an assigned channel number */
+void dsp_read_coefs_separately_be(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t offset, int ch) {
+    dsp_read_coefs_separately(vgmstream, streamFile, offset, 1, ch);
+}
+
+void dsp_read_coefs_separately_le(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t offset, int ch) {
+    dsp_read_coefs_separately(vgmstream, streamFile, offset, 0, ch);
+}
+
+void dsp_read_coefs_separately(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t offset, int be, int ch)
+{
+    int i;
+    /* get ADPCM coefs for one particular channel */
+    if (ch >= 0 || ch <= vgmstream->channels)
+    {
+        for (i = 0; i < 16; i++)
+        {
+            vgmstream->ch[ch].adpcm_coef[i] = be ?
+                read_16bitBE(offset + i*2, streamFile) :
+                read_16bitLE(offset + i*2, streamFile);
+        }
+    }
+}
+
 /* reads DSP initial hist built in the streamfile */
 void dsp_read_hist_be(VGMSTREAM * vgmstream, STREAMFILE *streamFile, off_t offset, off_t spacing) {
     dsp_read_hist(vgmstream, streamFile, offset, spacing, 1);

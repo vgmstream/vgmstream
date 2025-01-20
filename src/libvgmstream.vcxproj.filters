@@ -895,6 +895,9 @@
     <ClCompile Include="layout\blocked_rws.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="layout\blocked_snd_gcw_str.c">
+      <Filter>layout\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="layout\blocked_sthd.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
@@ -1907,6 +1910,12 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\smv.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\snd_gcw_str.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\snd_sdx_vbc.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\sndp.c">
