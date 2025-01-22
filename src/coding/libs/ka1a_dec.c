@@ -15,7 +15,7 @@
  * OG code isn't too optimized though.
  *
  * Reverse engineered from exes, thanks to Kelebek1 and AceKombat for help and debugging.
- * Output has been compared to memdumps and should be accurate with minor +-diffs.
+ * Output has been compared to memdumps and should be accurate with minor +-diffs (vs MSVC 22 /O2).
  * 
  * Even though some parts can be simplified/optimized code tries to emulate what source code
  * may look like, undoing unrolled/vectorized parts. Functions marked as 'inline' don't exist in
@@ -147,7 +147,7 @@ static inline int unpack_get_bits(uint8_t* src, int* p_byte_pos, int* p_bit_pos,
 //
 // Bands encode less coefs than dst may hold, so 'positions' are used to put coefs
 // non-linearly, where unset indexes are 0 (dst must be memset before calling unpack frame).
-// dst should be 1024, though usually only lower 512 (max step is 390 + ((1<<7) - 1)).
+// dst should be 1024, though usually only lower 512 are used (max step is 390 + ((1<<7) - 1)).
 static void unpack_frame(uint8_t* src, float* dst, int steps_size, void* unused, int bitrate_index) {
 
     // copy coefs counts as they may be modified below
@@ -461,7 +461,7 @@ void transform_frame(void* unused1, float* src, float* dst, void* unused2, float
     }
 
     // Reorder output (input buf may be reused as output here as there is no overlap).
-    // Note that input is 512 coefs but output is 1024 samples (externally combined with samples)
+    // Note that input is 512 coefs but output is 1024 samples (externally combined with prev samples)
     int pos = 0;
     for (int i = 0; i < 128; i++) {
         dst[pos++] = real[128 + i];
@@ -522,13 +522,13 @@ static void decode_frame(unsigned char* src, int tracks, int channels, float* ds
         }
     }
 
-    if (setup_flag) // MOD: expect only 1 block per call
+    if (setup_flag) // OG MOD: changed to expect only 1 block per call
         return;
 
     // decode 'current block of frames' (writes 512 samples, plus setups 'prev' buf)
     {
         //uint8_t* src_block = &src[channels * tracks * frame_size]; // 2nd block in src in OG code
-        uint8_t* src_block = &src[0]; // MOD: expect only 1 block  per call
+        uint8_t* src_block = &src[0]; // OG MOD: changed to expect only 1 block  per call
 
         for (int track = 0; track < tracks; track++) {
             int frame_num = channels * track;
@@ -568,7 +568,7 @@ struct ka1a_handle_t {
 
     // state
     bool setup_flag;        // next frame will be used as setup and won't output samples
-    float temp[1024 * 2];   // fft + coef buf
+    float temp[1024 * 2];   // fft + spectrum coefs buf
     float* prev;            // at least samples * channels * tracks
 };
 
