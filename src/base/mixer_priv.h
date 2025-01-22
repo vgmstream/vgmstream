@@ -49,20 +49,20 @@ struct mixer_t {
     bool has_non_fade;
     bool has_fade;
 
-    float* mixbuf;          /* internal mixing buffer */
-    int current_channels;   /* state: channels may increase/decrease during ops */
-    int32_t current_subpos; /* state: current sample pos in the stream */
+    float* mixbuf;          // internal mixing buffer
+    sbuf_t smix;            // temp sbuf
+    int32_t current_subpos; // state: current sample pos in the stream
 
-    sfmt_t force_type;
+    sfmt_t force_type;      // mixer output is original buffer's by default, unless forced
 };
 
-void mixer_op_swap(mixer_t* mixer, int32_t sample_count, mix_op_t* op);
-void mixer_op_add(mixer_t* mixer, int32_t sample_count, mix_op_t* op);
-void mixer_op_volume(mixer_t* mixer, int32_t sample_count, mix_op_t* op);
-void mixer_op_limit(mixer_t* mixer, int32_t sample_count, mix_op_t* op);
-void mixer_op_upmix(mixer_t* mixer, int32_t sample_count, mix_op_t* op);
-void mixer_op_downmix(mixer_t* mixer, int32_t sample_count, mix_op_t* op);
-void mixer_op_killmix(mixer_t* mixer, int32_t sample_count, mix_op_t* op);
-void mixer_op_fade(mixer_t* mixer, int32_t sample_count, mix_op_t* op);
+void mixer_op_swap(mixer_t* mixer, mix_op_t* op);
+void mixer_op_add(mixer_t* mixer, mix_op_t* op);
+void mixer_op_volume(mixer_t* mixer, mix_op_t* op);
+void mixer_op_limit(mixer_t* mixer, mix_op_t* op);
+void mixer_op_upmix(mixer_t* mixer, mix_op_t* op);
+void mixer_op_downmix(mixer_t* mixer, mix_op_t* op);
+void mixer_op_killmix(mixer_t* mixer, mix_op_t* op);
+void mixer_op_fade(mixer_t* mixer, mix_op_t* op);
 bool mixer_op_fade_is_active(mixer_t* mixer, int32_t current_start, int32_t current_end);
 #endif
