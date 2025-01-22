@@ -65,7 +65,7 @@ static void print_usage(const char* progname, bool is_help) {
             "    -P: output to stdout even if stdout is a terminal\n"
             "    -c: loop forever (continuously) to stdout\n"
             "    -L: append a smpl chunk and create a looping wav\n"
-          //"    -w: allow .wav in original sample format rather than downmixing to PCM16\n"
+          //"    -w: allow .wav in original sample format rather than mixing to PCM16\n"
             "    -V: print version info and supported extensions as JSON\n"
             "    -I: print requested file info as JSON\n"
             "    -h: print all commands\n"
@@ -89,6 +89,7 @@ static void print_usage(const char* progname, bool is_help) {
             "    -T: print title (for title testing)\n"
             "    -D <max channels>: downmix to <max channels> (for plugin downmix testing)\n"
             "    -B <samples> force a sample buffer size (for api testing)\n"
+          //"    -W: force .wav to output in float sample format\n"
             "    -O: decode but don't write to file (for performance testing)\n"
     );
 
@@ -108,7 +109,7 @@ static bool parse_config(cli_config_t* cfg, int argc, char** argv) {
     optind = 1; /* reset getopt's ugly globals (needed in wasm that may call same main() multiple times) */
 
     /* read config */
-    while ((opt = getopt(argc, argv, "o:l:f:d:ipPcmxeLEFrgb2:s:tTk:K:hOvD:S:B:VI")) != -1) {
+    while ((opt = getopt(argc, argv, "o:l:f:d:ipPcmxeLEFrgb2:s:tTk:K:hOvD:S:B:VIwW")) != -1) {
         switch (opt) {
             case 'o':
                 cfg->outfilename = optarg;
@@ -215,6 +216,9 @@ static bool parse_config(cli_config_t* cfg, int argc, char** argv) {
                     fprintf(stderr, "incorrect sample buffer value\n");
                     goto fail;
                 }
+                break;
+            case 'W':
+                cfg->write_float_wav = true;
                 break;
             case '2':
                 cfg->stereo_track = atoi(optarg) + 1;
@@ -330,29 +334,23 @@ static void apply_config(VGMSTREAM* vgmstream, cli_config_t* cfg) {
 
 static bool write_file(VGMSTREAM* vgmstream, cli_config_t* cfg) {
     FILE* outfile = NULL;
-    int32_t len_samples;
-    sample_t* buf = NULL;
-    int channels, input_channels;
 
+    int channels = vgmstream->channels;
 
-    channels = vgmstream->channels;
-    input_channels = vgmstream->channels;
-
+    int input_channels = vgmstream->channels;
     vgmstream_mixing_enable(vgmstream, 0, &input_channels, &channels);
-
-    /* last init */
-    buf = malloc(cfg->sample_buffer_size * sizeof(sample_t) * input_channels);
+    sample_t* buf = malloc(cfg->sample_buffer_size * sizeof(sample_t) * input_channels);
     if (!buf) {
         fprintf(stderr, "failed allocating output buffer\n");
-        goto fail;
+        return false;
     }
 
     /* simulate seek */
-    len_samples = vgmstream_get_samples(vgmstream);
+    int32_t play_samples = vgmstream_get_samples(vgmstream);
     if (cfg->seek_samples2 >= 0)
-        len_samples -= cfg->seek_samples2;
+        play_samples -= cfg->seek_samples2;
     else if (cfg->seek_samples1 >= 0)
-        len_samples -= cfg->seek_samples1;
+        play_samples -= cfg->seek_samples1;
 
     if (cfg->seek_samples1 >= 0)
         seek_vgmstream(vgmstream, cfg->seek_samples1);
@@ -385,7 +383,7 @@ static bool write_file(VGMSTREAM* vgmstream, cli_config_t* cfg) {
         size_t bytes_done;
 
         wav_header_t wav = {
-            .sample_count = len_samples,
+            .sample_count = play_samples,
             .sample_rate = vgmstream->sample_rate,
             .channels = channels,
             .write_smpl_chunk = cfg->write_lwav,
@@ -394,31 +392,39 @@ static bool write_file(VGMSTREAM* vgmstream, cli_config_t* cfg) {
         };
 
         bytes_done = wav_make_header(wav_buf, 0x100, &wav);
+        if (bytes_done == 0) goto fail;
         fwrite(wav_buf, sizeof(uint8_t), bytes_done, outfile);
     }
 
-    /* decode forever */
+    /* decode forever */// TODO improve logic of play forever + normal play
     while (cfg->play_forever && !cfg->decode_only) {
         int to_get = cfg->sample_buffer_size;
-
         render_vgmstream(buf, to_get, vgmstream);
 
-        wav_swap_samples_le(buf, channels * to_get, 0);
-        fwrite(buf, sizeof(sample_t), to_get * channels, outfile);
+        int buf_bytes = to_get * channels * sizeof(sample_t);
+        int buf_samples = to_get;
+        int sample_size = 0;
+
+        wav_swap_samples_le(buf, channels * buf_samples, sample_size);
+        fwrite(buf, sizeof(uint8_t), buf_bytes, outfile);
         /* should write infinitely until program kill */
     }
 
     /* decode */
-    for (int i = 0; i < len_samples; i += cfg->sample_buffer_size) {
+    for (int i = 0; i < play_samples; i += cfg->sample_buffer_size) {
         int to_get = cfg->sample_buffer_size;
-        if (i + cfg->sample_buffer_size > len_samples)
-            to_get = len_samples - i;
+        if (i + cfg->sample_buffer_size > play_samples)
+            to_get = play_samples - i;
 
         render_vgmstream(buf, to_get, vgmstream);
 
+        int buf_bytes = to_get * channels * sizeof(sample_t);
+        int buf_samples = to_get;
+        int sample_size = 0;
+
         if (!cfg->decode_only) {
-            wav_swap_samples_le(buf, channels * to_get, 0);
-            fwrite(buf, sizeof(sample_t), to_get * channels, outfile);
+            wav_swap_samples_le(buf, channels * buf_samples, sample_size);
+            fwrite(buf, sizeof(uint8_t), buf_bytes, outfile);
         }
     }
 
@@ -490,7 +496,7 @@ fail:
 static bool convert_file(cli_config_t* cfg) {
     VGMSTREAM* vgmstream = NULL;
     char outfilename_temp[CLI_PATH_LIMIT];
-    int32_t len_samples;
+    int32_t play_samples;
 
 
     /* for plugin testing */
@@ -510,8 +516,8 @@ static bool convert_file(cli_config_t* cfg) {
 
 
     /* get final play config */
-    len_samples = vgmstream_get_samples(vgmstream);
-    if (len_samples <= 0) {
+    play_samples = vgmstream_get_samples(vgmstream);
+    if (play_samples <= 0) {
         fprintf(stderr, "wrong time config\n");
         goto fail;
     }
@@ -525,7 +531,7 @@ static bool convert_file(cli_config_t* cfg) {
     }
 
     /* would be ignored by seek code though (allowed for seek_samples2 to test this) */
-    if (cfg->seek_samples1 < -1 || cfg->seek_samples1 >= len_samples) {
+    if (cfg->seek_samples1 < -1 || cfg->seek_samples1 >= play_samples) {
         fprintf(stderr, "wrong seek config\n");
         goto fail;
     }

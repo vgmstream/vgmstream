@@ -1,13 +1,10 @@
 #include <string.h>
 #include <inttypes.h>
 #include <stdio.h>
-
 #include "vgmstream_cli.h"
+#include "vjson.h"
 #include "../src/api.h"
 #include "../src/vgmstream.h"
-
-#include "vjson.h"
-
 
 static void clean_filename(char* dst, int clean_paths) {
     for (int i = 0; i < strlen(dst); i++) {
@@ -79,7 +76,7 @@ void replace_filename(char* dst, size_t dstsize, cli_config_t* cfg, VGMSTREAM* v
         }
         else {
             /* not recognized */
-            // TO-DO should move buf or swap "?" with "_"? may happen with non-ascii on Windows; for now break to avoid infinite loops
+            // TO-DO: should move buf or swap "?" with "_"? may happen with non-ascii on Windows; for now break to avoid infinite loops
             break;
         }
 
@@ -101,8 +98,8 @@ void replace_filename(char* dst, size_t dstsize, cli_config_t* cfg, VGMSTREAM* v
 
 void print_info(VGMSTREAM* vgmstream, cli_config_t* cfg) {
     int channels = vgmstream->channels;
-    int64_t num_samples = vgmstream->num_samples;
     bool loop_flag = vgmstream->loop_flag;
+    int64_t num_samples = vgmstream->num_samples;
     int64_t loop_start = vgmstream->loop_start_sample;
     int64_t loop_end = vgmstream->loop_start_sample;
 
@@ -180,9 +177,9 @@ void print_title(VGMSTREAM* vgmstream, cli_config_t* cfg) {
     if (!cfg->print_title)
         return;
 
-    tcfg.force_title = 0;
-    tcfg.subsong_range = 0;
-    tcfg.remove_extension = 0;
+    tcfg.force_title = false;
+    tcfg.subsong_range = false;
+    tcfg.remove_extension = true;
 
     vgmstream_get_title(title, sizeof(title), cfg->infilename, vgmstream, &tcfg);
 
