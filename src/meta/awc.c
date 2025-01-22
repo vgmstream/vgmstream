@@ -205,7 +205,7 @@ VGMSTREAM* init_vgmstream_awc(STREAMFILE* sf) {
             } 
             break;
 
-#ifdef VGM_USE_ATRAC9
+#ifdef VGM_USE_FFMPEG
         case 0x0D: {    /* OPUS (PC) [Red Dead Redemption (PC)] */
             if (awc.is_streamed) {
                 vgmstream->layout_data = build_layered_awc(sf_body, &awc);
