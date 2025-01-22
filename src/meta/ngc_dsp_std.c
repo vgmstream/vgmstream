@@ -717,13 +717,14 @@ VGMSTREAM* init_vgmstream_idsp_namco(STREAMFILE* sf) {
     dspm.header_spacing = read_u32be(0x24,sf);
     dspm.start_offset = read_u32be(0x28,sf);
 
-    /* Soul Calibur: Broken destiny (PSP), Taiko no Tatsujin: Atsumete Tomodachi Daisakusen (WiiU) */
+    /* SoulCalibur Legends (Wii), Taiko no Tatsujin: Atsumete Tomodachi Daisakusen (WiiU) */
     if (dspm.interleave == 0)  {
-        /* half interleave (happens sometimes), use channel size */
+        /* half interleave (uncommon), use channel size */
         dspm.interleave = read_u32be(0x2c,sf);
-        /* Rarely 2nd channel stars with a padding frame then real 2nd channel with initial_ps. Must be some
-         * NUS2 bug when importing DSP data as only happens for one subsong and offsets/sizes are fine [We Ski (Wii)] */
+        /* Rarely 2nd channel stars with a padding frame then real 2nd channel with initial_ps. Must be some NUS2 bug
+         * when importing DSP data as only happens for some subsongs and offsets/sizes are fine [We Ski (Wii), Go Vacation (Wii)] */
         dspm.ignore_initial_ps = true;
+        dspm.ignore_loop_ps = true;
     }
 
     // rare but valid IDSP [Super Smash Bros. Ultimate (Switch)-vc_kirby.nus3audio]
