@@ -11,10 +11,6 @@
 
 #include <foobar2000/SDK/foobar2000.h>
 
-extern "C" {
-#include "../src/vgmstream.h"
-#include "../src/api.h"
-}
 #include "foo_vgmstream.h"
 #include "foo_filetypes.h"
 
@@ -50,7 +46,7 @@ input_vgmstream::input_vgmstream() {
     output_channels = 0;
 
     decoding = false;
-    paused = 0;
+
     decode_pos_ms = 0;
     decode_pos_samples = 0;
     length_samples = 0;
@@ -198,6 +194,7 @@ void input_vgmstream::put_into_tagfile(file_info& p_info, abort_callback& p_abor
         // possible?
         strcpy(tagfile_path, tagfile_name);
     }
+
 
     STREAMFILE* sf_tags = open_foo_streamfile(tagfile_path, &p_abort, NULL);
     if (sf_tags == NULL)
@@ -445,7 +442,6 @@ void input_vgmstream::setup_vgmstream(abort_callback & p_abort) {
 
     decode_pos_ms = 0;
     decode_pos_samples = 0;
-    paused = 0;
     length_samples = vgmstream_get_samples(vgmstream);
 }
 

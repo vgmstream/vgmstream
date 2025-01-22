@@ -14,6 +14,9 @@ extern "C" {
 }
 #include "foo_vgmstream.h"
 
+/* Value can be adjusted freely but 8k is a good enough compromise. */
+#define FOO_STREAMFILE_DEFAULT_BUFFER_SIZE 0x8000
+
 
 /* a STREAMFILE that operates via foobar's file service using a buffer */
 typedef struct {
@@ -30,8 +33,8 @@ typedef struct {
     int archpath_end;           /* where the last \ ends before archive name */
     int archfile_end;           /* where the last | ends before file name */
 
-    offv_t offset;              /* last read offset (info) */
-    offv_t buf_offset;          /* current buffer data start */
+    int64_t offset;             /* last read offset (info) */
+    int64_t buf_offset;         /* current buffer data start */
     uint8_t* buf;               /* data buffer */
     size_t buf_size;            /* max buffer size */
     size_t valid_size;          /* current buffer size */
@@ -41,35 +44,36 @@ typedef struct {
 static STREAMFILE* open_foo_streamfile_buffer(const char* const filename, size_t buf_size, abort_callback* p_abort, t_filestats* stats);
 static STREAMFILE* open_foo_streamfile_buffer_by_file(service_ptr_t<file> m_file, bool m_file_opened, const char* const filename, size_t buf_size, abort_callback* p_abort);
 
-static size_t foo_read(FOO_STREAMFILE* sf, uint8_t* dst, offv_t offset, size_t length) {
+static size_t foo_read(FOO_STREAMFILE* sf, uint8_t* dst, offv_t offset, size_t dst_size) {
     size_t read_total = 0;
-
-    if (!sf || !sf->m_file_opened || !dst || length <= 0 || offset < 0)
+    if (!sf || !sf->m_file_opened || !dst || dst_size <= 0 || offset < 0)
         return 0;
 
+    sf->offset = offset; /* current offset */
+
     /* is the part of the requested length in the buffer? */
-    if (offset >= sf->buf_offset && offset < sf->buf_offset + sf->valid_size) {
+    if (sf->offset >= sf->buf_offset && sf->offset < sf->buf_offset + sf->valid_size) {
         size_t buf_limit;
-        int buf_into = (int)(offset - sf->buf_offset);
+        int buf_into = (int)(sf->offset - sf->buf_offset);
 
         buf_limit = sf->valid_size - buf_into;
-        if (buf_limit > length)
-            buf_limit = length;
+        if (buf_limit > dst_size)
+            buf_limit = dst_size;
 
         memcpy(dst, sf->buf + buf_into, buf_limit);
         read_total += buf_limit;
-        length -= buf_limit;
-        offset += buf_limit;
+        dst_size -= buf_limit;
+        sf->offset += buf_limit;
         dst += buf_limit;
     }
 
 
     /* read the rest of the requested length */
-    while (length > 0) {
+    while (dst_size > 0) {
         size_t buf_limit;
 
         /* ignore requests at EOF */
-        if (offset >= sf->file_size) {
+        if (sf->offset >= sf->file_size) {
             //offset = sf->file_size; /* seems fseek doesn't clamp offset */
             //VGM_ASSERT_ONCE(offset > sf->file_size, "STDIO: reading over file_size 0x%x @ 0x%lx + 0x%x\n", sf->file_size, offset, length);
             break;
@@ -77,42 +81,41 @@ static size_t foo_read(FOO_STREAMFILE* sf, uint8_t* dst, offv_t offset, size_t l
 
         /* position to new offset */
         try {
-            sf->m_file->seek(offset, *sf->p_abort);
+            sf->m_file->seek(sf->offset, *sf->p_abort);
         } catch (...) {
             break; /* this shouldn't happen in our code */
         }
 
         /* fill the buffer (offset now is beyond buf_offset) */
         try {
-            sf->buf_offset = offset;
+            sf->buf_offset = sf->offset;
             sf->valid_size = sf->m_file->read(sf->buf, sf->buf_size, *sf->p_abort);
         } catch(...) {
             break; /* improbable? */
         }
 
         /* decide how much must be read this time */
-        if (length > sf->buf_size)
+        if (dst_size > sf->buf_size)
             buf_limit = sf->buf_size;
         else
-            buf_limit = length;
+            buf_limit = dst_size;
 
         /* give up on partial reads (EOF) */
         if (sf->valid_size < buf_limit) {
             memcpy(dst, sf->buf, sf->valid_size);
-            offset += sf->valid_size;
+            sf->offset += sf->valid_size;
             read_total += sf->valid_size;
             break;
         }
 
         /* use the new buffer */
         memcpy(dst, sf->buf, buf_limit);
-        offset += buf_limit;
+        sf->offset += buf_limit;
         read_total += buf_limit;
-        length -= buf_limit;
+        dst_size -= buf_limit;
         dst += buf_limit;
     }
 
-    sf->offset = offset; /* last fread offset */
     return read_total;
 }
 
@@ -151,9 +154,8 @@ static void foo_close(FOO_STREAMFILE* sf) {
 }
 
 static STREAMFILE* foo_open(FOO_STREAMFILE* sf, const char* const filename, size_t buf_size) {
-    service_ptr_t<file> m_file;
 
-    if (!filename)
+    if (!sf || !filename)
         return NULL;
 
     // vgmstream may need to open "files based on another" (like a changing extension) and "files in the same subdir" (like .txth)
@@ -166,29 +168,32 @@ static STREAMFILE* foo_open(FOO_STREAMFILE* sf, const char* const filename, size
     // > opens:         "unpack://zip|23|file://C:\file.zip|.txth
     // (assumes archives won't need to open files outside archives, and goes before filedup trick)
     if (sf->archname) {
-        char finalname[PATH_LIMIT];
-        const char* dirsep = NULL; 
+        char finalname[FOO_PATH_LIMIT];
+        const char* filepart = NULL; 
 
         // newly open files should be "(current-path)\newfile" or "(current-path)\folder\newfile", so we need to make
         // (archive-path = current-path)\(rest = newfile plus new folders)
-        int filename_len = strlen(filename);
 
+        int filename_len = strlen(filename);
         if (filename_len > sf->archpath_end) {
-            dirsep = &filename[sf->archpath_end];
+            filepart = &filename[sf->archpath_end];
         } else  {
-            dirsep = strrchr(filename, '\\'); // vgmstream shouldn't remove paths though
-            if (!dirsep)
-                dirsep = filename;
+            filepart = strrchr(filename, '\\'); // vgmstream shouldn't remove paths though
+            if (!filepart)
+                filepart = filename;
             else
-                dirsep += 1;
+                filepart += 1;
         }
 
-        //TODO improve strops
-        memcpy(finalname, sf->archname, sf->archfile_end); //copy current path+archive
-        finalname[sf->archfile_end] = '\0';
-        concatn(sizeof(finalname), finalname, dirsep); //paste possible extra dirs and filename
+        //TODO improve str ops
 
-        // subfolders inside archives use "/" (path\archive.ext|subfolder/file.ext)
+        // copy current path+archive ("unpack://zip|23|file://C:\file.zip|")
+        memcpy(finalname, sf->archname, sf->archfile_end);
+        finalname[sf->archfile_end] = '\0';
+        // concat possible extra dirs and filename ("unpack://zip|23|file://C:\file.zip|" + "folder/bgm01.vag")
+        concatn(sizeof(finalname), finalname, filepart);
+
+        // normalize subfolders inside archives to use "/" (path\archive.ext|subfolder/file.ext)
         for (int i = sf->archfile_end; i < sizeof(finalname); i++) {
             if (finalname[i] == '\0')
                 break;
@@ -202,14 +207,12 @@ static STREAMFILE* foo_open(FOO_STREAMFILE* sf, const char* const filename, size
 
     // if same name, duplicate the file pointer we already have open
     if (sf->m_file_opened && !strcmp(sf->name, filename)) {
-        m_file = sf->m_file; //copy?
-        {
-            STREAMFILE* new_sf = open_foo_streamfile_buffer_by_file(m_file, sf->m_file_opened, filename, buf_size, sf->p_abort);
-            if (new_sf) {
-                return new_sf;
-            }
-            // failure, close it and try the default path (which will probably fail a second time)
+        service_ptr_t<file> m_file = sf->m_file; //copy?
+        STREAMFILE* new_sf = open_foo_streamfile_buffer_by_file(m_file, sf->m_file_opened, filename, buf_size, sf->p_abort);
+        if (new_sf) {
+            return new_sf;
         }
+        // failure, close it and try the default path (which will probably fail a second time)
     }
 
     // a normal open, open a new file
@@ -324,5 +327,5 @@ static STREAMFILE* open_foo_streamfile_buffer(const char* const filename, size_t
 }
 
 STREAMFILE* open_foo_streamfile(const char* const filename, abort_callback* p_abort, t_filestats* stats) {
-    return open_foo_streamfile_buffer(filename, STREAMFILE_DEFAULT_BUFFER_SIZE, p_abort, stats);
+    return open_foo_streamfile_buffer(filename, FOO_STREAMFILE_DEFAULT_BUFFER_SIZE, p_abort, stats);
 }
