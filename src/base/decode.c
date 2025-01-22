@@ -935,10 +935,12 @@ decode_fail:
  * buffer already, and we have samples_to_do consecutive samples ahead of us (won't call
  * more than one frame if configured above to do so).
  * Called by layouts since they handle samples written/to_do */
-void decode_vgmstream(VGMSTREAM* vgmstream, int samples_filled, int samples_to_do, sample_t* buffer) {
+void decode_vgmstream(sbuf_t* sdst, VGMSTREAM* vgmstream, int samples_to_do) {
     int ch;
 
-    buffer += samples_filled * vgmstream->channels; /* passed externally to simplify I guess */
+    //TODO: this cast isn't correct for float sbuf-decoders but shouldn't be used/matter (for buffer+ch below)
+    int16_t* buffer = sdst->buf;
+    buffer += sdst->filled * vgmstream->channels; // passed externally to decoders to simplify I guess
     //samples_to_do -= samples_filled; /* pre-adjusted */
 
     switch (vgmstream->coding_type) {
@@ -1673,14 +1675,10 @@ void decode_vgmstream(VGMSTREAM* vgmstream, int samples_filled, int samples_to_d
             break;
 
         default: {
-            sbuf_t sbuf_tmp = {0};
-            sbuf_t* sbuf = &sbuf_tmp;
+            sbuf_t stmp = *sdst;
+            stmp.samples = stmp.filled + samples_to_do; //TODO improve 
 
-            // buffers already adjusted
-            sbuf_init_s16(sbuf, buffer, /*samples_filled +*/ samples_to_do, vgmstream->channels);
-            sbuf->filled = 0; // samples_filled;
-
-            decode_frames(sbuf, vgmstream);
+            decode_frames(&stmp, vgmstream);
             break;
         }
     }

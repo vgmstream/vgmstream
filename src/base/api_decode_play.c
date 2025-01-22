@@ -1,5 +1,6 @@
 #include "api_internal.h"
 #include "mixing.h"
+#include "render.h"
 
 #if LIBVGMSTREAM_ENABLE
 
@@ -17,24 +18,24 @@ static bool reset_buf(libvgmstream_priv_t* priv) {
     int input_channels = 0, output_channels = 0;
     vgmstream_mixing_enable(priv->vgmstream, 0, &input_channels, &output_channels); //query
 
-    int min_channels = input_channels;
-    if (min_channels < output_channels)
-        min_channels = output_channels;
+    int max_channels = input_channels;
+    if (max_channels < output_channels)
+        max_channels = output_channels;
 
     sfmt_t input_sfmt = mixing_get_input_sample_type(priv->vgmstream);
     sfmt_t output_sfmt = mixing_get_output_sample_type(priv->vgmstream);
     int input_sample_size = sfmt_get_sample_size(input_sfmt);
     int output_sample_size = sfmt_get_sample_size(output_sfmt);
 
-    int min_sample_size = input_sample_size;
-    if (min_sample_size < output_sample_size)
-        min_sample_size = output_sample_size;
+    int max_sample_size = input_sample_size;
+    if (max_sample_size < output_sample_size)
+        max_sample_size = output_sample_size;
 
     priv->buf.max_samples = INTERNAL_BUF_SAMPLES;
     priv->buf.sample_size = output_sample_size;
     priv->buf.channels = output_channels;
 
-    int max_bytes = priv->buf.max_samples * min_sample_size * min_channels;
+    int max_bytes = priv->buf.max_samples * max_sample_size * max_channels;
     priv->buf.data = malloc(max_bytes);
     if (!priv->buf.data) return false;
 
@@ -79,7 +80,11 @@ LIBVGMSTREAM_API int libvgmstream_render(libvgmstream_t* lib) {
     if (!priv->pos.play_forever && to_get + priv->pos.current > priv->pos.play_samples)
         to_get = priv->pos.play_samples - priv->pos.current;
 
-    int decoded = render_vgmstream(priv->buf.data, to_get, priv->vgmstream);
+    sbuf_t ssrc;
+    sfmt_t sfmt = mixing_get_input_sample_type(priv->vgmstream);
+    sbuf_init(&ssrc, sfmt, priv->buf.data, to_get, priv->vgmstream->channels);
+
+    int decoded = render_main(&ssrc, priv->vgmstream);
     update_buf(priv, decoded);
     update_decoder_info(priv, decoded);
 

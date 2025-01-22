@@ -143,11 +143,11 @@ static void update_offsets(layout_config_t* layout, VGMSTREAM* vgmstream, int* p
  * Data has interleaved chunks per channel, and once one is decoded the layout moves offsets,
  * skipping other chunks (essentially a simplified variety of blocked layout).
  * Incompatible with decoders that move offsets. */
-void render_vgmstream_interleave(sample_t* outbuf, int32_t sample_count, VGMSTREAM* vgmstream) {
+void render_vgmstream_interleave(sbuf_t* sdst, VGMSTREAM* vgmstream) {
     layout_config_t layout = {0};
     if (!setup_helper(&layout, vgmstream)) {
         VGM_LOG_ONCE("INTERLEAVE: wrong config found\n");
-        sbuf_silence_s16(outbuf, sample_count, vgmstream->channels, 0);
+        sbuf_silence_rest(sdst);
         return;
     }
 
@@ -160,8 +160,7 @@ void render_vgmstream_interleave(sample_t* outbuf, int32_t sample_count, VGMSTRE
     if (samples_this_block == 0 && vgmstream->channels == 1)
         samples_this_block = vgmstream->num_samples;
 
-    int samples_filled = 0;
-    while (samples_filled < sample_count) {
+    while (sdst->filled < sdst->samples) {
 
         if (vgmstream->loop_flag && decode_do_loop(vgmstream)) {
             /* handle looping, restore standard interleave sizes */
@@ -170,17 +169,17 @@ void render_vgmstream_interleave(sample_t* outbuf, int32_t sample_count, VGMSTRE
         }
 
         int samples_to_do = decode_get_samples_to_do(samples_this_block, samples_per_frame, vgmstream);
-        if (samples_to_do > sample_count - samples_filled)
-            samples_to_do = sample_count - samples_filled;
+        if (samples_to_do > sdst->samples - sdst->filled)
+            samples_to_do = sdst->samples - sdst->filled;
 
         if (samples_to_do <= 0) { /* happens when interleave is not set */
             VGM_LOG_ONCE("INTERLEAVE: wrong samples_to_do\n"); 
             goto decode_fail;
         }
 
-        decode_vgmstream(vgmstream, samples_filled, samples_to_do, outbuf);
+        decode_vgmstream(sdst, vgmstream, samples_to_do);
 
-        samples_filled += samples_to_do;
+        sdst->filled += samples_to_do;
         vgmstream->current_sample += samples_to_do;
         vgmstream->samples_into_block += samples_to_do;
 
@@ -193,5 +192,5 @@ void render_vgmstream_interleave(sample_t* outbuf, int32_t sample_count, VGMSTRE
 
     return;
 decode_fail:
-    sbuf_silence_s16(outbuf, sample_count, vgmstream->channels, samples_filled);
+    sbuf_silence_rest(sdst);
 }

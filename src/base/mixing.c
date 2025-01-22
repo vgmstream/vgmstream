@@ -143,9 +143,13 @@ void mixing_info(VGMSTREAM* vgmstream, int* p_input_channels, int* p_output_chan
 }
 
 sfmt_t mixing_get_input_sample_type(VGMSTREAM* vgmstream) {
-    // TODO: check vgmstream
     // TODO: on layered/segments, detect biggest value and use that (ex. if one of the layers uses flt > flt)
-    return SFMT_S16;
+    switch(vgmstream->coding_type) {
+        case coding_KA1A:
+            return SFMT_FLT;
+        default:
+            return SFMT_S16;
+    }
 }
 
 sfmt_t mixing_get_output_sample_type(VGMSTREAM* vgmstream) {

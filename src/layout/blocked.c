@@ -8,7 +8,7 @@
 /* Decodes samples for blocked streams.
  * Data is divided into headered blocks with a bunch of data. The layout calls external helper functions
  * when a block is decoded, and those must parse the new block and move offsets accordingly. */
-void render_vgmstream_blocked(sample_t* outbuf, int32_t sample_count, VGMSTREAM* vgmstream) {
+void render_vgmstream_blocked(sbuf_t* sdst, VGMSTREAM* vgmstream) {
 
     int frame_size = decode_get_frame_size(vgmstream);
     int samples_per_frame = decode_get_samples_per_frame(vgmstream);
@@ -25,8 +25,7 @@ void render_vgmstream_blocked(sample_t* outbuf, int32_t sample_count, VGMSTREAM*
         samples_this_block = vgmstream->current_block_size / frame_size * samples_per_frame;
     }
 
-    int samples_filled = 0;
-    while (samples_filled < sample_count) {
+    while (sdst->filled < sdst->samples) {
         int samples_to_do; 
 
         if (vgmstream->loop_flag && decode_do_loop(vgmstream)) {
@@ -54,15 +53,15 @@ void render_vgmstream_blocked(sample_t* outbuf, int32_t sample_count, VGMSTREAM*
         }
 
         samples_to_do = decode_get_samples_to_do(samples_this_block, samples_per_frame, vgmstream);
-        if (samples_to_do > sample_count - samples_filled)
-            samples_to_do = sample_count - samples_filled;
+        if (samples_to_do > sdst->samples - sdst->filled)
+            samples_to_do = sdst->samples - sdst->filled;
 
         if (samples_to_do > 0) {
             /* samples_this_block = 0 is allowed (empty block, do nothing then move to next block) */
-            decode_vgmstream(vgmstream, samples_filled, samples_to_do, outbuf);
+            decode_vgmstream(sdst, vgmstream, samples_to_do);
         }
 
-        samples_filled += samples_to_do;
+        sdst->filled += samples_to_do;
         vgmstream->current_sample += samples_to_do;
         vgmstream->samples_into_block += samples_to_do;
 
@@ -92,7 +91,7 @@ void render_vgmstream_blocked(sample_t* outbuf, int32_t sample_count, VGMSTREAM*
 
     return;
 decode_fail:
-    sbuf_silence_s16(outbuf, sample_count, vgmstream->channels, samples_filled);
+    sbuf_silence_rest(sdst);
 }
 
 /* helper functions to parse new block */

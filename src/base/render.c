@@ -73,7 +73,6 @@ void render_reset(VGMSTREAM* vgmstream) {
 }
 
 int render_layout(sbuf_t* sbuf, VGMSTREAM* vgmstream) {
-    void* buf = sbuf->buf;
     int sample_count = sbuf->samples;
 
     if (sample_count == 0)
@@ -90,10 +89,10 @@ int render_layout(sbuf_t* sbuf, VGMSTREAM* vgmstream) {
 
     switch (vgmstream->layout_type) {
         case layout_interleave:
-            render_vgmstream_interleave(buf, sample_count, vgmstream);
+            render_vgmstream_interleave(sbuf, vgmstream);
             break;
         case layout_none:
-            render_vgmstream_flat(buf, sample_count, vgmstream);
+            render_vgmstream_flat(sbuf, vgmstream);
             break;
         case layout_blocked_mxch:
         case layout_blocked_ast:
@@ -134,7 +133,7 @@ int render_layout(sbuf_t* sbuf, VGMSTREAM* vgmstream) {
         case layout_blocked_ubi_sce:
         case layout_blocked_tt_ad:
         case layout_blocked_vas:
-            render_vgmstream_blocked(buf, sample_count, vgmstream);
+            render_vgmstream_blocked(sbuf, vgmstream);
             break;
         case layout_segmented:
             render_vgmstream_segmented(sbuf, vgmstream);
