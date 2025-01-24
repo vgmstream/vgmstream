@@ -53,7 +53,7 @@ typedef struct {
 static VGMSTREAM* init_vgmstream_ktsr_internal(STREAMFILE* sf, ktsr_meta_t* info);
 static bool parse_ktsr(ktsr_header_t* ktsr, STREAMFILE* sf);
 static layered_layout_data* build_layered_atrac9(ktsr_header_t* ktsr, STREAMFILE *sf, uint32_t config_data);
-static VGMSTREAM* init_vgmstream_ktsr_sub(STREAMFILE* sf_b, uint32_t st_offset, ktsr_header_t* ktsr, VGMSTREAM* (*init_vgmstream)(STREAMFILE* sf), const char* ext);
+static VGMSTREAM* init_vgmstream_ktsr_sub(STREAMFILE* sf_b, uint32_t st_offset, ktsr_header_t* ktsr, init_vgmstream_t init_vgmstream, const char* ext);
 
 /* KTSR - Koei Tecmo sound resource container (KTSL2 sound lib) */
 VGMSTREAM* init_vgmstream_ktsr(STREAMFILE* sf) {
@@ -217,7 +217,7 @@ static VGMSTREAM* init_vgmstream_ktsr_internal(STREAMFILE* sf, ktsr_meta_t* info
                 ktsr.codec = RIFF_ATRAC9;
         }
 
-        VGMSTREAM* (*init_vgmstream)(STREAMFILE* sf) = NULL;
+        init_vgmstream_t init_vgmstream = NULL;
         const char* ext;
         switch(ktsr.codec) {
             case RIFF_ATRAC9:   init_vgmstream = init_vgmstream_riff; ext = "at9"; break;       // Nioh (PS4)
@@ -332,7 +332,7 @@ fail:
 }
 
 // TODO improve, unify with other metas that do similar stuff
-static VGMSTREAM* init_vgmstream_ktsr_sub(STREAMFILE* sf_b, uint32_t st_offset, ktsr_header_t* ktsr, VGMSTREAM* (*init_vgmstream)(STREAMFILE* sf), const char* ext) {
+static VGMSTREAM* init_vgmstream_ktsr_sub(STREAMFILE* sf_b, uint32_t st_offset, ktsr_header_t* ktsr, init_vgmstream_t init_vgmstream, const char* ext) {
     VGMSTREAM* sub_vgmstream = NULL;
     STREAMFILE* temp_sf = NULL;
 
