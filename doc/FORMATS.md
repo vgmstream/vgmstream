@@ -45,7 +45,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - *bcwav*: `.bcwav .adpcm .bms .sfx .str .zic`
   - *brwar*: `.rwar`
     - Subfiles: *brwav*
-  - Codecs: PCM8 PCM16BE PCM16LE NGC_DSP NW_IMA
+  - Codecs: PCM8 PCM16BE PCM16LE NGC_DSP IMA
 - **nds_strm.c**
   - Nintendo STRM header [*STRM*]
   - *nds_strm*: `.strm`
@@ -918,7 +918,7 @@ different internally (encrypted, different versions, etc) and not always can be 
 - **bcstm.c**
   - Nintendo CSTM Header [*CSTM*]
   - *bcstm*: `.bcstm`
-  - Codecs: PCM8 PCM16LE NGC_DSP NW_IMA
+  - Codecs: PCM8 PCM16LE NGC_DSP CAMELOT_IMA
 - **g1l.c**
   - Koei Tecmo WiiBGM Header [*KT_WIIBGM*]
   - *kt_g1l*: `.g1l`
@@ -1846,6 +1846,10 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Codemasters i3DS header [*I3DS*]
   - *i3ds*: `.3ds`
   - Codecs: NGC_DSP
+- **skex.c**
+  - (container)
+  - *skex*: `.skx + .tbl`
+    - Subfiles: *vag riff vpk*
 - **agsc.c**
   - Retro Studios AGSC header [*AGSC*]
   - *agsc*: `.agsc`
