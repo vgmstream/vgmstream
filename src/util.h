@@ -47,6 +47,9 @@ uint32_t clamp_u32(uint32_t v, uint32_t min, uint32_t max);
 
 int round10(int val);
 
+#define align_size align_size_to_block
+
+// returns size with padding, ex. value=0x560, block=0x100 > 0x600
 size_t align_size_to_block(size_t value, size_t block_align);
 
 /* return a file's extension (a pointer to the first character of the
