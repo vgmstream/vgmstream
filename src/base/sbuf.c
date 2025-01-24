@@ -112,12 +112,17 @@ void sbuf_copy_to_f32(float* dst, sbuf_t* sbuf) {
             }
             break;
         }
-
-        case SFMT_FLT:
         case SFMT_F32: {
             float* src = sbuf->buf;
             for (int s = 0; s < sbuf->filled * sbuf->channels; s++) {
                 dst[s] = src[s];
+            }
+            break;
+        }
+        case SFMT_FLT: {
+            float* src = sbuf->buf;
+            for (int s = 0; s < sbuf->filled * sbuf->channels; s++) {
+                dst[s] = src[s] * 32768.0f;
             }
             break;
         }

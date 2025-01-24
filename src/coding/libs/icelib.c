@@ -9,7 +9,7 @@
 
 //TODO change to streaming decoder
 // Currently lib expects most data in memory. Due to how format is designed it's not the
-// easiest thing to change, to be fixed it later:
+// easiest thing to change, to be fixed later:
 // - data is divided into 2 blocks (intro+body) that are decoded separatedly
 //   (streaming should read up to block max)
 // - code data isn't divided into frames, just keeps reading from the file buf
@@ -30,35 +30,10 @@
 
 //#include "zlib.h"
 #include "../../util/zlib_vgmstream.h" 
+#include "../../util/reader_get.h"
 
 #define ICESND_MAX_CHANNELS    2
 
-
-/* ************************************************************ */
-/* COMMON */
-/* ************************************************************ */
-
-static inline uint8_t get_u8(const uint8_t* p) {
-    uint8_t ret;
-    ret  = ((uint16_t)(const uint8_t)p[0]) << 0;
-    return ret;
-}
-
-static inline uint16_t get_u16le(const uint8_t* p) {
-    uint16_t ret;
-    ret  = ((uint16_t)(const uint8_t)p[0]) << 0;
-    ret |= ((uint16_t)(const uint8_t)p[1]) << 8;
-    return ret;
-}
-
-static inline uint32_t get_u32le(const uint8_t* p) {
-    uint32_t ret;
-    ret  = ((uint32_t)(const uint8_t)p[0]) << 0;
-    ret |= ((uint32_t)(const uint8_t)p[1]) << 8;
-    ret |= ((uint32_t)(const uint8_t)p[2]) << 16;
-    ret |= ((uint32_t)(const uint8_t)p[3]) << 24;
-    return ret;
-}
 
 /* bigrp entry info as read from header */
 typedef struct {

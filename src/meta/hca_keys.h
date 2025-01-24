@@ -1515,6 +1515,9 @@ static const hcakey_info hcakey_list[] = {
 
     // Muv-Luv Dimensions (Android)
     {8848},                     // 0000000000002290
+
+    // Tales of Graces f Remastered (PC)
+    {51485416730473395},        // 00B6E9B6B75533B3
 };
 
 #endif

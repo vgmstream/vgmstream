@@ -20,16 +20,17 @@ VGMSTREAM* init_vgmstream_ktac(STREAMFILE* sf) {
     ktac_header_t ktac = {0};
 
     /* checks */
-    /* .ktac: header id */
-    if (!check_extensions(sf,"ktac"))
-        goto fail;
     if (!is_id32be(0x00,sf, "KTAC"))
-        goto fail;
+        return NULL;
+
+    /* .ktac: header id (probable extension from debug strings is "kac" */
+    if (!check_extensions(sf,"ktac"))
+        return NULL;
 
     /* 0x04: version? (always 1) */
     ktac.file_size = read_u32le(0x08,sf);
     if (ktac.file_size != get_streamfile_size(sf))
-        goto fail;
+        return NULL;
     ktac.mp4.stream_offset  = read_u32le(0x0c,sf);
     ktac.mp4.stream_size    = read_u32le(0x10,sf);
     ktac.type               = read_u32le(0x14,sf);

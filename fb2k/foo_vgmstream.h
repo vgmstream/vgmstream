@@ -6,6 +6,7 @@
 
 extern "C" {
 #include "../src/vgmstream.h"
+#include "../src/api.h"
 }
 
 typedef struct {
@@ -83,7 +84,7 @@ class input_vgmstream : public input_stubs {
         int output_channels;
 
         bool decoding;
-        int paused;
+
         int decode_pos_ms;
         int decode_pos_samples;
         int length_samples;
@@ -124,5 +125,4 @@ class input_vgmstream : public input_stubs {
 /* foo_streamfile.cpp */
 STREAMFILE* open_foo_streamfile(const char* const filename, abort_callback* p_abort, t_filestats* stats);
 
-
-#endif /*_FOO_VGMSTREAM_*/
+#endif

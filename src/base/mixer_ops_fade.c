@@ -2,6 +2,8 @@
 #include <limits.h>
 #include <math.h>
 
+//TODO: could precalculate tables + interpolate for some performance gain
+
 #define MIXING_PI   3.14159265358979323846f
 
 static inline float get_fade_gain_curve(char shape, float index) {
@@ -112,35 +114,33 @@ static bool get_fade_gain(mix_op_t* op, float* out_cur_vol, int32_t current_subp
     return true;
 }
 
-void mixer_op_fade(mixer_t* mixer, int32_t sample_count, mix_op_t* mix) {
-    float* sbuf = mixer->mixbuf;
+void mixer_op_fade(mixer_t* mixer, mix_op_t* mix) {
+    sbuf_t* smix = &mixer->smix;
+    float* dst = smix->buf;
     float new_gain = 0.0f;
 
-    int channels = mixer->current_channels;
+    int channels = smix->channels;
     int32_t current_subpos = mixer->current_subpos;
 
     //TODO optimize for case 0?
-    for (int s = 0; s < sample_count; s++) {
+    for (int s = 0; s < smix->filled; s++) {
         bool fade_applies = get_fade_gain(mix, &new_gain, current_subpos);
         if (!fade_applies) //TODO optimize?
             continue;
 
         if (mix->ch_dst < 0) {
             for (int ch = 0; ch < channels; ch++) {
-                sbuf[ch] = sbuf[ch] * new_gain;
+                dst[ch] = dst[ch] * new_gain;
             }
         }
         else {
-            sbuf[mix->ch_dst] = sbuf[mix->ch_dst] * new_gain;
+            dst[mix->ch_dst] = dst[mix->ch_dst] * new_gain;
         }
 
-        sbuf += channels;
+        dst += channels;
         current_subpos++;
     }
-
-    mixer->current_subpos = current_subpos;
 }
-
 
 bool mixer_op_fade_is_active(mixer_t* mixer, int32_t current_start, int32_t current_end) {
 

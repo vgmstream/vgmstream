@@ -307,6 +307,15 @@ VGMSTREAM* init_vgmstream_vag(STREAMFILE* sf) {
                 channel_size -= 0x40;
                 loop_flag = ps_find_loop_offsets(sf, start_offset, channel_size, channels, interleave, &loop_start_sample, &loop_end_sample);
             }
+            else if (version == 0x00000020 && is_id64be(0x20, sf, "KAudioDL") &&  ( (channel_size + 0x30) * 2 == file_size 
+                || align_size(channel_size + 0x30, 0x800) * 2 == file_size ||  align_size(channel_size + 0x30, 0x400) * 2 == file_size) ) {
+                /* .SKX stereo vag (name is always KAudioDLL and streams are padded unlike memory audio) [NBA 06 (PS2)] */
+                start_offset = 0x30;
+                interleave = file_size / 2;
+                channels = 2; // mono KAudioDLL streams also exist
+
+                loop_flag = ps_find_loop_offsets(sf, start_offset, channel_size, channels, interleave, &loop_start_sample, &loop_end_sample);
+            }
             else {
                 /* standard PS1/PS2/PS3 .vag [Ecco the Dolphin (PS2), Legasista (PS3)] */
                 start_offset = 0x30;

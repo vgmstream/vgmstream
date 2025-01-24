@@ -211,7 +211,7 @@ static VGMSTREAM* init_vgmstream_bxwav(STREAMFILE* sf, bxwav_type_t type) {
     
     vgmstream->layout_type = layout_none;
 
-    /* only 0x02 is known, others can be made with SDK tools */
+    /* only 0x02/03 are known, others can be made with SDK tools */
     switch (codec) {
         case 0x00:
             vgmstream->coding_type = coding_PCM8;
@@ -227,7 +227,7 @@ static VGMSTREAM* init_vgmstream_bxwav(STREAMFILE* sf, bxwav_type_t type) {
             break;
 
         case 0x03:
-            vgmstream->coding_type = coding_NW_IMA;
+            vgmstream->coding_type = coding_IMA; // 3DS eShop applet (3DS) 
             /* hist is read below */
             break;
 

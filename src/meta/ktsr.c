@@ -28,6 +28,7 @@ typedef struct {
     uint32_t audio_id;
     int platform;
     int format;
+    uint32_t codec_value;
     uint32_t sound_id;
     uint32_t sound_flags;
     uint32_t config_flags;
@@ -52,9 +53,9 @@ typedef struct {
 static VGMSTREAM* init_vgmstream_ktsr_internal(STREAMFILE* sf, ktsr_meta_t* info);
 static bool parse_ktsr(ktsr_header_t* ktsr, STREAMFILE* sf);
 static layered_layout_data* build_layered_atrac9(ktsr_header_t* ktsr, STREAMFILE *sf, uint32_t config_data);
-static VGMSTREAM* init_vgmstream_ktsr_sub(STREAMFILE* sf_b, uint32_t st_offset, ktsr_header_t* ktsr, VGMSTREAM* (*init_vgmstream)(STREAMFILE* sf), const char* ext);
+static VGMSTREAM* init_vgmstream_ktsr_sub(STREAMFILE* sf_b, uint32_t st_offset, ktsr_header_t* ktsr, init_vgmstream_t init_vgmstream, const char* ext);
 
-/* KTSR - Koei Tecmo sound resource container */
+/* KTSR - Koei Tecmo sound resource container (KTSL2 sound lib) */
 VGMSTREAM* init_vgmstream_ktsr(STREAMFILE* sf) {
 
     /* checks */
@@ -204,6 +205,7 @@ static VGMSTREAM* init_vgmstream_ktsr_internal(STREAMFILE* sf, ktsr_meta_t* info
 
 
     sf_b = setup_sf_body(sf, &ktsr, info);
+    if (!sf_b) goto fail;
 
     /* subfiles */
     {
@@ -215,7 +217,7 @@ static VGMSTREAM* init_vgmstream_ktsr_internal(STREAMFILE* sf, ktsr_meta_t* info
                 ktsr.codec = RIFF_ATRAC9;
         }
 
-        VGMSTREAM* (*init_vgmstream)(STREAMFILE* sf) = NULL;
+        init_vgmstream_t init_vgmstream = NULL;
         const char* ext;
         switch(ktsr.codec) {
             case RIFF_ATRAC9:   init_vgmstream = init_vgmstream_riff; ext = "at9"; break;       // Nioh (PS4)
@@ -330,7 +332,7 @@ fail:
 }
 
 // TODO improve, unify with other metas that do similar stuff
-static VGMSTREAM* init_vgmstream_ktsr_sub(STREAMFILE* sf_b, uint32_t st_offset, ktsr_header_t* ktsr, VGMSTREAM* (*init_vgmstream)(STREAMFILE* sf), const char* ext) {
+static VGMSTREAM* init_vgmstream_ktsr_sub(STREAMFILE* sf_b, uint32_t st_offset, ktsr_header_t* ktsr, init_vgmstream_t init_vgmstream, const char* ext) {
     VGMSTREAM* sub_vgmstream = NULL;
     STREAMFILE* temp_sf = NULL;
 
@@ -340,7 +342,7 @@ static VGMSTREAM* init_vgmstream_ktsr_sub(STREAMFILE* sf_b, uint32_t st_offset, 
     sub_vgmstream = init_vgmstream(temp_sf);
     close_streamfile(temp_sf);
     if (!sub_vgmstream) {
-        VGM_LOG("ktsr: can't open subfile at %x (size %x)\n", ktsr->stream_offsets[0], ktsr->stream_sizes[0]);
+        VGM_LOG("ktsr: can't open subfile %s at %x (size %x)\n", ext, ktsr->stream_offsets[0], ktsr->stream_sizes[0]);
         return NULL;
     }
 
@@ -414,11 +416,13 @@ static int parse_codec(ktsr_header_t* ktsr) {
     /* platform + format to codec, simplified until more codec combos are found */
     switch(ktsr->platform) {
         case 0x01: /* PC */
-        case 0x05: /* PC/Steam [Fate/Samurai Remnant (PC)] */
+        case 0x05: /* PC/Steam, Android [Fate/Samurai Remnant (PC)] */
             if (ktsr->format == 0x0000 && !ktsr->is_external)
                 ktsr->codec = MSADPCM; // Warrior Orochi 4 (PC)
             else if (ktsr->format == 0x0001)
                 ktsr->codec = KA1A_INTERNAL; // Dynasty Warriors Origins (PC)
+            else if (ktsr->format == 0x0005 && ktsr->is_external && ktsr->codec_value == 0x0840)
+                ktsr->codec = KTAC; // Shin Hokuto Musou (Android
             else if (ktsr->format == 0x0005 && ktsr->is_external)
                 ktsr->codec = KOVS; // Atelier Ryza (PC)
             else if (ktsr->format == 0x1001 && ktsr->is_external)
@@ -481,7 +485,7 @@ static bool parse_ktsr_subfile(ktsr_header_t* ktsr, STREAMFILE* sf, uint32_t off
              * 14 external codec
              * 18 sample rate
              * 1c num samples
-             * 20 null / 0x1000?
+             * 20 null or codec-related value (RIFF_AT9/KM9=0x100, KTAC=0x840)
              * 24 loop start or -1 (loop end is num samples)
              * 28 channel layout (or null?)
              * 2c null
@@ -492,8 +496,9 @@ static bool parse_ktsr_subfile(ktsr_header_t* ktsr, STREAMFILE* sf, uint32_t off
              */
             //;VGM_LOG("header %08x at %x\n", type, offset);
 
-            ktsr->channels  = read_u32le(offset + 0x0c, sf);
-            ktsr->format    = read_u32le(offset + 0x14, sf);
+            ktsr->channels      = read_u32le(offset + 0x0c, sf);
+            ktsr->format        = read_u32le(offset + 0x14, sf);
+            ktsr->codec_value   = read_u32le(offset + 0x20, sf);
             /* other fields will be read in the external stream */
 
             ktsr->channel_layout = read_u32le(offset + 0x28, sf);
@@ -507,7 +512,7 @@ static bool parse_ktsr_subfile(ktsr_header_t* ktsr, STREAMFILE* sf, uint32_t off
                 ktsr->stream_sizes[0]   = read_u32le(offset + 0x38, sf);
             }
             ktsr->is_external = true;
-
+VGM_LOG("k=%x\n", ktsr->codec_value);
             break;
 
         case 0x41FDBD4E: /* internal [Attack on Titan: Wings of Freedom (Vita)] */
@@ -517,14 +522,14 @@ static bool parse_ktsr_subfile(ktsr_header_t* ktsr, STREAMFILE* sf, uint32_t off
         case 0x10250527: /* internal [Fire Emblem: Three Houses DLC (Switch)] */
             /* 08 subtype? (0x6029DBD2, 0xD20A92F90, 0xDC6FF709)
              * 0c channels
-             * 10 format? (00=platform's ADPCM? 01=ATRAC9?)
-             * 11 bps? (always 16)
+             * 10 format
+             * 11 null or sometimes 16
              * 12 null
              * 14 sample rate
              * 18 num samples
-             * 1c null or 0x100?
+             * 1c null or codec-related value?
              * 20 loop start or -1 (loop end is num samples)
-             * 24 null or channel layout (for 1 track in case of multi-track streams))
+             * 24 null or channel layout (for 1 track in case of multi-track streams)
              * 28 header offset (within subfile)
              * 2c header size [B, C]
              * 30 offset to data start offset [A, C] or to data start+size [B]
@@ -679,7 +684,7 @@ static bool parse_ktsr(ktsr_header_t* ktsr, STREAMFILE* sf) {
      * 04: type
      * 08: version?
      * 0a: unknown (usually 00, 02/03 seen in Vita)
-     * 0b: platform (01=PC, 03=Vita, 04=Switch)
+     * 0b: platform
      * 0c: audio id? (seen in multiple files/games and used as Ogg stream IDs)
      * 10: null
      * 14: null

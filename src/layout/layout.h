@@ -8,9 +8,9 @@
 #include "../base/sbuf.h"
 
 /* basic layouts */
-void render_vgmstream_flat(sample_t* buffer, int32_t sample_count, VGMSTREAM* vgmstream);
+void render_vgmstream_flat(sbuf_t* sbuf, VGMSTREAM* vgmstream);
 
-void render_vgmstream_interleave(sample_t* buffer, int32_t sample_count, VGMSTREAM* vgmstream);
+void render_vgmstream_interleave(sbuf_t* sbuf, VGMSTREAM* vgmstream);
 
 
 /* segmented layout */
@@ -56,7 +56,7 @@ void loop_layout_layered(VGMSTREAM* vgmstream, int32_t loop_sample);
 
 
 /* blocked layouts */
-void render_vgmstream_blocked(sample_t* buffer, int32_t sample_count, VGMSTREAM* vgmstream);
+void render_vgmstream_blocked(sbuf_t* sbuf, VGMSTREAM* vgmstream);
 void block_update(off_t block_offset, VGMSTREAM* vgmstream);
 
 void block_update_ast(off_t block_ofset, VGMSTREAM* vgmstream);

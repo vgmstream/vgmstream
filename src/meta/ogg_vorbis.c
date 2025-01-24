@@ -186,7 +186,7 @@ static int _init_vgmstream_ogg_vorbis_tests(STREAMFILE* sf, ogg_vorbis_io_config
 
         cfg->start = 0x20;
 
-        /* .kvs: Atelier Sophie (PC)
+        /* .kvs: Atelier Sophie (PC), debug strings
          * .kovs: header id only? */
         if (!check_extensions(sf,"kvs,kovs"))
             goto fail;

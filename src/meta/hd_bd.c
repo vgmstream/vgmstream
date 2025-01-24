@@ -31,7 +31,7 @@ VGMSTREAM* init_vgmstream_hd_bd(STREAMFILE* sf) {
     // 0x1c: Smpl offset
     uint32_t vagi_offset = read_u32le(head_offset + 0x20, sf);
     // 0x24: Setb offset
-    // rest: reserved (-1)
+    // rest: reserved (-1, or rarely 0 [Midnight Club 2 (PS2)])
 
     meta_header_t h = {
         .meta = meta_HD_BD,

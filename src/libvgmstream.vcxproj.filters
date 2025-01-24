@@ -1885,6 +1885,9 @@
     <ClCompile Include="meta\silence.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\skex.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\sk_aud.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
