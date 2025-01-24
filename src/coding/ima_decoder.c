@@ -124,8 +124,8 @@ static void std_ima_expand_nibble_mul(VGMSTREAMCHANNEL * stream, off_t byte_offs
     if (*step_index > 88) *step_index=88;
 }
 
-/* NintendoWare IMA (Mario Golf, Mario Tennis; maybe other Camelot games) */
-static void nw_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset, int nibble_shift, int32_t * hist1, int32_t * step_index) {
+/* Camelot IMA (Mario Golf, Mario Tennis; maybe other Camelot games) */
+static void camelot_ima_expand_nibble(VGMSTREAMCHANNEL * stream, off_t byte_offset, int nibble_shift, int32_t * hist1, int32_t * step_index) {
     int sample_nibble, sample_decoded, step, delta;
 
     sample_nibble = (read_8bit(byte_offset,stream->streamfile) >> nibble_shift)&0xf;
@@ -418,7 +418,7 @@ void decode_mtf_ima(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspa
     stream->adpcm_step_index = step_index;
 }
 
-void decode_nw_ima(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
+void decode_camelot_ima(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
     int i, sample_count;
     int32_t hist1 = stream->adpcm_history1_32;
     int step_index = stream->adpcm_step_index;
@@ -431,7 +431,7 @@ void decode_nw_ima(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspac
         off_t byte_offset = stream->offset + i/2;
         int nibble_shift = (i&1?4:0); //low nibble order
 
-        nw_ima_expand_nibble(stream, byte_offset,nibble_shift, &hist1, &step_index);
+        camelot_ima_expand_nibble(stream, byte_offset,nibble_shift, &hist1, &step_index);
         outbuf[sample_count] = (short)(hist1);
     }
 

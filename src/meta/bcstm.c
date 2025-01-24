@@ -96,7 +96,7 @@ VGMSTREAM* init_vgmstream_bcstm(STREAMFILE* sf) {
             vgmstream->coding_type = coding_NGC_DSP;
 
             if (is_camelot_ima) {
-                vgmstream->coding_type = coding_NW_IMA;
+                vgmstream->coding_type = coding_CAMELOT_IMA;
             }
             else {
                 off_t channel_indexes, channel_info_offset, coefs_offset;
@@ -113,7 +113,7 @@ VGMSTREAM* init_vgmstream_bcstm(STREAMFILE* sf) {
             }
             break;
 
-        default: /* 0x03: IMA? */
+        default: /* 0x03: regular IMA? (like .bcwav) */
             goto fail;
     }
 

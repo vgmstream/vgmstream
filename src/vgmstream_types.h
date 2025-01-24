@@ -63,7 +63,7 @@ typedef enum {
     coding_IMA_int,         /* IMA ADPCM (mono/interleave, low nibble first) */
     coding_DVI_IMA,         /* DVI IMA ADPCM (stereo or mono, high nibble first) */
     coding_DVI_IMA_int,     /* DVI IMA ADPCM (mono/interleave, high nibble first) */
-    coding_NW_IMA,
+    coding_CAMELOT_IMA,
     coding_SNDS_IMA,        /* Heavy Iron Studios .snds IMA ADPCM */
     coding_QD_IMA,
     coding_WV6_IMA,         /* Gorilla Systems WV6 4-bit IMA ADPCM */

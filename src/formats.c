@@ -836,7 +836,7 @@ static const coding_info coding_info_list[] = {
         {coding_IMA_int,            "IMA 4-bit ADPCM (mono/interleave)"},
         {coding_DVI_IMA,            "Intel DVI 4-bit IMA ADPCM"},
         {coding_DVI_IMA_int,        "Intel DVI 4-bit IMA ADPCM (mono/interleave)"},
-        {coding_NW_IMA,             "NintendoWare IMA 4-bit ADPCM"},
+        {coding_CAMELOT_IMA,        "Camelot IMA 4-bit ADPCM"},
         {coding_SNDS_IMA,           "Heavy Iron .snds 4-bit IMA ADPCM"},
         {coding_QD_IMA,             "Quantic Dream 4-bit IMA ADPCM"},
         {coding_WV6_IMA,            "Gorilla Systems WV6 4-bit IMA ADPCM"},

@@ -469,7 +469,7 @@ int decode_get_samples_per_frame(VGMSTREAM* vgmstream) {
         case coding_PCM4_U:
         case coding_IMA_int:
         case coding_DVI_IMA_int:
-        case coding_NW_IMA:
+        case coding_CAMELOT_IMA:
         case coding_WV6_IMA:
         case coding_HV_IMA:
         case coding_FFTA2_IMA:
@@ -685,7 +685,7 @@ int decode_get_frame_size(VGMSTREAM* vgmstream) {
         case coding_IMA_int:
         case coding_DVI_IMA:
         case coding_DVI_IMA_int:
-        case coding_NW_IMA:
+        case coding_CAMELOT_IMA:
         case coding_WV6_IMA:
         case coding_HV_IMA:
         case coding_FFTA2_IMA:
@@ -1336,9 +1336,9 @@ void decode_vgmstream(sbuf_t* sdst, VGMSTREAM* vgmstream, int samples_to_do) {
             }
             break;
         }
-        case coding_NW_IMA:
+        case coding_CAMELOT_IMA:
             for (ch = 0; ch < vgmstream->channels; ch++) {
-                decode_nw_ima(&vgmstream->ch[ch], buffer+ch,
+                decode_camelot_ima(&vgmstream->ch[ch], buffer+ch,
                         vgmstream->channels, vgmstream->samples_into_block, samples_to_do);
             }
             break;
