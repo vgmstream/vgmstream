@@ -32,7 +32,7 @@ VGMSTREAM * init_vgmstream_ps2_snd(STREAMFILE *streamFile) {
     vgmstream->meta_type = meta_PS2_SND;
 
     if (read_8bit(0x08,streamFile)==1) {
-        vgmstream->coding_type = coding_DVI_IMA_int; /* Warriors of M&M DragonBone */
+        vgmstream->coding_type = coding_DVI_IMA_mono; /* Warriors of M&M DragonBone */
     }
     else {
         vgmstream->coding_type = coding_PCM16LE; /* Heroes of M&M */

@@ -34,7 +34,7 @@ VGMSTREAM* init_vgmstream_wav2(STREAMFILE* sf) {
     vgmstream->sample_rate = sample_rate;
     vgmstream->num_samples = ima_bytes_to_samples(data_size, channels); /* also 0x18 */
 
-    vgmstream->coding_type = coding_DVI_IMA_int;
+    vgmstream->coding_type = coding_DVI_IMA_mono;
     vgmstream->layout_type = layout_interleave;
     vgmstream->interleave_block_size = 0xFA;
     vgmstream->interleave_last_block_size = (data_size % (vgmstream->interleave_block_size * channels)) / channels;

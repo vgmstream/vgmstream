@@ -29,7 +29,7 @@ VGMSTREAM* init_vgmstream_sat_dvi(STREAMFILE* sf) {
     vgmstream->loop_start_sample = read_s32be(0x0C,sf);
     vgmstream->loop_end_sample = read_s32be(0x08,sf);
 
-    vgmstream->coding_type = coding_DVI_IMA_int;
+    vgmstream->coding_type = coding_DVI_IMA_mono;
     vgmstream->layout_type = layout_interleave;
     vgmstream->interleave_block_size = 0x4;
     vgmstream->meta_type = meta_SAT_DVI;

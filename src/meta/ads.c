@@ -15,7 +15,7 @@ VGMSTREAM* init_vgmstream_ads(STREAMFILE* sf) {
 
     /* checks */
     if (!is_id32be(0x00,sf,"SShd"))
-        goto fail;
+        return NULL;
 
     /* .ads: actual extension
      * .ss2: demuxed videos (fake?)
@@ -25,15 +25,15 @@ VGMSTREAM* init_vgmstream_ads(STREAMFILE* sf) {
      * .800: Mobile Suit Gundam: The One Year War (PS2)
      * .sdl: Innocent Life: A Futuristic Harvest Moon (Special Edition) (PS2) */
     if (!check_extensions(sf, "ads,ss2,pcm,adx,,800,sdl"))
-        goto fail;
+        return NULL;
 
     if (read_u32le(0x04,sf) != 0x18 &&  /* standard header size */
         read_u32le(0x04,sf) != 0x20 &&  /* True Fortune (PS2) */
         read_u32le(0x04,sf) != get_streamfile_size(sf) - 0x08) /* Katamari Damacy videos */
-        goto fail;
+        return NULL;
 
     if (!is_id32be(0x20,sf,"SSbd"))
-        goto fail;
+        return NULL;
 
     /* base values (a bit unorderly since devs hack ADS too much and detection is messy) */
     {
@@ -52,7 +52,7 @@ VGMSTREAM* init_vgmstream_ads(STREAMFILE* sf) {
                 if (sample_rate == 12000 && interleave == 0x200) {
                     sample_rate = 48000;
                     interleave = 0x40;
-                    coding_type = coding_DVI_IMA_int;
+                    coding_type = coding_DVI_IMA_mono;
                     /* should try to detect IMA data but it's not so easy, this works ok since
                      * no known games use these settings, videos normally are 48000/24000hz */
                 }
@@ -281,7 +281,7 @@ VGMSTREAM* init_vgmstream_ads(STREAMFILE* sf) {
         case coding_PSX:
             vgmstream->num_samples = ps_bytes_to_samples(stream_size, channels);
             break;
-        case coding_DVI_IMA_int:
+        case coding_DVI_IMA_mono:
             vgmstream->num_samples = ima_bytes_to_samples(stream_size, channels);
             break;
         default:

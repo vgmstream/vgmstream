@@ -60,7 +60,7 @@ VGMSTREAM* init_vgmstream_swav(STREAMFILE* sf) {
             bits_per_sample = 16;
             break;
         case 2:
-            coding_type = coding_IMA_int;
+            coding_type = coding_IMA_mono;
             bits_per_sample = 4;
             break;
         default:
@@ -79,7 +79,7 @@ VGMSTREAM* init_vgmstream_swav(STREAMFILE* sf) {
         vgmstream->loop_end_sample = loop_end * 32 / bits_per_sample + vgmstream->loop_start_sample;
     }
 
-    if (coding_type == coding_IMA_int) {
+    if (coding_type == coding_IMA_mono) {
         /* handle IMA frame header */
         vgmstream->loop_start_sample -= 32 / bits_per_sample;
         vgmstream->loop_end_sample -= 32 / bits_per_sample;

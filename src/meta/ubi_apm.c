@@ -60,7 +60,7 @@ VGMSTREAM* init_vgmstream_ubi_apm(STREAMFILE* sf) {
     if (!vgmstream) goto fail;
 
     vgmstream->meta_type = meta_UBI_APM;
-    vgmstream->coding_type = coding_DVI_IMA_int;
+    vgmstream->coding_type = coding_DVI_IMA_mono;
     vgmstream->layout_type = layout_interleave;
     vgmstream->interleave_block_size = 0x01;
     vgmstream->sample_rate = sample_rate;

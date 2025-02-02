@@ -467,8 +467,8 @@ int decode_get_samples_per_frame(VGMSTREAM* vgmstream) {
             return 1;
         case coding_PCM4:
         case coding_PCM4_U:
-        case coding_IMA_int:
-        case coding_DVI_IMA_int:
+        case coding_IMA_mono:
+        case coding_DVI_IMA_mono:
         case coding_CAMELOT_IMA:
         case coding_WV6_IMA:
         case coding_HV_IMA:
@@ -682,9 +682,9 @@ int decode_get_frame_size(VGMSTREAM* vgmstream) {
         case coding_PCM4:
         case coding_PCM4_U:
         case coding_IMA:
-        case coding_IMA_int:
+        case coding_IMA_mono:
         case coding_DVI_IMA:
-        case coding_DVI_IMA_int:
+        case coding_DVI_IMA_mono:
         case coding_CAMELOT_IMA:
         case coding_WV6_IMA:
         case coding_HV_IMA:
@@ -1314,13 +1314,13 @@ void decode_vgmstream(sbuf_t* sdst, VGMSTREAM* vgmstream, int samples_to_do) {
             break;
 
         case coding_IMA:
-        case coding_IMA_int:
+        case coding_IMA_mono:
         case coding_DVI_IMA:
-        case coding_DVI_IMA_int: {
+        case coding_DVI_IMA_mono: {
             int is_stereo = (vgmstream->channels > 1 && vgmstream->coding_type == coding_IMA)
                     || (vgmstream->channels > 1 && vgmstream->coding_type == coding_DVI_IMA);
             int is_high_first = vgmstream->coding_type == coding_DVI_IMA
-                    || vgmstream->coding_type == coding_DVI_IMA_int;
+                    || vgmstream->coding_type == coding_DVI_IMA_mono;
             for (ch = 0; ch < vgmstream->channels; ch++) {
                 decode_standard_ima(&vgmstream->ch[ch], buffer+ch,
                         vgmstream->channels, vgmstream->samples_into_block, samples_to_do, ch,

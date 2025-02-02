@@ -206,7 +206,7 @@ VGMSTREAM* init_vgmstream_aifc(STREAMFILE* sf) {
                                 break;
 
                             case 0x41445034:    /* "ADP4" */
-                                coding_type = coding_DVI_IMA_int;
+                                coding_type = coding_DVI_IMA_mono;
                                 if (channels != 1) break; /* don't know how stereo DVI is laid out */
                                 break;
 

@@ -110,7 +110,7 @@ VGMSTREAM* init_vgmstream_rage_aud(STREAMFILE* sf) {
 #endif
 
         case 0x0400: /* PC */
-            vgmstream->coding_type = coding_IMA_int;
+            vgmstream->coding_type = coding_IMA_mono;
             vgmstream->layout_type = aud.is_streamed ? layout_blocked_rage_aud : layout_none;
             vgmstream->full_block_size = aud.block_chunk;
             break;

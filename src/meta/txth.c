@@ -371,9 +371,9 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
                 else {
                     vgmstream->layout_type = layout_interleave;
                     if (coding == coding_DVI_IMA)
-                        coding = coding_DVI_IMA_int;
+                        coding = coding_DVI_IMA_mono;
                     if (coding == coding_IMA)
-                        coding = coding_IMA_int;
+                        coding = coding_IMA_mono;
                     if (coding == coding_AICA)
                         coding = coding_AICA_int;
                 }
@@ -383,8 +383,8 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
                         coding == coding_PSX ||
                         coding == coding_PSX_badflags ||
                         coding == coding_HEVAG ||
-                        coding == coding_IMA_int ||
-                        coding == coding_DVI_IMA_int ||
+                        coding == coding_IMA_mono ||
+                        coding == coding_DVI_IMA_mono ||
                         coding == coding_SDX2_int ||
                         coding == coding_AICA_int) ) {
                     goto fail;

@@ -76,7 +76,7 @@ VGMSTREAM* init_vgmstream_ws_aud(STREAMFILE* sf) {
             break;
 
         case 0x63:    /* IMA ADPCM [Blade Runner (PC)] */
-            vgmstream->coding_type = coding_IMA_int;
+            vgmstream->coding_type = coding_IMA_mono;
             break;
         default:
             goto fail;

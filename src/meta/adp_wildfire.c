@@ -1,6 +1,6 @@
 #include "meta.h"
 
-/* ADP - from Wildfire Studios games [Balls of Steel (PC)] */
+/* ADP! - from Wildfire Studios games [Balls of Steel (PC)] */
 VGMSTREAM* init_vgmstream_adp_wildfire(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     uint32_t start_offset;
@@ -28,7 +28,7 @@ VGMSTREAM* init_vgmstream_adp_wildfire(STREAMFILE* sf) {
     vgmstream->loop_start_sample = read_s32le(0x08,sf);
     vgmstream->loop_end_sample = vgmstream->num_samples;
 
-    vgmstream->coding_type = coding_DVI_IMA_int;
+    vgmstream->coding_type = coding_DVI_IMA_mono;
     vgmstream->layout_type = layout_none;
     vgmstream->meta_type = meta_ADP_WILDFIRE;
 

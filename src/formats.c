@@ -836,9 +836,9 @@ static const coding_info coding_info_list[] = {
         {coding_EA_XAS_V1,          "Electronic Arts EA-XAS 4-bit ADPCM v1"},
 
         {coding_IMA,                "IMA 4-bit ADPCM"},
-        {coding_IMA_int,            "IMA 4-bit ADPCM (mono/interleave)"},
+        {coding_IMA_mono,           "IMA 4-bit ADPCM (mono)"},
         {coding_DVI_IMA,            "Intel DVI 4-bit IMA ADPCM"},
-        {coding_DVI_IMA_int,        "Intel DVI 4-bit IMA ADPCM (mono/interleave)"},
+        {coding_DVI_IMA_mono,       "Intel DVI 4-bit IMA ADPCM (mono)"},
         {coding_CAMELOT_IMA,        "Camelot IMA 4-bit ADPCM"},
         {coding_SNDS_IMA,           "Heavy Iron .snds 4-bit IMA ADPCM"},
         {coding_QD_IMA,             "Quantic Dream 4-bit IMA ADPCM"},

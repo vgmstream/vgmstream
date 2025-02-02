@@ -227,7 +227,7 @@ static VGMSTREAM* init_vgmstream_bxwav(STREAMFILE* sf, bxwav_type_t type) {
             break;
 
         case 0x03:
-            vgmstream->coding_type = coding_IMA_int; // 3DS eShop applet (3DS) 
+            vgmstream->coding_type = coding_IMA_mono; // 3DS eShop applet (3DS) 
             /* hist is read below */
             break;
 

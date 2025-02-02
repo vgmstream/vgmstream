@@ -31,7 +31,7 @@ VGMSTREAM * init_vgmstream_nds_hwas(STREAMFILE *streamFile) {
     vgmstream->loop_start_sample = ima_bytes_to_samples(read_32bitLE(0x10,streamFile), channel_count); //assumed, always 0
     vgmstream->loop_end_sample = ima_bytes_to_samples(read_32bitLE(0x18,streamFile), channel_count);
 
-    vgmstream->coding_type = coding_IMA_int;
+    vgmstream->coding_type = coding_IMA_mono;
     vgmstream->layout_type = layout_blocked_hwas;
     vgmstream->full_block_size = read_32bitLE(0x04,streamFile); /* usually 0x2000, 0x4000 or 0x8000 */
 

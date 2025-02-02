@@ -85,7 +85,7 @@ VGMSTREAM * init_vgmstream_wave_segmented(STREAMFILE *sf) {
 
                     data->segments[i]->sample_rate = sample_rate;
                     data->segments[i]->meta_type = meta_WAVE;
-                    data->segments[i]->coding_type = coding_IMA_int;
+                    data->segments[i]->coding_type = coding_IMA_mono;
                     data->segments[i]->layout_type = layout_none;
                     data->segments[i]->num_samples = segment_samples;
 
