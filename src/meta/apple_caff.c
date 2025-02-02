@@ -6,10 +6,10 @@ VGMSTREAM* init_vgmstream_apple_caff(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     off_t start_offset = 0, chunk_offset;
     size_t file_size, data_size = 0;
-    int loop_flag, channel_count = 0, sample_rate = 0;
+    int loop_flag, channels = 0, sample_rate = 0;
 
     int found_desc = 0 /*, found_pakt = 0*/, found_data = 0;
-    uint32_t codec = 0 /*, codec_flags = 0*/;
+    uint32_t codec = 0, codec_flags = 0;
     uint32_t bytes_per_packet = 0, samples_per_packet = 0, channels_per_packet = 0, bits_per_sample = 0;
     int valid_samples = 0 /*, priming_samples = 0, unused_samples = 0*/;
 
@@ -17,7 +17,7 @@ VGMSTREAM* init_vgmstream_apple_caff(STREAMFILE* sf) {
     /* checks */
     if (!is_id32be(0x00,sf, "caff"))
         return NULL;
-    if (read_32bitBE(0x04,sf) != 0x00010000) /* version/flags */
+    if (read_u32be(0x04,sf) != 0x00010000) /* version/flags */
         return NULL;
     if (!check_extensions(sf, "caf"))
         return NULL;
@@ -43,12 +43,12 @@ VGMSTREAM* init_vgmstream_apple_caff(STREAMFILE* sf) {
                     sample_rate = (int)(*sample_double);
                 }
 
-                codec = read_32bitBE(chunk_offset+0x08, sf);
-                //codec_flags         = read_32bitBE(chunk_offset+0x0c, streamFile);
-                bytes_per_packet    = read_32bitBE(chunk_offset+0x10, sf);
-                samples_per_packet  = read_32bitBE(chunk_offset+0x14, sf);
-                channels_per_packet = read_32bitBE(chunk_offset+0x18, sf);
-                bits_per_sample     = read_32bitBE(chunk_offset+0x1C, sf);
+                codec               = read_u32be(chunk_offset+0x08, sf);
+                codec_flags         = read_u32be(chunk_offset+0x0c, sf);
+                bytes_per_packet    = read_u32be(chunk_offset+0x10, sf);
+                samples_per_packet  = read_u32be(chunk_offset+0x14, sf);
+                channels_per_packet = read_u32be(chunk_offset+0x18, sf);
+                bits_per_sample     = read_u32be(chunk_offset+0x1C, sf);
                 break;
 
             case 0x70616b74:    /* "pakt" */
@@ -56,8 +56,8 @@ VGMSTREAM* init_vgmstream_apple_caff(STREAMFILE* sf) {
 
                 //packets_table_size = (uint32_t)read_u64be(chunk_offset+0x00,streamFile); /* 0 for constant bitrate */
                 valid_samples = (uint32_t)read_u64be(chunk_offset+0x08,sf);
-                //priming_samples = read_32bitBE(chunk_offset+0x10,streamFile); /* encoder delay samples */
-                //unused_samples = read_32bitBE(chunk_offset+0x14,streamFile); /* footer samples */
+                //priming_samples = read_u32be(chunk_offset+0x10,streamFile); /* encoder delay samples */
+                //unused_samples = read_u32be(chunk_offset+0x14,streamFile); /* footer samples */
                 break;
 
             case 0x64617461: /* "data" */
@@ -83,11 +83,11 @@ VGMSTREAM* init_vgmstream_apple_caff(STREAMFILE* sf) {
 
 
     loop_flag = 0;
-    channel_count = channels_per_packet;
+    channels = channels_per_packet;
 
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
     vgmstream->meta_type = meta_CAFF;
@@ -97,11 +97,18 @@ VGMSTREAM* init_vgmstream_apple_caff(STREAMFILE* sf) {
         case 0x6C70636D: /* "lpcm" */
             vgmstream->num_samples = valid_samples;
             if (!vgmstream->num_samples)
-                vgmstream->num_samples = pcm_bytes_to_samples(data_size, channel_count, bits_per_sample);
+                vgmstream->num_samples = pcm_bytes_to_samples(data_size, channels, bits_per_sample);
 
-            //todo check codec_flags for BE/LE, signed/etc
             if (bits_per_sample == 8) {
                 vgmstream->coding_type = coding_PCM8;
+            }
+            else if (bits_per_sample == 16) {
+                if (codec_flags == 0)
+                    vgmstream->coding_type = coding_PCM16BE; // Treasure Story (iOS)-fertilize_crop
+                else if (codec_flags == 2)
+                    vgmstream->coding_type = coding_PCM16LE; // Katamari Amore (iOS), Soul Tamer Kiki HD (iOS)
+                else
+                    goto fail;
             }
             else {
                 goto fail;
@@ -114,7 +121,7 @@ VGMSTREAM* init_vgmstream_apple_caff(STREAMFILE* sf) {
         case 0x696D6134: /* "ima4" [Vectros (iOS), Dragon Quest (iOS)] */
             vgmstream->num_samples = valid_samples;
             if (!vgmstream->num_samples) /* rare [Endless Fables 2 (iOS) */
-                vgmstream->num_samples = apple_ima4_bytes_to_samples(data_size, channel_count);
+                vgmstream->num_samples = apple_ima4_bytes_to_samples(data_size, channels);
 
             vgmstream->coding_type = coding_APPLE_IMA4;
             vgmstream->layout_type = layout_interleave;
