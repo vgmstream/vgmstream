@@ -763,6 +763,7 @@
     <ClCompile Include="meta\vxn.c" />
     <ClCompile Include="meta\wady.c" />
     <ClCompile Include="meta\waf.c" />
+    <ClCompile Include="meta\wav2.c" />
     <ClCompile Include="meta\wave.c" />
     <ClCompile Include="meta\wavebatch.c" />
     <ClCompile Include="meta\wave_segmented.c" />
@@ -773,7 +774,6 @@
     <ClCompile Include="meta\wpd.c" />
     <ClCompile Include="meta\wsi.c" />
     <ClCompile Include="meta\ws_aud.c" />
-    <ClCompile Include="meta\wv2.c" />
     <ClCompile Include="meta\wv6.c" />
     <ClCompile Include="meta\wvs.c" />
     <ClCompile Include="meta\wwise.c" />
