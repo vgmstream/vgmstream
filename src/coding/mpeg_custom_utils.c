@@ -144,8 +144,13 @@ int mpeg_custom_parse_frame_default(VGMSTREAMCHANNEL* stream, mpeg_codec_data* d
             current_interleave_pre  = current_interleave*num_stream;
             current_interleave_post = current_interleave*(data->streams_size-1) - current_interleave_pre;
 
+            if (stream->offset >= data->config.data_size) {
+                VGM_LOG_ONCE("MPEG: fsb overread\n");
+                return false;
+            }
+
             if (!mpeg_get_frame_info(stream->streamfile, stream->offset + current_interleave_pre, &info))
-                goto fail;
+                return false;
             current_data_size = info.frame_size;
 
             /* get FSB padding for Layer III or multichannel Layer II (Layer I isn't supported by FMOD).
@@ -207,7 +212,7 @@ int mpeg_custom_parse_frame_default(VGMSTREAMCHANNEL* stream, mpeg_codec_data* d
             else if (ms->current_size_count == data->config.max_chunks)
                 current_interleave = data->config.interleave_last;
             else
-                goto fail;
+                return false;
 
             current_interleave_pre  = current_interleave*num_stream;
             current_interleave_post = current_interleave*(data->streams_size-1) - current_interleave_pre;
@@ -218,14 +223,14 @@ int mpeg_custom_parse_frame_default(VGMSTREAMCHANNEL* stream, mpeg_codec_data* d
             break;
 
         default: /* standard frames (CBR or VBR) */
-            if ( !mpeg_get_frame_info(stream->streamfile, stream->offset, &info) )
-                goto fail;
+            if (!mpeg_get_frame_info(stream->streamfile, stream->offset, &info))
+                return false;
             current_data_size = info.frame_size;
             break;
     }
     if (!current_data_size || current_data_size > ms->buffer_size) {
         VGM_LOG("MPEG: incorrect data_size 0x%x vs buffer 0x%x\n", current_data_size, ms->buffer_size);
-        goto fail;
+        return false;
     }
 
     /* This assumes all streams' offsets start in the first stream, and advances
@@ -248,9 +253,7 @@ int mpeg_custom_parse_frame_default(VGMSTREAMCHANNEL* stream, mpeg_codec_data* d
     }
 
 
-    return 1;
-fail:
-    return 0;
+    return true;
 }
 #endif
 
@@ -359,7 +362,6 @@ uint32_t mpeg_get_tag_size(STREAMFILE* sf, uint32_t offset, uint32_t header) {
             frame_size += 0x0a;
 
         return frame_size;
-        
     }
 
     /* skip ID3v1 */
