@@ -1,7 +1,6 @@
 #include "api_internal.h"
 #include "sbuf.h"
 #include "mixing.h"
-#if LIBVGMSTREAM_ENABLE
 
 
 static void load_vgmstream(libvgmstream_priv_t* priv, libvgmstream_options_t* opt) {
@@ -106,14 +105,14 @@ static void update_format_info(libvgmstream_priv_t* priv) {
     }
 }
 
-LIBVGMSTREAM_API int libvgmstream_open_song(libvgmstream_t* lib, libvgmstream_options_t* opt) {
+LIBVGMSTREAM_API int libvgmstream_open_stream(libvgmstream_t* lib, libvgmstream_options_t* opt) {
     if (!lib ||!lib->priv)
         return LIBVGMSTREAM_ERROR_GENERIC;
     if (!opt || !opt->libsf || opt->subsong_index < 0)
         return LIBVGMSTREAM_ERROR_GENERIC;
 
     // close loaded song if any + reset
-    libvgmstream_close_song(lib);
+    libvgmstream_close_stream(lib);
 
     libvgmstream_priv_t* priv = lib->priv;
 
@@ -131,7 +130,7 @@ LIBVGMSTREAM_API int libvgmstream_open_song(libvgmstream_t* lib, libvgmstream_op
 }
 
 
-LIBVGMSTREAM_API void libvgmstream_close_song(libvgmstream_t* lib) {
+LIBVGMSTREAM_API void libvgmstream_close_stream(libvgmstream_t* lib) {
     if (!lib || !lib->priv)
         return;
 
@@ -142,5 +141,3 @@ LIBVGMSTREAM_API void libvgmstream_close_song(libvgmstream_t* lib) {
 
     libvgmstream_priv_reset(priv, true);
 }
-
-#endif

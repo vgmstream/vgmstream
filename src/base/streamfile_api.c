@@ -1,5 +1,4 @@
 #include "api_internal.h"
-#if LIBVGMSTREAM_ENABLE
 /* STREAMFILE for internal use, that bridges calls to external libstreamfile_t */
 
 
@@ -90,5 +89,3 @@ static STREAMFILE* open_api_streamfile_internal(libstreamfile_t* libsf, bool ext
 STREAMFILE* open_api_streamfile(libstreamfile_t* libsf) {
     return open_api_streamfile_internal(libsf, true);
 }
-
-#endif

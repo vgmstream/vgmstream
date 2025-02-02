@@ -42,22 +42,22 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
     fsb5_header fsb5 = {0};
     uint32_t offset;
     int target_subsong = sf->stream_index;
-    int i;
 
 
     /* checks */
     if (!is_id32be(0x00,sf, "FSB5"))
-        goto fail;
+        return NULL;
 
     /* .fsb: standard
-     * .snd: Alchemy engine (also Unity) */
-    if (!check_extensions(sf,"fsb,snd"))
-        goto fail;
+     * .snd: Alchemy engine (also Unity)
+     * .fsb.ps3: Guacamelee! (PS3) */
+    if (!check_extensions(sf,"fsb,snd,ps3"))
+        return NULL;
 
     /* v0 is rare, seen in Tales from Space (Vita) */
     fsb5.version = read_u32le(0x04,sf);
     if (fsb5.version != 0x00 && fsb5.version != 0x01)
-        goto fail;
+        return NULL;
 
     fsb5.total_subsongs     = read_u32le(0x08,sf);
     fsb5.sample_header_size = read_u32le(0x0C,sf);
@@ -81,7 +81,7 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
 
     if ((fsb5.sample_header_size + fsb5.name_table_size + fsb5.sample_data_size + fsb5.base_header_size) != get_streamfile_size(sf)) {
         vgm_logi("FSB5: wrong size, expected %x + %x + %x + %x vs %x (re-rip)\n", fsb5.sample_header_size, fsb5.name_table_size, fsb5.sample_data_size, fsb5.base_header_size, (uint32_t)get_streamfile_size(sf));
-        goto fail;
+        return NULL;
     }
 
     if (target_subsong == 0) target_subsong = 1;
@@ -90,7 +90,7 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
     /* find target stream header and data offset, and read all needed values for later use
      *  (reads one by one as the size of a single stream header is variable) */
     offset = fsb5.base_header_size;
-    for (i = 0; i < fsb5.total_subsongs; i++) {
+    for (int i = 0; i < fsb5.total_subsongs; i++) {
         uint32_t stream_header_size = 0;
         uint32_t data_offset = 0;
         uint64_t sample_mode;

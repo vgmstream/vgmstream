@@ -60,9 +60,9 @@ typedef enum {
     coding_EA_XAS_V1,       /* Electronic Arts EA-XAS ADPCM v1 */
 
     coding_IMA,             /* IMA ADPCM (stereo or mono, low nibble first) */
-    coding_IMA_int,         /* IMA ADPCM (mono/interleave, low nibble first) */
+    coding_IMA_mono,        /* IMA ADPCM (mono, low nibble first) */
     coding_DVI_IMA,         /* DVI IMA ADPCM (stereo or mono, high nibble first) */
-    coding_DVI_IMA_int,     /* DVI IMA ADPCM (mono/interleave, high nibble first) */
+    coding_DVI_IMA_mono,    /* DVI IMA ADPCM (mono, high nibble first) */
     coding_CAMELOT_IMA,
     coding_SNDS_IMA,        /* Heavy Iron Studios .snds IMA ADPCM */
     coding_QD_IMA,
@@ -608,7 +608,7 @@ typedef enum {
     meta_AIF_ASOBO,         /* Ratatouille (PC) */
     meta_AO,                /* Cloudphobia (PC) */
     meta_APC,               /* MegaRace 3 (PC) */
-    meta_WV2,               /* Slave Zero (PC) */
+    meta_WAV2,
     meta_XAU_KONAMI,        /* Yu-Gi-Oh - The Dawn of Destiny (Xbox) */
     meta_DERF,              /* Stupid Invaders (PC) */
     meta_SADF,
@@ -716,6 +716,7 @@ typedef enum {
     meta_PPHD,
     meta_XABP,
     meta_I3DS,
+    meta_AXHD,
 
 } meta_t;
 

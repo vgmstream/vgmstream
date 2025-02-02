@@ -357,7 +357,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_aif_asobo,
     init_vgmstream_ao,
     init_vgmstream_apc,
-    init_vgmstream_wv2,
+    init_vgmstream_wav2,
     init_vgmstream_xau_konami,
     init_vgmstream_derf,
     init_vgmstream_utk,
@@ -517,6 +517,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_i3ds,
     init_vgmstream_sdbs,
     init_vgmstream_skex,
+    init_vgmstream_axhd,
 
     /* lower priority metas (no clean header identity, somewhat ambiguous, or need extension/companion file to identify) */
     init_vgmstream_agsc,

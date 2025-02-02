@@ -2,8 +2,6 @@
 #include "mixing.h"
 #include "render.h"
 
-#if LIBVGMSTREAM_ENABLE
-
 
 static bool reset_buf(libvgmstream_priv_t* priv) {
     // state reset
@@ -155,5 +153,3 @@ LIBVGMSTREAM_API void libvgmstream_reset(libvgmstream_t* lib) {
     }
     libvgmstream_priv_reset(priv, false);
 }
-
-#endif

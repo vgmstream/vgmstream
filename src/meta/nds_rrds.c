@@ -32,7 +32,7 @@ VGMSTREAM * init_vgmstream_nds_rrds(STREAMFILE *streamFile) {
     }
 
     vgmstream->meta_type = meta_NDS_RRDS;
-    vgmstream->coding_type = coding_IMA_int;
+    vgmstream->coding_type = coding_IMA_mono;
     vgmstream->layout_type = layout_none;
 
     {

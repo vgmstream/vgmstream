@@ -16,23 +16,24 @@ VGMSTREAM* init_vgmstream_ogg_opus(STREAMFILE* sf) {
 
     /* checks */
     if (!is_id32be(0x00,sf, "OggS"))
-        goto fail;
+        return NULL;
 
     /* .opus: standard, .lopus: fake extension for plugins
      * .ogg: less common, .logg: same
-     * .bgm: Utawarerumono: Mask of Truth (PC) */
-    if (!check_extensions(sf, "opus,lopus,ogg,logg,bgm"))
-        goto fail;
+     * .bgm: Utawarerumono: Mask of Truth (PC)
+     * .oga: niconico app (Switch) */
+    if (!check_extensions(sf, "opus,lopus,ogg,logg,bgm,oga"))
+        return NULL;
     /* see: https://tools.ietf.org/html/rfc7845.html */
 
     start_offset = 0x00;
 
     /* parse 1st page: opus head */
     if (!get_ogg_page_size(sf, start_offset, &data_offset, &page_size))
-        goto fail;
+        return NULL;
     if (!is_id32be(data_offset+0x00,sf, "Opus") ||
         !is_id32be(data_offset+0x04,sf, "Head"))
-        goto fail;
+        return NULL;
     /* 0x01: version 1, fixed */
     channel_count = read_u8(data_offset+0x09,sf);
     /* 0x0A: skip samples */

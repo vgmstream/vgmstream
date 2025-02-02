@@ -82,7 +82,7 @@ VGMSTREAM* init_vgmstream_stma(STREAMFILE* sf) {
                 dsp_read_hist_be(vgmstream, sf, 0x60, 0x60);
             }
             else { /* DVI IMA ADPCM (Red Dead Revolver, Midnight Club 2) */
-                vgmstream->coding_type = coding_DVI_IMA_int;
+                vgmstream->coding_type = coding_DVI_IMA_mono;
                 /* 'interleave not' reliable, strange values and rarely needs 0x80 */
                 vgmstream->interleave_block_size = (interleave == 0xc000) ? 0x80 : 0x40;
 

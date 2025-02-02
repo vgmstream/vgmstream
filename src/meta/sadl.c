@@ -66,7 +66,7 @@ VGMSTREAM* init_vgmstream_sadl(STREAMFILE* sf) {
     switch(flags & 0xf0) { /* possibly >> 6? (0/1/2) */
         case 0x00: /* Luminous Arc (DS) (non-int IMA? all files are mono though) */
         case 0x70: /* Ni no Kuni (DS), Professor Layton and the Curious Village (DS), Soma Bringer (DS) */
-            vgmstream->coding_type = coding_IMA_int;
+            vgmstream->coding_type = coding_IMA_mono;
 
             vgmstream->num_samples = ima_bytes_to_samples(data_size, channels);
             vgmstream->loop_start_sample = ima_bytes_to_samples(loop_start, channels);

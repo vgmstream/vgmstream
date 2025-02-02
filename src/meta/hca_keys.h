@@ -1509,7 +1509,7 @@ static const hcakey_info hcakey_list[] = {
     // DRAGON BALL: Sparking! ZERO (multi)
     {13238534807163085345u},    // B7B8B9442F99A221
 
-    // TOUHOU GENSOU MAHJONG (PC) [demo and release]
+    // TOUHOU GENSOU MAHJONG (PC)
     {7757726886},               // 00000001CE6584A6
 
     // NARUTO X BORUTO NINJA VOLTAGE (Android)
@@ -1523,6 +1523,10 @@ static const hcakey_info hcakey_list[] = {
 
     // Tales of Graces f Remastered (PC)
     {51485416730473395},        // 00B6E9B6B75533B3
+
+    // Freedom Wars Remastered (Switch)
+    {3258660547165106863},      // 2D391680A55B32AF
+
 };
 
 #endif

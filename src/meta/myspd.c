@@ -29,7 +29,7 @@ VGMSTREAM* init_vgmstream_myspd(STREAMFILE* sf) {
     vgmstream->sample_rate = read_s32be(0x04,sf);
 
     vgmstream->meta_type = meta_MYSPD;
-    vgmstream->coding_type = coding_IMA_int;
+    vgmstream->coding_type = coding_IMA_mono;
     vgmstream->layout_type = layout_interleave;
     vgmstream->interleave_block_size = channel_size;
 

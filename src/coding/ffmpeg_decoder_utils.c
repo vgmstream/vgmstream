@@ -108,14 +108,29 @@ ffmpeg_codec_data* init_ffmpeg_atrac3_riff(STREAMFILE* sf, off_t offset, int* p_
 
     /* well behaved .at3 define "fact" but official tools accept files without it */
     if (find_chunk_le(sf, get_id32be("fact"), offset + 0x0c,0, &fact_offset, &fact_size)) {
-        if (fact_size == 0x08) { /* early AT3 (mainly PSP games) */
+        if (fact_size == 0x08) {
+            /* early AT3 (mainly PSP games) */
             fact_samples = read_s32le(fact_offset + 0x00, sf);
             skip_samples = read_s32le(fact_offset + 0x04, sf); /* base skip samples */
         }
-        else if (fact_size == 0x0c) { /* late AT3 (mainly PS3 games and few PSP games) */
+        else if (fact_size == 0x0c) {
+            /* late AT3 (mainly PS3 games and few PSP games) */
             fact_samples = read_s32le(fact_offset + 0x00, sf);
             /* 0x04: base skip samples, ignored by decoder */
             skip_samples = read_s32le(fact_offset + 0x08, sf); /* skip samples with implicit skip of 184 added */
+        }
+        else if (fact_size == 0x04) {
+            /* some ATRAC3 in rare cases [Up (PSP), Flash Motor Karen (PSP)-SND0.at3, Harajuku Tantei Gakuen (PSP)] */
+            if (is_at3) // observed default vs sony's tools
+                skip_samples = 1024; // 1 frame
+            else if (is_at3p)
+                skip_samples = 2048; // 1 frame
+            else
+                skip_samples = 0;
+            fact_samples = read_s32le(fact_offset + 0x00, sf);
+
+            //TODO: seems like some at3 made by soundforge may define more fact samples than possible;
+            // original tools only decode up to EOF [Up (PSP)]
         }
         else {
             VGM_LOG("ATRAC3: unknown fact size\n");
@@ -125,9 +140,9 @@ ffmpeg_codec_data* init_ffmpeg_atrac3_riff(STREAMFILE* sf, off_t offset, int* p_
     else {
         fact_samples = 0; /* tools output 0 samples in this case unless loop end is defined */
         if (is_at3)
-            skip_samples = 1024; /* 1 frame */
+            skip_samples = 1024; // 1 frame
         else if (is_at3p)
-            skip_samples = 2048; /* 1 frame */
+            skip_samples = 2048; // 1 frame
         else
             skip_samples = 0;
     }

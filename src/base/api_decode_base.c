@@ -1,6 +1,5 @@
 #include "api_internal.h"
 #include "mixing.h"
-#if LIBVGMSTREAM_ENABLE
 
 #define INTERNAL_BUF_SAMPLES  1024
 
@@ -104,5 +103,3 @@ int api_get_sample_size(libvgmstream_sample_t sample_type) {
             return 0x02;
     }
 }
-
-#endif

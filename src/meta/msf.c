@@ -16,7 +16,7 @@ VGMSTREAM* init_vgmstream_msf(STREAMFILE* sf) {
     // "MSF" + n.n version:
     // - 0x01: Megazone 23: Aoi Garland (PS3)
     // - 0x02: Switchball (PS3)
-    // - 0x30 ('0'): ?
+    // - 0x30 ('0'): Saints Row 2 (PS3)
     // - 0x35 ('5'): SDKs
     // - 0x43 ('C'): latest/most common
 
@@ -49,7 +49,8 @@ VGMSTREAM* init_vgmstream_msf(STREAMFILE* sf) {
      * 0x10 often goes with 0x01 but not always (Castlevania HoD); Malicious PS3 uses flag 0x2 instead */
     loop_flag = (flags != 0xffffffff) && ((flags & 0x01) || (flags & 0x02));
 
-    /* loop offset markers (marker N @ 0x18 + N*(4+4), but in practice only marker 0 is used) */
+    /* loop offset markers: marker N = 0x18 + N * (0x08), but in practice only marker 0 is used
+     * (Saints Row 2 saves original filename in 0x28) */
     if (loop_flag) {
         loop_start = read_u32be(0x18,sf);
         loop_end = read_u32be(0x1C,sf); /* loop duration */

@@ -118,7 +118,7 @@ VGMSTREAM* init_vgmstream_wave(STREAMFILE* sf) {
         }
 
         case 0x03: //IMA (DS uses codec 02 for IMA, common; 3DS: uses 03 but not seen)
-            vgmstream->coding_type = coding_IMA_int;
+            vgmstream->coding_type = coding_IMA_mono;
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = interleave;
 

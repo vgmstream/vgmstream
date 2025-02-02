@@ -4,7 +4,7 @@
 #include "fsb_interleave_streamfile.h"
 
 
-typedef enum { MPEG, XBOX_IMA, FSB_IMA, PSX, XMA1, XMA2, DSP, CELT, PCM8, PCM8U, PCM16LE, PCM16BE } fsb_codec_t;
+typedef enum { MPEG, XBOX_IMA, FSB_IMA, PSX, XMA1, XMA2, DSP, CELT, PCM8, PCM8U, PCM16LE, PCM16BE, SILENCE } fsb_codec_t;
 typedef struct {
     /* main header */
     uint32_t id;
@@ -36,7 +36,7 @@ typedef struct {
 
     bool loop_flag;
 
-    off_t stream_offset;
+    uint32_t stream_offset;
 
     fsb_codec_t codec;
 } fsb_header_t;
@@ -82,10 +82,13 @@ VGMSTREAM* init_vgmstream_fsb(STREAMFILE* sf) {
         read_string(vgmstream->stream_name, fsb.name_size + 1, fsb.name_offset, sf);
 
     switch(fsb.codec) {
+
 #ifdef VGM_USE_MPEG
-        case MPEG: {    /* FSB4: Shatter (PS3), Way of the Samurai 3/4 (PS3) */
+        case MPEG: {    /* FSB3: Spider-man 3 (PC/PS3), Rise of the Argonauts (PC), FSB4: Shatter (PS3), Way of the Samurai 3/4 (PS3) */
             mpeg_custom_config cfg = {0};
-            cfg.fsb_padding = fsb.mpeg_padding; /* frames are sometimes padded for alignment */
+
+            cfg.fsb_padding = fsb.mpeg_padding; // frames are sometimes padded for alignment
+            cfg.data_size = fsb.stream_offset + fsb.stream_size;
 
             vgmstream->codec_data = init_mpeg_custom(sf, fsb.stream_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_FSB, &cfg);
             if (!vgmstream->codec_data) goto fail;
@@ -188,18 +191,23 @@ VGMSTREAM* init_vgmstream_fsb(STREAMFILE* sf) {
         }
 #endif
 
-        case PCM8:      /* no games known */
-        case PCM8U:     /* FSB4: Crash Time 4: The Syndicate (X360) */
+        case PCM8:      /* no known games */
+        case PCM8U:     /* FSB4: Crash Time 4: The Syndicate (X360), Zoombinis (PC) */
             vgmstream->coding_type = (fsb.codec == PCM8U) ? coding_PCM8_U : coding_PCM8;
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = 0x1;
             break;
 
-        case PCM16LE:   /* FSB4: Rocket Knight (PC), Another Century's Episode R (PS3), Toy Story 3 (Wii) */
-        case PCM16BE:   /* FSB4: SpongeBob's Truth or Square (X360) */
+        case PCM16LE:   /* FSB2: Hot Wheels World Race (PC)-bigfile-sfx, FSB3: Bee Movie (Wii), FSB4: Rocket Knight (PC), Another Century's Episode R (PS3), Toy Story 3 (Wii) */
+        case PCM16BE:   /* FSB4: SpongeBob's Truth or Square (X360), Crash Time 4: The Syndicate (X360) */
             vgmstream->coding_type = (fsb.codec == PCM16BE) ? coding_PCM16BE : coding_PCM16LE;
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = 0x2;
+            break;
+
+        case SILENCE:   /* special case for broken MPEG */
+            vgmstream->coding_type = coding_SILENCE;
+            vgmstream->layout_type = layout_none;
             break;
 
         default:
@@ -220,7 +228,7 @@ fail:
 static layered_layout_data* build_layered_fsb_celt(STREAMFILE* sf, fsb_header_t* fsb, bool is_new_lib) {
     layered_layout_data* data = NULL;
     STREAMFILE* temp_sf = NULL;
-    int i, layers = (fsb->channels+1) / 2;
+    int layers = (fsb->channels+1) / 2;
 
 
     /* init layout */
@@ -228,7 +236,7 @@ static layered_layout_data* build_layered_fsb_celt(STREAMFILE* sf, fsb_header_t*
     if (!data) goto fail;
 
     /* open each layer subfile (1/2ch CELT streams: 2ch+2ch..+1ch or 2ch+2ch..+2ch) */
-    for (i = 0; i < layers; i++) {
+    for (int i = 0; i < layers; i++) {
         int layer_channels = (i+1 == layers && fsb->channels % 2 == 1)
                 ? 1 : 2; /* last layer can be 1/2ch */
 
@@ -464,7 +472,7 @@ static bool parse_fsb(fsb_header_t* fsb, STREAMFILE* sf) {
         if (fsb->id == get_id32be("FSB2")) {
             fsb->meta_type = meta_FSB2;
             fsb->base_header_size  = 0x10;
-            fsb->sample_header_min = 0x40; /* guessed */
+            fsb->sample_header_min = 0x40;
         }
         else if (fsb->id == get_id32be("FSB3")) {
             fsb->meta_type = meta_FSB3;
@@ -528,7 +536,6 @@ static bool parse_fsb(fsb_header_t* fsb, STREAMFILE* sf) {
 
                     /* XMA basic headers have extra data [Forza Motorsport 3 (X360)] */
                     if (fsb->mode & FSOUND_XMA) {
-                        VGM_LOG("h=%x\n", (uint32_t)header_offset);
                         // 0x08: flags? (0x00=none?, 0x20=standard)
                         // 0x0c: sample related? (may be 0 with no seek table)
                         // 0x10: low number (may be 0 with no seek table)
@@ -612,6 +619,26 @@ static bool parse_fsb(fsb_header_t* fsb, STREAMFILE* sf) {
 
     /* XOR encryption for some FSB4, though the flag is only seen after decrypting */
     //;VGM_ASSERT(fsb->flags & FMOD_FSB_SOURCE_ENCRYPTED, "FSB ENCRYPTED found\n");
+
+    // rare FSB3 have odd cases [Rise of the Argonauts (PC)]
+    if (fsb->codec == MPEG && fsb->version == FMOD_FSB_VERSION_3_1) {
+        uint32_t mpeg_id = read_u32be(fsb->stream_offset, sf);
+
+        if ((mpeg_id & 0xFFFFFF00) == get_id32be("ID3\0")) {
+            // starts with ID3, probably legal but otherwise not seen (stripped?): Lykas_Atalanta_Join_DLG.fsb, Support_Of_The_Gods*.fsb
+            uint32_t tag_size = mpeg_get_tag_size(sf, fsb->stream_offset, mpeg_id); // always 0x1000, has 'PeakLevel' info
+            fsb->stream_offset += tag_size;
+            fsb->stream_size -= tag_size;
+        }
+
+        // completely empty MPEG, probably works by chance with OG decoder ignoring bad data: DLG_Lycomedes_Statue_*.fsb
+        if (mpeg_id == 0) {
+            fsb->codec = SILENCE;
+        }
+
+        // rarely sets more samples than data, must clamp reads to avoid spilling into next subsong: Player_Death_DLG.fsb, Lykas_Atalanta_Join_DLG.fsb
+        // probably a bug as samples don't seem to match MPEG's 'Info' headers and can be both bigger and smaller than loop_end
+    }
 
     return true;
 fail:

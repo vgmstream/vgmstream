@@ -1,18 +1,16 @@
 #ifndef _LIBVGMSTREAM_H_
 #define _LIBVGMSTREAM_H_
 
-#define LIBVGMSTREAM_ENABLE 1
-#if LIBVGMSTREAM_ENABLE
 
 /* libvgmstream: vgmstream's public API
  *
  * Basic usage (also see api_example.c):
- *   - libvgmstream_init(...)       // create context
- *   - libvgmstream_setup(...)      // setup config (if needed)
- *   - libvgmstream_open_song(...)  // open format
- *   - libvgmstream_render(...)     // main decode
- *   - output samples + repeat libvgmstream_render until stream is done
- *   - libvgmstream_free(...)       // cleanup
+ *   - libvgmstream_init(...)           // create context
+ *   - libvgmstream_setup(...)          // setup config (if needed)
+ *   - libvgmstream_open_stream(...)    // open format
+ *   - libvgmstream_render(...)         // main decode
+ *   - output samples + repeat libvgmstream_render until 'done' is set
+ *   - libvgmstream_free(...)           // cleanup
  *
  * By default vgmstream behaves like a decoder (returns samples until stream end), but you can configure
  * it to loop N times or even downmix. In other words, it also behaves a bit like a player.
@@ -56,9 +54,9 @@
  * - only refers to the API itself, changes related to formats/etc don't alter this
  * - vgmstream's features are mostly stable, but this API may be tweaked from time to time
  */
-#define LIBVGMSTREAM_API_VERSION_MAJOR 1    // breaking API/ABI changes
-#define LIBVGMSTREAM_API_VERSION_MINOR 0    // compatible API/ABI changes
-#define LIBVGMSTREAM_API_VERSION_PATCH 0    // fixes
+#define LIBVGMSTREAM_API_VERSION_MAJOR 0x01    // breaking API/ABI changes
+#define LIBVGMSTREAM_API_VERSION_MINOR 0x00    // compatible API/ABI changes
+#define LIBVGMSTREAM_API_VERSION_PATCH 0x00    // fixes
 
 /* Current API version, for dynamic checks. returns hex value: 0xMMmmpppp = MM-major, mm-minor, pppp-patch
  * - use when loading vgmstream as a dynamic library to ensure API/ABI compatibility
@@ -75,10 +73,10 @@ LIBVGMSTREAM_API uint32_t libvgmstream_get_version(void);
 
 /* interleaved samples: buf[0]=ch0, buf[1]=ch1, buf[2]=ch0, buf[3]=ch0, ... */
 typedef enum { 
-    LIBVGMSTREAM_SAMPLE_PCM16   = 0x01,
-    LIBVGMSTREAM_SAMPLE_PCM24   = 0x02,
-    LIBVGMSTREAM_SAMPLE_PCM32   = 0x03,
-    LIBVGMSTREAM_SAMPLE_FLOAT   = 0x04,
+    LIBVGMSTREAM_SAMPLE_PCM16 = 1,
+    LIBVGMSTREAM_SAMPLE_PCM24 = 2,
+    LIBVGMSTREAM_SAMPLE_PCM32 = 3,
+    LIBVGMSTREAM_SAMPLE_FLOAT = 4,
 } libvgmstream_sample_t;
 
 /* current song info, may be copied around (values are info-only) */
@@ -86,12 +84,11 @@ typedef struct {
     /* main (always set) */
     int channels;                           // output channels
     int sample_rate;                        // output sample rate
-
     libvgmstream_sample_t sample_type;      // output buffer's sample type
     int sample_size;                        // derived from sample_type (pcm16=0x02, float=0x04, etc)
 
     /* extra info (may be 0 if not known or not relevant) */
-    uint32_t channel_layout;                // standard WAVE bitflags
+    uint32_t channel_layout;                // standard WAVE bitflags, 0 if unset or non-standard
 
     int subsong_index;                      // 0 = none, N = loaded subsong N (1=first)
     int subsong_count;                      // 0 = format has no concept of subsongs, N = has N subsongs
@@ -110,6 +107,7 @@ typedef struct {
     bool loop_flag;                         // if file loops
                                             // ** false + defined loops means looping was forcefully disabled
                                             // ** true + undefined loops means the file loops in a way not representable by loop points
+    //bool rough_samples;                   // signal cases where loop points or sample count can't exactly reflect actual behavior
 
     bool play_forever;                      // if file loops forever based on current config (meaning _play never stops)
     int64_t play_samples;                   // totals after all calculations (after applying loop/fade/etc config)
@@ -117,32 +115,29 @@ typedef struct {
                                             // ** if play_forever is set this is still provided for reference based on non-forever config
 
     int stream_bitrate;                     // average bitrate of the subsong (slightly bloated vs codec_bitrate; incorrect in rare cases)
-    //int codec_bitrate;                    // average bitrate of the codec data
-                                            // ** not possible / slow to calculate in most cases
+    //int codec_bitrate;                    // average bitrate of the codec data [not possible / slow to calculate in most cases]
 
     /* descriptions */
-    char codec_name[128];                   //
-    char layout_name[128];                  //
-    char meta_name[128];                    // (not internal "tag" metadata)
-    char stream_name[256];                  // some internal name or representation, not always useful
-    // ** these are a bit big for a struct, but the typical use case of vgsmtream is opening a file > immediately
+    char codec_name[128];                   // represention of main decoder name
+    char layout_name[128];                  // represention of how data is laid out
+    char meta_name[128];                    // represention of format's name (not internal "tag" metadata)
+    char stream_name[256];                  // stream's internal name or representation (not an internal filename not always useful)
+    // ** these are a bit big for a struct, but the typical use case of vgmstream is opening a file > immediately
     //    query description and since libvgmstream returns its own copy it shouldn't be too much of a problem
     // ** (may be separated later)
 
-    /* misc */
-    //bool rough_samples;                   // signal cases where loop points or sample count can't exactly reflect actual behavior
-
     int format_id;                          // when reopening subfiles or similar formats without checking other all possible formats
-                                            // ** this value WILL change without warning between vgmstream versions/commits
+                                            // ** this value WILL change without warning between vgmstream versions/commits, but usually only add
 
 } libvgmstream_format_t;
 
+/* current decoder state */
 typedef struct {
     void* buf;                              // current decoded buf (valid after _decode until next call; may change between calls)
     int buf_samples;                        // current buffer samples (0 is possible in some cases)
     int buf_bytes;                          // current buffer bytes (channels * sample_size * samples)
 
-    bool done;                              // when stream is done based on config
+    bool done;                              // when stream is done, based on config
                                             // ** note that with play_forever this flag is never set
 } libvgmstream_decoder_t;
 
@@ -183,7 +178,7 @@ typedef struct {
     double fade_time;                       // fade period after target loops
     double fade_delay;                      // fade delay after target loops
 
-    int auto_downmix_channels;              // downmixing if vgmstream's channels are higher than value
+    int auto_downmix_channels;              // downmix if vgmstream's channels are higher than value
                                             // ** for players that can only handle N channels
                                             // ** this type of downmixing is very simplistic and not recommended
 
@@ -218,11 +213,11 @@ typedef struct {
  * - returns < 0 on error (file not recognised, invalid subsong index, etc)
  * - will close currently loaded song if needed
  */
-LIBVGMSTREAM_API int libvgmstream_open_song(libvgmstream_t* lib, libvgmstream_options_t* open_options);
+LIBVGMSTREAM_API int libvgmstream_open_stream(libvgmstream_t* lib, libvgmstream_options_t* open_options);
 
 /* Closes current song; may still use libvgmstream to open other songs
  */
-LIBVGMSTREAM_API void libvgmstream_close_song(libvgmstream_t* lib);
+LIBVGMSTREAM_API void libvgmstream_close_stream(libvgmstream_t* lib);
 
 
 /* Decodes next batch of samples
@@ -289,14 +284,14 @@ LIBVGMSTREAM_API const char** libvgmstream_get_common_extensions(size_t* size);
 
 
 typedef struct {
-    bool is_extension;           /* set if filename is just an extension */
-    bool skip_default;           /* set if shouldn't check default formats */
-    bool reject_extensionless;   /* set if player can't play extensionless files */
-    bool accept_unknown;         /* set to allow any extension (for txth) */
-    bool accept_common;          /* set to allow known-but-common extension (when player has plugin priority) */
+    bool is_extension;           /* set if filename is just an extension (otherwise may be seen as 'extensionless') */
+    bool skip_standard;           /* disable extension check vs default formats */
+    bool reject_extensionless;   /* enable if player can't play extensionless files */
+    bool accept_unknown;         /* enable to allow any extension even if not known by vgmstream (for .txth) */
+    bool accept_common;          /* enable to allow known-but-common extension (when player has plugin priority) */
 } libvgmstream_valid_t;
 
-/* Returns if vgmstream can parse a filename by extension, to reject some files earlier
+/* Returns if vgmstream can parse a filename by extension, to reject some files earlier.
  * - doesn't check file contents (that's only done on _open)
  * - config may be NULL
  * - mainly for plugins that want to fail early; libvgmstream doesn't use this
@@ -362,5 +357,4 @@ LIBVGMSTREAM_API bool libvgmstream_tags_next_tag(libvgmstream_tags_t* tags);
 LIBVGMSTREAM_API void libvgmstream_tags_free(libvgmstream_tags_t* tags);
 
 
-#endif
 #endif

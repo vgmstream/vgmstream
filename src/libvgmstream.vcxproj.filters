@@ -493,6 +493,9 @@
     <ClCompile Include="base\api_libsf.c">
       <Filter>base\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="base\api_libsf_cache.c">
+      <Filter>base\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="base\api_tags.c">
       <Filter>base\Source Files</Filter>
     </ClCompile>
@@ -1091,6 +1094,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\awd.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\axhd.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\baf.c">
@@ -2113,6 +2119,9 @@
     <ClCompile Include="meta\waf.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\wav2.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\wave.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -2141,9 +2150,6 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ws_aud.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="meta\wv2.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\wv6.c">

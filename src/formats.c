@@ -408,9 +408,11 @@ static const char* extension_list[] = {
     "nxa",
     "nxopus",
 
+    "oga",
     //"ogg", //common
     "ogg_",
     "ogl",
+    "ogs",
     "ogv",
     "oma", //FFmpeg/not parsed (ATRAC3/ATRAC3PLUS/MP3/LPCM/WMA)
     "omu",
@@ -683,6 +685,7 @@ static const char* extension_list[] = {
     "xau",
     "xav",
     "xb", //txth/reserved [Scooby-Doo! Unmasked (Xbox)]
+    "xhd",
     "xen",
     "xma",
     "xma2",
@@ -833,9 +836,9 @@ static const coding_info coding_info_list[] = {
         {coding_EA_XAS_V1,          "Electronic Arts EA-XAS 4-bit ADPCM v1"},
 
         {coding_IMA,                "IMA 4-bit ADPCM"},
-        {coding_IMA_int,            "IMA 4-bit ADPCM (mono/interleave)"},
+        {coding_IMA_mono,           "IMA 4-bit ADPCM (mono)"},
         {coding_DVI_IMA,            "Intel DVI 4-bit IMA ADPCM"},
-        {coding_DVI_IMA_int,        "Intel DVI 4-bit IMA ADPCM (mono/interleave)"},
+        {coding_DVI_IMA_mono,       "Intel DVI 4-bit IMA ADPCM (mono)"},
         {coding_CAMELOT_IMA,        "Camelot IMA 4-bit ADPCM"},
         {coding_SNDS_IMA,           "Heavy Iron .snds 4-bit IMA ADPCM"},
         {coding_QD_IMA,             "Quantic Dream 4-bit IMA ADPCM"},
@@ -1355,7 +1358,7 @@ static const meta_info meta_info_list[] = {
         {meta_AIF_ASOBO,            "Asobo Studio .AIF header"},
         {meta_AO,                   "AlphaOgg .AO header"},
         {meta_APC,                  "Cryo APC header"},
-        {meta_WV2,                  "Infogrames North America WAV2 header"},
+        {meta_WAV2,                 "Infogrames North America WAV2 header"},
         {meta_XAU_KONAMI,           "Konami XAU header"},
         {meta_DERF,                 "Xilam DERF header"},
         {meta_UTK,                  "Maxis UTK header"},
@@ -1462,6 +1465,7 @@ static const meta_info meta_info_list[] = {
         {meta_PPHD,                 "Sony PPHD header"},
         {meta_XABP,                 "cavia XABp header"},
         {meta_I3DS,                 "Codemasters i3DS header"},
+        {meta_AXHD,                 "Angel Studios AXHD header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {
