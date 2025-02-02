@@ -1358,7 +1358,7 @@ static const meta_info meta_info_list[] = {
         {meta_AIF_ASOBO,            "Asobo Studio .AIF header"},
         {meta_AO,                   "AlphaOgg .AO header"},
         {meta_APC,                  "Cryo APC header"},
-        {meta_WV2,                  "Infogrames North America WAV2 header"},
+        {meta_WAV2,                 "Infogrames North America WAV2 header"},
         {meta_XAU_KONAMI,           "Konami XAU header"},
         {meta_DERF,                 "Xilam DERF header"},
         {meta_UTK,                  "Maxis UTK header"},
