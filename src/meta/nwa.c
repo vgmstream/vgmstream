@@ -7,33 +7,44 @@
 static int get_loops_nwainfo_ini(STREAMFILE *sf, int *p_loop_flag, int32_t *p_loop_start);
 static int get_loops_gameexe_ini(STREAMFILE *sf, int *p_loop_flag, int32_t *p_loop_start, int32_t *p_loop_end);
 
-/* NWA - Visual Art's streams [Air (PC), Clannad (PC)] */
+/* .NWA - Visual Art's streams [Air (PC), Clannad (PC)] */
 VGMSTREAM* init_vgmstream_nwa(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     off_t start_offset;
-    int channel_count, loop_flag = 0;
+    int channels, sample_rate, bps, loop_flag = 0;
     int32_t loop_start_sample = 0, loop_end_sample = 0;
-    int nwainfo_ini_found = 0, gameexe_ini_found = 0;
+    bool nwainfo_ini_found = false, gameexe_ini_found = false;
     int compression_level;
 
 
     /* checks */
     if (!check_extensions(sf, "nwa"))
-        goto fail;
+        return NULL;
 
-    channel_count = read_16bitLE(0x00,sf);
-    if (channel_count != 1 && channel_count != 2) goto fail;
+    channels = read_s16le(0x00,sf);
+    bps = read_s16le(0x02,sf);
+    sample_rate = read_s32le(0x04,sf);
+    if (channels != 1 && channels != 2)
+        return NULL;
+    if (bps != 0 && bps != 8 && bps != 16)
+        return NULL;
+    if (sample_rate < 8000 || sample_rate > 48000) //unsure if can go below 44100
+        return NULL;
 
     /* check if we're using raw pcm */
-    if ( read_32bitLE(0x08,sf)==-1 || /* compression level */
-         read_32bitLE(0x10,sf)==0  || /* block count */
-         read_32bitLE(0x18,sf)==0  || /* compressed data size */
-         read_32bitLE(0x20,sf)==0  || /* block size */
-         read_32bitLE(0x24,sf)==0 ) { /* restsize */
+    if ( read_s32le(0x08,sf) == -1 || /* compression level */
+         read_s32le(0x10,sf) == 0  || /* block count */
+         read_s32le(0x18,sf) == 0  || /* compressed data size */
+         read_s32le(0x20,sf) == 0  || /* block size */
+         read_s32le(0x24,sf) == 0 ) { /* restsize */
         compression_level = -1;
-    } else {
-        compression_level = read_32bitLE(0x08,sf);
     }
+    else {
+        compression_level = read_s32le(0x08,sf);
+    }
+
+    if (compression_level > 5)
+        return NULL;
 
     /* loop points come from external files */
     nwainfo_ini_found = get_loops_nwainfo_ini(sf, &loop_flag, &loop_start_sample);
@@ -42,15 +53,15 @@ VGMSTREAM* init_vgmstream_nwa(STREAMFILE* sf) {
     start_offset = 0x2c;
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    vgmstream = allocate_vgmstream(channels,loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->sample_rate = read_32bitLE(0x04,sf);
-    vgmstream->num_samples = read_32bitLE(0x1c,sf) / channel_count;
+    vgmstream->sample_rate = read_s32le(0x04,sf);
+    vgmstream->num_samples = read_s32le(0x1c,sf) / channels;
 
     switch(compression_level) {
         case -1:
-            switch (read_16bitLE(0x02,sf)) {
+            switch (bps) {
                 case 8:
                     vgmstream->coding_type = coding_PCM8;
                     vgmstream->interleave_block_size = 0x01;
@@ -89,13 +100,15 @@ VGMSTREAM* init_vgmstream_nwa(STREAMFILE* sf) {
             vgmstream->loop_start_sample = loop_start_sample;
             vgmstream->loop_end_sample = vgmstream->num_samples;
         }
-    } else if (gameexe_ini_found) {
+    }
+    else if (gameexe_ini_found) {
         vgmstream->meta_type = meta_NWA_GAMEEXEINI;
         if (loop_flag) {
             vgmstream->loop_start_sample = loop_start_sample;
             vgmstream->loop_end_sample = loop_end_sample;
         }
-    } else {
+    }
+    else {
         vgmstream->meta_type = meta_NWA;
     }
 
@@ -211,8 +224,8 @@ static int get_loops_gameexe_ini(STREAMFILE* sf, int* p_loop_flag, int32_t* p_lo
      * ;   ※設定値はサンプル数で指定して下さい。（旧システムではバイト指定でしたので注意してください。）
      * ;=========================================================================================================
      * ;          開始位置 - 終了位置 - リピート = ﾌｧｲﾙ名     = 登録名
-     * #DSTRACK = 00000000 - 01896330 - 00088270 = "b_manuke"			= "b_manuke"
-     * #DSTRACK = 00000000 - 01918487 - 00132385 = "c_happy"			= "c_happy"
+     * #DSTRACK = 00000000 - 01896330 - 00088270 = "b_manuke"           = "b_manuke"
+     * #DSTRACK = 00000000 - 01918487 - 00132385 = "c_happy"            = "c_happy"
      */
 
     for (found = 0, offset = 0; !found && offset<file_size; offset++) {
