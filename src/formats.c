@@ -408,9 +408,11 @@ static const char* extension_list[] = {
     "nxa",
     "nxopus",
 
+    "oga",
     //"ogg", //common
     "ogg_",
     "ogl",
+    "ogs",
     "ogv",
     "oma", //FFmpeg/not parsed (ATRAC3/ATRAC3PLUS/MP3/LPCM/WMA)
     "omu",
