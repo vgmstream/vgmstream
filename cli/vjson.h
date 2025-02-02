@@ -3,8 +3,23 @@
 
 /* What is this crap, you may wonder? For probably non-existant use cases Jansson was added to write JSON info,
  * but external libs are a pain to maintain. For now this glorified string joiner replaces it.
- * 
+ *
  * On incorrect usage or small buf it'll create invalid JSON because who cares, try-parse-catch as usual.
+ *
+ * Example usage:
+ *     char buf[MAX_JSON_SIZE];                     // fixed size, meaning we need to know the approximate max
+ *     vjson_t j = {0};                             // alloc this or the buf if needed
+ *     vjson_init(&j, buf, sizeof(buf));            // prepare writer
+ *
+ *     vjson_obj_open(&j);                          // new object {...}
+ *       vjson_keystr(&j, "key-str", str_value);    // add 'key: "value"' to current object
+ *       vjson_keyint(&j, "key-int", int_value);    // add 'key: value' to current object
+ *       vjson_key(&j, "key");                      // add 'key: ' (for objects or arrays)
+ *         vjson_arr_open(&j);                      // new array [...]
+ *           vjson_str(&j, str_value);              // add '"value"' to current array
+ *           vjson_int(&j, int_value);              // add 'value' to current array
+ *         vjson_arr_close(&j);                     // close current array
+ *     vjson_obj_close(&j);                         // close current object
  */
 
 #include <stdio.h>

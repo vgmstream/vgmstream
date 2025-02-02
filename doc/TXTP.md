@@ -1,44 +1,57 @@
 # TXTP format
 
-TXTP is a text file with commands, to improve support for games using audio in certain uncommon or undesirable ways. It's in the form of a mini-playlist or a wrapper with play settings, meant to do post-processing over playable files.
+TXTP is a text file with commands, to handle games using audio in uncommon or undesirable ways. It's a mini-playlist or a wrapper with play settings, meant to do post-processing over playable files.
 
-Simply create a file named `(filename).txtp`, and inside write the song name and commands described below. Then open the new file directly and vgmstream should play it.
+Simply create a file named `(any name).txtp`, and inside write the song and commands described below. Then open the new file directly and *vgmstream* should play it.
 
-Common case examples:
+## Common case examples
 
-**stage01_intro+loop.txtp**
+### join intro + loop segments
 ```
 stage01_intro.vag
 stage01_loop.vag
 loop_mode = auto
 ```
 
-**bgm01_subsong2.txtp**
+### join channel layers
 ```
-bgm01.fsb #2
-```
-
-**sfx01-22khz.txtp**
-```
-sfx01.wav #h22050
+bgm01_melody.hca
+bgm01_vocals.hca
+mode = layers
 ```
 
-**field_channels3+4.txtp**
+### play subsong 5
+```
+bgm01.fsb #5
+```
+
+### play only channel 3 and 4
 ```
 field.bfstm #C3,4
 ```
 
-**bgm01.flac #I 10.0 .txtp**
+### install loops (from 10 seconds to file end)
 ```
-# (empty)
-# this is a "mini-txtp" that sets loop start to 10 seconds
-# notice it has the original filename + extension, then commands, then .txtp
+bgm01.flac #I 10.0
 ```
 
-**bgm01-loop-repeat.txtp**
+### force sample rate to 22050hz
+```
+sfx01.wav #h 22050
+```
+
+### change play config to loop-repeat
 ```
 bgm01.fsb #e
 ```
+
+### double volume
+```
+bgm01.fsb #v 2.0
+```
+
+### mini txtp (empty .txtp with filename)
+`bgm01.flac #I 10.0 .txtp` 
 
 
 ## TXTP MODES
