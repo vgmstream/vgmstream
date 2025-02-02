@@ -685,6 +685,7 @@ static const char* extension_list[] = {
     "xau",
     "xav",
     "xb", //txth/reserved [Scooby-Doo! Unmasked (Xbox)]
+    "xhd",
     "xen",
     "xma",
     "xma2",
@@ -1464,6 +1465,7 @@ static const meta_info meta_info_list[] = {
         {meta_PPHD,                 "Sony PPHD header"},
         {meta_XABP,                 "cavia XABp header"},
         {meta_I3DS,                 "Codemasters i3DS header"},
+        {meta_AXHD,                 "Angel Studios AXHD header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {

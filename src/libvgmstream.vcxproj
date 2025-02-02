@@ -221,6 +221,7 @@
     <ClCompile Include="base\api_decode_play.c" />
     <ClCompile Include="base\api_helpers.c" />
     <ClCompile Include="base\api_libsf.c" />
+    <ClCompile Include="base\api_libsf_cache.c" />
     <ClCompile Include="base\api_tags.c" />
     <ClCompile Include="base\decode.c" />
     <ClCompile Include="base\info.c" />
@@ -421,6 +422,7 @@
     <ClCompile Include="meta\awb.c" />
     <ClCompile Include="meta\awc.c" />
     <ClCompile Include="meta\awd.c" />
+    <ClCompile Include="meta\axhd.c" />
     <ClCompile Include="meta\baf.c" />
     <ClCompile Include="meta\bar.c" />
     <ClCompile Include="meta\bcstm.c" />
