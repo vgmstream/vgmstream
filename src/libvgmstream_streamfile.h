@@ -69,6 +69,6 @@ LIBVGMSTREAM_API libstreamfile_t* libstreamfile_open_from_stdio(const char* file
 LIBVGMSTREAM_API libstreamfile_t* libstreamfile_open_from_file(void* file, const char* filename);
 
  /* cached streamfile (recommended to wrap your external libsf since vgmstream needs to seek a lot) */
-LIBVGMSTREAM_API libstreamfile_t* libstreamfile_open_buffered(libstreamfile_t* ext_libsf, int buf_size);
+LIBVGMSTREAM_API libstreamfile_t* libstreamfile_open_buffered(libstreamfile_t* ext_libsf);
 
 #endif

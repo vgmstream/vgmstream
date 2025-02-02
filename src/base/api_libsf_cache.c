@@ -130,7 +130,7 @@ static libstreamfile_t* cache_open(void* user_data, const char* filename) {
     if (!inner_libsf)
         return NULL;
 
-    libstreamfile_t* libsf = libstreamfile_open_buffered(inner_libsf, priv->buf_size);
+    libstreamfile_t* libsf = libstreamfile_open_buffered(inner_libsf);
     if (!libsf) {
         libstreamfile_close(inner_libsf);
         return NULL;
@@ -155,11 +155,11 @@ static void cache_close(libstreamfile_t* libsf) {
 }
 
 
-LIBVGMSTREAM_API libstreamfile_t* libstreamfile_open_buffered(libstreamfile_t* ext_libsf, int buf_size) {
+LIBVGMSTREAM_API libstreamfile_t* libstreamfile_open_buffered(libstreamfile_t* ext_libsf) {
     if (!ext_libsf)
         return NULL;
-    if (!buf_size)
-        buf_size = CACHE_DEFAULT_BUFFER_SIZE;
+    // not selectable since vgmstream's read patterns don't really fit one buf size
+    int buf_size = CACHE_DEFAULT_BUFFER_SIZE;
 
     libstreamfile_t* libsf = NULL;
     cache_priv_t* priv = NULL;
