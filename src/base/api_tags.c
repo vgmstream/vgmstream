@@ -1,5 +1,4 @@
 #include "api_internal.h"
-#if LIBVGMSTREAM_ENABLE
 
 typedef struct {
     VGMSTREAM_TAGS* vtags;
@@ -65,5 +64,3 @@ LIBVGMSTREAM_API void libvgmstream_tags_free(libvgmstream_tags_t* tags) {
     free(tags->priv);
     free(tags);
 }
-
-#endif

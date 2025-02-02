@@ -1,5 +1,4 @@
 #include "api_internal.h"
-#if LIBVGMSTREAM_ENABLE
 
 static libstreamfile_t* libstreamfile_from_streamfile(STREAMFILE* sf);
 
@@ -8,75 +7,75 @@ static libstreamfile_t* libstreamfile_from_streamfile(STREAMFILE* sf);
 typedef struct {
     int64_t offset;
     int64_t size;
-    STREAMFILE* inner_sf;
+    STREAMFILE* sf;
     char name[PATH_LIMIT];
-} libsf_data_t;
+} libsf_priv_t;
 
 static int libsf_read(void* user_data, uint8_t* dst, int dst_size) {
-    libsf_data_t* data = user_data;
-    if (!data || !dst)
+    libsf_priv_t* priv = user_data;
+    if (!priv || !dst)
         return 0;
 
-    int bytes = data->inner_sf->read(data->inner_sf, dst, data->offset, dst_size);
-    data->offset += bytes;
+    int bytes = priv->sf->read(priv->sf, dst, priv->offset, dst_size);
+    priv->offset += bytes;
 
     return bytes;
 }
 
 static int64_t libsf_seek(void* user_data, int64_t offset, int whence) {
-    libsf_data_t* data = user_data;
-    if (!data)
+    libsf_priv_t* priv = user_data;
+    if (!priv)
         return -1;
 
     switch (whence) {
         case LIBSTREAMFILE_SEEK_SET: /* absolute */
             break;
         case LIBSTREAMFILE_SEEK_CUR: /* relative to current */
-            offset += data->offset;
+            offset += priv->offset;
             break;
         case LIBSTREAMFILE_SEEK_END: /* relative to file end (should be negative) */
-            offset += data->size;
+            offset += priv->size;
             break;
         default:
             break;
     }
 
     /* clamp offset like fseek */
-    if (offset > data->size)
-        offset = data->size;
+    if (offset > priv->size)
+        offset = priv->size;
     else if (offset < 0)
         offset = 0;
 
     /* main seek */
-    data->offset = offset;
+    priv->offset = offset;
     return 0;
 }
 
 static int64_t libsf_get_size(void* user_data) {
-    libsf_data_t* data = user_data;
-    if (!data)
+    libsf_priv_t* priv = user_data;
+    if (!priv)
         return 0;
-    return data->size;
+    return priv->size;
 }
 
 static const char* libsf_get_name(void* user_data) {
-    libsf_data_t* data = user_data;
-    if (!data)
+    libsf_priv_t* priv = user_data;
+    if (!priv)
         return NULL;
 
-    if (data->name[0] == '\0') {
-        data->inner_sf->get_name(data->inner_sf, data->name, sizeof(data->name));
+    if (priv->name[0] == '\0') {
+        priv->sf->get_name(priv->sf, priv->name, sizeof(priv->name));
     }
 
-    return data->name;
+    return priv->name;
 }
 
 static libstreamfile_t* libsf_open(void* user_data, const char* filename) {
-    libsf_data_t* data = user_data;
-    if (!data || !data->inner_sf || !filename)
+    libsf_priv_t* priv = user_data;
+    if (!priv || !priv->sf || !filename)
         return NULL;
 
-    STREAMFILE* sf = data->inner_sf->open(data->inner_sf, filename, 0);
+    STREAMFILE* sf = priv->sf->open(priv->sf, filename, 0);
     if (!sf)
         return NULL;
 
@@ -93,11 +92,11 @@ static void libsf_close(libstreamfile_t* libsf) {
     if (!libsf)
         return;
 
-    libsf_data_t* data = libsf->user_data;
-    if (data && data->inner_sf) {
-        data->inner_sf->close(data->inner_sf);
+    libsf_priv_t* priv = libsf->user_data;
+    if (priv && priv->sf) {
+        priv->sf->close(priv->sf);
     }
-    free(data);
+    free(priv);
     free(libsf);
 }
 
@@ -106,7 +105,7 @@ static libstreamfile_t* libstreamfile_from_streamfile(STREAMFILE* sf) {
         return NULL;
 
     libstreamfile_t* libsf = NULL;
-    libsf_data_t* data = NULL;
+    libsf_priv_t* priv = NULL;
 
     libsf = calloc(1, sizeof(libstreamfile_t));
     if (!libsf) goto fail;
@@ -118,12 +117,12 @@ static libstreamfile_t* libstreamfile_from_streamfile(STREAMFILE* sf) {
     libsf->open = libsf_open;
     libsf->close = libsf_close;
 
-    libsf->user_data = calloc(1, sizeof(libsf_data_t));
+    libsf->user_data = calloc(1, sizeof(libsf_priv_t));
     if (!libsf->user_data) goto fail;
 
-    data = libsf->user_data;
-    data->inner_sf = sf;
-    data->size = get_streamfile_size(sf);
+    priv = libsf->user_data;
+    priv->sf = sf;
+    priv->size = get_streamfile_size(sf);
 
     return libsf;
 fail:
@@ -145,4 +144,18 @@ LIBVGMSTREAM_API libstreamfile_t* libstreamfile_open_from_stdio(const char* file
 
     return libsf;
 }
-#endif
+
+LIBVGMSTREAM_API libstreamfile_t* libstreamfile_open_from_file(void* file_, const char* filename) {
+    FILE* file = file_;
+    STREAMFILE* sf = open_stdio_streamfile_by_file(file, filename);
+    if (!sf)
+        return NULL;
+
+    libstreamfile_t* libsf = libstreamfile_from_streamfile(sf);
+    if (!libsf) {
+        close_streamfile(sf);
+        return NULL;
+    }
+
+    return libsf;
+}

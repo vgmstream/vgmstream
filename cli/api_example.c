@@ -1,5 +1,4 @@
 #include "../src/libvgmstream.h"
-#if LIBVGMSTREAM_ENABLE
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
@@ -59,7 +58,7 @@ static int api_example(const char* infile) {
     libvgmstream_options_t opt = {
         .libsf = get_streamfile(infile)
     };
-    err = libvgmstream_open_song(lib, &opt);
+    err = libvgmstream_open_stream(lib, &opt);
     // external SF is not needed after _open
     libstreamfile_close(opt.libsf); 
 
@@ -137,7 +136,7 @@ static int api_example(const char* infile) {
     printf("\n");
 
     // close current streamfile before opening new ones, optional
-    //libvgmstream_close_song(lib);
+    //libvgmstream_close_stream(lib);
 
     // process done
     libvgmstream_free(lib);
@@ -403,4 +402,3 @@ int main(int argc, char** argv) {
 
     return 0;
 }
-#endif

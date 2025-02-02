@@ -1,5 +1,4 @@
 #include "api_internal.h"
-#if LIBVGMSTREAM_ENABLE
 
 
 static int get_internal_log_level(libvgmstream_loglevel_t level) {
@@ -60,7 +59,7 @@ LIBVGMSTREAM_API bool libvgmstream_is_valid(const char* filename, libvgmstream_v
 
     vgmstream_ctx_valid_cfg icfg = {
         .is_extension = cfg->is_extension,
-        .skip_standard = cfg->skip_default,
+        .skip_standard = cfg->skip_standard,
         .reject_extensionless = cfg->reject_extensionless,
         .accept_unknown = cfg->accept_unknown,
         .accept_common = cfg->accept_common
@@ -91,5 +90,3 @@ LIBVGMSTREAM_API int libvgmstream_get_title(libvgmstream_t* lib, libvgmstream_ti
 LIBVGMSTREAM_API bool libvgmstream_is_virtual_filename(const char* filename) {
     return vgmstream_is_virtual_filename(filename);
 }
-
-#endif

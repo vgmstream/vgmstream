@@ -5,7 +5,6 @@
 #include "../vgmstream.h"
 #include "plugins.h"
 
-#if LIBVGMSTREAM_ENABLE
 
 #define LIBVGMSTREAM_OK  0
 #define LIBVGMSTREAM_ERROR_GENERIC  -1
@@ -62,5 +61,4 @@ int api_get_sample_size(libvgmstream_sample_t sample_type);
 
 STREAMFILE* open_api_streamfile(libstreamfile_t* libsf);
 
-#endif
 #endif
