@@ -524,6 +524,8 @@ static const char* extension_list[] = {
     "sgb",
     "sgd",
     "sgt",
+    "shaa",
+    "shsa",
     "skx",
     "slb", //txth/reserved [THE Nekomura no Hitobito (PS2)]
     "sli",
@@ -1466,6 +1468,7 @@ static const meta_info meta_info_list[] = {
         {meta_XABP,                 "cavia XABp header"},
         {meta_I3DS,                 "Codemasters i3DS header"},
         {meta_AXHD,                 "Angel Studios AXHD header"},
+        {meta_SHAA,                 "Nintendo Alarmo SHAA header"}
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {

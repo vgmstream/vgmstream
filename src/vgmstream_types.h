@@ -717,7 +717,7 @@ typedef enum {
     meta_XABP,
     meta_I3DS,
     meta_AXHD,
-
+    meta_SHAA           /* Nintendo Alarmo SHAA */
 } meta_t;
 
 #endif

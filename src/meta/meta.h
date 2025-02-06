@@ -1028,4 +1028,6 @@ VGMSTREAM* init_vgmstream_skex(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_axhd(STREAMFILE* sf);
 
+VGMSTREAM* init_vgmstream_shaa(STREAMFILE* sf);
+
 #endif

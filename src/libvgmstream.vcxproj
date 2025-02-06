@@ -686,6 +686,7 @@
     <ClCompile Include="meta\sfh.c" />
     <ClCompile Include="meta\sfl.c" />
     <ClCompile Include="meta\sgxd.c" />
+    <ClCompile Include="meta\shaa.c" />
     <ClCompile Include="meta\silence.c" />
     <ClCompile Include="meta\skex.c" />
     <ClCompile Include="meta\sk_aud.c" />
