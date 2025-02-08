@@ -431,6 +431,7 @@ static const char* extension_list[] = {
     "p2a", //txth/reserved [Thunderhawk Operation Phoenix (PS2)]
     "p2bt",
     "p3d",
+    "paf",
     "past",
     "pcm",
     "pdt",

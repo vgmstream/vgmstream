@@ -2059,6 +2059,9 @@
     <ClCompile Include="meta\ue4opus.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\undefind.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\utk.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
