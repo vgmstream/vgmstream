@@ -1,28 +1,39 @@
 # TXTH format
 
-TXTH is a simple text file with text commands to simulate a header for files unsupported by vgmstream, mainly headerless audio.
+TXTH is simply a text file with text commands that tells *vgmstream* how to play an unknown format.
 
-When an unsupported file is loaded (for instance `bgm01.snd`), vgmstream tries to find a TXTH header in the same dir, in this order:
-- `(filename.ext).txth`
-- `.(ext).txth`
+When you open an unsupported file (for instance `bgm01.adp`), vgmstream tries to find a TXTH in the same dir, in this order:
+- `(filename.extension).txth`
+- `.(extension).txth`
 - `.txth`
 
-If found and parsed correctly, vgmstream will play the file as described.
+If found and parsed correctly, vgmstream will play the file as described in the `.txth`.
 
 ## Example of a TXTH file
-For an unsupported `bgm01.vag` this would be a simple TXTH for it:
+For an unsupported `bgm01.adp` file this could be a TXTH that makes it playable:
 ```
-codec = PSX                 #data uses PS-ADPCM
-sample_rate = @0x10$2       #get sample rate at offset 0x10, 16 bit value
-channels = @0x14            #get number of channels at offset 14
-interleave = 0x1000         #fixed value
-start_offset = 0x100        #data starts after exactly this value
-num_samples = data_size     #find automatically number of samples in the file
-loop_flag = auto            #find loop points in PS-ADPCM
+codec = IMA                 # data uses IMA-ADPCM codec
+sample_rate = 44100         # fixed sample rate (tweak if sounds too fast/slow)
+channels = 2                # file is stereo
+start_offset = 0x20         # first 0x20 bytes are not audio
+num_samples = data_size     # audio length is automatically calculated
 ```
-A text file with the above commands must be saved as `.vag.txth` or `.txth` (preferably the former), notice it starts with a "." (dot). On some Windows versions files starting with a dot need to be created by appending a dot at the end when renaming: `.txth.`
+Make a plain text file with the above text, and save it as `.adp.txth` or `.txth` (preferably the former), then play `bgm01.adp` with vgmstream. You will need to tweak `codec` and other parameters for your case (ask for support in vgm communities).
 
-While the main point is playing the file, many of TXTH's features are aimed towards keeping original data intact, for documentation and preservation purposes; try leaving data as untouched as possible and consider how the game plays the file, as there is a good chance some feature can mimic it.
+Notice the `.txth` file starts with a "." (dot). On some Windows versions files starting with a dot need to be created by appending a dot at the end when renaming: `.txth.`.
+
+A slightly more complex example, where some values are read from the file itself:
+```
+codec = PSX                 # data uses PS-ADPCM codec
+interleave = 0x1000         # interleaved channel blocks
+channels = @0x08$2          # get number of channels at offset 0x14, 16 bit value
+sample_rate = @0x10:BE      # get sample rate at offset 0x10, in big endian order
+num_samples = @0x18         # audio length in samples at offset 0x18
+start_offset = @0x1c        # data starts after value at offset 0x1c
+loop_flag = auto            # find loop points in PS-ADPCM
+```
+
+While the main point is playing the file, many of TXTH's features are aimed towards keeping original data intact, for documentation and preservation purposes. Consider leaving data untouched and how the game could process the file, as there is a good chance some TXTH feature can mimic that and make audio playable.
 
 Also check the [examples](#examples) section for some quick recipes, of varying complexity.
 

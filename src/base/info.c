@@ -134,7 +134,7 @@ void describe_vgmstream(VGMSTREAM* vgmstream, char* desc, int length) {
             case coding_MSADPCM_ck:
             case coding_MS_IMA:
             case coding_MS_IMA_mono:
-            case coding_MC3:
+            case coding_MPC3:
             case coding_WWISE_IMA:
             case coding_REF_IMA:
             case coding_PSX_cfg:
@@ -255,7 +255,7 @@ void describe_vgmstream_info(VGMSTREAM* vgmstream, vgmstream_info* info) {
         case coding_MSADPCM_ck:
         case coding_MS_IMA:
         case coding_MS_IMA_mono:
-        case coding_MC3:
+        case coding_MPC3:
         case coding_WWISE_IMA:
         case coding_REF_IMA:
         case coding_PSX_cfg:

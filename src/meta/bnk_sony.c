@@ -43,16 +43,23 @@ typedef struct {
     int32_t num_samples;
     int32_t loop_start;
     int32_t loop_end;
+    int32_t loop_length;
     int32_t encoder_delay;
 
     uint32_t start_offset;
     uint32_t stream_offset;
 
     uint32_t stream_size;
-    uint32_t interleave;
+    uint32_t interleave;        //hardcoded in most versions
 
     uint16_t stream_flags;
+
     uint32_t atrac9_info;
+
+    uint32_t extradata_size;
+    uint32_t postdata_size;
+
+    uint32_t subtype;
 } bnk_header_t;
 
 static bool parse_bnk_v3(STREAMFILE* sf, bnk_header_t* h);
@@ -63,14 +70,14 @@ static bool parse_bnk_v3(STREAMFILE* sf, bnk_header_t* h);
 VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     char file_name[STREAM_NAME_SIZE];
-    bnk_header_t h = {0};
 
     /* checks */
     if (!check_extensions(sf, "bnk"))
-        return NULL;
+    return NULL;
+
+    bnk_header_t h = {0};
     if (!parse_bnk_v3(sf, &h))
         return NULL;
-
 
     /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(h.channels, h.loop_flag);
@@ -106,7 +113,6 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
         case EXTERNAL: {
             VGMSTREAM* temp_vs = NULL;
             STREAMFILE* temp_sf = NULL;
-
 
             /* try with both stream_name and bank_name/stream_name? */
             temp_sf = open_streamfile_by_filename(sf, h.stream_name);
@@ -158,7 +164,6 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
         case RIFF_ATRAC9: {
             VGMSTREAM* temp_vs = NULL;
             STREAMFILE* temp_sf = NULL;
-
 
             temp_sf = setup_subfile_streamfile(sf, h.start_offset, h.stream_size, "at9");
             if (!temp_sf) goto fail;
@@ -215,6 +220,9 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
 #endif
 
         case PCM16:
+            if (h.interleave == 0)
+                h.interleave = 0x02;
+
             vgmstream->coding_type = h.big_endian ? coding_PCM16BE : coding_PCM16LE;
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = h.interleave;
@@ -225,6 +233,9 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
             break;
 
         case PSX:
+            if (h.interleave == 0)
+                h.interleave = 0x10;
+
             vgmstream->coding_type = coding_PSX;
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = h.interleave;
@@ -235,6 +246,9 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
             break;
 
         case HEVAG:
+            if (h.interleave == 0)
+                h.interleave = 0x10;
+
             vgmstream->coding_type = coding_HEVAG;
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = h.interleave;
@@ -386,7 +400,7 @@ static bool process_tables(STREAMFILE* sf, bnk_header_t* h) {
      * - find if one section points to the selected material, and get section name = stream name */
 
     switch(h->sblk_version) {
-        case 0x01: /* Ratchet & Clank (PS2) */
+        case 0x01: /* NHL FaceOff 2003 (PS2), Ratchet & Clank (PS2) */
             h->sounds_entries   = read_u16(h->sblk_offset+0x16,sf); /* entry size: ~0x0c */
             h->grains_entries   = read_u16(h->sblk_offset+0x18,sf); /* entry size: ~0x28 */
             h->stream_entries   = read_u16(h->sblk_offset+0x1a,sf); /* entry size: none (count) */
@@ -638,6 +652,8 @@ static bool process_headers(STREAMFILE* sf, bnk_header_t* h) {
         case 0x1c:
         case 0x23:
             h->stream_offset     = read_u32(sndh_offset+0x00,sf);
+            h->sample_rate = 48000; // no sample rate (probably fixed to 48000/system's, but seen in RIFF)
+
             /* rest is part of data, handled later */
             break;
 
@@ -814,9 +830,64 @@ fail:
     return false;
 }
 
+static void process_extradata_base(STREAMFILE* sf, bnk_header_t* h, uint32_t info_offset) {
+    read_u32_t read_u32 = h->big_endian ? read_u32be : read_u32le;
+
+    h->subtype = read_u32(info_offset + 0x00, sf); //maybe flags?
+    // 0x04: type? always 1
+    h->extradata_size = read_u32(info_offset + 0x08, sf);
+    // 0x0c: null? (part of size?) */
+
+    h->extradata_size += 0x10;
+}
+
+static void process_extradata_0x10_pcm_psx(STREAMFILE* sf, bnk_header_t* h, uint32_t info_offset) {
+    read_u32_t read_u32 = h->big_endian ? read_u32be : read_u32le;
+    read_s32_t read_s32 = h->big_endian ? read_s32be : read_s32le;
+
+    h->num_samples  = read_s32(info_offset + 0x10, sf); // typically null, see rarely in v0x09 (PSX) and v0x1a~0x23 (PCM))
+    h->channels     = read_u32(info_offset + 0x14, sf);
+    h->loop_start   = read_s32(info_offset + 0x18, sf);
+    h->loop_length  = read_s32(info_offset + 0x1c, sf);
+}
+
+static void process_extradata_0x14_atrac9(STREAMFILE* sf, bnk_header_t* h, uint32_t info_offset) {
+    read_u32_t read_u32 = h->big_endian ? read_u32be : read_u32le;
+    read_s32_t read_s32 = h->big_endian ? read_s32be : read_s32le;
+
+    if (read_u32(info_offset + 0x08, sf) != 0x14) {
+        vgm_logi("BNK: unexpected extradata size (report)\n");
+        return;
+    }
+
+    // 0x08: extradata size (0x14)
+    h->atrac9_info    = read_u32be(info_offset + 0x0c, sf);
+    // 0x10: null?
+    h->loop_length      = read_s32(info_offset + 0x14, sf);
+    h->loop_start       = read_s32(info_offset + 0x18, sf); // *after* length unlike PCM/PSX
+}
+
+static void process_extradata_0x80_atrac9(STREAMFILE* sf, bnk_header_t* h, uint32_t info_offset) {
+    read_u32_t read_u32 = h->big_endian ? read_u32be : read_u32le;
+    read_s32_t read_s32 = h->big_endian ? read_s32be : read_s32le;
+
+    if (read_u32(info_offset + 0x10, sf) != 0x80) {
+        vgm_logi("BNK: unexpected extradata size (report)\n");
+        return;
+    }
+
+    // 0x10: extradata size (0x80)
+    h->atrac9_info    = read_u32be(info_offset + 0x14, sf);
+    // 0x18: null?
+    h->channels         = read_u32(info_offset + 0x1c, sf);
+    // 0x20: null?
+    h->loop_length      = read_s32(info_offset + 0x24, sf);
+    h->loop_start       = read_s32(info_offset + 0x28, sf); // *after* length unlike PCM/PSX (confirmed in both raw and RIFF)
+    // rest: padding
+}
+
 /* data part: parse extradata before the codec */
 static bool process_data(STREAMFILE* sf, bnk_header_t* h) {
-    read_u16_t read_u16 = h->big_endian ? read_u16be : read_u16le;
     read_u32_t read_u32 = h->big_endian ? read_u32be : read_u32le;
     read_s32_t read_s32 = h->big_endian ? read_s32be : read_s32le;
     read_u64_t read_u64 = h->big_endian ? read_u64be : read_u64le;
@@ -825,12 +896,7 @@ static bool process_data(STREAMFILE* sf, bnk_header_t* h) {
     if (h->zlsd_offset && h->target_subsong > h->total_subsongs)
         return true;
 
-    int subtype, loop_length;
-    uint32_t extradata_size = 0, postdata_size = 0;
-    uint32_t stream_name_size, stream_name_offset;
-
     h->start_offset = h->data_offset + h->stream_offset;
-    uint32_t info_offset = h->start_offset;
 
     switch(h->sblk_version) {
         case 0x01:
@@ -903,112 +969,74 @@ static bool process_data(STREAMFILE* sf, bnk_header_t* h) {
 
         case 0x08:
         case 0x09:
-            subtype = read_u32(h->start_offset+0x00,sf);
-            extradata_size = 0x08 + read_u32(h->start_offset+0x04,sf); /* 0x14 for AT9, 0x10 for PCM, 0x90 for MPEG */
+            h->subtype = read_u32(h->start_offset+0x00,sf);
+            h->extradata_size = read_u32(h->start_offset+0x04,sf); /* 0x14 for AT9, 0x10 for PCM, 0x90 for MPEG */
+            h->extradata_size += 0x08;
 
-            switch(subtype) {
-                case 0x00:
+            switch(h->subtype) {
+                case 0x00000000:
                     h->channels = 1;
                     h->codec = PSX;
-                    h->interleave = 0x10;
                     break;
 
-                case 0x01:
+                case 0x00000001:
                     h->channels = 1;
                     h->codec = PCM16;
-                    h->interleave = 0x01;
                     break;
 
-                case 0x02: /* ATRAC9 / MPEG mono */
-                case 0x05: /* ATRAC9 / MPEG stereo */
-                    h->channels = (subtype == 0x02) ? 1 : 2;
+                case 0x00000002: /* ATRAC9 / MPEG mono */
+                case 0x00000005: /* ATRAC9 / MPEG stereo */
+                    h->channels = (h->subtype == 0x02) ? 1 : 2;
 
                     if (h->big_endian) {
-                        /* The Last of Us demo (PS3) */
-
-                        /* 0x08: mpeg version? (1) */
-                        /* 0x0C: mpeg layer? (3) */
-                        /* 0x10: ? (related to frame size, 0xC0 > 0x40, 0x120 > 0x60) */
-                        /* 0x14: sample rate */
-                        /* 0x18: mpeg layer? (3) */
-                        /* 0x1c: mpeg version? (1) */
-                        /* 0x20: channels? */
-                        /* 0x24: frame size */
-                        /* 0x28: encoder delay */
-                        /* 0x2c: num samples */
-                        /* 0x30: ? */
-                        /* 0x34: ? */
-                        /* 0x38: 0? */
-                        /* 0x3c: data size */
-                        /* padding up to 0x90 */
-
+                        /* The Last of Us demo (PS3) (size 0x90) */
+                        // 0x08: mpeg version? (1)
+                        // 0x0C: mpeg layer? (3)
+                        // 0x10: ? (related to frame size, 0xC0 > 0x40, 0x120 > 0x60)
+                        // 0x14: sample rate
+                        // 0x18: mpeg layer? (3)
+                        // 0x1c: mpeg version? (1)
+                        // 0x20: channels?
+                        // 0x24: frame size
                         h->encoder_delay    = read_s32(h->start_offset+0x28,sf);
                         h->num_samples      = read_s32(h->start_offset+0x2c,sf);
-
+                        // 0x30: ?
+                        // 0x34: ?
+                        // 0x38: 0?
+                        // 0x3c: data size
+                        // padding up to 0x90
                         h->codec = MPEG;
                     }
                     else {
                         /* Puyo Puyo Tetris (PS4) */
-                        if (read_u32(h->start_offset+0x08,sf) + 0x08 != extradata_size) { /* repeat? */
-                            VGM_LOG("BNK: unknown subtype\n");
-                            goto fail;
-                        }
-
-                        h->atrac9_info = read_u32be(h->start_offset+0x0c,sf);
-                        /* 0x10: null? */
-                        loop_length    = read_u32(h->start_offset+0x14,sf);
-                        h->loop_start  = read_u32(h->start_offset+0x18,sf);
-                        h->loop_end = h->loop_start + loop_length; /* loop_start is -1 if not set */
-
+                        process_extradata_0x14_atrac9(sf, h, h->start_offset);
                         h->codec = ATRAC9;
                     }
                     break;
 
                 default:
-                    vgm_logi("BNK: unknown subtype %x (report)\n", subtype);
+                    vgm_logi("BNK: unknown subtype %08x (report)\n", h->subtype);
                     goto fail;
             }
             break;
 
         case 0x0c:
-            /* has two different variants under the same version - one for PS3 and another for PS4 */
-
-            subtype = read_u16(h->start_offset + 0x02, sf);
-            if (read_u32(h->start_offset + 0x04, sf) != 0x01) { /* type? */
-                VGM_LOG("BNK: unknown subtype\n");
-                goto fail;
-            }
-            extradata_size = 0x10 + read_u32(h->start_offset + 0x08, sf); /* 0x80 for MP3, 0x10 for PCM/PS-ADPCM */
-            /* 0x0c: null? */
-
+            /* two different variants under the same version (SingStar Ultimate Party PS3 vs PS4) */
+            process_extradata_base(sf, h, h->start_offset);
             if (h->big_endian) {
-                switch (subtype) { /* PS3 */
-                    case 0x00: /* PS-ADPCM */
-                        /* 0x10: null? */
-                        h->channels = read_u32(h->start_offset + 0x14, sf);
-                        h->interleave = 0x10;
-
-                        h->loop_start = read_u32(h->start_offset + 0x18, sf);
-                        loop_length = read_u32(h->start_offset + 0x1c, sf);
-                        h->loop_end = h->loop_start + loop_length; /* loop_start is -1 if not set */
-
+                switch (h->subtype) { /* PS3 */
+                    case 0x00000000: /* PS-ADPCM 1ch */
+                        process_extradata_0x10_pcm_psx(sf, h, h->start_offset);
                         h->codec = PSX;
                         break;
 
-                    case 0x01: /* PCM */
-                        /* 0x10: null? */
-                        h->channels = read_u32(h->start_offset + 0x14, sf);
-                        h->interleave = 0x02;
-
-                        h->loop_start = read_u32(h->start_offset + 0x18, sf);
-                        loop_length = read_u32(h->start_offset + 0x1c, sf);
-                        h->loop_end = h->loop_start + loop_length; /* loop_start is -1 if not set */
-
+                    case 0x00000001: /* PCM 1ch */
+                        process_extradata_0x10_pcm_psx(sf, h, h->start_offset);
                         h->codec = PCM16;
                         break;
 
-                    case 0x03: /* MP3 */
-                        /* largely the same layout as descibed in v9 above, except +0x08 to all the offsets */
+                    case 0x00000003: /* MP3 */
+                        /* largely the same layout as described in v9 above, except +0x08 to all the offsets (size 0x80) */
                         h->channels = read_u32(h->start_offset + 0x28, sf);
 
                         h->encoder_delay = read_u32(h->start_offset + 0x30, sf);
@@ -1018,38 +1046,25 @@ static bool process_data(STREAMFILE* sf, bnk_header_t* h) {
                         break;
 
                     default:
-                        vgm_logi("BNK: unknown subtype %x (report)\n", subtype);
+                        vgm_logi("BNK: unknown v08+ subtype %08x (report)\n", h->subtype);
                         goto fail;
                 }
             }
             else {
-                switch (subtype) { /* PS4 */
-                    case 0x00: /* PCM */
-                        /* 0x10: null? */
-                        h->channels = read_u32(h->start_offset + 0x14, sf);
-                        h->interleave = 0x02;
-
-                        h->loop_start = read_u32(h->start_offset + 0x18, sf);
-                        loop_length = read_u32(h->start_offset + 0x1c, sf);
-                        h->loop_end = h->loop_start + loop_length; /* loop_start is -1 if not set */
-
+                switch (h->subtype) { /* PS4 */
+                    case 0x00000000: /* PCM 1ch */
+                    case 0x00000001: /* PCM 2ch */
+                        process_extradata_0x10_pcm_psx(sf, h, h->start_offset);
                         h->codec = PCM16;
                         break;
 
-                    case 0x01: /* PS-ADPCM (HEVAG?) */
-                        /* 0x10: num samples */
-                        h->channels = read_u32(h->start_offset + 0x14, sf);
-                        h->interleave = 0x10;
-
-                        h->loop_start = read_u32(h->start_offset + 0x18, sf);
-                        loop_length = read_u32(h->start_offset + 0x1c, sf);
-                        h->loop_end = h->loop_start + loop_length; /* loop_start is -1 if not set */
-
+                    case 0x00010000: /* PS-ADPCM 1ch (HEVAG?) */
+                        process_extradata_0x10_pcm_psx(sf, h, h->start_offset);
                         h->codec = PSX;
                         break;
 
                     default:
-                        vgm_logi("BNK: unknown subtype %x (report)\n", subtype);
+                        vgm_logi("BNK: unknown v08+ subtype %08x (report)\n", h->subtype);
                         goto fail;
                 }
             }
@@ -1060,143 +1075,119 @@ static bool process_data(STREAMFILE* sf, bnk_header_t* h) {
         case 0x0e:
         case 0x0f:
         case 0x10:
-            subtype = read_u16(h->start_offset+0x00,sf);
-            if (read_u32(h->start_offset+0x04,sf) != 0x01) { /* type? */
-                VGM_LOG("BNK: unknown subtype\n");
-                goto fail;
-            }
-            extradata_size = 0x10 + read_u32(h->start_offset+0x08,sf); /* 0x80 for AT9, 0x10 for PCM/PS-ADPCM */
-            /* 0x0c: null? */
-
-            switch(subtype) {
-                case 0x02: /* ATRAC9 mono */
-                case 0x05: /* ATRAC9 stereo */
-                    if (read_u32(h->start_offset+0x10,sf) + 0x10 != extradata_size) /* repeat? */
-                        goto fail;
-                    h->channels = (subtype == 0x02) ? 1 : 2;
-
-                    h->atrac9_info = read_u32be(h->start_offset+0x14,sf);
-                    /* 0x18: null? */
-                    /* 0x1c: channels? */
-                    /* 0x20: null? */
-
-                    loop_length   = read_u32(h->start_offset+0x24,sf);
-                    h->loop_start = read_u32(h->start_offset+0x28,sf);
-                    h->loop_end = h->loop_start + loop_length; /* loop_start is -1 if not set */
-
-                    h->codec = ATRAC9;
-                    break;
-
-                case 0x01: /* PCM16LE mono? (NekoBuro/Polara sfx) */
-                case 0x04: /* PCM16LE stereo? (NekoBuro/Polara sfx) */
-                    /* 0x10: null? */
-                    h->channels = read_u32(h->start_offset+0x14,sf);
-                    h->interleave = 0x02;
-
-                    h->loop_start = read_u32(h->start_offset+0x18,sf);
-                    loop_length   = read_u32(h->start_offset+0x1c,sf);
-                    h->loop_end = h->loop_start + loop_length; /* loop_start is -1 if not set */
-
+            //TODO: in v0x0f/10 some codecs have the original filename right before this, see if offset can be found
+            process_extradata_base(sf, h, h->start_offset);
+            switch(h->subtype) {
+                case 0x00000001: /* PCM16LE 1ch [NekoBuro/Polara (Vita)-v0d sfx] */
+                case 0x00000004: /* PCM16LE 2ch [NekoBuro/Polara (Vita)-v0d sfx] */
+                    process_extradata_0x10_pcm_psx(sf, h, h->start_offset);
                     h->codec = PCM16;
                     break;
 
-                case 0x00: /* HEVAG (test banks) - likely standard VAG */
-                case 0x03: /* HEVAG (Ikaruga) */
-                    /* 0x10: null? */
-                    h->channels = read_u32(h->start_offset+0x14,sf);
-                    h->interleave = 0x10;
-
-                    h->loop_start = read_u32(h->start_offset+0x18,sf);
-                    loop_length   = read_u32(h->start_offset+0x1c,sf);
-                    h->loop_end = h->loop_start + loop_length; /* loop_start is -1 if not set */
-
+                case 0x00000000: /* HEVAG 1ch [Hero Must Die (Vita)-v0d, v0d test banks) - likely standard VAG */
+                case 0x00000003: /* HEVAG 2ch [Ikaruga (PS4)-v0f] */
+                    process_extradata_0x10_pcm_psx(sf, h, h->start_offset);
                     h->codec = HEVAG;
-                    //TODO: in v0x0f right before start_offset is the .vag filename, see if offset can be found
                     break;
 
+                case 0x00000002: /* ATRAC9 1ch [Crypt of the Necrodancer (Vita)-v0d] */
+                case 0x00000005: /* ATRAC9 2ch [Crypt of the Necrodancer (Vita)-v0d, Ikaruga (PS4)-v0f] */
+                    process_extradata_0x80_atrac9(sf, h, h->start_offset);
+                    h->codec = ATRAC9;
+                    break;
+
+                case 0x00030000: /* ATRAC9 1ch [Days Gone (PS4)-v10] */
+                case 0x00030001: /* ATRAC9 2ch [Days Gone (PS4)-v10] */
+                case 0x00030002: /* ATRAC9 4ch [Days Gone (PS4)-v10] */
+                    process_extradata_0x80_atrac9(sf, h, h->start_offset);
+                    h->codec = RIFF_ATRAC9;
+                    break;
+    
                 default:
-                    vgm_logi("BNK: unknown subtype %x (report)\n", subtype);
+                    vgm_logi("BNK: unknown v0d+ subtype %08x (report)\n", h->subtype);
                     goto fail;
             }
             break;
 
         case 0x1a:
         case 0x1c:
-        case 0x23:
+        case 0x23: {
+            // common [Demon's Souls (PS5), The Last of Us Part 2 (PC)]
             if (h->stream_offset == 0xFFFFFFFF) {
                 h->channels = 1;
                 h->codec = DUMMY;
                 break;
             }
 
-            /* pre-info */
-            stream_name_size   = read_u64(info_offset+0x00,sf);
-            stream_name_offset = info_offset + 0x08;
-            info_offset += stream_name_size + 0x08;
+            /* pre-header with string + size */
+            uint32_t info_offset = h->start_offset;
 
-            h->stream_size = read_u64(info_offset + 0x00,sf); /* after this offset */
-            h->stream_size += 0x08 + stream_name_size + 0x08;
-            /* 0x08: 0/1 for PCM (Mono/Stereo?), 0/1/2/3 for ATRAC9 (channels/2)? */
-            subtype = read_u16(info_offset + 0x0a, sf);
-            /* 0x0c: always 1 - using this to detect whether it's an SBlk or ZLSD/exteral sound for now */
-            extradata_size = read_u64(info_offset + 0x10,sf) + 0x08 + stream_name_size + 0x18;
+            uint32_t stream_name_size   = read_u64(info_offset + 0x00,sf);
+            uint32_t stream_name_offset = info_offset + 0x08;
+            info_offset += stream_name_size + 0x08;
 
             if (stream_name_size >= STREAM_NAME_SIZE || stream_name_size <= 0)
                 stream_name_size = STREAM_NAME_SIZE;
             read_string(h->stream_name, stream_name_size, stream_name_offset, sf);
 
-            /* size check is necessary, otherwise it risks a false positive with the ZLSD version number */
-            if (info_offset + 0x10 > h->data_offset + h->data_size || read_u32(info_offset + 0x0c, sf) != 0x01) {
+            h->stream_size = read_u64(info_offset + 0x00,sf); /* after this offset */
+            h->stream_size += 0x08 + stream_name_size + 0x08;
+            info_offset += 0x08;
+
+            // size check is necessary, otherwise it risks a false positive with the ZLSD version number
+            // (using 0x01 flag to detect whether it's an SBlk or ZLSD/exteral sound for now)
+            if (info_offset + 0x08 > h->data_offset + h->data_size || read_u32(info_offset + 0x04, sf) != 0x01) {
                 h->channels = 1;
                 h->codec = EXTERNAL;
                 break;
             }
 
-            info_offset += 0x18;
+            /* actual stream info;  */
+            process_extradata_base(sf, h, info_offset);
+            h->extradata_size += 0x08 + stream_name_size + 0x08;
 
-            /* actual stream info */
-            switch (subtype) {
-                case 0x00: /* PCM */
-                    h->num_samples = read_s32(info_offset + 0x00, sf);
-                    h->channels    = read_u32(info_offset + 0x04, sf);
-                    /* 0x08: loop flag? (always -1) */
-
+            // lower 16bit: 0/1 for PCM, 0/1/2/3 for ATRAC9 (possibly channels / 2)
+            switch (h->subtype >> 16) {
+                case 0x0000: /* PCM [The Last of Us Part 1 (PC)-v23] */
+                    process_extradata_0x10_pcm_psx(sf, h, info_offset);
                     h->codec = PCM16;
                     break;
 
-                /* should be split, but 0x1A/0x1C has no other known codecs yet */
-                case 0x01: /* ATRAC9 (0x23) */
-                case 0x03: /* ATRAC9 (0x1A/0x1C) */
-                    /* 0x00: extradata size (without pre-info, also above) */
-                    h->atrac9_info = read_u32be(info_offset + 0x04, sf);
-                    h->num_samples   = read_s32(info_offset + 0x08, sf);
-                    h->channels      = read_u32(info_offset + 0x0c, sf);
-                    h->loop_start    = read_s32(info_offset + 0x10, sf);
-                    h->loop_end      = read_s32(info_offset + 0x14, sf);
-                    /* 0x18: loop flag (0=loop, -1=no) */
-                    /* rest: null */
-
+                case 0x0003: /* ATRAC9 [The Last of Us Part 2 (PC)-v1c, Demon's Souls (PS5)-v1a] */
+                case 0x0001: /* ATRAC9 [The Last of Us Part 1 (PC)-v23] */
+                    process_extradata_0x80_atrac9(sf, h, info_offset);
                     h->codec = RIFF_ATRAC9;
                     break;
 
                 default:
-                    vgm_logi("BNK: unknown subtype %x (report)\n", subtype);
+                    vgm_logi("BNK: unknown v1c+ subtype %08x (report)\n", h->subtype);
                     goto fail;
             }
 
-            /* no sample rate (probably fixed to 48000/system's, but seen in RIFF) */
-            h->sample_rate = 48000;
             break;
+        }
 
         default:
             vgm_logi("BNK: unknown data version %x (report)\n", h->sblk_version);
             goto fail;
     }
 
-    h->start_offset += extradata_size;
-    h->stream_size -= extradata_size;
-    h->stream_size -= postdata_size;
+    h->start_offset += h->extradata_size;
+    h->stream_size -= h->extradata_size;
+    h->stream_size -= h->postdata_size;
     //;VGM_LOG("BNK: offset=%x, size=%x\n", h->start_offset, h->stream_size);
+
+    // loop_start is typically -1 if not set
+    if (h->loop_start < 0) {
+        h->loop_start = 0;
+        h->loop_length = 0;
+    } 
+
+    if (h->loop_length) {
+        h->loop_end = h->loop_start + h->loop_length;
+    }
+
+    h->loop_flag = (h->loop_start >= 0) && (h->loop_end > 0);
 
     return true;
 fail:
@@ -1351,8 +1342,6 @@ static bool parse_bnk_v3(STREAMFILE* sf, bnk_header_t* h) {
         goto fail;
     if (!process_zlsd(sf, h))
         goto fail;
-
-    h->loop_flag = (h->loop_start >= 0) && (h->loop_end > 0);
 
     return true;
 fail:

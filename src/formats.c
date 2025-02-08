@@ -23,6 +23,7 @@ static const char* extension_list[] = {
     //"", /* vgmstream can play extensionless files too, but plugins must accept them manually */
 
     "208",
+    "2dx",
     "2dx9",
     "3do",
     "3ds",
@@ -270,6 +271,7 @@ static const char* extension_list[] = {
     "ivag",
     "ivb",
     "ivs", //txth/reserved [Burnout 2 (PS2)]
+    "ixa",
 
     "joe",
     "jstm",
@@ -419,7 +421,6 @@ static const char* extension_list[] = {
     "opu",
     //"opus", //common
     "opusx",
-    "otm",
     "oto", //txth/reserved [Vampire Savior (SAT)]
     "ovb", //txth/semi [namCollection: Tekken (PS2), Tekken 5: Tekken 1-3 (PS2)]
 
@@ -430,7 +431,9 @@ static const char* extension_list[] = {
     "p2a", //txth/reserved [Thunderhawk Operation Phoenix (PS2)]
     "p2bt",
     "p3d",
+    "paf",
     "past",
+    "patch3audio",
     "pcm",
     "pdt",
     "phd",
@@ -443,6 +446,8 @@ static const char* extension_list[] = {
     "psh", //fake extension for .vsv (to be removed)
     "psn",
     "pwb",
+
+    "qwv", //txth/reserved [Bishi Bashi Champ Online (AC)]
 
     "r",
     "rac", //txth/reserved [Manhunt (Xbox)]
@@ -846,7 +851,7 @@ static const coding_info coding_info_list[] = {
         {coding_QD_IMA,             "Quantic Dream 4-bit IMA ADPCM"},
         {coding_WV6_IMA,            "Gorilla Systems WV6 4-bit IMA ADPCM"},
         {coding_HV_IMA,             "High Voltage 4-bit IMA ADPCM"},
-        {coding_FFTA2_IMA,          "Final Fantasy Tactics A2 4-bit IMA ADPCM"},
+        {coding_SQEX_IMA,           "Square Enix 4-bit IMA ADPCM"},
         {coding_BLITZ_IMA,          "Blitz Games 4-bit IMA ADPCM"},
         {coding_MTF_IMA,            "MT Framework 4-bit IMA ADPCM"},
 
@@ -885,7 +890,7 @@ static const coding_info coding_info_list[] = {
         {coding_LSF,                "Gizmondo Studios Helsingborg LSF 4-bit ADPCM"},
         {coding_MTAF,               "Konami MTAF 4-bit ADPCM"},
         {coding_MTA2,               "Konami MTA2 4-bit ADPCM"},
-        {coding_MC3,                "Paradigm MC3 3-bit ADPCM"},
+        {coding_MPC3,               "Paradigm MPC3 3-bit ADPCM"},
         {coding_FADPCM,             "FMOD FADPCM 4-bit ADPCM"},
         {coding_ASF,                "Argonaut ASF 4-bit ADPCM"},
         {coding_TANTALUS,           "Tantalus 4-bit ADPCM"},
@@ -1145,7 +1150,7 @@ static const meta_info meta_info_list[] = {
         {meta_IDSP_IE,              "Inevitable Entertainment IDSP Header"},
         {meta_UBI_JADE,             "Ubisoft Jade RIFF header"},
         {meta_SEG,                  "Stormfront SEG header"},
-        {meta_NDS_STRM_FFTA2,       "Final Fantasy Tactics A2 RIFF Header"},
+        {meta_RIFF_IMA,             "Square Enix RIFF IMA eader"},
         {meta_KNON,                 "Paon KNON header"},
         {meta_ZWDSP,                "Zack and Wiki custom DSP Header"},
         {meta_GCA,                  "GCA DSP Header"},
@@ -1171,7 +1176,7 @@ static const meta_info meta_info_list[] = {
         {meta_VSF,                  "Square Enix VSF header"},
         {meta_NDS_RRDS,             "Ridger Racer DS Header"},
         {meta_PS2_SND,              "Might and Magic SSND Header"},
-        {meta_PS2_VSF_TTA,          "VSF with SMSS Header"},
+        {meta_SMSS,                 "Treasure SMSS header"},
         {meta_ADS_MIDWAY,           "Midway ADS header"},
         {meta_PS2_MCG,              "Gunvari MCG Header"},
         {meta_ZSD,                  "Konami ZSD header"},
@@ -1183,8 +1188,8 @@ static const meta_info meta_info_list[] = {
         {meta_NDS_HWAS,             "Vicarious Visions HWAS header"},
         {meta_NGC_LPS,              "Rave Master LPS Header"},
         {meta_NAOMI_ADPCM,          "NAOMI/NAOMI2 Arcade games ADPCM header"},
-        {meta_SD9,                  "beatmania IIDX SD9 header"},
-        {meta_2DX9,                 "beatmania IIDX 2DX9 header"},
+        {meta_SD9,                  "Konami SD9 header"},
+        {meta_2DX9,                 "Konami 2DX9 header"},
         {meta_DSP_KCEJE,            "Konami .DSP Header"},
         {meta_PS2_VGV,              "Rune: Viking Warlord VGV Header"},
         {meta_GCUB,                 "Sega GCub header"},
@@ -1217,7 +1222,7 @@ static const meta_info meta_info_list[] = {
         {meta_NGC_RKV,              "Legacy of Kain - Blood Omen 2 RKV GC header"},
         {meta_DSP_DDSP,             ".DDSP header"},
         {meta_P3D,                  "Radical P3D header"},
-        {meta_NGC_DSP_MPDS,         "MPDS DSP header"},
+        {meta_MPDS,                 "Paradigm MPDS header"},
         {meta_DSP_STR_IG,           "Infogrames .DSP header"},
         {meta_EA_SWVR,              "Electronic Arts SWVR header"},
         {meta_DSP_XIII,             "XIII dsp header"},
@@ -1237,7 +1242,7 @@ static const meta_info meta_info_list[] = {
         {meta_MSF,                  "Sony MSF header"},
         {meta_SNDP,                 "Premium Agency SNDP header"},
         {meta_SGXD,                 "Sony SGXD header"},
-        {meta_WII_RAS,              "RAS header"},
+        {meta_RAS,                  "Retro RAS_ header"},
         {meta_SPM,                  "Square SPM header"},
         {meta_VGS_PS,               "Princess Soft VGS header"},
         {meta_PS2_IAB,              "Runtime .IAB header"},
@@ -1262,7 +1267,7 @@ static const meta_info meta_info_list[] = {
         {meta_2PFS,                 "Konami 2PFS header"},
         {meta_UBI_CKD,              "Ubisoft CKD RIFF header"},
         {meta_PS2_VBK,              "PS2 VBK Header"},
-        {meta_OTM,                  "Otomedius OTM Header"},
+        {meta_XWB_KONAMI,           "Konami .XWB header"},
         {meta_CSTM,                 "Nintendo CSTM Header"},
         {meta_FSTM,                 "Nintendo FSTM Header"},
         {meta_KT_WIIBGM,            "Koei Tecmo WiiBGM Header"},
@@ -1273,7 +1278,7 @@ static const meta_info meta_info_list[] = {
         {meta_ADX_MONSTER,          "Monster Games .ADX header"},
         {meta_HCA,                  "CRI HCA header"},
         {meta_SVAG_SNK,             "SNK SVAG header"},
-        {meta_PS2_VDS_VDM,          "Procyon Studio VDS/VDM header"},
+        {meta_VDS_VDM,              "Procyon Studio VDS/VDM header"},
         {meta_FFMPEG,               "FFmpeg supported format"},
         {meta_FFMPEG_faulty,        "FFmpeg supported format (check log)"},
         {meta_CXS,                  "tri-Crescendo CXS header"},
@@ -1285,7 +1290,7 @@ static const meta_info meta_info_list[] = {
         {meta_UBI_RAKI,             "Ubisoft RAKI header"},
         {meta_SNDX,                 "Sony SNDX header"},
         {meta_OGL,                  "Shin'en OGL header"},
-        {meta_MC3,                  "Paradigm MC3 header"},
+        {meta_MPC3,                 "Paradigm MPC3 header"},
         {meta_GHS,                  "Hexadrive GHS/S_P_STH header"},
         {meta_AAC_TRIACE,           "tri-Ace AAC header"},
         {meta_MTA2,                 "Konami MTA2 header"},
@@ -1355,7 +1360,7 @@ static const meta_info meta_info_list[] = {
         {meta_AHV,                  "Amuze AHV header"},
         {meta_MSV,                  "Sony MultiStream MSV header"},
         {meta_SDF,                  "Beyond Reality SDF header"},
-        {meta_SVG,                  "High Voltage SVG header"},
+        {meta_SVGP,                 "High Voltage SVGp header"},
         {meta_VAI,                  "Asobo Studio .VAI header"},
         {meta_AIF_ASOBO,            "Asobo Studio .AIF header"},
         {meta_AO,                   "AlphaOgg .AO header"},

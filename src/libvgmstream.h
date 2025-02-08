@@ -227,8 +227,9 @@ LIBVGMSTREAM_API void libvgmstream_close_stream(libvgmstream_t* lib);
 LIBVGMSTREAM_API int libvgmstream_render(libvgmstream_t* lib);
 
 /* Same as _play, but fills some external buffer (also updates lib->decoder->* values)
- * - returns < 0 on error, or N = number of filled samples.
+ * - returns < 0 on error
  * - buf must be at least as big as channels * sample_size * buf_samples
+ * - note that may return less than requested samples (such as near EOF)
  * - needs copying around from internal bufs so may be slightly slower; mainly for cases when you have buf constraints
  */
 LIBVGMSTREAM_API int libvgmstream_fill(libvgmstream_t* lib, void* buf, int buf_samples);

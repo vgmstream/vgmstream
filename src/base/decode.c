@@ -472,7 +472,7 @@ int decode_get_samples_per_frame(VGMSTREAM* vgmstream) {
         case coding_CAMELOT_IMA:
         case coding_WV6_IMA:
         case coding_HV_IMA:
-        case coding_FFTA2_IMA:
+        case coding_SQEX_IMA:
         case coding_BLITZ_IMA:
         case coding_PCFX:
             return 2;
@@ -566,7 +566,7 @@ int decode_get_samples_per_frame(VGMSTREAM* vgmstream) {
             return 128*2;
         case coding_MTA2:
             return 128*2;
-        case coding_MC3:
+        case coding_MPC3:
             return 10;
         case coding_FADPCM:
             return 256; /* (0x8c - 0xc) * 2 */
@@ -688,7 +688,7 @@ int decode_get_frame_size(VGMSTREAM* vgmstream) {
         case coding_CAMELOT_IMA:
         case coding_WV6_IMA:
         case coding_HV_IMA:
-        case coding_FFTA2_IMA:
+        case coding_SQEX_IMA:
         case coding_BLITZ_IMA:
         case coding_PCFX:
         case coding_OKI16:
@@ -790,7 +790,7 @@ int decode_get_frame_size(VGMSTREAM* vgmstream) {
             return vgmstream->interleave_block_size;
         case coding_MTA2:
             return 0x90;
-        case coding_MC3:
+        case coding_MPC3:
             return 0x04;
         case coding_FADPCM:
             return 0x8c;
@@ -1354,9 +1354,9 @@ void decode_vgmstream(sbuf_t* sdst, VGMSTREAM* vgmstream, int samples_to_do) {
                         vgmstream->channels, vgmstream->samples_into_block, samples_to_do);
             }
             break;
-        case coding_FFTA2_IMA:
+        case coding_SQEX_IMA:
             for (ch = 0; ch < vgmstream->channels; ch++) {
-                decode_ffta2_ima(&vgmstream->ch[ch], buffer+ch,
+                decode_sqex_ima(&vgmstream->ch[ch], buffer+ch,
                         vgmstream->channels, vgmstream->samples_into_block, samples_to_do);
             }
             break;
@@ -1587,9 +1587,9 @@ void decode_vgmstream(sbuf_t* sdst, VGMSTREAM* vgmstream, int samples_to_do) {
                         vgmstream->channels, vgmstream->samples_into_block, samples_to_do, ch, vgmstream->codec_config);
             }
             break;
-        case coding_MC3:
+        case coding_MPC3:
             for (ch = 0; ch < vgmstream->channels; ch++) {
-                decode_mc3(vgmstream, &vgmstream->ch[ch], buffer+ch,
+                decode_mpc3(vgmstream, &vgmstream->ch[ch], buffer+ch,
                         vgmstream->channels, vgmstream->samples_into_block, samples_to_do, ch);
             }
             break;

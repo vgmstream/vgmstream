@@ -8,7 +8,6 @@ VGMSTREAM* init_vgmstream_apple_caff(STREAMFILE* sf) {
     size_t file_size, data_size = 0;
     int loop_flag, channels = 0, sample_rate = 0;
 
-    int found_desc = 0 /*, found_pakt = 0*/, found_data = 0;
     uint32_t codec = 0, codec_flags = 0;
     uint32_t bytes_per_packet = 0, samples_per_packet = 0, channels_per_packet = 0, bits_per_sample = 0;
     int valid_samples = 0 /*, priming_samples = 0, unused_samples = 0*/;
@@ -25,6 +24,7 @@ VGMSTREAM* init_vgmstream_apple_caff(STREAMFILE* sf) {
     file_size = get_streamfile_size(sf);
     chunk_offset = 0x08;
 
+    bool found_desc = false, found_data = false;
     while (chunk_offset < file_size) {
         uint32_t chunk_type = read_u32be(chunk_offset+0x00,sf);
         uint32_t chunk_size = (uint32_t)read_u64be(chunk_offset+0x04,sf);
@@ -33,16 +33,9 @@ VGMSTREAM* init_vgmstream_apple_caff(STREAMFILE* sf) {
         switch (chunk_type) {
 
             case 0x64657363: /* "desc" */
-                found_desc = 1;
+                found_desc = true;
 
-                {
-                    uint64_t sample_long = read_u64be(chunk_offset+0x00, sf);
-                    double* sample_double; /* double sample rate, double the fun */
-
-                    sample_double = (double*)&sample_long;
-                    sample_rate = (int)(*sample_double);
-                }
-
+                sample_rate    = (int)read_d64be(chunk_offset+0x00, sf); /* double sample rate, double the fun */
                 codec               = read_u32be(chunk_offset+0x08, sf);
                 codec_flags         = read_u32be(chunk_offset+0x0c, sf);
                 bytes_per_packet    = read_u32be(chunk_offset+0x10, sf);
@@ -61,7 +54,7 @@ VGMSTREAM* init_vgmstream_apple_caff(STREAMFILE* sf) {
                 break;
 
             case 0x64617461: /* "data" */
-                found_data = 1;
+                found_data = true;
 
                 /* 0x00: version? 0x00/0x01 */
                 start_offset = chunk_offset + 0x04;

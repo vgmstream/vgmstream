@@ -96,24 +96,45 @@ LIBVGMSTREAM_API int libvgmstream_fill(libvgmstream_t* lib, void* buf, int buf_s
         return LIBVGMSTREAM_ERROR_GENERIC;
 
     libvgmstream_priv_t* priv = lib->priv;
-    if (priv->decode_done)
-        return LIBVGMSTREAM_ERROR_GENERIC;
 
-    if (priv->buf.consumed >= priv->buf.samples) {
-        int err = libvgmstream_render(lib);
-        if (err < 0) return err;
+    bool done = false;
+    int buf_copied = 0;
+    while (buf_copied < buf_samples) {
+
+        // decode if no samples in internal buf
+        if (priv->buf.consumed >= priv->buf.samples) {
+            if (priv->decode_done) {
+                done = true;
+                break;
+            }
+
+            int err = libvgmstream_render(lib);
+            if (err < 0) return err;
+        }
+
+        // copy from partial decode src to partial dst
+        int buf_left = buf_samples - buf_copied;
+        int copy_samples = priv->buf.samples - priv->buf.consumed;
+        if (copy_samples > buf_left)
+            copy_samples = buf_left;
+
+        int copy_bytes = priv->buf.sample_size * priv->buf.channels * copy_samples;
+        int skip_bytes = priv->buf.sample_size * priv->buf.channels * priv->buf.consumed;
+        int copied_bytes = priv->buf.sample_size * priv->buf.channels * buf_copied;
+
+        memcpy( ((uint8_t*)buf) + copied_bytes, ((uint8_t*)priv->buf.data) + skip_bytes, copy_bytes);
+        priv->buf.consumed += copy_samples;
+
+        buf_copied += copy_samples;
     }
 
-    int copy_samples = priv->buf.samples;
-    if (copy_samples > buf_samples)
-        copy_samples = buf_samples;
-    int copy_bytes = priv->buf.sample_size * priv->buf.channels * copy_samples;
-    int skip_bytes = priv->buf.sample_size * priv->buf.channels * priv->buf.consumed;
+    // TODO improve
+    priv->dec.buf = buf;
+    priv->dec.buf_samples = buf_copied;
+    priv->dec.buf_bytes = buf_copied * priv->buf.sample_size * priv->buf.channels;
+    priv->dec.done = done;
 
-    memcpy(buf, ((uint8_t*)priv->buf.data) + skip_bytes, copy_bytes);
-    priv->buf.consumed += copy_samples;
-
-    return copy_samples;
+    return 0;
 }
 
 

@@ -21,7 +21,9 @@ VGMSTREAM* init_vgmstream_nus3audio(STREAMFILE* sf) {
     if (!is_id32be(0x08,sf, "AUDI"))
         return NULL;
 
-    if (!check_extensions(sf, "nus3audio"))
+    /* .nus3audio: original
+     * .patch3audio: fake extension for some files used by the ARCropolis modding framework for SSBU (Switch) */
+    if (!check_extensions(sf, "nus3audio,patch3audio"))
         return NULL;
 
 
