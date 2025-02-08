@@ -993,3 +993,11 @@ PCM audio (.wav) and compress it (*very* different than decompressing) to make a
 In other words you need a dedicated tool that can *encode* to your particular format.
 Since *encoding* is lot harder than *decoding* it's not very common to find public tools,
 and may need to program one yourself.
+
+
+## Stream names
+Sometimes vgmstream reads and shows some *stream name*, some internal text that identifies the *stream* (song). Typically this is some identifier text that developers used for the song, but not always meaningful.
+
+*Stream names* don't necessarily work like *filenames*. For example the name may just be generic unused text that doesn't really apply to the sound. Or multiple subsongs may share the same *stream name*, such as `shot_sfx` may apply to 3 *streams*/subsongs, which often means game may use either of those randomly). Or even a single *stream*/subsong may have multiple associated names like `bgm_boss1; bgm_boss1_alt`.
+
+In some cases *vgmstream* may make a *stream name* based on parts or IDs for easier handling, like marking songs with `dummy` or `[pre]`. The letter are "prefetch" files that are just a tiny part of another file (to cache and hide loading times), and can be ignored.

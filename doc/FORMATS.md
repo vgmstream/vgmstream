@@ -45,7 +45,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - *bcwav*: `.bcwav .adpcm .bms .sfx .str .zic`
   - *brwar*: `.rwar`
     - Subfiles: *brwav*
-  - Codecs: PCM8 PCM16BE PCM16LE NGC_DSP IMA
+  - Codecs: PCM8 PCM16BE PCM16LE NGC_DSP IMA_mono
 - **nds_strm.c**
   - Nintendo STRM header [*STRM*]
   - *nds_strm*: `.strm`
@@ -164,14 +164,14 @@ different internally (encrypted, different versions, etc) and not always can be 
   - *ads*: `.ads .ss2 .pcm .adx .(extensionless) .800 .sdl`
   - *ads_container*: `.ads .cads`
     - Subfiles: *ads*
-  - Codecs: PCM16LE DVI_IMA_int PSX
+  - Codecs: PCM16LE DVI_IMA_mono PSX
 - **npsf.c**
   - Namco NPSF header [*NPS*]
   - *npsf*: `.nps .npsf`
   - Codecs: PSX
 - **xa.c**
   - Sony XA header [*XA*]
-  - *xa*: `.xa .str .pxa .grn .an2 .(extensionless) .xai`
+  - *xa*: `.xa .str .pxa .grn .an2 .no .(extensionless) .xai .ixa`
   - Codecs: XA8 XA
 - **rxws.c**
   - Sony RXWS header [*RXWS*]
@@ -222,7 +222,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Ogg Vorbis header (KOVS) [*OGG_KOVS*]
   - *ogg_vorbis*
     - Subfiles: *ogg_vorbis*
-  - *ogg_vorbis_config*: `.ogg .logg .adx .rof .acm .sod .msa .bin .lbin .kvs .kovs .rpgmvo .ogg_ .bgm .gwm .mus .fish .isd .sngw .lse .eno .um3 .u0 + .(external)`
+  - *ogg_vorbis_config*: `.ogg .logg .adx .rof .acm .sod .msa .bin .lbin .oga .ogs .ogv .kvs .kovs .rpgmvo .ogg_ .bgm .gwm .mus .fish .isd .sngw .lse .eno .um3 .u0 + .(external)`
     - Subfiles: *ogg_vorbis_config ogg_vorbis_cfg_ovmi ogg_vorbis_tests ogg_vorbis_common ogg_vorbis_tink ogg_vorbis*
   - Codecs: OGG OGG_VORBIS
 - **sfl.c**
@@ -241,7 +241,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Apple AIFF-C header [*AIFC*]
   - Apple AIFF header [*AIFF*]
   - *aifc*: `.aif .laif .wav .lwav .aiff .laiff .(extensionless) .aifc .laifc .afc .cbd2 .bgm .fda .n64 .xa .caf .acm .adp .ai .pcm .vp6 .mpc .lmpc`
-  - Codecs: SDX2 CBD2 DVI_IMA_int APPLE_IMA4 RELIC VADPCM PCM8 PCM16BE XA
+  - Codecs: SDX2 CBD2 DVI_IMA_mono APPLE_IMA4 RELIC VADPCM PCM8 PCM16BE XA
 - **str_snds.c**
   - 3DO SNDS header [*STR_SNDS*]
   - *str_snds*: `.str .stream .3do`
@@ -249,7 +249,7 @@ different internally (encrypted, different versions, etc) and not always can be 
 - **ws_aud.c**
   - Westwood Studios .AUD header [*WS_AUD*]
   - *ws_aud*: `.aud`
-  - Codecs: WS IMA_int
+  - Codecs: WS IMA_mono
 - **ahx.c**
   - CRI AHX header [*AHX*]
   - *ahx*: `.ahx`
@@ -315,7 +315,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Codecs: MPEG FSB_IMA XBOX_IMA PSX XMA1 XMA2 NGC_DSP NGC_DSP_subint CELT_FSB PCM8_U PCM8 PCM16BE PCM16LE
 - **fsb5.c**
   - FMOD FSB5 header [*FSB5*]
-  - *fsb5*: `.fsb .snd`
+  - *fsb5*: `.fsb .snd .ps3`
   - Codecs: PCM8_U PCM16BE PCM16LE PCMFLOAT NGC_DSP NGC_DSP_subint FSB_IMA XBOX_IMA PSX HEVAG XMA2 MPEG CELT_FSB ATRAC9 XWMA VORBIS_custom FADPCM Opus
 - **rwax.c**
   - Konami RWAX header [*RWAX*]
@@ -333,7 +333,7 @@ different internally (encrypted, different versions, etc) and not always can be 
 - **musx.c**
   - Eurocom MUSX header [*MUSX*]
   - *musx*: `.sfx .musx`
-  - Codecs: PSX DAT4_IMA DVI_IMA_int XBOX_IMA NGC_DSP PCM16BE PCM16LE
+  - Codecs: PSX DAT4_IMA DVI_IMA_mono XBOX_IMA NGC_DSP PCM16BE PCM16LE
 - **filp.c**
   - cavia FILp header [*FILP*]
   - *filp*: `.fil`
@@ -357,7 +357,7 @@ different internally (encrypted, different versions, etc) and not always can be 
 - **sat_dvi.c**
   - Konami DVI. header [*SAT_DVI*]
   - *sat_dvi*: `.pcm .dvi`
-  - Codecs: DVI_IMA_int
+  - Codecs: DVI_IMA_mono
 - **dc_kcey.c**
   - Konami KCEY header [*DC_KCEY*]
   - *dc_kcey*: `.pcm .kcey`
@@ -430,7 +430,7 @@ different internally (encrypted, different versions, etc) and not always can be 
 - **dc_idvi.c**
   - Capcom IDVI header [*DC_IDVI*]
   - *dc_idvi*: `.dvi .idvi`
-  - Codecs: DVI_IMA_int
+  - Codecs: DVI_IMA_mono
 - **ps2_rnd.c**
   - Cauldron HGC1 header [*HGC1*]
   - *ps2_rnd*: `.rnd`
@@ -458,7 +458,7 @@ different internally (encrypted, different versions, etc) and not always can be 
 - **sadl.c**
   - Procyon Studio SADL header [*SADL*]
   - *sadl*: `.sad`
-  - Codecs: IMA_int NDS_PROCYON
+  - Codecs: IMA_mono NDS_PROCYON
 - **fag.c**
   - Radical .FAG Header [*FAG*]
   - *fag*: `.fag`
@@ -508,10 +508,10 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Stormfront SEG header [*SEG*]
   - *seg*: `.seg`
   - Codecs: PSX XBOX_IMA NGC_DSP IMA MPEG XMA2
-- **nds_strm_ffta2.c**
-  - Final Fantasy Tactics A2 RIFF Header [*NDS_STRM_FFTA2*]
-  - *nds_strm_ffta2*: `.bin .strm`
-  - Codecs: FFTA2_IMA
+- **riff_ima.c**
+  - Square Enix RIFF IMA eader [*RIFF_IMA*]
+  - *riff_ima*: `.bin .lbin .strm`
+  - Codecs: SQEX_IMA
 - **knon.c**
   - Paon KNON header [*KNON*]
   - *knon*: `.str .asr`
@@ -600,7 +600,7 @@ different internally (encrypted, different versions, etc) and not always can be 
 - **swav.c**
   - Nintendo SWAV header [*SWAV*]
   - *swav*: `.swav .adpcm`
-  - Codecs: PCM8 PCM16LE IMA_int
+  - Codecs: PCM8 PCM16LE IMA_mono
 - **vsf.c**
   - Square Enix VSF header [*VSF*]
   - *vsf*: `.vsf`
@@ -608,10 +608,10 @@ different internally (encrypted, different versions, etc) and not always can be 
 - **nds_rrds.c**
   - Ridger Racer DS Header [*NDS_RRDS*]
   - *nds_rrds*: `.(extensionless) .rrds`
-  - Codecs: IMA_int
-- **vsf_tta.c**
-  - VSF with SMSS Header [*PS2_VSF_TTA*]
-  - *ps2_vsf_tta*: `.vsf`
+  - Codecs: IMA_mono
+- **smss.c**
+  - Treasure SMSS header [*SMSS*]
+  - *smss*: `.vsf`
   - Codecs: PSX
 - **ads_midway.c**
   - Midway ADS header [*ADS_MIDWAY*]
@@ -640,7 +640,7 @@ different internally (encrypted, different versions, etc) and not always can be 
 - **nds_hwas.c**
   - Vicarious Visions HWAS header [*NDS_HWAS*]
   - *nds_hwas*: `.hwas`
-  - Codecs: IMA_int
+  - Codecs: IMA_mono
 - **ngc_lps.c**
   - Rave Master LPS Header [*NGC_LPS*]
   - *ngc_lps*: `.lps`
@@ -648,18 +648,18 @@ different internally (encrypted, different versions, etc) and not always can be 
 - **ps2_snd.c**
   - Might and Magic SSND Header [*PS2_SND*]
   - *ps2_snd*: `.snd`
-  - Codecs: DVI_IMA_int PCM16LE
+  - Codecs: DVI_IMA_mono PCM16LE
 - **naomi_adpcm.c**
   - NAOMI/NAOMI2 Arcade games ADPCM header [*NAOMI_ADPCM*]
   - *naomi_adpcm*: `.adpcm`
   - Codecs: AICA_int
 - **sd9.c**
-  - beatmania IIDX SD9 header [*SD9*]
+  - Konami SD9 header [*SD9*]
   - *sd9*: `.sd9`
   - Codecs: MSADPCM
 - **2dx9.c**
-  - beatmania IIDX 2DX9 header [*2DX9*]
-  - *2dx9*: `.2dx9`
+  - Konami 2DX9 header [*2DX9*]
+  - *2dx9*: `.2dx .2dx9`
   - Codecs: MSADPCM
 - **dsp_kceje.c**
   - Konami .DSP Header [*DSP_KCEJE*]
@@ -684,7 +684,7 @@ different internally (encrypted, different versions, etc) and not always can be 
 - **apple_caff.c**
   - Apple Core Audio Format File header [*CAFF*]
   - *apple_caff*: `.caf`
-  - Codecs: PCM8 APPLE_IMA4
+  - Codecs: PCM8 PCM16BE PCM16LE APPLE_IMA4
 - **pc_mxst.c**
   - Lego Island MxSt Header [*PC_MXST*]
   - *pc_mxst*: `.mxst`
@@ -712,7 +712,7 @@ different internally (encrypted, different versions, etc) and not always can be 
 - **myspd.c**
   - Punchers Impact .MYSPD header [*MYSPD*]
   - *myspd*: `.myspd`
-  - Codecs: IMA_int
+  - Codecs: IMA_mono
 - **his.c**
   - Her Interactive HIS header [*HIS*]
   - *his*: `.his`
@@ -758,9 +758,9 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Radical P3D header [*P3D*]
   - *p3d*: `.p3d`
   - Codecs: RAD_IMA_mono MPEG XMA
-- **ngc_dsp_mpds.c**
-  - MPDS DSP header [*NGC_DSP_MPDS*]
-  - *ngc_dsp_mpds*: `.dsp .mds`
+- **mpds.c**
+  - Paradigm MPDS header [*MPDS*]
+  - *mpds*: `.dsp .mds`
   - Codecs: NGC_DSP
 - **ea_swvr.c**
   - Electronic Arts SWVR header [*EA_SWVR*]
@@ -819,9 +819,9 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Sony SGXD header [*SGXD*]
   - *sgxd*: `.sgb .sgd + .sgh .sgb`
   - Codecs: PCM16BE OGG_VORBIS PSX ATRAC3 PSX_cfg FFmpeg(various)
-- **wii_ras.c**
-  - RAS header [*WII_RAS*]
-  - *wii_ras*: `.ras`
+- **ras.c**
+  - Retro RAS_ header [*RAS*]
+  - *ras*: `.ras`
   - Codecs: NGC_DSP
 - **spm.c**
   - Square SPM header [*SPM*]
@@ -855,7 +855,7 @@ different internally (encrypted, different versions, etc) and not always can be 
 - **adp_wildfire.c**
   - Wildfire ADP! header [*ADP_WILDFIRE*]
   - *adp_wildfire*: `.adp`
-  - Codecs: DVI_IMA_int
+  - Codecs: DVI_IMA_mono
 - **adp_qd.c**
   - Quantic Dream .ADP header [*QD_ADP*]
   - *adp_qd*: `.adp`
@@ -911,9 +911,9 @@ different internally (encrypted, different versions, etc) and not always can be 
   - PS2 VBK Header [*PS2_VBK*]
   - *ps2_vbk*: `.vbk`
   - Codecs: PSX
-- **otm.c**
-  - Otomedius OTM Header [*OTM*]
-  - *otm*: `.otm`
+- **xwb_konami.c**
+  - Konami .XWB header [*XWB_KONAMI*]
+  - *xwb_konami*: `.xwb`
   - Codecs: PCM16LE
 - **bcstm.c**
   - Nintendo CSTM Header [*CSTM*]
@@ -946,9 +946,9 @@ different internally (encrypted, different versions, etc) and not always can be 
   - SNK SVAG header [*SVAG_SNK*]
   - *svag_snk*: `.svag`
   - Codecs: PSX
-- **ps2_vds_vdm.c**
-  - Procyon Studio VDS/VDM header [*PS2_VDS_VDM*]
-  - *ps2_vds_vdm*: `.vds .vdm`
+- **vds_vdm.c**
+  - Procyon Studio VDS/VDM header [*VDS_VDM*]
+  - *vds_vdm*: `.vds .vdm`
   - Codecs: PSX
 - **cxs.c**
   - tri-Crescendo CXS header [*CXS*]
@@ -1003,10 +1003,10 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Shin'en OGL header [*OGL*]
   - *ogl*: `.ogl`
   - Codecs: VORBIS_custom
-- **mc3.c**
-  - Paradigm MC3 header [*MC3*]
-  - *mc3*: `.mc3`
-  - Codecs: MC3
+- **mpc3.c**
+  - Paradigm MPC3 header [*MPC3*]
+  - *mpc3*: `.mc3`
+  - Codecs: MPC3
 - **ghs.c**
   - Hexadrive GHS/S_P_STH header [*GHS*]
   - *ghs*: `.gtd`
@@ -1064,7 +1064,7 @@ different internally (encrypted, different versions, etc) and not always can be 
 - **stma.c**
   - Angel Studios/Rockstar San Diego STMA header [*STMA*]
   - *stma*: `.stm .lstm`
-  - Codecs: NGC_DSP DVI_IMA_int PCM16BE PCM16LE
+  - Codecs: NGC_DSP DVI_IMA_mono PCM16BE PCM16LE
 - **ea_eaac_standard.c**
   - Electronic Arts SNR+SNS header [*EA_SNR_SNS*]
   - Electronic Arts SPS header [*EA_SPS*]
@@ -1115,11 +1115,11 @@ different internally (encrypted, different versions, etc) and not always can be 
   - *ubi_sb_layer*: `(base) + .(external)`
   - *ubi_sb_sequence*: `(base) + .(external)`
   - *ubi_sb_header*: `(base) + .(external) .kat`
-  - Codecs: PCM16LE AICA_int UBI_IMA UBI_SCE_IMA UBI_ADPCM PSX XBOX_IMA NGC_DSP ATRAC3 XMA OGG_VORBIS DVI_IMA_int
+  - Codecs: PCM16LE AICA_int UBI_IMA UBI_SCE_IMA UBI_ADPCM PSX XBOX_IMA NGC_DSP ATRAC3 XMA OGG_VORBIS DVI_IMA_mono
 - **ubi_apm.c**
   - Ubisoft APM header [*UBI_APM*]
   - *ubi_apm*: `.apm`
-  - Codecs: DVI_IMA_int
+  - Codecs: DVI_IMA_mono
 - **ezw.c**
   - EZ2DJ EZWAVE header [*EZW*]
   - *ezw*: `.ezw`
@@ -1200,13 +1200,13 @@ different internally (encrypted, different versions, etc) and not always can be 
 - **wave.c**
   - EngineBlack .WAVE header [*WAVE*]
   - *wave*: `.wave`
-  - Codecs: PCM8 PCM16BE NGC_DSP IMA_int
+  - Codecs: PCM8 PCM16BE NGC_DSP IMA_mono
 - **wave_segmented.c**
   - EngineBlack .WAVE header [*WAVE*]
   - EngineBlack .WAVE header (segmented) [*WAVE_segmented*]
   - *wave_segmented*: `.wave`
     - Subfiles: *ogg_vorbis_config*
-  - Codecs: IMA_int NGC_DSP OGG
+  - Codecs: IMA_mono NGC_DSP OGG
 - **smv.c**
   - extreme .SMV header [*SMV*]
   - *smv*: `.smv`
@@ -1326,9 +1326,9 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Beyond Reality SDF header [*SDF*]
   - *sdf*: `.sdf`
   - Codecs: PCM16LE PSX NGC_DSP
-- **svg.c**
-  - High Voltage SVG header [*SVG*]
-  - *svg*: `.svg`
+- **svgp.c**
+  - High Voltage SVGp header [*SVGP*]
+  - *svgp*: `.svg`
   - Codecs: PSX
 - **vai.c**
   - Asobo Studio .VAI header [*VAI*]
@@ -1347,10 +1347,10 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Cryo APC header [*APC*]
   - *apc*: `.apc`
   - Codecs: IMA
-- **wv2.c**
-  - Infogrames North America WAV2 header [*WV2*]
-  - *wv2*: `.wv2`
-  - Codecs: DVI_IMA_int
+- **wav2.c**
+  - Infogrames North America WAV2 header [*WAV2*]
+  - *wav2*: `.wv2`
+  - Codecs: DVI_IMA_mono
 - **xau_konami.c**
   - Konami XAU header [*XAU_KONAMI*]
   - *xau_konami*: `.xau`
@@ -1367,10 +1367,6 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Entergram NXA1 header [*NXA1*]
   - *nxa1*: `.nxa`
   - Codecs: Opus
-- **adpcm_capcom.c**
-  - Capcom .ADPCM header [*ADPCM_CAPCOM*]
-  - *adpcm_capcom*: `.adpcm .mca`
-  - Codecs: NGC_DSP
 - **ue4opus.c**
   - Epic Games UE4OPUS header [*UE4OPUS*]
   - *ue4opus*: `.opus .lopus .ue4opus`
@@ -1418,7 +1414,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Codecs: IMA XBOX_IMA PSX NGC_DSP
 - **ogg_opus.c**
   - Ogg Opus header [*OGG_OPUS*]
-  - *ogg_opus*: `.opus .lopus .ogg .logg .bgm`
+  - *ogg_opus*: `.opus .lopus .ogg .logg .bgm .oga`
   - Codecs: FFmpeg(various)
 - **nus3audio.c**
   - (container)
@@ -1521,10 +1517,6 @@ different internally (encrypted, different versions, etc) and not always can be 
   - *sch*: `.sch + .(external)`
     - Subfiles: *psf_segmented psf_single*
   - Codecs: PSX PSX_pivotal NGC_DSP PCM16BE
-- **ima.c**
-  - Blitz Games .IMA header [*IMA*]
-  - *ima*: `.ima`
-  - Codecs: BLITZ_IMA
 - **nub.c**
   - Namco NUB header [*NUB*]
   - *nub*: `.nub .nub2 + .(external)`
@@ -1850,6 +1842,18 @@ different internally (encrypted, different versions, etc) and not always can be 
   - (container)
   - *skex*: `.skx + .tbl`
     - Subfiles: *vag riff vpk*
+- **axhd.c**
+  - Angel Studios AXHD header [*AXHD*]
+  - *axhd*: `.xhd + .xbd`
+  - Codecs: PCM16LE XBOX_IMA
+- **shaa.c**
+  - Nintendo Alarmo SHAA header [*SHAA*]
+  - *shaa*: `.shaa .shsa`
+  - Codecs: PCM16LE NGC_DSP
+- **undefind.c**
+  - (container)
+  - *undefind*: `.paf`
+    - Subfiles: *fsb fsb5*
 - **agsc.c**
   - Retro Studios AGSC header [*AGSC*]
   - *agsc*: `.agsc`
@@ -1887,7 +1891,7 @@ different internally (encrypted, different versions, etc) and not always can be 
 - **rage_aud.c**
   - Rockstar AUD header [*RAGE_AUD*]
   - *rage_aud*: `.(extensionless) .ivaud`
-  - Codecs: PCM16BE PCM16LE XMA1 MPEG_custom MPEG IMA_int
+  - Codecs: PCM16BE PCM16LE XMA1 MPEG_custom MPEG IMA_mono
 - **asd_naxat.c**
   - Naxat .ASD header [*ASD_NAXAT*]
   - *asd_naxat*: `.asd`
@@ -1900,6 +1904,14 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Melbourne House .VS header [*VS_MH*]
   - *vs_mh*: `.vs`
   - Codecs: PSX
+- **adpcm_capcom.c**
+  - Capcom .ADPCM header [*ADPCM_CAPCOM*]
+  - *adpcm_capcom*: `.adpcm .mca`
+  - Codecs: NGC_DSP
+- **ima.c**
+  - Blitz Games .IMA header [*IMA*]
+  - *ima*: `.ima`
+  - Codecs: BLITZ_IMA
 - **pos.c**
   - RIFF WAVE header (.pos looping) [*RIFF_WAVE_POS*]
   - *pos*: `.pos + .wav`
@@ -1976,7 +1988,7 @@ different internally (encrypted, different versions, etc) and not always can be 
 - **ffmpeg.c**
   - FFmpeg supported format (check log) [*FFMPEG_faulty*]
   - FFmpeg supported format [*FFMPEG*]
-  - *ffmpeg*: `.(any) .at3`
+  - *ffmpeg*: `.(any)`
   - Codecs: FFmpeg(various)
 - **ea_eaac.c**
   - Electronic Arts SPS header [*EA_SPS*]
