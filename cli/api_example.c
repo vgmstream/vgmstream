@@ -100,7 +100,7 @@ static int api_example(const char* infile) {
 
     printf("- decoding: %i\n" , (int32_t)lib->format->play_samples);
 
-    fill_pcm16_samples = 512;
+    fill_pcm16_samples = 576; //non-aligned samples for testing output
     fill_pcm16_bytes = fill_pcm16_samples * sizeof(short) * lib->format->channels;
     fill_pcm16 = malloc(fill_pcm16_bytes);
     if (!fill_pcm16) goto fail;
@@ -116,8 +116,8 @@ static int api_example(const char* infile) {
             err = libvgmstream_fill(lib, fill_pcm16, fill_pcm16_samples);
             if (err < 0) goto fail;
 
-            buf = fill_pcm16;
-            buf_bytes = err * sizeof(short) * lib->format->channels;
+            buf = lib->decoder->buf;
+            buf_bytes = lib->decoder->buf_bytes;
         }
         else {
             err = libvgmstream_render(lib);
