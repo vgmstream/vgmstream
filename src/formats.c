@@ -445,6 +445,8 @@ static const char* extension_list[] = {
     "psn",
     "pwb",
 
+    "qwv", //txth/reserved [Bishi Bashi Champ Online (AC)]
+
     "r",
     "rac", //txth/reserved [Manhunt (Xbox)]
     "rad",
