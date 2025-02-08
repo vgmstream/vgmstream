@@ -73,13 +73,30 @@ static inline float read_f32be(off_t offset, STREAMFILE* sf) {
         return -1;
     return get_f32be(buf);
 }
-static inline float    read_f32le(off_t offset, STREAMFILE* sf) {
+static inline float read_f32le(off_t offset, STREAMFILE* sf) {
     uint8_t buf[4];
 
     if (read_streamfile(buf, offset, sizeof(buf), sf) != sizeof(buf))
         return -1;
     return get_f32le(buf);
 }
+
+static inline double read_d64be(off_t offset, STREAMFILE* sf) {
+    uint8_t buf[8];
+
+    if (read_streamfile(buf, offset, sizeof(buf), sf) != sizeof(buf))
+        return -1;
+    return get_d64be(buf);
+}
+#if 0
+static inline double read_d64le(off_t offset, STREAMFILE* sf) {
+    uint8_t buf[8];
+
+    if (read_streamfile(buf, offset, sizeof(buf), sf) != sizeof(buf))
+        return -1;
+    return get_d64le(buf);
+}
+#endif
 
 #if 0
 // on GCC, this reader will be correctly optimized out (as long as it's static/inline), would be same as declaring:
