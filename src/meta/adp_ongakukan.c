@@ -20,7 +20,7 @@ VGMSTREAM* init_vgmstream_adp_ongakukan(STREAMFILE* sf) {
 
     /* Format starts like RIFF but doesn't have valid chunks beyond fmt (ADPCM data overwrites anything after 0x2c). */
 
-    start_offset = 0x2c; /* fixed values, basically how Ongakukan does it */
+    start_offset = 0x2c;
     data_size = get_streamfile_size(sf) - start_offset;
 
     /* RIFF size seem to match original PCM .wav, while encoded .adp data equals or is slightly smaller that that */

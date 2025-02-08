@@ -6,7 +6,7 @@ static const int step_table[4] = {
     5, 1, -1, -3
 };
 
-static const int mc3_table[4][4][64] = {
+static const int mpc3_table[4][4][64] = {
     {
         {
             2,     2,     3,     7,     15,    27,    45,    70,    104,   148,   202,   268,   347,   441,   551,   677,  
@@ -122,7 +122,7 @@ static const int mc3_table[4][4][64] = {
  *
  * Tables and original algorithm by daemon1
  */
-void decode_mc3(VGMSTREAM* vgmstream, VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
+void decode_mpc3(VGMSTREAM* vgmstream, VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel) {
     int i, sample_count = 0;
 
     int32_t hist = stream->adpcm_history1_32;
@@ -135,7 +135,7 @@ void decode_mc3(VGMSTREAM* vgmstream, VGMSTREAMCHANNEL* stream, sample_t* outbuf
 
     /* block header */
     if (first_sample == 0) {
-        uint32_t header = (uint32_t)read_32bitLE(stream->offset, stream->streamfile);
+        uint32_t header = read_u32le(stream->offset, stream->streamfile);
         header = (header >> channel*16);        /* lower 16=ch1, upper 16b=ch2 */
         step_index = header & 0x3f;             /* 6b */
         hist       = header & 0xffc0;           /* 16b sans 6b */
@@ -148,17 +148,17 @@ void decode_mc3(VGMSTREAM* vgmstream, VGMSTREAMCHANNEL* stream, sample_t* outbuf
         uint32_t subblock, mode, samples, index, sign, diff;
 
         /* header + ch shift + sub-block number (ex. ch0 i=10: sub-block 1, ch0 i=23: sub-block 2) */
-        off_t subblock_offset = stream->offset + 4 + 4*channel + (i/10)*(4*vgmstream->channels);
+        off_t subblock_offset = stream->offset + 0x04 +  0x04 * channel + (i/10)*(4*vgmstream->channels);
         int sample_shift = (i%10)*3;
 
         /* expand 3b */
-        subblock = (uint32_t)read_32bitLE(subblock_offset, stream->streamfile);
+        subblock = read_u32le(subblock_offset, stream->streamfile);
         mode     = (subblock >> 30) & 0x3;  /* upper 2b */
         samples  = (subblock) & 0x3FFFFFFF; /* lower 3b*10 */
 
         index    = (samples >> sample_shift) & 3; /* lower 2b */
         sign     = (samples >> sample_shift) & 4; /* upper 1b */
-        diff     = mc3_table[mode][index][step_index];
+        diff     = mpc3_table[mode][index][step_index];
         if (sign == 0) 
             hist += (- 1 - diff);
         else

@@ -474,7 +474,7 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
      * .p1d: Farming Simulator 15 (Vita)[ATRAC9]
      * .xms: Ty the Tasmanian Tiger (Xbox)
      * .mus: Burnout Legends/Dominator (PSP)
-     * .dat/ldat: RollerCoaster Tycoon 1/2 (PC)
+     * .dat/ldat: RollerCoaster Tycoon 1/2 (PC), Winning Eleven 2008 (AC)
      * .wma/lwma: SRS: Street Racing Syndicate (Xbox), Fast and the Furious (Xbox)
      * .caf: Topple (iOS)
      * .wax: Lamborghini (Xbox)

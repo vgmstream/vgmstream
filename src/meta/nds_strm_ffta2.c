@@ -1,44 +1,44 @@
 #include "meta.h"
 
-/* STRM - from Final Fantasy Tactics A2 (NDS) */
-VGMSTREAM * init_vgmstream_nds_strm_ffta2(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
+/* RIFF IMA - from Final Fantasy Tactics A2 (NDS) */
+VGMSTREAM* init_vgmstream_riff_ima(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
     off_t start_offset;
-    int loop_flag, channel_count;
+    int loop_flag, channels;
 
 
     /* checks*/
+    if (!is_id32be(0x00,sf, "RIFF"))
+        return NULL;
+    // 04: full filesize
+    if (!is_id32be(0x08,sf, "IMA "))
+        return NULL;
+
     /* .bin: actual extension
-     * .strm: header id */
-    if (!check_extensions(streamFile,"bin,strm"))
-        goto fail;
+     * .strm: folder */
+    if (!check_extensions(sf,"bin,lbin,strm"))
+        return NULL;
 
-    /* check header */
-    if (read_32bitBE(0x00,streamFile) != 0x52494646 ||  /* "RIFF" */
-        read_32bitBE(0x08,streamFile) != 0x494D4120)    /* "IMA " */
-        goto fail;
-
-    loop_flag = (read_32bitLE(0x20,streamFile) !=0);
-    channel_count = read_32bitLE(0x24,streamFile);
+    loop_flag = (read_s32le(0x20,sf) !=0);
+    channels = read_s32le(0x24,sf);
     start_offset = 0x2C;
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    vgmstream = allocate_vgmstream(channels,loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->channels = channel_count;
-    vgmstream->sample_rate = read_32bitLE(0x0C,streamFile);
-    vgmstream->num_samples = (read_32bitLE(0x04,streamFile)-start_offset);
-    vgmstream->loop_start_sample = read_32bitLE(0x20,streamFile);
-    vgmstream->loop_end_sample = read_32bitLE(0x28,streamFile);
+    vgmstream->channels = channels;
+    vgmstream->sample_rate = read_s32le(0x0C,sf);
+    vgmstream->num_samples = (read_s32le(0x04,sf)-start_offset);
+    vgmstream->loop_start_sample = read_s32le(0x20,sf);
+    vgmstream->loop_end_sample = read_s32le(0x28,sf);
 
-    vgmstream->meta_type = meta_NDS_STRM_FFTA2;
-
-    vgmstream->coding_type = coding_FFTA2_IMA;
+    vgmstream->meta_type = meta_RIFF_IMA;
+    vgmstream->coding_type = coding_SQEX_IMA;
     vgmstream->layout_type = layout_interleave;
     vgmstream->interleave_block_size = 0x80;
 
-    if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
+    if (!vgmstream_open_stream(vgmstream,sf,start_offset))
         goto fail;
     return vgmstream;
 

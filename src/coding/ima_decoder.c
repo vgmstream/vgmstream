@@ -528,7 +528,7 @@ void decode_hv_ima(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspac
 }
 
 /* FFTA2 IMA, DVI IMA with custom nibble expand/rounding */
-void decode_ffta2_ima(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
+void decode_sqex_ima(VGMSTREAMCHANNEL * stream, sample_t * outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do) {
     int i, sample_count;
     int32_t hist1 = stream->adpcm_history1_32;
     int step_index = stream->adpcm_step_index;

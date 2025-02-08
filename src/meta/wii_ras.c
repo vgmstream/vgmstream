@@ -2,52 +2,49 @@
 #include "../coding/coding.h"
 
 /* RAS_ - from Donkey Kong Country Returns (Wii) */
-VGMSTREAM * init_vgmstream_wii_ras(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
+VGMSTREAM* init_vgmstream_ras(STREAMFILE *sf) {
+    VGMSTREAM* vgmstream = NULL;
     off_t start_offset;
-
-    int loop_flag, channel_count;
+    int loop_flag, channels;
 
     /* checks */
-    if (!check_extensions(streamFile, "ras"))
-        goto fail;
-
-    if (read_32bitBE(0x00,streamFile) != 0x5241535F) /* "RAS_" */
-        goto fail;
+    if (!is_id32be(0x00,sf, "RAS_"))
+        return NULL;
+    if (!check_extensions(sf, "ras"))
+        return NULL;
 
     loop_flag = 0;
-    if (read_32bitBE(0x30,streamFile) != 0 ||
-        read_32bitBE(0x34,streamFile) != 0 ||
-        read_32bitBE(0x38,streamFile) != 0 ||
-        read_32bitBE(0x3C,streamFile) != 0) {
+    if (read_u32be(0x30,sf) != 0 ||
+        read_u32be(0x34,sf) != 0 ||
+        read_u32be(0x38,sf) != 0 ||
+        read_u32be(0x3C,sf) != 0) {
         loop_flag = 1;
     }
-    channel_count = 2;
-    start_offset = read_32bitBE(0x18,streamFile);
+    channels = 2;
+    start_offset = read_u32be(0x18,sf);
+    int interleave = read_u32be(0x20,sf);
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    vgmstream = allocate_vgmstream(channels,loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->sample_rate = read_32bitBE(0x14,streamFile);
-    vgmstream->meta_type = meta_WII_RAS;
+    vgmstream->sample_rate = read_s32be(0x14,sf);
+    vgmstream->meta_type = meta_RAS;
 
     vgmstream->coding_type = coding_NGC_DSP;
     vgmstream->layout_type = layout_interleave;
-    vgmstream->interleave_block_size = read_32bitBE(0x20,streamFile);
+    vgmstream->interleave_block_size = interleave;
 
-    vgmstream->num_samples = read_32bitBE(0x1c,streamFile)/channel_count/8*14;
+    vgmstream->num_samples = dsp_bytes_to_samples(read_u32be(0x1c,sf), channels);
     if (loop_flag) { /* loop is block + samples into block */
-        vgmstream->loop_start_sample = read_32bitBE(0x30,streamFile)*vgmstream->interleave_block_size/8*14 +
-                read_32bitBE(0x34,streamFile);
-        vgmstream->loop_end_sample = read_32bitBE(0x38,streamFile)*vgmstream->interleave_block_size/8*14 +
-                read_32bitBE(0x3C,streamFile);
+        vgmstream->loop_start_sample = dsp_bytes_to_samples(read_u32be(0x30,sf) * interleave, 1) + read_s32be(0x34,sf);
+        vgmstream->loop_end_sample   = dsp_bytes_to_samples(read_u32be(0x38,sf) * interleave, 1) + read_s32be(0x3C,sf);
     }
 
-    dsp_read_coefs_be(vgmstream,streamFile,0x40,0x30);
+    dsp_read_coefs_be(vgmstream,sf,0x40,0x30);
 
 
-    if (!vgmstream_open_stream(vgmstream,streamFile,start_offset))
+    if (!vgmstream_open_stream(vgmstream,sf,start_offset))
         goto fail;
     return vgmstream;
 

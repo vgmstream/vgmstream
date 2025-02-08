@@ -68,7 +68,7 @@ typedef enum {
     coding_QD_IMA,
     coding_WV6_IMA,         /* Gorilla Systems WV6 4-bit IMA ADPCM */
     coding_HV_IMA,          /* High Voltage 4-bit IMA ADPCM */
-    coding_FFTA2_IMA,       /* Final Fantasy Tactics A2 4-bit IMA ADPCM */
+    coding_SQEX_IMA,        /* Square Enix 4-bit IMA ADPCM */
     coding_BLITZ_IMA,       /* Blitz Games 4-bit IMA ADPCM */
 
     coding_MS_IMA,          /* Microsoft IMA ADPCM */
@@ -110,7 +110,7 @@ typedef enum {
     coding_LSF,             /* lsf ADPCM (Fastlane Street Racing iPhone)*/
     coding_MTAF,            /* Konami MTAF ADPCM */
     coding_MTA2,            /* Konami MTA2 ADPCM */
-    coding_MC3,             /* Paradigm MC3 3-bit ADPCM */
+    coding_MPC3,            /* Paradigm MPC3 3-bit ADPCM */
     coding_FADPCM,          /* FMOD FADPCM 4-bit ADPCM */
     coding_ASF,             /* Argonaut ASF 4-bit ADPCM */
     coding_DSA,             /* Ocean DSA 4-bit ADPCM */
@@ -379,7 +379,7 @@ typedef enum {
     meta_RSD,
     meta_PS2_ASS,
     meta_SEG,
-    meta_NDS_STRM_FFTA2,    /* Final Fantasy Tactics A2 */
+    meta_RIFF_IMA,
     meta_KNON,
     meta_ZWDSP,             /* Zack and Wiki */
     meta_VGS,               /* Guitar Hero Encore - Rocks the 80s */
@@ -389,7 +389,7 @@ typedef enum {
     meta_MUL,
     meta_SAT_BAKA,          /* Crypt Killer */
     meta_VSF,
-    meta_PS2_VSF_TTA,       /* Tiny Toon Adventures: Defenders of the Universe */
+    meta_SMSS,
     meta_ADS_MIDWAY,
     meta_PS2_SPS,           /* Ape Escape 2 */
     meta_UBI_CKD,           /* Ubisoft CKD RIFF header (Rayman Origins Wii) */
@@ -467,7 +467,7 @@ typedef enum {
     meta_P3D,               /* Prototype P3D */
     meta_NGC_RKV,           /* Legacy of Kain - Blood Omen 2 (GC) */
     meta_DSP_DDSP,          /* Various (2 dsp files stuck together */
-    meta_NGC_DSP_MPDS,      /* Big Air Freestyle, Terminator 3 */
+    meta_MPDS,
     meta_DSP_STR_IG,        /* Micro Machines, Superman Superman: Shadow of Apokolis */
     meta_EA_SWVR,           /* Future Cop L.A.P.D., Freekstyle */
     meta_DSP_XIII,          /* XIII, possibly more (Ubisoft header???) */
@@ -487,7 +487,7 @@ typedef enum {
     meta_MSF,
     meta_SNDP,
     meta_SGXD,              /* Sony: Folklore, Genji, Tokyo Jungle (PS3), Brave Story, Kurohyo (PSP) */
-    meta_WII_RAS,           /* Donkey Kong Country Returns (Wii) */
+    meta_RAS,
     meta_SPM,
     meta_VGS_PS,
     meta_PS2_IAB,           /* Ueki no Housoku - Taosu ze Robert Juudan!! (PS2) */
@@ -519,9 +519,9 @@ typedef enum {
     meta_KTSS,              /* Koei Tecmo Nintendo Stream (KNS) */
     meta_MCA,               /* Capcom MCA "MADP" */
     meta_ADX_MONSTER,
-    meta_HCA,               /* CRI HCA */
+    meta_HCA,
     meta_SVAG_SNK,
-    meta_PS2_VDS_VDM,       /* Graffiti Kingdom */
+    meta_VDS_VDM,
     meta_FFMPEG,
     meta_FFMPEG_faulty,
     meta_CXS,
@@ -533,7 +533,7 @@ typedef enum {
     meta_UBI_RAKI,          /* Ubisoft RAKI header (Rayman Legends, Just Dance 2017) */
     meta_SNDX,
     meta_OGL,               /* Shin'en Wii/WiiU (Jett Rocket (Wii), FAST Racing NEO (WiiU)) */
-    meta_MC3,               /* Paradigm games (T3 PS2, MX Rider PS2, MI: Operation Surma PS2) */
+    meta_MPC3,
     meta_GHS,
     meta_AAC_TRIACE,
     meta_MTA2,
@@ -603,7 +603,7 @@ typedef enum {
     meta_AHV,               /* Headhunter (PS2) */
     meta_MSV,
     meta_SDF,
-    meta_SVG,               /* Hunter - The Reckoning - Wayward (PS2) */
+    meta_SVGP,
     meta_VAI,               /* Ratatouille (GC) */
     meta_AIF_ASOBO,         /* Ratatouille (PC) */
     meta_AO,                /* Cloudphobia (PC) */
