@@ -419,7 +419,6 @@ static const char* extension_list[] = {
     "opu",
     //"opus", //common
     "opusx",
-    "otm",
     "oto", //txth/reserved [Vampire Savior (SAT)]
     "ovb", //txth/semi [namCollection: Tekken (PS2), Tekken 5: Tekken 1-3 (PS2)]
 
@@ -1183,8 +1182,8 @@ static const meta_info meta_info_list[] = {
         {meta_NDS_HWAS,             "Vicarious Visions HWAS header"},
         {meta_NGC_LPS,              "Rave Master LPS Header"},
         {meta_NAOMI_ADPCM,          "NAOMI/NAOMI2 Arcade games ADPCM header"},
-        {meta_SD9,                  "beatmania IIDX SD9 header"},
-        {meta_2DX9,                 "beatmania IIDX 2DX9 header"},
+        {meta_SD9,                  "Konami SD9 header"},
+        {meta_2DX9,                 "Konami 2DX9 header"},
         {meta_DSP_KCEJE,            "Konami .DSP Header"},
         {meta_PS2_VGV,              "Rune: Viking Warlord VGV Header"},
         {meta_GCUB,                 "Sega GCub header"},
@@ -1262,7 +1261,7 @@ static const meta_info meta_info_list[] = {
         {meta_2PFS,                 "Konami 2PFS header"},
         {meta_UBI_CKD,              "Ubisoft CKD RIFF header"},
         {meta_PS2_VBK,              "PS2 VBK Header"},
-        {meta_OTM,                  "Otomedius OTM Header"},
+        {meta_XWB_KONAMI,           "Konami .XWB header"},
         {meta_CSTM,                 "Nintendo CSTM Header"},
         {meta_FSTM,                 "Nintendo FSTM Header"},
         {meta_KT_WIIBGM,            "Koei Tecmo WiiBGM Header"},

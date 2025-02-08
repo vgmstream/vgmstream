@@ -611,7 +611,6 @@
     <ClCompile Include="meta\ogv_3rdeye.c" />
     <ClCompile Include="meta\omu.c" />
     <ClCompile Include="meta\opus.c" />
-    <ClCompile Include="meta\otm.c" />
     <ClCompile Include="meta\p2bt_move_visa.c" />
     <ClCompile Include="meta\p3d.c" />
     <ClCompile Include="meta\pasx.c" />
@@ -801,6 +800,7 @@
     <ClCompile Include="meta\xvag.c" />
     <ClCompile Include="meta\xwav.c" />
     <ClCompile Include="meta\xwb.c" />
+    <ClCompile Include="meta\xwb_konami.c" />
     <ClCompile Include="meta\xwc.c" />
     <ClCompile Include="meta\xwma.c" />
     <ClCompile Include="meta\xwma_konami.c" />
