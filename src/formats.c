@@ -270,6 +270,7 @@ static const char* extension_list[] = {
     "ivag",
     "ivb",
     "ivs", //txth/reserved [Burnout 2 (PS2)]
+    "ixa",
 
     "joe",
     "jstm",

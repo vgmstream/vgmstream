@@ -38,10 +38,11 @@ VGMSTREAM* init_vgmstream_xa(STREAMFILE* sf) {
      * .pxa: Mortal Kombat 4 (PS1)
      * .grn: Micro Machines (CDi)
      * .an2: Croc (PS1) movies
-     * .xai: Quake II (PS1)
      * .no: Incredible Crisis (PS1)
-     * (extensionless): bigfiles [Castlevania: Symphony of the Night (PS1)] */
-    if (!check_extensions(sf,"xa,str,pxa,grn,an2,,xai"))
+     * (extensionless): bigfiles [Castlevania: Symphony of the Night (PS1)]
+     * .xai: Quake II (PS1)
+     * .ixa: Wild Arms (PS1) */
+    if (!check_extensions(sf,"xa,str,pxa,grn,an2,no,,xai,ixa"))
         return NULL;
 
     /* Proper XA comes in raw (BIN 2352 mode2/form2) CD sectors, that contain XA subheaders.
