@@ -433,6 +433,7 @@ static const char* extension_list[] = {
     "p3d",
     "paf",
     "past",
+    "patch3audio",
     "pcm",
     "pdt",
     "phd",
