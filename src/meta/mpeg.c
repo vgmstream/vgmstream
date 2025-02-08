@@ -11,7 +11,7 @@ VGMSTREAM* init_vgmstream_mpeg(STREAMFILE* sf) {
 
     /* checks */
     uint32_t header_id = read_u32be(0x00, sf);
-    if ((header_id & 0xFFF00000) != 0xFFF00000 &&
+    if ((header_id & 0xFFE00000) != 0xFFE00000 &&
         (header_id & 0xFFFFFF00) != get_id32be("ID3\0") &&
         (header_id & 0xFFFFFF00) != get_id32be("TAG\0"))
         return NULL;
@@ -26,11 +26,13 @@ VGMSTREAM* init_vgmstream_mpeg(STREAMFILE* sf) {
         start_offset += tag_size;
     }
 
+    // could check size but there are some tiny <0x1000 low bitrate files do exist in flash games
+
     mpeg_frame_info info = {0};
     if (!mpeg_get_frame_info(sf, start_offset, &info))
         return NULL;
 
-    /*  .mp3/mp2: standard
+    /* .mp3/mp2: standard
      * .lmp3/lmp2: for plugins
      * .mus: Marc Ecko's Getting Up (PC) 
      * .imf: Colors (Gizmondo)
@@ -44,7 +46,7 @@ VGMSTREAM* init_vgmstream_mpeg(STREAMFILE* sf) {
     bool loop_flag = 0;
 
 
-    /* build VGMSTREAM */
+    /* build the VGMSTREAM */
     vgmstream = allocate_vgmstream(info.channels, loop_flag);
     if (!vgmstream) goto fail;
 
