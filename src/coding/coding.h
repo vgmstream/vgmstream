@@ -218,7 +218,7 @@ void decode_mtaf(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing,
 void decode_mta2(VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel, int config);
 
 
-/* mc3_decoder */
+/* mpc3_decoder */
 void decode_mpc3(VGMSTREAM* vgmstream, VGMSTREAMCHANNEL* stream, sample_t* outbuf, int channelspacing, int32_t first_sample, int32_t samples_to_do, int channel);
 
 

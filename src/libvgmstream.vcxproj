@@ -275,8 +275,8 @@
     <ClCompile Include="coding\ka1a_decoder.c" />
     <ClCompile Include="coding\l5_555_decoder.c" />
     <ClCompile Include="coding\lsf_decoder.c" />
-    <ClCompile Include="coding\mc3_decoder.c" />
     <ClCompile Include="coding\mp4_aac_decoder.c" />
+    <ClCompile Include="coding\mpc3_decoder.c" />
     <ClCompile Include="coding\mpeg_custom_utils.c" />
     <ClCompile Include="coding\mpeg_custom_utils_ahx.c" />
     <ClCompile Include="coding\mpeg_custom_utils_ealayer3.c" />
@@ -551,7 +551,6 @@
     <ClCompile Include="meta\lsf.c" />
     <ClCompile Include="meta\mattel_hyperscan.c" />
     <ClCompile Include="meta\maxis_xa.c" />
-    <ClCompile Include="meta\mc3.c" />
     <ClCompile Include="meta\mca.c" />
     <ClCompile Include="meta\mib_mih.c" />
     <ClCompile Include="meta\mic_koei.c" />
@@ -560,6 +559,8 @@
     <ClCompile Include="meta\mogg.c" />
     <ClCompile Include="meta\mp4.c" />
     <ClCompile Include="meta\mp4_faac.c" />
+    <ClCompile Include="meta\mpc3.c" />
+    <ClCompile Include="meta\mpds.c" />
     <ClCompile Include="meta\mpeg.c" />
     <ClCompile Include="meta\msa.c" />
     <ClCompile Include="meta\msb_msh.c" />
@@ -584,10 +585,8 @@
     <ClCompile Include="meta\nds_hwas.c" />
     <ClCompile Include="meta\nds_rrds.c" />
     <ClCompile Include="meta\nds_strm.c" />
-    <ClCompile Include="meta\nds_strm_ffta2.c" />
     <ClCompile Include="meta\ngc_adpdtk.c" />
     <ClCompile Include="meta\ngc_dsp_asura.c" />
-    <ClCompile Include="meta\ngc_dsp_mpds.c" />
     <ClCompile Include="meta\ngc_dsp_std.c" />
     <ClCompile Include="meta\ngc_ffcc_str.c" />
     <ClCompile Include="meta\ngc_lps.c" />
@@ -637,7 +636,6 @@
     <ClCompile Include="meta\ps2_sps.c" />
     <ClCompile Include="meta\ps2_va3.c" />
     <ClCompile Include="meta\ps2_vbk.c" />
-    <ClCompile Include="meta\ps2_vds_vdm.c" />
     <ClCompile Include="meta\ps2_vgv.c" />
     <ClCompile Include="meta\ps2_vms.c" />
     <ClCompile Include="meta\ps2_wmus.c" />
@@ -648,6 +646,7 @@
     <ClCompile Include="meta\pwb.c" />
     <ClCompile Include="meta\rad.c" />
     <ClCompile Include="meta\rage_aud.c" />
+    <ClCompile Include="meta\ras.c" />
     <ClCompile Include="meta\raw_int.c" />
     <ClCompile Include="meta\raw_pcm.c" />
     <ClCompile Include="meta\raw_rsf.c" />
@@ -657,6 +656,7 @@
     <ClCompile Include="meta\redspark.c" />
     <ClCompile Include="meta\rfrm.c" />
     <ClCompile Include="meta\riff.c" />
+    <ClCompile Include="meta\riff_ima.c" />
     <ClCompile Include="meta\rkv.c" />
     <ClCompile Include="meta\rs03.c" />
     <ClCompile Include="meta\rsd.c" />
@@ -695,6 +695,7 @@
     <ClCompile Include="meta\smk.c" />
     <ClCompile Include="meta\smp.c" />
     <ClCompile Include="meta\smpl.c" />
+    <ClCompile Include="meta\smss.c" />
     <ClCompile Include="meta\smv.c" />
     <ClCompile Include="meta\sndp.c" />
     <ClCompile Include="meta\snds.c" />
@@ -721,7 +722,7 @@
     <ClCompile Include="meta\sts.c" />
     <ClCompile Include="meta\svag_kcet.c" />
     <ClCompile Include="meta\svag_snk.c" />
-    <ClCompile Include="meta\svg.c" />
+    <ClCompile Include="meta\svgp.c" />
     <ClCompile Include="meta\svs.c" />
     <ClCompile Include="meta\swav.c" />
     <ClCompile Include="meta\tac.c" />
@@ -748,6 +749,7 @@
     <ClCompile Include="meta\vai.c" />
     <ClCompile Include="meta\vas_kceo.c" />
     <ClCompile Include="meta\vas_rockstar.c" />
+    <ClCompile Include="meta\vds_vdm.c" />
     <ClCompile Include="meta\vgs.c" />
     <ClCompile Include="meta\vgs_ps.c" />
     <ClCompile Include="meta\vid1.c" />
@@ -756,7 +758,6 @@
     <ClCompile Include="meta\vpk.c" />
     <ClCompile Include="meta\vs.c" />
     <ClCompile Include="meta\vsf.c" />
-    <ClCompile Include="meta\vsf_tta.c" />
     <ClCompile Include="meta\vsv.c" />
     <ClCompile Include="meta\vs_square.c" />
     <ClCompile Include="meta\vs_str.c" />
@@ -769,7 +770,6 @@
     <ClCompile Include="meta\wave_segmented.c" />
     <ClCompile Include="meta\wb.c" />
     <ClCompile Include="meta\wbk.c" />
-    <ClCompile Include="meta\wii_ras.c" />
     <ClCompile Include="meta\wii_sng.c" />
     <ClCompile Include="meta\wpd.c" />
     <ClCompile Include="meta\wsi.c" />
