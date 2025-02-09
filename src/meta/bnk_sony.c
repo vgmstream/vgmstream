@@ -73,7 +73,7 @@ VGMSTREAM* init_vgmstream_bnk_sony(STREAMFILE* sf) {
 
     /* checks */
     if (!check_extensions(sf, "bnk"))
-    return NULL;
+        return NULL;
 
     bnk_header_t h = {0};
     if (!parse_bnk_v3(sf, &h))
@@ -736,7 +736,7 @@ static bool process_names(STREAMFILE* sf, bnk_header_t* h) {
                 }
             }
             //goto fail; /* didn't find any valid index? */
-loop_break:
+        loop_break:
             break;
 
         case 0x04:
@@ -970,7 +970,7 @@ static bool process_data(STREAMFILE* sf, bnk_header_t* h) {
         case 0x08:
         case 0x09:
             h->subtype = read_u32(h->start_offset+0x00,sf);
-            h->extradata_size = read_u32(h->start_offset+0x04,sf); /* 0x14 for AT9, 0x10 for PCM, 0x90 for MPEG */
+            h->extradata_size = read_u32(h->start_offset+0x04,sf); /* 0x14 for AT9, 0x10/0x18 for PCM, 0x90 for MPEG */
             h->extradata_size += 0x08;
 
             switch(h->subtype) {
@@ -979,13 +979,14 @@ static bool process_data(STREAMFILE* sf, bnk_header_t* h) {
                     h->codec = PSX;
                     break;
 
-                case 0x00000001:
-                    h->channels = 1;
+                case 0x00000001: /* PCM 1ch */
+                case 0x00000004: /* PCM 2ch */
+                    h->channels = (h->subtype == 0x01) ? 1 : 2;
                     h->codec = PCM16;
                     break;
 
-                case 0x00000002: /* ATRAC9 / MPEG mono */
-                case 0x00000005: /* ATRAC9 / MPEG stereo */
+                case 0x00000002: /* ATRAC9 / MPEG 1ch */
+                case 0x00000005: /* ATRAC9 / MPEG 2ch */
                     h->channels = (h->subtype == 0x02) ? 1 : 2;
 
                     if (h->big_endian) {
