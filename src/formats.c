@@ -1177,7 +1177,6 @@ static const meta_info meta_info_list[] = {
         {meta_PS2_SND,              "Might and Magic SSND Header"},
         {meta_SMSS,                 "Treasure SMSS header"},
         {meta_ADS_MIDWAY,           "Midway ADS header"},
-        {meta_PS2_MCG,              "Gunvari MCG Header"},
         {meta_ZSD,                  "Konami ZSD header"},
         {meta_REDSPARK,             "RedSpark header"},
         {meta_RAGE_AUD,             "Rockstar AUD header"},

@@ -1720,9 +1720,6 @@
     <ClCompile Include="meta\ps2_joe.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ps2_mcg.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="meta\ps2_rnd.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>

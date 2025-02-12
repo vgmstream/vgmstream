@@ -434,7 +434,6 @@ typedef enum {
     meta_P2BT_MOVE_VISA,
     meta_GBTS,
     meta_NGC_DSP_IADP,      /* Gamecube Interleave DSP */
-    meta_PS2_MCG,           /* Gunvari MCG Files (was name .GCM on disk) */
     meta_ZSD,               /* Dragon Booster ZSD */
     meta_REDSPARK,          /* "RedSpark" RSD (MadWorld) */
     meta_RAGE_AUD,          /* Rockstar AUD - MC:LA, GTA IV */

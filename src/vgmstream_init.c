@@ -141,7 +141,6 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_nds_rrds,
     init_vgmstream_smss,
     init_vgmstream_ads_midway,
-    init_vgmstream_ps2_mcg,
     init_vgmstream_zsd,
     init_vgmstream_vgs_ps,
     init_vgmstream_redspark,
