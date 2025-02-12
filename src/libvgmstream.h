@@ -18,9 +18,9 @@
  * This may make the API a bit odd, will probably improve later. Probably.
  *
  * Notes:
- * - now there is an API, internals (vgmstream.h) may change in the future so avoid accesing them
+ * - now there is an API, internals (vgmstream.h) will change in the future so avoid accesing them
  * - some details described in the API may not happen at the moment (defined for future changes)
- * - uses long-winded libvgmstream_* names since internals alredy use the vgmstream_* 'namespace', #define as needed
+ * - uses long-winded libvgmstream_* names since internals alredy use the vgmstream_* 'namespace', #define if needed
  * - c-strings should be in UTF-8
  */
 
@@ -71,20 +71,20 @@ LIBVGMSTREAM_API uint32_t libvgmstream_get_version(void);
 /*****************************************************************************/
 /* DECODE */
 
-/* interleaved samples: buf[0]=ch0, buf[1]=ch1, buf[2]=ch0, buf[3]=ch0, ... */
-typedef enum { 
-    LIBVGMSTREAM_SAMPLE_PCM16 = 1,
-    LIBVGMSTREAM_SAMPLE_PCM24 = 2,
-    LIBVGMSTREAM_SAMPLE_PCM32 = 3,
-    LIBVGMSTREAM_SAMPLE_FLOAT = 4,
-} libvgmstream_sample_t;
+/* available sample formats, interleaved: buf[0]=ch0, buf[1]=ch1, buf[2]=ch0, buf[3]=ch0, ... */
+typedef enum {
+    LIBVGMSTREAM_SFMT_PCM16 = 1,
+  //LIBVGMSTREAM_SFMT_PCM24 = 2,
+  //LIBVGMSTREAM_SFMT_PCM32 = 3,
+    LIBVGMSTREAM_SFMT_FLOAT = 4,
+} libvgmstream_sfmt_t;
 
 /* current song info, may be copied around (values are info-only) */
 typedef struct {
     /* main (always set) */
     int channels;                           // output channels
     int sample_rate;                        // output sample rate
-    libvgmstream_sample_t sample_type;      // output buffer's sample type
+    libvgmstream_sfmt_t sample_format;      // output buffer's sample type
     int sample_size;                        // derived from sample_type (pcm16=0x02, float=0x04, etc)
 
     /* extra info (may be 0 if not known or not relevant) */
@@ -126,8 +126,8 @@ typedef struct {
     //    query description and since libvgmstream returns its own copy it shouldn't be too much of a problem
     // ** (may be separated later)
 
-    int format_id;                          // when reopening subfiles or similar formats without checking other all possible formats
-                                            // ** this value WILL change without warning between vgmstream versions/commits, but usually only add
+    int format_id;                          // current format's ID (can be set when reopening streams to load a particular format)
+                                            // ** this value WILL change without warning between vgmstream versions/commits
 
 } libvgmstream_format_t;
 
@@ -165,6 +165,7 @@ LIBVGMSTREAM_API void libvgmstream_free(libvgmstream_t* lib);
 
 /* configures how vgmstream behaves internally when playing a file */
 typedef struct {
+
     bool disable_config_override;           // ignore forced (TXTP) config
     bool allow_play_forever;                // must allow manually as some cases a TXTP may set loop forever but client may not handle it
 
@@ -174,46 +175,39 @@ typedef struct {
     bool really_force_loop;                 // forces full loops (0..samples) even if file has loop points
     bool ignore_fade;                       // don't fade after N loops and play remaning stream (for files with outros)
 
-    double loop_count;                      // target loops (values like 1.5 are ok)
+    double loop_count;                      // target loops (values like 1.5 are ok); defaults to 1; set to -1 to remove the loop section
     double fade_time;                       // fade period after target loops
     double fade_delay;                      // fade delay after target loops
 
+    int stereo_track;                       // forces vgmstream to decode one 2ch+2ch+2ch... 'track' and discard other channels, where 0 = disabled, 1..N = Nth track
     int auto_downmix_channels;              // downmix if vgmstream's channels are higher than value
                                             // ** for players that can only handle N channels
                                             // ** this type of downmixing is very simplistic and not recommended
 
-    bool force_pcm16;                       // forces output buffer to be remixed into PCM16
-    bool force_float;                       // forces output buffer to be remixed into float
+    libvgmstream_sfmt_t force_sfmt;         // forces output buffer to be remixed into some sample format
+
+  //int format_id;                          // force a format (for example when loading new subsong of the same archive, for a minuscule speed up)
+  //                                        // ** only applies when called before _open_stream
 
 } libvgmstream_config_t;
 
-/* pass default config, that will be applied to song on open
- * - invalid config or complex cases (ex. some TXTP) may ignore these settings
- * - should be called without a song loaded (before _open or after _close)
- * - without config vgmstream will decode the current stream once
+/* optionally pass config to apply to next _open_stream (or current stream if already loaded and not setup previously)
+ * - some settings may be ignored in invalid or complex cases (ex. TXTP with pre-configured options)
+ * - once config is applied to current stream new _setup calls only apply to next _open_stream
+ * - pass NULL to clear current config
+ * - remember config may change format info like channels or output format (recheck if calling after loading song)
  */
 LIBVGMSTREAM_API void libvgmstream_setup(libvgmstream_t* lib, libvgmstream_config_t* cfg);
 
 
-/* configures how vgmstream opens the format */
-typedef struct {
-    libstreamfile_t* libsf;                 // custom IO streamfile that provides reader info for vgmstream
-                                            // ** not needed after _open and should be closed, as vgmstream re-opens its own SFs internally as needed
-
-    int subsong_index;                      // target subsong (1..N) or 0 = default/first
-                                            // ** to check if a file has subsongs, _open first + check format->total_subsongs (then _open 2nd, 3rd, etc)
-
-    int format_id;                          // force a format (for example when loading new subsong of the same archive)
-
-    int stereo_track;                       // forces vgmstream to decode one 2ch+2ch+2ch... 'track' and discard other channels, where 0 = disabled, 1..N = Nth track
-
-} libvgmstream_options_t;
-
 /* Opens file based on config and prepares it to play if supported.
  * - returns < 0 on error (file not recognised, invalid subsong index, etc)
  * - will close currently loaded song if needed
+ * - libsf (custom IO) is not needed after _open and should be closed, as vgmstream re-opens as needed
+ * - subsong can be 1..N or 0 = default/first
+ *   ** to check if a file has subsongs, _open default + check format->total_subsongs (then _open Nth)
  */
-LIBVGMSTREAM_API int libvgmstream_open_stream(libvgmstream_t* lib, libvgmstream_options_t* open_options);
+LIBVGMSTREAM_API int libvgmstream_open_stream(libvgmstream_t* lib, libstreamfile_t* libsf, int subsong_index);
 
 /* Closes current song; may still use libvgmstream to open other songs
  */
@@ -248,7 +242,6 @@ LIBVGMSTREAM_API void libvgmstream_seek(libvgmstream_t* lib, int64_t sample);
 LIBVGMSTREAM_API void libvgmstream_reset(libvgmstream_t* lib);
 
 
-
 /*****************************************************************************/
 /* HELPERS */
 
@@ -259,29 +252,25 @@ typedef enum {
     LIBVGMSTREAM_LOG_LEVEL_NONE     = 100,
 } libvgmstream_loglevel_t;
 
-typedef struct {
-    libvgmstream_loglevel_t level;                  // log level
-    void (*callback)(int level, const char* str);   // log callback
-    bool stdout_callback;                           // use default log callback rather than user supplied
-} libvgmstream_log_t;
-
 /* Defines a global log callback, as vgmstream sometimes communicates format issues to the user.
  * - note that log is currently set globally rather than per libvgmstream_t
+ * - call with LOG_LEVEL_NONE to disable current callback
+ * - call with NULL callback to use default stdout callback
 */
-LIBVGMSTREAM_API void libvgmstream_set_log(libvgmstream_log_t* cfg);
+LIBVGMSTREAM_API void libvgmstream_set_log(libvgmstream_loglevel_t level, void (*callback)(int level, const char* str));
 
 
 /* Returns a list of supported extensions (WARNING: it's pretty big), such as "adx", "dsp", etc.
  * Mainly for plugins that want to know which extensions are supported.
  * - returns NULL if no size is provided
  */
-LIBVGMSTREAM_API const char** libvgmstream_get_extensions(size_t* size);
+LIBVGMSTREAM_API const char** libvgmstream_get_extensions(int* size);
 
 /* Same as above, buf returns a list what vgmstream considers "common" formats (such as "wav", "ogg"),
  * which usually one doesn't want to associate to vgmstream.
  * - returns NULL if no size is provided
  */
-LIBVGMSTREAM_API const char** libvgmstream_get_common_extensions(size_t* size);
+LIBVGMSTREAM_API const char** libvgmstream_get_common_extensions(int* size);
 
 
 typedef struct {
@@ -301,7 +290,7 @@ LIBVGMSTREAM_API bool libvgmstream_is_valid(const char* filename, libvgmstream_v
 
 
 typedef struct {
-    bool force_title;           // TODO: what was this for?
+    bool force_title;           // force stream name as title (by default it may be hiddedn if file has no subsongs)
     bool subsong_range;         // print a range of possible subsongs after title 'filename#1~N'
     bool remove_extension;      // remove extension from passed filename
     bool remove_archive;        // remove '(archive)|(subfile)' format of some plugins
@@ -350,11 +339,13 @@ LIBVGMSTREAM_API void libvgmstream_tags_find(libvgmstream_tags_t* tags, const ch
 
 /* Extracts next valid tag in tagfile to key/val.
  * - returns false if no more tags are found (meant to be called repeatedly until false)
- * - key/values are trimmed of beginning/end whitespaces and values are in UTF-8
+ * - key/values are trimmed of beginning/end whitespaces and values are UTF-8
  */
 LIBVGMSTREAM_API bool libvgmstream_tags_next_tag(libvgmstream_tags_t* tags);
 
-/* Closes tags. */
+/* Closes tags.
+ * - passed libsf is not closed
+ */
 LIBVGMSTREAM_API void libvgmstream_tags_free(libvgmstream_tags_t* tags);
 
 

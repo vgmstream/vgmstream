@@ -33,31 +33,36 @@ typedef struct {
 
 } libvgmstream_priv_buf_t;
 
+// used to calculate and stop stream (to be removed once VGMSTREAM can stop on its own)
 typedef struct {
     int64_t play_forever;
     int64_t play_samples;
     int64_t current;
 } libvgmstream_priv_position_t;
 
-/* vgmstream context/handle */
+// vgmstream context/handle
 typedef struct {
-    libvgmstream_format_t fmt;  // externally exposed
-    libvgmstream_decoder_t dec; // externally exposed
+    // externally exposed to API
+    libvgmstream_format_t fmt; 
+    libvgmstream_decoder_t dec;
 
-    libvgmstream_config_t cfg;  // internal copy
+    // internals
+    libvgmstream_config_t cfg;
 
     VGMSTREAM* vgmstream;
-
     libvgmstream_priv_buf_t buf;
     libvgmstream_priv_position_t pos;
 
+    bool config_loaded;
+    bool setup_done;
     bool decode_done;
 } libvgmstream_priv_t;
 
 
 void libvgmstream_priv_reset(libvgmstream_priv_t* priv, bool reset_buf);
-libvgmstream_sample_t api_get_output_sample_type(libvgmstream_priv_t* priv);
-int api_get_sample_size(libvgmstream_sample_t sample_type);
+libvgmstream_sfmt_t api_get_output_sample_type(libvgmstream_priv_t* priv);
+int api_get_sample_size(libvgmstream_sfmt_t sample_format);
+void api_apply_config(libvgmstream_priv_t* priv);
 
 STREAMFILE* open_api_streamfile(libstreamfile_t* libsf);
 

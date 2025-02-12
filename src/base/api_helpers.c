@@ -12,28 +12,33 @@ static int get_internal_log_level(libvgmstream_loglevel_t level) {
     }
 }
 
-LIBVGMSTREAM_API void libvgmstream_set_log(libvgmstream_log_t* cfg) {
-    if (!cfg)
-        return;
-
-    int ilevel = get_internal_log_level(cfg->level);
-    if (cfg->stdout_callback) {
-        //vgmstream_set_log_stdout(ilevel);
-        vgm_log_set_callback(NULL, ilevel, 1, NULL);
+LIBVGMSTREAM_API void libvgmstream_set_log(libvgmstream_loglevel_t level, void (*callback)(int level, const char* str)) {
+    int ilevel = get_internal_log_level(level);
+    if (callback) {
+        vgm_log_set_callback(NULL, ilevel, 0, callback);
     }
     else {
-        //vgmstream_set_log_callback(ilevel, cfg->callback);
-        vgm_log_set_callback(NULL, ilevel, 0, cfg->callback);
+        vgm_log_set_callback(NULL, ilevel, 1, NULL);
     }
 }
 
 
-LIBVGMSTREAM_API const char** libvgmstream_get_extensions(size_t* size) {
-    return vgmstream_get_formats(size);
+LIBVGMSTREAM_API const char** libvgmstream_get_extensions(int* size) {
+    if (!size)
+        return NULL;
+    size_t tmp = 0;
+    const char** list = vgmstream_get_formats(&tmp);
+    *size = tmp;
+    return list;
 }
 
-LIBVGMSTREAM_API const char** libvgmstream_get_common_extensions(size_t* size) {
-    return vgmstream_get_common_formats(size);
+LIBVGMSTREAM_API const char** libvgmstream_get_common_extensions(int* size) {
+    if (!size)
+        return NULL;
+    size_t tmp = 0;
+    const char** list = vgmstream_get_common_formats(&tmp);
+    *size = tmp;
+    return list;
 }
 
 

@@ -48,21 +48,39 @@ LIBVGMSTREAM_API void libvgmstream_free(libvgmstream_t* lib) {
     free(lib);
 }
 
+// TODO: allow calling after load
 
 LIBVGMSTREAM_API void libvgmstream_setup(libvgmstream_t* lib, libvgmstream_config_t* cfg) {
     if (!lib || !lib->priv)
         return;
 
     libvgmstream_priv_t* priv = lib->priv;
+
+    // Can only apply once b/c some options modify the internal mixing chain and there is no clean way to
+    // reset the stream when txtp also manipulates it (maybe could add some flag per mixing item)
+    if (priv->setup_done)
+        return;
+
+    // allow overwritting current config, though will only apply to next load
+    //if (priv->config_loaded)
+    //    return;
+
     if (!cfg) {
         memset(&priv->cfg , 0, sizeof(libvgmstream_config_t));
-        priv->cfg.loop_count = 1; //TODO: loop 0 means no loop (improve detection)
+        priv->config_loaded = false;
     }
     else {
+
         priv->cfg = *cfg;
+        priv->config_loaded = true;
     }
 
-    //TODO validate, etc
+    //TODO validate, etc (for now most incorrect values are ignored)
+
+    // apply now if possible to update format info
+    if (priv->vgmstream) {
+        api_apply_config(priv);
+    }
 }
 
 
@@ -81,24 +99,24 @@ void libvgmstream_priv_reset(libvgmstream_priv_t* priv, bool reset_buf) {
     priv->decode_done = false;
 }
 
-libvgmstream_sample_t api_get_output_sample_type(libvgmstream_priv_t* priv) {
+libvgmstream_sfmt_t api_get_output_sample_type(libvgmstream_priv_t* priv) {
     VGMSTREAM* v = priv->vgmstream;
     sfmt_t format = mixing_get_output_sample_type(v);
     switch(format) {
-        case SFMT_S16: return LIBVGMSTREAM_SAMPLE_PCM16;
-        case SFMT_FLT: return LIBVGMSTREAM_SAMPLE_FLOAT;
+        case SFMT_S16: return LIBVGMSTREAM_SFMT_PCM16;
+        case SFMT_FLT: return LIBVGMSTREAM_SFMT_FLOAT;
         default:
             return 0x00; //???
     }
 }
 
-int api_get_sample_size(libvgmstream_sample_t sample_type) {
-    switch(sample_type) {
-        case LIBVGMSTREAM_SAMPLE_PCM24:
-        case LIBVGMSTREAM_SAMPLE_PCM32:
-        case LIBVGMSTREAM_SAMPLE_FLOAT:
+int api_get_sample_size(libvgmstream_sfmt_t sample_format) {
+    switch(sample_format) {
+        //case LIBVGMSTREAM_SFMT_PCM24:
+        //case LIBVGMSTREAM_SFMT_PCM32:
+        case LIBVGMSTREAM_SFMT_FLOAT:
             return 0x04;
-        case LIBVGMSTREAM_SAMPLE_PCM16:
+        case LIBVGMSTREAM_SFMT_PCM16:
         default:
             return 0x02;
     }
