@@ -1212,7 +1212,7 @@ static const meta_info meta_info_list[] = {
         {meta_WB,                   "Triangle Service .WB header"},
         {meta_S14,                  "Namco .S14 raw header"},
         {meta_SSS,                  "Namco .SSS raw header"},
-        {meta_PS2_GCM,              "Namco GCM header"},
+        {meta_MCG,                  "Namco MCG header"},
         {meta_SMPL,                 "Skonec SMPL header"},
         {meta_MSA,                  "Success .MSA header"},
         {meta_VOI,                  "Irem .VOI header"},

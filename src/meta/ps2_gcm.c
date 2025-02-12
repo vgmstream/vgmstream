@@ -2,8 +2,8 @@
 #include "../util.h"
 #include "../coding/coding.h"
 
-/* .GCM - from PS2 Namco games [Gunvari Collection + Time Crisis (PS2), NamCollection (PS2)] */
-VGMSTREAM* init_vgmstream_ps2_gcm(STREAMFILE* sf) {
+/* MCG - from PS2 Namco games [Gunvari Collection + Time Crisis (PS2), NamCollection (PS2)] */
+VGMSTREAM* init_vgmstream_mcg(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     uint32_t start_offset, name_offset;
     uint32_t vagp_l_offset, vagp_r_offset, track_size, data_size, channel_size;
@@ -12,11 +12,10 @@ VGMSTREAM* init_vgmstream_ps2_gcm(STREAMFILE* sf) {
 
     /* checks */
     if (!is_id32be(0x00,sf, "MCG\0"))
-        goto fail;
-
-    /* .gcm: actual extension */
+        return NULL;
+    // .gcm: actual extension
     if (!check_extensions(sf, "gcm"))
-        goto fail;
+        return NULL;
 
 
     /* format is two v4 "VAGp" headers then interleaved data (even for 6ch files) */
@@ -59,7 +58,7 @@ VGMSTREAM* init_vgmstream_ps2_gcm(STREAMFILE* sf) {
     vgmstream = allocate_vgmstream(channels, 0);
     if (!vgmstream) goto fail;
 
-    vgmstream->meta_type = meta_PS2_GCM;
+    vgmstream->meta_type = meta_MCG;
     vgmstream->sample_rate = sample_rate;
     vgmstream->num_samples = ps_bytes_to_samples(channel_size, 1);
     vgmstream->coding_type = coding_PSX;

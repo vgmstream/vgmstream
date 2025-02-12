@@ -429,7 +429,7 @@ VGMSTREAM* init_vgmstream_wb(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_raw_s14_sss(STREAMFILE* sf);
 
-VGMSTREAM * init_vgmstream_ps2_gcm(STREAMFILE* streamFile);
+VGMSTREAM * init_vgmstream_mcg(STREAMFILE* streamFile);
 
 VGMSTREAM* init_vgmstream_smpl(STREAMFILE* sf);
 

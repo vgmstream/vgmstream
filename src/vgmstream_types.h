@@ -459,7 +459,7 @@ typedef enum {
     meta_WB,
     meta_S14,               /* raw Siren 14, 24kbit mono */
     meta_SSS,               /* raw Siren 14, 48kbit stereo */
-    meta_PS2_GCM,           /* NamCollection */
+    meta_MCG,
     meta_SMPL,
     meta_MSA,
     meta_VOI,

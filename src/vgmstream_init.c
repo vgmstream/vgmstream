@@ -174,7 +174,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_ngc_dsp_aaap,
     init_vgmstream_wb,
     init_vgmstream_bnsf,
-    init_vgmstream_ps2_gcm,
+    init_vgmstream_mcg,
     init_vgmstream_smpl,
     init_vgmstream_msa,
     init_vgmstream_voi,
