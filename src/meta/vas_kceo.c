@@ -226,8 +226,6 @@ VGMSTREAM* init_vgmstream_vas_kceo_container(STREAMFILE* sf) {
         }
     }
     else if (read_u32le(0x00, sf) == 0x800) { /* Xbox/PC (start?) */
-VGM_STEP();
-
         total_subsongs = read_s32le(0x04, sf);
         if (target_subsong == 0) target_subsong = 1;
         if (target_subsong < 0 || target_subsong > total_subsongs || total_subsongs < 1) goto fail;

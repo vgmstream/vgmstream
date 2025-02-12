@@ -13,7 +13,7 @@ VGMSTREAM* init_vgmstream_vig_kces(STREAMFILE* sf) {
     /* checks */
     if (read_u32be(0x00,sf) != 0x01006408)
         return NULL;
-    /* .vig: actual extension from DDR exes */
+    /* .vig: actual extension from AC versions + PS2 exes */
     if (!check_extensions(sf, "vig"))
         return NULL;
 
