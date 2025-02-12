@@ -524,7 +524,6 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_scd_pcm,
     init_vgmstream_vas_kceo,
     init_vgmstream_vas_kceo_container,
-    init_vgmstream_ps2_wmus,
     init_vgmstream_mib_mih,
     init_vgmstream_mjb_mjh,
     init_vgmstream_mic_koei,

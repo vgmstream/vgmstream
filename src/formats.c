@@ -667,7 +667,6 @@ static const char* extension_list[] = {
     "wic", //txth/reserved [Road Rash (SAT)-videos]
     "wip", //txth/reserved [Colin McRae DiRT (PC)]
     "wlv", //txth/reserved [ToeJam & Earl III: Mission to Earth (DC)]
-    "wmus", //fake extension (to be removed)
     "wp2",
     "wpd",
     "wsd",
@@ -1250,7 +1249,6 @@ static const meta_info meta_info_list[] = {
         {meta_LSF_N1NJ4N,           "Gizmondo Studios Helsingborg LSF header"},
         {meta_XWAV,                 "feelplus XWAV header"},
         {meta_RAW_SNDS,             "PC .snds raw header"},
-        {meta_PS2_WMUS,             "assumed The Warriors Sony ADPCM by .wmus extension"},
         {meta_HYPERSCAN_KVAG,       "Mattel Hyperscan KVAG"},
         {meta_PSND,                 "Polarbit PSND header"},
         {meta_ADP_WILDFIRE,         "Wildfire ADP! header"},
