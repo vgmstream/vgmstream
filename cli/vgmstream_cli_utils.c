@@ -139,7 +139,7 @@ void print_info(VGMSTREAM* vgmstream, cli_config_t* cfg) {
 
     if (!cfg->play_sdtout && !cfg->print_adxencd && !cfg->print_oggenc && !cfg->print_batchvar) {
         char description[1024];
-        describe_vgmstream(vgmstream, description, 1024);
+        describe_vgmstream(vgmstream, description, sizeof(description));
         printf("%s", description);
     }
 }
