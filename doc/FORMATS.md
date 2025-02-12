@@ -734,9 +734,9 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Namco Bandai BNSF header [*BNSF*]
   - *bnsf*: `.bnsf + .(external)`
   - Codecs: G7221C G719
-- **ps2_gcm.c**
-  - Namco GCM header [*PS2_GCM*]
-  - *ps2_gcm*: `.gcm`
+- **mcg.c**
+  - Namco MCG header [*MCG*]
+  - *mcg*: `.gcm`
   - Codecs: PSX
 - **smpl.c**
   - Skonec SMPL header [*SMPL*]
@@ -1015,7 +1015,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - tri-Ace AAC header [*AAC_TRIACE*]
   - *aac_triace*: `.aac .laac`
   - Codecs: XMA2 ATRAC3 ATRAC9 MSADPCM ASKA OGG_VORBIS
-- **ps2_va3.c**
+- **va3.c**
   - Konami VA3 header [*VA3*]
   - *va3*: `.va3`
   - Codecs: ATRAC3
@@ -1414,7 +1414,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Codecs: FFmpeg(various)
 - **nus3audio.c**
   - (container)
-  - *nus3audio*: `.nus3audio`
+  - *nus3audio*: `.nus3audio .patch3audio`
     - Subfiles: *idsp_namco opus_nus3 riff bnsf*
 - **imc.c**
   - iNiS .IMC header [*IMC*]
