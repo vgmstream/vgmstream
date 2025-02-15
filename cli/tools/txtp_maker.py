@@ -74,6 +74,7 @@ class Cli(object):
         p.add_argument('-fni', dest='include_regex', help="Filter by REGEX including matches of subsong name")
         p.add_argument('-fne', dest='exclude_regex', help="Filter by REGEX excluding matches of subsong name")
         p.add_argument('-nsc',dest='no_semicolon', help="Remove semicolon names (for songs with multinames)", action='store_true')
+        p.add_argument('-sj',dest='shift_jis', help="Take extended names as shift-jis", action='store_true')
         p.add_argument("-cmd","--command", help="sets any command (free text)")
         p.add_argument("-cmdi","--command-inline", help="sets any inline command (free text)")
         p.add_argument('-v', dest='log_level', help="Verbose log level (off|debug|info, default: info)", default='info')
@@ -158,14 +159,14 @@ class Cr32Helper(object):
 #******************************************************************************
 
 class TxtpInfo(object):
-    def __init__(self, output_b):
+    def __init__(self, output_b, cfg):
         self.output = str(output_b).replace("\\r","").replace("\\n","\n")
         self.channels = self._get_value("channels: ")
         self.sample_rate = self._get_value("sample rate: ")
         self.num_samples = self._get_value("stream total samples: ")
         self.stream_count = self._get_value("stream count: ")
         self.stream_index = self._get_value("stream index: ")
-        self.stream_name = self._get_text("stream name: ")
+        self.stream_name = self._get_text("stream name: ", cfg.shift_jis)
         self.encoding = self._get_text("encoding: ")
 
         # in case vgmstream returns error, but output code wasn't EXIT_FAILURE
@@ -185,12 +186,16 @@ class TxtpInfo(object):
         else:
             return str_cut.split()[0].strip()
 
-    def _get_text(self, str):
+    def _get_text(self, str, shift_jis=False):
         text = self._get_string(str, full=True)
         # stream names in CLI is printed as UTF-8 using '\xNN', so detect and transform
         try:
             if text and '\\' in text:
-                return text.encode('ascii').decode('unicode-escape').encode('iso-8859-1').decode('utf-8')
+                text_bytes = text.encode('ascii').decode('unicode-escape').encode('iso-8859-1')
+                if shift_jis:
+                    return text_bytes.decode('shift-jis')
+                else:
+                    return text_bytes.decode('utf-8')
         except:
             return text #odd/buggy names
         return text
@@ -215,7 +220,7 @@ class TxtpMaker(object):
         return str(self.__dict__)
 
     def parse(self, output_b):
-        self.info = TxtpInfo(output_b)
+        self.info = TxtpInfo(output_b, self.cfg)
         self.ignorable = self._is_ignorable(self.cfg)
 
     def reset(self):
