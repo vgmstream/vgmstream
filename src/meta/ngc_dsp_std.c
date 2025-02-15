@@ -1446,7 +1446,7 @@ VGMSTREAM* init_vgmstream_dsp_wiivoice(STREAMFILE* sf) {
 }
 
 
-/* WIIADPCM - Exient wrapper [Need for Speed: Hot Pursuit (Wii), Angry Birds: Star Wars (WiiU)] */
+/* WIIADPCM - Exient wrapper [Need for Speed: Hot Pursuit (Wii), Angry Birds: Star Wars (Wii/WiiU)] */
 VGMSTREAM* init_vgmstream_dsp_wiiadpcm(STREAMFILE* sf) {
     dsp_meta dspm = {0};
 
@@ -1456,18 +1456,33 @@ VGMSTREAM* init_vgmstream_dsp_wiiadpcm(STREAMFILE* sf) {
     if (!check_extensions(sf, "adpcm"))
         return NULL;
 
-    dspm.interleave = read_u32be(0x08,sf); /* interleave offset */
-    /* 0x0c: NFS = 0 when RAM (2 DSP headers), interleave size when stream (2 WIIADPCM headers)
-     *       AB = 0 (2 WIIADPCM headers) */
+    // no good flag so use v2's loop+type as other values are easy to mistake
+    int test = read_u32be(0x2c,sf);
+    if (!(test == 0x00010000 || test == 0x00000000)) {
+        // V1 (NFSHP)
+        // 08: ch2 offset
+        // 0c: real interleave in streams (xN WIIADPCM headers), null in memory audio (xN DSP headers)
+        dspm.header_offset = 0x10;
+        dspm.max_channels = 2;
+    }
+    else {
+        // V2 (ABSW)
+        // 08-18: chN offset
+        // 1c: real interleave in streams (xN WIIADPCM headers), null in memory audio (xN DSP headers)
+        //     (interleave may be set in mono too)
+        dspm.header_offset = 0x20;
+        dspm.max_channels = 6;
+    }
 
-    dspm.channels = (dspm.interleave ? 2 : 1);
-    dspm.max_channels = 2;
+    dspm.channels = 1;
+    for (int i = 0; i < dspm.max_channels - 1; i++) {
+        uint32_t offset = read_u32be(0x08 + i * 0x04, sf);
+        if (!offset)
+            break;
+        dspm.channels += 1;
+    }
 
-    if (read_u32be(0x10,sf) != 0)
-        dspm.header_offset = 0x10; /* NFSHP */
-    else
-        dspm.header_offset = 0x20; /* ABSW */
-
+    dspm.interleave = read_u32be(0x08,sf); // use first channel offset as interleave
     if (dspm.interleave)
         dspm.interleave -= dspm.header_offset;
     dspm.interleave_first_skip = 0x60 + dspm.header_offset;
@@ -1475,7 +1490,6 @@ VGMSTREAM* init_vgmstream_dsp_wiiadpcm(STREAMFILE* sf) {
 
     dspm.header_spacing = dspm.interleave;
     dspm.start_offset = dspm.header_offset + 0x60;
-
 
     dspm.meta_type = meta_DSP_WIIADPCM;
     return init_vgmstream_dsp_common(sf, &dspm);
