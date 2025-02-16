@@ -18,10 +18,10 @@ typedef struct {
     char name[PATH_LIMIT];
 } cache_priv_t;
 
-static int cache_read(void* user_data, uint8_t* dst, int dst_size) {
+static int cache_read(void* user_data, uint8_t* dst, int64_t offset, int length) {
     cache_priv_t* priv = user_data;
     size_t read_total = 0;
-    if (!dst || dst_size <= 0)
+    if (!dst || length <= 0 || offset < 0)
         return 0;
 
     /* is the part of the requested length in the buffer? */
@@ -30,19 +30,22 @@ static int cache_read(void* user_data, uint8_t* dst, int dst_size) {
         int buf_into = (int)(priv->offset - priv->buf_offset);
 
         buf_limit = priv->valid_size - buf_into;
-        if (buf_limit > dst_size)
-            buf_limit = dst_size;
+        if (buf_limit > length)
+            buf_limit = length;
 
         memcpy(dst, priv->buf + buf_into, buf_limit);
         read_total += buf_limit;
-        dst_size -= buf_limit;
+        length -= buf_limit;
         priv->offset += buf_limit;
         dst += buf_limit;
     }
 
+    /* possible if all data was copied to buf and FD closed */
+    if (!priv->libsf)
+        return read_total;
 
     /* read the rest of the requested length */
-    while (dst_size > 0) {
+    while (length > 0) {
         size_t buf_limit;
 
         /* ignore requests at EOF */
@@ -52,18 +55,15 @@ static int cache_read(void* user_data, uint8_t* dst, int dst_size) {
             break;
         }
 
-        /* position to new offset */
-        priv->libsf->seek(priv, priv->offset, 0);
-
         /* fill the buffer (offset now is beyond buf_offset) */
         priv->buf_offset = priv->offset;
-        priv->valid_size = priv->libsf->read(priv, priv->buf, priv->buf_size);
+        priv->valid_size = priv->libsf->read(priv, priv->buf, priv->buf_offset, priv->buf_size);
 
         /* decide how much must be read this time */
-        if (dst_size > priv->buf_size)
+        if (length > priv->buf_size)
             buf_limit = priv->buf_size;
         else
-            buf_limit = dst_size;
+            buf_limit = length;
 
         /* give up on partial reads (EOF) */
         if (priv->valid_size < buf_limit) {
@@ -77,38 +77,12 @@ static int cache_read(void* user_data, uint8_t* dst, int dst_size) {
         memcpy(dst, priv->buf, buf_limit);
         priv->offset += buf_limit;
         read_total += buf_limit;
-        dst_size -= buf_limit;
+        length -= buf_limit;
         dst += buf_limit;
     }
 
+    priv->offset = offset; /* last fread offset */
     return read_total;
-}
-
-static int64_t cache_seek(void* user_data, int64_t offset, int whence) {
-    cache_priv_t* priv = user_data;
-
-    switch (whence) {
-        case LIBSTREAMFILE_SEEK_SET: /* absolute */
-            break;
-        case LIBSTREAMFILE_SEEK_CUR: /* relative to current */
-            offset += priv->offset;
-            break;
-        case LIBSTREAMFILE_SEEK_END: /* relative to file end (should be negative) */
-            offset += priv->file_size;
-            break;
-        default:
-            break;
-    }
-
-    /* clamp offset like fseek */
-    if (offset > priv->file_size)
-        offset = priv->file_size;
-    else if (offset < 0)
-        offset = 0;
-
-    /* main seek */
-    priv->offset = offset;
-    return 0;
 }
 
 static int64_t cache_get_size(void* user_data) {
@@ -168,7 +142,6 @@ LIBVGMSTREAM_API libstreamfile_t* libstreamfile_open_buffered(libstreamfile_t* e
     if (!libsf) goto fail;
 
     libsf->read = cache_read;
-    libsf->seek = cache_seek;
     libsf->get_size = cache_get_size;
     libsf->get_name = cache_get_name;
     libsf->open = cache_open;
