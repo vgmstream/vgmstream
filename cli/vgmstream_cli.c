@@ -302,18 +302,8 @@ static void apply_config(VGMSTREAM* vgmstream, cli_config_t* cfg) {
     if (cfg->write_lwav) {
         vcfg.disable_config_override = true;
         cfg->ignore_loop = true;
-
-        if (vgmstream->loop_start_sample < vgmstream->loop_end_sample) {
-            cfg->lwav_loop_start = vgmstream->loop_start_sample;
-            cfg->lwav_loop_end = vgmstream->loop_end_sample;
-            cfg->lwav_loop_end--; /* from spec, +1 is added when reading "smpl" */
-        }
-        else {
-            /* reset for subsongs */
-            cfg->lwav_loop_start = 0;
-            cfg->lwav_loop_end = 0;
-        }
     }
+
     /* only allowed if manually active */
     if (cfg->play_forever) {
         vcfg.allow_play_forever = true;
@@ -387,9 +377,15 @@ static bool write_file(VGMSTREAM* vgmstream, cli_config_t* cfg) {
             .sample_rate = vgmstream->sample_rate,
             .channels = channels,
             .write_smpl_chunk = cfg->write_lwav,
-            .loop_start = cfg->lwav_loop_start,
-            .loop_end = cfg->lwav_loop_end
+            .sample_size = 0,
+            .is_float = false
         };
+
+        if (cfg->write_lwav && vgmstream->loop_start_sample < vgmstream->loop_end_sample) {
+            wav.loop_start = vgmstream->loop_start_sample;
+            wav.loop_end = vgmstream->loop_end_sample;
+            wav.loop_end--; /* from spec, +1 is added when reading "smpl" */
+        }
 
         bytes_done = wav_make_header(wav_buf, 0x100, &wav);
         if (bytes_done == 0) goto fail;

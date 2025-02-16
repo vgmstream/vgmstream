@@ -15,6 +15,7 @@ logger_t log_impl = {0};
 //void* log = &log_impl;
 
 enum {
+    LOG_LEVEL_NONE = 0,
     LOG_LEVEL_INFO = 1,
     LOG_LEVEL_DEBUG = 2,
     LOG_LEVEL_ALL = 100,
@@ -29,6 +30,11 @@ void vgm_log_set_callback(void* ctx_p, int level, int type, void* callback) {
     if (!ctx) ctx = &log_impl;
 
     ctx->level = level;
+
+    if (level == LOG_LEVEL_NONE) {
+        ctx->callback = NULL;
+        return;
+    }
 
     switch(type) {
         case 0:

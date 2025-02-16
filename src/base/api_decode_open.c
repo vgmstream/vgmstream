@@ -3,18 +3,6 @@
 #include "mixing.h"
 
 
-static void load_vgmstream(libvgmstream_priv_t* priv, libvgmstream_options_t* opt) {
-    STREAMFILE* sf_api = open_api_streamfile(opt->libsf);
-    if (!sf_api)
-        return;
-
-    //TODO: handle internal format_id
-    
-    sf_api->stream_index = opt->subsong_index;
-    priv->vgmstream = init_vgmstream_from_STREAMFILE(sf_api);
-    close_streamfile(sf_api);
-}
-
 static void apply_config(libvgmstream_priv_t* priv) {
     libvgmstream_config_t* cfg = &priv->cfg;
 
@@ -36,23 +24,37 @@ static void apply_config(libvgmstream_priv_t* priv) {
     if (!vcfg.allow_play_forever)
         vcfg.play_forever = 0;
 
+    // Traditionally in CLI loop_count = 0 removes loops but this is pretty odd for a lib
+    // (calling _setup with nothing set would remove most audio).
+    // For now loop_count 0 is set to 1, and loop_count <0 is assumed to be same 0
+    if (vcfg.loop_count == 0) {
+        vcfg.loop_count = 1;
+    } else if (vcfg.loop_count < 0)
+        vcfg.loop_count = 0;
+
     vgmstream_apply_config(priv->vgmstream, &vcfg);
 }
 
-static void prepare_mixing(libvgmstream_priv_t* priv, libvgmstream_options_t* opt) {
+static void prepare_mixing(libvgmstream_priv_t* priv) {
+    libvgmstream_config_t* cfg = &priv->cfg;
+
     /* enable after config but before outbuf */
-    if (priv->cfg.auto_downmix_channels) {
-        vgmstream_mixing_autodownmix(priv->vgmstream, priv->cfg.auto_downmix_channels);
+    if (cfg->auto_downmix_channels) {
+        vgmstream_mixing_autodownmix(priv->vgmstream, cfg->auto_downmix_channels);
     }
-    else if (opt && opt->stereo_track >= 1) {
-        vgmstream_mixing_stereo_only(priv->vgmstream, opt->stereo_track - 1);
+    else if (cfg->stereo_track >= 1) {
+        vgmstream_mixing_stereo_only(priv->vgmstream, cfg->stereo_track - 1);
     }
 
-    if (priv->cfg.force_pcm16) {
-        mixing_macro_output_sample_format(priv->vgmstream, SFMT_S16);
-    }
-    else if (priv->cfg.force_float) {
-        mixing_macro_output_sample_format(priv->vgmstream, SFMT_FLT);
+    if (cfg->force_sfmt) {
+        sfmt_t type = SFMT_NONE;
+        switch(cfg->force_sfmt) {
+            case LIBVGMSTREAM_SFMT_PCM16: type = SFMT_S16; break;
+            case LIBVGMSTREAM_SFMT_FLOAT: type = SFMT_F32; break;
+            default: break;
+        }
+
+        mixing_macro_output_sample_format(priv->vgmstream, type);
     }
 
     vgmstream_mixing_enable(priv->vgmstream, INTERNAL_BUF_SAMPLES, NULL /*&input_channels*/, NULL /*&output_channels*/);
@@ -76,11 +78,11 @@ static void update_format_info(libvgmstream_priv_t* priv) {
 
     fmt->channels = v->channels;
     fmt->input_channels = 0;
-    vgmstream_mixing_enable(v, 0, &fmt->input_channels, &fmt->channels);
+    vgmstream_mixing_enable(v, 0, &fmt->input_channels, &fmt->channels); //query
     fmt->channel_layout = v->channel_layout;
 
-    fmt->sample_type = api_get_output_sample_type(priv);
-    fmt->sample_size = api_get_sample_size(fmt->sample_type);
+    fmt->sample_format = api_get_output_sample_type(priv);
+    fmt->sample_size = api_get_sample_size(fmt->sample_format);
 
     fmt->sample_rate = v->sample_rate;
 
@@ -105,26 +107,58 @@ static void update_format_info(libvgmstream_priv_t* priv) {
     }
 }
 
-LIBVGMSTREAM_API int libvgmstream_open_stream(libvgmstream_t* lib, libvgmstream_options_t* opt) {
-    if (!lib ||!lib->priv)
-        return LIBVGMSTREAM_ERROR_GENERIC;
-    if (!opt || !opt->libsf || opt->subsong_index < 0)
+// apply config if data + config is loaded and not already loaded
+void api_apply_config(libvgmstream_priv_t* priv) {
+    if (priv->setup_done)
+        return;
+    if (!priv->vgmstream)
+        return;
+
+    apply_config(priv);
+    prepare_mixing(priv);
+
+    update_position(priv);
+    update_format_info(priv);
+
+    priv->setup_done = true;
+}
+
+static void load_vgmstream(libvgmstream_priv_t* priv, libstreamfile_t* libsf, int subsong_index) {
+    STREAMFILE* sf_api = open_api_streamfile(libsf);
+    if (!sf_api)
+        return;
+
+    //TODO: handle format_id
+
+    sf_api->stream_index = subsong_index;
+    priv->vgmstream = init_vgmstream_from_STREAMFILE(sf_api);
+    close_streamfile(sf_api);
+}
+
+LIBVGMSTREAM_API int libvgmstream_open_stream(libvgmstream_t* lib, libstreamfile_t* libsf, int subsong_index) {
+    if (!lib ||!lib->priv || !libsf)
         return LIBVGMSTREAM_ERROR_GENERIC;
 
     // close loaded song if any + reset
     libvgmstream_close_stream(lib);
 
     libvgmstream_priv_t* priv = lib->priv;
+    if (subsong_index < 0)
+        return LIBVGMSTREAM_ERROR_GENERIC;
 
-    load_vgmstream(priv, opt);
+    load_vgmstream(priv, libsf, subsong_index);
     if (!priv->vgmstream)
         return LIBVGMSTREAM_ERROR_GENERIC;
-    apply_config(priv);
-    prepare_mixing(priv, opt);
-    update_position(priv);
 
-    update_format_info(priv);
-
+    // apply now if possible to update format info
+    if (priv->config_loaded) {
+        api_apply_config(priv);
+    }
+    else {
+        // no config: just update info (apply_config will be called later)
+        update_position(priv);
+        update_format_info(priv);
+    }
 
     return LIBVGMSTREAM_OK;
 }
@@ -138,6 +172,8 @@ LIBVGMSTREAM_API void libvgmstream_close_stream(libvgmstream_t* lib) {
 
     close_vgmstream(priv->vgmstream);
     priv->vgmstream = NULL;
+    priv->setup_done = false;
+    //priv->config_loaded = false; // loaded config still applies (_close is also called on _open)
 
     libvgmstream_priv_reset(priv, true);
 }

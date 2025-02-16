@@ -512,7 +512,6 @@ static bool parse_ktsr_subfile(ktsr_header_t* ktsr, STREAMFILE* sf, uint32_t off
                 ktsr->stream_sizes[0]   = read_u32le(offset + 0x38, sf);
             }
             ktsr->is_external = true;
-VGM_LOG("k=%x\n", ktsr->codec_value);
             break;
 
         case 0x41FDBD4E: /* internal [Attack on Titan: Wings of Freedom (Vita)] */

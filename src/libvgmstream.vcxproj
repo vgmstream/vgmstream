@@ -552,6 +552,7 @@
     <ClCompile Include="meta\mattel_hyperscan.c" />
     <ClCompile Include="meta\maxis_xa.c" />
     <ClCompile Include="meta\mca.c" />
+    <ClCompile Include="meta\mcg.c" />
     <ClCompile Include="meta\mib_mih.c" />
     <ClCompile Include="meta\mic_koei.c" />
     <ClCompile Include="meta\mjb_mjh.c" />
@@ -626,19 +627,15 @@
     <ClCompile Include="meta\ps2_adm.c" />
     <ClCompile Include="meta\ps2_ass.c" />
     <ClCompile Include="meta\ps2_bmdx.c" />
-    <ClCompile Include="meta\ps2_gcm.c" />
     <ClCompile Include="meta\ps2_hsf.c" />
     <ClCompile Include="meta\ps2_iab.c" />
     <ClCompile Include="meta\ps2_joe.c" />
-    <ClCompile Include="meta\ps2_mcg.c" />
     <ClCompile Include="meta\ps2_rnd.c" />
     <ClCompile Include="meta\ps2_snd.c" />
     <ClCompile Include="meta\ps2_sps.c" />
-    <ClCompile Include="meta\ps2_va3.c" />
     <ClCompile Include="meta\ps2_vbk.c" />
     <ClCompile Include="meta\ps2_vgv.c" />
     <ClCompile Include="meta\ps2_vms.c" />
-    <ClCompile Include="meta\ps2_wmus.c" />
     <ClCompile Include="meta\psb.c" />
     <ClCompile Include="meta\psf.c" />
     <ClCompile Include="meta\psnd.c" />
@@ -745,6 +742,7 @@
     <ClCompile Include="meta\ue4opus.c" />
     <ClCompile Include="meta\undefind.c" />
     <ClCompile Include="meta\utk.c" />
+    <ClCompile Include="meta\va3.c" />
     <ClCompile Include="meta\vab.c" />
     <ClCompile Include="meta\vag.c" />
     <ClCompile Include="meta\vai.c" />

@@ -617,10 +617,6 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Midway ADS header [*ADS_MIDWAY*]
   - *ads_midway*: `.ads`
   - Codecs: NGC_DSP XBOX_IMA_mono
-- **ps2_mcg.c**
-  - Gunvari MCG Header [*PS2_MCG*]
-  - *ps2_mcg*: `.mcg`
-  - Codecs: PSX
 - **zsd.c**
   - Konami ZSD header [*ZSD*]
   - *zsd*: `.zsd`
@@ -738,9 +734,9 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Namco Bandai BNSF header [*BNSF*]
   - *bnsf*: `.bnsf + .(external)`
   - Codecs: G7221C G719
-- **ps2_gcm.c**
-  - Namco GCM header [*PS2_GCM*]
-  - *ps2_gcm*: `.gcm`
+- **mcg.c**
+  - Namco MCG header [*MCG*]
+  - *mcg*: `.gcm`
   - Codecs: PSX
 - **smpl.c**
   - Skonec SMPL header [*SMPL*]
@@ -1019,7 +1015,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - tri-Ace AAC header [*AAC_TRIACE*]
   - *aac_triace*: `.aac .laac`
   - Codecs: XMA2 ATRAC3 ATRAC9 MSADPCM ASKA OGG_VORBIS
-- **ps2_va3.c**
+- **va3.c**
   - Konami VA3 header [*VA3*]
   - *va3*: `.va3`
   - Codecs: ATRAC3
@@ -1418,7 +1414,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Codecs: FFmpeg(various)
 - **nus3audio.c**
   - (container)
-  - *nus3audio*: `.nus3audio`
+  - *nus3audio*: `.nus3audio .patch3audio`
     - Subfiles: *idsp_namco opus_nus3 riff bnsf*
 - **imc.c**
   - iNiS .IMC header [*IMC*]
@@ -1868,10 +1864,6 @@ different internally (encrypted, different versions, etc) and not always can be 
   - *vas_kceo_container*: `.vas`
     - Subfiles: *vas_kceo*
   - Codecs: PCM16LE XBOX_IMA PSX NGC_DSP
-- **ps2_wmus.c**
-  - assumed The Warriors Sony ADPCM by .wmus extension [*PS2_WMUS*]
-  - *ps2_wmus*: `.wmus`
-  - Codecs: PSX
 - **mjb_mjh.c**
   - Sony MultiStream MJH+MJB header [*MJB_MJH*]
   - *mjb_mjh*: `.mjb + .mjh .mjb`
@@ -2095,6 +2087,7 @@ are used in few games.
   - Electronic Arts MicroTalk a.k.a. UTK or UMT
   - Inti Creates DCT codec
   - Circus XPCM VQ
+  - Koei Tecmo KA1A
 - Misc
   - SDX2 2:1 Squareroot-Delta-Exact compression DPCM
   - CBD2 2:1 Cuberoot-Delta-Exact compression DPCM

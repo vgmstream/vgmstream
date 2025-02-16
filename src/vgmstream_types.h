@@ -434,7 +434,6 @@ typedef enum {
     meta_P2BT_MOVE_VISA,
     meta_GBTS,
     meta_NGC_DSP_IADP,      /* Gamecube Interleave DSP */
-    meta_PS2_MCG,           /* Gunvari MCG Files (was name .GCM on disk) */
     meta_ZSD,               /* Dragon Booster ZSD */
     meta_REDSPARK,          /* "RedSpark" RSD (MadWorld) */
     meta_RAGE_AUD,          /* Rockstar AUD - MC:LA, GTA IV */
@@ -460,7 +459,7 @@ typedef enum {
     meta_WB,
     meta_S14,               /* raw Siren 14, 24kbit mono */
     meta_SSS,               /* raw Siren 14, 48kbit stereo */
-    meta_PS2_GCM,           /* NamCollection */
+    meta_MCG,
     meta_SMPL,
     meta_MSA,
     meta_VOI,
@@ -495,7 +494,6 @@ typedef enum {
     meta_LSF_N1NJ4N,        /* .lsf n1nj4n Fastlane Street Racing (iPhone) */
     meta_XWAV,
     meta_RAW_SNDS,
-    meta_PS2_WMUS,          /* The Warriors (PS2) */
     meta_HYPERSCAN_KVAG,    /* Hyperscan KVAG/BVG */
     meta_PSND,
     meta_ADP_WILDFIRE,

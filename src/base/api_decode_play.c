@@ -68,6 +68,13 @@ LIBVGMSTREAM_API int libvgmstream_render(libvgmstream_t* lib) {
         return LIBVGMSTREAM_ERROR_GENERIC;
 
     libvgmstream_priv_t* priv = lib->priv;
+
+    // setup if not called (mainly to make sure mixing is enabled) //TODO: handle internally
+    // (for cases where _open_stream is called but not _setup)
+    if (!priv->setup_done) {
+        api_apply_config(priv);
+    }
+
     if (priv->decode_done)
         return LIBVGMSTREAM_ERROR_GENERIC;
 
