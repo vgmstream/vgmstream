@@ -385,6 +385,7 @@ VGMSTREAM* init_vgmstream_fsb5(STREAMFILE* sf) {
             mpeg_custom_config cfg = {0};
 
             cfg.fsb_padding = (vgmstream->channels > 2 ? 16 : 4); /* observed default */
+            cfg.data_size = fsb5.stream_offset + fsb5.stream_size;
 
             vgmstream->codec_data = init_mpeg_custom(sb, fsb5.stream_offset, &vgmstream->coding_type, vgmstream->channels, MPEG_FSB, &cfg);
             if (!vgmstream->codec_data) goto fail;
