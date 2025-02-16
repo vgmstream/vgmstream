@@ -2087,6 +2087,7 @@ are used in few games.
   - Electronic Arts MicroTalk a.k.a. UTK or UMT
   - Inti Creates DCT codec
   - Circus XPCM VQ
+  - Koei Tecmo KA1A
 - Misc
   - SDX2 2:1 Squareroot-Delta-Exact compression DPCM
   - CBD2 2:1 Cuberoot-Delta-Exact compression DPCM
