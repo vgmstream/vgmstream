@@ -72,7 +72,7 @@ void sbuf_consume(sbuf_t* sbuf, int samples) {
  * alts for more accurate rounding could be:
  * - (int)floor(f)
  * - (int)(f < 0 ? f - 0.5f : f + 0.5f)
- * - (((int) (f1 + 32768.5)) - 32768)
+ * - (((int) (f1 + 32767.5)) - 32767)
  * - etc
  * but since +-1 isn't really audible we'll just cast, as it's the fastest
  *
@@ -127,7 +127,7 @@ void sbuf_copy_to_f32(float* dst, sbuf_t* sbuf) {
         case SFMT_FLT: {
             float* src = sbuf->buf;
             for (int s = 0; s < sbuf->filled * sbuf->channels; s++) {
-                dst[s] = src[s] * 32768.0f;
+                dst[s] = src[s] * 32767.0f;
             }
             break;
         }
@@ -155,7 +155,7 @@ void sbuf_copy_from_f32(sbuf_t* sbuf, float* src) {
         case SFMT_FLT: {
             float* dst = sbuf->buf;
             for (int s = 0; s < sbuf->filled * sbuf->channels; s++) {
-                dst[s] = src[s] / 32768.0f;
+                dst[s] = src[s] / 32767.0f;
             }
             break;
         }
@@ -240,24 +240,24 @@ void sbuf_copy_segments(sbuf_t* sdst, sbuf_t* ssrc, int samples_copy) {
     else if (sdst->fmt == SFMT_S16 && ssrc->fmt == SFMT_FLT) {
         int16_t* dst = sdst->buf;
         float* src = ssrc->buf;
-        sbuf_copy_segments_internal_s16(dst, src, src_pos, dst_pos, src_max, 32768.0f);
+        sbuf_copy_segments_internal_s16(dst, src, src_pos, dst_pos, src_max, 32767.0f);
     }
     // to f32
     else if (sdst->fmt == SFMT_F32 && ssrc->fmt == SFMT_FLT) {
         float* dst = sdst->buf;
         float* src = ssrc->buf;
-        sbuf_copy_segments_internal_flt(dst, src, src_pos, dst_pos, src_max, 32768.0f);
+        sbuf_copy_segments_internal_flt(dst, src, src_pos, dst_pos, src_max, 32767.0f);
     }
     // to flt
     else if (sdst->fmt == SFMT_FLT && ssrc->fmt == SFMT_S16) {
         float* dst = sdst->buf;
         int16_t* src = ssrc->buf;
-        sbuf_copy_segments_internal_flt(dst, src, src_pos, dst_pos, src_max, (1/32768.0f));
+        sbuf_copy_segments_internal_flt(dst, src, src_pos, dst_pos, src_max, (1.0f / 32767.0f));
     }
     else if (sdst->fmt == SFMT_FLT && ssrc->fmt == SFMT_F32) {
         float* dst = sdst->buf;
         float* src = ssrc->buf;
-        sbuf_copy_segments_internal_flt(dst, src, src_pos, dst_pos, src_max, (1/32768.0f));
+        sbuf_copy_segments_internal_flt(dst, src, src_pos, dst_pos, src_max, (1.0f / 32767.0f));
     }
 
     //TODO: may want to handle externally?
@@ -282,7 +282,7 @@ void sbuf_copy_segments(sbuf_t* sdst, sbuf_t* ssrc, int samples_copy) {
         dst_pos += dst_ch_step; \
     }
 
-// float +-1.0 <> pcm +-32768.0
+// float +-1.0 <> pcm +-32767.0
 #define sbuf_copy_layers_internal_s16(dst, src, src_pos, dst_pos, src_filled, dst_expected, src_channels, dst_ch_step, value) \
     for (int s = 0; s < src_filled; s++) { \
         for (int src_ch = 0; src_ch < src_channels; src_ch++) { \
@@ -298,7 +298,7 @@ void sbuf_copy_segments(sbuf_t* sdst, sbuf_t* ssrc, int samples_copy) {
         dst_pos += dst_ch_step; \
     }
 
-// float +-1.0 <> pcm +-32768.0
+// float +-1.0 <> pcm +-32767.0
 #define sbuf_copy_layers_internal_flt(dst, src, src_pos, dst_pos, src_filled, dst_expected, src_channels, dst_ch_step, value) \
     for (int s = 0; s < src_filled; s++) { \
         for (int src_ch = 0; src_ch < src_channels; src_ch++) { \
@@ -351,24 +351,24 @@ void sbuf_copy_layers(sbuf_t* sdst, sbuf_t* ssrc, int dst_ch_start, int dst_expe
     else if (sdst->fmt == SFMT_S16 && ssrc->fmt == SFMT_FLT) {
         int16_t* dst = sdst->buf;
         float* src = ssrc->buf;
-        sbuf_copy_layers_internal_s16(dst, src, src_pos, dst_pos, src_filled, dst_expected, src_channels, dst_ch_step, 32768.0f);
+        sbuf_copy_layers_internal_s16(dst, src, src_pos, dst_pos, src_filled, dst_expected, src_channels, dst_ch_step, 32767.0f);
     }
     // to f32
     else if (sdst->fmt == SFMT_F32 && ssrc->fmt == SFMT_FLT) {
         float* dst = sdst->buf;
         float* src = ssrc->buf;
-        sbuf_copy_layers_internal_flt(dst, src, src_pos, dst_pos, src_filled, dst_expected, src_channels, dst_ch_step, 32768.0f);
+        sbuf_copy_layers_internal_flt(dst, src, src_pos, dst_pos, src_filled, dst_expected, src_channels, dst_ch_step, 32767.0f);
     }
     // to flt
     else if (sdst->fmt == SFMT_FLT && ssrc->fmt == SFMT_S16) {
         float* dst = sdst->buf;
         int16_t* src = ssrc->buf;
-        sbuf_copy_layers_internal_flt(dst, src, src_pos, dst_pos, src_filled, dst_expected, src_channels, dst_ch_step, (1/32768.0f));
+        sbuf_copy_layers_internal_flt(dst, src, src_pos, dst_pos, src_filled, dst_expected, src_channels, dst_ch_step, (1.0f / 32767.0f));
     }
     else if (sdst->fmt == SFMT_FLT && ssrc->fmt == SFMT_F32) {
         float* dst = sdst->buf;
         float* src = ssrc->buf;
-        sbuf_copy_layers_internal_flt(dst, src, src_pos, dst_pos, src_filled, dst_expected, src_channels, dst_ch_step, (1/32768.0f));
+        sbuf_copy_layers_internal_flt(dst, src, src_pos, dst_pos, src_filled, dst_expected, src_channels, dst_ch_step, (1.0f / 32767.0f));
     }
 }
 
