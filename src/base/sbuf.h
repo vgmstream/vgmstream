@@ -53,4 +53,6 @@ void sbuf_silence_part(sbuf_t* sbuf, int from, int count);
 
 void sbuf_fadeout(sbuf_t* sbuf, int start, int to_do, int fade_pos, int fade_duration);
 
+void sbuf_interleave(sbuf_t* sbuf, float** ibuf);
+
 #endif

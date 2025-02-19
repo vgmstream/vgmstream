@@ -5,6 +5,9 @@
 #include "sbuf.h"
 #include "../util/log.h"
 
+//#define PCM16_ROUNDING_LRINT  //use LRINT to cast float to int, potentially faster in some systems
+//#define PCM16_ROUNDING_HALF   //use float * 32767.0f + 0.5f to cast float to int, more 'accurate' but slower
+
 
 void sbuf_init(sbuf_t* sbuf, sfmt_t format, void* buf, int samples, int channels) {
     memset(sbuf, 0, sizeof(sbuf_t));
@@ -48,6 +51,8 @@ void* sbuf_get_filled_buf(sbuf_t* sbuf) {
 }
 
 void sbuf_consume(sbuf_t* sbuf, int samples) {
+    if (samples == 0) //some discards
+        return;
     int sample_size = sfmt_get_sample_size(sbuf->fmt);
     if (sample_size <= 0) //???
         return;
@@ -77,22 +82,22 @@ void sbuf_consume(sbuf_t* sbuf, int samples) {
  * It's slightly faster (~5%) but causes fuzzy PCM<>float<>PCM conversions.
  */
 static inline int float_to_int(float val) {
-#if 1
-    return (int)val;
+#ifdef PCM16_ROUNDING_LRINT
+    return lrintf(val);
 #elif defined(_MSC_VER)
     return (int)val;
 #else
-    return lrintf(val);
+    return (int)val;
 #endif
 }
 
 static inline int double_to_int(double val) {
-#if 1
-    return (int)val;
+#ifdef PCM16_ROUNDING_LRINT
+    return lrint(val);
 #elif defined(_MSC_VER)
     return (int)val;
 #else
-    return lrint(val);
+    return (int)val;
 #endif
 }
 
@@ -427,4 +432,30 @@ void sbuf_fadeout(sbuf_t* sbuf, int start, int to_do, int fade_pos, int fade_dur
     /* next samples after fade end would be pad end/silence */
     int count = sbuf->filled - (start + to_do);
     sbuf_silence_part(sbuf, start + to_do, count);
+}
+
+void sbuf_interleave(sbuf_t* sbuf, float** ibuf) {
+    if (sbuf->fmt != SFMT_FLT)
+        return;
+
+    // copy multidimensional buf (pcm[0]=[ch0,ch0,...], pcm[1]=[ch1,ch1,...])
+    // to interleaved buf (buf[0]=ch0, sbuf[1]=ch1, sbuf[2]=ch0, sbuf[3]=ch1, ...)
+    for (int ch = 0; ch < sbuf->channels; ch++) {
+        /* channels should be in standard order unlike Ogg Vorbis (at least in FSB) */
+        float* ptr = sbuf->buf;
+        float* channel = ibuf[ch];
+
+        ptr += ch;
+        for (int s = 0; s < sbuf->filled; s++) {
+            float val = channel[s];
+            #if 0 //to pcm16 //from vorbis)
+            int val = (int)floor(channel[s] * 32767.0f + 0.5f);
+            if (val > 32767) val = 32767;
+            else if (val < -32768) val = -32768;
+            #endif
+
+            *ptr = val;
+            ptr += sbuf->channels;
+        }
+    }
 }

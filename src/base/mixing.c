@@ -147,6 +147,9 @@ sfmt_t mixing_get_input_sample_type(VGMSTREAM* vgmstream) {
     switch(vgmstream->coding_type) {
         case coding_KA1A:
         case coding_CRI_HCA:
+#ifdef VGM_USE_VORBIS
+        case coding_VORBIS_custom:
+#endif
             return SFMT_FLT;
         default:
             return SFMT_S16;
