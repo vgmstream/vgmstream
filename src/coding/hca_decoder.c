@@ -1,4 +1,5 @@
 #include "coding.h"
+#include "../base/decode_state.h"
 #include "libs/clhca.h"
 
 
@@ -6,13 +7,9 @@ struct hca_codec_data {
     STREAMFILE* sf;
     clHCA_stInfo info;
 
-    signed short* sample_buffer;
-    size_t samples_filled;
-    size_t samples_consumed;
-    size_t samples_to_discard;
-
-    void* data_buffer;
-
+    void* buf;
+    float* fbuf;
+    int current_delay;
     unsigned int current_block;
 
     void* handle;
@@ -20,7 +17,7 @@ struct hca_codec_data {
 
 /* init a HCA stream; STREAMFILE will be duplicated for internal use. */
 hca_codec_data* init_hca(STREAMFILE* sf) {
-    uint8_t header_buffer[0x2000]; /* hca header buffer data (probable max ~0x400) */
+    uint8_t header_buffer[0x1000]; /* hca header buffer data (probable max ~0x400) */
     hca_codec_data* data = NULL; /* vgmstream HCA context */
     int header_size;
     int status;
@@ -51,11 +48,11 @@ hca_codec_data* init_hca(STREAMFILE* sf) {
     status = clHCA_getInfo(data->handle, &data->info); /* extract header info */
     if (status < 0) goto fail;
 
-    data->data_buffer = malloc(data->info.blockSize);
-    if (!data->data_buffer) goto fail;
+    data->buf = malloc(data->info.blockSize);
+    if (!data->buf) goto fail;
 
-    data->sample_buffer = malloc(sizeof(signed short) * data->info.channelCount * data->info.samplesPerBlock);
-    if (!data->sample_buffer) goto fail;
+    data->fbuf = malloc(sizeof(float) * data->info.channelCount * data->info.samplesPerBlock);
+    if (!data->fbuf) goto fail;
 
     /* load streamfile for reads */
     data->sf = reopen_streamfile(sf, 0);
@@ -71,86 +68,68 @@ fail:
     return NULL;
 }
 
-void decode_hca(hca_codec_data* data, sample_t* outbuf, int32_t samples_to_do) {
-    int samples_done = 0;
-    const unsigned int channels = data->info.channelCount;
-    const unsigned int blockSize = data->info.blockSize;
+static bool read_packet(VGMSTREAM* v) {
+    hca_codec_data* data = v->codec_data;
 
+    // EOF/error
+    if (data->current_block >= data->info.blockCount)
+        return false;
 
-    while (samples_done < samples_to_do) {
+    // single block of frames
+    const unsigned int block_size = data->info.blockSize;
+    //VGMSTREAMCHANNEL* vs = &v->ch[0];
+    off_t offset = data->info.headerSize + data->current_block * block_size; //vs->offset
 
-        if (data->samples_filled) {
-            int samples_to_get = data->samples_filled;
-
-            if (data->samples_to_discard) {
-                /* discard samples for looping */
-                if (samples_to_get > data->samples_to_discard)
-                    samples_to_get = data->samples_to_discard;
-                data->samples_to_discard -= samples_to_get;
-            }
-            else {
-                /* get max samples and copy */
-                if (samples_to_get > samples_to_do - samples_done)
-                    samples_to_get = samples_to_do - samples_done;
-
-                memcpy(outbuf + samples_done*channels,
-                       data->sample_buffer + data->samples_consumed*channels,
-                       samples_to_get*channels * sizeof(sample_t));
-                samples_done += samples_to_get;
-            }
-
-            /* mark consumed samples */
-            data->samples_consumed += samples_to_get;
-            data->samples_filled -= samples_to_get;
-        }
-        else {
-            off_t offset = data->info.headerSize + data->current_block * blockSize;
-            int status;
-            size_t bytes;
-
-            /* EOF/error */
-            if (data->current_block >= data->info.blockCount) {
-                memset(outbuf, 0, (samples_to_do - samples_done) * channels * sizeof(sample_t));
-                break;
-            }
-
-            /* read frame */
-            bytes = read_streamfile(data->data_buffer, offset, blockSize, data->sf);
-            if (bytes != blockSize) {
-                VGM_LOG("HCA: read %x vs expected %x bytes at %x\n", bytes, blockSize, (uint32_t)offset);
-                break;
-            }
-
-            data->current_block++;
-
-            /* decode frame */
-            status = clHCA_DecodeBlock(data->handle, (void*)(data->data_buffer), blockSize);
-            if (status < 0) {
-                VGM_LOG("HCA: decode fail at %x, code=%i\n", (uint32_t)offset, status);
-                break;
-            }
-
-            /* extract samples */
-            clHCA_ReadSamples16(data->handle, data->sample_buffer);
-
-            data->samples_consumed = 0;
-            data->samples_filled += data->info.samplesPerBlock;
-        }
+    int bytes = read_streamfile(data->buf, offset, block_size, data->sf);
+    if (bytes != block_size) {
+        VGM_LOG("HCA: read %x vs expected %x bytes at %x\n", bytes, block_size, (uint32_t)offset);
+        return false;
     }
+    data->current_block++;
+
+    return true;
+}
+
+bool decode_hca_frame(VGMSTREAM* v) {
+    bool ok = read_packet(v);
+    if (!ok)
+        return false;
+
+    decode_state_t* ds = v->decode_state;
+    hca_codec_data* data = v->codec_data;
+    const unsigned int block_size = data->info.blockSize;
+
+
+    /* decode frame */
+    int status = clHCA_DecodeBlock(data->handle, data->buf, block_size);
+    if (status < 0) {
+        VGM_LOG("HCA: decode fail, code=%i\n", status);
+        return false;
+    }
+
+    clHCA_ReadSamples(data->handle, data->fbuf);
+
+    int samples = data->info.samplesPerBlock;
+    sbuf_init_flt(&ds->sbuf, data->fbuf, samples, v->channels);
+    ds->sbuf.filled = samples;
+
+    if (data->current_delay) {
+        ds->discard += data->current_delay;
+        data->current_delay = 0;
+    }
+
+    return true;
 }
 
 void reset_hca(hca_codec_data* data) {
-    if (!data) return;
-
     clHCA_DecodeReset(data->handle);
     data->current_block = 0;
-    data->samples_filled = 0;
-    data->samples_consumed = 0;
-    data->samples_to_discard = data->info.encoderDelay;
+    data->current_delay = data->info.encoderDelay;
 }
 
-void loop_hca(hca_codec_data* data, int32_t num_sample) {
-    if (!data) return;
+void loop_hca(VGMSTREAM* v, int32_t num_sample) {
+    hca_codec_data* data = v->codec_data;
+    //decode_state_t* ds = v->decode_state;
 
     /* manually calc loop values if not set (should only happen with installed/forced looping,
      * as actual files usually pad encoder delay so earliest loopStartBlock becomes 1-2,
@@ -163,9 +142,9 @@ void loop_hca(hca_codec_data* data, int32_t num_sample) {
     }
 
     data->current_block = data->info.loopStartBlock;
-    data->samples_filled = 0;
-    data->samples_consumed = 0;
-    data->samples_to_discard = data->info.loopStartDelay;
+    data->current_delay = data->info.loopStartDelay;
+    //ds->discard = data->info.loopStartDelay //overwritten on decode
+
 }
 
 void free_hca(hca_codec_data* data) {
@@ -174,8 +153,8 @@ void free_hca(hca_codec_data* data) {
     close_streamfile(data->sf);
     clHCA_done(data->handle);
     free(data->handle);
-    free(data->data_buffer);
-    free(data->sample_buffer);
+    free(data->buf);
+    free(data->fbuf);
     free(data);
 }
 
@@ -235,14 +214,14 @@ static int test_hca_score(hca_codec_data* data, hca_keytest_t* hk) {
         size_t bytes;
 
         /* read and test frame */
-        bytes = read_streamfile(data->data_buffer, offset, block_size, data->sf);
+        bytes = read_streamfile(data->buf, offset, block_size, data->sf);
         if (bytes != block_size) {
             /* normally this shouldn't happen, but pre-fetch ACB stop with frames in half, so just keep score */
             //total_score = -1; 
             break;
         }
 
-        score = clHCA_TestBlock(data->handle, data->data_buffer, block_size);
+        score = clHCA_TestBlock(data->handle, data->buf, block_size);
 
         /* get first non-blank frame */
         if (!hk->start_offset && score != 0) {

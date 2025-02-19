@@ -346,9 +346,9 @@ int32_t relic_bytes_to_samples(size_t bytes, int channels, int bitrate);
 typedef struct hca_codec_data hca_codec_data;
 
 hca_codec_data* init_hca(STREAMFILE* sf);
-void decode_hca(hca_codec_data* data, sample_t* outbuf, int32_t samples_to_do);
+bool decode_hca_frame(VGMSTREAM* v);
 void reset_hca(hca_codec_data* data);
-void loop_hca(hca_codec_data* data, int32_t num_sample);
+void loop_hca(VGMSTREAM* v, int32_t num_sample);
 void free_hca(hca_codec_data* data);
 clHCA_stInfo* hca_get_info(hca_codec_data* data);
 

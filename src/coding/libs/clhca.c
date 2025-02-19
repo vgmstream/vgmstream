@@ -329,24 +329,35 @@ int clHCA_getInfo(clHCA* hca, clHCA_stInfo *info) {
 }
 
 //HCADecoder_DecodeBlockInt32
-void clHCA_ReadSamples16(clHCA* hca, signed short *samples) {
+void clHCA_ReadSamples16(clHCA* hca, short* samples) {
     const float scale_f = 32768.0f;
-    float f;
-    signed int s;
-    unsigned int i, j, k;
 
     /* PCM output is generally unused, but lib functions seem to use SIMD for f32 to s32 + round to zero */
-    for (i = 0; i < HCA_SUBFRAMES; i++) {
-        for (j = 0; j < HCA_SAMPLES_PER_SUBFRAME; j++) {
-            for (k = 0; k < hca->channels; k++) {
-                f = hca->channel[k].wave[i][j];
+    for (int i = 0; i < HCA_SUBFRAMES; i++) {
+        for (int j = 0; j < HCA_SAMPLES_PER_SUBFRAME; j++) {
+            for (int k = 0; k < hca->channels; k++) {
+                float f = hca->channel[k].wave[i][j];
                 //f = f * hca->rva_volume; /* rare, won't apply for now */
-                s = (signed int)(f * scale_f);
+                int s = (signed int)(f * scale_f);
                 if (s > 32767)
                     s = 32767;
                 else if (s < -32768)
                     s = -32768;
                 *samples++ = (signed short)s;
+            }
+        }
+    }
+}
+
+void clHCA_ReadSamples(clHCA* hca, float* samples) {
+
+    /* interleave output */
+    for (int i = 0; i < HCA_SUBFRAMES; i++) {
+        for (int j = 0; j < HCA_SAMPLES_PER_SUBFRAME; j++) {
+            for (int k = 0; k < hca->channels; k++) {
+                float f = hca->channel[k].wave[i][j];
+                //f = f * hca->rva_volume; /* rare, won't apply for now */
+                *samples++ = f;
             }
         }
     }
