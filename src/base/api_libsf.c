@@ -65,10 +65,8 @@ static libstreamfile_t* libstreamfile_from_streamfile(STREAMFILE* sf) {
     if (!sf)
         return NULL;
 
-    libstreamfile_t* libsf = NULL;
     libsf_priv_t* priv = NULL;
-
-    libsf = calloc(1, sizeof(libstreamfile_t));
+    libstreamfile_t* libsf = calloc(1, sizeof(libstreamfile_t));
     if (!libsf) goto fail;
 
     libsf->read = libsf_read;

@@ -207,7 +207,7 @@ LIBVGMSTREAM_API void libvgmstream_setup(libvgmstream_t* lib, libvgmstream_confi
  * - subsong can be 1..N or 0 = default/first
  *   ** to check if a file has subsongs, _open default + check format->total_subsongs (then _open Nth)
  */
-LIBVGMSTREAM_API int libvgmstream_open_stream(libvgmstream_t* lib, libstreamfile_t* libsf, int subsong_index);
+LIBVGMSTREAM_API int libvgmstream_open_stream(libvgmstream_t* lib, libstreamfile_t* libsf, int subsong);
 
 /* Closes current song; may still use libvgmstream to open other songs
  */
@@ -240,6 +240,11 @@ LIBVGMSTREAM_API void libvgmstream_seek(libvgmstream_t* lib, int64_t sample);
 /* Reset current song
  */
 LIBVGMSTREAM_API void libvgmstream_reset(libvgmstream_t* lib);
+
+
+/* Helper: calls _init + _setup + _open_stream
+ */
+LIBVGMSTREAM_API libvgmstream_t* libvgmstream_prepare(libstreamfile_t* libsf, int subsong, libvgmstream_config_t* cfg);
 
 
 /*****************************************************************************/
