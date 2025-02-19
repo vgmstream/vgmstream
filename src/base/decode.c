@@ -912,7 +912,7 @@ static void decode_frames(sbuf_t* sdst, VGMSTREAM* vgmstream) {
             }
         }
         else {
-            num_empty = 0;
+            num_empty = 0; //reset for discard loops
         }
     
         if (ds->discard) {
