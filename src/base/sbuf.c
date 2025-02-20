@@ -4,8 +4,9 @@
 #include "sbuf.h"
 #include "../util/log.h"
 
-//#define PCM16_ROUNDING_LRINT  //use LRINT to cast float to int, potentially faster in some systems
-//#define PCM16_ROUNDING_HALF   //use float * 32767.0f + 0.5f to cast float to int (like vorbis), more 'accurate' but slower
+// float-to-int modes
+//#define PCM16_ROUNDING_LRINT  // potentially faster in some systems/compilers and much slower in others
+//#define PCM16_ROUNDING_HALF   // rounding half + down (vorbis-style), more 'accurate' but slower
 
 #ifdef PCM16_ROUNDING_HALF
 #include <math.h>
