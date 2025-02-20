@@ -244,7 +244,7 @@ LIBVGMSTREAM_API void libvgmstream_reset(libvgmstream_t* lib);
 
 /* Helper: calls _init + _setup + _open_stream
  */
-LIBVGMSTREAM_API libvgmstream_t* libvgmstream_prepare(libstreamfile_t* libsf, int subsong, libvgmstream_config_t* cfg);
+LIBVGMSTREAM_API libvgmstream_t* libvgmstream_create(libstreamfile_t* libsf, int subsong, libvgmstream_config_t* cfg);
 
 
 /*****************************************************************************/
