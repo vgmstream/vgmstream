@@ -125,8 +125,11 @@ void mixer_op_fade(mixer_t* mixer, mix_op_t* mix) {
     //TODO optimize for case 0?
     for (int s = 0; s < smix->filled; s++) {
         bool fade_applies = get_fade_gain(mix, &new_gain, current_subpos);
-        if (!fade_applies) //TODO optimize?
+        if (!fade_applies) { //TODO optimize?
+            dst += channels;
+            current_subpos++;
             continue;
+        }
 
         if (mix->ch_dst < 0) {
             for (int ch = 0; ch < channels; ch++) {
