@@ -35,32 +35,26 @@ static FILE* wa_fdopen(int fd) {
 /* IN_STREAMFILE                         */
 /* ************************************* */
 
-/* a STREAMFILE that operates via STDIOSTREAMFILE but handles Winamp's unicode (in_char) paths */
-typedef struct {
-    STREAMFILE vt;
-    STREAMFILE* stdiosf;
-} WINAMP_STREAMFILE;
+/* a SF that operates via STDIO but handles Winamp's unicode (in_char) paths */
 
-static STREAMFILE* open_winamp_streamfile_by_file(FILE* infile, const char* path);
-//static STREAMFILE* open_winamp_streamfile_by_ipath(const in_char* wpath);
+libstreamfile_t* open_winamp_streamfile_by_ipath(const in_char* wpath);
 
-static size_t wasf_read(WINAMP_STREAMFILE* sf, uint8_t* dst, offv_t offset, size_t length) {
-    return sf->stdiosf->read(sf->stdiosf, dst, offset, length);
+static int wa_read(void* user_data, uint8_t* dst, int64_t offset, int length) {
+    libstreamfile_t* sf = user_data;
+    return sf->read(sf->user_data, dst, offset, length);
 }
 
-static size_t wasf_get_size(WINAMP_STREAMFILE* sf) {
-    return sf->stdiosf->get_size(sf->stdiosf);
+static int64_t wa_get_size(void* user_data) {
+    libstreamfile_t* sf = user_data;
+    return sf->get_size(sf->user_data);
 }
 
-static offv_t wasf_get_offset(WINAMP_STREAMFILE* sf) {
-    return sf->stdiosf->get_offset(sf->stdiosf);
+static const char* wa_get_name(void* user_data) {
+    libstreamfile_t* sf = user_data;
+    return sf->get_name(sf->user_data);
 }
 
-static void wasf_get_name(WINAMP_STREAMFILE* sf, char* buffer, size_t length) {
-    sf->stdiosf->get_name(sf->stdiosf, buffer, length);
-}
-
-static STREAMFILE* wasf_open(WINAMP_STREAMFILE* sf, const char* const filename, size_t buffersize) {
+static libstreamfile_t* wa_open(void* user_data, const char* const filename) {
     in_char wpath[WINAMP_PATH_LIMIT];
 
     if (!filename)
@@ -72,45 +66,42 @@ static STREAMFILE* wasf_open(WINAMP_STREAMFILE* sf, const char* const filename, 
     return open_winamp_streamfile_by_ipath(wpath);
 }
 
-static void wasf_close(WINAMP_STREAMFILE* sf) {
-    /* closes infile_ref + frees in the internal STDIOSTREAMFILE (fclose for wchar is not needed) */
-    sf->stdiosf->close(sf->stdiosf);
-    free(sf); /* and the current struct */
+static void wa_close(libstreamfile_t* libsf) {
+    if (!libsf)
+        return;
+
+    libstreamfile_t* sf = libsf->user_data;
+    if (sf) {
+        sf->close(sf); // fclose for wchar is not needed
+    }
+    free(libsf);
 }
 
-static STREAMFILE* open_winamp_streamfile_by_file(FILE* file, const char* path) {
-    WINAMP_STREAMFILE* this_sf = NULL;
-    STREAMFILE* stdiosf = NULL;
+static libstreamfile_t* open_winamp_streamfile_by_file(FILE* file, const char* path) {
+    libstreamfile_t* libsf = NULL;
 
-    this_sf = calloc(1,sizeof(WINAMP_STREAMFILE));
-    if (!this_sf) goto fail;
+    libsf = calloc(1, sizeof(libstreamfile_t));
+    if (!libsf) goto fail;
 
-    stdiosf = open_stdio_streamfile_by_file(file, path);
-    if (!stdiosf) goto fail;
+    libsf->read = wa_read;
+    libsf->get_size = wa_get_size;
+    libsf->get_name = wa_get_name;
+    libsf->open = wa_open;
+    libsf->close = wa_close;
 
-    this_sf->vt.read = (void*)wasf_read;
-    this_sf->vt.get_size = (void*)wasf_get_size;
-    this_sf->vt.get_offset = (void*)wasf_get_offset;
-    this_sf->vt.get_name = (void*)wasf_get_name;
-    this_sf->vt.open = (void*)wasf_open;
-    this_sf->vt.close = (void*)wasf_close;
+    libsf->user_data = libstreamfile_open_from_file(file, path);
+    if (!libsf->user_data) goto fail;
 
-    this_sf->stdiosf = stdiosf;
-
-    return &this_sf->vt;
-
+    return libsf;
 fail:
-    close_streamfile(stdiosf);
-    free(this_sf);
+    wa_close(libsf);
     return NULL;
 }
 
-
-STREAMFILE* open_winamp_streamfile_by_ipath(const in_char* wpath) {
+libstreamfile_t* open_winamp_streamfile_by_ipath(const in_char* wpath) {
     FILE* infile = NULL;
-    STREAMFILE* sf;
+    libstreamfile_t* sf;
     char path[WINAMP_PATH_LIMIT];
-
 
     /* convert to UTF-8 if needed for internal use */
     wa_ichar_to_char(path, WINAMP_PATH_LIMIT, wpath);
@@ -119,13 +110,14 @@ STREAMFILE* open_winamp_streamfile_by_ipath(const in_char* wpath) {
     infile = wa_fopen(wpath);
     if (!infile) {
         /* allow non-existing files in some cases */
-        if (!vgmstream_is_virtual_filename(path))
+        if (!libvgmstream_is_virtual_filename(path))
             return NULL;
     }
 
     sf = open_winamp_streamfile_by_file(infile, path);
     if (!sf) {
-        if (infile) fclose(infile);
+        if (infile)
+            fclose(infile);
     }
 
     return sf;
