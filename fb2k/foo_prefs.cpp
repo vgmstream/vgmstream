@@ -39,7 +39,8 @@ void input_vgmstream::load_settings() {
     if (loop_count <= 0)
         loop_count = 1;
 }
-void input_vgmstream::g_load_cfg(int* accept_unknown, int* accept_common) {
+
+void input_vgmstream::g_load_cfg(bool* accept_unknown, bool* accept_common) {
     //TODO improve
     *accept_unknown = cfg_ExtsUnknownOn;
     *accept_common = cfg_ExtsCommonOn;

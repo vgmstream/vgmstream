@@ -8,9 +8,7 @@
 #include <foobar2000/SDK/foobar2000.h>
 
 extern "C" {
-#include "../src/streamfile.h"
-//#include "../src/vgmstream.h"
-#include "../src/util.h"
+#include "../src/libvgmstream.h"
 }
 #include "foo_vgmstream.h"
 
@@ -20,14 +18,12 @@ extern "C" {
 
 /* a STREAMFILE that operates via foobar's file service using a buffer */
 typedef struct {
-    STREAMFILE vt;              /* callbacks */
-
     bool m_file_opened;         /* if foobar IO service opened the file */
     service_ptr_t<file> m_file; /* foobar IO service */
     abort_callback* p_abort;    /* foobar error stuff */
-    /*const*/ char* name;       /* IO filename */
-    int name_len;               /* cache */
 
+    char* name;                 /* IO filename */
+    int name_len;               /* cache */
     char* archname;             /* for foobar's foo_unpack archives */
     int archname_len;           /* cache */
     int archpath_end;           /* where the last \ ends before archive name */
@@ -39,41 +35,42 @@ typedef struct {
     size_t buf_size;            /* max buffer size */
     size_t valid_size;          /* current buffer size */
     size_t file_size;           /* buffered file size */
-} FOO_STREAMFILE;
+} foo_priv_t;
 
-static STREAMFILE* open_foo_streamfile_buffer(const char* const filename, size_t buf_size, abort_callback* p_abort, t_filestats* stats);
-static STREAMFILE* open_foo_streamfile_buffer_by_file(service_ptr_t<file> m_file, bool m_file_opened, const char* const filename, size_t buf_size, abort_callback* p_abort);
+static libstreamfile_t* open_foo_streamfile_internal(const char* const filename, abort_callback* p_abort, t_filestats* stats);
+static libstreamfile_t* open_foo_streamfile_from_file(service_ptr_t<file> m_file, bool m_file_opened, const char* const filename, abort_callback* p_abort);
 
-static size_t foo_read(FOO_STREAMFILE* sf, uint8_t* dst, offv_t offset, size_t dst_size) {
-    size_t read_total = 0;
-    if (!sf || !sf->m_file_opened || !dst || dst_size <= 0 || offset < 0)
+static int foo_read(void* user_data, uint8_t* dst, int64_t offset, int length) {
+    foo_priv_t* priv = (foo_priv_t*)user_data;
+    int read_total = 0;
+    if (!priv->m_file_opened || !dst || length <= 0 || offset < 0)
         return 0;
 
-    sf->offset = offset; /* current offset */
+    priv->offset = offset; /* current offset */
 
     /* is the part of the requested length in the buffer? */
-    if (sf->offset >= sf->buf_offset && sf->offset < sf->buf_offset + sf->valid_size) {
+    if (priv->offset >= priv->buf_offset && priv->offset < priv->buf_offset + priv->valid_size) {
         size_t buf_limit;
-        int buf_into = (int)(sf->offset - sf->buf_offset);
+        int buf_into = (int)(priv->offset - priv->buf_offset);
 
-        buf_limit = sf->valid_size - buf_into;
-        if (buf_limit > dst_size)
-            buf_limit = dst_size;
+        buf_limit = priv->valid_size - buf_into;
+        if (buf_limit > length)
+            buf_limit = length;
 
-        memcpy(dst, sf->buf + buf_into, buf_limit);
+        memcpy(dst, priv->buf + buf_into, buf_limit);
         read_total += buf_limit;
-        dst_size -= buf_limit;
-        sf->offset += buf_limit;
+        length -= buf_limit;
+        priv->offset += buf_limit;
         dst += buf_limit;
     }
 
 
     /* read the rest of the requested length */
-    while (dst_size > 0) {
+    while (length > 0) {
         size_t buf_limit;
 
         /* ignore requests at EOF */
-        if (sf->offset >= sf->file_size) {
+        if (priv->offset >= priv->file_size) {
             //offset = sf->file_size; /* seems fseek doesn't clamp offset */
             //VGM_ASSERT_ONCE(offset > sf->file_size, "STDIO: reading over file_size 0x%x @ 0x%lx + 0x%x\n", sf->file_size, offset, length);
             break;
@@ -81,81 +78,60 @@ static size_t foo_read(FOO_STREAMFILE* sf, uint8_t* dst, offv_t offset, size_t d
 
         /* position to new offset */
         try {
-            sf->m_file->seek(sf->offset, *sf->p_abort);
+            priv->m_file->seek(priv->offset, *priv->p_abort);
         } catch (...) {
             break; /* this shouldn't happen in our code */
         }
 
         /* fill the buffer (offset now is beyond buf_offset) */
         try {
-            sf->buf_offset = sf->offset;
-            sf->valid_size = sf->m_file->read(sf->buf, sf->buf_size, *sf->p_abort);
+            priv->buf_offset = priv->offset;
+            priv->valid_size = priv->m_file->read(priv->buf, priv->buf_size, *priv->p_abort);
         } catch(...) {
             break; /* improbable? */
         }
 
         /* decide how much must be read this time */
-        if (dst_size > sf->buf_size)
-            buf_limit = sf->buf_size;
+        if (length > priv->buf_size)
+            buf_limit = priv->buf_size;
         else
-            buf_limit = dst_size;
+            buf_limit = length;
 
         /* give up on partial reads (EOF) */
-        if (sf->valid_size < buf_limit) {
-            memcpy(dst, sf->buf, sf->valid_size);
-            sf->offset += sf->valid_size;
-            read_total += sf->valid_size;
+        if (priv->valid_size < buf_limit) {
+            memcpy(dst, priv->buf, priv->valid_size);
+            priv->offset += priv->valid_size;
+            read_total += priv->valid_size;
             break;
         }
 
         /* use the new buffer */
-        memcpy(dst, sf->buf, buf_limit);
-        sf->offset += buf_limit;
+        memcpy(dst, priv->buf, buf_limit);
+        priv->offset += buf_limit;
         read_total += buf_limit;
-        dst_size -= buf_limit;
+        length -= buf_limit;
         dst += buf_limit;
     }
 
     return read_total;
 }
 
-static size_t foo_get_size(FOO_STREAMFILE* sf) {
-    return sf->file_size;
+static int64_t foo_get_size(void* user_data) {
+    foo_priv_t* priv = (foo_priv_t*)user_data;
+
+    return priv->file_size;
 }
 
-static offv_t foo_get_offset(FOO_STREAMFILE* sf) {
-    return sf->offset;
+static const char* foo_get_name(void* user_data) {
+    foo_priv_t* priv = (foo_priv_t*)user_data;
+
+    return priv->name;
 }
 
-static void foo_get_name(FOO_STREAMFILE* sf, char* name, size_t name_size) {
-    int copy_size = sf->name_len + 1;
-    if (copy_size > name_size)
-        copy_size = name_size;
+static libstreamfile_t* foo_open(void* user_data, const char* const filename) {
+    foo_priv_t* priv = (foo_priv_t*)user_data;
 
-    memcpy(name, sf->name, copy_size);
-    name[copy_size - 1] = '\0';
-
-    /*
-    //TODO: check again (looks like a truncate-from-the-end copy, probably a useless remnant of olden times)
-    if (sf->name_len > name_size) {
-        strcpy(name, sf->name + sf->name_len - name_size + 1);
-    } else {
-        strcpy(name, sf->name);
-    }
-    */
-}
-
-static void foo_close(FOO_STREAMFILE* sf) {
-    sf->m_file.release(); //release alloc'ed ptr
-    free(sf->name);
-    free(sf->archname);
-    free(sf->buf);
-    free(sf);
-}
-
-static STREAMFILE* foo_open(FOO_STREAMFILE* sf, const char* const filename, size_t buf_size) {
-
-    if (!sf || !filename)
+    if (!priv || !filename)
         return NULL;
 
     // vgmstream may need to open "files based on another" (like a changing extension) and "files in the same subdir" (like .txth)
@@ -167,7 +143,7 @@ static STREAMFILE* foo_open(FOO_STREAMFILE* sf, const char* const filename, size
     // - try opening    "unpack://zip|23|file://C:\.txth
     // > opens:         "unpack://zip|23|file://C:\file.zip|.txth
     // (assumes archives won't need to open files outside archives, and goes before filedup trick)
-    if (sf->archname) {
+    if (priv->archname) {
         char finalname[FOO_PATH_LIMIT];
         const char* filepart = NULL; 
 
@@ -175,8 +151,8 @@ static STREAMFILE* foo_open(FOO_STREAMFILE* sf, const char* const filename, size
         // (archive-path = current-path)\(rest = newfile plus new folders)
 
         int filename_len = strlen(filename);
-        if (filename_len > sf->archpath_end) {
-            filepart = &filename[sf->archpath_end];
+        if (filename_len > priv->archpath_end) {
+            filepart = &filename[priv->archpath_end];
         } else  {
             filepart = strrchr(filename, '\\'); // vgmstream shouldn't remove paths though
             if (!filepart)
@@ -187,14 +163,17 @@ static STREAMFILE* foo_open(FOO_STREAMFILE* sf, const char* const filename, size
 
         //TODO improve str ops
 
+        int filepart_len = strlen(filepart);
+        if (priv->archfile_end + filepart_len + 1 >= sizeof(finalname))
+            return NULL;
         // copy current path+archive ("unpack://zip|23|file://C:\file.zip|")
-        memcpy(finalname, sf->archname, sf->archfile_end);
-        finalname[sf->archfile_end] = '\0';
+        memcpy(finalname, priv->archname, priv->archfile_end);
         // concat possible extra dirs and filename ("unpack://zip|23|file://C:\file.zip|" + "folder/bgm01.vag")
-        concatn(sizeof(finalname), finalname, filepart);
+        memcpy(finalname + priv->archfile_end, filepart, filepart_len);
+        finalname[priv->archfile_end + filepart_len] = '\0';
 
         // normalize subfolders inside archives to use "/" (path\archive.ext|subfolder/file.ext)
-        for (int i = sf->archfile_end; i < sizeof(finalname); i++) {
+        for (int i = priv->archfile_end; i < sizeof(finalname); i++) {
             if (finalname[i] == '\0')
                 break;
             if (finalname[i] == '\\')
@@ -202,13 +181,13 @@ static STREAMFILE* foo_open(FOO_STREAMFILE* sf, const char* const filename, size
         }
 
         //console::formatter() << "finalname: " << finalname;
-        return open_foo_streamfile_buffer(finalname, buf_size, sf->p_abort, NULL);
+        return open_foo_streamfile_internal(finalname, priv->p_abort, NULL);
     }
 
     // if same name, duplicate the file pointer we already have open
-    if (sf->m_file_opened && !strcmp(sf->name, filename)) {
-        service_ptr_t<file> m_file = sf->m_file; //copy?
-        STREAMFILE* new_sf = open_foo_streamfile_buffer_by_file(m_file, sf->m_file_opened, filename, buf_size, sf->p_abort);
+    if (priv->m_file_opened && !strcmp(priv->name, filename)) {
+        service_ptr_t<file> m_file = priv->m_file; //copy?
+        libstreamfile_t* new_sf = open_foo_streamfile_from_file(m_file, priv->m_file_opened, filename, priv->p_abort);
         if (new_sf) {
             return new_sf;
         }
@@ -216,94 +195,110 @@ static STREAMFILE* foo_open(FOO_STREAMFILE* sf, const char* const filename, size
     }
 
     // a normal open, open a new file
-    return open_foo_streamfile_buffer(filename, buf_size, sf->p_abort, NULL);
+    return open_foo_streamfile_internal(filename, priv->p_abort, NULL);
 }
 
-static STREAMFILE* open_foo_streamfile_buffer_by_file(service_ptr_t<file> m_file, bool m_file_opened, const char* const filename, size_t buf_size, abort_callback* p_abort) {
-    uint8_t* buf;
-    FOO_STREAMFILE* this_sf;
+static void foo_close(libstreamfile_t* libsf) {
+    if (!libsf)
+        return;
 
-    buf = (uint8_t*) calloc(buf_size, sizeof(uint8_t));
-    if (!buf) goto fail;
+    foo_priv_t* priv = (foo_priv_t*)libsf->user_data;
+    if (priv) {
+        priv->m_file.release(); //release alloc'ed ptr
+        free(priv->name);
+        free(priv->archname);
+        free(priv->buf);
+    }
+    free(priv);
+    free(libsf);
+}
 
-    this_sf = (FOO_STREAMFILE*) calloc(1, sizeof(FOO_STREAMFILE));
-    if (!this_sf) goto fail;
 
-    this_sf->vt.read = (size_t (__cdecl *)(_STREAMFILE*, uint8_t*, offv_t, size_t)) foo_read;
-    this_sf->vt.get_size = (size_t (__cdecl *)(_STREAMFILE*)) foo_get_size;
-    this_sf->vt.get_offset = (offv_t (__cdecl *)(_STREAMFILE*)) foo_get_offset;
-    this_sf->vt.get_name = (void (__cdecl *)(_STREAMFILE*, char*, size_t)) foo_get_name;
-    this_sf->vt.open = (_STREAMFILE* (__cdecl *)(_STREAMFILE* ,const char* const, size_t)) foo_open;
-    this_sf->vt.close = (void (__cdecl *)(_STREAMFILE* )) foo_close;
+static libstreamfile_t* open_foo_streamfile_from_file(service_ptr_t<file> m_file, bool m_file_opened, const char* const filename, abort_callback* p_abort) {
+    libstreamfile_t* libsf;
+    const int buf_size = FOO_STREAMFILE_DEFAULT_BUFFER_SIZE;
 
-    this_sf->m_file_opened = m_file_opened;
-    this_sf->m_file = m_file;
-    this_sf->p_abort = p_abort;
-    this_sf->buf_size = buf_size;
-    this_sf->buf = buf;
+    libsf = (libstreamfile_t*)calloc(1, sizeof(libstreamfile_t));
+    if (!libsf) goto fail;
+
+    libsf->read = (int (*)(void*, uint8_t*, int64_t, int)) foo_read;
+    libsf->get_size = (int64_t (*)(void*)) foo_get_size;
+    libsf->get_name = (const char* (*)(void*)) foo_get_name;
+    libsf->open = (libstreamfile_t* (*)(void*, const char* const)) foo_open;
+    libsf->close = (void (*)(libstreamfile_t*)) foo_close;
+
+    libsf->user_data = (foo_priv_t*)calloc(1, sizeof(foo_priv_t));
+    if (!libsf->user_data) goto fail;
+
+    foo_priv_t* priv = (foo_priv_t*)libsf->user_data;
+    priv->m_file_opened = m_file_opened;
+    priv->m_file = m_file;
+    priv->p_abort = p_abort;
+    priv->buf_size = buf_size;
+    priv->buf = (uint8_t*)calloc(buf_size, sizeof(uint8_t));
+    if (!priv->buf) goto fail;
 
     //TODO: foobar filenames look like "file://C:\path\to\file.adx"
     // maybe should hide the internal protocol and restore on open?
-    this_sf->name = strdup(filename);
-    if (!this_sf->name)  goto fail;
-    this_sf->name_len = strlen(this_sf->name);
+    priv->name = strdup(filename);
+    if (!priv->name)  goto fail;
+    priv->name_len = strlen(priv->name);
 
     // foobar supports .zip/7z/etc archives directly, in this format: "unpack://zip|(number))|file://C:\path\to\file.zip|subfile.adx"
     // Detect if current is inside archive, so when trying to get filename or open companion files it's handled correctly    
     // Subfolders have inside the archive use / instead or / (path\archive.zip|subfolder/file)
     if (strncmp(filename, "unpack", 6) == 0) {
-        const char* archfile_ptr = strrchr(this_sf->name, '|');
+        const char* archfile_ptr = strrchr(priv->name, '|');
         if (archfile_ptr)
-            this_sf->archfile_end = (int)((intptr_t)archfile_ptr + 1 - (intptr_t)this_sf->name); // after "|""
+            priv->archfile_end = (int)((intptr_t)archfile_ptr + 1 - (intptr_t)priv->name); // after "|""
 
-        const char* archpath_ptr = strrchr(this_sf->name, '\\');
+        const char* archpath_ptr = strrchr(priv->name, '\\');
         if (archpath_ptr)
-            this_sf->archpath_end = (int)((intptr_t)archpath_ptr + 1 - (intptr_t)this_sf->name); // after "\\"
+            priv->archpath_end = (int)((intptr_t)archpath_ptr + 1 - (intptr_t)priv->name); // after "\\"
 
-        if (this_sf->archpath_end <= 0 || this_sf->archfile_end <= 0 || this_sf->archpath_end > this_sf->archfile_end || 
-                this_sf->archfile_end > this_sf->name_len || this_sf->archfile_end >= PATH_LIMIT) {
+        if (priv->archpath_end <= 0 || priv->archfile_end <= 0 || priv->archpath_end > priv->archfile_end || 
+                priv->archfile_end > priv->name_len || priv->archfile_end >= FOO_PATH_LIMIT) {
             // ???
-            this_sf->archpath_end = 0;
-            this_sf->archfile_end = 0;
+            priv->archpath_end = 0;
+            priv->archfile_end = 0;
         }
         else {
-            this_sf->archname = strdup(filename);
-            if (!this_sf->archname)  goto fail;
-            this_sf->archname_len = this_sf->name_len;
+            priv->archname = strdup(filename);
+            if (!priv->archname)  goto fail;
+            priv->archname_len = priv->name_len;
+            int copy_len = strlen(&priv->archname[priv->archfile_end]);
 
-            // change from "(path)\\(archive)|(filename)" to "(path)\\filename)"
-            this_sf->name[this_sf->archpath_end] = '\0';
-            concatn(this_sf->name_len, this_sf->name, &this_sf->archname[this_sf->archfile_end]);
+            // change from "(path)\\(archive)|(filename)" to "(path)\\filename)" (smaller so shouldn't overrun)
+            memcpy(priv->name + priv->archpath_end, priv->archname + priv->archfile_end, copy_len);
+            priv->name[priv->archpath_end + copy_len] = '\0';
+
+            //;console::formatter() << "base name: " << sf->name;
         }
     }
 
     /* cache file_size */
-    if (this_sf->m_file_opened)
-        this_sf->file_size = this_sf->m_file->get_size(*this_sf->p_abort);
+    if (priv->m_file_opened)
+        priv->file_size = priv->m_file->get_size(*priv->p_abort);
     else
-        this_sf->file_size = 0;
+        priv->file_size = 0;
 
     /* STDIO has an optimization to close unneeded FDs if file size is less than buffer,
      * but seems foobar doesn't need this (reuses FDs?) */
 
-    return &this_sf->vt;
-
+    return libsf;
 fail:
-    free(buf);
-    free(this_sf);
+    foo_close(libsf);
     return NULL;
 }
 
-static STREAMFILE* open_foo_streamfile_buffer(const char* const filename, size_t buf_size, abort_callback* p_abort, t_filestats* stats) {
-    STREAMFILE* sf = NULL;
+static libstreamfile_t* open_foo_streamfile_internal(const char* const filename, abort_callback* p_abort, t_filestats* stats) {
     service_ptr_t<file> infile;
-    bool infile_exists;
 
     try {
-        infile_exists = filesystem::g_exists(filename, *p_abort);
+        bool infile_exists = filesystem::g_exists(filename, *p_abort);
         if (!infile_exists) {
             /* allow non-existing files in some cases */
-            if (!vgmstream_is_virtual_filename(filename))
+            if (!libvgmstream_is_virtual_filename(filename))
                 return NULL;
         }
 
@@ -312,20 +307,19 @@ static STREAMFILE* open_foo_streamfile_buffer(const char* const filename, size_t
             if(stats) *stats = infile->get_stats(*p_abort);
         }
         
-        sf = open_foo_streamfile_buffer_by_file(infile, infile_exists, filename, buf_size, p_abort);
-        if (!sf) {
+        libstreamfile_t* libsf = open_foo_streamfile_from_file(infile, infile_exists, filename, p_abort);
+        if (!libsf) {
             //m_file.release(); //refcounted and cleaned after it goes out of scope
         }
+        return libsf;
 
     } catch (...) {
         /* somehow foobar2000 throws an exception on g_exists when filename has a double \
          * (traditionally Windows treats that like a single slash and fopen handles it fine) */
         return NULL;
     }
-
-    return sf;
 }
 
-STREAMFILE* open_foo_streamfile(const char* const filename, abort_callback* p_abort, t_filestats* stats) {
-    return open_foo_streamfile_buffer(filename, FOO_STREAMFILE_DEFAULT_BUFFER_SIZE, p_abort, stats);
+libstreamfile_t* open_foo_streamfile(const char* const filename, abort_callback* p_abort, t_filestats* stats) {
+    return open_foo_streamfile_internal(filename, p_abort, stats);
 }
