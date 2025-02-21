@@ -265,7 +265,7 @@ void winamp_Init() {
 
     /* get ini config */
     load_defaults(&defaults);
-    load_vconfig(&input_module, &settings, &defaults);
+    load_config(&input_module, &settings, &defaults);
 
     /* XMPlay with in_vgmstream doesn't support most IPC_x messages so no playlist manipulation */
     if (settings.is_xmplay) {
