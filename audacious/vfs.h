@@ -1,6 +1,6 @@
 #ifndef __VFS__
 #define __VFS__
 
-STREAMFILE *open_vfs(const char *path);
+libstreamfile_t* open_vfs(const char* path);
 
 #endif
