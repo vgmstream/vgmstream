@@ -28,8 +28,9 @@ VGMSTREAM* init_vgmstream_vag(STREAMFILE* sf) {
      * .snd: Alien Breed (Vita)
      * .svg: ModernGroove: Ministry of Sound Edition (PS2)
      * (extensionless): The Urbz (PS2), The Sims series (PS2)
-     * .wav: Sniper Elite (PS2), The Simpsons Game (PS2/PSP) */
-    if (!check_extensions(sf,"vag,swag,str,vig,l,r,vas,xa2,snd,svg,,wav,lwav"))
+     * .wav: Sniper Elite (PS2), The Simpsons Game (PS2/PSP) 
+     * .msv: Casper and the Ghostly Trio (PS2), Earache Extreme Metal Racing (PS2) */
+    if (!check_extensions(sf,"vag,swag,str,vig,l,r,vas,xa2,snd,svg,,wav,lwav,msv"))
         return NULL;
 
     file_size = get_streamfile_size(sf);
