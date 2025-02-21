@@ -3,9 +3,10 @@
  */
 #define POSIXLY_CORRECT
 
+#include <string.h>
 #include <stdio.h>
 #include <getopt.h>
- 
+
 #ifdef WIN32
 #include <io.h>
 #include <fcntl.h>
