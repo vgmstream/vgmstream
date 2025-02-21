@@ -1,8 +1,8 @@
 #ifndef _VGMSTREAM_CLI_H_
 #define _VGMSTREAM_CLI_H_
 
-#include "../src/api.h"
-#include "../src/vgmstream.h"
+#include "../src/libvgmstream.h"
+
 
 #define CLI_PATH_LIMIT 4096
 
@@ -63,13 +63,13 @@ typedef struct {
 } cli_config_t;
 
 
-void replace_filename(char* dst, size_t dstsize, cli_config_t* cfg, VGMSTREAM* vgmstream);
-void print_info(VGMSTREAM* vgmstream, cli_config_t* cfg);
+void replace_filename(char* dst, size_t dstsize, cli_config_t* cfg, libvgmstream_t* vgmstream);
+void print_info(libvgmstream_t* vgmstream, cli_config_t* cfg);
 void print_tags(cli_config_t* cfg);
-void print_title(VGMSTREAM* vgmstream, cli_config_t* cfg);
+void print_title(libvgmstream_t* vgmstream, cli_config_t* cfg);
 
 void print_json_version(const char* vgmstream_version);
-void print_json_info(VGMSTREAM* vgm, cli_config_t* cfg, const char* vgmstream_version);
+void print_json_info(libvgmstream_t* vgmstream, cli_config_t* cfg, const char* vgmstream_version);
 
 
 #endif
