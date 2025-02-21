@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include "xmp_vgmstream.h"
 
 /*  with <v3.8.5.62, any more than ~1000 will crash XMplay's file list screen. */
@@ -6,67 +7,63 @@
 
 
 /* Adds ext to XMPlay's extension list. */
-static int add_extension(int length, char * dst, const char * ext) {
-    int ext_len;
-    int i;
+static int add_extension(int length, char* dst, const char* ext) {
 
     if (length <= 1)
         return 0;
 
-    ext_len = strlen(ext);
+    int ext_len = strlen(ext);
 
     /* check if end reached or not enough room to add */
-    if (ext_len+2 > length-2) {
-        dst[0]='\0';
+    if (ext_len + 2 > length - 2) {
+        dst[0] = '\0';
         return 0;
     }
 
     /* copy new extension + null terminate */
-    for (i=0; i < ext_len; i++)
+    int i;
+    for (i = 0; i < ext_len; i++)
         dst[i] = ext[i];
-    dst[i]='/';
-    dst[i+1]='\0';
-    return i+1;
+    dst[i] = '/';
+    dst[i+1] = '\0';
+    return i + 1;
 }
 
 /* Creates XMPlay's extension list, a single string with 2 nulls.
  * Extensions must be in this format: "Description\0extension1/.../extensionN" */
 void build_extension_list(char* extension_list, int list_size, DWORD version) {
-    const char ** ext_list;
-    size_t ext_list_len;
-    int i, written;
-
     int limit_old = EXTENSION_LIST_SIZE_OLD;
     int limit = list_size;
     if (limit > limit_old && version <= EXTENSION_LIST_SIZE_OLD_VERSION)
         limit = limit_old;
 
-    written = sprintf(extension_list, "%s%c", "vgmstream files",'\0');
+    int written = sprintf(extension_list, "%s%c", "vgmstream files",'\0');
 
-    ext_list = vgmstream_get_formats(&ext_list_len);
+    int ext_list_len;
+    const char** ext_list = libvgmstream_get_extensions(&ext_list_len);
 
-    for (i=0; i < ext_list_len; i++) {
-        written += add_extension(limit-written, extension_list + written, ext_list[i]);
+    for (int i = 0; i < ext_list_len; i++) {
+        written += add_extension(limit - written, extension_list + written, ext_list[i]);
     }
-    extension_list[written-1] = '\0'; /* remove last "/" */
+    extension_list[written - 1] = '\0'; // remove last "/"
 }
 
 
 /* Get tags as an array of "key\0value\0", NULL-terminated.
  * Processes tags from the path alone (expects folders to be named in a particular way),
  * so of limited usefulness. */
-char* get_tags_from_filepath_info(VGMSTREAM* infostream, XMPFUNC_MISC* xmpf_misc, const char* filepath) {
+char* get_tags_from_filepath_info(libvgmstream_t* infostream, XMPFUNC_MISC* xmpf_misc, const char* filepath) {
     char* tags;
     int pos = 0;
 
     tags = xmpf_misc->Alloc(1024);
     memset(tags, 0x00, 1024);
 
-    if (strlen(infostream->stream_name) > 0) {
+    if (strlen(infostream->format->stream_name) > 0) {
         memcpy(tags + pos, "title", 5);
         pos += 6;
-        memcpy(tags + pos, infostream->stream_name, strlen(infostream->stream_name));
-        pos += strlen(infostream->stream_name) + 1;
+        memcpy(tags + pos, infostream->format->stream_name, strlen(infostream->format->stream_name));
+        pos += strlen(infostream->format->stream_name) + 1;
     }
     
     const char* end;
