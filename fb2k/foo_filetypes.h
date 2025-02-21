@@ -4,7 +4,7 @@
 class input_file_type_v2_impl_vgmstream : public input_file_type_v2 {
 public:
 	input_file_type_v2_impl_vgmstream() {
-		ext_list = vgmstream_get_formats(&ext_list_len);
+		ext_list = libvgmstream_get_extensions(&ext_list_len);
 	}
 
 	unsigned get_count() { return ext_list_len; }
@@ -23,8 +23,8 @@ public:
 	}
 
 private:
-	const char ** ext_list;
-	size_t ext_list_len;
+	const char** ext_list;
+	int ext_list_len;
 };
 
 namespace { static service_factory_single_t<input_file_type_v2_impl_vgmstream> g_filetypes; }

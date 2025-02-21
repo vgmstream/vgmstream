@@ -19,8 +19,7 @@ struct vorbis_custom_codec_data {
     uint8_t* buffer;            /* internal raw data buffer */
     size_t buffer_size;
 
-    size_t samples_to_discard;  /* for looping purposes */
-    int samples_full;           /* flag, samples available in vorbis buffers */
+    int current_discard;        /* for looping purposes */
 
     vorbis_custom_t type;        /* Vorbis subtype */
     vorbis_custom_config config; /* config depending on the mode */
@@ -35,7 +34,7 @@ struct vorbis_custom_codec_data {
     off_t block_offset;
     size_t block_size;
 
-    int prev_block_samples;     /* count for optimization */
+    float* fbuf;
 };
 
 

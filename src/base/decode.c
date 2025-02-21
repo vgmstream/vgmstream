@@ -171,7 +171,7 @@ void decode_seek(VGMSTREAM* vgmstream) {
     }
 
     if (vgmstream->coding_type == coding_CRI_HCA) {
-        loop_hca(vgmstream->codec_data, vgmstream->loop_current_sample);
+        loop_hca(vgmstream, vgmstream->loop_current_sample);
     }
 
     if (vgmstream->coding_type == coding_TAC) {
@@ -886,6 +886,15 @@ static void decode_frames(sbuf_t* sdst, VGMSTREAM* vgmstream) {
                 case coding_KA1A:
                     ok = decode_ka1a_frame(vgmstream);
                     break;
+                case coding_CRI_HCA:
+                    ok = decode_hca_frame(vgmstream);
+                    break;
+
+#ifdef VGM_USE_VORBIS
+                case coding_VORBIS_custom:
+                    ok = decode_vorbis_custom_frame(vgmstream);
+                    break;
+#endif
                 default:
                     goto decode_fail;
             }
@@ -901,6 +910,9 @@ static void decode_frames(sbuf_t* sdst, VGMSTREAM* vgmstream) {
                 VGM_LOG("VGMSTREAM: deadlock?\n");
                 goto decode_fail;
             }
+        }
+        else {
+            num_empty = 0; //reset for discard loops
         }
     
         if (ds->discard) {
@@ -1233,19 +1245,12 @@ void decode_vgmstream(sbuf_t* sdst, VGMSTREAM* vgmstream, int samples_to_do) {
         case coding_OGG_VORBIS:
             decode_ogg_vorbis(vgmstream->codec_data, buffer, samples_to_do, vgmstream->channels);
             break;
-
-        case coding_VORBIS_custom:
-            decode_vorbis_custom(vgmstream, buffer, samples_to_do, vgmstream->channels);
-            break;
 #endif
         case coding_CIRCUS_VQ:
             decode_circus_vq(vgmstream->codec_data, buffer, samples_to_do, vgmstream->channels);
             break;
         case coding_RELIC:
             decode_relic(&vgmstream->ch[0], vgmstream->codec_data, buffer, samples_to_do);
-            break;
-        case coding_CRI_HCA:
-            decode_hca(vgmstream->codec_data, buffer, samples_to_do);
             break;
         case coding_TAC:
             decode_tac(vgmstream, buffer, samples_to_do);

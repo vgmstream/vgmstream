@@ -5,8 +5,7 @@
 #define FOO_PATH_LIMIT        4096 /* see vgmstream_limits.h*/
 
 extern "C" {
-#include "../src/vgmstream.h"
-#include "../src/api.h"
+#include "../src/libvgmstream.h"
 }
 
 typedef struct {
@@ -78,22 +77,17 @@ class input_vgmstream : public input_stubs {
         t_filestats2 stats2;
 
         /* state */
-        VGMSTREAM* vgmstream;
+        libvgmstream_t* vgmstream;
         t_uint32 subsong;
         bool direct_subsong;
-        int output_channels;
 
         bool decoding;
-
-        int decode_pos_ms;
-        int decode_pos_samples;
-        int length_samples;
-        short sample_buffer[SAMPLE_BUFFER_SIZE * VGMSTREAM_MAX_CHANNELS];
 
         /* settings */
         double fade_seconds;
         double fade_delay_seconds;
         double loop_count;
+        bool allow_loop_forever;
         bool loop_forever;
         bool ignore_loop;
         bool disable_subsongs;
@@ -112,17 +106,17 @@ class input_vgmstream : public input_stubs {
         void put_into_tagfile(file_info& p_info, abort_callback& p_abort);
         void put_info_details(file_info& p_info, vgmstream_info_t& v_info);
 
-        VGMSTREAM* init_vgmstream_foo(t_uint32 p_subsong, const char* const filename, abort_callback& p_abort);
+        libvgmstream_t* init_vgmstream_foo(t_uint32 p_subsong, const char* const filename, abort_callback& p_abort);
         void setup_vgmstream(abort_callback& p_abort);
-        void apply_config(VGMSTREAM* vgmstream);
+        void load_vconfig(libvgmstream_config_t* vcfg);
 
         void query_subsong_info(t_uint32 p_subsong, vgmstream_info_t& v_info, abort_callback& p_abort);
         bool query_description_tag(pfc::string_base& temp, pfc::string_base const& description, const char* tag, char delimiter = '\n');
 
-        static void g_load_cfg(int* accept_unknown, int* accept_common);
+        static void g_load_cfg(bool* accept_unknown, bool* accept_common);
 };
 
 /* foo_streamfile.cpp */
-STREAMFILE* open_foo_streamfile(const char* const filename, abort_callback* p_abort, t_filestats* stats);
+libstreamfile_t* open_foo_streamfile(const char* const filename, abort_callback* p_abort, t_filestats* stats);
 
 #endif

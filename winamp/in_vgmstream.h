@@ -20,9 +20,9 @@
 #include <string.h>
 #include <ctype.h>
 #include <math.h>
+#include <stdio.h>
 
-#include "../src/vgmstream.h"
-#include "../src/api.h"
+#include "../src/libvgmstream.h"
 #include "sdk/in2.h"
 #include "sdk/wa_ipc.h"
 #include "sdk/ipc_pe.h"
@@ -64,7 +64,7 @@ typedef struct {
     replay_gain_type_t gain_type;
     replay_gain_type_t clip_type;
 
-    int is_xmplay;
+    bool is_xmplay;
 } winamp_settings_t;
 
 extern winamp_settings_t defaults;
@@ -91,6 +91,11 @@ extern winamp_log_t* walog;
 /* ************************************* */
 //TODO safe ops
 //TODO there must be a better way to handle unicode...
+
+#ifdef _MSC_VER
+  #define strcasecmp _stricmp
+#endif
+
 #ifdef UNICODE_INPUT_PLUGIN
 #define wa_strcmp wcscmp
 #define wa_strncmp wcsncmp
@@ -193,10 +198,10 @@ static inline void cfg_char_to_wchar(TCHAR *wdst, size_t wdstsize, const char *s
 
 
 /* in_streamfile.c */
-STREAMFILE* open_winamp_streamfile_by_ipath(const in_char* wpath);
+libstreamfile_t* open_winamp_streamfile_by_ipath(const in_char* wpath);
 
 void build_extension_list(char* extension_list, int list_size);
 
-bool split_subsongs(const in_char* filename, int subsong_index, VGMSTREAM* vgmstream);
+bool split_subsongs(const in_char* filename, int subsong_index, libvgmstream_t* vgmstream);
 
 #endif

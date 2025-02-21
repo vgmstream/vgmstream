@@ -23,8 +23,6 @@
 
 /* ************************************* */
 
-#define SAMPLE_BUFFER_SIZE  1024
-
 #define XMPLAY_MAX_PATH  32768
 
 /* XMPlay function library */
@@ -43,17 +41,15 @@ char last_filepath[MAX_PATH] = {0};
 double fade_seconds = 10.0;
 double fade_delay = 0.0;
 double loop_count = 2.0;
-int ignore_loop = 0;
-int disable_subsongs = 1;
+bool ignore_loop = false;
+bool disable_subsongs = true;
 BOOL xmplay_doneloop = 0;
 
 /* plugin state */
-VGMSTREAM* vgmstream = NULL;
+libvgmstream_t* vgmstream = NULL;
 int decode_pos_samples;
 int length_samples = 0;
-int output_channels;
 int current_subsong = 0;
-INT16 sample_buffer[SAMPLE_BUFFER_SIZE * VGMSTREAM_MAX_CHANNELS];
 
 //XMPFILE current_file = NULL;
 //char current_fn[XMPLAY_MAX_PATH] = {0};
@@ -62,37 +58,43 @@ static int shownerror = 0; /* init error */
 
 /* ************************************* */
 
-VGMSTREAM* init_vgmstream_xmplay(XMPFILE infile, const char* path, int subsong) {
-    STREAMFILE* sf = NULL;
-    VGMSTREAM* vgmstream = NULL;
+static void load_vconfig(libvgmstream_config_t* vcfg) {
 
-    sf = open_xmplay_streamfile_by_xmpfile(infile, xmpf_file, path, false); /* external XMPFILE */
-    if (!sf) return NULL;
+    vcfg->allow_play_forever = false;
+  //vcfg->play_forever = loop_forever;
+    vcfg->loop_count = loop_count;
+    vcfg->fade_time = fade_seconds;
+    vcfg->fade_delay = fade_delay;
+    vcfg->ignore_loop = ignore_loop;
 
-    sf->stream_index = subsong;
-    vgmstream = init_vgmstream_from_STREAMFILE(sf);
-    if (!vgmstream) goto fail;
-
-    return vgmstream;
-
-fail:
-    close_streamfile(sf);
-    return NULL;
+    vcfg->force_sfmt = LIBVGMSTREAM_SFMT_FLOAT; //xmplay only handles floats
 }
 
-/* ************************************* */
+/* opens vgmstream for xmplay */
+libvgmstream_t* init_vgmstream_xmplay(XMPFILE infile, const char* path, int subsong) {
 
-static void apply_config(VGMSTREAM* vgmstream) {
-    vgmstream_cfg_t vcfg = {0};
+    libstreamfile_t* sf = NULL;
+    if (infile) {
+        sf = open_xmplay_streamfile_by_xmpfile(infile, xmpf_file, path, false); // external XMPFILE
+        if (!sf) return NULL;
+    }
+    else {
+        sf = libstreamfile_open_from_stdio(path); //TODO: unicode problems?
+        if (!sf) return NULL;
+    }
 
-    vcfg.allow_play_forever = 0;
-  //vcfg.play_forever = loop_forever;
-    vcfg.loop_count = loop_count;
-    vcfg.fade_time = fade_seconds;
-    vcfg.fade_delay = fade_delay;
-    vcfg.ignore_loop = ignore_loop;
+    libvgmstream_config_t vcfg = {0};
+    load_vconfig(&vcfg);
 
-    vgmstream_apply_config(vgmstream, &vcfg);
+    libvgmstream_t* vgmstream = libvgmstream_create(sf, subsong, &vcfg);
+    if (!vgmstream) goto fail;
+
+    libstreamfile_close(sf);
+    return vgmstream;
+fail:
+    libstreamfile_close(sf);
+    libvgmstream_free(vgmstream);
+    return NULL;
 }
 
 /* ************************************* */
@@ -120,28 +122,22 @@ void WINAPI xmplay_Config(HWND win) {
 
 /* quick check if a file is playable by this plugin */
 BOOL WINAPI xmplay_CheckFile(const char *filename, XMPFILE file) {
-    VGMSTREAM* infostream = NULL;
-    if (file)
-        infostream = init_vgmstream_xmplay(file, filename, 0);
-    else
-        infostream = init_vgmstream(filename); //TODO: unicode problems?
+
+    libvgmstream_t* infostream = init_vgmstream_xmplay(file, filename, 0);
     if (!infostream)
         return FALSE;
 
-    close_vgmstream(infostream);
+    libvgmstream_free(infostream);
 
     return TRUE;
 }
 
 /* update info from a file, returning the number of subsongs */
 DWORD WINAPI xmplay_GetFileInfo(const char *filename, XMPFILE file, float **length, char **tags) {
-    VGMSTREAM* infostream;
+    libvgmstream_t* infostream = NULL;
     int subsong_count;
 
-    if (file)
-        infostream = init_vgmstream_xmplay(file, filename, 0);
-    else
-        infostream = init_vgmstream(filename); //TODO: unicode problems?
+    infostream = init_vgmstream_xmplay(file, filename, 0);
     if (!infostream)
         return 0;
 
@@ -150,47 +146,35 @@ DWORD WINAPI xmplay_GetFileInfo(const char *filename, XMPFILE file, float **leng
     snprintf(temp_filepath, sizeof(temp_filepath), "%s", filename);
     temp_filepath[sizeof(temp_filepath) - 1] = '\0';
 
-    apply_config(infostream);
-
-    //vgmstream_mixing_autodownmix(infostream, downmix_channels);
-    vgmstream_mixing_enable(infostream, 0, NULL, NULL);
-
-    if (length && infostream->sample_rate) {
-        int length_samples = vgmstream_get_samples(infostream);
+    if (length && infostream->format->sample_rate) {
+        int length_samples = infostream->format->play_samples;
         float *lens = (float*)xmpf_misc->Alloc(sizeof(float));
-        lens[0] = (float)length_samples / (float)infostream->sample_rate;
+        lens[0] = (float)length_samples / (float)infostream->format->sample_rate;
         *length = lens;
     }
 
-    subsong_count = infostream->num_streams;
+    subsong_count = infostream->format->subsong_count;
     if (disable_subsongs || subsong_count == 0)
         subsong_count = 1;
 
     *tags = get_tags_from_filepath_info(infostream, xmpf_misc, temp_filepath);
-    close_vgmstream(infostream);
+    libvgmstream_free(infostream);
 
     return subsong_count;
 }
 
 /* open a file for playback, returning:  0=failed, 1=success, 2=success and XMPlay can close the file */
 DWORD WINAPI xmplay_Open(const char *filename, XMPFILE file) {
-    if (file)
-        vgmstream = init_vgmstream_xmplay(file, filename, current_subsong+1);
-    else
-        vgmstream = init_vgmstream(filename);
+
+    vgmstream = init_vgmstream_xmplay(file, filename, current_subsong+1);
     if (!vgmstream)
         return 0;
 
     snprintf(last_filepath, sizeof(last_filepath), "%s", filename);
     last_filepath[sizeof(last_filepath) - 1] = '\0';
 
-    apply_config(vgmstream);
-
-    //vgmstream_mixing_autodownmix(vgmstream, downmix_channels);
-    vgmstream_mixing_enable(vgmstream, SAMPLE_BUFFER_SIZE, NULL /*&input_channels*/, &output_channels);
-
     decode_pos_samples = 0;
-    length_samples = vgmstream_get_samples(vgmstream);
+    length_samples = vgmstream->format->play_samples;
 
     //strncpy(current_fn,filename,XMPLAY_MAX_PATH);
     //current_file = file;
@@ -198,7 +182,7 @@ DWORD WINAPI xmplay_Open(const char *filename, XMPFILE file) {
 
 
     if (length_samples) {
-        float length = (float)length_samples / (float)vgmstream->sample_rate;
+        float length = (float)length_samples / (float)vgmstream->format->sample_rate;
         xmpf_in->SetLength(length, TRUE);
     }
 
@@ -207,15 +191,23 @@ DWORD WINAPI xmplay_Open(const char *filename, XMPFILE file) {
 
 /* close the playback file */
 void WINAPI xmplay_Close() {
-    close_vgmstream(vgmstream);
+    libvgmstream_free(vgmstream);
     vgmstream = NULL;
 }
 
 /* set the sample format */
 void WINAPI xmplay_SetFormat(XMPFORMAT *form) {
-    form->res = 16 / 8; /* PCM 16 */
-    form->chan = output_channels;
-    form->rate = vgmstream->sample_rate;
+    form->chan = vgmstream->format->channels;
+    form->rate = vgmstream->format->sample_rate;
+
+    // xmplay only handles float samples so this is info only
+    switch(vgmstream->format->sample_format) {
+        case LIBVGMSTREAM_SFMT_FLOAT: form->res = 4; break;
+      //case LIBVGMSTREAM_SFMT_PCM24: form->res = 3; break;
+        case LIBVGMSTREAM_SFMT_PCM16: form->res = 2; break;
+      //case LIBVGMSTREAM_SFMT_PCM8:  form->res = 1; break;
+        default: form->res = 0; break;
+    }
 }
 
 /* get tags, return NULL to delay title update (OPTIONAL) */
@@ -225,58 +217,39 @@ char* WINAPI xmplay_GetTags() {
 
 /* main panel info text (short file info) */
 void WINAPI xmplay_GetInfoText(char* format, char* length) {
-    int rate, samples, bps;
-    char fmt[128];
-    int t, tmin, tsec;
-
     if (!format)
         return;
     if (!vgmstream)
         return;
 
-    rate = vgmstream->sample_rate;
-    samples = vgmstream->num_samples;
-    bps = get_vgmstream_average_bitrate(vgmstream) / 1000;
+    int rate = vgmstream->format->sample_rate;
+    int samples = vgmstream->format->stream_samples;
+    int bps = vgmstream->format->stream_bitrate;
 
-    //get_vgmstream_coding_description(vgmstream, fmt, sizeof(fmt));
-	//if (strcmp(fmt, "FFmpeg") == 0)
-	{
-		char buffer[1024];
-		buffer[0] = '\0';
-		describe_vgmstream(vgmstream, buffer, sizeof(buffer));
-		char* enc_tmp = strstr(buffer, "encoding: ") + 10;
-		char* enc_end = strstr(enc_tmp, "\n");
-		int len = (int)enc_end - (int)enc_tmp;
+    int t = samples / rate;
+    int tmin = t / 60;
+    int tsec = t % 60;
 
-		memset(fmt, 0x00, sizeof(fmt));
-		strncpy(fmt, enc_tmp, len);
-	}
-
-    t = samples / rate;
-    tmin = t / 60;
-    tsec = t % 60;
-
-    sprintf(format, "%s", fmt);
+    sprintf(format, "%s", vgmstream->format->codec_name);
     sprintf(length, "%d:%02d - %dKb/s - %dHz", tmin, tsec, bps, rate);
 }
 
 /* info for the "General" window/tab (buf is ~40K) */
 void WINAPI xmplay_GetGeneralInfo(char* buf) {
-    int i;
-    char description[1024];
 
     if (!buf)
         return;
     if (!vgmstream)
         return;
 
-    description[0] = '\0';
-    describe_vgmstream(vgmstream,description,sizeof(description));
+    
+    char description[1024];
+    libvgmstream_format_describe(vgmstream, description, sizeof(description));
 
     /* tags are divided with a tab and lines with carriage return so we'll do some guetto fixin' */
 	int tag_done = 0;
 	description[0] -= 32; //Replace small letter with capital for consistency with XMPlay's output
-    for (i = 0; i < 1024; i++) {
+    for (int i = 0; i < 1024; i++) {
         if (description[i] == '\0')
             break;
 
@@ -305,7 +278,7 @@ double WINAPI xmplay_GetGranularity() {
 /* seek to a position (in granularity units), return new position or -1 = failed */
 double WINAPI xmplay_SetPosition(DWORD pos) {
     double cpos;
-    int32_t seek_sample = (int32_t)(pos * xmplay_GetGranularity() * vgmstream->sample_rate);
+    int32_t seek_sample = (int32_t)(pos * xmplay_GetGranularity() * vgmstream->format->sample_rate);
 
     if (pos == XMPIN_POS_AUTOLOOP || pos == XMPIN_POS_LOOP)
         xmplay_doneloop = 1;
@@ -333,48 +306,36 @@ double WINAPI xmplay_SetPosition(DWORD pos) {
     }
 #endif
 
-    seek_vgmstream(vgmstream, seek_sample);
+    libvgmstream_seek(vgmstream, seek_sample);
 
     decode_pos_samples = seek_sample;
 
-    cpos = (double)decode_pos_samples / vgmstream->sample_rate;
+    cpos = (double)decode_pos_samples / vgmstream->format->sample_rate;
     return cpos;
 }
 
 /* decode some sample data */
 DWORD WINAPI xmplay_Process(float* buf, DWORD bufsize) {
-    int32_t i, done, samples_to_do;
-    BOOL do_loop = xmpf_in->GetLooping();
-    float *sbuf = buf;
 
+    if (vgmstream->decoder->done)
+        return 0;
 
-    bufsize /= output_channels;
+    bufsize /= vgmstream->format->channels;
 
-    samples_to_do = do_loop ? bufsize : length_samples - decode_pos_samples;
+    BOOL do_loop = xmpf_in->GetLooping(); //TODO: what is this?
+    int32_t samples_to_do = do_loop ? bufsize : length_samples - decode_pos_samples;
     if (samples_to_do > bufsize)
         samples_to_do = bufsize;
 
+    int res = libvgmstream_fill(vgmstream, buf, samples_to_do);
+    if (res < 0) return 0;
+
+    int32_t done = vgmstream->decoder->buf_samples;
+
     /* decode */
-    done = 0;
-    while (done < samples_to_do) {
-        int to_do = SAMPLE_BUFFER_SIZE;
-        if (to_do > samples_to_do - done)
-            to_do = samples_to_do - done;
-
-        render_vgmstream(sample_buffer, to_do, vgmstream);
-
-        for (i = 0; i < to_do * output_channels; i++) {
-            *sbuf++ = sample_buffer[i] * 1.0f / 32768.0f;
-        }
-
-        done += to_do;
-    }
-
-    sbuf = buf;
-
     decode_pos_samples += done;
 
-    return done * output_channels;
+    return done * vgmstream->format->channels;
 }
 
 static DWORD WINAPI xmplay_GetSubSongs(float *length) {
@@ -383,7 +344,7 @@ static DWORD WINAPI xmplay_GetSubSongs(float *length) {
     if (!vgmstream)
         return 0;
 
-    subsong_count = vgmstream->num_streams;
+    subsong_count = vgmstream->format->subsong_count;
     if (disable_subsongs || subsong_count == 0)
         subsong_count = 1;
 
@@ -399,8 +360,8 @@ static DWORD WINAPI xmplay_GetSubSongs(float *length) {
         //}
 
         /* simply use the current length */ //todo just use 0?
-        length_samples = vgmstream_get_samples(vgmstream);
-        *length = (float)length_samples / (float)vgmstream->sample_rate;
+        length_samples = vgmstream->format->play_samples;
+        *length = (float)length_samples / (float)vgmstream->format->sample_rate;
     }
 
     return subsong_count;

@@ -116,7 +116,7 @@ void mixer_process(mixer_t* mixer, sbuf_t* sbuf, int32_t current_pos) {
 
     setup_mixbuf(mixer, sbuf);
 
-    // apply mixing ops in order. channesl in mixersmix may increase or decrease per op
+    // apply mixing ops in order. channels in mixers may increase or decrease per op (set in sbuf)
     // - 2ch w/ "1+2,1u" = ch1+ch2, ch1(add and push rest) = 3ch: ch1' ch1+ch2 ch2
     // - 2ch w/ "1u"     = downmix to 1ch (current_channels decreases once)
     for (int m = 0; m < mixer->chain_count; m++) {

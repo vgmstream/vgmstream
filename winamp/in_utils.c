@@ -28,14 +28,14 @@ static int add_extension(char* dst, int dst_len, const char* ext) {
  */
 void build_extension_list(char* winamp_list, int winamp_list_size) {
     const char** ext_list;
-    size_t ext_list_len;
+    int ext_list_len;
     int i, written;
     int description_size = 0x100; /* reserved max at the end */
 
     winamp_list[0] = '\0';
     winamp_list[1] = '\0';
 
-    ext_list = vgmstream_get_formats(&ext_list_len);
+    ext_list = libvgmstream_get_extensions(&ext_list_len);
 
     for (i = 0; i < ext_list_len; i++) {
         int used = add_extension(winamp_list, winamp_list_size - description_size, ext_list[i]);
@@ -73,14 +73,14 @@ static void make_fn_subsong(in_char* dst, int dst_size, const in_char* filename,
 }
 
 /* unpacks the subsongs by adding entries to the playlist */
-bool split_subsongs(const in_char* filename, int subsong_index, VGMSTREAM* vgmstream) {
-    int i, playlist_index;
+bool split_subsongs(const in_char* filename, int subsong_index, libvgmstream_t* vgmstream) {
+    int playlist_index;
     HWND hPlaylistWindow;
 
 
-    if (settings.disable_subsongs || vgmstream->num_streams <= 1)
+    if (settings.disable_subsongs || vgmstream->format->subsong_count <= 1)
         return 0; /* don't split if no subsongs */
-    if (subsong_index > 0 || vgmstream->stream_index > 0)
+    if (subsong_index > 0 || vgmstream->format->subsong_index > 0)
         return 0; /* no split if already playing subsong */
 
     hPlaylistWindow = (HWND)SendMessage(input_module.hMainWindow, WM_WA_IPC, IPC_GETWND_PE, IPC_GETWND);
@@ -88,7 +88,7 @@ bool split_subsongs(const in_char* filename, int subsong_index, VGMSTREAM* vgmst
 
     /* The only way to pass info around in Winamp is encoding it into the filename, so a fake name
      * is created with the index. Then, winamp_Play (and related) intercepts and reads the index. */
-    for (i = 0; i < vgmstream->num_streams; i++) {
+    for (int i = 0; i < vgmstream->format->subsong_count; i++) {
         in_char stream_fn[WINAMP_PATH_LIMIT];
 
         make_fn_subsong(stream_fn, WINAMP_PATH_LIMIT, filename, (i+1)); /* encode index in filename */

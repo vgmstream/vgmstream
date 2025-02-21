@@ -373,14 +373,14 @@ Requires the dev version of Audacious (and dependencies), autotools (automake/au
 
 The plugin needs Audacious 3.5 or higher. New Audacious releases can break plugin compatibility so it may not work with the latest version unless adapted first.
 
+If you get errors during the build phase we probably forgot some `#ifdef` needed for Audacious, please [notify us](https://github.com/vgmstream/vgmstream/issues) if that happens.
+
+Take note of other plugins stealing extensions (see [USAGE.md](USAGE.md#common-and-unknown-extensions)). To change Audacious's default priority for vgmstream you can make with CFLAG `AUDACIOUS_VGMSTREAM_PRIORITY n` (where `N` is a number where 10=lowest).
+
+**Windows** builds aren't supported at the moment (should be possible but there are complex dependency chains). Note that you can compile and run Audacious (GUI+sound included) with a recent-ish version of Windows's *WSL*: install *WSL*, some Ubuntu image through *Windows Store* and follow the `sh` commands below. You may need to change Audacious's *Output > audio settings > Output plugin* to PulseAudio or ALSA.
+
+#### Compilation
 CMake should handle all correctly, while when using autotools, libvorbis/libmpg123/libspeex will be used if found, while FFmpeg and other external libraries aren't enabled at the moment, thus some formats won't work (build scripts need to be fixed).
-
-**Windows** builds aren't supported at the moment (should be possible but there are complex dependency chains).
-
-If you get errors during the build phase, we probably forgot some `#ifdef` needed for Audacious, please [notify us](https://github.com/vgmstream/vgmstream/issues) if that happens.
-
-Take note of other plugins stealing extensions (see [USAGE.md](USAGE.md#common-and-unknown-extensions)). To change Audacious's default priority for vgmstream you can make with CFLAG `AUDACIOUS_VGMSTREAM_PRIORITY n` (where `N` is a number where 10=lowest)
-
 
 You can try building with CMake. See the build steps in the [Cmake section](#cmake-builds). Some older distros may not work though (CMake version needs to recognize FILTER command), and may need to install resulting artifacts manually (check `./audacious` dir).
 
@@ -400,6 +400,10 @@ sudo apt-get install audacious
 sudo apt-get install audacious-dev libglib2.0-dev libgtk2.0-dev libpango1.0-dev
 # vgmstream123 dependencies (optional)
 sudo apt-get install libao-dev
+# probably included by default (audio output can be changed in Audacious's config)
+#sudo apt-get install pulseaudio pulseaudio-utils
+#sudo apt-get install alsa-base alsa-utils
+
 
 # check Audacious version >= 3.5
 pkg-config --modversion audacious

@@ -51,6 +51,28 @@ ipch
 /**/vgmstream-win.zip
 /**/foo_input_vgmstream.fb2k-component
 
+# autotools
+stamp-h1
+*.cache
+*.autotools
+*.am
+*.in
+*.m4
+*.lo
+AUTHORS
+compile
+config.*
+configure
+ChangeLog
+INSTALL
+install-sh
+ltmain.sh
+depcomp
+libtool
+missing
+NEWS
+README
+
 # cmake stuff
 /build
 /embuild

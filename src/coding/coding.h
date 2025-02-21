@@ -346,9 +346,9 @@ int32_t relic_bytes_to_samples(size_t bytes, int channels, int bitrate);
 typedef struct hca_codec_data hca_codec_data;
 
 hca_codec_data* init_hca(STREAMFILE* sf);
-void decode_hca(hca_codec_data* data, sample_t* outbuf, int32_t samples_to_do);
+bool decode_hca_frame(VGMSTREAM* v);
 void reset_hca(hca_codec_data* data);
-void loop_hca(hca_codec_data* data, int32_t num_sample);
+void loop_hca(VGMSTREAM* v, int32_t num_sample);
 void free_hca(hca_codec_data* data);
 clHCA_stInfo* hca_get_info(hca_codec_data* data);
 
@@ -470,7 +470,7 @@ typedef struct {
 } vorbis_custom_config;
 
 vorbis_custom_codec_data* init_vorbis_custom(STREAMFILE* sf, off_t start_offset, vorbis_custom_t type, vorbis_custom_config* config);
-void decode_vorbis_custom(VGMSTREAM* vgmstream, sample_t* outbuf, int32_t samples_to_do, int channels);
+bool decode_vorbis_custom_frame(VGMSTREAM* v);
 void reset_vorbis_custom(VGMSTREAM* vgmstream);
 void seek_vorbis_custom(VGMSTREAM* vgmstream, int32_t num_sample);
 void free_vorbis_custom(vorbis_custom_codec_data* data);

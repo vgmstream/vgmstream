@@ -3,8 +3,8 @@
 #include <stdio.h>
 #include "vgmstream_cli.h"
 #include "vjson.h"
-#include "../src/api.h"
-#include "../src/vgmstream.h"
+#include "../src/libvgmstream.h"
+
 
 static void clean_filename(char* dst, int clean_paths) {
     for (int i = 0; i < strlen(dst); i++) {
@@ -18,7 +18,7 @@ static void clean_filename(char* dst, int clean_paths) {
 
 /* replaces a filename with "?n" (stream name), "?f" (infilename) or "?s" (subsong) wildcards
  * ("?" was chosen since it's not a valid Windows filename char and hopefully nobody uses it on Linux) */
-void replace_filename(char* dst, size_t dstsize, cli_config_t* cfg, VGMSTREAM* vgmstream) {
+void replace_filename(char* dst, size_t dstsize, cli_config_t* cfg, libvgmstream_t* vgmstream) {
     int subsong;
     char stream_name[CLI_PATH_LIMIT];
     char buf[CLI_PATH_LIMIT];
@@ -33,13 +33,13 @@ void replace_filename(char* dst, size_t dstsize, cli_config_t* cfg, VGMSTREAM* v
     }
 
     /* init config */
-    subsong = vgmstream->stream_index;
-    if (subsong > vgmstream->num_streams || subsong != cfg->subsong_current_index) {
+    subsong = vgmstream->format->subsong_index;
+    if (subsong > vgmstream->format->subsong_count || subsong != cfg->subsong_current_index) {
         subsong = 0; /* for games without subsongs / bad config */
     }
 
-    if (vgmstream->stream_name[0] != '\0') {
-        snprintf(stream_name, sizeof(stream_name), "%s", vgmstream->stream_name);
+    if (vgmstream->format->stream_name[0] != '\0') {
+        snprintf(stream_name, sizeof(stream_name), "%s", vgmstream->format->stream_name);
         clean_filename(stream_name, 1); /* clean subsong name's subdirs */
     }
     else {
@@ -96,12 +96,12 @@ void replace_filename(char* dst, size_t dstsize, cli_config_t* cfg, VGMSTREAM* v
 }
 
 
-void print_info(VGMSTREAM* vgmstream, cli_config_t* cfg) {
-    int channels = vgmstream->channels;
-    bool loop_flag = vgmstream->loop_flag;
-    int64_t num_samples = vgmstream->num_samples;
-    int64_t loop_start = vgmstream->loop_start_sample;
-    int64_t loop_end = vgmstream->loop_start_sample;
+void print_info(libvgmstream_t* vgmstream, cli_config_t* cfg) {
+    int channels = vgmstream->format->channels;
+    bool loop_flag = vgmstream->format->loop_flag;
+    int64_t num_samples = vgmstream->format->stream_samples;
+    int64_t loop_start = vgmstream->format->loop_start;
+    int64_t loop_end = vgmstream->format->loop_end;
 
     if (!cfg->play_sdtout) {
         if (cfg->print_adxencd) {
@@ -139,20 +139,19 @@ void print_info(VGMSTREAM* vgmstream, cli_config_t* cfg) {
 
     if (!cfg->play_sdtout && !cfg->print_adxencd && !cfg->print_oggenc && !cfg->print_batchvar) {
         char description[1024];
-        describe_vgmstream(vgmstream, description, sizeof(description));
+        libvgmstream_format_describe(vgmstream, description, sizeof(description));
         printf("%s", description);
     }
 }
 
 void print_tags(cli_config_t* cfg) {
-    VGMSTREAM_TAGS* tags = NULL;
-    STREAMFILE* sf_tags = NULL;
-    const char *tag_key, *tag_val;
+    libvgmstream_tags_t* tags = NULL;
+    libstreamfile_t* sf_tags = NULL;
 
     if (!cfg->tag_filename)
         return;
 
-    sf_tags = open_stdio_streamfile(cfg->tag_filename);
+    sf_tags = libstreamfile_open_from_stdio(cfg->tag_filename);
     if (!sf_tags) {
         printf("tag file %s not found\n", cfg->tag_filename);
         return;
@@ -160,19 +159,19 @@ void print_tags(cli_config_t* cfg) {
 
     printf("tags:\n");
 
-    tags = vgmstream_tags_init(&tag_key, &tag_val);
-    vgmstream_tags_reset(tags, cfg->infilename);
-    while (vgmstream_tags_next_tag(tags, sf_tags)) {
-        printf("- '%s'='%s'\n", tag_key, tag_val);
+    tags = libvgmstream_tags_init(sf_tags);
+    libvgmstream_tags_find(tags, cfg->infilename);
+    while (libvgmstream_tags_next_tag(tags)) {
+        printf("- '%s'='%s'\n", tags->key, tags->val);
     }
 
-    vgmstream_tags_close(tags);
-    close_streamfile(sf_tags);
+    libvgmstream_tags_free(tags);
+    libstreamfile_close(sf_tags);
 }
 
-void print_title(VGMSTREAM* vgmstream, cli_config_t* cfg) {
+void print_title(libvgmstream_t* vgmstream, cli_config_t* cfg) {
     char title[1024];
-    vgmstream_title_t tcfg = {0};
+    libvgmstream_title_t tcfg = {0};
 
     if (!cfg->print_title)
         return;
@@ -180,14 +179,15 @@ void print_title(VGMSTREAM* vgmstream, cli_config_t* cfg) {
     tcfg.force_title = false;
     tcfg.subsong_range = false;
     tcfg.remove_extension = true;
+    tcfg.filename = cfg->infilename;
 
-    vgmstream_get_title(title, sizeof(title), cfg->infilename, vgmstream, &tcfg);
+    libvgmstream_get_title(vgmstream, &tcfg, title, sizeof(title));
 
     printf("title: %s\n", title);
 }
 
 void print_json_version(const char* vgmstream_version) {
-    size_t extension_list_len = 0;
+    int extension_list_len = 0;
     const char** extension_list;
 
     vjson_t j = {0};
@@ -203,7 +203,7 @@ void print_json_version(const char* vgmstream_version) {
 
             vjson_key(&j, "vgm");
             vjson_arr_open(&j);
-            extension_list = vgmstream_get_formats(&extension_list_len);
+            extension_list = libvgmstream_get_extensions(&extension_list_len);
             for (int i = 0; i < extension_list_len; i++) {
                 vjson_str(&j, extension_list[i]);
             }
@@ -211,7 +211,7 @@ void print_json_version(const char* vgmstream_version) {
 
             vjson_key(&j, "common");
             vjson_arr_open(&j);
-            extension_list = vgmstream_get_common_formats(&extension_list_len);
+            extension_list = libvgmstream_get_common_extensions(&extension_list_len);
             for (int i = 0; i < extension_list_len; i++) {
                 vjson_str(&j, extension_list[i]);
             }
@@ -223,66 +223,65 @@ void print_json_version(const char* vgmstream_version) {
     printf("%s\n", buf);
 }
 
-void print_json_info(VGMSTREAM* vgm, cli_config_t* cfg, const char* vgmstream_version) {
+void print_json_info(libvgmstream_t* v, cli_config_t* cfg, const char* vgmstream_version) {
     char buf[0x1000]; // probably fine with ~0x400
     vjson_t j = {0};
     vjson_init(&j, buf, sizeof(buf));
 
-    vgmstream_info info;
-    describe_vgmstream_info(vgm, &info);
-    
     vjson_obj_open(&j);
         vjson_keystr(&j, "version", vgmstream_version);
-        vjson_keyint(&j, "sampleRate", info.sample_rate);
-        vjson_keyint(&j, "channels", info.channels);
+        vjson_keyint(&j, "sampleRate", v->format->sample_rate);
+        vjson_keyint(&j, "channels", v->format->channels);
 
         vjson_key(&j, "mixingInfo");
-        if (info.mixing_info.input_channels > 0) {
+        if (v->format->input_channels > 0) {
             vjson_obj_open(&j);
-                vjson_keyint(&j, "inputChannels", info.mixing_info.input_channels);
-                vjson_keyint(&j, "outputChannels", info.mixing_info.output_channels);
+                vjson_keyint(&j, "inputChannels", v->format->input_channels);
+                vjson_keyint(&j, "outputChannels", v->format->channels);
             vjson_obj_close(&j);
         }
         else {
             vjson_null(&j);
         }
 
-        vjson_keyintnull(&j, "channelLayout", info.channel_layout);
+        vjson_keyintnull(&j, "channelLayout", v->format->channel_layout);
 
         vjson_key(&j, "loopingInfo");
-        if (info.loop_info.end > info.loop_info.start) {
+        if (v->format->loop_end > v->format->loop_start) {
             vjson_obj_open(&j);
-                vjson_keyint(&j, "start", info.loop_info.start);
-                vjson_keyint(&j, "end", info.loop_info.end);
+                vjson_keyint(&j, "start", v->format->loop_start);
+                vjson_keyint(&j, "end", v->format->loop_end);
             vjson_obj_close(&j);
         }
         else {
             vjson_null(&j);
         }
-
+#if 0
         vjson_key(&j, "interleaveInfo");
-        if (info.interleave_info.last_block > info.interleave_info.first_block) {
+        if (info.interleave_info.last_block || info.interleave_info.first_block) {
             vjson_obj_open(&j);
-                vjson_keyint(&j, "firstBlock", info.interleave_info.last_block);
-                vjson_keyint(&j, "lastBlock", info.interleave_info.first_block);
+                vjson_keyint(&j, "firstBlock", info.interleave_info.first_block);
+                vjson_keyint(&j, "lastBlock", info.interleave_info.last_block);
             vjson_obj_close(&j);
         }
         else {
             vjson_null(&j);
         }
-
-        vjson_keyint(&j, "numberOfSamples", info.num_samples);
-        vjson_keystr(&j, "encoding", info.encoding);
-        vjson_keystr(&j, "layout", info.layout);
+#endif
+        vjson_keyint(&j, "numberOfSamples", v->format->stream_samples);
+        vjson_keystr(&j, "encoding", v->format->codec_name);
+        vjson_keystr(&j, "layout", v->format->layout_name);
+#if 0
         vjson_keyintnull(&j, "frameSize", info.frame_size);
-        vjson_keystr(&j, "metadataSource", info.metadata);
-        vjson_keyint(&j, "bitrate", info.bitrate);
+#endif
+        vjson_keystr(&j, "metadataSource", v->format->meta_name);
+        vjson_keyint(&j, "bitrate", v->format->stream_bitrate);
 
         vjson_key(&j, "streamInfo");
         vjson_obj_open(&j);
-            vjson_keyint(&j, "index", info.stream_info.current);
-            vjson_keystr(&j, "name", info.stream_info.name);
-            vjson_keyint(&j, "total", info.stream_info.total);
+            vjson_keyint(&j, "index", v->format->subsong_index);
+            vjson_keystr(&j, "name", v->format->stream_name);
+            vjson_keyint(&j, "total", v->format->subsong_count);
         vjson_obj_close(&j);
 
     vjson_obj_close(&j);

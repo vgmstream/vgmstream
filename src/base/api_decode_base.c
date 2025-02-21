@@ -1,13 +1,23 @@
 #include "api_internal.h"
 #include "mixing.h"
 
-#define INTERNAL_BUF_SAMPLES  1024
 
 
 LIBVGMSTREAM_API uint32_t libvgmstream_get_version(void) {
     return (LIBVGMSTREAM_API_VERSION_MAJOR << 24) | (LIBVGMSTREAM_API_VERSION_MINOR << 16) | (LIBVGMSTREAM_API_VERSION_PATCH << 0);
 }
 
+LIBVGMSTREAM_API libvgmstream_t* libvgmstream_create(libstreamfile_t* libsf, int subsong, libvgmstream_config_t* vcfg) {
+    libvgmstream_t* vgmstream = libvgmstream_init();
+    libvgmstream_setup(vgmstream, vcfg);
+    int err = libvgmstream_open_stream(vgmstream, libsf, subsong);
+    if (err < 0) {
+        libvgmstream_free(vgmstream);
+        return NULL;
+    }
+
+    return vgmstream;
+}
 
 LIBVGMSTREAM_API libvgmstream_t* libvgmstream_init(void) {
     libvgmstream_t* lib = NULL;

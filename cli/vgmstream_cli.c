@@ -3,9 +3,10 @@
  */
 #define POSIXLY_CORRECT
 
+#include <string.h>
 #include <stdio.h>
 #include <getopt.h>
- 
+
 #ifdef WIN32
 #include <io.h>
 #include <fcntl.h>
@@ -28,16 +29,6 @@
 #define APP_NAME  "vgmstream CLI decoder " VGMSTREAM_VERSION
 #define APP_INFO  APP_NAME " (" __DATE__ ")"
 
-
-/* Low values are ok as there is very little performance difference, but higher may improve write I/O in some systems.
- * For systems with less memory (like wasm without -s ALLOW_MEMORY_GROWTH) lower helps a bit. */
-#ifdef __EMSCRIPTEN__
-    #define SAMPLE_BUFFER_SIZE  1024
-#else
-    #define SAMPLE_BUFFER_SIZE  (1024*8)
-#endif
-#define MIN_SAMPLE_BUFFER_SIZE  128
-#define MAX_SAMPLE_BUFFER_SIZE  (1024*128)
 
 /* getopt globals from .h, for reference (the horror...) */
 //extern char* optarg;
@@ -65,7 +56,7 @@ static void print_usage(const char* progname, bool is_help) {
             "    -P: output to stdout even if stdout is a terminal\n"
             "    -c: loop forever (continuously) to stdout\n"
             "    -L: append a smpl chunk and create a looping wav\n"
-          //"    -w: allow .wav in original sample format rather than mixing to PCM16\n"
+            "    -w: allow .wav in original sample format rather than mixing to PCM16\n"
             "    -V: print version info and supported extensions as JSON\n"
             "    -I: print requested file info as JSON\n"
             "    -h: print all commands\n"
@@ -89,7 +80,7 @@ static void print_usage(const char* progname, bool is_help) {
             "    -T: print title (for title testing)\n"
             "    -D <max channels>: downmix to <max channels> (for plugin downmix testing)\n"
             "    -B <samples> force a sample buffer size (for api testing)\n"
-          //"    -W: force .wav to output in float sample format\n"
+            "    -W: force .wav to output in float sample format\n"
             "    -O: decode but don't write to file (for performance testing)\n"
     );
 
@@ -99,7 +90,6 @@ static bool parse_config(cli_config_t* cfg, int argc, char** argv) {
     int opt;
 
     /* non-zero defaults */
-    cfg->sample_buffer_size = SAMPLE_BUFFER_SIZE;
     cfg->loop_count = 2.0;
     cfg->fade_time = 10.0;
     cfg->seek_samples1 = -1;
@@ -211,11 +201,9 @@ static bool parse_config(cli_config_t* cfg, int argc, char** argv) {
                 cfg->downmix_channels = atoi(optarg);
                 break;
             case 'B':
+                // this forces a buffer as a test, but vgmstream provides its own buffers
+                // may improve IO/memory in some systems (wasm without -s ALLOW_MEMORY_GROWTH?)
                 cfg->sample_buffer_size = atoi(optarg);
-                if (cfg->sample_buffer_size < MIN_SAMPLE_BUFFER_SIZE || cfg->sample_buffer_size > MAX_SAMPLE_BUFFER_SIZE) {
-                    fprintf(stderr, "incorrect sample buffer value\n");
-                    goto fail;
-                }
                 break;
             case 'W':
                 cfg->write_float_wav = true;
@@ -295,57 +283,61 @@ fail:
 
 /* ************************************************************ */
 
-static void apply_config(VGMSTREAM* vgmstream, cli_config_t* cfg) {
-    vgmstream_cfg_t vcfg = {0};
+static void load_vconfig(libvgmstream_config_t* vcfg, cli_config_t* cfg) {
 
     /* write loops in the wav, but don't actually loop it */
     if (cfg->write_lwav) {
-        vcfg.disable_config_override = true;
+        vcfg->disable_config_override = true;
         cfg->ignore_loop = true;
     }
-
+    
     /* only allowed if manually active */
     if (cfg->play_forever) {
-        vcfg.allow_play_forever = true;
+        vcfg->allow_play_forever = true;
     }
 
-    vcfg.play_forever = cfg->play_forever;
-    vcfg.fade_time = cfg->fade_time;
-    vcfg.loop_count = cfg->loop_count;
-    vcfg.fade_delay = cfg->fade_delay;
+    vcfg->play_forever = cfg->play_forever;
+    vcfg->fade_time = cfg->fade_time;
+    vcfg->loop_count = cfg->loop_count;
+    vcfg->fade_delay = cfg->fade_delay;
 
-    vcfg.ignore_loop  = cfg->ignore_loop;
-    vcfg.force_loop = cfg->force_loop;
-    vcfg.really_force_loop = cfg->really_force_loop;
-    vcfg.ignore_fade = cfg->ignore_fade;
+    vcfg->ignore_loop  = cfg->ignore_loop;
+    vcfg->force_loop = cfg->force_loop;
+    vcfg->really_force_loop = cfg->really_force_loop;
+    vcfg->ignore_fade = cfg->ignore_fade;
 
-    vgmstream_apply_config(vgmstream, &vcfg);
+    vcfg->auto_downmix_channels = cfg->downmix_channels;
+    if (cfg->write_float_wav)
+        vcfg->force_sfmt = LIBVGMSTREAM_SFMT_FLOAT;
+    else if (!cfg->write_original_wav) //bloated wav so disabled by default
+        vcfg->force_sfmt = LIBVGMSTREAM_SFMT_PCM16;
+
+    vcfg->stereo_track = cfg->stereo_track;
 }
 
-static bool write_file(VGMSTREAM* vgmstream, cli_config_t* cfg) {
+static bool write_file(libvgmstream_t* vgmstream, cli_config_t* cfg) {
     FILE* outfile = NULL;
-
-    int channels = vgmstream->channels;
-
-    int input_channels = vgmstream->channels;
-    vgmstream_mixing_enable(vgmstream, 0, &input_channels, &channels);
-    sample_t* buf = malloc(cfg->sample_buffer_size * sizeof(sample_t) * input_channels);
-    if (!buf) {
-        fprintf(stderr, "failed allocating output buffer\n");
-        return false;
-    }
+    void* buf = NULL;
 
     /* simulate seek */
-    int32_t play_samples = vgmstream_get_samples(vgmstream);
+    int64_t play_samples = vgmstream->format->play_samples;
     if (cfg->seek_samples2 >= 0)
         play_samples -= cfg->seek_samples2;
     else if (cfg->seek_samples1 >= 0)
         play_samples -= cfg->seek_samples1;
 
     if (cfg->seek_samples1 >= 0)
-        seek_vgmstream(vgmstream, cfg->seek_samples1);
+        libvgmstream_seek(vgmstream, cfg->seek_samples1);
     if (cfg->seek_samples2 >= 0)
-        seek_vgmstream(vgmstream, cfg->seek_samples2);
+        libvgmstream_seek(vgmstream, cfg->seek_samples2);
+
+    if (cfg->sample_buffer_size > 0) {
+        buf = malloc(cfg->sample_buffer_size * vgmstream->format->sample_size * vgmstream->format->channels);
+        if (!buf) {
+            fprintf(stderr, "failed allocating buffer\n");
+            goto fail;
+        }
+    }
 
 
     /* output file */
@@ -374,16 +366,16 @@ static bool write_file(VGMSTREAM* vgmstream, cli_config_t* cfg) {
 
         wav_header_t wav = {
             .sample_count = play_samples,
-            .sample_rate = vgmstream->sample_rate,
-            .channels = channels,
+            .sample_rate = vgmstream->format->sample_rate,
+            .channels = vgmstream->format->channels,
             .write_smpl_chunk = cfg->write_lwav,
-            .sample_size = 0,
-            .is_float = false
+            .sample_size = vgmstream->format->sample_size,
+            .is_float = vgmstream->format->sample_format == LIBVGMSTREAM_SFMT_FLOAT
         };
 
-        if (cfg->write_lwav && vgmstream->loop_start_sample < vgmstream->loop_end_sample) {
-            wav.loop_start = vgmstream->loop_start_sample;
-            wav.loop_end = vgmstream->loop_end_sample;
+        if (cfg->write_lwav && vgmstream->format->loop_start < vgmstream->format->loop_end) {
+            wav.loop_start = vgmstream->format->loop_start;
+            wav.loop_end = vgmstream->format->loop_end;
             wav.loop_end--; /* from spec, +1 is added when reading "smpl" */
         }
 
@@ -392,34 +384,24 @@ static bool write_file(VGMSTREAM* vgmstream, cli_config_t* cfg) {
         fwrite(wav_buf, sizeof(uint8_t), bytes_done, outfile);
     }
 
-    /* decode forever */// TODO improve logic of play forever + normal play
-    while (cfg->play_forever && !cfg->decode_only) {
-        int to_get = cfg->sample_buffer_size;
-        render_vgmstream(buf, to_get, vgmstream);
+    /* decode (normally or forever until program kill) */
+    while (!vgmstream->decoder->done) {
+        if (buf) {
+            int err = libvgmstream_fill(vgmstream, buf, cfg->sample_buffer_size);
+            if (err < 0) break;
+        }
+        else {
+            int err = libvgmstream_render(vgmstream);
+            if (err < 0) break;
+        }
 
-        int buf_bytes = to_get * channels * sizeof(sample_t);
-        int buf_samples = to_get;
-        int sample_size = 0;
-
-        wav_swap_samples_le(buf, channels * buf_samples, sample_size);
-        fwrite(buf, sizeof(uint8_t), buf_bytes, outfile);
-        /* should write infinitely until program kill */
-    }
-
-    /* decode */
-    for (int i = 0; i < play_samples; i += cfg->sample_buffer_size) {
-        int to_get = cfg->sample_buffer_size;
-        if (i + cfg->sample_buffer_size > play_samples)
-            to_get = play_samples - i;
-
-        render_vgmstream(buf, to_get, vgmstream);
-
-        int buf_bytes = to_get * channels * sizeof(sample_t);
-        int buf_samples = to_get;
-        int sample_size = 0;
+        void* buf = vgmstream->decoder->buf;
+        int buf_bytes = vgmstream->decoder->buf_bytes;
+        int buf_samples = vgmstream->decoder->buf_samples;
+        int sample_size = vgmstream->format->sample_size;
 
         if (!cfg->decode_only) {
-            wav_swap_samples_le(buf, channels * buf_samples, sample_size);
+            wav_swap_samples_le(buf, vgmstream->format->channels * buf_samples, sample_size);
             fwrite(buf, sizeof(uint8_t), buf_bytes, outfile);
         }
     }
@@ -440,59 +422,46 @@ static bool is_valid_extension(cli_config_t* cfg) {
     if (!cfg->validate_extensions)
         return true; 
     
-    vgmstream_ctx_valid_cfg vcfg = {0};
+    libvgmstream_valid_t vcfg = {0};
 
     vcfg.skip_standard = 0;
     vcfg.reject_extensionless = 0;
     vcfg.accept_unknown = 0;
     vcfg.accept_common = 0;
 
-    return vgmstream_ctx_is_valid(cfg->infilename, &vcfg);
+    return libvgmstream_is_valid(cfg->infilename, &vcfg);
 }
 
-static VGMSTREAM* open_vgmstream(cli_config_t* cfg) {
-    STREAMFILE* sf = NULL;
-    VGMSTREAM* vgmstream = NULL;
-    
-    sf = open_stdio_streamfile(cfg->infilename);
+static libvgmstream_t* open_vgmstream(cli_config_t* cfg) {
+
+    libstreamfile_t* sf = libstreamfile_open_from_stdio(cfg->infilename);
     if (!sf) {
         fprintf(stderr, "file %s not found\n", cfg->infilename);
         return NULL;
     }
 
-    sf->stream_index = cfg->subsong_current_index;
-    vgmstream = init_vgmstream_from_STREAMFILE(sf);
+    libvgmstream_config_t vcfg = {0};
+    load_vconfig(&vcfg, cfg);
 
+    libvgmstream_t* vgmstream = libvgmstream_create(sf, cfg->subsong_current_index, &vcfg);
     if (!vgmstream) {
         fprintf(stderr, "failed opening %s\n", cfg->infilename);
         goto fail;
     }
 
-    /* modify the VGMSTREAM if needed (before printing file info) */
-    apply_config(vgmstream, cfg);
-
-    /* enable after config but before outbuf */
-    if (cfg->downmix_channels) {
-        vgmstream_mixing_autodownmix(vgmstream, cfg->downmix_channels);
-    }
-    else if (cfg->stereo_track > 0) {
-        vgmstream_mixing_stereo_only(vgmstream, cfg->stereo_track - 1);
-    }
-    vgmstream_mixing_enable(vgmstream, cfg->sample_buffer_size, NULL, NULL);
-
-
-    close_streamfile(sf);
+    libstreamfile_close(sf);
     return vgmstream;
 fail:
-    close_streamfile(sf);
-    close_vgmstream(vgmstream);
+    libstreamfile_close(sf);
+    libvgmstream_free(vgmstream);
     return NULL;
 }
 
+
 static bool convert_file(cli_config_t* cfg) {
-    VGMSTREAM* vgmstream = NULL;
+    libvgmstream_t* vgmstream = NULL;
     char outfilename_temp[CLI_PATH_LIMIT];
-    int32_t play_samples;
+    int64_t play_samples;
 
 
     /* for plugin testing */
@@ -505,14 +474,14 @@ static bool convert_file(cli_config_t* cfg) {
 
     /* force load total subsongs if signalled */
     if (cfg->subsong_current_end == -1) {
-        cfg->subsong_current_end = vgmstream->num_streams;
-        close_vgmstream(vgmstream);
+        cfg->subsong_current_end = vgmstream->format->subsong_count;
+        libvgmstream_free(vgmstream);
         return true;
     }
 
 
     /* get final play config */
-    play_samples = vgmstream_get_samples(vgmstream);
+    play_samples = vgmstream->format->play_samples;
     if (play_samples <= 0) {
         fprintf(stderr, "wrong time config\n");
         goto fail;
@@ -520,10 +489,10 @@ static bool convert_file(cli_config_t* cfg) {
 
     /* special values for loop testing */
     if (cfg->seek_samples1 == -2) { /* loop start...end */
-        cfg->seek_samples1 = vgmstream->loop_start_sample;
+        cfg->seek_samples1 = vgmstream->format->loop_start;
     }
     if (cfg->seek_samples1 == -3) { /* loop end..end */
-        cfg->seek_samples1 = vgmstream->loop_end_sample;
+        cfg->seek_samples1 = vgmstream->format->loop_end;
     }
 
     /* would be ignored by seek code though (allowed for seek_samples2 to test this) */
@@ -532,7 +501,7 @@ static bool convert_file(cli_config_t* cfg) {
         goto fail;
     }
 
-    if (cfg->play_forever && !vgmstream_get_play_forever(vgmstream)) {
+    if (cfg->play_forever && !vgmstream->format->play_forever) {
         fprintf(stderr, "file can't be played forever");
         goto fail;
     }
@@ -544,7 +513,7 @@ static bool convert_file(cli_config_t* cfg) {
 
         if (!cfg->outfilename_config && !cfg->outfilename) {
             /* defaults */
-            bool has_subsongs = (cfg->subsong_current_index >= 1 && vgmstream->num_streams >= 1);
+            bool has_subsongs = (cfg->subsong_current_index >= 1 && vgmstream->format->subsong_count >= 1);
 
             cfg->outfilename_config = has_subsongs ? 
                 "?f#?s.wav" :
@@ -582,7 +551,7 @@ static bool convert_file(cli_config_t* cfg) {
 
     /* prints done */
     if (cfg->print_metaonly) {
-        close_vgmstream(vgmstream);
+        libvgmstream_free(vgmstream);
         return true;
     }
 
@@ -598,16 +567,16 @@ static bool convert_file(cli_config_t* cfg) {
 
         cfg->outfilename = outfilename_reset;
 
-        reset_vgmstream(vgmstream);
+        libvgmstream_reset(vgmstream);
 
         write_file(vgmstream, cfg);
     }
 
-    close_vgmstream(vgmstream);
+    libvgmstream_free(vgmstream);
     return true;
 
 fail:
-    close_vgmstream(vgmstream);
+    libvgmstream_free(vgmstream);
     return false;
 }
 
@@ -645,9 +614,7 @@ int main(int argc, char** argv) {
     cli_config_t cfg = {0};
     bool res, ok;
 
-
-    vgmstream_set_log_stdout(VGM_LOG_LEVEL_ALL);
-
+    libvgmstream_set_log(0, NULL);
 
     /* read args */
     res = parse_config(&cfg, argc, argv);

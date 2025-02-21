@@ -1,12 +1,13 @@
 #include <math.h>
+#include "../base/decode_state.h"
+#include "../base/sbuf.h"
 #include "coding.h"
 #include "vorbis_custom_decoder.h"
 
 #ifdef VGM_USE_VORBIS
 
-#define VORBIS_DEFAULT_BUFFER_SIZE 0x8000 /* should be at least the size of the setup header, ~0x2000 */
-
-static void pcm_convert_float_to_16(sample_t* outbuf, int samples_to_do, float** pcm, int channels);
+#define VORBIS_CALL_SAMPLES 1024  // allowed frame 'blocksizes' range from 2^6 ~ 2^13 (64 ~ 8192) but we can return partial samples
+#define VORBIS_DEFAULT_BUFFER_SIZE 0x8000 // at least the size of the setup header, ~0x2000
 
 /**
  * Inits a vorbis stream of some custom variety.
@@ -77,118 +78,115 @@ fail:
     return NULL;
 }
 
-/* Decodes Vorbis packets into a libvorbis sample buffer, and copies them to outbuf */
-void decode_vorbis_custom(VGMSTREAM* vgmstream, sample_t* outbuf, int32_t samples_to_do, int channels) {
-    VGMSTREAMCHANNEL *stream = &vgmstream->ch[0];
-    vorbis_custom_codec_data* data = vgmstream->codec_data;
-    //data->op.packet = data->buffer;/* implicit from init */
-    int samples_done = 0;
+static bool read_packet(VGMSTREAM* v) {
+    VGMSTREAMCHANNEL* stream = &v->ch[0];
+    vorbis_custom_codec_data* data = v->codec_data;
 
-    while (samples_done < samples_to_do) {
+    // extra EOF check
+    // (may need to drain samples? not a thing in vorbis due to packet types?)
+    if (stream->offset >= data->config.stream_end)
+        return false;
 
-        if (data->samples_full) {  /* read more samples */
-            int samples_to_get;
-            float **pcm;
-
-            /* get PCM samples from libvorbis buffers */
-            samples_to_get = vorbis_synthesis_pcmout(&data->vd, &pcm);
-            if (!samples_to_get) {
-                data->samples_full = 0; /* request more if empty*/
-                continue;
-            }
-
-            if (data->samples_to_discard) {
-                /* discard samples for looping */
-                if (samples_to_get > data->samples_to_discard)
-                    samples_to_get = data->samples_to_discard;
-                data->samples_to_discard -= samples_to_get;
-            }
-            else {
-                /* get max samples and convert from Vorbis float pcm to 16bit pcm */
-                if (samples_to_get > samples_to_do - samples_done)
-                    samples_to_get = samples_to_do - samples_done;
-                pcm_convert_float_to_16(outbuf + samples_done * channels, samples_to_get, pcm, data->vi.channels);
-                samples_done += samples_to_get;
-            }
-
-            /* mark consumed samples from the buffer
-             * (non-consumed samples are returned in next vorbis_synthesis_pcmout calls) */
-            vorbis_synthesis_read(&data->vd, samples_to_get);
-        }
-        else { /* read more data */
-            int ok, rc;
-
-            /* extra EOF check */
-            if (stream->offset >= data->config.stream_end) {
-                /* may need to drain samples? (not a thing in vorbis due to packet types?) */
-                goto decode_fail;
-            }
-
-            /* not actually needed, but feels nicer */
-            data->op.granulepos += samples_to_do; /* can be changed next if desired */
-            data->op.packetno++;
-
-            /* read/transform data into the ogg_packet buffer and advance offsets */
-            switch(data->type) {
-                case VORBIS_FSB:    ok = vorbis_custom_parse_packet_fsb(stream, data); break;
-                case VORBIS_WWISE:  ok = vorbis_custom_parse_packet_wwise(stream, data); break;
-                case VORBIS_OGL:    ok = vorbis_custom_parse_packet_ogl(stream, data); break;
-                case VORBIS_SK:     ok = vorbis_custom_parse_packet_sk(stream, data); break;
-                case VORBIS_VID1:   ok = vorbis_custom_parse_packet_vid1(stream, data); break;
-                case VORBIS_AWC:    ok = vorbis_custom_parse_packet_awc(stream, data); break;
-                default: goto decode_fail;
-            }
-            if(!ok) {
-                goto decode_fail;
-            }
-
-
-            /* parse the fake ogg packet into a logical vorbis block */
-            rc = vorbis_synthesis(&data->vb,&data->op);
-            if (rc == OV_ENOTAUDIO) {
-                VGM_LOG("Vorbis: not an audio packet (size=0x%x) @ %x\n",(size_t)data->op.bytes,(uint32_t)stream->offset);
-                //VGM_LOGB(data->op.packet, (size_t)data->op.bytes,0);
-                continue; /* rarely happens, seems ok? */
-            } else if (rc != 0) goto decode_fail;
-
-            /* finally decode the logical block into samples */
-            rc = vorbis_synthesis_blockin(&data->vd,&data->vb);
-            if (rc != 0) goto decode_fail; /* ? */
-
-
-            data->samples_full = 1;
-        }
+    // read/transform data into the ogg_packet buffer and advance offsets
+    bool ok;
+    switch(data->type) {
+        case VORBIS_FSB:    ok = vorbis_custom_parse_packet_fsb(stream, data); break;
+        case VORBIS_WWISE:  ok = vorbis_custom_parse_packet_wwise(stream, data); break;
+        case VORBIS_OGL:    ok = vorbis_custom_parse_packet_ogl(stream, data); break;
+        case VORBIS_SK:     ok = vorbis_custom_parse_packet_sk(stream, data); break;
+        case VORBIS_VID1:   ok = vorbis_custom_parse_packet_vid1(stream, data); break;
+        case VORBIS_AWC:    ok = vorbis_custom_parse_packet_awc(stream, data); break;
+        default:            ok = false; break;
     }
 
-    return;
-
-decode_fail:
-    /* on error just put some 0 samples */
-    VGM_LOG("VORBIS: decode fail at %x, missing %i samples\n", (uint32_t)stream->offset, (samples_to_do - samples_done));
-    memset(outbuf + samples_done * channels, 0, (samples_to_do - samples_done) * channels * sizeof(sample_t));
+    return ok;
 }
 
-/* converts from internal Vorbis format to standard PCM (mostly from Xiph's decoder_example.c) */
-static void pcm_convert_float_to_16(sample_t* outbuf, int samples_to_do, float** pcm, int channels) {
-    int ch, s;
-    sample_t* ptr;
-    float* channel;
+static bool decode_frame(VGMSTREAM* v) {
+    decode_state_t* ds = v->decode_state;
+    vorbis_custom_codec_data* data = v->codec_data;
+    int rc;
 
-    /* convert float PCM (multichannel float array, with pcm[0]=ch0, pcm[1]=ch1, pcm[2]=ch0, etc)
-     * to 16 bit signed PCM ints (host order) and interleave + fix clipping */
-    for (ch = 0; ch < channels; ch++) {
-        /* channels should be in standard order unlike Ogg Vorbis (at least in FSB) */
-        ptr = outbuf + ch;
-        channel = pcm[ch];
-        for (s = 0; s < samples_to_do; s++) {
-            int val = (int)floor(channel[s] * 32767.0f + 0.5f);
-            if (val > 32767) val = 32767;
-            else if (val < -32768) val = -32768;
-
-            *ptr = val;
-            ptr += channels;
-        }
+    // parse the fake ogg packet into a logical vorbis block
+    rc = vorbis_synthesis(&data->vb, &data->op);
+    if (rc == OV_ENOTAUDIO) { 
+        // rarely happens, seems ok?
+        VGM_LOG("Vorbis: not an audio packet (size=0x%x) @ %x\n", (size_t)data->op.bytes, (uint32_t)v->ch[0].offset);
+        ds->sbuf.filled = 0;
+        return true;
+    } 
+    else if (rc != 0) {
+        return false;
     }
+
+    // finally decode the logical vorbis block into samples
+    rc = vorbis_synthesis_blockin(&data->vd,&data->vb);
+    if (rc != 0) return false; /* ? */
+
+    data->op.packetno++;
+
+    return true;
+}
+
+static int copy_samples(VGMSTREAM* v) {
+    decode_state_t* ds = v->decode_state;
+    vorbis_custom_codec_data* data = v->codec_data;
+
+    //TODO: helper?
+    //TODO: maybe should init in init_vorbis_custom but right now not all vorbises pass channels
+    if (data->fbuf == NULL) {
+        data->fbuf = malloc(VORBIS_CALL_SAMPLES * sizeof(float) * v->channels);
+        if (!data->fbuf) return -1;
+    }
+
+    // get PCM samples from libvorbis buffers
+    float** pcm;
+    int samples = vorbis_synthesis_pcmout(&data->vd, &pcm);
+    if (samples > VORBIS_CALL_SAMPLES)
+        samples = VORBIS_CALL_SAMPLES;
+
+    // no more samples in vorbis's buffer
+    if (samples == 0)
+        return 0;
+
+    // vorbis's planar buffer to interleaved buffer
+    sbuf_init_flt(&ds->sbuf, data->fbuf, samples, v->channels);
+    ds->sbuf.filled = samples;
+    sbuf_interleave(&ds->sbuf, pcm);
+
+    // mark consumed samples from the buffer
+    //  (non-consumed samples are returned in next vorbis_synthesis_pcmout calls)
+    vorbis_synthesis_read(&data->vd, samples);
+
+    // TODO: useful?
+    //data->op.granulepos += samples; // not actually needed
+
+    if (data->current_discard) {
+        ds->discard += data->current_discard;
+        data->current_discard = 0;
+    }
+
+    return samples;
+}
+
+bool decode_vorbis_custom_frame(VGMSTREAM* v) {
+    // vorbis may hold samples, return them first
+    int ret = copy_samples(v);
+    if (ret < 0) return false;
+    if (ret > 0) return true;
+
+    // handle new frame
+    bool read = read_packet(v);
+    if (!read)
+        return false;
+
+    // decode current frame
+    bool decoded = decode_frame(v);
+    if (!decoded)
+        return false;
+
+    // samples will be copied next call
+    return true;
 }
 
 /* ********************************************** */
@@ -204,27 +202,28 @@ void free_vorbis_custom(vorbis_custom_codec_data* data) {
     vorbis_info_clear(&data->vi);
 
     free(data->buffer);
+    free(data->fbuf);
     free(data);
 }
 
-void reset_vorbis_custom(VGMSTREAM* vgmstream) {
-    vorbis_custom_codec_data *data = vgmstream->codec_data;
+void reset_vorbis_custom(VGMSTREAM* v) {
+    vorbis_custom_codec_data *data = v->codec_data;
     if (!data) return;
 
     vorbis_synthesis_restart(&data->vd);
-    data->samples_to_discard = 0;
+    data->current_discard = 0;
 }
 
-void seek_vorbis_custom(VGMSTREAM* vgmstream, int32_t num_sample) {
-    vorbis_custom_codec_data *data = vgmstream->codec_data;
+void seek_vorbis_custom(VGMSTREAM* v, int32_t num_sample) {
+    vorbis_custom_codec_data *data = v->codec_data;
     if (!data) return;
 
     /* Seeking is provided by the Ogg layer, so with custom vorbis we'd need seek tables instead.
      * To avoid having to parse different formats we'll just discard until the expected sample */
     vorbis_synthesis_restart(&data->vd);
-    data->samples_to_discard = num_sample;
-    if (vgmstream->loop_ch)
-        vgmstream->loop_ch[0].offset = vgmstream->loop_ch[0].channel_start_offset;
+    data->current_discard = num_sample;
+    if (v->loop_ch)
+        v->loop_ch[0].offset = v->loop_ch[0].channel_start_offset;
 }
 
 #endif
