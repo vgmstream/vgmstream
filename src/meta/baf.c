@@ -128,33 +128,15 @@ VGMSTREAM* init_vgmstream_baf(STREAMFILE* sf) {
             break;
 
         case 0x08: /* XMA1 */
+        case 0x09: /* XMA2 */
             switch(version) {
-                case 0x04: /* Project Gotham Racing (X360) */
+                case 0x04: /* Project Gotham Racing 4 (X360) */
                     sample_rate     = read_u32(header_offset+0x3c, sf);
                     channel_count   = read_u32(header_offset+0x44, sf);
                     loop_flag       =  read_u8(header_offset+0x54, sf) != 0;
                     break;
 
                 case 0x05: /* James Bond 007: Blood Stone (X360) */
-                    sample_rate     = read_u32(header_offset+0x40, sf);
-                    channel_count   = read_u32(header_offset+0x48, sf);
-                    loop_flag       =  read_u8(header_offset+0x58, sf) != 0;
-                    break;
-
-                default:
-                    goto fail;
-            }
-            break;
-
-        case 0x09: /* XMA2 */
-            switch(version) {
-                case 0x04: /* Blur (X360) */
-                    sample_rate     = read_u32(header_offset+0x3c, sf);
-                    channel_count   = read_u32(header_offset+0x44, sf);
-                    loop_flag       =  read_u8(header_offset+0x54, sf) != 0;
-                    break;
-
-                case 0x05: /* Blur 2 (X360) */
                     sample_rate     = read_u32(header_offset+0x40, sf);
                     channel_count   = read_u32(header_offset+0x48, sf);
                     loop_flag       =  read_u8(header_offset+0x58, sf) != 0;
@@ -204,17 +186,16 @@ VGMSTREAM* init_vgmstream_baf(STREAMFILE* sf) {
             break;
 
 #ifdef VGM_USE_FFMPEG
-        case 0x08: {
-            vgmstream->codec_data = init_ffmpeg_xma1_raw(sf, start_offset, stream_size, vgmstream->channels, vgmstream->sample_rate, 0);
-            if (!vgmstream->codec_data) goto fail;
-            vgmstream->coding_type = coding_FFmpeg;
-            vgmstream->layout_type = layout_none;
+        case 0x08:
+        case 0x09: {
+            int is_xma1 = (codec == 0x08);
+            int block_size = 0x800;
 
             /* need to manually find sample offsets, it was a thing with XMA1 */
             {
                 ms_sample_data msd = {0};
 
-                msd.xma_version  = 1;
+                msd.xma_version  = is_xma1 ? 1 : 2;
                 msd.channels     = channel_count;
                 msd.data_offset  = start_offset;
                 msd.data_size    = stream_size;
@@ -240,44 +221,19 @@ VGMSTREAM* init_vgmstream_baf(STREAMFILE* sf) {
                 }
                 xma_get_samples(&msd, sf);
 
-                vgmstream->num_samples = msd.num_samples; /* also at 0x58(v4)/0x5C(v5), but unreliable? */
+                vgmstream->codec_data = is_xma1
+                    ? init_ffmpeg_xma1_raw(sf, start_offset, stream_size, vgmstream->channels, vgmstream->sample_rate, 0)
+                    : init_ffmpeg_xma2_raw(sf, start_offset, stream_size, vgmstream->num_samples, vgmstream->channels, vgmstream->sample_rate, block_size, 0);
+                if (!vgmstream->codec_data) goto fail;
+                vgmstream->coding_type = coding_FFmpeg;
+                vgmstream->layout_type = layout_none;
+
+                vgmstream->num_samples = msd.num_samples; /* also at 0x58(v4)/0x5C(v5) for XMA1, but unreliable? */
                 vgmstream->loop_start_sample = msd.loop_start_sample;
                 vgmstream->loop_end_sample = msd.loop_end_sample;
             }
 
             xma_fix_raw_samples_ch(vgmstream, sf, start_offset, stream_size, channel_count, 1,1);
-            break;
-        }
-
-        case 0x09: {
-            int block_size = 0x800;
-            int seek_count = 0;
-
-            switch(version) {
-                case 0x04:
-                    seek_count = read_u32(header_offset+0x58, sf);
-                    vgmstream->num_samples = read_u32(header_offset+0x5c + (seek_count-1) * 4, sf);
-                    vgmstream->loop_start_sample = read_u32(header_offset+0x4c, sf);
-                    vgmstream->loop_end_sample   = read_u32(header_offset+0x50, sf);
-                    break;
-
-                case 0x05:
-                    seek_count = read_u32(header_offset+0x5c, sf);
-                    vgmstream->num_samples = read_u32(header_offset+0x60 + (seek_count-1) * 4, sf);
-                    vgmstream->loop_start_sample = read_u32(header_offset+0x50, sf);
-                    vgmstream->loop_end_sample   = read_u32(header_offset+0x54, sf);
-                    break;
-
-                default:
-                    goto fail;
-            }
-
-            vgmstream->codec_data = init_ffmpeg_xma2_raw(sf, start_offset, stream_size, vgmstream->num_samples, vgmstream->channels, vgmstream->sample_rate, block_size, 0);
-            if (!vgmstream->codec_data) goto fail;
-            vgmstream->coding_type = coding_FFmpeg;
-            vgmstream->layout_type = layout_none;
-
-            xma_fix_raw_samples(vgmstream, sf, start_offset, stream_size, 0, 0, 1);
             break;
         }
 #endif
@@ -287,7 +243,7 @@ VGMSTREAM* init_vgmstream_baf(STREAMFILE* sf) {
             goto fail;
     }
 
-    read_string(bank_name, sizeof(bank_name), version == 0x03 ? 0x12 : 0x11, sf);
+    read_string(bank_name, sizeof(bank_name), (version == 0x03) ? 0x11 : 0x12, sf);
     read_string(stream_name, sizeof(stream_name), name_offset, sf);
     get_streamfile_basename(sf, file_name, STREAM_NAME_SIZE);
 
