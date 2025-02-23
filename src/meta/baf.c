@@ -189,7 +189,7 @@ VGMSTREAM* init_vgmstream_baf(STREAMFILE* sf) {
         case 0x08:
         case 0x09: {
             int is_xma1 = (codec == 0x08);
-            int block_size = 0x800;
+            int block_size = 0x10000;
 
             /* need to manually find sample offsets, it was a thing with XMA1 */
             {
