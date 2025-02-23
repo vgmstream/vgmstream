@@ -221,16 +221,17 @@ VGMSTREAM* init_vgmstream_baf(STREAMFILE* sf) {
                 }
                 xma_get_samples(&msd, sf);
 
-                vgmstream->codec_data = is_xma1
-                    ? init_ffmpeg_xma1_raw(sf, start_offset, stream_size, vgmstream->channels, vgmstream->sample_rate, 0)
-                    : init_ffmpeg_xma2_raw(sf, start_offset, stream_size, vgmstream->num_samples, vgmstream->channels, vgmstream->sample_rate, block_size, 0);
-                if (!vgmstream->codec_data) goto fail;
                 vgmstream->coding_type = coding_FFmpeg;
                 vgmstream->layout_type = layout_none;
 
                 vgmstream->num_samples = msd.num_samples; /* also at 0x58(v4)/0x5C(v5) for XMA1, but unreliable? */
                 vgmstream->loop_start_sample = msd.loop_start_sample;
                 vgmstream->loop_end_sample = msd.loop_end_sample;
+
+                vgmstream->codec_data = is_xma1
+                    ? init_ffmpeg_xma1_raw(sf, start_offset, stream_size, vgmstream->channels, vgmstream->sample_rate, 0)
+                    : init_ffmpeg_xma2_raw(sf, start_offset, stream_size, vgmstream->num_samples, vgmstream->channels, vgmstream->sample_rate, block_size, 0);
+                if (!vgmstream->codec_data) goto fail;
             }
 
             xma_fix_raw_samples_ch(vgmstream, sf, start_offset, stream_size, channel_count, 1,1);
