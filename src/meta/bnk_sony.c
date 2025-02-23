@@ -724,8 +724,10 @@ static bool process_names(STREAMFILE* sf, bnk_header_t* h) {
                 /* searches the chunk until it finds the target name/index, or breaks at empty name */
                 while (read_u8(stream_name_offset, sf)) {
                     /* in case it goes somewhere out of bounds unexpectedly */
-                    if (((read_u8(stream_name_offset + 0x00, sf) + read_u8(stream_name_offset + 0x04, sf) +
-                          read_u8(stream_name_offset + 0x08, sf) + read_u8(stream_name_offset + 0x0C, sf)) & 0x1F) != i)
+                    if (((read_u8(stream_name_offset + 0x00, sf)
+                        + read_u8(stream_name_offset + 0x04, sf)
+                        + read_u8(stream_name_offset + 0x08, sf)
+                        + read_u8(stream_name_offset + 0x0C, sf)) & 0x1F) != i)
                         goto fail;
                     if (read_u16(stream_name_offset + 0x10, sf) == table4_entry_id) {
                         read_string(h->stream_name, STREAM_NAME_SIZE, stream_name_offset, sf);
@@ -735,7 +737,7 @@ static bool process_names(STREAMFILE* sf, bnk_header_t* h) {
                     stream_name_offset += 0x14;
                 }
             }
-            //goto fail; /* didn't find any valid index? */
+            goto fail; /* didn't find any valid index? */
         loop_break:
             break;
 
