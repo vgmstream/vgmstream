@@ -473,9 +473,10 @@ typedef struct {
 
 vorbis_custom_codec_data* init_vorbis_custom(STREAMFILE* sf, off_t start_offset, vorbis_custom_t type, vorbis_custom_config* config);
 bool decode_vorbis_custom_frame(VGMSTREAM* v);
-void reset_vorbis_custom(VGMSTREAM* vgmstream);
-void seek_vorbis_custom(VGMSTREAM* vgmstream, int32_t num_sample);
+void reset_vorbis_custom(VGMSTREAM* v);
+void seek_vorbis_custom(VGMSTREAM* v, int32_t num_sample);
 void free_vorbis_custom(vorbis_custom_codec_data* data);
+int32_t vorbis_custom_get_samples(VGMSTREAM* v);
 #endif
 
 typedef struct {

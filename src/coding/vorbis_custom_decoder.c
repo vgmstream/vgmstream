@@ -235,4 +235,32 @@ void seek_vorbis_custom(VGMSTREAM* v, int32_t num_sample) {
         v->loop_ch[0].offset = v->loop_ch[0].channel_start_offset;
 }
 
+int32_t vorbis_custom_get_samples(VGMSTREAM* v) {
+    vorbis_custom_codec_data* data = v->codec_data;
+
+    //TODO improve (would need to change a bunch)
+    VGMSTREAMCHANNEL* stream = &v->ch[0];
+    uint32_t temp = stream->offset;
+
+    // read packets + sum samples (info from revorb: https://yirkha.fud.cz/progs/foobar2000/revorb.cpp)
+    int prev_blocksize = 0;
+    int32_t samples = 0;
+    while (true) {
+        bool ok = read_packet(v);
+        if (!ok || data->op.bytes == 0) //EOF probably
+            break;
+
+        // get blocksize (somewhat similar to samples-per-frame, but must be adjusted)
+        int blocksize = vorbis_packet_blocksize(&data->vi, &data->op);
+        if (prev_blocksize)
+            samples += (prev_blocksize + blocksize) / 4;
+        prev_blocksize = blocksize;
+    }
+
+    reset_vorbis_custom(v);
+    stream->offset = temp;
+
+    return samples;
+}
+
 #endif

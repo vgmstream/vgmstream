@@ -48,6 +48,12 @@ VGMSTREAM* init_vgmstream_oor(STREAMFILE* sf) {
 
     if (!vgmstream_open_stream(vgmstream, sf, start_offset))
         goto fail;
+
+    //TODO: improve
+    // v0 files don't set last granule (must be done after opening streamfiles)
+    if (!cfg.last_granule)
+        vgmstream->num_samples = vorbis_custom_get_samples(vgmstream);
+
     return vgmstream;
 fail:
     free_vorbis_custom(data);
@@ -55,8 +61,7 @@ fail:
     return NULL;
 }
 
-// OOR is bitpacked but try to determine if bytes look like a .oor
-// (will fail later if we picked a wrong candidate)
+// OOR is bitpacked but try to determine if bytes look like a .oor (will fail later if we picked a wrong candidate).
 static bool is_oor(STREAMFILE* sf) {
     static uint8_t empty_granule[0x09];
     uint8_t data[0x10] = {0};
