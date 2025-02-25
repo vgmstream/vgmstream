@@ -102,8 +102,6 @@
     <ClInclude Include="coding\coding_utils_samples.h" />
     <ClInclude Include="coding\g72x_state.h" />
     <ClInclude Include="coding\mpeg_decoder.h" />
-    <ClInclude Include="coding\vorbis_custom_data_fsb.h" />
-    <ClInclude Include="coding\vorbis_custom_data_wwise.h" />
     <ClInclude Include="coding\vorbis_custom_decoder.h" />
     <ClInclude Include="coding\libs\circus_vq_data.h" />
     <ClInclude Include="coding\libs\circus_vq_lib.h" />
@@ -125,7 +123,9 @@
     <ClInclude Include="coding\libs\tac_lib.h" />
     <ClInclude Include="coding\libs\tac_ops.h" />
     <ClInclude Include="coding\libs\utkdec.h" />
+    <ClInclude Include="coding\libs\vorbis_codebooks_fsb.h" />
     <ClInclude Include="coding\libs\vorbis_codebooks_oor.h" />
+    <ClInclude Include="coding\libs\vorbis_codebooks_wwise.h" />
     <ClInclude Include="layout\layout.h" />
     <ClInclude Include="meta\9tav_streamfile.h" />
     <ClInclude Include="meta\adx_keys.h" />
@@ -210,6 +210,7 @@
     <ClInclude Include="util\sf_utils.h" />
     <ClInclude Include="util\text_reader.h" />
     <ClInclude Include="util\vgmstream_limits.h" />
+    <ClInclude Include="util\vorbis_codebooks.h" />
     <ClInclude Include="util\zlib_vgmstream.h" />
   </ItemGroup>
   <ItemGroup>
@@ -830,6 +831,7 @@
     <ClCompile Include="util\reader.c" />
     <ClCompile Include="util\sf_utils.c" />
     <ClCompile Include="util\text_reader.c" />
+    <ClCompile Include="util\vorbis_codebooks.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />

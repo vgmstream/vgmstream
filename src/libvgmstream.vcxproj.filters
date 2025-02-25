@@ -140,12 +140,6 @@
     <ClInclude Include="coding\mpeg_decoder.h">
       <Filter>coding\Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="coding\vorbis_custom_data_fsb.h">
-      <Filter>coding\Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="coding\vorbis_custom_data_wwise.h">
-      <Filter>coding\Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="coding\vorbis_custom_decoder.h">
       <Filter>coding\Header Files</Filter>
     </ClInclude>
@@ -209,7 +203,13 @@
     <ClInclude Include="coding\libs\utkdec.h">
       <Filter>coding\libs\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="coding\libs\vorbis_codebooks_fsb.h">
+      <Filter>coding\libs\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="coding\libs\vorbis_codebooks_oor.h">
+      <Filter>coding\libs\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="coding\libs\vorbis_codebooks_wwise.h">
       <Filter>coding\libs\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="layout\layout.h">
@@ -462,6 +462,9 @@
       <Filter>util\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="util\vgmstream_limits.h">
+      <Filter>util\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="util\vorbis_codebooks.h">
       <Filter>util\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="util\zlib_vgmstream.h">
@@ -2318,6 +2321,9 @@
       <Filter>util\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="util\text_reader.c">
+      <Filter>util\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="util\vorbis_codebooks.c">
       <Filter>util\Source Files</Filter>
     </ClCompile>
   </ItemGroup>

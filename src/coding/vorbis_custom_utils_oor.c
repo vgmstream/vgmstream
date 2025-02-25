@@ -2,26 +2,13 @@
 
 #ifdef VGM_USE_VORBIS
 #include <vorbis/codec.h>
-#include "libs/vorbis_codebooks_oor.h"
 #include "libs/oor_helpers.h"
 
+// if enabled vgmstream weights ~20kb more
+#ifndef VGM_DISABLE_CODEBOOKS
+#include "libs/vorbis_codebooks_oor.h"
+#endif
 
-static int load_codebook_array(uint8_t* buf, size_t buf_size, uint32_t setup_id, const ovs_info_t* list, int list_length, STREAMFILE* sf) {
-
-    for (int i = 0; i < list_length; i++) {
-
-        if (list[i].id != setup_id)
-            continue;
-        if (list[i].size > buf_size) // can't handle
-            return 0;
-
-        // found: copy data as-is
-        memcpy(buf, list[i].setup, list[i].size);
-        return list[i].size;
-    }
-
-    return 0;
-}
 
 
 // read current page's info and save it to persist between decode calls
@@ -190,12 +177,13 @@ static int build_header_setup(uint8_t* buf, int buf_size, vorbis_custom_codec_da
     // read actual codebook based on prev mini-packet
     int setup_size;
     if (setup.codebook_id) {
+#ifndef VGM_DISABLE_CODEBOOKS
         // load setup from data in executables
-        int list_length = sizeof(ovs_list) / sizeof(ovs_info_t);
-
-        setup_size = load_codebook_array(buf + 0x07, buf_size - 0x07, setup.codebook_id, ovs_list, list_length, sf);
+        setup_size = vcb_load_codebook_array(buf + 0x07, buf_size - 0x07, setup.codebook_id, vcb_list, vcb_list_count);
         if (!setup_size) return 0;
-
+#else
+        setup_size = 0;
+#endif
         // next packet is always 0 when codebook id is set
         int empty_size = read_packet(buf + 0x07 + setup_size, buf_size - 0x07 - setup_size, data, sf, p_offset);
         if (empty_size != 0) return 0;
