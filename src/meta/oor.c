@@ -42,9 +42,6 @@ VGMSTREAM* init_vgmstream_oor(STREAMFILE* sf) {
     vgmstream->coding_type = coding_VORBIS_custom;
     vgmstream->codec_data = data;
     data = NULL;
-#else
-    goto fail;
-#endif
 
     if (!vgmstream_open_stream(vgmstream, sf, start_offset))
         goto fail;
@@ -53,6 +50,9 @@ VGMSTREAM* init_vgmstream_oor(STREAMFILE* sf) {
     // v0 files don't set last granule (must be done after opening streamfiles)
     if (!cfg.last_granule)
         vgmstream->num_samples = vorbis_custom_get_samples(vgmstream);
+#else
+    goto fail;
+#endif
 
     return vgmstream;
 fail:

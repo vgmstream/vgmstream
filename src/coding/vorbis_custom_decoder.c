@@ -229,7 +229,7 @@ void seek_vorbis_custom(VGMSTREAM* v, int32_t num_sample) {
 
     /* Seeking is provided by the Ogg layer, so with custom vorbis we'd need seek tables instead.
      * To avoid having to parse different formats we'll just discard until the expected sample */
-    vorbis_synthesis_restart(&data->vd);
+    reset_vorbis_custom(v);
     data->current_discard = num_sample;
     if (v->loop_ch)
         v->loop_ch[0].offset = v->loop_ch[0].channel_start_offset;
