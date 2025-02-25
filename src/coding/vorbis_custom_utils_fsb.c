@@ -32,11 +32,13 @@ static int load_fvs_array(uint8_t* buf, size_t bufsize, uint32_t setup_id, STREA
  *  fsb-vorbis-extractor (https://github.com/tmiasko/fsb-vorbis-extractor).
  */
 int vorbis_custom_setup_init_fsb(STREAMFILE* sf, off_t start_offset, vorbis_custom_codec_data* data) {
-    vorbis_custom_config cfg = data->config;
+    vorbis_custom_config* cfg = &data->config;
 
-    load_blocksizes(&cfg, 256, 2048); /* FSB default */
+    // load FSB default blocksizes
+    cfg->blocksize_0_exp = vorbis_get_blocksize_exp(2048); //long
+    cfg->blocksize_1_exp = vorbis_get_blocksize_exp(256); //short
 
-    data->op.bytes = build_header_identification(data->buffer, data->buffer_size, &cfg);
+    data->op.bytes = build_header_identification(data->buffer, data->buffer_size, cfg);
     if (vorbis_synthesis_headerin(&data->vi, &data->vc, &data->op) != 0) /* identification packet */
         goto fail;
 
@@ -44,7 +46,7 @@ int vorbis_custom_setup_init_fsb(STREAMFILE* sf, off_t start_offset, vorbis_cust
     if (vorbis_synthesis_headerin(&data->vi, &data->vc, &data->op) != 0) /* comment packet */
         goto fail;
 
-    data->op.bytes = build_header_setup(data->buffer, data->buffer_size, cfg.setup_id, sf);
+    data->op.bytes = build_header_setup(data->buffer, data->buffer_size, cfg->setup_id, sf);
     if (vorbis_synthesis_headerin(&data->vi, &data->vc, &data->op) != 0) /* setup packet */
         goto fail; 
 

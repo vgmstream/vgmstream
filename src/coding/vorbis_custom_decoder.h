@@ -64,8 +64,9 @@ int vorbis_custom_parse_packet_oor(VGMSTREAMCHANNEL* stream, vorbis_custom_codec
 /* other utils to make/parse vorbis stuff */
 int build_header_comment(uint8_t* buf, int bufsize);
 int build_header_identification(uint8_t* buf, int bufsize, vorbis_custom_config* cfg);
-void load_blocksizes(vorbis_custom_config* cfg, int blocksize_short, int blocksize_long);
+int vorbis_get_blocksize_exp(int blocksize);
 bool load_header_packet(STREAMFILE* sf, vorbis_custom_codec_data* data, uint32_t packet_size, int packet_skip, uint32_t* p_offset);
+
 
 #endif
 
