@@ -6,17 +6,19 @@
 /* Simple bitreader for MPEG/standard bit style, in 'most significant byte' (MSB) format.
  * Example: with 0x1234 = 00010010 00110100, reading 5b + 6b = 00010 010001
  *  (first upper 5b, then next lower 3b and next upper 3b = 6b)
- * Kept in .h since it's slightly faster (compiler can optimize statics better using default compile flags). */
+ * Kept in .h since it's slightly faster (compiler can optimize statics better using default compile flags).
+ * Assumes bufs aren't that big (probable max ~0x20000000)
+ */
 
 typedef struct {
-    uint8_t* buf;           /* buffer to read/write */
-    size_t bufsize;         /* max size */
-    size_t b_max;           /* max size in bits */
-    uint32_t b_off;         /* current offset in bits inside buffer */
+    uint8_t* buf;           // buffer to read/write
+    uint32_t bufsize;       // max size
+    uint32_t b_max;         // max size in bits
+    uint32_t b_off;         // current offset in bits inside buffer
 } bitstream_t;
 
 /* convenience util */
-static inline void bm_setup(bitstream_t* bs, uint8_t* buf, size_t bufsize) {
+static inline void bm_setup(bitstream_t* bs, uint8_t* buf, uint32_t bufsize) {
     bs->buf = buf;
     bs->bufsize = bufsize;
     bs->b_max = bufsize * 8;
@@ -134,6 +136,14 @@ fail:
     //VGM_LOG("BITREADER: read fail\n");
     *value = 0;
     return 0;
+}
+
+static inline uint32_t bm_read(bitstream_t* ib, uint32_t bits) {
+    uint32_t value;
+    int res = bm_get(ib, bits, &value);
+    if (!res)
+        return 0;
+    return value;
 }
 
 /* Write bits (max 32) to buf and update the bit offset. Order is BE (MSB). */

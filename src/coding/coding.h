@@ -438,6 +438,7 @@ typedef enum {
     VORBIS_SK,          /* Silicon Knights AUD: "OggS" replaced by "SK" */
     VORBIS_VID1,        /* Neversoft VID1: custom packet blocks/headers */
     VORBIS_AWC,         /* Rockstar AWC: custom packet blocks/headers */
+    VORBIS_OOR,         /* Age .OOR: custom bitpacked pages (custom header + setup) */
 } vorbis_custom_t;
 
 /* config for Wwise Vorbis (3 types for flexibility though not all combinations exist) */
@@ -466,6 +467,7 @@ typedef struct {
 
     /* output (kinda ugly here but to simplify) */
     off_t data_start_offset;
+    int64_t last_granule;
 
 } vorbis_custom_config;
 

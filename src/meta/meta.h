@@ -1028,4 +1028,6 @@ VGMSTREAM* init_vgmstream_shaa(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_undefind(STREAMFILE* sf);
 
+VGMSTREAM* init_vgmstream_oor(STREAMFILE* sf);
+
 #endif

@@ -191,6 +191,9 @@
     <ClInclude Include="coding\libs\ongakukan_adp_lib.h">
       <Filter>coding\libs\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="coding\libs\oor_helpers.h">
+      <Filter>coding\libs\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="coding\libs\relic_lib.h">
       <Filter>coding\libs\Header Files</Filter>
     </ClInclude>
@@ -204,6 +207,9 @@
       <Filter>coding\libs\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="coding\libs\utkdec.h">
+      <Filter>coding\libs\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="coding\libs\vorbis_codebooks_oor.h">
       <Filter>coding\libs\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="layout\layout.h">
@@ -763,6 +769,9 @@
     <ClCompile Include="coding\vorbis_custom_utils_ogl.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="coding\vorbis_custom_utils_oor.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="coding\vorbis_custom_utils_sk.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
@@ -818,6 +827,9 @@
       <Filter>coding\libs\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\libs\ongakukan_adp_lib.c">
+      <Filter>coding\libs\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\libs\oor_helpers.c">
       <Filter>coding\libs\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\libs\relic_lib.c">
@@ -1658,6 +1670,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\omu.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\oor.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\opus.c">

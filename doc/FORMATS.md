@@ -190,7 +190,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Sony VAG header [*VAG*]
   - Acclaim Austin AAAp header [*AAAP*]
   - Sony VAG footer [*VAG_footer*]
-  - *vag*: `.vag .swag .str .vig .l .r .vas .xa2 .snd .svg .(extensionless) .wav .lwav`
+  - *vag*: `.vag .swag .str .vig .l .r .vas .xa2 .snd .svg .(extensionless) .wav .lwav .msv`
   - *vag_aaap*: `.vag`
   - *vag_footer*: `.(extensionless) .vag`
   - *vag_evolution_games*: `.vag`
@@ -802,7 +802,7 @@ different internally (encrypted, different versions, etc) and not always can be 
 - **baf.c**
   - Bizarre Creations .baf header [*BAF*]
   - *baf*: `.baf`
-  - Codecs: PCM16LE PSX_cfg XMA1
+  - Codecs: PCM16BE PCM16LE PSX_cfg XMA1 XMA2
 - **msf.c**
   - Sony MSF header [*MSF*]
   - *msf*: `.msf .msa .at3 .mp3 .str .snd`
@@ -1843,13 +1843,17 @@ different internally (encrypted, different versions, etc) and not always can be 
   - *axhd*: `.xhd + .xbd`
   - Codecs: PCM16LE XBOX_IMA
 - **shaa.c**
-  - Nintendo Alarmo SHAA header [*SHAA*]
+  - Nintendo SHAA header [*SHAA*]
   - *shaa*: `.shaa .shsa`
   - Codecs: PCM16LE NGC_DSP
 - **undefind.c**
   - (container)
   - *undefind*: `.paf`
     - Subfiles: *fsb fsb5*
+- **oor.c**
+  - age .OOR header [*OOR*]
+  - *oor*: `.oor`
+  - Codecs: VORBIS_custom
 - **agsc.c**
   - Retro Studios AGSC header [*AGSC*]
   - *agsc*: `.agsc`
