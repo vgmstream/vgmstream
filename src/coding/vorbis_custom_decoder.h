@@ -8,7 +8,7 @@
 #ifdef VGM_USE_VORBIS
 #include <vorbis/codec.h>
 
-#define MAX_PACKET_SIZES 128 // max 256 in theory, observed max is ~65
+#define MAX_PACKET_SIZES 160 // max 256 in theory, observed max is ~65, rarely ~130 in 
 
 /* custom Vorbis without Ogg layer */
 struct vorbis_custom_codec_data {
