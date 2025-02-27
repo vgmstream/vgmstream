@@ -1,6 +1,7 @@
 #include "api_internal.h"
 #include "mixing.h"
 #include "render.h"
+#include "../util/log.h"
 
 
 static bool reset_buf(libvgmstream_priv_t* priv) {
@@ -46,15 +47,16 @@ static void update_buf(libvgmstream_priv_t* priv, int samples_done) {
     priv->buf.bytes = samples_done * priv->buf.sample_size * priv->buf.channels;
     //priv->buf.consumed = 0; //external
 
+    // mark done if this buf reached EOF
     if (!priv->pos.play_forever) {
-        priv->decode_done = (priv->pos.current >= priv->pos.play_samples);
         priv->pos.current += samples_done;
+        priv->decode_done = (priv->pos.current >= priv->pos.play_samples);
     }
 }
 
 
 // update decoder info based on last render, though at the moment it's all fixed
-static void update_decoder_info(libvgmstream_priv_t* priv, int samples_done) {
+static void update_decoder_info(libvgmstream_priv_t* priv) {
 
     // output copy
     priv->dec.buf = priv->buf.data;
@@ -91,7 +93,7 @@ LIBVGMSTREAM_API int libvgmstream_render(libvgmstream_t* lib) {
 
     int decoded = render_main(&ssrc, priv->vgmstream);
     update_buf(priv, decoded);
-    update_decoder_info(priv, decoded);
+    update_decoder_info(priv);
 
     return LIBVGMSTREAM_OK;
 }
@@ -168,6 +170,10 @@ LIBVGMSTREAM_API void libvgmstream_seek(libvgmstream_t* lib, int64_t sample) {
     seek_vgmstream(priv->vgmstream, sample);
 
     priv->pos.current = priv->vgmstream->pstate.play_position;
+
+    // update flags just in case
+    update_buf(priv, 0);
+    update_decoder_info(priv);
 }
 
 

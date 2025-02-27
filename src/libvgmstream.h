@@ -216,6 +216,7 @@ LIBVGMSTREAM_API void libvgmstream_close_stream(libvgmstream_t* lib);
 
 /* Decodes next batch of samples
  * - vgmstream supplies its own buffer, updated on lib->decoder->* values (may change between calls)
+ * - on last call will return samples + set flag lib->decoder->done (must handle last buf before quitting)
  * - returns < 0 on error
  */
 LIBVGMSTREAM_API int libvgmstream_render(libvgmstream_t* lib);
