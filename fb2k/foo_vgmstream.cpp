@@ -267,11 +267,13 @@ void input_vgmstream::put_info_details(file_info& p_info, vgmstream_info_t& v_in
     }
     */
 
+    /*
     // for >2ch foobar writes info like "Channels - 8: FL FR FC LFE BL BR FCL FCR", which may be undesirable?
     if (v_info.channel_layout > 0) {
         // there is info_set_channels_ex in newer SDKs too
         p_info.info_set_wfx_chanMask(v_info.channel_layout);
     }
+    */
 
     //if (v_info.interleave > 0) p_info.info_set("interleave", v_info.interleave);
     //if (v_info.interleave_last > 0) p_info.info_set("interleave_last_block", v_info.interleave_last);
@@ -308,7 +310,7 @@ void input_vgmstream::decode_initialize(t_uint32 p_subsong, unsigned p_flags, ab
     //decode_seek(0, p_abort);
 };
 
-// called when audio buffer needs to be filled
+// called when audio buffer needs to be filled, returns false on EOF
 bool input_vgmstream::decode_run(audio_chunk & p_chunk, abort_callback & p_abort) {
     if (!decoding)
         return false;
@@ -320,8 +322,23 @@ bool input_vgmstream::decode_run(audio_chunk & p_chunk, abort_callback & p_abort
         return false; /* EOF last call */
     }
 
-    int err = libvgmstream_render(vgmstream);
-    if (err < 0) return false;
+    int calls = 0;
+    while (true) {
+        int err = libvgmstream_render(vgmstream);
+        if (err < 0) return false;
+
+        // vgmstream can return 0 on certain cases, but foobar/p_chunk can't handle this
+        // and will throw an error ('return true' without updating p_chunk will result on repeated samples)
+        if (vgmstream->decoder->buf_samples != 0)
+            break;
+
+        // a few 0s may be normal
+        calls++;
+        if (calls > 1000) {
+            console::formatter() << "vgmstream render deadlock found";
+            return false;
+        }
+    }
 
     int sample_rate = vgmstream->format->sample_rate;
     int channels = vgmstream->format->channels;
@@ -334,10 +351,6 @@ bool input_vgmstream::decode_run(audio_chunk & p_chunk, abort_callback & p_abort
     void* buf = vgmstream->decoder->buf;
     t_size bytes = vgmstream->decoder->buf_bytes;
 
-    // normally not needed during playback but "convert to wav" may error without it?
-    if (bytes == 0) {
-        return true;
-    }
 
     switch (vgmstream->format->sample_format) {
         case LIBVGMSTREAM_SFMT_FLOAT:
@@ -350,7 +363,7 @@ bool input_vgmstream::decode_run(audio_chunk & p_chunk, abort_callback & p_abort
             break;
     }
 
-    return true; /* decoded in this call (sample_buffer or less) */
+    return true; // decoded and p_chunk is properly set
 }
 
 // called when seeking
