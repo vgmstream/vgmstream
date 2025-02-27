@@ -81,8 +81,6 @@ class input_vgmstream : public input_stubs {
         t_uint32 subsong;
         bool direct_subsong;
 
-        bool decoding;
-
         /* settings */
         double fade_seconds;
         double fade_delay_seconds;

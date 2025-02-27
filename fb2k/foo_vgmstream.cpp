@@ -44,8 +44,6 @@ input_vgmstream::input_vgmstream() {
     subsong = 0; // 0 = not set, will be properly changed on first setup_vgmstream
     direct_subsong = false;
 
-    decoding = false;
-
     fade_seconds = 10.0;
     fade_delay_seconds = 0.0;
     loop_count = 2.0;
@@ -305,32 +303,31 @@ void input_vgmstream::decode_initialize(t_uint32 p_subsong, unsigned p_flags, ab
         setup_vgmstream(p_abort);
     }
 
-    decoding = true;
-
     //decode_seek(0, p_abort);
 };
 
 // called when audio buffer needs to be filled, returns false on EOF
 bool input_vgmstream::decode_run(audio_chunk & p_chunk, abort_callback & p_abort) {
-    if (!decoding)
-        return false;
     if (!vgmstream)
         return false;
 
-    if (vgmstream->decoder->done) {
-        decoding = false;
-        return false; /* EOF last call */
-    }
+    if (vgmstream->decoder->done)
+        return false; // EOF
 
     int calls = 0;
     while (true) {
         int err = libvgmstream_render(vgmstream);
         if (err < 0) return false;
 
-        // vgmstream can return 0 on certain cases, but foobar/p_chunk can't handle this
-        // and will throw an error ('return true' without updating p_chunk will result on repeated samples)
+        // vgmstream may return 0 on rare cases, but foobar/p_chunk can't handle this and will
+        // throw an error (it handles bufs of few samples so it could be considered a bug on their part).
+        // 'return true' without updating p_chunk will result on repeated samples (re-reads last p_chunk).
         if (vgmstream->decoder->buf_samples != 0)
             break;
+
+        // 0 samples and done = EOF
+        if (vgmstream->decoder->done) 
+            return false;
 
         // a few 0s may be normal
         calls++;
@@ -346,11 +343,9 @@ bool input_vgmstream::decode_run(audio_chunk & p_chunk, abort_callback & p_abort
     if (!channel_config)
         channel_config = audio_chunk::g_guess_channel_config(channels);
 
-
     int bps = vgmstream->format->sample_size * 8;
     void* buf = vgmstream->decoder->buf;
     t_size bytes = vgmstream->decoder->buf_bytes;
-
 
     switch (vgmstream->format->sample_format) {
         case LIBVGMSTREAM_SFMT_FLOAT:
@@ -379,8 +374,6 @@ void input_vgmstream::decode_seek(double p_seconds, abort_callback& p_abort) {
         seek_sample = play_samples;
 
     libvgmstream_seek(vgmstream, seek_sample);
-
-    decoding = play_forever || !vgmstream->decoder->done;
 }
 
 bool input_vgmstream::decode_can_seek() { return true; }
