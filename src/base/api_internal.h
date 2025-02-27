@@ -59,7 +59,7 @@ typedef struct {
 } libvgmstream_priv_t;
 
 
-void libvgmstream_priv_reset(libvgmstream_priv_t* priv, bool reset_buf);
+void libvgmstream_priv_reset(libvgmstream_priv_t* priv, bool full);
 libvgmstream_sfmt_t api_get_output_sample_type(libvgmstream_priv_t* priv);
 int api_get_sample_size(libvgmstream_sfmt_t sample_format);
 void api_apply_config(libvgmstream_priv_t* priv);

@@ -4,9 +4,9 @@
 #include <vorbis/codec.h>
 #include "../util/bitstream_lsb.h"
 
-#define WWISE_VORBIS_USE_PRECOMPILED_WVC 1 /* if enabled vgmstream weights ~150kb more but doesn't need external .wvc packets */
-#if WWISE_VORBIS_USE_PRECOMPILED_WVC
-#include "vorbis_custom_data_wwise.h"
+// if enabled vgmstream weights ~150kb more but doesn't need external packets
+#ifndef VGM_DISABLE_CODEBOOKS
+#include "libs/vorbis_codebooks_wwise.h"
 #endif
 
 
@@ -30,11 +30,7 @@ static size_t rebuild_setup(uint8_t* obuf, size_t obufsize, wpacket_t* wp, STREA
 static int ww2ogg_generate_vorbis_packet(bitstream_t* ow, bitstream_t* iw, wpacket_t* wp, vorbis_custom_codec_data* data);
 static int ww2ogg_generate_vorbis_setup(bitstream_t* ow, bitstream_t* iw, vorbis_custom_codec_data* data, size_t packet_size, STREAMFILE* sf);
 
-static int load_wvc(uint8_t* ibuf, size_t ibufsize, uint32_t codebook_id, wwise_setup_t setup_type, STREAMFILE* sf);
-#if !(WWISE_VORBIS_USE_PRECOMPILED_WVC)
-static int load_wvc_file(uint8_t* buf, size_t bufsize, uint32_t codebook_id, STREAMFILE* sf);
-#endif
-static int load_wvc_array(uint8_t* buf, size_t bufsize, uint32_t codebook_id, wwise_setup_t setup_type);
+static int load_codebooks(uint8_t* ibuf, size_t ibufsize, uint32_t codebook_id, wwise_setup_t setup_type, STREAMFILE* sf);
 
 
 /* **************************************************************************** */
@@ -676,7 +672,7 @@ static int ww2ogg_codebook_library_rebuild_by_id(bitstream_t* ow, uint32_t codeb
     size_t cb_size;
     bitstream_t iw;
 
-    cb_size = load_wvc(ibuf,ibufsize, codebook_id, setup_type, sf);
+    cb_size = load_codebooks(ibuf,ibufsize, codebook_id, setup_type, sf);
     if (cb_size == 0) goto fail;
 
     bl_setup(&iw, ibuf, ibufsize);
@@ -1083,28 +1079,7 @@ fail:
 /* INTERNAL UTILS                                                               */
 /* **************************************************************************** */
 
-/* loads an external Wwise Vorbis Codebooks file (wvc) referenced by ID and returns size */
-static int load_wvc(uint8_t* ibuf, size_t ibufsize, uint32_t codebook_id, wwise_setup_t setup_type, STREAMFILE* sf) {
-    size_t bytes;
-
-    /* try to locate from the precompiled list */
-    bytes = load_wvc_array(ibuf, ibufsize, codebook_id, setup_type);
-    if (bytes)
-        return bytes;
-
-#if !(WWISE_VORBIS_USE_PRECOMPILED_WVC)
-    /* try to load from external file (ignoring type, just use file if found) */
-    bytes = load_wvc_file(ibuf, ibufsize, codebook_id, sf);
-    if (bytes)
-        return bytes;
-#endif
-
-    /* not found */
-    VGM_LOG("Wwise Vorbis: codebook_id %04x not found\n", codebook_id);
-    return 0;
-}
-
-#if !(WWISE_VORBIS_USE_PRECOMPILED_WVC)
+#ifdef VGM_DISABLE_CODEBOOKS
 static int load_wvc_file(uint8_t* buf, size_t bufsize, uint32_t codebook_id, STREAMFILE* sf) {
     STREAMFILE* sf_setup = NULL;
     size_t wvc_size = 0;
@@ -1149,36 +1124,25 @@ fail:
 }
 #endif
 
-static int load_wvc_array(uint8_t* buf, size_t bufsize, uint32_t codebook_id, wwise_setup_t setup_type) {
-#if WWISE_VORBIS_USE_PRECOMPILED_WVC
+/* loads an external Wwise Vorbis Codebooks file (wvc) referenced by ID and returns size */
+static int load_codebooks(uint8_t* ibuf, size_t ibufsize, uint32_t codebook_id, wwise_setup_t setup_type, STREAMFILE* sf) {
+    int bytes;
 
-    /* get pointer to array */
-    {
-        int i, list_length;
-        const wvc_info * wvc_list;
+#ifndef VGM_DISABLE_CODEBOOKS
 
-        switch (setup_type) {
-            case WWV_EXTERNAL_CODEBOOKS:
-                wvc_list = wvc_list_standard;
-                list_length = sizeof(wvc_list_standard) / sizeof(wvc_info);
-                break;
-            case WWV_AOTUV603_CODEBOOKS:
-                wvc_list = wvc_list_aotuv603;
-                list_length = sizeof(wvc_list_standard) / sizeof(wvc_info);
-                break;
-            default:
-                goto fail;
-        }
-
-        for (i=0; i < list_length; i++) {
-            if (wvc_list[i].id == codebook_id) {
-                if (wvc_list[i].size > bufsize) goto fail;
-                /* found: copy data as-is */
-                memcpy(buf,wvc_list[i].codebook, wvc_list[i].size);
-                return wvc_list[i].size;
-            }
-        }
+    // locate from precompiled list
+    switch (setup_type) {
+        case WWV_EXTERNAL_CODEBOOKS:
+            bytes = vcb_load_codebook_array(ibuf, ibufsize, codebook_id, vcb_list_standard, vcb_list_count_standard);
+            break;
+        case WWV_AOTUV603_CODEBOOKS:
+            bytes = vcb_load_codebook_array(ibuf, ibufsize, codebook_id, vcb_list_aotuv603, vcb_list_count_aotuv603);
+            break;
+        default:
+            return 0;
     }
+    if (bytes)
+        return bytes;
 
     // this can be used with 1:1 dump of the codebook file
 #if 0
@@ -1204,8 +1168,14 @@ static int load_wvc_array(uint8_t* buf, size_t bufsize, uint32_t codebook_id, ww
     }
 #endif
 
-fail:
+#else
+    // load from external files
+    bytes = load_wvc_file(ibuf, ibufsize, codebook_id, sf);
+    if (bytes)
+        return bytes;
 #endif
+
+    VGM_LOG("Wwise Vorbis: codebook_id %04x not found\n", codebook_id);
     return 0;
 }
 

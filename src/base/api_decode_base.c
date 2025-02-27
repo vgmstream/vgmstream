@@ -94,15 +94,18 @@ LIBVGMSTREAM_API void libvgmstream_setup(libvgmstream_t* lib, libvgmstream_confi
 }
 
 
-void libvgmstream_priv_reset(libvgmstream_priv_t* priv, bool reset_buf) {
+void libvgmstream_priv_reset(libvgmstream_priv_t* priv, bool full) {
     //memset(&priv->cfg, 0, sizeof(libvgmstream_config_t)); //config is always valid
-    memset(&priv->fmt, 0, sizeof(libvgmstream_format_t));
-    memset(&priv->dec, 0, sizeof(libvgmstream_decoder_t));
     //memset(&priv->pos, 0, sizeof(libvgmstream_priv_position_t)); //position info is updated on open
-
-    if (reset_buf) {
-        free(priv->buf.data);
+    memset(&priv->dec, 0, sizeof(libvgmstream_decoder_t));
+    
+    if (full) {
+        free(priv->buf.data); //TODO 
         memset(&priv->buf, 0, sizeof(libvgmstream_priv_buf_t));
+        memset(&priv->fmt, 0, sizeof(libvgmstream_format_t));
+    }
+    else {
+        priv->buf.consumed = priv->buf.samples;
     }
 
     priv->pos.current = 0;

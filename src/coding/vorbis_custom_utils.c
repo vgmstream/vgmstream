@@ -1,6 +1,7 @@
 #include "vorbis_custom_decoder.h"
 
 #ifdef VGM_USE_VORBIS
+
 int build_header_comment(uint8_t* buf, int bufsize) {
     int bytes = 0x19;
 
@@ -22,6 +23,7 @@ int build_header_identification(uint8_t* buf, int bufsize, vorbis_custom_config*
     if (bytes > bufsize)
         return 0;
 
+    // long (bigger frames) + short (smaller frames) blocksizes (samples per frame)
     uint8_t blocksizes = (cfg->blocksize_0_exp << 4) | (cfg->blocksize_1_exp);
 
     put_u8   (buf+0x00, 0x01);              /* packet_type (id) */
@@ -46,35 +48,19 @@ bool make_header_identification(vorbis_custom_codec_data* data, vorbis_custom_co
     return true;
 }
 
-void load_blocksizes(vorbis_custom_config* cfg, int blocksize_short, int blocksize_long) {
-    uint8_t exp_blocksize_0, exp_blocksize_1;
-
-    /* guetto log2 for allowed blocksizes (2-exp), could be improved */
-    switch(blocksize_long) {
-        case 64:   exp_blocksize_0 = 6;  break;
-        case 128:  exp_blocksize_0 = 7;  break;
-        case 256:  exp_blocksize_0 = 8;  break;
-        case 512:  exp_blocksize_0 = 9;  break;
-        case 1024: exp_blocksize_0 = 10; break;
-        case 2048: exp_blocksize_0 = 11; break;
-        case 4096: exp_blocksize_0 = 12; break;
-        case 8192: exp_blocksize_0 = 13; break;
-        default:   exp_blocksize_0 = 0;
+// basic log2 for allowed blocksizes (2-exp)
+int vorbis_get_blocksize_exp(int blocksize) {
+    switch(blocksize) {
+        case 64:   return 6;
+        case 128:  return 7;
+        case 256:  return 8;
+        case 512:  return 9;
+        case 1024: return 10;
+        case 2048: return 11;
+        case 4096: return 12;
+        case 8192: return 13;
+        default:   return 0;
     }
-    switch(blocksize_short) {
-        case 64:   exp_blocksize_1 = 6;  break;
-        case 128:  exp_blocksize_1 = 7;  break;
-        case 256:  exp_blocksize_1 = 8;  break;
-        case 512:  exp_blocksize_1 = 9;  break;
-        case 1024: exp_blocksize_1 = 10; break;
-        case 2048: exp_blocksize_1 = 11; break;
-        case 4096: exp_blocksize_1 = 12; break;
-        case 8192: exp_blocksize_1 = 13; break;
-        default:   exp_blocksize_1 = 0;
-    }
-
-    cfg->blocksize_0_exp = exp_blocksize_0;
-    cfg->blocksize_1_exp = exp_blocksize_1;
 }
 
 bool load_header_packet(STREAMFILE* sf, vorbis_custom_codec_data* data, uint32_t packet_size, int packet_skip, uint32_t* p_offset) {
@@ -90,4 +76,5 @@ bool load_header_packet(STREAMFILE* sf, vorbis_custom_codec_data* data, uint32_t
 fail:
     return false;
 }
-#endif/* VGM_USE_VORBIS */
+
+#endif

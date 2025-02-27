@@ -418,6 +418,7 @@ static const char* extension_list[] = {
     "ogv",
     "oma", //FFmpeg/not parsed (ATRAC3/ATRAC3PLUS/MP3/LPCM/WMA)
     "omu",
+    "oor",
     "opu",
     //"opus", //common
     "opusx",
@@ -1470,7 +1471,8 @@ static const meta_info meta_info_list[] = {
         {meta_XABP,                 "cavia XABp header"},
         {meta_I3DS,                 "Codemasters i3DS header"},
         {meta_AXHD,                 "Angel Studios AXHD header"},
-        {meta_SHAA,                 "Nintendo Alarmo SHAA header"}
+        {meta_SHAA,                 "Nintendo SHAA header"},
+        {meta_OOR,                  "age .OOR header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {

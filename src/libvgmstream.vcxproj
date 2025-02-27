@@ -102,8 +102,6 @@
     <ClInclude Include="coding\coding_utils_samples.h" />
     <ClInclude Include="coding\g72x_state.h" />
     <ClInclude Include="coding\mpeg_decoder.h" />
-    <ClInclude Include="coding\vorbis_custom_data_fsb.h" />
-    <ClInclude Include="coding\vorbis_custom_data_wwise.h" />
     <ClInclude Include="coding\vorbis_custom_decoder.h" />
     <ClInclude Include="coding\libs\circus_vq_data.h" />
     <ClInclude Include="coding\libs\circus_vq_lib.h" />
@@ -119,11 +117,15 @@
     <ClInclude Include="coding\libs\libacm.h" />
     <ClInclude Include="coding\libs\nwa_lib.h" />
     <ClInclude Include="coding\libs\ongakukan_adp_lib.h" />
+    <ClInclude Include="coding\libs\oor_helpers.h" />
     <ClInclude Include="coding\libs\relic_lib.h" />
     <ClInclude Include="coding\libs\tac_data.h" />
     <ClInclude Include="coding\libs\tac_lib.h" />
     <ClInclude Include="coding\libs\tac_ops.h" />
     <ClInclude Include="coding\libs\utkdec.h" />
+    <ClInclude Include="coding\libs\vorbis_codebooks_fsb.h" />
+    <ClInclude Include="coding\libs\vorbis_codebooks_oor.h" />
+    <ClInclude Include="coding\libs\vorbis_codebooks_wwise.h" />
     <ClInclude Include="layout\layout.h" />
     <ClInclude Include="meta\9tav_streamfile.h" />
     <ClInclude Include="meta\adx_keys.h" />
@@ -208,6 +210,7 @@
     <ClInclude Include="util\sf_utils.h" />
     <ClInclude Include="util\text_reader.h" />
     <ClInclude Include="util\vgmstream_limits.h" />
+    <ClInclude Include="util\vorbis_codebooks.h" />
     <ClInclude Include="util\zlib_vgmstream.h" />
   </ItemGroup>
   <ItemGroup>
@@ -311,6 +314,7 @@
     <ClCompile Include="coding\vorbis_custom_utils_awc.c" />
     <ClCompile Include="coding\vorbis_custom_utils_fsb.c" />
     <ClCompile Include="coding\vorbis_custom_utils_ogl.c" />
+    <ClCompile Include="coding\vorbis_custom_utils_oor.c" />
     <ClCompile Include="coding\vorbis_custom_utils_sk.c" />
     <ClCompile Include="coding\vorbis_custom_utils_vid1.c" />
     <ClCompile Include="coding\vorbis_custom_utils_wwise.c" />
@@ -330,6 +334,7 @@
     <ClCompile Include="coding\libs\libacm_util.c" />
     <ClCompile Include="coding\libs\nwa_lib.c" />
     <ClCompile Include="coding\libs\ongakukan_adp_lib.c" />
+    <ClCompile Include="coding\libs\oor_helpers.c" />
     <ClCompile Include="coding\libs\relic_lib.c" />
     <ClCompile Include="coding\libs\relic_mixfft.c" />
     <ClCompile Include="coding\libs\tac_lib.c" />
@@ -610,6 +615,7 @@
     <ClCompile Include="meta\ogl.c" />
     <ClCompile Include="meta\ogv_3rdeye.c" />
     <ClCompile Include="meta\omu.c" />
+    <ClCompile Include="meta\oor.c" />
     <ClCompile Include="meta\opus.c" />
     <ClCompile Include="meta\p2bt_move_visa.c" />
     <ClCompile Include="meta\p3d.c" />
@@ -825,6 +831,7 @@
     <ClCompile Include="util\reader.c" />
     <ClCompile Include="util\sf_utils.c" />
     <ClCompile Include="util\text_reader.c" />
+    <ClCompile Include="util\vorbis_codebooks.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />

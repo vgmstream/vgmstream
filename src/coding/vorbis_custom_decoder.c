@@ -52,9 +52,11 @@ vorbis_custom_codec_data* init_vorbis_custom(STREAMFILE* sf, off_t start_offset,
         case VORBIS_SK:     ok = vorbis_custom_setup_init_sk(sf, start_offset, data); break;
         case VORBIS_VID1:   ok = vorbis_custom_setup_init_vid1(sf, start_offset, data); break;
         case VORBIS_AWC:    ok = vorbis_custom_setup_init_awc(sf, start_offset, data); break;
-        default: goto fail;
+        case VORBIS_OOR:    ok = vorbis_custom_setup_init_oor(sf, start_offset, data); break;
+        default:            ok = false; break;
     }
-    if(!ok) goto fail;
+    if(!ok)
+        goto fail;
 
     data->op.b_o_s = 0; /* end of fake headers */
 
@@ -64,6 +66,9 @@ vorbis_custom_codec_data* init_vorbis_custom(STREAMFILE* sf, off_t start_offset,
 
 
     /* write output */
+    config->channels = data->config.channels;
+    config->sample_rate = data->config.sample_rate;
+    config->last_granule = data->config.last_granule;
     config->data_start_offset = data->config.data_start_offset;
 
     if (!data->config.stream_end) {
@@ -96,6 +101,7 @@ static bool read_packet(VGMSTREAM* v) {
         case VORBIS_SK:     ok = vorbis_custom_parse_packet_sk(stream, data); break;
         case VORBIS_VID1:   ok = vorbis_custom_parse_packet_vid1(stream, data); break;
         case VORBIS_AWC:    ok = vorbis_custom_parse_packet_awc(stream, data); break;
+        case VORBIS_OOR:    ok = vorbis_custom_parse_packet_oor(stream, data); break;
         default:            ok = false; break;
     }
 
@@ -207,23 +213,54 @@ void free_vorbis_custom(vorbis_custom_codec_data* data) {
 }
 
 void reset_vorbis_custom(VGMSTREAM* v) {
-    vorbis_custom_codec_data *data = v->codec_data;
+    vorbis_custom_codec_data* data = v->codec_data;
     if (!data) return;
 
     vorbis_synthesis_restart(&data->vd);
     data->current_discard = 0;
+    data->current_packet = 0;
+    data->packet_count = 0;
+    data->flags = 0;
 }
 
 void seek_vorbis_custom(VGMSTREAM* v, int32_t num_sample) {
-    vorbis_custom_codec_data *data = v->codec_data;
+    vorbis_custom_codec_data* data = v->codec_data;
     if (!data) return;
 
     /* Seeking is provided by the Ogg layer, so with custom vorbis we'd need seek tables instead.
      * To avoid having to parse different formats we'll just discard until the expected sample */
-    vorbis_synthesis_restart(&data->vd);
+    reset_vorbis_custom(v);
     data->current_discard = num_sample;
     if (v->loop_ch)
         v->loop_ch[0].offset = v->loop_ch[0].channel_start_offset;
+}
+
+int32_t vorbis_custom_get_samples(VGMSTREAM* v) {
+    vorbis_custom_codec_data* data = v->codec_data;
+
+    //TODO improve (would need to change a bunch)
+    VGMSTREAMCHANNEL* stream = &v->ch[0];
+    uint32_t temp = stream->offset;
+
+    // read packets + sum samples (info from revorb: https://yirkha.fud.cz/progs/foobar2000/revorb.cpp)
+    int prev_blocksize = 0;
+    int32_t samples = 0;
+    while (true) {
+        bool ok = read_packet(v);
+        if (!ok || data->op.bytes == 0) //EOF probably
+            break;
+
+        // get blocksize (somewhat similar to samples-per-frame, but must be adjusted)
+        int blocksize = vorbis_packet_blocksize(&data->vi, &data->op);
+        if (prev_blocksize)
+            samples += (prev_blocksize + blocksize) / 4;
+        prev_blocksize = blocksize;
+    }
+
+    reset_vorbis_custom(v);
+    stream->offset = temp;
+
+    return samples;
 }
 
 #endif
