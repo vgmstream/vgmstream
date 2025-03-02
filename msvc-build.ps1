@@ -154,15 +154,16 @@ function CallMsbuild
         }
     }
     else {
+        Remove-Item "msvc-build*.log" -ErrorAction Ignore
         if ($platform) {
-            & $msbuild $solution $config $platform $toolset $sdk $target /m > "msvc-build.log"
+            & $msbuild $solution $config $platform $toolset $sdk $target /m >> "msvc-build.log"
         }
         else {
-            & $msbuild $solution $config /p:Platform=Win32 $toolset $sdk $target /m > "msvc-build.log"
+            & $msbuild $solution $config /p:Platform=Win32 $toolset $sdk $target /m >> "msvc-build-32.log"
             if ($LASTEXITCODE -ne 0) {
                 throw "MSBuild failed"
             }
-            & $msbuild $solution $config /p:Platform=x64 $toolset $sdk $target /m > "msvc-build.log"
+            & $msbuild $solution $config /p:Platform=x64 $toolset $sdk $target /m >> "msvc-build-64.log"
         }
     }
 
@@ -194,7 +195,7 @@ function Clean
 
     Remove-Item -Path "bin" -Recurse -ErrorAction Ignore
 
-    Remove-Item "msvc-build.log" -ErrorAction Ignore
+    Remove-Item "msvc-build*.log" -ErrorAction Ignore
 }
 
 $cliFiles32 = @(

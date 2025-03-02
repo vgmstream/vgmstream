@@ -21,6 +21,7 @@
 #include <ctype.h>
 #include <math.h>
 #include <stdio.h>
+#include <stdbool.h>
 
 #include "../src/libvgmstream.h"
 #include "sdk/in2.h"

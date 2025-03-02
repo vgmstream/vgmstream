@@ -5,6 +5,7 @@
 #include "mixing.h"
 #include "plugins.h"
 #include "sbuf.h"
+#include "codec_info.h"
 
 #include "../util/log.h"
 #include "decode_state.h"
@@ -38,6 +39,12 @@ void decode_free(VGMSTREAM* vgmstream) {
 
     if (!vgmstream->codec_data)
         return;
+    
+    const codec_info_t* codec_info = codec_get_info(vgmstream);
+    if (codec_info) {
+        codec_info->free(vgmstream->codec_data);
+        return;
+    }
 
 #ifdef VGM_USE_VORBIS
     if (vgmstream->coding_type == coding_OGG_VORBIS) {
@@ -88,10 +95,6 @@ void decode_free(VGMSTREAM* vgmstream) {
 
     if (vgmstream->coding_type == coding_EA_MT) {
         free_ea_mt(vgmstream->codec_data, vgmstream->channels);
-    }
-
-    if (vgmstream->coding_type == coding_KA1A) {
-        free_ka1a(vgmstream->codec_data);
     }
 
 #ifdef VGM_USE_FFMPEG
@@ -162,6 +165,12 @@ void decode_seek(VGMSTREAM* vgmstream) {
     if (!vgmstream->codec_data)
         return;
 
+    const codec_info_t* codec_info = codec_get_info(vgmstream);
+    if (codec_info) {
+        codec_info->seek(vgmstream, vgmstream->loop_current_sample);
+        return;
+    }
+
     if (vgmstream->coding_type == coding_CIRCUS_VQ) {
         seek_circus_vq(vgmstream->codec_data, vgmstream->loop_current_sample);
     }
@@ -201,10 +210,6 @@ void decode_seek(VGMSTREAM* vgmstream) {
 
     if (vgmstream->coding_type == coding_EA_MT) {
         seek_ea_mt(vgmstream, vgmstream->loop_current_sample);
-    }
-
-    if (vgmstream->coding_type == coding_KA1A) {
-        seek_ka1a(vgmstream, vgmstream->loop_current_sample);
     }
 
 #ifdef VGM_USE_VORBIS
@@ -269,6 +274,12 @@ void decode_reset(VGMSTREAM* vgmstream) {
     if (!vgmstream->codec_data)
         return;
 
+    const codec_info_t* codec_info = codec_get_info(vgmstream);
+    if (codec_info) {
+        codec_info->reset(vgmstream->codec_data);
+        return;
+    }
+
 #ifdef VGM_USE_VORBIS
     if (vgmstream->coding_type == coding_OGG_VORBIS) {
         reset_ogg_vorbis(vgmstream->codec_data);
@@ -318,10 +329,6 @@ void decode_reset(VGMSTREAM* vgmstream) {
 
     if (vgmstream->coding_type == coding_EA_MT) {
         reset_ea_mt(vgmstream);
-    }
-
-    if (vgmstream->coding_type == coding_KA1A) {
-        reset_ka1a(vgmstream->codec_data);
     }
 
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
@@ -875,6 +882,7 @@ static void decode_frames(sbuf_t* sdst, VGMSTREAM* vgmstream) {
     decode_state_t* ds = vgmstream->decode_state;
     sbuf_t* ssrc = &ds->sbuf;
 
+    const codec_info_t* codec_info = codec_get_info(vgmstream);
 
     // fill the external buf by decoding N times; may read partially that buf
     while (sdst->filled < sdst->samples) {
@@ -882,21 +890,24 @@ static void decode_frames(sbuf_t* sdst, VGMSTREAM* vgmstream) {
         // decode new frame if prev one was consumed
         if (ssrc->filled == 0) {
             bool ok = false;
-            switch (vgmstream->coding_type) {
-                case coding_KA1A:
-                    ok = decode_ka1a_frame(vgmstream);
-                    break;
-                case coding_CRI_HCA:
-                    ok = decode_hca_frame(vgmstream);
-                    break;
 
-#ifdef VGM_USE_VORBIS
-                case coding_VORBIS_custom:
-                    ok = decode_vorbis_custom_frame(vgmstream);
-                    break;
-#endif
-                default:
-                    goto decode_fail;
+            if (codec_info) {
+                ok = codec_info->decode_frame(vgmstream);
+            }
+            else {
+                switch (vgmstream->coding_type) {
+                    case coding_CRI_HCA:
+                        ok = decode_hca_frame(vgmstream);
+                        break;
+
+    #ifdef VGM_USE_VORBIS
+                    case coding_VORBIS_custom:
+                        ok = decode_vorbis_custom_frame(vgmstream);
+                        break;
+    #endif
+                    default:
+                        goto decode_fail;
+                }
             }
 
             if (!ok)

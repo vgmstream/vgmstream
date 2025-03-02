@@ -8,7 +8,7 @@ VGMSTREAM* init_vgmstream_lp_ap_lep(STREAMFILE* sf) {
     STREAMFILE* temp_sf = NULL;
     off_t start_offset;
     int loop_flag, channels, sample_rate, interleave;
-    int32_t data_size, loop_start; 
+    uint32_t data_size, loop_start, loop_end;
     uint32_t id;
 
 
@@ -25,23 +25,47 @@ VGMSTREAM* init_vgmstream_lp_ap_lep(STREAMFILE* sf) {
     switch (id) {
         case 0x41502020: /* "AP  " */
         case 0x4C502020: /* "LP  " */
+            data_size   = read_u32le(0x04,sf); // end offset after header
             sample_rate = read_u32le(0x08,sf);
             interleave  = read_u32le(0x0c,sf);
-            loop_start  = read_u32le(0x14,sf);
-            data_size   = read_u32le(0x18,sf);
-            start_offset = read_u32le(0x1C,sf);
+            // 10: pan/volume?
+            loop_start  = read_u32le(0x14,sf); // absolute
+            loop_end    = read_u32le(0x18,sf); // end offset after header
+            start_offset= read_u32le(0x1C,sf); // after header
+
+            // tweak values considering (applies to both PS-ADPCM and PCM):
+            // - start_offset with PCM starts 0x20 before data, so must be after header (not a blank frame)
+            // - end offset after 0x20 usually ends when padding (0xFF) starts
+            // - loop end is usually the same except in PCM
+            // - loop start is always aligned to 0x800 (meaning no loop/0 uses 0x800 w/ start offset 0x7E0 + 0x20)
+            // * in PS-ADPCM start after header points to a regular frame, a bit odd since PS-ADPCM should start with blank frames
+            //   but correct as LEP starts at 0x800 without them
+            start_offset += 0x20;
+            data_size += 0x20;
+            loop_end += 0x20;
+            data_size -= start_offset;
+            loop_end -= start_offset;
+            loop_start -= start_offset;
             break;
 
-        case 0x4C455020: /* "LEP " */
-            data_size   = read_u32le(0x08,sf);
+        case 0x4C455020: /* "LEP " (memory data?) */
+            // 04: config?
+            data_size   = read_u32le(0x08,sf); // within stream
+            // 10: pan/volume?
             sample_rate = read_u16le(0x12,sf);
-            loop_start  = read_u32le(0x58,sf);
+            loop_start  = read_u32le(0x58,sf); // within stream?
+            // 5c: loop start?
+            // 60+: related to loop?
+
+            // not sure if loops are absolute, but since values are not 0x800-aligned like AP/LP assuming it's not
+
+            loop_end = data_size;
             interleave  = 0x10;
             start_offset = 0x800;
             break;
 
         default:
-            goto fail;
+            return NULL;
     }
 
     loop_flag = loop_start != 0;
@@ -61,9 +85,9 @@ VGMSTREAM* init_vgmstream_lp_ap_lep(STREAMFILE* sf) {
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = interleave;
 
-            vgmstream->num_samples = pcm_bytes_to_samples(data_size, channels, 16);
-            vgmstream->loop_start_sample = pcm_bytes_to_samples(loop_start, channels, 16);
-            vgmstream->loop_end_sample = vgmstream->num_samples;
+            vgmstream->num_samples = pcm16_bytes_to_samples(data_size, channels);
+            vgmstream->loop_start_sample = pcm16_bytes_to_samples(loop_start, channels);
+            vgmstream->loop_end_sample = pcm16_bytes_to_samples(loop_end, channels);
 
             temp_sf = setup_lp_streamfile(sf, start_offset); /* encrypted/obfuscated PCM */
             if (!temp_sf) goto fail;
@@ -77,7 +101,7 @@ VGMSTREAM* init_vgmstream_lp_ap_lep(STREAMFILE* sf) {
 
             vgmstream->num_samples = ps_bytes_to_samples(data_size, channels);
             vgmstream->loop_start_sample = ps_bytes_to_samples(loop_start, channels);
-            vgmstream->loop_end_sample = vgmstream->num_samples;
+            vgmstream->loop_end_sample = ps_bytes_to_samples(loop_end, channels);
             break;
 
         default:

@@ -90,6 +90,7 @@
     <ClInclude Include="vgmstream_init.h" />
     <ClInclude Include="vgmstream_types.h" />
     <ClInclude Include="base\api_internal.h" />
+    <ClInclude Include="base\codec_info.h" />
     <ClInclude Include="base\decode.h" />
     <ClInclude Include="base\decode_state.h" />
     <ClInclude Include="base\mixer.h" />
@@ -226,6 +227,7 @@
     <ClCompile Include="base\api_libsf.c" />
     <ClCompile Include="base\api_libsf_cache.c" />
     <ClCompile Include="base\api_tags.c" />
+    <ClCompile Include="base\codec_info.c" />
     <ClCompile Include="base\decode.c" />
     <ClCompile Include="base\info.c" />
     <ClCompile Include="base\mixer.c" />

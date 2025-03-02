@@ -104,6 +104,9 @@
     <ClInclude Include="base\api_internal.h">
       <Filter>base\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="base\codec_info.h">
+      <Filter>base\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="base\decode.h">
       <Filter>base\Header Files</Filter>
     </ClInclude>
@@ -506,6 +509,9 @@
       <Filter>base\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="base\api_tags.c">
+      <Filter>base\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="base\codec_info.c">
       <Filter>base\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="base\decode.c">

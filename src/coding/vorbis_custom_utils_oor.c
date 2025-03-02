@@ -30,9 +30,9 @@ static int read_page_info(vorbis_custom_codec_data* data, STREAMFILE* sf, uint32
     oor_page_t page = {0};
     oor_size_t size = {0};
 
-    read_oor_page(is, &page);
-    read_oor_size(is, &size);
-    if (!validate_audio_page(&page, &size, NULL))
+    oor_read_page(is, &page);
+    oor_read_size(is, &size);
+    if (!oor_validate_audio_page(&page, &size, NULL))
         return 0;
 
     if (size.packet_count >= MAX_PACKET_SIZES) {
@@ -134,9 +134,9 @@ static int read_header_packet(vorbis_custom_codec_data* data, STREAMFILE* sf, ui
     oor_header_t hdr = {0};
 
     // header page
-    read_oor_page(&is, &page);
-    read_oor_header(&is, &hdr);
-    if (!validate_header_page(&page, &hdr))
+    oor_read_page(&is, &page);
+    oor_read_header(&is, &hdr);
+    if (!oor_validate_header_page(&page, &hdr))
         return 0;
 
     // load info for header (also used for output)
@@ -165,7 +165,7 @@ static int build_header_setup(uint8_t* buf, int buf_size, vorbis_custom_codec_da
     bm_setup(&is, data->buffer, info_size);
 
     oor_setup_t setup = {0};
-    read_oor_setup(&is, &setup);
+    oor_read_setup(&is, &setup);
 
    
     // paste missing info

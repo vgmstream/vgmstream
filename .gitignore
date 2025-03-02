@@ -36,7 +36,7 @@ ipch
 /xmplay/*.dll
 
 /msvc-build.config.ps1
-/msvc-build.log
+/msvc-build*.log
 # for test batchs, note that already tracked files are never ignored
 /msvc-build-*.bat
 

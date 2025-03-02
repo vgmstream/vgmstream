@@ -392,10 +392,6 @@ void free_ice(ice_codec_data* data);
 typedef struct ka1a_codec_data ka1a_codec_data;
 
 ka1a_codec_data* init_ka1a(int bitrate_mode, int channels_tracks);
-void free_ka1a(ka1a_codec_data* data);
-void reset_ka1a(ka1a_codec_data* data);
-bool decode_ka1a_frame(VGMSTREAM* vgmstream);
-void seek_ka1a(VGMSTREAM* v, int32_t num_sample);
 
 
 #ifdef VGM_USE_VORBIS

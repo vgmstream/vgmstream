@@ -104,7 +104,7 @@ static void load_vconfig(libvgmstream_config_t* vcfg, winamp_settings_t* setting
     vcfg->fade_time = settings->fade_time;
     vcfg->fade_delay = settings->fade_delay;
     vcfg->ignore_loop = settings->ignore_loop;
-    
+
     vcfg->auto_downmix_channels = settings->downmix_channels;
     vcfg->force_sfmt = LIBVGMSTREAM_SFMT_PCM16; //winamp can only handle PCM16/24, and the later is almost never used in vgm
 }
@@ -657,32 +657,33 @@ static void apply_gain(float volume, short* buf, int channels, int samples_to_do
 /* the decode thread */
 DWORD WINAPI __stdcall decode(void *arg) {
     const int max_buffer_samples = SAMPLE_BUFFER_SIZE;
-    bool channels = vgmstream->format->channels;
+    int channels = vgmstream->format->channels;
     int sample_rate = vgmstream->format->sample_rate;
 
+    // Winamp's DSP may need up to x2 samples
     int max_output_bytes = (max_buffer_samples * channels * sizeof(short));
     if (input_module.dsp_isactive())
-        max_output_bytes = max_output_bytes * 2; /* Winamp's DSP may need double samples */
+        max_output_bytes = max_output_bytes * 2;
 
     while (!state.decode_abort) {
 
         /* track finished and not seeking */
         if (vgmstream->decoder->done && state.seek_sample < 0) {
-            input_module.outMod->CanWrite();    /* ? */
+            input_module.outMod->CanWrite();    // ?
             if (!input_module.outMod->IsPlaying()) {
-                PostMessage(input_module.hMainWindow, WM_WA_MPEG_EOF, 0,0); /* end */
+                PostMessage(input_module.hMainWindow, WM_WA_MPEG_EOF, 0,0); // end
                 return 0;
             }
             Sleep(10);
             continue;
         }
 
-        
+
         /* seek */
         if (state.seek_sample >= 0) {
             do_seek(&state, vgmstream);
 
-            /* flush Winamp buffers *after* fully seeking (allows to play buffered samples while we seek, feels a bit snappier) */
+            // flush Winamp buffers *after* fully seeking (allows to play buffered samples while we seek, feels a bit snappier)
             if (state.seek_sample < 0)
                 input_module.outMod->Flush(state.decode_pos_ms);
             continue;
@@ -699,15 +700,12 @@ DWORD WINAPI __stdcall decode(void *arg) {
         /* decode */
         int err = libvgmstream_fill(vgmstream, sample_buffer, max_buffer_samples);
         if (err < 0) break;
-        //int err = libvgmstream_render(vgmstream);
-        //if (err < 0) break;
 
         int buf_bytes = vgmstream->decoder->buf_bytes;
         int buf_samples = vgmstream->decoder->buf_samples;
+        void* buf = vgmstream->decoder->buf; //sample_buffer
         if (!buf_samples)
             continue;
-        //void* buf = sample_buffer;
-        void* buf = vgmstream->decoder->buf;
 
         apply_gain(state.volume, buf, buf_samples, channels); // apply ReplayGain, if needed
 
@@ -717,7 +715,7 @@ DWORD WINAPI __stdcall decode(void *arg) {
         input_module.VSAAddPCMData(buf, channels, 16, state.decode_pos_ms);
 
         if (input_module.dsp_isactive()) {
-            // DSP effects in Winamp assume passed buf is big enough
+            // DSP effects in Winamp assume buf is big enough (up to x2), and may be enabled/disabled mid-play
             int dsp_output_samples = input_module.dsp_dosamples(buf, buf_samples, 16, channels, sample_rate);
             buf_bytes = dsp_output_samples * channels * sizeof(short);
         }
@@ -1057,7 +1055,7 @@ __declspec(dllexport) void* winampGetExtendedRead_openW(const wchar_t *fn, int *
 __declspec(dllexport) size_t winampGetExtendedRead_getData(void *handle, char *dest, size_t len, int *killswitch) {
     const int max_buffer_samples = SAMPLE_BUFFER_SIZE;
     unsigned copied = 0;
-    
+
     libvgmstream_t* xvgmstream = handle;
     if (!xvgmstream)
         return 0;
@@ -1086,7 +1084,7 @@ __declspec(dllexport) size_t winampGetExtendedRead_getData(void *handle, char *d
         int samples_to_do = max_buffer_samples;
         if (samples_to_do > samples_left)
             samples_to_do = samples_left;
-        
+
         int samples_done = libvgmstream_fill(xvgmstream, xsample_buffer, samples_to_do);
         if (samples_done == 0)
             continue;
