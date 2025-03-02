@@ -7,7 +7,7 @@
 // .oor is divided into pages like "OggS", but simplified (variable sized)
 // - v0: 0x01
 // - v1: 0x0A
-void read_oor_page(bitstream_t* is, oor_page_t* page) {
+void oor_read_page(bitstream_t* is, oor_page_t* page) {
     uint32_t granule_hi = 0, granule_lo = 0; //bitreader only handles 32b
 
     page->version    = bm_read(is, 2);
@@ -37,7 +37,7 @@ void read_oor_page(bitstream_t* is, oor_page_t* page) {
 
 // each .oor page except the first (header) has N packets:
 // size is variable but theoretical max is ~0x200 (plus page header)
-void read_oor_size(bitstream_t* is, oor_size_t* size) {
+void oor_read_size(bitstream_t* is, oor_size_t* size) {
     // right after page info (meaning 6 bits into bitstream)
     size->vps_bits      = bm_read(is, 4);
     size->padding1      = bm_read(is, 1);
@@ -79,7 +79,7 @@ void read_oor_size(bitstream_t* is, oor_size_t* size) {
 // - v0 (sr_selector==3): 0x03
 // - v1 (sr_selector!=3): 0x12
 // - v1 (sr_selector==3): 0x13
-void read_oor_header(bitstream_t* is, oor_header_t* hdr) {
+void oor_read_header(bitstream_t* is, oor_header_t* hdr) {
     hdr->pre_padding    = bm_read(is, 2); // from first page, header is byte-aligned
 
     hdr->version        = bm_read(is, 2);
@@ -156,7 +156,7 @@ void read_oor_header(bitstream_t* is, oor_header_t* hdr) {
 }
 
 // bit-packed setup (should be byte-aligned)
-void read_oor_setup(bitstream_t* is, oor_setup_t* setup) {
+void oor_read_setup(bitstream_t* is, oor_setup_t* setup) {
     setup->type         = bm_read(is, 2);
     setup->codebook_id  = bm_read(is, 6);
     // known codebooks:
@@ -166,7 +166,7 @@ void read_oor_setup(bitstream_t* is, oor_setup_t* setup) {
 
 
 // extra validations since bitpacket headers are a bit simple
-bool validate_header_page(oor_page_t* page, oor_header_t* hdr) {
+bool oor_validate_header_page(oor_page_t* page, oor_header_t* hdr) {
     if (page->version > 1 || page->flags != 0x02)
         return false;
 
@@ -194,7 +194,7 @@ bool validate_header_page(oor_page_t* page, oor_header_t* hdr) {
     return true;
 }
 
-bool validate_setup_page(oor_page_t* page, oor_size_t* size, oor_header_t* hdr) {
+bool oor_validate_setup_page(oor_page_t* page, oor_size_t* size, oor_header_t* hdr) {
     if (page->version != hdr->version)
         return false;
     // oddly enough codebooks may be split into other pages using OOR_FLAG_PARTIAL
@@ -216,7 +216,7 @@ bool validate_setup_page(oor_page_t* page, oor_size_t* size, oor_header_t* hdr) 
     return true;
 }
 
-bool validate_setup_info(oor_page_t* page, oor_size_t* size, oor_setup_t* setup) {
+bool oor_validate_setup_info(oor_page_t* page, oor_size_t* size, oor_setup_t* setup) {
 
     // setup packet always has 2 packets: setup info + vorbis codebook
     if (size->packet_count != 2)
@@ -232,7 +232,7 @@ bool validate_setup_info(oor_page_t* page, oor_size_t* size, oor_setup_t* setup)
     return true;
 }
 
-bool validate_audio_page(oor_page_t* page, oor_size_t* size, oor_header_t* hdr) {
+bool oor_validate_audio_page(oor_page_t* page, oor_size_t* size, oor_header_t* hdr) {
     if (hdr != NULL && page->version != hdr->version)
         return false;
     if (page->flags & OOR_FLAG_BOS)

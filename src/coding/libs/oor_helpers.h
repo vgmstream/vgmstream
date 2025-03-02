@@ -1,5 +1,5 @@
-#ifndef VORBIS_CUSTOM_HELPERS_OOR
-#define VORBIS_CUSTOM_HELPERS_OOR
+#ifndef _OOR_HELPERS_H
+#define _OOR_HELPERS_H
 #include <stdint.h>
 #include <stdbool.h>
 #include "../../util/bitstream_msb.h"
@@ -64,14 +64,14 @@ typedef struct {
 } oor_setup_t;
 
 // page headers, assumes buf in bitstream (probable max ~0x200)
-void read_oor_page(bitstream_t* is, oor_page_t* page);
-void read_oor_size(bitstream_t* is, oor_size_t* size);
-void read_oor_header(bitstream_t* is, oor_header_t* hdr);
-void read_oor_setup(bitstream_t* is, oor_setup_t* setup);
+void oor_read_page(bitstream_t* is, oor_page_t* page);
+void oor_read_size(bitstream_t* is, oor_size_t* size);
+void oor_read_header(bitstream_t* is, oor_header_t* hdr);
+void oor_read_setup(bitstream_t* is, oor_setup_t* setup);
 
-bool validate_header_page(oor_page_t* page, oor_header_t* hdr);
-bool validate_setup_page(oor_page_t* page, oor_size_t* size, oor_header_t* hdr);
-bool validate_setup_info(oor_page_t* page, oor_size_t* size, oor_setup_t* setup);
-bool validate_audio_page(oor_page_t* page, oor_size_t* size, oor_header_t* hdr);
+bool oor_validate_header_page(oor_page_t* page, oor_header_t* hdr);
+bool oor_validate_setup_page(oor_page_t* page, oor_size_t* size, oor_header_t* hdr);
+bool oor_validate_setup_info(oor_page_t* page, oor_size_t* size, oor_setup_t* setup);
+bool oor_validate_audio_page(oor_page_t* page, oor_size_t* size, oor_header_t* hdr);
 
 #endif
