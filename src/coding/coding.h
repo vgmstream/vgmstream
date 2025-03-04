@@ -393,6 +393,11 @@ typedef struct ka1a_codec_data ka1a_codec_data;
 
 ka1a_codec_data* init_ka1a(int bitrate_mode, int channels_tracks);
 
+/* ubimpeg_decoder */
+typedef struct ubimpeg_codec_data ubimpeg_codec_data;
+
+ubimpeg_codec_data* init_ubimpeg(uint32_t mode);
+
 
 #ifdef VGM_USE_VORBIS
 /* ogg_vorbis_decoder */

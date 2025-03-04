@@ -925,6 +925,7 @@ static const coding_info coding_info_list[] = {
         {coding_ICE_RANGE,          "Inti Creates Range Codec"},
         {coding_ICE_DCT,            "Inti Creates DCT Codec"},
         {coding_KA1A,               "Koei Tecmo KA1A Codec"},
+        {coding_UBI_MPEG,           "Ubisoft MPEG Codec"},
 
 #ifdef VGM_USE_VORBIS
         {coding_OGG_VORBIS,         "Ogg Vorbis"},

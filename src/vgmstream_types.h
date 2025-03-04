@@ -146,6 +146,7 @@ typedef enum {
     coding_ICE_RANGE,       /* Inti Creates "range" codec */
     coding_ICE_DCT,         /* Inti Creates "DCT" codec */
     coding_KA1A,            /* Koei Tecmo codec (transform-based) */
+    coding_UBI_MPEG,        /* Ubisoft MPEG codec (transform-based) */
 
 #ifdef VGM_USE_VORBIS
     coding_OGG_VORBIS,      /* Xiph Vorbis with Ogg layer (MDCT-based) */
