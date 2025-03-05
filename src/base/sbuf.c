@@ -211,7 +211,7 @@ void sbuf_copy_segments(sbuf_t* sdst, sbuf_t* ssrc, int samples_copy) {
     if (ssrc->channels != sdst->channels) {
         // 0'd other channels first (uncommon so probably fine albeit slower-ish)
         sbuf_silence_part(sdst, sdst->filled, samples_copy);
-        sbuf_copy_layers(sdst, ssrc, 0, ssrc->filled);
+        sbuf_copy_layers(sdst, ssrc, 0, samples_copy);
 #if 0
         // "faster" but lots of extra ifs per sample format, not worth it
         while (src_pos < src_max) {
@@ -346,15 +346,24 @@ void sbuf_copy_segments(sbuf_t* sdst, sbuf_t* ssrc, int samples_copy) {
     \
     sbuf_copy_layers_internal_blank(dst, src, src_pos, dst_pos, src_filled, dst_expected, src_channels, dst_ch_step);
 
-/* copy interleaving: dst ch1 ch2 ch3 ch4 w/ src ch1 ch2 ch1 ch2 = only fill dst ch1 ch2 */
-// dst_channels == src_channels isn't likely so ignore that optimization
+// copy interleaving: dst ch1 ch2 ch3 ch4 w/ src ch1 ch2 ch1 ch2 = only fill dst ch1 ch2
+// dst_channels == src_channels isn't likely so ignore that optimization (dst must be >= than src).
+// dst_ch_start indicates it should write to dst's chN,chN+1,etc
 // sometimes one layer has less samples than others and need to 0-fill rest
-void sbuf_copy_layers(sbuf_t* sdst, sbuf_t* ssrc, int dst_ch_start, int dst_expected) {
-    int src_filled = ssrc->filled;
+void sbuf_copy_layers(sbuf_t* sdst, sbuf_t* ssrc, int dst_ch_start, int dst_max) {
+    int src_copy = dst_max;
     int src_channels = ssrc->channels;
-    int dst_ch_step = (sdst->channels - ssrc->channels); \
+    int dst_ch_step = (sdst->channels - ssrc->channels);
     int src_pos = 0;
     int dst_pos = sdst->filled * sdst->channels + dst_ch_start;
+
+    if (src_copy > ssrc->filled)
+        src_copy = ssrc->filled;
+
+    if (ssrc->channels > sdst->channels) {
+        VGM_LOG("SBUF: wrong copy\n");
+        return;
+    }
 
     // define all posible combos, probably there is a better way to handle this but...
 
@@ -362,45 +371,45 @@ void sbuf_copy_layers(sbuf_t* sdst, sbuf_t* ssrc, int dst_ch_start, int dst_expe
     if (sdst->fmt == SFMT_S16 && ssrc->fmt == SFMT_S16) {
         int16_t* dst = sdst->buf;
         int16_t* src = ssrc->buf;
-        sbuf_copy_layers_internal(dst, src, src_pos, dst_pos, src_filled, dst_expected, src_channels, dst_ch_step);
+        sbuf_copy_layers_internal(dst, src, src_pos, dst_pos, src_copy, dst_max, src_channels, dst_ch_step);
     }
     else if (sdst->fmt == SFMT_F32 && ssrc->fmt == SFMT_S16) {
         float* dst = sdst->buf;
         int16_t* src = ssrc->buf;
-        sbuf_copy_layers_internal(dst, src, src_pos, dst_pos, src_filled, dst_expected, src_channels, dst_ch_step);
+        sbuf_copy_layers_internal(dst, src, src_pos, dst_pos, src_copy, dst_max, src_channels, dst_ch_step);
     }
     else if ((sdst->fmt == SFMT_F32 && ssrc->fmt == SFMT_F32) || (sdst->fmt == SFMT_FLT && ssrc->fmt == SFMT_FLT)) {
         float* dst = sdst->buf;
         float* src = ssrc->buf;
-        sbuf_copy_layers_internal(dst, src, src_pos, dst_pos, src_filled, dst_expected, src_channels, dst_ch_step);
+        sbuf_copy_layers_internal(dst, src, src_pos, dst_pos, src_copy, dst_max, src_channels, dst_ch_step);
     }
     // to s16
     else if (sdst->fmt == SFMT_S16 && ssrc->fmt == SFMT_F32) {
         int16_t* dst = sdst->buf;
         float* src = ssrc->buf;
-        sbuf_copy_layers_internal_f16(dst, src, src_pos, dst_pos, src_filled, dst_expected, src_channels, dst_ch_step);
+        sbuf_copy_layers_internal_f16(dst, src, src_pos, dst_pos, src_copy, dst_max, src_channels, dst_ch_step);
     }
     else if (sdst->fmt == SFMT_S16 && ssrc->fmt == SFMT_FLT) {
         int16_t* dst = sdst->buf;
         float* src = ssrc->buf;
-        sbuf_copy_layers_internal_s16(dst, src, src_pos, dst_pos, src_filled, dst_expected, src_channels, dst_ch_step, 32767.0f);
+        sbuf_copy_layers_internal_s16(dst, src, src_pos, dst_pos, src_copy, dst_max, src_channels, dst_ch_step, 32767.0f);
     }
     // to f32
     else if (sdst->fmt == SFMT_F32 && ssrc->fmt == SFMT_FLT) {
         float* dst = sdst->buf;
         float* src = ssrc->buf;
-        sbuf_copy_layers_internal_flt(dst, src, src_pos, dst_pos, src_filled, dst_expected, src_channels, dst_ch_step, 32767.0f);
+        sbuf_copy_layers_internal_flt(dst, src, src_pos, dst_pos, src_copy, dst_max, src_channels, dst_ch_step, 32767.0f);
     }
     // to flt
     else if (sdst->fmt == SFMT_FLT && ssrc->fmt == SFMT_S16) {
         float* dst = sdst->buf;
         int16_t* src = ssrc->buf;
-        sbuf_copy_layers_internal_flt(dst, src, src_pos, dst_pos, src_filled, dst_expected, src_channels, dst_ch_step, (1.0f / 32767.0f));
+        sbuf_copy_layers_internal_flt(dst, src, src_pos, dst_pos, src_copy, dst_max, src_channels, dst_ch_step, (1.0f / 32767.0f));
     }
     else if (sdst->fmt == SFMT_FLT && ssrc->fmt == SFMT_F32) {
         float* dst = sdst->buf;
         float* src = ssrc->buf;
-        sbuf_copy_layers_internal_flt(dst, src, src_pos, dst_pos, src_filled, dst_expected, src_channels, dst_ch_step, (1.0f / 32767.0f));
+        sbuf_copy_layers_internal_flt(dst, src, src_pos, dst_pos, src_copy, dst_max, src_channels, dst_ch_step, (1.0f / 32767.0f));
     }
 }
 

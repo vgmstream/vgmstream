@@ -116,6 +116,7 @@
     <ClInclude Include="coding\libs\ka1a_dec.h" />
     <ClInclude Include="coding\libs\ka1a_dec_data.h" />
     <ClInclude Include="coding\libs\libacm.h" />
+    <ClInclude Include="coding\libs\minimp3.h" />
     <ClInclude Include="coding\libs\nwa_lib.h" />
     <ClInclude Include="coding\libs\ongakukan_adp_lib.h" />
     <ClInclude Include="coding\libs\oor_helpers.h" />
@@ -123,6 +124,7 @@
     <ClInclude Include="coding\libs\tac_data.h" />
     <ClInclude Include="coding\libs\tac_lib.h" />
     <ClInclude Include="coding\libs\tac_ops.h" />
+    <ClInclude Include="coding\libs\ubi_mpeg_helpers.h" />
     <ClInclude Include="coding\libs\utkdec.h" />
     <ClInclude Include="coding\libs\vorbis_codebooks_fsb.h" />
     <ClInclude Include="coding\libs\vorbis_codebooks_oor.h" />
@@ -310,6 +312,7 @@
     <ClCompile Include="coding\tantalus_decoder.c" />
     <ClCompile Include="coding\tgcadpcm_decoder.c" />
     <ClCompile Include="coding\ubi_adpcm_decoder.c" />
+    <ClCompile Include="coding\ubi_mpeg_decoder.c" />
     <ClCompile Include="coding\vadpcm_decoder.c" />
     <ClCompile Include="coding\vorbis_custom_decoder.c" />
     <ClCompile Include="coding\vorbis_custom_utils.c" />
@@ -340,6 +343,7 @@
     <ClCompile Include="coding\libs\relic_lib.c" />
     <ClCompile Include="coding\libs\relic_mixfft.c" />
     <ClCompile Include="coding\libs\tac_lib.c" />
+    <ClCompile Include="coding\libs\ubi_mpeg_helpers.c" />
     <ClCompile Include="coding\libs\utkdec.c" />
     <ClCompile Include="layout\blocked.c" />
     <ClCompile Include="layout\blocked_adm.c" />

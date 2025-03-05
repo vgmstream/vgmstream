@@ -1111,7 +1111,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - *ubi_sb_layer*: `(base) + .(external)`
   - *ubi_sb_sequence*: `(base) + .(external)`
   - *ubi_sb_header*: `(base) + .(external) .kat`
-  - Codecs: PCM16LE AICA_int UBI_IMA UBI_SCE_IMA UBI_ADPCM PSX XBOX_IMA NGC_DSP ATRAC3 XMA OGG_VORBIS DVI_IMA_mono
+  - Codecs: PCM16LE AICA_int UBI_IMA UBI_SCE_IMA UBI_ADPCM PSX XBOX_IMA NGC_DSP ATRAC3 XMA OGG_VORBIS DVI_IMA_mono UBI_MPEG
 - **ubi_apm.c**
   - Ubisoft APM header [*UBI_APM*]
   - *ubi_apm*: `.apm`
