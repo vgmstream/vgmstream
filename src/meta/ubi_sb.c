@@ -1011,7 +1011,11 @@ static VGMSTREAM* init_vgmstream_ubi_sb_base(ubi_sb_header* sb, STREAMFILE* sf_h
             vgmstream->layout_type = layout_interleave;
             vgmstream->interleave_block_size = 0x02;
 
-            if (vgmstream->num_samples == 0) { /* happens in .bnm */
+            // in .bnm samples may be null, or PCM size (similar to Ubi-MPEG)
+            if (sb->is_bnm)
+                vgmstream->num_samples = 0;
+
+            if (vgmstream->num_samples == 0) {
                 vgmstream->num_samples       = pcm_bytes_to_samples(sb->stream_size, sb->channels, 16);
                 vgmstream->loop_end_sample   = vgmstream->num_samples;
             }
