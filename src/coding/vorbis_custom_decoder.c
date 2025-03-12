@@ -1,6 +1,7 @@
 #include <math.h>
 #include "../base/decode_state.h"
 #include "../base/sbuf.h"
+#include "../base/codec_info.h"
 #include "coding.h"
 #include "vorbis_custom_decoder.h"
 
@@ -8,6 +9,23 @@
 
 #define VORBIS_CALL_SAMPLES 1024  // allowed frame 'blocksizes' range from 2^6 ~ 2^13 (64 ~ 8192) but we can return partial samples
 #define VORBIS_DEFAULT_BUFFER_SIZE 0x8000 // at least the size of the setup header, ~0x2000
+
+
+void free_vorbis_custom(void* priv_data) {
+    vorbis_custom_codec_data* data = priv_data;
+    if (!data)
+        return;
+
+    /* internal decoder cleanup */
+    vorbis_block_clear(&data->vb);
+    vorbis_dsp_clear(&data->vd);
+    vorbis_comment_clear(&data->vc);
+    vorbis_info_clear(&data->vi);
+
+    free(data->buffer);
+    free(data->fbuf);
+    free(data);
+}
 
 /**
  * Inits a vorbis stream of some custom variety.
@@ -175,7 +193,7 @@ static int copy_samples(VGMSTREAM* v) {
     return samples;
 }
 
-bool decode_vorbis_custom_frame(VGMSTREAM* v) {
+static bool decode_frame_vorbis_custom(VGMSTREAM* v) {
     // vorbis may hold samples, return them first
     int ret = copy_samples(v);
     if (ret < 0) return false;
@@ -195,25 +213,8 @@ bool decode_vorbis_custom_frame(VGMSTREAM* v) {
     return true;
 }
 
-/* ********************************************** */
-
-void free_vorbis_custom(vorbis_custom_codec_data* data) {
-    if (!data)
-        return;
-
-    /* internal decoder cleanup */
-    vorbis_block_clear(&data->vb);
-    vorbis_dsp_clear(&data->vd);
-    vorbis_comment_clear(&data->vc);
-    vorbis_info_clear(&data->vi);
-
-    free(data->buffer);
-    free(data->fbuf);
-    free(data);
-}
-
-void reset_vorbis_custom(VGMSTREAM* v) {
-    vorbis_custom_codec_data* data = v->codec_data;
+static void reset_vorbis_custom(void* priv_data) {
+    vorbis_custom_codec_data* data = priv_data;
     if (!data) return;
 
     vorbis_synthesis_restart(&data->vd);
@@ -223,13 +224,13 @@ void reset_vorbis_custom(VGMSTREAM* v) {
     data->flags = 0;
 }
 
-void seek_vorbis_custom(VGMSTREAM* v, int32_t num_sample) {
+static void seek_vorbis_custom(VGMSTREAM* v, int32_t num_sample) {
     vorbis_custom_codec_data* data = v->codec_data;
     if (!data) return;
 
     /* Seeking is provided by the Ogg layer, so with custom vorbis we'd need seek tables instead.
      * To avoid having to parse different formats we'll just discard until the expected sample */
-    reset_vorbis_custom(v);
+    reset_vorbis_custom(data);
     data->current_discard = num_sample;
     if (v->loop_ch)
         v->loop_ch[0].offset = v->loop_ch[0].channel_start_offset;
@@ -257,10 +258,18 @@ int32_t vorbis_custom_get_samples(VGMSTREAM* v) {
         prev_blocksize = blocksize;
     }
 
-    reset_vorbis_custom(v);
+    reset_vorbis_custom(data);
     stream->offset = temp;
 
     return samples;
 }
+
+const codec_info_t vorbis_custom_decoder = {
+    .sample_type = SFMT_FLT,
+    .decode_frame = decode_frame_vorbis_custom,
+    .free = free_vorbis_custom,
+    .reset = reset_vorbis_custom,
+    .seek = seek_vorbis_custom,
+};
 
 #endif

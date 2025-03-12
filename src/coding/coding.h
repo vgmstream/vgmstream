@@ -346,10 +346,8 @@ int32_t relic_bytes_to_samples(size_t bytes, int channels, int bitrate);
 typedef struct hca_codec_data hca_codec_data;
 
 hca_codec_data* init_hca(STREAMFILE* sf);
-bool decode_hca_frame(VGMSTREAM* v);
-void reset_hca(hca_codec_data* data);
-void loop_hca(VGMSTREAM* v, int32_t num_sample);
-void free_hca(hca_codec_data* data);
+void free_hca(void* data);
+
 clHCA_stInfo* hca_get_info(hca_codec_data* data);
 
 typedef struct {
@@ -389,14 +387,10 @@ void free_ice(ice_codec_data* data);
 
 
 /* ka1a_decoder */
-typedef struct ka1a_codec_data ka1a_codec_data;
-
-ka1a_codec_data* init_ka1a(int bitrate_mode, int channels_tracks);
+void* init_ka1a(int bitrate_mode, int channels_tracks);
 
 /* ubimpeg_decoder */
-typedef struct ubimpeg_codec_data ubimpeg_codec_data;
-
-ubimpeg_codec_data* init_ubimpeg(uint32_t mode);
+void* init_ubimpeg(uint32_t mode);
 
 
 #ifdef VGM_USE_VORBIS
@@ -473,10 +467,7 @@ typedef struct {
 } vorbis_custom_config;
 
 vorbis_custom_codec_data* init_vorbis_custom(STREAMFILE* sf, off_t start_offset, vorbis_custom_t type, vorbis_custom_config* config);
-bool decode_vorbis_custom_frame(VGMSTREAM* v);
-void reset_vorbis_custom(VGMSTREAM* v);
-void seek_vorbis_custom(VGMSTREAM* v, int32_t num_sample);
-void free_vorbis_custom(vorbis_custom_codec_data* data);
+void free_vorbis_custom(void* data);
 int32_t vorbis_custom_get_samples(VGMSTREAM* v);
 #endif
 

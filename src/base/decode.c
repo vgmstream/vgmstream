@@ -50,10 +50,6 @@ void decode_free(VGMSTREAM* vgmstream) {
     if (vgmstream->coding_type == coding_OGG_VORBIS) {
         free_ogg_vorbis(vgmstream->codec_data);
     }
-
-    if (vgmstream->coding_type == coding_VORBIS_custom) {
-        free_vorbis_custom(vgmstream->codec_data);
-    }
 #endif
 
     if (vgmstream->coding_type == coding_CIRCUS_VQ) {
@@ -62,10 +58,6 @@ void decode_free(VGMSTREAM* vgmstream) {
 
     if (vgmstream->coding_type == coding_RELIC) {
         free_relic(vgmstream->codec_data);
-    }
-
-    if (vgmstream->coding_type == coding_CRI_HCA) {
-        free_hca(vgmstream->codec_data);
     }
 
     if (vgmstream->coding_type == coding_TAC) {
@@ -179,10 +171,6 @@ void decode_seek(VGMSTREAM* vgmstream) {
         seek_relic(vgmstream->codec_data, vgmstream->loop_current_sample);
     }
 
-    if (vgmstream->coding_type == coding_CRI_HCA) {
-        loop_hca(vgmstream, vgmstream->loop_current_sample);
-    }
-
     if (vgmstream->coding_type == coding_TAC) {
         seek_tac(vgmstream->codec_data, vgmstream->loop_current_sample);
     }
@@ -215,10 +203,6 @@ void decode_seek(VGMSTREAM* vgmstream) {
 #ifdef VGM_USE_VORBIS
     if (vgmstream->coding_type == coding_OGG_VORBIS) {
         seek_ogg_vorbis(vgmstream->codec_data, vgmstream->loop_current_sample);
-    }
-
-    if (vgmstream->coding_type == coding_VORBIS_custom) {
-        seek_vorbis_custom(vgmstream, vgmstream->loop_current_sample);
     }
 #endif
 
@@ -284,10 +268,6 @@ void decode_reset(VGMSTREAM* vgmstream) {
     if (vgmstream->coding_type == coding_OGG_VORBIS) {
         reset_ogg_vorbis(vgmstream->codec_data);
     }
-
-    if (vgmstream->coding_type == coding_VORBIS_custom) {
-        reset_vorbis_custom(vgmstream);
-    }
 #endif
 
     if (vgmstream->coding_type == coding_CIRCUS_VQ) {
@@ -296,10 +276,6 @@ void decode_reset(VGMSTREAM* vgmstream) {
 
     if (vgmstream->coding_type == coding_RELIC) {
         reset_relic(vgmstream->codec_data);
-    }
-
-    if (vgmstream->coding_type == coding_CRI_HCA) {
-        reset_hca(vgmstream->codec_data);
     }
 
     if (vgmstream->coding_type == coding_TAC) {
@@ -440,7 +416,6 @@ int decode_get_samples_per_frame(VGMSTREAM* vgmstream) {
             return 1;
 #ifdef VGM_USE_VORBIS
         case coding_OGG_VORBIS:
-        case coding_VORBIS_custom:
 #endif
 #ifdef VGM_USE_MPEG
         case coding_MPEG_custom:
@@ -601,8 +576,6 @@ int decode_get_samples_per_frame(VGMSTREAM* vgmstream) {
             return 0;
         case coding_RELIC:
             return 0; /* 512 */
-        case coding_CRI_HCA:
-            return 0; /* 1024 - delay/padding (which can be bigger than 1024) */
         case coding_TAC:
             return 0; /* 1024 - delay/padding */
         case coding_ICE_RANGE:
@@ -819,7 +792,6 @@ int decode_get_frame_size(VGMSTREAM* vgmstream) {
         /* CELT FSB: varies, usually 0x80-100 */
         /* SPEEX: varies, usually 0x40-60 */
         /* TAC: VBR around ~0x200-300 */
-        /* Vorbis, MPEG, ACM, etc: varies */
         default: /* (VBR or managed by decoder) */
             return 0;
     }
@@ -895,19 +867,7 @@ static void decode_frames(sbuf_t* sdst, VGMSTREAM* vgmstream) {
                 ok = codec_info->decode_frame(vgmstream);
             }
             else {
-                switch (vgmstream->coding_type) {
-                    case coding_CRI_HCA:
-                        ok = decode_hca_frame(vgmstream);
-                        break;
-
-    #ifdef VGM_USE_VORBIS
-                    case coding_VORBIS_custom:
-                        ok = decode_vorbis_custom_frame(vgmstream);
-                        break;
-    #endif
-                    default:
-                        goto decode_fail;
-                }
+                goto decode_fail;
             }
 
             if (!ok)
