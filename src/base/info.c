@@ -330,7 +330,7 @@ static STREAMFILE* get_vgmstream_average_bitrate_channel_streamfile(VGMSTREAM* v
     }
 
     if (vgmstream->coding_type == coding_COMPRESSWAVE) {
-        return compresswave_get_streamfile(vgmstream->codec_data);
+        return compresswave_get_streamfile(vgmstream);
     }
 
 #ifdef VGM_USE_VORBIS

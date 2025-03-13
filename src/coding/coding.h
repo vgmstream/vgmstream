@@ -288,13 +288,7 @@ int32_t ubi_adpcm_get_samples(ubi_adpcm_codec_data* data);
 
 
 /* imuse_decoder */
-typedef struct imuse_codec_data imuse_codec_data;
-
-imuse_codec_data* init_imuse(STREAMFILE* sf, int channels);
-void decode_imuse(VGMSTREAM* vgmstream, sample_t* outbuf, int32_t samples_to_do);
-void reset_imuse(imuse_codec_data* data);
-void seek_imuse(imuse_codec_data* data, int32_t num_sample);
-void free_imuse(imuse_codec_data* data);
+void* init_imuse(STREAMFILE* sf, int channels);
 
 /* ongakukan_adp_decoder */
 typedef struct ongakukan_adp_data ongakukan_adp_data;
@@ -308,14 +302,8 @@ void free_ongakukan_adp(ongakukan_adp_data* data);
 int32_t ongakukan_adp_get_samples(ongakukan_adp_data* data);
 
 /* compresswave_decoder */
-typedef struct compresswave_codec_data compresswave_codec_data;
-
-compresswave_codec_data* init_compresswave(STREAMFILE* sf);
-void decode_compresswave(compresswave_codec_data* data, sample_t* outbuf, int32_t samples_to_do);
-void reset_compresswave(compresswave_codec_data* data);
-void seek_compresswave(compresswave_codec_data* data, int32_t num_sample);
-void free_compresswave(compresswave_codec_data* data);
-STREAMFILE* compresswave_get_streamfile(compresswave_codec_data* data);
+void* init_compresswave(STREAMFILE* sf);
+STREAMFILE* compresswave_get_streamfile(VGMSTREAM* v);
 
 
 /* ea_mt_decoder*/
@@ -367,13 +355,7 @@ STREAMFILE* hca_get_streamfile(hca_codec_data* data);
 
 
 /* tac_decoder */
-typedef struct tac_codec_data tac_codec_data;
-
-tac_codec_data* init_tac(STREAMFILE* sf);
-void decode_tac(VGMSTREAM* vgmstream, sample_t* outbuf, int32_t samples_to_do);
-void reset_tac(tac_codec_data* data);
-void seek_tac(tac_codec_data* data, int32_t num_sample);
-void free_tac(tac_codec_data* data);
+void* init_tac(STREAMFILE* sf);
 
 
 /* ice_decoder */
@@ -617,14 +599,8 @@ void free_celt_fsb(celt_codec_data* data);
 
 #ifdef VGM_USE_SPEEX
 /* speex_decoder */
-typedef struct speex_codec_data speex_codec_data;
-
-speex_codec_data* init_speex_ea(int channels);
-speex_codec_data* init_speex_torus(int channels);
-void decode_speex(VGMSTREAM* vgmstream, sample_t* outbuf, int32_t samples_to_do);
-void reset_speex(speex_codec_data* data);
-void seek_speex(VGMSTREAM* vgmstream, int32_t num_sample);
-void free_speex(speex_codec_data* data);
+void* init_speex_ea(int channels);
+void* init_speex_torus(int channels);
 #endif
 
 

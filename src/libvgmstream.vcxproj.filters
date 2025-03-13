@@ -134,9 +134,6 @@
     <ClInclude Include="coding\coding.h">
       <Filter>coding\Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="coding\coding_utils_samples.h">
-      <Filter>coding\Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="coding\g72x_state.h">
       <Filter>coding\Header Files</Filter>
     </ClInclude>

@@ -100,7 +100,6 @@
     <ClInclude Include="base\render.h" />
     <ClInclude Include="base\sbuf.h" />
     <ClInclude Include="coding\coding.h" />
-    <ClInclude Include="coding\coding_utils_samples.h" />
     <ClInclude Include="coding\g72x_state.h" />
     <ClInclude Include="coding\mpeg_decoder.h" />
     <ClInclude Include="coding\vorbis_custom_decoder.h" />

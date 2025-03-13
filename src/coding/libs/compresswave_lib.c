@@ -695,7 +695,10 @@ int TCompressWaveData_Rendering(TCompressWaveData* self, int16_t* buf, uint32_t 
             }
             else {  //in case of playback without loop
                 self->FPlay = CW_FALSE;
-                return result; //exit
+                //return result; //exit
+                
+                // OG lib returns error if requested more than avaiable, return partial buf here
+                break;
             }
         }
 
@@ -761,10 +764,10 @@ int TCompressWaveData_Rendering(TCompressWaveData* self, int16_t* buf, uint32_t 
         self->FWavePosition += WaveStep;
     }
 
-    //remainder calcs
-    //depending on buffer lenght remainder may happen
-    //example: 44100 / 4 = 11025...OK    44100 / 8 = 5512.5...NG
-    // in that case appear as noise
+    // remainder calcs
+    // depending on buffer length remainder may happen
+    // example: 44100 / 4 = 11025...OK    44100 / 8 = 5512.5...NG
+    // in that case it appears as noise
     if (Len % 8 == 4) {
         TCompressWaveData_Rendering_WriteWave(self, &buf1, RVol, LVol);
     }
