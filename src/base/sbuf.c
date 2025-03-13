@@ -202,12 +202,12 @@ int sbuf_get_copy_max(sbuf_t* sdst, sbuf_t* ssrc) {
 
 #define sbuf_copy_segments_internal_flt(dst, src, src_pos, dst_pos, src_max, value) \
     while (src_pos < src_max) { \
-        dst[dst_pos++] = float_to_int(src[src_pos++] * value); \
+        dst[dst_pos++] = (src[src_pos++] * value); \
     }
 
 // copy N samples from ssrc into dst (should be clamped externally)
 void sbuf_copy_segments(sbuf_t* sdst, sbuf_t* ssrc, int samples_copy) {
-    
+
     if (ssrc->channels != sdst->channels) {
         // 0'd other channels first (uncommon so probably fine albeit slower-ish)
         sbuf_silence_part(sdst, sdst->filled, samples_copy);
@@ -230,49 +230,54 @@ void sbuf_copy_segments(sbuf_t* sdst, sbuf_t* ssrc, int samples_copy) {
     int src_max = samples_copy * ssrc->channels;
 
     // define all posible combos, probably there is a better way to handle this but...
-
-    if (sdst->fmt == SFMT_S16 && ssrc->fmt == SFMT_S16) {
-        int16_t* dst = sdst->buf;
+    // s16 > s16
+    if (ssrc->fmt == SFMT_S16 && sdst->fmt == SFMT_S16) {
         int16_t* src = ssrc->buf;
-        sbuf_copy_segments_internal(dst, src, src_pos, dst_pos, src_max);
-    }
-    else if (sdst->fmt == SFMT_F32 && ssrc->fmt == SFMT_S16) {
-        float* dst = sdst->buf;
-        int16_t* src = ssrc->buf;
-        sbuf_copy_segments_internal(dst, src, src_pos, dst_pos, src_max);
-    }
-    else if ((sdst->fmt == SFMT_F32 && ssrc->fmt == SFMT_F32) || (sdst->fmt == SFMT_FLT && ssrc->fmt == SFMT_FLT)) {
-        float* dst = sdst->buf;
-        float* src = ssrc->buf;
-        sbuf_copy_segments_internal(dst, src, src_pos, dst_pos, src_max);
-    }
-    // to s16
-    else if (sdst->fmt == SFMT_S16 && ssrc->fmt == SFMT_F32) {
         int16_t* dst = sdst->buf;
+        sbuf_copy_segments_internal(dst, src, src_pos, dst_pos, src_max);
+    }
+    // s16 > f32
+    else if (ssrc->fmt == SFMT_S16 && sdst->fmt == SFMT_F32) {
+        int16_t* src = ssrc->buf;
+        float* dst = sdst->buf;
+        sbuf_copy_segments_internal(dst, src, src_pos, dst_pos, src_max);
+    }
+    // s16 > flt
+    else if (ssrc->fmt == SFMT_S16 && sdst->fmt == SFMT_FLT) {
+        int16_t* src = ssrc->buf;
+        float* dst = sdst->buf;
+        sbuf_copy_segments_internal_flt(dst, src, src_pos, dst_pos, src_max, (1.0f / 32767.0f));
+    }
+    // f32 > f32 / flt > flt
+    else if ((ssrc->fmt == SFMT_F32 && sdst->fmt == SFMT_F32) ||
+             (ssrc->fmt == SFMT_FLT && sdst->fmt == SFMT_FLT)) {
         float* src = ssrc->buf;
+        float* dst = sdst->buf;
+        sbuf_copy_segments_internal(dst, src, src_pos, dst_pos, src_max);
+    }
+    // f32 > s16
+    else if (ssrc->fmt == SFMT_F32 && sdst->fmt == SFMT_S16) {
+        float* src = ssrc->buf;
+        int16_t* dst = sdst->buf;
         sbuf_copy_segments_internal_f16(dst, src, src_pos, dst_pos, src_max);
     }
-    else if (sdst->fmt == SFMT_S16 && ssrc->fmt == SFMT_FLT) {
-        int16_t* dst = sdst->buf;
+    // flt > s16
+    else if (ssrc->fmt == SFMT_FLT && sdst->fmt == SFMT_S16) {
         float* src = ssrc->buf;
+        int16_t* dst = sdst->buf;
         sbuf_copy_segments_internal_s16(dst, src, src_pos, dst_pos, src_max, 32767.0f);
     }
-    // to f32
-    else if (sdst->fmt == SFMT_F32 && ssrc->fmt == SFMT_FLT) {
-        float* dst = sdst->buf;
+    // f32 > flt
+    else if (ssrc->fmt == SFMT_F32 && sdst->fmt == SFMT_FLT) {
         float* src = ssrc->buf;
+        float* dst = sdst->buf;
+        sbuf_copy_segments_internal_flt(dst, src, src_pos, dst_pos, src_max, (1.0f / 32767.0f));
+    }
+    // flt > f32
+    else if (ssrc->fmt == SFMT_FLT && sdst->fmt == SFMT_F32) {
+        float* src = ssrc->buf;
+        float* dst = sdst->buf;
         sbuf_copy_segments_internal_flt(dst, src, src_pos, dst_pos, src_max, 32767.0f);
-    }
-    // to flt
-    else if (sdst->fmt == SFMT_FLT && ssrc->fmt == SFMT_S16) {
-        float* dst = sdst->buf;
-        int16_t* src = ssrc->buf;
-        sbuf_copy_segments_internal_flt(dst, src, src_pos, dst_pos, src_max, (1.0f / 32767.0f));
-    }
-    else if (sdst->fmt == SFMT_FLT && ssrc->fmt == SFMT_F32) {
-        float* dst = sdst->buf;
-        float* src = ssrc->buf;
-        sbuf_copy_segments_internal_flt(dst, src, src_pos, dst_pos, src_max, (1.0f / 32767.0f));
     }
 
     //TODO: may want to handle externally?

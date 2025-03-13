@@ -569,7 +569,7 @@ void mixing_macro_downmix(VGMSTREAM* vgmstream, int max /*, mapping_t output_map
 
 void mixing_macro_output_sample_format(VGMSTREAM* vgmstream, sfmt_t type) {
     mixer_t* mixer = vgmstream->mixer;
-    if (!mixer)
+    if (!mixer || !type)
         return;
 
     // optimization (may skip initializing mixer)

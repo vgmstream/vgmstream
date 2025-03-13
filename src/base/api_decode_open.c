@@ -47,14 +47,27 @@ static void prepare_mixing(libvgmstream_priv_t* priv) {
     }
 
     if (cfg->force_sfmt) {
-        sfmt_t type = SFMT_NONE;
+        // external force
+        sfmt_t force_sfmt = SFMT_NONE;
         switch(cfg->force_sfmt) {
-            case LIBVGMSTREAM_SFMT_PCM16: type = SFMT_S16; break;
-            case LIBVGMSTREAM_SFMT_FLOAT: type = SFMT_F32; break;
+            case LIBVGMSTREAM_SFMT_PCM16: force_sfmt = SFMT_S16; break;
+            case LIBVGMSTREAM_SFMT_FLOAT: force_sfmt = SFMT_FLT; break;
             default: break;
         }
 
-        mixing_macro_output_sample_format(priv->vgmstream, type);
+        mixing_macro_output_sample_format(priv->vgmstream, force_sfmt);
+    }
+    else {
+        // internal force, swap certain internal bufs into standard output
+        sfmt_t force_sfmt = SFMT_NONE;
+
+        sfmt_t input_sfmt = mixing_get_input_sample_type(priv->vgmstream);
+        switch(input_sfmt) {
+            case SFMT_F32: force_sfmt = SFMT_FLT; break;
+            default: break;
+        }
+
+        mixing_macro_output_sample_format(priv->vgmstream, force_sfmt);
     }
 
     vgmstream_mixing_enable(priv->vgmstream, INTERNAL_BUF_SAMPLES, NULL /*&input_channels*/, NULL /*&output_channels*/);
