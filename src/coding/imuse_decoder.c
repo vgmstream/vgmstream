@@ -143,10 +143,10 @@ typedef struct {
 
     size_t block_count;
     struct block_entry_t {
-        uint32_t offset; /* from file start */
-        uint32_t size;
-        uint32_t flags;
-        uint32_t data;
+        uint32_t offset;    // absolute
+        uint32_t size;      // block size
+        uint32_t flags;     // block type
+        uint32_t data;      // PCM bytes
     } *block_table;
 
     uint16_t adpcm_table[64 * 89];
@@ -174,6 +174,138 @@ static void reset_imuse(void* priv_data) {
     data->current_block = 0;
 }
 
+imuse_codec_data* init_imuse_internal(int channels, int blocks) {
+    if (channels > MAX_CHANNELS)
+        return NULL;
+
+    imuse_codec_data* data = calloc(1, sizeof(imuse_codec_data));
+    if (!data) goto fail;
+
+    data->channels = channels;
+
+    data->block_count = blocks;
+    if (data->block_count > MAX_BLOCK_COUNT) goto fail;
+
+    data->block_table = calloc(data->block_count, sizeof(struct block_entry_t));
+    if (!data->block_table) goto fail;
+
+    // iMUSE pre-calculates main decode ops as a table, looks similar to standard IMA expand
+    for (int i = 0; i < 64; i++) {
+        for (int j = 0; j < 89; j++) {
+            int counter = 32;
+            int value = 0;
+            int step = step_table[j];
+            while (counter > 0) {
+                if (counter & i)
+                    value += step;
+                step >>= 1;
+                counter >>= 1;
+            }
+
+            data->adpcm_table[i + j * 64] = value; /* non sequential: all 64 [0]s, [1]s ... [88]s */
+        }
+    }
+
+    return data;
+fail:
+    free_imuse(data);
+    return NULL;
+}
+
+void* init_imuse_mcomp(STREAMFILE* sf, int channels) {
+    imuse_codec_data* data = NULL;
+
+    /* read block table */
+    if (is_id32be(0x00,sf, "COMP")) {
+        int block_count = read_u32be(0x04,sf);
+        // 08: base codec?
+        // 0c: some size?
+        
+        data = init_imuse_internal(channels, block_count);
+        if (!data) return NULL;
+
+        uint32_t offset = 0x10;
+        for (int i = 0; i < data->block_count; i++) {
+            struct block_entry_t* entry = &data->block_table[i];
+
+            entry->offset  = read_u32be(offset + 0x00, sf);
+            entry->size    = read_u32be(offset + 0x04, sf);
+            entry->flags   = read_u32be(offset + 0x08, sf);
+            // 0x0c: null
+            entry->data    = MAX_BLOCK_SIZE; // blocks decode into fixed size, that may include header
+
+            if (entry->size > MAX_BLOCK_SIZE) {
+                VGM_LOG("IMUSE: block size too big\n");
+                goto fail;
+            }
+
+            // iMUSE blocks usually have VIMA but may contain mini-codecs (ex. The Dig)
+            if (entry->flags != 0x0D && entry->flags != 0x0F) {
+                VGM_LOG("IMUSE: unknown codec\n");
+                goto fail;
+            }
+
+            offset += 0x10;
+        }
+
+        // detect type
+        {
+            uint32_t id = read_u32be(data->block_table[0].offset + 0x02, sf);
+            if (id == get_id32be("iMUS")) { // [The Curse of Monkey Island (PC)]
+                data->type = COMP;
+            } else {
+                goto fail; // no header [The Dig (PC)]
+            }
+        }
+    }
+    else if (is_id32be(0x00,sf, "MCMP")) {
+        int block_count = read_u16be(0x04,sf);
+
+        data = init_imuse_internal(channels, block_count);
+        if (!data) return NULL;
+
+        // pre-calculate for simpler logic
+        uint32_t data_offset = 0x06 + data->block_count * 0x09;
+        data_offset += 0x02 + read_u16be(data_offset + 0x00, sf); // mini text header
+
+        uint32_t offset = 0x06;
+        for (int i = 0; i < data->block_count; i++) {
+            struct block_entry_t* entry = &data->block_table[i];
+
+            entry->flags   = read_u8   (offset + 0x00, sf);
+            entry->data    = read_u32be(offset + 0x01, sf);
+            entry->size    = read_u32be(offset + 0x05, sf);
+            entry->offset  = data_offset;
+            // blocks of data and audio are separate
+
+            if (entry->data > MAX_BLOCK_SIZE || entry->size > MAX_BLOCK_SIZE) {
+                VGM_LOG("IMUSE: block size too big\n");
+                goto fail;
+            }
+
+            // data or VIMA
+            if (entry->flags != 0x00 && entry->flags != 0x01) {
+                VGM_LOG("IMUSE: unknown codec\n");
+                goto fail;
+            }
+
+            offset += 0x09;
+            data_offset += entry->size;
+        }
+
+        data->type = MCMP; // with header [Grim Fandango (multi)]
+    }
+    else {
+        goto fail;
+    }
+
+    return data;
+fail:
+    free_imuse(data);
+    return NULL;
+}
+
+//TODO rename as init_vima_comp, init_vima_mcmp
 void* init_imuse(STREAMFILE* sf, int channels) {
     off_t offset, data_offset;
 
@@ -222,7 +354,7 @@ void* init_imuse(STREAMFILE* sf, int channels) {
         /* detect type */
         {
             uint32_t id = read_u32be(data->block_table[0].offset + 0x02, sf);
-            if (id == 0x694D5553) { /* "iMUS" header [The Curse of Monkey Island (PC)] */
+            if (id == get_id32be("iMUS")) { /* [The Curse of Monkey Island (PC)] */
                 data->type = COMP;
             } else {
                 goto fail; /* no header [The Dig (PC)] */
