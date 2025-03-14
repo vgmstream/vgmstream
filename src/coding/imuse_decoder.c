@@ -1,6 +1,7 @@
 #include "coding.h"
 #include "../base/decode_state.h"
 #include "../base/codec_info.h"
+#include "../util/bitstream_msb.h"
 
 /* LucasArts' iMUSE decoder, mainly for VIMA (like IMA but with variable frame and code sizes).
  * Reverse engineered from various .exe
@@ -300,15 +301,14 @@ fail:
 /* **************************************** */
 
 static int decode_vima_v1(short* samples, int chs, uint8_t* buf, size_t data_left, int block_num, uint16_t* adpcm_table) {
-    int bitpos;
     int adpcm_history[MAX_CHANNELS] = {0};
     int adpcm_step_index[MAX_CHANNELS] = {0};
 
     int filled = 0;
+    int pos = 0;
 
     /* read header (outside decode in original code) */
     {
-        int pos = 0;
         size_t copy_size;
 
         // decodes BLOCK_SIZE bytes (not samples), including copy_size if exists, but not first 16b
@@ -344,16 +344,16 @@ static int decode_vima_v1(short* samples, int chs, uint8_t* buf, size_t data_lef
                 adpcm_step_index[i] = clamp_s32(adpcm_step_index[i], 0, 88); /* not originally */
             }
         }
-
-        bitpos = pos * 8;
     }
 
+    bitstream_t is = {0};
+    bm_setup(&is, buf, MAX_BLOCK_SIZE); // originally reads max 16 bits
+    bm_skip(&is, pos * 8);
 
     /* decode ADPCM data after header (stereo layout: all samples from L, then all for R) */
     for (int ch = 0; ch < chs; ch++) {
-        int samples_left = data_left / sizeof(short);
         int first_sample = filled * chs + ch;
-
+        int samples_left = data_left / sizeof(short);
         int samples_to_do;
         if (chs == 1) {
             samples_to_do = samples_left;
@@ -367,32 +367,21 @@ static int decode_vima_v1(short* samples, int chs, uint8_t* buf, size_t data_lef
             else
                 samples_to_do = (samples_left + 0) / chs;
         }
-
         //;VGM_ASSERT((samples_left + 1) / 2 != (samples_left + 0) / 2, "IMUSE: sample diffs\n");
 
         int step_index = adpcm_step_index[ch];
         int sample = adpcm_history[ch];
 
         for (int i = 0, s = first_sample; i < samples_to_do; i++, s += chs) {
-            int code;
-
-            if (bitpos >= MAX_BLOCK_SIZE * 8) {
-                VGM_LOG("IMUSE: wrong bit offset\n");
-                break;
-            }
-
             int code_bits = code_size_table_v1[step_index];
             int sign_mask = (1 << (code_bits - 1));
             int data_mask = (sign_mask - 1); // done with a LUT in COMI
 
-            // get-bit thing, reads closest 16b then masks + shifts as needed, BE layout (from COMI)
-            code = get_u16be(buf + (bitpos >> 3));
-            code = (code << (bitpos & 7)) & 0xFFFF;
-            code = code >> (16 - code_bits);
-            bitpos += code_bits;
+            int code = bm_read(&is, code_bits);
+            int code_base = code & data_mask;
 
             {
-                int delta = adpcm_table[(step_index * 64) + (((code & data_mask) << (7 - code_bits)))];
+                int delta = adpcm_table[(step_index * 64) + ((code_base << (7 - code_bits)))];
                 delta += step_table[step_index] >> (code_bits - 1);
                 if (code & sign_mask)
                     delta = -delta;
@@ -437,58 +426,36 @@ static int decode_vima_v2(short* samples, int chs, uint8_t* buf, size_t data_lef
         }
     }
 
-    int bitpos = 0;
-    uint16_t word = get_u16be(buf + pos); // originally with a rolling buf, use index to validate overflow
-    pos += 0x02;
+    bitstream_t is = {0};
+    bm_setup(&is, buf, MAX_BLOCK_SIZE); // originally reads max 16 bit w/ rolling buf
+    bm_skip(&is, pos * 8);
 
     /* decode ADPCM data after header (stereo layout: all samples from L, then all for R) */
     for (int ch = 0; ch < chs; ch++) {
-        int samples_left = data_left / sizeof(short);
         int first_sample = filled * chs + ch;
-
+        int samples_left = data_left / sizeof(short);
         int samples_to_do = samples_left / chs;
 
         int step_index = adpcm_step_index[ch];
         int sample = adpcm_history[ch];
 
         for (int i = 0, s = first_sample; i < samples_to_do; i++, s += chs) {
-            int code;
-
-            if (pos >= MAX_BLOCK_SIZE) {
-                VGM_LOG("IMUSE: wrong pos offset\n");
-                break;
-            }
-
             int code_bits = code_size_table_v2[step_index];
             int sign_mask = (1 << (code_bits - 1));
             int data_mask = (sign_mask - 1);
 
-            // get-bit thing, masks current code and moves 'upwards' word after reading 8 bits
-            bitpos += code_bits;
-            code = (word >> (16 - bitpos)) & (sign_mask | data_mask);
-            if (bitpos > 7) {
-                word = (word << 8) | buf[pos++];
-                bitpos -= 8;
-            }
+            int code = bm_read(&is, code_bits);
+            int code_base = code & data_mask;
 
-            // clean sign stuff for next tests
-            if (code & sign_mask)
-                code ^= sign_mask;
-            else
-                sign_mask = 0;
-
-            // all bits set mean 'keyframe' = read next sample
-            if (code == data_mask) {
-                sample  = (int16_t)(word << bitpos);
-                word = (word << 8) | buf[pos++];
-                sample |= (word >> (8 - bitpos)) & 0xFF;
-                word = (word << 8) | buf[pos++];
+            // all bits set means 'keyframe' = read next BE sample
+            if (code_base == data_mask) {
+                sample = (short)bm_read(&is, 16);
             }
             else {
-                int delta = adpcm_table[(step_index * 64) + ((code << (7 - code_bits)))];
-                if (code)
+                int delta = adpcm_table[(step_index * 64) + ((code_base << (7 - code_bits)))];
+                if (code_base)
                     delta += step_table[step_index] >> (code_bits - 1);
-                if (sign_mask)
+                if (code & sign_mask)
                     delta = -delta;
 
                 sample += delta;
