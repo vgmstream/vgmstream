@@ -7,28 +7,27 @@ VGMSTREAM* init_vgmstream_xsh_xsd_xss(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     STREAMFILE* sf_body = NULL;
     uint32_t offset;
-    uint32_t stream_type, stream_offset, stream_size;
-    uint32_t name_offset, name_size;
-    uint32_t flags;
-    int32_t num_samples;
-    int version = 0;
     int loop_flag, channels, codec, sample_rate;
-    int total_subsongs, target_subsong = sf->stream_index;
 
 
     /* checks */
-    if (!check_extensions(sf, "xsh"))
-        goto fail;
-
-    version = read_u32le(0x00, sf);
-
+    uint32_t version = read_u32le(0x00, sf);
+    if (version  < 0x009D || version > 0x101)
+        return NULL;
     if (read_u32le(0x04, sf) != 0)
-        goto fail;
+        return NULL;
 
-    total_subsongs = read_u32le(0x08, sf);
+    if (!check_extensions(sf, "xsh"))
+        return NULL;
+
+    int total_subsongs = read_u32le(0x08, sf);
+    int target_subsong = sf->stream_index;
     if (target_subsong == 0) target_subsong = 1;
     if (target_subsong < 0 || target_subsong > total_subsongs || total_subsongs < 1) goto fail;
 
+    uint32_t stream_type, stream_offset, stream_size, flags;
+    uint32_t name_offset, name_size;
+    int32_t num_samples;
     switch(version) {
         case 0x009D: /* Spider-Man 2002 (Xbox) */
             offset = 0x0c + (target_subsong-1) * 0x60;
@@ -74,22 +73,23 @@ VGMSTREAM* init_vgmstream_xsh_xsd_xss(STREAMFILE* sf) {
             break;
 
         default:
-            goto fail;
+            return NULL;
     }
 
-    loop_flag = 0;
+    // full loop flag (ex. Spider-Man city_e.XSH#7,22)
+    loop_flag = (flags & 0x01) != 0;
 
-    if (stream_type < 0 || stream_type > 2)
-        goto fail;
+    if (stream_type > 2)
+        return NULL;
 
-    /* 0x00: floats x4 (volume/pan/etc? usually 1.0, 1.0, 10.0, 10.0) */
+    // 0x00: floats x4 (volume/pan/etc? usually 1.0, 1.0, 10.0, 10.0)
     codec = read_u16le(offset + 0x10,sf);
     channels = read_u16le(offset + 0x12,sf);
     sample_rate = read_u32le(offset + 0x14,sf);
-    /* 0x18: avg bitrate */
-    /* 0x1c: block size */
-    /* 0x1e: bps */
-    /* 0x20: 2? */
+    // 0x18: avg bitrate
+    // 0x1c: block size
+    // 0x1e: bps
+    // 0x20: 2?
 
     if (stream_type == 0) {
         vgmstream = init_vgmstream_silence_container(total_subsongs);
@@ -120,6 +120,11 @@ VGMSTREAM* init_vgmstream_xsh_xsd_xss(STREAMFILE* sf) {
                 vgmstream->num_streams = total_subsongs;
                 read_string(vgmstream->stream_name, name_size, name_offset,sf);
 
+                // external .xss shouldn't have loop info though
+                if (loop_flag && !vgmstream->loop_flag) {
+                    vgmstream_force_loop(vgmstream, loop_flag, 0, vgmstream->num_samples);
+                }
+
                 close_streamfile(sf_body);
                 return vgmstream;
                 //break;
@@ -138,7 +143,6 @@ VGMSTREAM* init_vgmstream_xsh_xsd_xss(STREAMFILE* sf) {
             default:
                 goto fail;
         }
-
     }
     else {
         sf_body = open_streamfile_by_ext(sf,"xsd");
@@ -167,6 +171,8 @@ VGMSTREAM* init_vgmstream_xsh_xsd_xss(STREAMFILE* sf) {
                 num_samples = xbox_ima_bytes_to_samples(stream_size, channels);
 
             vgmstream->num_samples = num_samples;
+            vgmstream->loop_start_sample = 0;
+            vgmstream->loop_end_sample = num_samples;
             break;
     }
 
