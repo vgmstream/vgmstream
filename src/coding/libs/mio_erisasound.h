@@ -11,7 +11,7 @@ typedef struct {
     // various internal (alloc'd) bufs
     void* m_ptrBuffer1;         // processing
     void* m_ptrBuffer2;         // reordering
-    SBYTE* m_ptrBuffer3;        // interleave
+    void* m_ptrBuffer3;         // interleave
 
     BYTE* m_ptrDivisionTable;   // block's division codes
     BYTE* m_ptrRevolveCode;     // block's revolve codes

@@ -46,6 +46,7 @@ VGMSTREAM* init_vgmstream_mio(STREAMFILE* sf) {
 
     vgmstream->loop_start_sample = loop_start;
     vgmstream->loop_end_sample = num_samples;
+    vgmstream->loop_flag = (loop_start >= 0);
 
     if (!vgmstream_open_stream(vgmstream, sf, start_offset))
         goto fail;

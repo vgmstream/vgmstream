@@ -681,7 +681,8 @@ ESLError MIOContext_PrepareToDecodeERINACode(MIOContext* context, UDWORD dwFlags
 
         BYTE* ptrBuf = (BYTE*)(context->m_ppHuffmanTree + 0x101);
         for (int i = 0; i < 0x101; i++) {
-            context->m_ppHuffmanTree[i] = (ERINA_HUFFMAN_TREE*)ptrBuf;
+            void* ptrTmp = ptrBuf;
+            context->m_ppHuffmanTree[i] = ptrTmp;
             ptrBuf += sizeof(ERINA_HUFFMAN_TREE);
         }
     }

@@ -625,7 +625,7 @@ static ESLError MIODecoder_DecodeSoundDCT_Std(MIODecoder* dec, MIOContext* conte
         }
 
         SBYTE* ptrHBuf = dec->m_ptrBuffer3;
-        SBYTE* ptrLBuf = dec->m_ptrBuffer3 + nAllSampleCount;
+        SBYTE* ptrLBuf = ptrHBuf + nAllSampleCount;
 
         for (i = 0; i < nDegreeWidth; i++) {
             INT* ptrQuantumized = ((INT*)dec->m_ptrBuffer2) + i;
@@ -642,8 +642,9 @@ static ESLError MIODecoder_DecodeSoundDCT_Std(MIODecoder* dec, MIOContext* conte
         if (MIOContext_DecodeERISACodeWords(context, (SWORD*)dec->m_ptrBuffer3, nAllSampleCount) < nAllSampleCount) {
             return eslErrGeneral;
         }
+        SWORD* ptrTmp = dec->m_ptrBuffer3;
         for (i = 0; i < nAllSampleCount; i++) {
-            ((INT*)dec->m_ptrBuffer2)[i] = ((SWORD*)dec->m_ptrBuffer3)[i];
+            ((INT*)dec->m_ptrBuffer2)[i] = (ptrTmp)[i];
         }
     }
 
@@ -858,7 +859,7 @@ static ESLError MIODecoder_DecodeSoundDCT_MSS(MIODecoder* dec, MIOContext* conte
         }
 
         SBYTE* ptrHBuf = dec->m_ptrBuffer3;
-        SBYTE* ptrLBuf = dec->m_ptrBuffer3 + nAllSampleCount;
+        SBYTE* ptrLBuf = ptrHBuf + nAllSampleCount;
 
         for (i = 0; i < nDegreeWidth * 2; i++) {
             INT* ptrQuantumized = ((INT*)dec->m_ptrBuffer2) + i;
@@ -875,8 +876,9 @@ static ESLError MIODecoder_DecodeSoundDCT_MSS(MIODecoder* dec, MIOContext* conte
         if (MIOContext_DecodeERISACodeWords(context, (SWORD*)dec->m_ptrBuffer3, nAllSampleCount) < nAllSampleCount) {
             return eslErrGeneral;
         }
+        SWORD* ptrTmp = dec->m_ptrBuffer3;
         for (i = 0; i < nAllSampleCount; i++) {
-            ((INT*)dec->m_ptrBuffer2)[i] = ((SWORD*)dec->m_ptrBuffer3)[i];
+            ((INT*)dec->m_ptrBuffer2)[i] = (ptrTmp)[i];
         }
     }
 
