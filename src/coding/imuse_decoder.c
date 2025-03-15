@@ -14,29 +14,29 @@
  */
 
 static const int16_t step_table[] = { /* same as IMA */
-    7,    8,    9,    10,   11,   12,   13,   14,
-    16,   17,   19,   21,   23,   25,   28,   31,
-    34,   37,   41,   45,   50,   55,   60,   66,
-    73,   80,   88,   97,   107,  118,  130,  143,
-    157,  173,  190,  209,  230,  253,  279,  307,
-    337,  371,  408,  449,  494,  544,  598,  658,
-    724,  796,  876,  963,  1060, 1166, 1282, 1411,
-    1552, 1707, 1878, 2066, 2272, 2499, 2749, 3024,
-    3327, 3660, 4026, 4428, 4871, 5358, 5894, 6484,
-    7132, 7845, 8630, 9493, 10442,11487,12635,13899,
-    15289,16818,18500,20350,22385,24623,27086,29794,
+    7,     8,     9,     10,    11,    12,    13,    14,
+    16,    17,    19,    21,    23,    25,    28,    31,
+    34,    37,    41,    45,    50,    55,    60,    66,
+    73,    80,    88,    97,    107,   118,   130,   143,
+    157,   173,   190,   209,   230,   253,   279,   307,
+    337,   371,   408,   449,   494,   544,   598,   658,
+    724,   796,   876,   963,   1060,  1166,  1282,  1411,
+    1552,  1707,  1878,  2066,  2272,  2499,  2749,  3024,
+    3327,  3660,  4026,  4428,  4871,  5358,  5894,  6484,
+    7132,  7845,  8630,  9493,  10442, 11487, 12635, 13899,
+    15289, 16818, 18500, 20350, 22385, 24623, 27086, 29794,
     32767,
 };
 
-/* pre-calculated in V1:
-    for (i = 0; i < 89; i++) {
+/* pre-calculated in COMP:
+    for (int  = 0; i < 89; i++) {
        int counter = (4 * step_table[i] / 7) >> 1;
        int size = 1;
        while (counter > 0) {
            size++;
            counter >>= 1;
        }
-       code_size_table[i] = clamp(size, 3, 8) - 1
+       code_size_table[i] = clamp(size, 3, 8) - 1;
     }
 */
 static const uint8_t code_size_table_v1[89] = {
@@ -44,6 +44,19 @@ static const uint8_t code_size_table_v1[89] = {
     6, 6, 6, 6, 7, 7, 7, 7,  7, 7, 7, 7, 7, 7, 7, 7,  7, 7, 7, 7, 7, 7, 7, 7,  7, 7, 7, 7, 7, 7, 7, 7,
     7, 7, 7, 7, 7, 7, 7, 7,  7, 7, 7, 7, 7, 7, 7, 7,  7, 7, 7, 7, 7, 7, 7, 7,  7,
 };
+
+/* pre-calculated in AIFC:
+    for (int i = 0; i < 89; i++) {
+       int counter = (step_table[i]) >> 1;
+       int size = 1;
+       while (counter > 0) {
+           size++;
+           counter >>= 1;
+       }
+       size = size >> 1;
+       code_size_table[i] = clamp(size, 4, 7);
+    }
+*/
 static const uint8_t code_size_table_v2[89] = {
     4, 4, 4, 4, 4, 4, 4, 4,  4, 4, 4, 4, 4, 4, 4, 4,  4, 4, 4, 4, 4, 4, 4, 4,  4, 4, 4, 4, 4, 4, 4, 4,
     4, 4, 4, 4, 4, 4, 4, 4,  4, 4, 4, 4, 4, 5, 5, 5,  5, 5, 5, 5, 5, 5, 5, 5,  5, 5, 5, 6, 6, 6, 6, 6,
@@ -105,7 +118,7 @@ static const int8_t* index_tables_v1[8] = {
     index_table6b_v1,
     index_table7b_v1,
 };
-/* seems V2 doesn't actually use <4b, nor mirrored parts, even though they are defined */
+/* seems V2 doesn't actually use <4b, nor mirrored parts, even though they are defined (both MCMP and AIFC) */
 static const int8_t* index_tables_v2[8] = {
     NULL,
     NULL,
@@ -117,10 +130,10 @@ static const int8_t* index_tables_v2[8] = {
     index_table7b_v2,
 };
 
-
 #define MAX_CHANNELS 2
 #define MAX_BLOCK_SIZE 0x2000
-#define MAX_BLOCK_COUNT 0x10000  /* arbitrary max */
+#define MAX_BLOCK_COUNT 0x10000     // arbitrary max
+#define BLOCK_COUNT_AIFC 0x2000     // observed max
 
 /* ************************** */
 
@@ -134,7 +147,18 @@ static int clamp_s32(int val, int min, int max) {
 
 /* ************************** */
 
-typedef enum { COMP, MCMP } imuse_type_t;
+typedef enum { COMP, MCMP, AIFC } imuse_type_t;
+
+typedef struct {
+    uint32_t offset;    // absolute
+    uint32_t size;      // block size
+    uint32_t flags;     // block type
+    uint32_t data;      // PCM bytes
+    int16_t hist_l;
+    int16_t hist_r;
+    uint8_t step_l;
+    uint8_t step_r;
+} block_entry_t;
 
 typedef struct {
     /* config */
@@ -142,14 +166,9 @@ typedef struct {
     int channels;
 
     size_t block_count;
-    struct block_entry_t {
-        uint32_t offset;    // absolute
-        uint32_t size;      // block size
-        uint32_t flags;     // block type
-        uint32_t data;      // PCM bytes
-    } *block_table;
+    block_entry_t* block_table;
 
-    uint16_t adpcm_table[64 * 89];
+    uint16_t adpcm_table[89 * 64];
 
     /* state */
     uint8_t block[MAX_BLOCK_SIZE];
@@ -186,7 +205,7 @@ imuse_codec_data* init_imuse_internal(int channels, int blocks) {
     data->block_count = blocks;
     if (data->block_count > MAX_BLOCK_COUNT) goto fail;
 
-    data->block_table = calloc(data->block_count, sizeof(struct block_entry_t));
+    data->block_table = calloc(data->block_count, sizeof(block_entry_t));
     if (!data->block_table) goto fail;
 
     // iMUSE pre-calculates main decode ops as a table, looks similar to standard IMA expand
@@ -202,7 +221,7 @@ imuse_codec_data* init_imuse_internal(int channels, int blocks) {
                 counter >>= 1;
             }
 
-            data->adpcm_table[i + j * 64] = value; /* non sequential: all 64 [0]s, [1]s ... [88]s */
+            data->adpcm_table[j * 64 + i] = value; /* non sequential: all 64 [0]s, [1]s ... [88]s */
         }
     }
 
@@ -226,13 +245,13 @@ void* init_imuse_mcomp(STREAMFILE* sf, int channels) {
 
         uint32_t offset = 0x10;
         for (int i = 0; i < data->block_count; i++) {
-            struct block_entry_t* entry = &data->block_table[i];
+            block_entry_t* entry = &data->block_table[i];
 
             entry->offset  = read_u32be(offset + 0x00, sf);
             entry->size    = read_u32be(offset + 0x04, sf);
             entry->flags   = read_u32be(offset + 0x08, sf);
             // 0x0c: null
-            entry->data    = MAX_BLOCK_SIZE; // blocks decode into fixed size, that may include header
+            entry->data    = 0x2000; // blocks decode into fixed size, that may include header
 
             if (entry->size > MAX_BLOCK_SIZE) {
                 VGM_LOG("IMUSE: block size too big\n");
@@ -270,7 +289,7 @@ void* init_imuse_mcomp(STREAMFILE* sf, int channels) {
 
         uint32_t offset = 0x06;
         for (int i = 0; i < data->block_count; i++) {
-            struct block_entry_t* entry = &data->block_table[i];
+            block_entry_t* entry = &data->block_table[i];
 
             entry->flags   = read_u8   (offset + 0x00, sf);
             entry->data    = read_u32be(offset + 0x01, sf);
@@ -305,126 +324,80 @@ fail:
     return NULL;
 }
 
-//TODO rename as init_vima_comp, init_vima_mcmp
-void* init_imuse(STREAMFILE* sf, int channels) {
-    off_t offset, data_offset;
+void* init_imuse_aifc(STREAMFILE* sf, uint32_t start_offset, int channels) {
+    imuse_codec_data* data = NULL;
 
-    if (channels > MAX_CHANNELS)
+    // mini header in AIFC's SSND chunk:
+    // 00: flags? (fixed)
+    // 04: crc-like value (may be shared between different files)
+    // 08: small number (ex. 0x20, 0x2C)
+
+    // doesn't seem there is a block count (nor in AIFC fields), for now so use a known max and recalculate later
+    int block_count = BLOCK_COUNT_AIFC;
+
+    if (read_u32be(start_offset, sf) != 0x00040700)
         return NULL;
 
-    imuse_codec_data* data = calloc(1, sizeof(imuse_codec_data));
-    if (!data) goto fail;
+    data = init_imuse_internal(channels, block_count);
+    if (!data) return NULL;
 
-    data->channels = channels;
 
-    /* read index table */
-    if (is_id32be(0x00,sf, "COMP")) {
-        data->block_count = read_u32be(0x04,sf);
-        if (data->block_count > MAX_BLOCK_COUNT) goto fail;
-        /* 08: base codec? */
-        /* 0c: some size? */
+    /* read block table */
+    int block_num = 0;
+    uint32_t data_size = get_streamfile_size(sf);
+    uint32_t offset = start_offset + 0x0a;
+    for (int i = 0; i < data->block_count; i++) {
+        block_entry_t* entry = &data->block_table[i];
 
-        data->block_table = calloc(data->block_count, sizeof(struct block_entry_t));
-        if (!data->block_table) goto fail;
+        entry->offset  = read_u32be(offset + 0x00, sf); // after block table
+        entry->size    = read_u32be(offset + 0x04, sf); // in bits
+        entry->hist_l  = read_s16be(offset + 0x08, sf);
+        entry->hist_r  = read_s16be(offset + 0x0a, sf);
+        entry->step_l  = read_u8   (offset + 0x0c, sf);
+        entry->step_r  = read_u8   (offset + 0x0d, sf);
 
-        offset = 0x10;
-        for (int i = 0; i < data->block_count; i++) {
-            struct block_entry_t* entry = &data->block_table[i];
+        // unlikely but avoid wrong reads
+        entry->step_l = clamp_s32(entry->step_l, 0, 88);
+        entry->step_r = clamp_s32(entry->step_r, 0, 88);
 
-            entry->offset  = read_u32be(offset + 0x00, sf);
-            entry->size    = read_u32be(offset + 0x04, sf);
-            entry->flags   = read_u32be(offset + 0x08, sf);
-            /* 0x0c: null */
-            entry->data    = MAX_BLOCK_SIZE;
-            /* blocks decode into fixed size, that may include header */
+        // bits to bytes + padding (ex. 0x2A45 > 0x549), seems to agree vs (next_offset - offset)
+        entry->size = (entry->size / 8) + ((entry->size % 8) ? 0x01 : 0x00);
 
-            if (entry->size > MAX_BLOCK_SIZE) {
-                VGM_LOG("IMUSE: block size too big\n");
-                goto fail;
-            }
+        entry->data    = 0x800 * channels; // blocks decode into fixed size
 
-            if (entry->flags != 0x0D && entry->flags != 0x0F) { /* VIMA */
-                VGM_LOG("IMUSE: unknown codec\n");
-                goto fail; /* others are bunch of mini-codecs (ex. The Dig) */
-            }
-
-            offset += 0x10;
+        if (entry->size > MAX_BLOCK_SIZE) {
+            VGM_LOG("IMUSE: block size %x too big\n", entry->size);
+            goto fail;
         }
 
-        /* detect type */
-        {
-            uint32_t id = read_u32be(data->block_table[0].offset + 0x02, sf);
-            if (id == get_id32be("iMUS")) { /* [The Curse of Monkey Island (PC)] */
-                data->type = COMP;
-            } else {
-                goto fail; /* no header [The Dig (PC)] */
-            }
+        offset += 0x0E;
+        block_num++;
+
+        // last block found
+        if (offset + entry->offset + entry->size + 0x10 >= data_size) {
+            break;
         }
     }
-    else if (is_id32be(0x00,sf, "MCMP")) {
-        data->block_count = read_u16be(0x04,sf);
-        if (data->block_count > MAX_BLOCK_COUNT) goto fail;
 
-        data->block_table = calloc(data->block_count, sizeof(struct block_entry_t));
-        if (!data->block_table) goto fail;
-
-        /* pre-calculate for simpler logic */
-        data_offset = 0x06 + data->block_count * 0x09;
-        data_offset += 0x02 + read_u16be(data_offset + 0x00, sf); /* mini text header */
-
-        offset = 0x06;
-        for (int i = 0; i < data->block_count; i++) {
-            struct block_entry_t* entry = &data->block_table[i];
-
-            entry->flags   = read_u8   (offset + 0x00, sf);
-            entry->data    = read_u32be(offset + 0x01, sf);
-            entry->size    = read_u32be(offset + 0x05, sf);
-            entry->offset  = data_offset;
-            /* blocks of data and audio are separate */
-
-            if (entry->data > MAX_BLOCK_SIZE || entry->size > MAX_BLOCK_SIZE) {
-                VGM_LOG("IMUSE: block size too big\n");
-                goto fail;
-            }
-
-            if (entry->flags != 0x00 && entry->flags != 0x01) { /* data or VIMA */
-                VGM_LOG("IMUSE: unknown codec\n");
-                goto fail;
-            }
-
-            offset += 0x09;
-            data_offset += entry->size;
-        }
-
-        data->type = MCMP; /* with header [Grim Fandango (multi)] */
-
-        /* there are iMUS or RIFF headers but affect parser */
-    }
-    else {
+    if (block_num >= data->block_count) {
+        vgm_logi("IMUSE: reached max blocks (report)\n");
         goto fail;
     }
 
-    // iMUSE pre-calculates main decode ops as a table, looks similar to standard IMA expand
-    for (int i = 0; i < 64; i++) {
-        for (int j = 0; j < 89; j++) {
-            int counter = 32;
-            int value = 0;
-            int step = step_table[j];
-            while (counter > 0) {
-                if (counter & i)
-                    value += step;
-                step >>= 1;
-                counter >>= 1;
-            }
+    data->block_count = block_num;
+    data->type = AIFC;
 
-            data->adpcm_table[i + j * 64] = value; /* non sequential: all 64 [0]s, [1]s ... [88]s */
+    {
+        // make offsets absolute to unify with other iMUSEs
+        uint32_t base_offset = start_offset + 0x0a + data->block_count * 0x0e;
+        for (int i = 0; i < data->block_count; i++) {
+            block_entry_t* entry = &data->block_table[i];
+
+            entry->offset += base_offset;
         }
     }
 
-    reset_imuse(data);
-
     return data;
-
 fail:
     free_imuse(data);
     return NULL;
@@ -605,6 +578,90 @@ static int decode_vima_v2(short* samples, int chs, uint8_t* buf, size_t data_lef
     return filled;
 }
 
+//TO-DO: in a few files some samples seem to go over max at times.
+// All AIFC tables, decode, samples, clamps, etc below seem correct though (maybe original encoder bug?)
+static int decode_vima_aifc(imuse_codec_data* data) {
+    int block_num = data->current_block;
+    uint8_t* buf = data->block;
+    short* samples = data->pbuf;
+    int chs = data->channels;
+    uint16_t* adpcm_table = data->adpcm_table;
+
+    block_entry_t* entry = &data->block_table[block_num];
+    size_t data_left = entry->data;
+
+    int16_t adpcm_history[MAX_CHANNELS] = {0};
+    uint8_t adpcm_step_index[MAX_CHANNELS] = {0};
+
+    int filled = 0;
+    int pos = 0;
+
+    /* read ADPCM header */
+    {
+        adpcm_history[0] = entry->hist_l;
+        adpcm_history[1] = entry->hist_r;
+        adpcm_step_index[0] = entry->step_l;
+        adpcm_step_index[1] = entry->step_r;
+    }
+
+    bitstream_t is = {0};
+    bm_setup(&is, buf, MAX_BLOCK_SIZE); // originally reads max 16 bit
+    bm_skip(&is, pos * 8);
+
+    /* decode ADPCM data after header (stereo layout: L then R xN) */
+    int samples_left = data_left / sizeof(short);
+    int samples_to_do = samples_left / chs;
+
+    int s = filled * chs;
+    for (int i = 0; i < samples_to_do; i++) {
+        for (int ch = 0; ch < chs; ch++) {
+
+            int step_index = adpcm_step_index[ch];
+            int sample = adpcm_history[ch];
+            int code_bits = code_size_table_v2[step_index];
+
+            // pre-calc'd in AIFC: table[bits] = { code_shift, index_table, data_mask, sign_mask, index_add }
+            int code_shift = (7 - code_bits);
+            int sign_mask = (1 << (code_bits - 1));
+            int data_mask = (sign_mask - 1);
+
+            int code = bm_read(&is, code_bits);
+            int code_base = code & data_mask;
+
+            // all bits set means 'keyframe' = read next BE sample
+            if (code_base == data_mask) {
+                sample = (short)bm_read(&is, 16);
+            }
+            else {
+                int index = (code_base << code_shift);
+                if (index) {
+                    // this results in very slight differences; not sure about meaning
+                    int index_add = code_shift ? (1 << code_shift) : 0;
+                    index |= index_add;
+                }
+
+                int delta = adpcm_table[(step_index * 64) + (index)];
+                if (code & sign_mask)
+                    delta = -delta;
+
+                sample += delta;
+                sample = clamp16(sample);
+            }
+
+            samples[s] = sample;
+            s++;
+
+            adpcm_history[ch] = sample;
+
+            step_index += index_tables_v2[code_bits][code];
+            adpcm_step_index[ch] = clamp_s32(step_index, 0, 88);
+        }
+    }
+
+    filled += data_left / sizeof(int16_t) / chs;
+    return filled;
+}
+
 static int decode_data_v2(short* samples, int chs, uint8_t* buf, size_t data_left, int block_num) {
 
     if (block_num == 0) {
@@ -650,6 +707,11 @@ static int decode_block_v2(imuse_codec_data* data, uint8_t* block, size_t data_l
     }
 }
 
+static int decode_block_aifc(imuse_codec_data* data) {
+
+    return decode_vima_aifc(data);
+}
+
 // decodes a whole block into sample buffer, all at once due to L/R layout and VBR data
 static int decode_block(sbuf_t* sbuf, imuse_codec_data* data) {
     size_t data_left  = data->block_table[data->current_block].data;
@@ -662,6 +724,10 @@ static int decode_block(sbuf_t* sbuf, imuse_codec_data* data) {
 
         case MCMP:
             samples = decode_block_v2(data, data->block, data_left);
+            break;
+
+        case AIFC:
+            samples = decode_block_aifc(data);
             break;
 
         default:

@@ -289,6 +289,7 @@ int32_t ubi_adpcm_get_samples(ubi_adpcm_codec_data* data);
 
 /* imuse_decoder */
 void* init_imuse_mcomp(STREAMFILE* sf, int channels);
+void* init_imuse_aifc(STREAMFILE* sf, uint32_t start_offset, int channels);
 
 /* ongakukan_adp_decoder */
 typedef struct ongakukan_adp_data ongakukan_adp_data;
