@@ -168,12 +168,15 @@ typedef struct {
     size_t block_count;
     block_entry_t* block_table;
 
-    uint16_t adpcm_table[89 * 64];
+    uint16_t adpcm_table[64 * 89]; // 2D array
 
     /* state */
     uint8_t block[MAX_BLOCK_SIZE];
-
     int current_block;
+
+    int16_t adpcm_history[MAX_CHANNELS];
+    uint8_t adpcm_step_index[MAX_CHANNELS];
+
     short pbuf[MAX_BLOCK_SIZE / sizeof(short) * MAX_CHANNELS];
 } imuse_codec_data;
 
@@ -221,7 +224,7 @@ imuse_codec_data* init_imuse_internal(int channels, int blocks) {
                 counter >>= 1;
             }
 
-            data->adpcm_table[j * 64 + i] = value; /* non sequential: all 64 [0]s, [1]s ... [88]s */
+            data->adpcm_table[j * 64 + i] = value;
         }
     }
 
@@ -356,10 +359,6 @@ void* init_imuse_aifc(STREAMFILE* sf, uint32_t start_offset, int channels) {
         entry->step_l  = read_u8   (offset + 0x0c, sf);
         entry->step_r  = read_u8   (offset + 0x0d, sf);
 
-        // unlikely but avoid wrong reads
-        entry->step_l = clamp_s32(entry->step_l, 0, 88);
-        entry->step_r = clamp_s32(entry->step_r, 0, 88);
-
         // bits to bytes + padding (ex. 0x2A45 > 0x549), seems to agree vs (next_offset - offset)
         entry->size = (entry->size / 8) + ((entry->size % 8) ? 0x01 : 0x00);
 
@@ -405,60 +404,113 @@ fail:
 
 /* **************************************** */
 
-static int decode_vima_v1(short* samples, int chs, uint8_t* buf, size_t data_left, int block_num, uint16_t* adpcm_table) {
-    int adpcm_history[MAX_CHANNELS] = {0};
-    int adpcm_step_index[MAX_CHANNELS] = {0};
+static void expand_vima(imuse_codec_data* data, bitstream_t* is, int ch, int s) {
+    bool is_v1 = data->type == COMP;
+
+    int step_index = data->adpcm_step_index[ch];
+    int sample = data->adpcm_history[ch];
+    int code_bits = is_v1 ? 
+        code_size_table_v1[step_index] :
+        code_size_table_v2[step_index];
+
+    // LUT in AIFC: table[bits] = { code_shift, index_table, data_mask, sign_mask, index_add }
+    int code_shift = (7 - code_bits);
+    int sign_mask = (1 << (code_bits - 1));
+    int data_mask = (sign_mask - 1); // LUT in COMI
+
+    int code = bm_read(is, code_bits);
+    int code_base = code & data_mask;
+
+    // all bits set means 'keyframe' = read next BE sample
+    if (!is_v1 && code_base == data_mask) {
+        sample = (short)bm_read(is, 16);
+    }
+    else {
+        int adpcm_index = (code_base << code_shift);
+
+        if (data->type == AIFC && adpcm_index) {
+            // this results in very slight differences; not sure about meaning
+            int index_add = code_shift ? (1 << code_shift) : 0;
+            adpcm_index |= index_add;
+        }
+
+        int delta = data->adpcm_table[(step_index * 64) + (adpcm_index)];
+
+        if (data->type == COMP || (data->type == MCMP && code_base)) {
+            delta += step_table[step_index] >> (code_bits - 1);
+        }
+
+        if (code & sign_mask)
+            delta = -delta;
+
+        sample += delta;
+        sample = clamp16(sample);
+    }
+
+    data->pbuf[s] = sample;
+    data->adpcm_history[ch] = sample;
+
+    int new_step = is_v1 ? 
+        index_tables_v1[code_bits][code] :
+        index_tables_v2[code_bits][code];
+    step_index += new_step;
+    data->adpcm_step_index[ch] = clamp_s32(step_index, 0, 88);
+}
+
+static int decode_vima_comp(imuse_codec_data* data, block_entry_t* entry) {
+    int chs = data->channels;
+    size_t data_left = entry->data;
 
     int filled = 0;
     int pos = 0;
 
     /* read header (outside decode in original code) */
     {
-        size_t copy_size;
-
         // decodes BLOCK_SIZE bytes (not samples), including copy_size if exists, but not first 16b
         // or ADPCM headers. ADPCM setup must be set to 0 if headers weren't read.
-        copy_size = get_u16be(buf + pos);
+        uint16_t copy_size = get_u16be(data->block + pos);
         pos += 0x02;
 
-        if (block_num == 0 && copy_size > 0) {
+        if (data->current_block == 0 && copy_size > 0) {
             /* iMUS header (always in first block) */
             pos += copy_size;
             data_left -= copy_size;
         }
         else if (copy_size > 0) {
+            VGM_LOG("IMUSE: found PCM block %i\n", data->current_block);
+
             /* presumably PCM data (not seen) */
             for (int i = 0, j = pos; i < copy_size / sizeof(sample_t); i++, j += 2) {
-                samples[i] = get_s16le(buf + j);
+                data->pbuf[i] = get_s16le(data->block + j);
             }
             filled += copy_size / chs / sizeof(sample_t);
 
             pos += copy_size;
             data_left -= copy_size;
 
-            VGM_LOG("IMUS: found PCM block %i\n", block_num);
         }
         else {
             /* ADPCM header (never in first block) */
             for (int i = 0; i < chs; i++) {
-                adpcm_step_index[i] = get_u8   (buf + pos + 0x00);
-              //adpcm_step[i]       = get_s32be(buf + pos + 0x01); /* same as step_table[step_index] */
-                adpcm_history[i]    = get_s32be(buf + pos + 0x05);
+                data->adpcm_step_index[i] = get_u8   (data->block + pos + 0x00);
+              //adpcm_step[i]             = get_s32be(data->block + pos + 0x01); // same as step_table[step_index]
+                data->adpcm_history[i]    = get_s32be(data->block + pos + 0x05);
                 pos += 0x09;
 
-                adpcm_step_index[i] = clamp_s32(adpcm_step_index[i], 0, 88); /* not originally */
+                // not done originally
+                data->adpcm_step_index[i] = clamp_s32(data->adpcm_step_index[i], 0, 88);
             }
         }
     }
 
     bitstream_t is = {0};
-    bm_setup(&is, buf, MAX_BLOCK_SIZE); // originally reads max 16 bits
+    bm_setup(&is, data->block, entry->size); // original BR reads max 16 bit per call
     bm_skip(&is, pos * 8);
 
     /* decode ADPCM data after header (stereo layout: all samples from L, then all for R) */
+    int samples_left = data_left / sizeof(short);
+
     for (int ch = 0; ch < chs; ch++) {
-        int first_sample = filled * chs + ch;
-        int samples_left = data_left / sizeof(short);
         int samples_to_do;
         if (chs == 1) {
             samples_to_do = samples_left;
@@ -474,138 +526,84 @@ static int decode_vima_v1(short* samples, int chs, uint8_t* buf, size_t data_lef
         }
         //;VGM_ASSERT((samples_left + 1) / 2 != (samples_left + 0) / 2, "IMUSE: sample diffs\n");
 
-        int step_index = adpcm_step_index[ch];
-        int sample = adpcm_history[ch];
-
-        for (int i = 0, s = first_sample; i < samples_to_do; i++, s += chs) {
-            int code_bits = code_size_table_v1[step_index];
-            int sign_mask = (1 << (code_bits - 1));
-            int data_mask = (sign_mask - 1); // done with a LUT in COMI
-
-            int code = bm_read(&is, code_bits);
-            int code_base = code & data_mask;
-
-            {
-                int delta = adpcm_table[(step_index * 64) + ((code_base << (7 - code_bits)))];
-                delta += step_table[step_index] >> (code_bits - 1);
-                if (code & sign_mask)
-                    delta = -delta;
-
-                sample += delta;
-                sample = clamp16(sample);
-            }
-
-            samples[s] = sample;
-
-            step_index += index_tables_v1[code_bits][code];
-            step_index = clamp_s32(step_index, 0, 88);
+        int s = filled * chs + ch;
+        for (int i = 0; i < samples_to_do; i++) {
+            expand_vima(data, &is, ch, s);
+            s += chs;
         }
     }
 
-    filled += data_left / sizeof(int16_t) / chs;
+    filled += data_left / sizeof(short) / chs;
     return filled;
 }
 
-static int decode_vima_v2(short* samples, int chs, uint8_t* buf, size_t data_left, uint16_t* adpcm_table) {
-    int adpcm_history[MAX_CHANNELS] = {0};
-    int adpcm_step_index[MAX_CHANNELS] = {0};
+static int decode_vima_mcmp(imuse_codec_data* data, block_entry_t* entry) {
+    int chs = data->channels;
+    size_t data_left = entry->data;
 
     int filled = 0;
-    int pos = 0;
+    int pos = 0x00;
 
     /* read ADPCM header */
     {
         for (int i = 0; i < chs; i++) {
-            adpcm_step_index[i] = get_u8   (buf + pos + 0x00);
-            adpcm_history[i]    = get_s16be(buf + pos + 0x01);
+            data->adpcm_step_index[i] = get_u8   (data->block + pos + 0x00);
+            data->adpcm_history[i]    = get_s16be(data->block + pos + 0x01);
             pos += 0x03;
 
             // checked as < 0 and only for first index, means "stereo"
-            if (adpcm_step_index[i] & 0x80) {
-                adpcm_step_index[i] = (~adpcm_step_index[i]) & 0xFF;
+            if (data->adpcm_step_index[i] & 0x80) {
+                data->adpcm_step_index[i] = (~data->adpcm_step_index[i]) & 0xFF;
                 if (chs != 2) return 0;
             }
 
-            // not originally done but in case of garbage data
-            adpcm_step_index[i] = clamp_s32(adpcm_step_index[i], 0, 88);
+            // not done originally
+            data->adpcm_step_index[i] = clamp_s32(data->adpcm_step_index[i], 0, 88); 
         }
     }
 
     bitstream_t is = {0};
-    bm_setup(&is, buf, MAX_BLOCK_SIZE); // originally reads max 16 bit w/ rolling buf
+    bm_setup(&is, data->block, entry->size); // original BR reads max 16 bit per call
     bm_skip(&is, pos * 8);
 
     /* decode ADPCM data after header (stereo layout: all samples from L, then all for R) */
+    int samples_left = data_left / sizeof(short);
+    int samples_to_do = samples_left / chs;
+
     for (int ch = 0; ch < chs; ch++) {
-        int first_sample = filled * chs + ch;
-        int samples_left = data_left / sizeof(short);
-        int samples_to_do = samples_left / chs;
-
-        int step_index = adpcm_step_index[ch];
-        int sample = adpcm_history[ch];
-
-        for (int i = 0, s = first_sample; i < samples_to_do; i++, s += chs) {
-            int code_bits = code_size_table_v2[step_index];
-            int sign_mask = (1 << (code_bits - 1));
-            int data_mask = (sign_mask - 1);
-
-            int code = bm_read(&is, code_bits);
-            int code_base = code & data_mask;
-
-            // all bits set means 'keyframe' = read next BE sample
-            if (code_base == data_mask) {
-                sample = (short)bm_read(&is, 16);
-            }
-            else {
-                int delta = adpcm_table[(step_index * 64) + ((code_base << (7 - code_bits)))];
-                if (code_base)
-                    delta += step_table[step_index] >> (code_bits - 1);
-                if (code & sign_mask)
-                    delta = -delta;
-
-                sample += delta;
-                sample = clamp16(sample);
-            }
-
-            samples[s] = sample;
-
-            step_index += index_tables_v2[code_bits][code];
-            step_index = clamp_s32(step_index, 0, 88);
+        int s = filled * chs + ch;
+        for (int i = 0; i < samples_to_do; i++) {
+            expand_vima(data, &is, ch, s);
+            s += chs;
         }
     }
 
-    filled += data_left / sizeof(int16_t) / chs;
+    filled += data_left / sizeof(short) / chs;
     return filled;
 }
 
-//TO-DO: in a few files some samples seem to go over max at times.
-// All AIFC tables, decode, samples, clamps, etc below seem correct though (maybe original encoder bug?)
-static int decode_vima_aifc(imuse_codec_data* data) {
-    int block_num = data->current_block;
-    uint8_t* buf = data->block;
-    short* samples = data->pbuf;
+//TO-DO: a few files have samples going go over max at times.
+// All AIFC tables, decode, samples, clamps, etc below seem correct though, maybe encoder bug?
+static int decode_vima_aifc(imuse_codec_data* data, block_entry_t* entry) {
     int chs = data->channels;
-    uint16_t* adpcm_table = data->adpcm_table;
-
-    block_entry_t* entry = &data->block_table[block_num];
     size_t data_left = entry->data;
-
-    int16_t adpcm_history[MAX_CHANNELS] = {0};
-    uint8_t adpcm_step_index[MAX_CHANNELS] = {0};
-
     int filled = 0;
     int pos = 0;
 
     /* read ADPCM header */
     {
-        adpcm_history[0] = entry->hist_l;
-        adpcm_history[1] = entry->hist_r;
-        adpcm_step_index[0] = entry->step_l;
-        adpcm_step_index[1] = entry->step_r;
+        data->adpcm_history[0] = entry->hist_l;
+        data->adpcm_history[1] = entry->hist_r;
+        data->adpcm_step_index[0] = entry->step_l;
+        data->adpcm_step_index[1] = entry->step_r;
+
+        // not done originally
+        data->adpcm_step_index[0] = clamp_s32(data->adpcm_step_index[0], 0, 88);
+        data->adpcm_step_index[1] = clamp_s32(data->adpcm_step_index[1], 0, 88);
     }
 
     bitstream_t is = {0};
-    bm_setup(&is, buf, MAX_BLOCK_SIZE); // originally reads max 16 bit
+    bm_setup(&is, data->block, entry->size); // original BR reads max 16 bit per call
     bm_skip(&is, pos * 8);
 
     /* decode ADPCM data after header (stereo layout: L then R xN) */
@@ -615,119 +613,79 @@ static int decode_vima_aifc(imuse_codec_data* data) {
     int s = filled * chs;
     for (int i = 0; i < samples_to_do; i++) {
         for (int ch = 0; ch < chs; ch++) {
-
-            int step_index = adpcm_step_index[ch];
-            int sample = adpcm_history[ch];
-            int code_bits = code_size_table_v2[step_index];
-
-            // pre-calc'd in AIFC: table[bits] = { code_shift, index_table, data_mask, sign_mask, index_add }
-            int code_shift = (7 - code_bits);
-            int sign_mask = (1 << (code_bits - 1));
-            int data_mask = (sign_mask - 1);
-
-            int code = bm_read(&is, code_bits);
-            int code_base = code & data_mask;
-
-            // all bits set means 'keyframe' = read next BE sample
-            if (code_base == data_mask) {
-                sample = (short)bm_read(&is, 16);
-            }
-            else {
-                int index = (code_base << code_shift);
-                if (index) {
-                    // this results in very slight differences; not sure about meaning
-                    int index_add = code_shift ? (1 << code_shift) : 0;
-                    index |= index_add;
-                }
-
-                int delta = adpcm_table[(step_index * 64) + (index)];
-                if (code & sign_mask)
-                    delta = -delta;
-
-                sample += delta;
-                sample = clamp16(sample);
-            }
-
-            samples[s] = sample;
+            expand_vima(data, &is, ch, s);
             s++;
-
-            adpcm_history[ch] = sample;
-
-            step_index += index_tables_v2[code_bits][code];
-            adpcm_step_index[ch] = clamp_s32(step_index, 0, 88);
         }
     }
 
-    filled += data_left / sizeof(int16_t) / chs;
+    filled += data_left / sizeof(short) / chs;
     return filled;
 }
 
-static int decode_data_v2(short* samples, int chs, uint8_t* buf, size_t data_left, int block_num) {
+static int decode_data_mcmp(imuse_codec_data* data, block_entry_t* entry) {
 
-    if (block_num == 0) {
+    if (data->current_block == 0) {
         // iMUS header (always in first block, not shared with audio data unlike V1)
         return 0;
     }
 
-    VGM_LOG("IMUSE: found PCM block %i\n", block_num);
+    VGM_LOG("IMUSE: found PCM block %i\n", data->current_block);
 
     // presumably PCM data (not seen)
-    for (int i = 0; i < data_left / sizeof(sample_t); i++) {
-        samples[i] = get_s16le(buf);
-        buf += 0x02;
+    for (int i = 0; i < entry->data / sizeof(short); i++) {
+        data->pbuf[i] = get_s16le(data->block + i * 0x02);
     }
 
-    return data_left / chs / sizeof(sample_t);
+    return entry->data / data->channels / sizeof(short);
 }
 
-static int decode_block_v1(imuse_codec_data* data, uint8_t* block, size_t data_left) {
-    int block_num = data->current_block;
+static int decode_block_comp(imuse_codec_data* data, block_entry_t* entry) {
 
-    switch(data->block_table[block_num].flags) {
+    switch(entry->flags) {
         case 0x0D:
         case 0x0F:
-            return decode_vima_v1(data->pbuf, data->channels, block, data_left, block_num, data->adpcm_table);
+            return decode_vima_comp(data, entry);
         default:
             return -1;
     }
 }
 
-static int decode_block_v2(imuse_codec_data* data, uint8_t* block, size_t data_left) {
-    int block_num = data->current_block;
+static int decode_block_mcmp(imuse_codec_data* data, block_entry_t* entry) {
 
-    switch(data->block_table[block_num].flags) {
+    switch(entry->flags) {
         case 0x00:
-            return decode_data_v2(data->pbuf, data->channels, block, data_left, block_num);
+            return decode_data_mcmp(data, entry);
 
         case 0x01:
-            return decode_vima_v2(data->pbuf, data->channels, block, data_left, data->adpcm_table);
+            return decode_vima_mcmp(data, entry);
 
         default:
             return -1;
     }
 }
 
-static int decode_block_aifc(imuse_codec_data* data) {
+static int decode_block_aifc(imuse_codec_data* data, block_entry_t* entry) {
 
-    return decode_vima_aifc(data);
+    return decode_vima_aifc(data, entry);
 }
 
 // decodes a whole block into sample buffer, all at once due to L/R layout and VBR data
-static int decode_block(sbuf_t* sbuf, imuse_codec_data* data) {
-    size_t data_left  = data->block_table[data->current_block].data;
+static int decode_block(imuse_codec_data* data) {
+    int block_num = data->current_block;
+    block_entry_t* entry = &data->block_table[block_num];
 
     int samples;
     switch(data->type) {
-        case COMP:
-            samples = decode_block_v1(data, data->block, data_left);
+        case COMP: 
+            samples = decode_block_comp(data, entry);
             break;
 
         case MCMP:
-            samples = decode_block_v2(data, data->block, data_left);
+            samples = decode_block_mcmp(data, entry);
             break;
 
         case AIFC:
-            samples = decode_block_aifc(data);
+            samples = decode_block_aifc(data, entry);
             break;
 
         default:
@@ -761,7 +719,7 @@ static bool decode_frame_imuse(VGMSTREAM* v) {
     bool ok = read_block(sf, data);
     if (!ok) return false;
 
-    int samples = decode_block(&ds->sbuf, data);
+    int samples = decode_block(data);
     if (samples < 0) return false; //may be zero on header blocks
 
     sbuf_init_s16(&ds->sbuf, data->pbuf, samples, data->channels);
