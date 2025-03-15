@@ -375,6 +375,9 @@ void* init_ka1a(int bitrate_mode, int channels_tracks);
 /* ubimpeg_decoder */
 void* init_ubimpeg(uint32_t mode);
 
+/* mio_decoder */
+void* init_mio(STREAMFILE* sf, int* p_loop_point);
+
 
 #ifdef VGM_USE_VORBIS
 /* ogg_vorbis_decoder */

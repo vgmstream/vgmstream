@@ -11,6 +11,7 @@ extern const codec_info_t tac_decoder;
 extern const codec_info_t compresswave_decoder;
 extern const codec_info_t speex_decoder;
 extern const codec_info_t imuse_decoder;
+extern const codec_info_t mio_decoder;
 
 const codec_info_t* codec_get_info(VGMSTREAM* v) {
     switch(v->coding_type) {
@@ -34,6 +35,8 @@ const codec_info_t* codec_get_info(VGMSTREAM* v) {
 #endif
         case coding_IMUSE:
             return &imuse_decoder;
+        case coding_MIO:
+            return &mio_decoder;
         default:
             return NULL;
     }

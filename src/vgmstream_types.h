@@ -148,6 +148,7 @@ typedef enum {
     coding_ICE_DCT,         /* Inti Creates "DCT" codec */
     coding_KA1A,            /* Koei Tecmo codec (transform-based) */
     coding_UBI_MPEG,        /* Ubisoft MPEG codec (transform-based) */
+    coding_MIO,             /* Entis MIO codec (transform-based) */
 
 #ifdef VGM_USE_VORBIS
     coding_OGG_VORBIS,      /* Xiph Vorbis with Ogg layer (transform-based) */
@@ -719,6 +720,7 @@ typedef enum {
     meta_AXHD,
     meta_SHAA,
     meta_OOR,
+    meta_MIO,
 } meta_t;
 
 #endif

@@ -116,6 +116,11 @@
     <ClInclude Include="coding\libs\ka1a_dec_data.h" />
     <ClInclude Include="coding\libs\libacm.h" />
     <ClInclude Include="coding\libs\minimp3.h" />
+    <ClInclude Include="coding\libs\mio_erisacontext.h" />
+    <ClInclude Include="coding\libs\mio_erisafile.h" />
+    <ClInclude Include="coding\libs\mio_erisamatrix.h" />
+    <ClInclude Include="coding\libs\mio_erisasound.h" />
+    <ClInclude Include="coding\libs\mio_xerisa.h" />
     <ClInclude Include="coding\libs\nwa_lib.h" />
     <ClInclude Include="coding\libs\ongakukan_adp_lib.h" />
     <ClInclude Include="coding\libs\oor_helpers.h" />
@@ -198,6 +203,8 @@
     <ClInclude Include="util\cri_keys.h" />
     <ClInclude Include="util\cri_utf.h" />
     <ClInclude Include="util\endianness.h" />
+    <ClInclude Include="util\io_callback.h" />
+    <ClInclude Include="util\io_callback_sf.h" />
     <ClInclude Include="util\layout_utils.h" />
     <ClInclude Include="util\log.h" />
     <ClInclude Include="util\m2_psb.h" />
@@ -281,6 +288,7 @@
     <ClCompile Include="coding\ka1a_decoder.c" />
     <ClCompile Include="coding\l5_555_decoder.c" />
     <ClCompile Include="coding\lsf_decoder.c" />
+    <ClCompile Include="coding\mio_decoder.c" />
     <ClCompile Include="coding\mp4_aac_decoder.c" />
     <ClCompile Include="coding\mpc3_decoder.c" />
     <ClCompile Include="coding\mpeg_custom_utils.c" />
@@ -336,6 +344,10 @@
     <ClCompile Include="coding\libs\ka1a_dec.c" />
     <ClCompile Include="coding\libs\libacm_decode.c" />
     <ClCompile Include="coding\libs\libacm_util.c" />
+    <ClCompile Include="coding\libs\mio_erisacontext.c" />
+    <ClCompile Include="coding\libs\mio_erisafile.c" />
+    <ClCompile Include="coding\libs\mio_erisamatrix.c" />
+    <ClCompile Include="coding\libs\mio_erisasound.c" />
     <ClCompile Include="coding\libs\nwa_lib.c" />
     <ClCompile Include="coding\libs\ongakukan_adp_lib.c" />
     <ClCompile Include="coding\libs\oor_helpers.c" />
@@ -565,6 +577,7 @@
     <ClCompile Include="meta\mcg.c" />
     <ClCompile Include="meta\mib_mih.c" />
     <ClCompile Include="meta\mic_koei.c" />
+    <ClCompile Include="meta\mio.c" />
     <ClCompile Include="meta\mjb_mjh.c" />
     <ClCompile Include="meta\mn_str.c" />
     <ClCompile Include="meta\mogg.c" />
@@ -827,6 +840,7 @@
     <ClCompile Include="util\companion_files.c" />
     <ClCompile Include="util\cri_keys.c" />
     <ClCompile Include="util\cri_utf.c" />
+    <ClCompile Include="util\io_callback_sf.c" />
     <ClCompile Include="util\layout_utils.c" />
     <ClCompile Include="util\log.c" />
     <ClCompile Include="util\m2_psb.c" />
