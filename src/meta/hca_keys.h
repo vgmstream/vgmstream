@@ -1532,6 +1532,9 @@ static const hcakey_info hcakey_list[] = {
     // Freedom Wars Remastered (Switch)
     {3258660547165106863},      // 2D391680A55B32AF
 
+    // Suikoden I & II HD Remaster (PC)
+    {14510296783270449627u},    // C95EEE0BA85411DB
+
 };
 
 #endif
