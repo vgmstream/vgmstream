@@ -9,7 +9,9 @@
 #define MINIMP3_IMPLEMENTATION
 #include "libs/minimp3.h"
 
-#define UBIMPEG_INITIAL_DISCARD 0 //480?
+//TODO: needed for smoother segments, but not sure if block samples counts this
+// (usually blocks' frames have more samples than defined but not always; maybe should output delay's samples at EOF)
+#define UBIMPEG_INITIAL_DISCARD 480 //observed
 #define UBIMPEG_SAMPLES_PER_FRAME 1152
 #define UBIMPEG_MAX_CHANNELS 2
 #define UBIMPEG_INPUT_LIMIT 0x400 //enough for 2 stereo + mono frames

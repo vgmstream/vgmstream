@@ -1246,7 +1246,16 @@ static VGMSTREAM* init_vgmstream_ubi_sb_base(ubi_sb_header* sb, STREAMFILE* sf_h
                 VGM_LOG("UBI SB: wrong MPEG block samples found block=%i vs total=%i\n", block_samples, sb->num_samples);
                 goto fail;
             }
-            vgmstream->num_samples = block_samples;
+
+            //TODO: needed for smoother segments, but not sure if block samples counts this
+            // (usually blocks' frames have more samples than defined but not always; maybe should output delay's samples at EOF)
+            int encoder_delay = 480; //observed
+
+            vgmstream->num_samples = block_samples - encoder_delay;
+            vgmstream->loop_end_sample = block_samples - encoder_delay;
+            if (sb->loop_start) {
+                vgmstream->loop_start_sample = sb->loop_start / sizeof(short) / sb->channels;
+            }
 
             vgmstream->codec_data = init_ubimpeg(mode);
             if (!vgmstream->codec_data) goto fail;
