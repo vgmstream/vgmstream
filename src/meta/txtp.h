@@ -21,6 +21,11 @@
 #define TXTP_GROUP_REPEAT 'R'
 #define TXTP_POSITION_LOOPS 'L'
 
+#define TXTP_BODY_INTRO 1
+#define TXTP_BODY_MAIN 2
+#define TXTP_BODY_OUTRO 3
+
+
 /* mixing info */
 typedef enum {
     MIX_SWAP,
@@ -103,6 +108,8 @@ typedef struct {
     int trim_set;
     double trim_second;
     int32_t trim_sample;
+
+    int body_mode;
 
 } txtp_entry_t;
 

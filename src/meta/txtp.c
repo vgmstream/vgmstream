@@ -78,6 +78,11 @@ void txtp_copy_config(play_config_t* dst, play_config_t* src) {
     if (!src->config_set)
         return;
 
+    // "no loops" (intro only) and "ignore fade" can't work due to how decoding works, must use @body-* macros
+    if (src->loop_count_set && src->loop_count == 0 && src->ignore_fade) {
+        src->ignore_fade = false;
+    }
+
     dst->config_set = 1;
     copy_flag(&dst->play_forever,       &src->play_forever);
     copy_flag(&dst->ignore_fade,        &src->ignore_fade);
@@ -93,22 +98,6 @@ void txtp_copy_config(play_config_t* dst, play_config_t* src) {
     copy_time(&dst->trim_end_set,       &dst->trim_end,     &dst->trim_end_s,      &src->trim_end_set,      &src->trim_end,     &src->trim_end_s);
     copy_time(&dst->body_time_set,      &dst->body_time,    &dst->body_time_s,     &src->body_time_set,     &src->body_time,    &src->body_time_s);
 }
-
-#if 0
-static void init_config(VGMSTREAM* vgmstream) {
-    play_config_t* cfg = &vgmstream->config;
-
-    //todo only on segmented/layered?
-    if (cfg->play_forever
-            cfg->loop_count_set || cfg->fade_time_set || cfg->fade_delay_set ||
-            cfg->pad_begin_set || cfg->pad_end_set || cfg->trim_begin_set || cfg->trim_end_set ||
-            cfg->body_time_set) {
-        VGM_LOG("setup!\n");
-
-    }
-}
-#endif
-
 
 void txtp_add_mixing(txtp_entry_t* entry, txtp_mix_data_t* mix, txtp_mix_t command) {
     if (entry->mixing_count + 1 > TXTP_MIXING_MAX) {

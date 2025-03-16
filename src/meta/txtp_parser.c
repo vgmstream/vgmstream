@@ -384,6 +384,8 @@ static void add_settings(txtp_entry_t* current, txtp_entry_t* entry, const char*
 
     current->loop_anchor_start = entry->loop_anchor_start;
     current->loop_anchor_end = entry->loop_anchor_end;
+
+    current->body_mode = entry->body_mode;
 }
 
 //TODO use
@@ -707,6 +709,16 @@ static void parse_params(txtp_entry_t* entry, char* params) {
             //if (nm == 0) continue;
 
             txtp_add_mixing(entry, &mix, MACRO_DOWNMIX);
+        }
+        else if (strcmp(command,"@body-intro") == 0) {
+            entry->body_mode = TXTP_BODY_INTRO;
+            VGM_LOG("body: %x\n", entry->body_mode);
+        }
+        else if (strcmp(command,"@body-main") == 0) {
+            entry->body_mode = TXTP_BODY_MAIN;
+        }
+        else if (strcmp(command,"@body-outro") == 0) {
+            entry->body_mode = TXTP_BODY_OUTRO;
         }
         else if (params[nc] == ' ') {
             //;VGM_LOG("TXTP:   comment\n");
