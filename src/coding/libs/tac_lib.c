@@ -1260,12 +1260,11 @@ static inline int16_t clamp16f(float sample) {
 }
 
 void tac_get_samples_pcm16(tac_handle_t* handle, int16_t* dst) {
-    int ch, i;
     int chs = TAC_CHANNELS;
 
-    for (ch = 0; ch < chs; ch++) {
+    for (int ch = 0; ch < chs; ch++) {
         int s = 0;
-        for (i = 0; i < TAC_FRAME_SAMPLES / 4; i++) {
+        for (int i = 0; i < TAC_FRAME_SAMPLES / 4; i++) {
             dst[(s+0)*chs + ch] = clamp16f(handle->wave[ch][i].f.x);
             dst[(s+1)*chs + ch] = clamp16f(handle->wave[ch][i].f.y);
             dst[(s+2)*chs + ch] = clamp16f(handle->wave[ch][i].f.z);
@@ -1275,6 +1274,21 @@ void tac_get_samples_pcm16(tac_handle_t* handle, int16_t* dst) {
     }
 }
 
+// TAC originally returns PCM16 but allow internal floats for flexility
+void tac_get_samples_float(tac_handle_t* handle, float* dst) {
+    int chs = TAC_CHANNELS;
+
+    for (int ch = 0; ch < chs; ch++) {
+        int s = 0;
+        for (int i = 0; i < TAC_FRAME_SAMPLES / 4; i++) {
+            dst[(s+0)*chs + ch] = (handle->wave[ch][i].f.x);
+            dst[(s+1)*chs + ch] = (handle->wave[ch][i].f.y);
+            dst[(s+2)*chs + ch] = (handle->wave[ch][i].f.z);
+            dst[(s+3)*chs + ch] = (handle->wave[ch][i].f.w);
+            s += 4;
+        }
+    }
+}
 
 void tac_set_loop(tac_handle_t* handle) {
     handle->frame_number = handle->header.loop_frame;

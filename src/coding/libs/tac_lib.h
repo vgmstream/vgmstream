@@ -49,6 +49,7 @@ void tac_free(tac_handle_t* handle);
 int tac_decode_frame(tac_handle_t* handle, const uint8_t* block);
 
 void tac_get_samples_pcm16(tac_handle_t* handle, int16_t* dst);
+void tac_get_samples_float(tac_handle_t* handle, float* dst);
 
 void tac_set_loop(tac_handle_t* handle);
 

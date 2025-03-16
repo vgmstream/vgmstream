@@ -4,13 +4,15 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "../vgmstream.h"
+#include "../base/sbuf.h"
 
 /* Class-like definition for codecs.
  */
 typedef struct {
-    char const* name;
-    
     //int (*init)();
+    sfmt_t sample_type;                         // fixed for most cases; if not set will be assumed to be PCM16
+    sfmt_t (*get_sample_type)(VGMSTREAM* v);    //variable for codecs with variations depending on data
+
     bool (*decode_frame)(VGMSTREAM* v);
     void (*free)(void* codec_data);
     void (*reset)(void* codec_data);

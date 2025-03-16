@@ -111,7 +111,7 @@ VGMSTREAM* init_vgmstream_hca_subkey(STREAMFILE* sf, uint16_t subkey) {
 
     /* Assumed mappings; seems correct vs Atom Viewer, that lists L/R/C/LFE/LS/RS and downmixes HCAs like that.
      * USM HCA's seem to be L/R/SL/SR/C/LFE though (probably reordered at USM level, no detection done in Atom Viewer). */
-    {
+    if (vgmstream->channels <= 8) { // 8 is max but just in case
         static const uint32_t hca_mappings[] = {
                 0,
                 mapping_MONO,

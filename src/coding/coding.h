@@ -288,13 +288,8 @@ int32_t ubi_adpcm_get_samples(ubi_adpcm_codec_data* data);
 
 
 /* imuse_decoder */
-typedef struct imuse_codec_data imuse_codec_data;
-
-imuse_codec_data* init_imuse(STREAMFILE* sf, int channels);
-void decode_imuse(VGMSTREAM* vgmstream, sample_t* outbuf, int32_t samples_to_do);
-void reset_imuse(imuse_codec_data* data);
-void seek_imuse(imuse_codec_data* data, int32_t num_sample);
-void free_imuse(imuse_codec_data* data);
+void* init_imuse_mcomp(STREAMFILE* sf, int channels);
+void* init_imuse_aifc(STREAMFILE* sf, uint32_t start_offset, int channels);
 
 /* ongakukan_adp_decoder */
 typedef struct ongakukan_adp_data ongakukan_adp_data;
@@ -308,14 +303,8 @@ void free_ongakukan_adp(ongakukan_adp_data* data);
 int32_t ongakukan_adp_get_samples(ongakukan_adp_data* data);
 
 /* compresswave_decoder */
-typedef struct compresswave_codec_data compresswave_codec_data;
-
-compresswave_codec_data* init_compresswave(STREAMFILE* sf);
-void decode_compresswave(compresswave_codec_data* data, sample_t* outbuf, int32_t samples_to_do);
-void reset_compresswave(compresswave_codec_data* data);
-void seek_compresswave(compresswave_codec_data* data, int32_t num_sample);
-void free_compresswave(compresswave_codec_data* data);
-STREAMFILE* compresswave_get_streamfile(compresswave_codec_data* data);
+void* init_compresswave(STREAMFILE* sf);
+STREAMFILE* compresswave_get_streamfile(VGMSTREAM* v);
 
 
 /* ea_mt_decoder*/
@@ -346,10 +335,8 @@ int32_t relic_bytes_to_samples(size_t bytes, int channels, int bitrate);
 typedef struct hca_codec_data hca_codec_data;
 
 hca_codec_data* init_hca(STREAMFILE* sf);
-bool decode_hca_frame(VGMSTREAM* v);
-void reset_hca(hca_codec_data* data);
-void loop_hca(VGMSTREAM* v, int32_t num_sample);
-void free_hca(hca_codec_data* data);
+void free_hca(void* data);
+
 clHCA_stInfo* hca_get_info(hca_codec_data* data);
 
 typedef struct {
@@ -369,13 +356,7 @@ STREAMFILE* hca_get_streamfile(hca_codec_data* data);
 
 
 /* tac_decoder */
-typedef struct tac_codec_data tac_codec_data;
-
-tac_codec_data* init_tac(STREAMFILE* sf);
-void decode_tac(VGMSTREAM* vgmstream, sample_t* outbuf, int32_t samples_to_do);
-void reset_tac(tac_codec_data* data);
-void seek_tac(tac_codec_data* data, int32_t num_sample);
-void free_tac(tac_codec_data* data);
+void* init_tac(STREAMFILE* sf);
 
 
 /* ice_decoder */
@@ -389,14 +370,13 @@ void free_ice(ice_codec_data* data);
 
 
 /* ka1a_decoder */
-typedef struct ka1a_codec_data ka1a_codec_data;
-
-ka1a_codec_data* init_ka1a(int bitrate_mode, int channels_tracks);
+void* init_ka1a(int bitrate_mode, int channels_tracks);
 
 /* ubimpeg_decoder */
-typedef struct ubimpeg_codec_data ubimpeg_codec_data;
+void* init_ubimpeg(uint32_t mode);
 
-ubimpeg_codec_data* init_ubimpeg(uint32_t mode);
+/* mio_decoder */
+void* init_mio(STREAMFILE* sf, int* p_loop_point);
 
 
 #ifdef VGM_USE_VORBIS
@@ -473,10 +453,7 @@ typedef struct {
 } vorbis_custom_config;
 
 vorbis_custom_codec_data* init_vorbis_custom(STREAMFILE* sf, off_t start_offset, vorbis_custom_t type, vorbis_custom_config* config);
-bool decode_vorbis_custom_frame(VGMSTREAM* v);
-void reset_vorbis_custom(VGMSTREAM* v);
-void seek_vorbis_custom(VGMSTREAM* v, int32_t num_sample);
-void free_vorbis_custom(vorbis_custom_codec_data* data);
+void free_vorbis_custom(void* data);
 int32_t vorbis_custom_get_samples(VGMSTREAM* v);
 #endif
 
@@ -626,14 +603,8 @@ void free_celt_fsb(celt_codec_data* data);
 
 #ifdef VGM_USE_SPEEX
 /* speex_decoder */
-typedef struct speex_codec_data speex_codec_data;
-
-speex_codec_data* init_speex_ea(int channels);
-speex_codec_data* init_speex_torus(int channels);
-void decode_speex(VGMSTREAM* vgmstream, sample_t* outbuf, int32_t samples_to_do);
-void reset_speex(speex_codec_data* data);
-void seek_speex(VGMSTREAM* vgmstream, int32_t num_sample);
-void free_speex(speex_codec_data* data);
+void* init_speex_ea(int channels);
+void* init_speex_torus(int channels);
 #endif
 
 

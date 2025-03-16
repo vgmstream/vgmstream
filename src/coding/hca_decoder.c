@@ -1,6 +1,7 @@
 #include "coding.h"
 #include "../base/decode_state.h"
 #include "libs/clhca.h"
+#include "../base/codec_info.h"
 
 
 struct hca_codec_data {
@@ -14,6 +15,26 @@ struct hca_codec_data {
 
     void* handle;
 };
+
+static void reset_hca(void* priv) {
+    hca_codec_data* data = priv;
+
+    clHCA_DecodeReset(data->handle);
+    data->current_block = 0;
+    data->current_delay = data->info.encoderDelay;
+}
+
+void free_hca(void* priv) {
+    hca_codec_data* data = priv;
+    if (!data) return;
+
+    close_streamfile(data->sf);
+    clHCA_done(data->handle);
+    free(data->handle);
+    free(data->buf);
+    free(data->fbuf);
+    free(data);
+}
 
 /* init a HCA stream; STREAMFILE will be duplicated for internal use. */
 hca_codec_data* init_hca(STREAMFILE* sf) {
@@ -90,7 +111,7 @@ static bool read_packet(VGMSTREAM* v) {
     return true;
 }
 
-bool decode_hca_frame(VGMSTREAM* v) {
+bool decode_frame_hca(VGMSTREAM* v) {
     bool ok = read_packet(v);
     if (!ok)
         return false;
@@ -121,15 +142,11 @@ bool decode_hca_frame(VGMSTREAM* v) {
     return true;
 }
 
-void reset_hca(hca_codec_data* data) {
-    clHCA_DecodeReset(data->handle);
-    data->current_block = 0;
-    data->current_delay = data->info.encoderDelay;
-}
-
-void loop_hca(VGMSTREAM* v, int32_t num_sample) {
+void seek_hca(VGMSTREAM* v, int32_t num_sample) {
     hca_codec_data* data = v->codec_data;
     //decode_state_t* ds = v->decode_state;
+
+    //TODO handle arbitrary seek points to block N
 
     /* manually calc loop values if not set (should only happen with installed/forced looping,
      * as actual files usually pad encoder delay so earliest loopStartBlock becomes 1-2,
@@ -145,17 +162,6 @@ void loop_hca(VGMSTREAM* v, int32_t num_sample) {
     data->current_delay = data->info.loopStartDelay;
     //ds->discard = data->info.loopStartDelay //overwritten on decode
 
-}
-
-void free_hca(hca_codec_data* data) {
-    if (!data) return;
-
-    close_streamfile(data->sf);
-    clHCA_done(data->handle);
-    free(data->handle);
-    free(data->buf);
-    free(data->fbuf);
-    free(data);
 }
 
 clHCA_stInfo* hca_get_info(hca_codec_data* data) {
@@ -294,3 +300,13 @@ void hca_set_encryption_key(hca_codec_data* data, uint64_t keycode, uint64_t sub
     }
     clHCA_SetKey(data->handle, (unsigned long long)keycode);
 }
+
+const codec_info_t hca_decoder = {
+    .sample_type = SFMT_FLT,
+    .decode_frame = decode_frame_hca,
+    .free = free_hca,
+    .reset = reset_hca,
+    .seek = seek_hca,
+    // frame_samples: 1024 + discard
+    // frame_size: variable
+};

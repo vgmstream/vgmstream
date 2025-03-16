@@ -241,7 +241,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Apple AIFF-C header [*AIFC*]
   - Apple AIFF header [*AIFF*]
   - *aifc*: `.aif .laif .wav .lwav .aiff .laiff .(extensionless) .aifc .laifc .afc .cbd2 .bgm .fda .n64 .xa .caf .acm .adp .ai .pcm .vp6 .mpc .lmpc`
-  - Codecs: SDX2 CBD2 DVI_IMA_mono APPLE_IMA4 RELIC VADPCM PCM8 PCM16BE XA
+  - Codecs: SDX2 CBD2 DVI_IMA_mono APPLE_IMA4 RELIC VADPCM IMUSE PCM8 PCM16BE XA
 - **str_snds.c**
   - 3DO SNDS header [*STR_SNDS*]
   - *str_snds*: `.str .stream .3do`
@@ -1854,6 +1854,10 @@ different internally (encrypted, different versions, etc) and not always can be 
   - age .OOR header [*OOR*]
   - *oor*: `.oor`
   - Codecs: VORBIS_custom
+- **mio.c**
+  - Entis .MIO header [*MIO*]
+  - *mio*: `.mio`
+  - Codecs: MIO
 - **agsc.c**
   - Retro Studios AGSC header [*AGSC*]
   - *agsc*: `.agsc`

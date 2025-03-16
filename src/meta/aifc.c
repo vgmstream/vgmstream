@@ -70,27 +70,27 @@ VGMSTREAM* init_vgmstream_aifc(STREAMFILE* sf) {
     off_t start_offset = 0, coef_offset = 0;
     uint32_t aifx_size, file_size;
     coding_t coding_type = 0;
-    int channels = 0, sample_count = 0, sample_size = 0, sample_rate = 0;
-    int interleave = 0;
-    int loop_flag = 0;
-    int32_t loop_start = 0, loop_end = 0;
-
-    int is_aiff_ext = 0, is_aifc_ext = 0, is_aiff = 0, is_aifc = 0;
-    int fver_found = 0, comm_found = 0, data_found = 0;
-    off_t mark_offset = 0, inst_offset = 0;
 
 
     /* checks */
     if (!is_id32be(0x00,sf, "FORM"))
         return NULL;
 
+    int channels = 0, sample_count = 0, sample_size = 0, sample_rate = 0;
+    int interleave = 0;
+    int loop_flag = 0;
+    int32_t loop_start = 0, loop_end = 0;
+    off_t mark_offset = 0, inst_offset = 0;
+
+    bool is_aiff_ext = false, is_aifc_ext = false, is_aiff = false, is_aifc = false;
+
     /* .aif: common (AIFF or AIFC)
      * .wav: SimCity 3000 (Mac) (both AIFF and AIFC)
      * .aiff: rare and actually AIFC (maybe renamed AIFF too) [Cro-Mag Rally (Mac)]
      * (extensionless): Doom (3DO)
-     * 
+     *
      * .aifc: renamed AIFC?
-     * .afc: ?
+     * .afc: Waialae Country Club (3D0), Star Wars: Anakin's Speedway (PC)
      * .cbd2: M2 games
      * .bgm: Super Street Fighter II Turbo (3DO)
      * .fda: Homeworld 2 (PC)
@@ -106,14 +106,14 @@ VGMSTREAM* init_vgmstream_aifc(STREAMFILE* sf) {
      * .mpc: The Godfather (PC) (writercredit.mpc)
      */
     if (check_extensions(sf, "aif,laif,wav,lwav,aiff,laiff,")) {
-        is_aifc_ext = 1;
-        is_aiff_ext = 1;
+        is_aifc_ext = true;
+        is_aiff_ext = true;
     }
     else if (check_extensions(sf, "aifc,laifc,afc,cbd2,bgm,fda,n64,xa,caf")) {
-        is_aifc_ext = 1;
+        is_aifc_ext = true;
     }
     else if (check_extensions(sf, "acm,adp,ai,pcm,vp6,mpc,lmpc")) {
-        is_aiff_ext = 1;
+        is_aiff_ext = true;
     }
     else {
         return NULL;
@@ -125,15 +125,15 @@ VGMSTREAM* init_vgmstream_aifc(STREAMFILE* sf) {
     /* AIFF originally allowed only PCM (non-compressed) audio, so newer AIFC was added,
      * though some AIFF with other codecs exist */
     if (is_id32be(0x08,sf, "AIFC")) {
-        if (!is_aifc_ext) goto fail;
-        is_aifc = 1;
+        if (!is_aifc_ext) return NULL;
+        is_aifc = true;
     }
     else if (is_id32be(0x08,sf, "AIFF")) {
-        if (!is_aiff_ext) goto fail;
-        is_aiff = 1;
+        if (!is_aiff_ext) return NULL;
+        is_aiff = true;
     }
     else {
-        goto fail;
+        return NULL;
     }
 
     /* some games have wonky sizes, selectively fix to catch bad rips and new mutations */
@@ -146,31 +146,34 @@ VGMSTREAM* init_vgmstream_aifc(STREAMFILE* sf) {
 
     if (aifx_size + 0x08 != file_size) {
         vgm_logi("AIFF: wrong reported size %x + 0x8 vs file size %x\n", aifx_size, file_size);
-        goto fail;
+        return NULL;
     }
 
     /* read through chunks to verify format and find metadata */
     {
+        bool fver_found = false, comm_found = false, data_found = false;
         off_t offset = 0x0c; /* start with first chunk within FORM */
 
         while (offset < file_size) {
             uint32_t chunk_type = read_u32be(offset + 0x00,sf);
             uint32_t chunk_size = read_u32be(offset + 0x04,sf);
 
-            /* chunks must be padded to an even number of bytes but chunk
-             * size does not include that padding */
+            offset += 0x08;
+            if (offset + chunk_size > file_size) {
+                VGM_LOG("AIFF: wrong chunk_size %x + %x\n", (int)offset, chunk_size);
+                return NULL;
+            }
+
+            // Chunks must be padded to an even number of bytes but chunk size does not include that padding.
+            // Last chunk it may not be padded so handle after offset check (some tools only?) [Anakin's Speedway (PC)]
             if (chunk_size % 2)
                 chunk_size++;
-
-            offset += 0x08;
-            if (offset + chunk_size > file_size)
-                goto fail;
 
             switch(chunk_type) {
                 case 0x46564552:    /* "FVER" (version info, officially required but some odd game ommits it [Cro-Mag Rally (Mac)]) */
                     if (fver_found) goto fail;
                     if (is_aiff) goto fail; /* plain AIFF shouldn't have */
-                    fver_found = 1;
+                    fver_found = true;
 
                     if (chunk_size != 4)
                         goto fail;
@@ -181,7 +184,7 @@ VGMSTREAM* init_vgmstream_aifc(STREAMFILE* sf) {
 
                 case 0x434F4D4D:    /* "COMM" (main header) */
                     if (comm_found) goto fail;
-                    comm_found = 1;
+                    comm_found = true;
 
                     channels     = read_u16be(offset + 0x00,sf);
                     sample_count = read_u32be(offset + 0x02,sf); /* sample_frames in theory, depends on codec */
@@ -220,9 +223,10 @@ VGMSTREAM* init_vgmstream_aifc(STREAMFILE* sf) {
                             case 0x434F4D50: {  /* "COMP" (generic compression) */
                                 uint8_t name_size = read_u8(offset + 0x16, sf);
 
-                                if (is_str("Relic Codec v1.6", name_size, offset + 0x17, sf)) {
+                                if (is_str("Relic Codec v1.6", name_size, offset + 0x17, sf)) { /* Homeworld 2 (PC) */
                                     coding_type = coding_RELIC;
                                     sample_count = sample_count * 512;
+                                    sample_rate = 44100; // fixed output
                                 }
                                 else {
                                     goto fail;
@@ -235,7 +239,14 @@ VGMSTREAM* init_vgmstream_aifc(STREAMFILE* sf) {
                                 coding_type = coding_VADPCM;
 
                                 /* N64 tools don't create FVER, but it's required by the spec (could skip the check though) */
-                                fver_found = 1;
+                                fver_found = true;
+                                break;
+                            }
+
+                            case 0x76696D61: {  /* "vima" [Star Wars Anakin's Speedway (PC), Star Wars Early Learning Activity Center (PC)] */
+                                /* "Variable IMA 16 bit" */
+                                coding_type = coding_IMUSE;
+                                sample_rate = 22050; // field has garbage (like part of the name) consistently
                                 break;
                             }
 
@@ -267,7 +278,7 @@ VGMSTREAM* init_vgmstream_aifc(STREAMFILE* sf) {
                 case 0x53534E44:    /* "SSND" (main data) */
                 case 0x4150434D:    /* "APCM" (main data for XA) */
                     if (data_found) goto fail;
-                    data_found = 1;
+                    data_found = true;
 
                     /* 00: offset (for aligment, usually 0)
                      * 04: block size (ex. XA: 0x914) */
@@ -315,16 +326,17 @@ VGMSTREAM* init_vgmstream_aifc(STREAMFILE* sf) {
 
             offset += chunk_size;
         }
+
+        if (is_aifc) {
+            if (/*!fver_found ||*/ !comm_found || !data_found)
+                goto fail;
+        }
+        else if (is_aiff) {
+            if (!comm_found || !data_found)
+                goto fail;
+        }
     }
 
-    if (is_aifc) {
-        if (/*!fver_found ||*/ !comm_found || !data_found)
-            goto fail;
-    }
-    else if (is_aiff) {
-        if (!comm_found || !data_found)
-            goto fail;
-    }
 
     /* read loop points */
     if (inst_offset && mark_offset) {
@@ -399,8 +411,6 @@ VGMSTREAM* init_vgmstream_aifc(STREAMFILE* sf) {
             vgmstream->codec_data = init_relic(channels, bitrate, sample_rate);
             if (!vgmstream->codec_data) goto fail;
             vgmstream->layout_type = layout_none;
-
-            vgmstream->sample_rate = 44100; /* fixed output */
             break;
         }
 
@@ -420,6 +430,13 @@ VGMSTREAM* init_vgmstream_aifc(STREAMFILE* sf) {
 
             //vgmstream->num_samples = vadpcm_bytes_to_samples(data_size, channels); /* unneeded */
             break;
+
+        case coding_IMUSE: {
+            vgmstream->codec_data = init_imuse_aifc(sf, start_offset, channels);
+            if (!vgmstream->codec_data) goto fail;
+            vgmstream->layout_type = layout_none;
+            break;
+        }
 
         default:
             vgmstream->layout_type = (channels > 1) ? layout_interleave : layout_none;

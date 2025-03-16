@@ -5,13 +5,13 @@
 
 
 /* opaque struct */
-struct ka1a_codec_data {
+typedef struct {
     uint8_t* buf;
     float* fbuf;
 
     int frame_size;
     void* handle;
-};
+} ka1a_codec_data;
 
 
 static void free_ka1a(void* priv_data) {
@@ -25,7 +25,7 @@ static void free_ka1a(void* priv_data) {
     free(data);
 }
 
-ka1a_codec_data* init_ka1a(int bitrate_mode, int channels_tracks) {
+void* init_ka1a(int bitrate_mode, int channels_tracks) {
     ka1a_codec_data* data = NULL;
     int buf_size;
 
@@ -51,7 +51,7 @@ fail:
     return NULL;
 }
 
-static bool read_ka1a_frame(VGMSTREAM* v) {
+static bool read_frame(VGMSTREAM* v) {
     ka1a_codec_data* data = v->codec_data;
     int bytes;
 
@@ -84,8 +84,8 @@ static bool read_ka1a_frame(VGMSTREAM* v) {
     return true;
 }
 
-bool decode_ka1a_frame(VGMSTREAM* v) {
-    bool ok = read_ka1a_frame(v);
+bool decode_frame_ka1a(VGMSTREAM* v) {
+    bool ok = read_frame(v);
     if (!ok)
         return false;
 
@@ -149,7 +149,8 @@ static void seek_ka1a(VGMSTREAM* v, int32_t num_sample) {
 }
 
 const codec_info_t ka1a_decoder = {
-    .decode_frame = decode_ka1a_frame,
+    .sample_type = SFMT_FLT,
+    .decode_frame = decode_frame_ka1a,
     .free = free_ka1a,
     .reset = reset_ka1a,
     .seek = seek_ka1a,

@@ -118,6 +118,7 @@ libvgmstream_sfmt_t api_get_output_sample_type(libvgmstream_priv_t* priv) {
     switch(format) {
         case SFMT_S16: return LIBVGMSTREAM_SFMT_PCM16;
         case SFMT_FLT: return LIBVGMSTREAM_SFMT_FLOAT;
+        case SFMT_F32: return LIBVGMSTREAM_SFMT_FLOAT; //shouldn't happen?
         default:
             return 0x00; //???
     }

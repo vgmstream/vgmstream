@@ -13,6 +13,51 @@
 /*******************************************************************************/
 
 
+static void apply_settings_body(VGMSTREAM* vgmstream, txtp_entry_t* entry) {
+    // tweak playable part, which only makes sense 
+
+    VGM_LOG("tesst: %i,%i\n", entry->body_mode , vgmstream->loop_flag);
+
+    if (!entry->body_mode || !vgmstream->loop_flag)
+        return;
+
+    entry->config.fade_time_set = false;
+    entry->config.fade_delay_set = false;
+    entry->config.ignore_fade = false;
+    entry->config.ignore_loop = true;
+
+    switch(entry->body_mode) {
+        case TXTP_BODY_INTRO:
+            if (vgmstream->loop_start_sample == 0)
+                return;
+            entry->trim_set = true;
+            entry->trim_sample = vgmstream->loop_start_sample;
+
+            entry->config.config_set = true;
+            break;
+
+        case TXTP_BODY_MAIN:
+            entry->config.trim_begin_set = true;
+            entry->config.trim_begin = vgmstream->loop_start_sample;
+            entry->trim_set = true;
+            entry->trim_sample = vgmstream->loop_end_sample - vgmstream->loop_start_sample;
+
+            entry->config.config_set = true;
+            break;
+
+        case TXTP_BODY_OUTRO:
+            if (vgmstream->loop_end_sample >= vgmstream->num_samples)
+                return;
+            entry->config.trim_begin_set = true;
+            entry->config.trim_begin = vgmstream->loop_end_sample;
+
+            entry->config.config_set = true;
+            break;
+        default:
+            break;
+    }
+}
+
 static void apply_settings(VGMSTREAM* vgmstream, txtp_entry_t* current) {
 
     /* base settings */
@@ -35,6 +80,8 @@ static void apply_settings(VGMSTREAM* vgmstream, txtp_entry_t* current) {
 
         vgmstream_force_loop(vgmstream, current->loop_install_set, current->loop_start_sample, current->loop_end_sample);
     }
+
+    apply_settings_body(vgmstream, current);
 
     if (current->trim_set) {
         if (current->trim_second != 0.0) {

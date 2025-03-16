@@ -350,6 +350,7 @@ static const char* extension_list[] = {
     "mi4", //fake extension for .mib (renamed, to be removed)
     "mib",
     "mic",
+    "mio",
     "mnstr",
     "mogg",
     //"m4a", //common
@@ -924,8 +925,9 @@ static const coding_info coding_info_list[] = {
         {coding_TAC,                "tri-Ace Codec"},
         {coding_ICE_RANGE,          "Inti Creates Range Codec"},
         {coding_ICE_DCT,            "Inti Creates DCT Codec"},
-        {coding_KA1A,               "Koei Tecmo KA1A Codec"},
-        {coding_UBI_MPEG,           "Ubisoft MPEG Codec"},
+        {coding_KA1A,               "Koei Tecmo KA1A"},
+        {coding_UBI_MPEG,           "Ubisoft MPEG"},
+        {coding_MIO,                "Entis MIO"},
 
 #ifdef VGM_USE_VORBIS
         {coding_OGG_VORBIS,         "Ogg Vorbis"},
@@ -1474,6 +1476,7 @@ static const meta_info meta_info_list[] = {
         {meta_AXHD,                 "Angel Studios AXHD header"},
         {meta_SHAA,                 "Nintendo SHAA header"},
         {meta_OOR,                  "age .OOR header"},
+        {meta_MIO,                  "Entis .MIO header"},
 };
 
 void get_vgmstream_coding_description(VGMSTREAM* vgmstream, char* out, size_t out_size) {

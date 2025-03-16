@@ -139,26 +139,28 @@ typedef enum {
     coding_ONGAKUKAN_ADPCM, /* Ongakukan 4-bit ADPCM */
 
     coding_EA_MT,           /* Electronic Arts MicroTalk (linear-predictive speech codec) */
+
     coding_CIRCUS_VQ,       /* Circus VQ */
-    coding_RELIC,           /* Relic Codec (DCT-based) */
-    coding_CRI_HCA,         /* CRI High Compression Audio (MDCT-based) */
-    coding_TAC,             /* tri-Ace Codec (MDCT-based) */
+    coding_RELIC,           /* Relic Codec (transform-based) */
+    coding_CRI_HCA,         /* CRI High Compression Audio (transform-based) */
+    coding_TAC,             /* tri-Ace Codec (transform-based) */
     coding_ICE_RANGE,       /* Inti Creates "range" codec */
     coding_ICE_DCT,         /* Inti Creates "DCT" codec */
     coding_KA1A,            /* Koei Tecmo codec (transform-based) */
     coding_UBI_MPEG,        /* Ubisoft MPEG codec (transform-based) */
+    coding_MIO,             /* Entis MIO codec (transform-based) */
 
 #ifdef VGM_USE_VORBIS
-    coding_OGG_VORBIS,      /* Xiph Vorbis with Ogg layer (MDCT-based) */
-    coding_VORBIS_custom,   /* Xiph Vorbis with custom layer (MDCT-based) */
+    coding_OGG_VORBIS,      /* Xiph Vorbis with Ogg layer (transform-based) */
+    coding_VORBIS_custom,   /* Xiph Vorbis with custom layer (transform-based) */
 #endif
 
 #ifdef VGM_USE_MPEG
-    coding_MPEG_custom,     /* MPEG audio with custom features (MDCT-based) */
+    coding_MPEG_custom,     /* MPEG audio with custom features (transform-based) */
     coding_MPEG_ealayer3,   /* EALayer3, custom MPEG frames */
-    coding_MPEG_layer1,     /* MP1 MPEG audio (MDCT-based) */
-    coding_MPEG_layer2,     /* MP2 MPEG audio (MDCT-based) */
-    coding_MPEG_layer3,     /* MP3 MPEG audio (MDCT-based) */
+    coding_MPEG_layer1,     /* MP1 MPEG audio (transform-based) */
+    coding_MPEG_layer2,     /* MP2 MPEG audio (transform-based) */
+    coding_MPEG_layer3,     /* MP3 MPEG audio (transform-based) */
 #endif
 
 #ifdef VGM_USE_G7221
@@ -718,6 +720,7 @@ typedef enum {
     meta_AXHD,
     meta_SHAA,
     meta_OOR,
+    meta_MIO,
 } meta_t;
 
 #endif

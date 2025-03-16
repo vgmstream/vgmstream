@@ -134,9 +134,6 @@
     <ClInclude Include="coding\coding.h">
       <Filter>coding\Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="coding\coding_utils_samples.h">
-      <Filter>coding\Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="coding\g72x_state.h">
       <Filter>coding\Header Files</Filter>
     </ClInclude>
@@ -183,6 +180,21 @@
       <Filter>coding\libs\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="coding\libs\minimp3.h">
+      <Filter>coding\libs\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="coding\libs\mio_erisacontext.h">
+      <Filter>coding\libs\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="coding\libs\mio_erisafile.h">
+      <Filter>coding\libs\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="coding\libs\mio_erisamatrix.h">
+      <Filter>coding\libs\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="coding\libs\mio_erisasound.h">
+      <Filter>coding\libs\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="coding\libs\mio_xerisa.h">
       <Filter>coding\libs\Header Files</Filter>
     </ClInclude>
     <ClInclude Include="coding\libs\nwa_lib.h">
@@ -431,6 +443,12 @@
     <ClInclude Include="util\endianness.h">
       <Filter>util\Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="util\io_callback.h">
+      <Filter>util\Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="util\io_callback_sf.h">
+      <Filter>util\Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="util\layout_utils.h">
       <Filter>util\Header Files</Filter>
     </ClInclude>
@@ -676,6 +694,9 @@
     <ClCompile Include="coding\lsf_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="coding\mio_decoder.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="coding\mp4_aac_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
@@ -839,6 +860,18 @@
       <Filter>coding\libs\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\libs\libacm_util.c">
+      <Filter>coding\libs\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\libs\mio_erisacontext.c">
+      <Filter>coding\libs\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\libs\mio_erisafile.c">
+      <Filter>coding\libs\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\libs\mio_erisamatrix.c">
+      <Filter>coding\libs\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coding\libs\mio_erisasound.c">
       <Filter>coding\libs\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="coding\libs\nwa_lib.c">
@@ -1526,6 +1559,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\mic_koei.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\mio.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\mjb_mjh.c">
@@ -2312,6 +2348,9 @@
       <Filter>util\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="util\cri_utf.c">
+      <Filter>util\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="util\io_callback_sf.c">
       <Filter>util\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="util\layout_utils.c">

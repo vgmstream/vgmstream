@@ -10,17 +10,16 @@ VGMSTREAM* init_vgmstream_compresswave(STREAMFILE *sf) {
 
 
     /* checks */
-    if (!check_extensions(sf, "cwav"))
-        goto fail;
-
     if (!is_id64be(0x00,sf, "CmpWave\0"))
-        goto fail;
+        return NULL;
+    if (!check_extensions(sf, "cwav"))
+        return NULL;
 
     channels = 2; /* always, header channels is internal config */
     start_offset = 0x00;
-    loop_flag = 1; //read_u8(0x430, sf) != 0; /* wrong count, see below */
-    /* codec allows to use a cipher value, not seen */
-    /* there is also title and artist, but default to "UnTitled" / "NoName" */
+    loop_flag = true; //read_u8(0x430, sf) != 0; /* wrong count, see below */
+    // codec allows to use a cipher value, not seen
+    // there is also title and artist, but default to "UnTitled" / "NoName"
 
 
     /* build the VGMSTREAM */
@@ -28,10 +27,9 @@ VGMSTREAM* init_vgmstream_compresswave(STREAMFILE *sf) {
     if (!vgmstream) goto fail;
 
     vgmstream->meta_type = meta_COMPRESSWAVE;
-    vgmstream->sample_rate = 44100; /* always, header rate is internal config */
-    /* in PCM bytes */
-    vgmstream->num_samples       = read_u64le(0x418, sf) / sizeof(int16_t) / channels;
-    /* known files have wrong loop values and just repeat */
+    vgmstream->sample_rate = 44100; // always, header rate is internal config
+    vgmstream->num_samples = read_u64le(0x418, sf) / sizeof(int16_t) / channels; // in PCM bytes
+    // known files have wrong loop values and just repeat
     vgmstream->loop_start_sample = 0; //read_u64le(0x420, sf) / sizeof(int16_t) / channels;
     vgmstream->loop_end_sample   = vgmstream->num_samples; //read_u64le(0x428, sf) / sizeof(int16_t) / channels;
 

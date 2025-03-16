@@ -1,27 +1,45 @@
 #include "coding.h"
-#include "coding_utils_samples.h"
+#include "../base/decode_state.h"
+#include "../base/codec_info.h"
 #include "libs/compresswave_lib.h"
 
 
-#define COMPRESSWAVE_MAX_FRAME_SAMPLES  0x1000  /* arbitrary but should be multiple of 2 for 22050 mode */
+#define COMPRESSWAVE_MAX_FRAME_SAMPLES  512 // arbitrary, but should be multiple of 2 for 22050 mode
+#define COMPRESSWAVE_MAX_CHANNELS  2 
 
-/* opaque struct */
-struct compresswave_codec_data {
-    /* config */
+typedef struct {
     STREAMFILE* sf;
-    TCompressWaveData* cw;
+    TCompressWaveData* handle;
 
-    /* frame state */
-    int16_t* samples;
-    int frame_samples;
+    int16_t pbuf[COMPRESSWAVE_MAX_FRAME_SAMPLES * COMPRESSWAVE_MAX_CHANNELS];
+    int discard;
+} compresswave_codec_data;
 
-    /* frame state */
-    s16buf_t sbuf;
-    int samples_discard;
-};
+static void reset_compresswave(void* priv_data) {
+    compresswave_codec_data* data = priv_data;
+    if (!data) return;
 
+    /* actual way to reset internal flags */
+    TCompressWaveData_Stop(data->handle);
+    TCompressWaveData_Play(data->handle, 0);
 
-compresswave_codec_data* init_compresswave(STREAMFILE* sf) {
+    data->discard = 0;
+
+    return;
+}
+
+static void free_compresswave(void* priv_data) {
+    compresswave_codec_data* data = priv_data;
+    if (!data)
+        return;
+
+    TCompressWaveData_Free(data->handle);
+
+    close_streamfile(data->sf);
+    free(data);
+}
+
+void* init_compresswave(STREAMFILE* sf) {
     compresswave_codec_data* data = NULL;
 
     data = calloc(1, sizeof(compresswave_codec_data));
@@ -30,15 +48,10 @@ compresswave_codec_data* init_compresswave(STREAMFILE* sf) {
     data->sf = reopen_streamfile(sf, 0);
     if (!data->sf) goto fail;
 
-    data->frame_samples = COMPRESSWAVE_MAX_FRAME_SAMPLES;
-    data->samples = malloc(2 * data->frame_samples * sizeof(int16_t)); /* always stereo */
-    if (!data->samples) goto fail;
+    data->handle = TCompressWaveData_Create();
+    if (!data->handle) goto fail;
 
-
-    data->cw = TCompressWaveData_Create();
-    if (!data->cw) goto fail;
-
-    TCompressWaveData_LoadFromStream(data->cw, data->sf);
+    TCompressWaveData_LoadFromStream(data->handle, data->sf);
 
     reset_compresswave(data);
 
@@ -49,90 +62,46 @@ fail:
 }
 
 
-static int decode_frame(compresswave_codec_data* data, int32_t samples_to_do) {
-    uint32_t Len;
-    int ok;
+static bool decode_frame_compresswave(VGMSTREAM* v) {
+    compresswave_codec_data* data = v->codec_data;
+    decode_state_t* ds = v->decode_state;
 
-    data->sbuf.samples = data->samples;
-    data->sbuf.channels = 2;
-    data->sbuf.filled = 0;
+    int samples = COMPRESSWAVE_MAX_FRAME_SAMPLES;
+    //if (samples % 2 && samples > 1)
+    //    samples -= 1; /* 22khz does 2 samples at once */
 
-    if (samples_to_do > data->frame_samples)
-        samples_to_do = data->frame_samples;
-    if (samples_to_do % 2 && samples_to_do > 1)
-        samples_to_do -= 1; /* 22khz does 2 samples at once */
 
-    Len = samples_to_do * sizeof(int16_t) * 2; /* forced stereo */
+    uint32_t len = samples * sizeof(int16_t) * 2; /* forced stereo */
 
-    ok = TCompressWaveData_Rendering(data->cw, data->sbuf.samples, Len);
-    if (!ok) goto fail;
+    int ok = TCompressWaveData_Rendering(data->handle, data->pbuf, len);
+    if (!ok) return false;
 
-    data->sbuf.filled = samples_to_do;
+    sbuf_init_s16(&ds->sbuf, data->pbuf, samples, v->channels);
+    ds->sbuf.filled = ds->sbuf.samples;
 
-    return 1;
-fail:
-    return 0;
+    return true;
 }
 
-
-void decode_compresswave(compresswave_codec_data* data, sample_t* outbuf, int32_t samples_to_do) {
-    int ok;
-
-
-    while (samples_to_do > 0) {
-        s16buf_t* sbuf = &data->sbuf;
-
-        if (sbuf->filled <= 0) {
-            ok = decode_frame(data, samples_to_do);
-            if (!ok) goto fail;
-        }
-
-        if (data->samples_discard)
-            s16buf_discard(&outbuf, sbuf, &data->samples_discard);
-        else
-            s16buf_consume(&outbuf, sbuf, &samples_to_do);
-    }
-
-    return;
-
-fail:
-    VGM_LOG("COMPRESSWAVE: decode fail, missing %i samples\n", samples_to_do);
-    s16buf_silence(&outbuf, &samples_to_do, 2);
-}
-
-
-void reset_compresswave(compresswave_codec_data* data) {
-    if (!data) return;
-
-    /* actual way to reset internal flags */
-    TCompressWaveData_Stop(data->cw);
-    TCompressWaveData_Play(data->cw, 0);
-
-    data->sbuf.filled = 0;
-    data->samples_discard = 0;
-
-    return;
-}
-
-void seek_compresswave(compresswave_codec_data* data, int32_t num_sample) {
+void seek_compresswave(VGMSTREAM* v, int32_t num_sample) {
+    compresswave_codec_data* data = v->codec_data;
     if (!data) return;
 
     reset_compresswave(data);
-    data->samples_discard += num_sample;
+    data->discard += num_sample;
 }
 
-void free_compresswave(compresswave_codec_data* data) {
-    if (!data)
-        return;
-
-    TCompressWaveData_Free(data->cw);
-
-    close_streamfile(data->sf);
-    free(data->samples);
-    free(data);
-}
-
-STREAMFILE* compresswave_get_streamfile(compresswave_codec_data* data) {
+STREAMFILE* compresswave_get_streamfile(VGMSTREAM* v) {
+    compresswave_codec_data* data = v->codec_data;
     if (!data) return NULL;
     return data->sf;
 }
+
+const codec_info_t compresswave_decoder = {
+    .sample_type = SFMT_S16,
+    .decode_frame = decode_frame_compresswave,
+    .free = free_compresswave,
+    .reset = reset_compresswave,
+    .seek = seek_compresswave,
+    //.frame_samples = 2-4 (lib handles arbitrary calls)
+    //.frame_size = VBR / huffman codes
+};

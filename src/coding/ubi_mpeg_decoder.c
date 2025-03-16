@@ -9,14 +9,16 @@
 #define MINIMP3_IMPLEMENTATION
 #include "libs/minimp3.h"
 
-
+//TODO: needed for smoother segments, but not sure if block samples counts this
+// (usually blocks' frames have more samples than defined but not always; maybe should output delay's samples at EOF)
+#define UBIMPEG_INITIAL_DISCARD 480 //observed
 #define UBIMPEG_SAMPLES_PER_FRAME 1152
 #define UBIMPEG_MAX_CHANNELS 2
 #define UBIMPEG_INPUT_LIMIT 0x400 //enough for 2 stereo + mono frames
 
 
 /* opaque struct */
-struct ubimpeg_codec_data {
+typedef struct {
     bool is_sur2;
     bool is_sur1;
 
@@ -28,7 +30,9 @@ struct ubimpeg_codec_data {
     uint8_t obuf[0x400];   // at least ~300
     uint8_t rbuf[0x400];   // at least 300 * 2
     float fbuf[UBIMPEG_SAMPLES_PER_FRAME * UBIMPEG_MAX_CHANNELS];
-};
+
+    int initial_discard;
+} ubimpeg_codec_data;
 
 
 static void free_ubimpeg(void* priv_data) {
@@ -38,7 +42,7 @@ static void free_ubimpeg(void* priv_data) {
     free(data);
 }
 
-ubimpeg_codec_data* init_ubimpeg(uint32_t mode) {
+void* init_ubimpeg(uint32_t mode) {
     ubimpeg_codec_data* data = NULL;
 
     data = calloc(1, sizeof(ubimpeg_codec_data));
@@ -57,6 +61,8 @@ ubimpeg_codec_data* init_ubimpeg(uint32_t mode) {
         VGM_LOG("UBI-MPEG: unknown format %x\n", mode);
         goto fail;
     }
+
+    data->initial_discard = UBIMPEG_INITIAL_DISCARD;
 
     bm_setup(&data->is, data->ibuf, 0);
     mp3dec_init(&data->mp3d);
@@ -152,6 +158,7 @@ bool decode_frame_ubimpeg(VGMSTREAM* v) {
 
     // TODO: voice .bnm + Ubi-MPEG sets 2 channels but uses mono frames (no xRUS). Possibly the MPEG engine
     // only handle stereo, maybe should dupe L>R. sbuf copying handles this correctly.
+    // todo fix
     if (data->info.channels != v->channels) {
         VGM_LOG_ONCE("UBI MPEG: mismatched channels %i vs %i\n", data->info.channels, v->channels);
         //return false;
@@ -160,12 +167,19 @@ bool decode_frame_ubimpeg(VGMSTREAM* v) {
     sbuf_init_flt(&ds->sbuf, data->fbuf, samples, data->info.channels);
     ds->sbuf.filled = samples;
 
+    if (data->initial_discard) {
+        ds->discard += data->initial_discard;
+        data->initial_discard = 0;
+    }
+
     return true;
 }
 
 static void reset_ubimpeg(void* priv_data) {
     ubimpeg_codec_data* data = priv_data;
     if (!data) return;
+
+    data->initial_discard = UBIMPEG_INITIAL_DISCARD;
 
     bm_setup(&data->is, data->ibuf, 0);
     mp3dec_init(&data->mp3d);
@@ -185,6 +199,7 @@ static void seek_ubimpeg(VGMSTREAM* v, int32_t num_sample) {
 }
 
 const codec_info_t ubimpeg_decoder = {
+    .sample_type = SFMT_FLT,
     .decode_frame = decode_frame_ubimpeg,
     .free = free_ubimpeg,
     .reset = reset_ubimpeg,

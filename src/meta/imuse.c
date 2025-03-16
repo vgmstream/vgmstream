@@ -136,7 +136,7 @@ VGMSTREAM* init_vgmstream_imuse(STREAMFILE* sf) {
 
     vgmstream->coding_type = coding_IMUSE;
     vgmstream->layout_type = layout_none;
-    vgmstream->codec_data = init_imuse(sf, channels);
+    vgmstream->codec_data = init_imuse_mcomp(sf, channels);
     if (!vgmstream->codec_data) goto fail;
 
     if (name_offset > 0)
