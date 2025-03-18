@@ -40,7 +40,7 @@ static void apply_settings_body(VGMSTREAM* vgmstream, txtp_entry_t* entry) {
             entry->config.trim_begin_set = true;
             entry->config.trim_begin = vgmstream->loop_start_sample;
             entry->trim_set = true;
-            entry->trim_sample = vgmstream->loop_end_sample - vgmstream->loop_start_sample;
+            entry->trim_sample = vgmstream->loop_end_sample;
 
             entry->config.config_set = true;
             break;
