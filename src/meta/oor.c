@@ -8,7 +8,6 @@ static bool is_oor(STREAMFILE* sf);
 /* .OOR ("OptimizedObsforR") - rUGP/AGES engine audio [Muv-Luv (multi), Liberation Maiden SIN (PS3/Vita)] */
 VGMSTREAM* init_vgmstream_oor(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
-    vorbis_custom_codec_data* data = NULL;
     off_t start_offset;
 
 
@@ -23,6 +22,7 @@ VGMSTREAM* init_vgmstream_oor(STREAMFILE* sf) {
         return NULL;
 
 #ifdef VGM_USE_VORBIS
+    vorbis_custom_codec_data* data = NULL;
     vorbis_custom_config cfg = {0}; //loads info on success
 
     data = init_vorbis_custom(sf, 0x00, VORBIS_OOR, &cfg);
@@ -50,15 +50,15 @@ VGMSTREAM* init_vgmstream_oor(STREAMFILE* sf) {
     // v0 files don't set last granule (must be done after opening streamfiles)
     if (!cfg.last_granule)
         vgmstream->num_samples = vorbis_custom_get_samples(vgmstream);
-#else
-    goto fail;
-#endif
 
     return vgmstream;
 fail:
     free_vorbis_custom(data);
     close_vgmstream(vgmstream);
     return NULL;
+#else
+    return NULL;
+#endif
 }
 
 // OOR is bitpacked but try to determine if bytes look like a .oor (will fail later if we picked a wrong candidate).
