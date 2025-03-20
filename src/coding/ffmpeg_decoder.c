@@ -763,7 +763,7 @@ static void samples_dblp_to_s16(sample_t* obuf, double** inbuf, int ichs, int sa
     }
 }
 
-static void copy_samples(ffmpeg_codec_data* data, sample_t* outbuf, int samples_to_do) {
+static void copy_samples(ffmpeg_codec_data* data, sample_t* outbuf, int samples_to_do, int max_channels) {
 #if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(59, 24, 100)
     int channels = data->codecCtx->channels;
 #else
@@ -777,6 +777,12 @@ static void copy_samples(ffmpeg_codec_data* data, sample_t* outbuf, int samples_
     }
     else {
         ibuf = data->frame->data[0];
+    }
+
+    // decoder may return more channels than expected in rare/buggy cases
+    if (channels > max_channels) {
+        VGM_LOG_ONCE("FFMPEG: buggy channels\n");
+        channels = max_channels;
     }
 
     switch (data->codecCtx->sample_fmt) {
@@ -835,7 +841,7 @@ void decode_ffmpeg(VGMSTREAM* vgmstream, sample_t* outbuf, int32_t samples_to_do
                 if (samples_to_get > samples_to_do)
                     samples_to_get = samples_to_do;
 
-                copy_samples(data, outbuf, samples_to_get);
+                copy_samples(data, outbuf, samples_to_get, channels);
 
                 samples_to_do -= samples_to_get;
                 outbuf += samples_to_get * channels;
