@@ -35,7 +35,7 @@ VGMSTREAM* init_vgmstream_ktac(STREAMFILE* sf) {
         return NULL;
     ktac.mp4.stream_offset  = read_u32le(0x0c,sf);
     ktac.mp4.stream_size    = read_u32le(0x10,sf);
-    ktac.type               = read_u32le(0x14,sf);
+    ktac.type               = read_u32le(0x14,sf); // 0=AoT, KnC3 bgm, type 1=KnC3 1ch voices, type 2=DW4, Atelier Ryza, others
     ktac.mp4.sample_rate    = read_u32le(0x18,sf);
     ktac.mp4.num_samples    = read_u32le(0x1c,sf); // full samples (total_frames * frame_size)
     ktac.mp4.channels       = read_u16le(0x20,sf);
@@ -58,20 +58,29 @@ VGMSTREAM* init_vgmstream_ktac(STREAMFILE* sf) {
     ktac.loop_start = ktac.loop_start * ktac.mp4.frame_samples + ktac.loop_start_adjust;
     ktac.loop_end = (ktac.loop_end + 1) * ktac.mp4.frame_samples - ktac.loop_end_padding;
 
-    /* type 1 files crash during sample_copy, wrong fake header/esds?
-     * (0=AoT, KnC3 bgm, 1=KnC3 1ch voices, 2=DW4, Atelier Ryza) */
+    int channels = ktac.mp4.channels;
+    int sample_rate = ktac.mp4.sample_rate;
+    int num_samples = ktac.mp4.num_samples;
+
+    // type 1 has some odd behavior. FFmpeg returns 2 channels with dupe samples (must decode x2),
+    // Possibly fake mp4's add_esds config is off, but internal sample_rate/etc seems correct (matters for decoding).
+    // It's not impossible it's just some KT decoder trickery, so for now force double values.
     if (ktac.type == 1) {
-        vgm_logi("KTAC: unsupported type %i\n", ktac.type);
-        return NULL;
+        vgm_logi("KTAC: type %i found\n", ktac.type);
+        if (channels != 1)
+            goto fail;
+        channels *= 2; //could use 1 channel + let copy-samples ignore extra channel?
+        sample_rate *= 2;
+        num_samples *= 2;
     }
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(ktac.mp4.channels, ktac.loop_flag);
+    vgmstream = allocate_vgmstream(channels, ktac.loop_flag);
     if (!vgmstream) goto fail;
 
     vgmstream->meta_type = meta_KTAC;
-    vgmstream->sample_rate = ktac.mp4.sample_rate;
-    vgmstream->num_samples = ktac.mp4.num_samples - ktac.mp4.end_padding - ktac.mp4.encoder_delay;
+    vgmstream->sample_rate = sample_rate;
+    vgmstream->num_samples = num_samples - ktac.mp4.end_padding - ktac.mp4.encoder_delay;
     vgmstream->loop_start_sample = ktac.loop_start - ktac.mp4.encoder_delay;
     vgmstream->loop_end_sample = ktac.loop_end - ktac.mp4.encoder_delay;
 
