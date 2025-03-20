@@ -4,7 +4,7 @@
 
 #ifdef VGM_USE_FFMPEG
 
-typedef enum { MP4_STD, MP4_LYN } mp4_type_t;
+typedef enum { MP4_KTAC, MP4_LYN } mp4_type_t;
 
 /**
  * Makes a MP4 header for MP4 raw data with a separate frame table, simulating a real MP4 that
@@ -54,7 +54,7 @@ static void add_u16b(m4a_header_t* h, uint16_t value) {
     h->bytes += 0x02;
 }
 
-static void add_u8(m4a_header_t* h, uint32_t value) {
+static void add_u8b(m4a_header_t* h, uint32_t value) {
     put_u8(h->out, value);
     h->out += 0x01;
     h->bytes += 0x01;
@@ -77,7 +77,7 @@ static void save_atom(m4a_header_t* h, m4a_state_t* s) {
     s->bytes = h->bytes;
 }
 
-static void load_atom(m4a_header_t* h, m4a_state_t* s) {
+static void mend_atom(m4a_header_t* h, m4a_state_t* s) {
     put_u32be(s->out, h->bytes - s->bytes);
 }
 
@@ -172,6 +172,7 @@ static void add_stts(m4a_header_t* h) {
 /* from mpeg4audio.c (also see ff_mp4_read_dec_config_descr) */
 static const int m4a_sample_rates[16] = {
     96000, 88200, 64000, 48000, 44100, 32000, 24000, 22050, 16000, 12000, 11025, 8000, 7350
+    // index 15 means sample rate is stored in 24-bit after index
 };
 static const uint8_t m4a_channels[14] = {
     0,
@@ -191,64 +192,88 @@ static const uint8_t m4a_channels[14] = {
 };
 
 static void add_esds(m4a_header_t* h) {
-    uint16_t config = 0;
-    
     /* ES_descriptor (TLV format see ISO 14496-1) and DecSpecificInfoTag define actual decoding
-     - config (channels/rate/etc), other atoms with the same stuff is just info
-     * - http://ecee.colorado.edu/~ecen5653/ecen5653/papers/ISO%2014496-1%202004.PDF */
-
-    {
-        uint8_t object_type = 0x02; /* 0x00=none, 0x01=AAC main, 0x02=AAC LC */
-        uint8_t sr_index = 0;
-        uint8_t ch_index = 0;
-        uint8_t unknown = 0;
-        int i;
-        for (i = 0; i < 16; i++) {
-            if (m4a_sample_rates[i] == h->mp4->sample_rate) {
-                sr_index = i;
-                break;
-            }
+     * config (channels/rate/etc), other atoms with the same stuff is just info
+     * - see ISO/IEC 14496-3:2001 > 1.6.2. Syntax (AudioSpecificConfig + GASpecificConfig) */
+    uint16_t config = 0;
+    uint8_t object_type = 0x02; /* 0x00=none, 0x01=AAC main, 0x02=AAC LC, etc */
+    uint8_t sr_index = 0;
+    uint8_t ch_index = 0;
+    uint8_t extra = 0;
+    for (int i = 0; i < 16; i++) {
+        if (m4a_sample_rates[i] == h->mp4->sample_rate) {
+            sr_index = i;
+            break;
         }
-        for (i = 0; i < 8; i++) {
-            if (m4a_channels[i] == h->mp4->channels) {
-                ch_index = i;
-                break;
-            }
+    }
+    for (int i = 0; i < 8; i++) {
+        if (m4a_channels[i] == h->mp4->channels) {
+            ch_index = i;
+            break;
         }
-
-        config |= (object_type & 0x1F) << 11; /* 5b */
-        config |= (sr_index & 0x0F) << 7; /* 4b */
-        config |= (ch_index & 0x0F) << 3; /* 4b */
-        config |= (unknown & 0x07) << 0; /* 3b */
     }
 
-    add_atom(h, "esds", 0x33);
+    extra = 0 ; // frameLength (1b) + dependsOnCoreCoder (1b) + extensionFlag (1b)
+
+    // KTAC uses 'quad' (2/2) rather than standard 4.0 (3/1) [Winning Post 9 2022 (PC)]
+    if (h->mp4->channels == 4 && h->type == MP4_KTAC) {
+        ch_index = 0;
+    }
+
+    config |= (object_type & 0x1F) << 11; /* 5b */
+    config |= (sr_index & 0x0F) << 7; /* 4b */
+    config |= (ch_index & 0x0F) << 3; /* 4b */
+    config |= (extra & 0x07) << 0; /* 3b */
+
+    uint8_t slcfg_size = 0x01;
+    uint8_t config_size = 0x02 + (ch_index == 0 ? 0x07 : 0x00);
+    uint8_t deccfg_size = 0x14;
+    uint8_t descr_size = 0x03 + 0x08 + deccfg_size + config_size + slcfg_size;
+
+    m4a_state_t s;
+
+    save_atom(h, &s);
+    add_atom(h, "esds", 0x00);
     add_u32b(h, 0);                         /* Version (1 byte) + Flags (3 byte) */
 
-    add_u8  (h, 0x03);                      /* ES_DescrTag */
-    add_u32b(h, 0x80808022);                /* size 0x22 */
+    add_u8b (h, 0x03);                      /* ES_DescrTag */
+    add_u32b(h, 0x80808000 + descr_size);   /* tag size (all subtags) */
     add_u16b(h, 0x0000);                    /* stream Id */
-    add_u8  (h, 0x00);                      /* flags */
+    add_u8b (h, 0x00);                      /* flags */
 
-    add_u8  (h, 0x04);                      /* DecoderConfigDescrTag */
-    add_u32b(h, 0x80808014);                /* size 0x14 */
-    add_u8  (h, 0x40);                      /* object type (0x40=audio) */
-    add_u8  (h, 0x15);                      /* stream type (6b: 0x5=audio) + upstream (1b) + reserved (1b: const 1) */
+    add_u8b (h, 0x04);                      /* DecoderConfigDescrTag */
+    add_u32b(h, 0x80808000 + deccfg_size);  /* subtag size */
+    add_u8b (h, 0x40);                      /* object type (0x40=audio) */
+    add_u8b (h, 0x15);                      /* stream type (6b: 0x5=audio) + upstream (1b) + reserved (1b: const 1) */
     add_u24b(h, 0x000000);                  /* buffer size */
     add_u32b(h, 0);                         /* max bitrate (256000?)*/
     add_u32b(h, 0);                         /* average bitrate (256000?) */
 
-    add_u8  (h, 0x05);                      /* DecSpecificInfoTag */
-    add_u32b(h, 0x80808002);                /* size 0x02 */
+    add_u8b (h, 0x05);                      /* DecSpecificInfoTag */
+    add_u32b(h, 0x80808000 + config_size);  /* subtag size */
     add_u16b(h, config);                    /* actual decoder info */
 
-    add_u8  (h, 0x06);                      /* SLConfigDescrTag  */
-    add_u32b(h, 0x80808001);                /* size 0x01 */
-    add_u8  (h, 0x02);                      /* predefined (2=default) */
+    // config for quad, abridged (see spec's program_config_element)
+    if (ch_index == 0 && h->mp4->channels == 4) {
+        uint16_t ch_config1 = 0x0004 | (object_type << 10) | (sr_index << 6); // config + channel info (part 1)
+        uint32_t ch_config2 = 0x04002110; // channel info (part 2)
+        uint8_t comment_len = 0x00;
+        add_u16b(h, ch_config1);
+        add_u32b(h, ch_config2);
+        add_u8b (h, comment_len);
+    }
+
+    add_u8b (h, 0x06);                      /* SLConfigDescrTag  */
+    add_u32b(h, 0x80808000 + slcfg_size);   /* tag size */
+    add_u8b (h, 0x02);                      /* predefined (2=default) */
+    mend_atom(h, &s);
 }
 
 static void add_mp4a(m4a_header_t* h) {
-    add_atom(h, "mp4a", 0x57);
+    m4a_state_t s;
+
+    save_atom(h, &s);
+    add_atom(h, "mp4a", 0x00);
     add_u32b(h, 0);                         /* ? */
     add_u32b(h, 1);                         /* Data reference index */
     add_u32b(h, 0);                         /* Reserved */
@@ -259,13 +284,18 @@ static void add_mp4a(m4a_header_t* h) {
     add_u16b(h, h->mp4->sample_rate);       /* Sample rate */
     add_u16b(h, 0);                         /* ? */
     add_esds(h); /* elementary stream descriptor */
+    mend_atom(h, &s);
 }
 
 static void add_stsd(m4a_header_t* h) {
-    add_atom(h, "stsd", 0x67);
+    m4a_state_t s;
+
+    save_atom(h, &s);
+    add_atom(h, "stsd", 0x00);
     add_u32b(h, 0);                         /* Version (1 byte) + Flags (3 byte) */
     add_u32b(h, 1);                         /* Number of entries */
     add_mp4a(h);
+    mend_atom(h, &s);
 }
 
 static void add_stbl(m4a_header_t* h) {
@@ -278,7 +308,7 @@ static void add_stbl(m4a_header_t* h) {
     add_stsc(h); /* Sample-to-chunk */
     add_stsz(h); /* Sample size */
     add_stco(h); /* Chunk offset */
-    load_atom(h, &s);
+    mend_atom(h, &s);
 }
 
 static void add_dinf(m4a_header_t* h) {
@@ -305,7 +335,7 @@ static void add_minf(m4a_header_t* h) {
     add_smhd(h);
     add_dinf(h);
     add_stbl(h);
-    load_atom(h, &s);
+    mend_atom(h, &s);
 }
 
 static void add_hdlr(m4a_header_t* h) {
@@ -338,7 +368,7 @@ static void add_mdia(m4a_header_t* h) {
     add_mdhd(h);
     add_hdlr(h);
     add_minf(h);
-    load_atom(h, &s);
+    mend_atom(h, &s);
 }
 
 static void add_tkhd(m4a_header_t* h) {
@@ -375,7 +405,7 @@ static void add_trak(m4a_header_t* h) {
     add_atom(h, "trak", 0x00);
     add_tkhd(h);
     add_mdia(h);
-    load_atom(h, &s);
+    mend_atom(h, &s);
 }
 
 static void add_mvhd(m4a_header_t* h) {
@@ -416,7 +446,7 @@ static void add_moov(m4a_header_t* h) {
     add_mvhd(h);
     add_trak(h);
   //add_udta(h);
-    load_atom(h, &s);
+    mend_atom(h, &s);
 }
 
 /* *** */
@@ -494,7 +524,7 @@ static ffmpeg_codec_data* init_ffmpeg_mp4_custom(STREAMFILE* sf, mp4_custom_t* m
     bytes = make_m4a_header(buf, buf_len, mp4, sf, type); /* before changing stream_offset/size */
 
     switch(type) {
-        case MP4_STD: /* regular raw data */
+        case MP4_KTAC: /* regular raw data */
             temp_sf = sf;
             break;
         case MP4_LYN: /* frames have size before them, but also a seek table */
@@ -523,8 +553,8 @@ fail:
     return NULL;
 }
 
-ffmpeg_codec_data* init_ffmpeg_mp4_custom_std(STREAMFILE* sf, mp4_custom_t* mp4) {
-    return init_ffmpeg_mp4_custom(sf, mp4, MP4_STD);
+ffmpeg_codec_data* init_ffmpeg_mp4_custom_ktac(STREAMFILE* sf, mp4_custom_t* mp4) {
+    return init_ffmpeg_mp4_custom(sf, mp4, MP4_KTAC);
 }
 
 ffmpeg_codec_data* init_ffmpeg_mp4_custom_lyn(STREAMFILE* sf, mp4_custom_t* mp4) {
