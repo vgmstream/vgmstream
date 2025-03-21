@@ -1032,4 +1032,6 @@ VGMSTREAM* init_vgmstream_oor(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_mio(STREAMFILE* sf);
 
+VGMSTREAM* init_vgmstream_2dx(STREAMFILE* sf);
+
 #endif

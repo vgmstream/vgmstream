@@ -1858,6 +1858,10 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Entis .MIO header [*MIO*]
   - *mio*: `.mio`
   - Codecs: MIO
+ - **2dx.c**
+  - (container)
+  - *2dx*: `.2dx`
+    - Subfiles: *2dx9*
 - **agsc.c**
   - Retro Studios AGSC header [*AGSC*]
   - *agsc*: `.agsc`
