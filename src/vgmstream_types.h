@@ -442,9 +442,9 @@ typedef enum {
     meta_RAGE_AUD,          /* Rockstar AUD - MC:LA, GTA IV */
     meta_NDS_HWAS,          /* Spider-Man 3, Tony Hawk's Downhill Jam, possibly more... */
     meta_NGC_LPS,           /* Rave Master (Groove Adventure Rave)(GC) */
-    meta_NAOMI_ADPCM,       /* NAOMI/NAOMI2 ARcade games */
-    meta_SD9,               /* beatmaniaIIDX16 - EMPRESS (Arcade) */
-    meta_2DX9,              /* beatmaniaIIDX16 - EMPRESS (Arcade) */
+    meta_NAOMI_ADPCM,       /* NAOMI/NAOMI2 Arcade games */
+    meta_SD9,               /* Konami/Bemani Arcade Games */
+    meta_2DX9,              /* beatmania IIDX Arcade Games */
     meta_PS2_VGV,           /* Rune: Viking Warlord */
     meta_GCUB,
     meta_MAXIS_XA,          /* Sim City 3000 (PC) */
