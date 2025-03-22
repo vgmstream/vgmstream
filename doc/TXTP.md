@@ -395,7 +395,7 @@ boss2_3ningumi_ver6.adx  #e                     #song has loops, so ignored here
 boss2_3ningumi_ver6.adx  #E                     #force full loops
 ```
 ```
-boss2_3ningumi_ver6.adx  #L                     #keep on looping
+boss2_3ningumi_ver6.adx  #L                     #keep on loopin'
 ```
 ```
 boss2_3ningumi_ver6.adx  #l 3  #F               #combined: 3 loops + ending
