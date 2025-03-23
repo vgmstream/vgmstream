@@ -705,6 +705,7 @@
     <ClCompile Include="meta\seg.c" />
     <ClCompile Include="meta\sfh.c" />
     <ClCompile Include="meta\sfl.c" />
+    <ClCompile Include="meta\sfxb.c" />
     <ClCompile Include="meta\sgxd.c" />
     <ClCompile Include="meta\shaa.c" />
     <ClCompile Include="meta\silence.c" />
@@ -806,7 +807,6 @@
     <ClCompile Include="meta\xa2_acclaim.c" />
     <ClCompile Include="meta\xabp.c" />
     <ClCompile Include="meta\xau.c" />
-    <ClCompile Include="meta\xau_konami.c" />
     <ClCompile Include="meta\xavs.c" />
     <ClCompile Include="meta\xa_04sw.c" />
     <ClCompile Include="meta\xa_xa30.c" />
