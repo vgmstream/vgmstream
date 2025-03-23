@@ -759,7 +759,7 @@ VGMSTREAM * init_vgmstream_apc(STREAMFILE *streamFile);
 
 VGMSTREAM* init_vgmstream_wav2(STREAMFILE* sf);
 
-VGMSTREAM * init_vgmstream_xau_konami(STREAMFILE *streamFile);
+VGMSTREAM* init_vgmstream_sfxb(STREAMFILE* sf);
 
 VGMSTREAM * init_vgmstream_derf(STREAMFILE *streamFile);
 

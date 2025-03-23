@@ -610,7 +610,7 @@ typedef enum {
     meta_AO,                /* Cloudphobia (PC) */
     meta_APC,               /* MegaRace 3 (PC) */
     meta_WAV2,
-    meta_XAU_KONAMI,        /* Yu-Gi-Oh - The Dawn of Destiny (Xbox) */
+    meta_SFXB,
     meta_DERF,              /* Stupid Invaders (PC) */
     meta_SADF,
     meta_UTK,

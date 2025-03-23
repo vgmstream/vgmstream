@@ -357,7 +357,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_ao,
     init_vgmstream_apc,
     init_vgmstream_wav2,
-    init_vgmstream_xau_konami,
+    init_vgmstream_sfxb,
     init_vgmstream_derf,
     init_vgmstream_utk,
     init_vgmstream_nxa1,
