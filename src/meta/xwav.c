@@ -12,13 +12,12 @@ VGMSTREAM* init_vgmstream_xwav_new(STREAMFILE* sf) {
 
 
     /* checks */
-    if (!is_id32le(0x00,sf, "XWAV"))
-        goto fail;
+    if (!is_id32be(0x00,sf, "VAWX")) //LE XWAV
+        return NULL;
 
-    /* .xwv: actual extension [Moon Diver (PS3/X360)]
-     * .vawx: header id */
-    if (!check_extensions(sf, "xwv,vawx"))
-        goto fail;
+    // .xwv: actual extension [Moon Diver (PS3/X360)]
+    if (!check_extensions(sf, "xwv"))
+        return NULL;
 
     /* similar to older version but BE and a bit less complex */
     /* 0x04: data size
@@ -143,9 +142,9 @@ VGMSTREAM* init_vgmstream_xwav_old(STREAMFILE* sf) {
     if (!is_id32be(0x00,sf, "XWAV"))
         goto fail;
 
-    /* .xwv: actual extension [Bullet Witch (X360), Lost Odyssey Demo (X360)] */
+    // .xwv: actual extension [Bullet Witch (X360), Lost Odyssey Demo (X360)]
     if (!check_extensions(sf, "xwv"))
-        goto fail;
+        return NULL;
 
     /* similar to newer version but LE and a bit more complex */
     /* 0x04: data size
