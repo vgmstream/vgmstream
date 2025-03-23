@@ -1173,7 +1173,7 @@ static const meta_info meta_info_list[] = {
         {meta_GBTS,                 "Konami GBTS header"},
         {meta_NGC_DSP_IADP,         "IADP Header"},
         {meta_RIFF_WAVE_ctrl,       "RIFF WAVE header (ctrl looping)"},
-        {meta_FFCC_STR,             "Final Fantasy: Crystal Chronicles STR header"},
+        {meta_STR_SQEX,             "Square Enix STR header"},
         {meta_SAT_BAKA,             "Konami BAKA header"},
         {meta_SWAV,                 "Nintendo SWAV header"},
         {meta_VSF,                  "Square Enix VSF header"},

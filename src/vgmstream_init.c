@@ -134,7 +134,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_ngc_dsp_iadp,
     init_vgmstream_aax,
     init_vgmstream_utf_dsp,
-    init_vgmstream_ngc_ffcc_str,
+    init_vgmstream_str_sqex,
     init_vgmstream_sat_baka,
     init_vgmstream_swav,
     init_vgmstream_vsf,

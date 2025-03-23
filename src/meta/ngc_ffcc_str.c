@@ -1,85 +1,43 @@
 #include "meta.h"
-#include "../util.h"
-
-/* STR (Final Fantasy: Crystal Chronicles) */
-VGMSTREAM * init_vgmstream_ngc_ffcc_str(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
-    off_t start_offset;
-    int loop_flag;
-	int channel_count;
-
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("str",filename_extension(filename))) goto fail;
-
-    /* check header */
-    if (read_32bitBE(0x00,streamFile) != 0x53545200 || /* "STR\0" */
-        read_32bitBE(0x08,streamFile) != get_streamfile_size(streamFile) ||
-        read_32bitBE(0x10,streamFile) != -1) /* this might be loop point */
-        goto fail;
-
-    loop_flag = 0;
-    channel_count = read_32bitBE(0x18,streamFile);
-    
-	/* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
-    if (!vgmstream) goto fail;
-
-	/* fill in the vital statistics */
-    start_offset = 0x1000;
-	vgmstream->channels = channel_count;
-    if (read_32bitBE(0x14,streamFile)==0)
-        vgmstream->sample_rate = 32000;
-    else
-        vgmstream->sample_rate = 44100;
-    vgmstream->coding_type = coding_NGC_DSP;
-    vgmstream->num_samples = read_32bitBE(0x0C,streamFile)*14;
-
-    if (channel_count > 1)
-    {
-        vgmstream->layout_type = layout_interleave;
-        vgmstream->interleave_block_size = 0x1000;
-    }
-    else
-    {
-        vgmstream->layout_type = layout_none;
-        vgmstream->interleave_block_size = 0x1000;
-    }
-    vgmstream->meta_type = meta_FFCC_STR;
+#include "../util/meta_utils.h"
+#include "../coding/coding.h"
 
 
-    if (vgmstream->coding_type == coding_NGC_DSP) {
-        int c;
-        for (c=0;c<channel_count;c++)
-        {
-            int i;
-            for (i=0;i<16;i++) {
-                vgmstream->ch[c].adpcm_coef[i] = read_16bitBE(0x20 + c * 0x2e + i * 2,streamFile);
-            }
-        }
-    }
+/* STR - from Final Fantasy Crystal Chronicles (GC) */
+VGMSTREAM* init_vgmstream_str_sqex(STREAMFILE* sf) {
 
-    /* open the file for reading */
-    {
-        int i;
-        STREAMFILE * file;
-        file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (!file) goto fail;
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = file;
+    /* checks */
+    if (!is_id32be(0x00,sf, "STR\0"))
+        return NULL;
+    if (!check_extensions(sf, "str"))
+        return NULL;
 
-            vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=start_offset+
-                vgmstream->interleave_block_size*i;
+    if (read_u32be(0x04,sf) != 0)
+        return NULL;
+    if (read_u32be(0x08,sf) != get_streamfile_size(sf))
+        return NULL;
 
-        }
-    }
+    meta_header_t h = {0};
+    h.meta = meta_STR_SQEX;
 
-    return vgmstream;
+    h.num_samples = read_s32be(0x0C, sf) * 14;
+    // 10: always -1 (loop point?)
+    h.sample_rate   = read_u32be(0x14, sf) != 0 ? 44100 : 32000; // unknown value
+    h.channels      = read_s32be(0x18, sf);
+    // 1c: volume? (128)
+    h.coefs_offset  = 0x20;
+    h.coefs_spacing = 0x2e;
+    h.big_endian = true;
+    // 40: initial ps
+    // 48: hist?
 
-    /* clean up anything we may have opened */
-fail:
-    if (vgmstream) close_vgmstream(vgmstream);
-    return NULL;
+    h.interleave    = 0x1000;
+    h.stream_offset = 0x1000;
+
+    h.coding = coding_NGC_DSP;
+    h.layout = layout_interleave;
+    h.open_stream = true;
+    h.sf = sf;
+
+    return alloc_metastream(&h);
 }

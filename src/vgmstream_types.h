@@ -367,7 +367,7 @@ typedef enum {
     meta_ISH_ISD,           /* Various (ISH+ISD DSP) */
     meta_GSND,
     meta_YDSP,              /* WWE Day of Reckoning */
-    meta_FFCC_STR,          /* Final Fantasy: Crystal Chronicles */
+    meta_STR_SQEX,
     meta_UBI_JADE,          /* Beyond Good & Evil, Rayman Raving Rabbids */
     meta_GCA,               /* Metal Slug Anthology */
     meta_SSM,
