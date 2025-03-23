@@ -224,7 +224,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="formats.c" />
-    <ClCompile Include="meta\2dx.c" />
     <ClCompile Include="streamfile.c" />
     <ClCompile Include="util.c" />
     <ClCompile Include="vgmstream.c" />
@@ -402,6 +401,7 @@
     <ClCompile Include="layout\layered.c" />
     <ClCompile Include="layout\segmented.c" />
     <ClCompile Include="meta\208.c" />
+    <ClCompile Include="meta\2dx.c" />
     <ClCompile Include="meta\2dx9.c" />
     <ClCompile Include="meta\2pfs.c" />
     <ClCompile Include="meta\9tav.c" />
@@ -613,7 +613,6 @@
     <ClCompile Include="meta\ngc_adpdtk.c" />
     <ClCompile Include="meta\ngc_dsp_asura.c" />
     <ClCompile Include="meta\ngc_dsp_std.c" />
-    <ClCompile Include="meta\ngc_ffcc_str.c" />
     <ClCompile Include="meta\ngc_lps.c" />
     <ClCompile Include="meta\ngc_nst_dsp.c" />
     <ClCompile Include="meta\ngc_pdt.c" />
@@ -740,6 +739,7 @@
     <ClCompile Include="meta\strm_abylight.c" />
     <ClCompile Include="meta\str_sega.c" />
     <ClCompile Include="meta\str_snds.c" />
+    <ClCompile Include="meta\str_sqex.c" />
     <ClCompile Include="meta\str_wav.c" />
     <ClCompile Include="meta\sts.c" />
     <ClCompile Include="meta\svag_kcet.c" />

@@ -1033,6 +1033,9 @@
     <ClCompile Include="meta\208.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\2dx.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\2dx9.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -1666,9 +1669,6 @@
     <ClCompile Include="meta\ngc_dsp_std.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ngc_ffcc_str.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="meta\ngc_lps.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -2047,6 +2047,9 @@
     <ClCompile Include="meta\str_snds.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\str_sqex.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\str_wav.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -2382,9 +2385,6 @@
     </ClCompile>
     <ClCompile Include="util\vorbis_codebooks.c">
       <Filter>util\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="meta\2dx.c">
-      <Filter>meta\Source Files</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
