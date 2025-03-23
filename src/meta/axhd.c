@@ -67,7 +67,7 @@ VGMSTREAM* init_vgmstream_axhd(STREAMFILE* sf) {
                     h.sample_rate = 44100;
                     continue;
                 }
-VGM_LOG("%x: %x + %x\n", sound_offset, h.stream_offset, h.stream_size );
+
                 // fmt
                 codec           = read_u16le(sound_offset + 0x26, sf);
                 h.channels      = read_u16le(sound_offset + 0x28, sf);

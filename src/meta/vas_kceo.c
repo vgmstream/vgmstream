@@ -123,9 +123,9 @@ VGMSTREAM* init_vgmstream_vas_kceo(STREAMFILE* sf) {
 
         case IMA:
             vgmstream->coding_type = coding_XBOX_IMA;
-            vgmstream->layout_type = layout_blocked_xvas;
+            vgmstream->layout_type = layout_blocked_vas_kceo;
 
-            /* blocks of 0x20000 with padding */
+            // blocks of 0x20000 with 0x20 padding, remove it to calculate samples
             data_size -= (data_size / 0x20000) * 0x20;
             loop_start -= (loop_start / 0x20000) * 0x20;
             loop_end -= (loop_end / 0x20000) * 0x20;

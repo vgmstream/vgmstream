@@ -14,10 +14,10 @@ VGMSTREAM* init_vgmstream_gsnd(STREAMFILE* sf) {
 
     /* checks */
     if (!is_id32be(0x00,sf, "GSND"))
-        goto fail;
+        return NULL;
 
     if (!check_extensions(sf,"gsp"))
-        goto fail;
+        return NULL;
 
     sb = open_streamfile_by_ext(sf, "gsb");
     if (!sb) goto fail;
@@ -78,7 +78,7 @@ VGMSTREAM* init_vgmstream_gsnd(STREAMFILE* sf) {
             size_t num_blocks;
 
             vgmstream->coding_type = coding_NGC_DSP;
-            vgmstream->layout_type = layout_blocked_gsb;
+            vgmstream->layout_type = layout_blocked_gsnd;
 
             if (!find_chunk_be(sf, get_id32be("GCEX"),first_offset,1, &chunk_offset,NULL))
                 goto fail;

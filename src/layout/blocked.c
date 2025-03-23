@@ -133,14 +133,14 @@ void block_update(off_t block_offset, VGMSTREAM* vgmstream) {
         case layout_blocked_mul:
             block_update_mul(block_offset,vgmstream);
             break;
-        case layout_blocked_gsb:
-            block_update_gsb(block_offset,vgmstream);
+        case layout_blocked_gsnd:
+            block_update_gsnd(block_offset,vgmstream);
             break;
         case layout_blocked_vs_mh:
             block_update_vs_mh(block_offset,vgmstream);
             break;
-        case layout_blocked_xvas:
-            block_update_xvas(block_offset,vgmstream);
+        case layout_blocked_vas_kceo:
+            block_update_vas_kceo(block_offset,vgmstream);
             break;
         case layout_blocked_thp:
             block_update_thp(block_offset,vgmstream);

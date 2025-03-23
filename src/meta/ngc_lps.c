@@ -1,70 +1,49 @@
 #include "meta.h"
-#include "../util.h"
+#include "../util/meta_utils.h"
+#include "../coding/coding.h"
 
-/* LPS (found in Rave Master (Groove Adventure Rave)(GC) */
-VGMSTREAM * init_vgmstream_ngc_lps(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
-    off_t start_offset;
-	int loop_flag;
-	int channel_count;
+/* .LPS - from Rave Master (GC) */
+VGMSTREAM* init_vgmstream_lps(STREAMFILE* sf) {
 
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("lps",filename_extension(filename))) goto fail;
+    /* checks */
+    uint32_t data_size = read_u32be(0x00, sf);
+    if (data_size + 0xE0 != get_streamfile_size(sf))
+        return NULL;
 
-    /* check header */
-    if (read_32bitBE(0x8,streamFile) != 0x10000000)
-		goto fail;
+    if (read_u32be(0x04, sf) != 0x01)
+        return NULL;
+    if (read_u32be(0x08, sf) != 0x10000000)
+        return NULL;
+    if (read_u32be(0x0c, sf) != 0x00)
+        return NULL;
+    if (!check_extensions(sf, "lps"))
+        return NULL;
 
-    loop_flag = read_32bitBE(0x30,streamFile);
-    channel_count = 1;
-    
-	/* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
-    if (!vgmstream) goto fail;
+    meta_header_t h = {0};
+    h.meta = meta_LPS;
 
-	/* fill in the vital statistics */
-  start_offset = 0x60;
-	vgmstream->channels = channel_count;
-    vgmstream->sample_rate = read_32bitBE(0x28,streamFile);
-    vgmstream->coding_type = coding_NGC_DSP;
-    vgmstream->num_samples = (read_32bitBE(0x34,streamFile))/16*14;
-    if (loop_flag) {
-        vgmstream->loop_start_sample = (read_32bitBE(0x30,streamFile))/16*14;
-        vgmstream->loop_end_sample = vgmstream->num_samples;
-    }
+    //TODO: standard(?) DSP header, maybe handle like others
+    h.num_samples   = read_s32be(0x20 + 0x00,sf);
+    // 04: nibbles
+    h.sample_rate   = read_s32be(0x20 + 0x08,sf);
+    h.loop_flag     = read_s16be(0x20 + 0x0c,sf) == 0x0001;
+    h.loop_start    = read_u32be(0x20 + 0x10,sf);
+    h.loop_end      = read_s32be(0x20 + 0x14,sf);
+    h.coefs_offset  = 0x20 + 0x1c;
+    h.hists_offset  = 0x20 + 0x1c + 0x20 + 0x04;
 
-    vgmstream->layout_type = layout_none;
-    vgmstream->meta_type = meta_NGC_LPS;
-    vgmstream->allow_dual_stereo = 1;
+    h.loop_start    = dsp_nibbles_to_samples(h.loop_start);
+    h.loop_end      = dsp_nibbles_to_samples(h.loop_end); //+ 1;
 
-    if (vgmstream->coding_type == coding_NGC_DSP) {
-        int i;
-        for (i=0;i<16;i++) {
-            vgmstream->ch[0].adpcm_coef[i] = read_16bitBE(0x3C+i*2,streamFile);
-        }
-    }
-    /* open the file for reading */
-    {
-        int i;
-        STREAMFILE * file;
-        file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (!file) goto fail;
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = file;
+    h.channels      = 1;
+    h.allow_dual_stereo = true;
+    h.big_endian = true;
+    h.stream_offset = 0xE0;
 
-            vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=start_offset+
-                vgmstream->interleave_block_size*i;
+    h.coding = coding_NGC_DSP;
+    h.layout = layout_none;
+    h.open_stream = true;
+    h.sf = sf;
 
-        }
-    }
-
-    return vgmstream;
-
-	/* clean up anything we may have opened */
-fail:
-    if (vgmstream) close_vgmstream(vgmstream);
-    return NULL;
+    return alloc_metastream(&h);
 }
