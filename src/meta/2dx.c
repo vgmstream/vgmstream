@@ -41,7 +41,7 @@ VGMSTREAM* init_vgmstream_2dx(STREAMFILE* sf) {
         return NULL;
 
     // extra checks to fail faster
-    if (total_subsongs > 255) // arbitrary max
+    if (total_subsongs > 1024) // arbitrary max
         return NULL;
     if (first_offset != read_u32le(table_offset, sf))
         return NULL;

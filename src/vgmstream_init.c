@@ -537,6 +537,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_vgv,
     init_vgmstream_iab,
     init_vgmstream_2dx,
+    init_vgmstream_ssp,
     /* need companion files */
     init_vgmstream_pos,
     init_vgmstream_sli_loops,

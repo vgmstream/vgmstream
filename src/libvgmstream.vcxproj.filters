@@ -2023,6 +2023,9 @@
     <ClCompile Include="meta\sscf_encrypted.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\ssp.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\sspf.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>

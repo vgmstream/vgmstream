@@ -731,6 +731,7 @@
     <ClCompile Include="meta\squeak.c" />
     <ClCompile Include="meta\sscf.c" />
     <ClCompile Include="meta\sscf_encrypted.c" />
+    <ClCompile Include="meta\ssp.c" />
     <ClCompile Include="meta\sspf.c" />
     <ClCompile Include="meta\sspr.c" />
     <ClCompile Include="meta\ster.c" />

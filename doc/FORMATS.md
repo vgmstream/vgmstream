@@ -589,9 +589,9 @@ different internally (encrypted, different versions, etc) and not always can be 
   - *utf_ahx*: `.aax .(extensionless)`
     - Subfiles: *ahx*
   - Codecs: NGC_DSP
-- **ngc_ffcc_str.c**
-  - Final Fantasy: Crystal Chronicles STR header [*FFCC_STR*]
-  - *ngc_ffcc_str*: `.str`
+- **str_sqex.c**
+  - Square Enix STR header [*STR_SQEX*]
+  - *str_sqex*: `.str`
   - Codecs: NGC_DSP
 - **sat_baka.c**
   - Konami BAKA header [*SAT_BAKA*]
@@ -637,9 +637,9 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Vicarious Visions HWAS header [*NDS_HWAS*]
   - *nds_hwas*: `.hwas`
   - Codecs: IMA_mono
-- **ngc_lps.c**
-  - Rave Master LPS Header [*NGC_LPS*]
-  - *ngc_lps*: `.lps`
+- **lps.c**
+  - Konami .LPS Header [*LPS*]
+  - *lps*: `.lps`
   - Codecs: NGC_DSP
 - **ps2_snd.c**
   - Might and Magic SSND Header [*PS2_SND*]
@@ -661,10 +661,6 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Konami .DSP Header [*DSP_KCEJE*]
   - *dsp_kceje*: `.dsp`
   - Codecs: NGC_DSP
-- **ps2_vgv.c**
-  - Rune: Viking Warlord VGV Header [*PS2_VGV*]
-  - *ps2_vgv*: `.vgv`
-  - Codecs: PSX
 - **gcub.c**
   - Sega GCub header [*GCUB*]
   - *gcub*: `.wav .lwav .gcub`
@@ -823,10 +819,6 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Square SPM header [*SPM*]
   - *spm*: `.spm`
   - Codecs: PCM16LE
-- **ps2_iab.c**
-  - Runtime .IAB header [*PS2_IAB*]
-  - *ps2_iab*: `.iab`
-  - Codecs: PSX
 - **vs_str.c**
   - Square .VS STRx header [*VS_STR*]
   - *vs_str*: `.vs .str`
@@ -837,7 +829,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Codecs: PSX_cfg LSF
 - **xwav.c**
   - feelplus XWAV header [*XWAV*]
-  - *xwav_new*: `.xwv .vawx`
+  - *xwav_new*: `.xwv`
   - *xwav_old*: `.xwv`
   - Codecs: PSX XMA2 ATRAC3
 - **mattel_hyperscan.c**
@@ -1347,9 +1339,9 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Infogrames North America WAV2 header [*WAV2*]
   - *wav2*: `.wv2`
   - Codecs: DVI_IMA_mono
-- **xau_konami.c**
-  - Konami XAU header [*XAU_KONAMI*]
-  - *xau_konami*: `.xau`
+- **sfxb.c**
+  - Konami SFXB header [*SFXB*]
+  - *sfxb*: `.xau`
   - Codecs: PCM16LE
 - **derf.c**
   - Xilam DERF header [*DERF*]
@@ -1858,10 +1850,6 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Entis .MIO header [*MIO*]
   - *mio*: `.mio`
   - Codecs: MIO
- - **2dx.c**
-  - (container)
-  - *2dx*: `.2dx`
-    - Subfiles: *2dx9*
 - **agsc.c**
   - Retro Studios AGSC header [*AGSC*]
   - *agsc*: `.agsc`
@@ -1916,6 +1904,22 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Blitz Games .IMA header [*IMA*]
   - *ima*: `.ima`
   - Codecs: BLITZ_IMA
+- **vgv.c**
+  - Human Head .VGV header [*VGV*]
+  - *vgv*: `.vgv`
+  - Codecs: PSX
+- **iab.c**
+  - Runtime .IAB header [*IAB*]
+  - *iab*: `.iab`
+  - Codecs: PSX
+- **2dx.c**
+  - (container)
+  - *2dx*: `.2dx`
+    - Subfiles: *2dx9*
+- **ssp.c**
+  - (container)
+  - *ssp*: `.ssp`
+    - Subfiles: *sd9*
 - **pos.c**
   - RIFF WAVE header (.pos looping) [*RIFF_WAVE_POS*]
   - *pos*: `.pos + .wav`
