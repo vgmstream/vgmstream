@@ -620,6 +620,7 @@ static bool parse_fsb(fsb_header_t* fsb, STREAMFILE* sf) {
     /* XOR encryption for some FSB4, though the flag is only seen after decrypting */
     //;VGM_ASSERT(fsb->flags & FMOD_FSB_SOURCE_ENCRYPTED, "FSB ENCRYPTED found\n");
 
+#ifdef VGM_USE_MPEG
     // rare FSB3 have odd cases [Rise of the Argonauts (PC)]
     if (fsb->codec == MPEG && fsb->version == FMOD_FSB_VERSION_3_1) {
         uint32_t mpeg_id = read_u32be(fsb->stream_offset, sf);
@@ -639,6 +640,7 @@ static bool parse_fsb(fsb_header_t* fsb, STREAMFILE* sf) {
         // rarely sets more samples than data, must clamp reads to avoid spilling into next subsong: Player_Death_DLG.fsb, Lykas_Atalanta_Join_DLG.fsb
         // probably a bug as samples don't seem to match MPEG's 'Info' headers and can be both bigger and smaller than loop_end
     }
+#endif
 
     return true;
 fail:

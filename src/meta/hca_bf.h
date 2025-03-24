@@ -1,6 +1,7 @@
 #ifndef _HCA_BF_
 #define _HCA_BF_
 
+#include <inttypes.h>
 #include "meta.h"
 #include "../coding/coding.h"
 
@@ -9,30 +10,37 @@
 
 static void bruteforce_process_result(hca_keytest_t* hk, unsigned long long* p_keycode) {
     *p_keycode = hk->best_key;
-    if (hk->best_score < 0 || hk->best_score > 10000) {
+    if (hk->best_score <= 0 || hk->best_score > 10000) {
         VGM_LOG("HCA BF: no good key found\n");
     }
     else {
-        VGM_LOG("HCA BF: best key=%08x%08x (score=%i)\n",
-                (uint32_t)((*p_keycode >> 32) & 0xFFFFFFFF), (uint32_t)(*p_keycode & 0xFFFFFFFF), hk->best_score);
+        VGM_LOG("HCA BF: best key=%"PRIu64" / %08x%08x (score=%i)\n",
+                *p_keycode, (uint32_t)((*p_keycode >> 32) & 0xFFFFFFFF), (uint32_t)(*p_keycode & 0xFFFFFFFF), hk->best_score);
     }
 }
+
+const char* hbf_info[] = {
+    "64LE",
+    "64BE",
+    "32LE",
+    "32BE",
+};
 
 typedef enum {
     HBF_TYPE_64LE_1,
     HBF_TYPE_64BE_1,
     HBF_TYPE_32LE_1,
     HBF_TYPE_32BE_1,
-    HBF_TYPE_64LE_4,
-    HBF_TYPE_64BE_4,
-    HBF_TYPE_32LE_4,
-    HBF_TYPE_32BE_4,
-} HBF_type_t;
+    //HBF_TYPE_64LE_4,
+    //HBF_TYPE_64BE_4,
+    //HBF_TYPE_32LE_4,
+    //HBF_TYPE_32BE_4,
+} hbf_type_t;
 
 /* Bruteforce binary keys in executables and similar files, mainly for some mobile games.
  * Kinda slow but acceptable for ~100MB exes, not very optimized. Unity usually has keys
  * in plaintext (inside levelX or other base files) instead though, use test below. */
-static void bruteforce_hca_key_bin_type(STREAMFILE* sf, hca_codec_data* hca_data, unsigned long long* p_keycode, uint16_t subkey, HBF_type_t type) {
+static void bruteforce_hca_key_bin_type(STREAMFILE* sf, hca_codec_data* hca_data, unsigned long long* p_keycode, uint16_t subkey, hbf_type_t type) {
     STREAMFILE* sf_keys = NULL;
     uint8_t* buf = NULL;
     uint64_t keys_offset;
@@ -48,7 +56,8 @@ static void bruteforce_hca_key_bin_type(STREAMFILE* sf, hca_codec_data* hca_data
     sf_keys = open_streamfile_by_filename(sf, "keys.bin");
     if (!sf_keys) return;
 
-    VGM_LOG("HCA BF: test keys.bin (type %i)\n", type);
+    const char* type_info = hbf_info[type];
+    VGM_LOG("HCA BF: using keys.bin (%s mode)\n", type_info);
 
     buf = malloc(HCA_BF_CHUNK);
     if (!buf) {
@@ -64,10 +73,10 @@ static void bruteforce_hca_key_bin_type(STREAMFILE* sf, hca_codec_data* hca_data
         case HBF_TYPE_64BE_1:
         case HBF_TYPE_32LE_1:
         case HBF_TYPE_32BE_1: step = 0x01; break;
-        case HBF_TYPE_64LE_4:
-        case HBF_TYPE_64BE_4:
-        case HBF_TYPE_32LE_4:
-        case HBF_TYPE_32BE_4: step = 0x04; break;
+        //case HBF_TYPE_64LE_4:
+        //case HBF_TYPE_64BE_4:
+        //case HBF_TYPE_32LE_4:
+        //case HBF_TYPE_32BE_4: step = 0x04; break;
         default: goto done;
     }
 
@@ -83,7 +92,7 @@ static void bruteforce_hca_key_bin_type(STREAMFILE* sf, hca_codec_data* hca_data
             if (keys_limit >= 8)
                 keys_offset += keys_limit - 8;
 
-            VGM_LOG("HCA: reading %llx + ...\n", (long long)keys_offset);
+            VGM_LOG("HCA BF: reading %llx + ...\n", (long long)keys_offset);
             keys_limit = read_streamfile(buf, keys_offset, HCA_BF_CHUNK, sf_keys);
             if (keys_limit == 0)
                 return;
@@ -92,7 +101,7 @@ static void bruteforce_hca_key_bin_type(STREAMFILE* sf, hca_codec_data* hca_data
 
         if (pos % 0x1000000 == 0) {
             uint64_t pos_out = keys_offset + pos;
-            VGM_LOG("HCA: pos %llx...\n", (long long)pos_out);
+            VGM_LOG("HCA BF: pos %llx...\n", (long long)pos_out);
         }
 
 #ifdef HCA_BF_IGNORE_BAD_KEYS
@@ -108,10 +117,10 @@ static void bruteforce_hca_key_bin_type(STREAMFILE* sf, hca_codec_data* hca_data
             case HBF_TYPE_64BE_1: key = get_u64be(buf + pos); break;
             case HBF_TYPE_32LE_1: key = get_u32le(buf + pos); break;
             case HBF_TYPE_32BE_1: key = get_u32be(buf + pos); break;
-            case HBF_TYPE_64LE_4: key = get_u64le(buf + pos); break;
-            case HBF_TYPE_64BE_4: key = get_u64be(buf + pos); break;
-            case HBF_TYPE_32LE_4: key = get_u32le(buf + pos); break;
-            case HBF_TYPE_32BE_4: key = get_u32be(buf + pos); break;
+            //case HBF_TYPE_64LE_4: key = get_u64le(buf + pos); break;
+            //case HBF_TYPE_64BE_4: key = get_u64be(buf + pos); break;
+            //case HBF_TYPE_32LE_4: key = get_u32le(buf + pos); break;
+            //case HBF_TYPE_32BE_4: key = get_u32be(buf + pos); break;
             default: goto done;
         }
         pos += step;
@@ -130,13 +139,15 @@ done:
     bruteforce_process_result(&hk, p_keycode);
     close_streamfile(sf_keys);
     free(buf);
+
+    VGM_LOG("HCA BF: done\n\n");
 }
 
 static void bruteforce_hca_key_bin(STREAMFILE* sf, hca_codec_data* hca_data, unsigned long long* p_keycode, uint16_t subkey) {
     bruteforce_hca_key_bin_type(sf, hca_data, p_keycode, subkey, HBF_TYPE_64LE_1);
     bruteforce_hca_key_bin_type(sf, hca_data, p_keycode, subkey, HBF_TYPE_32LE_1);
-    //bruteforce_hca_key_bin_type(sf, hca_data, p_keycode, subkey, HBF_TYPE_64BE_1);
-    //bruteforce_hca_key_bin_type(sf, hca_data, p_keycode, subkey, HBF_TYPE_32BE_1);
+    bruteforce_hca_key_bin_type(sf, hca_data, p_keycode, subkey, HBF_TYPE_64BE_1);
+    bruteforce_hca_key_bin_type(sf, hca_data, p_keycode, subkey, HBF_TYPE_32BE_1);
 
     //bruteforce_hca_key_bin_type(sf, hca_data, p_keycode, subkey, HBF_TYPE_64LE_4);
     //bruteforce_hca_key_bin_type(sf, hca_data, p_keycode, subkey, HBF_TYPE_32LE_4);
@@ -144,9 +155,6 @@ static void bruteforce_hca_key_bin(STREAMFILE* sf, hca_codec_data* hca_data, uns
     //bruteforce_hca_key_bin_type(sf, hca_data, p_keycode, subkey, HBF_TYPE_32BE_4);
 }
 
-
-#include <inttypes.h>
-//#include <stdio.h>
 
 /* same as the above but for txt lines. */
 static void bruteforce_hca_key_txt(STREAMFILE* sf, hca_codec_data* hca_data, unsigned long long* p_keycode, uint16_t subkey) {
@@ -165,7 +173,7 @@ static void bruteforce_hca_key_txt(STREAMFILE* sf, hca_codec_data* hca_data, uns
     sf_keys = open_streamfile_by_filename(sf, "keys.txt");
     if (!sf_keys) return;
 
-    VGM_LOG("HCA BF: test keys.txt\n");
+    VGM_LOG("HCA BF: using keys.txt\n");
 
     keys_size = get_streamfile_size(sf_keys);
 
@@ -192,7 +200,7 @@ static void bruteforce_hca_key_txt(STREAMFILE* sf, hca_codec_data* hca_data, uns
         count = sscanf(line, "%" SCNd64, &key);
         if (count != 1) continue;
 
-        VGM_ASSERT(pos % 10000 == 0, "HCA: count %i...\n", i);
+        VGM_ASSERT(pos % 10000 == 0, "HCA BF: count %i...\n", i);
 
         if (key == 0)
             continue;
@@ -208,6 +216,8 @@ done:
     bruteforce_process_result(&hk, p_keycode);
     close_streamfile(sf_keys);
     free(buf);
+
+    VGM_LOG("HCA BF: done\n\n");
 }
 
 /* same as the above but good ol' bruteforce numbers (useful for games with keys that are dates) */
@@ -225,7 +235,7 @@ static void bruteforce_hca_key_num(STREAMFILE* sf, hca_codec_data* hca_data, uns
     sf_keys = open_streamfile_by_filename(sf, "keys.num");
     if (!sf_keys) return;
 
-    VGM_LOG("HCA BF: test keys.num\n");
+    VGM_LOG("HCA BF: using keys.num\n");
 
     keys_size = get_streamfile_size(sf_keys);
 
@@ -245,7 +255,7 @@ static void bruteforce_hca_key_num(STREAMFILE* sf, hca_codec_data* hca_data, uns
         key = min;
 
         min++;
-        VGM_ASSERT(min % 0x100000 == 0, "HCA: count %x...\n", (uint32_t)min);
+        VGM_ASSERT(min % 0x100000 == 0, "HCA BF: count %x...\n", (uint32_t)min);
 
         hk.key = key;
         test_hca_key(hca_data, &hk);
@@ -256,9 +266,13 @@ static void bruteforce_hca_key_num(STREAMFILE* sf, hca_codec_data* hca_data, uns
 done:
     bruteforce_process_result(&hk, p_keycode);
     close_streamfile(sf_keys);
+
+    VGM_LOG("HCA BF: done\n\n");
 }
 
 static void bruteforce_hca_key(STREAMFILE* sf, hca_codec_data* hca_data, unsigned long long* p_keycode, uint16_t subkey) {
+    VGM_LOG("HCA bruteforcer start\n");
+
     bruteforce_hca_key_bin(sf, hca_data, p_keycode, subkey);
     if (*p_keycode != 0)
         return;
@@ -270,6 +284,8 @@ static void bruteforce_hca_key(STREAMFILE* sf, hca_codec_data* hca_data, unsigne
     bruteforce_hca_key_num(sf, hca_data, p_keycode, subkey);
     if (*p_keycode != 0)
         return;
+
+    VGM_LOG("HCA bruteforcer done\n");
 }
 
 #endif

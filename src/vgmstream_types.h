@@ -211,10 +211,10 @@ typedef enum {
     layout_blocked_str_snds,
     layout_blocked_ws_aud,
     layout_blocked_dec,
-    layout_blocked_xvas,
+    layout_blocked_vas_kceo,
     layout_blocked_vs_mh,
     layout_blocked_mul,
-    layout_blocked_gsb,
+    layout_blocked_gsnd,
     layout_blocked_thp,
     layout_blocked_filp,
     layout_blocked_ea_swvr,
@@ -367,7 +367,7 @@ typedef enum {
     meta_ISH_ISD,           /* Various (ISH+ISD DSP) */
     meta_GSND,
     meta_YDSP,              /* WWE Day of Reckoning */
-    meta_FFCC_STR,          /* Final Fantasy: Crystal Chronicles */
+    meta_STR_SQEX,
     meta_UBI_JADE,          /* Beyond Good & Evil, Rayman Raving Rabbids */
     meta_GCA,               /* Metal Slug Anthology */
     meta_SSM,
@@ -441,11 +441,11 @@ typedef enum {
     meta_REDSPARK,          /* "RedSpark" RSD (MadWorld) */
     meta_RAGE_AUD,          /* Rockstar AUD - MC:LA, GTA IV */
     meta_NDS_HWAS,          /* Spider-Man 3, Tony Hawk's Downhill Jam, possibly more... */
-    meta_NGC_LPS,           /* Rave Master (Groove Adventure Rave)(GC) */
+    meta_LPS,
     meta_NAOMI_ADPCM,       /* NAOMI/NAOMI2 Arcade games */
     meta_SD9,               /* Konami/Bemani Arcade Games */
     meta_2DX9,              /* beatmania IIDX Arcade Games */
-    meta_PS2_VGV,           /* Rune: Viking Warlord */
+    meta_VGV,
     meta_GCUB,
     meta_MAXIS_XA,          /* Sim City 3000 (PC) */
     meta_NGC_SCK_DSP,       /* Scorpion King (NGC) */
@@ -492,7 +492,7 @@ typedef enum {
     meta_RAS,
     meta_SPM,
     meta_VGS_PS,
-    meta_PS2_IAB,           /* Ueki no Housoku - Taosu ze Robert Juudan!! (PS2) */
+    meta_IAB,
     meta_VS_STR,            /* The Bouncer */
     meta_LSF_N1NJ4N,        /* .lsf n1nj4n Fastlane Street Racing (iPhone) */
     meta_XWAV,
@@ -610,7 +610,7 @@ typedef enum {
     meta_AO,                /* Cloudphobia (PC) */
     meta_APC,               /* MegaRace 3 (PC) */
     meta_WAV2,
-    meta_XAU_KONAMI,        /* Yu-Gi-Oh - The Dawn of Destiny (Xbox) */
+    meta_SFXB,
     meta_DERF,              /* Stupid Invaders (PC) */
     meta_SADF,
     meta_UTK,

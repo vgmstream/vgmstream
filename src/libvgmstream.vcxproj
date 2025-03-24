@@ -224,7 +224,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="formats.c" />
-    <ClCompile Include="meta\2dx.c" />
     <ClCompile Include="streamfile.c" />
     <ClCompile Include="util.c" />
     <ClCompile Include="vgmstream.c" />
@@ -370,7 +369,7 @@
     <ClCompile Include="layout\blocked_ea_wve_ad10.c" />
     <ClCompile Include="layout\blocked_ea_wve_au00.c" />
     <ClCompile Include="layout\blocked_filp.c" />
-    <ClCompile Include="layout\blocked_gsb.c" />
+    <ClCompile Include="layout\blocked_gsnd.c" />
     <ClCompile Include="layout\blocked_h4m.c" />
     <ClCompile Include="layout\blocked_halpst.c" />
     <ClCompile Include="layout\blocked_hwas.c" />
@@ -385,6 +384,7 @@
     <ClCompile Include="layout\blocked_tt_ad.c" />
     <ClCompile Include="layout\blocked_ubi_sce.c" />
     <ClCompile Include="layout\blocked_vas.c" />
+    <ClCompile Include="layout\blocked_vas_kceo.c" />
     <ClCompile Include="layout\blocked_vgs.c" />
     <ClCompile Include="layout\blocked_vid1.c" />
     <ClCompile Include="layout\blocked_vs.c" />
@@ -395,13 +395,13 @@
     <ClCompile Include="layout\blocked_xa.c" />
     <ClCompile Include="layout\blocked_xa_aiff.c" />
     <ClCompile Include="layout\blocked_xvag.c" />
-    <ClCompile Include="layout\blocked_xvas.c" />
     <ClCompile Include="layout\blocked_xwav.c" />
     <ClCompile Include="layout\flat.c" />
     <ClCompile Include="layout\interleave.c" />
     <ClCompile Include="layout\layered.c" />
     <ClCompile Include="layout\segmented.c" />
     <ClCompile Include="meta\208.c" />
+    <ClCompile Include="meta\2dx.c" />
     <ClCompile Include="meta\2dx9.c" />
     <ClCompile Include="meta\2pfs.c" />
     <ClCompile Include="meta\9tav.c" />
@@ -543,6 +543,7 @@
     <ClCompile Include="meta\his.c" />
     <ClCompile Include="meta\hxd.c" />
     <ClCompile Include="meta\i3ds.c" />
+    <ClCompile Include="meta\iab.c" />
     <ClCompile Include="meta\idsp_ie.c" />
     <ClCompile Include="meta\idtech.c" />
     <ClCompile Include="meta\ifs.c" />
@@ -569,6 +570,7 @@
     <ClCompile Include="meta\lopu_fb.c" />
     <ClCompile Include="meta\lpcm_fb.c" />
     <ClCompile Include="meta\lpcm_shade.c" />
+    <ClCompile Include="meta\lps.c" />
     <ClCompile Include="meta\lp_ap_lep.c" />
     <ClCompile Include="meta\lrmd.c" />
     <ClCompile Include="meta\lsf.c" />
@@ -613,8 +615,6 @@
     <ClCompile Include="meta\ngc_adpdtk.c" />
     <ClCompile Include="meta\ngc_dsp_asura.c" />
     <ClCompile Include="meta\ngc_dsp_std.c" />
-    <ClCompile Include="meta\ngc_ffcc_str.c" />
-    <ClCompile Include="meta\ngc_lps.c" />
     <ClCompile Include="meta\ngc_nst_dsp.c" />
     <ClCompile Include="meta\ngc_pdt.c" />
     <ClCompile Include="meta\ngc_sck_dsp.c" />
@@ -653,13 +653,11 @@
     <ClCompile Include="meta\ps2_ass.c" />
     <ClCompile Include="meta\ps2_bmdx.c" />
     <ClCompile Include="meta\ps2_hsf.c" />
-    <ClCompile Include="meta\ps2_iab.c" />
     <ClCompile Include="meta\ps2_joe.c" />
     <ClCompile Include="meta\ps2_rnd.c" />
     <ClCompile Include="meta\ps2_snd.c" />
     <ClCompile Include="meta\ps2_sps.c" />
     <ClCompile Include="meta\ps2_vbk.c" />
-    <ClCompile Include="meta\ps2_vgv.c" />
     <ClCompile Include="meta\ps2_vms.c" />
     <ClCompile Include="meta\psb.c" />
     <ClCompile Include="meta\psf.c" />
@@ -706,6 +704,7 @@
     <ClCompile Include="meta\seg.c" />
     <ClCompile Include="meta\sfh.c" />
     <ClCompile Include="meta\sfl.c" />
+    <ClCompile Include="meta\sfxb.c" />
     <ClCompile Include="meta\sgxd.c" />
     <ClCompile Include="meta\shaa.c" />
     <ClCompile Include="meta\silence.c" />
@@ -732,6 +731,7 @@
     <ClCompile Include="meta\squeak.c" />
     <ClCompile Include="meta\sscf.c" />
     <ClCompile Include="meta\sscf_encrypted.c" />
+    <ClCompile Include="meta\ssp.c" />
     <ClCompile Include="meta\sspf.c" />
     <ClCompile Include="meta\sspr.c" />
     <ClCompile Include="meta\ster.c" />
@@ -740,6 +740,7 @@
     <ClCompile Include="meta\strm_abylight.c" />
     <ClCompile Include="meta\str_sega.c" />
     <ClCompile Include="meta\str_snds.c" />
+    <ClCompile Include="meta\str_sqex.c" />
     <ClCompile Include="meta\str_wav.c" />
     <ClCompile Include="meta\sts.c" />
     <ClCompile Include="meta\svag_kcet.c" />
@@ -776,6 +777,7 @@
     <ClCompile Include="meta\vds_vdm.c" />
     <ClCompile Include="meta\vgs.c" />
     <ClCompile Include="meta\vgs_ps.c" />
+    <ClCompile Include="meta\vgv.c" />
     <ClCompile Include="meta\vid1.c" />
     <ClCompile Include="meta\vig_kces.c" />
     <ClCompile Include="meta\voi.c" />
@@ -806,7 +808,6 @@
     <ClCompile Include="meta\xa2_acclaim.c" />
     <ClCompile Include="meta\xabp.c" />
     <ClCompile Include="meta\xau.c" />
-    <ClCompile Include="meta\xau_konami.c" />
     <ClCompile Include="meta\xavs.c" />
     <ClCompile Include="meta\xa_04sw.c" />
     <ClCompile Include="meta\xa_xa30.c" />

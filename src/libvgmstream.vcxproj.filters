@@ -937,7 +937,7 @@
     <ClCompile Include="layout\blocked_filp.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="layout\blocked_gsb.c">
+    <ClCompile Include="layout\blocked_gsnd.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="layout\blocked_h4m.c">
@@ -982,6 +982,9 @@
     <ClCompile Include="layout\blocked_vas.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="layout\blocked_vas_kceo.c">
+      <Filter>layout\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="layout\blocked_vgs.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
@@ -1012,9 +1015,6 @@
     <ClCompile Include="layout\blocked_xvag.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="layout\blocked_xvas.c">
-      <Filter>layout\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="layout\blocked_xwav.c">
       <Filter>layout\Source Files</Filter>
     </ClCompile>
@@ -1031,6 +1031,9 @@
       <Filter>layout\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\208.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\2dx.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\2dx9.c">
@@ -1456,6 +1459,9 @@
     <ClCompile Include="meta\i3ds.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\iab.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\idsp_ie.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -1532,6 +1538,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\lpcm_shade.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\lps.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\lp_ap_lep.c">
@@ -1666,12 +1675,6 @@
     <ClCompile Include="meta\ngc_dsp_std.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ngc_ffcc_str.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="meta\ngc_lps.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="meta\ngc_nst_dsp.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -1786,9 +1789,6 @@
     <ClCompile Include="meta\ps2_hsf.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ps2_iab.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="meta\ps2_joe.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -1802,9 +1802,6 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ps2_vbk.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="meta\ps2_vgv.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ps2_vms.c">
@@ -1945,6 +1942,9 @@
     <ClCompile Include="meta\sfl.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\sfxb.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\sgxd.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -2023,6 +2023,9 @@
     <ClCompile Include="meta\sscf_encrypted.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\ssp.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\sspf.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -2045,6 +2048,9 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\str_snds.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="meta\str_sqex.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\str_wav.c">
@@ -2155,6 +2161,9 @@
     <ClCompile Include="meta\vgs_ps.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="meta\vgv.c">
+      <Filter>meta\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="meta\vid1.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
@@ -2243,9 +2252,6 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\xau.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="meta\xau_konami.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\xavs.c">
@@ -2382,9 +2388,6 @@
     </ClCompile>
     <ClCompile Include="util\vorbis_codebooks.c">
       <Filter>util\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="meta\2dx.c">
-      <Filter>meta\Source Files</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

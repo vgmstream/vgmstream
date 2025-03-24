@@ -107,8 +107,8 @@ int render_layout(sbuf_t* sbuf, VGMSTREAM* vgmstream) {
         case layout_blocked_dec:
         case layout_blocked_vs_mh:
         case layout_blocked_mul:
-        case layout_blocked_gsb:
-        case layout_blocked_xvas:
+        case layout_blocked_gsnd:
+        case layout_blocked_vas_kceo:
         case layout_blocked_thp:
         case layout_blocked_filp:
         case layout_blocked_rage_aud:

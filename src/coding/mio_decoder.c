@@ -2,8 +2,32 @@
 #include "../base/decode_state.h"
 #include "../base/codec_info.h"
 #include "libs/mio_xerisa.h"
-//#include "Source/reader_get.h"
 #include "../util/io_callback_sf.h"
+
+/* Decodes MIO ("Music Interleaved and Orthogonal transformed") audio files.
+ * Adapted to C from original C++ lib source by Leshade Entis: 
+ * - http://www.entis.jp/eridev/download/
+ * - http://www.amatsukami.jp/entis/bin/erinalib.lzh
+ * (licensed under a custom license somewhat equivalent to GPL).
+ *
+ * Full lib is called "ERINA-Library" (2000~2022) / "ERISA-Library" (2004~2005), and handles various
+ * Entis's formats, while this code just handles "MIO" (audio) decoding. "ERISA" uses a new coding
+ * type but also handles older files.
+ *
+ * MIO has a RIFF-like chunk header, and then is divided into big-ish VBR blocks. "Lead" blocks
+ * (first one, but also others that act as "keyframes") setup code model, which can be huffman (ERINA)
+ * or arithmetic (ERISA) coding depending on header. Lib reads per-block config then codes, then
+ * dequantizes per sub-band with iLOT (lapped orthogonal transform) and iDCT after some
+ * pre/post-processing. There is a lossless mode with huffman codes + PCM16/8 as well.
+ *
+ * Original C++ lib audio parts has roughly 4 modules, adapted and simplified to C like this:
+ * - erisafile (MIOFile): file ops like parsing header and reading blocks
+ * - erisacontext (MIOContext): bitreading from blocks and code unpacking (huffman/arithmetical decoding)
+ * - erisasound (MIODecoder): decodes audio context data into samples
+ * - erisamatrix (EMT_eri*): iDTC/iLOT/etc helper functions
+ * 
+ * (this conversion removes encoder/non-MIO parts, hides non-public methods, unifies dupes, tweaks exceptions, improves errors, etc)
+ */
 
 
 /* opaque struct */
