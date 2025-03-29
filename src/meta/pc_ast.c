@@ -2,42 +2,55 @@
 #include "../coding/coding.h"
 
 /* ASTL - found in Dead Rising (PC) */
-VGMSTREAM * init_vgmstream_pc_ast(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
-	off_t start_offset, data_size;
-    int loop_flag, channel_count;
+VGMSTREAM* init_vgmstream_astl(STREAMFILE* sf) {
+    VGMSTREAM* vgmstream = NULL;
+    off_t start_offset, data_size;
+    int loop_flag, channels;
 
-    /* check extension, case insensitive */
-    if ( !check_extensions(streamFile,"ast"))
-        goto fail;
+    /* checks */
+    if (!is_id32be(0x00,sf, "ASTL"))
+        return NULL;
+    if (!check_extensions(sf,"ast"))
+        return NULL;
 
-    if (read_32bitBE(0x00,streamFile) != 0x4153544C) /* "ASTL" */
-        goto fail;
+    // 04: null
+    // 08: 0x201?
+    // 0c: version?
+    start_offset = read_u32le(0x10,sf);
+    // 14: null?
+    // 18: null?
+    // 1c: null?
+    data_size = read_u32le(0x20,sf);
+    // 24: -1?
+    // 28: -1?
+    // 2c: -1?
 
+    if (read_u16le(0x30,sf) != 0x0001) // PCM only
+        return NULL;
+    channels = read_u16le(0x32, sf);
+    int sample_rate = read_s32le(0x34,sf);
+    // 38: bitrate
+    // 3a: block size
+    // 3c: bps
 
-    loop_flag = 0; //TODO - Find hidden loop point calc and flag
-	channel_count = read_8bit(0x32, streamFile);
-	data_size = read_32bitLE(0x20,streamFile);
+    loop_flag = 0; // unlike X360 no apparent loop info in the files
 
 
     /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
+    vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
-	/* TODO - Find non-obvious loop points and flag (if any) */
-    start_offset = read_32bitLE(0x10,streamFile);
-    vgmstream->sample_rate = read_32bitLE(0x34,streamFile);
-	vgmstream->coding_type = coding_PCM16LE;
-    vgmstream->num_samples = data_size/(channel_count*2);
-	vgmstream->layout_type = layout_interleave;
-	vgmstream->interleave_block_size = 0x2;
-    vgmstream->meta_type = meta_PC_AST;
+    vgmstream->meta_type = meta_ASTL;
+    vgmstream->sample_rate = sample_rate;
+    vgmstream->num_samples = pcm16_bytes_to_samples(data_size, channels);
 
-    /* open the file for reading */
-    if ( !vgmstream_open_stream(vgmstream, streamFile, start_offset) )
+    vgmstream->coding_type = coding_PCM16LE;
+    vgmstream->layout_type = layout_interleave;
+    vgmstream->interleave_block_size = 0x2;
+
+    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
         goto fail;
     return vgmstream;
-
 fail:
     close_vgmstream(vgmstream);
     return NULL;

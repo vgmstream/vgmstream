@@ -6,26 +6,35 @@ VGMSTREAM* init_vgmstream_astb(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     off_t start_offset, data_size;
     int loop_flag, channels;
-    int i, xma_streams;
 
-    /* check */
+    /* checks */
     if (!is_id32be(0x00,sf, "ASTB"))
-        goto fail;
+        return NULL;
     if (!check_extensions(sf,"ast"))
-        goto fail;
+        return NULL;
 
-    if (read_u32be(0x04,sf) != get_streamfile_size(sf))
-        goto fail;
-    if (read_u16be(0x30,sf) != 0x165) /* only seen XMA1 */
-        goto fail;
-
+    // 04: file size
+    // 08: 0x200?
+    // 0c: version?
     start_offset = read_u32be(0x10,sf);
+    // 14: -1?
+    // 18: -1?
+    // 1c: -1?
     data_size = read_u32be(0x20,sf);
-    xma_streams = read_u16be(0x38,sf);
+    // 24: -1?
+    // 28: -1?
+    // 2c: -1?
 
+    if (read_u16be(0x30,sf) != 0x0165) // XMA1 only
+        return NULL;
+    // 32: xma info size
+    // 34: xma config
+    int xma_streams = read_u16be(0x38,sf);
     loop_flag = read_u8(0x3a,sf);
-    channels = 0; /* sum of all stream channels (though only 1/2ch ever seen) */
-    for (i = 0; i < xma_streams; i++) {
+
+    int sample_rate = read_s32be(0x3c + 0x04,sf); // first stream
+    channels = 0; // sum of all stream channels (though only 1/2ch are ever seen)
+    for (int i = 0; i < xma_streams; i++) {
         channels += read_u8(0x3c + 0x14 * i + 0x11,sf);
     }
 
@@ -34,8 +43,8 @@ VGMSTREAM* init_vgmstream_astb(STREAMFILE* sf) {
     vgmstream = allocate_vgmstream(channels, loop_flag);
     if (!vgmstream) goto fail;
 
-    vgmstream->sample_rate = read_s32be(0x40,sf);
     vgmstream->meta_type = meta_ASTB;
+    vgmstream->sample_rate = sample_rate;
 
     {
         /* manually find sample offsets (XMA1 nonsense again) */
