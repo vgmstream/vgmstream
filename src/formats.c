@@ -1463,7 +1463,7 @@ static const meta_info meta_info_list[] = {
         {meta_SNDS,                 "Sony SNDS header"},
         {meta_NXOF,                 "Nihon Falcom FDK header"},
         {meta_GWB_GWD,              "Ubisoft GWB+GWD header"},
-        {meta_CBX,                  "Traveller's Tales CBX header"},
+        {meta_CBX,                  "Traveller's Tales/Warthog Chatterbox header"},
         {meta_VAS_ROCKSTAR,         "Rockstar .VAS header"},
         {meta_EA_SBK,               "Electronic Arts SBK header"},
         {meta_DSP_ASURA,            "Rebellion DSP header"},

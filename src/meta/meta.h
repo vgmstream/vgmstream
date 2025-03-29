@@ -998,7 +998,7 @@ VGMSTREAM* init_vgmstream_nxof(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_gwb_gwd(STREAMFILE* sf);
 
-VGMSTREAM* init_vgmstream_cbx(STREAMFILE* sf);
+VGMSTREAM* init_vgmstream_chatterbox(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_vas_rockstar(STREAMFILE* sf);
 

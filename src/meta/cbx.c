@@ -2,17 +2,19 @@
 #include "../coding/coding.h"
 
 
-/* !B0X - Traveller's Tales speech files [Lego Batman 2 (PC), Lego Dimensions (PS3)] */
-VGMSTREAM* init_vgmstream_cbx(STREAMFILE* sf) {
+/* !B0X/CB03 - Traveller's Tales (!B0X) / Warthog (CB03) speech files [Lego Batman 2 (PC), Lego Dimensions (PS3), Animaniacs: The Great Edgar Hunt (GC)] */
+VGMSTREAM* init_vgmstream_chatterbox(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
     uint32_t start_offset, pcm_size;
     int loop_flag, channels, sample_rate;
 
 
     /* checks */
-    if (!is_id32be(0x00,sf, "!B0X"))
+    if (!is_id32be(0x00,sf, "!B0X") && !is_id32be(0x00,sf, "CB03"))
         return NULL;
-    if (!check_extensions(sf, "cbx"))
+    // .cbx: Traveller's Tales
+    // .box: Warthog
+    if (!check_extensions(sf, "cbx,box"))
         return NULL;
 
     /* debug strings identify this as "Chatterbox"/"CBOX"/"CBX", while sound lib seems called "NuSound"
