@@ -507,7 +507,7 @@ VGMSTREAM * init_vgmstream_wpd(STREAMFILE* streamFile);
 
 VGMSTREAM * init_vgmstream_mn_str(STREAMFILE* streamFile);
 
-VGMSTREAM * init_vgmstream_mss(STREAMFILE* streamFile);
+VGMSTREAM* init_vgmstream_mcss(STREAMFILE* sf);
 
 VGMSTREAM * init_vgmstream_ps2_hsf(STREAMFILE* streamFile);
 

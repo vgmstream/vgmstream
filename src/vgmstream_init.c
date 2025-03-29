@@ -212,7 +212,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_alp,
     init_vgmstream_wpd,
     init_vgmstream_mn_str,
-    init_vgmstream_mss,
+    init_vgmstream_mcss,
     init_vgmstream_ps2_hsf,
     init_vgmstream_ivag,
     init_vgmstream_2pfs,

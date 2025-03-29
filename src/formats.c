@@ -1263,7 +1263,7 @@ static const meta_info meta_info_list[] = {
         {meta_ALP,                  "High Voltage ALP header"},
         {meta_WPD,                  "Navel WPD header"},
         {meta_MN_STR,               "Mini Ninjas 'STR' header"},
-        {meta_MSS,                  "Guerilla MCSS header"},
+        {meta_MCSS,                 "Guerilla MCSS header"},
         {meta_PS2_HSF,              "Lowrider 'HSF' header"},
         {meta_IVAG,                 "Namco IVAG header"},
         {meta_2PFS,                 "Konami 2PFS header"},
