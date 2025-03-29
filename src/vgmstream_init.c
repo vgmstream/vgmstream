@@ -193,7 +193,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_xvag,
     init_vgmstream_cps,
     init_vgmstream_sqex_scd,
-    init_vgmstream_ngc_nst_dsp,
+    init_vgmstream_nst_monster,
     init_vgmstream_baf,
     init_vgmstream_msf,
     init_vgmstream_sndp,

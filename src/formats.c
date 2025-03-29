@@ -1240,7 +1240,7 @@ static const meta_info meta_info_list[] = {
         {meta_XVAG,                 "Sony XVAG header"},
         {meta_CPS,                  "tri-Crescendo CPS Header"},
         {meta_SQEX_SCD,             "Square Enix SCD header"},
-        {meta_NGC_NST_DSP,          "Animaniacs NST header"},
+        {meta_NST_MONSTER,          "Monster .NST header"},
         {meta_BAF,                  "Bizarre Creations .baf header"},
         {meta_MSF,                  "Sony MSF header"},
         {meta_SNDP,                 "Premium Agency SNDP header"},

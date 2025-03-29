@@ -481,14 +481,14 @@ typedef enum {
     meta_GH3_BAR,           /* Guitar Hero III Mobile .bar */
     meta_DSP_DSPW,          /* Sengoku Basara 3 [WII] */
     meta_PS2_JSTM,          /* Tantei Jinguji Saburo - Kind of Blue (PS2) */
-    meta_SQEX_SCD,          /* Square-Enix SCD */
-    meta_NGC_NST_DSP,       /* Animaniacs [NGC] */
-    meta_BAF,               /* Bizarre Creations (Blur, James Bond) */
-    meta_XVAG,              /* Ratchet & Clank Future: Quest for Booty (PS3) */
+    meta_SQEX_SCD,
+    meta_NST_MONSTER,
+    meta_BAF,
+    meta_XVAG,
     meta_CPS,
     meta_MSF,
     meta_SNDP,
-    meta_SGXD,              /* Sony: Folklore, Genji, Tokyo Jungle (PS3), Brave Story, Kurohyo (PSP) */
+    meta_SGXD,
     meta_RAS,
     meta_SPM,
     meta_VGS_PS,

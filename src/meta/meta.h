@@ -463,7 +463,7 @@ VGMSTREAM* init_vgmstream_cps(STREAMFILE* sf);
 
 VGMSTREAM * init_vgmstream_sqex_scd(STREAMFILE* streamFile);
 
-VGMSTREAM * init_vgmstream_ngc_nst_dsp(STREAMFILE* streamFile);
+VGMSTREAM* init_vgmstream_nst_monster(STREAMFILE* sf);
 
 VGMSTREAM * init_vgmstream_baf(STREAMFILE* streamFile);
 

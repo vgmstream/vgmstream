@@ -1,89 +1,48 @@
 #include "meta.h"
-#include "../util.h"
+#include "../util/meta_utils.h"
+#include "../coding/coding.h"
 
-/* DSP (Animaniacs: The Great Edgar Hunt) */
-// NOTE: The second dsp header is just a dummy, both channels
-// use the same coef table (0x20)
+/* .NST - from Animaniacs: The Great Edgar Hunt (GC) */
+VGMSTREAM* init_vgmstream_nst_monster(STREAMFILE* sf) {
 
-VGMSTREAM * init_vgmstream_ngc_nst_dsp(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
-    off_t start_offset;
-    int loop_flag;
-		int channel_count;
+    /* checks */
+    if (read_u32be(0x00,sf) != 1)
+        return NULL;
+    // .nst: original
+    // .dsp: renamed for plugins (to be removed?)
+    if (!check_extensions(sf, "nst,dsp"))
+        return NULL;
 
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("dsp",filename_extension(filename))) goto fail;
+    // DSP header but second is just a dummy, both channels use the same coef table (0x20)
+    if (read_u32be(0x00,sf) != read_u32be(0x54,sf))
+        return NULL;
+    if (read_u32be(0x04,sf) != read_u32be(0x58,sf))
+        return NULL;
+    if (read_u32be(0x08,sf) != read_u32be(0x5C,sf))
+        return NULL;
+    if (read_u32be(0x0C,sf) != read_u32be(0x60,sf))
+        return NULL;
 
-    /* check header */
-    if (read_32bitBE(0x0,streamFile) != read_32bitBE(0x54,streamFile))
-        goto fail;
-    if (read_32bitBE(0x4,streamFile) != read_32bitBE(0x58,streamFile))
-        goto fail;
-    if (read_32bitBE(0x8,streamFile) != read_32bitBE(0x5C,streamFile))
-        goto fail;
-    if (read_32bitBE(0xC,streamFile) != read_32bitBE(0x60,streamFile))
-        goto fail;
+    meta_header_t h = {0};
+    h.meta = meta_NST_MONSTER;
 
-    loop_flag = 0;
-    channel_count = 2;
-    
-		/* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
-    if (!vgmstream) goto fail;
+    h.num_samples   = read_s32be(0x08, sf);
+    h.sample_rate   = read_s32be(0x14, sf);
 
-		/* fill in the vital statistics */
-    start_offset = 0xAC;
-		vgmstream->channels = channel_count;
-    vgmstream->sample_rate = read_32bitBE(0x14,streamFile);
-    vgmstream->coding_type = coding_NGC_DSP;
-    vgmstream->num_samples = read_32bitBE(0x8,streamFile);
+    h.channels = 2;
+    h.interleave = 0x10;
+    h.coefs_offset  = 0x20;
+    h.coefs_spacing = 0x00;
+    h.big_endian = true;
+    //h.hists_offset  = 0x00; //?
+    //h.hists_spacing = h.coefs_spacing;
 
-#if 0
-    if (loop_flag) {
-        vgmstream->loop_start_sample = 0;
-        vgmstream->loop_end_sample = 0;
-    }
-#endif
+    h.stream_offset = 0xAC;
 
-    vgmstream->layout_type = layout_interleave;
-    vgmstream->interleave_block_size = 0x10;
-    vgmstream->meta_type = meta_NGC_NST_DSP;
+    h.coding = coding_NGC_DSP;
+    h.layout = layout_interleave;
+    h.open_stream = true;
+    h.sf = sf;
 
-
-    if (vgmstream->coding_type == coding_NGC_DSP) {
-        int i;
-        for (i=0;i<16;i++) {
-            vgmstream->ch[0].adpcm_coef[i] = read_16bitBE(0x20+i*2,streamFile);
-        }
-        if (vgmstream->channels) {
-				for (i=0;i<16;i++) {
-						vgmstream->ch[1].adpcm_coef[i] = read_16bitBE(0x20+i*2,streamFile);
-            }
-        }
-    }
-
-    /* open the file for reading */
-    {
-        int i;
-        STREAMFILE * file;
-        file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (!file) goto fail;
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = file;
-
-            vgmstream->ch[i].channel_start_offset=
-                vgmstream->ch[i].offset=start_offset+
-                vgmstream->interleave_block_size*i;
-
-        }
-    }
-
-    return vgmstream;
-
-    /* clean up anything we may have opened */
-fail:
-    if (vgmstream) close_vgmstream(vgmstream);
-    return NULL;
+    return alloc_metastream(&h);
 }
