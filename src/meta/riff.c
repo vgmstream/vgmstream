@@ -481,8 +481,9 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
      * .voi: Sol Trigger (PSP)[ATRAC3]
      * .se: Rockman X4 (PC)
      * .v: Rozen Maiden: Duellwalzer (PS2)
+     * .xst: Animaniacs: The Great Edgar Hunt (Xbox)
      */
-    if (!check_extensions(sf, "wav,lwav,xwav,mwv,da,dax,cd,med,snd,adx,adp,xss,xsew,adpcm,adw,wd,,sbv,wvx,str,at3,rws,aud,at9,ckd,saf,ima,nsa,pcm,xvag,ogg,logg,p1d,xms,mus,dat,ldat,wma,lwma,caf,wax,voi,se,v")) {
+    if (!check_extensions(sf, "wav,lwav,xwav,mwv,da,dax,cd,med,snd,adx,adp,xss,xsew,adpcm,adw,wd,,sbv,wvx,str,at3,rws,aud,at9,ckd,saf,ima,nsa,pcm,xvag,ogg,logg,p1d,xms,mus,dat,ldat,wma,lwma,caf,wax,voi,se,v,xst")) {
         return NULL;
     }
 

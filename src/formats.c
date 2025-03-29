@@ -703,6 +703,7 @@ static const char* extension_list[] = {
     "xnb",
     "xsh",
     "xsf",
+    "xst",
     "xse",
     "xsew",
     "xss",
