@@ -3,7 +3,7 @@
 #include "../util/meta_utils.h"
 
 /* MADP - from Capcom 3DS games */
-VGMSTREAM * init_vgmstream_mca(STREAMFILE* sf) {
+VGMSTREAM* init_vgmstream_madp(STREAMFILE* sf) {
 
     /* checks */
     if (!is_id32be(0x00,sf, "MADP"))
@@ -12,7 +12,7 @@ VGMSTREAM * init_vgmstream_mca(STREAMFILE* sf) {
         return NULL;
 
     meta_header_t h = {0};
-    h.meta = meta_MCA;
+    h.meta = meta_MADP;
 
     int version         = read_u16le(0x04, sf);
     h.channels          = read_u16le(0x08, sf);

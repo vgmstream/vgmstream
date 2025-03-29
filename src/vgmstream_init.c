@@ -225,7 +225,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_kt_g1l,
     init_vgmstream_kt_wiibgm,
     init_vgmstream_bfstm,
-    init_vgmstream_mca,
+    init_vgmstream_madp,
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
     init_vgmstream_mp4_aac,
 #endif

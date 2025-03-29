@@ -534,7 +534,7 @@ VGMSTREAM * init_vgmstream_kt_g1l(STREAMFILE* streamFile);
 VGMSTREAM * init_vgmstream_kt_wiibgm(STREAMFILE* streamFile);
 VGMSTREAM * init_vgmstream_ktss(STREAMFILE* streamFile);
 
-VGMSTREAM * init_vgmstream_mca(STREAMFILE* streamFile);
+VGMSTREAM* init_vgmstream_madp(STREAMFILE* sf);
 
 VGMSTREAM * init_vgmstream_btsnd(STREAMFILE* streamFile);
 

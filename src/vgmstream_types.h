@@ -518,7 +518,7 @@ typedef enum {
     meta_IDSP_NAMCO,
     meta_KT_WIIBGM,         /* Koei Tecmo WiiBGM */
     meta_KTSS,              /* Koei Tecmo Nintendo Stream (KNS) */
-    meta_MCA,               /* Capcom MCA "MADP" */
+    meta_MADP,
     meta_ADX_MONSTER,
     meta_HCA,
     meta_SVAG_SNK,
