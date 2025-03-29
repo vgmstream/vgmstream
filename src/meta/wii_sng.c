@@ -1,125 +1,60 @@
 #include "meta.h"
-#include "../util.h"
-
-/* SNG (from Excite Truck [WII]) */
-VGMSTREAM * init_vgmstream_wii_sng(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
-    char filename[PATH_LIMIT];
-    off_t start_offset;
-    int i;
-    int loop_flag;
-    int channel_count;
-    int coef1;
-    int coef2;
-    int first_block_len;
-    int second_channel_start;
-    int dataBuffer = 0;
-    int Founddata = 0;
-    size_t file_size;
-    off_t current_chunk;
-
-    /* check extension, case insensitive */
-    streamFile->get_name(streamFile,filename,sizeof(filename));
-    if (strcasecmp("sng",filename_extension(filename))) goto fail;
-
-    /* check header */
-    if (read_32bitBE(0x00,streamFile) != 0x30545352) /* "0STR" */
-        goto fail;
-    if (read_32bitBE(0x04,streamFile) != 0x34000000) /* 0x34000000 */
-        goto fail;
-    if (read_32bitBE(0x08,streamFile) != 0x08000000) /* 0x08000000" */
-        goto fail;
-    if (read_32bitBE(0x0C,streamFile) != 0x01000000) /* 0x01000000 */
-        goto fail;
-    if (read_32bitLE(0x10,streamFile) != (get_streamfile_size(streamFile)))
-        goto fail;
-
-    loop_flag = (read_32bitLE(0x130,streamFile) !=0); /* not sure */
-    channel_count = 2;
-    
-    /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
-    if (!vgmstream) goto fail;
-
-    /* fill in the vital statistics */
-    start_offset = 0x180;
-    vgmstream->channels = channel_count;
-    vgmstream->sample_rate = read_32bitLE(0x110,streamFile);
-    vgmstream->coding_type = coding_NGC_DSP;
-    vgmstream->num_samples = read_32bitLE(0x100,streamFile)/16*14*2;
-    if (loop_flag) {
-        vgmstream->loop_start_sample = read_32bitBE(0x130,streamFile)/16*14;
-        vgmstream->loop_end_sample = read_32bitBE(0x134,streamFile)/16*14;
-    }
-
-    vgmstream->layout_type = layout_none;
-    vgmstream->meta_type = meta_WII_SNG;
+#include "../util/meta_utils.h"
+#include "../coding/coding.h"
 
 
-    /* scan file until we find a "data" string */
-    first_block_len = read_32bitLE(0x100,streamFile);
-    file_size = get_streamfile_size(streamFile);
-    {
-        current_chunk = first_block_len;
-        /* Start at 0 and loop until we reached the
-        file size, or until we found a "data string */
-        while (!Founddata && current_chunk < file_size) {
-        dataBuffer = (read_32bitLE(current_chunk,streamFile));
-            if (dataBuffer == first_block_len) { /* The value from the first block length */
-                /* if "data" string found, retrieve the needed infos */
-                Founddata = 1;
-                second_channel_start = current_chunk+0x80;
-                /* We will cancel the search here if we have a match */
-            break;	
-            }
-            /* else we will increase the search offset by 1 */
-            current_chunk = current_chunk + 1;
-        }
-    }
+static STREAMFILE* setup_song_streamfile(STREAMFILE* sf) {
+    STREAMFILE* new_sf = NULL;
+    STREAMFILE* multi_sf[2] = {0};
 
-    coef1 = 0x13C;
-    if (Founddata == 0) {
-        goto fail;
-    } else if (Founddata == 1) {
-        coef2 = current_chunk+0x3C;
-    }
-
-
-        for (i=0;i<16;i++)
-            vgmstream->ch[0].adpcm_coef[i] = read_16bitBE(coef1+i*2,streamFile);
-		if (channel_count == 2) {
-		for (i=0;i<16;i++)
-            vgmstream->ch[1].adpcm_coef[i] = read_16bitBE(coef2+i*2,streamFile);
-        }
-
-    /* open the file for reading */
-    {
-        STREAMFILE * file;
-        file = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-        if (!file) goto fail;
-        for (i=0;i<channel_count;i++) {
-            vgmstream->ch[i].streamfile = file;
-
-	/* The first channel */
-    vgmstream->ch[0].channel_start_offset=
-        vgmstream->ch[0].offset=start_offset;
-
-	/* The second channel */
-    if (channel_count == 2) {
-        vgmstream->ch[1].streamfile = streamFile->open(streamFile,filename,STREAMFILE_DEFAULT_BUFFER_SIZE);
-
-        if (!vgmstream->ch[1].streamfile) goto fail;
-
-        vgmstream->ch[i].channel_start_offset=
-            vgmstream->ch[1].offset=second_channel_start;
-	    }
-    }
+    multi_sf[0] = open_wrap_streamfile(sf);
+    multi_sf[1] = open_streamfile_by_ext(sf, "sf0");
+    new_sf = open_multifile_streamfile_f(multi_sf, 2);
+    return new_sf;
 }
 
-    return vgmstream;
+/* Song - from Monster Games with split data [ExciteBots (Wii)] */
+VGMSTREAM* init_vgmstream_song_monster(STREAMFILE* sf) {
 
-    /* clean up anything we may have opened */
-fail:
-    if (vgmstream) close_vgmstream(vgmstream);
-    return NULL;
+    /* checks*/
+    int sample_rate = read_s32le(0x00,sf);
+    if (sample_rate != 32000)
+        return NULL;
+    if (read_u32be(0x04,sf))
+        return NULL;
+    // .sn0/sng: common
+    if (!check_extensions(sf, "sn0,sng"))
+        return NULL;
+
+
+    meta_header_t h = {0};
+    h.meta = meta_SONG_MONSTER;
+
+    h.chan_size     = read_u32le(0x08,sf);
+    h.interleave    = read_u32le(0x0c,sf);
+    if (read_u32be(0x10,sf))
+        return NULL;
+    h.stream_offset = 0x14;
+
+    h.sample_rate = sample_rate;
+    h.channels = 2;
+    if (h.interleave * h.channels + 0x14 != get_streamfile_size(sf))
+        return NULL;
+
+    h.coding = coding_PCM16BE;
+    h.layout = layout_interleave;
+
+    uint32_t total_size = (h.chan_size + h.interleave) * h.channels;
+    h.num_samples = pcm16_bytes_to_samples(total_size, h.channels);
+
+    // first block is in this header, rest of data in separate sf0; join both to play as one (could use segments too)
+    STREAMFILE* temp_sf = setup_song_streamfile(sf);
+    if (!temp_sf)
+        return NULL;
+    h.open_stream = true;
+    h.sf = temp_sf;
+
+    VGMSTREAM* v = alloc_metastream(&h);
+    close_streamfile(temp_sf);
+    return v;
 }

@@ -501,8 +501,8 @@ typedef enum {
     meta_PSND,
     meta_ADP_WILDFIRE,
     meta_QD_ADP,
-    meta_EB_SFX,            /* Excitebots .sfx */
-    meta_EB_SF0,            /* Excitebots .sf0 */
+    meta_SFX0_MONSTER,
+    meta_SONG_MONSTER,
     meta_MTAF,
     meta_ALP,
     meta_WPD,

@@ -348,7 +348,7 @@ VGMSTREAM* init_vgmstream_p2bt_move_visa(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_gbts(STREAMFILE* sf);
 
-VGMSTREAM * init_vgmstream_wii_sng(STREAMFILE *streamFile);
+VGMSTREAM* init_vgmstream_song_monster(STREAMFILE* sf);
 
 VGMSTREAM * init_vgmstream_aax(STREAMFILE *streamFile);
 
@@ -496,8 +496,8 @@ VGMSTREAM* init_vgmstream_adp_wildfire(STREAMFILE* sf);
 
 VGMSTREAM* init_vgmstream_adp_qd(STREAMFILE* sf);
 
-VGMSTREAM * init_vgmstream_eb_sfx(STREAMFILE* streamFile);
-VGMSTREAM * init_vgmstream_eb_sf0(STREAMFILE* streamFile);
+VGMSTREAM* init_vgmstream_sfx0_monster(STREAMFILE* sf);
+VGMSTREAM* init_vgmstream_sfx0_monster_old(STREAMFILE* sf);
 
 VGMSTREAM * init_vgmstream_mtaf(STREAMFILE* streamFile);
 
