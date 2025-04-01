@@ -16,8 +16,6 @@
 static void apply_settings_body(VGMSTREAM* vgmstream, txtp_entry_t* entry) {
     // tweak playable part, which only makes sense 
 
-    VGM_LOG("tesst: %i,%i\n", entry->body_mode , vgmstream->loop_flag);
-
     if (!entry->body_mode || !vgmstream->loop_flag)
         return;
 

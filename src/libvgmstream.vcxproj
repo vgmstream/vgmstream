@@ -438,6 +438,7 @@
     <ClCompile Include="meta\asf.c" />
     <ClCompile Include="meta\ast.c" />
     <ClCompile Include="meta\astb.c" />
+    <ClCompile Include="meta\astl.c" />
     <ClCompile Include="meta\ast_mmv.c" />
     <ClCompile Include="meta\ast_mv.c" />
     <ClCompile Include="meta\atsl.c" />
@@ -467,7 +468,7 @@
     <ClCompile Include="meta\bwav.c" />
     <ClCompile Include="meta\bw_mp3_riff.c" />
     <ClCompile Include="meta\caf.c" />
-    <ClCompile Include="meta\cbx.c" />
+    <ClCompile Include="meta\chatterbox.c" />
     <ClCompile Include="meta\ck.c" />
     <ClCompile Include="meta\compresswave.c" />
     <ClCompile Include="meta\cpk.c" />
@@ -510,7 +511,6 @@
     <ClCompile Include="meta\encrypted.c" />
     <ClCompile Include="meta\esf.c" />
     <ClCompile Include="meta\exakt_sc.c" />
-    <ClCompile Include="meta\excitebots.c" />
     <ClCompile Include="meta\exst.c" />
     <ClCompile Include="meta\ezw.c" />
     <ClCompile Include="meta\fag.c" />
@@ -574,10 +574,11 @@
     <ClCompile Include="meta\lp_ap_lep.c" />
     <ClCompile Include="meta\lrmd.c" />
     <ClCompile Include="meta\lsf.c" />
+    <ClCompile Include="meta\madp.c" />
     <ClCompile Include="meta\mattel_hyperscan.c" />
     <ClCompile Include="meta\maxis_xa.c" />
-    <ClCompile Include="meta\mca.c" />
     <ClCompile Include="meta\mcg.c" />
+    <ClCompile Include="meta\mcss.c" />
     <ClCompile Include="meta\mib_mih.c" />
     <ClCompile Include="meta\mic_koei.c" />
     <ClCompile Include="meta\mio.c" />
@@ -595,7 +596,6 @@
     <ClCompile Include="meta\msf_banpresto.c" />
     <ClCompile Include="meta\msf_konami.c" />
     <ClCompile Include="meta\msf_tamasoft.c" />
-    <ClCompile Include="meta\mss.c" />
     <ClCompile Include="meta\msv.c" />
     <ClCompile Include="meta\mta2.c" />
     <ClCompile Include="meta\mtaf.c" />
@@ -615,12 +615,12 @@
     <ClCompile Include="meta\ngc_adpdtk.c" />
     <ClCompile Include="meta\ngc_dsp_asura.c" />
     <ClCompile Include="meta\ngc_dsp_std.c" />
-    <ClCompile Include="meta\ngc_nst_dsp.c" />
     <ClCompile Include="meta\ngc_pdt.c" />
     <ClCompile Include="meta\ngc_sck_dsp.c" />
     <ClCompile Include="meta\ngc_ssm.c" />
     <ClCompile Include="meta\ngc_str_cauldron.c" />
     <ClCompile Include="meta\npsf.c" />
+    <ClCompile Include="meta\nst_monster.c" />
     <ClCompile Include="meta\nub.c" />
     <ClCompile Include="meta\nus3audio.c" />
     <ClCompile Include="meta\nus3bank.c" />
@@ -642,7 +642,6 @@
     <ClCompile Include="meta\pcm_kceje.c" />
     <ClCompile Include="meta\pcm_sre.c" />
     <ClCompile Include="meta\pcm_success.c" />
-    <ClCompile Include="meta\pc_ast.c" />
     <ClCompile Include="meta\pc_mxst.c" />
     <ClCompile Include="meta\piff_tpcm.c" />
     <ClCompile Include="meta\pona.c" />
@@ -704,6 +703,7 @@
     <ClCompile Include="meta\seg.c" />
     <ClCompile Include="meta\sfh.c" />
     <ClCompile Include="meta\sfl.c" />
+    <ClCompile Include="meta\sfx0_monster.c" />
     <ClCompile Include="meta\sfxb.c" />
     <ClCompile Include="meta\sgxd.c" />
     <ClCompile Include="meta\shaa.c" />
@@ -722,6 +722,7 @@
     <ClCompile Include="meta\snds.c" />
     <ClCompile Include="meta\sndx.c" />
     <ClCompile Include="meta\sndz.c" />
+    <ClCompile Include="meta\song_monster.c" />
     <ClCompile Include="meta\spm.c" />
     <ClCompile Include="meta\spsd.c" />
     <ClCompile Include="meta\sps_n1.c" />
@@ -796,7 +797,6 @@
     <ClCompile Include="meta\wave_segmented.c" />
     <ClCompile Include="meta\wb.c" />
     <ClCompile Include="meta\wbk.c" />
-    <ClCompile Include="meta\wii_sng.c" />
     <ClCompile Include="meta\wpd.c" />
     <ClCompile Include="meta\wsi.c" />
     <ClCompile Include="meta\ws_aud.c" />

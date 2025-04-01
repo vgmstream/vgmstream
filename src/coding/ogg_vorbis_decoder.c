@@ -1,37 +1,53 @@
 #include <math.h>
 #include "coding.h"
+#include "../base/decode_state.h"
+#include "../base/sbuf.h"
+#include "../base/codec_info.h"
 #include "../util.h"
 
 #ifdef VGM_USE_VORBIS
 #define OV_EXCLUDE_STATIC_CALLBACKS
 #include <vorbis/vorbisfile.h>
 
+#define VORBIS_CALL_SAMPLES 1024  // allowed frame 'blocksizes' range from 2^6 ~ 2^13 (64 ~ 8192) but we can return partial samples
 #define OGG_DEFAULT_BITSTREAM 0
 
 /* opaque struct */
 struct ogg_vorbis_codec_data {
     OggVorbis_File ogg_vorbis_file;
-    int ovf_init;
-    int bitstream;
-    int disable_reordering; /* Xiph Ogg must reorder channels on output, but some pre-ordered games don't need it */
-    int force_seek; /* Ogg with wrong granules can't seek correctly */
+    int bitstream;              // special flag for current stream (in practice can be ignored)
 
+    bool ovf_init;
+    bool disable_reordering;    /* Xiph Ogg must reorder channels on output, but some pre-ordered games don't need it */
+    bool force_seek;            /* Ogg with wrong granules can't seek correctly */
     int32_t discard;
 
     ogg_vorbis_io io;
     vorbis_comment* comment;
     int comment_number;
     vorbis_info* info;
+
+    float* fbuf;
 };
 
-
-static void pcm_convert_float_to_16(int channels, sample_t* outbuf, int start_sample, int samples_to_do, float** pcm, int disable_ordering);
 
 static size_t ov_read_func(void* ptr, size_t size, size_t nmemb, void* datasource);
 static int ov_seek_func(void* datasource, ogg_int64_t offset, int whence);
 static long ov_tell_func(void* datasource);
 static int ov_close_func(void* datasource);
 
+static void free_ogg_vorbis(void* priv_data) {
+    ogg_vorbis_codec_data* data = priv_data;
+    if (!data) return;
+
+    if (data->ovf_init) {
+        ov_clear(&data->ogg_vorbis_file);
+    }
+
+    close_streamfile(data->io.streamfile);
+    free(data->fbuf);
+    free(data);
+}
 
 ogg_vorbis_codec_data* init_ogg_vorbis(STREAMFILE* sf, off_t start, off_t size, ogg_vorbis_io* io) {
     ogg_vorbis_codec_data* data = NULL;
@@ -98,7 +114,7 @@ ogg_vorbis_codec_data* init_ogg_vorbis(STREAMFILE* sf, off_t start, off_t size, 
         /* open the ogg vorbis file for real */
         if (ov_open_callbacks(&data->io, &data->ogg_vorbis_file, NULL, 0, callbacks))
             goto fail;
-        data->ovf_init = 1;
+        data->ovf_init = true;
     }
 
     //todo could set bitstreams as subsongs?
@@ -179,106 +195,48 @@ static int ov_close_func(void* datasource) {
 
 /* ********************************************** */
 
-void decode_ogg_vorbis(ogg_vorbis_codec_data* data, sample_t* outbuf, int32_t samples_to_do, int channels) {
-    int samples_done = 0;
-    long start, rc;
-    float** pcm_channels; /* pointer to Xiph's double array buffer */
+static bool decode_frame_ogg_vorbis(VGMSTREAM* v) {
+    ogg_vorbis_codec_data* data = v->codec_data;
+    decode_state_t* ds = v->decode_state;
+    float** pcm_channels;
 
-    while (samples_done < samples_to_do) {
-        rc = ov_read_float(
-                &data->ogg_vorbis_file,             /* context */
-                &pcm_channels,                      /* buffer pointer */
-                (samples_to_do - samples_done),     /* samples to produce */
-                &data->bitstream);                  /* bitstream */
-        if (rc <= 0) goto fail; /* rc is samples done */
-
-        if (data->discard) {
-            start = data->discard;
-            if (start > rc)
-                start = rc;
-
-            data->discard -= start;
-            if (start == rc) /* consume all */
-                continue;
-        }
-        else {
-            start = 0;
-        }
-
-        pcm_convert_float_to_16(channels, outbuf, start, rc, pcm_channels, data->disable_reordering);
-
-        outbuf += (rc - start) * channels;
-        samples_done += (rc - start);
-
-
-#if 0   // alt decoding
-        /* we use ov_read_float as to reuse the xiph's buffer for easier remapping,
-         * but seems ov_read is slightly faster due to optimized (asm) float-to-int. */
-        rc = ov_read(
-                &data->ogg_vorbis_file,             /* context */
-                (char *)(outbuf),                   /* buffer */
-                (samples_to_do - samples_done) * sizeof(sample_t) * channels, /* length in bytes */
-                0,                                  /* pcm endianness */
-                sizeof(sample_t),                   /* pcm size */
-                1,                                  /* pcm signedness */
-                &data->bitstream);                  /* bitstream */
-        if (rc <= 0) goto fail; /* rc is bytes done (for all channels) */
-
-        swap_samples_le(outbuf, rc / sizeof(sample_t)); /* endianness is a bit weird with ov_read though */
-
-        outbuf += rc / sizeof(sample_t);
-        samples_done += rc / sizeof(sample_t) / channels;
-#endif
+    //TODO: helper? maybe should init in init_vorbis_custom but right now not all vorbises pass channels
+    if (data->fbuf == NULL) {
+        data->fbuf = malloc(VORBIS_CALL_SAMPLES * sizeof(float) * v->channels);
+        if (!data->fbuf) return -1;
     }
 
-    return;
-fail:
-    VGM_LOG("OGG: error %lx during decode\n", rc);
-    memset(outbuf, 0, (samples_to_do - samples_done) * channels * sizeof(sample_t));
-}
+    // Ogg frame samples vary per frame, and API allows to ask for arbitrary max (may return less).
+    // Limit totals as loop end needs to stop at exact point, since seeking is smoothed between current + loop start
+    // (decoding a bit more than loop end results in slightly different loops, very minor but done to match older code).
+    int max_samples = ds->samples_left;
+    if (max_samples > VORBIS_CALL_SAMPLES)
+        max_samples = VORBIS_CALL_SAMPLES;
 
-/* vorbis encodes channels in non-standard order, so we remap during conversion to fix this oddity.
- * (feels a bit weird as one would think you could leave as-is and set the player's output order,
- * but that isn't possible and remapping like this is what FFmpeg and every other plugin does). */
-static const int xiph_channel_map[8][8] = {
-    { 0 },                          /* 1ch: FC > same */
-    { 0, 1 },                       /* 2ch: FL FR > same */
-    { 0, 2, 1 },                    /* 3ch: FL FC FR > FL FR FC */
-    { 0, 1, 2, 3 },                 /* 4ch: FL FR BL BR > same */
-    { 0, 2, 1, 3, 4 },              /* 5ch: FL FC FR BL BR > FL FR FC BL BR */
-    { 0, 2, 1, 5, 3, 4 },           /* 6ch: FL FC FR BL BR LFE > FL FR FC LFE BL BR */
-    { 0, 2, 1, 6, 5, 3, 4 },        /* 7ch: FL FC FR SL SR BC LFE > FL FR FC LFE BC SL SR */
-    { 0, 2, 1, 7, 5, 6, 3, 4 },     /* 8ch: FL FC FR SL SR BL BR LFE > FL FR FC LFE BL BR SL SR */
-};
+    long rc = ov_read_float(&data->ogg_vorbis_file, &pcm_channels, max_samples, &data->bitstream);
+    if (rc <= 0)  // rc is samples done
+        return false;
 
-/* converts from internal Vorbis format to standard PCM and remaps (mostly from Xiph's decoder_example.c) */
-static void pcm_convert_float_to_16(int channels, sample_t* outbuf, int start_sample, int samples_to_do, float** pcm, int disable_ordering) {
-    int ch, s, ch_map;
-    sample_t *ptr;
-    float *channel;
+    sbuf_init_flt(&ds->sbuf, data->fbuf, rc, v->channels);
+    ds->sbuf.filled = rc;
 
-    /* convert float PCM (multichannel float array, with pcm[0]=ch0, pcm[1]=ch1, pcm[2]=ch0, etc)
-     * to 16 bit signed PCM ints (host order) and interleave + fix clipping */
-    for (ch = 0; ch < channels; ch++) {
-        ch_map = disable_ordering ?
-                ch :
-                (channels > 8) ? ch : xiph_channel_map[channels - 1][ch]; /* put Vorbis' ch to other outbuf's ch */
-        ptr = outbuf + ch;
-        channel = pcm[ch_map];
-        for (s = start_sample; s < samples_to_do; s++) {
-            int val = (int)floor(channel[s] * 32767.0f + 0.5f); /* use floorf? doesn't seem any faster */
-            if (val > 32767) val = 32767;
-            else if (val < -32768) val = -32768;
+    if (data->disable_reordering)
+        sbuf_interleave(&ds->sbuf, pcm_channels);
+    else
+        sbuf_interleave_vorbis(&ds->sbuf, pcm_channels);
 
-            *ptr = val;
-            ptr += channels;
-        }
+    if (data->discard) {
+        ds->discard = data->discard;
+        data->discard = 0;
     }
+
+    return true;
 }
 
 /* ********************************************** */
 
-void reset_ogg_vorbis(ogg_vorbis_codec_data* data) {
+static void reset_ogg_vorbis(void* priv_data) {
+    ogg_vorbis_codec_data* data = priv_data;
     if (!data) return;
 
     /* this raw seek cleans internal buffers, and it's preferable to
@@ -289,7 +247,8 @@ void reset_ogg_vorbis(ogg_vorbis_codec_data* data) {
     data->discard = 0;
 }
 
-void seek_ogg_vorbis(ogg_vorbis_codec_data* data, int32_t num_sample) {
+static void seek_ogg_vorbis(VGMSTREAM* v, int32_t num_sample) {
+    ogg_vorbis_codec_data* data = v->codec_data;
     if (!data) return;
 
     /* special seek for games with bad granule positions (since ov_*_seek uses granules to seek) */
@@ -303,16 +262,6 @@ void seek_ogg_vorbis(ogg_vorbis_codec_data* data, int32_t num_sample) {
      * will decode a bit differently than ov_pcm_seek */
     ov_pcm_seek_lap(&data->ogg_vorbis_file, num_sample);
     //VGM_ASSERT(res != 0, "OGG: bad seek=%i\n", res); /* not seen, in theory could give error */
-}
-
-void free_ogg_vorbis(ogg_vorbis_codec_data* data) {
-    if (!data) return;
-
-    if (data->ovf_init)
-        ov_clear(&data->ogg_vorbis_file);
-
-    close_streamfile(data->io.streamfile);
-    free(data);
 }
 
 /* ********************************************** */
@@ -354,13 +303,13 @@ void ogg_vorbis_get_samples(ogg_vorbis_codec_data* data, int* p_samples) {
     if (p_samples) *p_samples = ov_pcm_total(&data->ogg_vorbis_file,-1);
 }
 
-void ogg_vorbis_set_disable_reordering(ogg_vorbis_codec_data* data, int set) {
+void ogg_vorbis_set_disable_reordering(ogg_vorbis_codec_data* data, bool set) {
     if (!data) return;
 
     data->disable_reordering = set;
 }
 
-void ogg_vorbis_set_force_seek(ogg_vorbis_codec_data* data, int set) {
+void ogg_vorbis_set_force_seek(ogg_vorbis_codec_data* data, bool set) {
     if (!data) return;
 
     data->force_seek = set;
@@ -370,5 +319,14 @@ STREAMFILE* ogg_vorbis_get_streamfile(ogg_vorbis_codec_data* data) {
     if (!data) return NULL;
     return data->io.streamfile;
 }
+
+
+const codec_info_t ogg_vorbis_decoder = {
+    .sample_type = SFMT_FLT,
+    .decode_frame = decode_frame_ogg_vorbis,
+    .free = free_ogg_vorbis,
+    .reset = reset_ogg_vorbis,
+    .seek = seek_ogg_vorbis,
+};
 
 #endif

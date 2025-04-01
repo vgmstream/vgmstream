@@ -344,7 +344,7 @@ void sbuf_copy_segments(sbuf_t* sdst, sbuf_t* ssrc, int samples_copy) {
 #define sbuf_copy_layers_internal_flt(dst, src, src_pos, dst_pos, src_filled, dst_expected, src_channels, dst_ch_step, value) \
     for (int s = 0; s < src_filled; s++) { \
         for (int src_ch = 0; src_ch < src_channels; src_ch++) { \
-            dst[dst_pos++] = float_to_int(src[src_pos++] * value); \
+            dst[dst_pos++] = (src[src_pos++] * value); \
         } \
         dst_pos += dst_ch_step; \
     } \
@@ -373,47 +373,44 @@ void sbuf_copy_layers(sbuf_t* sdst, sbuf_t* ssrc, int dst_ch_start, int dst_max)
     // define all posible combos, probably there is a better way to handle this but...
 
     // 1:1
-    if (sdst->fmt == SFMT_S16 && ssrc->fmt == SFMT_S16) {
-        int16_t* dst = sdst->buf;
+    if (ssrc->fmt == SFMT_S16 && sdst->fmt == SFMT_S16) {
         int16_t* src = ssrc->buf;
-        sbuf_copy_layers_internal(dst, src, src_pos, dst_pos, src_copy, dst_max, src_channels, dst_ch_step);
-    }
-    else if (sdst->fmt == SFMT_F32 && ssrc->fmt == SFMT_S16) {
-        float* dst = sdst->buf;
-        int16_t* src = ssrc->buf;
-        sbuf_copy_layers_internal(dst, src, src_pos, dst_pos, src_copy, dst_max, src_channels, dst_ch_step);
-    }
-    else if ((sdst->fmt == SFMT_F32 && ssrc->fmt == SFMT_F32) || (sdst->fmt == SFMT_FLT && ssrc->fmt == SFMT_FLT)) {
-        float* dst = sdst->buf;
-        float* src = ssrc->buf;
-        sbuf_copy_layers_internal(dst, src, src_pos, dst_pos, src_copy, dst_max, src_channels, dst_ch_step);
-    }
-    // to s16
-    else if (sdst->fmt == SFMT_S16 && ssrc->fmt == SFMT_F32) {
         int16_t* dst = sdst->buf;
+        sbuf_copy_layers_internal(dst, src, src_pos, dst_pos, src_copy, dst_max, src_channels, dst_ch_step);
+    }
+    else if (ssrc->fmt == SFMT_S16 && sdst->fmt == SFMT_F32) {
+        int16_t* src = ssrc->buf;
+        float* dst = sdst->buf;
+        sbuf_copy_layers_internal(dst, src, src_pos, dst_pos, src_copy, dst_max, src_channels, dst_ch_step);
+    }
+    else if ((ssrc->fmt == SFMT_F32 && sdst->fmt == SFMT_F32) || (ssrc->fmt == SFMT_FLT && sdst->fmt == SFMT_FLT)) {
         float* src = ssrc->buf;
+        float* dst = sdst->buf;
+        sbuf_copy_layers_internal(dst, src, src_pos, dst_pos, src_copy, dst_max, src_channels, dst_ch_step);
+    }
+    else if (ssrc->fmt == SFMT_F32 && sdst->fmt == SFMT_S16) {
+        float* src = ssrc->buf;
+        int16_t* dst = sdst->buf;
         sbuf_copy_layers_internal_f16(dst, src, src_pos, dst_pos, src_copy, dst_max, src_channels, dst_ch_step);
     }
-    else if (sdst->fmt == SFMT_S16 && ssrc->fmt == SFMT_FLT) {
-        int16_t* dst = sdst->buf;
+    else if (ssrc->fmt == SFMT_FLT && sdst->fmt == SFMT_S16) {
         float* src = ssrc->buf;
+        int16_t* dst = sdst->buf;
         sbuf_copy_layers_internal_s16(dst, src, src_pos, dst_pos, src_copy, dst_max, src_channels, dst_ch_step, 32767.0f);
     }
-    // to f32
-    else if (sdst->fmt == SFMT_F32 && ssrc->fmt == SFMT_FLT) {
+    else if (ssrc->fmt == SFMT_S16 && sdst->fmt == SFMT_FLT) {
+        int16_t* src = ssrc->buf;
+        float* dst = sdst->buf;
+        sbuf_copy_layers_internal_flt(dst, src, src_pos, dst_pos, src_copy, dst_max, src_channels, dst_ch_step, (1.0f / 32767.0f));
+    }
+    else if (ssrc->fmt == SFMT_FLT && sdst->fmt == SFMT_F32) {
         float* dst = sdst->buf;
         float* src = ssrc->buf;
         sbuf_copy_layers_internal_flt(dst, src, src_pos, dst_pos, src_copy, dst_max, src_channels, dst_ch_step, 32767.0f);
     }
-    // to flt
-    else if (sdst->fmt == SFMT_FLT && ssrc->fmt == SFMT_S16) {
-        float* dst = sdst->buf;
-        int16_t* src = ssrc->buf;
-        sbuf_copy_layers_internal_flt(dst, src, src_pos, dst_pos, src_copy, dst_max, src_channels, dst_ch_step, (1.0f / 32767.0f));
-    }
-    else if (sdst->fmt == SFMT_FLT && ssrc->fmt == SFMT_F32) {
-        float* dst = sdst->buf;
+    else if (ssrc->fmt == SFMT_F32 && sdst->fmt == SFMT_FLT) {
         float* src = ssrc->buf;
+        float* dst = sdst->buf;
         sbuf_copy_layers_internal_flt(dst, src, src_pos, dst_pos, src_copy, dst_max, src_channels, dst_ch_step, (1.0f / 32767.0f));
     }
 }
@@ -502,6 +499,49 @@ void sbuf_interleave(sbuf_t* sbuf, float** ibuf) {
 
             *ptr = val;
             ptr += sbuf->channels;
+        }
+    }
+}
+
+/* vorbis encodes channels in non-standard order, so we remap during conversion to fix this oddity.
+ * (feels a bit weird as one would think you could leave as-is and set the player's output order,
+ * but that isn't possible and remapping like this is what FFmpeg and every other plugin does). */
+static const int xiph_channel_map[8][8] = {
+    { 0 },                          // 1ch: FC > same
+    { 0, 1 },                       // 2ch: FL FR > same
+    { 0, 2, 1 },                    // 3ch: FL FC FR > FL FR FC
+    { 0, 1, 2, 3 },                 // 4ch: FL FR BL BR > same
+    { 0, 2, 1, 3, 4 },              // 5ch: FL FC FR BL BR > FL FR FC BL BR
+    { 0, 2, 1, 5, 3, 4 },           // 6ch: FL FC FR BL BR LFE > FL FR FC LFE BL BR
+    { 0, 2, 1, 6, 5, 3, 4 },        // 7ch: FL FC FR SL SR BC LFE > FL FR FC LFE BC SL SR
+    { 0, 2, 1, 7, 5, 6, 3, 4 },     // 8ch: FL FC FR SL SR BL BR LFE > FL FR FC LFE BL BR SL SR
+};
+
+// converts from internal Vorbis format to standard PCM and remaps (mostly from Xiph's decoder_example.c)
+void sbuf_interleave_vorbis(sbuf_t* sbuf, float** src) {
+    if (sbuf->fmt != SFMT_FLT)
+        return;
+    int channels = sbuf->channels;
+
+    /* convert float PCM (multichannel float array, with pcm[0]=ch0, pcm[1]=ch1, pcm[2]=ch0, etc)
+     * to 16 bit signed PCM ints (host order) and interleave + fix clipping */
+    for (int ch = 0; ch < channels; ch++) {
+        int ch_map = (channels > 8) ? ch : xiph_channel_map[channels - 1][ch]; // put Vorbis' ch to other outbuf's ch
+        float* ptr = sbuf->buf;
+        float* channel = src[ch_map];
+
+        ptr += ch;
+        for (int s = 0; s < sbuf->filled; s++) {
+            float val = channel[s];
+
+            #if 0 //to pcm16 from vorbis
+            int val = (int)floor(channel[s] * 32767.0f + 0.5f);
+            if (val > 32767) val = 32767;
+            else if (val < -32768) val = -32768;
+            #endif
+
+            *ptr = val;
+            ptr += channels;
         }
     }
 }
