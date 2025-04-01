@@ -31,8 +31,6 @@ struct ogg_vorbis_codec_data {
 };
 
 
-static void sbuf_interleave_vorbis(int channels, float* sbuf, int samples, float** pcm, bool disable_ordering);
-
 static size_t ov_read_func(void* ptr, size_t size, size_t nmemb, void* datasource);
 static int ov_seek_func(void* datasource, ogg_int64_t offset, int whence);
 static long ov_tell_func(void* datasource);
@@ -219,9 +217,13 @@ static bool decode_frame_ogg_vorbis(VGMSTREAM* v) {
     if (rc <= 0)  // rc is samples done
         return false;
 
-    sbuf_interleave_vorbis(v->channels, data->fbuf, rc, pcm_channels, data->disable_reordering);
     sbuf_init_flt(&ds->sbuf, data->fbuf, rc, v->channels);
     ds->sbuf.filled = rc;
+
+    if (data->disable_reordering)
+        sbuf_interleave(&ds->sbuf, pcm_channels);
+    else
+        sbuf_interleave_vorbis(&ds->sbuf, pcm_channels);
 
     if (data->discard) {
         ds->discard = data->discard;
@@ -229,48 +231,6 @@ static bool decode_frame_ogg_vorbis(VGMSTREAM* v) {
     }
 
     return true;
-}
-
-/* vorbis encodes channels in non-standard order, so we remap during conversion to fix this oddity.
- * (feels a bit weird as one would think you could leave as-is and set the player's output order,
- * but that isn't possible and remapping like this is what FFmpeg and every other plugin does). */
-static const int xiph_channel_map[8][8] = {
-    { 0 },                          // 1ch: FC > same
-    { 0, 1 },                       // 2ch: FL FR > same
-    { 0, 2, 1 },                    // 3ch: FL FC FR > FL FR FC
-    { 0, 1, 2, 3 },                 // 4ch: FL FR BL BR > same
-    { 0, 2, 1, 3, 4 },              // 5ch: FL FC FR BL BR > FL FR FC BL BR
-    { 0, 2, 1, 5, 3, 4 },           // 6ch: FL FC FR BL BR LFE > FL FR FC LFE BL BR
-    { 0, 2, 1, 6, 5, 3, 4 },        // 7ch: FL FC FR SL SR BC LFE > FL FR FC LFE BC SL SR
-    { 0, 2, 1, 7, 5, 6, 3, 4 },     // 8ch: FL FC FR SL SR BL BR LFE > FL FR FC LFE BL BR SL SR
-};
-
-// converts from internal Vorbis format to standard PCM and remaps (mostly from Xiph's decoder_example.c)
-static void sbuf_interleave_vorbis(int channels, float* buf, int filled, float** src, bool disable_ordering) {
-
-    /* convert float PCM (multichannel float array, with pcm[0]=ch0, pcm[1]=ch1, pcm[2]=ch0, etc)
-     * to 16 bit signed PCM ints (host order) and interleave + fix clipping */
-    for (int ch = 0; ch < channels; ch++) {
-        int ch_map = disable_ordering ?
-                ch :
-                (channels > 8) ? ch : xiph_channel_map[channels - 1][ch]; // put Vorbis' ch to other outbuf's ch
-        float* ptr = buf;
-        float* channel = src[ch_map];
-
-        ptr += ch;
-        for (int s = 0; s < filled; s++) {
-            float val = channel[s];
-
-            #if 0 //to pcm16 from vorbis
-            int val = (int)floor(channel[s] * 32767.0f + 0.5f);
-            if (val > 32767) val = 32767;
-            else if (val < -32768) val = -32768;
-            #endif
-
-            *ptr = val;
-            ptr += channels;
-        }
-    }
 }
 
 /* ********************************************** */
