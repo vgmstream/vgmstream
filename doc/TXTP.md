@@ -598,15 +598,24 @@ Main usage would be creating stereo files for games that layer channels.
 # quad to stereo: all layers must play at the same time
 # - mix 75% of channel 3/4 into channel 1/2, then drop channel 3 and 4
 song#m1+3*0.75,2+4*.75,3D
-
+```
+```
 # quad to stereo: only channel 3 and 4 should play
 # - swap channel 1/2 with 3/4, then drop channel 3/4
 song#m1-3,2-4,3D
-
+```
+```
 # also equivalent, but notice the order
 # - drop channel 1 then 2 (now 1)
 song#m1d,1d
 ```
+```
+# fades-in at 10 seconds, then fades-out at 30 seconds
+data/Boss_ANG.adx #m 0{10.0+5.0, 0}30.0+5.0
+# exactly the same thing but in minutes:seconds syntax
+data/Boss_ANG.adx #m 0{0:10+0:5, 0}0:30+0:5
+```
+
 Proper mixing requires some basic knowledge though, it's further explained later. Order matters and operations are applied sequentially, for extra flexibility at the cost of complexity and user-friendliness, and may result in surprising mixes. Typical mixing operations are provided as *macros* (see below), so try to stick to macros and simple combos, using later examples as a base.
 
 This can be applied to individual layers and segments, but normally you want to use `commands` to apply mixing to the resulting file (see examples). Per-segment mixing should be reserved to specific up/downmixings.
