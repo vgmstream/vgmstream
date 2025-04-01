@@ -271,7 +271,7 @@ different internally (encrypted, different versions, etc) and not always can be 
   - RIFF WAVE header (wsmp looping) [*RIFF_WAVE_wsmp*]
   - RIFX WAVE header [*RIFX_WAVE*]
   - RIFX WAVE header (smpl looping) [*RIFX_WAVE_smpl*]
-  - *riff*: `.wav .lwav .xwav .mwv .da .dax .cd .med .snd .adx .adp .xss .xsew .adpcm .adw .wd .(extensionless) .sbv .wvx .str .at3 .rws .aud .at9 .ckd .saf .ima .nsa .pcm .xvag .ogg .logg .p1d .xms .mus .dat .ldat .wma .lwma .caf .wax .voi .se .v`
+  - *riff*: `.wav .lwav .xwav .mwv .da .dax .cd .med .snd .adx .adp .xss .xsew .adpcm .adw .wd .(extensionless) .sbv .wvx .str .at3 .rws .aud .at9 .ckd .saf .ima .nsa .pcm .xvag .ogg .logg .p1d .xms .mus .dat .ldat .wma .lwma .caf .wax .voi .se .v .xst`
   - *rifx*: `.wav .lwav`
   - Codecs: AICA_int PCM32LE PCM24LE PCM16BE PCM16LE PCM8_U MSADPCM IMA PCMFLOAT MS_IMA AICA MPEG_custom XBOX_IMA MS_IMA_3BIT DVI_IMA LEVEL5 OGG_VORBIS ATRAC9 ATRAC3 MPEG MSADPCM_mono
 - **nwa.c**
@@ -573,10 +573,6 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Konami GBTS header [*GBTS*]
   - *gbts*: `.gbts`
   - Codecs: PSX
-- **wii_sng.c**
-  - SNG DSP Header [*WII_SNG*]
-  - *wii_sng*: `.sng`
-  - Codecs: NGC_DSP
 - **aax.c**
   - CRI AAX header [*AAX*]
   - *aax*: `.aax .(extensionless)`
@@ -791,9 +787,9 @@ different internally (encrypted, different versions, etc) and not always can be 
   - *sqex_scd*: `.scd`
     - Subfiles: *ogg_vorbis_config*
   - Codecs: OGG PCM16BE PCM16LE PSX MPEG MSADPCM NGC_DSP XMA ATRAC3 ATRAC9
-- **ngc_nst_dsp.c**
-  - Animaniacs NST header [*NGC_NST_DSP*]
-  - *ngc_nst_dsp*: `.dsp`
+- **nst_monster.c**
+  - Monster .NST header [*NST_MONSTER*]
+  - *nst_monster*: `.nst .dsp`
   - Codecs: NGC_DSP
 - **baf.c**
   - Bizarre Creations .baf header [*BAF*]
@@ -848,12 +844,6 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Quantic Dream .ADP header [*QD_ADP*]
   - *adp_qd*: `.adp`
   - Codecs: QD_IMA
-- **excitebots.c**
-  - Excitebots .sfx header [*EB_SFX*]
-  - assumed Excitebots .sf0 by extension [*EB_SF0*]
-  - *eb_sfx*: `.sfx`
-  - *eb_sf0*: `.sf0`
-  - Codecs: PCM16BE NGC_DSP
 - **mtaf.c**
   - Konami MTAF header [*MTAF*]
   - *mtaf*: `.mtaf`
@@ -870,9 +860,9 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Mini Ninjas 'STR' header [*MN_STR*]
   - *mn_str*: `.mnstr`
   - Codecs: PCM16LE
-- **mss.c**
-  - Guerilla MCSS header [*MSS*]
-  - *mss*: `.mss`
+- **mcss.c**
+  - Guerilla MCSS header [*MCSS*]
+  - *mcss*: `.mss`
   - Codecs: XBOX_IMA PSX
 - **ps2_hsf.c**
   - Lowrider 'HSF' header [*PS2_HSF*]
@@ -916,9 +906,9 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Nintendo FSTM Header [*FSTM*]
   - *bfstm*: `.bfstm`
   - Codecs: PCM8 PCM16BE PCM16LE NGC_DSP
-- **mca.c**
-  - Capcom MCA header [*MCA*]
-  - *mca*: `.mca`
+- **madp.c**
+  - Capcom MADP header [*MADP*]
+  - *madp*: `.mca`
   - Codecs: NGC_DSP
 - **ktss.c**
   - Koei Tecmo KTSS header [*KTSS*]
@@ -1081,9 +1071,9 @@ different internally (encrypted, different versions, etc) and not always can be 
   - *opus_sqex*: `.wav .lwav`
   - *opus_rsnd*: `.rsnd`
   - Codecs: Opus
-- **pc_ast.c**
-  - Capcom AST (PC) header [*PC_AST*]
-  - *pc_ast*: `.ast`
+- **astl.c**
+  - Capcom ASTL header [*ASTL*]
+  - *astl*: `.ast`
   - Codecs: PCM16LE
 - **naac.c**
   - Namco NAAC header [*NAAC*]
@@ -1783,9 +1773,9 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Ubisoft GWB+GWD header [*GWB_GWD*]
   - *gwb_gwd*: `.gwb + .gwd`
   - Codecs: NGC_DSP
-- **cbx.c**
-  - Traveller's Tales CBX header [*CBX*]
-  - *cbx*: `.cbx`
+- **chatterbox.c**
+  - Traveller's Tales/Warthog Chatterbox header [*CBX*]
+  - *chatterbox*: `.cbx .box`
   - Codecs: EA_MT
 - **vas_rockstar.c**
   - Rockstar .VAS header [*VAS_ROCKSTAR*]
@@ -1920,6 +1910,15 @@ different internally (encrypted, different versions, etc) and not always can be 
   - (container)
   - *ssp*: `.ssp`
     - Subfiles: *sd9*
+- **sfx0_monster.c**
+  - Monster SFX0 header [*SFX0_MONSTER*]
+  - *sfx0_monster*: `.sfx .sf0`
+  - *sfx0_monster_old*: `.sfx`
+  - Codecs: PSX XBOX_IMA PCM16LE NGC_DSP PCM16BE
+- **song_monster.c**
+  - Monster SONG header [*SONG_MONSTER*]
+  - *song_monster*: `.sn0 .sng`
+  - Codecs: PCM16BE
 - **pos.c**
   - RIFF WAVE header (.pos looping) [*RIFF_WAVE_POS*]
   - *pos*: `.pos + .wav`
