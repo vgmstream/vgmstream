@@ -46,12 +46,6 @@ void decode_free(VGMSTREAM* vgmstream) {
         return;
     }
 
-#ifdef VGM_USE_VORBIS
-    if (vgmstream->coding_type == coding_OGG_VORBIS) {
-        free_ogg_vorbis(vgmstream->codec_data);
-    }
-#endif
-
     if (vgmstream->coding_type == coding_CIRCUS_VQ) {
         free_circus_vq(vgmstream->codec_data);
     }
@@ -170,12 +164,6 @@ void decode_seek(VGMSTREAM* vgmstream) {
         seek_ea_mt(vgmstream, vgmstream->loop_current_sample);
     }
 
-#ifdef VGM_USE_VORBIS
-    if (vgmstream->coding_type == coding_OGG_VORBIS) {
-        seek_ogg_vorbis(vgmstream->codec_data, vgmstream->loop_current_sample);
-    }
-#endif
-
 #ifdef VGM_USE_FFMPEG
     if (vgmstream->coding_type == coding_FFmpeg) {
         seek_ffmpeg(vgmstream->codec_data, vgmstream->loop_current_sample);
@@ -227,12 +215,6 @@ void decode_reset(VGMSTREAM* vgmstream) {
         codec_info->reset(vgmstream->codec_data);
         return;
     }
-
-#ifdef VGM_USE_VORBIS
-    if (vgmstream->coding_type == coding_OGG_VORBIS) {
-        reset_ogg_vorbis(vgmstream->codec_data);
-    }
-#endif
 
     if (vgmstream->coding_type == coding_CIRCUS_VQ) {
         reset_circus_vq(vgmstream->codec_data);
@@ -360,9 +342,6 @@ int decode_get_samples_per_frame(VGMSTREAM* vgmstream) {
         case coding_PCM24BE:
         case coding_PCM32LE:
             return 1;
-#ifdef VGM_USE_VORBIS
-        case coding_OGG_VORBIS:
-#endif
 #ifdef VGM_USE_MPEG
         case coding_MPEG_custom:
         case coding_MPEG_ealayer3:
@@ -791,6 +770,7 @@ static void decode_frames(sbuf_t* sdst, VGMSTREAM* vgmstream) {
     sbuf_t* ssrc = &ds->sbuf;
 
     const codec_info_t* codec_info = codec_get_info(vgmstream);
+    ds->samples_left = sdst->samples;
 
     // fill the external buf by decoding N times; may read partially that buf
     while (sdst->filled < sdst->samples) {
@@ -838,6 +818,8 @@ static void decode_frames(sbuf_t* sdst, VGMSTREAM* vgmstream) {
 
             sbuf_copy_segments(sdst, ssrc, samples_copy);
             sbuf_consume(ssrc, samples_copy);
+
+            ds->samples_left -= samples_copy;
         }
     }
 
@@ -1148,11 +1130,6 @@ void decode_vgmstream(sbuf_t* sdst, VGMSTREAM* vgmstream, int samples_to_do) {
                         vgmstream->channels, vgmstream->samples_into_block, samples_to_do, ch);
             }
             break;
-#ifdef VGM_USE_VORBIS
-        case coding_OGG_VORBIS:
-            decode_ogg_vorbis(vgmstream->codec_data, buffer, samples_to_do, vgmstream->channels);
-            break;
-#endif
         case coding_CIRCUS_VQ:
             decode_circus_vq(vgmstream->codec_data, buffer, samples_to_do, vgmstream->channels);
             break;
