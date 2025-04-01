@@ -226,8 +226,7 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
     }
 
 
-    /* set common interleaves to simplify usage
-        * (maybe should ignore if manually overwritten, possibly with 0 on purpose?) */
+    /* set common interleaves to simplify usage */
     if (txth.interleave == 0) {
         uint32_t interleave  = 0;
         switch(txth.codec) {
@@ -244,7 +243,7 @@ VGMSTREAM* init_vgmstream_txth(STREAMFILE* sf) {
             case PCM8_U:
             case PCM8_SB:
             case ULAW:
-            case ALAW:          
+            case ALAW:          interleave = 0x01; break;
             default:
                  break;
         }
