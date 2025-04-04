@@ -10,7 +10,8 @@ if(NOT WIN32 AND USE_VORBIS)
 		FetchDependency(VORBIS
 			DIR vorbis
 			GIT_REPOSITORY https://gitlab.xiph.org/xiph/vorbis
-			GIT_TAG v1.3.7
+			GIT_TAG 2eac96b03ff67953354cb0a649c08aa3a23267ef
+			GIT_UNSHALLOW ON
 		)
 		
 		if(VORBIS_PATH)
