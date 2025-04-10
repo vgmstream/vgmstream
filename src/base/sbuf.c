@@ -12,6 +12,18 @@
 #include <math.h>
 #endif
 
+#define CONV_NOOP(x) (x)
+#define CONV_S16_FLT(x) (x * (1.0f / 32767.0f))
+#define CONV_F16_FLT(x) (x * (1.0f / 32767.0f))
+#ifdef PCM16_ROUNDING_HALF
+#define CONV_FLT_S16(x) (clamp16(float_to_int( floor(x * 32767.0f + 0.5f) )))
+#else
+#define CONV_FLT_S16(x) (clamp16(float_to_int(x * 32767.0f)))
+#endif
+#define CONV_F16_S16(x) (clamp16(float_to_int(x)))
+#define CONV_FLT_F16(x) (x * 32767.0f)
+
+
 void sbuf_init(sbuf_t* sbuf, sfmt_t format, void* buf, int samples, int channels) {
     memset(sbuf, 0, sizeof(sbuf_t));
     sbuf->buf = buf;
@@ -24,8 +36,8 @@ void sbuf_init_s16(sbuf_t* sbuf, int16_t* buf, int samples, int channels) {
     sbuf_init(sbuf, SFMT_S16, buf, samples, channels);
 }
 
-void sbuf_init_f32(sbuf_t* sbuf, float* buf, int samples, int channels) {
-    sbuf_init(sbuf, SFMT_F32, buf, samples, channels);
+void sbuf_init_f16(sbuf_t* sbuf, float* buf, int samples, int channels) {
+    sbuf_init(sbuf, SFMT_F16, buf, samples, channels);
 }
 
 void sbuf_init_flt(sbuf_t* sbuf, float* buf, int samples, int channels) {
@@ -35,7 +47,7 @@ void sbuf_init_flt(sbuf_t* sbuf, float* buf, int samples, int channels) {
 
 int sfmt_get_sample_size(sfmt_t fmt) {
     switch(fmt) {
-        case SFMT_F32:
+        case SFMT_F16:
         case SFMT_FLT:
             return 0x04;
         case SFMT_S16:
@@ -108,65 +120,6 @@ static inline float double_to_float(double val) {
     return (float)val;
 }
 
-//TODO decide if using float 1.0 style or 32767 style (fuzzy PCM when doing that)
-//TODO: maybe use macro-style templating (but kinda ugly)
-void sbuf_copy_to_f32(float* dst, sbuf_t* sbuf) {
-
-    switch(sbuf->fmt) {
-        case SFMT_S16: {
-            int16_t* src = sbuf->buf;
-            for (int s = 0; s < sbuf->filled * sbuf->channels; s++) {
-                dst[s] = (float)src[s]; // / 32767.0f
-            }
-            break;
-        }
-        case SFMT_F32: {
-            float* src = sbuf->buf;
-            for (int s = 0; s < sbuf->filled * sbuf->channels; s++) {
-                dst[s] = src[s];
-            }
-            break;
-        }
-        case SFMT_FLT: {
-            float* src = sbuf->buf;
-            for (int s = 0; s < sbuf->filled * sbuf->channels; s++) {
-                dst[s] = src[s] * 32767.0f;
-            }
-            break;
-        }
-        default:
-            break;
-    }
-}
-
-void sbuf_copy_from_f32(sbuf_t* sbuf, float* src) {
-    switch(sbuf->fmt) {
-        case SFMT_S16: {
-            int16_t* dst = sbuf->buf;
-            for (int s = 0; s < sbuf->filled * sbuf->channels; s++) {
-                dst[s] = clamp16(float_to_int(src[s]));
-            }
-            break;
-        }
-        case SFMT_F32: {
-            float* dst = sbuf->buf;
-            for (int s = 0; s < sbuf->filled * sbuf->channels; s++) {
-                dst[s] = src[s];
-            }
-            break;
-        }
-        case SFMT_FLT: {
-            float* dst = sbuf->buf;
-            for (int s = 0; s < sbuf->filled * sbuf->channels; s++) {
-                dst[s] = src[s] / 32767.0f;
-            }
-            break;
-        }
-        default:
-            break;
-    }
-}
-
 // max samples to copy from ssrc to sdst, considering that dst may be partially filled
 int sbuf_get_copy_max(sbuf_t* sdst, sbuf_t* ssrc) {
     int sdst_max = sdst->samples - sdst->filled;
@@ -177,41 +130,48 @@ int sbuf_get_copy_max(sbuf_t* sdst, sbuf_t* ssrc) {
 }
 
 
-/* ugly thing to avoid repeating functions */
-#define sbuf_copy_segments_internal(dst, src, src_pos, dst_pos, src_max) \
-    while (src_pos < src_max) { \
-        dst[dst_pos++] = src[src_pos++]; \
+typedef void (*sbuf_copy_t)(void* vsrc, void* vdst, int src_pos, int dst_pos, int src_max);
+
+// Ugly generic copy function definition with different parameters, to avoid repeating code.
+// Must define various functions below, to be set in the copy matrix.
+// Uses void params to allow callbacks.
+#define DEFINE_SBUF_COPY(suffix, srctype, dsttype, func) \
+    void sbuf_copy_##suffix(void* vsrc, void* vdst, int src_pos, int dst_pos, int src_max) { \
+        srctype* src = vsrc;\
+        dsttype* dst = vdst;\
+        while (src_pos < src_max) { \
+            dst[dst_pos++] = func(src[src_pos++]); \
+        } \
     }
 
-#define sbuf_copy_segments_internal_f16(dst, src, src_pos, dst_pos, src_max) \
-    while (src_pos < src_max) { \
-        dst[dst_pos++] = clamp16(float_to_int(src[src_pos++])); \
-    }
+DEFINE_SBUF_COPY(s16_s16, int16_t, int16_t, CONV_NOOP);
+DEFINE_SBUF_COPY(s16_f16, int16_t, float, CONV_NOOP);
+DEFINE_SBUF_COPY(s16_flt, int16_t, float, CONV_S16_FLT);
 
-#ifdef PCM16_ROUNDING_HALF
-#define sbuf_copy_segments_internal_s16(dst, src, src_pos, dst_pos, src_max, value) \
-    while (src_pos < src_max) { \
-        dst[dst_pos++] = clamp16(float_to_int( floor(src[src_pos++] * value + 0.5f) )); \
-    }
-#else
-#define sbuf_copy_segments_internal_s16(dst, src, src_pos, dst_pos, src_max, value) \
-    while (src_pos < src_max) { \
-        dst[dst_pos++] = clamp16(float_to_int(src[src_pos++] * value)); \
-    }
-#endif
+DEFINE_SBUF_COPY(flt_s16, float, int16_t, CONV_FLT_S16);
+DEFINE_SBUF_COPY(flt_f16, float, float, CONV_FLT_F16);
+DEFINE_SBUF_COPY(flt_flt, float, float, CONV_NOOP);
 
-#define sbuf_copy_segments_internal_flt(dst, src, src_pos, dst_pos, src_max, value) \
-    while (src_pos < src_max) { \
-        dst[dst_pos++] = (src[src_pos++] * value); \
-    }
+DEFINE_SBUF_COPY(f16_s16, float, int16_t, CONV_F16_S16);
+DEFINE_SBUF_COPY(f16_f16, float, float, CONV_NOOP);
+DEFINE_SBUF_COPY(f16_flt, float, float, CONV_F16_FLT);
+
+static sbuf_copy_t copy_matrix[SFMT_MAX][SFMT_MAX] = {
+    { NULL, NULL, NULL, NULL },
+    { NULL, sbuf_copy_s16_s16, sbuf_copy_s16_f16, sbuf_copy_s16_flt },
+    { NULL, sbuf_copy_f16_s16, sbuf_copy_f16_f16, sbuf_copy_f16_flt },
+    { NULL, sbuf_copy_flt_s16, sbuf_copy_flt_f16, sbuf_copy_flt_flt },
+};
+
 
 // copy N samples from ssrc into dst (should be clamped externally)
-void sbuf_copy_segments(sbuf_t* sdst, sbuf_t* ssrc, int samples_copy) {
+//TODO: may want to handle sdst->flled + samples externally?
+void sbuf_copy_segments(sbuf_t* sdst, sbuf_t* ssrc, int samples) {
 
     if (ssrc->channels != sdst->channels) {
         // 0'd other channels first (uncommon so probably fine albeit slower-ish)
-        sbuf_silence_part(sdst, sdst->filled, samples_copy);
-        sbuf_copy_layers(sdst, ssrc, 0, samples_copy);
+        sbuf_silence_part(sdst, sdst->filled, samples);
+        sbuf_copy_layers(sdst, ssrc, 0, samples);
 #if 0
         // "faster" but lots of extra ifs per sample format, not worth it
         while (src_pos < src_max) {
@@ -220,203 +180,91 @@ void sbuf_copy_segments(sbuf_t* sdst, sbuf_t* ssrc, int samples_copy) {
             }
         }
 #endif
-        //TODO: may want to handle externally?
-        sdst->filled += samples_copy;
+        sdst->filled += samples;
+        return;
+    }
+
+    sbuf_copy_t sbuf_copy_src_dst = copy_matrix[ssrc->fmt][sdst->fmt];
+    if (!sbuf_copy_src_dst) {
+        VGM_LOG("SBUF: undefined copy function sfmt %i to %i\n", ssrc->fmt, sdst->fmt);
+        sdst->filled += samples;
         return;
     }
 
     int src_pos = 0;
     int dst_pos = sdst->filled * sdst->channels;
-    int src_max = samples_copy * ssrc->channels;
+    int src_max = samples * ssrc->channels;
 
-    // define all posible combos, probably there is a better way to handle this but...
-    // s16 > s16
-    if (ssrc->fmt == SFMT_S16 && sdst->fmt == SFMT_S16) {
-        int16_t* src = ssrc->buf;
-        int16_t* dst = sdst->buf;
-        sbuf_copy_segments_internal(dst, src, src_pos, dst_pos, src_max);
-    }
-    // s16 > f32
-    else if (ssrc->fmt == SFMT_S16 && sdst->fmt == SFMT_F32) {
-        int16_t* src = ssrc->buf;
-        float* dst = sdst->buf;
-        sbuf_copy_segments_internal(dst, src, src_pos, dst_pos, src_max);
-    }
-    // s16 > flt
-    else if (ssrc->fmt == SFMT_S16 && sdst->fmt == SFMT_FLT) {
-        int16_t* src = ssrc->buf;
-        float* dst = sdst->buf;
-        sbuf_copy_segments_internal_flt(dst, src, src_pos, dst_pos, src_max, (1.0f / 32767.0f));
-    }
-    // f32 > f32 / flt > flt
-    else if ((ssrc->fmt == SFMT_F32 && sdst->fmt == SFMT_F32) ||
-             (ssrc->fmt == SFMT_FLT && sdst->fmt == SFMT_FLT)) {
-        float* src = ssrc->buf;
-        float* dst = sdst->buf;
-        sbuf_copy_segments_internal(dst, src, src_pos, dst_pos, src_max);
-    }
-    // f32 > s16
-    else if (ssrc->fmt == SFMT_F32 && sdst->fmt == SFMT_S16) {
-        float* src = ssrc->buf;
-        int16_t* dst = sdst->buf;
-        sbuf_copy_segments_internal_f16(dst, src, src_pos, dst_pos, src_max);
-    }
-    // flt > s16
-    else if (ssrc->fmt == SFMT_FLT && sdst->fmt == SFMT_S16) {
-        float* src = ssrc->buf;
-        int16_t* dst = sdst->buf;
-        sbuf_copy_segments_internal_s16(dst, src, src_pos, dst_pos, src_max, 32767.0f);
-    }
-    // f32 > flt
-    else if (ssrc->fmt == SFMT_F32 && sdst->fmt == SFMT_FLT) {
-        float* src = ssrc->buf;
-        float* dst = sdst->buf;
-        sbuf_copy_segments_internal_flt(dst, src, src_pos, dst_pos, src_max, (1.0f / 32767.0f));
-    }
-    // flt > f32
-    else if (ssrc->fmt == SFMT_FLT && sdst->fmt == SFMT_F32) {
-        float* src = ssrc->buf;
-        float* dst = sdst->buf;
-        sbuf_copy_segments_internal_flt(dst, src, src_pos, dst_pos, src_max, 32767.0f);
-    }
-
-    //TODO: may want to handle externally?
-    sdst->filled += samples_copy;
+    sbuf_copy_src_dst(ssrc->buf, sdst->buf, src_pos, dst_pos, src_max);
+    sdst->filled += samples;
 }
 
+typedef void (*sbuf_layer_t)(void* vsrc, void* vdst, int src_pos, int dst_pos, int src_max, int dst_expected, int src_channels, int dst_channels);
 
-#define sbuf_copy_layers_internal_blank(dst, src, src_pos, dst_pos, src_filled, dst_expected, src_channels, dst_ch_step) \
-    for (int s = src_filled; s < dst_expected; s++) { \
-        for (int src_ch = 0; src_ch < src_channels; src_ch++) { \
-            dst[dst_pos++] = 0; \
+// See above
+#define DEFINE_SBUF_LAYER(suffix, srctype, dsttype, func) \
+    void sbuf_layer_##suffix(void* vsrc, void* vdst, int src_pos, int dst_pos, int src_filled, int dst_expected, int src_channels, int dst_channels) { \
+        srctype* src = vsrc; \
+        dsttype* dst = vdst; \
+        int dst_ch_step = (dst_channels - src_channels); \
+        for (int s = 0; s < src_filled; s++) { \
+            for (int src_ch = 0; src_ch < src_channels; src_ch++) { \
+                dst[dst_pos++] = func(src[src_pos++]); \
+            } \
+            dst_pos += dst_ch_step; \
         } \
-        dst_pos += dst_ch_step; \
+        \
+        for (int s = src_filled; s < dst_expected; s++) { \
+            for (int src_ch = 0; src_ch < src_channels; src_ch++) { \
+                dst[dst_pos++] = 0; \
+            } \
+            dst_pos += dst_ch_step; \
+        } \
     }
 
-//TODO fix missing ->channels
-/* ugly thing to avoid repeating functions */
-#define sbuf_copy_layers_internal(dst, src, src_pos, dst_pos, src_filled, dst_expected, src_channels, dst_ch_step) \
-    for (int s = 0; s < src_filled; s++) { \
-        for (int src_ch = 0; src_ch < src_channels; src_ch++) { \
-            dst[dst_pos++] = src[src_pos++]; \
-        } \
-        dst_pos += dst_ch_step; \
-    } \
-    \
-    sbuf_copy_layers_internal_blank(dst, src, src_pos, dst_pos, src_filled, dst_expected, src_channels, dst_ch_step);
+DEFINE_SBUF_LAYER(s16_s16, int16_t, int16_t,CONV_NOOP);
+DEFINE_SBUF_LAYER(s16_f16, int16_t, float,  CONV_NOOP);
+DEFINE_SBUF_LAYER(s16_flt, int16_t, float,  CONV_S16_FLT);
 
-// float +-1.0 <> pcm +-32767.0
-#define sbuf_copy_layers_internal_f16(dst, src, src_pos, dst_pos, src_filled, dst_expected, src_channels, dst_ch_step) \
-    for (int s = 0; s < src_filled; s++) { \
-        for (int src_ch = 0; src_ch < src_channels; src_ch++) { \
-            dst[dst_pos++] = clamp16(float_to_int(src[src_pos++])); \
-        } \
-        dst_pos += dst_ch_step; \
-    } \
-    \
-    sbuf_copy_layers_internal_blank(dst, src, src_pos, dst_pos, src_filled, dst_expected, src_channels, dst_ch_step);
+DEFINE_SBUF_LAYER(flt_s16, float, int16_t,  CONV_FLT_S16);
+DEFINE_SBUF_LAYER(flt_f16, float, float,    CONV_FLT_F16);
+DEFINE_SBUF_LAYER(flt_flt, float, float,    CONV_NOOP);
 
-#ifdef PCM16_ROUNDING_HALF
-// float +-1.0 <> pcm +-32767.0
-#define sbuf_copy_layers_internal_s16(dst, src, src_pos, dst_pos, src_filled, dst_expected, src_channels, dst_ch_step, value) \
-    for (int s = 0; s < src_filled; s++) { \
-        for (int src_ch = 0; src_ch < src_channels; src_ch++) { \
-            dst[dst_pos++] = clamp16(float_to_int( floor(src[src_pos++] * value + 0.5f) )); \
-        } \
-        dst_pos += dst_ch_step; \
-    } \
-    \
-    sbuf_copy_layers_internal_blank(dst, src, src_pos, dst_pos, src_filled, dst_expected, src_channels, dst_ch_step);
-#else
-// float +-1.0 <> pcm +-32767.0
-#define sbuf_copy_layers_internal_s16(dst, src, src_pos, dst_pos, src_filled, dst_expected, src_channels, dst_ch_step, value) \
-    for (int s = 0; s < src_filled; s++) { \
-        for (int src_ch = 0; src_ch < src_channels; src_ch++) { \
-            dst[dst_pos++] = clamp16(float_to_int(src[src_pos++] * value)); \
-        } \
-        dst_pos += dst_ch_step; \
-    } \
-    \
-    sbuf_copy_layers_internal_blank(dst, src, src_pos, dst_pos, src_filled, dst_expected, src_channels, dst_ch_step);
-#endif
+DEFINE_SBUF_LAYER(f16_s16, float, int16_t,  CONV_F16_S16);
+DEFINE_SBUF_LAYER(f16_f16, float, float,    CONV_NOOP);
+DEFINE_SBUF_LAYER(f16_flt, float, float,    CONV_F16_FLT);
 
-// float +-1.0 <> pcm +-32767.0
-#define sbuf_copy_layers_internal_flt(dst, src, src_pos, dst_pos, src_filled, dst_expected, src_channels, dst_ch_step, value) \
-    for (int s = 0; s < src_filled; s++) { \
-        for (int src_ch = 0; src_ch < src_channels; src_ch++) { \
-            dst[dst_pos++] = (src[src_pos++] * value); \
-        } \
-        dst_pos += dst_ch_step; \
-    } \
-    \
-    sbuf_copy_layers_internal_blank(dst, src, src_pos, dst_pos, src_filled, dst_expected, src_channels, dst_ch_step);
+static sbuf_layer_t layer_matrix[SFMT_MAX][SFMT_MAX] = {
+    { NULL, NULL, NULL, NULL },
+    { NULL, sbuf_layer_s16_s16, sbuf_layer_s16_f16, sbuf_layer_s16_flt },
+    { NULL, sbuf_layer_f16_s16, sbuf_layer_f16_f16, sbuf_layer_f16_flt },
+    { NULL, sbuf_layer_flt_s16, sbuf_layer_flt_f16, sbuf_layer_flt_flt },
+};
 
 // copy interleaving: dst ch1 ch2 ch3 ch4 w/ src ch1 ch2 ch1 ch2 = only fill dst ch1 ch2
 // dst_channels == src_channels isn't likely so ignore that optimization (dst must be >= than src).
 // dst_ch_start indicates it should write to dst's chN,chN+1,etc
-// sometimes one layer has less samples than others and need to 0-fill rest
+// sometimes one layer has less samples than others and need to 0-fill rest up to dst_max
 void sbuf_copy_layers(sbuf_t* sdst, sbuf_t* ssrc, int dst_ch_start, int dst_max) {
-    int src_copy = dst_max;
-    int src_channels = ssrc->channels;
-    int dst_ch_step = (sdst->channels - ssrc->channels);
     int src_pos = 0;
     int dst_pos = sdst->filled * sdst->channels + dst_ch_start;
 
+    int src_copy = dst_max;
     if (src_copy > ssrc->filled)
         src_copy = ssrc->filled;
 
     if (ssrc->channels > sdst->channels) {
-        VGM_LOG("SBUF: wrong copy\n");
+        VGM_LOG("SBUF: src channels bigger than dst\n");
         return;
     }
 
-    // define all posible combos, probably there is a better way to handle this but...
+    sbuf_layer_t sbuf_layer_src_dst = layer_matrix[ssrc->fmt][sdst->fmt];
+    if (!sbuf_layer_src_dst) {
+        VGM_LOG("SBUF: undefined layer function sfmt %i to %i\n", ssrc->fmt, sdst->fmt);
+        return;
+    }
 
-    // 1:1
-    if (ssrc->fmt == SFMT_S16 && sdst->fmt == SFMT_S16) {
-        int16_t* src = ssrc->buf;
-        int16_t* dst = sdst->buf;
-        sbuf_copy_layers_internal(dst, src, src_pos, dst_pos, src_copy, dst_max, src_channels, dst_ch_step);
-    }
-    else if (ssrc->fmt == SFMT_S16 && sdst->fmt == SFMT_F32) {
-        int16_t* src = ssrc->buf;
-        float* dst = sdst->buf;
-        sbuf_copy_layers_internal(dst, src, src_pos, dst_pos, src_copy, dst_max, src_channels, dst_ch_step);
-    }
-    else if ((ssrc->fmt == SFMT_F32 && sdst->fmt == SFMT_F32) || (ssrc->fmt == SFMT_FLT && sdst->fmt == SFMT_FLT)) {
-        float* src = ssrc->buf;
-        float* dst = sdst->buf;
-        sbuf_copy_layers_internal(dst, src, src_pos, dst_pos, src_copy, dst_max, src_channels, dst_ch_step);
-    }
-    else if (ssrc->fmt == SFMT_F32 && sdst->fmt == SFMT_S16) {
-        float* src = ssrc->buf;
-        int16_t* dst = sdst->buf;
-        sbuf_copy_layers_internal_f16(dst, src, src_pos, dst_pos, src_copy, dst_max, src_channels, dst_ch_step);
-    }
-    else if (ssrc->fmt == SFMT_FLT && sdst->fmt == SFMT_S16) {
-        float* src = ssrc->buf;
-        int16_t* dst = sdst->buf;
-        sbuf_copy_layers_internal_s16(dst, src, src_pos, dst_pos, src_copy, dst_max, src_channels, dst_ch_step, 32767.0f);
-    }
-    else if (ssrc->fmt == SFMT_S16 && sdst->fmt == SFMT_FLT) {
-        int16_t* src = ssrc->buf;
-        float* dst = sdst->buf;
-        sbuf_copy_layers_internal_flt(dst, src, src_pos, dst_pos, src_copy, dst_max, src_channels, dst_ch_step, (1.0f / 32767.0f));
-    }
-    else if (ssrc->fmt == SFMT_FLT && sdst->fmt == SFMT_F32) {
-        float* dst = sdst->buf;
-        float* src = ssrc->buf;
-        sbuf_copy_layers_internal_flt(dst, src, src_pos, dst_pos, src_copy, dst_max, src_channels, dst_ch_step, 32767.0f);
-    }
-    else if (ssrc->fmt == SFMT_F32 && sdst->fmt == SFMT_FLT) {
-        float* src = ssrc->buf;
-        float* dst = sdst->buf;
-        sbuf_copy_layers_internal_flt(dst, src, src_pos, dst_pos, src_copy, dst_max, src_channels, dst_ch_step, (1.0f / 32767.0f));
-    }
-}
-
-void sbuf_silence_s16(sample_t* dst, int samples, int channels, int filled) {
-    memset(dst + filled * channels, 0, (samples - filled) * channels * sizeof(sample_t));
+    sbuf_layer_src_dst(ssrc->buf, sdst->buf, src_pos, dst_pos, src_copy, dst_max, ssrc->channels, sdst->channels);
 }
 
 void sbuf_silence_part(sbuf_t* sbuf, int from, int count) {
@@ -434,10 +282,9 @@ void sbuf_silence_rest(sbuf_t* sbuf) {
 void sbuf_fadeout(sbuf_t* sbuf, int start, int to_do, int fade_pos, int fade_duration) {
     //TODO: use interpolated fadedness to improve performance?
     //TODO: use float fadedness?
-    
+
     int s = start * sbuf->channels;
     int s_end = (start + to_do) * sbuf->channels;
-            
 
     switch(sbuf->fmt) {
         case SFMT_S16: {
@@ -455,7 +302,7 @@ void sbuf_fadeout(sbuf_t* sbuf, int start, int to_do, int fade_pos, int fade_dur
         }
 
         case SFMT_FLT:
-        case SFMT_F32: {
+        case SFMT_F16: {
             float* buf = sbuf->buf;
             while (s < s_end) {
                 double fadedness = (double)(fade_duration - fade_pos) / fade_duration;

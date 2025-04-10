@@ -74,11 +74,11 @@ bool mixer_is_active(mixer_t* mixer) {
 static void setup_mixbuf(mixer_t* mixer, sbuf_t* sbuf) {
     sbuf_t* smix = &mixer->smix;
 
-    // mixbuf can be interpreted as FLT or F32; try to use src's to keep buf as-is (less rounding errors)
-    if (sbuf->fmt == SFMT_F32 || sbuf->fmt == SFMT_FLT)
+    // mixbuf can be interpreted as FLT or F16; try to use src's to keep buf as-is (less rounding errors)
+    if (sbuf->fmt == SFMT_F16 || sbuf->fmt == SFMT_FLT)
         sbuf_init(smix, sbuf->fmt, mixer->mixbuf, sbuf->filled, sbuf->channels); //mixer->input_channels
     else
-        sbuf_init(smix, SFMT_F32, mixer->mixbuf, sbuf->filled, sbuf->channels);
+        sbuf_init(smix, SFMT_F16, mixer->mixbuf, sbuf->filled, sbuf->channels);
 
     // remix to temp buf (somehow using float buf rather than int32 is faster?)
     sbuf_copy_segments(smix, sbuf, sbuf->filled);

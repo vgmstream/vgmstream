@@ -39,7 +39,7 @@ void loop_layout_segmented(VGMSTREAM* vgmstream, int32_t loop_sample);
 typedef struct {
     int layer_count;
     VGMSTREAM** layers;
-    sample_t* buffer;
+    void* buffer;
     int input_channels;     /* internal buffer channels */
     int output_channels;    /* resulting channels (after mixing, if applied) */
     int external_looping;   /* don't loop using per-layer loops, but layout's own looping */

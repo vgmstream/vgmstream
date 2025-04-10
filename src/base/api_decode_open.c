@@ -63,7 +63,7 @@ static void prepare_mixing(libvgmstream_priv_t* priv) {
 
         sfmt_t input_sfmt = mixing_get_input_sample_type(priv->vgmstream);
         switch(input_sfmt) {
-            case SFMT_F32: force_sfmt = SFMT_FLT; break;
+            case SFMT_F16: force_sfmt = SFMT_FLT; break;
             default: break;
         }
 
