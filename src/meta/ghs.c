@@ -2,7 +2,7 @@
 #include "../coding/coding.h"
 #include "../util/endianness.h"
 
-typedef enum { PCM16LE, MSADPCM, XMA2, ATRAC9 } gtd_codec_t;
+typedef enum { NONE, PCM16LE, MSADPCM, XMA2, ATRAC9, HEVAG } gtd_codec_t;
 
 static void read_name(VGMSTREAM* vgmstream, STREAMFILE* sf, uint32_t offset);
 
@@ -10,12 +10,11 @@ static void read_name(VGMSTREAM* vgmstream, STREAMFILE* sf, uint32_t offset);
 /* GHS - Hexadrive's HexaEngine games [Gunslinger Stratos (AC), Knights Contract (X360), Valhalla Knights 3 (Vita)] */
 VGMSTREAM* init_vgmstream_ghs(STREAMFILE* sf) {
     VGMSTREAM* vgmstream = NULL;
-    uint32_t stream_offset, stream_size, stpr_offset = 0, loop_start_offset = 0, loop_end_offset = 0;
-    uint32_t chunk_offset, chunk_size = 0, at9_config_data = 0, block_size = 0;
-    int loop_flag, channels, sample_rate;
+    uint32_t stream_offset, stream_size = 0, stpr_offset = 0, loop_start_offset = 0, loop_end_offset = 0;
+    uint32_t chunk_offset = 0, chunk_size = 0, block_size, at9_config_data = 0;
+    int loop_flag = 0, channels, sample_rate;
     int32_t num_samples, loop_start_sample, loop_end_sample;
-    gtd_codec_t codec;
-    int total_subsongs = 0, target_subsong = sf->stream_index;
+    gtd_codec_t codec = NONE;
 
 
     /* checks */
@@ -28,32 +27,90 @@ VGMSTREAM* init_vgmstream_ghs(STREAMFILE* sf) {
     read_u32_t read_u32 = big_endian ? read_u32be : read_u32le;
     read_u16_t read_u16 = big_endian ? read_u16be : read_u16le;
 
-    int is_old = 0x34 + read_u32le(0x30,sf) + read_u32le(0x0c,sf) == get_streamfile_size(sf);
-
-    total_subsongs = read_u32(0x04, sf); /* seen in sfx packs inside .ged */
+    int target_subsong = sf->stream_index;
+    int total_subsongs = read_u32(0x04, sf); /* seen in sfx packs inside .ged */
     if (!check_subsongs(&target_subsong, total_subsongs))
         return NULL;
 
-    /* not seen */
-    if (target_subsong > 1 && is_old)
-        goto fail;
 
-    /* header version, not formally specified */
-    if (!is_old) {
-        /* 0x08: size of all seek tables (XMA2, all tables go together after headers) / null */
+    // header version is not formally specified, use v1 channels as test (v2 has sample rate in that position)
+    uint32_t version_test = read_u32le(0x10, sf);
+    bool is_v1 = (version_test < 16);
+
+    if (is_v1) {
+        uint32_t offset = 0x08;
+        stream_offset = 0x00;
+        for (int i = 0; i < total_subsongs; i++) {
+            int format    = read_u32(offset + 0x00,sf);
+            int temp_size = read_u32(offset + 0x04,sf);
+
+            if (i + 1 == target_subsong) {
+                if (format == 0x0000) {
+                    codec = PCM16LE; /* VK3 voices */
+                    block_size = 0x02;
+                }
+                else if (format == 0x0001) {
+                    codec = HEVAG; /* VK3 voices */
+                    block_size = 0x10;
+                }
+                else if (format == 0x0002) {
+                    codec = ATRAC9; /* VK3 bgm */
+                    block_size = 0;
+                }
+                else {
+                    VGM_LOG("GHS: unknown v1 format %x\n", format);
+                    goto fail;
+                }
+
+                stream_size         = read_u32(offset + 0x04,sf);
+                channels            = read_u32(offset + 0x08,sf);
+                sample_rate         = read_u32(offset + 0x0c,sf);
+                // 10: null/bps in PCM?
+                loop_start_offset   = read_u32(offset + 0x14,sf);
+                loop_end_offset     = read_u32(offset + 0x18,sf);
+                // 1c: channel layout in ATRAC9?
+                at9_config_data     = read_u32be(offset + 0x20,sf);
+
+                loop_flag = loop_end_offset > loop_start_offset;
+            }
+
+            offset += 0x24;
+            if (i + 1 < target_subsong) {
+                stream_offset += temp_size;
+            }
+        }
+
+        if (codec == NONE)
+            goto fail;
+
+        stream_offset += offset;
+
+        // STPR subheader
+        if (codec == ATRAC9) {
+            if (target_subsong > 1) //unknown STPR position for other subsongs
+                return NULL;
+            stpr_offset = stream_offset;
+            stream_offset = read_u32(stpr_offset + 0x04,sf) + 0x34;
+        } 
+    }
+    else {
+        // 0x08: size of all seek tables (XMA2, all tables go together after headers) / null
         uint32_t offset = 0x0c + (target_subsong - 1) * 0x64; 
         
         int format = read_u16(offset + 0x00,sf);
-        if (format == 0x0001)
+        if (format == 0x0001) {
             codec = PCM16LE; /* GS bgm */
-        else if (format == 0x0002)
+        }
+        else if (format == 0x0002) {
             codec = MSADPCM; /* GS sfx */
+        }
         else if (format == 0x0166) {
             codec = XMA2;
             chunk_offset = offset; /* "fmt " */
             chunk_size = 0x34;
         }
         else {
+            VGM_LOG("GHS: unknown v2 format %x\n", format);
             goto fail;
         }
 
@@ -77,24 +134,6 @@ VGMSTREAM* init_vgmstream_ghs(STREAMFILE* sf) {
         }
 
         stpr_offset = read_u32(offset + 0x54,sf) + read_u32(offset + 0x58,sf);
-    }
-    else {
-        codec = ATRAC9;
-
-        /* 08: always 02? */
-        stream_size         = read_u32(0x0c,sf);
-        channels            = read_u32(0x10,sf);
-        sample_rate         = read_u32(0x14,sf);
-        /* 18: null? */
-        loop_start_offset   = read_u32(0x1c,sf);
-        loop_end_offset     = read_u32(0x20,sf);
-        /* 24: channel layout? */
-        at9_config_data     = read_u32be(0x28,sf);
-        /* 2c: STPR  */
-        stream_offset       = read_u32(0x30,sf) + 0x34;
-        loop_flag = loop_end_offset > loop_start_offset;
-
-        stpr_offset = 0x2c;
     }
 
 
@@ -127,6 +166,15 @@ VGMSTREAM* init_vgmstream_ghs(STREAMFILE* sf) {
             vgmstream->frame_size = block_size;
 
             vgmstream->num_samples = msadpcm_bytes_to_samples(stream_size, block_size, channels);
+
+            break;
+
+        case HEVAG:
+            vgmstream->coding_type = coding_HEVAG;
+            vgmstream->layout_type = layout_interleave;
+            vgmstream->frame_size = block_size;
+
+            vgmstream->num_samples = ps_bytes_to_samples(stream_size, channels);
 
             break;
 
