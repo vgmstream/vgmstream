@@ -100,12 +100,20 @@ static void setup_outbuf(mixer_t* mixer, sbuf_t* sbuf) {
 
 void mixer_process(mixer_t* mixer, sbuf_t* sbuf, int32_t current_pos) {
 
-    /* external */
+    // external
     //if (!mixer_is_active(mixer))
     //    return;
 
-    /* try to skip if no fades apply (set but does nothing yet) + only has fades 
-     * (could be done in mix op but avoids upgrading bufs in some cases) */
+#if 0
+    // TODO: not possible to copy from src to dst directly at the moment, since src doubles as dst
+    // optimize copy only ops to skip temp buffer
+    if (mixer->chain_count == 0 && mixer->force_type != SFMT_NONE) {
+        ...
+    }
+#endif
+
+    // try to skip if no fades apply (set but does nothing yet) + only has fades 
+    // (could be done in mix op but avoids upgrading bufs in some cases)
     if (mixer->has_fade) {
         //;VGM_LOG("MIX: fade test %i, %i\n", data->has_non_fade, mixer_op_fade_is_active(data, current_pos, current_pos + sample_count));
         if (!mixer->has_non_fade && !mixer_op_fade_is_active(mixer, current_pos, current_pos + sbuf->filled))

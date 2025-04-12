@@ -7,11 +7,13 @@
  * rather than planar (buffer per channel = [ch][s] = c1 c1 c1 c1 ...  c2 c2 c2 c2 ...) */
 typedef enum {
     SFMT_NONE,
-    SFMT_S16,           // standard PCM16
-  //SFMT_S24,
-  //SFMT_S32,
-    SFMT_F16,           // PCM16-like float (+-32768), for internal use (simpler pcm to f16, plus some decoders use this)
+    SFMT_S16,           // PCM16
+    SFMT_F16,           // PCM16-like float (+-32767.0f), for internal use (simpler s16 <> f16, plus some decoders use it)
     SFMT_FLT,           // standard float (+-1.0), for external players
+    SFMT_S24,           // PCM24 for internal use (32-bit buffers)
+    SFMT_S32,           // PCM32
+
+    SFMT_O24,           // PCM24 LE for output (24-bit buffers), for external use only (can't handle as a regular buf internally)
 
     SFMT_MAX,
 } sfmt_t;

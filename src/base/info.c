@@ -178,6 +178,9 @@ void describe_vgmstream(VGMSTREAM* vgmstream, char* desc, int length) {
             case SFMT_FLT: sfmt_desc = "float"; break;
             case SFMT_F16: sfmt_desc = "float16"; break;
             case SFMT_S16: sfmt_desc = "pcm16"; break;
+            case SFMT_S24: sfmt_desc = "pcm24"; break;
+            case SFMT_S32: sfmt_desc = "pcm32"; break;
+            case SFMT_O24: sfmt_desc = "pcm24"; break;
             default: sfmt_desc = "???";
         }
 

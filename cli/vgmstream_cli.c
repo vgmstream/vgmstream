@@ -80,7 +80,7 @@ static void print_usage(const char* progname, bool is_help) {
             "    -T: print title (for title testing)\n"
             "    -D <max channels>: downmix to <max channels> (for plugin downmix testing)\n"
             "    -B <samples> force a sample buffer size (for api testing)\n"
-            "    -W: force .wav to output in float sample format\n"
+            "    -W <type>: force .wav output format (1=PCM16, 2=PCM24, 3=PCM32, 4=float)\n"
             "    -O: decode but don't write to file (for performance testing)\n"
     );
 
@@ -99,7 +99,7 @@ static bool parse_config(cli_config_t* cfg, int argc, char** argv) {
     optind = 1; /* reset getopt's ugly globals (needed in wasm that may call same main() multiple times) */
 
     /* read config */
-    while ((opt = getopt(argc, argv, "o:l:f:d:ipPcmxeLEFrgb2:s:tTk:K:hOvD:S:B:VIwW")) != -1) {
+    while ((opt = getopt(argc, argv, "o:l:f:d:ipPcmxeLEFrgb2:s:tTk:K:hOvD:S:B:VIwW:")) != -1) {
         switch (opt) {
             case 'o':
                 cfg->outfilename = optarg;
@@ -206,7 +206,7 @@ static bool parse_config(cli_config_t* cfg, int argc, char** argv) {
                 cfg->sample_buffer_size = atoi(optarg);
                 break;
             case 'W':
-                cfg->write_float_wav = true;
+                cfg->wav_force_output = atoi(optarg);
                 break;
             case '2':
                 cfg->stereo_track = atoi(optarg) + 1;
@@ -307,10 +307,13 @@ static void load_vconfig(libvgmstream_config_t* vcfg, cli_config_t* cfg) {
     vcfg->ignore_fade = cfg->ignore_fade;
 
     vcfg->auto_downmix_channels = cfg->downmix_channels;
-    if (cfg->write_float_wav)
-        vcfg->force_sfmt = LIBVGMSTREAM_SFMT_FLOAT;
-    else if (!cfg->write_original_wav) //bloated wav so disabled by default
+    if (cfg->wav_force_output) {
+        vcfg->force_sfmt = cfg->wav_force_output;
+    }
+    else if (!cfg->write_original_wav) {
+        // bloated wav for most uses so disabled by default
         vcfg->force_sfmt = LIBVGMSTREAM_SFMT_PCM16;
+    }
 
     vcfg->stereo_track = cfg->stereo_track;
 }

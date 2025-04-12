@@ -12,76 +12,6 @@
 #include <math.h>
 #endif
 
-#define CONV_NOOP(x) (x)
-#define CONV_S16_FLT(x) (x * (1.0f / 32767.0f))
-#define CONV_F16_FLT(x) (x * (1.0f / 32767.0f))
-#ifdef PCM16_ROUNDING_HALF
-#define CONV_FLT_S16(x) (clamp16(float_to_int( floor(x * 32767.0f + 0.5f) )))
-#else
-#define CONV_FLT_S16(x) (clamp16(float_to_int(x * 32767.0f)))
-#endif
-#define CONV_F16_S16(x) (clamp16(float_to_int(x)))
-#define CONV_FLT_F16(x) (x * 32767.0f)
-
-
-void sbuf_init(sbuf_t* sbuf, sfmt_t format, void* buf, int samples, int channels) {
-    memset(sbuf, 0, sizeof(sbuf_t));
-    sbuf->buf = buf;
-    sbuf->samples = samples;
-    sbuf->channels = channels;
-    sbuf->fmt = format;
-}
-
-void sbuf_init_s16(sbuf_t* sbuf, int16_t* buf, int samples, int channels) {
-    sbuf_init(sbuf, SFMT_S16, buf, samples, channels);
-}
-
-void sbuf_init_f16(sbuf_t* sbuf, float* buf, int samples, int channels) {
-    sbuf_init(sbuf, SFMT_F16, buf, samples, channels);
-}
-
-void sbuf_init_flt(sbuf_t* sbuf, float* buf, int samples, int channels) {
-    sbuf_init(sbuf, SFMT_FLT, buf, samples, channels);
-}
-
-
-int sfmt_get_sample_size(sfmt_t fmt) {
-    switch(fmt) {
-        case SFMT_F16:
-        case SFMT_FLT:
-            return 0x04;
-        case SFMT_S16:
-            return 0x02;
-        default:
-            return 0;
-    }
-}
-
-void* sbuf_get_filled_buf(sbuf_t* sbuf) {
-    int sample_size = sfmt_get_sample_size(sbuf->fmt);
-
-    uint8_t* buf = sbuf->buf;
-    buf += sbuf->filled * sbuf->channels * sample_size;
-    return buf;
-}
-
-void sbuf_consume(sbuf_t* sbuf, int samples) {
-    if (samples == 0) //some discards
-        return;
-    int sample_size = sfmt_get_sample_size(sbuf->fmt);
-    if (sample_size <= 0) //???
-        return;
-    if (samples > sbuf->samples || samples > sbuf->filled) //???
-        return;
-
-    uint8_t* buf = sbuf->buf;
-    buf += samples * sbuf->channels * sample_size;
-
-    sbuf->buf = buf;
-    sbuf->filled -= samples;
-    sbuf->samples -= samples;
-}
-
 /* when casting float to int, value is simply truncated:
  * - (int)1.7 = 1, (int)-1.7 = -1
  * alts for more accurate rounding could be:
@@ -116,9 +46,131 @@ static inline int double_to_int(double val) {
 #endif
 }
 
+static inline int64_t float_to_i64(float val) {
+    return (int64_t)val;
+}
+
 static inline float double_to_float(double val) {
     return (float)val;
 }
+
+static void put_u24le(uint8_t* buf, uint32_t v) {
+    buf[0] = (uint8_t)((v >>  0) & 0xFF);
+    buf[1] = (uint8_t)((v >>  8) & 0xFF);
+    buf[2] = (uint8_t)((v >> 16) & 0xFF);
+}
+
+static inline int clamp_pcm16(int32_t val) {
+    return clamp16(val);
+}
+
+static inline int clamp_pcm24(int32_t val) {
+    if (val > 8388607) return 8388607;
+    else if (val < -8388608) return -8388608;
+    else return val;
+}
+
+static inline int clamp_pcm32(int64_t val) {
+    if (val > 2147483647) return 2147483647;
+    else if (val < -2147483648) return -2147483648;
+    else return val;
+}
+
+//TODO float can't fully represent s32, but since it mainly affects lower bytes (noise) it may be ok
+
+#define CONV_NOOP(x) (x)
+#define CONV_S16_FLT(x) (x * (1.0f / 32767.0f))
+#define CONV_S16_S24(x) (x << 8)
+#define CONV_S16_S32(x) (x << 16)
+
+#define CONV_F16_S16(x) (clamp_pcm16(float_to_int(x)))
+#define CONV_F16_FLT(x) (x * (1.0f / 32767.0f))
+#define CONV_F16_S24(x) (clamp_pcm16(float_to_int(x)) << 8)
+#define CONV_F16_S32(x) (clamp_pcm16(float_to_int(x)) << 16)
+
+#ifdef PCM16_ROUNDING_HALF
+#define CONV_FLT_S16(x) (clamp_pcm16(float_to_int( floor(x * 32767.0f + 0.5f) )))
+#else
+#define CONV_FLT_S16(x) (clamp_pcm16(float_to_int(x * 32767.0f)))
+#endif
+#define CONV_FLT_F16(x) (x * 32767.0f)
+#define CONV_FLT_S24(x) (clamp_pcm24(float_to_int(x * 8388607.0f)))
+#define CONV_FLT_S32(x) (clamp_pcm32(float_to_i64(x * 2147483647)))
+
+#define CONV_S24_S16(x) (x >> 8)
+#define CONV_S24_F16(x) (x >> 8)
+#define CONV_S24_S32(x) (x << 8)
+#define CONV_S24_FLT(x) (x * (1.0f / 8388607.0f))
+
+#define CONV_S32_S16(x) (x >> 16)
+#define CONV_S32_F16(x) (x >> 16)
+#define CONV_S32_FLT(x) (x * (1.0f / 2147483647.0f))
+#define CONV_S32_S24(x) (x >> 8)
+
+
+void sbuf_init(sbuf_t* sbuf, sfmt_t format, void* buf, int samples, int channels) {
+    memset(sbuf, 0, sizeof(sbuf_t));
+    sbuf->buf = buf;
+    sbuf->samples = samples;
+    sbuf->channels = channels;
+    sbuf->fmt = format;
+}
+
+void sbuf_init_s16(sbuf_t* sbuf, int16_t* buf, int samples, int channels) {
+    sbuf_init(sbuf, SFMT_S16, buf, samples, channels);
+}
+
+void sbuf_init_f16(sbuf_t* sbuf, float* buf, int samples, int channels) {
+    sbuf_init(sbuf, SFMT_F16, buf, samples, channels);
+}
+
+void sbuf_init_flt(sbuf_t* sbuf, float* buf, int samples, int channels) {
+    sbuf_init(sbuf, SFMT_FLT, buf, samples, channels);
+}
+
+
+int sfmt_get_sample_size(sfmt_t fmt) {
+    switch(fmt) {
+        case SFMT_F16:
+        case SFMT_FLT:
+        case SFMT_S24:
+        case SFMT_S32:
+            return 0x04;
+        case SFMT_S16:
+            return 0x02;
+        case SFMT_O24:
+           return 0x03;
+        default:
+            VGM_LOG("SBUF: undefined sample format %i found\n", fmt);
+            return 0; //TODO return 4 to avoid crashes?
+    }
+}
+
+void* sbuf_get_filled_buf(sbuf_t* sbuf) {
+    int sample_size = sfmt_get_sample_size(sbuf->fmt);
+
+    uint8_t* buf = sbuf->buf;
+    buf += sbuf->filled * sbuf->channels * sample_size;
+    return buf;
+}
+
+void sbuf_consume(sbuf_t* sbuf, int samples) {
+    if (samples == 0) //some discards
+        return;
+    int sample_size = sfmt_get_sample_size(sbuf->fmt);
+    if (sample_size <= 0) //???
+        return;
+    if (samples > sbuf->samples || samples > sbuf->filled) //???
+        return;
+
+    uint8_t* buf = sbuf->buf;
+    buf += samples * sbuf->channels * sample_size;
+
+    sbuf->buf = buf;
+    sbuf->filled -= samples;
+    sbuf->samples -= samples;
+}
+
 
 // max samples to copy from ssrc to sdst, considering that dst may be partially filled
 int sbuf_get_copy_max(sbuf_t* sdst, sbuf_t* ssrc) {
@@ -137,30 +189,66 @@ typedef void (*sbuf_copy_t)(void* vsrc, void* vdst, int src_pos, int dst_pos, in
 // Uses void params to allow callbacks.
 #define DEFINE_SBUF_COPY(suffix, srctype, dsttype, func) \
     void sbuf_copy_##suffix(void* vsrc, void* vdst, int src_pos, int dst_pos, int src_max) { \
-        srctype* src = vsrc;\
-        dsttype* dst = vdst;\
+        srctype* src = vsrc; \
+        dsttype* dst = vdst; \
         while (src_pos < src_max) { \
             dst[dst_pos++] = func(src[src_pos++]); \
         } \
     }
 
+#define DEFINE_SBUF_CP24(suffix, srctype, dsttype, func) \
+    void sbuf_copy_##suffix(void* vsrc, void* vdst, int src_pos, int dst_pos, int src_max) { \
+        srctype* src = vsrc; \
+        dsttype* dst = vdst; \
+        while (src_pos < src_max) { \
+            put_u24le(dst + dst_pos, func(src[src_pos++]) ); \
+            dst_pos += 3; \
+        } \
+    }
+
 DEFINE_SBUF_COPY(s16_s16, int16_t, int16_t, CONV_NOOP);
-DEFINE_SBUF_COPY(s16_f16, int16_t, float, CONV_NOOP);
-DEFINE_SBUF_COPY(s16_flt, int16_t, float, CONV_S16_FLT);
+DEFINE_SBUF_COPY(s16_f16, int16_t, float,   CONV_NOOP);
+DEFINE_SBUF_COPY(s16_flt, int16_t, float,   CONV_S16_FLT);
+DEFINE_SBUF_COPY(s16_s24, int16_t, int32_t, CONV_S16_S24);
+DEFINE_SBUF_COPY(s16_s32, int16_t, int32_t, CONV_S16_S32);
+DEFINE_SBUF_CP24(s16_o24, int16_t, uint8_t, CONV_S16_S24);
 
-DEFINE_SBUF_COPY(flt_s16, float, int16_t, CONV_FLT_S16);
-DEFINE_SBUF_COPY(flt_f16, float, float, CONV_FLT_F16);
-DEFINE_SBUF_COPY(flt_flt, float, float, CONV_NOOP);
+DEFINE_SBUF_COPY(f16_s16, float,   int16_t, CONV_F16_S16);
+DEFINE_SBUF_COPY(f16_f16, float,   float,   CONV_NOOP);
+DEFINE_SBUF_COPY(f16_flt, float,   float,   CONV_F16_FLT);
+DEFINE_SBUF_COPY(f16_s24, float,   int32_t, CONV_F16_S24);
+DEFINE_SBUF_COPY(f16_s32, float,   int32_t, CONV_F16_S32);
+DEFINE_SBUF_CP24(f16_o24, float,   uint8_t, CONV_F16_S24);
 
-DEFINE_SBUF_COPY(f16_s16, float, int16_t, CONV_F16_S16);
-DEFINE_SBUF_COPY(f16_f16, float, float, CONV_NOOP);
-DEFINE_SBUF_COPY(f16_flt, float, float, CONV_F16_FLT);
+DEFINE_SBUF_COPY(flt_s16, float,   int16_t, CONV_FLT_S16);
+DEFINE_SBUF_COPY(flt_f16, float,   float,   CONV_FLT_F16);
+DEFINE_SBUF_COPY(flt_flt, float,   float,   CONV_NOOP);
+DEFINE_SBUF_COPY(flt_s24, float,   int32_t, CONV_FLT_S24);
+DEFINE_SBUF_COPY(flt_s32, float,   int32_t, CONV_FLT_S32);
+DEFINE_SBUF_CP24(flt_o24, float,   uint8_t, CONV_FLT_S24);
+
+DEFINE_SBUF_COPY(s24_s16, int32_t, int16_t, CONV_S24_S16);
+DEFINE_SBUF_COPY(s24_f16, int32_t, float,   CONV_S24_F16);
+DEFINE_SBUF_COPY(s24_flt, int32_t, float,   CONV_S24_FLT);
+DEFINE_SBUF_COPY(s24_s24, int32_t, int32_t, CONV_NOOP);
+DEFINE_SBUF_COPY(s24_s32, int32_t, int32_t, CONV_S24_S32);
+DEFINE_SBUF_CP24(s24_o24, int32_t, uint8_t, CONV_NOOP);
+
+DEFINE_SBUF_COPY(s32_s16, int32_t, int16_t, CONV_S32_S16);
+DEFINE_SBUF_COPY(s32_f16, int32_t, float,   CONV_S32_F16);
+DEFINE_SBUF_COPY(s32_flt, int32_t, float,   CONV_S32_FLT);
+DEFINE_SBUF_COPY(s32_s24, int32_t, int32_t, CONV_S32_S24);
+DEFINE_SBUF_COPY(s32_s32, int32_t, int32_t, CONV_NOOP);
+DEFINE_SBUF_CP24(s32_o24, int32_t, uint8_t, CONV_S32_S24);
 
 static sbuf_copy_t copy_matrix[SFMT_MAX][SFMT_MAX] = {
-    { NULL, NULL, NULL, NULL },
-    { NULL, sbuf_copy_s16_s16, sbuf_copy_s16_f16, sbuf_copy_s16_flt },
-    { NULL, sbuf_copy_f16_s16, sbuf_copy_f16_f16, sbuf_copy_f16_flt },
-    { NULL, sbuf_copy_flt_s16, sbuf_copy_flt_f16, sbuf_copy_flt_flt },
+    { NULL, NULL, NULL, NULL, NULL }, //NONE
+    { NULL, sbuf_copy_s16_s16, sbuf_copy_s16_f16, sbuf_copy_s16_flt, sbuf_copy_s16_s24, sbuf_copy_s16_s32, sbuf_copy_s16_o24 },
+    { NULL, sbuf_copy_f16_s16, sbuf_copy_f16_f16, sbuf_copy_f16_flt, sbuf_copy_f16_s24, sbuf_copy_f16_s32, sbuf_copy_f16_o24 },
+    { NULL, sbuf_copy_flt_s16, sbuf_copy_flt_f16, sbuf_copy_flt_flt, sbuf_copy_flt_s24, sbuf_copy_flt_s32, sbuf_copy_flt_o24 },
+    { NULL, sbuf_copy_s24_s16, sbuf_copy_s24_f16, sbuf_copy_s24_flt, sbuf_copy_s24_s24, sbuf_copy_s24_s32, sbuf_copy_s24_o24 },
+    { NULL, sbuf_copy_s32_s16, sbuf_copy_s32_f16, sbuf_copy_s32_flt, sbuf_copy_s32_s24, sbuf_copy_s32_s32, sbuf_copy_s32_o24 },
+    { NULL, NULL, NULL, NULL, NULL }, //O24
 };
 
 
@@ -222,23 +310,71 @@ typedef void (*sbuf_layer_t)(void* vsrc, void* vdst, int src_pos, int dst_pos, i
         } \
     }
 
-DEFINE_SBUF_LAYER(s16_s16, int16_t, int16_t,CONV_NOOP);
-DEFINE_SBUF_LAYER(s16_f16, int16_t, float,  CONV_NOOP);
-DEFINE_SBUF_LAYER(s16_flt, int16_t, float,  CONV_S16_FLT);
+#define DEFINE_SBUF_LYR24(suffix, srctype, dsttype, func) \
+    void sbuf_layer_##suffix(void* vsrc, void* vdst, int src_pos, int dst_pos, int src_filled, int dst_expected, int src_channels, int dst_channels) { \
+        srctype* src = vsrc; \
+        dsttype* dst = vdst; \
+        int dst_ch_step = (dst_channels - src_channels); \
+        for (int s = 0; s < src_filled; s++) { \
+            for (int src_ch = 0; src_ch < src_channels; src_ch++) { \
+                put_u24le(dst + dst_pos, func(src[src_pos++]) ); \
+                dst_pos += 3; \
+            } \
+            dst_pos += dst_ch_step * 3; \
+        } \
+        \
+        for (int s = src_filled; s < dst_expected; s++) { \
+            for (int src_ch = 0; src_ch < src_channels; src_ch++) { \
+                put_u24le(dst + dst_pos, 0); \
+                dst_pos += 3; \
+            } \
+            dst_pos += dst_ch_step * 3; \
+        } \
+    }
 
-DEFINE_SBUF_LAYER(flt_s16, float, int16_t,  CONV_FLT_S16);
-DEFINE_SBUF_LAYER(flt_f16, float, float,    CONV_FLT_F16);
-DEFINE_SBUF_LAYER(flt_flt, float, float,    CONV_NOOP);
+DEFINE_SBUF_LAYER(s16_s16, int16_t, int16_t, CONV_NOOP);
+DEFINE_SBUF_LAYER(s16_f16, int16_t, float,   CONV_NOOP);
+DEFINE_SBUF_LAYER(s16_flt, int16_t, float,   CONV_S16_FLT);
+DEFINE_SBUF_LAYER(s16_s24, int16_t, int32_t, CONV_S16_S24);
+DEFINE_SBUF_LAYER(s16_s32, int16_t, int32_t, CONV_S16_S32);
+DEFINE_SBUF_LYR24(s16_o24, int16_t, uint8_t, CONV_S16_S24);
 
-DEFINE_SBUF_LAYER(f16_s16, float, int16_t,  CONV_F16_S16);
-DEFINE_SBUF_LAYER(f16_f16, float, float,    CONV_NOOP);
-DEFINE_SBUF_LAYER(f16_flt, float, float,    CONV_F16_FLT);
+DEFINE_SBUF_LAYER(f16_s16, float,   int16_t, CONV_F16_S16);
+DEFINE_SBUF_LAYER(f16_f16, float,   float,   CONV_NOOP);
+DEFINE_SBUF_LAYER(f16_flt, float,   float,   CONV_F16_FLT);
+DEFINE_SBUF_LAYER(f16_s24, float,   int32_t, CONV_F16_S24);
+DEFINE_SBUF_LAYER(f16_s32, float,   int32_t, CONV_F16_S32);
+DEFINE_SBUF_LYR24(f16_o24, float,   uint8_t, CONV_F16_S24);
+
+DEFINE_SBUF_LAYER(flt_s16, float,   int16_t, CONV_FLT_S16);
+DEFINE_SBUF_LAYER(flt_f16, float,   float,   CONV_FLT_F16);
+DEFINE_SBUF_LAYER(flt_flt, float,   float,   CONV_NOOP);
+DEFINE_SBUF_LAYER(flt_s24, float,   int32_t, CONV_FLT_S24);
+DEFINE_SBUF_LAYER(flt_s32, float,   int32_t, CONV_FLT_S32);
+DEFINE_SBUF_LYR24(flt_o24, float,   uint8_t, CONV_FLT_S24);
+
+DEFINE_SBUF_LAYER(s24_s16, int32_t, int16_t, CONV_S24_S16);
+DEFINE_SBUF_LAYER(s24_f16, int32_t, float,   CONV_S24_F16);
+DEFINE_SBUF_LAYER(s24_flt, int32_t, float,   CONV_S24_FLT);
+DEFINE_SBUF_LAYER(s24_s24, int32_t, int32_t, CONV_NOOP);
+DEFINE_SBUF_LAYER(s24_s32, int32_t, int32_t, CONV_S24_S32);
+DEFINE_SBUF_LYR24(s24_o24, int32_t, uint8_t, CONV_NOOP);
+
+DEFINE_SBUF_LAYER(s32_s16, int32_t, int16_t, CONV_S32_S16);
+DEFINE_SBUF_LAYER(s32_f16, int32_t, float,   CONV_S32_F16);
+DEFINE_SBUF_LAYER(s32_flt, int32_t, float,   CONV_S32_FLT);
+DEFINE_SBUF_LAYER(s32_s24, int32_t, int32_t, CONV_S32_S24);
+DEFINE_SBUF_LAYER(s32_s32, int32_t, int32_t, CONV_NOOP);
+DEFINE_SBUF_LYR24(s32_o24, int32_t, uint8_t, CONV_NOOP);
 
 static sbuf_layer_t layer_matrix[SFMT_MAX][SFMT_MAX] = {
-    { NULL, NULL, NULL, NULL },
-    { NULL, sbuf_layer_s16_s16, sbuf_layer_s16_f16, sbuf_layer_s16_flt },
-    { NULL, sbuf_layer_f16_s16, sbuf_layer_f16_f16, sbuf_layer_f16_flt },
-    { NULL, sbuf_layer_flt_s16, sbuf_layer_flt_f16, sbuf_layer_flt_flt },
+    { NULL, NULL, NULL, NULL, NULL }, //NONE
+    { NULL, sbuf_layer_s16_s16, sbuf_layer_s16_f16, sbuf_layer_s16_flt, sbuf_layer_s16_s24, sbuf_layer_s16_s32, sbuf_layer_s16_o24 },
+    { NULL, sbuf_layer_f16_s16, sbuf_layer_f16_f16, sbuf_layer_f16_flt, sbuf_layer_f16_s24, sbuf_layer_f16_s32, sbuf_layer_f16_o24 },
+    { NULL, sbuf_layer_flt_s16, sbuf_layer_flt_f16, sbuf_layer_flt_flt, sbuf_layer_flt_s24, sbuf_layer_flt_s32, sbuf_layer_flt_o24 },
+    { NULL, sbuf_layer_s24_s16, sbuf_layer_s24_f16, sbuf_layer_s24_flt, sbuf_layer_s24_s24, sbuf_layer_s24_s32, sbuf_layer_s24_o24 },
+    { NULL, sbuf_layer_s32_s16, sbuf_layer_s32_f16, sbuf_layer_s32_flt, sbuf_layer_s32_s24, sbuf_layer_s32_s32, sbuf_layer_s32_o24 },
+    { NULL, NULL, NULL, NULL, NULL }, //O32
 };
 
 // copy interleaving: dst ch1 ch2 ch3 ch4 w/ src ch1 ch2 ch1 ch2 = only fill dst ch1 ch2
