@@ -422,6 +422,7 @@ static const char* extension_list[] = {
     "oor",
     "opu",
     //"opus", //common
+    "opusnx",
     "opusx",
     "oto", //txth/reserved [Vampire Savior (SAT)]
     "ovb", //txth/semi [namCollection: Tekken (PS2), Tekken 5: Tekken 1-3 (PS2)]
