@@ -318,6 +318,7 @@
     <ClCompile Include="coding\tac_decoder.c" />
     <ClCompile Include="coding\tantalus_decoder.c" />
     <ClCompile Include="coding\tgcadpcm_decoder.c" />
+    <ClCompile Include="coding\ualaw_decoder.c" />
     <ClCompile Include="coding\ubi_adpcm_decoder.c" />
     <ClCompile Include="coding\ubi_mpeg_decoder.c" />
     <ClCompile Include="coding\vadpcm_decoder.c" />
