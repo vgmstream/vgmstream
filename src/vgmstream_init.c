@@ -92,7 +92,6 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_xmu,
     init_vgmstream_sat_sap,
     init_vgmstream_dc_idvi,
-    init_vgmstream_ps2_rnd,
     init_vgmstream_idsp_tt,
     init_vgmstream_kraw,
     init_vgmstream_omu,
@@ -538,6 +537,7 @@ init_vgmstream_t init_vgmstream_functions[] = {
     init_vgmstream_song_monster,
     init_vgmstream_vai,
     init_vgmstream_ezw,
+    init_vgmstream_vgs_old,
     /* need companion files */
     init_vgmstream_pos,
     init_vgmstream_sli_loops,

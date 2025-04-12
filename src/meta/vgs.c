@@ -2,71 +2,95 @@
 #include "../util.h"
 #include "../coding/coding.h"
 #include "../layout/layout.h"
+#include "../util/meta_utils.h"
 
-/* VGS  - from Guitar Hero Encore - Rocks the 80s, Guitar Hero II PS2 */
+/* VGS - from Harmonix games [Guitar Hero II (PS2), Guitar Hero Encore: Rocks the 80s (PS2)] */
 VGMSTREAM* init_vgmstream_vgs(STREAMFILE *sf) {
-    VGMSTREAM* vgmstream = NULL;
-    off_t start_offset;
-    size_t channel_size = 0, stream_data_size, stream_frame_count;
-    int channels = 0, loop_flag = 0, sample_rate = 0, stream_sample_rate;
-    int i;
-
 
     /* checks */
     if (!is_id32be(0x00,sf, "VgS!"))
-        goto fail;
-    /* 0x04: version? */
-
+        return NULL;
+    // 0x04: version?
     if (!check_extensions(sf,"vgs"))
-        goto fail;
+        return NULL;
+
+    meta_header_t h = {0};
+    h.meta = meta_VGS;
 
     /* contains N streams, which can have one less frame, or half frame and sample rate */
-    for (i = 0; i < 8; i++) {
-        stream_sample_rate = read_32bitLE(0x08 + 0x08*i + 0x00,sf);
-        stream_frame_count = read_32bitLE(0x08 + 0x08*i + 0x04,sf);
-        stream_data_size = stream_frame_count*0x10;
+    for (int i = 0; i < 8; i++) {
+        int stream_sample_rate = read_s32le(0x08 + 0x08 * i + 0x00,sf);
+        uint32_t stream_frame_count = read_u32le(0x08 + 0x08 * i + 0x04,sf);
+        uint32_t stream_data_size = stream_frame_count * 0x10;
 
         if (stream_sample_rate == 0)
             break;
 
-        if (!sample_rate || !channel_size) {
-            sample_rate = stream_sample_rate;
-            channel_size = stream_data_size;
+        if (!h.sample_rate || !h.chan_size) {
+            h.sample_rate = stream_sample_rate;
+            h.chan_size = stream_data_size;
         }
 
         /* some streams end 1 frame early */
-        if (channel_size - 0x10 == stream_data_size) {
-            channel_size -= 0x10;
+        if (h.chan_size - 0x10 == stream_data_size) {
+            h.chan_size -= 0x10;
         }
 
         /* Guitar Hero II sometimes uses half sample rate for last stream */
-        if (sample_rate != stream_sample_rate) {
+        if (h.sample_rate != stream_sample_rate) {
             VGM_LOG("VGS: ignoring stream %i\n", i);
             //total_streams++; // todo handle substreams
             break;
         }
 
-        channels++;
+        h.channels++;
     }
 
-    start_offset = 0x80;
+    h.stream_offset = 0x80;
 
-    
-    /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channels, loop_flag);
-    if (!vgmstream) goto fail;
+    h.num_samples = ps_bytes_to_samples(h.chan_size, 1);
 
-    vgmstream->meta_type = meta_VGS;
-    vgmstream->sample_rate = sample_rate;
-    vgmstream->num_samples = ps_bytes_to_samples(channel_size * channels, channels);
+    h.coding = coding_PSX_badflags; // flag = stream/channel number
+    h.layout = layout_blocked_vgs;
+    h.open_stream = true;
+    h.sf = sf;
 
-    vgmstream->coding_type = coding_PSX_badflags; /* flag = stream/channel number */
-    vgmstream->layout_type = layout_blocked_vgs;
+    return alloc_metastream(&h);
+}
 
-    if (!vgmstream_open_stream(vgmstream, sf, start_offset))
-        goto fail;
-    return vgmstream;
-fail:
-    close_vgmstream(vgmstream);
-    return NULL;
+/* .vgs - from Harmonix games [Karaoke Revolution (PS2), EyeToy: AntiGrav (PS2)] */
+VGMSTREAM* init_vgmstream_vgs_old(STREAMFILE* sf) {
+
+    /* checks */
+    int channels = read_s32le(0x00,sf);
+    if (channels < 1 || channels > 4)
+        return NULL;
+
+    // .vgs: actual extension in bigfiles
+    if (!check_extensions(sf,"vgs"))
+        return NULL;
+
+    meta_header_t h = {0};
+    h.meta = meta_VGS;
+
+    h.channels      = read_s32le(0x00, sf);
+    h.sample_rate   = read_s32le(0x04, sf);
+    int frame_count = read_u32le(0x08, sf);
+    // 0c: usually 0, sometimes garbage
+
+    h.stream_offset = 0x10;
+    h.stream_size   = get_streamfile_size(sf) - h.stream_offset;
+
+    if (frame_count * h.channels * 0x10 > h.stream_size)
+        return NULL;
+
+    h.num_samples   = ps_bytes_to_samples(h.stream_size, channels);
+    h.interleave    = 0x2000;
+
+    h.coding = coding_PSX;
+    h.layout = layout_interleave;
+    h.open_stream = true;
+    h.sf = sf;
+
+    return alloc_metastream(&h);
 }

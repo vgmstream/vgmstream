@@ -1789,9 +1789,6 @@
     <ClCompile Include="meta\ps2_joe.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="meta\ps2_rnd.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="meta\ps2_snd.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
