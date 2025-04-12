@@ -552,7 +552,7 @@ typedef enum {
     meta_NAAC,
     meta_UBI_SB,
     meta_UBI_APM,
-    meta_EZW,               /* EZ2DJ (Arcade) EZWAV */
+    meta_EZW,
     meta_VXN,               /* Gameloft mobile games */
     meta_EA_SNR_SNS,        /* Electronic Arts SNR+SNS (Burnout Paradise) */
     meta_EA_SPS,            /* Electronic Arts SPS (Burnout Crash) */

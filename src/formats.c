@@ -560,6 +560,7 @@ static const char* extension_list[] = {
     "srsa",
     "ss2",
     "ssd", //txth/reserved [Zack & Wiki (Wii)]
+    "ssf",
     "ssm",
     "sspr",
     "ssp",
@@ -1311,7 +1312,7 @@ static const meta_info meta_info_list[] = {
         {meta_UBI_SB,               "Ubisoft SBx header"},
         {meta_UBI_APM,              "Ubisoft APM header"},
         {meta_NAAC,                 "Namco NAAC header"},
-        {meta_EZW,                  "EZ2DJ EZWAVE header"},
+        {meta_EZW,                  "AmuseWorld EZW header"},
         {meta_VXN,                  "Gameloft VXN header"},
         {meta_EA_SNR_SNS,           "Electronic Arts SNR+SNS header"},
         {meta_EA_SPS,               "Electronic Arts SPS header"},
