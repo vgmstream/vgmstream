@@ -185,7 +185,7 @@ typedef struct {
     bool is_at9;
 } riff_fmt_chunk;
 
-static int read_fmt(int big_endian, STREAMFILE* sf, off_t offset, riff_fmt_chunk* fmt) {
+static bool read_fmt(bool big_endian, STREAMFILE* sf, off_t offset, riff_fmt_chunk* fmt) {
     uint32_t (*read_u32)(off_t,STREAMFILE*) = big_endian ? read_u32be : read_u32le;
     uint16_t (*read_u16)(off_t,STREAMFILE*) = big_endian ? read_u16be : read_u16le;
 
@@ -235,19 +235,19 @@ static int read_fmt(int big_endian, STREAMFILE* sf, off_t offset, riff_fmt_chunk
 
         case 0x0001: /* PCM */
             switch (fmt->bps) {
-                case 32:
+                case 32: /* Get Off My Lawn! (PC) */
                     fmt->coding_type = coding_PCM32LE;
                     break;
-                case 24: /* Omori (PC) */
+                case 24: /* Tinertia (PC), Beatbuddy (WiiU) */
                     fmt->coding_type = coding_PCM24LE;
                     break;
-                case 16:
+                case 16: /* common */
                     fmt->coding_type = big_endian ? coding_PCM16BE : coding_PCM16LE;
                     /* broken block size [Rayman 2 (DC)] */
                     if (fmt->block_size == 0x02 && fmt->channels > 1)
                         fmt->block_size = 0x02 * fmt->channels;
                     break;
-                case 8:
+                case 8: /* The Lost Vikings 2 (PC), Phoenix Wright: Ace Attorney (iOS) */
                     fmt->coding_type = coding_PCM8_U;
                     break;
                 default:
@@ -256,7 +256,7 @@ static int read_fmt(int big_endian, STREAMFILE* sf, off_t offset, riff_fmt_chunk
             fmt->interleave = fmt->block_size / fmt->channels;
             break;
 
-        case 0x0002: /* MSADPCM */
+        case 0x0002: /* MSADPCM [Descent: Freespace (PC)] */
             if (fmt->bps == 4) {
                 /* ADPCMWAVEFORMAT extra data:
                  * - samples per frame (16b)
@@ -273,10 +273,12 @@ static int read_fmt(int big_endian, STREAMFILE* sf, off_t offset, riff_fmt_chunk
                 goto fail;
             }
             break;
-        case 0x0003: /* floating point PCM */
+
+        case 0x0003: /* floating point PCM [Cube World (PC), SphereZor (WiiU)] */
             if (fmt->bps == 32) {
               fmt->coding_type = coding_PCMFLOAT;
-            } else {
+            }
+            else {
               goto fail;
             }
             fmt->interleave = fmt->block_size / fmt->channels;
@@ -407,10 +409,10 @@ static int read_fmt(int big_endian, STREAMFILE* sf, off_t offset, riff_fmt_chunk
             goto fail;
     }
 
-    return 1;
+    return true;
 
 fail:
-    return 0;
+    return false;
 }
 
 static bool is_ue4_msadpcm(STREAMFILE* sf, riff_fmt_chunk* fmt, int fact_sample_count, off_t start_offset, uint32_t data_size);
@@ -590,7 +592,7 @@ VGMSTREAM* init_vgmstream_riff(STREAMFILE* sf) {
                         goto fail; /* only one per file */
                     fmt_chunk_found = true;
 
-                    if (!read_fmt(0, sf, current_chunk, &fmt))
+                    if (!read_fmt(false, sf, current_chunk, &fmt))
                         goto fail;
 
                     /* some Dreamcast/Naomi games again [Headhunter (DC), Bomber hehhe (DC), Rayman 2 (DC)] */
@@ -1292,7 +1294,7 @@ VGMSTREAM* init_vgmstream_rifx(STREAMFILE* sf) {
                     if (FormatChunkFound) goto fail;
                     FormatChunkFound = 1;
 
-                    if (!read_fmt(1, sf, current_chunk, &fmt))
+                    if (!read_fmt(true, sf, current_chunk, &fmt))
                         goto fail;
 
                     break;
