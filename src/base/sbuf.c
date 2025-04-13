@@ -54,10 +54,25 @@ static inline float double_to_float(double val) {
     return (float)val;
 }
 
-static void put_u24le(uint8_t* buf, uint32_t v) {
+// TO-DO: investigate if BE machines need BE 24-bit
+static inline int32_t get_s24ne(const uint8_t* p) {
+#if PCM24_BIG_ENDIAN
+    return (((int32_t)p[0]<<24) | ((int32_t)p[1]<<16) | ((int32_t)p[2]<<8)) >> 8; //force signedness
+#else
+    return (((int32_t)p[0]<<8) | ((int32_t)p[1]<<16) | ((int32_t)p[2]<<24)) >> 8; //force signedness
+#endif
+}
+
+static void put_u24ne(uint8_t* buf, uint32_t v) {
+#if PCM24_BIG_ENDIAN
+    buf[0] = (uint8_t)((v >> 16) & 0xFF);
+    buf[1] = (uint8_t)((v >>  8) & 0xFF);
+    buf[2] = (uint8_t)((v >>  0) & 0xFF);
+#else
     buf[0] = (uint8_t)((v >>  0) & 0xFF);
     buf[1] = (uint8_t)((v >>  8) & 0xFF);
     buf[2] = (uint8_t)((v >> 16) & 0xFF);
+#endif
 }
 
 static inline int clamp_pcm16(int32_t val) {
@@ -181,6 +196,19 @@ int sbuf_get_copy_max(sbuf_t* sdst, sbuf_t* ssrc) {
     return samples_copy;
 }
 
+void sbuf_silence_part(sbuf_t* sbuf, int from, int count) {
+    int sample_size = sfmt_get_sample_size(sbuf->fmt);
+
+    uint8_t* buf = sbuf->buf;
+    buf += from * sbuf->channels * sample_size;
+    memset(buf, 0, count * sbuf->channels * sample_size);
+}
+
+void sbuf_silence_rest(sbuf_t* sbuf) {
+    sbuf_silence_part(sbuf, sbuf->filled, sbuf->samples - sbuf->filled);
+}
+
+
 
 typedef void (*sbuf_copy_t)(void* vsrc, void* vdst, int src_pos, int dst_pos, int src_max);
 
@@ -188,7 +216,7 @@ typedef void (*sbuf_copy_t)(void* vsrc, void* vdst, int src_pos, int dst_pos, in
 // Must define various functions below, to be set in the copy matrix.
 // Uses void params to allow callbacks.
 #define DEFINE_SBUF_COPY(suffix, srctype, dsttype, func) \
-    void sbuf_copy_##suffix(void* vsrc, void* vdst, int src_pos, int dst_pos, int src_max) { \
+    static void sbuf_copy_##suffix(void* vsrc, void* vdst, int src_pos, int dst_pos, int src_max) { \
         srctype* src = vsrc; \
         dsttype* dst = vdst; \
         while (src_pos < src_max) { \
@@ -197,11 +225,11 @@ typedef void (*sbuf_copy_t)(void* vsrc, void* vdst, int src_pos, int dst_pos, in
     }
 
 #define DEFINE_SBUF_CP24(suffix, srctype, dsttype, func) \
-    void sbuf_copy_##suffix(void* vsrc, void* vdst, int src_pos, int dst_pos, int src_max) { \
+    static void sbuf_copy_##suffix(void* vsrc, void* vdst, int src_pos, int dst_pos, int src_max) { \
         srctype* src = vsrc; \
         dsttype* dst = vdst; \
         while (src_pos < src_max) { \
-            put_u24le(dst + dst_pos, func(src[src_pos++]) ); \
+            put_u24ne(dst + dst_pos, func(src[src_pos++]) ); \
             dst_pos += 3; \
         } \
     }
@@ -291,7 +319,7 @@ typedef void (*sbuf_layer_t)(void* vsrc, void* vdst, int src_pos, int dst_pos, i
 
 // See above
 #define DEFINE_SBUF_LAYER(suffix, srctype, dsttype, func) \
-    void sbuf_layer_##suffix(void* vsrc, void* vdst, int src_pos, int dst_pos, int src_filled, int dst_expected, int src_channels, int dst_channels) { \
+    static void sbuf_layer_##suffix(void* vsrc, void* vdst, int src_pos, int dst_pos, int src_filled, int dst_expected, int src_channels, int dst_channels) { \
         srctype* src = vsrc; \
         dsttype* dst = vdst; \
         int dst_ch_step = (dst_channels - src_channels); \
@@ -311,13 +339,13 @@ typedef void (*sbuf_layer_t)(void* vsrc, void* vdst, int src_pos, int dst_pos, i
     }
 
 #define DEFINE_SBUF_LYR24(suffix, srctype, dsttype, func) \
-    void sbuf_layer_##suffix(void* vsrc, void* vdst, int src_pos, int dst_pos, int src_filled, int dst_expected, int src_channels, int dst_channels) { \
+    static void sbuf_layer_##suffix(void* vsrc, void* vdst, int src_pos, int dst_pos, int src_filled, int dst_expected, int src_channels, int dst_channels) { \
         srctype* src = vsrc; \
         dsttype* dst = vdst; \
         int dst_ch_step = (dst_channels - src_channels); \
         for (int s = 0; s < src_filled; s++) { \
             for (int src_ch = 0; src_ch < src_channels; src_ch++) { \
-                put_u24le(dst + dst_pos, func(src[src_pos++]) ); \
+                put_u24ne(dst + dst_pos, func(src[src_pos++]) ); \
                 dst_pos += 3; \
             } \
             dst_pos += dst_ch_step * 3; \
@@ -325,7 +353,7 @@ typedef void (*sbuf_layer_t)(void* vsrc, void* vdst, int src_pos, int dst_pos, i
         \
         for (int s = src_filled; s < dst_expected; s++) { \
             for (int src_ch = 0; src_ch < src_channels; src_ch++) { \
-                put_u24le(dst + dst_pos, 0); \
+                put_u24ne(dst + dst_pos, 0); \
                 dst_pos += 3; \
             } \
             dst_pos += dst_ch_step * 3; \
@@ -403,55 +431,65 @@ void sbuf_copy_layers(sbuf_t* sdst, sbuf_t* ssrc, int dst_ch_start, int dst_max)
     sbuf_layer_src_dst(ssrc->buf, sdst->buf, src_pos, dst_pos, src_copy, dst_max, ssrc->channels, sdst->channels);
 }
 
-void sbuf_silence_part(sbuf_t* sbuf, int from, int count) {
-    int sample_size = sfmt_get_sample_size(sbuf->fmt);
 
-    uint8_t* buf = sbuf->buf;
-    buf += from * sbuf->channels * sample_size;
-    memset(buf, 0, count * sbuf->channels * sample_size);
-}
+typedef void (*sbuf_fade_t)(void* vsrc, int start, int to_do, int fade_pos, int fade_duration);
 
-void sbuf_silence_rest(sbuf_t* sbuf) {
-    sbuf_silence_part(sbuf, sbuf->filled, sbuf->samples - sbuf->filled);
-}
+#define DEFINE_SBUF_FADE(suffix, buftype) \
+    static void sbuf_fade_##suffix(sbuf_t* sbuf, int start, int to_do, int fade_pos, int fade_duration) { \
+        buftype* buf = sbuf->buf; \
+        int s = start * sbuf->channels; \
+        int s_end = (start + to_do) * sbuf->channels; \
+        while (s < s_end) { \
+            double fadedness = (double)(fade_duration - fade_pos) / fade_duration; \
+            for (int i = 0; i < sbuf->channels; i++) { \
+                buf[s] = double_to_int(buf[s] * fadedness); \
+                s++; \
+            } \
+            fade_pos++; \
+        } \
+    }
+
+#define DEFINE_SBUF_FD24(suffix, buftype) \
+    static void sbuf_fade_##suffix(sbuf_t* sbuf, int start, int to_do, int fade_pos, int fade_duration) { \
+        buftype* buf = sbuf->buf; \
+        int s = start * sbuf->channels; \
+        int s_end = (start + to_do) * sbuf->channels; \
+        while (s < s_end) { \
+            double fadedness = (double)(fade_duration - fade_pos) / fade_duration; \
+            for (int i = 0; i < sbuf->channels; i++) { \
+                put_u24ne(buf + s * 3, double_to_int(get_s24ne(buf + s * 3) * fadedness) ); \
+                s++; \
+            } \
+            fade_pos++; \
+        } \
+    }
+
+DEFINE_SBUF_FADE(i16, int16_t);
+DEFINE_SBUF_FADE(i32, int32_t);
+DEFINE_SBUF_FADE(flt, float);
+DEFINE_SBUF_FD24(o24, uint8_t);
 
 void sbuf_fadeout(sbuf_t* sbuf, int start, int to_do, int fade_pos, int fade_duration) {
     //TODO: use interpolated fadedness to improve performance?
     //TODO: use float fadedness?
 
-    int s = start * sbuf->channels;
-    int s_end = (start + to_do) * sbuf->channels;
-
     switch(sbuf->fmt) {
-        case SFMT_S16: {
-            int16_t* buf = sbuf->buf;
-            while (s < s_end) {
-                double fadedness = (double)(fade_duration - fade_pos) / fade_duration;
-                fade_pos++;
-
-                for (int ch = 0; ch < sbuf->channels; ch++) {
-                    buf[s] = double_to_int(buf[s] * fadedness);
-                    s++;
-                }
-            }
+        case SFMT_S16:
+            sbuf_fade_i16(sbuf, start, to_do, fade_pos, fade_duration);
             break;
-        }
-
+        case SFMT_S24:
+        case SFMT_S32:
+            sbuf_fade_i32(sbuf, start, to_do, fade_pos, fade_duration);
+            break;
         case SFMT_FLT:
-        case SFMT_F16: {
-            float* buf = sbuf->buf;
-            while (s < s_end) {
-                double fadedness = (double)(fade_duration - fade_pos) / fade_duration;
-                fade_pos++;
-
-                for (int ch = 0; ch < sbuf->channels; ch++) {
-                    buf[s] = double_to_float(buf[s] * fadedness);
-                    s++;
-                }
-            }
+        case SFMT_F16:
+            sbuf_fade_flt(sbuf, start, to_do, fade_pos, fade_duration);
             break;
-        }
+        case SFMT_O24:
+            sbuf_fade_o24(sbuf, start, to_do, fade_pos, fade_duration);
+            break;
         default:
+            VGM_LOG("SBUF: missing fade for fmt=%i\n", sbuf->fmt);
             break;
     }
 
