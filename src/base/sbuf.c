@@ -36,6 +36,7 @@ static inline int float_to_int(float val) {
 #endif
 }
 
+#if 0
 static inline int double_to_int(double val) {
 #if PCM16_ROUNDING_LRINT
     return lrint(val);
@@ -46,12 +47,13 @@ static inline int double_to_int(double val) {
 #endif
 }
 
-static inline int64_t float_to_i64(float val) {
-    return (int64_t)val;
-}
-
 static inline float double_to_float(double val) {
     return (float)val;
+}
+#endif
+
+static inline int64_t float_to_i64(float val) {
+    return (int64_t)val;
 }
 
 // TO-DO: investigate if BE machines need BE 24-bit
@@ -440,9 +442,9 @@ typedef void (*sbuf_fade_t)(void* vsrc, int start, int to_do, int fade_pos, int 
         int s = start * sbuf->channels; \
         int s_end = (start + to_do) * sbuf->channels; \
         while (s < s_end) { \
-            double fadedness = (double)(fade_duration - fade_pos) / fade_duration; \
+            float fadedness = (float)(fade_duration - fade_pos) / fade_duration; \
             for (int i = 0; i < sbuf->channels; i++) { \
-                buf[s] = double_to_int(buf[s] * fadedness); \
+                buf[s] = float_to_int(buf[s] * fadedness); \
                 s++; \
             } \
             fade_pos++; \
@@ -455,9 +457,9 @@ typedef void (*sbuf_fade_t)(void* vsrc, int start, int to_do, int fade_pos, int 
         int s = start * sbuf->channels; \
         int s_end = (start + to_do) * sbuf->channels; \
         while (s < s_end) { \
-            double fadedness = (double)(fade_duration - fade_pos) / fade_duration; \
+            float fadedness = (float)(fade_duration - fade_pos) / fade_duration; \
             for (int i = 0; i < sbuf->channels; i++) { \
-                put_u24ne(buf + s * 3, double_to_int(get_s24ne(buf + s * 3) * fadedness) ); \
+                put_u24ne(buf + s * 3, float_to_int(get_s24ne(buf + s * 3) * fadedness) ); \
                 s++; \
             } \
             fade_pos++; \
