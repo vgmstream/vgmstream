@@ -285,6 +285,9 @@ static sbuf_copy_t copy_matrix[SFMT_MAX][SFMT_MAX] = {
 // copy N samples from ssrc into dst (should be clamped externally)
 //TODO: may want to handle sdst->flled + samples externally?
 void sbuf_copy_segments(sbuf_t* sdst, sbuf_t* ssrc, int samples) {
+    // rarely when decoding with empty frames, may not setup ssrc
+    if (samples == 0)
+        return;
 
     if (ssrc->channels != sdst->channels) {
         // 0'd other channels first (uncommon so probably fine albeit slower-ish)

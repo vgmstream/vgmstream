@@ -18,6 +18,8 @@ typedef struct {
     void (*reset)(void* codec_data);
     void (*seek)(VGMSTREAM* v, int32_t num_sample);
 
+    bool (*decode_buf)(VGMSTREAM* v, sbuf_t* sdst);         // alternate decoding for codecs that don't provide their own buffer
+
     // info for vgmstream
     //uint32_t flags; 
     // alloc size of effect's private data (don't set to manage manually in init/free)
