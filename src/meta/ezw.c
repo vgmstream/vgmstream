@@ -1,41 +1,45 @@
 #include "meta.h"
 #include "../coding/coding.h"
+#include "../util/meta_utils.h"
 
-/* EZWAVE - EZ2DJ (Arcade) */
-VGMSTREAM * init_vgmstream_ezw(STREAMFILE *streamFile) {
-    VGMSTREAM * vgmstream = NULL;
-	off_t start_offset, data_size;
-    int loop_flag, channel_count;
+/* EZW - from AmuseWorld games [EZ2DJ 5TH (AC)] */
+VGMSTREAM* init_vgmstream_ezw(STREAMFILE* sf) {
 
-    /* check extension, case insensitive */
-    if ( !check_extensions(streamFile,"ezw"))
-        goto fail;
+    /* checks */
+    int channels = read_s16le(0x00,sf);
+    if (channels < 1 || channels > 16) //arbitrary max
+        return NULL;
 
+    // .ezw: EZ2DJ
+    // .ssf: EZ2AC    
+    if (!check_extensions(sf,"ezw,ssf"))
+        return NULL;
 
-    loop_flag = 0;
-	channel_count = read_8bit(0x0, streamFile);
-	data_size = read_32bitLE(0xE,streamFile);
+    // no header ID but internally it's referred as the "EZW Format"
+    // (some early games use regular .wav instead)
 
+    meta_header_t h = {0};
+    h.meta = meta_EZW;
 
-    /* build the VGMSTREAM */
-    vgmstream = allocate_vgmstream(channel_count,loop_flag);
-    if (!vgmstream) goto fail;
+    h.channels      = read_s16le(0x00, sf);
+    h.sample_rate   = read_s32le(0x02, sf);
+    // 06: bitrate
+    h.interleave    = read_s16le(0x0A, sf) / channels;
+    int bps         = read_s16le(0x0C, sf);
+    h.stream_size   = read_u32le(0x0E,sf);
 
+    if (h.interleave != 0x02)
+        return NULL;
+    if (bps != 16)
+        return NULL;
 
-	start_offset = 0x12;
-    vgmstream->sample_rate = read_32bitLE(0x2,streamFile);
-	vgmstream->coding_type = coding_PCM16LE;
-    vgmstream->num_samples = data_size/(channel_count*2);
-	vgmstream->layout_type = layout_interleave;
-	vgmstream->interleave_block_size = 0x2;
-    vgmstream->meta_type = meta_EZW;
+    h.stream_offset = 0x12;
+    h.num_samples   = pcm16_bytes_to_samples(h.stream_size, channels);
 
-    /* open the file for reading */
-    if ( !vgmstream_open_stream(vgmstream, streamFile, start_offset) )
-        goto fail;
-    return vgmstream;
+    h.coding = coding_PCM16LE;
+    h.layout = layout_interleave;
+    h.open_stream = true;
+    h.sf = sf;
 
-fail:
-    close_vgmstream(vgmstream);
-    return NULL;
+    return alloc_metastream(&h);
 }

@@ -275,8 +275,6 @@ VGMSTREAM * init_vgmstream_sat_sap(STREAMFILE *streamFile);
 
 VGMSTREAM * init_vgmstream_dc_idvi(STREAMFILE *streamFile);
 
-VGMSTREAM * init_vgmstream_ps2_rnd(STREAMFILE *streamFile);
-
 VGMSTREAM * init_vgmstream_kraw(STREAMFILE *streamFile);
 
 VGMSTREAM* init_vgmstream_omu(STREAMFILE* sf);
@@ -334,7 +332,8 @@ VGMSTREAM* init_vgmstream_ssm(STREAMFILE* sf);
 
 VGMSTREAM * init_vgmstream_ps2_joe(STREAMFILE * streamFile);
 
-VGMSTREAM * init_vgmstream_vgs(STREAMFILE * streamFile);
+VGMSTREAM* init_vgmstream_vgs(STREAMFILE* sf);
+VGMSTREAM* init_vgmstream_vgs_old(STREAMFILE* sf);
 
 VGMSTREAM * init_vgmstream_dcs_wav(STREAMFILE * streamFile);
 

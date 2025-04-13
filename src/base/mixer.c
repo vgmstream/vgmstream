@@ -74,11 +74,12 @@ bool mixer_is_active(mixer_t* mixer) {
 static void setup_mixbuf(mixer_t* mixer, sbuf_t* sbuf) {
     sbuf_t* smix = &mixer->smix;
 
-    // mixbuf can be interpreted as FLT or F32; try to use src's to keep buf as-is (less rounding errors)
-    if (sbuf->fmt == SFMT_F32 || sbuf->fmt == SFMT_FLT)
-        sbuf_init(smix, sbuf->fmt, mixer->mixbuf, sbuf->filled, sbuf->channels); //mixer->input_channels
+    // mixbuf (float) can be interpreted as F16, for 1:1 mapping with PCM16 (and possibly less rounding errors with mixops)
+    // for PCM24 regular float seems ok and 1:1 as well
+    if (sbuf->fmt == SFMT_S16)
+        sbuf_init(smix, SFMT_F16, mixer->mixbuf, sbuf->filled, sbuf->channels);
     else
-        sbuf_init(smix, SFMT_F32, mixer->mixbuf, sbuf->filled, sbuf->channels);
+        sbuf_init(smix, sbuf->fmt, mixer->mixbuf, sbuf->filled, sbuf->channels);
 
     // remix to temp buf (somehow using float buf rather than int32 is faster?)
     sbuf_copy_segments(smix, sbuf, sbuf->filled);
@@ -100,12 +101,20 @@ static void setup_outbuf(mixer_t* mixer, sbuf_t* sbuf) {
 
 void mixer_process(mixer_t* mixer, sbuf_t* sbuf, int32_t current_pos) {
 
-    /* external */
+    // external
     //if (!mixer_is_active(mixer))
     //    return;
 
-    /* try to skip if no fades apply (set but does nothing yet) + only has fades 
-     * (could be done in mix op but avoids upgrading bufs in some cases) */
+#if 0
+    // TODO: not possible to copy from src to dst directly at the moment, since src doubles as dst
+    // optimize copy only ops to skip temp buffer
+    if (mixer->chain_count == 0 && mixer->force_type != SFMT_NONE) {
+        ...
+    }
+#endif
+
+    // try to skip if no fades apply (set but does nothing yet) + only has fades 
+    // (could be done in mix op but avoids upgrading bufs in some cases)
     if (mixer->has_fade) {
         //;VGM_LOG("MIX: fade test %i, %i\n", data->has_non_fade, mixer_op_fade_is_active(data, current_pos, current_pos + sample_count));
         if (!mixer->has_non_fade && !mixer_op_fade_is_active(mixer, current_pos, current_pos + sbuf->filled))

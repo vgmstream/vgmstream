@@ -118,18 +118,24 @@ libvgmstream_sfmt_t api_get_output_sample_type(libvgmstream_priv_t* priv) {
     switch(format) {
         case SFMT_S16: return LIBVGMSTREAM_SFMT_PCM16;
         case SFMT_FLT: return LIBVGMSTREAM_SFMT_FLOAT;
-        case SFMT_F32: return LIBVGMSTREAM_SFMT_FLOAT; //shouldn't happen?
+        case SFMT_S32: return LIBVGMSTREAM_SFMT_PCM32;
+        case SFMT_O24: return LIBVGMSTREAM_SFMT_PCM24;
+         
+        // internal use only, shouldn't happen (misconfigured, see prepare_mixing)
+        case SFMT_S24:
+        case SFMT_F16:
         default:
-            return 0x00; //???
+            return 0x00;
     }
 }
 
 int api_get_sample_size(libvgmstream_sfmt_t sample_format) {
     switch(sample_format) {
-        //case LIBVGMSTREAM_SFMT_PCM24:
-        //case LIBVGMSTREAM_SFMT_PCM32:
         case LIBVGMSTREAM_SFMT_FLOAT:
+        case LIBVGMSTREAM_SFMT_PCM32:
             return 0x04;
+        case LIBVGMSTREAM_SFMT_PCM24:
+            return 0x03;
         case LIBVGMSTREAM_SFMT_PCM16:
         default:
             return 0x02;

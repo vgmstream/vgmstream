@@ -64,7 +64,7 @@
 LIBVGMSTREAM_API uint32_t libvgmstream_get_version(void);
 
 /* CHANGELOG:
- * - 1.0.0: initial version
+ * - 1.0.0: beta version
  */
 
 
@@ -74,8 +74,8 @@ LIBVGMSTREAM_API uint32_t libvgmstream_get_version(void);
 /* available sample formats, interleaved: buf[0]=ch0, buf[1]=ch1, buf[2]=ch0, buf[3]=ch0, ... */
 typedef enum {
     LIBVGMSTREAM_SFMT_PCM16 = 1,
-  //LIBVGMSTREAM_SFMT_PCM24 = 2,
-  //LIBVGMSTREAM_SFMT_PCM32 = 3,
+    LIBVGMSTREAM_SFMT_PCM24 = 2,
+    LIBVGMSTREAM_SFMT_PCM32 = 3,
     LIBVGMSTREAM_SFMT_FLOAT = 4,
 } libvgmstream_sfmt_t;
 

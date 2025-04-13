@@ -203,7 +203,7 @@ void WINAPI xmplay_SetFormat(XMPFORMAT *form) {
     // xmplay only handles float samples so this is info only
     switch(vgmstream->format->sample_format) {
         case LIBVGMSTREAM_SFMT_FLOAT: form->res = 4; break;
-      //case LIBVGMSTREAM_SFMT_PCM24: form->res = 3; break;
+        case LIBVGMSTREAM_SFMT_PCM24: form->res = 3; break;
         case LIBVGMSTREAM_SFMT_PCM16: form->res = 2; break;
       //case LIBVGMSTREAM_SFMT_PCM8:  form->res = 1; break;
         default: form->res = 0; break;

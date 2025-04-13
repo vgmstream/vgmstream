@@ -422,6 +422,7 @@ static const char* extension_list[] = {
     "oor",
     "opu",
     //"opus", //common
+    "opusnx",
     "opusx",
     "oto", //txth/reserved [Vampire Savior (SAT)]
     "ovb", //txth/semi [namCollection: Tekken (PS2), Tekken 5: Tekken 1-3 (PS2)]
@@ -460,7 +461,6 @@ static const char* extension_list[] = {
     "rda", //FFmpeg/reserved [Rhythm Destruction (PC)]
     "res", //txth/reserved [Spider-Man: Web of Shadows (PSP)]
     "rkv",
-    "rnd",
     "rof",
     "rpgmvo",
     "rrds",
@@ -501,7 +501,7 @@ static const char* extension_list[] = {
     "sbr",
     "sbv",
     "sig",
-    "slb", //txth/reserved [Vingt-et-un Systems PS2 games (Last Escort, etc]
+    "slb", //txth/reserved [Vingt-et-un Systems PS2 games (Last Escort, etc)]
     "sm0",
     "sm1",
     "sm2",
@@ -560,6 +560,7 @@ static const char* extension_list[] = {
     "srsa",
     "ss2",
     "ssd", //txth/reserved [Zack & Wiki (Wii)]
+    "ssf",
     "ssm",
     "sspr",
     "ssp",
@@ -1164,7 +1165,7 @@ static const meta_info meta_info_list[] = {
         {meta_YDSP,                 "Yuke's YDSP Header"},
         {meta_SSM,                  "HAL Laboratory .SSM Header"},
         {meta_PS2_JOE,              "Asobo Studio .JOE header"},
-        {meta_VGS,                  "Guitar Hero VGS Header"},
+        {meta_VGS,                  "Harmonix VGS Header"},
         {meta_DCS_WAV,              "In Utero DCS+WAV header"},
         {meta_SMP,                  "Infernal Engine .smp header"},
         {meta_MUL,                  "Crystal Dynamics .MUL header"},
@@ -1311,7 +1312,7 @@ static const meta_info meta_info_list[] = {
         {meta_UBI_SB,               "Ubisoft SBx header"},
         {meta_UBI_APM,              "Ubisoft APM header"},
         {meta_NAAC,                 "Namco NAAC header"},
-        {meta_EZW,                  "EZ2DJ EZWAVE header"},
+        {meta_EZW,                  "AmuseWorld EZW header"},
         {meta_VXN,                  "Gameloft VXN header"},
         {meta_EA_SNR_SNS,           "Electronic Arts SNR+SNS header"},
         {meta_EA_SPS,               "Electronic Arts SPS header"},

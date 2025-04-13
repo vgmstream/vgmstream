@@ -431,10 +431,6 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Capcom IDVI header [*DC_IDVI*]
   - *dc_idvi*: `.dvi .idvi`
   - Codecs: DVI_IMA_mono
-- **ps2_rnd.c**
-  - Cauldron HGC1 header [*HGC1*]
-  - *ps2_rnd*: `.rnd`
-  - Codecs: PSX
 - **kraw.c**
   - Geometry Wars: Galaxies KRAW header [*KRAW*]
   - *kraw*: `.kraw`
@@ -545,9 +541,10 @@ different internally (encrypted, different versions, etc) and not always can be 
   - *ps2_joe*: `.joe`
   - Codecs: PSX
 - **vgs.c**
-  - Guitar Hero VGS Header [*VGS*]
+  - Harmonix VGS Header [*VGS*]
   - *vgs*: `.vgs`
-  - Codecs: PSX_badflags
+  - *vgs_old*: `.vgs`
+  - Codecs: PSX_badflags PSX
 - **dcs_wav.c**
   - In Utero DCS+WAV header [*DCS_WAV*]
   - *dcs_wav*: `.dcs + .wav`
@@ -992,7 +989,7 @@ different internally (encrypted, different versions, etc) and not always can be 
     - Subfiles: *msf*
   - *s_pack*: `.ged`
     - Subfiles: *ghs*
-  - Codecs: PCM16LE MSADPCM XMA ATRAC9
+  - Codecs: PCM16LE MSADPCM HEVAG XMA ATRAC9
 - **aac_triace.c**
   - tri-Ace AAC header [*AAC_TRIACE*]
   - *aac_triace*: `.aac .laac`
@@ -1098,10 +1095,6 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Ubisoft APM header [*UBI_APM*]
   - *ubi_apm*: `.apm`
   - Codecs: DVI_IMA_mono
-- **ezw.c**
-  - EZ2DJ EZWAVE header [*EZW*]
-  - *ezw*: `.ezw`
-  - Codecs: PCM16LE
 - **vxn.c**
   - Gameloft VXN header [*VXN*]
   - *vxn*: `.vxn`
@@ -1308,10 +1301,6 @@ different internally (encrypted, different versions, etc) and not always can be 
   - High Voltage SVGp header [*SVGP*]
   - *svgp*: `.svg`
   - Codecs: PSX
-- **vai.c**
-  - Asobo Studio .VAI header [*VAI*]
-  - *vai*: `.vai`
-  - Codecs: NGC_DSP
 - **aif_asobo.c**
   - Asobo Studio .AIF header [*AIF_ASOBO*]
   - *aif_asobo*: `.aif .laif`
@@ -1919,6 +1908,14 @@ different internally (encrypted, different versions, etc) and not always can be 
   - Monster SONG header [*SONG_MONSTER*]
   - *song_monster*: `.sn0 .sng`
   - Codecs: PCM16BE
+- **vai.c**
+  - Asobo Studio .VAI header [*VAI*]
+  - *vai*: `.vai`
+  - Codecs: NGC_DSP
+- **ezw.c**
+  - AmuseWorld EZW header [*EZW*]
+  - *ezw*: `.ezw .ssf`
+  - Codecs: PCM16LE
 - **pos.c**
   - RIFF WAVE header (.pos looping) [*RIFF_WAVE_POS*]
   - *pos*: `.pos + .wav`

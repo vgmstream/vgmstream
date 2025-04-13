@@ -13,6 +13,9 @@ extern const codec_info_t compresswave_decoder;
 extern const codec_info_t speex_decoder;
 extern const codec_info_t imuse_decoder;
 extern const codec_info_t mio_decoder;
+extern const codec_info_t pcm32_decoder;
+extern const codec_info_t pcm24_decoder;
+extern const codec_info_t pcmfloat_decoder;
 
 const codec_info_t* codec_get_info(VGMSTREAM* v) {
     switch(v->coding_type) {
@@ -40,6 +43,13 @@ const codec_info_t* codec_get_info(VGMSTREAM* v) {
             return &imuse_decoder;
         case coding_MIO:
             return &mio_decoder;
+        case coding_PCM32LE:
+            return &pcm32_decoder;
+        case coding_PCM24LE:
+        case coding_PCM24BE:
+            return &pcm24_decoder;
+        case coding_PCMFLOAT:
+            return &pcmfloat_decoder;
         default:
             return NULL;
     }

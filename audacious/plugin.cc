@@ -393,6 +393,8 @@ bool VgmstreamPlugin::play(const char * filename, VFSFile & file) {
     switch(vgmstream->format->sample_format) {
         case LIBVGMSTREAM_SFMT_FLOAT: format = FMT_FLOAT; break;
         case LIBVGMSTREAM_SFMT_PCM16: format = FMT_S16_LE; break;
+        case LIBVGMSTREAM_SFMT_PCM24: format = FMT_S24_LE; break;
+        case LIBVGMSTREAM_SFMT_PCM32: format = FMT_S32_LE; break;
         default:
             libvgmstream_free(vgmstream);
             return false;

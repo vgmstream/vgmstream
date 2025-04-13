@@ -763,14 +763,23 @@ bool decode_uses_internal_offset_updates(VGMSTREAM* vgmstream) {
 
 
 // decode frames for decoders which decode frame by frame and have their own sample buffer
-static void decode_frames(sbuf_t* sdst, VGMSTREAM* vgmstream) {
+static void decode_frames(sbuf_t* sdst, VGMSTREAM* vgmstream, int samples_to_do) {
     const int max_empty = 1000;
     int num_empty = 0;
     decode_state_t* ds = vgmstream->decode_state;
     sbuf_t* ssrc = &ds->sbuf;
 
     const codec_info_t* codec_info = codec_get_info(vgmstream);
-    ds->samples_left = sdst->samples;
+    ds->samples_left = samples_to_do; //sdst->samples; // TODO this can be slow for interleaved decoders
+
+    // old-style decoding
+    if (codec_info && codec_info->decode_buf) {
+        bool ok = codec_info->decode_buf(vgmstream, sdst);
+        if (!ok) goto decode_fail;
+
+        sdst->filled += ds->samples_left;
+        return;
+    }
 
     // fill the external buf by decoding N times; may read partially that buf
     while (sdst->filled < sdst->samples) {
@@ -846,7 +855,7 @@ void decode_vgmstream(sbuf_t* sdst, VGMSTREAM* vgmstream, int samples_to_do) {
 
     switch (vgmstream->coding_type) {
         case coding_SILENCE:
-            sbuf_silence_s16(buffer, samples_to_do, vgmstream->channels, 0);
+            sbuf_silence_rest(sdst);
             break;
 
         case coding_CRI_ADX:
@@ -954,35 +963,6 @@ void decode_vgmstream(sbuf_t* sdst, VGMSTREAM* vgmstream, int samples_to_do) {
                         vgmstream->channels, vgmstream->samples_into_block, samples_to_do);
             }
             break;
-        case coding_PCMFLOAT:
-            for (ch = 0; ch < vgmstream->channels; ch++) {
-                decode_pcmfloat(&vgmstream->ch[ch], buffer+ch,
-                        vgmstream->channels, vgmstream->samples_into_block, samples_to_do,
-                        vgmstream->codec_endian);
-            }
-            break;
-
-        case coding_PCM24LE:
-            for (ch = 0; ch < vgmstream->channels; ch++) {
-                decode_pcm24le(&vgmstream->ch[ch], buffer+ch,
-                        vgmstream->channels, vgmstream->samples_into_block, samples_to_do);
-            }
-            break;
-
-        case coding_PCM24BE:
-            for (ch = 0; ch < vgmstream->channels; ch++) {
-                decode_pcm24be(&vgmstream->ch[ch], buffer + ch,
-                    vgmstream->channels, vgmstream->samples_into_block, samples_to_do);
-            }
-            break;
-
-        case coding_PCM32LE:
-            for (ch = 0; ch < vgmstream->channels; ch++) {
-                decode_pcm32le(&vgmstream->ch[ch], buffer+ch,
-                        vgmstream->channels, vgmstream->samples_into_block, samples_to_do);
-            }
-            break;
-
         case coding_NDS_IMA:
             for (ch = 0; ch < vgmstream->channels; ch++) {
                 decode_nds_ima(&vgmstream->ch[ch], buffer+ch,
@@ -1551,7 +1531,7 @@ void decode_vgmstream(sbuf_t* sdst, VGMSTREAM* vgmstream, int samples_to_do) {
             sbuf_t stmp = *sdst;
             stmp.samples = stmp.filled + samples_to_do; //TODO improve 
 
-            decode_frames(&stmp, vgmstream);
+            decode_frames(&stmp, vgmstream, samples_to_do);
             break;
         }
     }

@@ -36,7 +36,7 @@ typedef struct {
     // wav config
     bool write_lwav;
     bool write_original_wav;
-    bool write_float_wav;
+    int wav_force_output;
 
     // print flags
     bool print_metaonly;

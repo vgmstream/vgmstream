@@ -97,7 +97,7 @@ bool decode_frame_tac(VGMSTREAM* v) {
     if (samples < 0)
         return false;
 
-    sbuf_init_f32(&ds->sbuf, data->fbuf, samples, v->channels);
+    sbuf_init_f16(&ds->sbuf, data->fbuf, samples, v->channels);
     ds->sbuf.filled = samples;
 
     // copy and let decoder handle
@@ -146,7 +146,7 @@ static void seek_tac(VGMSTREAM* v, int32_t num_sample) {
 }
 
 const codec_info_t tac_decoder = {
-    .sample_type = SFMT_F32,
+    .sample_type = SFMT_F16,
     .decode_frame = decode_frame_tac,
     .free = free_tac,
     .reset = reset_tac,

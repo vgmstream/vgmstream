@@ -352,6 +352,8 @@ bool input_vgmstream::decode_run(audio_chunk & p_chunk, abort_callback & p_abort
             p_chunk.set_data_floatingpoint_ex(buf, bytes, sample_rate, channels, bps, 0, channel_config);
             break;
         case LIBVGMSTREAM_SFMT_PCM16:
+        case LIBVGMSTREAM_SFMT_PCM24:
+        case LIBVGMSTREAM_SFMT_PCM32:
             p_chunk.set_data_fixedpoint(buf, bytes, sample_rate, channels, bps, channel_config);
             break;
         default:

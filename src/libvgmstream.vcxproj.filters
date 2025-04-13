@@ -784,6 +784,9 @@
     <ClCompile Include="coding\tgcadpcm_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="coding\ualaw_decoder.c">
+      <Filter>coding\Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="coding\ubi_adpcm_decoder.c">
       <Filter>coding\Source Files</Filter>
     </ClCompile>
@@ -1787,9 +1790,6 @@
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ps2_joe.c">
-      <Filter>meta\Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="meta\ps2_rnd.c">
       <Filter>meta\Source Files</Filter>
     </ClCompile>
     <ClCompile Include="meta\ps2_snd.c">
