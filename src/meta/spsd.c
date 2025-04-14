@@ -31,7 +31,7 @@ VGMSTREAM* init_vgmstream_spsd(STREAMFILE *sf) {
     /* At 0x30(4*ch) is some config per channel but doesn't seem to affect ADPCM (found with PCM too) */
 
 
-    //todo with 0x80 seems 0x2c is a loop_start_sample but must be adjusted to +1 block? (uncommon flag though)
+    // With 0x80, 0x2c is a loop_start_sample but must be adjusted to +1 block (uncommon flag though)
     loop_flag = (flags & 0x80);
     channels = ((flags & 0x01) || (flags & 0x02)) ? 2 : 1; /* 0x02 is rare (Virtua Tennis 2) */
     start_offset = 0x40;
@@ -63,7 +63,7 @@ VGMSTREAM* init_vgmstream_spsd(STREAMFILE *sf) {
         case 0x03: /* standard */
             vgmstream->coding_type = coding_AICA_int;
             vgmstream->num_samples = yamaha_bytes_to_samples(data_size, channels);
-            vgmstream->loop_start_sample = /*read_s32le(0x2c,streamFile) +*/ yamaha_bytes_to_samples(0x2000,1);
+            vgmstream->loop_start_sample = read_s32le(0x2c,sf) + yamaha_bytes_to_samples(0x2000,1);
             vgmstream->loop_end_sample = vgmstream->num_samples;
             break;
 
