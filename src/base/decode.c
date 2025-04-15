@@ -71,12 +71,6 @@ void decode_free(VGMSTREAM* vgmstream) {
         free_ea_mt(vgmstream->codec_data, vgmstream->channels);
     }
 
-#ifdef VGM_USE_FFMPEG
-    if (vgmstream->coding_type == coding_FFmpeg) {
-        free_ffmpeg(vgmstream->codec_data);
-    }
-#endif
-
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
     if (vgmstream->coding_type == coding_MP4_AAC) {
         free_mp4_aac(vgmstream->codec_data);
@@ -163,12 +157,6 @@ void decode_seek(VGMSTREAM* vgmstream) {
     if (vgmstream->coding_type == coding_EA_MT) {
         seek_ea_mt(vgmstream, vgmstream->loop_current_sample);
     }
-
-#ifdef VGM_USE_FFMPEG
-    if (vgmstream->coding_type == coding_FFmpeg) {
-        seek_ffmpeg(vgmstream->codec_data, vgmstream->loop_current_sample);
-    }
-#endif
 
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
     if (vgmstream->coding_type == coding_MP4_AAC) {
@@ -278,12 +266,6 @@ void decode_reset(VGMSTREAM* vgmstream) {
 #ifdef VGM_USE_CELT
     if (vgmstream->coding_type == coding_CELT_FSB) {
         reset_celt_fsb(vgmstream->codec_data);
-    }
-#endif
-
-#ifdef VGM_USE_FFMPEG
-    if (vgmstream->coding_type == coding_FFmpeg) {
-        reset_ffmpeg(vgmstream->codec_data);
     }
 #endif
 
@@ -464,10 +446,6 @@ int decode_get_samples_per_frame(VGMSTREAM* vgmstream) {
 #ifdef VGM_USE_G719
         case coding_G719:
             return 48000/50;
-#endif
-#ifdef VGM_USE_FFMPEG
-        case coding_FFmpeg:
-            return 0;
 #endif
         case coding_MTAF:
             return 128*2;
@@ -679,9 +657,6 @@ int decode_get_frame_size(VGMSTREAM* vgmstream) {
 #endif
 #ifdef VGM_USE_G719
         case coding_G719:
-#endif
-#ifdef VGM_USE_FFMPEG
-        case coding_FFmpeg:
 #endif
         case coding_MTAF:
             return vgmstream->interleave_block_size;
@@ -1120,11 +1095,6 @@ void decode_vgmstream(sbuf_t* sdst, VGMSTREAM* vgmstream, int samples_to_do) {
         case coding_ICE_DCT:
             decode_ice(vgmstream->codec_data, buffer, samples_to_do);
             break;
-#ifdef VGM_USE_FFMPEG
-        case coding_FFmpeg:
-            decode_ffmpeg(vgmstream, buffer, samples_to_do, vgmstream->channels);
-            break;
-#endif
 #if defined(VGM_USE_MP4V2) && defined(VGM_USE_FDKAAC)
         case coding_MP4_AAC:
             decode_mp4_aac(vgmstream->codec_data, buffer, samples_to_do, vgmstream->channels);

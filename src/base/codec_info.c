@@ -16,6 +16,9 @@ extern const codec_info_t mio_decoder;
 extern const codec_info_t pcm32_decoder;
 extern const codec_info_t pcm24_decoder;
 extern const codec_info_t pcmfloat_decoder;
+#ifdef VGM_USE_FFMPEG
+extern const codec_info_t ffmpeg_decoder;
+#endif
 
 const codec_info_t* codec_get_info(VGMSTREAM* v) {
     switch(v->coding_type) {
@@ -50,6 +53,10 @@ const codec_info_t* codec_get_info(VGMSTREAM* v) {
             return &pcm24_decoder;
         case coding_PCMFLOAT:
             return &pcmfloat_decoder;
+#ifdef VGM_USE_FFMPEG
+        case coding_FFmpeg:
+            return &ffmpeg_decoder;
+#endif
         default:
             return NULL;
     }

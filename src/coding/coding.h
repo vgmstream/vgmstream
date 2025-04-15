@@ -610,10 +610,7 @@ ffmpeg_codec_data* init_ffmpeg_offset(STREAMFILE* sf, uint64_t start, uint64_t s
 ffmpeg_codec_data* init_ffmpeg_header_offset(STREAMFILE* sf, uint8_t* header, uint64_t header_size, uint64_t start, uint64_t size);
 ffmpeg_codec_data* init_ffmpeg_header_offset_subsong(STREAMFILE* sf, uint8_t* header, uint64_t header_size, uint64_t start, uint64_t size, int target_subsong);
 
-void decode_ffmpeg(VGMSTREAM* vgmstream, sample_t* outbuf, int32_t samples_to_do, int channels);
-void reset_ffmpeg(ffmpeg_codec_data* data);
-void seek_ffmpeg(ffmpeg_codec_data* data, int32_t num_sample);
-void free_ffmpeg(ffmpeg_codec_data* data);
+void free_ffmpeg(void* data);
 
 void ffmpeg_set_skip_samples(ffmpeg_codec_data* data, int skip_samples);
 uint32_t ffmpeg_get_channel_layout(ffmpeg_codec_data* data);
