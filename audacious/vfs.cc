@@ -11,7 +11,9 @@ extern "C" {
 typedef struct {
     VFSFile* vfsFile;
     int64_t offset;
-    char name[0x4000];
+    GUri* uri;
+    gchar* filename;
+    gchar* hostname;
 } vfs_priv_t;
 
 static libstreamfile_t* open_vfs_by_vfsfile(VFSFile* file, const char* path);
@@ -43,20 +45,50 @@ static int64_t vfs_get_size(void* user_data) {
 
 static const char* vfs_get_name(void* user_data) {
     vfs_priv_t* priv = (vfs_priv_t*)user_data;
-    return priv->name;
+    if (priv->filename)
+        return priv->filename;
+
+    return g_uri_get_path(priv->uri);
 }
 
 static libstreamfile_t* vfs_open(void* user_data, const char* filename) {
+    vfs_priv_t* priv = (vfs_priv_t*)user_data;
+
     if (!filename)
         return NULL;
 
-    return open_vfs(filename);
+    // Reconstruct a URI based on which name vfs_get_name() returns.
+    gchar* new_uri = NULL;
+    if (priv->filename)
+        new_uri = g_filename_to_uri(filename, priv->hostname, NULL);
+    if (!new_uri) {
+        // Replace the path and drop the query and fragment.
+        new_uri = g_uri_join(
+            G_URI_FLAGS_NONE,
+            g_uri_get_scheme(priv->uri),
+            g_uri_get_userinfo(priv->uri),
+            g_uri_get_host(priv->uri),
+            g_uri_get_port(priv->uri),
+            filename,
+            NULL,
+            NULL
+        );
+    }
+
+    if (!new_uri)
+        return NULL;
+
+    libstreamfile_t* result = open_vfs(new_uri);
+    g_free(new_uri);
+    return result;
 }
 
 static void vfs_close(libstreamfile_t* libsf) {
     if (libsf->user_data) {
         vfs_priv_t* priv = (vfs_priv_t*)libsf->user_data;
-        //if (streamfile->vfsFile)
+        g_free(priv->hostname);
+        g_free(priv->filename);
+        g_uri_unref(priv->uri);
         delete priv->vfsFile; //fcloses the internal file too
         free(priv);
     }
@@ -81,18 +113,29 @@ static libstreamfile_t* open_vfs_by_vfsfile(VFSFile* file, const char* path) {
     priv = (vfs_priv_t*)libsf->user_data;
     priv->vfsFile = file;
     priv->offset = 0;
-    strncpy(priv->name, path, sizeof(priv->name));
-    priv->name[sizeof(priv->name) - 1] = '\0';
 
-    // for reference, actual file path ("name" has protocol path, file://...).
-    // name should work for all situations but in case it's needed again maybe
-    // get_name should always return realname, as it's used to open companion VFSFiles
-    //{
-    //    gchar *realname = g_filename_from_uri(path, NULL, NULL);
-    //    strncpy(priv->realname, realname, sizeof(priv->realname));
-    //    priv->realname[sizeof(priv->realname) - 1] = '\0';
-    //    g_free(realname);
-    //}
+    // path is a URI, not a filesystem path.
+    // Characters such as # are percent-encoded.
+    // G_URI_FLAGS_NONE will decode percent-encoded characters
+    // in all parts of the URI.
+    priv->uri = g_uri_parse(path, G_URI_FLAGS_NONE, NULL);
+    if (!priv->uri) goto fail;
+
+    // From <https://docs.gtk.org/glib/struct.Uri.html#file-uris>:
+    //
+    // > Note that Windows and Unix both define special rules for parsing file:// URIs
+    // > (involving non-UTF-8 character sets on Unix,
+    // > and the interpretation of path separators on Windows).
+    // > GUri does not implement these rules.
+    // > Use g_filename_from_uri() and g_filename_to_uri()
+    // > if you want to properly convert between file:// URIs and local filenames.
+    //
+    // Since vgmstream normally expects filesystem paths (filenames),
+    // let's give it a filesystem path if we can.
+    //
+    // g_filename_from_uri will return NULL if the URI is not a file:// URI.
+    // In that case, we'll fall back to using the GUri* instead.
+    priv->filename = g_filename_from_uri(path, &priv->hostname, NULL);
 
     return libsf;
 fail:
