@@ -68,11 +68,11 @@ static libstreamfile_t* open_vfs_by_vfsfile(VFSFile* file, const char* path) {
     libstreamfile_t* libsf = (libstreamfile_t*)calloc(1, sizeof(libstreamfile_t));
     if (!libsf) return NULL;
 
-    libsf->read = (int (*)(void*, uint8_t*, int64_t, int)) vfs_read;
-    libsf->get_size = (int64_t (*)(void*)) vfs_get_size;
-    libsf->get_name = (const char* (*)(void*)) vfs_get_name;
-    libsf->open = (libstreamfile_t* (*)(void*, const char* const)) vfs_open;
-    libsf->close = (void (*)(libstreamfile_t*)) vfs_close;
+    libsf->read = vfs_read;
+    libsf->get_size = vfs_get_size;
+    libsf->get_name = vfs_get_name;
+    libsf->open = vfs_open;
+    libsf->close = vfs_close;
 
     libsf->user_data = (vfs_priv_t*)calloc(1, sizeof(vfs_priv_t));
     if (!libsf->user_data) goto fail;
