@@ -58,6 +58,7 @@ static void vfs_close(libstreamfile_t* libsf) {
         vfs_priv_t* priv = (vfs_priv_t*)libsf->user_data;
         //if (streamfile->vfsFile)
         delete priv->vfsFile; //fcloses the internal file too
+        free(priv);
     }
     free(libsf);
 }
